@@ -322,16 +322,16 @@ int compute_rowdata(int *ret, unsigned char *start, int len, int step)
     n = 0;
 
     for (i = 0; i < len; i++) {
-        if (start[i*step] == GRID_UNKNOWN)
-            return -1;
-
         if (start[i*step] == GRID_FULL) {
             int runlen = 1;
-            while (i+runlen < len && start[(i+runlen)*step])
+            while (i+runlen < len && start[(i+runlen)*step] == GRID_FULL)
                 runlen++;
             ret[n++] = runlen;
             i += runlen;
         }
+
+        if (start[i*step] == GRID_UNKNOWN)
+            return -1;
     }
 
     return n;
