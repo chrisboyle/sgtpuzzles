@@ -1294,8 +1294,8 @@ void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
         }
 
         for (j = 0; j < poly->order; j++) {
-            coords[j*2] = (int)(points[j*2] * GRID_SCALE) + ds->ox;
-            coords[j*2+1] = (int)(points[j*2+1] * GRID_SCALE) + ds->oy;
+            coords[j*2] = (int)floor(points[j*2] * GRID_SCALE) + ds->ox;
+            coords[j*2+1] = (int)floor(points[j*2+1] * GRID_SCALE) + ds->oy;
         }
 
         /*
