@@ -1206,7 +1206,7 @@ void game_free_drawstate(game_drawstate *ds)
 }
 
 void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
-                 game_state *state, float animtime)
+                 game_state *state, float animtime, float flashtime)
 {
     int i, j;
     struct bbox bb = find_bbox(&state->params);
@@ -1354,4 +1354,9 @@ void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 float game_anim_length(game_state *oldstate, game_state *newstate)
 {
     return ROLLTIME;
+}
+
+float game_flash_length(game_state *oldstate, game_state *newstate)
+{
+    return 0.0F;
 }

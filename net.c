@@ -1060,7 +1060,7 @@ static void draw_tile(frontend *fe, game_state *state, int x, int y, int tile,
 }
 
 void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
-                 game_state *state, float t)
+                 game_state *state, float t, float ft)
 {
     int x, y, tx, ty, frame;
     unsigned char *active;
@@ -1118,7 +1118,6 @@ void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
     }
 
     tx = ty = -1;
-    frame = -1;
     if (oldstate && (t < ROTATE_TIME)) {
         /*
          * We're animating a tile rotation. Find the turning tile,
@@ -1140,12 +1139,15 @@ void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
                 angle = state->last_rotate_dir * -90.0F * (t / ROTATE_TIME);
             state = oldstate;
         }
-    } else if (t > ROTATE_TIME) {
+    }
+    
+    frame = -1;
+    if (ft > 0) {
         /*
          * We're animating a completion flash. Find which frame
          * we're at.
          */
-        frame = (int)((t - ROTATE_TIME) / FLASH_FRAME);
+        frame = (int)(ft / FLASH_FRAME);
     }
 
     /*
@@ -1192,7 +1194,6 @@ void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 
 float game_anim_length(game_state *oldstate, game_state *newstate)
 {
-    float ret = 0.0F;
     int x, y;
 
     /*
@@ -1202,14 +1203,17 @@ float game_anim_length(game_state *oldstate, game_state *newstate)
     for (x = 0; x < oldstate->width; x++)
         for (y = 0; y < oldstate->height; y++)
             if ((tile(oldstate, x, y) ^ tile(newstate, x, y)) & 0xF) {
-                ret = ROTATE_TIME;
-                goto break_label;      /* leave both loops at once */
+                return ROTATE_TIME;
             }
-    break_label:
 
+    return 0.0F;
+}
+
+float game_flash_length(game_state *oldstate, game_state *newstate)
+{
     /*
-     * Also, if the game has just been completed, allow time for a
-     * completion flash.
+     * If the game has just been completed, we display a completion
+     * flash.
      */
     if (!oldstate->completed && newstate->completed) {
         int size;
@@ -1222,8 +1226,8 @@ float game_anim_length(game_state *oldstate, game_state *newstate)
             size = newstate->width - newstate->cx;
         if (size < newstate->height - newstate->cy)
             size = newstate->height - newstate->cy;
-        ret += FLASH_FRAME * (size+4);
+        return FLASH_FRAME * (size+4);
     }
 
-    return ret;
+    return 0.0F;
 }

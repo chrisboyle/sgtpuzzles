@@ -24,6 +24,7 @@ struct midend_data {
     game_drawstate *drawstate;
     game_state *oldstate;
     float anim_time, anim_pos;
+    float flash_time, flash_pos;
 };
 
 #define ensure(me) do { \
@@ -47,6 +48,8 @@ midend_data *midend_new(frontend *frontend)
     me->presets = NULL;
     me->preset_names = NULL;
     me->npresets = me->presetsize = 0;
+    me->anim_time = me->anim_pos = 0.0F;
+    me->flash_time = me->flash_pos = 0.0F;
 
     return me;
 }
@@ -117,17 +120,38 @@ static int midend_redo(midend_data *me)
         return 0;
 }
 
+static void midend_finish_move(midend_data *me)
+{
+    float flashtime;
+
+    if (me->oldstate || me->statepos > 1) {
+	flashtime = game_flash_length(me->oldstate ? me->oldstate :
+				      me->states[me->statepos-2],
+				      me->states[me->statepos-1]);
+	if (flashtime > 0) {
+	    me->flash_pos = 0.0F;
+	    me->flash_time = flashtime;
+	}
+    }
+
+    if (me->oldstate)
+	free_game(me->oldstate);
+    me->oldstate = NULL;
+    me->anim_pos = me->anim_time = 0;
+
+    if (me->flash_time == 0 && me->anim_time == 0)
+	deactivate_timer(me->frontend);
+    else
+	activate_timer(me->frontend);
+}
+
 int midend_process_key(midend_data *me, int x, int y, int button)
 {
     game_state *oldstate = dup_game(me->states[me->statepos - 1]);
     float anim_time;
 
     if (me->oldstate || me->anim_time) {
-        if (me->oldstate)
-            free_game(me->oldstate);
-        me->oldstate = NULL;
-        me->anim_pos = me->anim_time = 0;
-        deactivate_timer(me->frontend);
+	midend_finish_move(me);
         midend_redraw(me);
     }
 
@@ -169,13 +193,12 @@ int midend_process_key(midend_data *me, int x, int y, int button)
      */
     anim_time = game_anim_length(oldstate, me->states[me->statepos-1]);
 
+    me->oldstate = oldstate;
     if (anim_time > 0) {
-        me->oldstate = oldstate;
         me->anim_time = anim_time;
     } else {
-        free_game(oldstate);
-        me->oldstate = NULL;
         me->anim_time = 0.0;
+	midend_finish_move(me);
     }
     me->anim_pos = 0.0;
 
@@ -193,10 +216,11 @@ void midend_redraw(midend_data *me)
         if (me->oldstate && me->anim_time > 0 &&
             me->anim_pos < me->anim_time) {
             game_redraw(me->frontend, me->drawstate, me->oldstate,
-                        me->states[me->statepos-1], me->anim_pos);
+                        me->states[me->statepos-1], me->anim_pos,
+			me->flash_pos);
         } else {
             game_redraw(me->frontend, me->drawstate, NULL,
-                        me->states[me->statepos-1], 0.0);
+                        me->states[me->statepos-1], 0.0, me->flash_pos);
         }
         end_draw(me->frontend);
     }
@@ -207,12 +231,15 @@ void midend_timer(midend_data *me, float tplus)
     me->anim_pos += tplus;
     if (me->anim_pos >= me->anim_time ||
         me->anim_time == 0 || !me->oldstate) {
-        if (me->oldstate)
-            free_game(me->oldstate);
-        me->oldstate = NULL;
-        me->anim_pos = me->anim_time = 0;
-        deactivate_timer(me->frontend);
+	if (me->anim_time > 0)
+	    midend_finish_move(me);
     }
+    me->flash_pos += tplus;
+    if (me->flash_pos >= me->flash_time || me->flash_time == 0) {
+	me->flash_pos = me->flash_time = 0;
+    }
+    if (me->flash_time == 0 && me->anim_time == 0)
+	deactivate_timer(me->frontend);
     midend_redraw(me);
 }
 

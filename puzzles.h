@@ -108,7 +108,8 @@ float *game_colours(frontend *fe, game_state *state, int *ncolours);
 game_drawstate *game_new_drawstate(game_state *state);
 void game_free_drawstate(game_drawstate *ds);
 void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
-                 game_state *newstate, float t);
+                 game_state *newstate, float anim_time, float flash_time);
 float game_anim_length(game_state *oldstate, game_state *newstate);
+float game_flash_length(game_state *oldstate, game_state *newstate);
 
 #endif /* PUZZLES_PUZZLES_H */
