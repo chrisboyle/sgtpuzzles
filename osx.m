@@ -1208,7 +1208,6 @@ int main(int argc, char **argv)
     item = newitem(menu, "Minimise Window", "m", NULL, @selector(performMiniaturize:));
 
     menu = newsubmenu([NSApp mainMenu], "Help");
-    typemenu = menu;
     item = newitem(menu, "Puzzles Help", "?", NSApp, @selector(showHelp:));
 
     [NSApp run];
