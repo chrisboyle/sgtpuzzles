@@ -1,51 +1,49 @@
 /*
  * Mac OS X / Cocoa front end to puzzles.
- * 
+ *
  * TODO:
- * 
+ *
  *  - status bar support.
- * 
+ *
  *  - preset selection. Should be reasonably simple: just a matter
  *    of dynamically frobbing the menu bar.
- * 
+ *
  *  - configurability. Will no doubt involve learning all about the
  *    dialog control side of Cocoa.
- * 
+ *
  *  - needs an icon.
- * 
+ *
  *  - not sure what I should be doing about default window
  *    placement. Centring new windows is a bit feeble, but what's
  *    better? Is there a standard way to tell the OS "here's the
  *    _size_ of window I want, now use your best judgment about the
  *    initial position"?
- * 
+ *
  *  - a brief frob of the Mac numeric keypad suggests that it
  *    generates numbers no matter what you do. I wonder if I should
  *    try to figure out a way of detecting keypad codes so I can
  *    implement UP_LEFT and friends. Alternatively, perhaps I
  *    should simply assign the number keys to UP_LEFT et al?
  *    They're not in use for anything else right now.
- * 
+ *
  *  - proper fatal errors.
- * 
+ *
  *  - is there a better approach to frontend_default_colour?
- * 
- *  - some options in the Window menu! Close and Minimise, I think,
- *    at least.
- * 
- *  - more Mac-ish key bindings. I suspect, for example, that Undo
- *    should be Command-Z as well as (or even instead of?) Ctrl-Z.
- * 
- *  - Which reminds me, commands like Undo and Redo also ought to
- *    be available from the menus. Actually, the sensible thing is
- *    probably to go and look at the menus on Unix and make sure
- *    everything is there.
- * 
- *  - see if we can do anything to one-button-ise the puzzle UIs.
- *    Some are fine as is (Sixteen, Fifteen, Rectangles, Netslide,
- *    Cube), some are a little unwieldy with Command-clicking
- *    (Pattern), and some are utterly horrid (Net).
- * 
+ *
+ *  - do we need any more options in the Window menu?
+ *
+ *  - see if we can do anything to one-button-ise the multi-button
+ *    dependent puzzle UIs:
+ *     - Pattern is a _little_ unwieldy but not too bad (since
+ * 	 generally you never need the middle button unless you've
+ * 	 made a mistake, so it's just click versus command-click).
+ *     - Net is utterly vile; having normal click be one rotate and
+ * 	 command-click be the other introduces a horrid asymmetry,
+ * 	 and yet requiring a shift key for _each_ click would be
+ * 	 even worse because rotation feels as if it ought to be the
+ * 	 default action. I fear this is why the Flash Net had the
+ * 	 UI it did...
+ *
  *  - Find out how to do help, and do some. We have a help file; at
  *    _worst_ this should involve a new Halibut back end, but I
  *    think help is HTML round here anyway so perhaps we can work
@@ -360,6 +358,23 @@ struct frontend {
     last_time = now;
 }
 
+- (void)newGame:(id)sender
+{
+    [self processButton:'n' x:-1 y:-1];
+}
+- (void)restartGame:(id)sender
+{
+    [self processButton:'r' x:-1 y:-1];
+}
+- (void)undoMove:(id)sender
+{
+    [self processButton:'u' x:-1 y:-1];
+}
+- (void)redoMove:(id)sender
+{
+    [self processButton:'r'&0x1F x:-1 y:-1];
+}
+
 @end
 
 /*
@@ -492,7 +507,7 @@ void activate_timer(frontend *fe)
 
 /* ----------------------------------------------------------------------
  * Utility routines for constructing OS X menus.
-~|~ */
+ */
 
 NSMenu *newmenu(const char *title)
 {
@@ -634,7 +649,7 @@ int main(int argc, char **argv)
     item = newitem(menu, "Quit", "q", NSApp, @selector(terminate:));
     [NSApp setAppleMenu: menu];
 
-    menu = newsubmenu([NSApp mainMenu], "Game");
+    menu = newsubmenu([NSApp mainMenu], "Open");
     {
 	int i;
 
@@ -647,8 +662,22 @@ int main(int argc, char **argv)
 	}
     }
 
-    menu = newsubmenu([NSApp mainMenu], "Windows");
+    menu = newsubmenu([NSApp mainMenu], "Game");
+    item = newitem(menu, "New", "n", NULL, @selector(newGame:));
+    item = newitem(menu, "Restart", "r", NULL, @selector(restartGame:));
+    item = newitem(menu, "Specific", "", NULL, @selector(specificGame:));
+    [menu addItem:[NSMenuItem separatorItem]];
+    item = newitem(menu, "Undo", "z", NULL, @selector(undoMove:));
+    item = newitem(menu, "Redo", "S-z", NULL, @selector(redoMove:));
+    [menu addItem:[NSMenuItem separatorItem]];
+    item = newitem(menu, "Close", "w", NULL, @selector(performClose:));
+
+    menu = newsubmenu([NSApp mainMenu], "Type");
+    item = newitem(menu, "Custom", "", NULL, @selector(customGameType:));
+
+    menu = newsubmenu([NSApp mainMenu], "Window");
     [NSApp setWindowsMenu: menu];
+    item = newitem(menu, "Minimise Window", "m", NULL, @selector(performMiniaturize:));
 
     [NSApp run];
     [pool release];
