@@ -730,10 +730,6 @@ struct frontend {
 	    if (leftw < rect.size.width + 1) leftw = rect.size.width + 1;
 	    cfg_controls[cfg_ncontrols++] = tf;
 
-	    /* We impose a minimum width on editable NSTextFields to
-	     * stop them looking _completely_ silly. */
-	    if (rightw < 75) rightw = 75;
-
 	    tf = [[NSTextField alloc] initWithFrame:tmprect];
 	    [tf setEditable:YES];
 	    [tf setSelectable:YES];
@@ -741,6 +737,17 @@ struct frontend {
 	    [[tf cell] setTitle:[NSString stringWithCString:i->sval]];
 	    [tf sizeToFit];
 	    rect = [tf frame];
+	    /*
+	     * We impose a minimum and maximum width on editable
+	     * NSTextFields. If we allow them to size themselves to
+	     * the contents of the text within them, then they will
+	     * look very silly if that text is only one or two
+	     * characters, and equally silly if it's an absolutely
+	     * enormous Rectangles or Pattern game ID!
+	     */
+	    if (rect.size.width < 75) rect.size.width = 75;
+	    if (rect.size.width > 400) rect.size.width = 400;
+
 	    if (thish < rect.size.height + 1) thish = rect.size.height + 1;
 	    if (rightw < rect.size.width + 1) rightw = rect.size.width + 1;
 	    cfg_controls[cfg_ncontrols++] = tf;
