@@ -1131,6 +1131,9 @@ if (defined $makefiles{'osx'}) {
     &splitline("CFLAGS = -O2 -Wall -Werror -g -DMAC_OS_X " .
 	       (join " ", map {"-I$dirpfx$_"} @srcdirs))."\n".
     "LDFLAGS = -framework Cocoa\n".
+    &splitline("all:" . join "", map { " $_" } &progrealnames("MX")) .
+    "\n" .
+    $makefile_extra{'osx'} .
     "\n".
     ".SUFFIXES: .o .c .m\n".
     "\n".
@@ -1139,7 +1142,6 @@ if (defined $makefiles{'osx'}) {
     ".m.o:\n".
     "\t\$(CC) -x objective-c \$(COMPAT) \$(FWHACK) \$(XFLAGS) \$(CFLAGS) -c \$<\n".
     "\n";
-    print &splitline("all:" . join "", map { " $_" } &progrealnames("MX"));
     print "\n\n";
     foreach $p (&prognames("MX")) {
       ($prog, $type) = split ",", $p;
@@ -1159,6 +1161,7 @@ if (defined $makefiles{'osx'}) {
 	print "${prog}.app/Contents/Info.plist: ${prog}.app/Contents/Resources $infoplist\n\tcp $infoplist \$\@\n";
 	$targets .= " ${prog}.app/Contents/Info.plist";
       }
+      $targets .= " \$(${prog}_extra)";
       print &splitline("${prog}: $targets", 69) . "\n\n";
       print &splitline("${prog}.app/Contents/MacOS/$prog: ".
 	               "${prog}.app/Contents/MacOS " . $objstr), "\n";
@@ -1170,8 +1173,6 @@ if (defined $makefiles{'osx'}) {
       print &splitline(sprintf("%s: %s", $d->{obj}, join " ", @{$d->{deps}})),
           "\n";
     }
-    print "\n";
-    print $makefile_extra{'osx'};
     print "\nclean:\n".
     "\trm -f *.o\n".
     "\trm -rf *.app\n";

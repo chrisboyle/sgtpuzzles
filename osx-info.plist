@@ -4,5 +4,9 @@
 <dict>
 	<key>CFBundleIconFile</key>
 	<string>Puzzles.icns</string>
+	<key>CFBundleHelpBookFolder</key>
+	<string>Help</string>
+	<key>CFBundleHelpBookName</key>
+	<string>Puzzles Help</string>
 </dict>
 </plist>

@@ -40,6 +40,16 @@ pattern  : [G] WINDOWS COMMON pattern
 
 # Mac OS X unified application containing all the puzzles.
 Puzzles  : [MX] osx osx.icns osx-info.plist COMMON ALL
+# For OS X, we must create the online help and include it in the
+# application bundle.)
+!begin osx
+Puzzles_extra = Puzzles.app/Contents/Resources/Help/index.html
+Puzzles.app/Contents/Resources/Help/index.html: \
+	Puzzles.app/Contents/Resources/Help puzzles.but
+	halibut --html=$@ puzzles.but
+Puzzles.app/Contents/Resources/Help: Puzzles.app/Contents/Resources
+	mkdir -p Puzzles.app/Contents/Resources/Help
+!end
 
 # The `nullgame' source file is a largely blank one, which contains
 # all the correct function definitions to compile and link, but

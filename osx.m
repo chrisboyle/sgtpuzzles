@@ -1,12 +1,15 @@
 /*
  * Mac OS X / Cocoa front end to puzzles.
  *
- * Actually unfinished things left to do:
- *
- *  - Find out how to do help, and do some. We have a help file; at
- *    _worst_ this should involve a new Halibut back end, but I
- *    think help is HTML round here anyway so perhaps we can work
- *    with what we already have.
+ * Still to do:
+ * 
+ *  - Improve the help. For a start I probably ought to split it
+ *    into pieces (which means Halibut needs to acquire a mechanism
+ *    of putting something in the head section of _only one_ HTML
+ *    file); then I'd also like to be able to call up context help
+ *    for a specific game at a time. Also I just idly wonder
+ *    whether changing font might be nice, to match up to Apple
+ *    norms.
  * 
  * Mac interface issues that possibly could be done better:
  * 
@@ -1113,12 +1116,12 @@ void status_bar(frontend *fe, char *text)
 @interface AppController : NSObject
 {
 }
-- (IBAction)newGame:(id)sender;
+- (void)newGame:(id)sender;
 @end
 
 @implementation AppController
 
-- (IBAction)newGame:(id)sender
+- (void)newGame:(id)sender
 {
     const game *g = [sender getPayload];
     id win;
@@ -1208,6 +1211,10 @@ int main(int argc, char **argv)
     menu = newsubmenu([NSApp mainMenu], "Window");
     [NSApp setWindowsMenu: menu];
     item = newitem(menu, "Minimise Window", "m", NULL, @selector(performMiniaturize:));
+
+    menu = newsubmenu([NSApp mainMenu], "Help");
+    typemenu = menu;
+    item = newitem(menu, "Puzzles Help", "", NSApp, @selector(showHelp:));
 
     [NSApp run];
     [pool release];
