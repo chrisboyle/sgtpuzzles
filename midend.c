@@ -158,29 +158,36 @@ static void midend_finish_move(midend_data *me)
 	activate_timer(me->frontend);
 }
 
+static void midend_stop_anim(midend_data *me)
+{
+    if (me->oldstate || me->anim_time) {
+	midend_finish_move(me);
+        midend_redraw(me);
+    }
+}
+
 int midend_process_key(midend_data *me, int x, int y, int button)
 {
     game_state *oldstate = dup_game(me->states[me->statepos - 1]);
     float anim_time;
 
-    if (me->oldstate || me->anim_time) {
-	midend_finish_move(me);
-        midend_redraw(me);
-    }
-
     if (button == 'n' || button == 'N' || button == '\x0E') {
+	midend_stop_anim(me);
 	midend_new_game(me);
         midend_redraw(me);
         return 1;                      /* never animate */
     } else if (button == 'r' || button == 'R') {
+	midend_stop_anim(me);
 	midend_restart_game(me);
         midend_redraw(me);
         return 1;                      /* never animate */
     } else if (button == 'u' || button == 'u' ||
                button == '\x1A' || button == '\x1F') {
+	midend_stop_anim(me);
 	if (!midend_undo(me))
             return 1;
     } else if (button == '\x12') {
+	midend_stop_anim(me);
 	if (!midend_redo(me))
             return 1;
     } else if (button == 'q' || button == 'Q' || button == '\x11') {
@@ -199,6 +206,7 @@ int midend_process_key(midend_data *me, int x, int y, int button)
             midend_redraw(me);
             return 1;
         } else if (s) {
+	    midend_stop_anim(me);
             while (me->nstates > me->statepos)
                 free_game(me->states[--me->nstates]);
             ensure(me);
