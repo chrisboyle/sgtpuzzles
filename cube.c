@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <ctype.h>
 #include <math.h>
 
 #include "puzzles.h"
@@ -274,6 +275,37 @@ game_params *dup_params(game_params *params)
     game_params *ret = snew(game_params);
     *ret = *params;		       /* structure copy */
     return ret;
+}
+
+game_params *decode_params(char const *string)
+{
+    game_params *ret = default_params();
+
+    switch (*string) {
+      case 't': ret->solid = TETRAHEDRON; string++; break;
+      case 'c': ret->solid = CUBE;        string++; break;
+      case 'o': ret->solid = OCTAHEDRON;  string++; break;
+      case 'i': ret->solid = ICOSAHEDRON; string++; break;
+      default: break;
+    }
+    ret->d1 = ret->d2 = atoi(string);
+    while (*string && isdigit(*string)) string++;
+    if (*string == 'x') {
+        string++;
+        ret->d2 = atoi(string);
+    }
+
+    return ret;
+}
+
+char *encode_params(game_params *params)
+{
+    char data[256];
+
+    assert(params->solid >= 0 && params->solid < 4);
+    sprintf(data, "%c%dx%d", "tcoi"[params->solid], params->d1, params->d2);
+
+    return dupstr(data);
 }
 
 static void enum_grid_squares(game_params *params,
@@ -653,7 +685,7 @@ char *new_game_seed(game_params *params, random_state *rs)
     /*
      * Choose a non-blue square for the polyhedron.
      */
-    sprintf(p, ":%d", data.gridptrs[0][random_upto(rs, m)]);
+    sprintf(p, ",%d", data.gridptrs[0][random_upto(rs, m)]);
 
     sfree(data.gridptrs[0]);
     sfree(flags);
@@ -824,13 +856,13 @@ char *validate_seed(game_params *params, char *seed)
 	/* NB if seed[j]=='\0' that will also be caught here, so we're safe */
     }
 
-    if (seed[i] != ':')
-	return "Expected ':' after hex digits";
+    if (seed[i] != ',')
+	return "Expected ',' after hex digits";
 
     i++;
     do {
 	if (seed[i] < '0' || seed[i] > '9')
-	    return "Expected decimal integer after ':'";
+	    return "Expected decimal integer after ','";
 	i++;
     } while (seed[i]);
 
@@ -883,7 +915,7 @@ game_state *new_game(game_params *params, char *seed)
 		j = 8;
 	}
 
-	if (*p == ':')
+	if (*p == ',')
 	    p++;
 
 	state->current = atoi(p);

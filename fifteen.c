@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <ctype.h>
 #include <math.h>
 
 #include "puzzles.h"
@@ -70,6 +71,29 @@ game_params *dup_params(game_params *params)
     game_params *ret = snew(game_params);
     *ret = *params;		       /* structure copy */
     return ret;
+}
+
+game_params *decode_params(char const *string)
+{
+    game_params *ret = default_params();
+
+    ret->w = ret->h = atoi(string);
+    while (*string && isdigit(*string)) string++;
+    if (*string == 'x') {
+        string++;
+        ret->h = atoi(string);
+    }
+
+    return ret;
+}
+
+char *encode_params(game_params *params)
+{
+    char data[256];
+
+    sprintf(data, "%dx%d", params->w, params->h);
+
+    return dupstr(data);
 }
 
 config_item *game_configure(game_params *params)

@@ -162,6 +162,8 @@ extern const char *const game_name;
 const int game_can_configure;
 game_params *default_params(void);
 int game_fetch_preset(int i, char **name, game_params **params);
+game_params *decode_params(char const *string);
+char *encode_params(game_params *);
 void free_params(game_params *params);
 game_params *dup_params(game_params *params);
 config_item *game_configure(game_params *params);

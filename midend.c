@@ -333,7 +333,7 @@ int midend_wants_statusbar(midend_data *me)
 
 config_item *midend_get_config(midend_data *me, int which, char **wintitle)
 {
-    char *titlebuf;
+    char *titlebuf, *parstr;
     config_item *ret;
 
     titlebuf = snewn(40 + strlen(game_name), char);
@@ -352,7 +352,15 @@ config_item *midend_get_config(midend_data *me, int which, char **wintitle)
 	ret[0].type = C_STRING;
 	ret[0].name = "Game ID";
 	ret[0].ival = 0;
-	ret[0].sval = dupstr(me->seed);
+        /*
+         * The text going in here will be a string encoding of the
+         * parameters, plus a colon, plus the game seed. This is a
+         * full game ID.
+         */
+        parstr = encode_params(me->params);
+        ret[0].sval = snewn(strlen(parstr) + strlen(me->seed) + 2, char);
+        sprintf(ret[0].sval, "%s:%s", parstr, me->seed);
+        sfree(parstr);
 
 	ret[1].type = C_END;
 	ret[1].name = ret[1].sval = NULL;
@@ -367,7 +375,7 @@ config_item *midend_get_config(midend_data *me, int which, char **wintitle)
 
 char *midend_set_config(midend_data *me, int which, config_item *cfg)
 {
-    char *error;
+    char *error, *p;
     game_params *params;
 
     switch (which) {
@@ -385,12 +393,34 @@ char *midend_set_config(midend_data *me, int which, config_item *cfg)
 	break;
 
       case CFG_SEED:
-	error = validate_seed(me->params, cfg[0].sval);
+
+        /*
+         * The game ID will often (in fact, mostly) have a prefix
+         * containing a string-encoded parameter specification
+         * followed by a colon. So first find the colon, and then
+         * split the string up.
+         */
+        p = strchr(cfg[0].sval, ':');
+
+        if (p) {
+            *p++ = '\0';               /* p now points to game seed */
+            params = decode_params(cfg[0].sval);
+            error = validate_params(params);
+            if (error) {
+                free_params(params);
+                return error;
+            }
+            free_params(me->params);
+            me->params = params;
+        } else
+            p = cfg[0].sval;
+
+	error = validate_seed(me->params, p);
 	if (error)
 	    return error;
 
 	sfree(me->seed);
-	me->seed = dupstr(cfg[0].sval);
+	me->seed = dupstr(p);
 	me->fresh_seed = TRUE;
 
 	break;

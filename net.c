@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <ctype.h>
 #include <math.h>
 
 #include "puzzles.h"
@@ -181,6 +182,44 @@ game_params *dup_params(game_params *params)
     game_params *ret = snew(game_params);
     *ret = *params;		       /* structure copy */
     return ret;
+}
+
+game_params *decode_params(char const *string)
+{
+    game_params *ret = default_params();
+    char const *p = string;
+
+    ret->width = atoi(p);
+    while (*p && isdigit(*p)) p++;
+    if (*p == 'x') {
+        p++;
+        ret->height = atoi(p);
+        while (*p && isdigit(*p)) p++;
+        if ( (ret->wrapping = (*p == 'w')) != 0 )
+            p++;
+        if (*p == 'b')
+            ret->barrier_probability = atof(p+1);
+    } else {
+        ret->height = ret->width;
+    }
+
+    return ret;
+}
+
+char *encode_params(game_params *params)
+{
+    char ret[400];
+    int len;
+
+    len = sprintf(ret, "%dx%d", params->width, params->height);
+    if (params->wrapping)
+        ret[len++] = 'w';
+    if (params->barrier_probability)
+        len += sprintf(ret+len, "b%g", params->barrier_probability);
+    assert(len < lenof(ret));
+    ret[len] = '\0';
+
+    return dupstr(ret);
 }
 
 config_item *game_configure(game_params *params)

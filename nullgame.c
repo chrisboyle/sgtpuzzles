@@ -15,6 +15,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <ctype.h>
 #include <math.h>
 
 #include "puzzles.h"
@@ -59,6 +60,20 @@ game_params *dup_params(game_params *params)
     game_params *ret = snew(game_params);
     *ret = *params;		       /* structure copy */
     return ret;
+}
+
+game_params *decode_params(char const *string)
+{
+    game_params *ret = snew(game_params);
+
+    ret->FIXME = 0;
+
+    return ret;
+}
+
+char *encode_params(game_params *params)
+{
+    return dupstr("FIXME");
 }
 
 config_item *game_configure(game_params *params)
