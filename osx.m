@@ -1209,7 +1209,7 @@ int main(int argc, char **argv)
 
     menu = newsubmenu([NSApp mainMenu], "Help");
     typemenu = menu;
-    item = newitem(menu, "Puzzles Help", "", NSApp, @selector(showHelp:));
+    item = newitem(menu, "Puzzles Help", "?", NSApp, @selector(showHelp:));
 
     [NSApp run];
     [pool release];
