@@ -135,9 +135,7 @@ foreach $i (@prognames) {
       $file = "$1.r";
       $depends{$j} = [$file];
       push @scanlist, $file;
-    } elsif ($j =~ /\.lib$/) {
-      # libraries don't have dependencies
-    } else {
+    } elsif ($j !~ /\./) {
       $file = "$j.c";
       $file = "$j.m" unless &findfile($file);
       $depends{$j} = [$file];
@@ -259,10 +257,23 @@ sub objects {
     } elsif ($i =~ /^(.*)\.lib/) {
       $y = $1;
       ($x = $ltmpl) =~ s/X/$y/;
-    } else {
+    } elsif ($i !~ /\./) {
       ($x = $otmpl) =~ s/X/$i/;
     }
     push @ret, $x if $x ne "";
+  }
+  return join " ", @ret;
+}
+
+sub special {
+  my ($prog, $suffix) = @_;
+  my @ret;
+  my ($i, $x, $y);
+  @ret = ();
+  foreach $i (@{$programs{$prog}}) {
+    if (substr($i, (length $i) - (length $suffix)) eq $suffix) {
+      push @ret, $i;
+    }
   }
   return join " ", @ret;
 }
@@ -1133,10 +1144,22 @@ if (defined $makefiles{'osx'}) {
     foreach $p (&prognames("MX")) {
       ($prog, $type) = split ",", $p;
       $objstr = &objects($p, "X.o", undef, undef);
-      print "${prog}: ${prog}.app/Contents/MacOS/$prog\n\n";
-      print "${prog}.app:\n\tmkdir \$\@\n";
-      print "${prog}.app/Contents: ${prog}.app\n\tmkdir \$\@\n";
-      print "${prog}.app/Contents/MacOS: ${prog}.app/Contents\n\tmkdir \$\@\n";
+      $icon = &special($p, ".icns");
+      $infoplist = &special($p, "info.plist");
+      print "${prog}.app:\n\tmkdir -p \$\@\n";
+      print "${prog}.app/Contents: ${prog}.app\n\tmkdir -p \$\@\n";
+      print "${prog}.app/Contents/MacOS: ${prog}.app/Contents\n\tmkdir -p \$\@\n";
+      $targets = "${prog}.app/Contents/MacOS/$prog";
+      if (defined $icon) {
+	print "${prog}.app/Contents/Resources: ${prog}.app/Contents\n\tmkdir -p \$\@\n";
+	print "${prog}.app/Contents/Resources/${prog}.icns: ${prog}.app/Contents/Resources $icon\n\tcp $icon \$\@\n";
+	$targets .= " ${prog}.app/Contents/Resources/${prog}.icns";
+      }
+      if (defined $infoplist) {
+	print "${prog}.app/Contents/Info.plist: ${prog}.app/Contents/Resources $infoplist\n\tcp $infoplist \$\@\n";
+	$targets .= " ${prog}.app/Contents/Info.plist";
+      }
+      print &splitline("${prog}: $targets", 69) . "\n\n";
       print &splitline("${prog}.app/Contents/MacOS/$prog: ".
 	               "${prog}.app/Contents/MacOS " . $objstr), "\n";
       $libstr = &objects($p, undef, undef, "-lX");

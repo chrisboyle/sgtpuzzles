@@ -39,7 +39,7 @@ rect     : [G] WINDOWS COMMON rect
 pattern  : [G] WINDOWS COMMON pattern
 
 # Mac OS X unified application containing all the puzzles.
-Puzzles  : [MX] macosx COMMON ALL
+Puzzles  : [MX] osx osx.icns osx-info.plist COMMON ALL
 
 # The `nullgame' source file is a largely blank one, which contains
 # all the correct function definitions to compile and link, but

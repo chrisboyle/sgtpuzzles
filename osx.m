@@ -8,8 +8,6 @@
  *  - configurability. Will no doubt involve learning all about the
  *    dialog control side of Cocoa.
  *
- *  - needs an icon.
- *
  *  - not sure what I should be doing about default window
  *    placement. Centring new windows is a bit feeble, but what's
  *    better? Is there a standard way to tell the OS "here's the
@@ -744,9 +742,13 @@ int main(int argc, char **argv)
     NSMenu *menu;
     NSMenuItem *item;
     AppController *controller;
+    NSImage *icon;
 
     pool = [[NSAutoreleasePool alloc] init];
+
+    icon = [NSImage imageNamed:@"NSApplicationIcon"];
     [NSApplication sharedApplication];
+    [NSApp setApplicationIconImage:icon];
 
     controller = [[[AppController alloc] init] autorelease];
 
