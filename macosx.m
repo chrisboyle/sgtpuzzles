@@ -3,13 +3,6 @@
  * 
  * TODO:
  * 
- * Before initial checkin:
- *
- *  - create an OS X makefile target in mkfiles.pl rather than the
- *    current ad-hockery.
- * 
- * Things that can reasonably be left to future checkins:
- * 
  *  - status bar support.
  * 
  *  - preset selection. Should be reasonably simple: just a matter
@@ -29,7 +22,9 @@
  *  - a brief frob of the Mac numeric keypad suggests that it
  *    generates numbers no matter what you do. I wonder if I should
  *    try to figure out a way of detecting keypad codes so I can
- *    implement UP_LEFT and friends.
+ *    implement UP_LEFT and friends. Alternatively, perhaps I
+ *    should simply assign the number keys to UP_LEFT et al?
+ *    They're not in use for anything else right now.
  * 
  *  - proper fatal errors.
  * 
@@ -37,6 +32,24 @@
  * 
  *  - some options in the Window menu! Close and Minimise, I think,
  *    at least.
+ * 
+ *  - more Mac-ish key bindings. I suspect, for example, that Undo
+ *    should be Command-Z as well as (or even instead of?) Ctrl-Z.
+ * 
+ *  - Which reminds me, commands like Undo and Redo also ought to
+ *    be available from the menus. Actually, the sensible thing is
+ *    probably to go and look at the menus on Unix and make sure
+ *    everything is there.
+ * 
+ *  - see if we can do anything to one-button-ise the puzzle UIs.
+ *    Some are fine as is (Sixteen, Fifteen, Rectangles, Netslide,
+ *    Cube), some are a little unwieldy with Command-clicking
+ *    (Pattern), and some are utterly horrid (Net).
+ * 
+ *  - Find out how to do help, and do some. We have a help file; at
+ *    _worst_ this should involve a new Halibut back end, but I
+ *    think help is HTML round here anyway so perhaps we can work
+ *    with what we already have.
  */
 
 #include <ctype.h>
