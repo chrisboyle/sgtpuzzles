@@ -28,12 +28,6 @@
  *    selection to produce a few large rectangles more often
  *    than oodles of small ones? Unsure, but might be worth a
  *    try.
- * 
- *  - During redraw, do corner analysis centrally in game_redraw()
- *    itself so that we can take it into account when computing the
- *    `visible' array. If we can do this, we can actually _turn on_
- *    the `visible' processing and keep redraws to the minimum
- *    required.
  */
 
 #include <stdio.h>
@@ -1126,7 +1120,7 @@ game_state *make_move(game_state *from, game_ui *ui, int x, int y, int button)
  * Drawing routines.
  */
 
-#define CORRECT 256
+#define CORRECT 65536
 
 #define COLOUR(k) ( (k)==1 ? COL_LINE : COL_DRAG )
 #define MAX(x,y) ( (x)>(y) ? (x) : (y) )
@@ -1135,7 +1129,7 @@ game_state *make_move(game_state *from, game_ui *ui, int x, int y, int button)
 struct game_drawstate {
     int started;
     int w, h;
-    unsigned short *visible;
+    unsigned int *visible;
 };
 
 void game_size(game_params *params, int *x, int *y)
@@ -1182,7 +1176,7 @@ game_drawstate *game_new_drawstate(game_state *state)
     ds->started = FALSE;
     ds->w = state->w;
     ds->h = state->h;
-    ds->visible = snewn(ds->w * ds->h, unsigned short);
+    ds->visible = snewn(ds->w * ds->h, unsigned int);
     for (i = 0; i < ds->w * ds->h; i++)
         ds->visible[i] = 0xFFFF;
 
@@ -1196,7 +1190,8 @@ void game_free_drawstate(game_drawstate *ds)
 }
 
 void draw_tile(frontend *fe, game_state *state, int x, int y,
-               unsigned char *hedge, unsigned char *vedge, int correct)
+               unsigned char *hedge, unsigned char *vedge,
+	       unsigned char *corners, int correct)
 {
     int cx = COORD(x), cy = COORD(y);
     char str[80];
@@ -1234,34 +1229,18 @@ void draw_tile(frontend *fe, game_state *state, int x, int y,
     /*
      * Draw corners.
      */
-    if ((HRANGE(state,x-1,y) && index(state,hedge,x-1,y)) ||
-	(VRANGE(state,x,y-1) && index(state,vedge,x,y-1)))
+    if (index(state,corners,x,y))
 	draw_rect(fe, cx, cy, 2, 2,
-                  COLOUR(MAX4(index(state,hedge,x-1,y),
-                              index(state,vedge,x,y-1),
-                              index(state,hedge,x,y),
-                              index(state,vedge,x,y))));
-    if ((HRANGE(state,x+1,y) && index(state,hedge,x+1,y)) ||
-	(VRANGE(state,x+1,y-1) && index(state,vedge,x+1,y-1)))
+                  COLOUR(index(state,corners,x,y)));
+    if (x+1 < state->w && index(state,corners,x+1,y))
 	draw_rect(fe, cx+TILE_SIZE-1, cy, 2, 2,
-                  COLOUR(MAX4(index(state,hedge,x+1,y),
-                              index(state,vedge,x+1,y-1),
-                              index(state,hedge,x,y),
-                              index(state,vedge,x+1,y))));
-    if ((HRANGE(state,x-1,y+1) && index(state,hedge,x-1,y+1)) ||
-	(VRANGE(state,x,y+1) && index(state,vedge,x,y+1)))
+                  COLOUR(index(state,corners,x+1,y)));
+    if (y+1 < state->h && index(state,corners,x,y+1))
 	draw_rect(fe, cx, cy+TILE_SIZE-1, 2, 2,
-                  COLOUR(MAX4(index(state,hedge,x-1,y+1),
-                              index(state,vedge,x,y+1),
-                              index(state,hedge,x,y+1),
-                              index(state,vedge,x,y))));
-    if ((HRANGE(state,x+1,y+1) && index(state,hedge,x+1,y+1)) ||
-	(VRANGE(state,x+1,y+1) && index(state,vedge,x+1,y+1)))
+                  COLOUR(index(state,corners,x,y+1)));
+    if (x+1 < state->w && y+1 < state->h && index(state,corners,x+1,y+1))
 	draw_rect(fe, cx+TILE_SIZE-1, cy+TILE_SIZE-1, 2, 2,
-                  COLOUR(MAX4(index(state,hedge,x+1,y+1),
-                              index(state,vedge,x+1,y+1),
-                              index(state,hedge,x,y+1),
-                              index(state,vedge,x+1,y))));
+                  COLOUR(index(state,corners,x+1,y+1)));
 
     draw_update(fe, cx, cy, TILE_SIZE+1, TILE_SIZE+1);
 }
@@ -1272,7 +1251,7 @@ void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 {
     int x, y;
     unsigned char *correct;
-    unsigned char *hedge, *vedge;
+    unsigned char *hedge, *vedge, *corners;
 
     correct = get_correct(state);
 
@@ -1286,6 +1265,28 @@ void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
         hedge = state->hedge;
         vedge = state->vedge;
     }
+
+    corners = snewn(state->w * state->h, unsigned char);
+    memset(corners, 0, state->w * state->h);
+    for (x = 0; x < state->w; x++)
+	for (y = 0; y < state->h; y++) {
+	    if (x > 0) {
+		int e = index(state, vedge, x, y);
+		if (index(state,corners,x,y) < e)
+		    index(state,corners,x,y) = e;
+		if (y+1 < state->h &&
+		    index(state,corners,x,y+1) < e)
+		    index(state,corners,x,y+1) = e;
+	    }
+	    if (y > 0) {
+		int e = index(state, hedge, x, y);
+		if (index(state,corners,x,y) < e)
+		    index(state,corners,x,y) = e;
+		if (x+1 < state->w &&
+		    index(state,corners,x+1,y) < e)
+		    index(state,corners,x+1,y) = e;
+	    }
+	}
 
     if (!ds->started) {
 	draw_rect(fe, 0, 0,
@@ -1301,7 +1302,7 @@ void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 
     for (x = 0; x < state->w; x++)
 	for (y = 0; y < state->h; y++) {
-	    unsigned short c = 0;
+	    unsigned int c = 0;
 
 	    if (HRANGE(state,x,y))
                 c |= index(state,hedge,x,y);
@@ -1311,12 +1312,19 @@ void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 		c |= index(state,vedge,x,y) << 4;
 	    if (VRANGE(state,x,y+1))
 		c |= index(state,vedge,x,y+1) << 6;
+	    c |= index(state,corners,x,y) << 8;
+	    if (x+1 < state->w)
+		c |= index(state,corners,x+1,y) << 10;
+	    if (y+1 < state->h)
+		c |= index(state,corners,x,y+1) << 12;
+	    if (x+1 < state->w && y+1 < state->h)
+		c |= index(state,corners,x+1,y+1) << 14;
 	    if (index(state, correct, x, y) && !flashtime)
 		c |= CORRECT;
 
 	    if (index(ds,ds->visible,x,y) != c) {
-		draw_tile(fe, state, x, y, hedge, vedge, c & CORRECT);
-		/* index(ds,ds->visible,x,y) = c; */
+		draw_tile(fe, state, x, y, hedge, vedge, corners, c & CORRECT);
+		index(ds,ds->visible,x,y) = c;
 	    }
 	}
 
