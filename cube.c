@@ -559,7 +559,7 @@ char *new_game_seed(game_params *params)
     /*
      * Choose a non-blue square for the polyhedron.
      */
-    sprintf(p, ":%d", rand_upto(m));
+    sprintf(p, ":%d", data.gridptrs[0][rand_upto(m)]);
 
     sfree(data.gridptrs[0]);
     sfree(flags);
