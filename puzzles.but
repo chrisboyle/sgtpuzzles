@@ -5,16 +5,13 @@
 
 \cfg{text-filename}{puzzles.txt}
 
-\#
 \cfg{html-contents-filename}{index.html}
+\cfg{html-template-filename}{%k.html}
+\cfg{html-index-filename}{docindex.html}
 \cfg{html-leaf-level}{1}
 \cfg{html-contents-depth-0}{1}
 \cfg{html-contents-depth-1}{2}
 \cfg{html-leaf-contains-contents}{true}
-
-\cfg{html-single-filename}{index.html}
-\cfg{html-head-end}{<meta name="AppleTitle" content="Puzzles Help">}
-\cfg{html-leaf-level}{0}
 
 \cfg{info-filename}{puzzles.info}
 
@@ -27,8 +24,9 @@ This is a collection of small one-player puzzle games.
 reserved. You may distribute this documentation under the MIT licence.
 See \k{licence} for the licence text in full.
 
-\versionid $Id$
+\cfg{html-local-head}{<meta name="AppleTitle" content="Puzzles Help">}
 
+\versionid $Id$
 
 \C{intro} Introduction
 

@@ -3,13 +3,8 @@
  *
  * Still to do:
  * 
- *  - Improve the help. For a start I probably ought to split it
- *    into pieces (which means Halibut needs to acquire a mechanism
- *    of putting something in the head section of _only one_ HTML
- *    file); then I'd also like to be able to call up context help
- *    for a specific game at a time. Also I just idly wonder
- *    whether changing font might be nice, to match up to Apple
- *    norms.
+ *  - I'd like to be able to call up context help for a specific
+ *    game at a time.
  * 
  * Mac interface issues that possibly could be done better:
  * 

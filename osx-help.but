@@ -1,0 +1,14 @@
+\# Additional Halibut fragment to set up the HTML output
+\# appropriately for MacOS online help.
+
+\cfg{html-head-end}{
+<style type="text/css">
+body \{ font-family: "Lucida Grande", Helvetica, Arial; font-size: 9pt \}
+h1 \{ font-size: 12pt \}
+h2 \{ font-size: 10pt \}
+h3 \{ font-size: 9pt \}
+h4 \{ font-size: 9pt \}
+h5 \{ font-size: 9pt \}
+h6 \{ font-size: 9pt \}
+</style>
+}
