@@ -14,7 +14,12 @@ You should find several Makefiles in the source code:
    tweaks and setting of TOOLPATH, it should work for both compiling
    on Windows and cross-compiling on Unix.
 
-Each of these Makefiles builds a program called `nullgame' in
+ - `Makefile.osx' should work under Mac OS X, provided the Xcode
+   tools are installed. It builds a single monolithic OS X
+   application capable of running any of the puzzles, or even more
+   than one of them at a time.
+
+Many of these Makefiles build a program called `nullgame' in
 addition to the actual game binaries. This program doesn't do
 anything; it's just a template for people to start from when adding
 a new game to the collection, and it's compiled every time to ensure
@@ -29,8 +34,10 @@ the Perl script `mkfiles.pl' from the file `Recipe'. If you need to
 change the makefiles as part of a patch, you should change Recipe
 and/or mkfiles.pl.
 
-The manual, provided in Windows Help and text formats, is generated
-from a Halibut source file (puzzles.but), which is the preferred form
-for modification. To generate the manual in other formats, rebuild it,
+The manual is provided in Windows Help format for the Windows build;
+in text format for anyone who needs it; and in HTML for the Mac OS X
+application and for the web site. It is generated from a Halibut
+source file (puzzles.but), which is the preferred form for
+modification. To generate the manual in other formats, rebuild it,
 or learn about Halibut, visit the Halibut website at
 <http://www.chiark.greenend.org.uk/~sgtatham/halibut/>.
