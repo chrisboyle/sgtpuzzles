@@ -511,15 +511,7 @@ char *new_game_seed(game_params *params)
 
     for (i = 0; i < data.nclasses; i++) {
 	for (j = 0; j < facesperclass; j++) {
-	    unsigned long divisor = RAND_MAX / data.nsquares[i];
-	    unsigned long max = divisor * data.nsquares[i];
-	    unsigned long n;
-
-	    do {
-		n = rand();
-	    } while (n >= max);
-
-	    n /= divisor;
+            int n = rand_upto(data.nsquares[i]);
 
 	    assert(!flags[data.gridptrs[i][n]]);
 	    flags[data.gridptrs[i][n]] = TRUE;
@@ -529,7 +521,7 @@ char *new_game_seed(game_params *params)
 	     * better data structure for this, but for such small
 	     * numbers it hardly seems worth the effort.
 	     */
-	    while ((int)n < data.nsquares[i]-1) {
+	    while (n < data.nsquares[i]-1) {
 		data.gridptrs[i][n] = data.gridptrs[i][n+1];
 		n++;
 	    }
@@ -567,19 +559,7 @@ char *new_game_seed(game_params *params)
     /*
      * Choose a non-blue square for the polyhedron.
      */
-    {
-	unsigned long divisor = RAND_MAX / m;
-	unsigned long max = divisor * m;
-	unsigned long n;
-
-	do {
-	    n = rand();
-	} while (n >= max);
-
-	n /= divisor;
-
-	sprintf(p, ":%d", data.gridptrs[0][n]);
-    }
+    sprintf(p, ":%d", rand_upto(m));
 
     sfree(data.gridptrs[0]);
     sfree(flags);

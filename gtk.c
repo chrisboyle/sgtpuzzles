@@ -34,6 +34,12 @@ void fatal(char *fmt, ...)
  * GTK front end to puzzles.
  */
 
+struct font {
+    GdkFont *font;
+    int type;
+    int size;
+};
+
 /*
  * This structure holds all the data relevant to a single window.
  * In principle this would allow us to open multiple independent
@@ -53,6 +59,8 @@ struct frontend {
     GdkGC *gc;
     int bbox_l, bbox_r, bbox_u, bbox_d;
     int timer_active, timer_id;
+    struct font *fonts;
+    int nfonts, fontsize;
 };
 
 void frontend_default_colour(frontend *fe, float *output)
@@ -70,6 +78,85 @@ void start_draw(frontend *fe)
     fe->bbox_r = 0;
     fe->bbox_u = fe->h;
     fe->bbox_d = 0;
+}
+
+void clip(frontend *fe, int x, int y, int w, int h)
+{
+    GdkRectangle rect;
+
+    rect.x = x;
+    rect.y = y;
+    rect.width = w;
+    rect.height = h;
+
+    gdk_gc_set_clip_rectangle(fe->gc, &rect);
+}
+
+void unclip(frontend *fe)
+{
+    GdkRectangle rect;
+
+    rect.x = 0;
+    rect.y = 0;
+    rect.width = fe->w;
+    rect.height = fe->h;
+
+    gdk_gc_set_clip_rectangle(fe->gc, &rect);
+}
+
+void draw_text(frontend *fe, int x, int y, int fonttype, int fontsize,
+               int align, int colour, char *text)
+{
+    int i;
+
+    /*
+     * Find or create the font.
+     */
+    for (i = 0; i < fe->nfonts; i++)
+        if (fe->fonts[i].type == fonttype && fe->fonts[i].size == fontsize)
+            break;
+
+    if (i == fe->nfonts) {
+        if (fe->fontsize <= fe->nfonts) {
+            fe->fontsize = fe->nfonts + 10;
+            fe->fonts = sresize(fe->fonts, fe->fontsize, struct font);
+        }
+
+        fe->nfonts++;
+
+        fe->fonts[i].type = fonttype;
+        fe->fonts[i].size = fontsize;
+
+        /*
+         * FIXME: Really I should make at least _some_ effort to
+         * pick the correct font.
+         */
+        fe->fonts[i].font = gdk_font_load("variable");
+    }
+
+    /*
+     * Find string dimensions and process alignment.
+     */
+    {
+        int lb, rb, wid, asc, desc;
+
+        gdk_string_extents(fe->fonts[i].font, text,
+                           &lb, &rb, &wid, &asc, &desc);
+        if (align & ALIGN_VCENTRE)
+            y += asc - (asc+desc)/2;
+
+        if (align & ALIGN_HCENTRE)
+            x -= wid / 2;
+        else if (align & ALIGN_HRIGHT)
+            x -= wid;
+
+    }
+
+    /*
+     * Set colour and actually draw text.
+     */
+    gdk_gc_set_foreground(fe->gc, &fe->colours[colour]);
+    gdk_draw_string(fe->pixmap, fe->fonts[i].font, fe->gc, x, y, text);
 }
 
 void draw_rect(frontend *fe, int x, int y, int w, int h, int colour)
@@ -405,6 +492,8 @@ static frontend *new_window(void)
     gtk_box_pack_end(vbox, fe->area, FALSE, FALSE, 0);
 
     fe->pixmap = NULL;
+    fe->fonts = NULL;
+    fe->nfonts = fe->fontsize = 0;
 
     fe->timer_active = FALSE;
 

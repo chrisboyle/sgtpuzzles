@@ -5,6 +5,7 @@
 #include <windows.h>
 
 #include <stdio.h>
+#include <assert.h>
 #include <stdarg.h>
 #include <stdlib.h>
 #include <time.h>
@@ -63,6 +64,12 @@ void debug_printf(char *fmt, ...)
 
 #endif
 
+struct font {
+    HFONT font;
+    int type;
+    int size;
+};
+
 struct frontend {
     midend_data *me;
     HWND hwnd;
@@ -71,9 +78,12 @@ struct frontend {
     COLORREF *colours;
     HBRUSH *brushes;
     HPEN *pens;
+    HRGN clip;
     UINT timer;
     int npresets;
     game_params **presets;
+    struct font *fonts;
+    int nfonts, fontsize;
 };
 
 void fatal(char *fmt, ...)
@@ -97,6 +107,86 @@ void frontend_default_colour(frontend *fe, float *output)
     output[0] = (float)(GetRValue(c) / 255.0);
     output[1] = (float)(GetGValue(c) / 255.0);
     output[2] = (float)(GetBValue(c) / 255.0);
+}
+
+void clip(frontend *fe, int x, int y, int w, int h)
+{
+    if (!fe->clip) {
+	fe->clip = CreateRectRgn(0, 0, 1, 1);
+	GetClipRgn(fe->hdc_bm, fe->clip);
+    }
+
+    IntersectClipRect(fe->hdc_bm, x, y, x+w, y+h);
+}
+
+void unclip(frontend *fe)
+{
+    assert(fe->clip);
+    SelectClipRgn(fe->hdc_bm, fe->clip);
+}
+
+void draw_text(frontend *fe, int x, int y, int fonttype, int fontsize,
+               int align, int colour, char *text)
+{
+    int i;
+
+    /*
+     * Find or create the font.
+     */
+    for (i = 0; i < fe->nfonts; i++)
+        if (fe->fonts[i].type == fonttype && fe->fonts[i].size == fontsize)
+            break;
+
+    if (i == fe->nfonts) {
+        if (fe->fontsize <= fe->nfonts) {
+            fe->fontsize = fe->nfonts + 10;
+            fe->fonts = sresize(fe->fonts, fe->fontsize, struct font);
+        }
+
+        fe->nfonts++;
+
+        fe->fonts[i].type = fonttype;
+        fe->fonts[i].size = fontsize;
+
+        /*
+         * FIXME: Really I should make at least _some_ effort to
+         * pick the correct font.
+         */
+        fe->fonts[i].font = CreateFont(-fontsize, 0, 0, 0, 0,
+				       FALSE, FALSE, FALSE, DEFAULT_CHARSET,
+				       OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
+				       DEFAULT_QUALITY,
+				       (fonttype == FONT_FIXED ?
+					FIXED_PITCH | FF_DONTCARE :
+					VARIABLE_PITCH | FF_SWISS),
+				       NULL);
+    }
+
+    /*
+     * Position and draw the text.
+     */
+    {
+	HFONT oldfont;
+	TEXTMETRIC tm;
+	SIZE size;
+
+	oldfont = SelectObject(fe->hdc_bm, fe->fonts[i].font);
+	if (GetTextMetrics(fe->hdc_bm, &tm)) {
+	    if (align & ALIGN_VCENTRE)
+		y -= (tm.tmAscent+tm.tmDescent)/2;
+	    else
+		y -= tm.tmAscent;
+	}
+	if (GetTextExtentPoint32(fe->hdc_bm, text, strlen(text), &size)) {
+	    if (align & ALIGN_HCENTRE)
+		x -= size.cx / 2;
+	    else if (align & ALIGN_HRIGHT)
+		x -= size.cx;
+	}
+	SetBkMode(fe->hdc_bm, TRANSPARENT);
+	TextOut(fe->hdc_bm, x, y, text, strlen(text));
+	SelectObject(fe->hdc_bm, oldfont);
+    }
 }
 
 void draw_rect(frontend *fe, int x, int y, int w, int h, int colour)
@@ -161,6 +251,7 @@ void start_draw(frontend *fe)
     fe->hdc_bm = CreateCompatibleDC(hdc_win);
     fe->prevbm = SelectObject(fe->hdc_bm, fe->bitmap);
     ReleaseDC(fe->hwnd, hdc_win);
+    fe->clip = NULL;
 }
 
 void draw_update(frontend *fe, int x, int y, int w, int h)
@@ -179,6 +270,10 @@ void end_draw(frontend *fe)
 {
     SelectObject(fe->hdc_bm, fe->prevbm);
     DeleteDC(fe->hdc_bm);
+    if (fe->clip) {
+	DeleteObject(fe->clip);
+	fe->clip = NULL;
+    }
 }
 
 void deactivate_timer(frontend *fe)

@@ -37,15 +37,29 @@ typedef struct game_params game_params;
 typedef struct game_state game_state;
 typedef struct game_drawstate game_drawstate;
 
+#define ALIGN_VNORMAL 0x000
+#define ALIGN_VCENTRE 0x100
+
+#define ALIGN_HLEFT   0x000
+#define ALIGN_HCENTRE 0x001
+#define ALIGN_HRIGHT  0x002
+
+#define FONT_FIXED    0
+#define FONT_VARIABLE 1
+
 /*
  * Platform routines
  */
 void fatal(char *fmt, ...);
 void frontend_default_colour(frontend *fe, float *output);
+void draw_text(frontend *fe, int x, int y, int fonttype, int fontsize,
+               int align, int colour, char *text);
 void draw_rect(frontend *fe, int x, int y, int w, int h, int colour);
 void draw_line(frontend *fe, int x1, int y1, int x2, int y2, int colour);
 void draw_polygon(frontend *fe, int *coords, int npoints,
                   int fill, int colour);
+void clip(frontend *fe, int x, int y, int w, int h);
+void unclip(frontend *fe);
 void start_draw(frontend *fe);
 void draw_update(frontend *fe, int x, int y, int w, int h);
 void end_draw(frontend *fe);
@@ -82,6 +96,11 @@ char *dupstr(char *s);
     ( (type *) smalloc ((number) * sizeof (type)) )
 #define sresize(array, number, type) \
     ( (type *) srealloc ((array), (number) * sizeof (type)) )
+
+/*
+ * misc.c
+ */
+int rand_upto(int limit);
 
 /*
  * random.c
