@@ -1222,6 +1222,9 @@ void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 	draw_rect(fe, COORD(0)-1, COORD(0)-1,
 		  ds->w*TILE_SIZE+3, ds->h*TILE_SIZE+3, COL_LINE);
 	ds->started = TRUE;
+	draw_update(fe, 0, 0,
+		    state->w * TILE_SIZE + 2*BORDER + 1,
+		    state->h * TILE_SIZE + 2*BORDER + 1);
     }
 
     for (x = 0; x < state->w; x++)
