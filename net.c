@@ -724,13 +724,24 @@ static unsigned char *compute_active(game_state *state)
     return active;
 }
 
+struct game_ui {
+    int cur_x, cur_y;
+    int cur_visible;
+};
+
 game_ui *new_ui(game_state *state)
 {
-    return NULL;
+    game_ui *ui = snew(game_ui);
+    ui->cur_x = state->width / 2;
+    ui->cur_y = state->height / 2;
+    ui->cur_visible = FALSE;
+
+    return ui;
 }
 
 void free_ui(game_ui *ui)
 {
+    sfree(ui);
 }
 
 /* ----------------------------------------------------------------------
@@ -738,31 +749,60 @@ void free_ui(game_ui *ui)
  */
 game_state *make_move(game_state *state, game_ui *ui, int x, int y, int button)
 {
-    game_state *ret;
+    game_state *ret, *nullret;
     int tx, ty, orig;
 
-    /*
-     * All moves in Net are made with the mouse.
-     */
-    if (button != LEFT_BUTTON &&
-	button != MIDDLE_BUTTON &&
-	button != RIGHT_BUTTON)
-	return NULL;
+    nullret = NULL;
 
-    /*
-     * The button must have been clicked on a valid tile.
-     */
-    x -= WINDOW_OFFSET + TILE_BORDER;
-    y -= WINDOW_OFFSET + TILE_BORDER;
-    if (x < 0 || y < 0)
-	return NULL;
-    tx = x / TILE_SIZE;
-    ty = y / TILE_SIZE;
-    if (tx >= state->width || ty >= state->height)
-	return NULL;
-    if (x % TILE_SIZE >= TILE_SIZE - TILE_BORDER ||
-	y % TILE_SIZE >= TILE_SIZE - TILE_BORDER)
-	return NULL;
+    if (button == LEFT_BUTTON ||
+	button == MIDDLE_BUTTON ||
+	button == RIGHT_BUTTON) {
+
+	if (ui->cur_visible) {
+	    ui->cur_visible = FALSE;
+	    nullret = state;
+	}
+
+	/*
+	 * The button must have been clicked on a valid tile.
+	 */
+	x -= WINDOW_OFFSET + TILE_BORDER;
+	y -= WINDOW_OFFSET + TILE_BORDER;
+	if (x < 0 || y < 0)
+	    return nullret;
+	tx = x / TILE_SIZE;
+	ty = y / TILE_SIZE;
+	if (tx >= state->width || ty >= state->height)
+	    return nullret;
+	if (x % TILE_SIZE >= TILE_SIZE - TILE_BORDER ||
+	    y % TILE_SIZE >= TILE_SIZE - TILE_BORDER)
+	    return nullret;
+    } else if (button == CURSOR_UP || button == CURSOR_DOWN ||
+	       button == CURSOR_RIGHT || button == CURSOR_LEFT) {
+	if (button == CURSOR_UP && ui->cur_y > 0)
+	    ui->cur_y--;
+	else if (button == CURSOR_DOWN && ui->cur_y < state->height-1)
+	    ui->cur_y++;
+	else if (button == CURSOR_LEFT && ui->cur_x > 0)
+	    ui->cur_x--;
+	else if (button == CURSOR_RIGHT && ui->cur_x < state->width-1)
+	    ui->cur_x++;
+	else
+	    return nullret;	       /* no cursor movement */
+	ui->cur_visible = TRUE;
+	return state;		       /* UI activity has occurred */
+    } else if (button == 'a' || button == 's' || button == 'd' ||
+	       button == 'A' || button == 'S' || button == 'D') {
+	tx = ui->cur_x;
+	ty = ui->cur_y;
+	if (button == 'a' || button == 'A')
+	    button = LEFT_BUTTON;
+	else if (button == 's' || button == 'S')
+	    button = MIDDLE_BUTTON;
+	else if (button == 'd' || button == 'D')
+	    button = RIGHT_BUTTON;
+    } else
+	return nullret;
 
     /*
      * The middle button locks or unlocks a tile. (A locked tile
@@ -785,7 +825,7 @@ game_state *make_move(game_state *state, game_ui *ui, int x, int y, int button)
      * locked tile.
      */
     if (tile(state, tx, ty) & LOCKED)
-	return NULL;
+	return nullret;
 
     /*
      * Otherwise, turn the tile one way or the other. Left button
@@ -987,7 +1027,7 @@ static void draw_barrier(frontend *fe, int x, int y, int dir, int phase)
 }
 
 static void draw_tile(frontend *fe, game_state *state, int x, int y, int tile,
-                      float angle)
+                      float angle, int cursor)
 {
     int bx = WINDOW_OFFSET + TILE_SIZE * x;
     int by = WINDOW_OFFSET + TILE_SIZE * y;
@@ -1021,6 +1061,26 @@ static void draw_tile(frontend *fe, game_state *state, int x, int y, int tile,
     draw_rect(fe, bx+TILE_BORDER, by+TILE_BORDER,
               TILE_SIZE-TILE_BORDER, TILE_SIZE-TILE_BORDER,
               tile & LOCKED ? COL_LOCKED : COL_BACKGROUND);
+
+    /*
+     * Draw an inset outline rectangle as a cursor, in whichever of
+     * COL_LOCKED and COL_BACKGROUND we aren't currently drawing
+     * in.
+     */
+    if (cursor) {
+	draw_line(fe, bx+TILE_SIZE/8, by+TILE_SIZE/8,
+		  bx+TILE_SIZE/8, by+TILE_SIZE-TILE_SIZE/8,
+		  tile & LOCKED ? COL_BACKGROUND : COL_LOCKED);
+	draw_line(fe, bx+TILE_SIZE/8, by+TILE_SIZE/8,
+		  bx+TILE_SIZE-TILE_SIZE/8, by+TILE_SIZE/8,
+		  tile & LOCKED ? COL_BACKGROUND : COL_LOCKED);
+	draw_line(fe, bx+TILE_SIZE-TILE_SIZE/8, by+TILE_SIZE/8,
+		  bx+TILE_SIZE-TILE_SIZE/8, by+TILE_SIZE-TILE_SIZE/8,
+		  tile & LOCKED ? COL_BACKGROUND : COL_LOCKED);
+	draw_line(fe, bx+TILE_SIZE/8, by+TILE_SIZE-TILE_SIZE/8,
+		  bx+TILE_SIZE-TILE_SIZE/8, by+TILE_SIZE-TILE_SIZE/8,
+		  tile & LOCKED ? COL_BACKGROUND : COL_LOCKED);
+    }
 
     /*
      * Set up the rotation matrix.
@@ -1269,10 +1329,13 @@ void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 
             if (index(state, ds->visible, x, y) != c ||
                 index(state, ds->visible, x, y) == 0xFF ||
-                (x == tx && y == ty)) {
+                (x == tx && y == ty) ||
+		(ui->cur_visible && x == ui->cur_x && y == ui->cur_y)) {
                 draw_tile(fe, state, x, y, c,
-                          (x == tx && y == ty ? angle : 0.0F));
-                if (x == tx && y == ty)
+                          (x == tx && y == ty ? angle : 0.0F),
+			  (ui->cur_visible && x == ui->cur_x && y == ui->cur_y));
+                if ((x == tx && y == ty) ||
+		    (ui->cur_visible && x == ui->cur_x && y == ui->cur_y))
                     index(state, ds->visible, x, y) = 0xFF;
                 else
                     index(state, ds->visible, x, y) = c;
