@@ -3,8 +3,6 @@
  *
  * Actually unfinished things left to do:
  *
- *  - proper fatal errors.
- *
  *  - Find out how to do help, and do some. We have a help file; at
  *    _worst_ this should involve a new Halibut back end, but I
  *    think help is HTML round here anyway so perhaps we can work
@@ -73,24 +71,51 @@
 #import <Cocoa/Cocoa.h>
 #include "puzzles.h"
 
+/* ----------------------------------------------------------------------
+ * Global variables.
+ */
+
+/*
+ * The `Type' menu. We frob this dynamically to allow the user to
+ * choose a preset set of settings from the current game.
+ */
+NSMenu *typemenu;
+
+/* ----------------------------------------------------------------------
+ * Miscellaneous support routines that aren't part of any object or
+ * clearly defined subsystem.
+ */
+
 void fatal(char *fmt, ...)
 {
-    /* FIXME: This will do for testing, but should be GUI-ish instead. */
     va_list ap;
-
-    fprintf(stderr, "fatal error: ");
+    char errorbuf[2048];
+    NSAlert *alert;
 
     va_start(ap, fmt);
-    vfprintf(stderr, fmt, ap);
+    vsnprintf(errorbuf, lenof(errorbuf), fmt, ap);
     va_end(ap);
 
-    fprintf(stderr, "\n");
+    alert = [NSAlert alloc];
+    /*
+     * We may have come here because we ran out of memory, in which
+     * case it's entirely likely that that alloc will fail, so we
+     * should have a fallback of some sort.
+     */
+    if (!alert) {
+	fprintf(stderr, "fatal error (and NSAlert failed): %s\n", errorbuf);
+    } else {
+	alert = [[alert init] autorelease];
+	[alert addButtonWithTitle:@"Oh dear"];
+	[alert setInformativeText:[NSString stringWithCString:errorbuf]];
+	[alert runModal];
+    }
     exit(1);
 }
 
 void frontend_default_colour(frontend *fe, float *output)
 {
-    /* FIXME */
+    /* FIXME: Is there a system default we can tap into for this? */
     output[0] = output[1] = output[2] = 0.8F;
 }
 
@@ -101,16 +126,6 @@ void get_random_seed(void **randseed, int *randseedsize)
     *randseed = (void *)tp;
     *randseedsize = sizeof(time_t);
 }
-
-/* ----------------------------------------------------------------------
- * Global variables.
- */
-
-/*
- * The `Type' menu. We frob this dynamically to allow the user to
- * choose a preset set of settings from the current game.
- */
-NSMenu *typemenu;
 
 /* ----------------------------------------------------------------------
  * Tiny extension to NSMenuItem which carries a payload of a `void
@@ -918,7 +933,7 @@ struct frontend {
 	error = midend_set_config(me, cfg_which, cfg);
 	if (error) {
 	    NSAlert *alert = [[[NSAlert alloc] init] autorelease];
-	    [alert addButtonWithTitle:@"OK"];
+	    [alert addButtonWithTitle:@"Bah"];
 	    [alert setInformativeText:[NSString stringWithCString:error]];
 	    [alert beginSheetModalForWindow:self modalDelegate:nil
 	     didEndSelector:nil contextInfo:nil];
@@ -1037,7 +1052,12 @@ void draw_text(frontend *fe, int x, int y, int fonttype, int fontsize,
 }
 void draw_update(frontend *fe, int x, int y, int w, int h)
 {
-    /* FIXME */
+    /*
+     * FIXME: It seems odd that nothing is required here, although
+     * everything _seems_ to work with this routine empty. Possibly
+     * we're always updating the entire window, and there's a
+     * better way which would involve doing something in here?
+     */
 }
 void clip(frontend *fe, int x, int y, int w, int h)
 {
