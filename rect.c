@@ -28,6 +28,12 @@
  *    selection to produce a few large rectangles more often
  *    than oodles of small ones? Unsure, but might be worth a
  *    try.
+ * 
+ *  - During redraw, do corner analysis centrally in game_redraw()
+ *    itself so that we can take it into account when computing the
+ *    `visible' array. If we can do this, we can actually _turn on_
+ *    the `visible' processing and keep redraws to the minimum
+ *    required.
  */
 
 #include <stdio.h>
@@ -47,6 +53,7 @@ enum {
     COL_LINE,
     COL_TEXT,
     COL_GRID,
+    COL_DRAG,
     NCOLOURS
 };
 
@@ -857,46 +864,182 @@ static unsigned char *get_correct(game_state *state)
     return ret;
 }
 
+struct game_ui {
+    /*
+     * These coordinates are 2 times the obvious grid coordinates.
+     * Hence, the top left of the grid is (0,0), the grid point to
+     * the right of that is (2,0), the one _below that_ is (2,2)
+     * and so on. This is so that we can specify a drag start point
+     * on an edge (one odd coordinate) or in the middle of a square
+     * (two odd coordinates) rather than always at a corner.
+     * 
+     * -1,-1 means no drag is in progress.
+     */
+    int drag_start_x;
+    int drag_start_y;
+    int drag_end_x;
+    int drag_end_y;
+    /*
+     * This flag is set as soon as a dragging action moves the
+     * mouse pointer away from its starting point, so that even if
+     * the pointer _returns_ to its starting point the action is
+     * treated as a small drag rather than a click.
+     */
+    int dragged;
+};
+
 game_ui *new_ui(game_state *state)
 {
-    return NULL;
+    game_ui *ui = snew(game_ui);
+    ui->drag_start_x = -1;
+    ui->drag_start_y = -1;
+    ui->drag_end_x = -1;
+    ui->drag_end_y = -1;
+    ui->dragged = FALSE;
+    return ui;
 }
 
 void free_ui(game_ui *ui)
 {
+    sfree(ui);
+}
+
+int coord_round(float coord)
+{
+    int i;
+    float dist;
+
+    /*
+     * Find the nearest integer.
+     */
+    i = (int)(coord + 0.5F);
+
+    /*
+     * Find the distance from us to that integer.
+     */
+    dist = fabs(coord - (float)i);
+
+    /*
+     * If we're within the tolerance limit, return the edge
+     * coordinate. Otherwise, return the centre coordinate.
+     */
+    if (dist < 0.3F)
+        return i * 2;
+    else
+        return 1 + 2 * (int)coord;
+}
+
+static void ui_draw_rect(game_state *state, game_ui *ui,
+                         unsigned char *hedge, unsigned char *vedge, int c)
+{
+    int x1, x2, y1, y2, x, y, t;
+
+    x1 = ui->drag_start_x;
+    x2 = ui->drag_end_x;
+    if (x2 < x1) { t = x1; x1 = x2; x2 = t; }
+
+    y1 = ui->drag_start_y;
+    y2 = ui->drag_end_y;
+    if (y2 < y1) { t = y1; y1 = y2; y2 = t; }
+
+    x1 = x1 / 2;               /* rounds down */
+    x2 = (x2+1) / 2;           /* rounds up */
+    y1 = y1 / 2;               /* rounds down */
+    y2 = (y2+1) / 2;           /* rounds up */
+
+    /*
+     * Draw horizontal edges of rectangles.
+     */
+    for (x = x1; x < x2; x++)
+        for (y = y1; y <= y2; y++)
+            if (HRANGE(state,x,y)) {
+                int val = index(state,hedge,x,y);
+                if (y == y1 || y == y2)
+                    val = c;
+                else if (c == 1)
+                    val = 0;
+                index(state,hedge,x,y) = val;
+            }
+
+    /*
+     * Draw vertical edges of rectangles.
+     */
+    for (y = y1; y < y2; y++)
+        for (x = x1; x <= x2; x++)
+            if (VRANGE(state,x,y)) {
+                int val = index(state,vedge,x,y);
+                if (x == x1 || x == x2)
+                    val = c;
+                else if (c == 1)
+                    val = 0;
+                index(state,vedge,x,y) = val;
+            }
 }
 
 game_state *make_move(game_state *from, game_ui *ui, int x, int y, int button)
 {
-    float xf, yf, dx, dy;
-    int hxr, hyr, vxr, vyr;
+    int xc, yc;
+    int startdrag = FALSE, enddrag = FALSE, active = FALSE;
     game_state *ret;
 
-    if (button != LEFT_BUTTON)
-	return NULL;
-
-    xf = FROMCOORD(((float)x));
-    yf = FROMCOORD(((float)y));
-
-    hxr = (int)xf;
-    hyr = (int)(yf + 0.5F);
-
-    vxr = (int)(xf + 0.5F);
-    vyr = (int)yf;
-
-    dx = fabs(xf - vxr);
-    dy = fabs(yf - hyr);
-
-    if (dy < dx && HRANGE(from,hxr,hyr)) {
-	ret = dup_game(from);
-	hedge(ret,hxr,hyr) = !hedge(ret,hxr,hyr);
-	return ret;
-    } else if (dx < dy && VRANGE(from,vxr,vyr)) {
-	ret = dup_game(from);
-	vedge(ret,vxr,vyr) = !vedge(ret,vxr,vyr);
-	return ret;
+    if (button == LEFT_BUTTON) {
+        startdrag = TRUE;
+    } else if (button == LEFT_RELEASE) {
+        enddrag = TRUE;
+    } else if (button != LEFT_DRAG) {
+        return NULL;
     }
 
+    xc = coord_round(FROMCOORD((float)x));
+    yc = coord_round(FROMCOORD((float)y));
+
+    if (startdrag) {
+        ui->drag_start_x = xc;
+        ui->drag_start_y = yc;
+        ui->drag_end_x = xc;
+        ui->drag_end_y = yc;
+        ui->dragged = FALSE;
+        active = TRUE;
+    }
+
+    if (xc != ui->drag_end_x || yc != ui->drag_end_y) {
+        ui->drag_end_x = xc;
+        ui->drag_end_y = yc;
+        ui->dragged = TRUE;
+        active = TRUE;
+    }
+
+    if (enddrag && (xc >= 0 && xc <= 2*from->w &&
+                    yc >= 0 && yc <= 2*from->h)) {
+        ret = dup_game(from);
+
+        if (ui->dragged) {
+            ui_draw_rect(ret, ui, ret->hedge, ret->vedge, 1);
+        } else {
+            if ((xc & 1) && !(yc & 1) && HRANGE(from,xc/2,yc/2)) {
+                hedge(ret,xc/2,yc/2) = !hedge(ret,xc/2,yc/2);
+            }
+            if ((yc & 1) && !(xc & 1) && VRANGE(from,xc/2,yc/2)) {
+                vedge(ret,xc/2,yc/2) = !vedge(ret,xc/2,yc/2);
+            }
+        }
+
+        ui->drag_start_x = -1;
+        ui->drag_start_y = -1;
+        ui->drag_end_x = -1;
+        ui->drag_end_y = -1;
+        ui->dragged = FALSE;
+        active = TRUE;
+
+        if (!memcmp(ret->hedge, from->hedge, from->w*from->h) &&
+            !memcmp(ret->vedge, from->vedge, from->w*from->h)) {
+            free_game(ret);
+        } else
+            return ret;                /* a move has been made */
+    }
+
+    if (active)
+        return from;                   /* UI activity has occurred */
     return NULL;
 }
 
@@ -904,16 +1047,16 @@ game_state *make_move(game_state *from, game_ui *ui, int x, int y, int button)
  * Drawing routines.
  */
 
-#define L 1
-#define R 2
-#define U 4
-#define D 8
-#define CORRECT 16
+#define CORRECT 256
+
+#define COLOUR(k) ( (k)==1 ? COL_LINE : COL_DRAG )
+#define MAX(x,y) ( (x)>(y) ? (x) : (y) )
+#define MAX4(x,y,z,w) ( MAX(MAX(x,y),MAX(z,w)) )
 
 struct game_drawstate {
     int started;
     int w, h;
-    unsigned char *visible;
+    unsigned short *visible;
 };
 
 void game_size(game_params *params, int *x, int *y)
@@ -931,6 +1074,10 @@ float *game_colours(frontend *fe, game_state *state, int *ncolours)
     ret[COL_GRID * 3 + 0] = 0.5F * ret[COL_BACKGROUND * 3 + 0];
     ret[COL_GRID * 3 + 1] = 0.5F * ret[COL_BACKGROUND * 3 + 1];
     ret[COL_GRID * 3 + 2] = 0.5F * ret[COL_BACKGROUND * 3 + 2];
+
+    ret[COL_DRAG * 3 + 0] = 1.0F;
+    ret[COL_DRAG * 3 + 1] = 0.0F;
+    ret[COL_DRAG * 3 + 2] = 0.0F;
 
     ret[COL_CORRECT * 3 + 0] = 0.75F * ret[COL_BACKGROUND * 3 + 0];
     ret[COL_CORRECT * 3 + 1] = 0.75F * ret[COL_BACKGROUND * 3 + 1];
@@ -951,12 +1098,14 @@ float *game_colours(frontend *fe, game_state *state, int *ncolours)
 game_drawstate *game_new_drawstate(game_state *state)
 {
     struct game_drawstate *ds = snew(struct game_drawstate);
+    int i;
 
     ds->started = FALSE;
     ds->w = state->w;
     ds->h = state->h;
-    ds->visible = snewn(ds->w * ds->h, unsigned char);
-    memset(ds->visible, 0xFF, ds->w * ds->h);
+    ds->visible = snewn(ds->w * ds->h, unsigned short);
+    for (i = 0; i < ds->w * ds->h; i++)
+        ds->visible[i] = 0xFFFF;
 
     return ds;
 }
@@ -967,7 +1116,8 @@ void game_free_drawstate(game_drawstate *ds)
     sfree(ds);
 }
 
-void draw_tile(frontend *fe, game_state *state, int x, int y, int correct)
+void draw_tile(frontend *fe, game_state *state, int x, int y,
+               unsigned char *hedge, unsigned char *vedge, int correct)
 {
     int cx = COORD(x), cy = COORD(y);
     char str[80];
@@ -985,30 +1135,54 @@ void draw_tile(frontend *fe, game_state *state, int x, int y, int correct)
     /*
      * Draw edges.
      */
-    if (!HRANGE(state,x,y) || hedge(state,x,y))
-	draw_rect(fe, cx, cy, TILE_SIZE+1, 2, COL_LINE);
-    if (!HRANGE(state,x,y+1) || hedge(state,x,y+1))
-	draw_rect(fe, cx, cy+TILE_SIZE-1, TILE_SIZE+1, 2, COL_LINE);
-    if (!VRANGE(state,x,y) || vedge(state,x,y))
-	draw_rect(fe, cx, cy, 2, TILE_SIZE+1, COL_LINE);
-    if (!VRANGE(state,x+1,y) || vedge(state,x+1,y))
-	draw_rect(fe, cx+TILE_SIZE-1, cy, 2, TILE_SIZE+1, COL_LINE);
+    if (!HRANGE(state,x,y) || index(state,hedge,x,y))
+	draw_rect(fe, cx, cy, TILE_SIZE+1, 2,
+                  HRANGE(state,x,y) ? COLOUR(index(state,hedge,x,y)) :
+                  COL_LINE);
+    if (!HRANGE(state,x,y+1) || index(state,hedge,x,y+1))
+	draw_rect(fe, cx, cy+TILE_SIZE-1, TILE_SIZE+1, 2,
+                  HRANGE(state,x,y+1) ? COLOUR(index(state,hedge,x,y+1)) :
+                  COL_LINE);
+    if (!VRANGE(state,x,y) || index(state,vedge,x,y))
+	draw_rect(fe, cx, cy, 2, TILE_SIZE+1,
+                  VRANGE(state,x,y) ? COLOUR(index(state,vedge,x,y)) :
+                  COL_LINE);
+    if (!VRANGE(state,x+1,y) || index(state,vedge,x+1,y))
+	draw_rect(fe, cx+TILE_SIZE-1, cy, 2, TILE_SIZE+1,
+                  VRANGE(state,x+1,y) ? COLOUR(index(state,vedge,x+1,y)) :
+                  COL_LINE);
 
     /*
      * Draw corners.
      */
-    if ((HRANGE(state,x-1,y) && hedge(state,x-1,y)) ||
-	(VRANGE(state,x,y-1) && vedge(state,x,y-1)))
-	draw_rect(fe, cx, cy, 2, 2, COL_LINE);
-    if ((HRANGE(state,x+1,y) && hedge(state,x+1,y)) ||
-	(VRANGE(state,x+1,y-1) && vedge(state,x+1,y-1)))
-	draw_rect(fe, cx+TILE_SIZE-1, cy, 2, 2, COL_LINE);
-    if ((HRANGE(state,x-1,y+1) && hedge(state,x-1,y+1)) ||
-	(VRANGE(state,x,y+1) && vedge(state,x,y+1)))
-	draw_rect(fe, cx, cy+TILE_SIZE-1, 2, 2, COL_LINE);
-    if ((HRANGE(state,x+1,y+1) && hedge(state,x+1,y+1)) ||
-	(VRANGE(state,x+1,y+1) && vedge(state,x+1,y+1)))
-	draw_rect(fe, cx+TILE_SIZE-1, cy+TILE_SIZE-1, 2, 2, COL_LINE);
+    if ((HRANGE(state,x-1,y) && index(state,hedge,x-1,y)) ||
+	(VRANGE(state,x,y-1) && index(state,vedge,x,y-1)))
+	draw_rect(fe, cx, cy, 2, 2,
+                  COLOUR(MAX4(index(state,hedge,x-1,y),
+                              index(state,vedge,x,y-1),
+                              index(state,hedge,x,y),
+                              index(state,vedge,x,y))));
+    if ((HRANGE(state,x+1,y) && index(state,hedge,x+1,y)) ||
+	(VRANGE(state,x+1,y-1) && index(state,vedge,x+1,y-1)))
+	draw_rect(fe, cx+TILE_SIZE-1, cy, 2, 2,
+                  COLOUR(MAX4(index(state,hedge,x+1,y),
+                              index(state,vedge,x+1,y-1),
+                              index(state,hedge,x,y),
+                              index(state,vedge,x+1,y))));
+    if ((HRANGE(state,x-1,y+1) && index(state,hedge,x-1,y+1)) ||
+	(VRANGE(state,x,y+1) && index(state,vedge,x,y+1)))
+	draw_rect(fe, cx, cy+TILE_SIZE-1, 2, 2,
+                  COLOUR(MAX4(index(state,hedge,x-1,y+1),
+                              index(state,vedge,x,y+1),
+                              index(state,hedge,x,y+1),
+                              index(state,vedge,x,y))));
+    if ((HRANGE(state,x+1,y+1) && index(state,hedge,x+1,y+1)) ||
+	(VRANGE(state,x+1,y+1) && index(state,vedge,x+1,y+1)))
+	draw_rect(fe, cx+TILE_SIZE-1, cy+TILE_SIZE-1, 2, 2,
+                  COLOUR(MAX4(index(state,hedge,x+1,y+1),
+                              index(state,vedge,x+1,y+1),
+                              index(state,hedge,x,y+1),
+                              index(state,vedge,x+1,y))));
 
     draw_update(fe, cx, cy, TILE_SIZE+1, TILE_SIZE+1);
 }
@@ -1019,8 +1193,20 @@ void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 {
     int x, y;
     unsigned char *correct;
+    unsigned char *hedge, *vedge;
 
     correct = get_correct(state);
+
+    if (ui->dragged) {
+        hedge = snewn(state->w*state->h, unsigned char);
+        vedge = snewn(state->w*state->h, unsigned char);
+        memcpy(hedge, state->hedge, state->w*state->h);
+        memcpy(vedge, state->vedge, state->w*state->h);
+        ui_draw_rect(state, ui, hedge, vedge, 2);
+    } else {
+        hedge = state->hedge;
+        vedge = state->vedge;
+    }
 
     if (!ds->started) {
 	draw_rect(fe, COORD(0)-1, COORD(0)-1,
@@ -1030,24 +1216,29 @@ void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 
     for (x = 0; x < state->w; x++)
 	for (y = 0; y < state->h; y++) {
-	    unsigned char c = 0;
+	    unsigned short c = 0;
 
-	    if (!HRANGE(state,x,y) || hedge(state,x,y))
-		c |= L;
-	    if (!HRANGE(state,x+1,y) || hedge(state,x+1,y))
-		c |= R;
-	    if (!VRANGE(state,x,y) || vedge(state,x,y))
-		c |= U;
-	    if (!VRANGE(state,x,y+1) || vedge(state,x,y+1))
-		c |= D;
+	    if (HRANGE(state,x,y))
+                c |= index(state,hedge,x,y);
+	    if (HRANGE(state,x+1,y))
+		c |= index(state,hedge,x+1,y) << 2;
+	    if (VRANGE(state,x,y))
+		c |= index(state,vedge,x,y) << 4;
+	    if (VRANGE(state,x,y+1))
+		c |= index(state,vedge,x,y+1) << 6;
 	    if (index(state, correct, x, y))
 		c |= CORRECT;
 
 	    if (index(ds,ds->visible,x,y) != c) {
-		draw_tile(fe, state, x, y, c & CORRECT);
-		//index(ds,ds->visible,x,y) = c;
+		draw_tile(fe, state, x, y, hedge, vedge, c & CORRECT);
+		/* index(ds,ds->visible,x,y) = c; */
 	    }
 	}
+
+    if (hedge != state->hedge) {
+        sfree(hedge);
+        sfree(vedge);
+   }
 
     sfree(correct);
 }
