@@ -599,6 +599,13 @@ void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
     {
 	char statusbuf[256];
 
+        /*
+         * Don't show the new status until we're also showing the
+         * new _state_ - after the game animation is complete.
+         */
+        if (oldstate)
+            state = oldstate;
+
 	sprintf(statusbuf, "%sMoves: %d",
 		(state->completed ? "COMPLETED! " : ""),
 		(state->completed ? state->completed : state->movecount));
