@@ -672,7 +672,7 @@ char *validate_seed(game_params *params, char *seed)
         } else if (n == '_') {
             /* do nothing */;
         } else if (n > '0' && n <= '9') {
-            squares += atoi(seed-1);
+            squares++;
             while (*seed >= '0' && *seed <= '9')
                 seed++;
         } else
