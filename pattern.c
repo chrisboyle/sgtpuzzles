@@ -417,6 +417,34 @@ static unsigned char *generate_soluble(random_state *rs, int w, int h)
 
         generate(rs, w, h, grid);
 
+        /*
+         * The game is a bit too easy if any row or column is
+         * completely black or completely white. An exception is
+         * made for rows/columns that are under 3 squares,
+         * otherwise nothing will ever be successfully generated.
+         */
+        ok = TRUE;
+        if (w > 2) {
+            for (i = 0; i < h; i++) {
+                int colours = 0;
+                for (j = 0; j < w; j++)
+                    colours |= (grid[i*w+j] == GRID_FULL ? 2 : 1);
+                if (colours != 3)
+                    ok = FALSE;
+            }
+        }
+        if (h > 2) {
+            for (j = 0; j < w; j++) {
+                int colours = 0;
+                for (i = 0; i < h; i++)
+                    colours |= (grid[i*w+j] == GRID_FULL ? 2 : 1);
+                if (colours != 3)
+                    ok = FALSE;
+            }
+        }
+        if (!ok)
+            continue;
+
         memset(matrix, 0, w*h);
 
         do {
