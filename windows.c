@@ -328,6 +328,9 @@ static frontend *new_window(HINSTANCE inst)
 
     fe->timer = 0;
 
+    fe->fonts = NULL;
+    fe->nfonts = fe->fontsize = 0;
+
     {
 	int i, ncolours;
         float *colours;
