@@ -484,7 +484,7 @@ lengths of the runs of black squares in that column. Your aim is to
 fill in the entire grid black or white.
 
 I first saw this puzzle form around 1995, under the name
-\q{nonograms}. I've seen it in various places since then, under
+\q{\i{nonograms}}. I've seen it in various places since then, under
 different names.
 
 Normally, puzzles of this type turn out to be a meaningful picture
@@ -495,7 +495,7 @@ a \e{good} thing, since it prevents you from guessing the colour of
 squares based on the picture, and forces you to use logic instead.)
 The advantage, though, is that you never run out of them.
 
-\H{pattern-controls} \i{Pattern controls}
+\H{pattern-controls} \I{controls, for Pattern}Pattern controls
 
 This game is played with the mouse.
 
@@ -509,6 +509,8 @@ a vertical or horizontal line of squares black or white at a time
 (respectively). If you click and drag with the middle button, or
 with Shift held down, you can colour a whole rectangle of squares
 grey.
+
+(All the actions described in \k{common-actions} are also available.)
 
 \H{pattern-parameters} \I{parameters, for Pattern}Pattern parameters
 
