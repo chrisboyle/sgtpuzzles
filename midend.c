@@ -32,6 +32,8 @@ struct midend_data {
     float anim_time, anim_pos;
     float flash_time, flash_pos;
     int dir;
+
+    int pressed_mouse_button;
 };
 
 #define ensure(me) do { \
@@ -66,6 +68,7 @@ midend_data *midend_new(frontend *fe, const game *ourgame)
     me->flash_time = me->flash_pos = 0.0F;
     me->dir = 0;
     me->ui = NULL;
+    me->pressed_mouse_button = 0;
 
     sfree(randseed);
 
@@ -114,6 +117,7 @@ void midend_new_game(midend_data *me)
     if (me->ui)
         me->ourgame->free_ui(me->ui);
     me->ui = me->ourgame->new_ui(me->states[0]);
+    me->pressed_mouse_button = 0;
 }
 
 void midend_restart_game(midend_data *me)
@@ -180,7 +184,7 @@ static void midend_stop_anim(midend_data *me)
     }
 }
 
-int midend_process_key(midend_data *me, int x, int y, int button)
+static int midend_really_process_key(midend_data *me, int x, int y, int button)
 {
     game_state *oldstate = me->ourgame->dup_game(me->states[me->statepos - 1]);
     float anim_time;
@@ -253,6 +257,99 @@ int midend_process_key(midend_data *me, int x, int y, int button)
     activate_timer(me->frontend);
 
     return 1;
+}
+
+int midend_process_key(midend_data *me, int x, int y, int button)
+{
+    int ret = 1;
+
+    /*
+     * Harmonise mouse drag and release messages.
+     * 
+     * Some front ends might accidentally switch from sending, say,
+     * RIGHT_DRAG messages to sending LEFT_DRAG, half way through a
+     * drag. (This can happen on the Mac, for example, since
+     * RIGHT_DRAG is usually done using Command+drag, and if the
+     * user accidentally releases Command half way through the drag
+     * then there will be trouble.)
+     * 
+     * It would be an O(number of front ends) annoyance to fix this
+     * in the front ends, but an O(number of back ends) annoyance
+     * to have each game capable of dealing with it. Therefore, we
+     * fix it _here_ in the common midend code so that it only has
+     * to be done once.
+     * 
+     * Semantics:
+     * 
+     *  - when we receive a button down message, we remember which
+     *    button went down.
+     * 
+     *  - if we receive a drag or release message for a button we
+     *    don't currently think is pressed, we fabricate a
+     *    button-down for it before sending it.
+     * 
+     *  - if we receive (or fabricate) a button down message
+     *    without having seen a button up for the previously
+     *    pressed button, we invent the button up before sending
+     *    the button down.
+     * 
+     * Therefore, front ends can just send whatever data they
+     * happen to be conveniently able to get, and back ends can be
+     * guaranteed of always receiving a down, zero or more drags
+     * and an up for a single button at a time.
+     */
+    if (IS_MOUSE_DRAG(button) || IS_MOUSE_RELEASE(button)) {
+        int which;
+
+        if (IS_MOUSE_DRAG(button))
+            which = button + (LEFT_BUTTON - LEFT_DRAG);
+        else
+            which = button + (LEFT_BUTTON - LEFT_RELEASE);
+
+        if (which != me->pressed_mouse_button) {
+            /*
+             * Fabricate a button-up for the currently pressed
+             * button, if any.
+             */
+            if (me->pressed_mouse_button) {
+                ret = ret && midend_really_process_key
+                    (me, x, y, (me->pressed_mouse_button +
+                                (LEFT_RELEASE - LEFT_BUTTON)));
+            }
+
+            /*
+             * Now fabricate a button-down for this one.
+             */
+            ret = ret && midend_really_process_key(me, x, y, which);
+
+            /*
+             * And set the currently pressed button to this one.
+             */
+            me->pressed_mouse_button = which;
+        }
+    } else if (IS_MOUSE_DOWN(button) && me->pressed_mouse_button) {
+        /*
+         * Fabricate a button-up for the previously pressed button.
+         */
+        ret = ret && midend_really_process_key
+            (me, x, y, (me->pressed_mouse_button +
+                        (LEFT_RELEASE - LEFT_BUTTON)));
+    }
+
+    /*
+     * Now send on the event we originally received.
+     */
+    ret = ret && midend_really_process_key(me, x, y, button);
+
+    /*
+     * And update the currently pressed button.
+     */
+    if (IS_MOUSE_RELEASE(button))
+        me->pressed_mouse_button = 0;
+    else if (IS_MOUSE_DOWN(button))
+        me->pressed_mouse_button = button;
+
+    return ret;
 }
 
 void midend_redraw(midend_data *me)

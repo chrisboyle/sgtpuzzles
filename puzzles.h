@@ -34,6 +34,13 @@ enum {
     CURSOR_DOWN_RIGHT
 };
 
+#define IS_MOUSE_DOWN(m) ( (unsigned)((m) - LEFT_BUTTON) <= \
+                               (unsigned)(RIGHT_BUTTON - LEFT_BUTTON))
+#define IS_MOUSE_DRAG(m) ( (unsigned)((m) - LEFT_DRAG) <= \
+                               (unsigned)(RIGHT_DRAG - LEFT_DRAG))
+#define IS_MOUSE_RELEASE(m) ( (unsigned)((m) - LEFT_RELEASE) <= \
+                               (unsigned)(RIGHT_RELEASE - LEFT_RELEASE))
+
 #define IGNOREARG(x) ( (x) = (x) )
 
 typedef struct frontend frontend;
