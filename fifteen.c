@@ -131,7 +131,7 @@ int perm_parity(int *perm, int n)
     return ret;
 }
 
-char *new_game_seed(game_params *params)
+char *new_game_seed(game_params *params, random_state *rs)
 {
     int gap, n, i, x;
     int x1, x2, p1, p2, parity;
@@ -149,7 +149,7 @@ char *new_game_seed(game_params *params)
         used[i] = FALSE;
     }
 
-    gap = rand_upto(n);
+    gap = random_upto(rs, n);
     tiles[gap] = 0;
     used[0] = TRUE;
 
@@ -157,7 +157,7 @@ char *new_game_seed(game_params *params)
      * Place everything else except the last two tiles.
      */
     for (x = 0, i = n-1; i > 2; i--) {
-        int k = rand_upto(i);
+        int k = random_upto(rs, i);
         int j;
 
         for (j = 0; j < n; j++)

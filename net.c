@@ -254,7 +254,7 @@ char *validate_params(game_params *params)
  * Randomly select a new game seed.
  */
 
-char *new_game_seed(game_params *params)
+char *new_game_seed(game_params *params, random_state *rs)
 {
     /*
      * The full description of a Net game is far too large to
@@ -268,7 +268,7 @@ char *new_game_seed(game_params *params)
      * understand it and do something completely different.)
      */
     char buf[40];
-    sprintf(buf, "%d", rand());
+    sprintf(buf, "%lu", random_bits(rs, 32));
     return dupstr(buf);
 }
 

@@ -103,7 +103,7 @@ void status_bar(frontend *fe, char *text);
 /*
  * midend.c
  */
-midend_data *midend_new(frontend *fe);
+midend_data *midend_new(frontend *fe, void *randseed, int randseedsize);
 void midend_free(midend_data *me);
 void midend_set_params(midend_data *me, game_params *params);
 void midend_size(midend_data *me, int *x, int *y);
@@ -138,13 +138,13 @@ char *dupstr(char *s);
 /*
  * misc.c
  */
-int rand_upto(int limit);
 void free_cfg(config_item *cfg);
 
 /*
  * random.c
  */
 random_state *random_init(char *seed, int len);
+unsigned long random_bits(random_state *state, int bits);
 unsigned long random_upto(random_state *state, unsigned long limit);
 void random_free(random_state *state);
 
@@ -160,7 +160,7 @@ game_params *dup_params(game_params *params);
 config_item *game_configure(game_params *params);
 game_params *custom_params(config_item *cfg);
 char *validate_params(game_params *params);
-char *new_game_seed(game_params *params);
+char *new_game_seed(game_params *params, random_state *rs);
 char *validate_seed(game_params *params, char *seed);
 game_state *new_game(game_params *params, char *seed);
 game_state *dup_game(game_state *state);

@@ -688,10 +688,12 @@ static frontend *new_window(void)
     GtkBox *vbox;
     GtkWidget *menubar, *menu, *menuitem;
     int x, y, n;
+    time_t t;
 
     fe = snew(frontend);
 
-    fe->me = midend_new(fe);
+    time(&t);
+    fe->me = midend_new(fe, &t, sizeof(t));
     midend_new_game(fe->me);
 
     fe->window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
@@ -855,8 +857,6 @@ static frontend *new_window(void)
 
 int main(int argc, char **argv)
 {
-    srand(time(NULL));
-
     gtk_init(&argc, &argv);
     (void) new_window();
     gtk_main();

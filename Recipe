@@ -13,8 +13,8 @@
 !makefile cygwin Makefile.cyg
 
 WINDOWS  = windows user32.lib gdi32.lib comctl32.lib
-COMMON   = midend misc malloc
-NET      = net random tree234
+COMMON   = midend misc malloc random
+NET      = net tree234
 
 net      : [X] gtk COMMON NET
 cube     : [X] gtk COMMON cube

@@ -311,9 +311,13 @@ static frontend *new_window(HINSTANCE inst)
     int x, y;
     RECT r, sr;
     HDC hdc;
+    time_t t;
 
     fe = snew(frontend);
-    fe->me = midend_new(fe);
+
+    time(&t);
+    fe->me = midend_new(fe, &t, sizeof(t));
+
     fe->inst = inst;
     midend_new_game(fe->me);
     midend_size(fe->me, &x, &y);
@@ -949,8 +953,6 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
 int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
 {
     MSG msg;
-
-    srand(time(NULL));
 
     InitCommonControls();
 

@@ -560,7 +560,7 @@ static void classify_grid_square_callback(void *ctx, struct grid_square *sq)
 	data->squareindex++;
 }
 
-char *new_game_seed(game_params *params)
+char *new_game_seed(game_params *params, random_state *rs)
 {
     struct grid_data data;
     int i, j, k, m, area, facesperclass;
@@ -605,7 +605,7 @@ char *new_game_seed(game_params *params)
 
     for (i = 0; i < data.nclasses; i++) {
 	for (j = 0; j < facesperclass; j++) {
-            int n = rand_upto(data.nsquares[i]);
+            int n = random_upto(rs, data.nsquares[i]);
 
 	    assert(!flags[data.gridptrs[i][n]]);
 	    flags[data.gridptrs[i][n]] = TRUE;
@@ -653,7 +653,7 @@ char *new_game_seed(game_params *params)
     /*
      * Choose a non-blue square for the polyhedron.
      */
-    sprintf(p, ":%d", data.gridptrs[0][rand_upto(m)]);
+    sprintf(p, ":%d", data.gridptrs[0][random_upto(rs, m)]);
 
     sfree(data.gridptrs[0]);
     sfree(flags);

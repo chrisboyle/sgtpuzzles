@@ -76,7 +76,7 @@ char *validate_params(game_params *params)
     return NULL;
 }
 
-char *new_game_seed(game_params *params)
+char *new_game_seed(game_params *params, random_state *rs)
 {
     return dupstr("FIXME");
 }

@@ -231,7 +231,7 @@ random_state *random_init(char *seed, int len)
 
 unsigned long random_bits(random_state *state, int bits)
 {
-    int ret = 0;
+    unsigned long ret = 0;
     int n;
 
     for (n = 0; n < bits; n += 8) {
@@ -251,7 +251,13 @@ unsigned long random_bits(random_state *state, int bits)
 	ret = (ret << 8) | state->databuf[state->pos++];
     }
 
-    ret &= (1 << bits) - 1;
+    /*
+     * `(1 << bits) - 1' is not good enough, since if bits==32 on a
+     * 32-bit machine, behaviour is undefined and Intel has a nasty
+     * habit of shifting left by zero instead. We'll shift by
+     * bits-1 and then separately shift by one.
+     */
+    ret &= (1 << (bits-1)) * 2 - 1;
     return ret;
 }
 

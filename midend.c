@@ -13,6 +13,8 @@
 
 struct midend_data {
     frontend *frontend;
+    random_state *random;
+
     char *seed;
     int fresh_seed;
     int nstates, statesize, statepos;
@@ -36,11 +38,12 @@ struct midend_data {
     } \
 } while (0)
 
-midend_data *midend_new(frontend *frontend)
+midend_data *midend_new(frontend *fe, void *randseed, int randseedsize)
 {
     midend_data *me = snew(midend_data);
 
-    me->frontend = frontend;
+    me->frontend = fe;
+    me->random = random_init(randseed, randseedsize);
     me->nstates = me->statesize = me->statepos = 0;
     me->states = NULL;
     me->params = default_params();
@@ -88,7 +91,7 @@ void midend_new_game(midend_data *me)
 
     if (!me->fresh_seed) {
 	sfree(me->seed);
-	me->seed = new_game_seed(me->params);
+	me->seed = new_game_seed(me->params, me->random);
     } else
 	me->fresh_seed = FALSE;
 
@@ -252,7 +255,7 @@ float *midend_colours(midend_data *me, int *ncolours)
     float *ret;
 
     if (me->nstates == 0) {
-        char *seed = new_game_seed(me->params);
+        char *seed = new_game_seed(me->params, me->random);
         state = new_game(me->params, seed);
         sfree(seed);
     } else
