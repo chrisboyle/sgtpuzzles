@@ -227,6 +227,7 @@ void draw_text(frontend *fe, int x, int y, int fonttype, int fontsize,
 		x -= size.cx;
 	}
 	SetBkMode(fe->hdc_bm, TRANSPARENT);
+	SetTextColor(fe->hdc_bm, fe->colours[colour]);
 	TextOut(fe->hdc_bm, x, y, text, strlen(text));
 	SelectObject(fe->hdc_bm, oldfont);
     }
