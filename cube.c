@@ -1366,13 +1366,15 @@ void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
     draw_rect(fe, 0, 0, (int)((bb.r-bb.l+2.0F) * GRID_SCALE),
               (int)((bb.d-bb.u+2.0F) * GRID_SCALE), COL_BACKGROUND);
 
-    if (oldstate && oldstate->movecount > state->movecount) {
+    if (dir < 0) {
         game_state *t;
 
         /*
          * This is an Undo. So reverse the order of the states, and
          * run the roll timer backwards.
          */
+	assert(oldstate);
+
         t = oldstate;
         oldstate = state;
         state = t;

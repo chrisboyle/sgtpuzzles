@@ -664,10 +664,12 @@ void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 		float c;
 		int sense;
 
-		if (oldstate && state->movecount < oldstate->movecount)
+		if (dir < 0) {
+		    assert(oldstate);
 		    sense = -oldstate->last_movement_sense;
-		else
+		} else {
 		    sense = state->last_movement_sense;
+		}
 
 		t = state->tiles[i];
 
