@@ -11,11 +11,14 @@
 !makefile gtk Makefile
 !makefile vc Makefile.vc
 !makefile cygwin Makefile.cyg
+!makefile osx Makefile.osx
 
 WINDOWS  = windows user32.lib gdi32.lib comctl32.lib
 COMMON   = midend misc malloc random
 NET      = net tree234
 NETSLIDE = netslide tree234
+
+ALL      = list NET NETSLIDE cube fifteen sixteen rect pattern
 
 net      : [X] gtk COMMON NET
 netslide : [X] gtk COMMON NETSLIDE
@@ -34,6 +37,9 @@ fifteen  : [G] WINDOWS COMMON fifteen
 sixteen  : [G] WINDOWS COMMON sixteen
 rect     : [G] WINDOWS COMMON rect
 pattern  : [G] WINDOWS COMMON pattern
+
+# Mac OS X unified application containing all the puzzles.
+Puzzles  : [MX] macosx COMMON ALL
 
 # The `nullgame' source file is a largely blank one, which contains
 # all the correct function definitions to compile and link, but
