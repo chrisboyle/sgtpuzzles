@@ -234,7 +234,7 @@ static frontend *new_window(HINSTANCE inst)
 		       (WS_THICKFRAME | WS_MAXIMIZEBOX | WS_OVERLAPPED),
 		       TRUE, 0);
 
-    fe->hwnd = CreateWindowEx(0, "puzzle", "puzzle",
+    fe->hwnd = CreateWindowEx(0, game_name, game_name,
 			      WS_OVERLAPPEDWINDOW &~
 			      (WS_THICKFRAME | WS_MAXIMIZEBOX),
 			      CW_USEDEFAULT, CW_USEDEFAULT,
@@ -489,7 +489,7 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
 	wndclass.hCursor = LoadCursor(NULL, IDC_ARROW);
 	wndclass.hbrBackground = NULL;
 	wndclass.lpszMenuName = NULL;
-	wndclass.lpszClassName = "puzzle";
+	wndclass.lpszClassName = game_name;
 
 	RegisterClass(&wndclass);
     }

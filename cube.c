@@ -10,6 +10,8 @@
 
 #include "puzzles.h"
 
+const char *const game_name = "Cube";
+
 #define MAXVERTICES 20
 #define MAXFACES 20
 #define MAXORDER 4

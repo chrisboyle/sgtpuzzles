@@ -314,6 +314,7 @@ static frontend *new_window(void)
     midend_new_game(fe->me, NULL);
 
     fe->window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+    gtk_window_set_title(GTK_WINDOW(fe->window), game_name);
 #if 0
     gtk_window_set_resizable(GTK_WINDOW(fe->window), FALSE);
 #else
