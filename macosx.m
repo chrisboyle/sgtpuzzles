@@ -5,9 +5,6 @@
  *
  *  - status bar support.
  *
- *  - preset selection. Should be reasonably simple: just a matter
- *    of dynamically frobbing the menu bar.
- *
  *  - configurability. Will no doubt involve learning all about the
  *    dialog control side of Cocoa.
  *
@@ -48,6 +45,20 @@
  *    _worst_ this should involve a new Halibut back end, but I
  *    think help is HTML round here anyway so perhaps we can work
  *    with what we already have.
+ * 
+ *  - Can we arrange for a pop-up menu from the Dock icon which
+ *    launches specific games, perhaps?
+ * 
+ * Grotty implementation details that could probably be improved:
+ * 
+ *  - I am _utterly_ unconvinced that NSImageView was the right way
+ *    to go about having a window with a reliable backing store! It
+ *    just doesn't feel right; NSImageView is a _control_. Is there
+ *    a simpler way?
+ * 
+ *  - Resizing is currently very bad; rather than bother to work
+ *    out how to resize the NSImageView, I just splatter and
+ *    recreate it.
  */
 
 #include <ctype.h>
@@ -87,6 +98,59 @@ void get_random_seed(void **randseed, int *randseedsize)
     *randseed = (void *)tp;
     *randseedsize = sizeof(time_t);
 }
+
+/* ----------------------------------------------------------------------
+ * Global variables.
+ */
+
+/*
+ * The `Type' menu. We frob this dynamically to allow the user to
+ * choose a preset set of settings from the current game.
+ */
+NSMenu *typemenu;
+
+/* ----------------------------------------------------------------------
+ * Tiny extension to NSMenuItem which carries a payload of a `void
+ * *', allowing several menu items to invoke the same message but
+ * pass different data through it.
+ */
+@interface DataMenuItem : NSMenuItem
+{
+    void *payload;
+    int payload_free;
+}
+- (void)setPayload:(void *)d;
+- (void)setPayloadFree:(BOOL)yesno;
+- (void *)getPayload;
+@end
+@implementation DataMenuItem
+- (id)initWithTitle:(NSString *)title
+    action:(SEL)act
+    keyEquivalent:(NSString *)key
+{
+    payload = NULL;
+    payload_free = NO;
+    return [super initWithTitle:title action:act keyEquivalent:key];
+}
+- (void)setPayload:(void *)d
+{
+    payload = d;
+}
+- (void)setPayloadFree:(BOOL)yesno
+{
+    payload_free = yesno;
+}
+- (void *)getPayload
+{
+    return payload;
+}
+- (void)dealloc
+{
+    if (payload_free)
+	sfree(payload);
+    [super dealloc];
+}
+@end
 
 /* ----------------------------------------------------------------------
  * The front end presented to midend.c.
@@ -215,6 +279,26 @@ struct frontend {
 @end
 
 @implementation GameWindow
+- (void)setupContentView
+{
+    NSSize size = {0,0};
+    int w, h;
+
+    midend_size(me, &w, &h);
+    size.width = w;
+    size.height = h;
+
+    fe.image = [[NSImage alloc] initWithSize:size];
+    [fe.image setFlipped:YES];
+    fe.view = [[MyImageView alloc]
+	       initWithFrame:[self contentRectForFrameRect:[self frame]]];
+    [fe.view setImage:fe.image];
+    [fe.view setWindow:self];
+
+    midend_redraw(me);
+
+    [self setContentView:fe.view];
+}
 - (id)initWithGame:(const game *)g
 {
     NSRect rect = { {0,0}, {0,0} };
@@ -258,16 +342,8 @@ struct frontend {
 	}
     }
 
-    fe.image = [[NSImage alloc] initWithSize:rect.size];
-    [fe.image setFlipped:YES];
-    fe.view = [[MyImageView alloc]
-	       initWithFrame:[self contentRectForFrameRect:[self frame]]];
-    [fe.view setImage:fe.image];
-    [fe.view setWindow:self];
-    [self setContentView:fe.view];
+    [self setupContentView];
     [self setIgnoresMouseEvents:NO];
-
-    midend_redraw(me);
 
     [self center];		       /* :-) */
 
@@ -373,6 +449,84 @@ struct frontend {
 - (void)redoMove:(id)sender
 {
     [self processButton:'r'&0x1F x:-1 y:-1];
+}
+
+- (void)clearTypeMenu
+{
+    while ([typemenu numberOfItems] > 1)
+	[typemenu removeItemAtIndex:0];
+}
+
+- (void)becomeKeyWindow
+{
+    int n;
+
+    [self clearTypeMenu];
+
+    [super becomeKeyWindow];
+
+    n = midend_num_presets(me);
+
+    if (n > 0) {
+	[typemenu insertItem:[NSMenuItem separatorItem] atIndex:0];
+	while (n--) {
+	    char *name;
+	    game_params *params;
+	    DataMenuItem *item;
+
+	    midend_fetch_preset(me, n, &name, &params);
+
+	    item = [[[DataMenuItem alloc]
+		     initWithTitle:[NSString stringWithCString:name]
+		     action:NULL keyEquivalent:@""]
+		    autorelease];
+
+	    [item setEnabled:YES];
+	    [item setTarget:self];
+	    [item setAction:@selector(presetGame:)];
+	    [item setPayload:params];
+	    [item setPayloadFree:YES];
+
+	    [typemenu insertItem:item atIndex:0];
+	}
+    }
+}
+
+- (void)resignKeyWindow
+{
+    [self clearTypeMenu];
+    [super resignKeyWindow];
+}
+
+- (void)close
+{
+    [self clearTypeMenu];
+    [super close];
+}
+
+- (void)resizeForNewGameParams
+{
+    NSSize size = {0,0};
+    int w, h;
+
+    midend_size(me, &w, &h);
+    size.width = w;
+    size.height = h;
+
+    NSDisableScreenUpdates();
+    [self setContentSize:size];
+    [self setupContentView];
+    NSEnableScreenUpdates();
+}
+
+- (void)presetGame:(id)sender
+{
+    game_params *params = [sender getPayload];
+
+    midend_set_params(me, params);
+    midend_new_game(me);
+
+    [self resizeForNewGameParams];
 }
 
 @end
@@ -577,29 +731,6 @@ NSMenuItem *newitem(NSMenu *parent, char *title, char *key,
 }
 
 /* ----------------------------------------------------------------------
- * Tiny extension to NSMenuItem which carries a payload of a `const
- * game *', allowing our AppController to work out _which_ game
- * needs to be launched when it receives a newGame message.
- */
-@interface GameMenuItem : NSMenuItem
-{
-    const game *ourgame;
-}
-- (void)setGame:(const game *)g;
-- (const game *)getGame;
-@end
-@implementation GameMenuItem
-- (void)setGame:(const game *)g
-{
-    ourgame = g;
-}
-- (const game *)getGame
-{
-    return ourgame;
-}
-@end
-
-/* ----------------------------------------------------------------------
  * AppController: the object which receives the messages from all
  * menu selections that aren't standard OS X functions.
  */
@@ -613,7 +744,7 @@ NSMenuItem *newitem(NSMenu *parent, char *title, char *key,
 
 - (IBAction)newGame:(id)sender
 {
-    const game *g = [sender getGame];
+    const game *g = [sender getPayload];
     id win;
 
     win = [[GameWindow alloc] initWithGame:g];
@@ -655,10 +786,10 @@ int main(int argc, char **argv)
 
 	for (i = 0; i < gamecount; i++) {
 	    id item =
-		initnewitem([GameMenuItem allocWithZone:[NSMenu menuZone]],
+		initnewitem([DataMenuItem allocWithZone:[NSMenu menuZone]],
 			    menu, gamelist[i]->name, "", controller,
 			    @selector(newGame:));
-	    [item setGame:gamelist[i]];
+	    [item setPayload:(void *)gamelist[i]];
 	}
     }
 
@@ -673,6 +804,7 @@ int main(int argc, char **argv)
     item = newitem(menu, "Close", "w", NULL, @selector(performClose:));
 
     menu = newsubmenu([NSApp mainMenu], "Type");
+    typemenu = menu;
     item = newitem(menu, "Custom", "", NULL, @selector(customGameType:));
 
     menu = newsubmenu([NSApp mainMenu], "Window");
