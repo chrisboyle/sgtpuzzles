@@ -1,4 +1,5 @@
 Makefile*
 net cube
 *.exe *.obj *.o
+*.map *.rsp
 *notes
