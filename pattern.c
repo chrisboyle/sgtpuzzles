@@ -330,7 +330,7 @@ int compute_rowdata(int *ret, unsigned char *start, int len, int step)
             i += runlen;
         }
 
-        if (start[i*step] == GRID_UNKNOWN)
+        if (i < len && start[i*step] == GRID_UNKNOWN)
             return -1;
     }
 
