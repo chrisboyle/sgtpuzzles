@@ -22,7 +22,7 @@ This is a collection of small one-player puzzle games.
 reserved. You may distribute this documentation under the MIT licence.
 See \k{licence} for the licence text in full.
 
-\versionid $Id: puzzles.but,v 1.2 2004/08/16 12:42:11 simon Exp $
+\versionid $Id: puzzles.but,v 1.3 2004/08/16 13:17:40 simon Exp $
 
 
 \C{intro} Introduction
@@ -423,9 +423,11 @@ after generation. In other words, the initial grid will be 2/3 the
 size in each dimension, and will be expanded to its full size
 without adding any more rectangles.
 
-Setting a high expansion factor tends to make the game more
-difficult, and also rewards a less deductive and more intuitive
-playing style.
+Setting an expansion factor of around 0.5 tends to make the game
+more difficult, and also (in my experience) rewards a less deductive
+and more intuitive playing style. If you set it \e{too} high,
+though, the game simply cannot generate more than a few rectangles
+to cover the entire grid, and the game becomes trivial.
 
 \H{rectangles-cmdline} \I{command line, for Rectangles}Additional
 command-line configuration
