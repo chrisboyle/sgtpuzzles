@@ -164,6 +164,13 @@ void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
                  game_state *state, game_ui *ui,
                  float animtime, float flashtime)
 {
+    /*
+     * The initial contents of the window are not guaranteed and
+     * can vary with front ends. To be on the safe side, all games
+     * should start by drawing a big background-colour rectangle
+     * covering the whole window.
+     */
+    draw_rect(fe, 0, 0, 200, 200, COL_BACKGROUND);
 }
 
 float game_anim_length(game_state *oldstate, game_state *newstate)
