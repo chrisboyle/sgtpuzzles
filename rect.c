@@ -881,7 +881,13 @@ char *new_game_seed(game_params *params, random_state *rs)
                     run -= c - ('a' - 1);
                 }
             } else {
-                *p++ = '_';
+                /*
+                 * If there's a number in the very top left or
+                 * bottom right, there's no point putting an
+                 * unnecessary _ before or after it.
+                 */
+                if (p > seed && n > 0)
+                    *p++ = '_';
             }
             if (n > 0)
                 p += sprintf(p, "%d", n);
