@@ -246,6 +246,57 @@ char *new_game_seed(game_params *params)
     return ret;
 }
 
+char *validate_seed(game_params *params, char *seed)
+{
+    char *p, *err;
+    int i, area;
+    int *used;
+
+    area = params->w * params->h;
+    p = seed;
+    err = NULL;
+
+    used = snewn(area, int);
+    for (i = 0; i < area; i++)
+	used[i] = FALSE;
+
+    for (i = 0; i < area; i++) {
+	char *q = p;
+	int n;
+
+	if (*p < '0' || *p > '9') {
+	    err = "Not enough numbers in string";
+	    goto leave;
+	}
+	while (*p >= '0' && *p <= '9')
+	    p++;
+	if (i < area-1 && *p != ',') {
+	    err = "Expected comma after number";
+	    goto leave;
+	}
+	else if (i == area-1 && *p) {
+	    err = "Excess junk at end of string";
+	    goto leave;
+	}
+	n = atoi(q);
+	if (n < 0 || n >= area) {
+	    err = "Number out of range";
+	    goto leave;
+	}
+	if (used[n]) {
+	    err = "Number used twice";
+	    goto leave;
+	}
+	used[n] = TRUE;
+
+	if (*p) p++;		       /* eat comma */
+    }
+
+    leave:
+    sfree(used);
+    return err;
+}
+
 game_state *new_game(game_params *params, char *seed)
 {
     game_state *state = snew(game_state);

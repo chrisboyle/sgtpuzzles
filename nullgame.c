@@ -81,6 +81,11 @@ char *new_game_seed(game_params *params)
     return dupstr("FIXME");
 }
 
+char *validate_seed(game_params *params, char *seed)
+{
+    return NULL;
+}
+
 game_state *new_game(game_params *params, char *seed)
 {
     game_state *state = snew(game_state);

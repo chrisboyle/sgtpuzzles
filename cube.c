@@ -285,8 +285,8 @@ static void enum_grid_squares(game_params *params,
     if (solid->order == 4) {
         int x, y;
 
-        for (x = 0; x < params->d1; x++)
-            for (y = 0; y < params->d2; y++) {
+	for (y = 0; y < params->d2; y++)
+	    for (x = 0; x < params->d1; x++) {
                 struct grid_square sq;
 
                 sq.x = (float)x;
@@ -807,6 +807,34 @@ static struct solid *transform_poly(const struct solid *solid, int flip,
     }
 
     return ret;
+}
+
+char *validate_seed(game_params *params, char *seed)
+{
+    int area = grid_area(params->d1, params->d2, solids[params->solid]->order);
+    int i, j;
+
+    i = (area + 3) / 4;
+    for (j = 0; j < i; j++) {
+	int c = seed[j];
+	if (c >= '0' && c <= '9') continue;
+	if (c >= 'A' && c <= 'F') continue;
+	if (c >= 'a' && c <= 'f') continue;
+	return "Not enough hex digits at start of string";
+	/* NB if seed[j]=='\0' that will also be caught here, so we're safe */
+    }
+
+    if (seed[i] != ':')
+	return "Expected ':' after hex digits";
+
+    i++;
+    do {
+	if (seed[i] < '0' || seed[i] > '9')
+	    return "Expected decimal integer after ':'";
+	i++;
+    } while (seed[i]);
+
+    return NULL;
 }
 
 game_state *new_game(game_params *params, char *seed)

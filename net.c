@@ -272,6 +272,15 @@ char *new_game_seed(game_params *params)
     return dupstr(buf);
 }
 
+char *validate_seed(game_params *params, char *seed)
+{
+    /*
+     * Since any string at all will suffice to seed the RNG, there
+     * is no validation required.
+     */
+    return NULL;
+}
+
 /* ----------------------------------------------------------------------
  * Construct an initial game state, given a seed and parameters.
  */

@@ -66,7 +66,7 @@ struct frontend {
     struct font *fonts;
     int nfonts, fontsize;
     config_item *cfg;
-    int cfgret;
+    int cfg_which, cfgret;
     GtkWidget *cfgbox;
 };
 
@@ -421,7 +421,7 @@ static void config_ok_button_clicked(GtkButton *button, gpointer data)
     frontend *fe = (frontend *)data;
     char *err;
 
-    err = midend_set_config(fe->me, fe->cfg);
+    err = midend_set_config(fe->me, fe->cfg_which, fe->cfg);
 
     if (err)
 	error_box(fe->cfgbox, err);
@@ -461,17 +461,20 @@ static void droplist_sel(GtkMenuItem *item, gpointer data)
 						  "user-data"));
 }
 
-static int get_config(frontend *fe)
+static int get_config(frontend *fe, int which)
 {
     GtkWidget *w, *table;
+    char *title;
     config_item *i;
     int y;
 
-    fe->cfg = midend_get_config(fe->me);
+    fe->cfg = midend_get_config(fe->me, which, &title);
+    fe->cfg_which = which;
     fe->cfgret = FALSE;
 
     fe->cfgbox = gtk_dialog_new();
-    gtk_window_set_title(GTK_WINDOW(fe->cfgbox), "Configure");
+    gtk_window_set_title(GTK_WINDOW(fe->cfgbox), title);
+    sfree(title);
 
     w = gtk_button_new_with_label("OK");
     gtk_box_pack_end(GTK_BOX(GTK_DIALOG(fe->cfgbox)->action_area),
@@ -635,7 +638,7 @@ static void menu_preset_event(GtkMenuItem *menuitem, gpointer data)
     int x, y;
 
     midend_set_params(fe->me, params);
-    midend_new_game(fe->me, NULL);
+    midend_new_game(fe->me);
     midend_size(fe->me, &x, &y);
     gtk_drawing_area_size(GTK_DRAWING_AREA(fe->area), x, y);
     fe->w = x;
@@ -645,12 +648,14 @@ static void menu_preset_event(GtkMenuItem *menuitem, gpointer data)
 static void menu_config_event(GtkMenuItem *menuitem, gpointer data)
 {
     frontend *fe = (frontend *)data;
+    int which = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(menuitem),
+						    "user-data"));
     int x, y;
 
-    if (!get_config(fe))
+    if (!get_config(fe, which))
 	return;
 
-    midend_new_game(fe->me, NULL);
+    midend_new_game(fe->me);
     midend_size(fe->me, &x, &y);
     gtk_drawing_area_size(GTK_DRAWING_AREA(fe->area), x, y);
     fe->w = x;
@@ -687,7 +692,7 @@ static frontend *new_window(void)
     fe = snew(frontend);
 
     fe->me = midend_new(fe);
-    midend_new_game(fe->me, NULL);
+    midend_new_game(fe->me);
 
     fe->window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     gtk_window_set_title(GTK_WINDOW(fe->window), game_name);
@@ -713,6 +718,14 @@ static frontend *new_window(void)
 
     add_menu_item_with_key(fe, GTK_CONTAINER(menu), "New", 'n');
     add_menu_item_with_key(fe, GTK_CONTAINER(menu), "Restart", 'r');
+
+    menuitem = gtk_menu_item_new_with_label("Specific...");
+    gtk_object_set_data(GTK_OBJECT(menuitem), "user-data",
+			GINT_TO_POINTER(CFG_SEED));
+    gtk_container_add(GTK_CONTAINER(menu), menuitem);
+    gtk_signal_connect(GTK_OBJECT(menuitem), "activate",
+		       GTK_SIGNAL_FUNC(menu_config_event), fe);
+    gtk_widget_show(menuitem);
 
     if ((n = midend_num_presets(fe->me)) > 0 || game_can_configure) {
         GtkWidget *submenu;
@@ -741,6 +754,8 @@ static frontend *new_window(void)
 
 	if (game_can_configure) {
             menuitem = gtk_menu_item_new_with_label("Custom...");
+            gtk_object_set_data(GTK_OBJECT(menuitem), "user-data",
+				GPOINTER_TO_INT(CFG_SETTINGS));
             gtk_container_add(GTK_CONTAINER(submenu), menuitem);
             gtk_signal_connect(GTK_OBJECT(menuitem), "activate",
                                GTK_SIGNAL_FUNC(menu_config_event), fe);

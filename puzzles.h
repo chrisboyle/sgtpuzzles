@@ -107,7 +107,7 @@ midend_data *midend_new(frontend *fe);
 void midend_free(midend_data *me);
 void midend_set_params(midend_data *me, game_params *params);
 void midend_size(midend_data *me, int *x, int *y);
-void midend_new_game(midend_data *me, char *seed);
+void midend_new_game(midend_data *me);
 void midend_restart_game(midend_data *me);
 int midend_process_key(midend_data *me, int x, int y, int button);
 void midend_redraw(midend_data *me);
@@ -117,8 +117,9 @@ int midend_num_presets(midend_data *me);
 void midend_fetch_preset(midend_data *me, int n,
                          char **name, game_params **params);
 int midend_wants_statusbar(midend_data *me);
-config_item *midend_get_config(midend_data *me);
-char *midend_set_config(midend_data *me, config_item *cfg);
+enum { CFG_SETTINGS, CFG_SEED };
+config_item *midend_get_config(midend_data *me, int which, char **wintitle);
+char *midend_set_config(midend_data *me, int which, config_item *cfg);
 
 /*
  * malloc.c
@@ -160,6 +161,7 @@ config_item *game_configure(game_params *params);
 game_params *custom_params(config_item *cfg);
 char *validate_params(game_params *params);
 char *new_game_seed(game_params *params);
+char *validate_seed(game_params *params, char *seed);
 game_state *new_game(game_params *params, char *seed);
 game_state *dup_game(game_state *state);
 void free_game(game_state *state);

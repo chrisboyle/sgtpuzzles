@@ -6,6 +6,7 @@
  */
 
 #include <stdio.h>
+#include <string.h>
 #include <assert.h>
 
 #include "puzzles.h"
@@ -13,6 +14,7 @@
 struct midend_data {
     frontend *frontend;
     char *seed;
+    int fresh_seed;
     int nstates, statesize, statepos;
 
     game_params **presets;
@@ -43,6 +45,7 @@ midend_data *midend_new(frontend *frontend)
     me->states = NULL;
     me->params = default_params();
     me->seed = NULL;
+    me->fresh_seed = FALSE;
     me->drawstate = NULL;
     me->oldstate = NULL;
     me->presets = NULL;
@@ -73,7 +76,7 @@ void midend_set_params(midend_data *me, game_params *params)
     me->params = dup_params(params);
 }
 
-void midend_new_game(midend_data *me, char *seed)
+void midend_new_game(midend_data *me)
 {
     while (me->nstates > 0)
 	free_game(me->states[--me->nstates]);
@@ -83,11 +86,11 @@ void midend_new_game(midend_data *me, char *seed)
 
     assert(me->nstates == 0);
 
-    sfree(me->seed);
-    if (seed)
-	me->seed = dupstr(seed);
-    else
+    if (!me->fresh_seed) {
+	sfree(me->seed);
 	me->seed = new_game_seed(me->params);
+    } else
+	me->fresh_seed = FALSE;
 
     ensure(me);
     me->states[me->nstates++] = new_game(me->params, me->seed);
@@ -156,7 +159,7 @@ int midend_process_key(midend_data *me, int x, int y, int button)
     }
 
     if (button == 'n' || button == 'N' || button == '\x0E') {
-	midend_new_game(me, NULL);
+	midend_new_game(me);
         midend_redraw(me);
         return 1;                      /* never animate */
     } else if (button == 'r' || button == 'R') {
@@ -300,26 +303,70 @@ int midend_wants_statusbar(midend_data *me)
     return game_wants_statusbar();
 }
 
-config_item *midend_get_config(midend_data *me)
+config_item *midend_get_config(midend_data *me, int which, char **wintitle)
 {
-    return game_configure(me->params);
+    char *titlebuf;
+    config_item *ret;
+
+    titlebuf = snewn(40 + strlen(game_name), char);
+
+    switch (which) {
+      case CFG_SETTINGS:
+	sprintf(titlebuf, "%s configuration", game_name);
+	*wintitle = dupstr(titlebuf);
+	return game_configure(me->params);
+      case CFG_SEED:
+	sprintf(titlebuf, "%s game selection", game_name);
+	*wintitle = dupstr(titlebuf);
+
+	ret = snewn(2, config_item);
+
+	ret[0].type = C_STRING;
+	ret[0].name = "Game ID";
+	ret[0].ival = 0;
+	ret[0].sval = dupstr(me->seed);
+
+	ret[1].type = C_END;
+	ret[1].name = ret[1].sval = NULL;
+	ret[1].ival = 0;
+
+	return ret;
+    }
+
+    assert(!"We shouldn't be here");
+    return NULL;
 }
 
-char *midend_set_config(midend_data *me, config_item *cfg)
+char *midend_set_config(midend_data *me, int which, config_item *cfg)
 {
     char *error;
     game_params *params;
 
-    params = custom_params(cfg);
-    error = validate_params(params);
+    switch (which) {
+      case CFG_SETTINGS:
+	params = custom_params(cfg);
+	error = validate_params(params);
 
-    if (error) {
-	free_params(params);
-	return error;
+	if (error) {
+	    free_params(params);
+	    return error;
+	}
+
+	free_params(me->params);
+	me->params = params;
+	break;
+
+      case CFG_SEED:
+	error = validate_seed(me->params, cfg[0].sval);
+	if (error)
+	    return error;
+
+	sfree(me->seed);
+	me->seed = dupstr(cfg[0].sval);
+	me->fresh_seed = TRUE;
+
+	break;
     }
-
-    free_params(me->params);
-    me->params = params;
 
     return NULL;
 }

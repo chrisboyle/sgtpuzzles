@@ -19,6 +19,7 @@
 #define IDM_REDO      0x0040
 #define IDM_QUIT      0x0050
 #define IDM_CONFIG    0x0060
+#define IDM_SEED      0x0070
 #define IDM_PRESETS   0x0100
 
 #ifdef DEBUG
@@ -93,7 +94,7 @@ struct frontend {
     int nfonts, fontsize;
     config_item *cfg;
     struct cfg_aux *cfgaux;
-    int cfg_done;
+    int cfg_which, cfg_done;
     HFONT cfgfont;
 };
 
@@ -314,7 +315,7 @@ static frontend *new_window(HINSTANCE inst)
     fe = snew(frontend);
     fe->me = midend_new(fe);
     fe->inst = inst;
-    midend_new_game(fe->me, NULL);
+    midend_new_game(fe->me);
     midend_size(fe->me, &x, &y);
 
     fe->timer = 0;
@@ -359,6 +360,7 @@ static frontend *new_window(HINSTANCE inst)
 	AppendMenu(bar, MF_ENABLED|MF_POPUP, (UINT)menu, "Game");
 	AppendMenu(menu, MF_ENABLED, IDM_NEW, "New");
 	AppendMenu(menu, MF_ENABLED, IDM_RESTART, "Restart");
+	AppendMenu(menu, MF_ENABLED, IDM_SEED, "Specific...");
 
 	if ((fe->npresets = midend_num_presets(fe->me)) > 0 ||
 	    game_can_configure) {
@@ -443,7 +445,7 @@ static int CALLBACK ConfigDlgProc(HWND hwnd, UINT msg,
 	     HIWORD(wParam) == BN_DOUBLECLICKED) &&
 	    (LOWORD(wParam) == IDOK || LOWORD(wParam) == IDCANCEL)) {
 	    if (LOWORD(wParam) == IDOK) {
-		char *err = midend_set_config(fe->me, fe->cfg);
+		char *err = midend_set_config(fe->me, fe->cfg_which, fe->cfg);
 
 		if (err) {
 		    MessageBox(hwnd, err, "Validation error",
@@ -505,10 +507,11 @@ HWND mkctrl(frontend *fe, int x1, int x2, int y1, int y2,
     return ret;
 }
 
-static int get_config(frontend *fe)
+static int get_config(frontend *fe, int which)
 {
     config_item *i;
     struct cfg_aux *j;
+    char *title;
     WNDCLASS wc;
     MSG msg;
     TEXTMETRIC tm;
@@ -553,7 +556,8 @@ static int get_config(frontend *fe)
 	height = width = 30;
     }
 
-    fe->cfg = midend_get_config(fe->me);
+    fe->cfg = midend_get_config(fe->me, which, &title);
+    fe->cfg_which = which;
 
     /*
      * Figure out the layout of the config box by measuring the
@@ -627,12 +631,13 @@ static int get_config(frontend *fe)
 	r.right += r.left;
 	r.bottom += r.top;
 
-	fe->cfgbox = CreateWindowEx(0, wc.lpszClassName, "Configuration",
+	fe->cfgbox = CreateWindowEx(0, wc.lpszClassName, title,
 				    DS_MODALFRAME | WS_POPUP | WS_VISIBLE |
 				    WS_CAPTION | WS_SYSMENU,
 				    r.left, r.top,
 				    r.right-r.left, r.bottom-r.top,
 				    fe->hwnd, NULL, fe->inst, NULL);
+	sfree(title);
     }
 
     SendMessage(fe->cfgbox, WM_SETFONT, (WPARAM)fe->cfgfont, FALSE);
@@ -747,7 +752,7 @@ static void new_game_type(frontend *fe)
     HDC hdc;
     int x, y;
 
-    midend_new_game(fe->me, NULL);
+    midend_new_game(fe->me);
     midend_size(fe->me, &x, &y);
 
     r.left = r.top = 0;
@@ -812,7 +817,11 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
 		PostQuitMessage(0);
 	    break;
 	  case IDM_CONFIG:
-	    if (get_config(fe))
+	    if (get_config(fe, CFG_SETTINGS))
+		new_game_type(fe);
+	    break;
+	  case IDM_SEED:
+	    if (get_config(fe, CFG_SEED))
 		new_game_type(fe);
 	    break;
 	  default:
