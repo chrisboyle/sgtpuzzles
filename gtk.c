@@ -313,9 +313,6 @@ static gint motion_event(GtkWidget *widget, GdkEventMotion *event,
     if (!fe->pixmap)
         return TRUE;
 
-    if (event->type != GDK_BUTTON_PRESS && event->type != GDK_BUTTON_RELEASE)
-        return TRUE;
-
     if (event->state & (GDK_BUTTON2_MASK | GDK_SHIFT_MASK))
 	button = MIDDLE_DRAG;
     else if (event->state & GDK_BUTTON1_MASK)
