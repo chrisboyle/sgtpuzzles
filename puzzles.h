@@ -17,7 +17,11 @@
 enum {
     LEFT_BUTTON = 0x1000,
     MIDDLE_BUTTON,
-    RIGHT_BUTTON
+    RIGHT_BUTTON,
+    CURSOR_UP,
+    CURSOR_DOWN,
+    CURSOR_LEFT,
+    CURSOR_RIGHT
 };
 
 #define IGNORE(x) ( (x) = (x) )
@@ -53,8 +57,6 @@ void midend_set_params(midend_data *me, game_params *params);
 void midend_size(midend_data *me, int *x, int *y);
 void midend_new_game(midend_data *me, char *seed);
 void midend_restart_game(midend_data *me);
-void midend_undo(midend_data *me);
-void midend_redo(midend_data *me);
 int midend_process_key(midend_data *me, int x, int y, int button);
 void midend_redraw(midend_data *me);
 float *midend_colours(midend_data *me, int *ncolours);

@@ -12,6 +12,7 @@
 #include <stdarg.h>
 
 #include <gtk/gtk.h>
+#include <gdk/gdkkeysyms.h>
 
 #include "puzzles.h"
 
@@ -135,12 +136,26 @@ static void destroy(GtkWidget *widget, gpointer data)
 static gint key_event(GtkWidget *widget, GdkEventKey *event, gpointer data)
 {
     frontend *fe = (frontend *)data;
+    int keyval;
 
     if (!fe->pixmap)
         return TRUE;
 
-    if (event->string[0] && !event->string[1] &&
-        !midend_process_key(fe->me, 0, 0, event->string[0]))
+    if (event->string[0] && !event->string[1])
+        keyval = (unsigned char)event->string[0];
+    else if (event->keyval == GDK_Up || event->keyval == GDK_KP_Up)
+        keyval = CURSOR_UP;
+    else if (event->keyval == GDK_Down || event->keyval == GDK_KP_Down)
+        keyval = CURSOR_DOWN;
+    else if (event->keyval == GDK_Left || event->keyval == GDK_KP_Left)
+        keyval = CURSOR_LEFT;
+    else if (event->keyval == GDK_Right || event->keyval == GDK_KP_Right)
+        keyval = CURSOR_RIGHT;
+    else
+        keyval = -1;
+
+    if (keyval >= 0 &&
+        !midend_process_key(fe->me, 0, 0, keyval))
 	gtk_widget_destroy(fe->window);
 
     return TRUE;
