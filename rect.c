@@ -76,6 +76,8 @@ struct game_params {
 #define TILE_SIZE 24
 #define BORDER 18
 
+#define FLASH_TIME 0.13F
+
 #define COORD(x) ( (x) * TILE_SIZE + BORDER )
 #define FROMCOORD(x) ( ((x) - BORDER) / TILE_SIZE )
 
@@ -84,6 +86,7 @@ struct game_state {
     int *grid;			       /* contains the numbers */
     unsigned char *vedge;	       /* (w+1) x h */
     unsigned char *hedge;	       /* w x (h+1) */
+    int completed;
 };
 
 game_params *default_params(void)
@@ -716,6 +719,7 @@ game_state *new_game(game_params *params, char *seed)
     state->grid = snewn(area, int);
     state->vedge = snewn(area, unsigned char);
     state->hedge = snewn(area, unsigned char);
+    state->completed = FALSE;
 
     i = 0;
     while (*seed) {
@@ -755,6 +759,8 @@ game_state *dup_game(game_state *state)
     ret->vedge = snewn(state->w * state->h, unsigned char);
     ret->hedge = snewn(state->w * state->h, unsigned char);
     ret->grid = snewn(state->w * state->h, int);
+
+    ret->completed = state->completed;
 
     memcpy(ret->grid, state->grid, state->w * state->h * sizeof(int));
     memcpy(ret->vedge, state->vedge, state->w*state->h*sizeof(unsigned char));
@@ -1032,6 +1038,26 @@ game_state *make_move(game_state *from, game_ui *ui, int x, int y, int button)
 		free_game(ret);
 		ret = NULL;
 	    }
+
+            /*
+             * We've made a real change to the grid. Check to see
+             * if the game has been completed.
+             */
+            if (!ret->completed) {
+                int x, y, ok;
+                unsigned char *correct = get_correct(ret);
+
+                ok = TRUE;
+                for (x = 0; x < ret->w; x++)
+                    for (y = 0; y < ret->h; y++)
+                        if (!index(ret, correct, x, y))
+                            ok = FALSE;
+
+                sfree(correct);
+
+                if (ok)
+                    ret->completed = TRUE;
+            }
 	}
 
 	ui->drag_start_x = -1;
@@ -1239,7 +1265,7 @@ void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 		c |= index(state,vedge,x,y) << 4;
 	    if (VRANGE(state,x,y+1))
 		c |= index(state,vedge,x,y+1) << 6;
-	    if (index(state, correct, x, y))
+	    if (index(state, correct, x, y) && !flashtime)
 		c |= CORRECT;
 
 	    if (index(ds,ds->visible,x,y) != c) {
@@ -1263,6 +1289,8 @@ float game_anim_length(game_state *oldstate, game_state *newstate)
 
 float game_flash_length(game_state *oldstate, game_state *newstate)
 {
+    if (!oldstate->completed && newstate->completed)
+        return FLASH_TIME;
     return 0.0F;
 }
 
