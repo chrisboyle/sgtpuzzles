@@ -160,7 +160,7 @@ enum {
 enum { LEFT, RIGHT, UP, DOWN, UP_LEFT, UP_RIGHT, DOWN_LEFT, DOWN_RIGHT };
 
 #define GRID_SCALE 48.0F
-#define ROLLTIME 0.1F
+#define ROLLTIME 0.13F
 
 #define SQ(x) ( (x) * (x) )
 

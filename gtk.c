@@ -9,6 +9,8 @@
 #include <stdarg.h>
 #include <string.h>
 
+#include <sys/time.h>
+
 #include <gtk/gtk.h>
 #include <gdk/gdkkeysyms.h>
 
@@ -63,6 +65,7 @@ struct frontend {
     GdkGC *gc;
     int bbox_l, bbox_r, bbox_u, bbox_d;
     int timer_active, timer_id;
+    struct timeval last_time;
     struct font *fonts;
     int nfonts, fontsize;
     config_item *cfg;
@@ -354,8 +357,15 @@ static gint timer_func(gpointer data)
 {
     frontend *fe = (frontend *)data;
 
-    if (fe->timer_active)
-        midend_timer(fe->me, 0.02);    /* may clear timer_active */
+    if (fe->timer_active) {
+	struct timeval now;
+	float elapsed;
+	gettimeofday(&now, NULL);
+	elapsed = ((now.tv_usec - fe->last_time.tv_usec) * 0.000001F +
+		   (now.tv_sec - fe->last_time.tv_sec));
+        midend_timer(fe->me, elapsed);	/* may clear timer_active */
+	fe->last_time = now;
+    }
 
     return fe->timer_active;
 }
@@ -369,8 +379,10 @@ void deactivate_timer(frontend *fe)
 
 void activate_timer(frontend *fe)
 {
-    if (!fe->timer_active)
+    if (!fe->timer_active) {
         fe->timer_id = gtk_timeout_add(20, timer_func, fe);
+	gettimeofday(&fe->last_time, NULL);
+    }
     fe->timer_active = TRUE;
 }
 

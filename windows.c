@@ -88,6 +88,7 @@ struct frontend {
     HPEN *pens;
     HRGN clip;
     UINT timer;
+    DWORD timer_last_tickcount;
     int npresets;
     game_params **presets;
     struct font *fonts;
@@ -302,7 +303,10 @@ void deactivate_timer(frontend *fe)
 
 void activate_timer(frontend *fe)
 {
-    fe->timer = SetTimer(fe->hwnd, fe->timer, 20, NULL);
+    if (!fe->timer) {
+	fe->timer = SetTimer(fe->hwnd, fe->timer, 20, NULL);
+	fe->timer_last_tickcount = GetTickCount();
+    }
 }
 
 static frontend *new_window(HINSTANCE inst)
@@ -942,8 +946,12 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
 	    PostQuitMessage(0);
 	return 0;
       case WM_TIMER:
-	if (fe->timer)
-	    midend_timer(fe->me, (float)0.02);
+	if (fe->timer) {
+	    DWORD now = GetTickCount();
+	    float elapsed = (float) (now - fe->timer_last_tickcount) * 0.001F;
+	    midend_timer(fe->me, elapsed);
+	    fe->timer_last_tickcount = now;
+	}
 	return 0;
     }
 

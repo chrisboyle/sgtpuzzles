@@ -56,8 +56,8 @@ const int game_can_configure = TRUE;
 #define TILE_BORDER 1
 #define WINDOW_OFFSET 16
 
-#define ROTATE_TIME 0.1F
-#define FLASH_FRAME 0.05F
+#define ROTATE_TIME 0.13F
+#define FLASH_FRAME 0.07F
 
 enum {
     COL_BACKGROUND,
