@@ -1046,6 +1046,8 @@ game_state *make_move(game_state *from, int x, int y, int button)
         ret->facecolours = newcolours;
     }
 
+    ret->movecount++;
+
     /*
      * And finally, swap the colour between the bottom face of the
      * polyhedron and the face we've just landed on.
@@ -1097,7 +1099,6 @@ game_state *make_move(game_state *from, int x, int y, int button)
     ret->sgkey[1] = skey[1];
     ret->previous = from->current;
     ret->angle = angle;
-    ret->movecount++;
 
     return ret;
 }
