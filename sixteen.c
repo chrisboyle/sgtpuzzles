@@ -13,6 +13,7 @@
 #include "puzzles.h"
 
 const char *const game_name = "Sixteen";
+const int game_can_configure = TRUE;
 
 #define TILE_SIZE 48
 #define BORDER    TILE_SIZE            /* big border to fill with arrows */
@@ -44,6 +45,7 @@ struct game_state {
     int *tiles;
     int completed;
     int movecount;
+    int last_movement_sense;
 };
 
 game_params *default_params(void)
@@ -88,6 +90,51 @@ game_params *dup_params(game_params *params)
     game_params *ret = snew(game_params);
     *ret = *params;		       /* structure copy */
     return ret;
+}
+
+config_item *game_configure(game_params *params)
+{
+    config_item *ret;
+    char buf[80];
+
+    ret = snewn(3, config_item);
+
+    ret[0].name = "Width";
+    ret[0].type = STRING;
+    sprintf(buf, "%d", params->w);
+    ret[0].sval = dupstr(buf);
+    ret[0].ival = 0;
+
+    ret[1].name = "Height";
+    ret[1].type = STRING;
+    sprintf(buf, "%d", params->h);
+    ret[1].sval = dupstr(buf);
+    ret[1].ival = 0;
+
+    ret[2].name = NULL;
+    ret[2].type = ENDCFG;
+    ret[2].sval = NULL;
+    ret[2].ival = 0;
+
+    return ret;
+}
+
+game_params *custom_params(config_item *cfg)
+{
+    game_params *ret = snew(game_params);
+
+    ret->w = atoi(cfg[0].sval);
+    ret->h = atoi(cfg[1].sval);
+
+    return ret;
+}
+
+char *validate_params(game_params *params)
+{
+    if (params->w < 2 && params->h < 2)
+	return "Width and height must both be at least two";
+
+    return NULL;
 }
 
 int perm_parity(int *perm, int n)
@@ -233,6 +280,7 @@ game_state *new_game(game_params *params, char *seed)
     assert(!*p);
 
     state->completed = state->movecount = 0;
+    state->last_movement_sense = 0;
 
     return state;
 }
@@ -248,6 +296,7 @@ game_state *dup_game(game_state *state)
     memcpy(ret->tiles, state->tiles, state->w * state->h * sizeof(int));
     ret->completed = state->completed;
     ret->movecount = state->movecount;
+    ret->last_movement_sense = state->last_movement_sense;
 
     return ret;
 }
@@ -290,6 +339,8 @@ game_state *make_move(game_state *from, int x, int y, int button)
     } while (--n > 0);
 
     ret->movecount++;
+
+    ret->last_movement_sense = -(dx+dy);
 
     /*
      * See if the game has been completed.
@@ -551,13 +602,15 @@ void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
                         y0 = COORD(Y(state, j));
 
                         dx = (x1 - x0);
-                        if (abs(dx) > TILE_SIZE) {
+                        if (dx != 0 &&
+			    dx != TILE_SIZE * state->last_movement_sense) {
                             dx = (dx < 0 ? dx + TILE_SIZE * state->w :
                                   dx - TILE_SIZE * state->w);
                             assert(abs(dx) == TILE_SIZE);
                         }
                         dy = (y1 - y0);
-                        if (abs(dy) > TILE_SIZE) {
+                        if (dy != 0 &&
+			    dy != TILE_SIZE * state->last_movement_sense) {
                             dy = (dy < 0 ? dy + TILE_SIZE * state->h :
                                   dy - TILE_SIZE * state->h);
                             assert(abs(dy) == TILE_SIZE);

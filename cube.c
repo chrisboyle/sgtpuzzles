@@ -11,6 +11,7 @@
 #include "puzzles.h"
 
 const char *const game_name = "Cube";
+const int game_can_configure = TRUE;
 
 #define MAXVERTICES 20
 #define MAXFACES 20
@@ -238,8 +239,8 @@ int game_fetch_preset(int i, char **name, game_params **params)
       case 1:
         str = "Tetrahedron";
         ret->solid = TETRAHEDRON;
-        ret->d1 = 2;
-        ret->d2 = 1;
+        ret->d1 = 1;
+        ret->d2 = 2;
         break;
       case 2:
         str = "Octahedron";
@@ -324,12 +325,12 @@ static void enum_grid_squares(game_params *params,
         float theight = (float)(sqrt(3) / 2.0);
 
         for (row = 0; row < params->d1 + params->d2; row++) {
-            if (row < params->d1) {
+            if (row < params->d2) {
                 other = +1;
-                rowlen = row + params->d2;
+                rowlen = row + params->d1;
             } else {
                 other = -1;
-                rowlen = 2*params->d1 + params->d2 - row;
+                rowlen = 2*params->d2 + params->d1 - row;
             }
 
             /*
@@ -415,7 +416,7 @@ static void enum_grid_squares(game_params *params,
                 sq.flip = FALSE;
 
                 if (firstix < 0)
-                    firstix = ix;
+                    firstix = (ix - 1) & 3;
                 ix -= firstix;
                 sq.tetra_class = ((row+(ix&1)) & 2) ^ (ix & 3);
 
@@ -441,6 +442,99 @@ static int grid_area(int d1, int d2, int order)
         return d1 * d2;
     else
         return d1*d1 + d2*d2 + 4*d1*d2;
+}
+
+config_item *game_configure(game_params *params)
+{
+    config_item *ret = snewn(4, config_item);
+    char buf[80];
+
+    ret[0].name = "Type of solid";
+    ret[0].type = CHOICES;
+    ret[0].sval = ":Tetrahedron:Cube:Octahedron:Icosahedron";
+    ret[0].ival = params->solid;
+
+    ret[1].name = "Width / top";
+    ret[1].type = STRING;
+    sprintf(buf, "%d", params->d1);
+    ret[1].sval = dupstr(buf);
+    ret[1].ival = 0;
+
+    ret[2].name = "Height / bottom";
+    ret[2].type = STRING;
+    sprintf(buf, "%d", params->d2);
+    ret[2].sval = dupstr(buf);
+    ret[2].ival = 0;
+
+    ret[3].name = NULL;
+    ret[3].type = ENDCFG;
+    ret[3].sval = NULL;
+    ret[3].ival = 0;
+
+    return ret;
+}
+
+game_params *custom_params(config_item *cfg)
+{
+    game_params *ret = snew(game_params);
+
+    ret->solid = cfg[0].ival;
+    ret->d1 = atoi(cfg[1].sval);
+    ret->d2 = atoi(cfg[2].sval);
+
+    return ret;
+}
+
+static void count_grid_square_callback(void *ctx, struct grid_square *sq)
+{
+    int *classes = (int *)ctx;
+    int thisclass;
+
+    if (classes[4] == 4)
+	thisclass = sq->tetra_class;
+    else if (classes[4] == 2)
+	thisclass = sq->flip;
+    else
+	thisclass = 0;
+
+    classes[thisclass]++;
+}
+
+char *validate_params(game_params *params)
+{
+    int classes[5];
+    int i;
+
+    if (params->solid < 0 || params->solid >= lenof(solids))
+	return "Unrecognised solid type";
+
+    if (solids[params->solid]->order == 4) {
+	if (params->d1 <= 0 || params->d2 <= 0)
+	    return "Both grid dimensions must be greater than zero";
+    } else {
+	if (params->d1 <= 0 && params->d2 <= 0)
+	    return "At least one grid dimension must be greater than zero";
+    }
+
+    for (i = 0; i < 4; i++)
+	classes[i] = 0;
+    if (params->solid == TETRAHEDRON)
+	classes[4] = 4;
+    else if (params->solid == OCTAHEDRON)
+	classes[4] = 2;
+    else
+	classes[4] = 1;
+    enum_grid_squares(params, count_grid_square_callback, classes);
+
+    for (i = 0; i < classes[4]; i++)
+	if (classes[i] < solids[params->solid]->nfaces / classes[4])
+	    return "Not enough grid space to place all blue faces";
+
+    if (grid_area(params->d1, params->d2, solids[params->solid]->order) <
+	solids[params->solid]->nfaces + 1)
+	return "Not enough space to place the solid on an empty square";
+
+    return NULL;
 }
 
 struct grid_data {

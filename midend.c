@@ -299,3 +299,27 @@ int midend_wants_statusbar(midend_data *me)
 {
     return game_wants_statusbar();
 }
+
+config_item *midend_get_config(midend_data *me)
+{
+    return game_configure(me->params);
+}
+
+char *midend_set_config(midend_data *me, config_item *cfg)
+{
+    char *error;
+    game_params *params;
+
+    params = custom_params(cfg);
+    error = validate_params(params);
+
+    if (error) {
+	free_params(params);
+	return error;
+    }
+
+    free_params(me->params);
+    me->params = params;
+
+    return NULL;
+}

@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <stdarg.h>
+#include <string.h>
 
 #include <gtk/gtk.h>
 #include <gdk/gdkkeysyms.h>
@@ -64,6 +65,9 @@ struct frontend {
     int timer_active, timer_id;
     struct font *fonts;
     int nfonts, fontsize;
+    config_item *cfg;
+    int cfgret;
+    GtkWidget *cfgbox;
 };
 
 void frontend_default_colour(frontend *fe, float *output)
@@ -370,6 +374,252 @@ void activate_timer(frontend *fe)
     fe->timer_active = TRUE;
 }
 
+static void window_destroy(GtkWidget *widget, gpointer data)
+{
+    gtk_main_quit();
+}
+
+static void errmsg_button_clicked(GtkButton *button, gpointer data)
+{
+    gtk_widget_destroy(GTK_WIDGET(data));
+}
+
+void error_box(GtkWidget *parent, char *msg)
+{
+    GtkWidget *window, *hbox, *text, *ok;
+
+    window = gtk_dialog_new();
+    text = gtk_label_new(msg);
+    gtk_misc_set_alignment(GTK_MISC(text), 0.0, 0.0);
+    hbox = gtk_hbox_new(FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(hbox), text, FALSE, FALSE, 20);
+    gtk_box_pack_start(GTK_BOX(GTK_DIALOG(window)->vbox),
+                       hbox, FALSE, FALSE, 20);
+    gtk_widget_show(text);
+    gtk_widget_show(hbox);
+    gtk_window_set_title(GTK_WINDOW(window), "Error");
+    gtk_label_set_line_wrap(GTK_LABEL(text), TRUE);
+    ok = gtk_button_new_with_label("OK");
+    gtk_box_pack_end(GTK_BOX(GTK_DIALOG(window)->action_area),
+                     ok, FALSE, FALSE, 0);
+    gtk_widget_show(ok);
+    GTK_WIDGET_SET_FLAGS(ok, GTK_CAN_DEFAULT);
+    gtk_window_set_default(GTK_WINDOW(window), ok);
+    gtk_signal_connect(GTK_OBJECT(ok), "clicked",
+                       GTK_SIGNAL_FUNC(errmsg_button_clicked), window);
+    gtk_signal_connect(GTK_OBJECT(window), "destroy",
+                       GTK_SIGNAL_FUNC(window_destroy), NULL);
+    gtk_window_set_modal(GTK_WINDOW(window), TRUE);
+    gtk_window_set_transient_for(GTK_WINDOW(window), GTK_WINDOW(parent));
+    //set_transient_window_pos(parent, window);
+    gtk_widget_show(window);
+    gtk_main();
+}
+
+static void config_ok_button_clicked(GtkButton *button, gpointer data)
+{
+    frontend *fe = (frontend *)data;
+    char *err;
+
+    err = midend_set_config(fe->me, fe->cfg);
+
+    if (err)
+	error_box(fe->cfgbox, err);
+    else {
+	fe->cfgret = TRUE;
+	gtk_widget_destroy(fe->cfgbox);
+    }
+}
+
+static void config_cancel_button_clicked(GtkButton *button, gpointer data)
+{
+    frontend *fe = (frontend *)data;
+
+    gtk_widget_destroy(fe->cfgbox);
+}
+
+static void editbox_changed(GtkEditable *ed, gpointer data)
+{
+    config_item *i = (config_item *)data;
+
+    sfree(i->sval);
+    i->sval = dupstr(gtk_entry_get_text(GTK_ENTRY(ed)));
+}
+
+static void button_toggled(GtkToggleButton *tb, gpointer data)
+{
+    config_item *i = (config_item *)data;
+
+    i->ival = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(tb));
+}
+
+static void droplist_sel(GtkMenuItem *item, gpointer data)
+{
+    config_item *i = (config_item *)data;
+
+    i->ival = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(item),
+						  "user-data"));
+}
+
+static int get_config(frontend *fe)
+{
+    GtkWidget *w, *table;
+    config_item *i;
+    int y;
+
+    fe->cfg = midend_get_config(fe->me);
+    fe->cfgret = FALSE;
+
+    fe->cfgbox = gtk_dialog_new();
+    gtk_window_set_title(GTK_WINDOW(fe->cfgbox), "Configure");
+
+    w = gtk_button_new_with_label("OK");
+    gtk_box_pack_end(GTK_BOX(GTK_DIALOG(fe->cfgbox)->action_area),
+                     w, FALSE, FALSE, 0);
+    gtk_widget_show(w);
+    GTK_WIDGET_SET_FLAGS(w, GTK_CAN_DEFAULT);
+    gtk_window_set_default(GTK_WINDOW(fe->cfgbox), w);
+    gtk_signal_connect(GTK_OBJECT(w), "clicked",
+                       GTK_SIGNAL_FUNC(config_ok_button_clicked), fe);
+
+    w = gtk_button_new_with_label("Cancel");
+    gtk_box_pack_end(GTK_BOX(GTK_DIALOG(fe->cfgbox)->action_area),
+                     w, FALSE, FALSE, 0);
+    gtk_widget_show(w);
+    gtk_signal_connect(GTK_OBJECT(w), "clicked",
+                       GTK_SIGNAL_FUNC(config_cancel_button_clicked), fe);
+
+    table = gtk_table_new(1, 2, FALSE);
+    y = 0;
+    gtk_box_pack_end(GTK_BOX(GTK_DIALOG(fe->cfgbox)->vbox),
+                     table, FALSE, FALSE, 0);
+    gtk_widget_show(table);
+
+    for (i = fe->cfg; i->type != ENDCFG; i++) {
+	gtk_table_resize(GTK_TABLE(table), y+1, 2);
+
+	switch (i->type) {
+	  case STRING:
+	    /*
+	     * Edit box with a label beside it.
+	     */
+
+	    w = gtk_label_new(i->name);
+	    gtk_misc_set_alignment(GTK_MISC(w), 0.0, 0.5);
+	    gtk_table_attach(GTK_TABLE(table), w, 0, 1, y, y+1,
+			     GTK_EXPAND | GTK_SHRINK | GTK_FILL,
+			     GTK_EXPAND | GTK_SHRINK | GTK_FILL,
+			     3, 3);
+	    gtk_widget_show(w);
+
+	    w = gtk_entry_new();
+	    gtk_table_attach(GTK_TABLE(table), w, 1, 2, y, y+1,
+			     GTK_EXPAND | GTK_SHRINK | GTK_FILL,
+			     GTK_EXPAND | GTK_SHRINK | GTK_FILL,
+			     3, 3);
+	    gtk_entry_set_text(GTK_ENTRY(w), i->sval);
+	    gtk_signal_connect(GTK_OBJECT(w), "changed",
+			       GTK_SIGNAL_FUNC(editbox_changed), i);
+	    gtk_widget_show(w);
+
+	    break;
+
+	  case BOOLEAN:
+	    /*
+	     * Simple checkbox.
+	     */
+            w = gtk_check_button_new_with_label(i->name);
+	    gtk_signal_connect(GTK_OBJECT(w), "toggled",
+			       GTK_SIGNAL_FUNC(button_toggled), i);
+	    gtk_table_attach(GTK_TABLE(table), w, 0, 2, y, y+1,
+			     GTK_EXPAND | GTK_SHRINK | GTK_FILL,
+			     GTK_EXPAND | GTK_SHRINK | GTK_FILL,
+			     3, 3);
+	    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(w), i->ival);
+	    gtk_widget_show(w);
+	    break;
+
+	  case CHOICES:
+	    /*
+	     * Drop-down list (GtkOptionMenu).
+	     */
+
+	    w = gtk_label_new(i->name);
+	    gtk_misc_set_alignment(GTK_MISC(w), 0.0, 0.5);
+	    gtk_table_attach(GTK_TABLE(table), w, 0, 1, y, y+1,
+			     GTK_EXPAND | GTK_SHRINK | GTK_FILL,
+			     GTK_EXPAND | GTK_SHRINK | GTK_FILL,
+			     3, 3);
+	    gtk_widget_show(w);
+
+	    w = gtk_option_menu_new();
+	    gtk_table_attach(GTK_TABLE(table), w, 1, 2, y, y+1,
+			     GTK_EXPAND | GTK_SHRINK | GTK_FILL,
+			     GTK_EXPAND | GTK_SHRINK | GTK_FILL,
+			     3, 3);
+	    gtk_widget_show(w);
+
+	    {
+		int c, val;
+		char *p, *q, *name;
+		GtkWidget *menuitem;
+		GtkWidget *menu = gtk_menu_new();
+
+		gtk_option_menu_set_menu(GTK_OPTION_MENU(w), menu);
+
+		c = *i->sval;
+		p = i->sval+1;
+		val = 0;
+
+		while (*p) {
+		    q = p;
+		    while (*q && *q != c)
+			q++;
+
+		    name = snewn(q-p+1, char);
+		    strncpy(name, p, q-p);
+		    name[q-p] = '\0';
+
+		    if (*q) q++;       /* eat delimiter */
+
+		    menuitem = gtk_menu_item_new_with_label(name);
+		    gtk_container_add(GTK_CONTAINER(menu), menuitem);
+		    gtk_object_set_data(GTK_OBJECT(menuitem), "user-data",
+					GINT_TO_POINTER(val));
+		    gtk_signal_connect(GTK_OBJECT(menuitem), "activate",
+				       GTK_SIGNAL_FUNC(droplist_sel), i);
+		    gtk_widget_show(menuitem);
+
+		    val++;
+
+		    p = q;
+		}
+
+		gtk_option_menu_set_history(GTK_OPTION_MENU(w), i->ival);
+	    }
+
+	    break;
+	}
+
+	y++;
+    }
+
+    gtk_signal_connect(GTK_OBJECT(fe->cfgbox), "destroy",
+                       GTK_SIGNAL_FUNC(window_destroy), NULL);
+    gtk_window_set_modal(GTK_WINDOW(fe->cfgbox), TRUE);
+    gtk_window_set_transient_for(GTK_WINDOW(fe->cfgbox),
+				 GTK_WINDOW(fe->window));
+    //set_transient_window_pos(fe->window, fe->cfgbox);
+    gtk_widget_show(fe->cfgbox);
+    gtk_main();
+
+    /*
+     * FIXME: free fe->cfg
+     */
+
+    return fe->cfgret;
+}
+
 static void menu_key_event(GtkMenuItem *menuitem, gpointer data)
 {
     frontend *fe = (frontend *)data;
@@ -387,6 +637,21 @@ static void menu_preset_event(GtkMenuItem *menuitem, gpointer data)
     int x, y;
 
     midend_set_params(fe->me, params);
+    midend_new_game(fe->me, NULL);
+    midend_size(fe->me, &x, &y);
+    gtk_drawing_area_size(GTK_DRAWING_AREA(fe->area), x, y);
+    fe->w = x;
+    fe->h = y;
+}
+
+static void menu_config_event(GtkMenuItem *menuitem, gpointer data)
+{
+    frontend *fe = (frontend *)data;
+    int x, y;
+
+    if (!get_config(fe))
+	return;
+
     midend_new_game(fe->me, NULL);
     midend_size(fe->me, &x, &y);
     gtk_drawing_area_size(GTK_DRAWING_AREA(fe->area), x, y);
@@ -451,12 +716,12 @@ static frontend *new_window(void)
     add_menu_item_with_key(fe, GTK_CONTAINER(menu), "New", 'n');
     add_menu_item_with_key(fe, GTK_CONTAINER(menu), "Restart", 'r');
 
-    if ((n = midend_num_presets(fe->me)) > 0) {
+    if ((n = midend_num_presets(fe->me)) > 0 || game_can_configure) {
         GtkWidget *submenu;
         int i;
 
         menuitem = gtk_menu_item_new_with_label("Type");
-        gtk_container_add(GTK_CONTAINER(menu), menuitem);
+        gtk_container_add(GTK_CONTAINER(menubar), menuitem);
         gtk_widget_show(menuitem);
 
         submenu = gtk_menu_new();
@@ -475,6 +740,14 @@ static frontend *new_window(void)
                                GTK_SIGNAL_FUNC(menu_preset_event), fe);
             gtk_widget_show(menuitem);
         }
+
+	if (game_can_configure) {
+            menuitem = gtk_menu_item_new_with_label("Custom...");
+            gtk_container_add(GTK_CONTAINER(submenu), menuitem);
+            gtk_signal_connect(GTK_OBJECT(menuitem), "activate",
+                               GTK_SIGNAL_FUNC(menu_config_event), fe);
+            gtk_widget_show(menuitem);
+	}
     }
 
     add_menu_separator(GTK_CONTAINER(menu));

@@ -20,6 +20,7 @@
 #include "puzzles.h"
 
 const char *const game_name = "Null Game";
+const int game_can_configure = FALSE;
 
 enum {
     COL_BACKGROUND,
@@ -58,6 +59,21 @@ game_params *dup_params(game_params *params)
     game_params *ret = snew(game_params);
     *ret = *params;		       /* structure copy */
     return ret;
+}
+
+config_item *game_configure(game_params *params)
+{
+    return NULL;
+}
+
+game_params *custom_params(config_item *cfg)
+{
+    return NULL;
+}
+
+char *validate_params(game_params *params)
+{
+    return NULL;
 }
 
 char *new_game_seed(game_params *params)

@@ -11,6 +11,7 @@
 #include "puzzles.h"
 
 const char *const game_name = "Fifteen";
+const int game_can_configure = TRUE;
 
 #define TILE_SIZE 48
 #define BORDER    (TILE_SIZE / 2)
@@ -69,6 +70,51 @@ game_params *dup_params(game_params *params)
     game_params *ret = snew(game_params);
     *ret = *params;		       /* structure copy */
     return ret;
+}
+
+config_item *game_configure(game_params *params)
+{
+    config_item *ret;
+    char buf[80];
+
+    ret = snewn(3, config_item);
+
+    ret[0].name = "Width";
+    ret[0].type = STRING;
+    sprintf(buf, "%d", params->w);
+    ret[0].sval = dupstr(buf);
+    ret[0].ival = 0;
+
+    ret[1].name = "Height";
+    ret[1].type = STRING;
+    sprintf(buf, "%d", params->h);
+    ret[1].sval = dupstr(buf);
+    ret[1].ival = 0;
+
+    ret[2].name = NULL;
+    ret[2].type = ENDCFG;
+    ret[2].sval = NULL;
+    ret[2].ival = 0;
+
+    return ret;
+}
+
+game_params *custom_params(config_item *cfg)
+{
+    game_params *ret = snew(game_params);
+
+    ret->w = atoi(cfg[0].sval);
+    ret->h = atoi(cfg[1].sval);
+
+    return ret;
+}
+
+char *validate_params(game_params *params)
+{
+    if (params->w < 2 && params->h < 2)
+	return "Width and height must both be at least two";
+
+    return NULL;
 }
 
 int perm_parity(int *perm, int n)

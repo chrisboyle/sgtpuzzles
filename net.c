@@ -12,6 +12,7 @@
 #include "tree234.h"
 
 const char *const game_name = "Net";
+const int game_can_configure = TRUE;
 
 #define PI 3.141592653589793238462643383279502884197169399
 
@@ -180,6 +181,73 @@ game_params *dup_params(game_params *params)
     game_params *ret = snew(game_params);
     *ret = *params;		       /* structure copy */
     return ret;
+}
+
+config_item *game_configure(game_params *params)
+{
+    config_item *ret;
+    char buf[80];
+
+    ret = snewn(5, config_item);
+
+    ret[0].name = "Width";
+    ret[0].type = STRING;
+    sprintf(buf, "%d", params->width);
+    ret[0].sval = dupstr(buf);
+    ret[0].ival = 0;
+
+    ret[1].name = "Height";
+    ret[1].type = STRING;
+    sprintf(buf, "%d", params->height);
+    ret[1].sval = dupstr(buf);
+    ret[1].ival = 0;
+
+    ret[2].name = "Walls wrap around";
+    ret[2].type = BOOLEAN;
+    ret[2].sval = NULL;
+    ret[2].ival = params->wrapping;
+
+    ret[3].name = "Barrier probability";
+    ret[3].type = STRING;
+    sprintf(buf, "%g", params->barrier_probability);
+    ret[3].sval = dupstr(buf);
+    ret[3].ival = 0;
+
+    ret[4].name = NULL;
+    ret[4].type = ENDCFG;
+    ret[4].sval = NULL;
+    ret[4].ival = 0;
+
+    return ret;
+}
+
+game_params *custom_params(config_item *cfg)
+{
+    game_params *ret = snew(game_params);
+
+    ret->width = atoi(cfg[0].sval);
+    ret->height = atoi(cfg[1].sval);
+    ret->wrapping = cfg[2].ival;
+    ret->barrier_probability = atof(cfg[3].sval);
+
+    return ret;
+}
+
+char *validate_params(game_params *params)
+{
+    if (params->width <= 0 && params->height <= 0)
+	return "Width and height must both be greater than zero";
+    if (params->width <= 0)
+	return "Width must be greater than zero";
+    if (params->height <= 0)
+	return "Height must be greater than zero";
+    if (params->width <= 1 && params->height <= 1)
+	return "At least one of width and height must be greater than one";
+    if (params->barrier_probability < 0)
+	return "Barrier probability may not be negative";
+    if (params->barrier_probability > 1)
+	return "Barrier probability may not be greater than 1";
+    return NULL;
 }
 
 /* ----------------------------------------------------------------------

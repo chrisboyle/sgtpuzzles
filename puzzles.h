@@ -31,6 +31,7 @@ enum {
 #define IGNOREARG(x) ( (x) = (x) )
 
 typedef struct frontend frontend;
+typedef struct config_item config_item;
 typedef struct midend_data midend_data;
 typedef struct random_state random_state;
 typedef struct game_params game_params;
@@ -46,6 +47,38 @@ typedef struct game_drawstate game_drawstate;
 
 #define FONT_FIXED    0
 #define FONT_VARIABLE 1
+
+/*
+ * Structure used to pass configuration data between frontend and
+ * game
+ */
+enum { STRING, CHOICES, BOOLEAN, ENDCFG };
+struct config_item {
+    /*
+     * `name' is never dynamically allocated.
+     */
+    char *name;
+    /*
+     * `type' contains one of the above values.
+     */
+    int type;
+    /*
+     * For STRING, `sval' is always dynamically allocated and
+     * non-NULL. For BOOLEAN and ENDCFG, `sval' is always NULL. For
+     * CHOICES, `sval' is non-NULL, _not_ dynamically allocated,
+     * and contains a set of option strings separated by a
+     * delimiter. The delimeter is also the first character in the
+     * string, so for example ":Foo:Bar:Baz" gives three options
+     * `Foo', `Bar' and `Baz'.
+     */
+    char *sval;
+    /*
+     * For BOOLEAN, this is TRUE or FALSE. For CHOICES, it
+     * indicates the chosen index from the `sval' list. In the
+     * above example, 0==Foo, 1==Bar and 2==Baz.
+     */
+    int ival;
+};
 
 /*
  * Platform routines
@@ -84,6 +117,8 @@ int midend_num_presets(midend_data *me);
 void midend_fetch_preset(midend_data *me, int n,
                          char **name, game_params **params);
 int midend_wants_statusbar(midend_data *me);
+config_item *midend_get_config(midend_data *me);
+char *midend_set_config(midend_data *me, config_item *cfg);
 
 /*
  * malloc.c
@@ -115,10 +150,14 @@ void random_free(random_state *state);
  * Game-specific routines
  */
 extern const char *const game_name;
+const int game_can_configure;
 game_params *default_params(void);
 int game_fetch_preset(int i, char **name, game_params **params);
 void free_params(game_params *params);
 game_params *dup_params(game_params *params);
+config_item *game_configure(game_params *params);
+game_params *custom_params(config_item *cfg);
+char *validate_params(game_params *params);
 char *new_game_seed(game_params *params);
 game_state *new_game(game_params *params, char *seed);
 game_state *dup_game(game_state *state);
