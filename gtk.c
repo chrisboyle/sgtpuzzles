@@ -206,6 +206,9 @@ static gint configure_area(GtkWidget *widget,
     frontend *fe = (frontend *)data;
     GdkGC *gc;
 
+    if (fe->pixmap)
+        gdk_pixmap_unref(fe->pixmap);
+
     fe->pixmap = gdk_pixmap_new(widget->window, fe->w, fe->h, -1);
 
     gc = gdk_gc_new(fe->area->window);
@@ -239,10 +242,56 @@ void activate_timer(frontend *fe)
     fe->timer_active = TRUE;
 }
 
+static void menu_key_event(GtkMenuItem *menuitem, gpointer data)
+{
+    frontend *fe = (frontend *)data;
+    int key = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(menuitem),
+                                                  "user-data"));
+    if (!midend_process_key(fe->me, 0, 0, key))
+	gtk_widget_destroy(fe->window);
+}
+
+static void menu_preset_event(GtkMenuItem *menuitem, gpointer data)
+{
+    frontend *fe = (frontend *)data;
+    game_params *params =
+        (game_params *)gtk_object_get_data(GTK_OBJECT(menuitem), "user-data");
+    int x, y;
+
+    midend_set_params(fe->me, params);
+    midend_new_game(fe->me, NULL);
+    midend_size(fe->me, &x, &y);
+    gtk_drawing_area_size(GTK_DRAWING_AREA(fe->area), x, y);
+    fe->w = x;
+    fe->h = y;
+}
+
+static GtkWidget *add_menu_item_with_key(frontend *fe, GtkContainer *cont,
+                                         char *text, int key)
+{
+    GtkWidget *menuitem = gtk_menu_item_new_with_label(text);
+    gtk_container_add(cont, menuitem);
+    gtk_object_set_data(GTK_OBJECT(menuitem), "user-data",
+                        GINT_TO_POINTER(key));
+    gtk_signal_connect(GTK_OBJECT(menuitem), "activate",
+		       GTK_SIGNAL_FUNC(menu_key_event), fe);
+    gtk_widget_show(menuitem);
+    return menuitem;
+}
+
+static void add_menu_separator(GtkContainer *cont)
+{
+    GtkWidget *menuitem = gtk_menu_item_new();
+    gtk_container_add(cont, menuitem);
+    gtk_widget_show(menuitem);
+}
+
 static frontend *new_window(void)
 {
     frontend *fe;
-    int x, y;
+    GtkBox *vbox;
+    GtkWidget *menubar, *menu, *menuitem;
+    int x, y, n;
 
     fe = snew(frontend);
 
@@ -255,6 +304,55 @@ static frontend *new_window(void)
 #else
     gtk_window_set_policy(GTK_WINDOW(fe->window), FALSE, FALSE, TRUE);
 #endif
+    vbox = GTK_BOX(gtk_vbox_new(FALSE, 0));
+    gtk_container_add(GTK_CONTAINER(fe->window), GTK_WIDGET(vbox));
+    gtk_widget_show(GTK_WIDGET(vbox));
+
+    menubar = gtk_menu_bar_new();
+    gtk_box_pack_start(vbox, menubar, FALSE, FALSE, 0);
+    gtk_widget_show(menubar);
+
+    menuitem = gtk_menu_item_new_with_label("Game");
+    gtk_container_add(GTK_CONTAINER(menubar), menuitem);
+    gtk_widget_show(menuitem);
+
+    menu = gtk_menu_new();
+    gtk_menu_item_set_submenu(GTK_MENU_ITEM(menuitem), menu);
+
+    add_menu_item_with_key(fe, GTK_CONTAINER(menu), "New", 'n');
+    add_menu_item_with_key(fe, GTK_CONTAINER(menu), "Restart", 'r');
+
+    if ((n = midend_num_presets(fe->me)) > 0) {
+        GtkWidget *submenu;
+        int i;
+
+        menuitem = gtk_menu_item_new_with_label("Type");
+        gtk_container_add(GTK_CONTAINER(menu), menuitem);
+        gtk_widget_show(menuitem);
+
+        submenu = gtk_menu_new();
+        gtk_menu_item_set_submenu(GTK_MENU_ITEM(menuitem), submenu);
+
+        for (i = 0; i < n; i++) {
+            char *name;
+            game_params *params;
+
+            midend_fetch_preset(fe->me, i, &name, &params);
+
+            menuitem = gtk_menu_item_new_with_label(name);
+            gtk_container_add(GTK_CONTAINER(submenu), menuitem);
+            gtk_object_set_data(GTK_OBJECT(menuitem), "user-data", params);
+            gtk_signal_connect(GTK_OBJECT(menuitem), "activate",
+                               GTK_SIGNAL_FUNC(menu_preset_event), fe);
+            gtk_widget_show(menuitem);
+        }
+    }
+
+    add_menu_separator(GTK_CONTAINER(menu));
+    add_menu_item_with_key(fe, GTK_CONTAINER(menu), "Undo", 'u');
+    add_menu_item_with_key(fe, GTK_CONTAINER(menu), "Redo", '\x12');
+    add_menu_separator(GTK_CONTAINER(menu));
+    add_menu_item_with_key(fe, GTK_CONTAINER(menu), "Exit", 'q');
 
     {
         int i, ncolours;
@@ -288,7 +386,7 @@ static frontend *new_window(void)
     fe->w = x;
     fe->h = y;
 
-    gtk_container_add(GTK_CONTAINER(fe->window), fe->area);
+    gtk_box_pack_end(vbox, fe->area, FALSE, FALSE, 0);
 
     fe->pixmap = NULL;
 

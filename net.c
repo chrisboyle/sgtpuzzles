@@ -126,17 +126,58 @@ game_params *default_params(void)
 {
     game_params *ret = snew(game_params);
 
-    ret->width = 11;
-    ret->height = 11;
-    ret->wrapping = TRUE;
-    ret->barrier_probability = 0.1;
+    ret->width = 5;
+    ret->height = 5;
+    ret->wrapping = FALSE;
+    ret->barrier_probability = 0.0;
 
     return ret;
+}
+
+int game_fetch_preset(int i, char **name, game_params **params)
+{
+    game_params *ret;
+    char str[80];
+    static const struct { int x, y, wrap; } values[] = {
+        {5, 5, FALSE},
+        {7, 7, FALSE},
+        {9, 9, FALSE},
+        {11, 11, FALSE},
+        {13, 11, FALSE},
+        {5, 5, TRUE},
+        {7, 7, TRUE},
+        {9, 9, TRUE},
+        {11, 11, TRUE},
+        {13, 11, TRUE},
+    };
+
+    if (i < 0 || i >= lenof(values))
+        return FALSE;
+
+    ret = snew(game_params);
+    ret->width = values[i].x;
+    ret->height = values[i].y;
+    ret->wrapping = values[i].wrap;
+    ret->barrier_probability = 0.0;
+
+    sprintf(str, "%dx%d%s", ret->width, ret->height,
+            ret->wrapping ? " wrapping" : "");
+
+    *name = dupstr(str);
+    *params = ret;
+    return TRUE;
 }
 
 void free_params(game_params *params)
 {
     sfree(params);
+}
+
+game_params *dup_params(game_params *params)
+{
+    game_params *ret = snew(game_params);
+    *ret = *params;		       /* structure copy */
+    return ret;
 }
 
 /* ----------------------------------------------------------------------
@@ -480,27 +521,27 @@ game_state *new_game(game_params *params, char *seed)
 
                 x1 = x + X(dir), y1 = y + Y(dir);
                 if (x1 >= 0 && x1 < state->width &&
-                    y1 >= 0 && y1 < state->width &&
+                    y1 >= 0 && y1 < state->height &&
                     (barrier(state, x1, y1) & dir2))
                     corner = TRUE;
 
                 x2 = x + X(dir2), y2 = y + Y(dir2);
                 if (x2 >= 0 && x2 < state->width &&
-                    y2 >= 0 && y2 < state->width &&
+                    y2 >= 0 && y2 < state->height &&
                     (barrier(state, x2, y2) & dir))
                     corner = TRUE;
 
                 if (corner) {
                     barrier(state, x, y) |= (dir << 4);
                     if (x1 >= 0 && x1 < state->width &&
-                        y1 >= 0 && y1 < state->width)
+                        y1 >= 0 && y1 < state->height)
                         barrier(state, x1, y1) |= (A(dir) << 4);
                     if (x2 >= 0 && x2 < state->width &&
-                        y2 >= 0 && y2 < state->width)
+                        y2 >= 0 && y2 < state->height)
                         barrier(state, x2, y2) |= (C(dir) << 4);
                     x3 = x + X(dir) + X(dir2), y3 = y + Y(dir) + Y(dir2);
                     if (x3 >= 0 && x3 < state->width &&
-                        y3 >= 0 && y3 < state->width)
+                        y3 >= 0 && y3 < state->height)
                         barrier(state, x3, y3) |= (F(dir) << 4);
                 }
             }

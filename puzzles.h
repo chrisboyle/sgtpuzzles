@@ -61,6 +61,9 @@ int midend_process_key(midend_data *me, int x, int y, int button);
 void midend_redraw(midend_data *me);
 float *midend_colours(midend_data *me, int *ncolours);
 void midend_timer(midend_data *me, float tplus);
+int midend_num_presets(midend_data *me);
+void midend_fetch_preset(midend_data *me, int n,
+                         char **name, game_params **params);
 
 /*
  * malloc.c
@@ -87,7 +90,9 @@ void random_free(random_state *state);
  * Game-specific routines
  */
 game_params *default_params(void);
+int game_fetch_preset(int i, char **name, game_params **params);
 void free_params(game_params *params);
+game_params *dup_params(game_params *params);
 char *new_game_seed(game_params *params);
 game_state *new_game(game_params *params, char *seed);
 game_state *dup_game(game_state *state);

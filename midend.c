@@ -14,6 +14,11 @@ struct midend_data {
     frontend *frontend;
     char *seed;
     int nstates, statesize, statepos;
+
+    game_params **presets;
+    char **preset_names;
+    int npresets, presetsize;
+
     game_params *params;
     game_state **states;
     game_drawstate *drawstate;
@@ -39,6 +44,9 @@ midend_data *midend_new(frontend *frontend)
     me->seed = NULL;
     me->drawstate = NULL;
     me->oldstate = NULL;
+    me->presets = NULL;
+    me->preset_names = NULL;
+    me->npresets = me->presetsize = 0;
 
     return me;
 }
@@ -59,7 +67,7 @@ void midend_size(midend_data *me, int *x, int *y)
 void midend_set_params(midend_data *me, game_params *params)
 {
     free_params(me->params);
-    me->params = params;
+    me->params = dup_params(params);
 }
 
 void midend_new_game(midend_data *me, char *seed)
@@ -226,4 +234,36 @@ float *midend_colours(midend_data *me, int *ncolours)
         free_game(state);
 
     return ret;
+}
+
+int midend_num_presets(midend_data *me)
+{
+    if (!me->npresets) {
+        char *name;
+        game_params *preset;
+
+        while (game_fetch_preset(me->npresets, &name, &preset)) {
+            if (me->presetsize <= me->npresets) {
+                me->presetsize = me->npresets + 10;
+                me->presets = sresize(me->presets, me->presetsize,
+                                      game_params *);
+                me->preset_names = sresize(me->preset_names, me->presetsize,
+                                           char *);
+            }
+
+            me->presets[me->npresets] = preset;
+            me->preset_names[me->npresets] = name;
+            me->npresets++;
+        }
+    }
+
+    return me->npresets;
+}
+
+void midend_fetch_preset(midend_data *me, int n,
+                         char **name, game_params **params)
+{
+    assert(n >= 0 && n < me->npresets);
+    *name = me->preset_names[n];
+    *params = me->presets[n];
 }

@@ -10,6 +10,7 @@
 
 !makefile gtk Makefile
 !makefile vc Makefile.vc
+!makefile cygwin Makefile.cyg
 
 WINDOWS  = windows user32.lib gdi32.lib
 COMMON   = midend malloc

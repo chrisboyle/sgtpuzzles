@@ -21,6 +21,7 @@ struct solid {
     int faces[MAXFACES * MAXORDER];    /* order*nfaces point indices */
     float normals[MAXFACES * 3];       /* 3*npoints vector components */
     float shear;                       /* isometric shear for nice drawing */
+    float border;                      /* border required around arena */
 };
 
 static const struct solid tetrahedron = {
@@ -41,7 +42,7 @@ static const struct solid tetrahedron = {
         0.816496580928, -0.471404520791, 0.333333333334,
         0.0, 0.0, -1.0,
     },
-    0.0
+    0.0, 0.3
 };
 
 static const struct solid cube = {
@@ -57,7 +58,7 @@ static const struct solid cube = {
     {
         -1,0,0, 0,0,+1, +1,0,0, 0,0,-1, 0,-1,0, 0,+1,0
     },
-    0.3
+    0.3, 0.5
 };
 
 static const struct solid octahedron = {
@@ -84,7 +85,7 @@ static const struct solid octahedron = {
         0.816496580928, -0.471404520791, -0.333333333334,
         0.816496580928, 0.471404520791, 0.333333333334,
     },
-    0.0
+    0.0, 0.5
 };
 
 static const struct solid icosahedron = {
@@ -132,7 +133,7 @@ static const struct solid icosahedron = {
         -0.57735026919, -0.333333333334, -0.745355992501,
         0.57735026919, -0.333333333334, -0.745355992501,
     },
-    0.0
+    0.0, 0.8
 };
 
 enum {
@@ -216,9 +217,56 @@ game_params *default_params(void)
     return ret;
 }
 
+int game_fetch_preset(int i, char **name, game_params **params)
+{
+    game_params *ret = snew(game_params);
+    char *str;
+
+    switch (i) {
+      case 0:
+        str = "Cube";
+        ret->solid = CUBE;
+        ret->d1 = 4;
+        ret->d2 = 4;
+        break;
+      case 1:
+        str = "Tetrahedron";
+        ret->solid = TETRAHEDRON;
+        ret->d1 = 2;
+        ret->d2 = 1;
+        break;
+      case 2:
+        str = "Octahedron";
+        ret->solid = OCTAHEDRON;
+        ret->d1 = 2;
+        ret->d2 = 2;
+        break;
+      case 3:
+        str = "Icosahedron";
+        ret->solid = ICOSAHEDRON;
+        ret->d1 = 3;
+        ret->d2 = 3;
+        break;
+      default:
+        sfree(ret);
+        return FALSE;
+    }
+
+    *name = dupstr(str);
+    *params = ret;
+    return TRUE;
+}
+
 void free_params(game_params *params)
 {
     sfree(params);
+}
+
+game_params *dup_params(game_params *params)
+{
+    game_params *ret = snew(game_params);
+    *ret = *params;		       /* structure copy */
+    return ret;
 }
 
 static void enum_grid_squares(game_params *params,
@@ -1083,8 +1131,8 @@ static struct bbox find_bbox(game_params *params)
 void game_size(game_params *params, int *x, int *y)
 {
     struct bbox bb = find_bbox(params);
-    *x = (bb.r - bb.l + 2) * GRID_SCALE;
-    *y = (bb.d - bb.u + 2) * GRID_SCALE;
+    *x = (bb.r - bb.l + 2*solids[params->solid]->border) * GRID_SCALE;
+    *y = (bb.d - bb.u + 2*solids[params->solid]->border) * GRID_SCALE;
 }
 
 float *game_colours(frontend *fe, game_state *state, int *ncolours)
@@ -1110,8 +1158,8 @@ game_drawstate *game_new_drawstate(game_state *state)
     struct game_drawstate *ds = snew(struct game_drawstate);
     struct bbox bb = find_bbox(&state->params);
 
-    ds->ox = -(bb.l - 1) * GRID_SCALE;
-    ds->oy = -(bb.u - 1) * GRID_SCALE;
+    ds->ox = -(bb.l - state->solid->border) * GRID_SCALE;
+    ds->oy = -(bb.u - state->solid->border) * GRID_SCALE;
 
     return ds;
 }

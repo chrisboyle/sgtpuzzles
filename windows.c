@@ -11,6 +11,13 @@
 
 #include "puzzles.h"
 
+#define IDM_NEW       0x0010
+#define IDM_RESTART   0x0020
+#define IDM_UNDO      0x0030
+#define IDM_REDO      0x0040
+#define IDM_QUIT      0x0050
+#define IDM_PRESETS   0x0100
+
 struct frontend {
     midend_data *me;
     HWND hwnd;
@@ -20,6 +27,8 @@ struct frontend {
     HBRUSH *brushes;
     HPEN *pens;
     UINT timer;
+    int npresets;
+    game_params **presets;
 };
 
 void fatal(char *fmt, ...)
@@ -178,7 +187,7 @@ static frontend *new_window(HINSTANCE inst)
     r.bottom = y;
     AdjustWindowRectEx(&r, WS_OVERLAPPEDWINDOW &~
 		       (WS_THICKFRAME | WS_MAXIMIZEBOX | WS_OVERLAPPED),
-		       FALSE, 0);
+		       TRUE, 0);
 
     fe->hwnd = CreateWindowEx(0, "puzzle", "puzzle",
 			      WS_OVERLAPPEDWINDOW &~
@@ -186,6 +195,44 @@ static frontend *new_window(HINSTANCE inst)
 			      CW_USEDEFAULT, CW_USEDEFAULT,
 			      r.right - r.left, r.bottom - r.top,
 			      NULL, NULL, inst, NULL);
+
+    {
+	HMENU bar = CreateMenu();
+	HMENU menu = CreateMenu();
+
+	AppendMenu(bar, MF_ENABLED|MF_POPUP, (UINT)menu, "Game");
+	AppendMenu(menu, MF_ENABLED, IDM_NEW, "New");
+	AppendMenu(menu, MF_ENABLED, IDM_RESTART, "Restart");
+
+	if ((fe->npresets = midend_num_presets(fe->me)) > 0) {
+	    HMENU sub = CreateMenu();
+	    int i;
+
+	    AppendMenu(menu, MF_ENABLED|MF_POPUP, (UINT)sub, "Type");
+
+	    fe->presets = snewn(fe->npresets, game_params *);
+
+	    for (i = 0; i < fe->npresets; i++) {
+		char *name;
+
+		midend_fetch_preset(fe->me, i, &name, &fe->presets[i]);
+
+		/*
+		 * FIXME: we ought to go through and do something
+		 * with ampersands here.
+		 */
+
+		AppendMenu(sub, MF_ENABLED, IDM_PRESETS + 0x10 * i, name);
+	    }
+	}
+
+	AppendMenu(menu, MF_SEPARATOR, 0, 0);
+	AppendMenu(menu, MF_ENABLED, IDM_UNDO, "Undo");
+	AppendMenu(menu, MF_ENABLED, IDM_REDO, "Redo");
+	AppendMenu(menu, MF_SEPARATOR, 0, 0);
+	AppendMenu(menu, MF_ENABLED, IDM_QUIT, "Exit");
+	SetMenu(fe->hwnd, bar);
+    }
 
     hdc = GetDC(fe->hwnd);
     fe->bitmap = CreateCompatibleBitmap(hdc, x, y);
@@ -210,6 +257,65 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
       case WM_CLOSE:
 	DestroyWindow(hwnd);
 	return 0;
+      case WM_COMMAND:
+	switch (wParam & ~0xF) {       /* low 4 bits reserved to Windows */
+	  case IDM_NEW:
+	    if (!midend_process_key(fe->me, 0, 0, 'n'))
+		PostQuitMessage(0);
+	    break;
+	  case IDM_RESTART:
+	    if (!midend_process_key(fe->me, 0, 0, 'r'))
+		PostQuitMessage(0);
+	    break;
+	  case IDM_UNDO:
+	    if (!midend_process_key(fe->me, 0, 0, 'u'))
+		PostQuitMessage(0);
+	    break;
+	  case IDM_REDO:
+	    if (!midend_process_key(fe->me, 0, 0, '\x12'))
+		PostQuitMessage(0);
+	    break;
+	  case IDM_QUIT:
+	    if (!midend_process_key(fe->me, 0, 0, 'q'))
+		PostQuitMessage(0);
+	    break;
+	  default:
+	    {
+		int p = ((wParam &~ 0xF) - IDM_PRESETS) / 0x10;
+
+		if (p >= 0 && p < fe->npresets) {
+		    RECT r;
+		    HDC hdc;
+		    int x, y;
+
+		    midend_set_params(fe->me, fe->presets[p]);
+		    midend_new_game(fe->me, NULL);
+		    midend_size(fe->me, &x, &y);
+
+		    r.left = r.top = 0;
+		    r.right = x;
+		    r.bottom = y;
+		    AdjustWindowRectEx(&r, WS_OVERLAPPEDWINDOW &~
+				       (WS_THICKFRAME | WS_MAXIMIZEBOX |
+					WS_OVERLAPPED),
+				       TRUE, 0);
+
+		    SetWindowPos(fe->hwnd, NULL, 0, 0,
+				 r.right - r.left, r.bottom - r.top,
+				 SWP_NOMOVE | SWP_NOZORDER);
+
+		    DeleteObject(fe->bitmap);
+
+		    hdc = GetDC(fe->hwnd);
+		    fe->bitmap = CreateCompatibleBitmap(hdc, x, y);
+		    ReleaseDC(fe->hwnd, hdc);
+
+		    midend_redraw(fe->me);
+		}
+	    }
+	    break;
+	}
+	break;
       case WM_DESTROY:
 	PostQuitMessage(0);
 	return 0;
@@ -246,7 +352,7 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
 	    }
 
 	    if (key != -1) {
-		if (!midend_process_key(fe->me, -1, -1, key))
+		if (!midend_process_key(fe->me, 0, 0, key))
 		    PostQuitMessage(0);
 	    }
 	}
@@ -262,7 +368,7 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
 	
 	break;
       case WM_CHAR:
-	if (!midend_process_key(fe->me, -1, -1, (unsigned char)wParam))
+	if (!midend_process_key(fe->me, 0, 0, (unsigned char)wParam))
 	    PostQuitMessage(0);
 	return 0;
       case WM_TIMER:
