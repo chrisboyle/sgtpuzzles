@@ -8,9 +8,6 @@
  *    think help is HTML round here anyway so perhaps we can work
  *    with what we already have.
  * 
- *  - Why are the right and bottom edges of the Pattern grid one
- *    pixel thinner than they should be?
- * 
  * Mac interface issues that possibly could be done better:
  * 
  *  - is there a better approach to frontend_default_colour?

@@ -903,7 +903,7 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
          * Draw the grid outline.
          */
         draw_rect(fe, TOCOORD(ds->w, 0) - 1, TOCOORD(ds->h, 0) - 1,
-                  ds->w * TILE_SIZE + 2, ds->h * TILE_SIZE + 2,
+                  ds->w * TILE_SIZE + 3, ds->h * TILE_SIZE + 3,
                   COL_GRID);
 
         ds->started = TRUE;
