@@ -216,25 +216,6 @@ static struct rectlist *get_rectlist(game_params *params, int *grid)
                 continue;
             for (x = 0; x <= params->w - rw; x++)
                 for (y = 0; y <= params->h - rh; y++) {
-                    /*
-                     * We have a candidate rectangle placement. See
-                     * if it's unobstructed.
-                     */
-                    int xx, yy;
-                    int ok;
-
-                    ok = TRUE;
-                    for (xx = x; xx < x+rw; xx++)
-                        for (yy = y; yy < y+rh; yy++)
-                            if (index(params, grid, xx, yy) >= 0) {
-                                ok = FALSE;
-                                goto break1;   /* break both loops at once */
-                            }
-                    break1:
-
-                    if (!ok)
-                        continue;
-
                     if (nrects >= rectsize) {
                         rectsize = nrects + 256;
                         rects = sresize(rects, rectsize, struct rect);
