@@ -869,7 +869,7 @@ static frontend *new_window(void)
 #if 0
 	/* For GTK 2.0, should we be using gtk_widget_set_size_request? */
 #endif
-	gtk_widget_set_usize(viewport, x, req.height);
+	gtk_widget_set_usize(viewport, -1, req.height);
     } else
 	fe->statusbar = NULL;
 
