@@ -49,6 +49,9 @@
  *  - Can we arrange for a pop-up menu from the Dock icon which
  *    launches specific games, perhaps?
  * 
+ *  - Why are the right and bottom edges of the Pattern grid one
+ *    pixel thinner than they should be?
+ * 
  * Grotty implementation details that could probably be improved:
  * 
  *  - I am _utterly_ unconvinced that NSImageView was the right way
@@ -128,9 +131,10 @@ NSMenu *typemenu;
     action:(SEL)act
     keyEquivalent:(NSString *)key
 {
+    id ret = [super initWithTitle:title action:act keyEquivalent:key];
     payload = NULL;
     payload_free = NO;
-    return [super initWithTitle:title action:act keyEquivalent:key];
+    return ret;
 }
 - (void)setPayload:(void *)d
 {
