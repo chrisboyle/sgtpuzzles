@@ -231,6 +231,8 @@ void end_draw(frontend *fe)
 
 static void destroy(GtkWidget *widget, gpointer data)
 {
+    frontend *fe = (frontend *)data;
+    deactivate_timer(fe);
     gtk_main_quit();
 }
 
@@ -415,8 +417,6 @@ void activate_timer(frontend *fe)
 
 static void window_destroy(GtkWidget *widget, gpointer data)
 {
-    frontend *fe = (frontend *)data;
-    deactivate_timer(fe);
     gtk_main_quit();
 }
 
