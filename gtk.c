@@ -181,10 +181,10 @@ static gint button_event(GtkWidget *widget, GdkEventButton *event,
     if (event->type != GDK_BUTTON_PRESS)
         return TRUE;
 
-    if (event->button == 1)
-	button = LEFT_BUTTON;
-    else if (event->button == 2)
+    if (event->button == 2 || (event->state & GDK_SHIFT_MASK))
 	button = MIDDLE_BUTTON;
+    else if (event->button == 1)
+	button = LEFT_BUTTON;
     else if (event->button == 3)
 	button = RIGHT_BUTTON;
     else
