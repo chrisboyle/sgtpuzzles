@@ -1017,8 +1017,8 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
 	    else
 		button = RIGHT_BUTTON;
 
-	    if (!midend_process_key(fe->me, LOWORD(lParam),
-				    HIWORD(lParam), button))
+	    if (!midend_process_key(fe->me, (signed short)LOWORD(lParam),
+				    (signed short)HIWORD(lParam), button))
 		PostQuitMessage(0);
 
 	    SetCapture(hwnd);
@@ -1042,8 +1042,8 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
 	    else
 		button = RIGHT_RELEASE;
 
-	    if (!midend_process_key(fe->me, LOWORD(lParam),
-				    HIWORD(lParam), button))
+	    if (!midend_process_key(fe->me, (signed short)LOWORD(lParam),
+				    (signed short)HIWORD(lParam), button))
 		PostQuitMessage(0);
 
 	    ReleaseCapture();
@@ -1060,8 +1060,8 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
 	    else
 		button = RIGHT_DRAG;
 	    
-	    if (!midend_process_key(fe->me, LOWORD(lParam),
-				    HIWORD(lParam), button))
+	    if (!midend_process_key(fe->me, (signed short)LOWORD(lParam),
+				    (signed short)HIWORD(lParam), button))
 		PostQuitMessage(0);
 	}
 	break;
