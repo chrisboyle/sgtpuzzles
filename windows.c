@@ -18,6 +18,51 @@
 #define IDM_QUIT      0x0050
 #define IDM_PRESETS   0x0100
 
+#ifdef DEBUG
+static FILE *debug_fp = NULL;
+static HANDLE debug_hdl = INVALID_HANDLE_VALUE;
+static int debug_got_console = 0;
+
+void dputs(char *buf)
+{
+    DWORD dw;
+
+    if (!debug_got_console) {
+	if (AllocConsole()) {
+	    debug_got_console = 1;
+	    debug_hdl = GetStdHandle(STD_OUTPUT_HANDLE);
+	}
+    }
+    if (!debug_fp) {
+	debug_fp = fopen("debug.log", "w");
+    }
+
+    if (debug_hdl != INVALID_HANDLE_VALUE) {
+	WriteFile(debug_hdl, buf, strlen(buf), &dw, NULL);
+    }
+    fputs(buf, debug_fp);
+    fflush(debug_fp);
+}
+
+void debug_printf(char *fmt, ...)
+{
+    char buf[4096];
+    va_list ap;
+
+    va_start(ap, fmt);
+    vsprintf(buf, fmt, ap);
+    dputs(buf);
+    va_end(ap);
+}
+
+#define debug(x) (debug_printf x)
+
+#else
+
+#define debug(x)
+
+#endif
+
 struct frontend {
     midend_data *me;
     HWND hwnd;
@@ -349,11 +394,44 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
 	      case VK_RIGHT: key = CURSOR_RIGHT; break;
 	      case VK_UP: key = CURSOR_UP; break;
 	      case VK_DOWN: key = CURSOR_DOWN; break;
+		/*
+		 * Diagonal keys on the numeric keypad.
+		 */
+	      case VK_PRIOR:
+		if (!(lParam & 0x01000000)) key = CURSOR_UP_RIGHT;
+		break;
+	      case VK_NEXT:
+		if (!(lParam & 0x01000000)) key = CURSOR_DOWN_RIGHT;
+		break;
+	      case VK_HOME:
+		if (!(lParam & 0x01000000)) key = CURSOR_UP_LEFT;
+		break;
+	      case VK_END:
+		if (!(lParam & 0x01000000)) key = CURSOR_DOWN_LEFT;
+		break;
+		/*
+		 * Numeric keypad keys with Num Lock on.
+		 */
+	      case VK_NUMPAD4: key = CURSOR_LEFT; break;
+	      case VK_NUMPAD6: key = CURSOR_RIGHT; break;
+	      case VK_NUMPAD8: key = CURSOR_UP; break;
+	      case VK_NUMPAD2: key = CURSOR_DOWN; break;
+	      case VK_NUMPAD9: key = CURSOR_UP_RIGHT; break;
+	      case VK_NUMPAD3: key = CURSOR_DOWN_RIGHT; break;
+	      case VK_NUMPAD7: key = CURSOR_UP_LEFT; break;
+	      case VK_NUMPAD1: key = CURSOR_DOWN_LEFT; break;
 	    }
 
 	    if (key != -1) {
 		if (!midend_process_key(fe->me, 0, 0, key))
 		    PostQuitMessage(0);
+	    } else {
+		MSG m;
+		m.hwnd = hwnd;
+		m.message = WM_KEYDOWN;
+		m.wParam = wParam;
+		m.lParam = lParam & 0xdfff;
+		TranslateMessage(&m);
 	    }
 	}
 	break;
@@ -406,7 +484,6 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
     new_window(inst);
 
     while (GetMessage(&msg, NULL, 0, 0)) {
-	TranslateMessage(&msg);
 	DispatchMessage(&msg);
     }
 

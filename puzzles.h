@@ -21,7 +21,11 @@ enum {
     CURSOR_UP,
     CURSOR_DOWN,
     CURSOR_LEFT,
-    CURSOR_RIGHT
+    CURSOR_RIGHT,
+    CURSOR_UP_LEFT,
+    CURSOR_DOWN_LEFT,
+    CURSOR_UP_RIGHT,
+    CURSOR_DOWN_RIGHT
 };
 
 #define IGNOREARG(x) ( (x) = (x) )

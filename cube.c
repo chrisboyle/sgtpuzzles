@@ -150,7 +150,7 @@ enum {
     NCOLOURS
 };
 
-enum { LEFT, RIGHT, UP, DOWN };
+enum { LEFT, RIGHT, UP, DOWN, UP_LEFT, UP_RIGHT, DOWN_LEFT, DOWN_RIGHT };
 
 #define GRID_SCALE 48
 #define ROLLTIME 0.1
@@ -171,7 +171,7 @@ struct grid_square {
     float x, y;
     int npoints;
     float points[8];                   /* maximum */
-    int directions[4];                 /* bit masks showing point pairs */
+    int directions[8];                 /* bit masks showing point pairs */
     int flip;
     int blue;
     int tetra_class;
@@ -298,6 +298,10 @@ static void enum_grid_squares(game_params *params,
                 sq.directions[RIGHT] = 0x0C;   /* 2,3 */
                 sq.directions[UP]    = 0x09;   /* 0,3 */
                 sq.directions[DOWN]  = 0x06;   /* 1,2 */
+                sq.directions[UP_LEFT] = 0;   /* no diagonals in a square */
+                sq.directions[UP_RIGHT] = 0;   /* no diagonals in a square */
+                sq.directions[DOWN_LEFT] = 0;   /* no diagonals in a square */
+                sq.directions[DOWN_RIGHT] = 0;   /* no diagonals in a square */
 
                 sq.flip = FALSE;
 
@@ -348,6 +352,15 @@ static void enum_grid_squares(game_params *params,
                 sq.directions[UP]    = 0x05;   /* 0,2 */
                 sq.directions[DOWN]  = 0;      /* invalid move */
 
+                /*
+                 * Down-pointing triangle: both the up diagonals go
+                 * up, and the down ones go left and right.
+                 */
+                sq.directions[UP_LEFT] = sq.directions[UP_RIGHT] =
+                    sq.directions[UP];
+                sq.directions[DOWN_LEFT] = sq.directions[LEFT];
+                sq.directions[DOWN_RIGHT] = sq.directions[RIGHT];
+
                 sq.flip = TRUE;
 
                 if (firstix < 0)
@@ -383,6 +396,15 @@ static void enum_grid_squares(game_params *params,
                 sq.directions[RIGHT] = 0x03;   /* 0,1 */
                 sq.directions[DOWN]  = 0x05;   /* 0,2 */
                 sq.directions[UP]    = 0;      /* invalid move */
+
+                /*
+                 * Up-pointing triangle: both the down diagonals go
+                 * down, and the up ones go left and right.
+                 */
+                sq.directions[DOWN_LEFT] = sq.directions[DOWN_RIGHT] =
+                    sq.directions[DOWN];
+                sq.directions[UP_LEFT] = sq.directions[LEFT];
+                sq.directions[UP_RIGHT] = sq.directions[RIGHT];
 
                 sq.flip = FALSE;
 
@@ -841,6 +863,14 @@ game_state *make_move(game_state *from, int x, int y, int button)
         direction = LEFT;
     else if (button == CURSOR_RIGHT)
         direction = RIGHT;
+    else if (button == CURSOR_UP_LEFT)
+        direction = UP_LEFT;
+    else if (button == CURSOR_DOWN_LEFT)
+        direction = DOWN_LEFT;
+    else if (button == CURSOR_UP_RIGHT)
+        direction = UP_RIGHT;
+    else if (button == CURSOR_DOWN_RIGHT)
+        direction = DOWN_RIGHT;
     else
         return NULL;
 

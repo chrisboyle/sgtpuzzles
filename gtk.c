@@ -139,14 +139,26 @@ static gint key_event(GtkWidget *widget, GdkEventKey *event, gpointer data)
 
     if (event->string[0] && !event->string[1])
         keyval = (unsigned char)event->string[0];
-    else if (event->keyval == GDK_Up || event->keyval == GDK_KP_Up)
+    else if (event->keyval == GDK_Up || event->keyval == GDK_KP_Up ||
+             event->keyval == GDK_KP_8)
         keyval = CURSOR_UP;
-    else if (event->keyval == GDK_Down || event->keyval == GDK_KP_Down)
+    else if (event->keyval == GDK_Down || event->keyval == GDK_KP_Down ||
+             event->keyval == GDK_KP_2)
         keyval = CURSOR_DOWN;
-    else if (event->keyval == GDK_Left || event->keyval == GDK_KP_Left)
+    else if (event->keyval == GDK_Left || event->keyval == GDK_KP_Left ||
+             event->keyval == GDK_KP_4)
         keyval = CURSOR_LEFT;
-    else if (event->keyval == GDK_Right || event->keyval == GDK_KP_Right)
+    else if (event->keyval == GDK_Right || event->keyval == GDK_KP_Right ||
+             event->keyval == GDK_KP_6)
         keyval = CURSOR_RIGHT;
+    else if (event->keyval == GDK_KP_Home || event->keyval == GDK_KP_7)
+        keyval = CURSOR_UP_LEFT;
+    else if (event->keyval == GDK_KP_End || event->keyval == GDK_KP_1)
+        keyval = CURSOR_DOWN_LEFT;
+    else if (event->keyval == GDK_KP_Page_Up || event->keyval == GDK_KP_9)
+        keyval = CURSOR_UP_RIGHT;
+    else if (event->keyval == GDK_KP_Page_Down || event->keyval == GDK_KP_3)
+        keyval = CURSOR_DOWN_RIGHT;
     else
         keyval = -1;
 
