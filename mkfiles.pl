@@ -1174,7 +1174,7 @@ if (defined $makefiles{'osx'}) {
           "\n";
     }
     print "\nclean:\n".
-    "\trm -f *.o\n".
+    "\trm -f *.o *.dmg\n".
     "\trm -rf *.app\n";
     select STDOUT; close OUT;
 }

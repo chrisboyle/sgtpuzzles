@@ -43,7 +43,8 @@ Puzzles  : [MX] osx osx.icns osx-info.plist COMMON ALL
 # For OS X, we must create the online help and include it in the
 # application bundle.) Also we add -DCOMBINED to the compiler flags
 # so as to inform the code that we're building a single binary for
-# all the puzzles.
+# all the puzzles. Then I've also got some code in here to build a
+# distributable .dmg disk image.
 !begin osx
 CFLAGS += -DCOMBINED
 Puzzles_extra = Puzzles.app/Contents/Resources/Help/index.html
@@ -53,6 +54,20 @@ Puzzles.app/Contents/Resources/Help/index.html: \
 		halibut --html ../../../../osx-help.but ../../../../puzzles.but
 Puzzles.app/Contents/Resources/Help: Puzzles.app/Contents/Resources
 	mkdir -p Puzzles.app/Contents/Resources/Help
+
+release: Puzzles.dmg
+Puzzles.dmg: Puzzles
+	rm -f raw.dmg
+	hdiutil create -megabytes 5 -layout NONE raw.dmg
+	hdid -nomount raw.dmg > devicename
+	newfs_hfs -v "Simon Tatham's Puzzle Collection" `cat devicename`
+	hdiutil eject `cat devicename`
+	hdid raw.dmg | cut -f1 -d' ' > devicename
+	cp -R Puzzles.app /Volumes/"Simon Tatham's Puzzle Collection"
+	hdiutil eject `cat devicename`
+	rm -f Puzzles.dmg
+	hdiutil convert -format UDCO raw.dmg -o Puzzles.dmg
+	rm -f raw.dmg devicename
 !end
 
 # The `nullgame' source file is a largely blank one, which contains
