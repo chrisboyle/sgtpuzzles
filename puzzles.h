@@ -201,9 +201,13 @@ struct game {
 
 /*
  * For one-game-at-a-time platforms, there's a single structure
- * like the above, under a fixed name.
+ * like the above, under a fixed name. For all-at-once platforms,
+ * there's a list of all available puzzles in array form.
  */
-#ifndef COMBINED
+#ifdef COMBINED
+extern const game *gamelist[];
+extern const int gamecount;
+#else
 extern const game thegame;
 #endif
 

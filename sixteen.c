@@ -769,6 +769,10 @@ static int game_wants_statusbar(void)
     return TRUE;
 }
 
+#ifdef COMBINED
+#define thegame sixteen
+#endif
+
 const struct game thegame = {
     "Sixteen", "games.sixteen", TRUE,
     default_params,

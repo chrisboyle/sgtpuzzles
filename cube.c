@@ -25,7 +25,7 @@ struct solid {
     float border;                      /* border required around arena */
 };
 
-static const struct solid tetrahedron = {
+static const struct solid s_tetrahedron = {
     4,
     {
         0.0F, -0.57735026919F, -0.20412414523F,
@@ -46,7 +46,7 @@ static const struct solid tetrahedron = {
     0.0F, 0.3F
 };
 
-static const struct solid cube = {
+static const struct solid s_cube = {
     8,
     {
         -0.5F,-0.5F,-0.5F, -0.5F,-0.5F,+0.5F,
@@ -66,7 +66,7 @@ static const struct solid cube = {
     0.3F, 0.5F
 };
 
-static const struct solid octahedron = {
+static const struct solid s_octahedron = {
     6,
     {
         -0.5F, -0.28867513459472505F, 0.4082482904638664F,
@@ -93,7 +93,7 @@ static const struct solid octahedron = {
     0.0F, 0.5F
 };
 
-static const struct solid icosahedron = {
+static const struct solid s_icosahedron = {
     12,
     {
         0.0F, 0.57735026919F, 0.75576131408F,
@@ -145,7 +145,7 @@ enum {
     TETRAHEDRON, CUBE, OCTAHEDRON, ICOSAHEDRON
 };
 static const struct solid *solids[] = {
-    &tetrahedron, &cube, &octahedron, &icosahedron
+    &s_tetrahedron, &s_cube, &s_octahedron, &s_icosahedron
 };
 
 enum {
