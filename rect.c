@@ -76,6 +76,9 @@ struct game_params {
 #define TILE_SIZE 24
 #define BORDER 18
 
+#define CORNER_TOLERANCE 0.15F
+#define CENTRE_TOLERANCE 0.15F
+
 #define FLASH_TIME 0.13F
 
 #define COORD(x) ( (x) * TILE_SIZE + BORDER )
@@ -173,8 +176,8 @@ char *validate_params(game_params *params)
 {
     if (params->w <= 0 && params->h <= 0)
 	return "Width and height must both be greater than zero";
-    if (params->w * params->h < 4)
-	return "Total area must be at least 4";
+    if (params->w < 2 && params->h < 2)
+	return "Grid area must be greater than one";
     return NULL;
 }
 
@@ -197,9 +200,13 @@ static struct rectlist *get_rectlist(game_params *params, int *grid)
     int nrects = 0, rectsize = 0;
 
     /*
-     * Maximum rectangle area is 1/6 of total grid size.
+     * Maximum rectangle area is 1/6 of total grid size, unless
+     * this means we can't place any rectangles at all in which
+     * case we set it to 2 at minimum.
      */
     maxarea = params->w * params->h / 6;
+    if (maxarea < 2)
+        maxarea = 2;
 
     for (rw = 1; rw <= params->w; rw++)
         for (rh = 1; rh <= params->h; rh++) {
@@ -910,29 +917,88 @@ void free_ui(game_ui *ui)
     sfree(ui);
 }
 
-int coord_round(float coord)
+void coord_round(float x, float y, int *xr, int *yr)
 {
-    int i;
-    float dist;
+    float xs, ys, xv, yv, dx, dy, dist;
 
     /*
-     * Find the nearest integer.
+     * Find the nearest square-centre.
      */
-    i = (int)(coord + 0.5F);
+    xs = (float)floor(x) + 0.5F;
+    ys = (float)floor(y) + 0.5F;
 
     /*
-     * Find the distance from us to that integer.
+     * And find the nearest grid vertex.
      */
-    dist = (float)fabs(coord - (float)i);
+    xv = (float)floor(x + 0.5F);
+    yv = (float)floor(y + 0.5F);
 
     /*
-     * If we're within the tolerance limit, return the edge
-     * coordinate. Otherwise, return the centre coordinate.
+     * We allocate clicks in parts of the grid square to either
+     * corners, edges or square centres, as follows:
+     * 
+     *   +--+--------+--+
+     *   |  |        |  |
+     *   +--+        +--+
+     *   |   `.    ,'   |
+     *   |     +--+     |
+     *   |     |  |     |
+     *   |     +--+     |
+     *   |   ,'    `.   |
+     *   +--+        +--+
+     *   |  |        |  |
+     *   +--+--------+--+
+     * 
+     * (Not to scale!)
+     * 
+     * In other words: we measure the square distance (i.e.
+     * max(dx,dy)) from the click to the nearest corner, and if
+     * it's within CORNER_TOLERANCE then we return a corner click.
+     * We measure the square distance from the click to the nearest
+     * centre, and if that's within CENTRE_TOLERANCE we return a
+     * centre click. Failing that, we find which of the two edge
+     * centres is nearer to the click and return that edge.
      */
-    if (dist < 0.3F)
-        return i * 2;
-    else
-        return 1 + 2 * (int)coord;
+
+    /*
+     * Check for corner click.
+     */
+    dx = (float)fabs(x - xv);
+    dy = (float)fabs(y - yv);
+    dist = (dx > dy ? dx : dy);
+    if (dist < CORNER_TOLERANCE) {
+        *xr = 2 * (int)xv;
+        *yr = 2 * (int)yv;
+    } else {
+        /*
+         * Check for centre click.
+         */
+        dx = (float)fabs(x - xs);
+        dy = (float)fabs(y - ys);
+        dist = (dx > dy ? dx : dy);
+        if (dist < CENTRE_TOLERANCE) {
+            *xr = 1 + 2 * (int)xs;
+            *yr = 1 + 2 * (int)ys;
+        } else {
+            /*
+             * Failing both of those, see which edge we're closer to.
+             * Conveniently, this is simply done by testing the relative
+             * magnitude of dx and dy (which are currently distances from
+             * the square centre).
+             */
+            if (dx > dy) {
+                /* Vertical edge: x-coord of corner,
+                 * y-coord of square centre. */
+                *xr = 2 * (int)xv;
+                *yr = 1 + 2 * (int)ys;
+            } else {
+                /* Horizontal edge: x-coord of square centre,
+                 * y-coord of corner. */
+                *xr = 1 + 2 * (int)xs;
+                *yr = 2 * (int)yv;
+            }
+        }
+    }
 }
 
 static void ui_draw_rect(game_state *state, game_ui *ui,
@@ -996,8 +1062,7 @@ game_state *make_move(game_state *from, game_ui *ui, int x, int y, int button)
         return NULL;
     }
 
-    xc = coord_round(FROMCOORD((float)x));
-    yc = coord_round(FROMCOORD((float)y));
+    coord_round(FROMCOORD((float)x), FROMCOORD((float)y), &xc, &yc);
 
     if (startdrag) {
         ui->drag_start_x = xc;
@@ -1043,7 +1108,7 @@ game_state *make_move(game_state *from, game_ui *ui, int x, int y, int button)
              * We've made a real change to the grid. Check to see
              * if the game has been completed.
              */
-            if (!ret->completed) {
+            if (ret && !ret->completed) {
                 int x, y, ok;
                 unsigned char *correct = get_correct(ret);
 
