@@ -281,6 +281,15 @@ static void generate(random_state *rs, int w, int h, unsigned char *retgrid)
                     for (q = -1; q <= +1; q++) {
                         if (i+p < 0 || i+p >= h || j+q < 0 || j+q >= w)
                             continue;
+			/*
+			 * An additional special case not mentioned
+			 * above: if a grid dimension is 2xn then
+			 * we do not average across that dimension
+			 * at all. Otherwise a 2x2 grid would
+			 * contain four identical squares.
+			 */
+			if ((h==2 && p!=0) || (w==2 && q!=0))
+			    continue;
                         n++;
                         sx += fgrid[(i+p)*w+(j+q)];
                     }
@@ -303,7 +312,7 @@ static void generate(random_state *rs, int w, int h, unsigned char *retgrid)
 
     for (i = 0; i < h; i++) {
         for (j = 0; j < w; j++) {
-            retgrid[i*w+j] = (fgrid[i*w+j] > threshold ? GRID_FULL :
+            retgrid[i*w+j] = (fgrid[i*w+j] >= threshold ? GRID_FULL :
                               GRID_EMPTY);
         }
     }
