@@ -751,8 +751,8 @@ game_state *make_move(game_state *state, int x, int y, int button)
     ty = y / TILE_SIZE;
     if (tx >= state->width || ty >= state->height)
 	return NULL;
-    if (tx % TILE_SIZE >= TILE_SIZE - TILE_BORDER ||
-	ty % TILE_SIZE >= TILE_SIZE - TILE_BORDER)
+    if (x % TILE_SIZE >= TILE_SIZE - TILE_BORDER ||
+	y % TILE_SIZE >= TILE_SIZE - TILE_BORDER)
 	return NULL;
 
     /*
