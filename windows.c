@@ -939,7 +939,50 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
 		button = LEFT_BUTTON;
 	    else
 		button = RIGHT_BUTTON;
-		
+
+	    if (!midend_process_key(fe->me, LOWORD(lParam),
+				    HIWORD(lParam), button))
+		PostQuitMessage(0);
+
+	    SetCapture(hwnd);
+	}
+	break;
+      case WM_LBUTTONUP:
+      case WM_RBUTTONUP:
+      case WM_MBUTTONUP:
+	{
+	    int button;
+
+	    /*
+	     * Shift-clicks count as middle-clicks, since otherwise
+	     * two-button Windows users won't have any kind of
+	     * middle click to use.
+	     */
+	    if (message == WM_MBUTTONUP || (wParam & MK_SHIFT))
+		button = MIDDLE_RELEASE;
+	    else if (message == WM_LBUTTONUP)
+		button = LEFT_RELEASE;
+	    else
+		button = RIGHT_RELEASE;
+
+	    if (!midend_process_key(fe->me, LOWORD(lParam),
+				    HIWORD(lParam), button))
+		PostQuitMessage(0);
+
+	    ReleaseCapture();
+	}
+	break;
+      case WM_MOUSEMOVE:
+	{
+	    int button;
+
+	    if (wParam & (MK_MBUTTON | MK_SHIFT))
+		button = MIDDLE_DRAG;
+	    else if (wParam & MK_LBUTTON)
+		button = LEFT_DRAG;
+	    else
+		button = RIGHT_DRAG;
+	    
 	    if (!midend_process_key(fe->me, LOWORD(lParam),
 				    HIWORD(lParam), button))
 		PostQuitMessage(0);

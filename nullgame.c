@@ -109,7 +109,16 @@ void free_game(game_state *state)
     sfree(state);
 }
 
-game_state *make_move(game_state *from, int x, int y, int button)
+game_ui *new_ui(game_state *state)
+{
+    return NULL;
+}
+
+void free_ui(game_ui *ui)
+{
+}
+
+game_state *make_move(game_state *from, game_ui *ui, int x, int y, int button)
 {
     return NULL;
 }
@@ -152,7 +161,8 @@ void game_free_drawstate(game_drawstate *ds)
 }
 
 void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
-                 game_state *state, float animtime, float flashtime)
+                 game_state *state, game_ui *ui,
+                 float animtime, float flashtime)
 {
 }
 

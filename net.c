@@ -724,10 +724,19 @@ static unsigned char *compute_active(game_state *state)
     return active;
 }
 
+game_ui *new_ui(game_state *state)
+{
+    return NULL;
+}
+
+void free_ui(game_ui *ui)
+{
+}
+
 /* ----------------------------------------------------------------------
  * Process a move.
  */
-game_state *make_move(game_state *state, int x, int y, int button)
+game_state *make_move(game_state *state, game_ui *ui, int x, int y, int button)
 {
     game_state *ret;
     int tx, ty, orig;
@@ -1141,7 +1150,7 @@ static void draw_tile(frontend *fe, game_state *state, int x, int y, int tile,
 }
 
 void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
-                 game_state *state, float t, float ft)
+                 game_state *state, game_ui *ui, float t, float ft)
 {
     int x, y, tx, ty, frame;
     unsigned char *active;

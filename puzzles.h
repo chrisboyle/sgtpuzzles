@@ -18,6 +18,12 @@ enum {
     LEFT_BUTTON = 0x1000,
     MIDDLE_BUTTON,
     RIGHT_BUTTON,
+    LEFT_DRAG,
+    MIDDLE_DRAG,
+    RIGHT_DRAG,
+    LEFT_RELEASE,
+    MIDDLE_RELEASE,
+    RIGHT_RELEASE,
     CURSOR_UP,
     CURSOR_DOWN,
     CURSOR_LEFT,
@@ -36,6 +42,7 @@ typedef struct midend_data midend_data;
 typedef struct random_state random_state;
 typedef struct game_params game_params;
 typedef struct game_state game_state;
+typedef struct game_ui game_ui;
 typedef struct game_drawstate game_drawstate;
 
 #define ALIGN_VNORMAL 0x000
@@ -165,13 +172,16 @@ char *validate_seed(game_params *params, char *seed);
 game_state *new_game(game_params *params, char *seed);
 game_state *dup_game(game_state *state);
 void free_game(game_state *state);
-game_state *make_move(game_state *from, int x, int y, int button);
+game_ui *new_ui(game_state *state);
+void free_ui(game_ui *ui);
+game_state *make_move(game_state *from, game_ui *ui, int x, int y, int button);
 void game_size(game_params *params, int *x, int *y);
 float *game_colours(frontend *fe, game_state *state, int *ncolours);
 game_drawstate *game_new_drawstate(game_state *state);
 void game_free_drawstate(game_drawstate *ds);
 void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
-                 game_state *newstate, float anim_time, float flash_time);
+                 game_state *newstate, game_ui *ui, float anim_time,
+                 float flash_time);
 float game_anim_length(game_state *oldstate, game_state *newstate);
 float game_flash_length(game_state *oldstate, game_state *newstate);
 int game_wants_statusbar(void);

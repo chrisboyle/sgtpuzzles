@@ -27,6 +27,7 @@ struct midend_data {
     game_state **states;
     game_drawstate *drawstate;
     game_state *oldstate;
+    game_ui *ui;
     float anim_time, anim_pos;
     float flash_time, flash_pos;
 };
@@ -56,6 +57,7 @@ midend_data *midend_new(frontend *fe, void *randseed, int randseedsize)
     me->npresets = me->presetsize = 0;
     me->anim_time = me->anim_pos = 0.0F;
     me->flash_time = me->flash_pos = 0.0F;
+    me->ui = NULL;
 
     return me;
 }
@@ -99,6 +101,9 @@ void midend_new_game(midend_data *me)
     me->states[me->nstates++] = new_game(me->params, me->seed);
     me->statepos = 1;
     me->drawstate = game_new_drawstate(me->states[0]);
+    if (me->ui)
+        free_ui(me->ui);
+    me->ui = new_ui(me->states[0]);
 }
 
 void midend_restart_game(midend_data *me)
@@ -106,6 +111,8 @@ void midend_restart_game(midend_data *me)
     while (me->nstates > 1)
 	free_game(me->states[--me->nstates]);
     me->statepos = me->nstates;
+    free_ui(me->ui);
+    me->ui = new_ui(me->states[0]);
 }
 
 static int midend_undo(midend_data *me)
@@ -180,9 +187,18 @@ int midend_process_key(midend_data *me, int x, int y, int button)
 	free_game(oldstate);
         return 0;
     } else {
-        game_state *s = make_move(me->states[me->statepos-1], x, y, button);
+        game_state *s = make_move(me->states[me->statepos-1], me->ui,
+                                  x, y, button);
 
-        if (s) {
+        if (s == me->states[me->statepos-1]) {
+            /*
+             * make_move() is allowed to return its input state to
+             * indicate that although no move has been made, the UI
+             * state has been updated and a redraw is called for.
+             */
+            midend_redraw(me);
+            return 1;
+        } else if (s) {
             while (me->nstates > me->statepos)
                 free_game(me->states[--me->nstates]);
             ensure(me);
@@ -222,11 +238,12 @@ void midend_redraw(midend_data *me)
         if (me->oldstate && me->anim_time > 0 &&
             me->anim_pos < me->anim_time) {
             game_redraw(me->frontend, me->drawstate, me->oldstate,
-                        me->states[me->statepos-1], me->anim_pos,
+                        me->states[me->statepos-1], me->ui, me->anim_pos,
 			me->flash_pos);
         } else {
             game_redraw(me->frontend, me->drawstate, NULL,
-                        me->states[me->statepos-1], 0.0, me->flash_pos);
+                        me->states[me->statepos-1], me->ui, 0.0,
+                        me->flash_pos);
         }
         end_draw(me->frontend);
     }

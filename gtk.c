@@ -283,7 +283,7 @@ static gint button_event(GtkWidget *widget, GdkEventButton *event,
     if (!fe->pixmap)
         return TRUE;
 
-    if (event->type != GDK_BUTTON_PRESS)
+    if (event->type != GDK_BUTTON_PRESS && event->type != GDK_BUTTON_RELEASE)
         return TRUE;
 
     if (event->button == 2 || (event->state & GDK_SHIFT_MASK))
@@ -292,6 +292,36 @@ static gint button_event(GtkWidget *widget, GdkEventButton *event,
 	button = LEFT_BUTTON;
     else if (event->button == 3)
 	button = RIGHT_BUTTON;
+    else
+	return FALSE;		       /* don't even know what button! */
+
+    if (event->type == GDK_BUTTON_RELEASE)
+        button += LEFT_RELEASE - LEFT_BUTTON;
+
+    if (!midend_process_key(fe->me, event->x, event->y, button))
+	gtk_widget_destroy(fe->window);
+
+    return TRUE;
+}
+
+static gint motion_event(GtkWidget *widget, GdkEventMotion *event,
+                         gpointer data)
+{
+    frontend *fe = (frontend *)data;
+    int button;
+
+    if (!fe->pixmap)
+        return TRUE;
+
+    if (event->type != GDK_BUTTON_PRESS && event->type != GDK_BUTTON_RELEASE)
+        return TRUE;
+
+    if (event->state & (GDK_BUTTON2_MASK | GDK_SHIFT_MASK))
+	button = MIDDLE_DRAG;
+    else if (event->state & GDK_BUTTON1_MASK)
+	button = LEFT_DRAG;
+    else if (event->state & GDK_BUTTON3_MASK)
+	button = RIGHT_DRAG;
     else
 	return FALSE;		       /* don't even know what button! */
 
@@ -893,6 +923,10 @@ static frontend *new_window(void)
 		       GTK_SIGNAL_FUNC(key_event), fe);
     gtk_signal_connect(GTK_OBJECT(fe->area), "button_press_event",
 		       GTK_SIGNAL_FUNC(button_event), fe);
+    gtk_signal_connect(GTK_OBJECT(fe->area), "button_release_event",
+		       GTK_SIGNAL_FUNC(button_event), fe);
+    gtk_signal_connect(GTK_OBJECT(fe->area), "motion_notify_event",
+		       GTK_SIGNAL_FUNC(motion_event), fe);
     gtk_signal_connect(GTK_OBJECT(fe->area), "expose_event",
 		       GTK_SIGNAL_FUNC(expose_area), fe);
     gtk_signal_connect(GTK_OBJECT(fe->window), "map_event",
@@ -900,7 +934,10 @@ static frontend *new_window(void)
     gtk_signal_connect(GTK_OBJECT(fe->area), "configure_event",
 		       GTK_SIGNAL_FUNC(configure_area), fe);
 
-    gtk_widget_add_events(GTK_WIDGET(fe->area), GDK_BUTTON_PRESS_MASK);
+    gtk_widget_add_events(GTK_WIDGET(fe->area),
+                          GDK_BUTTON_PRESS_MASK |
+                          GDK_BUTTON_RELEASE_MASK |
+			  GDK_BUTTON_MOTION_MASK);
 
     gtk_widget_show(fe->area);
     gtk_widget_show(fe->window);

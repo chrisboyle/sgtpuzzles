@@ -857,7 +857,16 @@ static unsigned char *get_correct(game_state *state)
     return ret;
 }
 
-game_state *make_move(game_state *from, int x, int y, int button)
+game_ui *new_ui(game_state *state)
+{
+    return NULL;
+}
+
+void free_ui(game_ui *ui)
+{
+}
+
+game_state *make_move(game_state *from, game_ui *ui, int x, int y, int button)
 {
     float xf, yf, dx, dy;
     int hxr, hyr, vxr, vyr;
@@ -1005,7 +1014,8 @@ void draw_tile(frontend *fe, game_state *state, int x, int y, int correct)
 }
 
 void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
-                 game_state *state, float animtime, float flashtime)
+                 game_state *state, game_ui *ui,
+                 float animtime, float flashtime)
 {
     int x, y;
     unsigned char *correct;
