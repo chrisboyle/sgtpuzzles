@@ -47,11 +47,21 @@ void frontend_default_colour(frontend *fe, float *output)
 
 void draw_rect(frontend *fe, int x, int y, int w, int h, int colour)
 {
-    HBRUSH oldbrush = SelectObject(fe->hdc_bm, fe->brushes[colour]);
-    HPEN oldpen = SelectObject(fe->hdc_bm, fe->pens[colour]);
-    Rectangle(fe->hdc_bm, x, y, x+w, y+h);
-    SelectObject(fe->hdc_bm, oldbrush);
-    SelectObject(fe->hdc_bm, oldpen);
+    if (w == 1 && h == 1) {
+	/*
+	 * Rectangle() appears to get uppity if asked to draw a 1x1
+	 * rectangle, presumably on the grounds that that's beneath
+	 * its dignity and you ought to be using SetPixel instead.
+	 * So I will.
+	 */
+	SetPixel(fe->hdc_bm, x, y, fe->colours[colour]);
+    } else {
+	HBRUSH oldbrush = SelectObject(fe->hdc_bm, fe->brushes[colour]);
+	HPEN oldpen = SelectObject(fe->hdc_bm, fe->pens[colour]);
+	Rectangle(fe->hdc_bm, x, y, x+w, y+h);
+	SelectObject(fe->hdc_bm, oldbrush);
+	SelectObject(fe->hdc_bm, oldpen);
+    }
 }
 
 void draw_line(frontend *fe, int x1, int y1, int x2, int y2, int colour)
