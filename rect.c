@@ -917,7 +917,7 @@ int coord_round(float coord)
     /*
      * Find the distance from us to that integer.
      */
-    dist = fabs(coord - (float)i);
+    dist = (float)fabs(coord - (float)i);
 
     /*
      * If we're within the tolerance limit, return the edge
@@ -1136,7 +1136,7 @@ void draw_tile(frontend *fe, game_state *state, int x, int y,
     if (grid(state,x,y)) {
 	sprintf(str, "%d", grid(state,x,y));
 	draw_text(fe, cx+TILE_SIZE/2, cy+TILE_SIZE/2, FONT_VARIABLE,
-		  TILE_SIZE/3, ALIGN_HCENTRE | ALIGN_VCENTRE, COL_TEXT, str);
+		  TILE_SIZE/2, ALIGN_HCENTRE | ALIGN_VCENTRE, COL_TEXT, str);
     }
 
     /*
@@ -1216,6 +1216,9 @@ void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
     }
 
     if (!ds->started) {
+	draw_rect(fe, 0, 0,
+		  state->w * TILE_SIZE + 2*BORDER + 1,
+		  state->h * TILE_SIZE + 2*BORDER + 1, COL_BACKGROUND);
 	draw_rect(fe, COORD(0)-1, COORD(0)-1,
 		  ds->w*TILE_SIZE+3, ds->h*TILE_SIZE+3, COL_LINE);
 	ds->started = TRUE;
