@@ -17,6 +17,9 @@
  *
  *  - do we need any more options in the Window menu?
  *
+ *  - can / should we be doing anything with the titles of the
+ *    configuration boxes?
+ * 
  *  - not sure what I should be doing about default window
  *    placement. Centring new windows is a bit feeble, but what's
  *    better? Is there a standard way to tell the OS "here's the
@@ -616,6 +619,13 @@ struct frontend {
     midend_size(me, &w, &h);
     size.width = w;
     size.height = h;
+
+    if (status) {
+	NSRect frame = [status frame];
+	size.height += frame.size.height;
+	frame.size.width = size.width;
+	[status setFrame:frame];
+    }
 
     NSDisableScreenUpdates();
     [self setContentSize:size];
