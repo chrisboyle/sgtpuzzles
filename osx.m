@@ -5,9 +5,6 @@
  *
  *  - status bar support.
  *
- *  - configurability. Will no doubt involve learning all about the
- *    dialog control side of Cocoa.
- *
  *  - not sure what I should be doing about default window
  *    placement. Centring new windows is a bit feeble, but what's
  *    better? Is there a standard way to tell the OS "here's the
@@ -46,9 +43,23 @@
  * 
  *  - Can we arrange for a pop-up menu from the Dock icon which
  *    launches specific games, perhaps?
- * 
+ *     + apparently we can; see the NSApplication method
+ * 	 `applicationDockMenu:'. Good good. Do so.
+ *
  *  - Why are the right and bottom edges of the Pattern grid one
  *    pixel thinner than they should be?
+ * 
+ *  - Should we _return_ to a game configuration sheet once an
+ *    error is reported by midend_set_config, to allow the user to
+ *    correct the one faulty input and keep the other five OK ones?
+ *    The Apple `one sheet at a time' restriction would require me
+ *    to do this by closing the config sheet, opening the alert
+ *    sheet, and then reopening the config sheet when the alert is
+ *    closed; and the human interface types, who presumably
+ *    invented the one-sheet-at-a-time rule for good reasons, might
+ *    look with disfavour on me trying to get round them to fake a
+ *    nested sheet. On the other hand I think there are good
+ *    practical reasons for wanting it that way. Uncertain.
  * 
  * Grotty implementation details that could probably be improved:
  * 
@@ -134,6 +145,77 @@ NSMenu *typemenu;
 @end
 
 /* ----------------------------------------------------------------------
+ * Utility routines for constructing OS X menus.
+ */
+
+NSMenu *newmenu(const char *title)
+{
+    return [[[NSMenu allocWithZone:[NSMenu menuZone]]
+	     initWithTitle:[NSString stringWithCString:title]]
+	    autorelease];
+}
+
+NSMenu *newsubmenu(NSMenu *parent, const char *title)
+{
+    NSMenuItem *item;
+    NSMenu *child;
+
+    item = [[[NSMenuItem allocWithZone:[NSMenu menuZone]]
+	     initWithTitle:[NSString stringWithCString:title]
+	     action:NULL
+	     keyEquivalent:@""]
+	    autorelease];
+    child = newmenu(title);
+    [item setEnabled:YES];
+    [item setSubmenu:child];
+    [parent addItem:item];
+    return child;
+}
+
+id initnewitem(NSMenuItem *item, NSMenu *parent, const char *title,
+	       const char *key, id target, SEL action)
+{
+    unsigned mask = NSCommandKeyMask;
+
+    if (key[strcspn(key, "-")]) {
+	while (*key && *key != '-') {
+	    int c = tolower((unsigned char)*key);
+	    if (c == 's') {
+		mask |= NSShiftKeyMask;
+	    } else if (c == 'o' || c == 'a') {
+		mask |= NSAlternateKeyMask;
+	    }
+	    key++;
+	}
+	if (*key)
+	    key++;
+    }
+
+    item = [[item initWithTitle:[NSString stringWithCString:title]
+	     action:NULL
+	     keyEquivalent:[NSString stringWithCString:key]]
+	    autorelease];
+
+    if (*key)
+	[item setKeyEquivalentModifierMask: mask];
+
+    [item setEnabled:YES];
+    [item setTarget:target];
+    [item setAction:action];
+
+    [parent addItem:item];
+
+    return item;
+}
+
+NSMenuItem *newitem(NSMenu *parent, char *title, char *key,
+		    id target, SEL action)
+{
+    return initnewitem([NSMenuItem allocWithZone:[NSMenu menuZone]],
+		       parent, title, key, target, action);
+}
+
+/* ----------------------------------------------------------------------
  * The front end presented to midend.c.
  * 
  * This is mostly a subclass of NSWindow. The actual `frontend'
@@ -179,6 +261,11 @@ struct frontend {
     struct frontend fe;
     struct timeval last_time;
     NSTimer *timer;
+    NSWindow *sheet;
+    config_item *cfg;
+    int cfg_which;
+    NSView **cfg_controls;
+    int cfg_ncontrols;
 }
 - (id)initWithGame:(const game *)g;
 - dealloc;
@@ -305,7 +392,7 @@ struct frontend {
 	    styleMask:(NSTitledWindowMask | NSMiniaturizableWindowMask |
 		       NSClosableWindowMask)
 	    backing:NSBackingStoreBuffered
-	    defer:true];
+	    defer:YES];
     [self setTitle:[NSString stringWithCString:ourgame->name]];
 
     {
@@ -509,6 +596,327 @@ struct frontend {
     [self resizeForNewGameParams];
 }
 
+- (void)startConfigureSheet:(int)which
+{
+    NSButton *ok, *cancel;
+    int actw, acth, leftw, rightw, totalw, h, thish, y;
+    int k;
+    NSRect rect, tmprect;
+    const int SPACING = 16;
+    char *title;
+    config_item *i;
+    int cfg_controlsize;
+    NSTextField *tf;
+    NSButton *b;
+    NSPopUpButton *pb;
+
+    assert(sheet == NULL);
+
+    /*
+     * Every control we create here is going to have this size
+     * until we tell it to calculate a better one.
+     */
+    tmprect = NSMakeRect(0, 0, 100, 50);
+
+    /*
+     * Set up OK and Cancel buttons. (Actually, MacOS doesn't seem
+     * to be fond of generic OK and Cancel wording, so I'm going to
+     * rename them to something nicer.)
+     */
+    actw = acth = 0;
+
+    cancel = [[NSButton alloc] initWithFrame:tmprect];
+    [cancel setBezelStyle:NSRoundedBezelStyle];
+    [cancel setTitle:@"Abandon"];
+    [cancel setTarget:self];
+    [cancel setKeyEquivalent:@"\033"];
+    [cancel setAction:@selector(sheetCancelButton:)];
+    [cancel sizeToFit];
+    rect = [cancel frame];
+    if (actw < rect.size.width) actw = rect.size.width;
+    if (acth < rect.size.height) acth = rect.size.height;
+
+    ok = [[NSButton alloc] initWithFrame:tmprect];
+    [ok setBezelStyle:NSRoundedBezelStyle];
+    [ok setTitle:@"Accept"];
+    [ok setTarget:self];
+    [ok setKeyEquivalent:@"\r"];
+    [ok setAction:@selector(sheetOKButton:)];
+    [ok sizeToFit];
+    rect = [ok frame];
+    if (actw < rect.size.width) actw = rect.size.width;
+    if (acth < rect.size.height) acth = rect.size.height;
+
+    totalw = SPACING + 2 * actw;
+    h = 2 * SPACING + acth;
+
+    /*
+     * Now fetch the midend config data and go through it creating
+     * controls.
+     */
+    cfg = midend_get_config(me, which, &title);
+    sfree(title);		       /* FIXME: should we use this somehow? */
+    cfg_which = which;
+
+    cfg_ncontrols = cfg_controlsize = 0;
+    cfg_controls = NULL;
+    leftw = rightw = 0;
+    for (i = cfg; i->type != C_END; i++) {
+	if (cfg_controlsize < cfg_ncontrols + 5) {
+	    cfg_controlsize = cfg_ncontrols + 32;
+	    cfg_controls = sresize(cfg_controls, cfg_controlsize, NSView *);
+	}
+
+	thish = 0;
+
+	switch (i->type) {
+	  case C_STRING:
+	    /*
+	     * Two NSTextFields, one being a label and the other
+	     * being an edit box.
+	     */
+
+	    tf = [[NSTextField alloc] initWithFrame:tmprect];
+	    [tf setEditable:NO];
+	    [tf setSelectable:NO];
+	    [tf setBordered:NO];
+	    [tf setDrawsBackground:NO];
+	    [[tf cell] setTitle:[NSString stringWithCString:i->name]];
+	    [tf sizeToFit];
+	    rect = [tf frame];
+	    if (thish < rect.size.height + 1) thish = rect.size.height + 1;
+	    if (leftw < rect.size.width + 1) leftw = rect.size.width + 1;
+	    cfg_controls[cfg_ncontrols++] = tf;
+
+	    /* We impose a minimum width on editable NSTextFields to
+	     * stop them looking _completely_ silly. */
+	    if (rightw < 75) rightw = 75;
+
+	    tf = [[NSTextField alloc] initWithFrame:tmprect];
+	    [tf setEditable:YES];
+	    [tf setSelectable:YES];
+	    [tf setBordered:YES];
+	    [[tf cell] setTitle:[NSString stringWithCString:i->sval]];
+	    [tf sizeToFit];
+	    rect = [tf frame];
+	    if (thish < rect.size.height + 1) thish = rect.size.height + 1;
+	    if (rightw < rect.size.width + 1) rightw = rect.size.width + 1;
+	    cfg_controls[cfg_ncontrols++] = tf;
+	    break;
+
+	  case C_BOOLEAN:
+	    /*
+	     * A checkbox is an NSButton with a type of
+	     * NSSwitchButton.
+	     */
+	    b = [[NSButton alloc] initWithFrame:tmprect];
+	    [b setBezelStyle:NSRoundedBezelStyle];
+	    [b setButtonType:NSSwitchButton];
+	    [b setTitle:[NSString stringWithCString:i->name]];
+	    [b sizeToFit];
+	    [b setState:(i->ival ? NSOnState : NSOffState)];
+	    rect = [b frame];
+	    if (totalw < rect.size.width + 1) totalw = rect.size.width + 1;
+	    if (thish < rect.size.height + 1) thish = rect.size.height + 1;
+	    cfg_controls[cfg_ncontrols++] = b;
+	    break;
+
+	  case C_CHOICES:
+	    /*
+	     * A pop-up menu control is an NSPopUpButton, which
+	     * takes an embedded NSMenu. We also need an
+	     * NSTextField to act as a label.
+	     */
+
+	    tf = [[NSTextField alloc] initWithFrame:tmprect];
+	    [tf setEditable:NO];
+	    [tf setSelectable:NO];
+	    [tf setBordered:NO];
+	    [tf setDrawsBackground:NO];
+	    [[tf cell] setTitle:[NSString stringWithCString:i->name]];
+	    [tf sizeToFit];
+	    rect = [tf frame];
+	    if (thish < rect.size.height + 1) thish = rect.size.height + 1;
+	    if (leftw < rect.size.width + 1) leftw = rect.size.width + 1;
+	    cfg_controls[cfg_ncontrols++] = tf;
+
+	    pb = [[NSPopUpButton alloc] initWithFrame:tmprect pullsDown:NO];
+	    [pb setBezelStyle:NSRoundedBezelStyle];
+	    {
+		char c, *p;
+
+		p = i->sval;
+		c = *p++;
+		while (*p) {
+		    char *q;
+
+		    q = p;
+		    while (*p && *p != c) p++;
+
+		    [pb addItemWithTitle:[NSString stringWithCString:q
+					  length:p-q]];
+
+		    if (*p) p++;
+		}
+	    }
+	    [pb selectItemAtIndex:i->ival];
+	    [pb sizeToFit];
+
+	    rect = [pb frame];
+	    if (rightw < rect.size.width + 1) rightw = rect.size.width + 1;
+	    if (thish < rect.size.height + 1) thish = rect.size.height + 1;
+	    cfg_controls[cfg_ncontrols++] = pb;
+	    break;
+	}
+
+	h += SPACING + thish;
+    }
+
+    if (totalw < leftw + SPACING + rightw)
+	totalw = leftw + SPACING + rightw;
+    if (totalw > leftw + SPACING + rightw) {
+	int excess = totalw - (leftw + SPACING + rightw);
+	int leftexcess = leftw * excess / (leftw + rightw);
+	int rightexcess = excess - leftexcess;
+	leftw += leftexcess;
+	rightw += rightexcess;
+    }
+
+    /*
+     * Now go through the list again, setting the final position
+     * for each control.
+     */
+    k = 0;
+    y = h;
+    for (i = cfg; i->type != C_END; i++) {
+	y -= SPACING;
+	thish = 0;
+	switch (i->type) {
+	  case C_STRING:
+	  case C_CHOICES:
+	    /*
+	     * These two are treated identically, since both expect
+	     * a control on the left and another on the right.
+	     */
+	    rect = [cfg_controls[k] frame];
+	    if (thish < rect.size.height + 1)
+		thish = rect.size.height + 1;
+	    rect = [cfg_controls[k+1] frame];
+	    if (thish < rect.size.height + 1)
+		thish = rect.size.height + 1;
+	    rect = [cfg_controls[k] frame];
+	    rect.origin.y = y - thish/2 - rect.size.height/2;
+	    rect.origin.x = SPACING;
+	    rect.size.width = leftw;
+	    [cfg_controls[k] setFrame:rect];
+	    rect = [cfg_controls[k+1] frame];
+	    rect.origin.y = y - thish/2 - rect.size.height/2;
+	    rect.origin.x = 2 * SPACING + leftw;
+	    rect.size.width = rightw;
+	    [cfg_controls[k+1] setFrame:rect];
+	    k += 2;
+	    break;
+
+	  case C_BOOLEAN:
+	    rect = [cfg_controls[k] frame];
+	    if (thish < rect.size.height + 1)
+		thish = rect.size.height + 1;
+	    rect.origin.y = y - thish/2 - rect.size.height/2;
+	    rect.origin.x = SPACING;
+	    rect.size.width = totalw;
+	    [cfg_controls[k] setFrame:rect];
+	    k++;
+	    break;
+	}
+	y -= thish;
+    }
+
+    assert(k == cfg_ncontrols);
+
+    [cancel setFrame:NSMakeRect(SPACING+totalw/4-actw/2, SPACING, actw, acth)];
+    [ok setFrame:NSMakeRect(SPACING+3*totalw/4-actw/2, SPACING, actw, acth)];
+
+    sheet = [[NSWindow alloc]
+	     initWithContentRect:NSMakeRect(0,0,totalw + 2*SPACING,h)
+	     styleMask:NSTitledWindowMask | NSClosableWindowMask
+	     backing:NSBackingStoreBuffered
+	     defer:YES];
+
+    [[sheet contentView] addSubview:cancel];
+    [[sheet contentView] addSubview:ok];
+
+    for (k = 0; k < cfg_ncontrols; k++)
+	[[sheet contentView] addSubview:cfg_controls[k]];
+
+    [NSApp beginSheet:sheet modalForWindow:self
+     modalDelegate:nil didEndSelector:nil contextInfo:nil];
+}
+
+- (void)specificGame:(id)sender
+{
+    [self startConfigureSheet:CFG_SEED];
+}
+
+- (void)customGameType:(id)sender
+{
+    [self startConfigureSheet:CFG_SETTINGS];
+}
+
+- (void)sheetEndWithStatus:(BOOL)update
+{
+    assert(sheet != NULL);
+    [NSApp endSheet:sheet];
+    [sheet orderOut:self];
+    sheet = NULL;
+    if (update) {
+	int k;
+	config_item *i;
+	char *error;
+
+	k = 0;
+	for (i = cfg; i->type != C_END; i++) {
+	    switch (i->type) {
+	      case C_STRING:
+		sfree(i->sval);
+		i->sval = dupstr([[[(id)cfg_controls[k+1] cell]
+				   title] cString]);
+		k += 2;
+		break;
+	      case C_BOOLEAN:
+		i->ival = [(id)cfg_controls[k] state] == NSOnState;
+		k++;
+		break;
+	      case C_CHOICES:
+		i->ival = [(id)cfg_controls[k+1] indexOfSelectedItem];
+		k += 2;
+		break;
+	    }
+	}
+
+	error = midend_set_config(me, cfg_which, cfg);
+	if (error) {
+	    NSAlert *alert = [[[NSAlert alloc] init] autorelease];
+	    [alert addButtonWithTitle:@"OK"];
+	    [alert setInformativeText:[NSString stringWithCString:error]];
+	    [alert beginSheetModalForWindow:self modalDelegate:nil
+	     didEndSelector:nil contextInfo:nil];
+	} else {
+	    midend_new_game(me);
+	    [self resizeForNewGameParams];
+	}
+    }
+    sfree(cfg_controls);
+    cfg_controls = NULL;
+}
+- (void)sheetOKButton:(id)sender
+{
+    [self sheetEndWithStatus:YES];
+}
+- (void)sheetCancelButton:(id)sender
+{
+    [self sheetEndWithStatus:NO];
+}
+
 @end
 
 /*
@@ -637,77 +1045,6 @@ void deactivate_timer(frontend *fe)
 void activate_timer(frontend *fe)
 {
     [fe->window activateTimer];
-}
-
-/* ----------------------------------------------------------------------
- * Utility routines for constructing OS X menus.
- */
-
-NSMenu *newmenu(const char *title)
-{
-    return [[[NSMenu allocWithZone:[NSMenu menuZone]]
-	     initWithTitle:[NSString stringWithCString:title]]
-	    autorelease];
-}
-
-NSMenu *newsubmenu(NSMenu *parent, const char *title)
-{
-    NSMenuItem *item;
-    NSMenu *child;
-
-    item = [[[NSMenuItem allocWithZone:[NSMenu menuZone]]
-	     initWithTitle:[NSString stringWithCString:title]
-	     action:NULL
-	     keyEquivalent:@""]
-	    autorelease];
-    child = newmenu(title);
-    [item setEnabled:YES];
-    [item setSubmenu:child];
-    [parent addItem:item];
-    return child;
-}
-
-id initnewitem(NSMenuItem *item, NSMenu *parent, const char *title,
-	       const char *key, id target, SEL action)
-{
-    unsigned mask = NSCommandKeyMask;
-
-    if (key[strcspn(key, "-")]) {
-	while (*key && *key != '-') {
-	    int c = tolower((unsigned char)*key);
-	    if (c == 's') {
-		mask |= NSShiftKeyMask;
-	    } else if (c == 'o' || c == 'a') {
-		mask |= NSAlternateKeyMask;
-	    }
-	    key++;
-	}
-	if (*key)
-	    key++;
-    }
-
-    item = [[item initWithTitle:[NSString stringWithCString:title]
-	     action:NULL
-	     keyEquivalent:[NSString stringWithCString:key]]
-	    autorelease];
-
-    if (*key)
-	[item setKeyEquivalentModifierMask: mask];
-
-    [item setEnabled:YES];
-    [item setTarget:target];
-    [item setAction:action];
-
-    [parent addItem:item];
-
-    return item;
-}
-
-NSMenuItem *newitem(NSMenu *parent, char *title, char *key,
-		    id target, SEL action)
-{
-    return initnewitem([NSMenuItem allocWithZone:[NSMenu menuZone]],
-		       parent, title, key, target, action);
 }
 
 /* ----------------------------------------------------------------------
