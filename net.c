@@ -841,6 +841,7 @@ game_state *make_move(game_state *state, game_ui *ui, int x, int y, int button)
 	    button = MIDDLE_BUTTON;
 	else if (button == 'd' || button == 'D')
 	    button = RIGHT_BUTTON;
+        ui->cur_visible = TRUE;
     } else
 	return nullret;
 
