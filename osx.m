@@ -1,40 +1,9 @@
 /*
  * Mac OS X / Cocoa front end to puzzles.
  *
- * TODO:
- *
- *  - status bar support.
- *
- *  - not sure what I should be doing about default window
- *    placement. Centring new windows is a bit feeble, but what's
- *    better? Is there a standard way to tell the OS "here's the
- *    _size_ of window I want, now use your best judgment about the
- *    initial position"?
- *
- *  - a brief frob of the Mac numeric keypad suggests that it
- *    generates numbers no matter what you do. I wonder if I should
- *    try to figure out a way of detecting keypad codes so I can
- *    implement UP_LEFT and friends. Alternatively, perhaps I
- *    should simply assign the number keys to UP_LEFT et al?
- *    They're not in use for anything else right now.
+ * Actually unfinished things left to do:
  *
  *  - proper fatal errors.
- *
- *  - is there a better approach to frontend_default_colour?
- *
- *  - do we need any more options in the Window menu?
- *
- *  - see if we can do anything to one-button-ise the multi-button
- *    dependent puzzle UIs:
- *     - Pattern is a _little_ unwieldy but not too bad (since
- * 	 generally you never need the middle button unless you've
- * 	 made a mistake, so it's just click versus command-click).
- *     - Net is utterly vile; having normal click be one rotate and
- * 	 command-click be the other introduces a horrid asymmetry,
- * 	 and yet requiring a shift key for _each_ click would be
- * 	 even worse because rotation feels as if it ought to be the
- * 	 default action. I fear this is why the Flash Net had the
- * 	 UI it did...
  *
  *  - Find out how to do help, and do some. We have a help file; at
  *    _worst_ this should involve a new Halibut back end, but I
@@ -49,6 +18,37 @@
  *  - Why are the right and bottom edges of the Pattern grid one
  *    pixel thinner than they should be?
  * 
+ * Mac interface issues that possibly could be done better:
+ * 
+ *  - is there a better approach to frontend_default_colour?
+ *
+ *  - do we need any more options in the Window menu?
+ *
+ *  - not sure what I should be doing about default window
+ *    placement. Centring new windows is a bit feeble, but what's
+ *    better? Is there a standard way to tell the OS "here's the
+ *    _size_ of window I want, now use your best judgment about the
+ *    initial position"?
+ *
+ *  - a brief frob of the Mac numeric keypad suggests that it
+ *    generates numbers no matter what you do. I wonder if I should
+ *    try to figure out a way of detecting keypad codes so I can
+ *    implement UP_LEFT and friends. Alternatively, perhaps I
+ *    should simply assign the number keys to UP_LEFT et al?
+ *    They're not in use for anything else right now.
+ *
+ *  - see if we can do anything to one-button-ise the multi-button
+ *    dependent puzzle UIs:
+ *     - Pattern is a _little_ unwieldy but not too bad (since
+ * 	 generally you never need the middle button unless you've
+ * 	 made a mistake, so it's just click versus command-click).
+ *     - Net is utterly vile; having normal click be one rotate and
+ * 	 command-click be the other introduces a horrid asymmetry,
+ * 	 and yet requiring a shift key for _each_ click would be
+ * 	 even worse because rotation feels as if it ought to be the
+ * 	 default action. I fear this is why the Flash Net had the
+ * 	 UI it did...
+ *
  *  - Should we _return_ to a game configuration sheet once an
  *    error is reported by midend_set_config, to allow the user to
  *    correct the one faulty input and keep the other five OK ones?
@@ -97,10 +97,6 @@ void frontend_default_colour(frontend *fe, float *output)
 {
     /* FIXME */
     output[0] = output[1] = output[2] = 0.8F;
-}
-void status_bar(frontend *fe, char *text)
-{
-    /* FIXME */
 }
 
 void get_random_seed(void **randseed, int *randseedsize)
@@ -266,6 +262,7 @@ struct frontend {
     int cfg_which;
     NSView **cfg_controls;
     int cfg_ncontrols;
+    NSTextField *status;
 }
 - (id)initWithGame:(const game *)g;
 - dealloc;
@@ -273,6 +270,7 @@ struct frontend {
 - (void)keyDown:(NSEvent *)ev;
 - (void)activateTimer;
 - (void)deactivateTimer;
+- (void)setStatusLine:(NSString *)text;
 @end
 
 @implementation MyImageView
@@ -349,27 +347,33 @@ struct frontend {
 @implementation GameWindow
 - (void)setupContentView
 {
-    NSSize size = {0,0};
+    NSRect frame;
     int w, h;
 
-    midend_size(me, &w, &h);
-    size.width = w;
-    size.height = h;
+    if (status) {
+	frame = [status frame];
+	frame.origin.y = frame.size.height;
+    } else
+	frame.origin.y = 0;
+    frame.origin.x = 0;
 
-    fe.image = [[NSImage alloc] initWithSize:size];
+    midend_size(me, &w, &h);
+    frame.size.width = w;
+    frame.size.height = h;
+
+    fe.image = [[NSImage alloc] initWithSize:frame.size];
     [fe.image setFlipped:YES];
-    fe.view = [[MyImageView alloc]
-	       initWithFrame:[self contentRectForFrameRect:[self frame]]];
+    fe.view = [[MyImageView alloc] initWithFrame:frame];
     [fe.view setImage:fe.image];
     [fe.view setWindow:self];
 
     midend_redraw(me);
 
-    [self setContentView:fe.view];
+    [[self contentView] addSubview:fe.view];
 }
 - (id)initWithGame:(const game *)g
 {
-    NSRect rect = { {0,0}, {0,0} };
+    NSRect rect = { {0,0}, {0,0} }, rect2;
     int w, h;
 
     ourgame = g;
@@ -387,6 +391,27 @@ struct frontend {
     midend_size(me, &w, &h);
     rect.size.width = w;
     rect.size.height = h;
+
+    /*
+     * Create the status bar, which will just be an NSTextField.
+     */
+    if (ourgame->wants_statusbar()) {
+	status = [[NSTextField alloc] initWithFrame:NSMakeRect(0,0,100,50)];
+	[status setEditable:NO];
+	[status setSelectable:NO];
+	[status setBordered:YES];
+	[status setBezeled:YES];
+	[status setBezelStyle:NSTextFieldSquareBezel];
+	[status setDrawsBackground:YES];
+	[[status cell] setTitle:@""];
+	[status sizeToFit];
+	rect2 = [status frame];
+	rect.size.height += rect2.size.height;
+	rect2.size.width = rect.size.width;
+	rect2.origin.x = rect2.origin.y = 0;
+	[status setFrame:rect2];
+    } else
+	status = nil;
 
     self = [super initWithContentRect:rect
 	    styleMask:(NSTitledWindowMask | NSMiniaturizableWindowMask |
@@ -411,6 +436,8 @@ struct frontend {
     }
 
     [self setupContentView];
+    if (status)
+	[[self contentView] addSubview:status];
     [self setIgnoresMouseEvents:NO];
 
     [self center];		       /* :-) */
@@ -917,6 +944,11 @@ struct frontend {
     [self sheetEndWithStatus:NO];
 }
 
+- (void)setStatusLine:(NSString *)text
+{
+    [[status cell] setTitle:text];
+}
+
 @end
 
 /*
@@ -1045,6 +1077,11 @@ void deactivate_timer(frontend *fe)
 void activate_timer(frontend *fe)
 {
     [fe->window activateTimer];
+}
+
+void status_bar(frontend *fe, char *text)
+{
+    [fe->window setStatusLine:[NSString stringWithCString:text]];
 }
 
 /* ----------------------------------------------------------------------
