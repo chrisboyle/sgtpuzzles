@@ -1,9 +1,5 @@
 /*
  * gtk.c: GTK front end for my puzzle collection.
- * 
- * TODO:
- * 
- *  - Handle resizing, probably just by forbidding it.
  */
 
 #include <stdio.h>
@@ -254,6 +250,11 @@ static frontend *new_window(void)
     midend_new_game(fe->me, NULL);
 
     fe->window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+#if 0
+    gtk_window_set_resizable(GTK_WINDOW(fe->window), FALSE);
+#else
+    gtk_window_set_policy(GTK_WINDOW(fe->window), FALSE, FALSE, TRUE);
+#endif
 
     {
         int i, ncolours;
