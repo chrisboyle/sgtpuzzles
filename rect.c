@@ -403,9 +403,9 @@ char *new_game_seed(game_params *params, random_state *rs)
      * generate the base grid.
      */
     params2->w = params->w / (1.0F + params->expandfactor);
-    if (params2->w < 1) params2->w = 1;
-    params2->h = params->h * (1.0F + params->expandfactor);
-    if (params2->h < 1) params2->h = 1;
+    if (params2->w < 2 && params->w >= 2) params2->w = 2;
+    params2->h = params->h / (1.0F + params->expandfactor);
+    if (params2->h < 2 && params->h >= 2) params2->h = 2;
 
     grid = snewn(params2->w * params2->h, int);
 
