@@ -215,8 +215,8 @@ game_state *new_game(game_params *params, char *seed)
     tree234 *possibilities, *barriers;
     int w, h, x, y, nbarriers;
 
-    assert(params->width > 2);
-    assert(params->height > 2);
+    assert(params->width > 0 && params->height > 0);
+    assert(params->width > 1 || params->height > 1);
 
     /*
      * Create a blank game state.
@@ -296,11 +296,15 @@ game_state *new_game(game_params *params, char *seed)
      * closed loops. []
      */
     possibilities = newtree234(xyd_cmp);
-    
-    add234(possibilities, new_xyd(state->cx, state->cy, R));
-    add234(possibilities, new_xyd(state->cx, state->cy, U));
-    add234(possibilities, new_xyd(state->cx, state->cy, L));
-    add234(possibilities, new_xyd(state->cx, state->cy, D));
+
+    if (state->cx+1 < state->width)
+	add234(possibilities, new_xyd(state->cx, state->cy, R));
+    if (state->cy-1 >= 0)
+	add234(possibilities, new_xyd(state->cx, state->cy, U));
+    if (state->cx-1 >= 0)
+	add234(possibilities, new_xyd(state->cx, state->cy, L));
+    if (state->cy+1 < state->height)
+	add234(possibilities, new_xyd(state->cx, state->cy, D));
 
     while (count234(possibilities) > 0) {
 	int i;
