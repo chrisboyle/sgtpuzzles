@@ -13,10 +13,6 @@
 
 #include "puzzles.h"
 
-const char *const game_name = "Sixteen";
-const char *const game_winhelp_topic = "games.sixteen";
-const int game_can_configure = TRUE;
-
 #define TILE_SIZE 48
 #define BORDER    TILE_SIZE            /* big border to fill with arrows */
 #define HIGHLIGHT_WIDTH (TILE_SIZE / 20)
@@ -50,7 +46,7 @@ struct game_state {
     int last_movement_sense;
 };
 
-game_params *default_params(void)
+static game_params *default_params(void)
 {
     game_params *ret = snew(game_params);
 
@@ -59,7 +55,7 @@ game_params *default_params(void)
     return ret;
 }
 
-int game_fetch_preset(int i, char **name, game_params **params)
+static int game_fetch_preset(int i, char **name, game_params **params)
 {
     game_params *ret;
     int w, h;
@@ -82,19 +78,19 @@ int game_fetch_preset(int i, char **name, game_params **params)
     return TRUE;
 }
 
-void free_params(game_params *params)
+static void free_params(game_params *params)
 {
     sfree(params);
 }
 
-game_params *dup_params(game_params *params)
+static game_params *dup_params(game_params *params)
 {
     game_params *ret = snew(game_params);
     *ret = *params;		       /* structure copy */
     return ret;
 }
 
-game_params *decode_params(char const *string)
+static game_params *decode_params(char const *string)
 {
     game_params *ret = default_params();
 
@@ -108,7 +104,7 @@ game_params *decode_params(char const *string)
     return ret;
 }
 
-char *encode_params(game_params *params)
+static char *encode_params(game_params *params)
 {
     char data[256];
 
@@ -117,7 +113,7 @@ char *encode_params(game_params *params)
     return dupstr(data);
 }
 
-config_item *game_configure(game_params *params)
+static config_item *game_configure(game_params *params)
 {
     config_item *ret;
     char buf[80];
@@ -144,7 +140,7 @@ config_item *game_configure(game_params *params)
     return ret;
 }
 
-game_params *custom_params(config_item *cfg)
+static game_params *custom_params(config_item *cfg)
 {
     game_params *ret = snew(game_params);
 
@@ -154,7 +150,7 @@ game_params *custom_params(config_item *cfg)
     return ret;
 }
 
-char *validate_params(game_params *params)
+static char *validate_params(game_params *params)
 {
     if (params->w < 2 && params->h < 2)
 	return "Width and height must both be at least two";
@@ -162,7 +158,7 @@ char *validate_params(game_params *params)
     return NULL;
 }
 
-int perm_parity(int *perm, int n)
+static int perm_parity(int *perm, int n)
 {
     int i, j, ret;
 
@@ -176,7 +172,7 @@ int perm_parity(int *perm, int n)
     return ret;
 }
 
-char *new_game_seed(game_params *params, random_state *rs)
+static char *new_game_seed(game_params *params, random_state *rs)
 {
     int stop, n, i, x;
     int x1, x2, p1, p2;
@@ -283,7 +279,7 @@ char *new_game_seed(game_params *params, random_state *rs)
 }
 
 
-char *validate_seed(game_params *params, char *seed)
+static char *validate_seed(game_params *params, char *seed)
 {
     char *p, *err;
     int i, area;
@@ -334,7 +330,7 @@ char *validate_seed(game_params *params, char *seed)
     return err;
 }
 
-game_state *new_game(game_params *params, char *seed)
+static game_state *new_game(game_params *params, char *seed)
 {
     game_state *state = snew(game_state);
     int i;
@@ -362,7 +358,7 @@ game_state *new_game(game_params *params, char *seed)
     return state;
 }
 
-game_state *dup_game(game_state *state)
+static game_state *dup_game(game_state *state)
 {
     game_state *ret = snew(game_state);
 
@@ -378,21 +374,22 @@ game_state *dup_game(game_state *state)
     return ret;
 }
 
-void free_game(game_state *state)
+static void free_game(game_state *state)
 {
     sfree(state);
 }
 
-game_ui *new_ui(game_state *state)
+static game_ui *new_ui(game_state *state)
 {
     return NULL;
 }
 
-void free_ui(game_ui *ui)
+static void free_ui(game_ui *ui)
 {
 }
 
-game_state *make_move(game_state *from, game_ui *ui, int x, int y, int button)
+static game_state *make_move(game_state *from, game_ui *ui,
+			     int x, int y, int button)
 {
     int cx, cy;
     int dx, dy, tx, ty, n;
@@ -458,13 +455,13 @@ struct game_drawstate {
     int *tiles;
 };
 
-void game_size(game_params *params, int *x, int *y)
+static void game_size(game_params *params, int *x, int *y)
 {
     *x = TILE_SIZE * params->w + 2 * BORDER;
     *y = TILE_SIZE * params->h + 2 * BORDER;
 }
 
-float *game_colours(frontend *fe, game_state *state, int *ncolours)
+static float *game_colours(frontend *fe, game_state *state, int *ncolours)
 {
     float *ret = snewn(3 * NCOLOURS, float);
     int i;
@@ -495,7 +492,7 @@ float *game_colours(frontend *fe, game_state *state, int *ncolours)
     return ret;
 }
 
-game_drawstate *game_new_drawstate(game_state *state)
+static game_drawstate *game_new_drawstate(game_state *state)
 {
     struct game_drawstate *ds = snew(struct game_drawstate);
     int i;
@@ -511,7 +508,7 @@ game_drawstate *game_new_drawstate(game_state *state)
     return ds;
 }
 
-void game_free_drawstate(game_drawstate *ds)
+static void game_free_drawstate(game_drawstate *ds)
 {
     sfree(ds->tiles);
     sfree(ds);
@@ -574,7 +571,7 @@ static void draw_arrow(frontend *fe, int x, int y, int xdx, int xdy)
     draw_polygon(fe, coords, 7, FALSE, COL_TEXT);
 }
 
-void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
+static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
                  game_state *state, int dir, game_ui *ui,
                  float animtime, float flashtime)
 {
@@ -752,12 +749,14 @@ void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
     }
 }
 
-float game_anim_length(game_state *oldstate, game_state *newstate, int dir)
+static float game_anim_length(game_state *oldstate,
+			      game_state *newstate, int dir)
 {
     return ANIM_TIME;
 }
 
-float game_flash_length(game_state *oldstate, game_state *newstate, int dir)
+static float game_flash_length(game_state *oldstate,
+			       game_state *newstate, int dir)
 {
     if (!oldstate->completed && newstate->completed)
         return 2 * FLASH_FRAME;
@@ -765,7 +764,36 @@ float game_flash_length(game_state *oldstate, game_state *newstate, int dir)
         return 0.0F;
 }
 
-int game_wants_statusbar(void)
+static int game_wants_statusbar(void)
 {
     return TRUE;
 }
+
+const struct game thegame = {
+    "Sixteen", "games.sixteen", TRUE,
+    default_params,
+    game_fetch_preset,
+    decode_params,
+    encode_params,
+    free_params,
+    dup_params,
+    game_configure,
+    custom_params,
+    validate_params,
+    new_game_seed,
+    validate_seed,
+    new_game,
+    dup_game,
+    free_game,
+    new_ui,
+    free_ui,
+    make_move,
+    game_size,
+    game_colours,
+    game_new_drawstate,
+    game_free_drawstate,
+    game_redraw,
+    game_anim_length,
+    game_flash_length,
+    game_wants_statusbar,
+};

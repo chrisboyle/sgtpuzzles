@@ -20,10 +20,6 @@
 
 #include "puzzles.h"
 
-const char *const game_name = "Null Game";
-const char *const game_winhelp_topic = NULL;
-const int game_can_configure = FALSE;
-
 enum {
     COL_BACKGROUND,
     NCOLOURS
@@ -37,7 +33,7 @@ struct game_state {
     int FIXME;
 };
 
-game_params *default_params(void)
+static game_params *default_params(void)
 {
     game_params *ret = snew(game_params);
 
@@ -46,24 +42,24 @@ game_params *default_params(void)
     return ret;
 }
 
-int game_fetch_preset(int i, char **name, game_params **params)
+static int game_fetch_preset(int i, char **name, game_params **params)
 {
     return FALSE;
 }
 
-void free_params(game_params *params)
+static void free_params(game_params *params)
 {
     sfree(params);
 }
 
-game_params *dup_params(game_params *params)
+static game_params *dup_params(game_params *params)
 {
     game_params *ret = snew(game_params);
     *ret = *params;		       /* structure copy */
     return ret;
 }
 
-game_params *decode_params(char const *string)
+static game_params *decode_params(char const *string)
 {
     game_params *ret = snew(game_params);
 
@@ -72,37 +68,37 @@ game_params *decode_params(char const *string)
     return ret;
 }
 
-char *encode_params(game_params *params)
+static char *encode_params(game_params *params)
 {
     return dupstr("FIXME");
 }
 
-config_item *game_configure(game_params *params)
+static config_item *game_configure(game_params *params)
 {
     return NULL;
 }
 
-game_params *custom_params(config_item *cfg)
+static game_params *custom_params(config_item *cfg)
 {
     return NULL;
 }
 
-char *validate_params(game_params *params)
+static char *validate_params(game_params *params)
 {
     return NULL;
 }
 
-char *new_game_seed(game_params *params, random_state *rs)
+static char *new_game_seed(game_params *params, random_state *rs)
 {
     return dupstr("FIXME");
 }
 
-char *validate_seed(game_params *params, char *seed)
+static char *validate_seed(game_params *params, char *seed)
 {
     return NULL;
 }
 
-game_state *new_game(game_params *params, char *seed)
+static game_state *new_game(game_params *params, char *seed)
 {
     game_state *state = snew(game_state);
 
@@ -111,7 +107,7 @@ game_state *new_game(game_params *params, char *seed)
     return state;
 }
 
-game_state *dup_game(game_state *state)
+static game_state *dup_game(game_state *state)
 {
     game_state *ret = snew(game_state);
 
@@ -120,21 +116,22 @@ game_state *dup_game(game_state *state)
     return ret;
 }
 
-void free_game(game_state *state)
+static void free_game(game_state *state)
 {
     sfree(state);
 }
 
-game_ui *new_ui(game_state *state)
+static game_ui *new_ui(game_state *state)
 {
     return NULL;
 }
 
-void free_ui(game_ui *ui)
+static void free_ui(game_ui *ui)
 {
 }
 
-game_state *make_move(game_state *from, game_ui *ui, int x, int y, int button)
+static game_state *make_move(game_state *from, game_ui *ui, int x, int y,
+			     int button)
 {
     return NULL;
 }
@@ -147,12 +144,12 @@ struct game_drawstate {
     int FIXME;
 };
 
-void game_size(game_params *params, int *x, int *y)
+static void game_size(game_params *params, int *x, int *y)
 {
     *x = *y = 200;                     /* FIXME */
 }
 
-float *game_colours(frontend *fe, game_state *state, int *ncolours)
+static float *game_colours(frontend *fe, game_state *state, int *ncolours)
 {
     float *ret = snewn(3 * NCOLOURS, float);
 
@@ -162,7 +159,7 @@ float *game_colours(frontend *fe, game_state *state, int *ncolours)
     return ret;
 }
 
-game_drawstate *game_new_drawstate(game_state *state)
+static game_drawstate *game_new_drawstate(game_state *state)
 {
     struct game_drawstate *ds = snew(struct game_drawstate);
 
@@ -171,14 +168,14 @@ game_drawstate *game_new_drawstate(game_state *state)
     return ds;
 }
 
-void game_free_drawstate(game_drawstate *ds)
+static void game_free_drawstate(game_drawstate *ds)
 {
     sfree(ds);
 }
 
-void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
-                 game_state *state, int dir, game_ui *ui,
-                 float animtime, float flashtime)
+static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
+			game_state *state, int dir, game_ui *ui,
+			float animtime, float flashtime)
 {
     /*
      * The initial contents of the window are not guaranteed and
@@ -189,17 +186,52 @@ void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
     draw_rect(fe, 0, 0, 200, 200, COL_BACKGROUND);
 }
 
-float game_anim_length(game_state *oldstate, game_state *newstate, int dir)
+static float game_anim_length(game_state *oldstate, game_state *newstate,
+			      int dir)
 {
     return 0.0F;
 }
 
-float game_flash_length(game_state *oldstate, game_state *newstate, int dir)
+static float game_flash_length(game_state *oldstate, game_state *newstate,
+			       int dir)
 {
     return 0.0F;
 }
 
-int game_wants_statusbar(void)
+static int game_wants_statusbar(void)
 {
     return FALSE;
 }
+
+#ifdef COMBINED
+#define thegame nullgame
+#endif
+
+const struct game thegame = {
+    "Null Game", NULL, FALSE,
+    default_params,
+    game_fetch_preset,
+    decode_params,
+    encode_params,
+    free_params,
+    dup_params,
+    game_configure,
+    custom_params,
+    validate_params,
+    new_game_seed,
+    validate_seed,
+    new_game,
+    dup_game,
+    free_game,
+    new_ui,
+    free_ui,
+    make_move,
+    game_size,
+    game_colours,
+    game_new_drawstate,
+    game_free_drawstate,
+    game_redraw,
+    game_anim_length,
+    game_flash_length,
+    game_wants_statusbar,
+};

@@ -1,5 +1,14 @@
 /*
  * windows.c: Windows front end for my puzzle collection.
+ * 
+ * TODO:
+ * 
+ *  - Figure out what to do if a puzzle requests a size bigger than
+ *    the screen will take. In principle we could put scrollbars in
+ *    the window, although that would be pretty horrid. Another
+ *    option is to detect in advance that this will be a problem -
+ *    we can probably tell this using midend_size() before actually
+ *    generating the puzzle - and simply refuse to do it.
  */
 
 #include <windows.h>
@@ -363,7 +372,7 @@ static frontend *new_window(HINSTANCE inst, char *game_id, char **error)
 
     fe = snew(frontend);
 
-    fe->me = midend_new(fe);
+    fe->me = midend_new(fe, &thegame);
 
     if (game_id) {
         *error = midend_game_id(fe->me, game_id, FALSE);
@@ -412,7 +421,7 @@ static frontend *new_window(HINSTANCE inst, char *game_id, char **error)
 		       (WS_THICKFRAME | WS_MAXIMIZEBOX | WS_OVERLAPPED),
 		       TRUE, 0);
 
-    fe->hwnd = CreateWindowEx(0, game_name, game_name,
+    fe->hwnd = CreateWindowEx(0, thegame.name, thegame.name,
 			      WS_OVERLAPPEDWINDOW &~
 			      (WS_THICKFRAME | WS_MAXIMIZEBOX),
 			      CW_USEDEFAULT, CW_USEDEFAULT,
@@ -429,7 +438,7 @@ static frontend *new_window(HINSTANCE inst, char *game_id, char **error)
 	AppendMenu(menu, MF_ENABLED, IDM_SEED, "Specific...");
 
 	if ((fe->npresets = midend_num_presets(fe->me)) > 0 ||
-	    game_can_configure) {
+	    thegame.can_configure) {
 	    HMENU sub = CreateMenu();
 	    int i;
 
@@ -450,7 +459,7 @@ static frontend *new_window(HINSTANCE inst, char *game_id, char **error)
 		AppendMenu(sub, MF_ENABLED, IDM_PRESETS + 0x10 * i, name);
 	    }
 
-	    if (game_can_configure) {
+	    if (thegame.can_configure) {
 		AppendMenu(sub, MF_ENABLED, IDM_CONFIG, "Custom...");
 	    }
 	}
@@ -464,11 +473,11 @@ static frontend *new_window(HINSTANCE inst, char *game_id, char **error)
             HMENU hmenu = CreateMenu();
             AppendMenu(bar, MF_ENABLED|MF_POPUP, (UINT)hmenu, "Help");
             AppendMenu(hmenu, MF_ENABLED, IDM_HELPC, "Contents");
-            if (game_winhelp_topic) {
+            if (thegame.winhelp_topic) {
                 char *item;
-                assert(game_name);
-                item = snewn(9+strlen(game_name), char); /*ick*/
-                sprintf(item, "Help on %s", game_name);
+                assert(thegame.name);
+                item = snewn(9+strlen(thegame.name), char); /*ick*/
+                sprintf(item, "Help on %s", thegame.name);
                 AppendMenu(hmenu, MF_ENABLED, IDM_GAMEHELP, item);
                 sfree(item);
             }
@@ -911,10 +920,10 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
             break;
           case IDM_GAMEHELP:
             assert(fe->help_path);
-            assert(game_winhelp_topic);
+            assert(thegame.winhelp_topic);
             {
-                char *cmd = snewn(10+strlen(game_winhelp_topic), char); /*ick*/
-                sprintf(cmd, "JI(`',`%s')", game_winhelp_topic);
+                char *cmd = snewn(10+strlen(thegame.winhelp_topic), char);
+                sprintf(cmd, "JI(`',`%s')", thegame.winhelp_topic);
                 WinHelp(hwnd, fe->help_path, HELP_COMMAND, (DWORD)cmd);
                 sfree(cmd);
             }
@@ -1107,7 +1116,7 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
 	wndclass.hCursor = LoadCursor(NULL, IDC_ARROW);
 	wndclass.hbrBackground = NULL;
 	wndclass.lpszMenuName = NULL;
-	wndclass.lpszClassName = game_name;
+	wndclass.lpszClassName = thegame.name;
 
 	RegisterClass(&wndclass);
     }
@@ -1117,7 +1126,7 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
 
     if (!new_window(inst, *cmdline ? cmdline : NULL, &error)) {
 	char buf[128];
-	sprintf(buf, "%.100s Error", game_name);
+	sprintf(buf, "%.100s Error", thegame.name);
 	MessageBox(NULL, error, buf, MB_OK|MB_ICONERROR);
 	return 1;
     }

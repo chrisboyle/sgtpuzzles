@@ -44,6 +44,7 @@ typedef struct game_params game_params;
 typedef struct game_state game_state;
 typedef struct game_ui game_ui;
 typedef struct game_drawstate game_drawstate;
+typedef struct game game;
 
 #define ALIGN_VNORMAL 0x000
 #define ALIGN_VCENTRE 0x100
@@ -111,7 +112,7 @@ void get_random_seed(void **randseed, int *randseedsize);
 /*
  * midend.c
  */
-midend_data *midend_new(frontend *fe);
+midend_data *midend_new(frontend *fe, const game *ourgame);
 void midend_free(midend_data *me);
 void midend_set_params(midend_data *me, game_params *params);
 void midend_size(midend_data *me, int *x, int *y);
@@ -158,37 +159,52 @@ unsigned long random_upto(random_state *state, unsigned long limit);
 void random_free(random_state *state);
 
 /*
- * Game-specific routines
+ * Data structure containing the function calls and data specific
+ * to a particular game. This is enclosed in a data structure so
+ * that a particular platform can choose, if it wishes, to compile
+ * all the games into a single combined executable rather than
+ * having lots of little ones.
  */
-extern const char *const game_name;
-extern const char *const game_winhelp_topic;
-const int game_can_configure;
-game_params *default_params(void);
-int game_fetch_preset(int i, char **name, game_params **params);
-game_params *decode_params(char const *string);
-char *encode_params(game_params *);
-void free_params(game_params *params);
-game_params *dup_params(game_params *params);
-config_item *game_configure(game_params *params);
-game_params *custom_params(config_item *cfg);
-char *validate_params(game_params *params);
-char *new_game_seed(game_params *params, random_state *rs);
-char *validate_seed(game_params *params, char *seed);
-game_state *new_game(game_params *params, char *seed);
-game_state *dup_game(game_state *state);
-void free_game(game_state *state);
-game_ui *new_ui(game_state *state);
-void free_ui(game_ui *ui);
-game_state *make_move(game_state *from, game_ui *ui, int x, int y, int button);
-void game_size(game_params *params, int *x, int *y);
-float *game_colours(frontend *fe, game_state *state, int *ncolours);
-game_drawstate *game_new_drawstate(game_state *state);
-void game_free_drawstate(game_drawstate *ds);
-void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
-                 game_state *newstate, int dir, game_ui *ui, float anim_time,
-                 float flash_time);
-float game_anim_length(game_state *oldstate, game_state *newstate, int dir);
-float game_flash_length(game_state *oldstate, game_state *newstate, int dir);
-int game_wants_statusbar(void);
+struct game {
+    const char *name;
+    const char *winhelp_topic;
+    int can_configure;
+    game_params *(*default_params)(void);
+    int (*fetch_preset)(int i, char **name, game_params **params);
+    game_params *(*decode_params)(char const *string);
+    char *(*encode_params)(game_params *);
+    void (*free_params)(game_params *params);
+    game_params *(*dup_params)(game_params *params);
+    config_item *(*configure)(game_params *params);
+    game_params *(*custom_params)(config_item *cfg);
+    char *(*validate_params)(game_params *params);
+    char *(*new_seed)(game_params *params, random_state *rs);
+    char *(*validate_seed)(game_params *params, char *seed);
+    game_state *(*new_game)(game_params *params, char *seed);
+    game_state *(*dup_game)(game_state *state);
+    void (*free_game)(game_state *state);
+    game_ui *(*new_ui)(game_state *state);
+    void (*free_ui)(game_ui *ui);
+    game_state *(*make_move)(game_state *from, game_ui *ui, int x, int y,
+			     int button);
+    void (*size)(game_params *params, int *x, int *y);
+    float *(*colours)(frontend *fe, game_state *state, int *ncolours);
+    game_drawstate *(*new_drawstate)(game_state *state);
+    void (*free_drawstate)(game_drawstate *ds);
+    void (*redraw)(frontend *fe, game_drawstate *ds, game_state *oldstate,
+		   game_state *newstate, int dir, game_ui *ui, float anim_time,
+		   float flash_time);
+    float (*anim_length)(game_state *oldstate, game_state *newstate, int dir);
+    float (*flash_length)(game_state *oldstate, game_state *newstate, int dir);
+    int (*wants_statusbar)(void);
+};
+
+/*
+ * For one-game-at-a-time platforms, there's a single structure
+ * like the above, under a fixed name.
+ */
+#ifndef COMBINED
+extern const game thegame;
+#endif
 
 #endif /* PUZZLES_PUZZLES_H */

@@ -14,6 +14,7 @@
 struct midend_data {
     frontend *frontend;
     random_state *random;
+    const game *ourgame;
 
     char *seed;
     int fresh_seed;
@@ -40,7 +41,7 @@ struct midend_data {
     } \
 } while (0)
 
-midend_data *midend_new(frontend *fe)
+midend_data *midend_new(frontend *fe, const game *ourgame)
 {
     midend_data *me = snew(midend_data);
     void *randseed;
@@ -49,10 +50,11 @@ midend_data *midend_new(frontend *fe)
     get_random_seed(&randseed, &randseedsize);
 
     me->frontend = fe;
+    me->ourgame = ourgame;
     me->random = random_init(randseed, randseedsize);
     me->nstates = me->statesize = me->statepos = 0;
     me->states = NULL;
-    me->params = default_params();
+    me->params = ourgame->default_params();
     me->seed = NULL;
     me->fresh_seed = FALSE;
     me->drawstate = NULL;
@@ -74,53 +76,53 @@ void midend_free(midend_data *me)
 {
     sfree(me->states);
     sfree(me->seed);
-    free_params(me->params);
+    me->ourgame->free_params(me->params);
     sfree(me);
 }
 
 void midend_size(midend_data *me, int *x, int *y)
 {
-    game_size(me->params, x, y);
+    me->ourgame->size(me->params, x, y);
 }
 
 void midend_set_params(midend_data *me, game_params *params)
 {
-    free_params(me->params);
-    me->params = dup_params(params);
+    me->ourgame->free_params(me->params);
+    me->params = me->ourgame->dup_params(params);
 }
 
 void midend_new_game(midend_data *me)
 {
     while (me->nstates > 0)
-	free_game(me->states[--me->nstates]);
+	me->ourgame->free_game(me->states[--me->nstates]);
 
     if (me->drawstate)
-        game_free_drawstate(me->drawstate);
+        me->ourgame->free_drawstate(me->drawstate);
 
     assert(me->nstates == 0);
 
     if (!me->fresh_seed) {
 	sfree(me->seed);
-	me->seed = new_game_seed(me->params, me->random);
+	me->seed = me->ourgame->new_seed(me->params, me->random);
     } else
 	me->fresh_seed = FALSE;
 
     ensure(me);
-    me->states[me->nstates++] = new_game(me->params, me->seed);
+    me->states[me->nstates++] = me->ourgame->new_game(me->params, me->seed);
     me->statepos = 1;
-    me->drawstate = game_new_drawstate(me->states[0]);
+    me->drawstate = me->ourgame->new_drawstate(me->states[0]);
     if (me->ui)
-        free_ui(me->ui);
-    me->ui = new_ui(me->states[0]);
+        me->ourgame->free_ui(me->ui);
+    me->ui = me->ourgame->new_ui(me->states[0]);
 }
 
 void midend_restart_game(midend_data *me)
 {
     while (me->nstates > 1)
-	free_game(me->states[--me->nstates]);
+	me->ourgame->free_game(me->states[--me->nstates]);
     me->statepos = me->nstates;
-    free_ui(me->ui);
-    me->ui = new_ui(me->states[0]);
+    me->ourgame->free_ui(me->ui);
+    me->ui = me->ourgame->new_ui(me->states[0]);
 }
 
 static int midend_undo(midend_data *me)
@@ -148,10 +150,10 @@ static void midend_finish_move(midend_data *me)
     float flashtime;
 
     if (me->oldstate || me->statepos > 1) {
-	flashtime = game_flash_length(me->oldstate ? me->oldstate :
-				      me->states[me->statepos-2],
-				      me->states[me->statepos-1],
-                                      me->oldstate ? me->dir : +1);
+	flashtime = me->ourgame->flash_length(me->oldstate ? me->oldstate :
+					      me->states[me->statepos-2],
+					      me->states[me->statepos-1],
+					      me->oldstate ? me->dir : +1);
 	if (flashtime > 0) {
 	    me->flash_pos = 0.0F;
 	    me->flash_time = flashtime;
@@ -159,7 +161,7 @@ static void midend_finish_move(midend_data *me)
     }
 
     if (me->oldstate)
-	free_game(me->oldstate);
+	me->ourgame->free_game(me->oldstate);
     me->oldstate = NULL;
     me->anim_pos = me->anim_time = 0;
     me->dir = 0;
@@ -180,7 +182,7 @@ static void midend_stop_anim(midend_data *me)
 
 int midend_process_key(midend_data *me, int x, int y, int button)
 {
-    game_state *oldstate = dup_game(me->states[me->statepos - 1]);
+    game_state *oldstate = me->ourgame->dup_game(me->states[me->statepos - 1]);
     float anim_time;
 
     if (button == 'n' || button == 'N' || button == '\x0E') {
@@ -203,11 +205,11 @@ int midend_process_key(midend_data *me, int x, int y, int button)
 	if (!midend_redo(me))
             return 1;
     } else if (button == 'q' || button == 'Q' || button == '\x11') {
-	free_game(oldstate);
+	me->ourgame->free_game(oldstate);
         return 0;
     } else {
-        game_state *s = make_move(me->states[me->statepos-1], me->ui,
-                                  x, y, button);
+        game_state *s = me->ourgame->make_move(me->states[me->statepos-1],
+					       me->ui, x, y, button);
 
         if (s == me->states[me->statepos-1]) {
             /*
@@ -220,13 +222,13 @@ int midend_process_key(midend_data *me, int x, int y, int button)
         } else if (s) {
 	    midend_stop_anim(me);
             while (me->nstates > me->statepos)
-                free_game(me->states[--me->nstates]);
+                me->ourgame->free_game(me->states[--me->nstates]);
             ensure(me);
             me->states[me->nstates] = s;
             me->statepos = ++me->nstates;
             me->dir = +1;
         } else {
-            free_game(oldstate);
+            me->ourgame->free_game(oldstate);
             return 1;
         }
     }
@@ -234,7 +236,8 @@ int midend_process_key(midend_data *me, int x, int y, int button)
     /*
      * See if this move requires an animation.
      */
-    anim_time = game_anim_length(oldstate, me->states[me->statepos-1], me->dir);
+    anim_time = me->ourgame->anim_length(oldstate, me->states[me->statepos-1],
+					 me->dir);
 
     me->oldstate = oldstate;
     if (anim_time > 0) {
@@ -259,13 +262,13 @@ void midend_redraw(midend_data *me)
         if (me->oldstate && me->anim_time > 0 &&
             me->anim_pos < me->anim_time) {
             assert(me->dir != 0);
-            game_redraw(me->frontend, me->drawstate, me->oldstate,
-                        me->states[me->statepos-1], me->dir,
-                        me->ui, me->anim_pos, me->flash_pos);
+            me->ourgame->redraw(me->frontend, me->drawstate, me->oldstate,
+				me->states[me->statepos-1], me->dir,
+				me->ui, me->anim_pos, me->flash_pos);
         } else {
-            game_redraw(me->frontend, me->drawstate, NULL,
-                        me->states[me->statepos-1], +1 /*shrug*/,
-                        me->ui, 0.0, me->flash_pos);
+            me->ourgame->redraw(me->frontend, me->drawstate, NULL,
+				me->states[me->statepos-1], +1 /*shrug*/,
+				me->ui, 0.0, me->flash_pos);
         }
         end_draw(me->frontend);
     }
@@ -294,16 +297,16 @@ float *midend_colours(midend_data *me, int *ncolours)
     float *ret;
 
     if (me->nstates == 0) {
-        char *seed = new_game_seed(me->params, me->random);
-        state = new_game(me->params, seed);
+        char *seed = me->ourgame->new_seed(me->params, me->random);
+        state = me->ourgame->new_game(me->params, seed);
         sfree(seed);
     } else
         state = me->states[0];
 
-    ret = game_colours(me->frontend, state, ncolours);
+    ret = me->ourgame->colours(me->frontend, state, ncolours);
 
     if (me->nstates == 0)
-        free_game(state);
+        me->ourgame->free_game(state);
 
     return ret;
 }
@@ -314,7 +317,7 @@ int midend_num_presets(midend_data *me)
         char *name;
         game_params *preset;
 
-        while (game_fetch_preset(me->npresets, &name, &preset)) {
+        while (me->ourgame->fetch_preset(me->npresets, &name, &preset)) {
             if (me->presetsize <= me->npresets) {
                 me->presetsize = me->npresets + 10;
                 me->presets = sresize(me->presets, me->presetsize,
@@ -342,7 +345,7 @@ void midend_fetch_preset(midend_data *me, int n,
 
 int midend_wants_statusbar(midend_data *me)
 {
-    return game_wants_statusbar();
+    return me->ourgame->wants_statusbar();
 }
 
 config_item *midend_get_config(midend_data *me, int which, char **wintitle)
@@ -350,15 +353,15 @@ config_item *midend_get_config(midend_data *me, int which, char **wintitle)
     char *titlebuf, *parstr;
     config_item *ret;
 
-    titlebuf = snewn(40 + strlen(game_name), char);
+    titlebuf = snewn(40 + strlen(me->ourgame->name), char);
 
     switch (which) {
       case CFG_SETTINGS:
-	sprintf(titlebuf, "%s configuration", game_name);
+	sprintf(titlebuf, "%s configuration", me->ourgame->name);
 	*wintitle = dupstr(titlebuf);
-	return game_configure(me->params);
+	return me->ourgame->configure(me->params);
       case CFG_SEED:
-	sprintf(titlebuf, "%s game selection", game_name);
+	sprintf(titlebuf, "%s game selection", me->ourgame->name);
 	*wintitle = dupstr(titlebuf);
 
 	ret = snewn(2, config_item);
@@ -371,7 +374,7 @@ config_item *midend_get_config(midend_data *me, int which, char **wintitle)
          * parameters, plus a colon, plus the game seed. This is a
          * full game ID.
          */
-        parstr = encode_params(me->params);
+        parstr = me->ourgame->encode_params(me->params);
         ret[0].sval = snewn(strlen(parstr) + strlen(me->seed) + 2, char);
         sprintf(ret[0].sval, "%s:%s", parstr, me->seed);
         sfree(parstr);
@@ -417,18 +420,18 @@ char *midend_game_id(midend_data *me, char *id, int def_seed)
     }
 
     if (par) {
-        params = decode_params(par);
-        error = validate_params(params);
+        params = me->ourgame->decode_params(par);
+        error = me->ourgame->validate_params(params);
         if (error) {
-            free_params(params);
+            me->ourgame->free_params(params);
             return error;
         }
-        free_params(me->params);
+        me->ourgame->free_params(me->params);
         me->params = params;
     }
 
     if (seed) {
-        error = validate_seed(me->params, seed);
+        error = me->ourgame->validate_seed(me->params, seed);
         if (error)
             return error;
 
@@ -447,15 +450,15 @@ char *midend_set_config(midend_data *me, int which, config_item *cfg)
 
     switch (which) {
       case CFG_SETTINGS:
-	params = custom_params(cfg);
-	error = validate_params(params);
+	params = me->ourgame->custom_params(cfg);
+	error = me->ourgame->validate_params(params);
 
 	if (error) {
-	    free_params(params);
+	    me->ourgame->free_params(params);
 	    return error;
 	}
 
-	free_params(me->params);
+	me->ourgame->free_params(me->params);
 	me->params = params;
 	break;
 

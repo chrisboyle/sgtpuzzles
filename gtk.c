@@ -783,7 +783,7 @@ static frontend *new_window(char *game_id, char **error)
 
     fe = snew(frontend);
 
-    fe->me = midend_new(fe);
+    fe->me = midend_new(fe, &thegame);
     if (game_id) {
         *error = midend_game_id(fe->me, game_id, FALSE);
         if (*error) {
@@ -795,7 +795,7 @@ static frontend *new_window(char *game_id, char **error)
     midend_new_game(fe->me);
 
     fe->window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-    gtk_window_set_title(GTK_WINDOW(fe->window), game_name);
+    gtk_window_set_title(GTK_WINDOW(fe->window), thegame.name);
 #if 0
     gtk_window_set_resizable(GTK_WINDOW(fe->window), FALSE);
 #else
@@ -827,7 +827,7 @@ static frontend *new_window(char *game_id, char **error)
 		       GTK_SIGNAL_FUNC(menu_config_event), fe);
     gtk_widget_show(menuitem);
 
-    if ((n = midend_num_presets(fe->me)) > 0 || game_can_configure) {
+    if ((n = midend_num_presets(fe->me)) > 0 || thegame.can_configure) {
         GtkWidget *submenu;
         int i;
 
@@ -852,7 +852,7 @@ static frontend *new_window(char *game_id, char **error)
             gtk_widget_show(menuitem);
         }
 
-	if (game_can_configure) {
+	if (thegame.can_configure) {
             menuitem = gtk_menu_item_new_with_label("Custom...");
             gtk_object_set_data(GTK_OBJECT(menuitem), "user-data",
 				GPOINTER_TO_INT(CFG_SETTINGS));
