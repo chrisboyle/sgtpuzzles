@@ -120,39 +120,18 @@ NSMenu *typemenu;
 @interface DataMenuItem : NSMenuItem
 {
     void *payload;
-    int payload_free;
 }
 - (void)setPayload:(void *)d;
-- (void)setPayloadFree:(BOOL)yesno;
 - (void *)getPayload;
 @end
 @implementation DataMenuItem
-- (id)initWithTitle:(NSString *)title
-    action:(SEL)act
-    keyEquivalent:(NSString *)key
-{
-    id ret = [super initWithTitle:title action:act keyEquivalent:key];
-    payload = NULL;
-    payload_free = NO;
-    return ret;
-}
 - (void)setPayload:(void *)d
 {
     payload = d;
 }
-- (void)setPayloadFree:(BOOL)yesno
-{
-    payload_free = yesno;
-}
 - (void *)getPayload
 {
     return payload;
-}
-- (void)dealloc
-{
-    if (payload_free)
-	sfree(payload);
-    [super dealloc];
 }
 @end
 
@@ -489,7 +468,6 @@ struct frontend {
 	    [item setTarget:self];
 	    [item setAction:@selector(presetGame:)];
 	    [item setPayload:params];
-	    [item setPayloadFree:YES];
 
 	    [typemenu insertItem:item atIndex:0];
 	}
