@@ -121,6 +121,14 @@ void fatal(char *fmt, ...)
     exit(1);
 }
 
+void get_random_seed(void **randseed, int *randseedsize)
+{
+    time_t *tp = snew(time_t);
+    time(tp);
+    *randseed = (void *)tp;
+    *randseedsize = sizeof(time_t);
+}
+
 void status_bar(frontend *fe, char *text)
 {
     SetWindowText(fe->statusbar, text);
@@ -352,12 +360,10 @@ static frontend *new_window(HINSTANCE inst, char *game_id, char **error)
     int x, y;
     RECT r, sr;
     HDC hdc;
-    time_t t;
 
     fe = snew(frontend);
 
-    time(&t);
-    fe->me = midend_new(fe, &t, sizeof(t));
+    fe->me = midend_new(fe);
 
     if (game_id) {
         *error = midend_game_id(fe->me, game_id, FALSE);

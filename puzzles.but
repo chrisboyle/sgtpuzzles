@@ -203,6 +203,11 @@ controls are:
 also unlock it again, but while it's locked you can't accidentally
 turn it.
 
+\dt \e{Jumble tiles}: \q{J} key
+
+\dd This key turns all tiles that are not locked to random
+orientations.
+
 (All the actions described in \k{common-actions} are also available.)
 
 \H{net-params} \I{parameters, for Net}Net parameters

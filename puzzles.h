@@ -106,11 +106,12 @@ void end_draw(frontend *fe);
 void deactivate_timer(frontend *fe);
 void activate_timer(frontend *fe);
 void status_bar(frontend *fe, char *text);
+void get_random_seed(void **randseed, int *randseedsize);
 
 /*
  * midend.c
  */
-midend_data *midend_new(frontend *fe, void *randseed, int randseedsize);
+midend_data *midend_new(frontend *fe);
 void midend_free(midend_data *me);
 void midend_set_params(midend_data *me, game_params *params);
 void midend_size(midend_data *me, int *x, int *y);

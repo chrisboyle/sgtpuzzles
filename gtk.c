@@ -73,6 +73,14 @@ struct frontend {
     GtkWidget *cfgbox;
 };
 
+void get_random_seed(void **randseed, int *randseedsize)
+{
+    time_t *tp = snew(time_t);
+    time(tp);
+    *randseed = (void *)tp;
+    *randseedsize = sizeof(time_t);
+}
+
 void frontend_default_colour(frontend *fe, float *output)
 {
     GdkColor col = fe->window->style->bg[GTK_STATE_NORMAL];
@@ -772,12 +780,10 @@ static frontend *new_window(char *game_id, char **error)
     GtkBox *vbox;
     GtkWidget *menubar, *menu, *menuitem;
     int x, y, n;
-    time_t t;
 
     fe = snew(frontend);
 
-    time(&t);
-    fe->me = midend_new(fe, &t, sizeof(t));
+    fe->me = midend_new(fe);
     if (game_id) {
         *error = midend_game_id(fe->me, game_id, FALSE);
         if (*error) {

@@ -40,9 +40,13 @@ struct midend_data {
     } \
 } while (0)
 
-midend_data *midend_new(frontend *fe, void *randseed, int randseedsize)
+midend_data *midend_new(frontend *fe)
 {
     midend_data *me = snew(midend_data);
+    void *randseed;
+    int randseedsize;
+
+    get_random_seed(&randseed, &randseedsize);
 
     me->frontend = fe;
     me->random = random_init(randseed, randseedsize);
@@ -60,6 +64,8 @@ midend_data *midend_new(frontend *fe, void *randseed, int randseedsize)
     me->flash_time = me->flash_pos = 0.0F;
     me->dir = 0;
     me->ui = NULL;
+
+    sfree(randseed);
 
     return me;
 }

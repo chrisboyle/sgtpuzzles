@@ -344,7 +344,7 @@ game_state *new_game(game_params *params, char *seed)
     state->cx = state->width / 2;
     state->cy = state->height / 2;
     state->wrapping = params->wrapping;
-    state->last_rotate_dir = +1;       /* *shrug* */
+    state->last_rotate_dir = 0;
     state->completed = FALSE;
     state->tiles = snewn(state->width * state->height, unsigned char);
     memset(state->tiles, 0, state->width * state->height);
@@ -767,20 +767,27 @@ static unsigned char *compute_active(game_state *state)
 struct game_ui {
     int cur_x, cur_y;
     int cur_visible;
+    random_state *rs; /* used for jumbling */
 };
 
 game_ui *new_ui(game_state *state)
 {
+    void *seed;
+    int seedsize;
     game_ui *ui = snew(game_ui);
     ui->cur_x = state->width / 2;
     ui->cur_y = state->height / 2;
     ui->cur_visible = FALSE;
+    get_random_seed(&seed, &seedsize);
+    ui->rs = random_init(seed, seedsize);
+    sfree(seed);
 
     return ui;
 }
 
 void free_ui(game_ui *ui)
 {
+    random_free(ui->rs);
     sfree(ui);
 }
 
@@ -842,6 +849,10 @@ game_state *make_move(game_state *state, game_ui *ui, int x, int y, int button)
 	else if (button == 'd' || button == 'D')
 	    button = RIGHT_BUTTON;
         ui->cur_visible = TRUE;
+    } else if (button == 'j' || button == 'J') {
+	/* XXX should we have some mouse control for this? */
+	button = 'J';   /* canonify */
+	tx = ty = -1;   /* shut gcc up :( */
     } else
 	return nullret;
 
@@ -856,31 +867,54 @@ game_state *make_move(game_state *state, game_ui *ui, int x, int y, int button)
      * unlocks it.)
      */
     if (button == MIDDLE_BUTTON) {
+
 	ret = dup_game(state);
 	tile(ret, tx, ty) ^= LOCKED;
+	ret->last_rotate_dir = 0;
 	return ret;
-    }
 
-    /*
-     * The left and right buttons have no effect if clicked on a
-     * locked tile.
-     */
-    if (tile(state, tx, ty) & LOCKED)
-	return nullret;
+    } else if (button == LEFT_BUTTON || button == RIGHT_BUTTON) {
 
-    /*
-     * Otherwise, turn the tile one way or the other. Left button
-     * turns anticlockwise; right button turns clockwise.
-     */
-    ret = dup_game(state);
-    orig = tile(ret, tx, ty);
-    if (button == LEFT_BUTTON) {
-	tile(ret, tx, ty) = A(orig);
-        ret->last_rotate_dir = +1;
-    } else {
-	tile(ret, tx, ty) = C(orig);
-        ret->last_rotate_dir = -1;
-    }
+        /*
+         * The left and right buttons have no effect if clicked on a
+         * locked tile.
+         */
+        if (tile(state, tx, ty) & LOCKED)
+            return nullret;
+
+        /*
+         * Otherwise, turn the tile one way or the other. Left button
+         * turns anticlockwise; right button turns clockwise.
+         */
+        ret = dup_game(state);
+        orig = tile(ret, tx, ty);
+        if (button == LEFT_BUTTON) {
+            tile(ret, tx, ty) = A(orig);
+            ret->last_rotate_dir = +1;
+        } else {
+            tile(ret, tx, ty) = C(orig);
+            ret->last_rotate_dir = -1;
+        }
+
+    } else if (button == 'J') {
+
+        /*
+         * Jumble all unlocked tiles to random orientations.
+         */
+        int jx, jy;
+        ret = dup_game(state);
+        for (jy = 0; jy < ret->height; jy++) {
+            for (jx = 0; jx < ret->width; jx++) {
+                if (!(tile(ret, jx, jy) & LOCKED)) {
+                    int rot = random_upto(ui->rs, 4);
+                    orig = tile(ret, jx, jy);
+                    tile(ret, jx, jy) = ROT(orig, rot);
+                }
+            }
+        }
+        ret->last_rotate_dir = 0; /* suppress animation */
+
+    } else assert(0);
 
     /*
      * Check whether the game has been completed.
@@ -1253,7 +1287,7 @@ static void draw_tile(frontend *fe, game_state *state, int x, int y, int tile,
 void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
                  game_state *state, int dir, game_ui *ui, float t, float ft)
 {
-    int x, y, tx, ty, frame;
+    int x, y, tx, ty, frame, last_rotate_dir;
     unsigned char *active;
     float angle = 0.0;
 
@@ -1309,9 +1343,11 @@ void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
     }
 
     tx = ty = -1;
-    if (oldstate && (t < ROTATE_TIME)) {
+    last_rotate_dir = dir==-1 ? oldstate->last_rotate_dir :
+                                state->last_rotate_dir;
+    if (oldstate && (t < ROTATE_TIME) && last_rotate_dir) {
         /*
-         * We're animating a tile rotation. Find the turning tile,
+         * We're animating a single tile rotation. Find the turning tile,
          * if any.
          */
         for (x = 0; x < oldstate->width; x++)
@@ -1323,8 +1359,6 @@ void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
         break_label:
 
         if (tx >= 0) {
-            int last_rotate_dir = dir==-1 ? oldstate->last_rotate_dir :
-                                            state->last_rotate_dir;
             angle = last_rotate_dir * dir * 90.0F * (t / ROTATE_TIME);
             state = oldstate;
         }
@@ -1404,17 +1438,26 @@ void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 
 float game_anim_length(game_state *oldstate, game_state *newstate, int dir)
 {
-    int x, y;
+    int x, y, last_rotate_dir;
 
     /*
-     * If there's a tile which has been rotated, allow time to
-     * animate its rotation.
+     * Don't animate if last_rotate_dir is zero.
      */
-    for (x = 0; x < oldstate->width; x++)
-        for (y = 0; y < oldstate->height; y++)
-            if ((tile(oldstate, x, y) ^ tile(newstate, x, y)) & 0xF) {
-                return ROTATE_TIME;
-            }
+    last_rotate_dir = dir==-1 ? oldstate->last_rotate_dir :
+                                newstate->last_rotate_dir;
+    if (last_rotate_dir) {
+
+        /*
+         * If there's a tile which has been rotated, allow time to
+         * animate its rotation.
+         */
+        for (x = 0; x < oldstate->width; x++)
+            for (y = 0; y < oldstate->height; y++)
+                if ((tile(oldstate, x, y) ^ tile(newstate, x, y)) & 0xF) {
+                    return ROTATE_TIME;
+                }
+
+    }
 
     return 0.0F;
 }
