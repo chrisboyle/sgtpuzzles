@@ -1306,12 +1306,12 @@ void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 
 	    if (HRANGE(state,x,y))
                 c |= index(state,hedge,x,y);
-	    if (HRANGE(state,x+1,y))
-		c |= index(state,hedge,x+1,y) << 2;
+	    if (HRANGE(state,x,y+1))
+		c |= index(state,hedge,x,y+1) << 2;
 	    if (VRANGE(state,x,y))
 		c |= index(state,vedge,x,y) << 4;
-	    if (VRANGE(state,x,y+1))
-		c |= index(state,vedge,x,y+1) << 6;
+	    if (VRANGE(state,x+1,y))
+		c |= index(state,vedge,x+1,y) << 6;
 	    c |= index(state,corners,x,y) << 8;
 	    if (x+1 < state->w)
 		c |= index(state,corners,x+1,y) << 10;
