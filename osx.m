@@ -10,11 +10,6 @@
  *    think help is HTML round here anyway so perhaps we can work
  *    with what we already have.
  * 
- *  - Can we arrange for a pop-up menu from the Dock icon which
- *    launches specific games, perhaps?
- *     + apparently we can; see the NSApplication method
- * 	 `applicationDockMenu:'. Good good. Do so.
- *
  *  - Why are the right and bottom edges of the Pattern grid one
  *    pixel thinner than they should be?
  * 
@@ -1105,6 +1100,23 @@ void status_bar(frontend *fe, char *text)
     [win makeKeyAndOrderFront:self];
 }
 
+- (NSMenu *)applicationDockMenu:(NSApplication *)sender
+{
+    NSMenu *menu = newmenu("Dock Menu");
+    {
+	int i;
+
+	for (i = 0; i < gamecount; i++) {
+	    id item =
+		initnewitem([DataMenuItem allocWithZone:[NSMenu menuZone]],
+			    menu, gamelist[i]->name, "", self,
+			    @selector(newGame:));
+	    [item setPayload:(void *)gamelist[i]];
+	}
+    }
+    return menu;
+}
+
 @end
 
 /* ----------------------------------------------------------------------
@@ -1125,6 +1137,7 @@ int main(int argc, char **argv)
     [NSApp setApplicationIconImage:icon];
 
     controller = [[[AppController alloc] init] autorelease];
+    [NSApp setDelegate:controller];
 
     [NSApp setMainMenu: newmenu("Main Menu")];
 
