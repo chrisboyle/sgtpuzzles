@@ -1,0 +1,5 @@
+Module: puzzles
+Author: Simon Tatham <anakin@pobox.com>
+Description: A collection of small GUI puzzle games, portable across Unix and Windows (and designed to make other ports reasonably easy).
+Homepage: http://www.chiark.greenend.org.uk/~sgtatham/puzzles/
+Release: http://www.chiark.greenend.org.uk/~sgtatham/puzzles/
