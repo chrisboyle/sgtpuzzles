@@ -55,6 +55,7 @@ enum {
 
 struct game_params {
     int w, h;
+    float expandfactor;
 };
 
 #define INDEX(state, x, y)    (((y) * (state)->w) + (x))
@@ -93,6 +94,7 @@ game_params *default_params(void)
     game_params *ret = snew(game_params);
 
     ret->w = ret->h = 7;
+    ret->expandfactor = 0.0F;
 
     return ret;
 }
@@ -116,6 +118,7 @@ int game_fetch_preset(int i, char **name, game_params **params)
     *params = ret = snew(game_params);
     ret->w = w;
     ret->h = h;
+    ret->expandfactor = 0.0F;
     return TRUE;
 }
 
@@ -136,10 +139,16 @@ game_params *decode_params(char const *string)
     game_params *ret = default_params();
 
     ret->w = ret->h = atoi(string);
-    while (*string && isdigit(*string)) string++;
+    ret->expandfactor = 0.0F;
+    while (*string && isdigit((unsigned char)*string)) string++;
     if (*string == 'x') {
         string++;
         ret->h = atoi(string);
+	while (*string && isdigit((unsigned char)*string)) string++;
+    }
+    if (*string == 'e') {
+	string++;
+	ret->expandfactor = atof(string);
     }
 
     return ret;
@@ -173,10 +182,16 @@ config_item *game_configure(game_params *params)
     ret[1].sval = dupstr(buf);
     ret[1].ival = 0;
 
-    ret[2].name = NULL;
-    ret[2].type = C_END;
-    ret[2].sval = NULL;
+    ret[2].name = "Expansion factor";
+    ret[2].type = C_STRING;
+    sprintf(buf, "%g", params->expandfactor);
+    ret[2].sval = dupstr(buf);
     ret[2].ival = 0;
+
+    ret[3].name = NULL;
+    ret[3].type = C_END;
+    ret[3].sval = NULL;
+    ret[3].ival = 0;
 
     return ret;
 }
@@ -187,6 +202,7 @@ game_params *custom_params(config_item *cfg)
 
     ret->w = atoi(cfg[0].sval);
     ret->h = atoi(cfg[1].sval);
+    ret->expandfactor = atof(cfg[2].sval);
 
     return ret;
 }
@@ -197,6 +213,8 @@ char *validate_params(game_params *params)
 	return "Width and height must both be greater than zero";
     if (params->w < 2 && params->h < 2)
 	return "Grid area must be greater than one";
+    if (params->expandfactor < 0.0F)
+	return "Expansion factor may not be negative";
     return NULL;
 }
 
@@ -320,13 +338,14 @@ static struct rect find_rect(game_params *params, int *grid, int x, int y)
 }
 
 #ifdef GENERATION_DIAGNOSTICS
-static void display_grid(game_params *params, int *grid, int *numbers)
+static void display_grid(game_params *params, int *grid, int *numbers, int all)
 {
     unsigned char *egrid = snewn((params->w*2+3) * (params->h*2+3),
                                  unsigned char);
-    memset(egrid, 0, (params->w*2+3) * (params->h*2+3));
     int x, y;
     int r = (params->w*2+3);
+
+    memset(egrid, 0, (params->w*2+3) * (params->h*2+3));
 
     for (x = 0; x < params->w; x++)
         for (y = 0; y < params->h; y++) {
@@ -344,8 +363,8 @@ static void display_grid(game_params *params, int *grid, int *numbers)
     for (y = 1; y < 2*params->h+2; y++) {
         for (x = 1; x < 2*params->w+2; x++) {
             if (!((y|x)&1)) {
-                int k = index(params, numbers, x/2-1, y/2-1);
-                if (k) printf("%2d", k); else printf("  ");
+                int k = numbers ? index(params, numbers, x/2-1, y/2-1) : 0;
+                if (k || (all && numbers)) printf("%2d", k); else printf("  ");
             } else if (!((y&x)&1)) {
                 int v = egrid[y*r+x];
                 if ((y&1) && v) v = '-';
@@ -375,19 +394,27 @@ char *new_game_seed(game_params *params, random_state *rs)
 {
     int *grid, *numbers;
     struct rectlist *list;
-    int x, y, run, i;
+    int x, y, y2, y2last, yx, run, i;
     char *seed, *p;
+    game_params params2real, *params2 = &params2real;
 
-    grid = snewn(params->w * params->h, int);
-    numbers = snewn(params->w * params->h, int);
+    /*
+     * Set up the smaller width and height which we will use to
+     * generate the base grid.
+     */
+    params2->w = params->w / (1.0F + params->expandfactor);
+    if (params2->w < 1) params2->w = 1;
+    params2->h = params->h * (1.0F + params->expandfactor);
+    if (params2->h < 1) params2->h = 1;
 
-    for (y = 0; y < params->h; y++)
-        for (x = 0; x < params->w; x++) {
-            index(params, grid, x, y) = -1;
-            index(params, numbers, x, y) = 0;
+    grid = snewn(params2->w * params2->h, int);
+
+    for (y = 0; y < params2->h; y++)
+        for (x = 0; x < params2->w; x++) {
+            index(params2, grid, x, y) = -1;
         }
 
-    list = get_rectlist(params, grid);
+    list = get_rectlist(params2, grid);
     assert(list != NULL);
 
     /*
@@ -406,7 +433,7 @@ char *new_game_seed(game_params *params, random_state *rs)
         /*
          * Place it.
          */
-        place_rect(params, grid, r);
+        place_rect(params2, grid, r);
 
         /*
          * Winnow the list by removing any rectangles which
@@ -460,13 +487,13 @@ char *new_game_seed(game_params *params, random_state *rs)
      *     +--+-----+       in this fashion; so instead we can simply
      *                      replace the whole section with a single 3x3.
      */
-    for (x = 0; x < params->w; x++) {
-        for (y = 0; y < params->h; y++) {
-            if (index(params, grid, x, y) < 0) {
+    for (x = 0; x < params2->w; x++) {
+        for (y = 0; y < params2->h; y++) {
+            if (index(params2, grid, x, y) < 0) {
                 int dirs[4], ndirs;
 
 #ifdef GENERATION_DIAGNOSTICS
-                display_grid(params, grid, numbers);
+                display_grid(params2, grid, NULL, FALSE);
                 printf("singleton at %d,%d\n", x, y);
 #endif
 
@@ -486,23 +513,23 @@ char *new_game_seed(game_params *params, random_state *rs)
                  * create?
                  */
                 ndirs = 0;
-                if (x < params->w-1) {
-                    struct rect r = find_rect(params, grid, x+1, y);
+                if (x < params2->w-1) {
+                    struct rect r = find_rect(params2, grid, x+1, y);
                     if ((r.w * r.h > 2 && (r.y==y || r.y+r.h-1==y)) || r.h==1)
                         dirs[ndirs++] = 1;   /* right */
                 }
                 if (y > 0) {
-                    struct rect r = find_rect(params, grid, x, y-1);
+                    struct rect r = find_rect(params2, grid, x, y-1);
                     if ((r.w * r.h > 2 && (r.x==x || r.x+r.w-1==x)) || r.w==1)
                         dirs[ndirs++] = 2;   /* up */
                 }
                 if (x > 0) {
-                    struct rect r = find_rect(params, grid, x-1, y);
+                    struct rect r = find_rect(params2, grid, x-1, y);
                     if ((r.w * r.h > 2 && (r.y==y || r.y+r.h-1==y)) || r.h==1)
                         dirs[ndirs++] = 4;   /* left */
                 }
-                if (y < params->h-1) {
-                    struct rect r = find_rect(params, grid, x, y+1);
+                if (y < params2->h-1) {
+                    struct rect r = find_rect(params2, grid, x, y+1);
                     if ((r.w * r.h > 2 && (r.x==x || r.x+r.w-1==x)) || r.w==1)
                         dirs[ndirs++] = 8;   /* down */
                 }
@@ -516,11 +543,11 @@ char *new_game_seed(game_params *params, random_state *rs)
 
                     switch (dir) {
                       case 1:          /* right */
-                        assert(x < params->w+1);
+                        assert(x < params2->w+1);
 #ifdef GENERATION_DIAGNOSTICS
                         printf("extending right\n");
 #endif
-                        r1 = find_rect(params, grid, x+1, y);
+                        r1 = find_rect(params2, grid, x+1, y);
                         r2.x = x;
                         r2.y = y;
                         r2.w = 1 + r1.w;
@@ -534,7 +561,7 @@ char *new_game_seed(game_params *params, random_state *rs)
 #ifdef GENERATION_DIAGNOSTICS
                         printf("extending up\n");
 #endif
-                        r1 = find_rect(params, grid, x, y-1);
+                        r1 = find_rect(params2, grid, x, y-1);
                         r2.x = x;
                         r2.y = r1.y;
                         r2.w = 1;
@@ -548,7 +575,7 @@ char *new_game_seed(game_params *params, random_state *rs)
 #ifdef GENERATION_DIAGNOSTICS
                         printf("extending left\n");
 #endif
-                        r1 = find_rect(params, grid, x-1, y);
+                        r1 = find_rect(params2, grid, x-1, y);
                         r2.x = r1.x;
                         r2.y = y;
                         r2.w = 1 + r1.w;
@@ -558,11 +585,11 @@ char *new_game_seed(game_params *params, random_state *rs)
                         r1.h--;
                         break;
                       case 8:          /* down */
-                        assert(y < params->h+1);
+                        assert(y < params2->h+1);
 #ifdef GENERATION_DIAGNOSTICS
                         printf("extending down\n");
 #endif
-                        r1 = find_rect(params, grid, x, y+1);
+                        r1 = find_rect(params2, grid, x, y+1);
                         r2.x = x;
                         r2.y = y;
                         r2.w = 1;
@@ -573,8 +600,8 @@ char *new_game_seed(game_params *params, random_state *rs)
                         break;
                     }
                     if (r1.h > 0 && r1.w > 0)
-                        place_rect(params, grid, r1);
-                    place_rect(params, grid, r2);
+                        place_rect(params2, grid, r1);
+                    place_rect(params2, grid, r2);
                 } else {
 #ifndef NDEBUG
                     /*
@@ -585,12 +612,12 @@ char *new_game_seed(game_params *params, random_state *rs)
                      */
                     {
                         int xx, yy;
-                        assert(x > 0 && x < params->w-1);
-                        assert(y > 0 && y < params->h-1);
+                        assert(x > 0 && x < params2->w-1);
+                        assert(y > 0 && y < params2->h-1);
 
                         for (xx = x-1; xx <= x+1; xx++)
                             for (yy = y-1; yy <= y+1; yy++) {
-                                struct rect r = find_rect(params,grid,xx,yy);
+                                struct rect r = find_rect(params2,grid,xx,yy);
                                 assert(r.x >= x-1);
                                 assert(r.y >= y-1);
                                 assert(r.x+r.w-1 <= x+1);
@@ -620,7 +647,7 @@ char *new_game_seed(game_params *params, random_state *rs)
                         r.x = x-1;
                         r.y = y-1;
                         r.w = r.h = 3;
-                        place_rect(params, grid, r);
+                        place_rect(params2, grid, r);
                     }
                 }
             }
@@ -628,8 +655,192 @@ char *new_game_seed(game_params *params, random_state *rs)
     }
 
     /*
+     * We have now constructed a grid of the size specified in
+     * params2. Now we extend it into a grid of the size specified
+     * in params. We do this in two passes: we extend it vertically
+     * until it's the right height, then we transpose it, then
+     * extend it vertically again (getting it effectively the right
+     * width), then finally transpose again.
+     */
+    for (i = 0; i < 2; i++) {
+	int *grid2, *expand, *where;
+	game_params params3real, *params3 = &params3real;
+
+#ifdef GENERATION_DIAGNOSTICS
+	printf("before expansion:\n");
+	display_grid(params2, grid, NULL, TRUE);
+#endif
+
+	/*
+	 * Set up the new grid.
+	 */
+	grid2 = snewn(params2->w * params->h, int);
+	expand = snewn(params2->h-1, int);
+	where = snewn(params2->w, int);
+	params3->w = params2->w;
+	params3->h = params->h;
+
+	/*
+	 * Decide which horizontal edges are going to get expanded,
+	 * and by how much.
+	 */
+	for (y = 0; y < params2->h-1; y++)
+	    expand[y] = 0;
+	for (y = params2->h; y < params->h; y++) {
+	    x = random_upto(rs, params2->h-1);
+	    expand[x]++;
+	}
+
+#ifdef GENERATION_DIAGNOSTICS
+	printf("expand[] = {");
+	for (y = 0; y < params2->h-1; y++)
+	    printf(" %d", expand[y]);
+	printf(" }\n");
+#endif
+
+	/*
+	 * Perform the expansion. The way this works is that we
+	 * alternately:
+	 * 
+	 *  - copy a row from grid into grid2
+	 * 
+	 *  - invent some number of additional rows in grid2 where
+	 *    there was previously only a horizontal line between
+	 *    rows in grid, and make random decisions about where
+	 *    among these to place each rectangle edge that ran
+	 *    along this line.
+	 */
+	for (y = y2 = y2last = 0; y < params2->h; y++) {
+	    /*
+	     * Copy a single line from row y of grid into row y2 of
+	     * grid2.
+	     */
+	    for (x = 0; x < params2->w; x++) {
+		int val = index(params2, grid, x, y);
+		if (val / params2->w == y &&   /* rect starts on this line */
+		    (y2 == 0 ||	       /* we're at the very top, or... */
+		     index(params3, grid2, x, y2-1) / params3->w < y2last
+		     		       /* this rect isn't already started */))
+		    index(params3, grid2, x, y2) =
+		    INDEX(params3, val % params2->w, y2);
+		else
+		    index(params3, grid2, x, y2) =
+		    index(params3, grid2, x, y2-1);
+	    }
+
+	    /*
+	     * If that was the last line, terminate the loop early.
+	     */
+	    if (++y2 == params3->h)
+		break;
+
+	    y2last = y2;
+
+	    /*
+	     * Invent some number of additional lines. First walk
+	     * along this line working out where to put all the
+	     * edges that coincide with it.
+	     */
+	    yx = -1;
+	    for (x = 0; x < params2->w; x++) {
+		if (index(params2, grid, x, y) !=
+		    index(params2, grid, x, y+1)) {
+		    /*
+		     * This is a horizontal edge, so it needs
+		     * placing.
+		     */
+		    if (x == 0 ||
+			(index(params2, grid, x-1, y) !=
+			 index(params2, grid, x, y) &&
+			 index(params2, grid, x-1, y+1) !=
+			 index(params2, grid, x, y+1))) {
+			/*
+			 * Here we have the chance to make a new
+			 * decision.
+			 */
+			yx = random_upto(rs, expand[y]+1);
+		    } else {
+			/*
+			 * Here we just reuse the previous value of
+			 * yx.
+			 */
+		    }
+		} else
+		    yx = -1;
+		where[x] = yx;
+	    }
+
+	    for (yx = 0; yx < expand[y]; yx++) {
+		/*
+		 * Invent a single row. For each square in the row,
+		 * we copy the grid entry from the square above it,
+		 * unless we're starting the new rectangle here.
+		 */
+		for (x = 0; x < params2->w; x++) {
+		    if (yx == where[x]) {
+			int val = index(params2, grid, x, y+1);
+			val %= params2->w;
+			val = INDEX(params3, val, y2);
+			index(params3, grid2, x, y2) = val;
+		    } else
+			index(params3, grid2, x, y2) = 
+			index(params3, grid2, x, y2-1);
+		}
+
+		y2++;
+	    }
+	}
+
+	sfree(expand);
+	sfree(where);
+
+#ifdef GENERATION_DIAGNOSTICS
+	printf("after expansion:\n");
+	display_grid(params3, grid2, NULL, TRUE);
+#endif
+	/*
+	 * Transpose.
+	 */
+	params2->w = params3->h;
+	params2->h = params3->w;
+	sfree(grid);
+	grid = snewn(params2->w * params2->h, int);
+	for (x = 0; x < params2->w; x++)
+	    for (y = 0; y < params2->h; y++) {
+		int idx1 = INDEX(params2, x, y);
+		int idx2 = INDEX(params3, y, x);
+		int tmp;
+
+		tmp = grid2[idx2];
+		tmp = (tmp % params3->w) * params2->w + (tmp / params3->w);
+		grid[idx1] = tmp;
+	    }
+
+	sfree(grid2);
+
+	{
+	    int tmp;
+	    tmp = params->w;
+	    params->w = params->h;
+	    params->h = tmp;
+	}
+
+#ifdef GENERATION_DIAGNOSTICS
+	printf("after transposition:\n");
+	display_grid(params2, grid, NULL, TRUE);
+#endif
+    }
+
+    /*
      * Place numbers.
      */
+    numbers = snewn(params->w * params->h, int);
+
+    for (y = 0; y < params->h; y++)
+        for (x = 0; x < params->w; x++) {
+            index(params, numbers, x, y) = 0;
+        }
+
     for (x = 0; x < params->w; x++) {
         for (y = 0; y < params->h; y++) {
             int idx = INDEX(params, x, y);
@@ -649,7 +860,7 @@ char *new_game_seed(game_params *params, random_state *rs)
     }
 
 #ifdef GENERATION_DIAGNOSTICS
-    display_grid(params, grid, numbers);
+    display_grid(params, grid, numbers, FALSE);
 #endif
 
     seed = snewn(11 * params->w * params->h, char);
