@@ -510,13 +510,25 @@ static frontend *new_window(void)
     }
 
     if (midend_wants_statusbar(fe->me)) {
+	GtkWidget *viewport;
+	GtkRequisition req;
+
+	viewport = gtk_viewport_new(NULL, NULL);
+	gtk_viewport_set_shadow_type(GTK_VIEWPORT(viewport), GTK_SHADOW_NONE);
 	fe->statusbar = gtk_statusbar_new();
-	gtk_box_pack_end(vbox, fe->statusbar, FALSE, FALSE, 0);
+	gtk_container_add(GTK_CONTAINER(viewport), fe->statusbar);
+	gtk_widget_show(viewport);
+	gtk_box_pack_end(vbox, viewport, FALSE, FALSE, 0);
 	gtk_widget_show(fe->statusbar);
 	fe->statusctx = gtk_statusbar_get_context_id
 	    (GTK_STATUSBAR(fe->statusbar), "game");
 	gtk_statusbar_push(GTK_STATUSBAR(fe->statusbar), fe->statusctx,
-			   "");
+			   "test");
+	gtk_widget_size_request(fe->statusbar, &req);
+#if 0
+	/* For GTK 2.0, should we be using gtk_widget_set_size_request? */
+#endif
+	gtk_widget_set_usize(viewport, x, req.height);
     } else
 	fe->statusbar = NULL;
 
