@@ -495,11 +495,11 @@ static int get_config(frontend *fe)
                      table, FALSE, FALSE, 0);
     gtk_widget_show(table);
 
-    for (i = fe->cfg; i->type != ENDCFG; i++) {
+    for (i = fe->cfg; i->type != C_END; i++) {
 	gtk_table_resize(GTK_TABLE(table), y+1, 2);
 
 	switch (i->type) {
-	  case STRING:
+	  case C_STRING:
 	    /*
 	     * Edit box with a label beside it.
 	     */
@@ -524,7 +524,7 @@ static int get_config(frontend *fe)
 
 	    break;
 
-	  case BOOLEAN:
+	  case C_BOOLEAN:
 	    /*
 	     * Simple checkbox.
 	     */
@@ -539,7 +539,7 @@ static int get_config(frontend *fe)
 	    gtk_widget_show(w);
 	    break;
 
-	  case CHOICES:
+	  case C_CHOICES:
 	    /*
 	     * Drop-down list (GtkOptionMenu).
 	     */

@@ -52,7 +52,7 @@ typedef struct game_drawstate game_drawstate;
  * Structure used to pass configuration data between frontend and
  * game
  */
-enum { STRING, CHOICES, BOOLEAN, ENDCFG };
+enum { C_STRING, C_CHOICES, C_BOOLEAN, C_END };
 struct config_item {
     /*
      * `name' is never dynamically allocated.
@@ -63,17 +63,17 @@ struct config_item {
      */
     int type;
     /*
-     * For STRING, `sval' is always dynamically allocated and
-     * non-NULL. For BOOLEAN and ENDCFG, `sval' is always NULL. For
-     * CHOICES, `sval' is non-NULL, _not_ dynamically allocated,
-     * and contains a set of option strings separated by a
-     * delimiter. The delimeter is also the first character in the
-     * string, so for example ":Foo:Bar:Baz" gives three options
-     * `Foo', `Bar' and `Baz'.
+     * For C_STRING, `sval' is always dynamically allocated and
+     * non-NULL. For C_BOOLEAN and C_END, `sval' is always NULL.
+     * For C_CHOICES, `sval' is non-NULL, _not_ dynamically
+     * allocated, and contains a set of option strings separated by
+     * a delimiter. The delimeter is also the first character in
+     * the string, so for example ":Foo:Bar:Baz" gives three
+     * options `Foo', `Bar' and `Baz'.
      */
     char *sval;
     /*
-     * For BOOLEAN, this is TRUE or FALSE. For CHOICES, it
+     * For C_BOOLEAN, this is TRUE or FALSE. For C_CHOICES, it
      * indicates the chosen index from the `sval' list. In the
      * above example, 0==Foo, 1==Bar and 2==Baz.
      */

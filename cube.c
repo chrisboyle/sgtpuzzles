@@ -450,24 +450,24 @@ config_item *game_configure(game_params *params)
     char buf[80];
 
     ret[0].name = "Type of solid";
-    ret[0].type = CHOICES;
+    ret[0].type = C_CHOICES;
     ret[0].sval = ":Tetrahedron:Cube:Octahedron:Icosahedron";
     ret[0].ival = params->solid;
 
     ret[1].name = "Width / top";
-    ret[1].type = STRING;
+    ret[1].type = C_STRING;
     sprintf(buf, "%d", params->d1);
     ret[1].sval = dupstr(buf);
     ret[1].ival = 0;
 
     ret[2].name = "Height / bottom";
-    ret[2].type = STRING;
+    ret[2].type = C_STRING;
     sprintf(buf, "%d", params->d2);
     ret[2].sval = dupstr(buf);
     ret[2].ival = 0;
 
     ret[3].name = NULL;
-    ret[3].type = ENDCFG;
+    ret[3].type = C_END;
     ret[3].sval = NULL;
     ret[3].ival = 0;
 

@@ -191,30 +191,30 @@ config_item *game_configure(game_params *params)
     ret = snewn(5, config_item);
 
     ret[0].name = "Width";
-    ret[0].type = STRING;
+    ret[0].type = C_STRING;
     sprintf(buf, "%d", params->width);
     ret[0].sval = dupstr(buf);
     ret[0].ival = 0;
 
     ret[1].name = "Height";
-    ret[1].type = STRING;
+    ret[1].type = C_STRING;
     sprintf(buf, "%d", params->height);
     ret[1].sval = dupstr(buf);
     ret[1].ival = 0;
 
     ret[2].name = "Walls wrap around";
-    ret[2].type = BOOLEAN;
+    ret[2].type = C_BOOLEAN;
     ret[2].sval = NULL;
     ret[2].ival = params->wrapping;
 
     ret[3].name = "Barrier probability";
-    ret[3].type = STRING;
+    ret[3].type = C_STRING;
     sprintf(buf, "%g", params->barrier_probability);
     ret[3].sval = dupstr(buf);
     ret[3].ival = 0;
 
     ret[4].name = NULL;
-    ret[4].type = ENDCFG;
+    ret[4].type = C_END;
     ret[4].sval = NULL;
     ret[4].ival = 0;
 
@@ -228,7 +228,7 @@ game_params *custom_params(config_item *cfg)
     ret->width = atoi(cfg[0].sval);
     ret->height = atoi(cfg[1].sval);
     ret->wrapping = cfg[2].ival;
-    ret->barrier_probability = atof(cfg[3].sval);
+    ret->barrier_probability = (float)atof(cfg[3].sval);
 
     return ret;
 }
