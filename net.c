@@ -1251,7 +1251,7 @@ static void draw_tile(frontend *fe, game_state *state, int x, int y, int tile,
 }
 
 void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
-                 game_state *state, game_ui *ui, float t, float ft)
+                 game_state *state, int dir, game_ui *ui, float t, float ft)
 {
     int x, y, tx, ty, frame;
     unsigned char *active;
@@ -1404,7 +1404,7 @@ void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
     sfree(active);
 }
 
-float game_anim_length(game_state *oldstate, game_state *newstate)
+float game_anim_length(game_state *oldstate, game_state *newstate, int dir)
 {
     int x, y;
 
@@ -1421,7 +1421,7 @@ float game_anim_length(game_state *oldstate, game_state *newstate)
     return 0.0F;
 }
 
-float game_flash_length(game_state *oldstate, game_state *newstate)
+float game_flash_length(game_state *oldstate, game_state *newstate, int dir)
 {
     /*
      * If the game has just been completed, we display a completion

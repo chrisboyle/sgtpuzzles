@@ -1287,7 +1287,7 @@ static void draw_arrow(frontend *fe, int x, int y, int xdx, int xdy)
 }
 
 void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
-                 game_state *state, game_ui *ui, float t, float ft)
+                 game_state *state, int dir, game_ui *ui, float t, float ft)
 {
     int x, y, tx, ty, frame;
     unsigned char *active;
@@ -1481,12 +1481,12 @@ void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
     sfree(active);
 }
 
-float game_anim_length(game_state *oldstate, game_state *newstate)
+float game_anim_length(game_state *oldstate, game_state *newstate, int dir)
 {
     return ANIM_TIME;
 }
 
-float game_flash_length(game_state *oldstate, game_state *newstate)
+float game_flash_length(game_state *oldstate, game_state *newstate, int dir)
 {
     /*
      * If the game has just been completed, we display a completion

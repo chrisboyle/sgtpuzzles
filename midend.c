@@ -30,6 +30,7 @@ struct midend_data {
     game_ui *ui;
     float anim_time, anim_pos;
     float flash_time, flash_pos;
+    int dir;
 };
 
 #define ensure(me) do { \
@@ -57,6 +58,7 @@ midend_data *midend_new(frontend *fe, void *randseed, int randseedsize)
     me->npresets = me->presetsize = 0;
     me->anim_time = me->anim_pos = 0.0F;
     me->flash_time = me->flash_pos = 0.0F;
+    me->dir = 0;
     me->ui = NULL;
 
     return me;
@@ -119,6 +121,7 @@ static int midend_undo(midend_data *me)
 {
     if (me->statepos > 1) {
 	me->statepos--;
+        me->dir = -1;
         return 1;
     } else
         return 0;
@@ -128,6 +131,7 @@ static int midend_redo(midend_data *me)
 {
     if (me->statepos < me->nstates) {
 	me->statepos++;
+        me->dir = +1;
         return 1;
     } else
         return 0;
@@ -140,7 +144,8 @@ static void midend_finish_move(midend_data *me)
     if (me->oldstate || me->statepos > 1) {
 	flashtime = game_flash_length(me->oldstate ? me->oldstate :
 				      me->states[me->statepos-2],
-				      me->states[me->statepos-1]);
+				      me->states[me->statepos-1],
+                                      me->oldstate ? me->dir : +1);
 	if (flashtime > 0) {
 	    me->flash_pos = 0.0F;
 	    me->flash_time = flashtime;
@@ -151,6 +156,7 @@ static void midend_finish_move(midend_data *me)
 	free_game(me->oldstate);
     me->oldstate = NULL;
     me->anim_pos = me->anim_time = 0;
+    me->dir = 0;
 
     if (me->flash_time == 0 && me->anim_time == 0)
 	deactivate_timer(me->frontend);
@@ -212,6 +218,7 @@ int midend_process_key(midend_data *me, int x, int y, int button)
             ensure(me);
             me->states[me->nstates] = s;
             me->statepos = ++me->nstates;
+            me->dir = +1;
         } else {
             free_game(oldstate);
             return 1;
@@ -221,7 +228,7 @@ int midend_process_key(midend_data *me, int x, int y, int button)
     /*
      * See if this move requires an animation.
      */
-    anim_time = game_anim_length(oldstate, me->states[me->statepos-1]);
+    anim_time = game_anim_length(oldstate, me->states[me->statepos-1], me->dir);
 
     me->oldstate = oldstate;
     if (anim_time > 0) {
@@ -245,13 +252,14 @@ void midend_redraw(midend_data *me)
         start_draw(me->frontend);
         if (me->oldstate && me->anim_time > 0 &&
             me->anim_pos < me->anim_time) {
+            assert(me->dir != 0);
             game_redraw(me->frontend, me->drawstate, me->oldstate,
-                        me->states[me->statepos-1], me->ui, me->anim_pos,
-			me->flash_pos);
+                        me->states[me->statepos-1], me->dir,
+                        me->ui, me->anim_pos, me->flash_pos);
         } else {
             game_redraw(me->frontend, me->drawstate, NULL,
-                        me->states[me->statepos-1], me->ui, 0.0,
-                        me->flash_pos);
+                        me->states[me->statepos-1], +1 /*shrug*/,
+                        me->ui, 0.0, me->flash_pos);
         }
         end_draw(me->frontend);
     }

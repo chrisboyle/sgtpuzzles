@@ -1351,7 +1351,7 @@ void game_free_drawstate(game_drawstate *ds)
 }
 
 void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
-                 game_state *state, game_ui *ui,
+                 game_state *state, int dir, game_ui *ui,
                  float animtime, float flashtime)
 {
     int i, j;
@@ -1510,12 +1510,12 @@ void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
     }
 }
 
-float game_anim_length(game_state *oldstate, game_state *newstate)
+float game_anim_length(game_state *oldstate, game_state *newstate, int dir)
 {
     return ROLLTIME;
 }
 
-float game_flash_length(game_state *oldstate, game_state *newstate)
+float game_flash_length(game_state *oldstate, game_state *newstate, int dir)
 {
     return 0.0F;
 }

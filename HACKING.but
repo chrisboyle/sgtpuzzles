@@ -166,7 +166,8 @@ chronological order, the second one contains the direction field
 which corresponds to the actual difference between the states.
 However, when it is passed a pair of states in the opposite order
 due to an undo, it should be looking in the \e{first} one to find
-the direction field. Sixteen solves this by also storing the current
-move count in the game state, so that \cw{game_redraw()} can compare
-the two move counts to work out whether it's drawing an undo or not,
-and look in the right place for the direction field.
+the direction field.
+
+For this reason, in the redraw functions you are provided with an
+extra argument \c{dir} which tells you which state was chronologically
+first; \c{dir} is +1 for a normal move and -1 for an undo.

@@ -553,7 +553,7 @@ static void draw_tile(frontend *fe, game_state *state, int x, int y,
 }
 
 void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
-                 game_state *state, game_ui *ui,
+                 game_state *state, int dir, game_ui *ui,
                  float animtime, float flashtime)
 {
     int i, pass, bgcolour;
@@ -702,12 +702,12 @@ void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
     }
 }
 
-float game_anim_length(game_state *oldstate, game_state *newstate)
+float game_anim_length(game_state *oldstate, game_state *newstate, int dir)
 {
     return ANIM_TIME;
 }
 
-float game_flash_length(game_state *oldstate, game_state *newstate)
+float game_flash_length(game_state *oldstate, game_state *newstate, int dir)
 {
     if (!oldstate->completed && newstate->completed)
         return 2 * FLASH_FRAME;
