@@ -1,0 +1,2 @@
+puzzles.hlp puzzles.txt: puzzles.but
+	halibut --winhelp=puzzles.hlp --text=puzzles.txt puzzles.but
