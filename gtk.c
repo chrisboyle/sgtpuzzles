@@ -52,7 +52,7 @@ struct frontend {
     midend_data *me;
     GdkGC *gc;
     int bbox_l, bbox_r, bbox_u, bbox_d;
-    int timer_active;
+    int timer_active, timer_id;
 };
 
 void frontend_default_colour(frontend *fe, float *output)
@@ -233,12 +233,15 @@ static gint timer_func(gpointer data)
 
 void deactivate_timer(frontend *fe)
 {
+    if (fe->timer_active)
+        gtk_timeout_remove(fe->timer_id);
     fe->timer_active = FALSE;
 }
 
 void activate_timer(frontend *fe)
 {
-    gtk_timeout_add(20, timer_func, fe);
+    if (!fe->timer_active)
+        fe->timer_id = gtk_timeout_add(20, timer_func, fe);
     fe->timer_active = TRUE;
 }
 
@@ -389,6 +392,8 @@ static frontend *new_window(void)
     gtk_box_pack_end(vbox, fe->area, FALSE, FALSE, 0);
 
     fe->pixmap = NULL;
+
+    fe->timer_active = FALSE;
 
     gtk_signal_connect(GTK_OBJECT(fe->window), "destroy",
 		       GTK_SIGNAL_FUNC(destroy), fe);
