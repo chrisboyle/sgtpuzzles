@@ -7,6 +7,7 @@
 
 #include <stdio.h>
 #include <assert.h>
+#include <ctype.h>
 #include <stdarg.h>
 #include <stdlib.h>
 #include <time.h>
@@ -309,7 +310,7 @@ void activate_timer(frontend *fe)
     }
 }
 
-static frontend *new_window(HINSTANCE inst)
+static frontend *new_window(HINSTANCE inst, char *game_id, char **error)
 {
     frontend *fe;
     int x, y;
@@ -321,6 +322,15 @@ static frontend *new_window(HINSTANCE inst)
 
     time(&t);
     fe->me = midend_new(fe, &t, sizeof(t));
+
+    if (game_id) {
+        *error = midend_game_id(fe->me, game_id, FALSE);
+        if (*error) {
+            midend_free(fe->me);
+            sfree(fe);
+            return NULL;
+        }
+    }
 
     fe->inst = inst;
     midend_new_game(fe->me);
@@ -1008,6 +1018,7 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
 int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
 {
     MSG msg;
+    char *error;
 
     InitCommonControls();
 
@@ -1028,7 +1039,15 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
 	RegisterClass(&wndclass);
     }
 
-    new_window(inst);
+    while (*cmdline && isspace(*cmdline))
+	cmdline++;
+
+    if (!new_window(inst, *cmdline ? cmdline : NULL, &error)) {
+	char buf[128];
+	sprintf(buf, "%.100s Error", game_name);
+	MessageBox(NULL, error, buf, MB_OK|MB_ICONERROR);
+	return 1;
+    }
 
     while (GetMessage(&msg, NULL, 0, 0)) {
 	DispatchMessage(&msg);

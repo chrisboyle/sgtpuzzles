@@ -762,7 +762,7 @@ static void add_menu_separator(GtkContainer *cont)
     gtk_widget_show(menuitem);
 }
 
-static frontend *new_window(void)
+static frontend *new_window(char *game_id, char **error)
 {
     frontend *fe;
     GtkBox *vbox;
@@ -774,6 +774,14 @@ static frontend *new_window(void)
 
     time(&t);
     fe->me = midend_new(fe, &t, sizeof(t));
+    if (game_id) {
+        *error = midend_game_id(fe->me, game_id, FALSE);
+        if (*error) {
+            midend_free(fe->me);
+            sfree(fe);
+            return NULL;
+        }
+    }
     midend_new_game(fe->me);
 
     fe->window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
@@ -944,8 +952,16 @@ static frontend *new_window(void)
 
 int main(int argc, char **argv)
 {
+    char *pname = argv[0];
+    char *error;
+
     gtk_init(&argc, &argv);
-    (void) new_window();
+
+    if (!new_window(argc > 1 ? argv[1] : NULL, &error)) {
+        fprintf(stderr, "%s: %s\n", pname, error);
+        return 1;
+    }
+
     gtk_main();
 
     return 0;

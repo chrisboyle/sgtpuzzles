@@ -373,9 +373,62 @@ config_item *midend_get_config(midend_data *me, int which, char **wintitle)
     return NULL;
 }
 
+char *midend_game_id(midend_data *me, char *id, int def_seed)
+{
+    char *error, *par, *seed;
+    game_params *params;
+
+    seed = strchr(id, ':');
+
+    if (seed) {
+        /*
+         * We have a colon separating parameters from game seed. So
+         * `par' now points to the parameters string, and `seed' to
+         * the seed string.
+         */
+        *seed++ = '\0';
+        par = id;
+    } else {
+        /*
+         * We only have one string. Depending on `def_seed', we
+         * take it to be either parameters or seed.
+         */
+        if (def_seed) {
+            seed = id;
+            par = NULL;
+        } else {
+            seed = NULL;
+            par = id;
+        }
+    }
+
+    if (par) {
+        params = decode_params(par);
+        error = validate_params(params);
+        if (error) {
+            free_params(params);
+            return error;
+        }
+        free_params(me->params);
+        me->params = params;
+    }
+
+    if (seed) {
+        error = validate_seed(me->params, seed);
+        if (error)
+            return error;
+
+        sfree(me->seed);
+        me->seed = dupstr(seed);
+        me->fresh_seed = TRUE;
+    }
+
+    return NULL;
+}
+
 char *midend_set_config(midend_data *me, int which, config_item *cfg)
 {
-    char *error, *p;
+    char *error;
     game_params *params;
 
     switch (which) {
@@ -393,36 +446,9 @@ char *midend_set_config(midend_data *me, int which, config_item *cfg)
 	break;
 
       case CFG_SEED:
-
-        /*
-         * The game ID will often (in fact, mostly) have a prefix
-         * containing a string-encoded parameter specification
-         * followed by a colon. So first find the colon, and then
-         * split the string up.
-         */
-        p = strchr(cfg[0].sval, ':');
-
-        if (p) {
-            *p++ = '\0';               /* p now points to game seed */
-            params = decode_params(cfg[0].sval);
-            error = validate_params(params);
-            if (error) {
-                free_params(params);
-                return error;
-            }
-            free_params(me->params);
-            me->params = params;
-        } else
-            p = cfg[0].sval;
-
-	error = validate_seed(me->params, p);
+        error = midend_game_id(me, cfg[0].sval, TRUE);
 	if (error)
 	    return error;
-
-	sfree(me->seed);
-	me->seed = dupstr(p);
-	me->fresh_seed = TRUE;
-
 	break;
     }
 

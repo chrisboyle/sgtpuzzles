@@ -127,6 +127,7 @@ int midend_wants_statusbar(midend_data *me);
 enum { CFG_SETTINGS, CFG_SEED };
 config_item *midend_get_config(midend_data *me, int which, char **wintitle);
 char *midend_set_config(midend_data *me, int which, config_item *cfg);
+char *midend_game_id(midend_data *me, char *id, int def_seed);
 
 /*
  * malloc.c
