@@ -586,7 +586,11 @@ game_state *make_move(game_state *state, int x, int y, int button)
  * Routines for drawing the game position on the screen.
  */
 
-#ifndef TESTMODE		       /* FIXME: should be #ifdef */
+/* ----------------------------------------------------------------------
+ * Test code.
+ */
+
+#ifdef TESTMODE
 
 int main(void)
 {
