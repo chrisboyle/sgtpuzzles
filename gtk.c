@@ -613,9 +613,7 @@ static int get_config(frontend *fe)
     gtk_widget_show(fe->cfgbox);
     gtk_main();
 
-    /*
-     * FIXME: free fe->cfg
-     */
+    free_cfg(fe->cfg);
 
     return fe->cfgret;
 }

@@ -18,6 +18,7 @@
 #define IDM_UNDO      0x0030
 #define IDM_REDO      0x0040
 #define IDM_QUIT      0x0050
+#define IDM_CONFIG    0x0060
 #define IDM_PRESETS   0x0100
 
 #ifdef DEBUG
@@ -71,9 +72,14 @@ struct font {
     int size;
 };
 
+struct cfg_aux {
+    int ctlid;
+};
+
 struct frontend {
     midend_data *me;
-    HWND hwnd, statusbar;
+    HWND hwnd, statusbar, cfgbox;
+    HINSTANCE inst;
     HBITMAP bitmap, prevbm;
     HDC hdc_bm;
     COLORREF *colours;
@@ -85,6 +91,10 @@ struct frontend {
     game_params **presets;
     struct font *fonts;
     int nfonts, fontsize;
+    config_item *cfg;
+    struct cfg_aux *cfgaux;
+    int cfg_done;
+    HFONT cfgfont;
 };
 
 void fatal(char *fmt, ...)
@@ -258,6 +268,7 @@ void start_draw(frontend *fe)
     fe->prevbm = SelectObject(fe->hdc_bm, fe->bitmap);
     ReleaseDC(fe->hwnd, hdc_win);
     fe->clip = NULL;
+    SetMapMode(fe->hdc_bm, MM_TEXT);
 }
 
 void draw_update(frontend *fe, int x, int y, int w, int h)
@@ -302,6 +313,7 @@ static frontend *new_window(HINSTANCE inst)
 
     fe = snew(frontend);
     fe->me = midend_new(fe);
+    fe->inst = inst;
     midend_new_game(fe->me, NULL);
     midend_size(fe->me, &x, &y);
 
@@ -322,8 +334,6 @@ static frontend *new_window(HINSTANCE inst)
 				 255 * colours[i*3+1],
 				 255 * colours[i*3+2]);
 	    fe->brushes[i] = CreateSolidBrush(fe->colours[i]);
-	    if (!fe->brushes[i])
-		MessageBox(fe->hwnd, "ooh", "eck", MB_OK);
 	    fe->pens[i] = CreatePen(PS_SOLID, 1, fe->colours[i]);
 	}
     }
@@ -350,11 +360,12 @@ static frontend *new_window(HINSTANCE inst)
 	AppendMenu(menu, MF_ENABLED, IDM_NEW, "New");
 	AppendMenu(menu, MF_ENABLED, IDM_RESTART, "Restart");
 
-	if ((fe->npresets = midend_num_presets(fe->me)) > 0) {
+	if ((fe->npresets = midend_num_presets(fe->me)) > 0 ||
+	    game_can_configure) {
 	    HMENU sub = CreateMenu();
 	    int i;
 
-	    AppendMenu(menu, MF_ENABLED|MF_POPUP, (UINT)sub, "Type");
+	    AppendMenu(bar, MF_ENABLED|MF_POPUP, (UINT)sub, "Type");
 
 	    fe->presets = snewn(fe->npresets, game_params *);
 
@@ -369,6 +380,10 @@ static frontend *new_window(HINSTANCE inst)
 		 */
 
 		AppendMenu(sub, MF_ENABLED, IDM_PRESETS + 0x10 * i, name);
+	    }
+
+	    if (game_can_configure) {
+		AppendMenu(sub, MF_ENABLED, IDM_CONFIG, "Custom...");
 	    }
 	}
 
@@ -409,6 +424,362 @@ static frontend *new_window(HINSTANCE inst)
     return fe;
 }
 
+static int CALLBACK ConfigDlgProc(HWND hwnd, UINT msg,
+				  WPARAM wParam, LPARAM lParam)
+{
+    frontend *fe = (frontend *)GetWindowLong(hwnd, GWL_USERDATA);
+    config_item *i;
+    struct cfg_aux *j;
+
+    switch (msg) {
+      case WM_INITDIALOG:
+	return 0;
+
+      case WM_COMMAND:
+	/*
+	 * OK and Cancel are special cases.
+	 */
+	if ((HIWORD(wParam) == BN_CLICKED ||
+	     HIWORD(wParam) == BN_DOUBLECLICKED) &&
+	    (LOWORD(wParam) == IDOK || LOWORD(wParam) == IDCANCEL)) {
+	    if (LOWORD(wParam) == IDOK) {
+		char *err = midend_set_config(fe->me, fe->cfg);
+
+		if (err) {
+		    MessageBox(hwnd, err, "Validation error",
+			       MB_ICONERROR | MB_OK);
+		} else {
+		    fe->cfg_done = 2;
+		}
+	    } else {
+		fe->cfg_done = 1;
+	    }
+	    return 0;
+	}
+
+	/*
+	 * First find the control whose id this is.
+	 */
+	for (i = fe->cfg, j = fe->cfgaux; i->type != C_END; i++, j++) {
+	    if (j->ctlid == LOWORD(wParam))
+		break;
+	}
+	if (i->type == C_END)
+	    return 0;		       /* not our problem */
+
+	if (i->type == C_STRING && HIWORD(wParam) == EN_CHANGE) {
+	    char buffer[4096];
+	    GetDlgItemText(fe->cfgbox, j->ctlid, buffer, lenof(buffer));
+	    buffer[lenof(buffer)-1] = '\0';
+	    sfree(i->sval);
+	    i->sval = dupstr(buffer);
+	} else if (i->type == C_BOOLEAN && 
+		   (HIWORD(wParam) == BN_CLICKED ||
+		    HIWORD(wParam) == BN_DOUBLECLICKED)) {
+	    i->ival = IsDlgButtonChecked(fe->cfgbox, j->ctlid);
+	} else if (i->type == C_CHOICES &&
+		   HIWORD(wParam) == CBN_SELCHANGE) {
+	    i->ival = SendDlgItemMessage(fe->cfgbox, j->ctlid,
+					 CB_GETCURSEL, 0, 0);
+	}
+
+	return 0;
+
+      case WM_CLOSE:
+	fe->cfg_done = 1;
+	return 0;
+    }
+
+    return 0;
+}
+
+HWND mkctrl(frontend *fe, int x1, int x2, int y1, int y2,
+	    char *wclass, int wstyle,
+	    int exstyle, char *wtext, int wid)
+{
+    HWND ret;
+    ret = CreateWindowEx(exstyle, wclass, wtext,
+			 wstyle | WS_CHILD | WS_VISIBLE, x1, y1, x2-x1, y2-y1,
+			 fe->cfgbox, (HMENU) wid, fe->inst, NULL);
+    SendMessage(ret, WM_SETFONT, (WPARAM)fe->cfgfont, MAKELPARAM(TRUE, 0));
+    return ret;
+}
+
+static int get_config(frontend *fe)
+{
+    config_item *i;
+    struct cfg_aux *j;
+    WNDCLASS wc;
+    MSG msg;
+    TEXTMETRIC tm;
+    HDC hdc;
+    HFONT oldfont;
+    SIZE size;
+    HWND ctl;
+    int gm, id, nctrls;
+    int winwidth, winheight, col1l, col1r, col2l, col2r, y;
+    int height, width, maxlabel, maxcheckbox;
+
+    wc.style = CS_DBLCLKS | CS_SAVEBITS | CS_BYTEALIGNWINDOW;
+    wc.lpfnWndProc = DefDlgProc;
+    wc.cbClsExtra = 0;
+    wc.cbWndExtra = DLGWINDOWEXTRA + 8;
+    wc.hInstance = fe->inst;
+    wc.hIcon = NULL;
+    wc.hCursor = LoadCursor(NULL, IDC_ARROW);
+    wc.hbrBackground = (HBRUSH) (COLOR_BACKGROUND +1);
+    wc.lpszMenuName = NULL;
+    wc.lpszClassName = "GameConfigBox";
+    RegisterClass(&wc);
+
+    hdc = GetDC(fe->hwnd);
+    SetMapMode(hdc, MM_TEXT);
+
+    fe->cfg_done = FALSE;
+
+    fe->cfgfont = CreateFont(-MulDiv(8, GetDeviceCaps(hdc, LOGPIXELSY), 72),
+			     0, 0, 0, 0,
+			     FALSE, FALSE, FALSE, DEFAULT_CHARSET,
+			     OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
+			     DEFAULT_QUALITY,
+			     FF_SWISS,
+			     "MS Shell Dlg");
+
+    oldfont = SelectObject(hdc, fe->cfgfont);
+    if (GetTextMetrics(hdc, &tm)) {
+	height = tm.tmAscent + tm.tmDescent;
+	width = tm.tmAveCharWidth;
+    } else {
+	height = width = 30;
+    }
+
+    fe->cfg = midend_get_config(fe->me);
+
+    /*
+     * Figure out the layout of the config box by measuring the
+     * length of each piece of text.
+     */
+    maxlabel = maxcheckbox = 0;
+    winheight = height/2;
+
+    for (i = fe->cfg; i->type != C_END; i++) {
+	switch (i->type) {
+	  case C_STRING:
+	  case C_CHOICES:
+	    /*
+	     * Both these control types have a label filling only
+	     * the left-hand column of the box.
+	     */
+	    if (GetTextExtentPoint32(hdc, i->name, strlen(i->name), &size) &&
+		maxlabel < size.cx)
+		maxlabel = size.cx;
+	    winheight += height * 3 / 2 + (height / 2);
+	    break;
+
+	  case C_BOOLEAN:
+	    /*
+	     * Checkboxes take up the whole of the box width.
+	     */
+	    if (GetTextExtentPoint32(hdc, i->name, strlen(i->name), &size) &&
+		maxcheckbox < size.cx)
+		maxcheckbox = size.cx;
+	    winheight += height + (height / 2);
+	    break;
+	}
+    }
+
+    winheight += height + height * 7 / 4;      /* OK / Cancel buttons */
+
+    col1l = 2*width;
+    col1r = col1l + maxlabel;
+    col2l = col1r + 2*width;
+    col2r = col2l + 30*width;
+    if (col2r < col1l+2*height+maxcheckbox)
+	col2r = col1l+2*height+maxcheckbox;
+    winwidth = col2r + 2*width;
+
+    ReleaseDC(fe->hwnd, hdc);
+
+    /*
+     * Create the dialog, now that we know its size.
+     */
+    {
+	RECT r, r2;
+
+	r.left = r.top = 0;
+	r.right = winwidth;
+	r.bottom = winheight;
+
+	AdjustWindowRectEx(&r, (WS_OVERLAPPEDWINDOW /*|
+				DS_MODALFRAME | WS_POPUP | WS_VISIBLE |
+				WS_CAPTION | WS_SYSMENU*/) &~
+			   (WS_MAXIMIZEBOX | WS_OVERLAPPED),
+			   FALSE, 0);
+
+	/*
+	 * Centre the dialog on its parent window.
+	 */
+	r.right -= r.left;
+	r.bottom -= r.top;
+	GetWindowRect(fe->hwnd, &r2);
+	r.left = (r2.left + r2.right - r.right) / 2;
+	r.top = (r2.top + r2.bottom - r.bottom) / 2;
+	r.right += r.left;
+	r.bottom += r.top;
+
+	fe->cfgbox = CreateWindowEx(0, wc.lpszClassName, "Configuration",
+				    DS_MODALFRAME | WS_POPUP | WS_VISIBLE |
+				    WS_CAPTION | WS_SYSMENU,
+				    r.left, r.top,
+				    r.right-r.left, r.bottom-r.top,
+				    fe->hwnd, NULL, fe->inst, NULL);
+    }
+
+    SendMessage(fe->cfgbox, WM_SETFONT, (WPARAM)fe->cfgfont, FALSE);
+
+    SetWindowLong(fe->cfgbox, GWL_USERDATA, (LONG)fe);
+    SetWindowLong(fe->cfgbox, DWL_DLGPROC, (LONG)ConfigDlgProc);
+
+    /*
+     * Count the controls so we can allocate cfgaux.
+     */
+    for (nctrls = 0, i = fe->cfg; i->type != C_END; i++)
+	nctrls++;
+    fe->cfgaux = snewn(nctrls, struct cfg_aux);
+
+    id = 1000;
+    y = height/2;
+    for (i = fe->cfg, j = fe->cfgaux; i->type != C_END; i++, j++) {
+	switch (i->type) {
+	  case C_STRING:
+	    /*
+	     * Edit box with a label beside it.
+	     */
+	    mkctrl(fe, col1l, col1r, y+height*1/8, y+height*9/8,
+		   "Static", 0, 0, i->name, id++);
+	    ctl = mkctrl(fe, col2l, col2r, y, y+height*3/2,
+			 "EDIT", WS_TABSTOP | ES_AUTOHSCROLL,
+			 WS_EX_CLIENTEDGE, "", (j->ctlid = id++));
+	    SetWindowText(ctl, i->sval);
+	    y += height*3/2;
+	    break;
+
+	  case C_BOOLEAN:
+	    /*
+	     * Simple checkbox.
+	     */
+	    mkctrl(fe, col1l, col2r, y, y+height, "BUTTON",
+		   BS_NOTIFY | BS_AUTOCHECKBOX | WS_TABSTOP,
+		   0, i->name, (j->ctlid = id++));
+	    y += height;
+	    break;
+
+	  case C_CHOICES:
+	    /*
+	     * Drop-down list with a label beside it.
+	     */
+	    mkctrl(fe, col1l, col1r, y+height*1/8, y+height*9/8,
+		   "STATIC", 0, 0, i->name, id++);
+	    ctl = mkctrl(fe, col2l, col2r, y, y+height*41/2,
+			 "COMBOBOX", WS_TABSTOP |
+			 CBS_DROPDOWNLIST | CBS_HASSTRINGS,
+			 WS_EX_CLIENTEDGE, "", (j->ctlid = id++));
+	    {
+		char c, *p, *q, *str;
+
+		SendMessage(ctl, CB_RESETCONTENT, 0, 0);
+		p = i->sval;
+		c = *p++;
+		while (*p) {
+		    q = p;
+		    while (*q && *q != c) q++;
+		    str = snewn(q-p+1, char);
+		    strncpy(str, p, q-p);
+		    str[q-p] = '\0';
+		    SendMessage(ctl, CB_ADDSTRING, 0, (LPARAM)str);
+		    sfree(str);
+		    if (*q) q++;
+		    p = q;
+		}
+	    }
+
+	    SendMessage(ctl, CB_SETCURSEL, i->ival, 0);
+
+	    y += height*3/2;
+	    break;
+	}
+
+	assert(y < winheight);
+	y += height/2;
+    }
+
+    y += height/2;		       /* extra space before OK and Cancel */
+    mkctrl(fe, col1l, (col1l+col2r)/2-width, y, y+height*7/4, "BUTTON",
+	   BS_PUSHBUTTON | BS_NOTIFY | WS_TABSTOP | BS_DEFPUSHBUTTON, 0,
+	   "OK", IDOK);
+    mkctrl(fe, (col1l+col2r)/2+width, col2r, y, y+height*7/4, "BUTTON",
+	   BS_PUSHBUTTON | BS_NOTIFY | WS_TABSTOP, 0, "Cancel", IDCANCEL);
+
+    SendMessage(fe->cfgbox, WM_INITDIALOG, 0, 0);
+
+    EnableWindow(fe->hwnd, FALSE);
+    ShowWindow(fe->cfgbox, SW_NORMAL);
+    while ((gm=GetMessage(&msg, NULL, 0, 0)) > 0) {
+	if (!IsDialogMessage(fe->cfgbox, &msg))
+	    DispatchMessage(&msg);
+	if (fe->cfg_done)
+	    break;
+    }
+    EnableWindow(fe->hwnd, TRUE);
+    SetForegroundWindow(fe->hwnd);
+    DestroyWindow(fe->cfgbox);
+    DeleteObject(fe->cfgfont);
+
+    free_cfg(fe->cfg);
+    sfree(fe->cfgaux);
+
+    return (fe->cfg_done == 2);
+}
+
+static void new_game_type(frontend *fe)
+{
+    RECT r, sr;
+    HDC hdc;
+    int x, y;
+
+    midend_new_game(fe->me, NULL);
+    midend_size(fe->me, &x, &y);
+
+    r.left = r.top = 0;
+    r.right = x;
+    r.bottom = y;
+    AdjustWindowRectEx(&r, WS_OVERLAPPEDWINDOW &~
+		       (WS_THICKFRAME | WS_MAXIMIZEBOX |
+			WS_OVERLAPPED),
+		       TRUE, 0);
+
+    if (fe->statusbar != NULL) {
+	GetWindowRect(fe->statusbar, &sr);
+    } else {
+	sr.left = sr.right = sr.top = sr.bottom = 0;
+    }
+    SetWindowPos(fe->hwnd, NULL, 0, 0,
+		 r.right - r.left,
+		 r.bottom - r.top + sr.bottom - sr.top,
+		 SWP_NOMOVE | SWP_NOZORDER);
+    if (fe->statusbar != NULL)
+	SetWindowPos(fe->statusbar, NULL, 0, y, x,
+		     sr.bottom - sr.top, SWP_NOZORDER);
+
+    DeleteObject(fe->bitmap);
+
+    hdc = GetDC(fe->hwnd);
+    fe->bitmap = CreateCompatibleBitmap(hdc, x, y);
+    ReleaseDC(fe->hwnd, hdc);
+
+    midend_redraw(fe->me);
+}
+
 static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
 				WPARAM wParam, LPARAM lParam)
 {
@@ -440,47 +811,17 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
 	    if (!midend_process_key(fe->me, 0, 0, 'q'))
 		PostQuitMessage(0);
 	    break;
+	  case IDM_CONFIG:
+	    if (get_config(fe))
+		new_game_type(fe);
+	    break;
 	  default:
 	    {
 		int p = ((wParam &~ 0xF) - IDM_PRESETS) / 0x10;
 
 		if (p >= 0 && p < fe->npresets) {
-		    RECT r, sr;
-		    HDC hdc;
-		    int x, y;
-
 		    midend_set_params(fe->me, fe->presets[p]);
-		    midend_new_game(fe->me, NULL);
-		    midend_size(fe->me, &x, &y);
-
-		    r.left = r.top = 0;
-		    r.right = x;
-		    r.bottom = y;
-		    AdjustWindowRectEx(&r, WS_OVERLAPPEDWINDOW &~
-				       (WS_THICKFRAME | WS_MAXIMIZEBOX |
-					WS_OVERLAPPED),
-				       TRUE, 0);
-
-		    if (fe->statusbar != NULL) {
-			GetWindowRect(fe->statusbar, &sr);
-		    } else {
-			sr.left = sr.right = sr.top = sr.bottom = 0;
-		    }
-		    SetWindowPos(fe->hwnd, NULL, 0, 0,
-				 r.right - r.left,
-				 r.bottom - r.top + sr.bottom - sr.top,
-				 SWP_NOMOVE | SWP_NOZORDER);
-		    if (fe->statusbar != NULL)
-			SetWindowPos(fe->statusbar, NULL, 0, y, x,
-				     sr.bottom - sr.top, SWP_NOZORDER);
-
-		    DeleteObject(fe->bitmap);
-
-		    hdc = GetDC(fe->hwnd);
-		    fe->bitmap = CreateCompatibleBitmap(hdc, x, y);
-		    ReleaseDC(fe->hwnd, hdc);
-
-		    midend_redraw(fe->me);
+		    new_game_type(fe);
 		}
 	    }
 	    break;

@@ -138,6 +138,7 @@ char *dupstr(char *s);
  * misc.c
  */
 int rand_upto(int limit);
+void free_cfg(config_item *cfg);
 
 /*
  * random.c
