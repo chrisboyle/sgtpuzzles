@@ -4,3 +4,5 @@ net cube fifteen sixteen rect netslide nullgame
 *.map *.rsp
 *notes
 HACKING
+*.hlp *.cnt
+puzzles.txt

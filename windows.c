@@ -21,7 +21,12 @@
 #define IDM_QUIT      0x0050
 #define IDM_CONFIG    0x0060
 #define IDM_SEED      0x0070
+#define IDM_HELPC     0x0080
+#define IDM_GAMEHELP  0x0090
 #define IDM_PRESETS   0x0100
+
+#define HELP_FILE_NAME  "puzzles.hlp"
+#define HELP_CNT_NAME   "puzzles.cnt"
 
 #ifdef DEBUG
 static FILE *debug_fp = NULL;
@@ -98,6 +103,8 @@ struct frontend {
     struct cfg_aux *cfgaux;
     int cfg_which, cfg_done;
     HFONT cfgfont;
+    char *help_path;
+    int help_has_contents;
 };
 
 void fatal(char *fmt, ...)
@@ -310,6 +317,35 @@ void activate_timer(frontend *fe)
     }
 }
 
+/*
+ * See if we can find a help file.
+ */
+static void find_help_file(frontend *fe)
+{
+    char b[2048], *p, *q, *r;
+    FILE *fp;
+    if (!fe->help_path) {
+        GetModuleFileName(NULL, b, sizeof(b) - 1);
+        r = b;
+        p = strrchr(b, '\\');
+        if (p && p >= r) r = p+1;
+        q = strrchr(b, ':');
+        if (q && q >= r) r = q+1;
+        strcpy(r, HELP_FILE_NAME);
+        if ( (fp = fopen(b, "r")) != NULL) {
+            fe->help_path = dupstr(b);
+            fclose(fp);
+        } else
+            fe->help_path = NULL;
+        strcpy(r, HELP_CNT_NAME);
+        if ( (fp = fopen(b, "r")) != NULL) {
+            fe->help_has_contents = TRUE;
+            fclose(fp);
+        } else
+            fe->help_has_contents = FALSE;
+    }
+}
+
 static frontend *new_window(HINSTANCE inst, char *game_id, char **error)
 {
     frontend *fe;
@@ -331,6 +367,9 @@ static frontend *new_window(HINSTANCE inst, char *game_id, char **error)
             return NULL;
         }
     }
+
+    fe->help_path = NULL;
+    find_help_file(fe);
 
     fe->inst = inst;
     midend_new_game(fe->me);
@@ -415,6 +454,19 @@ static frontend *new_window(HINSTANCE inst, char *game_id, char **error)
 	AppendMenu(menu, MF_ENABLED, IDM_REDO, "Redo");
 	AppendMenu(menu, MF_SEPARATOR, 0, 0);
 	AppendMenu(menu, MF_ENABLED, IDM_QUIT, "Exit");
+        if (fe->help_path) {
+            HMENU hmenu = CreateMenu();
+            AppendMenu(bar, MF_ENABLED|MF_POPUP, (UINT)hmenu, "Help");
+            AppendMenu(hmenu, MF_ENABLED, IDM_HELPC, "Contents");
+            if (game_winhelp_topic) {
+                char *item;
+                assert(game_name);
+                item = snewn(9+strlen(game_name), char); /*ick*/
+                sprintf(item, "Help on %s", game_name);
+                AppendMenu(hmenu, MF_ENABLED, IDM_GAMEHELP, item);
+                sfree(item);
+            }
+        }
 	SetMenu(fe->hwnd, bar);
     }
 
@@ -846,6 +898,21 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
 	    if (get_config(fe, CFG_SEED))
 		new_game_type(fe);
 	    break;
+          case IDM_HELPC:
+            assert(fe->help_path);
+            WinHelp(hwnd, fe->help_path,
+                    fe->help_has_contents ? HELP_FINDER : HELP_CONTENTS, 0);
+            break;
+          case IDM_GAMEHELP:
+            assert(fe->help_path);
+            assert(game_winhelp_topic);
+            {
+                char *cmd = snewn(10+strlen(game_winhelp_topic), char); /*ick*/
+                sprintf(cmd, "JI(`',`%s')", game_winhelp_topic);
+                WinHelp(hwnd, fe->help_path, HELP_COMMAND, (DWORD)cmd);
+                sfree(cmd);
+            }
+            break;
 	  default:
 	    {
 		int p = ((wParam &~ 0xF) - IDM_PRESETS) / 0x10;

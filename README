@@ -1,5 +1,6 @@
 This is the README accompanying the source code to Simon Tatham's
-puzzle collection.
+puzzle collection. The collection's web site is at
+<http://www.chiark.greenend.org.uk/~sgtatham/puzzles/>.
 
 You should find several Makefiles in the source code:
 
@@ -27,3 +28,9 @@ back to the maintainer. The makefiles are generated automatically by
 the Perl script `mkfiles.pl' from the file `Recipe'. If you need to
 change the makefiles as part of a patch, you should change Recipe
 and/or mkfiles.pl.
+
+The manual, provided in Windows Help and text formats, is generated
+from a Halibut source file (puzzles.but), which is the preferred form
+for modification. To generate the manual in other formats, rebuild it,
+or learn about Halibut, visit the Halibut website at
+<http://www.chiark.greenend.org.uk/~sgtatham/halibut/>.

@@ -14,6 +14,7 @@
 #include "puzzles.h"
 
 const char *const game_name = "Sixteen";
+const char *const game_winhelp_topic = "games.sixteen";
 const int game_can_configure = TRUE;
 
 #define TILE_SIZE 48
@@ -397,7 +398,7 @@ game_state *make_move(game_state *from, game_ui *ui, int x, int y, int button)
     int dx, dy, tx, ty, n;
     game_state *ret;
 
-    if (button != LEFT_BUTTON)
+    if (button != LEFT_BUTTON && button != RIGHT_BUTTON)
         return NULL;
 
     cx = FROMCOORD(x);
@@ -412,6 +413,13 @@ game_state *make_move(game_state *from, game_ui *ui, int x, int y, int button)
         n = from->h, dy = -1, dx = 0;
     else
         return NULL;                   /* invalid click location */
+
+    /* reverse direction if right hand button is pressed */
+    if (button == RIGHT_BUTTON)
+    {
+        dx = -dx; if (dx) cx = from->w - 1 - cx;
+        dy = -dy; if (dy) cy = from->h - 1 - cy;
+    }
 
     ret = dup_game(from);
 

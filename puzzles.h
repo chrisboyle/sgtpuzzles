@@ -160,6 +160,7 @@ void random_free(random_state *state);
  * Game-specific routines
  */
 extern const char *const game_name;
+extern const char *const game_winhelp_topic;
 const int game_can_configure;
 game_params *default_params(void);
 int game_fetch_preset(int i, char **name, game_params **params);

@@ -12,6 +12,7 @@
 #include "puzzles.h"
 
 const char *const game_name = "Fifteen";
+const char *const game_winhelp_topic = "games.fifteen";
 const int game_can_configure = TRUE;
 
 #define TILE_SIZE 48

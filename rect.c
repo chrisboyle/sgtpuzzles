@@ -40,6 +40,7 @@
 #include "puzzles.h"
 
 const char *const game_name = "Rectangles";
+const char *const game_winhelp_topic = "games.rectangles";
 const int game_can_configure = TRUE;
 
 enum {

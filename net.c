@@ -13,6 +13,7 @@
 #include "tree234.h"
 
 const char *const game_name = "Net";
+const char *const game_winhelp_topic = "games.net";
 const int game_can_configure = TRUE;
 
 #define PI 3.141592653589793238462643383279502884197169399

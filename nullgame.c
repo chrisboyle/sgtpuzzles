@@ -21,6 +21,7 @@
 #include "puzzles.h"
 
 const char *const game_name = "Null Game";
+const char *const game_winhelp_topic = NULL;
 const int game_can_configure = FALSE;
 
 enum {

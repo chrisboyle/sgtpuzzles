@@ -12,6 +12,7 @@
 #include "puzzles.h"
 
 const char *const game_name = "Cube";
+const char *const game_winhelp_topic = "games.cube";
 const int game_can_configure = TRUE;
 
 #define MAXVERTICES 20

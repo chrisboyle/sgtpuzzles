@@ -14,6 +14,7 @@
 #include "tree234.h"
 
 const char *const game_name = "Netslide";
+const char *const game_winhelp_topic = "games.netslide";
 const int game_can_configure = TRUE;
 
 #define PI 3.141592653589793238462643383279502884197169399
