@@ -1,0 +1,21 @@
+# -*- makefile -*-
+# 
+# This file describes which puzzle binaries are made up from which
+# object and resource files. It is processed into the various
+# Makefiles by means of a Perl script. Makefile changes should
+# really be made by editing this file and/or the Perl script, not
+# by editing the actual Makefiles.
+
+!name puzzles
+
+!makefile gtk Makefile
+#!makefile vc Makefile.vc
+
+COMMON   = midend malloc
+NET      = net random tree234
+
+net      : [X] gtk COMMON NET
+#cube     : [X] gtk COMMON CUBE
+
+#net      : [G] windows COMMON NET
+#cube     : [G] windows COMMON CUBE

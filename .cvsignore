@@ -1,0 +1,4 @@
+Makefile*
+net cube
+*.exe *.obj *.o
+*notes

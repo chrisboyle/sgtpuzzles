@@ -1,0 +1,3 @@
+/*
+ * cube.c: Cube game.
+ */
