@@ -684,6 +684,7 @@ static int get_config(frontend *fe, int which)
 	    mkctrl(fe, col1l, col2r, y, y+height, "BUTTON",
 		   BS_NOTIFY | BS_AUTOCHECKBOX | WS_TABSTOP,
 		   0, i->name, (j->ctlid = id++));
+	    CheckDlgButton(fe->cfgbox, j->ctlid, (i->ival != 0));
 	    y += height;
 	    break;
 
