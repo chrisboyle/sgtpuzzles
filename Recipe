@@ -23,6 +23,7 @@ cube     : [X] gtk COMMON cube
 fifteen  : [X] gtk COMMON fifteen
 sixteen  : [X] gtk COMMON sixteen
 rect     : [X] gtk COMMON rect
+pattern  : [X] gtk COMMON pattern
 
 # The Windows Net shouldn't be called `net.exe' since Windows
 # already has a reasonably important utility program by that name!
@@ -32,6 +33,7 @@ cube     : [G] WINDOWS COMMON cube
 fifteen  : [G] WINDOWS COMMON fifteen
 sixteen  : [G] WINDOWS COMMON sixteen
 rect     : [G] WINDOWS COMMON rect
+pattern  : [G] WINDOWS COMMON pattern
 
 # The `nullgame' source file is a largely blank one, which contains
 # all the correct function definitions to compile and link, but

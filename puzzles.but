@@ -22,7 +22,7 @@ This is a collection of small one-player puzzle games.
 reserved. You may distribute this documentation under the MIT licence.
 See \k{licence} for the licence text in full.
 
-\versionid $Id: puzzles.but,v 1.3 2004/08/16 13:17:40 simon Exp $
+\versionid $Id$
 
 
 \C{intro} Introduction
@@ -467,13 +467,53 @@ generation of Net (see \k{net}) with the movement of Sixteen (see
 into place you have to slide them into place by moving a whole row at
 a time. 
 
-
 As in Sixteen, \I{controls, for Netslide}control is with the mouse.
 See \k{sixteen-controls}.
 
 \I{parameters, for Netslide}Game parameters are the same as for Net
 (see \k{net-params}).
 
+\C{pattern} \i{Pattern}
+
+\cfg{winhelp-topic}{games.pattern}
+
+You have a grid of squares, which must all be filled in either black
+or white. Beside each row of the grid are listed the lengths of the
+runs of black squares on that row; above each column are listed the
+lengths of the runs of black squares in that column. Your aim is to
+fill in the entire grid black or white.
+
+I first saw this puzzle form around 1995, under the name
+\q{nonograms}. I've seen it in various places since then, under
+different names.
+
+Normally, puzzles of this type turn out to be a meaningful picture
+of something once you've solved them. However, since this version
+generates the puzzles automatically, they will just look like random
+groupings of squares. (One user has suggested that this is actually
+a \e{good} thing, since it prevents you from guessing the colour of
+squares based on the picture, and forces you to use logic instead.)
+The advantage, though, is that you never run out of them.
+
+\H{pattern-controls} \i{Pattern controls}
+
+This game is played with the mouse.
+
+Left-click in a square to colour it black. Right-click to colour it
+white. If you make a mistake, you can middle-click, or hold down
+Shift while clicking with any button, to colour the square in the
+default grey (meaning \q{undecided}) again.
+
+You can click and drag with the left or right mouse button to colour
+a vertical or horizontal line of squares black or white at a time
+(respectively). If you click and drag with the middle button, or
+with Shift held down, you can colour a whole rectangle of squares
+grey.
+
+\H{pattern-parameters} \I{parameters, for Pattern}Pattern parameters
+
+The only options available from the \q{Custom...} option on the \q{Type}
+menu are \e{Width} and \e{Height}, which are self-explanatory.
 
 \A{licence} \I{MIT licence}\ii{Licence}
 
