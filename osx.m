@@ -20,6 +20,9 @@
  *    better? Is there a standard way to tell the OS "here's the
  *    _size_ of window I want, now use your best judgment about the
  *    initial position"?
+ *     + there's a standard _policy_ on window placement, given in
+ * 	 the HI guidelines. Have to implement it ourselves though,
+ * 	 bah.
  *
  *  - a brief frob of the Mac numeric keypad suggests that it
  *    generates numbers no matter what you do. I wonder if I should
@@ -39,6 +42,11 @@
  * 	 even worse because rotation feels as if it ought to be the
  * 	 default action. I fear this is why the Flash Net had the
  * 	 UI it did...
+ * 	  + I've tried out an alternative dragging interface for
+ * 	    Net; it might work nicely for stylus-based platforms
+ * 	    where you have better hand/eye feedback for the thing
+ * 	    you're clicking on, but it's rather unwieldy on the
+ * 	    Mac. I fear even shift-clicking is better than that.
  *
  *  - Should we _return_ to a game configuration sheet once an
  *    error is reported by midend_set_config, to allow the user to
@@ -51,6 +59,15 @@
  *    look with disfavour on me trying to get round them to fake a
  *    nested sheet. On the other hand I think there are good
  *    practical reasons for wanting it that way. Uncertain.
+ * 
+ *  - User feedback suggests we should have `File' and `Edit' menus
+ *    like everyone else, so some menu reorg is probably required,
+ *    along with some documentation rewording.
+ * 
+ *  - User feedback also dislikes nothing happening when you start
+ *    the app; they suggest a finder-like window containing an icon
+ *    for each puzzle type, enabling you to start one easily. Needs
+ *    thought.
  * 
  * Grotty implementation details that could probably be improved:
  * 
@@ -1064,12 +1081,7 @@ void draw_text(frontend *fe, int x, int y, int fonttype, int fontsize,
 }
 void draw_update(frontend *fe, int x, int y, int w, int h)
 {
-    /*
-     * FIXME: It seems odd that nothing is required here, although
-     * everything _seems_ to work with this routine empty. Possibly
-     * we're always updating the entire window, and there's a
-     * better way which would involve doing something in here?
-     */
+    [fe->view setNeedsDisplayInRect:NSMakeRect(x,y,w,h)];
 }
 void clip(frontend *fe, int x, int y, int w, int h)
 {
@@ -1094,7 +1106,6 @@ void start_draw(frontend *fe)
 void end_draw(frontend *fe)
 {
     [fe->image unlockFocus];
-    [fe->view setNeedsDisplay];
 }
 
 void deactivate_timer(frontend *fe)
