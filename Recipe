@@ -22,7 +22,9 @@ fifteen  : [X] gtk COMMON fifteen
 sixteen  : [X] gtk COMMON sixteen
 rect     : [X] gtk COMMON rect
 
-net      : [G] WINDOWS COMMON NET
+# The Windows Net shouldn't be called `net.exe' since Windows
+# already has a reasonably important utility program by that name!
+netgame  : [G] WINDOWS COMMON NET
 cube     : [G] WINDOWS COMMON cube
 fifteen  : [G] WINDOWS COMMON fifteen
 sixteen  : [G] WINDOWS COMMON sixteen
