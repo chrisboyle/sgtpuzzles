@@ -15,8 +15,10 @@
 WINDOWS  = windows user32.lib gdi32.lib comctl32.lib
 COMMON   = midend misc malloc random
 NET      = net tree234
+NETSLIDE = netslide tree234
 
 net      : [X] gtk COMMON NET
+netslide : [X] gtk COMMON NETSLIDE
 cube     : [X] gtk COMMON cube
 fifteen  : [X] gtk COMMON fifteen
 sixteen  : [X] gtk COMMON sixteen
@@ -25,6 +27,7 @@ rect     : [X] gtk COMMON rect
 # The Windows Net shouldn't be called `net.exe' since Windows
 # already has a reasonably important utility program by that name!
 netgame  : [G] WINDOWS COMMON NET
+netslide : [G] WINDOWS COMMON NETSLIDE
 cube     : [G] WINDOWS COMMON cube
 fifteen  : [G] WINDOWS COMMON fifteen
 sixteen  : [G] WINDOWS COMMON sixteen

@@ -1,5 +1,5 @@
 Makefile*
-net cube fifteen sixteen rect nullgame
+net cube fifteen sixteen rect netslide nullgame
 *.exe *.obj *.o
 *.map *.rsp
 *notes
