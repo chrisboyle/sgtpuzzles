@@ -127,7 +127,7 @@ char *midend_set_config(midend_data *me, int which, config_item *cfg);
 void *smalloc(int size);
 void *srealloc(void *p, int size);
 void sfree(void *p);
-char *dupstr(char *s);
+char *dupstr(const char *s);
 #define snew(type) \
     ( (type *) smalloc (sizeof (type)) )
 #define snewn(number, type) \

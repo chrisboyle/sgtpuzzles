@@ -46,7 +46,7 @@ void *srealloc(void *p, int size) {
  * dupstr is like strdup, but with the never-return-NULL property
  * of smalloc (and also reliably defined in all environments :-)
  */
-char *dupstr(char *s) {
+char *dupstr(const char *s) {
     char *r = smalloc(1+strlen(s));
     strcpy(r,s);
     return r;
