@@ -1009,38 +1009,45 @@ game_state *make_move(game_state *from, game_ui *ui, int x, int y, int button)
         active = TRUE;
     }
 
-    if (enddrag && (xc >= 0 && xc <= 2*from->w &&
-                    yc >= 0 && yc <= 2*from->h)) {
-        ret = dup_game(from);
+    ret = NULL;
 
-        if (ui->dragged) {
-            ui_draw_rect(ret, ui, ret->hedge, ret->vedge, 1);
-        } else {
-            if ((xc & 1) && !(yc & 1) && HRANGE(from,xc/2,yc/2)) {
-                hedge(ret,xc/2,yc/2) = !hedge(ret,xc/2,yc/2);
-            }
-            if ((yc & 1) && !(xc & 1) && VRANGE(from,xc/2,yc/2)) {
-                vedge(ret,xc/2,yc/2) = !vedge(ret,xc/2,yc/2);
-            }
-        }
+    if (enddrag) {
+	if (xc >= 0 && xc <= 2*from->w &&
+	    yc >= 0 && yc <= 2*from->h) {
+	    ret = dup_game(from);
 
-        ui->drag_start_x = -1;
-        ui->drag_start_y = -1;
-        ui->drag_end_x = -1;
-        ui->drag_end_y = -1;
-        ui->dragged = FALSE;
-        active = TRUE;
+	    if (ui->dragged) {
+		ui_draw_rect(ret, ui, ret->hedge, ret->vedge, 1);
+	    } else {
+		if ((xc & 1) && !(yc & 1) && HRANGE(from,xc/2,yc/2)) {
+		    hedge(ret,xc/2,yc/2) = !hedge(ret,xc/2,yc/2);
+		}
+		if ((yc & 1) && !(xc & 1) && VRANGE(from,xc/2,yc/2)) {
+		    vedge(ret,xc/2,yc/2) = !vedge(ret,xc/2,yc/2);
+		}
+	    }
 
-        if (!memcmp(ret->hedge, from->hedge, from->w*from->h) &&
-            !memcmp(ret->vedge, from->vedge, from->w*from->h)) {
-            free_game(ret);
-        } else
-            return ret;                /* a move has been made */
+	    if (!memcmp(ret->hedge, from->hedge, from->w*from->h) &&
+		!memcmp(ret->vedge, from->vedge, from->w*from->h)) {
+		free_game(ret);
+		ret = NULL;
+	    }
+	}
+
+	ui->drag_start_x = -1;
+	ui->drag_start_y = -1;
+	ui->drag_end_x = -1;
+	ui->drag_end_y = -1;
+	ui->dragged = FALSE;
+	active = TRUE;
     }
 
-    if (active)
+    if (ret)
+	return ret;		       /* a move has been made */
+    else if (active)
         return from;                   /* UI activity has occurred */
-    return NULL;
+    else
+	return NULL;
 }
 
 /* ----------------------------------------------------------------------
