@@ -22,20 +22,32 @@ enum {
 
 #define IGNORE(x) ( (x) = (x) )
 
+typedef struct frontend frontend;
 typedef struct midend_data midend_data;
 typedef struct random_state random_state;
 typedef struct game_params game_params;
 typedef struct game_state game_state;
+typedef struct game_drawstate game_drawstate;
 
 /*
  * Platform routines
  */
 void fatal(char *fmt, ...);
+void frontend_default_colour(frontend *fe, float *output);
+void draw_rect(frontend *fe, int x, int y, int w, int h, int colour);
+void draw_line(frontend *fe, int x1, int y1, int x2, int y2, int colour);
+void draw_polygon(frontend *fe, int *coords, int npoints,
+                  int fill, int colour);
+void start_draw(frontend *fe);
+void draw_update(frontend *fe, int x, int y, int w, int h);
+void end_draw(frontend *fe);
+void deactivate_timer(frontend *fe);
+void activate_timer(frontend *fe);
 
 /*
  * midend.c
  */
-midend_data *midend_new(void);
+midend_data *midend_new(frontend *fe);
 void midend_free(midend_data *me);
 void midend_set_params(midend_data *me, game_params *params);
 void midend_size(midend_data *me, int *x, int *y);
@@ -44,6 +56,9 @@ void midend_restart_game(midend_data *me);
 void midend_undo(midend_data *me);
 void midend_redo(midend_data *me);
 int midend_process_key(midend_data *me, int x, int y, int button);
+void midend_redraw(midend_data *me);
+float *midend_colours(midend_data *me, int *ncolours);
+void midend_timer(midend_data *me, float tplus);
 
 /*
  * malloc.c
@@ -77,5 +92,11 @@ game_state *dup_game(game_state *state);
 void free_game(game_state *state);
 game_state *make_move(game_state *from, int x, int y, int button);
 void game_size(game_params *params, int *x, int *y);
+float *game_colours(frontend *fe, game_state *state, int *ncolours);
+game_drawstate *game_new_drawstate(game_state *state);
+void game_free_drawstate(game_drawstate *ds);
+void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
+                 game_state *newstate, float t);
+float game_anim_length(game_state *oldstate, game_state *newstate);
 
 #endif /* PUZZLES_PUZZLES_H */
