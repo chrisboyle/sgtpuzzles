@@ -41,8 +41,11 @@ pattern  : [G] WINDOWS COMMON pattern
 # Mac OS X unified application containing all the puzzles.
 Puzzles  : [MX] osx osx.icns osx-info.plist COMMON ALL
 # For OS X, we must create the online help and include it in the
-# application bundle.)
+# application bundle.) Also we add -DCOMBINED to the compiler flags
+# so as to inform the code that we're building a single binary for
+# all the puzzles.
 !begin osx
+CFLAGS += -DCOMBINED
 Puzzles_extra = Puzzles.app/Contents/Resources/Help/index.html
 Puzzles.app/Contents/Resources/Help/index.html: \
 	Puzzles.app/Contents/Resources/Help puzzles.but

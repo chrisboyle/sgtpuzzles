@@ -200,14 +200,6 @@ struct game {
 };
 
 /*
- * Here we include the knowledge of which platforms are of which
- * type.
- */
-#ifdef MAC_OS_X   /* this must be defined in the OS X Makefile */
-#define COMBINED
-#endif
-
-/*
  * For one-game-at-a-time platforms, there's a single structure
  * like the above, under a fixed name. For all-at-once platforms,
  * there's a list of all available puzzles in array form.

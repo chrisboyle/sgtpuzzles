@@ -1128,7 +1128,7 @@ if (defined $makefiles{'osx'}) {
     print
     "CC = \$(TOOLPATH)gcc\n".
     "\n".
-    &splitline("CFLAGS = -O2 -Wall -Werror -g -DMAC_OS_X " .
+    &splitline("CFLAGS = -O2 -Wall -Werror -g " .
 	       (join " ", map {"-I$dirpfx$_"} @srcdirs))."\n".
     "LDFLAGS = -framework Cocoa\n".
     &splitline("all:" . join "", map { " $_" } &progrealnames("MX")) .
