@@ -1323,11 +1323,9 @@ void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
         break_label:
 
         if (tx >= 0) {
-            if (tile(state, tx, ty) == ROT(tile(oldstate, tx, ty),
-                                           state->last_rotate_dir))
-                angle = state->last_rotate_dir * 90.0F * (t / ROTATE_TIME);
-            else
-                angle = state->last_rotate_dir * -90.0F * (t / ROTATE_TIME);
+            int last_rotate_dir = dir==-1 ? oldstate->last_rotate_dir :
+                                            state->last_rotate_dir;
+            angle = last_rotate_dir * dir * 90.0F * (t / ROTATE_TIME);
             state = oldstate;
         }
     }
