@@ -279,54 +279,59 @@ int midend_process_key(midend_data *me, int x, int y, int button)
      * fix it _here_ in the common midend code so that it only has
      * to be done once.
      * 
-     * Semantics:
+     * The possible ways in which things can go screwy in the front
+     * end are:
      * 
-     *  - when we receive a button down message, we remember which
-     *    button went down.
+     *  - in a system containing multiple physical buttons button
+     *    presses can inadvertently overlap. We can see ABab (caps
+     *    meaning button-down and lowercase meaning button-up) when
+     *    the user had semantically intended AaBb.
      * 
-     *  - if we receive a drag or release message for a button we
-     *    don't currently think is pressed, we fabricate a
-     *    button-down for it before sending it.
+     *  - in a system where one button is simulated by means of a
+     *    modifier key and another button, buttons can mutate
+     *    between press and release (possibly during drag). So we
+     *    can see Ab instead of Aa.
      * 
-     *  - if we receive (or fabricate) a button down message
-     *    without having seen a button up for the previously
-     *    pressed button, we invent the button up before sending
-     *    the button down.
+     * Definite requirements are:
      * 
-     * Therefore, front ends can just send whatever data they
-     * happen to be conveniently able to get, and back ends can be
-     * guaranteed of always receiving a down, zero or more drags
-     * and an up for a single button at a time.
+     *  - button _presses_ must never be invented or destroyed. If
+     *    the user presses two buttons in succession, the button
+     *    presses must be transferred to the backend unchanged. So
+     *    if we see AaBb , that's fine; if we see ABab (the button
+     *    presses inadvertently overlapped) we must somehow
+     *    `correct' it to AaBb.
+     * 
+     *  - every mouse action must end up looking like a press, zero
+     *    or more drags, then a release. This allows back ends to
+     *    make the _assumption_ that incoming mouse data will be
+     *    sane in this regard, and not worry about the details.
+     * 
+     * So my policy will be:
+     * 
+     *  - treat any button-up as a button-up for the currently
+     *    pressed button, or ignore it if there is no currently
+     *    pressed button.
+     * 
+     *  - treat any drag as a drag for the currently pressed
+     *    button, or ignore it if there is no currently pressed
+     *    button.
+     * 
+     *  - if we see a button-down while another button is currently
+     *    pressed, invent a button-up for the first one and then
+     *    pass the button-down through as before.
+     * 
      */
     if (IS_MOUSE_DRAG(button) || IS_MOUSE_RELEASE(button)) {
-        int which;
-
-        if (IS_MOUSE_DRAG(button))
-            which = button + (LEFT_BUTTON - LEFT_DRAG);
-        else
-            which = button + (LEFT_BUTTON - LEFT_RELEASE);
-
-        if (which != me->pressed_mouse_button) {
-            /*
-             * Fabricate a button-up for the currently pressed
-             * button, if any.
-             */
-            if (me->pressed_mouse_button) {
-                ret = ret && midend_really_process_key
-                    (me, x, y, (me->pressed_mouse_button +
-                                (LEFT_RELEASE - LEFT_BUTTON)));
+        if (me->pressed_mouse_button) {
+            if (IS_MOUSE_DRAG(button)) {
+                button = me->pressed_mouse_button +
+                    (LEFT_DRAG - LEFT_BUTTON);
+            } else {
+                button = me->pressed_mouse_button +
+                    (LEFT_RELEASE - LEFT_BUTTON);
             }
-
-            /*
-             * Now fabricate a button-down for this one.
-             */
-            ret = ret && midend_really_process_key(me, x, y, which);
-
-            /*
-             * And set the currently pressed button to this one.
-             */
-            me->pressed_mouse_button = which;
-        }
+        } else
+            return ret;                /* ignore it */
     } else if (IS_MOUSE_DOWN(button) && me->pressed_mouse_button) {
         /*
          * Fabricate a button-up for the previously pressed button.
