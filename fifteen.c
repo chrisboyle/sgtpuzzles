@@ -199,15 +199,16 @@ char *new_game_seed(game_params *params)
      * Determine the required parity of the overall permutation.
      * This is the XOR of:
      * 
-     *  - The chessboard parity ((x^y)&1) of the gap square. The
-     *    bottom right, and therefore also the top left, count as
-     *    even.
+     * 	- The chessboard parity ((x^y)&1) of the gap square. The
+     * 	  bottom right counts as even.
      * 
      *  - The parity of n. (The target permutation is 1,...,n-1,0
      *    rather than 0,...,n-1; this is a cyclic permutation of
      *    the starting point and hence is odd iff n is even.)
      */
-    parity = (X(params, gap) ^ Y(params, gap) ^ (n+1)) & 1;
+    parity = ((X(params, gap) - (params->w-1)) ^
+	      (Y(params, gap) - (params->h-1)) ^
+	      (n+1)) & 1;
 
     /*
      * Try the last two tiles one way round. If that fails, swap
