@@ -177,22 +177,22 @@ static void SHA_Final(SHA_State * s, unsigned char *output)
     c[0] = 0x80;
     SHA_Bytes(s, &c, pad);
 
-    c[0] = (lenhi >> 24) & 0xFF;
-    c[1] = (lenhi >> 16) & 0xFF;
-    c[2] = (lenhi >> 8) & 0xFF;
-    c[3] = (lenhi >> 0) & 0xFF;
-    c[4] = (lenlo >> 24) & 0xFF;
-    c[5] = (lenlo >> 16) & 0xFF;
-    c[6] = (lenlo >> 8) & 0xFF;
-    c[7] = (lenlo >> 0) & 0xFF;
+    c[0] = (unsigned char)((lenhi >> 24) & 0xFF);
+    c[1] = (unsigned char)((lenhi >> 16) & 0xFF);
+    c[2] = (unsigned char)((lenhi >> 8) & 0xFF);
+    c[3] = (unsigned char)((lenhi >> 0) & 0xFF);
+    c[4] = (unsigned char)((lenlo >> 24) & 0xFF);
+    c[5] = (unsigned char)((lenlo >> 16) & 0xFF);
+    c[6] = (unsigned char)((lenlo >> 8) & 0xFF);
+    c[7] = (unsigned char)((lenlo >> 0) & 0xFF);
 
     SHA_Bytes(s, &c, 8);
 
     for (i = 0; i < 5; i++) {
-	output[i * 4] = (s->h[i] >> 24) & 0xFF;
-	output[i * 4 + 1] = (s->h[i] >> 16) & 0xFF;
-	output[i * 4 + 2] = (s->h[i] >> 8) & 0xFF;
-	output[i * 4 + 3] = (s->h[i]) & 0xFF;
+	output[i * 4] = (unsigned char)((s->h[i] >> 24) & 0xFF);
+	output[i * 4 + 1] = (unsigned char)((s->h[i] >> 16) & 0xFF);
+	output[i * 4 + 2] = (unsigned char)((s->h[i] >> 8) & 0xFF);
+	output[i * 4 + 3] = (unsigned char)((s->h[i]) & 0xFF);
     }
 }
 

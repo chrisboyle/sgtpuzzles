@@ -27,82 +27,86 @@ struct solid {
 static const struct solid tetrahedron = {
     4,
     {
-        0.0, -0.57735026919, -0.20412414523,
-        -0.5, 0.28867513459, -0.20412414523,
-        0.0, -0.0, 0.6123724357,
-        0.5, 0.28867513459, -0.20412414523,
+        0.0F, -0.57735026919F, -0.20412414523F,
+        -0.5F, 0.28867513459F, -0.20412414523F,
+        0.0F, -0.0F, 0.6123724357F,
+        0.5F, 0.28867513459F, -0.20412414523F,
     },
     3, 4,
     {
         0,2,1, 3,1,2, 2,0,3, 1,3,0
     },
     {
-        -0.816496580928, -0.471404520791, 0.333333333334,
-        0.0, 0.942809041583, 0.333333333333,
-        0.816496580928, -0.471404520791, 0.333333333334,
-        0.0, 0.0, -1.0,
+        -0.816496580928F, -0.471404520791F, 0.333333333334F,
+        0.0F, 0.942809041583F, 0.333333333333F,
+        0.816496580928F, -0.471404520791F, 0.333333333334F,
+        0.0F, 0.0F, -1.0F,
     },
-    0.0, 0.3
+    0.0F, 0.3F
 };
 
 static const struct solid cube = {
     8,
     {
-        -0.5,-0.5,-0.5, -0.5,-0.5,+0.5, -0.5,+0.5,-0.5, -0.5,+0.5,+0.5,
-        +0.5,-0.5,-0.5, +0.5,-0.5,+0.5, +0.5,+0.5,-0.5, +0.5,+0.5,+0.5,
+        -0.5F,-0.5F,-0.5F, -0.5F,-0.5F,+0.5F,
+	-0.5F,+0.5F,-0.5F, -0.5F,+0.5F,+0.5F,
+        +0.5F,-0.5F,-0.5F, +0.5F,-0.5F,+0.5F,
+	+0.5F,+0.5F,-0.5F, +0.5F,+0.5F,+0.5F,
     },
     4, 6,
     {
         0,1,3,2, 1,5,7,3, 5,4,6,7, 4,0,2,6, 0,4,5,1, 3,7,6,2
     },
     {
-        -1,0,0, 0,0,+1, +1,0,0, 0,0,-1, 0,-1,0, 0,+1,0
+        -1.0F,0.0F,0.0F, 0.0F,0.0F,+1.0F,
+	+1.0F,0.0F,0.0F, 0.0F,0.0F,-1.0F,
+	0.0F,-1.0F,0.0F, 0.0F,+1.0F,0.0F
     },
-    0.3, 0.5
+    0.3F, 0.5F
 };
 
 static const struct solid octahedron = {
     6,
     {
-        -0.5, -0.28867513459472505, 0.4082482904638664,
-        0.5, 0.28867513459472505, -0.4082482904638664,
-        -0.5, 0.28867513459472505, -0.4082482904638664,
-        0.5, -0.28867513459472505, 0.4082482904638664,
-        0.0, -0.57735026918945009, -0.4082482904638664,
-        0.0, 0.57735026918945009, 0.4082482904638664,
+        -0.5F, -0.28867513459472505F, 0.4082482904638664F,
+        0.5F, 0.28867513459472505F, -0.4082482904638664F,
+        -0.5F, 0.28867513459472505F, -0.4082482904638664F,
+        0.5F, -0.28867513459472505F, 0.4082482904638664F,
+        0.0F, -0.57735026918945009F, -0.4082482904638664F,
+        0.0F, 0.57735026918945009F, 0.4082482904638664F,
     },
     3, 8,
     {
         4,0,2, 0,5,2, 0,4,3, 5,0,3, 1,4,2, 5,1,2, 4,1,3, 1,5,3
     },
     {
-        -0.816496580928, -0.471404520791, -0.333333333334,
-        -0.816496580928, 0.471404520791, 0.333333333334,
-        0.0, -0.942809041583, 0.333333333333,
-        0.0, 0.0, 1.0,
-        0.0, 0.0, -1.0,
-        0.0, 0.942809041583, -0.333333333333,
-        0.816496580928, -0.471404520791, -0.333333333334,
-        0.816496580928, 0.471404520791, 0.333333333334,
+        -0.816496580928F, -0.471404520791F, -0.333333333334F,
+        -0.816496580928F, 0.471404520791F, 0.333333333334F,
+        0.0F, -0.942809041583F, 0.333333333333F,
+        0.0F, 0.0F, 1.0F,
+        0.0F, 0.0F, -1.0F,
+        0.0F, 0.942809041583F, -0.333333333333F,
+        0.816496580928F, -0.471404520791F, -0.333333333334F,
+        0.816496580928F, 0.471404520791F, 0.333333333334F,
     },
-    0.0, 0.5
+    0.0F, 0.5F
 };
 
 static const struct solid icosahedron = {
     12,
     {
-        0.0, 0.57735026919, 0.75576131408,
-        0.0, -0.93417235896, 0.17841104489,
-        0.0, 0.93417235896, -0.17841104489,
-        0.0, -0.57735026919, -0.75576131408,
-        -0.5, -0.28867513459, 0.75576131408,
-        -0.5, 0.28867513459, -0.75576131408,
-        0.5, -0.28867513459, 0.75576131408,
-        0.5, 0.28867513459, -0.75576131408,
-        -0.80901699437, 0.46708617948, 0.17841104489,
-        0.80901699437, 0.46708617948, 0.17841104489,
-        -0.80901699437, -0.46708617948, -0.17841104489,
-        0.80901699437, -0.46708617948, -0.17841104489,
+        0.0F, 0.57735026919F, 0.75576131408F,
+        0.0F, -0.93417235896F, 0.17841104489F,
+        0.0F, 0.93417235896F, -0.17841104489F,
+        0.0F, -0.57735026919F, -0.75576131408F,
+        -0.5F, -0.28867513459F, 0.75576131408F,
+        -0.5F, 0.28867513459F, -0.75576131408F,
+        0.5F, -0.28867513459F, 0.75576131408F,
+        0.5F, 0.28867513459F, -0.75576131408F,
+        -0.80901699437F, 0.46708617948F, 0.17841104489F,
+        0.80901699437F, 0.46708617948F, 0.17841104489F,
+        -0.80901699437F, -0.46708617948F, -0.17841104489F,
+        0.80901699437F, -0.46708617948F, -0.17841104489F,
     },
     3, 20,
     {
@@ -112,28 +116,28 @@ static const struct solid icosahedron = {
         1,11,6, 8,2,5,  2,9,7,  3,10,5, 11,3,7,
     },
     {
-        -0.356822089773, 0.87267799625, 0.333333333333,
-        0.356822089773, 0.87267799625, 0.333333333333,
-        -0.356822089773, -0.87267799625, -0.333333333333,
-        0.356822089773, -0.87267799625, -0.333333333333,
-        -0.0, 0.0, 1.0,
-        0.0, -0.666666666667, 0.745355992501,
-        0.0, 0.666666666667, -0.745355992501,
-        0.0, 0.0, -1.0,
-        -0.934172358963, -0.12732200375, 0.333333333333,
-        -0.934172358963, 0.12732200375, -0.333333333333,
-        0.934172358963, -0.12732200375, 0.333333333333,
-        0.934172358963, 0.12732200375, -0.333333333333,
-        -0.57735026919, 0.333333333334, 0.745355992501,
-        0.57735026919, 0.333333333334, 0.745355992501,
-        -0.57735026919, -0.745355992501, 0.333333333334,
-        0.57735026919, -0.745355992501, 0.333333333334,
-        -0.57735026919, 0.745355992501, -0.333333333334,
-        0.57735026919, 0.745355992501, -0.333333333334,
-        -0.57735026919, -0.333333333334, -0.745355992501,
-        0.57735026919, -0.333333333334, -0.745355992501,
+        -0.356822089773F, 0.87267799625F, 0.333333333333F,
+        0.356822089773F, 0.87267799625F, 0.333333333333F,
+        -0.356822089773F, -0.87267799625F, -0.333333333333F,
+        0.356822089773F, -0.87267799625F, -0.333333333333F,
+        -0.0F, 0.0F, 1.0F,
+        0.0F, -0.666666666667F, 0.745355992501F,
+        0.0F, 0.666666666667F, -0.745355992501F,
+        0.0F, 0.0F, -1.0F,
+        -0.934172358963F, -0.12732200375F, 0.333333333333F,
+        -0.934172358963F, 0.12732200375F, -0.333333333333F,
+        0.934172358963F, -0.12732200375F, 0.333333333333F,
+        0.934172358963F, 0.12732200375F, -0.333333333333F,
+        -0.57735026919F, 0.333333333334F, 0.745355992501F,
+        0.57735026919F, 0.333333333334F, 0.745355992501F,
+        -0.57735026919F, -0.745355992501F, 0.333333333334F,
+        0.57735026919F, -0.745355992501F, 0.333333333334F,
+        -0.57735026919F, 0.745355992501F, -0.333333333334F,
+        0.57735026919F, 0.745355992501F, -0.333333333334F,
+        -0.57735026919F, -0.333333333334F, -0.745355992501F,
+        0.57735026919F, -0.333333333334F, -0.745355992501F,
     },
-    0.0, 0.8
+    0.0F, 0.8F
 };
 
 enum {
@@ -152,8 +156,8 @@ enum {
 
 enum { LEFT, RIGHT, UP, DOWN, UP_LEFT, UP_RIGHT, DOWN_LEFT, DOWN_RIGHT };
 
-#define GRID_SCALE 48
-#define ROLLTIME 0.1
+#define GRID_SCALE 48.0F
+#define ROLLTIME 0.1F
 
 #define SQ(x) ( (x) * (x) )
 
@@ -282,16 +286,16 @@ static void enum_grid_squares(game_params *params,
             for (y = 0; y < params->d2; y++) {
                 struct grid_square sq;
 
-                sq.x = x;
-                sq.y = y;
-                sq.points[0] = x - 0.5;
-                sq.points[1] = y - 0.5;
-                sq.points[2] = x - 0.5;
-                sq.points[3] = y + 0.5;
-                sq.points[4] = x + 0.5;
-                sq.points[5] = y + 0.5;
-                sq.points[6] = x + 0.5;
-                sq.points[7] = y - 0.5;
+                sq.x = (float)x;
+                sq.y = (float)y;
+                sq.points[0] = x - 0.5F;
+                sq.points[1] = y - 0.5F;
+                sq.points[2] = x - 0.5F;
+                sq.points[3] = y + 0.5F;
+                sq.points[4] = x + 0.5F;
+                sq.points[5] = y + 0.5F;
+                sq.points[6] = x + 0.5F;
+                sq.points[7] = y - 0.5F;
                 sq.npoints = 4;
 
                 sq.directions[LEFT]  = 0x03;   /* 0,1 */
@@ -315,7 +319,7 @@ static void enum_grid_squares(game_params *params,
             }
     } else {
         int row, rowlen, other, i, firstix = -1;
-        float theight = sqrt(3) / 2.0;
+        float theight = (float)(sqrt(3) / 2.0);
 
         for (row = 0; row < params->d1 + params->d2; row++) {
             if (row < params->d1) {
@@ -335,15 +339,15 @@ static void enum_grid_squares(game_params *params,
                 float x, y;
 
                 ix = (2 * i - (rowlen-1));
-                x = ix * 0.5;
+                x = ix * 0.5F;
                 y = theight * row;
                 sq.x = x;
                 sq.y = y + theight / 3;
-                sq.points[0] = x - 0.5;
+                sq.points[0] = x - 0.5F;
                 sq.points[1] = y;
                 sq.points[2] = x;
                 sq.points[3] = y + theight;
-                sq.points[4] = x + 0.5;
+                sq.points[4] = x + 0.5F;
                 sq.points[5] = y;
                 sq.npoints = 3;
 
@@ -380,15 +384,15 @@ static void enum_grid_squares(game_params *params,
                 float x, y;
 
                 ix = (2 * i - (rowlen+other-1));
-                x = ix * 0.5;
+                x = ix * 0.5F;
                 y = theight * row;
                 sq.x = x;
                 sq.y = y + 2*theight / 3;
-                sq.points[0] = x + 0.5;
+                sq.points[0] = x + 0.5F;
                 sq.points[1] = y + theight;
                 sq.points[2] = x;
                 sq.points[3] = y;
-                sq.points[4] = x - 0.5;
+                sq.points[4] = x - 0.5F;
                 sq.points[5] = y + theight;
                 sq.npoints = 3;
 
@@ -507,7 +511,7 @@ char *new_game_seed(game_params *params)
 	for (j = 0; j < facesperclass; j++) {
 	    unsigned long divisor = RAND_MAX / data.nsquares[i];
 	    unsigned long max = divisor * data.nsquares[i];
-	    int n;
+	    unsigned long n;
 
 	    do {
 		n = rand();
@@ -523,7 +527,7 @@ char *new_game_seed(game_params *params)
 	     * better data structure for this, but for such small
 	     * numbers it hardly seems worth the effort.
 	     */
-	    while (n < data.nsquares[i]-1) {
+	    while ((int)n < data.nsquares[i]-1) {
 		data.gridptrs[i][n] = data.gridptrs[i][n+1];
 		n++;
 	    }
@@ -564,7 +568,7 @@ char *new_game_seed(game_params *params)
     {
 	unsigned long divisor = RAND_MAX / m;
 	unsigned long max = divisor * m;
-	int n;
+	unsigned long n;
 
 	do {
 	    n = rand();
@@ -704,8 +708,8 @@ static struct solid *transform_poly(const struct solid *solid, int flip,
     vmatrix[1] = -vy; vmatrix[4] = vx; vmatrix[7] = 0;
     vmatrix[2] =   0; vmatrix[5] =  0; vmatrix[8] = 1;
 
-    ax = cos(angle);
-    ay = sin(angle);
+    ax = (float)cos(angle);
+    ay = (float)sin(angle);
 
     amatrix[0] = 1; amatrix[3] =   0; amatrix[6] =  0;
     amatrix[1] = 0; amatrix[4] =  ax; amatrix[7] = ay;
@@ -972,7 +976,7 @@ game_state *make_move(game_state *from, int x, int y, int button)
         for (i = 0; i < 3; i++)
             dp += (from->solid->normals[f[0]*3+i] *
                    from->solid->normals[f[1]*3+i]);
-        angle = acos(dp);
+        angle = (float)acos(dp);
     }
 
     /*
@@ -1149,10 +1153,10 @@ static struct bbox find_bbox(game_params *params)
      * These should be hugely more than the real bounding box will
      * be.
      */
-    bb.l = 2 * (params->d1 + params->d2);
-    bb.r = -2 * (params->d1 + params->d2);
-    bb.u = 2 * (params->d1 + params->d2);
-    bb.d = -2 * (params->d1 + params->d2);
+    bb.l = 2.0F * (params->d1 + params->d2);
+    bb.r = -2.0F * (params->d1 + params->d2);
+    bb.u = 2.0F * (params->d1 + params->d2);
+    bb.d = -2.0F * (params->d1 + params->d2);
     enum_grid_squares(params, find_bbox_callback, &bb);
 
     return bb;
@@ -1161,8 +1165,8 @@ static struct bbox find_bbox(game_params *params)
 void game_size(game_params *params, int *x, int *y)
 {
     struct bbox bb = find_bbox(params);
-    *x = (bb.r - bb.l + 2*solids[params->solid]->border) * GRID_SCALE;
-    *y = (bb.d - bb.u + 2*solids[params->solid]->border) * GRID_SCALE;
+    *x = (int)((bb.r - bb.l + 2*solids[params->solid]->border) * GRID_SCALE);
+    *y = (int)((bb.d - bb.u + 2*solids[params->solid]->border) * GRID_SCALE);
 }
 
 float *game_colours(frontend *fe, game_state *state, int *ncolours)
@@ -1188,8 +1192,8 @@ game_drawstate *game_new_drawstate(game_state *state)
     struct game_drawstate *ds = snew(struct game_drawstate);
     struct bbox bb = find_bbox(&state->params);
 
-    ds->ox = -(bb.l - state->solid->border) * GRID_SCALE;
-    ds->oy = -(bb.u - state->solid->border) * GRID_SCALE;
+    ds->ox = (int)(-(bb.l - state->solid->border) * GRID_SCALE);
+    ds->oy = (int)(-(bb.u - state->solid->border) * GRID_SCALE);
 
     return ds;
 }
@@ -1211,8 +1215,8 @@ void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
     game_state *newstate;
     int square;
 
-    draw_rect(fe, 0, 0, (bb.r-bb.l+2) * GRID_SCALE,
-              (bb.d-bb.u+2) * GRID_SCALE, COL_BACKGROUND);
+    draw_rect(fe, 0, 0, (int)((bb.r-bb.l+2.0F) * GRID_SCALE),
+              (int)((bb.d-bb.u+2.0F) * GRID_SCALE), COL_BACKGROUND);
 
     if (oldstate && oldstate->movecount > state->movecount) {
         game_state *t;
@@ -1247,10 +1251,10 @@ void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
         int coords[8];
 
         for (j = 0; j < state->squares[i].npoints; j++) {
-            coords[2*j] = state->squares[i].points[2*j]
-                * GRID_SCALE + ds->ox;
-            coords[2*j+1] = state->squares[i].points[2*j+1]
-                * GRID_SCALE + ds->oy;
+            coords[2*j] = ((int)(state->squares[i].points[2*j] * GRID_SCALE)
+			   + ds->ox);
+            coords[2*j+1] = ((int)(state->squares[i].points[2*j+1]*GRID_SCALE)
+			     + ds->oy);
         }
 
         draw_polygon(fe, coords, state->squares[i].npoints, TRUE,
@@ -1307,8 +1311,8 @@ void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
         }
 
         for (j = 0; j < poly->order; j++) {
-            coords[j*2] = points[j*2] * GRID_SCALE + ds->ox;
-            coords[j*2+1] = points[j*2+1] * GRID_SCALE + ds->oy;
+            coords[j*2] = (int)(points[j*2] * GRID_SCALE) + ds->ox;
+            coords[j*2+1] = (int)(points[j*2+1] * GRID_SCALE) + ds->oy;
         }
 
         /*
@@ -1341,8 +1345,8 @@ void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
     }
     sfree(poly);
 
-    draw_update(fe, 0, 0, (bb.r-bb.l+2) * GRID_SCALE,
-                (bb.d-bb.u+2) * GRID_SCALE);
+    draw_update(fe, 0, 0, (int)((bb.r-bb.l+2.0F) * GRID_SCALE),
+                (int)((bb.d-bb.u+2.0F) * GRID_SCALE));
 }
 
 float game_anim_length(game_state *oldstate, game_state *newstate)

@@ -53,8 +53,8 @@
 #define TILE_BORDER 1
 #define WINDOW_OFFSET 16
 
-#define ROTATE_TIME 0.1
-#define FLASH_FRAME 0.05
+#define ROTATE_TIME 0.1F
+#define FLASH_FRAME 0.05F
 
 enum {
     COL_BACKGROUND,
@@ -458,7 +458,7 @@ game_state *new_game(game_params *params, char *seed)
      * the original 10 plus 10 more, rather than getting 20 new
      * ones and the chance of remembering your first 10.)
      */
-    nbarriers = params->barrier_probability * count234(barriers);
+    nbarriers = (int)(params->barrier_probability * count234(barriers));
     assert(nbarriers >= 0 && nbarriers <= count234(barriers));
 
     while (nbarriers > 0) {
@@ -785,44 +785,44 @@ float *game_colours(frontend *fe, game_state *state, int *ncolours)
     /*
      * Wires are black.
      */
-    ret[COL_WIRE * 3 + 0] = 0.0;
-    ret[COL_WIRE * 3 + 1] = 0.0;
-    ret[COL_WIRE * 3 + 2] = 0.0;
+    ret[COL_WIRE * 3 + 0] = 0.0F;
+    ret[COL_WIRE * 3 + 1] = 0.0F;
+    ret[COL_WIRE * 3 + 2] = 0.0F;
 
     /*
      * Powered wires and powered endpoints are cyan.
      */
-    ret[COL_POWERED * 3 + 0] = 0.0;
-    ret[COL_POWERED * 3 + 1] = 1.0;
-    ret[COL_POWERED * 3 + 2] = 1.0;
+    ret[COL_POWERED * 3 + 0] = 0.0F;
+    ret[COL_POWERED * 3 + 1] = 1.0F;
+    ret[COL_POWERED * 3 + 2] = 1.0F;
 
     /*
      * Barriers are red.
      */
-    ret[COL_BARRIER * 3 + 0] = 1.0;
-    ret[COL_BARRIER * 3 + 1] = 0.0;
-    ret[COL_BARRIER * 3 + 2] = 0.0;
+    ret[COL_BARRIER * 3 + 0] = 1.0F;
+    ret[COL_BARRIER * 3 + 1] = 0.0F;
+    ret[COL_BARRIER * 3 + 2] = 0.0F;
 
     /*
      * Unpowered endpoints are blue.
      */
-    ret[COL_ENDPOINT * 3 + 0] = 0.0;
-    ret[COL_ENDPOINT * 3 + 1] = 0.0;
-    ret[COL_ENDPOINT * 3 + 2] = 1.0;
+    ret[COL_ENDPOINT * 3 + 0] = 0.0F;
+    ret[COL_ENDPOINT * 3 + 1] = 0.0F;
+    ret[COL_ENDPOINT * 3 + 2] = 1.0F;
 
     /*
      * Tile borders are a darker grey than the background.
      */
-    ret[COL_BORDER * 3 + 0] = 0.5 * ret[COL_BACKGROUND * 3 + 0];
-    ret[COL_BORDER * 3 + 1] = 0.5 * ret[COL_BACKGROUND * 3 + 1];
-    ret[COL_BORDER * 3 + 2] = 0.5 * ret[COL_BACKGROUND * 3 + 2];
+    ret[COL_BORDER * 3 + 0] = 0.5F * ret[COL_BACKGROUND * 3 + 0];
+    ret[COL_BORDER * 3 + 1] = 0.5F * ret[COL_BACKGROUND * 3 + 1];
+    ret[COL_BORDER * 3 + 2] = 0.5F * ret[COL_BACKGROUND * 3 + 2];
 
     /*
      * Locked tiles are a grey in between those two.
      */
-    ret[COL_LOCKED * 3 + 0] = 0.75 * ret[COL_BACKGROUND * 3 + 0];
-    ret[COL_LOCKED * 3 + 1] = 0.75 * ret[COL_BACKGROUND * 3 + 1];
-    ret[COL_LOCKED * 3 + 2] = 0.75 * ret[COL_BACKGROUND * 3 + 2];
+    ret[COL_LOCKED * 3 + 0] = 0.75F * ret[COL_BACKGROUND * 3 + 0];
+    ret[COL_LOCKED * 3 + 1] = 0.75F * ret[COL_BACKGROUND * 3 + 1];
+    ret[COL_LOCKED * 3 + 2] = 0.75F * ret[COL_BACKGROUND * 3 + 2];
 
     return ret;
 }
@@ -933,31 +933,33 @@ static void draw_tile(frontend *fe, game_state *state, int x, int y, int tile,
     /*
      * Set up the rotation matrix.
      */
-    matrix[0] = cos(angle * PI / 180.0);
-    matrix[1] = -sin(angle * PI / 180.0);
-    matrix[2] = sin(angle * PI / 180.0);
-    matrix[3] = cos(angle * PI / 180.0);
+    matrix[0] = (float)cos(angle * PI / 180.0);
+    matrix[1] = (float)-sin(angle * PI / 180.0);
+    matrix[2] = (float)sin(angle * PI / 180.0);
+    matrix[3] = (float)cos(angle * PI / 180.0);
 
     /*
      * Draw the wires.
      */
-    cx = cy = TILE_BORDER + (TILE_SIZE-TILE_BORDER) / 2.0 - 0.5;
+    cx = cy = TILE_BORDER + (TILE_SIZE-TILE_BORDER) / 2.0F - 0.5F;
     col = (tile & ACTIVE ? COL_POWERED : COL_WIRE);
     for (dir = 1; dir < 0x10; dir <<= 1) {
         if (tile & dir) {
-            ex = (TILE_SIZE - TILE_BORDER - 1.0) / 2.0 * X(dir);
-            ey = (TILE_SIZE - TILE_BORDER - 1.0) / 2.0 * Y(dir);
+            ex = (TILE_SIZE - TILE_BORDER - 1.0F) / 2.0F * X(dir);
+            ey = (TILE_SIZE - TILE_BORDER - 1.0F) / 2.0F * Y(dir);
             MATMUL(tx, ty, matrix, ex, ey);
-            draw_thick_line(fe, bx+cx, by+cy, bx+(cx+tx), by+(cy+ty),
+            draw_thick_line(fe, bx+(int)cx, by+(int)cy,
+			    bx+(int)(cx+tx), by+(int)(cy+ty),
                             COL_WIRE);
         }
     }
     for (dir = 1; dir < 0x10; dir <<= 1) {
         if (tile & dir) {
-            ex = (TILE_SIZE - TILE_BORDER - 1.0) / 2.0 * X(dir);
-            ey = (TILE_SIZE - TILE_BORDER - 1.0) / 2.0 * Y(dir);
+            ex = (TILE_SIZE - TILE_BORDER - 1.0F) / 2.0F * X(dir);
+            ey = (TILE_SIZE - TILE_BORDER - 1.0F) / 2.0F * Y(dir);
             MATMUL(tx, ty, matrix, ex, ey);
-            draw_line(fe, bx+cx, by+cy, bx+(cx+tx), by+(cy+ty), col);
+            draw_line(fe, bx+(int)cx, by+(int)cy,
+		      bx+(int)(cx+tx), by+(int)(cy+ty), col);
         }
     }
 
@@ -982,11 +984,11 @@ static void draw_tile(frontend *fe, game_state *state, int x, int y, int tile,
         points[6] = -1; points[7] = +1;
 
         for (i = 0; i < 8; i += 2) {
-            ex = (TILE_SIZE * 0.24) * points[i];
-            ey = (TILE_SIZE * 0.24) * points[i+1];
+            ex = (TILE_SIZE * 0.24F) * points[i];
+            ey = (TILE_SIZE * 0.24F) * points[i+1];
             MATMUL(tx, ty, matrix, ex, ey);
-            points[i] = bx+cx+tx;
-            points[i+1] = by+cy+ty;
+            points[i] = bx+(int)(cx+tx);
+            points[i+1] = by+(int)(cy+ty);
         }
 
         draw_polygon(fe, points, 4, TRUE, col);
@@ -1012,8 +1014,8 @@ static void draw_tile(frontend *fe, game_state *state, int x, int y, int tile,
         if (!(tile(state, ox, oy) & F(dir)))
             continue;
 
-        px = bx + (dx>0 ? TILE_SIZE + TILE_BORDER - 1 : dx<0 ? 0 : cx);
-        py = by + (dy>0 ? TILE_SIZE + TILE_BORDER - 1 : dy<0 ? 0 : cy);
+        px = bx + (int)(dx>0 ? TILE_SIZE + TILE_BORDER - 1 : dx<0 ? 0 : cx);
+        py = by + (int)(dy>0 ? TILE_SIZE + TILE_BORDER - 1 : dy<0 ? 0 : cy);
         lx = dx * (TILE_BORDER-1);
         ly = dy * (TILE_BORDER-1);
         vx = (dy ? 1 : 0);
@@ -1131,9 +1133,9 @@ void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
         if (tx >= 0) {
             if (tile(state, tx, ty) == ROT(tile(oldstate, tx, ty),
                                            state->last_rotate_dir))
-                angle = state->last_rotate_dir * 90.0 * (t / ROTATE_TIME);
+                angle = state->last_rotate_dir * 90.0F * (t / ROTATE_TIME);
             else
-                angle = state->last_rotate_dir * -90.0 * (t / ROTATE_TIME);
+                angle = state->last_rotate_dir * -90.0F * (t / ROTATE_TIME);
             state = oldstate;
         }
     } else if (t > ROTATE_TIME) {
@@ -1141,7 +1143,7 @@ void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
          * We're animating a completion flash. Find which frame
          * we're at.
          */
-        frame = (t - ROTATE_TIME) / FLASH_FRAME;
+        frame = (int)((t - ROTATE_TIME) / FLASH_FRAME);
     }
 
     /*
@@ -1175,7 +1177,7 @@ void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
                 index(state, ds->visible, x, y) == 0xFF ||
                 (x == tx && y == ty)) {
                 draw_tile(fe, state, x, y, c,
-                          (x == tx && y == ty ? angle : 0.0));
+                          (x == tx && y == ty ? angle : 0.0F));
                 if (x == tx && y == ty)
                     index(state, ds->visible, x, y) = 0xFF;
                 else
@@ -1188,7 +1190,7 @@ void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 
 float game_anim_length(game_state *oldstate, game_state *newstate)
 {
-    float ret = 0.0;
+    float ret = 0.0F;
     int x, y;
 
     /*
