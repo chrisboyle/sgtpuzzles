@@ -24,7 +24,7 @@ enum {
     CURSOR_RIGHT
 };
 
-#define IGNORE(x) ( (x) = (x) )
+#define IGNOREARG(x) ( (x) = (x) )
 
 typedef struct frontend frontend;
 typedef struct midend_data midend_data;

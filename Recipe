@@ -9,13 +9,14 @@
 !name puzzles
 
 !makefile gtk Makefile
-#!makefile vc Makefile.vc
+!makefile vc Makefile.vc
 
+WINDOWS  = windows user32.lib gdi32.lib
 COMMON   = midend malloc
 NET      = net random tree234
 
 net      : [X] gtk COMMON NET
 cube     : [X] gtk COMMON cube
 
-#net      : [G] windows COMMON NET
-#cube     : [G] windows COMMON cube
+net      : [G] WINDOWS COMMON NET
+cube     : [G] WINDOWS COMMON cube
