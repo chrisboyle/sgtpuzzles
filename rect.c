@@ -1357,6 +1357,7 @@ void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
         sfree(vedge);
    }
 
+    sfree(corners);
     sfree(correct);
 }
 
