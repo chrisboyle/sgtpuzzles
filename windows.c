@@ -3,6 +3,7 @@
  */
 
 #include <windows.h>
+#include <commctrl.h>
 
 #include <stdio.h>
 #include <assert.h>
@@ -72,7 +73,7 @@ struct font {
 
 struct frontend {
     midend_data *me;
-    HWND hwnd;
+    HWND hwnd, statusbar;
     HBITMAP bitmap, prevbm;
     HDC hdc_bm;
     COLORREF *colours;
@@ -98,6 +99,11 @@ void fatal(char *fmt, ...)
     MessageBox(NULL, buf, "Fatal error", MB_ICONEXCLAMATION | MB_OK);
 
     exit(1);
+}
+
+void status_bar(frontend *fe, char *text)
+{
+    SetWindowText(fe->statusbar, text);
 }
 
 void frontend_default_colour(frontend *fe, float *output)
@@ -291,7 +297,7 @@ static frontend *new_window(HINSTANCE inst)
 {
     frontend *fe;
     int x, y;
-    RECT r;
+    RECT r, sr;
     HDC hdc;
 
     fe = snew(frontend);
@@ -374,6 +380,21 @@ static frontend *new_window(HINSTANCE inst)
 	SetMenu(fe->hwnd, bar);
     }
 
+    if (midend_wants_statusbar(fe->me)) {
+	fe->statusbar = CreateWindowEx(0, STATUSCLASSNAME, "ooh",
+				       WS_CHILD | WS_VISIBLE,
+				       0, 0, 0, 0, /* status bar does these */
+				       fe->hwnd, NULL, inst, NULL);
+	GetWindowRect(fe->statusbar, &sr);
+	SetWindowPos(fe->hwnd, NULL, 0, 0,
+		     r.right - r.left, r.bottom - r.top + sr.bottom - sr.top,
+		     SWP_NOMOVE | SWP_NOZORDER);
+	SetWindowPos(fe->statusbar, NULL, 0, y, x, sr.bottom - sr.top,
+		     SWP_NOZORDER);
+    } else {
+	fe->statusbar = NULL;
+    }
+
     hdc = GetDC(fe->hwnd);
     fe->bitmap = CreateCompatibleBitmap(hdc, x, y);
     ReleaseDC(fe->hwnd, hdc);
@@ -424,7 +445,7 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
 		int p = ((wParam &~ 0xF) - IDM_PRESETS) / 0x10;
 
 		if (p >= 0 && p < fe->npresets) {
-		    RECT r;
+		    RECT r, sr;
 		    HDC hdc;
 		    int x, y;
 
@@ -440,9 +461,18 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
 					WS_OVERLAPPED),
 				       TRUE, 0);
 
+		    if (fe->statusbar != NULL) {
+			GetWindowRect(fe->statusbar, &sr);
+		    } else {
+			sr.left = sr.right = sr.top = sr.bottom = 0;
+		    }
 		    SetWindowPos(fe->hwnd, NULL, 0, 0,
-				 r.right - r.left, r.bottom - r.top,
+				 r.right - r.left,
+				 r.bottom - r.top + sr.bottom - sr.top,
 				 SWP_NOMOVE | SWP_NOZORDER);
+		    if (fe->statusbar != NULL)
+			SetWindowPos(fe->statusbar, NULL, 0, y, x,
+				     sr.bottom - sr.top, SWP_NOZORDER);
 
 		    DeleteObject(fe->bitmap);
 
@@ -571,6 +601,8 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
     MSG msg;
 
     srand(time(NULL));
+
+    InitCommonControls();
 
     if (!prev) {
 	WNDCLASS wndclass;

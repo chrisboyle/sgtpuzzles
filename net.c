@@ -1189,6 +1189,24 @@ void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
             }
         }
 
+    /*
+     * Update the status bar.
+     */
+    {
+	char statusbuf[256];
+	int i, n, a;
+
+	n = state->width * state->height;
+	for (i = a = 0; i < n; i++)
+	    if (active[i])
+		a++;
+
+	sprintf(statusbuf, "%sActive: %d/%d",
+		(state->completed ? "COMPLETED! " : ""), a, n);
+
+	status_bar(fe, statusbuf);
+    }
+
     sfree(active);
 }
 
@@ -1230,4 +1248,9 @@ float game_flash_length(game_state *oldstate, game_state *newstate)
     }
 
     return 0.0F;
+}
+
+int game_wants_statusbar(void)
+{
+    return TRUE;
 }

@@ -788,7 +788,7 @@ game_state *new_game(game_params *params, char *seed)
 
     state->previous = state->current;
     state->angle = 0.0;
-    state->completed = FALSE;
+    state->completed = 0;
     state->movecount = 0;
 
     return state;
@@ -1068,7 +1068,7 @@ game_state *make_move(game_state *from, int x, int y, int button)
             if (ret->facecolours[i])
                 j++;
         if (j == ret->solid->nfaces)
-            ret->completed = TRUE;
+            ret->completed = ret->movecount;
     }
 
     sfree(poly);
@@ -1329,6 +1329,19 @@ void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 
     draw_update(fe, 0, 0, (int)((bb.r-bb.l+2.0F) * GRID_SCALE),
                 (int)((bb.d-bb.u+2.0F) * GRID_SCALE));
+
+    /*
+     * Update the status bar.
+     */
+    {
+	char statusbuf[256];
+
+	sprintf(statusbuf, "%sMoves: %d",
+		(state->completed ? "COMPLETED! " : ""),
+		(state->completed ? state->completed : state->movecount));
+
+	status_bar(fe, statusbuf);
+    }
 }
 
 float game_anim_length(game_state *oldstate, game_state *newstate)
@@ -1339,4 +1352,9 @@ float game_anim_length(game_state *oldstate, game_state *newstate)
 float game_flash_length(game_state *oldstate, game_state *newstate)
 {
     return 0.0F;
+}
+
+int game_wants_statusbar(void)
+{
+    return TRUE;
 }

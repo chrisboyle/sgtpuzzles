@@ -294,3 +294,8 @@ void midend_fetch_preset(midend_data *me, int n,
     *name = me->preset_names[n];
     *params = me->presets[n];
 }
+
+int midend_wants_statusbar(midend_data *me)
+{
+    return game_wants_statusbar();
+}

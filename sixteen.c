@@ -43,6 +43,7 @@ struct game_state {
     int w, h, n;
     int *tiles;
     int completed;
+    int movecount;
 };
 
 game_params *default_params(void)
@@ -231,7 +232,7 @@ game_state *new_game(game_params *params, char *seed)
     }
     assert(!*p);
 
-    state->completed = FALSE;
+    state->completed = state->movecount = 0;
 
     return state;
 }
@@ -246,6 +247,7 @@ game_state *dup_game(game_state *state)
     ret->tiles = snewn(state->w * state->h, int);
     memcpy(ret->tiles, state->tiles, state->w * state->h * sizeof(int));
     ret->completed = state->completed;
+    ret->movecount = state->movecount;
 
     return ret;
 }
@@ -287,11 +289,13 @@ game_state *make_move(game_state *from, int x, int y, int button)
         ret->tiles[C(ret, cx, cy)] = from->tiles[C(from, tx, ty)];
     } while (--n > 0);
 
+    ret->movecount++;
+
     /*
      * See if the game has been completed.
      */
     if (!ret->completed) {
-        ret->completed = TRUE;
+        ret->completed = ret->movecount;
         for (n = 0; n < ret->n; n++)
             if (ret->tiles[n] != n+1)
                 ret->completed = FALSE;
@@ -588,6 +592,19 @@ void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
     unclip(fe);
 
     ds->bgcolour = bgcolour;
+
+    /*
+     * Update the status bar.
+     */
+    {
+	char statusbuf[256];
+
+	sprintf(statusbuf, "%sMoves: %d",
+		(state->completed ? "COMPLETED! " : ""),
+		(state->completed ? state->completed : state->movecount));
+
+	status_bar(fe, statusbuf);
+    }
 }
 
 float game_anim_length(game_state *oldstate, game_state *newstate)
@@ -601,4 +618,9 @@ float game_flash_length(game_state *oldstate, game_state *newstate)
         return 2 * FLASH_FRAME;
     else
         return 0.0F;
+}
+
+int game_wants_statusbar(void)
+{
+    return TRUE;
 }

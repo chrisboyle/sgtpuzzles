@@ -65,6 +65,7 @@ void draw_update(frontend *fe, int x, int y, int w, int h);
 void end_draw(frontend *fe);
 void deactivate_timer(frontend *fe);
 void activate_timer(frontend *fe);
+void status_bar(frontend *fe, char *text);
 
 /*
  * midend.c
@@ -82,6 +83,7 @@ void midend_timer(midend_data *me, float tplus);
 int midend_num_presets(midend_data *me);
 void midend_fetch_preset(midend_data *me, int n,
                          char **name, game_params **params);
+int midend_wants_statusbar(midend_data *me);
 
 /*
  * malloc.c
@@ -130,5 +132,6 @@ void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
                  game_state *newstate, float anim_time, float flash_time);
 float game_anim_length(game_state *oldstate, game_state *newstate);
 float game_flash_length(game_state *oldstate, game_state *newstate);
+int game_wants_statusbar(void);
 
 #endif /* PUZZLES_PUZZLES_H */

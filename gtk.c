@@ -3,6 +3,7 @@
  */
 
 #include <stdio.h>
+#include <assert.h>
 #include <stdlib.h>
 #include <time.h>
 #include <stdarg.h>
@@ -50,6 +51,8 @@ struct font {
 struct frontend {
     GtkWidget *window;
     GtkWidget *area;
+    GtkWidget *statusbar;
+    guint statusctx;
     GdkPixmap *pixmap;
     GdkColor *colours;
     int ncolours;
@@ -69,6 +72,14 @@ void frontend_default_colour(frontend *fe, float *output)
     output[0] = col.red / 65535.0;
     output[1] = col.green / 65535.0;
     output[2] = col.blue / 65535.0;
+}
+
+void status_bar(frontend *fe, char *text)
+{
+    assert(fe->statusbar);
+
+    gtk_statusbar_pop(GTK_STATUSBAR(fe->statusbar), fe->statusctx);
+    gtk_statusbar_push(GTK_STATUSBAR(fe->statusbar), fe->statusctx, text);
 }
 
 void start_draw(frontend *fe)
@@ -299,6 +310,21 @@ static gint expose_area(GtkWidget *widget, GdkEventExpose *event,
     return TRUE;
 }
 
+static gint map_window(GtkWidget *widget, GdkEvent *event,
+		       gpointer data)
+{
+    frontend *fe = (frontend *)data;
+
+    /*
+     * Apparently we need to do this because otherwise the status
+     * bar will fail to update immediately. Annoying, but there we
+     * go.
+     */
+    gtk_widget_queue_draw(fe->window);
+
+    return TRUE;
+}
+
 static gint configure_area(GtkWidget *widget,
                            GdkEventConfigure *event, gpointer data)
 {
@@ -483,6 +509,17 @@ static frontend *new_window(void)
         }
     }
 
+    if (midend_wants_statusbar(fe->me)) {
+	fe->statusbar = gtk_statusbar_new();
+	gtk_box_pack_end(vbox, fe->statusbar, FALSE, FALSE, 0);
+	gtk_widget_show(fe->statusbar);
+	fe->statusctx = gtk_statusbar_get_context_id
+	    (GTK_STATUSBAR(fe->statusbar), "game");
+	gtk_statusbar_push(GTK_STATUSBAR(fe->statusbar), fe->statusctx,
+			   "");
+    } else
+	fe->statusbar = NULL;
+
     fe->area = gtk_drawing_area_new();
     midend_size(fe->me, &x, &y);
     gtk_drawing_area_size(GTK_DRAWING_AREA(fe->area), x, y);
@@ -505,6 +542,8 @@ static frontend *new_window(void)
 		       GTK_SIGNAL_FUNC(button_event), fe);
     gtk_signal_connect(GTK_OBJECT(fe->area), "expose_event",
 		       GTK_SIGNAL_FUNC(expose_area), fe);
+    gtk_signal_connect(GTK_OBJECT(fe->window), "map_event",
+		       GTK_SIGNAL_FUNC(map_window), fe);
     gtk_signal_connect(GTK_OBJECT(fe->area), "configure_event",
 		       GTK_SIGNAL_FUNC(configure_area), fe);
 

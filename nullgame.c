@@ -144,3 +144,8 @@ float game_flash_length(game_state *oldstate, game_state *newstate)
 {
     return 0.0F;
 }
+
+int game_wants_statusbar(void)
+{
+    return FALSE;
+}
