@@ -90,6 +90,26 @@ static struct xyd *new_xyd(int x, int y, int direction)
 }
 
 /* ----------------------------------------------------------------------
+ * Manage game parameters.
+ */
+game_params *default_params(void)
+{
+    game_params *ret = snew(game_params);
+
+    ret->width = 5;
+    ret->height = 5;
+    ret->wrapping = FALSE;
+    ret->barrier_probability = 0.0;
+
+    return ret;
+}
+
+void free_params(game_params *params)
+{
+    sfree(params);
+}
+
+/* ----------------------------------------------------------------------
  * Randomly select a new game seed.
  */
 
@@ -511,8 +531,8 @@ game_state *make_move(game_state *state, int x, int y, int button)
     /*
      * The button must have been clicked on a valid tile.
      */
-    x -= WINDOW_OFFSET;
-    y -= WINDOW_OFFSET;
+    x -= WINDOW_OFFSET + TILE_BORDER;
+    y -= WINDOW_OFFSET + TILE_BORDER;
     if (x < 0 || y < 0)
 	return NULL;
     tx = x / TILE_SIZE;
@@ -585,6 +605,12 @@ game_state *make_move(game_state *state, int x, int y, int button)
 /* ----------------------------------------------------------------------
  * Routines for drawing the game position on the screen.
  */
+
+void game_size(game_params *params, int *x, int *y)
+{
+    *x = WINDOW_OFFSET * 2 + TILE_SIZE * params->width + TILE_BORDER;
+    *y = WINDOW_OFFSET * 2 + TILE_SIZE * params->height + TILE_BORDER;
+}
 
 /* ----------------------------------------------------------------------
  * Test code.

@@ -41,6 +41,8 @@ void fatal(char *fmt, ...)
  */
 struct window_data {
     GtkWidget *window;
+    GtkWidget *area;
+    midend_data *me;
 };
 
 static void destroy(GtkWidget *widget, gpointer data)
@@ -48,15 +50,52 @@ static void destroy(GtkWidget *widget, gpointer data)
     gtk_main_quit();
 }
 
+gint key_event(GtkWidget *widget, GdkEventKey *event, gpointer data)
+{
+    struct window_data *wdata = (struct window_data *)data;
+
+    IGNORE(wdata);
+
+    if (!midend_process_key(wdata->me, 0, 0, event->keyval))
+	gtk_widget_destroy(wdata->window);
+
+    return TRUE;
+}
+
+gint button_event(GtkWidget *widget, GdkEventButton *event, gpointer data)
+{
+    struct window_data *wdata = (struct window_data *)data;
+
+    IGNORE(wdata);
+
+    return TRUE;
+}
+
 static struct window_data *new_window(void)
 {
     struct window_data *wdata;
+    int x, y;
 
     wdata = snew(struct window_data);
 
+    wdata->me = midend_new();
+    midend_new_game(wdata->me, NULL);
+
     wdata->window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+
+    wdata->area = gtk_drawing_area_new();
+    midend_size(wdata->me, &x, &y);
+    gtk_drawing_area_size(GTK_DRAWING_AREA(wdata->area), x, y);
+
+    gtk_container_add(GTK_CONTAINER(wdata->window), wdata->area);
+    gtk_widget_show(wdata->area);
+
     gtk_signal_connect(GTK_OBJECT(wdata->window), "destroy",
 		       GTK_SIGNAL_FUNC(destroy), wdata);
+    gtk_signal_connect(GTK_OBJECT(wdata->window), "key_press_event",
+		       GTK_SIGNAL_FUNC(key_event), wdata);
+    gtk_signal_connect(GTK_OBJECT(wdata->area), "button_press_event",
+		       GTK_SIGNAL_FUNC(button_event), wdata);
     gtk_widget_show(wdata->window);
     return wdata;
 }

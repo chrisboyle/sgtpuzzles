@@ -20,10 +20,30 @@ enum {
     RIGHT_BUTTON
 };
 
+#define IGNORE(x) ( (x) = (x) )
+
+typedef struct midend_data midend_data;
+typedef struct random_state random_state;
+typedef struct game_params game_params;
+typedef struct game_state game_state;
+
 /*
  * Platform routines
  */
 void fatal(char *fmt, ...);
+
+/*
+ * midend.c
+ */
+midend_data *midend_new(void);
+void midend_free(midend_data *me);
+void midend_set_params(midend_data *me, game_params *params);
+void midend_size(midend_data *me, int *x, int *y);
+void midend_new_game(midend_data *me, char *seed);
+void midend_restart_game(midend_data *me);
+void midend_undo(midend_data *me);
+void midend_redo(midend_data *me);
+int midend_process_key(midend_data *me, int x, int y, int button);
 
 /*
  * malloc.c
@@ -37,12 +57,11 @@ char *dupstr(char *s);
 #define snewn(number, type) \
     ( (type *) smalloc ((number) * sizeof (type)) )
 #define sresize(array, number, type) \
-    ( (type *) srealloc ((array), (len) * sizeof (type)) )
+    ( (type *) srealloc ((array), (number) * sizeof (type)) )
 
 /*
  * random.c
  */
-typedef struct random_state random_state;
 random_state *random_init(char *seed, int len);
 unsigned long random_upto(random_state *state, unsigned long limit);
 void random_free(random_state *state);
@@ -50,12 +69,13 @@ void random_free(random_state *state);
 /*
  * Game-specific routines
  */
-typedef struct game_params game_params;
-typedef struct game_state game_state;
+game_params *default_params(void);
+void free_params(game_params *params);
 char *new_game_seed(game_params *params);
 game_state *new_game(game_params *params, char *seed);
 game_state *dup_game(game_state *state);
 void free_game(game_state *state);
 game_state *make_move(game_state *from, int x, int y, int button);
+void game_size(game_params *params, int *x, int *y);
 
 #endif /* PUZZLES_PUZZLES_H */
