@@ -461,6 +461,8 @@ void error_box(GtkWidget *parent, char *msg)
     gtk_window_set_default(GTK_WINDOW(window), ok);
     gtk_signal_connect(GTK_OBJECT(ok), "clicked",
                        GTK_SIGNAL_FUNC(errmsg_button_clicked), window);
+    gtk_signal_connect(GTK_OBJECT(window), "destroy",
+                       GTK_SIGNAL_FUNC(window_destroy), NULL);
     gtk_signal_connect(GTK_OBJECT(window), "key_press_event",
 		       GTK_SIGNAL_FUNC(win_key_press), ok);
     gtk_window_set_modal(GTK_WINDOW(window), TRUE);
