@@ -536,7 +536,7 @@ static void draw_arrow(frontend *fe, int x, int y, int xdx, int xdy)
 void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
                  game_state *state, float animtime, float flashtime)
 {
-    int i, pass, bgcolour;
+    int i, bgcolour;
 
     if (flashtime > 0) {
         int frame = (int)(flashtime / FLASH_FRAME);
@@ -587,111 +587,100 @@ void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
     }
 
     /*
-     * Now draw each tile. We do this in two passes to make
-     * animation easy.
+     * Now draw each tile.
      */
 
     clip(fe, COORD(0), COORD(0), TILE_SIZE*state->w, TILE_SIZE*state->h);
 
-    for (pass = 0; pass < 2; pass++) {
-        for (i = 0; i < state->n; i++) {
-            int t, t0;
-            /*
-             * Figure out what should be displayed at this
-             * location. It's either a simple tile, or it's a
-             * transition between two tiles (in which case we say
-             * -1 because it must always be drawn).
-             */
+    for (i = 0; i < state->n; i++) {
+	int t, t0;
+	/*
+	 * Figure out what should be displayed at this
+	 * location. It's either a simple tile, or it's a
+	 * transition between two tiles (in which case we say
+	 * -1 because it must always be drawn).
+	 */
 
-            if (oldstate && oldstate->tiles[i] != state->tiles[i])
-                t = -1;
-            else
-                t = state->tiles[i];
+	if (oldstate && oldstate->tiles[i] != state->tiles[i])
+	    t = -1;
+	else
+	    t = state->tiles[i];
 
-            t0 = t;
+	t0 = t;
 
-            if (ds->bgcolour != bgcolour ||   /* always redraw when flashing */
-                ds->tiles[i] != t || ds->tiles[i] == -1 || t == -1) {
-                int x, y, x2, y2;
+	if (ds->bgcolour != bgcolour ||   /* always redraw when flashing */
+	    ds->tiles[i] != t || ds->tiles[i] == -1 || t == -1) {
+	    int x, y, x2, y2;
 
-                /*
-                 * Figure out what to _actually_ draw, and where to
-                 * draw it.
-                 */
-                if (t == -1) {
-                    int x0, y0, x1, y1, dx, dy;
-                    int j;
+	    /*
+	     * Figure out what to _actually_ draw, and where to
+	     * draw it.
+	     */
+	    if (t == -1) {
+		int x0, y0, x1, y1, dx, dy;
+		int j;
+		float c;
+		int sense;
 
-                    /*
-                     * On the first pass, just blank the tile.
-                     */
-                    if (pass == 0) {
-                        x = COORD(X(state, i));
-                        y = COORD(Y(state, i));
-                        x2 = y2 = -1;
-                        t = 0;
-                    } else {
-                        float c;
+		if (oldstate && state->movecount < oldstate->movecount)
+		    sense = -oldstate->last_movement_sense;
+		else
+		    sense = state->last_movement_sense;
 
-                        t = state->tiles[i];
+		t = state->tiles[i];
 
-                        /*
-                         * FIXME: must be prepared to draw a double
-                         * tile in some situations.
-                         */
+		/*
+		 * FIXME: must be prepared to draw a double
+		 * tile in some situations.
+		 */
 
-                        /*
-                         * Find the coordinates of this tile in the old and
-                         * new states.
-                         */
-                        x1 = COORD(X(state, i));
-                        y1 = COORD(Y(state, i));
-                        for (j = 0; j < oldstate->n; j++)
-                            if (oldstate->tiles[j] == state->tiles[i])
-                                break;
-                        assert(j < oldstate->n);
-                        x0 = COORD(X(state, j));
-                        y0 = COORD(Y(state, j));
+		/*
+		 * Find the coordinates of this tile in the old and
+		 * new states.
+		 */
+		x1 = COORD(X(state, i));
+		y1 = COORD(Y(state, i));
+		for (j = 0; j < oldstate->n; j++)
+		    if (oldstate->tiles[j] == state->tiles[i])
+			break;
+		assert(j < oldstate->n);
+		x0 = COORD(X(state, j));
+		y0 = COORD(Y(state, j));
 
-                        dx = (x1 - x0);
-                        if (dx != 0 &&
-			    dx != TILE_SIZE * state->last_movement_sense) {
-                            dx = (dx < 0 ? dx + TILE_SIZE * state->w :
-                                  dx - TILE_SIZE * state->w);
-                            assert(abs(dx) == TILE_SIZE);
-                        }
-                        dy = (y1 - y0);
-                        if (dy != 0 &&
-			    dy != TILE_SIZE * state->last_movement_sense) {
-                            dy = (dy < 0 ? dy + TILE_SIZE * state->h :
-                                  dy - TILE_SIZE * state->h);
-                            assert(abs(dy) == TILE_SIZE);
-                        }
+		dx = (x1 - x0);
+		if (dx != 0 &&
+		    dx != TILE_SIZE * sense) {
+		    dx = (dx < 0 ? dx + TILE_SIZE * state->w :
+			  dx - TILE_SIZE * state->w);
+		    assert(abs(dx) == TILE_SIZE);
+		}
+		dy = (y1 - y0);
+		if (dy != 0 &&
+		    dy != TILE_SIZE * sense) {
+		    dy = (dy < 0 ? dy + TILE_SIZE * state->h :
+			  dy - TILE_SIZE * state->h);
+		    assert(abs(dy) == TILE_SIZE);
+		}
 
-                        c = (animtime / ANIM_TIME);
-                        if (c < 0.0F) c = 0.0F;
-                        if (c > 1.0F) c = 1.0F;
+		c = (animtime / ANIM_TIME);
+		if (c < 0.0F) c = 0.0F;
+		if (c > 1.0F) c = 1.0F;
 
-                        x = x0 + (int)(c * dx);
-                        y = y0 + (int)(c * dy);
-                        x2 = x1 - dx + (int)(c * dx);
-                        y2 = y1 - dy + (int)(c * dy);
-                    }
+		x = x0 + (int)(c * dx);
+		y = y0 + (int)(c * dy);
+		x2 = x1 - dx + (int)(c * dx);
+		y2 = y1 - dy + (int)(c * dy);
+	    } else {
+		x = COORD(X(state, i));
+		y = COORD(Y(state, i));
+		x2 = y2 = -1;
+	    }
 
-                } else {
-                    if (pass == 0)
-                        continue;
-                    x = COORD(X(state, i));
-                    y = COORD(Y(state, i));
-                    x2 = y2 = -1;
-                }
-
-                draw_tile(fe, state, x, y, t, bgcolour);
-                if (x2 != -1 || y2 != -1)
-                    draw_tile(fe, state, x2, y2, t, bgcolour);
-            }
-            ds->tiles[i] = t0;
-        }
+	    draw_tile(fe, state, x, y, t, bgcolour);
+	    if (x2 != -1 || y2 != -1)
+		draw_tile(fe, state, x2, y2, t, bgcolour);
+	}
+	ds->tiles[i] = t0;
     }
 
     unclip(fe);
