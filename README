@@ -3,9 +3,9 @@ puzzle collection.
 
 You should find several Makefiles in the source code:
 
- - `Makefile.gtk' should work under GNU make on Linux, provided you
-   have GTK installed to compile and link against. It builds GTK
-   binaries of the puzzle games.
+ - `Makefile' should work under GNU make on Linux, provided you have
+   GTK installed to compile and link against. It builds GTK binaries
+   of the puzzle games.
 
  - `Makefile.vc' should work under MS Visual C++ on Windows.
 
