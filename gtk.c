@@ -384,6 +384,21 @@ static void errmsg_button_clicked(GtkButton *button, gpointer data)
     gtk_widget_destroy(GTK_WIDGET(data));
 }
 
+static int win_key_press(GtkWidget *widget, GdkEventKey *event, gpointer data)
+{
+    GtkObject *cancelbutton = GTK_OBJECT(data);
+
+    /*
+     * `Escape' effectively clicks the cancel button
+     */
+    if (event->keyval == GDK_Escape) {
+	gtk_signal_emit_by_name(GTK_OBJECT(cancelbutton), "clicked");
+	return TRUE;
+    }
+
+    return FALSE;
+}
+
 void error_box(GtkWidget *parent, char *msg)
 {
     GtkWidget *window, *hbox, *text, *ok;
@@ -407,8 +422,8 @@ void error_box(GtkWidget *parent, char *msg)
     gtk_window_set_default(GTK_WINDOW(window), ok);
     gtk_signal_connect(GTK_OBJECT(ok), "clicked",
                        GTK_SIGNAL_FUNC(errmsg_button_clicked), window);
-    gtk_signal_connect(GTK_OBJECT(window), "destroy",
-                       GTK_SIGNAL_FUNC(window_destroy), NULL);
+    gtk_signal_connect(GTK_OBJECT(window), "key_press_event",
+		       GTK_SIGNAL_FUNC(win_key_press), ok);
     gtk_window_set_modal(GTK_WINDOW(window), TRUE);
     gtk_window_set_transient_for(GTK_WINDOW(window), GTK_WINDOW(parent));
     //set_transient_window_pos(parent, window);
@@ -438,6 +453,27 @@ static void config_cancel_button_clicked(GtkButton *button, gpointer data)
     gtk_widget_destroy(fe->cfgbox);
 }
 
+static int editbox_key(GtkWidget *widget, GdkEventKey *event, gpointer data)
+{
+    /*
+     * GtkEntry has a nasty habit of eating the Return key, which
+     * is unhelpful since it doesn't actually _do_ anything with it
+     * (it calls gtk_widget_activate, but our edit boxes never need
+     * activating). So I catch Return before GtkEntry sees it, and
+     * pass it straight on to the parent widget. Effect: hitting
+     * Return in an edit box will now activate the default button
+     * in the dialog just like it will everywhere else.
+     */
+    if (event->keyval == GDK_Return && widget->parent != NULL) {
+	gint return_val;
+	gtk_signal_emit_stop_by_name(GTK_OBJECT(widget), "key_press_event");
+	gtk_signal_emit_by_name(GTK_OBJECT(widget->parent), "key_press_event",
+				event, &return_val);
+	return return_val;
+    }
+    return FALSE;
+}
+
 static void editbox_changed(GtkEditable *ed, gpointer data)
 {
     config_item *i = (config_item *)data;
@@ -463,7 +499,7 @@ static void droplist_sel(GtkMenuItem *item, gpointer data)
 
 static int get_config(frontend *fe, int which)
 {
-    GtkWidget *w, *table;
+    GtkWidget *w, *table, *cancel;
     char *title;
     config_item *i;
     int y;
@@ -491,6 +527,7 @@ static int get_config(frontend *fe, int which)
     gtk_widget_show(w);
     gtk_signal_connect(GTK_OBJECT(w), "clicked",
                        GTK_SIGNAL_FUNC(config_cancel_button_clicked), fe);
+    cancel = w;
 
     table = gtk_table_new(1, 2, FALSE);
     y = 0;
@@ -523,6 +560,8 @@ static int get_config(frontend *fe, int which)
 	    gtk_entry_set_text(GTK_ENTRY(w), i->sval);
 	    gtk_signal_connect(GTK_OBJECT(w), "changed",
 			       GTK_SIGNAL_FUNC(editbox_changed), i);
+	    gtk_signal_connect(GTK_OBJECT(w), "key_press_event",
+			       GTK_SIGNAL_FUNC(editbox_key), NULL);
 	    gtk_widget_show(w);
 
 	    break;
@@ -609,6 +648,8 @@ static int get_config(frontend *fe, int which)
 
     gtk_signal_connect(GTK_OBJECT(fe->cfgbox), "destroy",
                        GTK_SIGNAL_FUNC(window_destroy), NULL);
+    gtk_signal_connect(GTK_OBJECT(fe->cfgbox), "key_press_event",
+		       GTK_SIGNAL_FUNC(win_key_press), cancel);
     gtk_window_set_modal(GTK_WINDOW(fe->cfgbox), TRUE);
     gtk_window_set_transient_for(GTK_WINDOW(fe->cfgbox),
 				 GTK_WINDOW(fe->window));
