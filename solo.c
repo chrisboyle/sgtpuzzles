@@ -221,8 +221,8 @@ static game_params *custom_params(config_item *cfg)
 {
     game_params *ret = snew(game_params);
 
-    ret->c = atof(cfg[0].sval);
-    ret->r = atof(cfg[1].sval);
+    ret->c = atoi(cfg[0].sval);
+    ret->r = atoi(cfg[1].sval);
 
     return ret;
 }
