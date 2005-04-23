@@ -154,18 +154,12 @@ void frontend_default_colour(frontend *fe, float *output)
 
 void clip(frontend *fe, int x, int y, int w, int h)
 {
-    if (!fe->clip) {
-	fe->clip = CreateRectRgn(0, 0, 1, 1);
-	GetClipRgn(fe->hdc_bm, fe->clip);
-    }
-
     IntersectClipRect(fe->hdc_bm, x, y, x+w, y+h);
 }
 
 void unclip(frontend *fe)
 {
-    assert(fe->clip);
-    SelectClipRgn(fe->hdc_bm, fe->clip);
+    SelectClipRgn(fe->hdc_bm, NULL);
 }
 
 void draw_text(frontend *fe, int x, int y, int fonttype, int fontsize,
