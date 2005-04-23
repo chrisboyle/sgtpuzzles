@@ -393,17 +393,17 @@ numbered square, and (b) the area of each rectangle is equal to the
 number written in its numbered square.
 
 Credit for this game goes to the Japanese puzzle magazine \i{Nikoli}
-\k{nikoli}; I've also seen a Palm implementation at \i{Puzzle Palace}
-\k{puzzle-palace}. Unlike Puzzle Palace's implementation, my version
+\k{nikoli-rect}; I've also seen a Palm implementation at \i{Puzzle Palace}
+\k{puzzle-palace-rect}. Unlike Puzzle Palace's implementation, my version
 automatically generates random grids of any size you like. The quality
 of puzzle design is therefore not quite as good as hand-crafted
 puzzles would be (in particular, a unique solution cannot be
 guaranteed), but on the plus side you get an inexhaustible supply of
 puzzles tailored to your own specification.
 
-\B{nikoli} \W{http://www.nikoli.co.jp/puzzles/7/index_text-e.htm}\cw{http://www.nikoli.co.jp/puzzles/7/index_text-e.htm}
+\B{nikoli-rect} \W{http://www.nikoli.co.jp/puzzles/7/index_text-e.htm}\cw{http://www.nikoli.co.jp/puzzles/7/index_text-e.htm}
 
-\B{puzzle-palace} \W{http://www.puzzle.gr.jp/puzzle/sikaku/palm/index.html.en}\cw{http://www.puzzle.gr.jp/puzzle/sikaku/palm/index.html.en}
+\B{puzzle-palace-rect} \W{http://www.puzzle.gr.jp/puzzle/sikaku/palm/index.html.en}\cw{http://www.puzzle.gr.jp/puzzle/sikaku/palm/index.html.en}
 
 \H{rectangles-controls} \I{controls, for Rectangles}Rectangles controls
 
@@ -470,6 +470,7 @@ number. For example:
 starts Rectangles with a grid size of 11\u00d7{x}11, an expansion
 factor of 0.75, \e{and} a specific game selected.
 
+
 \C{netslide} \i{Netslide}
 
 \cfg{winhelp-topic}{games.netslide}
@@ -485,6 +486,7 @@ See \k{sixteen-controls}.
 
 \I{parameters, for Netslide}Game parameters are the same as for Net
 (see \k{net-params}).
+
 
 \C{pattern} \i{Pattern}
 
@@ -530,6 +532,7 @@ grey.
 The only options available from the \q{Custom...} option on the \q{Type}
 menu are \e{Width} and \e{Height}, which are self-explanatory.
 
+
 \C{solo} \i{Solo}
 
 \cfg{winhelp-topic}{games.solo}
@@ -557,9 +560,11 @@ additional digits will be letters of the alphabet. For example, if
 you select 3\by\.4 then the digits which go in your grid will be 1
 to 9, plus \cq{a}, \cq{b} and \cq{c}.
 
-I first saw this puzzle in \i{Nikoli} \k{nikoli}, although it's also
+I first saw this puzzle in \i{Nikoli} \k{nikoli-solo}, although it's also
 been popularised by various newspapers under the name \q{Sudoku} or
 \q{Su Doku}.
+
+\B{nikoli-solo} \W{http://www.nikoli.co.jp/puzzles/1/index_text-e.htm}\cw{http://www.nikoli.co.jp/puzzles/1/index_text-e.htm}
 
 \H{solo-controls} \I{controls, for Solo}Solo controls
 
@@ -573,10 +578,10 @@ Space to clear it again (or use the Undo feature).
 \H{solo-parameters} \I{parameters, for Solo}Solo parameters
 
 Solo allows you to configure two separate dimensions of the puzzle
-grid: the number of columns, and the number of rows, into which the
-main grid is divided. (The size of a block is the inverse of this:
-for example, if you select 2 columns and 3 rows, each actual block
-will have 3 columns and 2 rows.)
+grid on the \q{Type} menu: the number of columns, and the number of
+rows, into which the main grid is divided. (The size of a block is
+the inverse of this: for example, if you select 2 columns and 3 rows,
+each actual block will have 3 columns and 2 rows.)
 
 \A{licence} \I{MIT licence}\ii{Licence}
 
