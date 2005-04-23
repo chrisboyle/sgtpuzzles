@@ -18,6 +18,8 @@
 \cfg{ps-filename}{puzzles.ps}
 \cfg{pdf-filename}{puzzles.pdf}
 
+\define{by} \u00D7{x}
+
 This is a collection of small one-player puzzle games.
 
 \copyright This manual is copyright 2004 Simon Tatham. All rights
@@ -311,13 +313,13 @@ respectively.
 
 \cfg{winhelp-topic}{games.fifteen}
 
-The old ones are the best: this is the good old \q{\i{15-puzzle}} with
-sliding tiles. You have a 4x4 square grid; 15 squares contain numbered
-tiles, and the sixteenth is empty. Your move is to choose a tile next
-to the empty space, and slide it into the space. The aim is to end up
-with the tiles in numerical order, with the space in the bottom right
-(so that the top row reads 1,2,3,4 and the bottom row reads
-13,14,15,\e{space}).
+The old ones are the best: this is the good old \q{\i{15-puzzle}}
+with sliding tiles. You have a 4\by\.4 square grid; 15 squares
+contain numbered tiles, and the sixteenth is empty. Your move is to
+choose a tile next to the empty space, and slide it into the space.
+The aim is to end up with the tiles in numerical order, with the
+space in the bottom right (so that the top row reads 1,2,3,4 and the
+bottom row reads 13,14,15,\e{space}).
 
 \H{fifteen-controls} \i{Fifteen controls}
 
@@ -446,7 +448,7 @@ command-line configuration
 The expansion factor parameter, described in \k{rectangles-params},
 is not mentioned by default in the game ID (see \k{common-id}). So
 if you set your expansion factor to (say) 0.75, and then you
-generate an 11x11 grid, then the game ID will simply say
+generate an 11\by\.11 grid, then the game ID will simply say
 \c{11x11:}\e{numbers}. This means that if you send the game ID to
 another player and they paste it into their copy of Rectangles,
 their game will not be automatically configured to use the same
@@ -527,6 +529,54 @@ grey.
 
 The only options available from the \q{Custom...} option on the \q{Type}
 menu are \e{Width} and \e{Height}, which are self-explanatory.
+
+\C{solo} \i{Solo}
+
+\cfg{winhelp-topic}{games.solo}
+
+You have a square grid, which is divided into square or rectangular
+blocks. Each square must be filled in with a digit from 1 to the
+size of the grid, in such a way that
+
+\b every row contains only one occurrence of each digit
+
+\b every column contains only one occurrence of each digit
+
+\b every block contains only one occurrence of each digit.
+
+You are given some of the numbers as clues; your aim is to place the
+rest of the numbers correctly.
+
+The default puzzle size is 3\by\.3 (a 9\by\.9 actual grid, divided
+into nine 3\by\.3 blocks). You can also select sizes with
+rectangular blocks instead of square ones, such as 2\by\.3 (a
+6\by\.6 grid divided into six 3\by\.2 blocks).
+
+If you select a puzzle size which requires more than 9 digits, the
+additional digits will be letters of the alphabet. For example, if
+you select 3\by\.4 then the digits which go in your grid will be 1
+to 9, plus \cq{a}, \cq{b} and \cq{c}.
+
+I first saw this puzzle in \i{Nikoli} \k{nikoli}, although it's also
+been popularised by various newspapers under the name \q{Sudoku} or
+\q{Su Doku}.
+
+\H{solo-controls} \I{controls, for Solo}Solo controls
+
+To play Solo, simply click the mouse in any empty square and then
+type a digit or letter on the keyboard to fill that square. If you
+make a mistake, click the mouse in the incorrect square and press
+Space to clear it again (or use the Undo feature).
+
+(All the actions described in \k{common-actions} are also available.)
+
+\H{solo-parameters} \I{parameters, for Solo}Solo parameters
+
+Solo allows you to configure two separate dimensions of the puzzle
+grid: the number of columns, and the number of rows, into which the
+main grid is divided. (The size of a block is the inverse of this:
+for example, if you select 2 columns and 3 rows, each actual block
+will have 3 columns and 2 rows.)
 
 \A{licence} \I{MIT licence}\ii{Licence}
 

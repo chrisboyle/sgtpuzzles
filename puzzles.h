@@ -14,6 +14,9 @@
 
 #define lenof(array) ( sizeof(array) / sizeof(*(array)) )
 
+#define STR_INT(x) #x
+#define STR(x) STR_INT(x)
+
 enum {
     LEFT_BUTTON = 0x1000,
     MIDDLE_BUTTON,

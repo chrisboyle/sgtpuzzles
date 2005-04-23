@@ -24,6 +24,7 @@ extern const game netslide;
 extern const game pattern;
 extern const game rect;
 extern const game sixteen;
+extern const game solo;
 
 const game *gamelist[] = {
     &cube,
@@ -33,6 +34,7 @@ const game *gamelist[] = {
     &pattern,
     &rect,
     &sixteen,
+    &solo,
 };
 
 const int gamecount = lenof(gamelist);
