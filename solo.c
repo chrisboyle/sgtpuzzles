@@ -3,30 +3,25 @@
  *
  * TODO:
  *
- *  - finalise game name
- *
  *  - can we do anything about nasty centring of text in GTK? It
  *    seems to be taking ascenders/descenders into account when
  *    centring. Ick.
  *
  *  - implement stronger modes of reasoning in nsolve, thus
  *    enabling harder puzzles
+ *     + and having done that, supply configurable difficulty
+ * 	 levels
  *
- *  - configurable difficulty levels
- *
- *  - vary the symmetry (rotational or none)?
- *
- *  - try for cleverer ways of reducing the solved grid; they seem
- *    to be coming out a bit full for the most part, and in
- *    particular it's inexcusable to leave a grid with an entire
- *    block (or presumably row or column) filled! I _hope_ we can
- *    do this simply by better prioritising (somehow) the possible
- *    removals.
- *     + one simple option might be to work the other way: start
- * 	 with an empty grid and gradually _add_ numbers until it
- * 	 becomes solvable? Perhaps there might be some heuristic
- * 	 which enables us to pinpoint the most critical clues and
- * 	 thus add as few as possible.
+ *  - it might still be nice to do some prioritisation on the
+ *    removal of numbers from the grid
+ *     + one possibility is to try to minimise the maximum number
+ * 	 of filled squares in any block, which in particular ought
+ * 	 to enforce never leaving a completely filled block in the
+ * 	 puzzle as presented.
+ *     + be careful of being too clever here, though, until after
+ * 	 I've tried implementing difficulty levels. It's not
+ * 	 impossible that those might impose much more important
+ * 	 constraints on this process.
  *
  *  - alternative interface modes
  *     + sudoku.com's Windows program has a palette of possible
@@ -97,17 +92,19 @@ typedef unsigned char digit;
 
 #define FLASH_TIME 0.4F
 
+enum { SYMM_NONE, SYMM_ROT2, SYMM_ROT4, SYMM_REF4 };
+
 enum {
     COL_BACKGROUND,
-	COL_GRID,
-	COL_CLUE,
-	COL_USER,
-	COL_HIGHLIGHT,
-	NCOLOURS
+    COL_GRID,
+    COL_CLUE,
+    COL_USER,
+    COL_HIGHLIGHT,
+    NCOLOURS
 };
 
 struct game_params {
-    int c, r;
+    int c, r, symm;
 };
 
 struct game_state {
@@ -122,6 +119,7 @@ static game_params *default_params(void)
     game_params *ret = snew(game_params);
 
     ret->c = ret->r = 3;
+    ret->symm = SYMM_ROT2;	       /* a plausible default */
 
     return ret;
 }
@@ -146,6 +144,7 @@ static int game_fetch_preset(int i, char **name, game_params **params)
     *params = ret = snew(game_params);
     ret->c = c;
     ret->r = r;
+    ret->symm = SYMM_ROT2;
     /* FIXME: difficulty presets? */
     return TRUE;
 }
@@ -167,11 +166,26 @@ static game_params *decode_params(char const *string)
     game_params *ret = default_params();
 
     ret->c = ret->r = atoi(string);
+    ret->symm = SYMM_ROT2;
     while (*string && isdigit((unsigned char)*string)) string++;
     if (*string == 'x') {
         string++;
         ret->r = atoi(string);
 	while (*string && isdigit((unsigned char)*string)) string++;
+    }
+    if (*string == 'r' || *string == 'm' || *string == 'a') {
+	int sn, sc;
+	sc = *string++;
+        sn = atoi(string);
+	while (*string && isdigit((unsigned char)*string)) string++;
+	if (sc == 'm' && sn == 4)
+	    ret->symm = SYMM_REF4;
+	if (sc == 'r' && sn == 4)
+	    ret->symm = SYMM_ROT4;
+	if (sc == 'r' && sn == 2)
+	    ret->symm = SYMM_ROT2;
+	if (sc == 'a')
+	    ret->symm = SYMM_NONE;
     }
     /* FIXME: difficulty levels */
 
@@ -182,6 +196,11 @@ static char *encode_params(game_params *params)
 {
     char str[80];
 
+    /*
+     * Symmetry is a game generation preference and hence is left
+     * out of the encoding. Users can add it back in as they see
+     * fit.
+     */
     sprintf(str, "%dx%d", params->c, params->r);
     return dupstr(str);
 }
@@ -205,14 +224,19 @@ static config_item *game_configure(game_params *params)
     ret[1].sval = dupstr(buf);
     ret[1].ival = 0;
 
+    ret[2].name = "Symmetry";
+    ret[2].type = C_CHOICES;
+    ret[2].sval = ":None:2-way rotation:4-way rotation:4-way mirror";
+    ret[2].ival = params->symm;
+
     /*
      * FIXME: difficulty level.
      */
 
-    ret[2].name = NULL;
-    ret[2].type = C_END;
-    ret[2].sval = NULL;
-    ret[2].ival = 0;
+    ret[3].name = NULL;
+    ret[3].type = C_END;
+    ret[3].sval = NULL;
+    ret[3].ival = 0;
 
     return ret;
 }
@@ -223,6 +247,7 @@ static game_params *custom_params(config_item *cfg)
 
     ret->c = atoi(cfg[0].sval);
     ret->r = atoi(cfg[1].sval);
+    ret->symm = cfg[2].ival;
 
     return ret;
 }
@@ -905,6 +930,70 @@ static int check_valid(int c, int r, digit *grid)
     return TRUE;
 }
 
+static void symmetry_limit(game_params *params, int *xlim, int *ylim, int s)
+{
+    int c = params->c, r = params->r, cr = c*r;
+
+    switch (s) {
+      case SYMM_NONE:
+	*xlim = *ylim = cr;
+	break;
+      case SYMM_ROT2:
+	*xlim = (cr+1) / 2;
+	*ylim = cr;
+	break;
+      case SYMM_REF4:
+      case SYMM_ROT4:
+	*xlim = *ylim = (cr+1) / 2;
+	break;
+    }
+}
+
+static int symmetries(game_params *params, int x, int y, int *output, int s)
+{
+    int c = params->c, r = params->r, cr = c*r;
+    int i = 0;
+
+    *output++ = x;
+    *output++ = y;
+    i++;
+
+    switch (s) {
+      case SYMM_NONE:
+	break;			       /* just x,y is all we need */
+      case SYMM_REF4:
+      case SYMM_ROT4:
+	switch (s) {
+	  case SYMM_REF4:
+	    *output++ = cr - 1 - x;
+	    *output++ = y;
+	    i++;
+
+	    *output++ = x;
+	    *output++ = cr - 1 - y;
+	    i++;
+	    break;
+	  case SYMM_ROT4:
+	    *output++ = cr - 1 - y;
+	    *output++ = x;
+	    i++;
+
+	    *output++ = y;
+	    *output++ = cr - 1 - x;
+	    i++;
+	    break;
+	}
+	/* fall through */
+      case SYMM_ROT2:
+	*output++ = cr - 1 - x;
+	*output++ = cr - 1 - y;
+	i++;
+	break;
+    }
+
+    return i;
+}
+
 static char *new_game_seed(game_params *params, random_state *rs)
 {
     int c = params->c, r = params->r, cr = c*r;
@@ -914,6 +1003,8 @@ static char *new_game_seed(game_params *params, random_state *rs)
     int nlocs;
     int ret;
     char *seed;
+    int coords[16], ncoords;
+    int xlim, ylim;
 
     /*
      * Start the recursive solver with an empty grid to generate a
@@ -967,19 +1058,20 @@ static char *new_game_seed(game_params *params, random_state *rs)
      * Now we have a solved grid, start removing things from it
      * while preserving solubility.
      */
-    locs = snewn((cr+1)/2 * (cr+1)/2, struct xy);
+    locs = snewn(area, struct xy);
     grid2 = snewn(area, digit);
+    symmetry_limit(params, &xlim, &ylim, params->symm);
     while (1) {
-	int x, y, i;
+	int x, y, i, j;
 
 	/*
-	 * Iterate over the top left corner of the grid and
-	 * enumerate all the filled squares we could empty.
+	 * Iterate over the grid and enumerate all the filled
+	 * squares we could empty.
 	 */
 	nlocs = 0;
 
-	for (x = 0; 2*x < cr; x++)
-	    for (y = 0; 2*y < cr; y++)
+	for (x = 0; x < xlim; x++)
+	    for (y = 0; y < ylim; y++)
 		if (grid[y*cr+x]) {
 		    locs[nlocs].x = x;
 		    locs[nlocs].y = y;
@@ -1009,16 +1101,13 @@ static char *new_game_seed(game_params *params, random_state *rs)
 	    y = locs[i].y;
 
 	    memcpy(grid2, grid, area);
-	    grid2[y*cr+x] = 0;
-	    grid2[y*cr+cr-1-x] = 0;
-	    grid2[(cr-1-y)*cr+x] = 0;
-	    grid2[(cr-1-y)*cr+cr-1-x] = 0;
+	    ncoords = symmetries(params, x, y, coords, params->symm);
+	    for (j = 0; j < ncoords; j++)
+		grid2[coords[2*j+1]*cr+coords[2*j]] = 0;
 
 	    if (nsolve(c, r, grid2)) {
-		grid[y*cr+x] = 0;
-		grid[y*cr+cr-1-x] = 0;
-		grid[(cr-1-y)*cr+x] = 0;
-		grid[(cr-1-y)*cr+cr-1-x] = 0;
+		for (j = 0; j < ncoords; j++)
+		    grid[coords[2*j+1]*cr+coords[2*j]] = 0;
 		break;
 	    }
 	}

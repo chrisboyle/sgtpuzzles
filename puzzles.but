@@ -583,6 +583,44 @@ rows, into which the main grid is divided. (The size of a block is
 the inverse of this: for example, if you select 2 columns and 3 rows,
 each actual block will have 3 columns and 2 rows.)
 
+You can also configure the type of symmetry shown in the generated
+puzzles. More symmetry makes the puzzles look prettier but may also
+make them easier, since the symmetry constraints can force more
+clues than necessary to be present. Completely asymmetric puzzles
+have the freedom to contain as few clues as possible.
+
+\H{solo-cmdline} \I{command line, for Solo}Additional command-line
+configuration
+
+The symmetry parameter, described in \k{solo-parameters}, is not
+mentioned by default in the game ID (see \k{common-id}). So if you
+set your symmetry to (say) 4-way rotational, and then you generate a
+3\by\.4 grid, then the game ID will simply say \c{3x4:}\e{numbers}.
+This means that if you send the game ID to another player and they
+paste it into their copy of Solo, their game will not be
+automatically configured to use the same symmetry in any subsequent
+grids it generates. (I don't think the average person examining a
+single grid sent to them by another player would want their
+configuration modified to that extent.)
+
+If you are specifying a game ID or game parameters on the command
+line (see \k{common-cmdline}) and you do want to configure the
+symmetry, you can do it by suffixing additional text to the
+parameters:
+
+\b \cq{m4} for 4-way mirror symmetry
+
+\b \cq{r4} for 4-way rotational symmetry
+
+\b \cq{r2} for 2-way rotational symmetry
+
+\b \cq{a} for no symmetry at all (stands for \q{asymmetric})
+
+So, for example, you can make Solo generate asymmetric 3x4 grids by
+running \cq{solo 3x4a}, or 4-way rotationally symmetric 2x3 grids by
+running \cq{solo 2x3r4}.
+
+
 \A{licence} \I{MIT licence}\ii{Licence}
 
 This software is \i{copyright} 2004-2005 Simon Tatham.
