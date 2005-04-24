@@ -569,6 +569,22 @@ static int rsolve(int c, int r, digit *grid, random_state *rs, int max)
  *    them can be in the fourth or fifth squares.)
  */
 
+/*
+ * Within this solver, I'm going to transform all y-coordinates by
+ * inverting the significance of the block number and the position
+ * within the block. That is, we will start with the top row of
+ * each block in order, then the second row of each block in order,
+ * etc.
+ * 
+ * This transformation has the enormous advantage that it means
+ * every row, column _and_ block is described by an arithmetic
+ * progression of coordinates within the cubic array, so that I can
+ * use the same very simple function to do blockwise, row-wise and
+ * column-wise elimination.
+ */
+#define YTRANS(y) (((y)%c)*r+(y)/c)
+#define YUNTRANS(y) (((y)%r)*c+(y)/r)
+
 struct nsolve_usage {
     int c, r, cr;
     /*
@@ -577,11 +593,12 @@ struct nsolve_usage {
      * or not that digit _could_ in principle go in that position.
      *
      * The way to index this array is cube[(x*cr+y)*cr+n-1].
+     * y-coordinates in here are transformed.
      */
     unsigned char *cube;
     /*
      * This is the grid in which we write down our final
-     * deductions.
+     * deductions. y-coordinates in here are _not_ transformed.
      */
     digit *grid;
     /*
@@ -596,11 +613,13 @@ struct nsolve_usage {
     /* blk[(y*c+x)*cr+n-1] TRUE if digit n has been placed in block (x,y) */
     unsigned char *blk;
 };
-#define cube(x,y,n) (usage->cube[((x)*usage->cr+(y))*usage->cr+(n)-1])
+#define cubepos(x,y,n) (((x)*usage->cr+(y))*usage->cr+(n)-1)
+#define cube(x,y,n) (usage->cube[cubepos(x,y,n)])
 
 /*
  * Function called when we are certain that a particular square has
- * a particular number in it.
+ * a particular number in it. The y-coordinate passed in here is
+ * transformed.
  */
 static void nsolve_place(struct nsolve_usage *usage, int x, int y, int n)
 {
@@ -634,16 +653,16 @@ static void nsolve_place(struct nsolve_usage *usage, int x, int y, int n)
      * Rule out this number in all other positions in the block.
      */
     bx = (x/r)*r;
-    by = (y/c)*c;
+    by = y % r;
     for (i = 0; i < r; i++)
 	for (j = 0; j < c; j++)
-	    if (bx+i != x || by+j != y)
-		cube(bx+i,by+j,n) = FALSE;
+	    if (bx+i != x || by+j*r != y)
+		cube(bx+i,by+j*r,n) = FALSE;
 
     /*
      * Enter the number in the result grid.
      */
-    usage->grid[y*cr+x] = n;
+    usage->grid[YUNTRANS(y)*cr+x] = n;
 
     /*
      * Cross out this number from the list of numbers left to place
@@ -653,112 +672,33 @@ static void nsolve_place(struct nsolve_usage *usage, int x, int y, int n)
 	usage->blk[((y/c)*c+(x/r))*cr+n-1] = TRUE;
 }
 
-static int nsolve_blk_pos_elim(struct nsolve_usage *usage,
-			       int x, int y, int n)
+static int nsolve_elim(struct nsolve_usage *usage, int start, int step)
 {
-    int c = usage->c, r = usage->r;
-    int i, j, fx, fy, m;
-
-    x *= r;
-    y *= c;
+    int c = usage->c, r = usage->r, cr = c*r;
+    int fpos, m, i;
 
     /*
-     * Count the possible positions within this block where this
-     * number could appear.
+     * Count the number of set bits within this section of the
+     * cube.
      */
     m = 0;
-    fx = fy = -1;
-    for (i = 0; i < r; i++)
-	for (j = 0; j < c; j++)
-	    if (cube(x+i,y+j,n)) {
-		fx = x+i;
-		fy = y+j;
-		m++;
-	    }
-
-    if (m == 1) {
-	assert(fx >= 0 && fy >= 0);
-	nsolve_place(usage, fx, fy, n);
-	return TRUE;
-    }
-
-    return FALSE;
-}
-
-static int nsolve_row_pos_elim(struct nsolve_usage *usage,
-			       int y, int n)
-{
-    int cr = usage->cr;
-    int x, fx, m;
-
-    /*
-     * Count the possible positions within this row where this
-     * number could appear.
-     */
-    m = 0;
-    fx = -1;
-    for (x = 0; x < cr; x++)
-	if (cube(x,y,n)) {
-	    fx = x;
+    fpos = -1;
+    for (i = 0; i < cr; i++)
+	if (usage->cube[start+i*step]) {
+	    fpos = start+i*step;
 	    m++;
 	}
 
     if (m == 1) {
-	assert(fx >= 0);
-	nsolve_place(usage, fx, y, n);
-	return TRUE;
-    }
+	int x, y, n;
+	assert(fpos >= 0);
 
-    return FALSE;
-}
+	n = 1 + fpos % cr;
+	y = fpos / cr;
+	x = y / cr;
+	y %= cr;
 
-static int nsolve_col_pos_elim(struct nsolve_usage *usage,
-			       int x, int n)
-{
-    int cr = usage->cr;
-    int y, fy, m;
-
-    /*
-     * Count the possible positions within this column where this
-     * number could appear.
-     */
-    m = 0;
-    fy = -1;
-    for (y = 0; y < cr; y++)
-	if (cube(x,y,n)) {
-	    fy = y;
-	    m++;
-	}
-
-    if (m == 1) {
-	assert(fy >= 0);
-	nsolve_place(usage, x, fy, n);
-	return TRUE;
-    }
-
-    return FALSE;
-}
-
-static int nsolve_num_elim(struct nsolve_usage *usage,
-			   int x, int y)
-{
-    int cr = usage->cr;
-    int n, fn, m;
-
-    /*
-     * Count the possible numbers that could appear in this square.
-     */
-    m = 0;
-    fn = -1;
-    for (n = 1; n <= cr; n++)
-	if (cube(x,y,n)) {
-	    fn = n;
-	    m++;
-	}
-
-    if (m == 1) {
-	assert(fn > 0);
-	nsolve_place(usage, x, y, fn);
+	nsolve_place(usage, x, y, n);
 	return TRUE;
     }
 
@@ -796,7 +736,7 @@ static int nsolve(int c, int r, digit *grid)
     for (x = 0; x < cr; x++)
 	for (y = 0; y < cr; y++)
 	    if (grid[y*cr+x])
-		nsolve_place(usage, x, y, grid[y*cr+x]);
+		nsolve_place(usage, x, YTRANS(y), grid[y*cr+x]);
 
     /*
      * Now loop over the grid repeatedly trying all permitted modes
@@ -809,11 +749,11 @@ static int nsolve(int c, int r, digit *grid)
 	/*
 	 * Blockwise positional elimination.
 	 */
-	for (x = 0; x < c; x++)
+	for (x = 0; x < cr; x += r)
 	    for (y = 0; y < r; y++)
 		for (n = 1; n <= cr; n++)
-		    if (!usage->blk[((y/c)*c+(x/r))*cr+n-1] &&
-			nsolve_blk_pos_elim(usage, x, y, n))
+		    if (!usage->blk[(y*c+(x/r))*cr+n-1] &&
+			nsolve_elim(usage, cubepos(x,y,n), r*cr))
 			continue;
 
 	/*
@@ -822,7 +762,7 @@ static int nsolve(int c, int r, digit *grid)
 	for (y = 0; y < cr; y++)
 	    for (n = 1; n <= cr; n++)
 		if (!usage->row[y*cr+n-1] &&
-		    nsolve_row_pos_elim(usage, y, n))
+		    nsolve_elim(usage, cubepos(0,y,n), cr*cr))
 		    continue;
 	/*
 	 * Column-wise positional elimination.
@@ -830,7 +770,7 @@ static int nsolve(int c, int r, digit *grid)
 	for (x = 0; x < cr; x++)
 	    for (n = 1; n <= cr; n++)
 		if (!usage->col[x*cr+n-1] &&
-		    nsolve_col_pos_elim(usage, x, n))
+		    nsolve_elim(usage, cubepos(x,0,n), cr))
 		    continue;
 
 	/*
@@ -838,8 +778,8 @@ static int nsolve(int c, int r, digit *grid)
 	 */
 	for (x = 0; x < cr; x++)
 	    for (y = 0; y < cr; y++)
-		if (!usage->grid[y*cr+x] &&
-		    nsolve_num_elim(usage, x, y))
+		if (!usage->grid[YUNTRANS(y)*cr+x] &&
+		    nsolve_elim(usage, cubepos(x,y,1), 1))
 		    continue;
 
 	/*
