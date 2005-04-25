@@ -567,6 +567,12 @@ static int rsolve(int c, int r, digit *grid, random_state *rs, int max)
  *    subset: the numbers 1, 2 and 3 _must_ be in those three
  *    squares in some permutation, and hence we can deduce none of
  *    them can be in the fourth or fifth squares.)
+ * 
+ *  - Setwise positional elimination: if there is a subset of the
+ *    unplaced numbers within a domain such that the union of all
+ *    their possible positions has the same size as the subset
+ *    itself, then all other numbers can be ruled out for those
+ *    positions.
  */
 
 /*
