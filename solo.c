@@ -966,44 +966,6 @@ static char *new_game_seed(game_params *params, random_state *rs)
     assert(ret == 1);
     assert(check_valid(c, r, grid));
 
-#ifdef DEBUG
-    memcpy(grid,
-           "\x0\x1\x0\x0\x6\x0\x0\x0\x0"
-           "\x5\x0\x0\x7\x0\x4\x0\x2\x0"
-           "\x0\x0\x6\x1\x0\x0\x0\x0\x0"
-           "\x8\x9\x7\x0\x0\x0\x0\x0\x0"
-           "\x0\x0\x3\x0\x4\x0\x9\x0\x0"
-           "\x0\x0\x0\x0\x0\x0\x8\x7\x6"
-           "\x0\x0\x0\x0\x0\x9\x1\x0\x0"
-           "\x0\x3\x0\x6\x0\x5\x0\x0\x7"
-           "\x0\x0\x0\x0\x8\x0\x0\x5\x0"
-	   , area);
-
-    {
-	int y, x;
-	for (y = 0; y < cr; y++) {
-	    for (x = 0; x < cr; x++) {
-		printf("%2.0d", grid[y*cr+x]);
-	    }
-	    printf("\n");
-	}
-	printf("\n");
-    }
-
-    nsolve(c, r, grid);
-
-    {
-	int y, x;
-	for (y = 0; y < cr; y++) {
-	    for (x = 0; x < cr; x++) {
-		printf("%2.0d", grid[y*cr+x]);
-	    }
-	    printf("\n");
-	}
-	printf("\n");
-    }
-#endif
-
     /*
      * Now we have a solved grid, start removing things from it
      * while preserving solubility.
@@ -1072,19 +1034,6 @@ static char *new_game_seed(game_params *params, random_state *rs)
     }
     sfree(grid2);
     sfree(locs);
-
-#ifdef DEBUG
-    {
-	int y, x;
-	for (y = 0; y < cr; y++) {
-	    for (x = 0; x < cr; x++) {
-		printf("%2.0d", grid[y*cr+x]);
-	    }
-	    printf("\n");
-	}
-	printf("\n");
-    }
-#endif
 
     /*
      * Now we have the grid as it will be presented to the user.
