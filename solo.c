@@ -698,8 +698,10 @@ static int nsolve_elim(struct nsolve_usage *usage, int start, int step)
 	x = y / cr;
 	y %= cr;
 
-	nsolve_place(usage, x, y, n);
-	return TRUE;
+        if (!usage->grid[YUNTRANS(y)*cr+x]) {
+            nsolve_place(usage, x, y, n);
+            return TRUE;
+        }
     }
 
     return FALSE;
@@ -746,6 +748,8 @@ static int nsolve(int c, int r, digit *grid)
      * not.
      */
     while (1) {
+        cont:
+
 	/*
 	 * Blockwise positional elimination.
 	 */
@@ -754,7 +758,7 @@ static int nsolve(int c, int r, digit *grid)
 		for (n = 1; n <= cr; n++)
 		    if (!usage->blk[(y*c+(x/r))*cr+n-1] &&
 			nsolve_elim(usage, cubepos(x,y,n), r*cr))
-			continue;
+                        goto cont;
 
 	/*
 	 * Row-wise positional elimination.
@@ -763,7 +767,7 @@ static int nsolve(int c, int r, digit *grid)
 	    for (n = 1; n <= cr; n++)
 		if (!usage->row[y*cr+n-1] &&
 		    nsolve_elim(usage, cubepos(0,y,n), cr*cr))
-		    continue;
+                    goto cont;
 	/*
 	 * Column-wise positional elimination.
 	 */
@@ -771,7 +775,7 @@ static int nsolve(int c, int r, digit *grid)
 	    for (n = 1; n <= cr; n++)
 		if (!usage->col[x*cr+n-1] &&
 		    nsolve_elim(usage, cubepos(x,0,n), cr))
-		    continue;
+                    goto cont;
 
 	/*
 	 * Numeric elimination.
@@ -780,7 +784,7 @@ static int nsolve(int c, int r, digit *grid)
 	    for (y = 0; y < cr; y++)
 		if (!usage->grid[YUNTRANS(y)*cr+x] &&
 		    nsolve_elim(usage, cubepos(x,y,1), 1))
-		    continue;
+		    goto cont;
 
 	/*
 	 * If we reach here, we have made no deductions in this
@@ -1526,3 +1530,98 @@ const struct game thegame = {
     game_flash_length,
     game_wants_statusbar,
 };
+
+#ifdef STANDALONE_SOLVER
+
+void frontend_default_colour(frontend *fe, float *output) {}
+void draw_text(frontend *fe, int x, int y, int fonttype, int fontsize,
+               int align, int colour, char *text) {}
+void draw_rect(frontend *fe, int x, int y, int w, int h, int colour) {}
+void draw_line(frontend *fe, int x1, int y1, int x2, int y2, int colour) {}
+void draw_polygon(frontend *fe, int *coords, int npoints,
+                  int fill, int colour) {}
+void clip(frontend *fe, int x, int y, int w, int h) {}
+void unclip(frontend *fe) {}
+void start_draw(frontend *fe) {}
+void draw_update(frontend *fe, int x, int y, int w, int h) {}
+void end_draw(frontend *fe) {}
+
+#include <stdarg.h>
+
+void fatal(char *fmt, ...)
+{
+    va_list ap;
+
+    fprintf(stderr, "fatal error: ");
+
+    va_start(ap, fmt);
+    vfprintf(stderr, fmt, ap);
+    va_end(ap);
+
+    fprintf(stderr, "\n");
+    exit(1);
+}
+
+int main(int argc, char **argv)
+{
+    game_params *p;
+    game_state *s;
+    int recurse = FALSE;
+    char *id = NULL, *seed, *err;
+    int y, x;
+
+    while (--argc > 0) {
+        char *p = *++argv;
+        if (!strcmp(p, "-r")) {
+            recurse = TRUE;
+        } else if (!strcmp(p, "-n")) {
+            recurse = FALSE;
+        } else if (*p == '-') {
+            fprintf(stderr, "%s: unrecognised option `%s'\n", argv[0]);
+            return 1;
+        } else {
+            id = p;
+        }
+    }
+
+    if (!id) {
+        fprintf(stderr, "usage: %s [-n | -r] <game_id>\n", argv[0]);
+        return 1;
+    }
+
+    seed = strchr(id, ':');
+    if (!seed) {
+        fprintf(stderr, "%s: game id expects a colon in it\n", argv[0]);
+        return 1;
+    }
+    *seed++ = '\0';
+
+    p = decode_params(id);
+    err = validate_seed(p, seed);
+    if (err) {
+        fprintf(stderr, "%s: %s\n", argv[0], err);
+        return 1;
+    }
+    s = new_game(p, seed);
+
+    if (recurse) {
+        int ret = rsolve(p->c, p->r, s->grid, NULL, 2);
+        if (ret > 1) {
+            printf("multiple solutions detected; only first one output\n");
+        }
+    } else {
+        nsolve(p->c, p->r, s->grid);
+    }
+
+    for (y = 0; y < p->c * p->r; y++) {
+        for (x = 0; x < p->c * p->r; x++) {
+            printf("%2.0d", s->grid[y * p->c * p->r + x]);
+        }
+        printf("\n");
+    }
+    printf("\n");
+
+    return 0;
+}
+
+#endif
