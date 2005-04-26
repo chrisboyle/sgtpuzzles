@@ -2031,14 +2031,14 @@ int main(int argc, char **argv)
                 else
                     ret = DIFF_AMBIGUOUS;
             }
-            printf("difficulty rating: %s\n",
-                   ret==DIFF_BLOCK ? "blockwise positional elimination only":
-                   ret==DIFF_SIMPLE ? "row/column/number elimination required":
-                   ret==DIFF_INTERSECT ? "intersectional analysis required":
-                   ret==DIFF_SET ? "set elimination required":
-                   ret==DIFF_RECURSIVE ? "guesswork and backtracking required":
-                   ret==DIFF_AMBIGUOUS ? "multiple solutions exist":
-                   ret==DIFF_IMPOSSIBLE ? "no solution exists":
+            printf("Difficulty rating: %s\n",
+                   ret==DIFF_BLOCK ? "Trivial (blockwise positional elimination only)":
+                   ret==DIFF_SIMPLE ? "Basic (row/column/number elimination required)":
+                   ret==DIFF_INTERSECT ? "Intermediate (intersectional analysis required)":
+                   ret==DIFF_SET ? "Advanced (set elimination required)":
+                   ret==DIFF_RECURSIVE ? "Unreasonable (guesswork and backtracking required)":
+                   ret==DIFF_AMBIGUOUS ? "Ambiguous (multiple solutions exist)":
+                   ret==DIFF_IMPOSSIBLE ? "Impossible (no solution exists)":
                    "INTERNAL ERROR: unrecognised difficulty code");
         }
     }
