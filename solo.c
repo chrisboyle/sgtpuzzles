@@ -1209,8 +1209,8 @@ static game_state *make_move(game_state *from, game_ui *ui, int x, int y,
     int tx, ty;
     game_state *ret;
 
-    tx = (x - BORDER) / TILE_SIZE;
-    ty = (y - BORDER) / TILE_SIZE;
+    tx = (x + TILE_SIZE - BORDER) / TILE_SIZE - 1;
+    ty = (y + TILE_SIZE - BORDER) / TILE_SIZE - 1;
 
     if (tx >= 0 && tx < cr && ty >= 0 && ty < cr && button == LEFT_BUTTON) {
 	if (tx == ui->hx && ty == ui->hy) {
