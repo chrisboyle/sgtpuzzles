@@ -874,11 +874,12 @@ if (defined $makefiles{'gtk'}) {
     "# You can define this path to point at your tools if you need to\n".
     "# TOOLPATH = /opt/gcc/bin\n".
     "CC = \$(TOOLPATH)cc\n".
+    "GTK_CONFIG = gtk-config\n".
     "\n".
     &splitline("CFLAGS = -O2 -Wall -Werror -g " .
 	       (join " ", map {"-I$dirpfx$_"} @srcdirs) .
-	       " `gtk-config --cflags`")."\n".
-    "XLDFLAGS = `gtk-config --libs`\n".
+	       " `\$(GTK_CONFIG) --cflags`")."\n".
+    "XLDFLAGS = `\$(GTK_CONFIG) --libs`\n".
     "ULDFLAGS =#\n".
     "INSTALL=install\n",
     "INSTALL_PROGRAM=\$(INSTALL)\n",

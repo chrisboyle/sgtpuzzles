@@ -14,6 +14,11 @@
 #include <gtk/gtk.h>
 #include <gdk/gdkkeysyms.h>
 
+#if GTK_CHECK_VERSION(2,0,0) && !defined HAVE_SENSIBLE_ABSOLUTE_SIZE_FUNCTION
+#include <gdk/gdkx.h>
+#include <X11/Xlib.h>
+#endif
+
 #include "puzzles.h"
 
 /* ----------------------------------------------------------------------
@@ -153,11 +158,59 @@ void draw_text(frontend *fe, int x, int y, int fonttype, int fontsize,
         fe->fonts[i].type = fonttype;
         fe->fonts[i].size = fontsize;
 
+#if GTK_CHECK_VERSION(2,0,0)
         /*
-         * FIXME: Really I should make at least _some_ effort to
-         * pick the correct font.
+         * Use Pango to find the closest match to the requested
+         * font.
          */
-        fe->fonts[i].font = gdk_font_load("variable");
+        {
+            PangoFontDescription *fd;
+
+            fd = pango_font_description_new();
+            /* `Monospace' and `Sans' are meta-families guaranteed to exist */
+            pango_font_description_set_family(fd, fonttype == FONT_FIXED ?
+                                              "Monospace" : "Sans");
+            /*
+             * I found some online Pango documentation which
+             * described a function called
+             * pango_font_description_set_absolute_size(), which is
+             * _exactly_ what I want here. Unfortunately, none of
+             * my local Pango installations have it (presumably
+             * they're too old), so I'm going to have to hack round
+             * it by figuring out the point size myself. This
+             * limits me to X and probably also breaks in later
+             * Pango installations, so ideally I should add another
+             * CHECK_VERSION type ifdef and use set_absolute_size
+             * where available. All very annoying.
+             */
+#ifdef HAVE_SENSIBLE_ABSOLUTE_SIZE_FUNCTION
+            pango_font_description_set_absolute_size(fd, PANGO_SCALE*fontsize);
+#else
+            {
+                Display *d = GDK_DISPLAY();
+                int s = DefaultScreen(d);
+                double resolution =
+                    (PANGO_SCALE * 72.27 / 25.4) * 
+                    ((double) DisplayWidthMM(d, s) / DisplayWidth (d, s));
+                pango_font_description_set_size(fd, resolution * fontsize);
+            }
+#endif
+            fe->fonts[i].font = gdk_font_from_description(fd);
+            pango_font_description_free(fd);
+        }
+
+        if (!fe->fonts[i].font)
+#endif
+            /*
+             * In GTK 1.2, I don't know of any plausible way to
+             * pick a suitable font, so I'm just going to be
+             * tedious.
+             * 
+             * This is also fallback code called if the Pango
+             * approach fails to find an appropriate font.
+             */
+            fe->fonts[i].font = gdk_font_load(fonttype == FONT_FIXED ?
+                                              "fixed" : "variable");
     }
 
     /*
