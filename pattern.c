@@ -1042,3 +1042,125 @@ const struct game thegame = {
     game_flash_length,
     game_wants_statusbar,
 };
+
+#ifdef STANDALONE_SOLVER
+
+/*
+ * gcc -DSTANDALONE_SOLVER -o patternsolver pattern.c malloc.c
+ */
+
+#include <stdarg.h>
+
+void frontend_default_colour(frontend *fe, float *output) {}
+void draw_text(frontend *fe, int x, int y, int fonttype, int fontsize,
+               int align, int colour, char *text) {}
+void draw_rect(frontend *fe, int x, int y, int w, int h, int colour) {}
+void draw_line(frontend *fe, int x1, int y1, int x2, int y2, int colour) {}
+void draw_polygon(frontend *fe, int *coords, int npoints,
+                  int fill, int colour) {}
+void clip(frontend *fe, int x, int y, int w, int h) {}
+void unclip(frontend *fe) {}
+void start_draw(frontend *fe) {}
+void draw_update(frontend *fe, int x, int y, int w, int h) {}
+void end_draw(frontend *fe) {}
+unsigned long random_upto(random_state *state, unsigned long limit)
+{ assert(!"Shouldn't get randomness"); return 0; }
+
+void fatal(char *fmt, ...)
+{
+    va_list ap;
+
+    fprintf(stderr, "fatal error: ");
+
+    va_start(ap, fmt);
+    vfprintf(stderr, fmt, ap);
+    va_end(ap);
+
+    fprintf(stderr, "\n");
+    exit(1);
+}
+
+int main(int argc, char **argv)
+{
+    game_params *p;
+    game_state *s;
+    int recurse = TRUE;
+    char *id = NULL, *seed, *err;
+    int y, x;
+    int grade = FALSE;
+
+    while (--argc > 0) {
+        char *p = *++argv;
+	if (*p == '-') {
+            fprintf(stderr, "%s: unrecognised option `%s'\n", argv[0]);
+            return 1;
+        } else {
+            id = p;
+        }
+    }
+
+    if (!id) {
+        fprintf(stderr, "usage: %s <game_id>\n", argv[0]);
+        return 1;
+    }
+
+    seed = strchr(id, ':');
+    if (!seed) {
+        fprintf(stderr, "%s: game id expects a colon in it\n", argv[0]);
+        return 1;
+    }
+    *seed++ = '\0';
+
+    p = decode_params(id);
+    err = validate_seed(p, seed);
+    if (err) {
+        fprintf(stderr, "%s: %s\n", argv[0], err);
+        return 1;
+    }
+    s = new_game(p, seed);
+
+    {
+	int w = p->w, h = p->h, i, j, done_any, max;
+	unsigned char *matrix, *workspace;
+	int *rowdata;
+
+	matrix = snewn(w*h, unsigned char);
+	max = max(w, h);
+	workspace = snewn(max*3, unsigned char);
+	rowdata = snewn(max+1, int);
+
+        memset(matrix, 0, w*h);
+
+        do {
+            done_any = 0;
+            for (i=0; i<h; i++) {
+		memcpy(rowdata, s->rowdata + s->rowsize*(w+i),
+		       max*sizeof(int));
+		rowdata[s->rowlen[w+i]] = 0;
+                done_any |= do_row(workspace, workspace+max, workspace+2*max,
+                                   matrix+i*w, w, 1, rowdata);
+            }
+            for (i=0; i<w; i++) {
+		memcpy(rowdata, s->rowdata + s->rowsize*i, max*sizeof(int));
+		rowdata[s->rowlen[i]] = 0;
+                done_any |= do_row(workspace, workspace+max, workspace+2*max,
+                                   matrix+i, h, w, rowdata);
+            }
+        } while (done_any);
+
+	for (i = 0; i < h; i++) {
+	    for (j = 0; j < w; j++) {
+		int c = (matrix[i*w+j] == UNKNOWN ? '?' :
+			 matrix[i*w+j] == BLOCK ? '#' :
+			 matrix[i*w+j] == DOT ? '.' :
+			 '!');
+		putchar(c);
+	    }
+	    printf("\n");
+	}
+    }
+
+    return 0;
+}
+
+#endif
