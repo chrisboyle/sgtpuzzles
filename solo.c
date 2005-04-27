@@ -2054,18 +2054,18 @@ int main(int argc, char **argv)
                 c = 'a' + c-10;
             printf("%c", c);
             if (x+1 < p->c * p->r) {
-                if ((x+1) % p->c)
+                if ((x+1) % p->r)
                     printf(" ");
                 else
                     printf(" | ");
             }
         }
         printf("\n");
-        if (y+1 < p->c * p->r && (y+1) % p->r == 0) {
+        if (y+1 < p->c * p->r && (y+1) % p->c == 0) {
             for (x = 0; x < p->c * p->r; x++) {
                 printf("-");
                 if (x+1 < p->c * p->r) {
-                    if ((x+1) % p->c)
+                    if ((x+1) % p->r)
                         printf("-");
                     else
                         printf("-+-");
