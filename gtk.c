@@ -219,10 +219,23 @@ void draw_text(frontend *fe, int x, int y, int fonttype, int fontsize,
     {
         int lb, rb, wid, asc, desc;
 
-        gdk_string_extents(fe->fonts[i].font, text,
+	/*
+	 * Measure vertical string extents with respect to the same
+	 * string always...
+	 */
+        gdk_string_extents(fe->fonts[i].font,
+			   "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
                            &lb, &rb, &wid, &asc, &desc);
         if (align & ALIGN_VCENTRE)
             y += asc - (asc+desc)/2;
+
+	/*
+	 * ... but horizontal extents with respect to the provided
+	 * string. This means that multiple pieces of text centred
+	 * on the same y-coordinate don't have different baselines.
+	 */
+        gdk_string_extents(fe->fonts[i].font, text,
+                           &lb, &rb, &wid, &asc, &desc);
 
         if (align & ALIGN_HCENTRE)
             x -= wid / 2;

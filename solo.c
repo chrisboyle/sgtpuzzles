@@ -3,20 +3,12 @@
  *
  * TODO:
  *
- *  - can we do anything about nasty centring of text in GTK? It
- *    seems to be taking ascenders/descenders into account when
- *    centring. Ick.
- *
  *  - it might still be nice to do some prioritisation on the
  *    removal of numbers from the grid
  *     + one possibility is to try to minimise the maximum number
  * 	 of filled squares in any block, which in particular ought
  * 	 to enforce never leaving a completely filled block in the
  * 	 puzzle as presented.
- *     + be careful of being too clever here, though, until after
- * 	 I've tried implementing difficulty levels. It's not
- * 	 impossible that those might impose much more important
- * 	 constraints on this process.
  *
  *  - alternative interface modes
  *     + sudoku.com's Windows program has a palette of possible
