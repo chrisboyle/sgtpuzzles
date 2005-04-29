@@ -1116,7 +1116,7 @@ static int nsolve(int c, int r, digit *grid)
 #ifdef STANDALONE_SOLVER
                                           , "intersectional analysis,"
                                           " row %d vs block (%d,%d)",
-                                          1+YUNTRANS(y), 1+x, 1+y%r
+                                          1+YUNTRANS(y), 1+x/r, 1+y%r
 #endif
                                           ) ||
                          nsolve_intersect(usage, cubepos(x,y%r,n), r*cr,
@@ -1124,7 +1124,7 @@ static int nsolve(int c, int r, digit *grid)
 #ifdef STANDALONE_SOLVER
                                           , "intersectional analysis,"
                                           " block (%d,%d) vs row %d",
-                                          1+x, 1+y%r, 1+YUNTRANS(y)
+                                          1+x/r, 1+y%r, 1+YUNTRANS(y)
 #endif
                                           ))) {
                         diff = max(diff, DIFF_INTERSECT);
