@@ -1,0 +1,343 @@
+#!/usr/bin/env python
+
+# This program accepts a series of newline-separated game IDs on
+# stdin and formats them into PostScript to be printed out. You
+# specify using command-line options which game the IDs are for,
+# and how many you want per page.
+
+# Supported games are those which are sensibly solvable using
+# pencil and paper: Rectangles, Pattern and Solo.
+
+# Command-line syntax is
+#
+#     print.py <game-name> <format>
+#
+# <game-name> is one of `rect', `rectangles', `pattern', `solo'.
+# <format> is two numbers separated by an x: `2x3', for example,
+# means two columns by three rows.
+#
+# The program will then read game IDs from stdin until it sees EOF,
+# and generate as many PostScript pages on stdout as it needs.
+#
+# The resulting PostScript will automatically adapt itself to the
+# size of the clip rectangle, so that the puzzles are sensibly
+# distributed across whatever paper size you decide to use.
+
+import sys
+import string
+import re
+
+class Holder:
+    pass
+
+def psvprint(h, a):
+    for i in xrange(len(a)):
+	h.s = h.s + str(a[i])
+	if i < len(a)-1:
+	    h.s = h.s + " "
+	else:
+	    h.s = h.s + "\n"
+
+def psprint(h, *a):
+    psvprint(h, a)
+
+def rect_format(s):
+    # Parse the game ID.
+    ret = Holder()
+    ret.s = ""
+    params, seed = string.split(s, ":")
+    w, h = map(string.atoi, string.split(params, "x"))
+    grid = []
+    while len(seed) > 0:
+	if seed[0] in '_'+string.lowercase:
+	    if seed[0] in string.lowercase:
+		grid.extend([-1] * (ord(seed[0]) - ord('a') + 1))
+	    seed = seed[1:]
+	elif seed[0] in string.digits:
+	    ns = ""
+	    while len(seed) > 0 and seed[0] in string.digits:
+		ns = ns + seed[0]
+		seed = seed[1:]
+	    grid.append(string.atoi(ns))
+    assert w * h == len(grid)
+    # I'm going to arbitrarily choose to use 7pt text for the
+    # numbers, and a 14pt grid pitch.
+    textht = 7
+    gridpitch = 14
+    # Set up coordinate system.
+    pw = gridpitch * w
+    ph = gridpitch * h
+    ret.coords = (pw/2, pw/2, ph/2, ph/2)
+    psprint(ret, "%g %g translate" % (-ret.coords[0], -ret.coords[2]))
+    # Draw the internal grid lines, _very_ thin (the player will
+    # need to draw over them visibly).
+    psprint(ret, "newpath 0.01 setlinewidth")
+    for x in xrange(1,w):
+	psprint(ret, "%g 0 moveto 0 %g rlineto" % (x * gridpitch, h * gridpitch))
+    for y in xrange(1,h):
+	psprint(ret, "0 %g moveto %g 0 rlineto" % (y * gridpitch, w * gridpitch))
+    psprint(ret, "stroke")
+    # Draw round the grid exterior, much thicker.
+    psprint(ret, "newpath 1.5 setlinewidth")
+    psprint(ret, "0 0 moveto 0 %g rlineto %g 0 rlineto 0 %g rlineto" % \
+    (h * gridpitch, w * gridpitch, -h * gridpitch))
+    psprint(ret, "closepath stroke")
+    # And draw the numbers.
+    psprint(ret, "/Helvetica findfont %g scalefont setfont" % textht)
+    for y in xrange(h):
+	for x in xrange(w):
+	    n = grid[y*w+x]
+	    if n > 0:
+		psprint(ret, "%g %g (%d) ctshow" % \
+		((x+0.5)*gridpitch, (h-y-0.5)*gridpitch, n))
+    return ret.coords, ret.s
+
+def pattern_format(s):
+    ret = Holder()
+    ret.s = ""
+    # Parse the game ID.
+    params, seed = string.split(s, ":")
+    w, h = map(string.atoi, string.split(params, "x"))
+    rowdata = map(lambda s: string.split(s, "."), string.split(seed, "/"))
+    assert len(rowdata) == w+h
+    # I'm going to arbitrarily choose to use 7pt text for the
+    # numbers, and a 14pt grid pitch.
+    textht = 7
+    gridpitch = 14
+    gutter = 8 # between the numbers and the grid
+    # Find the maximum number of numbers in each dimension, to
+    # determine the border size required.
+    xborder = reduce(max, map(len, rowdata[w:]))
+    yborder = reduce(max, map(len, rowdata[:w]))
+    # Set up coordinate system. I'm going to put the origin at the
+    # _top left_ of the grid, so that both sets of numbers get
+    # drawn the same way.
+    pw = (w + xborder) * gridpitch + gutter
+    ph = (h + yborder) * gridpitch + gutter
+    ret.coords = (xborder * gridpitch + gutter, w * gridpitch, \
+    yborder * gridpitch + gutter, h * gridpitch)
+    # Draw the internal grid lines. Every fifth one is thicker, as
+    # a visual aid.
+    psprint(ret, "newpath 0.1 setlinewidth")
+    for x in xrange(1,w):
+	if x % 5 != 0:
+	    psprint(ret, "%g 0 moveto 0 %g rlineto" % (x * gridpitch, -h * gridpitch))
+    for y in xrange(1,h):
+	if y % 5 != 0:
+	    psprint(ret, "0 %g moveto %g 0 rlineto" % (-y * gridpitch, w * gridpitch))
+    psprint(ret, "stroke")
+    psprint(ret, "newpath 0.75 setlinewidth")
+    for x in xrange(5,w,5):
+	psprint(ret, "%g 0 moveto 0 %g rlineto" % (x * gridpitch, -h * gridpitch))
+    for y in xrange(5,h,5):
+	psprint(ret, "0 %g moveto %g 0 rlineto" % (-y * gridpitch, w * gridpitch))
+    psprint(ret, "stroke")
+    # Draw round the grid exterior.
+    psprint(ret, "newpath 1.5 setlinewidth")
+    psprint(ret, "0 0 moveto 0 %g rlineto %g 0 rlineto 0 %g rlineto" % \
+    (-h * gridpitch, w * gridpitch, h * gridpitch))
+    psprint(ret, "closepath stroke")
+    # And draw the numbers.
+    psprint(ret, "/Helvetica findfont %g scalefont setfont" % textht)
+    for i in range(w+h):
+	ns = rowdata[i]
+	if i < w:
+	    xo = (i + 0.5) * gridpitch
+	    yo = (gutter + 0.5 * gridpitch)
+	else:
+	    xo = -(gutter + 0.5 * gridpitch)
+	    yo = ((i-w) + 0.5) * -gridpitch
+	for j in range(len(ns)-1, -1, -1):
+	    psprint(ret, "%g %g (%s) ctshow" % (xo, yo, ns[j]))
+	    if i < w:
+		yo = yo + gridpitch
+	    else:
+		xo = xo - gridpitch
+    return ret.coords, ret.s
+
+def solo_format(s):
+    ret = Holder()
+    ret.s = ""
+    # Parse the game ID.
+    params, seed = string.split(s, ":")
+    c, r = map(string.atoi, string.split(params, "x"))
+    cr = c*r
+    grid = []
+    while len(seed) > 0:
+	if seed[0] in '_'+string.lowercase:
+	    if seed[0] in string.lowercase:
+		grid.extend([-1] * (ord(seed[0]) - ord('a') + 1))
+	    seed = seed[1:]
+	elif seed[0] in string.digits:
+	    ns = ""
+	    while len(seed) > 0 and seed[0] in string.digits:
+		ns = ns + seed[0]
+		seed = seed[1:]
+	    grid.append(string.atoi(ns))
+    assert cr * cr == len(grid)
+    # I'm going to arbitrarily choose to use 9pt text for the
+    # numbers, and a 16pt grid pitch.
+    textht = 9
+    gridpitch = 16
+    # Set up coordinate system.
+    pw = ph = gridpitch * cr
+    ret.coords = (pw/2, pw/2, ph/2, ph/2)
+    psprint(ret, "%g %g translate" % (-ret.coords[0], -ret.coords[2]))
+    # Draw the thin internal grid lines.
+    psprint(ret, "newpath 0.1 setlinewidth")
+    for x in xrange(1,cr):
+	if x % r != 0:
+	    psprint(ret, "%g 0 moveto 0 %g rlineto" % (x * gridpitch, cr * gridpitch))
+    for y in xrange(1,cr):
+	if y % c != 0:
+	    psprint(ret, "0 %g moveto %g 0 rlineto" % (y * gridpitch, cr * gridpitch))
+    psprint(ret, "stroke")
+    # Draw the thicker internal grid lines.
+    psprint(ret, "newpath 1 setlinewidth")
+    for x in xrange(r,cr,r):
+	psprint(ret, "%g 0 moveto 0 %g rlineto" % (x * gridpitch, cr * gridpitch))
+    for y in xrange(c,cr,c):
+	psprint(ret, "0 %g moveto %g 0 rlineto" % (y * gridpitch, cr * gridpitch))
+    psprint(ret, "stroke")
+    # Draw round the grid exterior, thicker still.
+    psprint(ret, "newpath 1.5 setlinewidth")
+    psprint(ret, "0 0 moveto 0 %g rlineto %g 0 rlineto 0 %g rlineto" % \
+    (cr * gridpitch, cr * gridpitch, -cr * gridpitch))
+    psprint(ret, "closepath stroke")
+    # And draw the numbers.
+    psprint(ret, "/Helvetica findfont %g scalefont setfont" % textht)
+    for y in xrange(cr):
+	for x in xrange(cr):
+	    n = grid[y*cr+x]
+	    if n > 0:
+		if n > 9:
+		    s = chr(ord('a') + n - 10)
+		else:
+		    s = chr(ord('0') + n)
+		psprint(ret, "%g %g (%s) ctshow" % \
+		((x+0.5)*gridpitch, (cr-y-0.5)*gridpitch, s))
+    return ret.coords, ret.s
+
+formatters = {
+"rect": rect_format,
+"rectangles": rect_format,
+"pattern": pattern_format,
+"solo": solo_format
+}
+
+if len(sys.argv) < 3:
+    sys.stderr.write("print.py: expected two arguments (game and format)\n")
+    sys.exit(1)
+
+formatter = formatters.get(sys.argv[1], None)
+if formatter == None:
+    sys.stderr.write("print.py: unrecognised game name `%s'\n" % sys.argv[1])
+    sys.exit(1)
+
+try:
+    format = map(string.atoi, string.split(sys.argv[2], "x"))
+except ValueError, e:
+    format = []
+if len(format) != 2:
+    sys.stderr.write("print.py: expected format such as `2x3' as second" \
+    + " argument\n")
+    sys.exit(1)
+
+xx, yy = format
+ppp = xx * yy # puzzles per page
+
+ids = []
+while 1:
+    s = sys.stdin.readline()
+    if s == "": break
+    if s[-1:] == "\n": s = s[:-1]
+    ids.append(s)
+
+pages = int((len(ids) + ppp - 1) / ppp)
+
+# Output initial DSC stuff.
+print "%!PS-Adobe-3.0"
+print "%%Creator: print.py from Simon Tatham's Puzzle Collection"
+print "%%DocumentData: Clean7Bit"
+print "%%LanguageLevel: 1"
+print "%%Pages:", pages
+print "%%DocumentNeededResources:"
+print "%%+ font Helvetica"
+print "%%DocumentSuppliedResources: procset Puzzles 0 0"
+print "%%EndComments"
+print "%%BeginProlog"
+print "%%BeginResource: procset Puzzles 0 0"
+print "/ctshow {"
+print "  3 1 roll"
+print "  newpath 0 0 moveto (X) true charpath flattenpath pathbbox"
+print "  3 -1 roll add 2 div 3 1 roll pop pop sub moveto"
+print "  dup stringwidth pop 0.5 mul neg 0 rmoveto show"
+print "} bind def"
+print "%%EndResource"
+print "%%EndProlog"
+print "%%BeginSetup"
+print "%%IncludeResource: font Helvetica"
+print "%%EndSetup"
+
+# Now do each page.
+puzzle_index = 0;
+
+for i in xrange(1, pages+1):
+    print "%%Page:", i, i
+    print "save"
+
+    # Do the drawing for each puzzle, giving a set of PS fragments
+    # and bounding boxes.
+    fragments = [['' for i in xrange(xx)] for i in xrange(yy)]
+    lrbound = [(0,0) for i in xrange(xx)]
+    tbbound = [(0,0) for i in xrange(yy)]
+
+    for y in xrange(yy):
+	for x in xrange(xx):
+	    if puzzle_index >= len(ids):
+		break
+	    coords, frag = formatter(ids[puzzle_index])
+	    fragments[y][x] = frag
+	    lb, rb = lrbound[x]
+	    lrbound[x] = (max(lb, coords[0]), max(rb, coords[1]))
+	    tb, bb = tbbound[y]
+	    tbbound[y] = (max(tb, coords[2]), max(bb, coords[3]))
+	    puzzle_index = puzzle_index + 1
+
+    # Now we know the sizes of everything, do the drawing in such a
+    # way that we provide equal gutter space at the page edges and
+    # between puzzle rows/columns.
+    for y in xrange(yy):
+	for x in xrange(xx):
+	    if len(fragments[y][x]) > 0:
+		print "gsave"
+		print "clippath flattenpath pathbbox pop pop translate"
+		print "clippath flattenpath pathbbox 4 2 roll pop pop"
+		# Compute the total height of all puzzles, which
+		# we'll use it to work out the amount of gutter
+		# space below this puzzle.
+		htotal = reduce(lambda a,b:a+b, map(lambda (a,b):a+b, tbbound), 0)
+		# Now compute the total height of all puzzles
+		# _below_ this one, plus the height-below-origin of
+		# this one.
+		hbelow = reduce(lambda a,b:a+b, map(lambda (a,b):a+b, tbbound[y+1:]), 0)
+		hbelow = hbelow + tbbound[y][1]
+		print "%g sub %d mul %d div %g add exch" % (htotal, yy-y, yy+1, hbelow)
+		# Now do all the same computations for width,
+		# except we need the total width of everything
+		# _before_ this one since the coordinates work the
+		# other way round.
+		wtotal = reduce(lambda a,b:a+b, map(lambda (a,b):a+b, lrbound), 0)
+		# Now compute the total height of all puzzles
+		# _below_ this one, plus the height-below-origin of
+		# this one.
+		wleft = reduce(lambda a,b:a+b, map(lambda (a,b):a+b, lrbound[:x]), 0)
+		wleft = wleft + lrbound[x][0]
+		print "%g sub %d mul %d div %g add exch" % (wtotal, x+1, xx+1, wleft)
+		print "translate"
+		sys.stdout.write(fragments[y][x])
+		print "grestore"
+
+    print "restore showpage"
+
+print "%%EOF"

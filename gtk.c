@@ -1031,14 +1031,70 @@ int main(int argc, char **argv)
     char *pname = argv[0];
     char *error;
 
-    gtk_init(&argc, &argv);
+    /*
+     * Special standalone mode for generating puzzle IDs on the
+     * command line. Useful for generating puzzles to be printed
+     * out and solved offline (for puzzles where that even makes
+     * sense - Solo, for example, is a lot more pencil-and-paper
+     * friendly than Net!)
+     * 
+     * Usage:
+     * 
+     *   <puzzle-name> --generate [<n> [<params>]]
+     * 
+     * <n>, if present, is the number of puzzle IDs to generate.
+     * <params>, if present, is the same type of parameter string
+     * you would pass to the puzzle when running it in GUI mode,
+     * including optional extras such as the expansion factor in
+     * Rectangles and the difficulty level in Solo.
+     * 
+     * If you specify <params>, you must also specify <n> (although
+     * you may specify it to be 1). Sorry; that was the
+     * simplest-to-parse command-line syntax I came up with.
+     */
+    if (argc > 1 && !strcmp(argv[1], "--generate")) {
+	int n = 1;
+	char *params = NULL;
+	game_params *par;
+	random_state *rs;
+	char *parstr;
 
-    if (!new_window(argc > 1 ? argv[1] : NULL, &error)) {
-        fprintf(stderr, "%s: %s\n", pname, error);
-        return 1;
+	{
+	    void *seed;
+	    int seedlen;
+	    get_random_seed(&seed, &seedlen);
+	    rs = random_init(seed, seedlen);
+	}
+
+	if (argc > 2)
+	    n = atoi(argv[2]);
+	if (argc > 3)
+	    params = argv[3];
+
+	if (params)
+	    par = thegame.decode_params(params);
+	else
+	    par = thegame.default_params();
+	parstr = thegame.encode_params(par);
+
+	while (n-- > 0) {
+	    char *seed = thegame.new_seed(par, rs);
+	    printf("%s:%s\n", parstr, seed);
+	    sfree(seed);
+	}
+
+	return 0;
+    } else {
+
+	gtk_init(&argc, &argv);
+
+	if (!new_window(argc > 1 ? argv[1] : NULL, &error)) {
+	    fprintf(stderr, "%s: %s\n", pname, error);
+	    return 1;
+	}
+
+	gtk_main();
     }
-
-    gtk_main();
 
     return 0;
 }
