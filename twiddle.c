@@ -32,8 +32,6 @@ enum {
     COL_HIGHLIGHT_GENTLE,
     COL_LOWLIGHT,
     COL_LOWLIGHT_GENTLE,
-    COL_TOP,
-    COL_BOTTOM,
     NCOLOURS
 };
 
@@ -536,14 +534,6 @@ static float *game_colours(frontend *fe, game_state *state, int *ncolours)
         ret[COL_TEXT * 3 + i] = 0.0;
     }
 
-    ret[COL_TOP * 3 + 0] = ret[COL_BACKGROUND * 3 + 0] * 1.3F;
-    ret[COL_TOP * 3 + 1] = ret[COL_BACKGROUND * 3 + 1] * 1.3F;
-    ret[COL_TOP * 3 + 2] = ret[COL_BACKGROUND * 3 + 2] * 0.6F;
-
-    ret[COL_BOTTOM * 3 + 0] = ret[COL_BACKGROUND * 3 + 0] * 0.6F;
-    ret[COL_BOTTOM * 3 + 1] = ret[COL_BACKGROUND * 3 + 1] * 1.3F;
-    ret[COL_BOTTOM * 3 + 2] = ret[COL_BACKGROUND * 3 + 2] * 0.6F;
-
     *ncolours = NCOLOURS;
     return ret;
 }
@@ -669,59 +659,43 @@ static void draw_tile(frontend *fe, game_state *state, int x, int y,
      * Next, the colour bars for orientation.
      */
     if (state->orientable) {
-	int xw, yw, swap;
+	int xdx, xdy, ydx, ydy;
+	int cx, cy, displ, displ2;
 	switch (tile & 3) {
 	  case 0:
-	    xw = TILE_SIZE - 3 - 2*HIGHLIGHT_WIDTH;
-	    yw = HIGHLIGHT_WIDTH;
-	    swap = FALSE;
+	    xdx = 1, xdy = 0;
+	    ydx = 0, ydy = 1;
 	    break;
 	  case 1:
-	    xw = HIGHLIGHT_WIDTH;
-	    yw = TILE_SIZE - 3 - 2*HIGHLIGHT_WIDTH;
-	    swap = FALSE;
+	    xdx = 0, xdy = -1;
+	    ydx = 1, ydy = 0;
 	    break;
 	  case 2:
-	    xw = TILE_SIZE - 3 - 2*HIGHLIGHT_WIDTH;
-	    yw = HIGHLIGHT_WIDTH;
-	    swap = TRUE;
+	    xdx = -1, xdy = 0;
+	    ydx = 0, ydy = -1;
 	    break;
 	  default /* case 3 */:
-	    xw = HIGHLIGHT_WIDTH;
-	    yw = TILE_SIZE - 3 - 2*HIGHLIGHT_WIDTH;
-	    swap = TRUE;
+	    xdx = 0, xdy = 1;
+	    ydx = -1, ydy = 0;
 	    break;
 	}
 
-	coords[0] = x + HIGHLIGHT_WIDTH + 1;
-	coords[1] = y + HIGHLIGHT_WIDTH + 1;
-	rotate(coords+0, rot);
-	coords[2] = x + HIGHLIGHT_WIDTH + 1 + xw;
-	coords[3] = y + HIGHLIGHT_WIDTH + 1;
-	rotate(coords+2, rot);
-	coords[4] = x + HIGHLIGHT_WIDTH + 1 + xw;
-	coords[5] = y + HIGHLIGHT_WIDTH + 1 + yw;
-	rotate(coords+4, rot);
-	coords[6] = x + HIGHLIGHT_WIDTH + 1;
-	coords[7] = y + HIGHLIGHT_WIDTH + 1 + yw;
-	rotate(coords+6, rot);
-	draw_polygon(fe, coords, 4, TRUE, swap ? COL_BOTTOM : COL_TOP);
-	draw_polygon(fe, coords, 4, FALSE, swap ? COL_BOTTOM : COL_TOP);
+	cx = x + TILE_SIZE / 2;
+	cy = y + TILE_SIZE / 2;
+	displ = TILE_SIZE / 2 - HIGHLIGHT_WIDTH - 2;
+	displ2 = TILE_SIZE / 3 - HIGHLIGHT_WIDTH;
 
-	coords[0] = x + TILE_SIZE - 2 - HIGHLIGHT_WIDTH;
-	coords[1] = y + TILE_SIZE - 2 - HIGHLIGHT_WIDTH;
+	coords[0] = cx - displ * xdx - displ2 * ydx;
+	coords[1] = cy - displ * xdy - displ2 * ydy;
 	rotate(coords+0, rot);
-	coords[2] = x + TILE_SIZE - 2 - HIGHLIGHT_WIDTH - xw;
-	coords[3] = y + TILE_SIZE - 2 - HIGHLIGHT_WIDTH;
+	coords[2] = cx + displ * xdx - displ2 * ydx;
+	coords[3] = cy + displ * xdy - displ2 * ydy;
 	rotate(coords+2, rot);
-	coords[4] = x + TILE_SIZE - 2 - HIGHLIGHT_WIDTH - xw;
-	coords[5] = y + TILE_SIZE - 2 - HIGHLIGHT_WIDTH - yw;
+	coords[4] = cx + displ * ydx;
+	coords[5] = cy + displ * ydy;
 	rotate(coords+4, rot);
-	coords[6] = x + TILE_SIZE - 2 - HIGHLIGHT_WIDTH;
-	coords[7] = y + TILE_SIZE - 2 - HIGHLIGHT_WIDTH - yw;
-	rotate(coords+6, rot);
-	draw_polygon(fe, coords, 4, TRUE, swap ? COL_TOP : COL_BOTTOM);
-	draw_polygon(fe, coords, 4, FALSE, swap ? COL_TOP : COL_BOTTOM);
+	draw_polygon(fe, coords, 3, TRUE, COL_LOWLIGHT_GENTLE);
+	draw_polygon(fe, coords, 3, FALSE, COL_LOWLIGHT_GENTLE);
     }
 
     coords[0] = x + TILE_SIZE/2;
@@ -816,33 +790,6 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 	draw_update(fe, 0, 0,
 		    TILE_SIZE * state->w + 2 * BORDER,
 		    TILE_SIZE * state->h + 2 * BORDER);
-
-	/*
-	 * In an orientable puzzle, draw some colour bars at the
-	 * sides as a gentle reminder of which colours need to be
-	 * aligned where.
-	 */
-	if (state->orientable) {
-	    int y;
-	    for (y = 0; y < state->h; y++) {
-		draw_rect(fe, COORD(0) - BORDER / 2,
-			  COORD(y) + HIGHLIGHT_WIDTH + 1,
-			  BORDER / 2 - 2 * HIGHLIGHT_WIDTH,
-			  HIGHLIGHT_WIDTH + 1, COL_TOP);
-		draw_rect(fe, COORD(state->w) + 2 * HIGHLIGHT_WIDTH,
-			  COORD(y) + HIGHLIGHT_WIDTH + 1,
-			  BORDER / 2 - 2 * HIGHLIGHT_WIDTH,
-			  HIGHLIGHT_WIDTH + 1, COL_TOP);
-		draw_rect(fe, COORD(0) - BORDER / 2,
-			  COORD(y) + TILE_SIZE - 2 - 2 * HIGHLIGHT_WIDTH,
-			  BORDER / 2 - 2 * HIGHLIGHT_WIDTH,
-			  HIGHLIGHT_WIDTH + 1, COL_BOTTOM);
-		draw_rect(fe, COORD(state->w) + 2 * HIGHLIGHT_WIDTH,
-			  COORD(y) + TILE_SIZE - 2 - 2 * HIGHLIGHT_WIDTH,
-			  BORDER / 2 - 2 * HIGHLIGHT_WIDTH,
-			  HIGHLIGHT_WIDTH + 1, COL_BOTTOM);
-	    }
-	}
 
         /*
          * Recessed area containing the whole puzzle.

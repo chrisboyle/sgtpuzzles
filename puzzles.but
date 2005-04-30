@@ -433,11 +433,9 @@ is just to arrange all the 1s into the first row, all the 2s into
 the second row, and so on.
 
 \b You can configure whether the orientation of tiles matters. If
-you ask for an orientable puzzle, each tile will have a yellow bar
-along the side that should be at the top, and a green bar along the
-side that should be at the bottom. To remind you of which way round
-things go, there will be coloured bars by the sides of the grid.
-Line up matching colours horizontally to complete the puzzle.
+you ask for an orientable puzzle, each tile will have a triangle
+drawn in it. All the triangles must be pointing upwards to complete
+the puzzle.
 
 
 \C{rectangles} \i{Rectangles}
