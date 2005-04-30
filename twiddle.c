@@ -5,15 +5,6 @@
  * Gyro Chamber).
  */
 
-/*
- * Possibly TODO:
- * 
- *  - it's horribly tempting to give the pieces significant
- *    _orientations_, perhaps by drawing some sort of oriented
- *    polygonal figure beneath the number. (An arrow pointing
- *    upwards springs readily to mind.)
- */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
