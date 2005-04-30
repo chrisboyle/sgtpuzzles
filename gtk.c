@@ -170,6 +170,7 @@ void draw_text(frontend *fe, int x, int y, int fonttype, int fontsize,
             /* `Monospace' and `Sans' are meta-families guaranteed to exist */
             pango_font_description_set_family(fd, fonttype == FONT_FIXED ?
                                               "Monospace" : "Sans");
+            pango_font_description_set_weight(fd, PANGO_WEIGHT_BOLD);
             /*
              * I found some online Pango documentation which
              * described a function called
