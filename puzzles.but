@@ -392,9 +392,9 @@ containing a number, and your aim is to arrange the numbers into
 ascending order.
 
 In basic Twiddle, your move is to rotate a square group of four
-tiles about their common centre. (Orientation is not significant:
-tiles never end up upside down!) On more advanced settings, you can
-rotate a larger square group of tiles.
+tiles about their common centre. (Orientation is not significant in
+the basic puzzle, although you can select it.) On more advanced
+settings, you can rotate a larger square group of tiles.
 
 I first saw this type of puzzle in the GameCube game \q{Metroid
 Prime 2}. In the Main Gyro Chamber in that game, there is a puzzle
@@ -431,6 +431,13 @@ option on the \q{Type} menu:
 are groups of identical numbers. In the simplified puzzle your aim
 is just to arrange all the 1s into the first row, all the 2s into
 the second row, and so on.
+
+\b You can configure whether the orientation of tiles matters. If
+you ask for an orientable puzzle, each tile will have a yellow bar
+along the side that should be at the top, and a green bar along the
+side that should be at the bottom. To remind you of which way round
+things go, there will be coloured bars by the sides of the grid.
+Line up matching colours horizontally to complete the puzzle.
 
 
 \C{rectangles} \i{Rectangles}

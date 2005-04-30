@@ -41,16 +41,20 @@ enum {
     COL_HIGHLIGHT_GENTLE,
     COL_LOWLIGHT,
     COL_LOWLIGHT_GENTLE,
+    COL_TOP,
+    COL_BOTTOM,
     NCOLOURS
 };
 
 struct game_params {
     int w, h, n;
     int rowsonly;
+    int orientable;
 };
 
 struct game_state {
     int w, h, n;
+    int orientable;
     int *grid;
     int completed;
     int movecount;
@@ -63,7 +67,7 @@ static game_params *default_params(void)
 
     ret->w = ret->h = 3;
     ret->n = 2;
-    ret->rowsonly = FALSE;
+    ret->rowsonly = ret->orientable = FALSE;
 
     return ret;
 }
@@ -87,9 +91,11 @@ static int game_fetch_preset(int i, char **name, game_params **params)
         char *title;
         game_params params;
     } presets[] = {
-        { "3x3 rows only", { 3, 3, 2, TRUE } },
-        { "3x3 normal", { 3, 3, 2, FALSE } },
+        { "3x3 rows only", { 3, 3, 2, TRUE, FALSE } },
+        { "3x3 normal", { 3, 3, 2, FALSE, FALSE } },
+        { "3x3 orientable", { 3, 3, 2, FALSE, TRUE } },
         { "4x4 normal", { 4, 4, 2, FALSE } },
+        { "4x4 orientable", { 4, 4, 2, FALSE, TRUE } },
         { "4x4 radius 3", { 4, 4, 3, FALSE } },
         { "5x5 radius 3", { 5, 5, 3, FALSE } },
         { "6x6 radius 4", { 6, 6, 4, FALSE } },
@@ -110,7 +116,7 @@ static game_params *decode_params(char const *string)
 
     ret->w = ret->h = atoi(string);
     ret->n = 2;
-    ret->rowsonly = FALSE;
+    ret->rowsonly = ret->orientable = FALSE;
     while (*string && isdigit(*string)) string++;
     if (*string == 'x') {
         string++;
@@ -122,9 +128,13 @@ static game_params *decode_params(char const *string)
         ret->n = atoi(string);
 	while (*string && isdigit(*string)) string++;
     }
-    if (*string == 'r') {
+    while (*string) {
+	if (*string == 'r') {
+	    ret->rowsonly = TRUE;
+	} else if (*string == 'o') {
+	    ret->orientable = TRUE;
+	}
 	string++;
-	ret->rowsonly = TRUE;
     }
 
     return ret;
@@ -133,8 +143,9 @@ static game_params *decode_params(char const *string)
 static char *encode_params(game_params *params)
 {
     char buf[256];
-    sprintf(buf, "%dx%dn%d%s", params->w, params->h, params->n,
-	    params->rowsonly ? "r" : "");
+    sprintf(buf, "%dx%dn%d%s%s", params->w, params->h, params->n,
+	    params->rowsonly ? "r" : "",
+	    params->orientable ? "o" : "");
     return dupstr(buf);
 }
 
@@ -143,7 +154,7 @@ static config_item *game_configure(game_params *params)
     config_item *ret;
     char buf[80];
 
-    ret = snewn(4, config_item);
+    ret = snewn(6, config_item);
 
     ret[0].name = "Width";
     ret[0].type = C_STRING;
@@ -168,10 +179,15 @@ static config_item *game_configure(game_params *params)
     ret[3].sval = NULL;
     ret[3].ival = params->rowsonly;
 
-    ret[4].name = NULL;
-    ret[4].type = C_END;
+    ret[4].name = "Orientation matters";
+    ret[4].type = C_BOOLEAN;
     ret[4].sval = NULL;
-    ret[4].ival = 0;
+    ret[4].ival = params->orientable;
+
+    ret[5].name = NULL;
+    ret[5].type = C_END;
+    ret[5].sval = NULL;
+    ret[5].ival = 0;
 
     return ret;
 }
@@ -184,6 +200,7 @@ static game_params *custom_params(config_item *cfg)
     ret->h = atoi(cfg[1].sval);
     ret->n = atoi(cfg[2].sval);
     ret->rowsonly = cfg[3].ival;
+    ret->orientable = cfg[4].ival;
 
     return ret;
 }
@@ -207,7 +224,8 @@ static char *validate_params(game_params *params)
  * the centre is good for a user interface, but too inconvenient to
  * use internally.)
  */
-static void do_rotate(int *grid, int w, int h, int n, int x, int y, int dir)
+static void do_rotate(int *grid, int w, int h, int n, int orientable,
+		      int x, int y, int dir)
 {
     int i, j;
 
@@ -249,19 +267,38 @@ static void do_rotate(int *grid, int w, int h, int n, int x, int y, int dir)
 	    for (k = 0; k < 4; k++)
 		g[k] = grid[p[k]];
 
-	    for (k = 0; k < 4; k++)
-		grid[p[k]] = g[(k+dir) & 3];
+	    for (k = 0; k < 4; k++) {
+		int v = g[(k+dir) & 3];
+		if (orientable)
+		    v ^= ((v+dir) ^ v) & 3;  /* alter orientation */
+		grid[p[k]] = v;
+	    }
 	}
+    }
+
+    /*
+     * Don't forget the orientation on the centre square, if n is
+     * odd.
+     */
+    if (orientable && (n & 1)) {
+	int v = grid[n/2*(w+1)];
+	v ^= ((v+dir) ^ v) & 3;  /* alter orientation */
+	grid[n/2*(w+1)] = v;
     }
 }
 
-static int grid_complete(int *grid, int wh)
+static int grid_complete(int *grid, int wh, int orientable)
 {
     int ok = TRUE;
     int i;
     for (i = 1; i < wh; i++)
 	if (grid[i] < grid[i-1])
 	    ok = FALSE;
+    if (orientable) {
+	for (i = 0; i < wh; i++)
+	    if (grid[i] & 3)
+		ok = FALSE;
+    }
     return ok;
 }
 
@@ -279,7 +316,7 @@ static char *new_game_seed(game_params *params, random_state *rs)
      */
     grid = snewn(wh, int);
     for (i = 0; i < wh; i++)
-	grid[i] = (params->rowsonly ? i/w : i) + 1;
+	grid[i] = ((params->rowsonly ? i/w : i) + 1) * 4;
 
     /*
      * Shuffle it. This game is complex enough that I don't feel up
@@ -294,13 +331,15 @@ static char *new_game_seed(game_params *params, random_state *rs)
 
 	x = random_upto(rs, w - n + 1);
 	y = random_upto(rs, h - n + 1);
-	do_rotate(grid, w, h, n, x, y, 1 + random_upto(rs, 3));
+	do_rotate(grid, w, h, n, params->orientable,
+		  x, y, 1 + random_upto(rs, 3));
 
 	/*
 	 * Optionally one more move in case the entire grid has
 	 * happened to come out solved.
 	 */
-	if (i == total_moves - 1 && grid_complete(grid, wh))
+	if (i == total_moves - 1 && grid_complete(grid, wh,
+						  params->orientable))
 	    i--;
     }
 
@@ -364,6 +403,7 @@ static game_state *new_game(game_params *params, char *seed)
     state->w = w;
     state->h = h;
     state->n = n;
+    state->orientable = params->orientable;
     state->completed = 0;
     state->movecount = 0;
     state->lastx = state->lasty = state->lastr = -1;
@@ -390,6 +430,7 @@ static game_state *dup_game(game_state *state)
     ret->w = state->w;
     ret->h = state->h;
     ret->n = state->n;
+    ret->orientable = state->orientable;
     ret->completed = state->completed;
     ret->movecount = state->movecount;
     ret->lastx = state->lastx;
@@ -443,7 +484,7 @@ static game_state *make_move(game_state *from, game_ui *ui, int x, int y,
 	ret = dup_game(from);
 	ret->movecount++;
 	dir = (button == LEFT_BUTTON ? 1 : -1);
-	do_rotate(ret->grid, w, h, n, x, y, dir);
+	do_rotate(ret->grid, w, h, n, ret->orientable, x, y, dir);
 	ret->lastx = x;
 	ret->lasty = y;
 	ret->lastr = dir;
@@ -452,7 +493,7 @@ static game_state *make_move(game_state *from, game_ui *ui, int x, int y,
 	 * See if the game has been completed. To do this we simply
 	 * test that the grid contents are in increasing order.
 	 */
-	if (!ret->completed && grid_complete(ret->grid, wh))
+	if (!ret->completed && grid_complete(ret->grid, wh, ret->orientable))
 	    ret->completed = ret->movecount;
 	return ret;
     }
@@ -503,6 +544,14 @@ static float *game_colours(frontend *fe, game_state *state, int *ncolours)
         ret[COL_LOWLIGHT_GENTLE * 3 + i] = ret[COL_BACKGROUND * 3 + i] * 0.9F;
         ret[COL_TEXT * 3 + i] = 0.0;
     }
+
+    ret[COL_TOP * 3 + 0] = ret[COL_BACKGROUND * 3 + 0] * 1.3F;
+    ret[COL_TOP * 3 + 1] = ret[COL_BACKGROUND * 3 + 1] * 1.3F;
+    ret[COL_TOP * 3 + 2] = ret[COL_BACKGROUND * 3 + 2] * 0.6F;
+
+    ret[COL_BOTTOM * 3 + 0] = ret[COL_BACKGROUND * 3 + 0] * 0.6F;
+    ret[COL_BOTTOM * 3 + 1] = ret[COL_BACKGROUND * 3 + 1] * 1.3F;
+    ret[COL_BOTTOM * 3 + 2] = ret[COL_BACKGROUND * 3 + 2] * 0.6F;
 
     *ncolours = NCOLOURS;
     return ret;
@@ -601,6 +650,9 @@ static void draw_tile(frontend *fe, game_state *state, int x, int y,
     draw_polygon(fe, coords, 3, TRUE, rot ? rot->tc : COL_HIGHLIGHT);
     draw_polygon(fe, coords, 3, FALSE, rot ? rot->tc : COL_HIGHLIGHT);
 
+    /*
+     * Now the main blank area in the centre of the tile.
+     */
     if (rot) {
 	coords[0] = x + HIGHLIGHT_WIDTH;
 	coords[1] = y + HIGHLIGHT_WIDTH;
@@ -622,10 +674,69 @@ static void draw_tile(frontend *fe, game_state *state, int x, int y,
 		  flash_colour);
     }
 
+    /*
+     * Next, the colour bars for orientation.
+     */
+    if (state->orientable) {
+	int xw, yw, swap;
+	switch (tile & 3) {
+	  case 0:
+	    xw = TILE_SIZE - 3 - 2*HIGHLIGHT_WIDTH;
+	    yw = HIGHLIGHT_WIDTH;
+	    swap = FALSE;
+	    break;
+	  case 1:
+	    xw = HIGHLIGHT_WIDTH;
+	    yw = TILE_SIZE - 3 - 2*HIGHLIGHT_WIDTH;
+	    swap = FALSE;
+	    break;
+	  case 2:
+	    xw = TILE_SIZE - 3 - 2*HIGHLIGHT_WIDTH;
+	    yw = HIGHLIGHT_WIDTH;
+	    swap = TRUE;
+	    break;
+	  default /* case 3 */:
+	    xw = HIGHLIGHT_WIDTH;
+	    yw = TILE_SIZE - 3 - 2*HIGHLIGHT_WIDTH;
+	    swap = TRUE;
+	    break;
+	}
+
+	coords[0] = x + HIGHLIGHT_WIDTH + 1;
+	coords[1] = y + HIGHLIGHT_WIDTH + 1;
+	rotate(coords+0, rot);
+	coords[2] = x + HIGHLIGHT_WIDTH + 1 + xw;
+	coords[3] = y + HIGHLIGHT_WIDTH + 1;
+	rotate(coords+2, rot);
+	coords[4] = x + HIGHLIGHT_WIDTH + 1 + xw;
+	coords[5] = y + HIGHLIGHT_WIDTH + 1 + yw;
+	rotate(coords+4, rot);
+	coords[6] = x + HIGHLIGHT_WIDTH + 1;
+	coords[7] = y + HIGHLIGHT_WIDTH + 1 + yw;
+	rotate(coords+6, rot);
+	draw_polygon(fe, coords, 4, TRUE, swap ? COL_BOTTOM : COL_TOP);
+	draw_polygon(fe, coords, 4, FALSE, swap ? COL_BOTTOM : COL_TOP);
+
+	coords[0] = x + TILE_SIZE - 2 - HIGHLIGHT_WIDTH;
+	coords[1] = y + TILE_SIZE - 2 - HIGHLIGHT_WIDTH;
+	rotate(coords+0, rot);
+	coords[2] = x + TILE_SIZE - 2 - HIGHLIGHT_WIDTH - xw;
+	coords[3] = y + TILE_SIZE - 2 - HIGHLIGHT_WIDTH;
+	rotate(coords+2, rot);
+	coords[4] = x + TILE_SIZE - 2 - HIGHLIGHT_WIDTH - xw;
+	coords[5] = y + TILE_SIZE - 2 - HIGHLIGHT_WIDTH - yw;
+	rotate(coords+4, rot);
+	coords[6] = x + TILE_SIZE - 2 - HIGHLIGHT_WIDTH;
+	coords[7] = y + TILE_SIZE - 2 - HIGHLIGHT_WIDTH - yw;
+	rotate(coords+6, rot);
+	draw_polygon(fe, coords, 4, TRUE, swap ? COL_TOP : COL_BOTTOM);
+	draw_polygon(fe, coords, 4, FALSE, swap ? COL_TOP : COL_BOTTOM);
+    }
+
     coords[0] = x + TILE_SIZE/2;
     coords[1] = y + TILE_SIZE/2;
     rotate(coords+0, rot);
-    sprintf(str, "%d", tile);
+    sprintf(str, "%d", tile / 4);
     draw_text(fe, coords[0], coords[1],
 	      FONT_VARIABLE, TILE_SIZE/3, ALIGN_VCENTRE | ALIGN_HCENTRE,
 	      COL_TEXT, str);
@@ -714,6 +825,33 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 	draw_update(fe, 0, 0,
 		    TILE_SIZE * state->w + 2 * BORDER,
 		    TILE_SIZE * state->h + 2 * BORDER);
+
+	/*
+	 * In an orientable puzzle, draw some colour bars at the
+	 * sides as a gentle reminder of which colours need to be
+	 * aligned where.
+	 */
+	if (state->orientable) {
+	    int y;
+	    for (y = 0; y < state->h; y++) {
+		draw_rect(fe, COORD(0) - BORDER / 2,
+			  COORD(y) + HIGHLIGHT_WIDTH + 1,
+			  BORDER / 2 - 2 * HIGHLIGHT_WIDTH,
+			  HIGHLIGHT_WIDTH + 1, COL_TOP);
+		draw_rect(fe, COORD(state->w) + 2 * HIGHLIGHT_WIDTH,
+			  COORD(y) + HIGHLIGHT_WIDTH + 1,
+			  BORDER / 2 - 2 * HIGHLIGHT_WIDTH,
+			  HIGHLIGHT_WIDTH + 1, COL_TOP);
+		draw_rect(fe, COORD(0) - BORDER / 2,
+			  COORD(y) + TILE_SIZE - 2 - 2 * HIGHLIGHT_WIDTH,
+			  BORDER / 2 - 2 * HIGHLIGHT_WIDTH,
+			  HIGHLIGHT_WIDTH + 1, COL_BOTTOM);
+		draw_rect(fe, COORD(state->w) + 2 * HIGHLIGHT_WIDTH,
+			  COORD(y) + TILE_SIZE - 2 - 2 * HIGHLIGHT_WIDTH,
+			  BORDER / 2 - 2 * HIGHLIGHT_WIDTH,
+			  HIGHLIGHT_WIDTH + 1, COL_BOTTOM);
+	    }
+	}
 
         /*
          * Recessed area containing the whole puzzle.
