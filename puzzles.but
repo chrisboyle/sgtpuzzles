@@ -382,6 +382,57 @@ The only parameters available from the \q{Custom...} option on the
 self-explanatory.
 
 
+\C{twiddle} \i{Twiddle}
+
+\cfg{winhelp-topic}{games.twiddle}
+
+Twiddle is a tile-rearrangement puzzle, visually similar to Sixteen
+(see \k{sixteen}): you are given a grid of square tiles, each
+containing a number, and your aim is to arrange the numbers into
+ascending order.
+
+In basic Twiddle, your move is to rotate a square group of four
+tiles about their common centre. (Orientation is not significant:
+tiles never end up upside down!) On more advanced settings, you can
+rotate a larger square group of tiles.
+
+I first saw this type of puzzle in the GameCube game \q{Metroid
+Prime 2}. In the Main Gyro Chamber in that game, there is a puzzle
+you solve to unlock a door, which is a special case of Twiddle. I
+developed this game as a generalisation of that puzzle.
+
+\H{twiddle-controls} \I{controls, for Twiddle}Twiddle controls
+
+To play Twiddle, click the mouse in the centre of the square group
+you wish to rotate. In the basic mode, you rotate a 2\by\.2 square,
+which means you have to click at a corner point where four tiles
+meet.
+
+In more advanced modes you might be rotating 3\by\.3 or even more at
+a time; if the size of the square is odd then you simply click in
+the centre tile of the square you want to rotate.
+
+Clicking with the left mouse button rotates the group anticlockwise.
+Clicking with the right button rotates it clockwise.
+
+(All the actions described in \k{common-actions} are also available.)
+
+\H{twiddle-parameters} \I{parameters, for Twiddle}Twiddle parameters
+
+Twiddle provides several configuration options via the \q{Custom}
+option on the \q{Type} menu:
+
+\b You can configure the width and height of the puzzle grid.
+
+\b You can configure the size of square block that rotates at a time.
+
+\b You can ask for every square in the grid to be distinguishable
+(the default), or you can ask for a simplified puzzle in which there
+are groups of identical numbers. In the simplified puzzle your aim
+is just to arrange all the 1s into the first row, all the 2s into
+the second row, and so on.
+
+
 \C{rectangles} \i{Rectangles}
 
 \cfg{winhelp-topic}{games.rectangles}

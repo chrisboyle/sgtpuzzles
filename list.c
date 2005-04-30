@@ -25,6 +25,7 @@ extern const game pattern;
 extern const game rect;
 extern const game sixteen;
 extern const game solo;
+extern const game twiddle;
 
 const game *gamelist[] = {
     &cube,
@@ -35,6 +36,7 @@ const game *gamelist[] = {
     &rect,
     &sixteen,
     &solo,
+    &twiddle,
 };
 
 const int gamecount = lenof(gamelist);

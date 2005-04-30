@@ -18,7 +18,7 @@ COMMON   = midend misc malloc random
 NET      = net tree234
 NETSLIDE = netslide tree234
 
-ALL      = list NET NETSLIDE cube fifteen sixteen rect pattern solo
+ALL      = list NET NETSLIDE cube fifteen sixteen rect pattern solo twiddle
 
 net      : [X] gtk COMMON NET
 netslide : [X] gtk COMMON NETSLIDE
@@ -28,6 +28,7 @@ sixteen  : [X] gtk COMMON sixteen
 rect     : [X] gtk COMMON rect
 pattern  : [X] gtk COMMON pattern
 solo     : [X] gtk COMMON solo
+twiddle  : [X] gtk COMMON twiddle
 
 # The Windows Net shouldn't be called `net.exe' since Windows
 # already has a reasonably important utility program by that name!
@@ -39,6 +40,7 @@ sixteen  : [G] WINDOWS COMMON sixteen
 rect     : [G] WINDOWS COMMON rect
 pattern  : [G] WINDOWS COMMON pattern
 solo     : [G] WINDOWS COMMON solo
+twiddle  : [G] WINDOWS COMMON twiddle
 
 # Mac OS X unified application containing all the puzzles.
 Puzzles  : [MX] osx osx.icns osx-info.plist COMMON ALL
