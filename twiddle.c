@@ -334,7 +334,9 @@ static char *new_game_seed(game_params *params, random_state *rs)
 
     /*
      * Now construct the game seed, by describing the grid as a
-     * simple sequence of comma-separated integers.
+     * simple sequence of integers. They're comma-separated, unless
+     * the puzzle is orientable in which case they're separated by
+     * orientation letters `u', `d', `l' and `r'.
      */
     ret = NULL;
     retlen = 0;
@@ -342,13 +344,15 @@ static char *new_game_seed(game_params *params, random_state *rs)
         char buf[80];
         int k;
 
-        k = sprintf(buf, "%d,", grid[i]);
+        k = sprintf(buf, "%d%c", grid[i] / 4,
+		    params->orientable ? "uldr"[grid[i] & 3] : ',');
 
         ret = sresize(ret, retlen + k + 1, char);
         strcpy(ret + retlen, buf);
         retlen += k;
     }
-    ret[retlen-1] = '\0';              /* delete last comma */
+    if (!params->orientable)
+	ret[retlen-1] = '\0';	       /* delete last comma */
 
     sfree(grid);
     return ret;
@@ -364,15 +368,17 @@ static char *validate_seed(game_params *params, char *seed)
     err = NULL;
 
     for (i = 0; i < wh; i++) {
-	if (*p < '0' || *p > '9') {
+	if (*p < '0' || *p > '9')
 	    return "Not enough numbers in string";
-	}
 	while (*p >= '0' && *p <= '9')
 	    p++;
-	if (i < wh-1 && *p != ',') {
-	    return "Expected comma after number";
-	}
-	else if (i == wh-1 && *p) {
+	if (!params->orientable && i < wh-1) {
+	    if (*p != ',')
+		return "Expected comma after number";
+	} else if (params->orientable && i < wh) {
+	    if (*p != 'l' && *p != 'r' && *p != 'u' && *p != 'd')
+		return "Expected orientation letter after number";
+	} else if (i == wh-1 && *p) {
 	    return "Excess junk at end of string";
 	}
 
@@ -402,11 +408,19 @@ static game_state *new_game(game_params *params, char *seed)
     p = seed;
 
     for (i = 0; i < wh; i++) {
-	state->grid[i] = atoi(p);
+	state->grid[i] = 4 * atoi(p);
 	while (*p >= '0' && *p <= '9')
 	    p++;
-
-	if (*p) p++;		       /* eat comma */
+	if (*p) {
+	    if (params->orientable) {
+		switch (*p) {
+		  case 'l': state->grid[i] |= 1; break;
+		  case 'd': state->grid[i] |= 2; break;
+		  case 'r': state->grid[i] |= 3; break;
+		}
+	    }
+	    p++;
+	}
     }
 
     return state;
@@ -685,14 +699,14 @@ static void draw_tile(frontend *fe, game_state *state, int x, int y,
 	displ = TILE_SIZE / 2 - HIGHLIGHT_WIDTH - 2;
 	displ2 = TILE_SIZE / 3 - HIGHLIGHT_WIDTH;
 
-	coords[0] = cx - displ * xdx - displ2 * ydx;
-	coords[1] = cy - displ * xdy - displ2 * ydy;
+	coords[0] = cx - displ * xdx + displ2 * ydx;
+	coords[1] = cy - displ * xdy + displ2 * ydy;
 	rotate(coords+0, rot);
-	coords[2] = cx + displ * xdx - displ2 * ydx;
-	coords[3] = cy + displ * xdy - displ2 * ydy;
+	coords[2] = cx + displ * xdx + displ2 * ydx;
+	coords[3] = cy + displ * xdy + displ2 * ydy;
 	rotate(coords+2, rot);
-	coords[4] = cx + displ * ydx;
-	coords[5] = cy + displ * ydy;
+	coords[4] = cx - displ * ydx;
+	coords[5] = cy - displ * ydy;
 	rotate(coords+4, rot);
 	draw_polygon(fe, coords, 3, TRUE, COL_LOWLIGHT_GENTLE);
 	draw_polygon(fe, coords, 3, FALSE, COL_LOWLIGHT_GENTLE);
