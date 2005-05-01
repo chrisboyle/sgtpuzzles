@@ -372,7 +372,44 @@ static void free_game(game_state *state)
 
 static char *game_text_format(game_state *state)
 {
-    return NULL;
+    char *ret, *p, buf[80];
+    int x, y, col, maxlen;
+
+    /*
+     * First work out how many characters we need to display each
+     * number.
+     */
+    col = sprintf(buf, "%d", state->n-1);
+
+    /*
+     * Now we know the exact total size of the grid we're going to
+     * produce: it's got h rows, each containing w lots of col, w-1
+     * spaces and a trailing newline.
+     */
+    maxlen = state->h * state->w * (col+1);
+
+    ret = snewn(maxlen, char);
+    p = ret;
+
+    for (y = 0; y < state->h; y++) {
+	for (x = 0; x < state->w; x++) {
+	    int v = state->tiles[state->w*y+x];
+	    if (v == 0)
+		sprintf(buf, "%*s", col, "");
+	    else
+		sprintf(buf, "%*d", col, v);
+	    memcpy(p, buf, col);
+	    p += col;
+	    if (x+1 == state->w)
+		*p++ = '\n';
+	    else
+		*p++ = ' ';
+	}
+    }
+
+    assert(p - ret == maxlen);
+    *p = '\0';
+    return ret;
 }
 
 static game_ui *new_ui(game_state *state)
@@ -743,7 +780,7 @@ const struct game thegame = {
     new_game,
     dup_game,
     free_game,
-    FALSE, game_text_format,
+    TRUE, game_text_format,
     new_ui,
     free_ui,
     make_move,
