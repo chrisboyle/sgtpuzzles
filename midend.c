@@ -573,3 +573,11 @@ char *midend_set_config(midend_data *me, int which, config_item *cfg)
 
     return NULL;
 }
+
+char *midend_text_format(midend_data *me)
+{
+    if (me->ourgame->can_format_as_text && me->statepos > 0)
+	return me->ourgame->text_format(me->states[me->statepos-1]);
+    else
+	return NULL;
+}

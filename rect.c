@@ -997,6 +997,11 @@ static void free_game(game_state *state)
     sfree(state);
 }
 
+static char *game_text_format(game_state *state)
+{
+    return NULL;
+}
+
 static unsigned char *get_correct(game_state *state)
 {
     unsigned char *ret;
@@ -1614,6 +1619,7 @@ const struct game thegame = {
     new_game,
     dup_game,
     free_game,
+    FALSE, game_text_format,
     new_ui,
     free_ui,
     make_move,

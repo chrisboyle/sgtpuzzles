@@ -1607,6 +1607,68 @@ static void free_game(game_state *state)
     sfree(state);
 }
 
+static char *grid_text_format(int c, int r, digit *grid)
+{
+    int cr = c*r;
+    int x, y;
+    int maxlen;
+    char *ret, *p;
+
+    /*
+     * There are cr lines of digits, plus r-1 lines of block
+     * separators. Each line contains cr digits, cr-1 separating
+     * spaces, and c-1 two-character block separators. Thus, the
+     * total length of a line is 2*cr+2*c-3 (not counting the
+     * newline), and there are cr+r-1 of them.
+     */
+    maxlen = (cr+r-1) * (2*cr+2*c-2);
+    ret = snewn(maxlen+1, char);
+    p = ret;
+
+    for (y = 0; y < cr; y++) {
+        for (x = 0; x < cr; x++) {
+            int ch = grid[y * cr + x];
+            if (ch == 0)
+                ch = ' ';
+            else if (ch <= 9)
+                ch = '0' + ch;
+            else
+                ch = 'a' + ch-10;
+            *p++ = ch;
+            if (x+1 < cr) {
+		*p++ = ' ';
+                if ((x+1) % r == 0) {
+                    *p++ = '|';
+		    *p++ = ' ';
+		}
+            }
+        }
+	*p++ = '\n';
+        if (y+1 < cr && (y+1) % c == 0) {
+            for (x = 0; x < cr; x++) {
+                *p++ = '-';
+                if (x+1 < cr) {
+		    *p++ = '-';
+                    if ((x+1) % r == 0) {
+			*p++ = '+';
+			*p++ = '-';
+		    }
+                }
+            }
+	    *p++ = '\n';
+        }
+    }
+
+    assert(p - ret == maxlen);
+    *p = '\0';
+    return ret;
+}
+
+static char *game_text_format(game_state *state)
+{
+    return grid_text_format(state->c, state->r, state->grid);
+}
+
 struct game_ui {
     /*
      * These are the coordinates of the currently highlighted
@@ -1901,6 +1963,7 @@ const struct game thegame = {
     new_game,
     dup_game,
     free_game,
+    TRUE, game_text_format,
     new_ui,
     free_ui,
     make_move,
@@ -2034,38 +2097,7 @@ int main(int argc, char **argv)
         }
     }
 
-    for (y = 0; y < p->c * p->r; y++) {
-        for (x = 0; x < p->c * p->r; x++) {
-            int c = s->grid[y * p->c * p->r + x];
-            if (c == 0)
-                c = ' ';
-            else if (c <= 9)
-                c = '0' + c;
-            else
-                c = 'a' + c-10;
-            printf("%c", c);
-            if (x+1 < p->c * p->r) {
-                if ((x+1) % p->r)
-                    printf(" ");
-                else
-                    printf(" | ");
-            }
-        }
-        printf("\n");
-        if (y+1 < p->c * p->r && (y+1) % p->c == 0) {
-            for (x = 0; x < p->c * p->r; x++) {
-                printf("-");
-                if (x+1 < p->c * p->r) {
-                    if ((x+1) % p->r)
-                        printf("-");
-                    else
-                        printf("-+-");
-                }
-            }
-            printf("\n");
-        }
-    }
-    printf("\n");
+    printf("%s\n", grid_text_format(p->c, p->r, s->grid));
 
     return 0;
 }

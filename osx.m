@@ -571,6 +571,28 @@ struct frontend {
     [self processButton:'r'&0x1F x:-1 y:-1];
 }
 
+- (void)copy:(id)sender
+{
+    char *text;
+
+    if ((text = midend_text_format(me)) != NULL) {
+	NSPasteboard *pb = [NSPasteboard generalPasteboard];
+	NSArray *a = [NSArray arrayWithObject:NSStringPboardType];
+	[pb declareTypes:a owner:nil];
+	[pb setString:[NSString stringWithCString:text]
+	 forType:NSStringPboardType];
+    } else
+	NSBeep();
+}
+
+- (BOOL)validateMenuItem:(NSMenuItem *)item
+{
+    if ([item action] == @selector(copy:))
+	return (ourgame->can_format_as_text ? YES : NO);
+    else
+	return [super validateMenuItem:item];
+}
+
 - (void)clearTypeMenu
 {
     while ([typemenu numberOfItems] > 1)
@@ -1214,6 +1236,8 @@ int main(int argc, char **argv)
     [menu addItem:[NSMenuItem separatorItem]];
     item = newitem(menu, "Undo", "z", NULL, @selector(undoMove:));
     item = newitem(menu, "Redo", "S-z", NULL, @selector(redoMove:));
+    [menu addItem:[NSMenuItem separatorItem]];
+    item = newitem(menu, "Copy", "c", NULL, @selector(copy:));
     [menu addItem:[NSMenuItem separatorItem]];
     item = newitem(menu, "Close", "w", NULL, @selector(performClose:));
 

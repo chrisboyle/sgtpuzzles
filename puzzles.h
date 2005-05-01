@@ -140,6 +140,7 @@ enum { CFG_SETTINGS, CFG_SEED };
 config_item *midend_get_config(midend_data *me, int which, char **wintitle);
 char *midend_set_config(midend_data *me, int which, config_item *cfg);
 char *midend_game_id(midend_data *me, char *id, int def_seed);
+char *midend_text_format(midend_data *me);
 
 /*
  * malloc.c
@@ -193,6 +194,8 @@ struct game {
     game_state *(*new_game)(game_params *params, char *seed);
     game_state *(*dup_game)(game_state *state);
     void (*free_game)(game_state *state);
+    int can_format_as_text;
+    char *(*text_format)(game_state *state);
     game_ui *(*new_ui)(game_state *state);
     void (*free_ui)(game_ui *ui);
     game_state *(*make_move)(game_state *from, game_ui *ui, int x, int y,

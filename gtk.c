@@ -14,10 +14,10 @@
 #include <gtk/gtk.h>
 #include <gdk/gdkkeysyms.h>
 
-#if GTK_CHECK_VERSION(2,0,0) && !defined HAVE_SENSIBLE_ABSOLUTE_SIZE_FUNCTION
 #include <gdk/gdkx.h>
 #include <X11/Xlib.h>
-#endif
+#include <X11/Xutil.h>
+#include <X11/Xatom.h>
 
 #include "puzzles.h"
 
@@ -76,6 +76,8 @@ struct frontend {
     config_item *cfg;
     int cfg_which, cfgret;
     GtkWidget *cfgbox;
+    char *paste_data;
+    int paste_data_len;
 };
 
 void get_random_seed(void **randseed, int *randseedsize)
@@ -804,6 +806,113 @@ static void menu_preset_event(GtkMenuItem *menuitem, gpointer data)
     fe->h = y;
 }
 
+GdkAtom compound_text_atom, utf8_string_atom;
+int paste_initialised = FALSE;
+
+void init_paste()
+{
+    if (paste_initialised)
+	return;
+
+    if (!compound_text_atom)
+        compound_text_atom = gdk_atom_intern("COMPOUND_TEXT", FALSE);
+    if (!utf8_string_atom)
+        utf8_string_atom = gdk_atom_intern("UTF8_STRING", FALSE);
+
+    /*
+     * Ensure that all the cut buffers exist - according to the
+     * ICCCM, we must do this before we start using cut buffers.
+     */
+    XChangeProperty(GDK_DISPLAY(), GDK_ROOT_WINDOW(),
+		    XA_CUT_BUFFER0, XA_STRING, 8, PropModeAppend, "", 0);
+    XChangeProperty(GDK_DISPLAY(), GDK_ROOT_WINDOW(),
+		    XA_CUT_BUFFER1, XA_STRING, 8, PropModeAppend, "", 0);
+    XChangeProperty(GDK_DISPLAY(), GDK_ROOT_WINDOW(),
+		    XA_CUT_BUFFER2, XA_STRING, 8, PropModeAppend, "", 0);
+    XChangeProperty(GDK_DISPLAY(), GDK_ROOT_WINDOW(),
+		    XA_CUT_BUFFER3, XA_STRING, 8, PropModeAppend, "", 0);
+    XChangeProperty(GDK_DISPLAY(), GDK_ROOT_WINDOW(),
+		    XA_CUT_BUFFER4, XA_STRING, 8, PropModeAppend, "", 0);
+    XChangeProperty(GDK_DISPLAY(), GDK_ROOT_WINDOW(),
+		    XA_CUT_BUFFER5, XA_STRING, 8, PropModeAppend, "", 0);
+    XChangeProperty(GDK_DISPLAY(), GDK_ROOT_WINDOW(),
+		    XA_CUT_BUFFER6, XA_STRING, 8, PropModeAppend, "", 0);
+    XChangeProperty(GDK_DISPLAY(), GDK_ROOT_WINDOW(),
+		    XA_CUT_BUFFER7, XA_STRING, 8, PropModeAppend, "", 0);
+}
+
+/* Store data in a cut-buffer. */
+void store_cutbuffer(char *ptr, int len)
+{
+    /* ICCCM says we must rotate the buffers before storing to buffer 0. */
+    XRotateBuffers(GDK_DISPLAY(), 1);
+    XStoreBytes(GDK_DISPLAY(), ptr, len);
+}
+
+void write_clip(frontend *fe, char *data)
+{
+    init_paste();
+
+    if (fe->paste_data)
+	sfree(fe->paste_data);
+
+    /*
+     * For this simple application we can safely assume that the
+     * data passed to this function is pure ASCII, which means we
+     * can return precisely the same stuff for types STRING,
+     * COMPOUND_TEXT or UTF8_STRING.
+     */
+
+    fe->paste_data = data;
+    fe->paste_data_len = strlen(data);
+
+    store_cutbuffer(fe->paste_data, fe->paste_data_len);
+
+    if (gtk_selection_owner_set(fe->area, GDK_SELECTION_PRIMARY,
+				CurrentTime)) {
+	gtk_selection_add_target(fe->area, GDK_SELECTION_PRIMARY,
+				 GDK_SELECTION_TYPE_STRING, 1);
+	gtk_selection_add_target(fe->area, GDK_SELECTION_PRIMARY,
+				 compound_text_atom, 1);
+	gtk_selection_add_target(fe->area, GDK_SELECTION_PRIMARY,
+				 utf8_string_atom, 1);
+    }
+}
+
+void selection_get(GtkWidget *widget, GtkSelectionData *seldata,
+		   guint info, guint time_stamp, gpointer data)
+{
+    frontend *fe = (frontend *)data;
+    gtk_selection_data_set(seldata, seldata->target, 8,
+			   fe->paste_data, fe->paste_data_len);
+}
+
+gint selection_clear(GtkWidget *widget, GdkEventSelection *seldata,
+		     gpointer data)
+{
+    frontend *fe = (frontend *)data;
+
+    if (fe->paste_data)
+	sfree(fe->paste_data);
+    fe->paste_data = NULL;
+    fe->paste_data_len = 0;
+    return TRUE;
+}
+
+static void menu_copy_event(GtkMenuItem *menuitem, gpointer data)
+{
+    frontend *fe = (frontend *)data;
+    char *text;
+
+    text = midend_text_format(fe->me);
+
+    if (text) {
+	write_clip(fe, text);
+    } else {
+	gdk_beep();
+    }
+}
+
 static void menu_config_event(GtkMenuItem *menuitem, gpointer data)
 {
     frontend *fe = (frontend *)data;
@@ -933,6 +1042,14 @@ static frontend *new_window(char *game_id, char **error)
     add_menu_separator(GTK_CONTAINER(menu));
     add_menu_item_with_key(fe, GTK_CONTAINER(menu), "Undo", 'u');
     add_menu_item_with_key(fe, GTK_CONTAINER(menu), "Redo", '\x12');
+    if (thegame.can_format_as_text) {
+	add_menu_separator(GTK_CONTAINER(menu));
+	menuitem = gtk_menu_item_new_with_label("Copy");
+	gtk_container_add(GTK_CONTAINER(menu), menuitem);
+	gtk_signal_connect(GTK_OBJECT(menuitem), "activate",
+			   GTK_SIGNAL_FUNC(menu_copy_event), fe);
+	gtk_widget_show(menuitem);
+    }
     add_menu_separator(GTK_CONTAINER(menu));
     add_menu_item_with_key(fe, GTK_CONTAINER(menu), "Exit", 'q');
 
@@ -999,6 +1116,9 @@ static frontend *new_window(char *game_id, char **error)
 
     fe->timer_active = FALSE;
 
+    fe->paste_data = NULL;
+    fe->paste_data_len = 0;
+
     gtk_signal_connect(GTK_OBJECT(fe->window), "destroy",
 		       GTK_SIGNAL_FUNC(destroy), fe);
     gtk_signal_connect(GTK_OBJECT(fe->window), "key_press_event",
@@ -1009,6 +1129,10 @@ static frontend *new_window(char *game_id, char **error)
 		       GTK_SIGNAL_FUNC(button_event), fe);
     gtk_signal_connect(GTK_OBJECT(fe->area), "motion_notify_event",
 		       GTK_SIGNAL_FUNC(motion_event), fe);
+    gtk_signal_connect(GTK_OBJECT(fe->area), "selection_get",
+		       GTK_SIGNAL_FUNC(selection_get), fe);
+    gtk_signal_connect(GTK_OBJECT(fe->area), "selection_clear_event",
+		       GTK_SIGNAL_FUNC(selection_clear), fe);
     gtk_signal_connect(GTK_OBJECT(fe->area), "expose_event",
 		       GTK_SIGNAL_FUNC(expose_area), fe);
     gtk_signal_connect(GTK_OBJECT(fe->window), "map_event",
