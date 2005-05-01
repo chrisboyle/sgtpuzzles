@@ -189,7 +189,7 @@ void draw_text(frontend *fe, int x, int y, int fonttype, int fontsize,
          * FIXME: Really I should make at least _some_ effort to
          * pick the correct font.
          */
-        fe->fonts[i].font = CreateFont(-fontsize, 0, 0, 0, 0,
+        fe->fonts[i].font = CreateFont(-fontsize, 0, 0, 0, FW_BOLD,
 				       FALSE, FALSE, FALSE, DEFAULT_CHARSET,
 				       OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
 				       DEFAULT_QUALITY,
