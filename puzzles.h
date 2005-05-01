@@ -178,13 +178,13 @@ void random_free(random_state *state);
 struct game {
     const char *name;
     const char *winhelp_topic;
-    int can_configure;
     game_params *(*default_params)(void);
     int (*fetch_preset)(int i, char **name, game_params **params);
     game_params *(*decode_params)(char const *string);
     char *(*encode_params)(game_params *);
     void (*free_params)(game_params *params);
     game_params *(*dup_params)(game_params *params);
+    int can_configure;
     config_item *(*configure)(game_params *params);
     game_params *(*custom_params)(config_item *cfg);
     char *(*validate_params)(game_params *params);

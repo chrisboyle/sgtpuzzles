@@ -1531,15 +1531,14 @@ static int game_wants_statusbar(void)
 #endif
 
 const struct game thegame = {
-    "Cube", "games.cube", TRUE,
+    "Cube", "games.cube",
     default_params,
     game_fetch_preset,
     decode_params,
     encode_params,
     free_params,
     dup_params,
-    game_configure,
-    custom_params,
+    TRUE, game_configure, custom_params,
     validate_params,
     new_game_seed,
     validate_seed,

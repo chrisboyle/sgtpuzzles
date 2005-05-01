@@ -208,15 +208,14 @@ static int game_wants_statusbar(void)
 #endif
 
 const struct game thegame = {
-    "Null Game", NULL, FALSE,
+    "Null Game", NULL,
     default_params,
     game_fetch_preset,
     decode_params,
     encode_params,
     free_params,
     dup_params,
-    game_configure,
-    custom_params,
+    FALSE, game_configure, custom_params,
     validate_params,
     new_game_seed,
     validate_seed,
