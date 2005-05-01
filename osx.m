@@ -60,13 +60,9 @@
  *    nested sheet. On the other hand I think there are good
  *    practical reasons for wanting it that way. Uncertain.
  * 
- *  - User feedback suggests we should have `File' and `Edit' menus
- *    like everyone else, so some menu reorg is probably required,
- *    along with some documentation rewording.
- * 
- *  - User feedback also dislikes nothing happening when you start
- *    the app; they suggest a finder-like window containing an icon
- *    for each puzzle type, enabling you to start one easily. Needs
+ *  - User feedback dislikes nothing happening when you start the
+ *    app; they suggest a finder-like window containing an icon for
+ *    each puzzle type, enabling you to start one easily. Needs
  *    thought.
  * 
  * Grotty implementation details that could probably be improved:
@@ -1151,12 +1147,12 @@ void status_bar(frontend *fe, char *text)
 @interface AppController : NSObject
 {
 }
-- (void)newGame:(id)sender;
+- (void)newGameWindow:(id)sender;
 @end
 
 @implementation AppController
 
-- (void)newGame:(id)sender
+- (void)newGameWindow:(id)sender
 {
     const game *g = [sender getPayload];
     id win;
@@ -1175,7 +1171,7 @@ void status_bar(frontend *fe, char *text)
 	    id item =
 		initnewitem([DataMenuItem allocWithZone:[NSMenu menuZone]],
 			    menu, gamelist[i]->name, "", self,
-			    @selector(newGame:));
+			    @selector(newGameWindow:));
 	    [item setPayload:(void *)gamelist[i]];
 	}
     }
@@ -1216,30 +1212,31 @@ int main(int argc, char **argv)
     item = newitem(menu, "Quit", "q", NSApp, @selector(terminate:));
     [NSApp setAppleMenu: menu];
 
-    menu = newsubmenu([NSApp mainMenu], "Open");
+    menu = newsubmenu([NSApp mainMenu], "File");
+    item = newitem(menu, "New Game", "n", NULL, @selector(newGame:));
+    item = newitem(menu, "Restart Game", "r", NULL, @selector(restartGame:));
+    item = newitem(menu, "Specific Game", "", NULL, @selector(specificGame:));
+    [menu addItem:[NSMenuItem separatorItem]];
     {
+	NSMenu *submenu = newsubmenu(menu, "New Window");
 	int i;
 
 	for (i = 0; i < gamecount; i++) {
 	    id item =
 		initnewitem([DataMenuItem allocWithZone:[NSMenu menuZone]],
-			    menu, gamelist[i]->name, "", controller,
-			    @selector(newGame:));
+			    submenu, gamelist[i]->name, "", controller,
+			    @selector(newGameWindow:));
 	    [item setPayload:(void *)gamelist[i]];
 	}
     }
-
-    menu = newsubmenu([NSApp mainMenu], "Game");
-    item = newitem(menu, "New", "n", NULL, @selector(newGame:));
-    item = newitem(menu, "Restart", "r", NULL, @selector(restartGame:));
-    item = newitem(menu, "Specific", "", NULL, @selector(specificGame:));
     [menu addItem:[NSMenuItem separatorItem]];
+    item = newitem(menu, "Close", "w", NULL, @selector(performClose:));
+
+    menu = newsubmenu([NSApp mainMenu], "Edit");
     item = newitem(menu, "Undo", "z", NULL, @selector(undoMove:));
     item = newitem(menu, "Redo", "S-z", NULL, @selector(redoMove:));
     [menu addItem:[NSMenuItem separatorItem]];
     item = newitem(menu, "Copy", "c", NULL, @selector(copy:));
-    [menu addItem:[NSMenuItem separatorItem]];
-    item = newitem(menu, "Close", "w", NULL, @selector(performClose:));
 
     menu = newsubmenu([NSApp mainMenu], "Type");
     typemenu = menu;

@@ -82,6 +82,10 @@ These actions are all available from the \I{Game menu}\q{Game} menu
 and via \I{keys}keyboard shortcuts, in addition to any game-specific
 actions.
 
+(On Mac OS X, to conform with local user interface standards, these
+actions are situated on the \I{File menu}\q{File} and \q{Edit
+menu}\q{Edit} menus instead.)
+
 \dt \ii\e{New game} (\q{N}, Ctrl+\q{N})
 
 \dd Starts a new game, with a random initial state.
@@ -99,6 +103,13 @@ game.)
 
 \dd Redoes a previous undone move.
 
+\dt \ii\e{Copy}
+
+\dd Copies the current state of your game to the clipboard in text
+format, so that you can paste it into (say) an e-mail client or a
+web message board if you're discussing the game with someone else.
+(Not all games support this feature.)
+
 \dt \I{exit}\ii\e{Quit} (\q{Q}, Ctrl+\q{Q})
 
 \dd Closes the application entirely.
@@ -106,8 +117,8 @@ game.)
 \H{common-id} Recreating games with the \ii{game ID}
 
 The \q{\i{Specific...}} option from the \I{Game menu}\q{Game} menu
-lets you see a short string (the \q{game ID}) that captures the
-initial state of the current game.
+(or the \q{File} menu, on Mac OS X) lets you see a short string (the
+\q{game ID}) that captures the initial state of the current game.
 
 The precise \I{ID format}format of the ID is specific to each game.
 It consists of two parts delimited by a colon (e.g., \c{c4x4:4F01,0});
@@ -151,11 +162,11 @@ command line.
 
 The easiest way to do this is to set up the parameters you want
 using the \q{Type} menu (see \k{common-type}), and then to select
-\q{Specific} from the \q{Game} menu (see \k{common-id}). The text in
-the \q{Game ID} box will be composed of two parts, separated by a
-colon. The first of these parts represents the game parameters (the
-size of the playing area, for example, and anything else you set
-using the \q{Type} menu).
+\q{Specific} from the \q{Game} or \q{File} menu (see \k{common-id}).
+The text in the \q{Game ID} box will be composed of two parts,
+separated by a colon. The first of these parts represents the game
+parameters (the size of the playing area, for example, and anything
+else you set using the \q{Type} menu).
 
 If you run the game with just that parameter text on the command
 line, it will start up with the settings you specified.
