@@ -999,7 +999,95 @@ static void free_game(game_state *state)
 
 static char *game_text_format(game_state *state)
 {
-    return NULL;
+    char *ret, *p, buf[80];
+    int i, x, y, col, maxlen;
+
+    /*
+     * First determine the number of spaces required to display a
+     * number. We'll use at least two, because one looks a bit
+     * silly.
+     */
+    col = 2;
+    for (i = 0; i < state->w * state->h; i++) {
+	x = sprintf(buf, "%d", state->grid[i]);
+	if (col < x) col = x;
+    }
+
+    /*
+     * Now we know the exact total size of the grid we're going to
+     * produce: it's got 2*h+1 rows, each containing w lots of col,
+     * w+1 boundary characters and a trailing newline.
+     */
+    maxlen = (2*state->h+1) * (state->w * (col+1) + 2);
+
+    ret = snewn(maxlen, char);
+    p = ret;
+
+    for (y = 0; y <= 2*state->h; y++) {
+	for (x = 0; x <= 2*state->w; x++) {
+	    if (x & y & 1) {
+		/*
+		 * Display a number.
+		 */
+		int v = grid(state, x/2, y/2);
+		if (v)
+		    sprintf(buf, "%*d", col, v);
+		else
+		    sprintf(buf, "%*s", col, "");
+		memcpy(p, buf, col);
+		p += col;
+	    } else if (x & 1) {
+		/*
+		 * Display a horizontal edge or nothing.
+		 */
+		int h = (y==0 || y==2*state->h ? 1 :
+			 HRANGE(state, x/2, y/2) && hedge(state, x/2, y/2));
+		int i;
+		if (h)
+		    h = '-';
+		else
+		    h = ' ';
+		for (i = 0; i < col; i++)
+		    *p++ = h;
+	    } else if (y & 1) {
+		/*
+		 * Display a vertical edge or nothing.
+		 */
+		int v = (x==0 || x==2*state->w ? 1 :
+			 VRANGE(state, x/2, y/2) && vedge(state, x/2, y/2));
+		if (v)
+		    *p++ = '|';
+		else
+		    *p++ = ' ';
+	    } else {
+		/*
+		 * Display a corner, or a vertical edge, or a
+		 * horizontal edge, or nothing.
+		 */
+		int hl = (y==0 || y==2*state->h ? 1 :
+			  HRANGE(state, (x-1)/2, y/2) && hedge(state, (x-1)/2, y/2));
+		int hr = (y==0 || y==2*state->h ? 1 :
+			  HRANGE(state, (x+1)/2, y/2) && hedge(state, (x+1)/2, y/2));
+		int vu = (x==0 || x==2*state->w ? 1 :
+			  VRANGE(state, x/2, (y-1)/2) && vedge(state, x/2, (y-1)/2));
+		int vd = (x==0 || x==2*state->w ? 1 :
+			  VRANGE(state, x/2, (y+1)/2) && vedge(state, x/2, (y+1)/2));
+		if (!hl && !hr && !vu && !vd)
+		    *p++ = ' ';
+		else if (hl && hr && !vu && !vd)
+		    *p++ = '-';
+		else if (!hl && !hr && vu && vd)
+		    *p++ = '|';
+		else
+		    *p++ = '+';
+	    }
+	}
+	*p++ = '\n';
+    }
+
+    assert(p - ret == maxlen);
+    *p = '\0';
+    return ret;
 }
 
 static unsigned char *get_correct(game_state *state)
@@ -1619,7 +1707,7 @@ const struct game thegame = {
     new_game,
     dup_game,
     free_game,
-    FALSE, game_text_format,
+    TRUE, game_text_format,
     new_ui,
     free_ui,
     make_move,
