@@ -479,6 +479,7 @@ static game_state *solve_game(game_state *state, game_aux_info *aux,
 			      char **error)
 {
     game_state *ret = dup_game(state);
+    int i;
 
     /*
      * Simply replace the grid with a solved one. For this game,
@@ -488,6 +489,8 @@ static game_state *solve_game(game_state *state, game_aux_info *aux,
      * which to practise manoeuvres.
      */
     qsort(ret->grid, ret->w*ret->h, sizeof(int), compare_int);
+    for (i = 0; i < ret->w*ret->h; i++)
+	ret->grid[i] &= ~3;
     ret->used_solve = ret->just_used_solve = TRUE;
     ret->completed = ret->movecount;
 
