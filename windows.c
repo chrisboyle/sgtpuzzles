@@ -27,11 +27,12 @@
 #define IDM_RESTART   0x0020
 #define IDM_UNDO      0x0030
 #define IDM_REDO      0x0040
-#define IDM_QUIT      0x0050
-#define IDM_CONFIG    0x0060
-#define IDM_SEED      0x0070
-#define IDM_HELPC     0x0080
-#define IDM_GAMEHELP  0x0090
+#define IDM_COPY      0x0050
+#define IDM_QUIT      0x0060
+#define IDM_CONFIG    0x0070
+#define IDM_SEED      0x0080
+#define IDM_HELPC     0x0090
+#define IDM_GAMEHELP  0x00A0
 #define IDM_PRESETS   0x0100
 
 #define HELP_FILE_NAME  "puzzles.hlp"
@@ -325,6 +326,30 @@ void activate_timer(frontend *fe)
     }
 }
 
+void write_clip(HWND hwnd, char *data)
+{
+    HGLOBAL clipdata;
+    int len = strlen(data);
+    void *lock;
+
+    clipdata = GlobalAlloc(GMEM_DDESHARE | GMEM_MOVEABLE, len + 1);
+    if (!clipdata)
+	return;
+    lock = GlobalLock(clipdata);
+    if (!lock)
+	return;
+    memcpy(lock, data, len);
+    ((unsigned char *) lock)[len] = 0;
+    GlobalUnlock(clipdata);
+
+    if (OpenClipboard(hwnd)) {
+	EmptyClipboard();
+	SetClipboardData(CF_TEXT, clipdata);
+	CloseClipboard();
+    } else
+	GlobalFree(clipdata);
+}
+
 /*
  * See if we can find a help file.
  */
@@ -458,6 +483,10 @@ static frontend *new_window(HINSTANCE inst, char *game_id, char **error)
 	AppendMenu(menu, MF_SEPARATOR, 0, 0);
 	AppendMenu(menu, MF_ENABLED, IDM_UNDO, "Undo");
 	AppendMenu(menu, MF_ENABLED, IDM_REDO, "Redo");
+	if (thegame.can_format_as_text) {
+	    AppendMenu(menu, MF_SEPARATOR, 0, 0);
+	    AppendMenu(menu, MF_ENABLED, IDM_COPY, "Copy");
+	}
 	AppendMenu(menu, MF_SEPARATOR, 0, 0);
 	AppendMenu(menu, MF_ENABLED, IDM_QUIT, "Exit");
         if (fe->help_path) {
@@ -891,6 +920,15 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
 	  case IDM_REDO:
 	    if (!midend_process_key(fe->me, 0, 0, '\x12'))
 		PostQuitMessage(0);
+	    break;
+	  case IDM_COPY:
+	    {
+		char *text = midend_text_format(fe->me);
+		if (text)
+		    write_clip(hwnd, text);
+		else
+		    MessageBeep(MB_ICONWARNING);
+	    }
 	    break;
 	  case IDM_QUIT:
 	    if (!midend_process_key(fe->me, 0, 0, 'q'))
