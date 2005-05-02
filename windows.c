@@ -330,8 +330,29 @@ void activate_timer(frontend *fe)
 void write_clip(HWND hwnd, char *data)
 {
     HGLOBAL clipdata;
-    int len = strlen(data);
+    int len, i, j;
+    char *data2;
     void *lock;
+
+    /*
+     * Windows expects CRLF in the clipboard, so we must convert
+     * any \n that has come out of the puzzle backend.
+     */
+    len = 0;
+    for (i = 0; data[i]; i++) {
+	if (data[i] == '\n')
+	    len++;
+	len++;
+    }
+    data2 = snewn(len+1, char);
+    j = 0;
+    for (i = 0; data[i]; i++) {
+	if (data[i] == '\n')
+	    data2[j++] = '\r';
+	data2[j++] = data[i];
+    }
+    assert(j == len);
+    data2[j] = '\0';
 
     clipdata = GlobalAlloc(GMEM_DDESHARE | GMEM_MOVEABLE, len + 1);
     if (!clipdata)
@@ -339,7 +360,7 @@ void write_clip(HWND hwnd, char *data)
     lock = GlobalLock(clipdata);
     if (!lock)
 	return;
-    memcpy(lock, data, len);
+    memcpy(lock, data2, len);
     ((unsigned char *) lock)[len] = 0;
     GlobalUnlock(clipdata);
 
@@ -349,6 +370,8 @@ void write_clip(HWND hwnd, char *data)
 	CloseClipboard();
     } else
 	GlobalFree(clipdata);
+
+    sfree(data2);
 }
 
 /*
@@ -933,6 +956,7 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
 		    write_clip(hwnd, text);
 		else
 		    MessageBeep(MB_ICONWARNING);
+		sfree(text);
 	    }
 	    break;
 	  case IDM_SOLVE:
