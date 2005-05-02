@@ -1564,7 +1564,7 @@ const struct game thegame = {
     dup_game,
     free_game,
     FALSE, solve_game,
-    NULL, game_text_format,
+    FALSE, game_text_format,
     new_ui,
     free_ui,
     make_move,
