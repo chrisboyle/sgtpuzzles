@@ -94,7 +94,7 @@ static char *new_game_seed(game_params *params, random_state *rs,
     return dupstr("FIXME");
 }
 
-void game_free_aux_info(game_aux_info *aux)
+static void game_free_aux_info(game_aux_info *aux)
 {
     assert(!"Shouldn't happen");
 }
@@ -125,6 +125,12 @@ static game_state *dup_game(game_state *state)
 static void free_game(game_state *state)
 {
     sfree(state);
+}
+
+static game_state *solve_game(game_state *state, game_aux_info *aux,
+			      char **error)
+{
+    return NULL;
 }
 
 static char *game_text_format(game_state *state)
@@ -234,6 +240,7 @@ const struct game thegame = {
     new_game,
     dup_game,
     free_game,
+    FALSE, solve_game,
     FALSE, game_text_format,
     new_ui,
     free_ui,

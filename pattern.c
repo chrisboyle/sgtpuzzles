@@ -1,9 +1,5 @@
 /*
  * pattern.c: the pattern-reconstruction game known as `nonograms'.
- * 
- * TODO before checkin:
- * 
- *  - make some sort of stab at number-of-numbers judgment
  */
 
 #include <stdio.h>
@@ -52,7 +48,7 @@ struct game_state {
     unsigned char *grid;
     int rowsize;
     int *rowdata, *rowlen;
-    int completed;
+    int completed, cheated;
 };
 
 #define FLASH_TIME 0.13F
@@ -541,7 +537,7 @@ static char *new_game_seed(game_params *params, random_state *rs,
     return seed;
 }
 
-void game_free_aux_info(game_aux_info *aux)
+static void game_free_aux_info(game_aux_info *aux)
 {
     assert(!"Shouldn't happen");
 }
@@ -604,7 +600,7 @@ static game_state *new_game(game_params *params, char *seed)
     state->rowdata = snewn(state->rowsize * (state->w + state->h), int);
     state->rowlen = snewn(state->w + state->h, int);
 
-    state->completed = FALSE;
+    state->completed = state->cheated = FALSE;
 
     for (i = 0; i < params->w + params->h; i++) {
         state->rowlen[i] = 0;
@@ -642,6 +638,7 @@ static game_state *dup_game(game_state *state)
            (ret->w + ret->h) * sizeof(int));
 
     ret->completed = state->completed;
+    ret->cheated = state->cheated;
 
     return ret;
 }
@@ -652,6 +649,69 @@ static void free_game(game_state *state)
     sfree(state->rowlen);
     sfree(state->grid);
     sfree(state);
+}
+
+static game_state *solve_game(game_state *state, game_aux_info *aux,
+			      char **error)
+{
+    game_state *ret;
+
+    /*
+     * I could have stored the grid I invented in the game_aux_info
+     * and extracted it here where available, but it seems easier
+     * just to run my internal solver in all cases.
+     */
+
+    ret = dup_game(state);
+    ret->completed = ret->cheated = TRUE;
+
+    {
+	int w = state->w, h = state->h, i, j, done_any, max;
+	unsigned char *matrix, *workspace;
+	int *rowdata;
+
+	matrix = snewn(w*h, unsigned char);
+	max = max(w, h);
+	workspace = snewn(max*3, unsigned char);
+	rowdata = snewn(max+1, int);
+
+        memset(matrix, 0, w*h);
+
+        do {
+            done_any = 0;
+            for (i=0; i<h; i++) {
+		memcpy(rowdata, state->rowdata + state->rowsize*(w+i),
+		       max*sizeof(int));
+		rowdata[state->rowlen[w+i]] = 0;
+                done_any |= do_row(workspace, workspace+max, workspace+2*max,
+                                   matrix+i*w, w, 1, rowdata);
+            }
+            for (i=0; i<w; i++) {
+		memcpy(rowdata, state->rowdata + state->rowsize*i, max*sizeof(int));
+		rowdata[state->rowlen[i]] = 0;
+                done_any |= do_row(workspace, workspace+max, workspace+2*max,
+                                   matrix+i, h, w, rowdata);
+            }
+        } while (done_any);
+
+	for (i = 0; i < h; i++) {
+	    for (j = 0; j < w; j++) {
+		int c = (matrix[i*w+j] == BLOCK ? GRID_FULL :
+			 matrix[i*w+j] == DOT ? GRID_EMPTY : GRID_UNKNOWN);
+		ret->grid[i*w+j] = c;
+		if (c == GRID_UNKNOWN)
+		    ret->completed = FALSE;
+	    }
+	}
+
+	if (!ret->completed) {
+	    free_game(ret);
+	    *error = "Solving algorithm cannot complete this puzzle";
+	    return NULL;
+	}
+    }
+
+    return ret;
 }
 
 static char *game_text_format(game_state *state)
@@ -1011,7 +1071,8 @@ static float game_anim_length(game_state *oldstate,
 static float game_flash_length(game_state *oldstate,
 			       game_state *newstate, int dir)
 {
-    if (!oldstate->completed && newstate->completed)
+    if (!oldstate->completed && newstate->completed &&
+	!oldstate->cheated && !newstate->cheated)
         return FLASH_TIME;
     return 0.0F;
 }
@@ -1041,6 +1102,7 @@ const struct game thegame = {
     new_game,
     dup_game,
     free_game,
+    TRUE, solve_game,
     FALSE, game_text_format,
     new_ui,
     free_ui,

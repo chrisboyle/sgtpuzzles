@@ -110,6 +110,29 @@ format, so that you can paste it into (say) an e-mail client or a
 web message board if you're discussing the game with someone else.
 (Not all games support this feature.)
 
+\dt \ii\e{Solve}
+
+\dd Transforms the puzzle instantly into its solved state. For some
+games (Cube) this feature is not supported at all because it is of
+no particular use. For other games (such as Pattern), the solved
+state can be used to give you information, if you can't see how a
+solution can exist at all or you want to know where you made a
+mistake. For still other games (such as Sixteen), automatic solution
+tells you nothing about how to \e{get} to the solution, but it does
+provide a useful way to get there quickly so that you can experiment
+with set-piece moves and transformations.
+
+\lcont{
+
+Some games (such as Solo) are capable of solving a game ID you have
+typed in from elsewhere. Other games (such as Rectangles) cannot
+solve a game ID they didn't invent themself, but when they did
+invent the game ID they know what the solution is already. Still
+other games (Pattern) can solve \e{some} external game IDs, but only
+if they aren't too difficult.
+
+}
+
 \dt \I{exit}\ii\e{Quit} (\q{Q}, Ctrl+\q{Q})
 
 \dd Closes the application entirely.

@@ -82,7 +82,7 @@ struct game_state {
     int *grid;			       /* contains the numbers */
     unsigned char *vedge;	       /* (w+1) x h */
     unsigned char *hedge;	       /* w x (h+1) */
-    int completed;
+    int completed, cheated;
 };
 
 static game_params *default_params(void)
@@ -385,6 +385,12 @@ static void display_grid(game_params *params, int *grid, int *numbers, int all)
     sfree(egrid);
 }
 #endif
+
+struct game_aux_info {
+    int w, h;
+    unsigned char *vedge;	       /* (w+1) x h */
+    unsigned char *hedge;	       /* w x (h+1) */
+};
 
 static char *new_game_seed(game_params *params, random_state *rs,
 			   game_aux_info **aux)
@@ -829,6 +835,31 @@ static char *new_game_seed(game_params *params, random_state *rs,
     }
 
     /*
+     * Store the rectangle data in the game_aux_info.
+     */
+    {
+	game_aux_info *ai = snew(game_aux_info);
+
+	ai->w = params->w;
+	ai->h = params->h;
+	ai->vedge = snewn(ai->w * ai->h, unsigned char);
+	ai->hedge = snewn(ai->w * ai->h, unsigned char);
+
+	for (y = 0; y < params->h; y++)
+	    for (x = 1; x < params->w; x++) {
+		vedge(ai, x, y) =
+		    index(params, grid, x, y) != index(params, grid, x-1, y);
+	    }
+	for (y = 1; y < params->h; y++)
+	    for (x = 0; x < params->w; x++) {
+		hedge(ai, x, y) =
+		    index(params, grid, x, y) != index(params, grid, x, y-1);
+	    }
+
+	*aux = ai;
+    }
+
+    /*
      * Place numbers.
      */
     numbers = snewn(params->w * params->h, int);
@@ -899,9 +930,11 @@ static char *new_game_seed(game_params *params, random_state *rs,
     return seed;
 }
 
-void game_free_aux_info(game_aux_info *aux)
+static void game_free_aux_info(game_aux_info *ai)
 {
-    assert(!"Shouldn't happen");
+    sfree(ai->vedge);
+    sfree(ai->hedge);
+    sfree(ai);
 }
 
 static char *validate_seed(game_params *params, char *seed)
@@ -945,7 +978,7 @@ static game_state *new_game(game_params *params, char *seed)
     state->grid = snewn(area, int);
     state->vedge = snewn(area, unsigned char);
     state->hedge = snewn(area, unsigned char);
-    state->completed = FALSE;
+    state->completed = state->cheated = FALSE;
 
     i = 0;
     while (*seed) {
@@ -987,6 +1020,7 @@ static game_state *dup_game(game_state *state)
     ret->grid = snewn(state->w * state->h, int);
 
     ret->completed = state->completed;
+    ret->cheated = state->cheated;
 
     memcpy(ret->grid, state->grid, state->w * state->h * sizeof(int));
     memcpy(ret->vedge, state->vedge, state->w*state->h*sizeof(unsigned char));
@@ -1001,6 +1035,27 @@ static void free_game(game_state *state)
     sfree(state->vedge);
     sfree(state->hedge);
     sfree(state);
+}
+
+static game_state *solve_game(game_state *state, game_aux_info *ai,
+			      char **error)
+{
+    game_state *ret;
+
+    if (!ai) {
+	*error = "Solution not known for this puzzle";
+	return NULL;
+    }
+
+    assert(state->w == ai->w);
+    assert(state->h == ai->h);
+
+    ret = dup_game(state);
+    memcpy(ret->vedge, ai->vedge, ai->w * ai->h * sizeof(unsigned char));
+    memcpy(ret->hedge, ai->hedge, ai->w * ai->h * sizeof(unsigned char));
+    ret->cheated = TRUE;
+
+    return ret;
 }
 
 static char *game_text_format(game_state *state)
@@ -1684,7 +1739,8 @@ static float game_anim_length(game_state *oldstate,
 static float game_flash_length(game_state *oldstate,
 			       game_state *newstate, int dir)
 {
-    if (!oldstate->completed && newstate->completed)
+    if (!oldstate->completed && newstate->completed &&
+	!oldstate->cheated && !newstate->cheated)
         return FLASH_TIME;
     return 0.0F;
 }
@@ -1714,6 +1770,7 @@ const struct game thegame = {
     new_game,
     dup_game,
     free_game,
+    TRUE, solve_game,
     TRUE, game_text_format,
     new_ui,
     free_ui,

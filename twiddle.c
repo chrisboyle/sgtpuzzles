@@ -46,6 +46,8 @@ struct game_state {
     int orientable;
     int *grid;
     int completed;
+    int just_used_solve;	       /* used to suppress undo animation */
+    int used_solve;		       /* used to suppress completion flash */
     int movecount;
     int lastx, lasty, lastr;	       /* coordinates of last rotation */
 };
@@ -359,7 +361,7 @@ static char *new_game_seed(game_params *params, random_state *rs,
     return ret;
 }
 
-void game_free_aux_info(game_aux_info *aux)
+static void game_free_aux_info(game_aux_info *aux)
 {
     assert(!"Shouldn't happen");
 }
@@ -406,6 +408,7 @@ static game_state *new_game(game_params *params, char *seed)
     state->n = n;
     state->orientable = params->orientable;
     state->completed = 0;
+    state->used_solve = state->just_used_solve = FALSE;
     state->movecount = 0;
     state->lastx = state->lasty = state->lastr = -1;
 
@@ -445,6 +448,8 @@ static game_state *dup_game(game_state *state)
     ret->lastx = state->lastx;
     ret->lasty = state->lasty;
     ret->lastr = state->lastr;
+    ret->used_solve = state->used_solve;
+    ret->just_used_solve = state->just_used_solve;
 
     ret->grid = snewn(ret->w * ret->h, int);
     memcpy(ret->grid, state->grid, ret->w * ret->h * sizeof(int));
@@ -456,6 +461,37 @@ static void free_game(game_state *state)
 {
     sfree(state->grid);
     sfree(state);
+}
+
+static int compare_int(const void *av, const void *bv)
+{
+    const int *a = (const int *)av;
+    const int *b = (const int *)bv;
+    if (*a < *b)
+	return -1;
+    else if (*a > *b)
+	return +1;
+    else
+	return 0;
+}
+
+static game_state *solve_game(game_state *state, game_aux_info *aux,
+			      char **error)
+{
+    game_state *ret = dup_game(state);
+
+    /*
+     * Simply replace the grid with a solved one. For this game,
+     * this isn't a useful operation for actually telling the user
+     * what they should have done, but it is useful for
+     * conveniently being able to get hold of a clean state from
+     * which to practise manoeuvres.
+     */
+    qsort(ret->grid, ret->w*ret->h, sizeof(int), compare_int);
+    ret->used_solve = ret->just_used_solve = TRUE;
+    ret->completed = ret->movecount;
+
+    return ret;
 }
 
 static char *game_text_format(game_state *state)
@@ -538,6 +574,7 @@ static game_state *make_move(game_state *from, game_ui *ui, int x, int y,
 	 * This is a valid move. Make it.
 	 */
 	ret = dup_game(from);
+	ret->just_used_solve = FALSE;  /* zero this in a hurry */
 	ret->movecount++;
 	dir = (button == LEFT_BUTTON ? 1 : -1);
 	do_rotate(ret->grid, w, h, n, ret->orientable, x, y, dir);
@@ -822,13 +859,18 @@ static int highlight_colour(float angle)
 static float game_anim_length(game_state *oldstate, game_state *newstate,
 			      int dir)
 {
-    return ANIM_PER_RADIUS_UNIT * sqrt(newstate->n-1);
+    if ((dir > 0 && newstate->just_used_solve) ||
+	(dir < 0 && oldstate->just_used_solve))
+	return 0.0F;
+    else
+	return ANIM_PER_RADIUS_UNIT * sqrt(newstate->n-1);
 }
 
 static float game_flash_length(game_state *oldstate, game_state *newstate,
 			       int dir)
 {
-    if (!oldstate->completed && newstate->completed)
+    if (!oldstate->completed && newstate->completed &&
+	!oldstate->used_solve && !newstate->used_solve)
         return 2 * FLASH_FRAME;
     else
         return 0.0F;
@@ -963,9 +1005,13 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
         if (oldstate)
             state = oldstate;
 
-	sprintf(statusbuf, "%sMoves: %d",
-		(state->completed ? "COMPLETED! " : ""),
-		(state->completed ? state->completed : state->movecount));
+	if (state->used_solve)
+	    sprintf(statusbuf, "Moves since auto-solve: %d",
+		    state->movecount - state->completed);
+	else
+	    sprintf(statusbuf, "%sMoves: %d",
+		    (state->completed ? "COMPLETED! " : ""),
+		    (state->completed ? state->completed : state->movecount));
 
 	status_bar(fe, statusbuf);
     }
@@ -996,6 +1042,7 @@ const struct game thegame = {
     new_game,
     dup_game,
     free_game,
+    TRUE, solve_game,
     TRUE, game_text_format,
     new_ui,
     free_ui,

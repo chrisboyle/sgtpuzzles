@@ -913,6 +913,17 @@ static void menu_copy_event(GtkMenuItem *menuitem, gpointer data)
     }
 }
 
+static void menu_solve_event(GtkMenuItem *menuitem, gpointer data)
+{
+    frontend *fe = (frontend *)data;
+    char *msg;
+
+    msg = midend_solve(fe->me);
+
+    if (msg)
+	error_box(fe->window, msg);
+}
+
 static void menu_config_event(GtkMenuItem *menuitem, gpointer data)
 {
     frontend *fe = (frontend *)data;
@@ -1048,6 +1059,14 @@ static frontend *new_window(char *game_id, char **error)
 	gtk_container_add(GTK_CONTAINER(menu), menuitem);
 	gtk_signal_connect(GTK_OBJECT(menuitem), "activate",
 			   GTK_SIGNAL_FUNC(menu_copy_event), fe);
+	gtk_widget_show(menuitem);
+    }
+    if (thegame.can_solve) {
+	add_menu_separator(GTK_CONTAINER(menu));
+	menuitem = gtk_menu_item_new_with_label("Solve");
+	gtk_container_add(GTK_CONTAINER(menu), menuitem);
+	gtk_signal_connect(GTK_OBJECT(menuitem), "activate",
+			   GTK_SIGNAL_FUNC(menu_solve_event), fe);
 	gtk_widget_show(menuitem);
     }
     add_menu_separator(GTK_CONTAINER(menu));

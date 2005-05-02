@@ -581,10 +581,28 @@ struct frontend {
 	NSBeep();
 }
 
+- (void)solveGame:(id)sender
+{
+    char *msg;
+    NSAlert *alert;
+
+    msg = midend_solve(me);
+
+    if (msg) {
+	alert = [[[NSAlert alloc] init] autorelease];
+	[alert addButtonWithTitle:@"Bah"];
+	[alert setInformativeText:[NSString stringWithCString:msg]];
+	[alert beginSheetModalForWindow:self modalDelegate:nil
+	 didEndSelector:nil contextInfo:nil];
+    }
+}
+
 - (BOOL)validateMenuItem:(NSMenuItem *)item
 {
     if ([item action] == @selector(copy:))
 	return (ourgame->can_format_as_text ? YES : NO);
+    else if ([item action] == @selector(solveGame:))
+	return (ourgame->can_solve ? YES : NO);
     else
 	return [super validateMenuItem:item];
 }
@@ -1239,6 +1257,8 @@ int main(int argc, char **argv)
     item = newitem(menu, "Cut", "x", NULL, @selector(cut:));
     item = newitem(menu, "Copy", "c", NULL, @selector(copy:));
     item = newitem(menu, "Paste", "v", NULL, @selector(paste:));
+    [menu addItem:[NSMenuItem separatorItem]];
+    item = newitem(menu, "Solve", "S-s", NULL, @selector(solveGame:));
 
     menu = newsubmenu([NSApp mainMenu], "Type");
     typemenu = menu;

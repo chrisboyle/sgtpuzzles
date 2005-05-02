@@ -28,11 +28,12 @@
 #define IDM_UNDO      0x0030
 #define IDM_REDO      0x0040
 #define IDM_COPY      0x0050
-#define IDM_QUIT      0x0060
-#define IDM_CONFIG    0x0070
-#define IDM_SEED      0x0080
-#define IDM_HELPC     0x0090
-#define IDM_GAMEHELP  0x00A0
+#define IDM_SOLVE     0x0060
+#define IDM_QUIT      0x0070
+#define IDM_CONFIG    0x0080
+#define IDM_SEED      0x0090
+#define IDM_HELPC     0x00A0
+#define IDM_GAMEHELP  0x00B0
 #define IDM_PRESETS   0x0100
 
 #define HELP_FILE_NAME  "puzzles.hlp"
@@ -487,6 +488,10 @@ static frontend *new_window(HINSTANCE inst, char *game_id, char **error)
 	    AppendMenu(menu, MF_SEPARATOR, 0, 0);
 	    AppendMenu(menu, MF_ENABLED, IDM_COPY, "Copy");
 	}
+	if (thegame.can_solve) {
+	    AppendMenu(menu, MF_SEPARATOR, 0, 0);
+	    AppendMenu(menu, MF_ENABLED, IDM_SOLVE, "Solve");
+	}
 	AppendMenu(menu, MF_SEPARATOR, 0, 0);
 	AppendMenu(menu, MF_ENABLED, IDM_QUIT, "Exit");
         if (fe->help_path) {
@@ -928,6 +933,14 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
 		    write_clip(hwnd, text);
 		else
 		    MessageBeep(MB_ICONWARNING);
+	    }
+	    break;
+	  case IDM_SOLVE:
+	    {
+		char *msg = midend_solve(fe->me);
+		if (msg)
+		    MessageBox(hwnd, msg, "Unable to solve",
+			       MB_ICONERROR | MB_OK);
 	    }
 	    break;
 	  case IDM_QUIT:

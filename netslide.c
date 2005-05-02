@@ -82,8 +82,15 @@ struct game_params {
     float barrier_probability;
 };
 
+struct solved_game_state {
+    int width, height;
+    int refcount;
+    unsigned char *tiles;
+};
+
 struct game_state {
     int width, height, cx, cy, wrapping, completed;
+    int used_solve, just_used_solve;
     int move_count;
 
     /* position (row or col number, starting at 0) of last move. */
@@ -94,6 +101,7 @@ struct game_state {
 
     unsigned char *tiles;
     unsigned char *barriers;
+    struct solved_game_state *solution;
 };
 
 #define OFFSET(x2,y2,x1,y1,dir,state) \
@@ -327,7 +335,7 @@ static char *new_game_seed(game_params *params, random_state *rs,
     return dupstr(buf);
 }
 
-void game_free_aux_info(game_aux_info *aux)
+static void game_free_aux_info(game_aux_info *aux)
 {
     assert(!"Shouldn't happen");
 }
@@ -365,6 +373,7 @@ static game_state *new_game(game_params *params, char *seed)
     state->cy = state->height / 2;
     state->wrapping = params->wrapping;
     state->completed = 0;
+    state->used_solve = state->just_used_solve = FALSE;
     state->move_count = 0;
     state->last_move_row = -1;
     state->last_move_col = -1;
@@ -580,6 +589,25 @@ static game_state *new_game(game_params *params, char *seed)
     }
 
     /*
+     * Save the unshuffled grid. We do this using a separate
+     * reference-counted structure since it's a large chunk of
+     * memory which we don't want to have to replicate in every
+     * game state while playing.
+     */
+    {
+	struct solved_game_state *solution;
+
+	solution = snew(struct solved_game_state);
+	solution->width = state->width;
+	solution->height = state->height;
+	solution->refcount = 1;
+	solution->tiles = snewn(state->width * state->height, unsigned char);
+	memcpy(solution->tiles, state->tiles, state->width * state->height);
+
+	state->solution = solution;
+    }
+
+    /*
      * Now shuffle the grid.
      * FIXME - this simply does a set of random moves to shuffle the pieces.
      * A better way would be to number all the pieces, generate a placement
@@ -727,6 +755,8 @@ static game_state *dup_game(game_state *state)
     ret->cy = state->cy;
     ret->wrapping = state->wrapping;
     ret->completed = state->completed;
+    ret->used_solve = state->used_solve;
+    ret->just_used_solve = state->just_used_solve;
     ret->move_count = state->move_count;
     ret->last_move_row = state->last_move_row;
     ret->last_move_col = state->last_move_col;
@@ -735,15 +765,49 @@ static game_state *dup_game(game_state *state)
     memcpy(ret->tiles, state->tiles, state->width * state->height);
     ret->barriers = snewn(state->width * state->height, unsigned char);
     memcpy(ret->barriers, state->barriers, state->width * state->height);
+    ret->solution = state->solution;
+    if (ret->solution)
+	ret->solution->refcount++;
 
     return ret;
 }
 
 static void free_game(game_state *state)
 {
+    if (state->solution && --state->solution->refcount <= 0) {
+	sfree(state->solution->tiles);
+	sfree(state->solution);
+    }
     sfree(state->tiles);
     sfree(state->barriers);
     sfree(state);
+}
+
+static game_state *solve_game(game_state *state, game_aux_info *aux,
+			      char **error)
+{
+    game_state *ret;
+
+    if (!state->solution) {
+	/*
+	 * 2005-05-02: This shouldn't happen, at the time of
+	 * writing, because Net is incapable of receiving a puzzle
+	 * description from outside. If in future it becomes so,
+	 * then we will have puzzles for which we don't know the
+	 * solution.
+	 */
+	*error = "Solution not known for this puzzle";
+	return NULL;
+    }
+
+    assert(state->solution->width == state->width);
+    assert(state->solution->height == state->height);
+    ret = dup_game(state);
+    memcpy(ret->tiles, state->solution->tiles, ret->width * ret->height);
+    ret->used_solve = ret->just_used_solve = TRUE;
+    ret->completed = ret->move_count;
+
+    return ret;
 }
 
 static char *game_text_format(game_state *state)
@@ -909,6 +973,7 @@ static game_state *make_move(game_state *state, game_ui *ui,
     }
 
     ret = dup_game(state);
+    ret->just_used_solve = FALSE;
 
     if (dx == 0) slide_col(ret, dy, cx);
     else slide_row(ret, dx, cy);
@@ -1478,10 +1543,15 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 	    if (active[i])
 		a++;
 
-	sprintf(statusbuf, "%sMoves: %d Active: %d/%d",
-		(state->completed ? "COMPLETED! " : ""),
-                (state->completed ? state->completed : state->move_count),
-                a, n);
+	if (state->used_solve)
+	    sprintf(statusbuf, "Moves since auto-solve: %d",
+		    state->move_count - state->completed);
+	else
+	    sprintf(statusbuf, "%sMoves: %d",
+		    (state->completed ? "COMPLETED! " : ""),
+		    (state->completed ? state->completed : state->move_count));
+
+	sprintf(statusbuf + strlen(statusbuf), " Active: %d/%d", a, n);
 
 	status_bar(fe, statusbuf);
     }
@@ -1492,6 +1562,13 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 static float game_anim_length(game_state *oldstate,
 			      game_state *newstate, int dir)
 {
+    /*
+     * Don't animate an auto-solve move.
+     */
+    if ((dir > 0 && newstate->just_used_solve) ||
+	(dir < 0 && oldstate->just_used_solve))
+	return 0.0F;
+
     return ANIM_TIME;
 }
 
@@ -1502,7 +1579,8 @@ static float game_flash_length(game_state *oldstate,
      * If the game has just been completed, we display a completion
      * flash.
      */
-    if (!oldstate->completed && newstate->completed) {
+    if (!oldstate->completed && newstate->completed &&
+	!oldstate->used_solve && !newstate->used_solve) {
         int size;
         size = 0;
         if (size < newstate->cx+1)
@@ -1544,6 +1622,7 @@ const struct game thegame = {
     new_game,
     dup_game,
     free_game,
+    TRUE, solve_game,
     FALSE, game_text_format,
     new_ui,
     free_ui,

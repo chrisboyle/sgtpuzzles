@@ -595,3 +595,35 @@ char *midend_text_format(midend_data *me)
     else
 	return NULL;
 }
+
+char *midend_solve(midend_data *me)
+{
+    game_state *s;
+    char *msg;
+
+    if (!me->ourgame->can_solve)
+	return "This game does not support the Solve operation";
+
+    if (me->statepos < 1)
+	return "No game set up to solve";   /* _shouldn't_ happen! */
+
+    msg = "Solve operation failed";    /* game _should_ overwrite on error */
+    s = me->ourgame->solve(me->states[0], me->aux_info, &msg);
+    if (!s)
+	return msg;
+
+    /*
+     * Now enter the solved state as the next move.~|~
+     */
+    midend_stop_anim(me);
+    while (me->nstates > me->statepos)
+	me->ourgame->free_game(me->states[--me->nstates]);
+    ensure(me);
+    me->states[me->nstates] = s;
+    me->statepos = ++me->nstates;
+    me->anim_time = 0.0;
+    midend_finish_move(me);
+    midend_redraw(me);
+    activate_timer(me->frontend);
+    return NULL;
+}

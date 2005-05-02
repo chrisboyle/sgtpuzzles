@@ -41,6 +41,8 @@ struct game_state {
     int *tiles;
     int gap_pos;
     int completed;
+    int just_used_solve;	       /* used to suppress undo animation */
+    int used_solve;		       /* used to suppress completion flash */
     int movecount;
 };
 
@@ -268,7 +270,7 @@ static char *new_game_seed(game_params *params, random_state *rs,
     return ret;
 }
 
-void game_free_aux_info(game_aux_info *aux)
+static void game_free_aux_info(game_aux_info *aux)
 {
     assert(!"Shouldn't happen");
 }
@@ -351,6 +353,7 @@ static game_state *new_game(game_params *params, char *seed)
     assert(state->tiles[state->gap_pos] == 0);
 
     state->completed = state->movecount = 0;
+    state->used_solve = state->just_used_solve = FALSE;
 
     return state;
 }
@@ -367,6 +370,8 @@ static game_state *dup_game(game_state *state)
     ret->gap_pos = state->gap_pos;
     ret->completed = state->completed;
     ret->movecount = state->movecount;
+    ret->used_solve = state->used_solve;
+    ret->just_used_solve = state->just_used_solve;
 
     return ret;
 }
@@ -374,6 +379,28 @@ static game_state *dup_game(game_state *state)
 static void free_game(game_state *state)
 {
     sfree(state);
+}
+
+static game_state *solve_game(game_state *state, game_aux_info *aux,
+			      char **error)
+{
+    game_state *ret = dup_game(state);
+    int i;
+
+    /*
+     * Simply replace the grid with a solved one. For this game,
+     * this isn't a useful operation for actually telling the user
+     * what they should have done, but it is useful for
+     * conveniently being able to get hold of a clean state from
+     * which to practise manoeuvres.
+     */
+    for (i = 0; i < ret->n; i++)
+	ret->tiles[i] = (i+1) % ret->n;
+    ret->gap_pos = ret->n-1;
+    ret->used_solve = ret->just_used_solve = TRUE;
+    ret->completed = ret->movecount;
+
+    return ret;
 }
 
 static char *game_text_format(game_state *state)
@@ -467,6 +494,7 @@ static game_state *make_move(game_state *from, game_ui *ui,
     up = C(from, ux, uy);
 
     ret = dup_game(from);
+    ret->just_used_solve = FALSE;      /* zero this in a hurry */
 
     ret->gap_pos = C(from, dx, dy);
     assert(ret->gap_pos >= 0 && ret->gap_pos < ret->n);
@@ -739,9 +767,13 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
         if (oldstate)
             state = oldstate;
 
-	sprintf(statusbuf, "%sMoves: %d",
-		(state->completed ? "COMPLETED! " : ""),
-		(state->completed ? state->completed : state->movecount));
+	if (state->used_solve)
+	    sprintf(statusbuf, "Moves since auto-solve: %d",
+		    state->movecount - state->completed);
+	else
+	    sprintf(statusbuf, "%sMoves: %d",
+		    (state->completed ? "COMPLETED! " : ""),
+		    (state->completed ? state->completed : state->movecount));
 
 	status_bar(fe, statusbuf);
     }
@@ -750,13 +782,18 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 static float game_anim_length(game_state *oldstate,
 			      game_state *newstate, int dir)
 {
-    return ANIM_TIME;
+    if ((dir > 0 && newstate->just_used_solve) ||
+	(dir < 0 && oldstate->just_used_solve))
+	return 0.0F;
+    else
+	return ANIM_TIME;
 }
 
 static float game_flash_length(game_state *oldstate,
 			       game_state *newstate, int dir)
 {
-    if (!oldstate->completed && newstate->completed)
+    if (!oldstate->completed && newstate->completed &&
+	!oldstate->used_solve && !newstate->used_solve)
         return 2 * FLASH_FRAME;
     else
         return 0.0F;
@@ -787,6 +824,7 @@ const struct game thegame = {
     new_game,
     dup_game,
     free_game,
+    TRUE, solve_game,
     TRUE, game_text_format,
     new_ui,
     free_ui,

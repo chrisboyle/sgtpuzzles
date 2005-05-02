@@ -107,7 +107,7 @@ struct game_state {
     int c, r;
     digit *grid;
     unsigned char *immutable;	       /* marks which digits are clues */
-    int completed;
+    int completed, cheated;
 };
 
 static game_params *default_params(void)
@@ -1514,7 +1514,7 @@ static char *new_game_seed(game_params *params, random_state *rs,
     return seed;
 }
 
-void game_free_aux_info(game_aux_info *aux)
+static void game_free_aux_info(game_aux_info *aux)
 {
     assert(!"Shouldn't happen");
 }
@@ -1560,7 +1560,7 @@ static game_state *new_game(game_params *params, char *seed)
     state->immutable = snewn(area, unsigned char);
     memset(state->immutable, FALSE, area);
 
-    state->completed = FALSE;
+    state->completed = state->cheated = FALSE;
 
     i = 0;
     while (*seed) {
@@ -1602,6 +1602,7 @@ static game_state *dup_game(game_state *state)
     memcpy(ret->immutable, state->immutable, area);
 
     ret->completed = state->completed;
+    ret->cheated = state->cheated;
 
     return ret;
 }
@@ -1611,6 +1612,36 @@ static void free_game(game_state *state)
     sfree(state->immutable);
     sfree(state->grid);
     sfree(state);
+}
+
+static game_state *solve_game(game_state *state, game_aux_info *aux,
+			      char **error)
+{
+    game_state *ret;
+    int c = state->c, r = state->r;
+    int rsolve_ret;
+
+    /*
+     * I could have stored the grid I invented in the game_aux_info
+     * and extracted it here where available, but it seems easier
+     * just to run my internal solver in all cases.
+     */
+
+    ret = dup_game(state);
+    ret->completed = ret->cheated = TRUE;
+
+    rsolve_ret = rsolve(c, r, ret->grid, NULL, 2);
+
+    if (rsolve_ret != 1) {
+	free_game(ret);
+	if (rsolve_ret == 0)
+	    *error = "No solution exists for this puzzle";
+	else
+	    *error = "Multiple solutions exist for this puzzle";
+	return NULL;
+    }
+
+    return ret;
 }
 
 static char *grid_text_format(int c, int r, digit *grid)
@@ -1940,7 +1971,8 @@ static float game_anim_length(game_state *oldstate, game_state *newstate,
 static float game_flash_length(game_state *oldstate, game_state *newstate,
 			       int dir)
 {
-    if (!oldstate->completed && newstate->completed)
+    if (!oldstate->completed && newstate->completed &&
+	!oldstate->cheated && !newstate->cheated)
         return FLASH_TIME;
     return 0.0F;
 }
@@ -1970,6 +2002,7 @@ const struct game thegame = {
     new_game,
     dup_game,
     free_game,
+    TRUE, solve_game,
     TRUE, game_text_format,
     new_ui,
     free_ui,
