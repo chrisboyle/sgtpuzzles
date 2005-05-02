@@ -589,7 +589,8 @@ static void classify_grid_square_callback(void *ctx, struct grid_square *sq)
 	data->squareindex++;
 }
 
-static char *new_game_seed(game_params *params, random_state *rs)
+static char *new_game_seed(game_params *params, random_state *rs,
+			   game_aux_info **aux)
 {
     struct grid_data data;
     int i, j, k, m, area, facesperclass;
@@ -688,6 +689,11 @@ static char *new_game_seed(game_params *params, random_state *rs)
     sfree(flags);
 
     return seed;
+}
+
+static void game_free_aux_info(game_aux_info *aux)
+{
+    assert(!"Shouldn't happen");
 }
 
 static void add_grid_square_callback(void *ctx, struct grid_square *sq)
@@ -1546,6 +1552,7 @@ const struct game thegame = {
     TRUE, game_configure, custom_params,
     validate_params,
     new_game_seed,
+    game_free_aux_info,
     validate_seed,
     new_game,
     dup_game,

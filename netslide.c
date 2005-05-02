@@ -308,7 +308,8 @@ static char *validate_params(game_params *params)
  * Randomly select a new game seed.
  */
 
-static char *new_game_seed(game_params *params, random_state *rs)
+static char *new_game_seed(game_params *params, random_state *rs,
+			   game_aux_info **aux)
 {
     /*
      * The full description of a Net game is far too large to
@@ -324,6 +325,11 @@ static char *new_game_seed(game_params *params, random_state *rs)
     char buf[40];
     sprintf(buf, "%lu", random_bits(rs, 32));
     return dupstr(buf);
+}
+
+void game_free_aux_info(game_aux_info *aux)
+{
+    assert(!"Shouldn't happen");
 }
 
 static char *validate_seed(game_params *params, char *seed)
@@ -1533,6 +1539,7 @@ const struct game thegame = {
     TRUE, game_configure, custom_params,
     validate_params,
     new_game_seed,
+    game_free_aux_info,
     validate_seed,
     new_game,
     dup_game,

@@ -386,7 +386,8 @@ static void display_grid(game_params *params, int *grid, int *numbers, int all)
 }
 #endif
 
-static char *new_game_seed(game_params *params, random_state *rs)
+static char *new_game_seed(game_params *params, random_state *rs,
+			   game_aux_info **aux)
 {
     int *grid, *numbers;
     struct rectlist *list;
@@ -896,6 +897,11 @@ static char *new_game_seed(game_params *params, random_state *rs)
     sfree(numbers);
 
     return seed;
+}
+
+void game_free_aux_info(game_aux_info *aux)
+{
+    assert(!"Shouldn't happen");
 }
 
 static char *validate_seed(game_params *params, char *seed)
@@ -1703,6 +1709,7 @@ const struct game thegame = {
     TRUE, game_configure, custom_params,
     validate_params,
     new_game_seed,
+    game_free_aux_info,
     validate_seed,
     new_game,
     dup_game,

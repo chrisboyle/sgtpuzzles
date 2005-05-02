@@ -1203,9 +1203,12 @@ int main(int argc, char **argv)
 	parstr = thegame.encode_params(par);
 
 	while (n-- > 0) {
-	    char *seed = thegame.new_seed(par, rs);
+	    game_aux_info *aux = NULL;
+	    char *seed = thegame.new_seed(par, rs, &aux);
 	    printf("%s:%s\n", parstr, seed);
 	    sfree(seed);
+	    if (aux)
+		thegame.free_aux_info(aux);
 	}
 
 	return 0;

@@ -291,7 +291,8 @@ static int grid_complete(int *grid, int wh, int orientable)
     return ok;
 }
 
-static char *new_game_seed(game_params *params, random_state *rs)
+static char *new_game_seed(game_params *params, random_state *rs,
+			   game_aux_info **aux)
 {
     int *grid;
     int w = params->w, h = params->h, n = params->n, wh = w*h;
@@ -356,6 +357,11 @@ static char *new_game_seed(game_params *params, random_state *rs)
 
     sfree(grid);
     return ret;
+}
+
+void game_free_aux_info(game_aux_info *aux)
+{
+    assert(!"Shouldn't happen");
 }
 
 static char *validate_seed(game_params *params, char *seed)
@@ -985,6 +991,7 @@ const struct game thegame = {
     TRUE, game_configure, custom_params,
     validate_params,
     new_game_seed,
+    game_free_aux_info,
     validate_seed,
     new_game,
     dup_game,

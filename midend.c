@@ -17,6 +17,7 @@ struct midend_data {
     const game *ourgame;
 
     char *seed;
+    game_aux_info *aux_info;
     int fresh_seed;
     int nstates, statesize, statepos;
 
@@ -58,6 +59,7 @@ midend_data *midend_new(frontend *fe, const game *ourgame)
     me->states = NULL;
     me->params = ourgame->default_params();
     me->seed = NULL;
+    me->aux_info = NULL;
     me->fresh_seed = FALSE;
     me->drawstate = NULL;
     me->oldstate = NULL;
@@ -79,6 +81,8 @@ void midend_free(midend_data *me)
 {
     sfree(me->states);
     sfree(me->seed);
+    if (me->aux_info)
+	me->ourgame->free_aux_info(me->aux_info);
     me->ourgame->free_params(me->params);
     sfree(me);
 }
@@ -106,7 +110,11 @@ void midend_new_game(midend_data *me)
 
     if (!me->fresh_seed) {
 	sfree(me->seed);
-	me->seed = me->ourgame->new_seed(me->params, me->random);
+	if (me->aux_info)
+	    me->ourgame->free_aux_info(me->aux_info);
+	me->aux_info = NULL;
+	me->seed = me->ourgame->new_seed(me->params, me->random,
+					 &me->aux_info);
     } else
 	me->fresh_seed = FALSE;
 
@@ -399,9 +407,12 @@ float *midend_colours(midend_data *me, int *ncolours)
     float *ret;
 
     if (me->nstates == 0) {
-        char *seed = me->ourgame->new_seed(me->params, me->random);
+	game_aux_info *aux = NULL;
+        char *seed = me->ourgame->new_seed(me->params, me->random, &aux);
         state = me->ourgame->new_game(me->params, seed);
         sfree(seed);
+	if (aux)
+	    me->ourgame->free_aux_info(aux);
     } else
         state = me->states[0];
 
@@ -540,6 +551,9 @@ char *midend_game_id(midend_data *me, char *id, int def_seed)
         sfree(me->seed);
         me->seed = dupstr(seed);
         me->fresh_seed = TRUE;
+	if (me->aux_info)
+	    me->ourgame->free_aux_info(me->aux_info);
+	me->aux_info = NULL;
     }
 
     return NULL;

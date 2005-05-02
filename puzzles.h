@@ -52,6 +52,7 @@ typedef struct midend_data midend_data;
 typedef struct random_state random_state;
 typedef struct game_params game_params;
 typedef struct game_state game_state;
+typedef struct game_aux_info game_aux_info;
 typedef struct game_ui game_ui;
 typedef struct game_drawstate game_drawstate;
 typedef struct game game;
@@ -189,7 +190,9 @@ struct game {
     config_item *(*configure)(game_params *params);
     game_params *(*custom_params)(config_item *cfg);
     char *(*validate_params)(game_params *params);
-    char *(*new_seed)(game_params *params, random_state *rs);
+    char *(*new_seed)(game_params *params, random_state *rs,
+		      game_aux_info **aux);
+    void (*free_aux_info)(game_aux_info *aux);
     char *(*validate_seed)(game_params *params, char *seed);
     game_state *(*new_game)(game_params *params, char *seed);
     game_state *(*dup_game)(game_state *state);

@@ -476,7 +476,8 @@ static unsigned char *generate_soluble(random_state *rs, int w, int h)
     return grid;
 }
 
-static char *new_game_seed(game_params *params, random_state *rs)
+static char *new_game_seed(game_params *params, random_state *rs,
+			   game_aux_info **aux)
 {
     unsigned char *grid;
     int i, j, max, rowlen, *rowdata;
@@ -538,6 +539,11 @@ static char *new_game_seed(game_params *params, random_state *rs)
     seed[seedlen-1] = '\0';
     sfree(rowdata);
     return seed;
+}
+
+void game_free_aux_info(game_aux_info *aux)
+{
+    assert(!"Shouldn't happen");
 }
 
 static char *validate_seed(game_params *params, char *seed)
@@ -1030,6 +1036,7 @@ const struct game thegame = {
     TRUE, game_configure, custom_params,
     validate_params,
     new_game_seed,
+    game_free_aux_info,
     validate_seed,
     new_game,
     dup_game,

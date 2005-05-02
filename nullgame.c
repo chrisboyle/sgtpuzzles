@@ -88,9 +88,15 @@ static char *validate_params(game_params *params)
     return NULL;
 }
 
-static char *new_game_seed(game_params *params, random_state *rs)
+static char *new_game_seed(game_params *params, random_state *rs,
+			   game_aux_info **aux)
 {
     return dupstr("FIXME");
+}
+
+void game_free_aux_info(game_aux_info *aux)
+{
+    assert(!"Shouldn't happen");
 }
 
 static char *validate_seed(game_params *params, char *seed)
@@ -223,6 +229,7 @@ const struct game thegame = {
     FALSE, game_configure, custom_params,
     validate_params,
     new_game_seed,
+    game_free_aux_info,
     validate_seed,
     new_game,
     dup_game,

@@ -172,7 +172,8 @@ static int perm_parity(int *perm, int n)
     return ret;
 }
 
-static char *new_game_seed(game_params *params, random_state *rs)
+static char *new_game_seed(game_params *params, random_state *rs,
+			   game_aux_info **aux)
 {
     int stop, n, i, x;
     int x1, x2, p1, p2;
@@ -276,6 +277,11 @@ static char *new_game_seed(game_params *params, random_state *rs)
     sfree(used);
 
     return ret;
+}
+
+void game_free_aux_info(game_aux_info *aux)
+{
+    assert(!"Shouldn't happen");
 }
 
 
@@ -823,6 +829,7 @@ const struct game thegame = {
     TRUE, game_configure, custom_params,
     validate_params,
     new_game_seed,
+    game_free_aux_info,
     validate_seed,
     new_game,
     dup_game,
