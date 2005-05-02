@@ -472,6 +472,11 @@ static unsigned char *generate_soluble(random_state *rs, int w, int h)
     return grid;
 }
 
+struct game_aux_info {
+    int w, h;
+    unsigned char *grid;
+};
+
 static char *new_game_seed(game_params *params, random_state *rs,
 			   game_aux_info **aux)
 {
@@ -483,6 +488,20 @@ static char *new_game_seed(game_params *params, random_state *rs,
     grid = generate_soluble(rs, params->w, params->h);
     max = max(params->w, params->h);
     rowdata = snewn(max, int);
+
+    /*
+     * Save the solved game in an aux_info.
+     */
+    {
+	game_aux_info *ai = snew(game_aux_info);
+
+	ai->w = params->w;
+	ai->h = params->h;
+	ai->grid = snewn(ai->w * ai->h, unsigned char);
+	memcpy(ai->grid, grid, ai->w * ai->h);
+
+	*aux = ai;
+    }
 
     /*
      * Seed is a slash-separated list of row contents; each row
@@ -539,7 +558,8 @@ static char *new_game_seed(game_params *params, random_state *rs,
 
 static void game_free_aux_info(game_aux_info *aux)
 {
-    assert(!"Shouldn't happen");
+    sfree(aux->grid);
+    sfree(aux);
 }
 
 static char *validate_seed(game_params *params, char *seed)
@@ -651,21 +671,25 @@ static void free_game(game_state *state)
     sfree(state);
 }
 
-static game_state *solve_game(game_state *state, game_aux_info *aux,
+static game_state *solve_game(game_state *state, game_aux_info *ai,
 			      char **error)
 {
     game_state *ret;
 
-    /*
-     * I could have stored the grid I invented in the game_aux_info
-     * and extracted it here where available, but it seems easier
-     * just to run my internal solver in all cases.
-     */
-
     ret = dup_game(state);
     ret->completed = ret->cheated = TRUE;
 
-    {
+    /*
+     * If we already have the solved state in an aux_info, copy it
+     * out.
+     */
+    if (ai) {
+
+	assert(ret->w == ai->w);
+	assert(ret->h == ai->h);
+	memcpy(ret->grid, ai->grid, ai->w * ai->h);
+
+    } else {
 	int w = state->w, h = state->h, i, j, done_any, max;
 	unsigned char *matrix, *workspace;
 	int *rowdata;

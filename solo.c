@@ -1351,6 +1351,11 @@ static int symmetries(game_params *params, int x, int y, int *output, int s)
     return i;
 }
 
+struct game_aux_info {
+    int c, r;
+    digit *grid;
+};
+
 static char *new_game_seed(game_params *params, random_state *rs,
 			   game_aux_info **aux)
 {
@@ -1393,6 +1398,18 @@ static char *new_game_seed(game_params *params, random_state *rs,
         ret = rsolve(c, r, grid, rs, 1);
         assert(ret == 1);
         assert(check_valid(c, r, grid));
+
+	/*
+	 * Save the solved grid in the aux_info.
+	 */
+	{
+	    game_aux_info *ai = snew(game_aux_info);
+	    ai->c = c;
+	    ai->r = r;
+	    ai->grid = snewn(cr * cr, digit);
+	    memcpy(ai->grid, grid, cr * cr * sizeof(digit));
+	    *aux = ai;
+	}
 
         /*
          * Now we have a solved grid, start removing things from it
@@ -1516,7 +1533,8 @@ static char *new_game_seed(game_params *params, random_state *rs,
 
 static void game_free_aux_info(game_aux_info *aux)
 {
-    assert(!"Shouldn't happen");
+    sfree(aux->grid);
+    sfree(aux);
 }
 
 static char *validate_seed(game_params *params, char *seed)
@@ -1614,31 +1632,37 @@ static void free_game(game_state *state)
     sfree(state);
 }
 
-static game_state *solve_game(game_state *state, game_aux_info *aux,
+static game_state *solve_game(game_state *state, game_aux_info *ai,
 			      char **error)
 {
     game_state *ret;
-    int c = state->c, r = state->r;
+    int c = state->c, r = state->r, cr = c*r;
     int rsolve_ret;
-
-    /*
-     * I could have stored the grid I invented in the game_aux_info
-     * and extracted it here where available, but it seems easier
-     * just to run my internal solver in all cases.
-     */
 
     ret = dup_game(state);
     ret->completed = ret->cheated = TRUE;
 
-    rsolve_ret = rsolve(c, r, ret->grid, NULL, 2);
+    /*
+     * If we already have the solution in the aux_info, save
+     * ourselves some time.
+     */
+    if (ai) {
 
-    if (rsolve_ret != 1) {
-	free_game(ret);
-	if (rsolve_ret == 0)
-	    *error = "No solution exists for this puzzle";
-	else
-	    *error = "Multiple solutions exist for this puzzle";
-	return NULL;
+	assert(c == ai->c);
+	assert(r == ai->r);
+	memcpy(ret->grid, ai->grid, cr * cr * sizeof(digit));
+
+    } else {
+	rsolve_ret = rsolve(c, r, ret->grid, NULL, 2);
+
+	if (rsolve_ret != 1) {
+	    free_game(ret);
+	    if (rsolve_ret == 0)
+		*error = "No solution exists for this puzzle";
+	    else
+		*error = "Multiple solutions exist for this puzzle";
+	    return NULL;
+	}
     }
 
     return ret;
