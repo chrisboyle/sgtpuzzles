@@ -1236,7 +1236,9 @@ int main(int argc, char **argv)
     item = newitem(menu, "Undo", "z", NULL, @selector(undoMove:));
     item = newitem(menu, "Redo", "S-z", NULL, @selector(redoMove:));
     [menu addItem:[NSMenuItem separatorItem]];
+    item = newitem(menu, "Cut", "x", NULL, @selector(cut:));
     item = newitem(menu, "Copy", "c", NULL, @selector(copy:));
+    item = newitem(menu, "Paste", "v", NULL, @selector(paste:));
 
     menu = newsubmenu([NSApp mainMenu], "Type");
     typemenu = menu;
