@@ -131,6 +131,10 @@ invent the game ID they know what the solution is already. Still
 other games (Pattern) can solve \e{some} external game IDs, but only
 if they aren't too difficult.
 
+The \q{Solve} command adds the solved state to the end of the undo
+chain for the puzzle. In other words, if you want to go back to
+solving it yourself after seeing the answer, you can just press Undo.
+
 }
 
 \dt \I{exit}\ii\e{Quit} (\q{Q}, Ctrl+\q{Q})
