@@ -317,7 +317,7 @@ static char *new_game_seed(game_params *params, random_state *rs,
      * and simply shuffle the grid by making a long sequence of
      * randomly chosen moves.
      */
-    total_moves = w*h*n*n*2;
+    total_moves = w*h*n*n*2 + random_upto(rs, 1);
     for (i = 0; i < total_moves; i++) {
 	int x, y;
 
