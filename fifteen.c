@@ -421,7 +421,7 @@ static char *game_text_format(game_state *state)
      */
     maxlen = state->h * state->w * (col+1);
 
-    ret = snewn(maxlen, char);
+    ret = snewn(maxlen+1, char);
     p = ret;
 
     for (y = 0; y < state->h; y++) {
