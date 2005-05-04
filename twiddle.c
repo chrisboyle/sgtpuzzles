@@ -763,7 +763,7 @@ static void draw_tile(frontend *fe, game_state *state, int x, int y,
     }
 
     /*
-     * Next, the colour bars for orientation.
+     * Next, the triangles for orientation.
      */
     if (state->orientable) {
 	int xdx, xdy, ydx, ydy;
