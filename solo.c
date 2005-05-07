@@ -116,7 +116,7 @@ static game_params *default_params(void)
 
     ret->c = ret->r = 3;
     ret->symm = SYMM_ROT2;	       /* a plausible default */
-    ret->diff = DIFF_SIMPLE;           /* so is this */
+    ret->diff = DIFF_BLOCK;	       /* so is this */
 
     return ret;
 }
@@ -141,6 +141,7 @@ static int game_fetch_preset(int i, char **name, game_params **params)
     } presets[] = {
         { "2x2 Trivial", { 2, 2, SYMM_ROT2, DIFF_BLOCK } },
         { "2x3 Basic", { 2, 3, SYMM_ROT2, DIFF_SIMPLE } },
+        { "3x3 Trivial", { 3, 3, SYMM_ROT2, DIFF_BLOCK } },
         { "3x3 Basic", { 3, 3, SYMM_ROT2, DIFF_SIMPLE } },
         { "3x3 Intermediate", { 3, 3, SYMM_ROT2, DIFF_INTERSECT } },
         { "3x3 Advanced", { 3, 3, SYMM_ROT2, DIFF_SET } },
@@ -164,6 +165,7 @@ static game_params *decode_params(char const *string)
 
     ret->c = ret->r = atoi(string);
     ret->symm = SYMM_ROT2;
+    ret->diff = DIFF_BLOCK;
     while (*string && isdigit((unsigned char)*string)) string++;
     if (*string == 'x') {
         string++;
