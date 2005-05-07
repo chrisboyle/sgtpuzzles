@@ -144,6 +144,7 @@ static int game_fetch_preset(int i, char **name, game_params **params)
         { "3x3 Basic", { 3, 3, SYMM_ROT2, DIFF_SIMPLE } },
         { "3x3 Intermediate", { 3, 3, SYMM_ROT2, DIFF_INTERSECT } },
         { "3x3 Advanced", { 3, 3, SYMM_ROT2, DIFF_SET } },
+        { "3x3 Unreasonable", { 3, 3, SYMM_ROT2, DIFF_RECURSIVE } },
         { "3x4 Basic", { 3, 4, SYMM_ROT2, DIFF_SIMPLE } },
         { "4x4 Basic", { 4, 4, SYMM_ROT2, DIFF_SIMPLE } },
     };
@@ -193,6 +194,8 @@ static game_params *decode_params(char const *string)
                 string++, ret->diff = DIFF_INTERSECT;
             else if (*string == 'a')   /* advanced */
                 string++, ret->diff = DIFF_SET;
+            else if (*string == 'u')   /* unreasonable */
+                string++, ret->diff = DIFF_RECURSIVE;
         } else
             string++;                  /* eat unknown character */
     }
@@ -239,7 +242,7 @@ static config_item *game_configure(game_params *params)
 
     ret[3].name = "Difficulty";
     ret[3].type = C_CHOICES;
-    ret[3].sval = ":Trivial:Basic:Intermediate:Advanced";
+    ret[3].sval = ":Trivial:Basic:Intermediate:Advanced:Unreasonable";
     ret[3].ival = params->diff;
 
     ret[4].name = NULL;
@@ -1368,7 +1371,7 @@ static char *new_game_seed(game_params *params, random_state *rs,
     char *seed;
     int coords[16], ncoords;
     int xlim, ylim;
-    int maxdiff;
+    int maxdiff, recursing;
 
     /*
      * Adjust the maximum difficulty level to be consistent with
@@ -1416,6 +1419,7 @@ static char *new_game_seed(game_params *params, random_state *rs,
          * while preserving solubility.
          */
         symmetry_limit(params, &xlim, &ylim, params->symm);
+	recursing = FALSE;
         while (1) {
             int x, y, i, j;
 
@@ -1452,6 +1456,8 @@ static char *new_game_seed(game_params *params, random_state *rs,
              * nsolve.
              */
             for (i = 0; i < nlocs; i++) {
+		int ret;
+
                 x = locs[i].x;
                 y = locs[i].y;
 
@@ -1460,7 +1466,12 @@ static char *new_game_seed(game_params *params, random_state *rs,
                 for (j = 0; j < ncoords; j++)
                     grid2[coords[2*j+1]*cr+coords[2*j]] = 0;
 
-                if (nsolve(c, r, grid2) <= maxdiff) {
+		if (recursing)
+		    ret = (rsolve(c, r, grid2, NULL, 2) == 1);
+		else
+		    ret = (nsolve(c, r, grid2) <= maxdiff);
+
+                if (ret) {
                     for (j = 0; j < ncoords; j++)
                         grid[coords[2*j+1]*cr+coords[2*j]] = 0;
                     break;
@@ -1469,15 +1480,22 @@ static char *new_game_seed(game_params *params, random_state *rs,
 
             if (i == nlocs) {
                 /*
-                 * There was nothing we could remove without destroying
-                 * solvability.
+                 * There was nothing we could remove without
+                 * destroying solvability. If we're trying to
+                 * generate a recursion-only grid and haven't
+                 * switched over to rsolve yet, we now do;
+                 * otherwise we give up.
                  */
-                break;
+		if (maxdiff == DIFF_RECURSIVE && !recursing) {
+		    recursing = TRUE;
+		} else {
+		    break;
+		}
             }
         }
 
         memcpy(grid2, grid, area);
-    } while (nsolve(c, r, grid2) != maxdiff);
+    } while (nsolve(c, r, grid2) < maxdiff);
 
     sfree(grid2);
     sfree(locs);
