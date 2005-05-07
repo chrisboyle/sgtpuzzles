@@ -805,7 +805,7 @@ static game_state *solve_game(game_state *state, game_aux_info *aux,
     ret = dup_game(state);
     memcpy(ret->tiles, state->solution->tiles, ret->width * ret->height);
     ret->used_solve = ret->just_used_solve = TRUE;
-    ret->completed = ret->move_count;
+    ret->completed = ret->move_count = 1;
 
     return ret;
 }

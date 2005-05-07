@@ -398,7 +398,7 @@ static game_state *solve_game(game_state *state, game_aux_info *aux,
 	ret->tiles[i] = (i+1) % ret->n;
     ret->gap_pos = ret->n-1;
     ret->used_solve = ret->just_used_solve = TRUE;
-    ret->completed = ret->movecount;
+    ret->completed = ret->movecount = 1;
 
     return ret;
 }

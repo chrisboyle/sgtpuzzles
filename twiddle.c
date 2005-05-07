@@ -492,7 +492,7 @@ static game_state *solve_game(game_state *state, game_aux_info *aux,
     for (i = 0; i < ret->w*ret->h; i++)
 	ret->grid[i] &= ~3;
     ret->used_solve = ret->just_used_solve = TRUE;
-    ret->completed = ret->movecount;
+    ret->completed = ret->movecount = 1;
 
     return ret;
 }
