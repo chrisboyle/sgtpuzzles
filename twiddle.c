@@ -693,6 +693,16 @@ static void draw_tile(frontend *fe, game_state *state, int x, int y,
     int coords[8];
     char str[40];
 
+    /*
+     * If we've been passed a rotation region but we're drawing a
+     * tile which is outside it, we must draw it normally. This can
+     * occur if we're cleaning up after a completion flash while a
+     * new move is also being made.
+     */
+    if (rot && (x < rot->cx || y < rot->cy ||
+                x >= rot->cx+rot->cw || y > rot->cy+rot->ch))
+        rot = NULL;
+
     if (rot)
 	clip(fe, rot->cx, rot->cy, rot->cw, rot->ch);
 
