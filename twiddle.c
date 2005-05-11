@@ -700,7 +700,7 @@ static void draw_tile(frontend *fe, game_state *state, int x, int y,
      * new move is also being made.
      */
     if (rot && (x < rot->cx || y < rot->cy ||
-                x >= rot->cx+rot->cw || y > rot->cy+rot->ch))
+                x >= rot->cx+rot->cw || y >= rot->cy+rot->ch))
         rot = NULL;
 
     if (rot)
