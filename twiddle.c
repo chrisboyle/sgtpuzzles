@@ -39,6 +39,7 @@ struct game_params {
     int w, h, n;
     int rowsonly;
     int orientable;
+    int movetarget;
 };
 
 struct game_state {
@@ -48,7 +49,7 @@ struct game_state {
     int completed;
     int just_used_solve;	       /* used to suppress undo animation */
     int used_solve;		       /* used to suppress completion flash */
-    int movecount;
+    int movecount, movetarget;
     int lastx, lasty, lastr;	       /* coordinates of last rotation */
 };
 
@@ -59,6 +60,7 @@ static game_params *default_params(void)
     ret->w = ret->h = 3;
     ret->n = 2;
     ret->rowsonly = ret->orientable = FALSE;
+    ret->movetarget = 0;
 
     return ret;
 }
@@ -108,6 +110,7 @@ static game_params *decode_params(char const *string)
     ret->w = ret->h = atoi(string);
     ret->n = 2;
     ret->rowsonly = ret->orientable = FALSE;
+    ret->movetarget = 0;
     while (*string && isdigit(*string)) string++;
     if (*string == 'x') {
         string++;
@@ -124,6 +127,10 @@ static game_params *decode_params(char const *string)
 	    ret->rowsonly = TRUE;
 	} else if (*string == 'o') {
 	    ret->orientable = TRUE;
+	} else if (*string == 'm') {
+            string++;
+	    ret->movetarget = atoi(string);
+            while (string[1] && isdigit(string[1])) string++;
 	}
 	string++;
     }
@@ -145,7 +152,7 @@ static config_item *game_configure(game_params *params)
     config_item *ret;
     char buf[80];
 
-    ret = snewn(6, config_item);
+    ret = snewn(7, config_item);
 
     ret[0].name = "Width";
     ret[0].type = C_STRING;
@@ -175,10 +182,16 @@ static config_item *game_configure(game_params *params)
     ret[4].sval = NULL;
     ret[4].ival = params->orientable;
 
-    ret[5].name = NULL;
-    ret[5].type = C_END;
-    ret[5].sval = NULL;
+    ret[5].name = "Number of shuffling moves";
+    ret[5].type = C_STRING;
+    sprintf(buf, "%d", params->movetarget);
+    ret[5].sval = dupstr(buf);
     ret[5].ival = 0;
+
+    ret[6].name = NULL;
+    ret[6].type = C_END;
+    ret[6].sval = NULL;
+    ret[6].ival = 0;
 
     return ret;
 }
@@ -192,6 +205,7 @@ static game_params *custom_params(config_item *cfg)
     ret->n = atoi(cfg[2].sval);
     ret->rowsonly = cfg[3].ival;
     ret->orientable = cfg[4].ival;
+    ret->movetarget = atoi(cfg[5].sval);
 
     return ret;
 }
@@ -317,23 +331,41 @@ static char *new_game_seed(game_params *params, random_state *rs,
      * and simply shuffle the grid by making a long sequence of
      * randomly chosen moves.
      */
-    total_moves = w*h*n*n*2 + random_upto(rs, 1);
-    for (i = 0; i < total_moves; i++) {
-	int x, y;
+    total_moves = params->movetarget;
+    if (!total_moves)
+        total_moves = w*h*n*n*2 + random_upto(rs, 2);
 
-	x = random_upto(rs, w - n + 1);
-	y = random_upto(rs, h - n + 1);
-	do_rotate(grid, w, h, n, params->orientable,
-		  x, y, 1 + random_upto(rs, 3));
+    do {
+        int oldx = -1, oldy = -1, oldr = -1;
 
-	/*
-	 * Optionally one more move in case the entire grid has
-	 * happened to come out solved.
-	 */
-	if (i == total_moves - 1 && grid_complete(grid, wh,
-						  params->orientable))
-	    i--;
-    }
+        for (i = 0; i < total_moves; i++) {
+            int x, y, r;
+
+            do {
+                x = random_upto(rs, w - n + 1);
+                y = random_upto(rs, h - n + 1);
+                r = 1 + 2 * random_upto(rs, 2);
+            } while (x == oldx && y == oldy && (oldr == 0 || r == oldr));
+
+            do_rotate(grid, w, h, n, params->orientable,
+                      x, y, r);
+
+            /*
+             * Prevent immediate reversal of a previous move, or
+             * execution of three consecutive identical moves
+             * adding up to a single inverse move. One exception is
+             * when we only _have_ one x,y setting.
+             */
+            if (w != n || h != n) {
+                if (oldx == x && oldy == y)
+                    oldr = 0;          /* now avoid _any_ move in this x,y */
+                else
+                    oldr = -r & 3;     /* only prohibit the exact inverse */
+                oldx = x;
+                oldy = y;
+            }
+        }
+    } while (grid_complete(grid, wh, params->orientable));
 
     /*
      * Now construct the game seed, by describing the grid as a
@@ -410,6 +442,7 @@ static game_state *new_game(game_params *params, char *seed)
     state->completed = 0;
     state->used_solve = state->just_used_solve = FALSE;
     state->movecount = 0;
+    state->movetarget = params->movetarget;
     state->lastx = state->lasty = state->lastr = -1;
 
     state->grid = snewn(wh, int);
@@ -445,6 +478,7 @@ static game_state *dup_game(game_state *state)
     ret->orientable = state->orientable;
     ret->completed = state->completed;
     ret->movecount = state->movecount;
+    ret->movetarget = state->movetarget;
     ret->lastx = state->lastx;
     ret->lasty = state->lasty;
     ret->lastr = state->lastr;
@@ -1021,10 +1055,14 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 	if (state->used_solve)
 	    sprintf(statusbuf, "Moves since auto-solve: %d",
 		    state->movecount - state->completed);
-	else
+	else {
 	    sprintf(statusbuf, "%sMoves: %d",
 		    (state->completed ? "COMPLETED! " : ""),
 		    (state->completed ? state->completed : state->movecount));
+            if (state->movetarget)
+                sprintf(statusbuf+strlen(statusbuf), " (target %d)",
+                        state->movetarget);
+        }
 
 	status_bar(fe, statusbuf);
     }

@@ -36,6 +36,7 @@ enum {
 
 struct game_params {
     int w, h;
+    int movetarget;
 };
 
 struct game_state {
@@ -44,7 +45,7 @@ struct game_state {
     int completed;
     int just_used_solve;	       /* used to suppress undo animation */
     int used_solve;		       /* used to suppress completion flash */
-    int movecount;
+    int movecount, movetarget;
     int last_movement_sense;
 };
 
@@ -53,6 +54,7 @@ static game_params *default_params(void)
     game_params *ret = snew(game_params);
 
     ret->w = ret->h = 4;
+    ret->movetarget = 0;
 
     return ret;
 }
@@ -77,6 +79,7 @@ static int game_fetch_preset(int i, char **name, game_params **params)
     *params = ret = snew(game_params);
     ret->w = w;
     ret->h = h;
+    ret->movetarget = 0;
     return TRUE;
 }
 
@@ -101,6 +104,14 @@ static game_params *decode_params(char const *string)
     if (*string == 'x') {
         string++;
         ret->h = atoi(string);
+	while (*string && isdigit((unsigned char)*string))
+	    string++;
+    }
+    if (*string == 'm') {
+        string++;
+        ret->movetarget = atoi(string);
+	while (*string && isdigit((unsigned char)*string))
+	    string++;
     }
 
     return ret;
@@ -120,7 +131,7 @@ static config_item *game_configure(game_params *params)
     config_item *ret;
     char buf[80];
 
-    ret = snewn(3, config_item);
+    ret = snewn(4, config_item);
 
     ret[0].name = "Width";
     ret[0].type = C_STRING;
@@ -134,10 +145,16 @@ static config_item *game_configure(game_params *params)
     ret[1].sval = dupstr(buf);
     ret[1].ival = 0;
 
-    ret[2].name = NULL;
-    ret[2].type = C_END;
-    ret[2].sval = NULL;
+    ret[2].name = "Number of shuffling moves";
+    ret[2].type = C_STRING;
+    sprintf(buf, "%d", params->movetarget);
+    ret[2].sval = dupstr(buf);
     ret[2].ival = 0;
+
+    ret[3].name = NULL;
+    ret[3].type = C_END;
+    ret[3].sval = NULL;
+    ret[3].ival = 0;
 
     return ret;
 }
@@ -148,6 +165,7 @@ static game_params *custom_params(config_item *cfg)
 
     ret->w = atoi(cfg[0].sval);
     ret->h = atoi(cfg[1].sval);
+    ret->movetarget = atoi(cfg[2].sval);
 
     return ret;
 }
@@ -186,75 +204,161 @@ static char *new_game_seed(game_params *params, random_state *rs,
     n = params->w * params->h;
 
     tiles = snewn(n, int);
-    used = snewn(n, int);
 
-    for (i = 0; i < n; i++) {
-        tiles[i] = -1;
-        used[i] = FALSE;
-    }
+    if (params->movetarget) {
+	int prevstart = -1, prevoffset = -1, prevdirection = 0, nrepeats = 0;
 
-    /*
-     * If both dimensions are odd, there is a parity constraint.
-     */
-    if (params->w & params->h & 1)
-        stop = 2;
-    else
-        stop = 0;
+	/*
+	 * Shuffle the old-fashioned way, by making a series of
+	 * single moves on the grid.
+	 */
 
-    /*
-     * Place everything except (possibly) the last two tiles.
-     */
-    for (x = 0, i = n; i > stop; i--) {
-        int k = i > 1 ? random_upto(rs, i) : 0;
-        int j;
+	for (i = 0; i < n; i++)
+	    tiles[i] = i;
 
-        for (j = 0; j < n; j++)
-            if (!used[j] && (k-- == 0))
-                break;
+	for (i = 0; i < params->movetarget; i++) {
+	    int start, offset, len, direction;
+	    int j, tmp;
 
-        assert(j < n && !used[j]);
-        used[j] = TRUE;
+	    /*
+	     * Choose a move to make. We can choose from any row
+	     * or any column.
+	     */
+	    while (1) {
+		j = random_upto(rs, params->w + params->h);
 
-        while (tiles[x] >= 0)
-            x++;
-        assert(x < n);
-        tiles[x] = j;
-    }
+		if (j < params->w) {
+		    /* Column. */
+		    start = j;
+		    offset = params->w;
+		    len = params->h;
+		} else {
+		    /* Row. */
+		    start = (j - params->w) * params->w;
+		    offset = 1;
+		    len = params->w;
+		}
 
-    if (stop) {
-        /*
-         * Find the last two locations, and the last two pieces.
-         */
-        while (tiles[x] >= 0)
-            x++;
-        assert(x < n);
-        x1 = x;
-        x++;
-        while (tiles[x] >= 0)
-            x++;
-        assert(x < n);
-        x2 = x;
+		direction = -1 + 2 * random_upto(rs, 2);
 
-        for (i = 0; i < n; i++)
-            if (!used[i])
-                break;
-        p1 = i;
-        for (i = p1+1; i < n; i++)
-            if (!used[i])
-                break;
-        p2 = i;
+		/*
+		 * To at least _try_ to avoid boring cases, check that
+		 * this move doesn't directly undo the previous one, or
+		 * repeat it so many times as to turn it into fewer
+		 * moves.
+		 */
+		if (start == prevstart && offset == prevoffset) {
+		    if (direction == -prevdirection)
+			continue;      /* inverse of previous move */
+		    else if (2 * (nrepeats+1) > len)
+			continue;      /* previous move repeated too often */
+		}
 
-        /*
-         * Try the last two tiles one way round. If that fails, swap
-         * them.
-         */
-        tiles[x1] = p1;
-        tiles[x2] = p2;
-        if (perm_parity(tiles, n) != 0) {
-            tiles[x1] = p2;
-            tiles[x2] = p1;
-            assert(perm_parity(tiles, n) == 0);
-        }
+		/* If we didn't `continue', we've found an OK move to make. */
+		break;
+	    }
+
+	    /*
+	     * Now save the move into the `prev' variables.
+	     */
+	    if (start == prevstart && offset == prevoffset) {
+		nrepeats++;
+	    } else {
+		prevstart = start;
+		prevoffset = offset;
+		prevdirection = direction;
+		nrepeats = 1;
+	    }
+
+	    /*
+	     * And make it.
+	     */
+	    if (direction < 0) {
+		start += (len-1) * offset;
+		offset = -offset;
+	    }
+	    tmp = tiles[start];
+	    for (j = 0; j+1 < len; j++)
+		tiles[start + j*offset] = tiles[start + (j+1)*offset];
+	    tiles[start + (len-1) * offset] = tmp;
+	}
+
+    } else {
+
+	used = snewn(n, int);
+
+	for (i = 0; i < n; i++) {
+	    tiles[i] = -1;
+	    used[i] = FALSE;
+	}
+
+	/*
+	 * If both dimensions are odd, there is a parity
+	 * constraint.
+	 */
+	if (params->w & params->h & 1)
+	    stop = 2;
+	else
+	    stop = 0;
+
+	/*
+	 * Place everything except (possibly) the last two tiles.
+	 */
+	for (x = 0, i = n; i > stop; i--) {
+	    int k = i > 1 ? random_upto(rs, i) : 0;
+	    int j;
+
+	    for (j = 0; j < n; j++)
+		if (!used[j] && (k-- == 0))
+		    break;
+
+	    assert(j < n && !used[j]);
+	    used[j] = TRUE;
+
+	    while (tiles[x] >= 0)
+		x++;
+	    assert(x < n);
+	    tiles[x] = j;
+	}
+
+	if (stop) {
+	    /*
+	     * Find the last two locations, and the last two
+	     * pieces.
+	     */
+	    while (tiles[x] >= 0)
+		x++;
+	    assert(x < n);
+	    x1 = x;
+	    x++;
+	    while (tiles[x] >= 0)
+		x++;
+	    assert(x < n);
+	    x2 = x;
+
+	    for (i = 0; i < n; i++)
+		if (!used[i])
+		    break;
+	    p1 = i;
+	    for (i = p1+1; i < n; i++)
+		if (!used[i])
+		    break;
+	    p2 = i;
+
+	    /*
+	     * Try the last two tiles one way round. If that fails,
+	     * swap them.
+	     */
+	    tiles[x1] = p1;
+	    tiles[x2] = p2;
+	    if (perm_parity(tiles, n) != 0) {
+		tiles[x1] = p2;
+		tiles[x2] = p1;
+		assert(perm_parity(tiles, n) == 0);
+	    }
+	}
+
+	sfree(used);
     }
 
     /*
@@ -276,7 +380,6 @@ static char *new_game_seed(game_params *params, random_state *rs,
     ret[retlen-1] = '\0';              /* delete last comma */
 
     sfree(tiles);
-    sfree(used);
 
     return ret;
 }
@@ -361,6 +464,7 @@ static game_state *new_game(game_params *params, char *seed)
     assert(!*p);
 
     state->completed = state->movecount = 0;
+    state->movetarget = params->movetarget;
     state->used_solve = state->just_used_solve = FALSE;
     state->last_movement_sense = 0;
 
@@ -378,6 +482,7 @@ static game_state *dup_game(game_state *state)
     memcpy(ret->tiles, state->tiles, state->w * state->h * sizeof(int));
     ret->completed = state->completed;
     ret->movecount = state->movecount;
+    ret->movetarget = state->movetarget;
     ret->used_solve = state->used_solve;
     ret->just_used_solve = state->just_used_solve;
     ret->last_movement_sense = state->last_movement_sense;
@@ -816,10 +921,14 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 	if (state->used_solve)
 	    sprintf(statusbuf, "Moves since auto-solve: %d",
 		    state->movecount - state->completed);
-	else
+	else {
 	    sprintf(statusbuf, "%sMoves: %d",
 		    (state->completed ? "COMPLETED! " : ""),
 		    (state->completed ? state->completed : state->movecount));
+            if (state->movetarget)
+                sprintf(statusbuf+strlen(statusbuf), " (target %d)",
+                        state->movetarget);
+	}
 
 	status_bar(fe, statusbuf);
     }

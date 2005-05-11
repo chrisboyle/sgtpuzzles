@@ -415,9 +415,41 @@ Right-clicking will move it in the opposite direction.
 
 \H{sixteen-params} \I{parameters, for Sixteen}Sixteen parameters
 
-The only parameters available from the \q{Custom...} option on the
-\q{Type} menu are \e{Width} and \e{Height}, which are
-self-explanatory.
+The parameters available from the \q{Custom...} option on the
+\q{Type} menu are:
+
+\b \e{Width} and \e{Height}, which are self-explanatory.
+
+\b You can ask for a limited shuffling operation to be performed on
+the grid. By default, Sixteen will shuffle the grid in such a way
+that any arrangement is about as probable as any other. You can
+override this by requesting a precise number of shuffling moves to
+be performed. Typically your aim is then to determine the precise
+set of shuffling moves and invert them exactly, so that you answer
+(say) a four-move shuffle with a four-move solution. Note that the
+more moves you ask for, the more likely it is that solutions shorter
+than the target length will turn out to be possible.
+
+\H{sixteen-cmdline} \I{command line, for Sixteen}Additional
+command-line configuration
+
+The limited shuffle parameter, described in \k{sixteen-params}, is
+not mentioned by default in the game ID (see \k{common-id}). So if
+you set your shuffling move count to (say) 4, and then you generate
+a normal 4\by\.4 grid, then the game ID will simply say
+\c{4x4:}\e{numbers}. This means that if you send the game ID to
+another player and they paste it into their copy of Sixteen, their
+game will not be automatically configured to use the same shuffle
+limit in any subsequent grids it generates. (I don't think the
+average person examining a single grid sent to them by another
+player would want their configuration modified to that extent.)
+
+If you are specifying a game ID or game parameters on the command
+line (see \k{common-cmdline}) and you do want to configure the
+shuffle limit, you can do it by suffixing the letter \cq{m} to the
+parameters, followed by the move count as a decimal number. For
+example, \cq{sixteen 4x4m4} will start up Sixteen with a problem
+guaranteed to be soluble in four moves or fewer.
 
 
 \C{twiddle} \i{Twiddle}
@@ -475,6 +507,36 @@ you ask for an orientable puzzle, each tile will have a triangle
 drawn in it. All the triangles must be pointing upwards to complete
 the puzzle.
 
+\b You can ask for a limited shuffling operation to be performed on
+the grid. By default, Twiddle will shuffle the grid so much that any
+arrangement is about as probable as any other. You can override this
+by requesting a precise number of shuffling moves to be performed.
+Typically your aim is then to determine the precise set of shuffling
+moves and invert them exactly, so that you answer (say) a four-move
+shuffle with a four-move solution. Note that the more moves you ask
+for, the more likely it is that solutions shorter than the target
+length will turn out to be possible.
+
+\H{twiddle-cmdline} \I{command line, for Twiddle}Additional
+command-line configuration
+
+The limited shuffle parameter, described in \k{twiddle-parameters},
+is not mentioned by default in the game ID (see \k{common-id}). So
+if you set your shuffling move count to (say) 4, and then you
+generate a normal 3\by\.3 grid, then the game ID will simply say
+\c{3x3n2:}\e{numbers}. This means that if you send the game ID to
+another player and they paste it into their copy of Twiddle, their
+game will not be automatically configured to use the same shuffle
+limit in any subsequent grids it generates. (I don't think the
+average person examining a single grid sent to them by another
+player would want their configuration modified to that extent.)
+
+If you are specifying a game ID or game parameters on the command
+line (see \k{common-cmdline}) and you do want to configure the
+shuffle limit, you can do it by suffixing the letter \cq{m} to the
+parameters, followed by the move count as a decimal number. For
+example, \cq{twiddle 3x3n2m4} will start up Twiddle with a problem
+guaranteed to be soluble in four moves or fewer.
 
 \C{rectangles} \i{Rectangles}
 
