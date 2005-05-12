@@ -321,28 +321,36 @@ static gint key_event(GtkWidget *widget, GdkEventKey *event, gpointer data)
     if (!fe->pixmap)
         return TRUE;
 
-    if (event->string[0] && !event->string[1])
-        keyval = (unsigned char)event->string[0];
-    else if (event->keyval == GDK_Up || event->keyval == GDK_KP_Up ||
-             event->keyval == GDK_KP_8)
+    if (event->keyval == GDK_Up)
         keyval = CURSOR_UP;
-    else if (event->keyval == GDK_Down || event->keyval == GDK_KP_Down ||
-             event->keyval == GDK_KP_2)
+    else if (event->keyval == GDK_KP_Up || event->keyval == GDK_KP_8)
+	keyval = MOD_NUM_KEYPAD | '8';
+    else if (event->keyval == GDK_Down)
         keyval = CURSOR_DOWN;
-    else if (event->keyval == GDK_Left || event->keyval == GDK_KP_Left ||
-             event->keyval == GDK_KP_4)
+    else if (event->keyval == GDK_KP_Down || event->keyval == GDK_KP_2)
+	keyval = MOD_NUM_KEYPAD | '2';
+    else if (event->keyval == GDK_Left)
         keyval = CURSOR_LEFT;
-    else if (event->keyval == GDK_Right || event->keyval == GDK_KP_Right ||
-             event->keyval == GDK_KP_6)
+    else if (event->keyval == GDK_KP_Left || event->keyval == GDK_KP_4)
+	keyval = MOD_NUM_KEYPAD | '4';
+    else if (event->keyval == GDK_Right)
         keyval = CURSOR_RIGHT;
+    else if (event->keyval == GDK_KP_Right || event->keyval == GDK_KP_6)
+	keyval = MOD_NUM_KEYPAD | '6';
     else if (event->keyval == GDK_KP_Home || event->keyval == GDK_KP_7)
-        keyval = CURSOR_UP_LEFT;
+        keyval = MOD_NUM_KEYPAD | '7';
     else if (event->keyval == GDK_KP_End || event->keyval == GDK_KP_1)
-        keyval = CURSOR_DOWN_LEFT;
+        keyval = MOD_NUM_KEYPAD | '1';
     else if (event->keyval == GDK_KP_Page_Up || event->keyval == GDK_KP_9)
-        keyval = CURSOR_UP_RIGHT;
+        keyval = MOD_NUM_KEYPAD | '9';
     else if (event->keyval == GDK_KP_Page_Down || event->keyval == GDK_KP_3)
-        keyval = CURSOR_DOWN_RIGHT;
+        keyval = MOD_NUM_KEYPAD | '3';
+    else if (event->keyval == GDK_KP_Insert || event->keyval == GDK_KP_0)
+        keyval = MOD_NUM_KEYPAD | '0';
+    else if (event->keyval == GDK_KP_Begin || event->keyval == GDK_KP_5)
+        keyval = MOD_NUM_KEYPAD | '5';
+    else if (event->string[0] && !event->string[1])
+        keyval = (unsigned char)event->string[0];
     else
         keyval = -1;
 

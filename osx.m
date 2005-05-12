@@ -515,6 +515,9 @@ struct frontend {
 	    }
 	}
 
+	if (c >= '0' && c <= '9' && ([ev modifierFlags] & NSNumericPadKeyMask))
+	    c |= MOD_NUM_KEYPAD;
+
 	[self processButton:c x:-1 y:-1];
     }
 }

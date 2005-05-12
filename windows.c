@@ -1035,36 +1035,64 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
 	    int key = -1;
 
 	    switch (wParam) {
-	      case VK_LEFT: key = CURSOR_LEFT; break;
-	      case VK_RIGHT: key = CURSOR_RIGHT; break;
-	      case VK_UP: key = CURSOR_UP; break;
-	      case VK_DOWN: key = CURSOR_DOWN; break;
+	      case VK_LEFT:
+		if (!(lParam & 0x01000000))
+		    key = MOD_NUM_KEYPAD | '4';
+		else
+		    key = CURSOR_LEFT;
+		break;
+	      case VK_RIGHT:
+		if (!(lParam & 0x01000000))
+		    key = MOD_NUM_KEYPAD | '6';
+		else
+		    key = CURSOR_RIGHT;
+		break;
+	      case VK_UP:
+		if (!(lParam & 0x01000000))
+		    key = MOD_NUM_KEYPAD | '8';
+		else
+		    key = CURSOR_UP;
+		break;
+	      case VK_DOWN:
+		if (!(lParam & 0x01000000))
+		    key = MOD_NUM_KEYPAD | '2';
+		else
+		    key = CURSOR_DOWN;
+		break;
 		/*
 		 * Diagonal keys on the numeric keypad.
 		 */
 	      case VK_PRIOR:
-		if (!(lParam & 0x01000000)) key = CURSOR_UP_RIGHT;
+		if (!(lParam & 0x01000000)) key = MOD_NUM_KEYPAD | '9';
 		break;
 	      case VK_NEXT:
-		if (!(lParam & 0x01000000)) key = CURSOR_DOWN_RIGHT;
+		if (!(lParam & 0x01000000)) key = MOD_NUM_KEYPAD | '3';
 		break;
 	      case VK_HOME:
-		if (!(lParam & 0x01000000)) key = CURSOR_UP_LEFT;
+		if (!(lParam & 0x01000000)) key = MOD_NUM_KEYPAD | '7';
 		break;
 	      case VK_END:
-		if (!(lParam & 0x01000000)) key = CURSOR_DOWN_LEFT;
+		if (!(lParam & 0x01000000)) key = MOD_NUM_KEYPAD | '1';
+		break;
+	      case VK_INSERT:
+		if (!(lParam & 0x01000000)) key = MOD_NUM_KEYPAD | '0';
+		break;
+	      case VK_CLEAR:
+		if (!(lParam & 0x01000000)) key = MOD_NUM_KEYPAD | '5';
 		break;
 		/*
 		 * Numeric keypad keys with Num Lock on.
 		 */
-	      case VK_NUMPAD4: key = CURSOR_LEFT; break;
-	      case VK_NUMPAD6: key = CURSOR_RIGHT; break;
-	      case VK_NUMPAD8: key = CURSOR_UP; break;
-	      case VK_NUMPAD2: key = CURSOR_DOWN; break;
-	      case VK_NUMPAD9: key = CURSOR_UP_RIGHT; break;
-	      case VK_NUMPAD3: key = CURSOR_DOWN_RIGHT; break;
-	      case VK_NUMPAD7: key = CURSOR_UP_LEFT; break;
-	      case VK_NUMPAD1: key = CURSOR_DOWN_LEFT; break;
+	      case VK_NUMPAD4: key = MOD_NUM_KEYPAD | '4'; break;
+	      case VK_NUMPAD6: key = MOD_NUM_KEYPAD | '6'; break;
+	      case VK_NUMPAD8: key = MOD_NUM_KEYPAD | '8'; break;
+	      case VK_NUMPAD2: key = MOD_NUM_KEYPAD | '2'; break;
+	      case VK_NUMPAD5: key = MOD_NUM_KEYPAD | '5'; break;
+	      case VK_NUMPAD9: key = MOD_NUM_KEYPAD | '9'; break;
+	      case VK_NUMPAD3: key = MOD_NUM_KEYPAD | '3'; break;
+	      case VK_NUMPAD7: key = MOD_NUM_KEYPAD | '7'; break;
+	      case VK_NUMPAD1: key = MOD_NUM_KEYPAD | '1'; break;
+	      case VK_NUMPAD0: key = MOD_NUM_KEYPAD | '0'; break;
 	    }
 
 	    if (key != -1) {

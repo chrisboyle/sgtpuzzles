@@ -1781,6 +1781,8 @@ static game_state *make_move(game_state *from, game_ui *ui, int x, int y,
     int tx, ty;
     game_state *ret;
 
+    button &= ~MOD_NUM_KEYPAD;	       /* we treat this the same as normal */
+
     tx = (x + TILE_SIZE - BORDER) / TILE_SIZE - 1;
     ty = (y + TILE_SIZE - BORDER) / TILE_SIZE - 1;
 

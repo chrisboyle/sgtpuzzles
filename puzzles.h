@@ -31,10 +31,8 @@ enum {
     CURSOR_DOWN,
     CURSOR_LEFT,
     CURSOR_RIGHT,
-    CURSOR_UP_LEFT,
-    CURSOR_DOWN_LEFT,
-    CURSOR_UP_RIGHT,
-    CURSOR_DOWN_RIGHT
+    
+    MOD_NUM_KEYPAD = 0x40000000
 };
 
 #define IS_MOUSE_DOWN(m) ( (unsigned)((m) - LEFT_BUTTON) <= \

@@ -1017,23 +1017,23 @@ static game_state *make_move(game_state *from, game_ui *ui,
     struct solid *poly;
 
     /*
-     * All moves are made with the cursor keys.
+     * All moves are made with the cursor keys or numeric keypad.
      */
-    if (button == CURSOR_UP)
+    if (button == CURSOR_UP || button == (MOD_NUM_KEYPAD | '8'))
         direction = UP;
-    else if (button == CURSOR_DOWN)
+    else if (button == CURSOR_DOWN || button == (MOD_NUM_KEYPAD | '2'))
         direction = DOWN;
-    else if (button == CURSOR_LEFT)
+    else if (button == CURSOR_LEFT || button == (MOD_NUM_KEYPAD | '4'))
         direction = LEFT;
-    else if (button == CURSOR_RIGHT)
+    else if (button == CURSOR_RIGHT || button == (MOD_NUM_KEYPAD | '6'))
         direction = RIGHT;
-    else if (button == CURSOR_UP_LEFT)
+    else if (button == (MOD_NUM_KEYPAD | '7'))
         direction = UP_LEFT;
-    else if (button == CURSOR_DOWN_LEFT)
+    else if (button == (MOD_NUM_KEYPAD | '1'))
         direction = DOWN_LEFT;
-    else if (button == CURSOR_UP_RIGHT)
+    else if (button == (MOD_NUM_KEYPAD | '9'))
         direction = UP_RIGHT;
-    else if (button == CURSOR_DOWN_RIGHT)
+    else if (button == (MOD_NUM_KEYPAD | '3'))
         direction = DOWN_RIGHT;
     else
         return NULL;
