@@ -233,6 +233,98 @@ NSMenuItem *newitem(NSMenu *parent, char *title, char *key,
 }
 
 /* ----------------------------------------------------------------------
+ * About box.
+ */
+
+@class AboutBox;
+
+@interface AboutBox : NSWindow
+{
+}
+- (id)init;
+@end
+
+@implementation AboutBox
+- (id)init
+{
+    NSRect totalrect;
+    NSView *views[16];
+    int nviews = 0;
+    NSImageView *iv;
+    NSTextField *tf;
+    NSFont *font1 = [NSFont systemFontOfSize:0];
+    NSFont *font2 = [NSFont boldSystemFontOfSize:[font1 pointSize] * 1.1];
+    const int border = 24;
+    int i;
+    double y;
+
+    /*
+     * Construct the controls that go in the About box.
+     */
+
+    iv = [[NSImageView alloc] initWithFrame:NSMakeRect(0,0,64,64)];
+    [iv setImage:[NSImage imageNamed:@"NSApplicationIcon"]];
+    views[nviews++] = iv;
+
+    tf = [[NSTextField alloc]
+	  initWithFrame:NSMakeRect(0,0,400,1)];
+    [tf setEditable:NO];
+    [tf setSelectable:NO];
+    [tf setBordered:NO];
+    [tf setDrawsBackground:NO];
+    [tf setFont:font2];
+    [tf setStringValue:@"Simon Tatham's Portable Puzzle Collection"];
+    [tf sizeToFit];
+    views[nviews++] = tf;
+
+    tf = [[NSTextField alloc]
+	  initWithFrame:NSMakeRect(0,0,400,1)];
+    [tf setEditable:NO];
+    [tf setSelectable:NO];
+    [tf setBordered:NO];
+    [tf setDrawsBackground:NO];
+    [tf setFont:font1];
+    [tf setStringValue:[NSString stringWithCString:ver]];
+    [tf sizeToFit];
+    views[nviews++] = tf;
+
+    /*
+     * Lay the controls out.
+     */
+    totalrect = NSMakeRect(0,0,0,0);
+    for (i = 0; i < nviews; i++) {
+	NSRect r = [views[i] frame];
+	if (totalrect.size.width < r.size.width)
+	    totalrect.size.width = r.size.width;
+	totalrect.size.height += border + r.size.height;
+    }
+    totalrect.size.width += 2 * border;
+    totalrect.size.height += border;
+    y = totalrect.size.height;
+    for (i = 0; i < nviews; i++) {
+	NSRect r = [views[i] frame];
+	r.origin.x = (totalrect.size.width - r.size.width) / 2;
+	y -= border + r.size.height;
+	r.origin.y = y;
+	[views[i] setFrame:r];
+    }
+
+    self = [super initWithContentRect:totalrect
+	    styleMask:(NSTitledWindowMask | NSMiniaturizableWindowMask |
+		       NSClosableWindowMask)
+	    backing:NSBackingStoreBuffered
+	    defer:YES];
+
+    for (i = 0; i < nviews; i++)
+	[[self contentView] addSubview:views[i]];
+
+    [self center];		       /* :-) */
+
+    return self;
+}
+@end
+
+/* ----------------------------------------------------------------------
  * The front end presented to midend.c.
  * 
  * This is mostly a subclass of NSWindow. The actual `frontend'
@@ -1169,6 +1261,7 @@ void status_bar(frontend *fe, char *text)
 {
 }
 - (void)newGameWindow:(id)sender;
+- (void)about:(id)sender;
 @end
 
 @implementation AppController
@@ -1180,6 +1273,14 @@ void status_bar(frontend *fe, char *text)
 
     win = [[GameWindow alloc] initWithGame:g];
     [win makeKeyAndOrderFront:self];
+}
+
+- (void)about:(id)sender
+{
+    id win;
+
+    win = [[AboutBox alloc] init];
+    [win makeKeyAndOrderFront:self];    
 }
 
 - (NSMenu *)applicationDockMenu:(NSApplication *)sender
@@ -1224,6 +1325,8 @@ int main(int argc, char **argv)
     [NSApp setMainMenu: newmenu("Main Menu")];
 
     menu = newsubmenu([NSApp mainMenu], "Apple Menu");
+    item = newitem(menu, "About Puzzles", "", NULL, @selector(about:));
+    [menu addItem:[NSMenuItem separatorItem]];
     [NSApp setServicesMenu:newsubmenu(menu, "Services")];
     [menu addItem:[NSMenuItem separatorItem]];
     item = newitem(menu, "Hide Puzzles", "h", NSApp, @selector(hide:));

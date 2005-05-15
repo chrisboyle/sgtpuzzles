@@ -162,6 +162,11 @@ char *dupstr(const char *s);
 void free_cfg(config_item *cfg);
 
 /*
+ * version.c
+ */
+extern char ver[];
+
+/*
  * random.c
  */
 random_state *random_init(char *seed, int len);

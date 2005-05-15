@@ -525,7 +525,7 @@ static int win_key_press(GtkWidget *widget, GdkEventKey *event, gpointer data)
     return FALSE;
 }
 
-void error_box(GtkWidget *parent, char *msg)
+void message_box(GtkWidget *parent, char *title, char *msg, int centre)
 {
     GtkWidget *window, *hbox, *text, *ok;
 
@@ -538,7 +538,7 @@ void error_box(GtkWidget *parent, char *msg)
                        hbox, FALSE, FALSE, 20);
     gtk_widget_show(text);
     gtk_widget_show(hbox);
-    gtk_window_set_title(GTK_WINDOW(window), "Error");
+    gtk_window_set_title(GTK_WINDOW(window), title);
     gtk_label_set_line_wrap(GTK_LABEL(text), TRUE);
     ok = gtk_button_new_with_label("OK");
     gtk_box_pack_end(GTK_BOX(GTK_DIALOG(window)->action_area),
@@ -557,6 +557,11 @@ void error_box(GtkWidget *parent, char *msg)
     //set_transient_window_pos(parent, window);
     gtk_widget_show(window);
     gtk_main();
+}
+
+void error_box(GtkWidget *parent, char *msg)
+{
+    message_box(parent, "Error", msg, FALSE);
 }
 
 static void config_ok_button_clicked(GtkButton *button, gpointer data)
@@ -949,6 +954,21 @@ static void menu_config_event(GtkMenuItem *menuitem, gpointer data)
     fe->h = y;
 }
 
+static void menu_about_event(GtkMenuItem *menuitem, gpointer data)
+{
+    frontend *fe = (frontend *)data;
+    char titlebuf[256];
+    char textbuf[1024];
+
+    sprintf(titlebuf, "About %.200s", thegame.name);
+    sprintf(textbuf,
+	    "%.200s\n\n"
+	    "from Simon Tatham's Portable Puzzle Collection\n\n"
+	    "%.500s", thegame.name, ver);
+
+    message_box(fe->window, titlebuf, textbuf, TRUE);
+}
+
 static GtkWidget *add_menu_item_with_key(frontend *fe, GtkContainer *cont,
                                          char *text, int key)
 {
@@ -1079,6 +1099,19 @@ static frontend *new_window(char *game_id, char **error)
     }
     add_menu_separator(GTK_CONTAINER(menu));
     add_menu_item_with_key(fe, GTK_CONTAINER(menu), "Exit", 'q');
+
+    menuitem = gtk_menu_item_new_with_label("Help");
+    gtk_container_add(GTK_CONTAINER(menubar), menuitem);
+    gtk_widget_show(menuitem);
+
+    menu = gtk_menu_new();
+    gtk_menu_item_set_submenu(GTK_MENU_ITEM(menuitem), menu);
+
+    menuitem = gtk_menu_item_new_with_label("About");
+    gtk_container_add(GTK_CONTAINER(menu), menuitem);
+    gtk_signal_connect(GTK_OBJECT(menuitem), "activate",
+		       GTK_SIGNAL_FUNC(menu_about_event), fe);
+    gtk_widget_show(menuitem);
 
     {
         int i, ncolours;

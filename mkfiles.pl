@@ -51,6 +51,7 @@ while (<IN>) {
   if ($_[0] eq "!name") { $project_name = $_[1]; next; }
   if ($_[0] eq "!srcdir") { push @srcdirs, $_[1]; next; }
   if ($_[0] eq "!makefile" and &mfval($_[1])) { $makefiles{$_[1]}=$_[2]; next;}
+  if ($_[0] eq "!specialobj" and &mfval($_[1])) { $specialobj{$_[1]}->{$_[2]} = 1; next;}
   if ($_[0] eq "!begin") {
       if (&mfval($_[1])) {
 	  $divert = \$makefile_extra{$_[1]};
@@ -299,6 +300,7 @@ sub deps {
   @ret = ();
   $depchar ||= ':';
   foreach $i (sort keys %depends) {
+    next if $specialobj{$mftyp}->{$i};
     if ($i =~ /^(.*)\.(res|rsrc)/) {
       next if !defined $rtmpl;
       $y = $1;

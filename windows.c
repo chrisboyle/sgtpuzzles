@@ -35,6 +35,7 @@
 #define IDM_HELPC     0x00A0
 #define IDM_GAMEHELP  0x00B0
 #define IDM_PRESETS   0x0100
+#define IDM_ABOUT     0x0110
 
 #define HELP_FILE_NAME  "puzzles.hlp"
 #define HELP_CNT_NAME   "puzzles.cnt"
@@ -112,7 +113,7 @@ struct frontend {
     int nfonts, fontsize;
     config_item *cfg;
     struct cfg_aux *cfgaux;
-    int cfg_which, cfg_done;
+    int cfg_which, dlg_done;
     HFONT cfgfont;
     char *help_path;
     int help_has_contents;
@@ -517,16 +518,18 @@ static frontend *new_window(HINSTANCE inst, char *game_id, char **error)
 	}
 	AppendMenu(menu, MF_SEPARATOR, 0, 0);
 	AppendMenu(menu, MF_ENABLED, IDM_QUIT, "Exit");
+	menu = CreateMenu();
+	AppendMenu(bar, MF_ENABLED|MF_POPUP, (UINT)menu, "Help");
+	AppendMenu(menu, MF_ENABLED, IDM_ABOUT, "About");
         if (fe->help_path) {
-            HMENU hmenu = CreateMenu();
-            AppendMenu(bar, MF_ENABLED|MF_POPUP, (UINT)hmenu, "Help");
-            AppendMenu(hmenu, MF_ENABLED, IDM_HELPC, "Contents");
+	    AppendMenu(menu, MF_SEPARATOR, 0, 0);
+            AppendMenu(menu, MF_ENABLED, IDM_HELPC, "Contents");
             if (thegame.winhelp_topic) {
                 char *item;
                 assert(thegame.name);
                 item = snewn(9+strlen(thegame.name), char); /*ick*/
                 sprintf(item, "Help on %s", thegame.name);
-                AppendMenu(hmenu, MF_ENABLED, IDM_GAMEHELP, item);
+                AppendMenu(menu, MF_ENABLED, IDM_GAMEHELP, item);
                 sfree(item);
             }
         }
@@ -562,6 +565,30 @@ static frontend *new_window(HINSTANCE inst, char *game_id, char **error)
     return fe;
 }
 
+static int CALLBACK AboutDlgProc(HWND hwnd, UINT msg,
+				 WPARAM wParam, LPARAM lParam)
+{
+    frontend *fe = (frontend *)GetWindowLong(hwnd, GWL_USERDATA);
+
+    switch (msg) {
+      case WM_INITDIALOG:
+	return 0;
+
+      case WM_COMMAND:
+	if ((HIWORD(wParam) == BN_CLICKED ||
+	     HIWORD(wParam) == BN_DOUBLECLICKED) &&
+	    LOWORD(wParam) == IDOK)
+	    fe->dlg_done = 1;
+	return 0;
+
+      case WM_CLOSE:
+	fe->dlg_done = 1;
+	return 0;
+    }
+
+    return 0;
+}
+
 static int CALLBACK ConfigDlgProc(HWND hwnd, UINT msg,
 				  WPARAM wParam, LPARAM lParam)
 {
@@ -587,10 +614,10 @@ static int CALLBACK ConfigDlgProc(HWND hwnd, UINT msg,
 		    MessageBox(hwnd, err, "Validation error",
 			       MB_ICONERROR | MB_OK);
 		} else {
-		    fe->cfg_done = 2;
+		    fe->dlg_done = 2;
 		}
 	    } else {
-		fe->cfg_done = 1;
+		fe->dlg_done = 1;
 	    }
 	    return 0;
 	}
@@ -624,7 +651,7 @@ static int CALLBACK ConfigDlgProc(HWND hwnd, UINT msg,
 	return 0;
 
       case WM_CLOSE:
-	fe->cfg_done = 1;
+	fe->dlg_done = 1;
 	return 0;
     }
 
@@ -633,7 +660,7 @@ static int CALLBACK ConfigDlgProc(HWND hwnd, UINT msg,
 
 HWND mkctrl(frontend *fe, int x1, int x2, int y1, int y2,
 	    char *wclass, int wstyle,
-	    int exstyle, char *wtext, int wid)
+	    int exstyle, const char *wtext, int wid)
 {
     HWND ret;
     ret = CreateWindowEx(exstyle, wclass, wtext,
@@ -641,6 +668,158 @@ HWND mkctrl(frontend *fe, int x1, int x2, int y1, int y2,
 			 fe->cfgbox, (HMENU) wid, fe->inst, NULL);
     SendMessage(ret, WM_SETFONT, (WPARAM)fe->cfgfont, MAKELPARAM(TRUE, 0));
     return ret;
+}
+
+static void about(frontend *fe)
+{
+    int i;
+    WNDCLASS wc;
+    MSG msg;
+    TEXTMETRIC tm;
+    HDC hdc;
+    HFONT oldfont;
+    SIZE size;
+    int gm, id;
+    int winwidth, winheight, y;
+    int height, width, maxwid;
+    const char *strings[16];
+    int lengths[16];
+    int nstrings = 0;
+    char titlebuf[512];
+
+    sprintf(titlebuf, "About %.250s", thegame.name);
+
+    strings[nstrings++] = thegame.name;
+    strings[nstrings++] = "from Simon Tatham's Portable Puzzle Collection";
+    strings[nstrings++] = ver;
+
+    wc.style = CS_DBLCLKS | CS_SAVEBITS | CS_BYTEALIGNWINDOW;
+    wc.lpfnWndProc = DefDlgProc;
+    wc.cbClsExtra = 0;
+    wc.cbWndExtra = DLGWINDOWEXTRA + 8;
+    wc.hInstance = fe->inst;
+    wc.hIcon = NULL;
+    wc.hCursor = LoadCursor(NULL, IDC_ARROW);
+    wc.hbrBackground = (HBRUSH) (COLOR_BACKGROUND +1);
+    wc.lpszMenuName = NULL;
+    wc.lpszClassName = "GameAboutBox";
+    RegisterClass(&wc);
+
+    hdc = GetDC(fe->hwnd);
+    SetMapMode(hdc, MM_TEXT);
+
+    fe->dlg_done = FALSE;
+
+    fe->cfgfont = CreateFont(-MulDiv(8, GetDeviceCaps(hdc, LOGPIXELSY), 72),
+			     0, 0, 0, 0,
+			     FALSE, FALSE, FALSE, DEFAULT_CHARSET,
+			     OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
+			     DEFAULT_QUALITY,
+			     FF_SWISS,
+			     "MS Shell Dlg");
+
+    oldfont = SelectObject(hdc, fe->cfgfont);
+    if (GetTextMetrics(hdc, &tm)) {
+	height = tm.tmAscent + tm.tmDescent;
+	width = tm.tmAveCharWidth;
+    } else {
+	height = width = 30;
+    }
+
+    /*
+     * Figure out the layout of the About box by measuring the
+     * length of each piece of text.
+     */
+    maxwid = 0;
+    winheight = height/2;
+
+    for (i = 0; i < nstrings; i++) {
+	if (GetTextExtentPoint32(hdc, strings[i], strlen(strings[i]), &size))
+	    lengths[i] = size.cx;
+	else
+	    lengths[i] = 0;	       /* *shrug* */
+	if (maxwid < lengths[i])
+	    maxwid = lengths[i];
+	winheight += height * 3 / 2 + (height / 2);
+    }
+
+    winheight += height + height * 7 / 4;      /* OK button */
+    winwidth = maxwid + 4*width;
+
+    SelectObject(hdc, oldfont);
+    ReleaseDC(fe->hwnd, hdc);
+
+    /*
+     * Create the dialog, now that we know its size.
+     */
+    {
+	RECT r, r2;
+
+	r.left = r.top = 0;
+	r.right = winwidth;
+	r.bottom = winheight;
+
+	AdjustWindowRectEx(&r, (WS_OVERLAPPEDWINDOW /*|
+				DS_MODALFRAME | WS_POPUP | WS_VISIBLE |
+				WS_CAPTION | WS_SYSMENU*/) &~
+			   (WS_MAXIMIZEBOX | WS_OVERLAPPED),
+			   FALSE, 0);
+
+	/*
+	 * Centre the dialog on its parent window.
+	 */
+	r.right -= r.left;
+	r.bottom -= r.top;
+	GetWindowRect(fe->hwnd, &r2);
+	r.left = (r2.left + r2.right - r.right) / 2;
+	r.top = (r2.top + r2.bottom - r.bottom) / 2;
+	r.right += r.left;
+	r.bottom += r.top;
+
+	fe->cfgbox = CreateWindowEx(0, wc.lpszClassName, titlebuf,
+				    DS_MODALFRAME | WS_POPUP | WS_VISIBLE |
+				    WS_CAPTION | WS_SYSMENU,
+				    r.left, r.top,
+				    r.right-r.left, r.bottom-r.top,
+				    fe->hwnd, NULL, fe->inst, NULL);
+    }
+
+    SendMessage(fe->cfgbox, WM_SETFONT, (WPARAM)fe->cfgfont, FALSE);
+
+    SetWindowLong(fe->cfgbox, GWL_USERDATA, (LONG)fe);
+    SetWindowLong(fe->cfgbox, DWL_DLGPROC, (LONG)AboutDlgProc);
+
+    id = 1000;
+    y = height/2;
+    for (i = 0; i < nstrings; i++) {
+	int border = width*2 + (maxwid - lengths[i]) / 2;
+	mkctrl(fe, border, border+lengths[i], y+height*1/8, y+height*9/8,
+	       "Static", 0, 0, strings[i], id++);
+	y += height*3/2;
+
+	assert(y < winheight);
+	y += height/2;
+    }
+
+    y += height/2;		       /* extra space before OK */
+    mkctrl(fe, width*2, maxwid+width*2, y, y+height*7/4, "BUTTON",
+	   BS_PUSHBUTTON | BS_NOTIFY | WS_TABSTOP | BS_DEFPUSHBUTTON, 0,
+	   "OK", IDOK);
+
+    SendMessage(fe->cfgbox, WM_INITDIALOG, 0, 0);
+
+    EnableWindow(fe->hwnd, FALSE);
+    ShowWindow(fe->cfgbox, SW_NORMAL);
+    while ((gm=GetMessage(&msg, NULL, 0, 0)) > 0) {
+	if (!IsDialogMessage(fe->cfgbox, &msg))
+	    DispatchMessage(&msg);
+	if (fe->dlg_done)
+	    break;
+    }
+    EnableWindow(fe->hwnd, TRUE);
+    SetForegroundWindow(fe->hwnd);
+    DestroyWindow(fe->cfgbox);
+    DeleteObject(fe->cfgfont);
 }
 
 static int get_config(frontend *fe, int which)
@@ -674,7 +853,7 @@ static int get_config(frontend *fe, int which)
     hdc = GetDC(fe->hwnd);
     SetMapMode(hdc, MM_TEXT);
 
-    fe->cfg_done = FALSE;
+    fe->dlg_done = FALSE;
 
     fe->cfgfont = CreateFont(-MulDiv(8, GetDeviceCaps(hdc, LOGPIXELSY), 72),
 			     0, 0, 0, 0,
@@ -738,6 +917,7 @@ static int get_config(frontend *fe, int which)
 	col2r = col1l+2*height+maxcheckbox;
     winwidth = col2r + 2*width;
 
+    SelectObject(hdc, oldfont);
     ReleaseDC(fe->hwnd, hdc);
 
     /*
@@ -869,7 +1049,7 @@ static int get_config(frontend *fe, int which)
     while ((gm=GetMessage(&msg, NULL, 0, 0)) > 0) {
 	if (!IsDialogMessage(fe->cfgbox, &msg))
 	    DispatchMessage(&msg);
-	if (fe->cfg_done)
+	if (fe->dlg_done)
 	    break;
     }
     EnableWindow(fe->hwnd, TRUE);
@@ -880,7 +1060,7 @@ static int get_config(frontend *fe, int which)
     free_cfg(fe->cfg);
     sfree(fe->cfgaux);
 
-    return (fe->cfg_done == 2);
+    return (fe->dlg_done == 2);
 }
 
 static void new_game_type(frontend *fe)
@@ -979,6 +1159,9 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
 	    if (get_config(fe, CFG_SEED))
 		new_game_type(fe);
 	    break;
+          case IDM_ABOUT:
+	    about(fe);
+            break;
           case IDM_HELPC:
             assert(fe->help_path);
             WinHelp(hwnd, fe->help_path,

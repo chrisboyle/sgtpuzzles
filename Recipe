@@ -14,7 +14,7 @@
 !makefile osx Makefile.osx
 
 WINDOWS  = windows user32.lib gdi32.lib comctl32.lib
-COMMON   = midend misc malloc random
+COMMON   = midend misc malloc random version
 NET      = net tree234
 NETSLIDE = netslide tree234
 
@@ -84,3 +84,41 @@ Puzzles.dmg: Puzzles
 # be built on a regular basis.
 nullgame : [X] gtk COMMON nullgame
 nullgame : [G] WINDOWS COMMON nullgame
+
+# Version management.
+!begin vc
+version.obj: *.c *.h
+	cl $(VER) $(CFLAGS) /c version.c
+!end
+!specialobj vc version
+!begin cygwin
+version.o: FORCE
+FORCE:
+	$(CC) $(COMPAT) $(XFLAGS) $(CFLAGS) $(VER) -c version.c
+!end
+!specialobj cygwin version
+# For Unix, we also need the gross MD5 hack that causes automatic
+# version number selection in release source archives.
+!begin gtk
+version.o: FORCE;
+FORCE:
+	if test -z "$(VER)" && md5sum -c manifest; then \
+		$(CC) $(COMPAT) $(XFLAGS) $(CFLAGS) `cat version.def` -c version.c; \
+	else \
+		$(CC) $(COMPAT) $(XFLAGS) $(CFLAGS) $(VER) -c version.c; \
+	fi
+!end
+!specialobj gtk version
+# For OS X, this is made more fiddly by the fact that we don't have
+# md5sum readily available. We do, however, have `md5 -r' which
+# generates _nearly_ the same output, but it has no check function.
+!begin osx
+version.o: FORCE;
+FORCE:
+	if test -z "$(VER)" && test -f manifest && (md5 -r `awk '{print $$2}' manifest` | diff -w manifest -); then \
+		$(CC) $(COMPAT) $(XFLAGS) $(CFLAGS) `cat version.def` -c version.c; \
+	else \
+		$(CC) $(COMPAT) $(XFLAGS) $(CFLAGS) $(VER) -c version.c; \
+	fi
+!end
+!specialobj osx version
