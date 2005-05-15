@@ -92,7 +92,7 @@ version.obj: *.c *.h
 !end
 !specialobj vc version
 !begin cygwin
-version.o: FORCE
+version.o: FORCE;
 FORCE:
 	$(CC) $(COMPAT) $(XFLAGS) $(CFLAGS) $(VER) -c version.c
 !end
