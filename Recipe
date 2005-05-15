@@ -104,7 +104,7 @@ version.o: FORCE;
 FORCE:
 	if test -z "$(VER)" && test -f manifest && md5sum -c manifest; then \
 		$(CC) $(COMPAT) $(XFLAGS) $(CFLAGS) `cat version.def` -c version.c; \
-	elif test -z "$(VER)" && svnversion . >&/dev/null; then \
+	elif test -z "$(VER)" && test -d .svn && svnversion . >&/dev/null; then \
 		$(CC) $(COMPAT) $(XFLAGS) $(CFLAGS) "-DREVISION=`svnversion .`" -c version.c; \
 	else \
 		$(CC) $(COMPAT) $(XFLAGS) $(CFLAGS) $(VER) -c version.c; \
@@ -119,7 +119,7 @@ version.o: FORCE;
 FORCE:
 	if test -z "$(VER)" && test -f manifest && (md5 -r `awk '{print $$2}' manifest` | diff -w manifest -); then \
 		$(CC) $(COMPAT) $(XFLAGS) $(CFLAGS) `cat version.def` -c version.c; \
-	elif test -z "$(VER)" && svnversion . >&/dev/null; then \
+	elif test -z "$(VER)" && test -d .svn && svnversion . >&/dev/null; then \
 		$(CC) $(COMPAT) $(XFLAGS) $(CFLAGS) "-DREVISION=`svnversion .`" -c version.c; \
 	else \
 		$(CC) $(COMPAT) $(XFLAGS) $(CFLAGS) $(VER) -c version.c; \

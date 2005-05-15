@@ -1,9 +1,37 @@
 #!/bin/sh 
 
+# Build a Unix source distribution from the Puzzles SVN area.
+#
+# Pass a numeric argument to have the archive tagged as that SVN
+# revision. Otherwise, the script will work it out itself by
+# calling `svnversion', or failing that it will not version-tag the
+# archive at all.
+
+case "$#" in
+  0)
+    # Ignore errors; if we can't get a version, we'll have a blank
+    # string.
+    rev=`svnversion . 2>/dev/null`
+    if test "x$rev" = "xexported"; then rev=; fi
+    ;;
+  *)
+    case "$1" in *[!0-9]*) echo "Malformed revision number '$1'">&2;exit 1;;esac
+    rev="$1"
+    ;;
+esac
+
+if test "x$rev" != "x"; then
+  arcsuffix="-r$rev"
+  ver="-DREVISION=$rev"
+else
+  arcsuffix=
+  ver=
+fi
+
 perl mkfiles.pl
 
 mkdir tmp.$$
-mkdir tmp.$$/puzzles
+mkdir tmp.$$/puzzles$arcsuffix
 
 # Build Windows Help and text versions of the manual for convenience.
 halibut --winhelp=puzzles.hlp --text=puzzles.txt puzzles.but
@@ -14,9 +42,16 @@ halibut --text=HACKING HACKING.but
 for i in *.c *.m *.h *.but *.plist *.icns LICENCE README Recipe \
   mkfiles.pl Makefile Makefile.* \
   HACKING puzzles.txt puzzles.hlp puzzles.cnt; do
-  ln -s ../../$i tmp.$$/puzzles
+  ln -s ../../$i tmp.$$/puzzles$arcsuffix
+  if test "x$ver" != "x"; then
+    md5sum $i >> tmp.$$/puzzles$arcsuffix/manifest
+  fi
 done
 
-tar -C tmp.$$ -chzf - puzzles > ../puzzles.tar.gz
+if test "x$ver" != "x"; then
+  echo "$ver" >> tmp.$$/puzzles$arcsuffix/version.def
+fi
+
+tar -C tmp.$$ -chzf - puzzles$arcsuffix > ../puzzles$arcsuffix.tar.gz
 
 rm -rf tmp.$$
