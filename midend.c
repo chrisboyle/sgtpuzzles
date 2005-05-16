@@ -11,21 +11,23 @@
 
 #include "puzzles.h"
 
+enum { DEF_PARAMS, DEF_SEED, DEF_DESC };   /* for midend_game_id_int */
+
 struct midend_data {
     frontend *frontend;
     random_state *random;
     const game *ourgame;
 
-    char *seed;
+    char *desc, *seedstr;
     game_aux_info *aux_info;
-    int fresh_seed;
+    enum { GOT_SEED, GOT_DESC, GOT_NOTHING } genmode;
     int nstates, statesize, statepos;
 
     game_params **presets;
     char **preset_names;
     int npresets, presetsize;
 
-    game_params *params;
+    game_params *params, *tmpparams;
     game_state **states;
     game_drawstate *drawstate;
     game_state *oldstate;
@@ -58,9 +60,11 @@ midend_data *midend_new(frontend *fe, const game *ourgame)
     me->nstates = me->statesize = me->statepos = 0;
     me->states = NULL;
     me->params = ourgame->default_params();
-    me->seed = NULL;
+    me->tmpparams = NULL;
+    me->desc = NULL;
+    me->seedstr = NULL;
     me->aux_info = NULL;
-    me->fresh_seed = FALSE;
+    me->genmode = GOT_NOTHING;
     me->drawstate = NULL;
     me->oldstate = NULL;
     me->presets = NULL;
@@ -80,10 +84,14 @@ midend_data *midend_new(frontend *fe, const game *ourgame)
 void midend_free(midend_data *me)
 {
     sfree(me->states);
-    sfree(me->seed);
+    sfree(me->desc);
+    sfree(me->seedstr);
+    random_free(me->random);
     if (me->aux_info)
 	me->ourgame->free_aux_info(me->aux_info);
     me->ourgame->free_params(me->params);
+    if (me->tmpparams)
+        me->ourgame->free_params(me->tmpparams);
     sfree(me);
 }
 
@@ -108,18 +116,45 @@ void midend_new_game(midend_data *me)
 
     assert(me->nstates == 0);
 
-    if (!me->fresh_seed) {
-	sfree(me->seed);
+    if (me->genmode == GOT_DESC) {
+	me->genmode = GOT_NOTHING;
+    } else {
+        random_state *rs;
+
+        if (me->genmode == GOT_SEED) {
+            me->genmode = GOT_NOTHING;
+        } else {
+            /*
+             * Generate a new random seed. 15 digits comes to about
+             * 48 bits, which should be more than enough.
+             */
+            char newseed[16];
+            int i;
+            newseed[15] = '\0';
+            for (i = 0; i < 15; i++)
+                newseed[i] = '0' + random_upto(me->random, 10);
+            sfree(me->seedstr);
+            me->seedstr = dupstr(newseed);
+        }
+
+	sfree(me->desc);
 	if (me->aux_info)
 	    me->ourgame->free_aux_info(me->aux_info);
 	me->aux_info = NULL;
-	me->seed = me->ourgame->new_seed(me->params, me->random,
-					 &me->aux_info);
-    } else
-	me->fresh_seed = FALSE;
+
+        rs = random_init(me->seedstr, strlen(me->seedstr));
+        me->desc = me->ourgame->new_desc
+            (me->tmpparams ? me->tmpparams : me->params, rs, &me->aux_info);
+        random_free(rs);
+
+        if (me->tmpparams) {
+            me->ourgame->free_params(me->tmpparams);
+            me->tmpparams = NULL;
+        }
+    }
 
     ensure(me);
-    me->states[me->nstates++] = me->ourgame->new_game(me->params, me->seed);
+    me->states[me->nstates++] = me->ourgame->new_game(me->params, me->desc);
     me->statepos = 1;
     me->drawstate = me->ourgame->new_drawstate(me->states[0]);
     if (me->ui)
@@ -408,9 +443,9 @@ float *midend_colours(midend_data *me, int *ncolours)
 
     if (me->nstates == 0) {
 	game_aux_info *aux = NULL;
-        char *seed = me->ourgame->new_seed(me->params, me->random, &aux);
-        state = me->ourgame->new_game(me->params, seed);
-        sfree(seed);
+        char *desc = me->ourgame->new_desc(me->params, me->random, &aux);
+        state = me->ourgame->new_game(me->params, desc);
+        sfree(desc);
 	if (aux)
 	    me->ourgame->free_aux_info(aux);
     } else
@@ -474,22 +509,44 @@ config_item *midend_get_config(midend_data *me, int which, char **wintitle)
 	*wintitle = dupstr(titlebuf);
 	return me->ourgame->configure(me->params);
       case CFG_SEED:
-	sprintf(titlebuf, "%s game selection", me->ourgame->name);
+      case CFG_DESC:
+	sprintf(titlebuf, "%s %s selection", me->ourgame->name,
+                which == CFG_SEED ? "random" : "game");
 	*wintitle = dupstr(titlebuf);
 
 	ret = snewn(2, config_item);
 
 	ret[0].type = C_STRING;
-	ret[0].name = "Game ID";
+        if (which == CFG_SEED)
+            ret[0].name = "Game random seed";
+        else
+            ret[0].name = "Game ID";
 	ret[0].ival = 0;
         /*
-         * The text going in here will be a string encoding of the
-         * parameters, plus a colon, plus the game seed. This is a
-         * full game ID.
+         * For CFG_DESC the text going in here will be a string
+         * encoding of the restricted parameters, plus a colon,
+         * plus the game description. For CFG_SEED it will be the
+         * full parameters, plus a hash, plus the random seed data.
+         * Either of these is a valid full game ID (although only
+         * the former is likely to persist across many code
+         * changes).
          */
-        parstr = me->ourgame->encode_params(me->params);
-        ret[0].sval = snewn(strlen(parstr) + strlen(me->seed) + 2, char);
-        sprintf(ret[0].sval, "%s:%s", parstr, me->seed);
+        parstr = me->ourgame->encode_params(me->params, which == CFG_SEED);
+        if (which == CFG_DESC) {
+            ret[0].sval = snewn(strlen(parstr) + strlen(me->desc) + 2, char);
+            sprintf(ret[0].sval, "%s:%s", parstr, me->desc);
+        } else if (me->seedstr) {
+            ret[0].sval = snewn(strlen(parstr) + strlen(me->seedstr) + 2, char);
+            sprintf(ret[0].sval, "%s#%s", parstr, me->seedstr);
+        } else {
+            /*
+             * If the current game was not randomly generated, the
+             * best we can do is to give a template for typing a
+             * new seed in.
+             */
+            ret[0].sval = snewn(strlen(parstr) + 2, char);
+            sprintf(ret[0].sval, "%s#", parstr);
+        }
         sfree(parstr);
 
 	ret[1].type = C_END;
@@ -503,60 +560,101 @@ config_item *midend_get_config(midend_data *me, int which, char **wintitle)
     return NULL;
 }
 
-char *midend_game_id(midend_data *me, char *id, int def_seed)
+static char *midend_game_id_int(midend_data *me, char *id, int defmode)
 {
-    char *error, *par, *seed;
-    game_params *params;
+    char *error, *par, *desc, *seed;
 
-    seed = strchr(id, ':');
+    seed = strchr(id, '#');
+    desc = strchr(id, ':');
 
-    if (seed) {
+    if (desc && (!seed || desc < seed)) {
         /*
-         * We have a colon separating parameters from game seed. So
-         * `par' now points to the parameters string, and `seed' to
-         * the seed string.
+         * We have a colon separating parameters from game
+         * description. So `par' now points to the parameters
+         * string, and `desc' to the description string.
+         */
+        *desc++ = '\0';
+        par = id;
+        seed = NULL;
+    } else if (seed && (!desc || seed < desc)) {
+        /*
+         * We have a colon separating parameters from random seed.
+         * So `par' now points to the parameters string, and `seed'
+         * to the seed string.
          */
         *seed++ = '\0';
         par = id;
+        desc = NULL;
     } else {
         /*
-         * We only have one string. Depending on `def_seed', we
-         * take it to be either parameters or seed.
+         * We only have one string. Depending on `defmode', we take
+         * it to be either parameters, seed or description.
          */
-        if (def_seed) {
+        if (defmode == DEF_SEED) {
             seed = id;
-            par = NULL;
+            par = desc = NULL;
+        } else if (defmode == DEF_DESC) {
+            desc = id;
+            par = seed = NULL;
         } else {
-            seed = NULL;
             par = id;
+            seed = desc = NULL;
         }
     }
 
     if (par) {
-        params = me->ourgame->decode_params(par);
-        error = me->ourgame->validate_params(params);
+        game_params *tmpparams;
+        tmpparams = me->ourgame->dup_params(me->params);
+        me->ourgame->decode_params(tmpparams, par);
+        error = me->ourgame->validate_params(tmpparams);
         if (error) {
-            me->ourgame->free_params(params);
+            me->ourgame->free_params(tmpparams);
             return error;
         }
-        me->ourgame->free_params(me->params);
-        me->params = params;
+        if (me->tmpparams)
+            me->ourgame->free_params(me->tmpparams);
+        me->tmpparams = tmpparams;
+
+        /*
+         * Now filter only the persistent parts of this state into
+         * the long-term params structure, unless we've _only_
+         * received a params string in which case the whole lot is
+         * persistent.
+         */
+        if (seed || desc) {
+            char *tmpstr = me->ourgame->encode_params(tmpparams, FALSE);
+            me->ourgame->decode_params(me->params, tmpstr);
+        } else {
+            me->ourgame->free_params(me->params);
+            me->params = me->ourgame->dup_params(tmpparams);
+        }
     }
 
-    if (seed) {
-        error = me->ourgame->validate_seed(me->params, seed);
+    if (desc) {
+        error = me->ourgame->validate_desc(me->params, desc);
         if (error)
             return error;
 
-        sfree(me->seed);
-        me->seed = dupstr(seed);
-        me->fresh_seed = TRUE;
+        sfree(me->desc);
+        me->desc = dupstr(desc);
+        me->genmode = GOT_DESC;
 	if (me->aux_info)
 	    me->ourgame->free_aux_info(me->aux_info);
 	me->aux_info = NULL;
     }
 
+    if (seed) {
+        sfree(me->seedstr);
+        me->seedstr = dupstr(seed);
+        me->genmode = GOT_SEED;
+    }
+
     return NULL;
+}
+
+char *midend_game_id(midend_data *me, char *id)
+{
+    return midend_game_id_int(me, id, DEF_PARAMS);
 }
 
 char *midend_set_config(midend_data *me, int which, config_item *cfg)
@@ -579,7 +677,9 @@ char *midend_set_config(midend_data *me, int which, config_item *cfg)
 	break;
 
       case CFG_SEED:
-        error = midend_game_id(me, cfg[0].sval, TRUE);
+      case CFG_DESC:
+        error = midend_game_id_int(me, cfg[0].sval,
+                                   (which == CFG_SEED ? DEF_SEED : DEF_DESC));
 	if (error)
 	    return error;
 	break;

@@ -31,9 +31,10 @@
 #define IDM_SOLVE     0x0060
 #define IDM_QUIT      0x0070
 #define IDM_CONFIG    0x0080
-#define IDM_SEED      0x0090
-#define IDM_HELPC     0x00A0
-#define IDM_GAMEHELP  0x00B0
+#define IDM_DESC      0x0090
+#define IDM_SEED      0x00A0
+#define IDM_HELPC     0x00B0
+#define IDM_GAMEHELP  0x00C0
 #define IDM_PRESETS   0x0100
 #define IDM_ABOUT     0x0110
 
@@ -416,7 +417,7 @@ static frontend *new_window(HINSTANCE inst, char *game_id, char **error)
     fe->me = midend_new(fe, &thegame);
 
     if (game_id) {
-        *error = midend_game_id(fe->me, game_id, FALSE);
+        *error = midend_game_id(fe->me, game_id);
         if (*error) {
             midend_free(fe->me);
             sfree(fe);
@@ -476,7 +477,8 @@ static frontend *new_window(HINSTANCE inst, char *game_id, char **error)
 	AppendMenu(bar, MF_ENABLED|MF_POPUP, (UINT)menu, "Game");
 	AppendMenu(menu, MF_ENABLED, IDM_NEW, "New");
 	AppendMenu(menu, MF_ENABLED, IDM_RESTART, "Restart");
-	AppendMenu(menu, MF_ENABLED, IDM_SEED, "Specific...");
+	AppendMenu(menu, MF_ENABLED, IDM_DESC, "Specific...");
+	AppendMenu(menu, MF_ENABLED, IDM_SEED, "Random Seed...");
 
 	if ((fe->npresets = midend_num_presets(fe->me)) > 0 ||
 	    thegame.can_configure) {
@@ -1157,6 +1159,10 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
 	    break;
 	  case IDM_SEED:
 	    if (get_config(fe, CFG_SEED))
+		new_game_type(fe);
+	    break;
+	  case IDM_DESC:
+	    if (get_config(fe, CFG_DESC))
 		new_game_type(fe);
 	    break;
           case IDM_ABOUT:

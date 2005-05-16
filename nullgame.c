@@ -59,16 +59,11 @@ static game_params *dup_params(game_params *params)
     return ret;
 }
 
-static game_params *decode_params(char const *string)
+static void decode_params(game_params *params, char const *string)
 {
-    game_params *ret = snew(game_params);
-
-    ret->FIXME = 0;
-
-    return ret;
 }
 
-static char *encode_params(game_params *params)
+static char *encode_params(game_params *params, int full)
 {
     return dupstr("FIXME");
 }
@@ -88,7 +83,7 @@ static char *validate_params(game_params *params)
     return NULL;
 }
 
-static char *new_game_seed(game_params *params, random_state *rs,
+static char *new_game_desc(game_params *params, random_state *rs,
 			   game_aux_info **aux)
 {
     return dupstr("FIXME");
@@ -99,12 +94,12 @@ static void game_free_aux_info(game_aux_info *aux)
     assert(!"Shouldn't happen");
 }
 
-static char *validate_seed(game_params *params, char *seed)
+static char *validate_desc(game_params *params, char *desc)
 {
     return NULL;
 }
 
-static game_state *new_game(game_params *params, char *seed)
+static game_state *new_game(game_params *params, char *desc)
 {
     game_state *state = snew(game_state);
 
@@ -234,9 +229,9 @@ const struct game thegame = {
     dup_params,
     FALSE, game_configure, custom_params,
     validate_params,
-    new_game_seed,
+    new_game_desc,
     game_free_aux_info,
-    validate_seed,
+    validate_desc,
     new_game,
     dup_game,
     free_game,

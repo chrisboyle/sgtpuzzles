@@ -159,13 +159,9 @@ static int game_fetch_preset(int i, char **name, game_params **params)
     return TRUE;
 }
 
-static game_params *decode_params(char const *string)
+static void decode_params(game_params *ret, char const *string)
 {
-    game_params *ret = default_params();
-
     ret->c = ret->r = atoi(string);
-    ret->symm = SYMM_ROT2;
-    ret->diff = DIFF_BLOCK;
     while (*string && isdigit((unsigned char)*string)) string++;
     if (*string == 'x') {
         string++;
@@ -201,20 +197,28 @@ static game_params *decode_params(char const *string)
         } else
             string++;                  /* eat unknown character */
     }
-
-    return ret;
 }
 
-static char *encode_params(game_params *params)
+static char *encode_params(game_params *params, int full)
 {
     char str[80];
 
-    /*
-     * Symmetry is a game generation preference and hence is left
-     * out of the encoding. Users can add it back in as they see
-     * fit.
-     */
     sprintf(str, "%dx%d", params->c, params->r);
+    if (full) {
+        switch (params->symm) {
+          case SYMM_REF4: strcat(str, "m4"); break;
+          case SYMM_ROT4: strcat(str, "r4"); break;
+          /* case SYMM_ROT2: strcat(str, "r2"); break; [default] */
+          case SYMM_NONE: strcat(str, "a"); break;
+        }
+        switch (params->diff) {
+          /* case DIFF_BLOCK: strcat(str, "dt"); break; [default] */
+          case DIFF_SIMPLE: strcat(str, "db"); break;
+          case DIFF_INTERSECT: strcat(str, "di"); break;
+          case DIFF_SET: strcat(str, "da"); break;
+          case DIFF_RECURSIVE: strcat(str, "du"); break;
+        }
+    }
     return dupstr(str);
 }
 
@@ -1361,7 +1365,7 @@ struct game_aux_info {
     digit *grid;
 };
 
-static char *new_game_seed(game_params *params, random_state *rs,
+static char *new_game_desc(game_params *params, random_state *rs,
 			   game_aux_info **aux)
 {
     int c = params->c, r = params->r, cr = c*r;
@@ -1370,7 +1374,7 @@ static char *new_game_seed(game_params *params, random_state *rs,
     struct xy { int x, y; } *locs;
     int nlocs;
     int ret;
-    char *seed;
+    char *desc;
     int coords[16], ncoords;
     int xlim, ylim;
     int maxdiff, recursing;
@@ -1504,14 +1508,14 @@ static char *new_game_seed(game_params *params, random_state *rs,
 
     /*
      * Now we have the grid as it will be presented to the user.
-     * Encode it in a game seed.
+     * Encode it in a game desc.
      */
     {
 	char *p;
 	int run, i;
 
-	seed = snewn(5 * area, char);
-	p = seed;
+	desc = snewn(5 * area, char);
+	p = desc;
 	run = 0;
 	for (i = 0; i <= area; i++) {
 	    int n = (i < area ? grid[i] : -1);
@@ -1533,7 +1537,7 @@ static char *new_game_seed(game_params *params, random_state *rs,
 		     * bottom right, there's no point putting an
 		     * unnecessary _ before or after it.
 		     */
-		    if (p > seed && n > 0)
+		    if (p > desc && n > 0)
 			*p++ = '_';
 		}
 		if (n > 0)
@@ -1541,14 +1545,14 @@ static char *new_game_seed(game_params *params, random_state *rs,
 		run = 0;
 	    }
 	}
-	assert(p - seed < 5 * area);
+	assert(p - desc < 5 * area);
 	*p++ = '\0';
-	seed = sresize(seed, p - seed, char);
+	desc = sresize(desc, p - desc, char);
     }
 
     sfree(grid);
 
-    return seed;
+    return desc;
 }
 
 static void game_free_aux_info(game_aux_info *aux)
@@ -1557,23 +1561,23 @@ static void game_free_aux_info(game_aux_info *aux)
     sfree(aux);
 }
 
-static char *validate_seed(game_params *params, char *seed)
+static char *validate_desc(game_params *params, char *desc)
 {
     int area = params->r * params->r * params->c * params->c;
     int squares = 0;
 
-    while (*seed) {
-        int n = *seed++;
+    while (*desc) {
+        int n = *desc++;
         if (n >= 'a' && n <= 'z') {
             squares += n - 'a' + 1;
         } else if (n == '_') {
             /* do nothing */;
         } else if (n > '0' && n <= '9') {
             squares++;
-            while (*seed >= '0' && *seed <= '9')
-                seed++;
+            while (*desc >= '0' && *desc <= '9')
+                desc++;
         } else
-            return "Invalid character in game specification";
+            return "Invalid character in game description";
     }
 
     if (squares < area)
@@ -1585,7 +1589,7 @@ static char *validate_seed(game_params *params, char *seed)
     return NULL;
 }
 
-static game_state *new_game(game_params *params, char *seed)
+static game_state *new_game(game_params *params, char *desc)
 {
     game_state *state = snew(game_state);
     int c = params->c, r = params->r, cr = c*r, area = cr * cr;
@@ -1601,8 +1605,8 @@ static game_state *new_game(game_params *params, char *seed)
     state->completed = state->cheated = FALSE;
 
     i = 0;
-    while (*seed) {
-        int n = *seed++;
+    while (*desc) {
+        int n = *desc++;
         if (n >= 'a' && n <= 'z') {
             int run = n - 'a' + 1;
             assert(i + run <= area);
@@ -1613,9 +1617,9 @@ static game_state *new_game(game_params *params, char *seed)
         } else if (n > '0' && n <= '9') {
             assert(i < area);
 	    state->immutable[i] = TRUE;
-            state->grid[i++] = atoi(seed-1);
-            while (*seed >= '0' && *seed <= '9')
-                seed++;
+            state->grid[i++] = atoi(desc-1);
+            while (*desc >= '0' && *desc <= '9')
+                desc++;
         } else {
             assert(!"We can't get here");
         }
@@ -2042,9 +2046,9 @@ const struct game thegame = {
     dup_params,
     TRUE, game_configure, custom_params,
     validate_params,
-    new_game_seed,
+    new_game_desc,
     game_free_aux_info,
-    validate_seed,
+    validate_desc,
     new_game,
     dup_game,
     free_game,
@@ -2105,7 +2109,7 @@ int main(int argc, char **argv)
     game_params *p;
     game_state *s;
     int recurse = TRUE;
-    char *id = NULL, *seed, *err;
+    char *id = NULL, *desc, *err;
     int y, x;
     int grade = FALSE;
 
@@ -2134,20 +2138,20 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    seed = strchr(id, ':');
-    if (!seed) {
+    desc = strchr(id, ':');
+    if (!desc) {
         fprintf(stderr, "%s: game id expects a colon in it\n", argv[0]);
         return 1;
     }
-    *seed++ = '\0';
+    *desc++ = '\0';
 
     p = decode_params(id);
-    err = validate_seed(p, seed);
+    err = validate_desc(p, desc);
     if (err) {
         fprintf(stderr, "%s: %s\n", argv[0], err);
         return 1;
     }
-    s = new_game(p, seed);
+    s = new_game(p, desc);
 
     if (recurse) {
         int ret = rsolve(p->c, p->r, s->grid, NULL, 2);

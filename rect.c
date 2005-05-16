@@ -130,12 +130,9 @@ static game_params *dup_params(game_params *params)
     return ret;
 }
 
-static game_params *decode_params(char const *string)
+static void decode_params(game_params *ret, char const *string)
 {
-    game_params *ret = default_params();
-
     ret->w = ret->h = atoi(string);
-    ret->expandfactor = 0.0F;
     while (*string && isdigit((unsigned char)*string)) string++;
     if (*string == 'x') {
         string++;
@@ -146,15 +143,15 @@ static game_params *decode_params(char const *string)
 	string++;
 	ret->expandfactor = atof(string);
     }
-
-    return ret;
 }
 
-static char *encode_params(game_params *params)
+static char *encode_params(game_params *params, int full)
 {
     char data[256];
 
     sprintf(data, "%dx%d", params->w, params->h);
+    if (full)
+        sprintf(data + strlen(data), "e%g", params->expandfactor);
 
     return dupstr(data);
 }
@@ -392,13 +389,13 @@ struct game_aux_info {
     unsigned char *hedge;	       /* w x (h+1) */
 };
 
-static char *new_game_seed(game_params *params, random_state *rs,
+static char *new_game_desc(game_params *params, random_state *rs,
 			   game_aux_info **aux)
 {
     int *grid, *numbers;
     struct rectlist *list;
     int x, y, y2, y2last, yx, run, i;
-    char *seed, *p;
+    char *desc, *p;
     game_params params2real, *params2 = &params2real;
 
     /*
@@ -891,8 +888,8 @@ static char *new_game_seed(game_params *params, random_state *rs,
     display_grid(params, grid, numbers, FALSE);
 #endif
 
-    seed = snewn(11 * params->w * params->h, char);
-    p = seed;
+    desc = snewn(11 * params->w * params->h, char);
+    p = desc;
     run = 0;
     for (i = 0; i <= params->w * params->h; i++) {
         int n = (i < params->w * params->h ? numbers[i] : -1);
@@ -914,7 +911,7 @@ static char *new_game_seed(game_params *params, random_state *rs,
                  * bottom right, there's no point putting an
                  * unnecessary _ before or after it.
                  */
-                if (p > seed && n > 0)
+                if (p > desc && n > 0)
                     *p++ = '_';
             }
             if (n > 0)
@@ -927,7 +924,7 @@ static char *new_game_seed(game_params *params, random_state *rs,
     sfree(grid);
     sfree(numbers);
 
-    return seed;
+    return desc;
 }
 
 static void game_free_aux_info(game_aux_info *ai)
@@ -937,23 +934,23 @@ static void game_free_aux_info(game_aux_info *ai)
     sfree(ai);
 }
 
-static char *validate_seed(game_params *params, char *seed)
+static char *validate_desc(game_params *params, char *desc)
 {
     int area = params->w * params->h;
     int squares = 0;
 
-    while (*seed) {
-        int n = *seed++;
+    while (*desc) {
+        int n = *desc++;
         if (n >= 'a' && n <= 'z') {
             squares += n - 'a' + 1;
         } else if (n == '_') {
             /* do nothing */;
         } else if (n > '0' && n <= '9') {
             squares++;
-            while (*seed >= '0' && *seed <= '9')
-                seed++;
+            while (*desc >= '0' && *desc <= '9')
+                desc++;
         } else
-            return "Invalid character in game specification";
+            return "Invalid character in game description";
     }
 
     if (squares < area)
@@ -965,7 +962,7 @@ static char *validate_seed(game_params *params, char *seed)
     return NULL;
 }
 
-static game_state *new_game(game_params *params, char *seed)
+static game_state *new_game(game_params *params, char *desc)
 {
     game_state *state = snew(game_state);
     int x, y, i, area;
@@ -981,8 +978,8 @@ static game_state *new_game(game_params *params, char *seed)
     state->completed = state->cheated = FALSE;
 
     i = 0;
-    while (*seed) {
-        int n = *seed++;
+    while (*desc) {
+        int n = *desc++;
         if (n >= 'a' && n <= 'z') {
             int run = n - 'a' + 1;
             assert(i + run <= area);
@@ -992,9 +989,9 @@ static game_state *new_game(game_params *params, char *seed)
             /* do nothing */;
         } else if (n > '0' && n <= '9') {
             assert(i < area);
-            state->grid[i++] = atoi(seed-1);
-            while (*seed >= '0' && *seed <= '9')
-                seed++;
+            state->grid[i++] = atoi(desc-1);
+            while (*desc >= '0' && *desc <= '9')
+                desc++;
         } else {
             assert(!"We can't get here");
         }
@@ -1764,9 +1761,9 @@ const struct game thegame = {
     dup_params,
     TRUE, game_configure, custom_params,
     validate_params,
-    new_game_seed,
+    new_game_desc,
     game_free_aux_info,
-    validate_seed,
+    validate_desc,
     new_game,
     dup_game,
     free_game,

@@ -72,21 +72,17 @@ static game_params *dup_params(game_params *params)
     return ret;
 }
 
-static game_params *decode_params(char const *string)
+static void decode_params(game_params *ret, char const *string)
 {
-    game_params *ret = default_params();
-
     ret->w = ret->h = atoi(string);
     while (*string && isdigit(*string)) string++;
     if (*string == 'x') {
         string++;
         ret->h = atoi(string);
     }
-
-    return ret;
 }
 
-static char *encode_params(game_params *params)
+static char *encode_params(game_params *params, int full)
 {
     char data[256];
 
@@ -154,7 +150,7 @@ static int perm_parity(int *perm, int n)
     return ret;
 }
 
-static char *new_game_seed(game_params *params, random_state *rs,
+static char *new_game_desc(game_params *params, random_state *rs,
 			   game_aux_info **aux)
 {
     int gap, n, i, x;
@@ -247,8 +243,8 @@ static char *new_game_seed(game_params *params, random_state *rs,
     }
 
     /*
-     * Now construct the game seed, by describing the tile array as
-     * a simple sequence of comma-separated integers.
+     * Now construct the game description, by describing the tile
+     * array as a simple sequence of comma-separated integers.
      */
     ret = NULL;
     retlen = 0;
@@ -275,14 +271,14 @@ static void game_free_aux_info(game_aux_info *aux)
     assert(!"Shouldn't happen");
 }
 
-static char *validate_seed(game_params *params, char *seed)
+static char *validate_desc(game_params *params, char *desc)
 {
     char *p, *err;
     int i, area;
     int *used;
 
     area = params->w * params->h;
-    p = seed;
+    p = desc;
     err = NULL;
 
     used = snewn(area, int);
@@ -326,7 +322,7 @@ static char *validate_seed(game_params *params, char *seed)
     return err;
 }
 
-static game_state *new_game(game_params *params, char *seed)
+static game_state *new_game(game_params *params, char *desc)
 {
     game_state *state = snew(game_state);
     int i;
@@ -338,7 +334,7 @@ static game_state *new_game(game_params *params, char *seed)
     state->tiles = snewn(state->n, int);
 
     state->gap_pos = 0;
-    p = seed;
+    p = desc;
     i = 0;
     for (i = 0; i < state->n; i++) {
         assert(*p);
@@ -818,9 +814,9 @@ const struct game thegame = {
     dup_params,
     TRUE, game_configure, custom_params,
     validate_params,
-    new_game_seed,
+    new_game_desc,
     game_free_aux_info,
-    validate_seed,
+    validate_desc,
     new_game,
     dup_game,
     free_game,

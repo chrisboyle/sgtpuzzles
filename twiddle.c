@@ -103,10 +103,8 @@ static int game_fetch_preset(int i, char **name, game_params **params)
     return TRUE;
 }
 
-static game_params *decode_params(char const *string)
+static void decode_params(game_params *ret, char const *string)
 {
-    game_params *ret = snew(game_params);
-
     ret->w = ret->h = atoi(string);
     ret->n = 2;
     ret->rowsonly = ret->orientable = FALSE;
@@ -134,16 +132,18 @@ static game_params *decode_params(char const *string)
 	}
 	string++;
     }
-
-    return ret;
 }
 
-static char *encode_params(game_params *params)
+static char *encode_params(game_params *params, int full)
 {
     char buf[256];
     sprintf(buf, "%dx%dn%d%s%s", params->w, params->h, params->n,
 	    params->rowsonly ? "r" : "",
 	    params->orientable ? "o" : "");
+    /* Shuffle limit is part of the limited parameters, because we have to
+     * supply the target move count. */
+    if (params->movetarget)
+        sprintf(buf + strlen(buf), "m%d", params->movetarget);
     return dupstr(buf);
 }
 
@@ -307,7 +307,7 @@ static int grid_complete(int *grid, int wh, int orientable)
     return ok;
 }
 
-static char *new_game_seed(game_params *params, random_state *rs,
+static char *new_game_desc(game_params *params, random_state *rs,
 			   game_aux_info **aux)
 {
     int *grid;
@@ -368,10 +368,10 @@ static char *new_game_seed(game_params *params, random_state *rs,
     } while (grid_complete(grid, wh, params->orientable));
 
     /*
-     * Now construct the game seed, by describing the grid as a
-     * simple sequence of integers. They're comma-separated, unless
-     * the puzzle is orientable in which case they're separated by
-     * orientation letters `u', `d', `l' and `r'.
+     * Now construct the game description, by describing the grid
+     * as a simple sequence of integers. They're comma-separated,
+     * unless the puzzle is orientable in which case they're
+     * separated by orientation letters `u', `d', `l' and `r'.
      */
     ret = NULL;
     retlen = 0;
@@ -398,13 +398,13 @@ static void game_free_aux_info(game_aux_info *aux)
     assert(!"Shouldn't happen");
 }
 
-static char *validate_seed(game_params *params, char *seed)
+static char *validate_desc(game_params *params, char *desc)
 {
     char *p, *err;
     int w = params->w, h = params->h, wh = w*h;
     int i;
 
-    p = seed;
+    p = desc;
     err = NULL;
 
     for (i = 0; i < wh; i++) {
@@ -428,7 +428,7 @@ static char *validate_seed(game_params *params, char *seed)
     return NULL;
 }
 
-static game_state *new_game(game_params *params, char *seed)
+static game_state *new_game(game_params *params, char *desc)
 {
     game_state *state = snew(game_state);
     int w = params->w, h = params->h, n = params->n, wh = w*h;
@@ -447,7 +447,7 @@ static game_state *new_game(game_params *params, char *seed)
 
     state->grid = snewn(wh, int);
 
-    p = seed;
+    p = desc;
 
     for (i = 0; i < wh; i++) {
 	state->grid[i] = 4 * atoi(p);
@@ -1087,9 +1087,9 @@ const struct game thegame = {
     dup_params,
     TRUE, game_configure, custom_params,
     validate_params,
-    new_game_seed,
+    new_game_desc,
     game_free_aux_info,
-    validate_seed,
+    validate_desc,
     new_game,
     dup_game,
     free_game,

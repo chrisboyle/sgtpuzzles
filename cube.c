@@ -274,10 +274,8 @@ static game_params *dup_params(game_params *params)
     return ret;
 }
 
-static game_params *decode_params(char const *string)
+static void decode_params(game_params *ret, char const *string)
 {
-    game_params *ret = default_params();
-
     switch (*string) {
       case 't': ret->solid = TETRAHEDRON; string++; break;
       case 'c': ret->solid = CUBE;        string++; break;
@@ -291,11 +289,9 @@ static game_params *decode_params(char const *string)
         string++;
         ret->d2 = atoi(string);
     }
-
-    return ret;
 }
 
-static char *encode_params(game_params *params)
+static char *encode_params(game_params *params, int full)
 {
     char data[256];
 
@@ -589,13 +585,13 @@ static void classify_grid_square_callback(void *ctx, struct grid_square *sq)
 	data->squareindex++;
 }
 
-static char *new_game_seed(game_params *params, random_state *rs,
+static char *new_game_desc(game_params *params, random_state *rs,
 			   game_aux_info **aux)
 {
     struct grid_data data;
     int i, j, k, m, area, facesperclass;
     int *flags;
-    char *seed, *p;
+    char *desc, *p;
 
     /*
      * Enumerate the grid squares, dividing them into equivalence
@@ -659,8 +655,8 @@ static char *new_game_seed(game_params *params, random_state *rs,
      * the non-blue squares into a list in the now-unused gridptrs
      * array.
      */
-    seed = snewn(area / 4 + 40, char);
-    p = seed;
+    desc = snewn(area / 4 + 40, char);
+    p = desc;
     j = 0;
     k = 8;
     m = 0;
@@ -688,7 +684,7 @@ static char *new_game_seed(game_params *params, random_state *rs,
     sfree(data.gridptrs[0]);
     sfree(flags);
 
-    return seed;
+    return desc;
 }
 
 static void game_free_aux_info(game_aux_info *aux)
@@ -844,35 +840,35 @@ static struct solid *transform_poly(const struct solid *solid, int flip,
     return ret;
 }
 
-static char *validate_seed(game_params *params, char *seed)
+static char *validate_desc(game_params *params, char *desc)
 {
     int area = grid_area(params->d1, params->d2, solids[params->solid]->order);
     int i, j;
 
     i = (area + 3) / 4;
     for (j = 0; j < i; j++) {
-	int c = seed[j];
+	int c = desc[j];
 	if (c >= '0' && c <= '9') continue;
 	if (c >= 'A' && c <= 'F') continue;
 	if (c >= 'a' && c <= 'f') continue;
 	return "Not enough hex digits at start of string";
-	/* NB if seed[j]=='\0' that will also be caught here, so we're safe */
+	/* NB if desc[j]=='\0' that will also be caught here, so we're safe */
     }
 
-    if (seed[i] != ',')
+    if (desc[i] != ',')
 	return "Expected ',' after hex digits";
 
     i++;
     do {
-	if (seed[i] < '0' || seed[i] > '9')
+	if (desc[i] < '0' || desc[i] > '9')
 	    return "Expected decimal integer after ','";
 	i++;
-    } while (seed[i]);
+    } while (desc[i]);
 
     return NULL;
 }
 
-static game_state *new_game(game_params *params, char *seed)
+static game_state *new_game(game_params *params, char *desc)
 {
     game_state *state = snew(game_state);
     int area;
@@ -891,10 +887,10 @@ static game_state *new_game(game_params *params, char *seed)
 
     /*
      * Set up the blue squares and polyhedron position according to
-     * the game seed.
+     * the game description.
      */
     {
-	char *p = seed;
+	char *p = desc;
 	int i, j, v;
 
 	j = 8;
@@ -1557,9 +1553,9 @@ const struct game thegame = {
     dup_params,
     TRUE, game_configure, custom_params,
     validate_params,
-    new_game_seed,
+    new_game_desc,
     game_free_aux_info,
-    validate_seed,
+    validate_desc,
     new_game,
     dup_game,
     free_game,

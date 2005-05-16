@@ -135,10 +135,10 @@ int midend_num_presets(midend_data *me);
 void midend_fetch_preset(midend_data *me, int n,
                          char **name, game_params **params);
 int midend_wants_statusbar(midend_data *me);
-enum { CFG_SETTINGS, CFG_SEED };
+enum { CFG_SETTINGS, CFG_SEED, CFG_DESC };
 config_item *midend_get_config(midend_data *me, int which, char **wintitle);
 char *midend_set_config(midend_data *me, int which, config_item *cfg);
-char *midend_game_id(midend_data *me, char *id, int def_seed);
+char *midend_game_id(midend_data *me, char *id);
 char *midend_text_format(midend_data *me);
 char *midend_solve(midend_data *me);
 
@@ -186,19 +186,19 @@ struct game {
     const char *winhelp_topic;
     game_params *(*default_params)(void);
     int (*fetch_preset)(int i, char **name, game_params **params);
-    game_params *(*decode_params)(char const *string);
-    char *(*encode_params)(game_params *);
+    void (*decode_params)(game_params *, char const *string);
+    char *(*encode_params)(game_params *, int full);
     void (*free_params)(game_params *params);
     game_params *(*dup_params)(game_params *params);
     int can_configure;
     config_item *(*configure)(game_params *params);
     game_params *(*custom_params)(config_item *cfg);
     char *(*validate_params)(game_params *params);
-    char *(*new_seed)(game_params *params, random_state *rs,
+    char *(*new_desc)(game_params *params, random_state *rs,
 		      game_aux_info **aux);
     void (*free_aux_info)(game_aux_info *aux);
-    char *(*validate_seed)(game_params *params, char *seed);
-    game_state *(*new_game)(game_params *params, char *seed);
+    char *(*validate_desc)(game_params *params, char *desc);
+    game_state *(*new_game)(game_params *params, char *desc);
     game_state *(*dup_game)(game_state *state);
     void (*free_game)(game_state *state);
     int can_solve;

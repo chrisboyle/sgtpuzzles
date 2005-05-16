@@ -1000,7 +1000,7 @@ static frontend *new_window(char *game_id, char **error)
 
     fe->me = midend_new(fe, &thegame);
     if (game_id) {
-        *error = midend_game_id(fe->me, game_id, FALSE);
+        *error = midend_game_id(fe->me, game_id);
         if (*error) {
             midend_free(fe->me);
             sfree(fe);
@@ -1035,6 +1035,14 @@ static frontend *new_window(char *game_id, char **error)
     add_menu_item_with_key(fe, GTK_CONTAINER(menu), "Restart", 'r');
 
     menuitem = gtk_menu_item_new_with_label("Specific...");
+    gtk_object_set_data(GTK_OBJECT(menuitem), "user-data",
+			GINT_TO_POINTER(CFG_DESC));
+    gtk_container_add(GTK_CONTAINER(menu), menuitem);
+    gtk_signal_connect(GTK_OBJECT(menuitem), "activate",
+		       GTK_SIGNAL_FUNC(menu_config_event), fe);
+    gtk_widget_show(menuitem);
+
+    menuitem = gtk_menu_item_new_with_label("Random Seed...");
     gtk_object_set_data(GTK_OBJECT(menuitem), "user-data",
 			GINT_TO_POINTER(CFG_SEED));
     gtk_container_add(GTK_CONTAINER(menu), menuitem);
@@ -1239,34 +1247,42 @@ int main(int argc, char **argv)
      */
     if (argc > 1 && !strcmp(argv[1], "--generate")) {
 	int n = 1;
-	char *params = NULL;
+	char *params = NULL, *seed = NULL;
 	game_params *par;
 	random_state *rs;
 	char *parstr;
-
-	{
-	    void *seed;
-	    int seedlen;
-	    get_random_seed(&seed, &seedlen);
-	    rs = random_init(seed, seedlen);
-	}
 
 	if (argc > 2)
 	    n = atoi(argv[2]);
 	if (argc > 3)
 	    params = argv[3];
 
-	if (params)
-	    par = thegame.decode_params(params);
-	else
-	    par = thegame.default_params();
-	parstr = thegame.encode_params(par);
+        par = thegame.default_params();
+	if (params) {
+            if ( (seed = strchr(params, '#')) != NULL )
+                *seed++ = '\0';
+	    thegame.decode_params(par, params);
+        } else {
+        }
+	parstr = thegame.encode_params(par, FALSE);
+
+	{
+	    void *seeddata;
+	    int seedlen;
+            if (seed) {
+                seeddata = seed;
+                seedlen = strlen(seed);
+            } else {
+                get_random_seed(&seeddata, &seedlen);
+            }
+	    rs = random_init(seeddata, seedlen);
+	}
 
 	while (n-- > 0) {
 	    game_aux_info *aux = NULL;
-	    char *seed = thegame.new_seed(par, rs, &aux);
-	    printf("%s:%s\n", parstr, seed);
-	    sfree(seed);
+	    char *desc = thegame.new_desc(par, rs, &aux);
+	    printf("%s:%s\n", parstr, desc);
+	    sfree(desc);
 	    if (aux)
 		thegame.free_aux_info(aux);
 	}

@@ -1051,6 +1051,11 @@ struct frontend {
 
 - (void)specificGame:(id)sender
 {
+    [self startConfigureSheet:CFG_DESC];
+}
+
+- (void)specificRandomGame:(id)sender
+{
     [self startConfigureSheet:CFG_SEED];
 }
 
@@ -1340,6 +1345,8 @@ int main(int argc, char **argv)
     item = newitem(menu, "New Game", "n", NULL, @selector(newGame:));
     item = newitem(menu, "Restart Game", "r", NULL, @selector(restartGame:));
     item = newitem(menu, "Specific Game", "", NULL, @selector(specificGame:));
+    item = newitem(menu, "Specific Random Seed", "", NULL,
+                   @selector(specificRandomGame:));
     [menu addItem:[NSMenuItem separatorItem]];
     {
 	NSMenu *submenu = newsubmenu(menu, "New Window");

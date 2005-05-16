@@ -100,9 +100,8 @@ static game_params *dup_params(game_params *params)
     return ret;
 }
 
-static game_params *decode_params(char const *string)
+static void decode_params(game_params *ret, char const *string)
 {
-    game_params *ret = default_params();
     char const *p = string;
 
     ret->w = atoi(p);
@@ -114,11 +113,9 @@ static game_params *decode_params(char const *string)
     } else {
         ret->h = ret->w;
     }
-
-    return ret;
 }
 
-static char *encode_params(game_params *params)
+static char *encode_params(game_params *params, int full)
 {
     char ret[400];
     int len;
@@ -477,13 +474,13 @@ struct game_aux_info {
     unsigned char *grid;
 };
 
-static char *new_game_seed(game_params *params, random_state *rs,
+static char *new_game_desc(game_params *params, random_state *rs,
 			   game_aux_info **aux)
 {
     unsigned char *grid;
     int i, j, max, rowlen, *rowdata;
-    char intbuf[80], *seed;
-    int seedlen, seedpos;
+    char intbuf[80], *desc;
+    int desclen, descpos;
 
     grid = generate_soluble(rs, params->w, params->h);
     max = max(params->w, params->h);
@@ -513,7 +510,7 @@ static char *new_game_seed(game_params *params, random_state *rs,
      * passes, first computing the seed size and then writing it
      * out.
      */
-    seedlen = 0;
+    desclen = 0;
     for (i = 0; i < params->w + params->h; i++) {
         if (i < params->w)
             rowlen = compute_rowdata(rowdata, grid+i, params->h, params->w);
@@ -522,14 +519,14 @@ static char *new_game_seed(game_params *params, random_state *rs,
                                      params->w, 1);
         if (rowlen > 0) {
             for (j = 0; j < rowlen; j++) {
-                seedlen += 1 + sprintf(intbuf, "%d", rowdata[j]);
+                desclen += 1 + sprintf(intbuf, "%d", rowdata[j]);
             }
         } else {
-            seedlen++;
+            desclen++;
         }
     }
-    seed = snewn(seedlen, char);
-    seedpos = 0;
+    desc = snewn(desclen, char);
+    descpos = 0;
     for (i = 0; i < params->w + params->h; i++) {
         if (i < params->w)
             rowlen = compute_rowdata(rowdata, grid+i, params->h, params->w);
@@ -538,22 +535,22 @@ static char *new_game_seed(game_params *params, random_state *rs,
                                      params->w, 1);
         if (rowlen > 0) {
             for (j = 0; j < rowlen; j++) {
-                int len = sprintf(seed+seedpos, "%d", rowdata[j]);
+                int len = sprintf(desc+descpos, "%d", rowdata[j]);
                 if (j+1 < rowlen)
-                    seed[seedpos + len] = '.';
+                    desc[descpos + len] = '.';
                 else
-                    seed[seedpos + len] = '/';
-                seedpos += len+1;
+                    desc[descpos + len] = '/';
+                descpos += len+1;
             }
         } else {
-            seed[seedpos++] = '/';
+            desc[descpos++] = '/';
         }
     }
-    assert(seedpos == seedlen);
-    assert(seed[seedlen-1] == '/');
-    seed[seedlen-1] = '\0';
+    assert(descpos == desclen);
+    assert(desc[desclen-1] == '/');
+    desc[desclen-1] = '\0';
     sfree(rowdata);
-    return seed;
+    return desc;
 }
 
 static void game_free_aux_info(game_aux_info *aux)
@@ -562,7 +559,7 @@ static void game_free_aux_info(game_aux_info *aux)
     sfree(aux);
 }
 
-static char *validate_seed(game_params *params, char *seed)
+static char *validate_desc(game_params *params, char *desc)
 {
     int i, n, rowspace;
     char *p;
@@ -573,10 +570,10 @@ static char *validate_seed(game_params *params, char *seed)
         else
             rowspace = params->w + 1;
 
-        if (*seed && isdigit((unsigned char)*seed)) {
+        if (*desc && isdigit((unsigned char)*desc)) {
             do {
-                p = seed;
-                while (seed && isdigit((unsigned char)*seed)) seed++;
+                p = desc;
+                while (desc && isdigit((unsigned char)*desc)) desc++;
                 n = atoi(p);
                 rowspace -= n+1;
 
@@ -586,15 +583,15 @@ static char *validate_seed(game_params *params, char *seed)
                     else
                         return "at least one row contains more numbers than will fit";
                 }
-            } while (*seed++ == '.');
+            } while (*desc++ == '.');
         } else {
-            seed++;                    /* expect a slash immediately */
+            desc++;                    /* expect a slash immediately */
         }
 
-        if (seed[-1] == '/') {
+        if (desc[-1] == '/') {
             if (i+1 == params->w + params->h)
                 return "too many row/column specifications";
-        } else if (seed[-1] == '\0') {
+        } else if (desc[-1] == '\0') {
             if (i+1 < params->w + params->h)
                 return "too few row/column specifications";
         } else
@@ -604,7 +601,7 @@ static char *validate_seed(game_params *params, char *seed)
     return NULL;
 }
 
-static game_state *new_game(game_params *params, char *seed)
+static game_state *new_game(game_params *params, char *desc)
 {
     int i;
     char *p;
@@ -624,15 +621,15 @@ static game_state *new_game(game_params *params, char *seed)
 
     for (i = 0; i < params->w + params->h; i++) {
         state->rowlen[i] = 0;
-        if (*seed && isdigit((unsigned char)*seed)) {
+        if (*desc && isdigit((unsigned char)*desc)) {
             do {
-                p = seed;
-                while (seed && isdigit((unsigned char)*seed)) seed++;
+                p = desc;
+                while (desc && isdigit((unsigned char)*desc)) desc++;
                 state->rowdata[state->rowsize * i + state->rowlen[i]++] =
                     atoi(p);
-            } while (*seed++ == '.');
+            } while (*desc++ == '.');
         } else {
-            seed++;                    /* expect a slash immediately */
+            desc++;                    /* expect a slash immediately */
         }
     }
 
@@ -1120,9 +1117,9 @@ const struct game thegame = {
     dup_params,
     TRUE, game_configure, custom_params,
     validate_params,
-    new_game_seed,
+    new_game_desc,
     game_free_aux_info,
-    validate_seed,
+    validate_desc,
     new_game,
     dup_game,
     free_game,
@@ -1183,7 +1180,7 @@ int main(int argc, char **argv)
     game_params *p;
     game_state *s;
     int recurse = TRUE;
-    char *id = NULL, *seed, *err;
+    char *id = NULL, *desc, *err;
     int y, x;
     int grade = FALSE;
 
@@ -1202,20 +1199,20 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    seed = strchr(id, ':');
-    if (!seed) {
+    desc = strchr(id, ':');
+    if (!desc) {
         fprintf(stderr, "%s: game id expects a colon in it\n", argv[0]);
         return 1;
     }
-    *seed++ = '\0';
+    *desc++ = '\0';
 
     p = decode_params(id);
-    err = validate_seed(p, seed);
+    err = validate_desc(p, desc);
     if (err) {
         fprintf(stderr, "%s: %s\n", argv[0], err);
         return 1;
     }
-    s = new_game(p, seed);
+    s = new_game(p, desc);
 
     {
 	int w = p->w, h = p->h, i, j, done_any, max;
