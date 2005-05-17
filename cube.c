@@ -957,6 +957,7 @@ static game_state *dup_game(game_state *state)
     memcpy(ret->facecolours, state->facecolours,
            ret->solid->nfaces * sizeof(int));
     ret->nsquares = state->nsquares;
+    ret->current = state->current;
     ret->squares = snewn(ret->nsquares, struct grid_square);
     memcpy(ret->squares, state->squares,
            ret->nsquares * sizeof(struct grid_square));
