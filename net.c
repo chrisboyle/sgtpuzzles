@@ -606,6 +606,7 @@ static char *new_game_desc(game_params *params, random_state *rs,
         }
     }
     assert(p - desc <= w*h*3);
+    *p = '\0';
 
     sfree(tiles);
     sfree(barriers);
