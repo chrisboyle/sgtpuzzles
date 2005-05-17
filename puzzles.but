@@ -90,18 +90,18 @@ menu}\q{Edit} menus instead.)
 
 \dd Starts a new game, with a random initial state.
 
-\dt \ii\e{Restart game} (\q{R})
+\dt \ii\e{Restart game}
 
-\dd Resets the current game to its initial state. Undo is lost.
+\dd Resets the current game to its initial state. (This can be undone.)
 
 \dt \ii\e{Undo} (\q{U}, Ctrl+\q{Z}, Ctrl+\q{_})
 
 \dd Undoes a single move. (You can undo moves back to the start of the
-game.)
+session.)
 
-\dt \ii\e{Redo} (Ctrl+\q{R})
+\dt \ii\e{Redo} (\q{R}, Ctrl+\q{R})
 
-\dd Redoes a previous undone move.
+\dd Redoes a previously undone move.
 
 \dt \ii\e{Copy}
 
