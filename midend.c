@@ -13,6 +13,11 @@
 
 enum { DEF_PARAMS, DEF_SEED, DEF_DESC };   /* for midend_game_id_int */
 
+struct midend_state_entry {
+    game_state *state;
+    int special;                       /* created by solve or restart */
+};
+
 struct midend_data {
     frontend *frontend;
     random_state *random;
@@ -28,7 +33,7 @@ struct midend_data {
     int npresets, presetsize;
 
     game_params *params, *tmpparams;
-    game_state **states;
+    struct midend_state_entry *states;
     game_drawstate *drawstate;
     game_state *oldstate;
     game_ui *ui;
@@ -42,7 +47,8 @@ struct midend_data {
 #define ensure(me) do { \
     if ((me)->nstates >= (me)->statesize) { \
 	(me)->statesize = (me)->nstates + 128; \
-	(me)->states = sresize((me)->states, (me)->statesize, game_state *); \
+	(me)->states = sresize((me)->states, (me)->statesize, \
+                               struct midend_state_entry); \
     } \
 } while (0)
 
@@ -109,7 +115,7 @@ void midend_set_params(midend_data *me, game_params *params)
 void midend_new_game(midend_data *me)
 {
     while (me->nstates > 0)
-	me->ourgame->free_game(me->states[--me->nstates]);
+	me->ourgame->free_game(me->states[--me->nstates].state);
 
     if (me->drawstate)
         me->ourgame->free_drawstate(me->drawstate);
@@ -154,22 +160,15 @@ void midend_new_game(midend_data *me)
     }
 
     ensure(me);
-    me->states[me->nstates++] = me->ourgame->new_game(me->params, me->desc);
+    me->states[me->nstates].state = me->ourgame->new_game(me->params, me->desc);
+    me->states[me->nstates].special = TRUE;
+    me->nstates++;
     me->statepos = 1;
-    me->drawstate = me->ourgame->new_drawstate(me->states[0]);
+    me->drawstate = me->ourgame->new_drawstate(me->states[0].state);
     if (me->ui)
         me->ourgame->free_ui(me->ui);
-    me->ui = me->ourgame->new_ui(me->states[0]);
+    me->ui = me->ourgame->new_ui(me->states[0].state);
     me->pressed_mouse_button = 0;
-}
-
-void midend_restart_game(midend_data *me)
-{
-    while (me->nstates > 1)
-	me->ourgame->free_game(me->states[--me->nstates]);
-    me->statepos = me->nstates;
-    me->ourgame->free_ui(me->ui);
-    me->ui = me->ourgame->new_ui(me->states[0]);
 }
 
 static int midend_undo(midend_data *me)
@@ -196,10 +195,18 @@ static void midend_finish_move(midend_data *me)
 {
     float flashtime;
 
-    if (me->oldstate || me->statepos > 1) {
+    /*
+     * We do not flash if the later of the two states is special.
+     * This covers both forward Solve moves and backward (undone)
+     * Restart moves.
+     */
+    if ((me->oldstate || me->statepos > 1) &&
+        ((me->dir > 0 && !me->states[me->statepos-1].special) ||
+         (me->dir < 0 && me->statepos < me->nstates &&
+          !me->states[me->statepos].special))) {
 	flashtime = me->ourgame->flash_length(me->oldstate ? me->oldstate :
-					      me->states[me->statepos-2],
-					      me->states[me->statepos-1],
+					      me->states[me->statepos-2].state,
+					      me->states[me->statepos-1].state,
 					      me->oldstate ? me->dir : +1);
 	if (flashtime > 0) {
 	    me->flash_pos = 0.0F;
@@ -227,9 +234,37 @@ static void midend_stop_anim(midend_data *me)
     }
 }
 
+void midend_restart_game(midend_data *me)
+{
+    game_state *s;
+
+    assert(me->statepos >= 1);
+    if (me->statepos == 1)
+        return;                        /* no point doing anything at all! */
+
+    s = me->ourgame->dup_game(me->states[0].state);
+
+    /*
+     * Now enter the restarted state as the next move.
+     */
+    midend_stop_anim(me);
+    while (me->nstates > me->statepos)
+	me->ourgame->free_game(me->states[--me->nstates].state);
+    ensure(me);
+    me->states[me->nstates].state = s;
+    me->states[me->nstates].special = TRUE;   /* we just restarted */
+    me->statepos = ++me->nstates;
+    me->anim_time = 0.0;
+    midend_finish_move(me);
+    midend_redraw(me);
+    activate_timer(me->frontend);
+}
+
 static int midend_really_process_key(midend_data *me, int x, int y, int button)
 {
-    game_state *oldstate = me->ourgame->dup_game(me->states[me->statepos - 1]);
+    game_state *oldstate =
+        me->ourgame->dup_game(me->states[me->statepos - 1].state);
+    int special = FALSE, gotspecial = FALSE;
     float anim_time;
 
     if (button == 'n' || button == 'N' || button == '\x0E') {
@@ -245,6 +280,8 @@ static int midend_really_process_key(midend_data *me, int x, int y, int button)
     } else if (button == 'u' || button == 'u' ||
                button == '\x1A' || button == '\x1F') {
 	midend_stop_anim(me);
+        special = me->states[me->statepos-1].special;
+        gotspecial = TRUE;
 	if (!midend_undo(me))
             return 1;
     } else if (button == '\x12') {
@@ -255,10 +292,11 @@ static int midend_really_process_key(midend_data *me, int x, int y, int button)
 	me->ourgame->free_game(oldstate);
         return 0;
     } else {
-        game_state *s = me->ourgame->make_move(me->states[me->statepos-1],
-					       me->ui, x, y, button);
+        game_state *s =
+            me->ourgame->make_move(me->states[me->statepos-1].state,
+                                   me->ui, x, y, button);
 
-        if (s == me->states[me->statepos-1]) {
+        if (s == me->states[me->statepos-1].state) {
             /*
              * make_move() is allowed to return its input state to
              * indicate that although no move has been made, the UI
@@ -269,9 +307,10 @@ static int midend_really_process_key(midend_data *me, int x, int y, int button)
         } else if (s) {
 	    midend_stop_anim(me);
             while (me->nstates > me->statepos)
-                me->ourgame->free_game(me->states[--me->nstates]);
+                me->ourgame->free_game(me->states[--me->nstates].state);
             ensure(me);
-            me->states[me->nstates] = s;
+            me->states[me->nstates].state = s;
+            me->states[me->nstates].special = FALSE;   /* normal move */
             me->statepos = ++me->nstates;
             me->dir = +1;
         } else {
@@ -280,11 +319,19 @@ static int midend_really_process_key(midend_data *me, int x, int y, int button)
         }
     }
 
+    if (!gotspecial)
+        special = me->states[me->statepos-1].special;
+
     /*
      * See if this move requires an animation.
      */
-    anim_time = me->ourgame->anim_length(oldstate, me->states[me->statepos-1],
-					 me->dir);
+    if (special) {
+        anim_time = 0;
+    } else {
+        anim_time = me->ourgame->anim_length(oldstate,
+                                             me->states[me->statepos-1].state,
+                                             me->dir);
+    }
 
     me->oldstate = oldstate;
     if (anim_time > 0) {
@@ -408,11 +455,11 @@ void midend_redraw(midend_data *me)
             me->anim_pos < me->anim_time) {
             assert(me->dir != 0);
             me->ourgame->redraw(me->frontend, me->drawstate, me->oldstate,
-				me->states[me->statepos-1], me->dir,
+				me->states[me->statepos-1].state, me->dir,
 				me->ui, me->anim_pos, me->flash_pos);
         } else {
             me->ourgame->redraw(me->frontend, me->drawstate, NULL,
-				me->states[me->statepos-1], +1 /*shrug*/,
+				me->states[me->statepos-1].state, +1 /*shrug*/,
 				me->ui, 0.0, me->flash_pos);
         }
         end_draw(me->frontend);
@@ -449,7 +496,7 @@ float *midend_colours(midend_data *me, int *ncolours)
 	if (aux)
 	    me->ourgame->free_aux_info(aux);
     } else
-        state = me->states[0];
+        state = me->states[0].state;
 
     ret = me->ourgame->colours(me->frontend, state, ncolours);
 
@@ -691,7 +738,7 @@ char *midend_set_config(midend_data *me, int which, config_item *cfg)
 char *midend_text_format(midend_data *me)
 {
     if (me->ourgame->can_format_as_text && me->statepos > 0)
-	return me->ourgame->text_format(me->states[me->statepos-1]);
+	return me->ourgame->text_format(me->states[me->statepos-1].state);
     else
 	return NULL;
 }
@@ -708,18 +755,19 @@ char *midend_solve(midend_data *me)
 	return "No game set up to solve";   /* _shouldn't_ happen! */
 
     msg = "Solve operation failed";    /* game _should_ overwrite on error */
-    s = me->ourgame->solve(me->states[0], me->aux_info, &msg);
+    s = me->ourgame->solve(me->states[0].state, me->aux_info, &msg);
     if (!s)
 	return msg;
 
     /*
-     * Now enter the solved state as the next move.~|~
+     * Now enter the solved state as the next move.
      */
     midend_stop_anim(me);
     while (me->nstates > me->statepos)
-	me->ourgame->free_game(me->states[--me->nstates]);
+	me->ourgame->free_game(me->states[--me->nstates].state);
     ensure(me);
-    me->states[me->nstates] = s;
+    me->states[me->nstates].state = s;
+    me->states[me->nstates].special = TRUE;   /* created using solve */
     me->statepos = ++me->nstates;
     me->anim_time = 0.0;
     midend_finish_move(me);
