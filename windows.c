@@ -1120,8 +1120,7 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
 		PostQuitMessage(0);
 	    break;
 	  case IDM_RESTART:
-	    if (!midend_process_key(fe->me, 0, 0, 'r'))
-		PostQuitMessage(0);
+	    midend_restart_game(fe->me);
 	    break;
 	  case IDM_UNDO:
 	    if (!midend_process_key(fe->me, 0, 0, 'u'))

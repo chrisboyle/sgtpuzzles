@@ -651,7 +651,7 @@ struct frontend {
 }
 - (void)restartGame:(id)sender
 {
-    [self processButton:'r' x:-1 y:-1];
+    midend_restart_game(me);
 }
 - (void)undoMove:(id)sender
 {

@@ -2,7 +2,7 @@
  * midend.c: general middle fragment sitting between the
  * platform-specific front end and game-specific back end.
  * Maintains a move list, takes care of Undo and Redo commands, and
- * processes standard keystrokes for undo/redo/new/restart/quit.
+ * processes standard keystrokes for undo/redo/new/quit.
  */
 
 #include <stdio.h>
@@ -238,6 +238,8 @@ void midend_restart_game(midend_data *me)
 {
     game_state *s;
 
+    midend_stop_anim(me);
+
     assert(me->statepos >= 1);
     if (me->statepos == 1)
         return;                        /* no point doing anything at all! */
@@ -272,11 +274,6 @@ static int midend_really_process_key(midend_data *me, int x, int y, int button)
 	midend_new_game(me);
         midend_redraw(me);
         return 1;                      /* never animate */
-    } else if (button == 'r' || button == 'R') {
-	midend_stop_anim(me);
-	midend_restart_game(me);
-        midend_redraw(me);
-        return 1;                      /* never animate */
     } else if (button == 'u' || button == 'u' ||
                button == '\x1A' || button == '\x1F') {
 	midend_stop_anim(me);
@@ -284,7 +281,8 @@ static int midend_really_process_key(midend_data *me, int x, int y, int button)
         gotspecial = TRUE;
 	if (!midend_undo(me))
             return 1;
-    } else if (button == '\x12') {
+    } else if (button == 'r' || button == 'R' ||
+               button == '\x12') {
 	midend_stop_anim(me);
 	if (!midend_redo(me))
             return 1;

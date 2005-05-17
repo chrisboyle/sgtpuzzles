@@ -937,6 +937,13 @@ static void menu_solve_event(GtkMenuItem *menuitem, gpointer data)
 	error_box(fe->window, msg);
 }
 
+static void menu_restart_event(GtkMenuItem *menuitem, gpointer data)
+{
+    frontend *fe = (frontend *)data;
+
+    midend_restart_game(fe->me);
+}
+
 static void menu_config_event(GtkMenuItem *menuitem, gpointer data)
 {
     frontend *fe = (frontend *)data;
@@ -1032,7 +1039,12 @@ static frontend *new_window(char *game_id, char **error)
     gtk_menu_item_set_submenu(GTK_MENU_ITEM(menuitem), menu);
 
     add_menu_item_with_key(fe, GTK_CONTAINER(menu), "New", 'n');
-    add_menu_item_with_key(fe, GTK_CONTAINER(menu), "Restart", 'r');
+
+    menuitem = gtk_menu_item_new_with_label("Restart");
+    gtk_container_add(GTK_CONTAINER(menu), menuitem);
+    gtk_signal_connect(GTK_OBJECT(menuitem), "activate",
+		       GTK_SIGNAL_FUNC(menu_restart_event), fe);
+    gtk_widget_show(menuitem);
 
     menuitem = gtk_menu_item_new_with_label("Specific...");
     gtk_object_set_data(GTK_OBJECT(menuitem), "user-data",
