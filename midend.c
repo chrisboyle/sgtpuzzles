@@ -578,7 +578,7 @@ static char *midend_game_id_int(midend_data *me, char *id, int defmode)
         seed = NULL;
     } else if (seed && (!desc || seed < desc)) {
         /*
-         * We have a colon separating parameters from random seed.
+         * We have a hash separating parameters from random seed.
          * So `par' now points to the parameters string, and `seed'
          * to the seed string.
          */
