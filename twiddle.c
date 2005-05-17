@@ -604,30 +604,66 @@ static game_state *make_move(game_state *from, game_ui *ui, int x, int y,
 	y -= (n-1) * TILE_SIZE / 2;
 	x = FROMCOORD(x);
 	y = FROMCOORD(y);
-	if (x < 0 || x > w-n || y < 0 || y > w-n)
-	    return NULL;
-
-	/*
-	 * This is a valid move. Make it.
-	 */
-	ret = dup_game(from);
-	ret->just_used_solve = FALSE;  /* zero this in a hurry */
-	ret->movecount++;
 	dir = (button == LEFT_BUTTON ? 1 : -1);
-	do_rotate(ret->grid, w, h, n, ret->orientable, x, y, dir);
-	ret->lastx = x;
-	ret->lasty = y;
-	ret->lastr = dir;
-
-	/*
-	 * See if the game has been completed. To do this we simply
-	 * test that the grid contents are in increasing order.
-	 */
-	if (!ret->completed && grid_complete(ret->grid, wh, ret->orientable))
-	    ret->completed = ret->movecount;
-	return ret;
+	if (x < 0 || x > w-n || y < 0 || y > h-n)
+	    return NULL;
+    } else if (button == 'a' || button == 'A' || button==MOD_NUM_KEYPAD+'7') {
+        x = y = 0;
+        dir = (button == 'A' ? -1 : +1);
+    } else if (button == 'b' || button == 'B' || button==MOD_NUM_KEYPAD+'9') {
+        x = w-n;
+        y = 0;
+        dir = (button == 'B' ? -1 : +1);
+    } else if (button == 'c' || button == 'C' || button==MOD_NUM_KEYPAD+'1') {
+        x = 0;
+        y = h-n;
+        dir = (button == 'C' ? -1 : +1);
+    } else if (button == 'd' || button == 'D' || button==MOD_NUM_KEYPAD+'3') {
+        x = w-n;
+        y = h-n;
+        dir = (button == 'D' ? -1 : +1);
+    } else if (button==MOD_NUM_KEYPAD+'8' && (w-n) % 2 == 0) {
+        x = (w-n) / 2;
+        y = 0;
+        dir = +1;
+    } else if (button==MOD_NUM_KEYPAD+'2' && (w-n) % 2 == 0) {
+        x = (w-n) / 2;
+        y = h-n;
+        dir = +1;
+    } else if (button==MOD_NUM_KEYPAD+'4' && (h-n) % 2 == 0) {
+        x = 0;
+        y = (h-n) / 2;
+        dir = +1;
+    } else if (button==MOD_NUM_KEYPAD+'6' && (h-n) % 2 == 0) {
+        x = w-n;
+        y = (h-n) / 2;
+        dir = +1;
+    } else if (button==MOD_NUM_KEYPAD+'5' && (w-n) % 2 == 0 && (h-n) % 2 == 0){
+        x = (w-n) / 2;
+        y = (h-n) / 2;
+        dir = +1;
+    } else {
+        return NULL;                   /* no move to be made */
     }
-    return NULL;
+
+    /*
+     * This is a valid move. Make it.
+     */
+    ret = dup_game(from);
+    ret->just_used_solve = FALSE;  /* zero this in a hurry */
+    ret->movecount++;
+    do_rotate(ret->grid, w, h, n, ret->orientable, x, y, dir);
+    ret->lastx = x;
+    ret->lasty = y;
+    ret->lastr = dir;
+
+    /*
+     * See if the game has been completed. To do this we simply
+     * test that the grid contents are in increasing order.
+     */
+    if (!ret->completed && grid_complete(ret->grid, wh, ret->orientable))
+        ret->completed = ret->movecount;
+    return ret;
 }
 
 /* ----------------------------------------------------------------------
