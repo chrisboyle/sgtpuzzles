@@ -150,7 +150,7 @@ static char *encode_params(game_params *params, int full)
     char data[256];
 
     sprintf(data, "%dx%d", params->w, params->h);
-    if (full)
+    if (full && params->expandfactor)
         sprintf(data + strlen(data), "e%g", params->expandfactor);
 
     return dupstr(data);
