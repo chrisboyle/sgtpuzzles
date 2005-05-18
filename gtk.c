@@ -1236,6 +1236,12 @@ int main(int argc, char **argv)
     char *pname = argv[0];
     char *error;
 
+    if (argc > 1 && !strcmp(argv[1], "--version")) {
+	printf("%s, from Simon Tatham's Portable Puzzle Collection\n%s\n",
+	       thegame.name, ver);
+	return 0;
+    }
+
     /*
      * Special standalone mode for generating puzzle IDs on the
      * command line. Useful for generating puzzles to be printed
