@@ -34,7 +34,7 @@ struct midend_data {
     char **preset_names;
     int npresets, presetsize;
 
-    game_params *params, *tmpparams;
+    game_params *params, *curparams;
     struct midend_state_entry *states;
     game_drawstate *drawstate;
     game_state *oldstate;
@@ -68,7 +68,7 @@ midend_data *midend_new(frontend *fe, const game *ourgame)
     me->nstates = me->statesize = me->statepos = 0;
     me->states = NULL;
     me->params = ourgame->default_params();
-    me->tmpparams = NULL;
+    me->curparams = NULL;
     me->desc = NULL;
     me->seedstr = NULL;
     me->aux_info = NULL;
@@ -98,8 +98,8 @@ void midend_free(midend_data *me)
     if (me->aux_info)
 	me->ourgame->free_aux_info(me->aux_info);
     me->ourgame->free_params(me->params);
-    if (me->tmpparams)
-        me->ourgame->free_params(me->tmpparams);
+    if (me->curparams)
+        me->ourgame->free_params(me->curparams);
     sfree(me);
 }
 
@@ -143,6 +143,10 @@ void midend_new_game(midend_data *me)
                 newseed[i] = '0' + random_upto(me->random, 10);
             sfree(me->seedstr);
             me->seedstr = dupstr(newseed);
+
+	    if (me->curparams)
+		me->ourgame->free_params(me->curparams);
+	    me->curparams = me->ourgame->dup_params(me->params);
         }
 
 	sfree(me->desc);
@@ -151,14 +155,8 @@ void midend_new_game(midend_data *me)
 	me->aux_info = NULL;
 
         rs = random_init(me->seedstr, strlen(me->seedstr));
-        me->desc = me->ourgame->new_desc
-            (me->tmpparams ? me->tmpparams : me->params, rs, &me->aux_info);
+        me->desc = me->ourgame->new_desc(me->curparams, rs, &me->aux_info);
         random_free(rs);
-
-        if (me->tmpparams) {
-            me->ourgame->free_params(me->tmpparams);
-            me->tmpparams = NULL;
-        }
     }
 
     ensure(me);
@@ -657,7 +655,7 @@ config_item *midend_get_config(midend_data *me, int which, char **wintitle)
          * the former is likely to persist across many code
          * changes).
          */
-        parstr = me->ourgame->encode_params(me->params, which == CFG_SEED);
+        parstr = me->ourgame->encode_params(me->curparams, which == CFG_SEED);
         if (which == CFG_DESC) {
             ret[0].sval = snewn(strlen(parstr) + strlen(me->desc) + 2, char);
             sprintf(ret[0].sval, "%s:%s", parstr, me->desc);
@@ -737,9 +735,9 @@ static char *midend_game_id_int(midend_data *me, char *id, int defmode)
             me->ourgame->free_params(tmpparams);
             return error;
         }
-        if (me->tmpparams)
-            me->ourgame->free_params(me->tmpparams);
-        me->tmpparams = tmpparams;
+        if (me->curparams)
+            me->ourgame->free_params(me->curparams);
+        me->curparams = tmpparams;
 
         /*
          * Now filter only the persistent parts of this state into
