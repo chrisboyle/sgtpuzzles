@@ -1143,24 +1143,9 @@ static frontend *new_window(char *game_id, char **error)
         fe->ncolours = ncolours;
         fe->colours = snewn(ncolours, GdkColor);
         for (i = 0; i < ncolours; i++) {
-            /*
-             * Just for Gareth: if you dislike any of the standard
-             * colours, here's your chance to configure them in a
-             * really hacky way. 
-             */
-            char buf[80], *e;
-            unsigned int r, g, b;
-            sprintf(buf, "PUZZLE_COLOUR_%d", i);
-            if ((e = getenv(buf)) != NULL &&
-                sscanf(e, "%2x%2x%2x", &r, &g, &b) == 3) {
-                fe->colours[i].red = r * 0x101;
-                fe->colours[i].green = g * 0x101;
-                fe->colours[i].blue = b * 0x101;
-            } else {
-                fe->colours[i].red = colours[i*3] * 0xFFFF;
-                fe->colours[i].green = colours[i*3+1] * 0xFFFF;
-                fe->colours[i].blue = colours[i*3+2] * 0xFFFF;
-            }
+            fe->colours[i].red = colours[i*3] * 0xFFFF;
+            fe->colours[i].green = colours[i*3+1] * 0xFFFF;
+            fe->colours[i].blue = colours[i*3+2] * 0xFFFF;
         }
         success = snewn(ncolours, gboolean);
         gdk_colormap_alloc_colors(fe->colmap, fe->colours, ncolours,

@@ -8,6 +8,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
+#include <stdlib.h>
+#include <ctype.h>
 
 #include "puzzles.h"
 
@@ -498,6 +500,32 @@ float *midend_colours(midend_data *me, int *ncolours)
 
     ret = me->ourgame->colours(me->frontend, state, ncolours);
 
+    {
+        int i;
+
+        /*
+         * Allow environment-based overrides for the standard
+         * colours by defining variables along the lines of
+         * `NET_COLOUR_4=6000c0'.
+         */
+
+        for (i = 0; i < *ncolours; i++) {
+            char buf[80], *e;
+            unsigned int r, g, b;
+            int j;
+
+            sprintf(buf, "%s_COLOUR_%d", me->ourgame->name, i);
+            for (j = 0; buf[j]; j++)
+                buf[j] = toupper((unsigned char)buf[j]);
+            if ((e = getenv(buf)) != NULL &&
+                sscanf(e, "%2x%2x%2x", &r, &g, &b) == 3) {
+                ret[i*3 + 0] = r / 255.0;
+                ret[i*3 + 1] = g / 255.0;
+                ret[i*3 + 2] = b / 255.0;
+            }
+        }
+    }
+
     if (me->nstates == 0)
         me->ourgame->free_game(state);
 
@@ -522,6 +550,53 @@ int midend_num_presets(midend_data *me)
             me->presets[me->npresets] = preset;
             me->preset_names[me->npresets] = name;
             me->npresets++;
+        }
+    }
+
+    {
+        /*
+         * Allow environment-based extensions to the preset list by
+         * defining a variable along the lines of `SOLO_PRESETS=2x3
+         * Advanced:2x3da'. Colon-separated list of items,
+         * alternating between textual titles in the menu and
+         * encoded parameter strings.
+         */
+        char buf[80], *e, *p;
+        int j;
+
+        sprintf(buf, "%s_PRESETS", me->ourgame->name);
+        for (j = 0; buf[j]; j++)
+            buf[j] = toupper((unsigned char)buf[j]);
+
+        if ((e = getenv(buf)) != NULL) {
+            p = e = dupstr(e);
+
+            while (*p) {
+                char *name, *val;
+                game_params *preset;
+
+                name = p;
+                while (*p && *p != ':') p++;
+                if (*p) *p++ = '\0';
+                val = p;
+                while (*p && *p != ':') p++;
+                if (*p) *p++ = '\0';
+
+                preset = me->ourgame->default_params();
+                me->ourgame->decode_params(preset, val);
+
+                if (me->presetsize <= me->npresets) {
+                    me->presetsize = me->npresets + 10;
+                    me->presets = sresize(me->presets, me->presetsize,
+                                          game_params *);
+                    me->preset_names = sresize(me->preset_names,
+                                               me->presetsize, char *);
+                }
+
+                me->presets[me->npresets] = preset;
+                me->preset_names[me->npresets] = name;
+                me->npresets++;
+            }
         }
     }
 
