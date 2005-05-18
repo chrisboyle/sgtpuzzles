@@ -585,6 +585,12 @@ int midend_num_presets(midend_data *me)
                 preset = me->ourgame->default_params();
                 me->ourgame->decode_params(preset, val);
 
+		if (me->ourgame->validate_params(preset)) {
+		    /* Drop this one from the list. */
+		    me->ourgame->free_params(preset);
+		    continue;
+		}
+
                 if (me->presetsize <= me->npresets) {
                     me->presetsize = me->npresets + 10;
                     me->presets = sresize(me->presets, me->presetsize,
