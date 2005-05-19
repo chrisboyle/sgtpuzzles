@@ -16,13 +16,6 @@
  *    of the generated rectangles in accordance with the max
  *    rectangle size.
  * 
- *  - It might be interesting to deliberately try to place
- *    numbers so as to reduce alternative solution patterns. I
- *    doubt we can do a perfect job of this, but we can make a
- *    start by, for example, noticing pairs of 2-rects
- *    alongside one another and _not_ putting their numbers at
- *    opposite ends.
- *
  *  - If we start by sorting the rectlist in descending order
  *    of area, we might be able to bias our random number
  *    selection to produce a few large rectangles more often
@@ -211,6 +204,10 @@ static char *validate_params(game_params *params)
     return NULL;
 }
 
+struct point {
+    int x, y;
+};
+
 struct rect {
     int x, y;
     int w, h;
@@ -220,6 +217,636 @@ struct rectlist {
     struct rect *rects;
     int n;
 };
+
+struct numberdata {
+    int area;
+    int npoints;
+    struct point *points;
+};
+
+/* ----------------------------------------------------------------------
+ * Solver for Rectangles games.
+ * 
+ * This solver is souped up beyond the needs of actually _solving_
+ * a puzzle. It is also designed to cope with uncertainty about
+ * where the numbers have been placed. This is because I run it on
+ * my generated grids _before_ placing the numbers, and have it
+ * tell me where I need to place the numbers to ensure a unique
+ * solution.
+ */
+
+static void remove_rect_placement(int w, int h,
+                                  struct rectlist *rectpositions,
+                                  int *overlaps,
+                                  int rectnum, int placement)
+{
+    int x, y, xx, yy;
+
+#ifdef SOLVER_DIAGNOSTICS
+    printf("ruling out rect %d placement at %d,%d w=%d h=%d\n", rectnum,
+           rectpositions[rectnum].rects[placement].x,
+           rectpositions[rectnum].rects[placement].y,
+           rectpositions[rectnum].rects[placement].w,
+           rectpositions[rectnum].rects[placement].h);
+#endif
+
+    /*
+     * Decrement each entry in the overlaps array to reflect the
+     * removal of this rectangle placement.
+     */
+    for (yy = 0; yy < rectpositions[rectnum].rects[placement].h; yy++) {
+        y = yy + rectpositions[rectnum].rects[placement].y;
+        for (xx = 0; xx < rectpositions[rectnum].rects[placement].w; xx++) {
+            x = xx + rectpositions[rectnum].rects[placement].x;
+
+            assert(overlaps[(rectnum * h + y) * w + x] != 0);
+
+            if (overlaps[(rectnum * h + y) * w + x] > 0)
+                overlaps[(rectnum * h + y) * w + x]--;
+        }
+    }
+
+    /*
+     * Remove the placement from the list of positions for that
+     * rectangle, by interchanging it with the one on the end.
+     */
+    if (placement < rectpositions[rectnum].n - 1) {
+        struct rect t;
+
+        t = rectpositions[rectnum].rects[rectpositions[rectnum].n - 1];
+        rectpositions[rectnum].rects[rectpositions[rectnum].n - 1] =
+            rectpositions[rectnum].rects[placement];
+        rectpositions[rectnum].rects[placement] = t;
+    }
+    rectpositions[rectnum].n--;
+}
+
+static void remove_number_placement(int w, int h, struct numberdata *number,
+                                    int index, int *rectbyplace)
+{
+    /*
+     * Remove the entry from the rectbyplace array.
+     */
+    rectbyplace[number->points[index].y * w + number->points[index].x] = -1;
+
+    /*
+     * Remove the placement from the list of candidates for that
+     * number, by interchanging it with the one on the end.
+     */
+    if (index < number->npoints - 1) {
+        struct point t;
+
+        t = number->points[number->npoints - 1];
+        number->points[number->npoints - 1] = number->points[index];
+        number->points[index] = t;
+    }
+    number->npoints--;
+}
+
+static int rect_solver(int w, int h, int nrects, struct numberdata *numbers,
+                       random_state *rs)
+{
+    struct rectlist *rectpositions;
+    int *overlaps, *rectbyplace, *workspace;
+    int i, ret;
+
+    /*
+     * Start by setting up a list of candidate positions for each
+     * rectangle.
+     */
+    rectpositions = snewn(nrects, struct rectlist);
+    for (i = 0; i < nrects; i++) {
+        int rw, rh, area = numbers[i].area;
+        int j, minx, miny, maxx, maxy;
+        struct rect *rlist;
+        int rlistn, rlistsize;
+
+        /*
+         * For each rectangle, begin by finding the bounding
+         * rectangle of its candidate number placements.
+         */
+        maxx = maxy = -1;
+        minx = w;
+        miny = h;
+        for (j = 0; j < numbers[i].npoints; j++) {
+            if (minx > numbers[i].points[j].x) minx = numbers[i].points[j].x;
+            if (miny > numbers[i].points[j].y) miny = numbers[i].points[j].y;
+            if (maxx < numbers[i].points[j].x) maxx = numbers[i].points[j].x;
+            if (maxy < numbers[i].points[j].y) maxy = numbers[i].points[j].y;
+        }
+
+        /*
+         * Now loop over all possible rectangle placements
+         * overlapping a point within that bounding rectangle;
+         * ensure each one actually contains a candidate number
+         * placement, and add it to the list.
+         */
+        rlist = NULL;
+        rlistn = rlistsize = 0;
+
+        for (rw = 1; rw <= area && rw <= w; rw++) {
+            int x, y;
+
+            if (area % rw)
+                continue;
+            rh = area / rw;
+            if (rh > h)
+                continue;
+
+            for (y = miny - rh + 1; y <= maxy; y++) {
+                if (y < 0 || y+rh > h)
+                    continue;
+
+                for (x = minx - rw + 1; x <= maxx; x++) {
+                    if (x < 0 || x+rw > w)
+                        continue;
+
+                    /*
+                     * See if we can find a candidate number
+                     * placement within this rectangle.
+                     */
+                    for (j = 0; j < numbers[i].npoints; j++)
+                        if (numbers[i].points[j].x >= x &&
+                            numbers[i].points[j].x < x+rw &&
+                            numbers[i].points[j].y >= y &&
+                            numbers[i].points[j].y < y+rh)
+                            break;
+
+                    if (j < numbers[i].npoints) {
+                        /*
+                         * Add this to the list of candidate
+                         * placements for this rectangle.
+                         */
+                        if (rlistn >= rlistsize) {
+                            rlistsize = rlistn + 32;
+                            rlist = sresize(rlist, rlistsize, struct rect);
+                        }
+                        rlist[rlistn].x = x;
+                        rlist[rlistn].y = y;
+                        rlist[rlistn].w = rw;
+                        rlist[rlistn].h = rh;
+#ifdef SOLVER_DIAGNOSTICS
+                        printf("rect %d [area %d]: candidate position at"
+                               " %d,%d w=%d h=%d\n",
+                               i, area, x, y, rw, rh);
+#endif
+                        rlistn++;
+                    }
+                }
+            }
+        }
+
+        rectpositions[i].rects = rlist;
+        rectpositions[i].n = rlistn;
+    }
+
+    /*
+     * Next, construct a multidimensional array tracking how many
+     * candidate positions for each rectangle overlap each square.
+     * 
+     * Indexing of this array is by the formula
+     * 
+     *   overlaps[(rectindex * h + y) * w + x]
+     */
+    overlaps = snewn(nrects * w * h, int);
+    memset(overlaps, 0, nrects * w * h * sizeof(int));
+    for (i = 0; i < nrects; i++) {
+        int j;
+
+        for (j = 0; j < rectpositions[i].n; j++) {
+            int xx, yy;
+
+            for (yy = 0; yy < rectpositions[i].rects[j].h; yy++)
+                for (xx = 0; xx < rectpositions[i].rects[j].w; xx++)
+                    overlaps[(i * h + yy+rectpositions[i].rects[j].y) * w +
+                             xx+rectpositions[i].rects[j].x]++;
+        }
+    }
+
+    /*
+     * Also we want an array covering the grid once, to make it
+     * easy to figure out which squares are candidate number
+     * placements for which rectangles. (The existence of this
+     * single array assumes that no square starts off as a
+     * candidate number placement for more than one rectangle. This
+     * assumption is justified, because this solver is _either_
+     * used to solve real problems - in which case there is a
+     * single placement for every number - _or_ used to decide on
+     * number placements for a new puzzle, in which case each
+     * number's placements are confined to the intended position of
+     * the rectangle containing that number.)
+     */
+    rectbyplace = snewn(w * h, int);
+    for (i = 0; i < w*h; i++)
+        rectbyplace[i] = -1;
+
+    for (i = 0; i < nrects; i++) {
+        int j;
+
+        for (j = 0; j < numbers[i].npoints; j++) {
+            int x = numbers[i].points[j].x;
+            int y = numbers[i].points[j].y;
+
+            assert(rectbyplace[y * w + x] == -1);
+            rectbyplace[y * w + x] = i;
+        }
+    }
+
+    workspace = snewn(nrects, int);
+
+    /*
+     * Now run the actual deduction loop.
+     */
+    while (1) {
+        int done_something = FALSE;
+
+#ifdef SOLVER_DIAGNOSTICS
+        printf("starting deduction loop\n");
+
+        for (i = 0; i < nrects; i++) {
+            printf("rect %d overlaps:\n", i);
+            {
+                int x, y;
+                for (y = 0; y < h; y++) {
+                    for (x = 0; x < w; x++) {
+                        printf("%3d", overlaps[(i * h + y) * w + x]);
+                    }
+                    printf("\n");
+                }
+            }
+        }
+        printf("rectbyplace:\n");
+        {
+            int x, y;
+            for (y = 0; y < h; y++) {
+                for (x = 0; x < w; x++) {
+                    printf("%3d", rectbyplace[y * w + x]);
+                }
+                printf("\n");
+            }
+        }
+#endif
+
+        /*
+         * Housekeeping. Look for rectangles whose number has only
+         * one candidate position left, and mark that square as
+         * known if it isn't already.
+         */
+        for (i = 0; i < nrects; i++) {
+            if (numbers[i].npoints == 1) {
+                int x = numbers[i].points[0].x;
+                int y = numbers[i].points[0].y;
+                if (overlaps[(i * h + y) * w + x] >= -1) {
+                    int j;
+
+                    assert(overlaps[(i * h + y) * w + x] > 0);
+#ifdef SOLVER_DIAGNOSTICS
+                    printf("marking %d,%d as known for rect %d"
+                           " (sole remaining number position)\n", x, y, i);
+#endif
+
+                    for (j = 0; j < nrects; j++)
+                        overlaps[(j * h + y) * w + x] = -1;
+                    
+                    overlaps[(i * h + y) * w + x] = -2;
+                }
+            }
+        }
+
+        /*
+         * Now look at the intersection of all possible placements
+         * for each rectangle, and mark all squares in that
+         * intersection as known for that rectangle if they aren't
+         * already.
+         */
+        for (i = 0; i < nrects; i++) {
+            int minx, miny, maxx, maxy, xx, yy, j;
+
+            minx = miny = 0;
+            maxx = w;
+            maxy = h;
+
+            for (j = 0; j < rectpositions[i].n; j++) {
+                int x = rectpositions[i].rects[j].x;
+                int y = rectpositions[i].rects[j].y;
+                int w = rectpositions[i].rects[j].w;
+                int h = rectpositions[i].rects[j].h;
+
+                if (minx < x) minx = x;
+                if (miny < y) miny = y;
+                if (maxx > x+w) maxx = x+w;
+                if (maxy > y+h) maxy = y+h;
+            }
+
+            for (yy = miny; yy < maxy; yy++)
+                for (xx = minx; xx < maxx; xx++)
+                    if (overlaps[(i * h + yy) * w + xx] >= -1) {
+                        assert(overlaps[(i * h + yy) * w + xx] > 0);
+#ifdef SOLVER_DIAGNOSTICS
+                        printf("marking %d,%d as known for rect %d"
+                               " (intersection of all placements)\n",
+                               xx, yy, i);
+#endif
+
+                        for (j = 0; j < nrects; j++)
+                            overlaps[(j * h + yy) * w + xx] = -1;
+                    
+                        overlaps[(i * h + yy) * w + xx] = -2;
+                    }
+        }
+
+        /*
+         * Rectangle-focused deduction. Look at each rectangle in
+         * turn and try to rule out some of its candidate
+         * placements.
+         */
+        for (i = 0; i < nrects; i++) {
+            int j;
+
+            for (j = 0; j < rectpositions[i].n; j++) {
+                int xx, yy, k;
+                int del = FALSE;
+
+                for (k = 0; k < nrects; k++)
+                    workspace[k] = 0;
+
+                for (yy = 0; yy < rectpositions[i].rects[j].h; yy++) {
+                    int y = yy + rectpositions[i].rects[j].y;
+                    for (xx = 0; xx < rectpositions[i].rects[j].w; xx++) {
+                        int x = xx + rectpositions[i].rects[j].x;
+ 
+                        if (overlaps[(i * h + y) * w + x] == -1) {
+                            /*
+                             * This placement overlaps a square
+                             * which is _known_ to be part of
+                             * another rectangle. Therefore we must
+                             * rule it out.
+                             */
+#ifdef SOLVER_DIAGNOSTICS
+                            printf("rect %d placement at %d,%d w=%d h=%d "
+                                   "contains %d,%d which is known-other\n", i,
+                                   rectpositions[i].rects[j].x,
+                                   rectpositions[i].rects[j].y,
+                                   rectpositions[i].rects[j].w,
+                                   rectpositions[i].rects[j].h,
+                                   x, y);
+#endif
+                            del = TRUE;
+                        }
+
+                        if (rectbyplace[y * w + x] != -1) {
+                            /*
+                             * This placement overlaps one of the
+                             * candidate number placements for some
+                             * rectangle. Count it.
+                             */
+                            workspace[rectbyplace[y * w + x]]++;
+                        }
+                    }
+                }
+
+                if (!del) {
+                    /*
+                     * If we haven't ruled this placement out
+                     * already, see if it overlaps _all_ of the
+                     * candidate number placements for any
+                     * rectangle. If so, we can rule it out.
+                     */
+                    for (k = 0; k < nrects; k++)
+                        if (k != i && workspace[k] == numbers[k].npoints) {
+#ifdef SOLVER_DIAGNOSTICS
+                            printf("rect %d placement at %d,%d w=%d h=%d "
+                                   "contains all number points for rect %d\n",
+                                   i,
+                                   rectpositions[i].rects[j].x,
+                                   rectpositions[i].rects[j].y,
+                                   rectpositions[i].rects[j].w,
+                                   rectpositions[i].rects[j].h,
+                                   k);
+#endif
+                            del = TRUE;
+                            break;
+                        }
+
+                    /*
+                     * Failing that, see if it overlaps at least
+                     * one of the candidate number placements for
+                     * itself! (This might not be the case if one
+                     * of those number placements has been removed
+                     * recently.).
+                     */
+                    if (!del && workspace[i] == 0) {
+#ifdef SOLVER_DIAGNOSTICS
+                        printf("rect %d placement at %d,%d w=%d h=%d "
+                               "contains none of its own number points\n",
+                               i,
+                               rectpositions[i].rects[j].x,
+                               rectpositions[i].rects[j].y,
+                               rectpositions[i].rects[j].w,
+                               rectpositions[i].rects[j].h);
+#endif
+                        del = TRUE;
+                    }
+                }
+
+                if (del) {
+                    remove_rect_placement(w, h, rectpositions, overlaps, i, j);
+
+                    j--;               /* don't skip over next placement */
+
+                    done_something = TRUE;
+                }
+            }
+        }
+
+        /*
+         * Square-focused deduction. Look at each square not marked
+         * as known, and see if there are any which can only be
+         * part of a single rectangle.
+         */
+        {
+            int x, y, n, index;
+            for (y = 0; y < h; y++) for (x = 0; x < w; x++) {
+                /* Known squares are marked as <0 everywhere, so we only need
+                 * to check the overlaps entry for rect 0. */
+                if (overlaps[y * w + x] < 0)
+                    continue;          /* known already */
+
+                n = 0;
+                index = -1;
+                for (i = 0; i < nrects; i++)
+                    if (overlaps[(i * h + y) * w + x] > 0)
+                        n++, index = i;
+
+                if (n == 1) {
+                    int j;
+
+                    /*
+                     * Now we can rule out all placements for
+                     * rectangle `index' which _don't_ contain
+                     * square x,y.
+                     */
+#ifdef SOLVER_DIAGNOSTICS
+                    printf("square %d,%d can only be in rectangle %d\n",
+                           x, y, index);
+#endif
+                    for (j = 0; j < rectpositions[index].n; j++) {
+                        struct rect *r = &rectpositions[index].rects[j];
+                        if (x >= r->x && x < r->x + r->w &&
+                            y >= r->y && y < r->y + r->h)
+                            continue;  /* this one is OK */
+                        remove_rect_placement(w, h, rectpositions, overlaps,
+                                              index, j);
+                        j--;           /* don't skip over next placement */
+                        done_something = TRUE;
+                    }
+                }
+            }
+        }
+
+        /*
+         * If we've managed to deduce anything by normal means,
+         * loop round again and see if there's more to be done.
+         * Only if normal deduction has completely failed us should
+         * we now move on to narrowing down the possible number
+         * placements.
+         */
+        if (done_something)
+            continue;
+
+        /*
+         * Now we have done everything we can with the current set
+         * of number placements. So we need to winnow the number
+         * placements so as to narrow down the possibilities. We do
+         * this by searching for a candidate placement (of _any_
+         * rectangle) which overlaps a candidate placement of the
+         * number for some other rectangle.
+         */
+        {
+            struct rpn {
+                int rect;
+                int placement;
+                int number;
+            } *rpns = NULL;
+            int nrpns = 0, rpnsize = 0;
+            int j;
+
+            for (i = 0; i < nrects; i++) {
+                for (j = 0; j < rectpositions[i].n; j++) {
+                    int xx, yy;
+
+                    for (yy = 0; yy < rectpositions[i].rects[j].h; yy++) {
+                        int y = yy + rectpositions[i].rects[j].y;
+                        for (xx = 0; xx < rectpositions[i].rects[j].w; xx++) {
+                            int x = xx + rectpositions[i].rects[j].x;
+
+                            if (rectbyplace[y * w + x] >= 0 &&
+                                rectbyplace[y * w + x] != i) {
+                                /*
+                                 * Add this to the list of
+                                 * winnowing possibilities.
+                                 */
+                                if (nrpns >= rpnsize) {
+                                    rpnsize = rpnsize * 3 / 2 + 32;
+                                    rpns = sresize(rpns, rpnsize, struct rpn);
+                                }
+                                rpns[nrpns].rect = i;
+                                rpns[nrpns].placement = j;
+                                rpns[nrpns].number = rectbyplace[y * w + x];
+                                nrpns++;
+                            }
+                        }
+                    }
+ 
+                }
+            }
+
+#ifdef SOLVER_DIAGNOSTICS
+            printf("%d candidate rect placements we could eliminate\n", nrpns);
+#endif
+            if (nrpns > 0) {
+                /*
+                 * Now choose one of these unwanted rectangle
+                 * placements, and eliminate it.
+                 */
+                int index = random_upto(rs, nrpns);
+                int k, m;
+                struct rpn rpn = rpns[index];
+                struct rect r;
+                sfree(rpns);
+
+                i = rpn.rect;
+                j = rpn.placement;
+                k = rpn.number;
+                r = rectpositions[i].rects[j];
+
+                /*
+                 * We rule out placement j of rectangle i by means
+                 * of removing all of rectangle k's candidate
+                 * number placements which do _not_ overlap it.
+                 * This will ensure that it is eliminated during
+                 * the next pass of rectangle-focused deduction.
+                 */
+#ifdef SOLVER_DIAGNOSTICS
+                printf("ensuring number for rect %d is within"
+                       " rect %d's placement at %d,%d w=%d h=%d\n",
+                       k, i, r.x, r.y, r.w, r.h);
+#endif
+
+                for (m = 0; m < numbers[k].npoints; m++) {
+                    int x = numbers[k].points[m].x;
+                    int y = numbers[k].points[m].y;
+
+                    if (x < r.x || x >= r.x + r.w ||
+                        y < r.y || y >= r.y + r.h) {
+#ifdef SOLVER_DIAGNOSTICS
+                        printf("eliminating number for rect %d at %d,%d\n",
+                               k, x, y);
+#endif
+                        remove_number_placement(w, h, &numbers[k],
+                                                m, rectbyplace);
+                        m--;           /* don't skip the next one */
+                        done_something = TRUE;
+                    }
+                }
+            }
+        }
+
+        if (!done_something) {
+#ifdef SOLVER_DIAGNOSTICS
+            printf("terminating deduction loop\n");
+#endif
+            break;
+        }
+    }
+
+    ret = TRUE;
+    for (i = 0; i < nrects; i++) {
+#ifdef SOLVER_DIAGNOSTICS
+        printf("rect %d has %d possible placements\n",
+               i, rectpositions[i].n);
+#endif
+        assert(rectpositions[i].n > 0);
+        if (rectpositions[i].n > 1)
+            ret = FALSE;
+    }
+
+    /*
+     * Free up all allocated storage.
+     */
+    sfree(workspace);
+    sfree(rectbyplace);
+    sfree(overlaps);
+    for (i = 0; i < nrects; i++)
+        sfree(rectpositions[i].rects);
+    sfree(rectpositions);
+
+    return ret;
+}
+
+/* ----------------------------------------------------------------------
+ * Grid generation code.
+ */
 
 static struct rectlist *get_rectlist(game_params *params, int *grid)
 {
@@ -392,496 +1019,557 @@ struct game_aux_info {
 static char *new_game_desc(game_params *params, random_state *rs,
 			   game_aux_info **aux)
 {
-    int *grid, *numbers;
+    int *grid, *numbers = NULL;
     struct rectlist *list;
     int x, y, y2, y2last, yx, run, i;
     char *desc, *p;
     game_params params2real, *params2 = &params2real;
 
-    /*
-     * Set up the smaller width and height which we will use to
-     * generate the base grid.
-     */
-    params2->w = params->w / (1.0F + params->expandfactor);
-    if (params2->w < 2 && params->w >= 2) params2->w = 2;
-    params2->h = params->h / (1.0F + params->expandfactor);
-    if (params2->h < 2 && params->h >= 2) params2->h = 2;
+    while (1) {
+        /*
+         * Set up the smaller width and height which we will use to
+         * generate the base grid.
+         */
+        params2->w = params->w / (1.0F + params->expandfactor);
+        if (params2->w < 2 && params->w >= 2) params2->w = 2;
+        params2->h = params->h / (1.0F + params->expandfactor);
+        if (params2->h < 2 && params->h >= 2) params2->h = 2;
 
-    grid = snewn(params2->w * params2->h, int);
+        grid = snewn(params2->w * params2->h, int);
 
-    for (y = 0; y < params2->h; y++)
+        for (y = 0; y < params2->h; y++)
+            for (x = 0; x < params2->w; x++) {
+                index(params2, grid, x, y) = -1;
+            }
+
+        list = get_rectlist(params2, grid);
+        assert(list != NULL);
+
+        /*
+         * Place rectangles until we can't any more.
+         */
+        while (list->n > 0) {
+            int i, m;
+            struct rect r;
+
+            /*
+             * Pick a random rectangle.
+             */
+            i = random_upto(rs, list->n);
+            r = list->rects[i];
+
+            /*
+             * Place it.
+             */
+            place_rect(params2, grid, r);
+
+            /*
+             * Winnow the list by removing any rectangles which
+             * overlap this one.
+             */
+            m = 0;
+            for (i = 0; i < list->n; i++) {
+                struct rect s = list->rects[i];
+                if (s.x+s.w <= r.x || r.x+r.w <= s.x ||
+                    s.y+s.h <= r.y || r.y+r.h <= s.y)
+                    list->rects[m++] = s;
+            }
+            list->n = m;
+        }
+
+        free_rectlist(list);
+
+        /*
+         * Deal with singleton spaces remaining in the grid, one by
+         * one.
+         *
+         * We do this by making a local change to the layout. There are
+         * several possibilities:
+         *
+         *     +-----+-----+    Here, we can remove the singleton by
+         *     |     |     |    extending the 1x2 rectangle below it
+         *     +--+--+-----+    into a 1x3.
+         *     |  |  |     |
+         *     |  +--+     |
+         *     |  |  |     |
+         *     |  |  |     |
+         *     |  |  |     |
+         *     +--+--+-----+
+         *
+         *     +--+--+--+       Here, that trick doesn't work: there's no
+         *     |     |  |       1 x n rectangle with the singleton at one
+         *     |     |  |       end. Instead, we extend a 1 x n rectangle
+         *     |     |  |       _out_ from the singleton, shaving a layer
+         *     +--+--+  |       off the end of another rectangle. So if we
+         *     |  |  |  |       extended up, we'd make our singleton part
+         *     |  +--+--+       of a 1x3 and generate a 1x2 where the 2x2
+         *     |  |     |       used to be; or we could extend right into
+         *     +--+-----+       a 2x1, turning the 1x3 into a 1x2.
+         *
+         *     +-----+--+       Here, we can't even do _that_, since any
+         *     |     |  |       direction we choose to extend the singleton
+         *     +--+--+  |       will produce a new singleton as a result of
+         *     |  |  |  |       truncating one of the size-2 rectangles.
+         *     |  +--+--+       Fortunately, this case can _only_ occur when
+         *     |  |     |       a singleton is surrounded by four size-2s
+         *     +--+-----+       in this fashion; so instead we can simply
+         *                      replace the whole section with a single 3x3.
+         */
         for (x = 0; x < params2->w; x++) {
-            index(params2, grid, x, y) = -1;
-        }
-
-    list = get_rectlist(params2, grid);
-    assert(list != NULL);
-
-    /*
-     * Place rectangles until we can't any more.
-     */
-    while (list->n > 0) {
-        int i, m;
-        struct rect r;
-
-        /*
-         * Pick a random rectangle.
-         */
-        i = random_upto(rs, list->n);
-        r = list->rects[i];
-
-        /*
-         * Place it.
-         */
-        place_rect(params2, grid, r);
-
-        /*
-         * Winnow the list by removing any rectangles which
-         * overlap this one.
-         */
-        m = 0;
-        for (i = 0; i < list->n; i++) {
-            struct rect s = list->rects[i];
-            if (s.x+s.w <= r.x || r.x+r.w <= s.x ||
-                s.y+s.h <= r.y || r.y+r.h <= s.y)
-                list->rects[m++] = s;
-        }
-        list->n = m;
-    }
-
-    free_rectlist(list);
-
-    /*
-     * Deal with singleton spaces remaining in the grid, one by
-     * one.
-     * 
-     * We do this by making a local change to the layout. There are
-     * several possibilities:
-     * 
-     *     +-----+-----+    Here, we can remove the singleton by
-     *     |     |     |    extending the 1x2 rectangle below it
-     *     +--+--+-----+    into a 1x3.
-     *     |  |  |     |
-     *     |  +--+     |
-     *     |  |  |     |
-     *     |  |  |     |
-     *     |  |  |     |
-     *     +--+--+-----+
-     * 
-     *     +--+--+--+       Here, that trick doesn't work: there's no
-     *     |     |  |       1 x n rectangle with the singleton at one
-     *     |     |  |       end. Instead, we extend a 1 x n rectangle
-     *     |     |  |       _out_ from the singleton, shaving a layer
-     *     +--+--+  |       off the end of another rectangle. So if we
-     *     |  |  |  |       extended up, we'd make our singleton part
-     *     |  +--+--+       of a 1x3 and generate a 1x2 where the 2x2
-     *     |  |     |       used to be; or we could extend right into
-     *     +--+-----+       a 2x1, turning the 1x3 into a 1x2.
-     * 
-     *     +-----+--+       Here, we can't even do _that_, since any
-     *     |     |  |       direction we choose to extend the singleton
-     *     +--+--+  |       will produce a new singleton as a result of
-     *     |  |  |  |       truncating one of the size-2 rectangles.
-     *     |  +--+--+       Fortunately, this case can _only_ occur when
-     *     |  |     |       a singleton is surrounded by four size-2s
-     *     +--+-----+       in this fashion; so instead we can simply
-     *                      replace the whole section with a single 3x3.
-     */
-    for (x = 0; x < params2->w; x++) {
-        for (y = 0; y < params2->h; y++) {
-            if (index(params2, grid, x, y) < 0) {
-                int dirs[4], ndirs;
+            for (y = 0; y < params2->h; y++) {
+                if (index(params2, grid, x, y) < 0) {
+                    int dirs[4], ndirs;
 
 #ifdef GENERATION_DIAGNOSTICS
-                display_grid(params2, grid, NULL, FALSE);
-                printf("singleton at %d,%d\n", x, y);
+                    display_grid(params2, grid, NULL, FALSE);
+                    printf("singleton at %d,%d\n", x, y);
 #endif
 
-                /*
-                 * Check in which directions we can feasibly extend
-                 * the singleton. We can extend in a particular
-                 * direction iff either:
-                 * 
-                 *  - the rectangle on that side of the singleton
-                 *    is not 2x1, and we are at one end of the edge
-                 *    of it we are touching
-                 * 
-                 *  - it is 2x1 but we are on its short side.
-                 * 
-                 * FIXME: we could plausibly choose between these
-                 * based on the sizes of the rectangles they would
-                 * create?
-                 */
-                ndirs = 0;
-                if (x < params2->w-1) {
-                    struct rect r = find_rect(params2, grid, x+1, y);
-                    if ((r.w * r.h > 2 && (r.y==y || r.y+r.h-1==y)) || r.h==1)
-                        dirs[ndirs++] = 1;   /* right */
-                }
-                if (y > 0) {
-                    struct rect r = find_rect(params2, grid, x, y-1);
-                    if ((r.w * r.h > 2 && (r.x==x || r.x+r.w-1==x)) || r.w==1)
-                        dirs[ndirs++] = 2;   /* up */
-                }
-                if (x > 0) {
-                    struct rect r = find_rect(params2, grid, x-1, y);
-                    if ((r.w * r.h > 2 && (r.y==y || r.y+r.h-1==y)) || r.h==1)
-                        dirs[ndirs++] = 4;   /* left */
-                }
-                if (y < params2->h-1) {
-                    struct rect r = find_rect(params2, grid, x, y+1);
-                    if ((r.w * r.h > 2 && (r.x==x || r.x+r.w-1==x)) || r.w==1)
-                        dirs[ndirs++] = 8;   /* down */
-                }
-
-                if (ndirs > 0) {
-                    int which, dir;
-                    struct rect r1, r2;
-
-                    which = random_upto(rs, ndirs);
-                    dir = dirs[which];
-
-                    switch (dir) {
-                      case 1:          /* right */
-                        assert(x < params2->w+1);
-#ifdef GENERATION_DIAGNOSTICS
-                        printf("extending right\n");
-#endif
-                        r1 = find_rect(params2, grid, x+1, y);
-                        r2.x = x;
-                        r2.y = y;
-                        r2.w = 1 + r1.w;
-                        r2.h = 1;
-                        if (r1.y == y)
-                            r1.y++;
-                        r1.h--;
-                        break;
-                      case 2:          /* up */
-                        assert(y > 0);
-#ifdef GENERATION_DIAGNOSTICS
-                        printf("extending up\n");
-#endif
-                        r1 = find_rect(params2, grid, x, y-1);
-                        r2.x = x;
-                        r2.y = r1.y;
-                        r2.w = 1;
-                        r2.h = 1 + r1.h;
-                        if (r1.x == x)
-                            r1.x++;
-                        r1.w--;
-                        break;
-                      case 4:          /* left */
-                        assert(x > 0);
-#ifdef GENERATION_DIAGNOSTICS
-                        printf("extending left\n");
-#endif
-                        r1 = find_rect(params2, grid, x-1, y);
-                        r2.x = r1.x;
-                        r2.y = y;
-                        r2.w = 1 + r1.w;
-                        r2.h = 1;
-                        if (r1.y == y)
-                            r1.y++;
-                        r1.h--;
-                        break;
-                      case 8:          /* down */
-                        assert(y < params2->h+1);
-#ifdef GENERATION_DIAGNOSTICS
-                        printf("extending down\n");
-#endif
-                        r1 = find_rect(params2, grid, x, y+1);
-                        r2.x = x;
-                        r2.y = y;
-                        r2.w = 1;
-                        r2.h = 1 + r1.h;
-                        if (r1.x == x)
-                            r1.x++;
-                        r1.w--;
-                        break;
+                    /*
+                     * Check in which directions we can feasibly extend
+                     * the singleton. We can extend in a particular
+                     * direction iff either:
+                     *
+                     *  - the rectangle on that side of the singleton
+                     *    is not 2x1, and we are at one end of the edge
+                     *    of it we are touching
+                     *
+                     *  - it is 2x1 but we are on its short side.
+                     *
+                     * FIXME: we could plausibly choose between these
+                     * based on the sizes of the rectangles they would
+                     * create?
+                     */
+                    ndirs = 0;
+                    if (x < params2->w-1) {
+                        struct rect r = find_rect(params2, grid, x+1, y);
+                        if ((r.w * r.h > 2 && (r.y==y || r.y+r.h-1==y)) || r.h==1)
+                            dirs[ndirs++] = 1;   /* right */
                     }
-                    if (r1.h > 0 && r1.w > 0)
-                        place_rect(params2, grid, r1);
-                    place_rect(params2, grid, r2);
-                } else {
+                    if (y > 0) {
+                        struct rect r = find_rect(params2, grid, x, y-1);
+                        if ((r.w * r.h > 2 && (r.x==x || r.x+r.w-1==x)) || r.w==1)
+                            dirs[ndirs++] = 2;   /* up */
+                    }
+                    if (x > 0) {
+                        struct rect r = find_rect(params2, grid, x-1, y);
+                        if ((r.w * r.h > 2 && (r.y==y || r.y+r.h-1==y)) || r.h==1)
+                            dirs[ndirs++] = 4;   /* left */
+                    }
+                    if (y < params2->h-1) {
+                        struct rect r = find_rect(params2, grid, x, y+1);
+                        if ((r.w * r.h > 2 && (r.x==x || r.x+r.w-1==x)) || r.w==1)
+                            dirs[ndirs++] = 8;   /* down */
+                    }
+
+                    if (ndirs > 0) {
+                        int which, dir;
+                        struct rect r1, r2;
+
+                        which = random_upto(rs, ndirs);
+                        dir = dirs[which];
+
+                        switch (dir) {
+                          case 1:          /* right */
+                            assert(x < params2->w+1);
+#ifdef GENERATION_DIAGNOSTICS
+                            printf("extending right\n");
+#endif
+                            r1 = find_rect(params2, grid, x+1, y);
+                            r2.x = x;
+                            r2.y = y;
+                            r2.w = 1 + r1.w;
+                            r2.h = 1;
+                            if (r1.y == y)
+                                r1.y++;
+                            r1.h--;
+                            break;
+                          case 2:          /* up */
+                            assert(y > 0);
+#ifdef GENERATION_DIAGNOSTICS
+                            printf("extending up\n");
+#endif
+                            r1 = find_rect(params2, grid, x, y-1);
+                            r2.x = x;
+                            r2.y = r1.y;
+                            r2.w = 1;
+                            r2.h = 1 + r1.h;
+                            if (r1.x == x)
+                                r1.x++;
+                            r1.w--;
+                            break;
+                          case 4:          /* left */
+                            assert(x > 0);
+#ifdef GENERATION_DIAGNOSTICS
+                            printf("extending left\n");
+#endif
+                            r1 = find_rect(params2, grid, x-1, y);
+                            r2.x = r1.x;
+                            r2.y = y;
+                            r2.w = 1 + r1.w;
+                            r2.h = 1;
+                            if (r1.y == y)
+                                r1.y++;
+                            r1.h--;
+                            break;
+                          case 8:          /* down */
+                            assert(y < params2->h+1);
+#ifdef GENERATION_DIAGNOSTICS
+                            printf("extending down\n");
+#endif
+                            r1 = find_rect(params2, grid, x, y+1);
+                            r2.x = x;
+                            r2.y = y;
+                            r2.w = 1;
+                            r2.h = 1 + r1.h;
+                            if (r1.x == x)
+                                r1.x++;
+                            r1.w--;
+                            break;
+                        }
+                        if (r1.h > 0 && r1.w > 0)
+                            place_rect(params2, grid, r1);
+                        place_rect(params2, grid, r2);
+                    } else {
 #ifndef NDEBUG
-                    /*
-                     * Sanity-check that there really is a 3x3
-                     * rectangle surrounding this singleton and it
-                     * contains absolutely everything we could
-                     * possibly need.
-                     */
-                    {
-                        int xx, yy;
-                        assert(x > 0 && x < params2->w-1);
-                        assert(y > 0 && y < params2->h-1);
+                        /*
+                         * Sanity-check that there really is a 3x3
+                         * rectangle surrounding this singleton and it
+                         * contains absolutely everything we could
+                         * possibly need.
+                         */
+                        {
+                            int xx, yy;
+                            assert(x > 0 && x < params2->w-1);
+                            assert(y > 0 && y < params2->h-1);
 
-                        for (xx = x-1; xx <= x+1; xx++)
-                            for (yy = y-1; yy <= y+1; yy++) {
-                                struct rect r = find_rect(params2,grid,xx,yy);
-                                assert(r.x >= x-1);
-                                assert(r.y >= y-1);
-                                assert(r.x+r.w-1 <= x+1);
-                                assert(r.y+r.h-1 <= y+1);
-                            }
-                    }
+                            for (xx = x-1; xx <= x+1; xx++)
+                                for (yy = y-1; yy <= y+1; yy++) {
+                                    struct rect r = find_rect(params2,grid,xx,yy);
+                                    assert(r.x >= x-1);
+                                    assert(r.y >= y-1);
+                                    assert(r.x+r.w-1 <= x+1);
+                                    assert(r.y+r.h-1 <= y+1);
+                                }
+                        }
 #endif
-                    
+
 #ifdef GENERATION_DIAGNOSTICS
-                    printf("need the 3x3 trick\n");
+                        printf("need the 3x3 trick\n");
 #endif
 
-                    /*
-                     * FIXME: If the maximum rectangle area for
-                     * this grid is less than 9, we ought to
-                     * subdivide the 3x3 in some fashion. There are
-                     * five other possibilities:
-                     * 
-                     *  - a 6 and a 3
-                     *  - a 4, a 3 and a 2
-                     *  - three 3s
-                     *  - a 3 and three 2s (two different arrangements).
-                     */
+                        /*
+                         * FIXME: If the maximum rectangle area for
+                         * this grid is less than 9, we ought to
+                         * subdivide the 3x3 in some fashion. There are
+                         * five other possibilities:
+                         *
+                         *  - a 6 and a 3
+                         *  - a 4, a 3 and a 2
+                         *  - three 3s
+                         *  - a 3 and three 2s (two different arrangements).
+                         */
 
-                    {
-                        struct rect r;
-                        r.x = x-1;
-                        r.y = y-1;
-                        r.w = r.h = 3;
-                        place_rect(params2, grid, r);
+                        {
+                            struct rect r;
+                            r.x = x-1;
+                            r.y = y-1;
+                            r.w = r.h = 3;
+                            place_rect(params2, grid, r);
+                        }
                     }
                 }
             }
         }
-    }
 
-    /*
-     * We have now constructed a grid of the size specified in
-     * params2. Now we extend it into a grid of the size specified
-     * in params. We do this in two passes: we extend it vertically
-     * until it's the right height, then we transpose it, then
-     * extend it vertically again (getting it effectively the right
-     * width), then finally transpose again.
-     */
-    for (i = 0; i < 2; i++) {
-	int *grid2, *expand, *where;
-	game_params params3real, *params3 = &params3real;
-
-#ifdef GENERATION_DIAGNOSTICS
-	printf("before expansion:\n");
-	display_grid(params2, grid, NULL, TRUE);
-#endif
-
-	/*
-	 * Set up the new grid.
-	 */
-	grid2 = snewn(params2->w * params->h, int);
-	expand = snewn(params2->h-1, int);
-	where = snewn(params2->w, int);
-	params3->w = params2->w;
-	params3->h = params->h;
-
-	/*
-	 * Decide which horizontal edges are going to get expanded,
-	 * and by how much.
-	 */
-	for (y = 0; y < params2->h-1; y++)
-	    expand[y] = 0;
-	for (y = params2->h; y < params->h; y++) {
-	    x = random_upto(rs, params2->h-1);
-	    expand[x]++;
-	}
+        /*
+         * We have now constructed a grid of the size specified in
+         * params2. Now we extend it into a grid of the size specified
+         * in params. We do this in two passes: we extend it vertically
+         * until it's the right height, then we transpose it, then
+         * extend it vertically again (getting it effectively the right
+         * width), then finally transpose again.
+         */
+        for (i = 0; i < 2; i++) {
+            int *grid2, *expand, *where;
+            game_params params3real, *params3 = &params3real;
 
 #ifdef GENERATION_DIAGNOSTICS
-	printf("expand[] = {");
-	for (y = 0; y < params2->h-1; y++)
-	    printf(" %d", expand[y]);
-	printf(" }\n");
+            printf("before expansion:\n");
+            display_grid(params2, grid, NULL, TRUE);
 #endif
 
-	/*
-	 * Perform the expansion. The way this works is that we
-	 * alternately:
-	 * 
-	 *  - copy a row from grid into grid2
-	 * 
-	 *  - invent some number of additional rows in grid2 where
-	 *    there was previously only a horizontal line between
-	 *    rows in grid, and make random decisions about where
-	 *    among these to place each rectangle edge that ran
-	 *    along this line.
-	 */
-	for (y = y2 = y2last = 0; y < params2->h; y++) {
-	    /*
-	     * Copy a single line from row y of grid into row y2 of
-	     * grid2.
-	     */
-	    for (x = 0; x < params2->w; x++) {
-		int val = index(params2, grid, x, y);
-		if (val / params2->w == y &&   /* rect starts on this line */
-		    (y2 == 0 ||	       /* we're at the very top, or... */
-		     index(params3, grid2, x, y2-1) / params3->w < y2last
-		     		       /* this rect isn't already started */))
-		    index(params3, grid2, x, y2) =
-		    INDEX(params3, val % params2->w, y2);
-		else
-		    index(params3, grid2, x, y2) =
-		    index(params3, grid2, x, y2-1);
-	    }
+            /*
+             * Set up the new grid.
+             */
+            grid2 = snewn(params2->w * params->h, int);
+            expand = snewn(params2->h-1, int);
+            where = snewn(params2->w, int);
+            params3->w = params2->w;
+            params3->h = params->h;
 
-	    /*
-	     * If that was the last line, terminate the loop early.
-	     */
-	    if (++y2 == params3->h)
-		break;
-
-	    y2last = y2;
-
-	    /*
-	     * Invent some number of additional lines. First walk
-	     * along this line working out where to put all the
-	     * edges that coincide with it.
-	     */
-	    yx = -1;
-	    for (x = 0; x < params2->w; x++) {
-		if (index(params2, grid, x, y) !=
-		    index(params2, grid, x, y+1)) {
-		    /*
-		     * This is a horizontal edge, so it needs
-		     * placing.
-		     */
-		    if (x == 0 ||
-			(index(params2, grid, x-1, y) !=
-			 index(params2, grid, x, y) &&
-			 index(params2, grid, x-1, y+1) !=
-			 index(params2, grid, x, y+1))) {
-			/*
-			 * Here we have the chance to make a new
-			 * decision.
-			 */
-			yx = random_upto(rs, expand[y]+1);
-		    } else {
-			/*
-			 * Here we just reuse the previous value of
-			 * yx.
-			 */
-		    }
-		} else
-		    yx = -1;
-		where[x] = yx;
-	    }
-
-	    for (yx = 0; yx < expand[y]; yx++) {
-		/*
-		 * Invent a single row. For each square in the row,
-		 * we copy the grid entry from the square above it,
-		 * unless we're starting the new rectangle here.
-		 */
-		for (x = 0; x < params2->w; x++) {
-		    if (yx == where[x]) {
-			int val = index(params2, grid, x, y+1);
-			val %= params2->w;
-			val = INDEX(params3, val, y2);
-			index(params3, grid2, x, y2) = val;
-		    } else
-			index(params3, grid2, x, y2) = 
-			index(params3, grid2, x, y2-1);
-		}
-
-		y2++;
-	    }
-	}
-
-	sfree(expand);
-	sfree(where);
+            /*
+             * Decide which horizontal edges are going to get expanded,
+             * and by how much.
+             */
+            for (y = 0; y < params2->h-1; y++)
+                expand[y] = 0;
+            for (y = params2->h; y < params->h; y++) {
+                x = random_upto(rs, params2->h-1);
+                expand[x]++;
+            }
 
 #ifdef GENERATION_DIAGNOSTICS
-	printf("after expansion:\n");
-	display_grid(params3, grid2, NULL, TRUE);
+            printf("expand[] = {");
+            for (y = 0; y < params2->h-1; y++)
+                printf(" %d", expand[y]);
+            printf(" }\n");
 #endif
-	/*
-	 * Transpose.
-	 */
-	params2->w = params3->h;
-	params2->h = params3->w;
-	sfree(grid);
-	grid = snewn(params2->w * params2->h, int);
-	for (x = 0; x < params2->w; x++)
-	    for (y = 0; y < params2->h; y++) {
-		int idx1 = INDEX(params2, x, y);
-		int idx2 = INDEX(params3, y, x);
-		int tmp;
 
-		tmp = grid2[idx2];
-		tmp = (tmp % params3->w) * params2->w + (tmp / params3->w);
-		grid[idx1] = tmp;
-	    }
+            /*
+             * Perform the expansion. The way this works is that we
+             * alternately:
+             *
+             *  - copy a row from grid into grid2
+             *
+             *  - invent some number of additional rows in grid2 where
+             *    there was previously only a horizontal line between
+             *    rows in grid, and make random decisions about where
+             *    among these to place each rectangle edge that ran
+             *    along this line.
+             */
+            for (y = y2 = y2last = 0; y < params2->h; y++) {
+                /*
+                 * Copy a single line from row y of grid into row y2 of
+                 * grid2.
+                 */
+                for (x = 0; x < params2->w; x++) {
+                    int val = index(params2, grid, x, y);
+                    if (val / params2->w == y &&   /* rect starts on this line */
+                        (y2 == 0 ||	       /* we're at the very top, or... */
+                         index(params3, grid2, x, y2-1) / params3->w < y2last
+                         /* this rect isn't already started */))
+                        index(params3, grid2, x, y2) =
+                        INDEX(params3, val % params2->w, y2);
+                    else
+                        index(params3, grid2, x, y2) =
+                        index(params3, grid2, x, y2-1);
+                }
 
-	sfree(grid2);
+                /*
+                 * If that was the last line, terminate the loop early.
+                 */
+                if (++y2 == params3->h)
+                    break;
 
-	{
-	    int tmp;
-	    tmp = params->w;
-	    params->w = params->h;
-	    params->h = tmp;
-	}
+                y2last = y2;
+
+                /*
+                 * Invent some number of additional lines. First walk
+                 * along this line working out where to put all the
+                 * edges that coincide with it.
+                 */
+                yx = -1;
+                for (x = 0; x < params2->w; x++) {
+                    if (index(params2, grid, x, y) !=
+                        index(params2, grid, x, y+1)) {
+                        /*
+                         * This is a horizontal edge, so it needs
+                         * placing.
+                         */
+                        if (x == 0 ||
+                            (index(params2, grid, x-1, y) !=
+                             index(params2, grid, x, y) &&
+                             index(params2, grid, x-1, y+1) !=
+                             index(params2, grid, x, y+1))) {
+                            /*
+                             * Here we have the chance to make a new
+                             * decision.
+                             */
+                            yx = random_upto(rs, expand[y]+1);
+                        } else {
+                            /*
+                             * Here we just reuse the previous value of
+                             * yx.
+                             */
+                        }
+                    } else
+                        yx = -1;
+                    where[x] = yx;
+                }
+
+                for (yx = 0; yx < expand[y]; yx++) {
+                    /*
+                     * Invent a single row. For each square in the row,
+                     * we copy the grid entry from the square above it,
+                     * unless we're starting the new rectangle here.
+                     */
+                    for (x = 0; x < params2->w; x++) {
+                        if (yx == where[x]) {
+                            int val = index(params2, grid, x, y+1);
+                            val %= params2->w;
+                            val = INDEX(params3, val, y2);
+                            index(params3, grid2, x, y2) = val;
+                        } else
+                            index(params3, grid2, x, y2) =
+                            index(params3, grid2, x, y2-1);
+                    }
+
+                    y2++;
+                }
+            }
+
+            sfree(expand);
+            sfree(where);
 
 #ifdef GENERATION_DIAGNOSTICS
-	printf("after transposition:\n");
-	display_grid(params2, grid, NULL, TRUE);
+            printf("after expansion:\n");
+            display_grid(params3, grid2, NULL, TRUE);
 #endif
+            /*
+             * Transpose.
+             */
+            params2->w = params3->h;
+            params2->h = params3->w;
+            sfree(grid);
+            grid = snewn(params2->w * params2->h, int);
+            for (x = 0; x < params2->w; x++)
+                for (y = 0; y < params2->h; y++) {
+                    int idx1 = INDEX(params2, x, y);
+                    int idx2 = INDEX(params3, y, x);
+                    int tmp;
+
+                    tmp = grid2[idx2];
+                    tmp = (tmp % params3->w) * params2->w + (tmp / params3->w);
+                    grid[idx1] = tmp;
+                }
+
+            sfree(grid2);
+
+            {
+                int tmp;
+                tmp = params->w;
+                params->w = params->h;
+                params->h = tmp;
+            }
+
+#ifdef GENERATION_DIAGNOSTICS
+            printf("after transposition:\n");
+            display_grid(params2, grid, NULL, TRUE);
+#endif
+        }
+
+        /*
+         * Run the solver to narrow down the possible number
+         * placements.
+         */
+        {
+            struct numberdata *nd;
+            int nnumbers, i, ret;
+
+            /* Count the rectangles. */
+            nnumbers = 0;
+            for (y = 0; y < params->h; y++) {
+                for (x = 0; x < params->w; x++) {
+                    int idx = INDEX(params, x, y);
+                    if (index(params, grid, x, y) == idx)
+                        nnumbers++;
+                }
+            }
+
+            nd = snewn(nnumbers, struct numberdata);
+
+            /* Now set up each number's candidate position list. */
+            i = 0;
+            for (y = 0; y < params->h; y++) {
+                for (x = 0; x < params->w; x++) {
+                    int idx = INDEX(params, x, y);
+                    if (index(params, grid, x, y) == idx) {
+                        struct rect r = find_rect(params, grid, x, y);
+                        int j, k, m;
+
+                        nd[i].area = r.w * r.h;
+                        nd[i].npoints = nd[i].area;
+                        nd[i].points = snewn(nd[i].npoints, struct point);
+                        m = 0;
+                        for (j = 0; j < r.h; j++)
+                            for (k = 0; k < r.w; k++) {
+                                nd[i].points[m].x = k + r.x;
+                                nd[i].points[m].y = j + r.y;
+                                m++;
+                            }
+                        assert(m == nd[i].npoints);
+
+                        i++;
+                    }
+                }
+            }
+
+	    ret = rect_solver(params->w, params->h, nnumbers, nd, rs);
+
+            if (ret) {
+                /*
+                 * Now place the numbers according to the solver's
+                 * recommendations.
+                 */
+                numbers = snewn(params->w * params->h, int);
+
+                for (y = 0; y < params->h; y++)
+                    for (x = 0; x < params->w; x++) {
+                        index(params, numbers, x, y) = 0;
+                    }
+
+                for (i = 0; i < nnumbers; i++) {
+                    int idx = random_upto(rs, nd[i].npoints);
+                    int x = nd[i].points[idx].x;
+                    int y = nd[i].points[idx].y;
+                    index(params,numbers,x,y) = nd[i].area;
+                }
+            }
+
+            /*
+             * Clean up.
+             */
+            for (i = 0; i < nnumbers; i++)
+                sfree(nd[i].points);
+            sfree(nd);
+
+            /*
+             * If we've succeeded, then terminate the loop.
+             */
+            if (ret)
+                break;
+        }
+
+        /*
+         * Give up and go round again.
+         */
+        sfree(grid);
     }
 
     /*
      * Store the rectangle data in the game_aux_info.
      */
     {
-	game_aux_info *ai = snew(game_aux_info);
+        game_aux_info *ai = snew(game_aux_info);
 
-	ai->w = params->w;
-	ai->h = params->h;
-	ai->vedge = snewn(ai->w * ai->h, unsigned char);
-	ai->hedge = snewn(ai->w * ai->h, unsigned char);
+        ai->w = params->w;
+        ai->h = params->h;
+        ai->vedge = snewn(ai->w * ai->h, unsigned char);
+        ai->hedge = snewn(ai->w * ai->h, unsigned char);
 
-	for (y = 0; y < params->h; y++)
-	    for (x = 1; x < params->w; x++) {
-		vedge(ai, x, y) =
-		    index(params, grid, x, y) != index(params, grid, x-1, y);
-	    }
-	for (y = 1; y < params->h; y++)
-	    for (x = 0; x < params->w; x++) {
-		hedge(ai, x, y) =
-		    index(params, grid, x, y) != index(params, grid, x, y-1);
-	    }
-
-	*aux = ai;
-    }
-
-    /*
-     * Place numbers.
-     */
-    numbers = snewn(params->w * params->h, int);
-
-    for (y = 0; y < params->h; y++)
-        for (x = 0; x < params->w; x++) {
-            index(params, numbers, x, y) = 0;
-        }
-
-    for (x = 0; x < params->w; x++) {
-        for (y = 0; y < params->h; y++) {
-            int idx = INDEX(params, x, y);
-            if (index(params, grid, x, y) == idx) {
-                struct rect r = find_rect(params, grid, x, y);
-                int n, xx, yy;
-
-                /*
-                 * Decide where to put the number.
-                 */
-                n = random_upto(rs, r.w*r.h);
-                yy = n / r.w;
-                xx = n % r.w;
-                index(params,numbers,x+xx,y+yy) = r.w*r.h;
+        for (y = 0; y < params->h; y++)
+            for (x = 1; x < params->w; x++) {
+                vedge(ai, x, y) =
+                    index(params, grid, x, y) != index(params, grid, x-1, y);
             }
-        }
+        for (y = 1; y < params->h; y++)
+            for (x = 0; x < params->w; x++) {
+                hedge(ai, x, y) =
+                    index(params, grid, x, y) != index(params, grid, x, y-1);
+            }
+
+        *aux = ai;
     }
 
 #ifdef GENERATION_DIAGNOSTICS
