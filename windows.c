@@ -35,8 +35,8 @@
 #define IDM_SEED      0x00A0
 #define IDM_HELPC     0x00B0
 #define IDM_GAMEHELP  0x00C0
+#define IDM_ABOUT     0x00D0
 #define IDM_PRESETS   0x0100
-#define IDM_ABOUT     0x0110
 
 #define HELP_FILE_NAME  "puzzles.hlp"
 #define HELP_CNT_NAME   "puzzles.cnt"
