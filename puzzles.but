@@ -346,6 +346,15 @@ barrier is placed between two tiles to prevent flow between them (a
 higher number gives more barriers). Since barriers are immovable, they
 act as constraints on the solution (i.e., hints).
 
+\dt \e{Ensure unique solution}
+
+\dd Normally, Net will make sure that the puzzles it presents have
+only one solution. Puzzles with ambiguous sections can be more
+difficult and more subtle, so if you like you can turn off this
+feature and risk having ambiguous puzzles. (Also, finding \e{all}
+the possible solutions can be an additional challenge for an
+advanced player.)
+
 \lcont{
 
 The grid generation in Net has been carefully arranged so that the

@@ -72,6 +72,7 @@ struct game_params {
     int width;
     int height;
     int wrapping;
+    int unique;
     float barrier_probability;
 };
 
@@ -88,9 +89,12 @@ struct game_state {
     unsigned char *barriers;
 };
 
+#define OFFSETWH(x2,y2,x1,y1,dir,width,height) \
+    ( (x2) = ((x1) + width + X((dir))) % width, \
+      (y2) = ((y1) + height + Y((dir))) % height)
+
 #define OFFSET(x2,y2,x1,y1,dir,state) \
-    ( (x2) = ((x1) + (state)->width + X((dir))) % (state)->width, \
-      (y2) = ((y1) + (state)->height + Y((dir))) % (state)->height)
+	OFFSETWH(x2,y2,x1,y1,dir,(state)->width,(state)->height)
 
 #define index(state, a, x, y) ( a[(y) * (state)->width + (x)] )
 #define tile(state, x, y)     index(state, (state)->tiles, x, y)
@@ -100,9 +104,9 @@ struct xyd {
     int x, y, direction;
 };
 
-static int xyd_cmp(void *av, void *bv) {
-    struct xyd *a = (struct xyd *)av;
-    struct xyd *b = (struct xyd *)bv;
+static int xyd_cmp(const void *av, const void *bv) {
+    const struct xyd *a = (const struct xyd *)av;
+    const struct xyd *b = (const struct xyd *)bv;
     if (a->x < b->x)
 	return -1;
     if (a->x > b->x)
@@ -117,6 +121,8 @@ static int xyd_cmp(void *av, void *bv) {
 	return +1;
     return 0;
 };
+
+static int xyd_cmp_nc(void *av, void *bv) { return xyd_cmp(av, bv); }
 
 static struct xyd *new_xyd(int x, int y, int direction)
 {
@@ -137,6 +143,7 @@ static game_params *default_params(void)
     ret->width = 5;
     ret->height = 5;
     ret->wrapping = FALSE;
+    ret->unique = TRUE;
     ret->barrier_probability = 0.0;
 
     return ret;
@@ -166,6 +173,7 @@ static int game_fetch_preset(int i, char **name, game_params **params)
     ret->width = values[i].x;
     ret->height = values[i].y;
     ret->wrapping = values[i].wrap;
+    ret->unique = TRUE;
     ret->barrier_probability = 0.0;
 
     sprintf(str, "%dx%d%s", ret->width, ret->height,
@@ -198,12 +206,22 @@ static void decode_params(game_params *ret, char const *string)
         p++;
         ret->height = atoi(p);
         while (*p && isdigit(*p)) p++;
-        if ( (ret->wrapping = (*p == 'w')) != 0 )
-            p++;
-        if (*p == 'b')
-            ret->barrier_probability = atof(p+1);
     } else {
         ret->height = ret->width;
+    }
+
+    while (*p) {
+        if (*p == 'w') {
+            p++;
+	    ret->wrapping = TRUE;
+	} else if (*p == 'b') {
+	    p++;
+            ret->barrier_probability = atof(p);
+	    while (*p && isdigit(*p)) p++;
+	} else if (*p == 'a') {
+            p++;
+	    ret->unique = FALSE;
+	}
     }
 }
 
@@ -217,6 +235,8 @@ static char *encode_params(game_params *params, int full)
         ret[len++] = 'w';
     if (full && params->barrier_probability)
         len += sprintf(ret+len, "b%g", params->barrier_probability);
+    if (!params->unique)
+        ret[len++] = 'a';
     assert(len < lenof(ret));
     ret[len] = '\0';
 
@@ -228,7 +248,7 @@ static config_item *game_configure(game_params *params)
     config_item *ret;
     char buf[80];
 
-    ret = snewn(5, config_item);
+    ret = snewn(6, config_item);
 
     ret[0].name = "Width";
     ret[0].type = C_STRING;
@@ -253,10 +273,15 @@ static config_item *game_configure(game_params *params)
     ret[3].sval = dupstr(buf);
     ret[3].ival = 0;
 
-    ret[4].name = NULL;
-    ret[4].type = C_END;
+    ret[4].name = "Ensure unique solution";
+    ret[4].type = C_BOOLEAN;
     ret[4].sval = NULL;
-    ret[4].ival = 0;
+    ret[4].ival = params->unique;
+
+    ret[5].name = NULL;
+    ret[5].type = C_END;
+    ret[5].sval = NULL;
+    ret[5].ival = 0;
 
     return ret;
 }
@@ -269,6 +294,7 @@ static game_params *custom_params(config_item *cfg)
     ret->height = atoi(cfg[1].sval);
     ret->wrapping = cfg[2].ival;
     ret->barrier_probability = (float)atof(cfg[3].sval);
+    ret->unique = cfg[4].ival;
 
     return ret;
 }
@@ -291,8 +317,753 @@ static char *validate_params(game_params *params)
 }
 
 /* ----------------------------------------------------------------------
+ * Solver used to assure solution uniqueness during generation. 
+ */
+
+/*
+ * Test cases I used while debugging all this were
+ * 
+ *   ./net --generate 1 13x11w#12300
+ * which expands under the non-unique grid generation rules to
+ *   13x11w:5eaade1bd222664436d5e2965c12656b1129dd825219e3274d558d5eb2dab5da18898e571d5a2987be79746bd95726c597447d6da96188c513add829da7681da954db113d3cd244
+ * and has two ambiguous areas.
+ * 
+ * An even better one is
+ *   13x11w#507896411361192
+ * which expands to
+ *   13x11w:b7125b1aec598eb31bd58d82572bc11494e5dee4e8db2bdd29b88d41a16bdd996d2996ddec8c83741a1e8674e78328ba71737b8894a9271b1cd1399453d1952e43951d9b712822e
+ * and has an ambiguous area _and_ a situation where loop avoidance
+ * is a necessary deductive technique.
+ * 
+ * Then there's
+ *   48x25w#820543338195187
+ * becoming
+ *   48x25w:255989d14cdd185deaa753a93821a12edc1ab97943ac127e2685d7b8b3c48861b2192416139212b316eddd35de43714ebc7628d753db32e596284d9ec52c5a7dc1b4c811a655117d16dc28921b2b4161352cab1d89d18bc836b8b891d55ea4622a1251861b5bc9a8aa3e5bcd745c95229ca6c3b5e21d5832d397e917325793d7eb442dc351b2db2a52ba8e1651642275842d8871d5534aabc6d5b741aaa2d48ed2a7dbbb3151ddb49d5b9a7ed1ab98ee75d613d656dbba347bc514c84556b43a9bc65a3256ead792488b862a9d2a8a39b4255a4949ed7dbd79443292521265896b4399c95ede89d7c8c797a6a57791a849adea489359a158aa12e5dacce862b8333b7ebea7d344d1a3c53198864b73a9dedde7b663abb1b539e1e8853b1b7edb14a2a17ebaae4dbe63598a2e7e9a2dbdad415bc1d8cb88cbab5a8c82925732cd282e641ea3bd7d2c6e776de9117a26be86deb7c82c89524b122cb9397cd1acd2284e744ea62b9279bae85479ababe315c3ac29c431333395b24e6a1e3c43a2da42d4dce84aadd5b154aea555eaddcbd6e527d228c19388d9b424d94214555a7edbdeebe569d4a56dc51a86bd9963e377bb74752bd5eaa5761ba545e297b62a1bda46ab4aee423ad6c661311783cc18786d4289236563cb4a75ec67d481c14814994464cd1b87396dee63e5ab6e952cc584baa1d4c47cb557ec84dbb63d487c8728118673a166846dd3a4ebc23d6cb9c5827d96b4556e91899db32b517eda815ae271a8911bd745447121dc8d321557bc2a435ebec1bbac35b1a291669451174e6aa2218a4a9c5a6ca31ebc45d84e3a82c121e9ced7d55e9a
+ * which has a spot (far right) where slightly more complex loop
+ * avoidance is required.
+ */
+
+static int dsf_canonify(int *dsf, int val)
+{
+    int v2 = val;
+
+    while (dsf[val] != val)
+	val = dsf[val];
+
+    while (v2 != val) {
+	int tmp = dsf[v2];
+	dsf[v2] = val;
+	v2 = tmp;
+    }
+
+    return val;
+}
+
+static void dsf_merge(int *dsf, int v1, int v2)
+{
+    v1 = dsf_canonify(dsf, v1);
+    v2 = dsf_canonify(dsf, v2);
+    dsf[v2] = v1;
+}
+
+struct todo {
+    unsigned char *marked;
+    int *buffer;
+    int buflen;
+    int head, tail;
+};
+
+static struct todo *todo_new(int maxsize)
+{
+    struct todo *todo = snew(struct todo);
+    todo->marked = snewn(maxsize, unsigned char);
+    memset(todo->marked, 0, maxsize);
+    todo->buflen = maxsize + 1;
+    todo->buffer = snewn(todo->buflen, int);
+    todo->head = todo->tail = 0;
+    return todo;
+}
+
+static void todo_free(struct todo *todo)
+{
+    sfree(todo->marked);
+    sfree(todo->buffer);
+    sfree(todo);
+}
+
+static void todo_add(struct todo *todo, int index)
+{
+    if (todo->marked[index])
+	return;			       /* already on the list */
+    todo->marked[index] = TRUE;
+    todo->buffer[todo->tail++] = index;
+    if (todo->tail == todo->buflen)
+	todo->tail = 0;
+}
+
+static int todo_get(struct todo *todo) {
+    int ret;
+
+    if (todo->head == todo->tail)
+	return -1;		       /* list is empty */
+    ret = todo->buffer[todo->head++];
+    if (todo->head == todo->buflen)
+	todo->head = 0;
+    todo->marked[ret] = FALSE;
+
+    return ret;
+}
+
+static int net_solver(int w, int h, unsigned char *tiles, int wrapping)
+{
+    unsigned char *tilestate;
+    unsigned char *edgestate;
+    int *deadends;
+    int *equivalence;
+    struct todo *todo;
+    int i, j, x, y;
+    int area;
+    int done_something;
+
+    /*
+     * Set up the solver's data structures.
+     */
+    
+    /*
+     * tilestate stores the possible orientations of each tile.
+     * There are up to four of these, so we'll index the array in
+     * fours. tilestate[(y * w + x) * 4] and its three successive
+     * members give the possible orientations, clearing to 255 from
+     * the end as things are ruled out.
+     * 
+     * In this loop we also count up the area of the grid (which is
+     * not _necessarily_ equal to w*h, because there might be one
+     * or more blank squares present. This will never happen in a
+     * grid generated _by_ this program, but it's worth keeping the
+     * solver as general as possible.)
+     */
+    tilestate = snewn(w * h * 4, unsigned char);
+    area = 0;
+    for (i = 0; i < w*h; i++) {
+	tilestate[i * 4] = tiles[i] & 0xF;
+	for (j = 1; j < 4; j++) {
+	    if (tilestate[i * 4 + j - 1] == 255 ||
+		A(tilestate[i * 4 + j - 1]) == tilestate[i * 4])
+		tilestate[i * 4 + j] = 255;
+	    else
+		tilestate[i * 4 + j] = A(tilestate[i * 4 + j - 1]);
+	}
+	if (tiles[i] != 0)
+	    area++;
+    }
+
+    /*
+     * edgestate stores the known state of each edge. It is 0 for
+     * unknown, 1 for open (connected) and 2 for closed (not
+     * connected).
+     * 
+     * In principle we need only worry about each edge once each,
+     * but in fact it's easier to track each edge twice so that we
+     * can reference it from either side conveniently. Also I'm
+     * going to allocate _five_ bytes per tile, rather than the
+     * obvious four, so that I can index edgestate[(y*w+x) * 5 + d]
+     * where d is 1,2,4,8 and they never overlap.
+     */
+    edgestate = snewn((w * h - 1) * 5 + 9, unsigned char);
+    memset(edgestate, 0, (w * h - 1) * 5 + 9);
+
+    /*
+     * deadends tracks which edges have dead ends on them. It is
+     * indexed by tile and direction: deadends[(y*w+x) * 5 + d]
+     * tells you whether heading out of tile (x,y) in direction d
+     * can reach a limited amount of the grid. Values are area+1
+     * (no dead end known) or less than that (can reach _at most_
+     * this many other tiles by heading this way out of this tile).
+     */
+    deadends = snewn((w * h - 1) * 5 + 9, int);
+    for (i = 0; i < (w * h - 1) * 5 + 9; i++)
+	deadends[i] = area+1;
+
+    /*
+     * equivalence tracks which sets of tiles are known to be
+     * connected to one another, so we can avoid creating loops by
+     * linking together tiles which are already linked through
+     * another route.
+     * 
+     * This is a disjoint set forest structure: equivalence[i]
+     * contains the index of another member of the equivalence
+     * class containing i, or contains i itself for precisely one
+     * member in each such class. To find a representative member
+     * of the equivalence class containing i, you keep replacing i
+     * with equivalence[i] until it stops changing; then you go
+     * _back_ along the same path and point everything on it
+     * directly at the representative member so as to speed up
+     * future searches. Then you test equivalence between tiles by
+     * finding the representative of each tile and seeing if
+     * they're the same; and you create new equivalence (merge
+     * classes) by finding the representative of each tile and
+     * setting equivalence[one]=the_other.
+     */
+    equivalence = snewn(w * h, int);
+    for (i = 0; i < w*h; i++)
+	equivalence[i] = i;	       /* initially all distinct */
+
+    /*
+     * On a non-wrapping grid, we instantly know that all the edges
+     * round the edge are closed.
+     */
+    if (!wrapping) {
+	for (i = 0; i < w; i++) {
+	    edgestate[i * 5 + 2] = edgestate[((h-1) * w + i) * 5 + 8] = 2;
+	}
+	for (i = 0; i < h; i++) {
+	    edgestate[(i * w + w-1) * 5 + 1] = edgestate[(i * w) * 5 + 4] = 2;
+	}
+    }
+
+    /*
+     * Since most deductions made by this solver are local (the
+     * exception is loop avoidance, where joining two tiles
+     * together on one side of the grid can theoretically permit a
+     * fresh deduction on the other), we can address the scaling
+     * problem inherent in iterating repeatedly over the entire
+     * grid by instead working with a to-do list.
+     */
+    todo = todo_new(w * h);
+
+    /*
+     * Main deductive loop.
+     */
+    done_something = TRUE;	       /* prevent instant termination! */
+    while (1) {
+	int index;
+
+	/*
+	 * Take a tile index off the todo list and process it.
+	 */
+	index = todo_get(todo);
+	if (index == -1) {
+	    /*
+	     * If we have run out of immediate things to do, we
+	     * have no choice but to scan the whole grid for
+	     * longer-range things we've missed. Hence, I now add
+	     * every square on the grid back on to the to-do list.
+	     * I also set `done_something' to FALSE at this point;
+	     * if we later come back here and find it still FALSE,
+	     * we will know we've scanned the entire grid without
+	     * finding anything new to do, and we can terminate.
+	     */
+	    if (!done_something)
+		break;
+	    for (i = 0; i < w*h; i++)
+		todo_add(todo, i);
+	    done_something = FALSE;
+
+	    index = todo_get(todo);
+	}
+
+	y = index / w;
+	x = index % w;
+	{
+	    int d, ourclass = dsf_canonify(equivalence, y*w+x);
+	    int deadendmax[9];
+
+	    deadendmax[1] = deadendmax[2] = deadendmax[4] = deadendmax[8] = 0;
+
+	    for (i = j = 0; i < 4 && tilestate[(y*w+x) * 4 + i] != 255; i++) {
+		int valid;
+		int nnondeadends, nondeadends[4], deadendtotal;
+		int nequiv, equiv[5];
+		int val = tilestate[(y*w+x) * 4 + i];
+
+		valid = TRUE;
+		nnondeadends = deadendtotal = 0;
+		equiv[0] = ourclass;
+		nequiv = 1;
+		for (d = 1; d <= 8; d += d) {
+		    /*
+		     * Immediately rule out this orientation if it
+		     * conflicts with any known edge.
+		     */
+		    if ((edgestate[(y*w+x) * 5 + d] == 1 && !(val & d)) ||
+			(edgestate[(y*w+x) * 5 + d] == 2 && (val & d)))
+			valid = FALSE;
+
+		    if (val & d) {
+			/*
+			 * Count up the dead-end statistics.
+			 */
+			if (deadends[(y*w+x) * 5 + d] <= area) {
+			    deadendtotal += deadends[(y*w+x) * 5 + d];
+			} else {
+			    nondeadends[nnondeadends++] = d;
+			}
+
+			/*
+			 * Ensure we aren't linking to any tiles,
+			 * through edges not already known to be
+			 * open, which create a loop.
+			 */
+			if (edgestate[(y*w+x) * 5 + d] == 0) {
+			    int c, k, x2, y2;
+			    
+			    OFFSETWH(x2, y2, x, y, d, w, h);
+			    c = dsf_canonify(equivalence, y2*w+x2);
+			    for (k = 0; k < nequiv; k++)
+				if (c == equiv[k])
+				    break;
+			    if (k == nequiv)
+				equiv[nequiv++] = c;
+			    else
+				valid = FALSE;
+			}
+		    }
+		}
+
+		if (nnondeadends == 0) {
+		    /*
+		     * If this orientation links together dead-ends
+		     * with a total area of less than the entire
+		     * grid, it is invalid.
+		     *
+		     * (We add 1 to deadendtotal because of the
+		     * tile itself, of course; one tile linking
+		     * dead ends of size 2 and 3 forms a subnetwork
+		     * with a total area of 6, not 5.)
+		     */
+		    if (deadendtotal+1 < area)
+			valid = FALSE;
+		} else if (nnondeadends == 1) {
+		    /*
+		     * If this orientation links together one or
+		     * more dead-ends with precisely one
+		     * non-dead-end, then we may have to mark that
+		     * non-dead-end as a dead end going the other
+		     * way. However, it depends on whether all
+		     * other orientations share the same property.
+		     */
+		    deadendtotal++;
+		    if (deadendmax[nondeadends[0]] < deadendtotal)
+			deadendmax[nondeadends[0]] = deadendtotal;
+		} else {
+		    /*
+		     * If this orientation links together two or
+		     * more non-dead-ends, then we can rule out the
+		     * possibility of putting in new dead-end
+		     * markings in those directions.
+		     */
+		    int k;
+		    for (k = 0; k < nnondeadends; k++)
+			deadendmax[nondeadends[k]] = area+1;
+		}
+
+		if (valid)
+		    tilestate[(y*w+x) * 4 + j++] = val;
+#ifdef SOLVER_DIAGNOSTICS
+		else
+		    printf("ruling out orientation %x at %d,%d\n", val, x, y);
+#endif
+	    }
+
+	    assert(j > 0);	       /* we can't lose _all_ possibilities! */
+
+	    if (j < i) {
+		int a, o;
+		done_something = TRUE;
+
+		/*
+		 * We have ruled out at least one tile orientation.
+		 * Make sure the rest are blanked.
+		 */
+		while (j < 4)
+		    tilestate[(y*w+x) * 4 + j++] = 255;
+
+		/*
+		 * Now go through them again and see if we've
+		 * deduced anything new about any edges.
+		 */
+		a = 0xF; o = 0;
+		for (i = 0; i < 4 && tilestate[(y*w+x) * 4 + i] != 255; i++) {
+		    a &= tilestate[(y*w+x) * 4 + i];
+		    o |= tilestate[(y*w+x) * 4 + i];
+		}
+		for (d = 1; d <= 8; d += d)
+		    if (edgestate[(y*w+x) * 5 + d] == 0) {
+			int x2, y2, d2;
+			OFFSETWH(x2, y2, x, y, d, w, h);
+			d2 = F(d);
+			if (a & d) {
+			    /* This edge is open in all orientations. */
+#ifdef SOLVER_DIAGNOSTICS
+			    printf("marking edge %d,%d:%d open\n", x, y, d);
+#endif
+			    edgestate[(y*w+x) * 5 + d] = 1;
+			    edgestate[(y2*w+x2) * 5 + d2] = 1;
+			    dsf_merge(equivalence, y*w+x, y2*w+x2);
+			    done_something = TRUE;
+			    todo_add(todo, y2*w+x2);
+			} else if (!(o & d)) {
+			    /* This edge is closed in all orientations. */
+#ifdef SOLVER_DIAGNOSTICS
+			    printf("marking edge %d,%d:%d closed\n", x, y, d);
+#endif
+			    edgestate[(y*w+x) * 5 + d] = 2;
+			    edgestate[(y2*w+x2) * 5 + d2] = 2;
+			    done_something = TRUE;
+			    todo_add(todo, y2*w+x2);
+			}
+		    }
+
+	    }
+
+	    /*
+	     * Now check the dead-end markers and see if any of
+	     * them has lowered from the real ones.
+	     */
+	    for (d = 1; d <= 8; d += d) {
+		int x2, y2, d2;
+		OFFSETWH(x2, y2, x, y, d, w, h);
+		d2 = F(d);
+		if (deadendmax[d] > 0 &&
+		    deadends[(y2*w+x2) * 5 + d2] > deadendmax[d]) {
+#ifdef SOLVER_DIAGNOSTICS
+		    printf("setting dead end value %d,%d:%d to %d\n",
+			   x2, y2, d2, deadendmax[d]);
+#endif
+		    deadends[(y2*w+x2) * 5 + d2] = deadendmax[d];
+		    done_something = TRUE;
+		    todo_add(todo, y2*w+x2);
+		}
+	    }
+
+	}
+    }
+
+    /*
+     * Mark all completely determined tiles as locked.
+     */
+    j = TRUE;
+    for (i = 0; i < w*h; i++) {
+	if (tilestate[i * 4 + 1] == 255) {
+	    assert(tilestate[i * 4 + 0] != 255);
+	    tiles[i] = tilestate[i * 4] | LOCKED;
+	} else {
+	    tiles[i] &= ~LOCKED;
+	    j = FALSE;
+	}
+    }
+
+    /*
+     * Free up working space.
+     */
+    todo_free(todo);
+    sfree(tilestate);
+    sfree(edgestate);
+    sfree(deadends);
+    sfree(equivalence);
+
+    return j;
+}
+
+/* ----------------------------------------------------------------------
  * Randomly select a new game description.
  */
+
+/*
+ * Function to randomly perturb an ambiguous section in a grid, to
+ * attempt to ensure unique solvability.
+ */
+static void perturb(int w, int h, unsigned char *tiles, int wrapping,
+		    random_state *rs, int startx, int starty, int startd)
+{
+    struct xyd *perimeter, *perim2, *loop[2], looppos[2];
+    int nperim, perimsize, nloop[2], loopsize[2];
+    int x, y, d, i;
+
+    /*
+     * We know that the tile at (startx,starty) is part of an
+     * ambiguous section, and we also know that its neighbour in
+     * direction startd is fully specified. We begin by tracing all
+     * the way round the ambiguous area.
+     */
+    nperim = perimsize = 0;
+    perimeter = NULL;
+    x = startx;
+    y = starty;
+    d = startd;
+#ifdef PERTURB_DIAGNOSTICS
+    printf("perturb %d,%d:%d\n", x, y, d);
+#endif
+    do {
+	int x2, y2, d2;
+
+	if (nperim >= perimsize) {
+	    perimsize = perimsize * 3 / 2 + 32;
+	    perimeter = sresize(perimeter, perimsize, struct xyd);
+	}
+	perimeter[nperim].x = x;
+	perimeter[nperim].y = y;
+	perimeter[nperim].direction = d;
+	nperim++;
+#ifdef PERTURB_DIAGNOSTICS
+	printf("perimeter: %d,%d:%d\n", x, y, d);
+#endif
+
+	/*
+	 * First, see if we can simply turn left from where we are
+	 * and find another locked square.
+	 */
+	d2 = A(d);
+	OFFSETWH(x2, y2, x, y, d2, w, h);
+	if ((!wrapping && (abs(x2-x) > 1 || abs(y2-y) > 1)) ||
+	    (tiles[y2*w+x2] & LOCKED)) {
+	    d = d2;
+	} else {
+	    /*
+	     * Failing that, step left into the new square and look
+	     * in front of us.
+	     */
+	    x = x2;
+	    y = y2;
+	    OFFSETWH(x2, y2, x, y, d, w, h);
+	    if ((wrapping || (abs(x2-x) <= 1 && abs(y2-y) <= 1)) &&
+		!(tiles[y2*w+x2] & LOCKED)) {
+		/*
+		 * And failing _that_, we're going to have to step
+		 * forward into _that_ square and look right at the
+		 * same locked square as we started with.
+		 */
+		x = x2;
+		y = y2;
+		d = C(d);
+	    }
+	}
+
+    } while (x != startx || y != starty || d != startd);
+
+    /*
+     * Our technique for perturbing this ambiguous area is to
+     * search round its edge for a join we can make: that is, an
+     * edge on the perimeter which is (a) not currently connected,
+     * and (b) connecting it would not yield a full cross on either
+     * side. Then we make that join, search round the network to
+     * find the loop thus constructed, and sever the loop at a
+     * randomly selected other point.
+     */
+    perim2 = snewn(nperim, struct xyd);
+    memcpy(perim2, perimeter, nperim * sizeof(struct xyd));
+    /* Shuffle the perimeter, so as to search it without directional bias. */
+    for (i = nperim; --i ;) {
+	int j = random_upto(rs, i+1);
+	struct xyd t;
+
+	t = perim2[j];
+	perim2[j] = perim2[i];
+	perim2[i] = t;
+    }
+    for (i = 0; i < nperim; i++) {
+	int x2, y2;
+
+	x = perim2[i].x;
+	y = perim2[i].y;
+	d = perim2[i].direction;
+
+	OFFSETWH(x2, y2, x, y, d, w, h);
+	if (!wrapping && (abs(x2-x) > 1 || abs(y2-y) > 1))
+	    continue;            /* can't link across non-wrapping border */
+	if (tiles[y*w+x] & d)
+	    continue;		       /* already linked in this direction! */
+	if (((tiles[y*w+x] | d) & 15) == 15)
+	    continue;		       /* can't turn this tile into a cross */
+	if (((tiles[y2*w+x2] | F(d)) & 15) == 15)
+	    continue;		       /* can't turn other tile into a cross */
+
+	/*
+	 * We've found the point at which we're going to make a new
+	 * link.
+	 */
+#ifdef PERTURB_DIAGNOSTICS	
+	printf("linking %d,%d:%d\n", x, y, d);
+#endif
+	tiles[y*w+x] |= d;
+	tiles[y2*w+x2] |= F(d);
+
+	break;
+    }
+
+    if (i == nperim)
+	return;			       /* nothing we can do! */
+
+    /*
+     * Now we've constructed a new link, we need to find the entire
+     * loop of which it is a part.
+     * 
+     * In principle, this involves doing a complete search round
+     * the network. However, I anticipate that in the vast majority
+     * of cases the loop will be quite small, so what I'm going to
+     * do is make _two_ searches round the network in parallel, one
+     * keeping its metaphorical hand on the left-hand wall while
+     * the other keeps its hand on the right. As soon as one of
+     * them gets back to its starting point, I abandon the other.
+     */
+    for (i = 0; i < 2; i++) {
+	loopsize[i] = nloop[i] = 0;
+	loop[i] = NULL;
+	looppos[i].x = x;
+	looppos[i].y = y;
+	looppos[i].direction = d;
+    }
+    while (1) {
+	for (i = 0; i < 2; i++) {
+	    int x2, y2, j;
+
+	    x = looppos[i].x;
+	    y = looppos[i].y;
+	    d = looppos[i].direction;
+
+	    OFFSETWH(x2, y2, x, y, d, w, h);
+
+	    /*
+	     * Add this path segment to the loop, unless it exactly
+	     * reverses the previous one on the loop in which case
+	     * we take it away again.
+	     */
+#ifdef PERTURB_DIAGNOSTICS
+	    printf("looppos[%d] = %d,%d:%d\n", i, x, y, d);
+#endif
+	    if (nloop[i] > 0 &&
+		loop[i][nloop[i]-1].x == x2 &&
+		loop[i][nloop[i]-1].y == y2 &&
+		loop[i][nloop[i]-1].direction == F(d)) {
+#ifdef PERTURB_DIAGNOSTICS
+		printf("removing path segment %d,%d:%d from loop[%d]\n",
+		       x2, y2, F(d), i);
+#endif
+		nloop[i]--;
+	    } else {
+		if (nloop[i] >= loopsize[i]) {
+		    loopsize[i] = loopsize[i] * 3 / 2 + 32;
+		    loop[i] = sresize(loop[i], loopsize[i], struct xyd);
+		}
+#ifdef PERTURB_DIAGNOSTICS
+		printf("adding path segment %d,%d:%d to loop[%d]\n",
+		       x, y, d, i);
+#endif
+		loop[i][nloop[i]++] = looppos[i];
+	    }
+
+#ifdef PERTURB_DIAGNOSTICS
+	    printf("tile at new location is %x\n", tiles[y2*w+x2] & 0xF);
+#endif
+	    d = F(d);
+	    for (j = 0; j < 4; j++) {
+		if (i == 0)
+		    d = A(d);
+		else
+		    d = C(d);
+#ifdef PERTURB_DIAGNOSTICS
+		printf("trying dir %d\n", d);
+#endif
+		if (tiles[y2*w+x2] & d) {
+		    looppos[i].x = x2;
+		    looppos[i].y = y2;
+		    looppos[i].direction = d;
+		    break;
+		}
+	    }
+
+	    assert(j < 4);
+	    assert(nloop[i] > 0);
+
+	    if (looppos[i].x == loop[i][0].x &&
+		looppos[i].y == loop[i][0].y &&
+		looppos[i].direction == loop[i][0].direction) {
+#ifdef PERTURB_DIAGNOSTICS
+		printf("loop %d finished tracking\n", i);
+#endif
+
+		/*
+		 * Having found our loop, we now sever it at a
+		 * randomly chosen point - absolutely any will do -
+		 * which is not the one we joined it at to begin
+		 * with. Conveniently, the one we joined it at is
+		 * loop[i][0], so we just avoid that one.
+		 */
+		j = random_upto(rs, nloop[i]-1) + 1;
+		x = loop[i][j].x;
+		y = loop[i][j].y;
+		d = loop[i][j].direction;
+		OFFSETWH(x2, y2, x, y, d, w, h);
+		tiles[y*w+x] &= ~d;
+		tiles[y2*w+x2] &= ~F(d);
+
+		break;
+	    }
+	}
+	if (i < 2)
+	    break;
+    }
+    sfree(loop[0]);
+    sfree(loop[1]);
+
+    /*
+     * Finally, we must mark the entire disputed section as locked,
+     * to prevent the perturb function being called on it multiple
+     * times.
+     * 
+     * To do this, we _sort_ the perimeter of the area. The
+     * existing xyd_cmp function will arrange things into columns
+     * for us, in such a way that each column has the edges in
+     * vertical order. Then we can work down each column and fill
+     * in all the squares between an up edge and a down edge.
+     */
+    qsort(perimeter, nperim, sizeof(struct xyd), xyd_cmp);
+    x = y = -1;
+    for (i = 0; i <= nperim; i++) {
+	if (i == nperim || perimeter[i].x > x) {
+	    /*
+	     * Fill in everything from the last Up edge to the
+	     * bottom of the grid, if necessary.
+	     */
+	    if (x != -1) {
+		while (y < h) {
+#ifdef PERTURB_DIAGNOSTICS
+		    printf("resolved: locking tile %d,%d\n", x, y);
+#endif
+		    tiles[y * w + x] |= LOCKED;
+		    y++;
+		}
+		x = y = -1;
+	    }
+
+	    if (i == nperim)
+		break;
+
+	    x = perimeter[i].x;
+	    y = 0;
+	}
+
+	if (perimeter[i].direction == U) {
+	    x = perimeter[i].x;
+	    y = perimeter[i].y;
+	} else if (perimeter[i].direction == D) {
+	    /*
+	     * Fill in everything from the last Up edge to here.
+	     */
+	    assert(x == perimeter[i].x && y <= perimeter[i].y);
+	    while (y <= perimeter[i].y) {
+#ifdef PERTURB_DIAGNOSTICS
+		printf("resolved: locking tile %d,%d\n", x, y);
+#endif
+		tiles[y * w + x] |= LOCKED;
+		y++;
+	    }
+	    x = y = -1;
+	}
+    }
+
+    sfree(perimeter);
+}
 
 static char *new_game_desc(game_params *params, random_state *rs,
 			   game_aux_info **aux)
@@ -305,13 +1076,16 @@ static char *new_game_desc(game_params *params, random_state *rs,
     w = params->width;
     h = params->height;
 
-    tiles = snewn(w * h, unsigned char);
-    memset(tiles, 0, w * h);
-    barriers = snewn(w * h, unsigned char);
-    memset(barriers, 0, w * h);
-
     cx = w / 2;
     cy = h / 2;
+
+    tiles = snewn(w * h, unsigned char);
+    barriers = snewn(w * h, unsigned char);
+
+    begin_generation:
+
+    memset(tiles, 0, w * h);
+    memset(barriers, 0, w * h);
 
     /*
      * Construct the unshuffled grid.
@@ -355,7 +1129,7 @@ static char *new_game_desc(game_params *params, random_state *rs,
      * containing no unreached squares, no full crosses _and_ no
      * closed loops. []
      */
-    possibilities = newtree234(xyd_cmp);
+    possibilities = newtree234(xyd_cmp_nc);
 
     if (cx+1 < w)
 	add234(possibilities, new_xyd(cx, cy, R));
@@ -483,10 +1257,64 @@ static char *new_game_desc(game_params *params, random_state *rs,
     assert(count234(possibilities) == 0);
     freetree234(possibilities);
 
+    if (params->unique) {
+	int prevn = -1;
+
+	/*
+	 * Run the solver to check unique solubility.
+	 */
+	while (!net_solver(w, h, tiles, params->wrapping)) {
+	    int n = 0;
+
+	    /*
+	     * We expect (in most cases) that most of the grid will
+	     * be uniquely specified already, and the remaining
+	     * ambiguous sections will be small and separate. So
+	     * our strategy is to find each individual such
+	     * section, and perform a perturbation on the network
+	     * in that area.
+	     */
+	    for (y = 0; y < h; y++) for (x = 0; x < w; x++) {
+		if (x+1 < w && ((tiles[y*w+x] ^ tiles[y*w+x+1]) & LOCKED)) {
+		    n++;
+		    if (tiles[y*w+x] & LOCKED)
+			perturb(w, h, tiles, params->wrapping, rs, x+1, y, L);
+		    else
+			perturb(w, h, tiles, params->wrapping, rs, x, y, R);
+		}
+		if (y+1 < h && ((tiles[y*w+x] ^ tiles[(y+1)*w+x]) & LOCKED)) {
+		    n++;
+		    if (tiles[y*w+x] & LOCKED)
+			perturb(w, h, tiles, params->wrapping, rs, x, y+1, U);
+		    else
+			perturb(w, h, tiles, params->wrapping, rs, x, y, D);
+		}
+	    }
+
+	    /*
+	     * Now n counts the number of ambiguous sections we
+	     * have fiddled with. If we haven't managed to decrease
+	     * it from the last time we ran the solver, give up and
+	     * regenerate the entire grid.
+	     */
+	    if (prevn != -1 && prevn <= n)
+		goto begin_generation; /* (sorry) */
+
+	    prevn = n;
+	}
+
+	/*
+	 * The solver will have left a lot of LOCKED bits lying
+	 * around in the tiles array. Remove them.
+	 */
+	for (x = 0; x < w*h; x++)
+	    tiles[x] &= ~LOCKED;
+    }
+
     /*
      * Now compute a list of the possible barrier locations.
      */
-    barriertree = newtree234(xyd_cmp);
+    barriertree = newtree234(xyd_cmp_nc);
     for (y = 0; y < h; y++) {
 	for (x = 0; x < w; x++) {
 
@@ -807,16 +1635,20 @@ static game_state *solve_game(game_state *state, game_aux_info *aux,
     game_state *ret;
 
     if (!aux) {
-	*error = "Solution not known for this puzzle";
-	return NULL;
+	/*
+	 * Run the internal solver on the provided grid. This might
+	 * not yield a complete solution.
+	 */
+	ret = dup_game(state);
+	net_solver(ret->width, ret->height, ret->tiles, ret->wrapping);
+    } else {
+	assert(aux->width == state->width);
+	assert(aux->height == state->height);
+	ret = dup_game(state);
+	memcpy(ret->tiles, aux->tiles, ret->width * ret->height);
+	ret->used_solve = ret->just_used_solve = TRUE;
+	ret->completed = TRUE;
     }
-
-    assert(aux->width == state->width);
-    assert(aux->height == state->height);
-    ret = dup_game(state);
-    memcpy(ret->tiles, aux->tiles, ret->width * ret->height);
-    ret->used_solve = ret->just_used_solve = TRUE;
-    ret->completed = TRUE;
 
     return ret;
 }
@@ -850,7 +1682,7 @@ static unsigned char *compute_active(game_state *state)
      * We only store (x,y) pairs in todo, but it's easier to reuse
      * xyd_cmp and just store direction 0 every time.
      */
-    todo = newtree234(xyd_cmp);
+    todo = newtree234(xyd_cmp_nc);
     index(state, active, state->cx, state->cy) = ACTIVE;
     add234(todo, new_xyd(state->cx, state->cy, 0));
 
