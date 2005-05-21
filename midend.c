@@ -748,18 +748,23 @@ static char *midend_game_id_int(midend_data *me, char *id, int defmode)
         if (seed || desc) {
             char *tmpstr = me->ourgame->encode_params(tmpparams, FALSE);
             me->ourgame->decode_params(me->params, tmpstr);
+            sfree(tmpstr);
         } else {
             me->ourgame->free_params(me->params);
             me->params = me->ourgame->dup_params(tmpparams);
         }
     }
 
+    sfree(me->desc);
+    me->desc = NULL;
+    sfree(me->seedstr);
+    me->seedstr = NULL;
+
     if (desc) {
         error = me->ourgame->validate_desc(me->params, desc);
         if (error)
             return error;
 
-        sfree(me->desc);
         me->desc = dupstr(desc);
         me->genmode = GOT_DESC;
 	if (me->aux_info)
@@ -768,7 +773,6 @@ static char *midend_game_id_int(midend_data *me, char *id, int defmode)
     }
 
     if (seed) {
-        sfree(me->seedstr);
         me->seedstr = dupstr(seed);
         me->genmode = GOT_SEED;
     }
