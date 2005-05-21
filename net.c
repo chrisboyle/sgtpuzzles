@@ -201,11 +201,11 @@ static void decode_params(game_params *ret, char const *string)
     char const *p = string;
 
     ret->width = atoi(p);
-    while (*p && isdigit(*p)) p++;
+    while (*p && isdigit((unsigned char)*p)) p++;
     if (*p == 'x') {
         p++;
         ret->height = atoi(p);
-        while (*p && isdigit(*p)) p++;
+        while (*p && isdigit((unsigned char)*p)) p++;
     } else {
         ret->height = ret->width;
     }
@@ -217,11 +217,12 @@ static void decode_params(game_params *ret, char const *string)
 	} else if (*p == 'b') {
 	    p++;
             ret->barrier_probability = atof(p);
-	    while (*p && isdigit(*p)) p++;
+	    while (*p && (*p == '.' || isdigit((unsigned char)*p))) p++;
 	} else if (*p == 'a') {
             p++;
 	    ret->unique = FALSE;
-	}
+	} else
+	    p++;		       /* skip any other gunk */
     }
 }
 
@@ -235,7 +236,7 @@ static char *encode_params(game_params *params, int full)
         ret[len++] = 'w';
     if (full && params->barrier_probability)
         len += sprintf(ret+len, "b%g", params->barrier_probability);
-    if (!params->unique)
+    if (full && !params->unique)
         ret[len++] = 'a';
     assert(len < lenof(ret));
     ret[len] = '\0';

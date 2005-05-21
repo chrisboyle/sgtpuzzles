@@ -45,6 +45,7 @@ enum {
 struct game_params {
     int w, h;
     float expandfactor;
+    int unique;
 };
 
 #define INDEX(state, x, y)    (((y) * (state)->w) + (x))
@@ -84,6 +85,7 @@ static game_params *default_params(void)
 
     ret->w = ret->h = 7;
     ret->expandfactor = 0.0F;
+    ret->unique = TRUE;
 
     return ret;
 }
@@ -108,6 +110,7 @@ static int game_fetch_preset(int i, char **name, game_params **params)
     ret->w = w;
     ret->h = h;
     ret->expandfactor = 0.0F;
+    ret->unique = TRUE;
     return TRUE;
 }
 
@@ -135,6 +138,12 @@ static void decode_params(game_params *ret, char const *string)
     if (*string == 'e') {
 	string++;
 	ret->expandfactor = atof(string);
+	while (*string &&
+	       (*string == '.' || isdigit((unsigned char)*string))) string++;
+    }
+    if (*string == 'a') {
+	string++;
+	ret->unique = FALSE;
     }
 }
 
@@ -145,6 +154,8 @@ static char *encode_params(game_params *params, int full)
     sprintf(data, "%dx%d", params->w, params->h);
     if (full && params->expandfactor)
         sprintf(data + strlen(data), "e%g", params->expandfactor);
+    if (full && !params->unique)
+        strcat(data, "a");
 
     return dupstr(data);
 }
@@ -174,10 +185,15 @@ static config_item *game_configure(game_params *params)
     ret[2].sval = dupstr(buf);
     ret[2].ival = 0;
 
-    ret[3].name = NULL;
-    ret[3].type = C_END;
+    ret[3].name = "Ensure unique solution";
+    ret[3].type = C_BOOLEAN;
     ret[3].sval = NULL;
-    ret[3].ival = 0;
+    ret[3].ival = params->unique;
+
+    ret[4].name = NULL;
+    ret[4].type = C_END;
+    ret[4].sval = NULL;
+    ret[4].ival = 0;
 
     return ret;
 }
@@ -189,6 +205,7 @@ static game_params *custom_params(config_item *cfg)
     ret->w = atoi(cfg[0].sval);
     ret->h = atoi(cfg[1].sval);
     ret->expandfactor = atof(cfg[2].sval);
+    ret->unique = cfg[3].ival;
 
     return ret;
 }
@@ -1505,7 +1522,10 @@ static char *new_game_desc(game_params *params, random_state *rs,
                 }
             }
 
-	    ret = rect_solver(params->w, params->h, nnumbers, nd, rs);
+	    if (params->unique)
+		ret = rect_solver(params->w, params->h, nnumbers, nd, rs);
+	    else
+		ret = TRUE;	       /* allow any number placement at all */
 
             if (ret) {
                 /*
