@@ -415,7 +415,8 @@ static int todo_get(struct todo *todo) {
     return ret;
 }
 
-static int net_solver(int w, int h, unsigned char *tiles, int wrapping)
+static int net_solver(int w, int h, unsigned char *tiles,
+		      unsigned char *barriers, int wrapping)
 {
     unsigned char *tilestate;
     unsigned char *edgestate;
@@ -519,6 +520,30 @@ static int net_solver(int w, int h, unsigned char *tiles, int wrapping)
 	}
 	for (i = 0; i < h; i++) {
 	    edgestate[(i * w + w-1) * 5 + 1] = edgestate[(i * w) * 5 + 4] = 2;
+	}
+    }
+
+    /*
+     * If we have barriers available, we can mark those edges as
+     * closed too.
+     */
+    if (barriers) {
+	for (y = 0; y < h; y++) for (x = 0; x < w; x++) {
+	    int d;
+	    for (d = 1; d <= 8; d += d) {
+		if (barriers[y*w+x] & d) {
+		    int x2, y2;
+		    /*
+		     * In principle the barrier list should already
+		     * contain each barrier from each side, but
+		     * let's not take chances with our internal
+		     * consistency.
+		     */
+		    OFFSETWH(x2, y2, x, y, d, w, h);
+		    edgestate[(y*w+x) * 5 + d] = 2;
+		    edgestate[(y2*w+x2) * 5 + F(d)] = 2;
+		}
+	    }
 	}
     }
 
@@ -1264,7 +1289,7 @@ static char *new_game_desc(game_params *params, random_state *rs,
 	/*
 	 * Run the solver to check unique solubility.
 	 */
-	while (!net_solver(w, h, tiles, params->wrapping)) {
+	while (!net_solver(w, h, tiles, NULL, params->wrapping)) {
 	    int n = 0;
 
 	    /*
@@ -1641,7 +1666,8 @@ static game_state *solve_game(game_state *state, game_aux_info *aux,
 	 * not yield a complete solution.
 	 */
 	ret = dup_game(state);
-	net_solver(ret->width, ret->height, ret->tiles, ret->wrapping);
+	net_solver(ret->width, ret->height, ret->tiles,
+		   ret->barriers, ret->wrapping);
     } else {
 	assert(aux->width == state->width);
 	assert(aux->height == state->height);
