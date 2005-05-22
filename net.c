@@ -694,7 +694,6 @@ static int net_solver(int w, int h, unsigned char *tiles,
 	    assert(j > 0);	       /* we can't lose _all_ possibilities! */
 
 	    if (j < i) {
-		int a, o;
 		done_something = TRUE;
 
 		/*
@@ -703,12 +702,16 @@ static int net_solver(int w, int h, unsigned char *tiles,
 		 */
 		while (j < 4)
 		    tilestate[(y*w+x) * 4 + j++] = 255;
+	    }
 
-		/*
-		 * Now go through them again and see if we've
-		 * deduced anything new about any edges.
-		 */
+	    /*
+	     * Now go through the tile orientations again and see
+	     * if we've deduced anything new about any edges.
+	     */
+	    {
+		int a, o;
 		a = 0xF; o = 0;
+
 		for (i = 0; i < 4 && tilestate[(y*w+x) * 4 + i] != 255; i++) {
 		    a &= tilestate[(y*w+x) * 4 + i];
 		    o |= tilestate[(y*w+x) * 4 + i];
