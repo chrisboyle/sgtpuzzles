@@ -6,15 +6,15 @@
 # and how many you want per page.
 
 # Supported games are those which are sensibly solvable using
-# pencil and paper: Rectangles, Pattern and Solo.
+# pencil and paper: Rectangles, Pattern, Solo, Net.
 
 # Command-line syntax is
 #
 #     print.py <game-name> <format>
 #
-# <game-name> is one of `rect', `rectangles', `pattern', `solo'.
-# <format> is two numbers separated by an x: `2x3', for example,
-# means two columns by three rows.
+# <game-name> is one of `rect', `rectangles', `pattern', `solo',
+# `net'. <format> is two numbers separated by an x: `2x3', for
+# example, means two columns by three rows.
 #
 # The program will then read game IDs from stdin until it sees EOF,
 # and generate as many PostScript pages on stdout as it needs.
@@ -90,6 +90,111 @@ def rect_format(s):
 	    if n > 0:
 		psprint(ret, "%g %g (%d) ctshow" % \
 		((x+0.5)*gridpitch, (h-y-0.5)*gridpitch, n))
+    return ret.coords, ret.s
+
+def net_format(s):
+    # Parse the game ID.
+    ret = Holder()
+    ret.s = ""
+    params, seed = string.split(s, ":")
+    wrapping = 0
+    if params[-1:] == "w":
+	wrapping = 1
+	params = params[:-1]
+    w, h = map(string.atoi, string.split(params, "x"))
+    grid = []
+    hbarriers = []
+    vbarriers = []
+    while len(seed) > 0:
+	n = string.atoi(seed[0], 16)
+	seed = seed[1:]
+	while len(seed) > 0 and seed[0] in 'hv':
+	    x = len(grid) % w
+	    y = len(grid) / w
+	    if seed[0] == 'h':
+		hbarriers.append((x, y+1))
+	    else:
+		vbarriers.append((x+1, y))
+	    seed = seed[1:]
+	grid.append(n)
+    assert w * h == len(grid)
+    # I'm going to arbitrarily choose a 24pt grid pitch.
+    gridpitch = 24
+    scale = 0.25
+    bigoffset = 0.25
+    smalloffset = 0.17
+    # Set up coordinate system.
+    pw = gridpitch * w
+    ph = gridpitch * h
+    ret.coords = (pw/2, pw/2, ph/2, ph/2)
+    psprint(ret, "%g %g translate" % (-ret.coords[0], -ret.coords[2]))
+    # Draw the base grid lines.
+    psprint(ret, "newpath 0.02 setlinewidth")
+    for x in xrange(1,w):
+	psprint(ret, "%g 0 moveto 0 %g rlineto" % (x * gridpitch, h * gridpitch))
+    for y in xrange(1,h):
+	psprint(ret, "0 %g moveto %g 0 rlineto" % (y * gridpitch, w * gridpitch))
+    psprint(ret, "stroke")
+    # Draw round the grid exterior.
+    psprint(ret, "newpath")
+    if not wrapping:
+	psprint(ret, "2 setlinewidth")
+    psprint(ret, "0 0 moveto 0 %g rlineto %g 0 rlineto 0 %g rlineto" % \
+    (h * gridpitch, w * gridpitch, -h * gridpitch))
+    psprint(ret, "closepath stroke")
+    # Draw any barriers.
+    psprint(ret, "newpath 2 setlinewidth 1 setlinecap")
+    for x, y in hbarriers:
+	psprint(ret, "%g %g moveto %g 0 rlineto" % \
+	(x * gridpitch, (h - y) * gridpitch, gridpitch))
+    for x, y in vbarriers:
+	psprint(ret, "%g %g moveto 0 -%g rlineto" % \
+	(x * gridpitch, (h - y) * gridpitch, gridpitch))
+    psprint(ret, "stroke")
+    # And draw the symbol in each box.
+    for i in xrange(len(grid)):
+	x = i % w
+	y = i / w
+	v = grid[i]
+	# Rotate to canonical form.
+	if v in (1,2,4,8):
+	    v = 1
+	elif v in (5,10):
+	    v = 5
+	elif v in (3,6,9,12):
+	    v = 9
+	elif v in (7,11,13,14):
+	    v = 13
+	# Centre on an area in the corner of the tile.
+	psprint(ret, "gsave")
+	if v & 4:
+	    hoffset = bigoffset
+	else:
+	    hoffset = smalloffset
+	if v & 2:
+	    voffset = bigoffset
+	else:
+	    voffset = smalloffset
+	psprint(ret, "%g %g translate" % \
+	((x + hoffset) * gridpitch, (h - y - voffset) * gridpitch))
+	psprint(ret, "%g dup scale" % (float(gridpitch) * scale / 2))
+	psprint(ret, "newpath 0.07 setlinewidth")
+	# Draw the radial lines.
+	for dx, dy, z in ((1,0,1), (0,1,2), (-1,0,4), (0,-1,8)):
+	    if v & z:
+		psprint(ret, "0 0 moveto %d %d lineto" % (dx, dy))
+	psprint(ret, "stroke")
+	# Draw additional figures if desired.
+	if v == 13:
+	    # T-pieces have a little circular blob where the lines join.
+	    psprint(ret, "newpath 0 0 0.15 0 360 arc fill")
+	elif v == 1:
+	    # Endpoints have a little empty square at the centre.
+	    psprint(ret, "newpath 0.35 0.35 moveto 0 -0.7 rlineto")
+	    psprint(ret, "-0.7 0 rlineto 0 0.7 rlineto closepath")
+	    psprint(ret, "gsave 1 setgray fill grestore stroke")
+	# Clean up.
+	psprint(ret, "grestore")
     return ret.coords, ret.s
 
 def pattern_format(s):
@@ -219,6 +324,7 @@ def solo_format(s):
     return ret.coords, ret.s
 
 formatters = {
+"net": net_format,
 "rect": rect_format,
 "rectangles": rect_format,
 "pattern": pattern_format,
