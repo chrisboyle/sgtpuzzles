@@ -657,7 +657,7 @@ static int net_solver(int w, int h, unsigned char *tiles,
 		     * dead ends of size 2 and 3 forms a subnetwork
 		     * with a total area of 6, not 5.)
 		     */
-		    if (deadendtotal+1 < area)
+		    if (deadendtotal > 0 && deadendtotal+1 < area)
 			valid = FALSE;
 		} else if (nnondeadends == 1) {
 		    /*
