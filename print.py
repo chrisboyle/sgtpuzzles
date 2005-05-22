@@ -123,6 +123,7 @@ def net_format(s):
     scale = 0.25
     bigoffset = 0.25
     smalloffset = 0.17
+    squaresize = 0.25
     # Set up coordinate system.
     pw = gridpitch * w
     ph = gridpitch * h
@@ -185,16 +186,25 @@ def net_format(s):
 		psprint(ret, "0 0 moveto %d %d lineto" % (dx, dy))
 	psprint(ret, "stroke")
 	# Draw additional figures if desired.
-	if v == 13:
-	    # T-pieces have a little circular blob where the lines join.
-	    psprint(ret, "newpath 0 0 0.15 0 360 arc fill")
-	elif v == 1:
+	if v == 1:
 	    # Endpoints have a little empty square at the centre.
-	    psprint(ret, "newpath 0.35 0.35 moveto 0 -0.7 rlineto")
-	    psprint(ret, "-0.7 0 rlineto 0 0.7 rlineto closepath")
-	    psprint(ret, "gsave 1 setgray fill grestore stroke")
-	# Clean up.
+	    psprint(ret, "newpath %g %g moveto 0 -%g rlineto" % \
+	    (squaresize, squaresize, squaresize * 2))
+	    psprint(ret, "-%g 0 rlineto 0 %g rlineto closepath fill" % \
+	    (squaresize * 2, squaresize * 2))
+	# Get back out of the centre section.
 	psprint(ret, "grestore")
+	# Draw the endpoint square in large in the middle.
+	if v == 1:
+	    psprint(ret, "gsave")
+	    psprint(ret, "%g %g translate" % \
+	    ((x + 0.5) * gridpitch, (h - y - 0.5) * gridpitch))
+	    psprint(ret, "%g dup scale" % (float(gridpitch) / 2))
+	    psprint(ret, "newpath %g %g moveto 0 -%g rlineto" % \
+	    (squaresize, squaresize, squaresize * 2))
+	    psprint(ret, "-%g 0 rlineto 0 %g rlineto closepath fill" % \
+	    (squaresize * 2, squaresize * 2))
+	    psprint(ret, "grestore")
     return ret.coords, ret.s
 
 def pattern_format(s):
