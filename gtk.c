@@ -1280,7 +1280,10 @@ int main(int argc, char **argv)
             if ( (seed = strchr(params, '#')) != NULL )
                 *seed++ = '\0';
 	    thegame.decode_params(par, params);
-        } else {
+        }
+        if ((error = thegame.validate_params(par)) != NULL) {
+	    fprintf(stderr, "%s: %s\n", pname, error);
+            return 1;
         }
 	parstr = thegame.encode_params(par, FALSE);
 
