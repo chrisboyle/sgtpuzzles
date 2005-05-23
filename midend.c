@@ -135,11 +135,16 @@ void midend_new_game(midend_data *me)
             /*
              * Generate a new random seed. 15 digits comes to about
              * 48 bits, which should be more than enough.
+             * 
+             * I'll avoid putting a leading zero on the number,
+             * just in case it confuses anybody who thinks it's
+             * processed as an integer rather than a string.
              */
             char newseed[16];
             int i;
             newseed[15] = '\0';
-            for (i = 0; i < 15; i++)
+            newseed[0] = '1' + random_upto(me->random, 9);
+            for (i = 1; i < 15; i++)
                 newseed[i] = '0' + random_upto(me->random, 10);
             sfree(me->seedstr);
             me->seedstr = dupstr(newseed);
