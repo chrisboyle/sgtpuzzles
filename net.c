@@ -314,6 +314,55 @@ static char *validate_params(game_params *params)
 	return "Barrier probability may not be negative";
     if (params->barrier_probability > 1)
 	return "Barrier probability may not be greater than 1";
+
+    /*
+     * Specifying either grid dimension as 2 in a wrapping puzzle
+     * makes it actually impossible to ensure a unique puzzle
+     * solution.
+     * 
+     * Proof:
+     * 
+     * Without loss of generality, let us assume the puzzle _width_
+     * is 2, so we can conveniently discuss rows without having to
+     * say `rows/columns' all the time. (The height may be 2 as
+     * well, but that doesn't matter.)
+     * 
+     * In each row, there are two edges between tiles: the inner
+     * edge (running down the centre of the grid) and the outer
+     * edge (the identified left and right edges of the grid).
+     * 
+     * Lemma: In any valid 2xn puzzle there must be at least one
+     * row in which _exactly one_ of the inner edge and outer edge
+     * is connected.
+     * 
+     *   Proof: No row can have _both_ inner and outer edges
+     *   connected, because this would yield a loop. So the only
+     *   other way to falsify the lemma is for every row to have
+     *   _neither_ the inner nor outer edge connected. But this
+     *   means there is no connection at all between the left and
+     *   right columns of the puzzle, so there are two disjoint
+     *   subgraphs, which is also disallowed. []
+     * 
+     * Given such a row, it is always possible to make the
+     * disconnected edge connected and the connected edge
+     * disconnected without changing the state of any other edge.
+     * (This is easily seen by case analysis on the various tiles:
+     * left-pointing and right-pointing endpoints can be exchanged,
+     * likewise T-pieces, and a corner piece can select its
+     * horizontal connectivity independently of its vertical.) This
+     * yields a distinct valid solution.
+     * 
+     * Thus, for _every_ row in which exactly one of the inner and
+     * outer edge is connected, there are two valid states for that
+     * row, and hence the total number of solutions of the puzzle
+     * is at least 2^(number of such rows), and in particular is at
+     * least 2 since there must be at least one such row. []
+     */
+    if (params->unique && params->wrapping &&
+        (params->width == 2 || params->height == 2))
+        return "No wrapping puzzle with a width or height of 2 can have"
+        " a unique solution";
+
     return NULL;
 }
 
