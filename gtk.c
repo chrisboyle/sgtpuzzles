@@ -82,10 +82,10 @@ struct frontend {
 
 void get_random_seed(void **randseed, int *randseedsize)
 {
-    time_t *tp = snew(time_t);
-    time(tp);
-    *randseed = (void *)tp;
-    *randseedsize = sizeof(time_t);
+    struct timeval *tvp = snew(struct timeval);
+    gettimeofday(tvp, NULL);
+    *randseed = (void *)tvp;
+    *randseedsize = sizeof(struct timeval);
 }
 
 void frontend_default_colour(frontend *fe, float *output)
