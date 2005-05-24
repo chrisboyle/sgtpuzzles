@@ -286,12 +286,14 @@ missing. See \k{common-id} for more details on this.)
 \i\cw{NETGAME.EXE} to avoid clashing with Windows's own \cw{NET.EXE}.)
 
 I originally saw this in the form of a Flash game called \i{FreeNet}
-\k{FreeNet}, written by Pavils Jurjans. The computer prepares a
+\k{FreeNet}, written by Pavils Jurjans; there are several other
+implementations under the name \i{NetWalk}. The computer prepares a
 network by connecting up the centres of squares in a grid, and then
 shuffles the network by rotating every tile randomly. Your job is to
 rotate it all back into place. The successful solution will be an
-entirely connected network, with no closed loops. \#{Is it also true
-that a correct solution will not contain any cycles?} As a visual aid,
+entirely connected network, with no closed loops. \#{The latter
+clause means that there are no closed paths within the network.
+Could this be clearer? "No closed paths"?} As a visual aid,
 all tiles which are connected to the one in the middle are
 highlighted. 
 
