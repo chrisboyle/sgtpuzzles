@@ -3,6 +3,30 @@
  *
  * TODO:
  *
+ *  - reports from users are that `Trivial'-mode puzzles are still
+ *    rather hard compared to newspapers' easy ones, so some better
+ *    low-end difficulty grading would be nice
+ *     + it's possible that really easy puzzles always have
+ *       _several_ things you can do, so don't make you hunt too
+ *       hard for the one deduction you can currently make
+ *     + it's also possible that easy puzzles require fewer
+ *       cross-eliminations: perhaps there's a higher incidence of
+ *       things you can deduce by looking only at (say) rows,
+ *       rather than things you have to check both rows and columns
+ *       for
+ *     + but really, what I need to do is find some really easy
+ *       puzzles and _play_ them, to see what's actually easy about
+ *       them
+ *     + while I'm revamping this area, filling in the _last_
+ *       number in a nearly-full row or column should certainly be
+ *       permitted even at the lowest difficulty level.
+ *     + also Owen noticed that `Basic' grids requiring numeric
+ *       elimination are actually very hard, so I wonder if a
+ *       difficulty gradation between that and positional-
+ *       elimination-only might be in order
+ *     + but it's not good to have _too_ many difficulty levels, or
+ *       it'll take too long to randomly generate a given level.
+ * 
  *  - it might still be nice to do some prioritisation on the
  *    removal of numbers from the grid
  *     + one possibility is to try to minimise the maximum number
@@ -20,8 +44,13 @@
  * 	 click, _or_ you highlight a square and then type. At most
  * 	 one thing is ever highlighted at a time, so there's no way
  * 	 to confuse the two.
- *     + `pencil marks' might be useful for more subtle forms of
- *       deduction, now we can create puzzles that require them.
+ *     + then again, I don't actually like sudoku.com's interface;
+ *       it's too much like a paint package whereas I prefer to
+ *       think of Solo as a text editor.
+ *     + another PDA-friendly possibility is a drag interface:
+ *       _drag_ numbers from the palette into the grid squares.
+ *       Thought experiments suggest I'd prefer that to the
+ *       sudoku.com approach, but I haven't actually tried it.
  */
 
 /*
@@ -96,6 +125,7 @@ enum {
     COL_CLUE,
     COL_USER,
     COL_HIGHLIGHT,
+    COL_PENCIL,
     NCOLOURS
 };
 
@@ -106,6 +136,7 @@ struct game_params {
 struct game_state {
     int c, r;
     digit *grid;
+    unsigned char *pencil;             /* c*r*c*r elements */
     unsigned char *immutable;	       /* marks which digits are clues */
     int completed, cheated;
 };
@@ -1599,6 +1630,8 @@ static game_state *new_game(game_params *params, char *desc)
     state->r = params->r;
 
     state->grid = snewn(area, digit);
+    state->pencil = snewn(area * cr, unsigned char);
+    memset(state->pencil, 0, area * cr);
     state->immutable = snewn(area, unsigned char);
     memset(state->immutable, FALSE, area);
 
@@ -1640,6 +1673,9 @@ static game_state *dup_game(game_state *state)
     ret->grid = snewn(area, digit);
     memcpy(ret->grid, state->grid, area);
 
+    ret->pencil = snewn(area * cr, unsigned char);
+    memcpy(ret->pencil, state->pencil, area * cr);
+
     ret->immutable = snewn(area, unsigned char);
     memcpy(ret->immutable, state->immutable, area);
 
@@ -1652,6 +1688,7 @@ static game_state *dup_game(game_state *state)
 static void free_game(game_state *state)
 {
     sfree(state->immutable);
+    sfree(state->pencil);
     sfree(state->grid);
     sfree(state);
 }
@@ -1762,6 +1799,11 @@ struct game_ui {
      * enter that number or letter in the grid.
      */
     int hx, hy;
+    /*
+     * This indicates whether the current highlight is a
+     * pencil-mark one or a real one.
+     */
+    int hpencil;
 };
 
 static game_ui *new_ui(game_state *state)
@@ -1769,6 +1811,7 @@ static game_ui *new_ui(game_state *state)
     game_ui *ui = snew(game_ui);
 
     ui->hx = ui->hy = -1;
+    ui->hpencil = 0;
 
     return ui;
 }
@@ -1790,13 +1833,21 @@ static game_state *make_move(game_state *from, game_ui *ui, int x, int y,
     tx = (x + TILE_SIZE - BORDER) / TILE_SIZE - 1;
     ty = (y + TILE_SIZE - BORDER) / TILE_SIZE - 1;
 
-    if (tx >= 0 && tx < cr && ty >= 0 && ty < cr && button == LEFT_BUTTON) {
+    if (tx >= 0 && tx < cr && ty >= 0 && ty < cr &&
+        (button == LEFT_BUTTON || button == RIGHT_BUTTON)) {
+        /*
+         * Prevent pencil-mode highlighting of a filled square.
+         */
+        if (button == RIGHT_BUTTON && from->grid[ty*cr+tx])
+            return NULL;
+
 	if (tx == ui->hx && ty == ui->hy) {
 	    ui->hx = ui->hy = -1;
 	} else {
 	    ui->hx = tx;
 	    ui->hy = ty;
 	}
+        ui->hpencil = (button == RIGHT_BUTTON);
 	return from;		       /* UI activity occurred */
     }
 
@@ -1816,17 +1867,32 @@ static game_state *make_move(game_state *from, game_ui *ui, int x, int y,
 	if (from->immutable[ui->hy*cr+ui->hx])
 	    return NULL;	       /* can't overwrite this square */
 
-	ret = dup_game(from);
-	ret->grid[ui->hy*cr+ui->hx] = n;
-	ui->hx = ui->hy = -1;
+        /*
+         * Can't make pencil marks in a filled square. In principle
+         * this shouldn't happen anyway because we should never
+         * have even been able to pencil-highlight the square, but
+         * it never hurts to be careful.
+         */
+        if (ui->hpencil && from->grid[ui->hy*cr+ui->hx])
+            return NULL;
 
-	/*
-	 * We've made a real change to the grid. Check to see
-	 * if the game has been completed.
-	 */
-	if (!ret->completed && check_valid(c, r, ret->grid)) {
-	    ret->completed = TRUE;
-	}
+	ret = dup_game(from);
+        if (ui->hpencil && n > 0) {
+            int index = (ui->hy*cr+ui->hx) * cr + (n-1);
+            ret->pencil[index] = !ret->pencil[index];
+        } else {
+            ret->grid[ui->hy*cr+ui->hx] = n;
+            memset(ret->pencil + (ui->hy*cr+ui->hx)*cr, 0, cr);
+
+            /*
+             * We've made a real change to the grid. Check to see
+             * if the game has been completed.
+             */
+            if (!ret->completed && check_valid(c, r, ret->grid)) {
+                ret->completed = TRUE;
+            }
+        }
+	ui->hx = ui->hy = -1;
 
 	return ret;		       /* made a valid move */
     }
@@ -1842,6 +1908,7 @@ struct game_drawstate {
     int started;
     int c, r, cr;
     digit *grid;
+    unsigned char *pencil;
     unsigned char *hl;
 };
 
@@ -1878,6 +1945,10 @@ static float *game_colours(frontend *fe, game_state *state, int *ncolours)
     ret[COL_HIGHLIGHT * 3 + 1] = 0.85F * ret[COL_BACKGROUND * 3 + 1];
     ret[COL_HIGHLIGHT * 3 + 2] = 0.85F * ret[COL_BACKGROUND * 3 + 2];
 
+    ret[COL_PENCIL * 3 + 0] = 0.5F * ret[COL_BACKGROUND * 3 + 0];
+    ret[COL_PENCIL * 3 + 1] = 0.5F * ret[COL_BACKGROUND * 3 + 1];
+    ret[COL_PENCIL * 3 + 2] = ret[COL_BACKGROUND * 3 + 2];
+
     *ncolours = NCOLOURS;
     return ret;
 }
@@ -1893,6 +1964,8 @@ static game_drawstate *game_new_drawstate(game_state *state)
     ds->cr = cr;
     ds->grid = snewn(cr*cr, digit);
     memset(ds->grid, 0, cr*cr);
+    ds->pencil = snewn(cr*cr*cr, digit);
+    memset(ds->pencil, 0, cr*cr*cr);
     ds->hl = snewn(cr*cr, unsigned char);
     memset(ds->hl, 0, cr*cr);
 
@@ -1902,6 +1975,7 @@ static game_drawstate *game_new_drawstate(game_state *state)
 static void game_free_drawstate(game_drawstate *ds)
 {
     sfree(ds->hl);
+    sfree(ds->pencil);
     sfree(ds->grid);
     sfree(ds);
 }
@@ -1914,7 +1988,9 @@ static void draw_number(frontend *fe, game_drawstate *ds, game_state *state,
     int cx, cy, cw, ch;
     char str[2];
 
-    if (ds->grid[y*cr+x] == state->grid[y*cr+x] && ds->hl[y*cr+x] == hl)
+    if (ds->grid[y*cr+x] == state->grid[y*cr+x] &&
+        ds->hl[y*cr+x] == hl &&
+        !memcmp(ds->pencil+(y*cr+x)*cr, state->pencil+(y*cr+x)*cr, cr))
 	return;			       /* no change required */
 
     tx = BORDER + x * TILE_SIZE + 2;
@@ -1936,9 +2012,20 @@ static void draw_number(frontend *fe, game_drawstate *ds, game_state *state,
 
     clip(fe, cx, cy, cw, ch);
 
-    /* background needs erasing? */
-    if (ds->grid[y*cr+x] || ds->hl[y*cr+x] != hl)
-	draw_rect(fe, cx, cy, cw, ch, hl ? COL_HIGHLIGHT : COL_BACKGROUND);
+    /* background needs erasing */
+    draw_rect(fe, cx, cy, cw, ch, hl == 1 ? COL_HIGHLIGHT : COL_BACKGROUND);
+
+    /* pencil-mode highlight */
+    if (hl == 2) {
+        int coords[6];
+        coords[0] = cx;
+        coords[1] = cy;
+        coords[2] = cx+cw/2;
+        coords[3] = cy;
+        coords[4] = cx;
+        coords[5] = cy+ch/2;
+        draw_polygon(fe, coords, 3, TRUE, COL_HIGHLIGHT);
+    }
 
     /* new number needs drawing? */
     if (state->grid[y*cr+x]) {
@@ -1949,6 +2036,23 @@ static void draw_number(frontend *fe, game_drawstate *ds, game_state *state,
 	draw_text(fe, tx + TILE_SIZE/2, ty + TILE_SIZE/2,
 		  FONT_VARIABLE, TILE_SIZE/2, ALIGN_VCENTRE | ALIGN_HCENTRE,
 		  state->immutable[y*cr+x] ? COL_CLUE : COL_USER, str);
+    } else {
+        /* pencil marks required? */
+        int i, j;
+
+        for (i = j = 0; i < cr; i++)
+            if (state->pencil[(y*cr+x)*cr+i]) {
+                int dx = j % r, dy = j / r, crm = max(c, r);
+                str[1] = '\0';
+                str[0] = i + '1';
+                if (str[0] > '9')
+                    str[0] += 'a' - ('9'+1);
+                draw_text(fe, tx + (4*dx+3) * TILE_SIZE / (4*r+2),
+                          ty + (4*dy+3) * TILE_SIZE / (4*c+2),
+                          FONT_VARIABLE, TILE_SIZE/(crm*5/4),
+                          ALIGN_VCENTRE | ALIGN_HCENTRE, COL_PENCIL, str);
+                j++;
+            }
     }
 
     unclip(fe);
@@ -1956,6 +2060,7 @@ static void draw_number(frontend *fe, game_drawstate *ds, game_state *state,
     draw_update(fe, cx, cy, cw, ch);
 
     ds->grid[y*cr+x] = state->grid[y*cr+x];
+    memcpy(ds->pencil+(y*cr+x)*cr, state->pencil+(y*cr+x)*cr, cr);
     ds->hl[y*cr+x] = hl;
 }
 
@@ -1995,11 +2100,14 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
      */
     for (x = 0; x < cr; x++) {
 	for (y = 0; y < cr; y++) {
-	    draw_number(fe, ds, state, x, y,
-			(x == ui->hx && y == ui->hy) ||
-			(flashtime > 0 &&
-			 (flashtime <= FLASH_TIME/3 ||
-			  flashtime >= FLASH_TIME*2/3)));
+            int highlight = 0;
+            if (flashtime > 0 &&
+                (flashtime <= FLASH_TIME/3 ||
+                 flashtime >= FLASH_TIME*2/3))
+                highlight = 1;
+            if (x == ui->hx && y == ui->hy)
+                highlight = ui->hpencil ? 2 : 1;
+	    draw_number(fe, ds, state, x, y, highlight);
 	}
     }
 

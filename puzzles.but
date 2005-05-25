@@ -760,6 +760,23 @@ type a digit or letter on the keyboard to fill that square. If you
 make a mistake, click the mouse in the incorrect square and press
 Space to clear it again (or use the Undo feature).
 
+If you \e{right}-click in a square and then type a number, that
+number will be entered in the square as a \q{pencil mark}. You can
+have pencil marks for multiple numbers in the same square.
+
+The game pays no attention to pencil marks, so exactly what you use
+them for is up to you: you can use them as reminders that a
+particular square needs to be re-examined once you know more about a
+particular number, or you can use them as lists of the possible
+numbers in a given square, or anything else you feel like.
+
+To erase a single pencil mark, right-click in the square and type
+the same number again.
+
+All pencil marks in a square are erased when you left-click and type
+a number, or when you left-click and press space. Right-clicking and
+pressing space will also erase pencil marks.
+
 (All the actions described in \k{common-actions} are also available.)
 
 \H{solo-parameters} \I{parameters, for Solo}Solo parameters
