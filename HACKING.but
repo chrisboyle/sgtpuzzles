@@ -70,34 +70,26 @@ to have \c{game_drawstate} contain a description of the last tile
 you drew at every position, so that you can compare it to the new
 tile and avoid redrawing tiles that haven't changed.
 
-\H{newpuz-seed} Designing a game seed
+\H{newpuz-params} Notes on parameters
 
-The game seed is the part of the game ID (what you type in when you
-select \q{Game -> Specific}) which comes \e{after} the colon. It
-should uniquely specify the starting state of a game, given a set of
-game parameters (which are encoded separately, before the colon).
+You need to define a textual format for the game parameters (the part
+before the \q{:} or \q{#} in descriptive and random IDs respectively).
 
-Try to imagine all the things a user might want to use the game seed
-for, and build as much capability into it as possible.
+The per-game parameter encoding function \cw{encode_params()} is
+passed an argument \c{full}. This serves two purposes:
 
-For a start, if it's feasible for the game seed to \e{directly}
-encode the starting position, it should simply do so. This is a
-better approach than encoding a random number seed which is used to
-randomly generate the game in \cw{new_game()}, because it allows the
-user to make up their own game seeds. This property is particularly
-useful if the puzzle is an implementation of a well-known game, in
-which case existing instances of the puzzle might be available which
-a user might want to transcribe into game seeds in order to play
-them conveniently. I recommend this technique wherever you can
-sensibly use it: \cw{new_game_seed()} should do all the real
-thinking about creating a game seed, and \cw{new_game()} should
-restrict itself to simply parsing the text description it returns.
+\b You can suppress inclusion of parameters that only affect game
+generation, and thus would have no effect in a descriptive ID, in the
+ID displayed by \q{Game -> Specific} if \c{full} is \cw{FALSE}.
 
-However, sometimes this is genuinely not feasible; Net, for example,
-uses the random-number seed approach, because I decided the full
-state of even a moderately large Net game is just too big to be
-sensibly cut-and-pasted by users. However, even the Net seeds have a
-useful property. The order of grid generation in Net is:
+\b You can ensure that a particular parameter entered as part of a
+game ID does not persist when a new puzzle is generated, for instance
+if you think that a player would not want it to persist beyond a
+single game. An example is the \q{expansion factor} in Rectangles.
+
+When generating a new puzzle instance, give some thought to the order
+in which parameters are processed. For example, the order of grid
+generation in Net is:
 
 \b First the game sets up a valid completed Net grid.
 
@@ -120,6 +112,23 @@ Furthermore, if you do this, the barrier sets will be nested (i.e.
 the version with more barriers will contain every barrier from the
 one with fewer), so that selecting 10 barriers and then 20 barriers
 will not give a user 30 pieces of information, only 20.
+
+\H{newpuz-descid} Notes on descriptive IDs
+
+The descriptive game ID is the part that comes after the colon in the
+ID accessed through \q{Game -> Specific}. It does not need to be
+especially concise, but it should be designed to remain compatible
+with new versions of the puzzle.
+
+Try to imagine all the things a user might want to use the descriptive
+ID for, and build as much capability into it as possible. At a minimum,
+you need to be able to generate one of these given a random number
+source; however, if auto-generation capability is limited, give some
+thought to the possibility of a user making up their own descriptive
+IDs. This property is particularly useful if the puzzle is an
+implementation of a well-known game, in which case existing instances
+of the puzzle might be available which a user might want to transcribe
+into game seeds in order to play them conveniently.
 
 \H{newpuz-redraw} Designing a drawing routine
 
