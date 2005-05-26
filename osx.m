@@ -589,21 +589,33 @@ struct frontend {
 	 * function key codes.
 	 */
 	if (c >= 0x80) {
+	    int mods = FALSE;
 	    switch (c) {
 	      case NSUpArrowFunctionKey:
 		c = CURSOR_UP;
+		mods = TRUE;
 		break;
 	      case NSDownArrowFunctionKey:
 		c = CURSOR_DOWN;
+		mods = TRUE;
 		break;
 	      case NSLeftArrowFunctionKey:
 		c = CURSOR_LEFT;
+		mods = TRUE;
 		break;
 	      case NSRightArrowFunctionKey:
 		c = CURSOR_RIGHT;
+		mods = TRUE;
 		break;
 	      default:
 		continue;
+	    }
+
+	    if (mods) {
+		if ([ev modifierFlags] & NSShiftKeyMask)
+		    c |= MOD_SHFT;
+		if ([ev modifierFlags] & NSControlKeyMask)
+		    c |= MOD_CTRL;
 	    }
 	}
 
