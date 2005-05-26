@@ -28,11 +28,6 @@
 #define D 0x08
 #define LOCKED 0x10
 #define ACTIVE 0x20
-/* Corner flags go in the barriers array */
-#define RU 0x10
-#define UL 0x20
-#define LD 0x40
-#define DR 0x80
 
 /* Rotations: Anticlockwise, Clockwise, Flip, general rotate */
 #define A(x) ( (((x) & 0x07) << 1) | (((x) & 0x08) >> 3) )
@@ -1646,44 +1641,6 @@ static game_state *new_game(game_params *params, char *desc)
                 state->wrapping = TRUE;
     }
 
-    /*
-     * Set up the barrier corner flags, for drawing barriers
-     * prettily when they meet.
-     */
-    for (y = 0; y < state->height; y++) {
-	for (x = 0; x < state->width; x++) {
-            int dir;
-
-            for (dir = 1; dir < 0x10; dir <<= 1) {
-                int dir2 = A(dir);
-                int x1, y1, x2, y2, x3, y3;
-                int corner = FALSE;
-
-                if (!(barrier(state, x, y) & dir))
-                    continue;
-
-                if (barrier(state, x, y) & dir2)
-                    corner = TRUE;
-
-                OFFSET(x1, y1, x, y, dir, state);
-                if (barrier(state, x1, y1) & dir2)
-                    corner = TRUE;
-
-                OFFSET(x2, y2, x, y, dir2, state);
-                if (barrier(state, x2, y2) & dir)
-                    corner = TRUE;
-
-                if (corner) {
-                    barrier(state, x, y) |= (dir << 4);
-                    barrier(state, x1, y1) |= (A(dir) << 4);
-                    barrier(state, x2, y2) |= (C(dir) << 4);
-                    OFFSET(x3, y3, x1, y1, dir2, state);
-                    barrier(state, x3, y3) |= (F(dir) << 4);
-                }
-            }
-	}
-    }
-
     return state;
 }
 
@@ -2136,37 +2093,31 @@ static void draw_rect_coords(frontend *fe, int x1, int y1, int x2, int y2,
 /*
  * draw_barrier_corner() and draw_barrier() are passed physical coords
  */
-static void draw_barrier_corner(frontend *fe, int x, int y, int dir, int phase,
-                                int barrier)
+static void draw_barrier_corner(frontend *fe, int x, int y, int dx, int dy,
+                                int phase)
 {
     int bx = WINDOW_OFFSET + TILE_SIZE * x;
     int by = WINDOW_OFFSET + TILE_SIZE * y;
-    int x1, y1, dx, dy, dir2;
+    int x1, y1;
 
-    dir >>= 4;
-
-    dir2 = A(dir);
-    dx = X(dir) + X(dir2);
-    dy = Y(dir) + Y(dir2);
     x1 = (dx > 0 ? TILE_SIZE+TILE_BORDER-1 : 0);
     y1 = (dy > 0 ? TILE_SIZE+TILE_BORDER-1 : 0);
 
     if (phase == 0) {
-        draw_rect_coords(fe, bx+x1, by+y1,
+        draw_rect_coords(fe, bx+x1+dx, by+y1,
                          bx+x1-TILE_BORDER*dx, by+y1-(TILE_BORDER-1)*dy,
-                         barrier ? COL_WIRE : COL_BACKGROUND);
-        draw_rect_coords(fe, bx+x1, by+y1,
+                         COL_WIRE);
+        draw_rect_coords(fe, bx+x1, by+y1+dy,
                          bx+x1-(TILE_BORDER-1)*dx, by+y1-TILE_BORDER*dy,
-                         barrier ? COL_WIRE : COL_BACKGROUND);
+                         COL_WIRE);
     } else {
         draw_rect_coords(fe, bx+x1, by+y1,
                          bx+x1-(TILE_BORDER-1)*dx, by+y1-(TILE_BORDER-1)*dy,
-                         barrier ? COL_BARRIER : COL_BORDER);
+                         COL_BARRIER);
     }
 }
 
-static void draw_barrier(frontend *fe, int x, int y, int dir, int phase,
-                         int barrier)
+static void draw_barrier(frontend *fe, int x, int y, int dir, int phase)
 {
     int bx = WINDOW_OFFSET + TILE_SIZE * x;
     int by = WINDOW_OFFSET + TILE_SIZE * y;
@@ -2178,11 +2129,9 @@ static void draw_barrier(frontend *fe, int x, int y, int dir, int phase,
     h = (Y(dir) ? TILE_BORDER : TILE_SIZE - TILE_BORDER);
 
     if (phase == 0) {
-        draw_rect(fe, bx+x1-X(dir), by+y1-Y(dir), w, h,
-                  barrier ? COL_WIRE : COL_BACKGROUND);
+        draw_rect(fe, bx+x1-X(dir), by+y1-Y(dir), w, h, COL_WIRE);
     } else {
-        draw_rect(fe, bx+x1, by+y1, w, h,
-                  barrier ? COL_BARRIER : COL_BORDER);
+        draw_rect(fe, bx+x1, by+y1, w, h, COL_BARRIER);
     }
 }
 
@@ -2203,16 +2152,9 @@ static void draw_tile(frontend *fe, game_state *state, game_drawstate *ds,
      * and including the borders around the tile. This means that
      * if the neighbouring tiles have connections to those borders,
      * we must draw those connections on the borders themselves.
-     *
-     * This would be terribly fiddly if we ever had to draw a tile
-     * while its neighbour was in mid-rotate, because we'd have to
-     * arrange to _know_ that the neighbour was being rotated and
-     * hence had an anomalous effect on the redraw of this tile.
-     * Fortunately, the drawing algorithm avoids ever calling us in
-     * this circumstance: we're either drawing lots of straight
-     * tiles at game start or after a move is complete, or we're
-     * repeatedly drawing only the rotating tile. So no problem.
      */
+
+    clip(fe, bx, by, TILE_SIZE+TILE_BORDER, TILE_SIZE+TILE_BORDER);
 
     /*
      * So. First blank the tile out completely: draw a big
@@ -2361,13 +2303,54 @@ static void draw_tile(frontend *fe, game_state *state, game_drawstate *ds,
      * Draw barrier corners, and then barriers.
      */
     for (phase = 0; phase < 2; phase++) {
-        for (dir = 1; dir < 0x10; dir <<= 1)
-            if (barrier(state, GX(x), GY(y)) & (dir << 4))
-                draw_barrier_corner(fe, x, y, dir << 4, phase, TRUE);
+        for (dir = 1; dir < 0x10; dir <<= 1) {
+            int x1, y1, corner = FALSE;
+            /*
+             * If at least one barrier terminates at the corner
+             * between dir and A(dir), draw a barrier corner.
+             */
+            if (barrier(state, GX(x), GY(y)) & (dir | A(dir))) {
+                corner = TRUE;
+            } else {
+                /*
+                 * Only count barriers terminating at this corner
+                 * if they're physically next to the corner. (That
+                 * is, if they've wrapped round from the far side
+                 * of the screen, they don't count.)
+                 */
+                x1 = x + X(dir);
+                y1 = y + Y(dir);
+                if (x1 >= 0 && x1 < state->width &&
+                    y1 >= 0 && y1 < state->height &&
+                    (barrier(state, GX(x1), GY(y1)) & A(dir))) {
+                    corner = TRUE;
+                } else {
+                    x1 = x + X(A(dir));
+                    y1 = y + Y(A(dir));
+                    if (x1 >= 0 && x1 < state->width &&
+                        y1 >= 0 && y1 < state->height &&
+                        (barrier(state, GX(x1), GY(y1)) & dir))
+                        corner = TRUE;
+                }
+            }
+
+            if (corner) {
+                /*
+                 * At least one barrier terminates here. Draw a
+                 * corner.
+                 */
+                draw_barrier_corner(fe, x, y,
+                                    X(dir)+X(A(dir)), Y(dir)+Y(A(dir)),
+                                    phase);
+            }
+        }
+
         for (dir = 1; dir < 0x10; dir <<= 1)
             if (barrier(state, GX(x), GY(y)) & dir)
-                draw_barrier(fe, x, y, dir, phase, TRUE);
+                draw_barrier(fe, x, y, dir, phase);
     }
+
+    unclip(fe);
 
     draw_update(fe, bx, by, TILE_SIZE+TILE_BORDER, TILE_SIZE+TILE_BORDER);
 }
@@ -2380,24 +2363,18 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
     float angle = 0.0;
 
     /*
-     * Clear the screen if this is our first call.
+     * Clear the screen, and draw the exterior barrier lines, if
+     * this is our first call or if the origin has changed.
      */
-    if (!ds->started) {
+    if (!ds->started || ui->org_x != ds->org_x || ui->org_y != ds->org_y) {
+        int phase;
+
         ds->started = TRUE;
 
         draw_rect(fe, 0, 0, 
                   WINDOW_OFFSET * 2 + TILE_SIZE * state->width + TILE_BORDER,
                   WINDOW_OFFSET * 2 + TILE_SIZE * state->height + TILE_BORDER,
                   COL_BACKGROUND);
-
-    }
-
-    /*
-     * If the origin has changed, we need to redraw the exterior
-     * barrier lines.
-     */
-    if (ui->org_x != ds->org_x || ui->org_y != ds->org_y) {
-        int phase;
 
         ds->org_x = ui->org_x;
         ds->org_y = ui->org_y;
@@ -2406,29 +2383,45 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
         draw_update(fe, 0, 0, 
                     WINDOW_OFFSET*2 + TILE_SIZE*state->width + TILE_BORDER,
                     WINDOW_OFFSET*2 + TILE_SIZE*state->height + TILE_BORDER);
-        
+
         for (phase = 0; phase < 2; phase++) {
 
             for (x = 0; x < ds->width; x++) {
-                int ub = barrier(state, GX(x), GY(0));
-                int db = barrier(state, GX(x), GY(ds->height-1));
-                draw_barrier_corner(fe, x, -1, LD, phase, ub & UL);
-                draw_barrier_corner(fe, x, -1, DR, phase, ub & RU);
-                draw_barrier(fe, x, -1, D, phase, ub & U);
-                draw_barrier_corner(fe, x, ds->height, RU, phase, db & DR);
-                draw_barrier_corner(fe, x, ds->height, UL, phase, db & LD);
-                draw_barrier(fe, x, ds->height, U, phase, db & D);
+                if (x+1 < ds->width) {
+                    if (barrier(state, GX(x), GY(0)) & R)
+                        draw_barrier_corner(fe, x, -1, +1, +1, phase);
+                    if (barrier(state, GX(x), GY(ds->height-1)) & R)
+                        draw_barrier_corner(fe, x, ds->height, +1, -1, phase);
+                }
+                if (barrier(state, GX(x), GY(0)) & U) {
+                    draw_barrier_corner(fe, x, -1, -1, +1, phase);
+                    draw_barrier_corner(fe, x, -1, +1, +1, phase);
+                    draw_barrier(fe, x, -1, D, phase);
+                }
+                if (barrier(state, GX(x), GY(ds->height-1)) & D) {
+                    draw_barrier_corner(fe, x, ds->height, -1, -1, phase);
+                    draw_barrier_corner(fe, x, ds->height, +1, -1, phase);
+                    draw_barrier(fe, x, ds->height, U, phase);
+                }
             }
 
             for (y = 0; y < ds->height; y++) {
-                int lb = barrier(state, GX(0), GY(y));
-                int rb = barrier(state, GX(ds->width-1), GY(y));
-                draw_barrier_corner(fe, -1, y, RU, phase, lb & UL);
-                draw_barrier_corner(fe, -1, y, DR, phase, lb & LD);
-                draw_barrier(fe, -1, y, R, phase, lb & L);
-                draw_barrier_corner(fe, ds->width, y, UL, phase, rb & RU);
-                draw_barrier_corner(fe, ds->width, y, LD, phase, rb & DR);
-                draw_barrier(fe, ds->width, y, L, phase, rb & R);
+                if (y+1 < ds->height) {
+                    if (barrier(state, GX(0), GY(y)) & D)
+                        draw_barrier_corner(fe, -1, y, +1, +1, phase);
+                    if (barrier(state, GX(ds->width-1), GY(y)) & D)
+                        draw_barrier_corner(fe, ds->width, y, -1, +1, phase);
+                }
+                if (barrier(state, GX(0), GY(y)) & L) {
+                    draw_barrier_corner(fe, -1, y, +1, -1, phase);
+                    draw_barrier_corner(fe, -1, y, +1, +1, phase);
+                    draw_barrier(fe, -1, y, R, phase);
+                }
+                if (barrier(state, GX(ds->width-1), GY(y)) & R) {
+                    draw_barrier_corner(fe, ds->width, y, -1, -1, phase);
+                    draw_barrier_corner(fe, ds->width, y, -1, +1, phase);
+                    draw_barrier(fe, ds->width, y, L, phase);
+                }
             }
         }
     }
