@@ -1221,31 +1221,35 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
       case WM_KEYDOWN:
 	{
 	    int key = -1;
+            BYTE keystate[256];
+            int r = GetKeyboardState(keystate);
+            int shift = (r && (keystate[VK_SHIFT] & 0x80)) ? MOD_SHFT : 0;
+            int ctrl = (r && (keystate[VK_CONTROL] & 0x80)) ? MOD_CTRL : 0;
 
 	    switch (wParam) {
 	      case VK_LEFT:
 		if (!(lParam & 0x01000000))
 		    key = MOD_NUM_KEYPAD | '4';
-		else
-		    key = CURSOR_LEFT;
+                else
+		    key = shift | ctrl | CURSOR_LEFT;
 		break;
 	      case VK_RIGHT:
 		if (!(lParam & 0x01000000))
 		    key = MOD_NUM_KEYPAD | '6';
-		else
-		    key = CURSOR_RIGHT;
+                else
+		    key = shift | ctrl | CURSOR_RIGHT;
 		break;
 	      case VK_UP:
 		if (!(lParam & 0x01000000))
 		    key = MOD_NUM_KEYPAD | '8';
-		else
-		    key = CURSOR_UP;
+                else
+		    key = shift | ctrl | CURSOR_UP;
 		break;
 	      case VK_DOWN:
 		if (!(lParam & 0x01000000))
 		    key = MOD_NUM_KEYPAD | '2';
-		else
-		    key = CURSOR_DOWN;
+                else
+		    key = shift | ctrl | CURSOR_DOWN;
 		break;
 		/*
 		 * Diagonal keys on the numeric keypad.

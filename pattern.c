@@ -769,6 +769,8 @@ static game_state *make_move(game_state *from, game_ui *ui,
 {
     game_state *ret;
 
+    button &= ~MOD_MASK;
+
     x = FROMCOORD(from->w, x);
     y = FROMCOORD(from->h, y);
 

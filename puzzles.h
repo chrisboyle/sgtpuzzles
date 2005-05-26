@@ -32,7 +32,10 @@ enum {
     CURSOR_LEFT,
     CURSOR_RIGHT,
     
-    MOD_NUM_KEYPAD = 0x40000000
+    MOD_CTRL       = 0x10000000,
+    MOD_SHFT       = 0x20000000,
+    MOD_NUM_KEYPAD = 0x40000000,
+    MOD_MASK       = 0x70000000 /* mask for all modifiers */
 };
 
 #define IS_MOUSE_DOWN(m) ( (unsigned)((m) - LEFT_BUTTON) <= \

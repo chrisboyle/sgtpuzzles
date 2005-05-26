@@ -1013,6 +1013,8 @@ static game_state *make_move(game_state *from, game_ui *ui,
     int i, j, dest, mask;
     struct solid *poly;
 
+    button = button & (~MOD_MASK | MOD_NUM_KEYPAD);
+
     /*
      * All moves are made with the cursor keys or numeric keypad.
      */

@@ -320,6 +320,21 @@ controls are:
 also unlock it again, but while it's locked you can't accidentally
 turn it.
 
+The following controls are not necessary to complete the game, but may
+be useful:
+
+\dt \e{Shift grid}: Shift + arrow keys
+
+\dd On grids that wrap, you can move the origin of the grid, so that
+tiles that were on opposite sides of the grid can be seen together.
+
+\dt \e{Move centre}: Ctrl + arrow keys
+
+\dd You can change which tile is used as the source of highlighting.
+(It doesn't ultimately matter which tile this is, as every tile will
+be connected to every other tile in a correct solution, but it may be
+helpful in the intermediate stages of solving the puzzle.)
+
 \dt \e{Jumble tiles}: \q{J} key
 
 \dd This key turns all tiles that are not locked to random

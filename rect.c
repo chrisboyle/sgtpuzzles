@@ -2127,6 +2127,8 @@ static game_state *make_move(game_state *from, game_ui *ui,
     int startdrag = FALSE, enddrag = FALSE, active = FALSE;
     game_state *ret;
 
+    button &= ~MOD_MASK;
+
     if (button == LEFT_BUTTON) {
         startdrag = TRUE;
     } else if (button == LEFT_RELEASE) {

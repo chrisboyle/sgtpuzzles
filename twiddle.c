@@ -594,6 +594,8 @@ static game_state *make_move(game_state *from, game_ui *ui, int x, int y,
     game_state *ret;
     int dir;
 
+    button = button & (~MOD_MASK | MOD_NUM_KEYPAD);
+
     if (button == LEFT_BUTTON || button == RIGHT_BUTTON) {
 	/*
 	 * Determine the coordinates of the click. We offset by n-1

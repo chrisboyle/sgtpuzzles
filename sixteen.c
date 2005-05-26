@@ -572,6 +572,7 @@ static game_state *make_move(game_state *from, game_ui *ui,
     int dx, dy, tx, ty, n;
     game_state *ret;
 
+    button &= ~MOD_MASK;
     if (button != LEFT_BUTTON && button != RIGHT_BUTTON)
         return NULL;
 

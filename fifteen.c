@@ -456,6 +456,8 @@ static game_state *make_move(game_state *from, game_ui *ui,
     int gx, gy, dx, dy, ux, uy, up, p;
     game_state *ret;
 
+    button &= ~MOD_MASK;
+
     gx = X(from, from->gap_pos);
     gy = Y(from, from->gap_pos);
 

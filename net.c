@@ -57,6 +57,13 @@
 #define ROTATE_TIME 0.13F
 #define FLASH_FRAME 0.07F
 
+/* Transform physical coords to game coords using game_drawstate ds */
+#define GX(x) (((x) + ds->org_x) % ds->width)
+#define GY(y) (((y) + ds->org_y) % ds->height)
+/* ...and game coords to physical coords */
+#define RX(x) (((x) + ds->width - ds->org_x) % ds->width)
+#define RY(y) (((y) + ds->height - ds->org_y) % ds->height)
+
 enum {
     COL_BACKGROUND,
     COL_LOCKED,
@@ -82,7 +89,7 @@ struct game_aux_info {
 };
 
 struct game_state {
-    int width, height, cx, cy, wrapping, completed;
+    int width, height, wrapping, completed;
     int last_rotate_x, last_rotate_y, last_rotate_dir;
     int used_solve, just_used_solve;
     unsigned char *tiles;
@@ -1570,8 +1577,6 @@ static game_state *new_game(game_params *params, char *desc)
     state = snew(game_state);
     w = state->width = params->width;
     h = state->height = params->height;
-    state->cx = state->width / 2;
-    state->cy = state->height / 2;
     state->wrapping = params->wrapping;
     state->last_rotate_dir = state->last_rotate_x = state->last_rotate_y = 0;
     state->completed = state->used_solve = state->just_used_solve = FALSE;
@@ -1623,6 +1628,22 @@ static game_state *new_game(game_params *params, char *desc)
 	    barrier(state, 0, y) |= L;
 	    barrier(state, state->width-1, y) |= R;
 	}
+    } else {
+        /*
+         * We check whether this is de-facto a non-wrapping game
+         * despite the parameters, in case we were passed the
+         * description of a non-wrapping game. This is so that we
+         * can change some aspects of the UI behaviour.
+         */
+        state->wrapping = FALSE;
+        for (x = 0; x < state->width; x++)
+            if (!(barrier(state, x, 0) & U) ||
+                !(barrier(state, x, state->height-1) & D))
+                state->wrapping = TRUE;
+        for (y = 0; y < state->width; y++)
+            if (!(barrier(state, 0, y) & L) ||
+                !(barrier(state, state->width-1, y) & R))
+                state->wrapping = TRUE;
     }
 
     /*
@@ -1644,30 +1665,20 @@ static game_state *new_game(game_params *params, char *desc)
                 if (barrier(state, x, y) & dir2)
                     corner = TRUE;
 
-                x1 = x + X(dir), y1 = y + Y(dir);
-                if (x1 >= 0 && x1 < state->width &&
-                    y1 >= 0 && y1 < state->height &&
-                    (barrier(state, x1, y1) & dir2))
+                OFFSET(x1, y1, x, y, dir, state);
+                if (barrier(state, x1, y1) & dir2)
                     corner = TRUE;
 
-                x2 = x + X(dir2), y2 = y + Y(dir2);
-                if (x2 >= 0 && x2 < state->width &&
-                    y2 >= 0 && y2 < state->height &&
-                    (barrier(state, x2, y2) & dir))
+                OFFSET(x2, y2, x, y, dir2, state);
+                if (barrier(state, x2, y2) & dir)
                     corner = TRUE;
 
                 if (corner) {
                     barrier(state, x, y) |= (dir << 4);
-                    if (x1 >= 0 && x1 < state->width &&
-                        y1 >= 0 && y1 < state->height)
-                        barrier(state, x1, y1) |= (A(dir) << 4);
-                    if (x2 >= 0 && x2 < state->width &&
-                        y2 >= 0 && y2 < state->height)
-                        barrier(state, x2, y2) |= (C(dir) << 4);
-                    x3 = x + X(dir) + X(dir2), y3 = y + Y(dir) + Y(dir2);
-                    if (x3 >= 0 && x3 < state->width &&
-                        y3 >= 0 && y3 < state->height)
-                        barrier(state, x3, y3) |= (F(dir) << 4);
+                    barrier(state, x1, y1) |= (A(dir) << 4);
+                    barrier(state, x2, y2) |= (C(dir) << 4);
+                    OFFSET(x3, y3, x1, y1, dir2, state);
+                    barrier(state, x3, y3) |= (F(dir) << 4);
                 }
             }
 	}
@@ -1683,8 +1694,6 @@ static game_state *dup_game(game_state *state)
     ret = snew(game_state);
     ret->width = state->width;
     ret->height = state->height;
-    ret->cx = state->cx;
-    ret->cy = state->cy;
     ret->wrapping = state->wrapping;
     ret->completed = state->completed;
     ret->used_solve = state->used_solve;
@@ -1748,7 +1757,7 @@ static char *game_text_format(game_state *state)
  * completed - just call this function and see whether every square
  * is marked active.
  */
-static unsigned char *compute_active(game_state *state)
+static unsigned char *compute_active(game_state *state, int cx, int cy)
 {
     unsigned char *active;
     tree234 *todo;
@@ -1762,8 +1771,8 @@ static unsigned char *compute_active(game_state *state)
      * xyd_cmp and just store direction 0 every time.
      */
     todo = newtree234(xyd_cmp_nc);
-    index(state, active, state->cx, state->cy) = ACTIVE;
-    add234(todo, new_xyd(state->cx, state->cy, 0));
+    index(state, active, cx, cy) = ACTIVE;
+    add234(todo, new_xyd(cx, cy, 0));
 
     while ( (xyd = delpos234(todo, 0)) != NULL) {
 	int x1, y1, d1, x2, y2, d2;
@@ -1799,6 +1808,8 @@ static unsigned char *compute_active(game_state *state)
 }
 
 struct game_ui {
+    int org_x, org_y; /* origin */
+    int cx, cy;       /* source tile (game coordinates) */
     int cur_x, cur_y;
     int cur_visible;
     random_state *rs; /* used for jumbling */
@@ -1809,8 +1820,9 @@ static game_ui *new_ui(game_state *state)
     void *seed;
     int seedsize;
     game_ui *ui = snew(game_ui);
-    ui->cur_x = state->width / 2;
-    ui->cur_y = state->height / 2;
+    ui->org_x = ui->org_y = 0;
+    ui->cur_x = ui->cx = state->width / 2;
+    ui->cur_y = ui->cy = state->height / 2;
     ui->cur_visible = FALSE;
     get_random_seed(&seed, &seedsize);
     ui->rs = random_init(seed, seedsize);
@@ -1833,7 +1845,9 @@ static game_state *make_move(game_state *state, game_ui *ui,
 {
     game_state *ret, *nullret;
     int tx, ty, orig;
+    int shift = button & MOD_SHFT, ctrl = button & MOD_CTRL;
 
+    button &= ~MOD_MASK;
     nullret = NULL;
 
     if (button == LEFT_BUTTON ||
@@ -1856,23 +1870,44 @@ static game_state *make_move(game_state *state, game_ui *ui,
 	ty = y / TILE_SIZE;
 	if (tx >= state->width || ty >= state->height)
 	    return nullret;
+        /* Transform from physical to game coords */
+        tx = (tx + ui->org_x) % state->width;
+        ty = (ty + ui->org_y) % state->height;
 	if (x % TILE_SIZE >= TILE_SIZE - TILE_BORDER ||
 	    y % TILE_SIZE >= TILE_SIZE - TILE_BORDER)
 	    return nullret;
     } else if (button == CURSOR_UP || button == CURSOR_DOWN ||
 	       button == CURSOR_RIGHT || button == CURSOR_LEFT) {
-	if (button == CURSOR_UP && ui->cur_y > 0)
-	    ui->cur_y--;
-	else if (button == CURSOR_DOWN && ui->cur_y < state->height-1)
-	    ui->cur_y++;
-	else if (button == CURSOR_LEFT && ui->cur_x > 0)
-	    ui->cur_x--;
-	else if (button == CURSOR_RIGHT && ui->cur_x < state->width-1)
-	    ui->cur_x++;
-	else
-	    return nullret;	       /* no cursor movement */
-	ui->cur_visible = TRUE;
-	return state;		       /* UI activity has occurred */
+        int dir;
+        switch (button) {
+          case CURSOR_UP:       dir = U; break;
+          case CURSOR_DOWN:     dir = D; break;
+          case CURSOR_LEFT:     dir = L; break;
+          case CURSOR_RIGHT:    dir = R; break;
+          default:              return nullret;
+        }
+        if (shift) {
+            /*
+             * Move origin.
+             */
+            if (state->wrapping) {
+                OFFSET(ui->org_x, ui->org_y, ui->org_x, ui->org_y, dir, state);
+            } else return nullret; /* disallowed for non-wrapping grids */
+        }
+        if (ctrl) {
+            /*
+             * Change source tile.
+             */
+            OFFSET(ui->cx, ui->cy, ui->cx, ui->cy, dir, state);
+        }
+        if (!shift && !ctrl) {
+            /*
+             * Move keyboard cursor.
+             */
+            OFFSET(ui->cur_x, ui->cur_y, ui->cur_x, ui->cur_y, dir, state);
+            ui->cur_visible = TRUE;
+        }
+        return state;		       /* UI activity has occurred */
     } else if (button == 'a' || button == 's' || button == 'd' ||
 	       button == 'A' || button == 'S' || button == 'D') {
 	tx = ui->cur_x;
@@ -1961,7 +1996,7 @@ static game_state *make_move(game_state *state, game_ui *ui,
      * Check whether the game has been completed.
      */
     {
-	unsigned char *active = compute_active(ret);
+	unsigned char *active = compute_active(ret, ui->cx, ui->cy);
 	int x1, y1;
 	int complete = TRUE;
 
@@ -1989,6 +2024,7 @@ static game_state *make_move(game_state *state, game_ui *ui,
 struct game_drawstate {
     int started;
     int width, height;
+    int org_x, org_y;
     unsigned char *visible;
 };
 
@@ -1999,6 +2035,7 @@ static game_drawstate *game_new_drawstate(game_state *state)
     ds->started = FALSE;
     ds->width = state->width;
     ds->height = state->height;
+    ds->org_x = ds->org_y = -1;
     ds->visible = snewn(state->width * state->height, unsigned char);
     memset(ds->visible, 0xFF, state->width * state->height);
 
@@ -2096,7 +2133,11 @@ static void draw_rect_coords(frontend *fe, int x1, int y1, int x2, int y2,
     draw_rect(fe, mx, my, dx, dy, colour);
 }
 
-static void draw_barrier_corner(frontend *fe, int x, int y, int dir, int phase)
+/*
+ * draw_barrier_corner() and draw_barrier() are passed physical coords
+ */
+static void draw_barrier_corner(frontend *fe, int x, int y, int dir, int phase,
+                                int barrier)
 {
     int bx = WINDOW_OFFSET + TILE_SIZE * x;
     int by = WINDOW_OFFSET + TILE_SIZE * y;
@@ -2113,18 +2154,19 @@ static void draw_barrier_corner(frontend *fe, int x, int y, int dir, int phase)
     if (phase == 0) {
         draw_rect_coords(fe, bx+x1, by+y1,
                          bx+x1-TILE_BORDER*dx, by+y1-(TILE_BORDER-1)*dy,
-                         COL_WIRE);
+                         barrier ? COL_WIRE : COL_BACKGROUND);
         draw_rect_coords(fe, bx+x1, by+y1,
                          bx+x1-(TILE_BORDER-1)*dx, by+y1-TILE_BORDER*dy,
-                         COL_WIRE);
+                         barrier ? COL_WIRE : COL_BACKGROUND);
     } else {
         draw_rect_coords(fe, bx+x1, by+y1,
                          bx+x1-(TILE_BORDER-1)*dx, by+y1-(TILE_BORDER-1)*dy,
-                         COL_BARRIER);
+                         barrier ? COL_BARRIER : COL_BORDER);
     }
 }
 
-static void draw_barrier(frontend *fe, int x, int y, int dir, int phase)
+static void draw_barrier(frontend *fe, int x, int y, int dir, int phase,
+                         int barrier)
 {
     int bx = WINDOW_OFFSET + TILE_SIZE * x;
     int by = WINDOW_OFFSET + TILE_SIZE * y;
@@ -2136,14 +2178,19 @@ static void draw_barrier(frontend *fe, int x, int y, int dir, int phase)
     h = (Y(dir) ? TILE_BORDER : TILE_SIZE - TILE_BORDER);
 
     if (phase == 0) {
-        draw_rect(fe, bx+x1-X(dir), by+y1-Y(dir), w, h, COL_WIRE);
+        draw_rect(fe, bx+x1-X(dir), by+y1-Y(dir), w, h,
+                  barrier ? COL_WIRE : COL_BACKGROUND);
     } else {
-        draw_rect(fe, bx+x1, by+y1, w, h, COL_BARRIER);
+        draw_rect(fe, bx+x1, by+y1, w, h,
+                  barrier ? COL_BARRIER : COL_BORDER);
     }
 }
 
-static void draw_tile(frontend *fe, game_state *state, int x, int y, int tile,
-                      float angle, int cursor)
+/*
+ * draw_tile() is passed physical coordinates
+ */
+static void draw_tile(frontend *fe, game_state *state, game_drawstate *ds,
+                      int x, int y, int tile, int src, float angle, int cursor)
 {
     int bx = WINDOW_OFFSET + TILE_SIZE * x;
     int by = WINDOW_OFFSET + TILE_SIZE * y;
@@ -2238,7 +2285,7 @@ static void draw_tile(frontend *fe, game_state *state, int x, int y, int tile,
      * otherwise not at all.
      */
     col = -1;
-    if (x == state->cx && y == state->cy)
+    if (src)
         col = COL_WIRE;
     else if (COUNT(tile) == 1) {
         col = (tile & ACTIVE ? COL_POWERED : COL_ENDPOINT);
@@ -2279,7 +2326,7 @@ static void draw_tile(frontend *fe, game_state *state, int x, int y, int tile,
         if (ox < 0 || ox >= state->width || oy < 0 || oy >= state->height)
             continue;
 
-        if (!(tile(state, ox, oy) & F(dir)))
+        if (!(tile(state, GX(ox), GY(oy)) & F(dir)))
             continue;
 
         px = bx + (int)(dx>0 ? TILE_SIZE + TILE_BORDER - 1 : dx<0 ? 0 : cx);
@@ -2315,11 +2362,11 @@ static void draw_tile(frontend *fe, game_state *state, int x, int y, int tile,
      */
     for (phase = 0; phase < 2; phase++) {
         for (dir = 1; dir < 0x10; dir <<= 1)
-            if (barrier(state, x, y) & (dir << 4))
-                draw_barrier_corner(fe, x, y, dir << 4, phase);
+            if (barrier(state, GX(x), GY(y)) & (dir << 4))
+                draw_barrier_corner(fe, x, y, dir << 4, phase, TRUE);
         for (dir = 1; dir < 0x10; dir <<= 1)
-            if (barrier(state, x, y) & dir)
-                draw_barrier(fe, x, y, dir, phase);
+            if (barrier(state, GX(x), GY(y)) & dir)
+                draw_barrier(fe, x, y, dir, phase, TRUE);
     }
 
     draw_update(fe, bx, by, TILE_SIZE+TILE_BORDER, TILE_SIZE+TILE_BORDER);
@@ -2328,57 +2375,60 @@ static void draw_tile(frontend *fe, game_state *state, int x, int y, int tile,
 static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
                  game_state *state, int dir, game_ui *ui, float t, float ft)
 {
-    int x, y, tx, ty, frame, last_rotate_dir;
+    int x, y, tx, ty, frame, last_rotate_dir, moved_origin = FALSE;
     unsigned char *active;
     float angle = 0.0;
 
     /*
-     * Clear the screen and draw the exterior barrier lines if this
-     * is our first call.
+     * Clear the screen if this is our first call.
      */
     if (!ds->started) {
-        int phase;
-
         ds->started = TRUE;
 
         draw_rect(fe, 0, 0, 
                   WINDOW_OFFSET * 2 + TILE_SIZE * state->width + TILE_BORDER,
                   WINDOW_OFFSET * 2 + TILE_SIZE * state->height + TILE_BORDER,
                   COL_BACKGROUND);
+
+    }
+
+    /*
+     * If the origin has changed, we need to redraw the exterior
+     * barrier lines.
+     */
+    if (ui->org_x != ds->org_x || ui->org_y != ds->org_y) {
+        int phase;
+
+        ds->org_x = ui->org_x;
+        ds->org_y = ui->org_y;
+        moved_origin = TRUE;
+
         draw_update(fe, 0, 0, 
                     WINDOW_OFFSET*2 + TILE_SIZE*state->width + TILE_BORDER,
                     WINDOW_OFFSET*2 + TILE_SIZE*state->height + TILE_BORDER);
-
+        
         for (phase = 0; phase < 2; phase++) {
 
             for (x = 0; x < ds->width; x++) {
-                if (barrier(state, x, 0) & UL)
-                    draw_barrier_corner(fe, x, -1, LD, phase);
-                if (barrier(state, x, 0) & RU)
-                    draw_barrier_corner(fe, x, -1, DR, phase);
-                if (barrier(state, x, 0) & U)
-                    draw_barrier(fe, x, -1, D, phase);
-                if (barrier(state, x, ds->height-1) & DR)
-                    draw_barrier_corner(fe, x, ds->height, RU, phase);
-                if (barrier(state, x, ds->height-1) & LD)
-                    draw_barrier_corner(fe, x, ds->height, UL, phase);
-                if (barrier(state, x, ds->height-1) & D)
-                    draw_barrier(fe, x, ds->height, U, phase);
+                int ub = barrier(state, GX(x), GY(0));
+                int db = barrier(state, GX(x), GY(ds->height-1));
+                draw_barrier_corner(fe, x, -1, LD, phase, ub & UL);
+                draw_barrier_corner(fe, x, -1, DR, phase, ub & RU);
+                draw_barrier(fe, x, -1, D, phase, ub & U);
+                draw_barrier_corner(fe, x, ds->height, RU, phase, db & DR);
+                draw_barrier_corner(fe, x, ds->height, UL, phase, db & LD);
+                draw_barrier(fe, x, ds->height, U, phase, db & D);
             }
 
             for (y = 0; y < ds->height; y++) {
-                if (barrier(state, 0, y) & UL)
-                    draw_barrier_corner(fe, -1, y, RU, phase);
-                if (barrier(state, 0, y) & LD)
-                    draw_barrier_corner(fe, -1, y, DR, phase);
-                if (barrier(state, 0, y) & L)
-                    draw_barrier(fe, -1, y, R, phase);
-                if (barrier(state, ds->width-1, y) & RU)
-                    draw_barrier_corner(fe, ds->width, y, UL, phase);
-                if (barrier(state, ds->width-1, y) & DR)
-                    draw_barrier_corner(fe, ds->width, y, LD, phase);
-                if (barrier(state, ds->width-1, y) & R)
-                    draw_barrier(fe, ds->width, y, L, phase);
+                int lb = barrier(state, GX(0), GY(y));
+                int rb = barrier(state, GX(ds->width-1), GY(y));
+                draw_barrier_corner(fe, -1, y, RU, phase, lb & UL);
+                draw_barrier_corner(fe, -1, y, DR, phase, lb & LD);
+                draw_barrier(fe, -1, y, R, phase, lb & L);
+                draw_barrier_corner(fe, ds->width, y, UL, phase, rb & RU);
+                draw_barrier_corner(fe, ds->width, y, LD, phase, rb & DR);
+                draw_barrier(fe, ds->width, y, L, phase, rb & R);
             }
         }
     }
@@ -2409,11 +2459,16 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
     /*
      * Draw any tile which differs from the way it was last drawn.
      */
-    active = compute_active(state);
+    active = compute_active(state, ui->cx, ui->cy);
 
     for (x = 0; x < ds->width; x++)
         for (y = 0; y < ds->height; y++) {
-            unsigned char c = tile(state, x, y) | index(state, active, x, y);
+            unsigned char c = tile(state, GX(x), GY(y)) |
+                              index(state, active, GX(x), GY(y));
+            int is_src = GX(x) == ui->cx && GY(y) == ui->cy;
+            int is_anim = GX(x) == tx && GY(y) == ty;
+            int is_cursor = ui->cur_visible &&
+                            GX(x) == ui->cur_x && GY(y) == ui->cur_y;
 
             /*
              * In a completion flash, we adjust the LOCKED bit
@@ -2421,9 +2476,10 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
              * the frame number.
              */
             if (frame >= 0) {
+                int rcx = RX(ui->cx), rcy = RY(ui->cy);
                 int xdist, ydist, dist;
-                xdist = (x < state->cx ? state->cx - x : x - state->cx);
-                ydist = (y < state->cy ? state->cy - y : y - state->cy);
+                xdist = (x < rcx ? rcx - x : x - rcx);
+                ydist = (y < rcy ? rcy - y : y - rcy);
                 dist = (xdist > ydist ? xdist : ydist);
 
                 if (frame >= dist && frame < dist+4) {
@@ -2433,15 +2489,13 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
                 }
             }
 
-            if (index(state, ds->visible, x, y) != c ||
+            if (moved_origin ||
+                index(state, ds->visible, x, y) != c ||
                 index(state, ds->visible, x, y) == 0xFF ||
-                (x == tx && y == ty) ||
-		(ui->cur_visible && x == ui->cur_x && y == ui->cur_y)) {
-                draw_tile(fe, state, x, y, c,
-                          (x == tx && y == ty ? angle : 0.0F),
-			  (ui->cur_visible && x == ui->cur_x && y == ui->cur_y));
-                if ((x == tx && y == ty) ||
-		    (ui->cur_visible && x == ui->cur_x && y == ui->cur_y))
+                is_src || is_anim || is_cursor) {
+                draw_tile(fe, state, ds, x, y, c,
+                          is_src, (is_anim ? angle : 0.0F), is_cursor);
+                if (is_src || is_anim || is_cursor)
                     index(state, ds->visible, x, y) = 0xFF;
                 else
                     index(state, ds->visible, x, y) = c;
@@ -2505,16 +2559,11 @@ static float game_flash_length(game_state *oldstate,
      */
     if (!oldstate->completed && newstate->completed &&
 	!oldstate->used_solve && !newstate->used_solve) {
-        int size;
-        size = 0;
-        if (size < newstate->cx+1)
-            size = newstate->cx+1;
-        if (size < newstate->cy+1)
-            size = newstate->cy+1;
-        if (size < newstate->width - newstate->cx)
-            size = newstate->width - newstate->cx;
-        if (size < newstate->height - newstate->cy)
-            size = newstate->height - newstate->cy;
+        int size = 0;
+        if (size < newstate->width)
+            size = newstate->width;
+        if (size < newstate->height)
+            size = newstate->height;
         return FLASH_FRAME * (size+4);
     }
 

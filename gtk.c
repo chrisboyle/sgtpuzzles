@@ -317,24 +317,26 @@ static gint key_event(GtkWidget *widget, GdkEventKey *event, gpointer data)
 {
     frontend *fe = (frontend *)data;
     int keyval;
+    int shift = (event->state & GDK_SHIFT_MASK) ? MOD_SHFT : 0;
+    int ctrl = (event->state & GDK_CONTROL_MASK) ? MOD_CTRL : 0;
 
     if (!fe->pixmap)
         return TRUE;
 
     if (event->keyval == GDK_Up)
-        keyval = CURSOR_UP;
+        keyval = shift | ctrl | CURSOR_UP;
     else if (event->keyval == GDK_KP_Up || event->keyval == GDK_KP_8)
 	keyval = MOD_NUM_KEYPAD | '8';
     else if (event->keyval == GDK_Down)
-        keyval = CURSOR_DOWN;
+        keyval = shift | ctrl | CURSOR_DOWN;
     else if (event->keyval == GDK_KP_Down || event->keyval == GDK_KP_2)
 	keyval = MOD_NUM_KEYPAD | '2';
     else if (event->keyval == GDK_Left)
-        keyval = CURSOR_LEFT;
+        keyval = shift | ctrl | CURSOR_LEFT;
     else if (event->keyval == GDK_KP_Left || event->keyval == GDK_KP_4)
 	keyval = MOD_NUM_KEYPAD | '4';
     else if (event->keyval == GDK_Right)
-        keyval = CURSOR_RIGHT;
+        keyval = shift | ctrl | CURSOR_RIGHT;
     else if (event->keyval == GDK_KP_Right || event->keyval == GDK_KP_6)
 	keyval = MOD_NUM_KEYPAD | '6';
     else if (event->keyval == GDK_KP_Home || event->keyval == GDK_KP_7)
