@@ -686,8 +686,9 @@ a time.
 As in Sixteen, \I{controls, for Netslide}control is with the mouse.
 See \k{sixteen-controls}.
 
-\I{parameters, for Netslide}Game parameters are the same as for Net
-(see \k{net-params}).
+\I{parameters, for Netslide}The available game parameters have similar
+meanings to those in Net (see \k{net-params}) and Sixteen (see
+\k{sixteen-params}).
 
 
 \C{pattern} \i{Pattern}

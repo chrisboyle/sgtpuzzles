@@ -80,6 +80,7 @@ struct game_params {
     int height;
     int wrapping;
     float barrier_probability;
+    int movetarget;
 };
 
 struct game_aux_info {
@@ -90,7 +91,7 @@ struct game_aux_info {
 struct game_state {
     int width, height, cx, cy, wrapping, completed;
     int used_solve, just_used_solve;
-    int move_count;
+    int move_count, movetarget;
 
     /* position (row or col number, starting at 0) of last move. */
     int last_move_row, last_move_col;
@@ -157,6 +158,7 @@ static game_params *default_params(void)
     ret->height = 3;
     ret->wrapping = FALSE;
     ret->barrier_probability = 1.0;
+    ret->movetarget = 0;
 
     return ret;
 }
@@ -185,6 +187,7 @@ static int game_fetch_preset(int i, char **name, game_params **params)
     ret->height = values[i].y;
     ret->wrapping = values[i].wrap;
     ret->barrier_probability = values[i].bprob;
+    ret->movetarget = 0;
 
     sprintf(str, "%dx%d%s", ret->width, ret->height,
             values[i].desc);
@@ -212,6 +215,7 @@ static void decode_params(game_params *ret, char const *string)
 
     ret->wrapping = FALSE;
     ret->barrier_probability = 0.0;
+    ret->movetarget = 0;
 
     ret->width = atoi(p);
     while (*p && isdigit(*p)) p++;
@@ -221,8 +225,13 @@ static void decode_params(game_params *ret, char const *string)
         while (*p && isdigit(*p)) p++;
         if ( (ret->wrapping = (*p == 'w')) != 0 )
             p++;
-        if (*p == 'b')
-            ret->barrier_probability = atof(p+1);
+        if (*p == 'b') {
+            ret->barrier_probability = atof(++p);
+            while (*p && (isdigit(*p) || *p == '.')) p++;
+        }
+        if (*p == 'm') {
+            ret->movetarget = atoi(++p);
+        }
     } else {
         ret->height = ret->width;
     }
@@ -238,6 +247,10 @@ static char *encode_params(game_params *params, int full)
         ret[len++] = 'w';
     if (full && params->barrier_probability)
         len += sprintf(ret+len, "b%g", params->barrier_probability);
+    /* Shuffle limit is part of the limited parameters, because we have to
+     * provide the target move count. */
+    if (params->movetarget)
+        len += sprintf(ret+len, "m%d", params->movetarget);
     assert(len < lenof(ret));
     ret[len] = '\0';
 
@@ -249,7 +262,7 @@ static config_item *game_configure(game_params *params)
     config_item *ret;
     char buf[80];
 
-    ret = snewn(5, config_item);
+    ret = snewn(6, config_item);
 
     ret[0].name = "Width";
     ret[0].type = C_STRING;
@@ -274,10 +287,16 @@ static config_item *game_configure(game_params *params)
     ret[3].sval = dupstr(buf);
     ret[3].ival = 0;
 
-    ret[4].name = NULL;
-    ret[4].type = C_END;
-    ret[4].sval = NULL;
+    ret[4].name = "Number of shuffling moves";
+    ret[4].type = C_STRING;
+    sprintf(buf, "%d", params->movetarget);
+    ret[4].sval = dupstr(buf);
     ret[4].ival = 0;
+
+    ret[5].name = NULL;
+    ret[5].type = C_END;
+    ret[5].sval = NULL;
+    ret[5].ival = 0;
 
     return ret;
 }
@@ -290,6 +309,7 @@ static game_params *custom_params(config_item *cfg)
     ret->height = atoi(cfg[1].sval);
     ret->wrapping = cfg[2].ival;
     ret->barrier_probability = (float)atof(cfg[3].sval);
+    ret->movetarget = atoi(cfg[4].sval);
 
     return ret;
 }
@@ -538,7 +558,11 @@ static char *new_game_desc(game_params *params, random_state *rs,
 
     /*
      * Now shuffle the grid.
-     * FIXME - this simply does a set of random moves to shuffle the pieces.
+     * FIXME - this simply does a set of random moves to shuffle the pieces,
+     * although we make a token effort to avoid boring cases by avoiding moves
+     * that directly undo the previous one, or that repeat so often as to
+     * turn into fewer moves.
+     *
      * A better way would be to number all the pieces, generate a placement
      * for all the numbers as for "sixteen", observing parity constraints if
      * neccessary, and then place the pieces according to their numbering.
@@ -549,18 +573,43 @@ static char *new_game_desc(game_params *params, random_state *rs,
         int i;
         int cols = w - 1;
         int rows = h - 1;
-        for (i = 0; i < cols * rows * 2; i++) {
+        int moves = params->movetarget;
+        int prevdir = -1, prevrowcol = -1, nrepeats = 0;
+        if (!moves) moves = cols * rows * 2;
+        for (i = 0; i < moves; /* incremented conditionally */) {
             /* Choose a direction: 0,1,2,3 = up, right, down, left. */
             int dir = random_upto(rs, 4);
+            int rowcol;
             if (dir % 2 == 0) {
                 int col = random_upto(rs, cols);
-                if (col >= cx) col += 1;
+                if (col >= cx) col += 1;    /* avoid centre */
+                if (col == prevrowcol) {
+                    if (dir == 2-prevdir)
+                        continue;   /* undoes last move */
+                    else if ((nrepeats+1)*2 > h)
+                        continue;   /* makes fewer moves */
+                }
                 slide_col_int(w, h, tiles, 1 - dir, col);
+                rowcol = col;
             } else {
                 int row = random_upto(rs, rows);
-                if (row >= cy) row += 1;
+                if (row >= cy) row += 1;    /* avoid centre */
+                if (row == prevrowcol) {
+                    if (dir == 4-prevdir)
+                        continue;   /* undoes last move */
+                    else if ((nrepeats+1)*2 > w)
+                        continue;   /* makes fewer moves */
+                }
                 slide_row_int(w, h, tiles, 2 - dir, row);
+                rowcol = row;
             }
+            if (dir == prevdir && rowcol == prevrowcol)
+                nrepeats++;
+            else
+                nrepeats = 1;
+            prevdir = dir;
+            prevrowcol = rowcol;
+            i++;    /* if we got here, the move was accepted */
         }
     }
 
@@ -706,6 +755,7 @@ static game_state *new_game(game_params *params, char *desc)
     state->cx = state->width / 2;
     state->cy = state->height / 2;
     state->wrapping = params->wrapping;
+    state->movetarget = params->movetarget;
     state->completed = 0;
     state->used_solve = state->just_used_solve = FALSE;
     state->move_count = 0;
@@ -824,6 +874,7 @@ static game_state *dup_game(game_state *state)
     ret->cx = state->cx;
     ret->cy = state->cy;
     ret->wrapping = state->wrapping;
+    ret->movetarget = state->movetarget;
     ret->completed = state->completed;
     ret->used_solve = state->used_solve;
     ret->just_used_solve = state->just_used_solve;
@@ -1618,6 +1669,10 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 	    sprintf(statusbuf, "%sMoves: %d",
 		    (state->completed ? "COMPLETED! " : ""),
 		    (state->completed ? state->completed : state->move_count));
+
+        if (state->movetarget)
+            sprintf(statusbuf + strlen(statusbuf), " (target %d)",
+                    state->movetarget);
 
 	sprintf(statusbuf + strlen(statusbuf), " Active: %d/%d", a, n);
 
