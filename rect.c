@@ -321,7 +321,7 @@ static void remove_number_placement(int w, int h, struct numberdata *number,
 }
 
 static int rect_solver(int w, int h, int nrects, struct numberdata *numbers,
-                       random_state *rs)
+                       game_state *result, random_state *rs)
 {
     struct rectlist *rectpositions;
     int *overlaps, *rectbyplace, *workspace;
@@ -739,7 +739,7 @@ static int rect_solver(int w, int h, int nrects, struct numberdata *numbers,
          * rectangle) which overlaps a candidate placement of the
          * number for some other rectangle.
          */
-        {
+        if (rs) {
             struct rpn {
                 int rect;
                 int placement;
@@ -844,8 +844,28 @@ static int rect_solver(int w, int h, int nrects, struct numberdata *numbers,
                i, rectpositions[i].n);
 #endif
         assert(rectpositions[i].n > 0);
-        if (rectpositions[i].n > 1)
+        if (rectpositions[i].n > 1) {
             ret = FALSE;
+	} else if (result) {
+	    /*
+	     * Place the rectangle in its only possible position.
+	     */
+	    int x, y;
+	    struct rect *r = &rectpositions[i].rects[0];
+
+	    for (y = 0; y < r->h; y++) {
+		if (r->x > 0)
+		    vedge(result, r->x, r->y+y) = 1;
+		if (r->x+r->w < result->w)
+		    vedge(result, r->x+r->w, r->y+y) = 1;
+	    }
+	    for (x = 0; x < r->w; x++) {
+		if (r->y > 0)
+		    hedge(result, r->x+x, r->y) = 1;
+		if (r->y+r->h < result->h)
+		    hedge(result, r->x+x, r->y+r->h) = 1;
+	    }
+	}
     }
 
     /*
@@ -1523,7 +1543,8 @@ static char *new_game_desc(game_params *params, random_state *rs,
             }
 
 	    if (params->unique)
-		ret = rect_solver(params->w, params->h, nnumbers, nd, rs);
+		ret = rect_solver(params->w, params->h, nnumbers, nd,
+				  NULL, rs);
 	    else
 		ret = TRUE;	       /* allow any number placement at all */
 
@@ -1748,8 +1769,45 @@ static game_state *solve_game(game_state *state, game_aux_info *ai,
     game_state *ret;
 
     if (!ai) {
-	*error = "Solution not known for this puzzle";
-	return NULL;
+	int i, j, n;
+	struct numberdata *nd;
+
+	/*
+	 * Attempt the in-built solver.
+	 */
+
+	/* Set up each number's (very short) candidate position list. */
+	for (i = n = 0; i < state->h * state->w; i++)
+	    if (state->grid[i])
+		n++;
+
+	nd = snewn(n, struct numberdata);
+
+	for (i = j = 0; i < state->h * state->w; i++)
+	    if (state->grid[i]) {
+		nd[j].area = state->grid[i];
+		nd[j].npoints = 1;
+		nd[j].points = snewn(1, struct point);
+		nd[j].points[0].x = i % state->w;
+		nd[j].points[0].y = i / state->w;
+		j++;
+	    }
+
+	assert(j == n);
+
+	ret = dup_game(state);
+	ret->cheated = TRUE;
+
+	rect_solver(state->w, state->h, n, nd, ret, NULL);
+
+	/*
+	 * Clean up.
+	 */
+	for (i = 0; i < n; i++)
+	    sfree(nd[i].points);
+	sfree(nd);
+
+	return ret;
     }
 
     assert(state->w == ai->w);
