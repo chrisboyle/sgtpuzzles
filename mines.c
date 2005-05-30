@@ -1023,7 +1023,7 @@ static int minesolve(int w, int h, int n, char *grid,
 #ifdef SOLVER_DIAGNOSTICS
 			printf("trying a set combination with %d %d\n",
 			       squaresleft, minesleft);
-#endif SOLVER_DIAGNOSTICS
+#endif /* SOLVER_DIAGNOSTICS */
 
 			/*
 			 * We've reached the end. See if we've got
