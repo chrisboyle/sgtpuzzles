@@ -2521,7 +2521,7 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 }
 
 static float game_anim_length(game_state *oldstate,
-			      game_state *newstate, int dir)
+			      game_state *newstate, int dir, game_ui *ui)
 {
     int last_rotate_dir;
 
@@ -2544,7 +2544,7 @@ static float game_anim_length(game_state *oldstate,
 }
 
 static float game_flash_length(game_state *oldstate,
-			       game_state *newstate, int dir)
+			       game_state *newstate, int dir, game_ui *ui)
 {
     /*
      * If the game has just been completed, we display a completion

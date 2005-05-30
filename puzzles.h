@@ -219,8 +219,10 @@ struct game {
     void (*redraw)(frontend *fe, game_drawstate *ds, game_state *oldstate,
 		   game_state *newstate, int dir, game_ui *ui, float anim_time,
 		   float flash_time);
-    float (*anim_length)(game_state *oldstate, game_state *newstate, int dir);
-    float (*flash_length)(game_state *oldstate, game_state *newstate, int dir);
+    float (*anim_length)(game_state *oldstate, game_state *newstate, int dir,
+			 game_ui *ui);
+    float (*flash_length)(game_state *oldstate, game_state *newstate, int dir,
+			  game_ui *ui);
     int (*wants_statusbar)(void);
 };
 

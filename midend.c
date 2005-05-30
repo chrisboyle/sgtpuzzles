@@ -212,7 +212,8 @@ static void midend_finish_move(midend_data *me)
 	flashtime = me->ourgame->flash_length(me->oldstate ? me->oldstate :
 					      me->states[me->statepos-2].state,
 					      me->states[me->statepos-1].state,
-					      me->oldstate ? me->dir : +1);
+					      me->oldstate ? me->dir : +1,
+					      me->ui);
 	if (flashtime > 0) {
 	    me->flash_pos = 0.0F;
 	    me->flash_time = flashtime;
@@ -333,7 +334,7 @@ static int midend_really_process_key(midend_data *me, int x, int y, int button)
     } else {
         anim_time = me->ourgame->anim_length(oldstate,
                                              me->states[me->statepos-1].state,
-                                             me->dir);
+                                             me->dir, me->ui);
     }
 
     me->oldstate = oldstate;

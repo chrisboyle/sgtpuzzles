@@ -937,7 +937,7 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 }
 
 static float game_anim_length(game_state *oldstate,
-			      game_state *newstate, int dir)
+			      game_state *newstate, int dir, game_ui *ui)
 {
     if ((dir > 0 && newstate->just_used_solve) ||
 	(dir < 0 && oldstate->just_used_solve))
@@ -947,7 +947,7 @@ static float game_anim_length(game_state *oldstate,
 }
 
 static float game_flash_length(game_state *oldstate,
-			       game_state *newstate, int dir)
+			       game_state *newstate, int dir, game_ui *ui)
 {
     if (!oldstate->completed && newstate->completed &&
 	!oldstate->used_solve && !newstate->used_solve)
