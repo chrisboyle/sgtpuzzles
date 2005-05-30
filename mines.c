@@ -255,6 +255,8 @@ static char *validate_params(game_params *params)
 	return "Width must be greater than zero";
     if (params->h <= 0)
 	return "Height must be greater than zero";
+    if (params->n > params->w * params->h - 9)
+	return "Too many mines for grid size";
 
     /*
      * FIXME: Need more constraints here. Not sure what the
