@@ -165,7 +165,8 @@ void midend_new_game(midend_data *me)
     }
 
     ensure(me);
-    me->states[me->nstates].state = me->ourgame->new_game(me->params, me->desc);
+    me->states[me->nstates].state =
+	me->ourgame->new_game(me, me->params, me->desc);
     me->states[me->nstates].special = TRUE;
     me->nstates++;
     me->statepos = 1;
@@ -495,7 +496,7 @@ float *midend_colours(midend_data *me, int *ncolours)
     if (me->nstates == 0) {
 	game_aux_info *aux = NULL;
         char *desc = me->ourgame->new_desc(me->params, me->random, &aux);
-        state = me->ourgame->new_game(me->params, desc);
+        state = me->ourgame->new_game(me, me->params, desc);
         sfree(desc);
 	if (aux)
 	    me->ourgame->free_aux_info(aux);
@@ -624,6 +625,12 @@ void midend_fetch_preset(midend_data *me, int n,
 int midend_wants_statusbar(midend_data *me)
 {
     return me->ourgame->wants_statusbar();
+}
+
+void midend_supersede_game_desc(midend_data *me, char *desc)
+{
+    sfree(me->desc);
+    me->desc = dupstr(desc);
 }
 
 config_item *midend_get_config(midend_data *me, int which, char **wintitle)

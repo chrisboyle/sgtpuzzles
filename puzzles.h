@@ -144,6 +144,7 @@ char *midend_set_config(midend_data *me, int which, config_item *cfg);
 char *midend_game_id(midend_data *me, char *id);
 char *midend_text_format(midend_data *me);
 char *midend_solve(midend_data *me);
+void midend_supersede_game_desc(midend_data *me, char *desc);
 
 /*
  * malloc.c
@@ -176,6 +177,8 @@ random_state *random_init(char *seed, int len);
 unsigned long random_bits(random_state *state, int bits);
 unsigned long random_upto(random_state *state, unsigned long limit);
 void random_free(random_state *state);
+char *random_state_encode(random_state *state);
+random_state *random_state_decode(char *input);
 /* random.c also exports SHA, which occasionally comes in useful. */
 typedef unsigned long uint32;
 typedef struct {
@@ -213,7 +216,7 @@ struct game {
 		      game_aux_info **aux);
     void (*free_aux_info)(game_aux_info *aux);
     char *(*validate_desc)(game_params *params, char *desc);
-    game_state *(*new_game)(game_params *params, char *desc);
+    game_state *(*new_game)(midend_data *me, game_params *params, char *desc);
     game_state *(*dup_game)(game_state *state);
     void (*free_game)(game_state *state);
     int can_solve;

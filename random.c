@@ -12,6 +12,7 @@
 
 #include <assert.h>
 #include <string.h>
+#include <stdio.h>
 
 #include "puzzles.h"
 
@@ -277,4 +278,64 @@ unsigned long random_upto(random_state *state, unsigned long limit)
 void random_free(random_state *state)
 {
     sfree(state);
+}
+
+char *random_state_encode(random_state *state)
+{
+    char retbuf[256];
+    int len = 0, i;
+
+    for (i = 0; i < lenof(state->seedbuf); i++)
+	len += sprintf(retbuf+len, "%02x", state->seedbuf[i]);
+    for (i = 0; i < lenof(state->databuf); i++)
+	len += sprintf(retbuf+len, "%02x", state->databuf[i]);
+    len += sprintf(retbuf+len, "%02x", state->pos);
+
+    return dupstr(retbuf);
+}
+
+random_state *random_state_decode(char *input)
+{
+    random_state *state;
+    int pos, byte, digits;
+
+    state = snew(random_state);
+
+    memset(state->seedbuf, 0, sizeof(state->seedbuf));
+    memset(state->databuf, 0, sizeof(state->databuf));
+    state->pos = 0;
+
+    byte = digits = 0;
+    pos = 0;
+    while (*input) {
+	int v = *input++;
+
+	if (v >= '0' && v <= '9')
+	    v = v - '0';
+	else if (v >= 'A' && v <= 'F')
+	    v = v - 'A' + 10;
+	else if (v >= 'a' && v <= 'f')
+	    v = v - 'a' + 10;
+	else
+	    v = 0;
+
+	byte = (byte << 4) | v;
+	digits++;
+
+	if (digits == 2) {
+	    /*
+	     * We have a byte. Put it somewhere.
+	     */
+	    if (pos < lenof(state->seedbuf))
+		state->seedbuf[pos++] = byte;
+	    else if (pos < lenof(state->seedbuf) + lenof(state->databuf))
+		state->databuf[pos++ - lenof(state->seedbuf)] = byte;
+	    else if (pos == lenof(state->seedbuf) + lenof(state->databuf) &&
+		     byte <= lenof(state->databuf))
+		state->pos = byte;
+	    byte = digits = 0;
+	}
+    }
+
+    return state;
 }

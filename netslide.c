@@ -738,7 +738,7 @@ static char *validate_desc(game_params *params, char *desc)
  * Construct an initial game state, given a description and parameters.
  */
 
-static game_state *new_game(game_params *params, char *desc)
+static game_state *new_game(midend_data *me, game_params *params, char *desc)
 {
     game_state *state;
     int w, h, x, y;

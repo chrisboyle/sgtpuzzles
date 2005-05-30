@@ -601,7 +601,7 @@ static char *validate_desc(game_params *params, char *desc)
     return NULL;
 }
 
-static game_state *new_game(game_params *params, char *desc)
+static game_state *new_game(midend_data *me, game_params *params, char *desc)
 {
     int i;
     char *p;
