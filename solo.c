@@ -1397,7 +1397,7 @@ struct game_aux_info {
 };
 
 static char *new_game_desc(game_params *params, random_state *rs,
-			   game_aux_info **aux)
+			   game_aux_info **aux, int interactive)
 {
     int c = params->c, r = params->r, cr = c*r;
     int area = cr*cr;

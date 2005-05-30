@@ -214,7 +214,7 @@ struct game {
     game_params *(*custom_params)(config_item *cfg);
     char *(*validate_params)(game_params *params);
     char *(*new_desc)(game_params *params, random_state *rs,
-		      game_aux_info **aux);
+		      game_aux_info **aux, int interactive);
     void (*free_aux_info)(game_aux_info *aux);
     char *(*validate_desc)(game_params *params, char *desc);
     game_state *(*new_game)(midend_data *me, game_params *params, char *desc);

@@ -308,7 +308,7 @@ static int grid_complete(int *grid, int wh, int orientable)
 }
 
 static char *new_game_desc(game_params *params, random_state *rs,
-			   game_aux_info **aux)
+			   game_aux_info **aux, int interactive)
 {
     int *grid;
     int w = params->w, h = params->h, n = params->n, wh = w*h;

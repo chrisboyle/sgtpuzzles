@@ -151,7 +151,7 @@ static int perm_parity(int *perm, int n)
 }
 
 static char *new_game_desc(game_params *params, random_state *rs,
-			   game_aux_info **aux)
+			   game_aux_info **aux, int interactive)
 {
     int gap, n, i, x;
     int x1, x2, p1, p2, parity;

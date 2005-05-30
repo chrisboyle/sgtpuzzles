@@ -334,7 +334,7 @@ static char *validate_params(game_params *params)
  */
 
 static char *new_game_desc(game_params *params, random_state *rs,
-			   game_aux_info **aux)
+			   game_aux_info **aux, int interactive)
 {
     tree234 *possibilities, *barriertree;
     int w, h, x, y, cx, cy, nbarriers;

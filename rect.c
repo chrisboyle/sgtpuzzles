@@ -1054,7 +1054,7 @@ struct game_aux_info {
 };
 
 static char *new_game_desc(game_params *params, random_state *rs,
-			   game_aux_info **aux)
+			   game_aux_info **aux, int interactive)
 {
     int *grid, *numbers = NULL;
     struct rectlist *list;

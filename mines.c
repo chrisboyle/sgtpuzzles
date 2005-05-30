@@ -1847,24 +1847,29 @@ static char *new_mine_layout(int w, int h, int n, int x, int y, int unique,
 }
 
 static char *new_game_desc(game_params *params, random_state *rs,
-			   game_aux_info **aux)
+			   game_aux_info **aux, int interactive)
 {
-#ifdef PREOPENED
-    int x = random_upto(rs, params->w);
-    int y = random_upto(rs, params->h);
-    char *grid, *desc;
+    if (!interactive) {
+	/*
+	 * For batch-generated grids, pre-open one square.
+	 */
+	int x = random_upto(rs, params->w);
+	int y = random_upto(rs, params->h);
+	char *grid, *desc;
 
-    grid = new_mine_layout(params->w, params->h, params->n,
-			   x, y, params->unique, rs);
-#else
-    char *rsdesc, *desc;
+	grid = new_mine_layout(params->w, params->h, params->n,
+			       x, y, params->unique, rs, &desc);
+	sfree(grid);
+	return desc;
+    } else {
+	char *rsdesc, *desc;
 
-    rsdesc = random_state_encode(rs);
-    desc = snewn(strlen(rsdesc) + 100, char);
-    sprintf(desc, "r%d,%c,%s", params->n, params->unique ? 'u' : 'a', rsdesc);
-    sfree(rsdesc);
-    return desc;
-#endif
+	rsdesc = random_state_encode(rs);
+	desc = snewn(strlen(rsdesc) + 100, char);
+	sprintf(desc, "r%d,%c,%s", params->n, params->unique ? 'u' : 'a', rsdesc);
+	sfree(rsdesc);
+	return desc;
+    }
 }
 
 static void game_free_aux_info(game_aux_info *aux)

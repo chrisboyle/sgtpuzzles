@@ -586,7 +586,7 @@ static void classify_grid_square_callback(void *ctx, struct grid_square *sq)
 }
 
 static char *new_game_desc(game_params *params, random_state *rs,
-			   game_aux_info **aux)
+			   game_aux_info **aux, int interactive)
 {
     struct grid_data data;
     int i, j, k, m, area, facesperclass;

@@ -178,7 +178,8 @@ void midend_new_game(midend_data *me)
 	me->aux_info = NULL;
 
         rs = random_init(me->seedstr, strlen(me->seedstr));
-        me->desc = me->ourgame->new_desc(me->curparams, rs, &me->aux_info);
+        me->desc = me->ourgame->new_desc(me->curparams, rs,
+					 &me->aux_info, TRUE);
         random_free(rs);
     }
 
@@ -521,7 +522,8 @@ float *midend_colours(midend_data *me, int *ncolours)
 
     if (me->nstates == 0) {
 	game_aux_info *aux = NULL;
-        char *desc = me->ourgame->new_desc(me->params, me->random, &aux);
+        char *desc = me->ourgame->new_desc(me->params, me->random,
+					   &aux, TRUE);
         state = me->ourgame->new_game(me, me->params, desc);
         sfree(desc);
 	if (aux)

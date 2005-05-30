@@ -1146,7 +1146,7 @@ static void perturb(int w, int h, unsigned char *tiles, int wrapping,
 }
 
 static char *new_game_desc(game_params *params, random_state *rs,
-			   game_aux_info **aux)
+			   game_aux_info **aux, int interactive)
 {
     tree234 *possibilities, *barriertree;
     int w, h, x, y, cx, cy, nbarriers;
