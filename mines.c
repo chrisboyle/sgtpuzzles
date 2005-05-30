@@ -232,6 +232,8 @@ static game_params *custom_params(config_item *cfg)
     ret->w = atoi(cfg[0].sval);
     ret->h = atoi(cfg[1].sval);
     ret->n = atoi(cfg[2].sval);
+    if (strchr(cfg[2].sval, '%'))
+	ret->n = ret->n * (ret->w * ret->h) / 100;
     ret->unique = cfg[3].ival;
 
     return ret;

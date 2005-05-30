@@ -891,7 +891,17 @@ menu are:
 
 \dt \e{Mines}
 
-\dd Number of mines in the grid.
+\dd Number of mines in the grid. You can enter this as an absolute
+mine count, or alternatively you can put a \cw{%} sign on the end in
+which case the game will arrange for that proportion of the squares
+in the grid to be mines.
+
+\lcont{
+
+Beware of setting the mine count too high. At very high densities,
+the program may spend forever searching for a solvable grid.
+
+}
 
 \dt \e{Ensure solubility}
 
