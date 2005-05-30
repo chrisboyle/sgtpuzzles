@@ -10,12 +10,6 @@
  *       That hook can talk to the game_ui and set the cheated flag,
  *       and then make_move can avoid setting the `won' flag after that.
  *
- *  - delay game description generation until first click
- *     + do we actually _need_ to do this? Hmm.
- *     + it's a perfectly good puzzle game without
- *     + but it might be useful when we start timing, since it
- * 	 ensures the user is really paying attention.
- * 
  *  - timer
  * 
  *  - question marks (arrgh, preferences?)
