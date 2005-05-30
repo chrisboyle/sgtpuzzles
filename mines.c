@@ -2174,7 +2174,30 @@ static game_state *solve_game(game_state *state, game_aux_info *aux,
 
 static char *game_text_format(game_state *state)
 {
-    return NULL;
+    char *ret;
+    int x, y;
+
+    ret = snewn((state->w + 1) * state->h + 1, char);
+    for (y = 0; y < state->h; y++) {
+	for (x = 0; x < state->w; x++) {
+	    int v = state->grid[y*state->w+x];
+	    if (v == 0)
+		v = '-';
+	    else if (v >= 1 && v <= 8)
+		v = '0' + v;
+	    else if (v == -1)
+		v = '*';
+	    else if (v == -2 || v == -3)
+		v = '?';
+	    else if (v >= 64)
+		v = '!';
+	    ret[y * (state->w+1) + x] = v;
+	}
+	ret[y * (state->w+1) + state->w] = '\n';
+    }
+    ret[(state->w + 1) * state->h] = '\0';
+
+    return ret;
 }
 
 struct game_ui {
@@ -2728,7 +2751,7 @@ const struct game thegame = {
     dup_game,
     free_game,
     FALSE, solve_game,
-    FALSE, game_text_format,
+    TRUE, game_text_format,
     new_ui,
     free_ui,
     make_move,
