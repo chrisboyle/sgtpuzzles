@@ -98,10 +98,14 @@ void frontend_default_colour(frontend *fe, float *output)
 
 void status_bar(frontend *fe, char *text)
 {
+    char *rewritten;
+
     assert(fe->statusbar);
 
+    rewritten = midend_rewrite_statusbar(fe->me, text);
     gtk_statusbar_pop(GTK_STATUSBAR(fe->statusbar), fe->statusctx);
-    gtk_statusbar_push(GTK_STATUSBAR(fe->statusbar), fe->statusctx, text);
+    gtk_statusbar_push(GTK_STATUSBAR(fe->statusbar), fe->statusctx, rewritten);
+    sfree(rewritten);
 }
 
 void start_draw(frontend *fe)

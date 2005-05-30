@@ -43,6 +43,10 @@ struct midend_data {
     float flash_time, flash_pos;
     int dir;
 
+    int timing;
+    float elapsed;
+    char *laststatus;
+
     int pressed_mouse_button;
 };
 
@@ -83,6 +87,9 @@ midend_data *midend_new(frontend *fe, const game *ourgame)
     me->dir = 0;
     me->ui = NULL;
     me->pressed_mouse_button = 0;
+    me->laststatus = NULL;
+    me->timing = FALSE;
+    me->elapsed = 0.0F;
 
     sfree(randseed);
 
@@ -100,6 +107,7 @@ void midend_free(midend_data *me)
     me->ourgame->free_params(me->params);
     if (me->curparams)
         me->ourgame->free_params(me->curparams);
+    sfree(me->laststatus);
     sfree(me);
 }
 
@@ -112,6 +120,16 @@ void midend_set_params(midend_data *me, game_params *params)
 {
     me->ourgame->free_params(me->params);
     me->params = me->ourgame->dup_params(params);
+}
+
+static void midend_set_timer(midend_data *me)
+{
+    me->timing = (me->ourgame->is_timed &&
+		  me->ourgame->timing_state(me->states[me->statepos-1].state));
+    if (me->timing || me->flash_time || me->anim_time)
+	activate_timer(me->frontend);
+    else
+	deactivate_timer(me->frontend);
 }
 
 void midend_new_game(midend_data *me)
@@ -171,6 +189,8 @@ void midend_new_game(midend_data *me)
     me->nstates++;
     me->statepos = 1;
     me->drawstate = me->ourgame->new_drawstate(me->states[0].state);
+    me->elapsed = 0.0F;
+    midend_set_timer(me);
     if (me->ui)
         me->ourgame->free_ui(me->ui);
     me->ui = me->ourgame->new_ui(me->states[0].state);
@@ -227,10 +247,7 @@ static void midend_finish_move(midend_data *me)
     me->anim_pos = me->anim_time = 0;
     me->dir = 0;
 
-    if (me->flash_time == 0 && me->anim_time == 0)
-	deactivate_timer(me->frontend);
-    else
-	activate_timer(me->frontend);
+    midend_set_timer(me);
 }
 
 static void midend_stop_anim(midend_data *me)
@@ -266,7 +283,7 @@ void midend_restart_game(midend_data *me)
     me->anim_time = 0.0;
     midend_finish_move(me);
     midend_redraw(me);
-    activate_timer(me->frontend);
+    midend_set_timer(me);
 }
 
 static int midend_really_process_key(midend_data *me, int x, int y, int button)
@@ -349,7 +366,7 @@ static int midend_really_process_key(midend_data *me, int x, int y, int button)
 
     midend_redraw(me);
 
-    activate_timer(me->frontend);
+    midend_set_timer(me);
 
     return 1;
 }
@@ -479,13 +496,22 @@ void midend_timer(midend_data *me, float tplus)
 	if (me->anim_time > 0)
 	    midend_finish_move(me);
     }
+
     me->flash_pos += tplus;
     if (me->flash_pos >= me->flash_time || me->flash_time == 0) {
 	me->flash_pos = me->flash_time = 0;
     }
-    if (me->flash_time == 0 && me->anim_time == 0)
-	deactivate_timer(me->frontend);
+
     midend_redraw(me);
+
+    if (me->timing) {
+	float oldelapsed = me->elapsed;
+	me->elapsed += tplus;
+	if ((int)oldelapsed != (int)me->elapsed)
+	    status_bar(me->frontend, me->laststatus ? me->laststatus : "");
+    }
+
+    midend_set_timer(me);
 }
 
 float *midend_colours(midend_data *me, int *ncolours)
@@ -866,6 +892,36 @@ char *midend_solve(midend_data *me)
     me->anim_time = 0.0;
     midend_finish_move(me);
     midend_redraw(me);
-    activate_timer(me->frontend);
+    midend_set_timer(me);
     return NULL;
+}
+
+char *midend_rewrite_statusbar(midend_data *me, char *text)
+{
+    /*
+     * An important special case is that we are occasionally called
+     * with our own laststatus, to update the timer.
+     */
+    if (me->laststatus != text) {
+	sfree(me->laststatus);
+	me->laststatus = dupstr(text);
+    }
+
+    if (me->ourgame->is_timed) {
+	char timebuf[100], *ret;
+	int min, sec;
+
+	sec = me->elapsed;
+	min = sec / 60;
+	sec %= 60;
+	sprintf(timebuf, "[%d:%02d] ", min, sec);
+
+	ret = snewn(strlen(timebuf) + strlen(text) + 1, char);
+	strcpy(ret, timebuf);
+	strcat(ret, text);
+	return ret;
+
+    } else {
+	return dupstr(text);
+    }
 }

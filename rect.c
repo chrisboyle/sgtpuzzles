@@ -2515,6 +2515,11 @@ static int game_wants_statusbar(void)
     return FALSE;
 }
 
+static int game_timing_state(game_state *state)
+{
+    return TRUE;
+}
+
 #ifdef COMBINED
 #define thegame rect
 #endif
@@ -2548,4 +2553,5 @@ const struct game thegame = {
     game_anim_length,
     game_flash_length,
     game_wants_statusbar,
+    FALSE, game_timing_state,
 };

@@ -145,6 +145,7 @@ char *midend_game_id(midend_data *me, char *id);
 char *midend_text_format(midend_data *me);
 char *midend_solve(midend_data *me);
 void midend_supersede_game_desc(midend_data *me, char *desc);
+char *midend_rewrite_statusbar(midend_data *me, char *text);
 
 /*
  * malloc.c
@@ -239,6 +240,8 @@ struct game {
     float (*flash_length)(game_state *oldstate, game_state *newstate, int dir,
 			  game_ui *ui);
     int (*wants_statusbar)(void);
+    int is_timed;
+    int (*timing_state)(game_state *state);
 };
 
 /*

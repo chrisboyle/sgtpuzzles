@@ -10,8 +10,6 @@
  *       That hook can talk to the game_ui and set the cheated flag,
  *       and then make_move can avoid setting the `won' flag after that.
  *
- *  - timer
- * 
  *  - question marks (arrgh, preferences?)
  * 
  *  - sensible parameter constraints
@@ -2700,6 +2698,13 @@ static int game_wants_statusbar(void)
     return TRUE;
 }
 
+static int game_timing_state(game_state *state)
+{
+    if (state->dead || state->won || !state->layout->mines)
+	return FALSE;
+    return TRUE;
+}
+
 #ifdef COMBINED
 #define thegame mines
 #endif
@@ -2733,4 +2738,5 @@ const struct game thegame = {
     game_anim_length,
     game_flash_length,
     game_wants_statusbar,
+    TRUE, game_timing_state,
 };

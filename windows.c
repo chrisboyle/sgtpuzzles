@@ -118,6 +118,7 @@ struct frontend {
     HFONT cfgfont;
     char *help_path;
     int help_has_contents;
+    char *laststatus;
 };
 
 void fatal(char *fmt, ...)
@@ -144,7 +145,14 @@ void get_random_seed(void **randseed, int *randseedsize)
 
 void status_bar(frontend *fe, char *text)
 {
-    SetWindowText(fe->statusbar, text);
+    char *rewritten = midend_rewrite_statusbar(fe->me, text);
+    if (!fe->laststatus || strcmp(rewritten, fe->laststatus)) {
+	SetWindowText(fe->statusbar, rewritten);
+	sfree(fe->laststatus);
+	fe->laststatus = rewritten;
+    } else {
+	sfree(rewritten);
+    }
 }
 
 void frontend_default_colour(frontend *fe, float *output)
@@ -436,6 +444,8 @@ static frontend *new_window(HINSTANCE inst, char *game_id, char **error)
 
     fe->fonts = NULL;
     fe->nfonts = fe->fontsize = 0;
+
+    fe->laststatus = NULL;
 
     {
 	int i, ncolours;

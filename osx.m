@@ -383,7 +383,7 @@ struct frontend {
 - (void)keyDown:(NSEvent *)ev;
 - (void)activateTimer;
 - (void)deactivateTimer;
-- (void)setStatusLine:(NSString *)text;
+- (void)setStatusLine:(char *)text;
 @end
 
 @implementation MyImageView
@@ -1131,9 +1131,11 @@ struct frontend {
     [self sheetEndWithStatus:NO];
 }
 
-- (void)setStatusLine:(NSString *)text
+- (void)setStatusLine:(char *)text
 {
-    [[status cell] setTitle:text];
+    char *rewritten = midend_rewrite_statusbar(me, text);
+    [[status cell] setTitle:[NSString stringWithCString:rewritten]];
+    sfree(rewritten);
 }
 
 @end
@@ -1267,7 +1269,7 @@ void activate_timer(frontend *fe)
 
 void status_bar(frontend *fe, char *text)
 {
-    [fe->window setStatusLine:[NSString stringWithCString:text]];
+    [fe->window setStatusLine:text];
 }
 
 /* ----------------------------------------------------------------------
