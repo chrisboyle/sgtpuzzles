@@ -15,15 +15,6 @@
 
 #include "puzzles.h"
 
-typedef unsigned long uint32;
-
-typedef struct {
-    uint32 h[5];
-    unsigned char block[64];
-    int blkused;
-    uint32 lenhi, lenlo;
-} SHA_State;
-
 /* ----------------------------------------------------------------------
  * Core SHA algorithm: processes 16-word blocks into a message digest.
  */
@@ -108,14 +99,14 @@ static void SHATransform(uint32 * digest, uint32 * block)
  * the end, and pass those blocks to the core SHA algorithm.
  */
 
-static void SHA_Init(SHA_State * s)
+void SHA_Init(SHA_State * s)
 {
     SHA_Core_Init(s->h);
     s->blkused = 0;
     s->lenhi = s->lenlo = 0;
 }
 
-static void SHA_Bytes(SHA_State * s, void *p, int len)
+void SHA_Bytes(SHA_State * s, void *p, int len)
 {
     unsigned char *q = (unsigned char *) p;
     uint32 wordblock[16];
@@ -158,7 +149,7 @@ static void SHA_Bytes(SHA_State * s, void *p, int len)
     }
 }
 
-static void SHA_Final(SHA_State * s, unsigned char *output)
+void SHA_Final(SHA_State * s, unsigned char *output)
 {
     int i;
     int pad;
@@ -196,7 +187,7 @@ static void SHA_Final(SHA_State * s, unsigned char *output)
     }
 }
 
-static void SHA_Simple(void *p, int len, unsigned char *output)
+void SHA_Simple(void *p, int len, unsigned char *output)
 {
     SHA_State s;
 

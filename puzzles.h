@@ -176,6 +176,18 @@ random_state *random_init(char *seed, int len);
 unsigned long random_bits(random_state *state, int bits);
 unsigned long random_upto(random_state *state, unsigned long limit);
 void random_free(random_state *state);
+/* random.c also exports SHA, which occasionally comes in useful. */
+typedef unsigned long uint32;
+typedef struct {
+    uint32 h[5];
+    unsigned char block[64];
+    int blkused;
+    uint32 lenhi, lenlo;
+} SHA_State;
+void SHA_Init(SHA_State *s);
+void SHA_Bytes(SHA_State *s, void *p, int len);
+void SHA_Final(SHA_State *s, unsigned char *output);
+void SHA_Simple(void *p, int len, unsigned char *output);
 
 /*
  * Data structure containing the function calls and data specific

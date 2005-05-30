@@ -17,8 +17,10 @@ WINDOWS  = windows user32.lib gdi32.lib comctl32.lib
 COMMON   = midend misc malloc random version
 NET      = net tree234
 NETSLIDE = netslide tree234
+MINES    = mines tree234
 
 ALL      = list NET NETSLIDE cube fifteen sixteen rect pattern solo twiddle
+         + MINES
 
 net      : [X] gtk COMMON NET
 netslide : [X] gtk COMMON NETSLIDE
@@ -29,6 +31,7 @@ rect     : [X] gtk COMMON rect
 pattern  : [X] gtk COMMON pattern
 solo     : [X] gtk COMMON solo
 twiddle  : [X] gtk COMMON twiddle
+mines    : [X] gtk COMMON MINES
 
 # The Windows Net shouldn't be called `net.exe' since Windows
 # already has a reasonably important utility program by that name!
@@ -41,6 +44,7 @@ rect     : [G] WINDOWS COMMON rect
 pattern  : [G] WINDOWS COMMON pattern
 solo     : [G] WINDOWS COMMON solo
 twiddle  : [G] WINDOWS COMMON twiddle
+mines    : [G] WINDOWS COMMON MINES
 
 # Mac OS X unified application containing all the puzzles.
 Puzzles  : [MX] osx osx.icns osx-info.plist COMMON ALL
