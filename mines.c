@@ -71,7 +71,7 @@ struct mine_layout {
 struct game_state {
     int w, h, n, dead, won;
     struct mine_layout *layout;	       /* real mine positions */
-    char *grid;			       /* player knowledge */
+    signed char *grid;			       /* player knowledge */
     /*
      * Each item in the `grid' array is one of the following values:
      * 
@@ -560,7 +560,8 @@ static void std_add(struct squaretodo *std, int i)
     std->next[i] = -1;
 }
 
-static void known_squares(int w, int h, struct squaretodo *std, char *grid,
+static void known_squares(int w, int h, struct squaretodo *std,
+			  signed char *grid,
 			  int (*open)(void *ctx, int x, int y), void *openctx,
 			  int x, int y, int mask, int mine)
 {
@@ -627,9 +628,10 @@ struct perturbations {
  *    steps were required; the exact return value is the number of
  *    perturb calls.
  */
-static int minesolve(int w, int h, int n, char *grid,
+static int minesolve(int w, int h, int n, signed char *grid,
 		     int (*open)(void *ctx, int x, int y),
-		     struct perturbations *(*perturb)(void *ctx, char *grid,
+		     struct perturbations *(*perturb)(void *ctx,
+						      signed char *grid,
 						      int x, int y, int mask),
 		     void *ctx, random_state *rs)
 {
@@ -1278,7 +1280,7 @@ static int minesolve(int w, int h, int n, char *grid,
  */
 
 struct minectx {
-    char *grid;
+    signed char *grid;
     int w, h;
     int sx, sy;
     random_state *rs;
@@ -1337,7 +1339,7 @@ static int squarecmp(const void *av, const void *bv)
     return 0;
 }
 
-static struct perturbations *mineperturb(void *vctx, char *grid,
+static struct perturbations *mineperturb(void *vctx, signed char *grid,
 					 int setx, int sety, int mask)
 {
     struct minectx *ctx = (struct minectx *)vctx;
@@ -1657,7 +1659,7 @@ static char *minegen(int w, int h, int n, int x, int y, int unique,
 	 * We bypass this bit if we're not after a unique grid.
          */
 	if (unique) {
-	    char *solvegrid = snewn(w*h, char);
+	    signed char *solvegrid = snewn(w*h, char);
 	    struct minectx actx, *ctx = &actx;
 	    int solveret, prevret = -2;
 
@@ -1803,7 +1805,7 @@ static void obfuscate_bitmap(unsigned char *bmp, int bits, int decode)
 static char *new_mine_layout(int w, int h, int n, int x, int y, int unique,
 			     random_state *rs, char **game_desc)
 {
-    char *grid, *ret, *p;
+    signed char *grid, *ret, *p;
     unsigned char *bmp;
     int i, area;
 
@@ -1855,7 +1857,8 @@ static char *new_game_desc(game_params *params, random_state *rs,
 	 */
 	int x = random_upto(rs, params->w);
 	int y = random_upto(rs, params->h);
-	char *grid, *desc;
+	signed char *grid;
+	char *desc;
 
 	grid = new_mine_layout(params->w, params->h, params->n,
 			       x, y, params->unique, rs, &desc);
@@ -2336,7 +2339,7 @@ static game_state *make_move(game_state *from, game_ui *ui, int x, int y,
 
 struct game_drawstate {
     int w, h, started;
-    char *grid;
+    signed char *grid;
     /*
      * Items in this `grid' array have all the same values as in
      * the game_state grid, and in addition:
