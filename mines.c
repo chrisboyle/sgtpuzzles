@@ -31,7 +31,7 @@
 #include "puzzles.h"
 
 enum {
-    COL_BACKGROUND,
+    COL_BACKGROUND, COL_BACKGROUND2,
     COL_1, COL_2, COL_3, COL_4, COL_5, COL_6, COL_7, COL_8,
     COL_MINE, COL_BANG, COL_CROSS, COL_FLAG, COL_FLAGBASE, COL_QUERY,
     COL_HIGHLIGHT, COL_LOWLIGHT,
@@ -2366,6 +2366,10 @@ static float *game_colours(frontend *fe, game_state *state, int *ncolours)
 
     frontend_default_colour(fe, &ret[COL_BACKGROUND * 3]);
 
+    ret[COL_BACKGROUND2 * 3 + 0] = ret[COL_BACKGROUND * 3 + 0] * 19.0 / 20.0;
+    ret[COL_BACKGROUND2 * 3 + 1] = ret[COL_BACKGROUND * 3 + 1] * 19.0 / 20.0;
+    ret[COL_BACKGROUND2 * 3 + 2] = ret[COL_BACKGROUND * 3 + 2] * 19.0 / 20.0;
+
     ret[COL_1 * 3 + 0] = 0.0F;
     ret[COL_1 * 3 + 1] = 0.0F;
     ret[COL_1 * 3 + 2] = 1.0F;
@@ -2466,7 +2470,8 @@ static void draw_tile(frontend *fe, int x, int y, int v, int bg)
 	    /*
 	     * Omit the highlights in this case.
 	     */
-	    draw_rect(fe, x, y, TILE_SIZE, TILE_SIZE, bg);
+	    draw_rect(fe, x, y, TILE_SIZE, TILE_SIZE,
+                      bg == COL_BACKGROUND ? COL_BACKGROUND2 : bg);
 	    draw_line(fe, x, y, x + TILE_SIZE - 1, y, COL_LOWLIGHT);
 	    draw_line(fe, x, y, x, y + TILE_SIZE - 1, COL_LOWLIGHT);
 	} else {
@@ -2534,7 +2539,8 @@ static void draw_tile(frontend *fe, int x, int y, int v, int bg)
 	 * on), we clear the square to COL_BANG.
 	 */
         draw_rect(fe, x, y, TILE_SIZE, TILE_SIZE,
-		  (v == 65 ? COL_BANG : bg));
+		  (v == 65 ? COL_BANG :
+                   bg == COL_BACKGROUND ? COL_BACKGROUND2 : bg));
 	draw_line(fe, x, y, x + TILE_SIZE - 1, y, COL_LOWLIGHT);
 	draw_line(fe, x, y, x, y + TILE_SIZE - 1, COL_LOWLIGHT);
 
