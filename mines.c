@@ -1086,7 +1086,7 @@ static int minesolve(int w, int h, int n, signed char *grid,
 			 * next. Backtrack cursor to the nearest 1,
 			 * change it to a 0 and continue.
 			 */
-			while (cursor-- >= 0 && !setused[cursor]);
+			while (--cursor >= 0 && !setused[cursor]);
 			if (cursor >= 0) {
 			    assert(setused[cursor]);
 
