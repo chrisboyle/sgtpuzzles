@@ -416,9 +416,13 @@ octahedron or an icosahedron.
 \IM{Cube controls} keys, for Cube
 \IM{Cube controls} shortcuts (keyboard), for Cube
 
-This game is played with the keyboard. The arrow keys are used to roll the
-cube (or other solid).
+This game can be played with either the keyboard or the mouse.
 
+Left-clicking anywhere on the window will move the cube (or other
+solid) towards the mouse pointer.
+
+The arrow keys can also used to roll the cube on its square grid in
+the four cardinal directions.
 On the triangular grids, the mapping of arrow keys to directions is
 more approximate. Vertical movement is disallowed where it doesn't
 make sense. The four keys surrounding the arrow keys on the numeric
