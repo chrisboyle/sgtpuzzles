@@ -70,6 +70,7 @@ struct mine_layout {
 
 struct game_state {
     int w, h, n, dead, won;
+    int used_solve, just_used_solve;
     struct mine_layout *layout;	       /* real mine positions */
     signed char *grid;			       /* player knowledge */
     /*
@@ -2062,6 +2063,7 @@ static game_state *new_game(midend_data *me, game_params *params, char *desc)
     state->h = params->h;
     state->n = params->n;
     state->dead = state->won = FALSE;
+    state->used_solve = state->just_used_solve = FALSE;
 
     wh = state->w * state->h;
 
@@ -2156,6 +2158,8 @@ static game_state *dup_game(game_state *state)
     ret->n = state->n;
     ret->dead = state->dead;
     ret->won = state->won;
+    ret->used_solve = state->used_solve;
+    ret->just_used_solve = state->just_used_solve;
     ret->layout = state->layout;
     ret->layout->refcount++;
     ret->grid = snewn(ret->w * ret->h, char);
@@ -2179,7 +2183,43 @@ static void free_game(game_state *state)
 static game_state *solve_game(game_state *state, game_aux_info *aux,
 			      char **error)
 {
-    return NULL;
+    /*
+     * Simply expose the entire grid as if it were a completed
+     * solution.
+     */
+    game_state *ret;
+    int yy, xx;
+
+    if (!state->layout->mines) {
+        *error = "Game has not been started yet";
+        return NULL;
+    }
+
+    ret = dup_game(state);
+    for (yy = 0; yy < ret->h; yy++)
+        for (xx = 0; xx < ret->w; xx++) {
+
+            if (ret->layout->mines[yy*ret->w+xx]) {
+                ret->grid[yy*ret->w+xx] = -1;
+            } else {
+                int dx, dy, v;
+
+                v = 0;
+
+                for (dx = -1; dx <= +1; dx++)
+                    for (dy = -1; dy <= +1; dy++)
+                        if (xx+dx >= 0 && xx+dx < ret->w &&
+                            yy+dy >= 0 && yy+dy < ret->h &&
+                            ret->layout->mines[(yy+dy)*ret->w+(xx+dx)])
+                            v++;
+
+                ret->grid[yy*ret->w+xx] = v;
+            }
+        }
+    ret->used_solve = ret->just_used_solve = TRUE;
+    ret->won = TRUE;
+
+    return ret;
 }
 
 static char *game_text_format(game_state *state)
@@ -2271,6 +2311,7 @@ static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
 	    return NULL;
 
 	ret = dup_game(from);
+        ret->just_used_solve = FALSE;
 	ret->grid[cy * from->w + cx] ^= (-2 ^ -1);
 
 	return ret;
@@ -2293,6 +2334,7 @@ static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
 	if (from->grid[cy * from->w + cx] == -2 ||
 	    from->grid[cy * from->w + cx] == -3) {
 	    ret = dup_game(from);
+            ret->just_used_solve = FALSE;
 	    open_square(ret, cx, cy);
 	    return ret;
 	}
@@ -2318,6 +2360,7 @@ static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
 
 	    if (n == from->grid[cy * from->w + cx]) {
 		ret = dup_game(from);
+                ret->just_used_solve = FALSE;
 		for (dy = -1; dy <= +1; dy++)
 		    for (dx = -1; dx <= +1; dx++)
 			if (cx+dx >= 0 && cx+dx < ret->w &&
@@ -2704,7 +2747,10 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 	if (state->dead) {
 	    sprintf(statusbar, "GAME OVER!");
 	} else if (state->won) {
-	    sprintf(statusbar, "COMPLETED!");
+            if (state->used_solve)
+                sprintf(statusbar, "Auto-solved.");
+            else
+                sprintf(statusbar, "COMPLETED!");
 	} else {
 	    sprintf(statusbar, "Mines marked: %d / %d", markers, mines);
 	}
@@ -2721,6 +2767,9 @@ static float game_anim_length(game_state *oldstate, game_state *newstate,
 static float game_flash_length(game_state *oldstate, game_state *newstate,
 			       int dir, game_ui *ui)
 {
+    if (oldstate->used_solve || newstate->used_solve)
+        return 0.0F;
+
     if (dir > 0 && !oldstate->dead && !oldstate->won) {
 	if (newstate->dead) {
 	    ui->flash_is_death = TRUE;
@@ -2766,7 +2815,7 @@ const struct game thegame = {
     new_game,
     dup_game,
     free_game,
-    FALSE, solve_game,
+    TRUE, solve_game,
     TRUE, game_text_format,
     new_ui,
     free_ui,
