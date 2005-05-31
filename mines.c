@@ -2089,6 +2089,8 @@ static game_state *new_game(midend_data *me, game_params *params, char *desc)
 	state->layout->me = me;
 
     } else {
+	state->layout->rs = NULL;
+	state->layout->me = NULL;
 
 	state->layout->mines = snewn(wh, char);
 	x = atoi(desc);

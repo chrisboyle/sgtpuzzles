@@ -1011,7 +1011,11 @@ static frontend *new_window(char *game_id, char **error)
 
     fe = snew(frontend);
 
+    fe->timer_active = FALSE;
+    fe->timer_id = -1;
+
     fe->me = midend_new(fe, &thegame);
+
     if (game_id) {
         *error = midend_game_id(fe->me, game_id);
         if (*error) {
@@ -1199,8 +1203,6 @@ static frontend *new_window(char *game_id, char **error)
     fe->pixmap = NULL;
     fe->fonts = NULL;
     fe->nfonts = fe->fontsize = 0;
-
-    fe->timer_active = FALSE;
 
     fe->paste_data = NULL;
     fe->paste_data_len = 0;
