@@ -1051,7 +1051,7 @@ static void slide_col(game_state *state, int dir, int col)
 }
 
 static game_state *make_move(game_state *state, game_ui *ui,
-			     int x, int y, int button)
+                             game_drawstate *ds, int x, int y, int button)
 {
     int cx, cy;
     int n, dx, dy;

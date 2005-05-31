@@ -227,8 +227,8 @@ struct game {
     char *(*text_format)(game_state *state);
     game_ui *(*new_ui)(game_state *state);
     void (*free_ui)(game_ui *ui);
-    game_state *(*make_move)(game_state *from, game_ui *ui, int x, int y,
-			     int button);
+    game_state *(*make_move)(game_state *from, game_ui *ui, game_drawstate *ds,
+                             int x, int y, int button);
     void (*size)(game_params *params, int *x, int *y);
     float *(*colours)(frontend *fe, game_state *state, int *ncolours);
     game_drawstate *(*new_drawstate)(game_state *state);

@@ -1798,8 +1798,7 @@ static void free_ui(game_ui *ui)
  * Process a move.
  */
 static game_state *make_move(game_state *state, game_ui *ui,
-			     int x, int y, int button)
-{
+                             game_drawstate *ds, int x, int y, int button) {
     game_state *ret, *nullret;
     int tx, ty, orig;
     int shift = button & MOD_SHFT, ctrl = button & MOD_CTRL;

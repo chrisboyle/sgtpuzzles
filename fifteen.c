@@ -450,9 +450,8 @@ static void free_ui(game_ui *ui)
 {
 }
 
-static game_state *make_move(game_state *from, game_ui *ui,
-			     int x, int y, int button)
-{
+static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
+                             int x, int y, int button) {
     int gx, gy, dx, dy, ux, uy, up, p;
     game_state *ret;
 

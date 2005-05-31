@@ -2178,9 +2178,8 @@ static void ui_draw_rect(game_state *state, game_ui *ui,
             }
 }
 
-static game_state *make_move(game_state *from, game_ui *ui,
-			     int x, int y, int button)
-{
+static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
+                             int x, int y, int button) {
     int xc, yc;
     int startdrag = FALSE, enddrag = FALSE, active = FALSE;
     game_state *ret;

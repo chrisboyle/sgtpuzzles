@@ -325,7 +325,7 @@ static int midend_really_process_key(midend_data *me, int x, int y, int button)
     } else {
         game_state *s =
             me->ourgame->make_move(me->states[me->statepos-1].state,
-                                   me->ui, x, y, button);
+                                   me->ui, me->drawstate, x, y, button);
 
         if (s == me->states[me->statepos-1].state) {
             /*

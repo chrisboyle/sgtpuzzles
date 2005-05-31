@@ -11,6 +11,8 @@
 
 #include "puzzles.h"
 
+#define PI 3.14159265358979323846264338327950884197169399
+
 #define MAXVERTICES 20
 #define MAXFACES 20
 #define MAXORDER 4
@@ -1002,7 +1004,11 @@ static void free_ui(game_ui *ui)
 {
 }
 
-static game_state *make_move(game_state *from, game_ui *ui,
+struct game_drawstate {
+    int ox, oy;                        /* pixel position of float origin */
+};
+
+static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
 			     int x, int y, int button)
 {
     int direction;
@@ -1016,7 +1022,9 @@ static game_state *make_move(game_state *from, game_ui *ui,
     button = button & (~MOD_MASK | MOD_NUM_KEYPAD);
 
     /*
-     * All moves are made with the cursor keys or numeric keypad.
+     * Moves can be made with the cursor keys or numeric keypad, or
+     * alternatively you can left-click and the polyhedron will
+     * move in the general direction of the mouse pointer.
      */
     if (button == CURSOR_UP || button == (MOD_NUM_KEYPAD | '8'))
         direction = UP;
@@ -1034,7 +1042,69 @@ static game_state *make_move(game_state *from, game_ui *ui,
         direction = UP_RIGHT;
     else if (button == (MOD_NUM_KEYPAD | '3'))
         direction = DOWN_RIGHT;
-    else
+    else if (button == LEFT_BUTTON) {
+        /*
+         * Find the bearing of the click point from the current
+         * square's centre.
+         */
+        int cx, cy;
+        double angle;
+
+        cx = from->squares[from->current].x * GRID_SCALE + ds->ox;
+        cy = from->squares[from->current].y * GRID_SCALE + ds->oy;
+
+        if (x == cx && y == cy)
+            return NULL;               /* clicked in exact centre!  */
+        angle = atan2(y - cy, x - cx);
+
+        /*
+         * There are three possibilities.
+         * 
+         *  - This square is a square, so we choose between UP,
+         *    DOWN, LEFT and RIGHT by dividing the available angle
+         *    at the 45-degree points.
+         * 
+         *  - This square is an up-pointing triangle, so we choose
+         *    between DOWN, LEFT and RIGHT by dividing into
+         *    120-degree arcs.
+         * 
+         *  - This square is a down-pointing triangle, so we choose
+         *    between UP, LEFT and RIGHT in the inverse manner.
+         * 
+         * Don't forget that since our y-coordinates increase
+         * downwards, `angle' is measured _clockwise_ from the
+         * x-axis, not anticlockwise as most mathematicians would
+         * instinctively assume.
+         */
+        if (from->squares[from->current].npoints == 4) {
+            /* Square. */
+            if (fabs(angle) > 3*PI/4)
+                direction = LEFT;
+            else if (fabs(angle) < PI/4)
+                direction = RIGHT;
+            else if (angle > 0)
+                direction = DOWN;
+            else
+                direction = UP;
+        } else if (from->squares[from->current].directions[UP] == 0) {
+            /* Up-pointing triangle. */
+            if (angle < -PI/2 || angle > 5*PI/6)
+                direction = LEFT;
+            else if (angle > PI/6)
+                direction = DOWN;
+            else
+                direction = RIGHT;
+        } else {
+            /* Down-pointing triangle. */
+            assert(from->squares[from->current].directions[DOWN] == 0);
+            if (angle > PI/2 || angle < -5*PI/6)
+                direction = LEFT;
+            else if (angle < -PI/6)
+                direction = UP;
+            else
+                direction = RIGHT;
+        }
+    } else
         return NULL;
 
     /*
@@ -1286,10 +1356,6 @@ static game_state *make_move(game_state *from, game_ui *ui,
 
 struct bbox {
     float l, r, u, d;
-};
-
-struct game_drawstate {
-    int ox, oy;                        /* pixel position of float origin */
 };
 
 static void find_bbox_callback(void *ctx, struct grid_square *sq)
