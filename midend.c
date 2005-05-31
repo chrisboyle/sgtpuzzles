@@ -441,6 +441,14 @@ int midend_process_key(midend_data *me, int x, int y, int button)
      *    pressed, invent a button-up for the first one and then
      *    pass the button-down through as before.
      * 
+     * 2005-05-31: An addendum to the above. Some games might want
+     * a `priority order' among buttons, such that if one button is
+     * pressed while another is down then a fixed one of the
+     * buttons takes priority no matter what order they're pressed
+     * in. Mines, in particular, wants to treat a left+right click
+     * like a left click for the benefit of users of other
+     * implementations. So the last of the above points is modified
+     * in the presence of an (optional) button priority order.
      */
     if (IS_MOUSE_DRAG(button) || IS_MOUSE_RELEASE(button)) {
         if (me->pressed_mouse_button) {
@@ -454,6 +462,14 @@ int midend_process_key(midend_data *me, int x, int y, int button)
         } else
             return ret;                /* ignore it */
     } else if (IS_MOUSE_DOWN(button) && me->pressed_mouse_button) {
+	/*
+	 * If the new button has lower priority than the old one,
+	 * don't bother doing this.
+	 */
+	if (me->ourgame->mouse_priorities &
+	    BUTTON_BEATS(me->pressed_mouse_button, button))
+	    return ret;		       /* just ignore it */
+
         /*
          * Fabricate a button-up for the previously pressed button.
          */

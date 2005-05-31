@@ -2457,7 +2457,8 @@ static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
     if (cx < 0 || cx >= from->w || cy < 0 || cy > from->h)
 	return NULL;
 
-    if (button == LEFT_BUTTON || button == LEFT_DRAG) {
+    if (button == LEFT_BUTTON || button == LEFT_DRAG ||
+	button == MIDDLE_BUTTON || button == MIDDLE_DRAG) {
 	/*
 	 * Mouse-downs and mouse-drags just cause highlighting
 	 * updates.
@@ -2487,7 +2488,7 @@ static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
 	return ret;
     }
 
-    if (button == LEFT_RELEASE) {
+    if (button == LEFT_RELEASE || button == MIDDLE_RELEASE) {
 	ui->hx = ui->hy = -1;
 	ui->hradius = 0;
 
@@ -2501,8 +2502,9 @@ static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
 	 * permitted if the tile is marked as a mine, for safety.
 	 * (Unmark it and _then_ open it.)
 	 */
-	if (from->grid[cy * from->w + cx] == -2 ||
-	    from->grid[cy * from->w + cx] == -3) {
+	if (button == LEFT_RELEASE &&
+	    (from->grid[cy * from->w + cx] == -2 ||
+	     from->grid[cy * from->w + cx] == -3)) {
 	    ret = dup_game(from);
             ret->just_used_solve = FALSE;
 	    open_square(ret, cx, cy);
@@ -2512,10 +2514,10 @@ static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
 	}
 
 	/*
-	 * Left-clicking on an uncovered tile: first we check to see if
-	 * the number of mine markers surrounding the tile is equal to
-	 * its mine count, and if so then we open all other surrounding
-	 * squares.
+	 * Left-clicking or middle-clicking on an uncovered tile:
+	 * first we check to see if the number of mine markers
+	 * surrounding the tile is equal to its mine count, and if
+	 * so then we open all other surrounding squares.
 	 */
 	if (from->grid[cy * from->w + cx] > 0) {
 	    int dy, dx, n;
@@ -3006,4 +3008,5 @@ const struct game thegame = {
     game_flash_length,
     game_wants_statusbar,
     TRUE, game_timing_state,
+    BUTTON_BEATS(LEFT_BUTTON, RIGHT_BUTTON),
 };

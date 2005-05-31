@@ -47,6 +47,9 @@ enum {
 #define IS_MOUSE_RELEASE(m) ( (unsigned)((m) - LEFT_RELEASE) <= \
                                (unsigned)(RIGHT_RELEASE - LEFT_RELEASE))
 
+/* Bit flags indicating mouse button priorities */
+#define BUTTON_BEATS(x,y) ( 1 << (((x)-LEFT_BUTTON)*3+(y)-LEFT_BUTTON) )
+
 #define IGNOREARG(x) ( (x) = (x) )
 
 typedef struct frontend frontend;
@@ -245,6 +248,7 @@ struct game {
     int (*wants_statusbar)(void);
     int is_timed;
     int (*timing_state)(game_state *state);
+    int mouse_priorities;
 };
 
 /*
