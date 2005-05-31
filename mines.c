@@ -10,14 +10,8 @@
  *       That hook can talk to the game_ui and set the cheated flag,
  *       and then make_move can avoid setting the `won' flag after that.
  *
- *  - question marks (arrgh, preferences?)
- * 
- *  - sensible parameter constraints
- *     + 30x16: 191 mines just about works if rather slowly, 192 is
- * 	 just about doom (the latter corresponding to a density of
- * 	 exactly 1 in 2.5)
- *     + 9x9: 45 mines works - over 1 in 2! 50 seems a bit slow.
- *     + it might not be feasible to work out the exact limit
+ *  - think about configurably supporting question marks. Once,
+ *    that is, we've thought about configurability in general!
  */
 
 #include <stdio.h>
@@ -1166,13 +1160,18 @@ static int minesolve(int w, int h, int n, signed char *grid,
 	     * 
 	     * If we have no sets at all, we must give up.
 	     */
-	    if (count234(ss->sets) == 0)
-		break;
-	    s = index234(ss->sets, random_upto(rs, count234(ss->sets)));
+	    if (count234(ss->sets) == 0) {
 #ifdef SOLVER_DIAGNOSTICS
-	    printf("perturbing on set %d,%d %03x\n", s->x, s->y, s->mask);
+		printf("perturbing on entire unknown set\n");
 #endif
-	    ret = perturb(ctx, grid, s->x, s->y, s->mask);
+		ret = perturb(ctx, grid, 0, 0, 0);
+	    } else {
+		s = index234(ss->sets, random_upto(rs, count234(ss->sets)));
+#ifdef SOLVER_DIAGNOSTICS
+		printf("perturbing on set %d,%d %03x\n", s->x, s->y, s->mask);
+#endif
+		ret = perturb(ctx, grid, s->x, s->y, s->mask);
+	    }
 
 	    if (ret) {
 		assert(ret->n > 0);    /* otherwise should have been NULL */
@@ -1182,6 +1181,8 @@ static int minesolve(int w, int h, int n, signed char *grid,
 		 * the returned structure tells us which. Adjust
 		 * the mine count in any set which overlaps one of
 		 * those squares, and put them back on the to-do
+		 * list. Also, if the square itself is marked as a
+		 * known non-mine, put it back on the squares-to-do
 		 * list.
 		 */
 		for (i = 0; i < ret->n; i++) {
@@ -1190,6 +1191,11 @@ static int minesolve(int w, int h, int n, signed char *grid,
 			   ret->changes[i].delta > 0 ? "added" : "removed",
 			   ret->changes[i].x, ret->changes[i].y);
 #endif
+
+		    if (ret->changes[i].delta < 0 &&
+			grid[ret->changes[i].y*w+ret->changes[i].x] != -2) {
+			std_add(std, ret->changes[i].y*w+ret->changes[i].x);
+		    }
 
 		    list = ss_overlap(ss,
 				      ret->changes[i].x, ret->changes[i].y, 1);
@@ -1212,7 +1218,7 @@ static int minesolve(int w, int h, int n, signed char *grid,
 		/*
 		 * Dump the current known state of the grid.
 		 */
-		printf("state after perturbation:\n", nperturbs);
+		printf("state after perturbation:\n");
 		for (y = 0; y < h; y++) {
 		    for (x = 0; x < w; x++) {
 			int v = grid[y*w+x];
@@ -1284,6 +1290,7 @@ struct minectx {
     signed char *grid;
     int w, h;
     int sx, sy;
+    int allow_big_perturbs;
     random_state *rs;
 };
 
@@ -1340,15 +1347,35 @@ static int squarecmp(const void *av, const void *bv)
     return 0;
 }
 
+/*
+ * Normally this function is passed an (x,y,mask) set description.
+ * On occasions, though, there is no _localised_ set being used,
+ * and the set being perturbed is supposed to be the entirety of
+ * the unreachable area. This is signified by the special case
+ * mask==0: in this case, anything labelled -2 in the grid is part
+ * of the set.
+ * 
+ * Allowing perturbation in this special case appears to make it
+ * guaranteeably possible to generate a workable grid for any mine
+ * density, but they tend to be a bit boring, with mines packed
+ * densely into far corners of the grid and the remainder being
+ * less dense than one might like. Therefore, to improve overall
+ * grid quality I disable this feature for the first few attempts,
+ * and fall back to it after no useful grid has been generated.
+ */
 static struct perturbations *mineperturb(void *vctx, signed char *grid,
 					 int setx, int sety, int mask)
 {
     struct minectx *ctx = (struct minectx *)vctx;
     struct square *sqlist;
     int x, y, dx, dy, i, n, nfull, nempty;
-    struct square *tofill[9], *toempty[9], **todo;
+    struct square **tofill, **toempty, **todo;
     int ntofill, ntoempty, ntodo, dtodo, dset;
     struct perturbations *ret;
+    int *setlist;
+
+    if (!mask && !ctx->allow_big_perturbs)
+	return NULL;
 
     /*
      * Make a list of all the squares in the grid which we can
@@ -1379,9 +1406,10 @@ static struct perturbations *mineperturb(void *vctx, signed char *grid,
 	     * If this square is in the input set, also don't put
 	     * it on the list!
 	     */
-	    if (x >= setx && x < setx + 3 &&
-		y >= sety && y < sety + 3 &&
-		mask & (1 << ((y-sety)*3+(x-setx))))
+	    if ((mask == 0 && grid[y*ctx->w+x] == -2) ||
+		(x >= setx && x < setx + 3 &&
+		 y >= sety && y < sety + 3 &&
+		 mask & (1 << ((y-sety)*3+(x-setx)))))
 		continue;
 
 	    sqlist[n].x = x;
@@ -1424,16 +1452,27 @@ static struct perturbations *mineperturb(void *vctx, signed char *grid,
      * we've been provided.
      */
     nfull = nempty = 0;
-    for (dy = 0; dy < 3; dy++)
-	for (dx = 0; dx < 3; dx++)
-	    if (mask & (1 << (dy*3+dx))) {
-		assert(setx+dx <= ctx->w);
-		assert(sety+dy <= ctx->h);
-		if (ctx->grid[(sety+dy)*ctx->w+(setx+dx)])
-		    nfull++;
-		else
-		    nempty++;
-	    }
+    if (mask) {
+	for (dy = 0; dy < 3; dy++)
+	    for (dx = 0; dx < 3; dx++)
+		if (mask & (1 << (dy*3+dx))) {
+		    assert(setx+dx <= ctx->w);
+		    assert(sety+dy <= ctx->h);
+		    if (ctx->grid[(sety+dy)*ctx->w+(setx+dx)])
+			nfull++;
+		    else
+			nempty++;
+		}
+    } else {
+	for (y = 0; y < ctx->h; y++)
+	    for (x = 0; x < ctx->w; x++)
+		if (grid[y*ctx->w+x] == -2) {
+		    if (ctx->grid[y*ctx->w+x])
+			nfull++;
+		    else
+			nempty++;
+		}
+    }
 
     /*
      * Now go through our sorted list until we find either `nfull'
@@ -1443,6 +1482,13 @@ static struct perturbations *mineperturb(void *vctx, signed char *grid,
      * overall.
      */
     ntofill = ntoempty = 0;
+    if (mask) {
+	tofill = snewn(9, struct square *);
+	toempty = snewn(9, struct square *);
+    } else {
+	tofill = snewn(ctx->w * ctx->h, struct square *);
+	toempty = snewn(ctx->w * ctx->h, struct square *);
+    }
     for (i = 0; i < n; i++) {
 	struct square *sq = &sqlist[i];
 	if (ctx->grid[sq->y * ctx->w + sq->x])
@@ -1454,12 +1500,55 @@ static struct perturbations *mineperturb(void *vctx, signed char *grid,
     }
 
     /*
-     * If this didn't work at all, I think we just give up.
+     * If we haven't found enough empty squares outside the set to
+     * empty it into _or_ enough full squares outside it to fill it
+     * up with, we'll have to settle for doing only a partial job.
+     * In this case we choose to always _fill_ the set (because
+     * this case will tend to crop up when we're working with very
+     * high mine densities and the only way to get a solvable grid
+     * is going to be to pack most of the mines solidly around the
+     * edges). So now our job is to make a list of the empty
+     * squares in the set, and shuffle that list so that we fill a
+     * random selection of them.
      */
     if (ntofill != nfull && ntoempty != nempty) {
-	sfree(sqlist);
-	return NULL;
-    }
+	int k;
+
+	assert(ntoempty != 0);
+
+	setlist = snewn(ctx->w * ctx->h, int);
+	i = 0;
+	if (mask) {
+	    for (dy = 0; dy < 3; dy++)
+		for (dx = 0; dx < 3; dx++)
+		    if (mask & (1 << (dy*3+dx))) {
+			assert(setx+dx <= ctx->w);
+			assert(sety+dy <= ctx->h);
+			if (!ctx->grid[(sety+dy)*ctx->w+(setx+dx)])
+			    setlist[i++] = (sety+dy)*ctx->w+(setx+dx);
+		    }
+	} else {
+	    for (y = 0; y < ctx->h; y++)
+		for (x = 0; x < ctx->w; x++)
+		    if (grid[y*ctx->w+x] == -2) {
+			if (!ctx->grid[y*ctx->w+x])
+			    setlist[i++] = y*ctx->w+x;
+		    }
+	}
+	assert(i > ntoempty);
+	/*
+	 * Now pick `ntoempty' items at random from the list.
+	 */
+	for (k = 0; k < ntoempty; k++) {
+	    int index = k + random_upto(ctx->rs, i - k);
+	    int tmp;
+
+	    tmp = setlist[k];
+	    setlist[k] = setlist[index];
+	    setlist[index] = tmp;
+	}
+    } else
+	setlist = NULL;
 
     /*
      * Now we're pretty much there. We need to either
@@ -1479,11 +1568,17 @@ static struct perturbations *mineperturb(void *vctx, signed char *grid,
 	ntodo = ntofill;
 	dtodo = +1;
 	dset = -1;
+	sfree(toempty);
     } else {
+	/*
+	 * (We also fall into this case if we've constructed a
+	 * setlist.)
+	 */
 	todo = toempty;
 	ntodo = ntoempty;
 	dtodo = -1;
 	dset = +1;
+	sfree(tofill);
     }
     ret->n = 2 * ntodo;
     ret->changes = snewn(ret->n, struct perturbation);
@@ -1493,20 +1588,45 @@ static struct perturbations *mineperturb(void *vctx, signed char *grid,
 	ret->changes[i].delta = dtodo;
     }
     /* now i == ntodo */
-    for (dy = 0; dy < 3; dy++)
-	for (dx = 0; dx < 3; dx++)
-	    if (mask & (1 << (dy*3+dx))) {
-		int currval = (ctx->grid[(sety+dy)*ctx->w+(setx+dx)] ? +1 : -1);
-		if (dset == -currval) {
-		    ret->changes[i].x = setx + dx;
-		    ret->changes[i].y = sety + dy;
-		    ret->changes[i].delta = dset;
-		    i++;
+    if (setlist) {
+	int j;
+	assert(todo == toempty);
+	for (j = 0; j < ntoempty; j++) {
+	    ret->changes[i].x = setlist[j] % ctx->w;
+	    ret->changes[i].y = setlist[j] / ctx->w;
+	    ret->changes[i].delta = dset;
+	    i++;
+	}
+	sfree(setlist);
+    } else if (mask) {
+	for (dy = 0; dy < 3; dy++)
+	    for (dx = 0; dx < 3; dx++)
+		if (mask & (1 << (dy*3+dx))) {
+		    int currval = (ctx->grid[(sety+dy)*ctx->w+(setx+dx)] ? +1 : -1);
+		    if (dset == -currval) {
+			ret->changes[i].x = setx + dx;
+			ret->changes[i].y = sety + dy;
+			ret->changes[i].delta = dset;
+			i++;
+		    }
 		}
-	    }
+    } else {
+	for (y = 0; y < ctx->h; y++)
+	    for (x = 0; x < ctx->w; x++)
+		if (grid[y*ctx->w+x] == -2) {
+		    int currval = (ctx->grid[y*ctx->w+x] ? +1 : -1);
+		    if (dset == -currval) {
+			ret->changes[i].x = x;
+			ret->changes[i].y = y;
+			ret->changes[i].delta = dset;
+			i++;
+		    }
+		}
+    }
     assert(i == ret->n);
 
     sfree(sqlist);
+    sfree(todo);
 
     /*
      * Having set up the precise list of changes we're going to
@@ -1593,9 +1713,11 @@ static char *minegen(int w, int h, int n, int x, int y, int unique,
 {
     char *ret = snewn(w*h, char);
     int success;
+    int ntries = 0;
 
     do {
 	success = FALSE;
+	ntries++;
 
 	memset(ret, 0, w*h);
 
@@ -1670,6 +1792,7 @@ static char *minegen(int w, int h, int n, int x, int y, int unique,
 	    ctx->sx = x;
 	    ctx->sy = y;
 	    ctx->rs = rs;
+	    ctx->allow_big_perturbs = (ntries > 100);
 
 	    while (1) {
 		memset(solvegrid, -2, w*h);
