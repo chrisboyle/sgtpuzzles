@@ -333,38 +333,69 @@ static char *new_game_desc(game_params *params, random_state *rs,
      */
     total_moves = params->movetarget;
     if (!total_moves)
+        /* Add a random move to avoid parity issues. */
         total_moves = w*h*n*n*2 + random_upto(rs, 2);
 
     do {
-        int oldx = -1, oldy = -1, oldr = -1;
+        int *prevmoves;
+        int rw, rh;                    /* w/h of rotation centre space */
+
+        rw = w - n + 1;
+        rh = h - n + 1;
+        prevmoves = snewn(rw * rh, int);
+        for (i = 0; i < rw * rh; i++)
+            prevmoves[i] = 0;
 
         for (i = 0; i < total_moves; i++) {
-            int x, y, r;
+            int x, y, r, oldtotal, newtotal, dx, dy;
 
             do {
                 x = random_upto(rs, w - n + 1);
                 y = random_upto(rs, h - n + 1);
-                r = 1 + 2 * random_upto(rs, 2);
-            } while (x == oldx && y == oldy && (oldr == 0 || r == oldr));
+                r = 2 * random_upto(rs, 2) - 1;
 
-            do_rotate(grid, w, h, n, params->orientable,
-                      x, y, r);
+                /*
+                 * See if any previous rotations has happened at
+                 * this point which nothing has overlapped since.
+                 * If so, ensure we haven't either undone a
+                 * previous move or repeated one so many times that
+                 * it turns into fewer moves in the inverse
+                 * direction (i.e. three identical rotations).
+                 */
+                oldtotal = prevmoves[y*rw+x];
+                newtotal = oldtotal + r;
+            } while (abs(newtotal) < abs(oldtotal) || abs(newtotal) > 2);
+
+            do_rotate(grid, w, h, n, params->orientable, x, y, r);
 
             /*
-             * Prevent immediate reversal of a previous move, or
-             * execution of three consecutive identical moves
-             * adding up to a single inverse move. One exception is
-             * when we only _have_ one x,y setting.
+             * Log the rotation we've just performed at this point,
+             * for inversion detection in the next move.
+             * 
+             * Also zero a section of the prevmoves array, because
+             * any rotation area which _overlaps_ this one is now
+             * entirely safe to perform further moves in.
+             * 
+             * Two rotation areas overlap if their top left
+             * coordinates differ by strictly less than n in both
+             * directions
              */
-            if (w != n || h != n) {
-                if (oldx == x && oldy == y)
-                    oldr = 0;          /* now avoid _any_ move in this x,y */
-                else
-                    oldr = -r & 3;     /* only prohibit the exact inverse */
-                oldx = x;
-                oldy = y;
+            prevmoves[y*rw+x] += r;
+            for (dy = -n+1; dy <= n-1; dy++) {
+                if (y + dy < 0 || y + dy >= rh)
+                    continue;
+                for (dx = -n+1; dx <= n-1; dx++) {
+                    if (x + dx < 0 || x + dx >= rw)
+                        continue;
+                    if (dx == 0 && dy == 0)
+                        continue;
+                    prevmoves[(y+dy)*rw+(x+dx)] = 0;
+                }
             }
         }
+
+        sfree(prevmoves);
+
     } while (grid_complete(grid, wh, params->orientable));
 
     /*

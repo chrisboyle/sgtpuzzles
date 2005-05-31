@@ -207,7 +207,9 @@ static char *new_game_desc(game_params *params, random_state *rs,
     tiles = snewn(n, int);
 
     if (params->movetarget) {
-	int prevstart = -1, prevoffset = -1, prevdirection = 0, nrepeats = 0;
+	int prevoffset = -1;
+        int max = (params->w > params->h ? params->w : params->h);
+        int *prevmoves = snewn(max, int);
 
 	/*
 	 * Shuffle the old-fashioned way, by making a series of
@@ -218,7 +220,7 @@ static char *new_game_desc(game_params *params, random_state *rs,
 	    tiles[i] = i;
 
 	for (i = 0; i < params->movetarget; i++) {
-	    int start, offset, len, direction;
+	    int start, offset, len, direction, index;
 	    int j, tmp;
 
 	    /*
@@ -230,12 +232,14 @@ static char *new_game_desc(game_params *params, random_state *rs,
 
 		if (j < params->w) {
 		    /* Column. */
+                    index = j;
 		    start = j;
 		    offset = params->w;
 		    len = params->h;
 		} else {
 		    /* Row. */
-		    start = (j - params->w) * params->w;
+                    index = j - params->w;
+		    start = index * params->w;
 		    offset = 1;
 		    len = params->w;
 		}
@@ -243,36 +247,42 @@ static char *new_game_desc(game_params *params, random_state *rs,
 		direction = -1 + 2 * random_upto(rs, 2);
 
 		/*
-		 * To at least _try_ to avoid boring cases, check that
-		 * this move doesn't directly undo the previous one, or
-		 * repeat it so many times as to turn it into fewer
-		 * moves.
+		 * To at least _try_ to avoid boring cases, check
+		 * that this move doesn't directly undo a previous
+		 * one, or repeat it so many times as to turn it
+		 * into fewer moves in the opposite direction. (For
+		 * example, in a row of length 4, we're allowed to
+		 * move it the same way twice, but not three
+		 * times.)
+                 * 
+                 * We track this for each individual row/column,
+                 * and clear all the counters as soon as a
+                 * perpendicular move is made. This isn't perfect
+                 * (it _can't_ guaranteeably be perfect - there
+                 * will always come a move count beyond which a
+                 * shorter solution will be possible than the one
+                 * which constructed the position) but it should
+                 * sort out all the obvious cases.
 		 */
-		if (start == prevstart && offset == prevoffset) {
-		    if (direction == -prevdirection)
-			continue;      /* inverse of previous move */
-		    else if (2 * (nrepeats+1) > len)
-			continue;      /* previous move repeated too often */
-		}
+                if (offset == prevoffset) {
+                    tmp = prevmoves[index] + direction;
+                    if (abs(2*tmp) > len || abs(tmp) < abs(prevmoves[index]))
+                        continue;
+                }
 
 		/* If we didn't `continue', we've found an OK move to make. */
+                if (offset != prevoffset) {
+                    int i;
+                    for (i = 0; i < max; i++)
+                        prevmoves[i] = 0;
+                    prevoffset = offset;
+                }
+                prevmoves[index] += direction;
 		break;
 	    }
 
 	    /*
-	     * Now save the move into the `prev' variables.
-	     */
-	    if (start == prevstart && offset == prevoffset) {
-		nrepeats++;
-	    } else {
-		prevstart = start;
-		prevoffset = offset;
-		prevdirection = direction;
-		nrepeats = 1;
-	    }
-
-	    /*
-	     * And make it.
+	     * Make the move.
 	     */
 	    if (direction < 0) {
 		start += (len-1) * offset;
@@ -283,6 +293,8 @@ static char *new_game_desc(game_params *params, random_state *rs,
 		tiles[start + j*offset] = tiles[start + (j+1)*offset];
 	    tiles[start + (len-1) * offset] = tmp;
 	}
+
+        sfree(prevmoves);
 
     } else {
 
