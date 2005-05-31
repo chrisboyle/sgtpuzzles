@@ -468,7 +468,7 @@ static gint configure_area(GtkWidget *widget,
     gdk_draw_rectangle(fe->pixmap, gc, 1, 0, 0, fe->w, fe->h);
     gdk_gc_unref(gc);
 
-    midend_redraw(fe->me);
+    midend_force_redraw(fe->me);
 
     return TRUE;
 }

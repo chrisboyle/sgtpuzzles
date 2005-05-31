@@ -131,6 +131,7 @@ void midend_size(midend_data *me, int *x, int *y);
 void midend_new_game(midend_data *me);
 void midend_restart_game(midend_data *me);
 int midend_process_key(midend_data *me, int x, int y, int button);
+void midend_force_redraw(midend_data *me);
 void midend_redraw(midend_data *me);
 float *midend_colours(midend_data *me, int *ncolours);
 void midend_timer(midend_data *me, float tplus);

@@ -132,6 +132,14 @@ static void midend_set_timer(midend_data *me)
 	deactivate_timer(me->frontend);
 }
 
+void midend_force_redraw(midend_data *me)
+{
+    if (me->drawstate)
+        me->ourgame->free_drawstate(me->drawstate);
+    me->drawstate = me->ourgame->new_drawstate(me->states[0].state);
+    midend_redraw(me);
+}
+
 void midend_new_game(midend_data *me)
 {
     while (me->nstates > 0)
