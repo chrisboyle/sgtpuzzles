@@ -11,8 +11,6 @@
 
 #include "puzzles.h"
 
-#define PI 3.14159265358979323846264338327950884197169399
-
 #define MAXVERTICES 20
 #define MAXFACES 20
 #define MAXORDER 4

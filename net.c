@@ -12,8 +12,6 @@
 #include "puzzles.h"
 #include "tree234.h"
 
-#define PI 3.141592653589793238462643383279502884197169399
-
 #define MATMUL(xr,yr,m,x,y) do { \
     float rx, ry, xx = (x), yy = (y), *mat = (m); \
     rx = mat[0] * xx + mat[2] * yy; \
