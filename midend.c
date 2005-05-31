@@ -315,7 +315,7 @@ static int midend_really_process_key(midend_data *me, int x, int y, int button)
 	if (!midend_undo(me))
             return 1;
     } else if (button == 'r' || button == 'R' ||
-               button == '\x12') {
+               button == '\x12' || button == '\x19') {
 	midend_stop_anim(me);
 	if (!midend_redo(me))
             return 1;
