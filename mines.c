@@ -2142,22 +2142,11 @@ static int open_square(game_state *state, int x, int y)
 
     if (state->layout->mines[y*w+x]) {
 	/*
-	 * The player has landed on a mine. Bad luck. Expose all
-	 * the mines.
+	 * The player has landed on a mine. Bad luck. Expose the
+	 * mine that killed them, but not the rest (in case they
+	 * want to Undo and carry on playing).
 	 */
 	state->dead = TRUE;
-	for (yy = 0; yy < h; yy++)
-	    for (xx = 0; xx < w; xx++) {
-		if (state->layout->mines[yy*w+xx] &&
-		    (state->grid[yy*w+xx] == -2 ||
-		     state->grid[yy*w+xx] == -3)) {
-		    state->grid[yy*w+xx] = 64;
-		}
-		if (!state->layout->mines[yy*w+xx] &&
-		    state->grid[yy*w+xx] == -1) {
-		    state->grid[yy*w+xx] = 66;
-		}
-	    }
 	state->grid[y*w+x] = 65;
 	return -1;
     }
@@ -2439,6 +2428,7 @@ static char *game_text_format(game_state *state)
 struct game_ui {
     int hx, hy, hradius;	       /* for mouse-down highlights */
     int flash_is_death;
+    int deaths;
 };
 
 static game_ui *new_ui(game_state *state)
@@ -2446,6 +2436,7 @@ static game_ui *new_ui(game_state *state)
     game_ui *ui = snew(game_ui);
     ui->hx = ui->hy = -1;
     ui->hradius = 0;
+    ui->deaths = 0;
     ui->flash_is_death = FALSE;	       /* *shrug* */
     return ui;
 }
@@ -2522,6 +2513,8 @@ static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
 	    ret = dup_game(from);
             ret->just_used_solve = FALSE;
 	    open_square(ret, cx, cy);
+            if (ret->dead)
+                ui->deaths++;
 	    return ret;
 	}
 
@@ -2554,6 +2547,8 @@ static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
 			    (ret->grid[(cy+dy)*ret->w+(cx+dx)] == -2 ||
 			     ret->grid[(cy+dy)*ret->w+(cx+dx)] == -3))
 			    open_square(ret, cx+dx, cy+dy);
+                if (ret->dead)
+                    ui->deaths++;
 		return ret;
 	    }
 	}
@@ -2931,15 +2926,18 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
     {
 	char statusbar[512];
 	if (state->dead) {
-	    sprintf(statusbar, "GAME OVER!");
+	    sprintf(statusbar, "DEAD!");
 	} else if (state->won) {
             if (state->used_solve)
                 sprintf(statusbar, "Auto-solved.");
             else
                 sprintf(statusbar, "COMPLETED!");
 	} else {
-	    sprintf(statusbar, "Mines marked: %d / %d", markers, mines);
+	    sprintf(statusbar, "Marked: %d / %d", markers, mines);
 	}
+        if (ui->deaths)
+            sprintf(statusbar + strlen(statusbar),
+                    "  Deaths: %d", ui->deaths);
 	status_bar(fe, statusbar);
     }
 }

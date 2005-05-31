@@ -880,9 +880,19 @@ turn, and so on if any of them also has no surrounding mines. This
 will be done for you automatically; so sometimes when you uncover a
 square, a whole new area will open up to be explored.
 
-(All the actions described in \k{common-actions} are also available.
+All the actions described in \k{common-actions} are also available.
+
 Even Undo is available, although you might consider it cheating to
-use it!)
+use it. If you step on a mine, the program will only reveal the mine
+in question (unlike most other implementations, which reveal all of
+them). You can then Undo your fatal move and continue playing if you
+like. The program will track the number of times you died (and Undo
+will not reduce that counter), so when you get to the end of the
+game you know whether or not you did it without making any errors.
+
+(If you really want to know the full layout of the grid, which other
+implementations will show you after you die, you can always use the
+Solve menu option.)
 
 \H{mines-parameters} \I{parameters, for Mines}Mines parameters
 
