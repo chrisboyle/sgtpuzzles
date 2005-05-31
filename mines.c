@@ -2,13 +2,6 @@
  * mines.c: Minesweeper clone with sophisticated grid generation.
  * 
  * Still TODO:
- * 
- *  - possibly disable undo? Or alternatively mark game states as
- *    `cheated', although that's horrid.
- *     + OK. Rather than _disabling_ undo, we have a hook callable
- *       in the game backend which is called before we do an undo.
- *       That hook can talk to the game_ui and set the cheated flag,
- *       and then make_move can avoid setting the `won' flag after that.
  *
  *  - think about configurably supporting question marks. Once,
  *    that is, we've thought about configurability in general!
