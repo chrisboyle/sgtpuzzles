@@ -635,7 +635,7 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
         bgcolour = COL_BACKGROUND;
 
     if (!ds->started) {
-        int coords[6];
+        int coords[10];
 
 	draw_rect(fe, 0, 0,
 		  TILE_SIZE * state->w + 2 * BORDER,
@@ -651,15 +651,19 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
         coords[1] = COORD(state->h) + HIGHLIGHT_WIDTH - 1;
         coords[2] = COORD(state->w) + HIGHLIGHT_WIDTH - 1;
         coords[3] = COORD(0) - HIGHLIGHT_WIDTH;
-        coords[4] = COORD(0) - HIGHLIGHT_WIDTH;
-        coords[5] = COORD(state->h) + HIGHLIGHT_WIDTH - 1;
-        draw_polygon(fe, coords, 3, TRUE, COL_HIGHLIGHT);
-        draw_polygon(fe, coords, 3, FALSE, COL_HIGHLIGHT);
+        coords[4] = coords[2] - TILE_SIZE;
+        coords[5] = coords[3] + TILE_SIZE;
+        coords[8] = COORD(0) - HIGHLIGHT_WIDTH;
+        coords[9] = COORD(state->h) + HIGHLIGHT_WIDTH - 1;
+        coords[6] = coords[8] + TILE_SIZE;
+        coords[7] = coords[9] - TILE_SIZE;
+        draw_polygon(fe, coords, 5, TRUE, COL_HIGHLIGHT);
+        draw_polygon(fe, coords, 5, FALSE, COL_HIGHLIGHT);
 
         coords[1] = COORD(0) - HIGHLIGHT_WIDTH;
         coords[0] = COORD(0) - HIGHLIGHT_WIDTH;
-        draw_polygon(fe, coords, 3, TRUE, COL_LOWLIGHT);
-        draw_polygon(fe, coords, 3, FALSE, COL_LOWLIGHT);
+        draw_polygon(fe, coords, 5, TRUE, COL_LOWLIGHT);
+        draw_polygon(fe, coords, 5, FALSE, COL_LOWLIGHT);
 
         ds->started = TRUE;
     }
