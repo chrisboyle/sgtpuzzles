@@ -123,6 +123,7 @@ enum {
     COL_CLUE,
     COL_USER,
     COL_HIGHLIGHT,
+    COL_ERROR,
     COL_PENCIL,
     NCOLOURS
 };
@@ -1996,6 +1997,10 @@ static float *game_colours(frontend *fe, game_state *state, int *ncolours)
     ret[COL_HIGHLIGHT * 3 + 1] = 0.85F * ret[COL_BACKGROUND * 3 + 1];
     ret[COL_HIGHLIGHT * 3 + 2] = 0.85F * ret[COL_BACKGROUND * 3 + 2];
 
+    ret[COL_ERROR * 3 + 0] = 1.0F;
+    ret[COL_ERROR * 3 + 1] = 0.0F;
+    ret[COL_ERROR * 3 + 2] = 0.0F;
+
     ret[COL_PENCIL * 3 + 0] = 0.5F * ret[COL_BACKGROUND * 3 + 0];
     ret[COL_PENCIL * 3 + 1] = 0.5F * ret[COL_BACKGROUND * 3 + 1];
     ret[COL_PENCIL * 3 + 2] = ret[COL_BACKGROUND * 3 + 2];
@@ -2064,10 +2069,10 @@ static void draw_number(frontend *fe, game_drawstate *ds, game_state *state,
     clip(fe, cx, cy, cw, ch);
 
     /* background needs erasing */
-    draw_rect(fe, cx, cy, cw, ch, hl == 1 ? COL_HIGHLIGHT : COL_BACKGROUND);
+    draw_rect(fe, cx, cy, cw, ch, (hl & 15) == 1 ? COL_HIGHLIGHT : COL_BACKGROUND);
 
     /* pencil-mode highlight */
-    if (hl == 2) {
+    if ((hl & 15) == 2) {
         int coords[6];
         coords[0] = cx;
         coords[1] = cy;
@@ -2086,7 +2091,7 @@ static void draw_number(frontend *fe, game_drawstate *ds, game_state *state,
 	    str[0] += 'a' - ('9'+1);
 	draw_text(fe, tx + TILE_SIZE/2, ty + TILE_SIZE/2,
 		  FONT_VARIABLE, TILE_SIZE/2, ALIGN_VCENTRE | ALIGN_HCENTRE,
-		  state->immutable[y*cr+x] ? COL_CLUE : COL_USER, str);
+		  state->immutable[y*cr+x] ? COL_CLUE : (hl & 16) ? COL_ERROR : COL_USER, str);
     } else {
         /* pencil marks required? */
         int i, j;
@@ -2120,6 +2125,7 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 			float animtime, float flashtime)
 {
     int c = state->c, r = state->r, cr = c*r;
+    int entered_items[cr*cr];
     int x, y;
 
     if (!ds->started) {
@@ -2147,17 +2153,46 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
     }
 
     /*
+     * This array is used to keep track of rows, columns and boxes
+     * which contain a number more than once.
+     */
+    for (x = 0; x < cr * cr; x++)
+	entered_items[x] = 0;
+    for (x = 0; x < cr; x++)
+	for (y = 0; y < cr; y++) {
+	    digit d = state->grid[y*cr+x];
+	    if (d) {
+		int box = (x/r)+(y/c)*c;
+		entered_items[x*cr+d-1] |= ((entered_items[x*cr+d-1] & 1) << 1) | 1;
+		entered_items[y*cr+d-1] |= ((entered_items[y*cr+d-1] & 4) << 1) | 4;
+		entered_items[box*cr+d-1] |= ((entered_items[box*cr+d-1] & 16) << 1) | 16;
+	    }
+	}
+
+    /*
      * Draw any numbers which need redrawing.
      */
     for (x = 0; x < cr; x++) {
 	for (y = 0; y < cr; y++) {
             int highlight = 0;
+            digit d = state->grid[y*cr+x];
+
             if (flashtime > 0 &&
                 (flashtime <= FLASH_TIME/3 ||
                  flashtime >= FLASH_TIME*2/3))
                 highlight = 1;
+
+            /* Highlight active input areas. */
             if (x == ui->hx && y == ui->hy)
                 highlight = ui->hpencil ? 2 : 1;
+
+	    /* Mark obvious errors (ie, numbers which occur more than once
+	     * in a single row, column, or box). */
+	    if ((entered_items[x*cr+d-1] & 2) ||
+		(entered_items[y*cr+d-1] & 8) ||
+		(entered_items[((x/r)+(y/c)*c)*cr+d-1] & 32))
+		highlight |= 16;
+
 	    draw_number(fe, ds, state, x, y, highlight);
 	}
     }
