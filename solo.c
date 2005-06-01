@@ -1833,22 +1833,36 @@ static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
     tx = (x + TILE_SIZE - BORDER) / TILE_SIZE - 1;
     ty = (y + TILE_SIZE - BORDER) / TILE_SIZE - 1;
 
-    if (tx >= 0 && tx < cr && ty >= 0 && ty < cr &&
-        (button == LEFT_BUTTON || button == RIGHT_BUTTON)) {
-        /*
-         * Prevent pencil-mode highlighting of a filled square.
-         */
-        if (button == RIGHT_BUTTON && from->grid[ty*cr+tx])
-            return NULL;
-
-	if (tx == ui->hx && ty == ui->hy) {
-	    ui->hx = ui->hy = -1;
-	} else {
-	    ui->hx = tx;
-	    ui->hy = ty;
-	}
-        ui->hpencil = (button == RIGHT_BUTTON);
-	return from;		       /* UI activity occurred */
+    if (tx >= 0 && tx < cr && ty >= 0 && ty < cr) {
+        if (button == LEFT_BUTTON) {
+            if (from->immutable[ty*cr+tx]) {
+                ui->hx = ui->hy = -1;
+            } else if (tx == ui->hx && ty == ui->hy && ui->hpencil == 0) {
+                ui->hx = ui->hy = -1;
+            } else {
+                ui->hx = tx;
+                ui->hy = ty;
+                ui->hpencil = 0;
+            }
+            return from;		       /* UI activity occurred */
+        }
+        if (button == RIGHT_BUTTON) {
+            /*
+             * Pencil-mode highlighting for non filled squares.
+             */
+            if (from->grid[ty*cr+tx] == 0) {
+                if (tx == ui->hx && ty == ui->hy && ui->hpencil) {
+                    ui->hx = ui->hy = -1;
+                } else {
+                    ui->hpencil = 1;
+                    ui->hx = tx;
+                    ui->hy = ty;
+                }
+            } else {
+                ui->hx = ui->hy = -1;
+            }
+            return from;		       /* UI activity occurred */
+        }
     }
 
     if (ui->hx != -1 && ui->hy != -1 &&
@@ -1864,8 +1878,14 @@ static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
 	if (button == ' ')
 	    n = 0;
 
+        /*
+         * Can't overwrite this square. In principle this shouldn't
+         * happen anyway because we should never have even been
+         * able to highlight the square, but it never hurts to be
+         * careful.
+         */
 	if (from->immutable[ui->hy*cr+ui->hx])
-	    return NULL;	       /* can't overwrite this square */
+	    return NULL;
 
         /*
          * Can't make pencil marks in a filled square. In principle
@@ -2267,7 +2287,7 @@ int main(int argc, char **argv)
         fprintf(stderr, "%s: %s\n", argv[0], err);
         return 1;
     }
-    s = new_game(p, desc);
+    s = new_game(NULL, p, desc);
 
     if (recurse) {
         int ret = rsolve(p->c, p->r, s->grid, NULL, 2);

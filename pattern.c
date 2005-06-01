@@ -1221,7 +1221,7 @@ int main(int argc, char **argv)
         fprintf(stderr, "%s: %s\n", argv[0], err);
         return 1;
     }
-    s = new_game(p, desc);
+    s = new_game(NULL, p, desc);
 
     {
 	int w = p->w, h = p->h, i, j, done_any, max;
