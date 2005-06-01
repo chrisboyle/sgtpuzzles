@@ -2454,7 +2454,7 @@ static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
 
     cx = FROMCOORD(x);
     cy = FROMCOORD(y);
-    if (cx < 0 || cx >= from->w || cy < 0 || cy > from->h)
+    if (cx < 0 || cx >= from->w || cy < 0 || cy >= from->h)
 	return NULL;
 
     if (button == LEFT_BUTTON || button == LEFT_DRAG ||
