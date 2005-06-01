@@ -2041,12 +2041,24 @@ static char *new_mine_layout(int w, int h, int n, int x, int y, int unique,
 static char *new_game_desc(game_params *params, random_state *rs,
 			   game_aux_info **aux, int interactive)
 {
+    /*
+     * We generate the coordinates of an initial click even if they
+     * aren't actually used. This has the effect of harmonising the
+     * random number usage between interactive and batch use: if
+     * you use `mines --generate' with an explicit random seed, you
+     * should get exactly the same results as if you type the same
+     * random seed into the interactive game and click in the same
+     * initial location. (Of course you won't get the same grid if
+     * you click in a _different_ initial location, but there's
+     * nothing to be done about that.)
+     */
+    int x = random_upto(rs, params->w);
+    int y = random_upto(rs, params->h);
+
     if (!interactive) {
 	/*
 	 * For batch-generated grids, pre-open one square.
 	 */
-	int x = random_upto(rs, params->w);
-	int y = random_upto(rs, params->h);
 	signed char *grid;
 	char *desc;
 
