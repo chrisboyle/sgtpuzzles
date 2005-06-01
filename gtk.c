@@ -78,6 +78,7 @@ struct frontend {
     GtkWidget *cfgbox;
     char *paste_data;
     int paste_data_len;
+    char *laststatus;
 };
 
 void get_random_seed(void **randseed, int *randseedsize)
@@ -103,9 +104,14 @@ void status_bar(frontend *fe, char *text)
     assert(fe->statusbar);
 
     rewritten = midend_rewrite_statusbar(fe->me, text);
-    gtk_statusbar_pop(GTK_STATUSBAR(fe->statusbar), fe->statusctx);
-    gtk_statusbar_push(GTK_STATUSBAR(fe->statusbar), fe->statusctx, rewritten);
-    sfree(rewritten);
+    if (!fe->laststatus || strcmp(rewritten, fe->laststatus)) {
+	gtk_statusbar_pop(GTK_STATUSBAR(fe->statusbar), fe->statusctx);
+	gtk_statusbar_push(GTK_STATUSBAR(fe->statusbar), fe->statusctx, rewritten);
+	sfree(fe->laststatus);
+	fe->laststatus = rewritten;
+    } else {
+	sfree(rewritten);
+    }
 }
 
 void start_draw(frontend *fe)
@@ -1203,6 +1209,8 @@ static frontend *new_window(char *game_id, char **error)
     fe->pixmap = NULL;
     fe->fonts = NULL;
     fe->nfonts = fe->fontsize = 0;
+
+    fe->laststatus = NULL;
 
     fe->paste_data = NULL;
     fe->paste_data_len = 0;
