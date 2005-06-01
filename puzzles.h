@@ -22,8 +22,12 @@
 #define STR(x) STR_INT(x)
 
 /* NB not perfect because they evaluate arguments multiple times. */
+#ifndef max
 #define max(x,y) ( (x)>(y) ? (x) : (y) )
+#endif /* max */
+#ifndef min
 #define min(x,y) ( (x)<(y) ? (x) : (y) )
+#endif /* min */
 
 enum {
     LEFT_BUTTON = 0x0200,
