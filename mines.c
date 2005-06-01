@@ -237,12 +237,22 @@ static game_params *custom_params(config_item *cfg)
 
 static char *validate_params(game_params *params)
 {
-    if (params->w <= 0 && params->h <= 0)
-	return "Width and height must both be greater than zero";
-    if (params->w <= 0)
-	return "Width must be greater than zero";
-    if (params->h <= 0)
-	return "Height must be greater than zero";
+    /*
+     * Lower limit on grid size: each dimension must be at least 3.
+     * 1 is theoretically workable if rather boring, but 2 is a
+     * real problem: there is often _no_ way to generate a uniquely
+     * solvable 2xn Mines grid. You either run into two mines
+     * blocking the way and no idea what's behind them, or one mine
+     * and no way to know which of the two rows it's in. If the
+     * mine count is even you can create a soluble grid by packing
+     * all the mines at one end (so what when you hit a two-mine
+     * wall there are only as many covered squares left as there
+     * are mines); but if it's odd, you are doomed, because you
+     * _have_ to have a gap somewhere which you can't determine the
+     * position of.
+     */
+    if (params->w <= 2 || params->h <= 2)
+	return "Width and height must both be greater than two";
     if (params->n > params->w * params->h - 9)
 	return "Too many mines for grid size";
 
