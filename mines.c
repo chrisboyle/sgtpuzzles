@@ -95,24 +95,22 @@ static game_params *default_params(void)
     return ret;
 }
 
+static const struct game_params mines_presets[] = {
+  {9, 9, 10, TRUE},
+  {16, 16, 40, TRUE},
+  {30, 16, 99, TRUE},
+};
+
 static int game_fetch_preset(int i, char **name, game_params **params)
 {
     game_params *ret;
     char str[80];
-    static const struct { int w, h, n; } values[] = {
-        {9, 9, 10},
-        {16, 16, 40},
-        {30, 16, 99},
-    };
 
-    if (i < 0 || i >= lenof(values))
+    if (i < 0 || i >= lenof(mines_presets))
         return FALSE;
 
     ret = snew(game_params);
-    ret->w = values[i].w;
-    ret->h = values[i].h;
-    ret->n = values[i].n;
-    ret->unique = TRUE;
+    *ret = mines_presets[i];
 
     sprintf(str, "%dx%d, %d mines", ret->w, ret->h, ret->n);
 
@@ -558,9 +556,11 @@ static void std_add(struct squaretodo *std, int i)
     std->next[i] = -1;
 }
 
+typedef int (*open_cb)(void *, int, int);
+
 static void known_squares(int w, int h, struct squaretodo *std,
-			  signed char *grid,
-			  int (*open)(void *ctx, int x, int y), void *openctx,
+                          signed char *grid,
+			  open_cb open, void *openctx,
 			  int x, int y, int mask, int mine)
 {
     int xx, yy, bit;
@@ -626,11 +626,12 @@ struct perturbations {
  *    steps were required; the exact return value is the number of
  *    perturb calls.
  */
+
+typedef struct perturbations *(*perturb_cb) (void *, signed char *, int, int, int);
+
 static int minesolve(int w, int h, int n, signed char *grid,
-		     int (*open)(void *ctx, int x, int y),
-		     struct perturbations *(*perturb)(void *ctx,
-						      signed char *grid,
-						      int x, int y, int mask),
+		     open_cb open,
+                     perturb_cb perturb,
 		     void *ctx, random_state *rs)
 {
     struct setstore *ss = ss_new();
@@ -2071,7 +2072,7 @@ static char *new_game_desc(game_params *params, random_state *rs,
 
 	rsdesc = random_state_encode(rs);
 	desc = snewn(strlen(rsdesc) + 100, char);
-	sprintf(desc, "r%d,%c,%s", params->n, params->unique ? 'u' : 'a', rsdesc);
+	sprintf(desc, "r%d,%c,%s", params->n, (char)(params->unique ? 'u' : 'a'), rsdesc);
 	sfree(rsdesc);
 	return desc;
     }
@@ -2258,6 +2259,7 @@ static game_state *new_game(midend_data *me, game_params *params, char *desc)
     wh = state->w * state->h;
 
     state->layout = snew(struct mine_layout);
+    memset(state->layout, 0, sizeof(struct mine_layout));
     state->layout->refcount = 1;
 
     state->grid = snewn(wh, char);
@@ -2334,6 +2336,7 @@ static game_state *new_game(midend_data *me, game_params *params, char *desc)
 	}
 
 	ret = open_square(state, x, y);
+        sfree(bmp);
     }
 
     return state;

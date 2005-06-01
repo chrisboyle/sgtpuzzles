@@ -149,32 +149,29 @@ static game_params *default_params(void)
     return ret;
 }
 
+static const struct game_params net_presets[] = {
+    {5, 5, FALSE, TRUE, 0.0},
+    {7, 7, FALSE, TRUE, 0.0},
+    {9, 9, FALSE, TRUE, 0.0},
+    {11, 11, FALSE, TRUE, 0.0},
+    {13, 11, FALSE, TRUE, 0.0},
+    {5, 5, TRUE, TRUE, 0.0},
+    {7, 7, TRUE, TRUE, 0.0},
+    {9, 9, TRUE, TRUE, 0.0},
+    {11, 11, TRUE, TRUE, 0.0},
+    {13, 11, TRUE, TRUE, 0.0},
+};
+
 static int game_fetch_preset(int i, char **name, game_params **params)
 {
     game_params *ret;
     char str[80];
-    static const struct { int x, y, wrap; } values[] = {
-        {5, 5, FALSE},
-        {7, 7, FALSE},
-        {9, 9, FALSE},
-        {11, 11, FALSE},
-        {13, 11, FALSE},
-        {5, 5, TRUE},
-        {7, 7, TRUE},
-        {9, 9, TRUE},
-        {11, 11, TRUE},
-        {13, 11, TRUE},
-    };
 
-    if (i < 0 || i >= lenof(values))
+    if (i < 0 || i >= lenof(net_presets))
         return FALSE;
 
     ret = snew(game_params);
-    ret->width = values[i].x;
-    ret->height = values[i].y;
-    ret->wrapping = values[i].wrap;
-    ret->unique = TRUE;
-    ret->barrier_probability = 0.0;
+    *ret = net_presets[i];
 
     sprintf(str, "%dx%d%s", ret->width, ret->height,
             ret->wrapping ? " wrapping" : "");
@@ -302,12 +299,8 @@ static game_params *custom_params(config_item *cfg)
 
 static char *validate_params(game_params *params)
 {
-    if (params->width <= 0 && params->height <= 0)
+    if (params->width <= 0 || params->height <= 0)
 	return "Width and height must both be greater than zero";
-    if (params->width <= 0)
-	return "Width must be greater than zero";
-    if (params->height <= 0)
-	return "Height must be greater than zero";
     if (params->width <= 1 && params->height <= 1)
 	return "At least one of width and height must be greater than one";
     if (params->barrier_probability < 0)
@@ -968,6 +961,7 @@ static void perturb(int w, int h, unsigned char *tiles, int wrapping,
 
 	break;
     }
+    sfree(perim2);
 
     if (i == nperim)
 	return;			       /* nothing we can do! */
@@ -1944,7 +1938,10 @@ static game_state *make_move(game_state *state, game_ui *ui,
         ret->last_rotate_dir = 0; /* suppress animation */
         ret->last_rotate_x = ret->last_rotate_y = 0;
 
-    } else assert(0);
+    } else {
+	ret = NULL;  /* placate optimisers which don't understand assert(0) */
+	assert(0);
+    }
 
     /*
      * Check whether the game has been completed.

@@ -300,10 +300,9 @@ static char *encode_params(game_params *params, int full)
 
     return dupstr(data);
 }
+typedef void (*egc_callback)(void *, struct grid_square *);
 
-static void enum_grid_squares(game_params *params,
-                              void (*callback)(void *, struct grid_square *),
-                              void *ctx)
+static void enum_grid_squares(game_params *params, egc_callback callback, void *ctx)
 {
     const struct solid *solid = solids[params->solid];
 
@@ -979,6 +978,8 @@ static game_state *dup_game(game_state *state)
 
 static void free_game(game_state *state)
 {
+    sfree(state->squares);
+    sfree(state->facecolours);
     sfree(state);
 }
 
@@ -1233,6 +1234,7 @@ static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
         success = align_poly(poly, &from->squares[ret->current], all_pkey);
 
         if (!success) {
+            sfree(poly);
             angle = -angle;
             poly = transform_poly(from->solid,
                                   from->squares[from->current].flip,
@@ -1572,8 +1574,8 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
     }
     sfree(poly);
 
-    draw_update(fe, 0, 0, (int)((bb.r-bb.l+2.0F) * GRID_SCALE),
-                (int)((bb.d-bb.u+2.0F) * GRID_SCALE));
+    game_size(&state->params, &i, &j);
+    draw_update(fe, 0, 0, i, j);
 
     /*
      * Update the status bar.

@@ -5,6 +5,8 @@
 #ifndef PUZZLES_PUZZLES_H
 #define PUZZLES_PUZZLES_H
 
+#include <stdlib.h> /* for size_t */
+
 #ifndef TRUE
 #define TRUE 1
 #endif
@@ -19,8 +21,12 @@
 #define STR_INT(x) #x
 #define STR(x) STR_INT(x)
 
+/* NB not perfect because they evaluate arguments multiple times. */
+#define max(x,y) ( (x)>(y) ? (x) : (y) )
+#define min(x,y) ( (x)<(y) ? (x) : (y) )
+
 enum {
-    LEFT_BUTTON = 0x1000,
+    LEFT_BUTTON = 0x0200,
     MIDDLE_BUTTON,
     RIGHT_BUTTON,
     LEFT_DRAG,
@@ -34,10 +40,11 @@ enum {
     CURSOR_LEFT,
     CURSOR_RIGHT,
     
-    MOD_CTRL       = 0x10000000,
-    MOD_SHFT       = 0x20000000,
-    MOD_NUM_KEYPAD = 0x40000000,
-    MOD_MASK       = 0x70000000 /* mask for all modifiers */
+    /* made smaller because of 'limited range of datatype' errors. */
+    MOD_CTRL       = 0x1000,
+    MOD_SHFT       = 0x2000,
+    MOD_NUM_KEYPAD = 0x4000,
+    MOD_MASK       = 0x7000 /* mask for all modifiers */
 };
 
 #define IS_MOUSE_DOWN(m) ( (unsigned)((m) - LEFT_BUTTON) <= \
@@ -108,6 +115,14 @@ struct config_item {
 /*
  * Platform routines
  */
+
+#ifdef DEBUG
+#define debug(x) (debug_printf x)
+void debug_printf(char *fmt, ...);
+#else
+#define debug(x)
+#endif
+
 void fatal(char *fmt, ...);
 void frontend_default_colour(frontend *fe, float *output);
 void draw_text(frontend *fe, int x, int y, int fonttype, int fontsize,
@@ -135,6 +150,7 @@ void midend_set_params(midend_data *me, game_params *params);
 void midend_size(midend_data *me, int *x, int *y);
 void midend_new_game(midend_data *me);
 void midend_restart_game(midend_data *me);
+void midend_stop_anim(midend_data *me);
 int midend_process_key(midend_data *me, int x, int y, int button);
 void midend_force_redraw(midend_data *me);
 void midend_redraw(midend_data *me);
@@ -156,8 +172,8 @@ char *midend_rewrite_statusbar(midend_data *me, char *text);
 /*
  * malloc.c
  */
-void *smalloc(int size);
-void *srealloc(void *p, int size);
+void *smalloc(size_t size);
+void *srealloc(void *p, size_t size);
 void sfree(void *p);
 char *dupstr(const char *s);
 #define snew(type) \

@@ -96,8 +96,6 @@ int solver_show_working;
 
 #include "puzzles.h"
 
-#define max(x,y) ((x)>(y)?(x):(y))
-
 /*
  * To save space, I store digits internally as unsigned char. This
  * imposes a hard limit of 255 on the order of the puzzle. Since
@@ -177,8 +175,10 @@ static int game_fetch_preset(int i, char **name, game_params **params)
         { "3x3 Intermediate", { 3, 3, SYMM_ROT2, DIFF_INTERSECT } },
         { "3x3 Advanced", { 3, 3, SYMM_ROT2, DIFF_SET } },
         { "3x3 Unreasonable", { 3, 3, SYMM_ROT2, DIFF_RECURSIVE } },
+#ifndef SLOW_SYSTEM
         { "3x4 Basic", { 3, 4, SYMM_ROT2, DIFF_SIMPLE } },
         { "4x4 Basic", { 4, 4, SYMM_ROT2, DIFF_SIMPLE } },
+#endif
     };
 
     if (i < 0 || i >= lenof(presets))
@@ -844,7 +844,12 @@ static int nsolve_intersect(struct nsolve_usage *usage,
     return ret;
 }
 
+struct nsolve_scratch {
+    unsigned char *grid, *rowidx, *colidx, *set;
+};
+
 static int nsolve_set(struct nsolve_usage *usage,
+                      struct nsolve_scratch *scratch,
                       int start, int step1, int step2
 #ifdef STANDALONE_SOLVER
                       , char *fmt, ...
@@ -853,10 +858,10 @@ static int nsolve_set(struct nsolve_usage *usage,
 {
     int c = usage->c, r = usage->r, cr = c*r;
     int i, j, n, count;
-    unsigned char *grid = snewn(cr*cr, unsigned char);
-    unsigned char *rowidx = snewn(cr, unsigned char);
-    unsigned char *colidx = snewn(cr, unsigned char);
-    unsigned char *set = snewn(cr, unsigned char);
+    unsigned char *grid = scratch->grid;
+    unsigned char *rowidx = scratch->rowidx;
+    unsigned char *colidx = scratch->colidx;
+    unsigned char *set = scratch->set;
 
     /*
      * We are passed a cr-by-cr matrix of booleans. Our first job
@@ -999,10 +1004,6 @@ static int nsolve_set(struct nsolve_usage *usage,
                 }
 
                 if (progress) {
-                    sfree(set);
-                    sfree(colidx);
-                    sfree(rowidx);
-                    sfree(grid);
                     return TRUE;
                 }
             }
@@ -1021,17 +1022,33 @@ static int nsolve_set(struct nsolve_usage *usage,
             break;                     /* done */
     }
 
-    sfree(set);
-    sfree(colidx);
-    sfree(rowidx);
-    sfree(grid);
-
     return FALSE;
+}
+
+static struct nsolve_scratch *nsolve_new_scratch(struct nsolve_usage *usage)
+{
+    struct nsolve_scratch *scratch = snew(struct nsolve_scratch);
+    int cr = usage->cr;
+    scratch->grid = snewn(cr*cr, unsigned char);
+    scratch->rowidx = snewn(cr, unsigned char);
+    scratch->colidx = snewn(cr, unsigned char);
+    scratch->set = snewn(cr, unsigned char);
+    return scratch;
+}
+
+static void nsolve_free_scratch(struct nsolve_scratch *scratch)
+{
+    sfree(scratch->set);
+    sfree(scratch->colidx);
+    sfree(scratch->rowidx);
+    sfree(scratch->grid);
+    sfree(scratch);
 }
 
 static int nsolve(int c, int r, digit *grid)
 {
     struct nsolve_usage *usage;
+    struct nsolve_scratch *scratch;
     int cr = c*r;
     int x, y, n;
     int diff = DIFF_BLOCK;
@@ -1054,6 +1071,8 @@ static int nsolve(int c, int r, digit *grid)
     memset(usage->row, FALSE, cr * cr);
     memset(usage->col, FALSE, cr * cr);
     memset(usage->blk, FALSE, cr * cr);
+
+    scratch = nsolve_new_scratch(usage);
 
     /*
      * Place all the clue numbers we are given.
@@ -1204,7 +1223,7 @@ static int nsolve(int c, int r, digit *grid)
 	 */
 	for (x = 0; x < cr; x += r)
 	    for (y = 0; y < r; y++)
-                if (nsolve_set(usage, cubepos(x,y,1), r*cr, 1
+                if (nsolve_set(usage, scratch, cubepos(x,y,1), r*cr, 1
 #ifdef STANDALONE_SOLVER
                                , "set elimination, block (%d,%d)", 1+x/r, 1+y
 #endif
@@ -1217,7 +1236,7 @@ static int nsolve(int c, int r, digit *grid)
 	 * Row-wise set elimination.
 	 */
 	for (y = 0; y < cr; y++)
-            if (nsolve_set(usage, cubepos(0,y,1), cr*cr, 1
+            if (nsolve_set(usage, scratch, cubepos(0,y,1), cr*cr, 1
 #ifdef STANDALONE_SOLVER
                            , "set elimination, row %d", 1+YUNTRANS(y)
 #endif
@@ -1230,7 +1249,7 @@ static int nsolve(int c, int r, digit *grid)
 	 * Column-wise set elimination.
 	 */
 	for (x = 0; x < cr; x++)
-            if (nsolve_set(usage, cubepos(x,0,1), cr, 1
+            if (nsolve_set(usage, scratch, cubepos(x,0,1), cr, 1
 #ifdef STANDALONE_SOLVER
                            , "set elimination, column %d", 1+x
 #endif
@@ -1245,6 +1264,8 @@ static int nsolve(int c, int r, digit *grid)
 	 */
 	break;
     }
+
+    nsolve_free_scratch(scratch);
 
     sfree(usage->cube);
     sfree(usage->row);
@@ -1448,6 +1469,16 @@ static char *new_game_desc(game_params *params, random_state *rs,
 	    ai->r = r;
 	    ai->grid = snewn(cr * cr, digit);
 	    memcpy(ai->grid, grid, cr * cr * sizeof(digit));
+	    /*
+	     * We might already have written *aux the last time we
+	     * went round this loop, in which case we should free
+	     * the old aux_info before overwriting it with the new
+	     * one.
+	     */
+            if (*aux) {
+		sfree((*aux)->grid);
+		sfree(*aux);
+            }
 	    *aux = ai;
 	}
 

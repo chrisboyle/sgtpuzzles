@@ -98,9 +98,14 @@ static int game_fetch_preset(int i, char **name, game_params **params)
 
     switch (i) {
       case 0: w = 7, h = 7; break;
-      case 1: w = 11, h = 11; break;
-      case 2: w = 15, h = 15; break;
-      case 3: w = 19, h = 19; break;
+      case 1: w = 9, h = 9; break;
+      case 2: w = 11, h = 11; break;
+      case 3: w = 13, h = 13; break;
+      case 4: w = 15, h = 15; break;
+#ifndef SLOW_SYSTEM
+      case 5: w = 17, h = 17; break;
+      case 6: w = 19, h = 19; break;
+#endif
       default: return FALSE;
     }
 
@@ -212,9 +217,9 @@ static game_params *custom_params(config_item *cfg)
 
 static char *validate_params(game_params *params)
 {
-    if (params->w <= 0 && params->h <= 0)
+    if (params->w <= 0 || params->h <= 0)
 	return "Width and height must both be greater than zero";
-    if (params->w < 2 && params->h < 2)
+    if (params->w*params->h < 2)
 	return "Grid area must be greater than one";
     if (params->expandfactor < 0.0F)
 	return "Expansion factor may not be negative";
@@ -2277,16 +2282,15 @@ static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
  * Drawing routines.
  */
 
-#define CORRECT 65536
+#define CORRECT (1L<<16)
 
 #define COLOUR(k) ( (k)==1 ? COL_LINE : COL_DRAG )
-#define MAX(x,y) ( (x)>(y) ? (x) : (y) )
-#define MAX4(x,y,z,w) ( MAX(MAX(x,y),MAX(z,w)) )
+#define MAX4(x,y,z,w) ( max(max(x,y),max(z,w)) )
 
 struct game_drawstate {
     int started;
     int w, h;
-    unsigned int *visible;
+    unsigned long *visible;
 };
 
 static void game_size(game_params *params, int *x, int *y)
@@ -2333,7 +2337,7 @@ static game_drawstate *game_new_drawstate(game_state *state)
     ds->started = FALSE;
     ds->w = state->w;
     ds->h = state->h;
-    ds->visible = snewn(ds->w * ds->h, unsigned int);
+    ds->visible = snewn(ds->w * ds->h, unsigned long);
     for (i = 0; i < ds->w * ds->h; i++)
         ds->visible[i] = 0xFFFF;
 
@@ -2459,7 +2463,7 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 
     for (x = 0; x < state->w; x++)
 	for (y = 0; y < state->h; y++) {
-	    unsigned int c = 0;
+	    unsigned long c = 0;
 
 	    if (HRANGE(state,x,y))
                 c |= index(state,hedge,x,y);
@@ -2475,12 +2479,14 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 	    if (y+1 < state->h)
 		c |= index(state,corners,x,y+1) << 12;
 	    if (x+1 < state->w && y+1 < state->h)
-		c |= index(state,corners,x+1,y+1) << 14;
+		/* cast to prevent 2<<14 sign-extending on promotion to long */
+		c |= (unsigned long)index(state,corners,x+1,y+1) << 14;
 	    if (index(state, correct, x, y) && !flashtime)
 		c |= CORRECT;
 
 	    if (index(ds,ds->visible,x,y) != c) {
-		draw_tile(fe, state, x, y, hedge, vedge, corners, c & CORRECT);
+		draw_tile(fe, state, x, y, hedge, vedge, corners,
+                          (c & CORRECT) ? 1 : 0);
 		index(ds,ds->visible,x,y) = c;
 	    }
 	}

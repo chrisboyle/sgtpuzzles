@@ -77,13 +77,6 @@ void debug_printf(char *fmt, ...)
     dputs(buf);
     va_end(ap);
 }
-
-#define debug(x) (debug_printf x)
-
-#else
-
-#define debug(x)
-
 #endif
 
 struct font {

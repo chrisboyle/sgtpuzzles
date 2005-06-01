@@ -264,7 +264,7 @@ unsigned long random_upto(random_state *state, unsigned long limit)
     bits += 3;
     assert(bits < 32);
 
-    max = 1 << bits;
+    max = 1L << bits;
     divisor = max / limit;
     max = limit * divisor;
 

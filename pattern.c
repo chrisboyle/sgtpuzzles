@@ -11,9 +11,6 @@
 
 #include "puzzles.h"
 
-#define max(x,y) ( (x)>(y) ? (x):(y) )
-#define min(x,y) ( (x)<(y) ? (x):(y) )
-
 enum {
     COL_BACKGROUND,
     COL_EMPTY,
@@ -62,24 +59,26 @@ static game_params *default_params(void)
     return ret;
 }
 
+static const struct game_params pattern_presets[] = {
+    {10, 10},
+    {15, 15},
+    {20, 20},
+#ifndef SLOW_SYSTEM
+    {25, 25},
+    {30, 30},
+#endif
+};
+
 static int game_fetch_preset(int i, char **name, game_params **params)
 {
     game_params *ret;
     char str[80];
-    static const struct { int x, y; } values[] = {
-        {10, 10},
-        {15, 15},
-        {20, 20},
-        {25, 25},
-        {30, 30},
-    };
 
-    if (i < 0 || i >= lenof(values))
+    if (i < 0 || i >= lenof(pattern_presets))
         return FALSE;
 
     ret = snew(game_params);
-    ret->w = values[i].x;
-    ret->h = values[i].y;
+    *ret = pattern_presets[i];
 
     sprintf(str, "%dx%d", ret->w, ret->h);
 
@@ -166,12 +165,8 @@ static game_params *custom_params(config_item *cfg)
 
 static char *validate_params(game_params *params)
 {
-    if (params->w <= 0 && params->h <= 0)
+    if (params->w <= 0 || params->h <= 0)
 	return "Width and height must both be greater than zero";
-    if (params->w <= 0)
-	return "Width must be greater than zero";
-    if (params->h <= 0)
-	return "Height must be greater than zero";
     return NULL;
 }
 
@@ -494,8 +489,7 @@ static char *new_game_desc(game_params *params, random_state *rs,
 
 	ai->w = params->w;
 	ai->h = params->h;
-	ai->grid = snewn(ai->w * ai->h, unsigned char);
-	memcpy(ai->grid, grid, ai->w * ai->h);
+        ai->grid = grid;
 
 	*aux = ai;
     }

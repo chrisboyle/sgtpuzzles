@@ -10,7 +10,7 @@
  * smalloc should guarantee to return a useful pointer - Halibut
  * can do nothing except die when it's out of memory anyway.
  */
-void *smalloc(int size) {
+void *smalloc(size_t size) {
     void *p;
     p = malloc(size);
     if (!p)
@@ -30,7 +30,7 @@ void sfree(void *p) {
 /*
  * srealloc should guaranteeably be able to realloc NULL
  */
-void *srealloc(void *p, int size) {
+void *srealloc(void *p, size_t size) {
     void *q;
     if (p) {
 	q = realloc(p, size);

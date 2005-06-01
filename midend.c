@@ -96,15 +96,38 @@ midend_data *midend_new(frontend *fe, const game *ourgame)
     return me;
 }
 
+static void midend_free_game(midend_data *me)
+{
+    while (me->nstates > 0)
+	me->ourgame->free_game(me->states[--me->nstates].state);
+
+    if (me->drawstate)
+        me->ourgame->free_drawstate(me->drawstate);
+}
+
 void midend_free(midend_data *me)
 {
+    int i;
+
+    midend_free_game(me);
+
+    random_free(me->random);
     sfree(me->states);
     sfree(me->desc);
     sfree(me->seedstr);
-    random_free(me->random);
     if (me->aux_info)
 	me->ourgame->free_aux_info(me->aux_info);
     me->ourgame->free_params(me->params);
+    if (me->npresets) {
+	for (i = 0; i < me->npresets; i++) {
+	    sfree(me->presets[i]);
+	    sfree(me->preset_names[i]);
+	}
+	sfree(me->presets);
+	sfree(me->preset_names);
+    }
+    if (me->ui)
+        me->ourgame->free_ui(me->ui);
     if (me->curparams)
         me->ourgame->free_params(me->curparams);
     sfree(me->laststatus);
@@ -142,11 +165,7 @@ void midend_force_redraw(midend_data *me)
 
 void midend_new_game(midend_data *me)
 {
-    while (me->nstates > 0)
-	me->ourgame->free_game(me->states[--me->nstates].state);
-
-    if (me->drawstate)
-        me->ourgame->free_drawstate(me->drawstate);
+    midend_free_game(me);
 
     assert(me->nstates == 0);
 
@@ -259,7 +278,7 @@ static void midend_finish_move(midend_data *me)
     midend_set_timer(me);
 }
 
-static void midend_stop_anim(midend_data *me)
+void midend_stop_anim(midend_data *me)
 {
     if (me->oldstate || me->anim_time) {
 	midend_finish_move(me);
@@ -299,29 +318,29 @@ static int midend_really_process_key(midend_data *me, int x, int y, int button)
 {
     game_state *oldstate =
         me->ourgame->dup_game(me->states[me->statepos - 1].state);
-    int special = FALSE, gotspecial = FALSE;
+    int special = FALSE, gotspecial = FALSE, ret = 1;
     float anim_time;
 
     if (button == 'n' || button == 'N' || button == '\x0E') {
 	midend_stop_anim(me);
 	midend_new_game(me);
         midend_redraw(me);
-        return 1;                      /* never animate */
+	goto done;		       /* never animate */
     } else if (button == 'u' || button == 'u' ||
                button == '\x1A' || button == '\x1F') {
 	midend_stop_anim(me);
         special = me->states[me->statepos-1].special;
         gotspecial = TRUE;
 	if (!midend_undo(me))
-            return 1;
+	    goto done;
     } else if (button == 'r' || button == 'R' ||
                button == '\x12' || button == '\x19') {
 	midend_stop_anim(me);
 	if (!midend_redo(me))
-            return 1;
+            goto done;
     } else if (button == 'q' || button == 'Q' || button == '\x11') {
-	me->ourgame->free_game(oldstate);
-        return 0;
+	ret = 0;
+	goto done;
     } else {
         game_state *s =
             me->ourgame->make_move(me->states[me->statepos-1].state,
@@ -334,7 +353,7 @@ static int midend_really_process_key(midend_data *me, int x, int y, int button)
              * state has been updated and a redraw is called for.
              */
             midend_redraw(me);
-            return 1;
+            goto done;
         } else if (s) {
 	    midend_stop_anim(me);
             while (me->nstates > me->statepos)
@@ -345,8 +364,7 @@ static int midend_really_process_key(midend_data *me, int x, int y, int button)
             me->statepos = ++me->nstates;
             me->dir = +1;
         } else {
-            me->ourgame->free_game(oldstate);
-            return 1;
+          goto done;
         }
     }
 
@@ -364,7 +382,7 @@ static int midend_really_process_key(midend_data *me, int x, int y, int button)
                                              me->dir, me->ui);
     }
 
-    me->oldstate = oldstate;
+    me->oldstate = oldstate; oldstate = NULL;
     if (anim_time > 0) {
         me->anim_time = anim_time;
     } else {
@@ -377,7 +395,9 @@ static int midend_really_process_key(midend_data *me, int x, int y, int button)
 
     midend_set_timer(me);
 
-    return 1;
+    done:
+    if (oldstate) me->ourgame->free_game(oldstate);
+    return ret;
 }
 
 int midend_process_key(midend_data *me, int x, int y, int button)
@@ -687,21 +707,27 @@ void midend_supersede_game_desc(midend_data *me, char *desc)
 
 config_item *midend_get_config(midend_data *me, int which, char **wintitle)
 {
-    char *titlebuf, *parstr;
+    char *titlebuf, *parstr, *rest;
     config_item *ret;
+    char sep;
 
+    assert(wintitle);
     titlebuf = snewn(40 + strlen(me->ourgame->name), char);
 
     switch (which) {
       case CFG_SETTINGS:
 	sprintf(titlebuf, "%s configuration", me->ourgame->name);
-	*wintitle = dupstr(titlebuf);
+	*wintitle = titlebuf;
 	return me->ourgame->configure(me->params);
       case CFG_SEED:
       case CFG_DESC:
-	sprintf(titlebuf, "%s %s selection", me->ourgame->name,
+        if (!me->curparams) {
+          sfree(titlebuf);
+          return NULL;
+        }
+        sprintf(titlebuf, "%s %s selection", me->ourgame->name,
                 which == CFG_SEED ? "random" : "game");
-	*wintitle = dupstr(titlebuf);
+        *wintitle = titlebuf;
 
 	ret = snewn(2, config_item);
 
@@ -721,21 +747,16 @@ config_item *midend_get_config(midend_data *me, int which, char **wintitle)
          * changes).
          */
         parstr = me->ourgame->encode_params(me->curparams, which == CFG_SEED);
+        assert(parstr);
         if (which == CFG_DESC) {
-            ret[0].sval = snewn(strlen(parstr) + strlen(me->desc) + 2, char);
-            sprintf(ret[0].sval, "%s:%s", parstr, me->desc);
-        } else if (me->seedstr) {
-            ret[0].sval = snewn(strlen(parstr) + strlen(me->seedstr) + 2, char);
-            sprintf(ret[0].sval, "%s#%s", parstr, me->seedstr);
+            rest = me->desc ? me->desc : "";
+            sep = ':';
         } else {
-            /*
-             * If the current game was not randomly generated, the
-             * best we can do is to give a template for typing a
-             * new seed in.
-             */
-            ret[0].sval = snewn(strlen(parstr) + 2, char);
-            sprintf(ret[0].sval, "%s#", parstr);
+            rest = me->seedstr ? me->seedstr : "";
+            sep = '#';
         }
+        ret[0].sval = snewn(strlen(parstr) + strlen(rest) + 2, char);
+        sprintf(ret[0].sval, "%s%c%s", parstr, sep, rest);
         sfree(parstr);
 
 	ret[1].type = C_END;

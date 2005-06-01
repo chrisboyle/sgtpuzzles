@@ -173,7 +173,7 @@ static game_params *custom_params(config_item *cfg)
 
 static char *validate_params(game_params *params)
 {
-    if (params->w < 2 && params->h < 2)
+    if (params->w < 2 || params->h < 2)
 	return "Width and height must both be at least two";
 
     return NULL;
@@ -505,6 +505,7 @@ static game_state *dup_game(game_state *state)
 
 static void free_game(game_state *state)
 {
+    sfree(state->tiles);
     sfree(state);
 }
 

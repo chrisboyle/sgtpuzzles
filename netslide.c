@@ -161,34 +161,35 @@ static game_params *default_params(void)
     return ret;
 }
 
+static const struct { int x, y, wrap, bprob; const char* desc; }
+netslide_presets[] = {
+    {3, 3, FALSE, 1.0, " easy"},
+    {3, 3, FALSE, 0.0, " medium"},
+    {3, 3, TRUE,  0.0, " hard"},
+    {4, 4, FALSE, 1.0, " easy"},
+    {4, 4, FALSE, 0.0, " medium"},
+    {4, 4, TRUE,  0.0, " hard"},
+    {5, 5, FALSE, 1.0, " easy"},
+    {5, 5, FALSE, 0.0, " medium"},
+    {5, 5, TRUE,  0.0, " hard"},
+};
+
 static int game_fetch_preset(int i, char **name, game_params **params)
 {
     game_params *ret;
     char str[80];
-    static const struct { int x, y, wrap, bprob; const char* desc; } values[] = {
-        {3, 3, FALSE, 1.0, " easy"},
-        {3, 3, FALSE, 0.0, " medium"},
-        {3, 3, TRUE,  0.0, " hard"},
-        {4, 4, FALSE, 1.0, " easy"},
-        {4, 4, FALSE, 0.0, " medium"},
-        {4, 4, TRUE,  0.0, " hard"},
-        {5, 5, FALSE, 1.0, " easy"},
-        {5, 5, FALSE, 0.0, " medium"},
-        {5, 5, TRUE,  0.0, " hard"},
-    };
 
-    if (i < 0 || i >= lenof(values))
+    if (i < 0 || i >= lenof(netslide_presets))
         return FALSE;
 
     ret = snew(game_params);
-    ret->width = values[i].x;
-    ret->height = values[i].y;
-    ret->wrapping = values[i].wrap;
-    ret->barrier_probability = values[i].bprob;
+    ret->width = netslide_presets[i].x;
+    ret->height = netslide_presets[i].y;
+    ret->wrapping = netslide_presets[i].wrap;
+    ret->barrier_probability = netslide_presets[i].bprob;
     ret->movetarget = 0;
 
-    sprintf(str, "%dx%d%s", ret->width, ret->height,
-            values[i].desc);
+    sprintf(str, "%dx%d%s", ret->width, ret->height, netslide_presets[i].desc);
 
     *name = dupstr(str);
     *params = ret;
@@ -314,12 +315,8 @@ static game_params *custom_params(config_item *cfg)
 
 static char *validate_params(game_params *params)
 {
-    if (params->width <= 1 && params->height <= 1)
+    if (params->width <= 1 || params->height <= 1)
 	return "Width and height must both be greater than one";
-    if (params->width <= 1)
-	return "Width must be greater than one";
-    if (params->height <= 1)
-	return "Height must be greater than one";
     if (params->barrier_probability < 0)
 	return "Barrier probability may not be negative";
     if (params->barrier_probability > 1)

@@ -409,7 +409,7 @@ static char *new_game_desc(game_params *params, random_state *rs,
         int k;
 
         k = sprintf(buf, "%d%c", grid[i] / 4,
-		    params->orientable ? "uldr"[grid[i] & 3] : ',');
+		    (char)(params->orientable ? "uldr"[grid[i] & 3] : ','));
 
         ret = sresize(ret, retlen + k + 1, char);
         strcpy(ret + retlen, buf);
@@ -764,6 +764,7 @@ static game_drawstate *game_new_drawstate(game_state *state)
 
 static void game_free_drawstate(game_drawstate *ds)
 {
+    sfree(ds->grid);
     sfree(ds);
 }
 
