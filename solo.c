@@ -1962,6 +1962,8 @@ struct game_drawstate {
     digit *grid;
     unsigned char *pencil;
     unsigned char *hl;
+    /* This is scratch space used within a single call to game_redraw. */
+    int *entered_items;
 };
 
 #define XSIZE(cr) ((cr) * TILE_SIZE + 2*BORDER + 1)
@@ -2024,6 +2026,7 @@ static game_drawstate *game_new_drawstate(game_state *state)
     memset(ds->pencil, 0, cr*cr*cr);
     ds->hl = snewn(cr*cr, unsigned char);
     memset(ds->hl, 0, cr*cr);
+    ds->entered_items = snewn(cr*cr, int);
 
     return ds;
 }
@@ -2033,6 +2036,7 @@ static void game_free_drawstate(game_drawstate *ds)
     sfree(ds->hl);
     sfree(ds->pencil);
     sfree(ds->grid);
+    sfree(ds->entered_items);
     sfree(ds);
 }
 
@@ -2125,7 +2129,6 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 			float animtime, float flashtime)
 {
     int c = state->c, r = state->r, cr = c*r;
-    int entered_items[cr*cr];
     int x, y;
 
     if (!ds->started) {
@@ -2157,15 +2160,15 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
      * which contain a number more than once.
      */
     for (x = 0; x < cr * cr; x++)
-	entered_items[x] = 0;
+	ds->entered_items[x] = 0;
     for (x = 0; x < cr; x++)
 	for (y = 0; y < cr; y++) {
 	    digit d = state->grid[y*cr+x];
 	    if (d) {
 		int box = (x/r)+(y/c)*c;
-		entered_items[x*cr+d-1] |= ((entered_items[x*cr+d-1] & 1) << 1) | 1;
-		entered_items[y*cr+d-1] |= ((entered_items[y*cr+d-1] & 4) << 1) | 4;
-		entered_items[box*cr+d-1] |= ((entered_items[box*cr+d-1] & 16) << 1) | 16;
+		ds->entered_items[x*cr+d-1] |= ((ds->entered_items[x*cr+d-1] & 1) << 1) | 1;
+		ds->entered_items[y*cr+d-1] |= ((ds->entered_items[y*cr+d-1] & 4) << 1) | 4;
+		ds->entered_items[box*cr+d-1] |= ((ds->entered_items[box*cr+d-1] & 16) << 1) | 16;
 	    }
 	}
 
@@ -2188,9 +2191,9 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 
 	    /* Mark obvious errors (ie, numbers which occur more than once
 	     * in a single row, column, or box). */
-	    if ((entered_items[x*cr+d-1] & 2) ||
-		(entered_items[y*cr+d-1] & 8) ||
-		(entered_items[((x/r)+(y/c)*c)*cr+d-1] & 32))
+	    if ((ds->entered_items[x*cr+d-1] & 2) ||
+		(ds->entered_items[y*cr+d-1] & 8) ||
+		(ds->entered_items[((x/r)+(y/c)*c)*cr+d-1] & 32))
 		highlight |= 16;
 
 	    draw_number(fe, ds, state, x, y, highlight);
