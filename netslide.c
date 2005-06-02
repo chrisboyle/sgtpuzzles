@@ -129,7 +129,7 @@ static int xyd_cmp(void *av, void *bv) {
     if (a->direction > b->direction)
 	return +1;
     return 0;
-};
+}
 
 static struct xyd *new_xyd(int x, int y, int direction)
 {

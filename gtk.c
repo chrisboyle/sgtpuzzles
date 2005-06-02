@@ -76,7 +76,7 @@ struct frontend {
     config_item *cfg;
     int cfg_which, cfgret;
     GtkWidget *cfgbox;
-    char *paste_data;
+    void *paste_data;
     int paste_data_len;
     char *laststatus;
 };
@@ -566,7 +566,7 @@ void message_box(GtkWidget *parent, char *title, char *msg, int centre)
 		       GTK_SIGNAL_FUNC(win_key_press), ok);
     gtk_window_set_modal(GTK_WINDOW(window), TRUE);
     gtk_window_set_transient_for(GTK_WINDOW(window), GTK_WINDOW(parent));
-    //set_transient_window_pos(parent, window);
+    /* set_transient_window_pos(parent, window); */
     gtk_widget_show(window);
     gtk_main();
 }
@@ -798,7 +798,7 @@ static int get_config(frontend *fe, int which)
     gtk_window_set_modal(GTK_WINDOW(fe->cfgbox), TRUE);
     gtk_window_set_transient_for(GTK_WINDOW(fe->cfgbox),
 				 GTK_WINDOW(fe->window));
-    //set_transient_window_pos(fe->window, fe->cfgbox);
+    /* set_transient_window_pos(fe->window, fe->cfgbox); */
     gtk_widget_show(fe->cfgbox);
     gtk_main();
 
@@ -836,6 +836,8 @@ int paste_initialised = FALSE;
 
 void init_paste()
 {
+    unsigned char empty[] = { 0 };
+
     if (paste_initialised)
 	return;
 
@@ -849,21 +851,21 @@ void init_paste()
      * ICCCM, we must do this before we start using cut buffers.
      */
     XChangeProperty(GDK_DISPLAY(), GDK_ROOT_WINDOW(),
-		    XA_CUT_BUFFER0, XA_STRING, 8, PropModeAppend, "", 0);
+		    XA_CUT_BUFFER0, XA_STRING, 8, PropModeAppend, empty, 0);
     XChangeProperty(GDK_DISPLAY(), GDK_ROOT_WINDOW(),
-		    XA_CUT_BUFFER1, XA_STRING, 8, PropModeAppend, "", 0);
+		    XA_CUT_BUFFER1, XA_STRING, 8, PropModeAppend, empty, 0);
     XChangeProperty(GDK_DISPLAY(), GDK_ROOT_WINDOW(),
-		    XA_CUT_BUFFER2, XA_STRING, 8, PropModeAppend, "", 0);
+		    XA_CUT_BUFFER2, XA_STRING, 8, PropModeAppend, empty, 0);
     XChangeProperty(GDK_DISPLAY(), GDK_ROOT_WINDOW(),
-		    XA_CUT_BUFFER3, XA_STRING, 8, PropModeAppend, "", 0);
+		    XA_CUT_BUFFER3, XA_STRING, 8, PropModeAppend, empty, 0);
     XChangeProperty(GDK_DISPLAY(), GDK_ROOT_WINDOW(),
-		    XA_CUT_BUFFER4, XA_STRING, 8, PropModeAppend, "", 0);
+		    XA_CUT_BUFFER4, XA_STRING, 8, PropModeAppend, empty, 0);
     XChangeProperty(GDK_DISPLAY(), GDK_ROOT_WINDOW(),
-		    XA_CUT_BUFFER5, XA_STRING, 8, PropModeAppend, "", 0);
+		    XA_CUT_BUFFER5, XA_STRING, 8, PropModeAppend, empty, 0);
     XChangeProperty(GDK_DISPLAY(), GDK_ROOT_WINDOW(),
-		    XA_CUT_BUFFER6, XA_STRING, 8, PropModeAppend, "", 0);
+		    XA_CUT_BUFFER6, XA_STRING, 8, PropModeAppend, empty, 0);
     XChangeProperty(GDK_DISPLAY(), GDK_ROOT_WINDOW(),
-		    XA_CUT_BUFFER7, XA_STRING, 8, PropModeAppend, "", 0);
+		    XA_CUT_BUFFER7, XA_STRING, 8, PropModeAppend, empty, 0);
 }
 
 /* Store data in a cut-buffer. */

@@ -260,12 +260,12 @@ static void do_rotate(int *grid, int w, int h, int n, int orientable,
 	for (j = 0; j < n/2; j++) {
 	    int k;
 	    int g[4];
-	    int p[4] = {
-		j*w+i,
-		i*w+(n-j-1),
-		(n-j-1)*w+(n-i-1),
-		(n-i-1)*w+j
-	    };
+	    int p[4];
+            
+            p[0] = j*w+i;
+            p[1] = i*w+(n-j-1);
+            p[2] = (n-j-1)*w+(n-i-1);
+            p[3] = (n-i-1)*w+j;
 
 	    for (k = 0; k < 4; k++)
 		g[k] = grid[p[k]];

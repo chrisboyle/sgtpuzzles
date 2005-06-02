@@ -120,7 +120,7 @@ static int xyd_cmp(const void *av, const void *bv) {
     if (a->direction > b->direction)
 	return +1;
     return 0;
-};
+}
 
 static int xyd_cmp_nc(void *av, void *bv) { return xyd_cmp(av, bv); }
 

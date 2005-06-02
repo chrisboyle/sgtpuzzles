@@ -1291,7 +1291,7 @@ static int minesolve(int w, int h, int n, signed char *grid,
  */
 
 struct minectx {
-    signed char *grid;
+    char *grid;
     int w, h;
     int sx, sy;
     int allow_big_perturbs;
@@ -1786,7 +1786,7 @@ static char *minegen(int w, int h, int n, int x, int y, int unique,
 	 * We bypass this bit if we're not after a unique grid.
          */
 	if (unique) {
-	    signed char *solvegrid = snewn(w*h, char);
+	    signed char *solvegrid = snewn(w*h, signed char);
 	    struct minectx actx, *ctx = &actx;
 	    int solveret, prevret = -2;
 
@@ -1933,7 +1933,7 @@ static void obfuscate_bitmap(unsigned char *bmp, int bits, int decode)
 static char *new_mine_layout(int w, int h, int n, int x, int y, int unique,
 			     random_state *rs, char **game_desc)
 {
-    signed char *grid, *ret, *p;
+    char *grid, *ret, *p;
     unsigned char *bmp;
     int i, area;
 
@@ -2060,7 +2060,7 @@ static char *new_game_desc(game_params *params, random_state *rs,
 	/*
 	 * For batch-generated grids, pre-open one square.
 	 */
-	signed char *grid;
+	char *grid;
 	char *desc;
 
 	grid = new_mine_layout(params->w, params->h, params->n,
@@ -2262,7 +2262,7 @@ static game_state *new_game(midend_data *me, game_params *params, char *desc)
     memset(state->layout, 0, sizeof(struct mine_layout));
     state->layout->refcount = 1;
 
-    state->grid = snewn(wh, char);
+    state->grid = snewn(wh, signed char);
     memset(state->grid, -2, wh);
 
     if (*desc == 'r') {
@@ -2355,7 +2355,7 @@ static game_state *dup_game(game_state *state)
     ret->just_used_solve = state->just_used_solve;
     ret->layout = state->layout;
     ret->layout->refcount++;
-    ret->grid = snewn(ret->w * ret->h, char);
+    ret->grid = snewn(ret->w * ret->h, signed char);
     memcpy(ret->grid, state->grid, ret->w * ret->h);
 
     return ret;
@@ -2689,7 +2689,7 @@ static game_drawstate *game_new_drawstate(game_state *state)
     ds->w = state->w;
     ds->h = state->h;
     ds->started = FALSE;
-    ds->grid = snewn(ds->w * ds->h, char);
+    ds->grid = snewn(ds->w * ds->h, signed char);
 
     memset(ds->grid, -99, ds->w * ds->h);
 
