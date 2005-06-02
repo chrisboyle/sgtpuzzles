@@ -1930,12 +1930,51 @@ static void obfuscate_bitmap(unsigned char *bmp, int bits, int decode)
     }
 }
 
+static char *describe_layout(char *grid, int area, int x, int y,
+                             int obfuscate)
+{
+    char *ret, *p;
+    unsigned char *bmp;
+    int i;
+
+    /*
+     * Set up the mine bitmap and obfuscate it.
+     */
+    bmp = snewn((area + 7) / 8, unsigned char);
+    memset(bmp, 0, (area + 7) / 8);
+    for (i = 0; i < area; i++) {
+        if (grid[i])
+            bmp[i / 8] |= 0x80 >> (i % 8);
+    }
+    if (obfuscate)
+        obfuscate_bitmap(bmp, area, FALSE);
+
+    /*
+     * Now encode the resulting bitmap in hex. We can work to
+     * nibble rather than byte granularity, since the obfuscation
+     * function guarantees to return a bit string of the same
+     * length as its input.
+     */
+    ret = snewn((area+3)/4 + 100, char);
+    p = ret + sprintf(ret, "%d,%d,%s", x, y,
+                      obfuscate ? "m" : "");   /* 'm' == masked */
+    for (i = 0; i < (area+3)/4; i++) {
+        int v = bmp[i/2];
+        if (i % 2 == 0)
+            v >>= 4;
+        *p++ = "0123456789abcdef"[v & 0xF];
+    }
+    *p = '\0';
+
+    sfree(bmp);
+
+    return ret;
+}
+
 static char *new_mine_layout(int w, int h, int n, int x, int y, int unique,
 			     random_state *rs, char **game_desc)
 {
-    char *grid, *ret, *p;
-    unsigned char *bmp;
-    int i, area;
+    char *grid;
 
 #ifdef TEST_OBFUSCATION
     static int tested_obfuscation = FALSE;
@@ -2002,39 +2041,8 @@ static char *new_mine_layout(int w, int h, int n, int x, int y, int unique,
 
     grid = minegen(w, h, n, x, y, unique, rs);
 
-    if (game_desc) {
-	/*
-	 * Set up the mine bitmap and obfuscate it.
-	 */
-	area = w * h;
-	bmp = snewn((area + 7) / 8, unsigned char);
-	memset(bmp, 0, (area + 7) / 8);
-	for (i = 0; i < area; i++) {
-	    if (grid[i])
-		bmp[i / 8] |= 0x80 >> (i % 8);
-	}
-	obfuscate_bitmap(bmp, area, FALSE);
-
-	/*
-	 * Now encode the resulting bitmap in hex. We can work to
-	 * nibble rather than byte granularity, since the obfuscation
-	 * function guarantees to return a bit string of the same
-	 * length as its input.
-	 */
-	ret = snewn((area+3)/4 + 100, char);
-	p = ret + sprintf(ret, "%d,%d,m", x, y);   /* 'm' == masked */
-	for (i = 0; i < (area+3)/4; i++) {
-	    int v = bmp[i/2];
-	    if (i % 2 == 0)
-		v >>= 4;
-	    *p++ = "0123456789abcdef"[v & 0xF];
-	}
-	*p = '\0';
-
-	sfree(bmp);
-
-	*game_desc = ret;
-    }	
+    if (game_desc)
+        *game_desc = describe_layout(grid, w * h, x, y, TRUE);
 
     return grid;
 }
@@ -3039,3 +3047,108 @@ const struct game thegame = {
     TRUE, game_timing_state,
     BUTTON_BEATS(LEFT_BUTTON, RIGHT_BUTTON),
 };
+
+#ifdef STANDALONE_OBFUSCATOR
+
+/*
+ * Vaguely useful stand-alone program which translates between
+ * obfuscated and clear Mines game descriptions. Pass in a game
+ * description on the command line, and if it's clear it will be
+ * obfuscated and vice versa. The output text should also be a
+ * valid game ID describing the same game. Like this:
+ *
+ * $ ./mineobfusc 9x9:4,4,mb071b49fbd1cb6a0d5868
+ * 9x9:4,4,004000007c00010022080
+ * $ ./mineobfusc 9x9:4,4,004000007c00010022080
+ * 9x9:4,4,mb071b49fbd1cb6a0d5868
+ *
+ * gcc -DSTANDALONE_OBFUSCATOR -o mineobfusc mines.c malloc.c random.c tree234.c
+ */
+
+#include <stdarg.h>
+
+void frontend_default_colour(frontend *fe, float *output) {}
+void draw_text(frontend *fe, int x, int y, int fonttype, int fontsize,
+               int align, int colour, char *text) {}
+void draw_rect(frontend *fe, int x, int y, int w, int h, int colour) {}
+void draw_line(frontend *fe, int x1, int y1, int x2, int y2, int colour) {}
+void draw_polygon(frontend *fe, int *coords, int npoints,
+                  int fill, int colour) {}
+void clip(frontend *fe, int x, int y, int w, int h) {}
+void unclip(frontend *fe) {}
+void start_draw(frontend *fe) {}
+void draw_update(frontend *fe, int x, int y, int w, int h) {}
+void end_draw(frontend *fe) {}
+void midend_supersede_game_desc(midend_data *me, char *desc) {}
+void status_bar(frontend *fe, char *text) {}
+
+void fatal(char *fmt, ...)
+{
+    va_list ap;
+
+    fprintf(stderr, "fatal error: ");
+
+    va_start(ap, fmt);
+    vfprintf(stderr, fmt, ap);
+    va_end(ap);
+
+    fprintf(stderr, "\n");
+    exit(1);
+}
+
+int main(int argc, char **argv)
+{
+    game_params *p;
+    game_state *s;
+    int recurse = TRUE;
+    char *id = NULL, *desc, *err;
+    int y, x;
+    int grade = FALSE;
+
+    while (--argc > 0) {
+        char *p = *++argv;
+	if (*p == '-') {
+            fprintf(stderr, "%s: unrecognised option `%s'\n", argv[0]);
+            return 1;
+        } else {
+            id = p;
+        }
+    }
+
+    if (!id) {
+        fprintf(stderr, "usage: %s <game_id>\n", argv[0]);
+        return 1;
+    }
+
+    desc = strchr(id, ':');
+    if (!desc) {
+        fprintf(stderr, "%s: game id expects a colon in it\n", argv[0]);
+        return 1;
+    }
+    *desc++ = '\0';
+
+    p = default_params();
+    decode_params(p, id);
+    err = validate_desc(p, desc);
+    if (err) {
+        fprintf(stderr, "%s: %s\n", argv[0], err);
+        return 1;
+    }
+    s = new_game(NULL, p, desc);
+
+    x = atoi(desc);
+    while (*desc && *desc != ',') desc++;
+    if (*desc) desc++;
+    y = atoi(desc);
+    while (*desc && *desc != ',') desc++;
+    if (*desc) desc++;
+
+    printf("%s:%s\n", id, describe_layout(s->layout->mines,
+                                          p->w * p->h,
+                                          x, y,
+                                          (*desc != 'm')));
+
+    return 0;
+}
+
+#endif
