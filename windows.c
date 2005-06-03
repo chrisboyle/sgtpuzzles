@@ -1107,6 +1107,19 @@ static void new_game_type(frontend *fe)
     midend_redraw(fe->me);
 }
 
+static int is_alt_pressed(void)
+{
+    BYTE keystate[256];
+    int r = GetKeyboardState(keystate);
+    if (!r)
+	return FALSE;
+    if (keystate[VK_MENU] & 0x80)
+	return TRUE;
+    if (keystate[VK_RMENU] & 0x80)
+	return TRUE;
+    return FALSE;
+}
+
 static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
 				WPARAM wParam, LPARAM lParam)
 {
@@ -1316,10 +1329,10 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
 	     */
 	    if (message == WM_MBUTTONDOWN || (wParam & MK_SHIFT))
 		button = MIDDLE_BUTTON;
-	    else if (message == WM_LBUTTONDOWN)
-		button = LEFT_BUTTON;
-	    else
+	    else if (message == WM_RBUTTONDOWN || is_alt_pressed())
 		button = RIGHT_BUTTON;
+	    else
+		button = LEFT_BUTTON;
 
 	    if (!midend_process_key(fe->me, (signed short)LOWORD(lParam),
 				    (signed short)HIWORD(lParam), button))
@@ -1341,10 +1354,10 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
 	     */
 	    if (message == WM_MBUTTONUP || (wParam & MK_SHIFT))
 		button = MIDDLE_RELEASE;
-	    else if (message == WM_LBUTTONUP)
-		button = LEFT_RELEASE;
-	    else
+	    else if (message == WM_RBUTTONUP || is_alt_pressed())
 		button = RIGHT_RELEASE;
+	    else
+		button = LEFT_RELEASE;
 
 	    if (!midend_process_key(fe->me, (signed short)LOWORD(lParam),
 				    (signed short)HIWORD(lParam), button))
@@ -1359,10 +1372,10 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
 
 	    if (wParam & (MK_MBUTTON | MK_SHIFT))
 		button = MIDDLE_DRAG;
-	    else if (wParam & MK_LBUTTON)
-		button = LEFT_DRAG;
-	    else
+	    else if (wParam & MK_RBUTTON || is_alt_pressed())
 		button = RIGHT_DRAG;
+	    else
+		button = LEFT_DRAG;
 	    
 	    if (!midend_process_key(fe->me, (signed short)LOWORD(lParam),
 				    (signed short)HIWORD(lParam), button))
