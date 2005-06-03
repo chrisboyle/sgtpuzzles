@@ -97,8 +97,11 @@ static game_params *default_params(void)
 
 static const struct game_params mines_presets[] = {
   {9, 9, 10, TRUE},
+  {9, 9, 35, TRUE},
   {16, 16, 40, TRUE},
+  {16, 16, 99, TRUE},
   {30, 16, 99, TRUE},
+  {30, 16, 170, TRUE},
 };
 
 static int game_fetch_preset(int i, char **name, game_params **params)
