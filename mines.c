@@ -2490,11 +2490,12 @@ static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
 
     cx = FROMCOORD(x);
     cy = FROMCOORD(y);
-    if (cx < 0 || cx >= from->w || cy < 0 || cy >= from->h)
-	return NULL;
 
     if (button == LEFT_BUTTON || button == LEFT_DRAG ||
 	button == MIDDLE_BUTTON || button == MIDDLE_DRAG) {
+	if (cx < 0 || cx >= from->w || cy < 0 || cy >= from->h)
+	    return NULL;
+
 	/*
 	 * Mouse-downs and mouse-drags just cause highlighting
 	 * updates.
@@ -2506,6 +2507,9 @@ static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
     }
 
     if (button == RIGHT_BUTTON) {
+	if (cx < 0 || cx >= from->w || cy < 0 || cy >= from->h)
+	    return NULL;
+
 	/*
 	 * Right-clicking only works on a covered square, and it
 	 * toggles between -1 (marked as mine) and -2 (not marked
@@ -2532,6 +2536,8 @@ static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
 	 * At this stage we must never return NULL: we have adjusted
 	 * the ui, so at worst we return `from'.
 	 */
+	if (cx < 0 || cx >= from->w || cy < 0 || cy >= from->h)
+	    return from;
 
 	/*
 	 * Left-clicking on a covered square opens a tile. Not
