@@ -2027,7 +2027,6 @@ static game_drawstate *game_new_drawstate(game_state *state)
     ds->hl = snewn(cr*cr, unsigned char);
     memset(ds->hl, 0, cr*cr);
     ds->entered_items = snewn(cr*cr, int);
-
     return ds;
 }
 
@@ -2097,19 +2096,40 @@ static void draw_number(frontend *fe, game_drawstate *ds, game_state *state,
 		  FONT_VARIABLE, TILE_SIZE/2, ALIGN_VCENTRE | ALIGN_HCENTRE,
 		  state->immutable[y*cr+x] ? COL_CLUE : (hl & 16) ? COL_ERROR : COL_USER, str);
     } else {
-        /* pencil marks required? */
-        int i, j;
+        int i, j, npencil;
+	int pw, ph, pmax, fontsize;
+
+        /* count the pencil marks required */
+        for (i = npencil = 0; i < cr; i++)
+            if (state->pencil[(y*cr+x)*cr+i])
+		npencil++;
+
+	/*
+	 * It's not sensible to arrange pencil marks in the same
+	 * layout as the squares within a block, because this leads
+	 * to the font being too small. Instead, we arrange pencil
+	 * marks in the nearest thing we can to a square layout,
+	 * and we adjust the square layout depending on the number
+	 * of pencil marks in the square.
+	 */
+	for (pw = 1; pw * pw < npencil; pw++);
+	if (pw < 3) pw = 3;	       /* otherwise it just looks _silly_ */
+	ph = (npencil + pw - 1) / pw;
+	if (ph < 2) ph = 2;	       /* likewise */
+	pmax = max(pw, ph);
+	fontsize = TILE_SIZE/(pmax*(11-pmax)/8);
 
         for (i = j = 0; i < cr; i++)
             if (state->pencil[(y*cr+x)*cr+i]) {
-                int dx = j % r, dy = j / r, crm = max(c, r);
+                int dx = j % pw, dy = j / pw;
+
                 str[1] = '\0';
                 str[0] = i + '1';
                 if (str[0] > '9')
                     str[0] += 'a' - ('9'+1);
-                draw_text(fe, tx + (4*dx+3) * TILE_SIZE / (4*r+2),
-                          ty + (4*dy+3) * TILE_SIZE / (4*c+2),
-                          FONT_VARIABLE, TILE_SIZE/(crm*5/4),
+                draw_text(fe, tx + (4*dx+3) * TILE_SIZE / (4*pw+2),
+                          ty + (4*dy+3) * TILE_SIZE / (4*ph+2),
+                          FONT_VARIABLE, fontsize,
                           ALIGN_VCENTRE | ALIGN_HCENTRE, COL_PENCIL, str);
                 j++;
             }
