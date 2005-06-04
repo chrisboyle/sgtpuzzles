@@ -417,7 +417,7 @@ static char *new_game_desc(game_params *params, random_state *rs,
 
 	OFFSET(x2, y2, x1, y1, d1, params);
 	d2 = F(d1);
-#ifdef DEBUG
+#ifdef GENERATION_DIAGNOSTICS
 	printf("picked (%d,%d,%c) <-> (%d,%d,%c)\n",
 	       x1, y1, "0RU3L567D9abcdef"[d1], x2, y2, "0RU3L567D9abcdef"[d2]);
 #endif
@@ -444,7 +444,7 @@ static char *new_game_desc(game_params *params, random_state *rs,
 	    xydp = find234(possibilities, &xyd1, NULL);
 
 	    if (xydp) {
-#ifdef DEBUG
+#ifdef GENERATION_DIAGNOSTICS
 		printf("T-piece; removing (%d,%d,%c)\n",
 		       xydp->x, xydp->y, "0RU3L567D9abcdef"[xydp->direction]);
 #endif
@@ -471,7 +471,7 @@ static char *new_game_desc(game_params *params, random_state *rs,
 	    xydp = find234(possibilities, &xyd1, NULL);
 
 	    if (xydp) {
-#ifdef DEBUG
+#ifdef GENERATION_DIAGNOSTICS
 		printf("Loop avoidance; removing (%d,%d,%c)\n",
 		       xydp->x, xydp->y, "0RU3L567D9abcdef"[xydp->direction]);
 #endif
@@ -506,7 +506,7 @@ static char *new_game_desc(game_params *params, random_state *rs,
 	    if (index(params, tiles, x3, y3))
 		continue;	       /* this would create a loop */
 
-#ifdef DEBUG
+#ifdef GENERATION_DIAGNOSTICS
 	    printf("New frontier; adding (%d,%d,%c)\n",
 		   x2, y2, "0RU3L567D9abcdef"[d]);
 #endif
