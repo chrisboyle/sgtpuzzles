@@ -1786,6 +1786,11 @@ static void free_ui(game_ui *ui)
     sfree(ui);
 }
 
+static void game_changed_state(game_ui *ui, game_state *oldstate,
+                               game_state *newstate)
+{
+}
+
 /* ----------------------------------------------------------------------
  * Process a move.
  */
@@ -2591,6 +2596,7 @@ const struct game thegame = {
     FALSE, game_text_format,
     new_ui,
     free_ui,
+    game_changed_state,
     make_move,
     game_size,
     game_colours,

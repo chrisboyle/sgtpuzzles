@@ -228,6 +228,10 @@ void midend_new_game(midend_data *me)
 static int midend_undo(midend_data *me)
 {
     if (me->statepos > 1) {
+        if (me->ui)
+            me->ourgame->changed_state(me->ui,
+                                       me->states[me->statepos-1].state,
+                                       me->states[me->statepos-2].state);
 	me->statepos--;
         me->dir = -1;
         return 1;
@@ -238,6 +242,10 @@ static int midend_undo(midend_data *me)
 static int midend_redo(midend_data *me)
 {
     if (me->statepos < me->nstates) {
+        if (me->ui)
+            me->ourgame->changed_state(me->ui,
+                                       me->states[me->statepos-1].state,
+                                       me->states[me->statepos].state);
 	me->statepos++;
         me->dir = +1;
         return 1;
@@ -308,6 +316,10 @@ void midend_restart_game(midend_data *me)
     me->states[me->nstates].state = s;
     me->states[me->nstates].special = TRUE;   /* we just restarted */
     me->statepos = ++me->nstates;
+    if (me->ui)
+        me->ourgame->changed_state(me->ui,
+                                   me->states[me->statepos-2].state,
+                                   me->states[me->statepos-1].state);
     me->anim_time = 0.0;
     midend_finish_move(me);
     midend_redraw(me);
@@ -936,6 +948,10 @@ char *midend_solve(midend_data *me)
     me->states[me->nstates].state = s;
     me->states[me->nstates].special = TRUE;   /* created using solve */
     me->statepos = ++me->nstates;
+    if (me->ui)
+        me->ourgame->changed_state(me->ui,
+                                   me->states[me->statepos-2].state,
+                                   me->states[me->statepos-1].state);
     me->anim_time = 0.0;
     midend_finish_move(me);
     midend_redraw(me);

@@ -1853,6 +1853,22 @@ static void free_ui(game_ui *ui)
     sfree(ui);
 }
 
+static void game_changed_state(game_ui *ui, game_state *oldstate,
+                               game_state *newstate)
+{
+    int c = newstate->c, r = newstate->r, cr = c*r;
+    /*
+     * We prevent pencil-mode highlighting of a filled square. So
+     * if the user has just filled in a square which we had a
+     * pencil-mode highlight in (by Undo, or by Redo, or by Solve),
+     * then we cancel the highlight.
+     */
+    if (ui->hx >= 0 && ui->hy >= 0 && ui->hpencil &&
+        newstate->grid[ui->hy * cr + ui->hx] != 0) {
+        ui->hx = ui->hy = -1;
+    }
+}
+
 static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
                              int x, int y, int button)
 {
@@ -2278,6 +2294,7 @@ const struct game thegame = {
     TRUE, game_text_format,
     new_ui,
     free_ui,
+    game_changed_state,
     make_move,
     game_size,
     game_colours,

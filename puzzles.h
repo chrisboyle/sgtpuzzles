@@ -252,6 +252,8 @@ struct game {
     char *(*text_format)(game_state *state);
     game_ui *(*new_ui)(game_state *state);
     void (*free_ui)(game_ui *ui);
+    void (*changed_state)(game_ui *ui, game_state *oldstate,
+                          game_state *newstate);
     game_state *(*make_move)(game_state *from, game_ui *ui, game_drawstate *ds,
                              int x, int y, int button);
     void (*size)(game_params *params, int *x, int *y);

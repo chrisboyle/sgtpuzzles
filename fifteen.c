@@ -451,6 +451,11 @@ static void free_ui(game_ui *ui)
 {
 }
 
+static void game_changed_state(game_ui *ui, game_state *oldstate,
+                               game_state *newstate)
+{
+}
+
 static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
                              int x, int y, int button) {
     int gx, gy, dx, dy, ux, uy, up, p;
@@ -835,6 +840,7 @@ const struct game thegame = {
     TRUE, game_text_format,
     new_ui,
     free_ui,
+    game_changed_state,
     make_move,
     game_size,
     game_colours,

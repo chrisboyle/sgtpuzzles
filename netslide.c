@@ -1045,6 +1045,11 @@ static void slide_col(game_state *state, int dir, int col)
     slide_col_int(state->width, state->height, state->tiles, dir, col);
 }
 
+static void game_changed_state(game_ui *ui, game_state *oldstate,
+                               game_state *newstate)
+{
+}
+
 static game_state *make_move(game_state *state, game_ui *ui,
                              game_drawstate *ds, int x, int y, int button)
 {
@@ -1749,6 +1754,7 @@ const struct game thegame = {
     FALSE, game_text_format,
     new_ui,
     free_ui,
+    game_changed_state,
     make_move,
     game_size,
     game_colours,
