@@ -43,6 +43,7 @@ enum {
     CURSOR_DOWN,
     CURSOR_LEFT,
     CURSOR_RIGHT,
+    CURSOR_SELECT,
     
     /* made smaller because of 'limited range of datatype' errors. */
     MOD_CTRL       = 0x1000,

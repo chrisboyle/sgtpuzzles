@@ -1871,10 +1871,11 @@ static game_state *make_move(game_state *state, game_ui *ui,
         }
         return state;		       /* UI activity has occurred */
     } else if (button == 'a' || button == 's' || button == 'd' ||
-	       button == 'A' || button == 'S' || button == 'D') {
+	       button == 'A' || button == 'S' || button == 'D' ||
+	       button == CURSOR_SELECT) {
 	tx = ui->cur_x;
 	ty = ui->cur_y;
-	if (button == 'a' || button == 'A')
+	if (button == 'a' || button == 'A' || button == CURSOR_SELECT)
 	    button = LEFT_BUTTON;
 	else if (button == 's' || button == 'S')
 	    button = MIDDLE_BUTTON;
