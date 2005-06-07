@@ -43,11 +43,12 @@ struct game_params {
 /* These flags must be unique across all uses; in the game_state,
  * the game_ui, and the drawstate (as they all get combined in the
  * drawstate). */
-#define TILE_COLMASK    0x0ff
-#define TILE_SELECTED   0x100 /* used in ui and drawstate */
-#define TILE_JOINRIGHT  0x200 /* used in drawstate */
-#define TILE_JOINDOWN   0x400 /* used in drawstate */
-#define TILE_JOINDIAG   0x800 /* used in drawstate */
+#define TILE_COLMASK    0x00ff
+#define TILE_SELECTED   0x0100 /* used in ui and drawstate */
+#define TILE_JOINRIGHT  0x0200 /* used in drawstate */
+#define TILE_JOINDOWN   0x0400 /* used in drawstate */
+#define TILE_JOINDIAG   0x0800 /* used in drawstate */
+#define TILE_HASSEL     0x1000 /* used in drawstate */
 
 #define TILE(gs,x,y) ((gs)->tiles[(gs)->params.w*(y)+(x)])
 #define COL(gs,x,y) (TILE(gs,x,y) & TILE_COLMASK)
@@ -388,6 +389,7 @@ struct game_ui {
     struct game_params params;
     int *tiles; /* selected-ness only */
     int nselected;
+    int xsel, ysel, displaysel;
 };
 
 static game_ui *new_ui(game_state *state)
@@ -398,6 +400,8 @@ static game_ui *new_ui(game_state *state)
     ui->tiles = snewn(state->n, int);
     memset(ui->tiles, 0, state->n*sizeof(int));
     ui->nselected = 0;
+
+    ui->xsel = ui->ysel = ui->displaysel = 0;
 
     return ui;
 }
@@ -575,10 +579,29 @@ static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
     int tx, ty;
     game_state *ret = from;
 
-    if (button != RIGHT_BUTTON && button != LEFT_BUTTON)
+    ui->displaysel = 0;
+
+    if (button == RIGHT_BUTTON || button == LEFT_BUTTON) {
+	tx = FROMCOORD(x); ty= FROMCOORD(y);
+    } else if (button == CURSOR_UP || button == CURSOR_DOWN ||
+	       button == CURSOR_LEFT || button == CURSOR_RIGHT) {
+	int dx = 0, dy = 0;
+	ui->displaysel = 1;
+	dx = (button == CURSOR_LEFT) ? -1 : ((button == CURSOR_RIGHT) ? +1 : 0);
+	dy = (button == CURSOR_DOWN) ? +1 : ((button == CURSOR_UP)    ? -1 : 0);
+	ui->xsel = (ui->xsel + from->params.w + dx) % from->params.w;
+	ui->ysel = (ui->ysel + from->params.h + dy) % from->params.h;
+	debug(("cursor pressed, d=(%d,%d), sel=(%d,%d)",dx,dy,ui->xsel,ui->ysel));
+	return ret;
+    } else if (button == CURSOR_SELECT || button == ' ' || button == '\r' ||
+	       button == '\n') {
+	ui->displaysel = 1;
+	tx = ui->xsel;
+	ty = ui->ysel;
+	debug(("cursor select, t=(%d,%d)", tx, ty));
+    } else
 	return NULL;
 
-    tx = FROMCOORD(x); ty= FROMCOORD(y);
     if (tx < 0 || tx >= from->params.w || ty < 0 || ty >= from->params.h)
 	return NULL;
     if (COL(from, tx, ty) == 0) return NULL;
@@ -597,6 +620,8 @@ static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
 	sel_clear(ui, from); /* might be no-op */
 	sel_expand(ui, from, tx, ty);
     }
+    if (ret->complete || ret->impossible)
+	ui->displaysel = 0;
 
     return ret;
 }
@@ -759,6 +784,15 @@ static void tile_redraw(frontend *fe, game_drawstate *ds,
 	draw_rect(fe, COORD(x)+TILE_INNER, COORD(y)+TILE_INNER, TILE_GAP, TILE_GAP,
 		  (tile & TILE_JOINDIAG) ? outer : bgcolour);
 
+    if (tile & TILE_HASSEL) {
+	int sx = COORD(x)+2, sy = COORD(y)+2, ssz = TILE_INNER-5;
+	int scol = (outer == COL_SEL) ? COL_LOWLIGHT : COL_HIGHLIGHT;
+	draw_line(fe, sx,     sy,     sx+ssz, sy,     scol);
+	draw_line(fe, sx+ssz, sy,     sx+ssz, sy+ssz, scol);
+	draw_line(fe, sx+ssz, sy+ssz, sx,     sy+ssz, scol);
+	draw_line(fe, sx,     sy+ssz, sx,     sy,     scol);
+    }
+
     draw_update(fe, COORD(x), COORD(y), TILE_SIZE, TILE_SIZE);
 }
 
@@ -828,6 +862,9 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 	    if ((tile & TILE_JOINRIGHT) && (tile & TILE_JOINDOWN) &&
 		COL(state,x+1,y+1) == col)
 		tile |= TILE_JOINDIAG;
+
+	    if (ui->displaysel && ui->xsel == x && ui->ysel == y)
+		tile |= TILE_HASSEL;
 
 	    /* For now we're never expecting oldstate at all (because we have
 	     * no animation); when we do we might well want to be looking
