@@ -930,7 +930,7 @@ static int game_timing_state(game_state *state)
 #endif
 
 const struct game thegame = {
-    "Same Game", NULL,
+    "Same Game", "games.samegame",
     default_params,
     game_fetch_preset,
     decode_params,
