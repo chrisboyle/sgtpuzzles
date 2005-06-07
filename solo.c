@@ -2238,9 +2238,9 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 
 	    /* Mark obvious errors (ie, numbers which occur more than once
 	     * in a single row, column, or box). */
-	    if ((ds->entered_items[x*cr+d-1] & 2) ||
-		(ds->entered_items[y*cr+d-1] & 8) ||
-		(ds->entered_items[((x/r)+(y/c)*c)*cr+d-1] & 32))
+	    if (d && ((ds->entered_items[x*cr+d-1] & 2) ||
+		      (ds->entered_items[y*cr+d-1] & 8) ||
+		      (ds->entered_items[((x/r)+(y/c)*c)*cr+d-1] & 32)))
 		highlight |= 16;
 
 	    draw_number(fe, ds, state, x, y, highlight);
