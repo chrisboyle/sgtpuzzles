@@ -2307,9 +2307,12 @@ static void game_size(game_params *params, game_drawstate *ds,
      * Each window dimension equals the tile size times 1.5 more
      * than the grid dimension (the border is 3/4 the width of the
      * tiles).
+     * 
+     * We must cast to unsigned before multiplying by two, because
+     * *x might be INT_MAX.
      */
-    tsx = 2 * *x / (2 * params->w + 3);
-    tsy = 2 * *y / (2 * params->h + 3);
+    tsx = 2 * (unsigned)*x / (2 * params->w + 3);
+    tsy = 2 * (unsigned)*y / (2 * params->h + 3);
     ts = min(tsx, tsy);
     if (expand)
         ds->tilesize = ts;
