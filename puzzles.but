@@ -930,26 +930,32 @@ other implementations, you can switch off this option.
 \cfg{winhelp-topic}{games.samegame}
 
 You have a grid of coloured squares, which you have to clear by 
-highlighting contiguous regions of more that one coloured square;
+highlighting contiguous regions of more than one coloured square;
 the larger the region you highlight, the more points you get (and
 the faster you clear the arena).
 
 If you clear the grid you win. If you end up with nothing but 
-single squares (i.e. there are no more clickable regions left) you
+single squares (i.e., there are no more clickable regions left) you
 lose.
 
 Removing a region causes the rest of the grid to shuffle up:
 blocks that are suspended will fall down (first), and then empty
 columns are filled from the right. 
 
-The game generator does not try and guarantee to generate soluble grids;
+The game generator does not try to guarantee soluble grids;
 it will, however, ensure that there are at least 2 squares of each 
 colour on the grid at the start (and will forbid custom grids for which
 that would be impossible).
 
 Same Game was contributed to this collection by James Harvey.
 
-\H{samegame-controls} \I{controls, for Same Game}Same Game controls
+\H{samegame-controls} \i{Same Game controls}
+
+\IM{Same Game controls} controls, for Same Game
+\IM{Same Game controls} keys, for Same Game
+\IM{Same Game controls} shortcuts (keyboard), for Same Game
+
+This game can be played with either the keyboard or the mouse.
 
 If you left-click an unselected region, it becomes selected (possibly
 clearing the current selection). 
@@ -959,7 +965,14 @@ rest of the grid shuffled immediately).
 
 If you right-click the selected region, it will be unselected. 
 
+The cursor keys move a cursor around the grid. Pressing the Space or
+Enter keys while the cursor is in an unselected region selects it;
+pressing Space or Enter again removes it as above.
+
 \H{samegame-parameters} \I{parameters, for Same Game}Same Game parameters
+
+These parameters are available from the \q{Custom...} option on the
+\q{Type} menu.
 
 \dt \e{Width}, \e{Height}
 
@@ -968,8 +981,16 @@ If you right-click the selected region, it will be unselected.
 \dt \e{No. of colours}
 
 \dd Number of different colours used to fill the grid; the more colours,
-the fewer large regions of colour and thus the more difficult to clear
-successfully. 
+the fewer large regions of colour and thus the more difficult it is to
+successfully clear the grid.
+
+\dt \e{Scoring system}
+
+\dd Controls the precise mechanism used for scoring. With the default
+system, \q{(n-2)^2}, only regions of three squares or more will score
+any points at all. With the alternative \q{(n-1)^2} system, regions of
+two squares score a point each, and larger regions score relatively
+more points.
 
 \A{licence} \I{MIT licence}\ii{Licence}
 
