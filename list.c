@@ -24,6 +24,7 @@ extern const game net;
 extern const game netslide;
 extern const game pattern;
 extern const game rect;
+extern const game samegame;
 extern const game sixteen;
 extern const game solo;
 extern const game twiddle;
@@ -36,6 +37,7 @@ const game *gamelist[] = {
     &netslide,
     &pattern,
     &rect,
+    &samegame,
     &sixteen,
     &solo,
     &twiddle,
