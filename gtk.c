@@ -852,6 +852,11 @@ static void get_size(frontend *fe, int *px, int *py)
     *py = y;
 }
 
+#if !GTK_CHECK_VERSION(2,0,0)
+#define gtk_window_resize(win, x, y) \
+	gdk_window_resize(GTK_WIDGET(win)->window, x, y)
+#endif
+
 static void menu_preset_event(GtkMenuItem *menuitem, gpointer data)
 {
     frontend *fe = (frontend *)data;
