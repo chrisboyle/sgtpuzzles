@@ -151,7 +151,7 @@ void get_random_seed(void **randseed, int *randseedsize);
 midend_data *midend_new(frontend *fe, const game *ourgame);
 void midend_free(midend_data *me);
 void midend_set_params(midend_data *me, game_params *params);
-void midend_size(midend_data *me, int *x, int *y);
+void midend_size(midend_data *me, int *x, int *y, int expand);
 void midend_new_game(midend_data *me);
 void midend_restart_game(midend_data *me);
 void midend_stop_anim(midend_data *me);
@@ -256,7 +256,8 @@ struct game {
                           game_state *newstate);
     game_state *(*make_move)(game_state *from, game_ui *ui, game_drawstate *ds,
                              int x, int y, int button);
-    void (*size)(game_params *params, int *x, int *y);
+    void (*size)(game_params *params, game_drawstate *ds, int *x, int *y,
+                 int expand);
     float *(*colours)(frontend *fe, game_state *state, int *ncolours);
     game_drawstate *(*new_drawstate)(game_state *state);
     void (*free_drawstate)(game_drawstate *ds);

@@ -470,7 +470,8 @@ struct frontend {
 	frame.origin.y = 0;
     frame.origin.x = 0;
 
-    midend_size(me, &w, &h);
+    w = h = INT_MAX;
+    midend_size(me, &w, &h, FALSE);
     frame.size.width = w;
     frame.size.height = h;
 
@@ -501,7 +502,8 @@ struct frontend {
      * initWithGame: simply call that one and pass it NULL.
      */
     midend_new_game(me);
-    midend_size(me, &w, &h);
+    w = h = INT_MAX;
+    midend_size(me, &w, &h, FALSE);
     rect.size.width = w;
     rect.size.height = h;
 
@@ -771,7 +773,8 @@ struct frontend {
     NSSize size = {0,0};
     int w, h;
 
-    midend_size(me, &w, &h);
+    w = h = INT_MAX;
+    midend_size(me, &w, &h, FALSE);
     size.width = w;
     size.height = h;
 

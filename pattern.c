@@ -20,15 +20,17 @@ enum {
     NCOLOURS
 };
 
-#define BORDER 18
+#define PREFERRED_TILE_SIZE 24
+#define TILE_SIZE (ds->tilesize)
+#define BORDER (3 * TILE_SIZE / 4)
 #define TLBORDER(d) ( (d) / 5 + 2 )
-#define GUTTER 12
-#define TILE_SIZE 24
+#define GUTTER (TILE_SIZE / 2)
 
 #define FROMCOORD(d, x) \
         ( ((x) - (BORDER + GUTTER + TILE_SIZE * TLBORDER(d))) / TILE_SIZE )
 
 #define SIZE(d) (2*BORDER + GUTTER + TILE_SIZE * (TLBORDER(d) + (d)))
+#define GETTILESIZE(d, w) (w / (2 + TLBORDER(d) + (d)))
 
 #define TOCOORD(d, x) (BORDER + GUTTER + TILE_SIZE * (TLBORDER(d) + (x)))
 
@@ -763,6 +765,13 @@ static void game_changed_state(game_ui *ui, game_state *oldstate,
 {
 }
 
+struct game_drawstate {
+    int started;
+    int w, h;
+    int tilesize;
+    unsigned char *visible;
+};
+
 static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
                              int x, int y, int button) {
     game_state *ret;
@@ -895,14 +904,17 @@ static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
  * Drawing routines.
  */
 
-struct game_drawstate {
-    int started;
-    int w, h;
-    unsigned char *visible;
-};
-
-static void game_size(game_params *params, int *x, int *y)
+static void game_size(game_params *params, game_drawstate *ds,
+                      int *x, int *y, int expand)
 {
+    int ts;
+
+    ts = min(GETTILESIZE(params->w, *x), GETTILESIZE(params->h, *y));
+    if (expand)
+        ds->tilesize = ts;
+    else
+        ds->tilesize = min(ts, PREFERRED_TILE_SIZE);
+
     *x = SIZE(params->w);
     *y = SIZE(params->h);
 }
@@ -941,6 +953,7 @@ static game_drawstate *game_new_drawstate(game_state *state)
     ds->w = state->w;
     ds->h = state->h;
     ds->visible = snewn(ds->w * ds->h, unsigned char);
+    ds->tilesize = 0;                  /* not decided yet */
     memset(ds->visible, 255, ds->w * ds->h);
 
     return ds;
@@ -975,8 +988,8 @@ static void grid_square(frontend *fe, game_drawstate *ds,
 }
 
 static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
-                 game_state *state, int dir, game_ui *ui,
-                 float animtime, float flashtime)
+                        game_state *state, int dir, game_ui *ui,
+                        float animtime, float flashtime)
 {
     int i, j;
     int x1, x2, y1, y2;

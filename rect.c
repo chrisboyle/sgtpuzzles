@@ -60,8 +60,9 @@ struct game_params {
 #define HRANGE(state,x,y) CRANGE(state,x,y,0,1)
 #define VRANGE(state,x,y) CRANGE(state,x,y,1,0)
 
-#define TILE_SIZE 24
-#define BORDER 18
+#define PREFERRED_TILE_SIZE 24
+#define TILE_SIZE (ds->tilesize)
+#define BORDER (TILE_SIZE * 3 / 4)
 
 #define CORNER_TOLERANCE 0.15F
 #define CENTRE_TOLERANCE 0.15F
@@ -2188,6 +2189,12 @@ static void game_changed_state(game_ui *ui, game_state *oldstate,
 {
 }
 
+struct game_drawstate {
+    int started;
+    int w, h, tilesize;
+    unsigned long *visible;
+};
+
 static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
                              int x, int y, int button) {
     int xc, yc;
@@ -2292,14 +2299,23 @@ static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
 #define COLOUR(k) ( (k)==1 ? COL_LINE : COL_DRAG )
 #define MAX4(x,y,z,w) ( max(max(x,y),max(z,w)) )
 
-struct game_drawstate {
-    int started;
-    int w, h;
-    unsigned long *visible;
-};
-
-static void game_size(game_params *params, int *x, int *y)
+static void game_size(game_params *params, game_drawstate *ds,
+                      int *x, int *y, int expand)
 {
+    int tsx, tsy, ts;
+    /*
+     * Each window dimension equals the tile size times 1.5 more
+     * than the grid dimension (the border is 3/4 the width of the
+     * tiles).
+     */
+    tsx = 2 * *x / (2 * params->w + 3);
+    tsy = 2 * *y / (2 * params->h + 3);
+    ts = min(tsx, tsy);
+    if (expand)
+        ds->tilesize = ts;
+    else
+        ds->tilesize = min(ts, PREFERRED_TILE_SIZE);
+
     *x = params->w * TILE_SIZE + 2*BORDER + 1;
     *y = params->h * TILE_SIZE + 2*BORDER + 1;
 }
@@ -2343,6 +2359,7 @@ static game_drawstate *game_new_drawstate(game_state *state)
     ds->w = state->w;
     ds->h = state->h;
     ds->visible = snewn(ds->w * ds->h, unsigned long);
+    ds->tilesize = 0;                  /* not decided yet */
     for (i = 0; i < ds->w * ds->h; i++)
         ds->visible[i] = 0xFFFF;
 
@@ -2355,9 +2372,9 @@ static void game_free_drawstate(game_drawstate *ds)
     sfree(ds);
 }
 
-static void draw_tile(frontend *fe, game_state *state, int x, int y,
-               unsigned char *hedge, unsigned char *vedge,
-	       unsigned char *corners, int correct)
+static void draw_tile(frontend *fe, game_drawstate *ds, game_state *state,
+                      int x, int y, unsigned char *hedge, unsigned char *vedge,
+                      unsigned char *corners, int correct)
 {
     int cx = COORD(x), cy = COORD(y);
     char str[80];
@@ -2490,7 +2507,7 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 		c |= CORRECT;
 
 	    if (index(ds,ds->visible,x,y) != c) {
-		draw_tile(fe, state, x, y, hedge, vedge, corners,
+		draw_tile(fe, ds, state, x, y, hedge, vedge, corners,
                           (c & CORRECT) ? 1 : 0);
 		index(ds,ds->visible,x,y) = c;
 	    }

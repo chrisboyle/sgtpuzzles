@@ -13,8 +13,9 @@
 
 #include "puzzles.h"
 
-#define TILE_SIZE 48
-#define BORDER    TILE_SIZE            /* big border to fill with arrows */
+#define PREFERRED_TILE_SIZE 48
+#define TILE_SIZE (ds->tilesize)
+#define BORDER TILE_SIZE
 #define HIGHLIGHT_WIDTH (TILE_SIZE / 20)
 #define COORD(x)  ( (x) * TILE_SIZE + BORDER )
 #define FROMCOORD(x)  ( ((x) - BORDER + 2*TILE_SIZE) / TILE_SIZE - 2 )
@@ -583,6 +584,13 @@ static void game_changed_state(game_ui *ui, game_state *oldstate,
 {
 }
 
+struct game_drawstate {
+    int started;
+    int w, h, bgcolour;
+    int *tiles;
+    int tilesize;
+};
+
 static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
                              int x, int y, int button) {
     int cx, cy;
@@ -645,14 +653,24 @@ static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
  * Drawing routines.
  */
 
-struct game_drawstate {
-    int started;
-    int w, h, bgcolour;
-    int *tiles;
-};
-
-static void game_size(game_params *params, int *x, int *y)
+static void game_size(game_params *params, game_drawstate *ds,
+                      int *x, int *y, int expand)
 {
+    int tsx, tsy, ts;
+    /*
+     * Each window dimension equals the tile size times two more
+     * than the grid dimension (the border is the same size as the
+     * tiles).
+     */
+    tsx = *x / (params->w + 2);
+    tsy = *y / (params->h + 2);
+    ts = min(tsx, tsy);
+
+    if (expand)
+        ds->tilesize = ts;
+    else
+        ds->tilesize = min(ts, PREFERRED_TILE_SIZE);
+
     *x = TILE_SIZE * params->w + 2 * BORDER;
     *y = TILE_SIZE * params->h + 2 * BORDER;
 }
@@ -698,6 +716,7 @@ static game_drawstate *game_new_drawstate(game_state *state)
     ds->h = state->h;
     ds->bgcolour = COL_BACKGROUND;
     ds->tiles = snewn(ds->w*ds->h, int);
+    ds->tilesize = 0;                  /* haven't decided yet */
     for (i = 0; i < ds->w*ds->h; i++)
         ds->tiles[i] = -1;
 
@@ -710,7 +729,8 @@ static void game_free_drawstate(game_drawstate *ds)
     sfree(ds);
 }
 
-static void draw_tile(frontend *fe, game_state *state, int x, int y,
+static void draw_tile(frontend *fe, game_drawstate *ds,
+                      game_state *state, int x, int y,
                       int tile, int flash_colour)
 {
     if (tile == 0) {
@@ -746,7 +766,8 @@ static void draw_tile(frontend *fe, game_state *state, int x, int y,
     draw_update(fe, x, y, TILE_SIZE, TILE_SIZE);
 }
 
-static void draw_arrow(frontend *fe, int x, int y, int xdx, int xdy)
+static void draw_arrow(frontend *fe, game_drawstate *ds,
+                       int x, int y, int xdx, int xdy)
 {
     int coords[14];
     int ydy = -xdx, ydx = xdy;
@@ -814,12 +835,12 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
          * Arrows for making moves.
          */
         for (i = 0; i < state->w; i++) {
-            draw_arrow(fe, COORD(i), COORD(0), +1, 0);
-            draw_arrow(fe, COORD(i+1), COORD(state->h), -1, 0);
+            draw_arrow(fe, ds, COORD(i), COORD(0), +1, 0);
+            draw_arrow(fe, ds, COORD(i+1), COORD(state->h), -1, 0);
         }
         for (i = 0; i < state->h; i++) {
-            draw_arrow(fe, COORD(state->w), COORD(i), 0, +1);
-            draw_arrow(fe, COORD(0), COORD(i+1), 0, -1);
+            draw_arrow(fe, ds, COORD(state->w), COORD(i), 0, +1);
+            draw_arrow(fe, ds, COORD(0), COORD(i+1), 0, -1);
         }
 
         ds->started = TRUE;
@@ -917,9 +938,9 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 		x2 = y2 = -1;
 	    }
 
-	    draw_tile(fe, state, x, y, t, bgcolour);
+	    draw_tile(fe, ds, state, x, y, t, bgcolour);
 	    if (x2 != -1 || y2 != -1)
-		draw_tile(fe, state, x2, y2, t, bgcolour);
+		draw_tile(fe, ds, state, x2, y2, t, bgcolour);
 	}
 	ds->tiles[i] = t0;
     }

@@ -25,10 +25,11 @@ enum {
     NCOLOURS
 };
 
-#define TILE_SIZE 20
+#define PREFERRED_TILE_SIZE 20
+#define TILE_SIZE (ds->tilesize)
 #define BORDER (TILE_SIZE * 3 / 2)
-#define HIGHLIGHT_WIDTH 2
-#define OUTER_HIGHLIGHT_WIDTH 3
+#define HIGHLIGHT_WIDTH (TILE_SIZE / 10)
+#define OUTER_HIGHLIGHT_WIDTH (BORDER / 10)
 #define COORD(x)  ( (x) * TILE_SIZE + BORDER )
 #define FROMCOORD(x)  ( ((x) - BORDER + TILE_SIZE) / TILE_SIZE - 1 )
 
@@ -2480,6 +2481,21 @@ static void game_changed_state(game_ui *ui, game_state *oldstate,
 {
 }
 
+struct game_drawstate {
+    int w, h, started, tilesize;
+    signed char *grid;
+    /*
+     * Items in this `grid' array have all the same values as in
+     * the game_state grid, and in addition:
+     * 
+     * 	- -10 means the tile was drawn `specially' as a result of a
+     * 	  flash, so it will always need redrawing.
+     * 
+     * 	- -22 and -23 mean the tile is highlighted for a possible
+     * 	  click.
+     */
+};
+
 static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
                              int x, int y, int button)
 {
@@ -2605,23 +2621,23 @@ static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
  * Drawing routines.
  */
 
-struct game_drawstate {
-    int w, h, started;
-    signed char *grid;
-    /*
-     * Items in this `grid' array have all the same values as in
-     * the game_state grid, and in addition:
-     * 
-     * 	- -10 means the tile was drawn `specially' as a result of a
-     * 	  flash, so it will always need redrawing.
-     * 
-     * 	- -22 and -23 mean the tile is highlighted for a possible
-     * 	  click.
-     */
-};
-
-static void game_size(game_params *params, int *x, int *y)
+static void game_size(game_params *params, game_drawstate *ds,
+                      int *x, int *y, int expand)
 {
+    int tsx, tsy, ts;
+    /*
+     * Each window dimension equals the tile size times 3 more than
+     * the grid dimension (the border is 3/2 the width of the
+     * tiles).
+     */
+    tsx = *x / (params->w + 3);
+    tsy = *y / (params->h + 3);
+    ts = min(tsx, tsy);
+    if (expand)
+        ds->tilesize = ts;
+    else
+        ds->tilesize = min(ts, PREFERRED_TILE_SIZE);
+
     *x = BORDER * 2 + TILE_SIZE * params->w;
     *y = BORDER * 2 + TILE_SIZE * params->h;
 }
@@ -2711,6 +2727,7 @@ static game_drawstate *game_new_drawstate(game_state *state)
     ds->w = state->w;
     ds->h = state->h;
     ds->started = FALSE;
+    ds->tilesize = 0;                  /* not decided yet */
     ds->grid = snewn(ds->w * ds->h, signed char);
 
     memset(ds->grid, -99, ds->w * ds->h);
@@ -2724,7 +2741,8 @@ static void game_free_drawstate(game_drawstate *ds)
     sfree(ds);
 }
 
-static void draw_tile(frontend *fe, int x, int y, int v, int bg)
+static void draw_tile(frontend *fe, game_drawstate *ds,
+                      int x, int y, int v, int bg)
 {
     if (v < 0) {
         int coords[12];
@@ -2958,7 +2976,7 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 		v -= 20;
 
 	    if (ds->grid[y*ds->w+x] != v || bg != COL_BACKGROUND) {
-		draw_tile(fe, COORD(x), COORD(y), v, bg);
+		draw_tile(fe, ds, COORD(x), COORD(y), v, bg);
 		ds->grid[y*ds->w+x] = (bg == COL_BACKGROUND ? v : -10);
 	    }
 	}

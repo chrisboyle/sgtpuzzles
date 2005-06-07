@@ -48,6 +48,8 @@ struct midend_data {
     char *laststatus;
 
     int pressed_mouse_button;
+
+    int winwidth, winheight;
 };
 
 #define ensure(me) do { \
@@ -90,6 +92,7 @@ midend_data *midend_new(frontend *fe, const game *ourgame)
     me->laststatus = NULL;
     me->timing = FALSE;
     me->elapsed = 0.0F;
+    me->winwidth = me->winheight = 0;
 
     sfree(randseed);
 
@@ -134,9 +137,11 @@ void midend_free(midend_data *me)
     sfree(me);
 }
 
-void midend_size(midend_data *me, int *x, int *y)
+void midend_size(midend_data *me, int *x, int *y, int expand)
 {
-    me->ourgame->size(me->params, x, y);
+    me->ourgame->size(me->params, me->drawstate, x, y, expand);
+    me->winwidth = *x;
+    me->winheight = *y;
 }
 
 void midend_set_params(midend_data *me, game_params *params)
@@ -155,11 +160,18 @@ static void midend_set_timer(midend_data *me)
 	deactivate_timer(me->frontend);
 }
 
+static void midend_size_new_drawstate(midend_data *me)
+{
+    me->ourgame->size(me->params, me->drawstate, &me->winwidth, &me->winheight,
+                      TRUE);
+}
+
 void midend_force_redraw(midend_data *me)
 {
     if (me->drawstate)
         me->ourgame->free_drawstate(me->drawstate);
     me->drawstate = me->ourgame->new_drawstate(me->states[0].state);
+    midend_size_new_drawstate(me);
     midend_redraw(me);
 }
 
@@ -217,6 +229,7 @@ void midend_new_game(midend_data *me)
     me->nstates++;
     me->statepos = 1;
     me->drawstate = me->ourgame->new_drawstate(me->states[0].state);
+    midend_size_new_drawstate(me);
     me->elapsed = 0.0F;
     midend_set_timer(me);
     if (me->ui)

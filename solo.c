@@ -107,8 +107,9 @@ int solver_show_working;
 typedef unsigned char digit;
 #define ORDER_MAX 255
 
-#define TILE_SIZE 32
-#define BORDER 18
+#define PREFERRED_TILE_SIZE 32
+#define TILE_SIZE (ds->tilesize)
+#define BORDER (TILE_SIZE / 2)
 
 #define FLASH_TIME 0.4F
 
@@ -1869,6 +1870,17 @@ static void game_changed_state(game_ui *ui, game_state *oldstate,
     }
 }
 
+struct game_drawstate {
+    int started;
+    int c, r, cr;
+    int tilesize;
+    digit *grid;
+    unsigned char *pencil;
+    unsigned char *hl;
+    /* This is scratch space used within a single call to game_redraw. */
+    int *entered_items;
+};
+
 static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
                              int x, int y, int button)
 {
@@ -1972,25 +1984,23 @@ static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
  * Drawing routines.
  */
 
-struct game_drawstate {
-    int started;
-    int c, r, cr;
-    digit *grid;
-    unsigned char *pencil;
-    unsigned char *hl;
-    /* This is scratch space used within a single call to game_redraw. */
-    int *entered_items;
-};
+#define SIZE(cr) ((cr) * TILE_SIZE + 2*BORDER + 1)
+#define GETTILESIZE(cr, w) ( (w-1) / (cr+1) )
 
-#define XSIZE(cr) ((cr) * TILE_SIZE + 2*BORDER + 1)
-#define YSIZE(cr) ((cr) * TILE_SIZE + 2*BORDER + 1)
-
-static void game_size(game_params *params, int *x, int *y)
+static void game_size(game_params *params, game_drawstate *ds,
+                      int *x, int *y, int expand)
 {
     int c = params->c, r = params->r, cr = c*r;
+    int ts;
 
-    *x = XSIZE(cr);
-    *y = YSIZE(cr);
+    ts = min(GETTILESIZE(cr, *x), GETTILESIZE(cr, *y));
+    if (expand)
+        ds->tilesize = ts;
+    else
+        ds->tilesize = min(ts, PREFERRED_TILE_SIZE);
+
+    *x = SIZE(cr);
+    *y = SIZE(cr);
 }
 
 static float *game_colours(frontend *fe, game_state *state, int *ncolours)
@@ -2043,6 +2053,7 @@ static game_drawstate *game_new_drawstate(game_state *state)
     ds->hl = snewn(cr*cr, unsigned char);
     memset(ds->hl, 0, cr*cr);
     ds->entered_items = snewn(cr*cr, int);
+    ds->tilesize = 0;                  /* not decided yet */
     return ds;
 }
 
@@ -2174,7 +2185,7 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 	 * all games should start by drawing a big
 	 * background-colour rectangle covering the whole window.
 	 */
-	draw_rect(fe, 0, 0, XSIZE(cr), YSIZE(cr), COL_BACKGROUND);
+	draw_rect(fe, 0, 0, SIZE(cr), SIZE(cr), COL_BACKGROUND);
 
 	/*
 	 * Draw the grid.
@@ -2240,7 +2251,7 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
      * Update the _entire_ grid if necessary.
      */
     if (!ds->started) {
-	draw_update(fe, 0, 0, XSIZE(cr), YSIZE(cr));
+	draw_update(fe, 0, 0, SIZE(cr), SIZE(cr));
 	ds->started = TRUE;
     }
 }

@@ -43,7 +43,8 @@
 #define COUNT(x) ( (((x) & 0x08) >> 3) + (((x) & 0x04) >> 2) + \
 		   (((x) & 0x02) >> 1) + ((x) & 0x01) )
 
-#define TILE_SIZE 32
+#define PREFERRED_TILE_SIZE 32
+#define TILE_SIZE (ds->tilesize)
 #define TILE_BORDER 1
 #define WINDOW_OFFSET 16
 
@@ -1791,6 +1792,14 @@ static void game_changed_state(game_ui *ui, game_state *oldstate,
 {
 }
 
+struct game_drawstate {
+    int started;
+    int width, height;
+    int org_x, org_y;
+    int tilesize;
+    unsigned char *visible;
+};
+
 /* ----------------------------------------------------------------------
  * Process a move.
  */
@@ -1977,13 +1986,6 @@ static game_state *make_move(game_state *state, game_ui *ui,
  * Routines for drawing the game position on the screen.
  */
 
-struct game_drawstate {
-    int started;
-    int width, height;
-    int org_x, org_y;
-    unsigned char *visible;
-};
-
 static game_drawstate *game_new_drawstate(game_state *state)
 {
     game_drawstate *ds = snew(game_drawstate);
@@ -1993,6 +1995,7 @@ static game_drawstate *game_new_drawstate(game_state *state)
     ds->height = state->height;
     ds->org_x = ds->org_y = -1;
     ds->visible = snewn(state->width * state->height, unsigned char);
+    ds->tilesize = 0;                  /* undecided yet */
     memset(ds->visible, 0xFF, state->width * state->height);
 
     return ds;
@@ -2004,8 +2007,23 @@ static void game_free_drawstate(game_drawstate *ds)
     sfree(ds);
 }
 
-static void game_size(game_params *params, int *x, int *y)
+static void game_size(game_params *params, game_drawstate *ds, int *x, int *y,
+                      int expand)
 {
+    int tsx, tsy, ts;
+    /*
+     * Each window dimension equals the tile size times the grid
+     * dimension, plus TILE_BORDER, plus twice WINDOW_OFFSET.
+     */
+    tsx = (*x - 2*WINDOW_OFFSET - TILE_BORDER) / params->width;
+    tsy = (*y - 2*WINDOW_OFFSET - TILE_BORDER) / params->height;
+    ts = min(tsx, tsy);
+
+    if (expand)
+        ds->tilesize = ts;
+    else
+        ds->tilesize = min(ts, PREFERRED_TILE_SIZE);
+
     *x = WINDOW_OFFSET * 2 + TILE_SIZE * params->width + TILE_BORDER;
     *y = WINDOW_OFFSET * 2 + TILE_SIZE * params->height + TILE_BORDER;
 }
@@ -2092,8 +2110,8 @@ static void draw_rect_coords(frontend *fe, int x1, int y1, int x2, int y2,
 /*
  * draw_barrier_corner() and draw_barrier() are passed physical coords
  */
-static void draw_barrier_corner(frontend *fe, int x, int y, int dx, int dy,
-                                int phase)
+static void draw_barrier_corner(frontend *fe, game_drawstate *ds,
+                                int x, int y, int dx, int dy, int phase)
 {
     int bx = WINDOW_OFFSET + TILE_SIZE * x;
     int by = WINDOW_OFFSET + TILE_SIZE * y;
@@ -2116,7 +2134,8 @@ static void draw_barrier_corner(frontend *fe, int x, int y, int dx, int dy,
     }
 }
 
-static void draw_barrier(frontend *fe, int x, int y, int dir, int phase)
+static void draw_barrier(frontend *fe, game_drawstate *ds,
+                         int x, int y, int dir, int phase)
 {
     int bx = WINDOW_OFFSET + TILE_SIZE * x;
     int by = WINDOW_OFFSET + TILE_SIZE * y;
@@ -2338,7 +2357,7 @@ static void draw_tile(frontend *fe, game_state *state, game_drawstate *ds,
                  * At least one barrier terminates here. Draw a
                  * corner.
                  */
-                draw_barrier_corner(fe, x, y,
+                draw_barrier_corner(fe, ds, x, y,
                                     X(dir)+X(A(dir)), Y(dir)+Y(A(dir)),
                                     phase);
             }
@@ -2346,7 +2365,7 @@ static void draw_tile(frontend *fe, game_state *state, game_drawstate *ds,
 
         for (dir = 1; dir < 0x10; dir <<= 1)
             if (barrier(state, GX(x), GY(y)) & dir)
-                draw_barrier(fe, x, y, dir, phase);
+                draw_barrier(fe, ds, x, y, dir, phase);
     }
 
     unclip(fe);
@@ -2388,38 +2407,38 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
             for (x = 0; x < ds->width; x++) {
                 if (x+1 < ds->width) {
                     if (barrier(state, GX(x), GY(0)) & R)
-                        draw_barrier_corner(fe, x, -1, +1, +1, phase);
+                        draw_barrier_corner(fe, ds, x, -1, +1, +1, phase);
                     if (barrier(state, GX(x), GY(ds->height-1)) & R)
-                        draw_barrier_corner(fe, x, ds->height, +1, -1, phase);
+                        draw_barrier_corner(fe, ds, x, ds->height, +1, -1, phase);
                 }
                 if (barrier(state, GX(x), GY(0)) & U) {
-                    draw_barrier_corner(fe, x, -1, -1, +1, phase);
-                    draw_barrier_corner(fe, x, -1, +1, +1, phase);
-                    draw_barrier(fe, x, -1, D, phase);
+                    draw_barrier_corner(fe, ds, x, -1, -1, +1, phase);
+                    draw_barrier_corner(fe, ds, x, -1, +1, +1, phase);
+                    draw_barrier(fe, ds, x, -1, D, phase);
                 }
                 if (barrier(state, GX(x), GY(ds->height-1)) & D) {
-                    draw_barrier_corner(fe, x, ds->height, -1, -1, phase);
-                    draw_barrier_corner(fe, x, ds->height, +1, -1, phase);
-                    draw_barrier(fe, x, ds->height, U, phase);
+                    draw_barrier_corner(fe, ds, x, ds->height, -1, -1, phase);
+                    draw_barrier_corner(fe, ds, x, ds->height, +1, -1, phase);
+                    draw_barrier(fe, ds, x, ds->height, U, phase);
                 }
             }
 
             for (y = 0; y < ds->height; y++) {
                 if (y+1 < ds->height) {
                     if (barrier(state, GX(0), GY(y)) & D)
-                        draw_barrier_corner(fe, -1, y, +1, +1, phase);
+                        draw_barrier_corner(fe, ds, -1, y, +1, +1, phase);
                     if (barrier(state, GX(ds->width-1), GY(y)) & D)
-                        draw_barrier_corner(fe, ds->width, y, -1, +1, phase);
+                        draw_barrier_corner(fe, ds, ds->width, y, -1, +1, phase);
                 }
                 if (barrier(state, GX(0), GY(y)) & L) {
-                    draw_barrier_corner(fe, -1, y, +1, -1, phase);
-                    draw_barrier_corner(fe, -1, y, +1, +1, phase);
-                    draw_barrier(fe, -1, y, R, phase);
+                    draw_barrier_corner(fe, ds, -1, y, +1, -1, phase);
+                    draw_barrier_corner(fe, ds, -1, y, +1, +1, phase);
+                    draw_barrier(fe, ds, -1, y, R, phase);
                 }
                 if (barrier(state, GX(ds->width-1), GY(y)) & R) {
-                    draw_barrier_corner(fe, ds->width, y, -1, -1, phase);
-                    draw_barrier_corner(fe, ds->width, y, -1, +1, phase);
-                    draw_barrier(fe, ds->width, y, L, phase);
+                    draw_barrier_corner(fe, ds, ds->width, y, -1, -1, phase);
+                    draw_barrier_corner(fe, ds, ds->width, y, -1, +1, phase);
+                    draw_barrier(fe, ds, ds->width, y, L, phase);
                 }
             }
         }

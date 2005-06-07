@@ -14,7 +14,8 @@
 
 #include "puzzles.h"
 
-#define TILE_SIZE 48
+#define PREFERRED_TILE_SIZE 48
+#define TILE_SIZE (ds->tilesize)
 #define BORDER    (TILE_SIZE / 2)
 #define HIGHLIGHT_WIDTH (TILE_SIZE / 20)
 #define COORD(x)  ( (x) * TILE_SIZE + BORDER )
@@ -621,6 +622,13 @@ static void game_changed_state(game_ui *ui, game_state *oldstate,
 {
 }
 
+struct game_drawstate {
+    int started;
+    int w, h, bgcolour;
+    int *grid;
+    int tilesize;
+};
+
 static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
                              int x, int y, int button)
 {
@@ -706,14 +714,23 @@ static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
  * Drawing routines.
  */
 
-struct game_drawstate {
-    int started;
-    int w, h, bgcolour;
-    int *grid;
-};
-
-static void game_size(game_params *params, int *x, int *y)
+static void game_size(game_params *params, game_drawstate *ds,
+                      int *x, int *y, int expand)
 {
+    int tsx, tsy, ts;
+    /*
+     * Each window dimension equals the tile size times one more
+     * than the grid dimension (the border is half the width of the
+     * tiles).
+     */
+    tsx = *x / (params->w + 1);
+    tsy = *y / (params->h + 1);
+    ts = min(tsx, tsy);
+    if (expand)
+        ds->tilesize = ts;
+    else
+        ds->tilesize = min(ts, PREFERRED_TILE_SIZE);
+
     *x = TILE_SIZE * params->w + 2 * BORDER;
     *y = TILE_SIZE * params->h + 2 * BORDER;
 }
@@ -761,6 +778,7 @@ static game_drawstate *game_new_drawstate(game_state *state)
     ds->h = state->h;
     ds->bgcolour = COL_BACKGROUND;
     ds->grid = snewn(ds->w*ds->h, int);
+    ds->tilesize = 0;                  /* haven't decided yet */
     for (i = 0; i < ds->w*ds->h; i++)
         ds->grid[i] = -1;
 
@@ -794,8 +812,9 @@ static void rotate(int *xy, struct rotation *rot)
     }
 }
 
-static void draw_tile(frontend *fe, game_state *state, int x, int y,
-                      int tile, int flash_colour, struct rotation *rot)
+static void draw_tile(frontend *fe, game_drawstate *ds, game_state *state,
+                      int x, int y, int tile, int flash_colour,
+                      struct rotation *rot)
 {
     int coords[8];
     char str[40];
@@ -1110,7 +1129,7 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 	    ds->grid[i] != t || ds->grid[i] == -1 || t == -1) {
 	    int x = COORD(tx), y = COORD(ty);
 
-	    draw_tile(fe, state, x, y, state->grid[i], bgcolour, rot);
+	    draw_tile(fe, ds, state, x, y, state->grid[i], bgcolour, rot);
             ds->grid[i] = t;
         }
     }

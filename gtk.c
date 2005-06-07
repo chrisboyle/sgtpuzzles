@@ -79,6 +79,8 @@ struct frontend {
     void *paste_data;
     int paste_data_len;
     char *laststatus;
+    int pw, ph;                        /* pixmap size (w, h are area size) */
+    int ox, oy;                        /* offset of pixmap in drawing area */
 };
 
 void get_random_seed(void **randseed, int *randseedsize)
@@ -311,7 +313,7 @@ void end_draw(frontend *fe)
 			fe->area->style->fg_gc[GTK_WIDGET_STATE(fe->area)],
 			fe->pixmap,
                         fe->bbox_l, fe->bbox_u,
-                        fe->bbox_l, fe->bbox_u,
+                        fe->ox + fe->bbox_l, fe->oy + fe->bbox_u,
                         fe->bbox_r - fe->bbox_l, fe->bbox_d - fe->bbox_u);
     }
 }
@@ -397,7 +399,8 @@ static gint button_event(GtkWidget *widget, GdkEventButton *event,
     if (event->type == GDK_BUTTON_RELEASE)
         button += LEFT_RELEASE - LEFT_BUTTON;
 
-    if (!midend_process_key(fe->me, event->x, event->y, button))
+    if (!midend_process_key(fe->me, event->x - fe->ox,
+                            event->y - fe->oy, button))
 	gtk_widget_destroy(fe->window);
 
     return TRUE;
@@ -421,7 +424,8 @@ static gint motion_event(GtkWidget *widget, GdkEventMotion *event,
     else
 	return FALSE;		       /* don't even know what button! */
 
-    if (!midend_process_key(fe->me, event->x, event->y, button))
+    if (!midend_process_key(fe->me, event->x - fe->ox,
+                            event->y - fe->oy, button))
 	gtk_widget_destroy(fe->window);
 
     return TRUE;
@@ -436,7 +440,7 @@ static gint expose_area(GtkWidget *widget, GdkEventExpose *event,
 	gdk_draw_pixmap(widget->window,
 			widget->style->fg_gc[GTK_WIDGET_STATE(widget)],
 			fe->pixmap,
-			event->area.x, event->area.y,
+			event->area.x - fe->ox, event->area.y - fe->oy,
 			event->area.x, event->area.y,
 			event->area.width, event->area.height);
     }
@@ -463,15 +467,24 @@ static gint configure_area(GtkWidget *widget,
 {
     frontend *fe = (frontend *)data;
     GdkGC *gc;
+    int x, y;
 
     if (fe->pixmap)
         gdk_pixmap_unref(fe->pixmap);
 
-    fe->pixmap = gdk_pixmap_new(widget->window, fe->w, fe->h, -1);
+    x = fe->w = event->width;
+    y = fe->h = event->height;
+    midend_size(fe->me, &x, &y, TRUE);
+    fe->pw = x;
+    fe->ph = y;
+    fe->ox = (fe->w - fe->pw) / 2;
+    fe->oy = (fe->h - fe->ph) / 2;
+
+    fe->pixmap = gdk_pixmap_new(widget->window, fe->pw, fe->ph, -1);
 
     gc = gdk_gc_new(fe->area->window);
     gdk_gc_set_foreground(gc, &fe->colours[0]);
-    gdk_draw_rectangle(fe->pixmap, gc, 1, 0, 0, fe->w, fe->h);
+    gdk_draw_rectangle(fe->pixmap, gc, 1, 0, 0, fe->pw, fe->ph);
     gdk_gc_unref(gc);
 
     midend_force_redraw(fe->me);
@@ -816,6 +829,29 @@ static void menu_key_event(GtkMenuItem *menuitem, gpointer data)
 	gtk_widget_destroy(fe->window);
 }
 
+static void get_size(frontend *fe, int *px, int *py)
+{
+    int x, y;
+
+    /*
+     * Currently I don't want to make the GTK port scale large
+     * puzzles to fit on the screen. This is because X does permit
+     * extremely large windows and many window managers provide a
+     * means of navigating round them, and the users I consulted
+     * before deciding said that they'd rather have enormous puzzle
+     * windows spanning multiple screen pages than have them
+     * shrunk. I could change my mind later or introduce
+     * configurability; this would be the place to do so, by
+     * replacing the initial values of x and y with the screen
+     * dimensions.
+     */
+    x = INT_MAX;
+    y = INT_MAX;
+    midend_size(fe->me, &x, &y, FALSE);
+    *px = x;
+    *py = y;
+}
+
 static void menu_preset_event(GtkMenuItem *menuitem, gpointer data)
 {
     frontend *fe = (frontend *)data;
@@ -825,10 +861,11 @@ static void menu_preset_event(GtkMenuItem *menuitem, gpointer data)
 
     midend_set_params(fe->me, params);
     midend_new_game(fe->me);
-    midend_size(fe->me, &x, &y);
-    gtk_drawing_area_size(GTK_DRAWING_AREA(fe->area), x, y);
+    get_size(fe, &x, &y);
     fe->w = x;
     fe->h = y;
+    gtk_drawing_area_size(GTK_DRAWING_AREA(fe->area), x, y);
+    gtk_window_resize(GTK_WINDOW(fe->window), 1, 1);
 }
 
 GdkAtom compound_text_atom, utf8_string_atom;
@@ -969,10 +1006,11 @@ static void menu_config_event(GtkMenuItem *menuitem, gpointer data)
 	return;
 
     midend_new_game(fe->me);
-    midend_size(fe->me, &x, &y);
-    gtk_drawing_area_size(GTK_DRAWING_AREA(fe->area), x, y);
+    get_size(fe, &x, &y);
     fe->w = x;
     fe->h = y;
+    gtk_drawing_area_size(GTK_DRAWING_AREA(fe->area), x, y);
+    gtk_window_resize(GTK_WINDOW(fe->window), 1, 1);
 }
 
 static void menu_about_event(GtkMenuItem *menuitem, gpointer data)
@@ -1201,12 +1239,12 @@ static frontend *new_window(char *game_id, char **error)
 	fe->statusbar = NULL;
 
     fe->area = gtk_drawing_area_new();
-    midend_size(fe->me, &x, &y);
+    get_size(fe, &x, &y);
     gtk_drawing_area_size(GTK_DRAWING_AREA(fe->area), x, y);
     fe->w = x;
     fe->h = y;
 
-    gtk_box_pack_end(vbox, fe->area, FALSE, FALSE, 0);
+    gtk_box_pack_end(vbox, fe->area, TRUE, TRUE, 0);
 
     fe->pixmap = NULL;
     fe->fonts = NULL;
@@ -1245,6 +1283,9 @@ static frontend *new_window(char *game_id, char **error)
 
     gtk_widget_show(fe->area);
     gtk_widget_show(fe->window);
+
+    gdk_window_set_background(fe->area->window, &fe->colours[0]);
+    gdk_window_set_background(fe->window->window, &fe->colours[0]);
 
     return fe;
 }

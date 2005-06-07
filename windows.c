@@ -19,6 +19,7 @@
 #include <ctype.h>
 #include <stdarg.h>
 #include <stdlib.h>
+#include <limits.h>
 #include <time.h>
 
 #include "puzzles.h"
@@ -406,11 +407,57 @@ static void find_help_file(frontend *fe)
     }
 }
 
+static void check_window_size(frontend *fe, int *px, int *py)
+{
+    RECT r;
+    int x, y, sy;
+
+    if (fe->statusbar) {
+	RECT sr;
+	GetWindowRect(fe->statusbar, &sr);
+	sy = sr.bottom - sr.top;
+    } else {
+	sy = 0;
+    }
+
+    /*
+     * See if we actually got the window size we wanted, and adjust
+     * the puzzle size if not.
+     */
+    GetClientRect(fe->hwnd, &r);
+    x = r.right - r.left;
+    y = r.bottom - r.top - sy;
+    midend_size(fe->me, &x, &y, FALSE);
+    if (x != r.right - r.left || y != r.bottom - r.top) {
+	/*
+	 * Resize the window, now we know what size we _really_
+	 * want it to be.
+	 */
+	r.left = r.top = 0;
+	r.right = x;
+	r.bottom = y + sy;
+	AdjustWindowRectEx(&r, WS_OVERLAPPEDWINDOW &~
+			   (WS_THICKFRAME | WS_MAXIMIZEBOX | WS_OVERLAPPED),
+			   TRUE, 0);
+	SetWindowPos(fe->hwnd, NULL, 0, 0, r.right - r.left, r.bottom - r.top,
+		     SWP_NOMOVE | SWP_NOZORDER);
+    }
+
+    if (fe->statusbar) {
+	GetClientRect(fe->hwnd, &r);
+	SetWindowPos(fe->statusbar, NULL, 0, r.bottom-r.top-sy, r.right-r.left,
+		     sy, SWP_NOZORDER);
+    }
+
+    *px = x;
+    *py = y;
+}
+
 static frontend *new_window(HINSTANCE inst, char *game_id, char **error)
 {
     frontend *fe;
     int x, y;
-    RECT r, sr;
+    RECT r;
     HDC hdc;
 
     fe = snew(frontend);
@@ -431,7 +478,6 @@ static frontend *new_window(HINSTANCE inst, char *game_id, char **error)
 
     fe->inst = inst;
     midend_new_game(fe->me);
-    midend_size(fe->me, &x, &y);
 
     fe->timer = 0;
 
@@ -459,6 +505,9 @@ static frontend *new_window(HINSTANCE inst, char *game_id, char **error)
 	}
     }
 
+    x = y = INT_MAX;		       /* find puzzle's preferred size */
+    midend_size(fe->me, &x, &y, FALSE);
+
     r.left = r.top = 0;
     r.right = x;
     r.bottom = y;
@@ -472,6 +521,14 @@ static frontend *new_window(HINSTANCE inst, char *game_id, char **error)
 			      CW_USEDEFAULT, CW_USEDEFAULT,
 			      r.right - r.left, r.bottom - r.top,
 			      NULL, NULL, inst, NULL);
+
+    if (midend_wants_statusbar(fe->me))
+	fe->statusbar = CreateWindowEx(0, STATUSCLASSNAME, "ooh",
+				       WS_CHILD | WS_VISIBLE,
+				       0, 0, 0, 0, /* status bar does these */
+				       fe->hwnd, NULL, inst, NULL);
+    else
+	fe->statusbar = NULL;
 
     {
 	HMENU bar = CreateMenu();
@@ -541,20 +598,7 @@ static frontend *new_window(HINSTANCE inst, char *game_id, char **error)
 	SetMenu(fe->hwnd, bar);
     }
 
-    if (midend_wants_statusbar(fe->me)) {
-	fe->statusbar = CreateWindowEx(0, STATUSCLASSNAME, "ooh",
-				       WS_CHILD | WS_VISIBLE,
-				       0, 0, 0, 0, /* status bar does these */
-				       fe->hwnd, NULL, inst, NULL);
-	GetWindowRect(fe->statusbar, &sr);
-	SetWindowPos(fe->hwnd, NULL, 0, 0,
-		     r.right - r.left, r.bottom - r.top + sr.bottom - sr.top,
-		     SWP_NOMOVE | SWP_NOZORDER);
-	SetWindowPos(fe->statusbar, NULL, 0, y, x, sr.bottom - sr.top,
-		     SWP_NOZORDER);
-    } else {
-	fe->statusbar = NULL;
-    }
+    check_window_size(fe, &x, &y);
 
     hdc = GetDC(fe->hwnd);
     fe->bitmap = CreateCompatibleBitmap(hdc, x, y);
@@ -1075,7 +1119,8 @@ static void new_game_type(frontend *fe)
     int x, y;
 
     midend_new_game(fe->me);
-    midend_size(fe->me, &x, &y);
+    x = y = INT_MAX;
+    midend_size(fe->me, &x, &y, FALSE);
 
     r.left = r.top = 0;
     r.right = x;
@@ -1094,6 +1139,9 @@ static void new_game_type(frontend *fe)
 		 r.right - r.left,
 		 r.bottom - r.top + sr.bottom - sr.top,
 		 SWP_NOMOVE | SWP_NOZORDER);
+
+    check_window_size(fe, &x, &y);
+
     if (fe->statusbar != NULL)
 	SetWindowPos(fe->statusbar, NULL, 0, y, x,
 		     sr.bottom - sr.top, SWP_NOZORDER);
