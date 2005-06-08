@@ -244,8 +244,6 @@ static char *new_game_desc(game_params *params, random_state *rs,
     char *ret;
     int n, i, j, c, retlen, *tiles;
 
-    debug(("new_game_desc: %dx%d, %d colours",
-	   params->w, params->h, params->ncols));
     n = params->w * params->h;
     tiles = snewn(n, int);
     memset(tiles, 0, n*sizeof(int));
@@ -419,7 +417,6 @@ static void sel_clear(game_ui *ui, game_state *state)
     for (i = 0; i < state->n; i++)
 	ui->tiles[i] &= ~TILE_SELECTED;
     ui->nselected = 0;
-    debug(("sel_clear"));
 }
 
 
@@ -443,7 +440,6 @@ static void sel_remove(game_ui *ui, game_state *state)
 	}
     }
     ui->nselected = 0;
-    debug(("sel_remove: removed %d selected tiles", nremoved));
 }
 
 static void sel_expand(game_ui *ui, game_state *state, int tx, int ty)
@@ -451,7 +447,6 @@ static void sel_expand(game_ui *ui, game_state *state, int tx, int ty)
     int ns = 1, nadded, x, y, c;
 
     TILE(ui,tx,ty) |= TILE_SELECTED;
-    debug(("sel_expand, selected initial tile"));
     do {
 	nadded = 0;
 
@@ -491,7 +486,6 @@ static void sel_expand(game_ui *ui, game_state *state, int tx, int ty)
 	    }
 	}
 	ns += nadded;
-	debug(("sel_expand, new pass, selected %d more tiles", nadded));
     } while (nadded > 0);
 
     if (ns > 1) {
@@ -534,7 +528,6 @@ static void sg_snuggle(game_state *ret)
 	ndone = 0;
 	for (x = 0; x < ret->params.w-1; x++) {
 	    if (sg_emptycol(ret,x) && !sg_emptycol(ret,x+1)) {
-		debug(("column %d is empty, shuffling from %d", x, x+1));
 		ndone++;
 		for (y = 0; y < ret->params.h; y++) {
 		    SWAPTILE(ret,x,y,x+1,y);
@@ -591,14 +584,12 @@ static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
 	dy = (button == CURSOR_DOWN) ? +1 : ((button == CURSOR_UP)    ? -1 : 0);
 	ui->xsel = (ui->xsel + from->params.w + dx) % from->params.w;
 	ui->ysel = (ui->ysel + from->params.h + dy) % from->params.h;
-	debug(("cursor pressed, d=(%d,%d), sel=(%d,%d)",dx,dy,ui->xsel,ui->ysel));
 	return ret;
     } else if (button == CURSOR_SELECT || button == ' ' || button == '\r' ||
 	       button == '\n') {
 	ui->displaysel = 1;
 	tx = ui->xsel;
 	ty = ui->ysel;
-	debug(("cursor select, t=(%d,%d)", tx, ty));
     } else
 	return NULL;
 
@@ -801,9 +792,6 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 			float animtime, float flashtime)
 {
     int bgcolour, x, y;
-
-    debug(("samegame redraw: dir %d, oldstate 0x%lx, animtime %f, flashtime %f",
-	   dir, oldstate, animtime, flashtime));
 
     /* This was entirely cloned from fifteen.c; it should probably be
      * moved into some generic 'draw-recessed-rectangle' utility fn. */
