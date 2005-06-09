@@ -21,6 +21,10 @@
 
 #include "puzzles.h"
 
+#if GTK_CHECK_VERSION(2,0,0)
+#define USE_PANGO
+#endif
+
 /* ----------------------------------------------------------------------
  * Error reporting functions used elsewhere.
  */
@@ -44,7 +48,11 @@ void fatal(char *fmt, ...)
  */
 
 struct font {
+#ifdef USE_PANGO
+    PangoFontDescription *desc;
+#else
     GdkFont *font;
+#endif
     int type;
     int size;
 };
@@ -172,7 +180,7 @@ void draw_text(frontend *fe, int x, int y, int fonttype, int fontsize,
         fe->fonts[i].type = fonttype;
         fe->fonts[i].size = fontsize;
 
-#if GTK_CHECK_VERSION(2,0,0)
+#ifdef USE_PANGO
         /*
          * Use Pango to find the closest match to the requested
          * font.
@@ -210,24 +218,54 @@ void draw_text(frontend *fe, int x, int y, int fonttype, int fontsize,
                 pango_font_description_set_size(fd, resolution * fontsize);
             }
 #endif
-            fe->fonts[i].font = gdk_font_from_description(fd);
-            pango_font_description_free(fd);
+            fe->fonts[i].desc = fd;
         }
 
-        if (!fe->fonts[i].font)
+#else
+	/*
+	 * In GTK 1.2, I don't know of any plausible way to
+	 * pick a suitable font, so I'm just going to be
+	 * tedious.
+	 */
+	fe->fonts[i].font = gdk_font_load(fonttype == FONT_FIXED ?
+					  "fixed" : "variable");
 #endif
-            /*
-             * In GTK 1.2, I don't know of any plausible way to
-             * pick a suitable font, so I'm just going to be
-             * tedious.
-             * 
-             * This is also fallback code called if the Pango
-             * approach fails to find an appropriate font.
-             */
-            fe->fonts[i].font = gdk_font_load(fonttype == FONT_FIXED ?
-                                              "fixed" : "variable");
+
     }
 
+    /*
+     * Set the colour.
+     */
+    gdk_gc_set_foreground(fe->gc, &fe->colours[colour]);
+
+#ifdef USE_PANGO
+
+    {
+	PangoLayout *layout;
+	PangoRectangle rect;
+
+	/*
+	 * Create a layout.
+	 */
+	layout = pango_layout_new(gtk_widget_get_pango_context(fe->area));
+	pango_layout_set_font_description(layout, fe->fonts[i].desc);
+	pango_layout_set_text(layout, text, strlen(text));
+	pango_layout_get_pixel_extents(layout, NULL, &rect);
+
+        if (align & ALIGN_VCENTRE)
+            rect.y -= rect.height / 2;
+
+        if (align & ALIGN_HCENTRE)
+            rect.x -= rect.width / 2;
+        else if (align & ALIGN_HRIGHT)
+            rect.x -= rect.width;
+
+	gdk_draw_layout(fe->pixmap, fe->gc, rect.x + x, rect.y + y, layout);
+
+	g_object_unref(layout);
+    }
+
+#else
     /*
      * Find string dimensions and process alignment.
      */
@@ -260,10 +298,11 @@ void draw_text(frontend *fe, int x, int y, int fonttype, int fontsize,
     }
 
     /*
-     * Set colour and actually draw text.
+     * Actually draw the text.
      */
-    gdk_gc_set_foreground(fe->gc, &fe->colours[colour]);
     gdk_draw_string(fe->pixmap, fe->fonts[i].font, fe->gc, x, y, text);
+#endif
+
 }
 
 void draw_rect(frontend *fe, int x, int y, int w, int h, int colour)
