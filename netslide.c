@@ -582,7 +582,7 @@ static char *new_game_desc(game_params *params, random_state *rs,
                 if (col == prevrowcol) {
                     if (dir == 2-prevdir)
                         continue;   /* undoes last move */
-                    else if ((nrepeats+1)*2 > h)
+                    else if (dir == prevdir && (nrepeats+1)*2 > h)
                         continue;   /* makes fewer moves */
                 }
                 slide_col_int(w, h, tiles, 1 - dir, col);
@@ -593,7 +593,7 @@ static char *new_game_desc(game_params *params, random_state *rs,
                 if (row == prevrowcol) {
                     if (dir == 4-prevdir)
                         continue;   /* undoes last move */
-                    else if ((nrepeats+1)*2 > w)
+                    else if (dir == prevdir && (nrepeats+1)*2 > w)
                         continue;   /* makes fewer moves */
                 }
                 slide_row_int(w, h, tiles, 2 - dir, row);
