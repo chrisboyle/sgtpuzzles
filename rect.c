@@ -2035,6 +2035,14 @@ struct game_ui {
      * treated as a small drag rather than a click.
      */
     int dragged;
+    /*
+     * These are the co-ordinates of the top-left and bottom-right squares
+     * in the drag box, respectively, or -1 otherwise.
+     */
+    int x1;
+    int y1;
+    int x2;
+    int y2;
 };
 
 static game_ui *new_ui(game_state *state)
@@ -2045,6 +2053,10 @@ static game_ui *new_ui(game_state *state)
     ui->drag_end_x = -1;
     ui->drag_end_y = -1;
     ui->dragged = FALSE;
+    ui->x1 = -1;
+    ui->y1 = -1;
+    ui->x2 = -1;
+    ui->y2 = -1;
     return ui;
 }
 
@@ -2140,20 +2152,11 @@ static void coord_round(float x, float y, int *xr, int *yr)
 static void ui_draw_rect(game_state *state, game_ui *ui,
                          unsigned char *hedge, unsigned char *vedge, int c)
 {
-    int x1, x2, y1, y2, x, y, t;
-
-    x1 = ui->drag_start_x;
-    x2 = ui->drag_end_x;
-    if (x2 < x1) { t = x1; x1 = x2; x2 = t; }
-
-    y1 = ui->drag_start_y;
-    y2 = ui->drag_end_y;
-    if (y2 < y1) { t = y1; y1 = y2; y2 = t; }
-
-    x1 = x1 / 2;               /* rounds down */
-    x2 = (x2+1) / 2;           /* rounds up */
-    y1 = y1 / 2;               /* rounds down */
-    y2 = (y2+1) / 2;           /* rounds up */
+    int x, y;
+    int x1 = ui->x1;
+    int y1 = ui->y1;
+    int x2 = ui->x2;
+    int y2 = ui->y2;
 
     /*
      * Draw horizontal edges of rectangles.
@@ -2223,10 +2226,26 @@ static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
     }
 
     if (xc != ui->drag_end_x || yc != ui->drag_end_y) {
+	int t;
+
         ui->drag_end_x = xc;
         ui->drag_end_y = yc;
         ui->dragged = TRUE;
         active = TRUE;
+
+	ui->x1 = ui->drag_start_x;
+	ui->x2 = ui->drag_end_x;
+	if (ui->x2 < ui->x1) { t = ui->x1; ui->x1 = ui->x2; ui->x2 = t; }
+
+	ui->y1 = ui->drag_start_y;
+	ui->y2 = ui->drag_end_y;
+	if (ui->y2 < ui->y1) { t = ui->y1; ui->y1 = ui->y2; ui->y2 = t; }
+
+	ui->x1 = ui->x1 / 2;               /* rounds down */
+	ui->x2 = (ui->x2+1) / 2;           /* rounds up */
+	ui->y1 = ui->y1 / 2;               /* rounds down */
+	ui->y2 = (ui->y2+1) / 2;           /* rounds up */
+
     }
 
     ret = NULL;
@@ -2278,6 +2297,10 @@ static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
 	ui->drag_start_y = -1;
 	ui->drag_end_x = -1;
 	ui->drag_end_y = -1;
+	ui->x1 = -1;
+	ui->y1 = -1;
+	ui->x2 = -1;
+	ui->y2 = -1;
 	ui->dragged = FALSE;
 	active = TRUE;
     }
@@ -2516,10 +2539,30 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 	    }
 	}
 
+    {
+	char buf[256];
+
+	if (ui->x1 >= 0 && ui->y1 >= 0 &&
+	    ui->x2 >= 0 && ui->y2 >= 0) {
+	    sprintf(buf, "%dx%d ",
+		    ui->x2-ui->x1,
+		    ui->y2-ui->y1);
+	} else {
+	    buf[0] = '\0';
+	}
+
+        if (state->cheated)
+            strcat(buf, "Auto-solved.");
+        else if (state->completed)
+            strcat(buf, "COMPLETED!");
+
+        status_bar(fe, buf);
+    }
+
     if (hedge != state->hedge) {
         sfree(hedge);
         sfree(vedge);
-   }
+    }
 
     sfree(corners);
     sfree(correct);
@@ -2542,7 +2585,7 @@ static float game_flash_length(game_state *oldstate,
 
 static int game_wants_statusbar(void)
 {
-    return FALSE;
+    return TRUE;
 }
 
 static int game_timing_state(game_state *state)
