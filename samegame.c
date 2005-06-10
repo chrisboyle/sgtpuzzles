@@ -674,29 +674,29 @@ static float *game_colours(frontend *fe, game_state *state, int *ncolours)
     ret[COL_3 * 3 + 1] = 0.0F;
     ret[COL_3 * 3 + 2] = 0.0F;
 
-    ret[COL_4 * 3 + 0] = 0.5F;
-    ret[COL_4 * 3 + 1] = 0.5F;
-    ret[COL_4 * 3 + 2] = 1.0F;
+    ret[COL_4 * 3 + 0] = 1.0F;
+    ret[COL_4 * 3 + 1] = 1.0F;
+    ret[COL_4 * 3 + 2] = 0.0F;
 
-    ret[COL_5 * 3 + 0] = 0.5F;
-    ret[COL_5 * 3 + 1] = 1.0F;
-    ret[COL_5 * 3 + 2] = 0.5F;
+    ret[COL_5 * 3 + 0] = 1.0F;
+    ret[COL_5 * 3 + 1] = 0.0F;
+    ret[COL_5 * 3 + 2] = 1.0F;
 
-    ret[COL_6 * 3 + 0] = 1.0F;
-    ret[COL_6 * 3 + 1] = 0.5F;
-    ret[COL_6 * 3 + 2] = 0.5F;
+    ret[COL_6 * 3 + 0] = 0.0F;
+    ret[COL_6 * 3 + 1] = 1.0F;
+    ret[COL_6 * 3 + 2] = 1.0F;
 
-    ret[COL_7 * 3 + 0] = 1.0F;
-    ret[COL_7 * 3 + 1] = 1.0F;
-    ret[COL_7 * 3 + 2] = 0.0F;
+    ret[COL_7 * 3 + 0] = 0.5F;
+    ret[COL_7 * 3 + 1] = 0.5F;
+    ret[COL_7 * 3 + 2] = 1.0F;
 
-    ret[COL_8 * 3 + 0] = 1.0F;
-    ret[COL_8 * 3 + 1] = 0.0F;
-    ret[COL_8 * 3 + 2] = 1.0F;
+    ret[COL_8 * 3 + 0] = 0.5F;
+    ret[COL_8 * 3 + 1] = 1.0F;
+    ret[COL_8 * 3 + 2] = 0.5F;
 
-    ret[COL_9 * 3 + 0] = 0.0F;
-    ret[COL_9 * 3 + 1] = 1.0F;
-    ret[COL_9 * 3 + 2] = 1.0F;
+    ret[COL_9 * 3 + 0] = 1.0F;
+    ret[COL_9 * 3 + 1] = 0.5F;
+    ret[COL_9 * 3 + 2] = 0.5F;
 
     ret[COL_IMPOSSIBLE * 3 + 0] = 0.0F;
     ret[COL_IMPOSSIBLE * 3 + 1] = 0.0F;
