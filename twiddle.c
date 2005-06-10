@@ -363,7 +363,14 @@ static char *new_game_desc(game_params *params, random_state *rs,
                  */
                 oldtotal = prevmoves[y*rw+x];
                 newtotal = oldtotal + r;
-            } while (abs(newtotal) < abs(oldtotal) || abs(newtotal) > 2);
+                
+                /*
+                 * Special case here for w==h==n, in which case
+                 * there is actually no way to _avoid_ all moves
+                 * repeating or undoing previous ones.
+                 */
+            } while ((w != n || h != n) &&
+                     (abs(newtotal) < abs(oldtotal) || abs(newtotal) > 2));
 
             do_rotate(grid, w, h, n, params->orientable, x, y, r);
 
