@@ -2138,11 +2138,11 @@ static void coord_round(float x, float y, int *xr, int *yr)
                 /* Vertical edge: x-coord of corner,
                  * y-coord of square centre. */
                 *xr = 2 * (int)xv;
-                *yr = 1 + 2 * (int)ys;
+                *yr = 1 + 2 * (int)floor(ys);
             } else {
                 /* Horizontal edge: x-coord of square centre,
                  * y-coord of corner. */
-                *xr = 1 + 2 * (int)xs;
+                *xr = 1 + 2 * (int)floor(xs);
                 *yr = 2 * (int)yv;
             }
         }
@@ -2233,19 +2233,26 @@ static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
         ui->dragged = TRUE;
         active = TRUE;
 
-	ui->x1 = ui->drag_start_x;
-	ui->x2 = ui->drag_end_x;
-	if (ui->x2 < ui->x1) { t = ui->x1; ui->x1 = ui->x2; ui->x2 = t; }
+	if (xc >= 0 && xc <= 2*from->w &&
+	    yc >= 0 && yc <= 2*from->h) {
+            ui->x1 = ui->drag_start_x;
+            ui->x2 = ui->drag_end_x;
+            if (ui->x2 < ui->x1) { t = ui->x1; ui->x1 = ui->x2; ui->x2 = t; }
 
-	ui->y1 = ui->drag_start_y;
-	ui->y2 = ui->drag_end_y;
-	if (ui->y2 < ui->y1) { t = ui->y1; ui->y1 = ui->y2; ui->y2 = t; }
+            ui->y1 = ui->drag_start_y;
+            ui->y2 = ui->drag_end_y;
+            if (ui->y2 < ui->y1) { t = ui->y1; ui->y1 = ui->y2; ui->y2 = t; }
 
-	ui->x1 = ui->x1 / 2;               /* rounds down */
-	ui->x2 = (ui->x2+1) / 2;           /* rounds up */
-	ui->y1 = ui->y1 / 2;               /* rounds down */
-	ui->y2 = (ui->y2+1) / 2;           /* rounds up */
-
+            ui->x1 = ui->x1 / 2;               /* rounds down */
+            ui->x2 = (ui->x2+1) / 2;           /* rounds up */
+            ui->y1 = ui->y1 / 2;               /* rounds down */
+            ui->y2 = (ui->y2+1) / 2;           /* rounds up */
+        } else {
+            ui->x1 = -1;
+            ui->y1 = -1;
+            ui->x2 = -1;
+            ui->y2 = -1;
+        }
     }
 
     ret = NULL;
