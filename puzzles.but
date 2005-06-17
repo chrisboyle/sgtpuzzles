@@ -992,6 +992,47 @@ any points at all. With the alternative \q{(n-1)^2} system, regions of
 two squares score a point each, and larger regions score relatively
 more points.
 
+
+\C{flip} \i{Flip}
+
+\cfg{winhelp-topic}{games.flip}
+
+You have a grid of squares, some light and some dark. Your aim is to
+light all the squares up at the same time. You can choose any square
+and flip its state from light to dark or dark to light, but when you
+do so, other squares around it change state as well.
+
+Each square contains a small diagram showing which other squares
+change when you flip it.
+
+\C{flip-controls} \i{Flip controls}
+
+\IM{Flip controls} controls, for Flip
+\IM{Flip controls} keys, for Flip
+\IM{Flip controls} shortcuts (keyboard), for Flip
+
+Left-click in a square to flip it and its associated squares. That's
+all!
+
+\H{flip-parameters} \I{parameters, for flip}Flip parameters
+
+These parameters are available from the \q{Custom...} option on the
+\q{Type} menu.
+
+\dt \e{Width}, \e{Height}
+
+\dd Size of grid in squares.
+
+\dt \e{Shape type}
+
+\dd This control determines the shape of the region which is flipped
+by clicking in any given square. The default setting, \q{Crosses},
+causes every square to flip itself and its four immediate neighbours
+(or three or two if it's at an edge or corner). The other setting,
+\q{Random}, causes a random shape to be chosen for every square, so
+the game is different every time.
+
+
 \A{licence} \I{MIT licence}\ii{Licence}
 
 This software is \i{copyright} 2004-2005 Simon Tatham.
