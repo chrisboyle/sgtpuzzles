@@ -113,7 +113,8 @@ typedef unsigned char digit;
 
 #define FLASH_TIME 0.4F
 
-enum { SYMM_NONE, SYMM_ROT2, SYMM_ROT4, SYMM_REF4 };
+enum { SYMM_NONE, SYMM_ROT2, SYMM_ROT4, SYMM_REF2, SYMM_REF2D, SYMM_REF4,
+       SYMM_REF4D, SYMM_REF8 };
 
 enum { DIFF_BLOCK, DIFF_SIMPLE, DIFF_INTERSECT,
        DIFF_SET, DIFF_RECURSIVE, DIFF_AMBIGUOUS, DIFF_IMPOSSIBLE };
@@ -203,12 +204,22 @@ static void decode_params(game_params *ret, char const *string)
     }
     while (*string) {
         if (*string == 'r' || *string == 'm' || *string == 'a') {
-            int sn, sc;
+            int sn, sc, sd;
             sc = *string++;
+            if (*string == 'd') {
+                sd = TRUE;
+                string++;
+            } else {
+                sd = FALSE;
+            }
             sn = atoi(string);
             while (*string && isdigit((unsigned char)*string)) string++;
+            if (sc == 'm' && sn == 8)
+                ret->symm = SYMM_REF8;
             if (sc == 'm' && sn == 4)
-                ret->symm = SYMM_REF4;
+                ret->symm = sd ? SYMM_REF4D : SYMM_REF4;
+            if (sc == 'm' && sn == 2)
+                ret->symm = sd ? SYMM_REF2D : SYMM_REF2;
             if (sc == 'r' && sn == 4)
                 ret->symm = SYMM_ROT4;
             if (sc == 'r' && sn == 2)
@@ -239,7 +250,11 @@ static char *encode_params(game_params *params, int full)
     sprintf(str, "%dx%d", params->c, params->r);
     if (full) {
         switch (params->symm) {
+          case SYMM_REF8: strcat(str, "m8"); break;
           case SYMM_REF4: strcat(str, "m4"); break;
+          case SYMM_REF4D: strcat(str, "md4"); break;
+          case SYMM_REF2: strcat(str, "m2"); break;
+          case SYMM_REF2D: strcat(str, "md2"); break;
           case SYMM_ROT4: strcat(str, "r4"); break;
           /* case SYMM_ROT2: strcat(str, "r2"); break; [default] */
           case SYMM_NONE: strcat(str, "a"); break;
@@ -276,7 +291,9 @@ static config_item *game_configure(game_params *params)
 
     ret[2].name = "Symmetry";
     ret[2].type = C_CHOICES;
-    ret[2].sval = ":None:2-way rotation:4-way rotation:4-way mirror";
+    ret[2].sval = ":None:2-way rotation:4-way rotation:2-way mirror:"
+        "2-way diagonal mirror:4-way mirror:4-way diagonal mirror:"
+        "8-way mirror";
     ret[2].ival = params->symm;
 
     ret[3].name = "Difficulty";
@@ -1350,66 +1367,54 @@ static int check_valid(int c, int r, digit *grid)
     return TRUE;
 }
 
-static void symmetry_limit(game_params *params, int *xlim, int *ylim, int s)
-{
-    int c = params->c, r = params->r, cr = c*r;
-
-    switch (s) {
-      case SYMM_NONE:
-	*xlim = *ylim = cr;
-	break;
-      case SYMM_ROT2:
-	*xlim = (cr+1) / 2;
-	*ylim = cr;
-	break;
-      case SYMM_REF4:
-      case SYMM_ROT4:
-	*xlim = *ylim = (cr+1) / 2;
-	break;
-    }
-}
-
 static int symmetries(game_params *params, int x, int y, int *output, int s)
 {
     int c = params->c, r = params->r, cr = c*r;
     int i = 0;
 
-    *output++ = x;
-    *output++ = y;
-    i++;
+#define ADD(x,y) (*output++ = (x), *output++ = (y), i++)
+
+    ADD(x, y);
 
     switch (s) {
       case SYMM_NONE:
 	break;			       /* just x,y is all we need */
-      case SYMM_REF4:
-      case SYMM_ROT4:
-	switch (s) {
-	  case SYMM_REF4:
-	    *output++ = cr - 1 - x;
-	    *output++ = y;
-	    i++;
-
-	    *output++ = x;
-	    *output++ = cr - 1 - y;
-	    i++;
-	    break;
-	  case SYMM_ROT4:
-	    *output++ = cr - 1 - y;
-	    *output++ = x;
-	    i++;
-
-	    *output++ = y;
-	    *output++ = cr - 1 - x;
-	    i++;
-	    break;
-	}
-	/* fall through */
       case SYMM_ROT2:
-	*output++ = cr - 1 - x;
-	*output++ = cr - 1 - y;
-	i++;
-	break;
+        ADD(cr - 1 - x, cr - 1 - y);
+        break;
+      case SYMM_ROT4:
+        ADD(cr - 1 - y, x);
+        ADD(y, cr - 1 - x);
+        ADD(cr - 1 - x, cr - 1 - y);
+        break;
+      case SYMM_REF2:
+        ADD(cr - 1 - x, y);
+        break;
+      case SYMM_REF2D:
+        ADD(y, x);
+        break;
+      case SYMM_REF4:
+        ADD(cr - 1 - x, y);
+        ADD(x, cr - 1 - y);
+        ADD(cr - 1 - x, cr - 1 - y);
+        break;
+      case SYMM_REF4D:
+        ADD(y, x);
+        ADD(cr - 1 - x, cr - 1 - y);
+        ADD(cr - 1 - y, cr - 1 - x);
+        break;
+      case SYMM_REF8:
+        ADD(cr - 1 - x, y);
+        ADD(x, cr - 1 - y);
+        ADD(cr - 1 - x, cr - 1 - y);
+        ADD(y, x);
+        ADD(y, cr - 1 - x);
+        ADD(cr - 1 - y, x);
+        ADD(cr - 1 - y, cr - 1 - x);
+        break;
     }
+
+#undef ADD
 
     return i;
 }
@@ -1430,7 +1435,7 @@ static char *new_game_desc(game_params *params, random_state *rs,
     int ret;
     char *desc;
     int coords[16], ncoords;
-    int xlim, ylim;
+    int *symmclasses, nsymmclasses;
     int maxdiff, recursing;
 
     /*
@@ -1446,6 +1451,31 @@ static char *new_game_desc(game_params *params, random_state *rs,
     grid = snewn(area, digit);
     locs = snewn(area, struct xy);
     grid2 = snewn(area, digit);
+
+    /*
+     * Find the set of equivalence classes of squares permitted
+     * by the selected symmetry. We do this by enumerating all
+     * the grid squares which have no symmetric companion
+     * sorting lower than themselves.
+     */
+    nsymmclasses = 0;
+    symmclasses = snewn(cr * cr, int);
+    {
+        int x, y;
+
+        for (y = 0; y < cr; y++)
+            for (x = 0; x < cr; x++) {
+                int i = y*cr+x;
+                int j;
+
+                ncoords = symmetries(params, x, y, coords, params->symm);
+                for (j = 0; j < ncoords; j++)
+                    if (coords[2*j+1]*cr+coords[2*j] < i)
+                        break;
+                if (j == ncoords)
+                    symmclasses[nsymmclasses++] = i;
+            }
+    }
 
     /*
      * Loop until we get a grid of the required difficulty. This is
@@ -1488,7 +1518,6 @@ static char *new_game_desc(game_params *params, random_state *rs,
          * Now we have a solved grid, start removing things from it
          * while preserving solubility.
          */
-        symmetry_limit(params, &xlim, &ylim, params->symm);
 	recursing = FALSE;
         while (1) {
             int x, y, i, j;
@@ -1499,13 +1528,15 @@ static char *new_game_desc(game_params *params, random_state *rs,
              */
             nlocs = 0;
 
-            for (x = 0; x < xlim; x++)
-                for (y = 0; y < ylim; y++)
-                    if (grid[y*cr+x]) {
-                        locs[nlocs].x = x;
-                        locs[nlocs].y = y;
-                        nlocs++;
-                    }
+            for (i = 0; i < nsymmclasses; i++) {
+                x = symmclasses[i] % cr;
+                y = symmclasses[i] / cr;
+                if (grid[y*cr+x]) {
+                    locs[nlocs].x = x;
+                    locs[nlocs].y = y;
+                    nlocs++;
+                }
+            }
 
             /*
              * Now shuffle that list.
@@ -1569,6 +1600,8 @@ static char *new_game_desc(game_params *params, random_state *rs,
 
     sfree(grid2);
     sfree(locs);
+
+    sfree(symmclasses);
 
     /*
      * Now we have the grid as it will be presented to the user.
