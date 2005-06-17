@@ -1011,8 +1011,14 @@ change when you flip it.
 \IM{Flip controls} keys, for Flip
 \IM{Flip controls} shortcuts (keyboard), for Flip
 
-Left-click in a square to flip it and its associated squares. That's
-all!
+Left-click in a square to flip it and its associated squares.
+
+If you use the \q{Solve} function on this game, it will highlight
+some of the squares with red blobs. If you click once in every
+square with a red blob, the game should be solved. (If you click in
+a square \e{without} a red blob, a red blob will appear in it to
+indicate that you will need to reverse that operation to reach the
+solution.)
 
 \H{flip-parameters} \I{parameters, for flip}Flip parameters
 

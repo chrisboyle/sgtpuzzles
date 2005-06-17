@@ -3,15 +3,6 @@
  * where each click toggles an overlapping set of lights.
  */
 
-/*
- * TODO:
- * 
- *  - `Solve' could mark the squares you must click to solve
- *     + infrastructure change: this would mean the Solve operation
- * 	 must receive the current game_state as well as the initial
- * 	 one, which I've been wondering about for a while
- */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -28,6 +19,7 @@ enum {
     COL_RIGHT,
     COL_GRID,
     COL_DIAG,
+    COL_HINT,
     NCOLOURS
 };
 
@@ -65,7 +57,7 @@ struct matrix {
 
 struct game_state {
     int w, h;
-    int moves, completed;
+    int moves, completed, cheated, hints_active;
     unsigned char *grid;               /* array of w*h */
     struct matrix *matrix;
 };
@@ -633,6 +625,8 @@ static game_state *new_game(midend_data *me, game_params *params, char *desc)
     state->w = w;
     state->h = h;
     state->completed = FALSE;
+    state->cheated = FALSE;
+    state->hints_active = FALSE;
     state->moves = 0;
     state->matrix = snew(struct matrix);
     state->matrix->refcount = 1;
@@ -651,6 +645,8 @@ static game_state *dup_game(game_state *state)
     ret->w = state->w;
     ret->h = state->h;
     ret->completed = state->completed;
+    ret->cheated = state->cheated;
+    ret->hints_active = state->hints_active;
     ret->moves = state->moves;
     ret->matrix = state->matrix;
     state->matrix->refcount++;
@@ -670,10 +666,194 @@ static void free_game(game_state *state)
     sfree(state);
 }
 
+static void rowxor(unsigned char *row1, unsigned char *row2, int len)
+{
+    int i;
+    for (i = 0; i < len; i++)
+	row1[i] ^= row2[i];
+}
+
 static game_state *solve_game(game_state *state, game_state *currstate,
 			      game_aux_info *aux, char **error)
 {
-    return NULL;
+    int w = state->w, h = state->h, wh = w * h;
+    unsigned char *equations, *solution, *shortest;
+    int *und, nund;
+    int rowsdone, colsdone;
+    int i, j, k, len, bestlen;
+    game_state *ret;
+
+    /*
+     * Set up a list of simultaneous equations. Each one is of
+     * length (wh+1) and has wh coefficients followed by a value.
+     */
+    equations = snewn((wh + 1) * wh, unsigned char);
+    for (i = 0; i < wh; i++) {
+	for (j = 0; j < wh; j++)
+	    equations[i * (wh+1) + j] = currstate->matrix->matrix[j*wh+i];
+	equations[i * (wh+1) + wh] = currstate->grid[i] & 1;
+    }
+
+    /*
+     * Perform Gaussian elimination over GF(2).
+     */
+    rowsdone = colsdone = 0;
+    nund = 0;
+    und = snewn(wh, int);
+    do {
+	/*
+	 * Find the leftmost column which has a 1 in it somewhere
+	 * outside the first `rowsdone' rows.
+	 */
+	j = -1;
+	for (i = colsdone; i < wh; i++) {
+	    for (j = rowsdone; j < wh; j++)
+		if (equations[j * (wh+1) + i])
+		    break;
+	    if (j < wh)
+		break;		       /* found one */
+	    /*
+	     * This is a column which will not have an equation
+	     * controlling it. Mark it as undetermined.
+	     */
+	    und[nund++] = i;
+	}
+
+	/*
+	 * If there wasn't one, then we've finished: all remaining
+	 * equations are of the form 0 = constant. Check to see if
+	 * any of them wants 0 to be equal to 1; this is the
+	 * condition which indicates an insoluble problem
+	 * (therefore _hopefully_ one typed in by a user!).
+	 */
+	if (i == wh) {
+	    for (j = rowsdone; j < wh; j++)
+		if (equations[j * (wh+1) + wh]) {
+		    *error = "No solution exists for this position";
+		    sfree(equations);
+		    return NULL;
+		}
+	    break;
+	}
+
+	/*
+	 * We've found a 1. It's in column i, and the topmost 1 in
+	 * that column is in row j. Do a row-XOR to move it up to
+	 * the topmost row if it isn't already there.
+	 */
+	assert(j != -1);
+	if (j > rowsdone)
+	    rowxor(equations + rowsdone*(wh+1), equations + j*(wh+1), wh+1);
+
+	/*
+	 * Do row-XORs to eliminate that 1 from all rows below the
+	 * topmost row.
+	 */
+	for (j = rowsdone + 1; j < wh; j++)
+	    if (equations[j*(wh+1) + i])
+		rowxor(equations + j*(wh+1),
+		       equations + rowsdone*(wh+1), wh+1);
+
+	/*
+	 * Mark this row and column as done.
+	 */
+	rowsdone++;
+	colsdone = i+1;
+
+	/*
+	 * If we've done all the rows, terminate.
+	 */
+    } while (rowsdone < wh);
+
+    /*
+     * If we reach here, we have the ability to produce a solution.
+     * So we go through _all_ possible solutions (each
+     * corresponding to a set of arbitrary choices of those
+     * components not directly determined by an equation), and pick
+     * one requiring the smallest number of flips.
+     */
+    solution = snewn(wh, unsigned char);
+    shortest = snewn(wh, unsigned char);
+    memset(solution, 0, wh);
+    bestlen = wh + 1;
+    while (1) {
+	/*
+	 * Find a solution based on the current values of the
+	 * undetermined variables.
+	 */
+	for (j = rowsdone; j-- ;) {
+	    int v;
+
+	    /*
+	     * Find the leftmost set bit in this equation.
+	     */
+	    for (i = 0; i < wh; i++)
+		if (equations[j * (wh+1) + i])
+		    break;
+	    assert(i < wh);		       /* there must have been one! */
+
+	    /*
+	     * Compute this variable using the rest.
+	     */
+	    v = equations[j * (wh+1) + wh];
+	    for (k = i+1; k < wh; k++)
+		if (equations[j * (wh+1) + k])
+		    v ^= solution[k];
+
+	    solution[i] = v;
+	}
+
+	/*
+	 * Compare this solution to the current best one, and
+	 * replace the best one if this one is shorter.
+	 */
+	len = 0;
+	for (i = 0; i < wh; i++)
+	    if (solution[i])
+		len++;
+	if (len < bestlen) {
+	    bestlen = len;
+	    memcpy(shortest, solution, wh);
+	}
+
+	/*
+	 * Now increment the binary number given by the
+	 * undetermined variables: turn all 1s into 0s until we see
+	 * a 0, at which point we turn it into a 1.
+	 */
+	for (i = 0; i < nund; i++) {
+	    solution[und[i]] = !solution[und[i]];
+	    if (solution[und[i]])
+		break;
+	}
+
+	/*
+	 * If we didn't find a 0 at any point, we have wrapped
+	 * round and are back at the start, i.e. we have enumerated
+	 * all solutions.
+	 */
+	if (i == nund)
+	    break;
+    }
+
+    /*
+     * We have a solution. Produce a game state with the solution
+     * marked in annotations.
+     */
+    ret = dup_game(currstate);
+    ret->hints_active = TRUE;
+    ret->cheated = TRUE;
+    for (i = 0; i < wh; i++) {
+	ret->grid[i] &= ~2;
+	if (shortest[i])
+	    ret->grid[i] |= 2;
+    }
+
+    sfree(shortest);
+    sfree(solution);
+    sfree(equations);
+
+    return ret;
 }
 
 static char *game_text_format(game_state *state)
@@ -725,8 +905,11 @@ static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
 		if (ret->grid[j] & 1)
 		    done = FALSE;
 	    }
-	    if (done)
+	    ret->grid[i] ^= 2;	       /* toggle hint */
+	    if (done) {
 		ret->completed = TRUE;
+		ret->hints_active = FALSE;
+	    }
 
             return ret;
         }
@@ -781,6 +964,10 @@ static float *game_colours(frontend *fe, game_state *state, int *ncolours)
     ret[COL_DIAG * 3 + 0] = ret[COL_GRID * 3 + 0];
     ret[COL_DIAG * 3 + 1] = ret[COL_GRID * 3 + 1];
     ret[COL_DIAG * 3 + 2] = ret[COL_GRID * 3 + 2];
+
+    ret[COL_HINT * 3 + 0] = 1.0F;
+    ret[COL_HINT * 3 + 1] = 0.0F;
+    ret[COL_HINT * 3 + 2] = 0.0F;
 
     *ncolours = NCOLOURS;
     return ret;
@@ -865,6 +1052,14 @@ static void draw_tile(frontend *fe, game_drawstate *ds,
                 }
 	    }
 
+    /*
+     * Draw a hint blob if required.
+     */
+    if (tile & 2) {
+	draw_rect(fe, bx + TILE_SIZE/20, by + TILE_SIZE / 20,
+		  TILE_SIZE / 6, TILE_SIZE / 6, COL_HINT);
+    }
+
     unclip(fe);
 
     draw_update(fe, bx+1, by+1, TILE_SIZE-1, TILE_SIZE-1);
@@ -922,6 +1117,9 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 		v &= ~1;
 	}
 
+	if (!state->hints_active)
+	    v &= ~2;
+
 	if (oldstate && state->grid[i] != oldstate->grid[i])
 	    vv = 255;		       /* means `animated' */
 	else
@@ -936,7 +1134,10 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
     {
 	char buf[256];
 
-	sprintf(buf, "%sMoves: %d", state->completed ? "COMPLETED! " : "",
+	sprintf(buf, "%sMoves: %d",
+		(state->completed ? 
+		 (state->cheated ? "Auto-solved. " : "COMPLETED! ") :
+		 (state->cheated ? "Auto-solver used. " : "")),
 		state->moves);
 
 	status_bar(fe, buf);
@@ -988,7 +1189,7 @@ const struct game thegame = {
     new_game,
     dup_game,
     free_game,
-    FALSE, solve_game,
+    TRUE, solve_game,
     FALSE, game_text_format,
     new_ui,
     free_ui,
