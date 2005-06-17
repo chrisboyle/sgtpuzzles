@@ -546,8 +546,8 @@ static int compare_int(const void *av, const void *bv)
 	return 0;
 }
 
-static game_state *solve_game(game_state *state, game_aux_info *aux,
-			      char **error)
+static game_state *solve_game(game_state *state, game_state *currstate,
+			      game_aux_info *aux, char **error)
 {
     game_state *ret = dup_game(state);
     int i;

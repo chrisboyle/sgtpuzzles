@@ -1666,8 +1666,8 @@ static void free_game(game_state *state)
     sfree(state);
 }
 
-static game_state *solve_game(game_state *state, game_aux_info *aux,
-			      char **error)
+static game_state *solve_game(game_state *state, game_state *currstate,
+			      game_aux_info *aux, char **error)
 {
     game_state *ret;
 

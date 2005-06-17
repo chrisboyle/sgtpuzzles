@@ -248,7 +248,8 @@ struct game {
     game_state *(*dup_game)(game_state *state);
     void (*free_game)(game_state *state);
     int can_solve;
-    game_state *(*solve)(game_state *state, game_aux_info *aux, char **error);
+    game_state *(*solve)(game_state *orig, game_state *curr,
+			 game_aux_info *aux, char **error);
     int can_format_as_text;
     char *(*text_format)(game_state *state);
     game_ui *(*new_ui)(game_state *state);

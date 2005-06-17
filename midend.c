@@ -947,7 +947,9 @@ char *midend_solve(midend_data *me)
 	return "No game set up to solve";   /* _shouldn't_ happen! */
 
     msg = "Solve operation failed";    /* game _should_ overwrite on error */
-    s = me->ourgame->solve(me->states[0].state, me->aux_info, &msg);
+    s = me->ourgame->solve(me->states[0].state,
+			   me->states[me->statepos-1].state,
+			   me->aux_info, &msg);
     if (!s)
 	return msg;
 
