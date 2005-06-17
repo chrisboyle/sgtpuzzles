@@ -1005,7 +1005,7 @@ do so, other squares around it change state as well.
 Each square contains a small diagram showing which other squares
 change when you flip it.
 
-\C{flip-controls} \i{Flip controls}
+\H{flip-controls} \i{Flip controls}
 
 \IM{Flip controls} controls, for Flip
 \IM{Flip controls} keys, for Flip
