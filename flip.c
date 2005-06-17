@@ -37,6 +37,7 @@ enum {
 #define COORD(x)  ( (x) * TILE_SIZE + BORDER )
 #define FROMCOORD(x)  ( ((x) - BORDER + TILE_SIZE) / TILE_SIZE - 1 )
 
+#define ANIM_TIME 0.25F
 #define FLASH_FRAME 0.07F
 
 /*
@@ -808,7 +809,8 @@ static void game_free_drawstate(game_drawstate *ds)
 }
 
 static void draw_tile(frontend *fe, game_drawstate *ds,
-		      game_state *state, int x, int y, int tile)
+		      game_state *state, int x, int y, int tile, int anim,
+		      float animtime)
 {
     int w = ds->w, h = ds->h, wh = w * h;
     int bx = x * TILE_SIZE + BORDER, by = y * TILE_SIZE + BORDER;
@@ -817,7 +819,30 @@ static void draw_tile(frontend *fe, game_drawstate *ds,
     clip(fe, bx+1, by+1, TILE_SIZE-1, TILE_SIZE-1);
 
     draw_rect(fe, bx+1, by+1, TILE_SIZE-1, TILE_SIZE-1,
-              tile == 1 ? COL_WRONG : COL_RIGHT);
+              anim ? COL_BACKGROUND : tile & 1 ? COL_WRONG : COL_RIGHT);
+    if (anim) {
+	/*
+	 * Draw a polygon indicating that the square is diagonally
+	 * flipping over.
+	 */
+	int coords[8], colour;
+
+	coords[0] = bx + TILE_SIZE;
+	coords[1] = by;
+	coords[2] = bx + TILE_SIZE * animtime;
+	coords[3] = by + TILE_SIZE * animtime;
+	coords[4] = bx;
+	coords[5] = by + TILE_SIZE;
+	coords[6] = bx + TILE_SIZE - TILE_SIZE * animtime;
+	coords[7] = by + TILE_SIZE - TILE_SIZE * animtime;
+
+	colour = (tile & 1 ? COL_WRONG : COL_RIGHT);
+	if (animtime < 0.5)
+	    colour = COL_WRONG + COL_RIGHT - colour;
+
+	draw_polygon(fe, coords, 4, TRUE, colour);
+	draw_polygon(fe, coords, 4, FALSE, COL_GRID);
+    }
 
     /*
      * Draw a little diagram in the tile which indicates which
@@ -879,10 +904,13 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
     else
 	flashframe = -1;
 
+    animtime /= ANIM_TIME;	       /* scale it so it goes from 0 to 1 */
+
     for (i = 0; i < wh; i++) {
         int x = i % w, y = i / w;
 	int fx, fy, fd;
 	int v = state->grid[i];
+	int vv;
 
 	if (flashframe >= 0) {
 	    fx = (w+1)/2 - min(x+1, w-x);
@@ -893,10 +921,15 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 	    else if (fd == flashframe - 1)
 		v &= ~1;
 	}
-	
-        if (ds->tiles[i] != v) {
-            draw_tile(fe, ds, state, x, y, v);
-            ds->tiles[i] = v;
+
+	if (oldstate && state->grid[i] != oldstate->grid[i])
+	    vv = 255;		       /* means `animated' */
+	else
+	    vv = v;
+
+        if (ds->tiles[i] == 255 || vv == 255 || ds->tiles[i] != vv) {
+            draw_tile(fe, ds, state, x, y, v, vv == 255, animtime);
+            ds->tiles[i] = vv;
         }
     }
 
@@ -913,7 +946,7 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 static float game_anim_length(game_state *oldstate, game_state *newstate,
 			      int dir, game_ui *ui)
 {
-    return 0.0F;
+    return ANIM_TIME;
 }
 
 static float game_flash_length(game_state *oldstate, game_state *newstate,
