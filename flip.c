@@ -1053,11 +1053,19 @@ static void draw_tile(frontend *fe, game_drawstate *ds,
 	    }
 
     /*
-     * Draw a hint blob if required.
+     * Draw a hint rectangle if required.
      */
     if (tile & 2) {
-	draw_rect(fe, bx + TILE_SIZE/20, by + TILE_SIZE / 20,
-		  TILE_SIZE / 6, TILE_SIZE / 6, COL_HINT);
+	int x1 = bx + TILE_SIZE / 20, x2 = bx + TILE_SIZE - TILE_SIZE / 20;
+	int y1 = by + TILE_SIZE / 20, y2 = by + TILE_SIZE - TILE_SIZE / 20;
+	int i = 3;
+	while (i--) {
+	    draw_line(fe, x1, y1, x2, y1, COL_HINT);
+	    draw_line(fe, x1, y2, x2, y2, COL_HINT);
+	    draw_line(fe, x1, y1, x1, y2, COL_HINT);
+	    draw_line(fe, x2, y1, x2, y2, COL_HINT);
+	    x1++, y1++, x2--, y2--;
+	}
     }
 
     unclip(fe);

@@ -1013,12 +1013,11 @@ change when you flip it.
 
 Left-click in a square to flip it and its associated squares.
 
-If you use the \q{Solve} function on this game, it will highlight
-some of the squares with red blobs. If you click once in every
-square with a red blob, the game should be solved. (If you click in
-a square \e{without} a red blob, a red blob will appear in it to
-indicate that you will need to reverse that operation to reach the
-solution.)
+If you use the \q{Solve} function on this game, it will mark some of
+the squares in red. If you click once in every square with a red
+mark, the game should be solved. (If you click in a square
+\e{without} a red mark, a red mark will appear in it to indicate
+that you will need to reverse that operation to reach the solution.)
 
 \H{flip-parameters} \I{parameters, for flip}Flip parameters
 
