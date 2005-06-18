@@ -522,13 +522,23 @@ static frontend *new_window(HINSTANCE inst, char *game_id, char **error)
 			      r.right - r.left, r.bottom - r.top,
 			      NULL, NULL, inst, NULL);
 
-    if (midend_wants_statusbar(fe->me))
+    if (midend_wants_statusbar(fe->me)) {
+	RECT sr;
 	fe->statusbar = CreateWindowEx(0, STATUSCLASSNAME, "ooh",
 				       WS_CHILD | WS_VISIBLE,
 				       0, 0, 0, 0, /* status bar does these */
 				       fe->hwnd, NULL, inst, NULL);
-    else
+	/*
+	 * Now resize the window to take account of the status bar.
+	 */
+	GetWindowRect(fe->statusbar, &sr);
+	GetWindowRect(fe->hwnd, &r);
+	SetWindowPos(fe->hwnd, NULL, 0, 0, r.right - r.left,
+		     r.bottom - r.top + sr.bottom - sr.top,
+		     SWP_NOMOVE | SWP_NOZORDER);
+    } else {
 	fe->statusbar = NULL;
+    }
 
     {
 	HMENU bar = CreateMenu();
