@@ -135,3 +135,12 @@ FORCE:
 	fi
 !end
 !specialobj osx version
+
+# make install for Unix.
+!begin gtk
+install:
+	for i in cube net netslide fifteen sixteen twiddle \
+	         pattern rect solo mines samegame flip; do \
+		$(INSTALL_PROGRAM) -m 755 $$i $(DESTDIR)$(gamesdir)/$$i; \
+	done
+!end

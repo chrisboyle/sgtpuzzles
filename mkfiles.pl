@@ -894,6 +894,7 @@ if (defined $makefiles{'gtk'}) {
     "prefix=/usr/local\n",
     "exec_prefix=\$(prefix)\n",
     "bindir=\$(exec_prefix)/bin\n",
+    "gamesdir=\$(exec_prefix)/games\n",
     "mandir=\$(prefix)/man\n",
     "man1dir=\$(mandir)/man1\n",
     "\n".
