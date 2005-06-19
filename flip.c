@@ -590,6 +590,8 @@ static char *new_game_desc(game_params *params, random_state *rs,
     sprintf(ret, "%s,%s", mbmp, gbmp);
     sfree(mbmp);
     sfree(gbmp);
+    sfree(matrix);
+    sfree(grid);
     return ret;
 }
 
@@ -731,6 +733,7 @@ static game_state *solve_game(game_state *state, game_state *currstate,
 		if (equations[j * (wh+1) + wh]) {
 		    *error = "No solution exists for this position";
 		    sfree(equations);
+		    sfree(und);
 		    return NULL;
 		}
 	    break;
@@ -852,6 +855,7 @@ static game_state *solve_game(game_state *state, game_state *currstate,
     sfree(shortest);
     sfree(solution);
     sfree(equations);
+    sfree(und);
 
     return ret;
 }
