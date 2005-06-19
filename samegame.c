@@ -49,6 +49,7 @@ struct game_params {
 #define TILE_JOINDOWN   0x0400 /* used in drawstate */
 #define TILE_JOINDIAG   0x0800 /* used in drawstate */
 #define TILE_HASSEL     0x1000 /* used in drawstate */
+#define TILE_IMPOSSIBLE 0x2000 /* used in drawstate */
 
 #define TILE(gs,x,y) ((gs)->tiles[(gs)->params.w*(y)+(x)])
 #define COL(gs,x,y) (TILE(gs,x,y) & TILE_COLMASK)
@@ -746,12 +747,12 @@ static void game_free_drawstate(game_drawstate *ds)
 
 static void tile_redraw(frontend *fe, game_drawstate *ds,
 			int x, int y, int dright, int dbelow,
-                        int tile, game_state *state, int bgcolour)
+                        int tile, int bgcolour)
 {
     int outer = bgcolour, inner = outer, col = tile & TILE_COLMASK;
 
     if (col) {
-	if (state->impossible) {
+	if (tile & TILE_IMPOSSIBLE) {
 	    outer = col;
 	    inner = COL_IMPOSSIBLE;
 	} else if (tile & TILE_SELECTED) {
@@ -843,6 +844,8 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 	    int dbelow = (y+1 < state->params.h);
 
 	    tile |= ISSEL(ui,x,y);
+	    if (state->impossible)
+		tile |= TILE_IMPOSSIBLE;
 	    if (dright && COL(state,x+1,y) == col)
 		tile |= TILE_JOINRIGHT;
 	    if (dbelow && COL(state,x,y+1) == col)
@@ -861,8 +864,7 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 		(flashtime > 0.0) ||
 		(ds->bgcolour != bgcolour) ||
 		(tile != ds->tiles[i])) {
-		tile_redraw(fe, ds, x, y, dright, dbelow,
-			    tile, state, bgcolour);
+		tile_redraw(fe, ds, x, y, dright, dbelow, tile, bgcolour);
 		ds->tiles[i] = tile;
 	    }
 	}
