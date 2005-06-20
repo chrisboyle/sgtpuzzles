@@ -9,18 +9,16 @@
 /*
  * TODO:
  * 
- *  - Improve on singleton removal by making an aesthetic choice
- *    about which of the options to take.
- * 
- *  - When doing the 3x3 trick in singleton removal, limit the size
- *    of the generated rectangles in accordance with the max
- *    rectangle size.
- * 
- *  - If we start by sorting the rectlist in descending order
- *    of area, we might be able to bias our random number
- *    selection to produce a few large rectangles more often
- *    than oodles of small ones? Unsure, but might be worth a
- *    try.
+ *  - Improve singleton removal.
+ *     + It would be nice to limit the size of the generated
+ *       rectangles in accordance with existing constraints such as
+ *       the maximum rectangle size and the one about not
+ *       generating a rectangle the full width or height of the
+ *       grid.
+ *     + This could be achieved by making a less random choice
+ *       about which of the available options to use.
+ *     + Alternatively, we could create our rectangle and then
+ *       split it up.
  */
 
 #include <stdio.h>
@@ -891,13 +889,26 @@ static int rect_solver(int w, int h, int nrects, struct numberdata *numbers,
  * Grid generation code.
  */
 
-static struct rectlist *get_rectlist(game_params *params, int *grid)
+/*
+ * This function does one of two things. If passed r==NULL, it
+ * counts the number of possible rectangles which cover the given
+ * square, and returns it in *n. If passed r!=NULL then it _reads_
+ * *n to find an index, counts the possible rectangles until it
+ * reaches the nth, and writes it into r.
+ * 
+ * `scratch' is expected to point to an array of 2 * params->w
+ * ints, used internally as scratch space (and passed in like this
+ * to avoid re-allocating and re-freeing it every time round a
+ * tight loop).
+ */
+static void enum_rects(game_params *params, int *grid, struct rect *r, int *n,
+                       int sx, int sy, int *scratch)
 {
-    int rw, rh;
-    int x, y;
-    int maxarea;
-    struct rect *rects = NULL;
-    int nrects = 0, rectsize = 0;
+    int rw, rh, mw, mh;
+    int x, y, dx, dy;
+    int maxarea, realmaxarea;
+    int index = 0;
+    int *top, *bottom;
 
     /*
      * Maximum rectangle area is 1/6 of total grid size, unless
@@ -908,43 +919,97 @@ static struct rectlist *get_rectlist(game_params *params, int *grid)
     if (maxarea < 2)
         maxarea = 2;
 
-    for (rw = 1; rw <= params->w; rw++)
-        for (rh = 1; rh <= params->h; rh++) {
-            if (rw * rh > maxarea)
+    /*
+     * Scan the grid to find the limits of the region within which
+     * any rectangle containing this point must fall. This will
+     * save us trawling the inside of every rectangle later on to
+     * see if it contains any used squares.
+     */
+    top = scratch;
+    bottom = scratch + params->w;
+    for (dy = -1; dy <= +1; dy += 2) {
+        int *array = (dy == -1 ? top : bottom);
+        for (dx = -1; dx <= +1; dx += 2) {
+            for (x = sx; x >= 0 && x < params->w; x += dx) {
+                array[x] = -2 * params->h * dy;
+                for (y = sy; y >= 0 && y < params->h; y += dy) {
+                    if (index(params, grid, x, y) == -1 &&
+                        (x == sx || dy*y <= dy*array[x-dx]))
+                        array[x] = y;
+                    else
+                        break;
+                }
+            }
+        }
+    }
+
+    /*
+     * Now scan again to work out the largest rectangles we can fit
+     * in the grid, so that we can terminate the following loops
+     * early once we get down to not having much space left in the
+     * grid.
+     */
+    realmaxarea = 0;
+    for (x = 0; x < params->w; x++) {
+        int x2;
+
+        rh = bottom[x] - top[x] + 1;
+        if (rh <= 0)
+            continue;                  /* no rectangles can start here */
+
+        dx = (x > sx ? -1 : +1);
+        for (x2 = x; x2 >= 0 && x2 < params->w; x2 += dx)
+            if (bottom[x2] < bottom[x] || top[x2] > top[x])
+                break;
+
+        rw = abs(x2 - x);
+        if (realmaxarea < rw * rh)
+            realmaxarea = rw * rh;
+    }
+
+    if (realmaxarea > maxarea)
+        realmaxarea = maxarea;
+
+    /*
+     * Rectangles which go right the way across the grid are
+     * boring, although they can't be helped in the case of
+     * extremely small grids. (Also they might be generated later
+     * on by the singleton-removal process; we can't help that.)
+     */
+    mw = params->w - 1;
+    if (mw < 3) mw++;
+    mh = params->h - 1;
+    if (mh < 3) mh++;
+
+    for (rw = 1; rw <= mw; rw++)
+        for (rh = 1; rh <= mh; rh++) {
+            if (rw * rh > realmaxarea)
                 continue;
             if (rw * rh == 1)
                 continue;
-            for (x = 0; x <= params->w - rw; x++)
-                for (y = 0; y <= params->h - rh; y++) {
-                    if (nrects >= rectsize) {
-                        rectsize = nrects + 256;
-                        rects = sresize(rects, rectsize, struct rect);
+            for (x = max(sx - rw + 1, 0); x <= min(sx, params->w - rw); x++)
+                for (y = max(sy - rh + 1, 0); y <= min(sy, params->h - rh);
+                     y++) {
+                    /*
+                     * Check this rectangle against the region we
+                     * defined above.
+                     */
+                    if (top[x] <= y && top[x+rw-1] <= y &&
+                        bottom[x] >= y+rh-1 && bottom[x+rw-1] >= y+rh-1) {
+                        if (r && index == *n) {
+                            r->x = x;
+                            r->y = y;
+                            r->w = rw;
+                            r->h = rh;
+                            return;
+                        }
+                        index++;
                     }
-
-                    rects[nrects].x = x;
-                    rects[nrects].y = y;
-                    rects[nrects].w = rw;
-                    rects[nrects].h = rh;
-                    nrects++;
                 }
         }
 
-    if (nrects > 0) {
-        struct rectlist *ret;
-        ret = snew(struct rectlist);
-        ret->rects = rects;
-        ret->n = nrects;
-        return ret;
-    } else {
-        assert(rects == NULL);         /* hence no need to free */
-        return NULL;
-    }
-}
-
-static void free_rectlist(struct rectlist *list)
-{
-    sfree(list->rects);
-    sfree(list);
+    assert(!r);
+    *n = index;
 }
 
 static void place_rect(game_params *params, int *grid, struct rect r)
@@ -1063,9 +1128,9 @@ static char *new_game_desc(game_params *params, random_state *rs,
 			   game_aux_info **aux, int interactive)
 {
     int *grid, *numbers = NULL;
-    struct rectlist *list;
-    int x, y, y2, y2last, yx, run, i;
+    int x, y, y2, y2last, yx, run, i, nsquares;
     char *desc, *p;
+    int *enum_rects_scratch;
     game_params params2real, *params2 = &params2real;
 
     while (1) {
@@ -1080,47 +1145,67 @@ static char *new_game_desc(game_params *params, random_state *rs,
 
         grid = snewn(params2->w * params2->h, int);
 
+        enum_rects_scratch = snewn(2 * params2->w, int);
+
+        nsquares = 0;
         for (y = 0; y < params2->h; y++)
             for (x = 0; x < params2->w; x++) {
                 index(params2, grid, x, y) = -1;
+                nsquares++;
             }
-
-        list = get_rectlist(params2, grid);
-        assert(list != NULL);
 
         /*
-         * Place rectangles until we can't any more.
+         * Place rectangles until we can't any more. We do this by
+         * finding a square we haven't yet covered, and randomly
+         * choosing a rectangle to cover it.
          */
-        while (list->n > 0) {
-            int i, m;
+        
+        while (nsquares > 0) {
+            int square = random_upto(rs, nsquares);
+            int n;
             struct rect r;
 
-            /*
-             * Pick a random rectangle.
-             */
-            i = random_upto(rs, list->n);
-            r = list->rects[i];
-
-            /*
-             * Place it.
-             */
-            place_rect(params2, grid, r);
-
-            /*
-             * Winnow the list by removing any rectangles which
-             * overlap this one.
-             */
-            m = 0;
-            for (i = 0; i < list->n; i++) {
-                struct rect s = list->rects[i];
-                if (s.x+s.w <= r.x || r.x+r.w <= s.x ||
-                    s.y+s.h <= r.y || r.y+r.h <= s.y)
-                    list->rects[m++] = s;
+            x = params2->w;
+            y = params2->h;
+            for (y = 0; y < params2->h; y++) {
+                for (x = 0; x < params2->w; x++) {
+                    if (index(params2, grid, x, y) == -1 && square-- == 0)
+                        break;
+                }
+                if (x < params2->w)
+                    break;
             }
-            list->n = m;
+            assert(x < params2->w && y < params2->h);
+
+            /*
+             * Now see how many rectangles fit around this one.
+             */
+            enum_rects(params2, grid, NULL, &n, x, y, enum_rects_scratch);
+
+            if (!n) {
+                /*
+                 * There are no possible rectangles covering this
+                 * square, meaning it must be a singleton. Mark it
+                 * -2 so we know not to keep trying.
+                 */
+                index(params2, grid, x, y) = -2;
+                nsquares--;
+            } else {
+                /*
+                 * Pick one at random.
+                 */
+                n = random_upto(rs, n);
+                enum_rects(params2, grid, &r, &n, x, y, enum_rects_scratch);
+
+                /*
+                 * Place it.
+                 */
+                place_rect(params2, grid, r);
+                nsquares -= r.w * r.h;
+            }
         }
 
-        free_rectlist(list);
+        sfree(enum_rects_scratch);
 
         /*
          * Deal with singleton spaces remaining in the grid, one by
