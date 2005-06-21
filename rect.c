@@ -101,10 +101,8 @@ static int game_fetch_preset(int i, char **name, game_params **params)
       case 2: w = 11, h = 11; break;
       case 3: w = 13, h = 13; break;
       case 4: w = 15, h = 15; break;
-#ifndef SLOW_SYSTEM
       case 5: w = 17, h = 17; break;
       case 6: w = 19, h = 19; break;
-#endif
       default: return FALSE;
     }
 
@@ -749,7 +747,7 @@ static int rect_solver(int w, int h, int nrects, struct numberdata *numbers,
                 int placement;
                 int number;
             } *rpns = NULL;
-            int nrpns = 0, rpnsize = 0;
+            size_t nrpns = 0, rpnsize = 0;
             int j;
 
             for (i = 0; i < nrects; i++) {
