@@ -334,6 +334,57 @@ void draw_polygon(frontend *fe, int *coords, int npoints,
     sfree(points);
 }
 
+struct blitter {
+    GdkPixmap *pixmap;
+    int w, h, x, y;
+};
+
+blitter *blitter_new(int w, int h)
+{
+    /*
+     * We can't create the pixmap right now, because fe->window
+     * might not yet exist. So we just cache w and h and create it
+     * during the firs call to blitter_save.
+     */
+    blitter *bl = snew(blitter);
+    bl->pixmap = NULL;
+    bl->w = w;
+    bl->h = h;
+    return bl;
+}
+
+void blitter_free(blitter *bl)
+{
+    if (bl->pixmap)
+        gdk_pixmap_unref(bl->pixmap);
+    sfree(bl);
+}
+
+void blitter_save(frontend *fe, blitter *bl, int x, int y)
+{
+    if (!bl->pixmap)
+        bl->pixmap = gdk_pixmap_new(fe->area->window, bl->w, bl->h, -1);
+    bl->x = x;
+    bl->y = y;
+    gdk_draw_pixmap(bl->pixmap,
+                    fe->area->style->fg_gc[GTK_WIDGET_STATE(fe->area)],
+                    fe->pixmap,
+                    x, y, 0, 0, bl->w, bl->h);
+}
+
+void blitter_load(frontend *fe, blitter *bl, int x, int y)
+{
+    assert(bl->pixmap);
+    if (x == BLITTER_FROMSAVED && y == BLITTER_FROMSAVED) {
+        x = bl->x;
+        y = bl->y;
+    }
+    gdk_draw_pixmap(fe->pixmap,
+                    fe->area->style->fg_gc[GTK_WIDGET_STATE(fe->area)],
+                    bl->pixmap,
+                    0, 0, x, y, bl->w, bl->h);
+}
+
 void draw_update(frontend *fe, int x, int y, int w, int h)
 {
     if (fe->bbox_l > x  ) fe->bbox_l = x  ;

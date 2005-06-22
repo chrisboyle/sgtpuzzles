@@ -90,6 +90,12 @@ struct cfg_aux {
     int ctlid;
 };
 
+struct blitter {
+    HBITMAP bitmap;
+    frontend *fe;
+    int x, y, w, h;
+};
+
 struct frontend {
     midend_data *me;
     HWND hwnd, statusbar, cfgbox;
@@ -147,6 +153,82 @@ void status_bar(frontend *fe, char *text)
     } else {
 	sfree(rewritten);
     }
+}
+
+blitter *blitter_new(int w, int h)
+{
+    blitter *bl = snew(blitter);
+
+    memset(bl, 0, sizeof(blitter));
+    bl->w = w;
+    bl->h = h;
+    bl->bitmap = 0;
+
+    return bl;
+}
+
+void blitter_free(blitter *bl)
+{
+    if (bl->bitmap) DeleteObject(bl->bitmap);
+    sfree(bl);
+}
+
+static void blitter_mkbitmap(frontend *fe, blitter *bl)
+{
+    HDC hdc = GetDC(fe->hwnd);
+    bl->bitmap = CreateCompatibleBitmap(hdc, bl->w, bl->h);
+    ReleaseDC(fe->hwnd, hdc);
+}
+
+/* BitBlt(dstDC, dstX, dstY, dstW, dstH, srcDC, srcX, srcY, dType) */
+
+void blitter_save(frontend *fe, blitter *bl, int x, int y)
+{
+    HDC hdc_win, hdc_blit;
+    HBITMAP prev_blit;
+
+    if (!bl->bitmap) blitter_mkbitmap(fe, bl);
+
+    bl->x = x; bl->y = y;
+
+    hdc_win = GetDC(fe->hwnd);
+    hdc_blit = CreateCompatibleDC(hdc_win);
+    if (!hdc_blit) fatal("hdc_blit failed: 0x%x", GetLastError());
+
+    prev_blit = SelectObject(hdc_blit, bl->bitmap);
+    if (prev_blit == NULL || prev_blit == HGDI_ERROR)
+        fatal("SelectObject for hdc_main failed: 0x%x", GetLastError());
+
+    if (!BitBlt(hdc_blit, 0, 0, bl->w, bl->h,
+                fe->hdc_bm, x, y, SRCCOPY))
+        fatal("BitBlt failed: 0x%x", GetLastError());
+
+    SelectObject(hdc_blit, prev_blit);
+    DeleteDC(hdc_blit);
+    ReleaseDC(fe->hwnd, hdc_win);
+}
+
+void blitter_load(frontend *fe, blitter *bl, int x, int y)
+{
+    HDC hdc_win, hdc_blit;
+    HBITMAP prev_blit;
+
+    assert(bl->bitmap); /* we should always have saved before loading */
+
+    if (x == BLITTER_FROMSAVED) x = bl->x;
+    if (y == BLITTER_FROMSAVED) y = bl->y;
+
+    hdc_win = GetDC(fe->hwnd);
+    hdc_blit = CreateCompatibleDC(hdc_win);
+
+    prev_blit = SelectObject(hdc_blit, bl->bitmap);
+
+    BitBlt(fe->hdc_bm, x, y, bl->w, bl->h,
+           hdc_blit, 0, 0, SRCCOPY);
+
+    SelectObject(hdc_blit, prev_blit);
+    DeleteDC(hdc_blit);
+    ReleaseDC(fe->hwnd, hdc_win);
 }
 
 void frontend_default_colour(frontend *fe, float *output)

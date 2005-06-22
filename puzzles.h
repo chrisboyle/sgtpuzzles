@@ -74,6 +74,7 @@ typedef struct game_aux_info game_aux_info;
 typedef struct game_ui game_ui;
 typedef struct game_drawstate game_drawstate;
 typedef struct game game;
+typedef struct blitter blitter;
 
 #define ALIGN_VNORMAL 0x000
 #define ALIGN_VCENTRE 0x100
@@ -145,6 +146,16 @@ void deactivate_timer(frontend *fe);
 void activate_timer(frontend *fe);
 void status_bar(frontend *fe, char *text);
 void get_random_seed(void **randseed, int *randseedsize);
+
+blitter *blitter_new(int w, int h);
+void blitter_free(blitter *bl);
+/* save puts the portion of the current display with top-left corner
+ * (x,y) to the blitter. load puts it back again to the specified
+ * coords, or else wherever it was saved from
+ * (if x = y = BLITTER_FROMSAVED). */
+void blitter_save(frontend *fe, blitter *bl, int x, int y);
+#define BLITTER_FROMSAVED (-1)
+void blitter_load(frontend *fe, blitter *bl, int x, int y);
 
 /*
  * midend.c

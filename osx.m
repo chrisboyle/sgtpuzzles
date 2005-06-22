@@ -1232,6 +1232,48 @@ void draw_text(frontend *fe, int x, int y, int fonttype, int fontsize,
 
     [string drawAtPoint:point withAttributes:attr];
 }
+struct blitter {
+    int w, h;
+    int x, y;
+    NSImage *img;
+};
+blitter *blitter_new(int w, int h)
+{
+    blitter *bl = snew(blitter);
+    bl->x = bl->y = -1;
+    bl->w = w;
+    bl->h = h;
+    bl->img = [[NSImage alloc] initWithSize:NSMakeSize(w, h)];
+    [bl->img setFlipped:YES];
+    return bl;
+}
+void blitter_free(blitter *bl)
+{
+    [bl->img release];
+    sfree(bl);
+}
+void blitter_save(frontend *fe, blitter *bl, int x, int y)
+{
+    [fe->image unlockFocus];
+    [bl->img lockFocus];
+    [fe->image drawInRect:NSMakeRect(0, 0, bl->w, bl->h)
+	fromRect:NSMakeRect(x, y, bl->w, bl->h)
+	operation:NSCompositeCopy fraction:1.0];
+    [bl->img unlockFocus];
+    [fe->image lockFocus];
+    bl->x = x;
+    bl->y = y;
+}
+void blitter_load(frontend *fe, blitter *bl, int x, int y)
+{
+    if (x == BLITTER_FROMSAVED && y == BLITTER_FROMSAVED) {
+        x = bl->x;
+        y = bl->y;
+    }
+    [bl->img drawInRect:NSMakeRect(x, y, bl->w, bl->h)
+	fromRect:NSMakeRect(0, 0, bl->w, bl->h)
+	operation:NSCompositeCopy fraction:1.0];
+}
 void draw_update(frontend *fe, int x, int y, int w, int h)
 {
     [fe->view setNeedsDisplayInRect:NSMakeRect(x,y,w,h)];
