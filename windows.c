@@ -1,14 +1,5 @@
 /*
  * windows.c: Windows front end for my puzzle collection.
- * 
- * TODO:
- * 
- *  - Figure out what to do if a puzzle requests a size bigger than
- *    the screen will take. In principle we could put scrollbars in
- *    the window, although that would be pretty horrid. Another
- *    option is to detect in advance that this will be a problem -
- *    we can probably tell this using midend_size() before actually
- *    generating the puzzle - and simply refuse to do it.
  */
 
 #include <windows.h>
