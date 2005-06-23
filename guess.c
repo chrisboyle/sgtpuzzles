@@ -639,9 +639,8 @@ static void game_size(game_params *params, game_drawstate *ds,
     ds->pegrad  = (ds->pegsz -1)/2; /* radius of peg to fit in pegsz (which is 2r+1) */
     ds->hintrad = (ds->hintsz-1)/2;
 
-    *x = (int)((double)ds->pegsz * hmul);
-    *y = (int)((double)ds->pegsz * vmul);
-
+    *x = (int)ceil((double)ds->pegsz * hmul);
+    *y = (int)ceil((double)ds->pegsz * vmul);
     ds->w = *x; ds->h = *y;
 
     colh = ((ds->pegsz + ds->gapsz) * params->ncolours) - ds->gapsz;
@@ -1043,7 +1042,7 @@ static int game_timing_state(game_state *state)
 #endif
 
 const struct game thegame = {
-    "Guess", "games.guess",
+    "Guess", NULL,
     default_params,
     game_fetch_preset,
     decode_params,
