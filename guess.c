@@ -820,7 +820,7 @@ static void draw_peg(frontend *fe, game_drawstate *ds, int cx, int cy,
      * behind it.
      */
     if (!moving)
-	draw_rect(fe, cx, cy, PEGSZ, PEGSZ, COL_BACKGROUND);
+	draw_rect(fe, cx-1, cy-1, PEGSZ+2, PEGSZ+2, COL_BACKGROUND);
     if (PEGRAD > 0) {
         draw_circle(fe, cx+PEGRAD, cy+PEGRAD, PEGRAD, 1, COL_EMPTY + col);
         draw_circle(fe, cx+PEGRAD, cy+PEGRAD, PEGRAD, 0, COL_EMPTY + col);
@@ -878,7 +878,7 @@ static void hint_redraw(frontend *fe, game_drawstate *ds, int guess,
                 rowy += HINTOFF;
             }
 	    /* erase background for antialiasing platforms */
-	    draw_rect(fe, rowx, rowy, HINTSZ, HINTSZ, COL_BACKGROUND);
+	    draw_rect(fe, rowx-1, rowy-1, HINTSZ+2, HINTSZ+2, COL_BACKGROUND);
             if (HINTRAD > 0) {
                 draw_circle(fe, rowx+HINTRAD, rowy+HINTRAD, HINTRAD, 1, col);
                 draw_circle(fe, rowx+HINTRAD, rowy+HINTRAD, HINTRAD, 0, col);
