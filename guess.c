@@ -221,12 +221,9 @@ static pegrow new_pegrow(int npegs)
 
 static pegrow dup_pegrow(pegrow pegs)
 {
-    pegrow newpegs = snew(struct pegrow);
+    pegrow newpegs = new_pegrow(pegs->npegs);
 
-    newpegs->npegs = pegs->npegs;
-    newpegs->pegs = snewn(newpegs->npegs, int);
     memcpy(newpegs->pegs, pegs->pegs, newpegs->npegs * sizeof(int));
-    newpegs->feedback = snewn(newpegs->npegs, int);
     memcpy(newpegs->feedback, pegs->feedback, newpegs->npegs * sizeof(int));
 
     return newpegs;
@@ -325,6 +322,7 @@ static game_state *dup_game(game_state *state)
     int i;
 
     *ret = *state;
+
     ret->guesses = snewn(state->params.nguesses, pegrow);
     for (i = 0; i < state->params.nguesses; i++)
 	ret->guesses[i] = dup_pegrow(state->guesses[i]);
@@ -463,8 +461,9 @@ static int is_markable(game_params *params, pegrow pegs)
     nrequired = params->allow_blank ? 1 : params->npegs;
 
     for (i = 0; i < params->npegs; i++) {
-        if (pegs->pegs[i] > 0) {
-            colcount->pegs[pegs->pegs[i]]++;
+        int c = pegs->pegs[i];
+        if (c > 0) {
+            colcount->pegs[c-1]++;
             nset++;
         }
     }
