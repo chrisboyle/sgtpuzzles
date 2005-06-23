@@ -1172,6 +1172,26 @@ void draw_polygon(frontend *fe, int *coords, int npoints,
     else
 	[path stroke];
 }
+void draw_circle(frontend *fe, int cx, int cy, int radius,
+                 int fill, int colour)
+{
+    NSBezierPath *path = [NSBezierPath bezierPath];
+
+    [[NSGraphicsContext currentContext] setShouldAntialias:YES];
+
+    assert(colour >= 0 && colour < fe->ncolours);
+    [fe->colours[colour] set];
+
+    [path appendBezierPathWithArcWithCenter:NSMakePoint(cx + 0.5, cy + 0.5)
+        radius:radius startAngle:0.0 endAngle:360.0];
+
+    [path closePath];
+
+    if (fill)
+	[path fill];
+    else
+	[path stroke];
+}
 void draw_line(frontend *fe, int x1, int y1, int x2, int y2, int colour)
 {
     NSBezierPath *path = [NSBezierPath bezierPath];

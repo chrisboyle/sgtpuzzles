@@ -334,6 +334,15 @@ void draw_polygon(frontend *fe, int *coords, int npoints,
     sfree(points);
 }
 
+void draw_circle(frontend *fe, int cx, int cy, int radius,
+                 int fill, int colour)
+{
+    gdk_gc_set_foreground(fe->gc, &fe->colours[colour]);
+    gdk_draw_arc(fe->pixmap, fe->gc, fill,
+                 cx - radius, cy - radius,
+                 2 * radius, 2 * radius, 0, 360 * 64);
+}
+
 struct blitter {
     GdkPixmap *pixmap;
     int w, h, x, y;
