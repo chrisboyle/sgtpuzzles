@@ -488,6 +488,8 @@ static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
 {
     int over_col = 0;           /* one-indexed */
     int over_guess = -1;        /* zero-indexed */
+    int over_past_guess_y = -1; /* zero-indexed */
+    int over_past_guess_x = -1; /* zero-indexed */
     int over_hint = 0;          /* zero or one */
     game_state *ret = NULL;
 
@@ -506,9 +508,14 @@ static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
         } else {
             over_hint = 1;
         }
+    } else if (x >= guess_ox &&
+               y >= GUESS_OY && y < guess_oy) {
+        over_past_guess_y = (y - GUESS_OY) / PEGOFF;
+        over_past_guess_x = (x - guess_ox) / PEGOFF;
     }
-    debug(("make_move: over_col %d, over_guess %d, over_hint %d",
-           over_col, over_guess, over_hint));
+    debug(("make_move: over_col %d, over_guess %d, over_hint %d,"
+           " over_past_guess %d", over_col, over_guess, over_hint,
+           over_past_guess));
 
     assert(ds->blit_peg);
 
@@ -522,6 +529,13 @@ static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
             if (col) {
                 ui->drag_col = col;
                 debug(("Start dragging from a guess"));
+            }
+        } else if (over_past_guess_y > -1) {
+            int col =
+                from->guesses[over_past_guess_y]->pegs[over_past_guess_x];
+            if (col) {
+                ui->drag_col = col;
+                debug(("Start dragging from a past guess"));
             }
         }
         if (ui->drag_col) {
@@ -666,44 +680,54 @@ static float *game_colours(frontend *fe, game_state *state, int *ncolours)
 
     frontend_default_colour(fe, &ret[COL_BACKGROUND * 3]);
 
-    ret[COL_1 * 3 + 0] = 0.0F;
+    /* red */
+    ret[COL_1 * 3 + 0] = 1.0F;
     ret[COL_1 * 3 + 1] = 0.0F;
-    ret[COL_1 * 3 + 2] = 1.0F;
+    ret[COL_1 * 3 + 2] = 0.0F;
 
-    ret[COL_2 * 3 + 0] = 0.0F;
-    ret[COL_2 * 3 + 1] = 0.5F;
+    /* yellow (toned down a bit due to pale grey background) */
+    ret[COL_2 * 3 + 0] = 0.7F;
+    ret[COL_2 * 3 + 1] = 0.7F;
     ret[COL_2 * 3 + 2] = 0.0F;
 
-    ret[COL_3 * 3 + 0] = 1.0F;
-    ret[COL_3 * 3 + 1] = 0.0F;
+    /* green (also toned down) */
+    ret[COL_3 * 3 + 0] = 0.0F;
+    ret[COL_3 * 3 + 1] = 0.5F;
     ret[COL_3 * 3 + 2] = 0.0F;
 
-    ret[COL_4 * 3 + 0] = 1.0F;
-    ret[COL_4 * 3 + 1] = 1.0F;
-    ret[COL_4 * 3 + 2] = 0.0F;
+    /* blue */
+    ret[COL_4 * 3 + 0] = 0.0F;
+    ret[COL_4 * 3 + 1] = 0.0F;
+    ret[COL_4 * 3 + 2] = 1.0F;
 
+    /* orange */
     ret[COL_5 * 3 + 0] = 1.0F;
-    ret[COL_5 * 3 + 1] = 0.0F;
-    ret[COL_5 * 3 + 2] = 1.0F;
+    ret[COL_5 * 3 + 1] = 0.5F;
+    ret[COL_5 * 3 + 2] = 0.0F;
 
-    ret[COL_6 * 3 + 0] = 0.0F;
-    ret[COL_6 * 3 + 1] = 1.0F;
-    ret[COL_6 * 3 + 2] = 1.0F;
+    /* purple */
+    ret[COL_6 * 3 + 0] = 0.5F;
+    ret[COL_6 * 3 + 1] = 0.0F;
+    ret[COL_6 * 3 + 2] = 0.7F;
 
-    ret[COL_7 * 3 + 0] = 0.5F;
-    ret[COL_7 * 3 + 1] = 0.5F;
-    ret[COL_7 * 3 + 2] = 1.0F;
+    /* brown */
+    ret[COL_7 * 3 + 0] = 0.4F;
+    ret[COL_7 * 3 + 1] = 0.2F;
+    ret[COL_7 * 3 + 2] = 0.2F;
 
-    ret[COL_8 * 3 + 0] = 0.5F;
-    ret[COL_8 * 3 + 1] = 1.0F;
-    ret[COL_8 * 3 + 2] = 0.5F;
+    /* light blue */
+    ret[COL_8 * 3 + 0] = 0.4F;
+    ret[COL_8 * 3 + 1] = 0.7F;
+    ret[COL_8 * 3 + 2] = 1.0F;
 
-    ret[COL_9 * 3 + 0] = 1.0F;
-    ret[COL_9 * 3 + 1] = 0.5F;
+    /* light green */
+    ret[COL_9 * 3 + 0] = 0.5F;
+    ret[COL_9 * 3 + 1] = 0.8F;
     ret[COL_9 * 3 + 2] = 0.5F;
 
+    /* pink */
     ret[COL_10 * 3 + 0] = 1.0F;
-    ret[COL_10 * 3 + 1] = 1.0F;
+    ret[COL_10 * 3 + 1] = 0.6F;
     ret[COL_10 * 3 + 2] = 1.0F;
 
     ret[COL_FRAME * 3 + 0] = 0.0F;
@@ -730,7 +754,7 @@ static float *game_colours(frontend *fe, game_state *state, int *ncolours)
     ret[COL_EMPTY * 3 + 1] = ret[COL_BACKGROUND * 3 + 1] * 2.0 / 3.0;
     ret[COL_EMPTY * 3 + 2] = ret[COL_BACKGROUND * 3 + 2] * 2.0 / 3.0;
 
-    ret[COL_CORRECTPLACE*3 + 0] = 1.0F;
+    ret[COL_CORRECTPLACE*3 + 0] = 0.0F;
     ret[COL_CORRECTPLACE*3 + 1] = 0.0F;
     ret[COL_CORRECTPLACE*3 + 2] = 0.0F;
 
