@@ -1076,7 +1076,7 @@ after marking.
 Alternatively, with the keyboard, the up and down cursor keys can be
 used to select a peg colour, the left and right keys to select a
 peg position, and the space bar to place a peg of the selected colour
-in the chosen position.
+in the chosen position. \q{H} adds a hold marker.
 
 When the guess is complete, the feedback pegs will be highlighted;
 clicking on these (or moving the peg cursor to them with the arrow keys
