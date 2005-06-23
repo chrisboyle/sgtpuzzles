@@ -15,7 +15,7 @@
 
 enum {
     COL_BACKGROUND,
-    COL_HIGHLIGHT, COL_LOWLIGHT, COL_FRAME, COL_FLASH, COL_HOLD,
+    COL_FRAME, COL_CURSOR, COL_FLASH, COL_HOLD,
     COL_EMPTY, /* must be COL_1 - 1 */
     COL_1, COL_2, COL_3, COL_4, COL_5, COL_6, COL_7, COL_8, COL_9, COL_10,
     COL_CORRECTPLACE, COL_CORRECTCOLOUR,
@@ -24,6 +24,7 @@ enum {
 
 struct game_params {
     int ncolours, npegs, nguesses;
+    int allow_blank, allow_multiple;
 };
 
 #define FEEDBACK_CORRECTPLACE  1
@@ -52,6 +53,9 @@ static game_params *default_params(void)
     ret->ncolours = 6;
     ret->npegs = 4;
     ret->nguesses = 10;
+
+    ret->allow_blank = 0;
+    ret->allow_multiple = 1;
 
     return ret;
 }
@@ -97,6 +101,22 @@ static void decode_params(game_params *params, char const *string)
 	    while (*p && isdigit((unsigned char)*p)) p++;
 	    break;
 
+        case 'b':
+            params->allow_blank = 1;
+            break;
+
+        case 'B':
+            params->allow_blank = 0;
+            break;
+
+        case 'm':
+            params->allow_multiple = 1;
+            break;
+
+        case 'M':
+            params->allow_multiple = 0;
+            break;
+
 	default:
             ;
 	}
@@ -107,7 +127,9 @@ static char *encode_params(game_params *params, int full)
 {
     char data[256];
 
-    sprintf(data, "c%dp%dg%d", params->ncolours, params->npegs, params->nguesses);
+    sprintf(data, "c%dp%dg%d%s%s",
+            params->ncolours, params->npegs, params->nguesses,
+            params->allow_blank ? "b" : "B", params->allow_multiple ? "m" : "M");
 
     return dupstr(data);
 }
@@ -117,30 +139,40 @@ static config_item *game_configure(game_params *params)
     config_item *ret;
     char buf[80];
 
-    ret = snewn(4, config_item);
+    ret = snewn(6, config_item);
 
-    ret[0].name = "No. of colours";
+    ret[0].name = "Colours";
     ret[0].type = C_STRING;
     sprintf(buf, "%d", params->ncolours);
     ret[0].sval = dupstr(buf);
     ret[0].ival = 0;
 
-    ret[1].name = "No. of pegs per row";
+    ret[1].name = "Pegs per guess";
     ret[1].type = C_STRING;
     sprintf(buf, "%d", params->npegs);
     ret[1].sval = dupstr(buf);
     ret[1].ival = 0;
 
-    ret[2].name = "No. of guesses";
+    ret[2].name = "Guesses";
     ret[2].type = C_STRING;
     sprintf(buf, "%d", params->nguesses);
     ret[2].sval = dupstr(buf);
     ret[2].ival = 0;
 
-    ret[3].name = NULL;
-    ret[3].type = C_END;
+    ret[3].name = "Allow blanks";
+    ret[3].type = C_BOOLEAN;
     ret[3].sval = NULL;
-    ret[3].ival = 0;
+    ret[3].ival = params->allow_blank;
+
+    ret[4].name = "Allow duplicates";
+    ret[4].type = C_BOOLEAN;
+    ret[4].sval = NULL;
+    ret[4].ival = params->allow_multiple;
+
+    ret[5].name = NULL;
+    ret[5].type = C_END;
+    ret[5].sval = NULL;
+    ret[5].ival = 0;
 
     return ret;
 }
@@ -152,6 +184,9 @@ static game_params *custom_params(config_item *cfg)
     ret->ncolours = atoi(cfg[0].sval);
     ret->npegs = atoi(cfg[1].sval);
     ret->nguesses = atoi(cfg[2].sval);
+
+    ret->allow_blank = cfg[3].ival;
+    ret->allow_multiple = cfg[4].ival;
 
     return ret;
 }
@@ -166,6 +201,8 @@ static char *validate_params(game_params *params)
 	return "Too many colours";
     if (params->nguesses < 1)
 	return "Must have at least one guess";
+    if (!params->allow_multiple && params->ncolours < params->npegs)
+        return "Disallowing multiple colours requires at least as many colours as pegs";
     return NULL;
 }
 
@@ -213,14 +250,21 @@ static char *new_game_desc(game_params *params, random_state *rs,
 {
     unsigned char *bmp = snewn(params->npegs, unsigned char);
     char *ret;
-    int i;
+    int i, c;
+    pegrow colcount = new_pegrow(params->ncolours);
 
-    for (i = 0; i < params->npegs; i++)
-        bmp[i] = (unsigned char)(random_upto(rs, params->ncolours)+1);
+    for (i = 0; i < params->npegs; i++) {
+newcol:
+        c = random_upto(rs, params->ncolours);
+        if (!params->allow_multiple && colcount->pegs[c]) goto newcol;
+        colcount->pegs[c]++;
+        bmp[i] = (unsigned char)(c+1);
+    }
     obfuscate_bitmap(bmp, params->npegs*8, FALSE);
 
     ret = bin2hex(bmp, params->npegs);
     sfree(bmp);
+    free_pegrow(colcount);
     return ret;
 }
 
@@ -231,10 +275,24 @@ static void game_free_aux_info(game_aux_info *aux)
 
 static char *validate_desc(game_params *params, char *desc)
 {
-    /* desc is just an (obfuscated) bitmap of the solution; all we
-     * care is that it's the correct length. */
+    unsigned char *bmp;
+    int i;
+
+    /* desc is just an (obfuscated) bitmap of the solution; check that
+     * it's the correct length and (when unobfuscated) contains only
+     * sensible colours. */
     if (strlen(desc) != params->npegs * 2)
         return "Game description is wrong length";
+    bmp = hex2bin(desc, params->npegs);
+    obfuscate_bitmap(bmp, params->npegs*8, TRUE);
+    for (i = 0; i < params->npegs; i++) {
+        if (bmp[i] < 1 || bmp[i] > params->ncolours) {
+            sfree(bmp);
+            return "Game description is corrupted";
+        }
+    }
+    sfree(bmp);
+
     return NULL;
 }
 
@@ -308,6 +366,7 @@ struct game_ui {
     int display_cur, markable;
 
     int drag_col, drag_x, drag_y; /* x and y are *center* of peg! */
+    int drag_opeg; /* peg index, if dragged from a peg (from current guess), otherwise -1 */
 };
 
 static game_ui *new_ui(game_state *state)
@@ -317,6 +376,7 @@ static game_ui *new_ui(game_state *state)
     ui->curr_pegs = new_pegrow(state->params.npegs);
     ui->holds = snewn(state->params.npegs, int);
     memset(ui->holds, 0, sizeof(int)*state->params.npegs);
+    ui->drag_opeg = -1;
     return ui;
 }
 
@@ -395,18 +455,36 @@ struct game_drawstate {
     int drag_col, blit_ox, blit_oy;
 };
 
-static void set_peg(game_ui *ui, int peg, int col)
+static int is_markable(game_params *params, pegrow pegs)
 {
-    int i;
+    int i, nset = 0, nrequired, ret = 0;
+    pegrow colcount = new_pegrow(params->ncolours);
 
-    ui->curr_pegs->pegs[peg] = col;
+    nrequired = params->allow_blank ? 1 : params->npegs;
 
-    /* set to 'markable' if all of our pegs are filled. */
-    for (i = 0; i < ui->curr_pegs->npegs; i++) {
-        if (ui->curr_pegs->pegs[i] == 0) return;
+    for (i = 0; i < params->npegs; i++) {
+        if (pegs->pegs[i] > 0) {
+            colcount->pegs[pegs->pegs[i]]++;
+            nset++;
+        }
     }
-    debug(("UI is markable."));
-    ui->markable = 1;
+    if (nset < nrequired) goto done;
+
+    if (!params->allow_multiple) {
+        for (i = 0; i < params->ncolours; i++) {
+            if (colcount->pegs[i] > 1) goto done;
+        }
+    }
+    ret = 1;
+done:
+    free_pegrow(colcount);
+    return ret;
+}
+
+static void set_peg(game_params *params, game_ui *ui, int peg, int col)
+{
+    ui->curr_pegs->pegs[peg] = col;
+    ui->markable = is_markable(params, ui->curr_pegs);
 }
 
 static int mark_pegs(pegrow guess, pegrow solution, int ncols)
@@ -474,11 +552,9 @@ static game_state *mark_move(game_state *from, game_ui *ui)
         }
         if (to->solved) ui->holds[i] = 0;
     }
-    if (ncleared) {
-        ui->markable = 0;
-        if (ui->peg_cur == to->solution->npegs)
-            ui->peg_cur--;
-    }
+    ui->markable = is_markable(&from->params, ui->curr_pegs);
+    if (!ui->markable && ui->peg_cur == to->solution->npegs)
+        ui->peg_cur--;
 
     return to;
 }
@@ -514,8 +590,8 @@ static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
         over_past_guess_x = (x - guess_ox) / PEGOFF;
     }
     debug(("make_move: over_col %d, over_guess %d, over_hint %d,"
-           " over_past_guess %d", over_col, over_guess, over_hint,
-           over_past_guess));
+           " over_past_guess (%d,%d)", over_col, over_guess, over_hint,
+           over_past_guess_x, over_past_guess_y));
 
     assert(ds->blit_peg);
 
@@ -523,11 +599,13 @@ static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
     if (button == LEFT_BUTTON) {
         if (over_col > 0) {
             ui->drag_col = over_col;
+            ui->drag_opeg = -1;
             debug(("Start dragging from colours"));
         } else if (over_guess > -1) {
             int col = ui->curr_pegs->pegs[over_guess];
             if (col) {
                 ui->drag_col = col;
+                ui->drag_opeg = over_guess;
                 debug(("Start dragging from a guess"));
             }
         } else if (over_past_guess_y > -1) {
@@ -535,6 +613,7 @@ static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
                 from->guesses[over_past_guess_y]->pegs[over_past_guess_x];
             if (col) {
                 ui->drag_col = col;
+                ui->drag_opeg = -1;
                 debug(("Start dragging from a past guess"));
             }
         }
@@ -554,9 +633,16 @@ static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
         if (over_guess > -1) {
             debug(("Dropping colour %d onto guess peg %d",
                    ui->drag_col, over_guess));
-            set_peg(ui, over_guess, ui->drag_col);
+            set_peg(&from->params, ui, over_guess, ui->drag_col);
+        } else {
+            if (ui->drag_opeg > -1) {
+                debug(("Removing colour %d from peg %d",
+                       ui->drag_col, ui->drag_opeg));
+                set_peg(&from->params, ui, ui->drag_opeg, 0);
+            }
         }
         ui->drag_col = 0;
+        ui->drag_opeg = -1;
         debug(("Stop dragging."));
         ret = from;
     } else if (button == RIGHT_BUTTON) {
@@ -595,7 +681,7 @@ static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
         if (ui->peg_cur == from->params.npegs) {
             ret = mark_move(from, ui);
         } else {
-            set_peg(ui, ui->peg_cur, ui->colour_cur+1);
+            set_peg(&from->params, ui, ui->peg_cur, ui->colour_cur+1);
             ret = from;
         }
     }
@@ -734,13 +820,9 @@ static float *game_colours(frontend *fe, game_state *state, int *ncolours)
     ret[COL_FRAME * 3 + 1] = 0.0F;
     ret[COL_FRAME * 3 + 2] = 0.0F;
 
-    ret[COL_HIGHLIGHT * 3 + 0] = 1.0F;
-    ret[COL_HIGHLIGHT * 3 + 1] = 1.0F;
-    ret[COL_HIGHLIGHT * 3 + 2] = 1.0F;
-
-    ret[COL_LOWLIGHT * 3 + 0] = ret[COL_BACKGROUND * 3 + 0] * 2.0 / 3.0;
-    ret[COL_LOWLIGHT * 3 + 1] = ret[COL_BACKGROUND * 3 + 1] * 2.0 / 3.0;
-    ret[COL_LOWLIGHT * 3 + 2] = ret[COL_BACKGROUND * 3 + 2] * 2.0 / 3.0;
+    ret[COL_CURSOR * 3 + 0] = 0.0F;
+    ret[COL_CURSOR * 3 + 1] = 0.0F;
+    ret[COL_CURSOR * 3 + 2] = 0.0F;
 
     ret[COL_FLASH * 3 + 0] = 0.5F;
     ret[COL_FLASH * 3 + 1] = 1.0F;
@@ -924,19 +1006,11 @@ static void cur_redraw(frontend *fe, game_drawstate *ds,
                        int x, int y, int erase)
 {
     int cgap = ds->gapsz / 2;
-    int x1, y1, x2, y2, hi, lo;
 
-    x1 = x-cgap; x2 = x+PEGSZ+cgap;
-    y1 = y-cgap; y2 = y+PEGSZ+cgap;
-    hi = erase ? COL_BACKGROUND : COL_HIGHLIGHT;
-    lo = erase ? COL_BACKGROUND : COL_LOWLIGHT;
+    draw_circle(fe, x+PEGRAD, y+PEGRAD, PEGRAD+cgap, 0,
+                erase ? COL_BACKGROUND : COL_CURSOR);
 
-    draw_line(fe, x1, y1, x2, y1, hi);
-    draw_line(fe, x2, y1, x2, y2, lo);
-    draw_line(fe, x2, y2, x1, y2, lo);
-    draw_line(fe, x1, y2, x1, y1, hi);
-
-    draw_update(fe, x1, y1, x2, y2);
+    draw_update(fe, x-cgap, y-cgap, x+PEGSZ+cgap, y+PEGSZ+cgap);
 }
 
 static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,

@@ -1038,6 +1038,80 @@ causes every square to flip itself and its four immediate neighbours
 the game is different every time.
 
 
+\C{guess} \i{Guess}
+
+\cfg{winhelp-topic}{games.guess}
+
+You have a set of coloured pegs, and have to reproduce a
+predetermined sequence of them (chosen by the computer) within a
+certain number of guesses. 
+
+Each guess gets marked with the number of correctly-coloured pegs
+in the correct places (in red), and also the number of
+correctly-coloured pegs in the wrong places. 
+
+This game is also known (and marketed, by Hasbro, mainly) as
+a board game `Mastermind', with 6 colours, 4 pegs per row, and 10 guesses.
+However, this version allows custom settings of number of colours
+(up to 10), number of pegs per row, and number of guesses. 
+
+\H{guess-controls} \i{Guess controls}
+
+\IM{Guess controls} controls, for Guess
+\IM{Guess controls} keys, for Guess
+\IM{Guess controls} shortcuts (keyboard), for Guess
+
+Drag a peg from the tray on the left-hand side to its required
+position in the current guess; pegs may also be dragged from the 
+current guess to copy them elsewhere.
+
+Right-clicking in the current guess adds a 'hold' marker; pegs
+that have hold markers will be automatically added to the next guess
+after marking.
+
+When the guess is complete, the feedback pegs will be highlighted;
+clicking on these will mark the current guess, copy any held pegs
+to the next guess, and move the 'current guess' marker.
+
+If you correctly position all the pegs the solution will be displayed
+below; if you run out of guesses (or select 'Solve...') the solution
+will also be revealed. 
+
+\H{guess-parameters} \I{parameters, for guess}Guess parameters
+
+These parameters are available from the \q{Custom...} option on the
+\q{Type} menu. The default game matches the parameters for the 
+board game 'Mastermind'. 
+
+\dt \e{Colours}
+
+\dd Number of colours the solution is chosen from; from 2 to 10
+(more is harder).
+
+\dt \e{Pegs per guess}
+
+\dd Number of pegs per guess (more is harder).
+
+\dt \e{Guesses}
+
+\dd Number of guesses you have to find the solution in (fewer is harder).
+
+\dt \e{Allow blanks}
+
+\dd Allows blank pegs to be given as part of a guess (makes it easier, because
+you know that those will never be counted as part of the solution). This
+is turned off by default. 
+
+Note that this doesn't allow blank pegs in the solution; if you really wanted
+that, use one extra colour.
+
+\dt \e{Allow duplicates}
+
+\dd Allows the solution (and the guesses) to contain colours more than once;
+this increases the search space (making things harder), and is turned on by
+default.
+
+
 \A{licence} \I{MIT licence}\ii{Licence}
 
 This software is \i{copyright} 2004-2005 Simon Tatham.
