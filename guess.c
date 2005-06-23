@@ -1156,7 +1156,7 @@ static int game_timing_state(game_state *state)
 #endif
 
 const struct game thegame = {
-    "Guess", NULL,
+    "Guess", "games.guess",
     default_params,
     game_fetch_preset,
     decode_params,
