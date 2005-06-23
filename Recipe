@@ -21,7 +21,7 @@ MINES    = mines tree234
 FLIP     = flip tree234
 
 ALL      = list NET NETSLIDE cube fifteen sixteen rect pattern solo twiddle
-         + MINES samegame FLIP
+         + MINES samegame FLIP guess
 
 net      : [X] gtk COMMON NET
 netslide : [X] gtk COMMON NETSLIDE
@@ -35,6 +35,7 @@ twiddle  : [X] gtk COMMON twiddle
 mines    : [X] gtk COMMON MINES
 samegame : [X] gtk COMMON samegame
 flip     : [X] gtk COMMON FLIP
+guess    : [X] gtk COMMON guess
 
 # The Windows Net shouldn't be called `net.exe' since Windows
 # already has a reasonably important utility program by that name!
@@ -50,6 +51,7 @@ twiddle  : [G] WINDOWS COMMON twiddle
 mines    : [G] WINDOWS COMMON MINES
 samegame : [G] WINDOWS COMMON samegame
 flip     : [G] WINDOWS COMMON FLIP
+guess    : [G] WINDOWS COMMON guess
 
 # Mac OS X unified application containing all the puzzles.
 Puzzles  : [MX] osx osx.icns osx-info.plist COMMON ALL

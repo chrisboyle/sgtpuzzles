@@ -205,6 +205,13 @@ char *dupstr(const char *s);
  * misc.c
  */
 void free_cfg(config_item *cfg);
+void obfuscate_bitmap(unsigned char *bmp, int bits, int decode);
+
+/* allocates output each time. len is always in bytes of binary data.
+ * May assert (or just go wrong) if lengths are unchecked. */
+char *bin2hex(const unsigned char *in, int inlen);
+unsigned char *hex2bin(const char *in, int outlen);
+
 
 /*
  * version.c
