@@ -808,8 +808,19 @@ static void game_free_drawstate(game_drawstate *ds)
     sfree(ds);
 }
 
-static void draw_peg(frontend *fe, game_drawstate *ds, int cx, int cy, int col)
+static void draw_peg(frontend *fe, game_drawstate *ds, int cx, int cy,
+		     int moving, int col)
 {
+    /*
+     * Some platforms antialias circles, which means we shouldn't
+     * overwrite a circle of one colour with a circle of another
+     * colour without erasing the background first. However, if the
+     * peg is the one being dragged, we don't erase the background
+     * because we _want_ it to alpha-blend nicely into whatever's
+     * behind it.
+     */
+    if (!moving)
+	draw_rect(fe, cx, cy, PEGSZ, PEGSZ, COL_BACKGROUND);
     if (PEGRAD > 0) {
         draw_circle(fe, cx+PEGRAD, cy+PEGRAD, PEGRAD, 1, COL_EMPTY + col);
         draw_circle(fe, cx+PEGRAD, cy+PEGRAD, PEGRAD, 0, COL_EMPTY + col);
@@ -838,7 +849,7 @@ static void guess_redraw(frontend *fe, game_drawstate *ds, int guess,
     for (i = 0; i < dest->npegs; i++) {
         scol = src ? src->pegs[i] : 0;
         if ((dest->pegs[i] != scol) || force)
-	    draw_peg(fe, ds, rowx + PEGOFF * i, rowy, scol);
+	    draw_peg(fe, ds, rowx + PEGOFF * i, rowy, FALSE, scol);
         dest->pegs[i] = scol;
     }
 }
@@ -866,6 +877,8 @@ static void hint_redraw(frontend *fe, game_drawstate *ds, int guess,
                 rowx += HINTOFF * (i - hintlen);
                 rowy += HINTOFF;
             }
+	    /* erase background for antialiasing platforms */
+	    draw_rect(fe, rowx, rowy, HINTSZ, HINTSZ, COL_BACKGROUND);
             if (HINTRAD > 0) {
                 draw_circle(fe, rowx+HINTRAD, rowy+HINTRAD, HINTRAD, 1, col);
                 draw_circle(fe, rowx+HINTRAD, rowy+HINTRAD, HINTRAD, 0, col);
@@ -950,7 +963,7 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
     /* draw the colours */
     for (i = 0; i < state->params.ncolours; i++) {
         if (ds->colours->pegs[i] != i+1) {
-	    draw_peg(fe, ds, COL_X(i), COL_Y(i), i+1);
+	    draw_peg(fe, ds, COL_X(i), COL_Y(i), FALSE, i+1);
             ds->colours->pegs[i] = i+1;
         }
     }
@@ -1033,7 +1046,7 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
         int oy = ui->drag_y - (PEGSZ/2);
         debug(("Saving to blitter at (%d,%d)", ox, oy));
         blitter_save(fe, ds->blit_peg, ox, oy);
-        draw_peg(fe, ds, ox, oy, ui->drag_col);
+        draw_peg(fe, ds, ox, oy, TRUE, ui->drag_col);
 
         ds->blit_ox = ox; ds->blit_oy = oy;
     }
