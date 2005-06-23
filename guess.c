@@ -786,9 +786,10 @@ static void game_free_drawstate(game_drawstate *ds)
 
 static void draw_peg(frontend *fe, game_drawstate *ds, int cx, int cy, int col)
 {
-    if (PEGRAD > 0)
+    if (PEGRAD > 0) {
         draw_circle(fe, cx+PEGRAD, cy+PEGRAD, PEGRAD, 1, COL_EMPTY + col);
-    else
+        draw_circle(fe, cx+PEGRAD, cy+PEGRAD, PEGRAD, 0, COL_EMPTY + col);
+    } else
         draw_rect(fe, cx, cy, PEGSZ, PEGSZ, COL_EMPTY + col);
     draw_update(fe, cx, cy, PEGSZ, PEGSZ);
 }
@@ -841,10 +842,12 @@ static void hint_redraw(frontend *fe, game_drawstate *ds, int guess,
                 rowx += HINTOFF * (i - hintlen);
                 rowy += HINTOFF;
             }
-            if (HINTRAD > 0)
+            if (HINTRAD > 0) {
                 draw_circle(fe, rowx+HINTRAD, rowy+HINTRAD, HINTRAD, 1, col);
-            else
+                draw_circle(fe, rowx+HINTRAD, rowy+HINTRAD, HINTRAD, 0, col);
+            } else {
                 draw_rect(fe, rowx, rowy, HINTSZ, HINTSZ, col);
+            }
             draw_update(fe, rowx, rowy, HINTSZ, HINTSZ);
         }
         dest->feedback[i] = scol;
