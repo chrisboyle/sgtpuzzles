@@ -1047,11 +1047,11 @@ predetermined sequence of them (chosen by the computer) within a
 certain number of guesses. 
 
 Each guess gets marked with the number of correctly-coloured pegs
-in the correct places (in red), and also the number of
-correctly-coloured pegs in the wrong places. 
+in the correct places (in black), and also the number of
+correctly-coloured pegs in the wrong places (in white). 
 
 This game is also known (and marketed, by Hasbro, mainly) as
-a board game `Mastermind', with 6 colours, 4 pegs per row, and 10 guesses.
+a board game \q{Mastermind}, with 6 colours, 4 pegs per row, and 10 guesses.
 However, this version allows custom settings of number of colours
 (up to 10), number of pegs per row, and number of guesses. 
 
@@ -1063,27 +1063,35 @@ Guess was contributed to this collection by James Harvey.
 \IM{Guess controls} keys, for Guess
 \IM{Guess controls} shortcuts (keyboard), for Guess
 
-Drag a peg from the tray on the left-hand side to its required
-position in the current guess; pegs may also be dragged from the 
-current guess to copy them elsewhere.
+This game can be played with either the keyboard or the mouse.
 
-Right-clicking in the current guess adds a 'hold' marker; pegs
+With the mouse, drag a peg from the tray on the left-hand side to its
+required position in the current guess; pegs may also be dragged from
+current and past guesses to copy them elsewhere.
+
+Right-clicking in the current guess adds a \q{hold} marker; pegs
 that have hold markers will be automatically added to the next guess
 after marking.
 
+Alternatively, with the keyboard, the up and down cursor keys can be
+used to select a peg colour, the left and right keys to select a
+peg position, and the space bar to place a peg of the selected colour
+in the chosen position.
+
 When the guess is complete, the feedback pegs will be highlighted;
-clicking on these will mark the current guess, copy any held pegs
-to the next guess, and move the 'current guess' marker.
+clicking on these (or moving the peg cursor to them with the arrow keys
+and pressing the space bar) will mark the current guess, copy any held pegs
+to the next guess, and move the \q{current guess} marker.
 
 If you correctly position all the pegs the solution will be displayed
-below; if you run out of guesses (or select 'Solve...') the solution
+below; if you run out of guesses (or select \q{Solve...}) the solution
 will also be revealed. 
 
 \H{guess-parameters} \I{parameters, for guess}Guess parameters
 
 These parameters are available from the \q{Custom...} option on the
 \q{Type} menu. The default game matches the parameters for the 
-board game 'Mastermind'. 
+board game \q{Mastermind}. 
 
 \dt \e{Colours}
 
