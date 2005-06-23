@@ -1055,6 +1055,8 @@ a board game `Mastermind', with 6 colours, 4 pegs per row, and 10 guesses.
 However, this version allows custom settings of number of colours
 (up to 10), number of pegs per row, and number of guesses. 
 
+Guess was contributed to this collection by James Harvey.
+
 \H{guess-controls} \i{Guess controls}
 
 \IM{Guess controls} controls, for Guess
