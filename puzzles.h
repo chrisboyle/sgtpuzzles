@@ -122,7 +122,8 @@ struct config_item {
  * Platform routines
  */
 
-#ifdef DEBUG
+/* We can't use #ifdef DEBUG, because Cygwin defines it by default. */
+#ifdef DEBUGGING
 #define debug(x) (debug_printf x)
 void debug_printf(char *fmt, ...);
 #else
