@@ -400,6 +400,8 @@ static void game_changed_state(game_ui *ui, game_state *oldstate,
 #define HINTSZ  (ds->hintsz)
 #define HINTOFF (ds->hintsz + ds->gapsz)
 
+#define CGAP    (ds->gapsz / 2)
+
 #define PEGRAD  (ds->pegrad)
 #define HINTRAD (ds->hintrad)
 
@@ -435,8 +437,6 @@ struct game_drawstate {
     pegrow solution;    /* only displayed if state->solved */
     pegrow colours;     /* length ncolours, not npegs */
 
-    int *holds;
-
     int pegsz, hintsz, gapsz; /* peg size (diameter), etc. */
     int pegrad, hintrad;      /* radius of peg, hint */
     int border;
@@ -446,7 +446,6 @@ struct game_drawstate {
     int hintw;          /* no. of hint tiles we're wide per row */
     int w, h, started, solved;
 
-    int colour_cur, peg_cur, display_cur; /* as in game_ui. */
     int next_go;
 
     blitter *blit_peg;
@@ -870,9 +869,6 @@ static game_drawstate *game_new_drawstate(game_state *state)
 
     ds->hintw = (state->params.npegs+1)/2; /* must round up */
 
-    ds->holds = snewn(state->params.npegs, int);
-    memset(ds->holds, 0, state->params.npegs*sizeof(int));
-
     ds->blit_peg = NULL;
 
     return ds;
@@ -887,7 +883,6 @@ static void game_free_drawstate(game_drawstate *ds)
     free_pegrow(ds->solution);
     for (i = 0; i < ds->nguesses; i++)
         free_pegrow(ds->guesses[i]);
-    sfree(ds->holds);
     sfree(ds->guesses);
     sfree(ds);
 }
@@ -904,17 +899,25 @@ static void draw_peg(frontend *fe, game_drawstate *ds, int cx, int cy,
      * behind it.
      */
     if (!moving)
-	draw_rect(fe, cx-1, cy-1, PEGSZ+2, PEGSZ+2, COL_BACKGROUND);
+        draw_rect(fe, cx-CGAP, cy-CGAP, PEGSZ+CGAP*2, PEGSZ+CGAP*2,
+                  COL_BACKGROUND);
     if (PEGRAD > 0) {
         draw_circle(fe, cx+PEGRAD, cy+PEGRAD, PEGRAD, 1, COL_EMPTY + col);
         draw_circle(fe, cx+PEGRAD, cy+PEGRAD, PEGRAD, 0, COL_EMPTY + col);
     } else
         draw_rect(fe, cx, cy, PEGSZ, PEGSZ, COL_EMPTY + col);
-    draw_update(fe, cx, cy, PEGSZ, PEGSZ);
+    draw_update(fe, cx-CGAP, cy-CGAP, PEGSZ+CGAP*2, PEGSZ+CGAP*2);
+}
+
+static void draw_cursor(frontend *fe, game_drawstate *ds, int x, int y)
+{
+    draw_circle(fe, x+PEGRAD, y+PEGRAD, PEGRAD+CGAP, 0, COL_CURSOR);
+
+    draw_update(fe, x-CGAP, y-CGAP, PEGSZ+CGAP*2, PEGSZ+CGAP*2);
 }
 
 static void guess_redraw(frontend *fe, game_drawstate *ds, int guess,
-                         pegrow src, int force)
+                         pegrow src, int *holds, int cur_col, int force)
 {
     pegrow dest;
     int rowx, rowy, i, scol;
@@ -932,27 +935,65 @@ static void guess_redraw(frontend *fe, game_drawstate *ds, int guess,
 
     for (i = 0; i < dest->npegs; i++) {
         scol = src ? src->pegs[i] : 0;
-        if ((dest->pegs[i] != scol) || force)
-	    draw_peg(fe, ds, rowx + PEGOFF * i, rowy, FALSE, scol);
+        if (i == cur_col)
+            scol |= 0x1000;
+        if (holds && holds[i])
+            scol |= 0x2000;
+        if ((dest->pegs[i] != scol) || force) {
+	    draw_peg(fe, ds, rowx + PEGOFF * i, rowy, FALSE, scol &~ 0x3000);
+            /*
+             * Hold marker.
+             */
+            draw_rect(fe, rowx + PEGOFF * i, rowy + PEGSZ + ds->gapsz/2,
+                      PEGSZ, 2, (scol & 0x2000 ? COL_HOLD : COL_BACKGROUND));
+            draw_update(fe, rowx + PEGOFF * i, rowy + PEGSZ + ds->gapsz/2,
+                        PEGSZ, 2);
+            if (scol & 0x1000)
+                draw_cursor(fe, ds, rowx + PEGOFF * i, rowy);
+        }
         dest->pegs[i] = scol;
     }
 }
 
 static void hint_redraw(frontend *fe, game_drawstate *ds, int guess,
-                        pegrow src, int force, int emptycol)
+                        pegrow src, int force, int cursor, int emptycol)
 {
     pegrow dest = ds->guesses[guess];
     int rowx, rowy, i, scol, col, hintlen;
+    int need_redraw;
 
     if (src) assert(src->npegs == dest->npegs);
 
     hintlen = (dest->npegs + 1)/2;
 
+    /*
+     * Because of the possible presence of the cursor around this
+     * entire section, we redraw all or none of it but never part.
+     */
+    need_redraw = FALSE;
+
     for (i = 0; i < dest->npegs; i++) {
         scol = src ? src->feedback[i] : 0;
-        col = (scol == FEEDBACK_CORRECTPLACE) ? COL_CORRECTPLACE :
-              (scol == FEEDBACK_CORRECTCOLOUR) ? COL_CORRECTCOLOUR : emptycol;
+        if (i == 0 && cursor)
+            scol |= 0x1000;
         if ((scol != dest->feedback[i]) || force) {
+            need_redraw = TRUE;
+        }
+        dest->feedback[i] = scol;
+    }
+
+    if (need_redraw) {
+        /* erase a large background rectangle */
+        draw_rect(fe, GUESS_X(guess, dest->npegs)-CGAP,
+                  GUESS_Y(guess, dest->npegs)-CGAP,
+                  PEGSZ+CGAP*2, PEGSZ+CGAP*2, COL_BACKGROUND);
+
+        for (i = 0; i < dest->npegs; i++) {
+            scol = src ? src->feedback[i] : 0;
+            col = ((scol == FEEDBACK_CORRECTPLACE) ? COL_CORRECTPLACE :
+                   (scol == FEEDBACK_CORRECTCOLOUR) ? COL_CORRECTCOLOUR :
+                   emptycol);
+
             rowx = HINT_X(guess);
             rowy = HINT_Y(guess);
             if (i < hintlen) {
@@ -961,38 +1002,20 @@ static void hint_redraw(frontend *fe, game_drawstate *ds, int guess,
                 rowx += HINTOFF * (i - hintlen);
                 rowy += HINTOFF;
             }
-	    /* erase background for antialiasing platforms */
-	    draw_rect(fe, rowx-1, rowy-1, HINTSZ+2, HINTSZ+2, COL_BACKGROUND);
             if (HINTRAD > 0) {
                 draw_circle(fe, rowx+HINTRAD, rowy+HINTRAD, HINTRAD, 1, col);
                 draw_circle(fe, rowx+HINTRAD, rowy+HINTRAD, HINTRAD, 0, col);
             } else {
                 draw_rect(fe, rowx, rowy, HINTSZ, HINTSZ, col);
             }
-            draw_update(fe, rowx, rowy, HINTSZ, HINTSZ);
         }
-        dest->feedback[i] = scol;
-    }
-}
+        if (cursor)
+            draw_cursor(fe, ds, GUESS_X(guess, dest->npegs),
+                        GUESS_Y(guess, dest->npegs));
 
-static void hold_redraw(frontend *fe, game_drawstate *ds, int guess, int *src, int force)
-{
-    int shold, col, ox, oy, i;
-
-    if (guess >= ds->nguesses)
-        return;
-
-    for (i = 0; i < ds->solution->npegs; i++) {
-        shold = src ? src[i] : 0;
-        col = shold ? COL_HOLD : COL_BACKGROUND;
-        if ((shold != ds->holds[i]) || force) {
-            ox = GUESS_X(guess, i);
-            oy = GUESS_Y(guess, i) + PEGSZ + ds->gapsz/2;
-
-            draw_rect(fe, ox, oy, PEGSZ, 2, col);
-            draw_update(fe, ox, oy, PEGSZ, 2);
-        }
-        if (src) ds->holds[i] = shold;
+        draw_update(fe, GUESS_X(guess, dest->npegs)-CGAP,
+                    GUESS_Y(guess, dest->npegs)-CGAP,
+                    PEGSZ+CGAP*2, PEGSZ+CGAP*2);
     }
 }
 
@@ -1004,22 +1027,11 @@ static void currmove_redraw(frontend *fe, game_drawstate *ds, int guess, int col
     draw_update(fe, ox-off-1, oy, 2, PEGSZ);
 }
 
-static void cur_redraw(frontend *fe, game_drawstate *ds,
-                       int x, int y, int erase)
-{
-    int cgap = ds->gapsz / 2;
-
-    draw_circle(fe, x+PEGRAD, y+PEGRAD, PEGRAD+cgap, 0,
-                erase ? COL_BACKGROUND : COL_CURSOR);
-
-    draw_update(fe, x-cgap, y-cgap, x+PEGSZ+cgap, y+PEGSZ+cgap);
-}
-
 static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 			game_state *state, int dir, game_ui *ui,
 			float animtime, float flashtime)
 {
-    int i, cur_erase = 0, cur_draw = 0, new_move, last_go;
+    int i, new_move, last_go;
 
     new_move = (state->next_go != ds->next_go) || !ds->started;
     last_go = (state->next_go == state->params.nguesses-1);
@@ -1038,9 +1050,14 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 
     /* draw the colours */
     for (i = 0; i < state->params.ncolours; i++) {
-        if (ds->colours->pegs[i] != i+1) {
+        int val = i+1;
+        if (ui->display_cur && ui->colour_cur == i)
+            val |= 0x1000;
+        if (ds->colours->pegs[i] != val) {
 	    draw_peg(fe, ds, COL_X(i), COL_Y(i), FALSE, i+1);
-            ds->colours->pegs[i] = i+1;
+            if (val & 0x1000)
+                draw_cursor(fe, ds, COL_X(i), COL_Y(i));
+            ds->colours->pegs[i] = val;
         }
     }
 
@@ -1048,29 +1065,23 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
     for (i = 0; i < state->params.nguesses; i++) {
         if (state->next_go > i || state->solved) {
             /* this info is stored in the game_state already */
-            guess_redraw(fe, ds, i, state->guesses[i], 0);
+            guess_redraw(fe, ds, i, state->guesses[i], NULL, -1, 0);
             hint_redraw(fe, ds, i, state->guesses[i],
-                        i == (state->next_go-1) ? 1 : 0, COL_EMPTY);
+                        i == (state->next_go-1) ? 1 : 0, FALSE, COL_EMPTY);
         } else if (state->next_go == i) {
             /* this is the one we're on; the (incomplete) guess is
              * stored in the game_ui. */
-            guess_redraw(fe, ds, i, ui->curr_pegs, 0);
-            hint_redraw(fe, ds, i, NULL, 1, ui->markable ? COL_FLASH : COL_EMPTY);
+            guess_redraw(fe, ds, i, ui->curr_pegs,
+                         ui->holds, ui->display_cur ? ui->peg_cur : -1, 0);
+            hint_redraw(fe, ds, i, NULL, 1,
+                        ui->display_cur && ui->peg_cur == state->params.npegs,
+                        ui->markable ? COL_FLASH : COL_EMPTY);
         } else {
             /* we've not got here yet; it's blank. */
-            guess_redraw(fe, ds, i, NULL, 0);
-            hint_redraw(fe, ds, i, NULL, 0, COL_EMPTY);
+            guess_redraw(fe, ds, i, NULL, NULL, -1, 0);
+            hint_redraw(fe, ds, i, NULL, 0, FALSE, COL_EMPTY);
         }
     }
-
-    /* draw the 'hold' markers */
-    if (state->solved) {
-        hold_redraw(fe, ds, state->next_go, NULL, 1);
-    } else if (new_move) {
-        hold_redraw(fe, ds, ds->next_go, NULL, 1);
-        hold_redraw(fe, ds, state->next_go, last_go ? NULL : ui->holds, 1);
-    } else
-        hold_redraw(fe, ds, state->next_go, last_go ? NULL : ui->holds, 0);
 
     /* draw the 'current move' and 'able to mark' sign. */
     if (new_move)
@@ -1085,34 +1096,9 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
         draw_update(fe, SOLN_OX, SOLN_OY, SOLN_W, SOLN_H);
     }
     if (state->solved)
-        guess_redraw(fe, ds, -1, state->solution, !ds->solved);
+        guess_redraw(fe, ds, -1, state->solution, NULL, -1, !ds->solved);
     ds->solved = state->solved;
 
-    if (ui->display_cur && !ds->display_cur)
-        cur_draw = 1;
-    else if (!ui->display_cur && ds->display_cur)
-        cur_erase = 1;
-    else if (ui->display_cur) {
-        if ((state->next_go != ds->next_go) ||
-            (ui->peg_cur != ds->peg_cur) ||
-            (ui->colour_cur != ds->colour_cur)) {
-            cur_erase = 1;
-            cur_draw = 1;
-        }
-    }
-    if (cur_erase) {
-        cur_redraw(fe, ds, COL_X(ds->colour_cur), COL_Y(ds->colour_cur), 1);
-        cur_redraw(fe, ds,
-                   GUESS_X(ds->next_go, ds->peg_cur), GUESS_Y(ds->next_go, ds->peg_cur), 1);
-    }
-    if (cur_draw) {
-        cur_redraw(fe, ds, COL_X(ui->colour_cur), COL_Y(ui->colour_cur), 0);
-        cur_redraw(fe, ds,
-                   GUESS_X(state->next_go, ui->peg_cur), GUESS_Y(state->next_go, ui->peg_cur), 0);
-    }
-    ds->display_cur = ui->display_cur;
-    ds->peg_cur = ui->peg_cur;
-    ds->colour_cur = ui->colour_cur;
     ds->next_go = state->next_go;
 
     /* if ui->drag_col != 0, save the screen to the blitter,
