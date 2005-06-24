@@ -401,6 +401,7 @@ static void game_changed_state(game_ui *ui, game_state *oldstate,
 #define HINTSZ  (ds->hintsz)
 #define HINTOFF (ds->hintsz + ds->gapsz)
 
+#define GAP     (ds->gapsz)
 #define CGAP    (ds->gapsz / 2)
 
 #define PEGRAD  (ds->pegrad)
@@ -424,7 +425,7 @@ static void game_changed_state(game_ui *ui, game_state *oldstate,
 #define HINT_OY         (GUESS_OY + (PEGSZ - HINTOFF - HINTSZ) / 2)
 #define HINT_X(g)       HINT_OX
 #define HINT_Y(g)       (HINT_OY + (g)*PEGOFF)
-#define HINT_W          (ds->hintw*HINTOFF)
+#define HINT_W          ((ds->hintw*HINTOFF) - GAP)
 #define HINT_H          GUESS_H
 
 #define SOLN_OX         GUESS_OX
@@ -765,7 +766,8 @@ static void game_size(game_params *params, game_drawstate *ds,
 
 static float *game_colours(frontend *fe, game_state *state, int *ncolours)
 {
-    float *ret = snewn(3 * NCOLOURS, float);
+    float *ret = snewn(3 * NCOLOURS, float), max;
+    int i;
 
     frontend_default_colour(fe, &ret[COL_BACKGROUND * 3]);
 
@@ -835,10 +837,6 @@ static float *game_colours(frontend *fe, game_state *state, int *ncolours)
     ret[COL_HOLD * 3 + 1] = 0.5F;
     ret[COL_HOLD * 3 + 2] = 0.5F;
 
-    ret[COL_EMPTY * 3 + 0] = ret[COL_BACKGROUND * 3 + 0] * 2.0 / 3.0;
-    ret[COL_EMPTY * 3 + 1] = ret[COL_BACKGROUND * 3 + 1] * 2.0 / 3.0;
-    ret[COL_EMPTY * 3 + 2] = ret[COL_BACKGROUND * 3 + 2] * 2.0 / 3.0;
-
     ret[COL_CORRECTPLACE*3 + 0] = 0.0F;
     ret[COL_CORRECTPLACE*3 + 1] = 0.0F;
     ret[COL_CORRECTPLACE*3 + 2] = 0.0F;
@@ -846,6 +844,25 @@ static float *game_colours(frontend *fe, game_state *state, int *ncolours)
     ret[COL_CORRECTCOLOUR*3 + 0] = 1.0F;
     ret[COL_CORRECTCOLOUR*3 + 1] = 1.0F;
     ret[COL_CORRECTCOLOUR*3 + 2] = 1.0F;
+
+    /* We want to make sure we can distinguish COL_CORRECTCOLOUR
+     * (which we hard-code as white) from COL_BACKGROUND (which
+     * could default to white on some platforms).
+     * Code borrowed from fifteen.c. */
+    max = ret[COL_BACKGROUND*3];
+    for (i = 1; i < 3; i++)
+        if (ret[COL_BACKGROUND*3+i] > max)
+            max = ret[COL_BACKGROUND*3+i];
+    if (max * 1.2F > 1.0F) {
+        for (i = 0; i < 3; i++)
+            ret[COL_BACKGROUND*3+i] /= (max * 1.2F);
+    }
+
+    /* We also want to be able to tell the difference between BACKGROUND
+     * and EMPTY, for similar distinguishing-hint reasons. */
+    ret[COL_EMPTY * 3 + 0] = ret[COL_BACKGROUND * 3 + 0] * 2.0 / 3.0;
+    ret[COL_EMPTY * 3 + 1] = ret[COL_BACKGROUND * 3 + 1] * 2.0 / 3.0;
+    ret[COL_EMPTY * 3 + 2] = ret[COL_BACKGROUND * 3 + 2] * 2.0 / 3.0;
 
     *ncolours = NCOLOURS;
     return ret;
@@ -988,10 +1005,14 @@ static void hint_redraw(frontend *fe, game_drawstate *ds, int guess,
     }
 
     if (need_redraw) {
+        int hinth = HINTSZ + GAP + HINTSZ;
+        int hx,hy,hw,hh;
+
+        hx = HINT_X(guess)-GAP; hy = HINT_Y(guess)-GAP;
+        hw = HINT_W+GAP*2; hh = hinth+GAP*2;
+
         /* erase a large background rectangle */
-        draw_rect(fe, GUESS_X(guess, dest->npegs)-CGAP,
-                  GUESS_Y(guess, dest->npegs)-CGAP,
-                  PEGSZ+CGAP*2, PEGSZ+CGAP*2, COL_BACKGROUND);
+        draw_rect(fe, hx, hy, hw, hh, COL_BACKGROUND);
 
         for (i = 0; i < dest->npegs; i++) {
             scol = src ? src->feedback[i] : 0;
@@ -1014,13 +1035,17 @@ static void hint_redraw(frontend *fe, game_drawstate *ds, int guess,
                 draw_rect(fe, rowx, rowy, HINTSZ, HINTSZ, col);
             }
         }
-        if (cursor)
-            draw_cursor(fe, ds, GUESS_X(guess, dest->npegs),
-                        GUESS_Y(guess, dest->npegs));
+        if (cursor) {
+            int x1,y1,x2,y2;
+            x1 = hx + CGAP; y1 = hy + CGAP;
+            x2 = hx + hw - CGAP; y2 = hy + hh - CGAP;
+            draw_line(fe, x1, y1, x2, y1, COL_CURSOR);
+            draw_line(fe, x2, y1, x2, y2, COL_CURSOR);
+            draw_line(fe, x2, y2, x1, y2, COL_CURSOR);
+            draw_line(fe, x1, y2, x1, y1, COL_CURSOR);
+        }
 
-        draw_update(fe, GUESS_X(guess, dest->npegs)-CGAP,
-                    GUESS_Y(guess, dest->npegs)-CGAP,
-                    PEGSZ+CGAP*2, PEGSZ+CGAP*2);
+        draw_update(fe, hx, hy, hw, hh);
     }
 }
 
