@@ -641,6 +641,7 @@ static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
         }
         ui->drag_col = 0;
         ui->drag_opeg = -1;
+        ui->display_cur = 0;
         debug(("Stop dragging."));
         ret = from;
     } else if (button == RIGHT_BUTTON) {
