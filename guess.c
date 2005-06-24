@@ -393,6 +393,7 @@ static void game_changed_state(game_ui *ui, game_state *oldstate,
     /* just clear the row-in-progress when we have an undo/redo. */
     for (i = 0; i < ui->curr_pegs->npegs; i++)
 	ui->curr_pegs->pegs[i] = 0;
+    ui->markable = FALSE;
 }
 
 #define PEGSZ   (ds->pegsz)
@@ -957,11 +958,12 @@ static void guess_redraw(frontend *fe, game_drawstate *ds, int guess,
 }
 
 static void hint_redraw(frontend *fe, game_drawstate *ds, int guess,
-                        pegrow src, int force, int cursor, int emptycol)
+                        pegrow src, int force, int cursor, int markable)
 {
     pegrow dest = ds->guesses[guess];
     int rowx, rowy, i, scol, col, hintlen;
     int need_redraw;
+    int emptycol = (markable ? COL_FLASH : COL_EMPTY);
 
     if (src) assert(src->npegs == dest->npegs);
 
@@ -977,6 +979,8 @@ static void hint_redraw(frontend *fe, game_drawstate *ds, int guess,
         scol = src ? src->feedback[i] : 0;
         if (i == 0 && cursor)
             scol |= 0x1000;
+        if (i == 0 && markable)
+            scol |= 0x2000;
         if ((scol != dest->feedback[i]) || force) {
             need_redraw = TRUE;
         }
@@ -1068,7 +1072,7 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
             /* this info is stored in the game_state already */
             guess_redraw(fe, ds, i, state->guesses[i], NULL, -1, 0);
             hint_redraw(fe, ds, i, state->guesses[i],
-                        i == (state->next_go-1) ? 1 : 0, FALSE, COL_EMPTY);
+                        i == (state->next_go-1) ? 1 : 0, FALSE, FALSE);
         } else if (state->next_go == i) {
             /* this is the one we're on; the (incomplete) guess is
              * stored in the game_ui. */
@@ -1076,11 +1080,11 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
                          ui->holds, ui->display_cur ? ui->peg_cur : -1, 0);
             hint_redraw(fe, ds, i, NULL, 1,
                         ui->display_cur && ui->peg_cur == state->params.npegs,
-                        ui->markable ? COL_FLASH : COL_EMPTY);
+                        ui->markable);
         } else {
             /* we've not got here yet; it's blank. */
             guess_redraw(fe, ds, i, NULL, NULL, -1, 0);
-            hint_redraw(fe, ds, i, NULL, 0, FALSE, COL_EMPTY);
+            hint_redraw(fe, ds, i, NULL, 0, FALSE, FALSE);
         }
     }
 
