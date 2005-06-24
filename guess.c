@@ -60,11 +60,6 @@ static game_params *default_params(void)
     return ret;
 }
 
-static int game_fetch_preset(int i, char **name, game_params **params)
-{
-    return FALSE;
-}
-
 static void free_params(game_params *params)
 {
     sfree(params);
@@ -75,6 +70,32 @@ static game_params *dup_params(game_params *params)
     game_params *ret = snew(game_params);
     *ret = *params;		       /* structure copy */
     return ret;
+}
+
+static const struct {
+    char *name;
+    game_params params;
+} guess_presets[] = {
+    {"Standard", {6, 4, 10, FALSE, TRUE}},
+    {"Super", {8, 5, 12, FALSE, TRUE}},
+};
+
+
+static int game_fetch_preset(int i, char **name, game_params **params)
+{
+    if (i < 0 || i >= lenof(guess_presets))
+        return FALSE;
+
+    *name = dupstr(guess_presets[i].name);
+    /*
+     * get round annoying const issues
+     */
+    {
+        game_params tmp = guess_presets[i].params;
+        *params = dup_params(&tmp);
+    }
+
+    return TRUE;
 }
 
 static void decode_params(game_params *params, char const *string)
