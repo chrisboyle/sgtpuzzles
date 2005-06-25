@@ -700,6 +700,7 @@ static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
         ret = from;
     } else if (button == CURSOR_SELECT || button == ' ' || button == '\r' ||
                button == '\n') {
+        ui->display_cur = 1;
         if (ui->peg_cur == from->params.npegs) {
             ret = mark_move(from, ui);
         } else {
@@ -707,6 +708,7 @@ static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
             ret = from;
         }
     } else if (button == 'H' || button == 'h') {
+        ui->display_cur = 1;
         ui->holds[ui->peg_cur] = 1 - ui->holds[ui->peg_cur];
         ret = from;
     }
