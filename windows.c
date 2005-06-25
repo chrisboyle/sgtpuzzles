@@ -342,10 +342,11 @@ void draw_circle(frontend *fe, int cx, int cy, int radius,
 	SelectObject(fe->hdc_bm, oldpen);
     } else {
 	HPEN oldpen = SelectObject(fe->hdc_bm, fe->pens[colour]);
-	MoveToEx(fe->hdc_bm, cx + radius, cy, NULL);
-	AngleArc(fe->hdc_bm, cx, cy, radius, 0.0F, 360.0F);
+        Arc(fe->hdc_bm, cx - radius, cy - radius,
+            cx + radius + 1, cy + radius + 1,
+            cx - radius, cy, cx - radius, cy);
 	SelectObject(fe->hdc_bm, oldpen);
-    }    
+    }
 }
 
 void draw_polygon(frontend *fe, int *coords, int npoints,
