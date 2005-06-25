@@ -1065,9 +1065,10 @@ Guess was contributed to this collection by James Harvey.
 
 This game can be played with either the keyboard or the mouse.
 
-With the mouse, drag a peg from the tray on the left-hand side to its
-required position in the current guess; pegs may also be dragged from
-current and past guesses to copy them elsewhere.
+With the mouse, drag a coloured peg from the tray on the left-hand
+side to its required position in the current guess; pegs may also be
+dragged from current and past guesses to copy them elsewhere. To
+remove a peg, drag it off its current position to somewhere invalid.
 
 Right-clicking in the current guess adds a \q{hold} marker; pegs
 that have hold markers will be automatically added to the next guess
@@ -1075,17 +1076,18 @@ after marking.
 
 Alternatively, with the keyboard, the up and down cursor keys can be
 used to select a peg colour, the left and right keys to select a
-peg position, and the space bar to place a peg of the selected colour
-in the chosen position. \q{H} adds a hold marker.
+peg position, and the space bar or Enter key to place a peg of the
+selected colour in the chosen position. \q{H} adds a hold marker.
 
-When the guess is complete, the feedback pegs will be highlighted;
+When the guess is complete, the smaller feedback pegs will be highlighted;
 clicking on these (or moving the peg cursor to them with the arrow keys
-and pressing the space bar) will mark the current guess, copy any held pegs
-to the next guess, and move the \q{current guess} marker.
+and pressing the space bar or Enter key) will mark the current guess,
+copy any held pegs to the next guess, and move the \q{current guess}
+marker.
 
 If you correctly position all the pegs the solution will be displayed
 below; if you run out of guesses (or select \q{Solve...}) the solution
-will also be revealed. 
+will also be revealed.
 
 \H{guess-parameters} \I{parameters, for guess}Guess parameters
 
