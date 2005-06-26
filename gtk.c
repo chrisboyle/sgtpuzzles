@@ -998,7 +998,11 @@ static void menu_preset_event(GtkMenuItem *menuitem, gpointer data)
     fe->w = x;
     fe->h = y;
     gtk_drawing_area_size(GTK_DRAWING_AREA(fe->area), x, y);
-    gtk_window_resize(GTK_WINDOW(fe->window), 1, 1);
+    {
+        GtkRequisition req;
+        gtk_widget_size_request(GTK_WIDGET(fe->window), &req);
+        gtk_window_resize(GTK_WIDGET(fe->window), req.width, req.height);
+    }
 }
 
 GdkAtom compound_text_atom, utf8_string_atom;
@@ -1143,7 +1147,11 @@ static void menu_config_event(GtkMenuItem *menuitem, gpointer data)
     fe->w = x;
     fe->h = y;
     gtk_drawing_area_size(GTK_DRAWING_AREA(fe->area), x, y);
-    gtk_window_resize(GTK_WINDOW(fe->window), 1, 1);
+    {
+        GtkRequisition req;
+        gtk_widget_size_request(GTK_WIDGET(fe->window), &req);
+        gtk_window_resize(GTK_WIDGET(fe->window), req.width, req.height);
+    }
 }
 
 static void menu_about_event(GtkMenuItem *menuitem, gpointer data)
