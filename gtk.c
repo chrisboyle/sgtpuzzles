@@ -1001,7 +1001,7 @@ static void menu_preset_event(GtkMenuItem *menuitem, gpointer data)
     {
         GtkRequisition req;
         gtk_widget_size_request(GTK_WIDGET(fe->window), &req);
-        gtk_window_resize(GTK_WIDGET(fe->window), req.width, req.height);
+        gtk_window_resize(GTK_WINDOW(fe->window), req.width, req.height);
     }
 }
 
@@ -1150,7 +1150,7 @@ static void menu_config_event(GtkMenuItem *menuitem, gpointer data)
     {
         GtkRequisition req;
         gtk_widget_size_request(GTK_WIDGET(fe->window), &req);
-        gtk_window_resize(GTK_WIDGET(fe->window), req.width, req.height);
+        gtk_window_resize(GTK_WINDOW(fe->window), req.width, req.height);
     }
 }
 
