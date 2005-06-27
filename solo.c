@@ -1759,15 +1759,14 @@ static void free_game(game_state *state)
     sfree(state);
 }
 
-static game_state *solve_game(game_state *state, game_state *currstate,
-			      game_aux_info *ai, char **error)
+static char *solve_game(game_state *state, game_state *currstate,
+			game_aux_info *ai, char **error)
 {
-    game_state *ret;
     int c = state->c, r = state->r, cr = c*r;
-    int rsolve_ret;
-
-    ret = dup_game(state);
-    ret->completed = ret->cheated = TRUE;
+    int i, len;
+    char *ret, *p, *sep;
+    digit *grid;
+    int grid_needs_freeing;
 
     /*
      * If we already have the solution in the aux_info, save
@@ -1777,20 +1776,65 @@ static game_state *solve_game(game_state *state, game_state *currstate,
 
 	assert(c == ai->c);
 	assert(r == ai->r);
-	memcpy(ret->grid, ai->grid, cr * cr * sizeof(digit));
+	grid = ai->grid;
+	grid_needs_freeing = FALSE;
 
     } else {
-	rsolve_ret = rsolve(c, r, ret->grid, NULL, 2);
+	int rsolve_ret;
+
+	grid = snewn(cr*cr, digit);
+	memcpy(grid, state->grid, cr*cr);
+	rsolve_ret = rsolve(c, r, grid, NULL, 2);
 
 	if (rsolve_ret != 1) {
-	    free_game(ret);
+	    sfree(grid);
 	    if (rsolve_ret == 0)
 		*error = "No solution exists for this puzzle";
 	    else
 		*error = "Multiple solutions exist for this puzzle";
 	    return NULL;
 	}
+
+	grid_needs_freeing = TRUE;
     }
+
+    /*
+     * It's surprisingly easy to work out _exactly_ how long this
+     * string needs to be. To decimal-encode all the numbers from 1
+     * to n:
+     * 
+     *  - every number has a units digit; total is n.
+     *  - all numbers above 9 have a tens digit; total is max(n-9,0).
+     *  - all numbers above 99 have a hundreds digit; total is max(n-99,0).
+     *  - and so on.
+     */
+    len = 0;
+    for (i = 1; i <= cr; i *= 10)
+	len += max(cr - i + 1, 0);
+    len += cr;		       /* don't forget the commas */
+    len *= cr;		       /* there are cr rows of these */
+
+    /*
+     * Now len is one bigger than the total size of the
+     * comma-separated numbers (because we counted an
+     * additional leading comma). We need to have a leading S
+     * and a trailing NUL, so we're off by one in total.
+     */
+    len++;
+
+    ret = snewn(len, char);
+    p = ret;
+    *p++ = 'S';
+    sep = "";
+    for (i = 0; i < cr*cr; i++) {
+	p += sprintf(p, "%s%d", sep, grid[i]);
+	sep = ",";
+    }
+    *p++ = '\0';
+    assert(p - ret == len);
+
+    if (grid_needs_freeing)
+	sfree(grid);
 
     return ret;
 }
@@ -1914,12 +1958,12 @@ struct game_drawstate {
     int *entered_items;
 };
 
-static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
-                             int x, int y, int button)
+static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
+			    int x, int y, int button)
 {
-    int c = from->c, r = from->r, cr = c*r;
+    int c = state->c, r = state->r, cr = c*r;
     int tx, ty;
-    game_state *ret;
+    char buf[80];
 
     button &= ~MOD_MASK;
 
@@ -1928,7 +1972,7 @@ static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
 
     if (tx >= 0 && tx < cr && ty >= 0 && ty < cr) {
         if (button == LEFT_BUTTON) {
-            if (from->immutable[ty*cr+tx]) {
+            if (state->immutable[ty*cr+tx]) {
                 ui->hx = ui->hy = -1;
             } else if (tx == ui->hx && ty == ui->hy && ui->hpencil == 0) {
                 ui->hx = ui->hy = -1;
@@ -1937,13 +1981,13 @@ static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
                 ui->hy = ty;
                 ui->hpencil = 0;
             }
-            return from;		       /* UI activity occurred */
+            return "";		       /* UI activity occurred */
         }
         if (button == RIGHT_BUTTON) {
             /*
              * Pencil-mode highlighting for non filled squares.
              */
-            if (from->grid[ty*cr+tx] == 0) {
+            if (state->grid[ty*cr+tx] == 0) {
                 if (tx == ui->hx && ty == ui->hy && ui->hpencil) {
                     ui->hx = ui->hy = -1;
                 } else {
@@ -1954,7 +1998,7 @@ static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
             } else {
                 ui->hx = ui->hy = -1;
             }
-            return from;		       /* UI activity occurred */
+            return "";		       /* UI activity occurred */
         }
     }
 
@@ -1977,7 +2021,7 @@ static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
          * able to highlight the square, but it never hurts to be
          * careful.
          */
-	if (from->immutable[ui->hy*cr+ui->hx])
+	if (state->immutable[ui->hy*cr+ui->hx])
 	    return NULL;
 
         /*
@@ -1986,16 +2030,57 @@ static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
          * have even been able to pencil-highlight the square, but
          * it never hurts to be careful.
          */
-        if (ui->hpencil && from->grid[ui->hy*cr+ui->hx])
+        if (ui->hpencil && state->grid[ui->hy*cr+ui->hx])
             return NULL;
 
+	sprintf(buf, "%c%d,%d,%d",
+		ui->hpencil && n > 0 ? 'P' : 'R', ui->hx, ui->hy, n);
+
+	ui->hx = ui->hy = -1;
+
+	return dupstr(buf);
+    }
+
+    return NULL;
+}
+
+static game_state *execute_move(game_state *from, char *move)
+{
+    int c = from->c, r = from->r, cr = c*r;
+    game_state *ret;
+    int x, y, n;
+
+    if (move[0] == 'S') {
+	char *p;
+
 	ret = dup_game(from);
-        if (ui->hpencil && n > 0) {
-            int index = (ui->hy*cr+ui->hx) * cr + (n-1);
+	ret->completed = ret->cheated = TRUE;
+
+	p = move+1;
+	for (n = 0; n < cr*cr; n++) {
+	    ret->grid[n] = atoi(p);
+
+	    if (!*p || ret->grid[n] < 1 || ret->grid[n] > cr) {
+		free_game(ret);
+		return NULL;
+	    }
+
+	    while (*p && isdigit((unsigned char)*p)) p++;
+	    if (*p == ',') p++;
+	}
+
+	return ret;
+    } else if ((move[0] == 'P' || move[0] == 'R') &&
+	sscanf(move+1, "%d,%d,%d", &x, &y, &n) == 3 &&
+	x >= 0 && x < cr && y >= 0 && y < cr && n >= 0 && n <= cr) {
+
+	ret = dup_game(from);
+        if (move[0] == 'P' && n > 0) {
+            int index = (y*cr+x) * cr + (n-1);
             ret->pencil[index] = !ret->pencil[index];
         } else {
-            ret->grid[ui->hy*cr+ui->hx] = n;
-            memset(ret->pencil + (ui->hy*cr+ui->hx)*cr, 0, cr);
+            ret->grid[y*cr+x] = n;
+            memset(ret->pencil + (y*cr+x)*cr, 0, cr);
 
             /*
              * We've made a real change to the grid. Check to see
@@ -2005,12 +2090,9 @@ static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
                 ret->completed = TRUE;
             }
         }
-	ui->hx = ui->hy = -1;
-
-	return ret;		       /* made a valid move */
-    }
-
-    return NULL;
+	return ret;
+    } else
+	return NULL;		       /* couldn't parse move string */
 }
 
 /* ----------------------------------------------------------------------
@@ -2339,7 +2421,8 @@ const struct game thegame = {
     new_ui,
     free_ui,
     game_changed_state,
-    make_move,
+    interpret_move,
+    execute_move,
     game_size,
     game_colours,
     game_new_drawstate,

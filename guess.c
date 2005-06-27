@@ -364,12 +364,10 @@ static void free_game(game_state *state)
     sfree(state);
 }
 
-static game_state *solve_game(game_state *state, game_state *currstate,
-                              game_aux_info *aux, char **error)
+static char *solve_game(game_state *state, game_state *currstate,
+			game_aux_info *aux, char **error)
 {
-    game_state *ret = dup_game(currstate);
-    ret->solved = 1;
-    return ret;
+    return dupstr("S");
 }
 
 static char *game_text_format(game_state *state)
@@ -548,47 +546,52 @@ static int mark_pegs(pegrow guess, pegrow solution, int ncols)
     return nc_place;
 }
 
-static game_state *mark_move(game_state *from, game_ui *ui)
+static char *encode_move(game_state *from, game_ui *ui)
 {
-    int i, ncleared = 0, nc_place;
-    game_state *to = dup_game(from);
+    char *buf, *p, *sep;
+    int len, i, solved;
+    pegrow tmppegs;
 
-    for (i = 0; i < to->solution->npegs; i++) {
-        to->guesses[from->next_go]->pegs[i] = ui->curr_pegs->pegs[i];
+    len = ui->curr_pegs->npegs * 20 + 2;
+    buf = snewn(len, char);
+    p = buf;
+    *p++ = 'G';
+    sep = "";
+    for (i = 0; i < ui->curr_pegs->npegs; i++) {
+	p += sprintf(p, "%s%d", sep, ui->curr_pegs->pegs[i]);
+	sep = ",";
     }
-    nc_place = mark_pegs(to->guesses[from->next_go], to->solution, to->params.ncolours);
+    *p++ = '\0';
+    assert(p - buf <= len);
+    buf = sresize(buf, len, char);
 
-    if (nc_place == to->solution->npegs) {
-        to->solved = 1; /* win! */
-    } else {
-        to->next_go = from->next_go + 1;
-        if (to->next_go >= to->params.nguesses)
-            to->solved = 1; /* 'lose' so we show the pegs. */
-    }
+    tmppegs = dup_pegrow(ui->curr_pegs);
+    solved = mark_pegs(tmppegs, from->solution, from->params.ncolours);
+    solved = (solved == from->params.ncolours);
+    free_pegrow(tmppegs);
 
-    for (i = 0; i < to->solution->npegs; i++) {
-        if (!ui->holds[i] || to->solved) {
-            ui->curr_pegs->pegs[i] = 0;
-            ncleared++;
-        }
-        if (to->solved) ui->holds[i] = 0;
+    for (i = 0; i < from->solution->npegs; i++) {
+	if (!ui->holds[i] || solved) {
+	    ui->curr_pegs->pegs[i] = 0;
+	}
+	if (solved) ui->holds[i] = 0;
     }
     ui->markable = is_markable(&from->params, ui->curr_pegs);
-    if (!ui->markable && ui->peg_cur == to->solution->npegs)
-        ui->peg_cur--;
+    if (!ui->markable && ui->peg_cur == from->solution->npegs)
+	ui->peg_cur--;
 
-    return to;
+    return buf;
 }
 
-static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
-                             int x, int y, int button)
+static char *interpret_move(game_state *from, game_ui *ui, game_drawstate *ds,
+			    int x, int y, int button)
 {
     int over_col = 0;           /* one-indexed */
     int over_guess = -1;        /* zero-indexed */
     int over_past_guess_y = -1; /* zero-indexed */
     int over_past_guess_x = -1; /* zero-indexed */
     int over_hint = 0;          /* zero or one */
-    game_state *ret = NULL;
+    char *ret = NULL;
 
     int guess_ox = GUESS_X(from->next_go, 0);
     int guess_oy = GUESS_Y(from->next_go, 0);
@@ -643,13 +646,13 @@ static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
             ui->drag_y = y;
             debug(("Start dragging, col = %d, (%d,%d)",
                    ui->drag_col, ui->drag_x, ui->drag_y));
-            ret = from;
+            ret = "";
         }
     } else if (button == LEFT_DRAG && ui->drag_col) {
         ui->drag_x = x;
         ui->drag_y = y;
         debug(("Keep dragging, (%d,%d)", ui->drag_x, ui->drag_y));
-        ret = from;
+        ret = "";
     } else if (button == LEFT_RELEASE && ui->drag_col) {
         if (over_guess > -1) {
             debug(("Dropping colour %d onto guess peg %d",
@@ -666,18 +669,18 @@ static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
         ui->drag_opeg = -1;
         ui->display_cur = 0;
         debug(("Stop dragging."));
-        ret = from;
+        ret = "";
     } else if (button == RIGHT_BUTTON) {
         if (over_guess > -1) {
             /* we use ths feedback in the game_ui to signify
              * 'carry this peg to the next guess as well'. */
             ui->holds[over_guess] = 1 - ui->holds[over_guess];
-            ret = from;
+            ret = "";
         }
     } else if (button == LEFT_RELEASE && over_hint && ui->markable) {
         /* NB this won't trigger if on the end of a drag; that's on
          * purpose, in case you drop by mistake... */
-        ret = mark_move(from, ui);
+        ret = encode_move(from, ui);
     }
 
     /* keyboard input */
@@ -687,7 +690,7 @@ static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
             ui->colour_cur++;
         if (button == CURSOR_UP && ui->colour_cur > 0)
             ui->colour_cur--;
-        ret = from;
+        ret = "";
     } else if (button == CURSOR_LEFT || button == CURSOR_RIGHT) {
         int maxcur = from->params.npegs;
         if (ui->markable) maxcur++;
@@ -697,22 +700,63 @@ static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
             ui->peg_cur++;
         if (button == CURSOR_LEFT && ui->peg_cur > 0)
             ui->peg_cur--;
-        ret = from;
+        ret = "";
     } else if (button == CURSOR_SELECT || button == ' ' || button == '\r' ||
                button == '\n') {
         ui->display_cur = 1;
         if (ui->peg_cur == from->params.npegs) {
-            ret = mark_move(from, ui);
+            ret = encode_move(from, ui);
         } else {
             set_peg(&from->params, ui, ui->peg_cur, ui->colour_cur+1);
-            ret = from;
+            ret = "";
         }
     } else if (button == 'H' || button == 'h') {
         ui->display_cur = 1;
         ui->holds[ui->peg_cur] = 1 - ui->holds[ui->peg_cur];
-        ret = from;
+        ret = "";
     }
     return ret;
+}
+
+static game_state *execute_move(game_state *from, char *move)
+{
+    int i, nc_place;
+    game_state *ret;
+    char *p;
+
+    if (!strcmp(move, "S")) {
+	ret = dup_game(from);
+	ret->solved = 1;
+	return ret;
+    } else if (move[0] == 'G') {
+	p = move+1;
+
+	ret = dup_game(from);
+
+	for (i = 0; i < from->solution->npegs; i++) {
+	    int val = atoi(p);
+	    if (val <= 0 || val > from->params.ncolours) {
+		free_game(ret);
+		return NULL;
+	    }
+	    ret->guesses[from->next_go]->pegs[i] = atoi(p);
+	    while (*p && isdigit((unsigned char)*p)) p++;
+	    if (*p == ',') p++;
+	}
+
+	nc_place = mark_pegs(ret->guesses[from->next_go], ret->solution, ret->params.ncolours);
+
+	if (nc_place == ret->solution->npegs) {
+	    ret->solved = 1; /* win! */
+	} else {
+	    ret->next_go = from->next_go + 1;
+	    if (ret->next_go >= ret->params.nguesses)
+		ret->solved = 1; /* 'lose' so we show the pegs. */
+	}
+
+	return ret;
+    } else
+	return NULL;
 }
 
 /* ----------------------------------------------------------------------
@@ -1217,7 +1261,8 @@ const struct game thegame = {
     new_ui,
     free_ui,
     game_changed_state,
-    make_move,
+    interpret_move,
+    execute_move,
     game_size,
     game_colours,
     game_new_drawstate,

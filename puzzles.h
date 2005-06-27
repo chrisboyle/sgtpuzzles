@@ -269,16 +269,17 @@ struct game {
     game_state *(*dup_game)(game_state *state);
     void (*free_game)(game_state *state);
     int can_solve;
-    game_state *(*solve)(game_state *orig, game_state *curr,
-			 game_aux_info *aux, char **error);
+    char *(*solve)(game_state *orig, game_state *curr,
+		   game_aux_info *aux, char **error);
     int can_format_as_text;
     char *(*text_format)(game_state *state);
     game_ui *(*new_ui)(game_state *state);
     void (*free_ui)(game_ui *ui);
     void (*changed_state)(game_ui *ui, game_state *oldstate,
                           game_state *newstate);
-    game_state *(*make_move)(game_state *from, game_ui *ui, game_drawstate *ds,
-                             int x, int y, int button);
+    char *(*interpret_move)(game_state *state, game_ui *ui, game_drawstate *ds,
+			    int x, int y, int button);
+    game_state *(*execute_move)(game_state *state, char *move);
     void (*size)(game_params *params, game_drawstate *ds, int *x, int *y,
                  int expand);
     float *(*colours)(frontend *fe, game_state *state, int *ncolours);

@@ -984,8 +984,8 @@ static void free_game(game_state *state)
     sfree(state);
 }
 
-static game_state *solve_game(game_state *state, game_state *currstate,
-			      game_aux_info *aux, char **error)
+static char *solve_game(game_state *state, game_state *currstate,
+			game_aux_info *aux, char **error)
 {
     return NULL;
 }
@@ -1014,104 +1014,14 @@ struct game_drawstate {
     int ox, oy;                        /* pixel position of float origin */
 };
 
-static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
-			     int x, int y, int button)
+/*
+ * Code shared between interpret_move() and execute_move().
+ */
+static int find_move_dest(game_state *from, int direction,
+			  int *skey, int *dkey)
 {
-    int direction;
-    int pkey[2], skey[2], dkey[2];
+    int mask, dest, i, j;
     float points[4];
-    game_state *ret;
-    float angle;
-    int i, j, dest, mask;
-    struct solid *poly;
-
-    button = button & (~MOD_MASK | MOD_NUM_KEYPAD);
-
-    /*
-     * Moves can be made with the cursor keys or numeric keypad, or
-     * alternatively you can left-click and the polyhedron will
-     * move in the general direction of the mouse pointer.
-     */
-    if (button == CURSOR_UP || button == (MOD_NUM_KEYPAD | '8'))
-        direction = UP;
-    else if (button == CURSOR_DOWN || button == (MOD_NUM_KEYPAD | '2'))
-        direction = DOWN;
-    else if (button == CURSOR_LEFT || button == (MOD_NUM_KEYPAD | '4'))
-        direction = LEFT;
-    else if (button == CURSOR_RIGHT || button == (MOD_NUM_KEYPAD | '6'))
-        direction = RIGHT;
-    else if (button == (MOD_NUM_KEYPAD | '7'))
-        direction = UP_LEFT;
-    else if (button == (MOD_NUM_KEYPAD | '1'))
-        direction = DOWN_LEFT;
-    else if (button == (MOD_NUM_KEYPAD | '9'))
-        direction = UP_RIGHT;
-    else if (button == (MOD_NUM_KEYPAD | '3'))
-        direction = DOWN_RIGHT;
-    else if (button == LEFT_BUTTON) {
-        /*
-         * Find the bearing of the click point from the current
-         * square's centre.
-         */
-        int cx, cy;
-        double angle;
-
-        cx = from->squares[from->current].x * GRID_SCALE + ds->ox;
-        cy = from->squares[from->current].y * GRID_SCALE + ds->oy;
-
-        if (x == cx && y == cy)
-            return NULL;               /* clicked in exact centre!  */
-        angle = atan2(y - cy, x - cx);
-
-        /*
-         * There are three possibilities.
-         * 
-         *  - This square is a square, so we choose between UP,
-         *    DOWN, LEFT and RIGHT by dividing the available angle
-         *    at the 45-degree points.
-         * 
-         *  - This square is an up-pointing triangle, so we choose
-         *    between DOWN, LEFT and RIGHT by dividing into
-         *    120-degree arcs.
-         * 
-         *  - This square is a down-pointing triangle, so we choose
-         *    between UP, LEFT and RIGHT in the inverse manner.
-         * 
-         * Don't forget that since our y-coordinates increase
-         * downwards, `angle' is measured _clockwise_ from the
-         * x-axis, not anticlockwise as most mathematicians would
-         * instinctively assume.
-         */
-        if (from->squares[from->current].npoints == 4) {
-            /* Square. */
-            if (fabs(angle) > 3*PI/4)
-                direction = LEFT;
-            else if (fabs(angle) < PI/4)
-                direction = RIGHT;
-            else if (angle > 0)
-                direction = DOWN;
-            else
-                direction = UP;
-        } else if (from->squares[from->current].directions[UP] == 0) {
-            /* Up-pointing triangle. */
-            if (angle < -PI/2 || angle > 5*PI/6)
-                direction = LEFT;
-            else if (angle > PI/6)
-                direction = DOWN;
-            else
-                direction = RIGHT;
-        } else {
-            /* Down-pointing triangle. */
-            assert(from->squares[from->current].directions[DOWN] == 0);
-            if (angle > PI/2 || angle < -5*PI/6)
-                direction = LEFT;
-            else if (angle < -PI/6)
-                direction = UP;
-            else
-                direction = RIGHT;
-        }
-    } else
-        return NULL;
 
     /*
      * Find the two points in the current grid square which
@@ -1119,7 +1029,7 @@ static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
      */
     mask = from->squares[from->current].directions[direction];
     if (mask == 0)
-        return NULL;
+        return -1;
     for (i = j = 0; i < from->squares[from->current].npoints; i++)
         if (mask & (1 << i)) {
             points[j*2] = from->squares[from->current].points[i*2];
@@ -1156,11 +1066,154 @@ static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
             }
         }
 
+    return dest;
+}
+
+static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
+			    int x, int y, int button)
+{
+    int direction, mask, i;
+    int skey[2], dkey[2];
+
+    button = button & (~MOD_MASK | MOD_NUM_KEYPAD);
+
+    /*
+     * Moves can be made with the cursor keys or numeric keypad, or
+     * alternatively you can left-click and the polyhedron will
+     * move in the general direction of the mouse pointer.
+     */
+    if (button == CURSOR_UP || button == (MOD_NUM_KEYPAD | '8'))
+        direction = UP;
+    else if (button == CURSOR_DOWN || button == (MOD_NUM_KEYPAD | '2'))
+        direction = DOWN;
+    else if (button == CURSOR_LEFT || button == (MOD_NUM_KEYPAD | '4'))
+        direction = LEFT;
+    else if (button == CURSOR_RIGHT || button == (MOD_NUM_KEYPAD | '6'))
+        direction = RIGHT;
+    else if (button == (MOD_NUM_KEYPAD | '7'))
+        direction = UP_LEFT;
+    else if (button == (MOD_NUM_KEYPAD | '1'))
+        direction = DOWN_LEFT;
+    else if (button == (MOD_NUM_KEYPAD | '9'))
+        direction = UP_RIGHT;
+    else if (button == (MOD_NUM_KEYPAD | '3'))
+        direction = DOWN_RIGHT;
+    else if (button == LEFT_BUTTON) {
+        /*
+         * Find the bearing of the click point from the current
+         * square's centre.
+         */
+        int cx, cy;
+        double angle;
+
+        cx = state->squares[state->current].x * GRID_SCALE + ds->ox;
+        cy = state->squares[state->current].y * GRID_SCALE + ds->oy;
+
+        if (x == cx && y == cy)
+            return NULL;               /* clicked in exact centre!  */
+        angle = atan2(y - cy, x - cx);
+
+        /*
+         * There are three possibilities.
+         * 
+         *  - This square is a square, so we choose between UP,
+         *    DOWN, LEFT and RIGHT by dividing the available angle
+         *    at the 45-degree points.
+         * 
+         *  - This square is an up-pointing triangle, so we choose
+         *    between DOWN, LEFT and RIGHT by dividing into
+         *    120-degree arcs.
+         * 
+         *  - This square is a down-pointing triangle, so we choose
+         *    between UP, LEFT and RIGHT in the inverse manner.
+         * 
+         * Don't forget that since our y-coordinates increase
+         * downwards, `angle' is measured _clockwise_ from the
+         * x-axis, not anticlockwise as most mathematicians would
+         * instinctively assume.
+         */
+        if (state->squares[state->current].npoints == 4) {
+            /* Square. */
+            if (fabs(angle) > 3*PI/4)
+                direction = LEFT;
+            else if (fabs(angle) < PI/4)
+                direction = RIGHT;
+            else if (angle > 0)
+                direction = DOWN;
+            else
+                direction = UP;
+        } else if (state->squares[state->current].directions[UP] == 0) {
+            /* Up-pointing triangle. */
+            if (angle < -PI/2 || angle > 5*PI/6)
+                direction = LEFT;
+            else if (angle > PI/6)
+                direction = DOWN;
+            else
+                direction = RIGHT;
+        } else {
+            /* Down-pointing triangle. */
+            assert(state->squares[state->current].directions[DOWN] == 0);
+            if (angle > PI/2 || angle < -5*PI/6)
+                direction = LEFT;
+            else if (angle < -PI/6)
+                direction = UP;
+            else
+                direction = RIGHT;
+        }
+    } else
+        return NULL;
+
+    mask = state->squares[state->current].directions[direction];
+    if (mask == 0)
+        return NULL;
+
+    /*
+     * Translate diagonal directions into orthogonal ones.
+     */
+    if (direction > DOWN) {
+	for (i = LEFT; i <= DOWN; i++)
+	    if (state->squares[state->current].directions[i] == mask) {
+		direction = i;
+		break;
+	    }
+	assert(direction <= DOWN);
+    }
+
+    if (find_move_dest(state, direction, skey, dkey) < 0)
+	return NULL;
+
+    if (direction == LEFT)  return dupstr("L");
+    if (direction == RIGHT) return dupstr("R");
+    if (direction == UP)    return dupstr("U");
+    if (direction == DOWN)  return dupstr("D");
+
+    return NULL;		       /* should never happen */
+}
+
+static game_state *execute_move(game_state *from, char *move)
+{
+    game_state *ret;
+    float angle;
+    struct solid *poly;
+    int pkey[2];
+    int skey[2], dkey[2];
+    int i, j, dest;
+    int direction;
+
+    switch (*move) {
+      case 'L': direction = LEFT; break;
+      case 'R': direction = RIGHT; break;
+      case 'U': direction = UP; break;
+      case 'D': direction = DOWN; break;
+      default: return NULL;
+    }
+
+    dest = find_move_dest(from, direction, skey, dkey);
     if (dest < 0)
         return NULL;
 
     ret = dup_game(from);
-    ret->current = i;
+    ret->current = dest;
 
     /*
      * So we know what grid square we're aiming for, and we also
@@ -1662,7 +1715,8 @@ const struct game thegame = {
     new_ui,
     free_ui,
     game_changed_state,
-    make_move,
+    interpret_move,
+    execute_move,
     game_size,
     game_colours,
     game_new_drawstate,

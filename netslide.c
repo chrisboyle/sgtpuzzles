@@ -893,10 +893,11 @@ static void free_game(game_state *state)
     sfree(state);
 }
 
-static game_state *solve_game(game_state *state, game_state *currstate,
-			      game_aux_info *aux, char **error)
+static char *solve_game(game_state *state, game_state *currstate,
+			game_aux_info *aux, char **error)
 {
-    game_state *ret;
+    char *ret;
+    int i;
 
     if (!aux) {
 	*error = "Solution not known for this puzzle";
@@ -905,11 +906,11 @@ static game_state *solve_game(game_state *state, game_state *currstate,
 
     assert(aux->width == state->width);
     assert(aux->height == state->height);
-    ret = dup_game(state);
-    memcpy(ret->tiles, aux->tiles, ret->width * ret->height);
-    ret->used_solve = ret->just_used_solve = TRUE;
-    ret->completed = ret->move_count = 1;
-
+    ret = snewn(aux->width * aux->height + 2, char);
+    ret[0] = 'S';
+    for (i = 0; i < aux->width * aux->height; i++)
+	ret[i+1] = "0123456789abcdef"[aux->tiles[i] & 0xF];
+    ret[i+1] = '\0';
     return ret;
 }
 
@@ -1058,12 +1059,12 @@ struct game_drawstate {
     unsigned char *visible;
 };
 
-static game_state *make_move(game_state *state, game_ui *ui,
-                             game_drawstate *ds, int x, int y, int button)
+static char *interpret_move(game_state *state, game_ui *ui,
+			    game_drawstate *ds, int x, int y, int button)
 {
     int cx, cy;
     int n, dx, dy;
-    game_state *ret;
+    char buf[80];
 
     button &= ~MOD_MASK;
 
@@ -1099,16 +1100,59 @@ static game_state *make_move(game_state *state, game_ui *ui,
         dy = -dy;
     }
 
-    ret = dup_game(state);
+    if (dx == 0)
+	sprintf(buf, "C%d,%d", cx, dy);
+    else
+	sprintf(buf, "R%d,%d", cy, dx);
+    return dupstr(buf);
+}
+
+static game_state *execute_move(game_state *from, char *move)
+{
+    game_state *ret;
+    int c, d, col;
+
+    if ((move[0] == 'C' || move[0] == 'R') &&
+	sscanf(move+1, "%d,%d", &c, &d) == 2 &&
+	c >= 0 && c < (move[0] == 'C' ? from->width : from->height)) {
+	col = (move[0] == 'C');
+    } else if (move[0] == 'S' &&
+	       strlen(move) == from->width * from->height + 1) {
+	int i;
+	ret = dup_game(from);
+	ret->used_solve = ret->just_used_solve = TRUE;
+	ret->completed = ret->move_count = 1;
+
+	for (i = 0; i < from->width * from->height; i++) {
+	    c = move[i+1];
+	    if (c >= '0' && c <= '9')
+		c -= '0';
+	    else if (c >= 'A' && c <= 'F')
+		c -= 'A' - 10;
+	    else if (c >= 'a' && c <= 'f')
+		c -= 'a' - 10;
+	    else {
+		free_game(ret);
+		return NULL;
+	    }
+	    ret->tiles[i] = c;
+	}
+	return ret;
+    } else
+	return NULL;		       /* can't parse move string */
+
+    ret = dup_game(from);
     ret->just_used_solve = FALSE;
 
-    if (dx == 0) slide_col(ret, dy, cx);
-    else slide_row(ret, dx, cy);
+    if (col)
+	slide_col(ret, d, c);
+    else
+	slide_row(ret, d, c);
 
     ret->move_count++;
-    ret->last_move_row = dx ? cy : -1;
-    ret->last_move_col = dx ? -1 : cx;
-    ret->last_move_dir = dx + dy;
+    ret->last_move_row = col ? -1 : c;
+    ret->last_move_col = col ? c : -1;
+    ret->last_move_dir = d;
 
     /*
      * See if the game has been completed.
@@ -1779,7 +1823,8 @@ const struct game thegame = {
     new_ui,
     free_ui,
     game_changed_state,
-    make_move,
+    interpret_move,
+    execute_move,
     game_size,
     game_colours,
     game_new_drawstate,

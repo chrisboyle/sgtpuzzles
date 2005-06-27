@@ -664,27 +664,30 @@ static void free_game(game_state *state)
     sfree(state);
 }
 
-static game_state *solve_game(game_state *state, game_state *currstate,
-			      game_aux_info *ai, char **error)
+static char *solve_game(game_state *state, game_state *currstate,
+			game_aux_info *ai, char **error)
 {
-    game_state *ret;
-
-    ret = dup_game(state);
-    ret->completed = ret->cheated = TRUE;
+    unsigned char *matrix;
+    int matrix_needs_freeing;
+    int full, empty;
+    int w = state->w, h = state->h;
+    int i;
+    char *ret;
 
     /*
      * If we already have the solved state in an aux_info, copy it
      * out.
      */
     if (ai) {
+	assert(ai->w == w && ai->h == h);
 
-	assert(ret->w == ai->w);
-	assert(ret->h == ai->h);
-	memcpy(ret->grid, ai->grid, ai->w * ai->h);
-
+	matrix = ai->grid;
+	matrix_needs_freeing = FALSE;
+	full = GRID_FULL;
+	empty = GRID_EMPTY;
     } else {
-	int w = state->w, h = state->h, i, j, done_any, max;
-	unsigned char *matrix, *workspace;
+	int done_any, max;
+	unsigned char *workspace;
 	int *rowdata;
 
 	matrix = snewn(w*h, unsigned char);
@@ -711,22 +714,32 @@ static game_state *solve_game(game_state *state, game_state *currstate,
             }
         } while (done_any);
 
-	for (i = 0; i < h; i++) {
-	    for (j = 0; j < w; j++) {
-		int c = (matrix[i*w+j] == BLOCK ? GRID_FULL :
-			 matrix[i*w+j] == DOT ? GRID_EMPTY : GRID_UNKNOWN);
-		ret->grid[i*w+j] = c;
-		if (c == GRID_UNKNOWN)
-		    ret->completed = FALSE;
+	sfree(workspace);
+	sfree(rowdata);
+
+	for (i = 0; i < w*h; i++) {
+	    if (matrix[i] != BLOCK && matrix[i] != DOT) {
+		sfree(matrix);
+		*error = "Solving algorithm cannot complete this puzzle";
+		return NULL;
 	    }
 	}
 
-	if (!ret->completed) {
-	    free_game(ret);
-	    *error = "Solving algorithm cannot complete this puzzle";
-	    return NULL;
-	}
+	matrix_needs_freeing = TRUE;
+	full = BLOCK;
+	empty = DOT;
     }
+
+    ret = snewn(w*h+2, char);
+    ret[0] = 'S';
+    for (i = 0; i < w*h; i++) {
+	assert(matrix[i] == full || matrix[i] == empty);
+	ret[i+1] = (matrix[i] == full ? '1' : '0');
+    }
+    ret[w*h+1] = '\0';
+
+    if (matrix_needs_freeing)
+	sfree(matrix);
 
     return ret;
 }
@@ -772,16 +785,15 @@ struct game_drawstate {
     unsigned char *visible;
 };
 
-static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
-                             int x, int y, int button) {
-    game_state *ret;
-
+static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
+			    int x, int y, int button)
+{
     button &= ~MOD_MASK;
 
-    x = FROMCOORD(from->w, x);
-    y = FROMCOORD(from->h, y);
+    x = FROMCOORD(state->w, x);
+    y = FROMCOORD(state->h, y);
 
-    if (x >= 0 && x < from->w && y >= 0 && y < from->h &&
+    if (x >= 0 && x < state->w && y >= 0 && y < state->h &&
         (button == LEFT_BUTTON || button == RIGHT_BUTTON ||
          button == MIDDLE_BUTTON)) {
 
@@ -804,7 +816,7 @@ static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
         ui->drag_start_x = ui->drag_end_x = x;
         ui->drag_start_y = ui->drag_end_y = y;
 
-        return from;                   /* UI activity occurred */
+        return "";		       /* UI activity occurred */
     }
 
     if (ui->dragging && button == ui->drag) {
@@ -827,13 +839,13 @@ static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
 
         if (x < 0) x = 0;
         if (y < 0) y = 0;
-        if (x >= from->w) x = from->w - 1;
-        if (y >= from->h) y = from->h - 1;
+        if (x >= state->w) x = state->w - 1;
+        if (y >= state->h) y = state->h - 1;
 
         ui->drag_end_x = x;
         ui->drag_end_y = y;
 
-        return from;                   /* UI activity occurred */
+        return "";		       /* UI activity occurred */
     }
 
     if (ui->dragging && button == ui->release) {
@@ -847,57 +859,94 @@ static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
 
         for (yy = y1; yy <= y2; yy++)
             for (xx = x1; xx <= x2; xx++)
-                if (from->grid[yy * from->w + xx] != ui->state)
+                if (state->grid[yy * state->w + xx] != ui->state)
                     move_needed = TRUE;
 
         ui->dragging = FALSE;
 
         if (move_needed) {
-            ret = dup_game(from);
-            for (yy = y1; yy <= y2; yy++)
-                for (xx = x1; xx <= x2; xx++)
-                    ret->grid[yy * ret->w + xx] = ui->state;
-
-            /*
-             * An actual change, so check to see if we've completed
-             * the game.
-             */
-            if (!ret->completed) {
-                int *rowdata = snewn(ret->rowsize, int);
-                int i, len;
-
-                ret->completed = TRUE;
-
-                for (i=0; i<ret->w; i++) {
-                    len = compute_rowdata(rowdata,
-                                          ret->grid+i, ret->h, ret->w);
-                    if (len != ret->rowlen[i] ||
-                        memcmp(ret->rowdata+i*ret->rowsize, rowdata,
-                               len * sizeof(int))) {
-                        ret->completed = FALSE;
-                        break;
-                    }
-                }
-                for (i=0; i<ret->h; i++) {
-                    len = compute_rowdata(rowdata,
-                                          ret->grid+i*ret->w, ret->w, 1);
-                    if (len != ret->rowlen[i+ret->w] ||
-                        memcmp(ret->rowdata+(i+ret->w)*ret->rowsize, rowdata,
-                               len * sizeof(int))) {
-                        ret->completed = FALSE;
-                        break;
-                    }
-                }
-
-                sfree(rowdata);
-            }
-
-            return ret;
+	    char buf[80];
+	    sprintf(buf, "%c%d,%d,%d,%d",
+		    (ui->state == GRID_FULL ? 'F' :
+		     ui->state == GRID_EMPTY ? 'E' : 'U'),
+		    x1, y1, x2-x1+1, y2-y1+1);
+	    return dupstr(buf);
         } else
-            return from;               /* UI activity occurred */
+            return "";		       /* UI activity occurred */
     }
 
     return NULL;
+}
+
+static game_state *execute_move(game_state *from, char *move)
+{
+    game_state *ret;
+    int x1, x2, y1, y2, xx, yy;
+    int val;
+
+    if (move[0] == 'S' && strlen(move) == from->w * from->h + 1) {
+	int i;
+
+	ret = dup_game(from);
+
+	for (i = 0; i < ret->w * ret->h; i++)
+	    ret->grid[i] = (move[i+1] == '1' ? GRID_FULL : GRID_EMPTY);
+
+	ret->completed = ret->cheated = TRUE;
+
+	return ret;
+    } else if ((move[0] == 'F' || move[0] == 'E' || move[0] == 'U') &&
+	sscanf(move+1, "%d,%d,%d,%d", &x1, &y1, &x2, &y2) == 4 &&
+	x1 >= 0 && x2 >= 0 && x1+x2 <= from->w &&
+	y1 >= 0 && y2 >= 0 && y1+y2 <= from->h) {
+
+	x2 += x1;
+	y2 += y1;
+	val = (move[0] == 'F' ? GRID_FULL :
+		 move[0] == 'E' ? GRID_EMPTY : GRID_UNKNOWN);
+
+	ret = dup_game(from);
+	for (yy = y1; yy < y2; yy++)
+	    for (xx = x1; xx < x2; xx++)
+		ret->grid[yy * ret->w + xx] = val;
+
+	/*
+	 * An actual change, so check to see if we've completed the
+	 * game.
+	 */
+	if (!ret->completed) {
+	    int *rowdata = snewn(ret->rowsize, int);
+	    int i, len;
+
+	    ret->completed = TRUE;
+
+	    for (i=0; i<ret->w; i++) {
+		len = compute_rowdata(rowdata,
+				      ret->grid+i, ret->h, ret->w);
+		if (len != ret->rowlen[i] ||
+		    memcmp(ret->rowdata+i*ret->rowsize, rowdata,
+			   len * sizeof(int))) {
+		    ret->completed = FALSE;
+		    break;
+		}
+	    }
+	    for (i=0; i<ret->h; i++) {
+		len = compute_rowdata(rowdata,
+				      ret->grid+i*ret->w, ret->w, 1);
+		if (len != ret->rowlen[i+ret->w] ||
+		    memcmp(ret->rowdata+(i+ret->w)*ret->rowsize, rowdata,
+			   len * sizeof(int))) {
+		    ret->completed = FALSE;
+		    break;
+		}
+	    }
+
+	    sfree(rowdata);
+	}
+
+	return ret;
+    } else
+	return NULL;
 }
 
 /* ----------------------------------------------------------------------
@@ -1146,7 +1195,8 @@ const struct game thegame = {
     new_ui,
     free_ui,
     game_changed_state,
-    make_move,
+    interpret_move,
+    execute_move,
     game_size,
     game_colours,
     game_new_drawstate,

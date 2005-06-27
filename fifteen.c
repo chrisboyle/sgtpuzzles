@@ -379,26 +379,10 @@ static void free_game(game_state *state)
     sfree(state);
 }
 
-static game_state *solve_game(game_state *state, game_state *currstate,
-			      game_aux_info *aux, char **error)
+static char *solve_game(game_state *state, game_state *currstate,
+			game_aux_info *aux, char **error)
 {
-    game_state *ret = dup_game(state);
-    int i;
-
-    /*
-     * Simply replace the grid with a solved one. For this game,
-     * this isn't a useful operation for actually telling the user
-     * what they should have done, but it is useful for
-     * conveniently being able to get hold of a clean state from
-     * which to practise manoeuvres.
-     */
-    for (i = 0; i < ret->n; i++)
-	ret->tiles[i] = (i+1) % ret->n;
-    ret->gap_pos = ret->n-1;
-    ret->used_solve = ret->just_used_solve = TRUE;
-    ret->completed = ret->movecount = 1;
-
-    return ret;
+    return dupstr("S");
 }
 
 static char *game_text_format(game_state *state)
@@ -464,28 +448,29 @@ struct game_drawstate {
     int tilesize;
 };
 
-static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
-                             int x, int y, int button) {
-    int gx, gy, dx, dy, ux, uy, up, p;
-    game_state *ret;
+static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
+			    int x, int y, int button)
+{
+    int gx, gy, dx, dy;
+    char buf[80];
 
     button &= ~MOD_MASK;
 
-    gx = X(from, from->gap_pos);
-    gy = Y(from, from->gap_pos);
+    gx = X(state, state->gap_pos);
+    gy = Y(state, state->gap_pos);
 
     if (button == CURSOR_RIGHT && gx > 0)
         dx = gx - 1, dy = gy;
-    else if (button == CURSOR_LEFT && gx < from->w-1)
+    else if (button == CURSOR_LEFT && gx < state->w-1)
         dx = gx + 1, dy = gy;
     else if (button == CURSOR_DOWN && gy > 0)
         dy = gy - 1, dx = gx;
-    else if (button == CURSOR_UP && gy < from->h-1)
+    else if (button == CURSOR_UP && gy < state->h-1)
         dy = gy + 1, dx = gx;
     else if (button == LEFT_BUTTON) {
         dx = FROMCOORD(x);
         dy = FROMCOORD(y);
-        if (dx < 0 || dx >= from->w || dy < 0 || dy >= from->h)
+        if (dx < 0 || dx >= state->w || dy < 0 || dy >= state->h)
             return NULL;               /* out of bounds */
         /*
          * Any click location should be equal to the gap location
@@ -495,6 +480,45 @@ static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
             return NULL;
     } else
         return NULL;                   /* no move */
+
+    sprintf(buf, "M%d,%d", dx, dy);
+    return dupstr(buf);
+}
+
+static game_state *execute_move(game_state *from, char *move)
+{
+    int gx, gy, dx, dy, ux, uy, up, p;
+    game_state *ret;
+
+    if (!strcmp(move, "S")) {
+	int i;
+
+	ret = dup_game(from);
+
+	/*
+	 * Simply replace the grid with a solved one. For this game,
+	 * this isn't a useful operation for actually telling the user
+	 * what they should have done, but it is useful for
+	 * conveniently being able to get hold of a clean state from
+	 * which to practise manoeuvres.
+	 */
+	for (i = 0; i < ret->n; i++)
+	    ret->tiles[i] = (i+1) % ret->n;
+	ret->gap_pos = ret->n-1;
+	ret->used_solve = ret->just_used_solve = TRUE;
+	ret->completed = ret->movecount = 1;
+
+	return ret;
+    }
+
+    gx = X(from, from->gap_pos);
+    gy = Y(from, from->gap_pos);
+
+    if (move[0] != 'M' ||
+	sscanf(move+1, "%d,%d", &dx, &dy) != 2 ||
+	(dx == gx && dy == gy) || (dx != gx && dy != gy) ||
+	dx < 0 || dx >= from->w || dy < 0 || dy >= from->h)
+	return NULL;
 
     /*
      * Find the unit displacement from the original gap
@@ -859,7 +883,8 @@ const struct game thegame = {
     new_ui,
     free_ui,
     game_changed_state,
-    make_move,
+    interpret_move,
+    execute_move,
     game_size,
     game_colours,
     game_new_drawstate,

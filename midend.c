@@ -367,9 +367,22 @@ static int midend_really_process_key(midend_data *me, int x, int y, int button)
 	ret = 0;
 	goto done;
     } else {
-        game_state *s =
-            me->ourgame->make_move(me->states[me->statepos-1].state,
-                                   me->ui, me->drawstate, x, y, button);
+        game_state *s;
+	char *movestr;
+	
+	movestr =
+            me->ourgame->interpret_move(me->states[me->statepos-1].state,
+					me->ui, me->drawstate, x, y, button);
+	if (!movestr)
+	    s = NULL;
+	else if (!*movestr)
+	    s = me->states[me->statepos-1].state;
+	else {
+	    s = me->ourgame->execute_move(me->states[me->statepos-1].state,
+					  movestr);
+	    assert(s != NULL);
+	    sfree(movestr);
+	}
 
         if (s == me->states[me->statepos-1].state) {
             /*
@@ -938,7 +951,7 @@ char *midend_text_format(midend_data *me)
 char *midend_solve(midend_data *me)
 {
     game_state *s;
-    char *msg;
+    char *msg, *movestr;
 
     if (!me->ourgame->can_solve)
 	return "This game does not support the Solve operation";
@@ -947,11 +960,14 @@ char *midend_solve(midend_data *me)
 	return "No game set up to solve";   /* _shouldn't_ happen! */
 
     msg = "Solve operation failed";    /* game _should_ overwrite on error */
-    s = me->ourgame->solve(me->states[0].state,
-			   me->states[me->statepos-1].state,
-			   me->aux_info, &msg);
-    if (!s)
+    movestr = me->ourgame->solve(me->states[0].state,
+				 me->states[me->statepos-1].state,
+				 me->aux_info, &msg);
+    if (!movestr)
 	return msg;
+    s = me->ourgame->execute_move(me->states[me->statepos-1].state, movestr);
+    assert(s);
+    sfree(movestr);
 
     /*
      * Now enter the solved state as the next move.

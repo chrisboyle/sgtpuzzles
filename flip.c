@@ -675,15 +675,15 @@ static void rowxor(unsigned char *row1, unsigned char *row2, int len)
 	row1[i] ^= row2[i];
 }
 
-static game_state *solve_game(game_state *state, game_state *currstate,
-			      game_aux_info *aux, char **error)
+static char *solve_game(game_state *state, game_state *currstate,
+			game_aux_info *aux, char **error)
 {
     int w = state->w, h = state->h, wh = w * h;
     unsigned char *equations, *solution, *shortest;
     int *und, nund;
     int rowsdone, colsdone;
     int i, j, k, len, bestlen;
-    game_state *ret;
+    char *ret;
 
     /*
      * Set up a list of simultaneous equations. Each one is of
@@ -840,17 +840,14 @@ static game_state *solve_game(game_state *state, game_state *currstate,
     }
 
     /*
-     * We have a solution. Produce a game state with the solution
-     * marked in annotations.
+     * We have a solution. Produce a move string encoding the
+     * solution.
      */
-    ret = dup_game(currstate);
-    ret->hints_active = TRUE;
-    ret->cheated = TRUE;
-    for (i = 0; i < wh; i++) {
-	ret->grid[i] &= ~2;
-	if (shortest[i])
-	    ret->grid[i] |= 2;
-    }
+    ret = snewn(wh + 2, char);
+    ret[0] = 'S';
+    for (i = 0; i < wh; i++)
+	ret[i+1] = shortest[i] ? '1' : '0';
+    ret[wh+1] = '\0';
 
     sfree(shortest);
     sfree(solution);
@@ -885,41 +882,68 @@ struct game_drawstate {
     int tilesize;
 };
 
-static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
-                             int x, int y, int button)
+static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
+			    int x, int y, int button)
 {
-    int w = from->w, h = from->h, wh = w * h;
-    game_state *ret;
+    int w = state->w, h = state->h /*, wh = w * h */;
+    char buf[80];
 
     if (button == LEFT_BUTTON) {
         int tx = FROMCOORD(x), ty = FROMCOORD(y);
         if (tx >= 0 && tx < w && ty >= 0 && ty < h) {
-            int i, j, done;
-
-            ret = dup_game(from);
-
-	    if (!ret->completed)
-		ret->moves++;
-
-            i = ty * w + tx;
-
-	    done = TRUE;
-            for (j = 0; j < wh; j++) {
-                ret->grid[j] ^= ret->matrix->matrix[i*wh+j];
-		if (ret->grid[j] & 1)
-		    done = FALSE;
-	    }
-	    ret->grid[i] ^= 2;	       /* toggle hint */
-	    if (done) {
-		ret->completed = TRUE;
-		ret->hints_active = FALSE;
-	    }
-
-            return ret;
+	    sprintf(buf, "M%d,%d", tx, ty);
+	    return dupstr(buf);
         }
     }
 
     return NULL;
+}
+
+static game_state *execute_move(game_state *from, char *move)
+{
+    int w = from->w, h = from->h, wh = w * h;
+    game_state *ret;
+    int x, y;
+
+    if (move[0] == 'S' && strlen(move) == wh+1) {
+	int i;
+
+	ret = dup_game(from);
+	ret->hints_active = TRUE;
+	ret->cheated = TRUE;
+	for (i = 0; i < wh; i++) {
+	    ret->grid[i] &= ~2;
+	    if (move[i+1] != '0')
+		ret->grid[i] |= 2;
+	}
+	return ret;
+    } else if (move[0] == 'M' &&
+	       sscanf(move+1, "%d,%d", &x, &y) == 2 &&
+	x >= 0 && x < w && y >= 0 && y < h) {
+	int i, j, done;
+
+	ret = dup_game(from);
+
+	if (!ret->completed)
+	    ret->moves++;
+
+	i = y * w + x;
+
+	done = TRUE;
+	for (j = 0; j < wh; j++) {
+	    ret->grid[j] ^= ret->matrix->matrix[i*wh+j];
+	    if (ret->grid[j] & 1)
+		done = FALSE;
+	}
+	ret->grid[i] ^= 2;	       /* toggle hint */
+	if (done) {
+	    ret->completed = TRUE;
+	    ret->hints_active = FALSE;
+	}
+
+	return ret;
+    } else
+	return NULL;		       /* can't parse move string */
 }
 
 /* ----------------------------------------------------------------------
@@ -1206,7 +1230,8 @@ const struct game thegame = {
     new_ui,
     free_ui,
     game_changed_state,
-    make_move,
+    interpret_move,
+    execute_move,
     game_size,
     game_colours,
     game_new_drawstate,

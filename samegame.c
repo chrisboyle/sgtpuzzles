@@ -355,8 +355,8 @@ static void free_game(game_state *state)
     sfree(state);
 }
 
-static game_state *solve_game(game_state *state, game_state *currstate,
-			      game_aux_info *aux, char **error)
+static char *solve_game(game_state *state, game_state *currstate,
+			game_aux_info *aux, char **error)
 {
     return NULL;
 }
@@ -427,20 +427,37 @@ static void game_changed_state(game_ui *ui, game_state *oldstate,
     sel_clear(ui, newstate);
 }
 
-static void sel_remove(game_ui *ui, game_state *state)
+static char *sel_movedesc(game_ui *ui, game_state *state)
 {
-    int i, nremoved = 0;
+    int i;
+    char *ret, *sep, buf[80];
+    int retlen, retsize;
 
-    state->score += npoints(&state->params, ui->nselected);
+    retsize = 256;
+    ret = snewn(retsize, char);
+    retlen = 0;
+    ret[retlen++] = 'M';
+    sep = "";
 
     for (i = 0; i < state->n; i++) {
 	if (ui->tiles[i] & TILE_SELECTED) {
-	    nremoved++;
-	    state->tiles[i] = 0;
+	    sprintf(buf, "%s%d", sep, i);
+	    sep = ",";
+	    if (retlen + strlen(buf) >= retsize) {
+		retsize = retlen + strlen(buf) + 256;
+		ret = sresize(ret, retsize, char);
+	    }
+	    strcpy(ret + retlen, buf);
+	    retlen += strlen(buf);
+
 	    ui->tiles[i] &= ~TILE_SELECTED;
 	}
     }
     ui->nselected = 0;
+
+    assert(retlen < retsize);
+    ret[retlen++] = '\0';
+    return sresize(ret, retlen, char);
 }
 
 static void sel_expand(game_ui *ui, game_state *state, int tx, int ty)
@@ -567,11 +584,13 @@ struct game_drawstate {
     int *tiles; /* contains colour and SELECTED. */
 };
 
-static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
-                             int x, int y, int button)
+static game_state *execute_move(game_state *from, char *move);
+
+static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
+			    int x, int y, int button)
 {
     int tx, ty;
-    game_state *ret = from;
+    char *ret = "";
 
     ui->displaysel = 0;
 
@@ -583,8 +602,8 @@ static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
 	ui->displaysel = 1;
 	dx = (button == CURSOR_LEFT) ? -1 : ((button == CURSOR_RIGHT) ? +1 : 0);
 	dy = (button == CURSOR_DOWN) ? +1 : ((button == CURSOR_UP)    ? -1 : 0);
-	ui->xsel = (ui->xsel + from->params.w + dx) % from->params.w;
-	ui->ysel = (ui->ysel + from->params.h + dy) % from->params.h;
+	ui->xsel = (ui->xsel + state->params.w + dx) % state->params.w;
+	ui->ysel = (ui->ysel + state->params.h + dy) % state->params.h;
 	return ret;
     } else if (button == CURSOR_SELECT || button == ' ' || button == '\r' ||
 	       button == '\n') {
@@ -594,28 +613,69 @@ static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
     } else
 	return NULL;
 
-    if (tx < 0 || tx >= from->params.w || ty < 0 || ty >= from->params.h)
+    if (tx < 0 || tx >= state->params.w || ty < 0 || ty >= state->params.h)
 	return NULL;
-    if (COL(from, tx, ty) == 0) return NULL;
+    if (COL(state, tx, ty) == 0) return NULL;
 
     if (ISSEL(ui,tx,ty)) {
 	if (button == RIGHT_BUTTON)
-	    sel_clear(ui, from);
+	    sel_clear(ui, state);
 	else {
-	    /* this is the actual move. */
-	    ret = dup_game(from);
-	    sel_remove(ui, ret);
-	    sg_snuggle(ret); /* shifts blanks down and to the left */
-	    sg_check(ret);   /* checks for completeness or impossibility */
+	    game_state *tmp;
+
+	    ret = sel_movedesc(ui, state);
+
+	    /*
+	     * Unfortunately, we must check for completeness or
+	     * impossibility now, in order to update the game_ui;
+	     * and we can't do that without constructing the new
+	     * grid. Sigh.
+	     */
+	    tmp = execute_move(state, ret);
+	    if (tmp->complete || tmp->impossible)
+		ui->displaysel = 0;
+	    free_game(tmp);
 	}
     } else {
-	sel_clear(ui, from); /* might be no-op */
-	sel_expand(ui, from, tx, ty);
+	sel_clear(ui, state); /* might be no-op */
+	sel_expand(ui, state, tx, ty);
     }
-    if (ret->complete || ret->impossible)
-	ui->displaysel = 0;
 
     return ret;
+}
+
+static game_state *execute_move(game_state *from, char *move)
+{
+    int i, n;
+    game_state *ret;
+
+    if (move[0] == 'M') {
+	ret = dup_game(from);
+
+	n = 0;
+	move++;
+
+	while (*move) {
+	    i = atoi(move);
+	    if (i < 0 || i >= ret->n) {
+		free_game(ret);
+		return NULL;
+	    }
+	    n++;
+	    ret->tiles[i] = 0;
+
+	    while (*move && isdigit((unsigned char)*move)) move++;
+	    if (*move == ',') move++;
+	}
+
+	ret->score += npoints(&ret->params, n);
+
+	sg_snuggle(ret); /* shifts blanks down and to the left */
+	sg_check(ret);   /* checks for completeness or impossibility */
+
+	return ret;
+    } else
+	return NULL;		       /* couldn't parse move string */
 }
 
 /* ----------------------------------------------------------------------
@@ -940,7 +1000,8 @@ const struct game thegame = {
     new_ui,
     free_ui,
     game_changed_state,
-    make_move,
+    interpret_move,
+    execute_move,
     game_size,
     game_colours,
     game_new_drawstate,

@@ -546,26 +546,10 @@ static int compare_int(const void *av, const void *bv)
 	return 0;
 }
 
-static game_state *solve_game(game_state *state, game_state *currstate,
-			      game_aux_info *aux, char **error)
+static char *solve_game(game_state *state, game_state *currstate,
+			game_aux_info *aux, char **error)
 {
-    game_state *ret = dup_game(state);
-    int i;
-
-    /*
-     * Simply replace the grid with a solved one. For this game,
-     * this isn't a useful operation for actually telling the user
-     * what they should have done, but it is useful for
-     * conveniently being able to get hold of a clean state from
-     * which to practise manoeuvres.
-     */
-    qsort(ret->grid, ret->w*ret->h, sizeof(int), compare_int);
-    for (i = 0; i < ret->w*ret->h; i++)
-	ret->grid[i] &= ~3;
-    ret->used_solve = ret->just_used_solve = TRUE;
-    ret->completed = ret->movecount = 1;
-
-    return ret;
+    return dupstr("S");
 }
 
 static char *game_text_format(game_state *state)
@@ -636,11 +620,11 @@ struct game_drawstate {
     int tilesize;
 };
 
-static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
-                             int x, int y, int button)
+static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
+			    int x, int y, int button)
 {
-    int w = from->w, h = from->h, n = from->n, wh = w*h;
-    game_state *ret;
+    int w = state->w, h = state->h, n = state->n /* , wh = w*h */;
+    char buf[80];
     int dir;
 
     button = button & (~MOD_MASK | MOD_NUM_KEYPAD);
@@ -698,8 +682,43 @@ static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
     }
 
     /*
-     * This is a valid move. Make it.
+     * If we reach here, we have a valid move.
      */
+    sprintf(buf, "M%d,%d,%d", x, y, dir);
+    return dupstr(buf);
+}
+
+static game_state *execute_move(game_state *from, char *move)
+{
+    game_state *ret;
+    int w = from->w, h = from->h, n = from->n, wh = w*h;
+    int x, y, dir;
+
+    if (!strcmp(move, "S")) {
+	int i;
+	ret = dup_game(from);
+
+	/*
+	 * Simply replace the grid with a solved one. For this game,
+	 * this isn't a useful operation for actually telling the user
+	 * what they should have done, but it is useful for
+	 * conveniently being able to get hold of a clean state from
+	 * which to practise manoeuvres.
+	 */
+	qsort(ret->grid, ret->w*ret->h, sizeof(int), compare_int);
+	for (i = 0; i < ret->w*ret->h; i++)
+	    ret->grid[i] &= ~3;
+	ret->used_solve = ret->just_used_solve = TRUE;
+	ret->completed = ret->movecount = 1;
+
+	return ret;
+    }
+
+    if (move[0] != 'M' ||
+	sscanf(move+1, "%d,%d,%d", &x, &y, &dir) != 3 ||
+	x < 0 || y < 0 || x > from->w - n || y > from->h - n)
+	return NULL;		       /* can't parse this move string */
+
     ret = dup_game(from);
     ret->just_used_solve = FALSE;  /* zero this in a hurry */
     ret->movecount++;
@@ -1206,7 +1225,8 @@ const struct game thegame = {
     new_ui,
     free_ui,
     game_changed_state,
-    make_move,
+    interpret_move,
+    execute_move,
     game_size,
     game_colours,
     game_new_drawstate,

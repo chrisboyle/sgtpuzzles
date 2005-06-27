@@ -1666,27 +1666,86 @@ static void free_game(game_state *state)
     sfree(state);
 }
 
-static game_state *solve_game(game_state *state, game_state *currstate,
-			      game_aux_info *aux, char **error)
+static char *solve_game(game_state *state, game_state *currstate,
+			game_aux_info *aux, char **error)
 {
-    game_state *ret;
+    unsigned char *tiles;
+    char *ret;
+    int retlen, retsize;
+    int i;
+    int tiles_need_freeing;
 
     if (!aux) {
 	/*
 	 * Run the internal solver on the provided grid. This might
 	 * not yield a complete solution.
 	 */
-	ret = dup_game(state);
-	net_solver(ret->width, ret->height, ret->tiles,
-		   ret->barriers, ret->wrapping);
+	tiles = snewn(state->width * state->height, unsigned char);
+	memcpy(tiles, state->tiles, state->width * state->height);
+	net_solver(state->width, state->height, tiles,
+		   state->barriers, state->wrapping);
+	tiles_need_freeing = TRUE;
     } else {
-	assert(aux->width == state->width);
-	assert(aux->height == state->height);
-	ret = dup_game(state);
-	memcpy(ret->tiles, aux->tiles, ret->width * ret->height);
-	ret->used_solve = ret->just_used_solve = TRUE;
-	ret->completed = TRUE;
+	tiles = aux->tiles;
+	tiles_need_freeing = FALSE;
     }
+
+    /*
+     * Now construct a string which can be passed to execute_move()
+     * to transform the current grid into the solved one.
+     */
+    retsize = 256;
+    ret = snewn(retsize, char);
+    retlen = 0;
+    ret[retlen++] = 'S';
+
+    for (i = 0; i < state->width * state->height; i++) {
+	int from = currstate->tiles[i], to = tiles[i];
+	int ft = from & (R|L|U|D), tt = to & (R|L|U|D);
+	int x = i % state->width, y = i / state->width;
+	int chr = '\0';
+	char buf[80], *p = buf;
+
+	if (from == to)
+	    continue;		       /* nothing needs doing at all */
+
+	/*
+	 * To transform this tile into the desired tile: first
+	 * unlock the tile if it's locked, then rotate it if
+	 * necessary, then lock it if necessary.
+	 */
+	if (from & LOCKED)
+	    p += sprintf(p, ";L%d,%d", x, y);
+
+	if (tt == A(ft))
+	    chr = 'A';
+	else if (tt == C(ft))
+	    chr = 'C';
+	else if (tt == F(ft))
+	    chr = 'F';
+	else {
+	    assert(tt == ft);
+	    chr = '\0';
+	}
+	if (chr)
+	    p += sprintf(p, ";%c%d,%d", chr, x, y);
+
+	if (to & LOCKED)
+	    p += sprintf(p, ";L%d,%d", x, y);
+
+	if (p > buf) {
+	    if (retlen + (p - buf) >= retsize) {
+		retsize = retlen + (p - buf) + 512;
+		ret = sresize(ret, retsize, char);
+	    }
+	    memcpy(ret+retlen, buf, p - buf);
+	    retlen += p - buf;
+	}
+    }
+
+    assert(retlen < retsize);
+    ret[retlen] = '\0';
+    ret = sresize(ret, retlen+1, char);
 
     return ret;
 }
@@ -1803,10 +1862,11 @@ struct game_drawstate {
 /* ----------------------------------------------------------------------
  * Process a move.
  */
-static game_state *make_move(game_state *state, game_ui *ui,
-                             game_drawstate *ds, int x, int y, int button) {
-    game_state *ret, *nullret;
-    int tx, ty, orig;
+static char *interpret_move(game_state *state, game_ui *ui,
+			    game_drawstate *ds, int x, int y, int button)
+{
+    char *nullret;
+    int tx, ty;
     int shift = button & MOD_SHFT, ctrl = button & MOD_CTRL;
 
     button &= ~MOD_MASK;
@@ -1818,7 +1878,7 @@ static game_state *make_move(game_state *state, game_ui *ui,
 
 	if (ui->cur_visible) {
 	    ui->cur_visible = FALSE;
-	    nullret = state;
+	    nullret = "";
 	}
 
 	/*
@@ -1869,7 +1929,7 @@ static game_state *make_move(game_state *state, game_ui *ui,
             OFFSET(ui->cur_x, ui->cur_y, ui->cur_x, ui->cur_y, dir, state);
             ui->cur_visible = TRUE;
         }
-        return state;		       /* UI activity has occurred */
+        return "";		       /* UI activity has occurred */
     } else if (button == 'a' || button == 's' || button == 'd' ||
 	       button == 'A' || button == 'S' || button == 'D' ||
 	       button == CURSOR_SELECT) {
@@ -1900,13 +1960,9 @@ static game_state *make_move(game_state *state, game_ui *ui,
      * unlocks it.)
      */
     if (button == MIDDLE_BUTTON) {
-
-	ret = dup_game(state);
-	ret->just_used_solve = FALSE;
-	tile(ret, tx, ty) ^= LOCKED;
-	ret->last_rotate_dir = ret->last_rotate_x = ret->last_rotate_y = 0;
-	return ret;
-
+	char buf[80];
+	sprintf(buf, "L%d,%d", tx, ty);
+	return dupstr(buf);
     } else if (button == LEFT_BUTTON || button == RIGHT_BUTTON) {
 
         /*
@@ -1920,49 +1976,115 @@ static game_state *make_move(game_state *state, game_ui *ui,
          * Otherwise, turn the tile one way or the other. Left button
          * turns anticlockwise; right button turns clockwise.
          */
-        ret = dup_game(state);
-	ret->just_used_solve = FALSE;
-        orig = tile(ret, tx, ty);
-        if (button == LEFT_BUTTON) {
-            tile(ret, tx, ty) = A(orig);
-            ret->last_rotate_dir = +1;
-        } else {
-            tile(ret, tx, ty) = C(orig);
-            ret->last_rotate_dir = -1;
-        }
-        ret->last_rotate_x = tx;
-        ret->last_rotate_y = ty;
-
+	char buf[80];
+	sprintf(buf, "%c%d,%d", (button == LEFT_BUTTON ? 'A' : 'C'), tx, ty);
+	return dupstr(buf);
     } else if (button == 'J') {
-
         /*
          * Jumble all unlocked tiles to random orientations.
          */
-        int jx, jy;
-        ret = dup_game(state);
-	ret->just_used_solve = FALSE;
-        for (jy = 0; jy < ret->height; jy++) {
-            for (jx = 0; jx < ret->width; jx++) {
-                if (!(tile(ret, jx, jy) & LOCKED)) {
+
+        int jx, jy, maxlen;
+	char *ret, *p;
+
+	/*
+	 * Maximum string length assumes no int can be converted to
+	 * decimal and take more than 11 digits!
+	 */
+	maxlen = state->width * state->height * 25 + 3;
+
+	ret = snewn(maxlen, char);
+	p = ret;
+	*p++ = 'J';
+
+        for (jy = 0; jy < state->height; jy++) {
+            for (jx = 0; jx < state->width; jx++) {
+                if (!(tile(state, jx, jy) & LOCKED)) {
                     int rot = random_upto(ui->rs, 4);
-                    orig = tile(ret, jx, jy);
-                    tile(ret, jx, jy) = ROT(orig, rot);
+		    if (rot) {
+			p += sprintf(p, ";%c%d,%d", "AFC"[rot-1], jx, jy);
+		    }
                 }
             }
         }
-        ret->last_rotate_dir = 0; /* suppress animation */
-        ret->last_rotate_x = ret->last_rotate_y = 0;
+	*p++ = '\0';
+	assert(p - ret < maxlen);
+	ret = sresize(ret, p - ret, char);
 
+	return ret;
     } else {
-	ret = NULL;  /* placate optimisers which don't understand assert(0) */
-	assert(0);
+	return NULL;
+    }
+}
+
+static game_state *execute_move(game_state *from, char *move)
+{
+    game_state *ret;
+    int tx, ty, n, noanim, orig;
+
+    ret = dup_game(from);
+    ret->just_used_solve = FALSE;
+
+    if (move[0] == 'J' || move[0] == 'S') {
+	if (move[0] == 'S')
+	    ret->just_used_solve = ret->used_solve = TRUE;
+
+	move++;
+	if (*move == ';')
+	    move++;
+	noanim = TRUE;
+    } else
+	noanim = FALSE;
+
+    ret->last_rotate_dir = 0;	       /* suppress animation */
+    ret->last_rotate_x = ret->last_rotate_y = 0;
+
+    while (*move) {
+	if ((move[0] == 'A' || move[0] == 'C' ||
+	     move[0] == 'F' || move[0] == 'L') &&
+	    sscanf(move+1, "%d,%d%n", &tx, &ty, &n) >= 2 &&
+	    tx >= 0 && tx < from->width && ty >= 0 && ty < from->height) {
+	    orig = tile(ret, tx, ty);
+	    if (move[0] == 'A') {
+		tile(ret, tx, ty) = A(orig);
+		if (!noanim)
+		    ret->last_rotate_dir = +1;
+	    } else if (move[0] == 'F') {
+		tile(ret, tx, ty) = F(orig);
+		if (!noanim) {
+		    free_game(ret);
+		    return NULL;
+		}
+	    } else if (move[0] == 'C') {
+		tile(ret, tx, ty) = C(orig);
+		if (!noanim)
+		    ret->last_rotate_dir = -1;
+	    } else {
+		assert(move[0] == 'L');
+		tile(ret, tx, ty) ^= LOCKED;
+	    }
+
+	    move += 1 + n;
+	    if (*move == ';') move++;
+	} else {
+	    free_game(ret);
+	    return NULL;
+	}
+    }
+    if (!noanim) {
+	ret->last_rotate_x = tx;
+	ret->last_rotate_y = ty;
     }
 
     /*
      * Check whether the game has been completed.
+     * 
+     * For this purpose it doesn't matter where the source square
+     * is, because we can start from anywhere and correctly
+     * determine whether the game is completed.
      */
     {
-	unsigned char *active = compute_active(ret, ui->cx, ui->cy);
+	unsigned char *active = compute_active(ret, 0, 0);
 	int x1, y1;
 	int complete = TRUE;
 
@@ -1982,6 +2104,7 @@ static game_state *make_move(game_state *state, game_ui *ui,
 
     return ret;
 }
+
 
 /* ----------------------------------------------------------------------
  * Routines for drawing the game position on the screen.
@@ -2617,7 +2740,8 @@ const struct game thegame = {
     new_ui,
     free_ui,
     game_changed_state,
-    make_move,
+    interpret_move,
+    execute_move,
     game_size,
     game_colours,
     game_new_drawstate,

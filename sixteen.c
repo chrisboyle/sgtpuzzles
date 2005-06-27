@@ -510,25 +510,10 @@ static void free_game(game_state *state)
     sfree(state);
 }
 
-static game_state *solve_game(game_state *state, game_state *currstate,
-			      game_aux_info *aux, char **error)
+static char *solve_game(game_state *state, game_state *currstate,
+			game_aux_info *aux, char **error)
 {
-    game_state *ret = dup_game(state);
-    int i;
-
-    /*
-     * Simply replace the grid with a solved one. For this game,
-     * this isn't a useful operation for actually telling the user
-     * what they should have done, but it is useful for
-     * conveniently being able to get hold of a clean state from
-     * which to practise manoeuvres.
-     */
-    for (i = 0; i < ret->n; i++)
-	ret->tiles[i] = i+1;
-    ret->used_solve = ret->just_used_solve = TRUE;
-    ret->completed = ret->movecount = 1;
-
-    return ret;
+    return dupstr("S");
 }
 
 static char *game_text_format(game_state *state)
@@ -591,11 +576,11 @@ struct game_drawstate {
     int tilesize;
 };
 
-static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
-                             int x, int y, int button) {
-    int cx, cy;
-    int dx, dy, tx, ty, n;
-    game_state *ret;
+static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
+			    int x, int y, int button)
+{
+    int cx, cy, dx, dy;
+    char buf[80];
 
     button &= ~MOD_MASK;
     if (button != LEFT_BUTTON && button != RIGHT_BUTTON)
@@ -603,38 +588,81 @@ static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
 
     cx = FROMCOORD(x);
     cy = FROMCOORD(y);
-    if (cx == -1 && cy >= 0 && cy < from->h)
-        n = from->w, dx = +1, dy = 0;
-    else if (cx == from->w && cy >= 0 && cy < from->h)
-        n = from->w, dx = -1, dy = 0;
-    else if (cy == -1 && cx >= 0 && cx < from->w)
-        n = from->h, dy = +1, dx = 0;
-    else if (cy == from->h && cx >= 0 && cx < from->w)
-        n = from->h, dy = -1, dx = 0;
+    if (cx == -1 && cy >= 0 && cy < state->h)
+        dx = -1, dy = 0;
+    else if (cx == state->w && cy >= 0 && cy < state->h)
+        dx = +1, dy = 0;
+    else if (cy == -1 && cx >= 0 && cx < state->w)
+        dy = -1, dx = 0;
+    else if (cy == state->h && cx >= 0 && cx < state->w)
+        dy = +1, dx = 0;
     else
         return NULL;                   /* invalid click location */
 
     /* reverse direction if right hand button is pressed */
-    if (button == RIGHT_BUTTON)
-    {
-        dx = -dx; if (dx) cx = from->w - 1 - cx;
-        dy = -dy; if (dy) cy = from->h - 1 - cy;
+    if (button == RIGHT_BUTTON) {
+        dx = -dx;
+        dy = -dy;
     }
+
+    if (dx)
+	sprintf(buf, "R%d,%d", cy, dx);
+    else
+	sprintf(buf, "C%d,%d", cx, dy);
+    return dupstr(buf);
+}
+
+static game_state *execute_move(game_state *from, char *move)
+{
+    int cx, cy, dx, dy;
+    int tx, ty, n;
+    game_state *ret;
+
+    if (!strcmp(move, "S")) {
+	int i;
+
+	ret = dup_game(from);
+
+	/*
+	 * Simply replace the grid with a solved one. For this game,
+	 * this isn't a useful operation for actually telling the user
+	 * what they should have done, but it is useful for
+	 * conveniently being able to get hold of a clean state from
+	 * which to practise manoeuvres.
+	 */
+	for (i = 0; i < ret->n; i++)
+	    ret->tiles[i] = i+1;
+	ret->used_solve = ret->just_used_solve = TRUE;
+	ret->completed = ret->movecount = 1;
+
+	return ret;
+    }
+
+    if (move[0] == 'R' && sscanf(move+1, "%d,%d", &cy, &dx) == 2 &&
+	cy >= 0 && cy < from->h) {
+	cx = dy = 0;
+	n = from->w;
+    } else if (move[0] == 'C' && sscanf(move+1, "%d,%d", &cx, &dy) == 2 &&
+	       cx >= 0 && cx < from->w) {
+	cy = dx = 0;
+	n = from->h;
+    } else
+	return NULL;
 
     ret = dup_game(from);
     ret->just_used_solve = FALSE;      /* zero this in a hurry */
 
     do {
-        cx += dx;
-        cy += dy;
-        tx = (cx + dx + from->w) % from->w;
-        ty = (cy + dy + from->h) % from->h;
+        tx = (cx - dx + from->w) % from->w;
+        ty = (cy - dy + from->h) % from->h;
         ret->tiles[C(ret, cx, cy)] = from->tiles[C(from, tx, ty)];
+        cx = tx;
+        cy = ty;
     } while (--n > 0);
 
     ret->movecount++;
 
-    ret->last_movement_sense = -(dx+dy);
+    ret->last_movement_sense = dx+dy;
 
     /*
      * See if the game has been completed.
@@ -1033,7 +1061,8 @@ const struct game thegame = {
     new_ui,
     free_ui,
     game_changed_state,
-    make_move,
+    interpret_move,
+    execute_move,
     game_size,
     game_colours,
     game_new_drawstate,

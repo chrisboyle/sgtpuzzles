@@ -2279,46 +2279,15 @@ static void free_game(game_state *state)
     sfree(state);
 }
 
-static game_state *solve_game(game_state *state, game_state *currstate,
-			      game_aux_info *aux, char **error)
+static char *solve_game(game_state *state, game_state *currstate,
+			game_aux_info *aux, char **error)
 {
-    /*
-     * Simply expose the entire grid as if it were a completed
-     * solution.
-     */
-    game_state *ret;
-    int yy, xx;
-
     if (!state->layout->mines) {
-        *error = "Game has not been started yet";
-        return NULL;
+	*error = "Game has not been started yet";
+	return NULL;
     }
 
-    ret = dup_game(state);
-    for (yy = 0; yy < ret->h; yy++)
-        for (xx = 0; xx < ret->w; xx++) {
-
-            if (ret->layout->mines[yy*ret->w+xx]) {
-                ret->grid[yy*ret->w+xx] = -1;
-            } else {
-                int dx, dy, v;
-
-                v = 0;
-
-                for (dx = -1; dx <= +1; dx++)
-                    for (dy = -1; dy <= +1; dy++)
-                        if (xx+dx >= 0 && xx+dx < ret->w &&
-                            yy+dy >= 0 && yy+dy < ret->h &&
-                            ret->layout->mines[(yy+dy)*ret->w+(xx+dx)])
-                            v++;
-
-                ret->grid[yy*ret->w+xx] = v;
-            }
-        }
-    ret->used_solve = ret->just_used_solve = TRUE;
-    ret->won = TRUE;
-
-    return ret;
+    return dupstr("S");
 }
 
 static char *game_text_format(game_state *state)
@@ -2390,11 +2359,11 @@ struct game_drawstate {
      */
 };
 
-static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
-                             int x, int y, int button)
+static char *interpret_move(game_state *from, game_ui *ui, game_drawstate *ds,
+			    int x, int y, int button)
 {
-    game_state *ret;
     int cx, cy;
+    char buf[256];
 
     if (from->dead || from->won)
 	return NULL;		       /* no further moves permitted */
@@ -2418,7 +2387,7 @@ static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
 	ui->hx = cx;
 	ui->hy = cy;
 	ui->hradius = (from->grid[cy*from->w+cx] >= 0 ? 1 : 0);
-	return from;
+	return "";
     }
 
     if (button == RIGHT_BUTTON) {
@@ -2436,11 +2405,8 @@ static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
 	    from->grid[cy * from->w + cx] != -1)
 	    return NULL;
 
-	ret = dup_game(from);
-        ret->just_used_solve = FALSE;
-	ret->grid[cy * from->w + cx] ^= (-2 ^ -1);
-
-	return ret;
+	sprintf(buf, "F%d,%d", cx, cy);
+	return dupstr(buf);
     }
 
     if (button == LEFT_RELEASE || button == MIDDLE_RELEASE) {
@@ -2449,10 +2415,10 @@ static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
 
 	/*
 	 * At this stage we must never return NULL: we have adjusted
-	 * the ui, so at worst we return `from'.
+	 * the ui, so at worst we return "".
 	 */
 	if (cx < 0 || cx >= from->w || cy < 0 || cy >= from->h)
-	    return from;
+	    return "";
 
 	/*
 	 * Left-clicking on a covered square opens a tile. Not
@@ -2462,12 +2428,12 @@ static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
 	if (button == LEFT_RELEASE &&
 	    (from->grid[cy * from->w + cx] == -2 ||
 	     from->grid[cy * from->w + cx] == -3)) {
-	    ret = dup_game(from);
-            ret->just_used_solve = FALSE;
-	    open_square(ret, cx, cy);
-            if (ret->dead)
-                ui->deaths++;
-	    return ret;
+	    /* Check if you've killed yourself. */
+	    if (from->layout->mines && from->layout->mines[cy * from->w + cx])
+		ui->deaths++;
+
+	    sprintf(buf, "O%d,%d", cx, cy);
+	    return dupstr(buf);
 	}
 
 	/*
@@ -2490,8 +2456,101 @@ static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
 		    }
 
 	    if (n == from->grid[cy * from->w + cx]) {
-		ret = dup_game(from);
-                ret->just_used_solve = FALSE;
+
+		/*
+		 * Now see if any of the squares we're clearing
+		 * contains a mine (which will happen iff you've
+		 * incorrectly marked the mines around the clicked
+		 * square). If so, we open _just_ those squares, to
+		 * reveal as little additional information as we
+		 * can.
+		 */
+		char *p = buf;
+		char *sep = "";
+
+		for (dy = -1; dy <= +1; dy++)
+		    for (dx = -1; dx <= +1; dx++)
+			if (cx+dx >= 0 && cx+dx < from->w &&
+			    cy+dy >= 0 && cy+dy < from->h) {
+			    if (from->grid[(cy+dy)*from->w+(cx+dx)] != -1 &&
+				from->layout->mines &&
+				from->layout->mines[(cy+dy)*from->w+(cx+dx)]) {
+				p += sprintf(p, "%sO%d,%d", sep, cx+dx, cy+dy);
+				sep = ";";
+			    }
+			}
+
+		if (p > buf) {
+		    ui->deaths++;
+		} else {
+		    sprintf(buf, "C%d,%d", cx, cy);
+		}
+
+		return dupstr(buf);
+	    }
+	}
+
+	return "";
+    }
+
+    return NULL;
+}
+
+static game_state *execute_move(game_state *from, char *move)
+{
+    int cy, cx;
+    game_state *ret;
+
+    if (!strcmp(move, "S")) {
+	/*
+	 * Simply expose the entire grid as if it were a completed
+	 * solution.
+	 */
+	int yy, xx;
+
+	ret = dup_game(from);
+	for (yy = 0; yy < ret->h; yy++)
+	    for (xx = 0; xx < ret->w; xx++) {
+
+		if (ret->layout->mines[yy*ret->w+xx]) {
+		    ret->grid[yy*ret->w+xx] = -1;
+		} else {
+		    int dx, dy, v;
+
+		    v = 0;
+
+		    for (dx = -1; dx <= +1; dx++)
+			for (dy = -1; dy <= +1; dy++)
+			    if (xx+dx >= 0 && xx+dx < ret->w &&
+				yy+dy >= 0 && yy+dy < ret->h &&
+				ret->layout->mines[(yy+dy)*ret->w+(xx+dx)])
+				v++;
+
+		    ret->grid[yy*ret->w+xx] = v;
+		}
+	    }
+	ret->used_solve = ret->just_used_solve = TRUE;
+	ret->won = TRUE;
+
+	return ret;
+    } else {
+	ret = dup_game(from);
+	ret->just_used_solve = FALSE;
+
+	while (*move) {
+	    if (move[0] == 'F' &&
+		sscanf(move+1, "%d,%d", &cx, &cy) == 2 &&
+		cx >= 0 && cx < from->w && cy >= 0 && cy < from->h) {
+		ret->grid[cy * from->w + cx] ^= (-2 ^ -1);
+	    } else if (move[0] == 'O' &&
+		       sscanf(move+1, "%d,%d", &cx, &cy) == 2 &&
+		       cx >= 0 && cx < from->w && cy >= 0 && cy < from->h) {
+		open_square(ret, cx, cy);
+	    } else if (move[0] == 'C' &&
+		       sscanf(move+1, "%d,%d", &cx, &cy) == 2 &&
+		       cx >= 0 && cx < from->w && cy >= 0 && cy < from->h) {
+		int dx, dy;
+
 		for (dy = -1; dy <= +1; dy++)
 		    for (dx = -1; dx <= +1; dx++)
 			if (cx+dx >= 0 && cx+dx < ret->w &&
@@ -2499,16 +2558,17 @@ static game_state *make_move(game_state *from, game_ui *ui, game_drawstate *ds,
 			    (ret->grid[(cy+dy)*ret->w+(cx+dx)] == -2 ||
 			     ret->grid[(cy+dy)*ret->w+(cx+dx)] == -3))
 			    open_square(ret, cx+dx, cy+dy);
-                if (ret->dead)
-                    ui->deaths++;
-		return ret;
+	    } else {
+		free_game(ret);
+		return NULL;
 	    }
+
+	    while (*move && *move != ';') move++;
+	    if (*move) move++;
 	}
 
-	return from;
+	return ret;
     }
-
-    return NULL;
 }
 
 /* ----------------------------------------------------------------------
@@ -2962,7 +3022,8 @@ const struct game thegame = {
     new_ui,
     free_ui,
     game_changed_state,
-    make_move,
+    interpret_move,
+    execute_move,
     game_size,
     game_colours,
     game_new_drawstate,
