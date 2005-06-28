@@ -772,7 +772,6 @@ void midend_supersede_game_desc(midend_data *me, char *desc, char *privdesc)
 {
     sfree(me->desc);
     sfree(me->privdesc);
-printf("%s\n%s\n", desc, privdesc);
     me->desc = dupstr(desc);
     me->privdesc = privdesc ? dupstr(privdesc) : NULL;
 }
