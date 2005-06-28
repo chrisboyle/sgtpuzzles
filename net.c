@@ -1844,7 +1844,7 @@ static void free_ui(game_ui *ui)
     sfree(ui);
 }
 
-char *encode_ui(game_ui *ui)
+static char *encode_ui(game_ui *ui)
 {
     char buf[120];
     /*
@@ -1855,7 +1855,7 @@ char *encode_ui(game_ui *ui)
     return dupstr(buf);
 }
 
-void decode_ui(game_ui *ui, char *encoding)
+static void decode_ui(game_ui *ui, char *encoding)
 {
     sscanf(encoding, "O%d,%d;C%d,%d",
 	   &ui->org_x, &ui->org_y, &ui->cx, &ui->cy);

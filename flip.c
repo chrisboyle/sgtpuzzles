@@ -866,12 +866,12 @@ static void free_ui(game_ui *ui)
 {
 }
 
-char *encode_ui(game_ui *ui)
+static char *encode_ui(game_ui *ui)
 {
     return NULL;
 }
 
-void decode_ui(game_ui *ui, char *encoding)
+static void decode_ui(game_ui *ui, char *encoding)
 {
 }
 
