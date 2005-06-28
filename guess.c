@@ -714,6 +714,10 @@ static char *interpret_move(game_state *from, game_ui *ui, game_drawstate *ds,
             set_peg(&from->params, ui, ui->peg_cur, ui->colour_cur+1);
             ret = "";
         }
+    } else if (button == 'D' || button == 'd' || button == '\b') {
+        ui->display_cur = 1;
+        set_peg(&from->params, ui, ui->peg_cur, 0);
+        ret = "";
     } else if (button == 'H' || button == 'h') {
         ui->display_cur = 1;
         ui->holds[ui->peg_cur] = 1 - ui->holds[ui->peg_cur];
