@@ -1981,6 +1981,7 @@ static char *interpret_move(game_state *state, game_ui *ui,
 	sprintf(buf, "L%d,%d", tx, ty);
 	return dupstr(buf);
     } else if (button == LEFT_BUTTON || button == RIGHT_BUTTON) {
+	char buf[80];
 
         /*
          * The left and right buttons have no effect if clicked on a
@@ -1993,7 +1994,6 @@ static char *interpret_move(game_state *state, game_ui *ui,
          * Otherwise, turn the tile one way or the other. Left button
          * turns anticlockwise; right button turns clockwise.
          */
-	char buf[80];
 	sprintf(buf, "%c%d,%d", (button == LEFT_BUTTON ? 'A' : 'C'), tx, ty);
 	return dupstr(buf);
     } else if (button == 'J') {
