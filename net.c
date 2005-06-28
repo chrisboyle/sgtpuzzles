@@ -1846,6 +1846,23 @@ static void free_ui(game_ui *ui)
     sfree(ui);
 }
 
+char *encode_ui(game_ui *ui)
+{
+    char buf[120];
+    /*
+     * We preserve the origin and centre-point coordinates over a
+     * serialise.
+     */
+    sprintf(buf, "O%d,%d;C%d,%d", ui->org_x, ui->org_y, ui->cx, ui->cy);
+    return dupstr(buf);
+}
+
+void decode_ui(game_ui *ui, char *encoding)
+{
+    sscanf(encoding, "O%d,%d;C%d,%d",
+	   &ui->org_x, &ui->org_y, &ui->cx, &ui->cy);
+}
+
 static void game_changed_state(game_ui *ui, game_state *oldstate,
                                game_state *newstate)
 {
@@ -2739,6 +2756,8 @@ const struct game thegame = {
     FALSE, game_text_format,
     new_ui,
     free_ui,
+    encode_ui,
+    decode_ui,
     game_changed_state,
     interpret_move,
     execute_move,

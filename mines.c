@@ -2357,6 +2357,21 @@ static void free_ui(game_ui *ui)
     sfree(ui);
 }
 
+char *encode_ui(game_ui *ui)
+{
+    char buf[80];
+    /*
+     * The deaths counter needs preserving across a serialisation.
+     */
+    sprintf(buf, "D%d", ui->deaths);
+    return dupstr(buf);
+}
+
+void decode_ui(game_ui *ui, char *encoding)
+{
+    sscanf(encoding, "D%d", &ui->deaths);
+}
+
 static void game_changed_state(game_ui *ui, game_state *oldstate,
                                game_state *newstate)
 {
@@ -3039,6 +3054,8 @@ const struct game thegame = {
     TRUE, game_text_format,
     new_ui,
     free_ui,
+    encode_ui,
+    decode_ui,
     game_changed_state,
     interpret_move,
     execute_move,

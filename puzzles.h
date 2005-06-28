@@ -275,6 +275,8 @@ struct game {
     char *(*text_format)(game_state *state);
     game_ui *(*new_ui)(game_state *state);
     void (*free_ui)(game_ui *ui);
+    char *(*encode_ui)(game_ui *ui);
+    void (*decode_ui)(game_ui *ui, char *encoding);
     void (*changed_state)(game_ui *ui, game_state *oldstate,
                           game_state *newstate);
     char *(*interpret_move)(game_state *state, game_ui *ui, game_drawstate *ds,

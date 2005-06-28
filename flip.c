@@ -871,6 +871,15 @@ static void free_ui(game_ui *ui)
 {
 }
 
+char *encode_ui(game_ui *ui)
+{
+    return NULL;
+}
+
+void decode_ui(game_ui *ui, char *encoding)
+{
+}
+
 static void game_changed_state(game_ui *ui, game_state *oldstate,
                                game_state *newstate)
 {
@@ -1229,6 +1238,8 @@ const struct game thegame = {
     FALSE, game_text_format,
     new_ui,
     free_ui,
+    encode_ui,
+    decode_ui,
     game_changed_state,
     interpret_move,
     execute_move,
