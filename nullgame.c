@@ -84,14 +84,9 @@ static char *validate_params(game_params *params)
 }
 
 static char *new_game_desc(game_params *params, random_state *rs,
-			   game_aux_info **aux, int interactive)
+			   char **aux, int interactive)
 {
     return dupstr("FIXME");
-}
-
-static void game_free_aux_info(game_aux_info *aux)
-{
-    assert(!"Shouldn't happen");
 }
 
 static char *validate_desc(game_params *params, char *desc)
@@ -123,7 +118,7 @@ static void free_game(game_state *state)
 }
 
 static char *solve_game(game_state *state, game_state *currstate,
-			game_aux_info *aux, char **error)
+			char *aux, char **error)
 {
     return NULL;
 }
@@ -255,7 +250,6 @@ const struct game thegame = {
     FALSE, game_configure, custom_params,
     validate_params,
     new_game_desc,
-    game_free_aux_info,
     validate_desc,
     new_game,
     dup_game,

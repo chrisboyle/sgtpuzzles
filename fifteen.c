@@ -152,7 +152,7 @@ static int perm_parity(int *perm, int n)
 }
 
 static char *new_game_desc(game_params *params, random_state *rs,
-			   game_aux_info **aux, int interactive)
+			   char **aux, int interactive)
 {
     int gap, n, i, x;
     int x1, x2, p1, p2, parity;
@@ -267,11 +267,6 @@ static char *new_game_desc(game_params *params, random_state *rs,
     return ret;
 }
 
-static void game_free_aux_info(game_aux_info *aux)
-{
-    assert(!"Shouldn't happen");
-}
-
 static char *validate_desc(game_params *params, char *desc)
 {
     char *p, *err;
@@ -380,7 +375,7 @@ static void free_game(game_state *state)
 }
 
 static char *solve_game(game_state *state, game_state *currstate,
-			game_aux_info *aux, char **error)
+			char *aux, char **error)
 {
     return dupstr("S");
 }
@@ -882,7 +877,6 @@ const struct game thegame = {
     TRUE, game_configure, custom_params,
     validate_params,
     new_game_desc,
-    game_free_aux_info,
     validate_desc,
     new_game,
     dup_game,

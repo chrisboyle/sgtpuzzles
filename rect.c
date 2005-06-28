@@ -1117,14 +1117,8 @@ static void display_grid(game_params *params, int *grid, int *numbers, int all)
 }
 #endif
 
-struct game_aux_info {
-    int w, h;
-    unsigned char *vedge;	       /* (w+1) x h */
-    unsigned char *hedge;	       /* w x (h+1) */
-};
-
 static char *new_game_desc(game_params *params, random_state *rs,
-			   game_aux_info **aux, int interactive)
+			   char **aux, int interactive)
 {
     int *grid, *numbers = NULL;
     int x, y, y2, y2last, yx, run, i, nsquares;
@@ -1679,26 +1673,31 @@ static char *new_game_desc(game_params *params, random_state *rs,
     }
 
     /*
-     * Store the rectangle data in the game_aux_info.
+     * Store the solution in aux.
      */
     {
-        game_aux_info *ai = snew(game_aux_info);
+        char *ai;
+        int len;
 
-        ai->w = params->w;
-        ai->h = params->h;
-        ai->vedge = snewn(ai->w * ai->h, unsigned char);
-        ai->hedge = snewn(ai->w * ai->h, unsigned char);
+        len = 2 + (params->w-1)*params->h + (params->h-1)*params->w;
+        ai = snewn(len, char);
+
+        ai[0] = 'S';
+
+        p = ai+1;
 
         for (y = 0; y < params->h; y++)
-            for (x = 1; x < params->w; x++) {
-                vedge(ai, x, y) =
-                    index(params, grid, x, y) != index(params, grid, x-1, y);
-            }
+            for (x = 1; x < params->w; x++)
+                *p++ = (index(params, grid, x, y) !=
+                        index(params, grid, x-1, y) ? '1' : '0');
+
         for (y = 1; y < params->h; y++)
-            for (x = 0; x < params->w; x++) {
-                hedge(ai, x, y) =
-                    index(params, grid, x, y) != index(params, grid, x, y-1);
-            }
+            for (x = 0; x < params->w; x++)
+                *p++ = (index(params, grid, x, y) !=
+                        index(params, grid, x, y-1) ? '1' : '0');
+
+        assert(p - ai == len-1);
+        *p = '\0';
 
         *aux = ai;
     }
@@ -1744,13 +1743,6 @@ static char *new_game_desc(game_params *params, random_state *rs,
     sfree(numbers);
 
     return desc;
-}
-
-static void game_free_aux_info(game_aux_info *ai)
-{
-    sfree(ai->vedge);
-    sfree(ai->hedge);
-    sfree(ai);
 }
 
 static char *validate_desc(game_params *params, char *desc)
@@ -1854,61 +1846,53 @@ static void free_game(game_state *state)
 }
 
 static char *solve_game(game_state *state, game_state *currstate,
-			game_aux_info *ai, char **error)
+			char *ai, char **error)
 {
     unsigned char *vedge, *hedge;
-    int edges_need_freeing;
     int x, y, len;
     char *ret, *p;
+    int i, j, n;
+    struct numberdata *nd;
 
-    if (!ai) {
-	int i, j, n;
-	struct numberdata *nd;
+    if (ai)
+        return dupstr(ai);
 
-	/*
-	 * Attempt the in-built solver.
-	 */
+    /*
+     * Attempt the in-built solver.
+     */
 
-	/* Set up each number's (very short) candidate position list. */
-	for (i = n = 0; i < state->h * state->w; i++)
-	    if (state->grid[i])
-		n++;
+    /* Set up each number's (very short) candidate position list. */
+    for (i = n = 0; i < state->h * state->w; i++)
+        if (state->grid[i])
+            n++;
 
-	nd = snewn(n, struct numberdata);
+    nd = snewn(n, struct numberdata);
 
-	for (i = j = 0; i < state->h * state->w; i++)
-	    if (state->grid[i]) {
-		nd[j].area = state->grid[i];
-		nd[j].npoints = 1;
-		nd[j].points = snewn(1, struct point);
-		nd[j].points[0].x = i % state->w;
-		nd[j].points[0].y = i / state->w;
-		j++;
-	    }
+    for (i = j = 0; i < state->h * state->w; i++)
+        if (state->grid[i]) {
+            nd[j].area = state->grid[i];
+            nd[j].npoints = 1;
+            nd[j].points = snewn(1, struct point);
+            nd[j].points[0].x = i % state->w;
+            nd[j].points[0].y = i / state->w;
+            j++;
+        }
 
-	assert(j == n);
+    assert(j == n);
 
-	vedge = snewn(state->w * state->h, unsigned char);
-	hedge = snewn(state->w * state->h, unsigned char);
-	memset(vedge, 0, state->w * state->h);
-	memset(hedge, 0, state->w * state->h);
-	edges_need_freeing = TRUE;
+    vedge = snewn(state->w * state->h, unsigned char);
+    hedge = snewn(state->w * state->h, unsigned char);
+    memset(vedge, 0, state->w * state->h);
+    memset(hedge, 0, state->w * state->h);
 
-	rect_solver(state->w, state->h, n, nd, hedge, vedge, NULL);
+    rect_solver(state->w, state->h, n, nd, hedge, vedge, NULL);
 
-	/*
-	 * Clean up.
-	 */
-	for (i = 0; i < n; i++)
-	    sfree(nd[i].points);
-	sfree(nd);
-    } else {
-	assert(state->w == ai->w);
-	assert(state->h == ai->h);
-	vedge = ai->vedge;
-	hedge = ai->hedge;
-	edges_need_freeing = FALSE;
-    }
+    /*
+     * Clean up.
+     */
+    for (i = 0; i < n; i++)
+        sfree(nd[i].points);
+    sfree(nd);
 
     len = 2 + (state->w-1)*state->h + (state->h-1)*state->w;
     ret = snewn(len, char);
@@ -1916,18 +1900,16 @@ static char *solve_game(game_state *state, game_state *currstate,
     p = ret;
     *p++ = 'S';
     for (y = 0; y < state->h; y++)
-	for (x = 1; x < state->w; x++)
-	    *p++ = vedge[y*state->w+x] ? '1' : '0';
+        for (x = 1; x < state->w; x++)
+            *p++ = vedge[y*state->w+x] ? '1' : '0';
     for (y = 1; y < state->h; y++)
 	for (x = 0; x < state->w; x++)
 	    *p++ = hedge[y*state->w+x] ? '1' : '0';
     *p++ = '\0';
     assert(p - ret == len);
 
-    if (edges_need_freeing) {
-	sfree(vedge);
-	sfree(hedge);
-    }
+    sfree(vedge);
+    sfree(hedge);
 
     return ret;
 }
@@ -2799,7 +2781,6 @@ const struct game thegame = {
     TRUE, game_configure, custom_params,
     validate_params,
     new_game_desc,
-    game_free_aux_info,
     validate_desc,
     new_game,
     dup_game,

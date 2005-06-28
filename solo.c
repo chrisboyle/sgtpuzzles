@@ -1419,13 +1419,51 @@ static int symmetries(game_params *params, int x, int y, int *output, int s)
     return i;
 }
 
-struct game_aux_info {
-    int c, r;
-    digit *grid;
-};
+static char *encode_solve_move(int cr, digit *grid)
+{
+    int i, len;
+    char *ret, *p, *sep;
+
+    /*
+     * It's surprisingly easy to work out _exactly_ how long this
+     * string needs to be. To decimal-encode all the numbers from 1
+     * to n:
+     * 
+     *  - every number has a units digit; total is n.
+     *  - all numbers above 9 have a tens digit; total is max(n-9,0).
+     *  - all numbers above 99 have a hundreds digit; total is max(n-99,0).
+     *  - and so on.
+     */
+    len = 0;
+    for (i = 1; i <= cr; i *= 10)
+	len += max(cr - i + 1, 0);
+    len += cr;		       /* don't forget the commas */
+    len *= cr;		       /* there are cr rows of these */
+
+    /*
+     * Now len is one bigger than the total size of the
+     * comma-separated numbers (because we counted an
+     * additional leading comma). We need to have a leading S
+     * and a trailing NUL, so we're off by one in total.
+     */
+    len++;
+
+    ret = snewn(len, char);
+    p = ret;
+    *p++ = 'S';
+    sep = "";
+    for (i = 0; i < cr*cr; i++) {
+	p += sprintf(p, "%s%d", sep, grid[i]);
+	sep = ",";
+    }
+    *p++ = '\0';
+    assert(p - ret == len);
+
+    return ret;
+}
 
 static char *new_game_desc(game_params *params, random_state *rs,
-			   game_aux_info **aux, int interactive)
+			   char **aux, int interactive)
 {
     int c = params->c, r = params->r, cr = c*r;
     int area = cr*cr;
@@ -1493,25 +1531,19 @@ static char *new_game_desc(game_params *params, random_state *rs,
         assert(check_valid(c, r, grid));
 
 	/*
-	 * Save the solved grid in the aux_info.
+	 * Save the solved grid in aux.
 	 */
 	{
-	    game_aux_info *ai = snew(game_aux_info);
-	    ai->c = c;
-	    ai->r = r;
-	    ai->grid = snewn(cr * cr, digit);
-	    memcpy(ai->grid, grid, cr * cr * sizeof(digit));
 	    /*
 	     * We might already have written *aux the last time we
 	     * went round this loop, in which case we should free
-	     * the old aux_info before overwriting it with the new
-	     * one.
+	     * the old aux before overwriting it with the new one.
 	     */
             if (*aux) {
-		sfree((*aux)->grid);
 		sfree(*aux);
             }
-	    *aux = ai;
+
+            *aux = encode_solve_move(cr, grid);
 	}
 
         /*
@@ -1652,12 +1684,6 @@ static char *new_game_desc(game_params *params, random_state *rs,
     return desc;
 }
 
-static void game_free_aux_info(game_aux_info *aux)
-{
-    sfree(aux->grid);
-    sfree(aux);
-}
-
 static char *validate_desc(game_params *params, char *desc)
 {
     int area = params->r * params->r * params->c * params->c;
@@ -1760,81 +1786,36 @@ static void free_game(game_state *state)
 }
 
 static char *solve_game(game_state *state, game_state *currstate,
-			game_aux_info *ai, char **error)
+			char *ai, char **error)
 {
     int c = state->c, r = state->r, cr = c*r;
-    int i, len;
-    char *ret, *p, *sep;
+    char *ret;
     digit *grid;
-    int grid_needs_freeing;
+    int rsolve_ret;
 
     /*
-     * If we already have the solution in the aux_info, save
-     * ourselves some time.
+     * If we already have the solution in ai, save ourselves some
+     * time.
      */
-    if (ai) {
+    if (ai)
+        return dupstr(ai);
 
-	assert(c == ai->c);
-	assert(r == ai->r);
-	grid = ai->grid;
-	grid_needs_freeing = FALSE;
+    grid = snewn(cr*cr, digit);
+    memcpy(grid, state->grid, cr*cr);
+    rsolve_ret = rsolve(c, r, grid, NULL, 2);
 
-    } else {
-	int rsolve_ret;
-
-	grid = snewn(cr*cr, digit);
-	memcpy(grid, state->grid, cr*cr);
-	rsolve_ret = rsolve(c, r, grid, NULL, 2);
-
-	if (rsolve_ret != 1) {
-	    sfree(grid);
-	    if (rsolve_ret == 0)
-		*error = "No solution exists for this puzzle";
-	    else
-		*error = "Multiple solutions exist for this puzzle";
-	    return NULL;
-	}
-
-	grid_needs_freeing = TRUE;
+    if (rsolve_ret != 1) {
+        sfree(grid);
+        if (rsolve_ret == 0)
+            *error = "No solution exists for this puzzle";
+        else
+            *error = "Multiple solutions exist for this puzzle";
+        return NULL;
     }
 
-    /*
-     * It's surprisingly easy to work out _exactly_ how long this
-     * string needs to be. To decimal-encode all the numbers from 1
-     * to n:
-     * 
-     *  - every number has a units digit; total is n.
-     *  - all numbers above 9 have a tens digit; total is max(n-9,0).
-     *  - all numbers above 99 have a hundreds digit; total is max(n-99,0).
-     *  - and so on.
-     */
-    len = 0;
-    for (i = 1; i <= cr; i *= 10)
-	len += max(cr - i + 1, 0);
-    len += cr;		       /* don't forget the commas */
-    len *= cr;		       /* there are cr rows of these */
+    ret = encode_solve_move(cr, grid);
 
-    /*
-     * Now len is one bigger than the total size of the
-     * comma-separated numbers (because we counted an
-     * additional leading comma). We need to have a leading S
-     * and a trailing NUL, so we're off by one in total.
-     */
-    len++;
-
-    ret = snewn(len, char);
-    p = ret;
-    *p++ = 'S';
-    sep = "";
-    for (i = 0; i < cr*cr; i++) {
-	p += sprintf(p, "%s%d", sep, grid[i]);
-	sep = ",";
-    }
-    *p++ = '\0';
-    assert(p - ret == len);
-
-    if (grid_needs_freeing)
-	sfree(grid);
+    sfree(grid);
 
     return ret;
 }
@@ -2420,7 +2401,6 @@ const struct game thegame = {
     TRUE, game_configure, custom_params,
     validate_params,
     new_game_desc,
-    game_free_aux_info,
     validate_desc,
     new_game,
     dup_game,

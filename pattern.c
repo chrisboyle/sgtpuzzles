@@ -466,13 +466,8 @@ static unsigned char *generate_soluble(random_state *rs, int w, int h)
     return grid;
 }
 
-struct game_aux_info {
-    int w, h;
-    unsigned char *grid;
-};
-
 static char *new_game_desc(game_params *params, random_state *rs,
-			   game_aux_info **aux, int interactive)
+			   char **aux, int interactive)
 {
     unsigned char *grid;
     int i, j, max, rowlen, *rowdata;
@@ -484,14 +479,22 @@ static char *new_game_desc(game_params *params, random_state *rs,
     rowdata = snewn(max, int);
 
     /*
-     * Save the solved game in an aux_info.
+     * Save the solved game in aux.
      */
     {
-	game_aux_info *ai = snew(game_aux_info);
+	char *ai = snewn(params->w * params->h + 2, char);
 
-	ai->w = params->w;
-	ai->h = params->h;
-        ai->grid = grid;
+        /*
+         * String format is exactly the same as a solve move, so we
+         * can just dupstr this in solve_game().
+         */
+
+        ai[0] = 'S';
+
+        for (i = 0; i < params->w * params->h; i++)
+            ai[i+1] = grid[i] ? '1' : '0';
+
+        ai[params->w * params->h + 1] = '\0';
 
 	*aux = ai;
     }
@@ -547,12 +550,6 @@ static char *new_game_desc(game_params *params, random_state *rs,
     desc[desclen-1] = '\0';
     sfree(rowdata);
     return desc;
-}
-
-static void game_free_aux_info(game_aux_info *aux)
-{
-    sfree(aux->grid);
-    sfree(aux);
 }
 
 static char *validate_desc(game_params *params, char *desc)
@@ -665,81 +662,66 @@ static void free_game(game_state *state)
 }
 
 static char *solve_game(game_state *state, game_state *currstate,
-			game_aux_info *ai, char **error)
+			char *ai, char **error)
 {
     unsigned char *matrix;
-    int matrix_needs_freeing;
-    int full, empty;
     int w = state->w, h = state->h;
     int i;
     char *ret;
+    int done_any, max;
+    unsigned char *workspace;
+    int *rowdata;
 
     /*
-     * If we already have the solved state in an aux_info, copy it
-     * out.
+     * If we already have the solved state in ai, copy it out.
      */
-    if (ai) {
-	assert(ai->w == w && ai->h == h);
+    if (ai)
+        return dupstr(ai);
 
-	matrix = ai->grid;
-	matrix_needs_freeing = FALSE;
-	full = GRID_FULL;
-	empty = GRID_EMPTY;
-    } else {
-	int done_any, max;
-	unsigned char *workspace;
-	int *rowdata;
+    matrix = snewn(w*h, unsigned char);
+    max = max(w, h);
+    workspace = snewn(max*3, unsigned char);
+    rowdata = snewn(max+1, int);
 
-	matrix = snewn(w*h, unsigned char);
-	max = max(w, h);
-	workspace = snewn(max*3, unsigned char);
-	rowdata = snewn(max+1, int);
+    memset(matrix, 0, w*h);
 
-        memset(matrix, 0, w*h);
+    do {
+        done_any = 0;
+        for (i=0; i<h; i++) {
+            memcpy(rowdata, state->rowdata + state->rowsize*(w+i),
+                   max*sizeof(int));
+            rowdata[state->rowlen[w+i]] = 0;
+            done_any |= do_row(workspace, workspace+max, workspace+2*max,
+                               matrix+i*w, w, 1, rowdata);
+        }
+        for (i=0; i<w; i++) {
+            memcpy(rowdata, state->rowdata + state->rowsize*i, max*sizeof(int));
+            rowdata[state->rowlen[i]] = 0;
+            done_any |= do_row(workspace, workspace+max, workspace+2*max,
+                               matrix+i, h, w, rowdata);
+        }
+    } while (done_any);
 
-        do {
-            done_any = 0;
-            for (i=0; i<h; i++) {
-		memcpy(rowdata, state->rowdata + state->rowsize*(w+i),
-		       max*sizeof(int));
-		rowdata[state->rowlen[w+i]] = 0;
-                done_any |= do_row(workspace, workspace+max, workspace+2*max,
-                                   matrix+i*w, w, 1, rowdata);
-            }
-            for (i=0; i<w; i++) {
-		memcpy(rowdata, state->rowdata + state->rowsize*i, max*sizeof(int));
-		rowdata[state->rowlen[i]] = 0;
-                done_any |= do_row(workspace, workspace+max, workspace+2*max,
-                                   matrix+i, h, w, rowdata);
-            }
-        } while (done_any);
+    sfree(workspace);
+    sfree(rowdata);
 
-	sfree(workspace);
-	sfree(rowdata);
-
-	for (i = 0; i < w*h; i++) {
-	    if (matrix[i] != BLOCK && matrix[i] != DOT) {
-		sfree(matrix);
-		*error = "Solving algorithm cannot complete this puzzle";
-		return NULL;
-	    }
-	}
-
-	matrix_needs_freeing = TRUE;
-	full = BLOCK;
-	empty = DOT;
+    for (i = 0; i < w*h; i++) {
+        if (matrix[i] != BLOCK && matrix[i] != DOT) {
+            sfree(matrix);
+            *error = "Solving algorithm cannot complete this puzzle";
+            return NULL;
+        }
     }
 
     ret = snewn(w*h+2, char);
     ret[0] = 'S';
     for (i = 0; i < w*h; i++) {
-	assert(matrix[i] == full || matrix[i] == empty);
-	ret[i+1] = (matrix[i] == full ? '1' : '0');
+	assert(matrix[i] == BLOCK || matrix[i] == DOT);
+	ret[i+1] = (matrix[i] == BLOCK ? '1' : '0');
     }
     ret[w*h+1] = '\0';
 
-    if (matrix_needs_freeing)
-	sfree(matrix);
+    sfree(matrix);
 
     return ret;
 }
@@ -1194,7 +1176,6 @@ const struct game thegame = {
     TRUE, game_configure, custom_params,
     validate_params,
     new_game_desc,
-    game_free_aux_info,
     validate_desc,
     new_game,
     dup_game,

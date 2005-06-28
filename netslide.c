@@ -82,11 +82,6 @@ struct game_params {
     int movetarget;
 };
 
-struct game_aux_info {
-    int width, height;
-    unsigned char *tiles;
-};
-
 struct game_state {
     int width, height, cx, cy, wrapping, completed;
     int used_solve, just_used_solve;
@@ -330,7 +325,7 @@ static char *validate_params(game_params *params)
  */
 
 static char *new_game_desc(game_params *params, random_state *rs,
-			   game_aux_info **aux, int interactive)
+			   char **aux, int interactive)
 {
     tree234 *possibilities, *barriertree;
     int w, h, x, y, cx, cy, nbarriers;
@@ -535,19 +530,22 @@ static char *new_game_desc(game_params *params, random_state *rs,
     }
 
     /*
-     * Save the unshuffled grid. We do this using a separate
-     * reference-counted structure since it's a large chunk of
-     * memory which we don't want to have to replicate in every
-     * game state while playing.
+     * Save the unshuffled grid in aux.
      */
     {
-        game_aux_info *solution;
+	char *solution;
+        int i;
 
-	solution = snew(game_aux_info);
-	solution->width = w;
-	solution->height = h;
-	solution->tiles = snewn(w * h, unsigned char);
-	memcpy(solution->tiles, tiles, w * h);
+        /*
+         * String format is exactly the same as a solve move, so we
+         * can just dupstr this in solve_game().
+         */
+
+	solution = snewn(w * h + 2, char);
+        solution[0] = 'S';
+        for (i = 0; i < w * h; i++)
+            solution[i+1] = "0123456789abcdef"[tiles[i] & 0xF];
+        solution[w*h+1] = '\0';
 
 	*aux = solution;
     }
@@ -696,12 +694,6 @@ static char *new_game_desc(game_params *params, random_state *rs,
     sfree(barriers);
 
     return desc;
-}
-
-static void game_free_aux_info(game_aux_info *aux)
-{
-    sfree(aux->tiles);
-    sfree(aux);
 }
 
 static char *validate_desc(game_params *params, char *desc)
@@ -894,24 +886,14 @@ static void free_game(game_state *state)
 }
 
 static char *solve_game(game_state *state, game_state *currstate,
-			game_aux_info *aux, char **error)
+			char *aux, char **error)
 {
-    char *ret;
-    int i;
-
     if (!aux) {
 	*error = "Solution not known for this puzzle";
 	return NULL;
     }
 
-    assert(aux->width == state->width);
-    assert(aux->height == state->height);
-    ret = snewn(aux->width * aux->height + 2, char);
-    ret[0] = 'S';
-    for (i = 0; i < aux->width * aux->height; i++)
-	ret[i+1] = "0123456789abcdef"[aux->tiles[i] & 0xF];
-    ret[i+1] = '\0';
-    return ret;
+    return dupstr(aux);
 }
 
 static char *game_text_format(game_state *state)
@@ -1822,7 +1804,6 @@ const struct game thegame = {
     TRUE, game_configure, custom_params,
     validate_params,
     new_game_desc,
-    game_free_aux_info,
     validate_desc,
     new_game,
     dup_game,

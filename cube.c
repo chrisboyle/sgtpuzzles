@@ -586,7 +586,7 @@ static void classify_grid_square_callback(void *ctx, struct grid_square *sq)
 }
 
 static char *new_game_desc(game_params *params, random_state *rs,
-			   game_aux_info **aux, int interactive)
+			   char **aux, int interactive)
 {
     struct grid_data data;
     int i, j, k, m, area, facesperclass;
@@ -685,11 +685,6 @@ static char *new_game_desc(game_params *params, random_state *rs,
     sfree(flags);
 
     return desc;
-}
-
-static void game_free_aux_info(game_aux_info *aux)
-{
-    assert(!"Shouldn't happen");
 }
 
 static void add_grid_square_callback(void *ctx, struct grid_square *sq)
@@ -985,7 +980,7 @@ static void free_game(game_state *state)
 }
 
 static char *solve_game(game_state *state, game_state *currstate,
-			game_aux_info *aux, char **error)
+			char *aux, char **error)
 {
     return NULL;
 }
@@ -1714,7 +1709,6 @@ const struct game thegame = {
     TRUE, game_configure, custom_params,
     validate_params,
     new_game_desc,
-    game_free_aux_info,
     validate_desc,
     new_game,
     dup_game,

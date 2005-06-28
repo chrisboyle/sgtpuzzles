@@ -1500,12 +1500,11 @@ int main(int argc, char **argv)
 	}
 
 	while (n-- > 0) {
-	    game_aux_info *aux = NULL;
+	    char *aux = NULL;
 	    char *desc = thegame.new_desc(par, rs, &aux, FALSE);
 	    printf("%s:%s\n", parstr, desc);
 	    sfree(desc);
-	    if (aux)
-		thegame.free_aux_info(aux);
+            sfree(aux);
 	}
 
 	return 0;

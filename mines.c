@@ -1946,7 +1946,7 @@ static char *new_mine_layout(int w, int h, int n, int x, int y, int unique,
 }
 
 static char *new_game_desc(game_params *params, random_state *rs,
-			   game_aux_info **aux, int interactive)
+			   char **aux, int interactive)
 {
     /*
      * We generate the coordinates of an initial click even if they
@@ -1982,11 +1982,6 @@ static char *new_game_desc(game_params *params, random_state *rs,
 	sfree(rsdesc);
 	return desc;
     }
-}
-
-static void game_free_aux_info(game_aux_info *aux)
-{
-    assert(!"Shouldn't happen");
 }
 
 static char *validate_desc(game_params *params, char *desc)
@@ -2298,7 +2293,7 @@ static void free_game(game_state *state)
 }
 
 static char *solve_game(game_state *state, game_state *currstate,
-			game_aux_info *aux, char **error)
+			char *aux, char **error)
 {
     if (!state->layout->mines) {
 	*error = "Game has not been started yet";
@@ -3045,7 +3040,6 @@ const struct game thegame = {
     TRUE, game_configure, custom_params,
     validate_params,
     new_game_desc,
-    game_free_aux_info,
     validate_desc,
     new_game,
     dup_game,

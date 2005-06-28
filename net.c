@@ -77,11 +77,6 @@ struct game_params {
     float barrier_probability;
 };
 
-struct game_aux_info {
-    int width, height;
-    unsigned char *tiles;
-};
-
 struct game_state {
     int width, height, wrapping, completed;
     int last_rotate_x, last_rotate_y, last_rotate_dir;
@@ -1139,7 +1134,7 @@ static void perturb(int w, int h, unsigned char *tiles, int wrapping,
 }
 
 static char *new_game_desc(game_params *params, random_state *rs,
-			   game_aux_info **aux, int interactive)
+			   char **aux, int interactive)
 {
     tree234 *possibilities, *barriertree;
     int w, h, x, y, cx, cy, nbarriers;
@@ -1401,16 +1396,16 @@ static char *new_game_desc(game_params *params, random_state *rs,
     }
 
     /*
-     * Save the unshuffled grid in an aux_info.
+     * Save the unshuffled grid in aux.
      */
     {
-	game_aux_info *solution;
+	char *solution;
+        int i;
 
-	solution = snew(game_aux_info);
-	solution->width = w;
-	solution->height = h;
-	solution->tiles = snewn(w * h, unsigned char);
-	memcpy(solution->tiles, tiles, w * h);
+	solution = snewn(w * h + 1, char);
+        for (i = 0; i < w * h; i++)
+            solution[i] = "0123456789abcdef"[tiles[i] & 0xF];
+        solution[w*h] = '\0';
 
 	*aux = solution;
     }
@@ -1513,12 +1508,6 @@ static char *new_game_desc(game_params *params, random_state *rs,
     sfree(barriers);
 
     return desc;
-}
-
-static void game_free_aux_info(game_aux_info *aux)
-{
-    sfree(aux->tiles);
-    sfree(aux);
 }
 
 static char *validate_desc(game_params *params, char *desc)
@@ -1667,27 +1656,34 @@ static void free_game(game_state *state)
 }
 
 static char *solve_game(game_state *state, game_state *currstate,
-			game_aux_info *aux, char **error)
+			char *aux, char **error)
 {
     unsigned char *tiles;
     char *ret;
     int retlen, retsize;
     int i;
-    int tiles_need_freeing;
+
+    tiles = snewn(state->width * state->height, unsigned char);
 
     if (!aux) {
 	/*
 	 * Run the internal solver on the provided grid. This might
 	 * not yield a complete solution.
 	 */
-	tiles = snewn(state->width * state->height, unsigned char);
 	memcpy(tiles, state->tiles, state->width * state->height);
 	net_solver(state->width, state->height, tiles,
 		   state->barriers, state->wrapping);
-	tiles_need_freeing = TRUE;
     } else {
-	tiles = aux->tiles;
-	tiles_need_freeing = FALSE;
+        for (i = 0; i < state->width * state->height; i++) {
+            int c = aux[i];
+
+            if (c >= '0' && c <= '9')
+                tiles[i] = c - '0';
+            else if (c >= 'a' && c <= 'f')
+                tiles[i] = c - 'a' + 10;
+            else if (c >= 'A' && c <= 'F')
+                tiles[i] = c - 'A' + 10;
+        }
     }
 
     /*
@@ -1746,6 +1742,8 @@ static char *solve_game(game_state *state, game_state *currstate,
     assert(retlen < retsize);
     ret[retlen] = '\0';
     ret = sresize(ret, retlen+1, char);
+
+    sfree(tiles);
 
     return ret;
 }
@@ -2747,7 +2745,6 @@ const struct game thegame = {
     TRUE, game_configure, custom_params,
     validate_params,
     new_game_desc,
-    game_free_aux_info,
     validate_desc,
     new_game,
     dup_game,

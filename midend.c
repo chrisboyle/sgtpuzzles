@@ -48,7 +48,7 @@ struct midend_data {
      * may also be typed directly into Mines if you like.)
      */
     char *desc, *privdesc, *seedstr;
-    game_aux_info *aux_info;
+    char *aux_info;
     enum { GOT_SEED, GOT_DESC, GOT_NOTHING } genmode;
     int nstates, statesize, statepos;
 
@@ -140,8 +140,7 @@ void midend_free(midend_data *me)
     sfree(me->states);
     sfree(me->desc);
     sfree(me->seedstr);
-    if (me->aux_info)
-	me->ourgame->free_aux_info(me->aux_info);
+    sfree(me->aux_info);
     me->ourgame->free_params(me->params);
     if (me->npresets) {
 	for (i = 0; i < me->npresets; i++) {
@@ -235,8 +234,7 @@ void midend_new_game(midend_data *me)
 
 	sfree(me->desc);
 	sfree(me->privdesc);
-	if (me->aux_info)
-	    me->ourgame->free_aux_info(me->aux_info);
+        sfree(me->aux_info);
 	me->aux_info = NULL;
 
         rs = random_init(me->seedstr, strlen(me->seedstr));
@@ -634,13 +632,12 @@ float *midend_colours(midend_data *me, int *ncolours)
     float *ret;
 
     if (me->nstates == 0) {
-	game_aux_info *aux = NULL;
+	char *aux = NULL;
         char *desc = me->ourgame->new_desc(me->params, me->random,
 					   &aux, TRUE);
         state = me->ourgame->new_game(me, me->params, desc);
         sfree(desc);
-	if (aux)
-	    me->ourgame->free_aux_info(aux);
+        sfree(aux);
     } else
         state = me->states[0].state;
 
@@ -925,8 +922,7 @@ static char *midend_game_id_int(midend_data *me, char *id, int defmode)
 
         me->desc = dupstr(desc);
         me->genmode = GOT_DESC;
-	if (me->aux_info)
-	    me->ourgame->free_aux_info(me->aux_info);
+        sfree(me->aux_info);
 	me->aux_info = NULL;
     }
 
