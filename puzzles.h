@@ -186,6 +186,12 @@ char *midend_text_format(midend_data *me);
 char *midend_solve(midend_data *me);
 void midend_supersede_game_desc(midend_data *me, char *desc, char *privdesc);
 char *midend_rewrite_statusbar(midend_data *me, char *text);
+void midend_serialise(midend_data *me,
+                      void (*write)(void *ctx, void *buf, int len),
+                      void *wctx);
+char *midend_deserialise(midend_data *me,
+                         int (*read)(void *ctx, void *buf, int len),
+                         void *rctx);
 
 /*
  * malloc.c

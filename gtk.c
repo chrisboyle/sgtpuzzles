@@ -118,6 +118,7 @@ struct frontend {
     char *laststatus;
     int pw, ph;                        /* pixmap size (w, h are area size) */
     int ox, oy;                        /* offset of pixmap in drawing area */
+    char *filesel_name;
 };
 
 void get_random_seed(void **randseed, int *randseedsize)
@@ -450,6 +451,7 @@ static void destroy(GtkWidget *widget, gpointer data)
 {
     frontend *fe = (frontend *)data;
     deactivate_timer(fe);
+    midend_free(fe->me);
     gtk_main_quit();
 }
 
@@ -1114,6 +1116,123 @@ static void menu_copy_event(GtkMenuItem *menuitem, gpointer data)
     }
 }
 
+static void filesel_ok(GtkButton *button, gpointer data)
+{
+    frontend *fe = (frontend *)data;
+
+    gpointer filesel = gtk_object_get_data(GTK_OBJECT(button), "user-data");
+
+    const char *name =
+        gtk_file_selection_get_filename(GTK_FILE_SELECTION(filesel));
+
+    fe->filesel_name = dupstr(name);
+}
+
+static char *file_selector(frontend *fe, char *title, int save)
+{
+    GtkWidget *filesel =
+        gtk_file_selection_new(title);
+
+    fe->filesel_name = NULL;
+
+    gtk_window_set_modal(GTK_WINDOW(filesel), TRUE);
+    gtk_object_set_data
+        (GTK_OBJECT(GTK_FILE_SELECTION(filesel)->ok_button), "user-data",
+         (gpointer)filesel);
+    gtk_signal_connect
+        (GTK_OBJECT(GTK_FILE_SELECTION(filesel)->ok_button), "clicked",
+         GTK_SIGNAL_FUNC(filesel_ok), fe);
+    gtk_signal_connect_object
+        (GTK_OBJECT(GTK_FILE_SELECTION(filesel)->ok_button), "clicked",
+         GTK_SIGNAL_FUNC(gtk_widget_destroy), (gpointer)filesel);
+    gtk_signal_connect_object
+        (GTK_OBJECT(GTK_FILE_SELECTION(filesel)->cancel_button), "clicked",
+         GTK_SIGNAL_FUNC(gtk_widget_destroy), (gpointer)filesel);
+    gtk_signal_connect(GTK_OBJECT(filesel), "destroy",
+                       GTK_SIGNAL_FUNC(window_destroy), NULL);
+    gtk_widget_show(filesel);
+    gtk_window_set_transient_for(GTK_WINDOW(filesel), GTK_WINDOW(fe->window));
+    gtk_main();
+
+    return fe->filesel_name;
+}
+
+static void savefile_write(void *wctx, void *buf, int len)
+{
+    FILE *fp = (FILE *)wctx;
+    fwrite(buf, 1, len, fp);
+}
+
+static int savefile_read(void *wctx, void *buf, int len)
+{
+    FILE *fp = (FILE *)wctx;
+    int ret;
+
+    ret = fread(buf, 1, len, fp);
+    return (ret == len);
+}
+
+static void menu_save_event(GtkMenuItem *menuitem, gpointer data)
+{
+    frontend *fe = (frontend *)data;
+    char *name;
+
+    name = file_selector(fe, "Enter name of game file to save", TRUE);
+
+    if (name) {
+        FILE *fp = fopen(name, "w");
+        sfree(name);
+
+        if (!fp) {
+            error_box(fe->window, "Unable to open save file");
+            return;
+        }
+
+        midend_serialise(fe->me, savefile_write, fp);
+
+        fclose(fp);
+    }
+}
+
+static void menu_load_event(GtkMenuItem *menuitem, gpointer data)
+{
+    frontend *fe = (frontend *)data;
+    char *name, *err;
+    int x, y;
+
+    name = file_selector(fe, "Enter name of saved game file to load", FALSE);
+
+    if (name) {
+        FILE *fp = fopen(name, "r");
+        sfree(name);
+
+        if (!fp) {
+            error_box(fe->window, "Unable to open saved game file");
+            return;
+        }
+
+        err = midend_deserialise(fe->me, savefile_read, fp);
+
+        fclose(fp);
+
+        if (err) {
+            error_box(fe->window, err);
+            return;
+        }
+
+        get_size(fe, &x, &y);
+        fe->w = x;
+        fe->h = y;
+        gtk_drawing_area_size(GTK_DRAWING_AREA(fe->area), x, y);
+        {
+            GtkRequisition req;
+            gtk_widget_size_request(GTK_WIDGET(fe->window), &req);
+            gtk_window_resize(GTK_WINDOW(fe->window), req.width, req.height);
+        }
+
+    }
+}
+
 static void menu_solve_event(GtkMenuItem *menuitem, gpointer data)
 {
     frontend *fe = (frontend *)data;
@@ -1295,6 +1414,19 @@ static frontend *new_window(char *game_id, char **error)
 	}
     }
 
+    if (getenv("PUZZLES_EXPERIMENTAL_SAVE") != NULL) {
+        add_menu_separator(GTK_CONTAINER(menu));
+        menuitem = gtk_menu_item_new_with_label("Load");
+        gtk_container_add(GTK_CONTAINER(menu), menuitem);
+        gtk_signal_connect(GTK_OBJECT(menuitem), "activate",
+                           GTK_SIGNAL_FUNC(menu_load_event), fe);
+        gtk_widget_show(menuitem);
+        menuitem = gtk_menu_item_new_with_label("Save");
+        gtk_container_add(GTK_CONTAINER(menu), menuitem);
+        gtk_signal_connect(GTK_OBJECT(menuitem), "activate",
+                           GTK_SIGNAL_FUNC(menu_save_event), fe);
+        gtk_widget_show(menuitem);
+    }
     add_menu_separator(GTK_CONTAINER(menu));
     add_menu_item_with_key(fe, GTK_CONTAINER(menu), "Undo", 'u');
     add_menu_item_with_key(fe, GTK_CONTAINER(menu), "Redo", '\x12');
