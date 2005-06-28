@@ -1855,7 +1855,7 @@ static char *describe_layout(char *grid, int area, int x, int y,
      */
     ret = snewn((area+3)/4 + 100, char);
     p = ret + sprintf(ret, "%d,%d,%s", x, y,
-                      obfuscate ? "m" : "");   /* 'm' == masked */
+                      obfuscate ? "m" : "u");   /* 'm' == masked */
     for (i = 0; i < (area+3)/4; i++) {
         int v = bmp[i/2];
         if (i % 2 == 0)
@@ -2009,28 +2009,28 @@ static char *validate_desc(game_params *params, char *desc)
 	    return "No ',' after uniqueness specifier in game description";
 	/* now ignore the rest */
     } else {
-	if (!*desc || !isdigit((unsigned char)*desc))
-	    return "No initial x-coordinate in game description";
-	x = atoi(desc);
-	if (x < 0 || x >= params->w)
-	    return "Initial x-coordinate was out of range";
-	while (*desc && isdigit((unsigned char)*desc))
-	    desc++;		       /* skip over x coordinate */
-	if (*desc != ',')
-	    return "No ',' after initial x-coordinate in game description";
-	desc++;			       /* eat comma */
-	if (!*desc || !isdigit((unsigned char)*desc))
-	    return "No initial y-coordinate in game description";
-	y = atoi(desc);
-	if (y < 0 || y >= params->h)
-	    return "Initial y-coordinate was out of range";
-	while (*desc && isdigit((unsigned char)*desc))
-	    desc++;		       /* skip over y coordinate */
-	if (*desc != ',')
-	    return "No ',' after initial y-coordinate in game description";
-	desc++;			       /* eat comma */
-	/* eat `m', meaning `masked', if present */
-	if (*desc == 'm')
+	if (*desc && isdigit((unsigned char)*desc)) {
+	    x = atoi(desc);
+	    if (x < 0 || x >= params->w)
+		return "Initial x-coordinate was out of range";
+	    while (*desc && isdigit((unsigned char)*desc))
+		desc++;		       /* skip over x coordinate */
+	    if (*desc != ',')
+		return "No ',' after initial x-coordinate in game description";
+	    desc++;		       /* eat comma */
+	    if (!*desc || !isdigit((unsigned char)*desc))
+		return "No initial y-coordinate in game description";
+	    y = atoi(desc);
+	    if (y < 0 || y >= params->h)
+		return "Initial y-coordinate was out of range";
+	    while (*desc && isdigit((unsigned char)*desc))
+		desc++;		       /* skip over y coordinate */
+	    if (*desc != ',')
+		return "No ',' after initial y-coordinate in game description";
+	    desc++;		       /* eat comma */
+	}
+	/* eat `m' for `masked' or `u' for `unmasked', if present */
+	if (*desc == 'm' || *desc == 'u')
 	    desc++;
 	/* now just check length of remainder */
 	if (strlen(desc) != (wh+3)/4)
@@ -2051,12 +2051,23 @@ static int open_square(game_state *state, int x, int y)
 	 * hasn't been generated yet. Generate it based on the
 	 * initial click location.
 	 */
-	char *desc;
+	char *desc, *privdesc;
 	state->layout->mines = new_mine_layout(w, h, state->layout->n,
 					       x, y, state->layout->unique,
 					       state->layout->rs,
 					       &desc);
-	midend_supersede_game_desc(state->layout->me, desc);
+	/*
+	 * Find the trailing substring of the game description
+	 * corresponding to just the mine layout; we will use this
+	 * as our second `private' game ID for serialisation.
+	 */
+	privdesc = desc;
+	while (*privdesc && isdigit((unsigned char)*privdesc)) privdesc++;
+	if (*privdesc == ',') privdesc++;
+	while (*privdesc && isdigit((unsigned char)*privdesc)) privdesc++;
+	if (*privdesc == ',') privdesc++;
+	assert(*privdesc == 'm');
+	midend_supersede_game_desc(state->layout->me, desc, privdesc);
 	sfree(desc);
 	random_free(state->layout->rs);
 	state->layout->rs = NULL;
@@ -2191,21 +2202,27 @@ static game_state *new_game(midend_data *me, game_params *params, char *desc)
     } else {
 	state->layout->rs = NULL;
 	state->layout->me = NULL;
-
 	state->layout->mines = snewn(wh, char);
-	x = atoi(desc);
-	while (*desc && isdigit((unsigned char)*desc))
-	    desc++;		       /* skip over x coordinate */
-	if (*desc) desc++;	       /* eat comma */
-	y = atoi(desc);
-	while (*desc && isdigit((unsigned char)*desc))
-	    desc++;		       /* skip over y coordinate */
-	if (*desc) desc++;	       /* eat comma */
+
+	if (*desc && isdigit((unsigned char)*desc)) {
+	    x = atoi(desc);
+	    while (*desc && isdigit((unsigned char)*desc))
+		desc++;		       /* skip over x coordinate */
+	    if (*desc) desc++;	       /* eat comma */
+	    y = atoi(desc);
+	    while (*desc && isdigit((unsigned char)*desc))
+		desc++;		       /* skip over y coordinate */
+	    if (*desc) desc++;	       /* eat comma */
+	} else {
+	    x = y = -1;
+	}
 
 	if (*desc == 'm') {
 	    masked = TRUE;
 	    desc++;
 	} else {
+	    if (*desc == 'u')
+		desc++;
 	    /*
 	     * We permit game IDs to be entered by hand without the
 	     * masking transformation.
@@ -2241,7 +2258,8 @@ static game_state *new_game(midend_data *me, game_params *params, char *desc)
 		state->layout->mines[i] = 1;
 	}
 
-	ret = open_square(state, x, y);
+	if (x >= 0 && y >= 0)
+	    ret = open_square(state, x, y);
         sfree(bmp);
     }
 

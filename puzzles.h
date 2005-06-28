@@ -185,7 +185,7 @@ char *midend_set_config(midend_data *me, int which, config_item *cfg);
 char *midend_game_id(midend_data *me, char *id);
 char *midend_text_format(midend_data *me);
 char *midend_solve(midend_data *me);
-void midend_supersede_game_desc(midend_data *me, char *desc);
+void midend_supersede_game_desc(midend_data *me, char *desc, char *privdesc);
 char *midend_rewrite_statusbar(midend_data *me, char *text);
 
 /*

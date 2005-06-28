@@ -25,7 +25,29 @@ struct midend_data {
     random_state *random;
     const game *ourgame;
 
-    char *desc, *seedstr;
+    /*
+     * `desc' and `privdesc' deserve a comment.
+     * 
+     * `desc' is the game description as presented to the user when
+     * they ask for Game -> Specific. `privdesc', if non-NULL, is a
+     * different game description used to reconstruct the initial
+     * game_state when de-serialising. If privdesc is NULL, `desc'
+     * is used for both.
+     * 
+     * For almost all games, `privdesc' is NULL and never used. The
+     * exception (as usual) is Mines: the initial game state has no
+     * squares open at all, but after the first click `desc' is
+     * rewritten to describe a game state with an initial click and
+     * thus a bunch of squares open. If we used that desc to
+     * serialise and deserialise, then the initial game state after
+     * deserialisation would look unlike the initial game state
+     * beforehand, and worse still execute_move() might fail on the
+     * attempted first click. So `privdesc' is also used in this
+     * case, to provide a game description describing the same
+     * fixed mine layout _but_ no initial click. (These game IDs
+     * may also be typed directly into Mines if you like.)
+     */
+    char *desc, *privdesc, *seedstr;
     game_aux_info *aux_info;
     enum { GOT_SEED, GOT_DESC, GOT_NOTHING } genmode;
     int nstates, statesize, statepos;
@@ -75,7 +97,7 @@ midend_data *midend_new(frontend *fe, const game *ourgame)
     me->states = NULL;
     me->params = ourgame->default_params();
     me->curparams = NULL;
-    me->desc = NULL;
+    me->desc = me->privdesc = NULL;
     me->seedstr = NULL;
     me->aux_info = NULL;
     me->genmode = GOT_NOTHING;
@@ -212,6 +234,7 @@ void midend_new_game(midend_data *me)
         }
 
 	sfree(me->desc);
+	sfree(me->privdesc);
 	if (me->aux_info)
 	    me->ourgame->free_aux_info(me->aux_info);
 	me->aux_info = NULL;
@@ -219,6 +242,7 @@ void midend_new_game(midend_data *me)
         rs = random_init(me->seedstr, strlen(me->seedstr));
         me->desc = me->ourgame->new_desc(me->curparams, rs,
 					 &me->aux_info, TRUE);
+	me->privdesc = NULL;
         random_free(rs);
     }
 
@@ -317,7 +341,14 @@ void midend_restart_game(midend_data *me)
     if (me->statepos == 1)
         return;                        /* no point doing anything at all! */
 
-    s = me->ourgame->dup_game(me->states[0].state);
+    /*
+     * During restart, we reconstruct the game from the (public)
+     * game description rather than from states[0], because that
+     * way Mines gets slightly more sensible behaviour (restart
+     * goes to _after_ the first click so you don't have to
+     * remember where you clicked).
+     */
+    s = me->ourgame->new_game(me, me->params, me->desc);
 
     /*
      * Now enter the restarted state as the next move.
@@ -737,10 +768,13 @@ int midend_wants_statusbar(midend_data *me)
     return me->ourgame->wants_statusbar();
 }
 
-void midend_supersede_game_desc(midend_data *me, char *desc)
+void midend_supersede_game_desc(midend_data *me, char *desc, char *privdesc)
 {
     sfree(me->desc);
+    sfree(me->privdesc);
+printf("%s\n%s\n", desc, privdesc);
     me->desc = dupstr(desc);
+    me->privdesc = privdesc ? dupstr(privdesc) : NULL;
 }
 
 config_item *midend_get_config(midend_data *me, int which, char **wintitle)
@@ -880,7 +914,8 @@ static char *midend_game_id_int(midend_data *me, char *id, int defmode)
     }
 
     sfree(me->desc);
-    me->desc = NULL;
+    sfree(me->privdesc);
+    me->desc = me->privdesc = NULL;
     sfree(me->seedstr);
     me->seedstr = NULL;
 
