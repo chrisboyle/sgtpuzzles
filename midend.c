@@ -1084,7 +1084,7 @@ void midend_serialise(midend_data *me,
 #define wr(h,s) do { \
     char hbuf[80]; \
     char *str = (s); \
-    sprintf(hbuf, "%-8.8s:%d:", (h), strlen(str)); \
+    sprintf(hbuf, "%-8.8s:%d:", (h), (int)strlen(str)); \
     write(wctx, hbuf, strlen(hbuf)); \
     write(wctx, str, strlen(str)); \
     write(wctx, "\n", 1); \
