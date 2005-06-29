@@ -370,7 +370,35 @@ static char *game_text_format(game_state *state)
     return NULL;
 }
 
+static int is_markable(game_params *params, pegrow pegs)
+{
+    int i, nset = 0, nrequired, ret = 0;
+    pegrow colcount = new_pegrow(params->ncolours);
+
+    nrequired = params->allow_blank ? 1 : params->npegs;
+
+    for (i = 0; i < params->npegs; i++) {
+        int c = pegs->pegs[i];
+        if (c > 0) {
+            colcount->pegs[c-1]++;
+            nset++;
+        }
+    }
+    if (nset < nrequired) goto done;
+
+    if (!params->allow_multiple) {
+        for (i = 0; i < params->ncolours; i++) {
+            if (colcount->pegs[i] > 1) goto done;
+        }
+    }
+    ret = 1;
+done:
+    free_pegrow(colcount);
+    return ret;
+}
+
 struct game_ui {
+    game_params params;
     pegrow curr_pegs; /* half-finished current move */
     int *holds;
     int colour_cur;   /* position of up-down colour picker cursor */
@@ -385,6 +413,7 @@ static game_ui *new_ui(game_state *state)
 {
     game_ui *ui = snew(struct game_ui);
     memset(ui, 0, sizeof(struct game_ui));
+    ui->params = state->params;        /* structure copy */
     ui->curr_pegs = new_pegrow(state->params.npegs);
     ui->holds = snewn(state->params.npegs, int);
     memset(ui->holds, 0, sizeof(int)*state->params.npegs);
@@ -401,11 +430,34 @@ static void free_ui(game_ui *ui)
 
 static char *encode_ui(game_ui *ui)
 {
-    return NULL;
+    char *ret, *p, *sep;
+    int i;
+
+    /*
+     * For this game it's worth storing the contents of the current
+     * guess.
+     */
+    ret = snewn(40 * ui->curr_pegs->npegs, char);
+    p = ret;
+    sep = "";
+    for (i = 0; i < ui->curr_pegs->npegs; i++) {
+        p += sprintf(p, "%s%d", sep, ui->curr_pegs->pegs[i]);
+        sep = ",";
+    }
+    assert(p - ret < 40 * ui->curr_pegs->npegs);
+    return sresize(ret, p - ret + 1, char);
 }
 
 static void decode_ui(game_ui *ui, char *encoding)
 {
+    int i;
+    char *p = encoding;
+    for (i = 0; i < ui->curr_pegs->npegs; i++) {
+        ui->curr_pegs->pegs[i] = atoi(p);
+        while (*p && isdigit((unsigned char)*p)) p++;
+        if (*p == ',') p++;
+    }
+    ui->markable = is_markable(&ui->params, ui->curr_pegs);
 }
 
 static void game_changed_state(game_ui *ui, game_state *oldstate,
@@ -476,33 +528,6 @@ struct game_drawstate {
     blitter *blit_peg;
     int drag_col, blit_ox, blit_oy;
 };
-
-static int is_markable(game_params *params, pegrow pegs)
-{
-    int i, nset = 0, nrequired, ret = 0;
-    pegrow colcount = new_pegrow(params->ncolours);
-
-    nrequired = params->allow_blank ? 1 : params->npegs;
-
-    for (i = 0; i < params->npegs; i++) {
-        int c = pegs->pegs[i];
-        if (c > 0) {
-            colcount->pegs[c-1]++;
-            nset++;
-        }
-    }
-    if (nset < nrequired) goto done;
-
-    if (!params->allow_multiple) {
-        for (i = 0; i < params->ncolours; i++) {
-            if (colcount->pegs[i] > 1) goto done;
-        }
-    }
-    ret = 1;
-done:
-    free_pegrow(colcount);
-    return ret;
-}
 
 static void set_peg(game_params *params, game_ui *ui, int peg, int col)
 {
