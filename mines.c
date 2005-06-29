@@ -1990,6 +1990,7 @@ static char *validate_desc(game_params *params, char *desc)
     int x, y;
 
     if (*desc == 'r') {
+        desc++;
 	if (!*desc || !isdigit((unsigned char)*desc))
 	    return "No initial mine count in game description";
 	while (*desc && isdigit((unsigned char)*desc))
