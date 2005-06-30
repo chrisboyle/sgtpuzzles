@@ -637,7 +637,7 @@ static char *interpret_move(game_state *from, game_ui *ui, game_drawstate *ds,
         } else {
             over_hint = 1;
         }
-    } else if (x >= guess_ox &&
+    } else if (x >= guess_ox && x <= (guess_ox + GUESS_W) &&
                y >= GUESS_OY && y < guess_oy) {
         over_past_guess_y = (y - GUESS_OY) / PEGOFF;
         over_past_guess_x = (x - guess_ox) / PEGOFF;
