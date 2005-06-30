@@ -2329,7 +2329,10 @@ static char *interpret_move(game_state *from, game_ui *ui, game_drawstate *ds,
 
     coord_round(FROMCOORD((float)x), FROMCOORD((float)y), &xc, &yc);
 
-    if (startdrag) {
+    if (startdrag &&
+	xc >= 0 && xc <= 2*from->w &&
+	yc >= 0 && yc <= 2*from->h) {
+
         ui->drag_start_x = xc;
         ui->drag_start_y = yc;
         ui->drag_end_x = xc;
@@ -2338,7 +2341,8 @@ static char *interpret_move(game_state *from, game_ui *ui, game_drawstate *ds,
         active = TRUE;
     }
 
-    if (xc != ui->drag_end_x || yc != ui->drag_end_y) {
+    if (ui->drag_start_x >= 0 &&
+	(xc != ui->drag_end_x || yc != ui->drag_end_y)) {
 	int t;
 
         ui->drag_end_x = xc;
@@ -2370,7 +2374,7 @@ static char *interpret_move(game_state *from, game_ui *ui, game_drawstate *ds,
 
     ret = NULL;
 
-    if (enddrag) {
+    if (enddrag && (ui->drag_start_x >= 0)) {
 	if (xc >= 0 && xc <= 2*from->w &&
 	    yc >= 0 && yc <= 2*from->h) {
 
