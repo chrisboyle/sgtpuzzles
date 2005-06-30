@@ -689,7 +689,7 @@ static game_state *execute_move(game_state *from, char *move)
 static void game_size(game_params *params, game_drawstate *ds, int *x, int *y,
                       int expand)
 {
-    int tsx, tsy, ts;
+    double tsx, tsy, ts;
 
     /*
      * We could choose the tile gap dynamically as well if we
@@ -708,14 +708,14 @@ static void game_size(game_params *params, game_drawstate *ds, int *x, int *y,
      * We must cast to unsigned before adding to *x and *y, since
      * they might be INT_MAX!
      */
-    tsx = (unsigned)(*x + ds->tilegap) / (params->w + 1);
-    tsy = (unsigned)(*y + ds->tilegap) / (params->h + 1);
+    tsx = ((double)*x + (double)ds->tilegap) / ((double)params->w + 1.0);
+    tsy = ((double)*y + (double)ds->tilegap) / ((double)params->h + 1.0);
 
     ts = min(tsx, tsy);
     if (expand)
-        ds->tileinner = ts - ds->tilegap;
+        ds->tileinner = (int)(ts+0.5) - ds->tilegap;
     else
-        ds->tileinner = min(ts, PREFERRED_TILE_SIZE) - ds->tilegap;
+        ds->tileinner = min((int)ts, PREFERRED_TILE_SIZE) - ds->tilegap;
 
     *x = TILE_SIZE * params->w + 2 * BORDER - TILE_GAP;
     *y = TILE_SIZE * params->h + 2 * BORDER - TILE_GAP;

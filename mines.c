@@ -2607,19 +2607,19 @@ static game_state *execute_move(game_state *from, char *move)
 static void game_size(game_params *params, game_drawstate *ds,
                       int *x, int *y, int expand)
 {
-    int tsx, tsy, ts;
+    double tsx, tsy, ts;
     /*
      * Each window dimension equals the tile size times 3 more than
      * the grid dimension (the border is 3/2 the width of the
      * tiles).
      */
-    tsx = *x / (params->w + 3);
-    tsy = *y / (params->h + 3);
+    tsx = (double)*x / ((double)params->w + 3.0);
+    tsy = (double)*y / ((double)params->h + 3.0);
     ts = min(tsx, tsy);
     if (expand)
-        ds->tilesize = ts;
+        ds->tilesize = (int)(ts + 0.5);
     else
-        ds->tilesize = min(ts, PREFERRED_TILE_SIZE);
+        ds->tilesize = min((int)ts, PREFERRED_TILE_SIZE);
 
     *x = BORDER * 2 + TILE_SIZE * params->w;
     *y = BORDER * 2 + TILE_SIZE * params->h;

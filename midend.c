@@ -149,6 +149,7 @@ void midend_free(midend_data *me)
     random_free(me->random);
     sfree(me->states);
     sfree(me->desc);
+    sfree(me->privdesc);
     sfree(me->seedstr);
     sfree(me->aux_info);
     me->ourgame->free_params(me->params);
@@ -1351,7 +1352,7 @@ char *midend_deserialise(midend_data *me,
                 uistr = val;
                 val = NULL;
             } else if (!strcmp(key, "TIME")) {
-                elapsed = strtod(val, NULL);
+                elapsed = atof(val);
             } else if (!strcmp(key, "NSTATES")) {
                 nstates = atoi(val);
                 if (nstates <= 0) {
@@ -1515,6 +1516,12 @@ char *midend_deserialise(midend_data *me,
     me->pressed_mouse_button = 0;
 
     midend_set_timer(me);
+
+    if (me->drawstate)
+        me->ourgame->free_drawstate(me->drawstate);
+    me->drawstate =
+        me->ourgame->new_drawstate(me->states[me->statepos-1].state);
+    midend_size_new_drawstate(me);
 
     ret = NULL;                        /* success! */
 

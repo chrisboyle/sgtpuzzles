@@ -30,7 +30,7 @@ enum {
         ( ((x) - (BORDER + GUTTER + TILE_SIZE * TLBORDER(d))) / TILE_SIZE )
 
 #define SIZE(d) (2*BORDER + GUTTER + TILE_SIZE * (TLBORDER(d) + (d)))
-#define GETTILESIZE(d, w) (w / (2 + TLBORDER(d) + (d)))
+#define GETTILESIZE(d, w) ((double)w / (2.0 + (double)TLBORDER(d) + (double)(d)))
 
 #define TOCOORD(d, x) (BORDER + GUTTER + TILE_SIZE * (TLBORDER(d) + (x)))
 
@@ -549,6 +549,7 @@ static char *new_game_desc(game_params *params, random_state *rs,
     assert(desc[desclen-1] == '/');
     desc[desclen-1] = '\0';
     sfree(rowdata);
+    sfree(grid);
     return desc;
 }
 
@@ -858,8 +859,8 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
         if (move_needed) {
 	    char buf[80];
 	    sprintf(buf, "%c%d,%d,%d,%d",
-		    (ui->state == GRID_FULL ? 'F' :
-		     ui->state == GRID_EMPTY ? 'E' : 'U'),
+		    (char)(ui->state == GRID_FULL ? 'F' :
+		           ui->state == GRID_EMPTY ? 'E' : 'U'),
 		    x1, y1, x2-x1+1, y2-y1+1);
 	    return dupstr(buf);
         } else
@@ -947,13 +948,13 @@ static game_state *execute_move(game_state *from, char *move)
 static void game_size(game_params *params, game_drawstate *ds,
                       int *x, int *y, int expand)
 {
-    int ts;
+    double ts;
 
     ts = min(GETTILESIZE(params->w, *x), GETTILESIZE(params->h, *y));
     if (expand)
-        ds->tilesize = ts;
+        ds->tilesize = (int)(ts + 0.5);
     else
-        ds->tilesize = min(ts, PREFERRED_TILE_SIZE);
+        ds->tilesize = min((int)ts, PREFERRED_TILE_SIZE);
 
     *x = SIZE(params->w);
     *y = SIZE(params->h);

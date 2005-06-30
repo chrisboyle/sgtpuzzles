@@ -2024,7 +2024,7 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
             return NULL;
 
 	sprintf(buf, "%c%d,%d,%d",
-		ui->hpencil && n > 0 ? 'P' : 'R', ui->hx, ui->hy, n);
+		(char)(ui->hpencil && n > 0 ? 'P' : 'R'), ui->hx, ui->hy, n);
 
 	ui->hx = ui->hy = -1;
 
@@ -2090,19 +2090,19 @@ static game_state *execute_move(game_state *from, char *move)
  */
 
 #define SIZE(cr) ((cr) * TILE_SIZE + 2*BORDER + 1)
-#define GETTILESIZE(cr, w) ( (w-1) / (cr+1) )
+#define GETTILESIZE(cr, w) ( (double)(w-1) / (double)(cr+1) )
 
 static void game_size(game_params *params, game_drawstate *ds,
                       int *x, int *y, int expand)
 {
     int c = params->c, r = params->r, cr = c*r;
-    int ts;
+    double ts;
 
     ts = min(GETTILESIZE(cr, *x), GETTILESIZE(cr, *y));
     if (expand)
-        ds->tilesize = ts;
+        ds->tilesize = (int)(ts+0.5);
     else
-        ds->tilesize = min(ts, PREFERRED_TILE_SIZE);
+        ds->tilesize = min((int)ts, PREFERRED_TILE_SIZE);
 
     *x = SIZE(cr);
     *y = SIZE(cr);

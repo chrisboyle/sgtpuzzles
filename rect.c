@@ -2498,7 +2498,7 @@ static game_state *execute_move(game_state *from, char *move)
 static void game_size(game_params *params, game_drawstate *ds,
                       int *x, int *y, int expand)
 {
-    int tsx, tsy, ts;
+    double tsx, tsy, ts;
     /*
      * Each window dimension equals the tile size times 1.5 more
      * than the grid dimension (the border is 3/4 the width of the
@@ -2507,13 +2507,13 @@ static void game_size(game_params *params, game_drawstate *ds,
      * We must cast to unsigned before multiplying by two, because
      * *x might be INT_MAX.
      */
-    tsx = 2 * (unsigned)*x / (2 * params->w + 3);
-    tsy = 2 * (unsigned)*y / (2 * params->h + 3);
+    tsx = 2.0 * (double)*x / (2.0 * (double)params->w + 3.0);
+    tsy = 2.0 * (double)*y / (2.0 * (double)params->h + 3.0);
     ts = min(tsx, tsy);
     if (expand)
-        ds->tilesize = ts;
+        ds->tilesize = (int)(ts + 0.5);
     else
-        ds->tilesize = min(ts, PREFERRED_TILE_SIZE);
+        ds->tilesize = min((int)ts, PREFERRED_TILE_SIZE);
 
     *x = params->w * TILE_SIZE + 2*BORDER + 1;
     *y = params->h * TILE_SIZE + 2*BORDER + 1;
