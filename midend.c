@@ -757,7 +757,7 @@ int midend_num_presets(midend_data *me)
                 }
 
                 me->presets[me->npresets] = preset;
-                me->preset_names[me->npresets] = name;
+                me->preset_names[me->npresets] = dupstr(name);
                 me->npresets++;
             }
         }
