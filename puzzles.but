@@ -94,6 +94,22 @@ menu}\q{Edit} menus instead.)
 
 \dd Resets the current game to its initial state. (This can be undone.)
 
+\dt \ii\e{Load}
+
+\dd Loads a saved game from a file on disk.
+
+\dt \ii\e{Save}
+
+\dd Saves the current state of your game to a file on disk.
+
+\lcont{
+
+The Load and Save operations should preserve your entire game
+history (so you can save, reload, and still Undo and Redo things you
+had done before saving).
+
+}
+
 \dt \ii\e{Undo} (\q{U}, Ctrl+\q{Z}, Ctrl+\q{_})
 
 \dd Undoes a single move. (You can undo moves back to the start of the

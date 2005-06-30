@@ -660,8 +660,15 @@ static void window_destroy(GtkWidget *widget, gpointer data)
     gtk_main_quit();
 }
 
-static void errmsg_button_clicked(GtkButton *button, gpointer data)
+static void msgbox_button_clicked(GtkButton *button, gpointer data)
 {
+    GtkWidget *window = GTK_WIDGET(data);
+    int v, *ip;
+
+    ip = (int *)gtk_object_get_data(GTK_OBJECT(window), "user-data");
+    v = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(button), "user-data"));
+    *ip = v;
+
     gtk_widget_destroy(GTK_WIDGET(data));
 }
 
@@ -680,9 +687,14 @@ static int win_key_press(GtkWidget *widget, GdkEventKey *event, gpointer data)
     return FALSE;
 }
 
-void message_box(GtkWidget *parent, char *title, char *msg, int centre)
+enum { MB_OK, MB_YESNO };
+
+int message_box(GtkWidget *parent, char *title, char *msg, int centre,
+		int type)
 {
-    GtkWidget *window, *hbox, *text, *ok;
+    GtkWidget *window, *hbox, *text, *button;
+    char *titles;
+    int i, def, cancel;
 
     window = gtk_dialog_new();
     text = gtk_label_new(msg);
@@ -695,28 +707,54 @@ void message_box(GtkWidget *parent, char *title, char *msg, int centre)
     gtk_widget_show(hbox);
     gtk_window_set_title(GTK_WINDOW(window), title);
     gtk_label_set_line_wrap(GTK_LABEL(text), TRUE);
-    ok = gtk_button_new_with_label("OK");
-    gtk_box_pack_end(GTK_BOX(GTK_DIALOG(window)->action_area),
-                     ok, FALSE, FALSE, 0);
-    gtk_widget_show(ok);
-    GTK_WIDGET_SET_FLAGS(ok, GTK_CAN_DEFAULT);
-    gtk_window_set_default(GTK_WINDOW(window), ok);
-    gtk_signal_connect(GTK_OBJECT(ok), "clicked",
-                       GTK_SIGNAL_FUNC(errmsg_button_clicked), window);
+
+    if (type == MB_OK) {
+	titles = "OK\0";
+	def = cancel = 0;
+    } else {
+	assert(type == MB_YESNO);
+	titles = "Yes\0No\0";
+	def = 0;
+	cancel = 1;
+    }
+    i = 0;
+    
+    while (*titles) {
+	button = gtk_button_new_with_label(titles);
+	gtk_box_pack_end(GTK_BOX(GTK_DIALOG(window)->action_area),
+			 button, FALSE, FALSE, 0);
+	gtk_widget_show(button);
+	if (i == def) {
+	    GTK_WIDGET_SET_FLAGS(button, GTK_CAN_DEFAULT);
+	    gtk_window_set_default(GTK_WINDOW(window), button);
+	}
+	if (i == cancel) {
+	    gtk_signal_connect(GTK_OBJECT(window), "key_press_event",
+			       GTK_SIGNAL_FUNC(win_key_press), button);
+	}
+	gtk_signal_connect(GTK_OBJECT(button), "clicked",
+			   GTK_SIGNAL_FUNC(msgbox_button_clicked), window);
+	gtk_object_set_data(GTK_OBJECT(button), "user-data",
+			    GINT_TO_POINTER(i));
+	titles += strlen(titles)+1;
+	i++;
+    }
+    gtk_object_set_data(GTK_OBJECT(window), "user-data",
+			GINT_TO_POINTER(&i));
     gtk_signal_connect(GTK_OBJECT(window), "destroy",
                        GTK_SIGNAL_FUNC(window_destroy), NULL);
-    gtk_signal_connect(GTK_OBJECT(window), "key_press_event",
-		       GTK_SIGNAL_FUNC(win_key_press), ok);
     gtk_window_set_modal(GTK_WINDOW(window), TRUE);
     gtk_window_set_transient_for(GTK_WINDOW(window), GTK_WINDOW(parent));
     /* set_transient_window_pos(parent, window); */
     gtk_widget_show(window);
+    i = -1;
     gtk_main();
+    return (type == MB_YESNO ? i == 0 : TRUE);
 }
 
 void error_box(GtkWidget *parent, char *msg)
 {
-    message_box(parent, "Error", msg, FALSE);
+    message_box(parent, "Error", msg, FALSE, MB_OK);
 }
 
 static void config_ok_button_clicked(GtkButton *button, gpointer data)
@@ -1180,7 +1218,21 @@ static void menu_save_event(GtkMenuItem *menuitem, gpointer data)
     name = file_selector(fe, "Enter name of game file to save", TRUE);
 
     if (name) {
-        FILE *fp = fopen(name, "w");
+        FILE *fp;
+
+	if ((fp = fopen(name, "r")) != NULL) {
+	    char buf[256 + FILENAME_MAX];
+	    fclose(fp);
+	    /* file exists */
+
+	    sprintf(buf, "Are you sure you want to overwrite the"
+		    " file \"%.*s\"?",
+		    FILENAME_MAX, name);
+	    if (!message_box(fe->window, "Question", buf, TRUE, MB_YESNO))
+		return;
+	}
+
+	fp = fopen(name, "w");
         sfree(name);
 
         if (!fp) {
@@ -1285,7 +1337,7 @@ static void menu_about_event(GtkMenuItem *menuitem, gpointer data)
 	    "from Simon Tatham's Portable Puzzle Collection\n\n"
 	    "%.500s", thegame.name, ver);
 
-    message_box(fe->window, titlebuf, textbuf, TRUE);
+    message_box(fe->window, titlebuf, textbuf, TRUE, MB_OK);
 }
 
 static GtkWidget *add_menu_item_with_key(frontend *fe, GtkContainer *cont,
@@ -1414,19 +1466,17 @@ static frontend *new_window(char *game_id, char **error)
 	}
     }
 
-    if (getenv("PUZZLES_EXPERIMENTAL_SAVE") != NULL) {
-        add_menu_separator(GTK_CONTAINER(menu));
-        menuitem = gtk_menu_item_new_with_label("Load");
-        gtk_container_add(GTK_CONTAINER(menu), menuitem);
-        gtk_signal_connect(GTK_OBJECT(menuitem), "activate",
-                           GTK_SIGNAL_FUNC(menu_load_event), fe);
-        gtk_widget_show(menuitem);
-        menuitem = gtk_menu_item_new_with_label("Save");
-        gtk_container_add(GTK_CONTAINER(menu), menuitem);
-        gtk_signal_connect(GTK_OBJECT(menuitem), "activate",
-                           GTK_SIGNAL_FUNC(menu_save_event), fe);
-        gtk_widget_show(menuitem);
-    }
+    add_menu_separator(GTK_CONTAINER(menu));
+    menuitem = gtk_menu_item_new_with_label("Load");
+    gtk_container_add(GTK_CONTAINER(menu), menuitem);
+    gtk_signal_connect(GTK_OBJECT(menuitem), "activate",
+		       GTK_SIGNAL_FUNC(menu_load_event), fe);
+    gtk_widget_show(menuitem);
+    menuitem = gtk_menu_item_new_with_label("Save");
+    gtk_container_add(GTK_CONTAINER(menu), menuitem);
+    gtk_signal_connect(GTK_OBJECT(menuitem), "activate",
+		       GTK_SIGNAL_FUNC(menu_save_event), fe);
+    gtk_widget_show(menuitem);
     add_menu_separator(GTK_CONTAINER(menu));
     add_menu_item_with_key(fe, GTK_CONTAINER(menu), "Undo", 'u');
     add_menu_item_with_key(fe, GTK_CONTAINER(menu), "Redo", '\x12');

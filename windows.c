@@ -28,6 +28,8 @@
 #define IDM_HELPC     0x00B0
 #define IDM_GAMEHELP  0x00C0
 #define IDM_ABOUT     0x00D0
+#define IDM_SAVE      0x00E0
+#define IDM_LOAD      0x00F0
 #define IDM_PRESETS   0x0100
 
 #define HELP_FILE_NAME  "puzzles.hlp"
@@ -670,6 +672,9 @@ static frontend *new_window(HINSTANCE inst, char *game_id, char **error)
 	}
 
 	AppendMenu(menu, MF_SEPARATOR, 0, 0);
+	AppendMenu(menu, MF_ENABLED, IDM_LOAD, "Load");
+	AppendMenu(menu, MF_ENABLED, IDM_SAVE, "Save");
+	AppendMenu(menu, MF_SEPARATOR, 0, 0);
 	AppendMenu(menu, MF_ENABLED, IDM_UNDO, "Undo");
 	AppendMenu(menu, MF_ENABLED, IDM_REDO, "Redo");
 	if (thegame.can_format_as_text) {
@@ -1214,13 +1219,12 @@ static int get_config(frontend *fe, int which)
     return (fe->dlg_done == 2);
 }
 
-static void new_game_type(frontend *fe)
+static void new_game_size(frontend *fe)
 {
     RECT r, sr;
     HDC hdc;
     int x, y;
 
-    midend_new_game(fe->me);
     x = y = INT_MAX;
     midend_size(fe->me, &x, &y, FALSE);
 
@@ -1257,6 +1261,12 @@ static void new_game_type(frontend *fe)
     midend_redraw(fe->me);
 }
 
+static void new_game_type(frontend *fe)
+{
+    midend_new_game(fe->me);
+    new_game_size(fe);
+}
+
 static int is_alt_pressed(void)
 {
     BYTE keystate[256];
@@ -1270,17 +1280,34 @@ static int is_alt_pressed(void)
     return FALSE;
 }
 
+static void savefile_write(void *wctx, void *buf, int len)
+{
+    FILE *fp = (FILE *)wctx;
+    fwrite(buf, 1, len, fp);
+}
+
+static int savefile_read(void *wctx, void *buf, int len)
+{
+    FILE *fp = (FILE *)wctx;
+    int ret;
+
+    ret = fread(buf, 1, len, fp);
+    return (ret == len);
+}
+
 static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
 				WPARAM wParam, LPARAM lParam)
 {
     frontend *fe = (frontend *)GetWindowLong(hwnd, GWL_USERDATA);
+    int cmd;
 
     switch (message) {
       case WM_CLOSE:
 	DestroyWindow(hwnd);
 	return 0;
       case WM_COMMAND:
-	switch (wParam & ~0xF) {       /* low 4 bits reserved to Windows */
+	cmd = wParam & ~0xF;	       /* low 4 bits reserved to Windows */
+	switch (cmd) {
 	  case IDM_NEW:
 	    if (!midend_process_key(fe->me, 0, 0, 'n'))
 		PostQuitMessage(0);
@@ -1333,6 +1360,92 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
           case IDM_ABOUT:
 	    about(fe);
             break;
+	  case IDM_LOAD:
+	  case IDM_SAVE:
+	    {
+		OPENFILENAME of;
+		char filename[FILENAME_MAX];
+		int ret;
+
+		memset(&of, 0, sizeof(of));
+		of.hwndOwner = hwnd;
+		of.lpstrFilter = "All Files (*.*)\0*\0\0\0";
+		of.lpstrCustomFilter = NULL;
+		of.nFilterIndex = 1;
+		of.lpstrFile = filename;
+		filename[0] = '\0';
+		of.nMaxFile = lenof(filename);
+		of.lpstrFileTitle = NULL;
+		of.lpstrTitle = (cmd == IDM_SAVE ?
+				 "Enter name of game file to save" :
+				 "Enter name of saved game file to load");
+		of.Flags = 0;
+#ifdef OPENFILENAME_SIZE_VERSION_400
+		of.lStructSize = OPENFILENAME_SIZE_VERSION_400;
+#else
+		of.lStructSize = sizeof(of);
+#endif
+		of.lpstrInitialDir = NULL;
+
+		if (cmd == IDM_SAVE)
+		    ret = GetSaveFileName(&of);
+		else
+		    ret = GetOpenFileName(&of);
+
+		if (ret) {
+		    if (cmd == IDM_SAVE) {
+			FILE *fp;
+
+			if ((fp = fopen(filename, "r")) != NULL) {
+			    char buf[256 + FILENAME_MAX];
+			    fclose(fp);
+			    /* file exists */
+
+			    sprintf(buf, "Are you sure you want to overwrite"
+				    " the file \"%.*s\"?",
+				    FILENAME_MAX, filename);
+			    if (MessageBox(hwnd, buf, "Question",
+					   MB_YESNO | MB_ICONQUESTION)
+				!= IDYES)
+				break;
+			}
+
+			fp = fopen(filename, "w");
+
+			if (!fp) {
+			    MessageBox(hwnd, "Unable to open save file",
+				       "Error", MB_ICONERROR | MB_OK);
+			    break;
+			}
+
+			midend_serialise(fe->me, savefile_write, fp);
+
+			fclose(fp);
+		    } else {
+			FILE *fp = fopen(filename, "r");
+			char *err;
+
+			if (!fp) {
+			    MessageBox(hwnd, "Unable to open saved game file",
+				       "Error", MB_ICONERROR | MB_OK);
+			    break;
+			}
+
+			err = midend_deserialise(fe->me, savefile_read, fp);
+
+			fclose(fp);
+
+			if (err) {
+			    MessageBox(hwnd, err, "Error", MB_ICONERROR|MB_OK);
+			    break;
+			}
+
+			new_game_size(fe);
+		    }
+		}
+	    }
+
+	    break;
           case IDM_HELPC:
             assert(fe->help_path);
             WinHelp(hwnd, fe->help_path,

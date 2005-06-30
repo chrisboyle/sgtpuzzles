@@ -138,6 +138,21 @@ void get_random_seed(void **randseed, int *randseedsize)
     *randseedsize = sizeof(time_t);
 }
 
+static void savefile_write(void *wctx, void *buf, int len)
+{
+    FILE *fp = (FILE *)wctx;
+    fwrite(buf, 1, len, fp);
+}
+
+static int savefile_read(void *wctx, void *buf, int len)
+{
+    FILE *fp = (FILE *)wctx;
+    int ret;
+
+    ret = fread(buf, 1, len, fp);
+    return (ret == len);
+}
+
 /* ----------------------------------------------------------------------
  * Tiny extension to NSMenuItem which carries a payload of a `void
  * *', allowing several menu items to invoke the same message but
@@ -384,6 +399,7 @@ struct frontend {
 - (void)activateTimer;
 - (void)deactivateTimer;
 - (void)setStatusLine:(char *)text;
+- (void)resizeForNewGameParams;
 @end
 
 @implementation MyImageView
@@ -659,6 +675,17 @@ struct frontend {
     last_time = now;
 }
 
+- (void)showError:(char *)message
+{
+    NSAlert *alert;
+
+    alert = [[[NSAlert alloc] init] autorelease];
+    [alert addButtonWithTitle:@"Bah"];
+    [alert setInformativeText:[NSString stringWithCString:message]];
+    [alert beginSheetModalForWindow:self modalDelegate:nil
+     didEndSelector:nil contextInfo:nil];
+}
+
 - (void)newGame:(id)sender
 {
     [self processButton:'n' x:-1 y:-1];
@@ -666,6 +693,54 @@ struct frontend {
 - (void)restartGame:(id)sender
 {
     midend_restart_game(me);
+}
+- (void)saveGame:(id)sender
+{
+    NSSavePanel *sp = [NSSavePanel savePanel];
+
+    if ([sp runModal] == NSFileHandlingPanelOKButton) {
+	const char *name = [[sp filename] cString];
+
+        FILE *fp = fopen(name, "w");
+
+        if (!fp) {
+            [self showError:"Unable to open save file"];
+            return;
+        }
+
+        midend_serialise(me, savefile_write, fp);
+
+        fclose(fp);
+    }
+}
+- (void)loadSavedGame:(id)sender
+{
+    NSOpenPanel *op = [NSOpenPanel openPanel];
+
+    [op setAllowsMultipleSelection:NO];
+
+    if ([op runModalForTypes:nil] == NSOKButton) {
+	const char *name = [[[op filenames] objectAtIndex:0] cString];
+	char *err;
+
+        FILE *fp = fopen(name, "r");
+
+        if (!fp) {
+            [self showError:"Unable to open saved game file"];
+            return;
+        }
+
+        err = midend_deserialise(me, savefile_read, fp);
+
+        fclose(fp);
+
+        if (err) {
+            [self showError:err];
+            return;
+        }
+
+	[self resizeForNewGameParams];
+    }
 }
 - (void)undoMove:(id)sender
 {
@@ -693,17 +768,11 @@ struct frontend {
 - (void)solveGame:(id)sender
 {
     char *msg;
-    NSAlert *alert;
 
     msg = midend_solve(me);
 
-    if (msg) {
-	alert = [[[NSAlert alloc] init] autorelease];
-	[alert addButtonWithTitle:@"Bah"];
-	[alert setInformativeText:[NSString stringWithCString:msg]];
-	[alert beginSheetModalForWindow:self modalDelegate:nil
-	 didEndSelector:nil contextInfo:nil];
-    }
+    if (msg)
+	[self showError:msg];
 }
 
 - (BOOL)validateMenuItem:(NSMenuItem *)item
@@ -1421,6 +1490,8 @@ int main(int argc, char **argv)
     [NSApp setAppleMenu: menu];
 
     menu = newsubmenu([NSApp mainMenu], "File");
+    item = newitem(menu, "Open", "o", NULL, @selector(loadSavedGame:));
+    item = newitem(menu, "Save As", "s", NULL, @selector(saveGame:));
     item = newitem(menu, "New Game", "n", NULL, @selector(newGame:));
     item = newitem(menu, "Restart Game", "r", NULL, @selector(restartGame:));
     item = newitem(menu, "Specific Game", "", NULL, @selector(specificGame:));
