@@ -883,13 +883,11 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 	coords[9] = COORD(state->params.h) + HIGHLIGHT_WIDTH - 1 - TILE_GAP;
 	coords[6] = coords[8] + TILE_SIZE;
 	coords[7] = coords[9] - TILE_SIZE;
-	draw_polygon(fe, coords, 5, TRUE, COL_HIGHLIGHT);
-	draw_polygon(fe, coords, 5, FALSE, COL_HIGHLIGHT);
+	draw_polygon(fe, coords, 5, COL_HIGHLIGHT, COL_HIGHLIGHT);
 
 	coords[1] = COORD(0) - HIGHLIGHT_WIDTH;
 	coords[0] = COORD(0) - HIGHLIGHT_WIDTH;
-	draw_polygon(fe, coords, 5, TRUE, COL_LOWLIGHT);
-	draw_polygon(fe, coords, 5, FALSE, COL_LOWLIGHT);
+	draw_polygon(fe, coords, 5, COL_LOWLIGHT, COL_LOWLIGHT);
 
 	ds->started = 1;
     }

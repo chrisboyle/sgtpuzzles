@@ -2751,13 +2751,12 @@ static void draw_tile(frontend *fe, game_drawstate *ds,
 	    coords[3] = y;
 	    coords[4] = x;
 	    coords[5] = y + TILE_SIZE - 1;
-	    draw_polygon(fe, coords, 3, TRUE, COL_LOWLIGHT ^ hl);
-	    draw_polygon(fe, coords, 3, FALSE, COL_LOWLIGHT ^ hl);
+	    draw_polygon(fe, coords, 3, COL_LOWLIGHT ^ hl, COL_LOWLIGHT ^ hl);
 
 	    coords[0] = x;
 	    coords[1] = y;
-	    draw_polygon(fe, coords, 3, TRUE, COL_HIGHLIGHT ^ hl);
-	    draw_polygon(fe, coords, 3, FALSE, COL_HIGHLIGHT ^ hl);
+	    draw_polygon(fe, coords, 3, COL_HIGHLIGHT ^ hl,
+			 COL_HIGHLIGHT ^ hl);
 
 	    draw_rect(fe, x + HIGHLIGHT_WIDTH, y + HIGHLIGHT_WIDTH,
 		      TILE_SIZE - 2*HIGHLIGHT_WIDTH, TILE_SIZE - 2*HIGHLIGHT_WIDTH,
@@ -2778,14 +2777,12 @@ static void draw_tile(frontend *fe, game_drawstate *ds,
 	    SETCOORD(3, 0.25, 0.8);
 	    SETCOORD(4, 0.55, 0.7);
 	    SETCOORD(5, 0.55, 0.35);
-	    draw_polygon(fe, coords, 6, TRUE, COL_FLAGBASE);
-	    draw_polygon(fe, coords, 6, FALSE, COL_FLAGBASE);
+	    draw_polygon(fe, coords, 6, COL_FLAGBASE, COL_FLAGBASE);
 
 	    SETCOORD(0, 0.6, 0.2);
 	    SETCOORD(1, 0.6, 0.5);
 	    SETCOORD(2, 0.2, 0.35);
-	    draw_polygon(fe, coords, 3, TRUE, COL_FLAG);
-	    draw_polygon(fe, coords, 3, FALSE, COL_FLAG);
+	    draw_polygon(fe, coords, 3, COL_FLAG, COL_FLAG);
 #undef SETCOORD
 
 	} else if (v == -3) {
@@ -2863,8 +2860,7 @@ static void draw_tile(frontend *fe, game_drawstate *ds,
 		    xdy = -tdy;
 		}
 
-		draw_polygon(fe, coords, 5*4, TRUE, COL_MINE);
-		draw_polygon(fe, coords, 5*4, FALSE, COL_MINE);
+		draw_polygon(fe, coords, 5*4, COL_MINE, COL_MINE);
 
 		draw_rect(fe, cx-r/3, cy-r/3, r/3, r/4, COL_HIGHLIGHT);
 	    }
@@ -2929,13 +2925,11 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
         coords[9] = COORD(state->h) + OUTER_HIGHLIGHT_WIDTH - 1;
         coords[6] = coords[8] + TILE_SIZE;
         coords[7] = coords[9] - TILE_SIZE;
-        draw_polygon(fe, coords, 5, TRUE, COL_HIGHLIGHT);
-        draw_polygon(fe, coords, 5, FALSE, COL_HIGHLIGHT);
+        draw_polygon(fe, coords, 5, COL_HIGHLIGHT, COL_HIGHLIGHT);
 
         coords[1] = COORD(0) - OUTER_HIGHLIGHT_WIDTH;
         coords[0] = COORD(0) - OUTER_HIGHLIGHT_WIDTH;
-        draw_polygon(fe, coords, 5, TRUE, COL_LOWLIGHT);
-        draw_polygon(fe, coords, 5, FALSE, COL_LOWLIGHT);
+        draw_polygon(fe, coords, 5, COL_LOWLIGHT, COL_LOWLIGHT);
 
         ds->started = TRUE;
     }
@@ -3091,7 +3085,7 @@ void draw_text(frontend *fe, int x, int y, int fonttype, int fontsize,
 void draw_rect(frontend *fe, int x, int y, int w, int h, int colour) {}
 void draw_line(frontend *fe, int x1, int y1, int x2, int y2, int colour) {}
 void draw_polygon(frontend *fe, int *coords, int npoints,
-                  int fill, int colour) {}
+                  int fillcolour, int outlinecolour) {}
 void clip(frontend *fe, int x, int y, int w, int h) {}
 void unclip(frontend *fe) {}
 void start_draw(frontend *fe) {}

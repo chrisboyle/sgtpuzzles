@@ -1215,8 +1215,6 @@ void draw_text(frontend *fe, int x, int y, int fonttype, int fontsize,
                int align, int colour, char *text) {}
 void draw_rect(frontend *fe, int x, int y, int w, int h, int colour) {}
 void draw_line(frontend *fe, int x1, int y1, int x2, int y2, int colour) {}
-void draw_polygon(frontend *fe, int *coords, int npoints,
-                  int fill, int colour) {}
 void clip(frontend *fe, int x, int y, int w, int h) {}
 void unclip(frontend *fe) {}
 void start_draw(frontend *fe) {}

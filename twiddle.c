@@ -880,29 +880,29 @@ static void draw_tile(frontend *fe, game_drawstate *ds, game_state *state,
     coords[2] = x + TILE_SIZE - 1;
     coords[3] = y;
     rotate(coords+2, rot);
-    draw_polygon(fe, coords, 3, TRUE, rot ? rot->rc : COL_LOWLIGHT);
-    draw_polygon(fe, coords, 3, FALSE, rot ? rot->rc : COL_LOWLIGHT);
+    draw_polygon(fe, coords, 3, rot ? rot->rc : COL_LOWLIGHT,
+		 rot ? rot->rc : COL_LOWLIGHT);
 
     /* Bottom side. */
     coords[2] = x;
     coords[3] = y + TILE_SIZE - 1;
     rotate(coords+2, rot);
-    draw_polygon(fe, coords, 3, TRUE, rot ? rot->bc : COL_LOWLIGHT);
-    draw_polygon(fe, coords, 3, FALSE, rot ? rot->bc : COL_LOWLIGHT);
+    draw_polygon(fe, coords, 3, rot ? rot->bc : COL_LOWLIGHT,
+		 rot ? rot->bc : COL_LOWLIGHT);
 
     /* Left side. */
     coords[0] = x;
     coords[1] = y;
     rotate(coords+0, rot);
-    draw_polygon(fe, coords, 3, TRUE, rot ? rot->lc : COL_HIGHLIGHT);
-    draw_polygon(fe, coords, 3, FALSE, rot ? rot->lc : COL_HIGHLIGHT);
+    draw_polygon(fe, coords, 3, rot ? rot->lc : COL_HIGHLIGHT,
+		 rot ? rot->lc : COL_HIGHLIGHT);
 
     /* Top side. */
     coords[2] = x + TILE_SIZE - 1;
     coords[3] = y;
     rotate(coords+2, rot);
-    draw_polygon(fe, coords, 3, TRUE, rot ? rot->tc : COL_HIGHLIGHT);
-    draw_polygon(fe, coords, 3, FALSE, rot ? rot->tc : COL_HIGHLIGHT);
+    draw_polygon(fe, coords, 3, rot ? rot->tc : COL_HIGHLIGHT,
+		 rot ? rot->tc : COL_HIGHLIGHT);
 
     /*
      * Now the main blank area in the centre of the tile.
@@ -920,8 +920,7 @@ static void draw_tile(frontend *fe, game_drawstate *ds, game_state *state,
 	coords[6] = x + TILE_SIZE - 1 - HIGHLIGHT_WIDTH;
 	coords[7] = y + HIGHLIGHT_WIDTH;
 	rotate(coords+6, rot);
-	draw_polygon(fe, coords, 4, TRUE, flash_colour);
-	draw_polygon(fe, coords, 4, FALSE, flash_colour);
+	draw_polygon(fe, coords, 4, flash_colour, flash_colour);
     } else {
 	draw_rect(fe, x + HIGHLIGHT_WIDTH, y + HIGHLIGHT_WIDTH,
 		  TILE_SIZE - 2*HIGHLIGHT_WIDTH, TILE_SIZE - 2*HIGHLIGHT_WIDTH,
@@ -967,8 +966,7 @@ static void draw_tile(frontend *fe, game_drawstate *ds, game_state *state,
 	coords[4] = cx - displ * ydx;
 	coords[5] = cy - displ * ydy;
 	rotate(coords+4, rot);
-	draw_polygon(fe, coords, 3, TRUE, COL_LOWLIGHT_GENTLE);
-	draw_polygon(fe, coords, 3, FALSE, COL_LOWLIGHT_GENTLE);
+	draw_polygon(fe, coords, 3, COL_LOWLIGHT_GENTLE, COL_LOWLIGHT_GENTLE);
     }
 
     coords[0] = x + TILE_SIZE/2;
@@ -1082,13 +1080,11 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
         coords[9] = COORD(state->h) + HIGHLIGHT_WIDTH - 1;
         coords[6] = coords[8] + TILE_SIZE;
         coords[7] = coords[9] - TILE_SIZE;
-        draw_polygon(fe, coords, 5, TRUE, COL_HIGHLIGHT);
-        draw_polygon(fe, coords, 5, FALSE, COL_HIGHLIGHT);
+        draw_polygon(fe, coords, 5, COL_HIGHLIGHT, COL_HIGHLIGHT);
 
         coords[1] = COORD(0) - HIGHLIGHT_WIDTH;
         coords[0] = COORD(0) - HIGHLIGHT_WIDTH;
-        draw_polygon(fe, coords, 5, TRUE, COL_LOWLIGHT);
-        draw_polygon(fe, coords, 5, FALSE, COL_LOWLIGHT);
+        draw_polygon(fe, coords, 5, COL_LOWLIGHT, COL_LOWLIGHT);
 
         ds->started = TRUE;
     }

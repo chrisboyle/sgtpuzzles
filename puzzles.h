@@ -136,9 +136,9 @@ void draw_text(frontend *fe, int x, int y, int fonttype, int fontsize,
 void draw_rect(frontend *fe, int x, int y, int w, int h, int colour);
 void draw_line(frontend *fe, int x1, int y1, int x2, int y2, int colour);
 void draw_polygon(frontend *fe, int *coords, int npoints,
-                  int fill, int colour);
+                  int fillcolour, int outlinecolour);
 void draw_circle(frontend *fe, int cx, int cy, int radius,
-                 int fill, int colour);
+                 int fillcolour, int outlinecolour);
 void clip(frontend *fe, int x, int y, int w, int h);
 void unclip(frontend *fe);
 void start_draw(frontend *fe);

@@ -1436,8 +1436,7 @@ static void draw_tile(frontend *fe, game_drawstate *ds, game_state *state,
             points[i+1] = by+(int)(cy+ey);
         }
 
-        draw_polygon(fe, points, 4, TRUE, col);
-        draw_polygon(fe, points, 4, FALSE, COL_WIRE);
+        draw_polygon(fe, points, 4, col, COL_WIRE);
     }
 
     /*
@@ -1533,8 +1532,7 @@ static void draw_arrow(frontend *fe, game_drawstate *ds,
     POINT(5, 3 * TILE_SIZE / 8, TILE_SIZE / 2);   /* left concave */
     POINT(6,     TILE_SIZE / 4, TILE_SIZE / 2);   /* left corner */
 
-    draw_polygon(fe, coords, 7, TRUE, COL_LOWLIGHT);
-    draw_polygon(fe, coords, 7, FALSE, COL_TEXT);
+    draw_polygon(fe, coords, 7, COL_LOWLIGHT, COL_TEXT);
 }
 
 static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,

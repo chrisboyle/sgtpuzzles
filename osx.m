@@ -1216,15 +1216,12 @@ struct frontend {
  * Drawing routines called by the midend.
  */
 void draw_polygon(frontend *fe, int *coords, int npoints,
-                  int fill, int colour)
+                  int fillcolour, int outlinecolour)
 {
     NSBezierPath *path = [NSBezierPath bezierPath];
     int i;
 
     [[NSGraphicsContext currentContext] setShouldAntialias:YES];
-
-    assert(colour >= 0 && colour < fe->ncolours);
-    [fe->colours[colour] set];
 
     for (i = 0; i < npoints; i++) {
 	NSPoint p = { coords[i*2] + 0.5, coords[i*2+1] + 0.5 };
@@ -1236,30 +1233,37 @@ void draw_polygon(frontend *fe, int *coords, int npoints,
 
     [path closePath];
 
-    if (fill)
+    if (fillcolour >= 0) {
+	assert(fillcolour >= 0 && fillcolour < fe->ncolours);
+	[fe->colours[fillcolour] set];
 	[path fill];
-    else
-	[path stroke];
+    }
+
+    assert(outlinecolour >= 0 && outlinecolour < fe->ncolours);
+    [fe->colours[outlinecolour] set];
+    [path stroke];
 }
 void draw_circle(frontend *fe, int cx, int cy, int radius,
-                 int fill, int colour)
+                 int fillcolour, int outlinecolour)
 {
     NSBezierPath *path = [NSBezierPath bezierPath];
 
     [[NSGraphicsContext currentContext] setShouldAntialias:YES];
-
-    assert(colour >= 0 && colour < fe->ncolours);
-    [fe->colours[colour] set];
 
     [path appendBezierPathWithArcWithCenter:NSMakePoint(cx + 0.5, cy + 0.5)
         radius:radius startAngle:0.0 endAngle:360.0];
 
     [path closePath];
 
-    if (fill)
+    if (fillcolour >= 0) {
+	assert(fillcolour >= 0 && fillcolour < fe->ncolours);
+	[fe->colours[fillcolour] set];
 	[path fill];
-    else
-	[path stroke];
+    }
+
+    assert(outlinecolour >= 0 && outlinecolour < fe->ncolours);
+    [fe->colours[outlinecolour] set];
+    [path stroke];
 }
 void draw_line(frontend *fe, int x1, int y1, int x2, int y2, int colour)
 {

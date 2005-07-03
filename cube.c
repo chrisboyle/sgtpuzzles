@@ -1568,9 +1568,9 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 			     + ds->oy);
         }
 
-        draw_polygon(fe, coords, state->squares[i].npoints, TRUE,
-                     state->squares[i].blue ? COL_BLUE : COL_BACKGROUND);
-        draw_polygon(fe, coords, state->squares[i].npoints, FALSE, COL_BORDER);
+        draw_polygon(fe, coords, state->squares[i].npoints,
+                     state->squares[i].blue ? COL_BLUE : COL_BACKGROUND,
+		     COL_BORDER);
     }
 
     /*
@@ -1650,9 +1650,9 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
                 continue;
         }
 
-        draw_polygon(fe, coords, poly->order, TRUE,
-                     state->facecolours[i] ? COL_BLUE : COL_BACKGROUND);
-        draw_polygon(fe, coords, poly->order, FALSE, COL_BORDER);
+        draw_polygon(fe, coords, poly->order,
+                     state->facecolours[i] ? COL_BLUE : COL_BACKGROUND,
+		     COL_BORDER);
     }
     sfree(poly);
 

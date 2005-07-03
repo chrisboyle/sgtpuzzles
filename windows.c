@@ -333,26 +333,28 @@ void draw_line(frontend *fe, int x1, int y1, int x2, int y2, int colour)
 }
 
 void draw_circle(frontend *fe, int cx, int cy, int radius,
-                 int fill, int colour)
+                 int fillcolour, int outlinecolour)
 {
-    if (fill) {
-	HBRUSH oldbrush = SelectObject(fe->hdc_bm, fe->brushes[colour]);
-	HPEN oldpen = SelectObject(fe->hdc_bm, fe->pens[colour]);
+    assert(outlinecolour >= 0);
+
+    if (fillcolour >= 0) {
+	HBRUSH oldbrush = SelectObject(fe->hdc_bm, fe->brushes[fillcolour]);
+	HPEN oldpen = SelectObject(fe->hdc_bm, fe->pens[outlinecolour]);
 	Ellipse(fe->hdc_bm, cx - radius, cy - radius,
 		cx + radius + 1, cy + radius + 1);
 	SelectObject(fe->hdc_bm, oldbrush);
 	SelectObject(fe->hdc_bm, oldpen);
     } else {
-	HPEN oldpen = SelectObject(fe->hdc_bm, fe->pens[colour]);
-        Arc(fe->hdc_bm, cx - radius, cy - radius,
-            cx + radius + 1, cy + radius + 1,
-            cx - radius, cy, cx - radius, cy);
+	HPEN oldpen = SelectObject(fe->hdc_bm, fe->pens[outlinecolour]);
+	Arc(fe->hdc_bm, cx - radius, cy - radius,
+	    cx + radius + 1, cy + radius + 1,
+	    cx - radius, cy, cx - radius, cy);
 	SelectObject(fe->hdc_bm, oldpen);
     }
 }
 
 void draw_polygon(frontend *fe, int *coords, int npoints,
-                  int fill, int colour)
+                  int fillcolour, int outlinecolour)
 {
     POINT *pts = snewn(npoints+1, POINT);
     int i;
@@ -363,14 +365,16 @@ void draw_polygon(frontend *fe, int *coords, int npoints,
 	pts[i].y = coords[j*2+1];
     }
 
-    if (fill) {
-	HBRUSH oldbrush = SelectObject(fe->hdc_bm, fe->brushes[colour]);
-	HPEN oldpen = SelectObject(fe->hdc_bm, fe->pens[colour]);
+    assert(outlinecolour >= 0);
+
+    if (fillcolour >= 0) {
+	HBRUSH oldbrush = SelectObject(fe->hdc_bm, fe->brushes[fillcolour]);
+	HPEN oldpen = SelectObject(fe->hdc_bm, fe->pens[outlinecolour]);
 	Polygon(fe->hdc_bm, pts, npoints);
 	SelectObject(fe->hdc_bm, oldbrush);
 	SelectObject(fe->hdc_bm, oldpen);
     } else {
-	HPEN oldpen = SelectObject(fe->hdc_bm, fe->pens[colour]);
+	HPEN oldpen = SelectObject(fe->hdc_bm, fe->pens[outlinecolour]);
 	Polyline(fe->hdc_bm, pts, npoints+1);
 	SelectObject(fe->hdc_bm, oldpen);
     }

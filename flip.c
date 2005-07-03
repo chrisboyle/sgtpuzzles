@@ -1059,8 +1059,7 @@ static void draw_tile(frontend *fe, game_drawstate *ds,
 	if (animtime < 0.5)
 	    colour = COL_WRONG + COL_RIGHT - colour;
 
-	draw_polygon(fe, coords, 4, TRUE, colour);
-	draw_polygon(fe, coords, 4, FALSE, COL_GRID);
+	draw_polygon(fe, coords, 4, colour, COL_GRID);
     }
 
     /*

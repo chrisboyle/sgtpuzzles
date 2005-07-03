@@ -2405,8 +2405,7 @@ static void draw_tile(frontend *fe, game_state *state, game_drawstate *ds,
             points[i+1] = by+(int)(cy+ty);
         }
 
-        draw_polygon(fe, points, 4, TRUE, col);
-        draw_polygon(fe, points, 4, FALSE, COL_WIRE);
+        draw_polygon(fe, points, 4, col, COL_WIRE);
     }
 
     /*

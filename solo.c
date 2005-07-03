@@ -2215,7 +2215,7 @@ static void draw_number(frontend *fe, game_drawstate *ds, game_state *state,
         coords[3] = cy;
         coords[4] = cx;
         coords[5] = cy+ch/2;
-        draw_polygon(fe, coords, 3, TRUE, COL_HIGHLIGHT);
+        draw_polygon(fe, coords, 3, COL_HIGHLIGHT, COL_HIGHLIGHT);
     }
 
     /* new number needs drawing? */
@@ -2438,7 +2438,7 @@ void draw_text(frontend *fe, int x, int y, int fonttype, int fontsize,
 void draw_rect(frontend *fe, int x, int y, int w, int h, int colour) {}
 void draw_line(frontend *fe, int x1, int y1, int x2, int y2, int colour) {}
 void draw_polygon(frontend *fe, int *coords, int npoints,
-                  int fill, int colour) {}
+                  int fillcolour, int outlinecolour) {}
 void clip(frontend *fe, int x, int y, int w, int h) {}
 void unclip(frontend *fe) {}
 void start_draw(frontend *fe) {}

@@ -348,7 +348,7 @@ void draw_line(frontend *fe, int x1, int y1, int x2, int y2, int colour)
 }
 
 void draw_polygon(frontend *fe, int *coords, int npoints,
-                  int fill, int colour)
+                  int fillcolour, int outlinecolour)
 {
     GdkPoint *points = snewn(npoints, GdkPoint);
     int i;
@@ -358,19 +358,32 @@ void draw_polygon(frontend *fe, int *coords, int npoints,
         points[i].y = coords[i*2+1];
     }
 
-    gdk_gc_set_foreground(fe->gc, &fe->colours[colour]);
-    gdk_draw_polygon(fe->pixmap, fe->gc, fill, points, npoints);
+    if (fillcolour >= 0) {
+	gdk_gc_set_foreground(fe->gc, &fe->colours[fillcolour]);
+	gdk_draw_polygon(fe->pixmap, fe->gc, TRUE, points, npoints);
+    }
+    assert(outlinecolour >= 0);
+    gdk_gc_set_foreground(fe->gc, &fe->colours[outlinecolour]);
+    gdk_draw_polygon(fe->pixmap, fe->gc, FALSE, points, npoints);
 
     sfree(points);
 }
 
 void draw_circle(frontend *fe, int cx, int cy, int radius,
-                 int fill, int colour)
+                 int fillcolour, int outlinecolour)
 {
-    gdk_gc_set_foreground(fe->gc, &fe->colours[colour]);
-    gdk_draw_arc(fe->pixmap, fe->gc, fill,
-                 cx - radius, cy - radius,
-                 2 * radius, 2 * radius, 0, 360 * 64);
+    if (fillcolour >= 0) {
+	gdk_gc_set_foreground(fe->gc, &fe->colours[fillcolour]);
+	gdk_draw_arc(fe->pixmap, fe->gc, TRUE,
+		     cx - radius, cy - radius,
+		     2 * radius, 2 * radius, 0, 360 * 64);
+    }
+
+    assert(outlinecolour >= 0);
+    gdk_gc_set_foreground(fe->gc, &fe->colours[outlinecolour]);
+    gdk_draw_arc(fe->pixmap, fe->gc, FALSE,
+		 cx - radius, cy - radius,
+		 2 * radius, 2 * radius, 0, 360 * 64);
 }
 
 struct blitter {

@@ -778,13 +778,11 @@ static void draw_tile(frontend *fe, game_drawstate *ds,
         coords[3] = y;
         coords[4] = x;
         coords[5] = y + TILE_SIZE - 1;
-        draw_polygon(fe, coords, 3, TRUE, COL_LOWLIGHT);
-        draw_polygon(fe, coords, 3, FALSE, COL_LOWLIGHT);
+        draw_polygon(fe, coords, 3, COL_LOWLIGHT, COL_LOWLIGHT);
 
         coords[0] = x;
         coords[1] = y;
-        draw_polygon(fe, coords, 3, TRUE, COL_HIGHLIGHT);
-        draw_polygon(fe, coords, 3, FALSE, COL_HIGHLIGHT);
+        draw_polygon(fe, coords, 3, COL_HIGHLIGHT, COL_HIGHLIGHT);
 
         draw_rect(fe, x + HIGHLIGHT_WIDTH, y + HIGHLIGHT_WIDTH,
                   TILE_SIZE - 2*HIGHLIGHT_WIDTH, TILE_SIZE - 2*HIGHLIGHT_WIDTH,
@@ -816,8 +814,7 @@ static void draw_arrow(frontend *fe, game_drawstate *ds,
     POINT(5, 3 * TILE_SIZE / 8, TILE_SIZE / 2);   /* left concave */
     POINT(6,     TILE_SIZE / 4, TILE_SIZE / 2);   /* left corner */
 
-    draw_polygon(fe, coords, 7, TRUE, COL_LOWLIGHT);
-    draw_polygon(fe, coords, 7, FALSE, COL_TEXT);
+    draw_polygon(fe, coords, 7, COL_LOWLIGHT, COL_TEXT);
 }
 
 static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
@@ -855,13 +852,11 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
         coords[9] = COORD(state->h) + HIGHLIGHT_WIDTH - 1;
         coords[6] = coords[8] + TILE_SIZE;
         coords[7] = coords[9] - TILE_SIZE;
-        draw_polygon(fe, coords, 5, TRUE, COL_HIGHLIGHT);
-        draw_polygon(fe, coords, 5, FALSE, COL_HIGHLIGHT);
+        draw_polygon(fe, coords, 5, COL_HIGHLIGHT, COL_HIGHLIGHT);
 
         coords[1] = COORD(0) - HIGHLIGHT_WIDTH;
         coords[0] = COORD(0) - HIGHLIGHT_WIDTH;
-        draw_polygon(fe, coords, 5, TRUE, COL_LOWLIGHT);
-        draw_polygon(fe, coords, 5, FALSE, COL_LOWLIGHT);
+        draw_polygon(fe, coords, 5, COL_LOWLIGHT, COL_LOWLIGHT);
 
         /*
          * Arrows for making moves.

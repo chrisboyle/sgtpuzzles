@@ -1021,8 +1021,8 @@ static void draw_peg(frontend *fe, game_drawstate *ds, int cx, int cy,
         draw_rect(fe, cx-CGAP, cy-CGAP, PEGSZ+CGAP*2, PEGSZ+CGAP*2,
                   COL_BACKGROUND);
     if (PEGRAD > 0) {
-        draw_circle(fe, cx+PEGRAD, cy+PEGRAD, PEGRAD, 1, COL_EMPTY + col);
-        draw_circle(fe, cx+PEGRAD, cy+PEGRAD, PEGRAD, 0, COL_EMPTY + col);
+        draw_circle(fe, cx+PEGRAD, cy+PEGRAD, PEGRAD,
+		    COL_EMPTY + col, COL_EMPTY + col);
     } else
         draw_rect(fe, cx, cy, PEGSZ, PEGSZ, COL_EMPTY + col);
     draw_update(fe, cx-CGAP, cy-CGAP, PEGSZ+CGAP*2, PEGSZ+CGAP*2);
@@ -1030,7 +1030,7 @@ static void draw_peg(frontend *fe, game_drawstate *ds, int cx, int cy,
 
 static void draw_cursor(frontend *fe, game_drawstate *ds, int x, int y)
 {
-    draw_circle(fe, x+PEGRAD, y+PEGRAD, PEGRAD+CGAP, 0, COL_CURSOR);
+    draw_circle(fe, x+PEGRAD, y+PEGRAD, PEGRAD+CGAP, -1, COL_CURSOR);
 
     draw_update(fe, x-CGAP, y-CGAP, PEGSZ+CGAP*2, PEGSZ+CGAP*2);
 }
@@ -1129,8 +1129,7 @@ static void hint_redraw(frontend *fe, game_drawstate *ds, int guess,
                 rowy += HINTOFF;
             }
             if (HINTRAD > 0) {
-                draw_circle(fe, rowx+HINTRAD, rowy+HINTRAD, HINTRAD, 1, col);
-                draw_circle(fe, rowx+HINTRAD, rowy+HINTRAD, HINTRAD, 0, col);
+                draw_circle(fe, rowx+HINTRAD, rowy+HINTRAD, HINTRAD, col, col);
             } else {
                 draw_rect(fe, rowx, rowy, HINTSZ, HINTSZ, col);
             }
