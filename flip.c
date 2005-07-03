@@ -20,6 +20,7 @@ enum {
     COL_GRID,
     COL_DIAG,
     COL_HINT,
+    COL_CURSOR,
     NCOLOURS
 };
 
@@ -857,13 +858,20 @@ static char *game_text_format(game_state *state)
     return NULL;
 }
 
+struct game_ui {
+    int cx, cy, cdraw;
+};
+
 static game_ui *new_ui(game_state *state)
 {
-    return NULL;
+    game_ui *ui = snew(game_ui);
+    ui->cx = ui->cy = ui->cdraw = 0;
+    return ui;
 }
 
 static void free_ui(game_ui *ui)
 {
+    sfree(ui);
 }
 
 static char *encode_ui(game_ui *ui)
@@ -890,17 +898,43 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
 			    int x, int y, int button)
 {
     int w = state->w, h = state->h /*, wh = w * h */;
-    char buf[80];
+    char buf[80], *nullret = NULL;
 
-    if (button == LEFT_BUTTON) {
-        int tx = FROMCOORD(x), ty = FROMCOORD(y);
+    if (button == LEFT_BUTTON || button == CURSOR_SELECT ||
+        button == ' ' || button == '\r' || button == '\n') {
+        int tx, ty;
+        if (button == LEFT_BUTTON) {
+            tx = FROMCOORD(x), ty = FROMCOORD(y);
+            ui->cdraw = 0;
+        } else {
+            tx = ui->cx; ty = ui->cy;
+            ui->cdraw = 1;
+        }
+        nullret = "";
+
         if (tx >= 0 && tx < w && ty >= 0 && ty < h) {
 	    sprintf(buf, "M%d,%d", tx, ty);
 	    return dupstr(buf);
         }
     }
+    else if (button == CURSOR_UP || button == CURSOR_DOWN ||
+	     button == CURSOR_RIGHT || button == CURSOR_LEFT) {
+        int dx = 0, dy = 0;
+        switch (button) {
+        case CURSOR_UP:         dy = -1; break;
+        case CURSOR_DOWN:       dy = 1; break;
+        case CURSOR_RIGHT:      dx = 1; break;
+        case CURSOR_LEFT:       dx = -1; break;
+        default: assert(!"shouldn't get here");
+        }
+        ui->cx += dx; ui->cy += dy;
+        ui->cx = min(max(ui->cx, 0), state->w);
+        ui->cy = min(max(ui->cy, 0), state->h);
+        ui->cdraw = 1;
+        nullret = "";
+    }
 
-    return NULL;
+    return nullret;
 }
 
 static game_state *execute_move(game_state *from, char *move)
@@ -1001,6 +1035,10 @@ static float *game_colours(frontend *fe, game_state *state, int *ncolours)
     ret[COL_HINT * 3 + 1] = 0.0F;
     ret[COL_HINT * 3 + 2] = 0.0F;
 
+    ret[COL_CURSOR * 3 + 0] = 0.8F;
+    ret[COL_CURSOR * 3 + 1] = 0.0F;
+    ret[COL_CURSOR * 3 + 2] = 0.0F;
+
     *ncolours = NCOLOURS;
     return ret;
 }
@@ -1033,7 +1071,7 @@ static void draw_tile(frontend *fe, game_drawstate *ds,
 {
     int w = ds->w, h = ds->h, wh = w * h;
     int bx = x * TILE_SIZE + BORDER, by = y * TILE_SIZE + BORDER;
-    int i, j;
+    int i, j, dcol = (tile & 4) ? COL_CURSOR : COL_DIAG;
 
     clip(fe, bx+1, by+1, TILE_SIZE-1, TILE_SIZE-1);
 
@@ -1074,12 +1112,12 @@ static void draw_tile(frontend *fe, game_drawstate *ds,
 		int cx = (bx + TILE_SIZE/2) + (2 * ox - 1) * td;
 		int cy = (by + TILE_SIZE/2) + (2 * oy - 1) * td;
 		if (ox == 0 && oy == 0)
-                    draw_rect(fe, cx, cy, 2*td+1, 2*td+1, COL_DIAG);
+                    draw_rect(fe, cx, cy, 2*td+1, 2*td+1, dcol);
                 else {
-                    draw_line(fe, cx, cy, cx+2*td, cy, COL_DIAG);
-                    draw_line(fe, cx, cy+2*td, cx+2*td, cy+2*td, COL_DIAG);
-                    draw_line(fe, cx, cy, cx, cy+2*td, COL_DIAG);
-                    draw_line(fe, cx+2*td, cy, cx+2*td, cy+2*td, COL_DIAG);
+                    draw_line(fe, cx, cy, cx+2*td, cy, dcol);
+                    draw_line(fe, cx, cy+2*td, cx+2*td, cy+2*td, dcol);
+                    draw_line(fe, cx, cy, cx, cy+2*td, dcol);
+                    draw_line(fe, cx+2*td, cy, cx+2*td, cy+2*td, dcol);
                 }
 	    }
 
@@ -1158,6 +1196,8 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 
 	if (!state->hints_active)
 	    v &= ~2;
+        if (ui->cdraw && ui->cx == x && ui->cy == y)
+            v |= 4;
 
 	if (oldstate && state->grid[i] != oldstate->grid[i])
 	    vv = 255;		       /* means `animated' */
