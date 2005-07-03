@@ -387,37 +387,38 @@ static int midend_really_process_key(midend_data *me, int x, int y, int button)
         me->ourgame->dup_game(me->states[me->statepos - 1].state);
     int special = FALSE, gotspecial = FALSE, ret = 1;
     float anim_time;
-
-    if (button == 'n' || button == 'N' || button == '\x0E') {
-	midend_stop_anim(me);
-	midend_new_game(me);
-        midend_redraw(me);
-	goto done;		       /* never animate */
-    } else if (button == 'u' || button == 'u' ||
-               button == '\x1A' || button == '\x1F') {
-	midend_stop_anim(me);
-        special = special(me->states[me->statepos-1].movetype);
-        gotspecial = TRUE;
-	if (!midend_undo(me))
-	    goto done;
-    } else if (button == 'r' || button == 'R' ||
-               button == '\x12' || button == '\x19') {
-	midend_stop_anim(me);
-	if (!midend_redo(me))
-            goto done;
-    } else if (button == 'q' || button == 'Q' || button == '\x11') {
-	ret = 0;
-	goto done;
-    } else {
-        game_state *s;
-	char *movestr;
+    game_state *s;
+    char *movestr;
 	
-	movestr =
-            me->ourgame->interpret_move(me->states[me->statepos-1].state,
-					me->ui, me->drawstate, x, y, button);
-	if (!movestr)
-	    s = NULL;
-	else if (!*movestr)
+    movestr =
+	me->ourgame->interpret_move(me->states[me->statepos-1].state,
+				    me->ui, me->drawstate, x, y, button);
+
+    if (!movestr) {
+	if (button == 'n' || button == 'N' || button == '\x0E') {
+	    midend_stop_anim(me);
+	    midend_new_game(me);
+	    midend_redraw(me);
+	    goto done;		       /* never animate */
+	} else if (button == 'u' || button == 'u' ||
+		   button == '\x1A' || button == '\x1F') {
+	    midend_stop_anim(me);
+	    special = special(me->states[me->statepos-1].movetype);
+	    gotspecial = TRUE;
+	    if (!midend_undo(me))
+		goto done;
+	} else if (button == 'r' || button == 'R' ||
+		   button == '\x12' || button == '\x19') {
+	    midend_stop_anim(me);
+	    if (!midend_redo(me))
+		goto done;
+	} else if (button == 'q' || button == 'Q' || button == '\x11') {
+	    ret = 0;
+	    goto done;
+	} else
+	    goto done;
+    } else {
+	if (!*movestr)
 	    s = me->states[me->statepos-1].state;
 	else {
 	    s = me->ourgame->execute_move(me->states[me->statepos-1].state,
