@@ -1150,9 +1150,9 @@ default.
 \cfg{winhelp-topic}{games.pegs}
 
 A number of pegs are placed in holes on a board. You can remove a
-peg by jumping an adjacent peg over it to a vacant hole on the other
-side. Your aim is to remove all but one of the pegs initially
-present.
+peg by jumping an adjacent peg over it (horizontally or vertically)
+to a vacant hole on the other side. Your aim is to remove all but one
+of the pegs initially present.
 
 This game, best known as \q{Peg Solitaire}, is possibly one of the
 oldest puzzle games still commonly known.
