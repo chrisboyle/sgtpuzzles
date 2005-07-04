@@ -1110,7 +1110,7 @@ If you correctly position all the pegs the solution will be displayed
 below; if you run out of guesses (or select \q{Solve...}) the solution
 will also be revealed.
 
-\H{guess-parameters} \I{parameters, for guess}Guess parameters
+\H{guess-parameters} \I{parameters, for Guess}Guess parameters
 
 These parameters are available from the \q{Custom...} option on the
 \q{Type} menu. The default game matches the parameters for the 
@@ -1143,6 +1143,52 @@ that, use one extra colour.
 \dd Allows the solution (and the guesses) to contain colours more than once;
 this increases the search space (making things harder), and is turned on by
 default.
+
+
+\C{pegs} \i{Pegs}
+
+\cfg{winhelp-topic}{games.pegs}
+
+A number of pegs are placed in holes on a board. You can remove a
+peg by jumping an adjacent peg over it to a vacant hole on the other
+side. Your aim is to remove all but one of the pegs initially
+present.
+
+This game, best known as \q{Peg Solitaire}, is possibly one of the
+oldest puzzle games still commonly known.
+
+\H{pegs-controls} \i{Pegs controls}
+
+\IM{Pegs controls} controls, for Pegs
+
+To move a peg, drag it with the mouse from its current position to
+its final position. If the final position is exactly two holes away
+from the initial position, is currently unoccupied by a peg, and
+there is a peg in the intervening square, the move will be permitted
+and the intervening peg will be removed.
+
+Vacant spaces which you can move a peg into are marked with holes. A
+space with no peg and no hole is not available for moving at all: it
+is an obstacle which you must work around.
+
+
+\H{pegs-parameters} \I{parameters, for Pegs}Pegs parameters
+
+These parameters are available from the \q{Custom...} option on the
+\q{Type} menu.
+
+\dt \e{Width}, \e{Height}
+
+\dd Size of grid in holes.
+
+\dt \e{Board type}
+
+\dd Controls whether you are given a board of a standard shape or a
+randomly generated shape. The two standard shapes currently
+supported are \q{Cross} and \q{Octagon} (also commonly known as the
+English and European traditional board layouts respectively).
+Selecting \q{Random} will give you a different board shape every
+time (but always one that is known to have a solution).
 
 
 \A{licence} \I{MIT licence}\ii{Licence}
