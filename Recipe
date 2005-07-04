@@ -145,7 +145,8 @@ FORCE:
 !begin gtk
 install:
 	for i in cube net netslide fifteen sixteen twiddle \
-	         pattern rect solo mines samegame flip guess; do \
+	         pattern rect solo mines samegame flip guess \
+		 pegs; do \
 		$(INSTALL_PROGRAM) -m 755 $$i $(DESTDIR)$(gamesdir)/$$i; \
 	done
 !end
