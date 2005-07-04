@@ -1027,7 +1027,11 @@ change when you flip it.
 \IM{Flip controls} keys, for Flip
 \IM{Flip controls} shortcuts (keyboard), for Flip
 
-Left-click in a square to flip it and its associated squares.
+This game can be played with either the keyboard or the mouse.
+
+Left-click in a square to flip it and its associated squares, or
+use the cursor keys to choose a square and the space bar or Enter
+key to flip.
 
 If you use the \q{Solve} function on this game, it will mark some of
 the squares in red. If you click once in every square with a red
