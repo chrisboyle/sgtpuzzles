@@ -25,6 +25,7 @@ extern const game mines;
 extern const game net;
 extern const game netslide;
 extern const game pattern;
+extern const game pegs;
 extern const game rect;
 extern const game samegame;
 extern const game sixteen;
@@ -40,6 +41,7 @@ const game *gamelist[] = {
     &net,
     &netslide,
     &pattern,
+    &pegs,
     &rect,
     &samegame,
     &sixteen,
