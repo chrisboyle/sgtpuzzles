@@ -928,8 +928,8 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
         default: assert(!"shouldn't get here");
         }
         ui->cx += dx; ui->cy += dy;
-        ui->cx = min(max(ui->cx, 0), state->w);
-        ui->cy = min(max(ui->cy, 0), state->h);
+        ui->cx = min(max(ui->cx, 0), state->w - 1);
+        ui->cy = min(max(ui->cy, 0), state->h - 1);
         ui->cdraw = 1;
         nullret = "";
     }
