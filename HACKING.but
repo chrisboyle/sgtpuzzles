@@ -79,7 +79,7 @@ The per-game parameter encoding function \cw{encode_params()} is
 passed an argument \c{full}. This serves two purposes:
 
 \b You can suppress inclusion of parameters that only affect game
-generation, and thus would have no effect in a descriptive ID, in the
+generation, and thus would have no effect in a descriptive ID, if the
 ID displayed by \q{Game -> Specific} if \c{full} is \cw{FALSE}.
 
 \b You can ensure that a particular parameter entered as part of a
