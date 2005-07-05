@@ -685,26 +685,21 @@ static game_state *execute_move(game_state *from, char *move)
  * Drawing routines.
  */
 
-static void game_size(game_params *params, game_drawstate *ds,
-                      int *x, int *y, int expand)
+static void game_compute_size(game_params *params, int tilesize,
+			      int *x, int *y)
 {
-    int tsx, tsy, ts;
-    /*
-     * Each window dimension equals the tile size times two more
-     * than the grid dimension (the border is the same size as the
-     * tiles).
-     */
-    tsx = *x / (params->w + 2);
-    tsy = *y / (params->h + 2);
-    ts = min(tsx, tsy);
-
-    if (expand)
-        ds->tilesize = ts;
-    else
-        ds->tilesize = min(ts, PREFERRED_TILE_SIZE);
+    /* Ick: fake up `ds->tilesize' for macro expansion purposes */
+    struct { int tilesize; } ads, *ds = &ads;
+    ads.tilesize = tilesize;
 
     *x = TILE_SIZE * params->w + 2 * BORDER;
     *y = TILE_SIZE * params->h + 2 * BORDER;
+}
+
+static void game_set_size(game_drawstate *ds, game_params *params,
+			  int tilesize)
+{
+    ds->tilesize = tilesize;
 }
 
 static float *game_colours(frontend *fe, game_state *state, int *ncolours)
@@ -1063,7 +1058,7 @@ const struct game thegame = {
     game_changed_state,
     interpret_move,
     execute_move,
-    game_size,
+    PREFERRED_TILE_SIZE, game_compute_size, game_set_size,
     game_colours,
     game_new_drawstate,
     game_free_drawstate,

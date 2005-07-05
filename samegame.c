@@ -686,36 +686,19 @@ static game_state *execute_move(game_state *from, char *move)
  * Drawing routines.
  */
 
-static void game_size(game_params *params, game_drawstate *ds, int *x, int *y,
-                      int expand)
+static void game_set_size(game_drawstate *ds, game_params *params,
+			  int tilesize)
 {
-    double tsx, tsy, ts;
-
-    /*
-     * We could choose the tile gap dynamically as well if we
-     * wanted to; for example, at low tile sizes it might be
-     * sensible to leave it out completely. However, for the moment
-     * and for the sake of simplicity I'm just going to fix it at
-     * 2.
-     */
     ds->tilegap = 2;
+    ds->tileinner = tilesize - ds->tilegap;
+}
 
-    /*
-     * Each window dimension equals the tile size (inner plus gap)
-     * times the grid dimension, plus another tile size (border is
-     * half the width of a tile), minus one tile gap.
-     * 
-     * We must cast to unsigned before adding to *x and *y, since
-     * they might be INT_MAX!
-     */
-    tsx = ((double)*x + (double)ds->tilegap) / ((double)params->w + 1.0);
-    tsy = ((double)*y + (double)ds->tilegap) / ((double)params->h + 1.0);
-
-    ts = min(tsx, tsy);
-    if (expand)
-        ds->tileinner = (int)(ts+0.5) - ds->tilegap;
-    else
-        ds->tileinner = min((int)ts, PREFERRED_TILE_SIZE) - ds->tilegap;
+static void game_compute_size(game_params *params, int tilesize,
+			      int *x, int *y)
+{
+    /* Ick: fake up tile size variables for macro expansion purposes */
+    game_drawstate ads, *ds = &ads;
+    game_set_size(ds, params, tilesize);
 
     *x = TILE_SIZE * params->w + 2 * BORDER - TILE_GAP;
     *y = TILE_SIZE * params->h + 2 * BORDER - TILE_GAP;
@@ -1005,7 +988,7 @@ const struct game thegame = {
     game_changed_state,
     interpret_move,
     execute_move,
-    game_size,
+    PREFERRED_TILE_SIZE, game_compute_size, game_set_size,
     game_colours,
     game_new_drawstate,
     game_free_drawstate,

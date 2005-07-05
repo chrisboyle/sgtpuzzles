@@ -805,18 +805,18 @@ static game_state *execute_move(game_state *from, char *move)
 
 #define BORDER    0.5
 
-static void game_size(game_params *params, game_drawstate *ds,
-                      int *x, int *y, int expand)
+static void game_compute_size(game_params *params, int tilesize,
+			      int *x, int *y)
 {
-    double hmul, vmul_c, vmul_g, vmul, szx, szy;
-    int sz, colh, guessh;
+    double hmul, vmul_c, vmul_g, vmul;
+    int hintw = (params->npegs+1)/2;
 
     hmul = BORDER   * 2.0 +               /* border */
            1.0      * 2.0 +               /* vertical colour bar */
            1.0      * params->npegs +     /* guess pegs */
            PEG_GAP  * params->npegs +     /* guess gaps */
-           PEG_HINT * ds->hintw +         /* hint pegs */
-           PEG_GAP  * (ds->hintw - 1);    /* hint gaps */
+           PEG_HINT * hintw +             /* hint pegs */
+           PEG_GAP  * (hintw - 1);        /* hint gaps */
 
     vmul_c = BORDER  * 2.0 +                    /* border */
              1.0     * params->ncolours +       /* colour pegs */
@@ -828,13 +828,16 @@ static void game_size(game_params *params, game_drawstate *ds,
 
     vmul = max(vmul_c, vmul_g);
 
-    szx = *x / hmul;
-    szy = *y / vmul;
-    sz = max(min((int)szx, (int)szy), 1);
-    if (expand)
-        ds->pegsz = sz;
-    else
-        ds->pegsz = min(sz, PEG_PREFER_SZ);
+    *x = (int)ceil((double)tilesize * hmul);
+    *y = (int)ceil((double)tilesize * vmul);
+}
+
+static void game_set_size(game_drawstate *ds, game_params *params,
+			  int tilesize)
+{
+    int colh, guessh, x, y;
+
+    ds->pegsz = tilesize;
 
     ds->hintsz = (int)((double)ds->pegsz * PEG_HINT);
     ds->gapsz  = (int)((double)ds->pegsz * PEG_GAP);
@@ -843,25 +846,21 @@ static void game_size(game_params *params, game_drawstate *ds,
     ds->pegrad  = (ds->pegsz -1)/2; /* radius of peg to fit in pegsz (which is 2r+1) */
     ds->hintrad = (ds->hintsz-1)/2;
 
-    *x = (int)ceil((double)ds->pegsz * hmul);
-    *y = (int)ceil((double)ds->pegsz * vmul);
-    ds->w = *x; ds->h = *y;
-
     colh = ((ds->pegsz + ds->gapsz) * params->ncolours) - ds->gapsz;
     guessh = ((ds->pegsz + ds->gapsz) * params->nguesses);      /* guesses */
     guessh += ds->gapsz + ds->pegsz;                            /* solution */
 
+    game_compute_size(params, tilesize, &x, &y);
     ds->colx = ds->border;
-    ds->coly = (*y - colh) / 2;
+    ds->coly = (y - colh) / 2;
 
     ds->guessx = ds->solnx = ds->border + ds->pegsz * 2;     /* border + colours */
-    ds->guessy = (*y - guessh) / 2;
+    ds->guessy = (y - guessh) / 2;
     ds->solny = ds->guessy + ((ds->pegsz + ds->gapsz) * params->nguesses) + ds->gapsz;
 
-    if (ds->pegsz > 0) {
-        if (ds->blit_peg) blitter_free(ds->blit_peg);
-        ds->blit_peg = blitter_new(ds->pegsz, ds->pegsz);
-    }
+    assert(ds->pegsz > 0);
+    if (ds->blit_peg) blitter_free(ds->blit_peg);
+    ds->blit_peg = blitter_new(ds->pegsz, ds->pegsz);
 }
 
 static float *game_colours(frontend *fe, game_state *state, int *ncolours)
@@ -1296,7 +1295,7 @@ const struct game thegame = {
     game_changed_state,
     interpret_move,
     execute_move,
-    game_size,
+    PEG_PREFER_SZ, game_compute_size, game_set_size,
     game_colours,
     game_new_drawstate,
     game_free_drawstate,

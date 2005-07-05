@@ -152,6 +152,7 @@ static void game_changed_state(game_ui *ui, game_state *oldstate,
 }
 
 struct game_drawstate {
+    int tilesize;
     int FIXME;
 };
 
@@ -170,10 +171,16 @@ static game_state *execute_move(game_state *state, char *move)
  * Drawing routines.
  */
 
-static void game_size(game_params *params, game_drawstate *ds,
-                      int *x, int *y, int expand)
+static void game_compute_size(game_params *params, int tilesize,
+			      int *x, int *y)
 {
-    *x = *y = 200;                     /* FIXME */
+    *x = *y = 10 * tilesize;	       /* FIXME */
+}
+
+static void game_set_size(game_drawstate *ds, game_params *params,
+			  int tilesize)
+{
+    ds->tilesize = tilesize;
 }
 
 static float *game_colours(frontend *fe, game_state *state, int *ncolours)
@@ -190,6 +197,7 @@ static game_drawstate *game_new_drawstate(game_state *state)
 {
     struct game_drawstate *ds = snew(struct game_drawstate);
 
+    ds->tilesize = 0;
     ds->FIXME = 0;
 
     return ds;
@@ -210,7 +218,7 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
      * should start by drawing a big background-colour rectangle
      * covering the whole window.
      */
-    draw_rect(fe, 0, 0, 200, 200, COL_BACKGROUND);
+    draw_rect(fe, 0, 0, 10*ds->tilesize, 10*ds->tilesize, COL_BACKGROUND);
 }
 
 static float game_anim_length(game_state *oldstate, game_state *newstate,
@@ -263,7 +271,7 @@ const struct game thegame = {
     game_changed_state,
     interpret_move,
     execute_move,
-    game_size,
+    20 /* FIXME */, game_compute_size, game_set_size,
     game_colours,
     game_new_drawstate,
     game_free_drawstate,

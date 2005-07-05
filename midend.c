@@ -78,7 +78,7 @@ struct midend_data {
 
     int pressed_mouse_button;
 
-    int winwidth, winheight;
+    int tilesize, winwidth, winheight;
 };
 
 #define ensure(me) do { \
@@ -121,7 +121,7 @@ midend_data *midend_new(frontend *fe, const game *ourgame)
     me->laststatus = NULL;
     me->timing = FALSE;
     me->elapsed = 0.0F;
-    me->winwidth = me->winheight = 0;
+    me->tilesize = me->winwidth = me->winheight = 0;
 
     sfree(randseed);
 
@@ -169,11 +169,63 @@ void midend_free(midend_data *me)
     sfree(me);
 }
 
+static void midend_size_new_drawstate(midend_data *me)
+{
+    /*
+     * Don't even bother, if we haven't worked out our tile size
+     * anyway yet.
+     */
+    if (me->tilesize > 0) {
+	me->ourgame->compute_size(me->params, me->tilesize,
+				  &me->winwidth, &me->winheight);
+	me->ourgame->set_size(me->drawstate, me->params, me->tilesize);
+    }
+}
+
 void midend_size(midend_data *me, int *x, int *y, int expand)
 {
-    me->ourgame->size(me->params, me->drawstate, x, y, expand);
-    me->winwidth = *x;
-    me->winheight = *y;
+    int min, max;
+    int rx, ry;
+
+    /*
+     * Find the tile size that best fits within the given space. If
+     * `expand' is TRUE, we must actually find the _largest_ such
+     * tile size; otherwise, we bound above at the game's preferred
+     * tile size.
+     */
+    if (expand) {
+	max = 1;
+	do {
+	    max *= 2;
+	    me->ourgame->compute_size(me->params, max, &rx, &ry);
+	} while (rx <= *x && ry <= *y);
+    } else
+	max = me->ourgame->preferred_tilesize + 1;
+    min = 1;
+
+    /*
+     * Now binary-search between min and max. We're looking for a
+     * boundary rather than a value: the point at which tile sizes
+     * stop fitting within the given dimensions. Thus, we stop when
+     * max and min differ by exactly 1.
+     */
+    while (max - min > 1) {
+	int mid = (max + min) / 2;
+	me->ourgame->compute_size(me->params, mid, &rx, &ry);
+	if (rx <= *x && ry <= *y)
+	    min = mid;
+	else
+	    max = mid;
+    }
+
+    /*
+     * Now `min' is a valid size, and `max' isn't. So use `min'.
+     */
+
+    me->tilesize = min;
+    midend_size_new_drawstate(me);
+    *x = me->winwidth;
+    *y = me->winheight;
 }
 
 void midend_set_params(midend_data *me, game_params *params)
@@ -190,12 +242,6 @@ static void midend_set_timer(midend_data *me)
 	activate_timer(me->frontend);
     else
 	deactivate_timer(me->frontend);
-}
-
-static void midend_size_new_drawstate(midend_data *me)
-{
-    me->ourgame->size(me->params, me->drawstate, &me->winwidth, &me->winheight,
-                      TRUE);
 }
 
 void midend_force_redraw(midend_data *me)

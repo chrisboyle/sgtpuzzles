@@ -2092,20 +2092,21 @@ static game_state *execute_move(game_state *from, char *move)
 #define SIZE(cr) ((cr) * TILE_SIZE + 2*BORDER + 1)
 #define GETTILESIZE(cr, w) ( (double)(w-1) / (double)(cr+1) )
 
-static void game_size(game_params *params, game_drawstate *ds,
-                      int *x, int *y, int expand)
+static void game_compute_size(game_params *params, int tilesize,
+			      int *x, int *y)
 {
-    int c = params->c, r = params->r, cr = c*r;
-    double ts;
+    /* Ick: fake up `ds->tilesize' for macro expansion purposes */
+    struct { int tilesize; } ads, *ds = &ads;
+    ads.tilesize = tilesize;
 
-    ts = min(GETTILESIZE(cr, *x), GETTILESIZE(cr, *y));
-    if (expand)
-        ds->tilesize = (int)(ts+0.5);
-    else
-        ds->tilesize = min((int)ts, PREFERRED_TILE_SIZE);
+    *x = SIZE(params->c * params->r);
+    *y = SIZE(params->c * params->r);
+}
 
-    *x = SIZE(cr);
-    *y = SIZE(cr);
+static void game_set_size(game_drawstate *ds, game_params *params,
+			  int tilesize)
+{
+    ds->tilesize = tilesize;
 }
 
 static float *game_colours(frontend *fe, game_state *state, int *ncolours)
@@ -2414,7 +2415,7 @@ const struct game thegame = {
     game_changed_state,
     interpret_move,
     execute_move,
-    game_size,
+    PREFERRED_TILE_SIZE, game_compute_size, game_set_size,
     game_colours,
     game_new_drawstate,
     game_free_drawstate,

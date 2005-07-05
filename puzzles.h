@@ -286,8 +286,9 @@ struct game {
     char *(*interpret_move)(game_state *state, game_ui *ui, game_drawstate *ds,
 			    int x, int y, int button);
     game_state *(*execute_move)(game_state *state, char *move);
-    void (*size)(game_params *params, game_drawstate *ds, int *x, int *y,
-                 int expand);
+    int preferred_tilesize;
+    void (*compute_size)(game_params *params, int tilesize, int *x, int *y);
+    void (*set_size)(game_drawstate *ds, game_params *params, int tilesize);
     float *(*colours)(frontend *fe, game_state *state, int *ncolours);
     game_drawstate *(*new_drawstate)(game_state *state);
     void (*free_drawstate)(game_drawstate *ds);

@@ -157,7 +157,7 @@ enum {
 
 enum { LEFT, RIGHT, UP, DOWN, UP_LEFT, UP_RIGHT, DOWN_LEFT, DOWN_RIGHT };
 
-#define PREFERRED_GRID_SCALE 48.0F
+#define PREFERRED_GRID_SCALE 48
 #define GRID_SCALE (ds->gridscale)
 #define ROLLTIME 0.13F
 
@@ -1452,31 +1452,28 @@ static struct bbox find_bbox(game_params *params)
     return bb;
 }
 
-#define XSIZE(bb, solid) \
-    ((int)(((bb).r - (bb).l + 2*(solid)->border) * GRID_SCALE))
-#define YSIZE(bb, solid) \
-    ((int)(((bb).d - (bb).u + 2*(solid)->border) * GRID_SCALE))
+#define XSIZE(gs, bb, solid) \
+    ((int)(((bb).r - (bb).l + 2*(solid)->border) * gs))
+#define YSIZE(gs, bb, solid) \
+    ((int)(((bb).d - (bb).u + 2*(solid)->border) * gs))
 
-static void game_size(game_params *params, game_drawstate *ds, int *x, int *y,
-                      int expand)
+static void game_compute_size(game_params *params, int tilesize,
+			      int *x, int *y)
 {
     struct bbox bb = find_bbox(params);
-    float gsx, gsy, gs;
 
-    gsx = *x / (bb.r - bb.l + 2*solids[params->solid]->border);
-    gsy = *y / (bb.d - bb.u + 2*solids[params->solid]->border);
-    gs = min(gsx, gsy);
+    *x = XSIZE(tilesize, bb, solids[params->solid]);
+    *y = YSIZE(tilesize, bb, solids[params->solid]);
+}
 
-    if (expand)
-        ds->gridscale = gs;
-    else
-        ds->gridscale = min(gs, PREFERRED_GRID_SCALE);
+static void game_set_size(game_drawstate *ds, game_params *params,
+			  int tilesize)
+{
+    struct bbox bb = find_bbox(params);
 
-    ds->ox = (int)(-(bb.l - solids[params->solid]->border) * GRID_SCALE);
-    ds->oy = (int)(-(bb.u - solids[params->solid]->border) * GRID_SCALE);
-
-    *x = XSIZE(bb, solids[params->solid]);
-    *y = YSIZE(bb, solids[params->solid]);
+    ds->gridscale = tilesize;
+    ds->ox = (int)(-(bb.l - solids[params->solid]->border) * ds->gridscale);
+    ds->oy = (int)(-(bb.u - solids[params->solid]->border) * ds->gridscale);
 }
 
 static float *game_colours(frontend *fe, game_state *state, int *ncolours)
@@ -1524,8 +1521,8 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
     game_state *newstate;
     int square;
 
-    draw_rect(fe, 0, 0, XSIZE(bb, state->solid), YSIZE(bb, state->solid),
-              COL_BACKGROUND);
+    draw_rect(fe, 0, 0, XSIZE(GRID_SCALE, bb, state->solid),
+	      YSIZE(GRID_SCALE, bb, state->solid), COL_BACKGROUND);
 
     if (dir < 0) {
         game_state *t;
@@ -1656,7 +1653,8 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
     }
     sfree(poly);
 
-    draw_update(fe, 0, 0, XSIZE(bb, state->solid), YSIZE(bb, state->solid));
+    draw_update(fe, 0, 0, XSIZE(GRID_SCALE, bb, state->solid),
+		YSIZE(GRID_SCALE, bb, state->solid));
 
     /*
      * Update the status bar.
@@ -1722,7 +1720,7 @@ const struct game thegame = {
     game_changed_state,
     interpret_move,
     execute_move,
-    game_size,
+    PREFERRED_GRID_SCALE, game_compute_size, game_set_size,
     game_colours,
     game_new_drawstate,
     game_free_drawstate,

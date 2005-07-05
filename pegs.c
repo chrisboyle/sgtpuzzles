@@ -798,25 +798,23 @@ static game_state *execute_move(game_state *state, char *move)
  * Drawing routines.
  */
 
-static void game_size(game_params *params, game_drawstate *ds,
-                      int *x, int *y, int expand)
+static void game_compute_size(game_params *params, int tilesize,
+			      int *x, int *y)
 {
-    double tsx, tsy, ts;
-    /*
-     * Each window dimension equals the tile size times one more
-     * than the grid dimension (the border is half the width of the
-     * tiles).
-     */
-    tsx = (double)*x / ((double)params->w + 1.0);
-    tsy = (double)*y / ((double)params->h + 1.0);
-    ts = min(tsx, tsy);
-    if (expand)
-        ds->tilesize = (int)(ts + 0.5);
-    else
-        ds->tilesize = min((int)ts, PREFERRED_TILE_SIZE);
+    /* Ick: fake up `ds->tilesize' for macro expansion purposes */
+    struct { int tilesize; } ads, *ds = &ads;
+    ads.tilesize = tilesize;
 
     *x = TILESIZE * params->w + 2 * BORDER;
     *y = TILESIZE * params->h + 2 * BORDER;
+}
+
+static void game_set_size(game_drawstate *ds, game_params *params,
+			  int tilesize)
+{
+    ds->tilesize = tilesize;
+
+    assert(TILESIZE > 0);
 
     if (ds->drag_background)
 	blitter_free(ds->drag_background);
@@ -1094,7 +1092,7 @@ const struct game thegame = {
     game_changed_state,
     interpret_move,
     execute_move,
-    game_size,
+    PREFERRED_TILE_SIZE, game_compute_size, game_set_size,
     game_colours,
     game_new_drawstate,
     game_free_drawstate,

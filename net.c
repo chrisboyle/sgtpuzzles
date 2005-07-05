@@ -2146,25 +2146,17 @@ static void game_free_drawstate(game_drawstate *ds)
     sfree(ds);
 }
 
-static void game_size(game_params *params, game_drawstate *ds, int *x, int *y,
-                      int expand)
+static void game_compute_size(game_params *params, int tilesize,
+			      int *x, int *y)
 {
-    int tsx, tsy, ts;
-    /*
-     * Each window dimension equals the tile size times the grid
-     * dimension, plus TILE_BORDER, plus twice WINDOW_OFFSET.
-     */
-    tsx = (*x - 2*WINDOW_OFFSET - TILE_BORDER) / params->width;
-    tsy = (*y - 2*WINDOW_OFFSET - TILE_BORDER) / params->height;
-    ts = min(tsx, tsy);
+    *x = WINDOW_OFFSET * 2 + tilesize * params->width + TILE_BORDER;
+    *y = WINDOW_OFFSET * 2 + tilesize * params->height + TILE_BORDER;
+}
 
-    if (expand)
-        ds->tilesize = ts;
-    else
-        ds->tilesize = min(ts, PREFERRED_TILE_SIZE);
-
-    *x = WINDOW_OFFSET * 2 + TILE_SIZE * params->width + TILE_BORDER;
-    *y = WINDOW_OFFSET * 2 + TILE_SIZE * params->height + TILE_BORDER;
+static void game_set_size(game_drawstate *ds, game_params *params,
+			  int tilesize)
+{
+    ds->tilesize = tilesize;
 }
 
 static float *game_colours(frontend *fe, game_state *state, int *ncolours)
@@ -2757,7 +2749,7 @@ const struct game thegame = {
     game_changed_state,
     interpret_move,
     execute_move,
-    game_size,
+    PREFERRED_TILE_SIZE, game_compute_size, game_set_size,
     game_colours,
     game_new_drawstate,
     game_free_drawstate,
