@@ -486,7 +486,9 @@ static void pegs_generate(unsigned char *grid, int w, int h, random_state *rs)
 	printf("insufficient extent; trying again\n");
 #endif
     }
+#ifdef GENERATION_DIAGNOSTICS
     fflush(stdout);
+#endif
 }
 
 /* ----------------------------------------------------------------------
