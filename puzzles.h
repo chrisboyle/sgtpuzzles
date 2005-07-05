@@ -265,7 +265,7 @@ struct game {
     int can_configure;
     config_item *(*configure)(game_params *params);
     game_params *(*custom_params)(config_item *cfg);
-    char *(*validate_params)(game_params *params);
+    char *(*validate_params)(game_params *params, int full);
     char *(*new_desc)(game_params *params, random_state *rs,
 		      char **aux, int interactive);
     char *(*validate_desc)(game_params *params, char *desc);

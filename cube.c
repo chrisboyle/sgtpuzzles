@@ -525,7 +525,7 @@ static void count_grid_square_callback(void *ctx, struct grid_square *sq)
     classes[thisclass]++;
 }
 
-static char *validate_params(game_params *params)
+static char *validate_params(game_params *params, int full)
 {
     int classes[5];
     int i;

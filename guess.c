@@ -212,7 +212,7 @@ static game_params *custom_params(config_item *cfg)
     return ret;
 }
 
-static char *validate_params(game_params *params)
+static char *validate_params(game_params *params, int full)
 {
     if (params->ncolours < 2 || params->npegs < 2)
 	return "Trivial solutions are uninteresting";

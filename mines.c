@@ -237,7 +237,7 @@ static game_params *custom_params(config_item *cfg)
     return ret;
 }
 
-static char *validate_params(game_params *params)
+static char *validate_params(game_params *params, int full)
 {
     /*
      * Lower limit on grid size: each dimension must be at least 3.
@@ -253,7 +253,7 @@ static char *validate_params(game_params *params)
      * _have_ to have a gap somewhere which you can't determine the
      * position of.
      */
-    if (params->w <= 2 || params->h <= 2)
+    if (full && params->unique && (params->w <= 2 || params->h <= 2))
 	return "Width and height must both be greater than two";
     if (params->n > params->w * params->h - 9)
 	return "Too many mines for grid size";

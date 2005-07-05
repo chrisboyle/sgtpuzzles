@@ -1676,7 +1676,7 @@ int main(int argc, char **argv)
                 *seed++ = '\0';
 	    thegame.decode_params(par, params);
         }
-        if ((error = thegame.validate_params(par)) != NULL) {
+        if ((error = thegame.validate_params(par, TRUE)) != NULL) {
 	    fprintf(stderr, "%s: %s\n", pname, error);
             return 1;
         }

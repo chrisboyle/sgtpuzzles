@@ -78,7 +78,7 @@ static game_params *custom_params(config_item *cfg)
     return NULL;
 }
 
-static char *validate_params(game_params *params)
+static char *validate_params(game_params *params, int full)
 {
     return NULL;
 }

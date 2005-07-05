@@ -209,7 +209,7 @@ static game_params *custom_params(config_item *cfg)
     return ret;
 }
 
-static char *validate_params(game_params *params)
+static char *validate_params(game_params *params, int full)
 {
     if (params->w < 1 || params->h < 1)
 	return "Width and height must both be positive";

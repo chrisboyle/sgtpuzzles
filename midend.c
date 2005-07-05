@@ -789,7 +789,7 @@ int midend_num_presets(midend_data *me)
                 preset = me->ourgame->default_params();
                 me->ourgame->decode_params(preset, val);
 
-		if (me->ourgame->validate_params(preset)) {
+		if (me->ourgame->validate_params(preset, TRUE)) {
 		    /* Drop this one from the list. */
 		    me->ourgame->free_params(preset);
 		    continue;
@@ -955,7 +955,7 @@ static char *midend_game_id_int(midend_data *me, char *id, int defmode)
     if (par) {
         newcurparams = me->ourgame->dup_params(me->params);
         me->ourgame->decode_params(newcurparams, par);
-        error = me->ourgame->validate_params(newcurparams);
+        error = me->ourgame->validate_params(newcurparams, desc == NULL);
         if (error) {
             me->ourgame->free_params(newcurparams);
             return error;
@@ -1046,7 +1046,7 @@ char *midend_set_config(midend_data *me, int which, config_item *cfg)
     switch (which) {
       case CFG_SETTINGS:
 	params = me->ourgame->custom_params(cfg);
-	error = me->ourgame->validate_params(params);
+	error = me->ourgame->validate_params(params, TRUE);
 
 	if (error) {
 	    me->ourgame->free_params(params);
@@ -1480,15 +1480,23 @@ char *midend_deserialise(midend_data *me,
 
     params = me->ourgame->default_params();
     me->ourgame->decode_params(params, parstr);
-    if (me->ourgame->validate_params(params)) {
+    if (me->ourgame->validate_params(params, TRUE)) {
         ret = "Long-term parameters in save file are invalid";
         goto cleanup;
     }
     cparams = me->ourgame->default_params();
     me->ourgame->decode_params(cparams, cparstr);
-    if (me->ourgame->validate_params(cparams)) {
+    if (me->ourgame->validate_params(cparams, FALSE)) {
         ret = "Short-term parameters in save file are invalid";
         goto cleanup;
+    }
+    if (seed && me->ourgame->validate_params(cparams, TRUE)) {
+        /*
+         * The seed's no use with this version, but we can perfectly
+         * well use the rest of the data.
+         */
+        sfree(seed);
+        seed = NULL;
     }
     if (!desc) {
         ret = "Game description in save file is missing";

@@ -321,7 +321,7 @@ static game_params *custom_params(config_item *cfg)
     return ret;
 }
 
-static char *validate_params(game_params *params)
+static char *validate_params(game_params *params, int full)
 {
     if (params->c < 2 || params->r < 2)
 	return "Both dimensions must be at least 2";

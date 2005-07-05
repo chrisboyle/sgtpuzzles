@@ -293,7 +293,7 @@ static game_params *custom_params(config_item *cfg)
     return ret;
 }
 
-static char *validate_params(game_params *params)
+static char *validate_params(game_params *params, int full)
 {
     if (params->width <= 0 || params->height <= 0)
 	return "Width and height must both be greater than zero";
@@ -347,7 +347,7 @@ static char *validate_params(game_params *params)
      * is at least 2^(number of such rows), and in particular is at
      * least 2 since there must be at least one such row. []
      */
-    if (params->unique && params->wrapping &&
+    if (full && params->unique && params->wrapping &&
         (params->width == 2 || params->height == 2))
         return "No wrapping puzzle with a width or height of 2 can have"
         " a unique solution";

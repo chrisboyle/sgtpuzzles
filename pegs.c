@@ -120,6 +120,11 @@ static void decode_params(game_params *params, char const *string)
         params->h = params->w;
     }
 
+    /*
+     * Assume a random generation scheme unless told otherwise, for the
+     * sake of internal consistency.
+     */
+    params->type = TYPE_RANDOM;
     for (i = 0; i < lenof(pegs_lowertypes); i++)
 	if (!strcmp(p, pegs_lowertypes[i]))
 	    params->type = i;
@@ -178,9 +183,9 @@ static game_params *custom_params(config_item *cfg)
     return ret;
 }
 
-static char *validate_params(game_params *params)
+static char *validate_params(game_params *params, int full)
 {
-    if (params->w <= 3 || params->h <= 3)
+    if (full && (params->w <= 3 || params->h <= 3))
 	return "Width and height must both be greater than three";
 
     /*
@@ -189,7 +194,7 @@ static char *validate_params(game_params *params)
      * soluble. For the moment, therefore, I'm going to disallow
      * them at any size other than the standard one.
      */
-    if (params->type == TYPE_CROSS || params->type == TYPE_OCTAGON) {
+    if (full && (params->type == TYPE_CROSS || params->type == TYPE_OCTAGON)) {
 	if (params->w != 7 || params->h != 7)
 	    return "This board type is only supported at 7x7";
     }
