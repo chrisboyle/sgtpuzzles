@@ -381,7 +381,7 @@ static void midend_finish_move(midend_data *me)
 
 void midend_stop_anim(midend_data *me)
 {
-    if (me->oldstate || me->anim_time) {
+    if (me->oldstate || me->anim_time != 0) {
 	midend_finish_move(me);
         midend_redraw(me);
     }

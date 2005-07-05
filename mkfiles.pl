@@ -13,6 +13,10 @@
 #    mainly because I was too scared to go anywhere near it.
 #  - sbcsgen.pl is still run at startup.
 
+# Other things undone:
+#  - special-define objects (foo.o[PREPROCSYMBOL]) are not
+#    supported in the mac or vcproj makefiles.
+
 use FileHandle;
 use Cwd;
 
@@ -38,6 +42,8 @@ $project_name = "project"; # this is a good enough default
 %makefile_extra = (); # maps makefile types to extra Makefile text
 %programs = (); # maps prog name + type letter to listref of objects/resources
 %groups = (); # maps group name to listref of objects/resources
+
+@allobjs = (); # all object file names
 
 while (<IN>) {
   # Skip comments (unless the comments belong, for example because
@@ -96,6 +102,7 @@ while (<IN>) {
       $type = substr($i,1,(length $i)-2);
     } else {
       push @$listref, $i;
+      push @allobjs, $i;
     }
   }
   if ($prog and $type) {
@@ -107,6 +114,35 @@ while (<IN>) {
 }
 
 close IN;
+
+# Find object file names with predefines (in square brackets after
+# the module name), and decide on actual object names for them.
+foreach $i (@allobjs) {
+  if ($i !~ /\[/) {
+    $objname{$i} = $i;
+    $srcname{$i} = $i;
+    $usedobjname{$i} = 1;
+  }
+}
+foreach $i (@allobjs) {
+  if ($i =~ /^(.*)\[([^\]]*)/) {
+    $defs{$i} = [ split ",",$2 ];
+    $srcname{$i} = $s = $1;
+    $index = 1;
+    while (1) {
+      $maxlen = length $s;
+      $maxlen = 8 if $maxlen < 8;
+      $chop = $maxlen - length $index;
+      $chop = length $s if $chop > length $s;
+      $chop = 0 if $chop < 0;
+      $name = substr($s, 0, $chop) . $index;
+      $index++, next if $usedobjname{$name};
+      $objname{$i} = $name;
+      $usedobjname{$name} = 1;
+      last;
+    }
+  }
+}
 
 # Now retrieve the complete list of objects and resource files, and
 # construct dependency data for them. While we're here, expand the
@@ -121,7 +157,8 @@ foreach $i (@prognames) {
   @list = grep { $status = ($prev ne $_); $prev=$_; $status }
           sort @{$programs{$i}};
   $programs{$i} = [@list];
-  foreach $j (@list) {
+  foreach $jj (@list) {
+    $j = $srcname{$jj};
     # Dependencies for "x" start with "x.c" or "x.m" (depending on
     # which one exists).
     # Dependencies for "x.res" start with "x.rc".
@@ -130,16 +167,16 @@ foreach $i (@prognames) {
     # Libraries (.lib) don't have dependencies at all.
     if ($j =~ /^(.*)\.res$/) {
       $file = "$1.rc";
-      $depends{$j} = [$file];
+      $depends{$jj} = [$file];
       push @scanlist, $file;
     } elsif ($j =~ /^(.*)\.rsrc$/) {
       $file = "$1.r";
-      $depends{$j} = [$file];
+      $depends{$jj} = [$file];
       push @scanlist, $file;
     } elsif ($j !~ /\./) {
       $file = "$j.c";
       $file = "$j.m" unless &findfile($file);
-      $depends{$j} = [$file];
+      $depends{$jj} = [$file];
       push @scanlist, $file;
     }
   }
@@ -250,7 +287,8 @@ sub objects {
   my @ret;
   my ($i, $x, $y);
   @ret = ();
-  foreach $i (@{$programs{$prog}}) {
+  foreach $ii (@{$programs{$prog}}) {
+    $i = $objname{$ii};
     $x = "";
     if ($i =~ /^(.*)\.(res|rsrc)/) {
       $y = $1;
@@ -271,7 +309,8 @@ sub special {
   my @ret;
   my ($i, $x, $y);
   @ret = ();
-  foreach $i (@{$programs{$prog}}) {
+  foreach $ii (@{$programs{$prog}}) {
+    $i = $objname{$ii};
     if (substr($i, (length $i) - (length $suffix)) eq $suffix) {
       push @ret, $i;
     }
@@ -299,7 +338,8 @@ sub deps {
   my @deps, @ret;
   @ret = ();
   $depchar ||= ':';
-  foreach $i (sort keys %depends) {
+  foreach $ii (sort keys %depends) {
+    $i = $objname{$ii};
     next if $specialobj{$mftyp}->{$i};
     if ($i =~ /^(.*)\.(res|rsrc)/) {
       next if !defined $rtmpl;
@@ -308,13 +348,13 @@ sub deps {
     } else {
       ($x = $otmpl) =~ s/X/$i/;
     }
-    @deps = @{$depends{$i}};
+    @deps = @{$depends{$ii}};
     @deps = map {
       $_ = &findfile($_);
       s/\//$dirsep/g;
       $_ = $prefix . $_;
     } @deps;
-    push @ret, {obj => $x, deps => [@deps]};
+    push @ret, {obj => $x, deps => [@deps], defs => $defs{$ii}};
   }
   return @ret;
 }
@@ -356,6 +396,7 @@ sub manpages {
 # Now we're ready to output the actual Makefiles.
 
 if (defined $makefiles{'cygwin'}) {
+    $mftyp = 'cygwin';
     $dirpfx = &dirpfx($makefiles{'cygwin'}, "/");
 
     ##-- CygWin makefile
@@ -411,6 +452,13 @@ if (defined $makefiles{'cygwin'}) {
     foreach $d (&deps("X.o", "X.res.o", $dirpfx, "/")) {
       print &splitline(sprintf("%s: %s", $d->{obj}, join " ", @{$d->{deps}})),
         "\n";
+      if ($d->{obj} =~ /\.res\.o$/) {
+	print "\t\$(RC) \$(FWHACK) \$(RCFL) \$(RCFLAGS) \$< \$\@\n";
+      } else {
+	$deflist = join "", map { " -D$_" } @{$d->{defs}};
+	print "\t\$(CC) \$(COMPAT) \$(FWHACK) \$(XFLAGS)" .
+	    " \$(CFLAGS)$deflist -c \$< -o \$\@\n";
+      }
     }
     print "\n";
     print $makefile_extra{'cygwin'};
@@ -423,6 +471,7 @@ if (defined $makefiles{'cygwin'}) {
 
 ##-- Borland makefile
 if (defined $makefiles{'borland'}) {
+    $mftyp = 'borland';
     $dirpfx = &dirpfx($makefiles{'borland'}, "\\");
 
     %stdlibs = (  # Borland provides many Win32 API libraries intrinsically
@@ -458,15 +507,6 @@ if (defined $makefiles{'borland'}) {
     "!if !\$d(BCB)\n".
     "BCB = \$(MAKEDIR)\\..\n".
     "!endif\n".
-    "\n".
-    ".c.obj:\n".
-    &splitline("\tbcc32 -w-aus -w-ccc -w-par -w-pia \$(COMPAT) \$(FWHACK)".
-	       " \$(XFLAGS) \$(CFLAGS) ".
-	       (join " ", map {"-I$dirpfx$_"} @srcdirs) .
-	       " /c \$*.c",69)."\n".
-    ".rc.res:\n".
-    &splitline("\tbrcc32 \$(FWHACK) \$(RCFL) -i \$(BCB)\\include -r".
-      " -DNO_WINRESRC_H -DWIN32 -D_WIN32 -DWINVER=0x0401 \$*.rc",69)."\n".
     "\n";
     print &splitline("all:" . join "", map { " $_.exe" } &progrealnames("G:C"));
     print "\n\n";
@@ -508,6 +548,17 @@ if (defined $makefiles{'borland'}) {
     foreach $d (&deps("X.obj", "X.res", $dirpfx, "\\")) {
       print &splitline(sprintf("%s: %s", $d->{obj}, join " ", @{$d->{deps}})),
         "\n";
+      if ($d->{obj} =~ /\.res$/) {
+	print &splitline("\tbrcc32 \$(FWHACK) \$(RCFL) " .
+			 "-i \$(BCB)\\include -r -DNO_WINRESRC_H -DWIN32".
+			 " -D_WIN32 -DWINVER=0x0401 \$*.rc",69)."\n";
+      } else {
+	$deflist = join "", map { " -D$_" } @{$d->{defs}};
+	print &splitline("\tbcc32 -w-aus -w-ccc -w-par -w-pia \$(COMPAT)" .
+			 " \$(FWHACK) \$(XFLAGS) \$(CFLAGS)$deflist ".
+			 (join " ", map {"-I$dirpfx$_"} @srcdirs) .
+			 " /o$d->{obj} /c ".$d->{deps}->[0],69)."\n";
+      }
     }
     print "\n";
     print $makefile_extra{'borland'};
@@ -526,6 +577,7 @@ if (defined $makefiles{'borland'}) {
 }
 
 if (defined $makefiles{'vc'}) {
+    $mftyp = 'vc';
     $dirpfx = &dirpfx($makefiles{'vc'}, "\\");
 
     ##-- Visual C++ makefile
@@ -544,11 +596,6 @@ if (defined $makefiles{'vc'}) {
       "# C compilation flags\n".
       "CFLAGS = /nologo /W3 /O1 /D_WINDOWS /D_WIN32_WINDOWS=0x401 /DWINVER=0x401\n".
       "LFLAGS = /incremental:no /fixed\n".
-      "\n".
-      ".c.obj:\n".
-      "\tcl \$(COMPAT) \$(FWHACK) \$(XFLAGS) \$(CFLAGS) /c \$*.c\n".
-      ".rc.res:\n".
-      "\trc \$(FWHACK) \$(RCFL) -r -DWIN32 -D_WIN32 -DWINVER=0x0400 \$*.rc\n".
       "\n";
     print &splitline("all:" . join "", map { " $_.exe" } &progrealnames("G:C"));
     print "\n\n";
@@ -580,6 +627,14 @@ if (defined $makefiles{'vc'}) {
     foreach $d (&deps("X.obj", "X.res", $dirpfx, "\\")) {
 	print &splitline(sprintf("%s: %s", $d->{obj}, join " ", @{$d->{deps}})),
 	  "\n";
+	if ($d->{obj} =~ /\.res$/) {
+	    print "\trc \$(FWHACK) \$(RCFL) -r -DWIN32 -D_WIN32 ".
+	      "-DWINVER=0x0400 ".$d->{deps}->[0]."\n";
+	} else {
+	    $deflist = join "", map { " /D$_" } @{$d->{defs}};
+	    print "\tcl \$(COMPAT) \$(FWHACK) \$(XFLAGS) \$(CFLAGS)$deflist".
+	      " /c ".$d->{deps}->[0]." /Fo$d->{obj}\n";
+	}
     }
     print "\n";
     print $makefile_extra{'vc'};
@@ -605,6 +660,7 @@ if (defined $makefiles{'vc'}) {
 }
 
 if (defined $makefiles{'vcproj'}) {
+    $mftyp = 'vcproj';
 
     $orig_dir = cwd;
 
@@ -860,6 +916,7 @@ if (defined $makefiles{'vcproj'}) {
 }
 
 if (defined $makefiles{'gtk'}) {
+    $mftyp = 'gtk';
     $dirpfx = &dirpfx($makefiles{'gtk'}, "/");
 
     ##-- X/GTK/Unix makefile
@@ -897,11 +954,6 @@ if (defined $makefiles{'gtk'}) {
     "gamesdir=\$(exec_prefix)/games\n",
     "mandir=\$(prefix)/man\n",
     "man1dir=\$(mandir)/man1\n",
-    "\n".
-    ".SUFFIXES:\n".
-    "\n".
-    "%.o:\n".
-    "\t\$(CC) \$(COMPAT) \$(FWHACK) \$(XFLAGS) \$(CFLAGS) -c \$<\n".
     "\n";
     print &splitline("all:" . join "", map { " $_" } &progrealnames("X:U"));
     print "\n\n";
@@ -916,6 +968,9 @@ if (defined $makefiles{'gtk'}) {
     foreach $d (&deps("X.o", undef, $dirpfx, "/")) {
       print &splitline(sprintf("%s: %s", $d->{obj}, join " ", @{$d->{deps}})),
           "\n";
+      $deflist = join "", map { " -D$_" } @{$d->{defs}};
+      print "\t\$(CC) \$(COMPAT) \$(FWHACK) \$(XFLAGS) \$(CFLAGS)$deflist" .
+	  " -c \$< -o \$\@\n";
     }
     print "\n";
     print $makefile_extra{'gtk'};
@@ -925,6 +980,7 @@ if (defined $makefiles{'gtk'}) {
 }
 
 if (defined $makefiles{'mpw'}) {
+    $mftyp = 'mpw';
     ##-- MPW Makefile
     open OUT, ">$makefiles{'mpw'}"; select OUT;
     print
@@ -1065,6 +1121,7 @@ if (defined $makefiles{'mpw'}) {
 }
 
 if (defined $makefiles{'lcc'}) {
+    $mftyp = 'lcc';
     $dirpfx = &dirpfx($makefiles{'lcc'}, "\\");
 
     ##-- lcc makefile
@@ -1088,12 +1145,6 @@ if (defined $makefiles{'lcc'}) {
       "\n".
     "\n".
     "# Get include directory for resource compiler\n".
-    "\n".
-    ".c.obj:\n".
-    &splitline("\tlcc -O -p6 \$(COMPAT) \$(FWHACK)".
-      " \$(XFLAGS) \$(CFLAGS)  \$*.c",69)."\n".
-    ".rc.res:\n".
-    &splitline("\tlrc \$(FWHACK) \$(RCFL) -r \$*.rc",69)."\n".
     "\n";
     print &splitline("all:" . join "", map { " $_.exe" } &progrealnames("G:C"));
     print "\n\n";
@@ -1111,6 +1162,13 @@ if (defined $makefiles{'lcc'}) {
     foreach $d (&deps("X.obj", "X.res", $dirpfx, "\\")) {
       print &splitline(sprintf("%s: %s", $d->{obj}, join " ", @{$d->{deps}})),
         "\n";
+      if ($d->{obj} =~ /\.res$/) {
+	print &splitline("\tlrc \$(FWHACK) \$(RCFL) -r \$*.rc",69)."\n";
+      } else {
+	$deflist = join "", map { " -D$_" } @{$d->{defs}};
+	print &splitline("\tlcc -O -p6 \$(COMPAT) \$(FWHACK) \$(XFLAGS)".
+			 " \$(CFLAGS)$deflist ".$d->{deps}->[0]." -o \$\@",69)."\n";
+      }
     }
     print "\n";
     print $makefile_extra{'lcc'};
@@ -1123,6 +1181,7 @@ if (defined $makefiles{'lcc'}) {
 }
 
 if (defined $makefiles{'osx'}) {
+    $mftyp = 'osx';
     $dirpfx = &dirpfx($makefiles{'osx'}, "/");
 
     ##-- Mac OS X makefile
@@ -1140,16 +1199,11 @@ if (defined $makefiles{'osx'}) {
     &splitline("CFLAGS = -O2 -Wall -Werror -g " .
 	       (join " ", map {"-I$dirpfx$_"} @srcdirs))."\n".
     "LDFLAGS = -framework Cocoa\n".
-    &splitline("all:" . join "", map { " $_" } &progrealnames("MX")) .
+    &splitline("all:" . join "", map { " $_" } &progrealnames("MX:U")) .
     "\n" .
     $makefile_extra{'osx'} .
     "\n".
     ".SUFFIXES: .o .c .m\n".
-    "\n".
-    ".c.o:\n".
-    "\t\$(CC) \$(COMPAT) \$(FWHACK) \$(XFLAGS) \$(CFLAGS) -c \$<\n".
-    ".m.o:\n".
-    "\t\$(CC) -x objective-c \$(COMPAT) \$(FWHACK) \$(XFLAGS) \$(CFLAGS) -c \$<\n".
     "\n";
     print "\n\n";
     foreach $p (&prognames("MX")) {
@@ -1178,12 +1232,28 @@ if (defined $makefiles{'osx'}) {
       print &splitline("\t\$(CC)" . $mw . " \$(LDFLAGS) -o \$@ " .
                        $objstr . " $libstr", 69), "\n\n";
     }
+    foreach $p (&prognames("U")) {
+      ($prog, $type) = split ",", $p;
+      $objstr = &objects($p, "X.o", undef, undef);
+      print &splitline($prog . ": " . $objstr), "\n";
+      $libstr = &objects($p, undef, undef, "-lX");
+      print &splitline("\t\$(CC)" . $mw . " \$(ULDFLAGS) -o \$@ " .
+		       $objstr . " $libstr", 69), "\n\n";
+    }
     foreach $d (&deps("X.o", undef, $dirpfx, "/")) {
       print &splitline(sprintf("%s: %s", $d->{obj}, join " ", @{$d->{deps}})),
           "\n";
+      $deflist = join "", map { " -D$_" } @{$d->{defs}};
+      if ($d->{deps}->[0] =~ /\.m$/) {
+	print "\t\$(CC) -x objective-c \$(COMPAT) \$(FWHACK) \$(XFLAGS)".
+	    " \$(CFLAGS)$deflist -c \$< -o \$\@\n";
+      } else {
+	print "\t\$(CC) \$(COMPAT) \$(FWHACK) \$(XFLAGS) \$(CFLAGS)$deflist" .
+	    " -c \$< -o \$\@\n";
+      }
     }
     print "\nclean:\n".
-    "\trm -f *.o *.dmg\n".
+    "\trm -f *.o *.dmg". (join "", map { " $_" } &progrealnames("U")) . "\n".
     "\trm -rf *.app\n";
     select STDOUT; close OUT;
 }

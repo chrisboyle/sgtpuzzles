@@ -39,6 +39,15 @@ flip     : [X] gtk COMMON FLIP
 guess    : [X] gtk COMMON guess
 pegs     : [X] gtk COMMON PEGS
 
+# Auxiliary command-line programs.
+solosolver :    [U] solo[STANDALONE_SOLVER] malloc
+patternsolver : [U] pattern[STANDALONE_SOLVER] malloc
+mineobfusc :    [U] mines[STANDALONE_OBFUSCATOR] malloc random tree234 misc
+
+solosolver :    [C] solo[STANDALONE_SOLVER] malloc
+patternsolver : [C] pattern[STANDALONE_SOLVER] malloc
+mineobfusc :    [C] mines[STANDALONE_OBFUSCATOR] malloc random tree234 misc
+
 # The Windows Net shouldn't be called `net.exe' since Windows
 # already has a reasonably important utility program by that name!
 netgame  : [G] WINDOWS COMMON NET

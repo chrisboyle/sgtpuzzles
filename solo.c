@@ -2470,7 +2470,6 @@ int main(int argc, char **argv)
     game_state *s;
     int recurse = TRUE;
     char *id = NULL, *desc, *err;
-    int y, x;
     int grade = FALSE;
 
     while (--argc > 0) {
@@ -2486,7 +2485,7 @@ int main(int argc, char **argv)
             grade = TRUE;
             recurse = FALSE;
         } else if (*p == '-') {
-            fprintf(stderr, "%s: unrecognised option `%s'\n", argv[0]);
+            fprintf(stderr, "%s: unrecognised option `%s'\n", argv[0], p);
             return 1;
         } else {
             id = p;

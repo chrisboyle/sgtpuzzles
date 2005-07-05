@@ -3070,7 +3070,7 @@ const struct game thegame = {
  * $ ./mineobfusc 9x9:4,4,004000007c00010022080
  * 9x9:4,4,mb071b49fbd1cb6a0d5868
  *
- * gcc -DSTANDALONE_OBFUSCATOR -o mineobfusc mines.c malloc.c random.c tree234.c
+ * gcc -DSTANDALONE_OBFUSCATOR -o mineobfusc mines.c malloc.c random.c tree234.c misc.c
  */
 
 #include <stdarg.h>
@@ -3087,7 +3087,7 @@ void unclip(frontend *fe) {}
 void start_draw(frontend *fe) {}
 void draw_update(frontend *fe, int x, int y, int w, int h) {}
 void end_draw(frontend *fe) {}
-void midend_supersede_game_desc(midend_data *me, char *desc) {}
+void midend_supersede_game_desc(midend_data *me, char *desc, char *privdesc) {}
 void status_bar(frontend *fe, char *text) {}
 
 void fatal(char *fmt, ...)
@@ -3108,15 +3108,13 @@ int main(int argc, char **argv)
 {
     game_params *p;
     game_state *s;
-    int recurse = TRUE;
     char *id = NULL, *desc, *err;
     int y, x;
-    int grade = FALSE;
 
     while (--argc > 0) {
         char *p = *++argv;
 	if (*p == '-') {
-            fprintf(stderr, "%s: unrecognised option `%s'\n", argv[0]);
+            fprintf(stderr, "%s: unrecognised option `%s'\n", argv[0], p);
             return 1;
         } else {
             id = p;
