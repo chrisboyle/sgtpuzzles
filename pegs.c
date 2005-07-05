@@ -42,6 +42,8 @@ static char const *const pegs_titletypes[] = { TYPELIST(TITLE) };
 static char const *const pegs_lowertypes[] = { TYPELIST(LOWER) };
 #define TYPECONFIG TYPELIST(CONFIG)
 
+#define FLASH_FRAME 0.13F
+
 struct game_params {
     int w, h;
     int type;
@@ -49,6 +51,7 @@ struct game_params {
 
 struct game_state {
     int w, h;
+    int completed;
     unsigned char *grid;
 };
 
@@ -574,6 +577,7 @@ static game_state *new_game(midend_data *me, game_params *params, char *desc)
 
     state->w = w;
     state->h = h;
+    state->completed = 0;
     state->grid = snewn(w*h, unsigned char);
     for (i = 0; i < w*h; i++)
 	state->grid[i] = (desc[i] == 'P' ? GRID_PEG :
@@ -589,6 +593,7 @@ static game_state *dup_game(game_state *state)
 
     ret->w = state->w;
     ret->h = state->h;
+    ret->completed = state->completed;
     ret->grid = snewn(w*h, unsigned char);
     memcpy(ret->grid, state->grid, w*h);
 
@@ -682,6 +687,7 @@ struct game_drawstate {
     int w, h;
     unsigned char *grid;
     int started;
+    int bgcolour;
 };
 
 static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
@@ -789,6 +795,21 @@ static game_state *execute_move(game_state *state, char *move)
 	ret->grid[my*w+mx] = GRID_HOLE;
 	ret->grid[ty*w+tx] = GRID_PEG;
 
+        /*
+         * Opinion varies on whether getting to a single peg counts as
+         * completing the game, or whether that peg has to be at a
+         * specific location (central in the classic cross game, for
+         * instance). For now we take the former, rather lax position.
+         */
+        if (!ret->completed) {
+            int count = 0, i;
+            for (i = 0; i < w*h; i++)
+                if (ret->grid[i] == GRID_PEG)
+                    count++;
+            if (count == 1)
+                ret->completed = 1;
+        }
+
 	return ret;
     }
     return NULL;
@@ -873,6 +894,7 @@ static game_drawstate *game_new_drawstate(game_state *state)
     memset(ds->grid, 255, w*h);
 
     ds->started = FALSE;
+    ds->bgcolour = -1;
 
     return ds;
 }
@@ -886,10 +908,10 @@ static void game_free_drawstate(game_drawstate *ds)
 }
 
 static void draw_tile(frontend *fe, game_drawstate *ds,
-		      int x, int y, int v, int erasebg)
+		      int x, int y, int v, int bgcolour)
 {
-    if (erasebg) {
-	draw_rect(fe, x, y, TILESIZE, TILESIZE, COL_BACKGROUND);
+    if (bgcolour >= 0) {
+	draw_rect(fe, x, y, TILESIZE, TILESIZE, bgcolour);
     }
 
     if (v == GRID_HOLE) {
@@ -909,6 +931,13 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 {
     int w = state->w, h = state->h;
     int x, y;
+    int bgcolour;
+
+    if (flashtime > 0) {
+        int frame = (int)(flashtime / FLASH_FRAME);
+        bgcolour = (frame % 2 ? COL_LOWLIGHT : COL_HIGHLIGHT);
+    } else
+        bgcolour = COL_BACKGROUND;
 
     /*
      * Erase the sprite currently being dragged, if any.
@@ -1025,8 +1054,10 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 	     */
 	    if (ui->dragging && ui->sx == x && ui->sy == y && v == GRID_PEG)
 		v = GRID_HOLE;
-	    if (v != ds->grid[y*w+x] && v != GRID_OBST) {
-		draw_tile(fe, ds, COORD(x), COORD(y), v, TRUE);
+	    if (v != GRID_OBST &&
+                (bgcolour != ds->bgcolour || /* always redraw when flashing */
+                 v != ds->grid[y*w+x])) {
+		draw_tile(fe, ds, COORD(x), COORD(y), v, bgcolour);
 	    }
 	}
 
@@ -1038,8 +1069,10 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 	ds->dragx = ui->dx - TILESIZE/2;
 	ds->dragy = ui->dy - TILESIZE/2;
 	blitter_save(fe, ds->drag_background, ds->dragx, ds->dragy);
-	draw_tile(fe, ds, ds->dragx, ds->dragy, GRID_PEG, FALSE);
+	draw_tile(fe, ds, ds->dragx, ds->dragy, GRID_PEG, -1);
     }
+
+    ds->bgcolour = bgcolour;
 }
 
 static float game_anim_length(game_state *oldstate, game_state *newstate,
@@ -1051,7 +1084,10 @@ static float game_anim_length(game_state *oldstate, game_state *newstate,
 static float game_flash_length(game_state *oldstate, game_state *newstate,
 			       int dir, game_ui *ui)
 {
-    return 0.0F;
+    if (!oldstate->completed && newstate->completed)
+        return 2 * FLASH_FRAME;
+    else
+        return 0.0F;
 }
 
 static int game_wants_statusbar(void)
