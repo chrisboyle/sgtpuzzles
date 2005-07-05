@@ -120,11 +120,6 @@ static void decode_params(game_params *params, char const *string)
         params->h = params->w;
     }
 
-    /*
-     * Assume a random generation scheme unless told otherwise, for the
-     * sake of internal consistency.
-     */
-    params->type = TYPE_RANDOM;
     for (i = 0; i < lenof(pegs_lowertypes); i++)
 	if (!strcmp(p, pegs_lowertypes[i]))
 	    params->type = i;
