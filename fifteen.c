@@ -584,28 +584,11 @@ static float *game_colours(frontend *fe, game_state *state, int *ncolours)
 {
     float *ret = snewn(3 * NCOLOURS, float);
     int i;
-    float max;
 
-    frontend_default_colour(fe, &ret[COL_BACKGROUND * 3]);
+    game_mkhighlight(fe, ret, COL_BACKGROUND, COL_HIGHLIGHT, COL_LOWLIGHT);
 
-    /*
-     * Drop the background colour so that the highlight is
-     * noticeably brighter than it while still being under 1.
-     */
-    max = ret[COL_BACKGROUND*3];
-    for (i = 1; i < 3; i++)
-        if (ret[COL_BACKGROUND*3+i] > max)
-            max = ret[COL_BACKGROUND*3+i];
-    if (max * 1.2F > 1.0F) {
-        for (i = 0; i < 3; i++)
-            ret[COL_BACKGROUND*3+i] /= (max * 1.2F);
-    }
-
-    for (i = 0; i < 3; i++) {
-        ret[COL_HIGHLIGHT * 3 + i] = ret[COL_BACKGROUND * 3 + i] * 1.2F;
-        ret[COL_LOWLIGHT * 3 + i] = ret[COL_BACKGROUND * 3 + i] * 0.8F;
+    for (i = 0; i < 3; i++)
         ret[COL_TEXT * 3 + i] = 0.0;
-    }
 
     *ncolours = NCOLOURS;
     return ret;

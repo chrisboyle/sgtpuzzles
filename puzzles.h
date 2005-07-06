@@ -218,6 +218,10 @@ void obfuscate_bitmap(unsigned char *bmp, int bits, int decode);
 char *bin2hex(const unsigned char *in, int inlen);
 unsigned char *hex2bin(const char *in, int outlen);
 
+/* Sets (and possibly dims) background from frontend default colour,
+ * and auto-generates highlight and lowlight colours too. */
+void game_mkhighlight(frontend *fe, float *ret,
+                      int background, int highlight, int lowlight);
 
 /*
  * version.c

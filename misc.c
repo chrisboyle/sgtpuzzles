@@ -169,4 +169,31 @@ unsigned char *hex2bin(const char *in, int outlen)
     return ret;
 }
 
+void game_mkhighlight(frontend *fe, float *ret,
+                      int background, int highlight, int lowlight)
+{
+    float max;
+    int i;
+
+    frontend_default_colour(fe, &ret[background * 3]);
+
+    /*
+     * Drop the background colour so that the highlight is
+     * noticeably brighter than it while still being under 1.
+     */
+    max = ret[background*3];
+    for (i = 1; i < 3; i++)
+        if (ret[background*3+i] > max)
+            max = ret[background*3+i];
+    if (max * 1.2F > 1.0F) {
+        for (i = 0; i < 3; i++)
+            ret[background*3+i] /= (max * 1.2F);
+    }
+
+    for (i = 0; i < 3; i++) {
+        ret[highlight * 3 + i] = ret[background * 3 + i] * 1.2F;
+        ret[lowlight * 3 + i] = ret[background * 3 + i] * 0.8F;
+    }
+}
+
 /* vim: set shiftwidth=4 tabstop=8: */
