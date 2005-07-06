@@ -1350,6 +1350,7 @@ char *midend_deserialise(midend_data *me,
         if (key[8] != ':') {
             if (started)
                 ret = "Data was incorrectly formatted for a saved game file";
+	    goto cleanup;
         }
         len = strcspn(key, ": ");
         assert(len <= 8);
