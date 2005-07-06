@@ -835,7 +835,7 @@ static void game_compute_size(game_params *params, int tilesize,
 static void game_set_size(game_drawstate *ds, game_params *params,
 			  int tilesize)
 {
-    int colh, guessh, x, y;
+    int colh, guessh;
 
     ds->pegsz = tilesize;
 
@@ -850,12 +850,12 @@ static void game_set_size(game_drawstate *ds, game_params *params,
     guessh = ((ds->pegsz + ds->gapsz) * params->nguesses);      /* guesses */
     guessh += ds->gapsz + ds->pegsz;                            /* solution */
 
-    game_compute_size(params, tilesize, &x, &y);
+    game_compute_size(params, tilesize, &ds->w, &ds->h);
     ds->colx = ds->border;
-    ds->coly = (y - colh) / 2;
+    ds->coly = (ds->h - colh) / 2;
 
     ds->guessx = ds->solnx = ds->border + ds->pegsz * 2;     /* border + colours */
-    ds->guessy = (y - guessh) / 2;
+    ds->guessy = (ds->h - guessh) / 2;
     ds->solny = ds->guessy + ((ds->pegsz + ds->gapsz) * params->nguesses) + ds->gapsz;
 
     assert(ds->pegsz > 0);

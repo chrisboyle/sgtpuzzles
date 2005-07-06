@@ -1881,11 +1881,16 @@ static char *interpret_move(game_state *state, game_ui *ui,
 			    game_drawstate *ds, int x, int y, int button)
 {
     char *nullret;
-    int tx, ty;
+    int tx = -1, ty = -1, dir = 0;
     int shift = button & MOD_SHFT, ctrl = button & MOD_CTRL;
+    enum {
+        NONE, ROTATE_LEFT, ROTATE_180, ROTATE_RIGHT, TOGGLE_LOCK, JUMBLE,
+        MOVE_ORIGIN, MOVE_SOURCE, MOVE_ORIGIN_AND_SOURCE, MOVE_CURSOR
+    } action;
 
     button &= ~MOD_MASK;
     nullret = NULL;
+    action = NONE;
 
     if (button == LEFT_BUTTON ||
 	button == MIDDLE_BUTTON ||
@@ -1913,9 +1918,11 @@ static char *interpret_move(game_state *state, game_ui *ui,
 	if (x % TILE_SIZE >= TILE_SIZE - TILE_BORDER ||
 	    y % TILE_SIZE >= TILE_SIZE - TILE_BORDER)
 	    return nullret;
+
+        action = button == LEFT_BUTTON ? ROTATE_LEFT :
+                 button == RIGHT_BUTTON ? ROTATE_RIGHT : TOGGLE_LOCK;
     } else if (button == CURSOR_UP || button == CURSOR_DOWN ||
 	       button == CURSOR_RIGHT || button == CURSOR_LEFT) {
-        int dir;
         switch (button) {
           case CURSOR_UP:       dir = U; break;
           case CURSOR_DOWN:     dir = D; break;
@@ -1923,44 +1930,28 @@ static char *interpret_move(game_state *state, game_ui *ui,
           case CURSOR_RIGHT:    dir = R; break;
           default:              return nullret;
         }
-        if (shift) {
-            /*
-             * Move origin.
-             */
-            if (state->wrapping) {
-                OFFSET(ui->org_x, ui->org_y, ui->org_x, ui->org_y, dir, state);
-            } else return nullret; /* disallowed for non-wrapping grids */
-        }
-        if (ctrl) {
-            /*
-             * Change source tile.
-             */
-            OFFSET(ui->cx, ui->cy, ui->cx, ui->cy, dir, state);
-        }
-        if (!shift && !ctrl) {
-            /*
-             * Move keyboard cursor.
-             */
-            OFFSET(ui->cur_x, ui->cur_y, ui->cur_x, ui->cur_y, dir, state);
-            ui->cur_visible = TRUE;
-        }
-        return "";		       /* UI activity has occurred */
+        if (shift && ctrl) action = MOVE_ORIGIN_AND_SOURCE;
+        else if (shift)    action = MOVE_ORIGIN;
+        else if (ctrl)     action = MOVE_SOURCE;
+        else               action = MOVE_CURSOR;
     } else if (button == 'a' || button == 's' || button == 'd' ||
 	       button == 'A' || button == 'S' || button == 'D' ||
+               button == 'f' || button == 'F' ||
 	       button == CURSOR_SELECT) {
 	tx = ui->cur_x;
 	ty = ui->cur_y;
 	if (button == 'a' || button == 'A' || button == CURSOR_SELECT)
-	    button = LEFT_BUTTON;
+	    action = ROTATE_LEFT;
 	else if (button == 's' || button == 'S')
-	    button = MIDDLE_BUTTON;
+	    action = TOGGLE_LOCK;
 	else if (button == 'd' || button == 'D')
-	    button = RIGHT_BUTTON;
+	    action = ROTATE_RIGHT;
+        else if (button == 'f' || button == 'F')
+            action = ROTATE_180;
         ui->cur_visible = TRUE;
     } else if (button == 'j' || button == 'J') {
 	/* XXX should we have some mouse control for this? */
-	button = 'J';   /* canonify */
-	tx = ty = -1;   /* shut gcc up :( */
+	action = JUMBLE;
     } else
 	return nullret;
 
@@ -1974,11 +1965,12 @@ static char *interpret_move(game_state *state, game_ui *ui,
      * accident. If they change their mind, another middle click
      * unlocks it.)
      */
-    if (button == MIDDLE_BUTTON) {
+    if (action == TOGGLE_LOCK) {
 	char buf[80];
 	sprintf(buf, "L%d,%d", tx, ty);
 	return dupstr(buf);
-    } else if (button == LEFT_BUTTON || button == RIGHT_BUTTON) {
+    } else if (action == ROTATE_LEFT || action == ROTATE_RIGHT ||
+               action == ROTATE_180) {
 	char buf[80];
 
         /*
@@ -1992,9 +1984,10 @@ static char *interpret_move(game_state *state, game_ui *ui,
          * Otherwise, turn the tile one way or the other. Left button
          * turns anticlockwise; right button turns clockwise.
          */
-	sprintf(buf, "%c%d,%d", (button == LEFT_BUTTON ? 'A' : 'C'), tx, ty);
+	sprintf(buf, "%c%d,%d", (int)(action == ROTATE_LEFT ? 'A' :
+                                      action == ROTATE_RIGHT ? 'C' : 'F'), tx, ty);
 	return dupstr(buf);
-    } else if (button == 'J') {
+    } else if (action == JUMBLE) {
         /*
          * Jumble all unlocked tiles to random orientations.
          */
@@ -2027,6 +2020,22 @@ static char *interpret_move(game_state *state, game_ui *ui,
 	ret = sresize(ret, p - ret, char);
 
 	return ret;
+    } else if (action == MOVE_ORIGIN || action == MOVE_SOURCE ||
+               action == MOVE_ORIGIN_AND_SOURCE || action == MOVE_CURSOR) {
+        assert(dir != 0);
+        if (action == MOVE_ORIGIN || action == MOVE_ORIGIN_AND_SOURCE) {
+            if (state->wrapping) {
+                 OFFSET(ui->org_x, ui->org_y, ui->org_x, ui->org_y, dir, state);
+            } else return nullret; /* disallowed for non-wrapping grids */
+        }
+        if (action == MOVE_SOURCE || action == MOVE_ORIGIN_AND_SOURCE) {
+            OFFSET(ui->cx, ui->cy, ui->cx, ui->cy, dir, state);
+        }
+        if (action == MOVE_CURSOR) {
+            OFFSET(ui->cur_x, ui->cur_y, ui->cur_x, ui->cur_y, dir, state);
+            ui->cur_visible = TRUE;
+        }
+        return "";
     } else {
 	return NULL;
     }
@@ -2066,10 +2075,8 @@ static game_state *execute_move(game_state *from, char *move)
 		    ret->last_rotate_dir = +1;
 	    } else if (move[0] == 'F') {
 		tile(ret, tx, ty) = F(orig);
-		if (!noanim) {
-		    free_game(ret);
-		    return NULL;
-		}
+		if (!noanim)
+                    ret->last_rotate_dir = +2; /* + for sake of argument */
 	    } else if (move[0] == 'C') {
 		tile(ret, tx, ty) = C(orig);
 		if (!noanim)

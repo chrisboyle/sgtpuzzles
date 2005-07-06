@@ -330,6 +330,8 @@ controls are:
 
 \dt \e{Rotate tile clockwise}: right mouse button, \q{D} key
 
+\dt \e{Rotate tile by 180 degrees}: \q{F} key
+
 \dt \e{Lock (or unlock) tile}: middle mouse button, shift-click, \q{S} key
 
 \dd You can lock a tile once you're sure of its orientation. You can
