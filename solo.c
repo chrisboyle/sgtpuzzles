@@ -529,8 +529,8 @@ static int solver_elim(struct solver_usage *usage, int start, int step
         if (!usage->grid[YUNTRANS(y)*cr+x]) {
 #ifdef STANDALONE_SOLVER
             if (solver_show_working) {
-		printf("%*s", solver_recurse_depth*4, "");
                 va_list ap;
+		printf("%*s", solver_recurse_depth*4, "");
                 va_start(ap, fmt);
                 vprintf(fmt, ap);
                 va_end(ap);
@@ -544,8 +544,8 @@ static int solver_elim(struct solver_usage *usage, int start, int step
     } else if (m == 0) {
 #ifdef STANDALONE_SOLVER
 	if (solver_show_working) {
-	    printf("%*s", solver_recurse_depth*4, "");
 	    va_list ap;
+	    printf("%*s", solver_recurse_depth*4, "");
 	    va_start(ap, fmt);
 	    vprintf(fmt, ap);
 	    va_end(ap);
@@ -598,8 +598,8 @@ static int solver_intersect(struct solver_usage *usage,
                 int px, py, pn;
 
                 if (!ret) {
-		    printf("%*s", solver_recurse_depth*4, "");
                     va_list ap;
+		    printf("%*s", solver_recurse_depth*4, "");
                     va_start(ap, fmt);
                     vprintf(fmt, ap);
                     va_end(ap);
@@ -732,9 +732,9 @@ static int solver_set(struct solver_usage *usage,
             if (rows > n - count) {
 #ifdef STANDALONE_SOLVER
 		if (solver_show_working) {
+		    va_list ap;
 		    printf("%*s", solver_recurse_depth*4,
 			   "");
-		    va_list ap;
 		    va_start(ap, fmt);
 		    vprintf(fmt, ap);
 		    va_end(ap);
@@ -776,9 +776,9 @@ static int solver_set(struct solver_usage *usage,
                                     int px, py, pn;
 
                                     if (!progress) {
+                                        va_list ap;
 					printf("%*s", solver_recurse_depth*4,
 					       "");
-                                        va_list ap;
                                         va_start(ap, fmt);
                                         vprintf(fmt, ap);
                                         va_end(ap);
