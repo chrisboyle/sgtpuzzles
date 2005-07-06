@@ -91,7 +91,7 @@
 
 #ifdef STANDALONE_SOLVER
 #include <stdarg.h>
-int solver_show_working;
+int solver_show_working, solver_recurse_depth;
 #endif
 
 #include "puzzles.h"
@@ -331,276 +331,16 @@ static char *validate_params(game_params *params, int full)
 }
 
 /* ----------------------------------------------------------------------
- * Full recursive Solo solver.
- *
- * The algorithm for this solver is shamelessly copied from a
- * Python solver written by Andrew Wilkinson (which is GPLed, but
- * I've reused only ideas and no code). It mostly just does the
- * obvious recursive thing: pick an empty square, put one of the
- * possible digits in it, recurse until all squares are filled,
- * backtrack and change some choices if necessary.
- *
- * The clever bit is that every time it chooses which square to
- * fill in next, it does so by counting the number of _possible_
- * numbers that can go in each square, and it prioritises so that
- * it picks a square with the _lowest_ number of possibilities. The
- * idea is that filling in lots of the obvious bits (particularly
- * any squares with only one possibility) will cut down on the list
- * of possibilities for other squares and hence reduce the enormous
- * search space as much as possible as early as possible.
- *
- * In practice the algorithm appeared to work very well; run on
- * sample problems from the Times it completed in well under a
- * second on my G5 even when written in Python, and given an empty
- * grid (so that in principle it would enumerate _all_ solved
- * grids!) it found the first valid solution just as quickly. So
- * with a bit more randomisation I see no reason not to use this as
- * my grid generator.
- */
-
-/*
- * Internal data structure used in solver to keep track of
- * progress.
- */
-struct rsolve_coord { int x, y, r; };
-struct rsolve_usage {
-    int c, r, cr;		       /* cr == c*r */
-    /* grid is a copy of the input grid, modified as we go along */
-    digit *grid;
-    /* row[y*cr+n-1] TRUE if digit n has been placed in row y */
-    unsigned char *row;
-    /* col[x*cr+n-1] TRUE if digit n has been placed in row x */
-    unsigned char *col;
-    /* blk[(y*c+x)*cr+n-1] TRUE if digit n has been placed in block (x,y) */
-    unsigned char *blk;
-    /* This lists all the empty spaces remaining in the grid. */
-    struct rsolve_coord *spaces;
-    int nspaces;
-    /* If we need randomisation in the solve, this is our random state. */
-    random_state *rs;
-    /* Number of solutions so far found, and maximum number we care about. */
-    int solns, maxsolns;
-};
-
-/*
- * The real recursive step in the solving function.
- */
-static void rsolve_real(struct rsolve_usage *usage, digit *grid)
-{
-    int c = usage->c, r = usage->r, cr = usage->cr;
-    int i, j, n, sx, sy, bestm, bestr;
-    int *digits;
-
-    /*
-     * Firstly, check for completion! If there are no spaces left
-     * in the grid, we have a solution.
-     */
-    if (usage->nspaces == 0) {
-	if (!usage->solns) {
-	    /*
-	     * This is our first solution, so fill in the output grid.
-	     */
-	    memcpy(grid, usage->grid, cr * cr);
-	}
-	usage->solns++;
-	return;
-    }
-
-    /*
-     * Otherwise, there must be at least one space. Find the most
-     * constrained space, using the `r' field as a tie-breaker.
-     */
-    bestm = cr+1;		       /* so that any space will beat it */
-    bestr = 0;
-    i = sx = sy = -1;
-    for (j = 0; j < usage->nspaces; j++) {
-	int x = usage->spaces[j].x, y = usage->spaces[j].y;
-	int m;
-
-	/*
-	 * Find the number of digits that could go in this space.
-	 */
-	m = 0;
-	for (n = 0; n < cr; n++)
-	    if (!usage->row[y*cr+n] && !usage->col[x*cr+n] &&
-		!usage->blk[((y/c)*c+(x/r))*cr+n])
-		m++;
-
-	if (m < bestm || (m == bestm && usage->spaces[j].r < bestr)) {
-	    bestm = m;
-	    bestr = usage->spaces[j].r;
-	    sx = x;
-	    sy = y;
-	    i = j;
-	}
-    }
-
-    /*
-     * Swap that square into the final place in the spaces array,
-     * so that decrementing nspaces will remove it from the list.
-     */
-    if (i != usage->nspaces-1) {
-	struct rsolve_coord t;
-	t = usage->spaces[usage->nspaces-1];
-	usage->spaces[usage->nspaces-1] = usage->spaces[i];
-	usage->spaces[i] = t;
-    }
-
-    /*
-     * Now we've decided which square to start our recursion at,
-     * simply go through all possible values, shuffling them
-     * randomly first if necessary.
-     */
-    digits = snewn(bestm, int);
-    j = 0;
-    for (n = 0; n < cr; n++)
-	if (!usage->row[sy*cr+n] && !usage->col[sx*cr+n] &&
-	    !usage->blk[((sy/c)*c+(sx/r))*cr+n]) {
-	    digits[j++] = n+1;
-	}
-
-    if (usage->rs) {
-	/* shuffle */
-	for (i = j; i > 1; i--) {
-	    int p = random_upto(usage->rs, i);
-	    if (p != i-1) {
-		int t = digits[p];
-		digits[p] = digits[i-1];
-		digits[i-1] = t;
-	    }
-	}
-    }
-
-    /* And finally, go through the digit list and actually recurse. */
-    for (i = 0; i < j; i++) {
-	n = digits[i];
-
-	/* Update the usage structure to reflect the placing of this digit. */
-	usage->row[sy*cr+n-1] = usage->col[sx*cr+n-1] =
-	    usage->blk[((sy/c)*c+(sx/r))*cr+n-1] = TRUE;
-	usage->grid[sy*cr+sx] = n;
-	usage->nspaces--;
-
-	/* Call the solver recursively. */
-	rsolve_real(usage, grid);
-
-	/*
-	 * If we have seen as many solutions as we need, terminate
-	 * all processing immediately.
-	 */
-	if (usage->solns >= usage->maxsolns)
-	    break;
-
-	/* Revert the usage structure. */
-	usage->row[sy*cr+n-1] = usage->col[sx*cr+n-1] =
-	    usage->blk[((sy/c)*c+(sx/r))*cr+n-1] = FALSE;
-	usage->grid[sy*cr+sx] = 0;
-	usage->nspaces++;
-    }
-
-    sfree(digits);
-}
-
-/*
- * Entry point to solver. You give it dimensions and a starting
- * grid, which is simply an array of N^4 digits. In that array, 0
- * means an empty square, and 1..N mean a clue square.
- *
- * Return value is the number of solutions found; searching will
- * stop after the provided `max'. (Thus, you can pass max==1 to
- * indicate that you only care about finding _one_ solution, or
- * max==2 to indicate that you want to know the difference between
- * a unique and non-unique solution.) The input parameter `grid' is
- * also filled in with the _first_ (or only) solution found by the
- * solver.
- */
-static int rsolve(int c, int r, digit *grid, random_state *rs, int max)
-{
-    struct rsolve_usage *usage;
-    int x, y, cr = c*r;
-    int ret;
-
-    /*
-     * Create an rsolve_usage structure.
-     */
-    usage = snew(struct rsolve_usage);
-
-    usage->c = c;
-    usage->r = r;
-    usage->cr = cr;
-
-    usage->grid = snewn(cr * cr, digit);
-    memcpy(usage->grid, grid, cr * cr);
-
-    usage->row = snewn(cr * cr, unsigned char);
-    usage->col = snewn(cr * cr, unsigned char);
-    usage->blk = snewn(cr * cr, unsigned char);
-    memset(usage->row, FALSE, cr * cr);
-    memset(usage->col, FALSE, cr * cr);
-    memset(usage->blk, FALSE, cr * cr);
-
-    usage->spaces = snewn(cr * cr, struct rsolve_coord);
-    usage->nspaces = 0;
-
-    usage->solns = 0;
-    usage->maxsolns = max;
-
-    usage->rs = rs;
-
-    /*
-     * Now fill it in with data from the input grid.
-     */
-    for (y = 0; y < cr; y++) {
-	for (x = 0; x < cr; x++) {
-	    int v = grid[y*cr+x];
-	    if (v == 0) {
-		usage->spaces[usage->nspaces].x = x;
-		usage->spaces[usage->nspaces].y = y;
-		if (rs)
-		    usage->spaces[usage->nspaces].r = random_bits(rs, 31);
-		else
-		    usage->spaces[usage->nspaces].r = usage->nspaces;
-		usage->nspaces++;
-	    } else {
-		usage->row[y*cr+v-1] = TRUE;
-		usage->col[x*cr+v-1] = TRUE;
-		usage->blk[((y/c)*c+(x/r))*cr+v-1] = TRUE;
-	    }
-	}
-    }
-
-    /*
-     * Run the real recursive solving function.
-     */
-    rsolve_real(usage, grid);
-    ret = usage->solns;
-
-    /*
-     * Clean up the usage structure now we have our answer.
-     */
-    sfree(usage->spaces);
-    sfree(usage->blk);
-    sfree(usage->col);
-    sfree(usage->row);
-    sfree(usage->grid);
-    sfree(usage);
-
-    /*
-     * And return.
-     */
-    return ret;
-}
-
-/* ----------------------------------------------------------------------
- * End of recursive solver code.
- */
-
-/* ----------------------------------------------------------------------
- * Less capable non-recursive solver. This one is used to check
- * solubility of a grid as we gradually remove numbers from it: by
- * verifying a grid using this solver we can ensure it isn't _too_
- * hard (e.g. does not actually require guessing and backtracking).
- *
+ * Solver.
+ * 
+ * This solver is used for several purposes:
+ *  + to generate filled grids as the basis for new puzzles (by
+ *    supplying no clue squares at all)
+ *  + to check solubility of a grid as we gradually remove numbers
+ *    from it
+ *  + to solve an externally generated puzzle when the user selects
+ *    `Solve'.
+ * 
  * It supports a variety of specific modes of reasoning. By
  * enabling or disabling subsets of these modes we can arrange a
  * range of difficulty levels.
@@ -646,6 +386,11 @@ static int rsolve(int c, int r, digit *grid, random_state *rs, int max)
  *       places, found by taking the _complement_ of the union of
  *       the numbers' possible positions (or the spaces' possible
  *       contents).
+ * 
+ *  - Recursion. If all else fails, we pick one of the currently
+ *    most constrained empty squares and take a random guess at its
+ *    contents, then continue solving on that basis and see if we
+ *    get any further.
  */
 
 /*
@@ -664,7 +409,7 @@ static int rsolve(int c, int r, digit *grid, random_state *rs, int max)
 #define YTRANS(y) (((y)%c)*r+(y)/c)
 #define YUNTRANS(y) (((y)%r)*c+(y)/r)
 
-struct nsolve_usage {
+struct solver_usage {
     int c, r, cr;
     /*
      * We set up a cubic array, indexed by x, y and digit; each
@@ -700,7 +445,7 @@ struct nsolve_usage {
  * a particular number in it. The y-coordinate passed in here is
  * transformed.
  */
-static void nsolve_place(struct nsolve_usage *usage, int x, int y, int n)
+static void solver_place(struct solver_usage *usage, int x, int y, int n)
 {
     int c = usage->c, r = usage->r, cr = usage->cr;
     int i, j, bx, by;
@@ -751,7 +496,7 @@ static void nsolve_place(struct nsolve_usage *usage, int x, int y, int n)
 	usage->blk[((y%r)*c+(x/r))*cr+n-1] = TRUE;
 }
 
-static int nsolve_elim(struct nsolve_usage *usage, int start, int step
+static int solver_elim(struct solver_usage *usage, int start, int step
 #ifdef STANDALONE_SOLVER
                        , char *fmt, ...
 #endif
@@ -784,23 +529,37 @@ static int nsolve_elim(struct nsolve_usage *usage, int start, int step
         if (!usage->grid[YUNTRANS(y)*cr+x]) {
 #ifdef STANDALONE_SOLVER
             if (solver_show_working) {
+		printf("%*s", solver_recurse_depth*4, "");
                 va_list ap;
                 va_start(ap, fmt);
                 vprintf(fmt, ap);
                 va_end(ap);
-                printf(":\n  placing %d at (%d,%d)\n",
-                       n, 1+x, 1+YUNTRANS(y));
+                printf(":\n%*s  placing %d at (%d,%d)\n",
+                       solver_recurse_depth*4, "", n, 1+x, 1+YUNTRANS(y));
             }
 #endif
-            nsolve_place(usage, x, y, n);
-            return TRUE;
+            solver_place(usage, x, y, n);
+            return +1;
         }
+    } else if (m == 0) {
+#ifdef STANDALONE_SOLVER
+	if (solver_show_working) {
+	    printf("%*s", solver_recurse_depth*4, "");
+	    va_list ap;
+	    va_start(ap, fmt);
+	    vprintf(fmt, ap);
+	    va_end(ap);
+	    printf(":\n%*s  no possibilities available\n",
+		   solver_recurse_depth*4, "");
+	}
+#endif
+        return -1;
     }
 
-    return FALSE;
+    return 0;
 }
 
-static int nsolve_intersect(struct nsolve_usage *usage,
+static int solver_intersect(struct solver_usage *usage,
                             int start1, int step1, int start2, int step2
 #ifdef STANDALONE_SOLVER
                             , char *fmt, ...
@@ -819,16 +578,16 @@ static int nsolve_intersect(struct nsolve_usage *usage,
         if (usage->cube[p] &&
             !(p >= start2 && p < start2+cr*step2 &&
               (p - start2) % step2 == 0))
-            return FALSE;              /* there is, so we can't deduce */
+            return 0;		       /* there is, so we can't deduce */
     }
 
     /*
      * We have determined that all set bits in the first domain are
      * within its overlap with the second. So loop over the second
      * domain and remove all set bits that aren't also in that
-     * overlap; return TRUE iff we actually _did_ anything.
+     * overlap; return +1 iff we actually _did_ anything.
      */
-    ret = FALSE;
+    ret = 0;
     for (i = 0; i < cr; i++) {
         int p = start2+i*step2;
         if (usage->cube[p] &&
@@ -839,6 +598,7 @@ static int nsolve_intersect(struct nsolve_usage *usage,
                 int px, py, pn;
 
                 if (!ret) {
+		    printf("%*s", solver_recurse_depth*4, "");
                     va_list ap;
                     va_start(ap, fmt);
                     vprintf(fmt, ap);
@@ -851,11 +611,11 @@ static int nsolve_intersect(struct nsolve_usage *usage,
                 px = py / cr;
                 py %= cr;
 
-                printf("  ruling out %d at (%d,%d)\n",
-                       pn, 1+px, 1+YUNTRANS(py));
+                printf("%*s  ruling out %d at (%d,%d)\n",
+                       solver_recurse_depth*4, "", pn, 1+px, 1+YUNTRANS(py));
             }
 #endif
-            ret = TRUE;                /* we did something */
+            ret = +1;		       /* we did something */
             usage->cube[p] = 0;
         }
     }
@@ -863,12 +623,12 @@ static int nsolve_intersect(struct nsolve_usage *usage,
     return ret;
 }
 
-struct nsolve_scratch {
+struct solver_scratch {
     unsigned char *grid, *rowidx, *colidx, *set;
 };
 
-static int nsolve_set(struct nsolve_usage *usage,
-                      struct nsolve_scratch *scratch,
+static int solver_set(struct solver_usage *usage,
+                      struct solver_scratch *scratch,
                       int start, int step1, int step2
 #ifdef STANDALONE_SOLVER
                       , char *fmt, ...
@@ -895,14 +655,15 @@ static int nsolve_set(struct nsolve_usage *usage,
         for (j = 0; j < cr; j++)
             if (usage->cube[start+i*step1+j*step2])
                 first = j, count++;
-        if (count == 0) {
-            /*
-             * This condition actually marks a completely insoluble
-             * (i.e. internally inconsistent) puzzle. We return and
-             * report no progress made.
-             */
-            return FALSE;
-        }
+
+	/*
+	 * If count == 0, then there's a row with no 1s at all and
+	 * the puzzle is internally inconsistent. However, we ought
+	 * to have caught this already during the simpler reasoning
+	 * methods, so we can safely fail an assertion if we reach
+	 * this point here.
+	 */
+	assert(count > 0);
         if (count == 1)
             rowidx[i] = colidx[first] = FALSE;
     }
@@ -968,7 +729,22 @@ static int nsolve_set(struct nsolve_usage *usage,
              * indicates a faulty deduction before this point or
              * even a bogus clue.
              */
-            assert(rows <= n - count);
+            if (rows > n - count) {
+#ifdef STANDALONE_SOLVER
+		if (solver_show_working) {
+		    printf("%*s", solver_recurse_depth*4,
+			   "");
+		    va_list ap;
+		    va_start(ap, fmt);
+		    vprintf(fmt, ap);
+		    va_end(ap);
+		    printf(":\n%*s  contradiction reached\n",
+			   solver_recurse_depth*4, "");
+		}
+#endif
+		return -1;
+	    }
+
             if (rows >= n - count) {
                 int progress = FALSE;
 
@@ -976,8 +752,8 @@ static int nsolve_set(struct nsolve_usage *usage,
                  * We've got one! Now, for each row which _doesn't_
                  * satisfy the criterion, eliminate all its set
                  * bits in the positions _not_ listed in `set'.
-                 * Return TRUE (meaning progress has been made) if
-                 * we successfully eliminated anything at all.
+                 * Return +1 (meaning progress has been made) if we
+                 * successfully eliminated anything at all.
                  * 
                  * This involves referring back through
                  * rowidx/colidx in order to work out which actual
@@ -998,8 +774,10 @@ static int nsolve_set(struct nsolve_usage *usage,
 #ifdef STANDALONE_SOLVER
                                 if (solver_show_working) {
                                     int px, py, pn;
-                                    
+
                                     if (!progress) {
+					printf("%*s", solver_recurse_depth*4,
+					       "");
                                         va_list ap;
                                         va_start(ap, fmt);
                                         vprintf(fmt, ap);
@@ -1012,7 +790,8 @@ static int nsolve_set(struct nsolve_usage *usage,
                                     px = py / cr;
                                     py %= cr;
 
-                                    printf("  ruling out %d at (%d,%d)\n",
+                                    printf("%*s  ruling out %d at (%d,%d)\n",
+					   solver_recurse_depth*4, "",
                                            pn, 1+px, 1+YUNTRANS(py));
                                 }
 #endif
@@ -1023,7 +802,7 @@ static int nsolve_set(struct nsolve_usage *usage,
                 }
 
                 if (progress) {
-                    return TRUE;
+                    return +1;
                 }
             }
         }
@@ -1041,12 +820,12 @@ static int nsolve_set(struct nsolve_usage *usage,
             break;                     /* done */
     }
 
-    return FALSE;
+    return 0;
 }
 
-static struct nsolve_scratch *nsolve_new_scratch(struct nsolve_usage *usage)
+static struct solver_scratch *solver_new_scratch(struct solver_usage *usage)
 {
-    struct nsolve_scratch *scratch = snew(struct nsolve_scratch);
+    struct solver_scratch *scratch = snew(struct solver_scratch);
     int cr = usage->cr;
     scratch->grid = snewn(cr*cr, unsigned char);
     scratch->rowidx = snewn(cr, unsigned char);
@@ -1055,7 +834,7 @@ static struct nsolve_scratch *nsolve_new_scratch(struct nsolve_usage *usage)
     return scratch;
 }
 
-static void nsolve_free_scratch(struct nsolve_scratch *scratch)
+static void solver_free_scratch(struct solver_scratch *scratch)
 {
     sfree(scratch->set);
     sfree(scratch->colidx);
@@ -1064,19 +843,19 @@ static void nsolve_free_scratch(struct nsolve_scratch *scratch)
     sfree(scratch);
 }
 
-static int nsolve(int c, int r, digit *grid)
+static int solver(int c, int r, digit *grid, random_state *rs, int maxdiff)
 {
-    struct nsolve_usage *usage;
-    struct nsolve_scratch *scratch;
+    struct solver_usage *usage;
+    struct solver_scratch *scratch;
     int cr = c*r;
-    int x, y, n;
+    int x, y, n, ret;
     int diff = DIFF_BLOCK;
 
     /*
      * Set up a usage structure as a clean slate (everything
      * possible).
      */
-    usage = snew(struct nsolve_usage);
+    usage = snew(struct solver_usage);
     usage->c = c;
     usage->r = r;
     usage->cr = cr;
@@ -1091,7 +870,7 @@ static int nsolve(int c, int r, digit *grid)
     memset(usage->col, FALSE, cr * cr);
     memset(usage->blk, FALSE, cr * cr);
 
-    scratch = nsolve_new_scratch(usage);
+    scratch = solver_new_scratch(usage);
 
     /*
      * Place all the clue numbers we are given.
@@ -1099,7 +878,7 @@ static int nsolve(int c, int r, digit *grid)
     for (x = 0; x < cr; x++)
 	for (y = 0; y < cr; y++)
 	    if (grid[y*cr+x])
-		nsolve_place(usage, x, YTRANS(y), grid[y*cr+x]);
+		solver_place(usage, x, YTRANS(y), grid[y*cr+x]);
 
     /*
      * Now loop over the grid repeatedly trying all permitted modes
@@ -1124,45 +903,64 @@ static int nsolve(int c, int r, digit *grid)
 	for (x = 0; x < cr; x += r)
 	    for (y = 0; y < r; y++)
 		for (n = 1; n <= cr; n++)
-		    if (!usage->blk[(y*c+(x/r))*cr+n-1] &&
-			nsolve_elim(usage, cubepos(x,y,n), r*cr
+		    if (!usage->blk[(y*c+(x/r))*cr+n-1]) {
+			ret = solver_elim(usage, cubepos(x,y,n), r*cr
 #ifdef STANDALONE_SOLVER
-                                    , "positional elimination,"
-                                    " block (%d,%d)", 1+x/r, 1+y
+					  , "positional elimination,"
+					  " %d in block (%d,%d)", n, 1+x/r, 1+y
 #endif
-                                    )) {
-                        diff = max(diff, DIFF_BLOCK);
-                        goto cont;
+					  );
+			if (ret < 0) {
+			    diff = DIFF_IMPOSSIBLE;
+			    goto got_result;
+			} else if (ret > 0) {
+			    diff = max(diff, DIFF_BLOCK);
+			    goto cont;
+			}
                     }
+
+	if (maxdiff <= DIFF_BLOCK)
+	    break;
 
 	/*
 	 * Row-wise positional elimination.
 	 */
 	for (y = 0; y < cr; y++)
 	    for (n = 1; n <= cr; n++)
-		if (!usage->row[y*cr+n-1] &&
-		    nsolve_elim(usage, cubepos(0,y,n), cr*cr
+		if (!usage->row[y*cr+n-1]) {
+		    ret = solver_elim(usage, cubepos(0,y,n), cr*cr
 #ifdef STANDALONE_SOLVER
-                                , "positional elimination,"
-                                " row %d", 1+YUNTRANS(y)
+				      , "positional elimination,"
+				      " %d in row %d", n, 1+YUNTRANS(y)
 #endif
-                                )) {
-                    diff = max(diff, DIFF_SIMPLE);
-                    goto cont;
+				      );
+		    if (ret < 0) {
+			diff = DIFF_IMPOSSIBLE;
+			goto got_result;
+		    } else if (ret > 0) {
+			diff = max(diff, DIFF_SIMPLE);
+			goto cont;
+		    }
                 }
 	/*
 	 * Column-wise positional elimination.
 	 */
 	for (x = 0; x < cr; x++)
 	    for (n = 1; n <= cr; n++)
-		if (!usage->col[x*cr+n-1] &&
-		    nsolve_elim(usage, cubepos(x,0,n), cr
+		if (!usage->col[x*cr+n-1]) {
+		    ret = solver_elim(usage, cubepos(x,0,n), cr
 #ifdef STANDALONE_SOLVER
-                                , "positional elimination," " column %d", 1+x
+				      , "positional elimination,"
+				      " %d in column %d", n, 1+x
 #endif
-                                )) {
-                    diff = max(diff, DIFF_SIMPLE);
-                    goto cont;
+				      );
+		    if (ret < 0) {
+			diff = DIFF_IMPOSSIBLE;
+			goto got_result;
+		    } else if (ret > 0) {
+			diff = max(diff, DIFF_SIMPLE);
+			goto cont;
+		    }
                 }
 
 	/*
@@ -1170,16 +968,24 @@ static int nsolve(int c, int r, digit *grid)
 	 */
 	for (x = 0; x < cr; x++)
 	    for (y = 0; y < cr; y++)
-		if (!usage->grid[YUNTRANS(y)*cr+x] &&
-		    nsolve_elim(usage, cubepos(x,y,1), 1
+		if (!usage->grid[YUNTRANS(y)*cr+x]) {
+		    ret = solver_elim(usage, cubepos(x,y,1), 1
 #ifdef STANDALONE_SOLVER
-                                , "numeric elimination at (%d,%d)", 1+x,
-                                1+YUNTRANS(y)
+				      , "numeric elimination at (%d,%d)", 1+x,
+				      1+YUNTRANS(y)
 #endif
-                                )) {
-                    diff = max(diff, DIFF_SIMPLE);
-                    goto cont;
+				      );
+		    if (ret < 0) {
+			diff = DIFF_IMPOSSIBLE;
+			goto got_result;
+		    } else if (ret > 0) {
+			diff = max(diff, DIFF_SIMPLE);
+			goto cont;
+		    }
                 }
+
+	if (maxdiff <= DIFF_SIMPLE)
+	    break;
 
         /*
          * Intersectional analysis, rows vs blocks.
@@ -1187,22 +993,25 @@ static int nsolve(int c, int r, digit *grid)
         for (y = 0; y < cr; y++)
             for (x = 0; x < cr; x += r)
                 for (n = 1; n <= cr; n++)
+		    /*
+		     * solver_intersect() never returns -1.
+		     */
                     if (!usage->row[y*cr+n-1] &&
                         !usage->blk[((y%r)*c+(x/r))*cr+n-1] &&
-                        (nsolve_intersect(usage, cubepos(0,y,n), cr*cr,
+                        (solver_intersect(usage, cubepos(0,y,n), cr*cr,
                                           cubepos(x,y%r,n), r*cr
 #ifdef STANDALONE_SOLVER
                                           , "intersectional analysis,"
-                                          " row %d vs block (%d,%d)",
-                                          1+YUNTRANS(y), 1+x/r, 1+y%r
+                                          " %d in row %d vs block (%d,%d)",
+                                          n, 1+YUNTRANS(y), 1+x/r, 1+y%r
 #endif
                                           ) ||
-                         nsolve_intersect(usage, cubepos(x,y%r,n), r*cr,
+                         solver_intersect(usage, cubepos(x,y%r,n), r*cr,
                                           cubepos(0,y,n), cr*cr
 #ifdef STANDALONE_SOLVER
                                           , "intersectional analysis,"
-                                          " block (%d,%d) vs row %d",
-                                          1+x/r, 1+y%r, 1+YUNTRANS(y)
+                                          " %d in block (%d,%d) vs row %d",
+                                          n, 1+x/r, 1+y%r, 1+YUNTRANS(y)
 #endif
                                           ))) {
                         diff = max(diff, DIFF_INTERSECT);
@@ -1217,65 +1026,83 @@ static int nsolve(int c, int r, digit *grid)
                 for (n = 1; n <= cr; n++)
                     if (!usage->col[x*cr+n-1] &&
                         !usage->blk[(y*c+(x/r))*cr+n-1] &&
-                        (nsolve_intersect(usage, cubepos(x,0,n), cr,
+                        (solver_intersect(usage, cubepos(x,0,n), cr,
                                           cubepos((x/r)*r,y,n), r*cr
 #ifdef STANDALONE_SOLVER
                                           , "intersectional analysis,"
-                                          " column %d vs block (%d,%d)",
-                                          1+x, 1+x/r, 1+y
+                                          " %d in column %d vs block (%d,%d)",
+                                          n, 1+x, 1+x/r, 1+y
 #endif
                                           ) ||
-                         nsolve_intersect(usage, cubepos((x/r)*r,y,n), r*cr,
+                         solver_intersect(usage, cubepos((x/r)*r,y,n), r*cr,
                                           cubepos(x,0,n), cr
 #ifdef STANDALONE_SOLVER
                                           , "intersectional analysis,"
-                                          " block (%d,%d) vs column %d",
-                                          1+x/r, 1+y, 1+x
+                                          " %d in block (%d,%d) vs column %d",
+                                          n, 1+x/r, 1+y, 1+x
 #endif
                                           ))) {
                         diff = max(diff, DIFF_INTERSECT);
                         goto cont;
                     }
 
+	if (maxdiff <= DIFF_INTERSECT)
+	    break;
+
 	/*
 	 * Blockwise set elimination.
 	 */
 	for (x = 0; x < cr; x += r)
-	    for (y = 0; y < r; y++)
-                if (nsolve_set(usage, scratch, cubepos(x,y,1), r*cr, 1
+	    for (y = 0; y < r; y++) {
+		ret = solver_set(usage, scratch, cubepos(x,y,1), r*cr, 1
 #ifdef STANDALONE_SOLVER
-                               , "set elimination, block (%d,%d)", 1+x/r, 1+y
+				 , "set elimination, block (%d,%d)", 1+x/r, 1+y
 #endif
-                               )) {
-                    diff = max(diff, DIFF_SET);
-                    goto cont;
-                }
+				 );
+		if (ret < 0) {
+		    diff = DIFF_IMPOSSIBLE;
+		    goto got_result;
+		} else if (ret > 0) {
+		    diff = max(diff, DIFF_SET);
+		    goto cont;
+		}
+	    }
 
 	/*
 	 * Row-wise set elimination.
 	 */
-	for (y = 0; y < cr; y++)
-            if (nsolve_set(usage, scratch, cubepos(0,y,1), cr*cr, 1
+	for (y = 0; y < cr; y++) {
+            ret = solver_set(usage, scratch, cubepos(0,y,1), cr*cr, 1
 #ifdef STANDALONE_SOLVER
-                           , "set elimination, row %d", 1+YUNTRANS(y)
+			     , "set elimination, row %d", 1+YUNTRANS(y)
 #endif
-                           )) {
-                diff = max(diff, DIFF_SET);
-                goto cont;
-            }
+			     );
+	    if (ret < 0) {
+		diff = DIFF_IMPOSSIBLE;
+		goto got_result;
+	    } else if (ret > 0) {
+		diff = max(diff, DIFF_SET);
+		goto cont;
+	    }
+	}
 
 	/*
 	 * Column-wise set elimination.
 	 */
-	for (x = 0; x < cr; x++)
-            if (nsolve_set(usage, scratch, cubepos(x,0,1), cr, 1
+	for (x = 0; x < cr; x++) {
+            ret = solver_set(usage, scratch, cubepos(x,0,1), cr, 1
 #ifdef STANDALONE_SOLVER
-                           , "set elimination, column %d", 1+x
+			     , "set elimination, column %d", 1+x
 #endif
-                           )) {
-                diff = max(diff, DIFF_SET);
-                goto cont;
-            }
+			     );
+	    if (ret < 0) {
+		diff = DIFF_IMPOSSIBLE;
+		goto got_result;
+	    } else if (ret > 0) {
+		diff = max(diff, DIFF_SET);
+		goto cont;
+	    }
+	}
 
 	/*
 	 * If we reach here, we have made no deductions in this
@@ -1284,7 +1111,181 @@ static int nsolve(int c, int r, digit *grid)
 	break;
     }
 
-    nsolve_free_scratch(scratch);
+    /*
+     * Last chance: if we haven't fully solved the puzzle yet, try
+     * recursing based on guesses for a particular square. We pick
+     * one of the most constrained empty squares we can find, which
+     * has the effect of pruning the search tree as much as
+     * possible.
+     */
+    if (maxdiff >= DIFF_RECURSIVE) {
+	int best, bestcount, bestnumber;
+
+	best = -1;
+	bestcount = cr+1;
+	bestnumber = 0;
+
+	for (y = 0; y < cr; y++)
+	    for (x = 0; x < cr; x++)
+		if (!grid[y*cr+x]) {
+		    int count;
+
+		    /*
+		     * An unfilled square. Count the number of
+		     * possible digits in it.
+		     */
+		    count = 0;
+		    for (n = 1; n <= cr; n++)
+			if (cube(x,YTRANS(y),n))
+			    count++;
+
+		    /*
+		     * We should have found any impossibilities
+		     * already, so this can safely be an assert.
+		     */
+		    assert(count > 1);
+
+		    if (count < bestcount) {
+			bestcount = count;
+			bestnumber = 0;
+		    }
+
+		    if (count == bestcount) {
+			bestnumber++;
+			if (bestnumber == 1 ||
+			    (rs && random_upto(rs, bestnumber) == 0))
+			    best = y*cr+x;
+		    }
+		}
+
+	if (best != -1) {
+	    int i, j;
+	    digit *list, *ingrid, *outgrid;
+
+	    diff = DIFF_IMPOSSIBLE;    /* no solution found yet */
+
+	    /*
+	     * Attempt recursion.
+	     */
+	    y = best / cr;
+	    x = best % cr;
+
+	    list = snewn(cr, digit);
+	    ingrid = snewn(cr * cr, digit);
+	    outgrid = snewn(cr * cr, digit);
+	    memcpy(ingrid, grid, cr * cr);
+
+	    /* Make a list of the possible digits. */
+	    for (j = 0, n = 1; n <= cr; n++)
+		if (cube(x,YTRANS(y),n))
+		    list[j++] = n;
+
+#ifdef STANDALONE_SOLVER
+	    if (solver_show_working) {
+		char *sep = "";
+		printf("%*srecursing on (%d,%d) [",
+		       solver_recurse_depth*4, "", x, y);
+		for (i = 0; i < j; i++) {
+		    printf("%s%d", sep, list[i]);
+		    sep = " or ";
+		}
+		printf("]\n");
+	    }
+#endif
+
+	    /* Now shuffle the list. */
+	    if (rs) {
+		for (i = j; i > 1; i--) {
+		    int p = random_upto(rs, i);
+		    if (p != i-1) {
+			int t = list[p];
+			list[p] = list[i-1];
+			list[i-1] = t;
+		    }
+		}
+	    }
+
+	    /*
+	     * And step along the list, recursing back into the
+	     * main solver at every stage.
+	     */
+	    for (i = 0; i < j; i++) {
+		int ret;
+
+		memcpy(outgrid, ingrid, cr * cr);
+		outgrid[y*cr+x] = list[i];
+
+#ifdef STANDALONE_SOLVER
+		if (solver_show_working)
+		    printf("%*sguessing %d at (%d,%d)\n",
+			   solver_recurse_depth*4, "", list[i], x, y);
+		solver_recurse_depth++;
+#endif
+
+		ret = solver(c, r, outgrid, rs, maxdiff);
+
+#ifdef STANDALONE_SOLVER
+		solver_recurse_depth--;
+		if (solver_show_working) {
+		    printf("%*sretracting %d at (%d,%d)\n",
+			   solver_recurse_depth*4, "", list[i], x, y);
+		}
+#endif
+
+		/*
+		 * If we have our first solution, copy it into the
+		 * grid we will return.
+		 */
+		if (diff == DIFF_IMPOSSIBLE && ret != DIFF_IMPOSSIBLE)
+		    memcpy(grid, outgrid, cr*cr);
+
+		if (ret == DIFF_AMBIGUOUS)
+		    diff = DIFF_AMBIGUOUS;
+		else if (ret == DIFF_IMPOSSIBLE)
+		    /* do not change our return value */;
+		else {
+		    /* the recursion turned up exactly one solution */
+		    if (diff == DIFF_IMPOSSIBLE)
+			diff = DIFF_RECURSIVE;
+		    else
+			diff = DIFF_AMBIGUOUS;
+		}
+
+		/*
+		 * As soon as we've found more than one solution,
+		 * give up immediately.
+		 */
+		if (diff == DIFF_AMBIGUOUS)
+		    break;
+	    }
+
+	    sfree(outgrid);
+	    sfree(ingrid);
+	    sfree(list);
+	}
+
+    } else {
+        /*
+         * We're forbidden to use recursion, so we just see whether
+         * our grid is fully solved, and return DIFF_IMPOSSIBLE
+         * otherwise.
+         */
+	for (y = 0; y < cr; y++)
+	    for (x = 0; x < cr; x++)
+		if (!grid[y*cr+x])
+                    diff = DIFF_IMPOSSIBLE;
+    }
+
+    got_result:;
+
+#ifdef STANDALONE_SOLVER
+    if (solver_show_working)
+	printf("%*s%s found\n",
+	       solver_recurse_depth*4, "",
+	       diff == DIFF_IMPOSSIBLE ? "no solution" :
+	       diff == DIFF_AMBIGUOUS ? "multiple solutions" :
+	       "one solution");
+#endif
 
     sfree(usage->cube);
     sfree(usage->row);
@@ -1292,15 +1293,243 @@ static int nsolve(int c, int r, digit *grid)
     sfree(usage->blk);
     sfree(usage);
 
-    for (x = 0; x < cr; x++)
-	for (y = 0; y < cr; y++)
-	    if (!grid[y*cr+x])
-		return DIFF_IMPOSSIBLE;
+    solver_free_scratch(scratch);
+
     return diff;
 }
 
 /* ----------------------------------------------------------------------
- * End of non-recursive solver code.
+ * End of solver code.
+ */
+
+/* ----------------------------------------------------------------------
+ * Solo filled-grid generator.
+ *
+ * This grid generator works by essentially trying to solve a grid
+ * starting from no clues, and not worrying that there's more than
+ * one possible solution. Unfortunately, it isn't computationally
+ * feasible to do this by calling the above solver with an empty
+ * grid, because that one needs to allocate a lot of scratch space
+ * at every recursion level. Instead, I have a much simpler
+ * algorithm which I shamelessly copied from a Python solver
+ * written by Andrew Wilkinson (which is GPLed, but I've reused
+ * only ideas and no code). It mostly just does the obvious
+ * recursive thing: pick an empty square, put one of the possible
+ * digits in it, recurse until all squares are filled, backtrack
+ * and change some choices if necessary.
+ *
+ * The clever bit is that every time it chooses which square to
+ * fill in next, it does so by counting the number of _possible_
+ * numbers that can go in each square, and it prioritises so that
+ * it picks a square with the _lowest_ number of possibilities. The
+ * idea is that filling in lots of the obvious bits (particularly
+ * any squares with only one possibility) will cut down on the list
+ * of possibilities for other squares and hence reduce the enormous
+ * search space as much as possible as early as possible.
+ */
+
+/*
+ * Internal data structure used in gridgen to keep track of
+ * progress.
+ */
+struct gridgen_coord { int x, y, r; };
+struct gridgen_usage {
+    int c, r, cr;		       /* cr == c*r */
+    /* grid is a copy of the input grid, modified as we go along */
+    digit *grid;
+    /* row[y*cr+n-1] TRUE if digit n has been placed in row y */
+    unsigned char *row;
+    /* col[x*cr+n-1] TRUE if digit n has been placed in row x */
+    unsigned char *col;
+    /* blk[(y*c+x)*cr+n-1] TRUE if digit n has been placed in block (x,y) */
+    unsigned char *blk;
+    /* This lists all the empty spaces remaining in the grid. */
+    struct gridgen_coord *spaces;
+    int nspaces;
+    /* If we need randomisation in the solve, this is our random state. */
+    random_state *rs;
+};
+
+/*
+ * The real recursive step in the generating function.
+ */
+static int gridgen_real(struct gridgen_usage *usage, digit *grid)
+{
+    int c = usage->c, r = usage->r, cr = usage->cr;
+    int i, j, n, sx, sy, bestm, bestr, ret;
+    int *digits;
+
+    /*
+     * Firstly, check for completion! If there are no spaces left
+     * in the grid, we have a solution.
+     */
+    if (usage->nspaces == 0) {
+        memcpy(grid, usage->grid, cr * cr);
+	return TRUE;
+    }
+
+    /*
+     * Otherwise, there must be at least one space. Find the most
+     * constrained space, using the `r' field as a tie-breaker.
+     */
+    bestm = cr+1;		       /* so that any space will beat it */
+    bestr = 0;
+    i = sx = sy = -1;
+    for (j = 0; j < usage->nspaces; j++) {
+	int x = usage->spaces[j].x, y = usage->spaces[j].y;
+	int m;
+
+	/*
+	 * Find the number of digits that could go in this space.
+	 */
+	m = 0;
+	for (n = 0; n < cr; n++)
+	    if (!usage->row[y*cr+n] && !usage->col[x*cr+n] &&
+		!usage->blk[((y/c)*c+(x/r))*cr+n])
+		m++;
+
+	if (m < bestm || (m == bestm && usage->spaces[j].r < bestr)) {
+	    bestm = m;
+	    bestr = usage->spaces[j].r;
+	    sx = x;
+	    sy = y;
+	    i = j;
+	}
+    }
+
+    /*
+     * Swap that square into the final place in the spaces array,
+     * so that decrementing nspaces will remove it from the list.
+     */
+    if (i != usage->nspaces-1) {
+	struct gridgen_coord t;
+	t = usage->spaces[usage->nspaces-1];
+	usage->spaces[usage->nspaces-1] = usage->spaces[i];
+	usage->spaces[i] = t;
+    }
+
+    /*
+     * Now we've decided which square to start our recursion at,
+     * simply go through all possible values, shuffling them
+     * randomly first if necessary.
+     */
+    digits = snewn(bestm, int);
+    j = 0;
+    for (n = 0; n < cr; n++)
+	if (!usage->row[sy*cr+n] && !usage->col[sx*cr+n] &&
+	    !usage->blk[((sy/c)*c+(sx/r))*cr+n]) {
+	    digits[j++] = n+1;
+	}
+
+    if (usage->rs) {
+	/* shuffle */
+	for (i = j; i > 1; i--) {
+	    int p = random_upto(usage->rs, i);
+	    if (p != i-1) {
+		int t = digits[p];
+		digits[p] = digits[i-1];
+		digits[i-1] = t;
+	    }
+	}
+    }
+
+    /* And finally, go through the digit list and actually recurse. */
+    ret = FALSE;
+    for (i = 0; i < j; i++) {
+	n = digits[i];
+
+	/* Update the usage structure to reflect the placing of this digit. */
+	usage->row[sy*cr+n-1] = usage->col[sx*cr+n-1] =
+	    usage->blk[((sy/c)*c+(sx/r))*cr+n-1] = TRUE;
+	usage->grid[sy*cr+sx] = n;
+	usage->nspaces--;
+
+	/* Call the solver recursively. Stop when we find a solution. */
+	if (gridgen_real(usage, grid))
+            ret = TRUE;
+
+	/* Revert the usage structure. */
+	usage->row[sy*cr+n-1] = usage->col[sx*cr+n-1] =
+	    usage->blk[((sy/c)*c+(sx/r))*cr+n-1] = FALSE;
+	usage->grid[sy*cr+sx] = 0;
+	usage->nspaces++;
+
+        if (ret)
+            break;
+    }
+
+    sfree(digits);
+    return ret;
+}
+
+/*
+ * Entry point to generator. You give it dimensions and a starting
+ * grid, which is simply an array of cr*cr digits.
+ */
+static void gridgen(int c, int r, digit *grid, random_state *rs)
+{
+    struct gridgen_usage *usage;
+    int x, y, cr = c*r;
+
+    /*
+     * Clear the grid to start with.
+     */
+    memset(grid, 0, cr*cr);
+
+    /*
+     * Create a gridgen_usage structure.
+     */
+    usage = snew(struct gridgen_usage);
+
+    usage->c = c;
+    usage->r = r;
+    usage->cr = cr;
+
+    usage->grid = snewn(cr * cr, digit);
+    memcpy(usage->grid, grid, cr * cr);
+
+    usage->row = snewn(cr * cr, unsigned char);
+    usage->col = snewn(cr * cr, unsigned char);
+    usage->blk = snewn(cr * cr, unsigned char);
+    memset(usage->row, FALSE, cr * cr);
+    memset(usage->col, FALSE, cr * cr);
+    memset(usage->blk, FALSE, cr * cr);
+
+    usage->spaces = snewn(cr * cr, struct gridgen_coord);
+    usage->nspaces = 0;
+
+    usage->rs = rs;
+
+    /*
+     * Initialise the list of grid spaces.
+     */
+    for (y = 0; y < cr; y++) {
+	for (x = 0; x < cr; x++) {
+            usage->spaces[usage->nspaces].x = x;
+            usage->spaces[usage->nspaces].y = y;
+            usage->spaces[usage->nspaces].r = random_bits(rs, 31);
+            usage->nspaces++;
+	}
+    }
+
+    /*
+     * Run the real generator function.
+     */
+    gridgen_real(usage, grid);
+
+    /*
+     * Clean up the usage structure now we have our answer.
+     */
+    sfree(usage->spaces);
+    sfree(usage->blk);
+    sfree(usage->col);
+    sfree(usage->row);
+    sfree(usage->grid);
+    sfree(usage);
+}
+
+/* ----------------------------------------------------------------------
+ * End of grid generator code.
  */
 
 /*
@@ -1470,7 +1699,6 @@ static char *new_game_desc(game_params *params, random_state *rs,
     digit *grid, *grid2;
     struct xy { int x, y; } *locs;
     int nlocs;
-    int ret;
     char *desc;
     int coords[16], ncoords;
     int *symmclasses, nsymmclasses;
@@ -1522,12 +1750,9 @@ static char *new_game_desc(game_params *params, random_state *rs,
      */
     do {
         /*
-         * Start the recursive solver with an empty grid to generate a
-         * random solved state.
+         * Generate a random solved state.
          */
-        memset(grid, 0, area);
-        ret = rsolve(c, r, grid, rs, 1);
-        assert(ret == 1);
+        gridgen(c, r, grid, rs);
         assert(check_valid(c, r, grid));
 
 	/*
@@ -1586,7 +1811,7 @@ static char *new_game_desc(game_params *params, random_state *rs,
              * Now loop over the shuffled list and, for each element,
              * see whether removing that element (and its reflections)
              * from the grid will still leave the grid soluble by
-             * nsolve.
+             * solver.
              */
             for (i = 0; i < nlocs; i++) {
 		int ret;
@@ -1599,12 +1824,8 @@ static char *new_game_desc(game_params *params, random_state *rs,
                 for (j = 0; j < ncoords; j++)
                     grid2[coords[2*j+1]*cr+coords[2*j]] = 0;
 
-		if (recursing)
-		    ret = (rsolve(c, r, grid2, NULL, 2) == 1);
-		else
-		    ret = (nsolve(c, r, grid2) <= maxdiff);
-
-                if (ret) {
+		ret = solver(c, r, grid2, NULL, maxdiff);
+                if (ret != DIFF_IMPOSSIBLE && ret != DIFF_AMBIGUOUS) {
                     for (j = 0; j < ncoords; j++)
                         grid[coords[2*j+1]*cr+coords[2*j]] = 0;
                     break;
@@ -1614,21 +1835,14 @@ static char *new_game_desc(game_params *params, random_state *rs,
             if (i == nlocs) {
                 /*
                  * There was nothing we could remove without
-                 * destroying solvability. If we're trying to
-                 * generate a recursion-only grid and haven't
-                 * switched over to rsolve yet, we now do;
-                 * otherwise we give up.
+                 * destroying solvability. Give up.
                  */
-		if (maxdiff == DIFF_RECURSIVE && !recursing) {
-		    recursing = TRUE;
-		} else {
-		    break;
-		}
+                break;
             }
         }
 
         memcpy(grid2, grid, area);
-    } while (nsolve(c, r, grid2) < maxdiff);
+    } while (solver(c, r, grid2, NULL, maxdiff) < maxdiff);
 
     sfree(grid2);
     sfree(locs);
@@ -1791,7 +2005,7 @@ static char *solve_game(game_state *state, game_state *currstate,
     int c = state->c, r = state->r, cr = c*r;
     char *ret;
     digit *grid;
-    int rsolve_ret;
+    int solve_ret;
 
     /*
      * If we already have the solution in ai, save ourselves some
@@ -1802,14 +2016,17 @@ static char *solve_game(game_state *state, game_state *currstate,
 
     grid = snewn(cr*cr, digit);
     memcpy(grid, state->grid, cr*cr);
-    rsolve_ret = rsolve(c, r, grid, NULL, 2);
+    solve_ret = solver(c, r, grid, NULL, DIFF_RECURSIVE);
 
-    if (rsolve_ret != 1) {
+    *error = NULL;
+
+    if (solve_ret == DIFF_IMPOSSIBLE)
+	*error = "No solution exists for this puzzle";
+    else if (solve_ret == DIFF_AMBIGUOUS)
+	*error = "Multiple solutions exist for this puzzle";
+
+    if (*error) {
         sfree(grid);
-        if (rsolve_ret == 0)
-            *error = "No solution exists for this puzzle";
-        else
-            *error = "Multiple solutions exist for this puzzle";
         return NULL;
     }
 
@@ -2468,22 +2685,16 @@ int main(int argc, char **argv)
 {
     game_params *p;
     game_state *s;
-    int recurse = TRUE;
     char *id = NULL, *desc, *err;
     int grade = FALSE;
+    int ret;
 
     while (--argc > 0) {
         char *p = *++argv;
-        if (!strcmp(p, "-r")) {
-            recurse = TRUE;
-        } else if (!strcmp(p, "-n")) {
-            recurse = FALSE;
-        } else if (!strcmp(p, "-v")) {
+        if (!strcmp(p, "-v")) {
             solver_show_working = TRUE;
-            recurse = FALSE;
         } else if (!strcmp(p, "-g")) {
             grade = TRUE;
-            recurse = FALSE;
         } else if (*p == '-') {
             fprintf(stderr, "%s: unrecognised option `%s'\n", argv[0], p);
             return 1;
@@ -2493,7 +2704,7 @@ int main(int argc, char **argv)
     }
 
     if (!id) {
-        fprintf(stderr, "usage: %s [-n | -r | -g | -v] <game_id>\n", argv[0]);
+        fprintf(stderr, "usage: %s [-g | -v] <game_id>\n", argv[0]);
         return 1;
     }
 
@@ -2513,41 +2724,20 @@ int main(int argc, char **argv)
     }
     s = new_game(NULL, p, desc);
 
-    if (recurse) {
-        int ret = rsolve(p->c, p->r, s->grid, NULL, 2);
-        if (ret > 1) {
-            fprintf(stderr, "%s: rsolve: multiple solutions detected\n",
-                    argv[0]);
-        }
+    ret = solver(p->c, p->r, s->grid, NULL, DIFF_RECURSIVE);
+    if (grade) {
+	printf("Difficulty rating: %s\n",
+	       ret==DIFF_BLOCK ? "Trivial (blockwise positional elimination only)":
+	       ret==DIFF_SIMPLE ? "Basic (row/column/number elimination required)":
+	       ret==DIFF_INTERSECT ? "Intermediate (intersectional analysis required)":
+	       ret==DIFF_SET ? "Advanced (set elimination required)":
+	       ret==DIFF_RECURSIVE ? "Unreasonable (guesswork and backtracking required)":
+	       ret==DIFF_AMBIGUOUS ? "Ambiguous (multiple solutions exist)":
+	       ret==DIFF_IMPOSSIBLE ? "Impossible (no solution exists)":
+	       "INTERNAL ERROR: unrecognised difficulty code");
     } else {
-        int ret = nsolve(p->c, p->r, s->grid);
-        if (grade) {
-            if (ret == DIFF_IMPOSSIBLE) {
-                /*
-                 * Now resort to rsolve to determine whether it's
-                 * really soluble.
-                 */
-                ret = rsolve(p->c, p->r, s->grid, NULL, 2);
-                if (ret == 0)
-                    ret = DIFF_IMPOSSIBLE;
-                else if (ret == 1)
-                    ret = DIFF_RECURSIVE;
-                else
-                    ret = DIFF_AMBIGUOUS;
-            }
-            printf("Difficulty rating: %s\n",
-                   ret==DIFF_BLOCK ? "Trivial (blockwise positional elimination only)":
-                   ret==DIFF_SIMPLE ? "Basic (row/column/number elimination required)":
-                   ret==DIFF_INTERSECT ? "Intermediate (intersectional analysis required)":
-                   ret==DIFF_SET ? "Advanced (set elimination required)":
-                   ret==DIFF_RECURSIVE ? "Unreasonable (guesswork and backtracking required)":
-                   ret==DIFF_AMBIGUOUS ? "Ambiguous (multiple solutions exist)":
-                   ret==DIFF_IMPOSSIBLE ? "Impossible (no solution exists)":
-                   "INTERNAL ERROR: unrecognised difficulty code");
-        }
+        printf("%s\n", grid_text_format(p->c, p->r, s->grid));
     }
-
-    printf("%s\n", grid_text_format(p->c, p->r, s->grid));
 
     return 0;
 }
