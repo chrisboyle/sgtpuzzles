@@ -530,9 +530,7 @@ static char *new_game_desc(game_params *params, random_state *rs,
 		  case TYPE_OCTAGON:
 		    cx = abs(x - w/2);
 		    cy = abs(y - h/2);
-		    if (cx == 0 && cy == 0)
-			v = GRID_HOLE;
-		    else if (cx + cy > 1 + max(w,h)/2)
+		    if (cx + cy > 1 + max(w,h)/2)
 			v = GRID_OBST;
 		    else
 			v = GRID_PEG;
@@ -540,6 +538,107 @@ static char *new_game_desc(game_params *params, random_state *rs,
 		}
 		grid[y*w+x] = v;
 	    }
+
+	if (params->type == TYPE_OCTAGON) {
+	    /*
+	     * The octagonal (European) solitaire layout is
+	     * actually _insoluble_ with the starting hole at the
+	     * centre. Here's a proof:
+	     * 
+	     * Colour the squares of the board diagonally in
+	     * stripes of three different colours, which I'll call
+	     * A, B and C. So the board looks like this:
+	     * 
+	     *     A B C
+	     *   A B C A B
+	     * A B C A B C A
+	     * B C A B C A B
+	     * C A B C A B C
+	     *   B C A B C
+	     *     A B C
+	     * 
+	     * Suppose we keep running track of the number of pegs
+	     * occuping each colour of square. This colouring has
+	     * the property that any valid move whatsoever changes
+	     * all three of those counts by one (two of them go
+	     * down and one goes up), which means that the _parity_
+	     * of every count flips on every move.
+	     * 
+	     * If the centre square starts off unoccupied, then
+	     * there are twelve pegs on each colour and all three
+	     * counts start off even; therefore, after 35 moves all
+	     * three counts would have to be odd, which isn't
+	     * possible if there's only one peg left. []
+	     * 
+	     * This proof works just as well if the starting hole
+	     * is _any_ of the thirteen positions labelled B. Also,
+	     * we can stripe the board in the opposite direction
+	     * and rule out any square labelled B in that colouring
+	     * as well. This leaves:
+	     * 
+	     *     Y n Y
+	     *   n n Y n n
+	     * Y n n Y n n Y
+	     * n Y Y n Y Y n
+	     * Y n n Y n n Y
+	     *   n n Y n n
+	     *     Y n Y
+	     * 
+	     * where the ns are squares we've proved insoluble, and
+	     * the Ys are the ones remaining.
+	     * 
+	     * That doesn't prove all those starting positions to
+	     * be soluble, of course; they're merely the ones we
+	     * _haven't_ proved to be impossible. Nevertheless, it
+	     * turns out that they are all soluble, so when the
+	     * user requests an Octagon board the simplest thing is
+	     * to pick one of these at random.
+	     * 
+	     * Rather than picking equiprobably from those twelve
+	     * positions, we'll pick equiprobably from the three
+	     * equivalence classes
+	     */
+	    switch (random_upto(rs, 3)) {
+	      case 0:
+		/* Remove a random corner piece. */
+		{
+		    int dx, dy;
+
+		    dx = random_upto(rs, 2) * 2 - 1;   /* +1 or -1 */
+		    dy = random_upto(rs, 2) * 2 - 1;   /* +1 or -1 */
+		    if (random_upto(rs, 2))
+			dy *= 3;
+		    else
+			dx *= 3;
+		    grid[(3+dy)*w+(3+dx)] = GRID_HOLE;
+		}
+		break;
+	      case 1:
+		/* Remove a random piece two from the centre. */
+		{
+		    int dx, dy;
+		    dx = 2 * (random_upto(rs, 2) * 2 - 1);
+		    if (random_upto(rs, 2))
+			dy = 0;
+		    else
+			dy = dx, dx = 0;
+		    grid[(3+dy)*w+(3+dx)] = GRID_HOLE;
+		}
+		break;
+	      default /* case 2 */:
+		/* Remove a random piece one from the centre. */
+		{
+		    int dx, dy;
+		    dx = random_upto(rs, 2) * 2 - 1;
+		    if (random_upto(rs, 2))
+			dy = 0;
+		    else
+			dy = dx, dx = 0;
+		    grid[(3+dy)*w+(3+dx)] = GRID_HOLE;
+		}
+		break;
+	    }
+	}
     }
 
     /*
