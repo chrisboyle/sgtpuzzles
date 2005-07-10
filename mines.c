@@ -2334,6 +2334,7 @@ static char *game_text_format(game_state *state)
 
 struct game_ui {
     int hx, hy, hradius;	       /* for mouse-down highlights */
+    int validradius;
     int flash_is_death;
     int deaths;
 };
@@ -2342,7 +2343,7 @@ static game_ui *new_ui(game_state *state)
 {
     game_ui *ui = snew(game_ui);
     ui->hx = ui->hy = -1;
-    ui->hradius = 0;
+    ui->hradius = ui->validradius = 0;
     ui->deaths = 0;
     ui->flash_is_death = FALSE;	       /* *shrug* */
     return ui;
@@ -2416,6 +2417,10 @@ static char *interpret_move(game_state *from, game_ui *ui, game_drawstate *ds,
 	ui->hx = cx;
 	ui->hy = cy;
 	ui->hradius = (from->grid[cy*from->w+cx] >= 0 ? 1 : 0);
+	if (button == LEFT_BUTTON)
+	    ui->validradius = ui->hradius;
+	else if (button == MIDDLE_BUTTON)
+	    ui->validradius = 1;
 	return "";
     }
 
@@ -2456,7 +2461,8 @@ static char *interpret_move(game_state *from, game_ui *ui, game_drawstate *ds,
 	 */
 	if (button == LEFT_RELEASE &&
 	    (from->grid[cy * from->w + cx] == -2 ||
-	     from->grid[cy * from->w + cx] == -3)) {
+	     from->grid[cy * from->w + cx] == -3) &&
+	    ui->validradius == 0) {
 	    /* Check if you've killed yourself. */
 	    if (from->layout->mines && from->layout->mines[cy * from->w + cx])
 		ui->deaths++;
@@ -2471,7 +2477,7 @@ static char *interpret_move(game_state *from, game_ui *ui, game_drawstate *ds,
 	 * surrounding the tile is equal to its mine count, and if
 	 * so then we open all other surrounding squares.
 	 */
-	if (from->grid[cy * from->w + cx] > 0) {
+	if (from->grid[cy * from->w + cx] > 0 && ui->validradius == 1) {
 	    int dy, dx, n;
 
 	    /* Count mine markers. */
