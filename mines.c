@@ -2336,7 +2336,7 @@ struct game_ui {
     int hx, hy, hradius;	       /* for mouse-down highlights */
     int validradius;
     int flash_is_death;
-    int deaths;
+    int deaths, completed;
 };
 
 static game_ui *new_ui(game_state *state)
@@ -2345,6 +2345,7 @@ static game_ui *new_ui(game_state *state)
     ui->hx = ui->hy = -1;
     ui->hradius = ui->validradius = 0;
     ui->deaths = 0;
+    ui->completed = FALSE;
     ui->flash_is_death = FALSE;	       /* *shrug* */
     return ui;
 }
@@ -2358,20 +2359,28 @@ static char *encode_ui(game_ui *ui)
 {
     char buf[80];
     /*
-     * The deaths counter needs preserving across a serialisation.
+     * The deaths counter and completion status need preserving
+     * across a serialisation.
      */
     sprintf(buf, "D%d", ui->deaths);
+    if (ui->completed)
+	strcat(buf, "C");
     return dupstr(buf);
 }
 
 static void decode_ui(game_ui *ui, char *encoding)
 {
-    sscanf(encoding, "D%d", &ui->deaths);
+    int p;
+    sscanf(encoding, "D%d%n", &ui->deaths, &p);
+    if (encoding[p] == 'C')
+	ui->completed = TRUE;
 }
 
 static void game_changed_state(game_ui *ui, game_state *oldstate,
                                game_state *newstate)
 {
+    if (newstate->won)
+	ui->completed = TRUE;
 }
 
 struct game_drawstate {
@@ -3015,9 +3024,9 @@ static int game_wants_statusbar(void)
     return TRUE;
 }
 
-static int game_timing_state(game_state *state)
+static int game_timing_state(game_state *state, game_ui *ui)
 {
-    if (state->dead || state->won || !state->layout->mines)
+    if (state->dead || state->won || ui->completed || !state->layout->mines)
 	return FALSE;
     return TRUE;
 }

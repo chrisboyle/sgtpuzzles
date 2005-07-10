@@ -305,7 +305,7 @@ struct game {
 			  game_ui *ui);
     int (*wants_statusbar)(void);
     int is_timed;
-    int (*timing_state)(game_state *state);
+    int (*timing_state)(game_state *state, game_ui *ui);
     int mouse_priorities;
 };
 

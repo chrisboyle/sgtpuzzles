@@ -1159,7 +1159,7 @@ static int game_wants_statusbar(void)
     return FALSE;
 }
 
-static int game_timing_state(game_state *state)
+static int game_timing_state(game_state *state, game_ui *ui)
 {
     return TRUE;
 }

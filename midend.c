@@ -237,7 +237,8 @@ void midend_set_params(midend_data *me, game_params *params)
 static void midend_set_timer(midend_data *me)
 {
     me->timing = (me->ourgame->is_timed &&
-		  me->ourgame->timing_state(me->states[me->statepos-1].state));
+		  me->ourgame->timing_state(me->states[me->statepos-1].state,
+					    me->ui));
     if (me->timing || me->flash_time || me->anim_time)
 	activate_timer(me->frontend);
     else
@@ -311,10 +312,10 @@ void midend_new_game(midend_data *me)
     me->drawstate = me->ourgame->new_drawstate(me->states[0].state);
     midend_size_new_drawstate(me);
     me->elapsed = 0.0F;
-    midend_set_timer(me);
     if (me->ui)
         me->ourgame->free_ui(me->ui);
     me->ui = me->ourgame->new_ui(me->states[0].state);
+    midend_set_timer(me);
     me->pressed_mouse_button = 0;
 }
 
