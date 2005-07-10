@@ -429,6 +429,14 @@ static void game_changed_state(game_ui *ui, game_state *oldstate,
                                game_state *newstate)
 {
     sel_clear(ui, newstate);
+
+    /*
+     * If the game state has just changed into an unplayable one
+     * (either completed or impossible), we vanish the keyboard-
+     * control cursor.
+     */
+    if (newstate->complete || newstate->impossible)
+	ui->displaysel = 0;
 }
 
 static char *sel_movedesc(game_ui *ui, game_state *state)
@@ -588,8 +596,6 @@ struct game_drawstate {
     int *tiles; /* contains colour and SELECTED. */
 };
 
-static game_state *execute_move(game_state *from, char *move);
-
 static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
 			    int x, int y, int button)
 {
@@ -624,22 +630,8 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
     if (ISSEL(ui,tx,ty)) {
 	if (button == RIGHT_BUTTON)
 	    sel_clear(ui, state);
-	else {
-	    game_state *tmp;
-
+	else
 	    ret = sel_movedesc(ui, state);
-
-	    /*
-	     * Unfortunately, we must check for completeness or
-	     * impossibility now, in order to update the game_ui;
-	     * and we can't do that without constructing the new
-	     * grid. Sigh.
-	     */
-	    tmp = execute_move(state, ret);
-	    if (tmp->complete || tmp->impossible)
-		ui->displaysel = 0;
-	    free_game(tmp);
-	}
     } else {
 	sel_clear(ui, state); /* might be no-op */
 	sel_expand(ui, state, tx, ty);
