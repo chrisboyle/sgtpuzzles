@@ -13,8 +13,8 @@
 #     print.py <game-name> <format>
 #
 # <game-name> is one of `rect', `rectangles', `pattern', `solo',
-# `net'. <format> is two numbers separated by an x: `2x3', for
-# example, means two columns by three rows.
+# `net', `dominosa'. <format> is two numbers separated by an x:
+# `2x3', for example, means two columns by three rows.
 #
 # The program will then read game IDs from stdin until it sees EOF,
 # and generate as many PostScript pages on stdout as it needs.
@@ -333,12 +333,45 @@ def solo_format(s):
 		((x+0.5)*gridpitch, (cr-y-0.5)*gridpitch, s))
     return ret.coords, ret.s
 
+def dominosa_format(s):
+    ret = Holder()
+    ret.s = ""
+    params, seed = string.split(s, ":")
+    n = string.atoi(params)
+    w = n+2
+    h = n+1
+    grid = []
+    while len(seed) > 0:
+        if seed[0] == '[': # XXX
+            d, seed = string.split(seed[1:], "]")
+            grid.append(string.atoi(d))
+        else:
+            assert seed[0] in string.digits
+            grid.append(string.atoi(seed[0:1]))
+            seed = seed[1:]
+    assert w*h == len(grid)
+    # I'm going to arbitrarily choose to use 9pt text for the
+    # numbers, and a 16pt grid pitch.
+    textht = 9
+    gridpitch = 16
+    pw = gridpitch * w
+    ph = gridpitch * h
+    psprint(ret, "/Helvetica findfont %g scalefont setfont" % textht)
+    ret.coords = (pw/2, pw/2, ph/2, ph/2)
+    psprint(ret, "%g %g translate" % (-ret.coords[0], -ret.coords[2]))
+    for y in xrange(h):
+        for x in xrange(w):
+            psprint(ret, "%g %g (%d) ctshow" % \
+                ((x+0.5)*gridpitch, (h-y-0.5)*gridpitch, grid[y*w+x]))
+    return ret.coords, ret.s
+
 formatters = {
 "net": net_format,
 "rect": rect_format,
 "rectangles": rect_format,
 "pattern": pattern_format,
-"solo": solo_format
+"solo": solo_format,
+"dominosa": dominosa_format
 }
 
 if len(sys.argv) < 3:
