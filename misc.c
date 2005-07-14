@@ -196,4 +196,20 @@ void game_mkhighlight(frontend *fe, float *ret,
     }
 }
 
+void shuffle(void *array, int nelts, int eltsize, random_state *rs)
+{
+    char *tmp = smalloc(eltsize);
+    char *carray = (char *)array;
+    int i;
+
+    for (i = nelts; i-- > 1 ;) {
+        int j = random_upto(rs, i+1);
+        if (j != i) {
+            memcpy(tmp, carray + eltsize * i, eltsize);
+            memcpy(carray + eltsize * i, carray + eltsize * j, eltsize);
+            memcpy(carray + eltsize * j, tmp, eltsize);
+        }
+    }
+}
+
 /* vim: set shiftwidth=4 tabstop=8: */

@@ -223,6 +223,9 @@ unsigned char *hex2bin(const char *in, int outlen);
 void game_mkhighlight(frontend *fe, float *ret,
                       int background, int highlight, int lowlight);
 
+/* Randomly shuffles an array of items. */
+void shuffle(void *array, int nelts, int eltsize, random_state *rs);
+
 /*
  * version.c
  */
