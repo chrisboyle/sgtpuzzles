@@ -18,6 +18,7 @@ echo -e '};\n\nconst int gamecount = lenof(gamelist);'
  */
 
 extern const game cube;
+extern const game dominosa;
 extern const game fifteen;
 extern const game flip;
 extern const game guess;
@@ -34,6 +35,7 @@ extern const game twiddle;
 
 const game *gamelist[] = {
     &cube,
+    &dominosa,
     &fifteen,
     &flip,
     &guess,

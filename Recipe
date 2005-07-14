@@ -22,7 +22,7 @@ FLIP     = flip tree234
 PEGS     = pegs tree234
 
 ALL      = list NET NETSLIDE cube fifteen sixteen rect pattern solo twiddle
-         + MINES samegame FLIP guess PEGS
+         + MINES samegame FLIP guess PEGS dominosa
 
 net      : [X] gtk COMMON NET
 netslide : [X] gtk COMMON NETSLIDE
@@ -38,6 +38,7 @@ samegame : [X] gtk COMMON samegame
 flip     : [X] gtk COMMON FLIP
 guess    : [X] gtk COMMON guess
 pegs     : [X] gtk COMMON PEGS
+dominosa : [X] gtk COMMON dominosa
 
 # Auxiliary command-line programs.
 solosolver :    [U] solo[STANDALONE_SOLVER] malloc
@@ -64,6 +65,7 @@ samegame : [G] WINDOWS COMMON samegame
 flip     : [G] WINDOWS COMMON FLIP
 guess    : [G] WINDOWS COMMON guess
 pegs     : [G] WINDOWS COMMON PEGS
+dominosa : [G] WINDOWS COMMON dominosa
 
 # Mac OS X unified application containing all the puzzles.
 Puzzles  : [MX] osx osx.icns osx-info.plist COMMON ALL
@@ -155,7 +157,7 @@ FORCE:
 install:
 	for i in cube net netslide fifteen sixteen twiddle \
 	         pattern rect solo mines samegame flip guess \
-		 pegs; do \
+		 pegs dominosa; do \
 		$(INSTALL_PROGRAM) -m 755 $$i $(DESTDIR)$(gamesdir)/$$i; \
 	done
 !end
