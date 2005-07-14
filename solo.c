@@ -843,7 +843,7 @@ static void solver_free_scratch(struct solver_scratch *scratch)
     sfree(scratch);
 }
 
-static int solver(int c, int r, digit *grid, random_state *rs, int maxdiff)
+static int solver(int c, int r, digit *grid, int maxdiff)
 {
     struct solver_usage *usage;
     struct solver_scratch *scratch;
@@ -1119,11 +1119,10 @@ static int solver(int c, int r, digit *grid, random_state *rs, int maxdiff)
      * possible.
      */
     if (maxdiff >= DIFF_RECURSIVE) {
-	int best, bestcount, bestnumber;
+	int best, bestcount;
 
 	best = -1;
 	bestcount = cr+1;
-	bestnumber = 0;
 
 	for (y = 0; y < cr; y++)
 	    for (x = 0; x < cr; x++)
@@ -1147,14 +1146,7 @@ static int solver(int c, int r, digit *grid, random_state *rs, int maxdiff)
 
 		    if (count < bestcount) {
 			bestcount = count;
-			bestnumber = 0;
-		    }
-
-		    if (count == bestcount) {
-			bestnumber++;
-			if (bestnumber == 1 ||
-			    (rs && random_upto(rs, bestnumber) == 0))
-			    best = y*cr+x;
+			best = y*cr+x;
 		    }
 		}
 
@@ -1193,18 +1185,6 @@ static int solver(int c, int r, digit *grid, random_state *rs, int maxdiff)
 	    }
 #endif
 
-	    /* Now shuffle the list. */
-	    if (rs) {
-		for (i = j; i > 1; i--) {
-		    int p = random_upto(rs, i);
-		    if (p != i-1) {
-			int t = list[p];
-			list[p] = list[i-1];
-			list[i-1] = t;
-		    }
-		}
-	    }
-
 	    /*
 	     * And step along the list, recursing back into the
 	     * main solver at every stage.
@@ -1222,7 +1202,7 @@ static int solver(int c, int r, digit *grid, random_state *rs, int maxdiff)
 		solver_recurse_depth++;
 #endif
 
-		ret = solver(c, r, outgrid, rs, maxdiff);
+		ret = solver(c, r, outgrid, maxdiff);
 
 #ifdef STANDALONE_SOLVER
 		solver_recurse_depth--;
@@ -1421,17 +1401,8 @@ static int gridgen_real(struct gridgen_usage *usage, digit *grid)
 	    digits[j++] = n+1;
 	}
 
-    if (usage->rs) {
-	/* shuffle */
-	for (i = j; i > 1; i--) {
-	    int p = random_upto(usage->rs, i);
-	    if (p != i-1) {
-		int t = digits[p];
-		digits[p] = digits[i-1];
-		digits[i-1] = t;
-	    }
-	}
-    }
+    if (usage->rs)
+	shuffle(digits, j, sizeof(*digits), usage->rs);
 
     /* And finally, go through the digit list and actually recurse. */
     ret = FALSE;
@@ -1798,14 +1769,7 @@ static char *new_game_desc(game_params *params, random_state *rs,
             /*
              * Now shuffle that list.
              */
-            for (i = nlocs; i > 1; i--) {
-                int p = random_upto(rs, i);
-                if (p != i-1) {
-                    struct xy t = locs[p];
-                    locs[p] = locs[i-1];
-                    locs[i-1] = t;
-                }
-            }
+	    shuffle(locs, nlocs, sizeof(*locs), rs);
 
             /*
              * Now loop over the shuffled list and, for each element,
@@ -1824,7 +1788,7 @@ static char *new_game_desc(game_params *params, random_state *rs,
                 for (j = 0; j < ncoords; j++)
                     grid2[coords[2*j+1]*cr+coords[2*j]] = 0;
 
-		ret = solver(c, r, grid2, NULL, maxdiff);
+		ret = solver(c, r, grid2, maxdiff);
                 if (ret != DIFF_IMPOSSIBLE && ret != DIFF_AMBIGUOUS) {
                     for (j = 0; j < ncoords; j++)
                         grid[coords[2*j+1]*cr+coords[2*j]] = 0;
@@ -1842,7 +1806,7 @@ static char *new_game_desc(game_params *params, random_state *rs,
         }
 
         memcpy(grid2, grid, area);
-    } while (solver(c, r, grid2, NULL, maxdiff) < maxdiff);
+    } while (solver(c, r, grid2, maxdiff) < maxdiff);
 
     sfree(grid2);
     sfree(locs);
@@ -2016,7 +1980,7 @@ static char *solve_game(game_state *state, game_state *currstate,
 
     grid = snewn(cr*cr, digit);
     memcpy(grid, state->grid, cr*cr);
-    solve_ret = solver(c, r, grid, NULL, DIFF_RECURSIVE);
+    solve_ret = solver(c, r, grid, DIFF_RECURSIVE);
 
     *error = NULL;
 
@@ -2666,6 +2630,8 @@ unsigned long random_bits(random_state *state, int bits)
 { assert(!"Shouldn't get randomness"); return 0; }
 unsigned long random_upto(random_state *state, unsigned long limit)
 { assert(!"Shouldn't get randomness"); return 0; }
+void shuffle(void *array, int nelts, int eltsize, random_state *rs)
+{ assert(!"Shouldn't get randomness"); }
 
 void fatal(char *fmt, ...)
 {
@@ -2724,7 +2690,7 @@ int main(int argc, char **argv)
     }
     s = new_game(NULL, p, desc);
 
-    ret = solver(p->c, p->r, s->grid, NULL, DIFF_RECURSIVE);
+    ret = solver(p->c, p->r, s->grid, DIFF_RECURSIVE);
     if (grade) {
 	printf("Difficulty rating: %s\n",
 	       ret==DIFF_BLOCK ? "Trivial (blockwise positional elimination only)":
