@@ -9,8 +9,34 @@
  * 
  *  - improve solver so as to use more interesting forms of
  *    deduction
- *     * odd area
+ *
+ *     * rule out a domino placement if it would divide an unfilled
+ *       region such that at least one resulting region had an odd
+ *       area
+ *        + use b.f.s. to determine the area of an unfilled region
+ *        + a square is unfilled iff it has at least two possible
+ *          placements, and two adjacent unfilled squares are part
+ *          of the same region iff the domino placement joining
+ *          them is possible
+ *
  *     * perhaps set analysis
+ *        + look at all unclaimed squares containing a given number
+ *        + for each one, find the set of possible numbers that it
+ *          can connect to (i.e. each neighbouring tile such that
+ *          the placement between it and that neighbour has not yet
+ *          been ruled out)
+ *        + now proceed similarly to Solo set analysis: try to find
+ *          a subset of the squares such that the union of their
+ *          possible numbers is the same size as the subset. If so,
+ *          rule out those possible numbers for all other squares.
+ *           * important wrinkle: the double dominoes complicate
+ *             matters. Connecting a number to itself uses up _two_
+ *             of the unclaimed squares containing a number. Thus,
+ *             when finding the initial subset we must never
+ *             include two adjacent squares; and also, when ruling
+ *             things out after finding the subset, we must be
+ *             careful that we don't rule out precisely the domino
+ *             placement that was _included_ in our set!
  */
 
 #include <stdio.h>
@@ -530,6 +556,35 @@ static char *new_game_desc(game_params *params, random_state *rs,
     grid2 = snewn(wh, int);
     list = snewn(2*wh, int);
 
+    /*
+     * I haven't been able to think of any particularly clever
+     * techniques for generating instances of Dominosa with a
+     * unique solution. Many of the deductions used in this puzzle
+     * are based on information involving half the grid at a time
+     * (`of all the 6s, exactly one is next to a 3'), so a strategy
+     * of partially solving the grid and then perturbing the place
+     * where the solver got stuck seems particularly likely to
+     * accidentally destroy the information which the solver had
+     * used in getting that far. (Contrast with, say, Mines, in
+     * which most deductions are local so this is an excellent
+     * strategy.)
+     *
+     * Therefore I resort to the basest of brute force methods:
+     * generate a random grid, see if it's solvable, throw it away
+     * and try again if not. My only concession to sophistication
+     * and cleverness is to at least _try_ not to generate obvious
+     * 2x2 ambiguous sections (see comment below in the domino-
+     * flipping section).
+     *
+     * During tests performed on 2005-07-15, I found that the brute
+     * force approach without that tweak had to throw away about 87
+     * grids on average (at the default n=6) before finding a
+     * unique one, or a staggering 379 at n=9; good job the
+     * generator and solver are fast! When I added the
+     * ambiguous-section avoidance, those numbers came down to 19
+     * and 26 respectively, which is a lot more sensible.
+     */
+
     do {
         /*
          * To begin with, set grid[i] = i for all i to indicate
@@ -783,7 +838,61 @@ static char *new_game_desc(game_params *params, random_state *rs,
         for (i = 0; i < wh; i++)
             if (grid[i] > i) {
                 /* Optionally flip the domino round. */
-                int flip = random_upto(rs, 2);
+                int flip = -1;
+
+                if (params->unique) {
+                    int t1, t2;
+                    /*
+                     * If we're after a unique solution, we can do
+                     * something here to improve the chances. If
+                     * we're placing a domino so that it forms a
+                     * 2x2 rectangle with one we've already placed,
+                     * and if that domino and this one share a
+                     * number, we can try not to put them so that
+                     * the identical numbers are diagonally
+                     * separated, because that automatically causes
+                     * non-uniqueness:
+                     * 
+                     * +---+      +-+-+
+                     * |2 3|      |2|3|
+                     * +---+  ->  | | |
+                     * |4 2|      |4|2|
+                     * +---+      +-+-+
+                     */
+                    t1 = i;
+                    t2 = grid[i];
+                    if (t2 == t1 + w) {  /* this domino is vertical */
+                        if (t1 % w > 0 &&/* and not on the left hand edge */
+                            grid[t1-1] == t2-1 &&/* alongside one to left */
+                            (grid2[t1-1] == list[j] ||   /* and has a number */
+                             grid2[t1-1] == list[j+1] ||   /* in common */
+                             grid2[t2-1] == list[j] ||
+                             grid2[t2-1] == list[j+1])) {
+                            if (grid2[t1-1] == list[j] ||
+                                grid2[t2-1] == list[j+1])
+                                flip = 0;
+                            else
+                                flip = 1;
+                        }
+                    } else {           /* this domino is horizontal */
+                        if (t1 / w > 0 &&/* and not on the top edge */
+                            grid[t1-w] == t2-w &&/* alongside one above */
+                            (grid2[t1-w] == list[j] ||   /* and has a number */
+                             grid2[t1-w] == list[j+1] ||   /* in common */
+                             grid2[t2-w] == list[j] ||
+                             grid2[t2-w] == list[j+1])) {
+                            if (grid2[t1-w] == list[j] ||
+                                grid2[t2-w] == list[j+1])
+                                flip = 0;
+                            else
+                                flip = 1;
+                        }
+                    }
+                }
+
+                if (flip < 0)
+                    flip = random_upto(rs, 2);
+
                 grid2[i] = list[j + flip];
                 grid2[grid[i]] = list[j + 1 - flip];
                 j += 2;
