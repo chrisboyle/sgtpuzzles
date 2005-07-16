@@ -432,7 +432,7 @@ static int midend_really_process_key(midend_data *me, int x, int y, int button)
 {
     game_state *oldstate =
         me->ourgame->dup_game(me->states[me->statepos - 1].state);
-    int special = FALSE, gotspecial = FALSE, ret = 1;
+    int type = MOVE, gottype = FALSE, ret = 1;
     float anim_time;
     game_state *s;
     char *movestr;
@@ -450,8 +450,8 @@ static int midend_really_process_key(midend_data *me, int x, int y, int button)
 	} else if (button == 'u' || button == 'u' ||
 		   button == '\x1A' || button == '\x1F') {
 	    midend_stop_anim(me);
-	    special = special(me->states[me->statepos-1].movetype);
-	    gotspecial = TRUE;
+	    type = me->states[me->statepos-1].movetype;
+	    gottype = TRUE;
 	    if (!midend_undo(me))
 		goto done;
 	} else if (button == 'r' || button == 'R' ||
@@ -501,13 +501,14 @@ static int midend_really_process_key(midend_data *me, int x, int y, int button)
         }
     }
 
-    if (!gotspecial)
-        special = special(me->states[me->statepos-1].movetype);
+    if (!gottype)
+        type = me->states[me->statepos-1].movetype;
 
     /*
      * See if this move requires an animation.
      */
-    if (special) {
+    if (special(type) && !(type == SOLVE &&
+			   (me->ourgame->mouse_priorities & SOLVE_ANIMATES))) {
         anim_time = 0;
     } else {
         anim_time = me->ourgame->anim_length(oldstate,
@@ -1117,8 +1118,17 @@ char *midend_solve(midend_data *me)
         me->ourgame->changed_state(me->ui,
                                    me->states[me->statepos-2].state,
                                    me->states[me->statepos-1].state);
-    me->anim_time = 0.0;
-    midend_finish_move(me);
+    me->dir = +1;
+    if (me->ourgame->mouse_priorities & SOLVE_ANIMATES) {
+	me->oldstate = me->ourgame->dup_game(me->states[me->statepos-2].state);
+        me->anim_time =
+	    me->ourgame->anim_length(me->states[me->statepos-2].state,
+				     me->states[me->statepos-1].state,
+				     +1, me->ui);
+    } else {
+	me->anim_time = 0.0;
+	midend_finish_move(me);
+    }
     midend_redraw(me);
     midend_set_timer(me);
     return NULL;

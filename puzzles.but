@@ -1243,6 +1243,37 @@ additional challenge for an advanced player. Turning off this option
 can also speed up puzzle generation.
 
 
+\C{untangle} \i{Untangle}
+
+\cfg{winhelp-topic}{games.untangle}
+
+You are given a number of points, some of which have lines drawn
+between them. You can move the points about arbitrarily; your aim is
+to position the points so that no line crosses another.
+
+I originally saw this in the form of a Flash game called \i{Planarity}
+\k{Planarity}, written by John Tantalo.
+
+\B{Planarity} \W{http://home.cwru.edu/~jnt5/Planarity}\cw{http://home.cwru.edu/~jnt5/Planarity}
+
+\H{untangle-controls} \i{Untangle controls}
+
+\IM{Untangle controls} controls, for Untangle
+
+To move a point, click on it with the left mouse button and drag it
+into a new position.
+
+\H{untangle-parameters} \I{parameters, for Untangle}Untangle parameters
+
+There is only one parameter available from the \q{Custom...} option
+on the \q{Type} menu:
+
+\dt \e{Number of points}
+
+\dd Controls the size of the puzzle, by specifying the number of
+points in the generated graph.
+
+
 \A{licence} \I{MIT licence}\ii{Licence}
 
 This software is \i{copyright} 2004-2005 Simon Tatham.

@@ -32,6 +32,7 @@ extern const game samegame;
 extern const game sixteen;
 extern const game solo;
 extern const game twiddle;
+extern const game untangle;
 
 const game *gamelist[] = {
     &cube,
@@ -49,6 +50,7 @@ const game *gamelist[] = {
     &sixteen,
     &solo,
     &twiddle,
+    &untangle,
 };
 
 const int gamecount = lenof(gamelist);

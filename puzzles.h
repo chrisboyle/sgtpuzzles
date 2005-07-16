@@ -62,6 +62,10 @@ enum {
 /* Bit flags indicating mouse button priorities */
 #define BUTTON_BEATS(x,y) ( 1 << (((x)-LEFT_BUTTON)*3+(y)-LEFT_BUTTON) )
 
+/* Another random flag that goes in the mouse priorities section for want
+ * of a better place to put it */
+#define SOLVE_ANIMATES ( 1 << 9 )
+
 #define IGNOREARG(x) ( (x) = (x) )
 
 typedef struct frontend frontend;
