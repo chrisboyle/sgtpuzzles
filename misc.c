@@ -210,6 +210,7 @@ void shuffle(void *array, int nelts, int eltsize, random_state *rs)
             memcpy(carray + eltsize * j, tmp, eltsize);
         }
     }
+    sfree(tmp);
 }
 
 /* vim: set shiftwidth=4 tabstop=8: */

@@ -1093,6 +1093,7 @@ static game_state *dup_game(game_state *state)
 static void free_game(game_state *state)
 {
     sfree(state->grid);
+    sfree(state->edges);
     if (--state->numbers->refcount <= 0) {
         sfree(state->numbers->numbers);
         sfree(state->numbers);
@@ -1154,7 +1155,7 @@ static char *solve_game(game_state *state, game_state *currstate,
 		    int p2 = (i & 1) ? p1+1 : p1+w;
 
 		    extra = sprintf(buf, ";%c%d,%d",
-				    v==-1 ? 'E' : 'D', p1, p2);
+				    (int)(v==-1 ? 'E' : 'D'), p1, p2);
 
 		    if (retlen + extra + 1 >= retsize) {
 			retsize = retlen + extra + 256;
@@ -1257,7 +1258,7 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
             (state->grid[d1] != d1 || state->grid[d2] != d2))
             return NULL;
 
-        sprintf(buf, "%c%d,%d", button == RIGHT_BUTTON ? 'E' : 'D', d1, d2);
+        sprintf(buf, "%c%d,%d", (int)(button == RIGHT_BUTTON ? 'E' : 'D'), d1, d2);
         return dupstr(buf);
     }
 
