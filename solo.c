@@ -327,6 +327,8 @@ static char *validate_params(game_params *params, int full)
 	return "Both dimensions must be at least 2";
     if (params->c > ORDER_MAX || params->r > ORDER_MAX)
 	return "Dimensions greater than "STR(ORDER_MAX)" are not supported";
+    if ((params->c * params->r) > 36)
+        return "Unable to support more than 36 distinct symbols in a puzzle";
     return NULL;
 }
 
