@@ -1274,6 +1274,139 @@ on the \q{Type} menu:
 points in the generated graph.
 
 
+\C{blackbox} \i{Black Box}
+
+\cfg{winhelp-topic}{games.blackbox}
+
+A number of balls are hidden in a rectangular arena. You have to 
+deduce the positions of the balls by firing lasers from positions
+on the edge of the arena and observing how they are deflected. 
+
+Lasers will fire straight until they hit the opposite side of the
+arena (at which point they emerge), unless affected by balls in one of
+the following ways:
+
+\b A laser that hits a ball head-on is absorbed and will never re-emerge.
+   This includes lasers that meet a ball on the first rank of the arena.
+
+\b A laser with a ball to its front-left square gets deflected 90 degrees
+   to the right.
+
+\b A laser with a ball to its front-right square gets similarly deflected 
+   to the left. 
+
+\b A laser that would re-emerge from the entry location is considered to be
+   'reflected'. 
+
+\b A laser which would get deflected down the laser firing range is also
+   considered to be 'reflected'; this means that a ball to the front-left
+   or front-right of a laser's entry point will reflect the laser. 
+
+Lasers that are reflected appear as a 'R'; lasers that hit balls
+dead-on appear as 'H'. Otherwise, a number appears at the firing point
+and the location where the laser emerges (this number is unique to
+that shot).
+
+You can place guesses as to the location of the balls, based on the
+entry and exit patterns of the lasers; once you have placed enough
+balls a button appears enabling you to have your guesses checked. 
+
+Here is a diagram showing how the positions of balls can create each
+of the laser behaviours shown above:
+
+\c  1RHR---- 
+\c |..O.O...|
+\c 2........3
+\c |........|
+\c |........|
+\c 3........|
+\c |......O.|
+\c H........|
+\c |.....O..|
+\c  12-RH---
+
+As shown, it is possible for a ball to receive multiple reflections
+before re-emerging (see turn 3). Similarly, a ball may be reflected
+(possibly more than once) before receiving a hit (the 'H' on the
+left side of the example).
+
+Note that any layout with more that 4 balls may have a non-unique
+solution.  The following diagram illustrates this; if you know the
+board contains 5 balls, it is impossible to determine where the fifth
+ball is (possible positions marked with an x):
+
+\c  -------- 
+\c |........|
+\c |........|
+\c |..O..O..|
+\c |...xx...|
+\c |...xx...|
+\c |..O..O..|
+\c |........|
+\c |........|
+\c  --------
+
+For this reason when you have your guesses checked the game will
+check that your solution \e{produces the same results} as the
+computer's, rather than that your solution is identical to the
+computer's. So in the above example, you could put the fifth ball at
+\e{any} of the locations marked with an x, and you would still win.
+
+Black Box was contributed to this collection by James Harvey.
+
+\H{blackbox-controls} \i{Black Box controls}
+
+\IM{Black Box controls}controls, for Black Box
+
+To fire a laser, left-click in a square around the side of the arena.
+The results will be displayed immediately. Lasers may not be fired
+twice (because the results will never change). Holding down the left
+button will highlight the current go (or a previous go) to confirm the
+exit point for that laser, if applicable.
+
+To guess the location of a ball, left-click within the arena and a
+black circle will appear marking the guess; to remove the guessed ball
+click again. 
+
+Locations in the arena may be locked against modification by
+right-clicking; whole rows and columns may be similarly locked by
+right-clicking in the laser firing range above/below that column, or
+to the left/right of that row.  
+
+When an appropriate number of balls have been guessed a button will
+appear at the top-right corner of the grid; clicking that will mark
+your guesses. 
+
+Once marked, correctly-placed balls are displayed as filled black
+circles.  Incorrectly-placed balls are displayed as filled black
+circles with red crosses, and missing balls are filled red circles.
+In addition, a red circle marks any laser you had already fired
+which is not consistent with your ball layout, and red text marks
+any laser you \e{could} have fired in order to distinguish your ball
+layout from the right one.
+
+(All the actions described in \k{common-actions} are also available.)
+
+\H{blackbox-parameters} \I{parameters, for Black Box}Black Box parameters
+
+These parameters are available from the \q{Custom...} option on the
+\q{Type} menu.
+
+\dt \e{Width}, \e{Height}
+
+\dd Size of grid in squares. There are 2 * \e{Width} * \e{Height} lasers 
+per grid, two per row and two per column. 
+
+\dt \e{No. of balls}
+
+\dd Number of balls to place in the grid. This can be a single number,
+or a range (separated with a hyphen, like '2-6'), and determines the
+number of balls to place on the grid. The 'reveal' button is only
+enabled if you have guessed an appropriate number of balls; a guess
+using a different number to the original solution is still acceptable,
+if all the laser inputs and outputs match.
+
+
 \A{licence} \I{MIT licence}\ii{Licence}
 
 This software is \i{copyright} 2004-2005 Simon Tatham.

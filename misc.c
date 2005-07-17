@@ -147,8 +147,6 @@ unsigned char *hex2bin(const char *in, int outlen)
     unsigned char *ret = snewn(outlen, unsigned char);
     int i;
 
-    debug(("hex2bin: in '%s'", in));
-
     memset(ret, 0, outlen*sizeof(unsigned char));
     for (i = 0; i < outlen*2; i++) {
         int c = in[i];
@@ -211,6 +209,16 @@ void shuffle(void *array, int nelts, int eltsize, random_state *rs)
         }
     }
     sfree(tmp);
+}
+
+void draw_rect_outline(frontend *fe, int x, int y, int w, int h, int colour)
+{
+    int x0 = x, x1 = x+w-1, y0 = y, y1 = y+h-1;
+
+    draw_line(fe, x0, y0, x0, y1, colour);
+    draw_line(fe, x0, y1, x1, y1, colour);
+    draw_line(fe, x1, y1, x1, y0, colour);
+    draw_line(fe, x1, y0, x0, y0, colour);
 }
 
 /* vim: set shiftwidth=4 tabstop=8: */

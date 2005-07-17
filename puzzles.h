@@ -230,6 +230,10 @@ void game_mkhighlight(frontend *fe, float *ret,
 /* Randomly shuffles an array of items. */
 void shuffle(void *array, int nelts, int eltsize, random_state *rs);
 
+/* Draw a rectangle outline, using the frontend's draw_line. */
+void draw_rect_outline(frontend *fe, int x, int y, int w, int h,
+                       int colour);
+
 /*
  * version.c
  */
