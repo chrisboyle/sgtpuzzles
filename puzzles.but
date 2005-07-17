@@ -1298,9 +1298,9 @@ the following ways:
 \b A laser that would re-emerge from the entry location is considered to be
    \q{reflected}. 
 
-\b A laser which would get deflected down the laser firing range is also
-   considered to be \q{reflected}; this means that a ball to the front-left
-   or front-right of a laser's entry point will reflect the laser. 
+\b A laser which would get deflected before entering the arena (down the
+   \q{firing range}) by a ball to the front-left or front-right of its
+   entry point is also considered to be \q{reflected}.
 
 Lasers that are reflected appear as a \q{R}; lasers that hit balls
 dead-on appear as \q{H}. Otherwise, a number appears at the firing point
@@ -1374,7 +1374,7 @@ right-clicking in the laser firing range above/below that column, or
 to the left/right of that row.  
 
 When an appropriate number of balls have been guessed a button will
-appear at the top-right corner of the grid; clicking that will mark
+appear at the top-left corner of the grid; clicking that will mark
 your guesses. 
 
 Once marked, correctly-placed balls are displayed as filled black
