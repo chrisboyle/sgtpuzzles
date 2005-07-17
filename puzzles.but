@@ -1296,14 +1296,14 @@ the following ways:
    to the left. 
 
 \b A laser that would re-emerge from the entry location is considered to be
-   'reflected'. 
+   \q{reflected}. 
 
 \b A laser which would get deflected down the laser firing range is also
-   considered to be 'reflected'; this means that a ball to the front-left
+   considered to be \q{reflected}; this means that a ball to the front-left
    or front-right of a laser's entry point will reflect the laser. 
 
-Lasers that are reflected appear as a 'R'; lasers that hit balls
-dead-on appear as 'H'. Otherwise, a number appears at the firing point
+Lasers that are reflected appear as a \q{R}; lasers that hit balls
+dead-on appear as \q{H}. Otherwise, a number appears at the firing point
 and the location where the laser emerges (this number is unique to
 that shot).
 
@@ -1327,7 +1327,7 @@ of the laser behaviours shown above:
 
 As shown, it is possible for a ball to receive multiple reflections
 before re-emerging (see turn 3). Similarly, a ball may be reflected
-(possibly more than once) before receiving a hit (the 'H' on the
+(possibly more than once) before receiving a hit (the \q{H} on the
 left side of the example).
 
 Note that any layout with more that 4 balls may have a non-unique
@@ -1394,14 +1394,14 @@ These parameters are available from the \q{Custom...} option on the
 
 \dt \e{Width}, \e{Height}
 
-\dd Size of grid in squares. There are 2 * \e{Width} * \e{Height} lasers 
+\dd Size of grid in squares. There are 2 \by \e{Width} \by \e{Height} lasers 
 per grid, two per row and two per column. 
 
 \dt \e{No. of balls}
 
 \dd Number of balls to place in the grid. This can be a single number,
-or a range (separated with a hyphen, like '2-6'), and determines the
-number of balls to place on the grid. The 'reveal' button is only
+or a range (separated with a hyphen, like \q{2-6}), and determines the
+number of balls to place on the grid. The \q{reveal} button is only
 enabled if you have guessed an appropriate number of balls; a guess
 using a different number to the original solution is still acceptable,
 if all the laser inputs and outputs match.
