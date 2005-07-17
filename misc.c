@@ -194,21 +194,32 @@ void game_mkhighlight(frontend *fe, float *ret,
     }
 }
 
+void memswap(void *av, void *bv, int size)
+{
+    char tmpbuf[512];
+    char *a = av, *b = bv;
+
+    while (size > 0) {
+	int thislen = min(size, sizeof(tmpbuf));
+	memcpy(tmpbuf, a, thislen);
+	memcpy(a, b, thislen);
+	memcpy(b, tmpbuf, thislen);
+	a += thislen;
+	b += thislen;
+	size -= thislen;
+    }
+}
+
 void shuffle(void *array, int nelts, int eltsize, random_state *rs)
 {
-    char *tmp = smalloc(eltsize);
     char *carray = (char *)array;
     int i;
 
     for (i = nelts; i-- > 1 ;) {
         int j = random_upto(rs, i+1);
-        if (j != i) {
-            memcpy(tmp, carray + eltsize * i, eltsize);
-            memcpy(carray + eltsize * i, carray + eltsize * j, eltsize);
-            memcpy(carray + eltsize * j, tmp, eltsize);
-        }
+        if (j != i)
+            memswap(carray + eltsize * i, carray + eltsize * j, eltsize);
     }
-    sfree(tmp);
 }
 
 void draw_rect_outline(frontend *fe, int x, int y, int w, int h, int colour)
