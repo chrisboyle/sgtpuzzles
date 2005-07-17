@@ -194,7 +194,7 @@ void game_mkhighlight(frontend *fe, float *ret,
     }
 }
 
-void memswap(void *av, void *bv, int size)
+static void memswap(void *av, void *bv, int size)
 {
     char tmpbuf[512];
     char *a = av, *b = bv;

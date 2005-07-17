@@ -284,7 +284,7 @@ static unsigned long squarert(unsigned long n) {
 
     d = n;
     a = 0;
-    b = 1 << 30;		       /* largest available power of 4 */
+    b = 1L << 30;		       /* largest available power of 4 */
     do {
         a >>= 1;
         di = 2*a + b;
