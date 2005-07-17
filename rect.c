@@ -76,6 +76,7 @@ struct game_state {
     unsigned char *vedge;	       /* (w+1) x h */
     unsigned char *hedge;	       /* w x (h+1) */
     int completed, cheated;
+    unsigned char *correct;
 };
 
 static game_params *default_params(void)
@@ -1773,6 +1774,99 @@ static char *validate_desc(game_params *params, char *desc)
     return NULL;
 }
 
+static unsigned char *get_correct(game_state *state)
+{
+    unsigned char *ret;
+    int x, y;
+
+    ret = snewn(state->w * state->h, unsigned char);
+    memset(ret, 0xFF, state->w * state->h);
+
+    for (x = 0; x < state->w; x++)
+	for (y = 0; y < state->h; y++)
+	    if (index(state,ret,x,y) == 0xFF) {
+		int rw, rh;
+		int xx, yy;
+		int num, area, valid;
+
+		/*
+		 * Find a rectangle starting at this point.
+		 */
+		rw = 1;
+		while (x+rw < state->w && !vedge(state,x+rw,y))
+		    rw++;
+		rh = 1;
+		while (y+rh < state->h && !hedge(state,x,y+rh))
+		    rh++;
+
+		/*
+		 * We know what the dimensions of the rectangle
+		 * should be if it's there at all. Find out if we
+		 * really have a valid rectangle.
+		 */
+		valid = TRUE;
+		/* Check the horizontal edges. */
+		for (xx = x; xx < x+rw; xx++) {
+		    for (yy = y; yy <= y+rh; yy++) {
+			int e = !HRANGE(state,xx,yy) || hedge(state,xx,yy);
+			int ec = (yy == y || yy == y+rh);
+			if (e != ec)
+			    valid = FALSE;
+		    }
+		}
+		/* Check the vertical edges. */
+		for (yy = y; yy < y+rh; yy++) {
+		    for (xx = x; xx <= x+rw; xx++) {
+			int e = !VRANGE(state,xx,yy) || vedge(state,xx,yy);
+			int ec = (xx == x || xx == x+rw);
+			if (e != ec)
+			    valid = FALSE;
+		    }
+		}
+
+		/*
+		 * If this is not a valid rectangle with no other
+		 * edges inside it, we just mark this square as not
+		 * complete and proceed to the next square.
+		 */
+		if (!valid) {
+		    index(state, ret, x, y) = 0;
+		    continue;
+		}
+
+		/*
+		 * We have a rectangle. Now see what its area is,
+		 * and how many numbers are in it.
+		 */
+		num = 0;
+		area = 0;
+		for (xx = x; xx < x+rw; xx++) {
+		    for (yy = y; yy < y+rh; yy++) {
+			area++;
+			if (grid(state,xx,yy)) {
+			    if (num > 0)
+				valid = FALSE;   /* two numbers */
+			    num = grid(state,xx,yy);
+			}
+		    }
+		}
+		if (num != area)
+		    valid = FALSE;
+
+		/*
+		 * Now fill in the whole rectangle based on the
+		 * value of `valid'.
+		 */
+		for (xx = x; xx < x+rw; xx++) {
+		    for (yy = y; yy < y+rh; yy++) {
+			index(state, ret, xx, yy) = valid;
+		    }
+		}
+	    }
+
+    return ret;
+}
+
 static game_state *new_game(midend_data *me, game_params *params, char *desc)
 {
     game_state *state = snew(game_state);
@@ -1813,6 +1907,8 @@ static game_state *new_game(midend_data *me, game_params *params, char *desc)
 	for (x = 0; x < state->w; x++)
 	    vedge(state,x,y) = hedge(state,x,y) = 0;
 
+    state->correct = get_correct(state);
+
     return state;
 }
 
@@ -1826,6 +1922,7 @@ static game_state *dup_game(game_state *state)
     ret->vedge = snewn(state->w * state->h, unsigned char);
     ret->hedge = snewn(state->w * state->h, unsigned char);
     ret->grid = snewn(state->w * state->h, int);
+    ret->correct = snewn(ret->w * ret->h, unsigned char);
 
     ret->completed = state->completed;
     ret->cheated = state->cheated;
@@ -1833,6 +1930,8 @@ static game_state *dup_game(game_state *state)
     memcpy(ret->grid, state->grid, state->w * state->h * sizeof(int));
     memcpy(ret->vedge, state->vedge, state->w*state->h*sizeof(unsigned char));
     memcpy(ret->hedge, state->hedge, state->w*state->h*sizeof(unsigned char));
+
+    memcpy(ret->correct, state->correct, state->w*state->h*sizeof(unsigned char));
 
     return ret;
 }
@@ -1842,6 +1941,7 @@ static void free_game(game_state *state)
     sfree(state->grid);
     sfree(state->vedge);
     sfree(state->hedge);
+    sfree(state->correct);
     sfree(state);
 }
 
@@ -2004,99 +2104,6 @@ static char *game_text_format(game_state *state)
 
     assert(p - ret == maxlen);
     *p = '\0';
-    return ret;
-}
-
-static unsigned char *get_correct(game_state *state)
-{
-    unsigned char *ret;
-    int x, y;
-
-    ret = snewn(state->w * state->h, unsigned char);
-    memset(ret, 0xFF, state->w * state->h);
-
-    for (x = 0; x < state->w; x++)
-	for (y = 0; y < state->h; y++)
-	    if (index(state,ret,x,y) == 0xFF) {
-		int rw, rh;
-		int xx, yy;
-		int num, area, valid;
-
-		/*
-		 * Find a rectangle starting at this point.
-		 */
-		rw = 1;
-		while (x+rw < state->w && !vedge(state,x+rw,y))
-		    rw++;
-		rh = 1;
-		while (y+rh < state->h && !hedge(state,x,y+rh))
-		    rh++;
-
-		/*
-		 * We know what the dimensions of the rectangle
-		 * should be if it's there at all. Find out if we
-		 * really have a valid rectangle.
-		 */
-		valid = TRUE;
-		/* Check the horizontal edges. */
-		for (xx = x; xx < x+rw; xx++) {
-		    for (yy = y; yy <= y+rh; yy++) {
-			int e = !HRANGE(state,xx,yy) || hedge(state,xx,yy);
-			int ec = (yy == y || yy == y+rh);
-			if (e != ec)
-			    valid = FALSE;
-		    }
-		}
-		/* Check the vertical edges. */
-		for (yy = y; yy < y+rh; yy++) {
-		    for (xx = x; xx <= x+rw; xx++) {
-			int e = !VRANGE(state,xx,yy) || vedge(state,xx,yy);
-			int ec = (xx == x || xx == x+rw);
-			if (e != ec)
-			    valid = FALSE;
-		    }
-		}
-
-		/*
-		 * If this is not a valid rectangle with no other
-		 * edges inside it, we just mark this square as not
-		 * complete and proceed to the next square.
-		 */
-		if (!valid) {
-		    index(state, ret, x, y) = 0;
-		    continue;
-		}
-
-		/*
-		 * We have a rectangle. Now see what its area is,
-		 * and how many numbers are in it.
-		 */
-		num = 0;
-		area = 0;
-		for (xx = x; xx < x+rw; xx++) {
-		    for (yy = y; yy < y+rh; yy++) {
-			area++;
-			if (grid(state,xx,yy)) {
-			    if (num > 0)
-				valid = FALSE;   /* two numbers */
-			    num = grid(state,xx,yy);
-			}
-		    }
-		}
-		if (num != area)
-		    valid = FALSE;
-
-		/*
-		 * Now fill in the whole rectangle based on the
-		 * value of `valid'.
-		 */
-		for (xx = x; xx < x+rw; xx++) {
-		    for (yy = y; yy < y+rh; yy++) {
-			index(state, ret, xx, yy) = valid;
-		    }
-		}
-	    }
-
     return ret;
 }
 
@@ -2440,6 +2447,9 @@ static game_state *execute_move(game_state *from, char *move)
 		if (*p) p++;
 	    }
 
+	sfree(ret->correct);
+	ret->correct = get_correct(ret);
+
 	return ret;
 
     } else if (move[0] == 'R' &&
@@ -2473,19 +2483,19 @@ static game_state *execute_move(game_state *from, char *move)
      */
     if (!ret->completed) {
 	int x, y, ok;
-	unsigned char *correct = get_correct(ret);
 
 	ok = TRUE;
 	for (x = 0; x < ret->w; x++)
 	    for (y = 0; y < ret->h; y++)
-		if (!index(ret, correct, x, y))
+		if (!index(ret, ret->correct, x, y))
 		    ok = FALSE;
-
-	sfree(correct);
 
 	if (ok)
 	    ret->completed = TRUE;
     }
+
+    sfree(ret->correct);
+    ret->correct = get_correct(ret);
 
     return ret;
 }
@@ -2629,10 +2639,7 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
                  float animtime, float flashtime)
 {
     int x, y;
-    unsigned char *correct;
     unsigned char *hedge, *vedge, *corners;
-
-    correct = get_correct(state);
 
     if (ui->dragged) {
         hedge = snewn(state->w*state->h, unsigned char);
@@ -2699,7 +2706,7 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 	    if (x+1 < state->w && y+1 < state->h)
 		/* cast to prevent 2<<14 sign-extending on promotion to long */
 		c |= (unsigned long)index(state,corners,x+1,y+1) << 14;
-	    if (index(state, correct, x, y) && !flashtime)
+	    if (index(state, state->correct, x, y) && !flashtime)
 		c |= CORRECT;
 
 	    if (index(ds,ds->visible,x,y) != c) {
@@ -2735,7 +2742,6 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
     }
 
     sfree(corners);
-    sfree(correct);
 }
 
 static float game_anim_length(game_state *oldstate,
