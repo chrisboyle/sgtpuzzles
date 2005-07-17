@@ -50,7 +50,7 @@ typedef struct point {
      * Points are stored using rational coordinates, with the same
      * denominator for both coordinates.
      */
-    int x, y, d;
+    long x, y, d;
 } point;
 
 typedef struct edge {
@@ -201,7 +201,7 @@ static char *validate_params(game_params *params, int full)
  */
 static int cross(point a1, point a2, point b1, point b2)
 {
-    int b1x, b1y, b2x, b2y, px, py, d1, d2, d3;
+    long b1x, b1y, b2x, b2y, px, py, d1, d2, d3;
 
     /*
      * The condition for crossing is that b1 and b2 are on opposite
@@ -358,7 +358,7 @@ static int vertcmp(void *av, void *bv) { return vertcmpC(av, bv); }
  */
 static void make_circle(point *pts, int n, int w)
 {
-    int d, r, c, i;
+    long d, r, c, i;
 
     /*
      * First, decide on a denominator. Although in principle it
@@ -380,8 +380,8 @@ static void make_circle(point *pts, int n, int w)
     for (i = 0; i < n; i++) {
 	double angle = i * 2 * PI / n;
 	double x = r * sin(angle), y = - r * cos(angle);
-	pts[i].x = (int)(c + x + 0.5);
-	pts[i].y = (int)(c + y + 0.5);
+	pts[i].x = (long)(c + x + 0.5);
+	pts[i].y = (long)(c + y + 0.5);
 	pts[i].d = d;
     }
 }
@@ -389,10 +389,10 @@ static void make_circle(point *pts, int n, int w)
 static char *new_game_desc(game_params *params, random_state *rs,
 			   char **aux, int interactive)
 {
-    int n = params->n;
-    int w, h, i, j, k, m;
+    int n = params->n, i;
+    long w, h, j, k, m;
     point *pts, *pts2;
-    int *tmp;
+    long *tmp;
     tree234 *edges, *vertices;
     edge *e, *e2;
     vertex *v, *vs, *vlist;
@@ -404,7 +404,7 @@ static char *new_game_desc(game_params *params, random_state *rs,
      * Choose n points from this grid.
      */
     pts = snewn(n, point);
-    tmp = snewn(w*h, int);
+    tmp = snewn(w*h, long);
     for (i = 0; i < w*h; i++)
 	tmp[i] = i;
     shuffle(tmp, w*h, sizeof(*tmp), rs);
@@ -523,7 +523,7 @@ static char *new_game_desc(game_params *params, random_state *rs,
      * they come out with at least one crossed line when arranged
      * in a circle (so that the puzzle isn't immediately solved!).
      */
-    tmp = snewn(n, int);
+    tmp = snewn(n, long);
     for (i = 0; i < n; i++)
 	tmp[i] = i;
     pts2 = snewn(n, point);
@@ -603,14 +603,14 @@ static char *new_game_desc(game_params *params, random_state *rs,
 	    }
 	    pts2[j].x += pts2[j].d / 2;
 	    pts2[j].y += pts2[j].d / 2;
-	    auxlen += sprintf(buf, ";P%d:%d,%d/%d", i,
+	    auxlen += sprintf(buf, ";P%d:%ld,%ld/%ld", i,
 			      pts2[j].x, pts2[j].y, pts2[j].d);
 	}
 	k = 0;
 	auxstr = snewn(auxlen, char);
 	auxstr[k++] = 'S';
 	for (i = 0; i < n; i++)
-	    k += sprintf(auxstr+k, ";P%d:%d,%d/%d", i,
+	    k += sprintf(auxstr+k, ";P%d:%ld,%ld/%ld", i,
 			 pts2[i].x, pts2[i].y, pts2[i].d);
 	assert(k < auxlen);
 	*aux = auxstr;
@@ -776,7 +776,7 @@ static void game_changed_state(game_ui *ui, game_state *oldstate,
 }
 
 struct game_drawstate {
-    int tilesize;
+    long tilesize;
 };
 
 static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
@@ -785,7 +785,8 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
     int n = state->params.n;
 
     if (button == LEFT_BUTTON) {
-	int i, best, bestd;
+	int i, best;
+        long bestd;
 
 	/*
 	 * Begin drag. We drag the vertex _nearest_ to the pointer,
@@ -797,11 +798,11 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
 	bestd = 0;
 
 	for (i = 0; i < n; i++) {
-	    int px = state->pts[i].x * ds->tilesize / state->pts[i].d;
-	    int py = state->pts[i].y * ds->tilesize / state->pts[i].d;
-	    int dx = px - x;
-	    int dy = py - y;
-	    int d = dx*dx + dy*dy;
+	    long px = state->pts[i].x * ds->tilesize / state->pts[i].d;
+	    long py = state->pts[i].y * ds->tilesize / state->pts[i].d;
+	    long dx = px - x;
+	    long dy = py - y;
+	    long d = dx*dx + dy*dy;
 
 	    if (best == -1 || bestd > d) {
 		best = i;
@@ -832,15 +833,17 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
 	 * First, see if we're within range. The user can cancel a
 	 * drag by dragging the point right off the window.
 	 */
-	if (ui->newpoint.x < 0 || ui->newpoint.x >= state->w*ui->newpoint.d ||
-	    ui->newpoint.y < 0 || ui->newpoint.y >= state->h*ui->newpoint.d)
+	if (ui->newpoint.x < 0 ||
+            ui->newpoint.x >= (long)state->w*ui->newpoint.d ||
+	    ui->newpoint.y < 0 ||
+            ui->newpoint.y >= (long)state->h*ui->newpoint.d)
 	    return "";
 
 	/*
 	 * We aren't cancelling the drag. Construct a move string
 	 * indicating where this point is going to.
 	 */
-	sprintf(buf, "P%d:%d,%d/%d", p,
+	sprintf(buf, "P%d:%ld,%ld/%ld", p,
 		ui->newpoint.x, ui->newpoint.y, ui->newpoint.d);
 	ui->just_dragged = TRUE;
 	return dupstr(buf);
@@ -852,7 +855,8 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
 static game_state *execute_move(game_state *state, char *move)
 {
     int n = state->params.n;
-    int p, x, y, d, k;
+    int p, k;
+    long x, y, d;
     game_state *ret = dup_game(state);
 
     ret->just_solved = FALSE;
@@ -864,7 +868,7 @@ static game_state *execute_move(game_state *state, char *move)
 	    ret->cheated = ret->just_solved = TRUE;
 	}
 	if (*move == 'P' &&
-	    sscanf(move+1, "%d:%d,%d/%d%n", &p, &x, &y, &d, &k) == 4 &&
+	    sscanf(move+1, "%d:%ld,%ld/%ld%n", &p, &x, &y, &d, &k) == 4 &&
 	    p >= 0 && p < n && d > 0) {
 	    ret->pts[p].x = x;
 	    ret->pts[p].y = y;
@@ -1005,7 +1009,7 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 
     for (i = 0; (e = index234(state->graph->edges, i)) != NULL; i++) {
 	point p1, p2;
-	int x1, y1, x2, y2;
+	long x1, y1, x2, y2;
 
 	p1 = state->pts[e->a];
 	p2 = state->pts[e->b];
@@ -1037,7 +1041,8 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 	int thisc = (j == 0 ? COL_POINT :
 		     j == 1 ? COL_NEIGHBOUR : COL_DRAGPOINT);
 	for (i = 0; i < state->params.n; i++) {
-	    int x, y, c;
+	    long x, y;
+            int c;
 	    point p = state->pts[i];
 
 	    if (ui->dragpoint == i) {
