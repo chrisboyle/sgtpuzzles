@@ -213,16 +213,16 @@ static void decode_params(game_params *ret, char const *string)
     ret->movetarget = 0;
 
     ret->width = atoi(p);
-    while (*p && isdigit(*p)) p++;
+    while (*p && isdigit((unsigned char)*p)) p++;
     if (*p == 'x') {
         p++;
         ret->height = atoi(p);
-        while (*p && isdigit(*p)) p++;
+        while (*p && isdigit((unsigned char)*p)) p++;
         if ( (ret->wrapping = (*p == 'w')) != 0 )
             p++;
         if (*p == 'b') {
             ret->barrier_probability = atof(++p);
-            while (*p && (isdigit(*p) || *p == '.')) p++;
+            while (*p && (isdigit((unsigned char)*p) || *p == '.')) p++;
         }
         if (*p == 'm') {
             ret->movetarget = atoi(++p);

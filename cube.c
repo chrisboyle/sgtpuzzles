@@ -285,7 +285,7 @@ static void decode_params(game_params *ret, char const *string)
       default: break;
     }
     ret->d1 = ret->d2 = atoi(string);
-    while (*string && isdigit(*string)) string++;
+    while (*string && isdigit((unsigned char)*string)) string++;
     if (*string == 'x') {
         string++;
         ret->d2 = atoi(string);

@@ -106,11 +106,11 @@ static void decode_params(game_params *ret, char const *string)
     char const *p = string;
 
     ret->w = atoi(p);
-    while (*p && isdigit(*p)) p++;
+    while (*p && isdigit((unsigned char)*p)) p++;
     if (*p == 'x') {
         p++;
         ret->h = atoi(p);
-        while (*p && isdigit(*p)) p++;
+        while (*p && isdigit((unsigned char)*p)) p++;
     } else {
         ret->h = ret->w;
     }

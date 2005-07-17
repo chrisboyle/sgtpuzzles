@@ -100,7 +100,7 @@ static void decode_params(game_params *ret, char const *string)
 {
     ret->w = ret->h = atoi(string);
     ret->movetarget = 0;
-    while (*string && isdigit(*string)) string++;
+    while (*string && isdigit((unsigned char)*string)) string++;
     if (*string == 'x') {
         string++;
         ret->h = atoi(string);

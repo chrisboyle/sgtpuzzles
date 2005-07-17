@@ -1690,7 +1690,7 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
 	RegisterClass(&wndclass);
     }
 
-    while (*cmdline && isspace(*cmdline))
+    while (*cmdline && isspace((unsigned char)*cmdline))
 	cmdline++;
 
     if (!new_window(inst, *cmdline ? cmdline : NULL, &error)) {

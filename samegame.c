@@ -291,9 +291,9 @@ static char *validate_desc(game_params *params, char *desc)
 	char *q = p;
 	int n;
 
-	if (!isdigit(*p))
+	if (!isdigit((unsigned char)*p))
 	    return "Not enough numbers in string";
-	while (isdigit(*p)) p++;
+	while (isdigit((unsigned char)*p)) p++;
 
 	if (i < area-1 && *p != ',')
 	    return "Expected comma after number";

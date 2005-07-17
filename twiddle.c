@@ -108,16 +108,16 @@ static void decode_params(game_params *ret, char const *string)
     ret->n = 2;
     ret->rowsonly = ret->orientable = FALSE;
     ret->movetarget = 0;
-    while (*string && isdigit(*string)) string++;
+    while (*string && isdigit((unsigned char)*string)) string++;
     if (*string == 'x') {
         string++;
         ret->h = atoi(string);
-	while (*string && isdigit(*string)) string++;
+	while (*string && isdigit((unsigned char)*string)) string++;
     }
     if (*string == 'n') {
         string++;
         ret->n = atoi(string);
-	while (*string && isdigit(*string)) string++;
+	while (*string && isdigit((unsigned char)*string)) string++;
     }
     while (*string) {
 	if (*string == 'r') {
@@ -127,7 +127,7 @@ static void decode_params(game_params *ret, char const *string)
 	} else if (*string == 'm') {
             string++;
 	    ret->movetarget = atoi(string);
-            while (string[1] && isdigit(string[1])) string++;
+            while (string[1] && isdigit((unsigned char)string[1])) string++;
 	}
 	string++;
     }

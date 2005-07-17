@@ -76,7 +76,7 @@ static game_params *dup_params(game_params *params)
 static void decode_params(game_params *ret, char const *string)
 {
     ret->w = ret->h = atoi(string);
-    while (*string && isdigit(*string)) string++;
+    while (*string && isdigit((unsigned char)*string)) string++;
     if (*string == 'x') {
         string++;
         ret->h = atoi(string);
