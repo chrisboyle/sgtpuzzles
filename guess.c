@@ -768,7 +768,8 @@ static game_state *execute_move(game_state *from, char *move)
 
 	for (i = 0; i < from->solution->npegs; i++) {
 	    int val = atoi(p);
-	    if (val <= 0 || val > from->params.ncolours) {
+	    int min_colour = from->params.allow_blank? 0 : 1;
+	    if (val < min_colour || val > from->params.ncolours) {
 		free_game(ret);
 		return NULL;
 	    }
