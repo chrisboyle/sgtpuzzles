@@ -2477,6 +2477,9 @@ static game_state *execute_move(game_state *from, char *move)
 	vedge(ret,x1,y1) = !vedge(ret,x1,y1);
     }
 
+    sfree(ret->correct);
+    ret->correct = get_correct(ret);
+
     /*
      * We've made a real change to the grid. Check to see
      * if the game has been completed.
@@ -2493,9 +2496,6 @@ static game_state *execute_move(game_state *from, char *move)
 	if (ok)
 	    ret->completed = TRUE;
     }
-
-    sfree(ret->correct);
-    ret->correct = get_correct(ret);
 
     return ret;
 }
