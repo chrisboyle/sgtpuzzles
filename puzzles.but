@@ -1197,7 +1197,8 @@ time (but always one that is known to have a solution).
 
 \cfg{winhelp-topic}{games.dominosa}
 
-A normal set of dominoes has been arranged irregularly into a
+A normal set of dominoes - that is, one instance of every (unordered)
+pair of numbers from 0 to 6 - has been arranged irregularly into a
 rectangle; then the number in each square has been written down and
 the dominoes themselves removed. Your task is to reconstruct the
 pattern by arranging the set of dominoes to match the provided array
