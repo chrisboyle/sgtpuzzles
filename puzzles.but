@@ -47,12 +47,11 @@ ends - PocketPC, Mac OS pre-10, or whatever it might be - then all
 the games in this framework will immediately become available on
 another platform as well.
 
-The actual games in this collection were mostly not my invention; I
-saw them elsewhere, and rewrote them in a form that was more
-convenient for me. I do not claim credit, in general, for inventing
-the rules of any of these puzzles; all I claim is authorship of the
-code (or at least those parts of the code that weren't contributed
-by other people!).
+The actual games in this collection were mostly not my invention; they
+are re-implementations of existing game concepts within my portable
+puzzle framework. I do not claim credit, in general, for inventing the
+rules of any of these puzzles. (I don't even claim authorship of all
+the code; some of the puzzles have been submitted by other authors.)
 
 This collection is distributed under the \i{MIT licence} (see
 \k{licence}). This means that you can do pretty much anything you like
