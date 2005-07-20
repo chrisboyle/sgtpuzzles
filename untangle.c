@@ -31,7 +31,7 @@
 #define DRAG_THRESHOLD (CIRCLE_RADIUS * 2)
 #define PREFERRED_TILESIZE 64
 
-#define FLASH_TIME 0.13F
+#define FLASH_TIME 0.30F
 #define ANIM_TIME 0.13F
 #define SOLVEANIM_TIME 0.50F
 
@@ -42,6 +42,8 @@ enum {
     COL_POINT,
     COL_DRAGPOINT,
     COL_NEIGHBOUR,
+    COL_FLASH1,
+    COL_FLASH2,
     NCOLOURS
 };
 
@@ -955,6 +957,14 @@ static float *game_colours(frontend *fe, game_state *state, int *ncolours)
     ret[COL_NEIGHBOUR * 3 + 1] = 0.0F;
     ret[COL_NEIGHBOUR * 3 + 2] = 0.0F;
 
+    ret[COL_FLASH1 * 3 + 0] = 0.5F;
+    ret[COL_FLASH1 * 3 + 1] = 0.5F;
+    ret[COL_FLASH1 * 3 + 2] = 0.5F;
+
+    ret[COL_FLASH2 * 3 + 0] = 1.0F;
+    ret[COL_FLASH2 * 3 + 1] = 1.0F;
+    ret[COL_FLASH2 * 3 + 2] = 1.0F;
+
     *ncolours = NCOLOURS;
     return ret;
 }
@@ -999,7 +1009,13 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
      * whole thing every time.
      */
 
-    bg = (flashtime != 0 ? COL_DRAGPOINT : COL_BACKGROUND);
+    if (flashtime == 0)
+        bg = COL_BACKGROUND;
+    else if ((int)(flashtime * 4 / FLASH_TIME) % 2 == 0)
+        bg = COL_FLASH1;
+    else
+        bg = COL_FLASH2;
+
     game_compute_size(&state->params, ds->tilesize, &w, &h);
     draw_rect(fe, 0, 0, w, h, bg);
 
