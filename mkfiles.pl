@@ -428,14 +428,6 @@ if (defined $makefiles{'cygwin'}) {
     "LDFLAGS = -mno-cygwin -s\n".
     &splitline("RCFLAGS = \$(RCINC) --define WIN32=1 --define _WIN32=1".
       " --define WINVER=0x0400 --define MINGW32_FIX=1")."\n".
-    "\n".
-    ".SUFFIXES:\n".
-    "\n".
-    "%.o: %.c\n".
-    "\t\$(CC) \$(COMPAT) \$(FWHACK) \$(XFLAGS) \$(CFLAGS) -c \$<\n".
-    "\n".
-    "%.res.o: %.rc\n".
-    "\t\$(RC) \$(FWHACK) \$(RCFL) \$(RCFLAGS) \$< \$\@\n".
     "\n";
     print &splitline("all:" . join "", map { " $_.exe" } &progrealnames("G:C"));
     print "\n\n";
@@ -456,8 +448,8 @@ if (defined $makefiles{'cygwin'}) {
 	print "\t\$(RC) \$(FWHACK) \$(RCFL) \$(RCFLAGS) \$< \$\@\n";
       } else {
 	$deflist = join "", map { " -D$_" } @{$d->{defs}};
-	print "\t\$(CC) \$(COMPAT) \$(FWHACK) \$(XFLAGS)" .
-	    " \$(CFLAGS)$deflist -c \$< -o \$\@\n";
+	print "\t\$(CC) \$(COMPAT) \$(FWHACK) \$(CFLAGS)" .
+	    " \$(XFLAGS)$deflist -c \$< -o \$\@\n";
       }
     }
     print "\n";
@@ -555,7 +547,7 @@ if (defined $makefiles{'borland'}) {
       } else {
 	$deflist = join "", map { " -D$_" } @{$d->{defs}};
 	print &splitline("\tbcc32 -w-aus -w-ccc -w-par -w-pia \$(COMPAT)" .
-			 " \$(FWHACK) \$(XFLAGS) \$(CFLAGS)$deflist ".
+			 " \$(FWHACK) \$(CFLAGS) \$(XFLAGS)$deflist ".
 			 (join " ", map {"-I$dirpfx$_"} @srcdirs) .
 			 " /o$d->{obj} /c ".$d->{deps}->[0],69)."\n";
       }
@@ -632,7 +624,7 @@ if (defined $makefiles{'vc'}) {
 	      "-DWINVER=0x0400 ".$d->{deps}->[0]."\n";
 	} else {
 	    $deflist = join "", map { " /D$_" } @{$d->{defs}};
-	    print "\tcl \$(COMPAT) \$(FWHACK) \$(XFLAGS) \$(CFLAGS)$deflist".
+	    print "\tcl \$(COMPAT) \$(FWHACK) \$(CFLAGS) \$(XFLAGS)$deflist".
 	      " /c ".$d->{deps}->[0]." /Fo$d->{obj}\n";
 	}
     }
@@ -969,7 +961,7 @@ if (defined $makefiles{'gtk'}) {
       print &splitline(sprintf("%s: %s", $d->{obj}, join " ", @{$d->{deps}})),
           "\n";
       $deflist = join "", map { " -D$_" } @{$d->{defs}};
-      print "\t\$(CC) \$(COMPAT) \$(FWHACK) \$(XFLAGS) \$(CFLAGS)$deflist" .
+      print "\t\$(CC) \$(COMPAT) \$(FWHACK) \$(CFLAGS) \$(XFLAGS)$deflist" .
 	  " -c \$< -o \$\@\n";
     }
     print "\n";
@@ -1166,8 +1158,8 @@ if (defined $makefiles{'lcc'}) {
 	print &splitline("\tlrc \$(FWHACK) \$(RCFL) -r \$*.rc",69)."\n";
       } else {
 	$deflist = join "", map { " -D$_" } @{$d->{defs}};
-	print &splitline("\tlcc -O -p6 \$(COMPAT) \$(FWHACK) \$(XFLAGS)".
-			 " \$(CFLAGS)$deflist ".$d->{deps}->[0]." -o \$\@",69)."\n";
+	print &splitline("\tlcc -O -p6 \$(COMPAT) \$(FWHACK) \$(CFLAGS)".
+			 " \$(XFLAGS)$deflist ".$d->{deps}->[0]." -o \$\@",69)."\n";
       }
     }
     print "\n";
@@ -1245,10 +1237,10 @@ if (defined $makefiles{'osx'}) {
           "\n";
       $deflist = join "", map { " -D$_" } @{$d->{defs}};
       if ($d->{deps}->[0] =~ /\.m$/) {
-	print "\t\$(CC) -x objective-c \$(COMPAT) \$(FWHACK) \$(XFLAGS)".
-	    " \$(CFLAGS)$deflist -c \$< -o \$\@\n";
+	print "\t\$(CC) -x objective-c \$(COMPAT) \$(FWHACK) \$(CFLAGS)".
+	    " \$(XFLAGS)$deflist -c \$< -o \$\@\n";
       } else {
-	print "\t\$(CC) \$(COMPAT) \$(FWHACK) \$(XFLAGS) \$(CFLAGS)$deflist" .
+	print "\t\$(CC) \$(COMPAT) \$(FWHACK) \$(CFLAGS) \$(XFLAGS)$deflist" .
 	    " -c \$< -o \$\@\n";
       }
     }
