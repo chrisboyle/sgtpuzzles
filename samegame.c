@@ -3,6 +3,65 @@
  *                selecting regions of contiguous colours.
  */
 
+/*
+ * TODO on grid generation:
+ * 
+ *  - Generation speed could still be improved.
+ *     * 15x10c3 is the only really difficult one of the existing
+ *       presets. The others are all either small enough, or have
+ *       the great flexibility given by four colours, that they
+ *       don't take long at all.
+ *     * I still suspect many problems arise from separate
+ * 	 subareas. I wonder if we can also somehow prioritise left-
+ * 	 or rightmost insertions so as to avoid area splitting at
+ * 	 all where feasible? It's not easy, though, because the
+ * 	 current shuffle-then-try-all-options approach to move
+ * 	 choice doesn't leave room for `soft' probabilistic
+ * 	 prioritisation: we either try all class A moves before any
+ * 	 class B ones, or we don't.
+ *
+ *  - The current generation algorithm inserts exactly two squares
+ *    at a time, with a single exception at the beginning of
+ *    generation for grids of odd overall size. An obvious
+ *    extension would be to permit larger inverse moves during
+ *    generation.
+ *     * this might reduce the number of failed generations by
+ *       making the insertion algorithm more flexible
+ *     * on the other hand, it would be significantly more complex
+ *     * if I do this I'll need to take out the odd-subarea
+ *       avoidance
+ *     * a nice feature of the current algorithm is that the
+ *       computer's `intended' solution always receives the minimum
+ *       possible score, so that pretty much the player's entire
+ *       score represents how much better they did than the
+ *       computer.
+ *
+ *  - Is it possible we can _temporarily_ tolerate neighbouring
+ *    squares of the same colour, until we've finished setting up
+ *    our inverse move?
+ *     * or perhaps even not choose the colour of our inserted
+ *       region until we have finished placing it, and _then_ look
+ *       at what colours border on it?
+ *     * I don't think this is currently meaningful unless we're
+ *       placing more than a domino at a time.
+ *
+ *  - possibly write out a full solution so that Solve can somehow
+ *    show it step by step?
+ *     * aux_info would have to encode the click points
+ *     * solve_game() would have to encode not only those click
+ * 	 points but also give a move string which reconstructed the
+ * 	 initial state
+ *     * the game_state would include a pointer to a solution move
+ * 	 list, plus an index into that list
+ *     * game_changed_state would auto-select the next move if
+ * 	 handed a new state which had a solution move list active
+ *     * execute_move, if passed such a state as input, would check
+ * 	 to see whether the move being made was the same as the one
+ * 	 stated by the solution, and if so would advance the move
+ * 	 index. Failing that it would return a game_state without a
+ * 	 solution move list active at all.
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -38,6 +97,7 @@ enum {
 /* scoresub is 1 or 2 (for (n-1)^2 or (n-2)^2) */
 struct game_params {
     int w, h, ncols, scoresub;
+    int soluble;		       /* choose generation algorithm */
 };
 
 /* These flags must be unique across all uses; in the game_state,
@@ -82,15 +142,16 @@ static game_params *default_params(void)
     ret->h = 5;
     ret->ncols = 3;
     ret->scoresub = 2;
+    ret->soluble = TRUE;
     return ret;
 }
 
 static const struct game_params samegame_presets[] = {
-    { 5, 5, 3, 2 },
-    { 10, 5, 3, 2 },
-    { 15, 10, 3, 2 },
-    { 15, 10, 4, 2 },
-    { 20, 15, 4, 2 }
+    { 5, 5, 3, 2, TRUE },
+    { 10, 5, 3, 2, TRUE },
+    { 15, 10, 3, 2, TRUE },
+    { 15, 10, 4, 2, TRUE },
+    { 20, 15, 4, 2, TRUE }
 };
 
 static int game_fetch_preset(int i, char **name, game_params **params)
@@ -136,17 +197,23 @@ static void decode_params(game_params *params, char const *string)
     } else {
 	params->h = params->w;
     }
-    if (*p++ == 'c') {
+    if (*p == 'c') {
+	p++;
 	params->ncols = atoi(p);
 	while (*p && isdigit((unsigned char)*p)) p++;
     } else {
 	params->ncols = 3;
     }
-    if (*p++ == 's') {
+    if (*p == 's') {
+	p++;
 	params->scoresub = atoi(p);
 	while (*p && isdigit((unsigned char)*p)) p++;
     } else {
 	params->scoresub = 2;
+    }
+    if (*p == 'r') {
+	p++;
+	params->soluble = FALSE;
     }
 }
 
@@ -154,8 +221,9 @@ static char *encode_params(game_params *params, int full)
 {
     char ret[80];
 
-    sprintf(ret, "%dx%dc%ds%d",
-	    params->w, params->h, params->ncols, params->scoresub);
+    sprintf(ret, "%dx%dc%ds%d%s",
+	    params->w, params->h, params->ncols, params->scoresub,
+	    full && !params->soluble ? "r" : "");
     return dupstr(ret);
 }
 
@@ -164,7 +232,7 @@ static config_item *game_configure(game_params *params)
     config_item *ret;
     char buf[80];
 
-    ret = snewn(5, config_item);
+    ret = snewn(6, config_item);
 
     ret[0].name = "Width";
     ret[0].type = C_STRING;
@@ -189,10 +257,15 @@ static config_item *game_configure(game_params *params)
     ret[3].sval = ":(n-1)^2:(n-2)^2";
     ret[3].ival = params->scoresub-1;
 
-    ret[4].name = NULL;
-    ret[4].type = C_END;
+    ret[4].name = "Ensure solubility";
+    ret[4].type = C_BOOLEAN;
     ret[4].sval = NULL;
-    ret[4].ival = 0;
+    ret[4].ival = params->soluble;
+
+    ret[5].name = NULL;
+    ret[5].type = C_END;
+    ret[5].sval = NULL;
+    ret[5].ival = 0;
 
     return ret;
 }
@@ -205,6 +278,7 @@ static game_params *custom_params(config_item *cfg)
     ret->h = atoi(cfg[1].sval);
     ret->ncols = atoi(cfg[2].sval);
     ret->scoresub = cfg[3].ival + 1;
+    ret->soluble = cfg[4].ival;
 
     return ret;
 }
@@ -213,15 +287,23 @@ static char *validate_params(game_params *params, int full)
 {
     if (params->w < 1 || params->h < 1)
 	return "Width and height must both be positive";
-    if (params->ncols < 2)
-	return "It's too easy with only one colour...";
+
     if (params->ncols > 9)
 	return "Maximum of 9 colours";
 
-    /* ...and we must make sure we can generate at least 2 squares
-     * of each colour so it's theoretically soluble. */
-    if ((params->w * params->h) < (params->ncols * 2))
-	return "Too many colours makes given grid size impossible";
+    if (params->soluble) {
+	if (params->ncols < 3)
+	    return "Number of colours must be at least three";
+	if (params->w * params->h <= 1)
+	    return "Grid area must be greater than 1";
+    } else {
+	if (params->ncols < 2)
+	    return "Number of colours must be at least three";
+	/* ...and we must make sure we can generate at least 2 squares
+	 * of each colour so it's theoretically soluble. */
+	if ((params->w * params->h) < (params->ncols * 2))
+	    return "Too many colours makes given grid size impossible";
+    }
 
     if ((params->scoresub < 1) || (params->scoresub > 2))
 	return "Scoring system not recognised";
@@ -229,41 +311,622 @@ static char *validate_params(game_params *params, int full)
     return NULL;
 }
 
-/* Currently this is a very very dumb game-generation engine; it
- * just picks randomly from the tile space. I had a look at a few
- * other same game implementations, and none of them attempt to do
- * anything to try and make sure the grid started off with a nice
- * set of large blocks.
- *
- * It does at least make sure that there are >= 2 of each colour
- * present at the start.
+/*
+ * Guaranteed-soluble grid generator.
  */
+static void gen_grid(int w, int h, int nc, int *grid, random_state *rs)
+{
+    int wh = w*h, tc = nc+1;
+    int i, j, k, c, x, y, pos, n;
+    int *list, *grid2;
+    int ok, failures = 0;
+
+    /*
+     * We'll use `list' to track the possible places to put our
+     * next insertion. There are up to h places to insert in each
+     * column: in a column of height n there are n+1 places because
+     * we can insert at the very bottom or the very top, but a
+     * column of height h can't have anything at all inserted in it
+     * so we have up to h in each column. Likewise, with n columns
+     * present there are n+1 places to fit a new one in between but
+     * we can't insert a column if there are already w; so there
+     * are a maximum of w new columns too. Total is wh + w.
+     */
+    list = snewn(wh + w, int);
+    grid2 = snewn(wh, int);
+
+    do {
+        /*
+         * Start with two or three squares - depending on parity of w*h
+         * - of a random colour.
+         */
+        for (i = 0; i < wh; i++)
+            grid[i] = 0;
+        j = 2 + (wh % 2);
+        c = 1 + random_upto(rs, nc);
+	if (j <= w) {
+	    for (i = 0; i < j; i++)
+		grid[(h-1)*w+i] = c;
+	} else {
+	    assert(j <= h);
+	    for (i = 0; i < j; i++)
+		grid[(h-1-i)*w] = c;
+	}
+
+        /*
+         * Now repeatedly insert a two-square blob in the grid, of
+         * whatever colour will go at the position we chose.
+         */
+        while (1) {
+            n = 0;
+
+            /*
+             * Build up a list of insertion points. Each point is
+             * encoded as y*w+x; insertion points between columns are
+             * encoded as h*w+x.
+             */
+
+            if (grid[wh - 1] == 0) {
+                /*
+                 * The final column is empty, so we can insert new
+                 * columns.
+                 */
+                for (i = 0; i < w; i++) {
+                    list[n++] = wh + i;
+                    if (grid[(h-1)*w + i] == 0)
+                        break;
+                }
+            }
+
+            /*
+             * Now look for places to insert within columns.
+             */
+            for (i = 0; i < w; i++) {
+                if (grid[(h-1)*w+i] == 0)
+                    break;		       /* no more columns */
+
+                if (grid[i] != 0)
+                    continue;	       /* this column is full */
+
+                for (j = h; j-- > 0 ;) {
+                    list[n++] = j*w+i;
+                    if (grid[j*w+i] == 0)
+                        break;	       /* this column is exhausted */
+                }
+            }
+
+            if (n == 0)
+                break;		       /* we're done */
+
+            /*
+             * Shuffle the list.
+             */
+            shuffle(list, n, sizeof(*list), rs);
+
+#ifdef GENERATION_DIAGNOSTICS
+            printf("initial grid:\n");
+            {
+                int x,y;
+                for (y = 0; y < h; y++) {
+                    for (x = 0; x < w; x++) {
+                        if (grid[y*w+x] == 0)
+                            printf("-");
+                        else
+                            printf("%d", grid[y*w+x]);
+                    }
+                    printf("\n");
+                }
+            }
+#endif
+
+            /*
+             * Now go through the list one element at a time and
+             * actually attempt to insert something there.
+             */
+            while (n-- > 0) {
+                int dirs[4], ndirs, dir;
+
+                pos = list[n];
+                x = pos % w;
+                y = pos / w;
+
+                memcpy(grid2, grid, wh * sizeof(int));
+
+                if (y == h) {
+                    /*
+                     * Insert a column at position x.
+                     */
+                    for (i = w-1; i > x; i--)
+                        for (j = 0; j < h; j++)
+                            grid2[j*w+i] = grid2[j*w+(i-1)];
+                    /*
+                     * Clear the new column.
+                     */
+                    for (j = 0; j < h; j++)
+                        grid2[j*w+x] = 0;
+                    /*
+                     * Decrement y so that our first square is actually
+                     * inserted _in_ the grid rather than just below it.
+                     */
+                    y--;
+                }
+
+                /*
+                 * Insert a square within column x at position y.
+                 */
+                for (i = 0; i+1 <= y; i++)
+                    grid2[i*w+x] = grid2[(i+1)*w+x];
+
+#ifdef GENERATION_DIAGNOSTICS
+                printf("trying at n=%d (%d,%d)\n", n, x, y);
+                grid2[y*w+x] = tc;
+                {
+                    int x,y;
+                    for (y = 0; y < h; y++) {
+                        for (x = 0; x < w; x++) {
+                            if (grid2[y*w+x] == 0)
+                                printf("-");
+                            else if (grid2[y*w+x] <= nc)
+                                printf("%d", grid2[y*w+x]);
+                            else
+                                printf("*");
+                        }
+                        printf("\n");
+                    }
+                }
+#endif
+
+                /*
+                 * Pick our square colour so that it doesn't match any
+                 * of its neighbours.
+                 */
+                {
+                    int wrongcol[4], nwrong = 0;
+
+                    /*
+                     * List the neighbouring colours.
+                     */
+                    if (x > 0)
+                        wrongcol[nwrong++] = grid2[y*w+(x-1)];
+                    if (x+1 < w)
+                        wrongcol[nwrong++] = grid2[y*w+(x+1)];
+                    if (y > 0)
+                        wrongcol[nwrong++] = grid2[(y-1)*w+x];
+                    if (y+1 < h)
+                        wrongcol[nwrong++] = grid2[(y+1)*w+x];
+
+                    /*
+                     * Eliminate duplicates. We can afford a shoddy
+                     * algorithm here because the problem size is
+                     * bounded.
+                     */
+                    for (i = j = 0 ;; i++) {
+                        int pos = -1, min = 0;
+                        if (j > 0)
+                            min = wrongcol[j-1];
+                        for (k = i; k < nwrong; k++)
+                            if (wrongcol[k] > min &&
+                                (pos == -1 || wrongcol[k] < wrongcol[pos]))
+                                pos = k;
+                        if (pos >= 0) {
+                            int v = wrongcol[pos];
+                            wrongcol[pos] = wrongcol[j];
+                            wrongcol[j++] = v;
+                        } else
+                            break;
+                    }
+                    nwrong = j;
+
+                    /*
+                     * If no colour will go here, stop trying.
+                     */
+                    if (nwrong == nc)
+                        continue;
+
+                    /*
+                     * Otherwise, pick a colour from the remaining
+                     * ones.
+                     */
+                    c = 1 + random_upto(rs, nc - nwrong);
+                    for (i = 0; i < nwrong; i++) {
+                        if (c >= wrongcol[i])
+                            c++;
+                        else
+                            break;
+                    }
+                }
+
+                /*
+                 * Place the new square.
+                 * 
+                 * Although I've _chosen_ the new region's colour
+                 * (so that we can check adjacency), I'm going to
+                 * actually place it as an invalid colour (tc)
+                 * until I'm sure it's viable. This is so that I
+                 * can conveniently check that I really have made a
+                 * _valid_ inverse move later on.
+                 */
+#ifdef GENERATION_DIAGNOSTICS
+                printf("picked colour %d\n", c);
+#endif
+                grid2[y*w+x] = tc;
+
+                /*
+                 * Now attempt to extend it in one of three ways: left,
+                 * right or up.
+                 */
+                ndirs = 0;
+                if (x > 0 &&
+                    grid2[y*w+(x-1)] != c &&
+                    grid2[x-1] == 0 &&
+                    (y+1 >= h || grid2[(y+1)*w+(x-1)] != c) &&
+                    (y+1 >= h || grid2[(y+1)*w+(x-1)] != 0) &&
+                    (x <= 1 || grid2[y*w+(x-2)] != c))
+                    dirs[ndirs++] = -1;    /* left */
+                if (x+1 < w &&
+                    grid2[y*w+(x+1)] != c &&
+                    grid2[x+1] == 0 &&
+                    (y+1 >= h || grid2[(y+1)*w+(x+1)] != c) &&
+                    (y+1 >= h || grid2[(y+1)*w+(x+1)] != 0) &&
+                    (x+2 >= w || grid2[y*w+(x+2)] != c))
+                    dirs[ndirs++] = +1;    /* right */
+                if (y > 0 &&
+                    grid2[x] == 0 &&
+                    (x <= 0 || grid2[(y-1)*w+(x-1)] != c) &&
+                    (x+1 >= w || grid2[(y-1)*w+(x+1)] != c)) {
+                    /*
+                     * We add this possibility _twice_, so that the
+                     * probability of placing a vertical domino is
+                     * about the same as that of a horizontal. This
+                     * should yield less bias in the generated
+                     * grids.
+                     */
+                    dirs[ndirs++] = 0;     /* up */
+                    dirs[ndirs++] = 0;     /* up */
+                }
+
+                if (ndirs == 0)
+                    continue;
+
+                dir = dirs[random_upto(rs, ndirs)];
+
+#ifdef GENERATION_DIAGNOSTICS
+                printf("picked dir %d\n", dir);
+#endif
+
+                /*
+                 * Insert a square within column (x+dir) at position y.
+                 */
+                for (i = 0; i+1 <= y; i++)
+                    grid2[i*w+x+dir] = grid2[(i+1)*w+x+dir];
+                grid2[y*w+x+dir] = tc;
+
+                /*
+                 * See if we've divided the remaining grid squares
+                 * into sub-areas. If so, we need every sub-area to
+                 * have an even area or we won't be able to
+                 * complete generation.
+                 * 
+                 * If the height is odd and not all columns are
+                 * present, we can increase the area of a subarea
+                 * by adding a new column in it, so in that
+                 * situation we don't mind having as many odd
+                 * subareas as there are spare columns.
+                 * 
+                 * If the height is even, we can't fix it at all.
+                 */
+                {
+                    int nerrs = 0, nfix = 0;
+                    k = 0;             /* current subarea size */
+                    for (i = 0; i < w; i++) {
+                        if (grid2[(h-1)*w+i] == 0) {
+                            if (h % 2)
+                                nfix++;
+                            continue;
+                        }
+                        for (j = 0; j < h && grid2[j*w+i] == 0; j++);
+                        assert(j < h);
+                        if (j == 0) {
+                            /*
+                             * End of previous subarea.
+                             */
+                            if (k % 2)
+                                nerrs++;
+                            k = 0;
+                        } else {
+                            k += j;
+                        }
+                    }
+                    if (k % 2)
+                        nerrs++;
+                    if (nerrs > nfix)
+                        continue;      /* try a different placement */
+                }
+
+                /*
+                 * We've made a move. Verify that it is a valid
+                 * move and that if made it would indeed yield the
+                 * previous grid state. The criteria are:
+                 * 
+                 *  (a) removing all the squares of colour tc (and
+                 *      shuffling the columns up etc) from grid2
+                 *      would yield grid
+                 *  (b) no square of colour tc is adjacent to one
+                 *      of colour c
+                 *  (c) all the squares of colour tc form a single
+                 *      connected component
+                 * 
+                 * We verify the latter property at the same time
+                 * as checking that removing all the tc squares
+                 * would yield the previous grid. Then we colour
+                 * the tc squares in colour c by breadth-first
+                 * search, which conveniently permits us to test
+                 * that they're all connected.
+                 */
+                {
+                    int x1, x2, y1, y2;
+                    int ok = TRUE;
+                    int fillstart = -1, ntc = 0;
+
+#ifdef GENERATION_DIAGNOSTICS
+                    {
+                        int x,y;
+                        printf("testing move (new, old):\n");
+                        for (y = 0; y < h; y++) {
+                            for (x = 0; x < w; x++) {
+                                if (grid2[y*w+x] == 0)
+                                    printf("-");
+                                else if (grid2[y*w+x] <= nc)
+                                    printf("%d", grid2[y*w+x]);
+                                else
+                                    printf("*");
+                            }
+                            printf("   ");
+                            for (x = 0; x < w; x++) {
+                                if (grid[y*w+x] == 0)
+                                    printf("-");
+                                else
+                                    printf("%d", grid[y*w+x]);
+                            }
+                            printf("\n");
+                        }
+                    }
+#endif
+
+                    for (x1 = x2 = 0; x2 < w; x2++) {
+                        int usedcol = FALSE;
+
+                        for (y1 = y2 = h-1; y2 >= 0; y2--) {
+                            if (grid2[y2*w+x2] == tc) {
+                                ntc++;
+                                if (fillstart == -1)
+                                    fillstart = y2*w+x2;
+                                if ((y2+1 < h && grid2[(y2+1)*w+x2] == c) ||
+                                    (y2-1 >= 0 && grid2[(y2-1)*w+x2] == c) ||
+                                    (x2+1 < w && grid2[y2*w+x2+1] == c) ||
+                                    (x2-1 >= 0 && grid2[y2*w+x2-1] == c)) {
+#ifdef GENERATION_DIAGNOSTICS
+                                    printf("adjacency failure at %d,%d\n",
+                                           x2, y2);
+#endif
+                                    ok = FALSE;
+                                }
+                                continue;
+                            }
+                            if (grid2[y2*w+x2] == 0)
+                                break;
+                            usedcol = TRUE;
+                            if (grid2[y2*w+x2] != grid[y1*w+x1]) {
+#ifdef GENERATION_DIAGNOSTICS
+                                printf("matching failure at %d,%d vs %d,%d\n",
+                                       x2, y2, x1, y1);
+#endif
+                                ok = FALSE;
+                            }
+                            y1--;
+                        }
+
+                        /*
+                         * If we've reached the top of the column
+                         * in grid2, verify that we've also reached
+                         * the top of the column in `grid'.
+                         */
+                        if (usedcol) {
+                            while (y1 >= 0) {
+                                if (grid[y1*w+x1] != 0) {
+#ifdef GENERATION_DIAGNOSTICS
+                                    printf("junk at column top (%d,%d)\n",
+                                           x1, y1);
+#endif
+                                    ok = FALSE;
+                                }
+                                y1--;
+                            }
+                        }
+
+                        if (!ok)
+                            break;
+
+                        if (usedcol)
+                            x1++;
+                    }
+
+                    if (!ok) {
+                        assert(!"This should never happen");
+
+                        /*
+                         * If this game is compiled NDEBUG so that
+                         * the assertion doesn't bring it to a
+                         * crashing halt, the only thing we can do
+                         * is to give up, loop round again, and
+                         * hope to randomly avoid making whatever
+                         * type of move just caused this failure.
+                         */
+                        continue;
+                    }
+
+                    /*
+                     * Now use bfs to fill in the tc section as
+                     * colour c. We use `list' to store the set of
+                     * squares we have to process.
+                     */
+                    i = j = 0;
+                    assert(fillstart >= 0);
+                    list[i++] = fillstart;
+#ifdef OUTPUT_SOLUTION
+                    printf("M");
+#endif
+                    while (j < i) {
+                        k = list[j];
+                        x = k % w;
+                        y = k / w;
+#ifdef OUTPUT_SOLUTION
+                        printf("%s%d", j ? "," : "", k);
+#endif
+                        j++;
+
+                        assert(grid2[k] == tc);
+                        grid2[k] = c;
+
+                        if (x > 0 && grid2[k-1] == tc)
+                            list[i++] = k-1;
+                        if (x+1 < w && grid2[k+1] == tc)
+                            list[i++] = k+1;
+                        if (y > 0 && grid2[k-w] == tc)
+                            list[i++] = k-w;
+                        if (y+1 < h && grid2[k+w] == tc)
+                            list[i++] = k+w;
+                    }
+#ifdef OUTPUT_SOLUTION
+                    printf("\n");
+#endif
+
+                    /*
+                     * Check that we've filled the same number of
+                     * tc squares as we originally found.
+                     */
+                    assert(j == ntc);
+                }
+
+                memcpy(grid, grid2, wh * sizeof(int));
+
+                break;		       /* done it! */
+            }
+
+#ifdef GENERATION_DIAGNOSTICS
+            {
+                int x,y;
+                printf("n=%d\n", n);
+                for (y = 0; y < h; y++) {
+                    for (x = 0; x < w; x++) {
+                        if (grid[y*w+x] == 0)
+                            printf("-");
+                        else
+                            printf("%d", grid[y*w+x]);
+                    }
+                    printf("\n");
+                }
+            }
+#endif
+
+            if (n < 0)
+                break;
+        }
+
+        ok = TRUE;
+        for (i = 0; i < wh; i++)
+            if (grid[i] == 0) {
+                ok = FALSE;
+                failures++;
+#if defined GENERATION_DIAGNOSTICS || defined SHOW_INCOMPLETE
+                {
+                    int x,y;
+                    printf("incomplete grid:\n");
+                    for (y = 0; y < h; y++) {
+                        for (x = 0; x < w; x++) {
+                            if (grid[y*w+x] == 0)
+                                printf("-");
+                            else
+                                printf("%d", grid[y*w+x]);
+                        }
+                        printf("\n");
+                    }
+                }
+#endif
+                break;
+            }
+
+    } while (!ok);
+
+#if defined GENERATION_DIAGNOSTICS || defined COUNT_FAILURES
+    printf("%d failures\n", failures);
+#endif
+#ifdef GENERATION_DIAGNOSTICS
+    {
+        int x,y;
+        printf("final grid:\n");
+        for (y = 0; y < h; y++) {
+            for (x = 0; x < w; x++) {
+                printf("%d", grid[y*w+x]);
+            }
+            printf("\n");
+        }
+    }
+#endif
+
+    sfree(grid2);
+    sfree(list);
+}
+
+/*
+ * Not-guaranteed-soluble grid generator; kept as a legacy, and in
+ * case someone finds the slightly odd quality of the guaranteed-
+ * soluble grids to be aesthetically displeasing or finds its CPU
+ * utilisation to be excessive.
+ */
+static void gen_grid_random(int w, int h, int nc, int *grid, random_state *rs)
+{
+    int i, j, c;
+    int n = w * h;
+
+    for (i = 0; i < n; i++)
+	grid[i] = 0;
+
+    /*
+     * Our sole concession to not gratuitously generating insoluble
+     * grids is to ensure we have at least two of every colour.
+     */
+    for (c = 1; c <= nc; c++) {
+	for (j = 0; j < 2; j++) {
+	    do {
+		i = (int)random_upto(rs, n);
+	    } while (grid[i] != 0);
+	    grid[i] = c;
+	}
+    }
+
+    /*
+     * Fill in the rest of the grid at random.
+     */
+    for (i = 0; i < n; i++) {
+	if (grid[i] == 0)
+	    grid[i] = (int)random_upto(rs, nc)+1;
+    }
+}
 
 static char *new_game_desc(game_params *params, random_state *rs,
 			   char **aux, int interactive)
 {
     char *ret;
-    int n, i, j, c, retlen, *tiles;
+    int n, i, retlen, *tiles;
 
     n = params->w * params->h;
     tiles = snewn(n, int);
-    memset(tiles, 0, n*sizeof(int));
 
-    /* randomly place two of each colour */
-    for (c = 0; c < params->ncols; c++) {
-	for (j = 0; j < 2; j++) {
-	    do {
-		i = (int)random_upto(rs, n);
-	    } while (tiles[i] != 0);
-	    tiles[i] = c+1;
-	}
-    }
-
-    /* fill in the rest randomly */
-    for (i = 0; i < n; i++) {
-	if (tiles[i] == 0)
-	    tiles[i] = (int)random_upto(rs, params->ncols)+1;
-    }
+    if (params->soluble)
+	gen_grid(params->w, params->h, params->ncols, tiles, rs);
+    else
+	gen_grid_random(params->w, params->h, params->ncols, tiles, rs);
 
     ret = NULL;
     retlen = 0;

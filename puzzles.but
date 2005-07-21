@@ -959,11 +959,6 @@ Removing a region causes the rest of the grid to shuffle up:
 blocks that are suspended will fall down (first), and then empty
 columns are filled from the right. 
 
-The game generator does not try to guarantee soluble grids;
-it will, however, ensure that there are at least 2 squares of each 
-colour on the grid at the start (and will forbid custom grids for which
-that would be impossible).
-
 Same Game was contributed to this collection by James Harvey.
 
 \H{samegame-controls} \i{Same Game controls}
@@ -1008,6 +1003,23 @@ system, \q{(n-2)^2}, only regions of three squares or more will score
 any points at all. With the alternative \q{(n-1)^2} system, regions of
 two squares score a point each, and larger regions score relatively
 more points.
+
+\dt \e{Ensure solubility}
+
+\dd If this option is ticked (the default state), generated grids
+will be guaranteed to have at least one solution.
+
+\lcont{
+
+If you turn it off, the game generator will not try to guarantee
+soluble grids; it will, however, still ensure that there are at
+least 2 squares of each colour on the grid at the start (since a
+grid with exactly one square of a given colour is \e{definitely}
+insoluble). Grids generated with this option disabled may contain
+more large areas of contiguous colour, leading to opportunities for
+higher scores; they can also take less time to generate.
+
+}
 
 
 \C{flip} \i{Flip}
