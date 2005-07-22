@@ -726,12 +726,147 @@ static void free_game(game_state *state)
 static char *solve_game(game_state *state, game_state *currstate,
 			char *aux, char **error)
 {
+    int n = state->params.n;
+    int matrix[4];
+    point *pts;
+    int i, j, besti;
+    float bestd;
+    char buf[80], *ret;
+    int retlen, retsize;
+
     if (!aux) {
 	*error = "Solution not known for this puzzle";
 	return NULL;
     }
 
-    return dupstr(aux);
+    /*
+     * Decode the aux_info to get the original point positions.
+     */
+    pts = snewn(n, point);
+    aux++;                             /* eat 'S' */
+    for (i = 0; i < n; i++) {
+        int p, k;
+        long x, y, d;
+	int ret = sscanf(aux, ";P%d:%ld,%ld/%ld%n", &p, &x, &y, &d, &k);
+        if (ret != 4 || p != i) {
+            *error = "Internal error: aux_info badly formatted";
+            sfree(pts);
+            return NULL;
+        }
+        pts[i].x = x;
+        pts[i].y = y;
+        pts[i].d = d;
+        aux += k;
+    }
+
+    /*
+     * Now go through eight possible symmetries of the point set.
+     * For each one, work out the sum of the Euclidean distances
+     * between the points' current positions and their new ones.
+     * 
+     * We're squaring distances here, which means we're at risk of
+     * integer overflow. Fortunately, there's no real need to be
+     * massively careful about rounding errors, since this is a
+     * non-essential bit of the code; so I'll just work in floats
+     * internally.
+     */
+    besti = -1;
+    bestd = 0.0F;
+
+    for (i = 0; i < 8; i++) {
+        float d;
+
+        matrix[0] = matrix[1] = matrix[2] = matrix[3] = 0;
+        matrix[i & 1] = (i & 2) ? +1 : -1;
+        matrix[3-(i&1)] = (i & 4) ? +1 : -1;
+
+        d = 0.0F;
+        for (j = 0; j < n; j++) {
+            float px = (float)pts[j].x / pts[j].d;
+            float py = (float)pts[j].y / pts[j].d;
+            float sx = (float)currstate->pts[j].x / currstate->pts[j].d;
+            float sy = (float)currstate->pts[j].y / currstate->pts[j].d;
+            float cx = (float)currstate->w / 2;
+            float cy = (float)currstate->h / 2;
+            float ox, oy, dx, dy;
+
+            px -= cx;
+            py -= cy;
+
+            ox = matrix[0] * px + matrix[1] * py;
+            oy = matrix[2] * px + matrix[3] * py;
+
+            ox += cx;
+            oy += cy;
+
+            dx = ox - sx;
+            dy = oy - sy;
+
+            d += dx*dx + dy*dy;
+        }
+
+        if (besti < 0 || bestd > d) {
+            besti = i;
+            bestd = d;
+        }
+    }
+
+    assert(besti >= 0);
+
+    /*
+     * Now we know which symmetry is closest to the points' current
+     * positions. Use it.
+     */
+    matrix[0] = matrix[1] = matrix[2] = matrix[3] = 0;
+    matrix[besti & 1] = (besti & 2) ? +1 : -1;
+    matrix[3-(besti&1)] = (besti & 4) ? +1 : -1;
+
+    retsize = 256;
+    ret = snewn(retsize, char);
+    retlen = 0;
+    ret[retlen++] = 'S';
+    ret[retlen] = '\0';
+
+    for (i = 0; i < n; i++) {
+        float px = (float)pts[i].x / pts[i].d;
+        float py = (float)pts[i].y / pts[i].d;
+        float cx = (float)currstate->w / 2;
+        float cy = (float)currstate->h / 2;
+        float ox, oy;
+        int extra;
+
+        px -= cx;
+        py -= cy;
+
+        ox = matrix[0] * px + matrix[1] * py;
+        oy = matrix[2] * px + matrix[3] * py;
+
+        ox += cx;
+        oy += cy;
+
+        /*
+         * Use a fixed denominator of 2, because we know the
+         * original points were on an integer grid offset by 1/2.
+         */
+        pts[i].d = 2;
+        ox *= pts[i].d;
+        oy *= pts[i].d;
+        pts[i].x = ox + 0.5;
+        pts[i].y = oy + 0.5;
+
+        extra = sprintf(buf, ";P%d:%ld,%ld/%ld", i,
+                        pts[i].x, pts[i].y, pts[i].d);
+        if (retlen + extra >= retsize) {
+            retsize = retlen + extra + 256;
+            ret = sresize(ret, retsize, char);
+        }
+        strcpy(ret + retlen, buf);
+        retlen += extra;
+    }
+
+    sfree(pts);
+
+    return ret;
 }
 
 static char *game_text_format(game_state *state)
