@@ -398,11 +398,6 @@ static void gen_grid(int w, int h, int nc, int *grid, random_state *rs)
             if (n == 0)
                 break;		       /* we're done */
 
-            /*
-             * Shuffle the list.
-             */
-            shuffle(list, n, sizeof(*list), rs);
-
 #ifdef GENERATION_DIAGNOSTICS
             printf("initial grid:\n");
             {
@@ -420,13 +415,17 @@ static void gen_grid(int w, int h, int nc, int *grid, random_state *rs)
 #endif
 
             /*
-             * Now go through the list one element at a time and
-             * actually attempt to insert something there.
+             * Now go through the list one element at a time in
+             * random order, and actually attempt to insert
+             * something there.
              */
             while (n-- > 0) {
                 int dirs[4], ndirs, dir;
 
-                pos = list[n];
+                i = random_upto(rs, n+1);
+                pos = list[i];
+                list[i] = list[n];
+
                 x = pos % w;
                 y = pos / w;
 
