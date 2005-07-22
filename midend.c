@@ -1125,6 +1125,7 @@ char *midend_solve(midend_data *me)
 	    me->ourgame->anim_length(me->states[me->statepos-2].state,
 				     me->states[me->statepos-1].state,
 				     +1, me->ui);
+        me->anim_pos = 0.0;
     } else {
 	me->anim_time = 0.0;
 	midend_finish_move(me);
