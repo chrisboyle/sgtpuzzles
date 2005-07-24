@@ -38,6 +38,9 @@
 enum {
     COL_BACKGROUND,
     COL_LINE,
+#ifdef SHOW_CROSSINGS
+    COL_CROSSEDLINE,
+#endif
     COL_OUTLINE,
     COL_POINT,
     COL_DRAGPOINT,
@@ -78,6 +81,9 @@ struct game_state {
     game_params params;
     int w, h;			       /* extent of coordinate system only */
     point *pts;
+#ifdef SHOW_CROSSINGS
+    int *crosses;		       /* mark edges which are crossed */
+#endif
     struct graph *graph;
     int completed, cheated, just_solved;
 };
@@ -657,6 +663,49 @@ static char *validate_desc(game_params *params, char *desc)
     return NULL;
 }
 
+static void mark_crossings(game_state *state)
+{
+    int ok = TRUE;
+    int i, j;
+    edge *e, *e2;
+
+#ifdef SHOW_CROSSINGS
+    for (i = 0; (e = index234(state->graph->edges, i)) != NULL; i++)
+	state->crosses[i] = FALSE;
+#endif
+
+    /*
+     * Check correctness: for every pair of edges, see whether they
+     * cross.
+     */
+    for (i = 0; (e = index234(state->graph->edges, i)) != NULL; i++) {
+	for (j = i+1; (e2 = index234(state->graph->edges, j)) != NULL; j++) {
+	    if (e2->a == e->a || e2->a == e->b ||
+		e2->b == e->a || e2->b == e->b)
+		continue;
+	    if (cross(state->pts[e2->a], state->pts[e2->b],
+		      state->pts[e->a], state->pts[e->b])) {
+		ok = FALSE;
+#ifdef SHOW_CROSSINGS
+		state->crosses[i] = state->crosses[j] = TRUE;
+#else
+		goto done;	       /* multi-level break - sorry */
+#endif
+	    }
+	}
+    }
+
+    /*
+     * e == NULL if we've gone through all the edge pairs
+     * without finding a crossing.
+     */
+#ifndef SHOW_CROSSINGS
+    done:
+#endif
+    if (ok)
+	state->completed = TRUE;
+}
+
 static game_state *new_game(midend_data *me, game_params *params, char *desc)
 {
     int n = params->n;
@@ -670,7 +719,7 @@ static game_state *new_game(midend_data *me, game_params *params, char *desc)
     state->graph = snew(struct graph);
     state->graph->refcount = 1;
     state->graph->edges = newtree234(edgecmp);
-    state->completed = state->cheated = state->just_solved = FALSE;
+    state->cheated = state->just_solved = FALSE;
 
     while (*desc) {
 	a = atoi(desc);
@@ -687,6 +736,11 @@ static game_state *new_game(midend_data *me, game_params *params, char *desc)
 	}
 	addedge(state->graph->edges, a, b);
     }
+
+#ifdef SHOW_CROSSINGS
+    state->crosses = snewn(count234(state->graph->edges), int);
+#endif
+    mark_crossings(state);	       /* sets up `crosses' and `completed' */
 
     return state;
 }
@@ -706,6 +760,11 @@ static game_state *dup_game(game_state *state)
     ret->completed = state->completed;
     ret->cheated = state->cheated;
     ret->just_solved = state->just_solved;
+#ifdef SHOW_CROSSINGS
+    ret->crosses = snewn(count234(ret->graph->edges), int);
+    memcpy(ret->crosses, state->crosses,
+	   count234(ret->graph->edges) * sizeof(int));
+#endif
 
     return ret;
 }
@@ -1019,33 +1078,7 @@ static game_state *execute_move(game_state *state, char *move)
 	}
     }
 
-    /*
-     * Check correctness: for every pair of edges, see whether they
-     * cross.
-     */
-    if (!ret->completed) {
-	int i, j;
-	edge *e, *e2;
-
-	for (i = 0; (e = index234(ret->graph->edges, i)) != NULL; i++) {
-	    for (j = i+1; (e2 = index234(ret->graph->edges, j)) != NULL; j++) {
-		if (e2->a == e->a || e2->a == e->b ||
-		    e2->b == e->a || e2->b == e->b)
-		    continue;
-		if (cross(ret->pts[e2->a], ret->pts[e2->b],
-			  ret->pts[e->a], ret->pts[e->b]))
-		    break;
-	    }
-	    if (e2)
-		break;
-	}
-
-	/*
-	 * e == NULL if we've gone through all the edge pairs
-	 * without finding a crossing.
-	 */
-	ret->completed = (e == NULL);
-    }
+    mark_crossings(ret);
 
     return ret;
 }
@@ -1075,6 +1108,12 @@ static float *game_colours(frontend *fe, game_state *state, int *ncolours)
     ret[COL_LINE * 3 + 0] = 0.0F;
     ret[COL_LINE * 3 + 1] = 0.0F;
     ret[COL_LINE * 3 + 2] = 0.0F;
+
+#ifdef SHOW_CROSSINGS
+    ret[COL_CROSSEDLINE * 3 + 0] = 1.0F;
+    ret[COL_CROSSEDLINE * 3 + 1] = 0.0F;
+    ret[COL_CROSSEDLINE * 3 + 2] = 0.0F;
+#endif
 
     ret[COL_OUTLINE * 3 + 0] = 0.0F;
     ret[COL_OUTLINE * 3 + 1] = 0.0F;
@@ -1179,7 +1218,12 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 	x2 = p2.x * ds->tilesize / p2.d;
 	y2 = p2.y * ds->tilesize / p2.d;
 
-	draw_line(fe, x1, y1, x2, y2, COL_LINE);
+	draw_line(fe, x1, y1, x2, y2,
+#ifdef SHOW_CROSSINGS
+		  (oldstate?oldstate:state)->crosses[i] ?
+		  COL_CROSSEDLINE :
+#endif
+		  COL_LINE);
     }
 
     /*
