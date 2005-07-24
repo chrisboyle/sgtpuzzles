@@ -1373,7 +1373,7 @@ static void add_menu_separator(GtkContainer *cont)
     gtk_widget_show(menuitem);
 }
 
-static frontend *new_window(char *game_id, char **error)
+static frontend *new_window(char *arg, char **error)
 {
     frontend *fe;
     GtkBox *vbox;
@@ -1387,15 +1387,36 @@ static frontend *new_window(char *game_id, char **error)
 
     fe->me = midend_new(fe, &thegame);
 
-    if (game_id) {
-        *error = midend_game_id(fe->me, game_id);
-        if (*error) {
-            midend_free(fe->me);
-            sfree(fe);
-            return NULL;
+    if (arg) {
+	char *err;
+	/*
+	 * Try treating the argument as a game ID.
+	 */
+        err = midend_game_id(fe->me, arg);
+        if (!err) {
+	    /*
+	     * It's a valid game ID.
+	     */
+	    midend_new_game(fe->me);
+	} else {
+	    FILE *fp = fopen(arg, "r");
+	    if (!fp) {
+		err = "Supplied argument is neither a game ID nor a save file";
+	    } else {
+		err = midend_deserialise(fe->me, savefile_read, fp);
+		fclose(fp);
+	    }
         }
+	if (err) {
+	    *error = err;
+	    midend_free(fe->me);
+	    sfree(fe);
+	    return NULL;
+	}
+
+    } else {
+	midend_new_game(fe->me);
     }
-    midend_new_game(fe->me);
 
     fe->window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     gtk_window_set_title(GTK_WINDOW(fe->window), thegame.name);
