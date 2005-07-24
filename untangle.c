@@ -13,8 +13,11 @@
 /*
  * TODO:
  * 
- *  - Docs and checklist etc
  *  - Any way we can speed up redraws on GTK? Uck.
+ * 
+ *  - It would be nice if we could somehow auto-detect a real `long
+ *    long' type on the host platform and use it in place of my
+ *    hand-hacked int64s. It'd be faster and more reliable.
  */
 
 #include <stdio.h>
@@ -202,6 +205,90 @@ static char *validate_params(game_params *params, int full)
     return NULL;
 }
 
+/* ----------------------------------------------------------------------
+ * Small number of 64-bit integer arithmetic operations, to prevent
+ * integer overflow at the very core of cross().
+ */
+
+typedef struct {
+    long hi;
+    unsigned long lo;
+} int64;
+
+#define greater64(i,j) ( (i).hi>(j).hi || ((i).hi==(j).hi && (i).lo>(j).lo))
+#define sign64(i) ((i).hi < 0 ? -1 : (i).hi==0 && (i).lo==0 ? 0 : +1)
+
+int64 mulu32to64(unsigned long x, unsigned long y)
+{
+    unsigned long a, b, c, d, t;
+    int64 ret;
+
+    a = (x & 0xFFFF) * (y & 0xFFFF);
+    b = (x & 0xFFFF) * (y >> 16);
+    c = (x >> 16) * (y & 0xFFFF);
+    d = (x >> 16) * (y >> 16);
+
+    ret.lo = a;
+    ret.hi = d + (b >> 16) + (c >> 16);
+    t = (b & 0xFFFF) << 16;
+    ret.lo += t;
+    if (ret.lo < t)
+	ret.hi++;
+    t = (c & 0xFFFF) << 16;
+    ret.lo += t;
+    if (ret.lo < t)
+	ret.hi++;
+
+#ifdef DIAGNOSTIC_VIA_LONGLONG
+    assert(((unsigned long long)ret.hi << 32) + ret.lo ==
+	   (unsigned long long)x * y);
+#endif
+
+    return ret;
+}
+
+int64 mul32to64(long x, long y)
+{
+    int sign = +1;
+    int64 ret;
+#ifdef DIAGNOSTIC_VIA_LONGLONG
+    long long realret = (long long)x * y;
+#endif
+
+    if (x < 0)
+	x = -x, sign = -sign;
+    if (y < 0)
+	y = -y, sign = -sign;
+
+    ret = mulu32to64(x, y);
+
+    if (sign < 0) {
+	ret.hi = -ret.hi;
+	ret.lo = -ret.lo;
+	if (ret.lo)
+	    ret.hi--;
+    }
+
+#ifdef DIAGNOSTIC_VIA_LONGLONG
+    assert(((unsigned long long)ret.hi << 32) + ret.lo == realret);
+#endif
+
+    return ret;
+}
+
+int64 dotprod64(long a, long b, long p, long q)
+{
+    int64 ab, pq;
+
+    ab = mul32to64(a, b);
+    pq = mul32to64(p, q);
+    ab.hi += pq.hi;
+    ab.lo += pq.lo;
+    if (ab.lo < pq.lo)
+	ab.hi++;
+    return ab;
+}
+
 /*
  * Determine whether the line segments between a1 and a2, and
  * between b1 and b2, intersect. We count it as an intersection if
@@ -209,7 +296,8 @@ static char *validate_params(game_params *params, int full)
  */
 static int cross(point a1, point a2, point b1, point b2)
 {
-    long b1x, b1y, b2x, b2y, px, py, d1, d2, d3;
+    long b1x, b1y, b2x, b2y, px, py;
+    int64 d1, d2, d3;
 
     /*
      * The condition for crossing is that b1 and b2 are on opposite
@@ -233,11 +321,12 @@ static int cross(point a1, point a2, point b1, point b2)
     b2y = b2.y * a1.d - a1.y * b2.d;
     px = a1.y * a2.d - a2.y * a1.d;
     py = a2.x * a1.d - a1.x * a2.d;
-    /* Take the dot products. */
-    d1 = b1x * px + b1y * py;
-    d2 = b2x * px + b2y * py;
+    /* Take the dot products. Here we resort to 64-bit arithmetic. */
+    d1 = dotprod64(b1x, px, b1y, py);
+    d2 = dotprod64(b2x, px, b2y, py);
     /* If they have the same non-zero sign, the lines do not cross. */
-    if ((d1 > 0 && d2 > 0) || (d1 < 0 && d2 < 0))
+    if ((sign64(d1) > 0 && sign64(d2) > 0) ||
+	(sign64(d1) < 0 && sign64(d2) < 0))
 	return FALSE;
 
     /*
@@ -246,21 +335,21 @@ static int cross(point a1, point a2, point b1, point b2)
      * condition becomes whether or not they overlap within their
      * line.
      */
-    if (d1 == 0 && d2 == 0) {
+    if (sign64(d1) == 0 && sign64(d2) == 0) {
 	/* Construct the vector a2-a1. */
 	px = a2.x * a1.d - a1.x * a2.d;
 	py = a2.y * a1.d - a1.y * a2.d;
 	/* Determine the dot products of b1-a1 and b2-a1 with this. */
-	d1 = b1x * px + b1y * py;
-	d2 = b2x * px + b2y * py;
+	d1 = dotprod64(b1x, px, b1y, py);
+	d2 = dotprod64(b2x, px, b2y, py);
 	/* If they're both strictly negative, the lines do not cross. */
-	if (d1 < 0 && d2 < 0)
+	if (sign64(d1) < 0 && sign64(d2) < 0)
 	    return FALSE;
 	/* Otherwise, take the dot product of a2-a1 with itself. If
 	 * the other two dot products both exceed this, the lines do
 	 * not cross. */
-	d3 = px * px + py * py;
-	if (d1 > d3 && d2 > d3)
+	d3 = dotprod64(px, px, py, py);
+	if (greater64(d1, d3) && greater64(d2, d3))
 	    return FALSE;
     }
 
@@ -276,9 +365,10 @@ static int cross(point a1, point a2, point b1, point b2)
     b2y = a2.y * b1.d - b1.y * a2.d;
     px = b1.y * b2.d - b2.y * b1.d;
     py = b2.x * b1.d - b1.x * b2.d;
-    d1 = b1x * px + b1y * py;
-    d2 = b2x * px + b2y * py;
-    if ((d1 > 0 && d2 > 0) || (d1 < 0 && d2 < 0))
+    d1 = dotprod64(b1x, px, b1y, py);
+    d2 = dotprod64(b2x, px, b2y, py);
+    if ((sign64(d1) > 0 && sign64(d2) > 0) ||
+	(sign64(d1) < 0 && sign64(d2) < 0))
 	return FALSE;
 
     /*
@@ -719,7 +809,7 @@ static game_state *new_game(midend_data *me, game_params *params, char *desc)
     state->graph = snew(struct graph);
     state->graph->refcount = 1;
     state->graph->edges = newtree234(edgecmp);
-    state->cheated = state->just_solved = FALSE;
+    state->completed = state->cheated = state->just_solved = FALSE;
 
     while (*desc) {
 	a = atoi(desc);
@@ -739,8 +829,8 @@ static game_state *new_game(midend_data *me, game_params *params, char *desc)
 
 #ifdef SHOW_CROSSINGS
     state->crosses = snewn(count234(state->graph->edges), int);
-#endif
     mark_crossings(state);	       /* sets up `crosses' and `completed' */
+#endif
 
     return state;
 }
