@@ -1,0 +1,3729 @@
+\cfg{text-indent}{0}
+\cfg{text-width}{72}
+\cfg{text-title-align}{left}
+\cfg{text-chapter-align}{left}
+\cfg{text-chapter-numeric}{true}
+\cfg{text-chapter-suffix}{. }
+\cfg{text-chapter-underline}{-}
+\cfg{text-section-align}{0}{left}
+\cfg{text-section-numeric}{0}{true}
+\cfg{text-section-suffix}{0}{. }
+\cfg{text-section-underline}{0}{-}
+\cfg{text-section-align}{1}{left}
+\cfg{text-section-numeric}{1}{true}
+\cfg{text-section-suffix}{1}{. }
+\cfg{text-section-underline}{1}{-}
+\cfg{text-versionid}{0}
+
+\cfg{html-contents-filename}{index.html}
+\cfg{html-template-filename}{%k.html}
+\cfg{html-index-filename}{docindex.html}
+\cfg{html-leaf-level}{1}
+\cfg{html-contents-depth-0}{1}
+\cfg{html-contents-depth-1}{3}
+\cfg{html-leaf-contains-contents}{true}
+
+\define{dash} \u2013{-}
+
+\title Developer documentation for Simon Tatham's puzzle collection
+
+This is a guide to the internal structure of Simon Tatham's Portable
+Puzzle Collection (henceforth referred to simply as \q{Puzzles}),
+for use by anyone attempting to implement a new puzzle or port to a
+new platform.
+
+This guide is believed correct as of r6140. Hopefully it will be
+updated along with the code in future, but if not, I've at least
+left this version number in here so you can figure out what's
+changed by tracking commit comments from there onwards.
+
+\C{intro} Introduction
+
+The Puzzles code base is divided into four parts: a set of
+interchangeable front ends, a set of interchangeable back ends, a
+universal \q{middle end} which acts as a buffer between the two, and
+a bunch of miscellaneous utility functions. In the following
+sections I give some general discussion of each of these parts.
+
+\H{intro-frontend} Front end
+
+The front end is the non-portable part of the code: it's the bit
+that you replace completely when you port to a different platform.
+So it's responsible for all system calls, all GUI interaction, and
+anything else platform-specific.
+
+The current front ends in the main code base are for Windows, GTK
+and MacOS X; I also know of a third-party front end for PalmOS.
+
+The front end contains \cw{main()} or the local platform's
+equivalent. Top-level control over the application's execution flow
+belongs to the front end (it isn't, for example, a set of functions
+called by a universal \cw{main()} somewhere else).
+
+The front end has complete freedom to design the GUI for any given
+port of Puzzles. There is no centralised mechanism for maintaining
+the menu layout, for example. This has a cost in consistency (when I
+\e{do} want the same menu layout on more than one platform, I have
+to edit two pieces of code in parallel every time I make a change),
+but the advantage is that local GUI conventions can be conformed to
+and local constraints adapted to. For example, MacOS X has strict
+human interface guidelines which specify a different menu layout
+from the one I've used on Windows and GTK; there's nothing stopping
+the OS X front end from providing a menu layout consistent with
+those guidelines.
+
+Although the front end is mostly caller rather than the callee in
+its interactions with other parts of the code, it is required to
+implement a small API for other modules to call, mostly of drawing
+functions for games to use when drawing their graphics. The drawing
+API is documented in \k{drawing}; the other miscellaneous front end
+API functions are documented in \k{frontend-api}.
+
+\H{intro-backend} Back end
+
+A \q{back end}, in this collection, is synonymous with a \q{puzzle}.
+Each back end implements a different game.
+
+At the top level, a back end is simply a data structure, containing
+a few constants (flag words, preferred pixel size) and a large
+number of function pointers. Back ends are almost invariably callee
+rather than caller, which means there's a limitation on what a back
+end can do on its own initiative.
+
+The persistent state in a back end is divided into a number of data
+structures, which are used for different purposes and therefore
+likely to be switched around, changed without notice, and otherwise
+updated by the rest of the code. It is important when designing a
+back end to put the right pieces of data into the right structures,
+or standard midend-provided features (such as Undo) may fail to
+work.
+
+The functions and variables provided in the back end data structure
+are documented in \k{backend}.
+
+\H{intro-midend} Middle end
+
+Puzzles has a single and universal \q{middle end}. This code is
+common to all platforms and all games; it sits in between the front
+end and the back end and provides standard functionality everywhere.
+
+People adding new back ends or new front ends should generally not
+need to edit the middle end. On rare occasions there might be a
+change that can be made to the middle end to permit a new game to do
+something not currently anticipated by the middle end's present
+design; however, this is terribly easy to get wrong and should
+probably not be undertaken without consulting the primary maintainer
+(me). Patch submissions containing unannounced mid-end changes will
+be treated on their merits like any other patch; this is just a
+friendly warning that mid-end changes will need quite a lot of
+merits to make them acceptable.
+
+Functionality provided by the mid-end includes:
+
+\b Maintaining a list of game state structures and moving back and
+forth along that list to provide Undo and Redo.
+
+\b Handling timers (for move animations, flashes on completion, and
+in some cases actually timing the game).
+
+\b Handling the container format of game IDs: receiving them,
+picking them apart into parameters, description and/or random seed,
+and so on. The game back end need only handle the individual parts
+of a game ID (encoded parameters and encoded game description);
+everything else is handled centrally by the mid-end.
+
+\b Handling standard keystrokes and menu commands, such as \q{New
+Game}, \q{Restart Game} and \q{Quit}.
+
+\b Pre-processing mouse events so that the game back ends can rely
+on them arriving in a sensible order (no missing button-release
+events, no sudden changes of which button is currently pressed,
+etc).
+
+\b Handling the dialog boxes which ask the user for a game ID.
+
+\b Handling serialisation of entire games (for loading and saving a
+half-finished game to a disk file, or for handling application
+shutdown and restart on platforms such as PalmOS where state is
+expected to be saved).
+
+Thus, there's a lot of work done once by the mid-end so that
+individual back ends don't have to worry about it. All the back end
+has to do is cooperate in ensuring the mid-end can do its work
+properly.
+
+The API of functions provided by the mid-end to be called by the
+front end is documented in \k{midend}.
+
+\H{intro-utils} Miscellaneous utilities
+
+In addition to these three major structural components, the Puzzles
+code also contains a variety of utility modules usable by all of the
+above components. There is a set of functions to provide
+platform-independent random number generation; functions to make
+memory allocation easier; functions which implement a balanced tree
+structure to be used as necessary in complex algorithms; and a few
+other miscellaneous functions. All of these are documented in
+\k{utils}.
+
+\H{intro-structure} Structure of this guide
+
+There are a number of function call interfaces within Puzzles, and
+this guide will discuss each one in a chapter of its own. After
+that, there will be a section about how to design new games, with
+some general design thoughts and tips.
+
+\C{backend} Interface to the back end
+
+This chapter gives a detailed discussion of the interface that each
+back end must implement.
+
+At the top level, each back end source file exports a single global
+symbol, which is a \c{const struct game} containing a large number
+of function pointers and a small amount of constant data. This
+structure is called by different names depending on what kind of
+platform the puzzle set is being compiled on:
+
+\b On platforms such as Windows and GTK, which build a separate
+binary for each puzzle, the game structure in every back end has the
+same name, \cq{thegame}; the front end refers directly to this name,
+so that compiling the same front end module against a different back
+end module builds a different puzzle.
+
+\b On platforms such as MacOS X and PalmOS, which build all the
+puzzles into a single monolithic binary, the game structure in each
+back end must have a different name, and there's a helper module
+\c{list.c} which contains a complete list of those game structures.
+
+On the latter type of platform, source files may assume that the
+preprocessor symbol \c{COMBINED} has been defined. Thus, the usual
+code to declare the game structure looks something like this:
+
+\c #ifdef COMBINED
+\c #define thegame net    /* or whatever this game is called */
+\e                 iii    iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii
+\c #endif
+\c 
+\c const struct game thegame = {
+\c     /* lots of structure initialisation in here */
+\e     iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii
+\c };
+
+Game back ends must also internally define a number of data
+structures, for storing their various persistent state. This chapter
+will first discuss the nature and use of those structures, and then
+go on to give details of every element of the game structure.
+
+\H{backend-structs} Data structures
+
+Each game is required to define four separate data structures. This
+section discusses each one and suggests what sorts of things need to
+be put in it.
+
+\S{backend-game-params} \c{game_params}
+
+The \c{game_params} structure contains anything which affects the
+automatic generation of new puzzles. So if puzzle generation is
+parametrised in any way, those parameters need to be stored in
+\c{game_params}.
+
+Most puzzles currently in this collection are played on a grid of
+squares, meaning that the most obvious parameter is the grid size.
+Many puzzles have additional parameters; for example, Mines allows
+you to control the number of mines in the grid independently of its
+size, Net can be wrapping or non-wrapping, Solo has difficulty
+levels and symmetry settings, and so on.
+
+A simple rule for deciding whether a data item needs to go in
+\c{game_params} is: would the user expect to be able to control this
+data item from either the preset-game-types menu or the \q{Custom}
+game type configuration? If so, it's part of \c{game_params}.
+
+\c{game_params} structures are permitted to contain pointers to
+subsidiary data if they need to. The back end is required to provide
+functions to create and destroy \c{game_params}, and those functions
+can allocate and free additional memory if necessary. (It has not
+yet been necessary to do this in any puzzle so far, but the
+capability is there just in case.)
+
+\c{game_params} is also the only structure which the game's
+\cw{compute_size()} function may refer to; this means that any
+aspect of the game which affects the size of the window it needs to
+be drawn in must be stored in \c{game_params}. In particular, this
+imposes the fundamental limitation that random game generation may
+not have a random effect on the window size: game generation
+algorithms are constrained to work by starting from the grid size
+rather than generating it as an emergent phenomenon. (Although this
+is a restriction in theory, it has not yet seemed to be a problem.)
+
+\S{backend-game-state} \c{game_state}
+
+While the user is actually playing a puzzle, the \c{game_state}
+structure stores all the data corresponding to the current state of
+play.
+
+The mid-end keeps \c{game_state}s in a list, and adds to the list
+every time the player makes a move; the Undo and Redo functions step
+back and forth through that list.
+
+Therefore, a good means of deciding whether a data item needs to go
+in \c{game_state} is: would a player expect that data item to be
+restored on undo? If so, put it in \c{game_state}, and this will
+automatically happen without you having to lift a finger. If not
+\dash for example, the deaths counter in Mines is precisely
+something that does \e{not} want to be reset to its previous state
+on an undo \dash then you might have found a data item that needs to
+go in \c{game_ui} instead.
+
+During play, \c{game_state}s are often passed around without an
+accompanying \c{game_params} structure. Therefore, any information
+in \c{game_params} which is important during play (such as the grid
+size) must be duplicated within the \c{game_state}. One simple
+method of doing this is to have the \c{game_state} structure
+\e{contain} a \c{game_params} structure as one of its members,
+although this isn't obligatory if you prefer to do it another way.
+
+\S{backend-game-drawstate} \c{game_drawstate}
+
+\c{game_drawstate} carries persistent state relating to the current
+graphical contents of the puzzle window. The same \c{game_drawstate}
+is passed to every call to the game redraw function, so that it can
+remember what it has already drawn and what needs redrawing.
+
+A typical use for a \c{game_drawstate} is to have an array mirroring
+the array of grid squares in the \c{game_state}; then every time the
+redraw function was passed a \c{game_state}, it would loop over all
+the squares, and physically redraw any whose description in the
+\c{game_state} (i.e. what the square needs to look like when the
+redraw is completed) did not match its description in the
+\c{game_drawstate} (i.e. what the square currently looks like).
+
+\c{game_drawstate} is occasionally completely torn down and
+reconstructed by the mid-end, if the user somehow forces a full
+redraw. Therefore, no data should be stored in \c{game_drawstate}
+which is \e{not} related to the state of the puzzle window, because
+it might be unexpectedly destroyed.
+
+The back end provides functions to create and destroy
+\c{game_drawstate}, which means it can contain pointers to
+subsidiary allocated data if it needs to. A common thing to want to
+allocate in a \c{game_drawstate} is a \c{blitter}; see
+\k{drawing-blitter} for more on this subject.
+
+\S{backend-game-ui} \c{game_ui}
+
+\c{game_ui} contains whatever doesn't fit into the above three
+structures!
+
+A new \c{game_ui} is created when the user begins playing a new
+instance of a puzzle (i.e. during \q{New Game} or after entering a
+game ID etc). It persists until the user finishes playing that game
+and begins another one (or closes the window); in particular,
+\q{Restart Game} does \e{not} destroy the \c{game_ui}.
+
+\c{game_ui} is useful for implementing user-interface state which is
+not part of \c{game_state}. Common examples are keyboard control
+(you wouldn't want to have to separately Undo through every cursor
+motion) and mouse dragging. See \k{writing-keyboard-cursor} and
+\k{writing-howto-dragging}, respectively, for more details.
+
+Another use for \c{game_ui} is to store highly persistent data such
+as the Mines death counter. This is conceptually rather different:
+where the Net cursor position was \e{not important enough} to
+preserve for the player to restore by Undo, the Mines death counter
+is \e{too important} to permit the player to revert by Undo!
+
+A final use for \c{game_ui} is to pass information to the redraw
+function about recent changes to the game state. This is used in
+Mines, for example, to indicate whether a requested \q{flash} should
+be a white flash for victory or a red flash for defeat; see
+\k{writing-flash-types}.
+
+\H{backend-simple} Simple data in the back end
+
+In this section I begin to discuss each individual element in the
+back end structure. To begin with, here are some simple
+self-contained data elements.
+
+\S{backend-name} \c{name}
+
+\c const char *name;
+
+This is a simple ASCII string giving the name of the puzzle. This
+name will be used in window titles, in game selection menus on
+monolithic platforms, and anywhere else that the front end needs to
+know the name of a game.
+
+\S{backend-winhelp} \c{winhelp_topic}
+
+\c const char *winhelp_topic;
+
+This member is used on Windows only, to provide online help.
+Although the Windows front end provides a separate binary for each
+puzzle, it has a single monolithic help file; so when a user selects
+\q{Help} from the menu, the program needs to open the help file and
+jump to the chapter describing that particular puzzle.
+
+Therefore, each chapter in \c{puzzles.but} is labelled with a
+\e{help topic} name, similar to this:
+
+\c \cfg{winhelp-topic}{games.net}
+
+And then the corresponding game back end encodes the topic string
+(here \cq{games.net}) in the \c{winhelp_topic} element of the game
+structure.
+
+\H{backend-params} Handling game parameter sets
+
+In this section I present the various functions which handle the
+\c{game_params} structure.
+
+\S{backend-default-params} \cw{default_params()}
+
+\c game_params *(*default_params)(void);
+
+This function allocates a new \c{game_params} structure, fills it
+with the default values, and returns a pointer to it.
+
+\S{backend-fetch-preset} \cw{fetch_preset()}
+
+\c int (*fetch_preset)(int i, char **name, game_params **params);
+
+This function is used to populate the \q{Type} menu, which provides
+a list of conveniently accessible preset parameters for most games.
+
+The function is called with \c{i} equal to the index of the preset
+required (numbering from zero). It returns \cw{FALSE} if that preset
+does not exist (if \c{i} is less than zero or greater than the
+largest preset index). Otherwise, it sets \c{*params} to point at a
+newly allocated \c{game_params} structure containing the preset
+information, sets \c{*name} to point at a newly allocated C string
+containing the preset title (to go on the \q{Type} menu), and
+returns \cw{TRUE}.
+
+If the game does not wish to support any presets at all, this
+function is permitted to return \cw{FALSE} always.
+
+\S{backend-encode-params} \cw{encode_params()}
+
+\c char *(*encode_params)(game_params *params, int full);
+
+The job of this function is to take a \c{game_params}, and encode it
+in a string form for use in game IDs. The return value must be a
+newly allocated C string, and \e{must} not contain a colon or a hash
+(since those characters are used to mark the end of the parameter
+section in a game ID).
+
+Ideally, it should also not contain any other potentially
+controversial punctuation; bear in mind when designing a string
+parameter format that it will probably be used on both Windows and
+Unix command lines under a variety of exciting shell quoting and
+metacharacter rules. Sticking entirely to alphanumerics is the
+safest thing; if you really need punctuation, you can probably get
+away with commas, periods or underscores without causing anybody any
+major inconvenience. If you venture far beyond that, you're likely
+to irritate \e{somebody}.
+
+(At the time of writing this, all existing games have purely
+alphanumeric string parameter formats. Usually these involve a
+letter denoting a parameter, followed optionally by a number giving
+the value of that parameter, with a few mandatory parts at the
+beginning such as numeric width and height separated by \cq{x}.)
+
+If the \c{full} parameter is \cw{TRUE}, this function should encode
+absolutely everything in the \c{game_params}, such that a subsequent
+call to \cw{decode_params()} (\k{backend-decode-params}) will yield
+an identical structure. If \c{full} is \cw{FALSE}, however, you
+should leave out anything which is not necessary to describe a
+\e{specific puzzle instance}, i.e. anything which only takes effect
+when a new puzzle is \e{generated}. For example, the Solo
+\c{game_params} includes a difficulty rating used when constructing
+new puzzles; but a Solo game ID need not explicitly include the
+difficulty, since to describe a puzzle once generated it's
+sufficient to give the grid dimensions and the location and contents
+of the clue squares. (Indeed, one might very easily type in a puzzle
+out of a newspaper without \e{knowing} what its difficulty level is
+in Solo's terminology.) Therefore. Solo's \cw{encode_params()} only
+encodes the difficulty level if \c{full} is set.
+
+\S{backend-decode-params} \cw{decode_params()}
+
+\c void (*decode_params)(game_params *params, char const *string);
+
+This function is the inverse of \cw{encode_params()}
+(\k{backend-encode-params}). It parses the supplied string and fills
+in the supplied \c{game_params} structure. Note that the structure
+will \e{already} have been allocated: this function is not expected
+to create a \e{new} \c{game_params}, but to modify an existing one.
+
+This function can receive a string which only encodes a subset of
+the parameters. The most obvious way in which this can happen is if
+the string was constructed by \cw{encode_params()} with its \c{full}
+parameter set to \cw{FALSE}; however, it could also happen if the
+user typed in a parameter set manually and missed something out. Be
+prepared to deal with a wide range of possibilities.
+
+When dealing with a parameter which is not specified in the input
+string, what to do requires a judgment call on the part of the
+programmer. Sometimes it makes sense to adjust other parameters to
+bring them into line with the new ones. In Mines, for example, you
+would probably not want to keep the same mine count if the user
+dropped the grid size and didn't specify one, since you might easily
+end up with more mines than would actually fit in the grid! On the
+other hand, sometimes it makes sense to leave the parameter alone: a
+Solo player might reasonably expect to be able to configure size and
+difficulty independently of one another.
+
+This function currently has no direct means of returning an error if
+the string cannot be parsed at all. However, the returned
+\c{game_params} is almost always subsequently passed to
+\cw{validate_params()} (\k{backend-validate-params}), so if you
+really want to signal parse errors, you could always have a \c{char
+*} in your parameters structure which stored an error message, and
+have \cw{validate_params()} return it if it is non-\cw{NULL}.
+
+\S{backend-free-params} \cw{free_params()}
+
+\c void (*free_params)(game_params *params);
+
+This function frees a \c{game_params} structure, and any subsidiary
+allocations contained within it.
+
+\S{backend-dup-params} \cw{dup_params()}
+
+\c game_params *(*dup_params)(game_params *params);
+
+This function allocates a new \c{game_params} structure and
+initialises it with an exact copy of the information in the one
+provided as input. It returns a pointer to the new duplicate.
+
+\S{backend-can-configure} \c{can_configure}
+
+\c int can_configure;
+
+This boolean data element is set to \cw{TRUE} if the back end
+supports custom parameter configuration via a dialog box. If it is
+\cw{TRUE}, then the functions \cw{configure()} and
+\cw{custom_params()} are expected to work. See \k{backend-configure}
+and \k{backend-custom-params} for more details.
+
+\S{backend-configure} \cw{configure()}
+
+\c config_item *(*configure)(game_params *params);
+
+This function is called when the user requests a dialog box for
+custom parameter configuration. It returns a newly allocated array
+of \cw{config_item} structures, describing the GUI elements required
+in the dialog box. The 
+
+The \cw{config_item} structure contains the following elements:
+
+\c char *name;
+\c int type;
+\c char *sval;
+\c int ival;
+
+\c{name} is an ASCII string giving the textual label for a GUI
+control. It is \e{not} expected to be dynamically allocated.
+
+\c{type} contains one of a small number of \c{enum} values defining
+what type of control is being described. The meaning of the \c{sval}
+and \c{ival} fields depends on the value in \c{type}. The valid
+values are:
+
+\dt \c{C_STRING}
+
+\dd Describes a text input box. (This is also used for numeric
+input. The back end does not bother informing the front end that the
+box is numeric rather than textual; some front ends do have the
+capacity to take this into account, but I decided it wasn't worth
+the extra complexity in the interface.) For this type, \c{ival} is
+unused, and \c{sval} contains a dynamically allocated string
+representing the contents of the input box.
+
+\dt \c{C_BOOLEAN}
+
+\dd Describes a simple checkbox. For this type, \c{sval} is unused,
+and \c{ival} is \cw{TRUE} or \cw{FALSE}.
+
+\dt \c{C_CHOICES}
+
+\dd Describes a drop-down list presenting one of a small number of
+fixed choices. For this type, \c{sval} contains a list of strings
+describing the choices; the very first character of \c{sval} is used
+as a delimiter when processing the rest (so that the strings
+\cq{:zero:one:two}, \cq{!zero!one!two} and \cq{xzeroxonextwo} all
+define a three-element list containing \cq{zero}, \cq{one} and
+\cq{two}). \c{ival} contains the index of the currently selected
+element, numbering from zero (so that in the above example, 0 would
+mean \cq{zero} and 2 would mean \cq{two}).
+
+\lcont{
+
+Note that for this control type, \c{sval} is \e{not} dynamically
+allocated, whereas it was for \c{C_STRING}.
+
+}
+
+\dt \c{C_END}
+
+\dd Marks the end of the array of \c{config_item}s. All other fields
+are unused.
+
+The array returned from this function is expected to have filled in
+the initial values of all the controls according to the input
+\c{game_params} structure.
+
+If the game's \c{can_configure} flag is set to \cw{FALSE}, this
+function is never called and need not do anything at all.
+
+\S{backend-custom-params} \cw{custom_params()}
+
+\c game_params *(*custom_params)(config_item *cfg);
+
+This function is the counterpart to \cw{configure()}
+(\k{backend-configure}). It receives as input an array of
+\c{config_item}s which was originally created by \cw{configure()},
+but in which the control values have since been changed in
+accordance with user input. Its function is to read the new values
+out of the controls and return a newly allocated \c{game_params}
+structure representing the user's chosen parameter set.
+
+(The front end will have modified the controls' \e{values}, but
+there will still always be the same set of controls, in the same
+order, as provided by \cw{configure()}. It is not necessary to check
+the \c{name} and \c{type} fields, although you could use
+\cw{assert()} if you were feeling energetic.)
+
+This function is not expected to (and indeed \e{must not}) free the
+input \c{config_item} array. (If the parameters fail to validate,
+the dialog box will stay open.)
+
+If the game's \c{can_configure} flag is set to \cw{FALSE}, this
+function is never called and need not do anything at all.
+
+\S{backend-validate-params} \cw{validate_params()}
+
+\c char *(*validate_params)(game_params *params, int full);
+
+This function takes a \c{game_params} structure as input, and checks
+that the parameters described in it fall within sensible limits. (At
+the very least, grid dimensions should almost certainly be strictly
+positive, for example.)
+
+Return value is \cw{NULL} if no problems were found, or
+alternatively a (non-dynamically-allocated) ASCII string describing
+the error in human-readable form.
+
+If the \c{full} parameter is set, full validation should be
+performed: any set of parameters which would not permit generation
+of a sensible puzzle should be faulted. If \c{full} is \e{not} set,
+the implication is that these parameters are not going to be used
+for \e{generating} a puzzle; so parameters which can't even sensibly
+\e{describe} a valid puzzle should still be faulted, but parameters
+which only affect puzzle generation should not be.
+
+(The \c{full} option makes a difference when parameter combinations
+are non-orthogonal. For example, Net has a boolean option
+controlling whether it enforces a unique solution; it turns out that
+it's impossible to generate a uniquely soluble puzzle with wrapping
+walls and width 2, so \cw{validate_params()} will complain if you
+ask for one. However, if the user had just been playing a unique
+wrapping puzzle of a more sensible width, and then pastes in a game
+ID acquired from somebody else which happens to describe a
+\e{non}-unique wrapping width-2 puzzle, then \cw{validate_params()}
+will be passed a \c{game_params} containing the width and wrapping
+settings from the new game ID and the uniqueness setting from the
+old one. This would be faulted, if it weren't for the fact that
+\c{full} is not set during this call, so Net ignores the
+inconsistency. The resulting \c{game_params} is never subsequently
+used to generate a puzzle; this is a promise made by the mid-end
+when it asks for a non-full validation.)
+
+\H{backend-descs} Handling game descriptions
+
+In this section I present the functions that deal with a textual
+description of a puzzle, i.e. the part that comes after the colon in
+a descriptive-format game ID.
+
+\S{backend-new-desc} \cw{new_desc()}
+
+\c char *(*new_desc)(game_params *params, random_state *rs,
+\c                   char **aux, int interactive);
+
+This function is where all the really hard work gets done. This is
+the function whose job is to randomly generate a new puzzle,
+ensuring solubility and uniqueness as appropriate.
+
+As input it is given a \c{game_params} structure and a random state
+(see \k{utils-random} for the random number API). It must invent a
+puzzle instance, encode it in string form, and return a dynamically
+allocated C string containing that encoding.
+
+Additionally, it may return a second dynamically allocated string in
+\c{*aux}. (If it doesn't want to, then it can leave that parameter
+completely alone; it isn't required to set it to \cw{NULL}, although
+doing so is harmless.) That string, if present, will be passed to
+\cw{solve()} (\k{backend-solve}) later on; so if the puzzle is
+generated in such a way that a solution is known, then information
+about that solution can be saved in \c{*aux} for \cw{solve()} to
+use.
+
+The \c{interactive} parameter should be ignored by almost all
+puzzles. Its purpose is to distinguish between generating a puzzle
+within a GUI context for immediate play, and generating a puzzle in
+a command-line context for saving to be played later. The only
+puzzle that currently uses this distinction (and, I fervently hope,
+the only one which will \e{ever} need to use it) is Mines, which
+chooses a random first-click location when generating puzzles
+non-interactively, but which waits for the user to place the first
+click when interactive. If you think you have come up with another
+puzzle which needs to make use of this parameter, please think for
+at least ten minutes about whether there is \e{any} alternative!
+
+Note that game description strings are not required to contain an
+encoding of parameters such as grid size; a game description is
+never separated from the \c{game_params} it was generated with, so
+any information contained in that structure need not be encoded
+again in the game description.
+
+\S{backend-validate-desc} \cw{validate_desc()}
+
+\c char *(*validate_desc)(game_params *params, char *desc);
+
+This function is given a game description, and its job is to
+validate that it describes a puzzle which makes sense.
+
+To some extent it's up to the user exactly how far they take the
+phrase \q{makes sense}; there are no particularly strict rules about
+how hard the user is permitted to shoot themself in the foot when
+typing in a bogus game description by hand. (For example, Rectangles
+will not verify that the sum of all the numbers in the grid equals
+the grid's area. So a user could enter a puzzle which was provably
+not soluble, and the program wouldn't complain; there just wouldn't
+happen to be any sequence of moves which solved it.)
+
+The one non-negotiable criterion is that any game description which
+makes it through \cw{validate_desc()} \e{must not} subsequently
+cause a crash or an assertion failure when fed to \cw{new_game()}
+and thence to the rest of the back end.
+
+The return value is \cw{NULL} on success, or a
+non-dynamically-allocated C string containing an error message.
+
+\S{backend-new-game} \cw{new_game()}
+
+\c game_state *(*new_game)(midend_data *me, game_params *params,
+\c                         char *desc);
+
+This function takes a game description as input, together with its
+accompanying \c{game_params}, and constructs a \c{game_state}
+describing the initial state of the puzzle. It returns a newly
+allocated \c{game_state} structure.
+
+Almost all puzzles should ignore the \c{me} parameter. It is
+required by Mines, which needs it for later passing to
+\cw{midend_supersede_game_desc()} (see \k{backend-supersede}) once
+the user has placed the first click. I fervently hope that no other
+puzzle will be awkward enough to require it, so everybody else
+should ignore it. As with the \c{interactive} parameter in
+\cw{new_desc()} (\k{backend-new-desc}), if you think you have a
+reason to need this parameter, please try very hard to think of an
+alternative approach!
+
+\H{backend-states} Handling game states
+
+This section describes the functions which create and destroy
+\c{game_state} structures.
+
+(Well, except \cw{new_game()}, which is in \k{backend-new-game}
+instead of under here; but it deals with game descriptions \e{and}
+game states and it had to go in one section or the other.)
+
+\S{backend-dup-game} \cw{dup_game()}
+
+\c game_state *(*dup_game)(game_state *state);
+
+This function allocates a new \c{game_state} structure and
+initialises it with an exact copy of the information in the one
+provided as input. It returns a pointer to the new duplicate.
+
+\S{backend-free-game} \cw{free_game()}
+
+\c void (*free_game)(game_state *state);
+
+This function frees a \c{game_state} structure, and any subsidiary
+allocations contained within it.
+
+\H{backend-ui} Handling \c{game_ui}
+
+\S{backend-new-ui} \cw{new_ui()}
+
+\c game_ui *(*new_ui)(game_state *state);
+
+This function allocates and returns a new \c{game_ui} structure for
+playing a particular puzzle. It is passed a pointer to the initial
+\c{game_state}, in case it needs to refer to that when setting up
+the initial values for the new game.
+
+\S{backend-free-ui} \cw{free_ui()}
+
+\c void (*free_ui)(game_ui *ui);
+
+This function frees a \c{game_ui} structure, and any subsidiary
+allocations contained within it.
+
+\S{backend-encode-ui} \cw{encode_ui()}
+
+\c char *(*encode_ui)(game_ui *ui);
+
+This function encodes any \e{important} data in a \c{game_ui}
+structure in string form. It is only called when saving a
+half-finished game to a file.
+
+It should be used sparingly. Almost all data in a \c{game_ui} is not
+important enough to save. The location of the keyboard-controlled
+cursor, for example, can be reset to a default position on reloading
+the game without impacting the user experience. If the user should
+somehow manage to save a game while a mouse drag was in progress,
+then discarding that mouse drag would be an outright \e{feature},
+
+A typical thing that \e{would} be worth encoding in this function is
+the Mines death counter: it's in the \c{game_ui} rather than the
+\c{game_state} because it's too important to allow the user to
+revert it by using Undo, and therefore it's also too important to
+allow the user to revert it by saving and reloading. (Of course, the
+user could edit the save file by hand... But if the user is \e{that}
+determined to cheat, they could just as easily modify the game's
+source.)
+
+\S{backend-decode-ui} \cw{decode_ui()}
+
+\c void (*decode_ui)(game_ui *ui, char *encoding);
+
+This function parses a string previously output by \cw{encode_ui()},
+and writes the decoded data back into the provided \c{game_ui}
+structure.
+
+\S{backend-changed-state} \cw{changed_state()}
+
+\c void (*changed_state)(game_ui *ui, game_state *oldstate,
+\c                       game_state *newstate);
+
+This function is called by the mid-end whenever the current game
+state changes, for any reason. Those reasons include:
+
+\b a fresh move being made by \cw{interpret_move()} and
+\cw{execute_move()}
+
+\b a solve operation being performed by \cw{solve()} and
+\cw{execute_move()}
+
+\b the user moving back and forth along the undo list by means of
+the Undo and Redo operations
+
+\b the user selecting Restart to go back to the initial game state.
+
+The job of \cw{changed_state()} is to update the \c{game_ui} for
+consistency with the new game state, if any update is necessary. For
+example, Same Game stores data about the currently selected tile
+group in its \c{game_ui}, and this data is intrinsically related to
+the game state it was derived from. So it's very likely to become
+invalid when the game state changes; thus, Same Game's
+\cw{changed_state()} function clears the current selection whenever
+it is called.
+
+Any call to \cw{changed_state()} can be sure that there will be a
+subsequent call to \cw{anim_length()} and \cw{flash_length()}. So
+\cw{changed_state()} can set up data in the \c{game_ui} which will
+be read by \cw{anim_length()} and \cw{flash_length()}, and not have
+to worry about those functions being called without the data having
+been uninitialised.
+
+\H{backend-moves} Making moves
+
+This section describes the functions which actually make moves in
+the game: that is, the functions which process user input and end up
+producing new \c{game_state}s.
+
+\S{backend-interpret-move} \cw{interpret_move()}
+
+\c char *(*interpret_move)(game_state *state, game_ui *ui,
+\c                         game_drawstate *ds,
+\c                         int x, int y, int button);
+
+This function receives user input and processes it. Its input
+parameters are the current \c{game_state}, the current \c{game_ui}
+and the current \c{game_drawstate}, plus details of the input event.
+\c{button} is either an ASCII value or a special code (listed below)
+indicating an arrow or function key or a mouse event; when
+\c{button} is a mouse event, \c{x} and \c{y} contain the pixel
+coordinates of the mouse pointer relative to the top left of the
+puzzle's drawing area.
+
+\cw{interpret_move()} may return in three different ways:
+
+\b Returning \cw{NULL} indicates that no action whatsoever occurred
+in response to the input event; the puzzle was not interested in it
+at all.
+
+\b Returning the empty string (\cw{""}) indicates that the input
+event has resulted in a change being made to the \c{game_ui} which
+will require a redraw of the game window, but that no actual
+\e{move} was made (i.e. no new \c{game_state} needs to be created).
+
+\b Returning anything else indicates that a move was made and that a
+new \c{game_state} must be created. However, instead of actually
+constructing a new \c{game_state} itself, this function is required
+to return a string description of the details of the move. This
+string will be passed to \cw{execute_move()}
+(\k{backend-execute-move}) to actually create the new
+\c{game_state}. (Encoding moves as strings in this way means that
+the mid-end can keep the strings as well as the game states, and the
+strings can be written to disk when saving the game and fed to
+\cw{execute_move()} again on reloading.)
+
+The return value from \cw{interpret_move()} is expected to be
+dynamically allocated if and only if it is not either \cw{NULL}
+\e{or} the empty string.
+
+After this function is called, the back end is permitted to rely on
+some subsequent operations happening in sequence:
+
+\b \cw{execute_move()} will be called to convert this move
+description into a new \c{game_state}
+
+\b \cw{changed_state()} will be called with the new \c{game_state}.
+
+This means that if \cw{interpret_move()} needs to do updates to the
+\c{game_ui} which are easier to perform by referring to the new
+\c{game_state}, it can safely leave them to be done in
+\cw{changed_state()} and not worry about them failing to happen.
+
+(Note, however, that \cw{execute_move()} may \e{also} be called in
+other circumstances. It is only \cw{interpret_move()} which can rely
+on a subsequent call to \cw{changed_state()}.)
+
+The special key codes supported by this function are:
+
+\dt \cw{LEFT_BUTTON}, \cw{MIDDLE_BUTTON}, \cw{RIGHT_BUTTON}
+
+\dd Indicate that one of the mouse buttons was pressed down.
+
+\dt \cw{LEFT_DRAG}, \cw{MIDDLE_DRAG}, \cw{RIGHT_DRAG}
+
+\dd Indicate that the mouse was moved while one of the mouse buttons
+was still down. The mid-end guarantees that when one of these events
+is received, it will always have been preceded by a button-down
+event (and possibly other drag events) for the same mouse button,
+and no event involving another mouse button will have appeared in
+between.
+
+\dt \cw{LEFT_RELEASE}, \cw{MIDDLE_RELEASE}, \cw{RIGHT_RELEASE}
+
+\dd Indicate that a mouse button was released.  The mid-end
+guarantees that when one of these events is received, it will always
+have been preceded by a button-down event (and possibly some drag
+events) for the same mouse button, and no event involving another
+mouse button will have appeared in between.
+
+\dt \cw{CURSOR_UP}, \cw{CURSOR_DOWN}, \cw{CURSOR_LEFT},
+\cw{CURSOR_RIGHT}
+
+\dd Indicate that an arrow key was pressed.
+
+\dt \cw{CURSOR_SELECT}
+
+\dd On platforms which have a prominent \q{select} button alongside
+their cursor keys, indicates that that button was pressed.
+
+In addition, there are some modifiers which can be bitwise-ORed into
+the \c{button} parameter:
+
+\dt \cw{MOD_CTRL}, \cw{MOD_SHFT}
+
+\dd These indicate that the Control or Shift key was pressed
+alongside the key. They only apply to the cursor keys, not to mouse
+buttons or anything else.
+
+\dt \cw{MOD_NUM_KEYPAD}
+
+\dd This applies to some ASCII values, and indicates that the key
+code was input via the numeric keypad rather than the main keyboard.
+Some puzzles may wish to treat this differently (for example, a
+puzzle might want to use the numeric keypad as an eight-way
+directional pad), whereas others might not (a game involving numeric
+input probably just wants to treat the numeric keypad as numbers).
+
+\dt \cw{MOD_MASK}
+
+\dd This mask is the bitwise OR of all the available modifiers; you
+can bitwise-AND with \cw{~MOD_MASK} to strip all the modifiers off
+any input value.
+
+\S{backend-execute-move} \cw{execute_move()}
+
+\c game_state *(*execute_move)(game_state *state, char *move);
+
+This function takes an input \c{game_state} and a move string as
+output from \cw{interpret_move()}. It returns a newly allocated
+\c{game_state} which contains the result of applying the specified
+move to the input game state.
+
+This function may return \cw{NULL} if it cannot parse the move
+string (and this is definitely preferable to crashing or failing an
+assertion, since one way this can happen is if loading a corrupt
+save file). However, it must not return \cw{NULL} for any move
+string that really was output from \cw{interpret_move()}: this is
+punishable by assertion failure in the mid-end.
+
+\S{backend-can-solve} \c{can_solve}
+
+\c int can_solve;
+
+This boolean field is set to \cw{TRUE} if the game's \cw{solve()}
+function does something. If it's set to \cw{FALSE}, the game will
+not even offer the \q{Solve} menu option.
+
+\S{backend-solve} \cw{solve()}
+
+\c char *(*solve)(game_state *orig, game_state *curr,
+\c                char *aux, char **error);
+
+This function is called when the user selects the \q{Solve} option
+from the menu.
+
+It is passed two input game states: \c{orig} is the game state from
+the very start of the puzzle, and \c{curr} is the current one.
+(Different games find one or other or both of these convenient.) It
+is also passed the \c{aux} string saved by \cw{new_desc()}
+(\k{backend-new-desc}), in case that encodes important information
+needed to provide the solution.
+
+If this function is unable to produce a solution (perhaps, for
+example, the game has no in-built solver so it can only solve
+puzzles it invented internally and has an \c{aux} string for) then
+it may return \cw{NULL}. If it does this, it must also set
+\c{*error} to an error message to be presented to the user (such as
+\q{Solution not known for this puzzle}); that error message is not
+expected to be dynamically allocated.
+
+If this function \e{does} produce a solution, it returns a move
+string suitable for feeding to \cw{execute_move()}
+(\k{backend-execute-move}).
+
+\H{backend-drawing} Drawing the game graphics
+
+This section discusses the back end functions that deal with
+drawing.
+
+\S{backend-new-drawstate} \cw{new_drawstate()}
+
+\c game_drawstate *(*new_drawstate)(game_state *state);
+
+This function allocates and returns a new \c{game_drawstate}
+structure for drawing a particular puzzle. It is passed a pointer to
+a \c{game_state}, in case it needs to refer to that when setting up
+any initial data.
+
+This function may not rely on the puzzle having been newly started;
+a new draw state can be constructed at any time if the front end
+requests a forced redraw. For games like Pattern, in which initial
+game states are much simpler than general ones, this might be
+important to keep in mind.
+
+\S{backend-free-drawstate} \cw{free_drawstate()}
+
+\c void (*free_drawstate)(game_drawstate *ds);
+
+This function frees a \c{game_drawstate} structure, and any
+subsidiary allocations contained within it.
+
+\S{backend-preferred-tilesize} \c{preferred_tilesize}
+
+\c int preferred_tilesize;
+
+Each game is required to define a single integer parameter which
+expresses, in some sense, the scale at which it is drawn. This is
+described in the APIs as \cq{tilesize}, since most puzzles are on a
+square (or possibly triangular or hexagonal) grid and hence a
+sensible interpretation of this parameter is to define it as the
+size of one grid tile in pixels; however, there's no actual
+requirement that the \q{tile size} be proportional to the game
+window size. Window size is required to increase monotonically with
+\q{tile size}, however.
+
+The data element \c{preferred_tilesize} indicates the tile size
+which should be used in the absence of a good reason to do otherwise
+(such as the screen being too small, or the user explicitly
+requesting a resize if that ever gets implemented).
+
+\S{backend-compute-size} \cw{compute_size()}
+
+\c void (*compute_size)(game_params *params, int tilesize,
+\c                      int *x, int *y);
+
+This function is passed a \c{game_params} structure and a tile size.
+It returns, in \c{*x} and \c{*y}, the size in pixels of the drawing
+area that would be required to render a puzzle with those parameters
+at that tile size.
+
+\S{backend-set-size} \cw{set_size()}
+
+\c void (*set_size)(game_drawstate *ds, game_params *params,
+\c                  int tilesize);
+
+This function is responsible for setting up a \c{game_drawstate} to
+draw at a given tile size. Typically this will simply involve
+copying the supplied \c{tilesize} parameter into a \c{tilesize}
+field inside the draw state; for some more complex games it might
+also involve setting up other dimension fields, or possibly
+allocating a blitter (see \k{drawing-blitter}).
+
+\S{backend-colours} \cw{colours()}
+
+\c float *(*colours)(frontend *fe, game_state *state, int *ncolours);
+
+This function is responsible for telling the front end what colours
+the puzzle will need to draw itself.
+
+It returns the number of colours required in \c{*ncolours}, and the
+return value from the function itself is a dynamically allocated
+array of three times that many \c{float}s, containing the red, green
+and blue components of each colour respectively as numbers in the
+range [0,1].
+
+It is passed a sample \c{game_state} in case it needs one, although
+currently no puzzle does need this. (In fact, colours are not
+reallocated when the game parameters change or a new game is
+started, so you can't reliably use this \c{game_state} to allocate a
+different number of colours depending on the game. It is probably
+actually a mistake to rely on this parameter at all. I ought to
+either remove it or fix it; probably the former.)
+
+The final parameter passed to this function is a front end handle.
+The only thing it is permitted to do with this handle is to call the
+front-end function called \cw{frontend_default_colour()} (see
+\k{frontend-default-colour}). This allows \cw{colours()} to take
+local configuration into account when deciding on its own colour
+allocations. Most games use the front end's default colour as their
+background, apart from a few which depend on drawing relief
+highlights so they adjust the background colour if it's too light
+for highlights to show up against it.
+
+\S{backend-anim-length} \cw{anim_length()}
+
+\c float (*anim_length)(game_state *oldstate, game_state *newstate,
+\c                      int dir, game_ui *ui);
+
+This function is called when a move is made, undone or redone. It is
+given the old and the new \c{game_state}, and its job is to decide
+whether the transition between the two needs to be animated or can
+be instant.
+
+\c{oldstate} is the state that was current until this call;
+\c{newstate} is the state that will be current after it. \c{dir}
+specifies the chronological order of those states: if it is
+positive, then the transition is the result of a move or a redo (and
+so \c{newstate} is the later of the two moves), whereas if it is
+negative then the transition is the result of an undo (so that
+\c{newstate} is the \e{earlier} move).
+
+If this function decides the transition should be animated, it
+returns the desired length of the animation in seconds. If not, it
+returns zero.
+
+State changes as a result of a Restart operation are never animated;
+the mid-end will handle them internally and never consult this
+function at all. State changes as a result of Solve operations are
+also not animated by default, although you can change this for a
+particular game by setting a flag in \c{mouse_priorities}
+(\k{backend-mouse-priorities}).
+
+The function is also passed a pointer to the local \c{game_ui}. It
+may refer to information in here to help with its decision (see
+\k{writing-conditional-anim} for an example of this), and/or it may
+\e{write} information about the nature of the animation which will
+be read later by \cw{redraw()}.
+
+When this function is called, it may rely on \cw{changed_state()}
+having been called previously, so if \cw{anim_length()} needs to
+refer to information in the \c{game_ui}, then \cw{changed_state()}
+is a reliable place to have set that information up.
+
+Move animations do not inhibit further input events. If the user
+continues playing before a move animation is complete, the animation
+will be abandoned and the display will jump straight to the final
+state.
+
+\S{backend-flash-length} \cw{flash_length()}
+
+\c float (*flash_length)(game_state *oldstate, game_state *newstate,
+\c                       int dir, game_ui *ui);
+
+This function is called when a move is completed. (\q{Completed}
+means that not only has the move been made, but any animation which
+accompanied it has finished.) It decides whether the transition from
+\c{oldstate} to \c{newstate} merits a \q{flash}.
+
+A flash is much like a move animation, but it is \e{not} interrupted
+by further user interface activity; it runs to completion in
+parallel with whatever else might be going on on the display. The
+only thing which will rush a flash to completion is another flash.
+
+The purpose of flashes is to indicate that the game has been
+completed. They were introduced as a separate concept from move
+animations because of Net: the habit of most Net players (and
+certainly me) is to rotate a tile into place and immediately lock
+it, then move on to another tile. When you make your last move, at
+the instant the final tile is rotated into place the screen starts
+to flash to indicate victory \dash but if you then press the lock
+button out of habit, then the move animation is cancelled, and the
+victory flash does not complete. (And if you \e{don't} press the
+lock button, the completed grid will look untidy because there will
+be one unlocked square.) Therefore, I introduced a specific concept
+of a \q{flash} which is separate from a move animation and can
+proceed in parallel with move animations and any other display
+activity, so that the victory flash in Net is not cancelled by that
+final locking move.
+
+The input parameters to \cw{flash_length()} are exactly the same as
+the ones to \cw{anim_length()}.
+
+Just like \cw{anim_length()}, when this function is called, it may
+rely on \cw{changed_state()} having been called previously, so if it
+needs to refer to information in the \c{game_ui} then
+\cw{changed_state()} is a reliable place to have set that
+information up.
+
+(Some games use flashes to indicate defeat as well as victory;
+Mines, for example, flashes in a different colour when you tread on
+a mine from the colour it uses when you complete the game. In order
+to achieve this, its \cw{flash_length()} function has to store a
+flag in the \c{game_ui} to indicate which flash type is required.)
+
+\S{backend-redraw} \cw{redraw()}
+
+\c void (*redraw)(frontend *fe, game_drawstate *ds,
+\c                game_state *oldstate, game_state *newstate, int dir,
+\c                game_ui *ui, float anim_time, float flash_time);
+
+This function is responsible for actually drawing the contents of
+the game window, and for redrawing every time the game state or the
+\c{game_ui} changes.
+
+The parameter \c{fe} is a front end handle which may be passed to
+the drawing API functions (see \k{drawing} for documentation of the
+drawing API). This function may not save \c{fe} and use it
+elsewhere; it must only use it for calling back to the drawing API
+functions within its own lifetime.
+
+\c{ds} is the local \c{game_drawstate}, of course, and \c{ui} is the
+local \c{game_ui}.
+
+\c{newstate} is the semantically-current game state, and is always
+non-\cw{NULL}. If \c{oldstate} is also non-\cw{NULL}, it means that
+a move has recently been made and the game is still in the process
+of displaying an animation linking the old and new states; in this
+situation, \c{anim_time} will give the length of time (in seconds)
+that the animation has already been running. If \c{oldstate} is
+\cw{NULL}, then \c{anim_time} is unused (and will hopefully be set
+to zero to avoid confusion).
+
+\c{flash_time}, if it is is non-zero, denotes that the game is in
+the middle of a flash, and gives the time since the start of the
+flash. See \k{backend-flash-length} for general discussion of
+flashes.
+
+The very first time this function is called for a new
+\c{game_drawstate}, it is expected to redraw the \e{entire} drawing
+area. Since this often involves drawing visual furniture which is
+never subsequently altered, it is often simplest to arrange this by
+having a special \q{first time} flag in the draw state, and
+resetting it after the first redraw.
+
+\H{backend-misc} Miscellaneous
+
+\S{backend-can-format-as-text} \c{can_format_as_text}
+
+\c int can_format_as_text;
+
+This boolean field is \cw{TRUE} if the game supports formatting a
+game state as ASCII text (typically ASCII art) for copying to the
+clipboard and pasting into other applications. If it is \cw{FALSE},
+front ends will not offer the \q{Copy} command at all.
+
+If this field is \cw{FALSE}, the function \cw{text_format()}
+(\k{backend-text-format}) is not expected to do anything at all.
+
+\S{backend-text-format} \cw{text_format()}
+
+\c char *(*text_format)(game_state *state);
+
+This function is passed a \c{game_state}, and returns a newly
+allocated C string containing an ASCII representation of that game
+state. It is used to implement the \q{Copy} operation in many front
+ends.
+
+This function should only be called if the back end field
+\c{can_format_as_text} (\k{backend-can-format-as-text}) is
+\cw{TRUE}.
+
+The returned string may contain line endings (and will probably want
+to), using the normal C internal \cq{\\n} convention. For
+consistency between puzzles, all multi-line textual puzzle
+representations should \e{end} with a newline as well as containing
+them internally. (There are currently no puzzles which have a
+one-line ASCII representation, so there's no precedent yet for
+whether that should come with a newline or not.)
+
+\S{backend-wants-statusbar} \cw{wants_statusbar()}
+
+\c int (*wants_statusbar)(void);
+
+This function returns \cw{TRUE} if the puzzle has a use for a
+textual status line (to display score, completion status, currently
+active tiles, etc).
+
+(This should probably be a static boolean field rather than a
+function. I don't remember why I did it this way. I probably ought
+to change it.)
+
+\S{backend-is-timed} \c{is_timed}
+
+\c int is_timed;
+
+This boolean field is \cw{TRUE} if the puzzle is time-critical. If
+so, the mid-end will maintain a game timer while the user plays.
+
+If this field is \cw{FALSE}, then \cw{timing_state()} will never be
+called and need not do anything.
+
+\S{backend-timing-state} \cw{timing_state()}
+
+\c int (*timing_state)(game_state *state, game_ui *ui);
+
+This function is passed the current \c{game_state} and the local
+\c{game_ui}; it returns \cw{TRUE} if the game timer should currently
+be running.
+
+A typical use for the \c{game_ui} in this function is to note when
+the game was first completed (by setting a flag in
+\cw{changed_state()} \dash see \k{backend-changed-state}), and
+freeze the timer thereafter so that the user can undo back through
+their solution process without altering their time.
+
+\S{backend-mouse-priorities} \c{mouse_priorities}
+
+\c int mouse_priorities;
+
+This field is badly named. It is in fact a generic flags word. It
+consists of the bitwise OR of the following flags:
+
+\dt \cw{BUTTON_BEATS(x,y)}
+
+\dd Given any \cw{x} and \cw{y} from the set (\cw{LEFT_BUTTON},
+\cw{MIDDLE_BUTTON}, \cw{RIGHT_BUTTON}), this macro evaluates to a
+bit flag which indicates that when buttons \cw{x} and \cw{y} are
+both pressed simultaneously, the mid-end should consider \cw{x} to
+have priority. (In the absence of any such flags, the mid-end will
+always consider the most recently pressed button to have priority.)
+
+\dt \cw{SOLVE_ANIMATES}
+
+\dd This flag indicates that moves generated by \cw{solve()}
+(\k{backend-solve}) are candidates for animation just like any other
+move. For most games, solve moves should not be animated, so the
+mid-end doesn't even bother calling \cw{anim_length()}
+(\k{backend-anim-length}), thus saving some special-case code in
+each game. On the rare occasion that animated solve moves are
+actually required, you can set this flag.
+
+\H{backend-initiative} Things a back end may do on its own initiative
+
+This section describes a couple of things that a back end may choose
+to do by calling functions elsewhere in the program, which would not
+otherwise be obvious.
+
+\S{backend-newrs} Create a random state
+
+If a back end needs random numbers at some point during normal play,
+it can create a fresh \c{random_state} by first calling
+\c{get_random_seed} (\k{frontend-get-random-seed}) and then passing
+the returned seed data to \cw{random_init()}.
+
+This is likely not to be what you want. If a puzzle needs randomness
+in the middle of play, it's likely to be more sensible to store some
+sort of random state within the \e{game_state}, so that the random
+numbers are tied to the particular game state and hence the player
+can't simply keep undoing their move until they get numbers they
+like better.
+
+This facility is currently used only in Net, to implement the
+\q{jumble} command, which sets every unlocked tile to a new random
+orientation. This randomness \e{is} a reasonable use of the feature,
+because it's non-adversarial \dash there's no advantage to the user
+in getting different random numbers.
+
+\S{backend-supersede} Supersede its own game description
+
+In response to a move, a back end is (reluctantly) permitted to call
+\cw{midend_supersede_game_desc()}:
+
+\c void midend_supersede_game_desc(midend_data *me,
+\c                                 char *desc, char *privdesc);
+
+When the user selects \q{New Game}, the mid-end calls
+\cw{new_desc()} (\k{backend-new-desc}) to get a new game
+description, and (as well as using that to generate an initial game
+state) stores it for the save file and for telling to the user. The
+function above overwrites that game description, and also splits it
+in two. \c{desc} becomes the new game description which is provided
+to the user on request, and is also the one used to construct a new
+initial game state if the user selects \q{Restart}. \c{privdesc} is
+a \q{private} game description, used to reconstruct the game's
+initial state when reloading.
+
+The distinction between the two, as well as the need for this
+function at all, comes from Mines. Mines begins with a blank grid
+and no idea of where the mines actually are; \cw{new_desc()} does
+almost no work in interactive mode, and simply returns a string
+encoding the \c{random_state}. When the user first clicks to open a
+tile, \e{then} Mines generates the mine positions, in such a way
+that the game is soluble from that starting point. Then it uses this
+function to supersede the random-state game description with a
+proper one. But it needs two: one containing the initial click
+location (because that's what you want to happen if you restart the
+game, and also what you want to send to a friend so that they play
+\e{the same game} as you), and one without the initial click
+location (because when you save and reload the game, you expect to
+see the same blank initial state as you had before saving).
+
+I should stress again that this function is a horrid hack. Nobody
+should use it if they're not Mines; if you think you need to use it,
+think again repeatedly in the hope of finding a better way to do
+whatever it was you needed to do.
+
+\C{drawing} The drawing API: front-end functions called from the
+back end
+
+The back end function \cw{redraw()} (\k{backend-redraw}) is required
+to draw the puzzle's graphics on the window's drawing area. To do
+this portably, it is provided with a drawing API allowing it to talk
+directly to the front end. In this chapter I document that API, both
+for the benefit of back end authors trying to use it and for front
+end authors trying to implement it.
+
+All of the drawing functions take a pointer to a \c{frontend}
+structure, which is passed in to \cw{redraw()}.
+
+The puzzle window is indexed by pixel coordinates, with the top left
+pixel defined as \cw{(0,0)} and the bottom right pixel
+\cw{(w-1,h-1)}, where \c{w} and \c{h} are the width and height
+values returned by the back end function \cw{compute_size()}
+(\k{backend-compute-size}).
+
+\e{Puzzles may assume that the surface they draw on is persistent}.
+It is the responsibility of every front end to preserve the puzzle's
+window contents in the face of GUI window expose issues and similar.
+It is not permissible to request the back end redraw any part of a
+window that it has already drawn, unless something has actually
+changed as a result of making moves in the puzzle.
+
+Most front ends accomplish this by having the drawing routines draw
+on a stored bitmap rather than directly on the window, and copying
+the bitmap to the window every time a part of the window needs to be
+redrawn. Therefore, it is vitally important that whenever the back
+end does any drawing it informs the front end of which parts of the
+window it has accessed, and hence which parts need repainting. This
+is done by calling \cw{draw_update()} (\k{drawing-draw-update}).
+
+\H{drawing-draw-rect} \cw{draw_rect()}
+
+\c void draw_rect(frontend *fe, int x, int y, int w, int h,
+\c                int colour);
+
+Draws a filled rectangle in the puzzle window.
+
+\c{x} and \c{y} give the coordinates of the top left pixel of the
+rectangle. \c{w} and \c{h} give its width and height. Thus, the
+horizontal extent of the rectangle runs from \c{x} to \c{x+w-1}
+inclusive, and the vertical extent from \c{y} to \c{y+h-1}
+inclusive.
+
+\c{colour} is an integer index into the colours array returned by
+the back end function \cw{colours()} (\k{backend-colours}).
+
+There is no separate pixel-plotting function. If you want to plot a
+single pixel, the approved method is to use \cw{draw_rect()} with
+width and height set to 1.
+
+Unlike many of the other drawing functions, this function is
+guaranteed to be pixel-perfect: the rectangle will be sharply
+defined and not anti-aliased or anything like that.
+
+\H{drawing-draw-rect-outline} \cw{draw_rect_outline()}
+
+\c void draw_rect_outline(frontend *fe, int x, int y, int w, int h,
+\c                        int colour);
+
+Draws an outline rectangle in the puzzle window.
+
+\c{x} and \c{y} give the coordinates of the top left pixel of the
+rectangle. \c{w} and \c{h} give its width and height. Thus, the
+horizontal extent of the rectangle runs from \c{x} to \c{x+w-1}
+inclusive, and the vertical extent from \c{y} to \c{y+h-1}
+inclusive.
+
+\c{colour} is an integer index into the colours array returned by
+the back end function \cw{colours()} (\k{backend-colours}).
+
+From a back end perspective, this function may be considered to be
+part of the drawing API. However, front ends are not required to
+implement it, since it is actually implemented centrally (in
+\cw{misc.c}) as a wrapper on four calls to \cw{draw_line()}.
+
+\H{drawing-draw-line} \cw{draw_line()}
+
+\c void draw_line(frontend *fe, int x1, int y1, int x2, int y2,
+\c                int colour);
+
+Draws a straight line in the puzzle window.
+
+\c{x1} and \c{y1} give the coordinates of one end of the line.
+\c{x2} and \c{y2} give the coordinates of the other end. The line
+drawn includes both those points.
+
+\c{colour} is an integer index into the colours array returned by
+the back end function \cw{colours()} (\k{backend-colours}).
+
+Some platforms may perform anti-aliasing on this function.
+Therefore, do not assume that you can erase a line by drawing the
+same line over it in the background colour; anti-aliasing might
+lead to perceptible ghost artefacts around the vanished line.
+
+\H{drawing-draw-polygon} \cw{draw_polygon()}
+
+\c void draw_polygon(frontend *fe, int *coords, int npoints,
+\c                   int fillcolour, int outlinecolour);
+
+Draws an outlined or filled polygon in the puzzle window.
+
+\c{coords} is an array of \cw{(2*npoints)} integers, containing the
+\c{x} and \c{y} coordinates of \c{npoints} vertices.
+
+\c{fillcolour} and \c{outlinecolour} are integer indices into the
+colours array returned by the back end function \cw{colours()}
+(\k{backend-colours}). \c{fillcolour} may also be \cw{-1} to
+indicate that the polygon should be outlined only.
+
+The polygon defined by the specified list of vertices is first
+filled in \c{fillcolour}, if specified, and then outlined in
+\c{outlinecolour}.
+
+\c{outlinecolour} may \e{not} be \cw{-1}; it must be a valid colour
+(and front ends are permitted to enforce this by assertion). This is
+because different platforms disagree on whether a filled polygon
+should include its boundary line or not, so drawing \e{only} a
+filled polygon would have non-portable effects. If you want your
+filled polygon not to have a visible outline, you must set
+\c{outlinecolour} to the same as \c{fillcolour}.
+
+Some platforms may perform anti-aliasing on this function.
+Therefore, do not assume that you can erase a polygon by drawing the
+same polygon over it in the background colour. Also, be prepared for
+the polygon to extend a pixel beyond its obvious bounding box as a
+result of this; if you really need it not to do this to avoid
+interfering with other delicate graphics, you should probably use
+\cw{clip()} (\k{drawing-clip}).
+
+\H{drawing-draw-circle} \cw{draw_circle()}
+
+\c void draw_circle(frontend *fe, int cx, int cy, int radius,
+\c                  int fillcolour, int outlinecolour);
+
+Draws an outlined or filled circle in the puzzle window.
+
+\c{cx} and \c{cy} give the coordinates of the centre of the circle.
+\c{radius} gives its radius. The total horizontal pixel extent of
+the circle is from \c{cx-radius+1} to \c{cx+radius-1} inclusive, and
+the vertical extent similarly around \c{cy}.
+
+\c{fillcolour} and \c{outlinecolour} are integer indices into the
+colours array returned by the back end function \cw{colours()}
+(\k{backend-colours}). \c{fillcolour} may also be \cw{-1} to
+indicate that the circle should be outlined only.
+
+The circle is first filled in \c{fillcolour}, if specified, and then
+outlined in \c{outlinecolour}.
+
+\c{outlinecolour} may \e{not} be \cw{-1}; it must be a valid colour
+(and front ends are permitted to enforce this by assertion). This is
+because different platforms disagree on whether a filled circle
+should include its boundary line or not, so drawing \e{only} a
+filled circle would have non-portable effects. If you want your
+filled circle not to have a visible outline, you must set
+\c{outlinecolour} to the same as \c{fillcolour}.
+
+Some platforms may perform anti-aliasing on this function.
+Therefore, do not assume that you can erase a circle by drawing the
+same circle over it in the background colour. Also, be prepared for
+the circle to extend a pixel beyond its obvious bounding box as a
+result of this; if you really need it not to do this to avoid
+interfering with other delicate graphics, you should probably use
+\cw{clip()} (\k{drawing-clip}).
+
+\H{drawing-draw-text} \cw{draw_text()}
+
+\c void draw_text(frontend *fe, int x, int y, int fonttype,
+\c                int fontsize, int align, int colour, char *text);
+
+Draws text in the puzzle window.
+
+\c{x} and \c{y} give the coordinates of a point. The relation of
+this point to the location of the text is specified by \c{align},
+which is a bitwise OR of horizontal and vertical alignment flags:
+
+\dt \cw{ALIGN_VNORMAL}
+
+\dd Indicates that \c{y} is aligned with the baseline of the text.
+
+\dt \cw{ALIGN_VCENTRE}
+
+\dd Indicates that \c{y} is aligned with the vertical centre of the
+text. (In fact, it's aligned with the vertical centre of normal
+\e{capitalised} text: displaying two pieces of text with
+\cw{ALIGN_VCENTRE} at the same \cw{y}-coordinate will cause their
+baselines to be aligned with one another, even if one is an ascender
+and the other a descender.)
+
+\dt \cw{ALIGN_HLEFT}
+
+\dd Indicates that \c{x} is aligned with the left-hand end of the
+text.
+
+\dt \cw{ALIGN_HCENTRE}
+
+\dd Indicates that \c{x} is aligned with the horizontal centre of
+the text.
+
+\dt \cw{ALIGN_HRIGHT}
+
+\dd Indicates that \c{x} is aligned with the right-hand end of the
+text.
+
+\c{fonttype} is either \cw{FONT_FIXED} or \cw{FONT_VARIABLE}, for a
+monospaced or proportional font respectively. (No more detail than
+that may be specified; it would only lead to portability issues
+between different platforms.)
+
+\c{fontsize} is the desired size, in pixels, of the text. This size
+corresponds to the overall point size of the text, not to any
+internal dimension such as the cap-height.
+
+\c{colour} is an integer index into the colours array returned by
+the back end function \cw{colours()} (\k{backend-colours}).
+
+\H{drawing-clip} \cw{clip()}
+
+\c void clip(frontend *fe, int x, int y, int w, int h);
+
+Establishes a clipping rectangle in the puzzle window.
+
+\c{x} and \c{y} give the coordinates of the top left pixel of the
+clipping rectangle. \c{w} and \c{h} give its width and height. Thus,
+the horizontal extent of the rectangle runs from \c{x} to \c{x+w-1}
+inclusive, and the vertical extent from \c{y} to \c{y+h-1}
+inclusive. (These are exactly the same semantics as
+\cw{draw_rect()}.)
+
+After this call, no drawing operation will affect anything outside
+the specified rectangle. The effect can be reversed by calling
+\cw{unclip()} (\k{drawing-unclip}).
+
+Back ends should not assume that a clipping rectangle will be
+automatically cleared up by the front end if it's left lying around;
+that might work on current front ends, but shouldn't be relied upon.
+Always explicitly call \cw{unclip()}.
+
+\H{drawing-unclip} \cw{unclip()}
+
+\c void unclip(frontend *fe);
+
+Reverts the effect of a previous call to \cw{clip()}. After this
+call, all drawing operations will be able to affect the entire
+puzzle window again.
+
+\H{drawing-draw-update} \cw{draw_update()}
+
+\c void draw_update(frontend *fe, int x, int y, int w, int h);
+
+Informs the front end that a rectangular portion of the puzzle
+window has been drawn on and needs to be updated.
+
+\c{x} and \c{y} give the coordinates of the top left pixel of the
+update rectangle. \c{w} and \c{h} give its width and height. Thus,
+the horizontal extent of the rectangle runs from \c{x} to \c{x+w-1}
+inclusive, and the vertical extent from \c{y} to \c{y+h-1}
+inclusive. (These are exactly the same semantics as
+\cw{draw_rect()}.)
+
+The back end redraw function \e{must} call this function to report
+any changes it has made to the window. Otherwise, those changes may
+not become immediately visible, and may then appear at an
+unpredictable subsequent time such as the next time the window is
+covered and re-exposed.
+
+\H{drawing-status-bar} \cw{status_bar()}
+
+\c void status_bar(frontend *fe, char *text);
+
+Sets the text in the game's status bar to \c{text}.
+
+(This function is not exactly a \e{drawing} function, but it shares
+with the drawing API the property that it may only be called from
+within the back end redraw function, so this is as good a place as
+any to document it.)
+
+Front ends implementing this function should not use the provided
+text directly; they should call \cw{midend_rewrite_statusbar()}
+(\k{midend-rewrite-statusbar}) to process it first.
+
+In a game which has a timer, this function is likely to be called
+every time the timer goes off, i.e. many times a second. It is
+therefore likely to be common that this function is called with
+precisely the same text as the last time it was called. Front ends
+may well wish to detect this common case and avoid bothering to do
+anything. If they do, however, they \e{must} perform this check on
+the value \e{returned} from \cw{midend_rewrite_statusbar()}, rather
+than the value passed in to it (because the mid-end will frequently
+update the status-bar timer without the back end's intervention).
+
+\H{drawing-blitter} Blitter functions
+
+This section describes a group of related function which save and
+restore a section of the puzzle window. This is most commonly used
+to implement user interfaces involving dragging a puzzle element
+around the window: at the end of each call to \cw{redraw()}, if an
+object is currently being dragged, the back end saves the window
+contents under that location and then draws the dragged object, and
+at the start of the next \cw{redraw()} the first thing it does is to
+restore the background.
+
+The front end defines an opaque type called a \c{blitter}, which is
+capable of storing a rectangular area of a specified size.
+
+\S{drawing-blitter-new} \cw{blitter_new()}
+
+\c blitter *blitter_new(int w, int h);
+
+Creates a new blitter object which stores a rectangle of size \c{w}
+by \c{h} pixels. Returns a pointer to the blitter object.
+
+Blitter objects are best stored in the \c{game_drawstate}. A good
+time to create them is in the \cw{set_size()} function
+(\k{backend-set-size}), since it is at this point that you first
+know how big a rectangle they will need to save.
+
+\S{drawing-blitter-free} \cw{blitter_free()}
+
+\c void blitter_free(blitter *bl);
+
+Disposes of a blitter object. Best called in \cw{free_drawstate()}.
+(However, check that the blitter object is not \cw{NULL} before
+attempting to free it; it is possible that a draw state might be
+created and freed without ever having \cw{set_size()} called on it
+in between.)
+
+\S{drawing-blitter-save} \cw{blitter_save()}
+
+\c void blitter_save(frontend *fe, blitter *bl, int x, int y);
+
+This is a true drawing API function, in that it may only be called
+from within the game redraw routine. It saves a rectangular portion
+of the puzzle window into the specified blitter object.
+
+\c{x} and \c{y} give the coordinates of the top left corner of the
+saved rectangle. The rectangle's width and height are the ones
+specified when the blitter object was created.
+
+This function is required to cope and do the right thing if \c{x}
+and \c{y} are out of range. (The right thing probably means saving
+whatever part of the blitter rectangle overlaps with the visible
+area of the puzzle window.)
+
+\S{drawing-blitter-load} \cw{blitter_load()}
+
+\c void blitter_load(frontend *fe, blitter *bl, int x, int y);
+
+This is a true drawing API function, in that it may only be called
+from within the game redraw routine. It restores a rectangular
+portion of the puzzle window from the specified blitter object.
+
+\c{x} and \c{y} give the coordinates of the top left corner of the
+rectangle to be restored. The rectangle's width and height are the
+ones specified when the blitter object was created.
+
+Alternatively, you can specify both \c{x} and \c{y} as the special
+value \cw{BLITTER_FROMSAVED}, in which case the rectangle will be
+restored to exactly where it was saved from. (This is probably what
+you want to do almost all the time, if you're using blitters to
+implement draggable puzzle elements.)
+
+This function is required to cope and do the right thing if \c{x}
+and \c{y} (or the equivalent ones saved in the blitter) are out of
+range. (The right thing probably means restoring whatever part of
+the blitter rectangle overlaps with the visible area of the puzzle
+window.)
+
+If this function is called on a blitter which had previously been
+saved from a partially out-of-range rectangle, then the parts of the
+saved bitmap which were not visible at save time are undefined. If
+the blitter is restored to a different position so as to make those
+parts visible, the effect on the drawing area is undefined.
+
+\H{drawing-midend} Additional functions only called by the mid-end
+
+The two functions documented in this section are part of the drawing
+API as seen by a front end, but are not needed by the back end. The
+mid-end calls these functions before and after calling the back end
+redraw function.
+
+\S{drawing-start-draw} \cw{start_draw()}
+
+\c void start_draw(frontend *fe);
+
+This function is called before any drawing takes place. It allows
+the front end to initialise any temporary data required to draw
+with, such as device contexts.
+
+\S{drawing-end-draw} \cw{end_draw()}
+
+\c void end_draw(frontend *fe);
+
+This function is called at the end of drawing. It allows the front
+end to do cleanup tasks such as deallocating device contexts and
+scheduling appropriate GUI redraw events.
+
+\H{frontend-default-colour} \cw{frontend_default_colour()}
+
+\c void frontend_default_colour(frontend *fe, float *output);
+
+This function expects to be passed a pointer to an array of three
+\cw{float}s. It returns the platform's local preferred background
+colour in those three floats, as red, green and blue values (in that
+order) ranging from \cw{0.0} to \cw{1.0}.
+
+This function should only ever be called by the back end function
+\cw{colours()} (\k{backend-colours}). (Thus, it isn't a drawing API
+function as such, but it's a front end function of interest to
+puzzle implementors so it's probably best in this section.)
+
+\C{midend} The API provided by the mid-end
+
+This chapter documents the API provided by the mid-end to be called
+by the front end. You probably only need to read this if you are a
+front end implementor, i.e. you are porting Puzzles to a new
+platform. If you're only interested in writing new puzzles, you can
+safely skip this chapter.
+
+All the persistent state in the mid-end is encapsulated within a
+\c{midend_data} structure, to facilitate having multiple mid-ends in
+any port which supports multiple puzzle windows open simultaneously.
+Each \c{midend_data} is intended to handle the contents of a single
+puzzle window.
+
+\H{midend-new} \cw{midend_new()}
+
+\c midend_data *midend_new(frontend *fe, const game *ourgame);
+
+Allocates and returns a new mid-end structure.
+
+The \c{fe} argument is stored in the mid-end. It will be used when
+calling back to functions such as \cw{activate_timer()}
+(\k{frontend-activate-timer}), and will be passed on to back end
+functions such as \cw{colours()} (\k{backend-colours}) and
+\cw{redraw()} (\k{backend-redraw}). The latter, of course, means
+that the front end can expect to receive this pointer in calls to
+the entire drawing API (\k{drawing}).
+
+The \c{ourgame} argument points to a container structure describing
+a game back end. The mid-end thus created will only be capable of
+handling that one game. (So even in a monolithic front end
+containing all the games, this imposes the constraint that any
+individual puzzle window is tied to a single game. Unless, of
+course, you feel brave enough to change the mid-end for the window
+without closing the window...)
+
+\H{midend-free} \cw{midend_free()}
+
+\c void midend_free(midend_data *me);
+
+Frees a mid-end structure and all its associated data.
+
+\H{midend-set-params} \cw{midend_set_params()}
+
+\c void midend_set_params(midend_data *me, game_params *params);
+
+Sets the current game parameters for a mid-end. Subsequent games
+generated by \cw{midend_new_game()} (\k{midend-new-game}) will use
+these parameters until further notice.
+
+The usual way in which the front end will have an actual
+\c{game_params} structure to pass to this function is if it had
+previously got it from \cw{midend_fetch_preset()}
+(\k{midend-fetch-preset}). Thus, this function is usually called in
+response to the user making a selection from the presets menu.
+
+\H{midend-size} \cw{midend_size()}
+
+\c void midend_size(midend_data *me, int *x, int *y, int expand);
+
+Tells the mid-end to figure out its window size.
+
+On input, \c{*x} and \c{*y} should contain the maximum or requested
+size for the window. (Typically this will be the size of the screen
+that the window has to fit on, or similar.) The mid-end will
+repeatedly call the back end function \cw{compute_size()}
+(\k{backend-compute-size}), searching for a tile size that best
+satisfies the requirements. On exit, \c{*x} and \c{*y} will contain
+the size needed for the puzzle window's drawing area. (It is of
+course up to the front end to adjust this for any additional window
+furniture such as menu bars and window borders, if necessary. The
+status bar is also not included in this size.)
+
+If \c{expand} is set to \cw{FALSE}, then the game's tile size will
+never go over its preferred one. This is the recommended approach
+when opening a new window at default size: the game will use its
+preferred size unless it has to use a smaller one to fit on the
+screen.
+
+If \c{expand} is set to \cw{TRUE}, the mid-end will pick a tile size
+which approximates the input size \e{as closely as possible}, and
+will go over the game's preferred tile size if necessary to achieve
+this. Use this option if you want your front end to support dynamic
+resizing of the puzzle window with automatic scaling of the puzzle
+to fit.
+
+The mid-end will try as hard as it can to return a size which is
+less than or equal to the input size, in both dimensions. In extreme
+circumstances it may fail (if even the lowest possible tile size
+gives window dimensions greater than the input), in which case it
+will return a size greater than the input size. Front ends should be
+prepared for this to happen (i.e. don't crash or fail an assertion),
+but may handle it in any way they see fit: by rejecting the game
+parameters which caused the problem, by opening a window larger than
+the screen regardless of inconvenience, by introducing scroll bars
+on the window, by drawing on a large bitmap and scaling it into a
+smaller window, or by any other means you can think of. It is likely
+that when the tile size is that small the game will be unplayable
+anyway, so don't put \e{too} much effort into handling it
+creatively.
+
+If your platform has no limit on window size (or if you're planning
+to use scroll bars for large puzzles), you can pass dimensions of
+\cw{INT_MAX} as input to this function. You should probably not do
+that \e{and} set the \c{expand} flag, though!
+
+\H{midend-new-game} \cw{midend_new_game()}
+
+\c void midend_new_game(midend_data *me);
+
+Causes the mid-end to begin a new game. Normally the game will be a
+new randomly generated puzzle. However, if you have previously
+called \cw{midend_game_id()} or \cw{midend_set_config()}, the game
+generated might be dictated by the results of those functions. (In
+particular, you \e{must} call \cw{midend_new_game()} after calling
+either of those functions, or else no immediate effect will be
+visible.)
+
+You will probably need to call \cw{midend_size()} after calling this
+function, because if the game parameters have been changed since the
+last new game then the window size might need to change. (If you
+know the parameters \e{haven't} changed, you don't need to do this.)
+
+This function will create a new \c{game_drawstate}, but does not
+actually perform a redraw (since you often need to call
+\cw{midend_size()} before the redraw can be done). So after calling
+this function and after calling \cw{midend_size()}, you should then
+call \cw{midend_redraw()}. (It is not necessary to call
+\cw{midend_force_redraw()}; that will discard the draw state and
+create a fresh one, which is unnecessary in this case since there's
+a fresh one already. It would work, but it's usually excessive.)
+
+\H{midend-restart-game} \cw{midend_restart_game()}
+
+\c void midend_restart_game(midend_data *me);
+
+This function causes the current game to be restarted. This is done
+by placing a new copy of the original game state on the end of the
+undo list (so that an accidental restart can be undone).
+
+This function automatically causes a redraw, i.e. the front end can
+expect its drawing API to be called from \e{within} a call to this
+function.
+
+\H{midend-force-redraw} \cw{midend_force_redraw()}
+
+\c void midend_force_redraw(midend_data *me);
+
+Forces a complete redraw of the puzzle window, by means of
+discarding the current \c{game_drawstate} and creating a new one
+from scratch before calling the game's \cw{redraw()} function.
+
+The front end can expect its drawing API to be called from within a
+call to this function.
+
+\H{midend-redraw} \cw{midend_redraw()}
+
+\c void midend_redraw(midend_data *me);
+
+Causes a partial redraw of the puzzle window, by means of simply
+calling the game's \cw{redraw()} function. (That is, the only things
+redrawn will be things that have changed since the last redraw.)
+
+The front end can expect its drawing API to be called from within a
+call to this function.
+
+\H{midend-process-key} \cw{midend_process_key()}
+
+\c int midend_process_key(midend_data *me, int x, int y, int button);
+
+The front end calls this function to report a mouse or keyboard
+event. The parameters \c{x}, \c{y} and \c{button} are almost
+identical to the ones passed to the back end function
+\cw{interpret_move()} (\k{backend-interpret-move}), except that the
+front end is \e{not} required to provide the guarantees about mouse
+event ordering. The mid-end will sort out multiple simultaneous
+button presses and changes of button; the front end's responsibility
+is simply to pass on the mouse events it receives as accurately as
+possible.
+
+(Some platforms may need to emulate absent mouse buttons by means of
+using a modifier key such as Shift with another mouse button. This
+tends to mean that if Shift is pressed or released in the middle of
+a mouse drag, the mid-end will suddenly stop receiving, say,
+\cw{LEFT_DRAG} events and start receiving \cw{RIGHT_DRAG}s, with no
+intervening button release or press events. This too is something
+which the mid-end will sort out for you; the front end has no
+obligation to maintain sanity in this area.)
+
+The front end \e{should}, however, always eventually send some kind
+of button release. On some platforms this requires special effort:
+Windows, for example, requires a call to the system API function
+\cw{SetCapture()} in order to ensure that your window receives a
+mouse-up event even if the pointer has left the window by the time
+the mouse button is released. On any platform that requires this
+sort of thing, the front end \e{is} responsible for doing it.
+
+Calling this function is very likely to result in calls back to the
+front end's drawing API and/or \cw{activate_timer()}
+(\k{frontend-activate-timer}).
+
+\H{midend-colours} \cw{midend_colours()}
+
+\c float *midend_colours(midend_data *me, int *ncolours);
+
+Returns an array of the colours required by the game, in exactly the
+same format as that returned by the back end function \cw{colours()}
+(\k{backend-colours}). Front ends should call this function rather
+than calling the back end's version directly, since the mid-end adds
+standard customisation facilities. (At the time of writing, those
+customisation facilities are implemented hackily by means of
+environment variables, but it's not impossible that they may become
+more full and formal in future.)
+
+\H{midend-timer} \cw{midend_timer()}
+
+\c void midend_timer(midend_data *me, float tplus);
+
+If the mid-end has called \cw{activate_timer()}
+(\k{frontend-activate-timer}) to request regular callbacks for
+purposes of animation or timing, this is the function the front end
+should call on a regular basis. The argument \c{tplus} gives the
+time, in seconds, since the last time either this function was
+called or \cw{activate_timer()} was invoked.
+
+One of the major purposes of timing in the mid-end is to perform
+move animation. Therefore, calling this function is very likely to
+result in calls back to the front end's drawing API.
+
+\H{midend-num-presets} \cw{midend_num_presets()}
+
+\c int midend_num_presets(midend_data *me);
+
+Returns the number of game parameter presets supplied by this game.
+Front ends should use this function and \cw{midend_fetch_preset()}
+to configure their presets menu rather than calling the back end
+directly, since the mid-end adds standard customisation facilities.
+(At the time of writing, those customisation facilities are
+implemented hackily by means of environment variables, but it's not
+impossible that they may become more full and formal in future.)
+
+\H{midend-fetch-preset} \cw{midend_fetch_preset()}
+
+\c void midend_fetch_preset(midend_data *me, int n,
+\c                          char **name, game_params **params);
+
+Returns one of the preset game parameter structures for the game. On
+input \c{n} must be a non-negative integer and less than the value
+returned from \cw{midend_num_presets()}. On output, \c{*name} is set
+to an ASCII string suitable for entering in the game's presets menu,
+and \c{*params} is set to the corresponding \c{game_params}
+structure.
+
+Both of the two output values are dynamically allocated, but they
+are owned by the mid-end structure: the front end should not ever
+free them directly, because they will be freed automatically during
+\cw{midend_free()}.
+
+\H{midend-wants-statusbar} \cw{midend_wants_statusbar()}
+
+\c int midend_wants_statusbar(midend_data *me);
+
+This function returns \cw{TRUE} if the puzzle has a use for a
+textual status line (to display score, completion status, currently
+active tiles, time, or anything else).
+
+Front ends should call this function rather than talking directly to
+the back end.
+
+\H{midend-get-config} \cw{midend_get_config()}
+
+\c config_item *midend_get_config(midend_data *me, int which,
+\c                                char **wintitle);
+
+Returns a dialog box description for user configuration.
+
+On input, \cw{which} should be set to one of three values, which
+select which of the various dialog box descriptions is returned:
+
+\dt \cw{CFG_SETTINGS}
+
+\dd Requests the GUI parameter configuration box generated by the
+puzzle itself. This should be used when the user selects \q{Custom}
+from the game types menu (or equivalent). The mid-end passes this
+request on to the back end function \cw{configure()}
+(\k{backend-configure}).
+
+\dt \cw{CFG_DESC}
+
+\dd Requests a box suitable for entering a descriptive game ID (and
+viewing the existing one). The mid-end generates this dialog box
+description itself. This should be used when the user selects
+\q{Specific} from the game menu (or equivalent).
+
+\dt \cw{CFG_SEED}
+
+\dd Requests a box suitable for entering a random-seed game ID (and
+viewing the existing one). The mid-end generates this dialog box
+description itself. This should be used when the user selects
+\q{Random Seed} from the game menu (or equivalent).
+
+The returned value is an array of \cw{config_item}s, exactly as
+described in \k{backend-configure}. Another returned value is an
+ASCII string giving a suitable title for the configuration window,
+in \c{*wintitle}.
+
+Both returned values are dynamically allocated and will need to be
+freed. The window title can be freed in the obvious way; the
+\cw{config_item} array is a slightly complex structure, so a utility
+function \cw{free_cfg()} is provided to free it for you. See
+\k{utils-free-cfg}.
+
+(Of course, you will probably not want to free the \cw{config_item}
+array until the dialog box is dismissed, because before then you
+will probably need to pass it to \cw{midend_set_config}.)
+
+\H{midend-set-config} \cw{midend_set_config()}
+
+\c char *midend_set_config(midend_data *me, int which,
+\c                         config_item *cfg);
+
+Passes the mid-end the results of a configuration dialog box.
+\c{which} should have the same value which it had when
+\cw{midend_get_config()} was called; \c{cfg} should be the array of
+\c{config_item}s returned from \cw{midend_get_config()}, modified to
+contain the results of the user's editing operations.
+
+This function returns \cw{NULL} on success, or otherwise (if the
+configuration data was in some way invalid) an ASCII string
+containing an error message suitable for showing to the user.
+
+If the function succeeds, it is likely that the game parameters will
+have been changed and it is certain that a new game will be
+requested. The front end should therefore call
+\cw{midend_new_game()}, and probably also re-think the window size
+using \cw{midend_size()} and eventually perform a refresh using
+\cw{midend_redraw()}.
+
+\H{midend-game-id} \cw{midend_game_id()}
+
+\c char *midend_game_id(midend_data *me, char *id);
+
+Passes the mid-end a string game ID (of any of the valid forms
+\cq{params}, \cq{params:description} or \cq{params#seed}) which the
+mid-end will process and use for the next generated game.
+
+This function returns \cw{NULL} on success, or otherwise (if the
+configuration data was in some way invalid) an ASCII string
+containing an error message (not dynamically allocated) suitable for
+showing to the user. In the event of an error, the mid-end's
+internal state will be left exactly as it was before the call.
+
+If the function succeeds, it is likely that the game parameters will
+have been changed and it is certain that a new game will be
+requested. The front end should therefore call
+\cw{midend_new_game()}, and probably also re-think the window size
+using \cw{midend_size()} and eventually case a refresh using
+\cw{midend_redraw()}.
+
+\H{midend-text-format} \cw{midend_text_format()}
+
+\c char *midend_text_format(midend_data *me);
+
+Formats the current game's current state as ASCII text suitable for
+copying to the clipboard. The returned string is dynamically
+allocated.
+
+You should not call this function if the game's
+\c{can_format_as_text} flag is \cw{FALSE}.
+
+If the returned string contains multiple lines (which is likely), it
+will use the normal C line ending convention (\cw{\\n} only). On
+platforms which use a different line ending convention for data in
+the clipboard, it is the front end's responsibility to perform the
+conversion.
+
+\H{midend-solve} \cw{midend_solve()}
+
+\c char *midend_solve(midend_data *me);
+
+Requests the mid-end to perform a Solve operation.
+
+On success, \cw{NULL} is returned. On failure, an error message (not
+dynamically allocated) is returned, suitable for showing to the
+user.
+
+The front end can expect its drawing API and/or
+\cw{activate_timer()} to be called from within a call to this
+function.
+
+\H{midend-rewrite-statusbar} \cw{midend_rewrite_statusbar()}
+
+\c char *midend_rewrite_statusbar(midend_data *me, char *text);
+
+The front end should call this function from within
+\cw{status_bar()} (\k{drawing-status-bar}). It should be passed the
+string that was passed by the back end to \cw{status_bar()}; it will
+return a dynamically allocated string adjusted by the mid-end.
+(Specifically, adjusted to include the timer if the game is a timed
+one.) The returned value should be placed in the actual status bar
+in place of the input value.
+
+(This is a nasty piece of architecture; I apologise for it. It would
+seem a lot more pleasant to have the back end pass its status bar
+text to the mid-end, which in turn would rewrite it and pass it on
+to the front end, so that each front end needed to do nothing
+strange. The main reason why I haven't done this is because it means
+the back end redraw function would need to be passed a mid-end
+pointer \e{as well} as a front end pointer, which seemed like an
+excessive proliferation of opaque handles. The only way to avoid
+that proliferation would be to have all the drawing API functions
+also gatewayed through the mid-end, and that seemed like an
+excessive proliferation of wrapper functions. The current setup
+isn't nice, but it has minimal impact and I'm unconvinced that any
+of the other options are an improvement.)
+
+\H{midend-serialise} \cw{midend_serialise()}
+
+\c void midend_serialise(midend_data *me,
+\c                       void (*write)(void *ctx, void *buf, int len),
+\c                       void *wctx);
+
+Calling this function causes the mid-end to convert its entire
+internal state into a long ASCII text string, and to pass that
+string (piece by piece) to the supplied \c{write} function.
+
+Desktop implementations can use this function to save a game in any
+state (including half-finished) to a disk file, by supplying a
+\c{write} function which is a wrapper on \cw{fwrite()} (or local
+equivalent). Other implementations may find other uses for it, such
+as compressing the large and sprawling mid-end state into a
+manageable amount of memory when a palmtop application is suspended
+so that another one can run; in this case \cw{write} might want to
+write to a memory buffer rather than a file. There may be other uses
+for it as well.
+
+This function will call back to the supplied \c{write} function a
+number of times, with the first parameter (\c{ctx}) equal to
+\c{wctx}, and the other two parameters pointing at a piece of the
+output string.
+
+\H{midend-deserialise} \cw{midend_deserialise()}
+
+\c char *midend_deserialise(midend_data *me,
+\c                          int (*read)(void *ctx, void *buf, int len),
+\c                          void *rctx);
+
+This function is the counterpart to \cw{midend_serialise()}. It
+calls the supplied \cw{read} function repeatedly to read a quantity
+of data, and attempts to interpret that data as a serialised mid-end
+as output by \cw{midend_serialise()}.
+
+The \cw{read} function is called with the first parameter (\c{ctx})
+equal to \c{rctx}, and should attempt to read \c{len} bytes of data
+into the buffer pointed to by \c{buf}. It should return \cw{FALSE}
+on failure or \cw{TRUE} on success. It should not report success
+unless it has filled the entire buffer; on platforms which might be
+reading from a pipe or other blocking data source, \c{read} is
+responsible for looping until the whole buffer has been filled.
+
+If the de-serialisation operation is successful, the mid-end's
+internal data structures will be replaced by the results of the
+load, and \cw{NULL} will be returned. Otherwise, the mid-end's state
+will be completely unchanged and an error message (typically some
+variation on \q{save file is corrupt}) will be returned. As usual,
+the error message string is not dynamically allocated.
+
+If this function succeeds, it is likely that the game parameters
+will have been changed. The front end should therefore probably
+re-think the window size using \cw{midend_size()}, and probably
+cause a refresh using \cw{midend_redraw()}.
+
+Because each mid-end is tied to a specific game back end, this
+function will fail if you attempt to read in a save file generated
+by a different game from the one configured in this mid-end, even if
+your application is a monolithic one containing all the puzzles. (It
+would be pretty easy to write a function which would look at a save
+file and determine which game it was for; any front end implementor
+who needs such a function can probably be accommodated.)
+
+\H{frontend-backend} Direct reference to the back end structure by
+the front end
+
+Although \e{most} things the front end needs done should be done by
+calling the mid-end, there are a few situations in which the front
+end needs to refer directly to the game back end structure.
+
+The most obvious of these is
+
+\b passing the game back end as a parameter to \cw{midend_new()}.
+
+There are a few other back end features which are not wrapped by the
+mid-end because there didn't seem much point in doing so:
+
+\b fetching the \c{name} field to use in window titles and similar
+
+\b reading the \c{can_configure}, \c{can_solve} and
+\c{can_format_as_text} fields to decide whether to add those items
+to the menu bar or equivalent
+
+\b reading the \c{winhelp_topic} field (Windows only)
+
+\b the GTK front end provides a \cq{--generate} command-line option
+which directly calls the back end to do most of its work. This is
+not really part of the main front end code, though, and I'm not sure
+it counts.
+
+In order to find the game back end structure, the front end does one
+of two things:
+
+\b If the particular front end is compiling a separate binary per
+game, then the back end structure is a global variable with the
+standard name \cq{thegame}:
+
+\lcont{
+
+\c extern const game thegame;
+
+}
+
+\b If the front end is compiled as a monolithic application
+containing all the puzzles together (in which case the preprocessor
+symbol \cw{COMBINED} must be defined when compiling most of the code
+base), then there will be two global variables defined:
+
+\lcont{
+
+\c extern const game *gamelist[];
+\c extern const int gamecount;
+
+\c{gamelist} will be an array of \c{gamecount} game structures,
+declared in the source module \c{list.c}. The application should
+search that array for the game it wants, probably by reaching into
+each game structure and looking at its \c{name} field.
+
+}
+
+\H{frontend-api} Mid-end to front-end calls
+
+This section describes the small number of functions which a front
+end must provide to be called by the mid-end or other standard
+utility modules.
+
+\H{frontend-get-random-seed} \cw{get_random_seed()}
+
+\c void get_random_seed(void **randseed, int *randseedsize);
+
+This function is called by a new mid-end, and also occasionally by
+game back ends. Its job is to return a piece of data suitable for
+using as a seed for initialisation of a new \c{random_state}.
+
+On exit, \c{*randseed} should be set to point at a newly allocated
+piece of memory containing some seed data, and \c{*randseedsize}
+should be set to the length of that data.
+
+A simple and entirely adequate implementation is to return a piece
+of data containing the current system time at the highest
+conveniently available resolution.
+
+\H{frontend-activate-timer} \cw{activate_timer()}
+
+\c void activate_timer(frontend *fe);
+
+This is called by the mid-end to request that the front end begin
+calling it back at regular intervals.
+
+The timeout interval is left up to the front end; the finer it is,
+the smoother move animations will be, but the more CPU time will be
+used. Current front ends use values around 20ms (i.e. 50Hz).
+
+After this function is called, the mid-end will expect to receive
+calls to \cw{midend_timer()} on a regular basis.
+
+\H{frontend-deactivate-timer} \cw{deactivate_timer()}
+
+\c void deactivate_timer(frontend *fe);
+
+This is called by the mid-end to request that the front end stop
+calling \cw{midend_timer()}.
+
+\H{frontend-fatal} \cw{fatal()}
+
+\c void fatal(char *fmt, ...);
+
+This is called by some utility functions if they encounter a
+genuinely fatal error such as running out of memory. It is a
+variadic function in the style of \cw{printf()}, and is expected to
+show the formatted error message to the user any way it can and then
+terminate the application. It must not return.
+
+\C{utils} Utility APIs
+
+This chapter documents a variety of utility APIs provided for the
+general use of the rest of the Puzzles code.
+
+\H{utils-random} Random number generation
+
+Platforms' local random number generators vary widely in quality and
+seed size. Puzzles therefore supplies its own high-quality random
+number generator, with the additional advantage of giving the same
+results if fed the same seed data on different platforms. This
+allows game random seeds to be exchanged between different ports of
+Puzzles and still generate the same games.
+
+Unlike the ANSI C \cw{rand()} function, the Puzzles random number
+generator has an \e{explicit} state object called a
+\c{random_state}. One of these is managed by each mid-end, for
+example, and passed to the back end to generate a game with.
+
+\S{utils-random-init} \cw{random_init()}
+
+\c random_state *random_init(char *seed, int len);
+
+Allocates, initialises and returns a new \c{random_state}. The input
+data is used as the seed for the random number stream (i.e. using
+the same seed at a later time will generate the same stream).
+
+The seed data can be any data at all; there is no requirement to use
+printable ASCII, or NUL-terminated strings, or anything like that.
+
+\S{utils-random-free} \cw{random_free()}
+
+\c void random_free(random_state *state);
+
+Frees a \c{random_state}.
+
+\S{utils-random-bits} \cw{random_bits()}
+
+\c unsigned long random_bits(random_state *state, int bits);
+
+Returns a random number from 0 to \cw{2^bits-1} inclusive. \c{bits}
+should be between 1 and 32 inclusive.
+
+\S{utils-random-upto} \cw{random_upto()}
+
+\c unsigned long random_upto(random_state *state, unsigned long limit);
+
+Returns a random number from 0 to \cw{limit-1} inclusive.
+
+\S{utils-random-state-encode} \cw{random_state_encode()}
+
+\c char *random_state_encode(random_state *state);
+
+Encodes the entire contents of a \c{random_state} in printable
+ASCII. Returns a dynamically allocated string containing that
+encoding. This can subsequently be passed to
+\cw{random_state_decode()} to reconstruct the same \c{random_state}.
+
+\S{utils-random-state-decode} \cw{random_state_decode()}
+
+\c random_state *random_state_decode(char *input);
+
+Decodes a string generated by \cw{random_state_encode()} and
+reconstructs an equivalent \c{random_state} to the one encoded, i.e.
+it should produce the same stream of random numbers.
+
+This function has no error reporting; if you pass it an invalid
+string it will simply generate an arbitrary random state, which may
+turn out to be noticeably non-random.
+
+\S{utils-shuffle} \cw{shuffle()}
+
+\c void shuffle(void *array, int nelts, int eltsize, random_state *rs);
+
+Shuffles an array into a random order. The interface is much like
+ANSI C \cw{qsort()}, except that there's no need for a compare
+function.
+
+\c{array} is a pointer to the first element of the array. \c{nelts}
+is the number of elements in the array; \c{eltsize} is the size of a
+single element (typically measured using \c{sizeof}). \c{rs} is a
+\c{random_state} used to generate all the random numbers for the
+shuffling process.
+
+\H{utils-alloc} Memory allocation
+
+Puzzles has some central wrappers on the standard memory allocation
+functions, which provide compile-time type checking, and run-time
+error checking by means of quitting the application if it runs out
+of memory. This doesn't provide the best possible recovery from
+memory shortage, but on the other hand it greatly simplifies the
+rest of the code, because nothing else anywhere needs to worry about
+\cw{NULL} returns from allocation.
+
+\S{utils-snew} \cw{snew()}
+
+\c var = snew(type);
+\e iii        iiii
+
+This macro takes a single argument which is a \e{type name}. It
+allocates space for one object of that type. If allocation fails it
+will call \cw{fatal()} and not return; so if it does return, you can
+be confident that its return value is non-\cw{NULL}.
+
+The return value is cast to the specified type, so that the compiler
+will type-check it against the variable you assign it into. Thus,
+this ensures you don't accidentally allocate memory the size of the
+wrong type and assign it into a variable of the right one (or vice
+versa!).
+
+\S{utils-snewn} \cw{snewn()}
+
+\c var = snewn(n, type);
+\e iii            iiii
+
+This macro is the array form of \cw{snew()}. It takes two arguments;
+the first is a number, and the second is a type name. It allocates
+space for that many objects of that type, and returns a type-checked
+non-\cw{NULL} pointer just as \cw{snew()} does.
+
+\S{utils-sresize} \cw{sresize()}
+
+\c var = sresize(var, n, type);
+\e iii           iii  i  iiii
+
+This macro is a type-checked form of \cw{realloc()}. It takes three
+arguments: an input memory block, a new size in elements, and a
+type. It re-sizes the input memory block to a size sufficient to
+contain that many elements of that type. It returns a type-checked
+non-\cw{NULL} pointer, like \cw{snew()} and \cw{snewn()}.
+
+The input memory block can be \cw{NULL}, in which case this function
+will behave exactly like \cw{snewn()}. (In principle any
+ANSI-compliant \cw{realloc()} implementation ought to cope with
+this, but I've never quite trusted it to work everywhere.)
+
+\S{utils-sfree} \cw{sfree()}
+
+\c void sfree(void *p);
+
+This function is pretty much equivalent to \cw{free()}. It is
+provided with a dynamically allocated block, and frees it.
+
+The input memory block can be \cw{NULL}, in which case this function
+will do nothing. (In principle any ANSI-compliant \cw{free()}
+implementation ought to cope with this, but I've never quite trusted
+it to work everywhere.)
+
+\S{utils-dupstr} \cw{dupstr()}
+
+\c char *dupstr(const char *s);
+
+This function dynamically allocates a duplicate of a C string. Like
+the \cw{snew()} functions, it guarantees to return non-\cw{NULL} or
+not return at all.
+
+(Many platforms provide the function \cw{strdup()}. As well as
+guaranteeing never to return \cw{NULL}, my version has the advantage
+of being defined \e{everywhere}, rather than inconveniently not
+quite everywhere.)
+
+\S{utils-free-cfg} \cw{free_cfg()}
+
+\c void free_cfg(config_item *cfg);
+
+This function correctly frees an array of \c{config_item}s,
+including walking the array until it gets to the end and freeing
+precisely those \c{sval} fields which are expected to be dynamically
+allocated.
+
+(See \k{backend-configure} for details of the \c{config_item}
+structure.)
+
+\H{utils-tree234} Sorted and counted tree functions
+
+Many games require complex algorithms for generating random puzzles,
+and some require moderately complex algorithms even during play. A
+common requirement during these algorithms is for a means of
+maintaining sorted or unsorted lists of items, such that items can
+be removed and added conveniently.
+
+For general use, Puzzles provides the following set of functions
+which maintain 2-3-4 trees in memory. (A 2-3-4 tree is a balanced
+tree structure, with the property that all lookups, insertions,
+deletions, splits and joins can be done in \cw{O(log N)} time.)
+
+All these functions expect you to be storing a tree of \c{void *}
+pointers. You can put anything you like in those pointers.
+
+By the use of per-node element counts, these tree structures have
+the slightly unusual ability to look elements up by their numeric
+index within the list represented by the tree. This means that they
+can be used to store an unsorted list (in which case, every time you
+insert a new element, you must explicitly specify the position where
+you wish to insert it). They can also do numeric lookups in a sorted
+tree, which might be useful for (for example) tracking the median of
+a changing data set.
+
+As well as storing sorted lists, these functions can be used for
+storing \q{maps} (associative arrays), by defining each element of a
+tree to be a (key, value) pair.
+
+\S{utils-newtree234} \cw{newtree234()}
+
+\c tree234 *newtree234(cmpfn234 cmp);
+
+Creates a new empty tree, and returns a pointer to it.
+
+The parameter \c{cmp} determines the sorting criterion on the tree.
+Its prototype is
+
+\c typedef int (*cmpfn234)(void *, void *);
+
+If you want a sorted tree, you should provide a function matching
+this prototype, which returns like \cw{strcmp()} does (negative if
+the first argument is smaller than the second, positive if it is
+bigger, zero if they compare equal). In this case, the function
+\cw{addpos234()} will not be usable on your tree (because all
+insertions must respect the sorting order).
+
+If you want an unsorted tree, pass \cw{NULL}. In this case you will
+not be able to use either \cw{add234()} or \cw{del234()}, or any
+other function such as \cw{find234()} which depends on a sorting
+order. Your tree will become something more like an array, except
+that it will efficiently support insertion and deletion as well as
+lookups by numeric index.
+
+\S{utils-freetree234} \cw{freetree234()}
+
+\c void freetree234(tree234 *t);
+
+Frees a tree. This function will not free the \e{elements} of the
+tree (because they might not be dynamically allocated, or you might
+be storing the same set of elements in more than one tree); it will
+just free the tree structure itself. If you want to free all the
+elements of a tree, you should empty it before passing it to
+\cw{freetree234()}, by means of code along the lines of
+
+\c while ((element = delpos234(tree, 0)) != NULL)
+\c     sfree(element); /* or some more complicated free function */
+\e                     iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii
+
+\S{utils-add234} \cw{add234()}
+
+\c void *add234(tree234 *t, void *e);
+
+Inserts a new element \c{e} into the tree \c{t}. This function
+expects the tree to be sorted; the new element is inserted according
+to the sort order.
+
+If an element comparing equal to \c{e} is already in the tree, then
+the insertion will fail, and the return value will be the existing
+element. Otherwise, the insertion succeeds, and \c{e} is returned.
+
+\S{utils-addpos234} \cw{addpos234()}
+
+\c void *addpos234(tree234 *t, void *e, int index);
+
+Inserts a new element into an unsorted tree. Since there is no
+sorting order to dictate where the new element goes, you must
+specify where you want it to go. Setting \c{index} to zero puts the
+new element right at the start of the list; setting \c{index} to the
+current number of elements in the tree puts the new element at the
+end.
+
+Return value is \c{e}, in line with \cw{add234()} (although this
+function cannot fail except by running out of memory, in which case
+it will bomb out and die rather than returning an error indication).
+
+\S{utils-index234} \cw{index234()}
+
+\c void *index234(tree234 *t, int index);
+
+Returns a pointer to the \c{index}th element of the tree, or
+\cw{NULL} if \c{index} is out of range. Elements of the tree are
+numbered from zero.
+
+\S{utils-find234} \cw{find234()}
+
+\c void *find234(tree234 *t, void *e, cmpfn234 cmp);
+
+Searches for an element comparing equal to \c{e} in a sorted tree.
+
+If \c{cmp} is \cw{NULL}, the tree's ordinary comparison function
+will be used to perform the search. However, sometimes you don't
+want that; suppose, for example, each of your elements is a big
+structure containing a \c{char *} name field, and you want to find
+the element with a given name. You \e{could} achieve this by
+constructing a fake element structure, setting its name field
+appropriately, and passing it to \cw{find234()}, but you might find
+it more convenient to pass \e{just} a name string to \cw{find234()},
+supplying an alternative comparison function which expects one of
+its arguments to be a bare name and the other to be a large
+structure containing a name field.
+
+Therefore, if \c{cmp} is not \cw{NULL}, then it will be used to
+compare \c{e} to elements of the tree. The first argument passed to
+\c{cmp} will always be \c{e}; the second will be an element of the
+tree.
+
+(See \k{utils-newtree234} for the definition of the \c{cmpfn234}
+function pointer type.)
+
+The returned value is the element found, or \cw{NULL} if the search
+is unsuccessful.
+
+\S{utils-findrel234} \cw{findrel234()}
+
+\c void *findrel234(tree234 *t, void *e, cmpfn234 cmp, int relation);
+
+This function is like \cw{find234()}, but has the additional ability
+to do a \e{relative} search. The additional parameter \c{relation}
+can be one of the following values:
+
+\dt \cw{REL234_EQ}
+
+\dd Find only an element that compares equal to \c{e}. This is
+exactly the behaviour of \cw{find234()}.
+
+\dt \cw{REL234_LT}
+
+\dd Find the greatest element that compares strictly less than
+\c{e}. \c{e} may be \cw{NULL}, in which case it finds the greatest
+element in the whole tree (which could also be done by
+\cw{index234(t, count234(t)-1)}).
+
+\dt \cw{REL234_LE}
+
+\dd Find the greatest element that compares less than or equal to
+\c{e}. (That is, find an element that compares equal to \c{e} if
+possible, but failing that settle for something just less than it.)
+
+\dt \cw{REL234_GT}
+
+\dd Find the smallest element that compares strictly greater than
+\c{e}. \c{e} may be \cw{NULL}, in which case it finds the smallest
+element in the whole tree (which could also be done by
+\cw{index234(t, 0)}).
+
+\dt \cw{REL234_GE}
+
+\dd Find the smallest element that compares greater than or equal to
+\c{e}. (That is, find an element that compares equal to \c{e} if
+possible, but failing that settle for something just bigger than
+it.)
+
+Return value, as before, is the element found or \cw{NULL} if no
+element satisfied the search criterion.
+
+\S{utils-findpos234} \cw{findpos234()}
+
+\c void *findpos234(tree234 *t, void *e, cmpfn234 cmp, int *index);
+
+This function is like \cw{find234()}, but has the additional feature
+of returning the index of the element found in the tree; that index
+is written to \c{*index} in the event of a successful search (a
+non-\cw{NULL} return value).
+
+\c{index} may be \cw{NULL}, in which case this function behaves
+exactly like \cw{find234()}.
+
+\S{utils-findrelpos234} \cw{findrelpos234()}
+
+\c void *findrelpos234(tree234 *t, void *e, cmpfn234 cmp, int relation,
+\c                     int *index);
+
+This function combines all the features of \cw{findrel234()} and
+\cw{findpos234()}.
+
+\S{utils-del234} \cw{del234()}
+
+\c void *del234(tree234 *t, void *e);
+
+Finds an element comparing equal to \c{e} in the tree, deletes it,
+and returns it.
+
+The input tree must be sorted.
+
+The element found might be \c{e} itself, or might merely compare
+equal to it.
+
+Return value is \cw{NULL} if no such element is found.
+
+\S{utils-delpos234} \cw{delpos234()}
+
+\c void *delpos234(tree234 *t, int index);
+
+Deletes the element at position \c{index} in the tree, and returns
+it.
+
+Return value is \cw{NULL} if the index is out of range.
+
+\S{utils-count234} \cw{count234()}
+
+\c int count234(tree234 *t);
+
+Returns the number of elements currently in the tree.
+
+\S{utils-splitpos234} \cw{splitpos234()}
+
+\c tree234 *splitpos234(tree234 *t, int index, int before);
+
+Splits the input tree into two pieces at a given position, and
+creates a new tree containing all the elements on one side of that
+position.
+
+If \c{before} is \cw{TRUE}, then all the items at or after position
+\c{index} are left in the input tree, and the items before that
+point are returned in the new tree. Otherwise, the reverse happens:
+all the items at or after \c{index} are moved into the new tree, and
+those before that point are left in the old one.
+
+If \c{index} is equal to 0 or to the number of elements in the input
+tree, then one of the two trees will end up empty (and this is not
+an error condition). If \c{index} is further out of range in either
+direction, the operation will fail completely and return \cw{NULL}.
+
+This operation completes in \cw{O(log N)} time, no matter how large
+the tree or how balanced or unbalanced the split.
+
+\S{utils-split234} \cw{split234()}
+
+\c tree234 *split234(tree234 *t, void *e, cmpfn234 cmp, int rel);
+
+Splits a sorted tree according to its sort order.
+
+\c{rel} can be any of the relation constants described in
+\k{utils-findrel234}, \e{except} for \cw{REL234_EQ}. All the
+elements having that relation to \c{e} will be transferred into the
+new tree; the rest will be left in the old one.
+
+The parameter \c{cmp} has the same semantics as it does in
+\cw{find234()}: if it is not \cw{NULL}, it will be used in place of
+the tree's own comparison function when comparing elements to \c{e},
+in such a way that \c{e} itself is always the first of its two
+operands.
+
+Again, this operation completes in \cw{O(log N)} time, no matter how
+large the tree or how balanced or unbalanced the split.
+
+\S{utils-join234} \cw{join234()}
+
+\c tree234 *join234(tree234 *t1, tree234 *t2);
+
+Joins two trees together by concatenating the lists they represent.
+All the elements of \c{t2} are moved into \c{t1}, in such a way that
+they appear \e{after} the elements of \c{t1}. The tree \c{t2} is
+freed; the return value is \c{t1}.
+
+If you apply this function to a sorted tree and it violates the sort
+order (i.e. the smallest element in \c{t2} is smaller than or equal
+to the largest element in \c{t1}), the operation will fail and
+return \cw{NULL}.
+
+This operation completes in \cw{O(log N)} time, no matter how large
+the trees being joined together.
+
+\S{utils-join234r} \cw{join234r()}
+
+\c tree234 *join234r(tree234 *t1, tree234 *t2);
+
+Joins two trees together in exactly the same way as \cw{join234()},
+but this time the combined tree is returned in \c{t2}, and \c{t1} is
+destroyed. The elements in \c{t1} still appear before those in
+\c{t2}.
+
+Again, this operation completes in \cw{O(log N)} time, no matter how
+large the trees being joined together.
+
+\S{utils-copytree234} \cw{copytree234()}
+
+\c tree234 *copytree234(tree234 *t, copyfn234 copyfn,
+\c                      void *copyfnstate);
+
+Makes a copy of an entire tree.
+
+If \c{copyfn} is \cw{NULL}, the tree will be copied but the elements
+will not be; i.e. the new tree will contain pointers to exactly the
+same physical elements as the old one.
+
+If you want to copy each actual element during the operation, you
+can instead pass a function in \c{copyfn} which makes a copy of each
+element. That function has the prototype
+
+\c typedef void *(*copyfn234)(void *state, void *element);
+
+and every time it is called, the \c{state} parameter will be set to
+the value you passed in as \c{copyfnstate}.
+
+\H{utils-misc} Miscellaneous utility functions and macros
+
+This section contains all the utility functions which didn't
+sensibly fit anywhere else.
+
+\S{utils-truefalse} \cw{TRUE} and \cw{FALSE}
+
+The main Puzzles header file defines the macros \cw{TRUE} and
+\cw{FALSE}, which are used throughout the code in place of 0 and 1
+to indicate that the values are in a boolean context. For code base
+consistency, I'd prefer it if submissions of new code followed this
+convention as well.
+
+\S{utils-maxmin} \cw{max()} and \cw{min()}
+
+The main Puzzles header file defines the pretty standard macros
+\cw{max()} and \cw{min()}, each of which is given two arguments and
+returns the one which compares greater or less respectively.
+
+These macros may evaluate their arguments multiple times. Avoid side
+effects.
+
+\S{utils-pi} \cw{PI}
+
+The main Puzzles header file defines a macro \cw{PI} which expands
+to a floating-point constant representing pi.
+
+(I've never understood why ANSI's \cw{<math.h>} doesn't define this.
+It'd be so useful!)
+
+\S{utils-obfuscate-bitmap} \cw{obfuscate_bitmap()}
+
+\c void obfuscate_bitmap(unsigned char *bmp, int bits, int decode);
+
+This function obscures the contents of a piece of data, by
+cryptographic methods. It is useful for games of hidden information
+(such as Mines, Guess or Black Box), in which the game ID
+theoretically reveals all the information the player is supposed to
+be trying to guess. So in order that players should be able to send
+game IDs to one another without accidentally spoiling the resulting
+game by looking at them, these games obfuscate their game IDs using
+this function.
+
+Although the obfuscation function is cryptographic, it cannot
+properly be called encryption because it has no key. Therefore,
+anybody motivated enough can re-implement it, or hack it out of the
+Puzzles source, and strip the obfuscation off one of these game IDs
+to see what lies beneath. (Indeed, they could usually do it much
+more easily than that, by entering the game ID into their own copy
+of the puzzle and hitting Solve.) The aim is not to protect against
+a determined attacker; the aim is simply to protect people who
+wanted to play the game honestly from \e{accidentally} spoiling
+their own fun.
+
+The input argument \c{bmp} points at a piece of memory to be
+obfuscated. \c{bits} gives the length of the data. Note that that
+length is in \e{bits} rather than bytes: if you ask for obfuscation
+of a partial number of bytes, then you will get it. Bytes are
+considered to be used from the top down: thus, for example, setting
+\c{bits} to 10 will cover the whole of \cw{bmp[0]} and the \e{top
+two} bits of \cw{bmp[1]}. The remainder of a partially used byte is
+undefined (i.e. it may be corrupted by the function).
+
+The parameter \c{decode} is \cw{FALSE} for an encoding operation,
+and \cw{TRUE} for a decoding operation. Each is the inverse of the
+other. (There's no particular reason you shouldn't obfuscate by
+decoding and restore cleartext by encoding, if you really wanted to;
+it should still work.)
+
+The input bitmap is processed in place.
+
+\S{utils-bin2hex} \cw{bin2hex()}
+
+\c char *bin2hex(const unsigned char *in, int inlen);
+
+This function takes an input byte array and converts it into an
+ASCII string encoding those bytes in (lower-case) hex. It returns a
+dynamically allocated string containing that encoding.
+
+This function is useful for encoding the result of
+\cw{obfuscate_bitmap()} in printable ASCII for use in game IDs.
+
+\S{utils-hex2bin} \cw{hex2bin()}
+
+\c unsigned char *hex2bin(const char *in, int outlen);
+
+This function takes an ASCII string containing hex digits, and
+converts it back into a byte array of length \c{outlen}. If there
+aren't enough hex digits in the string, the contents of the
+resulting array will be undefined.
+
+This function is the inverse of \cw{bin2hex()}.
+
+\S{utils-game-mkhighlight} \cw{game_mkhighlight()}
+
+\c void game_mkhighlight(frontend *fe, float *ret,
+\c                       int background, int highlight, int lowlight);
+
+It's reasonably common for a puzzle game's graphics to use
+highlights and lowlights to indicate \q{raised} or \q{lowered}
+sections. Fifteen, Sixteen and Twiddle are good examples of this.
+
+Puzzles using this graphical style are running a risk if they just
+use whatever background colour is supplied to them by the front end,
+because that background colour might be too light to see any
+highlights on at all. (In particular, it's not unheard of for the
+front end to specify a default background colour of white.)
+
+Therefore, such puzzles can call this utility function from their
+\cw{colours()} routine (\k{backend-colours}). You pass it your front
+end handle, a pointer to the start of your return array, and three
+colour indices. It will:
+
+\b call \cw{frontend_default_colour()} (\k{frontend-default-colour})
+to fetch the front end's default background colour
+
+\b alter the brightness of that colour if it's unsuitable
+
+\b define brighter and darker variants of the colour to be used as
+highlights and lowlights
+
+\b write those results into the relevant positions in the \c{ret}
+array.
+
+Thus, \cw{ret[background*3]} to \cw{ret[background*3+2]} will be set
+to RGB values defining a sensible background colour, and similary
+\c{highlight} and \c{lowlight} will be set to sensible colours.
+
+\C{writing} How to write a new puzzle
+
+This chapter gives a guide to how to actually write a new puzzle:
+where to start, what to do first, how to solve common problems.
+
+The previous chapters have been largely composed of facts. This one
+is mostly advice.
+
+\H{writing-editorial} Choosing a puzzle
+
+Before you start writing a puzzle, you have to choose one. Your
+taste in puzzle games is up to you, of course; and, in fact, you're
+probably reading this guide because you've \e{already} thought of a
+game you want to write. But if you want to get it accepted into the
+official Puzzles distribution, then there's a criterion it has to
+meet.
+
+The current Puzzles editorial policy is that all games should be
+\e{fair}. A fair game is one which a player can only fail to
+complete through demonstrable lack of skill \dash that is, such that
+a better player in the same situation would have \e{known} to do
+something different.
+
+For a start, that means every game presented to the user must have
+\e{at least one solution}. Giving the unsuspecting user a puzzle
+which is actually impossible is not acceptable. (There is an
+exception: if the user has selected some non-default option which is
+clearly labelled as potentially unfair, \e{then} you're allowed to
+generate possibly insoluble puzzles, because the user isn't
+unsuspecting any more. Same Game and Mines both have options of this
+type.)
+
+Also, this actually \e{rules out} games such as Klondike, or the
+normal form of Mahjong Solitaire. Those games have the property that
+even if there is a solution (i.e. some sequence of moves which will
+get from the start state to the solved state), the player doesn't
+necessarily have enough information to \e{find} that solution. In
+both games, it is possible to reach a dead end because you had an
+arbitrary choice to make and made it the wrong way. This violates
+the fairness criterion, because a better player couldn't have known
+they needed to make the other choice.
+
+(GNOME has a variant on Mahjong Solitaire which makes it fair: there
+is a Shuffle operation which randomly permutes all the remaining
+tiles without changing their positions, which allows you to get out
+of a sticky situation. Using this operation adds a 60-second penalty
+to your solution time, so it's to the player's advantage to try to
+minimise the chance of having to use it. It's still possible to
+render the game uncompletable if you end up with only two tiles
+vertically stacked, but that's easy to foresee and avoid using a
+shuffle operation. This form of the game \e{is} fair. Implementing
+it in Puzzles would require an infrastructure change so that the
+back end could communicate time penalties to the mid-end, but that
+would be easy enough.)
+
+Providing a \e{unique} solution is a little more negotiable; it
+depends on the puzzle. Solo would have been of unacceptably low
+quality if it didn't always have a unique solution, whereas Twiddle
+inherently has multiple solutions by its very nature and it would
+have been meaningless to even \e{suggest} making it uniquely
+soluble. Somewhere in between, Flip could reasonably be made to have
+unique solutions (by enforcing a zero-dimension kernel in every
+generated matrix) but it doesn't seem like a serious quality problem
+that it doesn't.
+
+Of course, you don't \e{have} to care about all this. There's
+nothing stopping you implementing any puzzle you want to if you're
+happy to maintain your puzzle yourself, distribute it from your own
+web site, fork the Puzzles code completely, or anything like that.
+It's free software; you can do what you like with it. But any game
+that you want to be accepted into \e{my} Puzzles code base has to
+satisfy the fairness criterion, which means all randomly generated
+puzzles must have a solution (unless the user has deliberately
+chosen otherwise) and it must be possible \e{in theory} to find that
+solution without having to guess.
+
+\H{writing-gs} Getting started
+
+The simplest way to start writing a new puzzle is to copy
+\c{nullgame.c}. This is a template puzzle source file which does
+almost nothing, but which contains all the back end function
+prototypes and declares the back end data structure correctly. It is
+built every time the rest of Puzzles is built, to ensure that it
+doesn't get out of sync with the code and remains buildable.
+
+So start by copying \c{nullgame.c} into your new source file. Then
+you'll gradually add functionality until the very boring Null Game
+turns into your real game.
+
+Next you'll need to add your puzzle to the Makefiles, in order to
+compile it conveniently. \e{Do not edit the Makefiles}: they are
+created automatically by the script \c{mkfiles.pl}, from the file
+called \c{Recipe}. Edit \c{Recipe}, and then re-run \c{mkfiles.pl}.
+
+Once your source file is building, you can move on to the fun bit.
+
+\S{writing-generation} Puzzle generation
+
+Randomly generating instances of your puzzle is almost certain to be
+the most difficult part of the code, and also the task with the
+highest chance of turning out to be completely infeasible. Therefore
+I strongly recommend doing it \e{first}, so that if it all goes
+horribly wrong you haven't wasted any more time than you absolutely
+had to. What I usually do is to take an unmodified \c{nullgame.c},
+and start adding code to \cw{new_game_desc()} which tries to
+generate a puzzle instance and print it out using \cw{printf()}.
+Once that's working, \e{then} I start connecting it up to the return
+value of \cw{new_game_desc()}, populating other structures like
+\c{game_params}, and generally writing the rest of the source file.
+
+There are many ways to generate a puzzle which is known to be
+soluble. In this section I list all the methods I currently know of,
+in case any of them can be applied to your puzzle. (Not all of these
+methods will work, or in some cases even make sense, for all
+puzzles.)
+
+Some puzzles are mathematically tractable, meaning you can work out
+in advance which instances are soluble. Sixteen, for example, has a
+parity constraint in some settings which renders exactly half the
+game space unreachable, but it can be mathematically proved that any
+position not in that half \e{is} reachable. Therefore, Sixteen's
+grid generation simply consists of selecting at random from a well
+defined subset of the game space. Cube in its default state is even
+easier: \e{every} possible arrangement of the blue squares and the
+cube's starting position is soluble!
+
+Another option is to redefine what you mean by \q{soluble}. Black
+Box takes this approach. There are layouts of balls in the box which
+are completely indistinguishable from one another no matter how many
+beams you fire into the box from which angles, which would normally
+be grounds for declaring those layouts unfair; but fortunately,
+detecting that indistinguishability is computationally easy. So
+Black Box doesn't demand that your ball placements match its own; it
+merely demands that your ball placements be \e{indistinguishable}
+from the ones it was thinking of. If you have an ambiguous puzzle,
+then any of the possible answers is considered to be a solution.
+Having redefined the rules in that way, any puzzle is soluble again.
+
+Those are the simple techniques. If they don't work, you have to get
+cleverer.
+
+One way to generate a soluble puzzle is to start from the solved
+state and make inverse moves until you reach a starting state. Then
+you know there's a solution, because you can just list the inverse
+moves you made and make them in the opposite order to return to the
+solved state.
+
+This method can be simple and effective for puzzles where you get to
+decide what's a starting state and what's not. In Pegs, for example,
+the generator begins with one peg in the centre of the board and
+makes inverse moves until it gets bored; in this puzzle, valid
+inverse moves are easy to detect, and \e{any} state that's reachable
+from the solved state by inverse moves is a reasonable starting
+position. So Pegs just continues making inverse moves until the
+board satisfies some criteria about extent and density, and then
+stops and declares itself done.
+
+For other puzzles, it can be a lot more difficult. Same Game uses
+this strategy too, and it's lucky to get away with it at all: valid
+inverse moves aren't easy to find (because although it's easy to
+insert additional squares in a Same Game position, it's difficult to
+arrange that \e{after} the insertion they aren't adjacent to any
+other squares of the same colour), so you're constantly at risk of
+running out of options and having to backtrack or start again. Also,
+Same Game grids never start off half-empty, which means you can't
+just stop when you run out of moves \dash you have to find a way to
+fill the grid up \e{completely}.
+
+The other way to generate a puzzle that's soluble is to start from
+the other end, and actually write a \e{solver}. This tends to ensure
+that a puzzle has a \e{unique} solution over and above having a
+solution at all, so it's a good technique to apply to puzzles for
+which that's important.
+
+One theoretical drawback of generating soluble puzzles by using a
+solver is that your puzzles are restricted in difficulty to those
+which the solver can handle. (Most solvers are not fully general:
+many sets of puzzle rules are NP-complete or otherwise nasty, so
+most solvers can only handle a subset of the theoretically soluble
+puzzles.) It's been my experience in practice, however, that this
+usually isn't a problem; computers are good at very different things
+from humans, and what the computer thinks is nice and easy might
+still be pleasantly challenging for a human. For example, when
+solving Dominosa puzzles I frequently find myself using a variety of
+reasoning techniques that my solver doesn't know about; in
+principle, therefore, I should be able to solve the puzzle using
+only those techniques it \e{does} know about, but this would involve
+repeatedly searching the entire grid for the one simple deduction I
+can make. Computers are good at this sort of exhaustive search, but
+it's been my experience that human solvers prefer to do more complex
+deductions than to spend ages searching for simple ones. So in many
+cases I don't find my own playing experience to be limited by the
+restrictions on the solver.
+
+(This isn't \e{always} the case. Solo is a counter-example;
+generating Solo puzzles using a simple solver does lead to
+qualitatively easier puzzles. Therefore I had to make the Solo
+solver rather more advanced than most of them.)
+
+There are several different ways to apply a solver to the problem of
+generating a soluble puzzle. I list a few of them below.
+
+The simplest approach is brute force: randomly generate a puzzle,
+use the solver to see if it's soluble, and if not, throw it away and
+try again until you get lucky. This is often a viable technique if
+all else fails, but it tends not to scale well: for many puzzle
+types, the probability of finding a uniquely soluble instance
+decreases sharply as puzzle size goes up, so this technique might
+work reasonably fast for small puzzles but take (almost) forever at
+larger sizes. Still, if there's no other alternative it can be
+usable: Pattern and Dominosa both use this technique. (However,
+Dominosa has a means of tweaking the randomly generated grids to
+increase the \e{probability} of them being soluble, by ruling out
+one of the most common ambiguous cases. This improved generation
+speed by over a factor of 10 on the highest preset!)
+
+An approach which can be more scalable involves generating a grid
+and then tweaking it to make it soluble. This is the technique used
+by Mines and also by Net: first a random puzzle is generated, and
+then the solver is run to see how far it gets. Sometimes the solver
+will get stuck; when that happens, examine the area it's having
+trouble with, and make a small random change in that area to allow
+it to make more progress. Continue solving (possibly even without
+restarting the solver), tweaking as necessary, until the solver
+finishes. Then restart the solver from the beginning to ensure that
+the tweaks haven't caused new problems in the process of solving old
+ones (which can sometimes happen).
+
+This strategy works well in situations where the usual solver
+failure mode is to get stuck in an easily localised spot. Thus it
+works well for Net and Mines, whose most common failure mode tends
+to be that most of the grid is fine but there are a few widely
+separated ambiguous sections; but it would work less well for
+Dominosa, in which the way you get stuck is to have scoured the
+whole grid and not found anything you can deduce \e{anywhere}. Also,
+it relies on there being a low probability that tweaking the grid
+introduces a new problem at the same time as solving the old one;
+Mines and Net also have the property that most of their deductions
+are local, so that it's very unlikely for a tweak to affect
+something half way across the grid from the location where it was
+applied. In Dominosa, by contrast, a lot of deductions use
+information about half the grid (\q{out of all the sixes, only one
+is next to a three}, which can depend on the values of up to 32 of
+the 56 squares in the default setting!), so this tweaking strategy
+would be rather less likely to work well.
+
+A more specialised strategy is that used in Solo. Solo has the
+unusual property that the clues (information provided at the
+beginning of the puzzle) and the solution (information the user is
+required to fill in) are inherently interchangeable; therefore a
+simple generation technique is to leave the decision of which
+numbers are clues until the last minute. Solo works by first
+generating a random \e{filled} grid, and then gradually removing
+numbers for as long as the solver reports that it's still soluble.
+Unlike the methods described above, this technique \e{cannot} fail
+\dash once you've got a filled grid, nothing can stop you from being
+able to convert it into a viable puzzle. However, it wouldn't even
+be meaningful to apply this technique to (say) Pattern, in which the
+clues and the solution occupy completely different spaces.
+
+(Unfortunately, Solo is complicated by the need to provide puzzles
+at varying difficulty levels. It's easy enough to generate a puzzle
+of \e{at most} a given level of difficulty; you just have a solver
+with configurable intelligence, and you set it to a given level and
+apply the above technique, thus guaranteeing that the resulting grid
+is solvable by someone with at most that much intelligence. However,
+generating a puzzle of \e{at least} a given level of difficulty is
+rather harder; if you go for \e{at most} Intermediate level, you're
+likely to find that you've accidentally generated a Trivial grid a
+lot of the time, because removing just one number is sufficient to
+take the puzzle from Trivial straight to Ambiguous. In that
+situation Solo has no remaining options but to throw the puzzle away
+and start again.)
+
+A final strategy is to use the solver \e{during} puzzle
+construction: lay out a bit of the grid, run the solver to see what
+it allows you to deduce, and then lay out a bit more to allow the
+solver to make more progress. There are articles on the web that
+recommend constructing Sudoku puzzles by this method (which is
+completely the opposite way round to how Solo does it); for Sudoku
+it has the advantage that you get to specify your clue squares in
+advance (so you can have them make pretty patterns).
+
+Rectangles uses a strategy along these lines. First it generates a
+grid by placing the actual rectangles; then it has to decide where
+in each rectangle to place a number. It uses a solver to help it
+place the numbers in such a way as to ensure a unique solution. It
+does this by means of running a test solver, but it runs the solver
+\e{before} it's placed any of the numbers \dash which means the
+solver must be capable of coping with uncertainty about exactly
+where the numbers are! It runs the solver as far as it can until it
+gets stuck; then it narrows down the possible positions of a number
+in order to allow the solver to make more progress, and so on. Most
+of the time this process terminates with the grid fully solved, at
+which point any remaining number-placement decisions can be made at
+random from the options not so far ruled out. Note that unlike the
+Net/Mines tweaking strategy described above, this algorithm does not
+require a checking run after it completes: if it finishes
+successfully at all, then it has definitely produced a uniquely
+soluble puzzle.
+
+Most of the strategies described above are not 100% reliable. Each
+one has a failure rate: every so often it has to throw out the whole
+grid and generate a fresh one from scratch. (Solo's strategy would
+be the exception, if it weren't for the need to provide configurable
+difficulty levels.) Occasional failures are not a fundamental
+problem in this sort of work, however: it's just a question of
+dividing the grid generation time by the success rate (if it takes
+10ms to generate a candidate grid and 1/5 of them work, then it will
+take 50ms on average to generate a viable one), and seeing whether
+the expected time taken to \e{successfully} generate a puzzle is
+unacceptably slow. Dominosa's generator has a very low success rate
+(about 1 out of 20 candidate grids turn out to be usable, and if you
+think \e{that's} bad then go and look at the source code and find
+the comment showing what the figures were before the generation-time
+tweaks!), but the generator itself is very fast so this doesn't
+matter. Rectangles has a slower generator, but fails well under 50%
+of the time.
+
+So don't be discouraged if you have an algorithm that doesn't always
+work: if it \e{nearly} always works, that's probably good enough.
+The one place where reliability is important is that your algorithm
+must never produce false positives: it must not claim a puzzle is
+soluble when it isn't. It can produce false negatives (failing to
+notice that a puzzle is soluble), and it can fail to generate a
+puzzle at all, provided it doesn't do either so often as to become
+slow.
+
+One last piece of advice: for grid-based puzzles when writing and
+testing your generation algorithm, it's almost always a good idea
+\e{not} to test it initially on a grid that's square (i.e.
+\cw{w==h}), because that way you won't notice if you mistakenly
+write \c{w} instead of \c{h} or vice versa somewhere in the code.
+Use a rectangular grid for testing, and any size of grid will be
+likely to work after that.
+
+\S{writing-textformats} Designing textual description formats
+
+Another aspect of writing a puzzle which is worth putting some
+thought into is the design of the various text description formats:
+the format of the game parameter encoding, the game description
+encoding, and the move encoding.
+
+The first two of these should be reasonably intuitive for a user to
+type in; so provide some flexibility where possible. Suppose, for
+example, your parameter format consists of two numbers separated by
+an \c{x} to specify the grid dimensions (\c{10x10} or \c{20x15}),
+and then has some suffixes to specify other aspects of the game
+type. It's almost always a good idea in this situation to arrange
+that \cw{decode_params()} can handle the suffixes appearing in any
+order, even if \cw{encode_params()} only ever generates them in one
+order.
+
+These formats will also be expected to be reasonably stable: users
+will expect to be able to exchange game IDs with other users who
+aren't running exactly the same version of your game. So make them
+robust and stable: don't build too many assumptions into the game ID
+format which will have to be changed every time something subtle
+changes in the puzzle code.
+
+\H{writing-howto} Common how-to questions
+
+This section lists some common things people want to do when writing
+a puzzle, and describes how to achieve them within the Puzzles
+framework.
+
+\S{writing-howto-cursor} Drawing objects at only one position
+
+A common phenomenon is to have an object described in the
+\c{game_state} or the \c{game_ui} which can only be at one position.
+A cursor \dash probably specified in the \c{game_ui} \dash is a good
+example.
+
+In the \c{game_ui}, it would \e{obviously} be silly to have an array
+covering the whole game grid with a boolean flag stating whether the
+cursor was at each position. Doing that would waste space, would
+make it difficult to find the cursor in order to do anything with
+it, and would introduce the potential for synchronisation bugs in
+which you ended up with two cursors or none. The obviously sensible
+way to store a cursor in the \c{game_ui} is to have fields directly
+encodings the cursor's coordinates.
+
+However, it is a mistake to assume that the same logic applies to
+the \c{game_drawstate}. If you replicate the cursor position fields
+in the draw state, the redraw code will get very complicated. In the
+draw state, in fact, it \e{is} probably the right thing to have a
+cursor flag for every position in the grid. You probably have an
+array for the whole grid in the drawstate already (stating what is
+currently displayed in the window at each position); the sensible
+approach is to add a \q{cursor} flag to each element of that array.
+Then the main redraw loop will look something like this
+(pseudo-code):
+
+\c for (y = 0; y < h; y++) {
+\c     for (x = 0; x < w; x++) {
+\c         int value = state->symbol_at_position[y][x];
+\c         if (x == ui->cursor_x && y == ui->cursor_y)
+\c             value |= CURSOR;
+\c         if (ds->symbol_at_position[y][x] != value) {
+\c             symbol_drawing_subroutine(fe, ds, x, y, value);
+\c             ds->symbol_at_position[y][x] = value;
+\c         }
+\c     }
+\c }
+
+This loop is very simple, pretty hard to get wrong, and
+\e{automatically} deals both with erasing the previous cursor and
+drawing the new one, with no special case code required.
+
+This type of loop is generally a sensible way to write a redraw
+function, in fact. The best thing is to ensure that the information
+stored in the draw state for each position tells you \e{everything}
+about what was drawn there. A good way to ensure that is to pass
+precisely the same information, and \e{only} that information, to a
+subroutine that does the actual drawing; then you know there's no
+additional information which affects the drawing but which you don't
+notice changes in.
+
+\S{writing-keyboard-cursor} Implementing a keyboard-controlled cursor
+
+It is often useful to provide a keyboard control method in a
+basically mouse-controlled game. A keyboard-controlled cursor is
+best implemented by storing its location in the \c{game_ui} (since
+if it were in the \c{game_state} then the user would have to
+separately undo every cursor move operation). So the procedure would
+be:
+
+\b Put cursor position fields in the \c{game_ui}.
+
+\b \cw{interpret_move()} responds to arrow keys by modifying the
+cursor position fields and returning \cw{""}.
+
+\b \cw{interpret_move()} responds to some sort of fire button by
+actually performing a move based on the current cursor location.
+
+\b You might want an additional \c{game_ui} field stating whether
+the cursor is currently visible, and having it disappear when a
+mouse action occurs (so that it doesn't clutter the display when not
+actually in use).
+
+\b You might also want to automatically hide the cursor in
+\cw{changed_state()} when the current game state changes to one in
+which there is no move to make (which is the case in some types of
+completed game).
+
+\b \cw{redraw()} draws the cursor using the technique described in
+\k{writing-howto-cursor}.
+
+\S{writing-howto-dragging} Implementing draggable sprites
+
+Some games have a user interface which involves dragging some sort
+of game element around using the mouse. If you need to show a
+graphic moving smoothly over the top of other graphics, use a
+blitter (see \k{drawing-blitter} for the blitter API) to save the
+background underneath it. The typical scenario goes:
+
+\b Have a blitter field in the \c{game_drawstate}.
+
+\b Set the blitter field to \cw{NULL} in the game's
+\cw{new_drawstate()} function, since you don't yet know how big the
+piece of saved background needs to be.
+
+\b In the game's \cw{set_size()} function, once you know the size of
+the object you'll be dragging around the display and hence the
+required size of the blitter, actually allocate the blitter (making
+sure to free a previous one if present \dash it's possible that
+\cw{set_size()} might be called twice on the same draw state).
+
+\b In \cw{free_drawstate()}, free the blitter if it's not \cw{NULL}.
+
+\b In \cw{interpret_move()}, respond to mouse-down and mouse-drag
+events by updating some fields in the \cw{game_ui} which indicate
+that a drag is in progress.
+
+\b At the \e{very end} of \cw{redraw()}, after all other drawing has
+been done, draw the moving object if there is one. First save the
+background under the object in the blitter; then set a clip
+rectangle covering precisely the area you just saved (just in case
+anti-aliasing or some other error causes your drawing to go beyond
+the area you saved). Then draw the object, and call \cw{unclip()}.
+Finally, set a flag in the \cw{game_drawstate} that indicates that
+the blitter needs restoring.
+
+\b At the very start of \cw{redraw()}, before doing anything else at
+all, check the flag in the \cw{game_drawstate}, and if it says the
+blitter needs restoring then restore it. (Then clear the flag, so
+that this won't happen again in the next redraw if no moving object
+is drawn this time.)
+
+This way, you will be able to write the rest of the redraw function
+completely ignoring the dragged object, as if it were floating above
+your bitmap and being completely separate.
+
+\S{writing-ref-counting} Sharing large invariant data between all
+game states
+
+In some puzzles, there is a large amount of data which never changes
+between game states. The array of numbers in Dominosa is a good
+example.
+
+You \e{could} dynamically allocate a copy of that array in every
+\c{game_state}, and have \cw{dup_game()} make a fresh copy of it for
+every new \c{game_state}; but it would waste memory and time. A
+more efficient way is to use a reference-counted structure.
+
+\b Define a structure type containing the data in question, and also
+containing an integer reference count.
+
+\b Have a field in \c{game_state} which is a pointer to this
+structure.
+
+\b In \cw{new_game()}, when creating a fresh game state at the start
+of a new game, create an instance of this structure, initialise it
+with the invariant data, and set its reference count to 1.
+
+\b In \cw{dup_game()}, rather than making a copy of the structure
+for the new game state, simply set the new game state to point at
+the same copy of the structure, and increment its reference count.
+
+\b In \cw{free_game()}, decrement the reference count in the
+structure pointed to by the game state; if the count reaches zero,
+free the structure.
+
+This way, the invariant data will persist for only as long as it's
+genuinely needed; \e{as soon} as the last game state for a
+particular puzzle instance is freed, the invariant data for that
+puzzle will vanish as well. Reference counting is a very efficient
+form of garbage collection, when it works at all. (Which it does in
+this instance, of course, because there's no possibility of circular
+references.)
+
+\S{writing-flash-types} Implementing multiple types of flash
+
+In some games you need to flash in more than one different way.
+Mines, for example, flashes white when you win, and flashes red when
+you tread on a mine and die.
+
+The simple way to do this is:
+
+\b Have a field in the \c{game_ui} which describes the type of flash.
+
+\b In \cw{flash_length()}, examine the old and new game states to
+decide whether a flash is required and what type. Write the type of
+flash to the \c{game_ui} field whenever you return non-zero.
+
+\b In \cw{redraw()}, when you detect that \c{flash_time} is
+non-zero, examine the field in \c{game_ui} to decide which type of
+flash to draw.
+
+\cw{redraw()} will never be called with \c{flash_time} non-zero
+unless \cw{flash_length()} was first called to tell the mid-end that
+a flash was required; so whenever \cw{redraw()} notices that
+\c{flash_time} is non-zero, you can be sure that the field in
+\c{game_ui} is correctly set.
+
+\S{writing-move-anim} Animating game moves
+
+A number of puzzle types benefit from a quick animation of each move
+you make.
+
+For some games, such as Fifteen, this is particularly easy. Whenever
+\cw{redraw()} is called with \c{oldstate} non-\cw{NULL}, Fifteen
+simply compares the position of each tile in the two game states,
+and if the tile is not in the same place then it draws it some
+fraction of the way from its old position to its new position. This
+method copes automatically with undo.
+
+Other games are less obvious. In Sixteen, for example, you can't
+just draw each tile a fraction of the way from its old to its new
+position: if you did that, the end tile would zip very rapidly past
+all the others to get to the other end and that would look silly.
+(Worse, it would look inconsistent if the end tile was drawn on top
+going one way and on the bottom going the other way.)
+
+A useful trick here is to define a field or two in the game state
+that indicates what the last move was.
+
+\b Add a \q{last move} field to the \c{game_state} (or two or more
+fields if the move is complex enough to need them).
+
+\b \cw{new_game()} initialises this field to a null value for a new
+game state.
+
+\b \cw{execute_move()} sets up the field to reflect the move it just
+performed.
+
+\b \cw{redraw()} now needs to examine its \c{dir} parameter. If
+\c{dir} is positive, it determines the move being animated by
+looking at the last-move field in \c{newstate}; but if \c{dir} is
+negative, it has to look at the last-move field in \c{oldstate}, and
+invert whatever move it finds there.
+
+Note also that Sixteen needs to store the \e{direction} of the move,
+because you can't quite determine it by examining the row or column
+in question. You can in almost all cases, but when the row is
+precisely two squares long it doesn't work since a move in either
+direction looks the same. (You could argue that since moving a
+2-element row left and right has the same effect, it doesn't matter
+which one you animate; but in fact it's very disorienting to click
+the arrow left and find the row moving right, and almost as bad to
+undo a move to the right and find the game animating \e{another}
+move to the right.)
+
+\S{writing-conditional-anim} Animating drag operations
+
+In Untangle, moves are made by dragging a node from an old position
+to a new position. Therefore, at the time when the move is initially
+made, it should not be animated, because the node has already been
+dragged to the right place and doesn't need moving there. However,
+it's nice to animate the same move if it's later undone or redone.
+This requires a bit of fiddling.
+
+The obvious approach is to have a flag in the \c{game_ui} which
+inhibits move animation, and to set that flag in
+\cw{interpret_move()}. The question is, when would the flag be reset
+again? The obvious place to do so is \cw{changed_state()}, which
+will be called once per move. But it will be called \e{before}
+\cw{anim_length()}, so if it resets the flag then \cw{anim_length()}
+will never see the flag set at all.
+
+The solution is to have \e{two} flags in a queue.
+
+\b Define two flags in \c{game_ui}; let's call them \q{current} and
+\q{next}.
+
+\b Set both to \cw{FALSE} in \c{new_ui()}.
+
+\b When a drag operation completes in \cw{interpret_move()}, set the
+\q{next} flag to \cw{TRUE}.
+
+\b Every time \cw{changed_state()} is called, set the value of
+\q{current} to the value in \q{next}, and then set the value of
+\q{next} to \cw{FALSE}.
+
+\b That way, \q{current} will be \cw{TRUE} \e{after} a call to
+\cw{changed_state()} if and only if that call to
+\cw{changed_state()} was the result of a drag operation processed by
+\cw{interpret_move()}. Any other call to \cw{changed_state()}, due
+to an Undo or a Redo or a Restart or a Solve, will leave \q{current}
+\cw{FALSE}.
+
+\b So now \cw{anim_length()} can request a move animation if and
+only if the \q{current} flag is \e{not} set.
+
+\S{writing-cheating} Inhibiting the victory flash when Solve is used
+
+Many games flash when you complete them, as a visual congratulation
+for having got to the end of the puzzle. It often seems like a good
+idea to disable that flash when the puzzle is brought to a solved
+state by means of the Solve operation.
+
+This is easily done:
+
+\b Add a \q{cheated} flag to the \c{game_state}.
+
+\b Set this flag to \cw{FALSE} in \cw{new_game()}.
+
+\b Have \cw{solve()} return a move description string which clearly
+identifies the move as a solve operation.
+
+\b Have \cw{execute_move()} respond to that clear identification by
+setting the \q{cheated} flag in the returned \c{game_state}. The
+flag will then be propagated to all subsequent game states, even if
+the user continues fiddling with the game after it is solved.
+
+\b \cw{flash_length()} now returns non-zero if \c{oldstate} is not
+completed and \c{newstate} is, \e{and} neither state has the
+\q{cheated} flag set.
+
+\H{writing-testing} Things to test once your puzzle is written
+
+Puzzle implementations written in this framework are self-testing as
+far as I could make them.
+
+Textual game and move descriptions, for example, are generated and
+parsed as part of the normal process of play. Therefore, if you can
+make moves in the game \e{at all} you can be reasonably confident
+that the mid-end serialisation interface will function correctly and
+you will be able to save your game. (By contrast, if I'd stuck with
+a single \cw{make_move()} function performing the jobs of both
+\cw{interpret_move()} and \cw{execute_move()}, and had separate
+functions to encode and decode a game state in string form, then
+those functions would not be used during normal play; so they could
+have been completely broken, and you'd never know it until you tried
+to save the game \dash which would have meant you'd have to test
+game saving \e{extensively} and make sure to test every possible
+type of game state. As an added bonus, doing it the way I did leads
+to smaller save files.)
+
+There is one exception to this, which is the string encoding of the
+\c{game_ui}. Most games do not store anything permanent in the
+\c{game_ui}, and hence do not need to put anything in its encode and
+decode functions; but if there is anything in there, you do need to
+test game loading and saving to ensure those functions work
+properly.
+
+It's also worth testing undo and redo of all operations, to ensure
+that the redraw and the animations (if any) work properly. Failing
+to animate undo properly seems to be a common error.
+
+Other than that, just use your common sense.

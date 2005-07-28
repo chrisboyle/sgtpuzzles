@@ -3,5 +3,5 @@ all: puzzles.hlp puzzles.txt HACKING
 puzzles.hlp puzzles.txt: puzzles.but
 	halibut --winhelp=puzzles.hlp --text=puzzles.txt puzzles.but
 
-HACKING: HACKING.but
-	halibut --text=HACKING HACKING.but
+HACKING: devel.but
+	halibut --text=HACKING devel.but
