@@ -1348,6 +1348,8 @@ static char *new_game_desc(game_params *params, random_state *rs,
                                 r1.x++;
                             r1.w--;
                             break;
+                          default:     /* should never happen */
+                            assert(!"invalid direction");
                         }
                         if (r1.h > 0 && r1.w > 0)
                             place_rect(params2, grid, r1);
