@@ -191,15 +191,15 @@ static game_params *custom_params(config_item *cfg)
 static char *validate_params(game_params *params, int full)
 {
     if (params->w < 2 || params->h < 2)
-        return "Grid must be at least 2 wide and 2 high";
+        return "Width and height must both be at least two";
     /* next one is just for ease of coding stuff into 'char'
      * types, and could be worked around if required. */
     if (params->w > 255 || params->h > 255)
-        return "Grid must be < 255 in each direction";
+        return "Widths and heights greater than 255 are not supported";
     if (params->minballs > params->maxballs)
-        return "Min. balls must be <= max. balls";
+        return "Minimum number of balls may not be greater than maximum";
     if (params->minballs >= params->w * params->h)
-        return "Too many balls for grid";
+        return "Too many balls to fit in grid";
     return NULL;
 }
 
@@ -218,7 +218,7 @@ static char *new_game_desc(game_params *params, random_state *rs,
     unsigned char *bmp;
 
     if (params->maxballs > params->minballs)
-        nballs += random_upto(rs, params->maxballs-params->minballs);
+        nballs += random_upto(rs, params->maxballs - params->minballs + 1);
 
     grid = snewn(params->w*params->h, char);
     memset(grid, 0, params->w * params->h * sizeof(char));
@@ -231,11 +231,14 @@ static char *new_game_desc(game_params *params, random_state *rs,
 
     for (i = 0; i < nballs; i++) {
         int x, y;
-newball:
-        x = random_upto(rs, params->w);
-        y = random_upto(rs, params->h);
-        if (grid[y*params->h + x]) goto newball;
-        grid[y*params->h + x] = 1;
+
+        do {
+            x = random_upto(rs, params->w);
+            y = random_upto(rs, params->h);
+        } while (grid[y*params->w + x]);
+
+        grid[y*params->w + x] = 1;
+
         bmp[(i+1)*2 + 0] = x;
         bmp[(i+1)*2 + 1] = y;
     }
@@ -301,14 +304,14 @@ struct game_state {
     int nguesses, reveal, nright, nwrong, nmissed;
 };
 
-#define GRID(s,x,y) ((s)->grid[(y)*((s)->h+2) + (x)])
+#define GRID(s,x,y) ((s)->grid[(y)*((s)->w+2) + (x)])
 
 /* specify numbers because they must match array indexes. */
 enum { DIR_UP = 0, DIR_RIGHT = 1, DIR_DOWN = 2, DIR_LEFT = 3 };
 
-struct _off { int x, y; };
+struct offset { int x, y; };
 
-static const struct _off offsets[] = {
+static const struct offset offsets[] = {
     {  0, -1 }, /* up */
     {  1,  0 }, /* right */
     {  0,  1 }, /* down */
@@ -493,7 +496,7 @@ static void game_changed_state(game_ui *ui, game_state *oldstate,
 }
 
 #define OFFSET(gx,gy,o) do {                                    \
-    int off = (o); while (off < 0) { off += 4; }  off %= 4;     \
+    int off = (4 + (o) % 4) % 4;                                \
     (gx) += offsets[off].x;                                     \
     (gy) += offsets[off].y;                                     \
 } while(0)
@@ -529,9 +532,10 @@ static int isball(game_state *state, int gx, int gy, int direction, int lookwher
 
 static void fire_laser(game_state *state, int x, int y, int direction)
 {
-    int xstart = x, ystart = y, unused, lno;
+    int xstart = x, ystart = y, unused, lno, tmp;
 
-    assert(grid2range(state, x, y, &lno));
+    tmp = grid2range(state, x, y, &lno);
+    assert(tmp);
 
     /* deal with strange initial reflection rules (that stop
      * you turning down the laser range) */
@@ -571,7 +575,8 @@ static void fire_laser(game_state *state, int x, int y, int direction)
                 GRID(state, xstart, ystart) = newno;
                 GRID(state, x, y) = newno;
 
-                assert(grid2range(state, x, y, &exitno));
+                tmp = grid2range(state, x, y, &exitno);
+                assert(tmp);
                 state->exits[lno] = exitno;
                 state->exits[exitno] = lno;
             }
@@ -615,7 +620,7 @@ static void fire_laser(game_state *state, int x, int y, int direction)
 static int check_guesses(game_state *state)
 {
     game_state *solution, *guesses;
-    int i, x, y, dir, unused;
+    int i, x, y, dir, unused, tmp;
     int ret = 0;
 
     /* duplicate the state (to solution) */
@@ -623,7 +628,8 @@ static int check_guesses(game_state *state)
 
     /* clear out the lasers of solution */
     for (i = 0; i < solution->nlasers; i++) {
-        assert(range2grid(solution, i, &x, &y, &unused));
+        tmp = range2grid(solution, i, &x, &y, &unused);
+        assert(tmp);
         GRID(solution, x, y) = 0;
         solution->exits[i] = LASER_EMPTY;
     }
@@ -644,7 +650,8 @@ static int check_guesses(game_state *state)
      * If one has been fired (or received a hit) and another hasn't, we know
      * the ball layouts didn't match and can short-circuit return. */
     for (i = 0; i < solution->nlasers; i++) {
-        assert(range2grid(solution, i, &x, &y, &dir));
+        tmp = range2grid(solution, i, &x, &y, &dir);
+        assert(tmp);
         if (solution->exits[i] == LASER_EMPTY)
             fire_laser(solution, x, y, dir);
         if (guesses->exits[i] == LASER_EMPTY)
@@ -654,7 +661,8 @@ static int check_guesses(game_state *state)
     /* check each game_state's laser against the other; if any differ, return 0 */
     ret = 1;
     for (i = 0; i < solution->nlasers; i++) {
-        assert(range2grid(solution, i, &x, &y, &unused));
+        tmp = range2grid(solution, i, &x, &y, &unused);
+        assert(tmp);
 
         if (solution->exits[i] != guesses->exits[i]) {
             /* If the original state didn't have this shot fired,
@@ -668,7 +676,8 @@ static int check_guesses(game_state *state)
                 else {
                     /* add a new shot, incrementing state's laser count. */
                     int ex, ey, newno = state->laserno++;
-                    assert(range2grid(state, state->exits[i], &ex, &ey, &unused));
+                    tmp = range2grid(state, state->exits[i], &ex, &ey, &unused);
+                    assert(tmp);
                     GRID(state, x, y) = newno;
                     GRID(state, ex, ey) = newno;
                 }
@@ -806,7 +815,7 @@ static game_state *execute_move(game_state *from, char *move)
     }
 
     if (from->reveal) goto badmove;
-    if (strlen(move) < 1) goto badmove;
+    if (!*move) goto badmove;
 
     switch (move[0]) {
     case 'T':
@@ -1050,10 +1059,11 @@ static void draw_laser_tile(frontend *fe, game_state *gs, game_drawstate *ds,
                             game_ui *ui, int lno, int force)
 {
     int gx, gy, dx, dy, unused;
-    int wrong, omitted, reflect, hit, laserval, flash = 0;
+    int wrong, omitted, reflect, hit, laserval, flash = 0, tmp;
     unsigned int gs_tile, ds_tile, exitno;
 
-    assert(range2grid(gs, lno, &gx, &gy, &unused));
+    tmp = range2grid(gs, lno, &gx, &gy, &unused);
+    assert(tmp);
     gs_tile = GRID(gs, gx, gy);
     ds_tile = GRID(ds, gx, gy);
     dx = TODRAW(gx);
