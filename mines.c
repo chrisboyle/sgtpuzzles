@@ -2370,7 +2370,7 @@ static char *encode_ui(game_ui *ui)
 
 static void decode_ui(game_ui *ui, char *encoding)
 {
-    int p;
+    int p= 0;
     sscanf(encoding, "D%d%n", &ui->deaths, &p);
     if (encoding[p] == 'C')
 	ui->completed = TRUE;

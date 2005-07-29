@@ -869,7 +869,7 @@ static game_state *execute_move(game_state *state, char *move)
     int sx, sy, tx, ty;
     game_state *ret;
 
-    if (sscanf(move, "%d,%d-%d,%d", &sx, &sy, &tx, &ty)) {
+    if (sscanf(move, "%d,%d-%d,%d", &sx, &sy, &tx, &ty) == 4) {
 	int mx, my, dx, dy;
 
 	if (sx < 0 || sx >= w || sy < 0 || sy >= h)
