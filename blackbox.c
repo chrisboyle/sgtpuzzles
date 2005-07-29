@@ -273,7 +273,7 @@ static char *validate_desc(game_params *params, char *desc)
     /* check each ball will fit on that grid */
     for (i = 0; i < nballs; i++) {
         int x = bmp[(i+1)*2 + 0], y = bmp[(i+1)*2 + 1];
-        if (x < 0 || y < 0 || x > params->w || y > params->h)
+        if (x < 0 || y < 0 || x >= params->w || y >= params->h)
             goto done;
     }
     ret = NULL;
@@ -994,8 +994,8 @@ static void draw_arena_tile(frontend *fe, game_state *gs, game_drawstate *ds,
     if (gs_tile != ds_tile || gs->reveal != ds->reveal || force) {
         int bcol, bg;
 
-        bg = (gs_tile & BALL_LOCK) ? COL_LOCK :
-            gs->reveal ? COL_BACKGROUND : COL_COVER;
+        bg = (gs->reveal ? COL_BACKGROUND :
+              (gs_tile & BALL_LOCK) ? COL_LOCK : COL_COVER);
 
         draw_rect(fe, dx, dy, TILE_SIZE, TILE_SIZE, bg);
         draw_rect_outline(fe, dx, dy, TILE_SIZE, TILE_SIZE, COL_GRID);
