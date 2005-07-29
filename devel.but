@@ -2522,7 +2522,7 @@ versa!).
 \S{utils-snewn} \cw{snewn()}
 
 \c var = snewn(n, type);
-\e iii            iiii
+\e iii         i  iiii
 
 This macro is the array form of \cw{snew()}. It takes two arguments;
 the first is a number, and the second is a type name. It allocates
