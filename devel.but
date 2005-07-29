@@ -833,12 +833,12 @@ invalid when the game state changes; thus, Same Game's
 \cw{changed_state()} function clears the current selection whenever
 it is called.
 
-Any call to \cw{changed_state()} can be sure that there will be a
-subsequent call to \cw{anim_length()} and \cw{flash_length()}. So
-\cw{changed_state()} can set up data in the \c{game_ui} which will
-be read by \cw{anim_length()} and \cw{flash_length()}, and not have
-to worry about those functions being called without the data having
-been uninitialised.
+When \cw{anim_length()} or \cw{flash_length()} are called, you can
+be sure that there has been a previous call to \cw{changed_state()}.
+So \cw{changed_state()} can set up data in the \c{game_ui} which will
+be read by \cw{anim_length()} and \cw{flash_length()}, and those
+functions will not have to worry about being called without the data
+having been initialised.
 
 \H{backend-moves} Making moves
 
