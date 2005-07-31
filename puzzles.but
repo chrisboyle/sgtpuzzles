@@ -1389,11 +1389,22 @@ When an appropriate number of balls have been guessed a button will
 appear at the top-left corner of the grid; clicking that will mark
 your guesses. 
 
-Once marked, correctly-placed balls are displayed as filled black
-circles.  Incorrectly-placed balls are displayed as filled black
-circles with red crosses, and missing balls are filled red circles.
-In addition, a red circle marks any laser you had already fired
-which is not consistent with your ball layout, and red text marks
+If you click the \q{mark} button and your guesses are not correct,
+the game will show you as little information as possible to
+demonstrate this to you, so you can try again. If your ball
+positions are not consistent with the laser paths you already know
+about, one laser path will be circled to indicate that it proves you
+wrong. If your positions match all the existing laser paths but are
+still wrong, one new laser path will be revealed (written in red)
+which is not consistent with your current guesses.
+
+If you decide to give up completely, you can select Solve to reveal
+the actual ball positions. At this point, correctly-placed balls
+will be displayed as filled black circles; incorrectly-placed balls
+are displayed as filled black circles with red crosses, and missing
+balls are filled red circles. In addition, a red circle marks any
+laser you had already fired which is not consistent with your ball
+layout (just as when you press the mark button), and red text marks
 any laser you \e{could} have fired in order to distinguish your ball
 layout from the right one.
 

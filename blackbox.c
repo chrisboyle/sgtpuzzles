@@ -301,10 +301,12 @@ struct game_state {
     unsigned int *exits; /* one per laser */
     int done;           /* user has finished placing his own balls. */
     int laserno;        /* number of next laser to be fired. */
-    int nguesses, reveal, nright, nwrong, nmissed;
+    int nguesses, reveal, justwrong, nright, nwrong, nmissed;
 };
 
 #define GRID(s,x,y) ((s)->grid[(y)*((s)->w+2) + (x)])
+
+#define RANGECHECK(s,x) ((x) >= 0 && (x) <= (s)->nlasers)
 
 /* specify numbers because they must match array indexes. */
 enum { DIR_UP = 0, DIR_RIGHT = 1, DIR_DOWN = 2, DIR_LEFT = 3 };
@@ -414,7 +416,7 @@ static game_state *new_game(midend_data *me, game_params *params, char *desc)
     }
     sfree(bmp);
 
-    state->done = state->nguesses = state->reveal =
+    state->done = state->nguesses = state->reveal = state->justwrong =
         state->nright = state->nwrong = state->nmissed = 0;
     state->laserno = 1;
 
@@ -440,6 +442,7 @@ static game_state *dup_game(game_state *state)
     XFER(laserno);
     XFER(nguesses);
     XFER(reveal);
+    XFER(justwrong);
     XFER(nright); XFER(nwrong); XFER(nmissed);
 
     return ret;
@@ -467,12 +470,15 @@ static char *game_text_format(game_state *state)
 
 struct game_ui {
     int flash_laserno;
+    int errors, newmove;
 };
 
 static game_ui *new_ui(game_state *state)
 {
     game_ui *ui = snew(struct game_ui);
     ui->flash_laserno = LASER_EMPTY;
+    ui->errors = 0;
+    ui->newmove = FALSE;
     return ui;
 }
 
@@ -483,16 +489,29 @@ static void free_ui(game_ui *ui)
 
 static char *encode_ui(game_ui *ui)
 {
-    return NULL;
+    char buf[80];
+    /*
+     * The error counter needs preserving across a serialisation.
+     */
+    sprintf(buf, "E%d", ui->errors);
+    return dupstr(buf);
 }
 
 static void decode_ui(game_ui *ui, char *encoding)
 {
+    sscanf(encoding, "E%d", &ui->errors);
 }
 
 static void game_changed_state(game_ui *ui, game_state *oldstate,
                                game_state *newstate)
 {
+    /*
+     * If we've encountered a `justwrong' state as a result of
+     * actually making a move, increment the ui error counter.
+     */
+    if (newstate->justwrong && ui->newmove)
+	ui->errors++;
+    ui->newmove = FALSE;
 }
 
 #define OFFSET(gx,gy,o) do {                                    \
@@ -530,9 +549,9 @@ static int isball(game_state *state, int gx, int gy, int direction, int lookwher
     return 0;
 }
 
-static void fire_laser(game_state *state, int x, int y, int direction)
+static int fire_laser_internal(game_state *state, int x, int y, int direction)
 {
-    int xstart = x, ystart = y, unused, lno, tmp;
+    int unused, lno, tmp;
 
     tmp = grid2range(state, x, y, &lno);
     assert(tmp);
@@ -544,17 +563,13 @@ static void fire_laser(game_state *state, int x, int y, int direction)
      * I can't find anywhere that gives me a definite algorithm for this. */
     if (isball(state, x, y, direction, LOOK_FORWARD)) {
         debug(("Instant hit at (%d, %d)\n", x, y));
-        GRID(state, x, y) = LASER_HIT;
-        state->exits[lno] = LASER_HIT;
-        return;
+	return LASER_HIT;	       /* hit */
     }
 
     if (isball(state, x, y, direction, LOOK_LEFT) ||
         isball(state, x, y, direction, LOOK_RIGHT)) {
         debug(("Instant reflection at (%d, %d)\n", x, y));
-        GRID(state, x, y) = LASER_REFLECT;
-        state->exits[lno] = LASER_REFLECT;
-        return;
+	return LASER_REFLECT;	       /* reflection */
     }
     /* move us onto the grid. */
     OFFSET(x, y, direction);
@@ -563,35 +578,21 @@ static void fire_laser(game_state *state, int x, int y, int direction)
         debug(("fire_laser: looping at (%d, %d) pointing %s\n",
                x, y, dirstrs[direction]));
         if (grid2range(state, x, y, &unused)) {
-            int newno = state->laserno++, exitno;
-            debug(("Back on range; (%d, %d) --> (%d, %d)\n",
-                   xstart, ystart, x, y));
-            /* We're back out of the grid; the move is complete. */
-            if (xstart == x && ystart == y) {
-                GRID(state, x, y) = LASER_REFLECT;
-                state->exits[lno] = LASER_REFLECT;
-            } else {
-                /* it wasn't a reflection */
-                GRID(state, xstart, ystart) = newno;
-                GRID(state, x, y) = newno;
+            int exitno;
 
-                tmp = grid2range(state, x, y, &exitno);
-                assert(tmp);
-                state->exits[lno] = exitno;
-                state->exits[exitno] = lno;
-            }
-            return;
+	    tmp = grid2range(state, x, y, &exitno);
+	    assert(tmp);
+
+	    return (lno == exitno ? LASER_REFLECT : exitno);
         }
         /* paranoia. This obviously should never happen */
         assert(!(GRID(state, x, y) & BALL_CORRECT));
 
         if (isball(state, x, y, direction, LOOK_FORWARD)) {
             /* we're facing a ball; send back a reflection. */
-            GRID(state, xstart, ystart) = LASER_HIT;
-            state->exits[lno] = LASER_HIT;
             debug(("Ball ahead of (%d, %d); HIT at (%d, %d), new grid 0x%x\n",
                    x, y, xstart, ystart, GRID(state, xstart, ystart)));
-            return;
+            return LASER_HIT;	       /* hit */
         }
 
         if (isball(state, x, y, direction, LOOK_LEFT)) {
@@ -612,16 +613,143 @@ static void fire_laser(game_state *state, int x, int y, int direction)
     }
 }
 
+static int laser_exit(game_state *state, int entryno)
+{
+    int tmp, x, y, direction;
+
+    tmp = range2grid(state, entryno, &x, &y, &direction);
+    assert(tmp);
+
+    return fire_laser_internal(state, x, y, direction);
+}
+
+static void fire_laser(game_state *state, int entryno)
+{
+    int tmp, exitno, x, y, direction;
+
+    tmp = range2grid(state, entryno, &x, &y, &direction);
+    assert(tmp);
+
+    exitno = fire_laser_internal(state, x, y, direction);
+
+    if (exitno == LASER_HIT || exitno == LASER_REFLECT) {
+	GRID(state, x, y) = state->exits[entryno] = exitno;
+    } else {
+	int newno = state->laserno++;
+	int xend, yend, unused;
+	tmp = range2grid(state, exitno, &xend, &yend, &unused);
+	assert(tmp);
+	GRID(state, x, y) = GRID(state, xend, yend) = newno;
+	state->exits[entryno] = exitno;
+	state->exits[exitno] = entryno;
+    }
+}
+
 /* Checks that the guessed balls in the state match up with the real balls
  * for all possible lasers (i.e. not just the ones that the player might
  * have already guessed). This is required because any layout with >4 balls
  * might have multiple valid solutions. Returns non-zero for a 'correct'
  * (i.e. consistent) layout. */
-static int check_guesses(game_state *state)
+static int check_guesses(game_state *state, int cagey)
 {
     game_state *solution, *guesses;
-    int i, x, y, dir, unused, tmp;
+    int i, x, y, n, unused, tmp;
     int ret = 0;
+
+    if (cagey) {
+	/*
+	 * First, check that each laser the player has already
+	 * fired is consistent with the layout. If not, show them
+	 * one error they've made and reveal no further
+	 * information.
+	 *
+	 * Failing that, check to see whether the player would have
+	 * been able to fire any laser which distinguished the real
+	 * solution from their guess. If so, show them one such
+	 * laser and reveal no further information.
+	 */
+	guesses = dup_game(state);
+	/* clear out BALL_CORRECT on guess, make BALL_GUESS BALL_CORRECT. */
+	for (x = 1; x <= state->w; x++) {
+	    for (y = 1; y <= state->h; y++) {
+		GRID(guesses, x, y) &= ~BALL_CORRECT;
+		if (GRID(guesses, x, y) & BALL_GUESS)
+		    GRID(guesses, x, y) |= BALL_CORRECT;
+	    }
+	}
+	n = 0;
+	for (i = 0; i < guesses->nlasers; i++) {
+	    if (guesses->exits[i] != LASER_EMPTY &&
+		guesses->exits[i] != laser_exit(guesses, i))
+		n++;
+	}
+	if (n) {
+	    /*
+	     * At least one of the player's existing lasers
+	     * contradicts their ball placement. Pick a random one,
+	     * highlight it, and return.
+	     *
+	     * A temporary random state is created from the current
+	     * grid, so that repeating the same marking will give
+	     * the same answer instead of a different one.
+	     */
+	    random_state *rs = random_init((char *)guesses->grid,
+					   (state->w+2)*(state->h+2) *
+					   sizeof(unsigned int));
+	    n = random_upto(rs, n);
+	    random_free(rs);
+	    for (i = 0; i < guesses->nlasers; i++) {
+		if (guesses->exits[i] != LASER_EMPTY &&
+		    guesses->exits[i] != laser_exit(guesses, i) &&
+		    n-- == 0) {
+		    state->exits[i] |= LASER_WRONG;
+		    tmp = laser_exit(state, i);
+		    if (RANGECHECK(state, tmp))
+			state->exits[tmp] |= LASER_WRONG;
+		    state->justwrong = TRUE;
+		    free_game(guesses);
+		    return 0;
+		}
+	    }
+	}
+	n = 0;
+	for (i = 0; i < guesses->nlasers; i++) {
+	    if (guesses->exits[i] == LASER_EMPTY &&
+		laser_exit(state, i) != laser_exit(guesses, i))
+		n++;
+	}
+	if (n) {
+	    /*
+	     * At least one of the player's unfired lasers would
+	     * demonstrate their ball placement to be wrong. Pick a
+	     * random one, highlight it, and return.
+	     *
+	     * A temporary random state is created from the current
+	     * grid, so that repeating the same marking will give
+	     * the same answer instead of a different one.
+	     */
+	    random_state *rs = random_init((char *)guesses->grid,
+					   (state->w+2)*(state->h+2) *
+					   sizeof(unsigned int));
+	    n = random_upto(rs, n);
+	    random_free(rs);
+	    for (i = 0; i < guesses->nlasers; i++) {
+		if (guesses->exits[i] == LASER_EMPTY &&
+		    laser_exit(state, i) != laser_exit(guesses, i) &&
+		    n-- == 0) {
+		    fire_laser(state, i);
+		    state->exits[i] |= LASER_OMITTED;
+		    tmp = laser_exit(state, i);
+		    if (RANGECHECK(state, tmp))
+			state->exits[tmp] |= LASER_OMITTED;
+		    state->justwrong = TRUE;
+		    free_game(guesses);
+		    return 0;
+		}
+	    }
+	}
+	free_game(guesses);
+    }
 
     /* duplicate the state (to solution) */
     solution = dup_game(state);
@@ -650,12 +778,10 @@ static int check_guesses(game_state *state)
      * If one has been fired (or received a hit) and another hasn't, we know
      * the ball layouts didn't match and can short-circuit return. */
     for (i = 0; i < solution->nlasers; i++) {
-        tmp = range2grid(solution, i, &x, &y, &dir);
-        assert(tmp);
         if (solution->exits[i] == LASER_EMPTY)
-            fire_laser(solution, x, y, dir);
+            fire_laser(solution, i);
         if (guesses->exits[i] == LASER_EMPTY)
-            fire_laser(guesses, x, y, dir);
+            fire_laser(guesses, i);
     }
 
     /* check each game_state's laser against the other; if any differ, return 0 */
@@ -717,6 +843,7 @@ done:
     }
     free_game(solution);
     free_game(guesses);
+    state->reveal = 1;
     return ret;
 }
 
@@ -725,10 +852,14 @@ done:
 #define TODRAW(x) ((TILE_SIZE * (x)) + (TILE_SIZE / 2))
 #define FROMDRAW(x) (((x) - (TILE_SIZE / 2)) / TILE_SIZE)
 
+#define CAN_REVEAL(state) ((state)->nguesses >= (state)->minballs && \
+			   (state)->nguesses <= (state)->maxballs && \
+			   !(state)->reveal && !(state)->justwrong)
+
 struct game_drawstate {
     int tilesize, crad, rrad, w, h; /* w and h to make macros work... */
     unsigned int *grid;          /* as the game_state grid */
-    int started, canreveal, reveal;
+    int started, reveal;
     int flash_laserno;
 };
 
@@ -793,7 +924,7 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
         break;
 
     case REVEAL:
-        if (!ds->canreveal) return nullret;
+        if (!CAN_REVEAL(state)) return nullret;
         sprintf(buf, "R");
         break;
 
@@ -801,16 +932,25 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
         return nullret;
     }
     if (state->reveal) return nullret;
+    ui->newmove = TRUE;
     return dupstr(buf);
 }
 
 static game_state *execute_move(game_state *from, char *move)
 {
     game_state *ret = dup_game(from);
-    int gx = -1, gy = -1, rangeno = -1, direction;
+    int gx = -1, gy = -1, rangeno = -1;
+
+    if (ret->justwrong) {
+	int i;
+	ret->justwrong = FALSE;
+	for (i = 0; i < ret->nlasers; i++)
+	    if (ret->exits[i] != LASER_EMPTY)
+		ret->exits[i] &= ~(LASER_OMITTED | LASER_WRONG);
+    }
 
     if (!strcmp(move, "S")) {
-        ret->reveal = 1;
+        check_guesses(ret, FALSE);
         return ret;
     }
 
@@ -835,17 +975,16 @@ static game_state *execute_move(game_state *from, char *move)
         sscanf(move+1, "%d", &rangeno);
         if (ret->exits[rangeno] != LASER_EMPTY)
             goto badmove;
-        if (!range2grid(ret, rangeno, &gx, &gy, &direction))
+        if (!RANGECHECK(ret, rangeno))
             goto badmove;
-        fire_laser(ret, gx, gy, direction);
+        fire_laser(ret, rangeno);
         break;
 
     case 'R':
         if (ret->nguesses < ret->minballs ||
             ret->nguesses > ret->maxballs)
             goto badmove;
-        check_guesses(ret);
-        ret->reveal = 1;
+        check_guesses(ret, TRUE);
         break;
 
     case 'L':
@@ -1174,18 +1313,14 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
     }
 
     /* draw the 'finish' button */
-    if (state->nguesses >= state->minballs &&
-        state->nguesses <= state->maxballs &&
-        !state->reveal) {
+    if (CAN_REVEAL(state)) {
         clip(fe, TODRAW(0), TODRAW(0), TILE_SIZE-1, TILE_SIZE-1);
         draw_circle(fe, TODRAW(0) + ds->crad, TODRAW(0) + ds->crad, ds->crad,
                     COL_BUTTON, COL_BALL);
 	unclip(fe);
-        ds->canreveal = 1;
     } else {
         draw_rect(fe, TODRAW(0), TODRAW(0),
 		  TILE_SIZE-1, TILE_SIZE-1, COL_BACKGROUND);
-        ds->canreveal = 0;
     }
     draw_update(fe, TODRAW(0), TODRAW(0), TILE_SIZE, TILE_SIZE);
     ds->reveal = state->reveal;
@@ -1202,7 +1337,9 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
             else
                 sprintf(buf, "%d wrong and %d missed balls.",
                         state->nwrong, state->nmissed);
-        } else {
+        } else if (state->justwrong) {
+	    sprintf(buf, "Wrong! Guess again.");
+	} else {
             if (state->nguesses > state->maxballs)
                 sprintf(buf, "%d too many balls marked.",
                         state->nguesses - state->maxballs);
@@ -1216,6 +1353,10 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
                 sprintf(buf, "Balls marked: %d / %d-%d.",
                         state->nguesses, state->minballs, state->maxballs);
         }
+	if (ui->errors) {
+	    sprintf(buf + strlen(buf), " (%d error%s)",
+		    ui->errors, ui->errors > 1 ? "s" : "");
+	}
         status_bar(fe, buf);
     }
 }
