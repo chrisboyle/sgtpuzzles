@@ -514,7 +514,12 @@ and \k{backend-custom-params} for more details.
 This function is called when the user requests a dialog box for
 custom parameter configuration. It returns a newly allocated array
 of \cw{config_item} structures, describing the GUI elements required
-in the dialog box. The 
+in the dialog box. The array should have one more element than the
+number of controls, since it is terminated with a \cw{C_END} marker
+(see below). Each array element describes the control together with
+its initial value; the front end will modify the value fields and
+return the updated array to \cw{custom_params()} (see
+\k{backend-custom-params}).
 
 The \cw{config_item} structure contains the following elements:
 
@@ -1102,14 +1107,17 @@ actually a mistake to rely on this parameter at all. I ought to
 either remove it or fix it; probably the former.)
 
 The final parameter passed to this function is a front end handle.
-The only thing it is permitted to do with this handle is to call the
-front-end function called \cw{frontend_default_colour()} (see
-\k{frontend-default-colour}). This allows \cw{colours()} to take
-local configuration into account when deciding on its own colour
-allocations. Most games use the front end's default colour as their
-background, apart from a few which depend on drawing relief
-highlights so they adjust the background colour if it's too light
-for highlights to show up against it.
+The only things it is permitted to do with this handle are to call
+the front-end function called \cw{frontend_default_colour()} (see
+\k{frontend-default-colour}) or the utility function called
+\cw{game_mkhighlight()} (see \k{utils-game-mkhighlight}). (The
+latter is a wrapper on the former, so front end implementors only
+need to provide \cw{frontend_default_colour()}.) This allows
+\cw{colours()} to take local configuration into account when
+deciding on its own colour allocations. Most games use the front
+end's default colour as their background, apart from a few which
+depend on drawing relief highlights so they adjust the background
+colour if it's too light for highlights to show up against it.
 
 \S{backend-anim-length} \cw{anim_length()}
 
@@ -1678,7 +1686,9 @@ covered and re-exposed.
 
 \c void status_bar(frontend *fe, char *text);
 
-Sets the text in the game's status bar to \c{text}.
+Sets the text in the game's status bar to \c{text}. The text is copied
+from the supplied buffer, so the caller is free to deallocate or
+modify the buffer after use.
 
 (This function is not exactly a \e{drawing} function, but it shares
 with the drawing API the property that it may only be called from
@@ -1701,7 +1711,7 @@ update the status-bar timer without the back end's intervention).
 
 \H{drawing-blitter} Blitter functions
 
-This section describes a group of related function which save and
+This section describes a group of related functions which save and
 restore a section of the puzzle window. This is most commonly used
 to implement user interfaces involving dragging a puzzle element
 around the window: at the end of each call to \cw{redraw()}, if an
@@ -2438,6 +2448,17 @@ the same seed at a later time will generate the same stream).
 
 The seed data can be any data at all; there is no requirement to use
 printable ASCII, or NUL-terminated strings, or anything like that.
+
+\S{utils-random-copy} \cw{random_copy()}
+
+\c random_state *random_copy(random_state *tocopy);
+
+Allocates a new \c{random_state}, copies the contents of another
+\c{random_state} into it, and returns the new state.  If exactly the
+same sequence of functions is subseqently called on both the copy and
+the original, the results will be identical.  This may be useful for
+speculatively performing some operation using a given random state,
+and later replaying that operation precisely.
 
 \S{utils-random-free} \cw{random_free()}
 
@@ -3354,13 +3375,13 @@ notice that a puzzle is soluble), and it can fail to generate a
 puzzle at all, provided it doesn't do either so often as to become
 slow.
 
-One last piece of advice: for grid-based puzzles when writing and
+One last piece of advice: for grid-based puzzles, when writing and
 testing your generation algorithm, it's almost always a good idea
 \e{not} to test it initially on a grid that's square (i.e.
-\cw{w==h}), because that way you won't notice if you mistakenly
-write \c{w} instead of \c{h} or vice versa somewhere in the code.
-Use a rectangular grid for testing, and any size of grid will be
-likely to work after that.
+\cw{w==h}), because if the grid is square then you won't notice if
+you mistakenly write \c{h} instead of \c{w} (or vice versa)
+somewhere in the code. Use a rectangular grid for testing, and any
+size of grid will be likely to work after that.
 
 \S{writing-textformats} Designing textual description formats
 
@@ -3406,7 +3427,7 @@ make it difficult to find the cursor in order to do anything with
 it, and would introduce the potential for synchronisation bugs in
 which you ended up with two cursors or none. The obviously sensible
 way to store a cursor in the \c{game_ui} is to have fields directly
-encodings the cursor's coordinates.
+encoding the cursor's coordinates.
 
 However, it is a mistake to assume that the same logic applies to
 the \c{game_drawstate}. If you replicate the cursor position fields

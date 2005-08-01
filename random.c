@@ -221,6 +221,16 @@ random_state *random_init(char *seed, int len)
     return state;
 }
 
+random_state *random_copy(random_state *tocopy)
+{
+    random_state *result;
+    result = snew(random_state);
+    memcpy(result->seedbuf, tocopy->seedbuf, sizeof(result->seedbuf));
+    memcpy(result->databuf, tocopy->databuf, sizeof(result->databuf));
+    result->pos = tocopy->pos;
+    return result;
+}
+
 unsigned long random_bits(random_state *state, int bits)
 {
     unsigned long ret = 0;

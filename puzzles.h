@@ -243,6 +243,7 @@ extern char ver[];
  * random.c
  */
 random_state *random_init(char *seed, int len);
+random_state *random_copy(random_state *tocopy);
 unsigned long random_bits(random_state *state, int bits);
 unsigned long random_upto(random_state *state, unsigned long limit);
 void random_free(random_state *state);
