@@ -20,6 +20,8 @@
 
 \define{by} \u00D7{x}
 
+\define{dash} \u2013{-}
+
 This is a collection of small one-player puzzle games.
 
 \copyright This manual is copyright 2004-5 Simon Tatham. All rights
@@ -43,9 +45,9 @@ both, and have more recently done a port to Mac OS X as well. When I
 find (or perhaps invent) further puzzle games that I like, they'll
 be added to this collection and will immediately be available on
 both platforms. And if anyone feels like writing any other front
-ends - PocketPC, Mac OS pre-10, or whatever it might be - then all
-the games in this framework will immediately become available on
-another platform as well.
+ends \dash PocketPC, Mac OS pre-10, or whatever it might be \dash
+then all the games in this framework will immediately become
+available on another platform as well.
 
 The actual games in this collection were mostly not my invention; they
 are re-implementations of existing game concepts within my portable
@@ -1208,12 +1210,12 @@ time (but always one that is known to have a solution).
 
 \cfg{winhelp-topic}{games.dominosa}
 
-A normal set of dominoes - that is, one instance of every (unordered)
-pair of numbers from 0 to 6 - has been arranged irregularly into a
-rectangle; then the number in each square has been written down and
-the dominoes themselves removed. Your task is to reconstruct the
-pattern by arranging the set of dominoes to match the provided array
-of numbers.
+A normal set of dominoes \dash that is, one instance of every
+(unordered) pair of numbers from 0 to 6 \dash has been arranged
+irregularly into a rectangle; then the number in each square has
+been written down and the dominoes themselves removed. Your task is
+to reconstruct the pattern by arranging the set of dominoes to match
+the provided array of numbers.
 
 This puzzle is widely credited to O. S. Adler, and takes part of its
 name from those initials.
@@ -1428,6 +1430,60 @@ number of balls to place on the grid. The \q{reveal} button is only
 enabled if you have guessed an appropriate number of balls; a guess
 using a different number to the original solution is still acceptable,
 if all the laser inputs and outputs match.
+
+
+\C{slant} \i{Slant}
+
+\cfg{winhelp-topic}{games.slant}
+
+You have a grid of squares. Your aim is to draw a diagonal line
+through each square, and choose which way each line slants so that
+the following conditions are met:
+
+\b The diagonal lines never form a loop.
+
+\b Any point with a circled number has precisely that many lines
+meeting at it. (Thus, a 4 is the centre of a cross shape, whereas a
+zero is the centre of a diamond shape \dash or rather, a partial
+diamond shape, because a zero can never appear in the middle of the
+grid because that would immediately cause a loop.)
+
+Credit for this puzzle goes to \i{Nikoli} \k{nikoli-slant}.
+
+\B{nikoli-slant}
+\W{http://www.nikoli.co.jp/puzzles/39/index.htm}\cw{http://www.nikoli.co.jp/puzzles/39/index.htm}
+(in Japanese)
+
+
+\H{slant-controls} \i{Slant controls}
+
+\IM{Slant controls} controls, for Slant
+\IM{Slant controls} keys, for Slant
+\IM{Slant controls} shortcuts (keyboard), for Slant
+
+Left-clicking in a blank square will place a \cw{\\} in it (a line
+leaning to the left, i.e. running from the top left of the square to
+the bottom right). Right-clicking in a blank square will place a
+\cw{/} in it (leaning to the right, running from top right to bottom
+left).
+
+Continuing to click either button will cycle between the three
+possible square contents. Thus, if you left-click repeatedly in a
+blank square it will change from blank to \cw{\\} to \cw{/} back to
+blank, and if you right-click repeatedly the square will change from
+blank to \cw{/} to \cw{\\} back to blank. (Therefore, you can play
+the game entirely with one button if you need to.)
+
+(All the actions described in \k{common-actions} are also available.)
+
+\H{slant-parameters} \I{parameters, for slant}Slant parameters
+
+These parameters are available from the \q{Custom...} option on the
+\q{Type} menu.
+
+\dt \e{Width}, \e{Height}
+
+\dd Size of grid in squares.
 
 
 \A{licence} \I{MIT licence}\ii{Licence}

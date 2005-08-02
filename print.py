@@ -365,13 +365,67 @@ def dominosa_format(s):
                 ((x+0.5)*gridpitch, (h-y-0.5)*gridpitch, grid[y*w+x]))
     return ret.coords, ret.s
 
+def slant_format(s):
+    # Parse the game ID.
+    ret = Holder()
+    ret.s = ""
+    params, seed = string.split(s, ":")
+    w, h = map(string.atoi, string.split(params, "x"))
+    W = w+1
+    H = h+1
+    grid = []
+    while len(seed) > 0:
+	if seed[0] in string.lowercase:
+	    grid.extend([-1] * (ord(seed[0]) - ord('a') + 1))
+	    seed = seed[1:]
+	elif seed[0] in "01234":
+	    grid.append(string.atoi(seed[0]))
+	    seed = seed[1:]
+    assert W * H == len(grid)
+    # I'm going to arbitrarily choose to use 7pt text for the
+    # numbers, and a 14pt grid pitch.
+    textht = 7
+    gridpitch = 14
+    radius = textht * 2.0 / 3.0
+    # Set up coordinate system.
+    pw = gridpitch * w
+    ph = gridpitch * h
+    ret.coords = (pw/2, pw/2, ph/2, ph/2)
+    psprint(ret, "%g %g translate" % (-ret.coords[0], -ret.coords[2]))
+    # Draw round the grid exterior, thickly.
+    psprint(ret, "newpath 1 setlinewidth")
+    psprint(ret, "0 0 moveto 0 %g rlineto %g 0 rlineto 0 %g rlineto" % \
+    (h * gridpitch, w * gridpitch, -h * gridpitch))
+    psprint(ret, "closepath stroke")
+    # Draw the internal grid lines, _very_ thin (the player will
+    # need to draw over them visibly).
+    psprint(ret, "newpath 0.01 setlinewidth")
+    for x in xrange(1,w):
+	psprint(ret, "%g 0 moveto 0 %g rlineto" % (x * gridpitch, h * gridpitch))
+    for y in xrange(1,h):
+	psprint(ret, "0 %g moveto %g 0 rlineto" % (y * gridpitch, w * gridpitch))
+    psprint(ret, "stroke")
+    # And draw the numbers.
+    psprint(ret, "/Helvetica findfont %g scalefont setfont" % textht)
+    for y in xrange(H):
+	for x in xrange(W):
+	    n = grid[y*W+x]
+	    if n >= 0:
+		psprint(ret, "newpath %g %g %g 0 360 arc" % \
+		((x)*gridpitch, (h-y)*gridpitch, radius),
+		"gsave 1 setgray fill grestore stroke")
+		psprint(ret, "%g %g (%d) ctshow" % \
+		((x)*gridpitch, (h-y)*gridpitch, n))
+    return ret.coords, ret.s
+
 formatters = {
 "net": net_format,
 "rect": rect_format,
 "rectangles": rect_format,
 "pattern": pattern_format,
 "solo": solo_format,
-"dominosa": dominosa_format
+"dominosa": dominosa_format,
+"slant": slant_format
 }
 
 if len(sys.argv) < 3:

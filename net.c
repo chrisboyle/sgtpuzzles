@@ -382,29 +382,6 @@ static char *validate_params(game_params *params, int full)
  * avoidance is required.
  */
 
-static int dsf_canonify(int *dsf, int val)
-{
-    int v2 = val;
-
-    while (dsf[val] != val)
-	val = dsf[val];
-
-    while (v2 != val) {
-	int tmp = dsf[v2];
-	dsf[v2] = val;
-	v2 = tmp;
-    }
-
-    return val;
-}
-
-static void dsf_merge(int *dsf, int v1, int v2)
-{
-    v1 = dsf_canonify(dsf, v1);
-    v2 = dsf_canonify(dsf, v2);
-    dsf[v2] = v1;
-}
-
 struct todo {
     unsigned char *marked;
     int *buffer;

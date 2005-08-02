@@ -31,6 +31,7 @@ extern const game pegs;
 extern const game rect;
 extern const game samegame;
 extern const game sixteen;
+extern const game slant;
 extern const game solo;
 extern const game twiddle;
 extern const game untangle;
@@ -50,6 +51,7 @@ const game *gamelist[] = {
     &rect,
     &samegame,
     &sixteen,
+    &slant,
     &solo,
     &twiddle,
     &untangle,

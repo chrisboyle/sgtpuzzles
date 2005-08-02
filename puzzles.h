@@ -235,6 +235,12 @@ void draw_rect_outline(frontend *fe, int x, int y, int w, int h,
                        int colour);
 
 /*
+ * dsf.c
+ */
+int dsf_canonify(int *dsf, int val);
+void dsf_merge(int *dsf, int v1, int v2);
+
+/*
  * version.c
  */
 extern char ver[];

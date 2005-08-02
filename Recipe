@@ -15,15 +15,16 @@
 
 WINDOWS  = windows user32.lib gdi32.lib comctl32.lib comdlg32.lib
 COMMON   = midend misc malloc random version
-NET      = net tree234
+NET      = net tree234 dsf
 NETSLIDE = netslide tree234
 MINES    = mines tree234
 FLIP     = flip tree234
 PEGS     = pegs tree234
 UNTANGLE = untangle tree234
+SLANT    = slant dsf
 
 ALL      = list NET NETSLIDE cube fifteen sixteen rect pattern solo twiddle
-         + MINES samegame FLIP guess PEGS dominosa UNTANGLE blackbox
+         + MINES samegame FLIP guess PEGS dominosa UNTANGLE blackbox SLANT
 
 net      : [X] gtk COMMON NET
 netslide : [X] gtk COMMON NETSLIDE
@@ -42,6 +43,7 @@ pegs     : [X] gtk COMMON PEGS
 dominosa : [X] gtk COMMON dominosa
 untangle : [X] gtk COMMON UNTANGLE
 blackbox : [X] gtk COMMON blackbox
+slant    : [X] gtk COMMON SLANT
 
 # Auxiliary command-line programs.
 solosolver :    [U] solo[STANDALONE_SOLVER] malloc
@@ -71,6 +73,7 @@ pegs     : [G] WINDOWS COMMON PEGS
 dominosa : [G] WINDOWS COMMON dominosa
 untangle : [G] WINDOWS COMMON UNTANGLE
 blackbox : [G] WINDOWS COMMON blackbox
+slant    : [G] WINDOWS COMMON SLANT
 
 # Mac OS X unified application containing all the puzzles.
 Puzzles  : [MX] osx osx.icns osx-info.plist COMMON ALL
@@ -162,7 +165,7 @@ FORCE:
 install:
 	for i in cube net netslide fifteen sixteen twiddle \
 	         pattern rect solo mines samegame flip guess \
-		 pegs dominosa untangle blackbox; do \
+		 pegs dominosa untangle blackbox slant; do \
 		$(INSTALL_PROGRAM) -m 755 $$i $(DESTDIR)$(gamesdir)/$$i; \
 	done
 !end
