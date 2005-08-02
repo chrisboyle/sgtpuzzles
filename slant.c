@@ -1097,7 +1097,7 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 			game_state *state, int dir, game_ui *ui,
 			float animtime, float flashtime)
 {
-    int w = state->p.w, h = state->p.h, W = w+1 /*, H = h+1 */;
+    int w = state->p.w, h = state->p.h, W = w+1, H = h+1;
     int x, y;
     int flashing;
 
@@ -1116,11 +1116,11 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 	 * Draw any clues on the very edges (since normal tile
 	 * redraw won't draw the bits outside the grid boundary).
 	 */
-	for (y = 0; y < h; y++) {
+	for (y = 0; y < H; y++) {
 	    draw_clue(fe, ds, 0, y, state->clues->clues[y*W+0]);
 	    draw_clue(fe, ds, w, y, state->clues->clues[y*W+w]);
 	}
-	for (x = 0; x < w; x++) {
+	for (x = 0; x < W; x++) {
 	    draw_clue(fe, ds, x, 0, state->clues->clues[0*W+x]);
 	    draw_clue(fe, ds, x, h, state->clues->clues[h*W+x]);
 	}
