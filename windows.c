@@ -417,7 +417,7 @@ void end_draw(frontend *fe)
 
 void deactivate_timer(frontend *fe)
 {
-    KillTimer(fe->hwnd, fe->timer);
+    if (fe->hwnd) KillTimer(fe->hwnd, fe->timer);
     fe->timer = 0;
 }
 
@@ -575,9 +575,11 @@ static frontend *new_window(HINSTANCE inst, char *game_id, char **error)
     find_help_file(fe);
 
     fe->inst = inst;
-    midend_new_game(fe->me);
 
     fe->timer = 0;
+    fe->hwnd = NULL;
+
+    midend_new_game(fe->me);
 
     fe->fonts = NULL;
     fe->nfonts = fe->fontsize = 0;

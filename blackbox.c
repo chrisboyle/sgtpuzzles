@@ -590,8 +590,7 @@ static int fire_laser_internal(game_state *state, int x, int y, int direction)
 
         if (isball(state, x, y, direction, LOOK_FORWARD)) {
             /* we're facing a ball; send back a reflection. */
-            debug(("Ball ahead of (%d, %d); HIT at (%d, %d), new grid 0x%x\n",
-                   x, y, xstart, ystart, GRID(state, xstart, ystart)));
+            debug(("Ball ahead of (%d, %d)", x, y));
             return LASER_HIT;	       /* hit */
         }
 
@@ -1111,7 +1110,7 @@ static game_drawstate *game_new_drawstate(game_state *state)
     ds->w = state->w; ds->h = state->h;
     ds->grid = snewn((state->w+2)*(state->h+2), unsigned int);
     memset(ds->grid, 0, (state->w+2)*(state->h+2)*sizeof(unsigned int));
-    ds->started = 0;
+    ds->started = ds->reveal = 0;
     ds->flash_laserno = LASER_EMPTY;
 
     return ds;

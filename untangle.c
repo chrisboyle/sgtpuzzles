@@ -218,7 +218,7 @@ typedef struct {
 #define greater64(i,j) ( (i).hi>(j).hi || ((i).hi==(j).hi && (i).lo>(j).lo))
 #define sign64(i) ((i).hi < 0 ? -1 : (i).hi==0 && (i).lo==0 ? 0 : +1)
 
-int64 mulu32to64(unsigned long x, unsigned long y)
+static int64 mulu32to64(unsigned long x, unsigned long y)
 {
     unsigned long a, b, c, d, t;
     int64 ret;
@@ -247,7 +247,7 @@ int64 mulu32to64(unsigned long x, unsigned long y)
     return ret;
 }
 
-int64 mul32to64(long x, long y)
+static int64 mul32to64(long x, long y)
 {
     int sign = +1;
     int64 ret;
@@ -276,7 +276,7 @@ int64 mul32to64(long x, long y)
     return ret;
 }
 
-int64 dotprod64(long a, long b, long p, long q)
+static int64 dotprod64(long a, long b, long p, long q)
 {
     int64 ab, pq;
 

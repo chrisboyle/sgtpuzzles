@@ -4,6 +4,8 @@
  * worry about avoiding closed loops.
  */
 
+#include "puzzles.h"
+
 int dsf_canonify(int *dsf, int val)
 {
     int v2 = val;

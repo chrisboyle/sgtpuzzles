@@ -198,7 +198,7 @@ struct solver_scratch {
     int *dsf;
 };
 
-struct solver_scratch *new_scratch(int w, int h)
+static struct solver_scratch *new_scratch(int w, int h)
 {
     int W = w+1, H = h+1;
     struct solver_scratch *ret = snew(struct solver_scratch);
@@ -206,7 +206,7 @@ struct solver_scratch *new_scratch(int w, int h)
     return ret;
 }
 
-void free_scratch(struct solver_scratch *sc)
+static void free_scratch(struct solver_scratch *sc)
 {
     sfree(sc->dsf);
     sfree(sc);
@@ -629,6 +629,13 @@ static game_state *dup_game(game_state *state)
 
 static void free_game(game_state *state)
 {
+    sfree(state->soln);
+    assert(state->clues);
+    if (--state->clues->refcount <= 0) {
+        sfree(state->clues->clues);
+        sfree(state->clues->dsf);
+        sfree(state->clues);
+    }
     sfree(state);
 }
 
@@ -747,7 +754,7 @@ static char *solve_game(game_state *state, game_state *currstate,
 	for (x = 0; x < w; x++) {
 	    int v = (soln[y*w+x] == bs ? -1 : +1);
 	    if (state->soln[y*w+x] != v) {
-		int len = sprintf(buf, ";%c%d,%d", v < 0 ? '\\' : '/', x, y);
+		int len = sprintf(buf, ";%c%d,%d", (int)(v < 0 ? '\\' : '/'), x, y);
 		if (movelen + len >= movesize) {
 		    movesize = movelen + len + 256;
 		    move = sresize(move, movesize, char);
@@ -894,7 +901,7 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
                 v = -1;
         }
 
-        sprintf(buf, "%c%d,%d", v==-1 ? '\\' : v==+1 ? '/' : 'C', x, y);
+        sprintf(buf, "%c%d,%d", (int)(v==-1 ? '\\' : v==+1 ? '/' : 'C'), x, y);
         return dupstr(buf);
     }
 
@@ -996,6 +1003,7 @@ static game_drawstate *game_new_drawstate(game_state *state)
 
 static void game_free_drawstate(game_drawstate *ds)
 {
+    sfree(ds->todraw);
     sfree(ds->grid);
     sfree(ds);
 }
