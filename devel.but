@@ -3293,19 +3293,22 @@ is next to a three}, which can depend on the values of up to 32 of
 the 56 squares in the default setting!), so this tweaking strategy
 would be rather less likely to work well.
 
-A more specialised strategy is that used in Solo. Solo has the
-unusual property that the clues (information provided at the
-beginning of the puzzle) and the solution (information the user is
-required to fill in) are inherently interchangeable; therefore a
-simple generation technique is to leave the decision of which
-numbers are clues until the last minute. Solo works by first
-generating a random \e{filled} grid, and then gradually removing
-numbers for as long as the solver reports that it's still soluble.
-Unlike the methods described above, this technique \e{cannot} fail
-\dash once you've got a filled grid, nothing can stop you from being
-able to convert it into a viable puzzle. However, it wouldn't even
-be meaningful to apply this technique to (say) Pattern, in which the
-clues and the solution occupy completely different spaces.
+A more specialised strategy is that used in Solo and Slant. These
+puzzles have the property that they derive their difficulty from not
+presenting all the available clues. (In Solo's case, if all the
+possible clues were provided then the puzzle would already be
+solved; in Slant it would still require user action to fill in the
+lines, but it would present no challenge at all). Therefore, a
+simple generation technique is to leave the decision of which clues
+to provide until the last minute. In other words, first generate a
+random \e{filled} grid with all possible clues present, and then
+gradually remove clues for as long as the solver reports that it's
+still soluble. Unlike the methods described above, this technique
+\e{cannot} fail \dash once you've got a filled grid, nothing can
+stop you from being able to convert it into a viable puzzle.
+However, it wouldn't even be meaningful to apply this technique to
+(say) Pattern, in which clues can never be left out, so the only way
+to affect the set of clues is by altering the solution.
 
 (Unfortunately, Solo is complicated by the need to provide puzzles
 at varying difficulty levels. It's easy enough to generate a puzzle
