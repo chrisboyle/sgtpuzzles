@@ -734,9 +734,10 @@ static char *solve_game(game_state *state, game_state *currstate,
 	if (ret != 1) {
 	    sfree(soln);
 	    if (ret == 0)
-		return "This puzzle is not self-consistent";
+		*error = "This puzzle is not self-consistent";
 	    else
-		return "Unable to find a unique solution for this puzzle";
+		*error = "Unable to find a unique solution for this puzzle";
+            return NULL;
 	}
 	free_soln = TRUE;
     }
