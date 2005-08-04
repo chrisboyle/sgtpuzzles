@@ -149,7 +149,11 @@ static game_params *default_params(void)
 static const struct game_params samegame_presets[] = {
     { 5, 5, 3, 2, TRUE },
     { 10, 5, 3, 2, TRUE },
+#ifdef SLOW_SYSTEM
+    { 10, 10, 3, 2, TRUE },
+#else
     { 15, 10, 3, 2, TRUE },
+#endif
     { 15, 10, 4, 2, TRUE },
     { 20, 15, 4, 2, TRUE }
 };
