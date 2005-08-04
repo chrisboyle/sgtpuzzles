@@ -722,11 +722,13 @@ float *midend_colours(midend_data *me, int *ncolours)
         for (i = 0; i < *ncolours; i++) {
             char buf[80], *e;
             unsigned int r, g, b;
-            int j;
+            int j, k;
 
             sprintf(buf, "%s_COLOUR_%d", me->ourgame->name, i);
-            for (j = 0; buf[j]; j++)
-                buf[j] = toupper((unsigned char)buf[j]);
+            for (j = k = 0; buf[j]; j++)
+		if (!isspace((unsigned char)buf[j]))
+		    buf[k++] = toupper((unsigned char)buf[j]);
+	    buf[k] = '\0';
             if ((e = getenv(buf)) != NULL &&
                 sscanf(e, "%2x%2x%2x", &r, &g, &b) == 3) {
                 ret[i*3 + 0] = r / 255.0;
@@ -772,11 +774,13 @@ int midend_num_presets(midend_data *me)
          * encoded parameter strings.
          */
         char buf[80], *e, *p;
-        int j;
+        int j, k;
 
         sprintf(buf, "%s_PRESETS", me->ourgame->name);
-        for (j = 0; buf[j]; j++)
-            buf[j] = toupper((unsigned char)buf[j]);
+	for (j = k = 0; buf[j]; j++)
+	    if (!isspace((unsigned char)buf[j]))
+		buf[k++] = toupper((unsigned char)buf[j]);
+	buf[k] = '\0';
 
         if ((e = getenv(buf)) != NULL) {
             p = e = dupstr(e);
