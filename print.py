@@ -418,6 +418,60 @@ def slant_format(s):
 		((x)*gridpitch, (h-y)*gridpitch, n))
     return ret.coords, ret.s
 
+def lightup_format(s):
+    # Parse the game ID.
+    ret = Holder()
+    ret.s = ""
+    params, seed = string.split(s, ":")
+    w, h = map(string.atoi, string.split(params, "x"))
+    grid = []
+    while len(seed) > 0:
+	if seed[0] in string.lowercase:
+	    grid.extend([-2] * (ord(seed[0]) - ord('a') + 1))
+	    seed = seed[1:]
+	elif seed[0] == "B":
+	    grid.append(-1)
+	    seed = seed[1:]
+	elif seed[0] in "01234":
+	    grid.append(string.atoi(seed[0]))
+	    seed = seed[1:]
+    assert w * h == len(grid)
+    # I'm going to arbitrarily choose to use 9pt text for the
+    # numbers, and a 14pt grid pitch.
+    textht = 10
+    gridpitch = 14
+    # Set up coordinate system.
+    pw = gridpitch * w
+    ph = gridpitch * h
+    ret.coords = (pw/2, pw/2, ph/2, ph/2)
+    psprint(ret, "%g %g translate" % (-ret.coords[0], -ret.coords[2]))
+    # Draw round the grid exterior, thickly.
+    psprint(ret, "newpath 1 setlinewidth")
+    psprint(ret, "0 0 moveto 0 %g rlineto %g 0 rlineto 0 %g rlineto" % \
+    (h * gridpitch, w * gridpitch, -h * gridpitch))
+    psprint(ret, "closepath stroke")
+    # Draw the internal grid lines.
+    psprint(ret, "newpath 0.02 setlinewidth")
+    for x in xrange(1,w):
+	psprint(ret, "%g 0 moveto 0 %g rlineto" % (x * gridpitch, h * gridpitch))
+    for y in xrange(1,h):
+	psprint(ret, "0 %g moveto %g 0 rlineto" % (y * gridpitch, w * gridpitch))
+    psprint(ret, "stroke")
+    # And draw the black squares and numbers.
+    psprint(ret, "/Helvetica-Bold findfont %g scalefont setfont" % textht)
+    for y in xrange(h):
+	for x in xrange(w):
+	    n = grid[y*w+x]
+	    if n >= -1:
+		psprint(ret, ("newpath %g %g moveto 0 %g rlineto " +
+		"%g 0 rlineto 0 %g rlineto closepath fill") % \
+		((x)*gridpitch, (h-1-y)*gridpitch, gridpitch, gridpitch, \
+		-gridpitch))
+		if n >= 0:
+		    psprint(ret, "gsave 1 setgray %g %g (%d) ctshow grestore" % \
+		    ((x+0.5)*gridpitch, (h-y-0.5)*gridpitch, n))
+    return ret.coords, ret.s
+
 formatters = {
 "net": net_format,
 "rect": rect_format,
@@ -425,7 +479,8 @@ formatters = {
 "pattern": pattern_format,
 "solo": solo_format,
 "dominosa": dominosa_format,
-"slant": slant_format
+"slant": slant_format,
+"lightup": lightup_format
 }
 
 if len(sys.argv) < 3:

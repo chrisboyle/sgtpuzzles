@@ -1476,7 +1476,7 @@ the game entirely with one button if you need to.)
 
 (All the actions described in \k{common-actions} are also available.)
 
-\H{slant-parameters} \I{parameters, for slant}Slant parameters
+\H{slant-parameters} \I{parameters, for Slant}Slant parameters
 
 These parameters are available from the \q{Custom...} option on the
 \q{Type} menu.
@@ -1484,6 +1484,91 @@ These parameters are available from the \q{Custom...} option on the
 \dt \e{Width}, \e{Height}
 
 \dd Size of grid in squares.
+
+
+\C{lightup} \i{Light Up}
+
+\cfg{winhelp-topic}{games.lightup}
+
+You have a grid of squares. Some are filled in black; some of the
+black squares are numbered. Your aim is to \q{light up} all the
+empty squares by placing light bulbs in some of them.
+
+Each light bulb illuminates the square it is on, plus all squares in
+line with it horizontally or vertically unless a black square is
+blocking the way.
+
+To win the game, you must satisfy the following conditions:
+
+\b All non-black squares are lit.
+
+\b No light is lit by another light.
+
+\b All numbered black squares have exactly that number of lights adjacent to
+   them (in the four squares above, below, and to the side).
+
+Non-numbered black squares may have any number of lights adjacent to them. 
+
+Credit for this puzzle goes to \i{Nikoli} \k{nikoli-lightup}.
+
+Light Up was contributed to this collection by James Harvey.
+
+\B{nikoli-lightup}
+\W{http://www.nikoli.co.jp/puzzles/32/index-e.htm}\cw{http://www.nikoli.co.jp/puzzles/32/index-e.htm}
+(beware of Flash)
+
+\H{lightup-controls} \i{Light Up controls}
+
+\IM{Light Up controls} controls, for Light Up
+\IM{Light Up controls} keys, for Light Up
+\IM{Light Up controls} shortcuts (keyboard), for Light Up
+
+Left-clicking in a non-black square will toggle the presence of a light
+in that square. Right-clicking in a non-black square toggles a mark there to aid
+solving; it can be used to highlight squares that cannot be lit, for example. 
+
+You may not place a light in a marked square, nor place a mark in a lit square.
+
+The game will highlight obvious errors in red. Lights lit by other
+lights are highlighted in this way, as are numbered squares which
+do not (or cannot) have the right number of lights next to them.
+  
+Thus, the grid is solved when all non-black squares have yellow
+highlights and there are no red lights.
+
+
+\H{lightup-parameters} \I{parameters, for Light Up}Light Up parameters
+
+These parameters are available from the \q{Custom...} option on the
+\q{Type} menu.
+
+\dt \e{Width}, \e{Height}
+
+\dd Size of grid in squares.
+
+\dt \e{%age of black squares}
+
+\dd Rough percentage of black squares in the grid.
+
+\lcont{
+
+This is a hint rather than an instruction. If the grid generator is
+unable to generate a puzzle to this precise specification, it will
+increase the proportion of black squares until it can.
+
+}
+
+\dt \e{Symmetry}
+
+\dd Allows you to specify the required symmetry of the black squares
+in the grid. (This does not affect the difficulty of the puzzles
+noticeably.)
+
+\dt \e{Difficulty}
+
+\dd \q{Easy} means that the puzzles should be soluble without
+backtracking or guessing, \q{Hard} means that some guesses will
+probably be necessary.
 
 
 \A{licence} \I{MIT licence}\ii{Licence}

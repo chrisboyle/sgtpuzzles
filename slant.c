@@ -35,6 +35,8 @@ enum {
     COL_BACKGROUND,
     COL_GRID,
     COL_INK,
+    COL_SLANT1,
+    COL_SLANT2,
     NCOLOURS
 };
 
@@ -982,6 +984,14 @@ static float *game_colours(frontend *fe, game_state *state, int *ncolours)
     ret[COL_INK * 3 + 1] = 0.0F;
     ret[COL_INK * 3 + 2] = 0.0F;
 
+    ret[COL_SLANT1 * 3 + 0] = 0.0F;
+    ret[COL_SLANT1 * 3 + 1] = 0.0F;
+    ret[COL_SLANT1 * 3 + 2] = 0.0F;
+
+    ret[COL_SLANT2 * 3 + 0] = 0.0F;
+    ret[COL_SLANT2 * 3 + 1] = 0.0F;
+    ret[COL_SLANT2 * 3 + 2] = 0.0F;
+
     *ncolours = NCOLOURS;
     return ret;
 }
@@ -1013,14 +1023,14 @@ static void draw_clue(frontend *fe, game_drawstate *ds,
 		      int x, int y, int v)
 {
     char p[2];
+    int col = ((x ^ y) & 1) ? COL_SLANT1 : COL_SLANT2;
 
     if (v < 0)
 	return;
 
     p[0] = v + '0';
     p[1] = '\0';
-    draw_circle(fe, COORD(x), COORD(y), CLUE_RADIUS,
-		COL_BACKGROUND, COL_INK);
+    draw_circle(fe, COORD(x), COORD(y), CLUE_RADIUS, COL_BACKGROUND, col);
     draw_text(fe, COORD(x), COORD(y), FONT_VARIABLE,
 	      CLUE_TEXTSIZE, ALIGN_VCENTRE|ALIGN_HCENTRE,
 	      COL_INK, p);
@@ -1031,6 +1041,9 @@ static void draw_tile(frontend *fe, game_drawstate *ds, game_clues *clues,
 {
     int w = clues->w /*, h = clues->h*/, W = w+1 /*, H = h+1 */;
     int xx, yy;
+    int chesscolour = (x ^ y) & 1;
+    int fscol = chesscolour ? COL_SLANT2 : COL_SLANT1;
+    int bscol = chesscolour ? COL_SLANT1 : COL_SLANT2;
 
     clip(fe, COORD(x), COORD(y), TILESIZE+1, TILESIZE+1);
 
@@ -1049,17 +1062,17 @@ static void draw_tile(frontend *fe, game_drawstate *ds, game_clues *clues,
      * Draw the slash.
      */
     if (v & BACKSLASH) {
-	draw_line(fe, COORD(x), COORD(y), COORD(x+1), COORD(y+1), COL_INK);
+	draw_line(fe, COORD(x), COORD(y), COORD(x+1), COORD(y+1), bscol);
 	draw_line(fe, COORD(x)+1, COORD(y), COORD(x+1), COORD(y+1)-1,
-		  COL_INK);
+		  bscol);
 	draw_line(fe, COORD(x), COORD(y)+1, COORD(x+1)-1, COORD(y+1),
-		  COL_INK);
+		  bscol);
     } else if (v & FORWSLASH) {
-	draw_line(fe, COORD(x+1), COORD(y), COORD(x), COORD(y+1), COL_INK);
+	draw_line(fe, COORD(x+1), COORD(y), COORD(x), COORD(y+1), fscol);
 	draw_line(fe, COORD(x+1)-1, COORD(y), COORD(x), COORD(y+1)-1,
-		  COL_INK);
+		  fscol);
 	draw_line(fe, COORD(x+1), COORD(y)+1, COORD(x)+1, COORD(y+1),
-		  COL_INK);
+		  fscol);
     }
 
     /*
@@ -1067,29 +1080,29 @@ static void draw_tile(frontend *fe, game_drawstate *ds, game_clues *clues,
      * neighbouring cell.
      */
     if (v & L_T)
-	draw_rect(fe, COORD(x), COORD(y)+1, 1, 1, COL_INK);
+	draw_rect(fe, COORD(x), COORD(y)+1, 1, 1, bscol);
     if (v & L_B)
-	draw_rect(fe, COORD(x), COORD(y+1)-1, 1, 1, COL_INK);
+	draw_rect(fe, COORD(x), COORD(y+1)-1, 1, 1, fscol);
     if (v & R_T)
-	draw_rect(fe, COORD(x+1), COORD(y)+1, 1, 1, COL_INK);
+	draw_rect(fe, COORD(x+1), COORD(y)+1, 1, 1, fscol);
     if (v & R_B)
-	draw_rect(fe, COORD(x+1), COORD(y+1)-1, 1, 1, COL_INK);
+	draw_rect(fe, COORD(x+1), COORD(y+1)-1, 1, 1, bscol);
     if (v & T_L)
-	draw_rect(fe, COORD(x)+1, COORD(y), 1, 1, COL_INK);
+	draw_rect(fe, COORD(x)+1, COORD(y), 1, 1, bscol);
     if (v & T_R)
-	draw_rect(fe, COORD(x+1)-1, COORD(y), 1, 1, COL_INK);
+	draw_rect(fe, COORD(x+1)-1, COORD(y), 1, 1, fscol);
     if (v & B_L)
-	draw_rect(fe, COORD(x)+1, COORD(y+1), 1, 1, COL_INK);
+	draw_rect(fe, COORD(x)+1, COORD(y+1), 1, 1, fscol);
     if (v & B_R)
-	draw_rect(fe, COORD(x+1)-1, COORD(y+1), 1, 1, COL_INK);
+	draw_rect(fe, COORD(x+1)-1, COORD(y+1), 1, 1, bscol);
     if (v & C_TL)
-	draw_rect(fe, COORD(x), COORD(y), 1, 1, COL_INK);
+	draw_rect(fe, COORD(x), COORD(y), 1, 1, bscol);
     if (v & C_TR)
-	draw_rect(fe, COORD(x+1), COORD(y), 1, 1, COL_INK);
+	draw_rect(fe, COORD(x+1), COORD(y), 1, 1, fscol);
     if (v & C_BL)
-	draw_rect(fe, COORD(x), COORD(y+1), 1, 1, COL_INK);
+	draw_rect(fe, COORD(x), COORD(y+1), 1, 1, fscol);
     if (v & C_BR)
-	draw_rect(fe, COORD(x+1), COORD(y+1), 1, 1, COL_INK);
+	draw_rect(fe, COORD(x+1), COORD(y+1), 1, 1, bscol);
 
     /*
      * And finally the clues at the corners.
