@@ -1674,8 +1674,8 @@ static char *new_game_desc(game_params *params, random_state *rs,
     int nlocs;
     char *desc;
     int coords[16], ncoords;
-    int *symmclasses, nsymmclasses;
-    int maxdiff, recursing;
+    int maxdiff;
+    int x, y, i, j;
 
     /*
      * Adjust the maximum difficulty level to be consistent with
@@ -1690,31 +1690,6 @@ static char *new_game_desc(game_params *params, random_state *rs,
     grid = snewn(area, digit);
     locs = snewn(area, struct xy);
     grid2 = snewn(area, digit);
-
-    /*
-     * Find the set of equivalence classes of squares permitted
-     * by the selected symmetry. We do this by enumerating all
-     * the grid squares which have no symmetric companion
-     * sorting lower than themselves.
-     */
-    nsymmclasses = 0;
-    symmclasses = snewn(cr * cr, int);
-    {
-        int x, y;
-
-        for (y = 0; y < cr; y++)
-            for (x = 0; x < cr; x++) {
-                int i = y*cr+x;
-                int j;
-
-                ncoords = symmetries(params, x, y, coords, params->symm);
-                for (j = 0; j < ncoords; j++)
-                    if (coords[2*j+1]*cr+coords[2*j] < i)
-                        break;
-                if (j == ncoords)
-                    symmclasses[nsymmclasses++] = i;
-            }
-    }
 
     /*
      * Loop until we get a grid of the required difficulty. This is
@@ -1748,62 +1723,55 @@ static char *new_game_desc(game_params *params, random_state *rs,
          * Now we have a solved grid, start removing things from it
          * while preserving solubility.
          */
-	recursing = FALSE;
-        while (1) {
-            int x, y, i, j;
 
-            /*
-             * Iterate over the grid and enumerate all the filled
-             * squares we could empty.
-             */
-            nlocs = 0;
+        /*
+         * Find the set of equivalence classes of squares permitted
+         * by the selected symmetry. We do this by enumerating all
+         * the grid squares which have no symmetric companion
+         * sorting lower than themselves.
+         */
+        nlocs = 0;
+        for (y = 0; y < cr; y++)
+            for (x = 0; x < cr; x++) {
+                int i = y*cr+x;
+                int j;
 
-            for (i = 0; i < nsymmclasses; i++) {
-                x = symmclasses[i] % cr;
-                y = symmclasses[i] / cr;
-                if (grid[y*cr+x]) {
+                ncoords = symmetries(params, x, y, coords, params->symm);
+                for (j = 0; j < ncoords; j++)
+                    if (coords[2*j+1]*cr+coords[2*j] < i)
+                        break;
+                if (j == ncoords) {
                     locs[nlocs].x = x;
                     locs[nlocs].y = y;
                     nlocs++;
                 }
             }
 
-            /*
-             * Now shuffle that list.
-             */
-	    shuffle(locs, nlocs, sizeof(*locs), rs);
+        /*
+         * Now shuffle that list.
+         */
+        shuffle(locs, nlocs, sizeof(*locs), rs);
 
-            /*
-             * Now loop over the shuffled list and, for each element,
-             * see whether removing that element (and its reflections)
-             * from the grid will still leave the grid soluble by
-             * solver.
-             */
-            for (i = 0; i < nlocs; i++) {
-		int ret;
+        /*
+         * Now loop over the shuffled list and, for each element,
+         * see whether removing that element (and its reflections)
+         * from the grid will still leave the grid soluble.
+         */
+        for (i = 0; i < nlocs; i++) {
+            int ret;
 
-                x = locs[i].x;
-                y = locs[i].y;
+            x = locs[i].x;
+            y = locs[i].y;
 
-                memcpy(grid2, grid, area);
-                ncoords = symmetries(params, x, y, coords, params->symm);
+            memcpy(grid2, grid, area);
+            ncoords = symmetries(params, x, y, coords, params->symm);
+            for (j = 0; j < ncoords; j++)
+                grid2[coords[2*j+1]*cr+coords[2*j]] = 0;
+
+            ret = solver(c, r, grid2, maxdiff);
+            if (ret != DIFF_IMPOSSIBLE && ret != DIFF_AMBIGUOUS) {
                 for (j = 0; j < ncoords; j++)
-                    grid2[coords[2*j+1]*cr+coords[2*j]] = 0;
-
-		ret = solver(c, r, grid2, maxdiff);
-                if (ret != DIFF_IMPOSSIBLE && ret != DIFF_AMBIGUOUS) {
-                    for (j = 0; j < ncoords; j++)
-                        grid[coords[2*j+1]*cr+coords[2*j]] = 0;
-                    break;
-                }
-            }
-
-            if (i == nlocs) {
-                /*
-                 * There was nothing we could remove without
-                 * destroying solvability. Give up.
-                 */
-                break;
+                    grid[coords[2*j+1]*cr+coords[2*j]] = 0;
             }
         }
 
@@ -1812,8 +1780,6 @@ static char *new_game_desc(game_params *params, random_state *rs,
 
     sfree(grid2);
     sfree(locs);
-
-    sfree(symmclasses);
 
     /*
      * Now we have the grid as it will be presented to the user.
