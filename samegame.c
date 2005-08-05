@@ -1432,6 +1432,7 @@ static game_drawstate *game_new_drawstate(game_state *state)
     ds->started = 0;
     ds->tileinner = ds->tilegap = 0;   /* not decided yet */
     ds->tiles = snewn(state->n, int);
+    ds->bgcolour = -1;
     for (i = 0; i < state->n; i++)
 	ds->tiles[i] = -1;
 
@@ -1564,7 +1565,6 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 	     * no animation); when we do we might well want to be looking
 	     * at the tile colours from oldstate, not state. */
 	    if ((oldstate && COL(oldstate,x,y) != col) ||
-		(flashtime > 0.0) ||
 		(ds->bgcolour != bgcolour) ||
 		(tile != ds->tiles[i])) {
 		tile_redraw(fe, ds, x, y, dright, dbelow, tile, bgcolour);

@@ -1063,6 +1063,8 @@ static void game_changed_state(game_ui *ui, game_state *oldstate,
 
 struct game_drawstate {
     long tilesize;
+    int bg, dragpoint;
+    long *x, *y;
 };
 
 static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
@@ -1236,14 +1238,23 @@ static float *game_colours(frontend *fe, game_state *state, int *ncolours)
 static game_drawstate *game_new_drawstate(game_state *state)
 {
     struct game_drawstate *ds = snew(struct game_drawstate);
+    int i;
 
     ds->tilesize = 0;
+    ds->x = snewn(state->params.n, long);
+    ds->y = snewn(state->params.n, long);
+    for (i = 0; i < state->params.n; i++)
+        ds->x[i] = ds->y[i] = -1;
+    ds->bg = -1;
+    ds->dragpoint = -1;
 
     return ds;
 }
 
 static void game_free_drawstate(game_drawstate *ds)
 {
+    sfree(ds->y);
+    sfree(ds->x);
     sfree(ds);
 }
 
@@ -1265,7 +1276,7 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
     int w, h;
     edge *e;
     int i, j;
-    int bg;
+    int bg, points_moved;
 
     /*
      * There's no terribly sensible way to do partial redraws of
@@ -1280,6 +1291,43 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
     else
         bg = COL_FLASH2;
 
+    /*
+     * To prevent excessive spinning on redraw during a completion
+     * flash, we first check to see if _either_ the flash
+     * background colour has changed _or_ at least one point has
+     * moved _or_ a drag has begun or ended, and abandon the redraw
+     * if neither is the case.
+     * 
+     * Also in this loop we work out the coordinates of all the
+     * points for this redraw.
+     */
+    points_moved = FALSE;
+    for (i = 0; i < state->params.n; i++) {
+        point p = state->pts[i];
+        long x, y;
+
+        if (ui->dragpoint == i)
+            p = ui->newpoint;
+
+        if (oldstate)
+            p = mix(oldstate->pts[i], p, animtime / ui->anim_length);
+
+	x = p.x * ds->tilesize / p.d;
+	y = p.y * ds->tilesize / p.d;
+
+        if (ds->x[i] != x || ds->y[i] != y)
+            points_moved = TRUE;
+
+        ds->x[i] = x;
+        ds->y[i] = y;
+    }
+
+    if (ds->bg == bg && ds->dragpoint == ui->dragpoint && !points_moved)
+        return;                        /* nothing to do */
+
+    ds->dragpoint = ui->dragpoint;
+    ds->bg = bg;
+
     game_compute_size(&state->params, ds->tilesize, &w, &h);
     draw_rect(fe, 0, 0, w, h, bg);
 
@@ -1288,27 +1336,7 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
      */
 
     for (i = 0; (e = index234(state->graph->edges, i)) != NULL; i++) {
-	point p1, p2;
-	long x1, y1, x2, y2;
-
-	p1 = state->pts[e->a];
-	p2 = state->pts[e->b];
-	if (ui->dragpoint == e->a)
-	    p1 = ui->newpoint;
-	else if (ui->dragpoint == e->b)
-	    p2 = ui->newpoint;
-
-	if (oldstate) {
-	    p1 = mix(oldstate->pts[e->a], p1, animtime / ui->anim_length);
-	    p2 = mix(oldstate->pts[e->b], p2, animtime / ui->anim_length);
-	}
-
-	x1 = p1.x * ds->tilesize / p1.d;
-	y1 = p1.y * ds->tilesize / p1.d;
-	x2 = p2.x * ds->tilesize / p2.d;
-	y2 = p2.y * ds->tilesize / p2.d;
-
-	draw_line(fe, x1, y1, x2, y2,
+	draw_line(fe, ds->x[e->a], ds->y[e->a], ds->x[e->b], ds->y[e->b],
 #ifdef SHOW_CROSSINGS
 		  (oldstate?oldstate:state)->crosses[i] ?
 		  COL_CROSSEDLINE :
@@ -1326,12 +1354,9 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 	int thisc = (j == 0 ? COL_POINT :
 		     j == 1 ? COL_NEIGHBOUR : COL_DRAGPOINT);
 	for (i = 0; i < state->params.n; i++) {
-	    long x, y;
             int c;
-	    point p = state->pts[i];
 
 	    if (ui->dragpoint == i) {
-		p = ui->newpoint;
 		c = COL_DRAGPOINT;
 	    } else if (ui->dragpoint >= 0 &&
 		       isedge(state->graph->edges, ui->dragpoint, i)) {
@@ -1340,23 +1365,19 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 		c = COL_POINT;
 	    }
 
-	    if (oldstate)
-		p = mix(oldstate->pts[i], p, animtime / ui->anim_length);
-
 	    if (c == thisc) {
-		x = p.x * ds->tilesize / p.d;
-		y = p.y * ds->tilesize / p.d;
-
 #ifdef VERTEX_NUMBERS
-		draw_circle(fe, x, y, DRAG_THRESHOLD, bg, bg);
+		draw_circle(fe, ds->x[i], ds->y[i], DRAG_THRESHOLD, bg, bg);
 		{
 		    char buf[80];
 		    sprintf(buf, "%d", i);
-		    draw_text(fe, x, y, FONT_VARIABLE, DRAG_THRESHOLD*3/2,
+		    draw_text(fe, ds->x[i], ds->y[i], FONT_VARIABLE,
+                              DRAG_THRESHOLD*3/2,
 			      ALIGN_VCENTRE|ALIGN_HCENTRE, c, buf);
 		}
 #else
-		draw_circle(fe, x, y, CIRCLE_RADIUS, c, COL_OUTLINE);
+		draw_circle(fe, ds->x[i], ds->y[i], CIRCLE_RADIUS,
+                            c, COL_OUTLINE);
 #endif
 	    }
 	}

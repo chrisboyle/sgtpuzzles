@@ -859,7 +859,7 @@ struct game_drawstate {
     int tilesize, crad, rrad, w, h; /* w and h to make macros work... */
     unsigned int *grid;          /* as the game_state grid */
     int started, reveal;
-    int flash_laserno;
+    int flash_laserno, isflash;
 };
 
 static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
@@ -1112,6 +1112,7 @@ static game_drawstate *game_new_drawstate(game_state *state)
     memset(ds->grid, 0, (state->w+2)*(state->h+2)*sizeof(unsigned int));
     ds->started = ds->reveal = 0;
     ds->flash_laserno = LASER_EMPTY;
+    ds->isflash = 0;
 
     return ds;
 }
@@ -1266,7 +1267,6 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
     if (flashtime > 0) {
         int frame = (int)(flashtime / FLASH_FRAME);
         isflash = (frame % 2) == 0;
-        force = 1;
         debug(("game_redraw: flashtime = %f", flashtime));
     }
 
@@ -1299,6 +1299,8 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
         ds->started = 1;
     }
 
+    if (isflash != ds->isflash) force = 1;
+
     /* draw the arena */
     for (x = 0; x < state->w; x++) {
         for (y = 0; y < state->h; y++) {
@@ -1324,6 +1326,7 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
     draw_update(fe, TODRAW(0), TODRAW(0), TILE_SIZE, TILE_SIZE);
     ds->reveal = state->reveal;
     ds->flash_laserno = ui->flash_laserno;
+    ds->isflash = isflash;
 
     {
         char buf[256];

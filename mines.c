@@ -2384,7 +2384,7 @@ static void game_changed_state(game_ui *ui, game_state *oldstate,
 }
 
 struct game_drawstate {
-    int w, h, started, tilesize;
+    int w, h, started, tilesize, bg;
     signed char *grid;
     /*
      * Items in this `grid' array have all the same values as in
@@ -2723,6 +2723,7 @@ static game_drawstate *game_new_drawstate(game_state *state)
     ds->started = FALSE;
     ds->tilesize = 0;                  /* not decided yet */
     ds->grid = snewn(ds->w * ds->h, signed char);
+    ds->bg = -1;
 
     memset(ds->grid, -99, ds->w * ds->h);
 
@@ -2963,11 +2964,12 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 		(abs(x-ui->hx) <= ui->hradius && abs(y-ui->hy) <= ui->hradius))
 		v -= 20;
 
-	    if (ds->grid[y*ds->w+x] != v || bg != COL_BACKGROUND) {
+	    if (ds->grid[y*ds->w+x] != v || bg != ds->bg) {
 		draw_tile(fe, ds, COORD(x), COORD(y), v, bg);
-		ds->grid[y*ds->w+x] = (bg == COL_BACKGROUND ? v : -10);
+		ds->grid[y*ds->w+x] = v;
 	    }
 	}
+    ds->bg = bg;
 
     if (!state->layout->mines)
 	mines = state->layout->n;
