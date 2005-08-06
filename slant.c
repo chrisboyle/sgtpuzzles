@@ -1863,13 +1863,13 @@ int main(int argc, char **argv)
     game_state *s;
     char *id = NULL, *desc, *err;
     int grade = FALSE;
-    int ret;
+    int ret, diff, really_verbose = FALSE;
     struct solver_scratch *sc;
 
     while (--argc > 0) {
         char *p = *++argv;
         if (!strcmp(p, "-v")) {
-            verbose = TRUE;
+            really_verbose = TRUE;
         } else if (!strcmp(p, "-g")) {
             grade = TRUE;
         } else if (*p == '-') {
@@ -1903,32 +1903,38 @@ int main(int argc, char **argv)
 
     sc = new_scratch(p->w, p->h);
 
-    if (grade) {
+    /*
+     * When solving an Easy puzzle, we don't want to bother the
+     * user with Hard-level deductions. For this reason, we grade
+     * the puzzle internally before doing anything else.
+     */
+    for (diff = 0; diff < DIFFCOUNT; diff++) {
 	ret = slant_solve(p->w, p->h, s->clues->clues,
-			  s->soln, sc, DIFF_EASY);
-	if (ret == 0)
-	    printf("Difficulty rating: impossible (no solution exists)\n");
-	else if (ret == 1)
-	    printf("Difficulty rating: Easy\n");
-	else {
-	    ret = slant_solve(p->w, p->h, s->clues->clues,
-			      s->soln, sc, DIFF_HARD);
+			  s->soln, sc, diff);
+	if (ret < 2)
+	    break;
+    }
+
+    if (diff == DIFFCOUNT) {
+	if (grade)
+	    printf("Difficulty rating: harder than Hard, or ambiguous\n");
+	else
+	    printf("Unable to find a unique solution\n");
+    } else {
+	if (grade) {
 	    if (ret == 0)
 		printf("Difficulty rating: impossible (no solution exists)\n");
 	    else if (ret == 1)
-		printf("Difficulty rating: Hard\n");
+		printf("Difficulty rating: %s\n", slant_diffnames[diff]);
+	} else {
+	    verbose = really_verbose;
+	    ret = slant_solve(p->w, p->h, s->clues->clues,
+			      s->soln, sc, diff);
+	    if (ret == 0)
+		printf("Puzzle is inconsistent\n");
 	    else
-		printf("Difficulty rating: harder than Hard, or ambiguous\n");
+		fputs(game_text_format(s), stdout);
 	}
-    } else {
-	ret = slant_solve(p->w, p->h, s->clues->clues,
-			  s->soln, sc, DIFF_HARD);
-	if (ret == 0)
-	    printf("Puzzle is inconsistent\n");
-	else if (ret > 1)
-	    printf("Unable to find a unique solution\n");
-	else
-	    printf("%s\n", game_text_format(s));
     }
 
     return 0;
