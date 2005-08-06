@@ -1485,6 +1485,17 @@ These parameters are available from the \q{Custom...} option on the
 
 \dd Size of grid in squares.
 
+\dt \e{Difficulty}
+
+\dd Controls the difficulty of the generated puzzle. At Hard level,
+you are required to do deductions based on knowledge of
+\e{relationships} between squares rather than always being able to
+deduce the exact contents of one square at a time. (For example, you
+might know that two squares slant in the same direction, even if you
+don't yet know what that direction is, and this might enable you to
+deduce something about still other squares.) Even at Hard level,
+guesswork and backtracking should never be necessary.
+
 
 \C{lightup} \i{Light Up}
 
