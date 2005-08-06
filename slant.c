@@ -1402,6 +1402,29 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
         int v;
         char buf[80];
 
+	/*
+	 * This is an utterly awful hack which I should really sort out
+	 * by means of a proper configuration mechanism. One Slant
+	 * player has observed that they prefer the mouse buttons to
+	 * function exactly the opposite way round, so here's a
+	 * mechanism for environment-based configuration. I cache the
+	 * result in a global variable - yuck! - to avoid repeated
+	 * lookups.
+	 */
+	{
+	    static int swap_buttons = -1;
+	    if (swap_buttons < 0) {
+		char *env = getenv("SLANT_SWAP_BUTTONS");
+		swap_buttons = (env && (env[0] == 'y' || env[0] == 'Y'));
+	    }
+	    if (swap_buttons) {
+		if (button == LEFT_BUTTON)
+		    button = RIGHT_BUTTON;
+		else
+		    button = LEFT_BUTTON;
+	    }
+	}
+
         x = FROMCOORD(x);
         y = FROMCOORD(y);
         if (x < 0 || y < 0 || x >= w || y >= h)
