@@ -1908,6 +1908,7 @@ int main(int argc, char **argv)
      * user with Hard-level deductions. For this reason, we grade
      * the puzzle internally before doing anything else.
      */
+    ret = -1;			       /* placate optimiser */
     for (diff = 0; diff < DIFFCOUNT; diff++) {
 	ret = slant_solve(p->w, p->h, s->clues->clues,
 			  s->soln, sc, diff);
