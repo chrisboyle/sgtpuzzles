@@ -1046,11 +1046,7 @@ static int puzzle_is_good(game_state *state, game_params *params, int *mdepth)
  * puzzle we could come up with was non-recursive, we give up and try a new
  * grid. */
 
-#ifdef SLOW_SYSTEM
 #define MAX_GRIDGEN_TRIES 20
-#else
-#define MAX_GRIDGEN_TRIES 50
-#endif
 
 static char *new_game_desc(game_params *params, random_state *rs,
 			   char **aux, int interactive)
