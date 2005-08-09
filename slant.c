@@ -1735,19 +1735,19 @@ static void draw_tile(frontend *fe, game_drawstate *ds, game_clues *clues,
      */
     if (v & (L_T | BACKSLASH))
 	draw_rect(fe, COORD(x), COORD(y)+1, 1, 1,
-                  (v & (ERR_L_T | ERRSLASH) ? COL_ERROR : bscol));
+                  (v & ERR_L_T ? COL_ERROR : bscol));
     if (v & (L_B | FORWSLASH))
 	draw_rect(fe, COORD(x), COORD(y+1)-1, 1, 1,
-                  (v & (ERR_L_B | ERRSLASH) ? COL_ERROR : fscol));
+                  (v & ERR_L_B ? COL_ERROR : fscol));
     if (v & (T_L | BACKSLASH))
 	draw_rect(fe, COORD(x)+1, COORD(y), 1, 1,
-                  (v & (ERR_T_L | ERRSLASH) ? COL_ERROR : bscol));
+                  (v & ERR_T_L ? COL_ERROR : bscol));
     if (v & (T_R | FORWSLASH))
 	draw_rect(fe, COORD(x+1)-1, COORD(y), 1, 1,
-                  (v & (ERR_T_R | ERRSLASH) ? COL_ERROR : fscol));
+                  (v & ERR_T_R ? COL_ERROR : fscol));
     if (v & (C_TL | BACKSLASH))
 	draw_rect(fe, COORD(x), COORD(y), 1, 1,
-                  (v & (ERR_C_TL | ERRSLASH) ? COL_ERROR : bscol));
+                  (v & ERR_C_TL ? COL_ERROR : bscol));
 
     /*
      * And finally the clues at the corners.
@@ -1809,7 +1809,8 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
                 ds->todraw[(y+1)*(w+2)+(x+2)] |= L_B;
                 ds->todraw[(y+2)*(w+2)+(x+2)] |= C_TL;
                 if (err) {
-                    ds->todraw[(y+1)*(w+2)+(x+1)] |= ERRSLASH;
+                    ds->todraw[(y+1)*(w+2)+(x+1)] |= ERRSLASH | 
+			ERR_T_L | ERR_L_T | ERR_C_TL;
                     ds->todraw[(y+2)*(w+2)+(x+1)] |= ERR_T_R;
                     ds->todraw[(y+1)*(w+2)+(x+2)] |= ERR_L_B;
                     ds->todraw[(y+2)*(w+2)+(x+2)] |= ERR_C_TL;
@@ -1819,7 +1820,8 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
                 ds->todraw[(y+1)*(w+2)+(x+2)] |= L_T | C_TL;
                 ds->todraw[(y+2)*(w+2)+(x+1)] |= T_L | C_TL;
                 if (err) {
-                    ds->todraw[(y+1)*(w+2)+(x+1)] |= ERRSLASH;
+                    ds->todraw[(y+1)*(w+2)+(x+1)] |= ERRSLASH |
+			ERR_L_B | ERR_T_R;
                     ds->todraw[(y+1)*(w+2)+(x+2)] |= ERR_L_T | ERR_C_TL;
                     ds->todraw[(y+2)*(w+2)+(x+1)] |= ERR_T_L | ERR_C_TL;
                 }
