@@ -37,6 +37,7 @@ enum {
     COL_INK,
     COL_SLANT1,
     COL_SLANT2,
+    COL_ERROR,
     NCOLOURS
 };
 
@@ -75,14 +76,18 @@ struct game_params {
 typedef struct game_clues {
     int w, h;
     signed char *clues;
-    int *dsf;			       /* scratch space for completion check */
+    signed char *tmpsoln;
     int refcount;
 } game_clues;
+
+#define ERR_VERTEX 1
+#define ERR_SQUARE 2
 
 struct game_state {
     struct game_params p;
     game_clues *clues;
     signed char *soln;
+    unsigned char *errors;
     int completed;
     int used_solve;		       /* used to suppress completion flash */
 };
@@ -1109,13 +1114,15 @@ static game_state *new_game(midend_data *me, game_params *params, char *desc)
     state->soln = snewn(w*h, signed char);
     memset(state->soln, 0, w*h);
     state->completed = state->used_solve = FALSE;
+    state->errors = snewn(W*H, unsigned char);
+    memset(state->errors, 0, W*H);
 
     state->clues = snew(game_clues);
     state->clues->w = w;
     state->clues->h = h;
     state->clues->clues = snewn(W*H, signed char);
     state->clues->refcount = 1;
-    state->clues->dsf = snewn(W*H, int);
+    state->clues->tmpsoln = snewn(w*h, signed char);
     memset(state->clues->clues, -1, W*H);
     while (*desc) {
         int n = *desc++;
@@ -1133,7 +1140,7 @@ static game_state *new_game(midend_data *me, game_params *params, char *desc)
 
 static game_state *dup_game(game_state *state)
 {
-    int w = state->p.w, h = state->p.h;
+    int w = state->p.w, h = state->p.h, W = w+1, H = h+1;
     game_state *ret = snew(game_state);
 
     ret->p = state->p;
@@ -1145,84 +1152,165 @@ static game_state *dup_game(game_state *state)
     ret->soln = snewn(w*h, signed char);
     memcpy(ret->soln, state->soln, w*h);
 
+    ret->errors = snewn(W*H, unsigned char);
+    memcpy(ret->errors, state->errors, W*H);
+
     return ret;
 }
 
 static void free_game(game_state *state)
 {
+    sfree(state->errors);
     sfree(state->soln);
     assert(state->clues);
     if (--state->clues->refcount <= 0) {
         sfree(state->clues->clues);
-        sfree(state->clues->dsf);
+        sfree(state->clues->tmpsoln);
         sfree(state->clues);
     }
     sfree(state);
 }
 
+/*
+ * Utility function to return the current degree of a vertex. If
+ * `anti' is set, it returns the number of filled-in edges
+ * surrounding the point which _don't_ connect to it; thus 4 minus
+ * its anti-degree is the maximum degree it could have if all the
+ * empty spaces around it were filled in.
+ * 
+ * (Yes, _4_ minus its anti-degree even if it's a border vertex.)
+ * 
+ * If ret > 0, *sx and *sy are set to the coordinates of one of the
+ * squares that contributed to it.
+ */
+static int vertex_degree(int w, int h, signed char *soln, int x, int y,
+                         int anti, int *sx, int *sy)
+{
+    int ret = 0;
+
+    assert(x >= 0 && x <= w && y >= 0 && y <= h);
+    if (x > 0 && y > 0 && soln[(y-1)*w+(x-1)] - anti < 0) {
+        if (sx) *sx = x-1;
+        if (sy) *sy = y-1;
+        ret++;
+    }
+    if (x > 0 && y < h && soln[y*w+(x-1)] + anti > 0) {
+        if (sx) *sx = x-1;
+        if (sy) *sy = y;
+        ret++;
+    }
+    if (x < w && y > 0 && soln[(y-1)*w+x] + anti > 0) {
+        if (sx) *sx = x;
+        if (sy) *sy = y-1;
+        ret++;
+    }
+    if (x < w && y < h && soln[y*w+x] - anti < 0) {
+        if (sx) *sx = x;
+        if (sy) *sy = y;
+        ret++;
+    }
+
+    return anti ? 4 - ret : ret;
+}
+
 static int check_completion(game_state *state)
 {
     int w = state->p.w, h = state->p.h, W = w+1, H = h+1;
-    int i, x, y;
+    int x, y, err = FALSE;
+    signed char *ts;
+
+    memset(state->errors, 0, W*H);
 
     /*
-     * Establish a disjoint set forest for tracking connectedness
-     * between grid points. Use the dsf scratch space in the shared
-     * clues structure, to avoid mallocing too often.
+     * An easy way to do loop checking would be by means of the
+     * same dsf technique we've used elsewhere (loop over all edges
+     * in the grid, joining vertices together into equivalence
+     * classes when connected by an edge, and raise the alarm when
+     * an edge joins two already-equivalent vertices). However, a
+     * better approach is to repeatedly remove the single edge
+     * connecting to any degree-1 vertex, and then see if there are
+     * any edges left over; if so, precisely those edges are part
+     * of loops, which means we can highlight them as errors for
+     * the user.
+     * 
+     * We use the `tmpsoln' scratch space in the shared clues
+     * structure, to avoid mallocing too often.
      */
-    for (i = 0; i < W*H; i++)
-	state->clues->dsf[i] = i;      /* initially all distinct */
-
-    /*
-     * Now go through the grid checking connectedness. While we're
-     * here, also check that everything is filled in.
-     */
-    for (y = 0; y < h; y++)
-	for (x = 0; x < w; x++) {
-	    int i1, i2;
-
-	    if (state->soln[y*w+x] == 0)
-		return FALSE;
-	    if (state->soln[y*w+x] < 0) {
-		i1 = y*W+x;
-		i2 = (y+1)*W+(x+1);
-	    } else {
-		i1 = (y+1)*W+x;
-		i2 = y*W+(x+1);
-	    }
-
-	    /*
-	     * Our edge connects i1 with i2. If they're already
-	     * connected, return failure. Otherwise, link them.
-	     */
-	    if (dsf_canonify(state->clues->dsf, i1) ==
-		dsf_canonify(state->clues->dsf, i2))
-		return FALSE;
-	    else
-		dsf_merge(state->clues->dsf, i1, i2);
-	}
-
-    /*
-     * The grid is _a_ valid grid; let's see if it matches the
-     * clues.
-     */
+    ts = state->clues->tmpsoln;
+    memcpy(ts, state->soln, w*h);
     for (y = 0; y < H; y++)
 	for (x = 0; x < W; x++) {
-	    int v, c;
+            int vx = x, vy = y;
+            int sx, sy;
+            /*
+             * Every time we disconnect a vertex like this, there
+             * is precisely one other vertex which might have
+             * become degree 1; so we follow the trail as far as it
+             * leads. This ensures that we don't have to make more
+             * than one loop over the grid, because whenever a
+             * degree-1 vertex comes into existence somewhere we've
+             * already looked, we immediately remove it again.
+             * Hence one loop over the grid is adequate; and
+             * moreover, this algorithm visits every vertex at most
+             * twice (once in the loop and possibly once more as a
+             * result of following a trail) so it has linear time
+             * in the area of the grid.
+             */
+            while (vertex_degree(w, h, ts, vx, vy, FALSE, &sx, &sy) == 1) {
+                ts[sy*w+sx] = 0;
+                vx = vx + 1 + (sx - vx) * 2;
+                vy = vy + 1 + (sy - vy) * 2;
+            }
+        }
+
+    /*
+     * Now mark any remaining edges with ERR_SQUARE.
+     */
+    for (y = 0; y < h; y++)
+	for (x = 0; x < w; x++)
+            if (ts[y*w+x]) {
+                state->errors[y*W+x] |= ERR_SQUARE;
+                err = TRUE;
+            }
+
+    /*
+     * Now go through and check the degree of each clue vertex, and
+     * mark it with ERR_VERTEX if it cannot be fulfilled.
+     */
+    for (y = 0; y < H; y++)
+        for (x = 0; x < W; x++) {
+            int c;
 
 	    if ((c = state->clues->clues[y*W+x]) < 0)
 		continue;
 
-	    v = 0;
+            /*
+             * Check to see if there are too many connections to
+             * this vertex _or_ too many non-connections. Either is
+             * grounds for marking the vertex as erroneous.
+             */
+            if (vertex_degree(w, h, state->soln, x, y,
+                              FALSE, NULL, NULL) > c ||
+                vertex_degree(w, h, state->soln, x, y,
+                              TRUE, NULL, NULL) > 4-c) {
+                state->errors[y*W+x] |= ERR_VERTEX;
+                err = TRUE;
+            }
+        }
 
-	    if (x > 0 && y > 0 && state->soln[(y-1)*w+(x-1)] == -1) v++;
-	    if (x > 0 && y < h && state->soln[y*w+(x-1)] == +1) v++;
-	    if (x < w && y > 0 && state->soln[(y-1)*w+x] == +1) v++;
-	    if (x < w && y < h && state->soln[y*w+x] == -1) v++;
+    /*
+     * Now our actual victory condition is that (a) none of the
+     * above code marked anything as erroneous, and (b) every
+     * square has an edge in it.
+     */
 
-	    if (c != v)
+    if (err)
+        return FALSE;
+
+    for (y = 0; y < h; y++)
+	for (x = 0; x < w; x++)
+	    if (state->soln[y*w+x] == 0)
 		return FALSE;
-	}
 
     return TRUE;
 }
@@ -1370,27 +1458,30 @@ static void game_changed_state(game_ui *ui, game_state *oldstate,
 /*
  * Bit fields in the `grid' and `todraw' elements of the drawstate.
  */
-#define BACKSLASH 0x0001
-#define FORWSLASH 0x0002
-#define L_T       0x0004
-#define L_B       0x0008
-#define T_L       0x0010
-#define T_R       0x0020
-#define R_T       0x0040
-#define R_B       0x0080
-#define B_L       0x0100
-#define B_R       0x0200
-#define C_TL      0x0400
-#define C_TR      0x0800
-#define C_BL      0x1000
-#define C_BR      0x2000
-#define FLASH     0x4000
+#define BACKSLASH 0x00000001L
+#define FORWSLASH 0x00000002L
+#define L_T       0x00000004L
+#define ERR_L_T   0x00000008L
+#define L_B       0x00000010L
+#define ERR_L_B   0x00000020L
+#define T_L       0x00000040L
+#define ERR_T_L   0x00000080L
+#define T_R       0x00000100L
+#define ERR_T_R   0x00000200L
+#define C_TL      0x00000400L
+#define ERR_C_TL  0x00000800L
+#define FLASH     0x00001000L
+#define ERRSLASH  0x00002000L
+#define ERR_TL    0x00004000L
+#define ERR_TR    0x00008000L
+#define ERR_BL    0x00010000L
+#define ERR_BR    0x00020000L
 
 struct game_drawstate {
     int tilesize;
     int started;
-    int *grid;
-    int *todraw;
+    long *grid;
+    long *todraw;
 };
 
 static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
@@ -1486,8 +1577,12 @@ static game_state *execute_move(game_state *state, char *move)
         }
     }
 
-    if (!ret->completed)
-	ret->completed = check_completion(ret);
+    /*
+     * We never clear the `completed' flag, but we must always
+     * re-run the completion check because it also highlights
+     * errors in the grid.
+     */
+    ret->completed = check_completion(ret) || ret->completed;
 
     return ret;
 }
@@ -1534,6 +1629,10 @@ static float *game_colours(frontend *fe, game_state *state, int *ncolours)
     ret[COL_SLANT2 * 3 + 1] = 0.0F;
     ret[COL_SLANT2 * 3 + 2] = 0.0F;
 
+    ret[COL_ERROR * 3 + 0] = 1.0F;
+    ret[COL_ERROR * 3 + 1] = 0.0F;
+    ret[COL_ERROR * 3 + 2] = 0.0F;
+
     *ncolours = NCOLOURS;
     return ret;
 }
@@ -1546,9 +1645,9 @@ static game_drawstate *game_new_drawstate(game_state *state)
 
     ds->tilesize = 0;
     ds->started = FALSE;
-    ds->grid = snewn(w*h, int);
-    ds->todraw = snewn(w*h, int);
-    for (i = 0; i < w*h; i++)
+    ds->grid = snewn((w+2)*(h+2), long);
+    ds->todraw = snewn((w+2)*(h+2), long);
+    for (i = 0; i < (w+2)*(h+2); i++)
 	ds->grid[i] = ds->todraw[i] = -1;
 
     return ds;
@@ -1562,32 +1661,31 @@ static void game_free_drawstate(game_drawstate *ds)
 }
 
 static void draw_clue(frontend *fe, game_drawstate *ds,
-		      int x, int y, int v)
+		      int x, int y, int v, int err)
 {
     char p[2];
-    int col = ((x ^ y) & 1) ? COL_SLANT1 : COL_SLANT2;
+    int ccol = ((x ^ y) & 1) ? COL_SLANT1 : COL_SLANT2;
+    int tcol = err ? COL_ERROR : COL_INK;
 
     if (v < 0)
 	return;
 
     p[0] = v + '0';
     p[1] = '\0';
-    draw_circle(fe, COORD(x), COORD(y), CLUE_RADIUS, COL_BACKGROUND, col);
+    draw_circle(fe, COORD(x), COORD(y), CLUE_RADIUS, COL_BACKGROUND, ccol);
     draw_text(fe, COORD(x), COORD(y), FONT_VARIABLE,
-	      CLUE_TEXTSIZE, ALIGN_VCENTRE|ALIGN_HCENTRE,
-	      COL_INK, p);
+	      CLUE_TEXTSIZE, ALIGN_VCENTRE|ALIGN_HCENTRE, tcol, p);
 }
 
 static void draw_tile(frontend *fe, game_drawstate *ds, game_clues *clues,
 		      int x, int y, int v)
 {
-    int w = clues->w /*, h = clues->h*/, W = w+1 /*, H = h+1 */;
-    int xx, yy;
+    int w = clues->w, h = clues->h, W = w+1 /*, H = h+1 */;
     int chesscolour = (x ^ y) & 1;
     int fscol = chesscolour ? COL_SLANT2 : COL_SLANT1;
     int bscol = chesscolour ? COL_SLANT1 : COL_SLANT2;
 
-    clip(fe, COORD(x), COORD(y), TILESIZE+1, TILESIZE+1);
+    clip(fe, COORD(x), COORD(y), TILESIZE, TILESIZE);
 
     draw_rect(fe, COORD(x), COORD(y), TILESIZE, TILESIZE,
 	      (v & FLASH) ? COL_GRID : COL_BACKGROUND);
@@ -1595,66 +1693,76 @@ static void draw_tile(frontend *fe, game_drawstate *ds, game_clues *clues,
     /*
      * Draw the grid lines.
      */
-    draw_line(fe, COORD(x), COORD(y), COORD(x+1), COORD(y), COL_GRID);
-    draw_line(fe, COORD(x), COORD(y+1), COORD(x+1), COORD(y+1), COL_GRID);
-    draw_line(fe, COORD(x), COORD(y), COORD(x), COORD(y+1), COL_GRID);
-    draw_line(fe, COORD(x+1), COORD(y), COORD(x+1), COORD(y+1), COL_GRID);
+    if (x >= 0 && x < w && y >= 0)
+        draw_rect(fe, COORD(x), COORD(y), TILESIZE+1, 1, COL_GRID);
+    if (x >= 0 && x < w && y < h)
+        draw_rect(fe, COORD(x), COORD(y+1), TILESIZE+1, 1, COL_GRID);
+    if (y >= 0 && y < h && x >= 0)
+        draw_rect(fe, COORD(x), COORD(y), 1, TILESIZE+1, COL_GRID);
+    if (y >= 0 && y < h && x < w)
+        draw_rect(fe, COORD(x+1), COORD(y), 1, TILESIZE+1, COL_GRID);
+    if (x == -1 && y == -1)
+        draw_rect(fe, COORD(x+1), COORD(y+1), 1, 1, COL_GRID);
+    if (x == -1 && y == h)
+        draw_rect(fe, COORD(x+1), COORD(y), 1, 1, COL_GRID);
+    if (x == w && y == -1)
+        draw_rect(fe, COORD(x), COORD(y+1), 1, 1, COL_GRID);
+    if (x == w && y == h)
+        draw_rect(fe, COORD(x), COORD(y), 1, 1, COL_GRID);
 
     /*
      * Draw the slash.
      */
     if (v & BACKSLASH) {
-	draw_line(fe, COORD(x), COORD(y), COORD(x+1), COORD(y+1), bscol);
+        int scol = (v & ERRSLASH) ? COL_ERROR : bscol;
+	draw_line(fe, COORD(x), COORD(y), COORD(x+1), COORD(y+1), scol);
 	draw_line(fe, COORD(x)+1, COORD(y), COORD(x+1), COORD(y+1)-1,
-		  bscol);
+		  scol);
 	draw_line(fe, COORD(x), COORD(y)+1, COORD(x+1)-1, COORD(y+1),
-		  bscol);
+		  scol);
     } else if (v & FORWSLASH) {
-	draw_line(fe, COORD(x+1), COORD(y), COORD(x), COORD(y+1), fscol);
+        int scol = (v & ERRSLASH) ? COL_ERROR : fscol;
+	draw_line(fe, COORD(x+1), COORD(y), COORD(x), COORD(y+1), scol);
 	draw_line(fe, COORD(x+1)-1, COORD(y), COORD(x), COORD(y+1)-1,
-		  fscol);
+		  scol);
 	draw_line(fe, COORD(x+1), COORD(y)+1, COORD(x)+1, COORD(y+1),
-		  fscol);
+		  scol);
     }
 
     /*
      * Draw dots on the grid corners that appear if a slash is in a
      * neighbouring cell.
      */
-    if (v & L_T)
-	draw_rect(fe, COORD(x), COORD(y)+1, 1, 1, bscol);
-    if (v & L_B)
-	draw_rect(fe, COORD(x), COORD(y+1)-1, 1, 1, fscol);
-    if (v & R_T)
-	draw_rect(fe, COORD(x+1), COORD(y)+1, 1, 1, fscol);
-    if (v & R_B)
-	draw_rect(fe, COORD(x+1), COORD(y+1)-1, 1, 1, bscol);
-    if (v & T_L)
-	draw_rect(fe, COORD(x)+1, COORD(y), 1, 1, bscol);
-    if (v & T_R)
-	draw_rect(fe, COORD(x+1)-1, COORD(y), 1, 1, fscol);
-    if (v & B_L)
-	draw_rect(fe, COORD(x)+1, COORD(y+1), 1, 1, fscol);
-    if (v & B_R)
-	draw_rect(fe, COORD(x+1)-1, COORD(y+1), 1, 1, bscol);
-    if (v & C_TL)
-	draw_rect(fe, COORD(x), COORD(y), 1, 1, bscol);
-    if (v & C_TR)
-	draw_rect(fe, COORD(x+1), COORD(y), 1, 1, fscol);
-    if (v & C_BL)
-	draw_rect(fe, COORD(x), COORD(y+1), 1, 1, fscol);
-    if (v & C_BR)
-	draw_rect(fe, COORD(x+1), COORD(y+1), 1, 1, bscol);
+    if (v & (L_T | BACKSLASH))
+	draw_rect(fe, COORD(x), COORD(y)+1, 1, 1,
+                  (v & (ERR_L_T | ERRSLASH) ? COL_ERROR : bscol));
+    if (v & (L_B | FORWSLASH))
+	draw_rect(fe, COORD(x), COORD(y+1)-1, 1, 1,
+                  (v & (ERR_L_B | ERRSLASH) ? COL_ERROR : fscol));
+    if (v & (T_L | BACKSLASH))
+	draw_rect(fe, COORD(x)+1, COORD(y), 1, 1,
+                  (v & (ERR_T_L | ERRSLASH) ? COL_ERROR : bscol));
+    if (v & (T_R | FORWSLASH))
+	draw_rect(fe, COORD(x+1)-1, COORD(y), 1, 1,
+                  (v & (ERR_T_R | ERRSLASH) ? COL_ERROR : fscol));
+    if (v & (C_TL | BACKSLASH))
+	draw_rect(fe, COORD(x), COORD(y), 1, 1,
+                  (v & (ERR_C_TL | ERRSLASH) ? COL_ERROR : bscol));
 
     /*
      * And finally the clues at the corners.
      */
-    for (xx = x; xx <= x+1; xx++)
-	for (yy = y; yy <= y+1; yy++)
-	    draw_clue(fe, ds, xx, yy, clues->clues[yy*W+xx]);
+    if (x >= 0 && y >= 0)
+        draw_clue(fe, ds, x, y, clues->clues[y*W+x], v & ERR_TL);
+    if (x < w && y >= 0)
+        draw_clue(fe, ds, x+1, y, clues->clues[y*W+(x+1)], v & ERR_TR);
+    if (x >= 0 && y < h)
+        draw_clue(fe, ds, x, y+1, clues->clues[(y+1)*W+x], v & ERR_BL);
+    if (x < w && y < h)
+        draw_clue(fe, ds, x+1, y+1, clues->clues[(y+1)*W+(x+1)], v & ERR_BR);
 
     unclip(fe);
-    draw_update(fe, COORD(x), COORD(y), TILESIZE+1, TILESIZE+1);
+    draw_update(fe, COORD(x), COORD(y), TILESIZE, TILESIZE);
 }
 
 static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
@@ -1675,20 +1783,6 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 	game_compute_size(&state->p, TILESIZE, &ww, &wh);
 	draw_rect(fe, 0, 0, ww, wh, COL_BACKGROUND);
 	draw_update(fe, 0, 0, ww, wh);
-
-	/*
-	 * Draw any clues on the very edges (since normal tile
-	 * redraw won't draw the bits outside the grid boundary).
-	 */
-	for (y = 0; y < H; y++) {
-	    draw_clue(fe, ds, 0, y, state->clues->clues[y*W+0]);
-	    draw_clue(fe, ds, w, y, state->clues->clues[y*W+w]);
-	}
-	for (x = 0; x < W; x++) {
-	    draw_clue(fe, ds, x, 0, state->clues->clues[0*W+x]);
-	    draw_clue(fe, ds, x, h, state->clues->clues[h*W+x]);
-	}
-
 	ds->started = TRUE;
     }
 
@@ -1697,52 +1791,60 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
      * We need to do this because a slash in one square affects the
      * drawing of the next one along.
      */
-    for (y = 0; y < h; y++)
-	for (x = 0; x < w; x++)
-	    ds->todraw[y*w+x] = flashing ? FLASH : 0;
+    for (y = -1; y <= h; y++)
+	for (x = -1; x <= w; x++) {
+            if (x >= 0 && x < w && y >= 0 && y < h)
+                ds->todraw[(y+1)*(w+2)+(x+1)] = flashing ? FLASH : 0;
+            else
+                ds->todraw[(y+1)*(w+2)+(x+1)] = 0;
+        }
 
     for (y = 0; y < h; y++) {
 	for (x = 0; x < w; x++) {
+            int err = state->errors[y*W+x] & ERR_SQUARE;
+
 	    if (state->soln[y*w+x] < 0) {
-		ds->todraw[y*w+x] |= BACKSLASH;
-		if (x > 0)
-		    ds->todraw[y*w+(x-1)] |= R_T | C_TR;
-		if (x+1 < w)
-		    ds->todraw[y*w+(x+1)] |= L_B | C_BL;
-		if (y > 0)
-		    ds->todraw[(y-1)*w+x] |= B_L | C_BL;
-		if (y+1 < h)
-		    ds->todraw[(y+1)*w+x] |= T_R | C_TR;
-		if (x > 0 && y > 0)
-		    ds->todraw[(y-1)*w+(x-1)] |= C_BR;
-		if (x+1 < w && y+1 < h)
-		    ds->todraw[(y+1)*w+(x+1)] |= C_TL;
+		ds->todraw[(y+1)*(w+2)+(x+1)] |= BACKSLASH;
+                ds->todraw[(y+2)*(w+2)+(x+1)] |= T_R;
+                ds->todraw[(y+1)*(w+2)+(x+2)] |= L_B;
+                ds->todraw[(y+2)*(w+2)+(x+2)] |= C_TL;
+                if (err) {
+                    ds->todraw[(y+1)*(w+2)+(x+1)] |= ERRSLASH;
+                    ds->todraw[(y+2)*(w+2)+(x+1)] |= ERR_T_R;
+                    ds->todraw[(y+1)*(w+2)+(x+2)] |= ERR_L_B;
+                    ds->todraw[(y+2)*(w+2)+(x+2)] |= ERR_C_TL;
+                }
 	    } else if (state->soln[y*w+x] > 0) {
-		ds->todraw[y*w+x] |= FORWSLASH;
-		if (x > 0)
-		    ds->todraw[y*w+(x-1)] |= R_B | C_BR;
-		if (x+1 < w)
-		    ds->todraw[y*w+(x+1)] |= L_T | C_TL;
-		if (y > 0)
-		    ds->todraw[(y-1)*w+x] |= B_R | C_BR;
-		if (y+1 < h)
-		    ds->todraw[(y+1)*w+x] |= T_L | C_TL;
-		if (x > 0 && y+1 < h)
-		    ds->todraw[(y+1)*w+(x-1)] |= C_TR;
-		if (x+1 < w && y > 0)
-		    ds->todraw[(y-1)*w+(x+1)] |= C_BL;
+		ds->todraw[(y+1)*(w+2)+(x+1)] |= FORWSLASH;
+                ds->todraw[(y+1)*(w+2)+(x+2)] |= L_T | C_TL;
+                ds->todraw[(y+2)*(w+2)+(x+1)] |= T_L | C_TL;
+                if (err) {
+                    ds->todraw[(y+1)*(w+2)+(x+1)] |= ERRSLASH;
+                    ds->todraw[(y+1)*(w+2)+(x+2)] |= ERR_L_T | ERR_C_TL;
+                    ds->todraw[(y+2)*(w+2)+(x+1)] |= ERR_T_L | ERR_C_TL;
+                }
 	    }
 	}
     }
 
+    for (y = 0; y < H; y++)
+        for (x = 0; x < W; x++)
+            if (state->errors[y*W+x] & ERR_VERTEX) {
+                ds->todraw[y*(w+2)+x] |= ERR_BR;
+                ds->todraw[y*(w+2)+(x+1)] |= ERR_BL;
+                ds->todraw[(y+1)*(w+2)+x] |= ERR_TR;
+                ds->todraw[(y+1)*(w+2)+(x+1)] |= ERR_TL;
+            }
+
     /*
      * Now go through and draw the grid squares.
      */
-    for (y = 0; y < h; y++) {
-	for (x = 0; x < w; x++) {
-	    if (ds->todraw[y*w+x] != ds->grid[y*w+x]) {
-		draw_tile(fe, ds, state->clues, x, y, ds->todraw[y*w+x]);
-		ds->grid[y*w+x] = ds->todraw[y*w+x];
+    for (y = -1; y <= h; y++) {
+	for (x = -1; x <= w; x++) {
+	    if (ds->todraw[(y+1)*(w+2)+(x+1)] != ds->grid[(y+1)*(w+2)+(x+1)]) {
+		draw_tile(fe, ds, state->clues, x, y,
+                          ds->todraw[(y+1)*(w+2)+(x+1)]);
+		ds->grid[(y+1)*(w+2)+(x+1)] = ds->todraw[(y+1)*(w+2)+(x+1)];
 	    }
 	}
     }
