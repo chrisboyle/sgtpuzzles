@@ -1661,7 +1661,7 @@ static void game_free_drawstate(game_drawstate *ds)
 }
 
 static void draw_clue(frontend *fe, game_drawstate *ds,
-		      int x, int y, int v, int err)
+		      int x, int y, long v, long err)
 {
     char p[2];
     int ccol = ((x ^ y) & 1) ? COL_SLANT1 : COL_SLANT2;
@@ -1678,7 +1678,7 @@ static void draw_clue(frontend *fe, game_drawstate *ds,
 }
 
 static void draw_tile(frontend *fe, game_drawstate *ds, game_clues *clues,
-		      int x, int y, int v)
+		      int x, int y, long v)
 {
     int w = clues->w, h = clues->h, W = w+1 /*, H = h+1 */;
     int chesscolour = (x ^ y) & 1;
