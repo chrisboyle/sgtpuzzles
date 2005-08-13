@@ -1582,6 +1582,66 @@ backtracking or guessing, \q{Hard} means that some guesses will
 probably be necessary.
 
 
+\C{map} \i{Map}
+
+\cfg{winhelp-topic}{games.map}
+
+You are given a map consisting of a number of regions. Your task is
+to colour each region with one of four colours, in such a way that
+no two regions sharing a boundary have the same colour. You are
+provided with some regions already coloured, sufficient to make the
+remainder of the solution unique.
+
+Only regions which share a length of border are required to be
+different colours. Two regions which meet at only one \e{point}
+(i.e. are diagonally separated) may be the same colour.
+
+I believe this puzzle is original; I've never seen an implementation
+of it anywhere else. The concept of a four-colouring puzzle was
+suggested by Owen Dunn; credit must also go to Nikoli and to Verity
+Allan for inspiring the train of thought that led to me realising
+Owen's suggestion was a viable puzzle. Thanks also to Gareth Taylor
+for many detailed suggestions.
+
+
+\H{map-controls} \i{Map controls}
+
+\IM{Map controls} controls, for Map
+\IM{Map controls} keys, for Map
+\IM{Map controls} shortcuts (keyboard), for Map
+
+To colour a region, click on an existing region of the desired
+colour and drag that colour into the new region.
+
+(The program will always ensure the starting puzzle has at least one
+region of each colour, so that this is always possible!)
+
+If you need to clear a region, you can drag from an empty region, or
+from the puzzle boundary if there are no empty regions left.
+
+
+\H{map-parameters} \I{parameters, for Map}Map parameters
+
+These parameters are available from the \q{Custom...} option on the
+\q{Type} menu.
+
+\dt \e{Width}, \e{Height}
+
+\dd Size of grid in squares.
+
+\dt \e{Regions}
+
+\dd Number of regions in the generated map.
+
+\dt \e{Difficulty}
+
+\dd In \q{Easy} mode, there should always be at least one region
+whose colour can be determined trivially. In \q{Normal} mode, you
+will have to use more complex logic to deduce the colour of some
+regions. However, it will always be possible without having to
+guess or backtrack.
+
+
 \A{licence} \I{MIT licence}\ii{Licence}
 
 This software is \i{copyright} 2004-2005 Simon Tatham.

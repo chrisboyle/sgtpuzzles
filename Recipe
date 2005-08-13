@@ -22,10 +22,11 @@ FLIP     = flip tree234
 PEGS     = pegs tree234
 UNTANGLE = untangle tree234
 SLANT    = slant dsf
+MAP      = map dsf
 
 ALL      = list NET NETSLIDE cube fifteen sixteen rect pattern solo twiddle
          + MINES samegame FLIP guess PEGS dominosa UNTANGLE blackbox SLANT
-         + lightup
+         + lightup MAP
 
 net      : [X] gtk COMMON NET
 netslide : [X] gtk COMMON NETSLIDE
@@ -46,6 +47,7 @@ untangle : [X] gtk COMMON UNTANGLE
 blackbox : [X] gtk COMMON blackbox
 slant    : [X] gtk COMMON SLANT
 lightup  : [X] gtk COMMON lightup
+map      : [X] gtk COMMON MAP
 
 # Auxiliary command-line programs.
 solosolver :    [U] solo[STANDALONE_SOLVER] malloc
@@ -79,6 +81,7 @@ untangle : [G] WINDOWS COMMON UNTANGLE
 blackbox : [G] WINDOWS COMMON blackbox
 slant    : [G] WINDOWS COMMON SLANT
 lightup  : [G] WINDOWS COMMON lightup
+map      : [G] WINDOWS COMMON MAP
 
 # Mac OS X unified application containing all the puzzles.
 Puzzles  : [MX] osx osx.icns osx-info.plist COMMON ALL
@@ -170,7 +173,8 @@ FORCE:
 install:
 	for i in cube net netslide fifteen sixteen twiddle \
 	         pattern rect solo mines samegame flip guess \
-		 pegs dominosa untangle blackbox slant lightup; do \
+		 pegs dominosa untangle blackbox slant lightup \
+		 map; do \
 		$(INSTALL_PROGRAM) -m 755 $$i $(DESTDIR)$(gamesdir)/$$i; \
 	done
 !end
