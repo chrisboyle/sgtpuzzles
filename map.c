@@ -969,7 +969,7 @@ static int map_solver(struct solver_scratch *sc,
 static char *new_game_desc(game_params *params, random_state *rs,
 			   char **aux, int interactive)
 {
-    struct solver_scratch *sc;
+    struct solver_scratch *sc = NULL;
     int *map, *graph, ngraph, *colouring, *colouring2, *regions;
     int i, j, w, h, n, solveret, cfreq[FOUR];
     int wh;
@@ -1103,6 +1103,7 @@ static char *new_game_desc(game_params *params, random_state *rs,
 
         shuffle(regions, n, sizeof(*regions), rs);
 
+        if (sc) free_scratch(sc);
         sc = new_scratch(graph, n, ngraph);
 
         for (i = 0; i < n; i++) {
@@ -1703,7 +1704,7 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
         if (state->colouring[r] == c)
             return "";                 /* don't _need_ to change this region */
 
-	sprintf(buf, "%c:%d", (c < 0 ? 'C' : '0' + c), r);
+	sprintf(buf, "%c:%d", (int)(c < 0 ? 'C' : '0' + c), r);
 	return dupstr(buf);
     }
 
@@ -1841,6 +1842,7 @@ static game_drawstate *game_new_drawstate(game_state *state)
 
 static void game_free_drawstate(game_drawstate *ds)
 {
+    sfree(ds->drawn);
     if (ds->bl)
         blitter_free(ds->bl);
     sfree(ds);
