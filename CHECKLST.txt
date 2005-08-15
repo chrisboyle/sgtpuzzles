@@ -15,7 +15,9 @@ Add it to Recipe in _four_ places:
  - in the Unix `make install' section at the bottom.
 
 Add it to list.c so that the OS X binary will be able to select it
-from the menus.
+from the menus. (Also, double-check that the game structure name in
+the source file has been renamed from `nullgame'. Actually compiling
+it on OS X would be a good way to check this, if convenient.)
 
 Add a documentation section in puzzles.but.
 
