@@ -975,7 +975,7 @@ static char *validate_desc(game_params *params, char *desc)
     return NULL;
 }
 
-static game_state *new_game(midend_data *me, game_params *params, char *desc)
+static game_state *new_game(midend *me, game_params *params, char *desc)
 {
     game_state *state = snew(game_state);
     char *p = desc;
@@ -1344,8 +1344,8 @@ static game_state *execute_move(game_state *from, char *move)
  * Drawing routines.
  */
 
-static void game_set_size(game_drawstate *ds, game_params *params,
-			  int tilesize)
+static void game_set_size(drawing *dr, game_drawstate *ds,
+			  game_params *params, int tilesize)
 {
     ds->tilegap = 2;
     ds->tileinner = tilesize - ds->tilegap;
@@ -1356,7 +1356,7 @@ static void game_compute_size(game_params *params, int tilesize,
 {
     /* Ick: fake up tile size variables for macro expansion purposes */
     game_drawstate ads, *ds = &ads;
-    game_set_size(ds, params, tilesize);
+    game_set_size(NULL, ds, params, tilesize);
 
     *x = TILE_SIZE * params->w + 2 * BORDER - TILE_GAP;
     *y = TILE_SIZE * params->h + 2 * BORDER - TILE_GAP;
@@ -1424,7 +1424,7 @@ static float *game_colours(frontend *fe, game_state *state, int *ncolours)
     return ret;
 }
 
-static game_drawstate *game_new_drawstate(game_state *state)
+static game_drawstate *game_new_drawstate(drawing *dr, game_state *state)
 {
     struct game_drawstate *ds = snew(struct game_drawstate);
     int i;
@@ -1439,7 +1439,7 @@ static game_drawstate *game_new_drawstate(game_state *state)
     return ds;
 }
 
-static void game_free_drawstate(game_drawstate *ds)
+static void game_free_drawstate(drawing *dr, game_drawstate *ds)
 {
     sfree(ds->tiles);
     sfree(ds);
@@ -1451,7 +1451,7 @@ static void game_free_drawstate(game_drawstate *ds)
  * both then we fill the teeny tiny square in the corner as well.
  */
 
-static void tile_redraw(frontend *fe, game_drawstate *ds,
+static void tile_redraw(drawing *dr, game_drawstate *ds,
 			int x, int y, int dright, int dbelow,
                         int tile, int bgcolour)
 {
@@ -1468,33 +1468,33 @@ static void tile_redraw(frontend *fe, game_drawstate *ds,
 	    outer = inner = col;
 	}
     }
-    draw_rect(fe, COORD(x), COORD(y), TILE_INNER, TILE_INNER, outer);
-    draw_rect(fe, COORD(x)+TILE_INNER/4, COORD(y)+TILE_INNER/4,
+    draw_rect(dr, COORD(x), COORD(y), TILE_INNER, TILE_INNER, outer);
+    draw_rect(dr, COORD(x)+TILE_INNER/4, COORD(y)+TILE_INNER/4,
 	      TILE_INNER/2, TILE_INNER/2, inner);
 
     if (dright)
-	draw_rect(fe, COORD(x)+TILE_INNER, COORD(y), TILE_GAP, TILE_INNER,
+	draw_rect(dr, COORD(x)+TILE_INNER, COORD(y), TILE_GAP, TILE_INNER,
 		  (tile & TILE_JOINRIGHT) ? outer : bgcolour);
     if (dbelow)
-	draw_rect(fe, COORD(x), COORD(y)+TILE_INNER, TILE_INNER, TILE_GAP,
+	draw_rect(dr, COORD(x), COORD(y)+TILE_INNER, TILE_INNER, TILE_GAP,
 		  (tile & TILE_JOINDOWN) ? outer : bgcolour);
     if (dright && dbelow)
-	draw_rect(fe, COORD(x)+TILE_INNER, COORD(y)+TILE_INNER, TILE_GAP, TILE_GAP,
+	draw_rect(dr, COORD(x)+TILE_INNER, COORD(y)+TILE_INNER, TILE_GAP, TILE_GAP,
 		  (tile & TILE_JOINDIAG) ? outer : bgcolour);
 
     if (tile & TILE_HASSEL) {
 	int sx = COORD(x)+2, sy = COORD(y)+2, ssz = TILE_INNER-5;
 	int scol = (outer == COL_SEL) ? COL_LOWLIGHT : COL_HIGHLIGHT;
-	draw_line(fe, sx,     sy,     sx+ssz, sy,     scol);
-	draw_line(fe, sx+ssz, sy,     sx+ssz, sy+ssz, scol);
-	draw_line(fe, sx+ssz, sy+ssz, sx,     sy+ssz, scol);
-	draw_line(fe, sx,     sy+ssz, sx,     sy,     scol);
+	draw_line(dr, sx,     sy,     sx+ssz, sy,     scol);
+	draw_line(dr, sx+ssz, sy,     sx+ssz, sy+ssz, scol);
+	draw_line(dr, sx+ssz, sy+ssz, sx,     sy+ssz, scol);
+	draw_line(dr, sx,     sy+ssz, sx,     sy,     scol);
     }
 
-    draw_update(fe, COORD(x), COORD(y), TILE_SIZE, TILE_SIZE);
+    draw_update(dr, COORD(x), COORD(y), TILE_SIZE, TILE_SIZE);
 }
 
-static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
+static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 			game_state *state, int dir, game_ui *ui,
 			float animtime, float flashtime)
 {
@@ -1505,10 +1505,10 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
     if (!ds->started) {
 	int coords[10];
 
-	draw_rect(fe, 0, 0,
+	draw_rect(dr, 0, 0,
 		  TILE_SIZE * state->params.w + 2 * BORDER,
 		  TILE_SIZE * state->params.h + 2 * BORDER, COL_BACKGROUND);
-	draw_update(fe, 0, 0,
+	draw_update(dr, 0, 0,
 		    TILE_SIZE * state->params.w + 2 * BORDER,
 		    TILE_SIZE * state->params.h + 2 * BORDER);
 
@@ -1525,11 +1525,11 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 	coords[9] = COORD(state->params.h) + HIGHLIGHT_WIDTH - 1 - TILE_GAP;
 	coords[6] = coords[8] + TILE_SIZE;
 	coords[7] = coords[9] - TILE_SIZE;
-	draw_polygon(fe, coords, 5, COL_HIGHLIGHT, COL_HIGHLIGHT);
+	draw_polygon(dr, coords, 5, COL_HIGHLIGHT, COL_HIGHLIGHT);
 
 	coords[1] = COORD(0) - HIGHLIGHT_WIDTH;
 	coords[0] = COORD(0) - HIGHLIGHT_WIDTH;
-	draw_polygon(fe, coords, 5, COL_LOWLIGHT, COL_LOWLIGHT);
+	draw_polygon(dr, coords, 5, COL_LOWLIGHT, COL_LOWLIGHT);
 
 	ds->started = 1;
     }
@@ -1567,7 +1567,7 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 	    if ((oldstate && COL(oldstate,x,y) != col) ||
 		(ds->bgcolour != bgcolour) ||
 		(tile != ds->tiles[i])) {
-		tile_redraw(fe, ds, x, y, dright, dbelow, tile, bgcolour);
+		tile_redraw(dr, ds, x, y, dright, dbelow, tile, bgcolour);
 		ds->tiles[i] = tile;
 	    }
 	}
@@ -1588,7 +1588,7 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 		    score, ui->nselected, npoints(&state->params, ui->nselected));
 	else
 	    sprintf(status, "%s", score);
-	status_bar(fe, status);
+	status_bar(dr, status);
     }
 }
 
@@ -1616,6 +1616,14 @@ static int game_wants_statusbar(void)
 static int game_timing_state(game_state *state, game_ui *ui)
 {
     return TRUE;
+}
+
+static void game_print_size(game_params *params, float *x, float *y)
+{
+}
+
+static void game_print(drawing *dr, game_state *state, int tilesize)
+{
 }
 
 #ifdef COMBINED
@@ -1653,6 +1661,7 @@ const struct game thegame = {
     game_redraw,
     game_anim_length,
     game_flash_length,
+    FALSE, FALSE, game_print_size, game_print,
     game_wants_statusbar,
     FALSE, game_timing_state,
     0,				       /* mouse_priorities */

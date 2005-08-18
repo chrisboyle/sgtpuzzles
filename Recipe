@@ -14,7 +14,7 @@
 !makefile osx Makefile.osx
 
 WINDOWS  = windows user32.lib gdi32.lib comctl32.lib comdlg32.lib
-COMMON   = midend misc malloc random version
+COMMON   = midend drawing misc malloc random version
 NET      = net tree234 dsf
 NETSLIDE = netslide tree234
 MINES    = mines tree234
@@ -28,26 +28,28 @@ ALL      = list NET NETSLIDE cube fifteen sixteen rect pattern solo twiddle
          + MINES samegame FLIP guess PEGS dominosa UNTANGLE blackbox SLANT
          + lightup MAP
 
-net      : [X] gtk COMMON NET
-netslide : [X] gtk COMMON NETSLIDE
-cube     : [X] gtk COMMON cube
-fifteen  : [X] gtk COMMON fifteen
-sixteen  : [X] gtk COMMON sixteen
-rect     : [X] gtk COMMON rect
-pattern  : [X] gtk COMMON pattern
-solo     : [X] gtk COMMON solo
-twiddle  : [X] gtk COMMON twiddle
-mines    : [X] gtk COMMON MINES
-samegame : [X] gtk COMMON samegame
-flip     : [X] gtk COMMON FLIP
-guess    : [X] gtk COMMON guess
-pegs     : [X] gtk COMMON PEGS
-dominosa : [X] gtk COMMON dominosa
-untangle : [X] gtk COMMON UNTANGLE
-blackbox : [X] gtk COMMON blackbox
-slant    : [X] gtk COMMON SLANT
-lightup  : [X] gtk COMMON lightup
-map      : [X] gtk COMMON MAP
+GTK      = gtk printing ps
+
+net      : [X] GTK COMMON NET
+netslide : [X] GTK COMMON NETSLIDE
+cube     : [X] GTK COMMON cube
+fifteen  : [X] GTK COMMON fifteen
+sixteen  : [X] GTK COMMON sixteen
+rect     : [X] GTK COMMON rect
+pattern  : [X] GTK COMMON pattern
+solo     : [X] GTK COMMON solo
+twiddle  : [X] GTK COMMON twiddle
+mines    : [X] GTK COMMON MINES
+samegame : [X] GTK COMMON samegame
+flip     : [X] GTK COMMON FLIP
+guess    : [X] GTK COMMON guess
+pegs     : [X] GTK COMMON PEGS
+dominosa : [X] GTK COMMON dominosa
+untangle : [X] GTK COMMON UNTANGLE
+blackbox : [X] GTK COMMON blackbox
+slant    : [X] GTK COMMON SLANT
+lightup  : [X] GTK COMMON lightup
+map      : [X] GTK COMMON MAP
 
 # Auxiliary command-line programs.
 solosolver :    [U] solo[STANDALONE_SOLVER] malloc
@@ -123,7 +125,7 @@ Puzzles.dmg: Puzzles
 # it in the Makefile because it will be worse than useless if it
 # ever fails to compile, so it's important that it should actually
 # be built on a regular basis.
-nullgame : [X] gtk COMMON nullgame
+nullgame : [X] GTK COMMON nullgame
 nullgame : [G] WINDOWS COMMON nullgame
 
 # Version management.

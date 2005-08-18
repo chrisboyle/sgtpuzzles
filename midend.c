@@ -25,7 +25,7 @@ struct midend_state_entry {
     int movetype;
 };
 
-struct midend_data {
+struct midend {
     frontend *frontend;
     random_state *random;
     const game *ourgame;
@@ -76,6 +76,8 @@ struct midend_data {
     float elapsed;
     char *laststatus;
 
+    drawing *drawing;
+
     int pressed_mouse_button;
 
     int tilesize, winwidth, winheight;
@@ -89,9 +91,10 @@ struct midend_data {
     } \
 } while (0)
 
-midend_data *midend_new(frontend *fe, const game *ourgame)
+midend *midend_new(frontend *fe, const game *ourgame,
+		   const drawing_api *drapi, void *drhandle)
 {
-    midend_data *me = snew(midend_data);
+    midend *me = snew(midend);
     void *randseed;
     int randseedsize;
 
@@ -122,13 +125,17 @@ midend_data *midend_new(frontend *fe, const game *ourgame)
     me->timing = FALSE;
     me->elapsed = 0.0F;
     me->tilesize = me->winwidth = me->winheight = 0;
+    if (drapi)
+	me->drawing = drawing_init(drapi, drhandle);
+    else
+	me->drawing = NULL;
 
     sfree(randseed);
 
     return me;
 }
 
-static void midend_free_game(midend_data *me)
+static void midend_free_game(midend *me)
 {
     while (me->nstates > 0) {
         me->nstates--;
@@ -137,15 +144,17 @@ static void midend_free_game(midend_data *me)
     }
 
     if (me->drawstate)
-        me->ourgame->free_drawstate(me->drawstate);
+        me->ourgame->free_drawstate(me->drawing, me->drawstate);
 }
 
-void midend_free(midend_data *me)
+void midend_free(midend *me)
 {
     int i;
 
     midend_free_game(me);
 
+    if (me->drawing)
+	drawing_free(me->drawing);
     random_free(me->random);
     sfree(me->states);
     sfree(me->desc);
@@ -169,7 +178,7 @@ void midend_free(midend_data *me)
     sfree(me);
 }
 
-static void midend_size_new_drawstate(midend_data *me)
+static void midend_size_new_drawstate(midend *me)
 {
     /*
      * Don't even bother, if we haven't worked out our tile size
@@ -178,11 +187,12 @@ static void midend_size_new_drawstate(midend_data *me)
     if (me->tilesize > 0) {
 	me->ourgame->compute_size(me->params, me->tilesize,
 				  &me->winwidth, &me->winheight);
-	me->ourgame->set_size(me->drawstate, me->params, me->tilesize);
+	me->ourgame->set_size(me->drawing, me->drawstate,
+			      me->params, me->tilesize);
     }
 }
 
-void midend_size(midend_data *me, int *x, int *y, int expand)
+void midend_size(midend *me, int *x, int *y, int expand)
 {
     int min, max;
     int rx, ry;
@@ -228,13 +238,13 @@ void midend_size(midend_data *me, int *x, int *y, int expand)
     *y = me->winheight;
 }
 
-void midend_set_params(midend_data *me, game_params *params)
+void midend_set_params(midend *me, game_params *params)
 {
     me->ourgame->free_params(me->params);
     me->params = me->ourgame->dup_params(params);
 }
 
-static void midend_set_timer(midend_data *me)
+static void midend_set_timer(midend *me)
 {
     me->timing = (me->ourgame->is_timed &&
 		  me->ourgame->timing_state(me->states[me->statepos-1].state,
@@ -245,16 +255,17 @@ static void midend_set_timer(midend_data *me)
 	deactivate_timer(me->frontend);
 }
 
-void midend_force_redraw(midend_data *me)
+void midend_force_redraw(midend *me)
 {
     if (me->drawstate)
-        me->ourgame->free_drawstate(me->drawstate);
-    me->drawstate = me->ourgame->new_drawstate(me->states[0].state);
+        me->ourgame->free_drawstate(me->drawing, me->drawstate);
+    me->drawstate = me->ourgame->new_drawstate(me->drawing,
+					       me->states[0].state);
     midend_size_new_drawstate(me);
     midend_redraw(me);
 }
 
-void midend_new_game(midend_data *me)
+void midend_new_game(midend *me)
 {
     midend_free_game(me);
 
@@ -296,8 +307,14 @@ void midend_new_game(midend_data *me)
 	me->aux_info = NULL;
 
         rs = random_init(me->seedstr, strlen(me->seedstr));
+	/*
+	 * If this midend has been instantiated without providing a
+	 * drawing API, it is non-interactive. This means that it's
+	 * being used for bulk game generation, and hence we should
+	 * pass the non-interactive flag to new_desc.
+	 */
         me->desc = me->ourgame->new_desc(me->curparams, rs,
-					 &me->aux_info, TRUE);
+					 &me->aux_info, (me->drawing != NULL));
 	me->privdesc = NULL;
         random_free(rs);
     }
@@ -309,7 +326,8 @@ void midend_new_game(midend_data *me)
     me->states[me->nstates].movetype = NEWGAME;
     me->nstates++;
     me->statepos = 1;
-    me->drawstate = me->ourgame->new_drawstate(me->states[0].state);
+    me->drawstate = me->ourgame->new_drawstate(me->drawing,
+					       me->states[0].state);
     midend_size_new_drawstate(me);
     me->elapsed = 0.0F;
     if (me->ui)
@@ -319,7 +337,7 @@ void midend_new_game(midend_data *me)
     me->pressed_mouse_button = 0;
 }
 
-static int midend_undo(midend_data *me)
+static int midend_undo(midend *me)
 {
     if (me->statepos > 1) {
         if (me->ui)
@@ -333,7 +351,7 @@ static int midend_undo(midend_data *me)
         return 0;
 }
 
-static int midend_redo(midend_data *me)
+static int midend_redo(midend *me)
 {
     if (me->statepos < me->nstates) {
         if (me->ui)
@@ -347,7 +365,7 @@ static int midend_redo(midend_data *me)
         return 0;
 }
 
-static void midend_finish_move(midend_data *me)
+static void midend_finish_move(midend *me)
 {
     float flashtime;
 
@@ -380,7 +398,7 @@ static void midend_finish_move(midend_data *me)
     midend_set_timer(me);
 }
 
-void midend_stop_anim(midend_data *me)
+void midend_stop_anim(midend *me)
 {
     if (me->oldstate || me->anim_time != 0) {
 	midend_finish_move(me);
@@ -388,7 +406,7 @@ void midend_stop_anim(midend_data *me)
     }
 }
 
-void midend_restart_game(midend_data *me)
+void midend_restart_game(midend *me)
 {
     game_state *s;
 
@@ -428,7 +446,7 @@ void midend_restart_game(midend_data *me)
     midend_set_timer(me);
 }
 
-static int midend_really_process_key(midend_data *me, int x, int y, int button)
+static int midend_really_process_key(midend *me, int x, int y, int button)
 {
     game_state *oldstate =
         me->ourgame->dup_game(me->states[me->statepos - 1].state);
@@ -534,7 +552,7 @@ static int midend_really_process_key(midend_data *me, int x, int y, int button)
     return ret;
 }
 
-int midend_process_key(midend_data *me, int x, int y, int button)
+int midend_process_key(midend *me, int x, int y, int button)
 {
     int ret = 1;
 
@@ -648,26 +666,28 @@ int midend_process_key(midend_data *me, int x, int y, int button)
     return ret;
 }
 
-void midend_redraw(midend_data *me)
+void midend_redraw(midend *me)
 {
+    assert(me->drawing);
+
     if (me->statepos > 0 && me->drawstate) {
-        start_draw(me->frontend);
+        start_draw(me->drawing);
         if (me->oldstate && me->anim_time > 0 &&
             me->anim_pos < me->anim_time) {
             assert(me->dir != 0);
-            me->ourgame->redraw(me->frontend, me->drawstate, me->oldstate,
+            me->ourgame->redraw(me->drawing, me->drawstate, me->oldstate,
 				me->states[me->statepos-1].state, me->dir,
 				me->ui, me->anim_pos, me->flash_pos);
         } else {
-            me->ourgame->redraw(me->frontend, me->drawstate, NULL,
+            me->ourgame->redraw(me->drawing, me->drawstate, NULL,
 				me->states[me->statepos-1].state, +1 /*shrug*/,
 				me->ui, 0.0, me->flash_pos);
         }
-        end_draw(me->frontend);
+        end_draw(me->drawing);
     }
 }
 
-void midend_timer(midend_data *me, float tplus)
+void midend_timer(midend *me, float tplus)
 {
     me->anim_pos += tplus;
     if (me->anim_pos >= me->anim_time ||
@@ -687,13 +707,13 @@ void midend_timer(midend_data *me, float tplus)
 	float oldelapsed = me->elapsed;
 	me->elapsed += tplus;
 	if ((int)oldelapsed != (int)me->elapsed)
-	    status_bar(me->frontend, me->laststatus ? me->laststatus : "");
+	    status_bar(me->drawing, me->laststatus ? me->laststatus : "");
     }
 
     midend_set_timer(me);
 }
 
-float *midend_colours(midend_data *me, int *ncolours)
+float *midend_colours(midend *me, int *ncolours)
 {
     game_state *state = NULL;
     float *ret;
@@ -744,7 +764,7 @@ float *midend_colours(midend_data *me, int *ncolours)
     return ret;
 }
 
-int midend_num_presets(midend_data *me)
+int midend_num_presets(midend *me)
 {
     if (!me->npresets) {
         char *name;
@@ -823,7 +843,7 @@ int midend_num_presets(midend_data *me)
     return me->npresets;
 }
 
-void midend_fetch_preset(midend_data *me, int n,
+void midend_fetch_preset(midend *me, int n,
                          char **name, game_params **params)
 {
     assert(n >= 0 && n < me->npresets);
@@ -831,12 +851,12 @@ void midend_fetch_preset(midend_data *me, int n,
     *params = me->presets[n];
 }
 
-int midend_wants_statusbar(midend_data *me)
+int midend_wants_statusbar(midend *me)
 {
     return me->ourgame->wants_statusbar();
 }
 
-void midend_supersede_game_desc(midend_data *me, char *desc, char *privdesc)
+void midend_supersede_game_desc(midend *me, char *desc, char *privdesc)
 {
     sfree(me->desc);
     sfree(me->privdesc);
@@ -844,7 +864,7 @@ void midend_supersede_game_desc(midend_data *me, char *desc, char *privdesc)
     me->privdesc = privdesc ? dupstr(privdesc) : NULL;
 }
 
-config_item *midend_get_config(midend_data *me, int which, char **wintitle)
+config_item *midend_get_config(midend *me, int which, char **wintitle)
 {
     char *titlebuf, *parstr, *rest;
     config_item *ret;
@@ -909,7 +929,7 @@ config_item *midend_get_config(midend_data *me, int which, char **wintitle)
     return NULL;
 }
 
-static char *midend_game_id_int(midend_data *me, char *id, int defmode)
+static char *midend_game_id_int(midend *me, char *id, int defmode)
 {
     char *error, *par, *desc, *seed;
     game_params *newcurparams, *newparams, *oldparams1, *oldparams2;
@@ -1043,12 +1063,25 @@ static char *midend_game_id_int(midend_data *me, char *id, int defmode)
     return NULL;
 }
 
-char *midend_game_id(midend_data *me, char *id)
+char *midend_game_id(midend *me, char *id)
 {
     return midend_game_id_int(me, id, DEF_PARAMS);
 }
 
-char *midend_set_config(midend_data *me, int which, config_item *cfg)
+char *midend_get_game_id(midend *me)
+{
+    char *parstr, *ret;
+
+    parstr = me->ourgame->encode_params(me->curparams, FALSE);
+    assert(parstr);
+    assert(me->desc);
+    ret = snewn(strlen(parstr) + strlen(me->desc) + 2, char);
+    sprintf(ret, "%s:%s", parstr, me->desc);
+    sfree(parstr);
+    return ret;
+}
+
+char *midend_set_config(midend *me, int which, config_item *cfg)
 {
     char *error;
     game_params *params;
@@ -1079,7 +1112,7 @@ char *midend_set_config(midend_data *me, int which, config_item *cfg)
     return NULL;
 }
 
-char *midend_text_format(midend_data *me)
+char *midend_text_format(midend *me)
 {
     if (me->ourgame->can_format_as_text && me->statepos > 0)
 	return me->ourgame->text_format(me->states[me->statepos-1].state);
@@ -1087,7 +1120,7 @@ char *midend_text_format(midend_data *me)
 	return NULL;
 }
 
-char *midend_solve(midend_data *me)
+char *midend_solve(midend *me)
 {
     game_state *s;
     char *msg, *movestr;
@@ -1139,7 +1172,7 @@ char *midend_solve(midend_data *me)
     return NULL;
 }
 
-char *midend_rewrite_statusbar(midend_data *me, char *text)
+char *midend_rewrite_statusbar(midend *me, char *text)
 {
     /*
      * An important special case is that we are occasionally called
@@ -1172,7 +1205,7 @@ char *midend_rewrite_statusbar(midend_data *me, char *text)
 #define SERIALISE_MAGIC "Simon Tatham's Portable Puzzle Collection"
 #define SERIALISE_VERSION "1"
 
-void midend_serialise(midend_data *me,
+void midend_serialise(midend *me,
                       void (*write)(void *ctx, void *buf, int len),
                       void *wctx)
 {
@@ -1321,7 +1354,7 @@ void midend_serialise(midend_data *me,
 /*
  * This function returns NULL on success, or an error message.
  */
-char *midend_deserialise(midend_data *me,
+char *midend_deserialise(midend *me,
                          int (*read)(void *ctx, void *buf, int len),
                          void *rctx)
 {
@@ -1337,7 +1370,7 @@ char *midend_deserialise(midend_data *me,
      * We construct all the new state in local variables while we
      * check its sanity. Only once we have finished reading the
      * serialised data and detected no errors at all do we start
-     * modifying stuff in the midend_data passed in.
+     * modifying stuff in the midend passed in.
      */
     char *seed = NULL, *parstr = NULL, *desc = NULL, *privdesc = NULL;
     char *auxinfo = NULL, *uistr = NULL, *cparstr = NULL;
@@ -1632,9 +1665,10 @@ char *midend_deserialise(midend_data *me,
     midend_set_timer(me);
 
     if (me->drawstate)
-        me->ourgame->free_drawstate(me->drawstate);
+        me->ourgame->free_drawstate(me->drawing, me->drawstate);
     me->drawstate =
-        me->ourgame->new_drawstate(me->states[me->statepos-1].state);
+        me->ourgame->new_drawstate(me->drawing,
+				   me->states[me->statepos-1].state);
     midend_size_new_drawstate(me);
 
     ret = NULL;                        /* success! */
@@ -1666,4 +1700,44 @@ char *midend_deserialise(midend_data *me,
     }
 
     return ret;
+}
+
+char *midend_print_puzzle(midend *me, document *doc, int with_soln)
+{
+    game_state *soln = NULL;
+
+    if (me->statepos < 1)
+	return "No game set up to print";/* _shouldn't_ happen! */
+
+    if (with_soln) {
+	char *msg, *movestr;
+
+	if (!me->ourgame->can_solve)
+	    return "This game does not support the Solve operation";
+
+	msg = "Solve operation failed";/* game _should_ overwrite on error */
+	movestr = me->ourgame->solve(me->states[0].state,
+				     me->states[me->statepos-1].state,
+				     me->aux_info, &msg);
+	if (!movestr)
+	    return msg;
+	soln = me->ourgame->execute_move(me->states[me->statepos-1].state,
+					 movestr);
+	assert(soln);
+
+	sfree(movestr);
+    } else
+	soln = NULL;
+
+    /*
+     * This call passes over ownership of the two game_states and
+     * the game_params. Hence we duplicate the ones we want to
+     * keep, and we don't have to bother freeing soln if it was
+     * non-NULL.
+     */
+    document_add_puzzle(doc, me->ourgame,
+			me->ourgame->dup_params(me->curparams),
+			me->ourgame->dup_game(me->states[0].state), soln);
+
+    return NULL;
 }

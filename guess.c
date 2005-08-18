@@ -309,7 +309,7 @@ static char *validate_desc(game_params *params, char *desc)
     return NULL;
 }
 
-static game_state *new_game(midend_data *me, game_params *params, char *desc)
+static game_state *new_game(midend *me, game_params *params, char *desc)
 {
     game_state *state = snew(game_state);
     unsigned char *bmp;
@@ -411,8 +411,8 @@ struct game_ui {
 
 static game_ui *new_ui(game_state *state)
 {
-    game_ui *ui = snew(struct game_ui);
-    memset(ui, 0, sizeof(struct game_ui));
+    game_ui *ui = snew(game_ui);
+    memset(ui, 0, sizeof(game_ui));
     ui->params = state->params;        /* structure copy */
     ui->curr_pegs = new_pegrow(state->params.npegs);
     ui->holds = snewn(state->params.npegs, int);
@@ -833,8 +833,8 @@ static void game_compute_size(game_params *params, int tilesize,
     *y = (int)ceil((double)tilesize * vmul);
 }
 
-static void game_set_size(game_drawstate *ds, game_params *params,
-			  int tilesize)
+static void game_set_size(drawing *dr, game_drawstate *ds,
+			  game_params *params, int tilesize)
 {
     int colh, guessh;
 
@@ -860,8 +860,8 @@ static void game_set_size(game_drawstate *ds, game_params *params,
     ds->solny = ds->guessy + ((ds->pegsz + ds->gapsz) * params->nguesses) + ds->gapsz;
 
     assert(ds->pegsz > 0);
-    if (ds->blit_peg) blitter_free(ds->blit_peg);
-    ds->blit_peg = blitter_new(ds->pegsz, ds->pegsz);
+    if (ds->blit_peg) blitter_free(dr, ds->blit_peg);
+    ds->blit_peg = blitter_new(dr, ds->pegsz, ds->pegsz);
 }
 
 static float *game_colours(frontend *fe, game_state *state, int *ncolours)
@@ -968,7 +968,7 @@ static float *game_colours(frontend *fe, game_state *state, int *ncolours)
     return ret;
 }
 
-static game_drawstate *game_new_drawstate(game_state *state)
+static game_drawstate *game_new_drawstate(drawing *dr, game_state *state)
 {
     struct game_drawstate *ds = snew(struct game_drawstate);
     int i;
@@ -993,11 +993,11 @@ static game_drawstate *game_new_drawstate(game_state *state)
     return ds;
 }
 
-static void game_free_drawstate(game_drawstate *ds)
+static void game_free_drawstate(drawing *dr, game_drawstate *ds)
 {
     int i;
 
-    if (ds->blit_peg) blitter_free(ds->blit_peg);
+    if (ds->blit_peg) blitter_free(dr, ds->blit_peg);
     free_pegrow(ds->colours);
     free_pegrow(ds->solution);
     for (i = 0; i < ds->nguesses; i++)
@@ -1006,7 +1006,7 @@ static void game_free_drawstate(game_drawstate *ds)
     sfree(ds);
 }
 
-static void draw_peg(frontend *fe, game_drawstate *ds, int cx, int cy,
+static void draw_peg(drawing *dr, game_drawstate *ds, int cx, int cy,
 		     int moving, int col)
 {
     /*
@@ -1018,24 +1018,24 @@ static void draw_peg(frontend *fe, game_drawstate *ds, int cx, int cy,
      * behind it.
      */
     if (!moving)
-        draw_rect(fe, cx-CGAP, cy-CGAP, PEGSZ+CGAP*2, PEGSZ+CGAP*2,
+        draw_rect(dr, cx-CGAP, cy-CGAP, PEGSZ+CGAP*2, PEGSZ+CGAP*2,
                   COL_BACKGROUND);
     if (PEGRAD > 0) {
-        draw_circle(fe, cx+PEGRAD, cy+PEGRAD, PEGRAD,
+        draw_circle(dr, cx+PEGRAD, cy+PEGRAD, PEGRAD,
 		    COL_EMPTY + col, COL_EMPTY + col);
     } else
-        draw_rect(fe, cx, cy, PEGSZ, PEGSZ, COL_EMPTY + col);
-    draw_update(fe, cx-CGAP, cy-CGAP, PEGSZ+CGAP*2, PEGSZ+CGAP*2);
+        draw_rect(dr, cx, cy, PEGSZ, PEGSZ, COL_EMPTY + col);
+    draw_update(dr, cx-CGAP, cy-CGAP, PEGSZ+CGAP*2, PEGSZ+CGAP*2);
 }
 
-static void draw_cursor(frontend *fe, game_drawstate *ds, int x, int y)
+static void draw_cursor(drawing *dr, game_drawstate *ds, int x, int y)
 {
-    draw_circle(fe, x+PEGRAD, y+PEGRAD, PEGRAD+CGAP, -1, COL_CURSOR);
+    draw_circle(dr, x+PEGRAD, y+PEGRAD, PEGRAD+CGAP, -1, COL_CURSOR);
 
-    draw_update(fe, x-CGAP, y-CGAP, PEGSZ+CGAP*2, PEGSZ+CGAP*2);
+    draw_update(dr, x-CGAP, y-CGAP, PEGSZ+CGAP*2, PEGSZ+CGAP*2);
 }
 
-static void guess_redraw(frontend *fe, game_drawstate *ds, int guess,
+static void guess_redraw(drawing *dr, game_drawstate *ds, int guess,
                          pegrow src, int *holds, int cur_col, int force)
 {
     pegrow dest;
@@ -1059,22 +1059,22 @@ static void guess_redraw(frontend *fe, game_drawstate *ds, int guess,
         if (holds && holds[i])
             scol |= 0x2000;
         if ((dest->pegs[i] != scol) || force) {
-	    draw_peg(fe, ds, rowx + PEGOFF * i, rowy, FALSE, scol &~ 0x3000);
+	    draw_peg(dr, ds, rowx + PEGOFF * i, rowy, FALSE, scol &~ 0x3000);
             /*
              * Hold marker.
              */
-            draw_rect(fe, rowx + PEGOFF * i, rowy + PEGSZ + ds->gapsz/2,
+            draw_rect(dr, rowx + PEGOFF * i, rowy + PEGSZ + ds->gapsz/2,
                       PEGSZ, 2, (scol & 0x2000 ? COL_HOLD : COL_BACKGROUND));
-            draw_update(fe, rowx + PEGOFF * i, rowy + PEGSZ + ds->gapsz/2,
+            draw_update(dr, rowx + PEGOFF * i, rowy + PEGSZ + ds->gapsz/2,
                         PEGSZ, 2);
             if (scol & 0x1000)
-                draw_cursor(fe, ds, rowx + PEGOFF * i, rowy);
+                draw_cursor(dr, ds, rowx + PEGOFF * i, rowy);
         }
         dest->pegs[i] = scol;
     }
 }
 
-static void hint_redraw(frontend *fe, game_drawstate *ds, int guess,
+static void hint_redraw(drawing *dr, game_drawstate *ds, int guess,
                         pegrow src, int force, int cursor, int markable)
 {
     pegrow dest = ds->guesses[guess];
@@ -1112,7 +1112,7 @@ static void hint_redraw(frontend *fe, game_drawstate *ds, int guess,
         hw = HINT_W+GAP*2; hh = hinth+GAP*2;
 
         /* erase a large background rectangle */
-        draw_rect(fe, hx, hy, hw, hh, COL_BACKGROUND);
+        draw_rect(dr, hx, hy, hw, hh, COL_BACKGROUND);
 
         for (i = 0; i < dest->npegs; i++) {
             scol = src ? src->feedback[i] : 0;
@@ -1129,34 +1129,34 @@ static void hint_redraw(frontend *fe, game_drawstate *ds, int guess,
                 rowy += HINTOFF;
             }
             if (HINTRAD > 0) {
-                draw_circle(fe, rowx+HINTRAD, rowy+HINTRAD, HINTRAD, col, col);
+                draw_circle(dr, rowx+HINTRAD, rowy+HINTRAD, HINTRAD, col, col);
             } else {
-                draw_rect(fe, rowx, rowy, HINTSZ, HINTSZ, col);
+                draw_rect(dr, rowx, rowy, HINTSZ, HINTSZ, col);
             }
         }
         if (cursor) {
             int x1,y1,x2,y2;
             x1 = hx + CGAP; y1 = hy + CGAP;
             x2 = hx + hw - CGAP; y2 = hy + hh - CGAP;
-            draw_line(fe, x1, y1, x2, y1, COL_CURSOR);
-            draw_line(fe, x2, y1, x2, y2, COL_CURSOR);
-            draw_line(fe, x2, y2, x1, y2, COL_CURSOR);
-            draw_line(fe, x1, y2, x1, y1, COL_CURSOR);
+            draw_line(dr, x1, y1, x2, y1, COL_CURSOR);
+            draw_line(dr, x2, y1, x2, y2, COL_CURSOR);
+            draw_line(dr, x2, y2, x1, y2, COL_CURSOR);
+            draw_line(dr, x1, y2, x1, y1, COL_CURSOR);
         }
 
-        draw_update(fe, hx, hy, hw, hh);
+        draw_update(dr, hx, hy, hw, hh);
     }
 }
 
-static void currmove_redraw(frontend *fe, game_drawstate *ds, int guess, int col)
+static void currmove_redraw(drawing *dr, game_drawstate *ds, int guess, int col)
 {
     int ox = GUESS_X(guess, 0), oy = GUESS_Y(guess, 0), off = PEGSZ/4;
 
-    draw_rect(fe, ox-off-1, oy, 2, PEGSZ, col);
-    draw_update(fe, ox-off-1, oy, 2, PEGSZ);
+    draw_rect(dr, ox-off-1, oy, 2, PEGSZ, col);
+    draw_update(dr, ox-off-1, oy, 2, PEGSZ);
 }
 
-static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
+static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 			game_state *state, int dir, game_ui *ui,
 			float animtime, float flashtime)
 {
@@ -1166,15 +1166,15 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
     last_go = (state->next_go == state->params.nguesses-1);
 
     if (!ds->started) {
-      draw_rect(fe, 0, 0, ds->w, ds->h, COL_BACKGROUND);
-      draw_rect(fe, SOLN_OX, SOLN_OY - ds->gapsz - 1, SOLN_W, 2, COL_FRAME);
-      draw_update(fe, 0, 0, ds->w, ds->h);
+      draw_rect(dr, 0, 0, ds->w, ds->h, COL_BACKGROUND);
+      draw_rect(dr, SOLN_OX, SOLN_OY - ds->gapsz - 1, SOLN_W, 2, COL_FRAME);
+      draw_update(dr, 0, 0, ds->w, ds->h);
     }
 
     if (ds->drag_col != 0) {
         debug(("Loading from blitter."));
-        blitter_load(fe, ds->blit_peg, ds->blit_ox, ds->blit_oy);
-        draw_update(fe, ds->blit_ox, ds->blit_oy, PEGSZ, PEGSZ);
+        blitter_load(dr, ds->blit_peg, ds->blit_ox, ds->blit_oy);
+        draw_update(dr, ds->blit_ox, ds->blit_oy, PEGSZ, PEGSZ);
     }
 
     /* draw the colours */
@@ -1183,9 +1183,9 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
         if (ui->display_cur && ui->colour_cur == i)
             val |= 0x1000;
         if (ds->colours->pegs[i] != val) {
-	    draw_peg(fe, ds, COL_X(i), COL_Y(i), FALSE, i+1);
+	    draw_peg(dr, ds, COL_X(i), COL_Y(i), FALSE, i+1);
             if (val & 0x1000)
-                draw_cursor(fe, ds, COL_X(i), COL_Y(i));
+                draw_cursor(dr, ds, COL_X(i), COL_Y(i));
             ds->colours->pegs[i] = val;
         }
     }
@@ -1194,38 +1194,38 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
     for (i = 0; i < state->params.nguesses; i++) {
         if (state->next_go > i || state->solved) {
             /* this info is stored in the game_state already */
-            guess_redraw(fe, ds, i, state->guesses[i], NULL, -1, 0);
-            hint_redraw(fe, ds, i, state->guesses[i],
+            guess_redraw(dr, ds, i, state->guesses[i], NULL, -1, 0);
+            hint_redraw(dr, ds, i, state->guesses[i],
                         i == (state->next_go-1) ? 1 : 0, FALSE, FALSE);
         } else if (state->next_go == i) {
             /* this is the one we're on; the (incomplete) guess is
              * stored in the game_ui. */
-            guess_redraw(fe, ds, i, ui->curr_pegs,
+            guess_redraw(dr, ds, i, ui->curr_pegs,
                          ui->holds, ui->display_cur ? ui->peg_cur : -1, 0);
-            hint_redraw(fe, ds, i, NULL, 1,
+            hint_redraw(dr, ds, i, NULL, 1,
                         ui->display_cur && ui->peg_cur == state->params.npegs,
                         ui->markable);
         } else {
             /* we've not got here yet; it's blank. */
-            guess_redraw(fe, ds, i, NULL, NULL, -1, 0);
-            hint_redraw(fe, ds, i, NULL, 0, FALSE, FALSE);
+            guess_redraw(dr, ds, i, NULL, NULL, -1, 0);
+            hint_redraw(dr, ds, i, NULL, 0, FALSE, FALSE);
         }
     }
 
     /* draw the 'current move' and 'able to mark' sign. */
     if (new_move)
-        currmove_redraw(fe, ds, ds->next_go, COL_BACKGROUND);
+        currmove_redraw(dr, ds, ds->next_go, COL_BACKGROUND);
     if (!state->solved)
-        currmove_redraw(fe, ds, state->next_go, COL_HOLD);
+        currmove_redraw(dr, ds, state->next_go, COL_HOLD);
 
     /* draw the solution (or the big rectangle) */
     if ((state->solved != ds->solved) || !ds->started) {
-        draw_rect(fe, SOLN_OX, SOLN_OY, SOLN_W, SOLN_H,
+        draw_rect(dr, SOLN_OX, SOLN_OY, SOLN_W, SOLN_H,
                   state->solved ? COL_BACKGROUND : COL_EMPTY);
-        draw_update(fe, SOLN_OX, SOLN_OY, SOLN_W, SOLN_H);
+        draw_update(dr, SOLN_OX, SOLN_OY, SOLN_W, SOLN_H);
     }
     if (state->solved)
-        guess_redraw(fe, ds, -1, state->solution, NULL, -1, !ds->solved);
+        guess_redraw(dr, ds, -1, state->solution, NULL, -1, !ds->solved);
     ds->solved = state->solved;
 
     ds->next_go = state->next_go;
@@ -1236,8 +1236,8 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
         int ox = ui->drag_x - (PEGSZ/2);
         int oy = ui->drag_y - (PEGSZ/2);
         debug(("Saving to blitter at (%d,%d)", ox, oy));
-        blitter_save(fe, ds->blit_peg, ox, oy);
-        draw_peg(fe, ds, ox, oy, TRUE, ui->drag_col);
+        blitter_save(dr, ds->blit_peg, ox, oy);
+        draw_peg(dr, ds, ox, oy, TRUE, ui->drag_col);
 
         ds->blit_ox = ox; ds->blit_oy = oy;
     }
@@ -1266,6 +1266,14 @@ static int game_wants_statusbar(void)
 static int game_timing_state(game_state *state, game_ui *ui)
 {
     return TRUE;
+}
+
+static void game_print_size(game_params *params, float *x, float *y)
+{
+}
+
+static void game_print(drawing *dr, game_state *state, int tilesize)
+{
 }
 
 #ifdef COMBINED
@@ -1303,6 +1311,7 @@ const struct game thegame = {
     game_redraw,
     game_anim_length,
     game_flash_length,
+    FALSE, FALSE, game_print_size, game_print,
     game_wants_statusbar,
     FALSE, game_timing_state,
     0,				       /* mouse_priorities */

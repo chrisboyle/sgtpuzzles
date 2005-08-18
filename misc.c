@@ -222,14 +222,21 @@ void shuffle(void *array, int nelts, int eltsize, random_state *rs)
     }
 }
 
-void draw_rect_outline(frontend *fe, int x, int y, int w, int h, int colour)
+void draw_rect_outline(drawing *dr, int x, int y, int w, int h, int colour)
 {
     int x0 = x, x1 = x+w-1, y0 = y, y1 = y+h-1;
+    int coords[8];
 
-    draw_line(fe, x0, y0, x0, y1, colour);
-    draw_line(fe, x0, y1, x1, y1, colour);
-    draw_line(fe, x1, y1, x1, y0, colour);
-    draw_line(fe, x1, y0, x0, y0, colour);
+    coords[0] = x0;
+    coords[1] = y0;
+    coords[2] = x0;
+    coords[3] = y1;
+    coords[4] = x1;
+    coords[5] = y1;
+    coords[6] = x1;
+    coords[7] = y0;
+
+    draw_polygon(dr, coords, 4, -1, colour);
 }
 
 /* vim: set shiftwidth=4 tabstop=8: */

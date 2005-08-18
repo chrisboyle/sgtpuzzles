@@ -32,7 +32,7 @@ Puzzle Collection (henceforth referred to simply as \q{Puzzles}),
 for use by anyone attempting to implement a new puzzle or port to a
 new platform.
 
-This guide is believed correct as of r6140. Hopefully it will be
+This guide is believed correct as of r6190. Hopefully it will be
 updated along with the code in future, but if not, I've at least
 left this version number in here so you can figure out what's
 changed by tracking commit comments from there onwards.
@@ -718,7 +718,7 @@ non-dynamically-allocated C string containing an error message.
 
 \S{backend-new-game} \cw{new_game()}
 
-\c game_state *(*new_game)(midend_data *me, game_params *params,
+\c game_state *(*new_game)(midend *me, game_params *params,
 \c                         char *desc);
 
 This function takes a game description as input, together with its
@@ -1024,7 +1024,7 @@ drawing.
 
 \S{backend-new-drawstate} \cw{new_drawstate()}
 
-\c game_drawstate *(*new_drawstate)(game_state *state);
+\c game_drawstate *(*new_drawstate)(drawing *dr, game_state *state);
 
 This function allocates and returns a new \c{game_drawstate}
 structure for drawing a particular puzzle. It is passed a pointer to
@@ -1037,12 +1037,21 @@ requests a forced redraw. For games like Pattern, in which initial
 game states are much simpler than general ones, this might be
 important to keep in mind.
 
+The parameter \c{dr} is a drawing object (see \k{drawing}) which the
+function might need to use to allocate blitters. (However, this
+isn't recommended; it's usually more sensible to wait to allocate a
+blitter until \cw{set_size()} is called, because that way you can
+tailor it to the scale at which the puzzle is being drawn.)
+
 \S{backend-free-drawstate} \cw{free_drawstate()}
 
-\c void (*free_drawstate)(game_drawstate *ds);
+\c void (*free_drawstate)(drawing *dr, game_drawstate *ds);
 
 This function frees a \c{game_drawstate} structure, and any
 subsidiary allocations contained within it.
+
+The parameter \c{dr} is a drawing object (see \k{drawing}), which
+might be required if you are freeing a blitter.
 
 \S{backend-preferred-tilesize} \c{preferred_tilesize}
 
@@ -1075,8 +1084,8 @@ at that tile size.
 
 \S{backend-set-size} \cw{set_size()}
 
-\c void (*set_size)(game_drawstate *ds, game_params *params,
-\c                  int tilesize);
+\c void (*set_size)(drawing *dr, game_drawstate *ds,
+\c                  game_params *params, int tilesize);
 
 This function is responsible for setting up a \c{game_drawstate} to
 draw at a given tile size. Typically this will simply involve
@@ -1084,6 +1093,9 @@ copying the supplied \c{tilesize} parameter into a \c{tilesize}
 field inside the draw state; for some more complex games it might
 also involve setting up other dimension fields, or possibly
 allocating a blitter (see \k{drawing-blitter}).
+
+The parameter \c{dr} is a drawing object (see \k{drawing}), which is
+required if a blitter needs to be allocated.
 
 \S{backend-colours} \cw{colours()}
 
@@ -1118,6 +1130,10 @@ deciding on its own colour allocations. Most games use the front
 end's default colour as their background, apart from a few which
 depend on drawing relief highlights so they adjust the background
 colour if it's too light for highlights to show up against it.
+
+Note that the colours returned from this function are for
+\e{drawing}, not for printing. Printing has an entirely different
+colour allocation policy.
 
 \S{backend-anim-length} \cw{anim_length()}
 
@@ -1212,7 +1228,7 @@ flag in the \c{game_ui} to indicate which flash type is required.)
 
 \S{backend-redraw} \cw{redraw()}
 
-\c void (*redraw)(frontend *fe, game_drawstate *ds,
+\c void (*redraw)(drawing *dr, game_drawstate *ds,
 \c                game_state *oldstate, game_state *newstate, int dir,
 \c                game_ui *ui, float anim_time, float flash_time);
 
@@ -1220,9 +1236,9 @@ This function is responsible for actually drawing the contents of
 the game window, and for redrawing every time the game state or the
 \c{game_ui} changes.
 
-The parameter \c{fe} is a front end handle which may be passed to
-the drawing API functions (see \k{drawing} for documentation of the
-drawing API). This function may not save \c{fe} and use it
+The parameter \c{dr} is a drawing object which may be passed to the
+drawing API functions (see \k{drawing} for documentation of the
+drawing API). This function may not save \c{dr} and use it
 elsewhere; it must only use it for calling back to the drawing API
 functions within its own lifetime.
 
@@ -1249,6 +1265,105 @@ area. Since this often involves drawing visual furniture which is
 never subsequently altered, it is often simplest to arrange this by
 having a special \q{first time} flag in the draw state, and
 resetting it after the first redraw.
+
+When this function (or any subfunction) calls the drawing API, it is
+expected to pass colour indices which were previously defined by the
+\cw{colours()} function.
+
+\H{backend-printing} Printing functions
+
+This section discusses the back end functions that deal with
+printing puzzles out on paper.
+
+\S{backend-can-print} \c{can_print}
+
+\c int can_print;
+
+This flag is set to \cw{TRUE} if the puzzle is capable of printing
+itself on paper. (This makes sense for some puzzles, such as Solo,
+which can be filled in with a pencil. Other puzzles, such as
+Twiddle, inherently involve moving things around and so would not
+make sense to print.)
+
+If this flag is \cw{FALSE}, then the functions \cw{print_size()}
+and \cw{print()} will never be called.
+
+\S{backend-can-print-in-colour} \c{can_print_in_colour}
+
+\c int can_print_in_colour;
+
+This flag is set to \cw{TRUE} if the puzzle is capable of printing
+itself differently when colour is available. For example, Map can
+actually print coloured regions in different \e{colours} rather than
+resorting to cross-hatching.
+
+If the \c{can_print} flag is \cw{FALSE}, then this flag will be
+ignored.
+
+\S{backend-print-size} \cw{print_size()}
+
+\c void (*print_size)(game_params *params, float *x, float *y);
+
+This function is passed a \c{game_params} structure and a tile size.
+It returns, in \c{*x} and \c{*y}, the preferred size in
+\e{millimetres} of that puzzle if it were to be printed out on paper.
+
+If the \c{can_print} flag is \cw{FALSE}, this function will never be
+called.
+
+\S{backend-print} \cw{print()}
+
+\c void (*print)(drawing *dr, game_state *state, int tilesize);
+
+This function is called when a puzzle is to be printed out on paper.
+It should use the drawing API functions (see \k{drawing}) to print
+itself.
+
+This function is separate from \cw{redraw()} because it is often
+very different:
+
+\b The printing function may not depend on pixel accuracy, since
+printer resolution is variable. Draw as if your canvas had infinite
+resolution.
+
+\b The printing function sometimes needs to display things in a
+completely different style. Net, for example, is very different as
+an on-screen puzzle and as a printed one.
+
+\b The printing function is often much simpler since it has no need
+to deal with repeated partial redraws.
+
+However, there's no reason the printing and redraw functions can't
+share some code if they want to.
+
+When this function (or any subfunction) calls the drawing API, the
+colour indices it passes should be colours which have been allocated
+by the \cw{print_*_colour()} functions within this execution of
+\cw{print()}. This is very different from the fixed small number of
+colours used in \cw{redraw()}, because printers do not have a
+limitation on the total number of colours that may be used. Some
+puzzles' printing functions might wish to allocate only one \q{ink}
+colour and use it for all drawing; others might wish to allocate
+\e{more} colours than are used on screen.
+
+One possible colour policy worth mentioning specifically is that a
+puzzle's printing function might want to allocate the \e{same}
+colour indices as are used by the redraw function, so that code
+shared between drawing and printing does not have to keep switching
+its colour indices. In order to do this, the simplest thing is to
+make use of the fact that colour indices returned from
+\cw{print_*_colour()} are guaranteed to be in increasing order from
+zero. So if you have declared an \c{enum} defining three colours
+\cw{COL_BACKGROUND}, \cw{COL_THIS} and \cw{COL_THAT}, you might then
+write
+
+\c int c;
+\c c = print_mono_colour(dr, 1); assert(c == COL_BACKGROUND);
+\c c = print_mono_colour(dr, 0); assert(c == COL_THIS);
+\c c = print_mono_colour(dr, 0); assert(c == COL_THAT);
+
+If the \c{can_print} flag is \cw{FALSE}, this function will never be
+called.
 
 \H{backend-misc} Miscellaneous
 
@@ -1378,7 +1493,7 @@ in getting different random numbers.
 In response to a move, a back end is (reluctantly) permitted to call
 \cw{midend_supersede_game_desc()}:
 
-\c void midend_supersede_game_desc(midend_data *me,
+\c void midend_supersede_game_desc(midend *me,
 \c                                 char *desc, char *privdesc);
 
 When the user selects \q{New Game}, the mid-end calls
@@ -1412,31 +1527,63 @@ should use it if they're not Mines; if you think you need to use it,
 think again repeatedly in the hope of finding a better way to do
 whatever it was you needed to do.
 
-\C{drawing} The drawing API: front-end functions called from the
-back end
+\C{drawing} The drawing API
 
 The back end function \cw{redraw()} (\k{backend-redraw}) is required
-to draw the puzzle's graphics on the window's drawing area. To do
-this portably, it is provided with a drawing API allowing it to talk
-directly to the front end. In this chapter I document that API, both
-for the benefit of back end authors trying to use it and for front
-end authors trying to implement it.
+to draw the puzzle's graphics on the window's drawing area, or on
+paper if the puzzle is printable. To do this portably, it is
+provided with a drawing API allowing it to talk directly to the
+front end. In this chapter I document that API, both for the benefit
+of back end authors trying to use it and for front end authors
+trying to implement it.
 
-All of the drawing functions take a pointer to a \c{frontend}
-structure, which is passed in to \cw{redraw()}.
+The drawing API as seen by the back end is a collection of global
+functions, each of which takes a pointer to a \c{drawing} structure
+(a \q{drawing object}). These objects are supplied as parameters to
+the back end's \cw{redraw()} and \cw{print()} functions.
 
-The puzzle window is indexed by pixel coordinates, with the top left
-pixel defined as \cw{(0,0)} and the bottom right pixel
-\cw{(w-1,h-1)}, where \c{w} and \c{h} are the width and height
+In fact these global functions are not implemented directly by the
+front end; instead, they are implemented centrally in \c{drawing.c}
+and form a small piece of middleware. The drawing API as supplied by
+the front end is a structure containing a set of function pointers,
+plus a \cq{void *} handle which is passed to each of those
+functions. This enables a single front end to switch between
+multiple implementations of the drawing API if necessary. For
+example, the Windows API supplies a printing mechanism integrated
+into the same GDI which deals with drawing in windows, and therefore
+it is likely (although as yet unimplemented in Puzzles) that the
+same API implementation can handle both drawing and printing; but on
+Unix, the most common way for applications to print is by producing
+PostScript output directly, and although it would be \e{possible} to
+write a single (say) \cw{draw_rect()} function which checked a
+global flag to decide whether to do GTK drawing operations or output
+PostScript to a file, it's much nicer to have two separate functions
+and switch between them as appropriate.
+
+When drawing, the puzzle window is indexed by pixel coordinates,
+with the top left pixel defined as \cw{(0,0)} and the bottom right
+pixel \cw{(w-1,h-1)}, where \c{w} and \c{h} are the width and height
 values returned by the back end function \cw{compute_size()}
 (\k{backend-compute-size}).
 
-\e{Puzzles may assume that the surface they draw on is persistent}.
-It is the responsibility of every front end to preserve the puzzle's
-window contents in the face of GUI window expose issues and similar.
-It is not permissible to request the back end redraw any part of a
-window that it has already drawn, unless something has actually
-changed as a result of making moves in the puzzle.
+When printing, the puzzle's print area is indexed in exactly the
+same way (with an arbitrary tile size provided by the printing
+module \c{printing.c}), to facilitate sharing of code between the
+drawing and printing routines. However, when printing, puzzles may
+no longer assume that the coordinate unit has any relationship to a
+pixel; the printer's actual resolution might very well not even be
+known at print time, so the coordinate unit might be smaller or
+larger than a pixel. Puzzles' print functions should restrict
+themselves to drawing geometric shapes rather than fiddly pixel
+manipulation.
+
+\e{Puzzles' redraw functions may assume that the surface they draw
+on is persistent}. It is the responsibility of every front end to
+preserve the puzzle's window contents in the face of GUI window
+expose issues and similar. It is not permissible to request the back
+end redraw any part of a window that it has already drawn, unless
+something has actually changed as a result of making moves in the
+puzzle.
 
 Most front ends accomplish this by having the drawing routines draw
 on a stored bitmap rather than directly on the window, and copying
@@ -1446,9 +1593,18 @@ end does any drawing it informs the front end of which parts of the
 window it has accessed, and hence which parts need repainting. This
 is done by calling \cw{draw_update()} (\k{drawing-draw-update}).
 
-\H{drawing-draw-rect} \cw{draw_rect()}
+In the following sections I first discuss the drawing API as seen by
+the back end, and then the \e{almost} identical function-pointer
+form seen by the front end.
 
-\c void draw_rect(frontend *fe, int x, int y, int w, int h,
+\H{drawing-backend} Drawing API as seen by the back end
+
+This section documents the back-end drawing API, in the form of
+functions which take a \c{drawing} object as an argument.
+
+\S{drawing-draw-rect} \cw{draw_rect()}
+
+\c void draw_rect(drawing *dr, int x, int y, int w, int h,
 \c                int colour);
 
 Draws a filled rectangle in the puzzle window.
@@ -1470,9 +1626,11 @@ Unlike many of the other drawing functions, this function is
 guaranteed to be pixel-perfect: the rectangle will be sharply
 defined and not anti-aliased or anything like that.
 
-\H{drawing-draw-rect-outline} \cw{draw_rect_outline()}
+This function may be used for both drawing and printing.
 
-\c void draw_rect_outline(frontend *fe, int x, int y, int w, int h,
+\S{drawing-draw-rect-outline} \cw{draw_rect_outline()}
+
+\c void draw_rect_outline(drawing *dr, int x, int y, int w, int h,
 \c                        int colour);
 
 Draws an outline rectangle in the puzzle window.
@@ -1489,11 +1647,13 @@ the back end function \cw{colours()} (\k{backend-colours}).
 From a back end perspective, this function may be considered to be
 part of the drawing API. However, front ends are not required to
 implement it, since it is actually implemented centrally (in
-\cw{misc.c}) as a wrapper on four calls to \cw{draw_line()}.
+\cw{misc.c}) as a wrapper on \cw{draw_polygon()}.
 
-\H{drawing-draw-line} \cw{draw_line()}
+This function may be used for both drawing and printing.
 
-\c void draw_line(frontend *fe, int x1, int y1, int x2, int y2,
+\S{drawing-draw-line} \cw{draw_line()}
+
+\c void draw_line(drawing *dr, int x1, int y1, int x2, int y2,
 \c                int colour);
 
 Draws a straight line in the puzzle window.
@@ -1510,9 +1670,11 @@ Therefore, do not assume that you can erase a line by drawing the
 same line over it in the background colour; anti-aliasing might
 lead to perceptible ghost artefacts around the vanished line.
 
-\H{drawing-draw-polygon} \cw{draw_polygon()}
+This function may be used for both drawing and printing.
 
-\c void draw_polygon(frontend *fe, int *coords, int npoints,
+\S{drawing-draw-polygon} \cw{draw_polygon()}
+
+\c void draw_polygon(drawing *dr, int *coords, int npoints,
 \c                   int fillcolour, int outlinecolour);
 
 Draws an outlined or filled polygon in the puzzle window.
@@ -1545,9 +1707,11 @@ result of this; if you really need it not to do this to avoid
 interfering with other delicate graphics, you should probably use
 \cw{clip()} (\k{drawing-clip}).
 
-\H{drawing-draw-circle} \cw{draw_circle()}
+This function may be used for both drawing and printing.
 
-\c void draw_circle(frontend *fe, int cx, int cy, int radius,
+\S{drawing-draw-circle} \cw{draw_circle()}
+
+\c void draw_circle(drawing *dr, int cx, int cy, int radius,
 \c                  int fillcolour, int outlinecolour);
 
 Draws an outlined or filled circle in the puzzle window.
@@ -1581,9 +1745,11 @@ result of this; if you really need it not to do this to avoid
 interfering with other delicate graphics, you should probably use
 \cw{clip()} (\k{drawing-clip}).
 
-\H{drawing-draw-text} \cw{draw_text()}
+This function may be used for both drawing and printing.
 
-\c void draw_text(frontend *fe, int x, int y, int fonttype,
+\S{drawing-draw-text} \cw{draw_text()}
+
+\c void draw_text(drawing *dr, int x, int y, int fonttype,
 \c                int fontsize, int align, int colour, char *text);
 
 Draws text in the puzzle window.
@@ -1632,9 +1798,11 @@ internal dimension such as the cap-height.
 \c{colour} is an integer index into the colours array returned by
 the back end function \cw{colours()} (\k{backend-colours}).
 
-\H{drawing-clip} \cw{clip()}
+This function may be used for both drawing and printing.
 
-\c void clip(frontend *fe, int x, int y, int w, int h);
+\S{drawing-clip} \cw{clip()}
+
+\c void clip(drawing *dr, int x, int y, int w, int h);
 
 Establishes a clipping rectangle in the puzzle window.
 
@@ -1654,17 +1822,21 @@ automatically cleared up by the front end if it's left lying around;
 that might work on current front ends, but shouldn't be relied upon.
 Always explicitly call \cw{unclip()}.
 
-\H{drawing-unclip} \cw{unclip()}
+This function may be used for both drawing and printing.
 
-\c void unclip(frontend *fe);
+\S{drawing-unclip} \cw{unclip()}
+
+\c void unclip(drawing *dr);
 
 Reverts the effect of a previous call to \cw{clip()}. After this
 call, all drawing operations will be able to affect the entire
 puzzle window again.
 
-\H{drawing-draw-update} \cw{draw_update()}
+This function may be used for both drawing and printing.
 
-\c void draw_update(frontend *fe, int x, int y, int w, int h);
+\S{drawing-draw-update} \cw{draw_update()}
+
+\c void draw_update(drawing *dr, int x, int y, int w, int h);
 
 Informs the front end that a rectangular portion of the puzzle
 window has been drawn on and needs to be updated.
@@ -1682,9 +1854,14 @@ not become immediately visible, and may then appear at an
 unpredictable subsequent time such as the next time the window is
 covered and re-exposed.
 
-\H{drawing-status-bar} \cw{status_bar()}
+This function is only important when drawing. It may be called when
+printing as well, but doing so is not compulsory, and has no effect.
+(So if you have a shared piece of code between the drawing and
+printing routines, that code may safely call \cw{draw_update()}.)
 
-\c void status_bar(frontend *fe, char *text);
+\S{drawing-status-bar} \cw{status_bar()}
+
+\c void status_bar(drawing *dr, char *text);
 
 Sets the text in the game's status bar to \c{text}. The text is copied
 from the supplied buffer, so the caller is free to deallocate or
@@ -1695,21 +1872,10 @@ with the drawing API the property that it may only be called from
 within the back end redraw function, so this is as good a place as
 any to document it.)
 
-Front ends implementing this function should not use the provided
-text directly; they should call \cw{midend_rewrite_statusbar()}
-(\k{midend-rewrite-statusbar}) to process it first.
+This function is for drawing only; it must never be called during
+printing.
 
-In a game which has a timer, this function is likely to be called
-every time the timer goes off, i.e. many times a second. It is
-therefore likely to be common that this function is called with
-precisely the same text as the last time it was called. Front ends
-may well wish to detect this common case and avoid bothering to do
-anything. If they do, however, they \e{must} perform this check on
-the value \e{returned} from \cw{midend_rewrite_statusbar()}, rather
-than the value passed in to it (because the mid-end will frequently
-update the status-bar timer without the back end's intervention).
-
-\H{drawing-blitter} Blitter functions
+\S{drawing-blitter} Blitter functions
 
 This section describes a group of related functions which save and
 restore a section of the puzzle window. This is most commonly used
@@ -1723,9 +1889,12 @@ restore the background.
 The front end defines an opaque type called a \c{blitter}, which is
 capable of storing a rectangular area of a specified size.
 
-\S{drawing-blitter-new} \cw{blitter_new()}
+Blitter functions are for drawing only; they must never be called
+during printing.
 
-\c blitter *blitter_new(int w, int h);
+\S2{drawing-blitter-new} \cw{blitter_new()}
+
+\c blitter *blitter_new(drawing *dr, int w, int h);
 
 Creates a new blitter object which stores a rectangle of size \c{w}
 by \c{h} pixels. Returns a pointer to the blitter object.
@@ -1735,9 +1904,9 @@ time to create them is in the \cw{set_size()} function
 (\k{backend-set-size}), since it is at this point that you first
 know how big a rectangle they will need to save.
 
-\S{drawing-blitter-free} \cw{blitter_free()}
+\S2{drawing-blitter-free} \cw{blitter_free()}
 
-\c void blitter_free(blitter *bl);
+\c void blitter_free(drawing *dr, blitter *bl);
 
 Disposes of a blitter object. Best called in \cw{free_drawstate()}.
 (However, check that the blitter object is not \cw{NULL} before
@@ -1745,9 +1914,9 @@ attempting to free it; it is possible that a draw state might be
 created and freed without ever having \cw{set_size()} called on it
 in between.)
 
-\S{drawing-blitter-save} \cw{blitter_save()}
+\S2{drawing-blitter-save} \cw{blitter_save()}
 
-\c void blitter_save(frontend *fe, blitter *bl, int x, int y);
+\c void blitter_save(drawing *dr, blitter *bl, int x, int y);
 
 This is a true drawing API function, in that it may only be called
 from within the game redraw routine. It saves a rectangular portion
@@ -1762,9 +1931,9 @@ and \c{y} are out of range. (The right thing probably means saving
 whatever part of the blitter rectangle overlaps with the visible
 area of the puzzle window.)
 
-\S{drawing-blitter-load} \cw{blitter_load()}
+\S2{drawing-blitter-load} \cw{blitter_load()}
 
-\c void blitter_load(frontend *fe, blitter *bl, int x, int y);
+\c void blitter_load(drawing *dr, blitter *bl, int x, int y);
 
 This is a true drawing API function, in that it may only be called
 from within the game redraw routine. It restores a rectangular
@@ -1792,42 +1961,438 @@ saved bitmap which were not visible at save time are undefined. If
 the blitter is restored to a different position so as to make those
 parts visible, the effect on the drawing area is undefined.
 
-\H{drawing-midend} Additional functions only called by the mid-end
+\S{print-mono-colour} \cw{print_mono_colour()}
 
-The two functions documented in this section are part of the drawing
-API as seen by a front end, but are not needed by the back end. The
-mid-end calls these functions before and after calling the back end
-redraw function.
+\c int print_mono_colour(drawing *dr, int grey);
 
-\S{drawing-start-draw} \cw{start_draw()}
+This function allocates a colour index for a simple monochrome
+colour during printing.
 
-\c void start_draw(frontend *fe);
+\c{grey} must be 0 or 1. If \c{grey} is 0, the colour returned is
+black; if \c{grey} is 1, the colour is white.
 
-This function is called before any drawing takes place. It allows
-the front end to initialise any temporary data required to draw
-with, such as device contexts.
+\S{print-grey-colour} \cw{print_grey_colour()}
 
-\S{drawing-end-draw} \cw{end_draw()}
+\c int print_grey_colour(drawing *dr, int hatch, float grey);
 
-\c void end_draw(frontend *fe);
+This function allocates a colour index for a grey-scale colour
+during printing.
+
+\c{grey} may be any number between 0 (black) and 1 (white); for
+example, 0.5 indicates a medium grey.
+
+If printing in black and white only, the \c{grey} value will not be
+used; instead, regions shaded in this colour will be hatched with
+parallel lines. The \c{hatch} parameter defines what type of
+hatching should be used in place of this colour:
+
+\dt \cw{HATCH_SOLID}
+
+\dd In black and white, this colour will be replaced by solid black.
+
+\dt \cw{HATCH_CLEAR}
+
+\dd In black and white, this colour will be replaced by solid white.
+
+\dt \cw{HATCH_SLASH}
+
+\dd This colour will be hatched by lines slanting to the right at 45
+degrees. 
+
+\dt \cw{HATCH_BACKSLASH}
+
+\dd This colour will be hatched by lines slanting to the left at 45
+degrees.
+
+\dt \cw{HATCH_HORIZ}
+
+\dd This colour will be hatched by horizontal lines.
+
+\dt \cw{HATCH_VERT}
+
+\dd This colour will be hatched by vertical lines.
+
+\dt \cw{HATCH_PLUS}
+
+\dd This colour will be hatched by criss-crossing horizontal and
+vertical lines.
+
+\dt \cw{HATCH_X}
+
+\dd This colour will be hatched by criss-crossing diagonal lines.
+
+Colours defined to use hatching may not be used for drawing lines;
+they may only be used for filling areas. That is, they may be used
+as the \c{fillcolour} parameter to \cw{draw_circle()} and
+\cw{draw_polygon()}, and as the colour parameter to
+\cw{draw_rect()}, but may not be used as the \c{outlinecolour}
+parameter to \cw{draw_circle()} or \cw{draw_polygon()}, or with
+\cw{draw_line()}.
+
+\S{print-rgb-colour} \cw{print_rgb_colour()}
+
+\c int print_rgb_colour(drawing *dr, int hatch,
+\c                      float r, float g, float b);
+
+This function allocates a colour index for a fully specified RGB
+colour during printing.
+
+\c{r}, \c{g} and \c{b} may each be anywhere in the range from 0 to 1.
+
+If printing in black and white only, the \c{grey} value will not be
+used; instead, regions shaded in this colour will be hatched with
+parallel lines. The \c{hatch} parameter defines what type of
+hatching should be used in place of this colour; see
+\k{print-grey-colour} for its definition.
+
+\S{print-line-width} \cw{print_line_width()}
+
+\c void print_line_width(drawing *dr, int width);
+
+This function is called to set the thickness of lines drawn during
+printing. It is meaningless in drawing: all lines drawn by
+\cw{draw_line()}, \cw{draw_circle} and \cw{draw_polygon()} are one
+pixel in thickness. However, in printing there is no clear
+definition of a pixel and so line widths must be explicitly
+specified.
+
+The line width is specified in the usual coordinate system. Note,
+however, that it is a hint only: the central printing system may
+choose to vary line thicknesses at user request or due to printer
+capabilities.
+
+\H{drawing-frontend} The drawing API as implemented by the front end
+
+This section describes the drawing API in the function-pointer form
+in which it is implemented by a front end.
+
+(It isn't only platform-specific front ends which implement this
+API; the platform-independent module \c{ps.c} also provides an
+implementation of it which outputs PostScript. Thus, any platform
+which wants to do PS printing can do so with minimum fuss.)
+
+The following entries all describe function pointer fields in a
+structure called \c{drawing_api}. Each of the functions takes a
+\cq{void *} context pointer, which it should internally cast back to
+a more useful type. Thus, a drawing \e{object} (\c{drawing *)}
+suitable for passing to the back end redraw or printing functions
+is constructed by passing a \c{drawing_api} and a \cq{void *} to the
+function \cw{drawing_init()} (see \k{drawing-init}).
+
+\S{drawingapi-draw-text} \cw{draw_text()}
+
+\c void (*draw_text)(void *handle, int x, int y, int fonttype,
+\c                   int fontsize, int align, int colour, char *text);
+
+This function behaves exactly like the back end \cw{draw_text()}
+function; see \k{drawing-draw-text}.
+
+\S{drawingapi-draw-rect} \cw{draw_rect()}
+
+\c void (*draw_rect)(void *handle, int x, int y, int w, int h,
+\c                   int colour);
+
+This function behaves exactly like the back end \cw{draw_rect()}
+function; see \k{drawing-draw-rect}.
+
+\S{drawingapi-draw-line} \cw{draw_line()}
+
+\c void (*draw_line)(void *handle, int x1, int y1, int x2, int y2,
+\c                   int colour);
+
+This function behaves exactly like the back end \cw{draw_line()}
+function; see \k{drawing-draw-line}.
+
+\S{drawingapi-draw-polygon} \cw{draw_polygon()}
+
+\c void (*draw_polygon)(void *handle, int *coords, int npoints,
+\c                      int fillcolour, int outlinecolour);
+
+This function behaves exactly like the back end \cw{draw_polygon()}
+function; see \k{drawing-draw-polygon}.
+
+\S{drawingapi-draw-circle} \cw{draw_circle()}
+
+\c void (*draw_circle)(void *handle, int cx, int cy, int radius,
+\c                     int fillcolour, int outlinecolour);
+
+This function behaves exactly like the back end \cw{draw_circle()}
+function; see \k{drawing-draw-circle}.
+
+\S{drawingapi-draw-update} \cw{draw_update()}
+
+\c void (*draw_update)(void *handle, int x, int y, int w, int h);
+
+This function behaves exactly like the back end \cw{draw_text()}
+function; see \k{drawing-draw-text}.
+
+An implementation of this API which only supports printing is
+permitted to define this function pointer to be \cw{NULL} rather
+than bothering to define an empty function. The middleware in
+\cw{drawing.c} will notice and avoid calling it.
+
+\S{drawingapi-clip} \cw{clip()}
+
+\c void (*clip)(void *handle, int x, int y, int w, int h);
+
+This function behaves exactly like the back end \cw{clip()}
+function; see \k{drawing-clip}.
+
+\S{drawingapi-unclip} \cw{unclip()}
+
+\c void (*unclip)(void *handle);
+
+This function behaves exactly like the back end \cw{unclip()}
+function; see \k{drawing-unclip}.
+
+\S{drawingapi-start-draw} \cw{start_draw()}
+
+\c void (*start_draw)(void *handle);
+
+This function is called at the start of drawing. It allows the front
+end to initialise any temporary data required to draw with, such as
+device contexts.
+
+Implementations of this API which do not provide drawing services
+may define this function pointer to be \cw{NULL}; it will never be
+called unless drawing is attempted.
+
+\S{drawingapi-end-draw} \cw{end_draw()}
+
+\c void (*end_draw)(void *handle);
 
 This function is called at the end of drawing. It allows the front
 end to do cleanup tasks such as deallocating device contexts and
 scheduling appropriate GUI redraw events.
 
-\H{frontend-default-colour} \cw{frontend_default_colour()}
+Implementations of this API which do not provide drawing services
+may define this function pointer to be \cw{NULL}; it will never be
+called unless drawing is attempted.
 
-\c void frontend_default_colour(frontend *fe, float *output);
+\S{drawingapi-status-bar} \cw{status_bar()}
 
-This function expects to be passed a pointer to an array of three
-\cw{float}s. It returns the platform's local preferred background
-colour in those three floats, as red, green and blue values (in that
-order) ranging from \cw{0.0} to \cw{1.0}.
+\c void (*status_bar)(void *handle, char *text);
 
-This function should only ever be called by the back end function
-\cw{colours()} (\k{backend-colours}). (Thus, it isn't a drawing API
-function as such, but it's a front end function of interest to
-puzzle implementors so it's probably best in this section.)
+This function behaves exactly like the back end \cw{status_bar()}
+function; see \k{drawing-status-bar}.
+
+Front ends implementing this function should not use the provided
+text directly; they should call \cw{midend_rewrite_statusbar()}
+(\k{midend-rewrite-statusbar}) to process it first.
+
+In a game which has a timer, this function is likely to be called
+every time the timer goes off, i.e. many times a second. It is
+therefore likely to be common that this function is called with
+precisely the same text as the last time it was called. Front ends
+may well wish to detect this common case and avoid bothering to do
+anything. If they do, however, they \e{must} perform this check on
+the value \e{returned} from \cw{midend_rewrite_statusbar()}, rather
+than the value passed in to it (because the mid-end will frequently
+update the status-bar timer without the back end's intervention).
+
+Implementations of this API which do not provide drawing services
+may define this function pointer to be \cw{NULL}; it will never be
+called unless drawing is attempted.
+
+\S{drawingapi-blitter-new} \cw{blitter_new()}
+
+\c blitter *(*blitter_new)(void *handle, int w, int h);
+
+This function behaves exactly like the back end \cw{blitter_new()}
+function; see \k{drawing-blitter-new}.
+
+Implementations of this API which do not provide drawing services
+may define this function pointer to be \cw{NULL}; it will never be
+called unless drawing is attempted.
+
+\S{drawingapi-blitter-free} \cw{blitter_free()}
+
+\c void (*blitter_free)(void *handle, blitter *bl);
+
+This function behaves exactly like the back end \cw{blitter_free()}
+function; see \k{drawing-blitter-free}.
+
+Implementations of this API which do not provide drawing services
+may define this function pointer to be \cw{NULL}; it will never be
+called unless drawing is attempted.
+
+\S{drawingapi-blitter-save} \cw{blitter_save()}
+
+\c void (*blitter_save)(void *handle, blitter *bl, int x, int y);
+
+This function behaves exactly like the back end \cw{blitter_save()}
+function; see \k{drawing-blitter-save}.
+
+Implementations of this API which do not provide drawing services
+may define this function pointer to be \cw{NULL}; it will never be
+called unless drawing is attempted.
+
+\S{drawingapi-blitter-load} \cw{blitter_load()}
+
+\c void (*blitter_load)(void *handle, blitter *bl, int x, int y);
+
+This function behaves exactly like the back end \cw{blitter_load()}
+function; see \k{drawing-blitter-load}.
+
+Implementations of this API which do not provide drawing services
+may define this function pointer to be \cw{NULL}; it will never be
+called unless drawing is attempted.
+
+\S{drawingapi-begin-doc} \cw{begin_doc()}
+
+\c void (*begin_doc)(void *handle, int pages);
+
+This function is called at the beginning of a printing run. It gives
+the front end an opportunity to initialise any required printing
+subsystem. It also provides the number of pages in advance.
+
+Implementations of this API which do not provide printing services
+may define this function pointer to be \cw{NULL}; it will never be
+called unless printing is attempted.
+
+\S{drawingapi-begin-page} \cw{begin_page()}
+
+\c void (*begin_page)(void *handle, int number);
+
+This function is called during printing, at the beginning of each
+page. It gives the page number (numbered from 1 rather than 0, so
+suitable for use in user-visible contexts).
+
+Implementations of this API which do not provide printing services
+may define this function pointer to be \cw{NULL}; it will never be
+called unless printing is attempted.
+
+\S{drawingapi-begin-puzzle} \cw{begin_puzzle()}
+
+\c void (*begin_puzzle)(void *handle, float xm, float xc,
+\c                      float ym, float yc, int pw, int ph, float wmm);
+
+This function is called during printing, just before printing a
+single puzzle on a page. It specifies the size and location of the
+puzzle on the page.
+
+\c{xm} and \c{xc} specify the horizontal position of the puzzle on
+the page, as a linear function of the page width. The front end is
+expected to multiply the page width by \c{xm}, add \c{xc} (measured
+in millimetres), and use the resulting x-coordinate as the left edge
+of the puzzle.
+
+Similarly, \c{ym} and \c{yc} specify the vertical position of the
+puzzle as a function of the page height: the page height times
+\c{xm}, plus \c{xc} millimetres, equals the desired distance from
+the top of the page to the top of the puzzle.
+
+(This unwieldy mechanism is required because not all printing
+systems can communicate the page size back to the software. The
+PostScript back end, for example, writes out PS which determines the
+page size at print time by means of calling \cq{clippath}, and
+centres the puzzles within that. Thus, exactly the same PS file
+works on A4 or on US Letter paper without needing local
+configuration, which simplifies matters.)
+
+\cw{pw} and \cw{ph} give the size of the puzzle in drawing API
+coordinates. The printing system will subsequently call the puzzle's
+own print function, which will in turn call drawing API functions in
+the expectation that an area \cw{pw} by \cw{ph} units is available
+to draw the puzzle on.
+
+Finally, \cw{wmm} gives the desired width of the puzzle in
+millimetres. (The aspect ratio is expected to be preserved, so if
+the desired puzzle height is also needed then it can be computed as
+\cw{wmm*ph/pw}.)
+
+Implementations of this API which do not provide printing services
+may define this function pointer to be \cw{NULL}; it will never be
+called unless printing is attempted.
+
+\S{drawingapi-end-puzzle} \cw{end_puzzle()}
+
+\c void (*end_puzzle)(void *handle);
+
+This function is called after the printing of a specific puzzle is
+complete.
+
+Implementations of this API which do not provide printing services
+may define this function pointer to be \cw{NULL}; it will never be
+called unless printing is attempted.
+
+\S{drawingapi-end-page} \cw{end_page()}
+
+\c void (*end_page)(void *handle, int number);
+
+This function is called after the printing of a page is finished.
+
+Implementations of this API which do not provide printing services
+may define this function pointer to be \cw{NULL}; it will never be
+called unless printing is attempted.
+
+\S{drawingapi-end-doc} \cw{end_doc()}
+
+\c void (*end_doc)(void *handle);
+
+This function is called after the printing of the entire document is
+finished. This is the moment to close files, send things to the
+print spooler, or whatever the local convention is.
+
+Implementations of this API which do not provide printing services
+may define this function pointer to be \cw{NULL}; it will never be
+called unless printing is attempted.
+
+\S{drawingapi-line-width} \cw{line_width()}
+
+\c void (*line_width)(void *handle, float width);
+
+This function is called to set the line thickness, during printing
+only. Note that the width is a \cw{float} here, where it was an
+\cw{int} as seen by the back end. This is because \cw{drawing.c} may
+have scaled it on the way past.
+
+However, the width is still specified in the same coordinate system
+as the rest of the drawing.
+
+Implementations of this API which do not provide printing services
+may define this function pointer to be \cw{NULL}; it will never be
+called unless printing is attempted.
+
+\H{drawingapi-frontend} The drawing API as called by the front end
+
+There are a small number of functions provided in \cw{drawing.c}
+which the front end needs to \e{call}, rather than helping to
+implement. They are described in this section.
+
+\S{drawing-init} \cw{drawing_init()}
+
+\c drawing *drawing_init(const drawing_api *api, void *handle);
+
+This function creates a drawing object. It is passed a
+\c{drawing_api}, which is a structure containing nothing but
+function pointers; and also a \cq{void *} handle. The handle is
+passed back to each function pointer when it is called.
+
+\S{drawing-free} \cw{drawing_free()}
+
+\c void drawing_free(drawing *dr);
+
+This function frees a drawing object. Note that the \cq{void *}
+handle is not freed; if that needs cleaning up it must be done by
+the front end.
+
+\S{drawing-print-get-colour} \cw{print_get_colour()}
+
+\c void print_get_colour(drawing *dr, int colour, int *hatch,
+\c                       float *r, float *g, float *b)
+
+This function is called by the implementations of the drawing API
+functions when they are called in a printing context. It takes a
+colour index as input, and returns the description of the colour as
+requested by the back end.
+
+\c{*r}, \c{*g} and \c{*b} are filled with the RGB values of the
+desired colour if printing in colour.
+
+\c{*hatch} is filled with the type of hatching (or not) desired if
+printing in black and white. See \k{print-grey-colour} for details
+of the values this integer can take.
 
 \C{midend} The API provided by the mid-end
 
@@ -1838,24 +2403,29 @@ platform. If you're only interested in writing new puzzles, you can
 safely skip this chapter.
 
 All the persistent state in the mid-end is encapsulated within a
-\c{midend_data} structure, to facilitate having multiple mid-ends in
-any port which supports multiple puzzle windows open simultaneously.
-Each \c{midend_data} is intended to handle the contents of a single
+\c{midend} structure, to facilitate having multiple mid-ends in any
+port which supports multiple puzzle windows open simultaneously.
+Each \c{midend} is intended to handle the contents of a single
 puzzle window.
 
 \H{midend-new} \cw{midend_new()}
 
-\c midend_data *midend_new(frontend *fe, const game *ourgame);
+\c midend *midend_new(frontend *fe, const game *ourgame,
+\c                    const drawing_api *drapi, void *drhandle)
 
 Allocates and returns a new mid-end structure.
 
 The \c{fe} argument is stored in the mid-end. It will be used when
 calling back to functions such as \cw{activate_timer()}
-(\k{frontend-activate-timer}), and will be passed on to back end
-functions such as \cw{colours()} (\k{backend-colours}) and
-\cw{redraw()} (\k{backend-redraw}). The latter, of course, means
-that the front end can expect to receive this pointer in calls to
-the entire drawing API (\k{drawing}).
+(\k{frontend-activate-timer}), and will be passed on to the back end
+function \cw{colours()} (\k{backend-colours}).
+
+The parameters \c{drapi} and \c{drhandle} are passed to
+\cw{drawing_init()} (\k{drawing-init}) to construct a drawing object
+which will be passed to the back end function \cw{redraw()}
+(\k{backend-redraw}). Hence, all drawing-related function pointers
+defined in \c{drapi} can expect to be called with \c{drhandle} as
+their first argument.
 
 The \c{ourgame} argument points to a container structure describing
 a game back end. The mid-end thus created will only be capable of
@@ -1867,13 +2437,13 @@ without closing the window...)
 
 \H{midend-free} \cw{midend_free()}
 
-\c void midend_free(midend_data *me);
+\c void midend_free(midend *me);
 
 Frees a mid-end structure and all its associated data.
 
 \H{midend-set-params} \cw{midend_set_params()}
 
-\c void midend_set_params(midend_data *me, game_params *params);
+\c void midend_set_params(midend *me, game_params *params);
 
 Sets the current game parameters for a mid-end. Subsequent games
 generated by \cw{midend_new_game()} (\k{midend-new-game}) will use
@@ -1887,7 +2457,7 @@ response to the user making a selection from the presets menu.
 
 \H{midend-size} \cw{midend_size()}
 
-\c void midend_size(midend_data *me, int *x, int *y, int expand);
+\c void midend_size(midend *me, int *x, int *y, int expand);
 
 Tells the mid-end to figure out its window size.
 
@@ -1937,7 +2507,7 @@ that \e{and} set the \c{expand} flag, though!
 
 \H{midend-new-game} \cw{midend_new_game()}
 
-\c void midend_new_game(midend_data *me);
+\c void midend_new_game(midend *me);
 
 Causes the mid-end to begin a new game. Normally the game will be a
 new randomly generated puzzle. However, if you have previously
@@ -1963,7 +2533,7 @@ a fresh one already. It would work, but it's usually excessive.)
 
 \H{midend-restart-game} \cw{midend_restart_game()}
 
-\c void midend_restart_game(midend_data *me);
+\c void midend_restart_game(midend *me);
 
 This function causes the current game to be restarted. This is done
 by placing a new copy of the original game state on the end of the
@@ -1975,7 +2545,7 @@ function.
 
 \H{midend-force-redraw} \cw{midend_force_redraw()}
 
-\c void midend_force_redraw(midend_data *me);
+\c void midend_force_redraw(midend *me);
 
 Forces a complete redraw of the puzzle window, by means of
 discarding the current \c{game_drawstate} and creating a new one
@@ -1986,7 +2556,7 @@ call to this function.
 
 \H{midend-redraw} \cw{midend_redraw()}
 
-\c void midend_redraw(midend_data *me);
+\c void midend_redraw(midend *me);
 
 Causes a partial redraw of the puzzle window, by means of simply
 calling the game's \cw{redraw()} function. (That is, the only things
@@ -1997,7 +2567,7 @@ call to this function.
 
 \H{midend-process-key} \cw{midend_process_key()}
 
-\c int midend_process_key(midend_data *me, int x, int y, int button);
+\c int midend_process_key(midend *me, int x, int y, int button);
 
 The front end calls this function to report a mouse or keyboard
 event. The parameters \c{x}, \c{y} and \c{button} are almost
@@ -2032,7 +2602,7 @@ front end's drawing API and/or \cw{activate_timer()}
 
 \H{midend-colours} \cw{midend_colours()}
 
-\c float *midend_colours(midend_data *me, int *ncolours);
+\c float *midend_colours(midend *me, int *ncolours);
 
 Returns an array of the colours required by the game, in exactly the
 same format as that returned by the back end function \cw{colours()}
@@ -2045,7 +2615,7 @@ more full and formal in future.)
 
 \H{midend-timer} \cw{midend_timer()}
 
-\c void midend_timer(midend_data *me, float tplus);
+\c void midend_timer(midend *me, float tplus);
 
 If the mid-end has called \cw{activate_timer()}
 (\k{frontend-activate-timer}) to request regular callbacks for
@@ -2060,7 +2630,7 @@ result in calls back to the front end's drawing API.
 
 \H{midend-num-presets} \cw{midend_num_presets()}
 
-\c int midend_num_presets(midend_data *me);
+\c int midend_num_presets(midend *me);
 
 Returns the number of game parameter presets supplied by this game.
 Front ends should use this function and \cw{midend_fetch_preset()}
@@ -2072,7 +2642,7 @@ impossible that they may become more full and formal in future.)
 
 \H{midend-fetch-preset} \cw{midend_fetch_preset()}
 
-\c void midend_fetch_preset(midend_data *me, int n,
+\c void midend_fetch_preset(midend *me, int n,
 \c                          char **name, game_params **params);
 
 Returns one of the preset game parameter structures for the game. On
@@ -2089,7 +2659,7 @@ free them directly, because they will be freed automatically during
 
 \H{midend-wants-statusbar} \cw{midend_wants_statusbar()}
 
-\c int midend_wants_statusbar(midend_data *me);
+\c int midend_wants_statusbar(midend *me);
 
 This function returns \cw{TRUE} if the puzzle has a use for a
 textual status line (to display score, completion status, currently
@@ -2100,7 +2670,7 @@ the back end.
 
 \H{midend-get-config} \cw{midend_get_config()}
 
-\c config_item *midend_get_config(midend_data *me, int which,
+\c config_item *midend_get_config(midend *me, int which,
 \c                                char **wintitle);
 
 Returns a dialog box description for user configuration.
@@ -2147,7 +2717,7 @@ will probably need to pass it to \cw{midend_set_config}.)
 
 \H{midend-set-config} \cw{midend_set_config()}
 
-\c char *midend_set_config(midend_data *me, int which,
+\c char *midend_set_config(midend *me, int which,
 \c                         config_item *cfg);
 
 Passes the mid-end the results of a configuration dialog box.
@@ -2169,7 +2739,7 @@ using \cw{midend_size()} and eventually perform a refresh using
 
 \H{midend-game-id} \cw{midend_game_id()}
 
-\c char *midend_game_id(midend_data *me, char *id);
+\c char *midend_game_id(midend *me, char *id);
 
 Passes the mid-end a string game ID (of any of the valid forms
 \cq{params}, \cq{params:description} or \cq{params#seed}) which the
@@ -2188,9 +2758,17 @@ requested. The front end should therefore call
 using \cw{midend_size()} and eventually case a refresh using
 \cw{midend_redraw()}.
 
+\H{midend-get-game-id} \cw{midend_get_game_id()}
+
+\c char *midend_get_game_id(midend *me)
+
+Returns a descriptive game ID (i.e. one in the form
+\cq{params:description}) describing the game currently active in the
+mid-end. The returned string is dynamically allocated.
+
 \H{midend-text-format} \cw{midend_text_format()}
 
-\c char *midend_text_format(midend_data *me);
+\c char *midend_text_format(midend *me);
 
 Formats the current game's current state as ASCII text suitable for
 copying to the clipboard. The returned string is dynamically
@@ -2207,7 +2785,7 @@ conversion.
 
 \H{midend-solve} \cw{midend_solve()}
 
-\c char *midend_solve(midend_data *me);
+\c char *midend_solve(midend *me);
 
 Requests the mid-end to perform a Solve operation.
 
@@ -2221,7 +2799,7 @@ function.
 
 \H{midend-rewrite-statusbar} \cw{midend_rewrite_statusbar()}
 
-\c char *midend_rewrite_statusbar(midend_data *me, char *text);
+\c char *midend_rewrite_statusbar(midend *me, char *text);
 
 The front end should call this function from within
 \cw{status_bar()} (\k{drawing-status-bar}). It should be passed the
@@ -2247,7 +2825,7 @@ of the other options are an improvement.)
 
 \H{midend-serialise} \cw{midend_serialise()}
 
-\c void midend_serialise(midend_data *me,
+\c void midend_serialise(midend *me,
 \c                       void (*write)(void *ctx, void *buf, int len),
 \c                       void *wctx);
 
@@ -2272,7 +2850,7 @@ output string.
 
 \H{midend-deserialise} \cw{midend_deserialise()}
 
-\c char *midend_deserialise(midend_data *me,
+\c char *midend_deserialise(midend *me,
 \c                          int (*read)(void *ctx, void *buf, int len),
 \c                          void *rctx);
 
@@ -2418,6 +2996,20 @@ genuinely fatal error such as running out of memory. It is a
 variadic function in the style of \cw{printf()}, and is expected to
 show the formatted error message to the user any way it can and then
 terminate the application. It must not return.
+
+\H{frontend-default-colour} \cw{frontend_default_colour()}
+
+\c void frontend_default_colour(frontend *fe, float *output);
+
+This function expects to be passed a pointer to an array of three
+\cw{float}s. It returns the platform's local preferred background
+colour in those three floats, as red, green and blue values (in that
+order) ranging from \cw{0.0} to \cw{1.0}.
+
+This function should only ever be called by the back end function
+\cw{colours()} (\k{backend-colours}). (Thus, it isn't a
+\e{midend}-to-frontend function as such, but there didn't seem to be
+anywhere else particularly good to put it. Sorry.)
 
 \C{utils} Utility APIs
 

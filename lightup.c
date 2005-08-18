@@ -1181,7 +1181,7 @@ static char *validate_desc(game_params *params, char *desc)
     return NULL;
 }
 
-static game_state *new_game(midend_data *me, game_params *params, char *desc)
+static game_state *new_game(midend *me, game_params *params, char *desc)
 {
     game_state *ret = new_state(params);
     int x,y;
@@ -1528,8 +1528,8 @@ static void game_compute_size(game_params *params, int tilesize,
     *y = TILE_SIZE * params->h + 2 * BORDER;
 }
 
-static void game_set_size(game_drawstate *ds, game_params *params,
-			  int tilesize)
+static void game_set_size(drawing *dr, game_drawstate *ds,
+			  game_params *params, int tilesize)
 {
     ds->tilesize = tilesize;
     ds->crad = 3*(tilesize-1)/8;
@@ -1562,7 +1562,7 @@ static float *game_colours(frontend *fe, game_state *state, int *ncolours)
     return ret;
 }
 
-static game_drawstate *game_new_drawstate(game_state *state)
+static game_drawstate *game_new_drawstate(drawing *dr, game_state *state)
 {
     struct game_drawstate *ds = snew(struct game_drawstate);
     int i;
@@ -1579,7 +1579,7 @@ static game_drawstate *game_new_drawstate(game_state *state)
     return ds;
 }
 
-static void game_free_drawstate(game_drawstate *ds)
+static void game_free_drawstate(drawing *dr, game_drawstate *ds)
 {
     sfree(ds->flags);
     sfree(ds);
@@ -1600,7 +1600,7 @@ static unsigned int tile_flags(game_drawstate *ds, game_state *state, game_ui *u
     unsigned int ret = 0;
 
     if (flashing) ret |= DF_FLASH;
-    if (ui->cur_visible && x == ui->cur_x && y == ui->cur_y)
+    if (ui && ui->cur_visible && x == ui->cur_x && y == ui->cur_y)
         ret |= DF_CURSOR;
 
     if (flags & F_BLACK) {
@@ -1627,7 +1627,7 @@ static unsigned int tile_flags(game_drawstate *ds, game_state *state, game_ui *u
     return ret;
 }
 
-static void tile_redraw(frontend *fe, game_drawstate *ds, game_state *state,
+static void tile_redraw(drawing *dr, game_drawstate *ds, game_state *state,
                         int x, int y)
 {
     unsigned int ds_flags = GRID(ds, flags, x, y);
@@ -1635,7 +1635,7 @@ static void tile_redraw(frontend *fe, game_drawstate *ds, game_state *state,
     int lit = (ds_flags & DF_FLASH) ? COL_GRID : COL_LIT;
 
     if (ds_flags & DF_BLACK) {
-        draw_rect(fe, dx, dy, TILE_SIZE, TILE_SIZE, COL_BLACK);
+        draw_rect(dr, dx, dy, TILE_SIZE, TILE_SIZE, COL_BLACK);
         if (ds_flags & DF_NUMBERED) {
             int ccol = (ds_flags & DF_NUMBERWRONG) ? COL_ERROR : COL_LIGHT;
             char str[10];
@@ -1644,35 +1644,35 @@ static void tile_redraw(frontend *fe, game_drawstate *ds, game_state *state,
              * so it's OK to ignore this when calculating whether or not
              * to redraw the tile. */
             sprintf(str, "%d", GRID(state, lights, x, y));
-            draw_text(fe, dx + TILE_SIZE/2, dy + TILE_SIZE/2,
+            draw_text(dr, dx + TILE_SIZE/2, dy + TILE_SIZE/2,
                       FONT_VARIABLE, TILE_SIZE*3/5,
 		      ALIGN_VCENTRE | ALIGN_HCENTRE, ccol, str);
         }
     } else {
-        draw_rect(fe, dx, dy, TILE_SIZE, TILE_SIZE,
+        draw_rect(dr, dx, dy, TILE_SIZE, TILE_SIZE,
                   (ds_flags & DF_LIT) ? lit : COL_BACKGROUND);
-        draw_rect_outline(fe, dx, dy, TILE_SIZE, TILE_SIZE, COL_GRID);
+        draw_rect_outline(dr, dx, dy, TILE_SIZE, TILE_SIZE, COL_GRID);
         if (ds_flags & DF_LIGHT) {
             int lcol = (ds_flags & DF_OVERLAP) ? COL_ERROR : COL_LIGHT;
-            draw_circle(fe, dx + TILE_SIZE/2, dy + TILE_SIZE/2, TILE_RADIUS,
+            draw_circle(dr, dx + TILE_SIZE/2, dy + TILE_SIZE/2, TILE_RADIUS,
                         lcol, COL_BLACK);
         } else if (ds_flags & DF_IMPOSSIBLE) {
             int rlen = TILE_SIZE / 4;
-            draw_rect(fe, dx + TILE_SIZE/2 - rlen/2, dy + TILE_SIZE/2 - rlen/2,
+            draw_rect(dr, dx + TILE_SIZE/2 - rlen/2, dy + TILE_SIZE/2 - rlen/2,
                       rlen, rlen, COL_BLACK);
         }
     }
 
     if (ds_flags & DF_CURSOR) {
         int coff = TILE_SIZE/8;
-        draw_rect_outline(fe, dx + coff, dy + coff,
+        draw_rect_outline(dr, dx + coff, dy + coff,
                           TILE_SIZE - coff*2, TILE_SIZE - coff*2, COL_CURSOR);
     }
 
-    draw_update(fe, dx, dy, TILE_SIZE, TILE_SIZE);
+    draw_update(dr, dx, dy, TILE_SIZE, TILE_SIZE);
 }
 
-static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
+static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 			game_state *state, int dir, game_ui *ui,
 			float animtime, float flashtime)
 {
@@ -1682,16 +1682,16 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
     if (flashtime) flashing = (int)(flashtime * 3 / FLASH_TIME) != 1;
 
     if (!ds->started) {
-        draw_rect(fe, 0, 0,
+        draw_rect(dr, 0, 0,
                   TILE_SIZE * ds->w + 2 * BORDER,
                   TILE_SIZE * ds->h + 2 * BORDER, COL_BACKGROUND);
 
-        draw_rect_outline(fe, COORD(0)-1, COORD(0)-1,
+        draw_rect_outline(dr, COORD(0)-1, COORD(0)-1,
                           TILE_SIZE * ds->w + 2,
                           TILE_SIZE * ds->h + 2,
                           COL_GRID);
 
-        draw_update(fe, 0, 0,
+        draw_update(dr, 0, 0,
                     TILE_SIZE * ds->w + 2 * BORDER,
                     TILE_SIZE * ds->h + 2 * BORDER);
         ds->started = 1;
@@ -1702,7 +1702,7 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
             unsigned int ds_flags = tile_flags(ds, state, ui, x, y, flashing);
             if (ds_flags != GRID(ds, flags, x, y)) {
                 GRID(ds, flags, x, y) = ds_flags;
-                tile_redraw(fe, ds, state, x, y);
+                tile_redraw(dr, ds, state, x, y);
             }
         }
     }
@@ -1731,6 +1731,69 @@ static int game_wants_statusbar(void)
 static int game_timing_state(game_state *state, game_ui *ui)
 {
     return TRUE;
+}
+
+static void game_print_size(game_params *params, float *x, float *y)
+{
+    int pw, ph;
+
+    /*
+     * I'll use 6mm squares by default.
+     */
+    game_compute_size(params, 600, &pw, &ph);
+    *x = pw / 100.0;
+    *y = ph / 100.0;
+}
+
+static void game_print(drawing *dr, game_state *state, int tilesize)
+{
+    int w = state->w, h = state->h;
+    int ink = print_mono_colour(dr, 0);
+    int paper = print_mono_colour(dr, 1);
+    int x, y;
+
+    /* Ick: fake up `ds->tilesize' for macro expansion purposes */
+    game_drawstate ads, *ds = &ads;
+    ads.tilesize = tilesize;
+    ds->crad = 3*(tilesize-1)/8;
+
+    /*
+     * Border.
+     */
+    print_line_width(dr, TILE_SIZE / 16);
+    draw_rect_outline(dr, COORD(0), COORD(0),
+		      TILE_SIZE * w, TILE_SIZE * h, ink);
+
+    /*
+     * Grid.
+     */
+    print_line_width(dr, TILE_SIZE / 24);
+    for (x = 1; x < w; x++)
+	draw_line(dr, COORD(x), COORD(0), COORD(x), COORD(h), ink);
+    for (y = 1; y < h; y++)
+	draw_line(dr, COORD(0), COORD(y), COORD(w), COORD(y), ink);
+
+    /*
+     * Grid contents.
+     */
+    for (y = 0; y < h; y++)
+	for (x = 0; x < w; x++) {
+            unsigned int ds_flags = tile_flags(ds, state, NULL, x, y, FALSE);
+	    int dx = COORD(x), dy = COORD(y);
+	    if (ds_flags & DF_BLACK) {
+		draw_rect(dr, dx, dy, TILE_SIZE, TILE_SIZE, ink);
+		if (ds_flags & DF_NUMBERED) {
+		    char str[10];
+		    sprintf(str, "%d", GRID(state, lights, x, y));
+		    draw_text(dr, dx + TILE_SIZE/2, dy + TILE_SIZE/2,
+			      FONT_VARIABLE, TILE_SIZE*3/5,
+			      ALIGN_VCENTRE | ALIGN_HCENTRE, paper, str);
+		}
+	    } else if (ds_flags & DF_LIGHT) {
+		draw_circle(dr, dx + TILE_SIZE/2, dy + TILE_SIZE/2,
+			    TILE_RADIUS, -1, ink);
+	    }
+	}
 }
 
 #ifdef COMBINED
@@ -1768,6 +1831,7 @@ const struct game thegame = {
     game_redraw,
     game_anim_length,
     game_flash_length,
+    TRUE, FALSE, game_print_size, game_print,
     game_wants_statusbar,
     FALSE, game_timing_state,
     0,				       /* mouse_priorities */

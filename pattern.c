@@ -15,6 +15,7 @@ enum {
     COL_BACKGROUND,
     COL_EMPTY,
     COL_FULL,
+    COL_TEXT,
     COL_UNKNOWN,
     COL_GRID,
     NCOLOURS
@@ -595,7 +596,7 @@ static char *validate_desc(game_params *params, char *desc)
     return NULL;
 }
 
-static game_state *new_game(midend_data *me, game_params *params, char *desc)
+static game_state *new_game(midend *me, game_params *params, char *desc)
 {
     int i;
     char *p;
@@ -956,8 +957,8 @@ static void game_compute_size(game_params *params, int tilesize,
     *y = SIZE(params->h);
 }
 
-static void game_set_size(game_drawstate *ds, game_params *params,
-			  int tilesize)
+static void game_set_size(drawing *dr, game_drawstate *ds,
+			  game_params *params, int tilesize)
 {
     ds->tilesize = tilesize;
 }
@@ -976,6 +977,10 @@ static float *game_colours(frontend *fe, game_state *state, int *ncolours)
     ret[COL_UNKNOWN * 3 + 1] = 0.5F;
     ret[COL_UNKNOWN * 3 + 2] = 0.5F;
 
+    ret[COL_TEXT * 3 + 0] = 0.0F;
+    ret[COL_TEXT * 3 + 1] = 0.0F;
+    ret[COL_TEXT * 3 + 2] = 0.0F;
+
     ret[COL_FULL * 3 + 0] = 0.0F;
     ret[COL_FULL * 3 + 1] = 0.0F;
     ret[COL_FULL * 3 + 2] = 0.0F;
@@ -988,7 +993,7 @@ static float *game_colours(frontend *fe, game_state *state, int *ncolours)
     return ret;
 }
 
-static game_drawstate *game_new_drawstate(game_state *state)
+static game_drawstate *game_new_drawstate(drawing *dr, game_state *state)
 {
     struct game_drawstate *ds = snew(struct game_drawstate);
 
@@ -1002,18 +1007,18 @@ static game_drawstate *game_new_drawstate(game_state *state)
     return ds;
 }
 
-static void game_free_drawstate(game_drawstate *ds)
+static void game_free_drawstate(drawing *dr, game_drawstate *ds)
 {
     sfree(ds->visible);
     sfree(ds);
 }
 
-static void grid_square(frontend *fe, game_drawstate *ds,
+static void grid_square(drawing *dr, game_drawstate *ds,
                         int y, int x, int state)
 {
     int xl, xr, yt, yb;
 
-    draw_rect(fe, TOCOORD(ds->w, x), TOCOORD(ds->h, y),
+    draw_rect(dr, TOCOORD(ds->w, x), TOCOORD(ds->h, y),
               TILE_SIZE, TILE_SIZE, COL_GRID);
 
     xl = (x % 5 == 0 ? 1 : 0);
@@ -1021,16 +1026,59 @@ static void grid_square(frontend *fe, game_drawstate *ds,
     xr = (x % 5 == 4 || x == ds->w-1 ? 1 : 0);
     yb = (y % 5 == 4 || y == ds->h-1 ? 1 : 0);
 
-    draw_rect(fe, TOCOORD(ds->w, x) + 1 + xl, TOCOORD(ds->h, y) + 1 + yt,
+    draw_rect(dr, TOCOORD(ds->w, x) + 1 + xl, TOCOORD(ds->h, y) + 1 + yt,
               TILE_SIZE - xl - xr - 1, TILE_SIZE - yt - yb - 1,
               (state == GRID_FULL ? COL_FULL :
                state == GRID_EMPTY ? COL_EMPTY : COL_UNKNOWN));
 
-    draw_update(fe, TOCOORD(ds->w, x), TOCOORD(ds->h, y),
+    draw_update(dr, TOCOORD(ds->w, x), TOCOORD(ds->h, y),
                 TILE_SIZE, TILE_SIZE);
 }
 
-static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
+static void draw_numbers(drawing *dr, game_drawstate *ds, game_state *state,
+			 int colour)
+{
+    int i, j;
+
+    /*
+     * Draw the numbers.
+     */
+    for (i = 0; i < state->w + state->h; i++) {
+	int rowlen = state->rowlen[i];
+	int *rowdata = state->rowdata + state->rowsize * i;
+	int nfit;
+
+	/*
+	 * Normally I space the numbers out by the same
+	 * distance as the tile size. However, if there are
+	 * more numbers than available spaces, I have to squash
+	 * them up a bit.
+	 */
+	nfit = max(rowlen, TLBORDER(state->h))-1;
+	assert(nfit > 0);
+
+	for (j = 0; j < rowlen; j++) {
+	    int x, y;
+	    char str[80];
+
+	    if (i < state->w) {
+		x = TOCOORD(state->w, i);
+		y = BORDER + TILE_SIZE * (TLBORDER(state->h)-1);
+		y -= ((rowlen-j-1)*TILE_SIZE) * (TLBORDER(state->h)-1) / nfit;
+	    } else {
+		y = TOCOORD(state->h, i - state->w);
+		x = BORDER + TILE_SIZE * (TLBORDER(state->w)-1);
+		x -= ((rowlen-j-1)*TILE_SIZE) * (TLBORDER(state->h)-1) / nfit;
+	    }
+
+	    sprintf(str, "%d", rowdata[j]);
+	    draw_text(dr, x+TILE_SIZE/2, y+TILE_SIZE/2, FONT_VARIABLE,
+		      TILE_SIZE/2, ALIGN_HCENTRE | ALIGN_VCENTRE, colour, str);
+	}
+    }
+}
+
+static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
                         game_state *state, int dir, game_ui *ui,
                         float animtime, float flashtime)
 {
@@ -1044,56 +1092,23 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
          * all games should start by drawing a big background-
          * colour rectangle covering the whole window.
          */
-        draw_rect(fe, 0, 0, SIZE(ds->w), SIZE(ds->h), COL_BACKGROUND);
+        draw_rect(dr, 0, 0, SIZE(ds->w), SIZE(ds->h), COL_BACKGROUND);
 
-        /*
-         * Draw the numbers.
-         */
-        for (i = 0; i < ds->w + ds->h; i++) {
-            int rowlen = state->rowlen[i];
-            int *rowdata = state->rowdata + state->rowsize * i;
-	    int nfit;
-
-	    /*
-	     * Normally I space the numbers out by the same
-	     * distance as the tile size. However, if there are
-	     * more numbers than available spaces, I have to squash
-	     * them up a bit.
-	     */
-	    nfit = max(rowlen, TLBORDER(ds->h))-1;
-	    assert(nfit > 0);
-
-            for (j = 0; j < rowlen; j++) {
-                int x, y;
-                char str[80];
-
-                if (i < ds->w) {
-                    x = TOCOORD(ds->w, i);
-                    y = BORDER + TILE_SIZE * (TLBORDER(ds->h)-1);
-		    y -= ((rowlen-j-1)*TILE_SIZE) * (TLBORDER(ds->h)-1) / nfit;
-                } else {
-                    y = TOCOORD(ds->h, i - ds->w);
-                    x = BORDER + TILE_SIZE * (TLBORDER(ds->w)-1);
-		    x -= ((rowlen-j-1)*TILE_SIZE) * (TLBORDER(ds->h)-1) / nfit;
-                }
-
-                sprintf(str, "%d", rowdata[j]);
-                draw_text(fe, x+TILE_SIZE/2, y+TILE_SIZE/2, FONT_VARIABLE,
-                          TILE_SIZE/2, ALIGN_HCENTRE | ALIGN_VCENTRE,
-                          COL_FULL, str);   /* FIXME: COL_TEXT */
-            }
-        }
+	/*
+	 * Draw the numbers.
+	 */
+	draw_numbers(dr, ds, state, COL_TEXT);
 
         /*
          * Draw the grid outline.
          */
-        draw_rect(fe, TOCOORD(ds->w, 0) - 1, TOCOORD(ds->h, 0) - 1,
+        draw_rect(dr, TOCOORD(ds->w, 0) - 1, TOCOORD(ds->h, 0) - 1,
                   ds->w * TILE_SIZE + 3, ds->h * TILE_SIZE + 3,
                   COL_GRID);
 
         ds->started = TRUE;
 
-	draw_update(fe, 0, 0, SIZE(ds->w), SIZE(ds->h));
+	draw_update(dr, 0, 0, SIZE(ds->w), SIZE(ds->h));
     }
 
     if (ui->dragging) {
@@ -1132,7 +1147,7 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
                 val = (GRID_FULL ^ GRID_EMPTY) ^ val;
 
             if (ds->visible[i * ds->w + j] != val) {
-                grid_square(fe, ds, i, j, val);
+                grid_square(dr, ds, i, j, val);
                 ds->visible[i * ds->w + j] = val;
             }
         }
@@ -1162,6 +1177,70 @@ static int game_wants_statusbar(void)
 static int game_timing_state(game_state *state, game_ui *ui)
 {
     return TRUE;
+}
+
+static void game_print_size(game_params *params, float *x, float *y)
+{
+    int pw, ph;
+
+    /*
+     * I'll use 5mm squares by default.
+     */
+    game_compute_size(params, 500, &pw, &ph);
+    *x = pw / 100.0;
+    *y = ph / 100.0;
+}
+
+static void game_print(drawing *dr, game_state *state, int tilesize)
+{
+    int w = state->w, h = state->h;
+    int ink = print_mono_colour(dr, 0);
+    int x, y;
+
+    /* Ick: fake up `ds->tilesize' for macro expansion purposes */
+    game_drawstate ads, *ds = &ads;
+    ads.tilesize = tilesize;
+
+    /*
+     * Border.
+     */
+    print_line_width(dr, TILE_SIZE / 16);
+    draw_rect_outline(dr, TOCOORD(w, 0), TOCOORD(h, 0),
+		      w*TILE_SIZE, h*TILE_SIZE, ink);
+
+    /*
+     * Grid.
+     */
+    for (x = 1; x < w; x++) {
+	print_line_width(dr, TILE_SIZE / (x % 5 ? 128 : 24));
+	draw_line(dr, TOCOORD(w, x), TOCOORD(h, 0),
+		  TOCOORD(w, x), TOCOORD(h, h), ink);
+    }
+    for (y = 1; y < h; y++) {
+	print_line_width(dr, TILE_SIZE / (y % 5 ? 128 : 24));
+	draw_line(dr, TOCOORD(w, 0), TOCOORD(h, y),
+		  TOCOORD(w, w), TOCOORD(h, y), ink);
+    }
+
+    /*
+     * Clues.
+     */
+    draw_numbers(dr, ds, state, ink);
+
+    /*
+     * Solution.
+     */
+    print_line_width(dr, TILE_SIZE / 128);
+    for (y = 0; y < h; y++)
+	for (x = 0; x < w; x++) {
+	    if (state->grid[y*w+x] == GRID_FULL)
+		draw_rect(dr, TOCOORD(w, x), TOCOORD(h, y),
+			  TILE_SIZE, TILE_SIZE, ink);
+	    else if (state->grid[y*w+x] == GRID_EMPTY)
+		draw_circle(dr, TOCOORD(w, x) + TILE_SIZE/2,
+			    TOCOORD(h, y) + TILE_SIZE/2,
+			    TILE_SIZE/12, ink, ink);
+	}
 }
 
 #ifdef COMBINED
@@ -1199,6 +1278,7 @@ const struct game thegame = {
     game_redraw,
     game_anim_length,
     game_flash_length,
+    TRUE, FALSE, game_print_size, game_print,
     game_wants_statusbar,
     FALSE, game_timing_state,
     0,				       /* mouse_priorities */
@@ -1213,17 +1293,22 @@ const struct game thegame = {
 #include <stdarg.h>
 
 void frontend_default_colour(frontend *fe, float *output) {}
-void draw_text(frontend *fe, int x, int y, int fonttype, int fontsize,
+void draw_text(drawing *dr, int x, int y, int fonttype, int fontsize,
                int align, int colour, char *text) {}
-void draw_rect(frontend *fe, int x, int y, int w, int h, int colour) {}
-void draw_line(frontend *fe, int x1, int y1, int x2, int y2, int colour) {}
-void clip(frontend *fe, int x, int y, int w, int h) {}
-void unclip(frontend *fe) {}
-void start_draw(frontend *fe) {}
-void draw_update(frontend *fe, int x, int y, int w, int h) {}
-void end_draw(frontend *fe) {}
+void draw_rect(drawing *dr, int x, int y, int w, int h, int colour) {}
+void draw_rect_outline(drawing *dr, int x, int y, int w, int h, int colour) {}
+void draw_line(drawing *dr, int x1, int y1, int x2, int y2, int colour) {}
+void draw_circle(drawing *dr, int cx, int cy, int radius,
+                 int fillcolour, int outlinecolour) {}
+void clip(drawing *dr, int x, int y, int w, int h) {}
+void unclip(drawing *dr) {}
+void start_draw(drawing *dr) {}
+void draw_update(drawing *dr, int x, int y, int w, int h) {}
+void end_draw(drawing *dr) {}
 unsigned long random_upto(random_state *state, unsigned long limit)
 { assert(!"Shouldn't get randomness"); return 0; }
+int print_mono_colour(drawing *dr, int grey) { return 0; }
+void print_line_width(drawing *dr, int width) {}
 
 void fatal(char *fmt, ...)
 {

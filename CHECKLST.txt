@@ -6,8 +6,6 @@ Things to remember when adding a new puzzle
 
 Write the source file for the new puzzle (duhh).
 
-Write a section in print.py, if applicable.
-
 Add it to Recipe in _four_ places:
  - the `ALL' definition, to ensure it is compiled into the OS X binary
  - as a GTK build target

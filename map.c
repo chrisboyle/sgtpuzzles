@@ -1389,7 +1389,7 @@ static char *validate_desc(game_params *params, char *desc)
     return NULL;
 }
 
-static game_state *new_game(midend_data *me, game_params *params, char *desc)
+static game_state *new_game(midend *me, game_params *params, char *desc)
 {
     int w = params->w, h = params->h, wh = w*h, n = params->n;
     int i, pos;
@@ -1785,15 +1785,25 @@ static void game_compute_size(game_params *params, int tilesize,
     *y = params->h * TILESIZE + 2 * BORDER + 1;
 }
 
-static void game_set_size(game_drawstate *ds, game_params *params,
-			  int tilesize)
+static void game_set_size(drawing *dr, game_drawstate *ds,
+			  game_params *params, int tilesize)
 {
     ds->tilesize = tilesize;
 
     if (ds->bl)
-        blitter_free(ds->bl);
-    ds->bl = blitter_new(TILESIZE+3, TILESIZE+3);
+        blitter_free(dr, ds->bl);
+    ds->bl = blitter_new(dr, TILESIZE+3, TILESIZE+3);
 }
+
+const float map_colours[FOUR][3] = {
+    {0.7F, 0.5F, 0.4F},
+    {0.8F, 0.7F, 0.4F},
+    {0.5F, 0.6F, 0.4F},
+    {0.55F, 0.45F, 0.35F},
+};
+const int map_hatching[FOUR] = {
+    HATCH_VERT, HATCH_SLASH, HATCH_HORIZ, HATCH_BACKSLASH
+};
 
 static float *game_colours(frontend *fe, game_state *state, int *ncolours)
 {
@@ -1805,27 +1815,16 @@ static float *game_colours(frontend *fe, game_state *state, int *ncolours)
     ret[COL_GRID * 3 + 1] = 0.0F;
     ret[COL_GRID * 3 + 2] = 0.0F;
 
-    ret[COL_0 * 3 + 0] = 0.7F;
-    ret[COL_0 * 3 + 1] = 0.5F;
-    ret[COL_0 * 3 + 2] = 0.4F;
-
-    ret[COL_1 * 3 + 0] = 0.8F;
-    ret[COL_1 * 3 + 1] = 0.7F;
-    ret[COL_1 * 3 + 2] = 0.4F;
-
-    ret[COL_2 * 3 + 0] = 0.5F;
-    ret[COL_2 * 3 + 1] = 0.6F;
-    ret[COL_2 * 3 + 2] = 0.4F;
-
-    ret[COL_3 * 3 + 0] = 0.55F;
-    ret[COL_3 * 3 + 1] = 0.45F;
-    ret[COL_3 * 3 + 2] = 0.35F;
+    memcpy(ret + COL_0 * 3, map_colours[0], 3 * sizeof(float));
+    memcpy(ret + COL_1 * 3, map_colours[1], 3 * sizeof(float));
+    memcpy(ret + COL_2 * 3, map_colours[2], 3 * sizeof(float));
+    memcpy(ret + COL_3 * 3, map_colours[3], 3 * sizeof(float));
 
     *ncolours = NCOLOURS;
     return ret;
 }
 
-static game_drawstate *game_new_drawstate(game_state *state)
+static game_drawstate *game_new_drawstate(drawing *dr, game_state *state)
 {
     struct game_drawstate *ds = snew(struct game_drawstate);
 
@@ -1840,27 +1839,27 @@ static game_drawstate *game_new_drawstate(game_state *state)
     return ds;
 }
 
-static void game_free_drawstate(game_drawstate *ds)
+static void game_free_drawstate(drawing *dr, game_drawstate *ds)
 {
     sfree(ds->drawn);
     if (ds->bl)
-        blitter_free(ds->bl);
+        blitter_free(dr, ds->bl);
     sfree(ds);
 }
 
-static void draw_square(frontend *fe, game_drawstate *ds,
+static void draw_square(drawing *dr, game_drawstate *ds,
 			game_params *params, struct map *map,
 			int x, int y, int v)
 {
     int w = params->w, h = params->h, wh = w*h;
     int tv = v / FIVE, bv = v % FIVE;
 
-    clip(fe, COORD(x), COORD(y), TILESIZE, TILESIZE);
+    clip(dr, COORD(x), COORD(y), TILESIZE, TILESIZE);
 
     /*
      * Draw the region colour.
      */
-    draw_rect(fe, COORD(x), COORD(y), TILESIZE, TILESIZE,
+    draw_rect(dr, COORD(x), COORD(y), TILESIZE, TILESIZE,
 	      (tv == FOUR ? COL_BACKGROUND : COL_0 + tv));
     /*
      * Draw the second region colour, if this is a diagonally
@@ -1877,7 +1876,7 @@ static void draw_square(frontend *fe, game_drawstate *ds,
         coords[3] = COORD(y)-1;
         coords[4] = COORD(x+1)+1;
         coords[5] = COORD(y+1)+1;
-        draw_polygon(fe, coords, 3,
+        draw_polygon(dr, coords, 3,
                      (bv == FOUR ? COL_BACKGROUND : COL_0 + bv), COL_GRID);
     }
 
@@ -1885,19 +1884,19 @@ static void draw_square(frontend *fe, game_drawstate *ds,
      * Draw the grid lines, if required.
      */
     if (x <= 0 || map->map[RE*wh+y*w+(x-1)] != map->map[LE*wh+y*w+x])
-	draw_rect(fe, COORD(x), COORD(y), 1, TILESIZE, COL_GRID);
+	draw_rect(dr, COORD(x), COORD(y), 1, TILESIZE, COL_GRID);
     if (y <= 0 || map->map[BE*wh+(y-1)*w+x] != map->map[TE*wh+y*w+x])
-	draw_rect(fe, COORD(x), COORD(y), TILESIZE, 1, COL_GRID);
+	draw_rect(dr, COORD(x), COORD(y), TILESIZE, 1, COL_GRID);
     if (x <= 0 || y <= 0 ||
         map->map[RE*wh+(y-1)*w+(x-1)] != map->map[TE*wh+y*w+x] ||
         map->map[BE*wh+(y-1)*w+(x-1)] != map->map[LE*wh+y*w+x])
-	draw_rect(fe, COORD(x), COORD(y), 1, 1, COL_GRID);
+	draw_rect(dr, COORD(x), COORD(y), 1, 1, COL_GRID);
 
-    unclip(fe);
-    draw_update(fe, COORD(x), COORD(y), TILESIZE, TILESIZE);
+    unclip(dr);
+    draw_update(dr, COORD(x), COORD(y), TILESIZE, TILESIZE);
 }
 
-static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
+static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 			game_state *state, int dir, game_ui *ui,
 			float animtime, float flashtime)
 {
@@ -1906,8 +1905,8 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
     int flash;
 
     if (ds->drag_visible) {
-        blitter_load(fe, ds->bl, ds->dragx, ds->dragy);
-        draw_update(fe, ds->dragx, ds->dragy, TILESIZE + 3, TILESIZE + 3);
+        blitter_load(dr, ds->bl, ds->dragx, ds->dragy);
+        draw_update(dr, ds->dragx, ds->dragy, TILESIZE + 3, TILESIZE + 3);
         ds->drag_visible = FALSE;
     }
 
@@ -1921,11 +1920,11 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 	int ww, wh;
 
 	game_compute_size(&state->p, TILESIZE, &ww, &wh);
-	draw_rect(fe, 0, 0, ww, wh, COL_BACKGROUND);
-	draw_rect(fe, COORD(0), COORD(0), w*TILESIZE+1, h*TILESIZE+1,
+	draw_rect(dr, 0, 0, ww, wh, COL_BACKGROUND);
+	draw_rect(dr, COORD(0), COORD(0), w*TILESIZE+1, h*TILESIZE+1,
 		  COL_GRID);
 
-	draw_update(fe, 0, 0, ww, wh);
+	draw_update(dr, 0, 0, ww, wh);
 	ds->started = TRUE;
     }
 
@@ -1968,7 +1967,7 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
             v = tv * FIVE + bv;
 
 	    if (ds->drawn[y*w+x] != v) {
-		draw_square(fe, ds, &state->p, state->map, x, y, v);
+		draw_square(dr, ds, &state->p, state->map, x, y, v);
 		ds->drawn[y*w+x] = v;
 	    }
 	}
@@ -1979,11 +1978,11 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
     if (ui->drag_colour > -2) {
         ds->dragx = ui->dragx - TILESIZE/2 - 2;
         ds->dragy = ui->dragy - TILESIZE/2 - 2;
-        blitter_save(fe, ds->bl, ds->dragx, ds->dragy);
-        draw_circle(fe, ui->dragx, ui->dragy, TILESIZE/2,
+        blitter_save(dr, ds->bl, ds->dragx, ds->dragy);
+        draw_circle(dr, ui->dragx, ui->dragy, TILESIZE/2,
                     (ui->drag_colour < 0 ? COL_BACKGROUND :
                      COL_0 + ui->drag_colour), COL_GRID);
-        draw_update(fe, ds->dragx, ds->dragy, TILESIZE + 3, TILESIZE + 3);
+        draw_update(dr, ds->dragx, ds->dragy, TILESIZE + 3, TILESIZE + 3);
         ds->drag_visible = TRUE;
     }
 }
@@ -2022,6 +2021,157 @@ static int game_timing_state(game_state *state, game_ui *ui)
     return TRUE;
 }
 
+static void game_print_size(game_params *params, float *x, float *y)
+{
+    int pw, ph;
+
+    /*
+     * I'll use 4mm squares by default, I think. Simplest way to
+     * compute this size is to compute the pixel puzzle size at a
+     * given tile size and then scale.
+     */
+    game_compute_size(params, 400, &pw, &ph);
+    *x = pw / 100.0;
+    *y = ph / 100.0;
+}
+
+static void game_print(drawing *dr, game_state *state, int tilesize)
+{
+    int w = state->p.w, h = state->p.h, wh = w*h, n = state->p.n;
+    int ink, c[FOUR], i;
+    int x, y, r;
+    int *coords, ncoords, coordsize;
+
+    /* Ick: fake up `ds->tilesize' for macro expansion purposes */
+    struct { int tilesize; } ads, *ds = &ads;
+    ads.tilesize = tilesize;
+
+    ink = print_mono_colour(dr, 0);
+    for (i = 0; i < FOUR; i++)
+	c[i] = print_rgb_colour(dr, map_hatching[i], map_colours[i][0],
+				map_colours[i][1], map_colours[i][2]);
+
+    coordsize = 0;
+    coords = NULL;
+
+    print_line_width(dr, TILESIZE / 16);
+
+    /*
+     * Draw a single filled polygon around each region.
+     */
+    for (r = 0; r < n; r++) {
+	int octants[8], lastdir, d1, d2, ox, oy;
+
+	/*
+	 * Start by finding a point on the region boundary. Any
+	 * point will do. To do this, we'll search for a square
+	 * containing the region and then decide which corner of it
+	 * to use.
+	 */
+	x = w;
+	for (y = 0; y < h; y++) {
+	    for (x = 0; x < w; x++) {
+		if (state->map->map[wh*0+y*w+x] == r ||
+		    state->map->map[wh*1+y*w+x] == r ||
+		    state->map->map[wh*2+y*w+x] == r ||
+		    state->map->map[wh*3+y*w+x] == r)
+		    break;
+	    }
+	    if (x < w)
+		break;
+	}
+	assert(y < h && x < w);	       /* we must have found one somewhere */
+	/*
+	 * This is the first square in lexicographic order which
+	 * contains part of this region. Therefore, one of the top
+	 * two corners of the square must be what we're after. The
+	 * only case in which it isn't the top left one is if the
+	 * square is diagonally divided and the region is in the
+	 * bottom right half.
+	 */
+	if (state->map->map[wh*TE+y*w+x] != r &&
+	    state->map->map[wh*LE+y*w+x] != r)
+	    x++;		       /* could just as well have done y++ */
+
+	/*
+	 * Now we have a point on the region boundary. Trace around
+	 * the region until we come back to this point,
+	 * accumulating coordinates for a polygon draw operation as
+	 * we go.
+	 */
+	lastdir = -1;
+	ox = x;
+	oy = y;
+	ncoords = 0;
+
+	do {
+	    /*
+	     * There are eight possible directions we could head in
+	     * from here. We identify them by octant numbers, and
+	     * we also use octant numbers to identify the spaces
+	     * between them:
+	     * 
+	     *   6   7   0
+	     *    \ 7|0 /
+	     *     \ | /
+	     *    6 \|/ 1
+	     * 5-----+-----1
+	     *    5 /|\ 2
+	     *     / | \
+	     *    / 4|3 \
+	     *   4   3   2
+	     */
+	    octants[0] = x<w && y>0 ? state->map->map[wh*LE+(y-1)*w+x] : -1;
+	    octants[1] = x<w && y>0 ? state->map->map[wh*BE+(y-1)*w+x] : -1;
+	    octants[2] = x<w && y<h ? state->map->map[wh*TE+y*w+x] : -1;
+	    octants[3] = x<w && y<h ? state->map->map[wh*LE+y*w+x] : -1;
+	    octants[4] = x>0 && y<h ? state->map->map[wh*RE+y*w+(x-1)] : -1;
+	    octants[5] = x>0 && y<h ? state->map->map[wh*TE+y*w+(x-1)] : -1;
+	    octants[6] = x>0 && y>0 ? state->map->map[wh*BE+(y-1)*w+(x-1)] :-1;
+	    octants[7] = x>0 && y>0 ? state->map->map[wh*RE+(y-1)*w+(x-1)] :-1;
+
+	    d1 = d2 = -1;
+	    for (i = 0; i < 8; i++)
+		if ((octants[i] == r) ^ (octants[(i+1)%8] == r)) {
+		    assert(d2 == -1);
+		    if (d1 == -1)
+			d1 = i;
+		    else
+			d2 = i;
+		}
+/* printf("%% %d,%d r=%d: d1=%d d2=%d lastdir=%d\n", x, y, r, d1, d2, lastdir); */
+	    assert(d1 != -1 && d2 != -1);
+	    if (d1 == lastdir)
+		d1 = d2;
+
+	    /*
+	     * Now we're heading in direction d1. Save the current
+	     * coordinates.
+	     */
+	    if (ncoords + 2 > coordsize) {
+		coordsize += 128;
+		coords = sresize(coords, coordsize, int);
+	    }
+	    coords[ncoords++] = COORD(x);
+	    coords[ncoords++] = COORD(y);
+
+	    /*
+	     * Compute the new coordinates.
+	     */
+	    x += (d1 % 4 == 3 ? 0 : d1 < 4 ? +1 : -1);
+	    y += (d1 % 4 == 1 ? 0 : d1 > 1 && d1 < 5 ? +1 : -1);
+	    assert(x >= 0 && x <= w && y >= 0 && y <= h);
+
+	    lastdir = d1 ^ 4;
+	} while (x != ox || y != oy);
+
+	draw_polygon(dr, coords, ncoords/2,
+		     state->colouring[r] >= 0 ?
+		     c[state->colouring[r]] : -1, ink);
+    }
+    sfree(coords);
+}
+
 #ifdef COMBINED
 #define thegame map
 #endif
@@ -2057,6 +2207,7 @@ const struct game thegame = {
     game_redraw,
     game_anim_length,
     game_flash_length,
+    TRUE, TRUE, game_print_size, game_print,
     game_wants_statusbar,
     FALSE, game_timing_state,
     0,				       /* mouse_priorities */

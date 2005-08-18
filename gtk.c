@@ -8,6 +8,7 @@
 #include <time.h>
 #include <stdarg.h>
 #include <string.h>
+#include <errno.h>
 
 #include <sys/time.h>
 
@@ -103,7 +104,7 @@ struct frontend {
     int ncolours;
     GdkColormap *colmap;
     int w, h;
-    midend_data *me;
+    midend *me;
     GdkGC *gc;
     int bbox_l, bbox_r, bbox_u, bbox_d;
     int timer_active, timer_id;
@@ -137,8 +138,9 @@ void frontend_default_colour(frontend *fe, float *output)
     output[2] = col.blue / 65535.0;
 }
 
-void status_bar(frontend *fe, char *text)
+void gtk_status_bar(void *handle, char *text)
 {
+    frontend *fe = (frontend *)handle;
     char *rewritten;
 
     assert(fe->statusbar);
@@ -154,8 +156,9 @@ void status_bar(frontend *fe, char *text)
     }
 }
 
-void start_draw(frontend *fe)
+void gtk_start_draw(void *handle)
 {
+    frontend *fe = (frontend *)handle;
     fe->gc = gdk_gc_new(fe->area->window);
     fe->bbox_l = fe->w;
     fe->bbox_r = 0;
@@ -163,8 +166,9 @@ void start_draw(frontend *fe)
     fe->bbox_d = 0;
 }
 
-void clip(frontend *fe, int x, int y, int w, int h)
+void gtk_clip(void *handle, int x, int y, int w, int h)
 {
+    frontend *fe = (frontend *)handle;
     GdkRectangle rect;
 
     rect.x = x;
@@ -175,8 +179,9 @@ void clip(frontend *fe, int x, int y, int w, int h)
     gdk_gc_set_clip_rectangle(fe->gc, &rect);
 }
 
-void unclip(frontend *fe)
+void gtk_unclip(void *handle)
 {
+    frontend *fe = (frontend *)handle;
     GdkRectangle rect;
 
     rect.x = 0;
@@ -187,9 +192,10 @@ void unclip(frontend *fe)
     gdk_gc_set_clip_rectangle(fe->gc, &rect);
 }
 
-void draw_text(frontend *fe, int x, int y, int fonttype, int fontsize,
-               int align, int colour, char *text)
+void gtk_draw_text(void *handle, int x, int y, int fonttype, int fontsize,
+		   int align, int colour, char *text)
 {
+    frontend *fe = (frontend *)handle;
     int i;
 
     /*
@@ -335,21 +341,24 @@ void draw_text(frontend *fe, int x, int y, int fonttype, int fontsize,
 
 }
 
-void draw_rect(frontend *fe, int x, int y, int w, int h, int colour)
+void gtk_draw_rect(void *handle, int x, int y, int w, int h, int colour)
 {
+    frontend *fe = (frontend *)handle;
     gdk_gc_set_foreground(fe->gc, &fe->colours[colour]);
     gdk_draw_rectangle(fe->pixmap, fe->gc, 1, x, y, w, h);
 }
 
-void draw_line(frontend *fe, int x1, int y1, int x2, int y2, int colour)
+void gtk_draw_line(void *handle, int x1, int y1, int x2, int y2, int colour)
 {
+    frontend *fe = (frontend *)handle;
     gdk_gc_set_foreground(fe->gc, &fe->colours[colour]);
     gdk_draw_line(fe->pixmap, fe->gc, x1, y1, x2, y2);
 }
 
-void draw_polygon(frontend *fe, int *coords, int npoints,
-                  int fillcolour, int outlinecolour)
+void gtk_draw_poly(void *handle, int *coords, int npoints,
+		   int fillcolour, int outlinecolour)
 {
+    frontend *fe = (frontend *)handle;
     GdkPoint *points = snewn(npoints, GdkPoint);
     int i;
 
@@ -369,9 +378,10 @@ void draw_polygon(frontend *fe, int *coords, int npoints,
     sfree(points);
 }
 
-void draw_circle(frontend *fe, int cx, int cy, int radius,
-                 int fillcolour, int outlinecolour)
+void gtk_draw_circle(void *handle, int cx, int cy, int radius,
+		     int fillcolour, int outlinecolour)
 {
+    frontend *fe = (frontend *)handle;
     if (fillcolour >= 0) {
 	gdk_gc_set_foreground(fe->gc, &fe->colours[fillcolour]);
 	gdk_draw_arc(fe->pixmap, fe->gc, TRUE,
@@ -391,7 +401,7 @@ struct blitter {
     int w, h, x, y;
 };
 
-blitter *blitter_new(int w, int h)
+blitter *gtk_blitter_new(void *handle, int w, int h)
 {
     /*
      * We can't create the pixmap right now, because fe->window
@@ -405,15 +415,16 @@ blitter *blitter_new(int w, int h)
     return bl;
 }
 
-void blitter_free(blitter *bl)
+void gtk_blitter_free(void *handle, blitter *bl)
 {
     if (bl->pixmap)
         gdk_pixmap_unref(bl->pixmap);
     sfree(bl);
 }
 
-void blitter_save(frontend *fe, blitter *bl, int x, int y)
+void gtk_blitter_save(void *handle, blitter *bl, int x, int y)
 {
+    frontend *fe = (frontend *)handle;
     if (!bl->pixmap)
         bl->pixmap = gdk_pixmap_new(fe->area->window, bl->w, bl->h, -1);
     bl->x = x;
@@ -424,8 +435,9 @@ void blitter_save(frontend *fe, blitter *bl, int x, int y)
                     x, y, 0, 0, bl->w, bl->h);
 }
 
-void blitter_load(frontend *fe, blitter *bl, int x, int y)
+void gtk_blitter_load(void *handle, blitter *bl, int x, int y)
 {
+    frontend *fe = (frontend *)handle;
     assert(bl->pixmap);
     if (x == BLITTER_FROMSAVED && y == BLITTER_FROMSAVED) {
         x = bl->x;
@@ -437,16 +449,18 @@ void blitter_load(frontend *fe, blitter *bl, int x, int y)
                     0, 0, x, y, bl->w, bl->h);
 }
 
-void draw_update(frontend *fe, int x, int y, int w, int h)
+void gtk_draw_update(void *handle, int x, int y, int w, int h)
 {
+    frontend *fe = (frontend *)handle;
     if (fe->bbox_l > x  ) fe->bbox_l = x  ;
     if (fe->bbox_r < x+w) fe->bbox_r = x+w;
     if (fe->bbox_u > y  ) fe->bbox_u = y  ;
     if (fe->bbox_d < y+h) fe->bbox_d = y+h;
 }
 
-void end_draw(frontend *fe)
+void gtk_end_draw(void *handle)
 {
+    frontend *fe = (frontend *)handle;
     gdk_gc_unref(fe->gc);
     fe->gc = NULL;
 
@@ -459,6 +473,26 @@ void end_draw(frontend *fe)
                         fe->bbox_r - fe->bbox_l, fe->bbox_d - fe->bbox_u);
     }
 }
+
+const struct drawing_api gtk_drawing = {
+    gtk_draw_text,
+    gtk_draw_rect,
+    gtk_draw_line,
+    gtk_draw_poly,
+    gtk_draw_circle,
+    gtk_draw_update,
+    gtk_clip,
+    gtk_unclip,
+    gtk_start_draw,
+    gtk_end_draw,
+    gtk_status_bar,
+    gtk_blitter_new,
+    gtk_blitter_free,
+    gtk_blitter_save,
+    gtk_blitter_load,
+    NULL, NULL, NULL, NULL, NULL, NULL, /* {begin,end}_{doc,page,puzzle} */
+    NULL,			       /* line_width */
+};
 
 static void destroy(GtkWidget *widget, gpointer data)
 {
@@ -654,6 +688,8 @@ static gint timer_func(gpointer data)
 
 void deactivate_timer(frontend *fe)
 {
+    if (!fe)
+	return;			       /* can happen due to --generate */
     if (fe->timer_active)
         gtk_timeout_remove(fe->timer_id);
     fe->timer_active = FALSE;
@@ -661,6 +697,8 @@ void deactivate_timer(frontend *fe)
 
 void activate_timer(frontend *fe)
 {
+    if (!fe)
+	return;			       /* can happen due to --generate */
     if (!fe->timer_active) {
         fe->timer_id = gtk_timeout_add(20, timer_func, fe);
 	gettimeofday(&fe->last_time, NULL);
@@ -1379,16 +1417,20 @@ static frontend *new_window(char *arg, char **error)
     GtkBox *vbox;
     GtkWidget *menubar, *menu, *menuitem;
     int x, y, n;
+    char errbuf[1024];
 
     fe = snew(frontend);
 
     fe->timer_active = FALSE;
     fe->timer_id = -1;
 
-    fe->me = midend_new(fe, &thegame);
+    fe->me = midend_new(fe, &thegame, &gtk_drawing, fe);
 
     if (arg) {
 	char *err;
+
+	errbuf[0] = '\0';
+
 	/*
 	 * Try treating the argument as a game ID.
 	 */
@@ -1401,14 +1443,16 @@ static frontend *new_window(char *arg, char **error)
 	} else {
 	    FILE *fp = fopen(arg, "r");
 	    if (!fp) {
-		err = "Supplied argument is neither a game ID nor a save file";
+		sprintf(errbuf, "Supplied argument is neither a game ID (%.400s)"
+			" nor a save file (%.400s)", err, strerror(errno));
 	    } else {
 		err = midend_deserialise(fe->me, savefile_read, fp);
+		sprintf(errbuf, "%.800s", err);
 		fclose(fp);
 	    }
         }
-	if (err) {
-	    *error = err;
+	if (*errbuf) {
+	    *error = dupstr(errbuf);
 	    midend_free(fe->me);
 	    sfree(fe);
 	    return NULL;
@@ -1647,15 +1691,133 @@ static frontend *new_window(char *arg, char **error)
     return fe;
 }
 
+char *fgetline(FILE *fp)
+{
+    char *ret = snewn(512, char);
+    int size = 512, len = 0;
+    while (fgets(ret + len, size - len, fp)) {
+	len += strlen(ret + len);
+	if (ret[len-1] == '\n')
+	    break;		       /* got a newline, we're done */
+	size = len + 512;
+	ret = sresize(ret, size, char);
+    }
+    if (len == 0) {		       /* first fgets returned NULL */
+	sfree(ret);
+	return NULL;
+    }
+    ret[len] = '\0';
+    return ret;
+}
+
 int main(int argc, char **argv)
 {
     char *pname = argv[0];
     char *error;
+    int ngenerate = 0, print = FALSE, px = 1, py = 1;
+    int soln = FALSE, colour = FALSE;
+    float scale = 1.0F;
+    char *arg = NULL;
+    int doing_opts = TRUE;
+    int ac = argc;
+    char **av = argv;
+    char errbuf[500];
 
-    if (argc > 1 && !strcmp(argv[1], "--version")) {
-	printf("%s, from Simon Tatham's Portable Puzzle Collection\n%s\n",
-	       thegame.name, ver);
-	return 0;
+    /*
+     * Command line parsing in this function is rather fiddly,
+     * because GTK wants to have a go at argc/argv _first_ - and
+     * yet we can't let it, because gtk_init() will bomb out if it
+     * can't open an X display, whereas in fact we want to permit
+     * our --generate and --print modes to run without an X
+     * display.
+     * 
+     * So what we do is:
+     * 	- we parse the command line ourselves, without modifying
+     * 	  argc/argv
+     * 	- if we encounter an error which might plausibly be the
+     * 	  result of a GTK command line (i.e. not detailed errors in
+     * 	  particular options of ours) we store the error message
+     * 	  and terminate parsing.
+     * 	- if we got enough out of the command line to know it
+     * 	  specifies a non-X mode of operation, we either display
+     * 	  the stored error and return failure, or if there is no
+     * 	  stored error we do the non-X operation and return
+     * 	  success.
+     *  - otherwise, we go straight to gtk_init().
+     */
+
+    errbuf[0] = '\0';
+    while (--ac > 0) {
+	char *p = *++av;
+	if (doing_opts && !strcmp(p, "--version")) {
+	    printf("%s, from Simon Tatham's Portable Puzzle Collection\n%s\n",
+		   thegame.name, ver);
+	    return 0;
+	} else if (doing_opts && !strcmp(p, "--generate")) {
+	    if (--ac > 0) {
+		ngenerate = atoi(*++av);
+		if (!ngenerate) {
+		    fprintf(stderr, "%s: '--generate' expected a number\n",
+			    pname);
+		    return 1;
+		}
+	    } else
+		ngenerate = 1;
+	} else if (doing_opts && !strcmp(p, "--print")) {
+	    if (!thegame.can_print) {
+		fprintf(stderr, "%s: this game does not support printing\n",
+			pname);
+		return 1;
+	    }
+	    print = TRUE;
+	    if (--ac > 0) {
+		char *dim = *++av;
+		if (sscanf(dim, "%dx%d", &px, &py) != 2) {
+		    fprintf(stderr, "%s: unable to parse argument '%s' to "
+			    "'--print'\n", pname, dim);
+		    return 1;
+		}
+	    } else {
+		px = py = 1;
+	    }
+	} else if (doing_opts && !strcmp(p, "--scale")) {
+	    if (--ac > 0) {
+		scale = atof(*++av);
+	    } else {
+		fprintf(stderr, "%s: no argument supplied to '--scale'\n",
+			pname);
+		return 1;
+	    }
+	} else if (doing_opts && (!strcmp(p, "--with-solutions") ||
+				  !strcmp(p, "--with-solution") ||
+				  !strcmp(p, "--with-solns") ||
+				  !strcmp(p, "--with-soln") ||
+				  !strcmp(p, "--solutions") ||
+				  !strcmp(p, "--solution") ||
+				  !strcmp(p, "--solns") ||
+				  !strcmp(p, "--soln"))) {
+	    soln = TRUE;
+	} else if (doing_opts && !strcmp(p, "--colour")) {
+	    if (!thegame.can_print_in_colour) {
+		fprintf(stderr, "%s: this game does not support colour"
+			" printing\n", pname);
+		return 1;
+	    }
+	    colour = TRUE;
+	} else if (doing_opts && !strcmp(p, "--")) {
+	    doing_opts = FALSE;
+	} else if (!doing_opts || p[0] != '-') {
+	    if (arg) {
+		fprintf(stderr, "%s: more than one argument supplied\n",
+			pname);
+		return 1;
+	    }
+	    arg = p;
+	} else {
+	    sprintf(errbuf, "%.100s: unrecognised option '%.100s'\n",
+		    pname, p);
+	    break;
+	}
     }
 
     /*
@@ -1663,7 +1825,7 @@ int main(int argc, char **argv)
      * command line. Useful for generating puzzles to be printed
      * out and solved offline (for puzzles where that even makes
      * sense - Solo, for example, is a lot more pencil-and-paper
-     * friendly than Net!)
+     * friendly than Twiddle!)
      * 
      * Usage:
      * 
@@ -1679,49 +1841,95 @@ int main(int argc, char **argv)
      * you may specify it to be 1). Sorry; that was the
      * simplest-to-parse command-line syntax I came up with.
      */
-    if (argc > 1 && !strcmp(argv[1], "--generate")) {
-	int n = 1;
-	char *params = NULL, *seed = NULL;
-	game_params *par;
-	random_state *rs;
-	char *parstr;
+    if (ngenerate > 0 || print) {
+	int i, n = 1;
+	midend *me;
+	char *id;
+	document *doc = NULL;
 
-	if (argc > 2)
-	    n = atoi(argv[2]);
-	if (argc > 3)
-	    params = argv[3];
-
-        par = thegame.default_params();
-	if (params) {
-            if ( (seed = strchr(params, '#')) != NULL )
-                *seed++ = '\0';
-	    thegame.decode_params(par, params);
-        }
-        if ((error = thegame.validate_params(par, TRUE)) != NULL) {
-	    fprintf(stderr, "%s: %s\n", pname, error);
-            return 1;
-        }
-	parstr = thegame.encode_params(par, FALSE);
-
-	{
-	    void *seeddata;
-	    int seedlen;
-            if (seed) {
-                seeddata = seed;
-                seedlen = strlen(seed);
-            } else {
-                get_random_seed(&seeddata, &seedlen);
-            }
-	    rs = random_init(seeddata, seedlen);
+	if (*errbuf) {
+	    fputs(errbuf, stderr);
+	    return 1;
 	}
 
-	while (n-- > 0) {
-	    char *aux = NULL;
-	    char *desc = thegame.new_desc(par, rs, &aux, FALSE);
-	    printf("%s:%s\n", parstr, desc);
-	    sfree(desc);
-            sfree(aux);
+	n = ngenerate;
+
+	me = midend_new(NULL, &thegame, NULL, NULL);
+	i = 0;
+
+	if (print)
+	    doc = document_new(px, py, scale);
+
+	/*
+	 * In this loop, we either generate a game ID or read one
+	 * from stdin depending on whether we're in generate mode;
+	 * then we either write it to stdout or print it, depending
+	 * on whether we're in print mode. Thus, this loop handles
+	 * generate-to-stdout, print-from-stdin and generate-and-
+	 * immediately-print modes.
+	 * 
+	 * (It could also handle a copy-stdin-to-stdout mode,
+	 * although there's currently no combination of options
+	 * which will cause this loop to be activated in that mode.
+	 * It wouldn't be _entirely_ pointless, though, because
+	 * stdin could contain bare params strings or random-seed
+	 * IDs, and stdout would contain nothing but fully
+	 * generated descriptive game IDs.)
+	 */
+	while (ngenerate == 0 || i < n) {
+	    char *pstr, *err;
+
+	    if (ngenerate == 0) {
+		pstr = fgetline(stdin);
+		if (!pstr)
+		    break;
+		pstr[strcspn(pstr, "\r\n")] = '\0';
+	    } else {
+		if (arg) {
+		    pstr = snewn(strlen(arg) + 40, char);
+
+		    strcpy(pstr, arg);
+		    if (i > 0 && strchr(arg, '#'))
+			sprintf(pstr + strlen(pstr), "-%d", i);
+		} else
+		    pstr = NULL;
+	    }
+
+	    if (pstr) {
+		err = midend_game_id(me, pstr);
+		if (err) {
+		    fprintf(stderr, "%s: error parsing '%s': %s\n",
+			    pname, pstr, err);
+		    return 1;
+		}
+	    }
+	    sfree(pstr);
+
+	    midend_new_game(me);
+
+	    if (doc) {
+		err = midend_print_puzzle(me, doc, soln);
+		if (err) {
+		    fprintf(stderr, "%s: error in printing: %s\n", pname, err);
+		    return 1;
+		}
+	    } else {
+		id = midend_get_game_id(me);
+		puts(id);
+		sfree(id);
+	    }
+
+	    i++;
 	}
+
+	if (doc) {
+	    psdata *ps = ps_init(stdout, colour);
+	    document_print(doc, ps_drawing_api(ps));
+	    document_free(doc);
+	    ps_free(ps);
+	}
+
+	midend_free(me);
 
 	return 0;
     } else {

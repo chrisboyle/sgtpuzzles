@@ -389,7 +389,7 @@ static int grid2range(game_state *state, int x, int y, int *rangeno)
     return 1;
 }
 
-static game_state *new_game(midend_data *me, game_params *params, char *desc)
+static game_state *new_game(midend *me, game_params *params, char *desc)
 {
     game_state *state = snew(game_state);
     int dlen = strlen(desc), i;
@@ -475,7 +475,7 @@ struct game_ui {
 
 static game_ui *new_ui(game_state *state)
 {
-    game_ui *ui = snew(struct game_ui);
+    game_ui *ui = snew(game_ui);
     ui->flash_laserno = LASER_EMPTY;
     ui->errors = 0;
     ui->newmove = FALSE;
@@ -1052,8 +1052,8 @@ static void game_compute_size(game_params *params, int tilesize,
     *y = (params->h + 3) * tilesize;
 }
 
-static void game_set_size(game_drawstate *ds, game_params *params,
-			  int tilesize)
+static void game_set_size(drawing *dr, game_drawstate *ds,
+			  game_params *params, int tilesize)
 {
     ds->tilesize = tilesize;
     ds->crad = (tilesize-1)/2;
@@ -1102,7 +1102,7 @@ static float *game_colours(frontend *fe, game_state *state, int *ncolours)
     return ret;
 }
 
-static game_drawstate *game_new_drawstate(game_state *state)
+static game_drawstate *game_new_drawstate(drawing *dr, game_state *state)
 {
     struct game_drawstate *ds = snew(struct game_drawstate);
 
@@ -1117,13 +1117,13 @@ static game_drawstate *game_new_drawstate(game_state *state)
     return ds;
 }
 
-static void game_free_drawstate(game_drawstate *ds)
+static void game_free_drawstate(drawing *dr, game_drawstate *ds)
 {
     sfree(ds->grid);
     sfree(ds);
 }
 
-static void draw_arena_tile(frontend *fe, game_state *gs, game_drawstate *ds,
+static void draw_arena_tile(drawing *dr, game_state *gs, game_drawstate *ds,
                             int ax, int ay, int force, int isflash)
 {
     int gx = ax+1, gy = ay+1;
@@ -1136,8 +1136,8 @@ static void draw_arena_tile(frontend *fe, game_state *gs, game_drawstate *ds,
         bg = (gs->reveal ? COL_BACKGROUND :
               (gs_tile & BALL_LOCK) ? COL_LOCK : COL_COVER);
 
-        draw_rect(fe, dx, dy, TILE_SIZE, TILE_SIZE, bg);
-        draw_rect_outline(fe, dx, dy, TILE_SIZE, TILE_SIZE, COL_GRID);
+        draw_rect(dr, dx, dy, TILE_SIZE, TILE_SIZE, bg);
+        draw_rect_outline(dr, dx, dy, TILE_SIZE, TILE_SIZE, COL_GRID);
 
         if (gs->reveal) {
             /* Guessed balls are always black; if they're incorrect they'll
@@ -1159,7 +1159,7 @@ static void draw_arena_tile(frontend *fe, game_state *gs, game_drawstate *ds,
             }
         }
 
-        draw_circle(fe, dx + TILE_SIZE/2, dy + TILE_SIZE/2, ds->crad-1,
+        draw_circle(dr, dx + TILE_SIZE/2, dy + TILE_SIZE/2, ds->crad-1,
                     bcol, bcol);
 
         if (gs->reveal &&
@@ -1178,7 +1178,7 @@ static void draw_arena_tile(frontend *fe, game_state *gs, game_drawstate *ds,
 	    coords[5] = y2-1;
 	    coords[6] = x2-1;
 	    coords[7] = y2+1;
-	    draw_polygon(fe, coords, 4, COL_WRONG, COL_WRONG);
+	    draw_polygon(dr, coords, 4, COL_WRONG, COL_WRONG);
 	    coords[0] = x2+1;
 	    coords[1] = y1+1;
 	    coords[2] = x2-1;
@@ -1187,14 +1187,14 @@ static void draw_arena_tile(frontend *fe, game_state *gs, game_drawstate *ds,
 	    coords[5] = y2-1;
 	    coords[6] = x1+1;
 	    coords[7] = y2+1;
-	    draw_polygon(fe, coords, 4, COL_WRONG, COL_WRONG);
+	    draw_polygon(dr, coords, 4, COL_WRONG, COL_WRONG);
         }
-        draw_update(fe, dx, dy, TILE_SIZE, TILE_SIZE);
+        draw_update(dr, dx, dy, TILE_SIZE, TILE_SIZE);
     }
     GRID(ds,gx,gy) = gs_tile;
 }
 
-static void draw_laser_tile(frontend *fe, game_state *gs, game_drawstate *ds,
+static void draw_laser_tile(drawing *dr, game_state *gs, game_drawstate *ds,
                             game_ui *ui, int lno, int force)
 {
     int gx, gy, dx, dy, unused;
@@ -1227,8 +1227,8 @@ static void draw_laser_tile(frontend *fe, game_state *gs, game_drawstate *ds,
     gs_tile |= wrong | omitted;
 
     if (gs_tile != ds_tile || force) {
-        draw_rect(fe, dx, dy, TILE_SIZE, TILE_SIZE, COL_BACKGROUND);
-        draw_rect_outline(fe, dx, dy, TILE_SIZE, TILE_SIZE, COL_GRID);
+        draw_rect(dr, dx, dy, TILE_SIZE, TILE_SIZE, COL_BACKGROUND);
+        draw_rect_outline(dr, dx, dy, TILE_SIZE, TILE_SIZE, COL_GRID);
 
         if (gs_tile &~ (LASER_WRONG | LASER_OMITTED)) {
             char str[10];
@@ -1240,25 +1240,25 @@ static void draw_laser_tile(frontend *fe, game_state *gs, game_drawstate *ds,
                 sprintf(str, "%d", laserval);
 
             if (wrong) {
-                draw_circle(fe, dx + TILE_SIZE/2, dy + TILE_SIZE/2,
+                draw_circle(dr, dx + TILE_SIZE/2, dy + TILE_SIZE/2,
                             ds->rrad,
                             COL_WRONG, COL_WRONG);
-                draw_circle(fe, dx + TILE_SIZE/2, dy + TILE_SIZE/2,
+                draw_circle(dr, dx + TILE_SIZE/2, dy + TILE_SIZE/2,
                             ds->rrad - TILE_SIZE/16,
                             COL_BACKGROUND, COL_WRONG);
             }
 
-            draw_text(fe, dx + TILE_SIZE/2, dy + TILE_SIZE/2,
+            draw_text(dr, dx + TILE_SIZE/2, dy + TILE_SIZE/2,
                       FONT_VARIABLE, TILE_SIZE/2, ALIGN_VCENTRE | ALIGN_HCENTRE,
                       tcol, str);
         }
-        draw_update(fe, dx, dy, TILE_SIZE, TILE_SIZE);
+        draw_update(dr, dx, dy, TILE_SIZE, TILE_SIZE);
     }
     GRID(ds, gx, gy) = gs_tile;
 }
 
 
-static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
+static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 			game_state *state, int dir, game_ui *ui,
 			float animtime, float flashtime)
 {
@@ -1274,26 +1274,26 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
         int x0 = TODRAW(0)-1, y0 = TODRAW(0)-1;
         int x1 = TODRAW(state->w+2), y1 = TODRAW(state->h+2);
 
-        draw_rect(fe, 0, 0,
+        draw_rect(dr, 0, 0,
                   TILE_SIZE * (state->w+3), TILE_SIZE * (state->h+3),
                   COL_BACKGROUND);
 
         /* clockwise around the outline starting at pt behind (1,1). */
-        draw_line(fe, x0+ts, y0+ts, x0+ts, y0,    COL_HIGHLIGHT);
-        draw_line(fe, x0+ts, y0,    x1-ts, y0,    COL_HIGHLIGHT);
-        draw_line(fe, x1-ts, y0,    x1-ts, y0+ts, COL_LOWLIGHT);
-        draw_line(fe, x1-ts, y0+ts, x1,    y0+ts, COL_HIGHLIGHT);
-        draw_line(fe, x1,    y0+ts, x1,    y1-ts, COL_LOWLIGHT);
-        draw_line(fe, x1,    y1-ts, x1-ts, y1-ts, COL_LOWLIGHT);
-        draw_line(fe, x1-ts, y1-ts, x1-ts, y1,    COL_LOWLIGHT);
-        draw_line(fe, x1-ts, y1,    x0+ts, y1,    COL_LOWLIGHT);
-        draw_line(fe, x0+ts, y1,    x0+ts, y1-ts, COL_HIGHLIGHT);
-        draw_line(fe, x0+ts, y1-ts, x0,    y1-ts, COL_LOWLIGHT);
-        draw_line(fe, x0,    y1-ts, x0,    y0+ts, COL_HIGHLIGHT);
-        draw_line(fe, x0,    y0+ts, x0+ts, y0+ts, COL_HIGHLIGHT);
+        draw_line(dr, x0+ts, y0+ts, x0+ts, y0,    COL_HIGHLIGHT);
+        draw_line(dr, x0+ts, y0,    x1-ts, y0,    COL_HIGHLIGHT);
+        draw_line(dr, x1-ts, y0,    x1-ts, y0+ts, COL_LOWLIGHT);
+        draw_line(dr, x1-ts, y0+ts, x1,    y0+ts, COL_HIGHLIGHT);
+        draw_line(dr, x1,    y0+ts, x1,    y1-ts, COL_LOWLIGHT);
+        draw_line(dr, x1,    y1-ts, x1-ts, y1-ts, COL_LOWLIGHT);
+        draw_line(dr, x1-ts, y1-ts, x1-ts, y1,    COL_LOWLIGHT);
+        draw_line(dr, x1-ts, y1,    x0+ts, y1,    COL_LOWLIGHT);
+        draw_line(dr, x0+ts, y1,    x0+ts, y1-ts, COL_HIGHLIGHT);
+        draw_line(dr, x0+ts, y1-ts, x0,    y1-ts, COL_LOWLIGHT);
+        draw_line(dr, x0,    y1-ts, x0,    y0+ts, COL_HIGHLIGHT);
+        draw_line(dr, x0,    y0+ts, x0+ts, y0+ts, COL_HIGHLIGHT);
         /* phew... */
 
-        draw_update(fe, 0, 0,
+        draw_update(dr, 0, 0,
                     TILE_SIZE * (state->w+3), TILE_SIZE * (state->h+3));
         force = 1;
         ds->started = 1;
@@ -1304,26 +1304,26 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
     /* draw the arena */
     for (x = 0; x < state->w; x++) {
         for (y = 0; y < state->h; y++) {
-            draw_arena_tile(fe, state, ds, x, y, force, isflash);
+            draw_arena_tile(dr, state, ds, x, y, force, isflash);
         }
     }
 
     /* draw the lasers */
     for (i = 0; i < 2*(state->w+state->h); i++) {
-        draw_laser_tile(fe, state, ds, ui, i, force);
+        draw_laser_tile(dr, state, ds, ui, i, force);
     }
 
     /* draw the 'finish' button */
     if (CAN_REVEAL(state)) {
-        clip(fe, TODRAW(0), TODRAW(0), TILE_SIZE-1, TILE_SIZE-1);
-        draw_circle(fe, TODRAW(0) + ds->crad, TODRAW(0) + ds->crad, ds->crad,
+        clip(dr, TODRAW(0), TODRAW(0), TILE_SIZE-1, TILE_SIZE-1);
+        draw_circle(dr, TODRAW(0) + ds->crad, TODRAW(0) + ds->crad, ds->crad,
                     COL_BUTTON, COL_BALL);
-	unclip(fe);
+	unclip(dr);
     } else {
-        draw_rect(fe, TODRAW(0), TODRAW(0),
+        draw_rect(dr, TODRAW(0), TODRAW(0),
 		  TILE_SIZE-1, TILE_SIZE-1, COL_BACKGROUND);
     }
-    draw_update(fe, TODRAW(0), TODRAW(0), TILE_SIZE, TILE_SIZE);
+    draw_update(dr, TODRAW(0), TODRAW(0), TILE_SIZE, TILE_SIZE);
     ds->reveal = state->reveal;
     ds->flash_laserno = ui->flash_laserno;
     ds->isflash = isflash;
@@ -1359,7 +1359,7 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 	    sprintf(buf + strlen(buf), " (%d error%s)",
 		    ui->errors, ui->errors > 1 ? "s" : "");
 	}
-        status_bar(fe, buf);
+        status_bar(dr, buf);
     }
 }
 
@@ -1386,6 +1386,14 @@ static int game_wants_statusbar(void)
 static int game_timing_state(game_state *state, game_ui *ui)
 {
     return TRUE;
+}
+
+static void game_print_size(game_params *params, float *x, float *y)
+{
+}
+
+static void game_print(drawing *dr, game_state *state, int tilesize)
+{
 }
 
 #ifdef COMBINED
@@ -1423,6 +1431,7 @@ const struct game thegame = {
     game_redraw,
     game_anim_length,
     game_flash_length,
+    FALSE, FALSE, game_print_size, game_print,
     game_wants_statusbar,
     FALSE, game_timing_state,
     0,				       /* mouse_priorities */

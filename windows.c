@@ -90,7 +90,7 @@ struct blitter {
 };
 
 struct frontend {
-    midend_data *me;
+    midend *me;
     HWND hwnd, statusbar, cfgbox;
     HINSTANCE inst;
     HBITMAP bitmap, prevbm;
@@ -136,8 +136,9 @@ void get_random_seed(void **randseed, int *randseedsize)
     *randseedsize = sizeof(time_t);
 }
 
-void status_bar(frontend *fe, char *text)
+static void win_status_bar(void *handle, char *text)
 {
+    frontend *fe = (frontend *)handle;
     char *rewritten = midend_rewrite_statusbar(fe->me, text);
     if (!fe->laststatus || strcmp(rewritten, fe->laststatus)) {
 	SetWindowText(fe->statusbar, rewritten);
@@ -148,7 +149,7 @@ void status_bar(frontend *fe, char *text)
     }
 }
 
-blitter *blitter_new(int w, int h)
+static blitter *win_blitter_new(void *handle, int w, int h)
 {
     blitter *bl = snew(blitter);
 
@@ -160,7 +161,7 @@ blitter *blitter_new(int w, int h)
     return bl;
 }
 
-void blitter_free(blitter *bl)
+static void win_blitter_free(void *handle, blitter *bl)
 {
     if (bl->bitmap) DeleteObject(bl->bitmap);
     sfree(bl);
@@ -175,8 +176,9 @@ static void blitter_mkbitmap(frontend *fe, blitter *bl)
 
 /* BitBlt(dstDC, dstX, dstY, dstW, dstH, srcDC, srcX, srcY, dType) */
 
-void blitter_save(frontend *fe, blitter *bl, int x, int y)
+static void win_blitter_save(void *handle, blitter *bl, int x, int y)
 {
+    frontend *fe = (frontend *)handle;
     HDC hdc_win, hdc_blit;
     HBITMAP prev_blit;
 
@@ -201,8 +203,9 @@ void blitter_save(frontend *fe, blitter *bl, int x, int y)
     ReleaseDC(fe->hwnd, hdc_win);
 }
 
-void blitter_load(frontend *fe, blitter *bl, int x, int y)
+static void win_blitter_load(void *handle, blitter *bl, int x, int y)
 {
+    frontend *fe = (frontend *)handle;
     HDC hdc_win, hdc_blit;
     HBITMAP prev_blit;
 
@@ -233,19 +236,22 @@ void frontend_default_colour(frontend *fe, float *output)
     output[2] = (float)(GetBValue(c) / 255.0);
 }
 
-void clip(frontend *fe, int x, int y, int w, int h)
+static void win_clip(void *handle, int x, int y, int w, int h)
 {
+    frontend *fe = (frontend *)handle;
     IntersectClipRect(fe->hdc_bm, x, y, x+w, y+h);
 }
 
-void unclip(frontend *fe)
+static void win_unclip(void *handle)
 {
+    frontend *fe = (frontend *)handle;
     SelectClipRgn(fe->hdc_bm, NULL);
 }
 
-void draw_text(frontend *fe, int x, int y, int fonttype, int fontsize,
-               int align, int colour, char *text)
+static void win_draw_text(void *handle, int x, int y, int fonttype,
+			  int fontsize, int align, int colour, char *text)
 {
+    frontend *fe = (frontend *)handle;
     int i;
 
     /*
@@ -304,8 +310,9 @@ void draw_text(frontend *fe, int x, int y, int fonttype, int fontsize,
     }
 }
 
-void draw_rect(frontend *fe, int x, int y, int w, int h, int colour)
+static void win_draw_rect(void *handle, int x, int y, int w, int h, int colour)
 {
+    frontend *fe = (frontend *)handle;
     if (w == 1 && h == 1) {
 	/*
 	 * Rectangle() appears to get uppity if asked to draw a 1x1
@@ -323,8 +330,9 @@ void draw_rect(frontend *fe, int x, int y, int w, int h, int colour)
     }
 }
 
-void draw_line(frontend *fe, int x1, int y1, int x2, int y2, int colour)
+static void win_draw_line(void *handle, int x1, int y1, int x2, int y2, int colour)
 {
+    frontend *fe = (frontend *)handle;
     HPEN oldpen = SelectObject(fe->hdc_bm, fe->pens[colour]);
     MoveToEx(fe->hdc_bm, x1, y1, NULL);
     LineTo(fe->hdc_bm, x2, y2);
@@ -332,9 +340,10 @@ void draw_line(frontend *fe, int x1, int y1, int x2, int y2, int colour)
     SelectObject(fe->hdc_bm, oldpen);
 }
 
-void draw_circle(frontend *fe, int cx, int cy, int radius,
-                 int fillcolour, int outlinecolour)
+static void win_draw_circle(void *handle, int cx, int cy, int radius,
+			    int fillcolour, int outlinecolour)
 {
+    frontend *fe = (frontend *)handle;
     assert(outlinecolour >= 0);
 
     if (fillcolour >= 0) {
@@ -353,9 +362,10 @@ void draw_circle(frontend *fe, int cx, int cy, int radius,
     }
 }
 
-void draw_polygon(frontend *fe, int *coords, int npoints,
-                  int fillcolour, int outlinecolour)
+static void win_draw_polygon(void *handle, int *coords, int npoints,
+			     int fillcolour, int outlinecolour)
 {
+    frontend *fe = (frontend *)handle;
     POINT *pts = snewn(npoints+1, POINT);
     int i;
 
@@ -382,8 +392,9 @@ void draw_polygon(frontend *fe, int *coords, int npoints,
     sfree(pts);
 }
 
-void start_draw(frontend *fe)
+static void win_start_draw(void *handle)
 {
+    frontend *fe = (frontend *)handle;
     HDC hdc_win;
     hdc_win = GetDC(fe->hwnd);
     fe->hdc_bm = CreateCompatibleDC(hdc_win);
@@ -393,8 +404,9 @@ void start_draw(frontend *fe)
     SetMapMode(fe->hdc_bm, MM_TEXT);
 }
 
-void draw_update(frontend *fe, int x, int y, int w, int h)
+static void win_draw_update(void *handle, int x, int y, int w, int h)
 {
+    frontend *fe = (frontend *)handle;
     RECT r;
 
     r.left = x;
@@ -405,8 +417,9 @@ void draw_update(frontend *fe, int x, int y, int w, int h)
     InvalidateRect(fe->hwnd, &r, FALSE);
 }
 
-void end_draw(frontend *fe)
+static void win_end_draw(void *handle)
 {
+    frontend *fe = (frontend *)handle;
     SelectObject(fe->hdc_bm, fe->prevbm);
     DeleteDC(fe->hdc_bm);
     if (fe->clip) {
@@ -414,6 +427,26 @@ void end_draw(frontend *fe)
 	fe->clip = NULL;
     }
 }
+
+const struct drawing_api win_drawing = {
+    win_draw_text,
+    win_draw_rect,
+    win_draw_line,
+    win_draw_polygon,
+    win_draw_circle,
+    win_draw_update,
+    win_clip,
+    win_unclip,
+    win_start_draw,
+    win_end_draw,
+    win_status_bar,
+    win_blitter_new,
+    win_blitter_free,
+    win_blitter_save,
+    win_blitter_load,
+    NULL, NULL, NULL, NULL, NULL, NULL, /* {begin,end}_{doc,page,puzzle} */
+    NULL,			       /* line_width */
+};
 
 void deactivate_timer(frontend *fe)
 {
@@ -427,6 +460,15 @@ void activate_timer(frontend *fe)
 	fe->timer = SetTimer(fe->hwnd, fe->timer, 20, NULL);
 	fe->timer_last_tickcount = GetTickCount();
     }
+}
+
+/*
+ * Since this front end does not support printing (yet), we need
+ * this stub to satisfy the reference in midend_print_puzzle().
+ */
+void document_add_puzzle(document *doc, const game *game, game_params *par,
+			 game_state *st, game_state *st2)
+{
 }
 
 void write_clip(HWND hwnd, char *data)
@@ -560,7 +602,7 @@ static frontend *new_window(HINSTANCE inst, char *game_id, char **error)
 
     fe = snew(frontend);
 
-    fe->me = midend_new(fe, &thegame);
+    fe->me = midend_new(fe, &thegame, &win_drawing, fe);
 
     if (game_id) {
         *error = midend_game_id(fe->me, game_id);

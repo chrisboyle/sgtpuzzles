@@ -1858,7 +1858,7 @@ static char *validate_desc(game_params *params, char *desc)
     return NULL;
 }
 
-static game_state *new_game(midend_data *me, game_params *params, char *desc)
+static game_state *new_game(midend *me, game_params *params, char *desc)
 {
     game_state *state = snew(game_state);
     int c = params->c, r = params->r, cr = c*r, area = cr * cr;
@@ -2252,8 +2252,8 @@ static void game_compute_size(game_params *params, int tilesize,
     *y = SIZE(params->c * params->r);
 }
 
-static void game_set_size(game_drawstate *ds, game_params *params,
-			  int tilesize)
+static void game_set_size(drawing *dr, game_drawstate *ds,
+			  game_params *params, int tilesize)
 {
     ds->tilesize = tilesize;
 }
@@ -2292,7 +2292,7 @@ static float *game_colours(frontend *fe, game_state *state, int *ncolours)
     return ret;
 }
 
-static game_drawstate *game_new_drawstate(game_state *state)
+static game_drawstate *game_new_drawstate(drawing *dr, game_state *state)
 {
     struct game_drawstate *ds = snew(struct game_drawstate);
     int c = state->c, r = state->r, cr = c*r;
@@ -2312,7 +2312,7 @@ static game_drawstate *game_new_drawstate(game_state *state)
     return ds;
 }
 
-static void game_free_drawstate(game_drawstate *ds)
+static void game_free_drawstate(drawing *dr, game_drawstate *ds)
 {
     sfree(ds->hl);
     sfree(ds->pencil);
@@ -2321,7 +2321,7 @@ static void game_free_drawstate(game_drawstate *ds)
     sfree(ds);
 }
 
-static void draw_number(frontend *fe, game_drawstate *ds, game_state *state,
+static void draw_number(drawing *dr, game_drawstate *ds, game_state *state,
 			int x, int y, int hl)
 {
     int c = state->c, r = state->r, cr = c*r;
@@ -2351,10 +2351,10 @@ static void draw_number(frontend *fe, game_drawstate *ds, game_state *state,
     if ((y+1) % c)
 	ch++;
 
-    clip(fe, cx, cy, cw, ch);
+    clip(dr, cx, cy, cw, ch);
 
     /* background needs erasing */
-    draw_rect(fe, cx, cy, cw, ch, (hl & 15) == 1 ? COL_HIGHLIGHT : COL_BACKGROUND);
+    draw_rect(dr, cx, cy, cw, ch, (hl & 15) == 1 ? COL_HIGHLIGHT : COL_BACKGROUND);
 
     /* pencil-mode highlight */
     if ((hl & 15) == 2) {
@@ -2365,7 +2365,7 @@ static void draw_number(frontend *fe, game_drawstate *ds, game_state *state,
         coords[3] = cy;
         coords[4] = cx;
         coords[5] = cy+ch/2;
-        draw_polygon(fe, coords, 3, COL_HIGHLIGHT, COL_HIGHLIGHT);
+        draw_polygon(dr, coords, 3, COL_HIGHLIGHT, COL_HIGHLIGHT);
     }
 
     /* new number needs drawing? */
@@ -2374,7 +2374,7 @@ static void draw_number(frontend *fe, game_drawstate *ds, game_state *state,
 	str[0] = state->grid[y*cr+x] + '0';
 	if (str[0] > '9')
 	    str[0] += 'a' - ('9'+1);
-	draw_text(fe, tx + TILE_SIZE/2, ty + TILE_SIZE/2,
+	draw_text(dr, tx + TILE_SIZE/2, ty + TILE_SIZE/2,
 		  FONT_VARIABLE, TILE_SIZE/2, ALIGN_VCENTRE | ALIGN_HCENTRE,
 		  state->immutable[y*cr+x] ? COL_CLUE : (hl & 16) ? COL_ERROR : COL_USER, str);
     } else {
@@ -2409,7 +2409,7 @@ static void draw_number(frontend *fe, game_drawstate *ds, game_state *state,
                 str[0] = i + '1';
                 if (str[0] > '9')
                     str[0] += 'a' - ('9'+1);
-                draw_text(fe, tx + (4*dx+3) * TILE_SIZE / (4*pw+2),
+                draw_text(dr, tx + (4*dx+3) * TILE_SIZE / (4*pw+2),
                           ty + (4*dy+3) * TILE_SIZE / (4*ph+2),
                           FONT_VARIABLE, fontsize,
                           ALIGN_VCENTRE | ALIGN_HCENTRE, COL_PENCIL, str);
@@ -2417,16 +2417,16 @@ static void draw_number(frontend *fe, game_drawstate *ds, game_state *state,
             }
     }
 
-    unclip(fe);
+    unclip(dr);
 
-    draw_update(fe, cx, cy, cw, ch);
+    draw_update(dr, cx, cy, cw, ch);
 
     ds->grid[y*cr+x] = state->grid[y*cr+x];
     memcpy(ds->pencil+(y*cr+x)*cr, state->pencil+(y*cr+x)*cr, cr);
     ds->hl[y*cr+x] = hl;
 }
 
-static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
+static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 			game_state *state, int dir, game_ui *ui,
 			float animtime, float flashtime)
 {
@@ -2440,19 +2440,19 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 	 * all games should start by drawing a big
 	 * background-colour rectangle covering the whole window.
 	 */
-	draw_rect(fe, 0, 0, SIZE(cr), SIZE(cr), COL_BACKGROUND);
+	draw_rect(dr, 0, 0, SIZE(cr), SIZE(cr), COL_BACKGROUND);
 
 	/*
 	 * Draw the grid.
 	 */
 	for (x = 0; x <= cr; x++) {
 	    int thick = (x % r ? 0 : 1);
-	    draw_rect(fe, BORDER + x*TILE_SIZE - thick, BORDER-1,
+	    draw_rect(dr, BORDER + x*TILE_SIZE - thick, BORDER-1,
 		      1+2*thick, cr*TILE_SIZE+3, COL_GRID);
 	}
 	for (y = 0; y <= cr; y++) {
 	    int thick = (y % c ? 0 : 1);
-	    draw_rect(fe, BORDER-1, BORDER + y*TILE_SIZE - thick,
+	    draw_rect(dr, BORDER-1, BORDER + y*TILE_SIZE - thick,
 		      cr*TILE_SIZE+3, 1+2*thick, COL_GRID);
 	}
     }
@@ -2498,7 +2498,7 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 		      (ds->entered_items[((x/r)+(y/c)*c)*cr+d-1] & 32)))
 		highlight |= 16;
 
-	    draw_number(fe, ds, state, x, y, highlight);
+	    draw_number(dr, ds, state, x, y, highlight);
 	}
     }
 
@@ -2506,7 +2506,7 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
      * Update the _entire_ grid if necessary.
      */
     if (!ds->started) {
-	draw_update(fe, 0, 0, SIZE(cr), SIZE(cr));
+	draw_update(dr, 0, 0, SIZE(cr), SIZE(cr));
 	ds->started = TRUE;
     }
 }
@@ -2534,6 +2534,68 @@ static int game_wants_statusbar(void)
 static int game_timing_state(game_state *state, game_ui *ui)
 {
     return TRUE;
+}
+
+static void game_print_size(game_params *params, float *x, float *y)
+{
+    int pw, ph;
+
+    /*
+     * I'll use 9mm squares by default. They should be quite big
+     * for this game, because players will want to jot down no end
+     * of pencil marks in the squares.
+     */
+    game_compute_size(params, 900, &pw, &ph);
+    *x = pw / 100.0;
+    *y = ph / 100.0;
+}
+
+static void game_print(drawing *dr, game_state *state, int tilesize)
+{
+    int c = state->c, r = state->r, cr = c*r;
+    int ink = print_mono_colour(dr, 0);
+    int x, y;
+
+    /* Ick: fake up `ds->tilesize' for macro expansion purposes */
+    game_drawstate ads, *ds = &ads;
+    ads.tilesize = tilesize;
+
+    /*
+     * Border.
+     */
+    print_line_width(dr, 3 * TILE_SIZE / 40);
+    draw_rect_outline(dr, BORDER, BORDER, cr*TILE_SIZE, cr*TILE_SIZE, ink);
+
+    /*
+     * Grid.
+     */
+    for (x = 1; x < cr; x++) {
+	print_line_width(dr, (x % r ? 1 : 3) * TILE_SIZE / 40);
+	draw_line(dr, BORDER+x*TILE_SIZE, BORDER,
+		  BORDER+x*TILE_SIZE, BORDER+cr*TILE_SIZE, ink);
+    }
+    for (y = 1; y < cr; y++) {
+	print_line_width(dr, (y % c ? 1 : 3) * TILE_SIZE / 40);
+	draw_line(dr, BORDER, BORDER+y*TILE_SIZE,
+		  BORDER+cr*TILE_SIZE, BORDER+y*TILE_SIZE, ink);
+    }
+
+    /*
+     * Numbers.
+     */
+    for (y = 0; y < cr; y++)
+	for (x = 0; x < cr; x++)
+	    if (state->grid[y*cr+x]) {
+		char str[2];
+		str[1] = '\0';
+		str[0] = state->grid[y*cr+x] + '0';
+		if (str[0] > '9')
+		    str[0] += 'a' - ('9'+1);
+		draw_text(dr, BORDER + x*TILE_SIZE + TILE_SIZE/2,
+			  BORDER + y*TILE_SIZE + TILE_SIZE/2,
+			  FONT_VARIABLE, TILE_SIZE/2,
+			  ALIGN_VCENTRE | ALIGN_HCENTRE, ink, str);
+	    }
 }
 
 #ifdef COMBINED
@@ -2571,6 +2633,7 @@ const struct game thegame = {
     game_redraw,
     game_anim_length,
     game_flash_length,
+    TRUE, FALSE, game_print_size, game_print,
     game_wants_statusbar,
     FALSE, game_timing_state,
     0,				       /* mouse_priorities */
@@ -2583,17 +2646,20 @@ const struct game thegame = {
  */
 
 void frontend_default_colour(frontend *fe, float *output) {}
-void draw_text(frontend *fe, int x, int y, int fonttype, int fontsize,
+void draw_text(drawing *dr, int x, int y, int fonttype, int fontsize,
                int align, int colour, char *text) {}
-void draw_rect(frontend *fe, int x, int y, int w, int h, int colour) {}
-void draw_line(frontend *fe, int x1, int y1, int x2, int y2, int colour) {}
-void draw_polygon(frontend *fe, int *coords, int npoints,
+void draw_rect(drawing *dr, int x, int y, int w, int h, int colour) {}
+void draw_rect_outline(drawing *dr, int x, int y, int w, int h, int colour) {}
+void draw_line(drawing *dr, int x1, int y1, int x2, int y2, int colour) {}
+void draw_polygon(drawing *dr, int *coords, int npoints,
                   int fillcolour, int outlinecolour) {}
-void clip(frontend *fe, int x, int y, int w, int h) {}
-void unclip(frontend *fe) {}
-void start_draw(frontend *fe) {}
-void draw_update(frontend *fe, int x, int y, int w, int h) {}
-void end_draw(frontend *fe) {}
+void clip(drawing *dr, int x, int y, int w, int h) {}
+void unclip(drawing *dr) {}
+void start_draw(drawing *dr) {}
+void draw_update(drawing *dr, int x, int y, int w, int h) {}
+void end_draw(drawing *dr) {}
+int print_mono_colour(drawing *dr, int grey) { return 0; }
+void print_line_width(drawing *dr, int width) {}
 unsigned long random_bits(random_state *state, int bits)
 { assert(!"Shouldn't get randomness"); return 0; }
 unsigned long random_upto(random_state *state, unsigned long limit)

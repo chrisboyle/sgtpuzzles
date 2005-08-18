@@ -668,7 +668,7 @@ static char *validate_desc(game_params *params, char *desc)
     return NULL;
 }
 
-static game_state *new_game(midend_data *me, game_params *params, char *desc)
+static game_state *new_game(midend *me, game_params *params, char *desc)
 {
     int w = params->w, h = params->h;
     game_state *state = snew(game_state);
@@ -929,16 +929,16 @@ static void game_compute_size(game_params *params, int tilesize,
     *y = TILESIZE * params->h + 2 * BORDER;
 }
 
-static void game_set_size(game_drawstate *ds, game_params *params,
-			  int tilesize)
+static void game_set_size(drawing *dr, game_drawstate *ds,
+			  game_params *params, int tilesize)
 {
     ds->tilesize = tilesize;
 
     assert(TILESIZE > 0);
 
     if (ds->drag_background)
-	blitter_free(ds->drag_background);
-    ds->drag_background = blitter_new(TILESIZE, TILESIZE);
+	blitter_free(dr, ds->drag_background);
+    ds->drag_background = blitter_new(dr, TILESIZE, TILESIZE);
 }
 
 static float *game_colours(frontend *fe, game_state *state, int *ncolours)
@@ -955,7 +955,7 @@ static float *game_colours(frontend *fe, game_state *state, int *ncolours)
     return ret;
 }
 
-static game_drawstate *game_new_drawstate(game_state *state)
+static game_drawstate *game_new_drawstate(drawing *dr, game_state *state)
 {
     int w = state->w, h = state->h;
     struct game_drawstate *ds = snew(struct game_drawstate);
@@ -978,33 +978,33 @@ static game_drawstate *game_new_drawstate(game_state *state)
     return ds;
 }
 
-static void game_free_drawstate(game_drawstate *ds)
+static void game_free_drawstate(drawing *dr, game_drawstate *ds)
 {
     if (ds->drag_background)
-	blitter_free(ds->drag_background);
+	blitter_free(dr, ds->drag_background);
     sfree(ds->grid);
     sfree(ds);
 }
 
-static void draw_tile(frontend *fe, game_drawstate *ds,
+static void draw_tile(drawing *dr, game_drawstate *ds,
 		      int x, int y, int v, int bgcolour)
 {
     if (bgcolour >= 0) {
-	draw_rect(fe, x, y, TILESIZE, TILESIZE, bgcolour);
+	draw_rect(dr, x, y, TILESIZE, TILESIZE, bgcolour);
     }
 
     if (v == GRID_HOLE) {
-	draw_circle(fe, x+TILESIZE/2, y+TILESIZE/2, TILESIZE/4,
+	draw_circle(dr, x+TILESIZE/2, y+TILESIZE/2, TILESIZE/4,
 		    COL_LOWLIGHT, COL_LOWLIGHT);
     } else if (v == GRID_PEG) {
-	draw_circle(fe, x+TILESIZE/2, y+TILESIZE/2, TILESIZE/3,
+	draw_circle(dr, x+TILESIZE/2, y+TILESIZE/2, TILESIZE/3,
 		    COL_PEG, COL_PEG);
     }
 
-    draw_update(fe, x, y, TILESIZE, TILESIZE);
+    draw_update(dr, x, y, TILESIZE, TILESIZE);
 }
 
-static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
+static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 			game_state *state, int dir, game_ui *ui,
 			float animtime, float flashtime)
 {
@@ -1023,13 +1023,13 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
      */
     if (ds->dragging) {
 	assert(ds->drag_background);
-        blitter_load(fe, ds->drag_background, ds->dragx, ds->dragy);
-        draw_update(fe, ds->dragx, ds->dragy, TILESIZE, TILESIZE);
+        blitter_load(dr, ds->drag_background, ds->dragx, ds->dragy);
+        draw_update(dr, ds->dragx, ds->dragy, TILESIZE, TILESIZE);
 	ds->dragging = FALSE;
     }
 
     if (!ds->started) {
-	draw_rect(fe, 0, 0,
+	draw_rect(dr, 0, 0,
 		  TILESIZE * state->w + 2 * BORDER,
 		  TILESIZE * state->h + 2 * BORDER, COL_BACKGROUND);
 
@@ -1050,10 +1050,10 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 		    coords[3] = COORD(y+1) + HIGHLIGHT_WIDTH - 1;
 		    coords[4] = COORD(x) - HIGHLIGHT_WIDTH;
 		    coords[5] = COORD(y) - HIGHLIGHT_WIDTH;
-		    draw_polygon(fe, coords, 3, COL_HIGHLIGHT, COL_HIGHLIGHT);
+		    draw_polygon(dr, coords, 3, COL_HIGHLIGHT, COL_HIGHLIGHT);
 		    coords[4] = COORD(x+1) + HIGHLIGHT_WIDTH - 1;
 		    coords[5] = COORD(y+1) + HIGHLIGHT_WIDTH - 1;
-		    draw_polygon(fe, coords, 3, COL_LOWLIGHT, COL_LOWLIGHT);
+		    draw_polygon(dr, coords, 3, COL_LOWLIGHT, COL_LOWLIGHT);
 		}
 	for (y = 0; y < h; y++)
 	    for (x = 0; x < w; x++)
@@ -1062,11 +1062,11 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 		     * Second pass: draw everything but the two
 		     * diagonal corners.
 		     */
-		    draw_rect(fe, COORD(x) - HIGHLIGHT_WIDTH,
+		    draw_rect(dr, COORD(x) - HIGHLIGHT_WIDTH,
 			      COORD(y) - HIGHLIGHT_WIDTH,
 			      TILESIZE + HIGHLIGHT_WIDTH,
 			      TILESIZE + HIGHLIGHT_WIDTH, COL_HIGHLIGHT);
-		    draw_rect(fe, COORD(x),
+		    draw_rect(dr, COORD(x),
 			      COORD(y),
 			      TILESIZE + HIGHLIGHT_WIDTH,
 			      TILESIZE + HIGHLIGHT_WIDTH, COL_LOWLIGHT);
@@ -1094,7 +1094,7 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 			    coords[5] = coords[3] - HIGHLIGHT_WIDTH * (dx-sn*dy);
 			    coords[6] = coords[0] + HIGHLIGHT_WIDTH * (dy+sn*dx);
 			    coords[7] = coords[1] + HIGHLIGHT_WIDTH * (dx+sn*dy);
-			    draw_polygon(fe, coords, 4, c, c);
+			    draw_polygon(dr, coords, 4, c, c);
 			}
 		    }
 		}
@@ -1105,7 +1105,7 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 		     * Second pass: draw everything but the two
 		     * diagonal corners.
 		     */
-		    draw_rect(fe, COORD(x),
+		    draw_rect(dr, COORD(x),
 			      COORD(y),
 			      TILESIZE,
 			      TILESIZE, COL_BACKGROUND);
@@ -1113,7 +1113,7 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 
 	ds->started = TRUE;
 
-	draw_update(fe, 0, 0,
+	draw_update(dr, 0, 0,
 		    TILESIZE * state->w + 2 * BORDER,
 		    TILESIZE * state->h + 2 * BORDER);
     }
@@ -1136,7 +1136,7 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 	    if (v != GRID_OBST &&
                 (bgcolour != ds->bgcolour || /* always redraw when flashing */
                  v != ds->grid[y*w+x])) {
-		draw_tile(fe, ds, COORD(x), COORD(y), v, bgcolour);
+		draw_tile(dr, ds, COORD(x), COORD(y), v, bgcolour);
 	    }
 	}
 
@@ -1147,8 +1147,8 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 	ds->dragging = TRUE;
 	ds->dragx = ui->dx - TILESIZE/2;
 	ds->dragy = ui->dy - TILESIZE/2;
-	blitter_save(fe, ds->drag_background, ds->dragx, ds->dragy);
-	draw_tile(fe, ds, ds->dragx, ds->dragy, GRID_PEG, -1);
+	blitter_save(dr, ds->drag_background, ds->dragx, ds->dragy);
+	draw_tile(dr, ds, ds->dragx, ds->dragy, GRID_PEG, -1);
     }
 
     ds->bgcolour = bgcolour;
@@ -1177,6 +1177,14 @@ static int game_wants_statusbar(void)
 static int game_timing_state(game_state *state, game_ui *ui)
 {
     return TRUE;
+}
+
+static void game_print_size(game_params *params, float *x, float *y)
+{
+}
+
+static void game_print(drawing *dr, game_state *state, int tilesize)
+{
 }
 
 #ifdef COMBINED
@@ -1214,6 +1222,7 @@ const struct game thegame = {
     game_redraw,
     game_anim_length,
     game_flash_length,
+    FALSE, FALSE, game_print_size, game_print,
     game_wants_statusbar,
     FALSE, game_timing_state,
     0,				       /* mouse_priorities */

@@ -613,7 +613,7 @@ static char *validate_desc(game_params *params, char *desc)
     return NULL;
 }
 
-static game_state *new_game(midend_data *me, game_params *params, char *desc)
+static game_state *new_game(midend *me, game_params *params, char *desc)
 {
     int w = params->w, h = params->h, wh = w * h;
     int mlen = (wh*wh+3)/4;
@@ -999,8 +999,8 @@ static void game_compute_size(game_params *params, int tilesize,
     *y = TILE_SIZE * params->h + 2 * BORDER;
 }
 
-static void game_set_size(game_drawstate *ds, game_params *params,
-			  int tilesize)
+static void game_set_size(drawing *dr, game_drawstate *ds,
+			  game_params *params, int tilesize)
 {
     ds->tilesize = tilesize;
 }
@@ -1039,7 +1039,7 @@ static float *game_colours(frontend *fe, game_state *state, int *ncolours)
     return ret;
 }
 
-static game_drawstate *game_new_drawstate(game_state *state)
+static game_drawstate *game_new_drawstate(drawing *dr, game_state *state)
 {
     struct game_drawstate *ds = snew(struct game_drawstate);
     int i;
@@ -1055,13 +1055,13 @@ static game_drawstate *game_new_drawstate(game_state *state)
     return ds;
 }
 
-static void game_free_drawstate(game_drawstate *ds)
+static void game_free_drawstate(drawing *dr, game_drawstate *ds)
 {
     sfree(ds->tiles);
     sfree(ds);
 }
 
-static void draw_tile(frontend *fe, game_drawstate *ds,
+static void draw_tile(drawing *dr, game_drawstate *ds,
 		      game_state *state, int x, int y, int tile, int anim,
 		      float animtime)
 {
@@ -1069,9 +1069,9 @@ static void draw_tile(frontend *fe, game_drawstate *ds,
     int bx = x * TILE_SIZE + BORDER, by = y * TILE_SIZE + BORDER;
     int i, j, dcol = (tile & 4) ? COL_CURSOR : COL_DIAG;
 
-    clip(fe, bx+1, by+1, TILE_SIZE-1, TILE_SIZE-1);
+    clip(dr, bx+1, by+1, TILE_SIZE-1, TILE_SIZE-1);
 
-    draw_rect(fe, bx+1, by+1, TILE_SIZE-1, TILE_SIZE-1,
+    draw_rect(dr, bx+1, by+1, TILE_SIZE-1, TILE_SIZE-1,
               anim ? COL_BACKGROUND : tile & 1 ? COL_WRONG : COL_RIGHT);
     if (anim) {
 	/*
@@ -1093,7 +1093,7 @@ static void draw_tile(frontend *fe, game_drawstate *ds,
 	if (animtime < 0.5)
 	    colour = COL_WRONG + COL_RIGHT - colour;
 
-	draw_polygon(fe, coords, 4, colour, COL_GRID);
+	draw_polygon(dr, coords, 4, colour, COL_GRID);
     }
 
     /*
@@ -1108,12 +1108,12 @@ static void draw_tile(frontend *fe, game_drawstate *ds,
 		int cx = (bx + TILE_SIZE/2) + (2 * ox - 1) * td;
 		int cy = (by + TILE_SIZE/2) + (2 * oy - 1) * td;
 		if (ox == 0 && oy == 0)
-                    draw_rect(fe, cx, cy, 2*td+1, 2*td+1, dcol);
+                    draw_rect(dr, cx, cy, 2*td+1, 2*td+1, dcol);
                 else {
-                    draw_line(fe, cx, cy, cx+2*td, cy, dcol);
-                    draw_line(fe, cx, cy+2*td, cx+2*td, cy+2*td, dcol);
-                    draw_line(fe, cx, cy, cx, cy+2*td, dcol);
-                    draw_line(fe, cx+2*td, cy, cx+2*td, cy+2*td, dcol);
+                    draw_line(dr, cx, cy, cx+2*td, cy, dcol);
+                    draw_line(dr, cx, cy+2*td, cx+2*td, cy+2*td, dcol);
+                    draw_line(dr, cx, cy, cx, cy+2*td, dcol);
+                    draw_line(dr, cx+2*td, cy, cx+2*td, cy+2*td, dcol);
                 }
 	    }
 
@@ -1125,20 +1125,20 @@ static void draw_tile(frontend *fe, game_drawstate *ds,
 	int y1 = by + TILE_SIZE / 20, y2 = by + TILE_SIZE - TILE_SIZE / 20;
 	int i = 3;
 	while (i--) {
-	    draw_line(fe, x1, y1, x2, y1, COL_HINT);
-	    draw_line(fe, x1, y2, x2, y2, COL_HINT);
-	    draw_line(fe, x1, y1, x1, y2, COL_HINT);
-	    draw_line(fe, x2, y1, x2, y2, COL_HINT);
+	    draw_line(dr, x1, y1, x2, y1, COL_HINT);
+	    draw_line(dr, x1, y2, x2, y2, COL_HINT);
+	    draw_line(dr, x1, y1, x1, y2, COL_HINT);
+	    draw_line(dr, x2, y1, x2, y2, COL_HINT);
 	    x1++, y1++, x2--, y2--;
 	}
     }
 
-    unclip(fe);
+    unclip(dr);
 
-    draw_update(fe, bx+1, by+1, TILE_SIZE-1, TILE_SIZE-1);
+    draw_update(dr, bx+1, by+1, TILE_SIZE-1, TILE_SIZE-1);
 }
 
-static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
+static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 			game_state *state, int dir, game_ui *ui,
 			float animtime, float flashtime)
 {
@@ -1146,22 +1146,22 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
     int i, flashframe;
 
     if (!ds->started) {
-        draw_rect(fe, 0, 0, TILE_SIZE * w + 2 * BORDER,
+        draw_rect(dr, 0, 0, TILE_SIZE * w + 2 * BORDER,
                   TILE_SIZE * h + 2 * BORDER, COL_BACKGROUND);
 
         /*
          * Draw the grid lines.
          */
         for (i = 0; i <= w; i++)
-            draw_line(fe, i * TILE_SIZE + BORDER, BORDER,
+            draw_line(dr, i * TILE_SIZE + BORDER, BORDER,
                       i * TILE_SIZE + BORDER, h * TILE_SIZE + BORDER,
                       COL_GRID);
         for (i = 0; i <= h; i++)
-            draw_line(fe, BORDER, i * TILE_SIZE + BORDER,
+            draw_line(dr, BORDER, i * TILE_SIZE + BORDER,
                       w * TILE_SIZE + BORDER, i * TILE_SIZE + BORDER,
                       COL_GRID);
 
-        draw_update(fe, 0, 0, TILE_SIZE * w + 2 * BORDER,
+        draw_update(dr, 0, 0, TILE_SIZE * w + 2 * BORDER,
                     TILE_SIZE * h + 2 * BORDER);
 
         ds->started = TRUE;
@@ -1201,7 +1201,7 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 	    vv = v;
 
         if (ds->tiles[i] == 255 || vv == 255 || ds->tiles[i] != vv) {
-            draw_tile(fe, ds, state, x, y, v, vv == 255, animtime);
+            draw_tile(dr, ds, state, x, y, v, vv == 255, animtime);
             ds->tiles[i] = vv;
         }
     }
@@ -1215,7 +1215,7 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 		 (state->cheated ? "Auto-solver used. " : "")),
 		state->moves);
 
-	status_bar(fe, buf);
+	status_bar(dr, buf);
     }
 }
 
@@ -1244,6 +1244,14 @@ static int game_timing_state(game_state *state, game_ui *ui)
     return TRUE;
 }
 
+    static void game_print_size(game_params *params, float *x, float *y)
+    {
+    }
+    
+    static void game_print(drawing *dr, game_state *state, int tilesize)
+    {
+    }
+    
 #ifdef COMBINED
 #define thegame flip
 #endif
@@ -1279,6 +1287,7 @@ const struct game thegame = {
     game_redraw,
     game_anim_length,
     game_flash_length,
+    FALSE, FALSE, game_print_size, game_print,
     game_wants_statusbar,
     FALSE, game_timing_state,
     0,				       /* mouse_priorities */

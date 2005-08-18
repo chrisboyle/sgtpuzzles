@@ -796,7 +796,7 @@ static void mark_crossings(game_state *state)
 	state->completed = TRUE;
 }
 
-static game_state *new_game(midend_data *me, game_params *params, char *desc)
+static game_state *new_game(midend *me, game_params *params, char *desc)
 {
     int n = params->n;
     game_state *state = snew(game_state);
@@ -1185,8 +1185,8 @@ static void game_compute_size(game_params *params, int tilesize,
     *x = *y = COORDLIMIT(params->n) * tilesize;
 }
 
-static void game_set_size(game_drawstate *ds, game_params *params,
-			  int tilesize)
+static void game_set_size(drawing *dr, game_drawstate *ds,
+			  game_params *params, int tilesize)
 {
     ds->tilesize = tilesize;
 }
@@ -1235,7 +1235,7 @@ static float *game_colours(frontend *fe, game_state *state, int *ncolours)
     return ret;
 }
 
-static game_drawstate *game_new_drawstate(game_state *state)
+static game_drawstate *game_new_drawstate(drawing *dr, game_state *state)
 {
     struct game_drawstate *ds = snew(struct game_drawstate);
     int i;
@@ -1251,7 +1251,7 @@ static game_drawstate *game_new_drawstate(game_state *state)
     return ds;
 }
 
-static void game_free_drawstate(game_drawstate *ds)
+static void game_free_drawstate(drawing *dr, game_drawstate *ds)
 {
     sfree(ds->y);
     sfree(ds->x);
@@ -1269,7 +1269,7 @@ static point mix(point a, point b, float distance)
     return ret;
 }
 
-static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
+static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 			game_state *state, int dir, game_ui *ui,
 			float animtime, float flashtime)
 {
@@ -1329,14 +1329,14 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
     ds->bg = bg;
 
     game_compute_size(&state->params, ds->tilesize, &w, &h);
-    draw_rect(fe, 0, 0, w, h, bg);
+    draw_rect(dr, 0, 0, w, h, bg);
 
     /*
      * Draw the edges.
      */
 
     for (i = 0; (e = index234(state->graph->edges, i)) != NULL; i++) {
-	draw_line(fe, ds->x[e->a], ds->y[e->a], ds->x[e->b], ds->y[e->b],
+	draw_line(dr, ds->x[e->a], ds->y[e->a], ds->x[e->b], ds->y[e->b],
 #ifdef SHOW_CROSSINGS
 		  (oldstate?oldstate:state)->crosses[i] ?
 		  COL_CROSSEDLINE :
@@ -1367,23 +1367,23 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 
 	    if (c == thisc) {
 #ifdef VERTEX_NUMBERS
-		draw_circle(fe, ds->x[i], ds->y[i], DRAG_THRESHOLD, bg, bg);
+		draw_circle(dr, ds->x[i], ds->y[i], DRAG_THRESHOLD, bg, bg);
 		{
 		    char buf[80];
 		    sprintf(buf, "%d", i);
-		    draw_text(fe, ds->x[i], ds->y[i], FONT_VARIABLE,
+		    draw_text(dr, ds->x[i], ds->y[i], FONT_VARIABLE,
                               DRAG_THRESHOLD*3/2,
 			      ALIGN_VCENTRE|ALIGN_HCENTRE, c, buf);
 		}
 #else
-		draw_circle(fe, ds->x[i], ds->y[i], CIRCLE_RADIUS,
+		draw_circle(dr, ds->x[i], ds->y[i], CIRCLE_RADIUS,
                             c, COL_OUTLINE);
 #endif
 	    }
 	}
     }
 
-    draw_update(fe, 0, 0, w, h);
+    draw_update(dr, 0, 0, w, h);
 }
 
 static float game_anim_length(game_state *oldstate, game_state *newstate,
@@ -1415,6 +1415,14 @@ static int game_wants_statusbar(void)
 static int game_timing_state(game_state *state, game_ui *ui)
 {
     return TRUE;
+}
+
+static void game_print_size(game_params *params, float *x, float *y)
+{
+}
+
+static void game_print(drawing *dr, game_state *state, int tilesize)
+{
 }
 
 #ifdef COMBINED
@@ -1452,6 +1460,7 @@ const struct game thegame = {
     game_redraw,
     game_anim_length,
     game_flash_length,
+    FALSE, FALSE, game_print_size, game_print,
     game_wants_statusbar,
     FALSE, game_timing_state,
     SOLVE_ANIMATES,		       /* mouse_priorities */

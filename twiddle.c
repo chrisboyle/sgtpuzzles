@@ -460,7 +460,7 @@ static char *validate_desc(game_params *params, char *desc)
     return NULL;
 }
 
-static game_state *new_game(midend_data *me, game_params *params, char *desc)
+static game_state *new_game(midend *me, game_params *params, char *desc)
 {
     game_state *state = snew(game_state);
     int w = params->w, h = params->h, n = params->n, wh = w*h;
@@ -755,8 +755,8 @@ static void game_compute_size(game_params *params, int tilesize,
     *y = TILE_SIZE * params->h + 2 * BORDER;
 }
 
-static void game_set_size(game_drawstate *ds, game_params *params,
-			  int tilesize)
+static void game_set_size(drawing *dr, game_drawstate *ds,
+			  game_params *params, int tilesize)
 {
     ds->tilesize = tilesize;
 }
@@ -778,7 +778,7 @@ static float *game_colours(frontend *fe, game_state *state, int *ncolours)
     return ret;
 }
 
-static game_drawstate *game_new_drawstate(game_state *state)
+static game_drawstate *game_new_drawstate(drawing *dr, game_state *state)
 {
     struct game_drawstate *ds = snew(struct game_drawstate);
     int i;
@@ -795,7 +795,7 @@ static game_drawstate *game_new_drawstate(game_state *state)
     return ds;
 }
 
-static void game_free_drawstate(game_drawstate *ds)
+static void game_free_drawstate(drawing *dr, game_drawstate *ds)
 {
     sfree(ds->grid);
     sfree(ds);
@@ -822,7 +822,7 @@ static void rotate(int *xy, struct rotation *rot)
     }
 }
 
-static void draw_tile(frontend *fe, game_drawstate *ds, game_state *state,
+static void draw_tile(drawing *dr, game_drawstate *ds, game_state *state,
                       int x, int y, int tile, int flash_colour,
                       struct rotation *rot)
 {
@@ -840,7 +840,7 @@ static void draw_tile(frontend *fe, game_drawstate *ds, game_state *state,
         rot = NULL;
 
     if (rot)
-	clip(fe, rot->cx, rot->cy, rot->cw, rot->ch);
+	clip(dr, rot->cx, rot->cy, rot->cw, rot->ch);
 
     /*
      * We must draw each side of the tile's highlight separately,
@@ -860,28 +860,28 @@ static void draw_tile(frontend *fe, game_drawstate *ds, game_state *state,
     coords[2] = x + TILE_SIZE - 1;
     coords[3] = y;
     rotate(coords+2, rot);
-    draw_polygon(fe, coords, 3, rot ? rot->rc : COL_LOWLIGHT,
+    draw_polygon(dr, coords, 3, rot ? rot->rc : COL_LOWLIGHT,
 		 rot ? rot->rc : COL_LOWLIGHT);
 
     /* Bottom side. */
     coords[2] = x;
     coords[3] = y + TILE_SIZE - 1;
     rotate(coords+2, rot);
-    draw_polygon(fe, coords, 3, rot ? rot->bc : COL_LOWLIGHT,
+    draw_polygon(dr, coords, 3, rot ? rot->bc : COL_LOWLIGHT,
 		 rot ? rot->bc : COL_LOWLIGHT);
 
     /* Left side. */
     coords[0] = x;
     coords[1] = y;
     rotate(coords+0, rot);
-    draw_polygon(fe, coords, 3, rot ? rot->lc : COL_HIGHLIGHT,
+    draw_polygon(dr, coords, 3, rot ? rot->lc : COL_HIGHLIGHT,
 		 rot ? rot->lc : COL_HIGHLIGHT);
 
     /* Top side. */
     coords[2] = x + TILE_SIZE - 1;
     coords[3] = y;
     rotate(coords+2, rot);
-    draw_polygon(fe, coords, 3, rot ? rot->tc : COL_HIGHLIGHT,
+    draw_polygon(dr, coords, 3, rot ? rot->tc : COL_HIGHLIGHT,
 		 rot ? rot->tc : COL_HIGHLIGHT);
 
     /*
@@ -900,9 +900,9 @@ static void draw_tile(frontend *fe, game_drawstate *ds, game_state *state,
 	coords[6] = x + TILE_SIZE - 1 - HIGHLIGHT_WIDTH;
 	coords[7] = y + HIGHLIGHT_WIDTH;
 	rotate(coords+6, rot);
-	draw_polygon(fe, coords, 4, flash_colour, flash_colour);
+	draw_polygon(dr, coords, 4, flash_colour, flash_colour);
     } else {
-	draw_rect(fe, x + HIGHLIGHT_WIDTH, y + HIGHLIGHT_WIDTH,
+	draw_rect(dr, x + HIGHLIGHT_WIDTH, y + HIGHLIGHT_WIDTH,
 		  TILE_SIZE - 2*HIGHLIGHT_WIDTH, TILE_SIZE - 2*HIGHLIGHT_WIDTH,
 		  flash_colour);
     }
@@ -946,21 +946,21 @@ static void draw_tile(frontend *fe, game_drawstate *ds, game_state *state,
 	coords[4] = cx - displ * ydx;
 	coords[5] = cy - displ * ydy;
 	rotate(coords+4, rot);
-	draw_polygon(fe, coords, 3, COL_LOWLIGHT_GENTLE, COL_LOWLIGHT_GENTLE);
+	draw_polygon(dr, coords, 3, COL_LOWLIGHT_GENTLE, COL_LOWLIGHT_GENTLE);
     }
 
     coords[0] = x + TILE_SIZE/2;
     coords[1] = y + TILE_SIZE/2;
     rotate(coords+0, rot);
     sprintf(str, "%d", tile / 4);
-    draw_text(fe, coords[0], coords[1],
+    draw_text(dr, coords[0], coords[1],
 	      FONT_VARIABLE, TILE_SIZE/3, ALIGN_VCENTRE | ALIGN_HCENTRE,
 	      COL_TEXT, str);
 
     if (rot)
-	unclip(fe);
+	unclip(dr);
 
-    draw_update(fe, x, y, TILE_SIZE, TILE_SIZE);
+    draw_update(dr, x, y, TILE_SIZE, TILE_SIZE);
 }
 
 static int highlight_colour(float angle)
@@ -1023,7 +1023,7 @@ static float game_flash_length(game_state *oldstate, game_state *newstate,
         return 0.0F;
 }
 
-static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
+static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 			game_state *state, int dir, game_ui *ui,
 			float animtime, float flashtime)
 {
@@ -1040,10 +1040,10 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
     if (!ds->started) {
         int coords[10];
 
-	draw_rect(fe, 0, 0,
+	draw_rect(dr, 0, 0,
 		  TILE_SIZE * state->w + 2 * BORDER,
 		  TILE_SIZE * state->h + 2 * BORDER, COL_BACKGROUND);
-	draw_update(fe, 0, 0,
+	draw_update(dr, 0, 0,
 		    TILE_SIZE * state->w + 2 * BORDER,
 		    TILE_SIZE * state->h + 2 * BORDER);
 
@@ -1060,11 +1060,11 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
         coords[9] = COORD(state->h) + HIGHLIGHT_WIDTH - 1;
         coords[6] = coords[8] + TILE_SIZE;
         coords[7] = coords[9] - TILE_SIZE;
-        draw_polygon(fe, coords, 5, COL_HIGHLIGHT, COL_HIGHLIGHT);
+        draw_polygon(dr, coords, 5, COL_HIGHLIGHT, COL_HIGHLIGHT);
 
         coords[1] = COORD(0) - HIGHLIGHT_WIDTH;
         coords[0] = COORD(0) - HIGHLIGHT_WIDTH;
-        draw_polygon(fe, coords, 5, COL_LOWLIGHT, COL_LOWLIGHT);
+        draw_polygon(dr, coords, 5, COL_LOWLIGHT, COL_LOWLIGHT);
 
         ds->started = TRUE;
     }
@@ -1106,7 +1106,7 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 	rot->tc = highlight_colour(PI/2 + angle);
 	rot->bc = highlight_colour(-PI/2 + angle);
 
-	draw_rect(fe, rot->cx, rot->cy, rot->cw, rot->ch, bgcolour);
+	draw_rect(dr, rot->cx, rot->cy, rot->cw, rot->ch, bgcolour);
     } else
 	rot = NULL;
 
@@ -1135,7 +1135,7 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 	    ds->grid[i] != t || ds->grid[i] == -1 || t == -1) {
 	    int x = COORD(tx), y = COORD(ty);
 
-	    draw_tile(fe, ds, state, x, y, state->grid[i], bgcolour, rot);
+	    draw_tile(dr, ds, state, x, y, state->grid[i], bgcolour, rot);
             ds->grid[i] = t;
         }
     }
@@ -1166,7 +1166,7 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
                         state->movetarget);
         }
 
-	status_bar(fe, statusbuf);
+	status_bar(dr, statusbuf);
     }
 }
 
@@ -1178,6 +1178,14 @@ static int game_wants_statusbar(void)
 static int game_timing_state(game_state *state, game_ui *ui)
 {
     return TRUE;
+}
+
+static void game_print_size(game_params *params, float *x, float *y)
+{
+}
+
+static void game_print(drawing *dr, game_state *state, int tilesize)
+{
 }
 
 #ifdef COMBINED
@@ -1215,6 +1223,7 @@ const struct game thegame = {
     game_redraw,
     game_anim_length,
     game_flash_length,
+    FALSE, FALSE, game_print_size, game_print,
     game_wants_statusbar,
     FALSE, game_timing_state,
     0,				       /* mouse_priorities */

@@ -1103,7 +1103,7 @@ static char *validate_desc(game_params *params, char *desc)
     return NULL;
 }
 
-static game_state *new_game(midend_data *me, game_params *params, char *desc)
+static game_state *new_game(midend *me, game_params *params, char *desc)
 {
     int w = params->w, h = params->h, W = w+1, H = h+1;
     game_state *state = snew(game_state);
@@ -1601,8 +1601,8 @@ static void game_compute_size(game_params *params, int tilesize,
     *y = 2 * BORDER + params->h * TILESIZE + 1;
 }
 
-static void game_set_size(game_drawstate *ds, game_params *params,
-			  int tilesize)
+static void game_set_size(drawing *dr, game_drawstate *ds,
+			  game_params *params, int tilesize)
 {
     ds->tilesize = tilesize;
 }
@@ -1637,7 +1637,7 @@ static float *game_colours(frontend *fe, game_state *state, int *ncolours)
     return ret;
 }
 
-static game_drawstate *game_new_drawstate(game_state *state)
+static game_drawstate *game_new_drawstate(drawing *dr, game_state *state)
 {
     int w = state->p.w, h = state->p.h;
     int i;
@@ -1653,31 +1653,32 @@ static game_drawstate *game_new_drawstate(game_state *state)
     return ds;
 }
 
-static void game_free_drawstate(game_drawstate *ds)
+static void game_free_drawstate(drawing *dr, game_drawstate *ds)
 {
     sfree(ds->todraw);
     sfree(ds->grid);
     sfree(ds);
 }
 
-static void draw_clue(frontend *fe, game_drawstate *ds,
-		      int x, int y, long v, long err)
+static void draw_clue(drawing *dr, game_drawstate *ds,
+		      int x, int y, long v, long err, int bg, int colour)
 {
     char p[2];
-    int ccol = ((x ^ y) & 1) ? COL_SLANT1 : COL_SLANT2;
-    int tcol = err ? COL_ERROR : COL_INK;
+    int ccol = colour >= 0 ? colour : ((x ^ y) & 1) ? COL_SLANT1 : COL_SLANT2;
+    int tcol = colour >= 0 ? colour : err ? COL_ERROR : COL_INK;
 
     if (v < 0)
 	return;
 
     p[0] = v + '0';
     p[1] = '\0';
-    draw_circle(fe, COORD(x), COORD(y), CLUE_RADIUS, COL_BACKGROUND, ccol);
-    draw_text(fe, COORD(x), COORD(y), FONT_VARIABLE,
+    draw_circle(dr, COORD(x), COORD(y), CLUE_RADIUS,
+		bg >= 0 ? bg : COL_BACKGROUND, ccol);
+    draw_text(dr, COORD(x), COORD(y), FONT_VARIABLE,
 	      CLUE_TEXTSIZE, ALIGN_VCENTRE|ALIGN_HCENTRE, tcol, p);
 }
 
-static void draw_tile(frontend *fe, game_drawstate *ds, game_clues *clues,
+static void draw_tile(drawing *dr, game_drawstate *ds, game_clues *clues,
 		      int x, int y, long v)
 {
     int w = clues->w, h = clues->h, W = w+1 /*, H = h+1 */;
@@ -1685,47 +1686,47 @@ static void draw_tile(frontend *fe, game_drawstate *ds, game_clues *clues,
     int fscol = chesscolour ? COL_SLANT2 : COL_SLANT1;
     int bscol = chesscolour ? COL_SLANT1 : COL_SLANT2;
 
-    clip(fe, COORD(x), COORD(y), TILESIZE, TILESIZE);
+    clip(dr, COORD(x), COORD(y), TILESIZE, TILESIZE);
 
-    draw_rect(fe, COORD(x), COORD(y), TILESIZE, TILESIZE,
+    draw_rect(dr, COORD(x), COORD(y), TILESIZE, TILESIZE,
 	      (v & FLASH) ? COL_GRID : COL_BACKGROUND);
 
     /*
      * Draw the grid lines.
      */
     if (x >= 0 && x < w && y >= 0)
-        draw_rect(fe, COORD(x), COORD(y), TILESIZE+1, 1, COL_GRID);
+        draw_rect(dr, COORD(x), COORD(y), TILESIZE+1, 1, COL_GRID);
     if (x >= 0 && x < w && y < h)
-        draw_rect(fe, COORD(x), COORD(y+1), TILESIZE+1, 1, COL_GRID);
+        draw_rect(dr, COORD(x), COORD(y+1), TILESIZE+1, 1, COL_GRID);
     if (y >= 0 && y < h && x >= 0)
-        draw_rect(fe, COORD(x), COORD(y), 1, TILESIZE+1, COL_GRID);
+        draw_rect(dr, COORD(x), COORD(y), 1, TILESIZE+1, COL_GRID);
     if (y >= 0 && y < h && x < w)
-        draw_rect(fe, COORD(x+1), COORD(y), 1, TILESIZE+1, COL_GRID);
+        draw_rect(dr, COORD(x+1), COORD(y), 1, TILESIZE+1, COL_GRID);
     if (x == -1 && y == -1)
-        draw_rect(fe, COORD(x+1), COORD(y+1), 1, 1, COL_GRID);
+        draw_rect(dr, COORD(x+1), COORD(y+1), 1, 1, COL_GRID);
     if (x == -1 && y == h)
-        draw_rect(fe, COORD(x+1), COORD(y), 1, 1, COL_GRID);
+        draw_rect(dr, COORD(x+1), COORD(y), 1, 1, COL_GRID);
     if (x == w && y == -1)
-        draw_rect(fe, COORD(x), COORD(y+1), 1, 1, COL_GRID);
+        draw_rect(dr, COORD(x), COORD(y+1), 1, 1, COL_GRID);
     if (x == w && y == h)
-        draw_rect(fe, COORD(x), COORD(y), 1, 1, COL_GRID);
+        draw_rect(dr, COORD(x), COORD(y), 1, 1, COL_GRID);
 
     /*
      * Draw the slash.
      */
     if (v & BACKSLASH) {
         int scol = (v & ERRSLASH) ? COL_ERROR : bscol;
-	draw_line(fe, COORD(x), COORD(y), COORD(x+1), COORD(y+1), scol);
-	draw_line(fe, COORD(x)+1, COORD(y), COORD(x+1), COORD(y+1)-1,
+	draw_line(dr, COORD(x), COORD(y), COORD(x+1), COORD(y+1), scol);
+	draw_line(dr, COORD(x)+1, COORD(y), COORD(x+1), COORD(y+1)-1,
 		  scol);
-	draw_line(fe, COORD(x), COORD(y)+1, COORD(x+1)-1, COORD(y+1),
+	draw_line(dr, COORD(x), COORD(y)+1, COORD(x+1)-1, COORD(y+1),
 		  scol);
     } else if (v & FORWSLASH) {
         int scol = (v & ERRSLASH) ? COL_ERROR : fscol;
-	draw_line(fe, COORD(x+1), COORD(y), COORD(x), COORD(y+1), scol);
-	draw_line(fe, COORD(x+1)-1, COORD(y), COORD(x), COORD(y+1)-1,
+	draw_line(dr, COORD(x+1), COORD(y), COORD(x), COORD(y+1), scol);
+	draw_line(dr, COORD(x+1)-1, COORD(y), COORD(x), COORD(y+1)-1,
 		  scol);
-	draw_line(fe, COORD(x+1), COORD(y)+1, COORD(x)+1, COORD(y+1),
+	draw_line(dr, COORD(x+1), COORD(y)+1, COORD(x)+1, COORD(y+1),
 		  scol);
     }
 
@@ -1734,38 +1735,39 @@ static void draw_tile(frontend *fe, game_drawstate *ds, game_clues *clues,
      * neighbouring cell.
      */
     if (v & (L_T | BACKSLASH))
-	draw_rect(fe, COORD(x), COORD(y)+1, 1, 1,
+	draw_rect(dr, COORD(x), COORD(y)+1, 1, 1,
                   (v & ERR_L_T ? COL_ERROR : bscol));
     if (v & (L_B | FORWSLASH))
-	draw_rect(fe, COORD(x), COORD(y+1)-1, 1, 1,
+	draw_rect(dr, COORD(x), COORD(y+1)-1, 1, 1,
                   (v & ERR_L_B ? COL_ERROR : fscol));
     if (v & (T_L | BACKSLASH))
-	draw_rect(fe, COORD(x)+1, COORD(y), 1, 1,
+	draw_rect(dr, COORD(x)+1, COORD(y), 1, 1,
                   (v & ERR_T_L ? COL_ERROR : bscol));
     if (v & (T_R | FORWSLASH))
-	draw_rect(fe, COORD(x+1)-1, COORD(y), 1, 1,
+	draw_rect(dr, COORD(x+1)-1, COORD(y), 1, 1,
                   (v & ERR_T_R ? COL_ERROR : fscol));
     if (v & (C_TL | BACKSLASH))
-	draw_rect(fe, COORD(x), COORD(y), 1, 1,
+	draw_rect(dr, COORD(x), COORD(y), 1, 1,
                   (v & ERR_C_TL ? COL_ERROR : bscol));
 
     /*
      * And finally the clues at the corners.
      */
     if (x >= 0 && y >= 0)
-        draw_clue(fe, ds, x, y, clues->clues[y*W+x], v & ERR_TL);
+        draw_clue(dr, ds, x, y, clues->clues[y*W+x], v & ERR_TL, -1, -1);
     if (x < w && y >= 0)
-        draw_clue(fe, ds, x+1, y, clues->clues[y*W+(x+1)], v & ERR_TR);
+        draw_clue(dr, ds, x+1, y, clues->clues[y*W+(x+1)], v & ERR_TR, -1, -1);
     if (x >= 0 && y < h)
-        draw_clue(fe, ds, x, y+1, clues->clues[(y+1)*W+x], v & ERR_BL);
+        draw_clue(dr, ds, x, y+1, clues->clues[(y+1)*W+x], v & ERR_BL, -1, -1);
     if (x < w && y < h)
-        draw_clue(fe, ds, x+1, y+1, clues->clues[(y+1)*W+(x+1)], v & ERR_BR);
+        draw_clue(dr, ds, x+1, y+1, clues->clues[(y+1)*W+(x+1)], v & ERR_BR,
+		  -1, -1);
 
-    unclip(fe);
-    draw_update(fe, COORD(x), COORD(y), TILESIZE, TILESIZE);
+    unclip(dr);
+    draw_update(dr, COORD(x), COORD(y), TILESIZE, TILESIZE);
 }
 
-static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
+static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 			game_state *state, int dir, game_ui *ui,
 			float animtime, float flashtime)
 {
@@ -1781,8 +1783,8 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
     if (!ds->started) {
 	int ww, wh;
 	game_compute_size(&state->p, TILESIZE, &ww, &wh);
-	draw_rect(fe, 0, 0, ww, wh, COL_BACKGROUND);
-	draw_update(fe, 0, 0, ww, wh);
+	draw_rect(dr, 0, 0, ww, wh, COL_BACKGROUND);
+	draw_update(dr, 0, 0, ww, wh);
 	ds->started = TRUE;
     }
 
@@ -1844,7 +1846,7 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
     for (y = -1; y <= h; y++) {
 	for (x = -1; x <= w; x++) {
 	    if (ds->todraw[(y+1)*(w+2)+(x+1)] != ds->grid[(y+1)*(w+2)+(x+1)]) {
-		draw_tile(fe, ds, state->clues, x, y,
+		draw_tile(dr, ds, state->clues, x, y,
                           ds->todraw[(y+1)*(w+2)+(x+1)]);
 		ds->grid[(y+1)*(w+2)+(x+1)] = ds->todraw[(y+1)*(w+2)+(x+1)];
 	    }
@@ -1876,6 +1878,77 @@ static int game_wants_statusbar(void)
 static int game_timing_state(game_state *state, game_ui *ui)
 {
     return TRUE;
+}
+
+static void game_print_size(game_params *params, float *x, float *y)
+{
+    int pw, ph;
+
+    /*
+     * I'll use 6mm squares by default.
+     */
+    game_compute_size(params, 600, &pw, &ph);
+    *x = pw / 100.0;
+    *y = ph / 100.0;
+}
+
+static void game_print(drawing *dr, game_state *state, int tilesize)
+{
+    int w = state->p.w, h = state->p.h, W = w+1;
+    int ink = print_mono_colour(dr, 0);
+    int paper = print_mono_colour(dr, 1);
+    int x, y;
+
+    /* Ick: fake up `ds->tilesize' for macro expansion purposes */
+    game_drawstate ads, *ds = &ads;
+    ads.tilesize = tilesize;
+
+    /*
+     * Border.
+     */
+    print_line_width(dr, TILESIZE / 16);
+    draw_rect_outline(dr, COORD(0), COORD(0), w*TILESIZE, h*TILESIZE, ink);
+
+    /*
+     * Grid.
+     */
+    print_line_width(dr, TILESIZE / 24);
+    for (x = 1; x < w; x++)
+	draw_line(dr, COORD(x), COORD(0), COORD(x), COORD(h), ink);
+    for (y = 1; y < h; y++)
+	draw_line(dr, COORD(0), COORD(y), COORD(w), COORD(y), ink);
+
+    /*
+     * Solution.
+     */
+    print_line_width(dr, TILESIZE / 12);
+    for (y = 0; y < h; y++)
+	for (x = 0; x < w; x++)
+	    if (state->soln[y*w+x]) {
+		int ly, ry;
+		/*
+		 * To prevent nasty line-ending artefacts at
+		 * corners, I'll do something slightly cunning
+		 * here.
+		 */
+		clip(dr, COORD(x), COORD(y), TILESIZE, TILESIZE);
+		if (state->soln[y*w+x] < 0)
+		    ly = y-1, ry = y+2;
+		else
+		    ry = y-1, ly = y+2;
+		draw_line(dr, COORD(x-1), COORD(ly), COORD(x+2), COORD(ry),
+			  ink);
+		unclip(dr);
+	    }
+
+    /*
+     * Clues.
+     */
+    print_line_width(dr, TILESIZE / 24);
+    for (y = 0; y <= h; y++)
+	for (x = 0; x <= w; x++)
+	    draw_clue(dr, ds, x, y, state->clues->clues[y*W+x],
+		      FALSE, paper, ink);
 }
 
 #ifdef COMBINED
@@ -1913,6 +1986,7 @@ const struct game thegame = {
     game_redraw,
     game_anim_length,
     game_flash_length,
+    TRUE, FALSE, game_print_size, game_print,
     game_wants_statusbar,
     FALSE, game_timing_state,
     0,				       /* mouse_priorities */
@@ -1927,19 +2001,22 @@ const struct game thegame = {
  */
 
 void frontend_default_colour(frontend *fe, float *output) {}
-void draw_text(frontend *fe, int x, int y, int fonttype, int fontsize,
+void draw_text(drawing *dr, int x, int y, int fonttype, int fontsize,
                int align, int colour, char *text) {}
-void draw_rect(frontend *fe, int x, int y, int w, int h, int colour) {}
-void draw_line(frontend *fe, int x1, int y1, int x2, int y2, int colour) {}
-void draw_polygon(frontend *fe, int *coords, int npoints,
+void draw_rect(drawing *dr, int x, int y, int w, int h, int colour) {}
+void draw_rect_outline(drawing *dr, int x, int y, int w, int h, int colour) {}
+void draw_line(drawing *dr, int x1, int y1, int x2, int y2, int colour) {}
+void draw_polygon(drawing *dr, int *coords, int npoints,
                   int fillcolour, int outlinecolour) {}
-void draw_circle(frontend *fe, int cx, int cy, int radius,
+void draw_circle(drawing *dr, int cx, int cy, int radius,
                  int fillcolour, int outlinecolour) {}
-void clip(frontend *fe, int x, int y, int w, int h) {}
-void unclip(frontend *fe) {}
-void start_draw(frontend *fe) {}
-void draw_update(frontend *fe, int x, int y, int w, int h) {}
-void end_draw(frontend *fe) {}
+void clip(drawing *dr, int x, int y, int w, int h) {}
+void unclip(drawing *dr) {}
+void start_draw(drawing *dr) {}
+void draw_update(drawing *dr, int x, int y, int w, int h) {}
+void end_draw(drawing *dr) {}
+int print_mono_colour(drawing *dr, int grey) { return 0; }
+void print_line_width(drawing *dr, int width) {}
 unsigned long random_bits(random_state *state, int bits)
 { assert(!"Shouldn't get randomness"); return 0; }
 unsigned long random_upto(random_state *state, unsigned long limit)

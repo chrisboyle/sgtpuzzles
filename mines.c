@@ -53,7 +53,7 @@ struct mine_layout {
      */
     int n, unique;
     random_state *rs;
-    midend_data *me;		       /* to give back the new game desc */
+    midend *me;		       /* to give back the new game desc */
 };
 
 struct game_state {
@@ -2157,7 +2157,7 @@ static int open_square(game_state *state, int x, int y)
     return 0;
 }
 
-static game_state *new_game(midend_data *me, game_params *params, char *desc)
+static game_state *new_game(midend *me, game_params *params, char *desc)
 {
     game_state *state = snew(game_state);
     int i, wh, x, y, ret, masked;
@@ -2630,8 +2630,8 @@ static void game_compute_size(game_params *params, int tilesize,
     *y = BORDER * 2 + TILE_SIZE * params->h;
 }
 
-static void game_set_size(game_drawstate *ds, game_params *params,
-			  int tilesize)
+static void game_set_size(drawing *dr, game_drawstate *ds,
+			  game_params *params, int tilesize)
 {
     ds->tilesize = tilesize;
 }
@@ -2714,7 +2714,7 @@ static float *game_colours(frontend *fe, game_state *state, int *ncolours)
     return ret;
 }
 
-static game_drawstate *game_new_drawstate(game_state *state)
+static game_drawstate *game_new_drawstate(drawing *dr, game_state *state)
 {
     struct game_drawstate *ds = snew(struct game_drawstate);
 
@@ -2730,13 +2730,13 @@ static game_drawstate *game_new_drawstate(game_state *state)
     return ds;
 }
 
-static void game_free_drawstate(game_drawstate *ds)
+static void game_free_drawstate(drawing *dr, game_drawstate *ds)
 {
     sfree(ds->grid);
     sfree(ds);
 }
 
-static void draw_tile(frontend *fe, game_drawstate *ds,
+static void draw_tile(drawing *dr, game_drawstate *ds,
                       int x, int y, int v, int bg)
 {
     if (v < 0) {
@@ -2749,10 +2749,10 @@ static void draw_tile(frontend *fe, game_drawstate *ds,
 	    /*
 	     * Omit the highlights in this case.
 	     */
-	    draw_rect(fe, x, y, TILE_SIZE, TILE_SIZE,
+	    draw_rect(dr, x, y, TILE_SIZE, TILE_SIZE,
                       bg == COL_BACKGROUND ? COL_BACKGROUND2 : bg);
-	    draw_line(fe, x, y, x + TILE_SIZE - 1, y, COL_LOWLIGHT);
-	    draw_line(fe, x, y, x, y + TILE_SIZE - 1, COL_LOWLIGHT);
+	    draw_line(dr, x, y, x + TILE_SIZE - 1, y, COL_LOWLIGHT);
+	    draw_line(dr, x, y, x, y + TILE_SIZE - 1, COL_LOWLIGHT);
 	} else {
 	    /*
 	     * Draw highlights to indicate the square is covered.
@@ -2763,14 +2763,14 @@ static void draw_tile(frontend *fe, game_drawstate *ds,
 	    coords[3] = y;
 	    coords[4] = x;
 	    coords[5] = y + TILE_SIZE - 1;
-	    draw_polygon(fe, coords, 3, COL_LOWLIGHT ^ hl, COL_LOWLIGHT ^ hl);
+	    draw_polygon(dr, coords, 3, COL_LOWLIGHT ^ hl, COL_LOWLIGHT ^ hl);
 
 	    coords[0] = x;
 	    coords[1] = y;
-	    draw_polygon(fe, coords, 3, COL_HIGHLIGHT ^ hl,
+	    draw_polygon(dr, coords, 3, COL_HIGHLIGHT ^ hl,
 			 COL_HIGHLIGHT ^ hl);
 
-	    draw_rect(fe, x + HIGHLIGHT_WIDTH, y + HIGHLIGHT_WIDTH,
+	    draw_rect(dr, x + HIGHLIGHT_WIDTH, y + HIGHLIGHT_WIDTH,
 		      TILE_SIZE - 2*HIGHLIGHT_WIDTH, TILE_SIZE - 2*HIGHLIGHT_WIDTH,
 		      bg);
 	}
@@ -2789,19 +2789,19 @@ static void draw_tile(frontend *fe, game_drawstate *ds,
 	    SETCOORD(3, 0.25, 0.8);
 	    SETCOORD(4, 0.55, 0.7);
 	    SETCOORD(5, 0.55, 0.35);
-	    draw_polygon(fe, coords, 6, COL_FLAGBASE, COL_FLAGBASE);
+	    draw_polygon(dr, coords, 6, COL_FLAGBASE, COL_FLAGBASE);
 
 	    SETCOORD(0, 0.6, 0.2);
 	    SETCOORD(1, 0.6, 0.5);
 	    SETCOORD(2, 0.2, 0.35);
-	    draw_polygon(fe, coords, 3, COL_FLAG, COL_FLAG);
+	    draw_polygon(dr, coords, 3, COL_FLAG, COL_FLAG);
 #undef SETCOORD
 
 	} else if (v == -3) {
 	    /*
 	     * Draw a question mark.
 	     */
-	    draw_text(fe, x + TILE_SIZE / 2, y + TILE_SIZE / 2,
+	    draw_text(dr, x + TILE_SIZE / 2, y + TILE_SIZE / 2,
 		      FONT_VARIABLE, TILE_SIZE * 6 / 8,
 		      ALIGN_VCENTRE | ALIGN_HCENTRE,
 		      COL_QUERY, "?");
@@ -2814,11 +2814,11 @@ static void draw_tile(frontend *fe, game_drawstate *ds,
 	 * Exception is that for value 65 (mine we've just trodden
 	 * on), we clear the square to COL_BANG.
 	 */
-        draw_rect(fe, x, y, TILE_SIZE, TILE_SIZE,
+        draw_rect(dr, x, y, TILE_SIZE, TILE_SIZE,
 		  (v == 65 ? COL_BANG :
                    bg == COL_BACKGROUND ? COL_BACKGROUND2 : bg));
-	draw_line(fe, x, y, x + TILE_SIZE - 1, y, COL_LOWLIGHT);
-	draw_line(fe, x, y, x, y + TILE_SIZE - 1, COL_LOWLIGHT);
+	draw_line(dr, x, y, x + TILE_SIZE - 1, y, COL_LOWLIGHT);
+	draw_line(dr, x, y, x, y + TILE_SIZE - 1, COL_LOWLIGHT);
 
 	if (v > 0 && v <= 8) {
 	    /*
@@ -2827,7 +2827,7 @@ static void draw_tile(frontend *fe, game_drawstate *ds,
 	    char str[2];
 	    str[0] = v + '0';
 	    str[1] = '\0';
-	    draw_text(fe, x + TILE_SIZE / 2, y + TILE_SIZE / 2,
+	    draw_text(dr, x + TILE_SIZE / 2, y + TILE_SIZE / 2,
 		      FONT_VARIABLE, TILE_SIZE * 7 / 8,
 		      ALIGN_VCENTRE | ALIGN_HCENTRE,
 		      (COL_1 - 1) + v, str);
@@ -2839,7 +2839,7 @@ static void draw_tile(frontend *fe, game_drawstate *ds,
 	     * FIXME: this could be done better!
 	     */
 #if 0
-	    draw_text(fe, x + TILE_SIZE / 2, y + TILE_SIZE / 2,
+	    draw_text(dr, x + TILE_SIZE / 2, y + TILE_SIZE / 2,
 		      FONT_VARIABLE, TILE_SIZE * 7 / 8,
 		      ALIGN_VCENTRE | ALIGN_HCENTRE,
 		      COL_MINE, "*");
@@ -2872,9 +2872,9 @@ static void draw_tile(frontend *fe, game_drawstate *ds,
 		    xdy = -tdy;
 		}
 
-		draw_polygon(fe, coords, 5*4, COL_MINE, COL_MINE);
+		draw_polygon(dr, coords, 5*4, COL_MINE, COL_MINE);
 
-		draw_rect(fe, cx-r/3, cy-r/3, r/3, r/4, COL_HIGHLIGHT);
+		draw_rect(dr, cx-r/3, cy-r/3, r/3, r/4, COL_HIGHLIGHT);
 	    }
 #endif
 
@@ -2884,10 +2884,10 @@ static void draw_tile(frontend *fe, game_drawstate *ds,
 		 */
 		int dx;
 		for (dx = -1; dx <= +1; dx++) {
-		    draw_line(fe, x + 3 + dx, y + 2,
+		    draw_line(dr, x + 3 + dx, y + 2,
 			      x + TILE_SIZE - 3 + dx,
 			      y + TILE_SIZE - 2, COL_CROSS);
-		    draw_line(fe, x + TILE_SIZE - 3 + dx, y + 2,
+		    draw_line(dr, x + TILE_SIZE - 3 + dx, y + 2,
 			      x + 3 + dx, y + TILE_SIZE - 2,
 			      COL_CROSS);
 		}
@@ -2895,10 +2895,10 @@ static void draw_tile(frontend *fe, game_drawstate *ds,
 	}
     }
 
-    draw_update(fe, x, y, TILE_SIZE, TILE_SIZE);
+    draw_update(dr, x, y, TILE_SIZE, TILE_SIZE);
 }
 
-static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
+static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 			game_state *state, int dir, game_ui *ui,
 			float animtime, float flashtime)
 {
@@ -2917,10 +2917,10 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
     if (!ds->started) {
         int coords[10];
 
-	draw_rect(fe, 0, 0,
+	draw_rect(dr, 0, 0,
 		  TILE_SIZE * state->w + 2 * BORDER,
 		  TILE_SIZE * state->h + 2 * BORDER, COL_BACKGROUND);
-	draw_update(fe, 0, 0,
+	draw_update(dr, 0, 0,
 		    TILE_SIZE * state->w + 2 * BORDER,
 		    TILE_SIZE * state->h + 2 * BORDER);
 
@@ -2937,11 +2937,11 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
         coords[9] = COORD(state->h) + OUTER_HIGHLIGHT_WIDTH - 1;
         coords[6] = coords[8] + TILE_SIZE;
         coords[7] = coords[9] - TILE_SIZE;
-        draw_polygon(fe, coords, 5, COL_HIGHLIGHT, COL_HIGHLIGHT);
+        draw_polygon(dr, coords, 5, COL_HIGHLIGHT, COL_HIGHLIGHT);
 
         coords[1] = COORD(0) - OUTER_HIGHLIGHT_WIDTH;
         coords[0] = COORD(0) - OUTER_HIGHLIGHT_WIDTH;
-        draw_polygon(fe, coords, 5, COL_LOWLIGHT, COL_LOWLIGHT);
+        draw_polygon(dr, coords, 5, COL_LOWLIGHT, COL_LOWLIGHT);
 
         ds->started = TRUE;
     }
@@ -2965,7 +2965,7 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 		v -= 20;
 
 	    if (ds->grid[y*ds->w+x] != v || bg != ds->bg) {
-		draw_tile(fe, ds, COORD(x), COORD(y), v, bg);
+		draw_tile(dr, ds, COORD(x), COORD(y), v, bg);
 		ds->grid[y*ds->w+x] = v;
 	    }
 	}
@@ -2992,7 +2992,7 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
         if (ui->deaths)
             sprintf(statusbar + strlen(statusbar),
                     "  Deaths: %d", ui->deaths);
-	status_bar(fe, statusbar);
+	status_bar(dr, statusbar);
     }
 }
 
@@ -3033,6 +3033,14 @@ static int game_timing_state(game_state *state, game_ui *ui)
     return TRUE;
 }
 
+static void game_print_size(game_params *params, float *x, float *y)
+{
+}
+
+static void game_print(drawing *dr, game_state *state, int tilesize)
+{
+}
+
 #ifdef COMBINED
 #define thegame mines
 #endif
@@ -3068,6 +3076,7 @@ const struct game thegame = {
     game_redraw,
     game_anim_length,
     game_flash_length,
+    FALSE, FALSE, game_print_size, game_print,
     game_wants_statusbar,
     TRUE, game_timing_state,
     BUTTON_BEATS(LEFT_BUTTON, RIGHT_BUTTON),
@@ -3093,19 +3102,19 @@ const struct game thegame = {
 #include <stdarg.h>
 
 void frontend_default_colour(frontend *fe, float *output) {}
-void draw_text(frontend *fe, int x, int y, int fonttype, int fontsize,
+void draw_text(drawing *dr, int x, int y, int fonttype, int fontsize,
                int align, int colour, char *text) {}
-void draw_rect(frontend *fe, int x, int y, int w, int h, int colour) {}
-void draw_line(frontend *fe, int x1, int y1, int x2, int y2, int colour) {}
-void draw_polygon(frontend *fe, int *coords, int npoints,
+void draw_rect(drawing *dr, int x, int y, int w, int h, int colour) {}
+void draw_line(drawing *dr, int x1, int y1, int x2, int y2, int colour) {}
+void draw_polygon(drawing *dr, int *coords, int npoints,
                   int fillcolour, int outlinecolour) {}
-void clip(frontend *fe, int x, int y, int w, int h) {}
-void unclip(frontend *fe) {}
-void start_draw(frontend *fe) {}
-void draw_update(frontend *fe, int x, int y, int w, int h) {}
-void end_draw(frontend *fe) {}
-void midend_supersede_game_desc(midend_data *me, char *desc, char *privdesc) {}
-void status_bar(frontend *fe, char *text) {}
+void clip(drawing *dr, int x, int y, int w, int h) {}
+void unclip(drawing *dr) {}
+void start_draw(drawing *dr) {}
+void draw_update(drawing *dr, int x, int y, int w, int h) {}
+void end_draw(drawing *dr) {}
+void midend_supersede_game_desc(midend *me, char *desc, char *privdesc) {}
+void status_bar(drawing *dr, char *text) {}
 
 void fatal(char *fmt, ...)
 {

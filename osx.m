@@ -92,6 +92,11 @@
  */
 NSMenu *typemenu;
 
+/*
+ * Forward reference.
+ */
+extern const struct drawing_api osx_drawing;
+
 /* ----------------------------------------------------------------------
  * Miscellaneous support routines that aren't part of any object or
  * clearly defined subsystem.
@@ -151,6 +156,15 @@ static int savefile_read(void *wctx, void *buf, int len)
 
     ret = fread(buf, 1, len, fp);
     return (ret == len);
+}
+
+/*
+ * Since this front end does not support printing (yet), we need
+ * this stub to satisfy the reference in midend_print_puzzle().
+ */
+void document_add_puzzle(document *doc, const game *game, game_params *par,
+			 game_state *st, game_state *st2)
+{
 }
 
 /* ----------------------------------------------------------------------
@@ -381,7 +395,7 @@ struct frontend {
 @interface GameWindow : NSWindow
 {
     const game *ourgame;
-    midend_data *me;
+    midend *me;
     struct frontend fe;
     struct timeval last_time;
     NSTimer *timer;
@@ -510,7 +524,7 @@ struct frontend {
 
     fe.window = self;
 
-    me = midend_new(&fe, ourgame);
+    me = midend_new(&fe, ourgame, osx_drawing, &fe);
     /*
      * If we ever need to open a fresh window using a provided game
      * ID, I think the right thing is to move most of this method
@@ -1215,9 +1229,10 @@ struct frontend {
 /*
  * Drawing routines called by the midend.
  */
-void draw_polygon(frontend *fe, int *coords, int npoints,
-                  int fillcolour, int outlinecolour)
+static void osx_draw_polygon(void *handle, int *coords, int npoints,
+			     int fillcolour, int outlinecolour)
 {
+    frontend *fe = (frontend *)handle;
     NSBezierPath *path = [NSBezierPath bezierPath];
     int i;
 
@@ -1243,9 +1258,10 @@ void draw_polygon(frontend *fe, int *coords, int npoints,
     [fe->colours[outlinecolour] set];
     [path stroke];
 }
-void draw_circle(frontend *fe, int cx, int cy, int radius,
-                 int fillcolour, int outlinecolour)
+static void osx_draw_circle(void *handle, int cx, int cy, int radius,
+			    int fillcolour, int outlinecolour)
 {
+    frontend *fe = (frontend *)handle;
     NSBezierPath *path = [NSBezierPath bezierPath];
 
     [[NSGraphicsContext currentContext] setShouldAntialias:YES];
@@ -1265,8 +1281,9 @@ void draw_circle(frontend *fe, int cx, int cy, int radius,
     [fe->colours[outlinecolour] set];
     [path stroke];
 }
-void draw_line(frontend *fe, int x1, int y1, int x2, int y2, int colour)
+static void osx_draw_line(void *handle, int x1, int y1, int x2, int y2, int colour)
 {
+    frontend *fe = (frontend *)handle;
     NSBezierPath *path = [NSBezierPath bezierPath];
     NSPoint p1 = { x1 + 0.5, y1 + 0.5 }, p2 = { x2 + 0.5, y2 + 0.5 };
 
@@ -1279,10 +1296,11 @@ void draw_line(frontend *fe, int x1, int y1, int x2, int y2, int colour)
     [path lineToPoint:p2];
     [path stroke];
 }
-void draw_rect(frontend *fe, int x, int y, int w, int h, int colour)
+static void osx_draw_rect(void *handle, int x, int y, int w, int h, int colour)
 {
+    frontend *fe = (frontend *)handle;
     NSRect r = { {x,y}, {w,h} };
-
+    
     [[NSGraphicsContext currentContext] setShouldAntialias:NO];
 
     assert(colour >= 0 && colour < fe->ncolours);
@@ -1290,9 +1308,10 @@ void draw_rect(frontend *fe, int x, int y, int w, int h, int colour)
 
     NSRectFill(r);
 }
-void draw_text(frontend *fe, int x, int y, int fonttype, int fontsize,
-               int align, int colour, char *text)
+static void osx_draw_text(void *handle, int x, int y, int fonttype,
+			  int fontsize, int align, int colour, char *text)
 {
+    frontend *fe = (frontend *)handle;
     NSString *string = [NSString stringWithCString:text];
     NSDictionary *attr;
     NSFont *font;
@@ -1330,7 +1349,7 @@ struct blitter {
     int x, y;
     NSImage *img;
 };
-blitter *blitter_new(int w, int h)
+static blitter *osx_blitter_new(void *handle, int w, int h)
 {
     blitter *bl = snew(blitter);
     bl->x = bl->y = -1;
@@ -1340,13 +1359,14 @@ blitter *blitter_new(int w, int h)
     [bl->img setFlipped:YES];
     return bl;
 }
-void blitter_free(blitter *bl)
+static void osx_blitter_free(void *handle, blitter *bl)
 {
     [bl->img release];
     sfree(bl);
 }
-void blitter_save(frontend *fe, blitter *bl, int x, int y)
+static void osx_blitter_save(void *handle, blitter *bl, int x, int y)
 {
+    frontend *fe = (frontend *)handle;
     [fe->image unlockFocus];
     [bl->img lockFocus];
     [fe->image drawInRect:NSMakeRect(0, 0, bl->w, bl->h)
@@ -1357,8 +1377,9 @@ void blitter_save(frontend *fe, blitter *bl, int x, int y)
     bl->x = x;
     bl->y = y;
 }
-void blitter_load(frontend *fe, blitter *bl, int x, int y)
+static void osx_blitter_load(void *handle, blitter *bl, int x, int y)
 {
+    frontend *fe = (frontend *)handle;
     if (x == BLITTER_FROMSAVED && y == BLITTER_FROMSAVED) {
         x = bl->x;
         y = bl->y;
@@ -1367,34 +1388,64 @@ void blitter_load(frontend *fe, blitter *bl, int x, int y)
 	fromRect:NSMakeRect(0, 0, bl->w, bl->h)
 	operation:NSCompositeCopy fraction:1.0];
 }
-void draw_update(frontend *fe, int x, int y, int w, int h)
+static void osx_draw_update(void *handle, int x, int y, int w, int h)
 {
+    frontend *fe = (frontend *)handle;
     [fe->view setNeedsDisplayInRect:NSMakeRect(x,y,w,h)];
 }
-void clip(frontend *fe, int x, int y, int w, int h)
+static void osx_clip(void *handle, int x, int y, int w, int h)
 {
+    frontend *fe = (frontend *)handle;
     NSRect r = { {x,y}, {w,h} };
-
+    
     if (!fe->clipped)
 	[[NSGraphicsContext currentContext] saveGraphicsState];
     [NSBezierPath clipRect:r];
     fe->clipped = TRUE;
 }
-void unclip(frontend *fe)
+static void osx_unclip(void *handle)
 {
+    frontend *fe = (frontend *)handle;
     if (fe->clipped)
 	[[NSGraphicsContext currentContext] restoreGraphicsState];
     fe->clipped = FALSE;
 }
-void start_draw(frontend *fe)
+static void osx_start_draw(void *handle)
 {
+    frontend *fe = (frontend *)handle;
     [fe->image lockFocus];
     fe->clipped = FALSE;
 }
-void end_draw(frontend *fe)
+static void osx_end_draw(void *handle)
 {
+    frontend *fe = (frontend *)handle;
     [fe->image unlockFocus];
 }
+static void osx_status_bar(void *handle, char *text)
+{
+    frontend *fe = (frontend *)handle;
+    [fe->window setStatusLine:text];
+}
+
+const struct drawing_api osx_drawing = {
+    osx_draw_text,
+    osx_draw_rect,
+    osx_draw_line,
+    osx_draw_poly,
+    osx_draw_circle,
+    osx_draw_update,
+    osx_clip,
+    osx_unclip,
+    osx_start_draw,
+    osx_end_draw,
+    osx_status_bar,
+    osx_blitter_new,
+    osx_blitter_free,
+    osx_blitter_save,
+    osx_blitter_load,
+    NULL, NULL, NULL, NULL, NULL, NULL, /* {begin,end}_{doc,page,puzzle} */
+    NULL,			       /* line_width */
+};
 
 void deactivate_timer(frontend *fe)
 {
@@ -1403,11 +1454,6 @@ void deactivate_timer(frontend *fe)
 void activate_timer(frontend *fe)
 {
     [fe->window activateTimer];
-}
-
-void status_bar(frontend *fe, char *text)
-{
-    [fe->window setStatusLine:text];
 }
 
 /* ----------------------------------------------------------------------

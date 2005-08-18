@@ -726,7 +726,7 @@ static char *validate_desc(game_params *params, char *desc)
  * Construct an initial game state, given a description and parameters.
  */
 
-static game_state *new_game(midend_data *me, game_params *params, char *desc)
+static game_state *new_game(midend *me, game_params *params, char *desc)
 {
     game_state *state;
     int w, h, x, y;
@@ -1174,7 +1174,7 @@ static game_state *execute_move(game_state *from, char *move)
  * Routines for drawing the game position on the screen.
  */
 
-static game_drawstate *game_new_drawstate(game_state *state)
+static game_drawstate *game_new_drawstate(drawing *dr, game_state *state)
 {
     game_drawstate *ds = snew(game_drawstate);
 
@@ -1188,7 +1188,7 @@ static game_drawstate *game_new_drawstate(game_state *state)
     return ds;
 }
 
-static void game_free_drawstate(game_drawstate *ds)
+static void game_free_drawstate(drawing *dr, game_drawstate *ds)
 {
     sfree(ds->visible);
     sfree(ds);
@@ -1205,8 +1205,8 @@ static void game_compute_size(game_params *params, int tilesize,
     *y = BORDER * 2 + WINDOW_OFFSET * 2 + TILE_SIZE * params->height + TILE_BORDER;
 }
 
-static void game_set_size(game_drawstate *ds, game_params *params,
-			  int tilesize)
+static void game_set_size(drawing *dr, game_drawstate *ds,
+			  game_params *params, int tilesize)
 {
     ds->tilesize = tilesize;
 }
@@ -1276,17 +1276,17 @@ static float *game_colours(frontend *fe, game_state *state, int *ncolours)
     return ret;
 }
 
-static void draw_thick_line(frontend *fe, int x1, int y1, int x2, int y2,
+static void draw_thick_line(drawing *dr, int x1, int y1, int x2, int y2,
                             int colour)
 {
-    draw_line(fe, x1-1, y1, x2-1, y2, COL_WIRE);
-    draw_line(fe, x1+1, y1, x2+1, y2, COL_WIRE);
-    draw_line(fe, x1, y1-1, x2, y2-1, COL_WIRE);
-    draw_line(fe, x1, y1+1, x2, y2+1, COL_WIRE);
-    draw_line(fe, x1, y1, x2, y2, colour);
+    draw_line(dr, x1-1, y1, x2-1, y2, COL_WIRE);
+    draw_line(dr, x1+1, y1, x2+1, y2, COL_WIRE);
+    draw_line(dr, x1, y1-1, x2, y2-1, COL_WIRE);
+    draw_line(dr, x1, y1+1, x2, y2+1, COL_WIRE);
+    draw_line(dr, x1, y1, x2, y2, colour);
 }
 
-static void draw_rect_coords(frontend *fe, int x1, int y1, int x2, int y2,
+static void draw_rect_coords(drawing *dr, int x1, int y1, int x2, int y2,
                              int colour)
 {
     int mx = (x1 < x2 ? x1 : x2);
@@ -1294,10 +1294,10 @@ static void draw_rect_coords(frontend *fe, int x1, int y1, int x2, int y2,
     int dx = (x2 + x1 - 2*mx + 1);
     int dy = (y2 + y1 - 2*my + 1);
 
-    draw_rect(fe, mx, my, dx, dy, colour);
+    draw_rect(dr, mx, my, dx, dy, colour);
 }
 
-static void draw_barrier_corner(frontend *fe, game_drawstate *ds,
+static void draw_barrier_corner(drawing *dr, game_drawstate *ds,
                                 int x, int y, int dir, int phase)
 {
     int bx = BORDER + WINDOW_OFFSET + TILE_SIZE * x;
@@ -1313,20 +1313,20 @@ static void draw_barrier_corner(frontend *fe, game_drawstate *ds,
     y1 = (dy > 0 ? TILE_SIZE+TILE_BORDER-1 : 0);
 
     if (phase == 0) {
-        draw_rect_coords(fe, bx+x1, by+y1,
+        draw_rect_coords(dr, bx+x1, by+y1,
                          bx+x1-TILE_BORDER*dx, by+y1-(TILE_BORDER-1)*dy,
                          COL_WIRE);
-        draw_rect_coords(fe, bx+x1, by+y1,
+        draw_rect_coords(dr, bx+x1, by+y1,
                          bx+x1-(TILE_BORDER-1)*dx, by+y1-TILE_BORDER*dy,
                          COL_WIRE);
     } else {
-        draw_rect_coords(fe, bx+x1, by+y1,
+        draw_rect_coords(dr, bx+x1, by+y1,
                          bx+x1-(TILE_BORDER-1)*dx, by+y1-(TILE_BORDER-1)*dy,
                          COL_BARRIER);
     }
 }
 
-static void draw_barrier(frontend *fe, game_drawstate *ds,
+static void draw_barrier(drawing *dr, game_drawstate *ds,
                          int x, int y, int dir, int phase)
 {
     int bx = BORDER + WINDOW_OFFSET + TILE_SIZE * x;
@@ -1339,13 +1339,13 @@ static void draw_barrier(frontend *fe, game_drawstate *ds,
     h = (Y(dir) ? TILE_BORDER : TILE_SIZE - TILE_BORDER);
 
     if (phase == 0) {
-        draw_rect(fe, bx+x1-X(dir), by+y1-Y(dir), w, h, COL_WIRE);
+        draw_rect(dr, bx+x1-X(dir), by+y1-Y(dir), w, h, COL_WIRE);
     } else {
-        draw_rect(fe, bx+x1, by+y1, w, h, COL_BARRIER);
+        draw_rect(dr, bx+x1, by+y1, w, h, COL_BARRIER);
     }
 }
 
-static void draw_tile(frontend *fe, game_drawstate *ds, game_state *state,
+static void draw_tile(drawing *dr, game_drawstate *ds, game_state *state,
                       int x, int y, int tile, float xshift, float yshift)
 {
     int bx = BORDER + WINDOW_OFFSET + TILE_SIZE * x + (xshift * TILE_SIZE);
@@ -1374,9 +1374,9 @@ static void draw_tile(frontend *fe, game_drawstate *ds, game_state *state,
      * rectangle in border colour, and a smaller rectangle in
      * background colour to fill it in.
      */
-    draw_rect(fe, bx, by, TILE_SIZE+TILE_BORDER, TILE_SIZE+TILE_BORDER,
+    draw_rect(dr, bx, by, TILE_SIZE+TILE_BORDER, TILE_SIZE+TILE_BORDER,
               COL_BORDER);
-    draw_rect(fe, bx+TILE_BORDER, by+TILE_BORDER,
+    draw_rect(dr, bx+TILE_BORDER, by+TILE_BORDER,
               TILE_SIZE-TILE_BORDER, TILE_SIZE-TILE_BORDER,
               tile & FLASHING ? COL_FLASHING : COL_BACKGROUND);
 
@@ -1389,7 +1389,7 @@ static void draw_tile(frontend *fe, game_drawstate *ds, game_state *state,
         if (tile & dir) {
             ex = (TILE_SIZE - TILE_BORDER - 1.0F) / 2.0F * X(dir);
             ey = (TILE_SIZE - TILE_BORDER - 1.0F) / 2.0F * Y(dir);
-            draw_thick_line(fe, bx+(int)cx, by+(int)cy,
+            draw_thick_line(dr, bx+(int)cx, by+(int)cy,
 			    bx+(int)(cx+ex), by+(int)(cy+ey),
                             COL_WIRE);
         }
@@ -1398,7 +1398,7 @@ static void draw_tile(frontend *fe, game_drawstate *ds, game_state *state,
         if (tile & dir) {
             ex = (TILE_SIZE - TILE_BORDER - 1.0F) / 2.0F * X(dir);
             ey = (TILE_SIZE - TILE_BORDER - 1.0F) / 2.0F * Y(dir);
-            draw_line(fe, bx+(int)cx, by+(int)cy,
+            draw_line(dr, bx+(int)cx, by+(int)cy,
 		      bx+(int)(cx+ex), by+(int)(cy+ey), col);
         }
     }
@@ -1430,7 +1430,7 @@ static void draw_tile(frontend *fe, game_drawstate *ds, game_state *state,
             points[i+1] = by+(int)(cy+ey);
         }
 
-        draw_polygon(fe, points, 4, col, COL_WIRE);
+        draw_polygon(dr, points, 4, col, COL_WIRE);
     }
 
     /*
@@ -1467,8 +1467,8 @@ static void draw_tile(frontend *fe, game_drawstate *ds, game_state *state,
              * in: if we are fully connected to the other tile then
              * the two ACTIVE states will be the same.)
              */
-            draw_rect_coords(fe, px-vx, py-vy, px+lx+vx, py+ly+vy, COL_WIRE);
-            draw_rect_coords(fe, px, py, px+lx, py+ly,
+            draw_rect_coords(dr, px-vx, py-vy, px+lx+vx, py+ly+vy, COL_WIRE);
+            draw_rect_coords(dr, px, py, px+lx, py+ly,
                              (tile & ACTIVE) ? COL_POWERED : COL_WIRE);
         } else {
             /*
@@ -1476,14 +1476,14 @@ static void draw_tile(frontend *fe, game_drawstate *ds, game_state *state,
              * actually connected to us. Just draw a single black
              * dot.
              */
-            draw_rect_coords(fe, px, py, px, py, COL_WIRE);
+            draw_rect_coords(dr, px, py, px, py, COL_WIRE);
         }
     }
 
-    draw_update(fe, bx, by, TILE_SIZE+TILE_BORDER, TILE_SIZE+TILE_BORDER);
+    draw_update(dr, bx, by, TILE_SIZE+TILE_BORDER, TILE_SIZE+TILE_BORDER);
 }
 
-static void draw_tile_barriers(frontend *fe, game_drawstate *ds,
+static void draw_tile_barriers(drawing *dr, game_drawstate *ds,
                                game_state *state, int x, int y)
 {
     int phase;
@@ -1496,16 +1496,16 @@ static void draw_tile_barriers(frontend *fe, game_drawstate *ds,
     for (phase = 0; phase < 2; phase++) {
         for (dir = 1; dir < 0x10; dir <<= 1)
             if (barrier(state, x, y) & (dir << 4))
-                draw_barrier_corner(fe, ds, x, y, dir << 4, phase);
+                draw_barrier_corner(dr, ds, x, y, dir << 4, phase);
         for (dir = 1; dir < 0x10; dir <<= 1)
             if (barrier(state, x, y) & dir)
-                draw_barrier(fe, ds, x, y, dir, phase);
+                draw_barrier(dr, ds, x, y, dir, phase);
     }
 
-    draw_update(fe, bx, by, TILE_SIZE+TILE_BORDER, TILE_SIZE+TILE_BORDER);
+    draw_update(dr, bx, by, TILE_SIZE+TILE_BORDER, TILE_SIZE+TILE_BORDER);
 }
 
-static void draw_arrow(frontend *fe, game_drawstate *ds,
+static void draw_arrow(drawing *dr, game_drawstate *ds,
                        int x, int y, int xdx, int xdy)
 {
     int coords[14];
@@ -1526,10 +1526,10 @@ static void draw_arrow(frontend *fe, game_drawstate *ds,
     POINT(5, 3 * TILE_SIZE / 8, TILE_SIZE / 2);   /* left concave */
     POINT(6,     TILE_SIZE / 4, TILE_SIZE / 2);   /* left corner */
 
-    draw_polygon(fe, coords, 7, COL_LOWLIGHT, COL_TEXT);
+    draw_polygon(dr, coords, 7, COL_LOWLIGHT, COL_TEXT);
 }
 
-static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
+static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
                  game_state *state, int dir, game_ui *ui, float t, float ft)
 {
     int x, y, tx, ty, frame;
@@ -1546,11 +1546,11 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 
         ds->started = TRUE;
 
-        draw_rect(fe, 0, 0, 
+        draw_rect(dr, 0, 0, 
                   BORDER * 2 + WINDOW_OFFSET * 2 + TILE_SIZE * state->width + TILE_BORDER,
                   BORDER * 2 + WINDOW_OFFSET * 2 + TILE_SIZE * state->height + TILE_BORDER,
                   COL_BACKGROUND);
-        draw_update(fe, 0, 0, 
+        draw_update(dr, 0, 0, 
                     BORDER * 2 + WINDOW_OFFSET*2 + TILE_SIZE*state->width + TILE_BORDER,
                     BORDER * 2 + WINDOW_OFFSET*2 + TILE_SIZE*state->height + TILE_BORDER);
 
@@ -1558,32 +1558,32 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 
             for (x = 0; x < ds->width; x++) {
                 if (barrier(state, x, 0) & UL)
-                    draw_barrier_corner(fe, ds, x, -1, LD, phase);
+                    draw_barrier_corner(dr, ds, x, -1, LD, phase);
                 if (barrier(state, x, 0) & RU)
-                    draw_barrier_corner(fe, ds, x, -1, DR, phase);
+                    draw_barrier_corner(dr, ds, x, -1, DR, phase);
                 if (barrier(state, x, 0) & U)
-                    draw_barrier(fe, ds, x, -1, D, phase);
+                    draw_barrier(dr, ds, x, -1, D, phase);
                 if (barrier(state, x, ds->height-1) & DR)
-                    draw_barrier_corner(fe, ds, x, ds->height, RU, phase);
+                    draw_barrier_corner(dr, ds, x, ds->height, RU, phase);
                 if (barrier(state, x, ds->height-1) & LD)
-                    draw_barrier_corner(fe, ds, x, ds->height, UL, phase);
+                    draw_barrier_corner(dr, ds, x, ds->height, UL, phase);
                 if (barrier(state, x, ds->height-1) & D)
-                    draw_barrier(fe, ds, x, ds->height, U, phase);
+                    draw_barrier(dr, ds, x, ds->height, U, phase);
             }
 
             for (y = 0; y < ds->height; y++) {
                 if (barrier(state, 0, y) & UL)
-                    draw_barrier_corner(fe, ds, -1, y, RU, phase);
+                    draw_barrier_corner(dr, ds, -1, y, RU, phase);
                 if (barrier(state, 0, y) & LD)
-                    draw_barrier_corner(fe, ds, -1, y, DR, phase);
+                    draw_barrier_corner(dr, ds, -1, y, DR, phase);
                 if (barrier(state, 0, y) & L)
-                    draw_barrier(fe, ds, -1, y, R, phase);
+                    draw_barrier(dr, ds, -1, y, R, phase);
                 if (barrier(state, ds->width-1, y) & RU)
-                    draw_barrier_corner(fe, ds, ds->width, y, UL, phase);
+                    draw_barrier_corner(dr, ds, ds->width, y, UL, phase);
                 if (barrier(state, ds->width-1, y) & DR)
-                    draw_barrier_corner(fe, ds, ds->width, y, LD, phase);
+                    draw_barrier_corner(dr, ds, ds->width, y, LD, phase);
                 if (barrier(state, ds->width-1, y) & R)
-                    draw_barrier(fe, ds, ds->width, y, L, phase);
+                    draw_barrier(dr, ds, ds->width, y, L, phase);
             }
         }
 
@@ -1592,13 +1592,13 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
          */
         for (x = 0; x < ds->width; x++) {
             if (x == state->cx) continue;
-            draw_arrow(fe, ds, x, 0, +1, 0);
-            draw_arrow(fe, ds, x+1, ds->height, -1, 0);
+            draw_arrow(dr, ds, x, 0, +1, 0);
+            draw_arrow(dr, ds, x+1, ds->height, -1, 0);
         }
         for (y = 0; y < ds->height; y++) {
             if (y == state->cy) continue;
-            draw_arrow(fe, ds, ds->width, y, 0, +1);
-            draw_arrow(fe, ds, 0, y+1, 0, -1);
+            draw_arrow(dr, ds, ds->width, y, 0, +1);
+            draw_arrow(dr, ds, 0, y+1, 0, -1);
         }
     }
 
@@ -1644,7 +1644,7 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
         active = compute_active(state, -1, -1);
     }
 
-    clip(fe,
+    clip(dr,
          BORDER + WINDOW_OFFSET, BORDER + WINDOW_OFFSET,
          TILE_SIZE * state->width + TILE_BORDER,
          TILE_SIZE * state->height + TILE_BORDER);
@@ -1678,15 +1678,15 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
                 float xs = (y == state->last_move_row ? xshift : 0.0);
                 float ys = (x == state->last_move_col ? yshift : 0.0);
 
-                draw_tile(fe, ds, state, x, y, c, xs, ys);
+                draw_tile(dr, ds, state, x, y, c, xs, ys);
                 if (xs < 0 && x == 0)
-                    draw_tile(fe, ds, state, state->width, y, c, xs, ys);
+                    draw_tile(dr, ds, state, state->width, y, c, xs, ys);
                 else if (xs > 0 && x == state->width - 1)
-                    draw_tile(fe, ds, state, -1, y, c, xs, ys);
+                    draw_tile(dr, ds, state, -1, y, c, xs, ys);
                 else if (ys < 0 && y == 0)
-                    draw_tile(fe, ds, state, x, state->height, c, xs, ys);
+                    draw_tile(dr, ds, state, x, state->height, c, xs, ys);
                 else if (ys > 0 && y == state->height - 1)
-                    draw_tile(fe, ds, state, x, -1, c, xs, ys);
+                    draw_tile(dr, ds, state, x, -1, c, xs, ys);
 
                 if (x == state->last_move_col || y == state->last_move_row)
                     index(state, ds->visible, x, y) = 0xFF;
@@ -1697,9 +1697,9 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 
     for (x = 0; x < ds->width; x++)
         for (y = 0; y < ds->height; y++)
-            draw_tile_barriers(fe, ds, state, x, y);
+            draw_tile_barriers(dr, ds, state, x, y);
 
-    unclip(fe);
+    unclip(dr);
 
     /*
      * Update the status bar.
@@ -1727,7 +1727,7 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 
 	sprintf(statusbuf + strlen(statusbuf), " Active: %d/%d", a, n);
 
-	status_bar(fe, statusbuf);
+	status_bar(dr, statusbuf);
     }
 
     sfree(active);
@@ -1781,6 +1781,14 @@ static int game_timing_state(game_state *state, game_ui *ui)
     return FALSE;
 }
 
+		      static void game_print_size(game_params *params, float *x, float *y)
+		  {
+		  }
+		      
+		      static void game_print(drawing *dr, game_state *state, int tilesize)
+		  {
+		  }
+		      
 #ifdef COMBINED
 #define thegame netslide
 #endif
@@ -1816,6 +1824,7 @@ const struct game thegame = {
     game_redraw,
     game_anim_length,
     game_flash_length,
+    FALSE, FALSE, game_print_size, game_print,
     game_wants_statusbar,
     FALSE, game_timing_state,
     0,				       /* mouse_priorities */

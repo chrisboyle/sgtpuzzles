@@ -1027,7 +1027,7 @@ static char *validate_desc(game_params *params, char *desc)
     return ret;
 }
 
-static game_state *new_game(midend_data *me, game_params *params, char *desc)
+static game_state *new_game(midend *me, game_params *params, char *desc)
 {
     int n = params->n, w = n+2, h = n+1, wh = w*h;
     game_state *state = snew(game_state);
@@ -1433,8 +1433,8 @@ static void game_compute_size(game_params *params, int tilesize,
     *y = h * TILESIZE + 2*BORDER;
 }
 
-static void game_set_size(game_drawstate *ds, game_params *params,
-			  int tilesize)
+static void game_set_size(drawing *dr, game_drawstate *ds,
+			  game_params *params, int tilesize)
 {
     ds->tilesize = tilesize;
 }
@@ -1469,7 +1469,7 @@ static float *game_colours(frontend *fe, game_state *state, int *ncolours)
     return ret;
 }
 
-static game_drawstate *game_new_drawstate(game_state *state)
+static game_drawstate *game_new_drawstate(drawing *dr, game_state *state)
 {
     struct game_drawstate *ds = snew(struct game_drawstate);
     int i;
@@ -1485,7 +1485,7 @@ static game_drawstate *game_new_drawstate(game_state *state)
     return ds;
 }
 
-static void game_free_drawstate(game_drawstate *ds)
+static void game_free_drawstate(drawing *dr, game_drawstate *ds)
 {
     sfree(ds->visible);
     sfree(ds);
@@ -1500,7 +1500,7 @@ enum {
     TYPE_MASK = 0x0F
 };
 
-static void draw_tile(frontend *fe, game_drawstate *ds, game_state *state,
+static void draw_tile(drawing *dr, game_drawstate *ds, game_state *state,
                       int x, int y, int type)
 {
     int w = state->w /*, h = state->h */;
@@ -1509,7 +1509,7 @@ static void draw_tile(frontend *fe, game_drawstate *ds, game_state *state,
     char str[80];
     int flags;
 
-    draw_rect(fe, cx, cy, TILESIZE, TILESIZE, COL_BACKGROUND);
+    draw_rect(dr, cx, cy, TILESIZE, TILESIZE, COL_BACKGROUND);
 
     flags = type &~ TYPE_MASK;
     type &= TYPE_MASK;
@@ -1538,16 +1538,16 @@ static void draw_tile(frontend *fe, game_drawstate *ds, game_state *state,
         }
 
         if (type == TYPE_L || type == TYPE_T)
-            draw_circle(fe, cx+DOMINO_COFFSET, cy+DOMINO_COFFSET,
+            draw_circle(dr, cx+DOMINO_COFFSET, cy+DOMINO_COFFSET,
                         DOMINO_RADIUS, bg, bg);
         if (type == TYPE_R || type == TYPE_T)
-            draw_circle(fe, cx+TILESIZE-1-DOMINO_COFFSET, cy+DOMINO_COFFSET,
+            draw_circle(dr, cx+TILESIZE-1-DOMINO_COFFSET, cy+DOMINO_COFFSET,
                         DOMINO_RADIUS, bg, bg);
         if (type == TYPE_L || type == TYPE_B)
-            draw_circle(fe, cx+DOMINO_COFFSET, cy+TILESIZE-1-DOMINO_COFFSET,
+            draw_circle(dr, cx+DOMINO_COFFSET, cy+TILESIZE-1-DOMINO_COFFSET,
                         DOMINO_RADIUS, bg, bg);
         if (type == TYPE_R || type == TYPE_B)
-            draw_circle(fe, cx+TILESIZE-1-DOMINO_COFFSET,
+            draw_circle(dr, cx+TILESIZE-1-DOMINO_COFFSET,
                         cy+TILESIZE-1-DOMINO_COFFSET,
                         DOMINO_RADIUS, bg, bg);
 
@@ -1559,40 +1559,40 @@ static void draw_tile(frontend *fe, game_drawstate *ds, game_state *state,
             x2 = cx + TILESIZE-1 - (i ? DOMINO_GUTTER : DOMINO_COFFSET);
             y2 = cy + TILESIZE-1 - (i ? DOMINO_COFFSET : DOMINO_GUTTER);
             if (type == TYPE_L)
-                x2 = cx + TILESIZE-1;
+                x2 = cx + TILESIZE + TILESIZE/16;
             else if (type == TYPE_R)
-                x1 = cx;
+                x1 = cx - TILESIZE/16;
             else if (type == TYPE_T)
-                y2 = cy + TILESIZE-1;
+                y2 = cy + TILESIZE + TILESIZE/16;
             else if (type == TYPE_B)
-                y1 = cy;
+                y1 = cy - TILESIZE/16;
 
-            draw_rect(fe, x1, y1, x2-x1+1, y2-y1+1, bg);
+            draw_rect(dr, x1, y1, x2-x1+1, y2-y1+1, bg);
         }
     } else {
         if (flags & EDGE_T)
-            draw_rect(fe, cx+DOMINO_GUTTER, cy,
+            draw_rect(dr, cx+DOMINO_GUTTER, cy,
                       TILESIZE-2*DOMINO_GUTTER, 1, COL_EDGE);
         if (flags & EDGE_B)
-            draw_rect(fe, cx+DOMINO_GUTTER, cy+TILESIZE-1,
+            draw_rect(dr, cx+DOMINO_GUTTER, cy+TILESIZE-1,
                       TILESIZE-2*DOMINO_GUTTER, 1, COL_EDGE);
         if (flags & EDGE_L)
-            draw_rect(fe, cx, cy+DOMINO_GUTTER,
+            draw_rect(dr, cx, cy+DOMINO_GUTTER,
                       1, TILESIZE-2*DOMINO_GUTTER, COL_EDGE);
         if (flags & EDGE_R)
-            draw_rect(fe, cx+TILESIZE-1, cy+DOMINO_GUTTER,
+            draw_rect(dr, cx+TILESIZE-1, cy+DOMINO_GUTTER,
                       1, TILESIZE-2*DOMINO_GUTTER, COL_EDGE);
         nc = COL_TEXT;
     }
 
     sprintf(str, "%d", state->numbers->numbers[y*w+x]);
-    draw_text(fe, cx+TILESIZE/2, cy+TILESIZE/2, FONT_VARIABLE, TILESIZE/2,
+    draw_text(dr, cx+TILESIZE/2, cy+TILESIZE/2, FONT_VARIABLE, TILESIZE/2,
               ALIGN_HCENTRE | ALIGN_VCENTRE, nc, str);
 
-    draw_update(fe, cx, cy, TILESIZE, TILESIZE);
+    draw_update(dr, cx, cy, TILESIZE, TILESIZE);
 }
 
-static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
+static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
                  game_state *state, int dir, game_ui *ui,
                  float animtime, float flashtime)
 {
@@ -1603,8 +1603,8 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
     if (!ds->started) {
         int pw, ph;
         game_compute_size(&state->params, TILESIZE, &pw, &ph);
-	draw_rect(fe, 0, 0, pw, ph, COL_BACKGROUND);
-	draw_update(fe, 0, 0, pw, ph);
+	draw_rect(dr, 0, 0, pw, ph, COL_BACKGROUND);
+	draw_update(dr, 0, 0, pw, ph);
 	ds->started = TRUE;
     }
 
@@ -1659,7 +1659,7 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
                 c |= 0x40;             /* we're flashing */
 
 	    if (ds->visible[n] != c) {
-		draw_tile(fe, ds, state, x, y, c);
+		draw_tile(dr, ds, state, x, y, c);
                 ds->visible[n] = c;
 	    }
 	}
@@ -1690,6 +1690,54 @@ static int game_wants_statusbar(void)
 static int game_timing_state(game_state *state, game_ui *ui)
 {
     return TRUE;
+}
+
+static void game_print_size(game_params *params, float *x, float *y)
+{
+    int pw, ph;
+
+    /*
+     * I'll use 6mm squares by default.
+     */
+    game_compute_size(params, 600, &pw, &ph);
+    *x = pw / 100.0;
+    *y = ph / 100.0;
+}
+
+static void game_print(drawing *dr, game_state *state, int tilesize)
+{
+    int w = state->w, h = state->h;
+    int c, x, y;
+
+    /* Ick: fake up `ds->tilesize' for macro expansion purposes */
+    game_drawstate ads, *ds = &ads;
+    ads.tilesize = tilesize;
+
+    c = print_mono_colour(dr, 1); assert(c == COL_BACKGROUND);
+    c = print_mono_colour(dr, 0); assert(c == COL_TEXT);
+    c = print_mono_colour(dr, 0); assert(c == COL_DOMINO);
+    c = print_mono_colour(dr, 0); assert(c == COL_DOMINOCLASH);
+    c = print_mono_colour(dr, 1); assert(c == COL_DOMINOTEXT);
+    c = print_mono_colour(dr, 0); assert(c == COL_EDGE);
+
+    for (y = 0; y < h; y++)
+        for (x = 0; x < w; x++) {
+            int n = y*w+x;
+	    unsigned long c;
+
+            if (state->grid[n] == n-1)
+                c = TYPE_R;
+            else if (state->grid[n] == n+1)
+                c = TYPE_L;
+            else if (state->grid[n] == n-w)
+                c = TYPE_B;
+            else if (state->grid[n] == n+w)
+                c = TYPE_T;
+            else
+                c = TYPE_BLANK;
+
+	    draw_tile(dr, ds, state, x, y, c);
+	}
 }
 
 #ifdef COMBINED
@@ -1727,6 +1775,7 @@ const struct game thegame = {
     game_redraw,
     game_anim_length,
     game_flash_length,
+    TRUE, FALSE, game_print_size, game_print,
     game_wants_statusbar,
     FALSE, game_timing_state,
     0,				       /* mouse_priorities */

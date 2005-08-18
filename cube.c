@@ -863,7 +863,7 @@ static char *validate_desc(game_params *params, char *desc)
     return NULL;
 }
 
-static game_state *new_game(midend_data *me, game_params *params, char *desc)
+static game_state *new_game(midend *me, game_params *params, char *desc)
 {
     game_state *state = snew(game_state);
     int area;
@@ -1466,8 +1466,8 @@ static void game_compute_size(game_params *params, int tilesize,
     *y = YSIZE(tilesize, bb, solids[params->solid]);
 }
 
-static void game_set_size(game_drawstate *ds, game_params *params,
-			  int tilesize)
+static void game_set_size(drawing *dr, game_drawstate *ds,
+			  game_params *params, int tilesize)
 {
     struct bbox bb = find_bbox(params);
 
@@ -1494,7 +1494,7 @@ static float *game_colours(frontend *fe, game_state *state, int *ncolours)
     return ret;
 }
 
-static game_drawstate *game_new_drawstate(game_state *state)
+static game_drawstate *game_new_drawstate(drawing *dr, game_state *state)
 {
     struct game_drawstate *ds = snew(struct game_drawstate);
 
@@ -1503,12 +1503,12 @@ static game_drawstate *game_new_drawstate(game_state *state)
     return ds;
 }
 
-static void game_free_drawstate(game_drawstate *ds)
+static void game_free_drawstate(drawing *dr, game_drawstate *ds)
 {
     sfree(ds);
 }
 
-static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
+static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
                         game_state *state, int dir, game_ui *ui,
                         float animtime, float flashtime)
 {
@@ -1521,7 +1521,7 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
     game_state *newstate;
     int square;
 
-    draw_rect(fe, 0, 0, XSIZE(GRID_SCALE, bb, state->solid),
+    draw_rect(dr, 0, 0, XSIZE(GRID_SCALE, bb, state->solid),
 	      YSIZE(GRID_SCALE, bb, state->solid), COL_BACKGROUND);
 
     if (dir < 0) {
@@ -1565,7 +1565,7 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 			     + ds->oy);
         }
 
-        draw_polygon(fe, coords, state->squares[i].npoints,
+        draw_polygon(dr, coords, state->squares[i].npoints,
                      state->squares[i].blue ? COL_BLUE : COL_BACKGROUND,
 		     COL_BORDER);
     }
@@ -1647,13 +1647,13 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
                 continue;
         }
 
-        draw_polygon(fe, coords, poly->order,
+        draw_polygon(dr, coords, poly->order,
                      state->facecolours[i] ? COL_BLUE : COL_BACKGROUND,
 		     COL_BORDER);
     }
     sfree(poly);
 
-    draw_update(fe, 0, 0, XSIZE(GRID_SCALE, bb, state->solid),
+    draw_update(dr, 0, 0, XSIZE(GRID_SCALE, bb, state->solid),
 		YSIZE(GRID_SCALE, bb, state->solid));
 
     /*
@@ -1666,7 +1666,7 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 		(state->completed ? "COMPLETED! " : ""),
 		(state->completed ? state->completed : state->movecount));
 
-	status_bar(fe, statusbuf);
+	status_bar(dr, statusbuf);
     }
 }
 
@@ -1690,6 +1690,14 @@ static int game_wants_statusbar(void)
 static int game_timing_state(game_state *state, game_ui *ui)
 {
     return TRUE;
+}
+
+static void game_print_size(game_params *params, float *x, float *y)
+{
+}
+
+static void game_print(drawing *dr, game_state *state, int tilesize)
+{
 }
 
 #ifdef COMBINED
@@ -1727,6 +1735,7 @@ const struct game thegame = {
     game_redraw,
     game_anim_length,
     game_flash_length,
+    FALSE, FALSE, game_print_size, game_print,
     game_wants_statusbar,
     FALSE, game_timing_state,
     0,				       /* mouse_priorities */

@@ -1869,7 +1869,7 @@ static unsigned char *get_correct(game_state *state)
     return ret;
 }
 
-static game_state *new_game(midend_data *me, game_params *params, char *desc)
+static game_state *new_game(midend *me, game_params *params, char *desc)
 {
     game_state *state = snew(game_state);
     int x, y, i, area;
@@ -2522,8 +2522,8 @@ static void game_compute_size(game_params *params, int tilesize,
     *y = params->h * TILE_SIZE + 2*BORDER + 1;
 }
 
-static void game_set_size(game_drawstate *ds, game_params *params,
-			  int tilesize)
+static void game_set_size(drawing *dr, game_drawstate *ds,
+			  game_params *params, int tilesize)
 {
     ds->tilesize = tilesize;
 }
@@ -2558,7 +2558,7 @@ static float *game_colours(frontend *fe, game_state *state, int *ncolours)
     return ret;
 }
 
-static game_drawstate *game_new_drawstate(game_state *state)
+static game_drawstate *game_new_drawstate(drawing *dr, game_state *state)
 {
     struct game_drawstate *ds = snew(struct game_drawstate);
     int i;
@@ -2574,26 +2574,26 @@ static game_drawstate *game_new_drawstate(game_state *state)
     return ds;
 }
 
-static void game_free_drawstate(game_drawstate *ds)
+static void game_free_drawstate(drawing *dr, game_drawstate *ds)
 {
     sfree(ds->visible);
     sfree(ds);
 }
 
-static void draw_tile(frontend *fe, game_drawstate *ds, game_state *state,
+static void draw_tile(drawing *dr, game_drawstate *ds, game_state *state,
                       int x, int y, unsigned char *hedge, unsigned char *vedge,
                       unsigned char *corners, int correct)
 {
     int cx = COORD(x), cy = COORD(y);
     char str[80];
 
-    draw_rect(fe, cx, cy, TILE_SIZE+1, TILE_SIZE+1, COL_GRID);
-    draw_rect(fe, cx+1, cy+1, TILE_SIZE-1, TILE_SIZE-1,
+    draw_rect(dr, cx, cy, TILE_SIZE+1, TILE_SIZE+1, COL_GRID);
+    draw_rect(dr, cx+1, cy+1, TILE_SIZE-1, TILE_SIZE-1,
 	      correct ? COL_CORRECT : COL_BACKGROUND);
 
     if (grid(state,x,y)) {
 	sprintf(str, "%d", grid(state,x,y));
-	draw_text(fe, cx+TILE_SIZE/2, cy+TILE_SIZE/2, FONT_VARIABLE,
+	draw_text(dr, cx+TILE_SIZE/2, cy+TILE_SIZE/2, FONT_VARIABLE,
 		  TILE_SIZE/2, ALIGN_HCENTRE | ALIGN_VCENTRE, COL_TEXT, str);
     }
 
@@ -2601,19 +2601,19 @@ static void draw_tile(frontend *fe, game_drawstate *ds, game_state *state,
      * Draw edges.
      */
     if (!HRANGE(state,x,y) || index(state,hedge,x,y))
-	draw_rect(fe, cx, cy, TILE_SIZE+1, 2,
+	draw_rect(dr, cx, cy, TILE_SIZE+1, 2,
                   HRANGE(state,x,y) ? COLOUR(index(state,hedge,x,y)) :
                   COL_LINE);
     if (!HRANGE(state,x,y+1) || index(state,hedge,x,y+1))
-	draw_rect(fe, cx, cy+TILE_SIZE-1, TILE_SIZE+1, 2,
+	draw_rect(dr, cx, cy+TILE_SIZE-1, TILE_SIZE+1, 2,
                   HRANGE(state,x,y+1) ? COLOUR(index(state,hedge,x,y+1)) :
                   COL_LINE);
     if (!VRANGE(state,x,y) || index(state,vedge,x,y))
-	draw_rect(fe, cx, cy, 2, TILE_SIZE+1,
+	draw_rect(dr, cx, cy, 2, TILE_SIZE+1,
                   VRANGE(state,x,y) ? COLOUR(index(state,vedge,x,y)) :
                   COL_LINE);
     if (!VRANGE(state,x+1,y) || index(state,vedge,x+1,y))
-	draw_rect(fe, cx+TILE_SIZE-1, cy, 2, TILE_SIZE+1,
+	draw_rect(dr, cx+TILE_SIZE-1, cy, 2, TILE_SIZE+1,
                   VRANGE(state,x+1,y) ? COLOUR(index(state,vedge,x+1,y)) :
                   COL_LINE);
 
@@ -2621,22 +2621,22 @@ static void draw_tile(frontend *fe, game_drawstate *ds, game_state *state,
      * Draw corners.
      */
     if (index(state,corners,x,y))
-	draw_rect(fe, cx, cy, 2, 2,
+	draw_rect(dr, cx, cy, 2, 2,
                   COLOUR(index(state,corners,x,y)));
     if (x+1 < state->w && index(state,corners,x+1,y))
-	draw_rect(fe, cx+TILE_SIZE-1, cy, 2, 2,
+	draw_rect(dr, cx+TILE_SIZE-1, cy, 2, 2,
                   COLOUR(index(state,corners,x+1,y)));
     if (y+1 < state->h && index(state,corners,x,y+1))
-	draw_rect(fe, cx, cy+TILE_SIZE-1, 2, 2,
+	draw_rect(dr, cx, cy+TILE_SIZE-1, 2, 2,
                   COLOUR(index(state,corners,x,y+1)));
     if (x+1 < state->w && y+1 < state->h && index(state,corners,x+1,y+1))
-	draw_rect(fe, cx+TILE_SIZE-1, cy+TILE_SIZE-1, 2, 2,
+	draw_rect(dr, cx+TILE_SIZE-1, cy+TILE_SIZE-1, 2, 2,
                   COLOUR(index(state,corners,x+1,y+1)));
 
-    draw_update(fe, cx, cy, TILE_SIZE+1, TILE_SIZE+1);
+    draw_update(dr, cx, cy, TILE_SIZE+1, TILE_SIZE+1);
 }
 
-static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
+static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
                  game_state *state, int dir, game_ui *ui,
                  float animtime, float flashtime)
 {
@@ -2677,13 +2677,13 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 	}
 
     if (!ds->started) {
-	draw_rect(fe, 0, 0,
+	draw_rect(dr, 0, 0,
 		  state->w * TILE_SIZE + 2*BORDER + 1,
 		  state->h * TILE_SIZE + 2*BORDER + 1, COL_BACKGROUND);
-	draw_rect(fe, COORD(0)-1, COORD(0)-1,
+	draw_rect(dr, COORD(0)-1, COORD(0)-1,
 		  ds->w*TILE_SIZE+3, ds->h*TILE_SIZE+3, COL_LINE);
 	ds->started = TRUE;
-	draw_update(fe, 0, 0,
+	draw_update(dr, 0, 0,
 		    state->w * TILE_SIZE + 2*BORDER + 1,
 		    state->h * TILE_SIZE + 2*BORDER + 1);
     }
@@ -2712,7 +2712,7 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
 		c |= CORRECT;
 
 	    if (index(ds,ds->visible,x,y) != c) {
-		draw_tile(fe, ds, state, x, y, hedge, vedge, corners,
+		draw_tile(dr, ds, state, x, y, hedge, vedge, corners,
                           (c & CORRECT) ? 1 : 0);
 		index(ds,ds->visible,x,y) = c;
 	    }
@@ -2735,7 +2735,7 @@ static void game_redraw(frontend *fe, game_drawstate *ds, game_state *oldstate,
         else if (state->completed)
             strcat(buf, "COMPLETED!");
 
-        status_bar(fe, buf);
+        status_bar(dr, buf);
     }
 
     if (hedge != state->hedge) {
@@ -2769,6 +2769,71 @@ static int game_wants_statusbar(void)
 static int game_timing_state(game_state *state, game_ui *ui)
 {
     return TRUE;
+}
+
+static void game_print_size(game_params *params, float *x, float *y)
+{
+    int pw, ph;
+
+    /*
+     * I'll use 5mm squares by default.
+     */
+    game_compute_size(params, 500, &pw, &ph);
+    *x = pw / 100.0;
+    *y = ph / 100.0;
+}
+
+static void game_print(drawing *dr, game_state *state, int tilesize)
+{
+    int w = state->w, h = state->h;
+    int ink = print_mono_colour(dr, 0);
+    int x, y;
+
+    /* Ick: fake up `ds->tilesize' for macro expansion purposes */
+    game_drawstate ads, *ds = &ads;
+    ads.tilesize = tilesize;
+
+    /*
+     * Border.
+     */
+    print_line_width(dr, TILE_SIZE / 10);
+    draw_rect_outline(dr, COORD(0), COORD(0), w*TILE_SIZE, h*TILE_SIZE, ink);
+
+    /*
+     * Grid. We have to make the grid lines particularly thin,
+     * because users will be drawing lines _along_ them and we want
+     * those lines to be visible.
+     */
+    print_line_width(dr, TILE_SIZE / 256);
+    for (x = 1; x < w; x++)
+	draw_line(dr, COORD(x), COORD(0), COORD(x), COORD(h), ink);
+    for (y = 1; y < h; y++)
+	draw_line(dr, COORD(0), COORD(y), COORD(w), COORD(y), ink);
+
+    /*
+     * Solution.
+     */
+    print_line_width(dr, TILE_SIZE / 10);
+    for (y = 0; y <= h; y++)
+	for (x = 0; x <= w; x++) {
+	    if (HRANGE(state,x,y) && hedge(state,x,y))
+		draw_line(dr, COORD(x), COORD(y), COORD(x+1), COORD(y), ink);
+	    if (VRANGE(state,x,y) && vedge(state,x,y))
+		draw_line(dr, COORD(x), COORD(y), COORD(x), COORD(y+1), ink);
+	}
+
+    /*
+     * Clues.
+     */
+    for (y = 0; y < h; y++)
+	for (x = 0; x < w; x++)
+	    if (grid(state,x,y)) {
+		char str[80];
+		sprintf(str, "%d", grid(state,x,y));
+		draw_text(dr, COORD(x)+TILE_SIZE/2, COORD(y)+TILE_SIZE/2,
+			  FONT_VARIABLE, TILE_SIZE/2,
+			  ALIGN_HCENTRE | ALIGN_VCENTRE, ink, str);
+	    }
 }
 
 #ifdef COMBINED
@@ -2806,6 +2871,7 @@ const struct game thegame = {
     game_redraw,
     game_anim_length,
     game_flash_length,
+    TRUE, FALSE, game_print_size, game_print,
     game_wants_statusbar,
     FALSE, game_timing_state,
     0,				       /* mouse_priorities */

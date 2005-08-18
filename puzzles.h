@@ -5,6 +5,7 @@
 #ifndef PUZZLES_PUZZLES_H
 #define PUZZLES_PUZZLES_H
 
+#include <stdio.h>  /* for FILE */
 #include <stdlib.h> /* for size_t */
 
 #ifndef TRUE
@@ -70,7 +71,7 @@ enum {
 
 typedef struct frontend frontend;
 typedef struct config_item config_item;
-typedef struct midend_data midend_data;
+typedef struct midend midend;
 typedef struct random_state random_state;
 typedef struct game_params game_params;
 typedef struct game_state game_state;
@@ -78,6 +79,10 @@ typedef struct game_ui game_ui;
 typedef struct game_drawstate game_drawstate;
 typedef struct game game;
 typedef struct blitter blitter;
+typedef struct document document;
+typedef struct drawing_api drawing_api;
+typedef struct drawing drawing;
+typedef struct psdata psdata;
 
 #define ALIGN_VNORMAL 0x000
 #define ALIGN_VCENTRE 0x100
@@ -88,6 +93,16 @@ typedef struct blitter blitter;
 
 #define FONT_FIXED    0
 #define FONT_VARIABLE 1
+
+/* For printing colours */
+#define HATCH_SOLID 0
+#define HATCH_CLEAR 1
+#define HATCH_SLASH 2
+#define HATCH_BACKSLASH 3
+#define HATCH_HORIZ 4
+#define HATCH_VERT 5
+#define HATCH_PLUS 6
+#define HATCH_X 7
 
 /*
  * Structure used to pass configuration data between frontend and
@@ -135,67 +150,90 @@ void debug_printf(char *fmt, ...);
 
 void fatal(char *fmt, ...);
 void frontend_default_colour(frontend *fe, float *output);
-void draw_text(frontend *fe, int x, int y, int fonttype, int fontsize,
-               int align, int colour, char *text);
-void draw_rect(frontend *fe, int x, int y, int w, int h, int colour);
-void draw_line(frontend *fe, int x1, int y1, int x2, int y2, int colour);
-void draw_polygon(frontend *fe, int *coords, int npoints,
-                  int fillcolour, int outlinecolour);
-void draw_circle(frontend *fe, int cx, int cy, int radius,
-                 int fillcolour, int outlinecolour);
-void clip(frontend *fe, int x, int y, int w, int h);
-void unclip(frontend *fe);
-void start_draw(frontend *fe);
-void draw_update(frontend *fe, int x, int y, int w, int h);
-void end_draw(frontend *fe);
 void deactivate_timer(frontend *fe);
 void activate_timer(frontend *fe);
-void status_bar(frontend *fe, char *text);
 void get_random_seed(void **randseed, int *randseedsize);
 
-blitter *blitter_new(int w, int h);
-void blitter_free(blitter *bl);
+/*
+ * drawing.c
+ */
+drawing *drawing_init(const drawing_api *api, void *handle);
+void drawing_free(drawing *dr);
+void draw_text(drawing *dr, int x, int y, int fonttype, int fontsize,
+               int align, int colour, char *text);
+void draw_rect(drawing *dr, int x, int y, int w, int h, int colour);
+void draw_line(drawing *dr, int x1, int y1, int x2, int y2, int colour);
+void draw_polygon(drawing *dr, int *coords, int npoints,
+                  int fillcolour, int outlinecolour);
+void draw_circle(drawing *dr, int cx, int cy, int radius,
+                 int fillcolour, int outlinecolour);
+void clip(drawing *dr, int x, int y, int w, int h);
+void unclip(drawing *dr);
+void start_draw(drawing *dr);
+void draw_update(drawing *dr, int x, int y, int w, int h);
+void end_draw(drawing *dr);
+void status_bar(drawing *dr, char *text);
+blitter *blitter_new(drawing *dr, int w, int h);
+void blitter_free(drawing *dr, blitter *bl);
 /* save puts the portion of the current display with top-left corner
  * (x,y) to the blitter. load puts it back again to the specified
  * coords, or else wherever it was saved from
  * (if x = y = BLITTER_FROMSAVED). */
-void blitter_save(frontend *fe, blitter *bl, int x, int y);
+void blitter_save(drawing *dr, blitter *bl, int x, int y);
 #define BLITTER_FROMSAVED (-1)
-void blitter_load(frontend *fe, blitter *bl, int x, int y);
+void blitter_load(drawing *dr, blitter *bl, int x, int y);
+void print_begin_doc(drawing *dr, int pages);
+void print_begin_page(drawing *dr, int number);
+void print_begin_puzzle(drawing *dr, float xm, float xc,
+			float ym, float yc, int pw, int ph, float wmm,
+			float scale);
+void print_end_puzzle(drawing *dr);
+void print_end_page(drawing *dr, int number);
+void print_end_doc(drawing *dr);
+void print_get_colour(drawing *dr, int colour, int *hatch,
+		      float *r, float *g, float *b);
+int print_mono_colour(drawing *dr, int grey); /* 0==black, 1==white */
+int print_grey_colour(drawing *dr, int hatch, float grey);
+int print_rgb_colour(drawing *dr, int hatch, float r, float g, float b);
+void print_line_width(drawing *dr, int width);
 
 /*
  * midend.c
  */
-midend_data *midend_new(frontend *fe, const game *ourgame);
-void midend_free(midend_data *me);
-void midend_set_params(midend_data *me, game_params *params);
-void midend_size(midend_data *me, int *x, int *y, int expand);
-void midend_new_game(midend_data *me);
-void midend_restart_game(midend_data *me);
-void midend_stop_anim(midend_data *me);
-int midend_process_key(midend_data *me, int x, int y, int button);
-void midend_force_redraw(midend_data *me);
-void midend_redraw(midend_data *me);
-float *midend_colours(midend_data *me, int *ncolours);
-void midend_timer(midend_data *me, float tplus);
-int midend_num_presets(midend_data *me);
-void midend_fetch_preset(midend_data *me, int n,
+midend *midend_new(frontend *fe, const game *ourgame,
+		   const drawing_api *drapi, void *drhandle);
+void midend_free(midend *me);
+void midend_set_params(midend *me, game_params *params);
+void midend_size(midend *me, int *x, int *y, int expand);
+void midend_new_game(midend *me);
+void midend_restart_game(midend *me);
+void midend_stop_anim(midend *me);
+int midend_process_key(midend *me, int x, int y, int button);
+void midend_force_redraw(midend *me);
+void midend_redraw(midend *me);
+float *midend_colours(midend *me, int *ncolours);
+void midend_timer(midend *me, float tplus);
+int midend_num_presets(midend *me);
+void midend_fetch_preset(midend *me, int n,
                          char **name, game_params **params);
-int midend_wants_statusbar(midend_data *me);
+int midend_wants_statusbar(midend *me);
 enum { CFG_SETTINGS, CFG_SEED, CFG_DESC };
-config_item *midend_get_config(midend_data *me, int which, char **wintitle);
-char *midend_set_config(midend_data *me, int which, config_item *cfg);
-char *midend_game_id(midend_data *me, char *id);
-char *midend_text_format(midend_data *me);
-char *midend_solve(midend_data *me);
-void midend_supersede_game_desc(midend_data *me, char *desc, char *privdesc);
-char *midend_rewrite_statusbar(midend_data *me, char *text);
-void midend_serialise(midend_data *me,
+config_item *midend_get_config(midend *me, int which, char **wintitle);
+char *midend_set_config(midend *me, int which, config_item *cfg);
+char *midend_game_id(midend *me, char *id);
+char *midend_get_game_id(midend *me);
+char *midend_text_format(midend *me);
+char *midend_solve(midend *me);
+void midend_supersede_game_desc(midend *me, char *desc, char *privdesc);
+char *midend_rewrite_statusbar(midend *me, char *text);
+void midend_serialise(midend *me,
                       void (*write)(void *ctx, void *buf, int len),
                       void *wctx);
-char *midend_deserialise(midend_data *me,
+char *midend_deserialise(midend *me,
                          int (*read)(void *ctx, void *buf, int len),
                          void *rctx);
+/* Printing functions supplied by the mid-end */
+char *midend_print_puzzle(midend *me, document *doc, int with_soln);
 
 /*
  * malloc.c
@@ -230,8 +268,8 @@ void game_mkhighlight(frontend *fe, float *ret,
 /* Randomly shuffles an array of items. */
 void shuffle(void *array, int nelts, int eltsize, random_state *rs);
 
-/* Draw a rectangle outline, using the frontend's draw_line. */
-void draw_rect_outline(frontend *fe, int x, int y, int w, int h,
+/* Draw a rectangle outline, using the drawing API's draw_line. */
+void draw_rect_outline(drawing *dr, int x, int y, int w, int h,
                        int colour);
 
 /*
@@ -269,6 +307,22 @@ void SHA_Final(SHA_State *s, unsigned char *output);
 void SHA_Simple(void *p, int len, unsigned char *output);
 
 /*
+ * printing.c
+ */
+document *document_new(int pw, int ph, float userscale);
+void document_free(document *doc);
+void document_add_puzzle(document *doc, const game *game, game_params *par,
+			 game_state *st, game_state *st2);
+void document_print(document *doc, drawing *dr);
+
+/*
+ * ps.c
+ */
+psdata *ps_init(FILE *outfile, int colour);
+void ps_free(psdata *ps);
+drawing *ps_drawing_api(psdata *ps);
+
+/*
  * Data structure containing the function calls and data specific
  * to a particular game. This is enclosed in a data structure so
  * that a particular platform can choose, if it wishes, to compile
@@ -291,7 +345,7 @@ struct game {
     char *(*new_desc)(game_params *params, random_state *rs,
 		      char **aux, int interactive);
     char *(*validate_desc)(game_params *params, char *desc);
-    game_state *(*new_game)(midend_data *me, game_params *params, char *desc);
+    game_state *(*new_game)(midend *me, game_params *params, char *desc);
     game_state *(*dup_game)(game_state *state);
     void (*free_game)(game_state *state);
     int can_solve;
@@ -310,21 +364,60 @@ struct game {
     game_state *(*execute_move)(game_state *state, char *move);
     int preferred_tilesize;
     void (*compute_size)(game_params *params, int tilesize, int *x, int *y);
-    void (*set_size)(game_drawstate *ds, game_params *params, int tilesize);
+    void (*set_size)(drawing *dr, game_drawstate *ds,
+		     game_params *params, int tilesize);
     float *(*colours)(frontend *fe, game_state *state, int *ncolours);
-    game_drawstate *(*new_drawstate)(game_state *state);
-    void (*free_drawstate)(game_drawstate *ds);
-    void (*redraw)(frontend *fe, game_drawstate *ds, game_state *oldstate,
+    game_drawstate *(*new_drawstate)(drawing *dr, game_state *state);
+    void (*free_drawstate)(drawing *dr, game_drawstate *ds);
+    void (*redraw)(drawing *dr, game_drawstate *ds, game_state *oldstate,
 		   game_state *newstate, int dir, game_ui *ui, float anim_time,
 		   float flash_time);
     float (*anim_length)(game_state *oldstate, game_state *newstate, int dir,
 			 game_ui *ui);
     float (*flash_length)(game_state *oldstate, game_state *newstate, int dir,
 			  game_ui *ui);
+    int can_print, can_print_in_colour;
+    void (*print_size)(game_params *params, float *x, float *y);
+    void (*print)(drawing *dr, game_state *state, int tilesize);
     int (*wants_statusbar)(void);
     int is_timed;
     int (*timing_state)(game_state *state, game_ui *ui);
     int mouse_priorities;
+};
+
+/*
+ * Data structure containing the drawing API implemented by the
+ * front end and also by cross-platform printing modules such as
+ * PostScript.
+ */
+struct drawing_api {
+    void (*draw_text)(void *handle, int x, int y, int fonttype, int fontsize,
+		      int align, int colour, char *text);
+    void (*draw_rect)(void *handle, int x, int y, int w, int h, int colour);
+    void (*draw_line)(void *handle, int x1, int y1, int x2, int y2,
+		      int colour);
+    void (*draw_polygon)(void *handle, int *coords, int npoints,
+			 int fillcolour, int outlinecolour);
+    void (*draw_circle)(void *handle, int cx, int cy, int radius,
+			int fillcolour, int outlinecolour);
+    void (*draw_update)(void *handle, int x, int y, int w, int h);
+    void (*clip)(void *handle, int x, int y, int w, int h);
+    void (*unclip)(void *handle);
+    void (*start_draw)(void *handle);
+    void (*end_draw)(void *handle);
+    void (*status_bar)(void *handle, char *text);
+    blitter *(*blitter_new)(void *handle, int w, int h);
+    void (*blitter_free)(void *handle, blitter *bl);
+    void (*blitter_save)(void *handle, blitter *bl, int x, int y);
+    void (*blitter_load)(void *handle, blitter *bl, int x, int y);
+    void (*begin_doc)(void *handle, int pages);
+    void (*begin_page)(void *handle, int number);
+    void (*begin_puzzle)(void *handle, float xm, float xc,
+			 float ym, float yc, int pw, int ph, float wmm);
+    void (*end_puzzle)(void *handle);
+    void (*end_page)(void *handle, int number);
+    void (*end_doc)(void *handle);
+    void (*line_width)(void *handle, float width);
 };
 
 /*
