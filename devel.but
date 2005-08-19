@@ -2039,11 +2039,11 @@ colour during printing.
 
 \c{r}, \c{g} and \c{b} may each be anywhere in the range from 0 to 1.
 
-If printing in black and white only, the \c{grey} value will not be
-used; instead, regions shaded in this colour will be hatched with
-parallel lines. The \c{hatch} parameter defines what type of
-hatching should be used in place of this colour; see
-\k{print-grey-colour} for its definition.
+If printing in black and white only, these values will not be used;
+instead, regions shaded in this colour will be hatched with parallel
+lines. The \c{hatch} parameter defines what type of hatching should
+be used in place of this colour; see \k{print-grey-colour} for its
+definition.
 
 \S{print-line-width} \cw{print_line_width()}
 
