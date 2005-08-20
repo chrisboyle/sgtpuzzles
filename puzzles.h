@@ -204,6 +204,7 @@ midend *midend_new(frontend *fe, const game *ourgame,
 		   const drawing_api *drapi, void *drhandle);
 void midend_free(midend *me);
 void midend_set_params(midend *me, game_params *params);
+game_params *midend_get_params(midend *me);
 void midend_size(midend *me, int *x, int *y, int expand);
 void midend_new_game(midend *me);
 void midend_restart_game(midend *me);
@@ -217,7 +218,7 @@ int midend_num_presets(midend *me);
 void midend_fetch_preset(midend *me, int n,
                          char **name, game_params **params);
 int midend_wants_statusbar(midend *me);
-enum { CFG_SETTINGS, CFG_SEED, CFG_DESC };
+enum { CFG_SETTINGS, CFG_SEED, CFG_DESC, CFG_FRONTEND_SPECIFIC };
 config_item *midend_get_config(midend *me, int which, char **wintitle);
 char *midend_set_config(midend *me, int which, config_item *cfg);
 char *midend_game_id(midend *me, char *id);

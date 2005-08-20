@@ -244,6 +244,11 @@ void midend_set_params(midend *me, game_params *params)
     me->params = me->ourgame->dup_params(params);
 }
 
+game_params *midend_get_params(midend *me)
+{
+    return me->ourgame->dup_params(me->params);
+}
+
 static void midend_set_timer(midend *me)
 {
     me->timing = (me->ourgame->is_timed &&

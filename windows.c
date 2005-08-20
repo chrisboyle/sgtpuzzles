@@ -30,7 +30,8 @@
 #define IDM_ABOUT     0x00D0
 #define IDM_SAVE      0x00E0
 #define IDM_LOAD      0x00F0
-#define IDM_PRESETS   0x0100
+#define IDM_PRINT     0x0100
+#define IDM_PRESETS   0x0110
 
 #define HELP_FILE_NAME  "puzzles.hlp"
 #define HELP_CNT_NAME   "puzzles.cnt"
@@ -89,12 +90,14 @@ struct blitter {
     int x, y, w, h;
 };
 
+enum { CFG_PRINT = CFG_FRONTEND_SPECIFIC };
+
 struct frontend {
     midend *me;
     HWND hwnd, statusbar, cfgbox;
     HINSTANCE inst;
     HBITMAP bitmap, prevbm;
-    HDC hdc_bm;
+    HDC hdc;
     COLORREF *colours;
     HBRUSH *brushes;
     HPEN *pens;
@@ -109,9 +112,20 @@ struct frontend {
     struct cfg_aux *cfgaux;
     int cfg_which, dlg_done;
     HFONT cfgfont;
+    HBRUSH oldbr;
+    HPEN oldpen;
     char *help_path;
     int help_has_contents;
     char *laststatus;
+    enum { DRAWING, PRINTING, NOTHING } drawstatus;
+    DOCINFO di;
+    int printcount, printw, printh, printsolns, printcurr, printcolour;
+    float printscale;
+    int printoffsetx, printoffsety;
+    float printpixelscale;
+    int fontstart;
+    int linewidth;
+    drawing *dr;
 };
 
 void fatal(char *fmt, ...)
@@ -128,6 +142,28 @@ void fatal(char *fmt, ...)
     exit(1);
 }
 
+char *geterrstr(void)
+{
+    LPVOID lpMsgBuf;
+    DWORD dw = GetLastError();
+    char *ret;
+
+    FormatMessage(
+        FORMAT_MESSAGE_ALLOCATE_BUFFER | 
+        FORMAT_MESSAGE_FROM_SYSTEM,
+        NULL,
+        dw,
+        MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+        (LPTSTR) &lpMsgBuf,
+        0, NULL );
+
+    ret = dupstr(lpMsgBuf);
+
+    LocalFree(lpMsgBuf);
+
+    return ret;
+}
+
 void get_random_seed(void **randseed, int *randseedsize)
 {
     time_t *tp = snew(time_t);
@@ -139,7 +175,11 @@ void get_random_seed(void **randseed, int *randseedsize)
 static void win_status_bar(void *handle, char *text)
 {
     frontend *fe = (frontend *)handle;
-    char *rewritten = midend_rewrite_statusbar(fe->me, text);
+    char *rewritten;
+
+    assert(fe->drawstatus == DRAWING);
+
+    rewritten = midend_rewrite_statusbar(fe->me, text);
     if (!fe->laststatus || strcmp(rewritten, fe->laststatus)) {
 	SetWindowText(fe->statusbar, rewritten);
 	sfree(fe->laststatus);
@@ -182,6 +222,8 @@ static void win_blitter_save(void *handle, blitter *bl, int x, int y)
     HDC hdc_win, hdc_blit;
     HBITMAP prev_blit;
 
+    assert(fe->drawstatus == DRAWING);
+
     if (!bl->bitmap) blitter_mkbitmap(fe, bl);
 
     bl->x = x; bl->y = y;
@@ -195,7 +237,7 @@ static void win_blitter_save(void *handle, blitter *bl, int x, int y)
         fatal("SelectObject for hdc_main failed: 0x%x", GetLastError());
 
     if (!BitBlt(hdc_blit, 0, 0, bl->w, bl->h,
-                fe->hdc_bm, x, y, SRCCOPY))
+                fe->hdc, x, y, SRCCOPY))
         fatal("BitBlt failed: 0x%x", GetLastError());
 
     SelectObject(hdc_blit, prev_blit);
@@ -209,6 +251,8 @@ static void win_blitter_load(void *handle, blitter *bl, int x, int y)
     HDC hdc_win, hdc_blit;
     HBITMAP prev_blit;
 
+    assert(fe->drawstatus == DRAWING);
+
     assert(bl->bitmap); /* we should always have saved before loading */
 
     if (x == BLITTER_FROMSAVED) x = bl->x;
@@ -219,7 +263,7 @@ static void win_blitter_load(void *handle, blitter *bl, int x, int y)
 
     prev_blit = SelectObject(hdc_blit, bl->bitmap);
 
-    BitBlt(fe->hdc_bm, x, y, bl->w, bl->h,
+    BitBlt(fe->hdc, x, y, bl->w, bl->h,
            hdc_blit, 0, 0, SRCCOPY);
 
     SelectObject(hdc_blit, prev_blit);
@@ -236,28 +280,164 @@ void frontend_default_colour(frontend *fe, float *output)
     output[2] = (float)(GetBValue(c) / 255.0);
 }
 
+static POINT win_transform_point(frontend *fe, int x, int y)
+{
+    POINT ret;
+
+    assert(fe->drawstatus != NOTHING);
+
+    if (fe->drawstatus == PRINTING) {
+	ret.x = (int)(fe->printoffsetx + fe->printpixelscale * x);
+	ret.y = (int)(fe->printoffsety + fe->printpixelscale * y);
+    } else {
+	ret.x = x;
+	ret.y = y;
+    }
+
+    return ret;
+}
+
+static void win_text_colour(frontend *fe, int colour)
+{
+    assert(fe->drawstatus != NOTHING);
+
+    if (fe->drawstatus == PRINTING) {
+	int hatch;
+	float r, g, b;
+	print_get_colour(fe->dr, colour, &hatch, &r, &g, &b);
+	if (fe->printcolour)
+	    SetTextColor(fe->hdc, RGB(r * 255, g * 255, b * 255));
+	else
+	    SetTextColor(fe->hdc,
+			 hatch == HATCH_CLEAR ? RGB(255,255,255) : RGB(0,0,0));
+    } else {
+	SetTextColor(fe->hdc, fe->colours[colour]);
+    }
+}
+
+static void win_set_brush(frontend *fe, int colour)
+{
+    HBRUSH br;
+    assert(fe->drawstatus != NOTHING);
+
+    if (fe->drawstatus == PRINTING) {
+	int hatch;
+	float r, g, b;
+	print_get_colour(fe->dr, colour, &hatch, &r, &g, &b);
+
+	if (fe->printcolour)
+	    br = CreateSolidBrush(RGB(r * 255, g * 255, b * 255));
+	else if (hatch == HATCH_SOLID)
+	    br = CreateSolidBrush(RGB(0,0,0));
+	else if (hatch == HATCH_CLEAR)
+	    br = CreateSolidBrush(RGB(255,255,255));
+	else
+	    br = CreateHatchBrush(hatch == HATCH_BACKSLASH ? HS_FDIAGONAL :
+				  hatch == HATCH_SLASH ? HS_BDIAGONAL :
+				  hatch == HATCH_HORIZ ? HS_HORIZONTAL :
+				  hatch == HATCH_VERT ? HS_VERTICAL :
+				  hatch == HATCH_PLUS ? HS_CROSS :
+				  /* hatch == HATCH_X ? */ HS_DIAGCROSS,
+				  RGB(0,0,0));
+    } else {
+	br = fe->brushes[colour];
+    }
+    fe->oldbr = SelectObject(fe->hdc, br);
+}
+
+static void win_reset_brush(frontend *fe)
+{
+    HBRUSH br;
+
+    assert(fe->drawstatus != NOTHING);
+
+    br = SelectObject(fe->hdc, fe->oldbr);
+    if (fe->drawstatus == PRINTING)
+	DeleteObject(br);
+}
+
+static void win_set_pen(frontend *fe, int colour, int thin)
+{
+    HPEN pen;
+    assert(fe->drawstatus != NOTHING);
+
+    if (fe->drawstatus == PRINTING) {
+	int hatch;
+	float r, g, b;
+	int width = thin ? 0 : fe->linewidth;
+
+	print_get_colour(fe->dr, colour, &hatch, &r, &g, &b);
+	/* FIXME: line thickness here */
+	if (fe->printcolour)
+	    pen = CreatePen(PS_SOLID, width,
+			    RGB(r * 255, g * 255, b * 255));
+	else if (hatch == HATCH_SOLID)
+	    pen = CreatePen(PS_SOLID, width, RGB(0, 0, 0));
+	else if (hatch == HATCH_CLEAR)
+	    pen = CreatePen(PS_SOLID, width, RGB(255,255,255));
+	else {
+	    assert(!"This shouldn't happen");
+	    pen = CreatePen(PS_SOLID, 1, RGB(0, 0, 0));
+	}
+    } else {
+	pen = fe->pens[colour];
+    }
+    fe->oldpen = SelectObject(fe->hdc, pen);
+}
+
+static void win_reset_pen(frontend *fe)
+{
+    HPEN pen;
+
+    assert(fe->drawstatus != NOTHING);
+
+    pen = SelectObject(fe->hdc, fe->oldpen);
+    if (fe->drawstatus == PRINTING)
+	DeleteObject(pen);
+}
+
 static void win_clip(void *handle, int x, int y, int w, int h)
 {
     frontend *fe = (frontend *)handle;
-    IntersectClipRect(fe->hdc_bm, x, y, x+w, y+h);
+    POINT p, q;
+
+    if (fe->drawstatus == NOTHING)
+	return;
+
+    p = win_transform_point(fe, x, y);
+    q = win_transform_point(fe, x+w, y+h);
+    IntersectClipRect(fe->hdc, p.x, p.y, q.x, q.y);
 }
 
 static void win_unclip(void *handle)
 {
     frontend *fe = (frontend *)handle;
-    SelectClipRgn(fe->hdc_bm, NULL);
+
+    if (fe->drawstatus == NOTHING)
+	return;
+
+    SelectClipRgn(fe->hdc, NULL);
 }
 
 static void win_draw_text(void *handle, int x, int y, int fonttype,
 			  int fontsize, int align, int colour, char *text)
 {
     frontend *fe = (frontend *)handle;
+    POINT xy;
     int i;
+
+    if (fe->drawstatus == NOTHING)
+	return;
+
+    if (fe->drawstatus == PRINTING)
+	fontsize = (int)(fontsize * fe->printpixelscale);
+
+    xy = win_transform_point(fe, x, y);
 
     /*
      * Find or create the font.
      */
-    for (i = 0; i < fe->nfonts; i++)
+    for (i = fe->fontstart; i < fe->nfonts; i++)
         if (fe->fonts[i].type == fonttype && fe->fonts[i].size == fontsize)
             break;
 
@@ -272,7 +452,8 @@ static void win_draw_text(void *handle, int x, int y, int fonttype,
         fe->fonts[i].type = fonttype;
         fe->fonts[i].size = fontsize;
 
-        fe->fonts[i].font = CreateFont(-fontsize, 0, 0, 0, FW_BOLD,
+        fe->fonts[i].font = CreateFont(-fontsize, 0, 0, 0,
+				       fe->drawstatus == PRINTING ? 0 : FW_BOLD,
 				       FALSE, FALSE, FALSE, DEFAULT_CHARSET,
 				       OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
 				       DEFAULT_QUALITY,
@@ -290,75 +471,97 @@ static void win_draw_text(void *handle, int x, int y, int fonttype,
 	TEXTMETRIC tm;
 	SIZE size;
 
-	oldfont = SelectObject(fe->hdc_bm, fe->fonts[i].font);
-	if (GetTextMetrics(fe->hdc_bm, &tm)) {
+	oldfont = SelectObject(fe->hdc, fe->fonts[i].font);
+	if (GetTextMetrics(fe->hdc, &tm)) {
 	    if (align & ALIGN_VCENTRE)
-		y -= (tm.tmAscent+tm.tmDescent)/2;
+		xy.y -= (tm.tmAscent+tm.tmDescent)/2;
 	    else
-		y -= tm.tmAscent;
+		xy.y -= tm.tmAscent;
 	}
-	if (GetTextExtentPoint32(fe->hdc_bm, text, strlen(text), &size)) {
+	if (GetTextExtentPoint32(fe->hdc, text, strlen(text), &size)) {
 	    if (align & ALIGN_HCENTRE)
-		x -= size.cx / 2;
+		xy.x -= size.cx / 2;
 	    else if (align & ALIGN_HRIGHT)
-		x -= size.cx;
+		xy.x -= size.cx;
 	}
-	SetBkMode(fe->hdc_bm, TRANSPARENT);
-	SetTextColor(fe->hdc_bm, fe->colours[colour]);
-	TextOut(fe->hdc_bm, x, y, text, strlen(text));
-	SelectObject(fe->hdc_bm, oldfont);
+	SetBkMode(fe->hdc, TRANSPARENT);
+	win_text_colour(fe, colour);
+	TextOut(fe->hdc, xy.x, xy.y, text, strlen(text));
+	SelectObject(fe->hdc, oldfont);
     }
 }
 
 static void win_draw_rect(void *handle, int x, int y, int w, int h, int colour)
 {
     frontend *fe = (frontend *)handle;
-    if (w == 1 && h == 1) {
+    POINT p, q;
+
+    if (fe->drawstatus == NOTHING)
+	return;
+
+    if (fe->drawstatus == DRAWING && w == 1 && h == 1) {
 	/*
 	 * Rectangle() appears to get uppity if asked to draw a 1x1
 	 * rectangle, presumably on the grounds that that's beneath
 	 * its dignity and you ought to be using SetPixel instead.
 	 * So I will.
 	 */
-	SetPixel(fe->hdc_bm, x, y, fe->colours[colour]);
+	SetPixel(fe->hdc, x, y, fe->colours[colour]);
     } else {
-	HBRUSH oldbrush = SelectObject(fe->hdc_bm, fe->brushes[colour]);
-	HPEN oldpen = SelectObject(fe->hdc_bm, fe->pens[colour]);
-	Rectangle(fe->hdc_bm, x, y, x+w, y+h);
-	SelectObject(fe->hdc_bm, oldbrush);
-	SelectObject(fe->hdc_bm, oldpen);
+	win_set_brush(fe, colour);
+	win_set_pen(fe, colour, TRUE);
+	p = win_transform_point(fe, x, y);
+	q = win_transform_point(fe, x+w, y+h);
+	Rectangle(fe->hdc, p.x, p.y, q.x, q.y);
+	win_reset_brush(fe);
+	win_reset_pen(fe);
     }
 }
 
 static void win_draw_line(void *handle, int x1, int y1, int x2, int y2, int colour)
 {
     frontend *fe = (frontend *)handle;
-    HPEN oldpen = SelectObject(fe->hdc_bm, fe->pens[colour]);
-    MoveToEx(fe->hdc_bm, x1, y1, NULL);
-    LineTo(fe->hdc_bm, x2, y2);
-    SetPixel(fe->hdc_bm, x2, y2, fe->colours[colour]);
-    SelectObject(fe->hdc_bm, oldpen);
+    POINT p, q;
+
+    if (fe->drawstatus == NOTHING)
+	return;
+
+    win_set_pen(fe, colour, FALSE);
+    p = win_transform_point(fe, x1, y1);
+    q = win_transform_point(fe, x2, y2);
+    MoveToEx(fe->hdc, p.x, p.y, NULL);
+    LineTo(fe->hdc, q.x, q.y);
+    if (fe->drawstatus == DRAWING)
+	SetPixel(fe->hdc, q.x, q.y, fe->colours[colour]);
+    win_reset_pen(fe);
 }
 
 static void win_draw_circle(void *handle, int cx, int cy, int radius,
 			    int fillcolour, int outlinecolour)
 {
     frontend *fe = (frontend *)handle;
+    POINT p, q, r;
+
     assert(outlinecolour >= 0);
 
+    if (fe->drawstatus == NOTHING)
+	return;
+
     if (fillcolour >= 0) {
-	HBRUSH oldbrush = SelectObject(fe->hdc_bm, fe->brushes[fillcolour]);
-	HPEN oldpen = SelectObject(fe->hdc_bm, fe->pens[outlinecolour]);
-	Ellipse(fe->hdc_bm, cx - radius, cy - radius,
-		cx + radius + 1, cy + radius + 1);
-	SelectObject(fe->hdc_bm, oldbrush);
-	SelectObject(fe->hdc_bm, oldpen);
+	win_set_brush(fe, fillcolour);
+	win_set_pen(fe, outlinecolour, FALSE);
+	p = win_transform_point(fe, cx - radius, cy - radius);
+	q = win_transform_point(fe, cx + radius, cy + radius);
+	Ellipse(fe->hdc, p.x, p.y, q.x+1, q.y+1);
+	win_reset_brush(fe);
+	win_reset_pen(fe);
     } else {
-	HPEN oldpen = SelectObject(fe->hdc_bm, fe->pens[outlinecolour]);
-	Arc(fe->hdc_bm, cx - radius, cy - radius,
-	    cx + radius + 1, cy + radius + 1,
-	    cx - radius, cy, cx - radius, cy);
-	SelectObject(fe->hdc_bm, oldpen);
+	win_set_pen(fe, outlinecolour, FALSE);
+	p = win_transform_point(fe, cx - radius, cy - radius);
+	q = win_transform_point(fe, cx + radius, cy + radius);
+	r = win_transform_point(fe, cx - radius, cy);
+	Arc(fe->hdc, p.x, p.y, q.x+1, q.y+1, r.x, r.y, r.x, r.y);
+	win_reset_pen(fe);
     }
 }
 
@@ -366,27 +569,31 @@ static void win_draw_polygon(void *handle, int *coords, int npoints,
 			     int fillcolour, int outlinecolour)
 {
     frontend *fe = (frontend *)handle;
-    POINT *pts = snewn(npoints+1, POINT);
+    POINT *pts;
     int i;
+
+    if (fe->drawstatus == NOTHING)
+	return;
+
+    pts = snewn(npoints+1, POINT);
 
     for (i = 0; i <= npoints; i++) {
 	int j = (i < npoints ? i : 0);
-	pts[i].x = coords[j*2];
-	pts[i].y = coords[j*2+1];
+	pts[i] = win_transform_point(fe, coords[j*2], coords[j*2+1]);
     }
 
     assert(outlinecolour >= 0);
 
     if (fillcolour >= 0) {
-	HBRUSH oldbrush = SelectObject(fe->hdc_bm, fe->brushes[fillcolour]);
-	HPEN oldpen = SelectObject(fe->hdc_bm, fe->pens[outlinecolour]);
-	Polygon(fe->hdc_bm, pts, npoints);
-	SelectObject(fe->hdc_bm, oldbrush);
-	SelectObject(fe->hdc_bm, oldpen);
+	win_set_brush(fe, fillcolour);
+	win_set_pen(fe, outlinecolour, FALSE);
+	Polygon(fe->hdc, pts, npoints);
+	win_reset_brush(fe);
+	win_reset_pen(fe);
     } else {
-	HPEN oldpen = SelectObject(fe->hdc_bm, fe->pens[outlinecolour]);
-	Polyline(fe->hdc_bm, pts, npoints+1);
-	SelectObject(fe->hdc_bm, oldpen);
+	win_set_pen(fe, outlinecolour, FALSE);
+	Polyline(fe->hdc, pts, npoints+1);
+	win_reset_pen(fe);
     }
 
     sfree(pts);
@@ -396,18 +603,25 @@ static void win_start_draw(void *handle)
 {
     frontend *fe = (frontend *)handle;
     HDC hdc_win;
+
+    assert(fe->drawstatus == NOTHING);
+
     hdc_win = GetDC(fe->hwnd);
-    fe->hdc_bm = CreateCompatibleDC(hdc_win);
-    fe->prevbm = SelectObject(fe->hdc_bm, fe->bitmap);
+    fe->hdc = CreateCompatibleDC(hdc_win);
+    fe->prevbm = SelectObject(fe->hdc, fe->bitmap);
     ReleaseDC(fe->hwnd, hdc_win);
     fe->clip = NULL;
-    SetMapMode(fe->hdc_bm, MM_TEXT);
+    SetMapMode(fe->hdc, MM_TEXT);
+    fe->drawstatus = DRAWING;
 }
 
 static void win_draw_update(void *handle, int x, int y, int w, int h)
 {
     frontend *fe = (frontend *)handle;
     RECT r;
+
+    if (fe->drawstatus != DRAWING)
+	return;
 
     r.left = x;
     r.top = y;
@@ -420,11 +634,171 @@ static void win_draw_update(void *handle, int x, int y, int w, int h)
 static void win_end_draw(void *handle)
 {
     frontend *fe = (frontend *)handle;
-    SelectObject(fe->hdc_bm, fe->prevbm);
-    DeleteDC(fe->hdc_bm);
+    assert(fe->drawstatus == DRAWING);
+    SelectObject(fe->hdc, fe->prevbm);
+    DeleteDC(fe->hdc);
     if (fe->clip) {
 	DeleteObject(fe->clip);
 	fe->clip = NULL;
+    }
+    fe->drawstatus = NOTHING;
+}
+
+static void win_line_width(void *handle, float width)
+{
+    frontend *fe = (frontend *)handle;
+
+    assert(fe->drawstatus != DRAWING);
+    if (fe->drawstatus == NOTHING)
+	return;
+
+    fe->linewidth = (int)(width * fe->printpixelscale);
+}
+
+static void win_begin_doc(void *handle, int pages)
+{
+    frontend *fe = (frontend *)handle;
+
+    assert(fe->drawstatus != DRAWING);
+    if (fe->drawstatus == NOTHING)
+	return;
+
+    if (StartDoc(fe->hdc, &fe->di) <= 0) {
+	char *e = geterrstr();
+	MessageBox(fe->hwnd, e, "Error starting to print",
+		   MB_ICONERROR | MB_OK);
+	sfree(e);
+	fe->drawstatus = NOTHING;
+    }
+
+    /*
+     * Push a marker on the font stack so that we won't use the
+     * same fonts for printing and drawing. (This is because
+     * drawing seems to look generally better in bold, but printing
+     * is better not in bold.)
+     */
+    fe->fontstart = fe->nfonts;
+}
+
+static void win_begin_page(void *handle, int number)
+{
+    frontend *fe = (frontend *)handle;
+
+    assert(fe->drawstatus != DRAWING);
+    if (fe->drawstatus == NOTHING)
+	return;
+
+    if (StartPage(fe->hdc) <= 0) {
+	char *e = geterrstr();
+	MessageBox(fe->hwnd, e, "Error starting a page",
+		   MB_ICONERROR | MB_OK);
+	sfree(e);
+	fe->drawstatus = NOTHING;
+    }
+}
+
+static void win_begin_puzzle(void *handle, float xm, float xc,
+			     float ym, float yc, int pw, int ph, float wmm)
+{
+    frontend *fe = (frontend *)handle;
+    int ppw, pph, pox, poy;
+    float mmpw, mmph, mmox, mmoy;
+    float scale;
+
+    assert(fe->drawstatus != DRAWING);
+    if (fe->drawstatus == NOTHING)
+	return;
+
+    ppw = GetDeviceCaps(fe->hdc, HORZRES);
+    pph = GetDeviceCaps(fe->hdc, VERTRES);
+    mmpw = (float)GetDeviceCaps(fe->hdc, HORZSIZE);
+    mmph = (float)GetDeviceCaps(fe->hdc, VERTSIZE);
+
+    /*
+     * Compute the puzzle's position on the logical page.
+     */
+    mmox = xm * mmpw + xc;
+    mmoy = ym * mmph + yc;
+
+    /*
+     * Work out what that comes to in pixels.
+     */
+    pox = (int)(mmox * (float)ppw / mmpw);
+    poy = (int)(mmoy * (float)ppw / mmpw);
+
+    /*
+     * And determine the scale.
+     * 
+     * I need a scale such that the maximum puzzle-coordinate
+     * extent of the rectangle (pw * scale) is equal to the pixel
+     * equivalent of the puzzle's millimetre width (wmm * ppw /
+     * mmpw).
+     */
+    scale = (wmm * ppw) / (mmpw * pw);
+
+    /*
+     * Now store pox, poy and scale for use in the main drawing
+     * functions.
+     */
+    fe->printoffsetx = pox;
+    fe->printoffsety = poy;
+    fe->printpixelscale = scale;
+
+    fe->linewidth = 1;
+}
+
+static void win_end_puzzle(void *handle)
+{
+    /* Nothing needs to be done here. */
+}
+
+static void win_end_page(void *handle, int number)
+{
+    frontend *fe = (frontend *)handle;
+
+    assert(fe->drawstatus != DRAWING);
+    /*
+     * The MSDN web site sample code doesn't bother to call EndDoc
+     * if an error occurs half way through printing. I expect doing
+     * so would cause the erroneous document to actually be
+     * printed, or something equally undesirable.
+     */
+    if (fe->drawstatus == NOTHING)
+	return;
+
+    if (EndPage(fe->hdc) <= 0) {
+	char *e = geterrstr();
+	MessageBox(fe->hwnd, e, "Error finishing a page",
+		   MB_ICONERROR | MB_OK);
+	sfree(e);
+	fe->drawstatus = NOTHING;
+    }
+}
+
+static void win_end_doc(void *handle)
+{
+    frontend *fe = (frontend *)handle;
+
+    assert(fe->drawstatus != DRAWING);
+
+    /*
+     * Free all the fonts created since we began printing.
+     */
+    while (fe->nfonts > fe->fontstart) {
+	fe->nfonts--;
+	DeleteObject(fe->fonts[fe->nfonts].font);
+    }
+    fe->fontstart = 0;
+
+    if (fe->drawstatus == NOTHING)
+	return;
+
+    if (EndDoc(fe->hdc) <= 0) {
+	char *e = geterrstr();
+	MessageBox(fe->hwnd, e, "Error finishing printing",
+		   MB_ICONERROR | MB_OK);
+	sfree(e);
+	fe->drawstatus = NOTHING;
     }
 }
 
@@ -444,31 +818,122 @@ const struct drawing_api win_drawing = {
     win_blitter_free,
     win_blitter_save,
     win_blitter_load,
-    NULL, NULL, NULL, NULL, NULL, NULL, /* {begin,end}_{doc,page,puzzle} */
-    NULL,			       /* line_width */
+    win_begin_doc,
+    win_begin_page,
+    win_begin_puzzle,
+    win_end_puzzle,
+    win_end_page,
+    win_end_doc,
+    win_line_width,
 };
+
+void print(frontend *fe)
+{
+    PRINTDLG pd;
+    char doctitle[256];
+    document *doc;
+    midend *nme = NULL;  /* non-interactive midend for bulk puzzle generation */
+    int i;
+    char *err = NULL;
+
+    /*
+     * Create our document structure and fill it up with puzzles.
+     */
+    doc = document_new(fe->printw, fe->printh, fe->printscale / 100.0F);
+    for (i = 0; i < fe->printcount; i++) {
+	if (i == 0 && fe->printcurr) {
+	    err = midend_print_puzzle(fe->me, doc, fe->printsolns);
+	} else {
+	    if (!nme) {
+		game_params *params;
+
+		nme = midend_new(NULL, &thegame, NULL, NULL);
+
+		/*
+		 * Set the non-interactive mid-end to have the same
+		 * parameters as the standard one.
+		 */
+		params = midend_get_params(fe->me);
+		midend_set_params(nme, params);
+		thegame.free_params(params);
+	    }
+
+	    midend_new_game(nme);
+	    err = midend_print_puzzle(nme, doc, fe->printsolns);
+	}
+	if (err)
+	    break;
+    }
+    if (nme)
+	midend_free(nme);
+
+    if (err) {
+	MessageBox(fe->hwnd, err, "Error preparing puzzles for printing",
+		   MB_ICONERROR | MB_OK);
+	document_free(doc);
+	return;
+    }
+
+    memset(&pd, 0, sizeof(pd));
+    pd.lStructSize = sizeof(pd);
+    pd.hwndOwner = fe->hwnd;
+    pd.hDevMode = NULL;
+    pd.hDevNames = NULL;
+    pd.Flags = PD_USEDEVMODECOPIESANDCOLLATE | PD_RETURNDC |
+	PD_NOPAGENUMS | PD_NOSELECTION;
+    pd.nCopies = 1;
+    pd.nFromPage = pd.nToPage = 0xFFFF;
+    pd.nMinPage = pd.nMaxPage = 1;
+
+    if (!PrintDlg(&pd))
+	return;
+
+    /*
+     * Now pd.hDC is a device context for the printer.
+     */
+
+    /*
+     * FIXME: IWBNI we put up an Abort box here.
+     */
+
+    memset(&fe->di, 0, sizeof(fe->di));
+    fe->di.cbSize = sizeof(fe->di);
+    sprintf(doctitle, "Printed puzzles from %s (from Simon Tatham's"
+	    " Portable Puzzle Collection)", thegame.name);
+    fe->di.lpszDocName = doctitle;
+    fe->di.lpszOutput = NULL;
+    fe->di.lpszDatatype = NULL;
+    fe->di.fwType = 0;
+
+    fe->drawstatus = PRINTING;
+    fe->hdc = pd.hDC;
+
+    fe->dr = drawing_init(&win_drawing, fe);
+    document_print(doc, fe->dr);
+    drawing_free(fe->dr);
+    fe->dr = NULL;
+
+    fe->drawstatus = NOTHING;
+
+    DeleteDC(pd.hDC);
+}
 
 void deactivate_timer(frontend *fe)
 {
+    if (!fe)
+	return;			       /* for non-interactive midend */
     if (fe->hwnd) KillTimer(fe->hwnd, fe->timer);
     fe->timer = 0;
 }
 
 void activate_timer(frontend *fe)
 {
+    if (!fe)
+	return;			       /* for non-interactive midend */
     if (!fe->timer) {
 	fe->timer = SetTimer(fe->hwnd, fe->timer, 20, NULL);
 	fe->timer_last_tickcount = GetTickCount();
     }
-}
-
-/*
- * Since this front end does not support printing (yet), we need
- * this stub to satisfy the reference in midend_print_puzzle().
- */
-void document_add_puzzle(document *doc, const game *game, game_params *par,
-			 game_state *st, game_state *st2)
-{
 }
 
 void write_clip(HWND hwnd, char *data)
@@ -621,6 +1086,10 @@ static frontend *new_window(HINSTANCE inst, char *game_id, char **error)
     fe->timer = 0;
     fe->hwnd = NULL;
 
+    fe->drawstatus = NOTHING;
+    fe->dr = NULL;
+    fe->fontstart = 0;
+
     midend_new_game(fe->me);
 
     fe->fonts = NULL;
@@ -723,6 +1192,10 @@ static frontend *new_window(HINSTANCE inst, char *game_id, char **error)
 	AppendMenu(menu, MF_ENABLED, IDM_LOAD, "Load");
 	AppendMenu(menu, MF_ENABLED, IDM_SAVE, "Save");
 	AppendMenu(menu, MF_SEPARATOR, 0, 0);
+	if (thegame.can_print) {
+	    AppendMenu(menu, MF_ENABLED, IDM_PRINT, "Print");
+	    AppendMenu(menu, MF_SEPARATOR, 0, 0);
+	}
 	AppendMenu(menu, MF_ENABLED, IDM_UNDO, "Undo");
 	AppendMenu(menu, MF_ENABLED, IDM_REDO, "Redo");
 	if (thegame.can_format_as_text) {
@@ -793,6 +1266,106 @@ static int CALLBACK AboutDlgProc(HWND hwnd, UINT msg,
     return 0;
 }
 
+/*
+ * Wrappers on midend_{get,set}_config, which extend the CFG_*
+ * enumeration to add CFG_PRINT.
+ */
+static config_item *frontend_get_config(frontend *fe, int which,
+					char **wintitle)
+{
+    if (which < CFG_FRONTEND_SPECIFIC) {
+	return midend_get_config(fe->me, which, wintitle);
+    } else if (which == CFG_PRINT) {
+	config_item *ret;
+	int i;
+
+	*wintitle = snewn(40 + strlen(thegame.name), char);
+	sprintf(*wintitle, "%s print setup", thegame.name);
+
+	ret = snewn(8, config_item);
+
+	i = 0;
+
+	ret[i].name = "Number of puzzles to print";
+	ret[i].type = C_STRING;
+	ret[i].sval = dupstr("1");
+	ret[i].ival = 0;
+	i++;
+
+	ret[i].name = "Number of puzzles across the page";
+	ret[i].type = C_STRING;
+	ret[i].sval = dupstr("1");
+	ret[i].ival = 0;
+	i++;
+
+	ret[i].name = "Number of puzzles down the page";
+	ret[i].type = C_STRING;
+	ret[i].sval = dupstr("1");
+	ret[i].ival = 0;
+	i++;
+
+	ret[i].name = "Percentage of standard size";
+	ret[i].type = C_STRING;
+	ret[i].sval = dupstr("100.0");
+	ret[i].ival = 0;
+	i++;
+
+	ret[i].name = "Include currently shown puzzle";
+	ret[i].type = C_BOOLEAN;
+	ret[i].sval = NULL;
+	ret[i].ival = TRUE;
+	i++;
+
+	ret[i].name = "Print solutions";
+	ret[i].type = C_BOOLEAN;
+	ret[i].sval = NULL;
+	ret[i].ival = FALSE;
+	i++;
+
+	if (thegame.can_print_in_colour) {
+	    ret[i].name = "Print in colour";
+	    ret[i].type = C_BOOLEAN;
+	    ret[i].sval = NULL;
+	    ret[i].ival = FALSE;
+	    i++;
+	}
+
+	ret[i].name = NULL;
+	ret[i].type = C_END;
+	ret[i].sval = NULL;
+	ret[i].ival = 0;
+	i++;
+
+	return ret;
+    } else {
+	assert(!"We should never get here");
+	return NULL;
+    }
+}
+
+static char *frontend_set_config(frontend *fe, int which, config_item *cfg)
+{
+    if (which < CFG_FRONTEND_SPECIFIC) {
+	return midend_set_config(fe->me, which, cfg);
+    } else if (which == CFG_PRINT) {
+	if ((fe->printcount = atoi(cfg[0].sval)) <= 0)
+	    return "Number of puzzles to print should be at least one";
+	if ((fe->printw = atoi(cfg[1].sval)) <= 0)
+	    return "Number of puzzles across the page should be at least one";
+	if ((fe->printh = atoi(cfg[2].sval)) <= 0)
+	    return "Number of puzzles down the page should be at least one";
+	if ((fe->printscale = (float)atof(cfg[3].sval)) <= 0)
+	    return "Print size should be positive";
+	fe->printcurr = cfg[4].ival;
+	fe->printsolns = cfg[5].ival;
+	fe->printcolour = thegame.can_print_in_colour && cfg[6].ival;
+	return NULL;
+    } else {
+	assert(!"We should never get here");
+	return "Internal error";
+    }
+}
+
 static int CALLBACK ConfigDlgProc(HWND hwnd, UINT msg,
 				  WPARAM wParam, LPARAM lParam)
 {
@@ -812,7 +1385,7 @@ static int CALLBACK ConfigDlgProc(HWND hwnd, UINT msg,
 	     HIWORD(wParam) == BN_DOUBLECLICKED) &&
 	    (LOWORD(wParam) == IDOK || LOWORD(wParam) == IDCANCEL)) {
 	    if (LOWORD(wParam) == IDOK) {
-		char *err = midend_set_config(fe->me, fe->cfg_which, fe->cfg);
+		char *err = frontend_set_config(fe, fe->cfg_which, fe->cfg);
 
 		if (err) {
 		    MessageBox(hwnd, err, "Validation error",
@@ -1075,7 +1648,7 @@ static int get_config(frontend *fe, int which)
 	height = width = 30;
     }
 
-    fe->cfg = midend_get_config(fe->me, which, &title);
+    fe->cfg = frontend_get_config(fe, which, &title);
     fe->cfg_which = which;
 
     /*
@@ -1404,6 +1977,10 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
 	  case IDM_DESC:
 	    if (get_config(fe, CFG_DESC))
 		new_game_type(fe);
+	    break;
+	  case IDM_PRINT:
+	    if (get_config(fe, CFG_PRINT))
+		print(fe);
 	    break;
           case IDM_ABOUT:
 	    about(fe);

@@ -2455,6 +2455,16 @@ previously got it from \cw{midend_fetch_preset()}
 (\k{midend-fetch-preset}). Thus, this function is usually called in
 response to the user making a selection from the presets menu.
 
+\H{midend-get-params} \cw{midend_get_params()}
+
+\c game_params *midend_get_params(midend *me);
+
+Returns the current game parameters stored in this mid-end.
+
+The returned value is dynamically allocated, and should be freed
+when finished with by passing it to the game's own
+\cw{free_params()} function (see \k{backend-free-params}).
+
 \H{midend-size} \cw{midend_size()}
 
 \c void midend_size(midend *me, int *x, int *y, int expand);
