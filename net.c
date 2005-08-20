@@ -2753,7 +2753,6 @@ static void draw_diagram(drawing *dr, game_drawstate *ds, int x, int y,
      * Draw each radial line.
      */
     if (drawlines) {
-	print_line_width(dr, thick * 2);
 	for (k = 1; k < 16; k *= 2)
 	    if (v & k) {
 		int x1 = min(cx, cx + (r-thick) * X(k));
