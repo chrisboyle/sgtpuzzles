@@ -524,7 +524,7 @@ struct frontend {
 
     fe.window = self;
 
-    me = midend_new(&fe, ourgame, osx_drawing, &fe);
+    me = midend_new(&fe, ourgame, &osx_drawing, &fe);
     /*
      * If we ever need to open a fresh window using a provided game
      * ID, I think the right thing is to move most of this method
@@ -1379,7 +1379,7 @@ static void osx_blitter_save(void *handle, blitter *bl, int x, int y)
 }
 static void osx_blitter_load(void *handle, blitter *bl, int x, int y)
 {
-    frontend *fe = (frontend *)handle;
+    /* frontend *fe = (frontend *)handle; */
     if (x == BLITTER_FROMSAVED && y == BLITTER_FROMSAVED) {
         x = bl->x;
         y = bl->y;
@@ -1431,7 +1431,7 @@ const struct drawing_api osx_drawing = {
     osx_draw_text,
     osx_draw_rect,
     osx_draw_line,
-    osx_draw_poly,
+    osx_draw_polygon,
     osx_draw_circle,
     osx_draw_update,
     osx_clip,
