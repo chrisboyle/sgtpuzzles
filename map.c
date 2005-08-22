@@ -1563,8 +1563,10 @@ static char *solve_game(game_state *state, game_state *currstate,
 	    return NULL;
 	}
 
-	retlen = retsize = 0;
-	ret = NULL;
+        retsize = 64;
+        ret = snewn(retsize, char);
+        strcpy(ret, "S");
+        retlen = 1;
 
 	for (i = 0; i < state->map->n; i++) {
             int len;
@@ -1574,8 +1576,7 @@ static char *solve_game(game_state *state, game_state *currstate,
                 continue;
 	    assert(!state->map->immutable[i]);
 
-            len = sprintf(buf, "%s%d:%d", retlen ? ";" : "S;",
-			  colouring[i], i);
+            len = sprintf(buf, ";%d:%d", colouring[i], i);
             if (retlen + len >= retsize) {
                 retsize = retlen + len + 256;
                 ret = sresize(ret, retsize, char);
