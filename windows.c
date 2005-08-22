@@ -367,7 +367,6 @@ static void win_set_pen(frontend *fe, int colour, int thin)
 	int width = thin ? 0 : fe->linewidth;
 
 	print_get_colour(fe->dr, colour, &hatch, &r, &g, &b);
-	/* FIXME: line thickness here */
 	if (fe->printcolour)
 	    pen = CreatePen(PS_SOLID, width,
 			    RGB(r * 255, g * 255, b * 255));
@@ -757,12 +756,7 @@ static void win_end_page(void *handle, int number)
     frontend *fe = (frontend *)handle;
 
     assert(fe->drawstatus != DRAWING);
-    /*
-     * The MSDN web site sample code doesn't bother to call EndDoc
-     * if an error occurs half way through printing. I expect doing
-     * so would cause the erroneous document to actually be
-     * printed, or something equally undesirable.
-     */
+
     if (fe->drawstatus == NOTHING)
 	return;
 
@@ -790,6 +784,12 @@ static void win_end_doc(void *handle)
     }
     fe->fontstart = 0;
 
+    /*
+     * The MSDN web site sample code doesn't bother to call EndDoc
+     * if an error occurs half way through printing. I expect doing
+     * so would cause the erroneous document to actually be
+     * printed, or something equally undesirable.
+     */
     if (fe->drawstatus == NOTHING)
 	return;
 
@@ -885,8 +885,10 @@ void print(frontend *fe)
     pd.nFromPage = pd.nToPage = 0xFFFF;
     pd.nMinPage = pd.nMaxPage = 1;
 
-    if (!PrintDlg(&pd))
+    if (!PrintDlg(&pd)) {
+	document_free(doc);
 	return;
+    }
 
     /*
      * Now pd.hDC is a device context for the printer.
@@ -916,6 +918,7 @@ void print(frontend *fe)
     fe->drawstatus = NOTHING;
 
     DeleteDC(pd.hDC);
+    document_free(doc);
 }
 
 void deactivate_timer(frontend *fe)
