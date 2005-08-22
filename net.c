@@ -2801,7 +2801,6 @@ static void game_print(drawing *dr, game_state *state, int tilesize)
     for (y = 0; y <= h; y++)
 	for (x = 0; x <= w; x++) {
 	    int b = barrier(state, x % w, y % h);
-	    fprintf(stderr, "%d,%d: %d\n", x, y, b);
 	    if (x < w && (b & U))
 		draw_rect(dr, WINDOW_OFFSET + TILE_SIZE * x - TILE_SIZE/24,
 			  WINDOW_OFFSET + TILE_SIZE * y - TILE_SIZE/24,
