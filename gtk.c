@@ -1447,8 +1447,9 @@ static frontend *new_window(char *arg, char **error)
 			" nor a save file (%.400s)", err, strerror(errno));
 	    } else {
 		err = midend_deserialise(fe->me, savefile_read, fp);
-		sprintf(errbuf, "%.800s", err);
-		fclose(fp);
+                if (err)
+                    sprintf(errbuf, "%.800s", err);
+                fclose(fp);
 	    }
         }
 	if (*errbuf) {
