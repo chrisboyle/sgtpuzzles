@@ -116,8 +116,8 @@ typedef unsigned char digit;
 enum { SYMM_NONE, SYMM_ROT2, SYMM_ROT4, SYMM_REF2, SYMM_REF2D, SYMM_REF4,
        SYMM_REF4D, SYMM_REF8 };
 
-enum { DIFF_BLOCK, DIFF_SIMPLE, DIFF_INTERSECT,
-       DIFF_SET, DIFF_RECURSIVE, DIFF_AMBIGUOUS, DIFF_IMPOSSIBLE };
+enum { DIFF_BLOCK, DIFF_SIMPLE, DIFF_INTERSECT, DIFF_SET, DIFF_NEIGHBOUR,
+       DIFF_RECURSIVE, DIFF_AMBIGUOUS, DIFF_IMPOSSIBLE };
 
 enum {
     COL_BACKGROUND,
@@ -177,6 +177,7 @@ static int game_fetch_preset(int i, char **name, game_params **params)
         { "3x3 Basic", { 3, 3, SYMM_ROT2, DIFF_SIMPLE } },
         { "3x3 Intermediate", { 3, 3, SYMM_ROT2, DIFF_INTERSECT } },
         { "3x3 Advanced", { 3, 3, SYMM_ROT2, DIFF_SET } },
+        { "3x3 Extreme", { 3, 3, SYMM_ROT2, DIFF_NEIGHBOUR } },
         { "3x3 Unreasonable", { 3, 3, SYMM_ROT2, DIFF_RECURSIVE } },
 #ifndef SLOW_SYSTEM
         { "3x4 Basic", { 3, 4, SYMM_ROT2, DIFF_SIMPLE } },
@@ -236,6 +237,8 @@ static void decode_params(game_params *ret, char const *string)
                 string++, ret->diff = DIFF_INTERSECT;
             else if (*string == 'a')   /* advanced */
                 string++, ret->diff = DIFF_SET;
+            else if (*string == 'e')   /* extreme */
+                string++, ret->diff = DIFF_NEIGHBOUR;
             else if (*string == 'u')   /* unreasonable */
                 string++, ret->diff = DIFF_RECURSIVE;
         } else
@@ -264,6 +267,7 @@ static char *encode_params(game_params *params, int full)
           case DIFF_SIMPLE: strcat(str, "db"); break;
           case DIFF_INTERSECT: strcat(str, "di"); break;
           case DIFF_SET: strcat(str, "da"); break;
+          case DIFF_NEIGHBOUR: strcat(str, "de"); break;
           case DIFF_RECURSIVE: strcat(str, "du"); break;
         }
     }
@@ -298,7 +302,7 @@ static config_item *game_configure(game_params *params)
 
     ret[3].name = "Difficulty";
     ret[3].type = C_CHOICES;
-    ret[3].sval = ":Trivial:Basic:Intermediate:Advanced:Unreasonable";
+    ret[3].sval = ":Trivial:Basic:Intermediate:Advanced:Extreme:Unreasonable";
     ret[3].ival = params->diff;
 
     ret[4].name = NULL;
@@ -335,9 +339,7 @@ static char *validate_params(game_params *params, int full)
 /* ----------------------------------------------------------------------
  * Solver.
  * 
- * This solver is used for several purposes:
- *  + to generate filled grids as the basis for new puzzles (by
- *    supplying no clue squares at all)
+ * This solver is used for two purposes:
  *  + to check solubility of a grid as we gradually remove numbers
  *    from it
  *  + to solve an externally generated puzzle when the user selects
@@ -388,6 +390,29 @@ static char *validate_params(game_params *params, int full)
  *       places, found by taking the _complement_ of the union of
  *       the numbers' possible positions (or the spaces' possible
  *       contents).
+ * 
+ *  - Mutual neighbour elimination: find two squares A,B and a
+ *    number N in the possible set of A, such that putting N in A
+ *    would rule out enough possibilities from the mutual
+ *    neighbours of A and B that there would be no possibilities
+ *    left for B. Thereby rule out N in A.
+ *     + The simplest case of this is if B has two possibilities
+ * 	 (wlog {1,2}), and there are two mutual neighbours of A and
+ * 	 B which have possibilities {1,3} and {2,3}. Thus, if A
+ * 	 were to be 3, then those neighbours would contain 1 and 2,
+ * 	 and hence there would be nothing left which could go in B.
+ *     + There can be more complex cases of it too: if A and B are
+ * 	 in the same column of large blocks, then they can have
+ * 	 more than two mutual neighbours, some of which can also be
+ * 	 neighbours of one another. Suppose, for example, that B
+ * 	 has possibilities {1,2,3}; there's one square P in the
+ * 	 same column as B and the same block as A, with
+ * 	 possibilities {1,4}; and there are _two_ squares Q,R in
+ * 	 the same column as A and the same block as B with
+ * 	 possibilities {2,3,4}. Then if A contained 4, P would
+ * 	 contain 1, and Q and R would have to contain 2 and 3 in
+ * 	 _some_ order; therefore, once again, B would have no
+ * 	 remaining possibilities.
  * 
  *  - Recursion. If all else fails, we pick one of the currently
  *    most constrained empty squares and take a random guess at its
@@ -627,6 +652,7 @@ static int solver_intersect(struct solver_usage *usage,
 
 struct solver_scratch {
     unsigned char *grid, *rowidx, *colidx, *set;
+    int *mne;
 };
 
 static int solver_set(struct solver_usage *usage,
@@ -825,6 +851,158 @@ static int solver_set(struct solver_usage *usage,
     return 0;
 }
 
+/*
+ * Try to find a number in the possible set of (x1,y1) which can be
+ * ruled out because it would leave no possibilities for (x2,y2).
+ */
+static int solver_mne(struct solver_usage *usage,
+		      struct solver_scratch *scratch,
+		      int x1, int y1, int x2, int y2)
+{
+    int c = usage->c, r = usage->r, cr = c*r;
+    int *nb[2];
+    unsigned char *set = scratch->set;
+    unsigned char *numbers = scratch->rowidx;
+    unsigned char *numbersleft = scratch->colidx;
+    int nnb, count;
+    int i, j, n, nbi;
+
+    nb[0] = scratch->mne;
+    nb[1] = scratch->mne + cr;
+
+    /*
+     * First, work out the mutual neighbour squares of the two. We
+     * can assert that they're not actually in the same block,
+     * which leaves two possibilities: they're in different block
+     * rows _and_ different block columns (thus their mutual
+     * neighbours are precisely the other two corners of the
+     * rectangle), or they're in the same row (WLOG) and different
+     * columns, in which case their mutual neighbours are the
+     * column of each block aligned with the other square.
+     * 
+     * We divide the mutual neighbours into two separate subsets
+     * nb[0] and nb[1]; squares in the same subset are not only
+     * adjacent to both our key squares, but are also always
+     * adjacent to one another.
+     */
+    if (x1 / r != x2 / r && y1 % r != y2 % r) {
+	/* Corners of the rectangle. */
+	nnb = 1;
+	nb[0][0] = cubepos(x2, y1, 1);
+	nb[1][0] = cubepos(x1, y2, 1);
+    } else if (x1 / r != x2 / r) {
+	/* Same row of blocks; different blocks within that row. */
+	int x1b = x1 - (x1 % r);
+	int x2b = x2 - (x2 % r);
+
+	nnb = r;
+	for (i = 0; i < r; i++) {
+	    nb[0][i] = cubepos(x2b+i, y1, 1);
+	    nb[1][i] = cubepos(x1b+i, y2, 1);
+	}
+    } else {
+	/* Same column of blocks; different blocks within that column. */
+	int y1b = y1 % r;
+	int y2b = y2 % r;
+
+	assert(y1 % r != y2 % r);
+
+	nnb = c;
+	for (i = 0; i < c; i++) {
+	    nb[0][i] = cubepos(x2, y1b+i*r, 1);
+	    nb[1][i] = cubepos(x1, y2b+i*r, 1);
+	}
+    }
+
+    /*
+     * Right. Now loop over each possible number.
+     */
+    for (n = 1; n <= cr; n++) {
+	if (!cube(x1, y1, n))
+	    continue;
+	for (j = 0; j < cr; j++)
+	    numbersleft[j] = cube(x2, y2, j+1);
+
+	/*
+	 * Go over every possible subset of each neighbour list,
+	 * and see if its union of possible numbers minus n has the
+	 * same size as the subset. If so, add the numbers in that
+	 * subset to the set of things which would be ruled out
+	 * from (x2,y2) if n were placed at (x1,y1).
+	 */
+	memset(set, 0, nnb);
+	count = 0;
+	while (1) {
+	    /*
+	     * Binary increment: change the rightmost 0 to a 1, and
+	     * change all 1s to the right of it to 0s.
+	     */
+	    i = nnb;
+	    while (i > 0 && set[i-1])
+		set[--i] = 0, count--;
+	    if (i > 0)
+		set[--i] = 1, count++;
+	    else
+		break;		       /* done */
+
+	    /*
+	     * Examine this subset of each neighbour set.
+	     */
+	    for (nbi = 0; nbi < 2; nbi++) {
+		int *nbs = nb[nbi];
+		
+		memset(numbers, 0, cr);
+
+		for (i = 0; i < nnb; i++)
+		    if (set[i])
+			for (j = 0; j < cr; j++)
+			    if (j != n-1 && usage->cube[nbs[i] + j])
+				numbers[j] = 1;
+
+		for (i = j = 0; j < cr; j++)
+		    i += numbers[j];
+
+		if (i == count) {
+		    /*
+		     * Got one. This subset of nbs, in the absence
+		     * of n, would definitely contain all the
+		     * numbers listed in `numbers'. Rule them out
+		     * of `numbersleft'.
+		     */
+		    for (j = 0; j < cr; j++)
+			if (numbers[j])
+			    numbersleft[j] = 0;
+		}
+	    }
+	}
+
+	/*
+	 * If we've got nothing left in `numbersleft', we have a
+	 * successful mutual neighbour elimination.
+	 */
+	for (j = 0; j < cr; j++)
+	    if (numbersleft[j])
+		break;
+
+	if (j == cr) {
+#ifdef STANDALONE_SOLVER
+	    if (solver_show_working) {
+		printf("%*smutual neighbour elimination, (%d,%d) vs (%d,%d):\n",
+		       solver_recurse_depth*4, "",
+		       1+x1, 1+YUNTRANS(y1), 1+x2, 1+YUNTRANS(y2));
+		printf("%*s  ruling out %d at (%d,%d)\n",
+		       solver_recurse_depth*4, "",
+		       n, 1+x1, 1+YUNTRANS(y1));
+	    }
+#endif
+	    cube(x1, y1, n) = FALSE;
+	    return +1;
+	}
+    }
+
+    return 0;			       /* nothing found */
+}
+
 static struct solver_scratch *solver_new_scratch(struct solver_usage *usage)
 {
     struct solver_scratch *scratch = snew(struct solver_scratch);
@@ -833,11 +1011,13 @@ static struct solver_scratch *solver_new_scratch(struct solver_usage *usage)
     scratch->rowidx = snewn(cr, unsigned char);
     scratch->colidx = snewn(cr, unsigned char);
     scratch->set = snewn(cr, unsigned char);
+    scratch->mne = snewn(2*cr, int);
     return scratch;
 }
 
 static void solver_free_scratch(struct solver_scratch *scratch)
 {
+    sfree(scratch->mne);
     sfree(scratch->set);
     sfree(scratch->colidx);
     sfree(scratch->rowidx);
@@ -850,7 +1030,7 @@ static int solver(int c, int r, digit *grid, int maxdiff)
     struct solver_usage *usage;
     struct solver_scratch *scratch;
     int cr = c*r;
-    int x, y, n, ret;
+    int x, y, x2, y2, n, ret;
     int diff = DIFF_BLOCK;
 
     /*
@@ -1103,6 +1283,45 @@ static int solver(int c, int r, digit *grid, int maxdiff)
 	    } else if (ret > 0) {
 		diff = max(diff, DIFF_SET);
 		goto cont;
+	    }
+	}
+
+	/*
+	 * Mutual neighbour elimination.
+	 */
+	for (y = 0; y+1 < cr; y++) {
+	    for (x = 0; x+1 < cr; x++) {
+		for (y2 = y+1; y2 < cr; y2++) {
+		    for (x2 = x+1; x2 < cr; x2++) {
+			/*
+			 * Can't do mutual neighbour elimination
+			 * between elements of the same actual
+			 * block.
+			 */
+			if (x/r == x2/r && y%r == y2%r)
+			    continue;
+
+			/*
+			 * Otherwise, try (x,y) vs (x2,y2) in both
+			 * directions, and likewise (x2,y) vs
+			 * (x,y2).
+			 */
+			if (!usage->grid[YUNTRANS(y)*cr+x] &&
+			    !usage->grid[YUNTRANS(y2)*cr+x2] &&
+			    (solver_mne(usage, scratch, x, y, x2, y2) ||
+			     solver_mne(usage, scratch, x2, y2, x, y))) {
+			    diff = max(diff, DIFF_NEIGHBOUR);
+			    goto cont;
+			}
+			if (!usage->grid[YUNTRANS(y)*cr+x2] &&
+			    !usage->grid[YUNTRANS(y2)*cr+x] &&
+			    (solver_mne(usage, scratch, x2, y, x, y2) ||
+			     solver_mne(usage, scratch, x, y2, x2, y))) {
+			    diff = max(diff, DIFF_NEIGHBOUR);
+			    goto cont;
+			}
+		    }
+		}
 	    }
 	}
 
@@ -2731,6 +2950,7 @@ int main(int argc, char **argv)
 	       ret==DIFF_SIMPLE ? "Basic (row/column/number elimination required)":
 	       ret==DIFF_INTERSECT ? "Intermediate (intersectional analysis required)":
 	       ret==DIFF_SET ? "Advanced (set elimination required)":
+	       ret==DIFF_NEIGHBOUR ? "Extreme (mutual neighbour elimination required)":
 	       ret==DIFF_RECURSIVE ? "Unreasonable (guesswork and backtracking required)":
 	       ret==DIFF_AMBIGUOUS ? "Ambiguous (multiple solutions exist)":
 	       ret==DIFF_IMPOSSIBLE ? "Impossible (no solution exists)":
