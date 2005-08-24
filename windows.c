@@ -177,8 +177,6 @@ static void win_status_bar(void *handle, char *text)
     frontend *fe = (frontend *)handle;
     char *rewritten;
 
-    assert(fe->drawstatus == DRAWING);
-
     rewritten = midend_rewrite_statusbar(fe->me, text);
     if (!fe->laststatus || strcmp(rewritten, fe->laststatus)) {
 	SetWindowText(fe->statusbar, rewritten);
