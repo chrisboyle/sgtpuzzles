@@ -24,6 +24,7 @@ extern const game fifteen;
 extern const game flip;
 extern const game guess;
 extern const game lightup;
+extern const game loopy;
 extern const game map;
 extern const game mines;
 extern const game net;
@@ -46,6 +47,7 @@ const game *gamelist[] = {
     &flip,
     &guess,
     &lightup,
+    &loopy,
     &map,
     &mines,
     &net,

@@ -1642,11 +1642,71 @@ regions. However, it will always be possible without having to
 guess or backtrack.
 
 
+\C{loopy} \i{Loopy}
+
+\cfg{winhelp-topic}{games.loopy}
+
+You are given a grid of dots. Your aim is to draw a single unbroken
+loop from dot to dot within the grid.
+
+Some of the square spaces between the dots contain numbers. These
+numbers indicate how many of the four edges of that square are part
+of the loop. The loop you draw must correctly satisfy all of these
+clues to be considered a correct solution.
+
+Credit for this puzzle goes to \i{Nikoli} \k{nikoli-loopy}.
+
+Loopy was contributed to this collection by Mike Pinna.
+
+\B{nikoli-loopy}
+\W{http://www.nikoli.co.jp/puzzles/3/index-e.htm}\cw{http://www.nikoli.co.jp/puzzles/3/index-e.htm}
+(beware of Flash)
+
+
+\H{loopy-controls} \i{Loopy controls}
+
+\IM{Loopy controls} controls, for Loopy
+\IM{Loopy controls} keys, for Loopy
+\IM{Loopy controls} shortcuts (keyboard), for Loopy
+
+Click the left mouse button between two dots to add a line segment
+connecting them. Click again to remove that line segment.
+
+If you are sure that a particular line segment is \e{not} part of
+the loop, you can click the right mouse button to add a small cross
+indicating this. Click again to remove the cross.
+
+
+\H{loopy-parameters} \I{parameters, for Loopy}Loopy parameters
+
+These parameters are available from the \q{Custom...} option on the
+\q{Type} menu.
+
+\dt \e{Width}, \e{Height}
+
+\dd Size of grid in squares.
+
+\dt \e{Recursion depth}
+
+\dd Determines how much guesswork and backtracking you will need to
+do to solve the puzzle. When this is set to zero (as it is for all
+of the \q{Easy} options in the menu), you should always be able to
+deduce the state of an edge without having to guess. If you increase
+it, you will have to guess more and more.
+
+\lcont{
+
+Setting a high value for this option is liable to consume a lot of
+CPU time and memory. Be warned!
+
+}
+
+
 \A{licence} \I{MIT licence}\ii{Licence}
 
 This software is \i{copyright} 2004-2005 Simon Tatham.
 
-Portions copyright Richard Boulton and James Harvey.
+Portions copyright Richard Boulton, James Harvey and Mike Pinna.
 
 Permission is hereby granted, free of charge, to any person
 obtaining a copy of this software and associated documentation files

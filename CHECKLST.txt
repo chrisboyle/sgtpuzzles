@@ -12,6 +12,10 @@ Add it to Recipe in _four_ places:
  - as a Windows build target
  - in the Unix `make install' section at the bottom.
 
+If the puzzle is by a new author, modify the copyright notice in
+LICENCE and in puzzles.but. (Also in index.html, but that's listed
+below under website changes.)
+
 Add it to list.c so that the OS X binary will be able to select it
 from the menus. (Also, double-check that the game structure name in
 the source file has been renamed from `nullgame'. Actually compiling
@@ -30,6 +34,8 @@ Don't forget to `svn add' the new source file before checkin!
 Put the puzzle on the web:
  - make a screenshot
  - add an entry in the puzzles list in index.html
+ - adjust the copyright in index.html if the puzzle is by a new
+   author
  - add a link to the Windows binary
  - make sure the Windows binary link points at the right binary, not
    the wrong one!
