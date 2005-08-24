@@ -845,11 +845,11 @@ partial deductions about the \e{set} of squares a number could be in
 eventually have to make a guess, and then backtrack if it turns out
 to be wrong.
 
-Generating difficult puzzles is itself difficult: if you select
-\q{Intermediate} or \q{Advanced} difficulty, Solo may have to make
-many attempts at generating a puzzle before it finds one hard enough
-for you. Be prepared to wait, especially if you have also configured
-a large puzzle size.
+Generating difficult puzzles is itself difficult: if you select one
+of the higher difficulty levels, Solo may have to make many attempts
+at generating a puzzle before it finds one hard enough for you. Be
+prepared to wait, especially if you have also configured a large
+puzzle size.
 
 
 \C{mines} \i{Mines}
