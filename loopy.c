@@ -2226,6 +2226,7 @@ static game_state *execute_move(game_state *state, char *move)
     /*
      * Check for completion.
      */
+    i = 0;			       /* placate optimiser */
     for (j = 0; j <= newstate->h; j++) {
 	for (i = 0; i < newstate->w; i++)
 	    if (LV_RIGHTOF_DOT(newstate, i, j) == LINE_YES)
