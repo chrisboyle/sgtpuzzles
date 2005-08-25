@@ -1115,6 +1115,7 @@ static frontend *new_window(HINSTANCE inst, char *game_id, char **error)
 	    fe->brushes[i] = CreateSolidBrush(fe->colours[i]);
 	    fe->pens[i] = CreatePen(PS_SOLID, 1, fe->colours[i]);
 	}
+        sfree(colours);
     }
 
     x = y = INT_MAX;		       /* find puzzle's preferred size */

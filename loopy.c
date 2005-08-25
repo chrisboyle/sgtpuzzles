@@ -227,15 +227,18 @@ static void free_solver_state(solver_state *sstate) {
         sfree(sstate->dot_atleastone);
         sfree(sstate->dot_atmostone);
         /*    sfree(sstate->dline_identical); */
+        sfree(sstate->dotdsf);
+        sfree(sstate->looplen);
+        sfree(sstate);
     }
 }
 
 static solver_state *dup_solver_state(solver_state *sstate) {
-    game_state *state = dup_game(sstate->state);
+    game_state *state;
 
     solver_state *ret = snew(solver_state);
 
-    ret->state = dup_game(state);
+    ret->state = state = dup_game(sstate->state);
 
     ret->dot_atmostone = snewn(DOT_COUNT(state), char);
     memcpy(ret->dot_atmostone, sstate->dot_atmostone, DOT_COUNT(state));
@@ -811,6 +814,7 @@ static char *new_fullyclued_board(game_params *params, random_state *rs)
                 }
             }
         }
+        sfree(square);
 /*        printf("\n\n"); */
     }
 
@@ -883,6 +887,7 @@ static game_state *remove_clues(game_state *state, random_state *rs)
             ret = saved_ret;
         }
     }
+    sfree(square_list);
 
     return ret;
 }
@@ -927,23 +932,23 @@ static char *new_game_desc(game_params *params, random_state *rs,
         for (i = 0; i < params->w; ++i) {
             if (CLUE_AT(state, i, j) == ' ') {
                 if (empty_count > 25) {
-                    dp += sprintf(dp, "%c", empty_count + 'a' - 1);
+                    dp += sprintf(dp, "%c", (int)(empty_count + 'a' - 1));
                     empty_count = 0;
                 }
                 empty_count++;
             } else {
                 if (empty_count) {
-                    dp += sprintf(dp, "%c", empty_count + 'a' - 1);
+                    dp += sprintf(dp, "%c", (int)(empty_count + 'a' - 1));
                     empty_count = 0;
                 }
-                dp += sprintf(dp, "%c", CLUE_AT(state, i, j));
+                dp += sprintf(dp, "%c", (int)(CLUE_AT(state, i, j)));
             }
         }
     }
     if (empty_count)
-        dp += sprintf(dp, "%c", empty_count + 'a' - 1);
+        dp += sprintf(dp, "%c", (int)(empty_count + 'a' - 1));
 
-    sfree(state);
+    free_game(state);
     retval = dupstr(description);
     sfree(description);
     
@@ -1162,7 +1167,7 @@ static int loop_status(game_state *state)
 
 /* Sums the lengths of the numbers in range [0,n) */
 /* See equivalent function in solo.c for justification of this. */
-int len_0_to_n(int n)
+static int len_0_to_n(int n)
 {
     int len = 1; /* Counting 0 as a bit of a special case */
     int i;
@@ -1236,7 +1241,7 @@ static char *encode_solve_move(const game_state *state)
 
     /* No point in doing sums like that if they're going to be wrong */
     assert(strlen(ret) <= (size_t)len);
-    return dupstr(ret);
+    return ret;
 }
 
 /* BEGIN SOLVER IMPLEMENTATION */
@@ -2021,7 +2026,7 @@ static char *game_text_format(game_state *state)
         rp += sprintf(rp, " \n");
         for (i = 0; i < state->w; ++i) {
             DRAW_VL;
-            rp += sprintf(rp, "%c", CLUE_AT(state, i, j));
+            rp += sprintf(rp, "%c", (int)(CLUE_AT(state, i, j)));
         }
         DRAW_VL;
         rp += sprintf(rp, "\n");
@@ -2160,7 +2165,7 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
     }
 
 
-    sprintf(buf, "%d,%d%c%c", i, j, hl_selected ? 'h' : 'v', button_char);
+    sprintf(buf, "%d,%d%c%c", i, j, (int)(hl_selected ? 'h' : 'v'), (int)button_char);
     ret = dupstr(buf);
 
     return ret;
