@@ -395,7 +395,7 @@ static const struct {
     { "10x10 Easy", { 10, 10, 0 } },
     { "10x10 Hard", { 10, 10, 2 } },
     { "15x15 Easy", { 15, 15, 0 } },
-    { "20x30 Easy", { 20, 30, 0 } }
+    { "30x20 Easy", { 30, 20, 0 } }
 };
 
 static int game_fetch_preset(int i, char **name, game_params **params)
