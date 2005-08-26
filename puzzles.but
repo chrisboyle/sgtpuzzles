@@ -111,6 +111,13 @@ had done before saving).
 
 }
 
+\dt \ii\e{Print}
+
+\dd Where supported (currently only on Windows), brings up a dialog
+allowing you to print an arbitrary number of puzzles randomly
+generated from the current parameters, optionally including the
+current puzzle.
+
 \dt \ii\e{Undo} (\q{U}, Ctrl+\q{Z}, Ctrl+\q{_})
 
 \dd Undoes a single move. (You can undo moves back to the start of the
@@ -295,6 +302,7 @@ than by pasting it into the game ID selection box.
 then some options, such as the difficulty level in Solo, will be
 missing. See \k{common-id} for more details on this.)
 
+
 \C{net} \i{Net}
 
 \cfg{winhelp-topic}{games.net}
@@ -405,6 +413,7 @@ difficult and more subtle, so if you like you can turn off this
 feature and risk having ambiguous puzzles. (Also, finding \e{all}
 the possible solutions can be an additional challenge for an
 advanced player.)
+
 
 \C{cube} \i{Cube}
 
@@ -714,6 +723,7 @@ meanings to those in Net (see \k{net-params}) and Sixteen (see
 
 Netslide was contributed to this collection by Richard Boulton.
 
+
 \C{pattern} \i{Pattern}
 
 \cfg{winhelp-topic}{games.pattern}
@@ -840,8 +850,9 @@ particular, on difficulty levels \q{Trivial} and \q{Basic} there
 will be a square you can fill in with a single number at all times,
 whereas at \q{Intermediate} level and beyond you will have to make
 partial deductions about the \e{set} of squares a number could be in
-(or the set of numbers that could be in a square). At
-\q{Unreasonable} level, even this is not enough, and you will
+(or the set of numbers that could be in a square).
+\#{Advanced, Extreme?}
+At \q{Unreasonable} level, even this is not enough, and you will
 eventually have to make a guess, and then backtrack if it turns out
 to be wrong.
 
@@ -983,6 +994,8 @@ The cursor keys move a cursor around the grid. Pressing the Space or
 Enter keys while the cursor is in an unselected region selects it;
 pressing Space or Enter again removes it as above.
 
+(All the actions described in \k{common-actions} are also available.)
+
 \H{samegame-parameters} \I{parameters, for Same Game}Same Game parameters
 
 These parameters are available from the \q{Custom...} option on the
@@ -1053,6 +1066,8 @@ the squares in red. If you click once in every square with a red
 mark, the game should be solved. (If you click in a square
 \e{without} a red mark, a red mark will appear in it to indicate
 that you will need to reverse that operation to reach the solution.)
+
+(All the actions described in \k{common-actions} are also available.)
 
 \H{flip-parameters} \I{parameters, for flip}Flip parameters
 
@@ -1125,6 +1140,8 @@ If you correctly position all the pegs the solution will be displayed
 below; if you run out of guesses (or select \q{Solve...}) the solution
 will also be revealed.
 
+(All the actions described in \k{common-actions} are also available.)
+
 \H{guess-parameters} \I{parameters, for Guess}Guess parameters
 
 These parameters are available from the \q{Custom...} option on the
@@ -1169,8 +1186,8 @@ peg by jumping an adjacent peg over it (horizontally or vertically)
 to a vacant hole on the other side. Your aim is to remove all but one
 of the pegs initially present.
 
-This game, best known as \q{Peg Solitaire}, is possibly one of the
-oldest puzzle games still commonly known.
+This game, best known as \I{Solitaire, Peg}\q{Peg Solitaire}, is
+possibly one of the oldest puzzle games still commonly known.
 
 \H{pegs-controls} \i{Pegs controls}
 
@@ -1186,6 +1203,7 @@ Vacant spaces which you can move a peg into are marked with holes. A
 space with no peg and no hole is not available for moving at all: it
 is an obstacle which you must work around.
 
+(All the actions described in \k{common-actions} are also available.)
 
 \H{pegs-parameters} \I{parameters, for Pegs}Pegs parameters
 
@@ -1234,6 +1252,7 @@ them, which you can use to remind yourself that you know those two
 numbers are \e{not} covered by a single domino. Right-clicking again
 removes the line.
 
+(All the actions described in \k{common-actions} are also available.)
 
 \H{dominosa-parameters} \I{parameters, for Dominosa}Dominosa parameters
 
@@ -1276,6 +1295,8 @@ I originally saw this in the form of a Flash game called \i{Planarity}
 
 To move a point, click on it with the left mouse button and drag it
 into a new position.
+
+(All the actions described in \k{common-actions} are also available.)
 
 \H{untangle-parameters} \I{parameters, for Untangle}Untangle parameters
 
@@ -1454,12 +1475,9 @@ Credit for this puzzle goes to \i{Nikoli} \k{nikoli-slant}.
 \W{http://www.nikoli.co.jp/puzzles/39/index.htm}\cw{http://www.nikoli.co.jp/puzzles/39/index.htm}
 (in Japanese)
 
-
 \H{slant-controls} \i{Slant controls}
 
 \IM{Slant controls} controls, for Slant
-\IM{Slant controls} keys, for Slant
-\IM{Slant controls} shortcuts (keyboard), for Slant
 
 Left-clicking in a blank square will place a \cw{\\} in it (a line
 leaning to the left, i.e. running from the top left of the square to
@@ -1531,8 +1549,6 @@ Light Up was contributed to this collection by James Harvey.
 \H{lightup-controls} \i{Light Up controls}
 
 \IM{Light Up controls} controls, for Light Up
-\IM{Light Up controls} keys, for Light Up
-\IM{Light Up controls} shortcuts (keyboard), for Light Up
 
 Left-clicking in a non-black square will toggle the presence of a light
 in that square. Right-clicking in a non-black square toggles a mark there to aid
@@ -1547,6 +1563,7 @@ do not (or cannot) have the right number of lights next to them.
 Thus, the grid is solved when all non-black squares have yellow
 highlights and there are no red lights.
 
+(All the actions described in \k{common-actions} are also available.)
 
 \H{lightup-parameters} \I{parameters, for Light Up}Light Up parameters
 
@@ -1603,12 +1620,9 @@ Allan for inspiring the train of thought that led to me realising
 Owen's suggestion was a viable puzzle. Thanks also to Gareth Taylor
 for many detailed suggestions.
 
-
 \H{map-controls} \i{Map controls}
 
 \IM{Map controls} controls, for Map
-\IM{Map controls} keys, for Map
-\IM{Map controls} shortcuts (keyboard), for Map
 
 To colour a region, click on an existing region of the desired
 colour and drag that colour into the new region.
@@ -1619,6 +1633,7 @@ region of each colour, so that this is always possible!)
 If you need to clear a region, you can drag from an empty region, or
 from the puzzle boundary if there are no empty regions left.
 
+(All the actions described in \k{common-actions} are also available.)
 
 \H{map-parameters} \I{parameters, for Map}Map parameters
 
@@ -1662,12 +1677,9 @@ Loopy was contributed to this collection by Mike Pinna.
 \W{http://www.nikoli.co.jp/puzzles/3/index-e.htm}\cw{http://www.nikoli.co.jp/puzzles/3/index-e.htm}
 (beware of Flash)
 
-
 \H{loopy-controls} \i{Loopy controls}
 
 \IM{Loopy controls} controls, for Loopy
-\IM{Loopy controls} keys, for Loopy
-\IM{Loopy controls} shortcuts (keyboard), for Loopy
 
 Click the left mouse button between two dots to add a line segment
 connecting them. Click again to remove that line segment.
@@ -1676,6 +1688,7 @@ If you are sure that a particular line segment is \e{not} part of
 the loop, you can click the right mouse button to add a small cross
 indicating this. Click again to remove the cross.
 
+(All the actions described in \k{common-actions} are also available.)
 
 \H{loopy-parameters} \I{parameters, for Loopy}Loopy parameters
 
