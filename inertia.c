@@ -370,7 +370,9 @@ static int find_gem_candidates(int w, int h, char *grid,
 		    d2 = n;
 		}
 		i2 = (y2*w+x2)*DIRECTIONS+d2;
-		if (!reachable[i2]) {
+		if (x2 >= 0 && x2 < w &&
+		    y2 >= 0 && y2 < h &&
+		    !reachable[i2]) {
 		    int ok;
 #ifdef SOLVER_DIAGNOSTICS
 		    printf("  trying point %d,%d,%d", x2, y2, d2);
