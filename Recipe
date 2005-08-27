@@ -28,7 +28,7 @@ LOOPY    = loopy tree234 dsf
 
 ALL      = list NET NETSLIDE cube fifteen sixteen rect pattern solo twiddle
          + MINES samegame FLIP guess PEGS dominosa UNTANGLE blackbox SLANT
-         + lightup MAP LOOPY
+         + lightup MAP LOOPY inertia
 
 GTK      = gtk printing ps
 
@@ -53,6 +53,7 @@ slant    : [X] GTK COMMON SLANT
 lightup  : [X] GTK COMMON lightup
 map      : [X] GTK COMMON MAP
 loopy    : [X] GTK COMMON LOOPY
+inertia  : [X] GTK COMMON inertia
 
 # Auxiliary command-line programs.
 solosolver :    [U] solo[STANDALONE_SOLVER] malloc
@@ -88,6 +89,7 @@ slant    : [G] WINDOWS COMMON SLANT
 lightup  : [G] WINDOWS COMMON lightup
 map      : [G] WINDOWS COMMON MAP
 loopy    : [G] WINDOWS COMMON LOOPY
+inertia  : [G] WINDOWS COMMON inertia
 
 # Mac OS X unified application containing all the puzzles.
 Puzzles  : [MX] osx osx.icns osx-info.plist COMMON ALL
@@ -180,7 +182,7 @@ install:
 	for i in cube net netslide fifteen sixteen twiddle \
 	         pattern rect solo mines samegame flip guess \
 		 pegs dominosa untangle blackbox slant lightup \
-		 map loopy; do \
+		 map loopy inertia; do \
 		$(INSTALL_PROGRAM) -m 755 $$i $(DESTDIR)$(gamesdir)/$$i; \
 	done
 !end

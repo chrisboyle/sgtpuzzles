@@ -1715,6 +1715,58 @@ CPU time and memory. Be warned!
 }
 
 
+\C{inertia} \i{Inertia}
+
+\cfg{winhelp-topic}{games.inertia}
+
+You are a small green ball sitting in a grid full of obstacles. Your
+aim is to collect all the gems without running into any mines.
+
+You can move the ball in any orthogonal \e{or diagonal} direction.
+Once the ball starts moving, it will continue until something stops
+it. A wall directly in its path will stop it (but if it is moving
+diagonally, it will move through a diagonal gap between two other
+walls without stopping). Also, some of the squares are \q{stops};
+when the ball moves on to a stop, it will stop moving no matter what
+direction it was going in. Gems do \e{not} stop the ball; it picks
+them up and keeps on going.
+
+Running into a mine is fatal. Even if you picked up the last gem in
+the same move which then hit a mine, the game will count you as dead
+rather than victorious.
+
+This game was originally implemented for Windows by Ben Olmstead
+\k{bem}, who was kind enough to release his source code on request
+so that it could be re-implemented for this collection.
+
+\B{bem} \W{http://xn13.com/}\cw{http://xn13.com/}
+
+\H{inertia-controls} \i{Inertia controls}
+
+\IM{Inertia controls} controls, for Inertia
+\IM{Inertia controls} keys, for Inertia
+\IM{Inertia controls} shortcuts (keyboard), for Inertia
+
+You can move the ball in any of the eight directions using the
+numeric keypad. Alternatively, if you click the left mouse button on
+the grid, the ball will begin a move in the general direction of
+where you clicked.
+
+All the actions described in \k{common-actions} are also available.
+In particular, if you do run into a mine and die, you can use the
+Undo function and resume playing from before the fatal move. The
+game will keep track of the number of times you have done this.
+
+\H{inertia-parameters} \I{parameters, for Inertia}Inertia parameters
+
+These parameters are available from the \q{Custom...} option on the
+\q{Type} menu.
+
+\dt \e{Width}, \e{Height}
+
+\dd Size of grid in squares.
+
+
 \A{licence} \I{MIT licence}\ii{Licence}
 
 This software is \i{copyright} 2004-2005 Simon Tatham.

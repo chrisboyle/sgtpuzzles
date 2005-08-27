@@ -23,6 +23,7 @@ extern const game dominosa;
 extern const game fifteen;
 extern const game flip;
 extern const game guess;
+extern const game inertia;
 extern const game lightup;
 extern const game loopy;
 extern const game map;
@@ -46,6 +47,7 @@ const game *gamelist[] = {
     &fifteen,
     &flip,
     &guess,
+    &inertia,
     &lightup,
     &loopy,
     &map,
