@@ -5,7 +5,6 @@
 /*
  * TODO:
  * 
- *  - error highlighting
  *  - clue marking
  *  - more solver brains?
  *  - better four-colouring algorithm?
@@ -59,6 +58,7 @@ enum {
     COL_BACKGROUND,
     COL_GRID,
     COL_0, COL_1, COL_2, COL_3,
+    COL_ERROR, COL_ERRTEXT,
     NCOLOURS
 };
 
@@ -73,6 +73,7 @@ struct map {
     int n;
     int ngraph;
     int *immutable;
+    int *edgex, *edgey;		       /* positions of a point on each edge */
 };
 
 struct game_state {
@@ -607,7 +608,7 @@ static int gengraph(int w, int h, int n, int *map, int *graph)
     return j;
 }
 
-static int graph_adjacent(int *graph, int n, int ngraph, int i, int j)
+static int graph_edge_index(int *graph, int n, int ngraph, int i, int j)
 {
     int v = i*n+j;
     int top, bot, mid;
@@ -617,14 +618,17 @@ static int graph_adjacent(int *graph, int n, int ngraph, int i, int j)
     while (top - bot > 1) {
 	mid = (top + bot) / 2;
 	if (graph[mid] == v)
-	    return TRUE;
+	    return mid;
 	else if (graph[mid] < v)
 	    bot = mid;
 	else
 	    top = mid;
     }
-    return FALSE;
+    return -1;
 }
+
+#define graph_adjacent(graph, n, ngraph, i, j) \
+    (graph_edge_index((graph), (n), (ngraph), (i), (j)) >= 0)
 
 static int graph_vertex_start(int *graph, int n, int ngraph, int i)
 {
@@ -1502,6 +1506,155 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
         random_free(rs);
     }
 
+    /*
+     * Analyse the map to find a canonical line segment
+     * corresponding to each edge. These are where we'll eventually
+     * put error markers.
+     */
+    {
+	int *bestx, *besty, *an, pass;
+	float *ax, *ay, *best;
+
+	ax = snewn(state->map->ngraph, float);
+	ay = snewn(state->map->ngraph, float);
+	an = snewn(state->map->ngraph, int);
+	bestx = snewn(state->map->ngraph, int);
+	besty = snewn(state->map->ngraph, int);
+	best = snewn(state->map->ngraph, float);
+
+	for (i = 0; i < state->map->ngraph; i++) {
+	    bestx[i] = besty[i] = -1;
+	    best[i] = 2*(w+h)+1;
+	    ax[i] = ay[i] = 0.0F;
+	    an[i] = 0;
+	}
+
+	/*
+	 * We make two passes over the map, finding all the line
+	 * segments separating regions. In the first pass, we
+	 * compute the _average_ x and y coordinate of all the line
+	 * segments separating each pair of regions; in the second
+	 * pass, for each such average point, we find the line
+	 * segment closest to it and call that canonical.
+	 * 
+	 * Line segments are considered to have coordinates in
+	 * their centre. Thus, at least one coordinate for any line
+	 * segment is always something-and-a-half; so we store our
+	 * coordinates as twice their normal value.
+	 */
+	for (pass = 0; pass < 2; pass++) {
+	    int x, y;
+
+	    for (y = 0; y < h; y++)
+		for (x = 0; x < w; x++) {
+		    int ex[3], ey[3], ea[3], eb[3], en = 0;
+
+		    /*
+		     * Look for an edge to the right of this
+		     * square, an edge below it, and an edge in the
+		     * middle of it.
+		     */
+		    if (x+1 < w) {
+			/* right edge */
+			ea[en] = state->map->map[RE * wh + y*w+x];
+			eb[en] = state->map->map[LE * wh + y*w+(x+1)];
+			if (ea[en] != eb[en]) {
+			    ex[en] = (x+1)*2;
+			    ey[en] = y*2+1;
+			    en++;
+			}
+		    }
+		    if (y+1 < h) {
+			/* bottom edge */
+			ea[en] = state->map->map[BE * wh + y*w+x];
+			eb[en] = state->map->map[TE * wh + (y+1)*w+x];
+			if (ea[en] != eb[en]) {
+			    ex[en] = x*2+1;
+			    ey[en] = (y+1)*2;
+			    en++;
+			}
+		    }
+		    /* diagonal edge */
+		    ea[en] = state->map->map[TE * wh + y*w+x];
+		    eb[en] = state->map->map[BE * wh + y*w+x];
+		    if (ea[en] != eb[en]) {
+			ex[en] = x*2+1;
+			ey[en] = y*2+1;
+			en++;
+		    }
+
+		    /*
+		     * Now process the edges we've found, one by
+		     * one.
+		     */
+		    for (i = 0; i < en; i++) {
+			int emin = min(ea[i], eb[i]);
+			int emax = max(ea[i], eb[i]);
+			int gindex = 
+			    graph_edge_index(state->map->graph, n,
+					     state->map->ngraph, emin, emax);
+
+			assert(gindex >= 0);
+
+			if (pass == 0) {
+			    /*
+			     * In pass 0, accumulate the values
+			     * we'll use to compute the average
+			     * positions.
+			     */
+			    ax[gindex] += ex[i];
+			    ay[gindex] += ey[i];
+			    an[gindex] += 1.0F;
+			} else {
+			    /*
+			     * In pass 1, work out whether this
+			     * point is closer to the average than
+			     * the last one we've seen.
+			     */
+			    float dx, dy, d;
+
+			    assert(an[gindex] > 0);
+			    dx = ex[i] - ax[gindex];
+			    dy = ey[i] - ay[gindex];
+			    d = sqrt(dx*dx + dy*dy);
+			    if (d < best[gindex]) {
+				best[gindex] = d;
+				bestx[gindex] = ex[i];
+				besty[gindex] = ey[i];
+			    }
+			}
+		    }
+		}
+
+	    if (pass == 0) {
+		for (i = 0; i < state->map->ngraph; i++)
+		    if (an[i] > 0) {
+			ax[i] /= an[i];
+			ay[i] /= an[i];
+		    }
+	    }
+	}
+
+	state->map->edgex = bestx;
+	state->map->edgey = besty;
+
+	for (i = 0; i < state->map->ngraph; i++)
+	    if (state->map->edgex[i] < 0) {
+		/* Find the other representation of this edge. */
+		int e = state->map->graph[i];
+		int iprime = graph_edge_index(state->map->graph, n,
+					      state->map->ngraph, e%n, e/n);
+		assert(state->map->edgex[iprime] >= 0);
+		state->map->edgex[i] = state->map->edgex[iprime];
+		state->map->edgey[i] = state->map->edgey[iprime];
+	    }
+
+	sfree(ax);
+	sfree(ay);
+	sfree(an);
+	sfree(best);
+    }
+
     return state;
 }
 
@@ -1526,6 +1679,8 @@ static void free_game(game_state *state)
 	sfree(state->map->map);
 	sfree(state->map->graph);
 	sfree(state->map->immutable);
+	sfree(state->map->edgex);
+	sfree(state->map->edgey);
 	sfree(state->map);
     }
     sfree(state->colouring);
@@ -1631,11 +1786,19 @@ static void game_changed_state(game_ui *ui, game_state *oldstate,
 
 struct game_drawstate {
     int tilesize;
-    unsigned char *drawn;
+    unsigned short *drawn, *todraw;
     int started;
     int dragx, dragy, drag_visible;
     blitter *bl;
 };
+
+/* Flags in `drawn'. */
+#define ERR_T    0x0100
+#define ERR_B    0x0200
+#define ERR_L    0x0400
+#define ERR_R    0x0800
+#define ERR_C    0x1000
+#define ERR_MASK 0x1F00
 
 #define TILESIZE (ds->tilesize)
 #define BORDER (TILESIZE)
@@ -1821,6 +1984,14 @@ static float *game_colours(frontend *fe, game_state *state, int *ncolours)
     memcpy(ret + COL_2 * 3, map_colours[2], 3 * sizeof(float));
     memcpy(ret + COL_3 * 3, map_colours[3], 3 * sizeof(float));
 
+    ret[COL_ERROR * 3 + 0] = 1.0F;
+    ret[COL_ERROR * 3 + 1] = 0.0F;
+    ret[COL_ERROR * 3 + 2] = 0.0F;
+
+    ret[COL_ERRTEXT * 3 + 0] = 1.0F;
+    ret[COL_ERRTEXT * 3 + 1] = 1.0F;
+    ret[COL_ERRTEXT * 3 + 2] = 1.0F;
+
     *ncolours = NCOLOURS;
     return ret;
 }
@@ -1828,10 +1999,13 @@ static float *game_colours(frontend *fe, game_state *state, int *ncolours)
 static game_drawstate *game_new_drawstate(drawing *dr, game_state *state)
 {
     struct game_drawstate *ds = snew(struct game_drawstate);
+    int i;
 
     ds->tilesize = 0;
-    ds->drawn = snewn(state->p.w * state->p.h, unsigned char);
-    memset(ds->drawn, 0xFF, state->p.w * state->p.h);
+    ds->drawn = snewn(state->p.w * state->p.h, unsigned short);
+    for (i = 0; i < state->p.w * state->p.h; i++)
+	ds->drawn[i] = 0xFFFF;
+    ds->todraw = snewn(state->p.w * state->p.h, unsigned short);
     ds->started = FALSE;
     ds->bl = NULL;
     ds->drag_visible = FALSE;
@@ -1843,9 +2017,41 @@ static game_drawstate *game_new_drawstate(drawing *dr, game_state *state)
 static void game_free_drawstate(drawing *dr, game_drawstate *ds)
 {
     sfree(ds->drawn);
+    sfree(ds->todraw);
     if (ds->bl)
         blitter_free(dr, ds->bl);
     sfree(ds);
+}
+
+static void draw_error(drawing *dr, game_drawstate *ds, int x, int y)
+{
+    int coords[8];
+    int yext, xext;
+
+    /*
+     * Draw a diamond.
+     */
+    coords[0] = x - TILESIZE*2/5;
+    coords[1] = y;
+    coords[2] = x;
+    coords[3] = y - TILESIZE*2/5;
+    coords[4] = x + TILESIZE*2/5;
+    coords[5] = y;
+    coords[6] = x;
+    coords[7] = y + TILESIZE*2/5;
+    draw_polygon(dr, coords, 4, COL_ERROR, COL_GRID);
+
+    /*
+     * Draw an exclamation mark in the diamond. This turns out to
+     * look unpleasantly off-centre if done via draw_text, so I do
+     * it by hand on the basis that exclamation marks aren't that
+     * difficult to draw...
+     */
+    xext = TILESIZE/16;
+    yext = TILESIZE*2/5 - (xext*2+2);
+    draw_rect(dr, x-xext, y-yext, xext*2+1, yext*2+1 - (xext*3+1),
+	      COL_ERRTEXT);
+    draw_rect(dr, x-xext, y+yext-xext*2, xext*2+1, xext*2+1, COL_ERRTEXT);
 }
 
 static void draw_square(drawing *dr, game_drawstate *ds,
@@ -1853,7 +2059,12 @@ static void draw_square(drawing *dr, game_drawstate *ds,
 			int x, int y, int v)
 {
     int w = params->w, h = params->h, wh = w*h;
-    int tv = v / FIVE, bv = v % FIVE;
+    int tv, bv, errs;
+
+    errs = v & ERR_MASK;
+    v &= ~ERR_MASK;
+    tv = v / FIVE;
+    bv = v % FIVE;
 
     clip(dr, COORD(x), COORD(y), TILESIZE, TILESIZE);
 
@@ -1893,7 +2104,22 @@ static void draw_square(drawing *dr, game_drawstate *ds,
         map->map[BE*wh+(y-1)*w+(x-1)] != map->map[LE*wh+y*w+x])
 	draw_rect(dr, COORD(x), COORD(y), 1, 1, COL_GRID);
 
+    /*
+     * Draw error markers.
+     */
+    if (errs & ERR_T)
+	draw_error(dr, ds, COORD(x)+TILESIZE/2, COORD(y));
+    if (errs & ERR_L)
+	draw_error(dr, ds, COORD(x), COORD(y)+TILESIZE/2);
+    if (errs & ERR_B)
+	draw_error(dr, ds, COORD(x)+TILESIZE/2, COORD(y+1));
+    if (errs & ERR_R)
+	draw_error(dr, ds, COORD(x+1), COORD(y)+TILESIZE/2);
+    if (errs & ERR_C)
+	draw_error(dr, ds, COORD(x)+TILESIZE/2, COORD(y)+TILESIZE/2);
+
     unclip(dr);
+
     draw_update(dr, COORD(x), COORD(y), TILESIZE, TILESIZE);
 }
 
@@ -1901,8 +2127,8 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 			game_state *state, int dir, game_ui *ui,
 			float animtime, float flashtime)
 {
-    int w = state->p.w, h = state->p.h, wh = w*h /*, n = state->p.n */;
-    int x, y;
+    int w = state->p.w, h = state->p.h, wh = w*h, n = state->p.n;
+    int x, y, i;
     int flash;
 
     if (ds->drag_visible) {
@@ -1937,6 +2163,9 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
     } else
 	flash = -1;
 
+    /*
+     * Set up the `todraw' array.
+     */
     for (y = 0; y < h; y++)
 	for (x = 0; x < w; x++) {
 	    int tv = state->colouring[state->map->map[TE * wh + y*w+x]];
@@ -1967,6 +2196,42 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 
             v = tv * FIVE + bv;
 
+	    ds->todraw[y*w+x] = v;
+	}
+
+    /*
+     * Add error markers to the `todraw' array.
+     */
+    for (i = 0; i < state->map->ngraph; i++) {
+	int v1 = state->map->graph[i] / n;
+	int v2 = state->map->graph[i] % n;
+
+	if (state->colouring[v1] < 0 || state->colouring[v2] < 0)
+	    continue;
+	if (state->colouring[v1] != state->colouring[v2])
+	    continue;
+
+	x = state->map->edgex[i];
+	y = state->map->edgey[i];
+
+	if (x % 2 && y % 2) {
+	    ds->todraw[(y/2)*w+(x/2)] |= ERR_C;
+	} else if (x % 2) {
+	    ds->todraw[(y/2-1)*w+(x/2)] |= ERR_B;
+	    ds->todraw[(y/2)*w+(x/2)] |= ERR_T;
+	} else {
+	    assert(y % 2);
+	    ds->todraw[(y/2)*w+(x/2-1)] |= ERR_R;
+	    ds->todraw[(y/2)*w+(x/2)] |= ERR_L;
+	}
+    }
+
+    /*
+     * Now actually draw everything.
+     */
+    for (y = 0; y < h; y++)
+	for (x = 0; x < w; x++) {
+	    int v = ds->todraw[y*w+x];
 	    if (ds->drawn[y*w+x] != v) {
 		draw_square(dr, ds, &state->p, state->map, x, y, v);
 		ds->drawn[y*w+x] = v;
