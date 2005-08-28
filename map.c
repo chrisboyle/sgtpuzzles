@@ -42,7 +42,8 @@ static float flash_length;
  */
 #define DIFFLIST(A) \
     A(EASY,Easy,e) \
-    A(NORMAL,Normal,n)
+    A(NORMAL,Normal,n) \
+    A(RECURSE,Unreasonable,u)
 #define ENUM(upper,title,lower) DIFF_ ## upper,
 #define TITLE(upper,title,lower) #title,
 #define ENCODE(upper,title,lower) #lower
@@ -789,6 +790,7 @@ struct solver_scratch {
     int *graph;
     int n;
     int ngraph;
+    int depth;
 };
 
 static struct solver_scratch *new_scratch(int *graph, int n, int ngraph)
@@ -800,6 +802,7 @@ static struct solver_scratch *new_scratch(int *graph, int n, int ngraph)
     sc->n = n;
     sc->ngraph = ngraph;
     sc->possible = snewn(n, unsigned char);
+    sc->depth = 0;
 
     return sc;
 }
@@ -957,13 +960,103 @@ static int map_solver(struct solver_scratch *sc,
     }
 
     /*
-     * We've run out of things to deduce. See if we've got the lot.
+     * See if we've got a complete solution, and return if so.
      */
     for (i = 0; i < n; i++)
 	if (colouring[i] < 0)
-	    return 2;
+            break;
+    if (i == n)
+        return 1;                      /* success! */
 
-    return 1;			       /* success! */
+    /*
+     * If recursion is not permissible, we now give up.
+     */
+    if (difficulty < DIFF_RECURSE)
+        return 2;                      /* unable to complete */
+
+    /*
+     * Now we've got to do something recursive. So first hunt for a
+     * currently-most-constrained region.
+     */
+    {
+        int best, bestc;
+        struct solver_scratch *rsc;
+        int *subcolouring, *origcolouring;
+        int ret, subret;
+        int we_already_got_one;
+
+        best = -1;
+        bestc = FIVE;
+
+        for (i = 0; i < n; i++) if (colouring[i] < 0) {
+            int p = sc->possible[i];
+            enum { compile_time_assertion = 1 / (FOUR <= 4) };
+            int c;
+
+            /* Count the set bits. */
+            c = (p & 5) + ((p >> 1) & 5);
+            c = (c & 3) + ((c >> 2) & 3);
+            assert(c > 1);             /* or colouring[i] would be >= 0 */
+
+            if (c < bestc) {
+                best = i;
+                bestc = c;
+            }
+        }
+
+        assert(best >= 0);             /* or we'd be solved already */
+
+        /*
+         * Now iterate over the possible colours for this region.
+         */
+        rsc = new_scratch(graph, n, ngraph);
+        rsc->depth = sc->depth + 1;
+        origcolouring = snewn(n, int);
+        memcpy(origcolouring, colouring, n * sizeof(int));
+        subcolouring = snewn(n, int);
+        we_already_got_one = FALSE;
+        ret = 0;
+
+        for (i = 0; i < FOUR; i++) {
+            if (!(sc->possible[best] & (1 << i)))
+                continue;
+
+            memcpy(subcolouring, origcolouring, n * sizeof(int));
+            subcolouring[best] = i;
+            subret = map_solver(rsc, graph, n, ngraph,
+                                subcolouring, difficulty);
+
+            /*
+             * If this possibility turned up more than one valid
+             * solution, or if it turned up one and we already had
+             * one, we're definitely ambiguous.
+             */
+            if (subret == 2 || (subret == 1 && we_already_got_one)) {
+                ret = 2;
+                break;
+            }
+
+            /*
+             * If this possibility turned up one valid solution and
+             * it's the first we've seen, copy it into the output.
+             */
+            if (subret == 1) {
+                memcpy(colouring, subcolouring, n * sizeof(int));
+                we_already_got_one = TRUE;
+                ret = 1;
+            }
+
+            /*
+             * Otherwise, this guess led to a contradiction, so we
+             * do nothing.
+             */
+        }
+
+        sfree(subcolouring);
+        free_scratch(rsc);
+
+        return ret;
+    }
 }
 
 /* ----------------------------------------------------------------------

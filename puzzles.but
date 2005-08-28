@@ -1656,6 +1656,15 @@ will have to use more complex logic to deduce the colour of some
 regions. However, it will always be possible without having to
 guess or backtrack.
 
+\lcont{
+
+In \q{Unreasonable} mode, the program will feel free to generate
+puzzles which are as hard as it can possibly make them: the only
+constraint is that they should still have a unique solution. Solving
+Unreasonable puzzles may require guessing and backtracking.
+
+}
+
 
 \C{loopy} \i{Loopy}
 
