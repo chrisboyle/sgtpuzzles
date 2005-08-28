@@ -37,7 +37,7 @@ mkdir tmp.$$/puzzles$arcsuffix
 halibut --winhelp=puzzles.hlp --text=puzzles.txt puzzles.but
 
 # Build a text version of the HACKING document.
-halibut --text=HACKING HACKING.but
+halibut --text=HACKING devel.but
 
 for i in *.c *.m *.h *.but *.plist *.icns LICENCE README Recipe \
   mkfiles.pl Makefile Makefile.* \
