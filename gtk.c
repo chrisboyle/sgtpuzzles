@@ -550,6 +550,10 @@ static gint key_event(GtkWidget *widget, GdkEventKey *event, gpointer data)
         keyval = MOD_NUM_KEYPAD | '0';
     else if (event->keyval == GDK_KP_Begin || event->keyval == GDK_KP_5)
         keyval = MOD_NUM_KEYPAD | '5';
+    else if (event->keyval == GDK_BackSpace ||
+	     event->keyval == GDK_Delete ||
+	     event->keyval == GDK_KP_Delete)
+        keyval = '\177';
     else if (event->string[0] && !event->string[1])
         keyval = (unsigned char)event->string[0];
     else
