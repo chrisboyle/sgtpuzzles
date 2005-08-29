@@ -1248,7 +1248,7 @@ static char *new_game_desc(game_params *params, random_state *rs,
 	    /*
 	     * Drop minimum difficulty if necessary.
 	     */
-	    if (mindiff > 0 && (n < 9 || n > 3*wh/2)) {
+	    if (mindiff > 0 && (n < 9 || n > 2*wh/3)) {
 		if (tries-- <= 0)
 		    mindiff = 0;       /* give up and go for Easy */
 	    }
