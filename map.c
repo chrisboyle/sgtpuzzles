@@ -1239,8 +1239,8 @@ static char *new_game_desc(game_params *params, random_state *rs,
          * Finally, check that the puzzle is _at least_ as hard as
          * required, and indeed that it isn't already solved.
          * (Calling map_solver with negative difficulty ensures the
-         * latter - if a solver which _does nothing_ can't solve
-         * it, it's too easy!)
+         * latter - if a solver which _does nothing_ can solve it,
+         * it's too easy!)
          */
         memcpy(colouring2, colouring, n*sizeof(int));
         if (map_solver(sc, graph, n, ngraph, colouring2,
