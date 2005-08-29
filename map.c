@@ -1640,12 +1640,15 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
 
 	    for (y = 0; y < h; y++)
 		for (x = 0; x < w; x++) {
-		    int ex[3], ey[3], ea[3], eb[3], en = 0;
+		    int ex[4], ey[4], ea[4], eb[4], en = 0;
 
 		    /*
 		     * Look for an edge to the right of this
 		     * square, an edge below it, and an edge in the
-		     * middle of it.
+		     * middle of it. Also look to see if the point
+		     * at the bottom right of this square is on an
+		     * edge (and isn't a place where more than two
+		     * regions meet).
 		     */
 		    if (x+1 < w) {
 			/* right edge */
@@ -1674,6 +1677,46 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
 			ex[en] = x*2+1;
 			ey[en] = y*2+1;
 			en++;
+		    }
+		    if (x+1 < w && y+1 < h) {
+			/* bottom right corner */
+			int oct[8], othercol, nchanges;
+			oct[0] = state->map->map[RE * wh + y*w+x];
+			oct[1] = state->map->map[LE * wh + y*w+(x+1)];
+			oct[2] = state->map->map[BE * wh + y*w+(x+1)];
+			oct[3] = state->map->map[TE * wh + (y+1)*w+(x+1)];
+			oct[4] = state->map->map[LE * wh + (y+1)*w+(x+1)];
+			oct[5] = state->map->map[RE * wh + (y+1)*w+x];
+			oct[6] = state->map->map[TE * wh + (y+1)*w+x];
+			oct[7] = state->map->map[BE * wh + y*w+x];
+
+			othercol = -1;
+			nchanges = 0;
+			for (i = 0; i < 8; i++) {
+			    if (oct[i] != oct[0]) {
+				if (othercol < 0)
+				    othercol = oct[i];
+				else if (othercol != oct[i])
+				    break;   /* three colours at this point */
+			    }
+			    if (oct[i] != oct[(i+1) & 7])
+				nchanges++;
+			}
+
+			/*
+			 * Now if there are exactly two regions at
+			 * this point (not one, and not three or
+			 * more), and only two changes around the
+			 * loop, then this is a valid place to put
+			 * an error marker.
+			 */
+			if (i == 8 && othercol >= 0 && nchanges == 2) {
+			    ea[en] = oct[0];
+			    eb[en] = othercol;
+			    ex[en] = (x+1)*2;
+			    ey[en] = (y+1)*2;
+			    en++;
+			}
 		    }
 
 		    /*
@@ -1886,12 +1929,8 @@ struct game_drawstate {
 };
 
 /* Flags in `drawn'. */
-#define ERR_T    0x0100
-#define ERR_B    0x0200
-#define ERR_L    0x0400
-#define ERR_R    0x0800
-#define ERR_C    0x1000
-#define ERR_MASK 0x1F00
+#define ERR_BASE 0x0080
+#define ERR_MASK 0xFF80
 
 #define TILESIZE (ds->tilesize)
 #define BORDER (TILESIZE)
@@ -2142,9 +2181,9 @@ static void draw_error(drawing *dr, game_drawstate *ds, int x, int y)
      */
     xext = TILESIZE/16;
     yext = TILESIZE*2/5 - (xext*2+2);
-    draw_rect(dr, x-xext, y-yext, xext*2+1, yext*2+1 - (xext*3+1),
+    draw_rect(dr, x-xext, y-yext, xext*2+1, yext*2+1 - (xext*3),
 	      COL_ERRTEXT);
-    draw_rect(dr, x-xext, y+yext-xext*2, xext*2+1, xext*2+1, COL_ERRTEXT);
+    draw_rect(dr, x-xext, y+yext-xext*2+1, xext*2+1, xext*2, COL_ERRTEXT);
 }
 
 static void draw_square(drawing *dr, game_drawstate *ds,
@@ -2152,7 +2191,7 @@ static void draw_square(drawing *dr, game_drawstate *ds,
 			int x, int y, int v)
 {
     int w = params->w, h = params->h, wh = w*h;
-    int tv, bv, errs;
+    int tv, bv, xo, yo, errs;
 
     errs = v & ERR_MASK;
     v &= ~ERR_MASK;
@@ -2200,16 +2239,12 @@ static void draw_square(drawing *dr, game_drawstate *ds,
     /*
      * Draw error markers.
      */
-    if (errs & ERR_T)
-	draw_error(dr, ds, COORD(x)+TILESIZE/2, COORD(y));
-    if (errs & ERR_L)
-	draw_error(dr, ds, COORD(x), COORD(y)+TILESIZE/2);
-    if (errs & ERR_B)
-	draw_error(dr, ds, COORD(x)+TILESIZE/2, COORD(y+1));
-    if (errs & ERR_R)
-	draw_error(dr, ds, COORD(x+1), COORD(y)+TILESIZE/2);
-    if (errs & ERR_C)
-	draw_error(dr, ds, COORD(x)+TILESIZE/2, COORD(y)+TILESIZE/2);
+    for (yo = 0; yo < 3; yo++)
+	for (xo = 0; xo < 3; xo++)
+	    if (errs & (ERR_BASE << (yo*3+xo)))
+		draw_error(dr, ds,
+			   (COORD(x)*2+TILESIZE*xo)/2,
+			   (COORD(y)*2+TILESIZE*yo)/2);
 
     unclip(dr);
 
@@ -2298,6 +2333,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
     for (i = 0; i < state->map->ngraph; i++) {
 	int v1 = state->map->graph[i] / n;
 	int v2 = state->map->graph[i] % n;
+	int xo, yo;
 
 	if (state->colouring[v1] < 0 || state->colouring[v2] < 0)
 	    continue;
@@ -2307,15 +2343,21 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 	x = state->map->edgex[i];
 	y = state->map->edgey[i];
 
-	if (x % 2 && y % 2) {
-	    ds->todraw[(y/2)*w+(x/2)] |= ERR_C;
-	} else if (x % 2) {
-	    ds->todraw[(y/2-1)*w+(x/2)] |= ERR_B;
-	    ds->todraw[(y/2)*w+(x/2)] |= ERR_T;
-	} else {
-	    assert(y % 2);
-	    ds->todraw[(y/2)*w+(x/2-1)] |= ERR_R;
-	    ds->todraw[(y/2)*w+(x/2)] |= ERR_L;
+	xo = x % 2; x /= 2;
+	yo = y % 2; y /= 2;
+
+	ds->todraw[y*w+x] |= ERR_BASE << (yo*3+xo);
+	if (xo == 0) {
+	    assert(x > 0);
+	    ds->todraw[y*w+(x-1)] |= ERR_BASE << (yo*3+2);
+	}
+	if (yo == 0) {
+	    assert(y > 0);
+	    ds->todraw[(y-1)*w+x] |= ERR_BASE << (2*3+xo);
+	}
+	if (xo == 0 && yo == 0) {
+	    assert(x > 0 && y > 0);
+	    ds->todraw[(y-1)*w+(x-1)] |= ERR_BASE << (2*3+2);
 	}
     }
 
