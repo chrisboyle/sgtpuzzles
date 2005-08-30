@@ -116,7 +116,7 @@ typedef unsigned char digit;
 enum { SYMM_NONE, SYMM_ROT2, SYMM_ROT4, SYMM_REF2, SYMM_REF2D, SYMM_REF4,
        SYMM_REF4D, SYMM_REF8 };
 
-enum { DIFF_BLOCK, DIFF_SIMPLE, DIFF_INTERSECT, DIFF_SET, DIFF_NEIGHBOUR,
+enum { DIFF_BLOCK, DIFF_SIMPLE, DIFF_INTERSECT, DIFF_SET, DIFF_EXTREME,
        DIFF_RECURSIVE, DIFF_AMBIGUOUS, DIFF_IMPOSSIBLE };
 
 enum {
@@ -177,7 +177,7 @@ static int game_fetch_preset(int i, char **name, game_params **params)
         { "3x3 Basic", { 3, 3, SYMM_ROT2, DIFF_SIMPLE } },
         { "3x3 Intermediate", { 3, 3, SYMM_ROT2, DIFF_INTERSECT } },
         { "3x3 Advanced", { 3, 3, SYMM_ROT2, DIFF_SET } },
-        { "3x3 Extreme", { 3, 3, SYMM_ROT2, DIFF_NEIGHBOUR } },
+        { "3x3 Extreme", { 3, 3, SYMM_ROT2, DIFF_EXTREME } },
         { "3x3 Unreasonable", { 3, 3, SYMM_ROT2, DIFF_RECURSIVE } },
 #ifndef SLOW_SYSTEM
         { "3x4 Basic", { 3, 4, SYMM_ROT2, DIFF_SIMPLE } },
@@ -238,7 +238,7 @@ static void decode_params(game_params *ret, char const *string)
             else if (*string == 'a')   /* advanced */
                 string++, ret->diff = DIFF_SET;
             else if (*string == 'e')   /* extreme */
-                string++, ret->diff = DIFF_NEIGHBOUR;
+                string++, ret->diff = DIFF_EXTREME;
             else if (*string == 'u')   /* unreasonable */
                 string++, ret->diff = DIFF_RECURSIVE;
         } else
@@ -267,7 +267,7 @@ static char *encode_params(game_params *params, int full)
           case DIFF_SIMPLE: strcat(str, "db"); break;
           case DIFF_INTERSECT: strcat(str, "di"); break;
           case DIFF_SET: strcat(str, "da"); break;
-          case DIFF_NEIGHBOUR: strcat(str, "de"); break;
+          case DIFF_EXTREME: strcat(str, "de"); break;
           case DIFF_RECURSIVE: strcat(str, "du"); break;
         }
     }
@@ -652,7 +652,10 @@ static int solver_intersect(struct solver_usage *usage,
 
 struct solver_scratch {
     unsigned char *grid, *rowidx, *colidx, *set;
-    int *mne;
+    int *neighbours, *bfsqueue;
+#ifdef STANDALONE_SOLVER
+    int *bfsprev;
+#endif
 };
 
 static int solver_set(struct solver_usage *usage,
@@ -867,8 +870,8 @@ static int solver_mne(struct solver_usage *usage,
     int nnb, count;
     int i, j, n, nbi;
 
-    nb[0] = scratch->mne;
-    nb[1] = scratch->mne + cr;
+    nb[0] = scratch->neighbours;
+    nb[1] = scratch->neighbours + cr;
 
     /*
      * First, work out the mutual neighbour squares of the two. We
@@ -1003,6 +1006,201 @@ static int solver_mne(struct solver_usage *usage,
     return 0;			       /* nothing found */
 }
 
+/*
+ * Look for forcing chains. A forcing chain is a path of
+ * pairwise-exclusive squares (i.e. each pair of adjacent squares
+ * in the path are in the same row, column or block) with the
+ * following properties:
+ *
+ *  (a) Each square on the path has precisely two possible numbers.
+ *
+ *  (b) Each pair of squares which are adjacent on the path share
+ *      at least one possible number in common.
+ *
+ *  (c) Each square in the middle of the path shares _both_ of its
+ *      numbers with at least one of its neighbours (not the same
+ *      one with both neighbours).
+ *
+ * These together imply that at least one of the possible number
+ * choices at one end of the path forces _all_ the rest of the
+ * numbers along the path. In order to make real use of this, we
+ * need further properties:
+ *
+ *  (c) Ruling out some number N from the square at one end
+ *      of the path forces the square at the other end to
+ *      take number N.
+ *
+ *  (d) The two end squares are both in line with some third
+ *      square.
+ *
+ *  (e) That third square currently has N as a possibility.
+ *
+ * If we can find all of that lot, we can deduce that at least one
+ * of the two ends of the forcing chain has number N, and that
+ * therefore the mutually adjacent third square does not.
+ *
+ * To find forcing chains, we're going to start a bfs at each
+ * suitable square, once for each of its two possible numbers.
+ */
+static int solver_forcing(struct solver_usage *usage,
+                          struct solver_scratch *scratch)
+{
+    int c = usage->c, r = usage->r, cr = c*r;
+    int *bfsqueue = scratch->bfsqueue;
+#ifdef STANDALONE_SOLVER
+    int *bfsprev = scratch->bfsprev;
+#endif
+    unsigned char *number = scratch->grid;
+    int *neighbours = scratch->neighbours;
+    int x, y;
+
+    for (y = 0; y < cr; y++)
+        for (x = 0; x < cr; x++) {
+            int count, t, n;
+
+            /*
+             * If this square doesn't have exactly two candidate
+             * numbers, don't try it.
+             * 
+             * In this loop we also sum the candidate numbers,
+             * which is a nasty hack to allow us to quickly find
+             * `the other one' (since we will shortly know there
+             * are exactly two).
+             */
+            for (count = t = 0, n = 1; n <= cr; n++)
+                if (cube(x, y, n))
+                    count++, t += n;
+            if (count != 2)
+                continue;
+
+            /*
+             * Now attempt a bfs for each candidate.
+             */
+            for (n = 1; n <= cr; n++)
+                if (cube(x, y, n)) {
+                    int orign, currn, head, tail;
+
+                    /*
+                     * Begin a bfs.
+                     */
+                    orign = n;
+
+                    memset(number, cr+1, cr*cr);
+                    head = tail = 0;
+                    bfsqueue[tail++] = y*cr+x;
+#ifdef STANDALONE_SOLVER
+                    bfsprev[y*cr+x] = -1;
+#endif
+                    number[y*cr+x] = t - n;
+
+                    while (head < tail) {
+                        int xx, yy, nneighbours, xt, yt, xblk, i;
+
+                        xx = bfsqueue[head++];
+                        yy = xx / cr;
+                        xx %= cr;
+
+                        currn = number[yy*cr+xx];
+
+                        /*
+                         * Find neighbours of yy,xx.
+                         */
+                        nneighbours = 0;
+                        for (yt = 0; yt < cr; yt++)
+                            neighbours[nneighbours++] = yt*cr+xx;
+                        for (xt = 0; xt < cr; xt++)
+                            neighbours[nneighbours++] = yy*cr+xt;
+                        xblk = xx - (xx % r);
+                        for (yt = yy % r; yt < cr; yt += r)
+                            for (xt = xblk; xt < xblk+r; xt++)
+                                neighbours[nneighbours++] = yt*cr+xt;
+
+                        /*
+                         * Try visiting each of those neighbours.
+                         */
+                        for (i = 0; i < nneighbours; i++) {
+                            int cc, tt, nn;
+
+                            xt = neighbours[i] % cr;
+                            yt = neighbours[i] / cr;
+
+                            /*
+                             * We need this square to not be
+                             * already visited, and to include
+                             * currn as a possible number.
+                             */
+                            if (number[yt*cr+xt] <= cr)
+                                continue;
+                            if (!cube(xt, yt, currn))
+                                continue;
+
+                            /*
+                             * Don't visit _this_ square a second
+                             * time!
+                             */
+                            if (xt == xx && yt == yy)
+                                continue;
+
+                            /*
+                             * To continue with the bfs, we need
+                             * this square to have exactly two
+                             * possible numbers.
+                             */
+                            for (cc = tt = 0, nn = 1; nn <= cr; nn++)
+                                if (cube(xt, yt, nn))
+                                    cc++, tt += nn;
+                            if (cc == 2) {
+                                bfsqueue[tail++] = yt*cr+xt;
+#ifdef STANDALONE_SOLVER
+                                bfsprev[yt*cr+xt] = yy*cr+xx;
+#endif
+                                number[yt*cr+xt] = tt - currn;
+                            }
+
+                            /*
+                             * One other possibility is that this
+                             * might be the square in which we can
+                             * make a real deduction: if it's
+                             * adjacent to x,y, and currn is equal
+                             * to the original number we ruled out.
+                             */
+                            if (currn == orign &&
+                                (xt == x || yt == y ||
+                                 (xt / r == x / r && yt % r == y % r))) {
+#ifdef STANDALONE_SOLVER
+                                if (solver_show_working) {
+                                    char *sep = "";
+                                    int xl, yl;
+                                    printf("%*sforcing chain, %d at ends of ",
+                                           solver_recurse_depth*4, "", orign);
+                                    xl = xx;
+                                    yl = yy;
+                                    while (1) {
+                                        printf("%s(%d,%d)", sep, 1+xl,
+                                               1+YUNTRANS(yl));
+                                        xl = bfsprev[yl*cr+xl];
+                                        if (xl < 0)
+                                            break;
+                                        yl = xl / cr;
+                                        xl %= cr;
+                                        sep = "-";
+                                    }
+                                    printf("\n%*s  ruling out %d at (%d,%d)\n",
+                                           solver_recurse_depth*4, "",
+                                           orign, 1+xt, 1+YUNTRANS(yt));
+                                }
+#endif
+                                cube(xt, yt, orign) = FALSE;
+                                return 1;
+                            }
+                        }
+                    }
+                }
+        }
+
+    return 0;
+}
+
 static struct solver_scratch *solver_new_scratch(struct solver_usage *usage)
 {
     struct solver_scratch *scratch = snew(struct solver_scratch);
@@ -1011,13 +1209,21 @@ static struct solver_scratch *solver_new_scratch(struct solver_usage *usage)
     scratch->rowidx = snewn(cr, unsigned char);
     scratch->colidx = snewn(cr, unsigned char);
     scratch->set = snewn(cr, unsigned char);
-    scratch->mne = snewn(2*cr, int);
+    scratch->neighbours = snewn(3*cr, int);
+    scratch->bfsqueue = snewn(cr*cr, int);
+#ifdef STANDALONE_SOLVER
+    scratch->bfsprev = snewn(cr*cr, int);
+#endif
     return scratch;
 }
 
 static void solver_free_scratch(struct solver_scratch *scratch)
 {
-    sfree(scratch->mne);
+#ifdef STANDALONE_SOLVER
+    sfree(scratch->bfsprev);
+#endif
+    sfree(scratch->bfsqueue);
+    sfree(scratch->neighbours);
     sfree(scratch->set);
     sfree(scratch->colidx);
     sfree(scratch->rowidx);
@@ -1287,6 +1493,24 @@ static int solver(int c, int r, digit *grid, int maxdiff)
 	}
 
 	/*
+	 * Row-vs-column set elimination on a single number.
+	 */
+	for (n = 1; n <= cr; n++) {
+            ret = solver_set(usage, scratch, cubepos(0,0,n), cr*cr, cr
+#ifdef STANDALONE_SOLVER
+			     , "positional set elimination, number %d", n
+#endif
+			     );
+	    if (ret < 0) {
+		diff = DIFF_IMPOSSIBLE;
+		goto got_result;
+	    } else if (ret > 0) {
+		diff = max(diff, DIFF_EXTREME);
+		goto cont;
+	    }
+	}
+
+	/*
 	 * Mutual neighbour elimination.
 	 */
 	for (y = 0; y+1 < cr; y++) {
@@ -1310,20 +1534,28 @@ static int solver(int c, int r, digit *grid, int maxdiff)
 			    !usage->grid[YUNTRANS(y2)*cr+x2] &&
 			    (solver_mne(usage, scratch, x, y, x2, y2) ||
 			     solver_mne(usage, scratch, x2, y2, x, y))) {
-			    diff = max(diff, DIFF_NEIGHBOUR);
+			    diff = max(diff, DIFF_EXTREME);
 			    goto cont;
 			}
 			if (!usage->grid[YUNTRANS(y)*cr+x2] &&
 			    !usage->grid[YUNTRANS(y2)*cr+x] &&
 			    (solver_mne(usage, scratch, x2, y, x, y2) ||
 			     solver_mne(usage, scratch, x, y2, x2, y))) {
-			    diff = max(diff, DIFF_NEIGHBOUR);
+			    diff = max(diff, DIFF_EXTREME);
 			    goto cont;
 			}
 		    }
 		}
 	    }
 	}
+
+        /*
+         * Forcing chains.
+         */
+        if (solver_forcing(usage, scratch)) {
+            diff = max(diff, DIFF_EXTREME);
+            goto cont;
+        }
 
 	/*
 	 * If we reach here, we have made no deductions in this
@@ -2950,7 +3182,7 @@ int main(int argc, char **argv)
 	       ret==DIFF_SIMPLE ? "Basic (row/column/number elimination required)":
 	       ret==DIFF_INTERSECT ? "Intermediate (intersectional analysis required)":
 	       ret==DIFF_SET ? "Advanced (set elimination required)":
-	       ret==DIFF_NEIGHBOUR ? "Extreme (mutual neighbour elimination required)":
+	       ret==DIFF_EXTREME ? "Extreme (complex non-recursive techniques required)":
 	       ret==DIFF_RECURSIVE ? "Unreasonable (guesswork and backtracking required)":
 	       ret==DIFF_AMBIGUOUS ? "Ambiguous (multiple solutions exist)":
 	       ret==DIFF_IMPOSSIBLE ? "Impossible (no solution exists)":
