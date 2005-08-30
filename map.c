@@ -6,9 +6,9 @@
  * TODO:
  * 
  *  - clue marking
- *  - more solver brains?
  *  - better four-colouring algorithm?
- *  - pencil marks?
+ *  - can we make the pencil marks look nicer?
+ *  - ability to drag a set of pencil marks?
  */
 
 #include <stdio.h>
@@ -43,6 +43,7 @@ static float flash_length;
 #define DIFFLIST(A) \
     A(EASY,Easy,e) \
     A(NORMAL,Normal,n) \
+    A(HARD,Hard,h) \
     A(RECURSE,Unreasonable,u)
 #define ENUM(upper,title,lower) DIFF_ ## upper,
 #define TITLE(upper,title,lower) #title,
@@ -80,7 +81,7 @@ struct map {
 struct game_state {
     game_params p;
     struct map *map;
-    int *colouring;
+    int *colouring, *pencil;
     int completed, cheated;
 };
 
@@ -99,7 +100,10 @@ static game_params *default_params(void)
 static const struct game_params map_presets[] = {
     {20, 15, 30, DIFF_EASY},
     {20, 15, 30, DIFF_NORMAL},
+    {20, 15, 30, DIFF_HARD},
+    {20, 15, 30, DIFF_RECURSE},
     {30, 25, 75, DIFF_NORMAL},
+    {30, 25, 75, DIFF_HARD},
 };
 
 static int game_fetch_preset(int i, char **name, game_params **params)
@@ -788,6 +792,8 @@ static void fourcolour(int *graph, int n, int ngraph, int *colouring,
 struct solver_scratch {
     unsigned char *possible;	       /* bitmap of colours for each region */
     int *graph;
+    int *bfsqueue;
+    int *bfscolour;
     int n;
     int ngraph;
     int depth;
@@ -803,6 +809,8 @@ static struct solver_scratch *new_scratch(int *graph, int n, int ngraph)
     sc->ngraph = ngraph;
     sc->possible = snewn(n, unsigned char);
     sc->depth = 0;
+    sc->bfsqueue = snewn(n, int);
+    sc->bfscolour = snewn(n, int);
 
     return sc;
 }
@@ -810,7 +818,20 @@ static struct solver_scratch *new_scratch(int *graph, int n, int ngraph)
 static void free_scratch(struct solver_scratch *sc)
 {
     sfree(sc->possible);
+    sfree(sc->bfsqueue);
+    sfree(sc->bfscolour);
     sfree(sc);
+}
+
+/*
+ * Count the bits in a word. Only needs to cope with FOUR bits.
+ */
+static int bitcount(int word)
+{
+    assert(FOUR <= 4);                 /* or this needs changing */
+    word = ((word & 0xA) >> 1) + (word & 0x5);
+    word = ((word & 0xC) >> 2) + (word & 0x3);
+    return word;
 }
 
 static int place_colour(struct solver_scratch *sc,
@@ -953,6 +974,126 @@ static int map_solver(struct solver_scratch *sc,
                     done_something = TRUE;
                 }
             }
+        }
+
+        if (done_something)
+            continue;
+
+        if (difficulty < DIFF_HARD)
+            break;                     /* can't do anything harder */
+
+        /*
+         * Right; now we get creative. Now we're going to look for
+         * `forcing chains'. A forcing chain is a path through the
+         * graph with the following properties:
+         * 
+         *  (a) Each vertex on the path has precisely two possible
+         *      colours.
+         * 
+         *  (b) Each pair of vertices which are adjacent on the
+         *      path share at least one possible colour in common.
+         * 
+         *  (c) Each vertex in the middle of the path shares _both_
+         *      of its colours with at least one of its neighbours
+         *      (not the same one with both neighbours).
+         * 
+         * These together imply that at least one of the possible
+         * colour choices at one end of the path forces _all_ the
+         * rest of the colours along the path. In order to make
+         * real use of this, we need further properties:
+         * 
+         *  (c) Ruling out some colour C from the vertex at one end
+         *      of the path forces the vertex at the other end to
+         *      take colour C.
+         * 
+         *  (d) The two end vertices are mutually adjacent to some
+         *      third vertex.
+         * 
+         *  (e) That third vertex currently has C as a possibility.
+         * 
+         * If we can find all of that lot, we can deduce that at
+         * least one of the two ends of the forcing chain has
+         * colour C, and that therefore the mutually adjacent third
+         * vertex does not.
+         * 
+         * To find forcing chains, we're going to start a bfs at
+         * each suitable vertex of the graph, once for each of its
+         * two possible colours.
+         */
+        for (i = 0; i < n; i++) {
+            int c;
+
+            if (colouring[i] >= 0 || bitcount(sc->possible[i]) != 2)
+                continue;
+
+            for (c = 0; c < FOUR; c++)
+                if (sc->possible[i] & (1 << c)) {
+                    int j, k, gi, origc, currc, head, tail;
+                    /*
+                     * Try a bfs from this vertex, ruling out
+                     * colour c.
+                     * 
+                     * Within this loop, we work in colour bitmaps
+                     * rather than actual colours, because
+                     * converting back and forth is a needless
+                     * computational expense.
+                     */
+
+                    origc = 1 << c;
+
+                    for (j = 0; j < n; j++)
+                        sc->bfscolour[j] = -1;
+                    head = tail = 0;
+                    sc->bfsqueue[tail++] = i;
+                    sc->bfscolour[i] = sc->possible[i] &~ origc;
+
+                    while (head < tail) {
+                        j = sc->bfsqueue[head++];
+                        currc = sc->bfscolour[j];
+
+                        /*
+                         * Try neighbours of j.
+                         */
+                        for (gi = graph_vertex_start(graph, n, ngraph, j);
+                             gi < ngraph && graph[gi] < n*(j+1); gi++) {
+                            k = graph[gi] - j*n;
+
+                            /*
+                             * To continue with the bfs in vertex
+                             * k, we need k to be
+                             *  (a) not already visited
+                             *  (b) have two possible colours
+                             *  (c) those colours include currc.
+                             */
+
+                            if (sc->bfscolour[k] < 0 &&
+                                colouring[k] < 0 &&
+                                bitcount(sc->possible[k]) == 2 &&
+                                (sc->possible[k] & currc)) {
+                                sc->bfsqueue[tail++] = k;
+                                sc->bfscolour[k] =
+                                    sc->possible[k] &~ currc;
+                            }
+
+                            /*
+                             * One other possibility is that k
+                             * might be the region in which we can
+                             * make a real deduction: if it's
+                             * adjacent to i, contains currc as a
+                             * possibility, and currc is equal to
+                             * the original colour we ruled out.
+                             */
+                            if (currc == origc &&
+                                graph_adjacent(graph, n, ngraph, k, i) &&
+                                (sc->possible[k] & currc)) {
+                                sc->possible[k] &= ~origc;
+                                done_something = TRUE;
+                            }
+                        }
+                    }
+
+                    assert(tail <= n);
+                }
         }
 
 	if (!done_something)
@@ -1497,6 +1638,9 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
     state->colouring = snewn(n, int);
     for (i = 0; i < n; i++)
 	state->colouring[i] = -1;
+    state->pencil = snewn(n, int);
+    for (i = 0; i < n; i++)
+	state->pencil[i] = 0;
 
     state->completed = state->cheated = FALSE;
 
@@ -1801,6 +1945,8 @@ static game_state *dup_game(game_state *state)
     ret->p = state->p;
     ret->colouring = snewn(state->p.n, int);
     memcpy(ret->colouring, state->colouring, state->p.n * sizeof(int));
+    ret->pencil = snewn(state->p.n, int);
+    memcpy(ret->pencil, state->pencil, state->p.n * sizeof(int));
     ret->map = state->map;
     ret->map->refcount++;
     ret->completed = state->completed;
@@ -1922,15 +2068,20 @@ static void game_changed_state(game_ui *ui, game_state *oldstate,
 
 struct game_drawstate {
     int tilesize;
-    unsigned short *drawn, *todraw;
+    unsigned long *drawn, *todraw;
     int started;
     int dragx, dragy, drag_visible;
     blitter *bl;
 };
 
 /* Flags in `drawn'. */
-#define ERR_BASE 0x0080
-#define ERR_MASK 0xFF80
+#define ERR_BASE    0x00800000L
+#define ERR_MASK    0xFF800000L
+#define PENCIL_T_BASE 0x00080000L
+#define PENCIL_T_MASK 0x00780000L
+#define PENCIL_B_BASE 0x00008000L
+#define PENCIL_B_MASK 0x00078000L
+#define PENCIL_MASK   0x007F8000L
 
 #define TILESIZE (ds->tilesize)
 #define BORDER (TILESIZE)
@@ -2000,7 +2151,11 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
         if (state->colouring[r] == c)
             return "";                 /* don't _need_ to change this region */
 
-	sprintf(buf, "%c:%d", (int)(c < 0 ? 'C' : '0' + c), r);
+	if (button == RIGHT_RELEASE && state->colouring[r] >= 0)
+	    return "";		       /* can't pencil on a coloured region */
+
+	sprintf(buf, "%s%c:%d", (button == RIGHT_RELEASE ? "p" : ""),
+                (int)(c < 0 ? 'C' : '0' + c), r);
 	return dupstr(buf);
     }
 
@@ -2014,12 +2169,30 @@ static game_state *execute_move(game_state *state, char *move)
     int c, k, adv, i;
 
     while (*move) {
+        int pencil = FALSE;
+
 	c = *move;
+        if (c == 'p') {
+            pencil = TRUE;
+            c = *++move;
+        }
 	if ((c == 'C' || (c >= '0' && c < '0'+FOUR)) &&
 	    sscanf(move+1, ":%d%n", &k, &adv) == 1 &&
 	    k >= 0 && k < state->p.n) {
 	    move += 1 + adv;
-	    ret->colouring[k] = (c == 'C' ? -1 : c - '0');
+            if (pencil) {
+		if (ret->colouring[k] >= 0) {
+		    free_game(ret);
+		    return NULL;
+		}
+                if (c == 'C')
+                    ret->pencil[k] = 0;
+                else
+                    ret->pencil[k] ^= 1 << (c - '0');
+            } else {
+                ret->colouring[k] = (c == 'C' ? -1 : c - '0');
+                ret->pencil[k] = 0;
+            }
 	} else if (*move == 'S') {
 	    move++;
 	    ret->cheated = TRUE;
@@ -2134,10 +2307,10 @@ static game_drawstate *game_new_drawstate(drawing *dr, game_state *state)
     int i;
 
     ds->tilesize = 0;
-    ds->drawn = snewn(state->p.w * state->p.h, unsigned short);
+    ds->drawn = snewn(state->p.w * state->p.h, unsigned long);
     for (i = 0; i < state->p.w * state->p.h; i++)
-	ds->drawn[i] = 0xFFFF;
-    ds->todraw = snewn(state->p.w * state->p.h, unsigned short);
+	ds->drawn[i] = 0xFFFFL;
+    ds->todraw = snewn(state->p.w * state->p.h, unsigned long);
     ds->started = FALSE;
     ds->bl = NULL;
     ds->drag_visible = FALSE;
@@ -2191,10 +2364,12 @@ static void draw_square(drawing *dr, game_drawstate *ds,
 			int x, int y, int v)
 {
     int w = params->w, h = params->h, wh = w*h;
-    int tv, bv, xo, yo, errs;
+    int tv, bv, xo, yo, errs, pencil;
 
     errs = v & ERR_MASK;
     v &= ~ERR_MASK;
+    pencil = v & PENCIL_MASK;
+    v &= ~PENCIL_MASK;
     tv = v / FIVE;
     bv = v % FIVE;
 
@@ -2223,6 +2398,39 @@ static void draw_square(drawing *dr, game_drawstate *ds,
         draw_polygon(dr, coords, 3,
                      (bv == FOUR ? COL_BACKGROUND : COL_0 + bv), COL_GRID);
     }
+
+    /*
+     * Draw `pencil marks'. Currently we arrange these in a square
+     * formation, which means we may be in trouble if the value of
+     * FOUR changes later...
+     */
+    assert(FOUR == 4);
+    for (yo = 0; yo < 4; yo++)
+	for (xo = 0; xo < 4; xo++) {
+	    int te = map->map[TE * wh + y*w+x];
+	    int e, ee, c;
+
+	    e = (yo < xo && yo < 3-xo ? TE :
+		 yo > xo && yo > 3-xo ? BE :
+		 xo < 2 ? LE : RE);
+	    ee = map->map[e * wh + y*w+x];
+
+	    c = (yo & 1) * 2 + (xo & 1);
+
+	    if (!(pencil & ((ee == te ? PENCIL_T_BASE : PENCIL_B_BASE) << c)))
+		continue;
+
+	    if (yo == xo &&
+		(map->map[TE * wh + y*w+x] != map->map[LE * wh + y*w+x]))
+		continue;	       /* avoid TL-BR diagonal line */
+	    if (yo == 3-xo &&
+		(map->map[TE * wh + y*w+x] != map->map[RE * wh + y*w+x]))
+		continue;	       /* avoid BL-TR diagonal line */
+
+	    draw_rect(dr, COORD(x) + (5*xo+1)*TILESIZE/20,
+		      COORD(y) + (5*yo+1)*TILESIZE/20,
+		      4*TILESIZE/20, 4*TILESIZE/20, COL_0 + c);
+	}
 
     /*
      * Draw the grid lines, if required.
@@ -2323,6 +2531,18 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 	    }
 
             v = tv * FIVE + bv;
+
+            /*
+             * Add pencil marks.
+             */
+	    for (i = 0; i < FOUR; i++) {
+		if (state->colouring[state->map->map[TE * wh + y*w+x]] < 0 &&
+		    (state->pencil[state->map->map[TE * wh + y*w+x]] & (1<<i)))
+		    v |= PENCIL_T_BASE << i;
+		if (state->colouring[state->map->map[BE * wh + y*w+x]] < 0 &&
+		    (state->pencil[state->map->map[BE * wh + y*w+x]] & (1<<i)))
+		    v |= PENCIL_B_BASE << i;
+	    }
 
 	    ds->todraw[y*w+x] = v;
 	}

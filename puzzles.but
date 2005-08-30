@@ -1624,14 +1624,21 @@ for many detailed suggestions.
 
 \IM{Map controls} controls, for Map
 
-To colour a region, click on an existing region of the desired
-colour and drag that colour into the new region.
+To colour a region, click the left mouse button on an existing
+region of the desired colour and drag that colour into the new
+region.
 
 (The program will always ensure the starting puzzle has at least one
 region of each colour, so that this is always possible!)
 
 If you need to clear a region, you can drag from an empty region, or
 from the puzzle boundary if there are no empty regions left.
+
+Dragging a colour using the \e{right} mouse button will stipple the
+region in that colour, which you can use as a note to yourself that
+you think the region \e{might} be that colour. A region can contain
+stipples in multiple colours at once. (This is often useful at the
+harder difficulty levels.)
 
 (All the actions described in \k{common-actions} are also available.)
 
@@ -1651,10 +1658,10 @@ These parameters are available from the \q{Custom...} option on the
 \dt \e{Difficulty}
 
 \dd In \q{Easy} mode, there should always be at least one region
-whose colour can be determined trivially. In \q{Normal} mode, you
-will have to use more complex logic to deduce the colour of some
-regions. However, it will always be possible without having to
-guess or backtrack.
+whose colour can be determined trivially. In \q{Normal} and \q{Hard}
+modes, you will have to use increasingly complex logic to deduce the
+colour of some regions. However, it will always be possible without
+having to guess or backtrack.
 
 \lcont{
 
