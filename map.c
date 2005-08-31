@@ -7,7 +7,6 @@
  * 
  *  - clue marking
  *  - better four-colouring algorithm?
- *  - can we make the pencil marks look nicer?
  *  - ability to drag a set of pencil marks?
  */
 
@@ -2635,7 +2634,9 @@ static void draw_square(drawing *dr, game_drawstate *ds,
 		 xo < 2 ? LE : RE);
 	    ee = map->map[e * wh + y*w+x];
 
-	    c = (yo & 1) * 2 + (xo & 1);
+	    if (xo != (yo * 2 + 1) % 5)
+		continue;
+	    c = yo;
 
 	    if (!(pencil & ((ee == te ? PENCIL_T_BASE : PENCIL_B_BASE) << c)))
 		continue;
@@ -2647,9 +2648,9 @@ static void draw_square(drawing *dr, game_drawstate *ds,
 		(map->map[TE * wh + y*w+x] != map->map[RE * wh + y*w+x]))
 		continue;	       /* avoid BL-TR diagonal line */
 
-	    draw_rect(dr, COORD(x) + (5*xo+1)*TILESIZE/20,
-		      COORD(y) + (5*yo+1)*TILESIZE/20,
-		      4*TILESIZE/20, 4*TILESIZE/20, COL_0 + c);
+	    draw_circle(dr, COORD(x) + (xo+1)*TILESIZE/5,
+			COORD(y) + (yo+1)*TILESIZE/5,
+			TILESIZE/8, COL_0 + c, COL_0 + c);
 	}
 
     /*
