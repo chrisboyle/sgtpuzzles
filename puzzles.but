@@ -1640,6 +1640,13 @@ you think the region \e{might} be that colour. A region can contain
 stipples in multiple colours at once. (This is often useful at the
 harder difficulty levels.)
 
+If you press L during play, the game will toggle display of a number
+in each region of the map. This is useful if you want to discuss a
+particular puzzle instance with a friend \dash having an unambiguous
+name for each region is much easier than trying to refer to them all
+by names such as \q{the one down and right of the brown one on the
+top border}.
+
 (All the actions described in \k{common-actions} are also available.)
 
 \H{map-parameters} \I{parameters, for Map}Map parameters

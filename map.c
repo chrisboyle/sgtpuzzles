@@ -21,6 +21,18 @@
 #include "puzzles.h"
 
 /*
+ * In standalone solver mode, `verbose' is a variable which can be
+ * set by command-line option; in debugging mode it's simply always
+ * true.
+ */
+#if defined STANDALONE_SOLVER
+#define SOLVER_DIAGNOSTICS
+int verbose = FALSE;
+#elif defined SOLVER_DIAGNOSTICS
+#define verbose TRUE
+#endif
+
+/*
  * I don't seriously anticipate wanting to change the number of
  * colours used in this game, but it doesn't cost much to use a
  * #define just in case :-)
@@ -75,7 +87,8 @@ struct map {
     int n;
     int ngraph;
     int *immutable;
-    int *edgex, *edgey;		       /* positions of a point on each edge */
+    int *edgex, *edgey;		       /* position of a point on each edge */
+    int *regionx, *regiony;            /* position of a point in each region */
 };
 
 struct game_state {
@@ -794,6 +807,9 @@ struct solver_scratch {
     int *graph;
     int *bfsqueue;
     int *bfscolour;
+#ifdef SOLVER_DIAGNOSTICS
+    int *bfsprev;
+#endif
     int n;
     int ngraph;
     int depth;
@@ -811,6 +827,9 @@ static struct solver_scratch *new_scratch(int *graph, int n, int ngraph)
     sc->depth = 0;
     sc->bfsqueue = snewn(n, int);
     sc->bfscolour = snewn(n, int);
+#ifdef SOLVER_DIAGNOSTICS
+    sc->bfsprev = snewn(n, int);
+#endif
 
     return sc;
 }
@@ -820,6 +839,9 @@ static void free_scratch(struct solver_scratch *sc)
     sfree(sc->possible);
     sfree(sc->bfsqueue);
     sfree(sc->bfscolour);
+#ifdef SOLVER_DIAGNOSTICS
+    sfree(sc->bfsprev);
+#endif
     sfree(sc);
 }
 
@@ -834,8 +856,16 @@ static int bitcount(int word)
     return word;
 }
 
+#ifdef SOLVER_DIAGNOSTICS
+static const char colnames[FOUR] = { 'R', 'Y', 'G', 'B' };
+#endif
+
 static int place_colour(struct solver_scratch *sc,
-			int *colouring, int index, int colour)
+			int *colouring, int index, int colour
+#ifdef SOLVER_DIAGNOSTICS
+                        , char *verb
+#endif
+                        )
 {
     int *graph = sc->graph, n = sc->n, ngraph = sc->ngraph;
     int j, k;
@@ -846,17 +876,43 @@ static int place_colour(struct solver_scratch *sc,
     sc->possible[index] = 1 << colour;
     colouring[index] = colour;
 
+#ifdef SOLVER_DIAGNOSTICS
+    if (verbose)
+	printf("%s %c in region %d\n", verb, colnames[colour], index);
+#endif
+
     /*
      * Rule out this colour from all the region's neighbours.
      */
     for (j = graph_vertex_start(graph, n, ngraph, index);
 	 j < ngraph && graph[j] < n*(index+1); j++) {
 	k = graph[j] - index*n;
+#ifdef SOLVER_DIAGNOSTICS
+        if (verbose && (sc->possible[k] & (1 << colour)))
+            printf("  ruling out %c in region %d\n", colnames[colour], k);
+#endif
 	sc->possible[k] &= ~(1 << colour);
     }
 
     return TRUE;
 }
+
+#ifdef SOLVER_DIAGNOSTICS
+static char *colourset(char *buf, int set)
+{
+    int i;
+    char *p = buf;
+    char *sep = "";
+
+    for (i = 0; i < FOUR; i++)
+        if (set & (1 << i)) {
+            p += sprintf(p, "%s%c", sep, colnames[i]);
+            sep = ",";
+        }
+
+    return buf;
+}
+#endif
 
 /*
  * Returns 0 for impossible, 1 for success, 2 for failure to
@@ -880,7 +936,11 @@ static int map_solver(struct solver_scratch *sc,
      */
     for (i = 0; i < n; i++)
 	if (colouring[i] >= 0) {
-	    if (!place_colour(sc, colouring, i, colouring[i]))
+	    if (!place_colour(sc, colouring, i, colouring[i]
+#ifdef SOLVER_DIAGNOSTICS
+                              , "initial clue:"
+#endif
+                              ))
 		return 0;	       /* the clues aren't even consistent! */
 	}
 
@@ -909,7 +969,11 @@ static int map_solver(struct solver_scratch *sc,
 		    if (p == (1 << c))
 			break;
 		assert(c < FOUR);
-		if (!place_colour(sc, colouring, i, c))
+		if (!place_colour(sc, colouring, i, c
+#ifdef SOLVER_DIAGNOSTICS
+                                  , "placing"
+#endif
+                                  ))
 		    return 0;	       /* found puzzle to be inconsistent */
 		done_something = TRUE;
 	    }
@@ -935,6 +999,9 @@ static int map_solver(struct solver_scratch *sc,
         for (i = 0; i < ngraph; i++) {
             int j1 = graph[i] / n, j2 = graph[i] % n;
             int j, k, v, v2;
+#ifdef SOLVER_DIAGNOSTICS
+            int started = FALSE;
+#endif
 
             if (j1 > j2)
                 continue;              /* done it already, other way round */
@@ -970,6 +1037,17 @@ static int map_solver(struct solver_scratch *sc,
                 k = graph[j] - j1*n;
                 if (graph_adjacent(graph, n, ngraph, k, j2) &&
                     (sc->possible[k] & v)) {
+#ifdef SOLVER_DIAGNOSTICS
+                    if (verbose) {
+                        char buf[80];
+                        if (!started)
+                            printf("adjacent regions %d,%d share colours %s\n",
+                                   j1, j2, colourset(buf, v));
+                        started = TRUE;
+                        printf("  ruling out %s in region %d\n",
+                               colourset(buf, sc->possible[k] & v), k);
+                    }
+#endif
                     sc->possible[k] &= ~v;
                     done_something = TRUE;
                 }
@@ -1041,8 +1119,12 @@ static int map_solver(struct solver_scratch *sc,
 
                     origc = 1 << c;
 
-                    for (j = 0; j < n; j++)
+                    for (j = 0; j < n; j++) {
                         sc->bfscolour[j] = -1;
+#ifdef SOLVER_DIAGNOSTICS
+                        sc->bfsprev[j] = -1;
+#endif
+                    }
                     head = tail = 0;
                     sc->bfsqueue[tail++] = i;
                     sc->bfscolour[i] = sc->possible[i] &~ origc;
@@ -1073,6 +1155,9 @@ static int map_solver(struct solver_scratch *sc,
                                 sc->bfsqueue[tail++] = k;
                                 sc->bfscolour[k] =
                                     sc->possible[k] &~ currc;
+#ifdef SOLVER_DIAGNOSTICS
+                                sc->bfsprev[k] = j;
+#endif
                             }
 
                             /*
@@ -1086,6 +1171,21 @@ static int map_solver(struct solver_scratch *sc,
                             if (currc == origc &&
                                 graph_adjacent(graph, n, ngraph, k, i) &&
                                 (sc->possible[k] & currc)) {
+#ifdef SOLVER_DIAGNOSTICS
+                                if (verbose) {
+                                    char buf[80], *sep = "";
+                                    int r;
+
+                                    printf("forcing chain, colour %s, ",
+                                           colourset(buf, origc));
+                                    for (r = j; r != -1; r = sc->bfsprev[r]) {
+                                        printf("%s%d", sep, r);
+                                        sep = "-";
+                                    }
+                                    printf("\n  ruling out %s in region %d\n",
+                                           colourset(buf, origc), k);
+                                }
+#endif
                                 sc->possible[k] &= ~origc;
                                 done_something = TRUE;
                             }
@@ -1745,21 +1845,23 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
 
     /*
      * Analyse the map to find a canonical line segment
-     * corresponding to each edge. These are where we'll eventually
-     * put error markers.
+     * corresponding to each edge, and a canonical point
+     * corresponding to each region. The former are where we'll
+     * eventually put error markers; the latter are where we'll put
+     * per-region flags such as numbers (when in diagnostic mode).
      */
     {
 	int *bestx, *besty, *an, pass;
 	float *ax, *ay, *best;
 
-	ax = snewn(state->map->ngraph, float);
-	ay = snewn(state->map->ngraph, float);
-	an = snewn(state->map->ngraph, int);
-	bestx = snewn(state->map->ngraph, int);
-	besty = snewn(state->map->ngraph, int);
-	best = snewn(state->map->ngraph, float);
+	ax = snewn(state->map->ngraph + n, float);
+	ay = snewn(state->map->ngraph + n, float);
+	an = snewn(state->map->ngraph + n, int);
+	bestx = snewn(state->map->ngraph + n, int);
+	besty = snewn(state->map->ngraph + n, int);
+	best = snewn(state->map->ngraph + n, float);
 
-	for (i = 0; i < state->map->ngraph; i++) {
+	for (i = 0; i < state->map->ngraph + n; i++) {
 	    bestx[i] = besty[i] = -1;
 	    best[i] = 2*(w+h)+1;
 	    ax[i] = ay[i] = 0.0F;
@@ -1768,11 +1870,12 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
 
 	/*
 	 * We make two passes over the map, finding all the line
-	 * segments separating regions. In the first pass, we
-	 * compute the _average_ x and y coordinate of all the line
-	 * segments separating each pair of regions; in the second
-	 * pass, for each such average point, we find the line
-	 * segment closest to it and call that canonical.
+	 * segments separating regions and all the suitable points
+	 * within regions. In the first pass, we compute the
+	 * _average_ x and y coordinate of all the points in a
+	 * given class; in the second pass, for each such average
+	 * point, we find the candidate closest to it and call that
+	 * canonical.
 	 * 
 	 * Line segments are considered to have coordinates in
 	 * their centre. Thus, at least one coordinate for any line
@@ -1798,30 +1901,25 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
 			/* right edge */
 			ea[en] = state->map->map[RE * wh + y*w+x];
 			eb[en] = state->map->map[LE * wh + y*w+(x+1)];
-			if (ea[en] != eb[en]) {
-			    ex[en] = (x+1)*2;
-			    ey[en] = y*2+1;
-			    en++;
-			}
+                        ex[en] = (x+1)*2;
+                        ey[en] = y*2+1;
+                        en++;
 		    }
 		    if (y+1 < h) {
 			/* bottom edge */
 			ea[en] = state->map->map[BE * wh + y*w+x];
 			eb[en] = state->map->map[TE * wh + (y+1)*w+x];
-			if (ea[en] != eb[en]) {
-			    ex[en] = x*2+1;
-			    ey[en] = (y+1)*2;
-			    en++;
-			}
+                        ex[en] = x*2+1;
+                        ey[en] = (y+1)*2;
+                        en++;
 		    }
 		    /* diagonal edge */
 		    ea[en] = state->map->map[TE * wh + y*w+x];
 		    eb[en] = state->map->map[BE * wh + y*w+x];
-		    if (ea[en] != eb[en]) {
-			ex[en] = x*2+1;
-			ey[en] = y*2+1;
-			en++;
-		    }
+                    ex[en] = x*2+1;
+                    ey[en] = y*2+1;
+                    en++;
+
 		    if (x+1 < w && y+1 < h) {
 			/* bottom right corner */
 			int oct[8], othercol, nchanges;
@@ -1861,18 +1959,39 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
 			    ey[en] = (y+1)*2;
 			    en++;
 			}
+
+                        /*
+                         * If there's exactly _one_ region at this
+                         * point, on the other hand, it's a valid
+                         * place to put a region centre.
+                         */
+                        if (othercol < 0) {
+			    ea[en] = eb[en] = oct[0];
+			    ex[en] = (x+1)*2;
+			    ey[en] = (y+1)*2;
+			    en++;
+                        }
 		    }
 
 		    /*
-		     * Now process the edges we've found, one by
+		     * Now process the points we've found, one by
 		     * one.
 		     */
 		    for (i = 0; i < en; i++) {
 			int emin = min(ea[i], eb[i]);
 			int emax = max(ea[i], eb[i]);
-			int gindex = 
-			    graph_edge_index(state->map->graph, n,
-					     state->map->ngraph, emin, emax);
+			int gindex;
+
+                        if (emin != emax) {
+                            /* Graph edge */
+                            gindex =
+                                graph_edge_index(state->map->graph, n,
+                                                 state->map->ngraph, emin,
+                                                 emax);
+                        } else {
+                            /* Region number */
+                            gindex = state->map->ngraph + emin;
+                        }
 
 			assert(gindex >= 0);
 
@@ -1907,7 +2026,7 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
 		}
 
 	    if (pass == 0) {
-		for (i = 0; i < state->map->ngraph; i++)
+		for (i = 0; i < state->map->ngraph + n; i++)
 		    if (an[i] > 0) {
 			ax[i] /= an[i];
 			ay[i] /= an[i];
@@ -1915,8 +2034,15 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
 	    }
 	}
 
-	state->map->edgex = bestx;
-	state->map->edgey = besty;
+	state->map->edgex = snewn(state->map->ngraph, int);
+	state->map->edgey = snewn(state->map->ngraph, int);
+        memcpy(state->map->edgex, bestx, state->map->ngraph * sizeof(int));
+        memcpy(state->map->edgey, besty, state->map->ngraph * sizeof(int));
+
+	state->map->regionx = snewn(n, int);
+	state->map->regiony = snewn(n, int);
+        memcpy(state->map->regionx, bestx + state->map->ngraph, n*sizeof(int));
+        memcpy(state->map->regiony, besty + state->map->ngraph, n*sizeof(int));
 
 	for (i = 0; i < state->map->ngraph; i++)
 	    if (state->map->edgex[i] < 0) {
@@ -1933,6 +2059,8 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
 	sfree(ay);
 	sfree(an);
 	sfree(best);
+	sfree(bestx);
+	sfree(besty);
     }
 
     return state;
@@ -1963,6 +2091,8 @@ static void free_game(game_state *state)
 	sfree(state->map->immutable);
 	sfree(state->map->edgex);
 	sfree(state->map->edgey);
+	sfree(state->map->regionx);
+	sfree(state->map->regiony);
 	sfree(state->map);
     }
     sfree(state->colouring);
@@ -2037,6 +2167,7 @@ static char *game_text_format(game_state *state)
 struct game_ui {
     int drag_colour;                   /* -1 means no drag active */
     int dragx, dragy;
+    int show_numbers;
 };
 
 static game_ui *new_ui(game_state *state)
@@ -2044,6 +2175,7 @@ static game_ui *new_ui(game_state *state)
     game_ui *ui = snew(game_ui);
     ui->dragx = ui->dragy = -1;
     ui->drag_colour = -2;
+    ui->show_numbers = FALSE;
     return ui;
 }
 
@@ -2075,13 +2207,14 @@ struct game_drawstate {
 };
 
 /* Flags in `drawn'. */
-#define ERR_BASE    0x00800000L
-#define ERR_MASK    0xFF800000L
+#define ERR_BASE      0x00800000L
+#define ERR_MASK      0xFF800000L
 #define PENCIL_T_BASE 0x00080000L
 #define PENCIL_T_MASK 0x00780000L
 #define PENCIL_B_BASE 0x00008000L
 #define PENCIL_B_MASK 0x00078000L
 #define PENCIL_MASK   0x007F8000L
+#define SHOW_NUMBERS  0x00004000L
 
 #define TILESIZE (ds->tilesize)
 #define BORDER (TILESIZE)
@@ -2111,6 +2244,14 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
 			    int x, int y, int button)
 {
     char buf[80];
+
+    /*
+     * Enable or disable numeric labels on regions.
+     */
+    if (button == 'l' || button == 'L') {
+        ui->show_numbers = !ui->show_numbers;
+        return "";
+    }
 
     if (button == LEFT_BUTTON || button == RIGHT_BUTTON) {
 	int r = region_from_coords(state, ds, x, y);
@@ -2364,12 +2505,15 @@ static void draw_square(drawing *dr, game_drawstate *ds,
 			int x, int y, int v)
 {
     int w = params->w, h = params->h, wh = w*h;
-    int tv, bv, xo, yo, errs, pencil;
+    int tv, bv, xo, yo, errs, pencil, i, j, oldj;
+    int show_numbers;
 
     errs = v & ERR_MASK;
     v &= ~ERR_MASK;
     pencil = v & PENCIL_MASK;
     v &= ~PENCIL_MASK;
+    show_numbers = v & SHOW_NUMBERS;
+    v &= ~SHOW_NUMBERS;
     tv = v / FIVE;
     bv = v % FIVE;
 
@@ -2453,6 +2597,31 @@ static void draw_square(drawing *dr, game_drawstate *ds,
 		draw_error(dr, ds,
 			   (COORD(x)*2+TILESIZE*xo)/2,
 			   (COORD(y)*2+TILESIZE*yo)/2);
+
+    /*
+     * Draw region numbers, if desired.
+     */
+    if (show_numbers) {
+        oldj = -1;
+        for (i = 0; i < 2; i++) {
+            j = map->map[(i?BE:TE)*wh+y*w+x];
+            if (oldj == j)
+                continue;
+            oldj = j;
+
+            xo = map->regionx[j] - 2*x;
+            yo = map->regiony[j] - 2*y;
+            if (xo >= 0 && xo <= 2 && yo >= 0 && yo <= 2) {
+                char buf[80];
+                sprintf(buf, "%d", j);
+                draw_text(dr, (COORD(x)*2+TILESIZE*xo)/2,
+                          (COORD(y)*2+TILESIZE*yo)/2,
+                          FONT_VARIABLE, 3*TILESIZE/5,
+                          ALIGN_HCENTRE|ALIGN_VCENTRE,
+                          COL_GRID, buf);
+            }
+        }
+    }
 
     unclip(dr);
 
@@ -2543,6 +2712,9 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 		    (state->pencil[state->map->map[BE * wh + y*w+x]] & (1<<i)))
 		    v |= PENCIL_B_BASE << i;
 	    }
+
+            if (ui->show_numbers)
+                v |= SHOW_NUMBERS;
 
 	    ds->todraw[y*w+x] = v;
 	}
@@ -2760,7 +2932,7 @@ static void game_print(drawing *dr, game_state *state, int tilesize)
 		    else
 			d2 = i;
 		}
-/* printf("%% %d,%d r=%d: d1=%d d2=%d lastdir=%d\n", x, y, r, d1, d2, lastdir); */
+
 	    assert(d1 != -1 && d2 != -1);
 	    if (d1 == lastdir)
 		d1 = d2;
@@ -2833,3 +3005,145 @@ const struct game thegame = {
     FALSE, game_timing_state,
     0,				       /* mouse_priorities */
 };
+
+#ifdef STANDALONE_SOLVER
+
+#include <stdarg.h>
+
+void frontend_default_colour(frontend *fe, float *output) {}
+void draw_text(drawing *dr, int x, int y, int fonttype, int fontsize,
+               int align, int colour, char *text) {}
+void draw_rect(drawing *dr, int x, int y, int w, int h, int colour) {}
+void draw_line(drawing *dr, int x1, int y1, int x2, int y2, int colour) {}
+void draw_polygon(drawing *dr, int *coords, int npoints,
+                  int fillcolour, int outlinecolour) {}
+void draw_circle(drawing *dr, int cx, int cy, int radius,
+                 int fillcolour, int outlinecolour) {}
+void clip(drawing *dr, int x, int y, int w, int h) {}
+void unclip(drawing *dr) {}
+void start_draw(drawing *dr) {}
+void draw_update(drawing *dr, int x, int y, int w, int h) {}
+void end_draw(drawing *dr) {}
+blitter *blitter_new(drawing *dr, int w, int h) {return NULL;}
+void blitter_free(drawing *dr, blitter *bl) {}
+void blitter_save(drawing *dr, blitter *bl, int x, int y) {}
+void blitter_load(drawing *dr, blitter *bl, int x, int y) {}
+int print_mono_colour(drawing *dr, int grey) { return 0; }
+int print_rgb_colour(drawing *dr, int hatch, float r, float g, float b)
+{ return 0; }
+void print_line_width(drawing *dr, int width) {}
+
+void fatal(char *fmt, ...)
+{
+    va_list ap;
+
+    fprintf(stderr, "fatal error: ");
+
+    va_start(ap, fmt);
+    vfprintf(stderr, fmt, ap);
+    va_end(ap);
+
+    fprintf(stderr, "\n");
+    exit(1);
+}
+
+int main(int argc, char **argv)
+{
+    game_params *p;
+    game_state *s;
+    char *id = NULL, *desc, *err;
+    int grade = FALSE;
+    int ret, diff, really_verbose = FALSE;
+    struct solver_scratch *sc;
+    int i;
+
+    while (--argc > 0) {
+        char *p = *++argv;
+        if (!strcmp(p, "-v")) {
+            really_verbose = TRUE;
+        } else if (!strcmp(p, "-g")) {
+            grade = TRUE;
+        } else if (*p == '-') {
+            fprintf(stderr, "%s: unrecognised option `%s'\n", argv[0], p);
+            return 1;
+        } else {
+            id = p;
+        }
+    }
+
+    if (!id) {
+        fprintf(stderr, "usage: %s [-g | -v] <game_id>\n", argv[0]);
+        return 1;
+    }
+
+    desc = strchr(id, ':');
+    if (!desc) {
+        fprintf(stderr, "%s: game id expects a colon in it\n", argv[0]);
+        return 1;
+    }
+    *desc++ = '\0';
+
+    p = default_params();
+    decode_params(p, id);
+    err = validate_desc(p, desc);
+    if (err) {
+        fprintf(stderr, "%s: %s\n", argv[0], err);
+        return 1;
+    }
+    s = new_game(NULL, p, desc);
+
+    sc = new_scratch(s->map->graph, s->map->n, s->map->ngraph);
+
+    /*
+     * When solving an Easy puzzle, we don't want to bother the
+     * user with Hard-level deductions. For this reason, we grade
+     * the puzzle internally before doing anything else.
+     */
+    ret = -1;			       /* placate optimiser */
+    for (diff = 0; diff < DIFFCOUNT; diff++) {
+        for (i = 0; i < s->map->n; i++)
+            if (!s->map->immutable[i])
+                s->colouring[i] = -1;
+	ret = map_solver(sc, s->map->graph, s->map->n, s->map->ngraph,
+                         s->colouring, diff);
+	if (ret < 2)
+	    break;
+    }
+
+    if (diff == DIFFCOUNT) {
+	if (grade)
+	    printf("Difficulty rating: harder than Hard, or ambiguous\n");
+	else
+	    printf("Unable to find a unique solution\n");
+    } else {
+	if (grade) {
+	    if (ret == 0)
+		printf("Difficulty rating: impossible (no solution exists)\n");
+	    else if (ret == 1)
+		printf("Difficulty rating: %s\n", map_diffnames[diff]);
+	} else {
+	    verbose = really_verbose;
+            for (i = 0; i < s->map->n; i++)
+                if (!s->map->immutable[i])
+                    s->colouring[i] = -1;
+            ret = map_solver(sc, s->map->graph, s->map->n, s->map->ngraph,
+                             s->colouring, diff);
+	    if (ret == 0)
+		printf("Puzzle is inconsistent\n");
+	    else {
+                int col = 0;
+
+                for (i = 0; i < s->map->n; i++) {
+                    printf("%5d <- %c%c", i, colnames[s->colouring[i]],
+                           (col < 6 && i+1 < s->map->n ? ' ' : '\n'));
+                    if (++col == 7)
+                        col = 0;
+                }
+            }
+	}
+    }
+
+    return 0;
+}
+
+#endif
