@@ -7,7 +7,6 @@
  * 
  *  - clue marking
  *  - better four-colouring algorithm?
- *  - ability to drag a set of pencil marks?
  */
 
 #include <stdio.h>
@@ -2241,6 +2240,7 @@ static char *game_text_format(game_state *state)
 
 struct game_ui {
     int drag_colour;                   /* -1 means no drag active */
+    int drag_pencil;
     int dragx, dragy;
     int show_numbers;
 };
@@ -2318,7 +2318,7 @@ static int region_from_coords(game_state *state, game_drawstate *ds,
 static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
 			    int x, int y, int button)
 {
-    char buf[80];
+    char *bufp, buf[256];
 
     /*
      * Enable or disable numeric labels on regions.
@@ -2331,10 +2331,15 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
     if (button == LEFT_BUTTON || button == RIGHT_BUTTON) {
 	int r = region_from_coords(state, ds, x, y);
 
-        if (r >= 0)
+        if (r >= 0) {
             ui->drag_colour = state->colouring[r];
-        else
+	    ui->drag_pencil = state->pencil[r];
+	    if (ui->drag_colour >= 0)
+		ui->drag_pencil = 0;  /* should be already, but double-check */
+	} else {
             ui->drag_colour = -1;
+	    ui->drag_pencil = 0;
+	}
         ui->dragx = x;
         ui->dragy = y;
         return "";
@@ -2351,6 +2356,8 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
         ui->drag_colour > -2) {
 	int r = region_from_coords(state, ds, x, y);
         int c = ui->drag_colour;
+	int p = ui->drag_pencil;
+	int oldp;
 
         /*
          * Cancel the drag, whatever happens.
@@ -2364,15 +2371,37 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
 	if (state->map->immutable[r])
 	    return "";                 /* can't change this region */
 
-        if (state->colouring[r] == c)
+        if (state->colouring[r] == c && state->pencil[r] == p)
             return "";                 /* don't _need_ to change this region */
 
-	if (button == RIGHT_RELEASE && state->colouring[r] >= 0)
-	    return "";		       /* can't pencil on a coloured region */
+	if (button == RIGHT_RELEASE) {
+	    if (state->colouring[r] >= 0) {
+		/* Can't pencil on a coloured region */
+		return "";
+	    } else if (c >= 0) {
+		/* Right-dragging from colour to blank toggles one pencil */
+		p = state->pencil[r] ^ (1 << c);
+		c = -1;
+	    }
+	    /* Otherwise, right-dragging from blank to blank is equivalent
+	     * to left-dragging. */
+	}
 
-	sprintf(buf, "%s%c:%d", (button == RIGHT_RELEASE ? "p" : ""),
-                (int)(c < 0 ? 'C' : '0' + c), r);
-	return dupstr(buf);
+	bufp = buf;
+	oldp = state->pencil[r];
+	if (c != state->colouring[r]) {
+	    bufp += sprintf(bufp, ";%c:%d", (int)(c < 0 ? 'C' : '0' + c), r);
+	    if (c >= 0)
+		oldp = 0;
+	}
+	if (p != oldp) {
+	    int i;
+	    for (i = 0; i < FOUR; i++)
+		if ((oldp ^ p) & (1 << i))
+		    bufp += sprintf(bufp, ";p%c:%d", (int)('0' + i), r);
+	}
+
+	return dupstr(buf+1);	       /* ignore first semicolon */
     }
 
     return NULL;
@@ -2852,6 +2881,11 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
         draw_circle(dr, ui->dragx, ui->dragy, TILESIZE/2,
                     (ui->drag_colour < 0 ? COL_BACKGROUND :
                      COL_0 + ui->drag_colour), COL_GRID);
+	for (i = 0; i < FOUR; i++)
+	    if (ui->drag_pencil & (1 << i))
+		draw_circle(dr, ui->dragx + ((i*4+2)%10-3) * TILESIZE/10,
+			    ui->dragy + (i*2-3) * TILESIZE/10,
+			    TILESIZE/8, COL_0 + i, COL_0 + i);
         draw_update(dr, ds->dragx, ds->dragy, TILESIZE + 3, TILESIZE + 3);
         ds->drag_visible = TRUE;
     }
