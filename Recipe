@@ -60,7 +60,7 @@ solosolver :    [U] solo[STANDALONE_SOLVER] malloc
 patternsolver : [U] pattern[STANDALONE_SOLVER] malloc
 mineobfusc :    [U] mines[STANDALONE_OBFUSCATOR] malloc random tree234 misc
 slantsolver :   [U] slant[STANDALONE_SOLVER] dsf malloc
-mapsolver :     [U] map[STANDALONE_SOLVER] dsf random misc malloc
+mapsolver :     [U] map[STANDALONE_SOLVER] dsf random misc malloc m.lib
 
 solosolver :    [C] solo[STANDALONE_SOLVER] malloc
 patternsolver : [C] pattern[STANDALONE_SOLVER] malloc
