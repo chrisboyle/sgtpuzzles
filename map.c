@@ -804,14 +804,17 @@ static void fourcolour(int *graph, int n, int ngraph, int *colouring,
 
 struct solver_scratch {
     unsigned char *possible;	       /* bitmap of colours for each region */
+
     int *graph;
+    int n;
+    int ngraph;
+
     int *bfsqueue;
     int *bfscolour;
 #ifdef SOLVER_DIAGNOSTICS
     int *bfsprev;
 #endif
-    int n;
-    int ngraph;
+
     int depth;
 };
 
@@ -870,15 +873,22 @@ static int place_colour(struct solver_scratch *sc,
     int *graph = sc->graph, n = sc->n, ngraph = sc->ngraph;
     int j, k;
 
-    if (!(sc->possible[index] & (1 << colour)))
+    if (!(sc->possible[index] & (1 << colour))) {
+#ifdef SOLVER_DIAGNOSTICS
+        if (verbose)
+            printf("%*scannot place %c in region %d\n", 2*sc->depth, "",
+                   colnames[colour], index);
+#endif
 	return FALSE;		       /* can't do it */
+    }
 
     sc->possible[index] = 1 << colour;
     colouring[index] = colour;
 
 #ifdef SOLVER_DIAGNOSTICS
     if (verbose)
-	printf("%s %c in region %d\n", verb, colnames[colour], index);
+	printf("%*s%s %c in region %d\n", 2*sc->depth, "",
+               verb, colnames[colour], index);
 #endif
 
     /*
@@ -889,7 +899,8 @@ static int place_colour(struct solver_scratch *sc,
 	k = graph[j] - index*n;
 #ifdef SOLVER_DIAGNOSTICS
         if (verbose && (sc->possible[k] & (1 << colour)))
-            printf("  ruling out %c in region %d\n", colnames[colour], k);
+            printf("%*s  ruling out %c in region %d\n", 2*sc->depth, "",
+                   colnames[colour], k);
 #endif
 	sc->possible[k] &= ~(1 << colour);
     }
@@ -925,24 +936,32 @@ static int map_solver(struct solver_scratch *sc,
 {
     int i;
 
-    /*
-     * Initialise scratch space.
-     */
-    for (i = 0; i < n; i++)
-	sc->possible[i] = (1 << FOUR) - 1;
+    if (sc->depth == 0) {
+        /*
+         * Initialise scratch space.
+         */
+        for (i = 0; i < n; i++)
+            sc->possible[i] = (1 << FOUR) - 1;
 
-    /*
-     * Place clues.
-     */
-    for (i = 0; i < n; i++)
-	if (colouring[i] >= 0) {
-	    if (!place_colour(sc, colouring, i, colouring[i]
+        /*
+         * Place clues.
+         */
+        for (i = 0; i < n; i++)
+            if (colouring[i] >= 0) {
+                if (!place_colour(sc, colouring, i, colouring[i]
 #ifdef SOLVER_DIAGNOSTICS
-                              , "initial clue:"
+                                  , "initial clue:"
 #endif
-                              ))
-		return 0;	       /* the clues aren't even consistent! */
-	}
+                                  )) {
+#ifdef SOLVER_DIAGNOSTICS
+                    if (verbose)
+                        printf("%*sinitial clue set is inconsistent\n",
+                               2*sc->depth, "");
+#endif
+                    return 0;	       /* the clues aren't even consistent! */
+                }
+            }
+    }
 
     /*
      * Now repeatedly loop until we find nothing further to do.
@@ -960,21 +979,35 @@ static int map_solver(struct solver_scratch *sc,
 	for (i = 0; i < n; i++) if (colouring[i] < 0) {
 	    int p = sc->possible[i];
 
-	    if (p == 0)
+	    if (p == 0) {
+#ifdef SOLVER_DIAGNOSTICS
+                if (verbose)
+                    printf("%*sregion %d has no possible colours left\n",
+                           2*sc->depth, "", i);
+#endif
 		return 0;	       /* puzzle is inconsistent */
+            }
 
 	    if ((p & (p-1)) == 0) {    /* p is a power of two */
-		int c;
+		int c, ret;
 		for (c = 0; c < FOUR; c++)
 		    if (p == (1 << c))
 			break;
 		assert(c < FOUR);
-		if (!place_colour(sc, colouring, i, c
+		ret = place_colour(sc, colouring, i, c
 #ifdef SOLVER_DIAGNOSTICS
-                                  , "placing"
+                                   , "placing"
 #endif
-                                  ))
-		    return 0;	       /* found puzzle to be inconsistent */
+                                   );
+                /*
+                 * place_colour() can only fail if colour c was not
+                 * even a _possibility_ for region i, and we're
+                 * pretty sure it was because we checked before
+                 * calling place_colour(). So we can safely assert
+                 * here rather than having to return a nice
+                 * friendly error code.
+                 */
+                assert(ret);
 		done_something = TRUE;
 	    }
 	}
@@ -1041,11 +1074,12 @@ static int map_solver(struct solver_scratch *sc,
                     if (verbose) {
                         char buf[80];
                         if (!started)
-                            printf("adjacent regions %d,%d share colours %s\n",
-                                   j1, j2, colourset(buf, v));
+                            printf("%*sadjacent regions %d,%d share colours"
+                                   " %s\n", 2*sc->depth, "", j1, j2,
+                                   colourset(buf, v));
                         started = TRUE;
-                        printf("  ruling out %s in region %d\n",
-                               colourset(buf, sc->possible[k] & v), k);
+                        printf("%*s  ruling out %s in region %d\n",2*sc->depth,
+                               "", colourset(buf, sc->possible[k] & v), k);
                     }
 #endif
                     sc->possible[k] &= ~v;
@@ -1176,13 +1210,15 @@ static int map_solver(struct solver_scratch *sc,
                                     char buf[80], *sep = "";
                                     int r;
 
-                                    printf("forcing chain, colour %s, ",
+                                    printf("%*sforcing chain, colour %s, ",
+                                           2*sc->depth, "",
                                            colourset(buf, origc));
                                     for (r = j; r != -1; r = sc->bfsprev[r]) {
                                         printf("%s%d", sep, r);
                                         sep = "-";
                                     }
-                                    printf("\n  ruling out %s in region %d\n",
+                                    printf("\n%*s  ruling out %s in region"
+                                           " %d\n", 2*sc->depth, "",
                                            colourset(buf, origc), k);
                                 }
 #endif
@@ -1206,14 +1242,25 @@ static int map_solver(struct solver_scratch *sc,
     for (i = 0; i < n; i++)
 	if (colouring[i] < 0)
             break;
-    if (i == n)
+    if (i == n) {
+#ifdef SOLVER_DIAGNOSTICS
+        if (verbose)
+            printf("%*sone solution found\n", 2*sc->depth, "");
+#endif
         return 1;                      /* success! */
+    }
 
     /*
      * If recursion is not permissible, we now give up.
      */
-    if (difficulty < DIFF_RECURSE)
+    if (difficulty < DIFF_RECURSE) {
+#ifdef SOLVER_DIAGNOSTICS
+        if (verbose)
+            printf("%*sunable to proceed further without recursion\n",
+                   2*sc->depth, "");
+#endif
         return 2;                      /* unable to complete */
+    }
 
     /*
      * Now we've got to do something recursive. So first hunt for a
@@ -1247,6 +1294,11 @@ static int map_solver(struct solver_scratch *sc,
 
         assert(best >= 0);             /* or we'd be solved already */
 
+#ifdef SOLVER_DIAGNOSTICS
+        if (verbose)
+            printf("%*srecursing on region %d\n", 2*sc->depth, "", best);
+#endif
+
         /*
          * Now iterate over the possible colours for this region.
          */
@@ -1262,10 +1314,26 @@ static int map_solver(struct solver_scratch *sc,
             if (!(sc->possible[best] & (1 << i)))
                 continue;
 
+            memcpy(rsc->possible, sc->possible, n);
             memcpy(subcolouring, origcolouring, n * sizeof(int));
-            subcolouring[best] = i;
+
+            place_colour(rsc, subcolouring, best, i
+#ifdef SOLVER_DIAGNOSTICS
+                         , "trying"
+#endif
+                         );
+
             subret = map_solver(rsc, graph, n, ngraph,
                                 subcolouring, difficulty);
+
+#ifdef SOLVER_DIAGNOSTICS
+            if (verbose) {
+                printf("%*sretracting %c in region %d; found %s\n",
+                       2*sc->depth, "", colnames[i], best,
+                       subret == 0 ? "no solutions" :
+                       subret == 1 ? "one solution" : "multiple solutions");
+            }
+#endif
 
             /*
              * If this possibility turned up more than one valid
@@ -1296,6 +1364,14 @@ static int map_solver(struct solver_scratch *sc,
         sfree(subcolouring);
         free_scratch(rsc);
 
+#ifdef SOLVER_DIAGNOSTICS
+        if (verbose && sc->depth == 0) {
+            printf("%*s%s found\n",
+                   2*sc->depth, "",
+                   ret == 0 ? "no solutions" :
+                   ret == 1 ? "one solution" : "multiple solutions");
+        }
+#endif
         return ret;
     }
 }
