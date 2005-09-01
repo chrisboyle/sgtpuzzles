@@ -3095,40 +3095,7 @@ const struct game thegame = {
  * 9x9:4,4,004000007c00010022080
  * $ ./mineobfusc 9x9:4,4,004000007c00010022080
  * 9x9:4,4,mb071b49fbd1cb6a0d5868
- *
- * gcc -DSTANDALONE_OBFUSCATOR -o mineobfusc mines.c malloc.c random.c tree234.c misc.c
  */
-
-#include <stdarg.h>
-
-void frontend_default_colour(frontend *fe, float *output) {}
-void draw_text(drawing *dr, int x, int y, int fonttype, int fontsize,
-               int align, int colour, char *text) {}
-void draw_rect(drawing *dr, int x, int y, int w, int h, int colour) {}
-void draw_line(drawing *dr, int x1, int y1, int x2, int y2, int colour) {}
-void draw_polygon(drawing *dr, int *coords, int npoints,
-                  int fillcolour, int outlinecolour) {}
-void clip(drawing *dr, int x, int y, int w, int h) {}
-void unclip(drawing *dr) {}
-void start_draw(drawing *dr) {}
-void draw_update(drawing *dr, int x, int y, int w, int h) {}
-void end_draw(drawing *dr) {}
-void midend_supersede_game_desc(midend *me, char *desc, char *privdesc) {}
-void status_bar(drawing *dr, char *text) {}
-
-void fatal(char *fmt, ...)
-{
-    va_list ap;
-
-    fprintf(stderr, "fatal error: ");
-
-    va_start(ap, fmt);
-    vfprintf(stderr, fmt, ap);
-    va_end(ap);
-
-    fprintf(stderr, "\n");
-    exit(1);
-}
 
 int main(int argc, char **argv)
 {

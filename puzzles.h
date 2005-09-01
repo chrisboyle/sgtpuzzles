@@ -324,6 +324,20 @@ void ps_free(psdata *ps);
 drawing *ps_drawing_api(psdata *ps);
 
 /*
+ * combi.c: provides a structure and functions for iterating over
+ * combinations (i.e. choosing r things out of n).
+ */
+typedef struct _combi_ctx {
+  int r, n, nleft, total;
+  int *a;
+} combi_ctx;
+
+combi_ctx *new_combi(int r, int n);
+void reset_combi(combi_ctx *combi);
+combi_ctx *next_combi(combi_ctx *combi); /* returns NULL for end */
+void free_combi(combi_ctx *combi);
+
+/*
  * Data structure containing the function calls and data specific
  * to a particular game. This is enclosed in a data structure so
  * that a particular platform can choose, if it wishes, to compile

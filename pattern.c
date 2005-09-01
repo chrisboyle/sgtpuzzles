@@ -1286,44 +1286,6 @@ const struct game thegame = {
 
 #ifdef STANDALONE_SOLVER
 
-/*
- * gcc -DSTANDALONE_SOLVER -o patternsolver pattern.c malloc.c
- */
-
-#include <stdarg.h>
-
-void frontend_default_colour(frontend *fe, float *output) {}
-void draw_text(drawing *dr, int x, int y, int fonttype, int fontsize,
-               int align, int colour, char *text) {}
-void draw_rect(drawing *dr, int x, int y, int w, int h, int colour) {}
-void draw_rect_outline(drawing *dr, int x, int y, int w, int h, int colour) {}
-void draw_line(drawing *dr, int x1, int y1, int x2, int y2, int colour) {}
-void draw_circle(drawing *dr, int cx, int cy, int radius,
-                 int fillcolour, int outlinecolour) {}
-void clip(drawing *dr, int x, int y, int w, int h) {}
-void unclip(drawing *dr) {}
-void start_draw(drawing *dr) {}
-void draw_update(drawing *dr, int x, int y, int w, int h) {}
-void end_draw(drawing *dr) {}
-unsigned long random_upto(random_state *state, unsigned long limit)
-{ assert(!"Shouldn't get randomness"); return 0; }
-int print_mono_colour(drawing *dr, int grey) { return 0; }
-void print_line_width(drawing *dr, int width) {}
-
-void fatal(char *fmt, ...)
-{
-    va_list ap;
-
-    fprintf(stderr, "fatal error: ");
-
-    va_start(ap, fmt);
-    vfprintf(stderr, fmt, ap);
-    va_end(ap);
-
-    fprintf(stderr, "\n");
-    exit(1);
-}
-
 int main(int argc, char **argv)
 {
     game_params *p;

@@ -25,10 +25,11 @@ UNTANGLE = untangle tree234
 SLANT    = slant dsf
 MAP      = map dsf
 LOOPY    = loopy tree234 dsf
+LIGHTUP  = lightup combi
 
 ALL      = list NET NETSLIDE cube fifteen sixteen rect pattern solo twiddle
          + MINES samegame FLIP guess PEGS dominosa UNTANGLE blackbox SLANT
-         + lightup MAP LOOPY inertia
+         + LIGHTUP MAP LOOPY inertia
 
 GTK      = gtk printing ps
 
@@ -50,23 +51,27 @@ dominosa : [X] GTK COMMON dominosa
 untangle : [X] GTK COMMON UNTANGLE
 blackbox : [X] GTK COMMON blackbox
 slant    : [X] GTK COMMON SLANT
-lightup  : [X] GTK COMMON lightup
+lightup  : [X] GTK COMMON LIGHTUP
 map      : [X] GTK COMMON MAP
 loopy    : [X] GTK COMMON LOOPY
 inertia  : [X] GTK COMMON inertia
 
 # Auxiliary command-line programs.
-solosolver :    [U] solo[STANDALONE_SOLVER] malloc
-patternsolver : [U] pattern[STANDALONE_SOLVER] malloc
-mineobfusc :    [U] mines[STANDALONE_OBFUSCATOR] malloc random tree234 misc
-slantsolver :   [U] slant[STANDALONE_SOLVER] dsf malloc
-mapsolver :     [U] map[STANDALONE_SOLVER] dsf random misc malloc m.lib
+STANDALONE = nullfe random misc malloc
 
-solosolver :    [C] solo[STANDALONE_SOLVER] malloc
-patternsolver : [C] pattern[STANDALONE_SOLVER] malloc
-mineobfusc :    [C] mines[STANDALONE_OBFUSCATOR] malloc random tree234 misc
-slantsolver :   [C] slant[STANDALONE_SOLVER] dsf malloc
-mapsolver :     [C] map[STANDALONE_SOLVER] dsf random misc malloc
+solosolver :    [U] solo[STANDALONE_SOLVER] STANDALONE
+patternsolver : [U] pattern[STANDALONE_SOLVER] STANDALONE
+mineobfusc :    [U] mines[STANDALONE_OBFUSCATOR] tree234 STANDALONE
+slantsolver :   [U] slant[STANDALONE_SOLVER] dsf STANDALONE
+mapsolver :     [U] map[STANDALONE_SOLVER] dsf STANDALONE m.lib
+lightupsolver : [U] lightup[STANDALONE_SOLVER] combi STANDALONE
+
+solosolver :    [C] solo[STANDALONE_SOLVER] STANDALONE
+patternsolver : [C] pattern[STANDALONE_SOLVER] STANDALONE
+mineobfusc :    [C] mines[STANDALONE_OBFUSCATOR] tree234 STANDALONE
+slantsolver :   [C] slant[STANDALONE_SOLVER] dsf STANDALONE
+mapsolver :     [C] map[STANDALONE_SOLVER] dsf STANDALONE
+lightupsolver : [C] lightup[STANDALONE_SOLVER] combi STANDALONE
 
 # The Windows Net shouldn't be called `net.exe' since Windows
 # already has a reasonably important utility program by that name!
@@ -88,7 +93,7 @@ dominosa : [G] WINDOWS COMMON dominosa
 untangle : [G] WINDOWS COMMON UNTANGLE
 blackbox : [G] WINDOWS COMMON blackbox
 slant    : [G] WINDOWS COMMON SLANT
-lightup  : [G] WINDOWS COMMON lightup
+lightup  : [G] WINDOWS COMMON LIGHTUP
 map      : [G] WINDOWS COMMON MAP
 loopy    : [G] WINDOWS COMMON LOOPY
 inertia  : [G] WINDOWS COMMON inertia

@@ -11,6 +11,20 @@
 
 #include "puzzles.h"
 
+/*
+ * In standalone solver mode, `verbose' is a variable which can be
+ * set by command-line option; in debugging mode it's simply always
+ * true.
+ */
+#if defined STANDALONE_SOLVER
+#define SOLVER_DIAGNOSTICS
+int verbose = 0;
+#undef debug
+#define debug(x) printf x
+#elif defined SOLVER_DIAGNOSTICS
+#define verbose 2
+#endif
+
 /* --- Constants, structure definitions, etc. --- */
 
 #define PREFERRED_TILE_SIZE 32
@@ -36,11 +50,13 @@ enum {
 
 enum { SYMM_NONE, SYMM_REF2, SYMM_ROT2, SYMM_REF4, SYMM_ROT4, SYMM_MAX };
 
+#define DIFFCOUNT 2
+
 struct game_params {
     int w, h;
     int blackpc;        /* %age of black squares */
     int symm;
-    int recurse;
+    int difficulty;     /* 0 to DIFFCOUNT */
 };
 
 #define F_BLACK         1
@@ -125,14 +141,17 @@ static void get_surrounds(game_state *state, int ox, int oy, surrounds *s)
 const struct game_params lightup_presets[] = {
     { 7, 7, 20, SYMM_ROT4, 0 },
     { 7, 7, 20, SYMM_ROT4, 1 },
+    { 7, 7, 20, SYMM_ROT4, 2 },
     { 10, 10, 20, SYMM_ROT2, 0 },
     { 10, 10, 20, SYMM_ROT2, 1 },
 #ifdef SLOW_SYSTEM
     { 12, 12, 20, SYMM_ROT2, 0 },
-    { 12, 12, 20, SYMM_ROT2, 1 }
+    { 12, 12, 20, SYMM_ROT2, 1 },
 #else
+    { 10, 10, 20, SYMM_ROT2, 2 },
     { 14, 14, 20, SYMM_ROT2, 0 },
-    { 14, 14, 20, SYMM_ROT2, 1 }
+    { 14, 14, 20, SYMM_ROT2, 1 },
+    { 14, 14, 20, SYMM_ROT2, 2 }
 #endif
 };
 
@@ -157,7 +176,9 @@ static int game_fetch_preset(int i, char **name, game_params **params)
     *params = ret;
 
     sprintf(buf, "%dx%d %s",
-            ret->w, ret->h, ret->recurse ? "hard" : "easy");
+            ret->w, ret->h,
+            ret->difficulty == 2 ? "hard" :
+            ret->difficulty == 1 ? "tricky" : "easy");
     *name = dupstr(buf);
 
     return TRUE;
@@ -195,10 +216,15 @@ static void decode_params(game_params *params, char const *string)
         string++;
         EATNUM(params->symm);
     }
-    params->recurse = 0;
+    params->difficulty = 0;
+    /* cope with old params */
     if (*string == 'r') {
-        params->recurse = 1;
+        params->difficulty = 2;
         string++;
+    }
+    if (*string == 'd') {
+        string++;
+        EATNUM(params->difficulty);
     }
 }
 
@@ -207,10 +233,10 @@ static char *encode_params(game_params *params, int full)
     char buf[80];
 
     if (full) {
-        sprintf(buf, "%dx%db%ds%d%s",
+        sprintf(buf, "%dx%db%ds%dd%d",
                 params->w, params->h, params->blackpc,
                 params->symm,
-                params->recurse ? "r" : "");
+                params->difficulty);
     } else {
         sprintf(buf, "%dx%d", params->w, params->h);
     }
@@ -251,8 +277,8 @@ static config_item *game_configure(game_params *params)
 
     ret[4].name = "Difficulty";
     ret[4].type = C_CHOICES;
-    ret[4].sval = ":Easy:Hard";
-    ret[4].ival = params->recurse;
+    ret[4].sval = ":Easy:Tricky:Hard";
+    ret[4].ival = params->difficulty;
 
     ret[5].name = NULL;
     ret[5].type = C_END;
@@ -270,7 +296,7 @@ static game_params *custom_params(config_item *cfg)
     ret->h =       atoi(cfg[1].sval);
     ret->blackpc = atoi(cfg[2].sval);
     ret->symm =    cfg[3].ival;
-    ret->recurse = cfg[4].ival;
+    ret->difficulty = cfg[4].ival;
 
     return ret;
 }
@@ -287,7 +313,9 @@ static char *validate_params(game_params *params, int full)
                 return "4-fold symmetry is only available with square grids";
         }
         if (params->symm < 0 || params->symm >= SYMM_MAX)
-          return "Unknown symmetry type";
+            return "Unknown symmetry type";
+        if (params->difficulty < 0 || params->difficulty > DIFFCOUNT)
+            return "Unknown difficulty level";
     }
     return NULL;
 }
@@ -336,7 +364,6 @@ static void free_game(game_state *state)
     sfree(state);
 }
 
-#ifdef DIAGNOSTICS
 static void debug_state(game_state *state)
 {
     int x, y;
@@ -356,9 +383,9 @@ static void debug_state(game_state *state)
                 else if (GRID(state, flags, x, y) & F_IMPOSSIBLE)
                     c = 'X';
             }
-            printf("%c", (int)c);
+            debug(("%c", (int)c));
         }
-        printf("     ");
+        debug(("     "));
         for (x = 0; x < state->w; x++) {
             if (GRID(state, flags, x, y) & F_BLACK)
                 c = '#';
@@ -366,13 +393,11 @@ static void debug_state(game_state *state)
                 c = (GRID(state, flags, x, y) & F_LIGHT) ? 'A' : 'a';
                 c += GRID(state, lights, x, y);
             }
-            printf("%c", (int)c);
+            debug(("%c", (int)c));
         }
-        printf("\n");
+        debug(("\n"));
     }
-    printf("\n");
 }
-#endif
 
 /* --- Game completion test routines. --- */
 
@@ -574,8 +599,8 @@ static void set_blacks(game_state *state, game_params *params, random_state *rs)
         GRID(state,flags,
              state->w/2 + wodd - 1, state->h/2 + hodd - 1) |= F_BLACK;
 
-#ifdef DIAGNOSTICS
-    debug_state(state);
+#ifdef SOLVER_DIAGNOSTICS
+    if (verbose) debug_state(state);
 #endif
 }
 
@@ -679,7 +704,7 @@ static void place_lights(game_state *state, random_state *rs)
         /* If we're not lighting any lights ourself, don't remove anything. */
         n = 0;
         FOREACHLIT(&lld, if (GRID(state,flags,lx,ly) & F_LIGHT) { n += 1; } );
-        if (n == 0) continue;
+        if (n == 0) continue; /* [1] */
 
         /* Check whether removing lights we're lighting would cause anything
          * to go dark. */
@@ -697,8 +722,11 @@ static void place_lights(game_state *state, random_state *rs)
         }
         assert(grid_lit(state));
     }
-    /* if we got here, we've somehow removed all our lights and still have overlaps. */
-    assert(!"Shouldn't get here!");
+    /* could get here if the line at [1] continue'd out of the loop. */
+    if (grid_overlap(state)) {
+        debug_state(state);
+        assert(!"place_lights failed to resolve overlapping lights!");
+    }
 }
 
 /* Fills in all black squares with numbers of adjacent lights. */
@@ -749,9 +777,10 @@ static int try_solve_light(game_state *state, int ox, int oy,
     FOREACHLIT(&lld, { tsl_callback(state, lx, ly, &sx, &sy, &n); });
     if (n == 1) {
         set_light(state, sx, sy, 1);
-#ifdef SOLVE_DIAGNOSTICS
-        printf("(%d,%d) can only be lit from (%d,%d); setting to LIGHT\n",
-               ox,oy,sx,sy);
+#ifdef SOLVER_DIAGNOSTICS
+        debug(("(%d,%d) can only be lit from (%d,%d); setting to LIGHT\n",
+                ox,oy,sx,sy));
+        if (verbose) debug_state(state);
 #endif
         return 1;
     }
@@ -763,6 +792,13 @@ static int could_place_light(unsigned int flags, int lights)
 {
     if (flags & (F_BLACK | F_IMPOSSIBLE)) return 0;
     return (lights > 0) ? 0 : 1;
+}
+
+static int could_place_light_xy(game_state *state, int x, int y)
+{
+    int lights = GRID(state,lights,x,y);
+    unsigned int flags = GRID(state,flags,x,y);
+    return (could_place_light(flags, lights)) ? 1 : 0;
 }
 
 /* For a given number square, determine whether we have enough info
@@ -799,10 +835,6 @@ static int try_solve_number(game_state *state, int nx, int ny,
     if (nl == 0) {
         /* we have placed all lights we need to around here; all remaining
          * surrounds are therefore IMPOSSIBLE. */
-#ifdef SOLVE_DIAGNOSTICS
-        printf("Setting remaining surrounds to (%d,%d) IMPOSSIBLE.\n",
-               nx,ny);
-#endif
         GRID(state,flags,nx,ny) |= F_NUMBERUSED;
         for (i = 0; i < s.npoints; i++) {
             if (!(s.points[i].f & F_MARK)) {
@@ -810,12 +842,13 @@ static int try_solve_number(game_state *state, int nx, int ny,
                 ret = 1;
             }
         }
+#ifdef SOLVER_DIAGNOSTICS
+        printf("Clue at (%d,%d) full; setting unlit to IMPOSSIBLE.\n",
+               nx,ny);
+        if (verbose) debug_state(state);
+#endif
     } else if (nl == ns) {
         /* we have as many lights to place as spaces; fill them all. */
-#ifdef SOLVE_DIAGNOSTICS
-        printf("Setting all remaining surrounds to (%d,%d) LIGHT.\n",
-               nx,ny);
-#endif
         GRID(state,flags,nx,ny) |= F_NUMBERUSED;
         for (i = 0; i < s.npoints; i++) {
             if (!(s.points[i].f & F_MARK)) {
@@ -823,24 +856,373 @@ static int try_solve_number(game_state *state, int nx, int ny,
                 ret = 1;
             }
         }
+#ifdef SOLVER_DIAGNOSTICS
+        printf("Clue at (%d,%d) trivial; setting unlit to LIGHT.\n",
+               nx,ny);
+        if (verbose) debug_state(state);
+#endif
     }
     return ret;
 }
 
+struct setscratch {
+    int x, y;
+    int n;
+};
+
+#define SCRATCHSZ (state->w+state->h)
+
+/* New solver algorithm: overlapping sets can add IMPOSSIBLE flags.
+ * Algorithm thanks to Simon:
+ *
+ * (a) Any square where you can place a light has a set of squares
+ *     which would become non-lights as a result. (This includes
+ *     squares lit by the first square, and can also include squares
+ *     adjacent to the same clue square if the new light is the last
+ *     one around that clue.) Call this MAKESDARK(x,y) with (x,y) being
+ *     the square you place a light.
+
+ * (b) Any unlit square has a set of squares on which you could place
+ *     a light to illuminate it. (Possibly including itself, of
+ *     course.) This set of squares has the property that _at least
+ *     one_ of them must contain a light. Sets of this type also arise
+ *     from clue squares. Call this MAKESLIGHT(x,y), again with (x,y)
+ *     the square you would place a light.
+
+ * (c) If there exists (dx,dy) and (lx,ly) such that MAKESDARK(dx,dy) is
+ *     a superset of MAKESLIGHT(lx,ly), this implies that placing a light at
+ *     (dx,dy) would either leave no remaining way to illuminate a certain
+ *     square, or would leave no remaining way to fulfill a certain clue
+ *     (at lx,ly). In either case, a light can be ruled out at that position.
+ *
+ * So, we construct all possible MAKESLIGHT sets, both from unlit squares
+ * and clue squares, and then we look for plausible MAKESDARK sets that include
+ * our (lx,ly) to see if we can find a (dx,dy) to rule out. By the time we have
+ * constructed the MAKESLIGHT set we don't care about (lx,ly), just the set
+ * members.
+ *
+ * Once we have such a set, Simon came up with a Cunning Plan to find
+ * the most sensible MAKESDARK candidate:
+ *
+ * (a) for each square S in your set X, find all the squares which _would_
+ *     rule it out. That means any square which would light S, plus
+ *     any square adjacent to the same clue square as S (provided
+ *     that clue square has only one remaining light to be placed).
+ *     It's not hard to make this list. Don't do anything with this
+ *     data at the moment except _count_ the squares.
+
+ * (b) Find the square S_min in the original set which has the
+ *     _smallest_ number of other squares which would rule it out.
+
+ * (c) Find all the squares that rule out S_min (it's probably
+ *     better to recompute this than to have stored it during step
+ *     (a), since the CPU requirement is modest but the storage
+ *     cost would get ugly.) For each of these squares, see if it
+ *     rules out everything else in the set X. Any which does can
+ *     be marked as not-a-light.
+ *
+ */
+
+typedef void (*trl_cb)(game_state *state, int dx, int dy,
+                       struct setscratch *scratch, int n, void *ctx);
+
+static void try_rule_out(game_state *state, int x, int y,
+                         struct setscratch *scratch, int n,
+                         trl_cb cb, void *ctx);
+
+static void trl_callback_search(game_state *state, int dx, int dy,
+                       struct setscratch *scratch, int n, void *ignored)
+{
+    int i;
+
+#ifdef SOLVER_DIAGNOSTICS
+    if (verbose) debug(("discount cb: light at (%d,%d)\n", dx, dy));
+#endif
+
+    for (i = 0; i < n; i++) {
+        if (dx == scratch[i].x && dy == scratch[i].y) {
+            scratch[i].n = 1;
+            return;
+        }
+    }
+}
+
+static void trl_callback_discount(game_state *state, int dx, int dy,
+                       struct setscratch *scratch, int n, void *ctx)
+{
+    int *didsth = (int *)ctx;
+    int i;
+
+    if (GRID(state,flags,dx,dy) & F_IMPOSSIBLE) {
+#ifdef SOLVER_DIAGNOSTICS
+        debug(("Square at (%d,%d) already impossible.\n", dx,dy));
+#endif
+        return;
+    }
+
+    /* Check whether a light at (dx,dy) rules out everything
+     * in scratch, and mark (dx,dy) as IMPOSSIBLE if it does.
+     * We can use try_rule_out for this as well, as the set of
+     * squares which would rule out (x,y) is the same as the
+     * set of squares which (x,y) would rule out. */
+
+#ifdef SOLVER_DIAGNOSTICS
+    if (verbose) debug(("Checking whether light at (%d,%d) rules out everything in scratch.\n", dx, dy));
+#endif
+
+    for (i = 0; i < n; i++)
+        scratch[i].n = 0;
+    try_rule_out(state, dx, dy, scratch, n, trl_callback_search, NULL);
+    for (i = 0; i < n; i++) {
+        if (scratch[i].n == 0) return;
+    }
+    /* The light ruled out everything in scratch. Yay. */
+    GRID(state,flags,dx,dy) |= F_IMPOSSIBLE;
+#ifdef SOLVER_DIAGNOSTICS
+    debug(("Set reduction discounted square at (%d,%d):\n", dx,dy));
+    if (verbose) debug_state(state);
+#endif
+
+    *didsth = 1;
+}
+
+static void trl_callback_incn(game_state *state, int dx, int dy,
+                       struct setscratch *scratch, int n, void *ctx)
+{
+    struct setscratch *s = (struct setscratch *)ctx;
+    s->n++;
+}
+
+static void try_rule_out(game_state *state, int x, int y,
+                         struct setscratch *scratch, int n,
+                         trl_cb cb, void *ctx)
+{
+    /* XXX Find all the squares which would rule out (x,y); anything
+     * that would light it as well as squares adjacent to same clues
+     * as X assuming that clue only has one remaining light.
+     * Call the callback with each square. */
+    ll_data lld;
+    surrounds s, ss;
+    int i, j, curr_lights, tot_lights;
+
+    /* Find all squares that would rule out a light at (x,y) and call trl_cb
+     * with them: anything that would light (x,y)... */
+
+    list_lights(state, x, y, 0, &lld);
+    FOREACHLIT(&lld, { if (could_place_light_xy(state, lx, ly)) { cb(state, lx, ly, scratch, n, ctx); } });
+
+    /* ... as well as any empty space (that isn't x,y) next to any clue square
+     * next to (x,y) that only has one light left to place. */
+
+    get_surrounds(state, x, y, &s);
+    for (i = 0; i < s.npoints; i++) {
+        if (!GRID(state,flags,s.points[i].x,s.points[i].y) & F_NUMBERED)
+            continue;
+        /* we have an adjacent clue square; find /it's/ surrounds
+         * and count the remaining lights it needs. */
+        get_surrounds(state,s.points[i].x,s.points[i].y,&ss);
+        curr_lights = 0;
+        for (j = 0; j < ss.npoints; j++) {
+            if (GRID(state,flags,ss.points[j].x,ss.points[j].y) & F_LIGHT)
+                curr_lights++;
+        }
+        tot_lights = GRID(state, lights, s.points[i].x, s.points[i].y);
+        /* We have a clue with tot_lights to fill, and curr_lights currently
+         * around it. If adding a light at (x,y) fills up the clue (i.e.
+         * curr_lights + 1 = tot_lights) then we need to discount all other
+         * unlit squares around the clue. */
+        if ((curr_lights + 1) == tot_lights) {
+            for (j = 0; j < ss.npoints; j++) {
+                int lx = ss.points[j].x, ly = ss.points[j].y;
+                if (lx == x && ly == y) continue;
+                if (could_place_light_xy(state, lx, ly))
+                    cb(state, lx, ly, scratch, n, ctx);
+            }
+        }
+    }
+}
+
+#ifdef SOLVER_DIAGNOSTICS
+static void debug_scratch(const char *msg, struct setscratch *scratch, int n)
+{
+    int i;
+    debug(("%s scratch (%d elements):\n", msg, n));
+    for (i = 0; i < n; i++) {
+        debug(("  (%d,%d) n%d\n", scratch[i].x, scratch[i].y, scratch[i].n));
+    }
+}
+#endif
+
+static int discount_set(game_state *state,
+                        struct setscratch *scratch, int n)
+{
+    int i, besti, bestn, didsth = 0;
+
+#ifdef SOLVER_DIAGNOSTICS
+    if (verbose > 1) debug_scratch("discount_set", scratch, n);
+#endif
+    if (n == 0) return 0;
+
+    for (i = 0; i < n; i++) {
+        try_rule_out(state, scratch[i].x, scratch[i].y, scratch, n,
+                     trl_callback_incn, (void*)&(scratch[i]));
+    }
+#ifdef SOLVER_DIAGNOSTICS
+    if (verbose > 1) debug_scratch("discount_set after count", scratch, n);
+#endif
+
+    besti = -1; bestn = SCRATCHSZ;
+    for (i = 0; i < n; i++) {
+        if (scratch[i].n < bestn) {
+            bestn = scratch[i].n;
+            besti = i;
+        }
+    }
+#ifdef SOLVER_DIAGNOSTICS
+    if (verbose > 1) debug(("best square (%d,%d) with n%d.\n",
+           scratch[besti].x, scratch[besti].y, scratch[besti].n));
+#endif
+    try_rule_out(state, scratch[besti].x, scratch[besti].y, scratch, n,
+                 trl_callback_discount, (void*)&didsth);
+#ifdef SOLVER_DIAGNOSTICS
+    if (didsth) debug((" [from square (%d,%d)]\n",
+                       scratch[besti].x, scratch[besti].y));
+#endif
+
+    return didsth;
+}
+
+static void discount_clear(game_state *state, struct setscratch *scratch, int *n)
+{
+    *n = 0;
+    memset(scratch, 0, SCRATCHSZ * sizeof(struct setscratch));
+}
+
+static void unlit_cb(game_state *state, int lx, int ly,
+                     struct setscratch *scratch, int *n)
+{
+    if (could_place_light_xy(state, lx, ly)) {
+        scratch[*n].x = lx; scratch[*n].y = ly; (*n)++;
+    }
+}
+
+/* Construct a MAKESLIGHT set from an unlit square. */
+static int discount_unlit(game_state *state, int x, int y,
+                          struct setscratch *scratch)
+{
+    ll_data lld;
+    int n, didsth;
+
+#ifdef SOLVER_DIAGNOSTICS
+    if (verbose) debug(("Trying to discount for unlit square at (%d,%d).\n", x, y));
+    if (verbose > 1) debug_state(state);
+#endif
+
+    discount_clear(state, scratch, &n);
+
+    list_lights(state, x, y, 1, &lld);
+    FOREACHLIT(&lld, { unlit_cb(state, lx, ly, scratch, &n); });
+    didsth = discount_set(state, scratch, n);
+#ifdef SOLVER_DIAGNOSTICS
+    if (didsth) debug(("  [from unlit square at (%d,%d)].\n", x, y));
+#endif
+    return didsth;
+
+}
+
+/* Construct a series of MAKESLIGHT sets from a clue square.
+ *  for a clue square with N remaining spaces that must contain M lights, every
+ *  subset of size N-M+1 of those N spaces forms such a set.
+ */
+
+static int discount_clue(game_state *state, int x, int y,
+                          struct setscratch *scratch)
+{
+    int slen, m = GRID(state, lights, x, y), n, i, didsth = 0, lights;
+    unsigned int flags;
+    surrounds s, sempty;
+    combi_ctx *combi;
+
+    if (m == 0) return 0;
+
+#ifdef SOLVER_DIAGNOSTICS
+    if (verbose) debug(("Trying to discount for sets at clue (%d,%d).\n", x, y));
+    if (verbose > 1) debug_state(state);
+#endif
+
+    /* m is no. of lights still to place; starts off at the clue value
+     * and decreases when we find a light already down.
+     * n is no. of spaces left; starts off at 0 and goes up when we find
+     * a plausible space. */
+
+    get_surrounds(state, x, y, &s);
+    memset(&sempty, 0, sizeof(surrounds));
+    for (i = 0; i < s.npoints; i++) {
+        int lx = s.points[i].x, ly = s.points[i].y;
+        flags = GRID(state,flags,lx,ly);
+        lights = GRID(state,lights,lx,ly);
+
+        if (flags & F_LIGHT) m--;
+
+        if (could_place_light(flags, lights)) {
+            sempty.points[sempty.npoints].x = lx;
+            sempty.points[sempty.npoints].y = ly;
+            sempty.npoints++;
+        }
+    }
+    n = sempty.npoints; /* sempty is now a surrounds of only blank squares. */
+    if (n == 0) return 0; /* clue is full already. */
+
+    if (m < 0 || m > n) return 0; /* become impossible. */
+
+    combi = new_combi(n - m + 1, n);
+    while (next_combi(combi)) {
+        discount_clear(state, scratch, &slen);
+        for (i = 0; i < combi->r; i++) {
+            scratch[slen].x = sempty.points[combi->a[i]].x;
+            scratch[slen].y = sempty.points[combi->a[i]].y;
+            slen++;
+        }
+        if (discount_set(state, scratch, slen)) didsth = 1;
+    }
+    free_combi(combi);
+#ifdef SOLVER_DIAGNOSTICS
+    if (didsth) debug(("  [from clue at (%d,%d)].\n", x, y));
+#endif
+    return didsth;
+}
+
+#define F_SOLVE_FORCEUNIQUE     1
+#define F_SOLVE_DISCOUNTSETS    2
+#define F_SOLVE_ALLOWRECURSE    4
+
+static unsigned int flags_from_difficulty(int difficulty)
+{
+    unsigned int sflags = F_SOLVE_FORCEUNIQUE;
+    assert(difficulty <= DIFFCOUNT);
+    if (difficulty >= 1) sflags |= F_SOLVE_DISCOUNTSETS;
+    if (difficulty >= 2) sflags |= F_SOLVE_ALLOWRECURSE;
+    return sflags;
+}
+
+#define MAXRECURSE 5
+
 static int solve_sub(game_state *state,
-                     int forceunique, int maxrecurse, int depth,
+                     unsigned int solve_flags, int depth,
                      int *maxdepth)
 {
     unsigned int flags;
     int x, y, didstuff, ncanplace, lights;
-    int bestx, besty, n, bestn, copy_soluble, self_soluble, ret;
+    int bestx, besty, n, bestn, copy_soluble, self_soluble, ret, maxrecurse = 0;
     game_state *scopy;
     ll_data lld;
+    struct setscratch *sscratch = NULL;
 
-#ifdef SOLVE_DIAGNOSTICS
+#ifdef SOLVER_DIAGNOSTICS
     printf("solve_sub: depth = %d\n", depth);
 #endif
     if (maxdepth && *maxdepth < depth) *maxdepth = depth;
+    if (solve_flags & F_SOLVE_ALLOWRECURSE) maxrecurse = MAXRECURSE;
 
     while (1) {
         if (grid_overlap(state)) {
@@ -848,10 +1230,10 @@ static int solve_sub(game_state *state,
              * (assuming a soluble grid). However, if we're trying to solve
              * from a half-completed *incorrect* grid this might occur; we
              * just return the 'no solutions' code in this case. */
-            return 0;
+            ret = 0; goto done;
         }
 
-        if (grid_correct(state)) return 1;
+        if (grid_correct(state)) { ret = 1; goto done; }
 
         ncanplace = 0;
         didstuff = 0;
@@ -868,12 +1250,42 @@ static int solve_sub(game_state *state,
             }
         }
         if (didstuff) continue;
-        if (!ncanplace) return 0; /* nowhere to put a light, puzzle in unsoluble. */
+        if (!ncanplace) {
+            /* nowhere to put a light, puzzle is unsoluble. */
+            ret = 0; goto done;
+        }
+
+        if (solve_flags & F_SOLVE_DISCOUNTSETS) {
+            if (!sscratch) sscratch = snewn(SCRATCHSZ, struct setscratch);
+            /* Try a more cunning (and more involved) way... more details above. */
+            for (x = 0; x < state->w; x++) {
+                for (y = 0; y < state->h; y++) {
+                    flags = GRID(state,flags,x,y);
+                    lights = GRID(state,lights,x,y);
+
+                    if (!(flags & F_BLACK) && lights == 0) {
+                        if (discount_unlit(state, x, y, sscratch)) {
+                            didstuff = 1;
+                            goto reduction_success;
+                        }
+                    } else if (flags & F_NUMBERED) {
+                        if (discount_clue(state, x, y, sscratch)) {
+                            didstuff = 1;
+                            goto reduction_success;
+                        }
+                    }
+                }
+            }
+        }
+reduction_success:
+        if (didstuff) continue;
 
         /* We now have to make a guess; we have places to put lights but
          * no definite idea about where they can go. */
-        if (depth >= maxrecurse) return -1; /* mustn't delve any deeper. */
-
+        if (depth >= maxrecurse) {
+            /* mustn't delve any deeper. */
+            ret = -1; goto done;
+        }
         /* Of all the squares that we could place a light, pick the one
          * that would light the most currently unlit squares. */
         /* This heuristic was just plucked from the air; there may well be
@@ -902,25 +1314,30 @@ static int solve_sub(game_state *state,
          * and once as 'impossible'; we need to make one copy to do this. */
 
         scopy = dup_game(state);
+#ifdef SOLVER_DIAGNOSTICS
+        debug(("Recursing #1: trying (%d,%d) as IMPOSSIBLE\n", bestx, besty));
+#endif
         GRID(state,flags,bestx,besty) |= F_IMPOSSIBLE;
-        self_soluble = solve_sub(state, forceunique, maxrecurse,
-                                 depth+1, maxdepth);
+        self_soluble = solve_sub(state, solve_flags,  depth+1, maxdepth);
 
-        if (!forceunique && self_soluble > 0) {
+        if (!(solve_flags & F_SOLVE_FORCEUNIQUE) && self_soluble > 0) {
             /* we didn't care about finding all solutions, and we just
              * found one; return with it immediately. */
             free_game(scopy);
-            return self_soluble;
+            ret = self_soluble;
+            goto done;
         }
 
+#ifdef SOLVER_DIAGNOSTICS
+        debug(("Recursing #2: trying (%d,%d) as LIGHT\n", bestx, besty));
+#endif
         set_light(scopy, bestx, besty, 1);
-        copy_soluble = solve_sub(scopy, forceunique, maxrecurse,
-                                 depth+1, maxdepth);
+        copy_soluble = solve_sub(scopy, solve_flags, depth+1, maxdepth);
 
         /* If we wanted a unique solution but we hit our recursion limit
          * (on either branch) then we have to assume we didn't find possible
          * extra solutions, and return 'not soluble'. */
-        if (forceunique &&
+        if ((solve_flags & F_SOLVE_FORCEUNIQUE) &&
             ((copy_soluble < 0) || (self_soluble < 0))) {
             ret = -1;
         /* Make sure that whether or not it was self or copy (or both) that
@@ -940,17 +1357,25 @@ static int solve_sub(game_state *state,
             ret = copy_soluble + self_soluble;
         }
         free_game(scopy);
-        return ret;
+        goto done;
     }
+done:
+    if (sscratch) sfree(sscratch);
+#ifdef SOLVER_DIAGNOSTICS
+    if (ret < 0)
+        debug(("solve_sub: depth = %d returning, ran out of recursion.\n",
+               depth));
+    else
+        debug(("solve_sub: depth = %d returning, %d solutions.\n",
+               depth, ret));
+#endif
+    return ret;
 }
-
-#define MAXRECURSE 5
 
 /* Fills in the (possibly partially-complete) game_state as far as it can,
  * returning the number of possible solutions. If it returns >0 then the
  * game_state will be in a solved state, but you won't know which one. */
-static int dosolve(game_state *state,
-                   int allowguess, int forceunique, int *maxdepth)
+static int dosolve(game_state *state, int solve_flags, int *maxdepth)
 {
     int x, y, nsol;
 
@@ -959,8 +1384,7 @@ static int dosolve(game_state *state,
             GRID(state,flags,x,y) &= ~F_NUMBERUSED;
         }
     }
-    nsol = solve_sub(state, forceunique,
-                     allowguess ? MAXRECURSE : 0, 0, maxdepth);
+    nsol = solve_sub(state, solve_flags, 0, maxdepth);
     return nsol;
 }
 
@@ -993,29 +1417,27 @@ static void unplace_lights(game_state *state)
     }
 }
 
-static int puzzle_is_good(game_state *state, game_params *params, int *mdepth)
+static int puzzle_is_good(game_state *state, int difficulty)
 {
-    int nsol;
+    int nsol, mdepth = 0;
+    unsigned int sflags = flags_from_difficulty(difficulty);
 
-    *mdepth = 0;
     unplace_lights(state);
 
-#ifdef DIAGNOSTICS
-    debug_state(state);
+#ifdef SOLVER_DIAGNOSTICS
+    debug(("Trying to solve with difficulty %d (0x%x):\n",
+           difficulty, sflags));
+    if (verbose) debug_state(state);
 #endif
 
-    nsol = dosolve(state, params->recurse, TRUE, mdepth);
+    nsol = dosolve(state, sflags, &mdepth);
     /* if we wanted an easy puzzle, make sure we didn't need recursion. */
-    if (!params->recurse && *mdepth > 0) {
-#ifdef DIAGNOSTICS
-        printf("Ignoring recursive puzzle.\n");
-#endif
+    if (!(sflags & F_SOLVE_ALLOWRECURSE) && mdepth > 0) {
+        debug(("Ignoring recursive puzzle.\n"));
         return 0;
     }
 
-#ifdef DIAGNOSTICS
-    printf("%d solutions found.\n", nsol);
-#endif
+    debug(("%d solutions found.\n", nsol));
     if (nsol <= 0) return 0;
     if (nsol > 1) return 0;
     return 1;
@@ -1052,7 +1474,7 @@ static char *new_game_desc(game_params *params, random_state *rs,
 			   char **aux, int interactive)
 {
     game_state *news = new_state(params), *copys;
-    int nsol, i, run, x, y, wh = params->w*params->h, num, mdepth;
+    int nsol, i, j, run, x, y, wh = params->w*params->h, num;
     char *ret, *p;
     int *numindices;
 
@@ -1060,7 +1482,7 @@ static char *new_game_desc(game_params *params, random_state *rs,
      * do this once, because if it gets used more than once it'll
      * be on a different grid layout. */
     numindices = snewn(wh, int);
-    for (i = 0; i < wh; i++) numindices[i] = i;
+    for (j = 0; j < wh; j++) numindices[j] = j;
     shuffle(numindices, wh, sizeof(*numindices), rs);
 
     while (1) {
@@ -1071,14 +1493,14 @@ static char *new_game_desc(game_params *params, random_state *rs,
             place_lights(news, rs);
             debug(("Generating initial grid.\n"));
             place_numbers(news);
-            if (!puzzle_is_good(news, params, &mdepth)) continue;
+            if (!puzzle_is_good(news, params->difficulty)) continue;
 
             /* Take a copy, remove numbers we didn't use and check there's
              * still a unique solution; if so, use the copy subsequently. */
             copys = dup_game(news);
             nsol = strip_unused_nums(copys);
             debug(("Stripped %d unused numbers.\n", nsol));
-            if (!puzzle_is_good(copys, params, &mdepth)) {
+            if (!puzzle_is_good(copys, params->difficulty)) {
                 debug(("Stripped grid is not good, reverting.\n"));
                 free_game(copys);
             } else {
@@ -1088,25 +1510,26 @@ static char *new_game_desc(game_params *params, random_state *rs,
 
             /* Go through grid removing numbers at random one-by-one and
              * trying to solve again; if it ceases to be good put the number back. */
-            for (i = 0; i < wh; i++) {
-                y = numindices[i] / params->w;
-                x = numindices[i] % params->w;
+            for (j = 0; j < wh; j++) {
+                y = numindices[j] / params->w;
+                x = numindices[j] % params->w;
                 if (!(GRID(news, flags, x, y) & F_NUMBERED)) continue;
                 num = GRID(news, lights, x, y);
                 GRID(news, lights, x, y) = 0;
                 GRID(news, flags, x, y) &= ~F_NUMBERED;
-                if (!puzzle_is_good(news, params, &mdepth)) {
+                if (!puzzle_is_good(news, params->difficulty)) {
                     GRID(news, lights, x, y) = num;
                     GRID(news, flags, x, y) |= F_NUMBERED;
                 } else
                     debug(("Removed (%d,%d) still soluble.\n", x, y));
             }
-	    /* Get a good value of mdepth for the following test */
-	    i = puzzle_is_good(news, params, &mdepth);
-	    assert(i);
-            if (params->recurse && mdepth == 0) {
-                debug(("Maximum-difficulty puzzle still not recursive, skipping.\n"));
-                continue;
+            if (params->difficulty > 0) {
+                /* Was the maximally-difficult puzzle difficult enough?
+                 * Check we can't solve it with a more simplistic solver. */
+                if (puzzle_is_good(news, params->difficulty-1)) {
+                    debug(("Maximally-hard puzzle still not hard enough, skipping.\n"));
+                    continue;
+                }
             }
 
             goto goodpuzzle;
@@ -1115,9 +1538,7 @@ static char *new_game_desc(game_params *params, random_state *rs,
          * %age of black squares (if we didn't already have lots; in which case
          * why couldn't we generate a puzzle?) and try again. */
         if (params->blackpc < 90) params->blackpc += 5;
-#ifdef DIAGNOSTICS
-        printf("New black layout %d%%.\n", params->blackpc);
-#endif
+        debug(("New black layout %d%%.\n", params->blackpc));
     }
 goodpuzzle:
     /* Game is encoded as a long string one character per square;
@@ -1234,20 +1655,22 @@ static char *solve_game(game_state *state, game_state *currstate,
     game_state *solved;
     char *move = NULL, buf[80];
     int movelen, movesize, x, y, len;
-    unsigned int oldflags, solvedflags;
+    unsigned int oldflags, solvedflags, sflags;
 
     /* We don't care here about non-unique puzzles; if the
      * user entered one themself then I doubt they care. */
 
+    sflags = F_SOLVE_ALLOWRECURSE | F_SOLVE_DISCOUNTSETS;
+
     /* Try and solve from where we are now (for non-unique
      * puzzles this may produce a different answer). */
     solved = dup_game(currstate);
-    if (dosolve(solved, 1, 0, NULL) > 0) goto solved;
+    if (dosolve(solved, sflags, NULL) > 0) goto solved;
     free_game(solved);
 
     /* That didn't work; try solving from the clean puzzle. */
     solved = dup_game(state);
-    if (dosolve(solved, 1, 0, NULL) > 0) goto solved;
+    if (dosolve(solved, sflags, NULL) > 0) goto solved;
     *error = "Puzzle is not self-consistent.";
     goto done;
 
@@ -1836,5 +2259,81 @@ const struct game thegame = {
     FALSE, game_timing_state,
     0,				       /* mouse_priorities */
 };
+
+#ifdef STANDALONE_SOLVER
+
+int main(int argc, char **argv)
+{
+    game_params *p;
+    game_state *s;
+    char *id = NULL, *desc, *err, *result;
+    int nsol, diff, really_verbose = 0;
+    unsigned int sflags;
+
+    while (--argc > 0) {
+        char *p = *++argv;
+        if (!strcmp(p, "-v")) {
+            really_verbose++;
+        } else if (*p == '-') {
+            fprintf(stderr, "%s: unrecognised option `%s'\n", argv[0], p);
+            return 1;
+        } else {
+            id = p;
+        }
+    }
+
+    if (!id) {
+        fprintf(stderr, "usage: %s [-v] <game_id>\n", argv[0]);
+        return 1;
+    }
+
+    desc = strchr(id, ':');
+    if (!desc) {
+        fprintf(stderr, "%s: game id expects a colon in it\n", argv[0]);
+        return 1;
+    }
+    *desc++ = '\0';
+
+    p = default_params();
+    decode_params(p, id);
+    err = validate_desc(p, desc);
+    if (err) {
+        fprintf(stderr, "%s: %s\n", argv[0], err);
+        return 1;
+    }
+    s = new_game(NULL, p, desc);
+
+    /* Run the solvers easiest to hardest until we find one that
+     * can solve our puzzle. If it's soluble we know that the
+     * hardest (recursive) solver will always find the solution. */
+    for (diff = 0; diff <= DIFFCOUNT; diff++) {
+        printf("\nSolving with difficulty %d.\n", diff);
+        sflags = flags_from_difficulty(diff);
+        unplace_lights(s);
+        nsol = dosolve(s, sflags, NULL);
+        if (nsol == 1) break;
+    }
+
+    printf("\n");
+    if (nsol == 0) {
+        printf("Puzzle has no solution.\n");
+    } else if (nsol < 0) {
+        printf("Unable to find a unique solution.\n");
+    } else if (nsol > 1) {
+        printf("Puzzle has multiple solutions.\n");
+    } else {
+        verbose = really_verbose;
+        unplace_lights(s);
+        printf("Puzzle has difficulty %d: solving...\n", diff);
+        dosolve(s, sflags, NULL); /* sflags from last successful solve */
+        result = game_text_format(s);
+        printf("%s", result);
+        sfree(result);
+    }
+
+    return 0;
+}
+
+#endif
 
 /* vim: set shiftwidth=4 tabstop=8: */
