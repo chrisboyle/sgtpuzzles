@@ -221,6 +221,9 @@ static struct solver_scratch *new_scratch(int w, int h)
 
 static void free_scratch(struct solver_scratch *sc)
 {
+    sfree(sc->reachable_from);
+    sfree(sc->reachable_to);
+    sfree(sc->positions);
     sfree(sc);
 }
 
@@ -940,6 +943,8 @@ static game_drawstate *game_new_drawstate(drawing *dr, game_state *state)
 
 static void game_free_drawstate(drawing *dr, game_drawstate *ds)
 {
+    if (ds->player_background)
+	blitter_free(dr, ds->player_background);
     sfree(ds->grid);
     sfree(ds);
 }
