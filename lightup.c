@@ -2306,6 +2306,7 @@ int main(int argc, char **argv)
     /* Run the solvers easiest to hardest until we find one that
      * can solve our puzzle. If it's soluble we know that the
      * hardest (recursive) solver will always find the solution. */
+    nsol = sflags = 0;
     for (diff = 0; diff <= DIFFCOUNT; diff++) {
         printf("\nSolving with difficulty %d.\n", diff);
         sflags = flags_from_difficulty(diff);
