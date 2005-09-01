@@ -373,9 +373,14 @@ static game_params *default_params(void)
 {
     game_params *ret = snew(game_params);
 
+#ifdef SLOW_SYSTEM
+    ret->h = 4;
+    ret->w = 4;
+#else
     ret->h = 10;
     ret->w = 10;
-    ret->rec = 0; 
+#endif
+    ret->rec = 0;
 
     return ret;
 }
@@ -396,9 +401,11 @@ static const struct {
     { "7x7 Easy",   {  7,  7, 0 } },
     { "7x7 Hard",   {  7,  7, 2 } },
     { "10x10 Easy", { 10, 10, 0 } },
+#ifndef SLOW_SYSTEM
     { "10x10 Hard", { 10, 10, 2 } },
     { "15x15 Easy", { 15, 15, 0 } },
     { "30x20 Easy", { 30, 20, 0 } }
+#endif
 };
 
 static int game_fetch_preset(int i, char **name, game_params **params)
@@ -506,7 +513,7 @@ static char *validate_params(game_params *params, int full)
  * light towards those with high scores */
 struct square { 
     int score;
-    int random;
+    unsigned long random;
     int x, y;
 };
 
@@ -538,10 +545,10 @@ static int square_sort_cmpfn(void *v1, void *v2)
         return r;
     }
 
-    r = s1->random - s2->random;
-    if (r) {
-	return r;
-    }
+    if (s1->random < s2->random)
+        return -1;
+    else if (s1->random > s2->random)
+        return 1;
 
     /*
      * It's _just_ possible that two squares might have been given
