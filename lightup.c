@@ -1824,11 +1824,13 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
 			    int x, int y, int button)
 {
     enum { NONE, FLIP_LIGHT, FLIP_IMPOSSIBLE } action = NONE;
-    int cx = -1, cy = -1, cv = ui->cur_visible;
+    int cx = -1, cy = -1;
     unsigned int flags;
-    char buf[80], *nullret, *empty = "", c;
+    char buf[80], *nullret = NULL, *empty = "", c;
 
     if (button == LEFT_BUTTON || button == RIGHT_BUTTON) {
+        if (ui->cur_visible)
+            nullret = empty;
         ui->cur_visible = 0;
         cx = FROMCOORD(x);
         cy = FROMCOORD(y);
@@ -1855,13 +1857,9 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
         ui->cur_x = min(max(ui->cur_x, 0), state->w - 1);
         ui->cur_y = min(max(ui->cur_y, 0), state->h - 1);
         ui->cur_visible = 1;
-    }
-
-    /* Always redraw if the cursor is on, or if it's just been
-     * removed. */
-    if (ui->cur_visible) nullret = empty;
-    else if (cv) nullret = empty;
-    else nullret = NULL;
+        nullret = empty;
+    } else
+        return NULL;
 
     switch (action) {
     case FLIP_LIGHT:
