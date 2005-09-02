@@ -2442,7 +2442,7 @@ static char *grid_text_format(int c, int r, digit *grid)
         for (x = 0; x < cr; x++) {
             int ch = grid[y * cr + x];
             if (ch == 0)
-                ch = ' ';
+                ch = '.';
             else if (ch <= 9)
                 ch = '0' + ch;
             else
