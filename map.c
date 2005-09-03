@@ -2169,6 +2169,7 @@ static void free_game(game_state *state)
 	sfree(state->map->regiony);
 	sfree(state->map);
     }
+    sfree(state->pencil);
     sfree(state->colouring);
     sfree(state);
 }
@@ -2606,11 +2607,11 @@ static void draw_error(drawing *dr, game_drawstate *ds, int x, int y)
 
 static void draw_square(drawing *dr, game_drawstate *ds,
 			game_params *params, struct map *map,
-			int x, int y, int v)
+			int x, int y, unsigned long v)
 {
     int w = params->w, h = params->h, wh = w*h;
-    int tv, bv, xo, yo, errs, pencil, i, j, oldj;
-    int show_numbers;
+    int tv, bv, xo, yo, i, j, oldj;
+    unsigned long errs, pencil, show_numbers;
 
     errs = v & ERR_MASK;
     v &= ~ERR_MASK;
@@ -2679,7 +2680,7 @@ static void draw_square(drawing *dr, game_drawstate *ds,
 
 	    draw_circle(dr, COORD(x) + (xo+1)*TILESIZE/5,
 			COORD(y) + (yo+1)*TILESIZE/5,
-			TILESIZE/8, COL_0 + c, COL_0 + c);
+			TILESIZE/7, COL_0 + c, COL_0 + c);
 	}
 
     /*
@@ -2781,7 +2782,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 	for (x = 0; x < w; x++) {
 	    int tv = state->colouring[state->map->map[TE * wh + y*w+x]];
 	    int bv = state->colouring[state->map->map[BE * wh + y*w+x]];
-            int v;
+            unsigned long v;
 
 	    if (tv < 0)
 		tv = FOUR;
@@ -2864,7 +2865,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
      */
     for (y = 0; y < h; y++)
 	for (x = 0; x < w; x++) {
-	    int v = ds->todraw[y*w+x];
+	    unsigned long v = ds->todraw[y*w+x];
 	    if (ds->drawn[y*w+x] != v) {
 		draw_square(dr, ds, &state->p, state->map, x, y, v);
 		ds->drawn[y*w+x] = v;
