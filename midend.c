@@ -1169,8 +1169,11 @@ char *midend_solve(midend *me)
      * Now enter the solved state as the next move.
      */
     midend_stop_anim(me);
-    while (me->nstates > me->statepos)
+    while (me->nstates > me->statepos) {
 	me->ourgame->free_game(me->states[--me->nstates].state);
+        if (me->states[me->nstates].movestr)
+            sfree(me->states[me->nstates].movestr);
+    }
     ensure(me);
     me->states[me->nstates].state = s;
     me->states[me->nstates].movestr = movestr;
