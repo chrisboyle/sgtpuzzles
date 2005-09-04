@@ -1551,14 +1551,13 @@ functions. This enables a single front end to switch between
 multiple implementations of the drawing API if necessary. For
 example, the Windows API supplies a printing mechanism integrated
 into the same GDI which deals with drawing in windows, and therefore
-it is likely (although as yet unimplemented in Puzzles) that the
-same API implementation can handle both drawing and printing; but on
-Unix, the most common way for applications to print is by producing
-PostScript output directly, and although it would be \e{possible} to
-write a single (say) \cw{draw_rect()} function which checked a
-global flag to decide whether to do GTK drawing operations or output
-PostScript to a file, it's much nicer to have two separate functions
-and switch between them as appropriate.
+the same API implementation can handle both drawing and printing;
+but on Unix, the most common way for applications to print is by
+producing PostScript output directly, and although it would be
+\e{possible} to write a single (say) \cw{draw_rect()} function which
+checked a global flag to decide whether to do GTK drawing operations
+or output PostScript to a file, it's much nicer to have two separate
+functions and switch between them as appropriate.
 
 When drawing, the puzzle window is indexed by pixel coordinates,
 with the top left pixel defined as \cw{(0,0)} and the bottom right
@@ -4051,7 +4050,7 @@ Then the main redraw loop will look something like this
 \c         if (x == ui->cursor_x && y == ui->cursor_y)
 \c             value |= CURSOR;
 \c         if (ds->symbol_at_position[y][x] != value) {
-\c             symbol_drawing_subroutine(fe, ds, x, y, value);
+\c             symbol_drawing_subroutine(dr, ds, x, y, value);
 \c             ds->symbol_at_position[y][x] = value;
 \c         }
 \c     }
