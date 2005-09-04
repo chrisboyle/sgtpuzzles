@@ -80,7 +80,7 @@ struct midend {
 
     int pressed_mouse_button;
 
-    int tilesize, winwidth, winheight;
+    int preferred_tilesize, tilesize, winwidth, winheight;
 };
 
 #define ensure(me) do { \
@@ -129,6 +129,26 @@ midend *midend_new(frontend *fe, const game *ourgame,
 	me->drawing = drawing_init(drapi, drhandle);
     else
 	me->drawing = NULL;
+
+    me->preferred_tilesize = ourgame->preferred_tilesize;
+    {
+        /*
+         * Allow an environment-based override for the default tile
+         * size by defining a variable along the lines of
+         * `NET_TILESIZE=15'.
+         */
+
+	char buf[80], *e;
+	int j, k, ts;
+
+	sprintf(buf, "%s_TILESIZE", me->ourgame->name);
+	for (j = k = 0; buf[j]; j++)
+	    if (!isspace((unsigned char)buf[j]))
+		buf[k++] = toupper((unsigned char)buf[j]);
+	buf[k] = '\0';
+	if ((e = getenv(buf)) != NULL && sscanf(e, "%d", &ts) == 1 && ts > 0)
+	    me->preferred_tilesize = ts;
+    }
 
     sfree(randseed);
 
@@ -210,7 +230,7 @@ void midend_size(midend *me, int *x, int *y, int expand)
 	    me->ourgame->compute_size(me->params, max, &rx, &ry);
 	} while (rx <= *x && ry <= *y);
     } else
-	max = me->ourgame->preferred_tilesize + 1;
+	max = me->preferred_tilesize + 1;
     min = 1;
 
     /*
