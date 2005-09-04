@@ -2459,7 +2459,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 #define CLEAR_VL(i, j) do {                                                \
                            draw_rect(dr,                                   \
                                  BORDER + i * TILE_SIZE - CROSS_SIZE,      \
-                                 BORDER + j * TILE_SIZE + LINEWIDTH/2,     \
+                                 BORDER + j * TILE_SIZE + LINEWIDTH - LINEWIDTH/2,     \
                                  CROSS_SIZE * 2,                           \
                                  TILE_SIZE - LINEWIDTH,                    \
                                  COL_BACKGROUND);                          \
@@ -2472,7 +2472,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 
 #define CLEAR_HL(i, j) do {                                                \
                            draw_rect(dr,                                   \
-                                 BORDER + i * TILE_SIZE + LINEWIDTH/2,     \
+                                 BORDER + i * TILE_SIZE + LINEWIDTH - LINEWIDTH/2,     \
                                  BORDER + j * TILE_SIZE - CROSS_SIZE,      \
                                  TILE_SIZE - LINEWIDTH,                    \
                                  CROSS_SIZE * 2,                           \
@@ -2499,7 +2499,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
                         CLEAR_VL(i, j);
                         draw_rect(dr,
                                   BORDER + i * TILE_SIZE - LINEWIDTH/2,
-                                  BORDER + j * TILE_SIZE + LINEWIDTH/2,
+                                  BORDER + j * TILE_SIZE + LINEWIDTH - LINEWIDTH/2,
                                   LINEWIDTH, TILE_SIZE - LINEWIDTH, 
                                   line_colour);
                     }
@@ -2540,7 +2540,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
                         flash_changed) {
                         CLEAR_HL(i, j);
                         draw_rect(dr,
-                                  BORDER + i * TILE_SIZE + LINEWIDTH/2,
+                                  BORDER + i * TILE_SIZE + LINEWIDTH - LINEWIDTH/2,
                                   BORDER + j * TILE_SIZE - LINEWIDTH/2,
                                   TILE_SIZE - LINEWIDTH, LINEWIDTH, 
                                   line_colour);
