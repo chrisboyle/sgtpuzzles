@@ -2505,8 +2505,7 @@ static void game_set_size(drawing *dr, game_drawstate *ds,
 {
     ds->tilesize = tilesize;
 
-    if (ds->bl)
-        blitter_free(dr, ds->bl);
+    assert(!ds->bl);                   /* set_size is never called twice */
     ds->bl = blitter_new(dr, TILESIZE+3, TILESIZE+3);
 }
 

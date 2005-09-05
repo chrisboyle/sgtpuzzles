@@ -860,7 +860,7 @@ static void game_set_size(drawing *dr, game_drawstate *ds,
     ds->solny = ds->guessy + ((ds->pegsz + ds->gapsz) * params->nguesses) + ds->gapsz;
 
     assert(ds->pegsz > 0);
-    if (ds->blit_peg) blitter_free(dr, ds->blit_peg);
+    assert(!ds->blit_peg);             /* set_size is never called twice */
     ds->blit_peg = blitter_new(dr, ds->pegsz, ds->pegsz);
 }
 

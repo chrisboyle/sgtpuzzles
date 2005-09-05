@@ -875,10 +875,9 @@ static void game_set_size(drawing *dr, game_drawstate *ds,
 {
     ds->tilesize = tilesize;
 
+    assert(!ds->player_background);    /* set_size is never called twice */
     assert(!ds->player_bg_saved);
 
-    if (ds->player_background)
-	blitter_free(dr, ds->player_background);
     ds->player_background = blitter_new(dr, TILESIZE, TILESIZE);
 }
 

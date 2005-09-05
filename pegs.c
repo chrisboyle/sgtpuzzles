@@ -936,8 +936,7 @@ static void game_set_size(drawing *dr, game_drawstate *ds,
 
     assert(TILESIZE > 0);
 
-    if (ds->drag_background)
-	blitter_free(dr, ds->drag_background);
+    assert(!ds->drag_background);      /* set_size is never called twice */
     ds->drag_background = blitter_new(dr, TILESIZE, TILESIZE);
 }
 

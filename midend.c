@@ -218,6 +218,17 @@ void midend_size(midend *me, int *x, int *y, int expand)
     int rx, ry;
 
     /*
+     * We can't set the size on the same drawstate twice. So if
+     * we've already sized one drawstate, we must throw it away and
+     * create a new one.
+     */
+    if (me->drawstate && me->tilesize > 0) {
+        me->ourgame->free_drawstate(me->drawing, me->drawstate);
+        me->drawstate = me->ourgame->new_drawstate(me->drawing,
+                                                   me->states[0].state);
+    }
+
+    /*
      * Find the tile size that best fits within the given space. If
      * `expand' is TRUE, we must actually find the _largest_ such
      * tile size; otherwise, we bound above at the game's preferred

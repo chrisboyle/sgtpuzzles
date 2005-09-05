@@ -1097,6 +1097,11 @@ allocating a blitter (see \k{drawing-blitter}).
 The parameter \c{dr} is a drawing object (see \k{drawing}), which is
 required if a blitter needs to be allocated.
 
+Back ends may assume (and may enforce by assertion) that this
+function will be called at most once for any \c{game_drawstate}. If
+a puzzle needs to be redrawn at a different size, the mid-end will
+create a fresh drawstate.
+
 \S{backend-colours} \cw{colours()}
 
 \c float *(*colours)(frontend *fe, game_state *state, int *ncolours);
@@ -4115,9 +4120,7 @@ piece of saved background needs to be.
 
 \b In the game's \cw{set_size()} function, once you know the size of
 the object you'll be dragging around the display and hence the
-required size of the blitter, actually allocate the blitter (making
-sure to free a previous one if present \dash it's possible that
-\cw{set_size()} might be called twice on the same draw state).
+required size of the blitter, actually allocate the blitter.
 
 \b In \cw{free_drawstate()}, free the blitter if it's not \cw{NULL}.
 
