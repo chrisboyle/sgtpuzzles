@@ -112,7 +112,7 @@ static void ps_draw_text(void *handle, int x, int y, int fonttype,
     ps_setcolour(ps, colour);
     ps_printf(ps, "/%s findfont %d scalefont setfont\n",
 	      fonttype == FONT_FIXED ? "Courier" : "Helvetica",
-	      fontsize, x, y);
+	      fontsize);
     if (align & ALIGN_VCENTRE) {
 	ps_printf(ps, "newpath 0 0 moveto (X) true charpath flattenpath"
 		  " pathbbox\n"

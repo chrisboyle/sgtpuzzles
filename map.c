@@ -2240,7 +2240,15 @@ static char *game_text_format(game_state *state)
 }
 
 struct game_ui {
-    int drag_colour;                   /* -1 means no drag active */
+    /*
+     * drag_colour:
+     * 
+     *  - -2 means no drag currently active.
+     *  - >=0 means we're dragging a solid colour.
+     * 	- -1 means we're dragging a blank space, and drag_pencil
+     * 	  might or might not add some pencil-mark stipples to that.
+     */
+    int drag_colour;
     int drag_pencil;
     int dragx, dragy;
     int show_numbers;

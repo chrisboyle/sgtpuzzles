@@ -190,6 +190,7 @@ install:
 	         pattern rect solo mines samegame flip guess \
 		 pegs dominosa untangle blackbox slant lightup \
 		 map loopy inertia; do \
-		$(INSTALL_PROGRAM) -m 755 $$i $(DESTDIR)$(gamesdir)/$$i; \
+		$(INSTALL_PROGRAM) -m 755 $$i $(DESTDIR)$(gamesdir)/$$i \
+		|| exit 1; \
 	done
 !end
