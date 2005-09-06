@@ -710,11 +710,11 @@ static void game_changed_state(game_ui *ui, game_state *oldstate,
     /*
      * Increment the deaths counter. We only do this if
      * ui->just_made_move is set (redoing a suicide move doesn't
-     * kill you _again_), and also we only do it if the game isn't
-     * completed (once you're finished, you can play).
+     * kill you _again_), and also we only do it if the game wasn't
+     * already completed (once you're finished, you can play).
      */
     if (!oldstate->dead && newstate->dead && ui->just_made_move &&
-	newstate->gems) {
+	oldstate->gems) {
 	ui->deaths++;
 	ui->just_died = TRUE;
     } else {
