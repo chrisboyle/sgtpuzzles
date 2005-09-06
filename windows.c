@@ -74,6 +74,11 @@ void debug_printf(char *fmt, ...)
 }
 #endif
 
+#define WINFLAGS (WS_OVERLAPPEDWINDOW &~ \
+		      (WS_THICKFRAME | WS_MAXIMIZEBOX | WS_OVERLAPPED))
+
+static void new_game_size(frontend *fe);
+
 struct font {
     HFONT font;
     int type;
@@ -1042,9 +1047,7 @@ static void check_window_size(frontend *fe, int *px, int *py)
 	r.left = r.top = 0;
 	r.right = x;
 	r.bottom = y + sy;
-	AdjustWindowRectEx(&r, WS_OVERLAPPEDWINDOW &~
-			   (WS_THICKFRAME | WS_MAXIMIZEBOX | WS_OVERLAPPED),
-			   TRUE, 0);
+	AdjustWindowRectEx(&r, WINFLAGS, TRUE, 0);
 	SetWindowPos(fe->hwnd, NULL, 0, 0, r.right - r.left, r.bottom - r.top,
 		     SWP_NOMOVE | SWP_NOZORDER);
     }
@@ -1057,6 +1060,30 @@ static void check_window_size(frontend *fe, int *px, int *py)
 
     *px = x;
     *py = y;
+}
+
+static void get_max_puzzle_size(frontend *fe, int *x, int *y)
+{
+    RECT r, sr;
+
+    if (SystemParametersInfo(SPI_GETWORKAREA, 0, &sr, FALSE)) {
+	*x = sr.right - sr.left;
+	*y = sr.bottom - sr.top;
+	r.left = 100;
+	r.right = 200;
+	r.top = 100;
+	r.bottom = 200;
+	AdjustWindowRectEx(&r, WINFLAGS, TRUE, 0);
+	*x -= r.right - r.left - 100;
+	*y -= r.bottom - r.top - 100;
+    } else {
+	*x = *y = INT_MAX;
+    }
+
+    if (fe->statusbar != NULL) {
+	GetWindowRect(fe->statusbar, &sr);
+	*y -= sr.bottom - sr.top;
+    }
 }
 
 static frontend *new_window(HINSTANCE inst, char *game_id, char **error)
@@ -1118,15 +1145,20 @@ static frontend *new_window(HINSTANCE inst, char *game_id, char **error)
         sfree(colours);
     }
 
-    x = y = INT_MAX;		       /* find puzzle's preferred size */
+    if (midend_wants_statusbar(fe->me)) {
+	fe->statusbar = CreateWindowEx(0, STATUSCLASSNAME, "ooh",
+				       WS_CHILD | WS_VISIBLE,
+				       0, 0, 0, 0, /* status bar does these */
+				       NULL, NULL, inst, NULL);
+    }
+
+    get_max_puzzle_size(fe, &x, &y);
     midend_size(fe->me, &x, &y, FALSE);
 
     r.left = r.top = 0;
     r.right = x;
     r.bottom = y;
-    AdjustWindowRectEx(&r, WS_OVERLAPPEDWINDOW &~
-		       (WS_THICKFRAME | WS_MAXIMIZEBOX | WS_OVERLAPPED),
-		       TRUE, 0);
+    AdjustWindowRectEx(&r, WINFLAGS, TRUE, 0);
 
     fe->hwnd = CreateWindowEx(0, thegame.name, thegame.name,
 			      WS_OVERLAPPEDWINDOW &~
@@ -1137,6 +1169,7 @@ static frontend *new_window(HINSTANCE inst, char *game_id, char **error)
 
     if (midend_wants_statusbar(fe->me)) {
 	RECT sr;
+	DestroyWindow(fe->statusbar);
 	fe->statusbar = CreateWindowEx(0, STATUSCLASSNAME, "ooh",
 				       WS_CHILD | WS_VISIBLE,
 				       0, 0, 0, 0, /* status bar does these */
@@ -1228,6 +1261,7 @@ static frontend *new_window(HINSTANCE inst, char *game_id, char **error)
 	SetMenu(fe->hwnd, bar);
     }
 
+    new_game_size(fe);
     check_window_size(fe, &x, &y);
 
     hdc = GetDC(fe->hwnd);
@@ -1848,16 +1882,13 @@ static void new_game_size(frontend *fe)
     HDC hdc;
     int x, y;
 
-    x = y = INT_MAX;
+    get_max_puzzle_size(fe, &x, &y);
     midend_size(fe->me, &x, &y, FALSE);
 
     r.left = r.top = 0;
     r.right = x;
     r.bottom = y;
-    AdjustWindowRectEx(&r, WS_OVERLAPPEDWINDOW &~
-		       (WS_THICKFRAME | WS_MAXIMIZEBOX |
-			WS_OVERLAPPED),
-		       TRUE, 0);
+    AdjustWindowRectEx(&r, WINFLAGS, TRUE, 0);
 
     if (fe->statusbar != NULL) {
 	GetWindowRect(fe->statusbar, &sr);
