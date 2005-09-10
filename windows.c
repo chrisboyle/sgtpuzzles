@@ -1091,7 +1091,6 @@ static frontend *new_window(HINSTANCE inst, char *game_id, char **error)
     frontend *fe;
     int x, y;
     RECT r;
-    HDC hdc;
 
     fe = snew(frontend);
 
@@ -1150,7 +1149,8 @@ static frontend *new_window(HINSTANCE inst, char *game_id, char **error)
 				       WS_CHILD | WS_VISIBLE,
 				       0, 0, 0, 0, /* status bar does these */
 				       NULL, NULL, inst, NULL);
-    }
+    } else
+        fe->statusbar = NULL;
 
     get_max_puzzle_size(fe, &x, &y);
     midend_size(fe->me, &x, &y, FALSE);
@@ -1261,12 +1261,9 @@ static frontend *new_window(HINSTANCE inst, char *game_id, char **error)
 	SetMenu(fe->hwnd, bar);
     }
 
-    new_game_size(fe);
+    fe->bitmap = NULL;
+    new_game_size(fe); /* initialises fe->bitmap */
     check_window_size(fe, &x, &y);
-
-    hdc = GetDC(fe->hwnd);
-    fe->bitmap = CreateCompatibleBitmap(hdc, x, y);
-    ReleaseDC(fe->hwnd, hdc);
 
     SetWindowLong(fe->hwnd, GWL_USERDATA, (LONG)fe);
 
@@ -1906,7 +1903,7 @@ static void new_game_size(frontend *fe)
 	SetWindowPos(fe->statusbar, NULL, 0, y, x,
 		     sr.bottom - sr.top, SWP_NOZORDER);
 
-    DeleteObject(fe->bitmap);
+    if (fe->bitmap) DeleteObject(fe->bitmap);
 
     hdc = GetDC(fe->hwnd);
     fe->bitmap = CreateCompatibleBitmap(hdc, x, y);
