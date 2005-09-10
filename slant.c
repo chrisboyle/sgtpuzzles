@@ -76,12 +76,13 @@ struct game_params {
 typedef struct game_clues {
     int w, h;
     signed char *clues;
-    signed char *tmpsoln;
+    int *tmpdsf;
     int refcount;
 } game_clues;
 
 #define ERR_VERTEX 1
 #define ERR_SQUARE 2
+#define ERR_SQUARE_TMP 4
 
 struct game_state {
     struct game_params p;
@@ -1122,7 +1123,7 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
     state->clues->h = h;
     state->clues->clues = snewn(W*H, signed char);
     state->clues->refcount = 1;
-    state->clues->tmpsoln = snewn(w*h, signed char);
+    state->clues->tmpdsf = snewn(W*H, int);
     memset(state->clues->clues, -1, W*H);
     while (*desc) {
         int n = *desc++;
@@ -1165,7 +1166,7 @@ static void free_game(game_state *state)
     assert(state->clues);
     if (--state->clues->refcount <= 0) {
         sfree(state->clues->clues);
-        sfree(state->clues->tmpsoln);
+        sfree(state->clues->tmpdsf);
         sfree(state->clues);
     }
     sfree(state);
@@ -1216,62 +1217,161 @@ static int vertex_degree(int w, int h, signed char *soln, int x, int y,
 static int check_completion(game_state *state)
 {
     int w = state->p.w, h = state->p.h, W = w+1, H = h+1;
-    int x, y, err = FALSE;
-    signed char *ts;
+    int i, x, y, err = FALSE;
+    int *dsf;
 
     memset(state->errors, 0, W*H);
 
     /*
-     * An easy way to do loop checking would be by means of the
-     * same dsf technique we've used elsewhere (loop over all edges
-     * in the grid, joining vertices together into equivalence
-     * classes when connected by an edge, and raise the alarm when
-     * an edge joins two already-equivalent vertices). However, a
-     * better approach is to repeatedly remove the single edge
-     * connecting to any degree-1 vertex, and then see if there are
-     * any edges left over; if so, precisely those edges are part
-     * of loops, which means we can highlight them as errors for
-     * the user.
+     * To detect loops in the grid, we iterate through each edge
+     * building up a dsf of connected components, and raise the
+     * alarm whenever we find an edge that connects two
+     * already-connected vertices.
      * 
-     * We use the `tmpsoln' scratch space in the shared clues
+     * We use the `tmpdsf' scratch space in the shared clues
      * structure, to avoid mallocing too often.
+     * 
+     * When we find such an edge, we then search around the grid to
+     * find the loop it is a part of, so that we can highlight it
+     * as an error for the user. We do this by the hand-on-one-wall
+     * technique: the search will follow branches off the inside of
+     * the loop, discover they're dead ends, and unhighlight them
+     * again when returning to the actual loop.
+     * 
+     * This technique guarantees that every loop it tracks will
+     * surround a disjoint area of the grid (since if an existing
+     * loop appears on the boundary of a new one, so that there are
+     * multiple possible paths that would come back to the starting
+     * point, it will pick the one that allows it to turn right
+     * most sharply and hence the one that does not re-surround the
+     * area of the previous one). Thus, the total time taken in
+     * searching round loops is linear in the grid area since every
+     * edge is visited at most twice.
      */
-    ts = state->clues->tmpsoln;
-    memcpy(ts, state->soln, w*h);
-    for (y = 0; y < H; y++)
-	for (x = 0; x < W; x++) {
-            int vx = x, vy = y;
-            int sx, sy;
-            /*
-             * Every time we disconnect a vertex like this, there
-             * is precisely one other vertex which might have
-             * become degree 1; so we follow the trail as far as it
-             * leads. This ensures that we don't have to make more
-             * than one loop over the grid, because whenever a
-             * degree-1 vertex comes into existence somewhere we've
-             * already looked, we immediately remove it again.
-             * Hence one loop over the grid is adequate; and
-             * moreover, this algorithm visits every vertex at most
-             * twice (once in the loop and possibly once more as a
-             * result of following a trail) so it has linear time
-             * in the area of the grid.
-             */
-            while (vertex_degree(w, h, ts, vx, vy, FALSE, &sx, &sy) == 1) {
-                ts[sy*w+sx] = 0;
-                vx = vx + 1 + (sx - vx) * 2;
-                vy = vy + 1 + (sy - vy) * 2;
-            }
-        }
-
-    /*
-     * Now mark any remaining edges with ERR_SQUARE.
-     */
+    dsf = state->clues->tmpdsf;
+    for (i = 0; i < W*H; i++)
+        dsf[i] = i;		       /* initially all distinct */
     for (y = 0; y < h; y++)
-	for (x = 0; x < w; x++)
-            if (ts[y*w+x]) {
-                state->errors[y*W+x] |= ERR_SQUARE;
-                err = TRUE;
+        for (x = 0; x < w; x++) {
+            int i1, i2;
+
+            if (state->soln[y*w+x] == 0)
+                continue;
+            if (state->soln[y*w+x] < 0) {
+                i1 = y*W+x;
+                i2 = (y+1)*W+(x+1);
+            } else {
+                i1 = y*W+(x+1);
+                i2 = (y+1)*W+x;
             }
+
+            /*
+             * Our edge connects i1 with i2. If they're already
+             * connected, flag an error. Otherwise, link them.
+             */
+            if (dsf_canonify(dsf, i1) == dsf_canonify(dsf, i2)) {
+		int x1, y1, x2, y2, dx, dy, dt, pass;
+
+		err = TRUE;
+
+		/*
+		 * Now search around the boundary of the loop to
+		 * highlight it.
+		 * 
+		 * We have to do this in two passes. The first
+		 * time, we toggle ERR_SQUARE_TMP on each edge;
+		 * this pass terminates with ERR_SQUARE_TMP set on
+		 * exactly the loop edges. In the second pass, we
+		 * trace round that loop again and turn
+		 * ERR_SQUARE_TMP into ERR_SQUARE. We have to do
+		 * this because otherwise we might cancel part of a
+		 * loop highlighted in a previous iteration of the
+		 * outer loop.
+		 */
+
+		for (pass = 0; pass < 2; pass++) {
+
+		    x1 = i1 % W;
+		    y1 = i1 / W;
+		    x2 = i2 % W;
+		    y2 = i2 / W;
+
+		    do {
+			/* Mark this edge. */
+			if (pass == 0) {
+			    state->errors[min(y1,y2)*W+min(x1,x2)] ^=
+				ERR_SQUARE_TMP;
+			} else {
+			    state->errors[min(y1,y2)*W+min(x1,x2)] |=
+				ERR_SQUARE;
+			    state->errors[min(y1,y2)*W+min(x1,x2)] &=
+				~ERR_SQUARE_TMP;
+			}
+
+			/*
+			 * Progress to the next edge by turning as
+			 * sharply right as possible. In fact we do
+			 * this by facing back along the edge and
+			 * turning _left_ until we see an edge we
+			 * can follow.
+			 */
+			dx = x1 - x2;
+			dy = y1 - y2;
+
+			for (i = 0; i < 4; i++) {
+			    /*
+			     * Rotate (dx,dy) to the left.
+			     */
+			    dt = dx; dx = dy; dy = -dt;
+
+			    /*
+			     * See if (x2,y2) has an edge in direction
+			     * (dx,dy).
+			     */
+			    if (x2+dx < 0 || x2+dx >= W ||
+				y2+dy < 0 || y2+dy >= H)
+				continue;  /* off the side of the grid */
+			    /* In the second pass, ignore unmarked edges. */
+			    if (pass == 1 &&
+				!(state->errors[(y2-(dy<0))*W+x2-(dx<0)] &
+				  ERR_SQUARE_TMP))
+				continue;
+			    if (state->soln[(y2-(dy<0))*w+x2-(dx<0)] ==
+				(dx==dy ? -1 : +1))
+				break;
+			}
+
+			/*
+			 * In pass 0, we expect to have found
+			 * _some_ edge we can follow, even if it
+			 * was found by rotating all the way round
+			 * and going back the way we came.
+			 * 
+			 * In pass 1, because we're removing the
+			 * mark on each edge that allows us to
+			 * follow it, we expect to find _no_ edge
+			 * we can follow when we've come all the
+			 * way round the loop.
+			 */
+			if (pass == 1 && i == 4)
+			    break;
+			assert(i < 4);
+
+			/*
+			 * Set x1,y1 to x2,y2, and x2,y2 to be the
+			 * other end of the new edge.
+			 */
+			x1 = x2;
+			y1 = y2;
+			x2 += dx;
+			y2 += dy;
+		    } while (y2*W+x2 != i2);
+
+		}
+		
+	    } else
+                dsf_merge(dsf, i1, i2);
+        }
 
     /*
      * Now go through and check the degree of each clue vertex, and
