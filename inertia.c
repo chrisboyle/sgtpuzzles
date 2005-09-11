@@ -1160,7 +1160,7 @@ static char *solve_game(game_state *state, game_state *currstate,
 	}
     }
 
-#ifndef TSP_DIAGNOSTICS
+#ifdef TSP_DIAGNOSTICS
     printf("before reduction, moves are ");
     x = nodes[circuit[0]] / DP1 % w;
     y = nodes[circuit[0]] / DP1 / w;
@@ -1246,7 +1246,7 @@ static char *solve_game(game_state *state, game_state *currstate,
 		    p = min(i, j);
 		    q = max(i, j);
 
-#ifndef TSP_DIAGNOSTICS
+#ifdef TSP_DIAGNOSTICS
 		    printf("optimising section from %d - %d\n", p, q);
 #endif
 
@@ -1280,7 +1280,7 @@ static char *solve_game(game_state *state, game_state *currstate,
 		    if (dir > 0)
 			i = q;	       /* resume loop from the right place */
 
-#ifndef TSP_DIAGNOSTICS
+#ifdef TSP_DIAGNOSTICS
 		    printf("new section runs from %d - %d\n", p, q);
 #endif
 
@@ -1316,7 +1316,7 @@ static char *solve_game(game_state *state, game_state *currstate,
 
 		    j = i;
 
-#ifndef TSP_DIAGNOSTICS
+#ifdef TSP_DIAGNOSTICS
 		    printf("during reduction, circuit is");
 		    for (k = 0; k < circuitlen; k++) {
 			int nc = nodes[circuit[k]];
@@ -1345,7 +1345,7 @@ static char *solve_game(game_state *state, game_state *currstate,
 		}
 	    }
 
-#ifndef TSP_DIAGNOSTICS
+#ifdef TSP_DIAGNOSTICS
 	    printf("after reduction, moves are ");
 	    x = nodes[circuit[0]] / DP1 % w;
 	    y = nodes[circuit[0]] / DP1 / w;
