@@ -1775,6 +1775,18 @@ numeric keypad. Alternatively, if you click the left mouse button on
 the grid, the ball will begin a move in the general direction of
 where you clicked.
 
+If you use the \q{Solve} function on this game, the program will
+compute a path through the grid which collects all the remaining
+gems and returns to the current position. A hint arrow will appear
+on the ball indicating the direction in which you should move to
+begin on this path. If you then move in that direction, the arrow
+will update to indicate the next direction on the path. You can also
+press Space to automatically move in the direction of the hint
+arrow. If you move in a different direction from the one shown by
+the arrow, the hint arrows will stop appearing because you have
+strayed from the provided path; you can then use \q{Solve} again to
+generate a new path if you want to.
+
 All the actions described in \k{common-actions} are also available.
 In particular, if you do run into a mine and die, you can use the
 Undo function and resume playing from before the fatal move. The

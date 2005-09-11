@@ -32,6 +32,7 @@
 #define UNDRAWN '?'
 
 #define DIRECTIONS 8
+#define DP1 (DIRECTIONS+1)
 #define DX(dir) ( (dir) & 3 ? (((dir) & 7) > 4 ? -1 : +1) : 0 )
 #define DY(dir) ( DX((dir)+6) )
 
@@ -56,12 +57,19 @@ enum {
     COL_MINE,
     COL_GEM,
     COL_WALL,
+    COL_HINT,
     NCOLOURS
 };
 
 struct game_params {
     int w, h;
 };
+
+typedef struct soln {
+    int refcount;
+    int len;
+    unsigned char *list;
+} soln;
 
 struct game_state {
     game_params p;
@@ -70,6 +78,9 @@ struct game_state {
     char *grid;
     int distance_moved;
     int dead;
+    int cheated;
+    int solnpos;
+    soln *soln;
 };
 
 static game_params *default_params(void)
@@ -627,6 +638,10 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
     state->distance_moved = 0;
     state->dead = FALSE;
 
+    state->cheated = FALSE;
+    state->solnpos = 0;
+    state->soln = NULL;
+
     return state;
 }
 
@@ -643,20 +658,750 @@ static game_state *dup_game(game_state *state)
     ret->distance_moved = state->distance_moved;
     ret->dead = FALSE;
     memcpy(ret->grid, state->grid, wh);
+    ret->cheated = state->cheated;
+    ret->soln = state->soln;
+    if (ret->soln)
+	ret->soln->refcount++;
+    ret->solnpos = state->solnpos;
 
     return ret;
 }
 
 static void free_game(game_state *state)
 {
+    if (state->soln && --state->soln->refcount == 0) {
+	sfree(state->soln->list);
+	sfree(state->soln);
+    }
     sfree(state->grid);
     sfree(state);
+}
+
+/*
+ * Internal function used by solver.
+ */
+static int move_goes_to(int w, int h, char *grid, int x, int y, int d)
+{
+    int dr;
+
+    /*
+     * See where we'd get to if we made this move.
+     */
+    dr = -1;			       /* placate optimiser */
+    while (1) {
+	if (AT(w, h, grid, x+DX(d), y+DY(d)) == WALL) {
+	    dr = DIRECTIONS;	       /* hit a wall, so end up stationary */
+	    break;
+	}
+	x += DX(d);
+	y += DY(d);
+	if (AT(w, h, grid, x, y) == STOP) {
+	    dr = DIRECTIONS;	       /* hit a stop, so end up stationary */
+	    break;
+	}
+	if (AT(w, h, grid, x, y) == GEM) {
+	    dr = d;		       /* hit a gem, so we're still moving */
+	    break;
+	}
+	if (AT(w, h, grid, x, y) == MINE)
+	    return -1;		       /* hit a mine, so move is invalid */
+    }
+    assert(dr >= 0);
+    return (y*w+x)*DP1+dr;
+}
+
+static int compare_integers(const void *av, const void *bv)
+{
+    const int *a = (const int *)av;
+    const int *b = (const int *)bv;
+    if (*a < *b)
+	return -1;
+    else if (*a > *b)
+	return +1;
+    else
+	return 0;
 }
 
 static char *solve_game(game_state *state, game_state *currstate,
 			char *aux, char **error)
 {
-    return NULL;
+    int w = state->p.w, h = state->p.h, wh = w*h;
+    int *nodes, *nodeindex, *edges, *backedges, *edgei, *backedgei, *circuit;
+    int nedges;
+    int *dist, *dist2, *list;
+    int *unvisited;
+    int circuitlen, circuitsize;
+    int head, tail, pass, i, j, n, x, y, d, dd;
+    char *err, *soln, *p;
+
+    /*
+     * Solving Inertia is a question of first building up the graph
+     * of where you can get to from where, and secondly finding a
+     * tour of the graph which takes in every gem.
+     * 
+     * This is of course a close cousin of the travelling salesman
+     * problem, which is NP-complete; so I rather doubt that any
+     * _optimal_ tour can be found in plausible time. Hence I'll
+     * restrict myself to merely finding a not-too-bad one.
+     * 
+     * First construct the graph, by bfsing out move by move from
+     * the current player position. Graph vertices will be
+     * 	- every endpoint of a move (place the ball can be
+     * 	  stationary)
+     * 	- every gem (place the ball can go through in motion).
+     * 	  Vertices of this type have an associated direction, since
+     * 	  if a gem can be collected by sliding through it in two
+     * 	  different directions it doesn't follow that you can
+     * 	  change direction at it.
+     * 
+     * I'm going to refer to a non-directional vertex as
+     * (y*w+x)*DP1+DIRECTIONS, and a directional one as
+     * (y*w+x)*DP1+d.
+     */
+
+    /*
+     * nodeindex[] maps node codes as shown above to numeric
+     * indices in the nodes[] array.
+     */
+    nodeindex = snewn(DP1*wh, int);
+    for (i = 0; i < DP1*wh; i++)
+	nodeindex[i] = -1;
+
+    /*
+     * Do the bfs to find all the interesting graph nodes.
+     */
+    nodes = snewn(DP1*wh, int);
+    head = tail = 0;
+
+    nodes[tail] = (currstate->py * w + currstate->px) * DP1 + DIRECTIONS;
+    nodeindex[nodes[0]] = tail;
+    tail++;
+
+    while (head < tail) {
+	int nc = nodes[head++], nnc;
+
+	d = nc % DP1;
+
+	/*
+	 * Plot all possible moves from this node. If the node is
+	 * directed, there's only one.
+	 */
+	for (dd = 0; dd < DIRECTIONS; dd++) {
+	    x = nc / DP1;
+	    y = x / w;
+	    x %= w;
+
+	    if (d < DIRECTIONS && d != dd)
+		continue;
+
+	    nnc = move_goes_to(w, h, currstate->grid, x, y, dd);
+	    if (nnc >= 0 && nnc != nc) {
+		if (nodeindex[nnc] < 0) {
+		    nodes[tail] = nnc;
+		    nodeindex[nnc] = tail;
+		    tail++;
+		}
+	    }
+	}
+    }
+    n = head;
+
+    /*
+     * Now we know how many nodes we have, allocate the edge array
+     * and go through setting up the edges.
+     */
+    edges = snewn(DIRECTIONS*n, int);
+    edgei = snewn(n+1, int);
+    nedges = 0;
+
+    for (i = 0; i < n; i++) {
+	int nc = nodes[i];
+
+	edgei[i] = nedges;
+
+	d = nc % DP1;
+	x = nc / DP1;
+	y = x / w;
+	x %= w;
+
+	for (dd = 0; dd < DIRECTIONS; dd++) {
+	    int nnc;
+
+	    if (d >= DIRECTIONS || d == dd) {
+		nnc = move_goes_to(w, h, currstate->grid, x, y, dd);
+
+		if (nnc >= 0 && nnc != nc)
+		    edges[nedges++] = nodeindex[nnc];
+	    }
+	}
+    }
+    edgei[n] = nedges;
+
+    /*
+     * Now set up the backedges array.
+     */
+    backedges = snewn(nedges, int);
+    backedgei = snewn(n+1, int);
+    for (i = j = 0; i < nedges; i++) {
+	while (j+1 < n && i >= edgei[j+1])
+	    j++;
+	backedges[i] = edges[i] * n + j;
+    }
+    qsort(backedges, nedges, sizeof(int), compare_integers);
+    backedgei[0] = 0;
+    for (i = j = 0; i < nedges; i++) {
+	int k = backedges[i] / n;
+	backedges[i] %= n;
+	while (j < k)
+	    backedgei[++j] = i;
+    }
+    backedgei[n] = nedges;
+
+    /*
+     * Set up the initial tour. At all times, our tour is a circuit
+     * of graph vertices (which may, and probably will often,
+     * repeat vertices). To begin with, it's got exactly one vertex
+     * in it, which is the player's current starting point.
+     */
+    circuitsize = 256;
+    circuit = snewn(circuitsize, int);
+    circuitlen = 0;
+    circuit[circuitlen++] = 0;	       /* node index 0 is the starting posn */
+
+    /*
+     * Track which gems are as yet unvisited.
+     */
+    unvisited = snewn(wh, int);
+    for (i = 0; i < wh; i++)
+	unvisited[i] = FALSE;
+    for (i = 0; i < wh; i++)
+	if (currstate->grid[i] == GEM)
+	    unvisited[i] = TRUE;
+
+    /*
+     * Allocate space for doing bfses inside the main loop.
+     */
+    dist = snewn(n, int);
+    dist2 = snewn(n, int);
+    list = snewn(n, int);
+
+    err = NULL;
+    soln = NULL;
+
+    /*
+     * Now enter the main loop, in each iteration of which we
+     * extend the tour to take in an as yet uncollected gem.
+     */
+    while (1) {
+	int target, n1, n2, bestdist, extralen, targetpos;
+
+#ifdef TSP_DIAGNOSTICS
+	printf("circuit is");
+	for (i = 0; i < circuitlen; i++) {
+	    int nc = nodes[circuit[i]];
+	    printf(" (%d,%d,%d)", nc/DP1%w, nc/(DP1*w), nc%DP1);
+	}
+	printf("\n");
+	printf("moves are ");
+	x = nodes[circuit[0]] / DP1 % w;
+	y = nodes[circuit[0]] / DP1 / w;
+	for (i = 1; i < circuitlen; i++) {
+	    int x2, y2, dx, dy;
+	    if (nodes[circuit[i]] % DP1 != DIRECTIONS)
+		continue;
+	    x2 = nodes[circuit[i]] / DP1 % w;
+	    y2 = nodes[circuit[i]] / DP1 / w;
+	    dx = (x2 > x ? +1 : x2 < x ? -1 : 0);
+	    dy = (y2 > y ? +1 : y2 < y ? -1 : 0);
+	    for (d = 0; d < DIRECTIONS; d++)
+		if (DX(d) == dx && DY(d) == dy)
+		    printf("%c", "89632147"[d]);
+	    x = x2;
+	    y = y2;
+	}
+	printf("\n");
+#endif
+
+	/*
+	 * First, start a pair of bfses at _every_ vertex currently
+	 * in the tour, and extend them outwards to find the
+	 * nearest as yet unreached gem vertex.
+	 * 
+	 * This is largely a heuristic: we could pick _any_ doubly
+	 * reachable node here and still get a valid tour as
+	 * output. I hope that picking a nearby one will result in
+	 * generally good tours.
+	 */
+	for (pass = 0; pass < 2; pass++) {
+	    int *ep = (pass == 0 ? edges : backedges);
+	    int *ei = (pass == 0 ? edgei : backedgei);
+	    int *dp = (pass == 0 ? dist : dist2);
+	    head = tail = 0;
+	    for (i = 0; i < n; i++)
+		dp[i] = -1;
+	    for (i = 0; i < circuitlen; i++) {
+		int ni = circuit[i];
+		if (dp[ni] < 0) {
+		    dp[ni] = 0;
+		    list[tail++] = ni;
+		}
+	    }
+	    while (head < tail) {
+		int ni = list[head++];
+		for (i = ei[ni]; i < ei[ni+1]; i++) {
+		    int ti = ep[i];
+		    if (ti >= 0 && dp[ti] < 0) {
+			dp[ti] = dp[ni] + 1;
+			list[tail++] = ti;
+		    }
+		}
+	    }
+	}
+	/* Now find the nearest unvisited gem. */
+	bestdist = -1;
+	target = -1;
+	for (i = 0; i < n; i++) {
+	    if (unvisited[nodes[i] / DP1] &&
+		dist[i] >= 0 && dist2[i] >= 0) {
+		int thisdist = dist[i] + dist2[i];
+		if (bestdist < 0 || bestdist > thisdist) {
+		    bestdist = thisdist;
+		    target = i;
+		}
+	    }
+	}
+
+	if (target < 0) {
+	    /*
+	     * If we get to here, we haven't found a gem we can get
+	     * at all, which means we terminate this loop.
+	     */
+	    break;
+	}
+
+	/*
+	 * Now we have a graph vertex at list[tail-1] which is an
+	 * unvisited gem. We want to add that vertex to our tour.
+	 * So we run two more breadth-first searches: one starting
+	 * from that vertex and following forward edges, and
+	 * another starting from the same vertex and following
+	 * backward edges. This allows us to determine, for each
+	 * node on the current tour, how quickly we can get both to
+	 * and from the target vertex from that node.
+	 */
+#ifdef TSP_DIAGNOSTICS
+	printf("target node is %d (%d,%d,%d)\n", target, nodes[target]/DP1%w,
+	       nodes[target]/DP1/w, nodes[target]%DP1);
+#endif
+
+	for (pass = 0; pass < 2; pass++) {
+	    int *ep = (pass == 0 ? edges : backedges);
+	    int *ei = (pass == 0 ? edgei : backedgei);
+	    int *dp = (pass == 0 ? dist : dist2);
+
+	    for (i = 0; i < n; i++)
+		dp[i] = -1;
+	    head = tail = 0;
+
+	    dp[target] = 0;
+	    list[tail++] = target;
+
+	    while (head < tail) {
+		int ni = list[head++];
+		for (i = ei[ni]; i < ei[ni+1]; i++) {
+		    int ti = ep[i];
+		    if (ti >= 0 && dp[ti] < 0) {
+			dp[ti] = dp[ni] + 1;
+/*printf("pass %d: set dist of vertex %d to %d (via %d)\n", pass, ti, dp[ti], ni);*/
+			list[tail++] = ti;
+		    }
+		}
+	    }
+	}
+
+	/*
+	 * Now for every node n, dist[n] gives the length of the
+	 * shortest path from the target vertex to n, and dist2[n]
+	 * gives the length of the shortest path from n to the
+	 * target vertex.
+	 * 
+	 * Our next step is to search linearly along the tour to
+	 * find the optimum place to insert a trip to the target
+	 * vertex and back. Our two options are either
+	 *  (a) to find two adjacent vertices A,B in the tour and
+	 * 	replace the edge A->B with the path A->target->B
+	 *  (b) to find a single vertex X in the tour and replace
+	 * 	it with the complete round trip X->target->X.
+	 * We do whichever takes the fewest moves.
+	 */
+	n1 = n2 = -1;
+	bestdist = -1;
+	for (i = 0; i < circuitlen; i++) {
+	    int thisdist;
+
+	    /*
+	     * Try a round trip from vertex i.
+	     */
+	    if (dist[circuit[i]] >= 0 &&
+		dist2[circuit[i]] >= 0) {
+		thisdist = dist[circuit[i]] + dist2[circuit[i]];
+		if (bestdist < 0 || thisdist < bestdist) {
+		    bestdist = thisdist;
+		    n1 = n2 = i;
+		}
+	    }
+
+	    /*
+	     * Try a trip from vertex i via target to vertex i+1.
+	     */
+	    if (i+1 < circuitlen &&
+		dist2[circuit[i]] >= 0 &&
+		dist[circuit[i+1]] >= 0) {
+		thisdist = dist2[circuit[i]] + dist[circuit[i+1]];
+		if (bestdist < 0 || thisdist < bestdist) {
+		    bestdist = thisdist;
+		    n1 = i;
+		    n2 = i+1;
+		}
+	    }
+	}
+	if (bestdist < 0) {
+	    /*
+	     * We couldn't find a round trip taking in this gem _at
+	     * all_. Give up.
+	     */
+	    err = "Unable to find a solution from this starting point";
+	    break;
+	}
+#ifdef TSP_DIAGNOSTICS
+	printf("insertion point: n1=%d, n2=%d, dist=%d\n", n1, n2, bestdist);
+#endif
+
+#ifdef TSP_DIAGNOSTICS
+	printf("circuit before lengthening is");
+	for (i = 0; i < circuitlen; i++) {
+	    printf(" %d", circuit[i]);
+	}
+	printf("\n");
+#endif
+
+	/*
+	 * Now actually lengthen the tour to take in this round
+	 * trip.
+	 */
+	extralen = dist2[circuit[n1]] + dist[circuit[n2]];
+	if (n1 != n2)
+	    extralen--;
+	circuitlen += extralen;
+	if (circuitlen >= circuitsize) {
+	    circuitsize = circuitlen + 256;
+	    circuit = sresize(circuit, circuitsize, int);
+	}
+	memmove(circuit + n2 + extralen, circuit + n2,
+		(circuitlen - n2 - extralen) * sizeof(int));
+	n2 += extralen;
+
+#ifdef TSP_DIAGNOSTICS
+	printf("circuit in middle of lengthening is");
+	for (i = 0; i < circuitlen; i++) {
+	    printf(" %d", circuit[i]);
+	}
+	printf("\n");
+#endif
+
+	/*
+	 * Find the shortest-path routes to and from the target,
+	 * and write them into the circuit.
+	 */
+	targetpos = n1 + dist2[circuit[n1]];
+	assert(targetpos - dist2[circuit[n1]] == n1);
+	assert(targetpos + dist[circuit[n2]] == n2);
+	for (pass = 0; pass < 2; pass++) {
+	    int dir = (pass == 0 ? -1 : +1);
+	    int *ep = (pass == 0 ? backedges : edges);
+	    int *ei = (pass == 0 ? backedgei : edgei);
+	    int *dp = (pass == 0 ? dist : dist2);
+	    int nn = (pass == 0 ? n2 : n1);
+	    int ni = circuit[nn], ti, dest = nn;
+
+	    while (1) {
+		circuit[dest] = ni;
+		if (dp[ni] == 0)
+		    break;
+		dest += dir;
+		ti = -1;
+/*printf("pass %d: looking at vertex %d\n", pass, ni);*/
+		for (i = ei[ni]; i < ei[ni+1]; i++) {
+		    ti = ep[i];
+		    if (ti >= 0 && dp[ti] == dp[ni] - 1)
+			break;
+		}
+		assert(i < ei[ni+1] && ti >= 0);
+		ni = ti;
+	    }
+	}
+
+#ifdef TSP_DIAGNOSTICS
+	printf("circuit after lengthening is");
+	for (i = 0; i < circuitlen; i++) {
+	    printf(" %d", circuit[i]);
+	}
+	printf("\n");
+#endif
+
+	/*
+	 * Finally, mark all gems that the new piece of circuit
+	 * passes through as visited.
+	 */
+	for (i = n1; i <= n2; i++) {
+	    int pos = nodes[circuit[i]] / DP1;
+	    assert(pos >= 0 && pos < wh);
+	    unvisited[pos] = FALSE;
+	}
+    }
+
+#ifdef TSP_DIAGNOSTICS
+    printf("before reduction, moves are ");
+    x = nodes[circuit[0]] / DP1 % w;
+    y = nodes[circuit[0]] / DP1 / w;
+    for (i = 1; i < circuitlen; i++) {
+	int x2, y2, dx, dy;
+	if (nodes[circuit[i]] % DP1 != DIRECTIONS)
+	    continue;
+	x2 = nodes[circuit[i]] / DP1 % w;
+	y2 = nodes[circuit[i]] / DP1 / w;
+	dx = (x2 > x ? +1 : x2 < x ? -1 : 0);
+	dy = (y2 > y ? +1 : y2 < y ? -1 : 0);
+	for (d = 0; d < DIRECTIONS; d++)
+	    if (DX(d) == dx && DY(d) == dy)
+		printf("%c", "89632147"[d]);
+	x = x2;
+	y = y2;
+    }
+    printf("\n");
+#endif
+
+    /*
+     * That's got a basic solution. Now optimise it by removing
+     * redundant sections of the circuit: it's entirely possible
+     * that a piece of circuit we carefully inserted at one stage
+     * to collect a gem has become pointless because the steps
+     * required to collect some _later_ gem necessarily passed
+     * through the same one.
+     * 
+     * So first we go through and work out how many times each gem
+     * is collected. Then we look for maximal sections of circuit
+     * which are redundant in the sense that their removal would
+     * not reduce any gem's collection count to zero, and replace
+     * each one with a bfs-derived fastest path between their
+     * endpoints.
+     */
+    while (1) {
+	int oldlen = circuitlen;
+
+	for (i = 0; i < wh; i++)
+	    unvisited[i] = 0;
+	for (i = 0; i < circuitlen; i++) {
+	    int xy = nodes[circuit[i]] / DP1;
+	    if (currstate->grid[xy] == GEM)
+		unvisited[xy]++;
+	}
+
+	/*
+	 * If there's any gem we didn't end up visiting at all,
+	 * give up.
+	 */
+	for (i = 0; i < wh; i++) {
+	    if (currstate->grid[i] == GEM && unvisited[i] == 0) {
+		err = "Unable to find a solution from this starting point";
+		break;
+	    }
+	}
+	if (i < wh)
+	    break;
+
+	for (i = j = 0; i < circuitlen; i++) {
+	    int xy = nodes[circuit[i]] / DP1;
+	    if (currstate->grid[xy] == GEM && unvisited[xy] > 1) {
+		unvisited[xy]--;
+	    } else if (currstate->grid[xy] == GEM || i == circuitlen-1) {
+		/*
+		 * circuit[i] collects a gem for the only time, or is
+		 * the last node in the circuit. Therefore it cannot be
+		 * removed; so we now want to replace the path from
+		 * circuit[j] to circuit[i] with a bfs-shortest path.
+		 */
+		int k, dest, ni, ti, thisdist;
+
+#ifdef TSP_DIAGNOSTICS
+		printf("optimising section from %d - %d\n", j, i);
+#endif
+
+		for (k = 0; k < n; k++)
+		    dist[k] = -1;
+		head = tail = 0;
+
+		dist[circuit[j]] = 0;
+		list[tail++] = circuit[j];
+
+		while (head < tail && dist[circuit[i]] < 0) {
+		    int ni = list[head++];
+		    for (k = edgei[ni]; k < edgei[ni+1]; k++) {
+			int ti = edges[k];
+			if (ti >= 0 && dist[ti] < 0) {
+			    dist[ti] = dist[ni] + 1;
+			    list[tail++] = ti;
+			}
+		    }
+		}
+
+		thisdist = dist[circuit[i]];
+		assert(thisdist >= 0 && thisdist <= i-j);
+
+		memmove(circuit+j+thisdist, circuit+i,
+			(circuitlen - i) * sizeof(int));
+		circuitlen -= i-j;
+		i = j + thisdist;
+		circuitlen += i-j;
+
+#ifdef TSP_DIAGNOSTICS
+		printf("new section runs from %d - %d\n", j, i);
+#endif
+
+		dest = i;
+		assert(dest >= 0);
+		ni = circuit[i];
+
+		while (1) {
+		    /* printf("dest=%d circuitlen=%d ni=%d dist[ni]=%d\n", dest, circuitlen, ni, dist[ni]); */
+		    circuit[dest] = ni;
+		    if (dist[ni] == 0)
+			break;
+		    dest--;
+		    ti = -1;
+		    for (k = backedgei[ni]; k < backedgei[ni+1]; k++) {
+			ti = backedges[k];
+			if (ti >= 0 && dist[ti] == dist[ni] - 1)
+			    break;
+		    }
+		    assert(k < backedgei[ni+1] && ti >= 0);
+		    ni = ti;
+		}
+
+		/*
+		 * Now re-increment the visit counts for the new
+		 * path.
+		 */
+		while (++j < i) {
+		    int xy = nodes[circuit[j]] / DP1;
+		    if (currstate->grid[xy] == GEM)
+			unvisited[xy]++;
+		}
+
+#ifdef TSP_DIAGNOSTICS
+		printf("during reduction, circuit is");
+		for (k = 0; k < circuitlen; k++) {
+		    int nc = nodes[circuit[k]];
+		    printf(" (%d,%d,%d)", nc/DP1%w, nc/(DP1*w), nc%DP1);
+		}
+		printf("\n");
+		printf("moves are ");
+		x = nodes[circuit[0]] / DP1 % w;
+		y = nodes[circuit[0]] / DP1 / w;
+		for (k = 1; k < circuitlen; k++) {
+		    int x2, y2, dx, dy;
+		    if (nodes[circuit[k]] % DP1 != DIRECTIONS)
+			continue;
+		    x2 = nodes[circuit[k]] / DP1 % w;
+		    y2 = nodes[circuit[k]] / DP1 / w;
+		    dx = (x2 > x ? +1 : x2 < x ? -1 : 0);
+		    dy = (y2 > y ? +1 : y2 < y ? -1 : 0);
+		    for (d = 0; d < DIRECTIONS; d++)
+			if (DX(d) == dx && DY(d) == dy)
+			    printf("%c", "89632147"[d]);
+		    x = x2;
+		    y = y2;
+		}
+		printf("\n");
+#endif
+	    }
+	}
+
+#ifdef TSP_DIAGNOSTICS
+	printf("after reduction, moves are ");
+	x = nodes[circuit[0]] / DP1 % w;
+	y = nodes[circuit[0]] / DP1 / w;
+	for (i = 1; i < circuitlen; i++) {
+	    int x2, y2, dx, dy;
+	    if (nodes[circuit[i]] % DP1 != DIRECTIONS)
+		continue;
+	    x2 = nodes[circuit[i]] / DP1 % w;
+	    y2 = nodes[circuit[i]] / DP1 / w;
+	    dx = (x2 > x ? +1 : x2 < x ? -1 : 0);
+	    dy = (y2 > y ? +1 : y2 < y ? -1 : 0);
+	    for (d = 0; d < DIRECTIONS; d++)
+		if (DX(d) == dx && DY(d) == dy)
+		    printf("%c", "89632147"[d]);
+	    x = x2;
+	    y = y2;
+	}
+	printf("\n");
+#endif
+
+	/*
+	 * If we've managed an entire reduction pass and not made
+	 * the solution any shorter, we're _really_ done.
+	 */
+	if (circuitlen == oldlen)
+	    break;
+    }
+
+    /*
+     * Encode the solution as a move string.
+     */
+    if (!err) {
+	soln = snewn(circuitlen+2, char);
+	p = soln;
+	*p++ = 'S';
+	x = nodes[circuit[0]] / DP1 % w;
+	y = nodes[circuit[0]] / DP1 / w;
+	for (i = 1; i < circuitlen; i++) {
+	    int x2, y2, dx, dy;
+	    if (nodes[circuit[i]] % DP1 != DIRECTIONS)
+		continue;
+	    x2 = nodes[circuit[i]] / DP1 % w;
+	    y2 = nodes[circuit[i]] / DP1 / w;
+	    dx = (x2 > x ? +1 : x2 < x ? -1 : 0);
+	    dy = (y2 > y ? +1 : y2 < y ? -1 : 0);
+	    for (d = 0; d < DIRECTIONS; d++)
+		if (DX(d) == dx && DY(d) == dy) {
+		    *p++ = '0' + d;
+		    break;
+		}
+	    assert(d < DIRECTIONS);
+	    x = x2;
+	    y = y2;
+	}
+	*p++ = '\0';
+	assert(p - soln < circuitlen+2);
+    }
+
+    sfree(list);
+    sfree(dist);
+    sfree(dist2);
+    sfree(unvisited);
+    sfree(circuit);
+    sfree(backedgei);
+    sfree(backedges);
+    sfree(edgei);
+    sfree(edges);
+    sfree(nodeindex);
+    sfree(nodes);
+
+    if (err)
+	*error = err;
+
+    return soln;
 }
 
 static char *game_text_format(game_state *state)
@@ -785,6 +1530,8 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
         dir = 1;
     else if (button == (MOD_NUM_KEYPAD | '3'))
         dir = 3;
+    else if (button == ' ' && state->soln && state->solnpos < state->soln->len)
+	dir = state->soln->list[state->solnpos];
 
     if (dir < 0)
 	return NULL;
@@ -814,9 +1561,33 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
 static game_state *execute_move(game_state *state, char *move)
 {
     int w = state->p.w, h = state->p.h /*, wh = w*h */;
-    int dir = atoi(move);
+    int dir;
     game_state *ret;
 
+    if (*move == 'S') {
+	int len, i;
+	soln *sol;
+
+	/*
+	 * This is a solve move, so we don't actually _change_ the
+	 * grid but merely set up a stored solution path.
+	 */
+	move++;
+	len = strlen(move);
+	sol = snew(soln);
+	sol->len = len;
+	sol->list = snewn(len, unsigned char);
+	for (i = 0; i < len; i++)
+	    sol->list[i] = move[i] - '0';
+	ret = dup_game(state);
+	ret->cheated = TRUE;
+	ret->soln = sol;
+	ret->solnpos = 0;
+	sol->refcount = 1;
+	return ret;
+    }
+
+    dir = atoi(move);
     if (dir < 0 || dir >= DIRECTIONS)
 	return NULL;		       /* huh? */
 
@@ -850,6 +1621,26 @@ static game_state *execute_move(game_state *state, char *move)
 	    AT(w, h, ret->grid, ret->px+DX(dir),
 	       ret->py+DY(dir)) == WALL)
 	    break;
+    }
+
+    if (ret->soln) {
+	/*
+	 * If this move is the correct next one in the stored
+	 * solution path, advance solnpos.
+	 */
+	if (ret->soln->list[ret->solnpos] == dir &&
+	    ret->solnpos+1 < ret->soln->len) {
+	    ret->solnpos++;
+	} else {
+	    /*
+	     * Otherwise, the user has strayed from the path, so
+	     * the path is no longer valid.
+	     */
+	    ret->soln->refcount--;
+	    assert(ret->soln->refcount > 0);/* `state' at least still exists */
+	    ret->soln = NULL;
+	    ret->solnpos = 0;
+	}
     }
 
     return ret;
@@ -913,6 +1704,10 @@ static float *game_colours(frontend *fe, game_state *state, int *ncolours)
 				 1 * ret[COL_HIGHLIGHT * 3 + i]) / 4;
     }
 
+    ret[COL_HINT * 3 + 0] = 1.0F;
+    ret[COL_HINT * 3 + 1] = 1.0F;
+    ret[COL_HINT * 3 + 2] = 0.0F;
+
     *ncolours = NCOLOURS;
     return ret;
 }
@@ -949,7 +1744,7 @@ static void game_free_drawstate(drawing *dr, game_drawstate *ds)
 }
 
 static void draw_player(drawing *dr, game_drawstate *ds, int x, int y,
-			int dead)
+			int dead, int hintdir)
 {
     if (dead) {
 	int coords[DIRECTIONS*4];
@@ -979,6 +1774,33 @@ static void draw_player(drawing *dr, game_drawstate *ds, int x, int y,
 	draw_circle(dr, x + TILESIZE/2, y + TILESIZE/2,
 		    TILESIZE/3, COL_PLAYER, COL_OUTLINE);
     }
+
+    if (!dead && hintdir >= 0) {
+	float scale = (DX(hintdir) && DY(hintdir) ? 0.8F : 1.0F);
+	int ax = (TILESIZE*2/5) * scale * DX(hintdir);
+	int ay = (TILESIZE*2/5) * scale * DY(hintdir);
+	int px = -ay, py = ax;
+	int ox = x + TILESIZE/2, oy = y + TILESIZE/2;
+	int coords[14], *c;
+
+	c = coords;
+	*c++ = ox + px/9;
+	*c++ = oy + py/9;
+	*c++ = ox + px/9 + ax*2/3;
+	*c++ = oy + py/9 + ay*2/3;
+	*c++ = ox + px/3 + ax*2/3;
+	*c++ = oy + py/3 + ay*2/3;
+	*c++ = ox + ax;
+	*c++ = oy + ay;
+	*c++ = ox - px/3 + ax*2/3;
+	*c++ = oy - py/3 + ay*2/3;
+	*c++ = ox - px/9 + ax*2/3;
+	*c++ = oy - py/9 + ay*2/3;
+	*c++ = ox - px/9;
+	*c++ = oy - py/9;
+	draw_polygon(dr, coords, 7, COL_HINT, COL_OUTLINE);
+    }
+
     draw_update(dr, x, y, TILESIZE, TILESIZE);
 }
 
@@ -1204,12 +2026,19 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
      * shown between the collection of the last gem and the
      * completion of the move animation that did it.)
      */
-    if (state->dead && (!oldstate || oldstate->dead))
+    if (state->dead && (!oldstate || oldstate->dead)) {
 	sprintf(status, "DEAD!");
-    else if (state->gems || (oldstate && oldstate->gems))
-	sprintf(status, "Gems: %d", gems);
-    else
+    } else if (state->gems || (oldstate && oldstate->gems)) {
+	if (state->cheated)
+	    sprintf(status, "Auto-solver used. ");
+	else
+	    *status = '\0';
+	sprintf(status + strlen(status), "Gems: %d", gems);
+    } else if (state->cheated) {
+	sprintf(status, "Auto-solved.");
+    } else {
 	sprintf(status, "COMPLETED!");
+    }
     /* We subtract one from the visible death counter if we're still
      * animating the move at the end of which the death took place. */
     deaths = ui->deaths;
@@ -1241,7 +2070,10 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 	ds->pbgy = oy + ap * (ny - oy);
     }
     blitter_save(dr, ds->player_background, ds->pbgx, ds->pbgy);
-    draw_player(dr, ds, ds->pbgx, ds->pbgy, (state->dead && !oldstate));
+    draw_player(dr, ds, ds->pbgx, ds->pbgy,
+		(state->dead && !oldstate),
+		(!oldstate && state->soln ?
+		 state->soln->list[state->solnpos] : -1));
     ds->player_bg_saved = TRUE;
 }
 
@@ -1307,7 +2139,7 @@ const struct game thegame = {
     new_game,
     dup_game,
     free_game,
-    FALSE, solve_game,
+    TRUE, solve_game,
     FALSE, game_text_format,
     new_ui,
     free_ui,
