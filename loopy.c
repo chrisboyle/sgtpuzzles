@@ -764,7 +764,16 @@ static char *new_fullyclued_board(game_params *params, random_state *rs)
         square = (struct square *)index234(lightable_squares_sorted, 0);
         assert(square);
 
-        if (square->score <= 0)
+	/*
+	 * We never want to _decrease_ the loop's perimeter. Making
+	 * moves that leave the perimeter the same is occasionally
+	 * useful: if it were _never_ done then the user would be
+	 * able to deduce illicitly that any degree-zero vertex was
+	 * on the outside of the loop. So we do it sometimes but
+	 * not always.
+	 */
+        if (square->score < 0 || (square->score == 0 &&
+				  random_upto(rs, 2) == 0))
             break;
 
         print_tree(lightable_squares_sorted);
