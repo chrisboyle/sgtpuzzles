@@ -1160,7 +1160,7 @@ static char *solve_game(game_state *state, game_state *currstate,
 	}
     }
 
-#ifdef TSP_DIAGNOSTICS
+#ifndef TSP_DIAGNOSTICS
     printf("before reduction, moves are ");
     x = nodes[circuit[0]] / DP1 % w;
     y = nodes[circuit[0]] / DP1 / w;
@@ -1198,159 +1198,179 @@ static char *solve_game(game_state *state, game_state *currstate,
      */
     while (1) {
 	int oldlen = circuitlen;
+	int dir;
 
-	for (i = 0; i < wh; i++)
-	    unvisited[i] = 0;
-	for (i = 0; i < circuitlen; i++) {
-	    int xy = nodes[circuit[i]] / DP1;
-	    if (currstate->grid[xy] == GEM)
-		unvisited[xy]++;
-	}
+	for (dir = +1; dir >= -1; dir -= 2) {
 
-	/*
-	 * If there's any gem we didn't end up visiting at all,
-	 * give up.
-	 */
-	for (i = 0; i < wh; i++) {
-	    if (currstate->grid[i] == GEM && unvisited[i] == 0) {
-		err = "Unable to find a solution from this starting point";
-		break;
+	    for (i = 0; i < wh; i++)
+		unvisited[i] = 0;
+	    for (i = 0; i < circuitlen; i++) {
+		int xy = nodes[circuit[i]] / DP1;
+		if (currstate->grid[xy] == GEM)
+		    unvisited[xy]++;
 	    }
-	}
-	if (i < wh)
-	    break;
 
-	for (i = j = 0; i < circuitlen; i++) {
-	    int xy = nodes[circuit[i]] / DP1;
-	    if (currstate->grid[xy] == GEM && unvisited[xy] > 1) {
-		unvisited[xy]--;
-	    } else if (currstate->grid[xy] == GEM || i == circuitlen-1) {
-		/*
-		 * circuit[i] collects a gem for the only time, or is
-		 * the last node in the circuit. Therefore it cannot be
-		 * removed; so we now want to replace the path from
-		 * circuit[j] to circuit[i] with a bfs-shortest path.
-		 */
-		int k, dest, ni, ti, thisdist;
+	    /*
+	     * If there's any gem we didn't end up visiting at all,
+	     * give up.
+	     */
+	    for (i = 0; i < wh; i++) {
+		if (currstate->grid[i] == GEM && unvisited[i] == 0) {
+		    err = "Unable to find a solution from this starting point";
+		    break;
+		}
+	    }
+	    if (i < wh)
+		break;
 
-#ifdef TSP_DIAGNOSTICS
-		printf("optimising section from %d - %d\n", j, i);
+	    for (i = j = (dir > 0 ? 0 : circuitlen-1);
+		 i < circuitlen && i >= 0;
+		 i += dir) {
+		int xy = nodes[circuit[i]] / DP1;
+		if (currstate->grid[xy] == GEM && unvisited[xy] > 1) {
+		    unvisited[xy]--;
+		} else if (currstate->grid[xy] == GEM || i == circuitlen-1) {
+		    /*
+		     * circuit[i] collects a gem for the only time,
+		     * or is the last node in the circuit.
+		     * Therefore it cannot be removed; so we now
+		     * want to replace the path from circuit[j] to
+		     * circuit[i] with a bfs-shortest path.
+		     */
+		    int p, q, k, dest, ni, ti, thisdist;
+
+		    /*
+		     * Set up the upper and lower bounds of the
+		     * reduced section.
+		     */
+		    p = min(i, j);
+		    q = max(i, j);
+
+#ifndef TSP_DIAGNOSTICS
+		    printf("optimising section from %d - %d\n", p, q);
 #endif
 
-		for (k = 0; k < n; k++)
-		    dist[k] = -1;
-		head = tail = 0;
+		    for (k = 0; k < n; k++)
+			dist[k] = -1;
+		    head = tail = 0;
 
-		dist[circuit[j]] = 0;
-		list[tail++] = circuit[j];
+		    dist[circuit[p]] = 0;
+		    list[tail++] = circuit[p];
 
-		while (head < tail && dist[circuit[i]] < 0) {
-		    int ni = list[head++];
-		    for (k = edgei[ni]; k < edgei[ni+1]; k++) {
-			int ti = edges[k];
-			if (ti >= 0 && dist[ti] < 0) {
-			    dist[ti] = dist[ni] + 1;
-			    list[tail++] = ti;
+		    while (head < tail && dist[circuit[q]] < 0) {
+			int ni = list[head++];
+			for (k = edgei[ni]; k < edgei[ni+1]; k++) {
+			    int ti = edges[k];
+			    if (ti >= 0 && dist[ti] < 0) {
+				dist[ti] = dist[ni] + 1;
+				list[tail++] = ti;
+			    }
 			}
 		    }
-		}
 
-		thisdist = dist[circuit[i]];
-		assert(thisdist >= 0 && thisdist <= i-j);
+		    thisdist = dist[circuit[q]];
+		    assert(thisdist >= 0 && thisdist <= q-p);
 
-		memmove(circuit+j+thisdist, circuit+i,
-			(circuitlen - i) * sizeof(int));
-		circuitlen -= i-j;
-		i = j + thisdist;
-		circuitlen += i-j;
+		    memmove(circuit+p+thisdist, circuit+q,
+			    (circuitlen - q) * sizeof(int));
+		    circuitlen -= q-p;
+		    q = p + thisdist;
+		    circuitlen += q-p;
 
-#ifdef TSP_DIAGNOSTICS
-		printf("new section runs from %d - %d\n", j, i);
+		    if (dir > 0)
+			i = q;	       /* resume loop from the right place */
+
+#ifndef TSP_DIAGNOSTICS
+		    printf("new section runs from %d - %d\n", p, q);
 #endif
 
-		dest = i;
-		assert(dest >= 0);
-		ni = circuit[i];
+		    dest = q;
+		    assert(dest >= 0);
+		    ni = circuit[q];
 
-		while (1) {
-		    /* printf("dest=%d circuitlen=%d ni=%d dist[ni]=%d\n", dest, circuitlen, ni, dist[ni]); */
-		    circuit[dest] = ni;
-		    if (dist[ni] == 0)
-			break;
-		    dest--;
-		    ti = -1;
-		    for (k = backedgei[ni]; k < backedgei[ni+1]; k++) {
-			ti = backedges[k];
-			if (ti >= 0 && dist[ti] == dist[ni] - 1)
+		    while (1) {
+			/* printf("dest=%d circuitlen=%d ni=%d dist[ni]=%d\n", dest, circuitlen, ni, dist[ni]); */
+			circuit[dest] = ni;
+			if (dist[ni] == 0)
 			    break;
+			dest--;
+			ti = -1;
+			for (k = backedgei[ni]; k < backedgei[ni+1]; k++) {
+			    ti = backedges[k];
+			    if (ti >= 0 && dist[ti] == dist[ni] - 1)
+				break;
+			}
+			assert(k < backedgei[ni+1] && ti >= 0);
+			ni = ti;
 		    }
-		    assert(k < backedgei[ni+1] && ti >= 0);
-		    ni = ti;
-		}
 
-		/*
-		 * Now re-increment the visit counts for the new
-		 * path.
-		 */
-		while (++j < i) {
-		    int xy = nodes[circuit[j]] / DP1;
-		    if (currstate->grid[xy] == GEM)
-			unvisited[xy]++;
-		}
+		    /*
+		     * Now re-increment the visit counts for the
+		     * new path.
+		     */
+		    while (++p < q) {
+			int xy = nodes[circuit[p]] / DP1;
+			if (currstate->grid[xy] == GEM)
+			    unvisited[xy]++;
+		    }
 
-#ifdef TSP_DIAGNOSTICS
-		printf("during reduction, circuit is");
-		for (k = 0; k < circuitlen; k++) {
-		    int nc = nodes[circuit[k]];
-		    printf(" (%d,%d,%d)", nc/DP1%w, nc/(DP1*w), nc%DP1);
-		}
-		printf("\n");
-		printf("moves are ");
-		x = nodes[circuit[0]] / DP1 % w;
-		y = nodes[circuit[0]] / DP1 / w;
-		for (k = 1; k < circuitlen; k++) {
-		    int x2, y2, dx, dy;
-		    if (nodes[circuit[k]] % DP1 != DIRECTIONS)
-			continue;
-		    x2 = nodes[circuit[k]] / DP1 % w;
-		    y2 = nodes[circuit[k]] / DP1 / w;
-		    dx = (x2 > x ? +1 : x2 < x ? -1 : 0);
-		    dy = (y2 > y ? +1 : y2 < y ? -1 : 0);
-		    for (d = 0; d < DIRECTIONS; d++)
-			if (DX(d) == dx && DY(d) == dy)
-			    printf("%c", "89632147"[d]);
-		    x = x2;
-		    y = y2;
-		}
-		printf("\n");
+		    j = i;
+
+#ifndef TSP_DIAGNOSTICS
+		    printf("during reduction, circuit is");
+		    for (k = 0; k < circuitlen; k++) {
+			int nc = nodes[circuit[k]];
+			printf(" (%d,%d,%d)", nc/DP1%w, nc/(DP1*w), nc%DP1);
+		    }
+		    printf("\n");
+		    printf("moves are ");
+		    x = nodes[circuit[0]] / DP1 % w;
+		    y = nodes[circuit[0]] / DP1 / w;
+		    for (k = 1; k < circuitlen; k++) {
+			int x2, y2, dx, dy;
+			if (nodes[circuit[k]] % DP1 != DIRECTIONS)
+			    continue;
+			x2 = nodes[circuit[k]] / DP1 % w;
+			y2 = nodes[circuit[k]] / DP1 / w;
+			dx = (x2 > x ? +1 : x2 < x ? -1 : 0);
+			dy = (y2 > y ? +1 : y2 < y ? -1 : 0);
+			for (d = 0; d < DIRECTIONS; d++)
+			    if (DX(d) == dx && DY(d) == dy)
+				printf("%c", "89632147"[d]);
+			x = x2;
+			y = y2;
+		    }
+		    printf("\n");
 #endif
+		}
 	    }
-	}
 
-#ifdef TSP_DIAGNOSTICS
-	printf("after reduction, moves are ");
-	x = nodes[circuit[0]] / DP1 % w;
-	y = nodes[circuit[0]] / DP1 / w;
-	for (i = 1; i < circuitlen; i++) {
-	    int x2, y2, dx, dy;
-	    if (nodes[circuit[i]] % DP1 != DIRECTIONS)
-		continue;
-	    x2 = nodes[circuit[i]] / DP1 % w;
-	    y2 = nodes[circuit[i]] / DP1 / w;
-	    dx = (x2 > x ? +1 : x2 < x ? -1 : 0);
-	    dy = (y2 > y ? +1 : y2 < y ? -1 : 0);
-	    for (d = 0; d < DIRECTIONS; d++)
-		if (DX(d) == dx && DY(d) == dy)
-		    printf("%c", "89632147"[d]);
-	    x = x2;
-	    y = y2;
-	}
-	printf("\n");
+#ifndef TSP_DIAGNOSTICS
+	    printf("after reduction, moves are ");
+	    x = nodes[circuit[0]] / DP1 % w;
+	    y = nodes[circuit[0]] / DP1 / w;
+	    for (i = 1; i < circuitlen; i++) {
+		int x2, y2, dx, dy;
+		if (nodes[circuit[i]] % DP1 != DIRECTIONS)
+		    continue;
+		x2 = nodes[circuit[i]] / DP1 % w;
+		y2 = nodes[circuit[i]] / DP1 / w;
+		dx = (x2 > x ? +1 : x2 < x ? -1 : 0);
+		dy = (y2 > y ? +1 : y2 < y ? -1 : 0);
+		for (d = 0; d < DIRECTIONS; d++)
+		    if (DX(d) == dx && DY(d) == dy)
+			printf("%c", "89632147"[d]);
+		x = x2;
+		y = y2;
+	    }
+	    printf("\n");
 #endif
+	}
 
 	/*
-	 * If we've managed an entire reduction pass and not made
-	 * the solution any shorter, we're _really_ done.
+	 * If we've managed an entire reduction pass in each
+	 * direction and not made the solution any shorter, we're
+	 * _really_ done.
 	 */
 	if (circuitlen == oldlen)
 	    break;
