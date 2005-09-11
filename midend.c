@@ -1167,12 +1167,15 @@ char *midend_solve(midend *me)
     if (me->statepos < 1)
 	return "No game set up to solve";   /* _shouldn't_ happen! */
 
-    msg = "Solve operation failed";    /* game _should_ overwrite on error */
+    msg = NULL;
     movestr = me->ourgame->solve(me->states[0].state,
 				 me->states[me->statepos-1].state,
 				 me->aux_info, &msg);
-    if (!movestr)
+    if (!movestr) {
+	if (!msg)
+	    msg = "Solve operation failed";   /* _shouldn't_ happen, but can */
 	return msg;
+    }
     s = me->ourgame->execute_move(me->states[me->statepos-1].state, movestr);
     assert(s);
 
