@@ -42,6 +42,16 @@
  * 	 (Of course the algorithm would have to fail an assertion
  * 	 if you tried to tell it two things it already knew to be
  * 	 opposite were equal, or vice versa!)
+ * 	 This data structure would also be useful in the
+ * 	 graph-theoretic part of the solver, where it could be used
+ * 	 for storing information about which lines are known-identical
+ * 	 or known-opposite.  (For example if two lines bordering a 3
+ * 	 are known-identical they must both be LINE_YES, and if they
+ * 	 are known-opposite, the *other* two lines bordering that clue
+ * 	 must be LINE_YES, etc).  This may duplicate some
+ * 	 functionality already present in the solver but it is more
+ * 	 general and we could remove the old code, so that's no bad
+ * 	 thing.
  */
 
 #include <stdio.h>
@@ -59,7 +69,7 @@
 #define LINEWIDTH TILE_SIZE / 16
 #define BORDER (TILE_SIZE / 2)
 
-#define FLASH_TIME 0.4F
+#define FLASH_TIME 0.5F
 
 #define HL_COUNT(state) ((state)->w * ((state)->h + 1))
 #define VL_COUNT(state) (((state)->w + 1) * (state)->h)
@@ -114,15 +124,33 @@ enum {
     COL_BACKGROUND,
     COL_FOREGROUND,
     COL_HIGHLIGHT,
+    COL_MISTAKE,
     NCOLOURS
 };
 
-enum line_state { LINE_UNKNOWN, LINE_YES, LINE_NO };
+/*
+ * Difficulty levels. I do some macro ickery here to ensure that my
+ * enum and the various forms of my name list always match up.
+ */
+#define DIFFLIST(A) \
+    A(EASY,Easy,e) \
+    A(NORMAL,Normal,n)
+#define ENUM(upper,title,lower) DIFF_ ## upper,
+#define TITLE(upper,title,lower) #title,
+#define ENCODE(upper,title,lower) #lower
+#define CONFIG(upper,title,lower) ":" #title
+enum { DIFFLIST(ENUM) DIFFCOUNT };
+static char const *const loopy_diffnames[] = { DIFFLIST(TITLE) };
+static char const loopy_diffchars[] = DIFFLIST(ENCODE);
+#define DIFFCONFIG DIFFLIST(CONFIG)
+
+/* LINE_YES_ERROR is only used in the drawing routine */
+enum line_state { LINE_UNKNOWN, LINE_YES, LINE_NO /*, LINE_YES_ERROR*/ };
 
 enum direction { UP, DOWN, LEFT, RIGHT };
 
 struct game_params {
-    int w, h, rec;
+    int w, h, diff, rec;
 };
 
 struct game_state {
@@ -380,6 +408,7 @@ static game_params *default_params(void)
     ret->h = 10;
     ret->w = 10;
 #endif
+    ret->diff = DIFF_EASY;
     ret->rec = 0;
 
     return ret;
@@ -396,15 +425,15 @@ static const struct {
     char *desc;
     game_params params;
 } loopy_presets[] = {
-    { "4x4 Easy",   {  4,  4, 0 } },
-    { "4x4 Hard",   {  4,  4, 2 } },
-    { "7x7 Easy",   {  7,  7, 0 } },
-    { "7x7 Hard",   {  7,  7, 2 } },
-    { "10x10 Easy", { 10, 10, 0 } },
+    { "4x4 Easy",     {  4,  4, DIFF_EASY, 0 } },
+    { "4x4 Normal",   {  4,  4, DIFF_NORMAL, 0 } },
+    { "7x7 Easy",     {  7,  7, DIFF_EASY, 0 } },
+    { "7x7 Normal",   {  7,  7, DIFF_NORMAL, 0 } },
+    { "10x10 Easy",   { 10, 10, DIFF_EASY, 0 } },
 #ifndef SLOW_SYSTEM
-    { "10x10 Hard", { 10, 10, 2 } },
-    { "15x15 Easy", { 15, 15, 0 } },
-    { "30x20 Easy", { 30, 20, 0 } }
+    { "10x10 Normal", { 10, 10, DIFF_NORMAL, 0 } },
+    { "15x15 Easy",   { 15, 15, DIFF_EASY, 0 } },
+    { "30x20 Easy",   { 30, 20, DIFF_EASY, 0 } }
 #endif
 };
 
@@ -431,6 +460,7 @@ static void decode_params(game_params *params, char const *string)
 {
     params->h = params->w = atoi(string);
     params->rec = 0;
+    params->diff = DIFF_EASY;
     while (*string && isdigit((unsigned char)*string)) string++;
     if (*string == 'x') {
         string++;
@@ -442,6 +472,15 @@ static void decode_params(game_params *params, char const *string)
         params->rec = atoi(string);
 	while (*string && isdigit((unsigned char)*string)) string++;
     }
+    if (*string == 'd') {
+        int i;
+
+        string++;
+	for (i = 0; i < DIFFCOUNT; i++)
+	    if (*string == loopy_diffchars[i])
+		params->diff = i;
+	if (*string) string++;
+    }
 }
 
 static char *encode_params(game_params *params, int full)
@@ -449,7 +488,8 @@ static char *encode_params(game_params *params, int full)
     char str[80];
     sprintf(str, "%dx%d", params->w, params->h);
     if (full)
-	sprintf(str + strlen(str), "r%d", params->rec);
+	sprintf(str + strlen(str), "r%dd%c", params->rec,
+                loopy_diffchars[params->diff]);
     return dupstr(str);
 }
 
@@ -472,11 +512,10 @@ static config_item *game_configure(game_params *params)
     ret[1].sval = dupstr(buf);
     ret[1].ival = 0;
 
-    ret[2].name = "Recursion depth";
-    ret[2].type = C_STRING;
-    sprintf(buf, "%d", params->rec);
-    ret[2].sval = dupstr(buf);
-    ret[2].ival = 0;
+    ret[2].name = "Difficulty";
+    ret[2].type = C_CHOICES;
+    ret[2].sval = DIFFCONFIG;
+    ret[2].ival = params->diff;
 
     ret[3].name = NULL;
     ret[3].type = C_END;
@@ -492,7 +531,8 @@ static game_params *custom_params(config_item *cfg)
 
     ret->w = atoi(cfg[0].sval);
     ret->h = atoi(cfg[1].sval);
-    ret->rec = atoi(cfg[2].sval);
+    ret->rec = 0;
+    ret->diff = cfg[2].ival;
 
     return ret;
 }
@@ -503,6 +543,14 @@ static char *validate_params(game_params *params, int full)
         return "Width and height must both be at least 4";
     if (params->rec < 0)
         return "Recursion depth can't be negative";
+
+    /*
+     * This shouldn't be able to happen at all, since decode_params
+     * and custom_params will never generate anything that isn't
+     * within range.
+     */
+    assert(params->diff >= 0 && params->diff < DIFFCOUNT);
+
     return NULL;
 }
 
@@ -855,15 +903,15 @@ static char *new_fullyclued_board(game_params *params, random_state *rs)
     return clues;
 }
 
-static solver_state *solve_game_rec(const solver_state *sstate);
+static solver_state *solve_game_rec(const solver_state *sstate, int diff);
 
-static int game_has_unique_soln(const game_state *state)
+static int game_has_unique_soln(const game_state *state, int diff)
 {
     int ret;
     solver_state *sstate_new;
     solver_state *sstate = new_solver_state((game_state *)state);
     
-    sstate_new = solve_game_rec(sstate);
+    sstate_new = solve_game_rec(sstate, diff);
 
     ret = (sstate_new->solver_status == SOLVER_SOLVED);
 
@@ -874,7 +922,7 @@ static int game_has_unique_soln(const game_state *state)
 }
 
 /* Remove clues one at a time at random. */
-static game_state *remove_clues(game_state *state, random_state *rs)
+static game_state *remove_clues(game_state *state, random_state *rs, int diff)
 {
     int *square_list, squares;
     game_state *ret = dup_game(state), *saved_ret;
@@ -896,7 +944,7 @@ static game_state *remove_clues(game_state *state, random_state *rs)
         saved_ret = dup_game(ret);
 	LV_CLUE_AT(ret, square_list[n] % state->w,
 		   square_list[n] / state->w) = ' ';
-        if (game_has_unique_soln(ret)) {
+        if (game_has_unique_soln(ret, diff)) {
 	    free_game(saved_ret);
         } else {
             free_game(ret);
@@ -926,6 +974,8 @@ static char *new_game_desc(game_params *params, random_state *rs,
 
     state->hl = snewn(HL_COUNT(params), char);
     state->vl = snewn(VL_COUNT(params), char);
+
+newboard_please:
     memset(state->hl, LINE_UNKNOWN, HL_COUNT(params));
     memset(state->vl, LINE_UNKNOWN, VL_COUNT(params));
 
@@ -935,13 +985,19 @@ static char *new_game_desc(game_params *params, random_state *rs,
     /* Get a new random solvable board with all its clues filled in.  Yes, this
      * can loop for ever if the params are suitably unfavourable, but
      * preventing games smaller than 4x4 seems to stop this happening */
+
     do {
         state->clues = new_fullyclued_board(params, rs);
-    } while (!game_has_unique_soln(state));
+    } while (!game_has_unique_soln(state, params->diff));
 
-    state_new = remove_clues(state, rs);
+    state_new = remove_clues(state, rs, params->diff);
     free_game(state);
     state = state_new;
+
+    if (params->diff > 0 && game_has_unique_soln(state, params->diff-1)) {
+        /* Board is too easy */
+        goto newboard_please;
+    }
 
     empty_count = 0;
     for (j = 0; j < params->h; ++j) {
@@ -1007,7 +1063,7 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
     int n;
     const char *dp = desc;
 
-    state->recursion_depth = params->rec;
+    state->recursion_depth = 0; /* XXX pending removal, probably */
     
     state->h = params->h;
     state->w = params->w;
@@ -1256,7 +1312,7 @@ static char *encode_solve_move(const game_state *state)
     }
 
     /* No point in doing sums like that if they're going to be wrong */
-    assert(strlen(ret) <= (size_t)len);
+    assert(strlen(ret) == (size_t)len);
     return ret;
 }
 
@@ -1425,10 +1481,29 @@ static void update_solver_status(solver_state *sstate)
     }
 }
 
+#if 0
+/* This will fail an assertion if {dx,dy} are anything other than {-1,0}, {1,0}
+ * {0,-1} or {0,1} */
+static int line_status_from_point(const game_state *state,
+                                  int x, int y, int dx, int dy)
+{
+    if (dx == -1 && dy ==  0)
+        return LEFTOF_DOT(state, x, y);
+    if (dx ==  1 && dy ==  0)
+        return RIGHTOF_DOT(state, x, y);
+    if (dx ==  0 && dy == -1)
+        return ABOVE_DOT(state, x, y);
+    if (dx ==  0 && dy ==  1)
+        return BELOW_DOT(state, x, y);
+
+    assert(!"Illegal dx or dy in line_status_from_point");
+    return 0;
+}
+#endif
 
 /* This will return a dynamically allocated solver_state containing the (more)
  * solved grid */
-static solver_state *solve_game_rec(const solver_state *sstate_start)
+static solver_state *solve_game_rec(const solver_state *sstate_start, int diff)
 {
    int i, j;
    int current_yes, current_no, desired;
@@ -1460,6 +1535,14 @@ static solver_state *solve_game_rec(const solver_state *sstate_start)
        }                                                 \
    } while (0)
 
+#define FOUND_MISTAKE                                    \
+   do {                                                  \
+       sstate->solver_status = SOLVER_MISTAKE;           \
+       free_solver_state(sstate_saved);                  \
+       return sstate;                                    \
+   } while (0)
+
+
    sstate_saved = NULL;
    RETURN_IF_SOLVED;
 
@@ -1481,12 +1564,16 @@ nonrecursive_solver:
                current_yes = square_order(sstate->state, i, j, LINE_YES);
                current_no  = square_order(sstate->state, i, j, LINE_NO);
 
-               if (desired <= current_yes) {
+               if (desired < current_yes) 
+                   FOUND_MISTAKE;
+               if (desired == current_yes) {
                    square_setall(sstate->state, i, j, LINE_UNKNOWN, LINE_NO);
                    continue;
                }
 
-               if (4 - desired <= current_no) {
+               if (4 - desired < current_no) 
+                   FOUND_MISTAKE;
+               if (4 - desired == current_no) {
                    square_setall(sstate->state, i, j, LINE_UNKNOWN, LINE_YES);
                }
            }
@@ -1513,19 +1600,24 @@ nonrecursive_solver:
                            }                                                   \
                        }
                        case 1: 
+                           if (diff > DIFF_EASY) {
 #define HANDLE_DLINE(dline, dir1_dot, dir2_dot)                               \
                            H1(dline, dir1_dot, dir2_dot, dot_atleastone)
-                           /* 1 yes, 1 no, so exactly one of unknowns is yes */
-                           DOT_DLINES;
+                               /* 1 yes, 1 no, so exactly one of unknowns is
+                                * yes */
+                               DOT_DLINES;
 #undef HANDLE_DLINE
+                           }
                            /* fall through */
                        case 0: 
+                           if (diff > DIFF_EASY) {
 #define HANDLE_DLINE(dline, dir1_dot, dir2_dot)                               \
                            H1(dline, dir1_dot, dir2_dot, dot_atmostone)
-                           /* 1 yes, fewer than 2 no, so at most one of
-                            * unknowns is yes */
-                           DOT_DLINES;
+                               /* 1 yes, fewer than 2 no, so at most one of
+                                * unknowns is yes */
+                               DOT_DLINES;
 #undef HANDLE_DLINE
+                           }
 #undef H1
                            break;
                        case 2: /* 1 yes, 2 no */
@@ -1535,18 +1627,23 @@ nonrecursive_solver:
                    }
                    break;
                case 2:
-               case 3:
                    dot_setall(sstate->state, i, j, LINE_UNKNOWN, LINE_NO);
+                   break;
+               case 3:
+                   FOUND_MISTAKE;
+                   break;
                }
+               if (diff > DIFF_EASY) {
 #define HANDLE_DLINE(dline, dir1_dot, dir2_dot)                               \
                if (sstate->dot_atleastone                                     \
                      [i + (sstate->state->w + 1) * j] & 1<<dline) {           \
                    sstate->dot_atmostone                                      \
                      [i + (sstate->state->w + 1) * j] |= 1<<OPP_DLINE(dline); \
                }
-               /* If at least one of a dline in a dot is YES, at most one of
-                * the opposite dline to that dot must be YES. */
-               DOT_DLINES;
+                   /* If at least one of a dline in a dot is YES, at most one
+                    * of the opposite dline to that dot must be YES. */
+                   DOT_DLINES;
+               }
 #undef HANDLE_DLINE
            }
        }
@@ -1566,26 +1663,31 @@ nonrecursive_solver:
                            dir1_sq(sstate->state, i, j) = line_set;           \
                    }                                                          \
                }
+               if (diff > DIFF_EASY) {
 #define HANDLE_DLINE(dline, dir1_sq, dir2_sq, a, b)                 \
                H1(dline, dir1_sq, dir2_sq, a, b, dot_atmostone,     \
                   LINE_YES, LINE_NO)
-               /* If at most one of the DLINE is on, and one is definitely on,
-                * set the other to definitely off */
-               SQUARE_DLINES;
+                   /* If at most one of the DLINE is on, and one is definitely
+                    * on, set the other to definitely off */
+                   SQUARE_DLINES;
 #undef HANDLE_DLINE
+               }
 
+               if (diff > DIFF_EASY) {
 #define HANDLE_DLINE(dline, dir1_sq, dir2_sq, a, b)                 \
                H1(dline, dir1_sq, dir2_sq, a, b, dot_atleastone,    \
                   LINE_NO, LINE_YES)
-               /* If at least one of the DLINE is on, and one is definitely
-                * off, set the other to definitely on */
-               SQUARE_DLINES;
+                   /* If at least one of the DLINE is on, and one is definitely
+                    * off, set the other to definitely on */
+                   SQUARE_DLINES;
 #undef HANDLE_DLINE
+               }
 #undef H1
 
                switch (CLUE_AT(sstate->state, i, j)) {
                    case '0':
                    case '1':
+                       if (diff > DIFF_EASY) {
 #define HANDLE_DLINE(dline, dir1_sq, dir2_sq, a, b)                          \
                        /* At most one of any DLINE can be set */             \
                        sstate->dot_atmostone                                 \
@@ -1598,10 +1700,12 @@ nonrecursive_solver:
                                              i+(1-a), j+(1-b),               \
                                              LINE_UNKNOWN, LINE_NO);         \
                        }
-                       SQUARE_DLINES;
+                           SQUARE_DLINES;
 #undef HANDLE_DLINE
+                       }
                        break;
                    case '2':
+                       if (diff > DIFF_EASY) {
 #define H1(dline, dot_at1one, dot_at2one, a, b)                          \
                if (sstate->dot_at1one                                    \
                      [i+a + (sstate->state->w + 1) * (j+b)] &            \
@@ -1613,14 +1717,16 @@ nonrecursive_solver:
 #define HANDLE_DLINE(dline, dir1_sq, dir2_sq, a, b)             \
             H1(dline, dot_atleastone, dot_atmostone, a, b);     \
             H1(dline, dot_atmostone, dot_atleastone, a, b); 
-                       /* If at least one of one DLINE is set, at most one of
-                        * the opposing one is and vice versa */
-                       SQUARE_DLINES;
+                           /* If at least one of one DLINE is set, at most one
+                            * of the opposing one is and vice versa */
+                           SQUARE_DLINES;
+                       }
 #undef HANDLE_DLINE
 #undef H1
                        break;
                    case '3':
                    case '4':
+                       if (diff > DIFF_EASY) {
 #define HANDLE_DLINE(dline, dir1_sq, dir2_sq, a, b)                           \
                        /* At least one of any DLINE can be set */             \
                        sstate->dot_atleastone                                 \
@@ -1633,8 +1739,9 @@ nonrecursive_solver:
                                              i+(1-a), j+(1-b),                \
                                              LINE_UNKNOWN, LINE_YES);         \
                        }
-                       SQUARE_DLINES;
+                           SQUARE_DLINES;
 #undef HANDLE_DLINE
+                       }
                        break;
                }
            }
@@ -1809,9 +1916,9 @@ nonrecursive_solver:
 
    /* Perform recursive calls */
    if (sstate->recursion_remaining) {
-       sstate->recursion_remaining--;
-   
        sstate_saved = dup_solver_state(sstate);
+
+       sstate->recursion_remaining--;
 
        recursive_soln_count = 0;
        sstate_rec_solved = NULL;
@@ -1837,7 +1944,7 @@ nonrecursive_solver:
        if (dir_dot(sstate->state, i, j) == LINE_UNKNOWN) {                 \
            debug(("Trying " #dir_dot " at [%d,%d]\n", i, j));               \
            LV_##dir_dot(sstate->state, i, j) = LINE_YES;                   \
-           sstate_tmp = solve_game_rec(sstate);                            \
+           sstate_tmp = solve_game_rec(sstate, diff);                      \
            switch (sstate_tmp->solver_status) {                            \
                case SOLVER_AMBIGUOUS:                                      \
                    debug(("Solver ambiguous, returning\n"));                \
@@ -1878,14 +1985,10 @@ nonrecursive_solver:
            for (i = 0; i < sstate->state->w + 1; ++i) {
                /* Only perform recursive calls on 'loose ends' */
                if (dot_order(sstate->state, i, j, LINE_YES) == 1) {
-                   if (LEFTOF_DOT(sstate->state, i, j) == LINE_UNKNOWN)
-                       DO_RECURSIVE_CALL(LEFTOF_DOT);
-                   if (RIGHTOF_DOT(sstate->state, i, j) == LINE_UNKNOWN)
-                       DO_RECURSIVE_CALL(RIGHTOF_DOT);
-                   if (ABOVE_DOT(sstate->state, i, j) == LINE_UNKNOWN)
-                       DO_RECURSIVE_CALL(ABOVE_DOT);
-                   if (BELOW_DOT(sstate->state, i, j) == LINE_UNKNOWN)
-                       DO_RECURSIVE_CALL(BELOW_DOT);
+                   DO_RECURSIVE_CALL(LEFTOF_DOT);
+                   DO_RECURSIVE_CALL(RIGHTOF_DOT);
+                   DO_RECURSIVE_CALL(ABOVE_DOT);
+                   DO_RECURSIVE_CALL(BELOW_DOT);
                }
            }
        }
@@ -1978,7 +2081,7 @@ static char *solve_game(game_state *state, game_state *currstate,
     solver_state *sstate, *new_sstate;
 
     sstate = new_solver_state(state);
-    new_sstate = solve_game_rec(sstate);
+    new_sstate = solve_game_rec(sstate, DIFFCOUNT);
 
     if (new_sstate->solver_status == SOLVER_SOLVED) {
         soln = encode_solve_move(new_sstate->state);
@@ -2084,6 +2187,7 @@ struct game_drawstate {
     int tilesize;
     int flashing;
     char *hl, *vl;
+    char *clue_error;
 };
 
 static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
@@ -2378,6 +2482,10 @@ static float *game_colours(frontend *fe, game_state *state, int *ncolours)
     ret[COL_HIGHLIGHT * 3 + 1] = 1.0F;
     ret[COL_HIGHLIGHT * 3 + 2] = 1.0F;
 
+    ret[COL_MISTAKE * 3 + 0] = 1.0F;
+    ret[COL_MISTAKE * 3 + 1] = 0.0F;
+    ret[COL_MISTAKE * 3 + 2] = 0.0F;
+
     *ncolours = NCOLOURS;
     return ret;
 }
@@ -2390,16 +2498,19 @@ static game_drawstate *game_new_drawstate(drawing *dr, game_state *state)
     ds->started = 0;
     ds->hl = snewn(HL_COUNT(state), char);
     ds->vl = snewn(VL_COUNT(state), char);
+    ds->clue_error = snewn(SQUARE_COUNT(state), char);
     ds->flashing = 0;
 
     memset(ds->hl, LINE_UNKNOWN, HL_COUNT(state));
     memset(ds->vl, LINE_UNKNOWN, VL_COUNT(state));
+    memset(ds->clue_error, 0, SQUARE_COUNT(state));
 
     return ds;
 }
 
 static void game_free_drawstate(drawing *dr, game_drawstate *ds)
 {
+    sfree(ds->clue_error);
     sfree(ds->hl);
     sfree(ds->vl);
     sfree(ds);
@@ -2409,10 +2520,11 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
                         game_state *state, int dir, game_ui *ui,
                         float animtime, float flashtime)
 {
-    int i, j;
+    int i, j, n;
     int w = state->w, h = state->h;
     char c[2];
     int line_colour, flash_changed;
+    int clue_mistake;
 
     if (!ds->started) {
         /*
@@ -2465,6 +2577,44 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 
 #define CROSS_SIZE (3 * LINEWIDTH / 2)
     
+    /* Redraw clue colours if necessary */
+    for (j = 0; j < h; ++j) {
+        for (i = 0; i < w; ++i) {
+            c[0] = CLUE_AT(state, i, j);
+            c[1] = '\0';
+            if (c[0] == ' ')
+                continue;
+
+            n = c[0] - '0';
+            assert(n >= 0 && n <= 4);
+
+            clue_mistake = (square_order(state, i, j, LINE_YES) > n     || 
+                            square_order(state, i, j, LINE_NO ) > (4-n));
+
+            if (clue_mistake != ds->clue_error[i * w + j]) {
+                draw_rect(dr, 
+                          BORDER + i * TILE_SIZE + CROSS_SIZE,
+                          BORDER + j * TILE_SIZE + CROSS_SIZE,
+                          TILE_SIZE - CROSS_SIZE * 2, TILE_SIZE - CROSS_SIZE * 2,
+                          COL_BACKGROUND);
+                draw_text(dr, 
+                          BORDER + i * TILE_SIZE + TILE_SIZE/2,
+                          BORDER + j * TILE_SIZE + TILE_SIZE/2,
+                          FONT_VARIABLE, TILE_SIZE/2, 
+                          ALIGN_VCENTRE | ALIGN_HCENTRE, 
+                          clue_mistake ? COL_MISTAKE : COL_FOREGROUND, c);
+                draw_update(dr, i * TILE_SIZE + BORDER, j * TILE_SIZE + BORDER,
+                            TILE_SIZE, TILE_SIZE);
+
+                ds->clue_error[i * w + j] = clue_mistake;
+            }
+        }
+    }
+
+    /* I've also had a request to colour lines red if they make a non-solution
+     * loop, or if more than two lines go into any point.  I think that would
+     * be good some time. */
+
 #define CLEAR_VL(i, j) do {                                                \
                            draw_rect(dr,                                   \
                                  BORDER + i * TILE_SIZE - CROSS_SIZE,      \
