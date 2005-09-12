@@ -2220,7 +2220,7 @@ static char *new_game_desc(game_params *params, random_state *rs,
                 grid2[coords[2*j+1]*cr+coords[2*j]] = 0;
 
             ret = solver(c, r, grid2, maxdiff);
-            if (ret != DIFF_IMPOSSIBLE && ret != DIFF_AMBIGUOUS) {
+            if (ret <= maxdiff) {
                 for (j = 0; j < ncoords; j++)
                     grid[coords[2*j+1]*cr+coords[2*j]] = 0;
             }
