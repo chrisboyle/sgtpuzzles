@@ -356,8 +356,24 @@ void midend_new_game(midend *me)
     }
 
     ensure(me);
+
+    /*
+     * It might seem a bit odd that we're using me->params to
+     * create the initial game state, rather than me->curparams
+     * which is better tailored to this specific game and which we
+     * always know.
+     * 
+     * It's supposed to be an invariant in the midend that
+     * me->params and me->curparams differ in no aspect that is
+     * important after generation (i.e. after new_desc()). By
+     * deliberately passing the _less_ specific of these two
+     * parameter sets, we provoke play-time misbehaviour in the
+     * case where a game has failed to encode a play-time parameter
+     * in the non-full version of encode_params().
+     */
     me->states[me->nstates].state =
 	me->ourgame->new_game(me, me->params, me->desc);
+
     me->states[me->nstates].movestr = NULL;
     me->states[me->nstates].movetype = NEWGAME;
     me->nstates++;
