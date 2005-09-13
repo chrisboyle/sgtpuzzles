@@ -430,10 +430,12 @@ static const struct {
     { "7x7 Easy",     {  7,  7, DIFF_EASY, 0 } },
     { "7x7 Normal",   {  7,  7, DIFF_NORMAL, 0 } },
     { "10x10 Easy",   { 10, 10, DIFF_EASY, 0 } },
-#ifndef SLOW_SYSTEM
     { "10x10 Normal", { 10, 10, DIFF_NORMAL, 0 } },
+#ifndef SLOW_SYSTEM
     { "15x15 Easy",   { 15, 15, DIFF_EASY, 0 } },
-    { "30x20 Easy",   { 30, 20, DIFF_EASY, 0 } }
+    { "15x15 Normal", { 15, 15, DIFF_NORMAL, 0 } },
+    { "30x20 Easy",   { 30, 20, DIFF_EASY, 0 } },
+    { "30x20 Normal", { 30, 20, DIFF_NORMAL, 0 } }
 #endif
 };
 
@@ -2591,7 +2593,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
             clue_mistake = (square_order(state, i, j, LINE_YES) > n     || 
                             square_order(state, i, j, LINE_NO ) > (4-n));
 
-            if (clue_mistake != ds->clue_error[i * w + j]) {
+            if (clue_mistake != ds->clue_error[j * w + i]) {
                 draw_rect(dr, 
                           BORDER + i * TILE_SIZE + CROSS_SIZE,
                           BORDER + j * TILE_SIZE + CROSS_SIZE,
@@ -2606,7 +2608,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
                 draw_update(dr, i * TILE_SIZE + BORDER, j * TILE_SIZE + BORDER,
                             TILE_SIZE, TILE_SIZE);
 
-                ds->clue_error[i * w + j] = clue_mistake;
+                ds->clue_error[j * w + i] = clue_mistake;
             }
         }
     }
