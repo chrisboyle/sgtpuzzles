@@ -1507,13 +1507,22 @@ static int line_status_from_point(const game_state *state,
  * solved grid */
 static solver_state *solve_game_rec(const solver_state *sstate_start, int diff)
 {
-   int i, j;
+   int i, j, w, h;
    int current_yes, current_no, desired;
    solver_state *sstate, *sstate_saved, *sstate_tmp;
    int t;
-/*   char *text; */
    solver_state *sstate_rec_solved;
    int recursive_soln_count;
+   char *square_solved;
+   char *dot_solved;
+
+   h = sstate_start->state->h;
+   w = sstate_start->state->w;
+
+   dot_solved = snewn(DOT_COUNT(sstate_start->state), char);
+   square_solved = snewn(SQUARE_COUNT(sstate_start->state), char);
+   memset(dot_solved, FALSE, DOT_COUNT(sstate_start->state));
+   memset(square_solved, FALSE, SQUARE_COUNT(sstate_start->state));
 
 #if 0
    printf("solve_game_rec: recursion_remaining = %d\n", 
@@ -1522,16 +1531,11 @@ static solver_state *solve_game_rec(const solver_state *sstate_start, int diff)
 
    sstate = dup_solver_state((solver_state *)sstate_start);
 
-#if 0
-   text = game_text_format(sstate->state);
-   printf("%s\n", text);
-   sfree(text);
-#endif
-   
 #define RETURN_IF_SOLVED                                 \
    do {                                                  \
        update_solver_status(sstate);                     \
        if (sstate->solver_status != SOLVER_INCOMPLETE) { \
+           sfree(dot_solved); sfree(square_solved);      \
            free_solver_state(sstate_saved);              \
            return sstate;                                \
        }                                                 \
@@ -1540,6 +1544,7 @@ static solver_state *solve_game_rec(const solver_state *sstate_start, int diff)
 #define FOUND_MISTAKE                                    \
    do {                                                  \
        sstate->solver_status = SOLVER_MISTAKE;           \
+       sfree(dot_solved); sfree(square_solved);          \
        free_solver_state(sstate_saved);                  \
        return sstate;                                    \
    } while (0)
@@ -1556,20 +1561,30 @@ nonrecursive_solver:
        /* First we do the 'easy' work, that might cause concrete results */
 
        /* Per-square deductions */
-       for (j = 0; j < sstate->state->h; ++j) {
-           for (i = 0; i < sstate->state->w; ++i) {
+       for (j = 0; j < h; ++j) {
+           for (i = 0; i < w; ++i) {
                /* Begin rules that look at the clue (if there is one) */
+               if (square_solved[i + j*w])
+                   continue;
+
                desired = CLUE_AT(sstate->state, i, j);
                if (desired == ' ')
                    continue;
+
                desired = desired - '0';
                current_yes = square_order(sstate->state, i, j, LINE_YES);
                current_no  = square_order(sstate->state, i, j, LINE_NO);
+
+               if (current_yes + current_no == 4)  {
+                   square_solved[i + j*w] = TRUE;
+                   continue;
+               }
 
                if (desired < current_yes) 
                    FOUND_MISTAKE;
                if (desired == current_yes) {
                    square_setall(sstate->state, i, j, LINE_UNKNOWN, LINE_NO);
+                   square_solved[i + j*w] = TRUE;
                    continue;
                }
 
@@ -1577,6 +1592,7 @@ nonrecursive_solver:
                    FOUND_MISTAKE;
                if (4 - desired == current_no) {
                    square_setall(sstate->state, i, j, LINE_UNKNOWN, LINE_YES);
+                   square_solved[i + j*w] = TRUE;
                }
            }
        }
@@ -1584,12 +1600,20 @@ nonrecursive_solver:
        RETURN_IF_SOLVED;
 
        /* Per-dot deductions */
-       for (j = 0; j < sstate->state->h + 1; ++j) {
-           for (i = 0; i < sstate->state->w + 1; ++i) {
+       for (j = 0; j < h + 1; ++j) {
+           for (i = 0; i < w + 1; ++i) {
+               if (dot_solved[i + j*(w+1)])
+                   continue;
+
                switch (dot_order(sstate->state, i, j, LINE_YES)) {
                case 0:
-                   if (dot_order(sstate->state, i, j, LINE_NO) == 3) {
-                       dot_setall(sstate->state, i, j, LINE_UNKNOWN, LINE_NO);
+                   switch (dot_order(sstate->state, i, j, LINE_NO)) {
+                       case 3:
+                           dot_setall(sstate->state, i, j, LINE_UNKNOWN, LINE_NO);
+                           /* fall through */
+                       case 4:
+                           dot_solved[i + j*(w+1)] = TRUE;
+                           break;
                    }
                    break;
                case 1:
@@ -1598,7 +1622,7 @@ nonrecursive_solver:
                        if (dir1_dot(sstate->state, i, j) == LINE_UNKNOWN) {    \
                            if (dir2_dot(sstate->state, i, j) == LINE_UNKNOWN){ \
                                sstate->dot_howmany                             \
-                                 [i + (sstate->state->w + 1) * j] |= 1<<dline; \
+                                 [i + (w + 1) * j] |= 1<<dline;                \
                            }                                                   \
                        }
                        case 1: 
@@ -1625,22 +1649,28 @@ nonrecursive_solver:
                        case 2: /* 1 yes, 2 no */
                            dot_setall(sstate->state, i, j, 
                                       LINE_UNKNOWN, LINE_YES);
+                           dot_solved[i + j*(w+1)] = TRUE;
+                           break;
+                       case 3: /* 1 yes, 3 no */
+                           FOUND_MISTAKE;
                            break;
                    }
                    break;
                case 2:
                    dot_setall(sstate->state, i, j, LINE_UNKNOWN, LINE_NO);
+                   dot_solved[i + j*(w+1)] = TRUE;
                    break;
                case 3:
+               case 4:
                    FOUND_MISTAKE;
                    break;
                }
                if (diff > DIFF_EASY) {
 #define HANDLE_DLINE(dline, dir1_dot, dir2_dot)                               \
                if (sstate->dot_atleastone                                     \
-                     [i + (sstate->state->w + 1) * j] & 1<<dline) {           \
+                     [i + (w + 1) * j] & 1<<dline) {                          \
                    sstate->dot_atmostone                                      \
-                     [i + (sstate->state->w + 1) * j] |= 1<<OPP_DLINE(dline); \
+                     [i + (w + 1) * j] |= 1<<OPP_DLINE(dline);                \
                }
                    /* If at least one of a dline in a dot is YES, at most one
                     * of the opposite dline to that dot must be YES. */
@@ -1651,11 +1681,13 @@ nonrecursive_solver:
        }
        
        /* More obscure per-square operations */
-       for (j = 0; j < sstate->state->h; ++j) {
-           for (i = 0; i < sstate->state->w; ++i) {
+       for (j = 0; j < h; ++j) {
+           for (i = 0; i < w; ++i) {
+               if (square_solved[i + j*w])
+                   continue;
+
 #define H1(dline, dir1_sq, dir2_sq, a, b, dot_howmany, line_query, line_set)  \
-               if (sstate->dot_howmany[i+a + (sstate->state->w + 1) * (j+b)] &\
-                       1<<dline) {                                            \
+               if (sstate->dot_howmany[i+a + (w + 1) * (j+b)] & 1<<dline) {   \
                    t = dir1_sq(sstate->state, i, j);                          \
                    if (t == line_query)                                       \
                        dir2_sq(sstate->state, i, j) = line_set;               \
@@ -1687,17 +1719,15 @@ nonrecursive_solver:
 #undef H1
 
                switch (CLUE_AT(sstate->state, i, j)) {
-                   case '0':
                    case '1':
                        if (diff > DIFF_EASY) {
 #define HANDLE_DLINE(dline, dir1_sq, dir2_sq, a, b)                          \
                        /* At most one of any DLINE can be set */             \
                        sstate->dot_atmostone                                 \
-                         [i+a + (sstate->state->w + 1) * (j+b)] |= 1<<dline; \
+                         [i+a + (w + 1) * (j+b)] |= 1<<dline;                \
                        /* This DLINE provides enough YESes to solve the clue */\
                        if (sstate->dot_atleastone                            \
-                             [i+a + (sstate->state->w + 1) * (j+b)] &        \
-                           1<<dline) {                                       \
+                             [i+a + (w + 1) * (j+b)] & 1<<dline) {           \
                            dot_setall_dlines(sstate, OPP_DLINE(dline),       \
                                              i+(1-a), j+(1-b),               \
                                              LINE_UNKNOWN, LINE_NO);         \
@@ -1710,11 +1740,9 @@ nonrecursive_solver:
                        if (diff > DIFF_EASY) {
 #define H1(dline, dot_at1one, dot_at2one, a, b)                          \
                if (sstate->dot_at1one                                    \
-                     [i+a + (sstate->state->w + 1) * (j+b)] &            \
-                   1<<dline) {                                           \
+                     [i+a + (w + 1) * (j+b)] & 1<<dline) {               \
                    sstate->dot_at2one                                    \
-                     [i+(1-a) + (sstate->state->w + 1) * (j+(1-b))] |=   \
-                       1<<OPP_DLINE(dline);                              \
+                     [i+(1-a) + (w + 1) * (j+(1-b))] |= 1<<OPP_DLINE(dline); \
                }
 #define HANDLE_DLINE(dline, dir1_sq, dir2_sq, a, b)             \
             H1(dline, dot_atleastone, dot_atmostone, a, b);     \
@@ -1727,16 +1755,14 @@ nonrecursive_solver:
 #undef H1
                        break;
                    case '3':
-                   case '4':
                        if (diff > DIFF_EASY) {
 #define HANDLE_DLINE(dline, dir1_sq, dir2_sq, a, b)                           \
                        /* At least one of any DLINE can be set */             \
                        sstate->dot_atleastone                                 \
-                         [i+a + (sstate->state->w + 1) * (j+b)] |= 1<<dline;  \
+                         [i+a + (w + 1) * (j+b)] |= 1<<dline;                 \
                        /* This DLINE provides enough NOs to solve the clue */ \
                        if (sstate->dot_atmostone                              \
-                             [i+a + (sstate->state->w + 1) * (j+b)] &         \
-                           1<<dline) {                                        \
+                             [i+a + (w + 1) * (j+b)] & 1<<dline) {            \
                            dot_setall_dlines(sstate, OPP_DLINE(dline),        \
                                              i+(1-a), j+(1-b),                \
                                              LINE_UNKNOWN, LINE_YES);         \
@@ -1762,8 +1788,8 @@ nonrecursive_solver:
 	    * clues, count the satisfied clues, and count the
 	    * satisfied-minus-one clues.
 	    */
-	   for (j = 0; j <= sstate->state->h; ++j) {
-	       for (i = 0; i <= sstate->state->w; ++i) {
+	   for (j = 0; j <= h; ++j) {
+	       for (i = 0; i <= w; ++i) {
 		   if (RIGHTOF_DOT(sstate->state, i, j) == LINE_YES) {
 		       merge_dots(sstate, i, j, i+1, j);
 		       edgecount++;
@@ -1791,8 +1817,8 @@ nonrecursive_solver:
 	    * equivalence class. If we find one, test to see if the
 	    * loop it would create is a solution.
 	    */
-	   for (j = 0; j <= sstate->state->h; ++j) {
-	       for (i = 0; i <= sstate->state->w; ++i) {
+	   for (j = 0; j <= h; ++j) {
+	       for (i = 0; i <= w; ++i) {
 		   for (d = 0; d < 2; d++) {
 		       int i2, j2, eqclass, val;
 
@@ -1810,11 +1836,9 @@ nonrecursive_solver:
 			   j2 = j+1;
 		       }
 
-		       eqclass = dsf_canonify(sstate->dotdsf,
-					      j * (sstate->state->w+1) + i);
+		       eqclass = dsf_canonify(sstate->dotdsf, j * (w+1) + i);
 		       if (eqclass != dsf_canonify(sstate->dotdsf,
-						   j2 * (sstate->state->w+1) +
-						   i2))
+						   j2 * (w+1) + i2))
 			   continue;
 
 		       val = LINE_NO;  /* loop is bad until proven otherwise */
@@ -1906,6 +1930,8 @@ nonrecursive_solver:
        free_solver_state(sstate_saved); 
    }
 
+   sfree(dot_solved); sfree(square_solved);
+
    if (sstate->solver_status == SOLVER_SOLVED ||
        sstate->solver_status == SOLVER_AMBIGUOUS) {
        /* s/LINE_UNKNOWN/LINE_NO/g */
@@ -1983,8 +2009,8 @@ nonrecursive_solver:
            sstate = dup_solver_state(sstate_saved);                        \
        }
        
-       for (j = 0; j < sstate->state->h + 1; ++j) {
-           for (i = 0; i < sstate->state->w + 1; ++i) {
+       for (j = 0; j < h + 1; ++j) {
+           for (i = 0; i < w + 1; ++i) {
                /* Only perform recursive calls on 'loose ends' */
                if (dot_order(sstate->state, i, j, LINE_YES) == 1) {
                    DO_RECURSIVE_CALL(LEFTOF_DOT);
