@@ -66,7 +66,7 @@
 
 #define PREFERRED_TILE_SIZE 32
 #define TILE_SIZE (ds->tilesize)
-#define LINEWIDTH TILE_SIZE / 16
+#define LINEWIDTH (ds->linewidth)
 #define BORDER (TILE_SIZE / 2)
 
 #define FLASH_TIME 0.5F
@@ -2078,7 +2078,7 @@ static void game_changed_state(game_ui *ui, game_state *oldstate,
 
 struct game_drawstate {
     int started;
-    int tilesize;
+    int tilesize, linewidth;
     int flashing;
     char *hl, *vl;
     char *clue_error;
@@ -2360,6 +2360,7 @@ static void game_set_size(drawing *dr, game_drawstate *ds,
 			  game_params *params, int tilesize)
 {
     ds->tilesize = tilesize;
+    ds->linewidth = max(1,tilesize/16);
 }
 
 static float *game_colours(frontend *fe, game_state *state, int *ncolours)
@@ -2388,7 +2389,7 @@ static game_drawstate *game_new_drawstate(drawing *dr, game_state *state)
 {
     struct game_drawstate *ds = snew(struct game_drawstate);
 
-    ds->tilesize = 0;
+    ds->tilesize = ds->linewidth = 0;
     ds->started = 0;
     ds->hl = snewn(HL_COUNT(state), char);
     ds->vl = snewn(VL_COUNT(state), char);
