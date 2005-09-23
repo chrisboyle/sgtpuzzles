@@ -1781,14 +1781,14 @@ static int game_timing_state(game_state *state, game_ui *ui)
     return FALSE;
 }
 
-		      static void game_print_size(game_params *params, float *x, float *y)
-		  {
-		  }
-		      
-		      static void game_print(drawing *dr, game_state *state, int tilesize)
-		  {
-		  }
-		      
+static void game_print_size(game_params *params, float *x, float *y)
+{
+}
+
+static void game_print(drawing *dr, game_state *state, int tilesize)
+{
+}
+
 #ifdef COMBINED
 #define thegame netslide
 #endif
