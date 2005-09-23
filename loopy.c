@@ -2668,7 +2668,8 @@ static void game_print(drawing *dr, game_state *state, int tilesize)
     int ink = print_mono_colour(dr, 0);
     int x, y;
     game_drawstate ads, *ds = &ads;
-    ds->tilesize = tilesize;
+
+    game_set_size(dr, ds, NULL, tilesize);
 
     /*
      * Dots. I'll deliberately make the dots a bit wider than the

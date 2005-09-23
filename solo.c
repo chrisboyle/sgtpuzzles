@@ -3009,7 +3009,7 @@ static void game_print(drawing *dr, game_state *state, int tilesize)
 
     /* Ick: fake up `ds->tilesize' for macro expansion purposes */
     game_drawstate ads, *ds = &ads;
-    ads.tilesize = tilesize;
+    game_set_size(dr, ds, NULL, tilesize);
 
     /*
      * Border.

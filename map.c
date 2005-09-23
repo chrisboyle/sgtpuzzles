@@ -2956,6 +2956,7 @@ static void game_print(drawing *dr, game_state *state, int tilesize)
 
     /* Ick: fake up `ds->tilesize' for macro expansion purposes */
     struct { int tilesize; } ads, *ds = &ads;
+    /* We can't call game_set_size() here because we don't want a blitter */
     ads.tilesize = tilesize;
 
     ink = print_mono_colour(dr, 0);
