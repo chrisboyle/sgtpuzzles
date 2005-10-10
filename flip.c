@@ -897,7 +897,7 @@ struct game_drawstate {
 static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
 			    int x, int y, int button)
 {
-    int w = state->w, h = state->h /*, wh = w * h */;
+    int w = state->w, h = state->h, wh = w * h;
     char buf[80], *nullret = NULL;
 
     if (button == LEFT_BUTTON || button == CURSOR_SELECT ||
@@ -913,8 +913,22 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
         nullret = "";
 
         if (tx >= 0 && tx < w && ty >= 0 && ty < h) {
-	    sprintf(buf, "M%d,%d", tx, ty);
-	    return dupstr(buf);
+            /*
+             * It's just possible that a manually entered game ID
+             * will have at least one square do nothing whatsoever.
+             * If so, we avoid encoding a move at all.
+             */
+            int i = ty*w+tx, j, makemove = FALSE;
+            for (j = 0; j < wh; j++) {
+                if (state->matrix->matrix[i*wh+j])
+                    makemove = TRUE;
+            }
+            if (makemove) {
+                sprintf(buf, "M%d,%d", tx, ty);
+                return dupstr(buf);
+            } else {
+                return NULL;
+            }
         }
     }
     else if (button == CURSOR_UP || button == CURSOR_DOWN ||
@@ -1179,6 +1193,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 	int fx, fy, fd;
 	int v = state->grid[i];
 	int vv;
+        int hintmask = (state->hints_active ? ~0 : ~2);
 
 	if (flashframe >= 0) {
 	    fx = (w+1)/2 - min(x+1, w-x);
@@ -1190,12 +1205,11 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 		v &= ~1;
 	}
 
-	if (!state->hints_active)
-	    v &= ~2;
+        v &= hintmask;
         if (ui->cdraw && ui->cx == x && ui->cy == y)
             v |= 4;
 
-	if (oldstate && state->grid[i] != oldstate->grid[i])
+	if (oldstate && ((state->grid[i] ^ oldstate->grid[i]) & hintmask))
 	    vv = 255;		       /* means `animated' */
 	else
 	    vv = v;
