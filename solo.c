@@ -2293,6 +2293,9 @@ static char *validate_desc(game_params *params, char *desc)
         } else if (n == '_') {
             /* do nothing */;
         } else if (n > '0' && n <= '9') {
+            int val = atoi(desc-1);
+            if (val < 1 || val > params->c * params->r)
+                return "Out-of-range number in game description";
             squares++;
             while (*desc >= '0' && *desc <= '9')
                 desc++;
