@@ -1193,7 +1193,6 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 	int fx, fy, fd;
 	int v = state->grid[i];
 	int vv;
-        int hintmask = (state->hints_active ? ~0 : ~2);
 
 	if (flashframe >= 0) {
 	    fx = (w+1)/2 - min(x+1, w-x);
@@ -1205,11 +1204,12 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 		v &= ~1;
 	}
 
-        v &= hintmask;
+	if (!state->hints_active)
+	    v &= ~2;
         if (ui->cdraw && ui->cx == x && ui->cy == y)
             v |= 4;
 
-	if (oldstate && ((state->grid[i] ^ oldstate->grid[i]) & hintmask))
+	if (oldstate && ((state->grid[i] ^ oldstate->grid[i]) &~ 2))
 	    vv = 255;		       /* means `animated' */
 	else
 	    vv = v;
