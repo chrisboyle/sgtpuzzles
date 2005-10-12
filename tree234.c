@@ -31,10 +31,7 @@
 
 #include "tree234.h"
 
-#define smalloc malloc
-#define sfree free
-
-#define mknew(typ) ( (typ *) smalloc (sizeof (typ)) )
+#include "puzzles.h"		       /* for smalloc/sfree */
 
 #ifdef TEST
 #define LOG(x) (printf x)
@@ -60,7 +57,7 @@ struct node234_Tag {
  * Create a 2-3-4 tree.
  */
 tree234 *newtree234(cmpfn234 cmp) {
-    tree234 *ret = mknew(tree234);
+    tree234 *ret = snew(tree234);
     LOG(("created tree %p\n", ret));
     ret->root = NULL;
     ret->cmp = cmp;
@@ -187,7 +184,7 @@ static int add234_insert(node234 *left, void *e, node234 *right,
 	    LOG(("  done\n"));
 	    break;
 	} else {
-	    node234 *m = mknew(node234);
+	    node234 *m = snew(node234);
 	    m->parent = n->parent;
 	    LOG(("  splitting a 4-node; created new node %p\n", m));
 	    /*
@@ -283,7 +280,7 @@ static int add234_insert(node234 *left, void *e, node234 *right,
 	return 0;		       /* root unchanged */
     } else {
 	LOG(("  root is overloaded, split into two\n"));
-	(*root) = mknew(node234);
+	(*root) = snew(node234);
 	(*root)->kids[0] = left;     (*root)->counts[0] = lcount;
 	(*root)->elems[0] = e;
 	(*root)->kids[1] = right;    (*root)->counts[1] = rcount;
@@ -314,7 +311,7 @@ static void *add234_internal(tree234 *t, void *e, int index) {
 
     LOG(("adding element \"%s\" to tree %p\n", e, t));
     if (t->root == NULL) {
-	t->root = mknew(node234);
+	t->root = snew(node234);
 	t->root->elems[1] = t->root->elems[2] = NULL;
 	t->root->kids[0] = t->root->kids[1] = NULL;
 	t->root->kids[2] = t->root->kids[3] = NULL;
@@ -1040,7 +1037,7 @@ static node234 *join234_internal(node234 *left, void *sep,
 	 * nodes.
 	 */
 	node234 *newroot;
-	newroot = mknew(node234);
+	newroot = snew(node234);
 	newroot->kids[0] = left;     newroot->counts[0] = countnode234(left);
 	newroot->elems[0] = sep;
 	newroot->kids[1] = right;    newroot->counts[1] = countnode234(right);
@@ -1216,7 +1213,7 @@ static node234 *split234_internal(tree234 *t, int index) {
 	 * new node pointers in halves[0] and halves[1], and go up
 	 * a level.
 	 */
-	sib = mknew(node234);
+	sib = snew(node234);
 	for (i = 0; i < 3; i++) {
 	    if (i+ki < 3 && n->elems[i+ki]) {
 		sib->elems[i] = n->elems[i+ki];
@@ -1416,7 +1413,7 @@ tree234 *split234(tree234 *t, void *e, cmpfn234 cmp, int rel) {
 
 static node234 *copynode234(node234 *n, copyfn234 copyfn, void *copyfnstate) {
     int i;
-    node234 *n2 = mknew(node234);
+    node234 *n2 = snew(node234);
 
     for (i = 0; i < 3; i++) {
 	if (n->elems[i] && copyfn)
