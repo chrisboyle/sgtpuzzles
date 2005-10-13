@@ -148,7 +148,7 @@ enum {
 #define ENCODE(upper,title,lower) #lower
 #define CONFIG(upper,title,lower) ":" #title
 enum { DIFFLIST(ENUM) DIFFCOUNT };
-static char const *const loopy_diffnames[] = { DIFFLIST(TITLE) };
+/* static char const *const loopy_diffnames[] = { DIFFLIST(TITLE) }; */
 static char const loopy_diffchars[] = DIFFLIST(ENCODE);
 #define DIFFCONFIG DIFFLIST(CONFIG)
 
