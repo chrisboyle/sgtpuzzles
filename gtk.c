@@ -290,6 +290,8 @@ void gtk_draw_text(void *handle, int x, int y, int fonttype, int fontsize,
 
         if (align & ALIGN_VCENTRE)
             rect.y -= rect.height / 2;
+	else
+	    rect.y -= rect.height;
 
         if (align & ALIGN_HCENTRE)
             rect.x -= rect.width / 2;
@@ -317,6 +319,8 @@ void gtk_draw_text(void *handle, int x, int y, int fonttype, int fontsize,
                            &lb, &rb, &wid, &asc, &desc);
         if (align & ALIGN_VCENTRE)
             y += asc - (asc+desc)/2;
+	else
+            y += asc;
 
 	/*
 	 * ... but horizontal extents with respect to the provided

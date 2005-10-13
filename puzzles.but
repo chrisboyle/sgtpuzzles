@@ -1802,6 +1802,58 @@ These parameters are available from the \q{Custom...} option on the
 \dd Size of grid in squares.
 
 
+\C{tents} \i{Tents}
+
+\cfg{winhelp-topic}{games.tents}
+
+You have a grid of squares, some of which contain trees. Your aim is
+to place tents in some of the remaining squares, in such a way that
+the following conditions are met:
+
+\b There are exactly as many tents as trees.
+
+\b The tents and trees can be matched up in such a way that each
+tent is directly adjacent (horizontally or vertically, but not
+diagonally) to its own tree. However, a tent may be adjacent to
+other trees as well as its own.
+
+\b No two tents are adjacent horizontally, vertically \e{or
+diagonally}.
+
+\b The number of tents in each row, and in each column, matches the
+numbers given round the sides of the grid.
+
+This puzzle can be found in several places on the Internet, and was
+brought to my attention by e-mail. I don't know who I should credit
+for inventing it.
+
+\H{tents-controls} \i{Tents controls}
+
+\IM{Tents controls} controls, for Tents
+
+Left-clicking in a blank square will place a tent in it.
+Right-clicking in a blank square will colour it green, indicating
+that you are sure it \e{isn't} a tent. Clicking either button in an
+occupied square will clear it.
+
+(All the actions described in \k{common-actions} are also available.)
+
+\H{tents-parameters} \I{parameters, for Tents}Tents parameters
+
+These parameters are available from the \q{Custom...} option on the
+\q{Type} menu.
+
+\dt \e{Width}, \e{Height}
+
+\dd Size of grid in squares.
+
+\dt \e{Difficulty}
+
+\dd Controls the difficulty of the generated puzzle. More difficult
+puzzles require more complex deductions, but at present none of the
+available difficulty levels requires guesswork or backtracking.
+
+
 \A{licence} \I{MIT licence}\ii{Licence}
 
 This software is \i{copyright} 2004-2005 Simon Tatham.

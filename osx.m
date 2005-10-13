@@ -1341,6 +1341,8 @@ static void osx_draw_text(void *handle, int x, int y, int fonttype,
 	point.x -= size.width / 2;
     if (align & ALIGN_VCENTRE)
 	point.y -= size.height / 2;
+    else
+	point.y -= size.height;
 
     [string drawAtPoint:point withAttributes:attr];
 }
