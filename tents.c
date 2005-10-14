@@ -1400,13 +1400,26 @@ static char *game_text_format(game_state *state)
     return ret;
 }
 
+struct game_ui {
+    int dsx, dsy;                      /* coords of drag start */
+    int dex, dey;                      /* coords of drag end */
+    int drag_button;                   /* -1 for none, or a button code */
+    int drag_ok;                       /* dragged off the window, to cancel */
+};
+
 static game_ui *new_ui(game_state *state)
 {
-    return NULL;
+    game_ui *ui = snew(game_ui);
+    ui->dsx = ui->dsy = -1;
+    ui->dex = ui->dey = -1;
+    ui->drag_button = -1;
+    ui->drag_ok = FALSE;
+    return ui;
 }
 
 static void free_ui(game_ui *ui)
 {
+    sfree(ui);
 }
 
 static char *encode_ui(game_ui *ui)
@@ -1439,32 +1452,151 @@ struct game_drawstate {
 
 #define FLASH_TIME 0.30F
 
+static int drag_xform(game_ui *ui, int x, int y, int v)
+{
+    int xmin, ymin, xmax, ymax;
+
+    xmin = min(ui->dsx, ui->dex);
+    xmax = max(ui->dsx, ui->dex);
+    ymin = min(ui->dsy, ui->dey);
+    ymax = max(ui->dsy, ui->dey);
+
+    /*
+     * Left-dragging has no effect, so we treat a left-drag as a
+     * single click on dsx,dsy.
+     */
+    if (ui->drag_button == LEFT_BUTTON) {
+        xmin = xmax = ui->dsx;
+        ymin = ymax = ui->dsy;
+    }
+
+    if (x < xmin || x > xmax || y < ymin || y > ymax)
+        return v;                      /* no change outside drag area */
+
+    if (v == TREE)
+        return v;                      /* trees are inviolate always */
+
+    if (xmin == xmax && ymin == ymax) {
+        /*
+         * Results of a simple click. Left button sets blanks to
+         * tents; right button sets blanks to non-tents; either
+         * button clears a non-blank square.
+         */
+        if (ui->drag_button == LEFT_BUTTON)
+            v = (v == BLANK ? TENT : BLANK);
+        else
+            v = (v == BLANK ? NONTENT : BLANK);
+    } else {
+        /*
+         * Results of a drag. Left-dragging has no effect.
+         * Right-dragging sets all blank squares to non-tents and
+         * has no effect on anything else.
+         */
+        if (ui->drag_button == RIGHT_BUTTON)
+            v = (v == BLANK ? NONTENT : v);
+        else
+            /* do nothing */;
+    }
+
+    return v;
+}
+
 static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
 			    int x, int y, int button)
 {
     int w = state->p.w, h = state->p.h;
 
     if (button == LEFT_BUTTON || button == RIGHT_BUTTON) {
-        int v;
-        char buf[80];
-
         x = FROMCOORD(x);
         y = FROMCOORD(y);
         if (x < 0 || y < 0 || x >= w || y >= h)
             return NULL;
 
-        if (state->grid[y*w+x] == TREE)
-            return NULL;
+        ui->drag_button = button;
+        ui->dsx = ui->dex = x;
+        ui->dsy = ui->dey = y;
+        ui->drag_ok = TRUE;
+        return "";             /* ui updated */
+    }
 
-        if (button == LEFT_BUTTON) {
-            v = (state->grid[y*w+x] == BLANK ? TENT : BLANK);
+    if ((IS_MOUSE_DRAG(button) || IS_MOUSE_RELEASE(button)) &&
+        ui->drag_button > 0) {
+        int xmin, ymin, xmax, ymax;
+        char *buf, *sep, tmpbuf[80];
+        int buflen, bufsize, tmplen;
+
+        x = FROMCOORD(x);
+        y = FROMCOORD(y);
+        if (x < 0 || y < 0 || x >= w || y >= h) {
+            ui->drag_ok = FALSE;
         } else {
-            v = (state->grid[y*w+x] == BLANK ? NONTENT : BLANK);
+            /*
+             * Drags are limited to one row or column. Hence, we
+             * work out which coordinate is closer to the drag
+             * start, and move it _to_ the drag start.
+             */
+            if (abs(x - ui->dsx) < abs(y - ui->dsy))
+                x = ui->dsx;
+            else
+                y = ui->dsy;
+
+            ui->dex = x;
+            ui->dey = y;
+
+            ui->drag_ok = TRUE;
         }
 
-        sprintf(buf, "%c%d,%d", (int)(v==BLANK ? 'B' :
-                                      v==TENT ? 'T' : 'N'), x, y);
-        return dupstr(buf);
+        if (IS_MOUSE_DRAG(button))
+            return "";                 /* ui updated */
+
+        /*
+         * The drag has been released. Enact it.
+         */
+        if (!ui->drag_ok) {
+            ui->drag_button = -1;
+            return "";                 /* drag was just cancelled */
+        }
+
+        xmin = min(ui->dsx, ui->dex);
+        xmax = max(ui->dsx, ui->dex);
+        ymin = min(ui->dsy, ui->dey);
+        ymax = max(ui->dsy, ui->dey);
+        assert(0 <= xmin && xmin <= xmax && xmax < w);
+        assert(0 <= ymin && ymin <= ymax && ymax < w);
+
+        buflen = 0;
+        bufsize = 256;
+        buf = snewn(bufsize, char);
+        sep = "";
+        for (y = ymin; y <= ymax; y++)
+            for (x = xmin; x <= xmax; x++) {
+                int v = drag_xform(ui, x, y, state->grid[y*w+x]);
+                if (state->grid[y*w+x] != v) {
+                    tmplen = sprintf(tmpbuf, "%s%c%d,%d", sep,
+                                     (v == BLANK ? 'B' :
+                                      v == TENT ? 'T' : 'N'),
+                                     x, y);
+                    sep = ";";
+
+                    if (buflen + tmplen >= bufsize) {
+                        bufsize = buflen + tmplen + 256;
+                        buf = sresize(buf, bufsize, char);
+                    }
+
+                    strcpy(buf+buflen, tmpbuf);
+                    buflen += tmplen;
+                }
+            }
+
+        ui->drag_button = -1;          /* drag is terminated */
+
+        if (buflen == 0) {
+            sfree(buf);
+            return "";                 /* ui updated (drag was terminated) */
+        } else {
+            buf[buflen] = '\0';
+            return buf;
+        }
     }
 
     return NULL;
@@ -1833,6 +1965,15 @@ static void int_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
     for (y = 0; y < h; y++)
         for (x = 0; x < w; x++) {
             int v = state->grid[y*w+x];
+
+            /*
+             * We deliberately do not take drag_ok into account
+             * here, because user feedback suggests that it's
+             * marginally nicer not to have the drag effects
+             * flickering on and off disconcertingly.
+             */
+            if (ui->drag_button >= 0)
+                v = drag_xform(ui, x, y, v);
 
             if (flashing && (v == TREE || v == TENT))
                 v = NONTENT;

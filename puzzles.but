@@ -1836,6 +1836,11 @@ Right-clicking in a blank square will colour it green, indicating
 that you are sure it \e{isn't} a tent. Clicking either button in an
 occupied square will clear it.
 
+If you \e{drag} with the right button along a row or column, every
+blank square in the region you cover will be turned green, and no
+other squares will be affected. (This is useful for clearing the
+remainder of a row once you have placed all its tents.)
+
 (All the actions described in \k{common-actions} are also available.)
 
 \H{tents-parameters} \I{parameters, for Tents}Tents parameters
