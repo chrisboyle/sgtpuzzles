@@ -875,7 +875,7 @@ static int tents_solve(int w, int h, const char *grid, int *numbers,
 			    printf("%s %d forces %s at %d,%d\n",
 				   step==1 ? "row" : "column",
 				   step==1 ? start/w : start,
-				   mrow[j] == TENT ? "tent" : "non-tent",
+				   mthis[j] == TENT ? "tent" : "non-tent",
 				   pos % w, pos / w);
 #endif
 			soln[pos] = mthis[j];
