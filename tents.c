@@ -1573,8 +1573,8 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
                 int v = drag_xform(ui, x, y, state->grid[y*w+x]);
                 if (state->grid[y*w+x] != v) {
                     tmplen = sprintf(tmpbuf, "%s%c%d,%d", sep,
-                                     (v == BLANK ? 'B' :
-                                      v == TENT ? 'T' : 'N'),
+                                     (int)(v == BLANK ? 'B' :
+                                           v == TENT ? 'T' : 'N'),
                                      x, y);
                     sep = ";";
 
