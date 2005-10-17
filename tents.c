@@ -415,8 +415,12 @@ static game_params *custom_params(config_item *cfg)
 
 static char *validate_params(game_params *params, int full)
 {
-    if (params->w < 2 || params->h < 2)
-	return "Width and height must both be at least two";
+    /*
+     * Generating anything under 4x4 runs into trouble of one kind
+     * or another.
+     */
+    if (params->w < 4 || params->h < 4)
+	return "Width and height must both be at least four";
     return NULL;
 }
 
@@ -916,7 +920,7 @@ static char *new_game_desc(game_params *params, random_state *rs,
     char *puzzle = snewn(w*h, char);
     int *numbers = snewn(w+h, int);
     char *soln = snewn(w*h, char);
-    int *temp = snewn(2*w*h, int), *itemp = temp + w*h;
+    int *temp = snewn(2*w*h, int);
     int maxedges = ntrees*4 + w*h;
     int *edges = snewn(2*maxedges, int);
     int *capacity = snewn(maxedges, int);
@@ -962,9 +966,9 @@ static char *new_game_desc(game_params *params, random_state *rs,
      * The maxflow algorithm is not randomised, so employed naively
      * it would give rise to grids with clear structure and
      * directional bias. Hence, I assign the network nodes as seen
-     * by maxflow to be a _random_ permutation the squares of the
-     * grid, so that any bias shown by maxflow towards low-numbered
-     * nodes is turned into a random bias.
+     * by maxflow to be a _random_ permutation of the squares of
+     * the grid, so that any bias shown by maxflow towards
+     * low-numbered nodes is turned into a random bias.
      * 
      * This generation strategy can fail at many points, including
      * as early as tent placement (if you get a bad random order in
@@ -979,16 +983,16 @@ static char *new_game_desc(game_params *params, random_state *rs,
      * trouble.
      */
 
+    if (params->diff > DIFF_EASY && params->w <= 4 && params->h <= 4)
+	params->diff = DIFF_EASY;      /* downgrade to prevent tight loop */
+
     while (1) {
 	/*
-	 * Arrange the grid squares into a random order, and invert
-	 * that order so we can find a square's index as well.
+	 * Arrange the grid squares into a random order.
 	 */
 	for (i = 0; i < w*h; i++)
 	    temp[i] = i;
 	shuffle(temp, w*h, sizeof(*temp), rs);
-	for (i = 0; i < w*h; i++)
-	    itemp[temp[i]] = i;
 
 	/*
 	 * The first `ntrees' entries in temp which we can get
@@ -1562,7 +1566,7 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
         ymin = min(ui->dsy, ui->dey);
         ymax = max(ui->dsy, ui->dey);
         assert(0 <= xmin && xmin <= xmax && xmax < w);
-        assert(0 <= ymin && ymin <= ymax && ymax < w);
+        assert(0 <= ymin && ymin <= ymax && ymax < h);
 
         buflen = 0;
         bufsize = 256;
