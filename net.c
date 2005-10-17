@@ -897,14 +897,7 @@ static void perturb(int w, int h, unsigned char *tiles, int wrapping,
     perim2 = snewn(nperim, struct xyd);
     memcpy(perim2, perimeter, nperim * sizeof(struct xyd));
     /* Shuffle the perimeter, so as to search it without directional bias. */
-    for (i = nperim; --i ;) {
-	int j = random_upto(rs, i+1);
-	struct xyd t;
-
-	t = perim2[j];
-	perim2[j] = perim2[i];
-	perim2[i] = t;
-    }
+    shuffle(perim2, nperim, sizeof(*perim2), rs);
     for (i = 0; i < nperim; i++) {
 	int x2, y2;
 
