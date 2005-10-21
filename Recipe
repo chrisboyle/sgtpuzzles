@@ -26,11 +26,12 @@ SLANT    = slant dsf
 MAP      = map dsf
 LOOPY    = loopy tree234 dsf
 LIGHTUP  = lightup combi
-TENTS    = tents maxflow 
+TENTS    = tents maxflow
+BRIDGES  = bridges dsf
 
 ALL      = list NET NETSLIDE cube fifteen sixteen rect pattern solo twiddle
          + MINES samegame FLIP guess PEGS dominosa UNTANGLE blackbox SLANT
-         + LIGHTUP MAP LOOPY inertia TENTS
+         + LIGHTUP MAP LOOPY inertia TENTS BRIDGES
 
 GTK      = gtk printing ps
 
@@ -57,6 +58,7 @@ map      : [X] GTK COMMON MAP
 loopy    : [X] GTK COMMON LOOPY
 inertia  : [X] GTK COMMON inertia
 tents    : [X] GTK COMMON TENTS
+bridges  : [X] GTK COMMON BRIDGES
 
 # Auxiliary command-line programs.
 STANDALONE = nullfe random misc malloc
@@ -102,6 +104,7 @@ map      : [G] WINDOWS COMMON MAP
 loopy    : [G] WINDOWS COMMON LOOPY
 inertia  : [G] WINDOWS COMMON inertia
 tents    : [G] WINDOWS COMMON TENTS
+bridges  : [G] WINDOWS COMMON BRIDGES
 
 # Mac OS X unified application containing all the puzzles.
 Puzzles  : [MX] osx osx.icns osx-info.plist COMMON ALL
@@ -194,7 +197,7 @@ install:
 	for i in cube net netslide fifteen sixteen twiddle \
 	         pattern rect solo mines samegame flip guess \
 		 pegs dominosa untangle blackbox slant lightup \
-		 map loopy inertia tents; do \
+		 map loopy inertia tents bridges; do \
 		$(INSTALL_PROGRAM) -m 755 $$i $(DESTDIR)$(gamesdir)/$$i \
 		|| exit 1; \
 	done
