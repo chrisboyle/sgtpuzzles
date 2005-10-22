@@ -540,7 +540,7 @@ struct frontend {
     /*
      * Create the status bar, which will just be an NSTextField.
      */
-    if (ourgame->wants_statusbar()) {
+    if (midend_wants_statusbar(me)) {
 	status = [[NSTextField alloc] initWithFrame:NSMakeRect(0,0,100,50)];
 	[status setEditable:NO];
 	[status setSelectable:NO];
