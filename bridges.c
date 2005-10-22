@@ -2288,22 +2288,30 @@ static void game_free_drawstate(drawing *dr, game_drawstate *ds)
 
 #define OFFSET(thing) ((TILE_SIZE/2) - ((thing)/2))
 
-static void line_vert(drawing *dr, game_drawstate *ds,
-                      int ox, int oy, int col, grid_type v)
+static void lines_vert(drawing *dr, game_drawstate *ds,
+                       int ox, int oy, int lv, int col, grid_type v)
 {
-    int lw = LINE_WIDTH;
+    int lw = LINE_WIDTH, gw = LINE_WIDTH, bw, i, loff;
+    while ((bw = lw * lv + gw * (lv+1)) > TILE_SIZE)
+        gw--;
+    loff = OFFSET(bw);
     if (v & G_MARKV)
-        draw_rect(dr, ox-lw, oy, lw*3, TILE_SIZE, COL_MARK);
-    draw_rect(dr, ox, oy, lw, TILE_SIZE, col);
+        draw_rect(dr, ox + loff, oy, bw, TILE_SIZE, COL_MARK);
+    for (i = 0; i < lv; i++, loff += lw + gw)
+        draw_rect(dr, ox + loff + gw, oy, lw, TILE_SIZE, col);
 }
 
-static void line_horiz(drawing *dr, game_drawstate *ds,
-                       int ox, int oy, int col, grid_type v)
+static void lines_horiz(drawing *dr, game_drawstate *ds,
+                        int ox, int oy, int lh, int col, grid_type v)
 {
-    int lw = LINE_WIDTH;
+    int lw = LINE_WIDTH, gw = LINE_WIDTH, bw, i, loff;
+    while ((bw = lw * lh + gw * (lh+1)) > TILE_SIZE)
+        gw--;
+    loff = OFFSET(bw);
     if (v & G_MARKH)
-        draw_rect(dr, ox, oy-lw, TILE_SIZE, lw*3, COL_MARK);
-    draw_rect(dr, ox, oy, TILE_SIZE, lw, col);
+        draw_rect(dr, ox, oy + loff, TILE_SIZE, bw, COL_MARK);
+    for (i = 0; i < lh; i++, loff += lw + gw)
+        draw_rect(dr, ox, oy + loff + gw, TILE_SIZE, lw, col);
 }
 
 static void line_cross(drawing *dr, game_drawstate *ds,
@@ -2353,8 +2361,7 @@ static void lines_redraw(drawing *dr,
                          game_state *state, game_drawstate *ds, game_ui *ui,
                          int x, int y, grid_type v, int lv, int lh)
 {
-    int lw = LINE_WIDTH, bw;
-    int ox = COORD(x), oy = COORD(y), loff, i;
+    int ox = COORD(x), oy = COORD(y);
     int vcol = (v & G_FLASH) ? COL_HIGHLIGHT :
         (v & G_WARN) ? COL_WARNING : COL_FOREGROUND, hcol = vcol;
     grid_type todraw = v & G_NOLINE;
@@ -2385,16 +2392,10 @@ static void lines_redraw(drawing *dr,
         line_cross(dr, ds, ox + TS8(1), oy + TS8(3), hcol, todraw);
         line_cross(dr, ds, ox + TS8(5), oy + TS8(3), hcol, todraw);
     }
-    if (lv) {
-        bw = (lv*2-1) * lw;
-        for (i = 0, loff = OFFSET(bw); i < lv; i++, loff += lw*2)
-            line_vert(dr, ds, ox + loff, oy, vcol, v);
-    }
-    if (lh) {
-        bw = (lh*2-1) * lw;
-        for (i = 0, loff = OFFSET(bw); i < lh; i++, loff += lw*2)
-            line_horiz(dr, ds, ox, oy + loff, hcol, v);
-    }
+    if (lv)
+        lines_vert(dr, ds, ox, oy, lv, vcol, v);
+    if (lh)
+        lines_horiz(dr, ds, ox, oy, lh, hcol, v);
 
     dsf_debug_draw(dr, state, ds, x, y);
     draw_update(dr, ox, oy, TILE_SIZE, TILE_SIZE);
