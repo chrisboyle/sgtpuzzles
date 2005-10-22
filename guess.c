@@ -1314,7 +1314,7 @@ const struct game thegame = {
     FALSE, FALSE, game_print_size, game_print,
     game_wants_statusbar,
     FALSE, game_timing_state,
-    0,				       /* mouse_priorities */
+    0,				       /* flags */
 };
 
 /* vim: set shiftwidth=4 tabstop=8: */

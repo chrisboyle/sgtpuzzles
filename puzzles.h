@@ -60,12 +60,14 @@ enum {
 #define IS_MOUSE_RELEASE(m) ( (unsigned)((m) - LEFT_RELEASE) <= \
                                (unsigned)(RIGHT_RELEASE - LEFT_RELEASE))
 
+/*
+ * Flags in the back end's `flags' word.
+ */
 /* Bit flags indicating mouse button priorities */
 #define BUTTON_BEATS(x,y) ( 1 << (((x)-LEFT_BUTTON)*3+(y)-LEFT_BUTTON) )
-
-/* Another random flag that goes in the mouse priorities section for want
- * of a better place to put it */
+/* Flag indicating that Solve operations should be animated */
 #define SOLVE_ANIMATES ( 1 << 9 )
+/* end of `flags' word definitions */
 
 #define IGNOREARG(x) ( (x) = (x) )
 
@@ -397,7 +399,7 @@ struct game {
     int (*wants_statusbar)(void);
     int is_timed;
     int (*timing_state)(game_state *state, game_ui *ui);
-    int mouse_priorities;
+    int flags;
 };
 
 /*

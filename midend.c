@@ -578,7 +578,7 @@ static int midend_really_process_key(midend *me, int x, int y, int button)
      * See if this move requires an animation.
      */
     if (special(type) && !(type == SOLVE &&
-			   (me->ourgame->mouse_priorities & SOLVE_ANIMATES))) {
+			   (me->ourgame->flags & SOLVE_ANIMATES))) {
         anim_time = 0;
     } else {
         anim_time = me->ourgame->anim_length(oldstate,
@@ -690,7 +690,7 @@ int midend_process_key(midend *me, int x, int y, int button)
 	 * If the new button has lower priority than the old one,
 	 * don't bother doing this.
 	 */
-	if (me->ourgame->mouse_priorities &
+	if (me->ourgame->flags &
 	    BUTTON_BEATS(me->pressed_mouse_button, button))
 	    return ret;		       /* just ignore it */
 
@@ -1214,7 +1214,7 @@ char *midend_solve(midend *me)
                                    me->states[me->statepos-2].state,
                                    me->states[me->statepos-1].state);
     me->dir = +1;
-    if (me->ourgame->mouse_priorities & SOLVE_ANIMATES) {
+    if (me->ourgame->flags & SOLVE_ANIMATES) {
 	me->oldstate = me->ourgame->dup_game(me->states[me->statepos-2].state);
         me->anim_time =
 	    me->ourgame->anim_length(me->states[me->statepos-2].state,

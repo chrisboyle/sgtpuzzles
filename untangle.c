@@ -1463,5 +1463,5 @@ const struct game thegame = {
     FALSE, FALSE, game_print_size, game_print,
     game_wants_statusbar,
     FALSE, game_timing_state,
-    SOLVE_ANIMATES,		       /* mouse_priorities */
+    SOLVE_ANIMATES,		       /* flags */
 };

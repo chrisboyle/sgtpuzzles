@@ -1166,8 +1166,7 @@ State changes as a result of a Restart operation are never animated;
 the mid-end will handle them internally and never consult this
 function at all. State changes as a result of Solve operations are
 also not animated by default, although you can change this for a
-particular game by setting a flag in \c{mouse_priorities}
-(\k{backend-mouse-priorities}).
+particular game by setting a flag in \c{flags} (\k{backend-flags}).
 
 The function is also passed a pointer to the local \c{game_ui}. It
 may refer to information in here to help with its decision (see
@@ -1441,12 +1440,12 @@ the game was first completed (by setting a flag in
 freeze the timer thereafter so that the user can undo back through
 their solution process without altering their time.
 
-\S{backend-mouse-priorities} \c{mouse_priorities}
+\S{backend-flags} \c{flags}
 
-\c int mouse_priorities;
+\c int flags;
 
-This field is badly named. It is in fact a generic flags word. It
-consists of the bitwise OR of the following flags:
+This field contains miscellaneous per-backend flags. It consists of
+the bitwise OR of some combination of the following:
 
 \dt \cw{BUTTON_BEATS(x,y)}
 

@@ -3123,7 +3123,7 @@ const struct game thegame = {
     TRUE, TRUE, game_print_size, game_print,
     game_wants_statusbar,
     FALSE, game_timing_state,
-    0,				       /* mouse_priorities */
+    0,				       /* flags */
 };
 
 #ifdef STANDALONE_SOLVER
