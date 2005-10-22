@@ -1976,7 +1976,7 @@ static void int_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
              * marginally nicer not to have the drag effects
              * flickering on and off disconcertingly.
              */
-            if (ui->drag_button >= 0)
+            if (ui && ui->drag_button >= 0)
                 v = drag_xform(ui, x, y, v);
 
             if (flashing && (v == TREE || v == TENT))
