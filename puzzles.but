@@ -111,12 +111,14 @@ had done before saving).
 
 }
 
-\dt \ii\e{Print}
+\dt \I{printing, on Windows}\e{Print}
 
 \dd Where supported (currently only on Windows), brings up a dialog
 allowing you to print an arbitrary number of puzzles randomly
 generated from the current parameters, optionally including the
-current puzzle.
+current puzzle. (Only for puzzles which make sense to print, of
+course - it's hard to think of a sensible printable representation
+of Fifteen!)
 
 \dt \ii\e{Undo} (\q{U}, Ctrl+\q{Z}, Ctrl+\q{_})
 
@@ -301,6 +303,83 @@ than by pasting it into the game ID selection box.
 \q{Specific} menu option instead of \q{Random Seed}, but if you do
 then some options, such as the difficulty level in Solo, will be
 missing. See \k{common-id} for more details on this.)
+
+\H{common-unix-cmdline} Unix \i{command-line} options
+
+(This section only applies to the Unix port.)
+
+In addition to specifying game parameters on the command line (see
+\k{common-cmdline}), you can also specify various options:
+
+\dt \cw{--generate }\e{n}
+
+\dd If this option is specified, instead of a puzzle being displayed,
+a number of descriptive game IDs will be invented and printed on
+standard output. This is useful for gaining access to the game
+generation algorithms without necessarily using the frontend.
+
+\lcont{
+
+If game parameters are specified on the command-line, they will be
+used to generate the game IDs; otherwise a default set of parameters
+will be used.
+
+The most common use of this option is in conjunction with \c{--print},
+in which case its behaviour is slightly different; see below.
+
+}
+
+\dt \I{printing, on Unix}\cw{--print }\e{w}\cw{x}\e{h}
+
+\dd If this option is specified, instead of a puzzle being displayed,
+a printed representation of one or more unsolved puzzles is sent to
+standard output, in \i{PostScript} format.
+
+\lcont{
+
+On each page of puzzles, there will be \e{w} across and \e{h} down. If
+there are more puzzles than \e{w}\by\e{h}, more than one page will be
+printed.
+
+If \c{--generate} has also been specified, the invented game IDs will
+be used to generate the printed output. Otherwise, a list of game IDs
+is expected on standard input (which can be descriptive or random
+seeds; see \k{common-id}), in the same format produced by
+\c{--generate}.
+
+For example:
+
+\c net --generate 12 --print 2x3 7x7w | lpr
+
+will generate two pages of printed Net puzzles (each of which will
+have a 7\by\.7 wrapping grid), and pipe the output to the \c{lpr}
+command, which on many systems will send them to an actual printer.
+
+There are various other options which affect printing; see below.
+
+}
+
+\dt \cw{--version}
+
+\dd Prints version information about the game, and then quits.
+
+The following options are only meaningful if \c{--print} is also
+specified:
+
+\dt \cw{--with-solutions}
+
+\dd The set of pages filled with unsolved puzzles will be followed by
+the solutions to those puzzles.
+
+\dt \cw{--scale }\e{n}
+
+\dd Adjusts how big each puzzle is when printed. Larger numbers make
+puzzles bigger; the default is 1.0.
+
+\dt \cw{--colour}
+
+\dd Puzzles will be printed in colour, rather than in black and white
+(if supported by the puzzle).
 
 
 \C{net} \i{Net}
@@ -2013,6 +2092,8 @@ BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
 ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+\IM{command-line}{command line} command line
 
 \IM{specific} \q{Specific}, menu option
 \IM{custom} \q{Custom}, menu option
