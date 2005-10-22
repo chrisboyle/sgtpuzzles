@@ -1362,7 +1362,7 @@ static void game_compute_size(game_params *params, int tilesize,
     *y = TILE_SIZE * params->h + 2 * BORDER - TILE_GAP;
 }
 
-static float *game_colours(frontend *fe, game_state *state, int *ncolours)
+static float *game_colours(frontend *fe, int *ncolours)
 {
     float *ret = snewn(3 * NCOLOURS, float);
 

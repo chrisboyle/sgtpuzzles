@@ -1211,7 +1211,7 @@ static void game_set_size(drawing *dr, game_drawstate *ds,
     ds->tilesize = tilesize;
 }
 
-static float *game_colours(frontend *fe, game_state *state, int *ncolours)
+static float *game_colours(frontend *fe, int *ncolours)
 {
     float *ret;
 

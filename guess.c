@@ -864,7 +864,7 @@ static void game_set_size(drawing *dr, game_drawstate *ds,
     ds->blit_peg = blitter_new(dr, ds->pegsz, ds->pegsz);
 }
 
-static float *game_colours(frontend *fe, game_state *state, int *ncolours)
+static float *game_colours(frontend *fe, int *ncolours)
 {
     float *ret = snewn(3 * NCOLOURS, float), max;
     int i;

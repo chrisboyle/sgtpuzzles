@@ -767,20 +767,9 @@ void midend_timer(midend *me, float tplus)
 
 float *midend_colours(midend *me, int *ncolours)
 {
-    game_state *state = NULL;
     float *ret;
 
-    if (me->nstates == 0) {
-	char *aux = NULL;
-        char *desc = me->ourgame->new_desc(me->params, me->random,
-					   &aux, TRUE);
-        state = me->ourgame->new_game(me, me->params, desc);
-        sfree(desc);
-        sfree(aux);
-    } else
-        state = me->states[0].state;
-
-    ret = me->ourgame->colours(me->frontend, state, ncolours);
+    ret = me->ourgame->colours(me->frontend, ncolours);
 
     {
         int i;
@@ -809,9 +798,6 @@ float *midend_colours(midend *me, int *ncolours)
             }
         }
     }
-
-    if (me->nstates == 0)
-        me->ourgame->free_game(state);
 
     return ret;
 }

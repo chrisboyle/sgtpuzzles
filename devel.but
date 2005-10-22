@@ -1104,7 +1104,7 @@ create a fresh drawstate.
 
 \S{backend-colours} \cw{colours()}
 
-\c float *(*colours)(frontend *fe, game_state *state, int *ncolours);
+\c float *(*colours)(frontend *fe, int *ncolours);
 
 This function is responsible for telling the front end what colours
 the puzzle will need to draw itself.
@@ -1115,15 +1115,7 @@ array of three times that many \c{float}s, containing the red, green
 and blue components of each colour respectively as numbers in the
 range [0,1].
 
-It is passed a sample \c{game_state} in case it needs one, although
-currently no puzzle does need this. (In fact, colours are not
-reallocated when the game parameters change or a new game is
-started, so you can't reliably use this \c{game_state} to allocate a
-different number of colours depending on the game. It is probably
-actually a mistake to rely on this parameter at all. I ought to
-either remove it or fix it; probably the former.)
-
-The final parameter passed to this function is a front end handle.
+The second parameter passed to this function is a front end handle.
 The only things it is permitted to do with this handle are to call
 the front-end function called \cw{frontend_default_colour()} (see
 \k{frontend-default-colour}) or the utility function called

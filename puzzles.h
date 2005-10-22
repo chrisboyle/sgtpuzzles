@@ -383,7 +383,7 @@ struct game {
     void (*compute_size)(game_params *params, int tilesize, int *x, int *y);
     void (*set_size)(drawing *dr, game_drawstate *ds,
 		     game_params *params, int tilesize);
-    float *(*colours)(frontend *fe, game_state *state, int *ncolours);
+    float *(*colours)(frontend *fe, int *ncolours);
     game_drawstate *(*new_drawstate)(drawing *dr, game_state *state);
     void (*free_drawstate)(drawing *dr, game_drawstate *ds);
     void (*redraw)(drawing *dr, game_drawstate *ds, game_state *oldstate,

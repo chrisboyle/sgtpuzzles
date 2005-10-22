@@ -940,7 +940,7 @@ static void game_set_size(drawing *dr, game_drawstate *ds,
     ds->drag_background = blitter_new(dr, TILESIZE, TILESIZE);
 }
 
-static float *game_colours(frontend *fe, game_state *state, int *ncolours)
+static float *game_colours(frontend *fe, int *ncolours)
 {
     float *ret = snewn(3 * NCOLOURS, float);
 

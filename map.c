@@ -2527,7 +2527,7 @@ const int map_hatching[FOUR] = {
     HATCH_VERT, HATCH_SLASH, HATCH_HORIZ, HATCH_BACKSLASH
 };
 
-static float *game_colours(frontend *fe, game_state *state, int *ncolours)
+static float *game_colours(frontend *fe, int *ncolours)
 {
     float *ret = snewn(3 * NCOLOURS, float);
 
