@@ -2013,11 +2013,6 @@ static float game_flash_length(game_state *oldstate, game_state *newstate,
     return 0.0F;
 }
 
-static int game_wants_statusbar(void)
-{
-    return FALSE;
-}
-
 static int game_timing_state(game_state *state, game_ui *ui)
 {
     return TRUE;
@@ -2089,7 +2084,7 @@ const struct game thegame = {
     game_anim_length,
     game_flash_length,
     TRUE, FALSE, game_print_size, game_print,
-    game_wants_statusbar,
+    FALSE,			       /* wants_statusbar */
     FALSE, game_timing_state,
     0,				       /* flags */
 };

@@ -891,7 +891,7 @@ void midend_fetch_preset(midend *me, int n,
 
 int midend_wants_statusbar(midend *me)
 {
-    return me->ourgame->wants_statusbar();
+    return me->ourgame->wants_statusbar;
 }
 
 void midend_supersede_game_desc(midend *me, char *desc, char *privdesc)

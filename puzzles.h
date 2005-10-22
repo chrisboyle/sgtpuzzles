@@ -396,7 +396,7 @@ struct game {
     int can_print, can_print_in_colour;
     void (*print_size)(game_params *params, float *x, float *y);
     void (*print)(drawing *dr, game_state *state, int tilesize);
-    int (*wants_statusbar)(void);
+    int wants_statusbar;
     int is_timed;
     int (*timing_state)(game_state *state, game_ui *ui);
     int flags;
