@@ -1398,15 +1398,11 @@ whether that should come with a newline or not.)
 
 \S{backend-wants-statusbar} \cw{wants_statusbar()}
 
-\c int (*wants_statusbar)(void);
+\c int wants_statusbar;
 
-This function returns \cw{TRUE} if the puzzle has a use for a
+This boolean field is set to \cw{TRUE} if the puzzle has a use for a
 textual status line (to display score, completion status, currently
 active tiles, etc).
-
-(This should probably be a static boolean field rather than a
-function. I don't remember why I did it this way. I probably ought
-to change it.)
 
 \S{backend-is-timed} \c{is_timed}
 
