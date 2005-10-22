@@ -275,14 +275,16 @@ static char *validate_params(game_params *params, int full)
 /*
  * Count the bits in a word. Only needs to cope with 16 bits.
  */
-static int bitcount16(int word)
+static int bitcount16(int inword)
 {
+    unsigned int word = inword;
+
     word = ((word & 0xAAAA) >> 1) + (word & 0x5555);
     word = ((word & 0xCCCC) >> 2) + (word & 0x3333);
     word = ((word & 0xF0F0) >> 4) + (word & 0x0F0F);
     word = ((word & 0xFF00) >> 8) + (word & 0x00FF);
 
-    return word;
+    return (int)word;
 }
 
 /*
