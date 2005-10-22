@@ -126,7 +126,7 @@ midend *midend_new(frontend *fe, const game *ourgame,
     me->elapsed = 0.0F;
     me->tilesize = me->winwidth = me->winheight = 0;
     if (drapi)
-	me->drawing = drawing_init(drapi, drhandle);
+	me->drawing = drawing_new(drapi, me, drhandle);
     else
 	me->drawing = NULL;
 

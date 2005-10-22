@@ -1863,6 +1863,11 @@ with the drawing API the property that it may only be called from
 within the back end redraw function, so this is as good a place as
 any to document it.)
 
+The supplied text is filtered through the mid-end for optional
+rewriting before being passed on to the front end; the mid-end will
+prepend the current game time if the game is timed (and may in
+future perform other rewriting if it seems like a good idea).
+
 This function is for drawing only; it must never be called during
 printing.
 
@@ -2068,7 +2073,7 @@ structure called \c{drawing_api}. Each of the functions takes a
 a more useful type. Thus, a drawing \e{object} (\c{drawing *)}
 suitable for passing to the back end redraw or printing functions
 is constructed by passing a \c{drawing_api} and a \cq{void *} to the
-function \cw{drawing_init()} (see \k{drawing-init}).
+function \cw{drawing_new()} (see \k{drawing-new}).
 
 \S{drawingapi-draw-text} \cw{draw_text()}
 
@@ -2167,19 +2172,9 @@ called unless drawing is attempted.
 This function behaves exactly like the back end \cw{status_bar()}
 function; see \k{drawing-status-bar}.
 
-Front ends implementing this function should not use the provided
-text directly; they should call \cw{midend_rewrite_statusbar()}
-(\k{midend-rewrite-statusbar}) to process it first.
-
-In a game which has a timer, this function is likely to be called
-every time the timer goes off, i.e. many times a second. It is
-therefore likely to be common that this function is called with
-precisely the same text as the last time it was called. Front ends
-may well wish to detect this common case and avoid bothering to do
-anything. If they do, however, they \e{must} perform this check on
-the value \e{returned} from \cw{midend_rewrite_statusbar()}, rather
-than the value passed in to it (because the mid-end will frequently
-update the status-bar timer without the back end's intervention).
+Front ends implementing this function need not worry about it being
+called repeatedly with the same text; the middleware code in
+\cw{status_bar()} will take care of this.
 
 Implementations of this API which do not provide drawing services
 may define this function pointer to be \cw{NULL}; it will never be
@@ -2351,14 +2346,22 @@ There are a small number of functions provided in \cw{drawing.c}
 which the front end needs to \e{call}, rather than helping to
 implement. They are described in this section.
 
-\S{drawing-init} \cw{drawing_init()}
+\S{drawing-new} \cw{drawing_new()}
 
-\c drawing *drawing_init(const drawing_api *api, void *handle);
+\c drawing *drawing_new(const drawing_api *api, midend *me,
+\c                      void *handle);
 
 This function creates a drawing object. It is passed a
 \c{drawing_api}, which is a structure containing nothing but
 function pointers; and also a \cq{void *} handle. The handle is
 passed back to each function pointer when it is called.
+
+The \c{midend} parameter is used for rewriting the status bar
+contents: \cw{status_bar()} (see \k{drawing-status-bar}) has to call
+a function in the mid-end which might rewrite the status bar text.
+If the drawing object is to be used only for printing, or if the
+game is known not to call \cw{status_bar()}, this parameter may be
+\cw{NULL}.
 
 \S{drawing-free} \cw{drawing_free()}
 
@@ -2412,7 +2415,7 @@ calling back to functions such as \cw{activate_timer()}
 function \cw{colours()} (\k{backend-colours}).
 
 The parameters \c{drapi} and \c{drhandle} are passed to
-\cw{drawing_init()} (\k{drawing-init}) to construct a drawing object
+\cw{drawing_new()} (\k{drawing-new}) to construct a drawing object
 which will be passed to the back end function \cw{redraw()}
 (\k{backend-redraw}). Hence, all drawing-related function pointers
 defined in \c{drapi} can expect to be called with \c{drhandle} as
@@ -2797,32 +2800,6 @@ user.
 The front end can expect its drawing API and/or
 \cw{activate_timer()} to be called from within a call to this
 function.
-
-\H{midend-rewrite-statusbar} \cw{midend_rewrite_statusbar()}
-
-\c char *midend_rewrite_statusbar(midend *me, char *text);
-
-The front end should call this function from within
-\cw{status_bar()} (\k{drawing-status-bar}). It should be passed the
-string that was passed by the back end to \cw{status_bar()}; it will
-return a dynamically allocated string adjusted by the mid-end.
-(Specifically, adjusted to include the timer if the game is a timed
-one.) The returned value should be placed in the actual status bar
-in place of the input value.
-
-(This is a nasty piece of architecture; I apologise for it. It would
-seem a lot more pleasant to have the back end pass its status bar
-text to the mid-end, which in turn would rewrite it and pass it on
-to the front end, so that each front end needed to do nothing
-strange. The main reason why I haven't done this is because it means
-the back end redraw function would need to be passed a mid-end
-pointer \e{as well} as a front end pointer, which seemed like an
-excessive proliferation of opaque handles. The only way to avoid
-that proliferation would be to have all the drawing API functions
-also gatewayed through the mid-end, and that seemed like an
-excessive proliferation of wrapper functions. The current setup
-isn't nice, but it has minimal impact and I'm unconvinced that any
-of the other options are an improvement.)
 
 \H{midend-serialise} \cw{midend_serialise()}
 

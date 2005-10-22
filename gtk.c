@@ -116,7 +116,6 @@ struct frontend {
     GtkWidget *cfgbox;
     void *paste_data;
     int paste_data_len;
-    char *laststatus;
     int pw, ph;                        /* pixmap size (w, h are area size) */
     int ox, oy;                        /* offset of pixmap in drawing area */
     char *filesel_name;
@@ -141,19 +140,11 @@ void frontend_default_colour(frontend *fe, float *output)
 void gtk_status_bar(void *handle, char *text)
 {
     frontend *fe = (frontend *)handle;
-    char *rewritten;
 
     assert(fe->statusbar);
 
-    rewritten = midend_rewrite_statusbar(fe->me, text);
-    if (!fe->laststatus || strcmp(rewritten, fe->laststatus)) {
-	gtk_statusbar_pop(GTK_STATUSBAR(fe->statusbar), fe->statusctx);
-	gtk_statusbar_push(GTK_STATUSBAR(fe->statusbar), fe->statusctx, rewritten);
-	sfree(fe->laststatus);
-	fe->laststatus = rewritten;
-    } else {
-	sfree(rewritten);
-    }
+    gtk_statusbar_pop(GTK_STATUSBAR(fe->statusbar), fe->statusctx);
+    gtk_statusbar_push(GTK_STATUSBAR(fe->statusbar), fe->statusctx, text);
 }
 
 void gtk_start_draw(void *handle)
@@ -1669,8 +1660,6 @@ static frontend *new_window(char *arg, char **error)
     fe->pixmap = NULL;
     fe->fonts = NULL;
     fe->nfonts = fe->fontsize = 0;
-
-    fe->laststatus = NULL;
 
     fe->paste_data = NULL;
     fe->paste_data_len = 0;

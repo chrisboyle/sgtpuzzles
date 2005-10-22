@@ -7,15 +7,25 @@
  * unchanged. However, on the printing side it tracks print colours
  * so the front end API doesn't have to.
  * 
- * FIXME: could we also sort out rewrite_statusbar in here? Also
- * I'd _like_ to do automatic draw_updates, but it's a pain for
- * draw_text in particular - I could invent a front end API which
- * retrieved the text bounds and then do the alignment myself as
- * well, except that that doesn't work for PS. As usual.
+ * FIXME:
+ * 
+ *  - I'd _like_ to do automatic draw_updates, but it's a pain for
+ *    draw_text in particular. I'd have to invent a front end API
+ *    which retrieved the text bounds.
+ *     + that might allow me to do the alignment centrally as well?
+ * 	  * perhaps not, because PS can't return this information,
+ * 	    so there would have to be a special case for it.
+ *     + however, that at least doesn't stand in the way of using
+ * 	 the text bounds for draw_update, because PS doesn't need
+ * 	 draw_update since it's printing-only. Any _interactive_
+ * 	 drawing API couldn't get away with refusing to tell you
+ * 	 what parts of the screen a text draw had covered, because
+ * 	 you would inevitably need to erase it later on.
  */
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <assert.h>
 #include <math.h>
 
@@ -32,9 +42,13 @@ struct drawing {
     struct print_colour *colours;
     int ncolours, coloursize;
     float scale;
+    /* `me' is only used in status_bar(), so print-oriented instances of
+     * this may set it to NULL. */
+    midend *me;
+    char *laststatus;
 };
 
-drawing *drawing_init(const drawing_api *api, void *handle)
+drawing *drawing_new(const drawing_api *api, midend *me, void *handle)
 {
     drawing *dr = snew(drawing);
     dr->api = api;
@@ -42,11 +56,14 @@ drawing *drawing_init(const drawing_api *api, void *handle)
     dr->colours = NULL;
     dr->ncolours = dr->coloursize = 0;
     dr->scale = 1.0F;
+    dr->me = me;
+    dr->laststatus = NULL;
     return dr;
 }
 
 void drawing_free(drawing *dr)
 {
+    sfree(dr->laststatus);
     sfree(dr->colours);
     sfree(dr);
 }
@@ -110,8 +127,21 @@ void end_draw(drawing *dr)
 
 void status_bar(drawing *dr, char *text)
 {
-    if (dr->api->status_bar)
-	dr->api->status_bar(dr->handle, text);
+    char *rewritten;
+
+    if (!dr->api->status_bar)
+	return;
+
+    assert(dr->me);
+
+    rewritten = midend_rewrite_statusbar(dr->me, text);
+    if (!dr->laststatus || strcmp(rewritten, dr->laststatus)) {
+	dr->api->status_bar(dr->handle, rewritten);
+	sfree(dr->laststatus);
+	dr->laststatus = rewritten;
+    } else {
+	sfree(rewritten);
+    }
 }
 
 blitter *blitter_new(drawing *dr, int w, int h)

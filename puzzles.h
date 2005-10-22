@@ -159,7 +159,7 @@ void get_random_seed(void **randseed, int *randseedsize);
 /*
  * drawing.c
  */
-drawing *drawing_init(const drawing_api *api, void *handle);
+drawing *drawing_new(const drawing_api *api, midend *me, void *handle);
 void drawing_free(drawing *dr);
 void draw_text(drawing *dr, int x, int y, int fonttype, int fontsize,
                int align, int colour, char *text);

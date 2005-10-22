@@ -121,7 +121,6 @@ struct frontend {
     HPEN oldpen;
     char *help_path;
     int help_has_contents;
-    char *laststatus;
     enum { DRAWING, PRINTING, NOTHING } drawstatus;
     DOCINFO di;
     int printcount, printw, printh, printsolns, printcurr, printcolour;
@@ -180,16 +179,8 @@ void get_random_seed(void **randseed, int *randseedsize)
 static void win_status_bar(void *handle, char *text)
 {
     frontend *fe = (frontend *)handle;
-    char *rewritten;
 
-    rewritten = midend_rewrite_statusbar(fe->me, text);
-    if (!fe->laststatus || strcmp(rewritten, fe->laststatus)) {
-	SetWindowText(fe->statusbar, rewritten);
-	sfree(fe->laststatus);
-	fe->laststatus = rewritten;
-    } else {
-	sfree(rewritten);
-    }
+    SetWindowText(fe->statusbar, text);
 }
 
 static blitter *win_blitter_new(void *handle, int w, int h)
@@ -913,7 +904,7 @@ void print(frontend *fe)
     fe->drawstatus = PRINTING;
     fe->hdc = pd.hDC;
 
-    fe->dr = drawing_init(&win_drawing, fe);
+    fe->dr = drawing_new(&win_drawing, NULL, fe);
     document_print(doc, fe->dr);
     drawing_free(fe->dr);
     fe->dr = NULL;
@@ -1121,8 +1112,6 @@ static frontend *new_window(HINSTANCE inst, char *game_id, char **error)
 
     fe->fonts = NULL;
     fe->nfonts = fe->fontsize = 0;
-
-    fe->laststatus = NULL;
 
     {
 	int i, ncolours;
