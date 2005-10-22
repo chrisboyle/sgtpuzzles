@@ -207,7 +207,7 @@ struct random_state {
     int pos;
 };
 
-random_state *random_init(char *seed, int len)
+random_state *random_new(char *seed, int len)
 {
     random_state *state;
 

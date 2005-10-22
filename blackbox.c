@@ -692,9 +692,9 @@ static int check_guesses(game_state *state, int cagey)
 	     * grid, so that repeating the same marking will give
 	     * the same answer instead of a different one.
 	     */
-	    random_state *rs = random_init((char *)guesses->grid,
-					   (state->w+2)*(state->h+2) *
-					   sizeof(unsigned int));
+	    random_state *rs = random_new((char *)guesses->grid,
+					  (state->w+2)*(state->h+2) *
+					  sizeof(unsigned int));
 	    n = random_upto(rs, n);
 	    random_free(rs);
 	    for (i = 0; i < guesses->nlasers; i++) {
@@ -727,9 +727,9 @@ static int check_guesses(game_state *state, int cagey)
 	     * grid, so that repeating the same marking will give
 	     * the same answer instead of a different one.
 	     */
-	    random_state *rs = random_init((char *)guesses->grid,
-					   (state->w+2)*(state->h+2) *
-					   sizeof(unsigned int));
+	    random_state *rs = random_new((char *)guesses->grid,
+					  (state->w+2)*(state->h+2) *
+					  sizeof(unsigned int));
 	    n = random_upto(rs, n);
 	    random_free(rs);
 	    for (i = 0; i < guesses->nlasers; i++) {

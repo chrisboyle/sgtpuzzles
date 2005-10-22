@@ -1478,7 +1478,7 @@ otherwise be obvious.
 If a back end needs random numbers at some point during normal play,
 it can create a fresh \c{random_state} by first calling
 \c{get_random_seed} (\k{frontend-get-random-seed}) and then passing
-the returned seed data to \cw{random_init()}.
+the returned seed data to \cw{random_new()}.
 
 This is likely not to be what you want. If a puzzle needs randomness
 in the middle of play, it's likely to be more sensible to store some
@@ -3044,9 +3044,9 @@ generator has an \e{explicit} state object called a
 \c{random_state}. One of these is managed by each mid-end, for
 example, and passed to the back end to generate a game with.
 
-\S{utils-random-init} \cw{random_init()}
+\S{utils-random-init} \cw{random_new()}
 
-\c random_state *random_init(char *seed, int len);
+\c random_state *random_new(char *seed, int len);
 
 Allocates, initialises and returns a new \c{random_state}. The input
 data is used as the seed for the random number stream (i.e. using

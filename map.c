@@ -1868,7 +1868,7 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
      * outlines by the judicious use of diagonally divided squares.
      */
     {
-        random_state *rs = random_init(desc, strlen(desc));
+        random_state *rs = random_new(desc, strlen(desc));
         int *squares = snewn(wh, int);
         int done_something;
 

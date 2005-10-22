@@ -102,7 +102,7 @@ midend *midend_new(frontend *fe, const game *ourgame,
 
     me->frontend = fe;
     me->ourgame = ourgame;
-    me->random = random_init(randseed, randseedsize);
+    me->random = random_new(randseed, randseedsize);
     me->nstates = me->statesize = me->statepos = 0;
     me->states = NULL;
     me->params = ourgame->default_params();
@@ -342,7 +342,7 @@ void midend_new_game(midend *me)
         sfree(me->aux_info);
 	me->aux_info = NULL;
 
-        rs = random_init(me->seedstr, strlen(me->seedstr));
+        rs = random_new(me->seedstr, strlen(me->seedstr));
 	/*
 	 * If this midend has been instantiated without providing a
 	 * drawing API, it is non-interactive. This means that it's

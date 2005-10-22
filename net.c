@@ -1804,7 +1804,7 @@ static game_ui *new_ui(game_state *state)
     ui->cur_y = ui->cy = state->height / 2;
     ui->cur_visible = FALSE;
     get_random_seed(&seed, &seedsize);
-    ui->rs = random_init(seed, seedsize);
+    ui->rs = random_new(seed, seedsize);
     sfree(seed);
 
     return ui;
