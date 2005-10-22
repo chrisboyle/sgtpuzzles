@@ -80,7 +80,7 @@ struct game_params {
 struct game_state {
     int width, height, wrapping, completed;
     int last_rotate_x, last_rotate_y, last_rotate_dir;
-    int used_solve, just_used_solve;
+    int used_solve;
     unsigned char *tiles;
     unsigned char *barriers;
 };
@@ -1526,7 +1526,7 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
     h = state->height = params->height;
     state->wrapping = params->wrapping;
     state->last_rotate_dir = state->last_rotate_x = state->last_rotate_y = 0;
-    state->completed = state->used_solve = state->just_used_solve = FALSE;
+    state->completed = state->used_solve = FALSE;
     state->tiles = snewn(state->width * state->height, unsigned char);
     memset(state->tiles, 0, state->width * state->height);
     state->barriers = snewn(state->width * state->height, unsigned char);
@@ -1606,7 +1606,6 @@ static game_state *dup_game(game_state *state)
     ret->wrapping = state->wrapping;
     ret->completed = state->completed;
     ret->used_solve = state->used_solve;
-    ret->just_used_solve = state->just_used_solve;
     ret->last_rotate_dir = state->last_rotate_dir;
     ret->last_rotate_x = state->last_rotate_x;
     ret->last_rotate_y = state->last_rotate_y;
@@ -2019,11 +2018,10 @@ static game_state *execute_move(game_state *from, char *move)
     int tx, ty, n, noanim, orig;
 
     ret = dup_game(from);
-    ret->just_used_solve = FALSE;
 
     if (move[0] == 'J' || move[0] == 'S') {
 	if (move[0] == 'S')
-	    ret->just_used_solve = ret->used_solve = TRUE;
+	    ret->used_solve = TRUE;
 
 	move++;
 	if (*move == ';')
@@ -2651,13 +2649,6 @@ static float game_anim_length(game_state *oldstate,
 			      game_state *newstate, int dir, game_ui *ui)
 {
     int last_rotate_dir;
-
-    /*
-     * Don't animate an auto-solve move.
-     */
-    if ((dir > 0 && newstate->just_used_solve) ||
-       (dir < 0 && oldstate->just_used_solve))
-       return 0.0F;
 
     /*
      * Don't animate if last_rotate_dir is zero.

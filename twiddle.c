@@ -46,7 +46,6 @@ struct game_state {
     int orientable;
     int *grid;
     int completed;
-    int just_used_solve;	       /* used to suppress undo animation */
     int used_solve;		       /* used to suppress completion flash */
     int movecount, movetarget;
     int lastx, lasty, lastr;	       /* coordinates of last rotation */
@@ -472,7 +471,7 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
     state->n = n;
     state->orientable = params->orientable;
     state->completed = 0;
-    state->used_solve = state->just_used_solve = FALSE;
+    state->used_solve = FALSE;
     state->movecount = 0;
     state->movetarget = params->movetarget;
     state->lastx = state->lasty = state->lastr = -1;
@@ -515,7 +514,6 @@ static game_state *dup_game(game_state *state)
     ret->lasty = state->lasty;
     ret->lastr = state->lastr;
     ret->used_solve = state->used_solve;
-    ret->just_used_solve = state->just_used_solve;
 
     ret->grid = snewn(ret->w * ret->h, int);
     memcpy(ret->grid, state->grid, ret->w * ret->h * sizeof(int));
@@ -712,7 +710,7 @@ static game_state *execute_move(game_state *from, char *move)
 	qsort(ret->grid, ret->w*ret->h, sizeof(int), compare_int);
 	for (i = 0; i < ret->w*ret->h; i++)
 	    ret->grid[i] &= ~3;
-	ret->used_solve = ret->just_used_solve = TRUE;
+	ret->used_solve = TRUE;
 	ret->completed = ret->movecount = 1;
 
 	return ret;
@@ -724,7 +722,6 @@ static game_state *execute_move(game_state *from, char *move)
 	return NULL;		       /* can't parse this move string */
 
     ret = dup_game(from);
-    ret->just_used_solve = FALSE;  /* zero this in a hurry */
     ret->movecount++;
     do_rotate(ret->grid, w, h, n, ret->orientable, x, y, dir);
     ret->lastx = x;
@@ -1006,11 +1003,7 @@ static int highlight_colour(float angle)
 static float game_anim_length(game_state *oldstate, game_state *newstate,
 			      int dir, game_ui *ui)
 {
-    if ((dir > 0 && newstate->just_used_solve) ||
-	(dir < 0 && oldstate->just_used_solve))
-	return 0.0F;
-    else
-	return ANIM_PER_RADIUS_UNIT * sqrt(newstate->n-1);
+    return ANIM_PER_RADIUS_UNIT * sqrt(newstate->n-1);
 }
 
 static float game_flash_length(game_state *oldstate, game_state *newstate,

@@ -58,7 +58,7 @@ struct mine_layout {
 
 struct game_state {
     int w, h, n, dead, won;
-    int used_solve, just_used_solve;
+    int used_solve;
     struct mine_layout *layout;	       /* real mine positions */
     signed char *grid;			       /* player knowledge */
     /*
@@ -2169,7 +2169,7 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
     state->h = params->h;
     state->n = params->n;
     state->dead = state->won = FALSE;
-    state->used_solve = state->just_used_solve = FALSE;
+    state->used_solve = FALSE;
 
     wh = state->w * state->h;
 
@@ -2274,7 +2274,6 @@ static game_state *dup_game(game_state *state)
     ret->dead = state->dead;
     ret->won = state->won;
     ret->used_solve = state->used_solve;
-    ret->just_used_solve = state->just_used_solve;
     ret->layout = state->layout;
     ret->layout->refcount++;
     ret->grid = snewn(ret->w * ret->h, signed char);
@@ -2575,13 +2574,12 @@ static game_state *execute_move(game_state *from, char *move)
 		    ret->grid[yy*ret->w+xx] = v;
 		}
 	    }
-	ret->used_solve = ret->just_used_solve = TRUE;
+	ret->used_solve = TRUE;
 	ret->won = TRUE;
 
 	return ret;
     } else {
 	ret = dup_game(from);
-	ret->just_used_solve = FALSE;
 
 	while (*move) {
 	    if (move[0] == 'F' &&

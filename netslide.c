@@ -84,7 +84,7 @@ struct game_params {
 
 struct game_state {
     int width, height, cx, cy, wrapping, completed;
-    int used_solve, just_used_solve;
+    int used_solve;
     int move_count, movetarget;
 
     /* position (row or col number, starting at 0) of last move. */
@@ -745,7 +745,7 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
     state->wrapping = params->wrapping;
     state->movetarget = params->movetarget;
     state->completed = 0;
-    state->used_solve = state->just_used_solve = FALSE;
+    state->used_solve = FALSE;
     state->move_count = 0;
     state->last_move_row = -1;
     state->last_move_col = -1;
@@ -865,7 +865,6 @@ static game_state *dup_game(game_state *state)
     ret->movetarget = state->movetarget;
     ret->completed = state->completed;
     ret->used_solve = state->used_solve;
-    ret->just_used_solve = state->just_used_solve;
     ret->move_count = state->move_count;
     ret->last_move_row = state->last_move_row;
     ret->last_move_col = state->last_move_col;
@@ -1111,7 +1110,7 @@ static game_state *execute_move(game_state *from, char *move)
 	       strlen(move) == from->width * from->height + 1) {
 	int i;
 	ret = dup_game(from);
-	ret->used_solve = ret->just_used_solve = TRUE;
+	ret->used_solve = TRUE;
 	ret->completed = ret->move_count = 1;
 
 	for (i = 0; i < from->width * from->height; i++) {
@@ -1133,7 +1132,6 @@ static game_state *execute_move(game_state *from, char *move)
 	return NULL;		       /* can't parse move string */
 
     ret = dup_game(from);
-    ret->just_used_solve = FALSE;
 
     if (col)
 	slide_col(ret, d, c);
@@ -1736,13 +1734,6 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 static float game_anim_length(game_state *oldstate,
 			      game_state *newstate, int dir, game_ui *ui)
 {
-    /*
-     * Don't animate an auto-solve move.
-     */
-    if ((dir > 0 && newstate->just_used_solve) ||
-	(dir < 0 && oldstate->just_used_solve))
-	return 0.0F;
-
     return ANIM_TIME;
 }
 

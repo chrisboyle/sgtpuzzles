@@ -42,7 +42,6 @@ struct game_state {
     int *tiles;
     int gap_pos;
     int completed;
-    int just_used_solve;	       /* used to suppress undo animation */
     int used_solve;		       /* used to suppress completion flash */
     int movecount;
 };
@@ -345,7 +344,7 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
     assert(state->tiles[state->gap_pos] == 0);
 
     state->completed = state->movecount = 0;
-    state->used_solve = state->just_used_solve = FALSE;
+    state->used_solve = FALSE;
 
     return state;
 }
@@ -363,7 +362,6 @@ static game_state *dup_game(game_state *state)
     ret->completed = state->completed;
     ret->movecount = state->movecount;
     ret->used_solve = state->used_solve;
-    ret->just_used_solve = state->just_used_solve;
 
     return ret;
 }
@@ -509,7 +507,7 @@ static game_state *execute_move(game_state *from, char *move)
 	for (i = 0; i < ret->n; i++)
 	    ret->tiles[i] = (i+1) % ret->n;
 	ret->gap_pos = ret->n-1;
-	ret->used_solve = ret->just_used_solve = TRUE;
+	ret->used_solve = TRUE;
 	ret->completed = ret->movecount = 1;
 
 	return ret;
@@ -533,7 +531,6 @@ static game_state *execute_move(game_state *from, char *move)
     up = C(from, ux, uy);
 
     ret = dup_game(from);
-    ret->just_used_solve = FALSE;      /* zero this in a hurry */
 
     ret->gap_pos = C(from, dx, dy);
     assert(ret->gap_pos >= 0 && ret->gap_pos < ret->n);
@@ -810,11 +807,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 static float game_anim_length(game_state *oldstate,
 			      game_state *newstate, int dir, game_ui *ui)
 {
-    if ((dir > 0 && newstate->just_used_solve) ||
-	(dir < 0 && oldstate->just_used_solve))
-	return 0.0F;
-    else
-	return ANIM_TIME;
+    return ANIM_TIME;
 }
 
 static float game_flash_length(game_state *oldstate,
