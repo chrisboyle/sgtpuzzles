@@ -1800,11 +1800,11 @@ generated:
     echeck = 0;
     for (x = 0; x < params->w; x++) {
         if (INDEX(tobuild, gridi, x, 0))           echeck |= 1;
-        if (INDEX(tobuild, gridi, x, params->w-1)) echeck |= 2;
+        if (INDEX(tobuild, gridi, x, params->h-1)) echeck |= 2;
     }
     for (y = 0; y < params->h; y++) {
         if (INDEX(tobuild, gridi, 0,           y)) echeck |= 4;
-        if (INDEX(tobuild, gridi, params->h-1, y)) echeck |= 8;
+        if (INDEX(tobuild, gridi, params->w-1, y)) echeck |= 8;
     }
     if (echeck != 15) {
         debug(("Generated grid doesn't fill to sides, retrying.\n"));
