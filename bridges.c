@@ -1012,7 +1012,7 @@ static int grid_degree(game_state *state, int x, int y, int *nx_r, int *ny_r)
 
 static int map_hasloops(game_state *state, int mark)
 {
-    int x, y, ox, oy, nx, ny, loop = 0;
+    int x, y, ox, oy, nx = 0, ny = 0, loop = 0;
 
     memcpy(state->scratch, state->grid, GRIDSZ(state));
 
