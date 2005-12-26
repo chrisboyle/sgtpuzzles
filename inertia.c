@@ -735,6 +735,18 @@ static char *solve_game(game_state *state, game_state *currstate,
     char *err, *soln, *p;
 
     /*
+     * Before anything else, deal with the special case in which
+     * all the gems are already collected.
+     */
+    for (i = 0; i < wh; i++)
+	if (currstate->grid[i] == GEM)
+	    break;
+    if (i == wh) {
+	*error = "Game is already solved";
+	return NULL;
+    }
+
+    /*
      * Solving Inertia is a question of first building up the graph
      * of where you can get to from where, and secondly finding a
      * tour of the graph which takes in every gem.
