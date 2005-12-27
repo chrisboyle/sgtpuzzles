@@ -41,7 +41,7 @@ else you were doing. And I was also annoyed that every time I found
 a good game on (say) \i{Unix}, it wasn't available the next time I
 was sitting at a \i{Windows} machine, or vice versa; so I arranged
 that everything in my personal puzzle collection will happily run on
-both, and have more recently done a port to Mac OS X as well. When I
+both, and have more recently done a port to \i{Mac OS X} as well. When I
 find (or perhaps invent) further puzzle games that I like, they'll
 be added to this collection and will immediately be available on
 both platforms. And if anyone feels like writing any other front
@@ -83,7 +83,7 @@ These actions are all available from the \I{Game menu}\q{Game} menu
 and via \I{keys}keyboard shortcuts, in addition to any game-specific
 actions.
 
-(On Mac OS X, to conform with local user interface standards, these
+(On \i{Mac OS X}, to conform with local user interface standards, these
 actions are situated on the \I{File menu}\q{File} and \I{Edit
 menu}\q{Edit} menus instead.)
 
@@ -174,7 +174,7 @@ recreate it later, or recreate it in somebody else's copy of the
 same puzzle.
 
 The \q{\i{Specific}} and \q{\i{Random Seed}} options from the
-\I{Game menu}\q{Game} menu (or the \q{File} menu, on Mac OS X) each
+\I{Game menu}\q{Game} menu (or the \q{File} menu, on \i{Mac OS X}) each
 show a piece of text (a \q{game ID}) which is sufficient to
 reconstruct precisely the same game at a later date.
 
@@ -265,7 +265,7 @@ following sections.
 
 \H{common-cmdline} Specifying game parameters on the \i{command line}
 
-(This section does not apply to the Mac OS X version.)
+(This section does not apply to the \i{Mac OS X} version.)
 
 The games in this collection deliberately do not ever save
 information on to the computer they run on: they have no high score
@@ -273,9 +273,9 @@ tables and no saved preferences. (This is because I expect at least
 some people to play them at work, and those people will probably
 appreciate leaving as little evidence as possible!)
 
-However, if you do want to arrange for one of these games to default
-to a particular set of parameters, you can specify them on the
-command line.
+However, if you do want to arrange for one of these games to
+\I{default parameters, specifying}default to a particular set of
+parameters, you can specify them on the command line.
 
 The easiest way to do this is to set up the parameters you want
 using the \q{Type} menu (see \k{common-type}), and then to select
@@ -304,7 +304,7 @@ than by pasting it into the game ID selection box.
 then some options, such as the difficulty level in Solo, will be
 missing. See \k{common-id} for more details on this.)
 
-\H{common-unix-cmdline} Unix \i{command-line} options
+\H{common-unix-cmdline} \i{Unix} \i{command-line} options
 
 (This section only applies to the Unix port.)
 
@@ -314,9 +314,9 @@ In addition to specifying game parameters on the command line (see
 \dt \cw{--generate }\e{n}
 
 \dd If this option is specified, instead of a puzzle being displayed,
-a number of descriptive game IDs will be invented and printed on
-standard output. This is useful for gaining access to the game
-generation algorithms without necessarily using the frontend.
+a number of descriptive game IDs will be \I{generating game IDs}invented
+and printed on standard output. This is useful for gaining access to
+the game generation algorithms without necessarily using the frontend.
 
 \lcont{
 
@@ -876,7 +876,7 @@ you select 3\by\.4 then the digits which go in your grid will be 1
 to 9, plus \cq{a}, \cq{b} and \cq{c}.
 
 I first saw this puzzle in \i{Nikoli} \k{nikoli-solo}, although it's also
-been popularised by various newspapers under the name \q{Sudoku} or
+been popularised by various newspapers under the name \q{\i{Sudoku}} or
 \q{Su Doku}.
 
 \B{nikoli-solo} \W{http://www.nikoli.co.jp/puzzles/1/index_text-e.htm}\cw{http://www.nikoli.co.jp/puzzles/1/index_text-e.htm}
@@ -1180,9 +1180,9 @@ in the correct places (in black), and also the number of
 correctly-coloured pegs in the wrong places (in white). 
 
 This game is also known (and marketed, by Hasbro, mainly) as
-a board game \q{Mastermind}, with 6 colours, 4 pegs per row, and 10 guesses.
-However, this version allows custom settings of number of colours
-(up to 10), number of pegs per row, and number of guesses. 
+a board game \q{\i{Mastermind}}, with 6 colours, 4 pegs per row,
+and 10 guesses. However, this version allows custom settings of number
+of colours (up to 10), number of pegs per row, and number of guesses. 
 
 Guess was contributed to this collection by James Harvey.
 
@@ -1693,7 +1693,7 @@ different colours. Two regions which meet at only one \e{point}
 (i.e. are diagonally separated) may be the same colour.
 
 I believe this puzzle is original; I've never seen an implementation
-of it anywhere else. The concept of a four-colouring puzzle was
+of it anywhere else. The concept of a \i{four-colouring} puzzle was
 suggested by Owen Dunn; credit must also go to Nikoli and to Verity
 Allan for inspiring the train of thought that led to me realising
 Owen's suggestion was a viable puzzle. Thanks also to Gareth Taylor
@@ -2094,6 +2094,15 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 \IM{command-line}{command line} command line
+
+\IM{default parameters, specifying} default parameters, specifying
+\IM{default parameters, specifying} preferences, specifying default
+
+\IM{Unix} Unix
+\IM{Unix} Linux
+
+\IM{generating game IDs} generating game IDs
+\IM{generating game IDs} game ID, generating
 
 \IM{specific} \q{Specific}, menu option
 \IM{custom} \q{Custom}, menu option
