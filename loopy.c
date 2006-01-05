@@ -1210,8 +1210,14 @@ static char *encode_solve_move(const game_state *state)
         }
     }
 
-    /* No point in doing sums like that if they're going to be wrong */
-    assert(strlen(ret) == (size_t)len);
+    /*
+     * Ensure we haven't overrun the buffer we allocated (which we
+     * really shouldn't have, since we computed its maximum size).
+     * Note that this assert is <= rather than ==, because the
+     * solver is permitted to produce an incomplete solution in
+     * which case the buffer will be only partially used.
+     */
+    assert(strlen(ret) <= (size_t)len);
     return ret;
 }
 
