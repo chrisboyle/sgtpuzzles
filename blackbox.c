@@ -813,7 +813,9 @@ static int check_guesses(game_state *state, int cagey)
             ret = 0;
         }
     }
-    if (ret == 0) goto done;
+    if (ret == 0 ||
+	state->nguesses < state->minballs ||
+	state->nguesses > state->maxballs) goto done;
 
     /* fix up original state so the 'correct' balls end up matching the guesses,
      * as we've just proved that they were equivalent. */
