@@ -875,11 +875,17 @@ additional digits will be letters of the alphabet. For example, if
 you select 3\by\.4 then the digits which go in your grid will be 1
 to 9, plus \cq{a}, \cq{b} and \cq{c}.
 
-I first saw this puzzle in \i{Nikoli} \k{nikoli-solo}, although it's also
-been popularised by various newspapers under the name \q{\i{Sudoku}} or
-\q{Su Doku}.
+I first saw this puzzle in \i{Nikoli} \k{nikoli-solo}, although it's
+also been popularised by various newspapers under the name
+\q{Sudoku} or \q{Su Doku}.  Howard Garns is considered the inventor
+of the modern form of the puzzle, and it was first published in
+\e{Dell Pencil Puzzles and Word Games}.  A more elaborate treatment
+of the history of the puzzle can be found on Wikipedia
+\k{wikipedia-solo}.
 
 \B{nikoli-solo} \W{http://www.nikoli.co.jp/puzzles/1/index_text-e.htm}\cw{http://www.nikoli.co.jp/puzzles/1/index_text-e.htm}
+
+\B{wikipedia-solo} \W{http://en.wikipedia.org/wiki/Sudoku}\cw{http://en.wikipedia.org/wiki/Sudoku}
 
 \H{solo-controls} \I{controls, for Solo}Solo controls
 
