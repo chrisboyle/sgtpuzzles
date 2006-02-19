@@ -2401,9 +2401,9 @@ static void lines_redraw(drawing *dr,
     draw_update(dr, ox, oy, TILE_SIZE, TILE_SIZE);
 }
 
-#define ISLAND_RADIUS ((TILE_SIZE*13)/20)
+#define ISLAND_RADIUS ((TILE_SIZE*12)/20)
 #define ISLAND_NUMSIZE(is) \
-    (((is)->count < 10) ? TILE_SIZE : (TILE_SIZE*8)/10)
+    (((is)->count < 10) ? (TILE_SIZE*7)/10 : (TILE_SIZE*5)/10)
 
 static void island_redraw(drawing *dr,
                           game_state *state, game_drawstate *ds,
