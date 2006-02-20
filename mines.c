@@ -22,6 +22,7 @@ enum {
     COL_1, COL_2, COL_3, COL_4, COL_5, COL_6, COL_7, COL_8,
     COL_MINE, COL_BANG, COL_CROSS, COL_FLAG, COL_FLAGBASE, COL_QUERY,
     COL_HIGHLIGHT, COL_LOWLIGHT,
+    COL_WRONGNUMBER,
     NCOLOURS
 };
 
@@ -2710,6 +2711,10 @@ static float *game_colours(frontend *fe, int *ncolours)
     ret[COL_LOWLIGHT * 3 + 1] = ret[COL_BACKGROUND * 3 + 1] * 2.0 / 3.0;
     ret[COL_LOWLIGHT * 3 + 2] = ret[COL_BACKGROUND * 3 + 2] * 2.0 / 3.0;
 
+    ret[COL_WRONGNUMBER * 3 + 0] = 1.0F;
+    ret[COL_WRONGNUMBER * 3 + 1] = 0.6F;
+    ret[COL_WRONGNUMBER * 3 + 2] = 0.6F;
+
     *ncolours = NCOLOURS;
     return ret;
 }
@@ -2814,6 +2819,10 @@ static void draw_tile(drawing *dr, game_drawstate *ds,
 	 * Exception is that for value 65 (mine we've just trodden
 	 * on), we clear the square to COL_BANG.
 	 */
+        if (v & 32) {
+            bg = COL_WRONGNUMBER;
+            v &= ~32;
+        }
         draw_rect(dr, x, y, TILE_SIZE, TILE_SIZE,
 		  (v == 65 ? COL_BANG :
                    bg == COL_BACKGROUND ? COL_BACKGROUND2 : bg));
@@ -2959,6 +2968,26 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 		markers++;
 	    if (state->layout->mines && state->layout->mines[y*ds->w+x])
 		mines++;
+
+            if (v >= 0 && v <= 8) {
+                /*
+                 * Count up the flags around this tile, and if
+                 * there are too _many_, highlight the tile.
+                 */
+                int dx, dy, flags = 0;
+
+                for (dy = -1; dy <= +1; dy++)
+                    for (dx = -1; dx <= +1; dx++) {
+                        int nx = x+dx, ny = y+dy;
+                        if (nx >= 0 && nx < ds->w &&
+                            ny >= 0 && ny < ds->h &&
+                            state->grid[ny*ds->w+nx] == -1)
+                            flags++;
+                    }
+
+                if (flags > v)
+                    v |= 32;
+            }
 
 	    if ((v == -2 || v == -3) &&
 		(abs(x-ui->hx) <= ui->hradius && abs(y-ui->hy) <= ui->hradius))
