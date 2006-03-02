@@ -876,14 +876,14 @@ static float *game_colours(frontend *fe, int *ncolours)
     ret[COL_1 * 3 + 1] = 0.0F;
     ret[COL_1 * 3 + 2] = 0.0F;
 
-    /* yellow (toned down a bit due to pale grey background) */
-    ret[COL_2 * 3 + 0] = 0.7F;
-    ret[COL_2 * 3 + 1] = 0.7F;
+    /* yellow */
+    ret[COL_2 * 3 + 0] = 1.0F;
+    ret[COL_2 * 3 + 1] = 1.0F;
     ret[COL_2 * 3 + 2] = 0.0F;
 
-    /* green (also toned down) */
+    /* green */
     ret[COL_3 * 3 + 0] = 0.0F;
-    ret[COL_3 * 3 + 1] = 0.5F;
+    ret[COL_3 * 3 + 1] = 1.0F;
     ret[COL_3 * 3 + 2] = 0.0F;
 
     /* blue */
@@ -912,9 +912,9 @@ static float *game_colours(frontend *fe, int *ncolours)
     ret[COL_8 * 3 + 2] = 1.0F;
 
     /* light green */
-    ret[COL_9 * 3 + 0] = 0.5F;
-    ret[COL_9 * 3 + 1] = 0.8F;
-    ret[COL_9 * 3 + 2] = 0.5F;
+    ret[COL_9 * 3 + 0] = 0.7F;
+    ret[COL_9 * 3 + 1] = 1.0F;
+    ret[COL_9 * 3 + 2] = 0.7F;
 
     /* pink */
     ret[COL_10 * 3 + 0] = 1.0F;
@@ -1022,7 +1022,7 @@ static void draw_peg(drawing *dr, game_drawstate *ds, int cx, int cy,
                   COL_BACKGROUND);
     if (PEGRAD > 0) {
         draw_circle(dr, cx+PEGRAD, cy+PEGRAD, PEGRAD,
-		    COL_EMPTY + col, COL_EMPTY + col);
+		    COL_EMPTY + col, (col ? COL_FRAME : COL_EMPTY));
     } else
         draw_rect(dr, cx, cy, PEGSZ, PEGSZ, COL_EMPTY + col);
     draw_update(dr, cx-CGAP, cy-CGAP, PEGSZ+CGAP*2, PEGSZ+CGAP*2);
@@ -1129,7 +1129,8 @@ static void hint_redraw(drawing *dr, game_drawstate *ds, int guess,
                 rowy += HINTOFF;
             }
             if (HINTRAD > 0) {
-                draw_circle(dr, rowx+HINTRAD, rowy+HINTRAD, HINTRAD, col, col);
+                draw_circle(dr, rowx+HINTRAD, rowy+HINTRAD, HINTRAD, col,
+                            (col == emptycol ? emptycol : COL_FRAME));
             } else {
                 draw_rect(dr, rowx, rowy, HINTSZ, HINTSZ, col);
             }
