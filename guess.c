@@ -39,6 +39,7 @@ typedef struct pegrow {
 struct game_state {
     game_params params;
     pegrow *guesses;  /* length params->nguesses */
+    int *holds;
     pegrow solution;
     int next_go; /* from 0 to nguesses-1;
                     if next_go == nguesses then they've lost. */
@@ -319,6 +320,7 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
     state->guesses = snewn(params->nguesses, pegrow);
     for (i = 0; i < params->nguesses; i++)
 	state->guesses[i] = new_pegrow(params->npegs);
+    state->holds = snewn(params->npegs, int);
     state->solution = new_pegrow(params->npegs);
 
     bmp = hex2bin(desc, params->npegs);
@@ -327,6 +329,7 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
 	state->solution->pegs[i] = (int)bmp[i];
     sfree(bmp);
 
+    memset(state->holds, 0, sizeof(int) * params->npegs);
     state->next_go = state->solved = 0;
 
     return state;
@@ -342,6 +345,8 @@ static game_state *dup_game(game_state *state)
     ret->guesses = snewn(state->params.nguesses, pegrow);
     for (i = 0; i < state->params.nguesses; i++)
 	ret->guesses[i] = dup_pegrow(state->guesses[i]);
+    ret->holds = snewn(state->params.npegs, int);
+    memcpy(ret->holds, state->holds, sizeof(int) * state->params.npegs);
     ret->solution = dup_pegrow(state->solution);
 
     return ret;
@@ -354,6 +359,7 @@ static void free_game(game_state *state)
     free_pegrow(state->solution);
     for (i = 0; i < state->params.nguesses; i++)
 	free_pegrow(state->guesses[i]);
+    sfree(state->holds);
     sfree(state->guesses);
 
     sfree(state);
@@ -435,17 +441,19 @@ static char *encode_ui(game_ui *ui)
 
     /*
      * For this game it's worth storing the contents of the current
-     * guess.
+     * guess, and the current set of holds.
      */
     ret = snewn(40 * ui->curr_pegs->npegs, char);
     p = ret;
     sep = "";
     for (i = 0; i < ui->curr_pegs->npegs; i++) {
-        p += sprintf(p, "%s%d", sep, ui->curr_pegs->pegs[i]);
+        p += sprintf(p, "%s%d%s", sep, ui->curr_pegs->pegs[i],
+                     ui->holds[i] ? "_" : "");
         sep = ",";
     }
+    *p++ = '\0';
     assert(p - ret < 40 * ui->curr_pegs->npegs);
-    return sresize(ret, p - ret + 1, char);
+    return sresize(ret, p - ret, char);
 }
 
 static void decode_ui(game_ui *ui, char *encoding)
@@ -455,6 +463,12 @@ static void decode_ui(game_ui *ui, char *encoding)
     for (i = 0; i < ui->curr_pegs->npegs; i++) {
         ui->curr_pegs->pegs[i] = atoi(p);
         while (*p && isdigit((unsigned char)*p)) p++;
+        if (*p == '_') {
+            /* NB: old versions didn't store holds */
+            ui->holds[i] = 1;
+            p++;
+        } else
+            ui->holds[i] = 0;
         if (*p == ',') p++;
     }
     ui->markable = is_markable(&ui->params, ui->curr_pegs);
@@ -465,10 +479,24 @@ static void game_changed_state(game_ui *ui, game_state *oldstate,
 {
     int i;
 
-    /* just clear the row-in-progress when we have an undo/redo. */
-    for (i = 0; i < ui->curr_pegs->npegs; i++)
-	ui->curr_pegs->pegs[i] = 0;
-    ui->markable = FALSE;
+    /* Implement holds, clear other pegs.
+     * This does something that is arguably the Right Thing even
+     * for undo. */
+    for (i = 0; i < newstate->solution->npegs; i++) {
+        if (newstate->solved)
+            ui->holds[i] = 0;
+        else
+            ui->holds[i] = newstate->holds[i];
+	if (newstate->solved || (newstate->next_go == 0) || !ui->holds[i]) {
+	    ui->curr_pegs->pegs[i] = 0;
+	} else
+            ui->curr_pegs->pegs[i] =
+                newstate->guesses[newstate->next_go-1]->pegs[i];
+    }
+    ui->markable = is_markable(&newstate->params, ui->curr_pegs);
+    /* Clean up cursor position */
+    if (!ui->markable && ui->peg_cur == newstate->solution->npegs)
+	ui->peg_cur--;
 }
 
 #define PEGSZ   (ds->pegsz)
@@ -578,8 +606,7 @@ static int mark_pegs(pegrow guess, pegrow solution, int ncols)
 static char *encode_move(game_state *from, game_ui *ui)
 {
     char *buf, *p, *sep;
-    int len, i, solved;
-    pegrow tmppegs;
+    int len, i;
 
     len = ui->curr_pegs->npegs * 20 + 2;
     buf = snewn(len, char);
@@ -587,27 +614,13 @@ static char *encode_move(game_state *from, game_ui *ui)
     *p++ = 'G';
     sep = "";
     for (i = 0; i < ui->curr_pegs->npegs; i++) {
-	p += sprintf(p, "%s%d", sep, ui->curr_pegs->pegs[i]);
+	p += sprintf(p, "%s%d%s", sep, ui->curr_pegs->pegs[i],
+                     ui->holds[i] ? "_" : "");
 	sep = ",";
     }
     *p++ = '\0';
     assert(p - buf <= len);
     buf = sresize(buf, len, char);
-
-    tmppegs = dup_pegrow(ui->curr_pegs);
-    solved = mark_pegs(tmppegs, from->solution, from->params.ncolours);
-    solved = (solved == from->params.ncolours);
-    free_pegrow(tmppegs);
-
-    for (i = 0; i < from->solution->npegs; i++) {
-	if (!ui->holds[i] || solved) {
-	    ui->curr_pegs->pegs[i] = 0;
-	}
-	if (solved) ui->holds[i] = 0;
-    }
-    ui->markable = is_markable(&from->params, ui->curr_pegs);
-    if (!ui->markable && ui->peg_cur == from->solution->npegs)
-	ui->peg_cur--;
 
     return buf;
 }
@@ -775,6 +788,11 @@ static game_state *execute_move(game_state *from, char *move)
 	    }
 	    ret->guesses[from->next_go]->pegs[i] = atoi(p);
 	    while (*p && isdigit((unsigned char)*p)) p++;
+            if (*p == '_') {
+                ret->holds[i] = 1;
+                p++;
+            } else
+                ret->holds[i] = 0;
 	    if (*p == ',') p++;
 	}
 
@@ -1191,8 +1209,9 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
         }
     }
 
-    /* draw the guesses (so far) and the hints */
-    for (i = 0; i < state->params.nguesses; i++) {
+    /* draw the guesses (so far) and the hints
+     * (in reverse order to avoid trampling holds) */
+    for (i = state->params.nguesses - 1; i >= 0; i--) {
         if (state->next_go > i || state->solved) {
             /* this info is stored in the game_state already */
             guess_redraw(dr, ds, i, state->guesses[i], NULL, -1, 0);
