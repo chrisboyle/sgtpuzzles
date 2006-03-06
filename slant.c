@@ -24,6 +24,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdarg.h>
 #include <string.h>
 #include <assert.h>
 #include <ctype.h>
@@ -273,6 +274,27 @@ struct solver_scratch {
     signed char *slashval;
 
     /*
+     * Stores possible v-shapes. This array is w by h in size, but
+     * not every bit of every entry is meaningful. The bits mean:
+     * 
+     *  - bit 0 for a square means that that square and the one to
+     *    its right might form a v-shape between them
+     *  - bit 1 for a square means that that square and the one to
+     *    its right might form a ^-shape between them
+     *  - bit 2 for a square means that that square and the one
+     *    below it might form a >-shape between them
+     *  - bit 3 for a square means that that square and the one
+     *    below it might form a <-shape between them
+     * 
+     * Any starting 1 or 3 clue rules out four bits in this array
+     * immediately; we can rule out further bits during play using
+     * partially filled 2 clues; whenever a pair of squares is
+     * known not to be _either_ kind of v-shape, we can mark them
+     * as equivalent.
+     */
+    unsigned char *vbitmap;
+
+    /*
      * Useful to have this information automatically passed to
      * solver subroutines. (This pointer is not dynamically
      * allocated by new_scratch and free_scratch.)
@@ -289,11 +311,13 @@ static struct solver_scratch *new_scratch(int w, int h)
     ret->border = snewn(W*H, unsigned char);
     ret->equiv = snewn(w*h, int);
     ret->slashval = snewn(w*h, signed char);
+    ret->vbitmap = snewn(w*h, unsigned char);
     return ret;
 }
 
 static void free_scratch(struct solver_scratch *sc)
 {
+    sfree(sc->vbitmap);
     sfree(sc->slashval);
     sfree(sc->equiv);
     sfree(sc->border);
@@ -388,6 +412,36 @@ static void fill_square(int w, int h, int x, int y, int v,
     }
 }
 
+static int vbitmap_clear(int w, int h, struct solver_scratch *sc,
+                         int x, int y, int vbits, char *reason, ...)
+{
+    int done_something = FALSE;
+    int vbit;
+
+    for (vbit = 1; vbit <= 8; vbit <<= 1)
+        if (vbits & sc->vbitmap[y*w+x] & vbit) {
+            done_something = TRUE;
+#ifdef SOLVER_DIAGNOSTICS
+            if (verbose) {
+                va_list ap;
+
+                printf("ruling out %c shape at (%d,%d)-(%d,%d) (",
+                       "!v^!>!!!<"[vbit], x, y,
+                       x+((vbit&0x3)!=0), y+((vbit&0xC)!=0));
+
+                va_start(ap, reason);
+                vprintf(reason, ap);
+                va_end(ap);
+
+                printf(")\n");
+            }
+#endif
+            sc->vbitmap[y*w+x] &= ~vbit;
+        }
+
+    return done_something;
+}
+
 /*
  * Solver. Returns 0 for impossibility, 1 for success, 2 for
  * ambiguity or failure to converge.
@@ -427,6 +481,11 @@ static int slant_solve(int w, int h, const signed char *clues,
     memset(sc->slashval, 0, w*h);
 
     /*
+     * Set up the vbitmap array. Initially all types of v are possible.
+     */
+    memset(sc->vbitmap, 0xF, w*h);
+
+    /*
      * Initialise the `exits' and `border' arrays. Theses is used
      * to do second-order loop avoidance: the dual of the no loops
      * constraint is that every point must be somehow connected to
@@ -452,69 +511,6 @@ static int slant_solve(int w, int h, const signed char *clues,
 	    else
 		sc->exits[y*W+x] = clues[y*W+x];
 	}
-
-    /*
-     * Make a one-off preliminary pass over the grid looking for
-     * starting-point arrangements. The ones we need to spot are:
-     * 
-     * 	- two adjacent 1s in the centre of the grid imply that each
-     * 	  one's single line points towards the other. (If either 1
-     * 	  were connected on the far side, the two squares shared
-     * 	  between the 1s would both link to the other 1 as a
-     * 	  consequence of neither linking to the first.) Thus, we
-     * 	  can fill in the four squares around them.
-     * 
-     * 	- dually, two adjacent 3s imply that each one's _non_-line
-     * 	  points towards the other.
-     * 
-     * 	- if the pair of 1s and 3s is not _adjacent_ but is
-     * 	  separated by one or more 2s, the reasoning still applies.
-     * 
-     * This is more advanced than just spotting obvious starting
-     * squares such as central 4s and edge 2s, so we disable it on
-     * DIFF_EASY.
-     * 
-     * (I don't like this loop; it feels grubby to me. My
-     * mathematical intuition feels there ought to be some more
-     * general deductive form which contains this loop as a special
-     * case, but I can't bring it to mind right now.)
-     */
-    if (difficulty > DIFF_EASY) {
-	for (y = 1; y+1 < H; y++)
-	    for (x = 1; x+1 < W; x++) {
-		int v = clues[y*W+x], s, x2, y2, dx, dy;
-		if (v != 1 && v != 3)
-		    continue;
-		/* Slash value of the square up and left of (x,y). */
-		s = (v == 1 ? +1 : -1);
-
-		/* Look in each direction once. */
-		for (dy = 0; dy < 2; dy++) {
-		    dx = 1 - dy;
-		    x2 = x+dx;
-		    y2 = y+dy;
-		    if (x2+1 >= W || y2+1 >= H)
-			continue;	       /* too close to the border */
-		    while (x2+dx+1 < W && y2+dy+1 < H && clues[y2*W+x2] == 2)
-			x2 += dx, y2 += dy;
-		    if (clues[y2*W+x2] == v) {
-#ifdef SOLVER_DIAGNOSTICS
-			if (verbose)
-			    printf("found adjacent %ds at %d,%d and %d,%d\n",
-				   v, x, y, x2, y2);
-#endif
-			fill_square(w, h, x-1, y-1, s, soln,
-				    sc->connected, sc);
-			fill_square(w, h, x-1+dy, y-1+dx, -s, soln,
-				    sc->connected, sc);
-			fill_square(w, h, x2, y2, s, soln,
-				    sc->connected, sc);
-			fill_square(w, h, x2-dy, y2-dx, -s, soln,
-				    sc->connected, sc);
-		    }
-		}
-	    }
-    }
 
     /*
      * Repeatedly try to deduce something until we can't.
@@ -836,6 +832,147 @@ static int slant_solve(int w, int h, const signed char *clues,
 		    done_something = TRUE;
 		}
 	    }
+
+	if (done_something)
+	    continue;
+
+        /*
+         * Now see what we can do with the vbitmap array. All
+         * vbitmap deductions are disabled at Easy level.
+         */
+        if (difficulty <= DIFF_EASY)
+            continue;
+
+	for (y = 0; y < h; y++)
+	    for (x = 0; x < w; x++) {
+                int s, c;
+
+                /*
+                 * Any line already placed in a square must rule
+                 * out any type of v which contradicts it.
+                 */
+                if ((s = soln[y*w+x]) != 0) {
+                    if (x > 0)
+                        done_something |=
+                        vbitmap_clear(w, h, sc, x-1, y, (s < 0 ? 0x1 : 0x2),
+                                      "contradicts known edge at (%d,%d)",x,y);
+                    if (x+1 < w)
+                        done_something |=
+                        vbitmap_clear(w, h, sc, x, y, (s < 0 ? 0x2 : 0x1),
+                                      "contradicts known edge at (%d,%d)",x,y);
+                    if (y > 0)
+                        done_something |=
+                        vbitmap_clear(w, h, sc, x, y-1, (s < 0 ? 0x4 : 0x8),
+                                      "contradicts known edge at (%d,%d)",x,y);
+                    if (y+1 < h)
+                        done_something |=
+                        vbitmap_clear(w, h, sc, x, y, (s < 0 ? 0x8 : 0x4),
+                                      "contradicts known edge at (%d,%d)",x,y);
+                }
+
+                /*
+                 * If both types of v are ruled out for a pair of
+                 * adjacent squares, mark them as equivalent.
+                 */
+                if (x+1 < w && !(sc->vbitmap[y*w+x] & 0x3)) {
+                    int n1 = y*w+x, n2 = y*w+(x+1);
+                    if (dsf_canonify(sc->equiv, n1) !=
+                        dsf_canonify(sc->equiv, n2)) {
+                        dsf_merge(sc->equiv, n1, n2);
+                        done_something = TRUE;
+#ifdef SOLVER_DIAGNOSTICS
+                        if (verbose)
+                            printf("(%d,%d) and (%d,%d) must be equivalent"
+                                   " because both v-shapes are ruled out\n",
+                                   x, y, x+1, y);
+#endif
+                    }
+                }
+                if (y+1 < h && !(sc->vbitmap[y*w+x] & 0xC)) {
+                    int n1 = y*w+x, n2 = (y+1)*w+x;
+                    if (dsf_canonify(sc->equiv, n1) !=
+                        dsf_canonify(sc->equiv, n2)) {
+                        dsf_merge(sc->equiv, n1, n2);
+                        done_something = TRUE;
+#ifdef SOLVER_DIAGNOSTICS
+                        if (verbose)
+                            printf("(%d,%d) and (%d,%d) must be equivalent"
+                                   " because both v-shapes are ruled out\n",
+                                   x, y, x, y+1);
+#endif
+                    }
+                }
+
+                /*
+                 * The remaining work in this loop only works
+                 * around non-edge clue points.
+                 */
+                if (y == 0 || x == 0)
+                    continue;
+		if ((c = clues[y*W+x]) < 0)
+		    continue;
+
+                /*
+                 * x,y marks a clue point not on the grid edge. See
+                 * if this clue point allows us to rule out any v
+                 * shapes.
+                 */
+
+                if (c == 1) {
+                    /*
+                     * A 1 clue can never have any v shape pointing
+                     * at it.
+                     */
+                    done_something |=
+                        vbitmap_clear(w, h, sc, x-1, y-1, 0x5,
+                                      "points at 1 clue at (%d,%d)", x, y);
+                    done_something |=
+                        vbitmap_clear(w, h, sc, x-1, y, 0x2,
+                                      "points at 1 clue at (%d,%d)", x, y);
+                    done_something |=
+                        vbitmap_clear(w, h, sc, x, y-1, 0x8,
+                                      "points at 1 clue at (%d,%d)", x, y);
+                } else if (c == 3) {
+                    /*
+                     * A 3 clue can never have any v shape pointing
+                     * away from it.
+                     */
+                    done_something |=
+                        vbitmap_clear(w, h, sc, x-1, y-1, 0xA,
+                                      "points away from 3 clue at (%d,%d)", x, y);
+                    done_something |=
+                        vbitmap_clear(w, h, sc, x-1, y, 0x1,
+                                      "points away from 3 clue at (%d,%d)", x, y);
+                    done_something |=
+                        vbitmap_clear(w, h, sc, x, y-1, 0x4,
+                                      "points away from 3 clue at (%d,%d)", x, y);
+                } else if (c == 2) {
+                    /*
+                     * If a 2 clue has any kind of v ruled out on
+                     * one side of it, the same v is ruled out on
+                     * the other side.
+                     */
+                    done_something |=
+                        vbitmap_clear(w, h, sc, x-1, y-1,
+                                      (sc->vbitmap[(y  )*w+(x-1)] & 0x3) ^ 0x3,
+                                      "propagated by 2 clue at (%d,%d)", x, y);
+                    done_something |=
+                        vbitmap_clear(w, h, sc, x-1, y-1,
+                                      (sc->vbitmap[(y-1)*w+(x  )] & 0xC) ^ 0xC,
+                                      "propagated by 2 clue at (%d,%d)", x, y);
+                    done_something |=
+                        vbitmap_clear(w, h, sc, x-1, y,
+                                      (sc->vbitmap[(y-1)*w+(x-1)] & 0x3) ^ 0x3,
+                                      "propagated by 2 clue at (%d,%d)", x, y);
+                    done_something |=
+                        vbitmap_clear(w, h, sc, x, y-1,
+                                      (sc->vbitmap[(y-1)*w+(x-1)] & 0xC) ^ 0xC,
+                                      "propagated by 2 clue at (%d,%d)", x, y);
+                }
+
+#undef CLEARBITS
+
+            }
 
     } while (done_something);
 
