@@ -287,7 +287,10 @@ struct solver_scratch {
      *    below it might form a <-shape between them
      * 
      * Any starting 1 or 3 clue rules out four bits in this array
-     * immediately; we can rule out further bits during play using
+     * immediately; a 2 clue propagates any ruled-out bit past it
+     * (if the two squares on one side of a 2 cannot be a v-shape,
+     * then neither can the two on the other side be the same
+     * v-shape); we can rule out further bits during play using
      * partially filled 2 clues; whenever a pair of squares is
      * known not to be _either_ kind of v-shape, we can mark them
      * as equivalent.
@@ -486,7 +489,7 @@ static int slant_solve(int w, int h, const signed char *clues,
     memset(sc->vbitmap, 0xF, w*h);
 
     /*
-     * Initialise the `exits' and `border' arrays. Theses is used
+     * Initialise the `exits' and `border' arrays. These are used
      * to do second-order loop avoidance: the dual of the no loops
      * constraint is that every point must be somehow connected to
      * the border of the grid (otherwise there would be a solid
