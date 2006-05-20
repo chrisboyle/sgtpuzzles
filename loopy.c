@@ -1283,7 +1283,7 @@ static int dot_setall_dlines(solver_state *sstate, enum dline dl, int i, int j,
             break;                                                          
         case DLINE_DL:                                                  
         case DLINE_DR:                                                  
-            if (j <= (state)->h && BELOW_DOT(state, i, j) == line_old) {
+            if (j < (state)->h && BELOW_DOT(state, i, j) == line_old) {
                 LV_BELOW_DOT(state, i, j) = line_new;                   
                 retval = TRUE;
             }
@@ -1308,13 +1308,13 @@ static int dot_setall_dlines(solver_state *sstate, enum dline dl, int i, int j,
         case DLINE_UR:                                                  
         case DLINE_DR:                                                  
         case DLINE_HORIZ:                                                  
-            if (i <= (state)->w && RIGHTOF_DOT(state, i, j) == line_old) {
+            if (i < (state)->w && RIGHTOF_DOT(state, i, j) == line_old) {
                 LV_RIGHTOF_DOT(state, i, j) = line_new;                 
                 retval = TRUE;
             }
             break;                                                          
         case DLINE_VERT:                                                  
-            if (j <= (state)->h && BELOW_DOT(state, i, j) == line_old) {
+            if (j < (state)->h && BELOW_DOT(state, i, j) == line_old) {
                 LV_BELOW_DOT(state, i, j) = line_new;                   
                 retval = TRUE;
             }
