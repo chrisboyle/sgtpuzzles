@@ -96,6 +96,7 @@ struct font {
  */
 struct frontend {
     GtkWidget *window;
+    GtkAccelGroup *accelgroup;
     GtkWidget *area;
     GtkWidget *statusbar;
     guint statusctx;
@@ -1404,11 +1405,29 @@ static GtkWidget *add_menu_item_with_key(frontend *fe, GtkContainer *cont,
                                          char *text, int key)
 {
     GtkWidget *menuitem = gtk_menu_item_new_with_label(text);
+    int keyqual;
     gtk_container_add(cont, menuitem);
     gtk_object_set_data(GTK_OBJECT(menuitem), "user-data",
                         GINT_TO_POINTER(key));
     gtk_signal_connect(GTK_OBJECT(menuitem), "activate",
 		       GTK_SIGNAL_FUNC(menu_key_event), fe);
+    switch (key & ~0x1F) {
+      case 0x00:
+	key += 0x60;
+	keyqual = GDK_CONTROL_MASK;
+	break;
+      case 0x40:
+	key += 0x20;
+	keyqual = GDK_SHIFT_MASK;
+	break;
+      default:
+	keyqual = 0;
+	break;
+    }
+    gtk_widget_add_accelerator(menuitem,
+			       "activate", fe->accelgroup,
+			       key, keyqual,
+			       GTK_ACCEL_VISIBLE);
     gtk_widget_show(menuitem);
     return menuitem;
 }
@@ -1482,6 +1501,9 @@ static frontend *new_window(char *arg, char **error)
     vbox = GTK_BOX(gtk_vbox_new(FALSE, 0));
     gtk_container_add(GTK_CONTAINER(fe->window), GTK_WIDGET(vbox));
     gtk_widget_show(GTK_WIDGET(vbox));
+
+    fe->accelgroup = gtk_accel_group_new();
+    gtk_window_add_accel_group(GTK_WINDOW(fe->window), fe->accelgroup);
 
     menubar = gtk_menu_bar_new();
     gtk_box_pack_start(vbox, menubar, FALSE, FALSE, 0);
@@ -1567,7 +1589,7 @@ static frontend *new_window(char *arg, char **error)
     gtk_widget_show(menuitem);
     add_menu_separator(GTK_CONTAINER(menu));
     add_menu_item_with_key(fe, GTK_CONTAINER(menu), "Undo", 'u');
-    add_menu_item_with_key(fe, GTK_CONTAINER(menu), "Redo", '\x12');
+    add_menu_item_with_key(fe, GTK_CONTAINER(menu), "Redo", 'r');
     if (thegame.can_format_as_text) {
 	add_menu_separator(GTK_CONTAINER(menu));
 	menuitem = gtk_menu_item_new_with_label("Copy");
