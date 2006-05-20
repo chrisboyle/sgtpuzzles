@@ -672,6 +672,8 @@ static gint configure_area(GtkWidget *widget,
     gc = gdk_gc_new(fe->area->window);
     gdk_gc_set_foreground(gc, &fe->colours[0]);
     gdk_draw_rectangle(fe->pixmap, gc, 1, 0, 0, fe->pw, fe->ph);
+    gdk_draw_rectangle(widget->window, gc, 1, 0, 0,
+		       event->width, event->height);
     gdk_gc_unref(gc);
 
     midend_force_redraw(fe->me);
@@ -1493,11 +1495,7 @@ static frontend *new_window(char *arg, char **error)
 
     fe->window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     gtk_window_set_title(GTK_WINDOW(fe->window), thegame.name);
-#if 0
-    gtk_window_set_resizable(GTK_WINDOW(fe->window), FALSE);
-#else
-    gtk_window_set_policy(GTK_WINDOW(fe->window), FALSE, FALSE, TRUE);
-#endif
+
     vbox = GTK_BOX(gtk_vbox_new(FALSE, 0));
     gtk_container_add(GTK_CONTAINER(fe->window), GTK_WIDGET(vbox));
     gtk_widget_show(GTK_WIDGET(vbox));
