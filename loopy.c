@@ -683,13 +683,12 @@ static void print_board(const game_params *params, const char *board)
 #endif
 }
 
-static char *new_fullyclued_board(game_params *params, random_state *rs)
+static void add_full_clues(game_state *state, game_params *params,
+			   random_state *rs)
 {
     char *clues;
     char *board;
     int i, j, a, b, c;
-    game_state s;
-    game_state *state = &s;
     int board_area = SQUARE_COUNT(params);
     int t;
 
@@ -763,11 +762,7 @@ static char *new_fullyclued_board(game_params *params, random_state *rs)
 #define SCORE_DISTANCE 1
 
     board = snewn(board_area, char);
-    clues = snewn(board_area, char);
-
-    state->h = params->h;
-    state->w = params->w;
-    state->clues = clues;
+    clues = state->clues;
 
     /* Make a board */
     memset(board, SQUARE_UNLIT, board_area);
@@ -932,7 +927,6 @@ static char *new_fullyclued_board(game_params *params, random_state *rs)
     }
 
     sfree(board);
-    return clues;
 }
 
 static solver_state *solve_game_rec(const solver_state *sstate, int diff);
@@ -1004,6 +998,7 @@ static char *new_game_desc(game_params *params, random_state *rs,
     state->h = params->h;
     state->w = params->w;
 
+    state->clues = snewn(SQUARE_COUNT(params), char);
     state->hl = snewn(HL_COUNT(params), char);
     state->vl = snewn(VL_COUNT(params), char);
 
@@ -1019,7 +1014,7 @@ newboard_please:
      * preventing games smaller than 4x4 seems to stop this happening */
 
     do {
-        state->clues = new_fullyclued_board(params, rs);
+        add_full_clues(state, params, rs);
     } while (!game_has_unique_soln(state, params->diff));
 
     state_new = remove_clues(state, rs, params->diff);
