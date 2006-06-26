@@ -518,6 +518,16 @@ static gint key_event(GtkWidget *widget, GdkEventKey *event, gpointer data)
     if (!fe->pixmap)
         return TRUE;
 
+#if !GTK_CHECK_VERSION(2,0,0)
+    /* Gtk 1.2 passes a key event to this function even if it's also
+     * defined as an accelerator.
+     * Gtk 2 doesn't do this, and this function appears not to exist there. */
+    if (fe->accelgroup &&
+        gtk_accel_group_get_entry(fe->accelgroup,
+        event->keyval, event->state))
+        return TRUE;
+#endif
+
     if (event->keyval == GDK_Up)
         keyval = shift | ctrl | CURSOR_UP;
     else if (event->keyval == GDK_KP_Up || event->keyval == GDK_KP_8)
