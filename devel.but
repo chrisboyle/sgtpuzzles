@@ -170,8 +170,8 @@ other miscellaneous functions. All of these are documented in
 
 There are a number of function call interfaces within Puzzles, and
 this guide will discuss each one in a chapter of its own. After
-that, there will be a section about how to design new games, with
-some general design thoughts and tips.
+that, (\k{writing}) discusses how to design new games, with some
+general design thoughts and tips.
 
 \C{backend} Interface to the back end
 
@@ -443,7 +443,7 @@ difficulty, since to describe a puzzle once generated it's
 sufficient to give the grid dimensions and the location and contents
 of the clue squares. (Indeed, one might very easily type in a puzzle
 out of a newspaper without \e{knowing} what its difficulty level is
-in Solo's terminology.) Therefore. Solo's \cw{encode_params()} only
+in Solo's terminology.) Therefore, Solo's \cw{encode_params()} only
 encodes the difficulty level if \c{full} is set.
 
 \S{backend-decode-params} \cw{decode_params()}
@@ -791,7 +791,7 @@ important enough to save. The location of the keyboard-controlled
 cursor, for example, can be reset to a default position on reloading
 the game without impacting the user experience. If the user should
 somehow manage to save a game while a mouse drag was in progress,
-then discarding that mouse drag would be an outright \e{feature},
+then discarding that mouse drag would be an outright \e{feature}.
 
 A typical thing that \e{would} be worth encoding in this function is
 the Mines death counter: it's in the \c{game_ui} rather than the
@@ -1437,8 +1437,8 @@ the bitwise OR of some combination of the following:
 
 \dt \cw{BUTTON_BEATS(x,y)}
 
-\dd Given any \cw{x} and \cw{y} from the set (\cw{LEFT_BUTTON},
-\cw{MIDDLE_BUTTON}, \cw{RIGHT_BUTTON}), this macro evaluates to a
+\dd Given any \cw{x} and \cw{y} from the set \{\cw{LEFT_BUTTON},
+\cw{MIDDLE_BUTTON}, \cw{RIGHT_BUTTON}\}, this macro evaluates to a
 bit flag which indicates that when buttons \cw{x} and \cw{y} are
 both pressed simultaneously, the mid-end should consider \cw{x} to
 have priority. (In the absence of any such flags, the mid-end will
@@ -1469,7 +1469,7 @@ the returned seed data to \cw{random_new()}.
 
 This is likely not to be what you want. If a puzzle needs randomness
 in the middle of play, it's likely to be more sensible to store some
-sort of random state within the \e{game_state}, so that the random
+sort of random state within the \c{game_state}, so that the random
 numbers are tied to the particular game state and hence the player
 can't simply keep undoing their move until they get numbers they
 like better.
@@ -1571,10 +1571,10 @@ manipulation.
 \e{Puzzles' redraw functions may assume that the surface they draw
 on is persistent}. It is the responsibility of every front end to
 preserve the puzzle's window contents in the face of GUI window
-expose issues and similar. It is not permissible to request the back
-end redraw any part of a window that it has already drawn, unless
-something has actually changed as a result of making moves in the
-puzzle.
+expose issues and similar. It is not permissible to request that the
+back end redraw any part of a window that it has already drawn,
+unless something has actually changed as a result of making moves in
+the puzzle.
 
 Most front ends accomplish this by having the drawing routines draw
 on a stored bitmap rather than directly on the window, and copying
@@ -3497,10 +3497,10 @@ sensibly fit anywhere else.
 \S{utils-truefalse} \cw{TRUE} and \cw{FALSE}
 
 The main Puzzles header file defines the macros \cw{TRUE} and
-\cw{FALSE}, which are used throughout the code in place of 0 and 1
-to indicate that the values are in a boolean context. For code base
-consistency, I'd prefer it if submissions of new code followed this
-convention as well.
+\cw{FALSE}, which are used throughout the code in place of 1 and 0
+(respectively) to indicate that the values are in a boolean context.
+For code base consistency, I'd prefer it if submissions of new code
+followed this convention as well.
 
 \S{utils-maxmin} \cw{max()} and \cw{min()}
 
@@ -3710,6 +3710,11 @@ Next you'll need to add your puzzle to the Makefiles, in order to
 compile it conveniently. \e{Do not edit the Makefiles}: they are
 created automatically by the script \c{mkfiles.pl}, from the file
 called \c{Recipe}. Edit \c{Recipe}, and then re-run \c{mkfiles.pl}.
+
+Also, don't forget to add your puzzle to \c{list.c}: if you don't,
+then it will still run fine on platforms which build each puzzle
+separately, but Mac OS X and other monolithic platforms will not
+include your new puzzle in their single binary.
 
 Once your source file is building, you can move on to the fun bit.
 
