@@ -34,7 +34,8 @@ structure in the source file.
 
 Add the new Unix binary name to the svn:ignore property.
 
-Don't forget to `svn add' the new source file before checkin!
+Don't forget to `svn add' the new source file, and the new .R file,
+before checkin!
 
 Put the puzzle on the web:
  - make a screenshot
