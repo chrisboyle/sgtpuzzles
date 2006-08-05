@@ -28,3 +28,11 @@ void dsf_merge(int *dsf, int v1, int v2)
     v2 = dsf_canonify(dsf, v2);
     dsf[v2] = v1;
 }
+
+void dsf_init(int *dsf, int len)
+{
+    int i;
+
+    for (i = 0; i < len; i++)
+	dsf[i] = i;
+}

@@ -280,6 +280,7 @@ void draw_rect_outline(drawing *dr, int x, int y, int w, int h,
  */
 int dsf_canonify(int *dsf, int val);
 void dsf_merge(int *dsf, int v1, int v2);
+void dsf_init(int *dsf, int len);
 
 /*
  * version.c
