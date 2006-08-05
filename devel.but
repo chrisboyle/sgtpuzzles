@@ -193,7 +193,9 @@ end module builds a different puzzle.
 \b On platforms such as MacOS X and PalmOS, which build all the
 puzzles into a single monolithic binary, the game structure in each
 back end must have a different name, and there's a helper module
-\c{list.c} which contains a complete list of those game structures.
+\c{list.c} (constructed automatically by the same Perl script that
+builds the \cw{Makefile}s) which contains a complete list of those
+game structures.
 
 On the latter type of platform, source files may assume that the
 preprocessor symbol \c{COMBINED} has been defined. Thus, the usual
@@ -2916,9 +2918,10 @@ base), then there will be two global variables defined:
 \c extern const int gamecount;
 
 \c{gamelist} will be an array of \c{gamecount} game structures,
-declared in the source module \c{list.c}. The application should
-search that array for the game it wants, probably by reaching into
-each game structure and looking at its \c{name} field.
+declared in the automatically constructed source module \c{list.c}.
+The application should search that array for the game it wants,
+probably by reaching into each game structure and looking at its
+\c{name} field.
 
 }
 
