@@ -1219,9 +1219,7 @@ struct frontend {
 
 - (void)setStatusLine:(char *)text
 {
-    char *rewritten = midend_rewrite_statusbar(me, text);
-    [[status cell] setTitle:[NSString stringWithCString:rewritten]];
-    sfree(rewritten);
+    [[status cell] setTitle:[NSString stringWithCString:text]];
 }
 
 @end
