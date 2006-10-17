@@ -2121,7 +2121,7 @@ function; see \k{drawing-draw-circle}.
 
 \c void (*draw_update)(void *handle, int x, int y, int w, int h);
 
-This function behaves exactly like the back end \cw{draw_text()}
+This function behaves exactly like the back end \cw{draw_update()}
 function; see \k{drawing-draw-text}.
 
 An implementation of this API which only supports printing is
@@ -2267,7 +2267,7 @@ of the puzzle.
 
 Similarly, \c{ym} and \c{yc} specify the vertical position of the
 puzzle as a function of the page height: the page height times
-\c{xm}, plus \c{xc} millimetres, equals the desired distance from
+\c{ym}, plus \c{yc} millimetres, equals the desired distance from
 the top of the page to the top of the puzzle.
 
 (This unwieldy mechanism is required because not all printing
