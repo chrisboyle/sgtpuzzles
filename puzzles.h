@@ -278,7 +278,22 @@ void draw_rect_outline(drawing *dr, int x, int y, int w, int h,
 /*
  * dsf.c
  */
+int *snew_dsf(int size);
+
+void print_dsf(int *dsf, int size);
+
+/* Return the canonical element of the equivalence class containing element
+ * val.  If 'inverse' is non-NULL, this function will put into it a flag
+ * indicating whether the canonical element is inverse to val. */
+int edsf_canonify(int *dsf, int val, int *inverse);
 int dsf_canonify(int *dsf, int val);
+
+/* Allow the caller to specify that two elements should be in the same
+ * equivalence class.  If 'inverse' is TRUE, the elements are actually opposite
+ * to one another in some sense.  This function will fail an assertion if the
+ * caller gives it self-contradictory data, ie if two elements are claimed to
+ * be both opposite and non-opposite. */
+void edsf_merge(int *dsf, int v1, int v2, int inverse);
 void dsf_merge(int *dsf, int v1, int v2);
 void dsf_init(int *dsf, int len);
 
