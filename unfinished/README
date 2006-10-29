@@ -1,0 +1,9 @@
+This subdirectory contains puzzle implementations which are
+half-written, fundamentally flawed, or in other ways unready to be
+shipped as part of the polished Puzzles collection.
+
+Those puzzles which have .R files can be built as part of the
+Puzzles collection by symlinking their source files into the parent
+directory and re-running mkfiles.pl. Anything without a .R file
+isn't even finished enough to do that, and you should read the
+source file itself to find out the status.
