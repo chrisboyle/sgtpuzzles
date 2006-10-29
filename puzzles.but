@@ -1807,20 +1807,11 @@ These parameters are available from the \q{Custom...} option on the
 
 \dd Size of grid in squares.
 
-\dt \e{Recursion depth}
+\dt \e{Difficulty}
 
-\dd Determines how much guesswork and backtracking you will need to
-do to solve the puzzle. When this is set to zero (as it is for all
-of the \q{Easy} options in the menu), you should always be able to
-deduce the state of an edge without having to guess. If you increase
-it, you will have to guess more and more.
-
-\lcont{
-
-Setting a high value for this option is liable to consume a lot of
-CPU time and memory. Be warned!
-
-}
+\dd Controls the difficulty of the generated puzzle.
+\#{FIXME: what distinguishes Easy, Medium, and Hard? In particular,
+when are backtracking/guesswork required, if ever?}
 
 
 \C{inertia} \i{Inertia}
