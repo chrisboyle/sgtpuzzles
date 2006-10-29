@@ -60,17 +60,23 @@ done:
     sfree(inverse_elements);
 }
 
-int *snew_dsf(int size)
+void dsf_init(int *dsf, int size)
 {
     int i;
-    int *ret;
-    
-    ret = snewn(size, int);
+
     for (i = 0; i < size; i++) {
         /* Bottom bit of each element of this array stores whether that element
          * is opposite to its parent, which starts off as false */
-        ret[i] = i << 1; 
+        dsf[i] = i << 1;
     }
+}
+
+int *snew_dsf(int size)
+{
+    int *ret;
+    
+    ret = snewn(size, int);
+    dsf_init(ret, size);
 
     /*print_dsf(ret, size); */
 
