@@ -120,7 +120,7 @@ typedef struct solver_state {
 #define CONFIG(upper,title,lower,fn) ":" #title
 #define SOLVER_FN_DECL(upper,title,lower,fn) static int fn(solver_state *);
 #define SOLVER_FN(upper,title,lower,fn) &fn,
-enum diff { DIFFLIST(ENUM) DIFF_MAX };
+enum { DIFFLIST(ENUM) DIFF_MAX };
 static char const *const diffnames[] = { DIFFLIST(TITLE) };
 static char const diffchars[] = DIFFLIST(ENCODE);
 #define DIFFCONFIG DIFFLIST(CONFIG)
@@ -129,7 +129,7 @@ static int (*(solver_fns[]))(solver_state *) = { DIFFLIST(SOLVER_FN) };
 
 struct game_params {
     int w, h;
-    enum diff diff;
+    int diff;
     int rec;
 };
 
@@ -159,7 +159,7 @@ static int get_line_status_from_point(const game_state *state,
 static int dot_order(const game_state* state, int i, int j, char line_type);
 static int square_order(const game_state* state, int i, int j, char line_type);
 static solver_state *solve_game_rec(const solver_state *sstate,
-                                    enum diff diff);
+                                    int diff);
 
 #ifdef DEBUG_CACHES
 static void check_caches(const solver_state* sstate);
@@ -323,7 +323,7 @@ static void free_game(game_state *state)
     }
 }
 
-static solver_state *new_solver_state(const game_state *state, enum diff diff) {
+static solver_state *new_solver_state(const game_state *state, int diff) {
     int i, j;
     solver_state *ret = snew(solver_state);
 
@@ -520,14 +520,15 @@ static const game_params presets[] = {
 
 static int game_fetch_preset(int i, char **name, game_params **params)
 {
-    const game_params *tmppar;
+    game_params *tmppar;
     char buf[80];
 
     if (i < 0 || i >= lenof(presets))
         return FALSE;
 
-    tmppar = &presets[i];
-    *params = dup_params((game_params *)tmppar);
+    tmppar = snew(game_params);
+    *tmppar = presets[i];
+    *params = tmppar;
     sprintf(buf, "%dx%d %s", tmppar->h, tmppar->w, diffnames[tmppar->diff]);
     *name = dupstr(buf);
 
@@ -630,7 +631,7 @@ static char *validate_params(game_params *params, int full)
      * and custom_params will never generate anything that isn't
      * within range.
      */
-    assert(params->diff >= 0 && params->diff < DIFF_MAX);
+    assert(params->diff < DIFF_MAX);
 
     return NULL;
 }
@@ -656,12 +657,12 @@ static char *state_to_text(const game_state *state)
                 dp += sprintf(dp, "%c", (int)(empty_count + 'a' - 1));
                 empty_count = 0;
             }
-            dp += sprintf(dp, "%c", CLUE2CHAR(CLUE_AT(state, i, j)));
+            dp += sprintf(dp, "%c", (int)CLUE2CHAR(CLUE_AT(state, i, j)));
         }
     }
 
     if (empty_count)
-        dp += sprintf(dp, "%c", (empty_count + 'a' - 1));
+        dp += sprintf(dp, "%c", (int)(empty_count + 'a' - 1));
 
     retval = dupstr(description);
     sfree(description);
@@ -909,7 +910,7 @@ static char *game_text_format(game_state *state)
         rp += sprintf(rp, " \n");
         for (i = 0; i < state->w; ++i) {
             DRAW_VL;
-            rp += sprintf(rp, "%c", CLUE2CHAR(CLUE_AT(state, i, j)));
+            rp += sprintf(rp, "%c", (int)CLUE2CHAR(CLUE_AT(state, i, j)));
         }
         DRAW_VL;
         rp += sprintf(rp, "\n");
@@ -1646,7 +1647,7 @@ static void add_full_clues(game_state *state, random_state *rs)
     sfree(board);
 }
 
-static int game_has_unique_soln(const game_state *state, enum diff diff)
+static int game_has_unique_soln(const game_state *state, int diff)
 {
     int ret;
     solver_state *sstate_new;
@@ -1665,7 +1666,7 @@ static int game_has_unique_soln(const game_state *state, enum diff diff)
 
 /* Remove clues one at a time at random. */
 static game_state *remove_clues(game_state *state, random_state *rs, 
-                                enum diff diff)
+                                int diff)
 {
     int *square_list, squares;
     game_state *ret = dup_game(state), *saved_ret;
@@ -1743,7 +1744,9 @@ newboard_please:
     state = state_new;
 
     if (params->diff > 0 && game_has_unique_soln(state, params->diff-1)) {
+#ifdef SHOW_WORKING
         fprintf(stderr, "Rejecting board, it is too easy\n");
+#endif
         goto newboard_please;
     }
 
@@ -1883,16 +1886,14 @@ static const struct dline *get_dline(enum dline_desc desc)
 static enum dline_desc dline_desc_from_dirs(enum direction dir1, 
                                             enum direction dir2)
 {
-    const struct dline *dl;
     int i;
 
     assert (dir1 != dir2);
 
     for (i = 0; i < lenof(dlines); ++i) {
-        dl = &dlines[i];
-        if ((dir1 == dl->dir1 && dir2 == dl->dir2) ||
-            (dir1 == dl->dir2 && dir2 == dl->dir1)) {
-            return dl->desc;
+        if ((dir1 == dlines[i].dir1 && dir2 == dlines[i].dir2) ||
+            (dir1 == dlines[i].dir2 && dir2 == dlines[i].dir1)) {
+            return dlines[i].desc;
         }
     }
 
@@ -1904,7 +1905,7 @@ static enum dline_desc dline_desc_from_dirs(enum direction dir1,
  * dline corresponding to the dot or square at [i,j].  You'll get an assertion
  * failure if you talk about a dline that doesn't exist, ie if you ask about
  * non-touching lines around a square. */
-static inline int get_dot_dline(const game_state *state, const char *dline_array,
+static int get_dot_dline(const game_state *state, const char *dline_array,
                          int i, int j, enum dline_desc desc)
 {
 /*    fprintf(stderr, "get_dot_dline %p [%d,%d] %s\n", dline_array, i, j, DL2STR(desc)); */
@@ -2064,7 +2065,7 @@ static int square_setall_identical(solver_state *sstate, int x, int y,
 #define SQUARE_LINE(dx, dy, linedir, dir_dot, sqdir) \
     can[sqdir] = \
         edsf_canonify(sstate->hard->linedsf, \
-                      LINEDSF_INDEX(sstate->state, x+dx, y+dy, linedir), \
+                      LINEDSF_INDEX(sstate->state, x+(dx), y+(dy), linedir), \
                       &inv[sqdir]);
     
     SQUARE_LINES;
@@ -2083,7 +2084,7 @@ static int square_setall_identical(solver_state *sstate, int x, int y,
                  * consider {i,j} in the opposite order. */
 #define SQUARE_LINE(dx, dy, dir, c, sqdir) \
                 if (j == sqdir) { \
-                    retval = set_line_bydot(sstate, x+dx, y+dy, dir, line_new); \
+                    retval = set_line_bydot(sstate, x+(dx), y+(dy), dir, line_new); \
                     if (retval) { \
                         break; \
                     } \
@@ -2341,7 +2342,7 @@ static int easy_mode_deductions(solver_state *sstate)
 {
     int i, j, h, w, current_yes, current_no;
     game_state *state;
-    enum diff diff = DIFF_MAX;
+    int diff = DIFF_MAX;
 
     state = sstate->state;
     h = state->h;
@@ -2461,7 +2462,7 @@ static int normal_mode_deductions(solver_state *sstate)
     int i, j;
     game_state *state = sstate->state;
     enum dline_desc dd;
-    enum diff diff = DIFF_MAX;
+    int diff = DIFF_MAX;
 
     FORALL_SQUARES(state, i, j) {
         if (sstate->square_solved[SQUARE_INDEX(state, i, j)])
@@ -2649,7 +2650,7 @@ static int hard_mode_deductions(solver_state *sstate)
     const int h=state->h, w=state->w;
     enum direction dir1, dir2;
     int can1, can2, inv1, inv2;
-    enum diff diff = DIFF_MAX;
+    int diff = DIFF_MAX;
     const struct dline *dl;
     enum dline_desc dd;
 
@@ -3054,7 +3055,7 @@ finished_loop_deductionsing:
 /* This will return a dynamically allocated solver_state containing the (more)
  * solved grid */
 static solver_state *solve_game_rec(const solver_state *sstate_start, 
-                                    enum diff diff)
+                                    int diff)
 {
     int i, j;
     int w, h;

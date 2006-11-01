@@ -9,7 +9,7 @@
 
 #include "puzzles.h"
 
-void print_dsf(int *dsf, int size)
+/*void print_dsf(int *dsf, int size)
 {
     int *printed_elements = snewn(size, int);
     int *equal_elements = snewn(size, int);
@@ -58,7 +58,7 @@ done:
     sfree(printed_elements);
     sfree(equal_elements);
     sfree(inverse_elements);
-}
+}*/
 
 void dsf_init(int *dsf, int size)
 {
