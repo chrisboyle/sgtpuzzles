@@ -468,15 +468,13 @@ static int slant_solve(int w, int h, const signed char *clues,
      * Establish a disjoint set forest for tracking connectedness
      * between grid points.
      */
-    for (i = 0; i < W*H; i++)
-	sc->connected[i] = i;	       /* initially all distinct */
+    dsf_init(sc->connected, W*H);
 
     /*
      * Establish a disjoint set forest for tracking which squares
      * are known to slant in the same direction.
      */
-    for (i = 0; i < w*h; i++)
-	sc->equiv[i] = i;	       /* initially all distinct */
+    dsf_init(sc->equiv, w*h);
 
     /*
      * Clear the slashval array.
@@ -1006,9 +1004,7 @@ static void slant_generate(int w, int h, signed char *soln, random_state *rs)
      * Establish a disjoint set forest for tracking connectedness
      * between grid points.
      */
-    connected = snewn(W*H, int);
-    for (i = 0; i < W*H; i++)
-	connected[i] = i;		       /* initially all distinct */
+    connected = snew_dsf(W*H);
 
     /*
      * Prepare a list of the squares in the grid, and fill them in
@@ -1389,8 +1385,7 @@ static int check_completion(game_state *state)
      * edge is visited at most twice.
      */
     dsf = state->clues->tmpdsf;
-    for (i = 0; i < W*H; i++)
-        dsf[i] = i;		       /* initially all distinct */
+    dsf_init(dsf, W*H);
     for (y = 0; y < h; y++)
         for (x = 0; x < w; x++) {
             int i1, i2;

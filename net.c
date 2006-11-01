@@ -521,9 +521,7 @@ static int net_solver(int w, int h, unsigned char *tiles,
      * classes) by finding the representative of each tile and
      * setting equivalence[one]=the_other.
      */
-    equivalence = snewn(w * h, int);
-    for (i = 0; i < w*h; i++)
-	equivalence[i] = i;	       /* initially all distinct */
+    equivalence = snew_dsf(w * h);
 
     /*
      * On a non-wrapping grid, we instantly know that all the edges

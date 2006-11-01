@@ -1064,8 +1064,7 @@ static void map_group(game_state *state)
     struct island *is, *is_join;
 
     /* Initialise dsf. */
-    for (i = 0; i < wh; i++)
-        dsf[i] = i;
+    dsf_init(dsf, wh);
 
     /* For each island, find connected islands right or down
      * and merge the dsf for the island squares as well as the
@@ -1602,9 +1601,8 @@ static game_state *new_state(game_params *params)
     ret->solved = ret->completed = 0;
 
     ret->solver = snew(struct solver_state);
-    ret->solver->dsf = snewn(wh, int);
+    ret->solver->dsf = snew_dsf(wh);
     ret->solver->tmpdsf = snewn(wh, int);
-    for (i = 0; i < wh; i++) ret->solver->dsf[i] = i;
 
     ret->solver->refcount = 1;
 

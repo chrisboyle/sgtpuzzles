@@ -1695,8 +1695,7 @@ static char *parse_edge_list(game_params *params, char **desc, int *map)
     int i, k, pos, state;
     char *p = *desc;
 
-    for (i = 0; i < wh; i++)
-	map[wh+i] = i;
+    dsf_init(map+wh, wh);
 
     pos = -1;
     state = 0;
