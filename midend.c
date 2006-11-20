@@ -550,6 +550,7 @@ static int midend_really_process_key(midend *me, int x, int y, int button)
              * state has been updated and a redraw is called for.
              */
             midend_redraw(me);
+            midend_set_timer(me);
             goto done;
         } else if (s) {
 	    midend_stop_anim(me);
@@ -741,6 +742,8 @@ void midend_redraw(midend *me)
 
 void midend_timer(midend *me, float tplus)
 {
+    int need_redraw = (me->anim_time > 0 || me->flash_time > 0);
+
     me->anim_pos += tplus;
     if (me->anim_pos >= me->anim_time ||
         me->anim_time == 0 || !me->oldstate) {
@@ -753,7 +756,8 @@ void midend_timer(midend *me, float tplus)
 	me->flash_pos = me->flash_time = 0;
     }
 
-    midend_redraw(me);
+    if (need_redraw)
+        midend_redraw(me);
 
     if (me->timing) {
 	float oldelapsed = me->elapsed;
