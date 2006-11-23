@@ -413,6 +413,8 @@ struct game_ui {
 
     int drag_col, drag_x, drag_y; /* x and y are *center* of peg! */
     int drag_opeg; /* peg index, if dragged from a peg (from current guess), otherwise -1 */
+
+    int show_labels;                   /* label the colours with letters */
 };
 
 static game_ui *new_ui(game_state *state)
@@ -637,6 +639,14 @@ static char *interpret_move(game_state *from, game_ui *ui, game_drawstate *ds,
 
     int guess_ox = GUESS_X(from->next_go, 0);
     int guess_oy = GUESS_Y(from->next_go, 0);
+
+    /*
+     * Enable or disable labels on colours.
+     */
+    if (button == 'l' || button == 'L') {
+        ui->show_labels = !ui->show_labels;
+        return "";
+    }
 
     if (from->solved) return NULL;
 
@@ -905,8 +915,8 @@ static float *game_colours(frontend *fe, int *ncolours)
     ret[COL_3 * 3 + 2] = 0.0F;
 
     /* blue */
-    ret[COL_4 * 3 + 0] = 0.0F;
-    ret[COL_4 * 3 + 1] = 0.0F;
+    ret[COL_4 * 3 + 0] = 0.2F;
+    ret[COL_4 * 3 + 1] = 0.3F;
     ret[COL_4 * 3 + 2] = 1.0F;
 
     /* orange */
@@ -920,13 +930,13 @@ static float *game_colours(frontend *fe, int *ncolours)
     ret[COL_6 * 3 + 2] = 0.7F;
 
     /* brown */
-    ret[COL_7 * 3 + 0] = 0.4F;
-    ret[COL_7 * 3 + 1] = 0.2F;
-    ret[COL_7 * 3 + 2] = 0.2F;
+    ret[COL_7 * 3 + 0] = 0.5F;
+    ret[COL_7 * 3 + 1] = 0.3F;
+    ret[COL_7 * 3 + 2] = 0.3F;
 
     /* light blue */
     ret[COL_8 * 3 + 0] = 0.4F;
-    ret[COL_8 * 3 + 1] = 0.7F;
+    ret[COL_8 * 3 + 1] = 0.8F;
     ret[COL_8 * 3 + 2] = 1.0F;
 
     /* light green */
@@ -1025,7 +1035,7 @@ static void game_free_drawstate(drawing *dr, game_drawstate *ds)
 }
 
 static void draw_peg(drawing *dr, game_drawstate *ds, int cx, int cy,
-		     int moving, int col)
+		     int moving, int labelled, int col)
 {
     /*
      * Some platforms antialias circles, which means we shouldn't
@@ -1043,6 +1053,15 @@ static void draw_peg(drawing *dr, game_drawstate *ds, int cx, int cy,
 		    COL_EMPTY + col, (col ? COL_FRAME : COL_EMPTY));
     } else
         draw_rect(dr, cx, cy, PEGSZ, PEGSZ, COL_EMPTY + col);
+
+    if (labelled && col) {
+        char buf[2];
+        buf[0] = 'a'-1 + col;
+        buf[1] = '\0';
+        draw_text(dr, cx+PEGRAD, cy+PEGRAD, FONT_VARIABLE, PEGRAD,
+                  ALIGN_HCENTRE|ALIGN_VCENTRE, COL_FRAME, buf);
+    }
+
     draw_update(dr, cx-CGAP, cy-CGAP, PEGSZ+CGAP*2, PEGSZ+CGAP*2);
 }
 
@@ -1054,7 +1073,8 @@ static void draw_cursor(drawing *dr, game_drawstate *ds, int x, int y)
 }
 
 static void guess_redraw(drawing *dr, game_drawstate *ds, int guess,
-                         pegrow src, int *holds, int cur_col, int force)
+                         pegrow src, int *holds, int cur_col, int force,
+                         int labelled)
 {
     pegrow dest;
     int rowx, rowy, i, scol;
@@ -1076,8 +1096,11 @@ static void guess_redraw(drawing *dr, game_drawstate *ds, int guess,
             scol |= 0x1000;
         if (holds && holds[i])
             scol |= 0x2000;
+        if (labelled)
+            scol |= 0x4000;
         if ((dest->pegs[i] != scol) || force) {
-	    draw_peg(dr, ds, rowx + PEGOFF * i, rowy, FALSE, scol &~ 0x3000);
+	    draw_peg(dr, ds, rowx + PEGOFF * i, rowy, FALSE, labelled,
+                     scol &~ 0x7000);
             /*
              * Hold marker.
              */
@@ -1201,8 +1224,10 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
         int val = i+1;
         if (ui->display_cur && ui->colour_cur == i)
             val |= 0x1000;
+        if (ui->show_labels)
+            val |= 0x2000;
         if (ds->colours->pegs[i] != val) {
-	    draw_peg(dr, ds, COL_X(i), COL_Y(i), FALSE, i+1);
+	    draw_peg(dr, ds, COL_X(i), COL_Y(i), FALSE, ui->show_labels, i+1);
             if (val & 0x1000)
                 draw_cursor(dr, ds, COL_X(i), COL_Y(i));
             ds->colours->pegs[i] = val;
@@ -1214,20 +1239,22 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
     for (i = state->params.nguesses - 1; i >= 0; i--) {
         if (state->next_go > i || state->solved) {
             /* this info is stored in the game_state already */
-            guess_redraw(dr, ds, i, state->guesses[i], NULL, -1, 0);
+            guess_redraw(dr, ds, i, state->guesses[i], NULL, -1, 0,
+                         ui->show_labels);
             hint_redraw(dr, ds, i, state->guesses[i],
                         i == (state->next_go-1) ? 1 : 0, FALSE, FALSE);
         } else if (state->next_go == i) {
             /* this is the one we're on; the (incomplete) guess is
              * stored in the game_ui. */
             guess_redraw(dr, ds, i, ui->curr_pegs,
-                         ui->holds, ui->display_cur ? ui->peg_cur : -1, 0);
+                         ui->holds, ui->display_cur ? ui->peg_cur : -1, 0,
+                         ui->show_labels);
             hint_redraw(dr, ds, i, NULL, 1,
                         ui->display_cur && ui->peg_cur == state->params.npegs,
                         ui->markable);
         } else {
             /* we've not got here yet; it's blank. */
-            guess_redraw(dr, ds, i, NULL, NULL, -1, 0);
+            guess_redraw(dr, ds, i, NULL, NULL, -1, 0, ui->show_labels);
             hint_redraw(dr, ds, i, NULL, 0, FALSE, FALSE);
         }
     }
@@ -1245,7 +1272,8 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
         draw_update(dr, SOLN_OX, SOLN_OY, SOLN_W, SOLN_H);
     }
     if (state->solved)
-        guess_redraw(dr, ds, -1, state->solution, NULL, -1, !ds->solved);
+        guess_redraw(dr, ds, -1, state->solution, NULL, -1, !ds->solved,
+                     ui->show_labels);
     ds->solved = state->solved;
 
     ds->next_go = state->next_go;
@@ -1257,7 +1285,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
         int oy = ui->drag_y - (PEGSZ/2);
         debug(("Saving to blitter at (%d,%d)", ox, oy));
         blitter_save(dr, ds->blit_peg, ox, oy);
-        draw_peg(dr, ds, ox, oy, TRUE, ui->drag_col);
+        draw_peg(dr, ds, ox, oy, TRUE, ui->show_labels, ui->drag_col);
 
         ds->blit_ox = ox; ds->blit_oy = oy;
     }
