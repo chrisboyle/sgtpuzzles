@@ -1911,12 +1911,12 @@ static void draw_tile(drawing *dr, game_drawstate *ds, int x, int y, int v)
 	int coords[8];
 
 	coords[0] = tx+TILESIZE/2;
-	coords[1] = ty+TILESIZE*1/7;
-	coords[2] = tx+TILESIZE*1/7;
+	coords[1] = ty+TILESIZE/2-TILESIZE*5/14;
+	coords[2] = tx+TILESIZE/2-TILESIZE*5/14;
 	coords[3] = ty+TILESIZE/2;
 	coords[4] = tx+TILESIZE/2;
-	coords[5] = ty+TILESIZE-TILESIZE*1/7;
-	coords[6] = tx+TILESIZE-TILESIZE*1/7;
+	coords[5] = ty+TILESIZE/2+TILESIZE*5/14;
+	coords[6] = tx+TILESIZE/2+TILESIZE*5/14;
 	coords[7] = ty+TILESIZE/2;
 
 	draw_polygon(dr, coords, 4, COL_GEM, COL_OUTLINE);
