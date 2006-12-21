@@ -3791,14 +3791,14 @@ static void game_print(drawing *dr, game_state *state, int tilesize)
     /*
      * Lines. (At the moment, I'm not bothering with crosses.)
      */
-    FORALL_VL(state, x, y) {
+    FORALL_HL(state, x, y) {
         if (RIGHTOF_DOT(state, x, y) == LINE_YES)
         draw_rect(dr, BORDER + x * TILE_SIZE,
                   BORDER + y * TILE_SIZE - LINEWIDTH/2,
                   TILE_SIZE, (LINEWIDTH/2) * 2 + 1, ink);
     }
 
-    FORALL_HL(state, x, y) {
+    FORALL_VL(state, x, y) {
         if (BELOW_DOT(state, x, y) == LINE_YES)
         draw_rect(dr, BORDER + x * TILE_SIZE - LINEWIDTH/2,
                   BORDER + y * TILE_SIZE,
