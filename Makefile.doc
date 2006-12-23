@@ -5,3 +5,10 @@ puzzles.hlp puzzles.txt: puzzles.but
 
 HACKING: devel.but
 	halibut --text=HACKING devel.but
+
+chm: puzzles.hhp
+puzzles.hhp: puzzles.but chm.but
+	halibut --html puzzles.but chm.but
+
+clean:
+	rm -f puzzles.hlp puzzles.txt HACKING *.html *.hh[pck]
