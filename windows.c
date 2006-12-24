@@ -1065,7 +1065,7 @@ static void init_help(void)
 /*
  * Start Help.
  */
-static void start_help(frontend *fe, char *topic)
+static void start_help(frontend *fe, const char *topic)
 {
     char *str = NULL;
     int cmd;
