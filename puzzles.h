@@ -364,7 +364,7 @@ void free_combi(combi_ctx *combi);
  */
 struct game {
     const char *name;
-    const char *winhelp_topic;
+    const char *winhelp_topic, *htmlhelp_topic;
     game_params *(*default_params)(void);
     int (*fetch_preset)(int i, char **name, game_params **params);
     void (*decode_params)(game_params *, char const *string);

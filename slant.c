@@ -2186,7 +2186,7 @@ static void game_print(drawing *dr, game_state *state, int tilesize)
 #endif
 
 const struct game thegame = {
-    "Slant", "games.slant",
+    "Slant", "games.slant", "slant",
     default_params,
     game_fetch_preset,
     decode_params,

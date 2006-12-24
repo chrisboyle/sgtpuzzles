@@ -1700,7 +1700,7 @@ static void game_print(drawing *dr, game_state *state, int tilesize)
 #endif
 
 const struct game thegame = {
-    "Cube", "games.cube",
+    "Cube", "games.cube", "cube",
     default_params,
     game_fetch_preset,
     decode_params,

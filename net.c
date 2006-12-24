@@ -2824,7 +2824,7 @@ static void game_print(drawing *dr, game_state *state, int tilesize)
 #endif
 
 const struct game thegame = {
-    "Net", "games.net",
+    "Net", "games.net", "net",
     default_params,
     game_fetch_preset,
     decode_params,

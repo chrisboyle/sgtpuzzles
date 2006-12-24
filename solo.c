@@ -3052,7 +3052,7 @@ static void game_print(drawing *dr, game_state *state, int tilesize)
 #endif
 
 const struct game thegame = {
-    "Solo", "games.solo",
+    "Solo", "games.solo", "solo",
     default_params,
     game_fetch_preset,
     decode_params,

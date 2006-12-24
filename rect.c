@@ -2836,7 +2836,7 @@ static void game_print(drawing *dr, game_state *state, int tilesize)
 #endif
 
 const struct game thegame = {
-    "Rectangles", "games.rectangles",
+    "Rectangles", "games.rectangles", "rectangles",
     default_params,
     game_fetch_preset,
     decode_params,

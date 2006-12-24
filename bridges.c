@@ -2629,7 +2629,7 @@ static void game_print(drawing *dr, game_state *state, int ts)
 #endif
 
 const struct game thegame = {
-    "Bridges", "games.bridges",
+    "Bridges", "games.bridges", "bridges",
     default_params,
     game_fetch_preset,
     decode_params,

@@ -1414,7 +1414,7 @@ static void game_print(drawing *dr, game_state *state, int tilesize)
 #endif
 
 const struct game thegame = {
-    "Sokoban", NULL,
+    "Sokoban", NULL, NULL,
     default_params,
     game_fetch_preset,
     decode_params,

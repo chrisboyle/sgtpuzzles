@@ -1398,7 +1398,7 @@ static void game_print(drawing *dr, game_state *state, int tilesize)
 #endif
 
 const struct game thegame = {
-    "Black Box", "games.blackbox",
+    "Black Box", "games.blackbox", "blackbox",
     default_params,
     game_fetch_preset,
     decode_params,

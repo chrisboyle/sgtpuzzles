@@ -4,6 +4,7 @@
 
 #include <windows.h>
 #include <commctrl.h>
+#include <htmlhelp.h>
 
 #include <stdio.h>
 #include <assert.h>
@@ -35,6 +36,16 @@
 
 #define HELP_FILE_NAME  "puzzles.hlp"
 #define HELP_CNT_NAME   "puzzles.cnt"
+#define CHM_FILE_NAME   "puzzles.chm"
+
+typedef HWND (CALLBACK *htmlhelp_t)(HWND, LPCSTR, UINT, DWORD);
+static DWORD html_help_cookie;
+static htmlhelp_t htmlhelp;
+static HINSTANCE hh_dll;
+enum { NONE, HLP, CHM } help_type;
+char *help_path;
+const char *help_topic;
+int help_has_contents;
 
 #ifdef DEBUGGING
 static FILE *debug_fp = NULL;
@@ -119,8 +130,7 @@ struct frontend {
     HFONT cfgfont;
     HBRUSH oldbr;
     HPEN oldpen;
-    char *help_path;
-    int help_has_contents;
+    int help_running;
     enum { DRAWING, PRINTING, NOTHING } drawstatus;
     DOCINFO di;
     int printcount, printw, printh, printsolns, printcurr, printcolour;
@@ -981,31 +991,150 @@ void write_clip(HWND hwnd, char *data)
 }
 
 /*
- * See if we can find a help file.
+ * Set up Help and see if we can find a help file.
  */
-static void find_help_file(frontend *fe)
+static void init_help(void)
 {
     char b[2048], *p, *q, *r;
     FILE *fp;
-    if (!fe->help_path) {
-        GetModuleFileName(NULL, b, sizeof(b) - 1);
-        r = b;
-        p = strrchr(b, '\\');
-        if (p && p >= r) r = p+1;
-        q = strrchr(b, ':');
-        if (q && q >= r) r = q+1;
-        strcpy(r, HELP_FILE_NAME);
-        if ( (fp = fopen(b, "r")) != NULL) {
-            fe->help_path = dupstr(b);
-            fclose(fp);
-        } else
-            fe->help_path = NULL;
-        strcpy(r, HELP_CNT_NAME);
-        if ( (fp = fopen(b, "r")) != NULL) {
-            fe->help_has_contents = TRUE;
-            fclose(fp);
-        } else
-            fe->help_has_contents = FALSE;
+
+    /*
+     * Find the executable file path, so we can look alongside
+     * it for help files. Trim the filename off the end.
+     */
+    GetModuleFileName(NULL, b, sizeof(b) - 1);
+    r = b;
+    p = strrchr(b, '\\');
+    if (p && p >= r) r = p+1;
+    q = strrchr(b, ':');
+    if (q && q >= r) r = q+1;
+
+    /*
+     * Try HTML Help first.
+     */
+    strcpy(r, CHM_FILE_NAME);
+    if ( (fp = fopen(b, "r")) != NULL) {
+	fclose(fp);
+
+	/*
+	 * We have a .CHM. See if we can use it.
+	 */
+	hh_dll = LoadLibrary("hhctrl.ocx");
+	if (hh_dll) {
+	    htmlhelp = (htmlhelp_t)GetProcAddress(hh_dll, "HtmlHelpA");
+	    if (!htmlhelp)
+		FreeLibrary(hh_dll);
+	}
+	if (htmlhelp) {
+	    htmlhelp(NULL, NULL, HH_INITIALIZE, (DWORD)&html_help_cookie);
+	    help_path = dupstr(b);
+	    help_type = CHM;
+	    help_topic = thegame.htmlhelp_topic;
+	    return;
+	}
+    }
+
+    /*
+     * Now try old-style .HLP.
+     */
+    strcpy(r, HELP_FILE_NAME);
+    if ( (fp = fopen(b, "r")) != NULL) {
+	fclose(fp);
+
+	help_path = dupstr(b);
+	help_type = HLP;
+
+	help_topic = thegame.winhelp_topic;
+
+	/*
+	 * See if there's a .CNT file alongside it.
+	 */
+	strcpy(r, HELP_CNT_NAME);
+	if ( (fp = fopen(b, "r")) != NULL) {
+	    fclose(fp);
+	    help_has_contents = TRUE;
+	} else
+	    help_has_contents = FALSE;
+
+	return;
+    }
+
+    help_type = NONE;	       /* didn't find any */
+}
+
+/*
+ * Start Help.
+ */
+static void start_help(frontend *fe, char *topic)
+{
+    char *str = NULL;
+    int cmd;
+
+    switch (help_type) {
+      case HLP:
+	assert(help_path);
+	if (topic) {
+	    str = snewn(10+strlen(topic), char);
+	    sprintf(str, "JI(`',`%s')", topic);
+	    cmd = HELP_COMMAND;
+	} else if (help_has_contents) {
+	    cmd = HELP_FINDER;
+	} else {
+	    cmd = HELP_CONTENTS;
+	}
+	WinHelp(fe->hwnd, help_path, cmd, (DWORD)str);
+	fe->help_running = TRUE;
+	break;
+      case CHM:
+	assert(help_path);
+	assert(htmlhelp);
+	if (topic) {
+	    str = snewn(20 + strlen(topic) + strlen(help_path), char);
+	    sprintf(str, "%s::/%s.html>main", help_path, topic);
+	} else {
+	    str = dupstr(help_path);
+	}
+	htmlhelp(fe->hwnd, str, HH_DISPLAY_TOPIC, 0);
+	fe->help_running = TRUE;
+	break;
+      case NONE:
+	assert(!"This shouldn't happen");
+	break;
+    }
+
+    sfree(str);
+}
+
+/*
+ * Stop Help on window cleanup.
+ */
+static void stop_help(frontend *fe)
+{
+    if (fe->help_running) {
+	switch (help_type) {
+	  case HLP:
+	    WinHelp(fe->hwnd, help_path, HELP_QUIT, 0);
+	    break;
+	  case CHM:
+	    assert(htmlhelp);
+	    htmlhelp(NULL, NULL, HH_CLOSE_ALL, 0);
+	    break;
+	  case NONE:
+	    assert(!"This shouldn't happen");
+	    break;
+	}
+	fe->help_running = FALSE;
+    }
+}
+
+/*
+ * Terminate Help on process exit.
+ */
+static void cleanup_help(void)
+{
+    if (help_type == CHM) {
+	assert(htmlhelp);
+	htmlhelp(NULL, NULL, HH_UNINITIALIZE, html_help_cookie);
     }
 }
 
@@ -1096,13 +1225,12 @@ static frontend *new_window(HINSTANCE inst, char *game_id, char **error)
         }
     }
 
-    fe->help_path = NULL;
-    find_help_file(fe);
-
     fe->inst = inst;
 
     fe->timer = 0;
     fe->hwnd = NULL;
+
+    fe->help_running = FALSE;
 
     fe->drawstatus = NOTHING;
     fe->dr = NULL;
@@ -1235,10 +1363,10 @@ static frontend *new_window(HINSTANCE inst, char *game_id, char **error)
 	menu = CreateMenu();
 	AppendMenu(bar, MF_ENABLED|MF_POPUP, (UINT)menu, "Help");
 	AppendMenu(menu, MF_ENABLED, IDM_ABOUT, "About");
-        if (fe->help_path) {
+        if (help_type != NONE) {
 	    AppendMenu(menu, MF_SEPARATOR, 0, 0);
             AppendMenu(menu, MF_ENABLED, IDM_HELPC, "Contents");
-            if (thegame.winhelp_topic) {
+            if (help_topic) {
                 char *item;
                 assert(thegame.name);
                 item = snewn(9+strlen(thegame.name), char); /*ick*/
@@ -2091,19 +2219,10 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
 
 	    break;
           case IDM_HELPC:
-            assert(fe->help_path);
-            WinHelp(hwnd, fe->help_path,
-                    fe->help_has_contents ? HELP_FINDER : HELP_CONTENTS, 0);
-            break;
+	    start_help(fe, NULL);
+	    break;
           case IDM_GAMEHELP:
-            assert(fe->help_path);
-            assert(thegame.winhelp_topic);
-            {
-                char *cmd = snewn(10+strlen(thegame.winhelp_topic), char);
-                sprintf(cmd, "JI(`',`%s')", thegame.winhelp_topic);
-                WinHelp(hwnd, fe->help_path, HELP_COMMAND, (DWORD)cmd);
-                sfree(cmd);
-            }
+	    start_help(fe, help_topic);
             break;
 	  default:
 	    {
@@ -2118,6 +2237,7 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
 	}
 	break;
       case WM_DESTROY:
+	stop_help(fe);
 	PostQuitMessage(0);
 	return 0;
       case WM_PAINT:
@@ -2333,6 +2453,8 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
     while (*cmdline && isspace((unsigned char)*cmdline))
 	cmdline++;
 
+    init_help();
+
     if (!new_window(inst, *cmdline ? cmdline : NULL, &error)) {
 	char buf[128];
 	sprintf(buf, "%.100s Error", thegame.name);
@@ -2343,6 +2465,8 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
     while (GetMessage(&msg, NULL, 0, 0)) {
 	DispatchMessage(&msg);
     }
+
+    cleanup_help();
 
     return msg.wParam;
 }

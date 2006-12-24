@@ -1324,7 +1324,7 @@ static void game_print(drawing *dr, game_state *state, int tilesize)
 #endif
 
 const struct game thegame = {
-    "Guess", "games.guess",
+    "Guess", "games.guess", "guess",
     default_params,
     game_fetch_preset,
     decode_params,

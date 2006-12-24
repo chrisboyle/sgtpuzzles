@@ -1740,7 +1740,7 @@ static void game_print(drawing *dr, game_state *state, int tilesize)
 #endif
 
 const struct game thegame = {
-    "Dominosa", "games.dominosa",
+    "Dominosa", "games.dominosa", "dominosa",
     default_params,
     game_fetch_preset,
     decode_params,
