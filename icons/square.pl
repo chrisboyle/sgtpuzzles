@@ -17,13 +17,13 @@ $ident =~ /(\d+) (\d+)/ or die "unable to get size for $infile\n";
 
 # Read the input image data.
 $data = [];
-open IDATA, "convert $infile rgb:- |";
+open IDATA, "convert -depth 8 $infile rgb:- |";
 push @$data, $rgb while (read IDATA,$rgb,3,0) == 3;
 close IDATA;
 # Check we have the right amount of data.
 $xl = $w * $h;
 $al = scalar @$data;
-die "wrong amount of image data ($al, expected $xl) from $img\n"
+die "wrong amount of image data ($al, expected $xl) from $infile\n"
   unless $al == $xl;
 
 # Find the background colour. We assume the image already has a
