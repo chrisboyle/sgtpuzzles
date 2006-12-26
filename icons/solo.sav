@@ -1,0 +1,36 @@
+SAVEFILE:41:Simon Tatham's Portable Puzzle Collection
+VERSION :1:1
+GAME    :4:Solo
+PARAMS  :3:3x3
+CPARAMS :3:3x3
+DESC    :73:a2e9a5b6a2b3_7a1_4a9_6a2b4_1a7_2b1_7e6_9b2_5a8_1b6a5_9a3_8a7_2b8a6b1a1e4a
+NSTATES :2:29
+STATEPOS:2:29
+MOVE    :6:R7,1,1
+MOVE    :6:R4,6,1
+MOVE    :6:R5,0,1
+MOVE    :6:R0,0,4
+MOVE    :6:R2,0,6
+MOVE    :6:R1,2,3
+MOVE    :6:R0,3,9
+MOVE    :6:R1,3,5
+MOVE    :6:R2,4,8
+MOVE    :6:R0,5,3
+MOVE    :6:R1,5,6
+MOVE    :6:R1,6,4
+MOVE    :6:R4,7,4
+MOVE    :6:R7,6,2
+MOVE    :6:R7,7,5
+MOVE    :6:R8,8,6
+MOVE    :6:R7,3,3
+MOVE    :6:R8,3,7
+MOVE    :6:R8,3,8
+MOVE    :6:R6,4,5
+MOVE    :6:R7,5,7
+MOVE    :6:R8,5,4
+MOVE    :6:R7,2,8
+MOVE    :6:R8,0,5
+MOVE    :6:R4,2,5
+MOVE    :6:R4,3,6
+MOVE    :6:R5,4,4
+MOVE    :6:R4,5,9

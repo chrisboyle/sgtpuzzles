@@ -215,6 +215,7 @@ int midend_process_key(midend *me, int x, int y, int button);
 void midend_force_redraw(midend *me);
 void midend_redraw(midend *me);
 float *midend_colours(midend *me, int *ncolours);
+void midend_freeze_timer(midend *me, float tprop);
 void midend_timer(midend *me, float tplus);
 int midend_num_presets(midend *me);
 void midend_fetch_preset(midend *me, int n,

@@ -1,0 +1,27 @@
+SAVEFILE:41:Simon Tatham's Portable Puzzle Collection
+VERSION :1:1
+GAME    :9:Black Box
+PARAMS  :8:w8h8m5M5
+CPARAMS :8:w8h8m5M5
+SEED    :15:999785320716678
+DESC    :24:c8b9f8528193756b9a2fd24d
+UI      :2:E0
+NSTATES :2:18
+STATEPOS:2:13
+MOVE    :2:F2
+MOVE    :2:F4
+MOVE    :2:F5
+MOVE    :3:F25
+MOVE    :3:F26
+MOVE    :3:F11
+MOVE    :3:F12
+MOVE    :3:F15
+MOVE    :4:T7,7
+MOVE    :4:T7,4
+MOVE    :4:T1,7
+MOVE    :2:F3
+MOVE    :2:F9
+MOVE    :3:F27
+MOVE    :4:T5,7
+MOVE    :4:T1,8
+MOVE    :1:R

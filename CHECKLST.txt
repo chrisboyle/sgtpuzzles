@@ -34,11 +34,16 @@ structure in the source file.
 
 Add the new Unix binary name to the svn:ignore property.
 
-Don't forget to `svn add' the new source file, and the new .R file,
-before checkin!
+Make a screenshot:
+ - create an appropriate save file in `icons'
+ - add the puzzle name to icons/Makefile
+ - set up a REDO property in icons/Makefile if desired
+
+Don't forget to `svn add' the new source file, the new .R file and
+the save file in `icons', before checkin!
 
 Put the puzzle on the web:
- - make a screenshot
+ - make sure the screenshot is actually in the www directory
  - add an entry in the puzzles list in index.html
  - adjust the copyright in index.html if the puzzle is by a new
    author

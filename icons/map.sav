@@ -1,0 +1,27 @@
+SAVEFILE:41:Simon Tatham's Portable Puzzle Collection
+VERSION :1:1
+GAME    :3:Map
+PARAMS  :10:20x20n30dn
+CPARAMS :10:20x20n30dn
+SEED    :15:794003990129265
+DESC    :264:dcbakatgcaaedaccabfabadbaaaagaiaaaeaiadcaaaafabccbdcaaecabggedfaebqbadgbngcblabdaadaaaeagabaaaacaacacbcaebabaabaebaafaaakabdhcdanaaceagakacbbajaaadbacbaaccbcbicdafbadgbaccbkcdaafbacbcaaabcddacaaaaddbabcdbbacabbhagajabbobcdjaecaafabahaaaffead,23a01c3c1a3d2a20b01a3a
+AUXINFO :282:738e7a68c5d32445002968f3726646962b3604ef27a3657e0fdc0fd8180d5b747febd4619487bbc8bec5a48c709b154eb8da39c9b49be1e312a381fc2394e53126714079bd82e8444dad92419429635d1c816c53774b8c77b4ce03884c94d12bfb757cd93b5600471cb9726b3f2afe74d9932abeaa2efd6a496cad793ce5b221f943d620e883794f9d56741908
+NSTATES :2:18
+STATEPOS:2:12
+MOVE    :4:3:20
+MOVE    :4:0:24
+MOVE    :4:3:10
+MOVE    :4:1:18
+MOVE    :4:2:11
+MOVE    :4:3:17
+MOVE    :4:1:23
+MOVE    :4:3:27
+MOVE    :4:1:29
+MOVE    :4:0:16
+MOVE    :4:2:13
+MOVE    :3:1:6
+MOVE    :3:2:2
+MOVE    :3:0:7
+MOVE    :3:2:9
+MOVE    :4:0:15
+MOVE    :3:3:5

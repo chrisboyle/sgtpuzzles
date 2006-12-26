@@ -740,6 +740,17 @@ void midend_redraw(midend *me)
     }
 }
 
+/*
+ * Nasty hacky function used to implement the --redo option in
+ * gtk.c. Only used for generating the puzzles' icons.
+ */
+void midend_freeze_timer(midend *me, float tprop)
+{
+    me->anim_pos = me->anim_time * tprop;
+    midend_redraw(me);
+    deactivate_timer(me->frontend);
+}
+
 void midend_timer(midend *me, float tplus)
 {
     int need_redraw = (me->anim_time > 0 || me->flash_time > 0);

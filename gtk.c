@@ -1451,7 +1451,9 @@ static void add_menu_separator(GtkContainer *cont)
     gtk_widget_show(menuitem);
 }
 
-static frontend *new_window(char *arg, char **error)
+enum { ARG_EITHER, ARG_SAVE, ARG_ID }; /* for argtype */
+
+static frontend *new_window(char *arg, int argtype, char **error)
 {
     frontend *fe;
     GtkBox *vbox;
@@ -1468,30 +1470,53 @@ static frontend *new_window(char *arg, char **error)
 
     if (arg) {
 	char *err;
+	FILE *fp;
 
 	errbuf[0] = '\0';
 
-	/*
-	 * Try treating the argument as a game ID.
-	 */
-        err = midend_game_id(fe->me, arg);
-        if (!err) {
-	    /*
-	     * It's a valid game ID.
-	     */
-	    midend_new_game(fe->me);
-	} else {
-	    FILE *fp = fopen(arg, "r");
+	switch (argtype) {
+	  case ARG_ID:
+	    err = midend_game_id(fe->me, arg);
+	    if (!err)
+		midend_new_game(fe->me);
+	    else
+		sprintf(errbuf, "Invalid game ID: %.800s", err);
+	    break;
+	  case ARG_SAVE:
+	    fp = fopen(arg, "r");
 	    if (!fp) {
-		sprintf(errbuf, "Supplied argument is neither a game ID (%.400s)"
-			" nor a save file (%.400s)", err, strerror(errno));
+		sprintf(errbuf, "Error opening file: %.800s", strerror(errno));
 	    } else {
 		err = midend_deserialise(fe->me, savefile_read, fp);
                 if (err)
-                    sprintf(errbuf, "%.800s", err);
+                    sprintf(errbuf, "Invalid save file: %.800s", err);
                 fclose(fp);
 	    }
-        }
+	    break;
+	  default /*case ARG_EITHER*/:
+	    /*
+	     * First try treating the argument as a game ID.
+	     */
+	    err = midend_game_id(fe->me, arg);
+	    if (!err) {
+		/*
+		 * It's a valid game ID.
+		 */
+		midend_new_game(fe->me);
+	    } else {
+		FILE *fp = fopen(arg, "r");
+		if (!fp) {
+		    sprintf(errbuf, "Supplied argument is neither a game ID (%.400s)"
+			    " nor a save file (%.400s)", err, strerror(errno));
+		} else {
+		    err = midend_deserialise(fe->me, savefile_read, fp);
+		    if (err)
+			sprintf(errbuf, "%.800s", err);
+		    fclose(fp);
+		}
+	    }
+	    break;
+	}
 	if (*errbuf) {
 	    *error = dupstr(errbuf);
 	    midend_free(fe->me);
@@ -1755,7 +1780,10 @@ int main(int argc, char **argv)
     int ngenerate = 0, print = FALSE, px = 1, py = 1;
     int soln = FALSE, colour = FALSE;
     float scale = 1.0F;
+    float redo_proportion = 0.0F;
     char *arg = NULL;
+    int argtype = ARG_EITHER;
+    int output_window_id = FALSE;
     int doing_opts = TRUE;
     int ac = argc;
     char **av = argv;
@@ -1826,6 +1854,42 @@ int main(int argc, char **argv)
 			pname);
 		return 1;
 	    }
+	} else if (doing_opts && !strcmp(p, "--redo")) {
+	    /*
+	     * This is an internal option which I don't expect
+	     * users to have any particular use for. The effect of
+	     * --redo is that once the game has been loaded and
+	     * initialised, the next move in the redo chain is
+	     * replayed, and the game screen is redrawn part way
+	     * through the making of the move. This is only
+	     * meaningful if there _is_ a next move in the redo
+	     * chain, which means in turn that this option is only
+	     * useful if you're also passing a save file on the
+	     * command line.
+	     *
+	     * This option is used by the script which generates
+	     * the puzzle icons and website screenshots, and I
+	     * don't imagine it's useful for anything else.
+	     * (Unless, I suppose, users don't like my screenshots
+	     * and want to generate their own in the same way for
+	     * some repackaged version of the puzzles.)
+	     */
+	    if (--ac > 0) {
+		redo_proportion = atof(*++av);
+	    } else {
+		fprintf(stderr, "%s: no argument supplied to '--redo'\n",
+			pname);
+		return 1;
+	    }
+	} else if (doing_opts && !strcmp(p, "--windowid")) {
+	    /*
+	     * Another internal option for the icon building
+	     * script. This causes the window ID of the central
+	     * drawing area (i.e. not including the menu bar or
+	     * status bar) to be printed on standard output once
+	     * the window has been drawn.
+	     */
+	    output_window_id = TRUE;
 	} else if (doing_opts && (!strcmp(p, "--with-solutions") ||
 				  !strcmp(p, "--with-solution") ||
 				  !strcmp(p, "--with-solns") ||
@@ -1842,6 +1906,10 @@ int main(int argc, char **argv)
 		return 1;
 	    }
 	    colour = TRUE;
+	} else if (doing_opts && !strcmp(p, "--load")) {
+	    argtype = ARG_SAVE;
+	} else if (doing_opts && !strcmp(p, "--game")) {
+	    argtype = ARG_ID;
 	} else if (doing_opts && !strcmp(p, "--")) {
 	    doing_opts = FALSE;
 	} else if (!doing_opts || p[0] != '-') {
@@ -1971,12 +2039,38 @@ int main(int argc, char **argv)
 
 	return 0;
     } else {
+	frontend *fe;
 
 	gtk_init(&argc, &argv);
 
-	if (!new_window(argc > 1 ? argv[1] : NULL, &error)) {
+	fe = new_window(arg, argtype, &error);
+
+	if (!fe) {
 	    fprintf(stderr, "%s: %s\n", pname, error);
 	    return 1;
+	}
+
+	if (output_window_id) {
+	    /*
+	     * Some puzzles will not redraw their entire area if
+	     * given a partially completed animation, which means
+	     * we must redraw now and _then_ redraw again after
+	     * freezing the move timer.
+	     */
+	    midend_force_redraw(fe->me);
+	}
+
+	if (redo_proportion) {
+	    /* Start a redo. */
+	    midend_process_key(fe->me, 0, 0, 'r');
+	    /* And freeze the timer at the specified position. */
+	    midend_freeze_timer(fe->me, redo_proportion);
+	}
+
+	if (output_window_id) {
+	    midend_redraw(fe->me);
+	    printf("%p\n", (void *)GDK_WINDOW_XWINDOW(fe->area->window));
+	    fflush(stdout);
 	}
 
 	gtk_main();

@@ -1,0 +1,17 @@
+SAVEFILE:41:Simon Tatham's Portable Puzzle Collection
+VERSION :1:1
+GAME    :10:Rectangles
+PARAMS  :3:7x7
+CPARAMS :3:7x7
+DESC    :33:a3d2b2a3_2a4a8h2a3c4_2b2c3a3_3c3b
+NSTATES :2:10
+STATEPOS:2:10
+MOVE    :8:R0,6,3,1
+MOVE    :8:R6,4,1,3
+MOVE    :8:R3,6,3,1
+MOVE    :8:R4,4,2,1
+MOVE    :8:R3,5,3,1
+MOVE    :8:R6,1,1,3
+MOVE    :8:R5,0,2,1
+MOVE    :8:R5,1,1,2
+MOVE    :8:R4,3,2,1
