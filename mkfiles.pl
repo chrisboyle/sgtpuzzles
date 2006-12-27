@@ -492,7 +492,8 @@ if (defined $makefiles{'cygwin'}) {
 	       "\n".
     "LDFLAGS = -mno-cygwin -s\n".
     &splitline("RCFLAGS = \$(RCINC) --define WIN32=1 --define _WIN32=1".
-      " --define WINVER=0x0400 --define MINGW32_FIX=1")."\n".
+      " --define WINVER=0x0400 --define MINGW32_FIX=1 " .
+	(join " ", map {"--include $dirpfx$_"} @srcdirs) )."\n".
     "\n";
     print &splitline("all:" . join "", map { " $_.exe" } &progrealnames("G:C"));
     print "\n\n";
