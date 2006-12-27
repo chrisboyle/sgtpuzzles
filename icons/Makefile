@@ -30,6 +30,7 @@ web: $(WEB)
 pngicons: $(P48D24) $(P32D24) $(P16D24)
 winicons: $(ICONS) $(RC)
 gtkicons: $(CICONS)
+all: base web pngicons winicons gtkicons
 
 # Build the base puzzle screenshots from which all the other images
 # are derived. Some of them involve showing a move animation
