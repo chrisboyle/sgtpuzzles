@@ -32,6 +32,7 @@ perl mkfiles.pl
 
 mkdir tmp.$$
 mkdir tmp.$$/puzzles$arcsuffix
+mkdir tmp.$$/puzzles$arcsuffix/icons
 
 # Build Windows Help and text versions of the manual for convenience.
 halibut --winhelp=puzzles.hlp --text=puzzles.txt puzzles.but
@@ -44,7 +45,10 @@ for i in *.c *.m *.h *.R *.but *.plist *.icns LICENCE README Recipe \
   HACKING puzzles.txt puzzles.hlp puzzles.cnt puzzles.chm \
   icons/Makefile icons/*.{sav,pl,sh} icons/win16pal.xpm \
   icons/*.png icons/*.ico icons/*.rc icons/*.c; do
-  ln -s ../../$i tmp.$$/puzzles$arcsuffix
+  case $i in
+    */*) ln -s ../../../$i tmp.$$/puzzles$arcsuffix/$i;;
+    *)   ln -s ../../$i tmp.$$/puzzles$arcsuffix/$i;;
+  esac
   if test "x$ver" != "x"; then
     md5sum $i >> tmp.$$/puzzles$arcsuffix/manifest
   fi
