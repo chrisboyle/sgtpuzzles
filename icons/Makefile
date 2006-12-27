@@ -7,8 +7,8 @@ PUZZLES = blackbox bridges cube dominosa fifteen flip guess inertia lightup \
 BASE = $(patsubst %,%-base.png,$(PUZZLES))
 WEB = $(patsubst %,%-web.png,$(PUZZLES))
 
-BASE4 = $(patsubst %,%-base4.png,$(PUZZLES))
-
+IBASE = $(patsubst %,%-ibase.png,$(PUZZLES))
+IBASE4 = $(patsubst %,%-ibase4.png,$(PUZZLES))
 P48D24 = $(patsubst %,%-48d24.png,$(PUZZLES))
 P48D8 = $(patsubst %,%-48d8.png,$(PUZZLES))
 P48D4 = $(patsubst %,%-48d4.png,$(PUZZLES))
@@ -25,49 +25,91 @@ PIC = ./
 
 base: $(BASE)
 web: $(WEB)
-pngicons: $(I48D24) $(I32D24) $(I16D24)
+pngicons: $(P48D24) $(P32D24) $(P16D24)
 icons: $(ICONS)
 
+# Build the base puzzle screenshots from which all the other images
+# are derived. Some of them involve showing a move animation
+# part-way through.
 fifteen-base.png : override REDO=0.3
 flip-base.png : override REDO=0.3
 netslide-base.png : override REDO=0.3
 sixteen-base.png : override REDO=0.3
 twiddle-base.png : override REDO=0.3
-
 $(BASE): %-base.png: $(BIN)% $(PIC)%.sav
 	$(PIC)screenshot.sh $(BIN)$* $(PIC)$*.sav $@ $(REDO)
 
-$(BASE4): %-base4.png: %-base.png
-	convert -colors 16 +dither -map win16pal.xpm $^ $@
-
+# Build the screenshots for the web, by scaling the original base
+# images to a uniform size.
 $(WEB): %-web.png: %-base.png
 	$(PIC)square.pl 150 5 $^ $@
 
-$(P48D24): %-48d24.png: %-base.png
+# Build the base _icon_ images, by careful cropping of the base
+# images: icons are very small so it's often necessary to zoom in
+# on a smaller portion of the screenshot.
+blackbox-ibase.png : override CROP=352x352 144x144+0+208
+bridges-ibase.png : override CROP=264x264 107x107+157+157
+dominosa-ibase.png : override CROP=304x272 152x152+152+0
+fifteen-ibase.png : override CROP=240x240 120x120+0+120
+flip-ibase.png : override CROP=288x288 145x145+120+72
+guess-ibase.png : override CROP=263x420 178x178+75+17
+inertia-ibase.png : override CROP=321x321 128x128+193+0
+lightup-ibase.png : override CROP=256x256 112x112+144+0
+loopy-ibase.png : override CROP=257x257 113x113+0+0
+mines-ibase.png : override CROP=240x240 110x110+130+130
+net-ibase.png : override CROP=193x193 113x113+0+80
+netslide-ibase.png : override CROP=289x289 144x144+0+0
+pattern-ibase.png : override CROP=384x384 223x223+0+0
+pegs-ibase.png : override CROP=263x263 147x147+116+0
+rect-ibase.png : override CROP=205x205 115x115+90+0
+sixteen-ibase.png : override CROP=288x288 144x144+144+144
+slant-ibase.png : override CROP=321x321 160x160+160+160
+solo-ibase.png : override CROP=321x321 97x97+16+16
+tents-ibase.png : override CROP=320x320 165x165+142+0
+twiddle-ibase.png : override CROP=192x192 102x102+69+21
+untangle-ibase.png : override CROP=320x320 164x164+3+116
+$(IBASE): %-ibase.png: %-base.png
+	$(PIC)crop.sh $^ $@ $(CROP)
+
+# Convert the full-size icon images to 4-bit colour, because that
+# seems to work better than reducing it in 24 bits and then
+# dithering.
+$(IBASE4): %-ibase4.png: %-ibase.png
+	convert -colors 16 +dither -map $(PIC)win16pal.xpm $^ $@
+
+# Build the 24-bit PNGs for the icons, at three sizes.
+$(P48D24): %-48d24.png: %-ibase.png
 	$(PIC)square.pl 48 4 $^ $@
-$(P32D24): %-32d24.png: %-base.png
+$(P32D24): %-32d24.png: %-ibase.png
 	$(PIC)square.pl 32 2 $^ $@
-$(P16D24): %-16d24.png: %-base.png
+$(P16D24): %-16d24.png: %-ibase.png
 	$(PIC)square.pl 16 1 $^ $@
 
+# The 8-bit icon PNGs are just custom-paletted quantisations of the
+# 24-bit ones.
 $(P48D8) $(P32D8) $(P16D8): %d8.png: %d24.png
 	convert -colors 256 $^ $@
 
-# The depth-4 images work better if we normalise the colours
-# _before_ shrinking, and then normalise again afterwards.
-$(P48D4): %-48d4.png: %-base4.png
+# But the depth-4 images work better if we re-shrink from the
+# ibase4 versions of the images, and then normalise the colours
+# again afterwards. (They're still not very good, but my hope is
+# that on most modern Windows machines this won't matter too
+# much...)
+$(P48D4): %-48d4.png: %-ibase4.png
 	$(PIC)square.pl 48 1 $^ tmp2.png
-	convert -colors 16 -map win16pal.xpm tmp2.png $@
+	convert -colors 16 -map $(PIC)win16pal.xpm tmp2.png $@
 	rm -f tmp.png tmp2.png
-$(P32D4): %-32d4.png: %-base.png
+$(P32D4): %-32d4.png: %-ibase.png
 	$(PIC)square.pl 32 1 $^ tmp2.png
-	convert -colors 16 -map win16pal.xpm tmp2.png $@
+	convert -colors 16 -map $(PIC)win16pal.xpm tmp2.png $@
 	rm -f tmp.png tmp2.png
-$(P16D4): %-16d4.png: %-base.png
+$(P16D4): %-16d4.png: %-ibase.png
 	$(PIC)square.pl 16 1 $^ tmp2.png
-	convert -colors 16 -map win16pal.xpm tmp2.png $@
+	convert -colors 16 -map $(PIC)win16pal.xpm tmp2.png $@
 	rm -f tmp.png tmp2.png
 
+# And build the actual icons themselves, by feeding all those PNGs
+# to my icon builder script.
 $(ICONS): %.ico: %-48d24.png %-48d8.png %-48d4.png \
                  %-32d24.png %-32d8.png %-32d4.png \
                  %-16d24.png %-16d8.png %-16d4.png
