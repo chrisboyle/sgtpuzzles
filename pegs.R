@@ -4,7 +4,7 @@ PEGS     = pegs tree234
 
 pegs     : [X] GTK COMMON PEGS
 
-pegs     : [G] WINDOWS COMMON PEGS
+pegs     : [G] WINDOWS COMMON PEGS pegs.res?
 
 ALL += PEGS
 

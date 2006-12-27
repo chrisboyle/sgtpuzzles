@@ -19,6 +19,7 @@ P16D24 = $(patsubst %,%-16d24.png,$(PUZZLES))
 P16D8 = $(patsubst %,%-16d8.png,$(PUZZLES))
 P16D4 = $(patsubst %,%-16d4.png,$(PUZZLES))
 ICONS = $(patsubst %,%.ico,$(PUZZLES))
+RC = $(patsubst %,%.rc,$(PUZZLES))
 
 BIN = ../
 PIC = ./
@@ -26,7 +27,7 @@ PIC = ./
 base: $(BASE)
 web: $(WEB)
 pngicons: $(P48D24) $(P32D24) $(P16D24)
-icons: $(ICONS)
+winicons: $(ICONS) $(RC)
 
 # Build the base puzzle screenshots from which all the other images
 # are derived. Some of them involve showing a move animation
@@ -108,12 +109,16 @@ $(P16D4): %-16d4.png: %-ibase.png
 	convert -colors 16 -map $(PIC)win16pal.xpm tmp2.png $@
 	rm -f tmp.png tmp2.png
 
-# And build the actual icons themselves, by feeding all those PNGs
-# to my icon builder script.
+# Build the actual Windows icons themselves, by feeding all those
+# PNGs to my icon builder script.
 $(ICONS): %.ico: %-48d24.png %-48d8.png %-48d4.png \
                  %-32d24.png %-32d8.png %-32d4.png \
                  %-16d24.png %-16d8.png %-16d4.png
 	$(PIC)icon.pl $? > $@
 
+# Build the .RC files which bind the icons into the applications.
+$(RC): %.rc:
+	echo '200 ICON "$*.ico"' > $@
+
 clean:
-	rm -f *.png *.ico
+	rm -f *.png *.ico *.rc

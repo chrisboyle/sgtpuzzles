@@ -2,7 +2,7 @@
 
 solo     : [X] GTK COMMON solo
 
-solo     : [G] WINDOWS COMMON solo
+solo     : [G] WINDOWS COMMON solo solo.res?
 
 solosolver :    [U] solo[STANDALONE_SOLVER] STANDALONE
 solosolver :    [C] solo[STANDALONE_SOLVER] STANDALONE

@@ -2,7 +2,7 @@
 
 inertia  : [X] GTK COMMON inertia
 
-inertia  : [G] WINDOWS COMMON inertia
+inertia  : [G] WINDOWS COMMON inertia inertia.res?
 
 ALL += inertia
 

@@ -2,7 +2,7 @@
 
 guess    : [X] GTK COMMON guess
 
-guess    : [G] WINDOWS COMMON guess
+guess    : [G] WINDOWS COMMON guess guess.res?
 
 ALL += guess
 

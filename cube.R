@@ -2,7 +2,7 @@
 
 cube     : [X] GTK COMMON cube
 
-cube     : [G] WINDOWS COMMON cube
+cube     : [G] WINDOWS COMMON cube cube.res?
 
 ALL += cube
 

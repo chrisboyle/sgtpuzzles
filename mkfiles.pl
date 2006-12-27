@@ -130,8 +130,17 @@ readinput: while (1) {
               $i eq "[X]" or $i eq "[U]" or $i eq "[MX]") and defined $prog) {
       $type = substr($i,1,(length $i)-2);
     } else {
-      push @$listref, $i;
-      push @allobjs, $i;
+      if ($i =~ /\?$/) {
+	# Source files with a trailing question mark are optional:
+	# the build can proceed fine without them, so we only use
+	# them if they're present.
+	$i =~ s/\?$//;
+	$i = undef unless defined &finddep($i);
+      }
+      if (defined $i) {
+	push @$listref, $i;
+	push @allobjs, $i;
+      }
     }
   }
   if ($prog and $type) {
@@ -192,23 +201,8 @@ foreach $i (@prognames) {
   $programs{$i} = [@list];
   foreach $jj (@list) {
     $j = $srcname{$jj};
-    # Dependencies for "x" start with "x.c" or "x.m" (depending on
-    # which one exists).
-    # Dependencies for "x.res" start with "x.rc".
-    # Dependencies for "x.rsrc" start with "x.r".
-    # Both types of file are pushed on the list of files to scan.
-    # Libraries (.lib) don't have dependencies at all.
-    if ($j =~ /^(.*)\.res$/) {
-      $file = "$1.rc";
-      $depends{$jj} = [$file];
-      push @scanlist, $file;
-    } elsif ($j =~ /^(.*)\.rsrc$/) {
-      $file = "$1.r";
-      $depends{$jj} = [$file];
-      push @scanlist, $file;
-    } elsif ($j !~ /\./) {
-      $file = "$j.c";
-      $file = "$j.m" unless &findfile($file);
+    $file = &finddep($j);
+    if (defined $file) {
       $depends{$jj} = [$file];
       push @scanlist, $file;
     }
@@ -313,6 +307,32 @@ sub findfile {
     $findfilecache{$name} = (defined $outdir ? $outdir . $name : undef);
   }
   return $findfilecache{$name};
+}
+
+sub finddep {
+  my $j = shift @_;
+  my $file;
+  # Find the first dependency of an object.
+
+  # Dependencies for "x" start with "x.c" or "x.m" (depending on
+  # which one exists).
+  # Dependencies for "x.res" start with "x.rc".
+  # Dependencies for "x.rsrc" start with "x.r".
+  # Both types of file are pushed on the list of files to scan.
+  # Libraries (.lib) don't have dependencies at all.
+  if ($j =~ /^(.*)\.res$/) {
+    $file = "$1.rc";
+  } elsif ($j =~ /^(.*)\.rsrc$/) {
+    $file = "$1.r";
+  } elsif ($j !~ /\./) {
+    $file = "$j.c";
+    $file = "$j.m" unless &findfile($file);
+  } else {
+    # For everything else, we assume it's its own dependency.
+    $file = $j;
+  }
+  $file = undef unless &findfile($file);
+  return $file;
 }
 
 sub objects {
@@ -655,7 +675,7 @@ if (defined $makefiles{'vc'}) {
 	  "\n";
 	if ($d->{obj} =~ /\.res$/) {
 	    print "\trc \$(FWHACK) \$(RCFL) -r -DWIN32 -D_WIN32 ".
-	      "-DWINVER=0x0400 ".$d->{deps}->[0]."\n";
+	      "-DWINVER=0x0400 -fo".$d->{obj}." ".$d->{deps}->[0]."\n";
 	} else {
 	    $deflist = join "", map { " /D$_" } @{$d->{defs}};
 	    print "\tcl \$(COMPAT) \$(FWHACK) \$(CFLAGS) \$(XFLAGS)$deflist".

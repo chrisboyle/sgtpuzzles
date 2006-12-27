@@ -4,7 +4,7 @@ FLIP     = flip tree234
 
 flip     : [X] GTK COMMON FLIP
 
-flip     : [G] WINDOWS COMMON FLIP
+flip     : [G] WINDOWS COMMON FLIP flip.res?
 
 ALL += FLIP
 

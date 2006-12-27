@@ -2,7 +2,7 @@
 
 fifteen  : [X] GTK COMMON fifteen
 
-fifteen  : [G] WINDOWS COMMON fifteen
+fifteen  : [G] WINDOWS COMMON fifteen fifteen.res?
 
 ALL += fifteen
 

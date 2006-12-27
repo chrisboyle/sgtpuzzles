@@ -2,7 +2,7 @@
 
 dominosa : [X] GTK COMMON dominosa
 
-dominosa : [G] WINDOWS COMMON dominosa
+dominosa : [G] WINDOWS COMMON dominosa dominosa.res?
 
 ALL += dominosa
 

@@ -4,7 +4,7 @@ UNTANGLE = untangle tree234
 
 untangle : [X] GTK COMMON UNTANGLE
 
-untangle : [G] WINDOWS COMMON UNTANGLE
+untangle : [G] WINDOWS COMMON UNTANGLE untangle.res?
 
 ALL += UNTANGLE
 

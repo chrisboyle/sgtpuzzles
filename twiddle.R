@@ -2,7 +2,7 @@
 
 twiddle  : [X] GTK COMMON twiddle
 
-twiddle  : [G] WINDOWS COMMON twiddle
+twiddle  : [G] WINDOWS COMMON twiddle twiddle.res?
 
 ALL += twiddle
 

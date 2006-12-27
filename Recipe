@@ -13,6 +13,8 @@
 !makefile cygwin Makefile.cyg
 !makefile osx Makefile.osx
 
+!srcdir icons/
+
 WINDOWS  = windows printing
          + user32.lib gdi32.lib comctl32.lib comdlg32.lib winspool.lib
 COMMON   = midend drawing misc malloc random version

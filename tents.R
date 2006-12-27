@@ -4,7 +4,7 @@ TENTS    = tents maxflow
 
 tents    : [X] GTK COMMON TENTS
 
-tents    : [G] WINDOWS COMMON TENTS
+tents    : [G] WINDOWS COMMON TENTS tents.res?
 
 ALL += TENTS
 

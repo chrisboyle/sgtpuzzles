@@ -2,7 +2,7 @@
 
 rect     : [X] GTK COMMON rect
 
-rect     : [G] WINDOWS COMMON rect
+rect     : [G] WINDOWS COMMON rect rect.res?
 
 ALL += rect
 

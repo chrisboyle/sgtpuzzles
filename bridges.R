@@ -4,7 +4,7 @@ BRIDGES  = bridges dsf
 
 bridges  : [X] GTK COMMON BRIDGES
 
-bridges  : [G] WINDOWS COMMON BRIDGES
+bridges  : [G] WINDOWS COMMON BRIDGES bridges.res?
 
 ALL += BRIDGES
 

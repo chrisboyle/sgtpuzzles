@@ -2,7 +2,7 @@
 
 samegame : [X] GTK COMMON samegame
 
-samegame : [G] WINDOWS COMMON samegame
+samegame : [G] WINDOWS COMMON samegame samegame.res?
 
 ALL += samegame
 

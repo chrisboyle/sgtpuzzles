@@ -2,7 +2,7 @@
 
 sixteen  : [X] GTK COMMON sixteen
 
-sixteen  : [G] WINDOWS COMMON sixteen
+sixteen  : [G] WINDOWS COMMON sixteen sixteen.res?
 
 ALL += sixteen
 

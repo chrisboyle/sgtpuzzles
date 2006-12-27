@@ -2,7 +2,7 @@
 
 blackbox : [X] GTK COMMON blackbox
 
-blackbox : [G] WINDOWS COMMON blackbox
+blackbox : [G] WINDOWS COMMON blackbox blackbox.res?
 
 ALL += blackbox
 

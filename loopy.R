@@ -4,7 +4,7 @@ LOOPY    = loopy tree234 dsf
 
 loopy    : [X] GTK COMMON LOOPY
 
-loopy    : [G] WINDOWS COMMON LOOPY
+loopy    : [G] WINDOWS COMMON LOOPY loopy.res?
 
 ALL += LOOPY
 

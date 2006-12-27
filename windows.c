@@ -2441,7 +2441,9 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
 	wndclass.cbClsExtra = 0;
 	wndclass.cbWndExtra = 0;
 	wndclass.hInstance = inst;
-	wndclass.hIcon = LoadIcon(inst, IDI_APPLICATION);
+	wndclass.hIcon = LoadIcon(inst, MAKEINTRESOURCE(200));
+	if (!wndclass.hIcon)	       /* in case resource file is absent */
+	    wndclass.hIcon = LoadIcon(inst, IDI_APPLICATION);
 	wndclass.hCursor = LoadCursor(NULL, IDC_ARROW);
 	wndclass.hbrBackground = NULL;
 	wndclass.lpszMenuName = NULL;
