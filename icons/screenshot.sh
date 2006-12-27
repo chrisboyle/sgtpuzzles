@@ -22,13 +22,4 @@ else
   redo=
 fi
 
-"$binary" $redo --windowid --load "$save" 2>/dev/null | {
-  read windowid
-  # I'm not sure why I have to do this sleep, since gtk.c does
-  # carefully redraw the window _before_ outputting the window ID,
-  # but nonetheless this script doesn't seem to be reliable without
-  # it :-/
-  sleep 1
-  xwd -silent -id $windowid | convert xwd:- "$image"
-  xkill -id $windowid >/dev/null
-}
+"$binary" $redo --screenshot "$image" --load "$save"

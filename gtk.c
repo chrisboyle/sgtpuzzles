@@ -1804,7 +1804,7 @@ int main(int argc, char **argv)
     float redo_proportion = 0.0F;
     char *arg = NULL;
     int argtype = ARG_EITHER;
-    int output_window_id = FALSE;
+    char *screenshot_file = NULL;
     int doing_opts = TRUE;
     int ac = argc;
     char **av = argv;
@@ -1902,15 +1902,22 @@ int main(int argc, char **argv)
 			pname);
 		return 1;
 	    }
-	} else if (doing_opts && !strcmp(p, "--windowid")) {
+	} else if (doing_opts && !strcmp(p, "--screenshot")) {
 	    /*
 	     * Another internal option for the icon building
-	     * script. This causes the window ID of the central
+	     * script. This causes a screenshot of the central
 	     * drawing area (i.e. not including the menu bar or
-	     * status bar) to be printed on standard output once
-	     * the window has been drawn.
+	     * status bar) to be saved to a PNG file once the
+	     * window has been drawn, and then the application
+	     * quits immediately.
 	     */
-	    output_window_id = TRUE;
+	    if (--ac > 0) {
+		screenshot_file = *++av;
+	    } else {
+		fprintf(stderr, "%s: no argument supplied to '--screenshot'\n",
+			pname);
+		return 1;
+	    }
 	} else if (doing_opts && (!strcmp(p, "--with-solutions") ||
 				  !strcmp(p, "--with-solution") ||
 				  !strcmp(p, "--with-solns") ||
@@ -2071,7 +2078,7 @@ int main(int argc, char **argv)
 	    return 1;
 	}
 
-	if (output_window_id) {
+	if (screenshot_file) {
 	    /*
 	     * Some puzzles will not redraw their entire area if
 	     * given a partially completed animation, which means
@@ -2088,10 +2095,16 @@ int main(int argc, char **argv)
 	    midend_freeze_timer(fe->me, redo_proportion);
 	}
 
-	if (output_window_id) {
+	if (screenshot_file) {
+	    GdkPixbuf *pb;
+
 	    midend_redraw(fe->me);
-	    printf("%p\n", (void *)GDK_WINDOW_XWINDOW(fe->area->window));
-	    fflush(stdout);
+
+	    pb = gdk_pixbuf_get_from_drawable(NULL, fe->pixmap,
+					      NULL, 0, 0, 0, 0, -1, -1);
+	    gdk_pixbuf_save(pb, screenshot_file, "png", NULL);
+
+	    exit(0);
 	}
 
 	gtk_main();
