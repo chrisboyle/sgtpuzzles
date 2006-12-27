@@ -2,7 +2,7 @@
 
 NET      = net tree234 dsf
 
-net      : [X] GTK COMMON NET
+net      : [X] GTK COMMON NET net-icon|no-icon
 
 # The Windows Net shouldn't be called `net.exe' since Windows
 # already has a reasonably important utility program by that name!

@@ -1,6 +1,6 @@
 # -*- makefile -*-
 
-cube     : [X] GTK COMMON cube
+cube     : [X] GTK COMMON cube cube-icon|no-icon
 
 cube     : [G] WINDOWS COMMON cube cube.res?
 

@@ -1,6 +1,6 @@
 # -*- makefile -*-
 
-sixteen  : [X] GTK COMMON sixteen
+sixteen  : [X] GTK COMMON sixteen sixteen-icon|no-icon
 
 sixteen  : [G] WINDOWS COMMON sixteen sixteen.res?
 

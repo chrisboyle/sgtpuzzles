@@ -1,6 +1,6 @@
 # -*- makefile -*-
 
-blackbox : [X] GTK COMMON blackbox
+blackbox : [X] GTK COMMON blackbox blackbox-icon|no-icon
 
 blackbox : [G] WINDOWS COMMON blackbox blackbox.res?
 

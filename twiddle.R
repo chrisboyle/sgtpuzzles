@@ -1,6 +1,6 @@
 # -*- makefile -*-
 
-twiddle  : [X] GTK COMMON twiddle
+twiddle  : [X] GTK COMMON twiddle twiddle-icon|no-icon
 
 twiddle  : [G] WINDOWS COMMON twiddle twiddle.res?
 

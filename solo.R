@@ -1,6 +1,6 @@
 # -*- makefile -*-
 
-solo     : [X] GTK COMMON solo
+solo     : [X] GTK COMMON solo solo-icon|no-icon
 
 solo     : [G] WINDOWS COMMON solo solo.res?
 

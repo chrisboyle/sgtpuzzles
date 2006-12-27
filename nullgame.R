@@ -8,5 +8,5 @@
 # it in the Makefile because it will be worse than useless if it
 # ever fails to compile, so it's important that it should actually
 # be built on a regular basis.
-nullgame : [X] GTK COMMON nullgame
+nullgame : [X] GTK COMMON nullgame nullgame-icon|no-icon
 nullgame : [G] WINDOWS COMMON nullgame

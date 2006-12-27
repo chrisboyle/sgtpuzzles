@@ -2,7 +2,7 @@
 
 LIGHTUP  = lightup combi
 
-lightup  : [X] GTK COMMON LIGHTUP
+lightup  : [X] GTK COMMON LIGHTUP lightup-icon|no-icon
 
 lightup  : [G] WINDOWS COMMON LIGHTUP lightup.res?
 

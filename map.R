@@ -2,7 +2,7 @@
 
 MAP      = map dsf
 
-map      : [X] GTK COMMON MAP
+map      : [X] GTK COMMON MAP map-icon|no-icon
 
 map      : [G] WINDOWS COMMON MAP map.res?
 

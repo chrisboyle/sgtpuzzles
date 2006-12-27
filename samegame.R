@@ -1,6 +1,6 @@
 # -*- makefile -*-
 
-samegame : [X] GTK COMMON samegame
+samegame : [X] GTK COMMON samegame samegame-icon|no-icon
 
 samegame : [G] WINDOWS COMMON samegame samegame.res?
 

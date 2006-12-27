@@ -2,7 +2,7 @@
 
 MINES    = mines tree234
 
-mines    : [X] GTK COMMON MINES
+mines    : [X] GTK COMMON MINES mines-icon|no-icon
 
 mines    : [G] WINDOWS COMMON MINES mines.res?
 

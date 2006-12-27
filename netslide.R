@@ -2,7 +2,7 @@
 
 NETSLIDE = netslide tree234
 
-netslide : [X] GTK COMMON NETSLIDE
+netslide : [X] GTK COMMON NETSLIDE netslide-icon|no-icon
 
 netslide : [G] WINDOWS COMMON NETSLIDE netslide.res?
 

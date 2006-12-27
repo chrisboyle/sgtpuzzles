@@ -1,6 +1,6 @@
 # -*- makefile -*-
 
-dominosa : [X] GTK COMMON dominosa
+dominosa : [X] GTK COMMON dominosa dominosa-icon|no-icon
 
 dominosa : [G] WINDOWS COMMON dominosa dominosa.res?
 

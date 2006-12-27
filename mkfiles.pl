@@ -131,11 +131,22 @@ readinput: while (1) {
       $type = substr($i,1,(length $i)-2);
     } else {
       if ($i =~ /\?$/) {
-	# Source files with a trailing question mark are optional:
+	# Object files with a trailing question mark are optional:
 	# the build can proceed fine without them, so we only use
-	# them if they're present.
+	# them if their primary source files are present.
 	$i =~ s/\?$//;
 	$i = undef unless defined &finddep($i);
+      } elsif ($i =~ /\|/) {
+	# Object file descriptions containing a vertical bar are
+	# lists of choices: we use the _first_ one whose primary
+	# source file is present.
+	@options = split /\|/, $i;
+	$j = undef;
+	foreach $k (@options) {
+	  $j=$k, last if defined &finddep($k);
+	}
+	die "no alternative found for $i\n" unless defined $j;
+	$i = $j;
       }
       if (defined $i) {
 	push @$listref, $i;

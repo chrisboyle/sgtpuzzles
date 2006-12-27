@@ -15,6 +15,8 @@
 #include <gtk/gtk.h>
 #include <gdk/gdkkeysyms.h>
 
+#include <gdk-pixbuf/gdk-pixbuf.h>
+
 #include <gdk/gdkx.h>
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
@@ -1458,8 +1460,12 @@ static frontend *new_window(char *arg, int argtype, char **error)
     frontend *fe;
     GtkBox *vbox;
     GtkWidget *menubar, *menu, *menuitem;
+    GdkPixmap *iconpm;
+    GList *iconlist;
     int x, y, n;
     char errbuf[1024];
+    extern char *const *const xpm_icons[];
+    extern const int n_xpm_icons;
 
     fe = snew(frontend);
 
@@ -1744,6 +1750,21 @@ static frontend *new_window(char *arg, int argtype, char **error)
                           GDK_BUTTON_PRESS_MASK |
                           GDK_BUTTON_RELEASE_MASK |
 			  GDK_BUTTON_MOTION_MASK);
+
+    if (n_xpm_icons) {
+	gtk_widget_realize(fe->window);
+	iconpm = gdk_pixmap_create_from_xpm_d(fe->window->window, NULL,
+					      NULL, (gchar **)xpm_icons[0]);
+	gdk_window_set_icon(fe->window->window, NULL, iconpm, NULL);
+	iconlist = NULL;
+	for (n = 0; n < n_xpm_icons; n++) {
+	    iconlist =
+		g_list_append(iconlist,
+			      gdk_pixbuf_new_from_xpm_data((const gchar **)
+							   xpm_icons[n]));
+	}
+	gdk_window_set_icon_list(fe->window->window, iconlist);
+    }
 
     gtk_widget_show(fe->area);
     gtk_widget_show(fe->window);

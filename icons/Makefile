@@ -19,6 +19,7 @@ P16D24 = $(patsubst %,%-16d24.png,$(PUZZLES))
 P16D8 = $(patsubst %,%-16d8.png,$(PUZZLES))
 P16D4 = $(patsubst %,%-16d4.png,$(PUZZLES))
 ICONS = $(patsubst %,%.ico,$(PUZZLES))
+CICONS = $(patsubst %,%-icon.c,$(PUZZLES))
 RC = $(patsubst %,%.rc,$(PUZZLES))
 
 BIN = ../
@@ -28,6 +29,7 @@ base: $(BASE)
 web: $(WEB)
 pngicons: $(P48D24) $(P32D24) $(P16D24)
 winicons: $(ICONS) $(RC)
+gtkicons: $(CICONS)
 
 # Build the base puzzle screenshots from which all the other images
 # are derived. Some of them involve showing a move animation
@@ -120,5 +122,9 @@ $(ICONS): %.ico: %-48d24.png %-48d8.png %-48d4.png \
 $(RC): %.rc:
 	echo '200 ICON "$*.ico"' > $@
 
+# Build the GTK icon source files.
+$(CICONS): %-icon.c: %-16d24.png %-32d24.png %-48d24.png
+	$(PIC)cicon.pl $^ > $@	
+
 clean:
-	rm -f *.png *.ico *.rc
+	rm -f *.png *.ico *.rc *-icon.c

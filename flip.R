@@ -2,7 +2,7 @@
 
 FLIP     = flip tree234
 
-flip     : [X] GTK COMMON FLIP
+flip     : [X] GTK COMMON FLIP flip-icon|no-icon
 
 flip     : [G] WINDOWS COMMON FLIP flip.res?
 

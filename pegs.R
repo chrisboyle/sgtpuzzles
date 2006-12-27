@@ -2,7 +2,7 @@
 
 PEGS     = pegs tree234
 
-pegs     : [X] GTK COMMON PEGS
+pegs     : [X] GTK COMMON PEGS pegs-icon|no-icon
 
 pegs     : [G] WINDOWS COMMON PEGS pegs.res?
 

@@ -2,7 +2,7 @@
 
 UNTANGLE = untangle tree234
 
-untangle : [X] GTK COMMON UNTANGLE
+untangle : [X] GTK COMMON UNTANGLE untangle-icon|no-icon
 
 untangle : [G] WINDOWS COMMON UNTANGLE untangle.res?
 

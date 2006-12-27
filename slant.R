@@ -2,7 +2,7 @@
 
 SLANT    = slant dsf
 
-slant    : [X] GTK COMMON SLANT
+slant    : [X] GTK COMMON SLANT slant-icon|no-icon
 
 slant    : [G] WINDOWS COMMON SLANT slant.res?
 

@@ -1,6 +1,6 @@
 # -*- makefile -*-
 
-pattern  : [X] GTK COMMON pattern
+pattern  : [X] GTK COMMON pattern pattern-icon|no-icon
 
 pattern  : [G] WINDOWS COMMON pattern pattern.res?
 

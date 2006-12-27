@@ -1,6 +1,6 @@
 # -*- makefile -*-
 
-rect     : [X] GTK COMMON rect
+rect     : [X] GTK COMMON rect rect-icon|no-icon
 
 rect     : [G] WINDOWS COMMON rect rect.res?
 

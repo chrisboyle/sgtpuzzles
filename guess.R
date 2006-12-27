@@ -1,6 +1,6 @@
 # -*- makefile -*-
 
-guess    : [X] GTK COMMON guess
+guess    : [X] GTK COMMON guess guess-icon|no-icon
 
 guess    : [G] WINDOWS COMMON guess guess.res?
 
