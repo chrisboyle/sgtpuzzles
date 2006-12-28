@@ -4,7 +4,9 @@
 
 #include <windows.h>
 #include <commctrl.h>
+#ifndef NO_HTMLHELP
 #include <htmlhelp.h>
+#endif /* NO_HTMLHELP */
 
 #include <stdio.h>
 #include <assert.h>
@@ -36,12 +38,16 @@
 
 #define HELP_FILE_NAME  "puzzles.hlp"
 #define HELP_CNT_NAME   "puzzles.cnt"
+#ifndef NO_HTMLHELP
 #define CHM_FILE_NAME   "puzzles.chm"
+#endif /* NO_HTMLHELP */
 
+#ifndef NO_HTMLHELP
 typedef HWND (CALLBACK *htmlhelp_t)(HWND, LPCSTR, UINT, DWORD);
 static DWORD html_help_cookie;
 static htmlhelp_t htmlhelp;
 static HINSTANCE hh_dll;
+#endif /* NO_HTMLHELP */
 enum { NONE, HLP, CHM } help_type;
 char *help_path;
 const char *help_topic;
@@ -1009,6 +1015,7 @@ static void init_help(void)
     q = strrchr(b, ':');
     if (q && q >= r) r = q+1;
 
+#ifndef NO_HTMLHELP
     /*
      * Try HTML Help first.
      */
@@ -1033,6 +1040,7 @@ static void init_help(void)
 	    return;
 	}
     }
+#endif /* NO_HTMLHELP */
 
     /*
      * Now try old-style .HLP.
@@ -1086,6 +1094,7 @@ static void start_help(frontend *fe, const char *topic)
 	fe->help_running = TRUE;
 	break;
       case CHM:
+#ifndef NO_HTMLHELP
 	assert(help_path);
 	assert(htmlhelp);
 	if (topic) {
@@ -1097,6 +1106,7 @@ static void start_help(frontend *fe, const char *topic)
 	htmlhelp(fe->hwnd, str, HH_DISPLAY_TOPIC, 0);
 	fe->help_running = TRUE;
 	break;
+#endif /* NO_HTMLHELP */
       case NONE:
 	assert(!"This shouldn't happen");
 	break;
@@ -1116,9 +1126,11 @@ static void stop_help(frontend *fe)
 	    WinHelp(fe->hwnd, help_path, HELP_QUIT, 0);
 	    break;
 	  case CHM:
+#ifndef NO_HTMLHELP
 	    assert(htmlhelp);
 	    htmlhelp(NULL, NULL, HH_CLOSE_ALL, 0);
 	    break;
+#endif /* NO_HTMLHELP */
 	  case NONE:
 	    assert(!"This shouldn't happen");
 	    break;
@@ -1132,10 +1144,12 @@ static void stop_help(frontend *fe)
  */
 static void cleanup_help(void)
 {
+#ifndef NO_HTMLHELP
     if (help_type == CHM) {
 	assert(htmlhelp);
 	htmlhelp(NULL, NULL, HH_UNINITIALIZE, html_help_cookie);
     }
+#endif /* NO_HTMLHELP */
 }
 
 static void check_window_size(frontend *fe, int *px, int *py)
