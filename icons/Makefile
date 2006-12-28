@@ -117,7 +117,9 @@ $(P16D4): %-16d4.png: %-ibase.png
 $(ICONS): %.ico: %-48d24.png %-48d8.png %-48d4.png \
                  %-32d24.png %-32d8.png %-32d4.png \
                  %-16d24.png %-16d8.png %-16d4.png
-	$(PIC)icon.pl $? > $@
+	$(PIC)icon.pl -24 $*-48d24.png $*-32d24.png $*-16d24.png \
+		      -8  $*-48d8.png  $*-32d8.png  $*-16d8.png  \
+		      -4  $*-48d4.png  $*-32d4.png  $*-16d4.png  > $@
 
 # Build the .RC files which bind the icons into the applications.
 $(RC): %.rc:

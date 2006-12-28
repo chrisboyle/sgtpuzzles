@@ -1,23 +1,58 @@
 #!/usr/bin/perl 
 
-# Take nine input image files and convert them into a
-# multi-resolution Windows .ICO icon file. The nine files should
-# be, in order:
+# Take a collection of input image files and convert them into a
+# multi-resolution Windows .ICO icon file.
 #
-#  - 48x48 icons at 24-bit, 8-bit and 4-bit colour depth respectively
-#  - 32x32 icons at 24-bit, 8-bit and 4-bit colour depth respectively
-#  - 16x16 icons at 24-bit, 8-bit and 4-bit colour depth respectively
+# The input images can be treated as having four different colour
+# depths:
 #
-# ICO files support a 1-bit alpha channel on all these image types.
+#  - 24-bit true colour
+#  - 8-bit with custom palette
+#  - 4-bit using the Windows 16-colour palette (see comment below
+#    for details)
+#  - 1-bit using black and white only.
 #
-# TODO: it would be nice if we could extend this icon builder to
-# support monochrome icons and a user-specified subset of the
-# available formats. None of that should be too hard: the
-# monochrome raster data has the same format as the alpha channel,
-# monochrome images have a 2-colour palette containing 000000 and
-# FFFFFF respectively, and really the biggest problem is designing
-# a sensible command-line syntax!
+# The images can be supplied in any input format acceptable to
+# ImageMagick, but their actual colour usage must already be
+# appropriate for the specified mode; this script will not do any
+# substantive conversion. So if an image intended to be used in 4-
+# or 1-bit mode contains any colour not in the appropriate fixed
+# palette, that's a fatal error; if an image to be used in 8-bit
+# mode contains more than 256 distinct colours, that's also a fatal
+# error.
+#
+# Command-line syntax is:
+#
+#   icon.pl -depth imagefile [imagefile...] [-depth imagefile [imagefile...]]
+#
+# where `-depth' is one of `-24', `-8', `-4' or `-1', and tells the
+# script how to treat all the image files given after that option
+# until the next depth option. For example, you might execute
+#
+#   icon.pl -24 48x48x24.png 32x32x24.png -8 32x32x8.png -1 monochrome.png
+#
+# to build an icon file containing two differently sized 24-bit
+# images, one 8-bit image and one black and white image.
+#
+# Windows .ICO files support a 1-bit alpha channel on all these
+# image types. That is, any pixel can be either opaque or fully
+# transparent, but not partially transparent. The alpha channel is
+# separate from the main image data, meaning that `transparent' is
+# not required to take up a palette entry. (So an 8-bit image can
+# have 256 distinct _opaque_ colours, plus transparent pixels as
+# well.) If the input images have alpha channels, they will be used
+# to determine which pixels of the icon are transparent, by simple
+# quantisation half way up (e.g. in a PNG image with an 8-bit alpha
+# channel, alpha values of 00-7F will be mapped to transparent
+# pixels, and 80-FF will become opaque).
 
+# The Windows 16-colour palette consists of:
+#  - the eight corners of the colour cube (000000, 0000FF, 00FF00,
+#    00FFFF, FF0000, FF00FF, FFFF00, FFFFFF)
+#  - dim versions of the seven non-black corners, at 128/255 of the
+#    brightness (000080, 008000, 008080, 800000, 800080, 808000,
+#    808080)
+#  - light grey at 192/255 of full brightness (C0C0C0).
 %win16pal = (
     "\x00\x00\x00\x00" => 0,
     "\x00\x00\x80\x00" => 1,
@@ -38,18 +73,32 @@
 );
 @win16pal = sort { $win16pal{$a} <=> $win16pal{$b} } keys %win16pal;
 
+# The black and white palette consists of black (000000) and white
+# (FFFFFF), obviously.
+%win2pal = (
+    "\x00\x00\x00\x00" => 0,
+    "\xFF\xFF\xFF\x00" => 1,
+);
+@win2pal = sort { $win16pal{$a} <=> $win2pal{$b} } keys %win2pal;
+
 @hdr = ();
 @dat = ();
 
-&readicon($ARGV[0], 48, 48, 24);
-&readicon($ARGV[1], 48, 48, 8);
-&readicon($ARGV[2], 48, 48, 4);
-&readicon($ARGV[3], 32, 32, 24);
-&readicon($ARGV[4], 32, 32, 8);
-&readicon($ARGV[5], 32, 32, 4);
-&readicon($ARGV[6], 16, 16, 24);
-&readicon($ARGV[7], 16, 16, 8);
-&readicon($ARGV[8], 16, 16, 4);
+$depth = undef;
+foreach $_ (@ARGV) {
+    if (/^-(24|8|4|1)$/) {
+	$depth = $1;
+    } elsif (defined $depth) {
+	&readicon($_, $depth);
+    } else {
+	$usage = 1;
+    }
+}
+if ($usage || length @hdr == 0) {
+    print "usage: icon.pl ( -24 | -8 | -4 | -1 ) image [image...]\n";
+    print "             [ ( -24 | -8 | -4 | -1 ) image [image...] ...]\n";
+    exit 0;
+}
 
 # Now write out the output icon file.
 print pack "vvv", 0, 1, scalar @hdr; # file-level header
@@ -65,12 +114,14 @@ for ($i = 0; $i < scalar @hdr; $i++) {
 
 sub readicon {
     my $filename = shift @_;
-    my $w = shift @_;
-    my $h = shift @_;
     my $depth = shift @_;
     my $pix;
     my $i;
     my %pal;
+
+    # Determine the icon's width and height.
+    my $w = `identify -format %w $filename`;
+    my $h = `identify -format %h $filename`;
 
     # Read the file in as RGBA data. We flip vertically at this
     # point, to avoid having to do it ourselves (.BMP and hence
@@ -135,33 +186,40 @@ sub readicon {
 	die "too many colours in 8-bit image $filename\n" unless $palindex <= 256;
     } elsif ($depth == 4) {
 	%pal = %win16pal;
+    } elsif ($depth == 1) {
+	%pal = %win2pal;
     }
 
     my $raster = "";
     if ($depth < 24) {
 	# For a non-24-bit image, flatten the image into one palette
 	# index per pixel.
-	my $currbyte = 0, $currbits = 0;
-	for ($i = 0; $i < scalar @$data; $i++) {
-	    $pix = $data->[$i];
-	    $currbyte <<= $depth;
-	    $currbits += $depth;
-	    if (defined $pix) {
-		if (!defined $pal{$pix}) {
-		    die "illegal colour value $pix at pixel $i in $filename\n";
+	$pad = 32 / $depth; # number of pixels to pad scanline to 4-byte align
+	$pmask = $pad-1;
+	for ($y = 0; $y < $h; $y++) {
+	    my $currbyte = 0, $currbits = 0;
+	    for ($x = 0; $x < (($w+$pmask)|$pmask)-$pmask; $x++) {
+		$currbyte <<= $depth;
+		$currbits += $depth;
+		if ($x < $w && defined ($pix = $data->[$y*$w+$x])) {
+		    if (!defined $pal{$pix}) {
+			die "illegal colour value $pix at pixel $i in $filename\n";
+		    }
+		    $currbyte |= $pal{$pix};
 		}
-		$currbyte |= $pal{$pix};
-	    } else {
-		$currbyte |= 0;
-	    }
-	    if ($currbits >= 8) {
-		$raster .= pack "C", $currbyte;
-		$currbits -= 8;
+		if ($currbits >= 8) {
+		    $raster .= pack "C", $currbyte;
+		    $currbits -= 8;
+		}
 	    }
 	}
     } else {
 	# For a 24-bit image, reverse the order of the R,G,B values
 	# and stick a padding zero on the end.
+	#
+	# (In this loop we don't need to bother padding the
+	# scanline out to a multiple of four bytes, because every
+	# pixel takes four whole bytes anyway.)
 	for ($i = 0; $i < scalar @$data; $i++) {
 	    if (defined $data->[$i]) {
 		$raster .= $data->[$i];
