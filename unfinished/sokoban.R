@@ -1,8 +1,8 @@
 # -*- makefile -*-
 
-sokoban  : [X] GTK COMMON sokoban
+sokoban  : [X] GTK COMMON sokoban sokoban-icon|no-icon
 
-sokoban  : [G] WINDOWS COMMON sokoban
+sokoban  : [G] WINDOWS COMMON sokoban sokoban.res?
 
 ALL += sokoban
 

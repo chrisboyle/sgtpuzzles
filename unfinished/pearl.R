@@ -2,9 +2,9 @@
 
 PEARL    = pearl dsf
 
-pearl    : [X] GTK COMMON PEARL
+pearl    : [X] GTK COMMON PEARL pearl-icon|no-icon
 
-pearl    : [G] WINDOWS COMMON PEARL
+pearl    : [G] WINDOWS COMMON PEARL pearl.res?
 
 ALL += PEARL
 
