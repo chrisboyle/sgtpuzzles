@@ -105,7 +105,7 @@ menu}\q{Edit} menus instead.)
 
 \lcont{
 
-The Load and Save operations should preserve your entire game
+The Load and Save operations preserve your entire game
 history (so you can save, reload, and still Undo and Redo things you
 had done before saving).
 
@@ -308,8 +308,17 @@ missing. See \k{common-id} for more details on this.)
 
 (This section only applies to the Unix port.)
 
-In addition to specifying game parameters on the command line (see
-\k{common-cmdline}), you can also specify various options:
+In addition to being able to specify game parameters on the command
+line (see \k{common-cmdline}), there are various other options:
+
+\dt \cw{--game}
+
+\dt \cw{--load}
+
+\dd These options respectively determine whether the command-line
+argument is treated as specifying game parameters or a \i{save} file
+to \i{load}. Only one should be specified. If neither of these options
+is specified, a guess is made based on the format of the argument.
 
 \dt \cw{--generate }\e{n}
 
