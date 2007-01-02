@@ -2097,12 +2097,13 @@ int main(int argc, char **argv)
 
 	if (screenshot_file) {
 	    GdkPixbuf *pb;
+            GError* gerror;
 
 	    midend_redraw(fe->me);
 
 	    pb = gdk_pixbuf_get_from_drawable(NULL, fe->pixmap,
 					      NULL, 0, 0, 0, 0, -1, -1);
-	    gdk_pixbuf_save(pb, screenshot_file, "png", NULL);
+	    gdk_pixbuf_save(pb, screenshot_file, "png", &gerror, NULL);
 
 	    exit(0);
 	}
