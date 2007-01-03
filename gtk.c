@@ -2097,7 +2097,7 @@ int main(int argc, char **argv)
 
 	if (screenshot_file) {
 	    GdkPixbuf *pb;
-            GError* gerror;
+            GError *gerror = NULL;
 
 	    midend_redraw(fe->me);
 
