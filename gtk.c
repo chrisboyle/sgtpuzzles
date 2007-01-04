@@ -1616,12 +1616,12 @@ static frontend *new_window(char *arg, int argtype, char **error)
     }
 
     add_menu_separator(GTK_CONTAINER(menu));
-    menuitem = gtk_menu_item_new_with_label("Load");
+    menuitem = gtk_menu_item_new_with_label("Load...");
     gtk_container_add(GTK_CONTAINER(menu), menuitem);
     gtk_signal_connect(GTK_OBJECT(menuitem), "activate",
 		       GTK_SIGNAL_FUNC(menu_load_event), fe);
     gtk_widget_show(menuitem);
-    menuitem = gtk_menu_item_new_with_label("Save");
+    menuitem = gtk_menu_item_new_with_label("Save...");
     gtk_container_add(GTK_CONTAINER(menu), menuitem);
     gtk_signal_connect(GTK_OBJECT(menuitem), "activate",
 		       GTK_SIGNAL_FUNC(menu_save_event), fe);

@@ -1355,11 +1355,11 @@ static frontend *new_window(HINSTANCE inst, char *game_id, char **error)
 	}
 
 	AppendMenu(menu, MF_SEPARATOR, 0, 0);
-	AppendMenu(menu, MF_ENABLED, IDM_LOAD, "Load");
-	AppendMenu(menu, MF_ENABLED, IDM_SAVE, "Save");
+	AppendMenu(menu, MF_ENABLED, IDM_LOAD, "Load...");
+	AppendMenu(menu, MF_ENABLED, IDM_SAVE, "Save...");
 	AppendMenu(menu, MF_SEPARATOR, 0, 0);
 	if (thegame.can_print) {
-	    AppendMenu(menu, MF_ENABLED, IDM_PRINT, "Print");
+	    AppendMenu(menu, MF_ENABLED, IDM_PRINT, "Print...");
 	    AppendMenu(menu, MF_SEPARATOR, 0, 0);
 	}
 	AppendMenu(menu, MF_ENABLED, IDM_UNDO, "Undo");
