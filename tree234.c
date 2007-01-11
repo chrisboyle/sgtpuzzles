@@ -35,6 +35,9 @@
 
 #ifdef TEST
 #define LOG(x) (printf x)
+#define smalloc malloc
+#define srealloc realloc
+#define sfree free
 #else
 #define LOG(x)
 #endif
@@ -1438,8 +1441,11 @@ tree234 *copytree234(tree234 *t, copyfn234 copyfn, void *copyfnstate) {
     tree234 *t2;
 
     t2 = newtree234(t->cmp);
-    t2->root = copynode234(t->root, copyfn, copyfnstate);
-    t2->root->parent = NULL;
+    if (t->root) {
+	t2->root = copynode234(t->root, copyfn, copyfnstate);
+	t2->root->parent = NULL;
+    } else
+	t2->root = NULL;
 
     return t2;
 }
@@ -1885,8 +1891,6 @@ int mycmp(void *av, void *bv) {
     return strcmp(a, b);
 }
 
-#define lenof(x) ( sizeof((x)) / sizeof(*(x)) )
-
 char *strings[] = {
     "0", "2", "3", "I", "K", "d", "H", "J", "Q", "N", "n", "q", "j", "i",
     "7", "G", "F", "D", "b", "x", "g", "B", "e", "v", "V", "T", "f", "E",
@@ -2120,11 +2124,12 @@ int main(void) {
     tree = newtree234(mycmp);
     cmp = mycmp;
     arraylen = 0;
-    for (i = 0; i < 16; i++) {
-	addtest(strings[i]);
+    for (i = 0; i < 17; i++) {
 	tree2 = copytree234(tree, NULL, NULL);
 	splittest(tree2, array, arraylen);
 	freetree234(tree2);
+	if (i < 16)
+	    addtest(strings[i]);
     }
     freetree234(tree);
 
