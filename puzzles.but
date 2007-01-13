@@ -2078,7 +2078,7 @@ tightly-packed islands.
 \cfg{winhelp-topic}{games.unequal}
 
 You have a square grid; each square may contain a digit from 1 to
-the size of the grid, and some squares have greater-signs between
+the size of the grid, and some squares have greater-than signs between
 them. Your aim is to fully populate the grid with numbers such that:
 
 \b Each row contains only one occurrence of each digit
@@ -2087,11 +2087,11 @@ them. Your aim is to fully populate the grid with numbers such that:
 
 \b All the greater-than signs are satisfied. 
 
-In 'Trivial' mode, there are no greater-than signs; the puzzle is
-to solve the latin square only.
+In \q{Trivial} mode, there are no greater-than signs; the puzzle is
+to solve the \i{Latin square} only.
 
 At the time of writing, this puzzle is appearing in the Guardian
-weekly under the name 'Futoshiki'.
+weekly under the name \q{\i{Futoshiki}}.
 
 Unequal was contributed to this collection by James Harvey.
 
@@ -2137,7 +2137,7 @@ These parameters are available from the \q{Custom...} option on the
 \dt \e{Difficulty}
 
 \dd Controls the difficulty of the generated puzzle. At Trivial level,
-there are no greater-than signs (the puzzle is to solve the latin
+there are no greater-than signs (the puzzle is to solve the Latin
 square only); at Tricky level, some recursion may be required (but the
 solutions should always be unique).
 
