@@ -2073,6 +2073,75 @@ possible islands; low expansion factors can create lots of
 tightly-packed islands.
 
 
+\C{unequal} \i{Unequal}
+
+\cfg{winhelp-topic}{games.unequal}
+
+You have a square grid; each square may contain a digit from 1 to
+the size of the grid, and some squares have greater-signs between
+them. Your aim is to fully populate the grid with numbers such that:
+
+\b Each row contains only one occurrence of each digit
+
+\b Each column contains only one occurrence of each digit
+
+\b All the greater-than signs are satisfied. 
+
+In 'Trivial' mode, there are no greater-than signs; the puzzle is
+to solve the latin square only.
+
+At the time of writing, this puzzle is appearing in the Guardian
+weekly under the name 'Futoshiki'.
+
+Unequal was contributed to this collection by James Harvey.
+
+\H{unequal-controls} \i{Unequal controls}
+
+\IM{Unequal controls} controls, for Unequal
+
+Unequal shares much of its control system with Solo.
+
+To play Unequal, simply click the mouse in any empty square and then
+type a digit or letter on the keyboard to fill that square. If you
+make a mistake, click the mouse in the incorrect square and press
+Space to clear it again (or use the Undo feature).
+
+If you \e{right}-click in a square and then type a number, that
+number will be entered in the square as a \q{pencil mark}. You can
+have pencil marks for multiple numbers in the same square.
+
+The game pays no attention to pencil marks, so exactly what you use
+them for is up to you: you can use them as reminders that a
+particular square needs to be re-examined once you know more about a
+particular number, or you can use them as lists of the possible
+numbers in a given square, or anything else you feel like.
+
+To erase a single pencil mark, right-click in the square and type
+the same number again.
+
+All pencil marks in a square are erased when you left-click and type
+a number, or when you left-click and press space. Right-clicking and
+pressing space will also erase pencil marks.
+
+(All the actions described in \k{common-actions} are also available.)
+
+\H{unequal-parameters} \I{parameters, for Unequal}Unequal parameters
+
+These parameters are available from the \q{Custom...} option on the
+\q{Type} menu.
+
+\dt \e{Size (s*s)}
+
+\dd Size of grid.
+
+\dt \e{Difficulty}
+
+\dd Controls the difficulty of the generated puzzle. At Trivial level,
+there are no greater-than signs (the puzzle is to solve the latin
+square only); at Tricky level, some recursion may be required (but the
+solutions should always be unique).
+
+
 \A{licence} \I{MIT licence}\ii{Licence}
 
 This software is \i{copyright} 2004-2007 Simon Tatham.
