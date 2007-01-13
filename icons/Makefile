@@ -2,7 +2,7 @@
 
 PUZZLES = blackbox bridges cube dominosa fifteen flip guess inertia lightup \
           loopy map mines net netslide pattern pegs rect samegame sixteen \
-          slant solo tents twiddle untangle
+          slant solo tents twiddle unequal untangle
 
 BASE = $(patsubst %,%-base.png,$(PUZZLES))
 WEB = $(patsubst %,%-web.png,$(PUZZLES))
@@ -71,6 +71,7 @@ slant-ibase.png : override CROP=321x321 160x160+160+160
 solo-ibase.png : override CROP=321x321 97x97+16+16
 tents-ibase.png : override CROP=320x320 165x165+142+0
 twiddle-ibase.png : override CROP=192x192 102x102+69+21
+unequal-ibase.png : override CROP=208x208 104x104+104+104
 untangle-ibase.png : override CROP=320x320 164x164+3+116
 $(IBASE): %-ibase.png: %-base.png
 	$(PIC)crop.sh $^ $@ $(CROP)

@@ -2,9 +2,9 @@
 
 UNEQUAL  = unequal latin tree234 maxflow
 
-unequal  : [X] GTK COMMON UNEQUAL
+unequal  : [X] GTK COMMON UNEQUAL unequal-icon|no-icon
 
-unequal  : [G] WINDOWS COMMON UNEQUAL
+unequal  : [G] WINDOWS COMMON UNEQUAL unequal.res?
 
 unequalsolver : [U] unequal[STANDALONE_SOLVER] latin[STANDALONE_SOLVER] tree234 maxflow STANDALONE
 unequalsolver : [C] unequal[STANDALONE_SOLVER] latin[STANDALONE_SOLVER] tree234 maxflow STANDALONE
