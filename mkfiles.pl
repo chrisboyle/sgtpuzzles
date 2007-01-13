@@ -414,6 +414,8 @@ sub deps {
       ($x = $otmpl) =~ s/X/$i/;
     }
     @deps = @{$depends{$ii}};
+    # Skip things which are their own dependency.
+    next if grep { $_ eq $i } @deps;
     @deps = map {
       $_ = &findfile($_);
       s/\//$dirsep/g;
