@@ -43,16 +43,15 @@ Don't forget to `svn add' the new source file, the new .R file and
 the save file in `icons', before checkin!
 
 Put the puzzle on the web:
- - make sure the screenshot is actually in the www directory
+ - run puzzlesnap first
+ - make sure the screenshot has arrived in the www directory
+ - make sure the Windows binary link has appeared, and that it
+   points at the right binary
  - add an entry in the puzzles list in index.html
  - adjust the copyright in index.html if the puzzle is by a new
    author
- - add a link to the Windows binary
- - make sure the Windows binary link points at the right binary, not
-   the wrong one!
- - run puzzlesnap
  - test that the binary link and the docs link work
  - run webupdate
  - test again
- - `svn add' the binary symlink and the screenshot
- - check in the website changes (screenshot, symlink, index.html)
+ - `svn add' the binary symlink
+ - check in the website changes (symlink, index.html)
