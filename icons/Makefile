@@ -101,17 +101,17 @@ $(P48D8) $(P32D8) $(P16D8): %d8.png: %d24.png
 # that on most modern Windows machines this won't matter too
 # much...)
 $(P48D4): %-48d4.png: %-ibase4.png
-	$(PIC)square.pl 48 1 $^ tmp2.png
-	convert -colors 16 -map $(PIC)win16pal.xpm tmp2.png $@
-	rm -f tmp.png tmp2.png
+	$(PIC)square.pl 48 1 $^ $@-tmp2.png
+	convert -colors 16 -map $(PIC)win16pal.xpm $@-tmp2.png $@
+	rm -f $@-tmp2.png
 $(P32D4): %-32d4.png: %-ibase.png
-	$(PIC)square.pl 32 1 $^ tmp2.png
-	convert -colors 16 -map $(PIC)win16pal.xpm tmp2.png $@
-	rm -f tmp.png tmp2.png
+	$(PIC)square.pl 32 1 $^ $@-tmp2.png
+	convert -colors 16 -map $(PIC)win16pal.xpm $@-tmp2.png $@
+	rm -f $@-tmp2.png
 $(P16D4): %-16d4.png: %-ibase.png
-	$(PIC)square.pl 16 1 $^ tmp2.png
-	convert -colors 16 -map $(PIC)win16pal.xpm tmp2.png $@
-	rm -f tmp.png tmp2.png
+	$(PIC)square.pl 16 1 $^ $@-tmp2.png
+	convert -colors 16 -map $(PIC)win16pal.xpm $@-tmp2.png $@
+	rm -f $@-tmp2.png
 
 # Build the actual Windows icons themselves, by feeding all those
 # PNGs to my icon builder script.
