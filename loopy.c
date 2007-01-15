@@ -1876,10 +1876,7 @@ const static struct dline dlines[] =  {
      (d==DLINE_DR) ? "DLINE_DR": \
      "oops")
 
-static const struct dline *get_dline(enum dline_desc desc)
-{
-    return &dlines[desc];
-}
+#define CHECK_DLINE_SENSIBLE(d) assert(dlines[(d)].dx != -1 && dlines[(d)].dy != -1)
 
 /* This will fail an assertion if the directions handed to it are the same, as
  * no dline corresponds to that */
@@ -1932,10 +1929,9 @@ static int set_dot_dline(game_state *state, char *dline_array,
 static int get_square_dline(game_state *state, char *dline_array,
                             int i, int j, enum dline_desc desc)
 {
-    const struct dline *dl = get_dline(desc);
-    assert(dl->dx != -1 && dl->dy != -1);
+    CHECK_DLINE_SENSIBLE(desc);
 /*    fprintf(stderr, "get_square_dline %p [%d,%d] %s\n", dline_array, i, j, DL2STR(desc)); */
-    return BIT_SET(dline_array[(i+dl->dx) + (state->w + 1) * (j+dl->dy)], 
+    return BIT_SET(dline_array[(i+dlines[desc].dx) + (state->w + 1) * (j+dlines[desc].dy)], 
                    desc);
 }
 
@@ -1946,10 +1942,9 @@ static int set_square_dline(game_state *state, char *dline_array,
 #endif
                             )
 {
-    const struct dline *dl = get_dline(desc);
     int ret;
-    assert(dl->dx != -1 && dl->dy != -1);
-    ret = SET_BIT(dline_array[(i+dl->dx) + (state->w + 1) * (j+dl->dy)], desc);
+    CHECK_DLINE_SENSIBLE(desc);
+    ret = SET_BIT(dline_array[(i+dlines[desc].dx) + (state->w + 1) * (j+dlines[desc].dy)], desc);
 #ifdef SHOW_WORKING
     if (ret)
         fprintf(stderr, "set_square_dline %p [%d,%d] %s (%s)\n", dline_array, i, j, DL2STR(desc), reason);
@@ -1980,10 +1975,9 @@ static int set_square_opp_dline(game_state *state, char *dline_array,
 static int dline_both_unknown(const game_state *state, int i, int j,
                               enum dline_desc desc)
 {
-    const struct dline *dl = get_dline(desc);
     return 
-        (get_line_status_from_point(state, i, j, dl->dir1) == LINE_UNKNOWN) &&
-        (get_line_status_from_point(state, i, j, dl->dir2) == LINE_UNKNOWN);
+        (get_line_status_from_point(state, i, j, dlines[desc].dir1) == LINE_UNKNOWN) &&
+        (get_line_status_from_point(state, i, j, dlines[desc].dir2) == LINE_UNKNOWN);
 }
 
 #define SQUARE_DLINES \
@@ -2143,14 +2137,14 @@ static int square_setboth_in_dline(solver_state *sstate, enum dline_desc dd,
                                    int i, int j, enum line_state line_new)
 {
     int retval = FALSE;
-    const struct dline *dl = get_dline(dd);
+    const struct dline dll = dlines[dd], *dl = &dll;
     
 #if 0
     fprintf(stderr, "square_setboth_in_dline %s [%d,%d] to %d\n",
                     DL2STR(dd), i, j, line_new);
 #endif
 
-    assert(dl->dx != -1 && dl->dy != -1);
+    CHECK_DLINE_SENSIBLE(dd);
     
     retval |=
         set_line_bydot(sstate, i+dl->dx, j+dl->dy, dl->dir1, line_new);
@@ -2651,7 +2645,6 @@ static int hard_mode_deductions(solver_state *sstate)
     enum direction dir1, dir2;
     int can1, can2, inv1, inv2;
     int diff = DIFF_MAX;
-    const struct dline *dl;
     enum dline_desc dd;
 
     FORALL_SQUARES(state, i, j) {
@@ -2774,7 +2767,7 @@ static int hard_mode_deductions(solver_state *sstate)
             continue;
 
         FORALL_DOT_DLINES(dd) {
-            dl = get_dline(dd);
+            const struct dline dll = dlines[dd], *dl = &dll;
             if (i == 0 && (dl->dir1 == LEFT || dl->dir2 == LEFT))
                 continue;
             if (i == w && (dl->dir1 == RIGHT || dl->dir2 == RIGHT))
