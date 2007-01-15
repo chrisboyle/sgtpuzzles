@@ -2136,10 +2136,11 @@ These parameters are available from the \q{Custom...} option on the
 
 \dt \e{Difficulty}
 
-\dd Controls the difficulty of the generated puzzle. At Trivial level,
-there are no greater-than signs (the puzzle is to solve the Latin
-square only); at Tricky level, some recursion may be required (but the
-solutions should always be unique).
+\dd Controls the difficulty of the generated puzzle. At Trivial
+level, there are no greater-than signs (the puzzle is to solve the
+Latin square only); at Recursive level backtracking will be required
+(but the solution should still be unique); the levels in between
+require increasingly complex reasoning to avoid having to backtrack.
 
 
 \A{licence} \I{MIT licence}\ii{Licence}

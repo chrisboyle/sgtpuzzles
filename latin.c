@@ -947,7 +947,7 @@ void latin_solver_debug(unsigned char *cube, int o)
 #ifdef STANDALONE_SOLVER
     if (solver_show_working) {
         struct latin_solver ls, *solver = &ls;
-        char *dbg;
+        unsigned char *dbg;
         int x, y, i, c = 0;
 
         ls.cube = cube; ls.o = o; /* for cube() to work */
