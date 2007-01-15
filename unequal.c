@@ -631,7 +631,7 @@ static int solver_grid(digit *grid, int o, int maxdiff, void *ctx)
     game_solver *solver;
     struct latin_solver *lsolver;
     struct latin_solver_scratch *scratch;
-    int ret, diff = DIFF_LATIN, extreme;
+    int ret, diff = DIFF_LATIN;
 
     assert(maxdiff <= DIFF_RECURSIVE);
 
@@ -668,17 +668,27 @@ cont:
         if (maxdiff <= DIFF_EASY)
             break;
 
-        ret = latin_solver_diff_set(lsolver, scratch, &extreme);
+        /* Row- and column-wise set elimination */
+        ret = latin_solver_diff_set(lsolver, scratch, 0);
         if (ret < 0) {
             diff = DIFF_IMPOSSIBLE;
             goto got_result;
         } else if (ret > 0) {
-            diff = max(diff, extreme ? DIFF_EXTREME : DIFF_SET);
+            diff = max(diff, DIFF_SET);
             goto cont;
         }
 
         if (maxdiff <= DIFF_SET)
             break;
+
+        ret = latin_solver_diff_set(lsolver, scratch, 1);
+        if (ret < 0) {
+            diff = DIFF_IMPOSSIBLE;
+            goto got_result;
+        } else if (ret > 0) {
+            diff = max(diff, DIFF_EXTREME);
+            goto cont;
+        }
 
         /*
          * Forcing chains.

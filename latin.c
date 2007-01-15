@@ -619,46 +619,46 @@ int latin_solver_diff_simple(struct latin_solver *solver)
 
 int latin_solver_diff_set(struct latin_solver *solver,
                           struct latin_solver_scratch *scratch,
-                          int *extreme)
+                          int extreme)
 {
     int x, y, n, ret, o = solver->o;
-    /*
-     * Row-wise set elimination.
-     */
-    for (y = 0; y < o; y++) {
-        ret = latin_solver_set(solver, scratch, cubepos(0,y,1), o*o, 1
-#ifdef STANDALONE_SOLVER
-			       , "set elimination, row %d", YUNTRANS(y)
-#endif
-			       );
-        if (ret > 0) *extreme = 0;
-        if (ret != 0) return ret;
-    }
 
-    /*
-     * Column-wise set elimination.
-     */
-    for (x = 0; x < o; x++) {
-        ret = latin_solver_set(solver, scratch, cubepos(x,0,1), o, 1
+    if (!extreme) {
+        /*
+         * Row-wise set elimination.
+         */
+        for (y = 0; y < o; y++) {
+            ret = latin_solver_set(solver, scratch, cubepos(0,y,1), o*o, 1
 #ifdef STANDALONE_SOLVER
-			       , "set elimination, column %d", x
+                                   , "set elimination, row %d", YUNTRANS(y)
 #endif
-			       );
-        if (ret > 0) *extreme = 0;
-        if (ret != 0) return ret;
-    }
-
-    /*
-     * Row-vs-column set elimination on a single number.
-     */
-    for (n = 1; n <= o; n++) {
-        ret = latin_solver_set(solver, scratch, cubepos(0,0,n), o*o, o
+                                  );
+            if (ret != 0) return ret;
+        }
+        /*
+         * Column-wise set elimination.
+         */
+        for (x = 0; x < o; x++) {
+            ret = latin_solver_set(solver, scratch, cubepos(x,0,1), o, 1
 #ifdef STANDALONE_SOLVER
-			       , "positional set elimination, number %d", n
+                                   , "set elimination, column %d", x
 #endif
-			       );
-        if (ret > 0) *extreme = 1;
-        if (ret != 0) return ret;
+                                  );
+            if (ret != 0) return ret;
+        }
+    } else {
+        /*
+         * Row-vs-column set elimination on a single number
+         * (much tricker for a human to do!)
+         */
+        for (n = 1; n <= o; n++) {
+            ret = latin_solver_set(solver, scratch, cubepos(0,0,n), o*o, o
+#ifdef STANDALONE_SOLVER
+                                   , "positional set elimination, number %d", n
+#endif
+                                  );
+            if (ret != 0) return ret;
+        }
     }
     return 0;
 }
@@ -826,7 +826,7 @@ enum { diff_simple = 1, diff_set, diff_extreme, diff_recursive };
 static int latin_solver_sub(struct latin_solver *solver, int maxdiff, void *ctx)
 {
     struct latin_solver_scratch *scratch = latin_solver_new_scratch(solver);
-    int ret, diff = diff_simple, extreme;
+    int ret, diff = diff_simple;
 
     assert(maxdiff <= diff_recursive);
     /*
@@ -859,17 +859,26 @@ static int latin_solver_sub(struct latin_solver *solver, int maxdiff, void *ctx)
         if (maxdiff <= diff_simple)
             break;
 
-        ret = latin_solver_diff_set(solver, scratch, &extreme);
+        ret = latin_solver_diff_set(solver, scratch, 0);
         if (ret < 0) {
             diff = diff_impossible;
             goto got_result;
         } else if (ret > 0) {
-            diff = max(diff, extreme ? diff_extreme : diff_set);
+            diff = max(diff, diff_set);
             goto cont;
         }
 
         if (maxdiff <= diff_set)
             break;
+
+        ret = latin_solver_diff_set(solver, scratch, 1);
+        if (ret < 0) {
+            diff = diff_impossible;
+            goto got_result;
+        } else if (ret > 0) {
+            diff = max(diff, diff_extreme);
+            goto cont;
+        }
 
         /*
          * Forcing chains.

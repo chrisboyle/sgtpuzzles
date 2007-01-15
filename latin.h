@@ -86,7 +86,7 @@ int latin_solver_diff_simple(struct latin_solver *solver);
  * the more difficult single-number elimination. */
 int latin_solver_diff_set(struct latin_solver *solver,
                           struct latin_solver_scratch *scratch,
-                          int *extreme);
+                          int extreme);
 
 typedef int (latin_solver_callback)(digit *, int, int, void*);
 /* Use to provide a standard way of dealing with solvers which can recurse;
