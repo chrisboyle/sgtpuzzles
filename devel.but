@@ -2122,7 +2122,7 @@ function; see \k{drawing-draw-circle}.
 \c void (*draw_update)(void *handle, int x, int y, int w, int h);
 
 This function behaves exactly like the back end \cw{draw_update()}
-function; see \k{drawing-draw-text}.
+function; see \k{drawing-draw-update}.
 
 An implementation of this API which only supports printing is
 permitted to define this function pointer to be \cw{NULL} rather
