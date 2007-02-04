@@ -15,7 +15,7 @@ in puzzles do make clean
 # Build the OS X .dmg archive.
 delegate osx
   in puzzles do make -f Makefile.osx clean
-  in puzzles do make -f Makefile.osx release
+  in puzzles do make -f Makefile.osx release VER=-DREVISION=$(revision)
   return puzzles/Puzzles.dmg
 enddelegate
 
@@ -28,7 +28,7 @@ delegate windows
   in puzzles do hhc puzzles.hhp; test -f puzzles.chm
   # FIXME: Cygwin alternative?
   in puzzles do cmd /c 'vcvars32 & nmake -f Makefile.vc clean'
-  in puzzles do cmd /c 'vcvars32 & nmake -f Makefile.vc'
+  in puzzles do cmd /c 'vcvars32 & nmake -f Makefile.vc VER=-DREVISION=$(revision)'
   return puzzles/puzzles.chm
   return puzzles/*.exe
 enddelegate
