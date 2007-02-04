@@ -8,6 +8,9 @@ in puzzles do make
 # Now build the screenshots and icons.
 in puzzles/icons do xvfb-run make web winicons gtkicons
 
+# Re-run mkfiles.pl now that it knows the icons are there.
+in puzzles do perl mkfiles.pl
+
 # Destroy the local binaries, mostly to avoid wasting network
 # bandwidth by transferring them to the delegate servers.
 in puzzles do make clean
