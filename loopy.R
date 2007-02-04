@@ -15,3 +15,7 @@ GAMES += loopy
 !begin >list.c
     A(loopy) \
 !end
+
+!begin >wingames.lst
+loopy.exe
+!end

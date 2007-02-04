@@ -16,3 +16,7 @@ GAMES += solo
 !begin >list.c
     A(solo) \
 !end
+
+!begin >wingames.lst
+solo.exe
+!end

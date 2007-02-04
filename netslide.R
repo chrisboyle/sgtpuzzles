@@ -15,3 +15,7 @@ GAMES += netslide
 !begin >list.c
     A(netslide) \
 !end
+
+!begin >wingames.lst
+netslide.exe
+!end

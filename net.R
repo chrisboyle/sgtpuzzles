@@ -17,3 +17,7 @@ GAMES += net
 !begin >list.c
     A(net) \
 !end
+
+!begin >wingames.lst
+netgame.exe
+!end

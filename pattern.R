@@ -16,3 +16,7 @@ GAMES += pattern
 !begin >list.c
     A(pattern) \
 !end
+
+!begin >wingames.lst
+pattern.exe
+!end

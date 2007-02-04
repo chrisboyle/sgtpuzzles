@@ -13,3 +13,7 @@ GAMES += twiddle
 !begin >list.c
     A(twiddle) \
 !end
+
+!begin >wingames.lst
+twiddle.exe
+!end

@@ -18,3 +18,7 @@ GAMES += slant
 !begin >list.c
     A(slant) \
 !end
+
+!begin >wingames.lst
+slant.exe
+!end

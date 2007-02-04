@@ -21,3 +21,7 @@ GAMES += unequal
 !begin >list.c
     A(unequal) \
 !end
+
+!begin >wingames.lst
+unequal.exe
+!end

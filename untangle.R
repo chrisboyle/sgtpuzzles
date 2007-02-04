@@ -15,3 +15,7 @@ GAMES += untangle
 !begin >list.c
     A(untangle) \
 !end
+
+!begin >wingames.lst
+untangle.exe
+!end

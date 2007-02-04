@@ -15,7 +15,7 @@ case "$#" in
     if test "x$rev" = "xexported"; then rev=; fi
     ;;
   *)
-    case "$1" in *[!0-9]*) echo "Malformed revision number '$1'">&2;exit 1;;esac
+    case "$1" in *[!0-9M]*) echo "Malformed revision number '$1'">&2;exit 1;;esac
     rev="$1"
     ;;
 esac

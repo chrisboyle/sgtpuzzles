@@ -13,3 +13,7 @@ GAMES += blackbox
 !begin >list.c
     A(blackbox) \
 !end
+
+!begin >wingames.lst
+blackbox.exe
+!end

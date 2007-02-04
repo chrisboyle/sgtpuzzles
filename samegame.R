@@ -13,3 +13,7 @@ GAMES += samegame
 !begin >list.c
     A(samegame) \
 !end
+
+!begin >wingames.lst
+samegame.exe
+!end

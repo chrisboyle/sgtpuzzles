@@ -13,3 +13,7 @@ GAMES += fifteen
 !begin >list.c
     A(fifteen) \
 !end
+
+!begin >wingames.lst
+fifteen.exe
+!end

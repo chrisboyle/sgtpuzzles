@@ -18,3 +18,7 @@ GAMES += tents
 !begin >list.c
     A(tents) \
 !end
+
+!begin >wingames.lst
+tents.exe
+!end

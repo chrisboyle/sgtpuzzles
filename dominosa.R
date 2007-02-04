@@ -13,3 +13,7 @@ GAMES += dominosa
 !begin >list.c
     A(dominosa) \
 !end
+
+!begin >wingames.lst
+dominosa.exe
+!end

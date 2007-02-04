@@ -13,3 +13,7 @@ GAMES += rect
 !begin >list.c
     A(rect) \
 !end
+
+!begin >wingames.lst
+rect.exe
+!end

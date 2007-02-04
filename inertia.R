@@ -13,3 +13,7 @@ GAMES += inertia
 !begin >list.c
     A(inertia) \
 !end
+
+!begin >wingames.lst
+inertia.exe
+!end

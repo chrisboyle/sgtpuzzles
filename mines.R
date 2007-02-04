@@ -18,3 +18,7 @@ GAMES += mines
 !begin >list.c
     A(mines) \
 !end
+
+!begin >wingames.lst
+mines.exe
+!end

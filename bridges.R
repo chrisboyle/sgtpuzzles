@@ -15,3 +15,7 @@ GAMES += bridges
 !begin >list.c
     A(bridges) \
 !end
+
+!begin >wingames.lst
+bridges.exe
+!end

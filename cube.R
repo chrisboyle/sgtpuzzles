@@ -13,3 +13,7 @@ GAMES += cube
 !begin >list.c
     A(cube) \
 !end
+
+!begin >wingames.lst
+cube.exe
+!end

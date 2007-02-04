@@ -18,3 +18,7 @@ GAMES += lightup
 !begin >list.c
     A(lightup) \
 !end
+
+!begin >wingames.lst
+lightup.exe
+!end

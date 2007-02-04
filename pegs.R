@@ -15,3 +15,7 @@ GAMES += pegs
 !begin >list.c
     A(pegs) \
 !end
+
+!begin >wingames.lst
+pegs.exe
+!end

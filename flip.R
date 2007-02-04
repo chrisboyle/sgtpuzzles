@@ -15,3 +15,7 @@ GAMES += flip
 !begin >list.c
     A(flip) \
 !end
+
+!begin >wingames.lst
+flip.exe
+!end

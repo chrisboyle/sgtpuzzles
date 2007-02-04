@@ -18,3 +18,7 @@ GAMES += map
 !begin >list.c
     A(map) \
 !end
+
+!begin >wingames.lst
+map.exe
+!end

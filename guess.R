@@ -13,3 +13,7 @@ GAMES += guess
 !begin >list.c
     A(guess) \
 !end
+
+!begin >wingames.lst
+guess.exe
+!end
