@@ -1,6 +1,8 @@
 # -*- sh -*-
 # Build script to build Puzzles.
 
+module puzzles
+
 # First build some local binaries, to run the icon build.
 in puzzles do perl mkfiles.pl
 in puzzles do make
