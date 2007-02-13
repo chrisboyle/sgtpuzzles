@@ -44,7 +44,6 @@
 
 #ifndef NO_HTMLHELP
 typedef HWND (CALLBACK *htmlhelp_t)(HWND, LPCSTR, UINT, DWORD);
-static DWORD html_help_cookie;
 static htmlhelp_t htmlhelp;
 static HINSTANCE hh_dll;
 #endif /* NO_HTMLHELP */
@@ -1033,7 +1032,6 @@ static void init_help(void)
 		FreeLibrary(hh_dll);
 	}
 	if (htmlhelp) {
-	    htmlhelp(NULL, NULL, HH_INITIALIZE, (DWORD)&html_help_cookie);
 	    help_path = dupstr(b);
 	    help_type = CHM;
 	    help_topic = thegame.htmlhelp_topic;
@@ -1144,12 +1142,9 @@ static void stop_help(frontend *fe)
  */
 static void cleanup_help(void)
 {
-#ifndef NO_HTMLHELP
-    if (help_type == CHM) {
-	assert(htmlhelp);
-	htmlhelp(NULL, NULL, HH_UNINITIALIZE, html_help_cookie);
-    }
-#endif /* NO_HTMLHELP */
+    /* Nothing to do currently.
+     * (If we were running HTML Help single-threaded, this is where we'd
+     * call HH_UNINITIALIZE.) */
 }
 
 static void check_window_size(frontend *fe, int *px, int *py)
