@@ -1092,6 +1092,7 @@ digit *latin_generate(int o, random_state *rs)
 	for (j = 0; j < o; j++)
 	    col[j] = num[j] = j;
 	shuffle(col, j, sizeof(*col), rs);
+	shuffle(num, j, sizeof(*num), rs);
 	/* We need the num permutation in both forward and inverse forms. */
 	for (j = 0; j < o; j++)
 	    numinv[num[j]] = j;
