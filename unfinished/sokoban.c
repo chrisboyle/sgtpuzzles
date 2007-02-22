@@ -99,8 +99,8 @@
 #define BARREL_LABEL(b) ( (b)>='A'&&(b)<='Z' ? (b) : \
                           (b)>=1 && (b)<=26 ? (b)+('A'-1) : 0 )
 
-#define DX(d) (d == 0 ? -1 : d == 2 ? +1 : 0);
-#define DY(d) (d == 1 ? -1 : d == 3 ? +1 : 0);
+#define DX(d) (d == 0 ? -1 : d == 2 ? +1 : 0)
+#define DY(d) (d == 1 ? -1 : d == 3 ? +1 : 0)
 
 #define FLASH_LENGTH 0.3F
 
