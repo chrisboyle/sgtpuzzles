@@ -2155,8 +2155,8 @@ rotationally symmetric, and contains exactly one dot which is
 located at its centre of symmetry.
 
 This puzzle was invented by \i{Nikoli} \k{nikoli-galaxies}, under
-the name 'Tentai Show'; its name is commonly translated into English
-as 'Spiral Galaxies'.
+the name \q{Tentai Show}; its name is commonly translated into
+English as \q{Spiral Galaxies}.
 
 \B{nikoli-galaxies} \W{http://www.nikoli.co.jp/en/puzzles/astronomical_show/}\cw{http://www.nikoli.co.jp/en/puzzles/astronomical_show/}
 
@@ -2197,8 +2197,8 @@ These parameters are available from the \q{Custom...} option on the
 \dt \e{Difficulty}
 
 \dd Controls the difficulty of the generated puzzle. More difficult
-puzzles require more complex deductions, and the 'Recursive' difficulty
-level may require backtracking.
+puzzles require more complex deductions, and the \q{Recursive}
+difficulty level may require backtracking.
 
 
 
@@ -2211,7 +2211,7 @@ Portions copyright Richard Boulton, James Harvey and Mike Pinna.
 
 Permission is hereby granted, free of charge, to any person
 obtaining a copy of this software and associated documentation files
-(the "Software"), to deal in the Software without restriction,
+(the \q{Software}), to deal in the Software without restriction,
 including without limitation the rights to use, copy, modify, merge,
 publish, distribute, sublicense, and/or sell copies of the Software,
 and to permit persons to whom the Software is furnished to do so,
@@ -2220,7 +2220,7 @@ subject to the following conditions:
 The above copyright notice and this permission notice shall be
 included in all copies or substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+THE SOFTWARE IS PROVIDED \q{AS IS}, WITHOUT WARRANTY OF ANY KIND,
 EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
 MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
 NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
