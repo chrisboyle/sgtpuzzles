@@ -2225,8 +2225,8 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
     } else if (button == RIGHT_BUTTON) {
         int px1, py1;
 
-        px = 2*FROMCOORD((float)x) + 0.5;
-        py = 2*FROMCOORD((float)y) + 0.5;
+        px = 2*(FROMCOORD( (int)((float)x + 0.5) ));
+        py = 2*(FROMCOORD( (int)((float)y + 0.5) ));
 
         dot = NULL;
 
@@ -2758,13 +2758,13 @@ static void game_free_drawstate(drawing *dr, game_drawstate *ds)
 static void draw_arrow(drawing *dr, game_drawstate *ds,
                        int cx, int cy, int ddx, int ddy)
 {
-    float vlen = sqrt(ddx*ddx+ddy*ddy);
+    float vlen = (float)sqrt(ddx*ddx+ddy*ddy);
     float xdx = ddx/vlen, xdy = ddy/vlen;
     float ydx = -xdy, ydy = xdx;
-    int e1x = cx + xdx*TILE_SIZE/3, e1y = cy + xdy*TILE_SIZE/3;
-    int e2x = cx - xdx*TILE_SIZE/3, e2y = cy - xdy*TILE_SIZE/3;
-    int adx = (ydx-xdx)*TILE_SIZE/8, ady = (ydy-xdy)*TILE_SIZE/8;
-    int adx2 = (-ydx-xdx)*TILE_SIZE/8, ady2 = (-ydy-xdy)*TILE_SIZE/8;
+    int e1x = cx + (int)(xdx*TILE_SIZE/3), e1y = cy + (int)(xdy*TILE_SIZE/3);
+    int e2x = cx - (int)(xdx*TILE_SIZE/3), e2y = cy - (int)(xdy*TILE_SIZE/3);
+    int adx = (int)((ydx-xdx)*TILE_SIZE/8), ady = (int)((ydy-xdy)*TILE_SIZE/8);
+    int adx2 = (int)((-ydx-xdx)*TILE_SIZE/8), ady2 = (int)((-ydy-xdy)*TILE_SIZE/8);
 
     draw_line(dr, e1x, e1y, e2x, e2y, COL_ARROW);
     draw_line(dr, e1x, e1y, e1x+adx, e1y+ady, COL_ARROW);
@@ -3176,7 +3176,7 @@ static void game_print(drawing *dr, game_state *state, int sz)
     for (y = 0; y <= 2*h; y++)
 	for (x = 0; x <= 2*w; x++)
 	    if (SPACE(state, x, y).flags & F_DOT) {
-                draw_circle(dr, COORD(x/2.0), COORD(y/2.0), DOT_SIZE,
+                draw_circle(dr, (int)COORD(x/2.0), (int)COORD(y/2.0), DOT_SIZE,
                             (SPACE(state, x, y).flags & F_DOT_BLACK ?
 			     black : white), black);
 	    }
