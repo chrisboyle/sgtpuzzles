@@ -84,7 +84,7 @@ void debug_printf(char *fmt, ...)
     va_list ap;
 
     va_start(ap, fmt);
-    vsprintf(buf, fmt, ap);
+    _vsnprintf(buf, 4095, fmt, ap);
     dputs(buf);
     va_end(ap);
 }

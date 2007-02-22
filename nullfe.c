@@ -27,6 +27,7 @@ void blitter_free(drawing *dr, blitter *bl) {}
 void blitter_save(drawing *dr, blitter *bl, int x, int y) {}
 void blitter_load(drawing *dr, blitter *bl, int x, int y) {}
 int print_mono_colour(drawing *dr, int grey) { return 0; }
+int print_grey_colour(drawing *dr, int hatch, float grey) { return 0; }
 int print_rgb_colour(drawing *dr, int hatch, float r, float g, float b)
 { return 0; }
 void print_line_width(drawing *dr, int width) {}
@@ -47,3 +48,12 @@ void fatal(char *fmt, ...)
     exit(1);
 }
 
+#ifdef DEBUGGING
+void debug_printf(char *fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    vfprintf(stdout, fmt, ap);
+    va_end(ap);
+}
+#endif
