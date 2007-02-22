@@ -66,9 +66,8 @@ enum {
 };
 
 #define DIFFLIST(A)             \
-    A(EASY,Easy,e)              \
-    A(HARD,Hard,h)              \
-    A(RECURSIVE,Recursive,r)
+    A(NORMAL,Normal,n)          \
+    A(UNREASONABLE,Unreasonable,u)
 
 #define ENUM(upper,title,lower) DIFF_ ## upper,
 #define TITLE(upper,title,lower) #title,
@@ -135,16 +134,13 @@ struct game_state {
 
 /* make up some sensible default sizes */
 
-#define DEFAULT_PRESET 1
+#define DEFAULT_PRESET 0
 
 static const game_params galaxies_presets[] = {
-    {  7,  7, DIFF_EASY },
-    {  7,  7, DIFF_HARD },
-    {  7,  7, DIFF_RECURSIVE },
-    { 10, 10, DIFF_EASY },
-    { 10, 10, DIFF_HARD },
-    { 15, 15, DIFF_EASY },
-    { 15, 15, DIFF_HARD },
+    {  7,  7, DIFF_NORMAL },
+    {  7,  7, DIFF_UNREASONABLE },
+    { 10, 10, DIFF_NORMAL },
+    { 15, 15, DIFF_NORMAL },
 };
 
 static int game_fetch_preset(int i, char **name, game_params **params)
@@ -188,7 +184,7 @@ static game_params *dup_params(game_params *params)
 static void decode_params(game_params *params, char const *string)
 {
     params->h = params->w = atoi(string);
-    params->diff = DIFF_EASY;
+    params->diff = DIFF_NORMAL;
     while (*string && isdigit((unsigned char)*string)) string++;
     if (*string == 'x') {
         string++;
@@ -198,7 +194,7 @@ static void decode_params(game_params *params, char const *string)
     if (*string == 'd') {
         int i;
         string++;
-        for (i = 0; i <= DIFF_RECURSIVE; i++)
+        for (i = 0; i <= DIFF_UNREASONABLE; i++)
             if (*string == galaxies_diffchars[i])
                 params->diff = i;
         if (*string) string++;
@@ -266,7 +262,7 @@ static char *validate_params(game_params *params, int full)
      * and custom_params will never generate anything that isn't
      * within range.
      */
-    assert(params->diff <= DIFF_RECURSIVE);
+    assert(params->diff <= DIFF_UNREASONABLE);
 
     return NULL;
 }
@@ -1242,7 +1238,13 @@ generate:
 
     assert(diff != DIFF_IMPOSSIBLE);
     if (diff != params->diff) {
-        if (ntries < MAXTRIES) goto generate;
+        /*
+         * We'll grudgingly accept a too-easy puzzle, but we must
+         * _not_ permit a too-hard one (one which the solver
+         * couldn't handle at all).
+         */
+        if (diff > params->diff ||
+            ntries < MAXTRIES) goto generate;
     }
 
     desc = encode_game(state);
@@ -1915,7 +1917,7 @@ static int solver_recurse(game_state *state, int maxdiff)
         else {
             /* precisely one solution */
             if (diff == DIFF_IMPOSSIBLE)
-                diff = DIFF_RECURSIVE;
+                diff = DIFF_UNREASONABLE;
             else
                 diff = DIFF_AMBIGUOUS;
         }
@@ -1941,7 +1943,7 @@ static int solver_recurse(game_state *state, int maxdiff)
 static int solver_state(game_state *state, int maxdiff)
 {
     solver_ctx *sctx = new_solver(state);
-    int ret, diff = DIFF_EASY;
+    int ret, diff = DIFF_NORMAL;
 
     ret = solver_obvious(state);
     if (ret < 0) {
@@ -1958,21 +1960,16 @@ static int solver_state(game_state *state, int maxdiff)
 cont:
         ret = foreach_edge(state, solver_lines_opposite_cb,
                            IMPOSSIBLE_QUITS, sctx);
-        CHECKRET(DIFF_EASY);
+        CHECKRET(DIFF_NORMAL);
 
         ret = foreach_tile(state, solver_spaces_oneposs_cb,
                            IMPOSSIBLE_QUITS, sctx);
-        CHECKRET(DIFF_EASY);
-
-        /* more easy stuff? */
-
-        if (maxdiff <= DIFF_EASY)
-            break;
+        CHECKRET(DIFF_NORMAL);
 
         ret = solver_expand_dots(state, sctx);
-        CHECKRET(DIFF_HARD);
+        CHECKRET(DIFF_NORMAL);
 
-        if (maxdiff <= DIFF_HARD)
+        if (maxdiff <= DIFF_NORMAL)
             break;
 
         /* harder still? */
@@ -1983,7 +1980,7 @@ cont:
 
     if (check_complete(state, 0)) goto got_result;
 
-    diff = (maxdiff >= DIFF_RECURSIVE) ?
+    diff = (maxdiff >= DIFF_UNREASONABLE) ?
         solver_recurse(state, maxdiff) : DIFF_UNFINISHED;
 
 got_result:
@@ -2006,7 +2003,7 @@ static char *solve_game(game_state *state, game_state *currstate,
     int diff;
 
     tosolve = dup_game(currstate);
-    diff = solver_state(tosolve, DIFF_RECURSIVE);
+    diff = solver_state(tosolve, DIFF_UNREASONABLE);
     if (diff != DIFF_UNFINISHED && diff != DIFF_IMPOSSIBLE) {
         debug(("solve_game solved with current state.\n"));
         goto solved;
@@ -2014,7 +2011,7 @@ static char *solve_game(game_state *state, game_state *currstate,
     free_game(tosolve);
 
     tosolve = dup_game(state);
-    diff = solver_state(tosolve, DIFF_RECURSIVE);
+    diff = solver_state(tosolve, DIFF_UNREASONABLE);
     if (diff != DIFF_UNFINISHED && diff != DIFF_IMPOSSIBLE) {
         debug(("solve_game solved with original state.\n"));
         goto solved;
@@ -2163,7 +2160,7 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
     if (button == 'S' || button == 's') {
         char *ret;
         game_state *tmp = dup_game(state);
-        state->cdiff = solver_state(tmp, DIFF_RECURSIVE-1);
+        state->cdiff = solver_state(tmp, DIFF_UNREASONABLE-1);
         ret = diff_game(state, tmp, 0);
         free_game(tmp);
         return ret;
@@ -2207,7 +2204,7 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
         if (button == 'H' || button == 'h')
             solver_obvious(tmp);
         else
-            solver_state(tmp, DIFF_RECURSIVE-1);
+            solver_state(tmp, DIFF_UNREASONABLE-1);
         ret = diff_game(state, tmp, 0);
         free_game(tmp);
         return ret;
@@ -3277,7 +3274,7 @@ static int gen(game_params *p, random_state *rs, int debug)
     state = new_game(NULL, p, desc);
     dump_state(state);
 
-    diff = solver_state(state, DIFF_RECURSIVE);
+    diff = solver_state(state, DIFF_UNREASONABLE);
     printf("Generated %s game %dx%d:%s\n",
            galaxies_diffnames[diff], p->w, p->h, desc);
     dump_state(state);
@@ -3378,7 +3375,7 @@ int main(int argc, char **argv)
         while (1) {
             p->w = random_upto(rs, 15) + 3;
             p->h = random_upto(rs, 15) + 3;
-            p->diff = random_upto(rs, DIFF_RECURSIVE);
+            p->diff = random_upto(rs, DIFF_UNREASONABLE);
             diff = gen(p, rs, 0);
         }
         return 0;
@@ -3400,7 +3397,7 @@ int main(int argc, char **argv)
             exit(1);
         }
         s = new_game(NULL, p, desc);
-        diff = solver_state(s, DIFF_RECURSIVE);
+        diff = solver_state(s, DIFF_UNREASONABLE);
         dump_state(s);
         printf("Puzzle is %s.\n", galaxies_diffnames[diff]);
         free_game(s);
