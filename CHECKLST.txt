@@ -15,7 +15,8 @@ Create a .R file for it which:
  - adds it as a Windows build target
  - adds auxiliary solver binaries if any
  - adds it to $(GAMES) in the GTK makefile, for `make install'
- - adds it to list.c for the OS X binary.
+ - adds it to list.c for the OS X binary
+ - adds it to wingames.lst for the build system.
 
 If the puzzle is by a new author, modify the copyright notice in
 LICENCE and in puzzles.but. (Also in index.html, but that's listed
@@ -40,18 +41,19 @@ Make a screenshot:
  - set up a REDO property in icons/Makefile if desired
 
 Don't forget to `svn add' the new source file, the new .R file and
-the save file in `icons', before checkin!
+the save file in `icons', and any other new files that might have
+been involved.
+
+Check in!
 
 Put the puzzle on the web:
  - run puzzlesnap first
- - make sure the screenshot has arrived in the www directory
- - make sure the Windows binary link has appeared, and that it
-   points at the right binary
+ - make sure the screenshot and Windows binary have arrived in the
+   www directory
  - add an entry in the puzzles list in index.html
  - adjust the copyright in index.html if the puzzle is by a new
    author
  - test that the binary link and the docs link work
  - run webupdate
  - test again
- - `svn add' the binary symlink
- - check in the website changes (symlink, index.html)
+ - check in the change to index.html
