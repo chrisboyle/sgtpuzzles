@@ -2225,8 +2225,8 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
     } else if (button == RIGHT_BUTTON) {
         int px1, py1;
 
-        px = 2*(int)(FROMCOORD((float)x) + 0.5);
-        py = 2*(int)(FROMCOORD((float)y) + 0.5);
+        px = (int)(2*FROMCOORD((float)x) + 0.5);
+        py = (int)(2*FROMCOORD((float)y) + 0.5);
 
         dot = NULL;
 
