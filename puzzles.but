@@ -2199,7 +2199,7 @@ These parameters are available from the \q{Custom...} option on the
 \dt \e{Difficulty}
 
 \dd Controls the difficulty of the generated puzzle. More difficult
-puzzles require more complex deductions, and the \q{Recursive}
+puzzles require more complex deductions, and the \q{Unreasonable}
 difficulty level may require backtracking.
 
 
