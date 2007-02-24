@@ -1216,8 +1216,8 @@ generate:
     clear_game(state, 1);
     ntries++;
 
-    //generate_pass(state, rs, scratch, 10, GP_DOTS);
-    //generate_pass(state, rs, scratch, 100, 0);
+    /* generate_pass(state, rs, scratch, 10, GP_DOTS); */
+    /* generate_pass(state, rs, scratch, 100, 0); */
     generate_pass(state, rs, scratch, 100, GP_DOTS);
 
     game_update_dots(state);
