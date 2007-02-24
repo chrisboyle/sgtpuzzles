@@ -19,5 +19,5 @@ GAMES += net
 !end
 
 !begin >wingames.lst
-netgame.exe
+netgame.exe:Net
 !end

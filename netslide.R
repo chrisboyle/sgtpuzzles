@@ -17,5 +17,5 @@ GAMES += netslide
 !end
 
 !begin >wingames.lst
-netslide.exe
+netslide.exe:Netslide
 !end

@@ -20,5 +20,5 @@ GAMES += galaxies
 !end
 
 !begin >wingames.lst
-galaxies.exe
+galaxies.exe:Galaxies
 !end

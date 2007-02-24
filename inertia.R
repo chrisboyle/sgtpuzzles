@@ -15,5 +15,5 @@ GAMES += inertia
 !end
 
 !begin >wingames.lst
-inertia.exe
+inertia.exe:Inertia
 !end

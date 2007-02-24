@@ -18,5 +18,5 @@ GAMES += solo
 !end
 
 !begin >wingames.lst
-solo.exe
+solo.exe:Solo
 !end

@@ -17,5 +17,5 @@ GAMES += pegs
 !end
 
 !begin >wingames.lst
-pegs.exe
+pegs.exe:Pegs
 !end

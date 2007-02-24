@@ -15,5 +15,5 @@ GAMES += fifteen
 !end
 
 !begin >wingames.lst
-fifteen.exe
+fifteen.exe:Fifteen
 !end

@@ -20,5 +20,5 @@ GAMES += slant
 !end
 
 !begin >wingames.lst
-slant.exe
+slant.exe:Slant
 !end

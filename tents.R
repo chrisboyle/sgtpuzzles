@@ -20,5 +20,5 @@ GAMES += tents
 !end
 
 !begin >wingames.lst
-tents.exe
+tents.exe:Tents
 !end

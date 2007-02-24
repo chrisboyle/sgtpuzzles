@@ -17,5 +17,5 @@ GAMES += flip
 !end
 
 !begin >wingames.lst
-flip.exe
+flip.exe:Flip
 !end

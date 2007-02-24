@@ -23,5 +23,5 @@ GAMES += unequal
 !end
 
 !begin >wingames.lst
-unequal.exe
+unequal.exe:Unequal
 !end

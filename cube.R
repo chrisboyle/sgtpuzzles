@@ -15,5 +15,5 @@ GAMES += cube
 !end
 
 !begin >wingames.lst
-cube.exe
+cube.exe:Cube
 !end

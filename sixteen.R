@@ -15,5 +15,5 @@ GAMES += sixteen
 !end
 
 !begin >wingames.lst
-sixteen.exe
+sixteen.exe:Sixteen
 !end

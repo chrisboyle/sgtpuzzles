@@ -24,9 +24,11 @@ delegate osx
   return puzzles/Puzzles.dmg
 enddelegate
 
-# Build the Windows binaries and the CHM file.
+# Build the Windows binaries and installer, and the CHM file.
 in puzzles do make -f Makefile.doc clean
 in puzzles do make -f Makefile.doc chm
+in puzzles do make -f Makefile.doc # build help file for installer
+in puzzles do perl winiss.pl $(revision) wingames.lst > puzzles.iss
 delegate windows
   # Ignore the poorly controlled return value from HHC, and instead
   # just test that the output file was generated.
@@ -34,13 +36,16 @@ delegate windows
   # FIXME: Cygwin alternative?
   in puzzles do cmd /c 'vcvars32 & nmake -f Makefile.vc clean'
   in puzzles do cmd /c 'vcvars32 & nmake -f Makefile.vc VER=-DREVISION=$(revision)'
+  # Build installer.
+  in puzzles do iscc puzzles.iss
   return puzzles/puzzles.chm
   return puzzles/*.exe
+  return puzzles/Output/setup.exe
 enddelegate
 
 # Build the help file and the HTML docs.
-in puzzles do make -f Makefile.doc clean
-in puzzles do make -f Makefile.doc
+in puzzles do make -f Makefile.doc clean # remove CHM-target HTML
+in puzzles do make -f Makefile.doc # and rebuild help file...
 in puzzles do mkdir doc
 in puzzles do mkdir devel
 in puzzles/doc do halibut --html -Chtml-contents-filename:index.html -Chtml-index-filename:indexpage.html -Chtml-template-filename:%k.html -Chtml-template-fragment:%k ../puzzles.but
@@ -51,7 +56,7 @@ in puzzles/devel do halibut --html -Chtml-contents-filename:index.html -Chtml-in
 # excludes the command-line auxiliary utilities such as solosolver,
 # and nullgame.exe) into a subdirectory for easy access.
 in puzzles do mkdir winbin
-in puzzles do mv `cat wingames.lst` winbin
+in puzzles do mv `cut -f1 -d: wingames.lst` winbin
 
 # Make a zip file of the Windows binaries and help files.
 in puzzles do zip -j puzzles.zip winbin/*.exe puzzles.chm puzzles.hlp puzzles.cnt
@@ -77,6 +82,7 @@ deliver puzzles/puzzles.chm $@
 deliver puzzles/puzzles.hlp $@
 deliver puzzles/puzzles.cnt $@
 deliver puzzles/puzzles.zip $@
+deliver puzzles/Output/setup.exe puzzles-r$(revision)-installer.exe
 # This one isn't in the puzzles subdir, because makedist.sh left it
 # one level up.
 deliver puzzles*.tar.gz $@

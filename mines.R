@@ -20,5 +20,5 @@ GAMES += mines
 !end
 
 !begin >wingames.lst
-mines.exe
+mines.exe:Mines
 !end

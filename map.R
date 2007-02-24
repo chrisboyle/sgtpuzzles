@@ -20,5 +20,5 @@ GAMES += map
 !end
 
 !begin >wingames.lst
-map.exe
+map.exe:Map
 !end

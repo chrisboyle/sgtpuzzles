@@ -17,5 +17,5 @@ GAMES += untangle
 !end
 
 !begin >wingames.lst
-untangle.exe
+untangle.exe:Untangle
 !end

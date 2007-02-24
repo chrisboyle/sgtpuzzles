@@ -15,5 +15,5 @@ GAMES += twiddle
 !end
 
 !begin >wingames.lst
-twiddle.exe
+twiddle.exe:Twiddle
 !end

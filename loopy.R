@@ -17,5 +17,5 @@ GAMES += loopy
 !end
 
 !begin >wingames.lst
-loopy.exe
+loopy.exe:Loopy
 !end

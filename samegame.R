@@ -15,5 +15,5 @@ GAMES += samegame
 !end
 
 !begin >wingames.lst
-samegame.exe
+samegame.exe:Same Game
 !end

@@ -15,5 +15,5 @@ GAMES += rect
 !end
 
 !begin >wingames.lst
-rect.exe
+rect.exe:Rectangles
 !end

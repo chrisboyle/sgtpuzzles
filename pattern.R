@@ -18,5 +18,5 @@ GAMES += pattern
 !end
 
 !begin >wingames.lst
-pattern.exe
+pattern.exe:Pattern
 !end

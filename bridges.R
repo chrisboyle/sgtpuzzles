@@ -17,5 +17,5 @@ GAMES += bridges
 !end
 
 !begin >wingames.lst
-bridges.exe
+bridges.exe:Bridges
 !end

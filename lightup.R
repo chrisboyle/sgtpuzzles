@@ -20,5 +20,5 @@ GAMES += lightup
 !end
 
 !begin >wingames.lst
-lightup.exe
+lightup.exe:Light Up
 !end

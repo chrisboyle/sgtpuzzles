@@ -15,5 +15,5 @@ GAMES += blackbox
 !end
 
 !begin >wingames.lst
-blackbox.exe
+blackbox.exe:Black Box
 !end

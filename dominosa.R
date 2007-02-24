@@ -15,5 +15,5 @@ GAMES += dominosa
 !end
 
 !begin >wingames.lst
-dominosa.exe
+dominosa.exe:Dominosa
 !end

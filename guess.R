@@ -15,5 +15,5 @@ GAMES += guess
 !end
 
 !begin >wingames.lst
-guess.exe
+guess.exe:Guess
 !end
