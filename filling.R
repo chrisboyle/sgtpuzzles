@@ -1,13 +1,13 @@
 # -*- makefile -*-
 
-FILLING = filling dsf filling-icon|no-icon
+FILLING = filling dsf
 
 fillingsolver :	[U] filling[STANDALONE_SOLVER] dsf STANDALONE
 fillingsolver :	[C] filling[STANDALONE_SOLVER] dsf STANDALONE
 
-filling : [X] GTK COMMON FILLING
+filling : [X] GTK COMMON FILLING filling-icon|no-icon
 
-filling : [G] WINDOWS COMMON FILLING
+filling : [G] WINDOWS COMMON FILLING filling.res?
 
 ALL += filling
 
