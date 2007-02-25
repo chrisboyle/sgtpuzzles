@@ -962,9 +962,13 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
     {
         const int i = w*ui->y + ui->x;
         char buf[64];
-        sprintf(buf, "%d_%d", i, button);
         ui->x = ui->y = -1;
-        return dupstr(buf);
+	if (state->board[i] == button) {
+	    return "";		       /* no change - just update ui */
+	} else {
+	    sprintf(buf, "%d_%d", i, button);
+	    return dupstr(buf);
+	}
     }
 }
 
