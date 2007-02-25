@@ -8,11 +8,13 @@ Write the source file for the new puzzle (duhh).
 
 Create a .R file for it which:
  - defines a Recipe symbol for it if it requires auxiliary object
-   files
+   files (make sure the general Recipe symbol doesn't contain the
+   icon)
  - adds it to the `ALL' definition, to ensure it is compiled into
    the OS X binary
- - adds it as a GTK build target
- - adds it as a Windows build target
+ - adds it as a GTK build target, with the optional GTK icon
+ - adds it as a Windows build target, with the optional resource
+   file
  - adds auxiliary solver binaries if any
  - adds it to $(GAMES) in the GTK makefile, for `make install'
  - adds it to list.c for the OS X binary
