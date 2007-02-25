@@ -2245,8 +2245,8 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
                      * Found a dot. Begin a drag from it.
                      */
                     dot = &SPACE(state, px1, py1);
-                    ui->srcx = px;
-                    ui->srcy = py;
+                    ui->srcx = px1;
+                    ui->srcy = py1;
                     goto done;         /* multi-level break */
                 }
             }
