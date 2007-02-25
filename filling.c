@@ -1122,16 +1122,30 @@ static void draw_square(drawing *dr, game_drawstate *ds, int x, int y,
     assert(ds);
 
     /*
+     * Clip to the grid square.
+     */
+    clip(dr, BORDER + x*TILE_SIZE, BORDER + y*TILE_SIZE,
+	 TILE_SIZE, TILE_SIZE);
+
+    /*
      * Clear the square.
      */
     draw_rect(dr,
-              BORDER + x*TILE_SIZE + 1,
-              BORDER + y*TILE_SIZE + 1,
-              TILE_SIZE - 1,
-              TILE_SIZE - 1,
+              BORDER + x*TILE_SIZE,
+              BORDER + y*TILE_SIZE,
+              TILE_SIZE,
+              TILE_SIZE,
               (flags & CURSOR_BG ? COL_HIGHLIGHT :
                flags & ERROR_BG ? COL_ERROR :
                flags & CORRECT_BG ? COL_CORRECT : COL_BACKGROUND));
+
+    /*
+     * Draw the grid lines.
+     */
+    draw_line(dr, BORDER + x*TILE_SIZE, BORDER + y*TILE_SIZE,
+	      BORDER + (x+1)*TILE_SIZE, BORDER + y*TILE_SIZE, COL_GRID);
+    draw_line(dr, BORDER + x*TILE_SIZE, BORDER + y*TILE_SIZE,
+	      BORDER + x*TILE_SIZE, BORDER + (y+1)*TILE_SIZE, COL_GRID);
 
     /*
      * Draw the number.
@@ -1209,12 +1223,14 @@ static void draw_square(drawing *dr, game_drawstate *ds, int x, int y,
                   BORDER_WIDTH,
                   BORDER_WIDTH,
                   COL_GRID);
-    
+
+    unclip(dr);
+
     draw_update(dr,
-		BORDER + x*TILE_SIZE - 1,
-		BORDER + y*TILE_SIZE - 1,
-		TILE_SIZE + 3,
-		TILE_SIZE + 3);
+		BORDER + x*TILE_SIZE,
+		BORDER + y*TILE_SIZE,
+		TILE_SIZE,
+		TILE_SIZE);
 }
 
 static void draw_grid(drawing *dr, game_drawstate *ds, game_state *state,
@@ -1463,6 +1479,7 @@ static void game_print(drawing *dr, game_state *state, int tilesize)
     /*
      * Draw grid.
      */
+    print_line_width(dr, TILE_SIZE / 64);
     draw_grid(dr, ds, state, NULL, FALSE, borders, FALSE);
 
     /*
