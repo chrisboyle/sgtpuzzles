@@ -2087,8 +2087,9 @@ them. Your aim is to fully populate the grid with numbers such that:
 
 \b All the greater-than signs are satisfied. 
 
-In \q{Trivial} mode, there are no greater-than signs; the puzzle is
-to solve the \i{Latin square} only.
+In \q{Trivial} mode (available via the \q{Custom} game type
+selector), there are no greater-than signs; the puzzle is to solve
+the \i{Latin square} only.
 
 At the time of writing, this puzzle is appearing in the Guardian
 weekly under the name \q{\i{Futoshiki}}.
@@ -2137,10 +2138,11 @@ These parameters are available from the \q{Custom...} option on the
 \dt \e{Difficulty}
 
 \dd Controls the difficulty of the generated puzzle. At Trivial
-level, there are no greater-than signs (the puzzle is to solve the
-Latin square only); at Recursive level backtracking will be required
-(but the solution should still be unique); the levels in between
-require increasingly complex reasoning to avoid having to backtrack.
+level, there are no greater-than signs; the puzzle is to solve the
+Latin square only. At Recursive level (only available via the
+\q{Custom} game type selector) backtracking will be required, but
+the solution should still be unique. The levels in between require
+increasingly complex reasoning to avoid having to backtrack.
 
 
 
