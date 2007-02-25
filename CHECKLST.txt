@@ -16,7 +16,8 @@ Create a .R file for it which:
  - adds auxiliary solver binaries if any
  - adds it to $(GAMES) in the GTK makefile, for `make install'
  - adds it to list.c for the OS X binary
- - adds it to wingames.lst for the build system.
+ - adds it to wingames.lst along with a textual name, for the build
+   system and Windows installer.
 
 If the puzzle is by a new author, modify the copyright notice in
 LICENCE and in puzzles.but. (Also in index.html, but that's listed
@@ -33,7 +34,8 @@ Make sure there's a Windows help topic name defined in puzzles.but,
 and that it's referenced by the help topic field in the game
 structure in the source file.
 
-Add the new Unix binary name to the svn:ignore property.
+Add the new Unix binary name, and the names of any auxiliary solver
+binaries, to the svn:ignore property.
 
 Make a screenshot:
  - create an appropriate save file in `icons'
