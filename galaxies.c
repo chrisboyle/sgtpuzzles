@@ -3230,7 +3230,7 @@ const struct game thegame = {
     FALSE, FALSE, NULL, NULL,
     TRUE,                              /* wants_statusbar */
 #else
-    TRUE, TRUE, game_print_size, game_print,
+    TRUE, FALSE, game_print_size, game_print,
     FALSE,			       /* wants_statusbar */
 #endif
     FALSE, game_timing_state,
