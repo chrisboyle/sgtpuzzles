@@ -288,6 +288,7 @@ void print_dsf(int *dsf, int size);
  * indicating whether the canonical element is inverse to val. */
 int edsf_canonify(int *dsf, int val, int *inverse);
 int dsf_canonify(int *dsf, int val);
+int dsf_size(int *dsf, int val);
 
 /* Allow the caller to specify that two elements should be in the same
  * equivalence class.  If 'inverse' is TRUE, the elements are actually opposite

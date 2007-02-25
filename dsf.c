@@ -64,11 +64,13 @@ void dsf_init(int *dsf, int size)
 {
     int i;
 
-    for (i = 0; i < size; i++) {
-        /* Bottom bit of each element of this array stores whether that element
-         * is opposite to its parent, which starts off as false */
-        dsf[i] = i << 1;
-    }
+    for (i = 0; i < size; i++) dsf[i] = 6;
+    /* Bottom bit of each element of this array stores whether that
+     * element is opposite to its parent, which starts off as
+     * false. Second bit of each element stores whether that element
+     * is the root of its tree or not.  If it's not the root, the
+     * remaining 30 bits are the parent, otherwise the remaining 30
+     * bits are the number of elements in the tree.  */
 }
 
 int *snew_dsf(int size)
@@ -93,6 +95,10 @@ void dsf_merge(int *dsf, int v1, int v2)
     edsf_merge(dsf, v1, v2, FALSE);
 }
 
+int dsf_size(int *dsf, int index) {
+    return dsf[dsf_canonify(dsf, index)] >> 2;
+}
+
 int edsf_canonify(int *dsf, int index, int *inverse_return)
 {
     int start_index = index, canonical_index;
@@ -106,9 +112,9 @@ int edsf_canonify(int *dsf, int index, int *inverse_return)
     /* Find the index of the canonical element of the 'equivalence class' of
      * which start_index is a member, and figure out whether start_index is the
      * same as or inverse to that. */
-    while ((dsf[index] >> 1) != index) {
+    while ((dsf[index] & 2) == 0) {
         inverse ^= (dsf[index] & 1);
-	index = dsf[index] >> 1;
+	index = dsf[index] >> 2;
 /*        fprintf(stderr, "index = %2d, ", index); */
 /*        fprintf(stderr, "inverse = %d\n", inverse); */
     }
@@ -121,9 +127,9 @@ int edsf_canonify(int *dsf, int index, int *inverse_return)
      * canonical member. */
     index = start_index;
     while (index != canonical_index) {
-	int nextindex = dsf[index] >> 1;
+	int nextindex = dsf[index] >> 2;
         int nextinverse = inverse ^ (dsf[index] & 1);
-	dsf[index] = (canonical_index << 1) | inverse;
+	dsf[index] = (canonical_index << 2) | inverse;
         inverse = nextinverse;
 	index = nextindex;
     }
@@ -138,21 +144,31 @@ int edsf_canonify(int *dsf, int index, int *inverse_return)
 void edsf_merge(int *dsf, int v1, int v2, int inverse)
 {
     int i1, i2;
-    
+
 /*    fprintf(stderr, "dsf = %p\n", dsf); */
 /*    fprintf(stderr, "Merge [%2d,%2d], %d\n", v1, v2, inverse); */
     
     v1 = edsf_canonify(dsf, v1, &i1);
+    assert(dsf[v1] & 2);
     inverse ^= i1;
     v2 = edsf_canonify(dsf, v2, &i2);
+    assert(dsf[v2] & 2);
     inverse ^= i2;
 
 /*    fprintf(stderr, "Doing [%2d,%2d], %d\n", v1, v2, inverse); */
 
     if (v1 == v2)
         assert(!inverse);
-    else
-        dsf[v2] = (v1 << 1) | !!inverse;
+    else {
+	assert(inverse == 0 || inverse == 1);
+	if ((dsf[v2] >> 2) > (dsf[v1] >> 2)) {
+	    int v3 = v1;
+	    v1 = v2;
+	    v2 = v3;
+	}
+	dsf[v1] += (dsf[v2] >> 2) << 2;
+	dsf[v2] = (v1 << 2) | !!inverse;
+    }
     
     v2 = edsf_canonify(dsf, v2, &i2);
     assert(v2 == v1);

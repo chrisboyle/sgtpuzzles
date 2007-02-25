@@ -2204,12 +2204,52 @@ difficulty level may require backtracking.
 
 
 
+\C{filling} \i{Filling}
+
+\cfg{winhelp-topic}{games.filling}
+
+You have a grid of squares, some of which contain digits, and the
+rest of which are empty. Your job is to fill in digits in the empty
+squares, in such a way that each connected region of squares all
+containing the same digit has an area equal to that digit.
+
+(\q{Connected region}, for the purposes of this game, does not count
+diagonally separated squares as adjacent.)
+
+For example, it follows that no square can contain a zero, and that
+two adjacent squares can not both contain a one.  No region has an
+area greater than 9 (because then its area would not be a single
+digit).
+
+Credit for this puzzle goes to \i{Nikoli} \k{nikoli-fillomino}.
+
+Filling was contributed to this collection by Jonas K\u00F6{oe}lker.
+
+\B{nikoli-fillomino}
+\W{http://www.nikoli.co.jp/en/puzzles/fillomino/}\cw{http://www.nikoli.co.jp/en/puzzles/fillomino/}
+
+\H{filling-controls} \I{controls, for Filling}Filling controls
+
+To play Filling, simply click the mouse in any empty square and then
+type a digit on the keyboard to fill that square.  If you make a
+mistake, click the mouse in the incorrect square and press 0, Space,
+Backspace or Enter to clear it again (or use the Undo feature).
+
+(All the actions described in \k{common-actions} are also available.)
+
+\H{filling-parameters} \I{parameters, for Filling}Filling parameters
+
+Filling allows you to configure the number of rows and columns of the
+grid, through the \q{Type} menu.
+
+
 
 \A{licence} \I{MIT licence}\ii{Licence}
 
 This software is \i{copyright} 2004-2007 Simon Tatham.
 
-Portions copyright Richard Boulton, James Harvey and Mike Pinna.
+Portions copyright Richard Boulton, James Harvey, Mike Pinna and
+Jonas K\u00F6{oe}lker.
 
 Permission is hereby granted, free of charge, to any person
 obtaining a copy of this software and associated documentation files
