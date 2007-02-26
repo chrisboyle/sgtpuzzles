@@ -60,7 +60,11 @@ struct game_params {
 
 #define PREFERRED_TILE_SIZE 24
 #define TILE_SIZE (ds->tilesize)
+#ifdef SMALL_SCREEN
+#define BORDER (2)
+#else
 #define BORDER (TILE_SIZE * 3 / 4)
+#endif
 
 #define CORNER_TOLERANCE 0.15F
 #define CENTRE_TOLERANCE 0.15F
@@ -102,8 +106,10 @@ static int game_fetch_preset(int i, char **name, game_params **params)
       case 2: w = 11, h = 11; break;
       case 3: w = 13, h = 13; break;
       case 4: w = 15, h = 15; break;
+#ifndef SMALL_SCREEN
       case 5: w = 17, h = 17; break;
       case 6: w = 19, h = 19; break;
+#endif
       default: return FALSE;
     }
 

@@ -47,7 +47,6 @@
 
 #include <assert.h>
 #include <ctype.h>
-#include <errno.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -984,9 +983,8 @@ static game_state *execute_move(game_state *state, char *move)
         new_state->cheated = TRUE;
     } else {
         char *endptr;
-        const int i = strtol(move, &endptr, errno = 0);
+        const int i = strtol(move, &endptr, 0);
         int value;
-        if (errno == ERANGE) return NULL;
         if (endptr == move) return NULL;
         if (*endptr != '_') return NULL;
         move = endptr + 1;

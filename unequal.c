@@ -26,6 +26,11 @@
 #include "puzzles.h"
 #include "latin.h" /* contains typedef for digit */
 
+static void assert_f(p)
+{
+    assert(p);
+}
+
 /* ----------------------------------------------------------
  * Constant and structure definitions
  */
@@ -971,7 +976,7 @@ static void game_strip(game_state *new, int *scratch, digit *latin,
         gg_solved++;
         if (solver_state(copy, difficulty) != 1) {
             /* put clue back, we can't solve without it. */
-            assert(gg_place_clue(new, scratch[i], latin, 0) == 1);
+            assert_f(gg_place_clue(new, scratch[i], latin, 0) == 1);
         } else {
 #ifdef STANDALONE_SOLVER
             if (solver_show_working)
@@ -1355,7 +1360,7 @@ static game_state *execute_move(game_state *state, char *move)
             p++;
         }
         if (*p) goto badmove;
-        assert(check_complete(ret->nums, ret, 1) > 0);
+	assert_f(check_complete(ret->nums, ret, 1) > 0);
         return ret;
     } else if (move[0] == 'H') {
         return solver_hint(state, NULL, DIFF_EASY, DIFF_EASY);
@@ -1748,7 +1753,7 @@ const struct game thegame = {
     TRUE, FALSE, game_print_size, game_print,
     FALSE,			       /* wants_statusbar */
     FALSE, game_timing_state,
-    0,				       /* flags */
+    REQUIRE_RBUTTON | REQUIRE_NUMPAD,  /* flags */
 };
 
 /* ----------------------------------------------------------------------

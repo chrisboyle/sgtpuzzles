@@ -12,6 +12,11 @@
 
 #include "latin.h"
 
+static void assert_f(p)
+{
+    assert(p);
+}
+
 /* --------------------------------------------------------
  * Solver.
  */
@@ -26,7 +31,7 @@ void latin_solver_place(struct latin_solver *solver, int x, int y, int n)
     int i, o = solver->o;
 
     assert(n <= o);
-    assert(cube(x,y,n));
+    assert_f(cube(x,y,n));
 
     /*
      * Rule out all other numbers in this square.
@@ -1188,7 +1193,7 @@ int latin_check(digit *sq, int order)
 		lcp = snew(lcparams);
 		lcp->elt = ELT(sq, c, r);
 		lcp->count = 1;
-		assert(add234(dict, lcp) == lcp);
+		assert_f(add234(dict, lcp) == lcp);
 	    } else {
 		lcp->count++;
 	    }

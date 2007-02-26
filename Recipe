@@ -10,6 +10,7 @@
 
 !makefile gtk Makefile
 !makefile vc Makefile.vc
+!makefile wce Makefile.wce
 !makefile cygwin Makefile.cyg
 !makefile osx Makefile.osx
 
@@ -89,6 +90,11 @@ version.obj: *.c *.h
 	cl $(VER) $(CFLAGS) /c version.c
 !end
 !specialobj vc version
+!begin wce
+version.obj: *.c *.h
+	$(CC) $(VER) $(CFLAGS) /c version.c
+!end
+!specialobj wce version
 !begin cygwin
 version.o: FORCE;
 FORCE:

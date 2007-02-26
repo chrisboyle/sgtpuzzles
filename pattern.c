@@ -1276,7 +1276,7 @@ const struct game thegame = {
     TRUE, FALSE, game_print_size, game_print,
     FALSE,			       /* wants_statusbar */
     FALSE, game_timing_state,
-    0,				       /* flags */
+    REQUIRE_RBUTTON,		       /* flags */
 };
 
 #ifdef STANDALONE_SOLVER

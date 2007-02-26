@@ -100,8 +100,13 @@ static game_params *default_params(void)
 {
     game_params *ret = snew(game_params);
 
+#ifdef PORTRAIT_SCREEN
+    ret->w = 16;
+    ret->h = 18;
+#else
     ret->w = 20;
     ret->h = 15;
+#endif
     ret->n = 30;
     ret->diff = DIFF_NORMAL;
 
@@ -109,12 +114,21 @@ static game_params *default_params(void)
 }
 
 static const struct game_params map_presets[] = {
+#ifdef PORTRAIT_SCREEN
+    {16, 18, 30, DIFF_EASY},
+    {16, 18, 30, DIFF_NORMAL},
+    {16, 18, 30, DIFF_HARD},
+    {16, 18, 30, DIFF_RECURSE},
+    {25, 30, 75, DIFF_NORMAL},
+    {25, 30, 75, DIFF_HARD},
+#else
     {20, 15, 30, DIFF_EASY},
     {20, 15, 30, DIFF_NORMAL},
     {20, 15, 30, DIFF_HARD},
     {20, 15, 30, DIFF_RECURSE},
     {30, 25, 75, DIFF_NORMAL},
     {30, 25, 75, DIFF_HARD},
+#endif
 };
 
 static int game_fetch_preset(int i, char **name, game_params **params)
@@ -2517,10 +2531,18 @@ static void game_set_size(drawing *dr, game_drawstate *ds,
 }
 
 const float map_colours[FOUR][3] = {
+#ifdef VIVID_COLOURS
+    // Use more vivid colours (e.g. on the Pocket PC)
+    {0.75F, 0.25F, 0.25F},
+    {0.3F,  0.7F,  0.3F},
+    {0.3F,  0.3F,  0.7F},
+    {0.85F, 0.85F, 0.1F},
+#else
     {0.7F, 0.5F, 0.4F},
     {0.8F, 0.7F, 0.4F},
     {0.5F, 0.6F, 0.4F},
     {0.55F, 0.45F, 0.35F},
+#endif
 };
 const int map_hatching[FOUR] = {
     HATCH_VERT, HATCH_SLASH, HATCH_HORIZ, HATCH_BACKSLASH

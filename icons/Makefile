@@ -126,7 +126,8 @@ $(ICONS): %.ico: %-48d24.png %-48d8.png %-48d4.png \
 
 # Build the .RC files which bind the icons into the applications.
 $(RC): %.rc:
-	echo '200 ICON "$*.ico"' > $@
+	echo '#include "puzzles.rc2"' > $@
+	echo '200 ICON "$*.ico"' >> $@
 
 # Build the GTK icon source files.
 $(CICONS): %-icon.c: %-16d24.png %-32d24.png %-48d24.png

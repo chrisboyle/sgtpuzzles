@@ -1,0 +1,65 @@
+/* Standard stuff that goes into the Windows resources for all puzzles. */
+
+#ifdef _WIN32_WCE
+
+#include <winuser.h>
+#include <commctrl.h>
+
+#define SHMENUBAR       RCDATA
+#define I_IMAGENONE     (-2)
+#define IDC_STATIC      (-1)
+
+#include "resource.h"
+
+IDR_MENUBAR1 MENU DISCARDABLE 
+BEGIN
+    POPUP "Game"
+    BEGIN
+        MENUITEM "Dummy", 0
+    END
+    POPUP "Type"
+    BEGIN
+        MENUITEM "Dummy", 0
+    END
+END
+
+IDR_MENUBAR1 SHMENUBAR DISCARDABLE 
+BEGIN
+    IDR_MENUBAR1, 2,
+    I_IMAGENONE, ID_GAME, TBSTATE_ENABLED, 
+    TBSTYLE_DROPDOWN | TBSTYLE_AUTOSIZE, IDS_CAP_GAME, 0, 0,
+    I_IMAGENONE, ID_TYPE, TBSTATE_ENABLED, 
+    TBSTYLE_DROPDOWN | TBSTYLE_AUTOSIZE, IDS_CAP_TYPE, 0, 1,
+END
+
+STRINGTABLE DISCARDABLE 
+BEGIN
+    IDS_CAP_GAME            "Game"
+    IDS_CAP_TYPE            "Type"
+END
+
+IDD_ABOUT DIALOG DISCARDABLE  0, 0, 0, 0
+STYLE WS_POPUP
+FONT 8, "Tahoma"
+BEGIN
+    LTEXT "", IDC_ABOUT_CAPTION,        4,  4, 150,  8
+    LTEXT "", IDC_ABOUT_LINE,           4, 16, 150,  1, WS_BORDER
+    LTEXT "", IDC_ABOUT_GAME,           4, 22, 150,  8
+    LTEXT "from Simon Tatham's Portable Puzzle Collection",
+	      IDC_STATIC,               4, 36, 150,  8, SS_LEFTNOWORDWRAP
+    LTEXT "Pocket PC port by Darek Olszewski",
+	      IDC_STATIC,               4, 46, 150,  8
+    LTEXT "", IDC_ABOUT_VERSION,        4, 60, 150,  8
+END
+
+IDD_CONFIG DIALOG DISCARDABLE  0, 0, 0, 0
+STYLE WS_POPUP
+FONT 8, "Tahoma"
+BEGIN
+    LTEXT "", IDC_CONFIG_CAPTION,       4,  4, 150,  8
+    LTEXT "", IDC_CONFIG_LINE,          4, 16, 150,  1, WS_BORDER
+END
+
+IDR_PADTOOLBAR BITMAP DISCARDABLE "padtoolbar.bmp"
+
+#endif /* _WIN32_WCE */

@@ -67,7 +67,18 @@ enum {
 #define BUTTON_BEATS(x,y) ( 1 << (((x)-LEFT_BUTTON)*3+(y)-LEFT_BUTTON) )
 /* Flag indicating that Solve operations should be animated */
 #define SOLVE_ANIMATES ( 1 << 9 )
+/* Pocket PC: Game requires right mouse button emulation */
+#define REQUIRE_RBUTTON ( 1 << 10 )
+/* Pocket PC: Game requires numeric input */
+#define REQUIRE_NUMPAD ( 1 << 11 )
 /* end of `flags' word definitions */
+
+#ifdef _WIN32_WCE
+  /* Pocket PC devices have small, portrait screen that requires more vivid colours */
+  #define SMALL_SCREEN
+  #define PORTRAIT_SCREEN
+  #define VIVID_COLOURS
+#endif
 
 #define IGNOREARG(x) ( (x) = (x) )
 

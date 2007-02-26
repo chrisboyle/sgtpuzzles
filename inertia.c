@@ -88,8 +88,11 @@ static game_params *default_params(void)
     game_params *ret = snew(game_params);
 
     ret->w = 10;
+#ifdef PORTRAIT_SCREEN
+    ret->h = 10;
+#else
     ret->h = 8;
-
+#endif
     return ret;
 }
 
@@ -106,9 +109,15 @@ static game_params *dup_params(game_params *params)
 }
 
 static const struct game_params inertia_presets[] = {
+#ifdef PORTRAIT_SCREEN
+    { 10, 10 },
+    { 12, 12 },
+    { 16, 16 },
+#else
     { 10, 8 },
     { 15, 12 },
     { 20, 16 },
+#endif
 };
 
 static int game_fetch_preset(int i, char **name, game_params **params)
@@ -1511,7 +1520,11 @@ struct game_drawstate {
 
 #define PREFERRED_TILESIZE 32
 #define TILESIZE (ds->tilesize)
+#ifdef SMALL_SCREEN
+#define BORDER    (TILESIZE / 4)
+#else
 #define BORDER    (TILESIZE)
+#endif
 #define HIGHLIGHT_WIDTH (TILESIZE / 10)
 #define COORD(x)  ( (x) * TILESIZE + BORDER )
 #define FROMCOORD(x)  ( ((x) - BORDER + TILESIZE) / TILESIZE - 1 )

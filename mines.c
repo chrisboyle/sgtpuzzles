@@ -28,7 +28,11 @@ enum {
 
 #define PREFERRED_TILE_SIZE 20
 #define TILE_SIZE (ds->tilesize)
+#ifdef SMALL_SCREEN
+#define BORDER 8
+#else
 #define BORDER (TILE_SIZE * 3 / 2)
+#endif
 #define HIGHLIGHT_WIDTH (TILE_SIZE / 10)
 #define OUTER_HIGHLIGHT_WIDTH (BORDER / 10)
 #define COORD(x)  ( (x) * TILE_SIZE + BORDER )
@@ -102,8 +106,10 @@ static const struct game_params mines_presets[] = {
   {9, 9, 35, TRUE},
   {16, 16, 40, TRUE},
   {16, 16, 99, TRUE},
+#ifndef SMALL_SCREEN
   {30, 16, 99, TRUE},
   {30, 16, 170, TRUE},
+#endif
 };
 
 static int game_fetch_preset(int i, char **name, game_params **params)
@@ -3103,7 +3109,7 @@ const struct game thegame = {
     FALSE, FALSE, game_print_size, game_print,
     TRUE,			       /* wants_statusbar */
     TRUE, game_timing_state,
-    BUTTON_BEATS(LEFT_BUTTON, RIGHT_BUTTON),
+    BUTTON_BEATS(LEFT_BUTTON, RIGHT_BUTTON) | REQUIRE_RBUTTON,
 };
 
 #ifdef STANDALONE_OBFUSCATOR

@@ -512,9 +512,11 @@ static const game_params presets[] = {
     { 15, 15, DIFF_EASY, 0 },
     { 15, 15, DIFF_NORMAL, 0 },
     { 15, 15, DIFF_HARD, 0 },
+#ifndef SMALL_SCREEN
     { 30, 20, DIFF_EASY, 0 },
     { 30, 20, DIFF_NORMAL, 0 },
     { 30, 20, DIFF_HARD, 0 }
+#endif
 #endif
 };
 

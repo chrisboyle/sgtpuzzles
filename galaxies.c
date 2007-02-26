@@ -3234,7 +3234,7 @@ const struct game thegame = {
     FALSE,			       /* wants_statusbar */
 #endif
     FALSE, game_timing_state,
-    0,				       /* flags */
+    REQUIRE_RBUTTON,		       /* flags */
 };
 
 #ifdef STANDALONE_SOLVER

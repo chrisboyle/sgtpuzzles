@@ -46,7 +46,11 @@
 #define PREFERRED_TILE_SIZE 32
 #define TILE_SIZE (ds->tilesize)
 #define TILE_BORDER 1
+#ifdef SMALL_SCREEN
+#define WINDOW_OFFSET 4
+#else
 #define WINDOW_OFFSET 16
+#endif
 
 #define ROTATE_TIME 0.13F
 #define FLASH_FRAME 0.07F
@@ -150,12 +154,16 @@ static const struct game_params net_presets[] = {
     {7, 7, FALSE, TRUE, 0.0},
     {9, 9, FALSE, TRUE, 0.0},
     {11, 11, FALSE, TRUE, 0.0},
+#ifndef SMALL_SCREEN
     {13, 11, FALSE, TRUE, 0.0},
+#endif
     {5, 5, TRUE, TRUE, 0.0},
     {7, 7, TRUE, TRUE, 0.0},
     {9, 9, TRUE, TRUE, 0.0},
     {11, 11, TRUE, TRUE, 0.0},
+#ifndef SMALL_SCREEN
     {13, 11, TRUE, TRUE, 0.0},
+#endif
 };
 
 static int game_fetch_preset(int i, char **name, game_params **params)
