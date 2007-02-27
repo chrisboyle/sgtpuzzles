@@ -12,6 +12,21 @@
 #include "puzzles.h"
 #include "tree234.h"
 
+/*
+ * The standard user interface for Net simply has left- and
+ * right-button mouse clicks in a square rotate it one way or the
+ * other. We also provide, by #ifdef, a separate interface based on
+ * rotational dragging motions. I initially developed this for the
+ * Mac on the basis that it might work better than the click
+ * interface with only one mouse button available, but in fact
+ * found it to be quite strange and unintuitive. Apparently it
+ * works better on stylus-driven platforms such as Palm and
+ * PocketPC, though, so we enable it by default there.
+ */
+#ifdef STYLUS_BASED
+#define USE_DRAGGING
+#endif
+
 #define MATMUL(xr,yr,m,x,y) do { \
     float rx, ry, xx = (x), yy = (y), *mat = (m); \
     rx = mat[0] * xx + mat[2] * yy; \
@@ -1797,6 +1812,9 @@ struct game_ui {
     int cur_x, cur_y;
     int cur_visible;
     random_state *rs; /* used for jumbling */
+#ifdef USE_DRAGGING
+    int dragtilex, dragtiley, dragstartx, dragstarty, dragged;
+#endif
 };
 
 static game_ui *new_ui(game_state *state)
@@ -1871,6 +1889,12 @@ static char *interpret_move(game_state *state, game_ui *ui,
 
     if (button == LEFT_BUTTON ||
 	button == MIDDLE_BUTTON ||
+#ifdef USE_DRAGGING
+	button == LEFT_DRAG ||
+	button == LEFT_RELEASE ||
+	button == RIGHT_DRAG ||
+	button == RIGHT_RELEASE ||
+#endif
 	button == RIGHT_BUTTON) {
 
 	if (ui->cur_visible) {
@@ -1896,8 +1920,100 @@ static char *interpret_move(game_state *state, game_ui *ui,
 	    y % TILE_SIZE >= TILE_SIZE - TILE_BORDER)
 	    return nullret;
 
-        action = button == LEFT_BUTTON ? ROTATE_LEFT :
-                 button == RIGHT_BUTTON ? ROTATE_RIGHT : TOGGLE_LOCK;
+#ifdef USE_DRAGGING
+
+        if (button == MIDDLE_BUTTON
+#ifdef STYLUS_BASED
+	    || button == RIGHT_BUTTON  /* with a stylus, `right-click' locks */
+#endif
+	    ) {
+            /*
+             * Middle button never drags: it only toggles the lock.
+             */
+            action = TOGGLE_LOCK;
+        } else if (button == LEFT_BUTTON || button == RIGHT_BUTTON) {
+            /*
+             * Otherwise, we note down the start point for a drag.
+             */
+            ui->dragtilex = tx;
+            ui->dragtiley = ty;
+            ui->dragstartx = x % TILE_SIZE;
+            ui->dragstarty = y % TILE_SIZE;
+            ui->dragged = FALSE;
+            return nullret;            /* no actual action */
+        } else if (button == LEFT_DRAG || button == RIGHT_DRAG) {
+            /*
+             * Find the new drag point and see if it necessitates a
+             * rotation.
+             */
+            int x0,y0, xA,yA, xC,yC, xF,yF;
+            int mx, my;
+            int d0, dA, dC, dF, dmin;
+
+            tx = ui->dragtilex;
+            ty = ui->dragtiley;
+
+            mx = x - (ui->dragtilex * TILE_SIZE);
+            my = y - (ui->dragtiley * TILE_SIZE);
+
+            x0 = ui->dragstartx;
+            y0 = ui->dragstarty;
+            xA = ui->dragstarty;
+            yA = TILE_SIZE-1 - ui->dragstartx;
+            xF = TILE_SIZE-1 - ui->dragstartx;
+            yF = TILE_SIZE-1 - ui->dragstarty;
+            xC = TILE_SIZE-1 - ui->dragstarty;
+            yC = ui->dragstartx;
+
+            d0 = (mx-x0)*(mx-x0) + (my-y0)*(my-y0);
+            dA = (mx-xA)*(mx-xA) + (my-yA)*(my-yA);
+            dF = (mx-xF)*(mx-xF) + (my-yF)*(my-yF);
+            dC = (mx-xC)*(mx-xC) + (my-yC)*(my-yC);
+
+            dmin = min(min(d0,dA),min(dF,dC));
+
+            if (d0 == dmin) {
+                return nullret;
+            } else if (dF == dmin) {
+                action = ROTATE_180;
+                ui->dragstartx = xF;
+                ui->dragstarty = yF;
+                ui->dragged = TRUE;
+            } else if (dA == dmin) {
+                action = ROTATE_LEFT;
+                ui->dragstartx = xA;
+                ui->dragstarty = yA;
+                ui->dragged = TRUE;
+            } else /* dC == dmin */ {
+                action = ROTATE_RIGHT;
+                ui->dragstartx = xC;
+                ui->dragstarty = yC;
+                ui->dragged = TRUE;
+            }
+        } else if (button == LEFT_RELEASE || button == RIGHT_RELEASE) {
+            if (!ui->dragged) {
+                /*
+                 * There was a click but no perceptible drag:
+                 * revert to single-click behaviour.
+                 */
+                tx = ui->dragtilex;
+                ty = ui->dragtiley;
+
+                if (button == LEFT_RELEASE)
+                    action = ROTATE_LEFT;
+                else
+                    action = ROTATE_RIGHT;
+            } else
+                return nullret;        /* no action */
+        }
+
+#else /* USE_DRAGGING */
+
+	action = (button == LEFT_BUTTON ? ROTATE_LEFT :
+		  button == RIGHT_BUTTON ? ROTATE_RIGHT : TOGGLE_LOCK);
+
+#endif /* USE_DRAGGING */
+
     } else if (button == CURSOR_UP || button == CURSOR_DOWN ||
 	       button == CURSOR_RIGHT || button == CURSOR_LEFT) {
         switch (button) {

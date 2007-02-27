@@ -78,6 +78,7 @@ enum {
   #define SMALL_SCREEN
   #define PORTRAIT_SCREEN
   #define VIVID_COLOURS
+  #define STYLUS_BASED
 #endif
 
 #define IGNOREARG(x) ( (x) = (x) )
