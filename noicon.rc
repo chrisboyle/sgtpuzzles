@@ -1,0 +1,3 @@
+/* Puzzle resource file without an icon, used in the absence of icons/foo.rc */
+
+#include "puzzles.rc2"

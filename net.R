@@ -6,7 +6,7 @@ net      : [X] GTK COMMON NET net-icon|no-icon
 
 # The Windows Net shouldn't be called `net.exe' since Windows
 # already has a reasonably important utility program by that name!
-netgame  : [G] WINDOWS COMMON NET net.res?
+netgame  : [G] WINDOWS COMMON NET net.res|noicon.res
 
 ALL += NET
 

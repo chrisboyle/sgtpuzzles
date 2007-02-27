@@ -2,7 +2,7 @@
 
 samegame : [X] GTK COMMON samegame samegame-icon|no-icon
 
-samegame : [G] WINDOWS COMMON samegame samegame.res?
+samegame : [G] WINDOWS COMMON samegame samegame.res|noicon.res
 
 ALL += samegame
 

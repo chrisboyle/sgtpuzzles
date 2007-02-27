@@ -2,7 +2,7 @@
 
 rect     : [X] GTK COMMON rect rect-icon|no-icon
 
-rect     : [G] WINDOWS COMMON rect rect.res?
+rect     : [G] WINDOWS COMMON rect rect.res|noicon.res
 
 ALL += rect
 

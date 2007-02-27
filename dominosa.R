@@ -2,7 +2,7 @@
 
 dominosa : [X] GTK COMMON dominosa dominosa-icon|no-icon
 
-dominosa : [G] WINDOWS COMMON dominosa dominosa.res?
+dominosa : [G] WINDOWS COMMON dominosa dominosa.res|noicon.res
 
 ALL += dominosa
 

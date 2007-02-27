@@ -4,7 +4,7 @@ MAP      = map dsf
 
 map      : [X] GTK COMMON MAP map-icon|no-icon
 
-map      : [G] WINDOWS COMMON MAP map.res?
+map      : [G] WINDOWS COMMON MAP map.res|noicon.res
 
 mapsolver :     [U] map[STANDALONE_SOLVER] dsf STANDALONE m.lib
 mapsolver :     [C] map[STANDALONE_SOLVER] dsf STANDALONE

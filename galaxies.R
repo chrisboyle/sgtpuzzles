@@ -4,7 +4,7 @@ GALAXIES = galaxies dsf
 
 galaxies : [X] GTK COMMON GALAXIES galaxies-icon|no-icon
 
-galaxies : [G] WINDOWS COMMON GALAXIES galaxies.res?
+galaxies : [G] WINDOWS COMMON GALAXIES galaxies.res|noicon.res
 
 galaxiessolver : [U] galaxies[STANDALONE_SOLVER] dsf STANDALONE m.lib
 galaxiessolver : [C] galaxies[STANDALONE_SOLVER] dsf STANDALONE

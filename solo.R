@@ -2,7 +2,7 @@
 
 solo     : [X] GTK COMMON solo solo-icon|no-icon
 
-solo     : [G] WINDOWS COMMON solo solo.res?
+solo     : [G] WINDOWS COMMON solo solo.res|noicon.res
 
 solosolver :    [U] solo[STANDALONE_SOLVER] STANDALONE
 solosolver :    [C] solo[STANDALONE_SOLVER] STANDALONE

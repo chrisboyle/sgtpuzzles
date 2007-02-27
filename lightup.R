@@ -4,7 +4,7 @@ LIGHTUP  = lightup combi
 
 lightup  : [X] GTK COMMON LIGHTUP lightup-icon|no-icon
 
-lightup  : [G] WINDOWS COMMON LIGHTUP lightup.res?
+lightup  : [G] WINDOWS COMMON LIGHTUP lightup.res|noicon.res
 
 lightupsolver : [U] lightup[STANDALONE_SOLVER] combi STANDALONE
 lightupsolver : [C] lightup[STANDALONE_SOLVER] combi STANDALONE

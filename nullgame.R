@@ -9,4 +9,4 @@
 # ever fails to compile, so it's important that it should actually
 # be built on a regular basis.
 nullgame : [X] GTK COMMON nullgame nullgame-icon|no-icon
-nullgame : [G] WINDOWS COMMON nullgame nullgame.res?
+nullgame : [G] WINDOWS COMMON nullgame nullgame.res|noicon.res

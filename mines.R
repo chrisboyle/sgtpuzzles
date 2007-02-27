@@ -4,7 +4,7 @@ MINES    = mines tree234
 
 mines    : [X] GTK COMMON MINES mines-icon|no-icon
 
-mines    : [G] WINDOWS COMMON MINES mines.res?
+mines    : [G] WINDOWS COMMON MINES mines.res|noicon.res
 
 mineobfusc :    [U] mines[STANDALONE_OBFUSCATOR] tree234 STANDALONE
 mineobfusc :    [C] mines[STANDALONE_OBFUSCATOR] tree234 STANDALONE

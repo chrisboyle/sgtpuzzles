@@ -7,7 +7,7 @@ fillingsolver :	[C] filling[STANDALONE_SOLVER] dsf STANDALONE
 
 filling : [X] GTK COMMON FILLING filling-icon|no-icon
 
-filling : [G] WINDOWS COMMON FILLING filling.res?
+filling : [G] WINDOWS COMMON FILLING filling.res|noicon.res
 
 ALL += filling
 
