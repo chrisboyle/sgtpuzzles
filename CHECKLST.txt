@@ -36,6 +36,10 @@ Make sure there's a Windows help topic name defined in puzzles.but,
 and that it's referenced by the help topic field in the game
 structure in the source file.
 
+Make sure the puzzle works on PocketPC. At the very least, check
+that it specifies REQUIRE_RBUTTON and/or REQUIRE_NUMPAD as
+appropriate; but better, actually test it on the emulator.
+
 Add the new Unix binary name, and the names of any auxiliary solver
 binaries, to the svn:ignore property.
 
