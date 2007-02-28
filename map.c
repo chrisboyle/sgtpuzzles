@@ -2532,7 +2532,7 @@ static void game_set_size(drawing *dr, game_drawstate *ds,
 
 const float map_colours[FOUR][3] = {
 #ifdef VIVID_COLOURS
-    // Use more vivid colours (e.g. on the Pocket PC)
+    /* Use more vivid colours (e.g. on the Pocket PC) */
     {0.75F, 0.25F, 0.25F},
     {0.3F,  0.7F,  0.3F},
     {0.3F,  0.3F,  0.7F},

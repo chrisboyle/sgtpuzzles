@@ -298,8 +298,8 @@ static void add_assoc(game_state *state, space *tile, space *dot) {
     tile->dotx = dot->x;
     tile->doty = dot->y;
     dot->nassoc++;
-    debug(("add_assoc sp %d %d --> dot %d,%d, new nassoc %d.\n",
-           tile->x, tile->y, dot->x, dot->y, dot->nassoc));
+    /*debug(("add_assoc sp %d %d --> dot %d,%d, new nassoc %d.\n",
+           tile->x, tile->y, dot->x, dot->y, dot->nassoc));*/
 }
 
 static struct space *sp2dot(game_state *state, int x, int y)

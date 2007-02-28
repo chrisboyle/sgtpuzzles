@@ -789,17 +789,28 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
     if (x >= 0 && x < state->w && y >= 0 && y < state->h &&
         (button == LEFT_BUTTON || button == RIGHT_BUTTON ||
          button == MIDDLE_BUTTON)) {
+#ifdef STYLUS_BASED
+        int currstate = state->grid[y * state->w + x];
+#endif
 
         ui->dragging = TRUE;
 
         if (button == LEFT_BUTTON) {
             ui->drag = LEFT_DRAG;
             ui->release = LEFT_RELEASE;
+#ifdef STYLUS_BASED
+            ui->state = currstate == GRID_FULL ? GRID_UNKNOWN : GRID_FULL;
+#else
             ui->state = GRID_FULL;
+#endif
         } else if (button == RIGHT_BUTTON) {
             ui->drag = RIGHT_DRAG;
             ui->release = RIGHT_RELEASE;
+#ifdef STYLUS_BASED
+            ui->state = currstate == GRID_EMPTY ? GRID_UNKNOWN : GRID_EMPTY;
+#else
             ui->state = GRID_EMPTY;
+#endif
         } else /* if (button == MIDDLE_BUTTON) */ {
             ui->drag = MIDDLE_DRAG;
             ui->release = MIDDLE_RELEASE;

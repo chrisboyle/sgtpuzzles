@@ -26,11 +26,6 @@
 #include "puzzles.h"
 #include "latin.h" /* contains typedef for digit */
 
-static void assert_f(p)
-{
-    assert(p);
-}
-
 /* ----------------------------------------------------------
  * Constant and structure definitions
  */
@@ -885,7 +880,7 @@ static int gg_best_clue(game_state *state, int *scratch, digit *latin)
     }
 #endif
 
-    for (i = 0; i < ls; i++) {
+    for (i = ls; i-- > 0 ;) {
         if (!gg_place_clue(state, scratch[i], latin, 1)) continue;
 
         loc = scratch[i] / 5;
@@ -976,7 +971,8 @@ static void game_strip(game_state *new, int *scratch, digit *latin,
         gg_solved++;
         if (solver_state(copy, difficulty) != 1) {
             /* put clue back, we can't solve without it. */
-            assert_f(gg_place_clue(new, scratch[i], latin, 0) == 1);
+            int ret = gg_place_clue(new, scratch[i], latin, 0);
+            assert(ret == 1);
         } else {
 #ifdef STANDALONE_SOLVER
             if (solver_show_working)
@@ -1007,7 +1003,8 @@ static char *new_game_desc(game_params *params, random_state *rs,
 
     /* Generate a list of 'things to strip' (randomised later) */
     scratch = snewn(lscratch, int);
-    for (i = 0; i < lscratch; i++) scratch[i] = i;
+    /* Put the numbers (4 mod 5) before the inequalities (0-3 mod 5) */
+    for (i = 0; i < lscratch; i++) scratch[i] = (i%o2)*5 + 4 - (i/o2);
 
 generate:
 #ifdef STANDALONE_SOLVER
@@ -1018,7 +1015,9 @@ generate:
     if (sq) sfree(sq);
     sq = latin_generate(params->order, rs);
     latin_debug(sq, params->order);
-    shuffle(scratch, lscratch, sizeof(int), rs);
+    /* Separately shuffle the numeric and inequality clues */
+    shuffle(scratch, lscratch/5, sizeof(int), rs);
+    shuffle(scratch+lscratch/5, 4*lscratch/5, sizeof(int), rs);
 
     memset(state->nums, 0, o2 * sizeof(digit));
     memset(state->flags, 0, o2 * sizeof(unsigned int));
@@ -1324,7 +1323,7 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
 static game_state *execute_move(game_state *state, char *move)
 {
     game_state *ret = NULL;
-    int x, y, n, i;
+    int x, y, n, i, rc;
 
     debug(("execute_move: %s", move));
 
@@ -1360,7 +1359,8 @@ static game_state *execute_move(game_state *state, char *move)
             p++;
         }
         if (*p) goto badmove;
-	assert_f(check_complete(ret->nums, ret, 1) > 0);
+        rc = check_complete(ret->nums, ret, 1);
+	assert(rc > 0);
         return ret;
     } else if (move[0] == 'H') {
         return solver_hint(state, NULL, DIFF_EASY, DIFF_EASY);

@@ -299,7 +299,7 @@ static game_state *new_game(midend *, game_params *, char *);
 static void free_game(game_state *);
 
 /* generate a random valid board; uses validate_board.  */
-void make_board(int *board, int w, int h, random_state *rs) {
+static void make_board(int *board, int w, int h, random_state *rs) {
     int *dsf;
 
     const unsigned int sz = w * h;
@@ -974,9 +974,9 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
 static game_state *execute_move(game_state *state, char *move)
 {
     game_state *new_state;
+    const int sz = state->shared->params.w * state->shared->params.h;
 
     if (*move == 's') {
-        const int sz = state->shared->params.w * state->shared->params.h;
         int i = 0;
         new_state = dup_game(state);
         for (++move; i < sz; ++i) new_state->board[i] = move[i] - '0';
@@ -991,6 +991,7 @@ static game_state *execute_move(game_state *state, char *move)
         value = strtol(move, &endptr, 0);
         if (endptr == move) return NULL;
         if (*endptr != '\0') return NULL;
+        if (i < 0 || i >= sz || value < 0 || value > 9) return NULL;
         new_state = dup_game(state);
         new_state->board[i] = value;
     }

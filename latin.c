@@ -12,11 +12,6 @@
 
 #include "latin.h"
 
-static void assert_f(p)
-{
-    assert(p);
-}
-
 /* --------------------------------------------------------
  * Solver.
  */
@@ -31,7 +26,7 @@ void latin_solver_place(struct latin_solver *solver, int x, int y, int n)
     int i, o = solver->o;
 
     assert(n <= o);
-    assert_f(cube(x,y,n));
+    assert(cube(x,y,n));
 
     /*
      * Rule out all other numbers in this square.
@@ -961,7 +956,7 @@ void latin_solver_debug(unsigned char *cube, int o)
 #ifdef STANDALONE_SOLVER
     if (solver_show_working) {
         struct latin_solver ls, *solver = &ls;
-        unsigned char *dbg;
+        char *dbg;
         int x, y, i, c = 0;
 
         ls.cube = cube; ls.o = o; /* for cube() to work */
@@ -1181,7 +1176,7 @@ int latin_check(digit *sq, int order)
     tree234 *dict = newtree234(latin_check_cmp);
     int c, r;
     int ret = 0;
-    lcparams *lcp, lc;
+    lcparams *lcp, lc, *aret;
 
     /* Use a tree234 as a simple hash table, go through the square
      * adding elements as we go or incrementing their counts. */
@@ -1193,7 +1188,8 @@ int latin_check(digit *sq, int order)
 		lcp = snew(lcparams);
 		lcp->elt = ELT(sq, c, r);
 		lcp->count = 1;
-		assert_f(add234(dict, lcp) == lcp);
+                aret = add234(dict, lcp);
+		assert(aret == lcp);
 	    } else {
 		lcp->count++;
 	    }
