@@ -2205,7 +2205,7 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
             solver_obvious(tmp);
         else
             solver_state(tmp, DIFF_UNREASONABLE-1);
-        ret = diff_game(state, tmp, 0);
+        ret = diff_game(state, tmp, 1);
         free_game(tmp);
         return ret;
     }
@@ -2594,6 +2594,7 @@ static game_state *execute_move(game_state *state, char *move)
 #endif
         } else if (c == 'S') {
             move++;
+	    ret->used_solve = 1;
         } else
             goto badmove;
 
