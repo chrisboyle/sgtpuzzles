@@ -1389,7 +1389,8 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
          * should start by drawing a big background-colour rectangle
          * covering the whole window.
          */
-        draw_rect(dr, 0, 0, 10*ds->tilesize, 10*ds->tilesize, COL_BACKGROUND);
+        draw_rect(dr, 0, 0, w*TILE_SIZE + 2*BORDER, h*TILE_SIZE + 2*BORDER,
+                  COL_BACKGROUND);
 
 	/*
 	 * Smaller black rectangle which is the main grid.
@@ -1398,6 +1399,8 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 		  w*TILE_SIZE + 2*BORDER_WIDTH + 1,
 		  h*TILE_SIZE + 2*BORDER_WIDTH + 1,
 		  COL_GRID);
+
+        draw_update(dr, 0, 0, w*TILE_SIZE + 2*BORDER, h*TILE_SIZE + 2*BORDER);
 
         ds->started = TRUE;
     }
