@@ -53,6 +53,25 @@ int solver_show_working;
 #define solvep(x) do { if (solver_show_working) { printf x; } } while(0)
 #endif
 
+#ifdef STANDALONE_PICTURE_GENERATOR
+/*
+ * Dirty hack to enable the generator to construct a game ID which
+ * solves to a specified black-and-white bitmap. We define a global
+ * variable here which gives the desired colour of each square, and
+ * we arrange that the grid generator never merges squares of
+ * different colours.
+ *
+ * The bitmap as stored here is a simple int array (at these sizes
+ * it isn't worth doing fiddly bit-packing). picture[y*w+x] is 1
+ * iff the pixel at (x,y) is intended to be black.
+ *
+ * (It might be nice to be able to specify some pixels as
+ * don't-care, to give the generator more leeway. But that might be
+ * fiddly.)
+ */
+static int *picture;
+#endif
+
 enum {
     COL_BACKGROUND,
     COL_WHITEBG,
@@ -294,6 +313,11 @@ static void remove_assoc(game_state *state, space *tile) {
 static void add_assoc(game_state *state, space *tile, space *dot) {
     remove_assoc(state, tile);
 
+#ifdef STANDALONE_PICTURE_GENERATOR
+    if (picture)
+	assert(!picture[(tile->y/2) * state->w + (tile->x/2)] ==
+	       !(dot->flags & F_DOT_BLACK));
+#endif
     tile->flags |= F_TILE_ASSOC;
     tile->dotx = dot->x;
     tile->doty = dot->y;
@@ -728,6 +752,9 @@ static int dot_is_possible(game_state *state, space *sp, int allow_assoc)
 {
     int bx = 0, by = 0, dx, dy;
     space *adj;
+#ifdef STANDALONE_PICTURE_GENERATOR
+    int col = -1;
+#endif
 
     switch (sp->type) {
     case s_tile:
@@ -749,8 +776,24 @@ static int dot_is_possible(game_state *state, space *sp, int allow_assoc)
 
             adj = &SPACE(state, sp->x+dx, sp->y+dy);
 
-            if (!allow_assoc && (adj->flags & F_TILE_ASSOC))
-                return 0;
+#ifdef STANDALONE_PICTURE_GENERATOR
+            /*
+             * Check that all the squares we're looking at have the
+             * same colour.
+             */
+            if (picture) {
+		if (adj->type == s_tile) {
+		    int c = picture[(adj->y / 2) * state->w + (adj->x / 2)];
+		    if (col < 0)
+			col = c;
+		    if (c != col)
+			return 0;          /* colour mismatch */
+		}
+	    }
+#endif
+
+	    if (!allow_assoc && (adj->flags & F_TILE_ASSOC))
+		return 0;
 
             if (dx != 0 || dy != 0) {
                 /* Other than our own square, no dots nearby. */
@@ -948,6 +991,19 @@ static int movedot_cb(game_state *state, space *tile, void *vctx)
                newopp->doty != md->olddot->y)
                return -1; /* associated, but wrong dot. */
        }
+#ifdef STANDALONE_PICTURE_GENERATOR
+       if (picture) {
+	   /*
+	    * Reject if either tile and the dot don't match in colour.
+	    */
+	   if (!(picture[(tile->y/2) * state->w + (tile->x/2)]) ^
+	       !(md->newdot->flags & F_DOT_BLACK))
+	       return -1;
+	   if (!(picture[(newopp->y/2) * state->w + (newopp->x/2)]) ^
+	       !(md->newdot->flags & F_DOT_BLACK))
+	       return -1;
+       }
+#endif
        break;
 
    case MD_MOVE:
@@ -983,12 +1039,36 @@ static int dot_expand_or_move(game_state *state, space *dot,
                toadd[i]->x, toadd[i]->y));
     assert(dot->flags & F_DOT);
 
+#ifdef STANDALONE_PICTURE_GENERATOR
+    if (picture) {
+	/*
+	 * Reject the expansion totally if any of the new tiles are
+	 * the wrong colour.
+	 */
+	for (i = 0; i < nadd; i++) {
+	    if (!(picture[(toadd[i]->y/2) * state->w + (toadd[i]->x/2)]) ^
+		!(dot->flags & F_DOT_BLACK))
+		return 0;
+	}
+    }
+#endif
+
     /* First off, could we just expand the current dot's tile to cover
      * the space(s) passed in and their opposites? */
     for (i = 0; i < nadd; i++) {
         tileopp = space_opposite_dot(state, toadd[i], dot);
         if (!tileopp) goto noexpand;
         if (tileopp->flags & F_TILE_ASSOC) goto noexpand;
+#ifdef STANDALONE_PICTURE_GENERATOR
+	if (picture) {
+	    /*
+	     * The opposite tiles have to be the right colour as well.
+	     */
+	    if (!(picture[(tileopp->y/2) * state->w + (tileopp->x/2)]) ^
+		!(dot->flags & F_DOT_BLACK))
+		goto noexpand;
+	}
+#endif
     }
     /* OK, all spaces have valid empty opposites: associate spaces and
      * opposites with our dot. */
@@ -1006,7 +1086,7 @@ static int dot_expand_or_move(game_state *state, space *dot,
 
 noexpand:
     /* Otherwise, try to move dot so as to encompass given spaces: */
-    /* first, alculate the 'centre of gravity' of the new dot. */
+    /* first, calculate the 'centre of gravity' of the new dot. */
     nnew = dot->nassoc + nadd; /* number of tiles assoc. with new dot. */
     cx = dot->x * dot->nassoc;
     cy = dot->y * dot->nassoc;
@@ -1046,6 +1126,13 @@ noexpand:
                dot->x, dot->y));
             return 0;
         }
+#ifdef STANDALONE_PICTURE_GENERATOR
+	if (picture) {
+	    if (!(picture[(tileopp->y/2) * state->w + (tileopp->x/2)]) ^
+		!(dot->flags & F_DOT_BLACK))
+		return 0;
+	}
+#endif
     }
 
     /* If we've got here, we're ok. First, associate all of 'toadd'
@@ -1060,8 +1147,16 @@ noexpand:
     /* Finally, move the dot and fix up all the old associations. */
     debug(("Moving dot at %d,%d to %d,%d\n",
            dot->x, dot->y, md.newdot->x, md.newdot->y));
-    remove_dot(dot);
-    add_dot(md.newdot);
+    {
+#ifdef STANDALONE_PICTURE_GENERATOR
+        int f = dot->flags & F_DOT_BLACK;
+#endif
+        remove_dot(dot);
+        add_dot(md.newdot);
+#ifdef STANDALONE_PICTURE_GENERATOR
+        md.newdot->flags |= f;
+#endif
+    }
 
     md.op = MD_MOVE;
     ret = foreach_tile(state, movedot_cb, 0, &md);
@@ -1188,6 +1283,12 @@ static void generate_pass(game_state *state, random_state *rs, int *scratch,
          * if we can, and add one if so. */
         if (dot_is_possible(state, sp, 0)) {
             add_dot(sp);
+#ifdef STANDALONE_PICTURE_GENERATOR
+	    if (picture) {
+		if (picture[(sp->y/2) * state->w + (sp->x/2)])
+		    sp->flags |= F_DOT_BLACK;
+	    }
+#endif
             ret = solver_obvious_dot(state, sp);
             assert(ret != -1);
             debug(("Added dot (and obvious associations) at %d,%d\n",
@@ -1230,6 +1331,11 @@ generate:
     }
 #endif
 
+    for (i = 0; i < state->sx*state->sy; i++)
+        if (state->grid[i].type == s_tile)
+            outline_tile_fordot(state, &state->grid[i], TRUE);
+    assert(check_complete(state, FALSE));
+
     copy = dup_game(state);
     clear_game(copy, 0);
     dbg_state(copy);
@@ -1246,6 +1352,173 @@ generate:
         if (diff > params->diff ||
             ntries < MAXTRIES) goto generate;
     }
+
+#ifdef STANDALONE_PICTURE_GENERATOR
+    /*
+     * Postprocessing pass to prevent excessive numbers of adjacent
+     * singletons. Iterate over all edges in random shuffled order;
+     * for each edge that separates two regions, investigate
+     * whether removing that edge and merging the regions would
+     * still yield a valid and soluble puzzle. (The two regions
+     * must also be the same colour, of course.) If so, do it.
+     * 
+     * This postprocessing pass is slow (due to repeated solver
+     * invocations), and seems to be unnecessary during normal
+     * unconstrained game generation. However, when generating a
+     * game under colour constraints, excessive singletons seem to
+     * turn up more often, so it's worth doing this.
+     */
+    {
+	int *posns, nposns;
+	int i, j, newdiff;
+	game_state *copy2;
+
+	nposns = params->w * (params->h+1) + params->h * (params->w+1);
+	posns = snewn(nposns, int);
+	for (i = j = 0; i < state->sx*state->sy; i++)
+	    if (state->grid[i].type == s_edge)
+		posns[j++] = i;
+	assert(j == nposns);
+
+	shuffle(posns, nposns, sizeof(*posns), rs);
+
+	for (i = 0; i < nposns; i++) {
+	    int x, y, x0, y0, x1, y1, cx, cy, cn, cx0, cy0, cx1, cy1, tx, ty;
+	    space *s0, *s1, *ts, *d0, *d1, *dn;
+	    int ok;
+
+	    /* Coordinates of edge space */
+	    x = posns[i] % state->sx;
+	    y = posns[i] / state->sx;
+
+	    /* Coordinates of square spaces on either side of edge */
+	    x0 = ((x+1) & ~1) - 1;     /* round down to next odd number */
+	    y0 = ((y+1) & ~1) - 1;
+	    x1 = 2*x-x0;	       /* and reflect about x to get x1 */
+	    y1 = 2*y-y0;
+
+	    if (!INGRID(state, x0, y0) || !INGRID(state, x1, y1))
+		continue;	       /* outermost edge of grid */
+	    s0 = &SPACE(state, x0, y0);
+	    s1 = &SPACE(state, x1, y1);
+	    assert(s0->type == s_tile && s1->type == s_tile);
+
+	    if (s0->dotx == s1->dotx && s0->doty == s1->doty)
+		continue;	       /* tiles _already_ owned by same dot */
+
+	    d0 = &SPACE(state, s0->dotx, s0->doty);
+	    d1 = &SPACE(state, s1->dotx, s1->doty);
+
+	    if ((d0->flags ^ d1->flags) & F_DOT_BLACK)
+		continue;	       /* different colours: cannot merge */
+
+	    /*
+	     * Work out where the centre of gravity of the new
+	     * region would be.
+	     */
+	    cx = d0->nassoc * d0->x + d1->nassoc * d1->x;
+	    cy = d0->nassoc * d0->y + d1->nassoc * d1->y;
+	    cn = d0->nassoc + d1->nassoc;
+	    if (cx % cn || cy % cn)
+		continue;	       /* CoG not at integer coordinates */
+	    cx /= cn;
+	    cy /= cn;
+	    assert(INUI(state, cx, cy));
+
+	    /*
+	     * Ensure that the CoG would actually be _in_ the new
+	     * region, by verifying that all its surrounding tiles
+	     * belong to one or other of our two dots.
+	     */
+	    cx0 = ((cx+1) & ~1) - 1;   /* round down to next odd number */
+	    cy0 = ((cy+1) & ~1) - 1;
+	    cx1 = 2*cx-cx0;	       /* and reflect about cx to get cx1 */
+	    cy1 = 2*cy-cy0;
+	    ok = TRUE;
+	    for (ty = cy0; ty <= cy1; ty += 2)
+		for (tx = cx0; tx <= cx1; tx += 2) {
+		    ts = &SPACE(state, tx, ty);
+		    assert(ts->type == s_tile);
+		    if ((ts->dotx != d0->x || ts->doty != d0->y) &&
+			(ts->dotx != d1->x || ts->doty != d1->y))
+			ok = FALSE;
+		}
+	    if (!ok)
+		continue;
+
+	    /*
+	     * Verify that for every tile in either source region,
+	     * that tile's image in the new CoG is also in one of
+	     * the two source regions.
+	     */
+	    for (ty = 1; ty < state->sy; ty += 2) {
+		for (tx = 1; tx < state->sx; tx += 2) {
+		    int tx1, ty1;
+
+		    ts = &SPACE(state, tx, ty);
+		    assert(ts->type == s_tile);
+		    if ((ts->dotx != d0->x || ts->doty != d0->y) &&
+			(ts->dotx != d1->x || ts->doty != d1->y))
+			continue;      /* not part of these tiles anyway */
+		    tx1 = 2*cx-tx;
+		    ty1 = 2*cy-ty;
+		    if (!INGRID(state, tx1, ty1)) {
+			ok = FALSE;
+			break;
+		    }
+		    ts = &SPACE(state, cx+cx-tx, cy+cy-ty);
+		    if ((ts->dotx != d0->x || ts->doty != d0->y) &&
+			(ts->dotx != d1->x || ts->doty != d1->y)) {
+			ok = FALSE;
+			break;
+		    }
+		}
+		if (!ok)
+		    break;
+	    }
+	    if (!ok)
+		continue;
+
+	    /*
+	     * Now we're clear to attempt the merge. We take a copy
+	     * of the game state first, so we can revert it easily
+	     * if the resulting puzzle turns out to have become
+	     * insoluble.
+	     */
+	    copy2 = dup_game(state);
+
+	    remove_dot(d0);
+	    remove_dot(d1);
+	    dn = &SPACE(state, cx, cy);
+	    add_dot(dn);
+	    dn->flags |= (d0->flags & F_DOT_BLACK);
+	    for (ty = 1; ty < state->sy; ty += 2) {
+		for (tx = 1; tx < state->sx; tx += 2) {
+		    ts = &SPACE(state, tx, ty);
+		    assert(ts->type == s_tile);
+		    if ((ts->dotx != d0->x || ts->doty != d0->y) &&
+			(ts->dotx != d1->x || ts->doty != d1->y))
+			continue;      /* not part of these tiles anyway */
+		    add_assoc(state, ts, dn);
+		}
+	    }
+
+	    copy = dup_game(state);
+	    clear_game(copy, 0);
+	    dbg_state(copy);
+	    newdiff = solver_state(copy, params->diff);
+	    free_game(copy);
+	    if (diff == newdiff) {
+		/* Still just as soluble. Let the merge stand. */
+		free_game(copy2);
+	    } else {
+		/* Became insoluble. Revert. */
+		free_game(state);
+		state = copy2;
+	    }
+	}
+    }
+#endif
 
     desc = encode_game(state);
 #ifndef STANDALONE_SOLVER
@@ -1945,6 +2218,13 @@ static int solver_state(game_state *state, int maxdiff)
     solver_ctx *sctx = new_solver(state);
     int ret, diff = DIFF_NORMAL;
 
+#ifdef STANDALONE_PICTURE_GENERATOR
+    /* hack, hack: set picture to NULL during solving so that add_assoc
+     * won't complain when we attempt recursive guessing and guess wrong */
+    int *savepic = picture;
+    picture = NULL;
+#endif
+
     ret = solver_obvious(state);
     if (ret < 0) {
         diff = DIFF_IMPOSSIBLE;
@@ -1988,6 +2268,10 @@ got_result:
 #ifndef STANDALONE_SOLVER
     debug(("solver_state ends:\n"));
     dbg_state(state);
+#endif
+
+#ifdef STANDALONE_PICTURE_GENERATOR
+    picture = savepic;
 #endif
 
     return diff;
@@ -3401,6 +3685,148 @@ int main(int argc, char **argv)
     }
 
     free_params(p);
+
+    return 0;
+}
+
+#endif
+
+#ifdef STANDALONE_PICTURE_GENERATOR
+
+/*
+ * Main program for the standalone picture generator. To use it,
+ * simply provide it with an XBM-format bitmap file (note XBM, not
+ * XPM) on standard input, and it will output a game ID in return.
+ * For example:
+ *
+ *   $ ./galaxiespicture < badly-drawn-cat.xbm
+ *   11x11:eloMBLzFeEzLNMWifhaWYdDbixCymBbBMLoDdewGg
+ *
+ * If you want a puzzle with a non-standard difficulty level, pass
+ * a partial parameters string as a command-line argument (e.g.
+ * `./galaxiespicture du < foo.xbm', where `du' is the same suffix
+ * which if it appeared in a random-seed game ID would set the
+ * difficulty level to Unreasonable). However, be aware that if the
+ * generator fails to produce an adequately difficult puzzle too
+ * many times then it will give up and return an easier one (just
+ * as it does during normal GUI play). To be sure you really have
+ * the difficulty you asked for, use galaxiessolver to
+ * double-check.
+ * 
+ * (Perhaps I ought to include an option to make this standalone
+ * generator carry on looping until it really does get the right
+ * difficulty. Hmmm.)
+ */
+
+#include <time.h>
+
+int main(int argc, char **argv)
+{
+    game_params *par;
+    char *params, *desc;
+    random_state *rs;
+    time_t seed = time(NULL);
+    char buf[4096];
+    int i;
+    int x, y;
+
+    par = default_params();
+    if (argc > 1)
+	decode_params(par, argv[1]);   /* get difficulty */
+    par->w = par->h = -1;
+
+    /*
+     * Now read an XBM file from standard input. This is simple and
+     * hacky and will do very little error detection, so don't feed
+     * it bogus data.
+     */
+    picture = NULL;
+    x = y = 0;
+    while (fgets(buf, sizeof(buf), stdin)) {
+	buf[strcspn(buf, "\r\n")] = '\0';
+	if (!strncmp(buf, "#define", 7)) {
+	    /*
+	     * Lines starting `#define' give the width and height.
+	     */
+	    char *num = buf + strlen(buf);
+	    char *symend;
+
+	    while (num > buf && isdigit((unsigned char)num[-1]))
+		num--;
+	    symend = num;
+	    while (symend > buf && isspace((unsigned char)symend[-1]))
+		symend--;
+
+	    if (symend-5 >= buf && !strncmp(symend-5, "width", 5))
+		par->w = atoi(num);
+	    else if (symend-6 >= buf && !strncmp(symend-6, "height", 6))
+		par->h = atoi(num);
+	} else {
+	    /*
+	     * Otherwise, break the string up into words and take
+	     * any word of the form `0x' plus hex digits to be a
+	     * byte.
+	     */
+	    char *p, *wordstart;
+
+	    if (!picture) {
+		if (par->w < 0 || par->h < 0) {
+		    printf("failed to read width and height\n");
+		    return 1;
+		}
+		picture = snewn(par->w * par->h, int);
+		for (i = 0; i < par->w * par->h; i++)
+		    picture[i] = -1;
+	    }
+
+	    p = buf;
+	    while (*p) {
+		while (*p && (*p == ',' || isspace((unsigned char)*p)))
+		    p++;
+		wordstart = p;
+		while (*p && !(*p == ',' || *p == '}' ||
+			       isspace((unsigned char)*p)))
+		    p++;
+		if (*p)
+		    *p++ = '\0';
+
+		if (wordstart[0] == '0' &&
+		    (wordstart[1] == 'x' || wordstart[1] == 'X') &&
+		    !wordstart[2 + strspn(wordstart+2,
+					  "0123456789abcdefABCDEF")]) {
+		    unsigned long byte = strtoul(wordstart+2, NULL, 16);
+		    for (i = 0; i < 8; i++) {
+			int bit = (byte >> i) & 1;
+			if (y < par->h && x < par->w)
+			    picture[y * par->w + x] = bit;
+			x++;
+		    }
+
+		    if (x >= par->w) {
+			x = 0;
+			y++;
+		    }
+		}
+	    }
+	}
+    }
+
+    for (i = 0; i < par->w * par->h; i++)
+	if (picture[i] < 0) {
+	    fprintf(stderr, "failed to read enough bitmap data\n");
+	    return 1;
+	}
+
+    rs = random_new((void*)&seed, sizeof(time_t));
+
+    desc = new_game_desc(par, rs, NULL, FALSE);
+    params = encode_params(par, FALSE);
+    printf("%s:%s\n", params, desc);
+
+    sfree(desc);
+    sfree(params);
+    free_params(par);
+    random_free(rs);
 
     return 0;
 }
