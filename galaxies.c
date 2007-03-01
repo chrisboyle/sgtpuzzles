@@ -2197,15 +2197,11 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
     int px, py;
     struct space *sp, *dot;
 
-    if (button == 'H' || button == 'h' ||
-        button == 'S' || button == 's') {
+    if (button == 'H' || button == 'h') {
         char *ret;
         game_state *tmp = dup_game(state);
-        if (button == 'H' || button == 'h')
-            solver_obvious(tmp);
-        else
-            solver_state(tmp, DIFF_UNREASONABLE-1);
-        ret = diff_game(state, tmp, 1);
+        solver_obvious(tmp);
+        ret = diff_game(state, tmp, 0);
         free_game(tmp);
         return ret;
     }
