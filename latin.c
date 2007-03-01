@@ -961,7 +961,7 @@ void latin_solver_debug(unsigned char *cube, int o)
 
         ls.cube = cube; ls.o = o; /* for cube() to work */
 
-        dbg = snewn(3*o*o*o, unsigned char);
+        dbg = snewn(3*o*o*o, char);
         for (y = 0; y < o; y++) {
             for (x = 0; x < o; x++) {
                 for (i = 1; i <= o; i++) {
