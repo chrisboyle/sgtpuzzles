@@ -2075,7 +2075,7 @@ static void game_changed_state(game_ui *ui, game_state *oldstate,
 #define PREFERRED_TILE_SIZE 32
 #define TILE_SIZE (ds->tilesize)
 #define DOT_SIZE        (TILE_SIZE / 4)
-#define EDGE_THICKNESS (TILE_SIZE / 16)
+#define EDGE_THICKNESS (max(TILE_SIZE / 16, 2))
 #define BORDER TILE_SIZE
 
 #define COORD(x) ( (x) * TILE_SIZE + BORDER )

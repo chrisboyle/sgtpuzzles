@@ -907,7 +907,7 @@ static void game_changed_state(game_ui *ui, game_state *oldstate,
 #define PREFERRED_TILE_SIZE 32
 #define TILE_SIZE (ds->tilesize)
 #define BORDER (TILE_SIZE / 2)
-#define BORDER_WIDTH (TILE_SIZE / 32)
+#define BORDER_WIDTH (max(TILE_SIZE / 32, 1))
 
 struct game_drawstate {
     struct game_params params;
