@@ -2517,7 +2517,7 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
         for (py1 = py-1; py1 <= py+1; py1++)
             for (px1 = px-1; px1 <= px+1; px1++) {
                 if (px1 >= 0 && px1 < state->sx &&
-                    py1 >= 0 && py1 < state->sx &&
+                    py1 >= 0 && py1 < state->sy &&
                     x >= SCOORD(px1-1) && x < SCOORD(px1+1) &&
                     y >= SCOORD(py1-1) && y < SCOORD(py1+1) &&
                     SPACE(state, px1, py1).flags & F_DOT) {
@@ -2538,7 +2538,7 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
         if (!dot) {
             px = 2*FROMCOORD(x+TILE_SIZE) - 1;
             py = 2*FROMCOORD(y+TILE_SIZE) - 1;
-            if (px >= 0 && px < state->sx && py >= 0 && py < state->sx) {
+            if (px >= 0 && px < state->sx && py >= 0 && py < state->sy) {
                 sp = &SPACE(state, px, py);
                 if (sp->flags & F_TILE_ASSOC) {
                     dot = &SPACE(state, sp->dotx, sp->doty);
