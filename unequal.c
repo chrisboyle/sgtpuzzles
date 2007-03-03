@@ -896,7 +896,7 @@ static int gg_best_clue(game_state *state, int *scratch, digit *latin)
             best = i; maxposs = nposs; minclues = nclues;
 #ifdef STANDALONE_SOLVER
             if (solver_show_working)
-                printf("gg_best_clue: b%d (%d,%d) new best [%d poss, %d clues].",
+                printf("gg_best_clue: b%d (%d,%d) new best [%d poss, %d clues].\n",
                        best, x, y, nposs, nclues);
 #endif
         }
@@ -996,7 +996,7 @@ static char *new_game_desc(game_params *params, random_state *rs,
 {
     digit *sq = NULL;
     int i, x, y, retlen, k, nsol;
-    int o2 = params->order * params->order, ntries = 0;
+    int o2 = params->order * params->order, ntries = 1;
     int *scratch, lscratch = o2*5;
     char *ret, buf[80];
     game_state *state = blank_game(params->order);
@@ -1034,7 +1034,7 @@ generate:
         if (nsol > 0) {
 #ifdef STANDALONE_SOLVER
             if (solver_show_working)
-                printf("game_assemble: puzzle as generated is too easy.");
+                printf("game_assemble: puzzle as generated is too easy.\n");
 #endif
             if (ntries < MAXTRIES) {
                 ntries++;
@@ -1042,7 +1042,7 @@ generate:
             }
 #ifdef STANDALONE_SOLVER
             if (solver_show_working)
-                printf("Unable to generate %s %dx%d after %d attempts.",
+                printf("Unable to generate %s %dx%d after %d attempts.\n",
                        unequal_diffnames[params->diff],
                        params->order, params->order, MAXTRIES);
 #endif
@@ -1051,7 +1051,7 @@ generate:
     }
 #ifdef STANDALONE_SOLVER
     if (solver_show_working)
-        printf("new_game_desc: generated %s puzzle; %d attempts (%d solver).",
+        printf("new_game_desc: generated %s puzzle; %d attempts (%d solver).\n",
                unequal_diffnames[params->diff], ntries, gg_solved);
 #endif
 
