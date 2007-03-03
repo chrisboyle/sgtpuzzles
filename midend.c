@@ -264,6 +264,8 @@ void midend_size(midend *me, int *x, int *y, int expand)
      */
 
     me->tilesize = min;
+    if (expand)
+        me->preferred_tilesize = me->tilesize;
     midend_size_new_drawstate(me);
     *x = me->winwidth;
     *y = me->winheight;
