@@ -1113,6 +1113,12 @@ static void resize_fe(frontend *fe)
         gtk_widget_size_request(GTK_WIDGET(fe->window), &req);
         gtk_window_resize(GTK_WINDOW(fe->window), req.width, req.height);
     }
+    /*
+     * Now that we've established the preferred size of the window,
+     * reduce the drawing area's size request so the user can shrink
+     * the window.
+     */
+    gtk_drawing_area_size(GTK_DRAWING_AREA(fe->area), 1, 1);
 }
 
 static void menu_preset_event(GtkMenuItem *menuitem, gpointer data)
@@ -1755,6 +1761,13 @@ static frontend *new_window(char *arg, int argtype, char **error)
 
     gtk_widget_show(fe->area);
     gtk_widget_show(fe->window);
+
+    /*
+     * Now that we've established the preferred size of the window,
+     * reduce the drawing area's size request so the user can shrink
+     * the window.
+     */
+    gtk_drawing_area_size(GTK_DRAWING_AREA(fe->area), 1, 1);
 
     gdk_window_set_background(fe->area->window, &fe->colours[0]);
     gdk_window_set_background(fe->window->window, &fe->colours[0]);
