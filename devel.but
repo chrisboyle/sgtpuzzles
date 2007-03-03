@@ -1456,6 +1456,26 @@ mid-end doesn't even bother calling \cw{anim_length()}
 each game. On the rare occasion that animated solve moves are
 actually required, you can set this flag.
 
+\dt \cw{REQUIRE_RBUTTON}
+
+\dd This flag indicates that the puzzle cannot be usefully played
+without the use of mouse buttons other than the left one. On some
+PDA platforms, this flag is used by the front end to enable
+right-button emulation through an appropriate gesture. Note that a
+puzzle is not required to set this just because it \e{uses} the
+right button, but only if its use of the right button is critical to
+playing the game. (Slant, for example, uses the right button to
+cycle through the three square states in the opposite order from the
+left button, and hence can manage fine without it.)
+
+\dt \cw{REQUIRE_NUMPAD}
+
+\dd This flag indicates that the puzzle cannot be usefully played
+without the use of number-key input. On some PDA platforms it causes
+an emulated number pad to appear on the screen. Similarly to
+\cw{REQUIRE_RBUTTON}, a puzzle need not specify this simply if its
+use of the number keys is not critical.
+
 \H{backend-initiative} Things a back end may do on its own initiative
 
 This section describes a couple of things that a back end may choose
