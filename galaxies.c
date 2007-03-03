@@ -349,9 +349,11 @@ static char *game_text_format(game_state *state)
             sp = &SPACE(state, x, y);
             if (sp->flags & F_DOT)
                 *p++ = 'o';
+#if 0
             else if (sp->flags & (F_REACHABLE|F_MULTIPLE|F_MARK))
                 *p++ = (sp->flags & F_MULTIPLE) ? 'M' :
                     (sp->flags & F_REACHABLE) ? 'R' : 'X';
+#endif
             else {
                 switch (sp->type) {
                 case s_tile:
@@ -607,85 +609,8 @@ static void tiles_from_edge(struct game_state *state,
     ts[1] = INGRID(state, xs[1], ys[1]) ? &SPACE(state, xs[1], ys[1]) : NULL;
 }
 
-    /* Check all tiles are associated with something, and all shapes
-     * are the correct symmetry (i.e. all tiles have a matching tile
-     * the opposite direction from the dot) */
-static int cccb_assoc(game_state *state, space *tile, void *unused)
-{
-    assert(tile->type == s_tile);
-
-    if (!(tile->flags & F_TILE_ASSOC)) return -1;
-    return 0;
-}
-
-struct dgs_ctx {
-    space *dot;
-    int ndots;
-};
-
-static int dgs_cb_check(game_state *state, space *tile, void *vctx)
-{
-    struct dgs_ctx *ctx = (struct dgs_ctx *)vctx;
-    space *opp;
-
-    if (!(tile->flags & F_TILE_ASSOC)) return 0;
-    if (tile->dotx != ctx->dot->x ||
-        tile->doty != ctx->dot->y) return 0;
-
-    ctx->ndots += 1;
-
-    /* Check this tile has an opposite associated with same dot. */
-    opp = tile_opposite(state, tile);
-    if (!opp || !(opp->flags & F_TILE_ASSOC)) return -1;
-    if (opp->dotx != tile->dotx || opp->doty != tile->doty) return -1;
-
-    /* Check its edges are correct */
-    if (outline_tile_fordot(state, tile, 0) == 1)
-        return -1; /* there was some fixing required, we're wrong. */
-
-    return 0;
-}
-
-static int dot_good_shape(game_state *state, space *dot, int mark)
-{
-    struct dgs_ctx ctx;
-
-    ctx.dot = dot;
-    ctx.ndots = 0;
-
-    if (mark) dot->flags &= ~F_GOOD;
-
-    if (foreach_tile(state, dgs_cb_check, 0, &ctx) == -1)
-        return 0;
-    if (ctx.ndots == 0) return 0; /* no dots assoc. with tile. */
-
-    if (mark) {
-        debug(("marking dot %d,%d good tile.\n", dot->x, dot->y));
-        dot->flags |= F_GOOD;
-    }
-    return 1;
-}
-
-static int check_complete(game_state *state, int mark_errors)
-{
-    int i, complete = 1;
-
-    /* Are all tiles associated? */
-    if (foreach_tile(state, cccb_assoc, 0, NULL) == -1)
-        complete = 0;
-
-    /* Check all dots are associated, and their tiles are well-formed. */
-    for (i = 0; i < state->ndots; i++) {
-        if (!dot_good_shape(state, state->dots[i], mark_errors))
-            complete = 0;
-    }
-
-    /*if (complete == 1) printf("Complete!\n");*/
-    return complete;
-}
-
-/* Returns a move string for use by 'solve'; if you don't want the
- * initial 'S;' use ret[2]. */
+/* Returns a move string for use by 'solve', including the initial
+ * 'S' if issolve is true. */
 static char *diff_game(game_state *src, game_state *dest, int issolve)
 {
     int movelen = 0, movesize = 256, x, y, len;
@@ -1299,6 +1224,7 @@ static void generate_pass(game_state *state, random_state *rs, int *scratch,
     dbg_state(state);
 }
 
+static int check_complete(game_state *state, int *dsf, int *colours);
 static int solver_state(game_state *state, int maxdiff);
 
 static char *new_game_desc(game_params *params, random_state *rs,
@@ -1307,7 +1233,7 @@ static char *new_game_desc(game_params *params, random_state *rs,
     game_state *state = blank_game(params->w, params->h), *copy;
     char *desc;
     int *scratch, sz = state->sx*state->sy, i;
-    int diff, ntries = 0;
+    int diff, ntries = 0, cc;
 
     /* Random list of squares to try and process, one-by-one. */
     scratch = snewn(sz, int);
@@ -1334,7 +1260,8 @@ generate:
     for (i = 0; i < state->sx*state->sy; i++)
         if (state->grid[i].type == s_tile)
             outline_tile_fordot(state, &state->grid[i], TRUE);
-    assert(check_complete(state, FALSE));
+    cc = check_complete(state, NULL, NULL);
+    assert(cc);
 
     copy = dup_game(state);
     clear_game(copy, 0);
@@ -2258,7 +2185,7 @@ cont:
         break;
     }
 
-    if (check_complete(state, 0)) goto got_result;
+    if (check_complete(state, NULL, NULL)) goto got_result;
 
     diff = (maxdiff >= DIFF_UNREASONABLE) ?
         solver_recurse(state, maxdiff) : DIFF_UNFINISHED;
@@ -2266,7 +2193,7 @@ cont:
 got_result:
     free_solver(sctx);
 #ifndef STANDALONE_SOLVER
-    debug(("solver_state ends:\n"));
+    debug(("solver_state ends, diff %s:\n", galaxies_diffnames[diff]));
     dbg_state(state);
 #endif
 
@@ -2616,7 +2543,7 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
 }
 #endif
 
-static int check_complete_in_play(game_state *state, int *dsf, int *colours)
+static int check_complete(game_state *state, int *dsf, int *colours)
 {
     int w = state->w, h = state->h;
     int x, y, i, ret;
@@ -2883,7 +2810,7 @@ static game_state *execute_move(game_state *state, char *move)
         else if (*move)
             goto badmove;
     }
-    if (check_complete_in_play(ret, NULL, NULL))
+    if (check_complete(ret, NULL, NULL))
         ret->completed = 1;
     return ret;
 
@@ -3154,7 +3081,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
         ds->started = TRUE;
     }
 
-    check_complete_in_play(state, NULL, ds->colour_scratch);
+    check_complete(state, NULL, ds->colour_scratch);
 
     for (y = 0; y < h; y++)
         for (x = 0; x < w; x++) {
@@ -3328,7 +3255,7 @@ static void game_print(drawing *dr, game_state *state, int sz)
      */
     dsf = snewn(w * h, int);
     colours = snewn(w * h, int);
-    check_complete_in_play(state, dsf, colours);
+    check_complete(state, dsf, colours);
 
     /*
      * Draw the grid.
