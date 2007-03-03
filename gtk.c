@@ -1100,15 +1100,10 @@ static void get_size(frontend *fe, int *px, int *py)
 	gdk_window_resize(GTK_WIDGET(win)->window, x, y)
 #endif
 
-static void menu_preset_event(GtkMenuItem *menuitem, gpointer data)
+static void resize_fe(frontend *fe)
 {
-    frontend *fe = (frontend *)data;
-    game_params *params =
-        (game_params *)gtk_object_get_data(GTK_OBJECT(menuitem), "user-data");
     int x, y;
 
-    midend_set_params(fe->me, params);
-    midend_new_game(fe->me);
     get_size(fe, &x, &y);
     fe->w = x;
     fe->h = y;
@@ -1118,6 +1113,17 @@ static void menu_preset_event(GtkMenuItem *menuitem, gpointer data)
         gtk_widget_size_request(GTK_WIDGET(fe->window), &req);
         gtk_window_resize(GTK_WINDOW(fe->window), req.width, req.height);
     }
+}
+
+static void menu_preset_event(GtkMenuItem *menuitem, gpointer data)
+{
+    frontend *fe = (frontend *)data;
+    game_params *params =
+        (game_params *)gtk_object_get_data(GTK_OBJECT(menuitem), "user-data");
+
+    midend_set_params(fe->me, params);
+    midend_new_game(fe->me);
+    resize_fe(fe);
 }
 
 GdkAtom compound_text_atom, utf8_string_atom;
@@ -1325,7 +1331,6 @@ static void menu_load_event(GtkMenuItem *menuitem, gpointer data)
 {
     frontend *fe = (frontend *)data;
     char *name, *err;
-    int x, y;
 
     name = file_selector(fe, "Enter name of saved game file to load", FALSE);
 
@@ -1347,16 +1352,7 @@ static void menu_load_event(GtkMenuItem *menuitem, gpointer data)
             return;
         }
 
-        get_size(fe, &x, &y);
-        fe->w = x;
-        fe->h = y;
-        gtk_drawing_area_size(GTK_DRAWING_AREA(fe->area), x, y);
-        {
-            GtkRequisition req;
-            gtk_widget_size_request(GTK_WIDGET(fe->window), &req);
-            gtk_window_resize(GTK_WINDOW(fe->window), req.width, req.height);
-        }
-
+        resize_fe(fe);
     }
 }
 
@@ -1383,21 +1379,12 @@ static void menu_config_event(GtkMenuItem *menuitem, gpointer data)
     frontend *fe = (frontend *)data;
     int which = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(menuitem),
 						    "user-data"));
-    int x, y;
 
     if (!get_config(fe, which))
 	return;
 
     midend_new_game(fe->me);
-    get_size(fe, &x, &y);
-    fe->w = x;
-    fe->h = y;
-    gtk_drawing_area_size(GTK_DRAWING_AREA(fe->area), x, y);
-    {
-        GtkRequisition req;
-        gtk_widget_size_request(GTK_WIDGET(fe->window), &req);
-        gtk_window_resize(GTK_WINDOW(fe->window), req.width, req.height);
-    }
+    resize_fe(fe);
 }
 
 static void menu_about_event(GtkMenuItem *menuitem, gpointer data)
