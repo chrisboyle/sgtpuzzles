@@ -139,6 +139,7 @@ void dputs(char *buf)
     }
     fputs(buf, debug_fp);
     fflush(debug_fp);
+    OutputDebugString(buf);
 }
 
 void debug_printf(char *fmt, ...)
@@ -155,7 +156,7 @@ void debug_printf(char *fmt, ...)
 
 #ifndef _WIN32_WCE
 #define WINFLAGS (WS_OVERLAPPEDWINDOW &~ \
-		      (WS_THICKFRAME | WS_MAXIMIZEBOX | WS_OVERLAPPED))
+		      (WS_MAXIMIZEBOX | WS_OVERLAPPED))
 #else
 #define WINFLAGS (WS_CAPTION | WS_SYSMENU)
 #endif
@@ -216,6 +217,7 @@ struct frontend {
     int fontstart;
     int linewidth;
     drawing *dr;
+    int xmin, ymin;
 };
 
 void fatal(char *fmt, ...)
@@ -1263,11 +1265,9 @@ static void cleanup_help(void)
      * call HH_UNINITIALIZE.) */
 }
 
-static void check_window_size(frontend *fe, int *px, int *py)
+static int get_statusbar_height(frontend *fe)
 {
-    RECT r;
-    int x, y, sy;
-
+    int sy;
     if (fe->statusbar) {
 	RECT sr;
 	GetWindowRect(fe->statusbar, &sr);
@@ -1275,40 +1275,101 @@ static void check_window_size(frontend *fe, int *px, int *py)
     } else {
 	sy = 0;
     }
+    return sy;
+}
+
+static void adjust_statusbar(frontend *fe, RECT *r)
+{
+    int sy;
+
+    if (!fe->statusbar) return;
+
+    sy = get_statusbar_height(fe);
+#ifndef _WIN32_WCE
+    SetWindowPos(fe->statusbar, NULL, 0, r->bottom-r->top-sy, r->right-r->left,
+                 sy, SWP_NOZORDER);
+#endif
+}
+
+static void get_menu_size(HWND wh, RECT *r)
+{
+    HMENU bar = GetMenu(wh);
+    RECT rect;
+    int i;
+
+    SetRect(r, 0, 0, 0, 0);
+    for (i = 0; i < GetMenuItemCount(bar); i++) {
+        GetMenuItemRect(wh, bar, i, &rect);
+        UnionRect(r, r, &rect);
+    }
+}
+
+/*
+ * Given a proposed new puzzle size (cx,cy), work out the actual
+ * puzzle size that would be (px,py) and the window size including
+ * furniture (wx,wy).
+ */
+
+static int check_window_resize(frontend *fe, int cx, int cy,
+                               int *px, int *py,
+                               int *wx, int *wy, int expand)
+{
+    RECT r;
+    int x, y, sy = get_statusbar_height(fe), changed = 0;
+
+    /* disallow making window thinner than menu bar */
+    x = max(cx, fe->xmin);
+    y = max(cy - sy, fe->ymin);
 
     /*
      * See if we actually got the window size we wanted, and adjust
      * the puzzle size if not.
      */
-    GetClientRect(fe->hwnd, &r);
-    x = r.right - r.left;
-    y = r.bottom - r.top - sy;
-    midend_size(fe->me, &x, &y, FALSE);
-    if (x != r.right - r.left || y != r.bottom - r.top) {
-	/*
-	 * Resize the window, now we know what size we _really_
-	 * want it to be.
-	 */
-	r.left = r.top = 0;
-	r.right = x;
-	r.bottom = y + sy;
-	AdjustWindowRectEx(&r, WINFLAGS, TRUE, 0);
-#ifndef _WIN32_WCE
-	SetWindowPos(fe->hwnd, NULL, 0, 0, r.right - r.left, r.bottom - r.top,
-		     SWP_NOMOVE | SWP_NOZORDER);
-#endif
-    }
-
-    if (fe->statusbar) {
-	GetClientRect(fe->hwnd, &r);
-#ifndef _WIN32_WCE
-	SetWindowPos(fe->statusbar, NULL, 0, r.bottom-r.top-sy, r.right-r.left,
-		     sy, SWP_NOZORDER);
-#endif
+    midend_size(fe->me, &x, &y, expand);
+    if (x != cx || y != cy) {
+        /*
+         * Resize the window, now we know what size we _really_
+         * want it to be.
+         */
+        r.left = r.top = 0;
+        r.right = x;
+        r.bottom = y + sy;
+        AdjustWindowRectEx(&r, WINFLAGS, TRUE, 0);
+        *wx = r.right - r.left;
+        *wy = r.bottom - r.top;
+        changed = 1;
     }
 
     *px = x;
     *py = y;
+
+    return changed;
+}
+
+/*
+ * Given the current window size, make sure it's sane for the
+ * current puzzle and resize if necessary.
+ */
+
+static void check_window_size(frontend *fe, int *px, int *py)
+{
+    RECT r;
+    int wx, wy, cx, cy;
+
+    GetClientRect(fe->hwnd, &r);
+    cx = r.right - r.left;
+    cy = r.bottom - r.top;
+
+    if (check_window_resize(fe, cx, cy, px, py, &wx, &wy, FALSE)) {
+#ifdef _WIN32_WCE
+        SetWindowPos(fe->hwnd, NULL, 0, 0, wx, wy,
+		     SWP_NOMOVE | SWP_NOZORDER);
+#endif
+        ;
+    }
+
+    GetClientRect(fe->hwnd, &r);
+    adjust_statusbar(fe, &r);
 }
 
 static void get_max_puzzle_size(frontend *fe, int *x, int *y)
@@ -1470,7 +1531,7 @@ static frontend *new_window(HINSTANCE inst, char *game_id, char **error)
 #else
     fe->hwnd = CreateWindowEx(0, thegame.name, thegame.name,
 			      WS_OVERLAPPEDWINDOW &~
-			      (WS_THICKFRAME | WS_MAXIMIZEBOX),
+			      (WS_MAXIMIZEBOX),
 			      CW_USEDEFAULT, CW_USEDEFAULT,
 			      r.right - r.left, r.bottom - r.top,
 			      NULL, NULL, inst, NULL);
@@ -1509,17 +1570,19 @@ static frontend *new_window(HINSTANCE inst, char *game_id, char **error)
 #ifndef _WIN32_WCE
 	HMENU bar = CreateMenu();
 	HMENU menu = CreateMenu();
+        RECT menusize;
 
-	AppendMenu(bar, MF_ENABLED|MF_POPUP, (UINT)menu, "Game");
+	AppendMenu(bar, MF_ENABLED|MF_POPUP, (UINT)menu, "&Game");
 #else
 	HMENU menu = SHGetSubMenu(SHFindMenuBar(fe->hwnd), ID_GAME);
 	DeleteMenu(menu, 0, MF_BYPOSITION);
 #endif
-	AppendMenu(menu, MF_ENABLED, IDM_NEW, TEXT("New"));
-	AppendMenu(menu, MF_ENABLED, IDM_RESTART, TEXT("Restart"));
+	AppendMenu(menu, MF_ENABLED, IDM_NEW, TEXT("&New"));
+	AppendMenu(menu, MF_ENABLED, IDM_RESTART, TEXT("&Restart"));
 #ifndef _WIN32_WCE
-	AppendMenu(menu, MF_ENABLED, IDM_DESC, TEXT("Specific..."));
-	AppendMenu(menu, MF_ENABLED, IDM_SEED, TEXT("Random Seed..."));
+        /* ...here I run out of sensible accelerator characters. */
+	AppendMenu(menu, MF_ENABLED, IDM_DESC, TEXT("Speci&fic..."));
+	AppendMenu(menu, MF_ENABLED, IDM_SEED, TEXT("Rando&m Seed..."));
 #endif
 
 	if ((fe->npresets = midend_num_presets(fe->me)) > 0 ||
@@ -1528,7 +1591,7 @@ static frontend *new_window(HINSTANCE inst, char *game_id, char **error)
 #ifndef _WIN32_WCE
 	    HMENU sub = CreateMenu();
 
-	    AppendMenu(bar, MF_ENABLED|MF_POPUP, (UINT)sub, "Type");
+	    AppendMenu(bar, MF_ENABLED|MF_POPUP, (UINT)sub, "&Type");
 #else
 	    HMENU sub = SHGetSubMenu(SHFindMenuBar(fe->hwnd), ID_TYPE);
 	    DeleteMenu(sub, 0, MF_BYPOSITION);
@@ -1556,17 +1619,17 @@ static frontend *new_window(HINSTANCE inst, char *game_id, char **error)
 #endif
 	    }
 	    if (thegame.can_configure) {
-		AppendMenu(sub, MF_ENABLED, IDM_CONFIG, TEXT("Custom..."));
+		AppendMenu(sub, MF_ENABLED, IDM_CONFIG, TEXT("&Custom..."));
 	    }
 	}
 
 	AppendMenu(menu, MF_SEPARATOR, 0, 0);
 #ifndef _WIN32_WCE
-	AppendMenu(menu, MF_ENABLED, IDM_LOAD, TEXT("Load..."));
-	AppendMenu(menu, MF_ENABLED, IDM_SAVE, TEXT("Save..."));
+	AppendMenu(menu, MF_ENABLED, IDM_LOAD, TEXT("&Load..."));
+	AppendMenu(menu, MF_ENABLED, IDM_SAVE, TEXT("&Save..."));
 	AppendMenu(menu, MF_SEPARATOR, 0, 0);
 	if (thegame.can_print) {
-	    AppendMenu(menu, MF_ENABLED, IDM_PRINT, TEXT("Print..."));
+	    AppendMenu(menu, MF_ENABLED, IDM_PRINT, TEXT("&Print..."));
 	    AppendMenu(menu, MF_SEPARATOR, 0, 0);
 	}
 #endif
@@ -1575,34 +1638,36 @@ static frontend *new_window(HINSTANCE inst, char *game_id, char **error)
 #ifndef _WIN32_WCE
 	if (thegame.can_format_as_text) {
 	    AppendMenu(menu, MF_SEPARATOR, 0, 0);
-	    AppendMenu(menu, MF_ENABLED, IDM_COPY, TEXT("Copy"));
+	    AppendMenu(menu, MF_ENABLED, IDM_COPY, TEXT("&Copy"));
 	}
 #endif
 	if (thegame.can_solve) {
 	    AppendMenu(menu, MF_SEPARATOR, 0, 0);
-	    AppendMenu(menu, MF_ENABLED, IDM_SOLVE, TEXT("Solve"));
+	    AppendMenu(menu, MF_ENABLED, IDM_SOLVE, TEXT("Sol&ve"));
 	}
 	AppendMenu(menu, MF_SEPARATOR, 0, 0);
 #ifndef _WIN32_WCE
-	AppendMenu(menu, MF_ENABLED, IDM_QUIT, TEXT("Exit"));
+	AppendMenu(menu, MF_ENABLED, IDM_QUIT, TEXT("E&xit"));
 	menu = CreateMenu();
-	AppendMenu(bar, MF_ENABLED|MF_POPUP, (UINT)menu, TEXT("Help"));
+	AppendMenu(bar, MF_ENABLED|MF_POPUP, (UINT)menu, TEXT("&Help"));
 #endif
-	AppendMenu(menu, MF_ENABLED, IDM_ABOUT, TEXT("About"));
+	AppendMenu(menu, MF_ENABLED, IDM_ABOUT, TEXT("&About"));
 #ifndef _WIN32_WCE
         if (help_type != NONE) {
 	    AppendMenu(menu, MF_SEPARATOR, 0, 0);
-            AppendMenu(menu, MF_ENABLED, IDM_HELPC, TEXT("Contents"));
+            AppendMenu(menu, MF_ENABLED, IDM_HELPC, TEXT("&Contents"));
             if (help_topic) {
                 char *item;
                 assert(thegame.name);
                 item = snewn(9+strlen(thegame.name), char); /*ick*/
-                sprintf(item, "Help on %s", thegame.name);
+                sprintf(item, "&Help on %s", thegame.name);
                 AppendMenu(menu, MF_ENABLED, IDM_GAMEHELP, item);
                 sfree(item);
             }
         }
 	SetMenu(fe->hwnd, bar);
+        get_menu_size(fe->hwnd, &menusize);
+        fe->xmin = (menusize.right - menusize.left) + 25;
 #endif
     }
 
@@ -2466,14 +2531,26 @@ static void calculate_bitmap_position(frontend *fe, int x, int y)
 }
 #endif
 
+static void new_bitmap(frontend *fe, int x, int y)
+{
+    HDC hdc;
+
+    if (fe->bitmap) DeleteObject(fe->bitmap);
+
+    hdc = GetDC(fe->hwnd);
+    fe->bitmap = CreateCompatibleBitmap(hdc, x, y);
+    calculate_bitmap_position(fe, x, y);
+    ReleaseDC(fe->hwnd, hdc);
+}
+
 static void new_game_size(frontend *fe)
 {
     RECT r, sr;
-    HDC hdc;
     int x, y;
 
     get_max_puzzle_size(fe, &x, &y);
     midend_size(fe->me, &x, &y, FALSE);
+    fe->ymin = (fe->xmin * y) / x;
 
     r.left = r.top = 0;
     r.right = x;
@@ -2500,17 +2577,63 @@ static void new_game_size(frontend *fe)
 		     sr.bottom - sr.top, SWP_NOZORDER);
 #endif
 
-    if (fe->bitmap) DeleteObject(fe->bitmap);
-
-    hdc = GetDC(fe->hwnd);
-    fe->bitmap = CreateCompatibleBitmap(hdc, x, y);
-    calculate_bitmap_position(fe, x, y);
-    ReleaseDC(fe->hwnd, hdc);
+    new_bitmap(fe, x, y);
 
 #ifdef _WIN32_WCE
     InvalidateRect(fe->hwnd, NULL, TRUE);
 #endif
     midend_redraw(fe->me);
+}
+
+/*
+ * Given a proposed new window rect, work out the resulting
+ * difference in client size (from current), and use to try
+ * and resize the puzzle, returning (wx,wy) as the actual
+ * new window size.
+ */
+
+static void adjust_game_size(frontend *fe, RECT *proposed, int isedge,
+                             int *wx_r, int *wy_r)
+{
+    RECT cr, wr;
+    int nx, ny, xdiff, ydiff, wx, wy;
+
+    /* Work out the current window sizing, and thus the
+     * difference in size we're asking for. */
+    GetClientRect(fe->hwnd, &cr);
+    wr = cr;
+    AdjustWindowRectEx(&wr, WINFLAGS, TRUE, 0);
+
+    xdiff = (proposed->right - proposed->left) - (wr.right - wr.left);
+    ydiff = (proposed->bottom - proposed->top) - (wr.bottom - wr.top);
+
+    if (isedge) {
+      /* These next four lines work around the fact that midend_size
+       * is happy to shrink _but not grow_ if you change one dimension
+       * but not the other. */
+      if (xdiff > 0 && ydiff == 0)
+        ydiff = (xdiff * (wr.right - wr.left)) / (wr.bottom - wr.top);
+      if (xdiff == 0 && ydiff > 0)
+        xdiff = (ydiff * (wr.bottom - wr.top)) / (wr.right - wr.left);
+    }
+
+    if (check_window_resize(fe,
+                            (cr.right - cr.left) + xdiff,
+                            (cr.bottom - cr.top) + ydiff,
+                            &nx, &ny, &wx, &wy, TRUE)) {
+        new_bitmap(fe, nx, ny);
+        midend_force_redraw(fe->me);
+    } else {
+        /* reset size to current window size */
+        wx = wr.right - wr.left;
+        wy = wr.bottom - wr.top;
+    }
+    /* Re-fetch rectangle; size limits mean we might not have
+     * taken it quite to the mouse drag positions. */
+    GetClientRect(fe->hwnd, &cr);
+    adjust_statusbar(fe, &cr);
+
+    *wx_r = wx; *wy_r = wy;
 }
 
 static void new_game_type(frontend *fe)
@@ -2948,6 +3071,38 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
 	    fe->timer_last_tickcount = now;
 	}
 	return 0;
+#ifndef _WIN32_WCE
+      case WM_SIZING:
+        {
+            RECT *sr = (RECT *)lParam;
+            int wx, wy, isedge = 0;
+
+            if (wParam == WMSZ_TOP ||
+                wParam == WMSZ_RIGHT ||
+                wParam == WMSZ_BOTTOM ||
+                wParam == WMSZ_LEFT) isedge = 1;
+            adjust_game_size(fe, sr, isedge, &wx, &wy);
+
+            /* Given the window size the puzzles constrain
+             * us to, work out which edge we should be moving. */
+            if (wParam == WMSZ_TOP ||
+                wParam == WMSZ_TOPLEFT ||
+                wParam == WMSZ_TOPRIGHT) {
+                sr->top = sr->bottom - wy;
+            } else {
+                sr->bottom = sr->top + wy;
+            }
+            if (wParam == WMSZ_LEFT ||
+                wParam == WMSZ_TOPLEFT ||
+                wParam == WMSZ_BOTTOMLEFT) {
+                sr->left = sr->right - wx;
+            } else {
+                sr->right = sr->left + wx;
+            }
+            return TRUE;
+        }
+        break;
+#endif
     }
 
     return DefWindowProc(hwnd, message, wParam, lParam);
