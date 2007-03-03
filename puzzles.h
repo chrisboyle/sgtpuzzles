@@ -219,7 +219,7 @@ midend *midend_new(frontend *fe, const game *ourgame,
 void midend_free(midend *me);
 void midend_set_params(midend *me, game_params *params);
 game_params *midend_get_params(midend *me);
-void midend_size(midend *me, int *x, int *y, int expand);
+void midend_size(midend *me, int *x, int *y, int user_size);
 void midend_new_game(midend *me);
 void midend_restart_game(midend *me);
 void midend_stop_anim(midend *me);

@@ -2483,7 +2483,7 @@ when finished with by passing it to the game's own
 
 \H{midend-size} \cw{midend_size()}
 
-\c void midend_size(midend *me, int *x, int *y, int expand);
+\c void midend_size(midend *me, int *x, int *y, int user_size);
 
 Tells the mid-end to figure out its window size.
 
@@ -2498,18 +2498,27 @@ course up to the front end to adjust this for any additional window
 furniture such as menu bars and window borders, if necessary. The
 status bar is also not included in this size.)
 
-If \c{expand} is set to \cw{FALSE}, then the game's tile size will
-never go over its preferred one. This is the recommended approach
-when opening a new window at default size: the game will use its
-preferred size unless it has to use a smaller one to fit on the
-screen.
+Use \c{user_size} to indicate whether \c{*x} and \c{*y} are a
+requested size, or just a maximum size.
 
-If \c{expand} is set to \cw{TRUE}, the mid-end will pick a tile size
-which approximates the input size \e{as closely as possible}, and
-will go over the game's preferred tile size if necessary to achieve
-this. Use this option if you want your front end to support dynamic
-resizing of the puzzle window with automatic scaling of the puzzle
-to fit.
+If \c{user_size} is set to \cw{TRUE}, the mid-end will treat the
+input size as a request, and will pick a tile size which
+approximates it \e{as closely as possible}, going over the game's
+preferred tile size if necessary to achieve this. The mid-end will
+also use the resulting tile size as its preferred one until further
+notice, on the assumption that this size was explicitly requested
+by the user. Use this option if you want your front end to support
+dynamic resizing of the puzzle window with automatic scaling of the
+puzzle to fit.
+
+If \c{user_size} is set to \cw{FALSE}, then the game's tile size
+will never go over its preferred one, although it may go under in
+order to fit within the maximum bounds specified by \c{*x} and
+\c{*y}. This is the recommended approach when opening a new window
+at default size: the game will use its preferred size unless it has
+to use a smaller one to fit on the screen. If the tile size is
+shrunk for this reason, the change will not persist; if a smaller
+grid is subsequently chosen, the tile size will recover.
 
 The mid-end will try as hard as it can to return a size which is
 less than or equal to the input size, in both dimensions. In extreme
@@ -2529,7 +2538,7 @@ creatively.
 If your platform has no limit on window size (or if you're planning
 to use scroll bars for large puzzles), you can pass dimensions of
 \cw{INT_MAX} as input to this function. You should probably not do
-that \e{and} set the \c{expand} flag, though!
+that \e{and} set the \c{user_size} flag, though!
 
 \H{midend-new-game} \cw{midend_new_game()}
 

@@ -212,7 +212,7 @@ static void midend_size_new_drawstate(midend *me)
     }
 }
 
-void midend_size(midend *me, int *x, int *y, int expand)
+void midend_size(midend *me, int *x, int *y, int user_size)
 {
     int min, max;
     int rx, ry;
@@ -230,11 +230,14 @@ void midend_size(midend *me, int *x, int *y, int expand)
 
     /*
      * Find the tile size that best fits within the given space. If
-     * `expand' is TRUE, we must actually find the _largest_ such
-     * tile size; otherwise, we bound above at the game's preferred
-     * tile size.
+     * `user_size' is TRUE, we must actually find the _largest_ such
+     * tile size, in order to get as close to the user's explicit
+     * request as possible; otherwise, we bound above at the game's
+     * preferred tile size, so that the game gets what it wants
+     * provided that this doesn't break the constraint from the
+     * front-end (which is likely to be a screen size or similar).
      */
-    if (expand) {
+    if (user_size) {
 	max = 1;
 	do {
 	    max *= 2;
@@ -264,7 +267,8 @@ void midend_size(midend *me, int *x, int *y, int expand)
      */
 
     me->tilesize = min;
-    if (expand)
+    if (user_size)
+        /* If the user requested a change in size, make it permanent. */
         me->preferred_tilesize = me->tilesize;
     midend_size_new_drawstate(me);
     *x = me->winwidth;

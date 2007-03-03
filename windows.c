@@ -1312,7 +1312,7 @@ static void get_menu_size(HWND wh, RECT *r)
 
 static int check_window_resize(frontend *fe, int cx, int cy,
                                int *px, int *py,
-                               int *wx, int *wy, int expand)
+                               int *wx, int *wy, int resize)
 {
     RECT r;
     int x, y, sy = get_statusbar_height(fe), changed = 0;
@@ -1325,7 +1325,7 @@ static int check_window_resize(frontend *fe, int cx, int cy,
      * See if we actually got the window size we wanted, and adjust
      * the puzzle size if not.
      */
-    midend_size(fe->me, &x, &y, expand);
+    midend_size(fe->me, &x, &y, resize);
     if (x != cx || y != cy) {
         /*
          * Resize the window, now we know what size we _really_
