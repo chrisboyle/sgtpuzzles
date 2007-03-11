@@ -1629,7 +1629,7 @@ static int solver(int c, int r, digit *grid, int maxdiff)
 	    if (solver_show_working) {
 		char *sep = "";
 		printf("%*srecursing on (%d,%d) [",
-		       solver_recurse_depth*4, "", x, y);
+		       solver_recurse_depth*4, "", x + 1, y + 1);
 		for (i = 0; i < j; i++) {
 		    printf("%s%d", sep, list[i]);
 		    sep = " or ";
@@ -1651,7 +1651,7 @@ static int solver(int c, int r, digit *grid, int maxdiff)
 #ifdef STANDALONE_SOLVER
 		if (solver_show_working)
 		    printf("%*sguessing %d at (%d,%d)\n",
-			   solver_recurse_depth*4, "", list[i], x, y);
+			   solver_recurse_depth*4, "", list[i], x + 1, y + 1);
 		solver_recurse_depth++;
 #endif
 
@@ -1661,7 +1661,7 @@ static int solver(int c, int r, digit *grid, int maxdiff)
 		solver_recurse_depth--;
 		if (solver_show_working) {
 		    printf("%*sretracting %d at (%d,%d)\n",
-			   solver_recurse_depth*4, "", list[i], x, y);
+			   solver_recurse_depth*4, "", list[i], x + 1, y + 1);
 		}
 #endif
 
