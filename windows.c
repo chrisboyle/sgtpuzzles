@@ -1659,7 +1659,7 @@ static frontend *new_window(HINSTANCE inst, char *game_id, char **error)
             if (help_topic) {
                 char *item;
                 assert(thegame.name);
-                item = snewn(9+strlen(thegame.name), char); /*ick*/
+                item = snewn(10+strlen(thegame.name), char); /*ick*/
                 sprintf(item, "&Help on %s", thegame.name);
                 AppendMenu(menu, MF_ENABLED, IDM_GAMEHELP, item);
                 sfree(item);
