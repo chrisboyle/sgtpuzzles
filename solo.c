@@ -207,7 +207,7 @@ static void decode_params(game_params *ret, char const *string)
         if (*string == 'r' || *string == 'm' || *string == 'a') {
             int sn, sc, sd;
             sc = *string++;
-            if (*string == 'd') {
+            if (sc == 'm' && *string == 'd') {
                 sd = TRUE;
                 string++;
             } else {
