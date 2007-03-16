@@ -1266,7 +1266,8 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
 
     button &= ~MOD_MASK;
 
-    if (x >= 0 && x < ds->order && y >= 0 && y < ds->order) {
+    if (x >= 0 && x < ds->order && ((ox - COORD(x)) <= TILE_SIZE) &&
+        y >= 0 && y < ds->order && ((oy - COORD(y)) <= TILE_SIZE)) {
         if (button == LEFT_BUTTON) {
             /* normal highlighting for non-immutable squares */
             if (GRID(state, flags, x, y) & F_IMMUTABLE)
