@@ -2622,10 +2622,16 @@ static int check_complete(game_state *state, int *dsf, int *colours)
      */
     for (i = 0; i < w*h; i++)
         if (sqdata[i].valid) {
-            sqdata[i].cx = sqdata[i].minx + sqdata[i].maxx + 1;
-            sqdata[i].cy = sqdata[i].miny + sqdata[i].maxy + 1;
+            int cx, cy;
+            cx = sqdata[i].cx = sqdata[i].minx + sqdata[i].maxx + 1;
+            cy = sqdata[i].cy = sqdata[i].miny + sqdata[i].maxy + 1;
             if (!(SPACE(state, sqdata[i].cx, sqdata[i].cy).flags & F_DOT))
                 sqdata[i].valid = FALSE;   /* no dot at centre of symmetry */
+            if (dsf_canonify(dsf, (cy-1)/2*w+(cx-1)/2) != i ||
+                dsf_canonify(dsf, (cy)/2*w+(cx-1)/2) != i ||
+                dsf_canonify(dsf, (cy-1)/2*w+(cx)/2) != i ||
+                dsf_canonify(dsf, (cy)/2*w+(cx)/2) != i)
+                sqdata[i].valid = FALSE;   /* dot at cx,cy isn't ours */
             if (SPACE(state, sqdata[i].cx, sqdata[i].cy).flags & F_DOT_BLACK)
                 sqdata[i].colour = 2;
             else
