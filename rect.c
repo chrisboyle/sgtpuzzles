@@ -1692,7 +1692,7 @@ static char *new_game_desc(game_params *params, random_state *rs,
             /*
              * If we've succeeded, then terminate the loop.
              */
-            if (ret)
+            if (ret == 1)
                 break;
         }
 
