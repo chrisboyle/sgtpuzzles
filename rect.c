@@ -329,6 +329,11 @@ static void remove_number_placement(int w, int h, struct numberdata *number,
     number->npoints--;
 }
 
+/*
+ * Returns 0 for failure to solve due to inconsistency; 1 for
+ * success; 2 for failure to complete a solution due to either
+ * ambiguity or it being too difficult.
+ */
 static int rect_solver(int w, int h, int nrects, struct numberdata *numbers,
                        unsigned char *hedge, unsigned char *vedge,
 		       random_state *rs)
@@ -434,6 +439,14 @@ static int rect_solver(int w, int h, int nrects, struct numberdata *numbers,
      * Indexing of this array is by the formula
      * 
      *   overlaps[(rectindex * h + y) * w + x]
+     * 
+     * A positive or zero value indicates what it sounds as if it
+     * should; -1 indicates that this square _cannot_ be part of
+     * this rectangle; and -2 indicates that it _definitely_ is
+     * (which is distinct from 1, because one might very well know
+     * that _if_ square S is part of rectangle R then it must be
+     * because R is placed in a certain position without knowing
+     * that it definitely _is_).
      */
     overlaps = snewn(nrects * w * h, int);
     memset(overlaps, 0, nrects * w * h * sizeof(int));
@@ -526,7 +539,10 @@ static int rect_solver(int w, int h, int nrects, struct numberdata *numbers,
                 if (overlaps[(i * h + y) * w + x] >= -1) {
                     int j;
 
-                    assert(overlaps[(i * h + y) * w + x] > 0);
+                    if (overlaps[(i * h + y) * w + x] <= 0) {
+                        ret = 0;       /* inconsistency */
+                        goto cleanup;
+                    }
 #ifdef SOLVER_DIAGNOSTICS
                     printf("marking %d,%d as known for rect %d"
                            " (sole remaining number position)\n", x, y, i);
@@ -568,7 +584,10 @@ static int rect_solver(int w, int h, int nrects, struct numberdata *numbers,
             for (yy = miny; yy < maxy; yy++)
                 for (xx = minx; xx < maxx; xx++)
                     if (overlaps[(i * h + yy) * w + xx] >= -1) {
-                        assert(overlaps[(i * h + yy) * w + xx] > 0);
+                        if (overlaps[(i * h + yy) * w + xx] <= 0) {
+                            ret = 0;   /* inconsistency */
+                            goto cleanup;
+                        }
 #ifdef SOLVER_DIAGNOSTICS
                         printf("marking %d,%d as known for rect %d"
                                " (intersection of all placements)\n",
@@ -847,15 +866,17 @@ static int rect_solver(int w, int h, int nrects, struct numberdata *numbers,
         }
     }
 
-    ret = TRUE;
+    cleanup:
+    ret = 1;
     for (i = 0; i < nrects; i++) {
 #ifdef SOLVER_DIAGNOSTICS
         printf("rect %d has %d possible placements\n",
                i, rectpositions[i].n);
 #endif
-        assert(rectpositions[i].n > 0);
-        if (rectpositions[i].n > 1) {
-            ret = FALSE;
+        if (rectpositions[i].n <= 0) {
+            ret = 0;                   /* inconsistency */
+        } else if (rectpositions[i].n > 1) {
+            ret = 2;                   /* remaining uncertainty */
         } else if (hedge && vedge) {
             /*
              * Place the rectangle in its only possible position.
@@ -1639,9 +1660,9 @@ static char *new_game_desc(game_params *params, random_state *rs,
 		ret = rect_solver(params->w, params->h, nnumbers, nd,
 				  NULL, NULL, rs);
 	    else
-		ret = TRUE;	       /* allow any number placement at all */
+		ret = 1;	       /* allow any number placement at all */
 
-            if (ret) {
+            if (ret == 1) {
                 /*
                  * Now place the numbers according to the solver's
                  * recommendations.
