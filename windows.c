@@ -2222,7 +2222,7 @@ static void about(frontend *fe)
 
     y += height/2;		       /* extra space before OK */
     mkctrl(fe, width*2, maxwid+width*2, y, y+height*7/4, "BUTTON",
-	   BS_PUSHBUTTON | BS_NOTIFY | WS_TABSTOP | BS_DEFPUSHBUTTON, 0,
+	   BS_PUSHBUTTON | WS_TABSTOP | BS_DEFPUSHBUTTON, 0,
 	   "OK", IDOK);
 
     SendMessage(fe->cfgbox, WM_INITDIALOG, 0, 0);
@@ -2465,10 +2465,10 @@ static int get_config(frontend *fe, int which)
 
     y += height/2;		       /* extra space before OK and Cancel */
     mkctrl(fe, col1l, (col1l+col2r)/2-width, y, y+height*7/4, "BUTTON",
-	   BS_PUSHBUTTON | BS_NOTIFY | WS_TABSTOP | BS_DEFPUSHBUTTON, 0,
+	   BS_PUSHBUTTON | WS_TABSTOP | BS_DEFPUSHBUTTON, 0,
 	   "OK", IDOK);
     mkctrl(fe, (col1l+col2r)/2+width, col2r, y, y+height*7/4, "BUTTON",
-	   BS_PUSHBUTTON | BS_NOTIFY | WS_TABSTOP, 0, "Cancel", IDCANCEL);
+	   BS_PUSHBUTTON | WS_TABSTOP, 0, "Cancel", IDCANCEL);
 
     SendMessage(fe->cfgbox, WM_INITDIALOG, 0, 0);
 
