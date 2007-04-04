@@ -1403,13 +1403,55 @@ static char *new_game_desc(game_params *params, random_state *rs,
 
     /*
      * Now shuffle the grid.
+     * 
+     * In order to avoid accidentally generating an already-solved
+     * grid, we will reshuffle as necessary to ensure that at least
+     * one edge has a mismatched connection.
+     *
+     * This can always be done, since validate_params() enforces a
+     * grid area of at least 2 and our generator never creates
+     * either type of rotationally invariant tile (cross and
+     * blank). Hence there must be at least one edge separating
+     * distinct tiles, and it must be possible to find orientations
+     * of those tiles such that one tile is trying to connect
+     * through that edge and the other is not.
+     * 
+     * (We could be more subtle, and allow the shuffle to generate
+     * a grid in which all tiles match up locally and the only
+     * criterion preventing the grid from being already solved is
+     * connectedness. However, that would take more effort, and
+     * it's easier to simply make sure every grid is _obviously_
+     * not solved.)
      */
-    for (y = 0; y < h; y++) {
-	for (x = 0; x < w; x++) {
-	    int orig = index(params, tiles, x, y);
-	    int rot = random_upto(rs, 4);
-	    index(params, tiles, x, y) = ROT(orig, rot);
-	}
+    while (1) {
+        int mismatches;
+
+        for (y = 0; y < h; y++) {
+            for (x = 0; x < w; x++) {
+                int orig = index(params, tiles, x, y);
+                int rot = random_upto(rs, 4);
+                index(params, tiles, x, y) = ROT(orig, rot);
+            }
+        }
+
+        mismatches = 0;
+        /*
+         * I can't even be bothered to check for mismatches across
+         * a wrapping edge, so I'm just going to enforce that there
+         * must be a mismatch across a non-wrapping edge, which is
+         * still always possible.
+         */
+        for (y = 0; y < h; y++) for (x = 0; x < w; x++) {
+            if (x+1 < w && ((ROT(index(params, tiles, x, y), 2) ^ 
+                             index(params, tiles, x+1, y)) & L))
+                mismatches++;
+            if (y+1 < h && ((ROT(index(params, tiles, x, y), 2) ^ 
+                             index(params, tiles, x, y+1)) & U))
+                mismatches++;
+        }
+
+        if (mismatches > 0)
+            break;
     }
 
     /*
