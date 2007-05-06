@@ -43,6 +43,41 @@ delegate windows
   return puzzles/Output/setup.exe
 enddelegate
 
+# Build the Pocket PC binaries and CAB.
+#
+# NOTE: This part of the build script requires the Windows delegate
+# server to have the cabwiz program on its PATH. This will
+# typically be at
+#
+#   C:\Program Files\Windows CE Tools\WCE420\POCKET PC 2003\Tools
+#
+# but it might not be if you've installed it somewhere else, or
+# have a different version.
+#
+# NOTE ALSO: This part of the build is commented out, for the
+# moment, because cabwiz does unhelpful things when run from within
+# a bob delegate process (or, more generally, when run from any
+# terminal-based remote login to a Windows machine, including
+# Cygwin opensshd and Windows Telnet). The symptom is that cabwiz
+# just beeps and sits there. Until I figure out how to build the
+# .cab from an automated process (and I'm willing to consider silly
+# approaches such as a third-party CAB generator), I don't think I
+# can sensibly enable this build.
+
+#in puzzles do perl wceinf.pl wingames.lst > puzzles.inf
+#delegate windows
+#  in puzzles do cmd /c 'wcearmv4 & nmake -f Makefile.wce clean'
+#  in puzzles do cmd /c 'wcearmv4 & nmake -f Makefile.wce VER=-DREVISION=$(revision)'
+#  # Nasty piece of sh here which saves the return code from cabwiz,
+#  # outputs its errors and/or warnings, and then propagates the
+#  # return code back to bob. If only cabwiz could output to
+#  # standard error LIKE EVERY OTHER COMMAND-LINE UTILITY IN THE
+#  # WORLD, I wouldn't have to do this.
+#  in puzzles do cat puzzles.inf
+#  in puzzles do cmd /c 'wcearmv4 & bash -c cabwiz puzzles.inf /err cabwiz.err /cpu ARMV4'; a=$$?; cat cabwiz.err; exit $$a
+#  return puzzles/puzzles.armv4.cab
+#enddelegate
+
 # Build the help file and the HTML docs.
 in puzzles do make -f Makefile.doc clean # remove CHM-target HTML
 in puzzles do make -f Makefile.doc # and rebuild help file...
@@ -84,6 +119,9 @@ deliver puzzles/puzzles.hlp $@
 deliver puzzles/puzzles.cnt $@
 deliver puzzles/puzzles.zip $@
 deliver puzzles/Output/setup.exe puzzles-r$(revision)-installer.exe
+
+# deliver puzzles/puzzles.armv4.cab $@ # (not built at the moment)
+
 # This one isn't in the puzzles subdir, because makedist.sh left it
 # one level up.
 deliver puzzles*.tar.gz $@
