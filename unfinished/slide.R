@@ -6,6 +6,9 @@ slide    : [X] GTK COMMON SLIDE slide-icon|no-icon
 
 slide    : [G] WINDOWS COMMON SLIDE slide.res|noicon.res
 
+slidesolver :   [U] slide[STANDALONE_SOLVER] dsf tree234 STANDALONE
+slidesolver :   [C] slide[STANDALONE_SOLVER] dsf tree234 STANDALONE
+
 ALL += SLIDE
 
 !begin gtk

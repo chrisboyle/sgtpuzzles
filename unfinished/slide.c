@@ -400,13 +400,18 @@ static struct board *newboard(int w, int h, unsigned char *data)
 /*
  * The actual solver. Given a board, attempt to find the minimum
  * length of move sequence which moves MAINANCHOR to (tx,ty), or
- * -1 if no solution exists. Returns that minimum length, and
- * (FIXME) optionally also writes out the actual moves into an
- * as-yet-unprovided parameter.
+ * -1 if no solution exists. Returns that minimum length.
+ * 
+ * Also, if `moveout' is provided, writes out the moves in the
+ * form of a sequence of pairs of integers indicating the source
+ * and destination points of the anchor of the moved piece in each
+ * move. Exactly twice as many integers are written as the number
+ * returned from solve_board(), and `moveout' receives an int *
+ * which is a pointer to a dynamically allocated array.
  */
 static int solve_board(int w, int h, unsigned char *board,
 		       unsigned char *forcefield, int tx, int ty,
-		       int movelimit)
+		       int movelimit, int **moveout)
 {
     int wh = w*h;
     struct board *b, *b2, *b3;
@@ -571,10 +576,49 @@ static int solve_board(int w, int h, unsigned char *board,
 
     done:
 
-    if (b2)
+    if (b2) {
 	ret = b2->dist;
-    else
+	if (moveout) {
+	    /*
+	     * Now b2 represents the solved position. Backtrack to
+	     * output the solution.
+	     */
+	    *moveout = snewn(ret * 2, int);
+	    j = ret * 2;
+
+	    while (b2->prev) {
+		int from = -1, to = -1;
+
+		b = b2->prev;
+
+		/*
+		 * Scan b and b2 to find out which piece has
+		 * moved.
+		 */
+		for (i = 0; i < wh; i++) {
+		    if (ISANCHOR(b->data[i]) && !ISANCHOR(b2->data[i])) {
+			assert(from == -1);
+			from = i;
+		    } else if (!ISANCHOR(b->data[i]) && ISANCHOR(b2->data[i])){
+			assert(to == -1);
+			to = i;
+		    }
+		}
+
+		assert(from >= 0 && to >= 0);
+		assert(j >= 2);
+		(*moveout)[--j] = to;
+		(*moveout)[--j] = from;
+
+		b2 = b;
+	    }
+	    assert(j == 0);
+	}
+    } else {
 	ret = -1;		       /* no solution */
+	if (moveout)
+	    *moveout = NULL;
+    }
 
     freetree234(queue);
 
@@ -653,7 +697,7 @@ static void generate_board(int w, int h, int *rtx, int *rty, int *minmoves,
 		 * See if the board is already soluble.
 		 */
 		if ((moves = solve_board(w, h, board, forcefield,
-					 tx, ty, movelimit)) >= 0)
+					 tx, ty, movelimit, NULL)) >= 0)
 		    goto soluble;
 
 		/*
@@ -753,7 +797,7 @@ static void generate_board(int w, int h, int *rtx, int *rty, int *minmoves,
 		} while (p2 < wh && board[p2] != DIST(p2-i));
 	    }
 	}
-	j = solve_board(w, h, board, forcefield, tx, ty, movelimit);
+	j = solve_board(w, h, board, forcefield, tx, ty, movelimit, NULL);
 	if (j < 0) {
 	    /*
 	     * Didn't work. Revert the merge.
@@ -1979,3 +2023,89 @@ const struct game thegame = {
     FALSE, game_timing_state,
     0,				       /* flags */
 };
+
+#ifdef STANDALONE_SOLVER
+
+#include <stdarg.h>
+
+int main(int argc, char **argv)
+{
+    game_params *p;
+    game_state *s;
+    char *id = NULL, *desc, *err;
+    int count = FALSE;
+    int ret, really_verbose = FALSE;
+    int *moves;
+
+    while (--argc > 0) {
+        char *p = *++argv;
+        if (!strcmp(p, "-v")) {
+            really_verbose = TRUE;
+        } else if (!strcmp(p, "-c")) {
+            count = TRUE;
+        } else if (*p == '-') {
+            fprintf(stderr, "%s: unrecognised option `%s'\n", argv[0], p);
+            return 1;
+        } else {
+            id = p;
+        }
+    }
+
+    if (!id) {
+        fprintf(stderr, "usage: %s [-c | -v] <game_id>\n", argv[0]);
+        return 1;
+    }
+
+    desc = strchr(id, ':');
+    if (!desc) {
+        fprintf(stderr, "%s: game id expects a colon in it\n", argv[0]);
+        return 1;
+    }
+    *desc++ = '\0';
+
+    p = default_params();
+    decode_params(p, id);
+    err = validate_desc(p, desc);
+    if (err) {
+        fprintf(stderr, "%s: %s\n", argv[0], err);
+        return 1;
+    }
+    s = new_game(NULL, p, desc);
+
+    ret = solve_board(s->w, s->h, s->board, s->imm->forcefield,
+		      s->tx, s->ty, -1, &moves);
+    if (ret < 0) {
+	printf("No solution found\n");
+    } else {
+	int index = 0;
+	if (count) {
+	    printf("%d moves required\n", ret);
+	    return 0;
+	}
+	while (1) {
+	    int moveret;
+	    char *text = board_text_format(s->w, s->h, s->board,
+					   s->imm->forcefield);
+	    game_state *s2;
+
+	    printf("position %d:\n%s", index, text);
+
+	    if (index >= ret)
+		break;
+
+	    s2 = dup_game(s);
+	    moveret = move_piece(s->w, s->h, s->board,
+				 s2->board, s->imm->forcefield,
+				 moves[index*2], moves[index*2+1]);
+	    assert(moveret);
+
+	    free_game(s);
+	    s = s2;
+	    index++;
+	}
+    }
+
+    return 0;
+}
+
+#endif
