@@ -167,13 +167,11 @@ unsigned char *hex2bin(const char *in, int outlen)
     return ret;
 }
 
-void game_mkhighlight(frontend *fe, float *ret,
-                      int background, int highlight, int lowlight)
+void game_mkhighlight_specific(frontend *fe, float *ret,
+			       int background, int highlight, int lowlight)
 {
     float max;
     int i;
-
-    frontend_default_colour(fe, &ret[background * 3]);
 
     /*
      * Drop the background colour so that the highlight is
@@ -192,6 +190,13 @@ void game_mkhighlight(frontend *fe, float *ret,
         ret[highlight * 3 + i] = ret[background * 3 + i] * 1.2F;
         ret[lowlight * 3 + i] = ret[background * 3 + i] * 0.8F;
     }
+}
+
+void game_mkhighlight(frontend *fe, float *ret,
+                      int background, int highlight, int lowlight)
+{
+    frontend_default_colour(fe, &ret[background * 3]);
+    game_mkhighlight_specific(fe, ret, background, highlight, lowlight);
 }
 
 static void memswap(void *av, void *bv, int size)

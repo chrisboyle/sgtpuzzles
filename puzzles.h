@@ -280,6 +280,10 @@ unsigned char *hex2bin(const char *in, int outlen);
  * and auto-generates highlight and lowlight colours too. */
 void game_mkhighlight(frontend *fe, float *ret,
                       int background, int highlight, int lowlight);
+/* As above, but starts from a provided background colour rather
+ * than the frontend default. */
+void game_mkhighlight_specific(frontend *fe, float *ret,
+			       int background, int highlight, int lowlight);
 
 /* Randomly shuffles an array of items. */
 void shuffle(void *array, int nelts, int eltsize, random_state *rs);
