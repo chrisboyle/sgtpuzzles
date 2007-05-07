@@ -23,17 +23,8 @@
  * 	 up on compactness and just bite the bullet and have the
  * 	 target area right outside the main wall, but mostly I
  * 	 think it's OK.
- *     * but adjust the presets, because 8x6 is _slow_ to
- * 	 generate.
- *     * also, introduce a difficulty scheme, in the form of
- * 	 limiting the minimum move count. This is obviously
- * 	 sensible, because it also speeds up generation since the
- * 	 solver can bomb out once it hits that ceiling!
- * 	  + I was going to say I'd need to work out a minimum move
- * 	    count for each grid size, but actually I think not: if
- * 	    you ask for too few moves, it just has to remove still
- * 	    more singletons, until at move count 1 you end up with
- * 	    nothing in your way at all and it SERVES YOU RIGHT!
+ *     * the move limit tends to make the game _slower_ to
+ * 	 generate, which is odd. Perhaps investigate why.
  * 
  *  - Improve the graphics.
  *     * All the colours are a bit wishy-washy. _Some_ dark
@@ -140,6 +131,7 @@ enum {
 
 struct game_params {
     int w, h;
+    int maxmoves;
 };
 
 struct game_immutable_state {
@@ -162,17 +154,17 @@ static game_params *default_params(void)
 {
     game_params *ret = snew(game_params);
 
-    ret->w = 8;
+    ret->w = 7;
     ret->h = 6;
+    ret->maxmoves = 40;
 
     return ret;
 }
 
 static const struct game_params slide_presets[] = {
-    {6, 5},
-    {7, 5},
-    {7, 6},
-    {8, 6},
+    {7, 6, 25},
+    {7, 6, -1},
+    {8, 6, -1},
 };
 
 static int game_fetch_preset(int i, char **name, game_params **params)
@@ -187,6 +179,10 @@ static int game_fetch_preset(int i, char **name, game_params **params)
     *ret = slide_presets[i];
 
     sprintf(str, "%dx%d", ret->w, ret->h);
+    if (ret->maxmoves >= 0)
+	sprintf(str + strlen(str), ", max %d moves", ret->maxmoves);
+    else
+	sprintf(str + strlen(str), ", no move limit");
 
     *name = dupstr(str);
     *params = ret;
@@ -212,6 +208,15 @@ static void decode_params(game_params *params, char const *string)
     if (*string == 'x') {
         string++;
         params->h = atoi(string);
+	while (*string && isdigit((unsigned char)*string)) string++;
+    }
+    if (*string == 'm') {
+        string++;
+        params->maxmoves = atoi(string);
+	while (*string && isdigit((unsigned char)*string)) string++;
+    } else if (*string == 'u') {
+	string++;
+	params->maxmoves = -1;
     }
 }
 
@@ -220,6 +225,10 @@ static char *encode_params(game_params *params, int full)
     char data[256];
 
     sprintf(data, "%dx%d", params->w, params->h);
+    if (params->maxmoves >= 0)
+	sprintf(data + strlen(data), "m%d", params->maxmoves);
+    else
+	sprintf(data + strlen(data), "u");
 
     return dupstr(data);
 }
@@ -229,7 +238,7 @@ static config_item *game_configure(game_params *params)
     config_item *ret;
     char buf[80];
 
-    ret = snewn(3, config_item);
+    ret = snewn(4, config_item);
 
     ret[0].name = "Width";
     ret[0].type = C_STRING;
@@ -243,10 +252,16 @@ static config_item *game_configure(game_params *params)
     ret[1].sval = dupstr(buf);
     ret[1].ival = 0;
 
-    ret[2].name = NULL;
-    ret[2].type = C_END;
-    ret[2].sval = NULL;
+    ret[2].name = "Solution length limit";
+    ret[2].type = C_STRING;
+    sprintf(buf, "%d", params->maxmoves);
+    ret[2].sval = dupstr(buf);
     ret[2].ival = 0;
+
+    ret[3].name = NULL;
+    ret[3].type = C_END;
+    ret[3].sval = NULL;
+    ret[3].ival = 0;
 
     return ret;
 }
@@ -257,6 +272,7 @@ static game_params *custom_params(config_item *cfg)
 
     ret->w = atoi(cfg[0].sval);
     ret->h = atoi(cfg[1].sval);
+    ret->maxmoves = atoi(cfg[2].sval);
 
     return ret;
 }
@@ -389,7 +405,8 @@ static struct board *newboard(int w, int h, unsigned char *data)
  * as-yet-unprovided parameter.
  */
 static int solve_board(int w, int h, unsigned char *board,
-		       unsigned char *forcefield, int tx, int ty)
+		       unsigned char *forcefield, int tx, int ty,
+		       int movelimit)
 {
     int wh = w*h;
     struct board *b, *b2, *b3;
@@ -443,6 +460,14 @@ static int solve_board(int w, int h, unsigned char *board,
 
     while ((b = delpos234(queue, 0)) != NULL) {
 	qlen--;
+	if (movelimit >= 0 && b->dist >= movelimit) {
+	    /*
+	     * The problem is not soluble in under `movelimit'
+	     * moves, so we can quit right now.
+	     */
+	    b2 = NULL;
+	    goto done;
+	}
 	if (b->dist != lastdist) {
 #ifdef SOLVER_DIAGNOSTICS
 	    printf("dist %d (%d)\n", b->dist, count234(sorted));
@@ -572,7 +597,7 @@ static int solve_board(int w, int h, unsigned char *board,
 
 static void generate_board(int w, int h, int *rtx, int *rty, int *minmoves,
 			   random_state *rs, unsigned char **rboard,
-			   unsigned char **rforcefield)
+			   unsigned char **rforcefield, int movelimit)
 {
     int wh = w*h;
     unsigned char *board, *board2, *forcefield;
@@ -628,7 +653,7 @@ static void generate_board(int w, int h, int *rtx, int *rty, int *minmoves,
 		 * See if the board is already soluble.
 		 */
 		if ((moves = solve_board(w, h, board, forcefield,
-					 tx, ty)) >= 0)
+					 tx, ty, movelimit)) >= 0)
 		    goto soluble;
 
 		/*
@@ -678,9 +703,7 @@ static void generate_board(int w, int h, int *rtx, int *rty, int *minmoves,
 	c1 = dsf_canonify(dsf, p1);
 	c2 = dsf_canonify(dsf, p2);
 	if (tried_merge[c1 * wh + c2])
-{printf("aha\n");
 	    continue;
-}
 
 	/*
 	 * In order to be mergeable, these two squares must each
@@ -730,7 +753,7 @@ static void generate_board(int w, int h, int *rtx, int *rty, int *minmoves,
 		} while (p2 < wh && board[p2] != DIST(p2-i));
 	    }
 	}
-	j = solve_board(w, h, board, forcefield, tx, ty);
+	j = solve_board(w, h, board, forcefield, tx, ty, movelimit);
 	if (j < 0) {
 	    /*
 	     * Didn't work. Revert the merge.
@@ -776,7 +799,7 @@ static char *new_game_desc(game_params *params, random_state *rs,
     int i;
 
     generate_board(params->w, params->h, &tx, &ty, &minmoves, rs,
-		   &board, &forcefield);
+		   &board, &forcefield, params->maxmoves);
 #ifdef GENERATOR_DIAGNOSTICS
     {
 	char *t = board_text_format(params->w, params->h, board);
