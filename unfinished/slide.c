@@ -17,11 +17,31 @@
  *    cases.
  * 
  *  - Improve the generator.
+ *     * actually, we seem to be mostly sensible already now. I
+ * 	 want more choice over the type of main block and location
+ * 	 of the exit/target, and I think I probably ought to give
+ * 	 up on compactness and just bite the bullet and have the
+ * 	 target area right outside the main wall, but mostly I
+ * 	 think it's OK.
+ *     * but adjust the presets, because 8x6 is _slow_ to
+ * 	 generate.
+ *     * also, introduce a difficulty scheme, in the form of
+ * 	 limiting the minimum move count. This is obviously
+ * 	 sensible, because it also speeds up generation since the
+ * 	 solver can bomb out once it hits that ceiling!
+ * 	  + I was going to say I'd need to work out a minimum move
+ * 	    count for each grid size, but actually I think not: if
+ * 	    you ask for too few moves, it just has to remove still
+ * 	    more singletons, until at move count 1 you end up with
+ * 	    nothing in your way at all and it SERVES YOU RIGHT!
  * 
- *  - All the colours are a bit wishy-washy. _Some_ dark colours
- *    would surely not be excessive? Probably darken the tiles,
- *    the walls and the main block, and leave the target marker
- *    pale.
+ *  - Improve the graphics.
+ *     * All the colours are a bit wishy-washy. _Some_ dark
+ * 	 colours would surely not be excessive? Probably darken
+ * 	 the tiles, the walls and the main block, and leave the
+ * 	 target marker pale.
+ *     * The cattle grid effect is still disgusting. Think of
+ * 	 something completely different.
  */
 
 #include <stdio.h>
@@ -556,6 +576,8 @@ static void generate_board(int w, int h, int *rtx, int *rty, int *minmoves,
 {
     int wh = w*h;
     unsigned char *board, *board2, *forcefield;
+    unsigned char *tried_merge;
+    int *dsf;
     int *list, nlist, pos;
     int tx, ty;
     int i, j;
@@ -574,6 +596,10 @@ static void generate_board(int w, int h, int *rtx, int *rty, int *minmoves,
 	board[i] = board[i+w*(h-1)] = WALL;
     for (i = 0; i < h; i++)
 	board[i*w] = board[i*w+(w-1)] = WALL;
+
+    tried_merge = snewn(wh * wh, unsigned char);
+    memset(tried_merge, 0, wh*wh);
+    dsf = snew_dsf(wh);
 
     /*
      * Invent a main piece at one extreme. (FIXME: vary the
@@ -628,19 +654,11 @@ static void generate_board(int w, int h, int *rtx, int *rty, int *minmoves,
     /*
      * Now go through that list in random order, trying to merge
      * the blocks on each side of each edge.
-     * 
-     * FIXME: this seems to produce unpleasantly unbalanced
-     * results. Perhaps we'd do better if we always tried to
-     * combine the _smallest_ block with something?
-     * 
-     * FIXME: also one reason it's slow might be because we aren't
-     * tracking which blocks we've already tried to merge, when
-     * another edge ends up linking the same ones.
      */
     shuffle(list, nlist, sizeof(*list), rs);
     while (nlist > 0) {
-	int x1, y1, p1;
-	int x2, y2, p2;
+	int x1, y1, p1, c1;
+	int x2, y2, p2, c2;
 
 	pos = list[--nlist];
 	y1 = y2 = pos / (w*2);
@@ -651,6 +669,18 @@ static void generate_board(int w, int h, int *rtx, int *rty, int *minmoves,
 	    x2++;
 	p1 = y1*w+x1;
 	p2 = y2*w+x2;
+
+	/*
+	 * Immediately abandon the attempt if we've already tried
+	 * to merge the same pair of blocks along a different
+	 * edge.
+	 */
+	c1 = dsf_canonify(dsf, p1);
+	c2 = dsf_canonify(dsf, p2);
+	if (tried_merge[c1 * wh + c2])
+{printf("aha\n");
+	    continue;
+}
 
 	/*
 	 * In order to be mergeable, these two squares must each
@@ -706,8 +736,20 @@ static void generate_board(int w, int h, int *rtx, int *rty, int *minmoves,
 	     * Didn't work. Revert the merge.
 	     */
 	    memcpy(board, board2, wh);
+	    tried_merge[c1 * wh + c2] = tried_merge[c2 * wh + c1] = TRUE;
 	} else {
+	    int c;
+
 	    moves = j;
+
+	    dsf_merge(dsf, c1, c2);
+	    c = dsf_canonify(dsf, c1);
+	    for (i = 0; i < wh; i++)
+		tried_merge[c*wh+i] = (tried_merge[c1*wh+i] |
+				       tried_merge[c2*wh+i]);
+	    for (i = 0; i < wh; i++)
+		tried_merge[i*wh+c] = (tried_merge[i*wh+c1] |
+				       tried_merge[i*wh+c2]);
 	}
     }
 
@@ -1835,7 +1877,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 	sprintf(statusbuf, "%sMoves: %d",
 		(state->completed >= 0 ? "COMPLETED! " : ""),
 		(state->completed >= 0 ? state->completed : state->movecount));
-	if (state->minmoves)
+	if (state->minmoves >= 0)
 	    sprintf(statusbuf+strlen(statusbuf), " (min %d)",
 		    state->minmoves);
 
