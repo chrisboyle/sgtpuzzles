@@ -40,7 +40,7 @@ halibut --winhelp=puzzles.hlp --text=puzzles.txt puzzles.but
 # Build a text version of the HACKING document.
 halibut --text=HACKING devel.but
 
-for i in *.c *.m *.h *.R *.but *.plist *.icns LICENCE README Recipe \
+for i in *.c *.m *.h *.R *.rc *.but *.plist *.icns LICENCE README Recipe \
   mkfiles.pl Makefile Makefile.* \
   HACKING puzzles.txt puzzles.hlp puzzles.cnt puzzles.chm \
   icons/Makefile icons/*.{sav,pl,sh} icons/win16pal.xpm \
