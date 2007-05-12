@@ -1626,6 +1626,10 @@ static game_state *execute_move(game_state *state, char *move)
 	    sol->list[i] = move[i] - '0';
 	ret = dup_game(state);
 	ret->cheated = TRUE;
+	if (ret->soln && --ret->soln->refcount == 0) {
+	    sfree(ret->soln->list);
+	    sfree(ret->soln);
+	}
 	ret->soln = sol;
 	ret->solnpos = 0;
 	sol->refcount = 1;
