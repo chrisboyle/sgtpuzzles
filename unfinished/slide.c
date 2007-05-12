@@ -25,9 +25,6 @@
  * 	 target marker pale.
  *     * The cattle grid effect is still disgusting. Think of
  * 	 something completely different.
- *     * I think TRCIRC and BLCIRC should actually be drawn, as a
- * 	 pair of differently coloured octants. Haul out the
- * 	 Bresenham code, I suspect.
  *     * The highlight for next-piece-to-move in the solver is
  * 	 excessive, and the shadow blends in too well with the
  * 	 piece lowlights. Adjust both.
@@ -1703,7 +1700,8 @@ static void game_free_drawstate(drawing *dr, game_drawstate *ds)
 #define TYPE_TRCIRC 0x5000
 #define TYPE_BLCIRC 0x6000
 #define TYPE_BRCIRC 0x7000
-static void maybe_rect(drawing *dr, int x, int y, int w, int h, int coltype)
+static void maybe_rect(drawing *dr, int x, int y, int w, int h,
+		       int coltype, int col2)
 {
     int colour = coltype & COL_MASK, type = coltype & TYPE_MASK;
 
@@ -1718,13 +1716,54 @@ static void maybe_rect(drawing *dr, int x, int y, int w, int h, int coltype)
 
 	cx = x;
 	cy = y;
-	assert(w == h);
 	r = w-1;
 	if (type & 0x1000)
 	    cx += r;
 	if (type & 0x2000)
 	    cy += r;
-	draw_circle(dr, cx, cy, r, colour, colour);
+
+	if (col2 == -1 || col2 == coltype) {
+	    assert(w == h);
+	    draw_circle(dr, cx, cy, r, colour, colour);
+	} else {
+	    /*
+	     * We aim to draw a quadrant of a circle in two
+	     * different colours. We do this using Bresenham's
+	     * algorithm directly, because the Puzzles drawing API
+	     * doesn't have a draw-sector primitive.
+	     */
+	    int bx, by, bd, bd2;
+	    int xm = (type & 0x1000 ? -1 : +1);
+	    int ym = (type & 0x2000 ? -1 : +1);
+
+	    by = r;
+	    bx = 0;
+	    bd = 0;
+	    while (by >= bx) {
+		/*
+		 * Plot the point.
+		 */
+		{
+		    int x1 = cx+xm*bx, y1 = cy+ym*bx;
+		    int x2, y2;
+
+		    x2 = cx+xm*by; y2 = y1;
+		    draw_rect(dr, min(x1,x2), min(y1,y2),
+			      abs(x1-x2)+1, abs(y1-y2)+1, colour);
+		    x2 = x1; y2 = cy+ym*by;
+		    draw_rect(dr, min(x1,x2), min(y1,y2),
+			      abs(x1-x2)+1, abs(y1-y2)+1, col2);
+		}
+
+		bd += 2*bx + 1;
+		bd2 = bd - (2*by - 1);
+		if (abs(bd2) < abs(bd)) {
+		    bd = bd2;
+		    by--;
+		}
+		bx++;
+	    }
+	}
 
 	unclip(dr);
     }
@@ -1734,6 +1773,8 @@ static void draw_wallpart(drawing *dr, game_drawstate *ds,
 			  int tx, int ty, unsigned long val,
 			  int cl, int cc, int ch)
 {
+    int coords[6];
+
     draw_rect(dr, tx, ty, TILESIZE, TILESIZE, cc);
     if (val & PIECE_LBORDER)
 	draw_rect(dr, tx, ty, HIGHLIGHT_WIDTH, TILESIZE,
@@ -1746,12 +1787,60 @@ static void draw_wallpart(drawing *dr, game_drawstate *ds,
     if (val & PIECE_BBORDER)
 	draw_rect(dr, tx, ty+TILESIZE-HIGHLIGHT_WIDTH,
 		  TILESIZE, HIGHLIGHT_WIDTH, cl);
-    if (!((PIECE_BBORDER | PIECE_LBORDER) &~ val))
+    if (!((PIECE_BBORDER | PIECE_LBORDER) &~ val)) {
 	draw_rect(dr, tx, ty+TILESIZE-HIGHLIGHT_WIDTH,
-		  HIGHLIGHT_WIDTH, HIGHLIGHT_WIDTH, cc);
-    if (!((PIECE_TBORDER | PIECE_RBORDER) &~ val))
+		  HIGHLIGHT_WIDTH, HIGHLIGHT_WIDTH, cl);
+	clip(dr, tx, ty+TILESIZE-HIGHLIGHT_WIDTH,
+	     HIGHLIGHT_WIDTH, HIGHLIGHT_WIDTH);
+	coords[0] = tx - 1;
+	coords[1] = ty + TILESIZE - HIGHLIGHT_WIDTH - 1;
+	coords[2] = tx + HIGHLIGHT_WIDTH;
+	coords[3] = ty + TILESIZE - HIGHLIGHT_WIDTH - 1;
+	coords[4] = tx - 1;
+	coords[5] = ty + TILESIZE;
+	draw_polygon(dr, coords, 3, ch, ch);
+	unclip(dr);
+    } else if (val & PIECE_BLCORNER) {
+	draw_rect(dr, tx, ty+TILESIZE-HIGHLIGHT_WIDTH,
+		  HIGHLIGHT_WIDTH, HIGHLIGHT_WIDTH, ch);
+	clip(dr, tx, ty+TILESIZE-HIGHLIGHT_WIDTH,
+	     HIGHLIGHT_WIDTH, HIGHLIGHT_WIDTH);
+	coords[0] = tx - 1;
+	coords[1] = ty + TILESIZE - HIGHLIGHT_WIDTH - 1;
+	coords[2] = tx + HIGHLIGHT_WIDTH;
+	coords[3] = ty + TILESIZE - HIGHLIGHT_WIDTH - 1;
+	coords[4] = tx - 1;
+	coords[5] = ty + TILESIZE;
+	draw_polygon(dr, coords, 3, cl, cl);
+	unclip(dr);
+    }
+    if (!((PIECE_TBORDER | PIECE_RBORDER) &~ val)) {
 	draw_rect(dr, tx+TILESIZE-HIGHLIGHT_WIDTH, ty,
-		  HIGHLIGHT_WIDTH, HIGHLIGHT_WIDTH, cc);
+		  HIGHLIGHT_WIDTH, HIGHLIGHT_WIDTH, cl);
+	clip(dr, tx+TILESIZE-HIGHLIGHT_WIDTH, ty,
+	     HIGHLIGHT_WIDTH, HIGHLIGHT_WIDTH);
+	coords[0] = tx + TILESIZE - HIGHLIGHT_WIDTH - 1;
+	coords[1] = ty - 1;
+	coords[2] = tx + TILESIZE;
+	coords[3] = ty - 1;
+	coords[4] = tx + TILESIZE - HIGHLIGHT_WIDTH - 1;
+	coords[5] = ty + HIGHLIGHT_WIDTH;
+	draw_polygon(dr, coords, 3, ch, ch);
+	unclip(dr);
+    } else if (val & PIECE_TRCORNER) {
+	draw_rect(dr, tx+TILESIZE-HIGHLIGHT_WIDTH, ty,
+		  HIGHLIGHT_WIDTH, HIGHLIGHT_WIDTH, ch);
+	clip(dr, tx+TILESIZE-HIGHLIGHT_WIDTH, ty,
+	     HIGHLIGHT_WIDTH, HIGHLIGHT_WIDTH);
+	coords[0] = tx + TILESIZE - HIGHLIGHT_WIDTH - 1;
+	coords[1] = ty - 1;
+	coords[2] = tx + TILESIZE;
+	coords[3] = ty - 1;
+	coords[4] = tx + TILESIZE - HIGHLIGHT_WIDTH - 1;
+	coords[5] = ty + HIGHLIGHT_WIDTH;
+	draw_polygon(dr, coords, 3, cl, cl);
+	unclip(dr);
+    }
     if (val & PIECE_TLCORNER)
 	draw_rect(dr, tx, ty, HIGHLIGHT_WIDTH, HIGHLIGHT_WIDTH, ch);
     if (val & PIECE_BRCORNER)
@@ -1810,79 +1899,86 @@ static void draw_piecepart(drawing *dr, game_drawstate *ds,
 
     maybe_rect(dr, RECT(0,0),
 	       (val & (PIECE_TLCORNER | PIECE_TBORDER |
-		       PIECE_LBORDER)) ? -1 : cc);
+		       PIECE_LBORDER)) ? -1 : cc, -1);
     maybe_rect(dr, RECT(1,0),
 	       (val & PIECE_TLCORNER) ? ch : (val & PIECE_TBORDER) ? -1 :
-	       (val & PIECE_LBORDER) ? ch : cc);
+	       (val & PIECE_LBORDER) ? ch : cc, -1);
     maybe_rect(dr, RECT(2,0),
-	       (val & PIECE_TBORDER) ? -1 : cc);
+	       (val & PIECE_TBORDER) ? -1 : cc, -1);
     maybe_rect(dr, RECT(3,0),
 	       (val & PIECE_TRCORNER) ? cl : (val & PIECE_TBORDER) ? -1 :
-	       (val & PIECE_RBORDER) ? cl : cc);
+	       (val & PIECE_RBORDER) ? cl : cc, -1);
     maybe_rect(dr, RECT(4,0),
 	       (val & (PIECE_TRCORNER | PIECE_TBORDER |
-		       PIECE_RBORDER)) ? -1 : cc);
+		       PIECE_RBORDER)) ? -1 : cc, -1);
     maybe_rect(dr, RECT(0,1),
 	       (val & PIECE_TLCORNER) ? ch : (val & PIECE_LBORDER) ? -1 :
-	       (val & PIECE_TBORDER) ? ch : cc);
+	       (val & PIECE_TBORDER) ? ch : cc, -1);
     maybe_rect(dr, RECT(1,1),
-	       (val & PIECE_TLCORNER) ? cc : -1);
+	       (val & PIECE_TLCORNER) ? cc : -1, -1);
     maybe_rect(dr, RECT(1,1),
 	       (val & PIECE_TLCORNER) ? ch | TYPE_TLCIRC :
 	       !((PIECE_TBORDER | PIECE_LBORDER) &~ val) ? ch | TYPE_BRCIRC :
-	       (val & (PIECE_TBORDER | PIECE_LBORDER)) ? ch : cc);
+	       (val & (PIECE_TBORDER | PIECE_LBORDER)) ? ch : cc, -1);
     maybe_rect(dr, RECT(2,1),
-	       (val & PIECE_TBORDER) ? ch : cc);
+	       (val & PIECE_TBORDER) ? ch : cc, -1);
+    maybe_rect(dr, RECT(3,1),
+	       (val & PIECE_TRCORNER) ? cc : -1, -1);
     maybe_rect(dr, RECT(3,1),
 	       (val & (PIECE_TBORDER | PIECE_RBORDER)) == PIECE_TBORDER ? ch :
 	       (val & (PIECE_TBORDER | PIECE_RBORDER)) == PIECE_RBORDER ? cl :
-	       !((PIECE_TBORDER|PIECE_RBORDER) &~ val) ? cc | TYPE_BLCIRC :
-	       cc);
+	       !((PIECE_TBORDER|PIECE_RBORDER) &~ val) ? cl | TYPE_BLCIRC :
+	       (val & PIECE_TRCORNER) ? cl | TYPE_TRCIRC :
+	       cc, ch);
     maybe_rect(dr, RECT(4,1),
 	       (val & PIECE_TRCORNER) ? ch : (val & PIECE_RBORDER) ? -1 :
-	       (val & PIECE_TBORDER) ? ch : cc);
+	       (val & PIECE_TBORDER) ? ch : cc, -1);
     maybe_rect(dr, RECT(0,2),
-	       (val & PIECE_LBORDER) ? -1 : cc);
+	       (val & PIECE_LBORDER) ? -1 : cc, -1);
     maybe_rect(dr, RECT(1,2),
-	       (val & PIECE_LBORDER) ? ch : cc);
+	       (val & PIECE_LBORDER) ? ch : cc, -1);
     maybe_rect(dr, RECT(2,2),
-	       cc);
+	       cc, -1);
     maybe_rect(dr, RECT(3,2),
-	       (val & PIECE_RBORDER) ? cl : cc);
+	       (val & PIECE_RBORDER) ? cl : cc, -1);
     maybe_rect(dr, RECT(4,2),
-	       (val & PIECE_RBORDER) ? -1 : cc);
+	       (val & PIECE_RBORDER) ? -1 : cc, -1);
     maybe_rect(dr, RECT(0,3),
 	       (val & PIECE_BLCORNER) ? cl : (val & PIECE_LBORDER) ? -1 :
-	       (val & PIECE_BBORDER) ? cl : cc);
+	       (val & PIECE_BBORDER) ? cl : cc, -1);
+    maybe_rect(dr, RECT(1,3),
+	       (val & PIECE_BLCORNER) ? cc : -1, -1);
     maybe_rect(dr, RECT(1,3),
 	       (val & (PIECE_BBORDER | PIECE_LBORDER)) == PIECE_BBORDER ? cl :
 	       (val & (PIECE_BBORDER | PIECE_LBORDER)) == PIECE_LBORDER ? ch :
-	       !((PIECE_BBORDER|PIECE_LBORDER) &~ val) ? cc | TYPE_TRCIRC :
-	       cc);
+	       !((PIECE_BBORDER|PIECE_LBORDER) &~ val) ? ch | TYPE_TRCIRC :
+	       (val & PIECE_BLCORNER) ? ch | TYPE_BLCIRC :
+	       cc, cl);
     maybe_rect(dr, RECT(2,3),
-	       (val & PIECE_BBORDER) ? cl : cc);
+	       (val & PIECE_BBORDER) ? cl : cc, -1);
     maybe_rect(dr, RECT(3,3),
-	       (val & PIECE_BRCORNER) ? cc : -1);
+	       (val & PIECE_BRCORNER) ? cc : -1, -1);
     maybe_rect(dr, RECT(3,3),
 	       (val & PIECE_BRCORNER) ? cl | TYPE_BRCIRC :
 	       !((PIECE_BBORDER | PIECE_RBORDER) &~ val) ? cl | TYPE_TLCIRC :
-	       (val & (PIECE_BBORDER | PIECE_RBORDER)) ? cl : cc);
+	       (val & (PIECE_BBORDER | PIECE_RBORDER)) ? cl : cc, -1);
     maybe_rect(dr, RECT(4,3),
 	       (val & PIECE_BRCORNER) ? cl : (val & PIECE_RBORDER) ? -1 :
-	       (val & PIECE_BBORDER) ? cl : cc);
+	       (val & PIECE_BBORDER) ? cl : cc, -1);
     maybe_rect(dr, RECT(0,4),
-	       (val & (PIECE_BLCORNER | PIECE_BBORDER | PIECE_LBORDER)) ? -1 : cc);
+	       (val & (PIECE_BLCORNER | PIECE_BBORDER |
+		       PIECE_LBORDER)) ? -1 : cc, -1);
     maybe_rect(dr, RECT(1,4),
 	       (val & PIECE_BLCORNER) ? ch : (val & PIECE_BBORDER) ? -1 :
-	       (val & PIECE_LBORDER) ? ch : cc);
+	       (val & PIECE_LBORDER) ? ch : cc, -1);
     maybe_rect(dr, RECT(2,4),
-	       (val & PIECE_BBORDER) ? -1 : cc);
+	       (val & PIECE_BBORDER) ? -1 : cc, -1);
     maybe_rect(dr, RECT(3,4),
 	       (val & PIECE_BRCORNER) ? cl : (val & PIECE_BBORDER) ? -1 :
-	       (val & PIECE_RBORDER) ? cl : cc);
+	       (val & PIECE_RBORDER) ? cl : cc, -1);
     maybe_rect(dr, RECT(4,4),
 	       (val & (PIECE_BRCORNER | PIECE_BBORDER |
-		       PIECE_RBORDER)) ? -1 : cc);
+		       PIECE_RBORDER)) ? -1 : cc, -1);
 
 #undef RECT
 }
