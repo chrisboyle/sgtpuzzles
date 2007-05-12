@@ -5,14 +5,6 @@
 /*
  * TODO:
  * 
- *  - Solve function:
- *     * try to generate a solution when Solve is pressed
- *        + from the start, or from here? From here, I fear.
- * 	  + hence, not much point saving the solution in an aux
- * 	    string
- *     * Inertia-like method for telling the user the solution
- *     * standalone solver which draws diagrams
- * 
  *  - The dragging semantics are still subtly wrong in complex
  *    cases.
  * 
@@ -33,6 +25,12 @@
  * 	 target marker pale.
  *     * The cattle grid effect is still disgusting. Think of
  * 	 something completely different.
+ *     * I think TRCIRC and BLCIRC should actually be drawn, as a
+ * 	 pair of differently coloured octants. Haul out the
+ * 	 Bresenham code, I suspect.
+ *     * The highlight for next-piece-to-move in the solver is
+ * 	 excessive, and the shadow blends in too well with the
+ * 	 piece lowlights. Adjust both.
  */
 
 #include <stdio.h>
@@ -139,6 +137,12 @@ struct game_immutable_state {
     unsigned char *forcefield;
 };
 
+struct game_solution {
+    int nmoves;
+    int *moves;			       /* just like from solve_board() */
+    int refcount;
+};
+
 struct game_state {
     int w, h;
     unsigned char *board;
@@ -147,7 +151,10 @@ struct game_state {
     int lastmoved, lastmoved_pos;      /* for move counting */
     int movecount;
     int completed;
+    int cheated;
     struct game_immutable_state *imm;
+    struct game_solution *soln;
+    int soln_index;
 };
 
 static game_params *default_params(void)
@@ -881,10 +888,6 @@ static char *new_game_desc(game_params *params, random_state *rs,
     p += sprintf(p, ",%d,%d,%d", tx, ty, minmoves);
     ret = sresize(ret, p+1 - ret, char);
 
-    /*
-     * FIXME: generate an aux string
-     */
-
     sfree(board);
     sfree(forcefield);
 
@@ -1077,6 +1080,10 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
     else
 	state->completed = -1;
 
+    state->cheated = FALSE;
+    state->soln = NULL;
+    state->soln_index = -1;
+
     return state;
 }
 
@@ -1096,8 +1103,13 @@ static game_state *dup_game(game_state *state)
     ret->lastmoved_pos = state->lastmoved_pos;
     ret->movecount = state->movecount;
     ret->completed = state->completed;
+    ret->cheated = state->cheated;
     ret->imm = state->imm;
     ret->imm->refcount++;
+    ret->soln = state->soln;
+    ret->soln_index = state->soln_index;
+    if (ret->soln)
+	ret->soln->refcount++;
 
     return ret;
 }
@@ -1108,6 +1120,10 @@ static void free_game(game_state *state)
 	sfree(state->imm->forcefield);
 	sfree(state->imm);
     }
+    if (state->soln && --state->soln->refcount <= 0) {
+	sfree(state->soln->moves);
+	sfree(state->soln);
+    }
     sfree(state->board);
     sfree(state);
 }
@@ -1115,12 +1131,45 @@ static void free_game(game_state *state)
 static char *solve_game(game_state *state, game_state *currstate,
 			char *aux, char **error)
 {
+    int *moves;
+    int nmoves;
+    int i;
+    char *ret, *p, sep;
+
     /*
-     * FIXME: we have a solver, so use it
-     * 
-     * FIXME: we should have generated an aux string, so use that
+     * Run the solver and attempt to find the shortest solution
+     * from the current position.
      */
-    return NULL;
+    nmoves = solve_board(state->w, state->h, state->board,
+			 state->imm->forcefield, state->tx, state->ty,
+			 -1, &moves);
+
+    if (nmoves < 0) {
+	*error = "Unable to find a solution to this puzzle";
+	return NULL;
+    }
+    if (nmoves == 0) {
+	*error = "Puzzle is already solved";
+	return NULL;
+    }
+
+    /*
+     * Encode the resulting solution as a move string.
+     */
+    ret = snewn(nmoves * 40, char);
+    p = ret;
+    sep = 'S';
+
+    for (i = 0; i < nmoves; i++) {
+	p += sprintf(p, "%c%d-%d", sep, moves[i*2], moves[i*2+1]);
+	sep = ',';
+    }
+
+    sfree(moves);
+    assert(p - ret < nmoves * 40);
+    ret = sresize(ret, p+1 - ret, char);
+
+    return ret;
 }
 
 static char *game_text_format(game_state *state)
@@ -1330,6 +1379,20 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
 	memset(ui->reachable, 0, wh);
 
 	return str;
+    } else if (button == ' ' && state->soln) {
+	/*
+	 * Make the next move in the stored solution.
+	 */
+	char data[256];
+	int a1, a2;
+
+	a1 = state->soln->moves[state->soln_index*2];
+	a2 = state->soln->moves[state->soln_index*2+1];
+	if (a1 == state->lastmoved_pos)
+	    a1 = state->lastmoved;
+
+	sprintf(data, "M%d-%d", a1, a2);
+	return dupstr(data);
     }
 
     return NULL;
@@ -1379,12 +1442,59 @@ static game_state *execute_move(game_state *state, char *move)
 {
     int w = state->w, h = state->h /* , wh = w*h */;
     char c;
-    int a1, a2, n;
+    int a1, a2, n, movesize;
     game_state *ret = dup_game(state);
 
     while (*move) {
         c = *move;
-	if (c == 'M') {
+	if (c == 'S') {
+	    /*
+	     * This is a solve move, so we just set up a stored
+	     * solution path.
+	     */
+	    if (ret->soln && --ret->soln->refcount <= 0) {
+		sfree(ret->soln->moves);
+		sfree(ret->soln);
+	    }
+	    ret->soln = snew(struct game_solution);
+	    ret->soln->nmoves = 0;
+	    ret->soln->moves = NULL;
+	    ret->soln->refcount = 1;
+	    ret->soln_index = 0;
+	    ret->cheated = TRUE;
+
+	    movesize = 0;
+	    move++;
+	    while (1) {
+		if (sscanf(move, "%d-%d%n", &a1, &a2, &n) != 2) {
+		    free_game(ret);
+		    return NULL;
+		}
+
+		/*
+		 * Special case: if the first move in the solution
+		 * involves the piece for which we already have a
+		 * partial stored move, adjust the source point to
+		 * the original starting point of that piece.
+		 */
+		if (ret->soln->nmoves == 0 && a1 == ret->lastmoved)
+		    a1 = ret->lastmoved_pos;
+
+		if (ret->soln->nmoves >= movesize) {
+		    movesize = (ret->soln->nmoves + 48) * 4 / 3;
+		    ret->soln->moves = sresize(ret->soln->moves,
+					       2*movesize, int);
+		}
+
+		ret->soln->moves[2*ret->soln->nmoves] = a1;
+		ret->soln->moves[2*ret->soln->nmoves+1] = a2;
+		ret->soln->nmoves++;
+		move += n;
+		if (*move != ',')
+		    break;
+		move++;		       /* eat comma */
+	    }
+	} else if (c == 'M') {
             move++;
             if (sscanf(move, "%d-%d%n", &a1, &a2, &n) != 2 ||
 		!move_piece(w, h, state->board, ret->board,
@@ -1412,6 +1522,36 @@ static game_state *execute_move(game_state *state, char *move)
 		ret->lastmoved_pos = a1;
 		ret->movecount++;
 	    }
+
+	    /*
+	     * If we have a stored solution path, see if we've
+	     * strayed from it or successfully made the next move
+	     * along it.
+	     */
+	    if (ret->soln && ret->lastmoved_pos >= 0) {
+		if (ret->lastmoved_pos !=
+		    ret->soln->moves[ret->soln_index*2]) {
+		    /* strayed from the path */
+		    ret->soln->refcount--;
+		    assert(ret->soln->refcount > 0);
+				       /* `state' at least still exists */
+		    ret->soln = NULL;
+		    ret->soln_index = -1;
+		} else if (ret->lastmoved ==
+			   ret->soln->moves[ret->soln_index*2+1]) {
+		    /* advanced along the path */
+		    ret->soln_index++;
+		    if (ret->soln_index >= ret->soln->nmoves) {
+			/* finished the path! */
+			ret->soln->refcount--;
+			assert(ret->soln->refcount > 0);
+				       /* `state' at least still exists */
+			ret->soln = NULL;
+			ret->soln_index = -1;
+		    }
+		}
+	    }
+
 	    if (ret->board[a2] == MAINANCHOR &&
 		a2 == ret->ty * w + ret->tx && ret->completed < 0)
 		ret->completed = ret->movecount;
@@ -1538,14 +1678,20 @@ static void game_free_drawstate(drawing *dr, game_drawstate *ds)
 #define FG_MAIN         0x00000040UL
 #define FG_NORMAL       0x00000080UL
 #define FG_DRAGGING     0x00000100UL
-#define FG_LBORDER      0x00000200UL
-#define FG_TBORDER      0x00000400UL
-#define FG_RBORDER      0x00000800UL
-#define FG_BBORDER      0x00001000UL
-#define FG_TLCORNER     0x00002000UL
-#define FG_TRCORNER     0x00004000UL
-#define FG_BLCORNER     0x00008000UL
-#define FG_BRCORNER     0x00010000UL
+#define FG_SHADOW       0x00000200UL
+#define FG_SOLVEPIECE   0x00000400UL
+#define FG_MAINPIECESH  11
+#define FG_SHADOWSH     19
+
+#define PIECE_LBORDER   0x00000001UL
+#define PIECE_TBORDER   0x00000002UL
+#define PIECE_RBORDER   0x00000004UL
+#define PIECE_BBORDER   0x00000008UL
+#define PIECE_TLCORNER  0x00000010UL
+#define PIECE_TRCORNER  0x00000020UL
+#define PIECE_BLCORNER  0x00000040UL
+#define PIECE_BRCORNER  0x00000080UL
+#define PIECE_MASK      0x000000FFUL
 
 /*
  * Utility function.
@@ -1584,6 +1730,163 @@ static void maybe_rect(drawing *dr, int x, int y, int w, int h, int coltype)
     }
 }
 
+static void draw_wallpart(drawing *dr, game_drawstate *ds,
+			  int tx, int ty, unsigned long val,
+			  int cl, int cc, int ch)
+{
+    draw_rect(dr, tx, ty, TILESIZE, TILESIZE, cc);
+    if (val & PIECE_LBORDER)
+	draw_rect(dr, tx, ty, HIGHLIGHT_WIDTH, TILESIZE,
+		  ch);
+    if (val & PIECE_RBORDER)
+	draw_rect(dr, tx+TILESIZE-HIGHLIGHT_WIDTH, ty,
+		  HIGHLIGHT_WIDTH, TILESIZE, cl);
+    if (val & PIECE_TBORDER)
+	draw_rect(dr, tx, ty, TILESIZE, HIGHLIGHT_WIDTH, ch);
+    if (val & PIECE_BBORDER)
+	draw_rect(dr, tx, ty+TILESIZE-HIGHLIGHT_WIDTH,
+		  TILESIZE, HIGHLIGHT_WIDTH, cl);
+    if (!((PIECE_BBORDER | PIECE_LBORDER) &~ val))
+	draw_rect(dr, tx, ty+TILESIZE-HIGHLIGHT_WIDTH,
+		  HIGHLIGHT_WIDTH, HIGHLIGHT_WIDTH, cc);
+    if (!((PIECE_TBORDER | PIECE_RBORDER) &~ val))
+	draw_rect(dr, tx+TILESIZE-HIGHLIGHT_WIDTH, ty,
+		  HIGHLIGHT_WIDTH, HIGHLIGHT_WIDTH, cc);
+    if (val & PIECE_TLCORNER)
+	draw_rect(dr, tx, ty, HIGHLIGHT_WIDTH, HIGHLIGHT_WIDTH, ch);
+    if (val & PIECE_BRCORNER)
+	draw_rect(dr, tx+TILESIZE-HIGHLIGHT_WIDTH,
+		  ty+TILESIZE-HIGHLIGHT_WIDTH,
+		  HIGHLIGHT_WIDTH, HIGHLIGHT_WIDTH, cl);
+}
+
+static void draw_piecepart(drawing *dr, game_drawstate *ds,
+			   int tx, int ty, unsigned long val,
+			   int cl, int cc, int ch)
+{
+    int x[6], y[6];
+
+    /*
+     * Drawing the blocks is hellishly fiddly. The blocks don't
+     * stretch to the full size of the tile; there's a border
+     * around them of size BORDER_WIDTH. Then they have bevelled
+     * borders of size HIGHLIGHT_WIDTH, and also rounded corners.
+     *
+     * I tried for some time to find a clean and clever way to
+     * figure out what needed drawing from the corner and border
+     * flags, but in the end the cleanest way I could find was the
+     * following. We divide the grid square into 25 parts by
+     * ruling four horizontal and four vertical lines across it;
+     * those lines are at BORDER_WIDTH and BORDER_WIDTH +
+     * HIGHLIGHT_WIDTH from the top, from the bottom, from the
+     * left and from the right. Then we carefully consider each of
+     * the resulting 25 sections of square, and decide separately
+     * what needs to go in it based on the flags. In complicated
+     * cases there can be up to five possibilities affecting any
+     * given section (no corner or border flags, just the corner
+     * flag, one border flag, the other border flag, both border
+     * flags). So there's a lot of very fiddly logic here and all
+     * I could really think to do was give it my best shot and
+     * then test it and correct all the typos. Not fun to write,
+     * and I'm sure it isn't fun to read either, but it seems to
+     * work.
+     */
+
+    x[0] = tx;
+    x[1] = x[0] + BORDER_WIDTH;
+    x[2] = x[1] + HIGHLIGHT_WIDTH;
+    x[5] = tx + TILESIZE;
+    x[4] = x[5] - BORDER_WIDTH;
+    x[3] = x[4] - HIGHLIGHT_WIDTH;
+
+    y[0] = ty;
+    y[1] = y[0] + BORDER_WIDTH;
+    y[2] = y[1] + HIGHLIGHT_WIDTH;
+    y[5] = ty + TILESIZE;
+    y[4] = y[5] - BORDER_WIDTH;
+    y[3] = y[4] - HIGHLIGHT_WIDTH;
+
+#define RECT(p,q) x[p], y[q], x[(p)+1]-x[p], y[(q)+1]-y[q]
+
+    maybe_rect(dr, RECT(0,0),
+	       (val & (PIECE_TLCORNER | PIECE_TBORDER |
+		       PIECE_LBORDER)) ? -1 : cc);
+    maybe_rect(dr, RECT(1,0),
+	       (val & PIECE_TLCORNER) ? ch : (val & PIECE_TBORDER) ? -1 :
+	       (val & PIECE_LBORDER) ? ch : cc);
+    maybe_rect(dr, RECT(2,0),
+	       (val & PIECE_TBORDER) ? -1 : cc);
+    maybe_rect(dr, RECT(3,0),
+	       (val & PIECE_TRCORNER) ? cl : (val & PIECE_TBORDER) ? -1 :
+	       (val & PIECE_RBORDER) ? cl : cc);
+    maybe_rect(dr, RECT(4,0),
+	       (val & (PIECE_TRCORNER | PIECE_TBORDER |
+		       PIECE_RBORDER)) ? -1 : cc);
+    maybe_rect(dr, RECT(0,1),
+	       (val & PIECE_TLCORNER) ? ch : (val & PIECE_LBORDER) ? -1 :
+	       (val & PIECE_TBORDER) ? ch : cc);
+    maybe_rect(dr, RECT(1,1),
+	       (val & PIECE_TLCORNER) ? cc : -1);
+    maybe_rect(dr, RECT(1,1),
+	       (val & PIECE_TLCORNER) ? ch | TYPE_TLCIRC :
+	       !((PIECE_TBORDER | PIECE_LBORDER) &~ val) ? ch | TYPE_BRCIRC :
+	       (val & (PIECE_TBORDER | PIECE_LBORDER)) ? ch : cc);
+    maybe_rect(dr, RECT(2,1),
+	       (val & PIECE_TBORDER) ? ch : cc);
+    maybe_rect(dr, RECT(3,1),
+	       (val & (PIECE_TBORDER | PIECE_RBORDER)) == PIECE_TBORDER ? ch :
+	       (val & (PIECE_TBORDER | PIECE_RBORDER)) == PIECE_RBORDER ? cl :
+	       !((PIECE_TBORDER|PIECE_RBORDER) &~ val) ? cc | TYPE_BLCIRC :
+	       cc);
+    maybe_rect(dr, RECT(4,1),
+	       (val & PIECE_TRCORNER) ? ch : (val & PIECE_RBORDER) ? -1 :
+	       (val & PIECE_TBORDER) ? ch : cc);
+    maybe_rect(dr, RECT(0,2),
+	       (val & PIECE_LBORDER) ? -1 : cc);
+    maybe_rect(dr, RECT(1,2),
+	       (val & PIECE_LBORDER) ? ch : cc);
+    maybe_rect(dr, RECT(2,2),
+	       cc);
+    maybe_rect(dr, RECT(3,2),
+	       (val & PIECE_RBORDER) ? cl : cc);
+    maybe_rect(dr, RECT(4,2),
+	       (val & PIECE_RBORDER) ? -1 : cc);
+    maybe_rect(dr, RECT(0,3),
+	       (val & PIECE_BLCORNER) ? cl : (val & PIECE_LBORDER) ? -1 :
+	       (val & PIECE_BBORDER) ? cl : cc);
+    maybe_rect(dr, RECT(1,3),
+	       (val & (PIECE_BBORDER | PIECE_LBORDER)) == PIECE_BBORDER ? cl :
+	       (val & (PIECE_BBORDER | PIECE_LBORDER)) == PIECE_LBORDER ? ch :
+	       !((PIECE_BBORDER|PIECE_LBORDER) &~ val) ? cc | TYPE_TRCIRC :
+	       cc);
+    maybe_rect(dr, RECT(2,3),
+	       (val & PIECE_BBORDER) ? cl : cc);
+    maybe_rect(dr, RECT(3,3),
+	       (val & PIECE_BRCORNER) ? cc : -1);
+    maybe_rect(dr, RECT(3,3),
+	       (val & PIECE_BRCORNER) ? cl | TYPE_BRCIRC :
+	       !((PIECE_BBORDER | PIECE_RBORDER) &~ val) ? cl | TYPE_TLCIRC :
+	       (val & (PIECE_BBORDER | PIECE_RBORDER)) ? cl : cc);
+    maybe_rect(dr, RECT(4,3),
+	       (val & PIECE_BRCORNER) ? cl : (val & PIECE_RBORDER) ? -1 :
+	       (val & PIECE_BBORDER) ? cl : cc);
+    maybe_rect(dr, RECT(0,4),
+	       (val & (PIECE_BLCORNER | PIECE_BBORDER | PIECE_LBORDER)) ? -1 : cc);
+    maybe_rect(dr, RECT(1,4),
+	       (val & PIECE_BLCORNER) ? ch : (val & PIECE_BBORDER) ? -1 :
+	       (val & PIECE_LBORDER) ? ch : cc);
+    maybe_rect(dr, RECT(2,4),
+	       (val & PIECE_BBORDER) ? -1 : cc);
+    maybe_rect(dr, RECT(3,4),
+	       (val & PIECE_BRCORNER) ? cl : (val & PIECE_BBORDER) ? -1 :
+	       (val & PIECE_RBORDER) ? cl : cc);
+    maybe_rect(dr, RECT(4,4),
+	       (val & (PIECE_BRCORNER | PIECE_BBORDER |
+		       PIECE_RBORDER)) ? -1 : cc);
+
+#undef RECT
+}
+
 static void draw_tile(drawing *dr, game_drawstate *ds,
 		      int x, int y, unsigned long val)
 {
@@ -1620,6 +1923,15 @@ static void draw_tile(drawing *dr, game_drawstate *ds,
     }
 
     /*
+     * Draw the tile midground: a shadow of a block, for
+     * displaying partial solutions.
+     */
+    if (val & FG_SHADOW) {
+	draw_piecepart(dr, ds, tx, ty, (val >> FG_SHADOWSH) & PIECE_MASK,
+		       cl, cl, cl);
+    }
+
+    /*
      * Draw the tile foreground, i.e. some section of a block or
      * wall.
      */
@@ -1632,33 +1944,9 @@ static void draw_tile(drawing *dr, game_drawstate *ds,
 	else if (val & FLASH_HIGH)
 	    cc = ch;
 
-	draw_rect(dr, tx, ty, TILESIZE, TILESIZE, cc);
-	if (val & FG_LBORDER)
-	    draw_rect(dr, tx, ty, HIGHLIGHT_WIDTH, TILESIZE,
-		      ch);
-	if (val & FG_RBORDER)
-	    draw_rect(dr, tx+TILESIZE-HIGHLIGHT_WIDTH, ty,
-		      HIGHLIGHT_WIDTH, TILESIZE, cl);
-	if (val & FG_TBORDER)
-	    draw_rect(dr, tx, ty, TILESIZE, HIGHLIGHT_WIDTH, ch);
-	if (val & FG_BBORDER)
-	    draw_rect(dr, tx, ty+TILESIZE-HIGHLIGHT_WIDTH,
-		      TILESIZE, HIGHLIGHT_WIDTH, cl);
-	if (!((FG_BBORDER | FG_LBORDER) &~ val))
-	    draw_rect(dr, tx, ty+TILESIZE-HIGHLIGHT_WIDTH,
-		      HIGHLIGHT_WIDTH, HIGHLIGHT_WIDTH, cc);
-	if (!((FG_TBORDER | FG_RBORDER) &~ val))
-	    draw_rect(dr, tx+TILESIZE-HIGHLIGHT_WIDTH, ty,
-		      HIGHLIGHT_WIDTH, HIGHLIGHT_WIDTH, cc);
-	if (val & FG_TLCORNER)
-	    draw_rect(dr, tx, ty, HIGHLIGHT_WIDTH, HIGHLIGHT_WIDTH, ch);
-	if (val & FG_BRCORNER)
-	    draw_rect(dr, tx+TILESIZE-HIGHLIGHT_WIDTH,
-		      ty+TILESIZE-HIGHLIGHT_WIDTH,
-		      HIGHLIGHT_WIDTH, HIGHLIGHT_WIDTH, cl);
+	draw_wallpart(dr, ds, tx, ty, (val >> FG_MAINPIECESH) & PIECE_MASK,
+		      cl, cc, ch);
     } else if (val & (FG_MAIN | FG_NORMAL)) {
-	int x[6], y[6];
-
 	if (val & FG_DRAGGING)
 	    cc = (val & FG_MAIN ? COL_MAIN_DRAGGING : COL_DRAGGING);
 	else
@@ -1668,129 +1956,43 @@ static void draw_tile(drawing *dr, game_drawstate *ds,
 
 	if (val & FLASH_LOW)
 	    cc = cl;
-	else if (val & FLASH_HIGH)
+	else if (val & (FLASH_HIGH | FG_SOLVEPIECE))
 	    cc = ch;
 
-	/*
-	 * Drawing the blocks is hellishly fiddly. The blocks
-	 * don't stretch to the full size of the tile; there's a
-	 * border around them of size BORDER_WIDTH. Then they have
-	 * bevelled borders of size HIGHLIGHT_WIDTH, and also
-	 * rounded corners.
-	 * 
-	 * I tried for some time to find a clean and clever way to
-	 * figure out what needed drawing from the corner and
-	 * border flags, but in the end the cleanest way I could
-	 * find was the following. We divide the grid square into
-	 * 25 parts by ruling four horizontal and four vertical
-	 * lines across it; those lines are at BORDER_WIDTH and
-	 * BORDER_WIDTH+HIGHLIGHT_WIDTH from the top, from the
-	 * bottom, from the left and from the right. Then we
-	 * carefully consider each of the resulting 25 sections of
-	 * square, and decide separately what needs to go in it
-	 * based on the flags. In complicated cases there can be
-	 * up to five possibilities affecting any given section
-	 * (no corner or border flags, just the corner flag, one
-	 * border flag, the other border flag, both border flags).
-	 * So there's a lot of very fiddly logic here and all I
-	 * could really think to do was give it my best shot and
-	 * then test it and correct all the typos. Not fun to
-	 * write, and I'm sure it isn't fun to read either, but it
-	 * seems to work.
-	 */
-
-	x[0] = tx;
-	x[1] = x[0] + BORDER_WIDTH;
-	x[2] = x[1] + HIGHLIGHT_WIDTH;
-	x[5] = tx + TILESIZE;
-	x[4] = x[5] - BORDER_WIDTH;
-	x[3] = x[4] - HIGHLIGHT_WIDTH;
-
-	y[0] = ty;
-	y[1] = y[0] + BORDER_WIDTH;
-	y[2] = y[1] + HIGHLIGHT_WIDTH;
-	y[5] = ty + TILESIZE;
-	y[4] = y[5] - BORDER_WIDTH;
-	y[3] = y[4] - HIGHLIGHT_WIDTH;
-
-#define RECT(p,q) x[p], y[q], x[(p)+1]-x[p], y[(q)+1]-y[q]
-
-	maybe_rect(dr, RECT(0,0),
-		   (val & (FG_TLCORNER | FG_TBORDER | FG_LBORDER)) ? -1 : cc);
-	maybe_rect(dr, RECT(1,0),
-		   (val & FG_TLCORNER) ? ch : (val & FG_TBORDER) ? -1 :
-		   (val & FG_LBORDER) ? ch : cc);
-	maybe_rect(dr, RECT(2,0),
-		   (val & FG_TBORDER) ? -1 : cc);
-	maybe_rect(dr, RECT(3,0),
-		   (val & FG_TRCORNER) ? cl : (val & FG_TBORDER) ? -1 :
-		   (val & FG_RBORDER) ? cl : cc);
-	maybe_rect(dr, RECT(4,0),
-		   (val & (FG_TRCORNER | FG_TBORDER | FG_RBORDER)) ? -1 : cc);
-	maybe_rect(dr, RECT(0,1),
-		   (val & FG_TLCORNER) ? ch : (val & FG_LBORDER) ? -1 :
-		   (val & FG_TBORDER) ? ch : cc);
-	maybe_rect(dr, RECT(1,1),
-		   (val & FG_TLCORNER) ? cc : -1);
-	maybe_rect(dr, RECT(1,1),
-		   (val & FG_TLCORNER) ? ch | TYPE_TLCIRC :
-		   !((FG_TBORDER | FG_LBORDER) &~ val) ? ch | TYPE_BRCIRC :
-		   (val & (FG_TBORDER | FG_LBORDER)) ? ch : cc);
-	maybe_rect(dr, RECT(2,1),
-		   (val & FG_TBORDER) ? ch : cc);
-	maybe_rect(dr, RECT(3,1),
-		   (val & (FG_TBORDER | FG_RBORDER)) == FG_TBORDER ? ch :
-		   (val & (FG_TBORDER | FG_RBORDER)) == FG_RBORDER ? cl :
-		   !((FG_TBORDER|FG_RBORDER) &~ val) ? cc | TYPE_BLCIRC : cc);
-	maybe_rect(dr, RECT(4,1),
-		   (val & FG_TRCORNER) ? ch : (val & FG_RBORDER) ? -1 :
-		   (val & FG_TBORDER) ? ch : cc);
-	maybe_rect(dr, RECT(0,2),
-		   (val & FG_LBORDER) ? -1 : cc);
-	maybe_rect(dr, RECT(1,2),
-		   (val & FG_LBORDER) ? ch : cc);
-	maybe_rect(dr, RECT(2,2),
-		   cc);
-	maybe_rect(dr, RECT(3,2),
-		   (val & FG_RBORDER) ? cl : cc);
-	maybe_rect(dr, RECT(4,2),
-		   (val & FG_RBORDER) ? -1 : cc);
-	maybe_rect(dr, RECT(0,3),
-		   (val & FG_BLCORNER) ? cl : (val & FG_LBORDER) ? -1 :
-		   (val & FG_BBORDER) ? cl : cc);
-	maybe_rect(dr, RECT(1,3),
-		   (val & (FG_BBORDER | FG_LBORDER)) == FG_BBORDER ? cl :
-		   (val & (FG_BBORDER | FG_LBORDER)) == FG_LBORDER ? ch :
-		   !((FG_BBORDER|FG_LBORDER) &~ val) ? cc | TYPE_TRCIRC : cc);
-	maybe_rect(dr, RECT(2,3),
-		   (val & FG_BBORDER) ? cl : cc);
-	maybe_rect(dr, RECT(3,3),
-		   (val & FG_BRCORNER) ? cc : -1);
-	maybe_rect(dr, RECT(3,3),
-		   (val & FG_BRCORNER) ? cl | TYPE_BRCIRC :
-		   !((FG_BBORDER | FG_RBORDER) &~ val) ? cl | TYPE_TLCIRC :
-		   (val & (FG_BBORDER | FG_RBORDER)) ? cl : cc);
-	maybe_rect(dr, RECT(4,3),
-		   (val & FG_BRCORNER) ? cl : (val & FG_RBORDER) ? -1 :
-		   (val & FG_BBORDER) ? cl : cc);
-	maybe_rect(dr, RECT(0,4),
-		   (val & (FG_BLCORNER | FG_BBORDER | FG_LBORDER)) ? -1 : cc);
-	maybe_rect(dr, RECT(1,4),
-		   (val & FG_BLCORNER) ? ch : (val & FG_BBORDER) ? -1 :
-		   (val & FG_LBORDER) ? ch : cc);
-	maybe_rect(dr, RECT(2,4),
-		   (val & FG_BBORDER) ? -1 : cc);
-	maybe_rect(dr, RECT(3,4),
-		   (val & FG_BRCORNER) ? cl : (val & FG_BBORDER) ? -1 :
-		   (val & FG_RBORDER) ? cl : cc);
-	maybe_rect(dr, RECT(4,4),
-		   (val & (FG_BRCORNER | FG_BBORDER | FG_RBORDER)) ? -1 : cc);
-
-#undef RECT
-
+	draw_piecepart(dr, ds, tx, ty, (val >> FG_MAINPIECESH) & PIECE_MASK,
+		       cl, cc, ch);
     }
 
     draw_update(dr, tx, ty, TILESIZE, TILESIZE);
+}
+
+static unsigned long find_piecepart(int w, int h, int *dsf, int x, int y)
+{
+    int i = y*w+x;
+    int canon = dsf_canonify(dsf, i);
+    unsigned long val = 0;
+
+    if (x == 0 || canon != dsf_canonify(dsf, i-1))
+	val |= PIECE_LBORDER;
+    if (y== 0 || canon != dsf_canonify(dsf, i-w))
+	val |= PIECE_TBORDER;
+    if (x == w-1 || canon != dsf_canonify(dsf, i+1))
+	val |= PIECE_RBORDER;
+    if (y == h-1 || canon != dsf_canonify(dsf, i+w))
+	val |= PIECE_BBORDER;
+    if (!(val & (PIECE_TBORDER | PIECE_LBORDER)) &&
+	canon != dsf_canonify(dsf, i-1-w))
+	val |= PIECE_TLCORNER;
+    if (!(val & (PIECE_TBORDER | PIECE_RBORDER)) &&
+	canon != dsf_canonify(dsf, i+1-w))
+	val |= PIECE_TRCORNER;
+    if (!(val & (PIECE_BBORDER | PIECE_LBORDER)) &&
+	canon != dsf_canonify(dsf, i-1+w))
+	val |= PIECE_BLCORNER;
+    if (!(val & (PIECE_BBORDER | PIECE_RBORDER)) &&
+	canon != dsf_canonify(dsf, i+1+w))
+	val |= PIECE_BRCORNER;
+    return val;
 }
 
 static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
@@ -1800,7 +2002,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
     int w = state->w, h = state->h, wh = w*h;
     unsigned char *board;
     int *dsf;
-    int x, y, mainanchor, mainpos, dragpos;
+    int x, y, mainanchor, mainpos, dragpos, solvepos, solvesrc, solvedst;
 
     if (!ds->started) {
 	/*
@@ -1827,6 +2029,16 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 	assert(mpret);
     }
 
+    if (state->soln) {
+	solvesrc = state->soln->moves[state->soln_index*2];
+	solvedst = state->soln->moves[state->soln_index*2+1];
+	if (solvesrc == state->lastmoved_pos)
+	    solvesrc = state->lastmoved;
+	if (solvesrc == ui->drag_anchor)
+	    solvesrc = ui->drag_currpos;
+    } else
+	solvesrc = solvedst = -1;
+
     /*
      * Build a dsf out of that board, so we can conveniently tell
      * which edges are connected and which aren't.
@@ -1851,6 +2063,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
     assert(mainanchor >= 0);
     mainpos = dsf_canonify(dsf, mainanchor);
     dragpos = ui->drag_currpos > 0 ? dsf_canonify(dsf, ui->drag_currpos) : -1;
+    solvepos = solvesrc >= 0 ? dsf_canonify(dsf, solvesrc) : -1;
 
     /*
      * Now we can construct the data about what we want to draw.
@@ -1892,31 +2105,28 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 		    val |= FG_NORMAL;
 		if (canon == dragpos)
 		    val |= FG_DRAGGING;
+		if (canon == solvepos)
+		    val |= FG_SOLVEPIECE;
 
 		/*
 		 * Now look around to see if other squares
 		 * belonging to the same block are adjacent to us.
 		 */
-		if (x == 0 || canon != dsf_canonify(dsf, i-1))
-		    val |= FG_LBORDER;
-		if (y== 0 || canon != dsf_canonify(dsf, i-w))
-		    val |= FG_TBORDER;
-		if (x == w-1 || canon != dsf_canonify(dsf, i+1))
-		    val |= FG_RBORDER;
-		if (y == h-1 || canon != dsf_canonify(dsf, i+w))
-		    val |= FG_BBORDER;
-		if (!(val & (FG_TBORDER | FG_LBORDER)) &&
-		    canon != dsf_canonify(dsf, i-1-w))
-		    val |= FG_TLCORNER;
-		if (!(val & (FG_TBORDER | FG_RBORDER)) &&
-		    canon != dsf_canonify(dsf, i+1-w))
-		    val |= FG_TRCORNER;
-		if (!(val & (FG_BBORDER | FG_LBORDER)) &&
-		    canon != dsf_canonify(dsf, i-1+w))
-		    val |= FG_BLCORNER;
-		if (!(val & (FG_BBORDER | FG_RBORDER)) &&
-		    canon != dsf_canonify(dsf, i+1+w))
-		    val |= FG_BRCORNER;
+		val |= find_piecepart(w, h, dsf, x, y) << FG_MAINPIECESH;
+	    }
+
+	    /*
+	     * If we're in the middle of showing a solution,
+	     * display a shadow piece for the target of the
+	     * current move.
+	     */
+	    if (solvepos >= 0) {
+		int si = i - solvedst + solvesrc;
+		if (si >= 0 && si < wh && dsf_canonify(dsf, si) == solvepos) {
+		    val |= find_piecepart(w, h, dsf,
+					  si % w, si / w) << FG_SHADOWSH;
+		    val |= FG_SHADOW;
+		}
 	    }
 
 	    if (val != ds->grid[i]) {
@@ -1931,11 +2141,10 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
     {
 	char statusbuf[256];
 
-	/*
-	 * FIXME: do something about auto-solve?
-	 */
 	sprintf(statusbuf, "%sMoves: %d",
-		(state->completed >= 0 ? "COMPLETED! " : ""),
+		(state->completed >= 0 ?
+		 (state->cheated ? "Auto-solved. " : "COMPLETED! ") :
+		 (state->cheated ? "Auto-solver used. " : "")),
 		(state->completed >= 0 ? state->completed : state->movecount));
 	if (state->minmoves >= 0)
 	    sprintf(statusbuf+strlen(statusbuf), " (min %d)",
@@ -1995,7 +2204,7 @@ const struct game thegame = {
     new_game,
     dup_game,
     free_game,
-    FALSE, solve_game,		       /* FIXME */
+    TRUE, solve_game,
     TRUE, game_text_format,
     new_ui,
     free_ui,
