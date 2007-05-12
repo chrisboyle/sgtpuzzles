@@ -5,9 +5,6 @@
 /*
  * TODO:
  * 
- *  - The dragging semantics are still subtly wrong in complex
- *    cases.
- * 
  *  - Improve the generator.
  *     * actually, we seem to be mostly sensible already now. I
  * 	 want more choice over the type of main block and location
@@ -1345,17 +1342,36 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
 	 */
 	return "";
     } else if (button == LEFT_DRAG && ui->dragging) {
+	int dist, distlimit, dx, dy, s, px, py;
+
 	tx = FROMCOORD(x);
 	ty = FROMCOORD(y);
 
 	tx -= ui->drag_offset_x;
 	ty -= ui->drag_offset_y;
-	if (tx < 0 || tx >= w || ty < 0 || ty >= h ||
-	    !ui->reachable[ty*w+tx])
-	    return NULL;	       /* this drag has no effect */
 
-	ui->drag_currpos = ty*w+tx;
-	return "";
+	/*
+	 * Now search outwards from (tx,ty), in order of Manhattan
+	 * distance, until we find a reachable square.
+	 */
+	distlimit = w+tx;
+	distlimit = max(distlimit, h+ty);
+	distlimit = max(distlimit, tx);
+	distlimit = max(distlimit, ty);
+	for (dist = 0; dist <= distlimit; dist++) {
+	    for (dx = -dist; dx <= dist; dx++)
+		for (s = -1; s <= +1; s += 2) {
+		    dy = s * (dist - abs(dx));
+		    px = tx + dx;
+		    py = ty + dy;
+		    if (px >= 0 && px < w && py >= 0 && py < h &&
+			ui->reachable[py*w+px]) {
+			ui->drag_currpos = py*w+px;
+			return "";
+		    }
+		}
+	}
+	return NULL;		       /* give up - this drag has no effect */
     } else if (button == LEFT_RELEASE && ui->dragging) {
 	char data[256], *str;
 
