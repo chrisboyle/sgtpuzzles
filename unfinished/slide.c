@@ -896,7 +896,7 @@ static char *validate_desc(game_params *params, char *desc)
     int w = params->w, h = params->h, wh = w*h;
     int *active, *link;
     int mains = 0, mpos = -1;
-    int i, j, tx, ty, minmoves;
+    int i, tx, ty, minmoves;
     char *ret;
 
     active = snewn(wh, int);
@@ -941,13 +941,6 @@ static char *validate_desc(game_params *params, char *desc)
 	    }
 
 	    link[i] = i - dist;
-	    for (j = i; j > 0; j = link[j])
-		if (j == i-1 || j == i-w)
-		    break;
-	    if (j < 0) {
-		ret = "Disconnected piece in game description";
-		goto done;
-	    }
 
 	    active[i] = TRUE;
 	    active[link[i]] = FALSE;
