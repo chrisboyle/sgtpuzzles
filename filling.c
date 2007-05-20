@@ -6,11 +6,26 @@
 /* TODO:
  *
  *  - use a typedef instead of int for numbers on the board
- *     + replace int with something else (signed char?)
- *        - the type should be signed (I use -board[i] temporarily)
- *        - problems are small (<= 9?): type can be char?
+ *     + replace int with something else (signed short?)
+ *        - the type should be signed (for -board[i] and -SENTINEL)
+ *        - the type should be somewhat big: board[i] = i
+ *        - Using shorts gives us 181x181 puzzles as upper bound.
  *
  *  - make a somewhat more clever solver
+ *     + enable "ghost regions" of size > 1
+ *        - one can put an upper bound on the size of a ghost region
+ *          by considering the board size and summing present hints.
+ *     + for each square, for i=1..n, what is the distance to a region
+ *       containing i?  How full is the region?  How is this useful?
+ *
+ *  - in board generation, after having merged regions such that no
+ *    more merges are necessary, try splitting (big) regions.
+ *     + it seems that smaller regions make for better puzzles; see
+ *       for instance the 7x7 puzzle in this file (grep for 7x7:).
+ *
+ *  - symmetric hints (solo-style)
+ *     + right now that means including _many_ hints, and the puzzles
+ *       won't look any nicer.  Not worth it (at the moment).
  *
  *  - make the solver do recursion/backtracking.
  *     + This is for user-submitted puzzles, not for puzzle
@@ -20,12 +35,14 @@
  *
  *  - solo-like pencil marks?
  *
- *  - speed up generation of puzzles of size >= 11x11
+ *  - a user says that the difficulty is unevenly distributed.
+ *     + partition into levels?  Will they be non-crap?
  *
  *  - Allow square contents > 9?
  *     + I could use letters for digits (solo does this), but
  *       letters don't have numeric significance (normal people hate
  *       base36), which is relevant here (much more than in solo).
+ *     + [click, 1, 0, enter] => [10 in clicked square]?
  *     + How much information is needed to solve?  Does one need to
  *       know the algorithm by which the largest number is set?
  *
@@ -42,20 +59,37 @@
  *
  *  - use binary search when discovering the minimal sovable point
  *     + profile to show a need (but when the solver gets slower...)
- *     + avg 0.1s per 9x9, which _is_ human-patience noticable.
+ *     + 7x9 @ .011s, 9x13 @ .075s, 17x13 @ .661s (all avg with n=100)
+ *     + but the hints are independent, not linear, so... what?
  */
 
 #include <assert.h>
 #include <ctype.h>
 #include <math.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "puzzles.h"
 
+static unsigned char verbose;
+
+static void printv(char *fmt, ...) {
+    if (verbose) {
+	va_list va;
+	va_start(va, fmt);
+	vprintf(fmt, va);
+	va_end(va);
+    }
+}
+
+/*****************************************************************************
+ * GAME CONFIGURATION AND PARAMETERS                                         *
+ *****************************************************************************/
+
 struct game_params {
-    int w, h;
+    int h, w;
 };
 
 struct shared_state {
@@ -70,7 +104,7 @@ struct game_state {
     int completed, cheated;
 };
 
-static const struct game_params defaults[3] = {{5, 5}, {7, 7}, {9, 9}};
+static const struct game_params defaults[3] = {{7, 9}, {9, 13}, {13, 17}};
 
 static game_params *default_params(void)
 {
@@ -88,7 +122,7 @@ static int game_fetch_preset(int i, char **name, game_params **params)
     if (i < 0 || i >= lenof(defaults)) return FALSE;
     *params = snew(game_params);
     **params = defaults[i]; /* struct copy */
-    sprintf(buf, "%dx%d", defaults[i].w, defaults[i].h);
+    sprintf(buf, "%dx%d", defaults[i].h, defaults[i].w);
     *name = dupstr(buf);
 
     return TRUE;
@@ -232,9 +266,9 @@ static char *board_to_string(int *board, int w, int h) {
     /* fill in the numbers */
     for (i = 0; i < sz; ++i) {
         const int x = i % w;
-        const int y = i / w;
-        if (board[i] == EMPTY) continue;
-        repr[chw*(2*y + 1) + (4*x + 2)] = board[i] + '0';
+	const int y = i / w;
+	if (board[i] == EMPTY) continue;
+	repr[chw*(2*y + 1) + (4*x + 2)] = board[i] + '0';
     }
 
     repr[chlen] = '\0';
@@ -255,50 +289,28 @@ static char *game_text_format(game_state *state)
 static const int dx[4] = {-1, 1, 0, 0};
 static const int dy[4] = {0, 0, -1, 1};
 
-/*
+struct solver_state
+{
+    int *dsf;
+    int *board;
+    int *connected;
+    int nempty;
+};
+
 static void print_board(int *board, int w, int h) {
-    char *repr = board_to_string(board, w, h);
-    fputs(repr, stdout);
-    free(repr);
-}
-*/
-
-#define SENTINEL sz
-
-/* determines whether a board (in dsf form) is valid.  If possible,
- * return a conflicting pair in *a and *b and a non-*b neighbour of *a
- * in *c.  If not possible, leave them unmodified. */
-static void
-validate_board(int *dsf, int w, int h, int *sq, int *a, int *b, int *c) {
-    const int sz = w * h;
-    int i;
-    assert(*a == SENTINEL);
-    assert(*b == SENTINEL);
-    assert(*c == SENTINEL);
-    for (i = 0; i < sz && *a == sz; ++i) {
-        const int aa = dsf_canonify(dsf, sq[i]);
-        int cc = sz;
-        int j;
-        for (j = 0; j < 4; ++j) {
-            const int x = (sq[i] % w) + dx[j];
-            const int y = (sq[i] / w) + dy[j];
-            int bb;
-            if (x < 0 || x >= w || y < 0 || y >= h) continue;
-            bb = dsf_canonify(dsf, w*y + x);
-            if (aa == bb) continue;
-            else if (dsf_size(dsf, aa) == dsf_size(dsf, bb)) {
-                *a = aa;
-                *b = bb;
-                *c = cc;
-            } else if (cc == sz) *c = cc = bb;
-        }
+    if (verbose) {
+	char *repr = board_to_string(board, w, h);
+	printv("%s\n", repr);
+	free(repr);
     }
 }
 
 static game_state *new_game(midend *, game_params *, char *);
 static void free_game(game_state *);
 
-/* generate a random valid board; uses validate_board.  */
+#define SENTINEL sz
+
+/* generate a random valid board; uses validate_board. */
 static void make_board(int *board, int w, int h, random_state *rs) {
     int *dsf;
 
@@ -312,7 +324,6 @@ static void make_board(int *board, int w, int h, random_state *rs) {
      * of size > w*h, so the special case only affects w=h=2. */
 
     int nboards = 0;
-
     int i;
 
     assert(w >= 1);
@@ -327,31 +338,52 @@ static void make_board(int *board, int w, int h, random_state *rs) {
     for (i = 0; i < sz; ++i) board[i] = i;
 
     while (1) {
-        ++nboards;
-        shuffle(board, sz, sizeof (int), rs);
-        /* while the board can in principle be fixed */
-        while (1) {
-            int a = SENTINEL;
-            int b = SENTINEL;
-            int c = SENTINEL;
-            validate_board(dsf, w, h, board, &a, &b, &c);
-            if (a == SENTINEL /* meaning the board is valid */) {
-                int i;
-                for (i = 0; i < sz; ++i) board[i] = dsf_size(dsf, i);
-                sfree(dsf);
-                /* printf("returning board number %d\n", nboards); */
-                return;
-            } else {
-                /* try to repair the invalid board */
-                a = dsf_canonify(dsf, a);
-                assert(a != dsf_canonify(dsf, b));
-                if (c != sz) assert(a != dsf_canonify(dsf, c));
-                dsf_merge(dsf, a, c == sz? b: c);
-                /* if repair impossible; make a new board */
-                if (dsf_size(dsf, a) > maxsize) break;
-            }
-        }
-        dsf_init(dsf, sz); /* re-init the dsf */
+	int change;
+	++nboards;
+	shuffle(board, sz, sizeof (int), rs);
+	/* while the board can in principle be fixed */
+	do {
+	    change = FALSE;
+	    for (i = 0; i < sz; ++i) {
+		int a = SENTINEL;
+		int b = SENTINEL;
+		int c = SENTINEL;
+		const int aa = dsf_canonify(dsf, board[i]);
+		int cc = sz;
+		int j;
+		for (j = 0; j < 4; ++j) {
+		    const int x = (board[i] % w) + dx[j];
+		    const int y = (board[i] / w) + dy[j];
+		    int bb;
+		    if (x < 0 || x >= w || y < 0 || y >= h) continue;
+		    bb = dsf_canonify(dsf, w*y + x);
+		    if (aa == bb) continue;
+		    else if (dsf_size(dsf, aa) == dsf_size(dsf, bb)) {
+			a = aa;
+			b = bb;
+			c = cc;
+		    } else if (cc == sz) c = cc = bb;
+		}
+		if (a != SENTINEL) {
+		    a = dsf_canonify(dsf, a);
+		    assert(a != dsf_canonify(dsf, b));
+		    if (c != sz) assert(a != dsf_canonify(dsf, c));
+		    dsf_merge(dsf, a, c == sz? b: c);
+		    /* if repair impossible; make a new board */
+		    if (dsf_size(dsf, a) > maxsize) goto retry;
+		    change = TRUE;
+		}
+	    }
+	} while (change);
+
+	for (i = 0; i < sz; ++i) board[i] = dsf_size(dsf, i);
+
+	sfree(dsf);
+	printv("returning board number %d\n", nboards);
+	return;
+
+    retry:
+	dsf_init(dsf, sz);
     }
     assert(FALSE); /* unreachable */
 }
@@ -393,31 +425,36 @@ static void *memdup(const void *ptr, size_t len, size_t esz) {
     return dup;
 }
 
-static void expand(int *board, int *connected, int *dsf, int w, int h,
-                   int dst, int src, int *empty, int *learn) {
+static void expand(struct solver_state *s, int w, int h, int t, int f) {
     int j;
-    assert(board);
-    assert(connected);
-    assert(dsf);
-    assert(empty);
-    assert(learn);
-    assert(board[dst] == EMPTY);
-    assert(board[src] != EMPTY);
-    board[dst] = board[src];
+    assert(s);
+    assert(s->board[t] == EMPTY); /* expand to empty square */
+    assert(s->board[f] != EMPTY); /* expand from non-empty square */
+    printv(
+	"learn: expanding %d from (%d, %d) into (%d, %d)\n",
+	s->board[f], f % w, f / w, t % w, t / w);
+    s->board[t] = s->board[f];
     for (j = 0; j < 4; ++j) {
-        const int x = (dst % w) + dx[j];
-        const int y = (dst / w) + dy[j];
+        const int x = (t % w) + dx[j];
+        const int y = (t / w) + dy[j];
         const int idx = w*y + x;
         if (x < 0 || x >= w || y < 0 || y >= h) continue;
-        if (board[idx] != board[dst]) continue;
-        merge(dsf, connected, dst, idx);
+        if (s->board[idx] != s->board[t]) continue;
+        merge(s->dsf, s->connected, t, idx);
     }
-/*  printf("set board[%d] = board[%d], which is %d; size(%d) = %d\n", dst, src, board[src], src, dsf[dsf_canonify(dsf, src)] >> 2); */
-    --*empty;
-    *learn = TRUE;
+    --s->nempty;
 }
 
-static void flood(int *board, int w, int h, int i, int n) {
+static void clear_count(int *board, int sz) {
+    int i;
+    for (i = 0; i < sz; ++i) {
+        if (board[i] >= 0) continue;
+        else if (board[i] == -SENTINEL) board[i] = EMPTY;
+        else board[i] = -board[i];
+    }
+}
+
+static void flood_count(int *board, int w, int h, int i, int n, int *c) {
     const int sz = w * h;
     int k;
 
@@ -425,30 +462,23 @@ static void flood(int *board, int w, int h, int i, int n) {
     else if (board[i] == n) board[i] = -board[i];
     else return;
 
+    if (--*c == 0) return;
+
     for (k = 0; k < 4; ++k) {
         const int x = (i % w) + dx[k];
         const int y = (i / w) + dy[k];
         const int idx = w*y + x;
         if (x < 0 || x >= w || y < 0 || y >= h) continue;
-        flood(board, w, h, idx, n);
+        flood_count(board, w, h, idx, n, c);
+	if (*c == 0) return;
     }
 }
 
-static int count_and_clear(int *board, int sz) {
-    int count = -1;
-    int i;
-    for (i = 0; i < sz; ++i) {
-        if (board[i] >= 0) continue;
-        ++count;
-        if (board[i] == -SENTINEL) board[i] = EMPTY;
-        else board[i] = -board[i];
-    }
-    return count;
-}
-
-static int count(int *board, int w, int h, int i) {
-    flood(board, w, h, i, board[i]);
-    return count_and_clear(board, w * h);
+static int check_capacity(int *board, int w, int h, int i) {
+    int n = board[i];
+    flood_count(board, w, h, i, board[i], &n);
+    clear_count(board, w * h);
+    return n == 0;
 }
 
 static int expandsize(const int *board, int *dsf, int w, int h, int i, int n) {
@@ -467,7 +497,7 @@ static int expandsize(const int *board, int *dsf, int w, int h, int i, int n) {
         root = dsf_canonify(dsf, idx);
         for (m = 0; m < nhits && root != hits[m]; ++m);
         if (m < nhits) continue;
-        /* printf("\t  (%d, %d) contributed %d to size\n", lx, ly, dsf[root] >> 2); */
+	printv("\t  (%d, %d) contrib %d to size\n", x, y, dsf[root] >> 2);
         size += dsf_size(dsf, root);
         assert(dsf_size(dsf, root) >= 1);
         hits[nhits++] = root;
@@ -504,7 +534,8 @@ static int expandsize(const int *board, int *dsf, int w, int h, int i, int n) {
  *
  * CONNECTED COMPONENT FORCED EXPANSION (too small):
  * When a CC must include a particular square, because otherwise there
- * would not be enough room to complete it.
+ * would not be enough room to complete it.  This includes squares not
+ * adjacent to the CC through learn_critical_square.
  *  +---+---+
  *  | 2 | _ |
  *  +---+---+
@@ -523,185 +554,245 @@ static int expandsize(const int *board, int *dsf, int w, int h, int i, int n) {
  *
  * TODO: backtracking.
  */
-#define EXPAND(a, b)\
-expand(board, connected, dsf, w, h, a, b, &nempty, &learn)
+
+static void filled_square(struct solver_state *s, int w, int h, int i) {
+    int j;
+    for (j = 0; j < 4; ++j) {
+	const int x = (i % w) + dx[j];
+	const int y = (i / w) + dy[j];
+	const int idx = w*y + x;
+	if (x < 0 || x >= w || y < 0 || y >= h) continue;
+	if (s->board[i] == s->board[idx])
+	    merge(s->dsf, s->connected, i, idx);
+    }
+}
+
+static void init_solver_state(struct solver_state *s, int w, int h) {
+    const int sz = w * h;
+    int i;
+    assert(s);
+
+    s->nempty = 0;
+    for (i = 0; i < sz; ++i) s->connected[i] = i;
+    for (i = 0; i < sz; ++i)
+        if (s->board[i] == EMPTY) ++s->nempty;
+        else filled_square(s, w, h, i);
+}
+
+static int learn_expand_or_one(struct solver_state *s, int w, int h) {
+    const int sz = w * h;
+    int i;
+    int learn = FALSE;
+
+    assert(s);
+
+    for (i = 0; i < sz; ++i) {
+	int j;
+	int one = TRUE;
+
+	if (s->board[i] != EMPTY) continue;
+
+	for (j = 0; j < 4; ++j) {
+	    const int x = (i % w) + dx[j];
+	    const int y = (i / w) + dy[j];
+	    const int idx = w*y + x;
+	    if (x < 0 || x >= w || y < 0 || y >= h) continue;
+	    if (s->board[idx] == EMPTY) {
+		one = FALSE;
+		continue;
+	    }
+	    if (one &&
+		(s->board[idx] == 1 ||
+		 (s->board[idx] >= expandsize(s->board, s->dsf, w, h,
+					      i, s->board[idx]))))
+		one = FALSE;
+	    assert(s->board[i] == EMPTY);
+	    s->board[i] = -SENTINEL;
+	    if (check_capacity(s->board, w, h, idx)) continue;
+	    assert(s->board[i] == EMPTY);
+	    printv("learn: expanding in one\n");
+	    expand(s, w, h, i, idx);
+	    learn = TRUE;
+	    break;
+	}
+
+	if (j == 4 && one) {
+	    printv("learn: one at (%d, %d)\n", i % w, i / w);
+	    assert(s->board[i] == EMPTY);
+	    s->board[i] = 1;
+	    assert(s->nempty);
+	    --s->nempty;
+	    learn = TRUE;
+	}
+    }
+    return learn;
+}
+
+static int learn_blocked_expansion(struct solver_state *s, int w, int h) {
+    const int sz = w * h;
+    int i;
+    int learn = FALSE;
+
+    assert(s);
+    /* for every connected component */
+    for (i = 0; i < sz; ++i) {
+        int exp = SENTINEL;
+        int j;
+
+	if (s->board[i] == EMPTY) continue;
+        j = dsf_canonify(s->dsf, i);
+
+        /* (but only for each connected component) */
+        if (i != j) continue;
+
+        /* (and not if it's already complete) */
+        if (dsf_size(s->dsf, j) == s->board[j]) continue;
+
+        /* for each square j _in_ the connected component */
+        do {
+            int k;
+            printv("  looking at (%d, %d)\n", j % w, j / w);
+
+            /* for each neighbouring square (idx) */
+            for (k = 0; k < 4; ++k) {
+                const int x = (j % w) + dx[k];
+                const int y = (j / w) + dy[k];
+                const int idx = w*y + x;
+                int size;
+                /* int l;
+                   int nhits = 0;
+                   int hits[4]; */
+                if (x < 0 || x >= w || y < 0 || y >= h) continue;
+                if (s->board[idx] != EMPTY) continue;
+                if (exp == idx) continue;
+                printv("\ttrying to expand onto (%d, %d)\n", x, y);
+
+                /* find out the would-be size of the new connected
+                 * component if we actually expanded into idx */
+                /*
+                size = 1;
+                for (l = 0; l < 4; ++l) {
+                    const int lx = x + dx[l];
+                    const int ly = y + dy[l];
+                    const int idxl = w*ly + lx;
+                    int root;
+                    int m;
+                    if (lx < 0 || lx >= w || ly < 0 || ly >= h) continue;
+                    if (board[idxl] != board[j]) continue;
+                    root = dsf_canonify(dsf, idxl);
+                    for (m = 0; m < nhits && root != hits[m]; ++m);
+                    if (m != nhits) continue;
+                    // printv("\t  (%d, %d) contributed %d to size\n", lx, ly, dsf[root] >> 2);
+                    size += dsf_size(dsf, root);
+                    assert(dsf_size(dsf, root) >= 1);
+                    hits[nhits++] = root;
+                }
+                */
+
+                size = expandsize(s->board, s->dsf, w, h, idx, s->board[j]);
+
+                /* ... and see if that size is too big, or if we
+                 * have other expansion candidates.  Otherwise
+                 * remember the (so far) only candidate. */
+
+                printv("\tthat would give a size of %d\n", size);
+                if (size > s->board[j]) continue;
+                /* printv("\tnow knowing %d expansions\n", nexpand + 1); */
+                if (exp != SENTINEL) goto next_i;
+                assert(exp != idx);
+                exp = idx;
+            }
+
+            j = s->connected[j]; /* next square in the same CC */
+            assert(s->board[i] == s->board[j]);
+        } while (j != i);
+        /* end: for each square j _in_ the connected component */
+
+	if (exp == SENTINEL) continue;
+	printv("learning to expand\n");
+	expand(s, w, h, exp, i);
+	learn = TRUE;
+
+        next_i:
+        ;
+    }
+    /* end: for each connected component */
+    return learn;
+}
+
+static int learn_critical_square(struct solver_state *s, int w, int h) {
+    const int sz = w * h;
+    int i;
+    int learn = FALSE;
+    assert(s);
+
+    /* for each connected component */
+    for (i = 0; i < sz; ++i) {
+	int j;
+	if (s->board[i] == EMPTY) continue;
+	if (i != dsf_canonify(s->dsf, i)) continue;
+	if (dsf_size(s->dsf, i) == s->board[i]) continue;
+	assert(s->board[i] != 1);
+	/* for each empty square */
+	for (j = 0; j < sz; ++j) {
+	    if (s->board[j] != EMPTY) continue;
+	    s->board[j] = -SENTINEL;
+	    if (check_capacity(s->board, w, h, i)) continue;
+	    /* if not expanding s->board[i] to s->board[j] implies
+	     * that s->board[i] can't reach its full size, ... */
+	    assert(s->nempty);
+	    printv(
+		"learn: ds %d at (%d, %d) blocking (%d, %d)\n",
+		s->board[i], j % w, j / w, i % w, i / w);
+	    --s->nempty;
+	    s->board[j] = s->board[i];
+	    filled_square(s, w, h, j);
+	    learn = TRUE;
+	}
+    }
+    return learn;
+}
 
 static int solver(const int *orig, int w, int h, char **solution) {
     const int sz = w * h;
 
-    int *board = memdup(orig, sz, sizeof (int));
-    int *dsf = snew_dsf(sz); /* eqv classes: connected components */
-    int *connected = snewn(sz, int); /* connected[n] := n.next; */
+    struct solver_state ss;
+    ss.board = memdup(orig, sz, sizeof (int));
+    ss.dsf = snew_dsf(sz); /* eqv classes: connected components */
+    ss.connected = snewn(sz, int); /* connected[n] := n.next; */
     /* cyclic disjoint singly linked lists, same partitioning as dsf.
      * The lists lets you iterate over a partition given any member */
 
-    int nempty = 0;
+    printv("trying to solve this:\n");
+    print_board(ss.board, w, h);
 
-    int learn;
-
-    int i;
-    for (i = 0; i < sz; i++) connected[i] = i;
-
-    for (i = 0; i < sz; ++i) {
-        int j;
-        if (board[i] == EMPTY) ++nempty;
-        else for (j = 0; j < 4; ++j) {
-            const int x = (i % w) + dx[j];
-            const int y = (i / w) + dy[j];
-            const int idx = w*y + x;
-            if (x < 0 || x >= w || y < 0 || y >= h) continue;
-            if (board[i] == board[idx]) merge(dsf, connected, i, idx);
-        }
-    }
-
-/*  puts("trying to solve this:");
-    print_board(board, w, h); */
-
-    /* TODO: refactor this code, it's too long */
+    init_solver_state(&ss, w, h);
     do {
-        int i;
-        learn = FALSE;
+	if (learn_blocked_expansion(&ss, w, h)) continue;
+	if (learn_expand_or_one(&ss, w, h)) continue;
+	if (learn_critical_square(&ss, w, h)) continue;
+	break;
+    } while (ss.nempty);
 
-        /* for every connected component */
-        for (i = 0; i < sz; ++i) {
-            int exp = SENTINEL;
-            int j;
-
-            /* If the component consists of empty squares */
-            if (board[i] == EMPTY) {
-                int k;
-                int one = TRUE;
-                for (k = 0; k < 4; ++k) {
-                    const int x = (i % w) + dx[k];
-                    const int y = (i / w) + dy[k];
-                    const int idx = w*y + x;
-                    int n;
-                    if (x < 0 || x >= w || y < 0 || y >= h) continue;
-                    if (board[idx] == EMPTY) {
-                        one = FALSE;
-                        continue;
-                    }
-                    if (one &&
-                        (board[idx] == 1 ||
-                         (board[idx] >= expandsize(board, dsf, w, h,
-                                                   i, board[idx]))))
-                        one = FALSE;
-                    assert(board[i] == EMPTY);
-                    board[i] = -SENTINEL;
-                    n = count(board, w, h, idx);
-                    assert(board[i] == EMPTY);
-                    if (n >= board[idx]) continue;
-                    EXPAND(i, idx);
-                    break;
-                }
-                if (k == 4 && one) {
-                    assert(board[i] == EMPTY);
-                    board[i] = 1;
-                    assert(nempty);
-                    --nempty;
-                    learn = TRUE;
-                }
-                continue;
-            }
-            /* printf("expanding blob of (%d, %d)\n", i % w, i / w); */
-
-            j = dsf_canonify(dsf, i);
-
-            /* (but only for each connected component) */
-            if (i != j) continue;
-
-            /* (and not if it's already complete) */
-            if (dsf_size(dsf, j) == board[j]) continue;
-
-            /* for each square j _in_ the connected component */
-            do {
-                int k;
-                /* printf("  looking at (%d, %d)\n", j % w, j / w); */
-
-                /* for each neighbouring square (idx) */
-                for (k = 0; k < 4; ++k) {
-                    const int x = (j % w) + dx[k];
-                    const int y = (j / w) + dy[k];
-                    const int idx = w*y + x;
-                    int size;
-                    /* int l;
-                       int nhits = 0;
-                       int hits[4]; */
-                    if (x < 0 || x >= w || y < 0 || y >= h) continue;
-                    if (board[idx] != EMPTY) continue;
-                    if (exp == idx) continue;
-                    /* printf("\ttrying to expand onto (%d, %d)\n", x, y); */
-
-                    /* find out the would-be size of the new connected
-                     * component if we actually expanded into idx */
-                    /*
-                    size = 1;
-                    for (l = 0; l < 4; ++l) {
-                        const int lx = x + dx[l];
-                        const int ly = y + dy[l];
-                        const int idxl = w*ly + lx;
-                        int root;
-                        int m;
-                        if (lx < 0 || lx >= w || ly < 0 || ly >= h) continue;
-                        if (board[idxl] != board[j]) continue;
-                        root = dsf_canonify(dsf, idxl);
-                        for (m = 0; m < nhits && root != hits[m]; ++m);
-                        if (m != nhits) continue;
-                        // printf("\t  (%d, %d) contributed %d to size\n", lx, ly, dsf[root] >> 2);
-                        size += dsf_size(dsf, root);
-                        assert(dsf_size(dsf, root) >= 1);
-                        hits[nhits++] = root;
-                    }
-                    */
-
-                    size = expandsize(board, dsf, w, h, idx, board[j]);
-
-                    /* ... and see if that size is too big, or if we
-                     * have other expansion candidates.  Otherwise
-                     * remember the (so far) only candidate. */
-
-                    /* printf("\tthat would give a size of %d\n", size); */
-                    if (size > board[j]) continue;
-                    /* printf("\tnow knowing %d expansions\n", nexpand + 1); */
-                    if (exp != SENTINEL) goto next_i;
-                    assert(exp != idx);
-                    exp = idx;
-                }
-
-                j = connected[j]; /* next square in the same CC */
-                assert(board[i] == board[j]);
-            } while (j != i);
-            /* end: for each square j _in_ the connected component */
-
-            if (exp == SENTINEL) continue;
-            /* printf("expand b: %d -> %d\n", i, exp); */
-            EXPAND(exp, i);
-
-            next_i:
-            ;
-        }
-        /* end: for each connected component */
-    } while (learn && nempty);
-
-    /* puts("best guess:");
-       print_board(board, w, h); */
+    printv("best guess:\n");
+    print_board(ss.board, w, h);
 
     if (solution) {
         int i;
         assert(*solution == NULL);
         *solution = snewn(sz + 2, char);
         **solution = 's';
-        for (i = 0; i < sz; ++i) (*solution)[i + 1] = board[i] + '0';
+        for (i = 0; i < sz; ++i) (*solution)[i + 1] = ss.board[i] + '0';
         (*solution)[sz + 1] = '\0';
         /* We don't need the \0 for execute_move (the only user)
          * I'm just being printf-friendly in case I wanna print */
     }
 
-    sfree(dsf);
-    sfree(board);
-    sfree(connected);
+    sfree(ss.dsf);
+    sfree(ss.board);
+    sfree(ss.connected);
 
-    return !nempty;
+    return !ss.nempty;
 }
 
 static int *make_dsf(int *dsf, int *board, const int w, const int h) {
@@ -744,6 +835,31 @@ static int compare(const void *pa, const void *pb) {
     return g_board[*(const int *)pb] - g_board[*(const int *)pa];
 }
 
+static void minimize_clue_set(int *board, int w, int h, int *randomize) {
+    const int sz = w * h;
+    int i;
+    int *board_cp = snewn(sz, int);
+    memcpy(board_cp, board, sz * sizeof (int));
+
+    /* since more clues only helps and never hurts, one pass will do
+     * just fine: if we can remove clue n with k clues of index > n,
+     * we could have removed clue n with >= k clues of index > n.
+     * So an additional pass wouldn't do anything [use induction]. */
+    for (i = 0; i < sz; ++i) {
+	if (board[randomize[i]] == EMPTY) continue;
+        board[randomize[i]] = EMPTY;
+	/* (rot.) symmetry tends to include _way_ too many hints */
+	/* board[sz - randomize[i] - 1] = EMPTY; */
+        if (!solver(board, w, h, NULL)) {
+            board[randomize[i]] = board_cp[randomize[i]];
+	    /* board[sz - randomize[i] - 1] =
+	       board_cp[sz - randomize[i] - 1]; */
+	}
+    }
+
+    sfree(board_cp);
+}
+
 static char *new_game_desc(game_params *params, random_state *rs,
                            char **aux, int interactive)
 {
@@ -752,7 +868,6 @@ static char *new_game_desc(game_params *params, random_state *rs,
     const int sz = w * h;
     int *board = snewn(sz, int);
     int *randomize = snewn(sz, int);
-    int *solver_board = snewn(sz, int);
     char *game_description = snewn(sz + 1, char);
     int i;
 
@@ -762,35 +877,23 @@ static char *new_game_desc(game_params *params, random_state *rs,
     }
 
     make_board(board, w, h, rs);
-    memcpy(solver_board, board, sz * sizeof (int));
-
     g_board = board;
     qsort(randomize, sz, sizeof (int), compare);
-
-    /* since more clues only helps and never hurts, one pass will do
-     * just fine: if we can remove clue n with k clues of index > n,
-     * we could have removed clue n with >= k clues of index > n.
-     * So an additional pass wouldn't do anything [use induction]. */
-    for (i = 0; i < sz; ++i) {
-        solver_board[randomize[i]] = EMPTY;
-        if (!solver(solver_board, w, h, NULL))
-            solver_board[randomize[i]] = board[randomize[i]];
-    }
+    minimize_clue_set(board, w, h, randomize);
 
     for (i = 0; i < sz; ++i) {
-        assert(solver_board[i] >= 0);
-        assert(solver_board[i] < 10);
-        game_description[i] = solver_board[i] + '0';
+        assert(board[i] >= 0);
+        assert(board[i] < 10);
+        game_description[i] = board[i] + '0';
     }
     game_description[sz] = '\0';
 
 /*
-  solver(solver_board, w, h, aux);
-  print_board(solver_board, w, h);
+    solver(board, w, h, aux);
+    print_board(board, w, h);
 */
 
     sfree(randomize);
-    sfree(solver_board);
     sfree(board);
 
     return game_description;
@@ -802,7 +905,7 @@ static char *validate_desc(game_params *params, char *desc)
     const int sz = params->w * params->h;
     const char m = '0' + max(max(params->w, params->h), 3);
 
-    /* printf("desc = '%s'; sz = %d\n", desc, sz); */
+    printv("desc = '%s'; sz = %d\n", desc, sz);
 
     for (i = 0; desc[i] && i < sz; ++i)
         if (!isdigit((unsigned char) *desc))
