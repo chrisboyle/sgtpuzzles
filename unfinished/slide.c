@@ -651,7 +651,7 @@ static void generate_board(int w, int h, int *rtx, int *rty, int *minmoves,
     int *list, nlist, pos;
     int tx, ty;
     int i, j;
-    int moves;
+    int moves = 0;                     /* placate optimiser */
 
     /*
      * Set up a board and fill it with singletons, except for a
