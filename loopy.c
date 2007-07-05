@@ -58,7 +58,7 @@ struct game_state {
     int w, h;
     
     /* Put -1 in a square that doesn't get a clue */
-    char *clues;
+    signed char *clues;
     
     /* Arrays of line states, stored left-to-right, top-to-bottom */
     char *hl, *vl;
@@ -299,7 +299,7 @@ static game_state *dup_game(game_state *state)
     ret->solved = state->solved;
     ret->cheated = state->cheated;
 
-    ret->clues = snewn(SQUARE_COUNT(state), char);
+    ret->clues = snewn(SQUARE_COUNT(state), signed char);
     memcpy(ret->clues, state->clues, SQUARE_COUNT(state));
 
     ret->hl = snewn(HL_COUNT(state), char);
@@ -1425,7 +1425,7 @@ enum { SQUARE_LIT, SQUARE_UNLIT };
  * the dimensions provided by said game_state) */
 static void add_full_clues(game_state *state, random_state *rs)
 {
-    char *clues;
+    signed char *clues;
     char *board;
     int i, j, a, b, c;
     int board_area = SQUARE_COUNT(state);
@@ -1722,7 +1722,7 @@ static char *new_game_desc(game_params *params, random_state *rs,
     state->h = params->h;
     state->w = params->w;
 
-    state->clues = snewn(SQUARE_COUNT(params), char);
+    state->clues = snewn(SQUARE_COUNT(params), signed char);
     state->hl = snewn(HL_COUNT(params), char);
     state->vl = snewn(VL_COUNT(params), char);
 
@@ -1774,7 +1774,7 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
     state->h = params->h;
     state->w = params->w;
 
-    state->clues = snewn(SQUARE_COUNT(params), char);
+    state->clues = snewn(SQUARE_COUNT(params), signed char);
     state->hl = snewn(HL_COUNT(params), char);
     state->vl = snewn(VL_COUNT(params), char);
 
