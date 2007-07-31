@@ -2077,10 +2077,19 @@ static void tile_redraw(drawing *dr, game_drawstate *ds, game_state *state,
             int lcol = (ds_flags & DF_OVERLAP) ? COL_ERROR : COL_LIGHT;
             draw_circle(dr, dx + TILE_SIZE/2, dy + TILE_SIZE/2, TILE_RADIUS,
                         lcol, COL_BLACK);
-        } else if (ds_flags & DF_IMPOSSIBLE) {
-            int rlen = TILE_SIZE / 4;
-            draw_rect(dr, dx + TILE_SIZE/2 - rlen/2, dy + TILE_SIZE/2 - rlen/2,
-                      rlen, rlen, COL_BLACK);
+        } else if ((ds_flags & DF_IMPOSSIBLE)) {
+            static int draw_blobs_when_lit = -1;
+            if (draw_blobs_when_lit < 0) {
+		char *env = getenv("LIGHTUP_LIT_BLOBS");
+		draw_blobs_when_lit = (!env || (env[0] == 'y' ||
+                                                env[0] == 'Y'));
+            }
+            if (!(ds_flags & DF_LIT) || draw_blobs_when_lit) {
+                int rlen = TILE_SIZE / 4;
+                draw_rect(dr, dx + TILE_SIZE/2 - rlen/2,
+                          dy + TILE_SIZE/2 - rlen/2,
+                          rlen, rlen, COL_BLACK);
+            }
         }
     }
 
