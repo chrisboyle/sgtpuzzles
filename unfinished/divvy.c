@@ -7,6 +7,21 @@
  * or for generating the playfield for Jigsaw Sudoku.
  */
 
+/*
+ * Possible improvements which might cut the fail rate:
+ * 
+ *  - instead of picking one omino to extend in an iteration, try
+ *    them all in succession (in a randomised order)
+ * 
+ *  - (for real rigour) instead of bfsing over ominoes, bfs over
+ *    the space of possible _removed squares_. That way we aren't
+ *    limited to randomly choosing a single square to remove from
+ *    an omino and failing if that particular square doesn't
+ *    happen to work.
+ * 
+ * However, I don't currently think it's neecss~|~
+ */
+
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -83,7 +98,7 @@ static int addremcommon(int w, int h, int x, int y, int *own, int val)
  * In both of the above suggested use cases, the user would
  * probably want w==h==k, but that isn't a requirement.
  */
-int *divvy_rectangle(int w, int h, int k, random_state *rs)
+static int *divvy_internal(int w, int h, int k, random_state *rs)
 {
     int *order, *queue, *tmp, *own, *sizes, *addable, *removable, *retdsf;
     int wh = w*h;
@@ -164,7 +179,9 @@ int *divvy_rectangle(int w, int h, int k, random_state *rs)
 		int dir;
 
 		if (curr < 0) {
-		    removable[yx] = 0; /* can't remove if it's not owned! */
+		    removable[yx] = FALSE; /* can't remove if not owned! */
+		} else if (sizes[curr] == 1) {
+		    removable[yx] = TRUE; /* can always remove a singleton */
 		} else {
 		    /*
 		     * See if this square can be removed from its
@@ -243,7 +260,7 @@ int *divvy_rectangle(int w, int h, int k, random_state *rs)
 	    tmpsq = tmp[2*j+1];
 	    if (tmpsq >= 0) {
 		assert(own[tmpsq] == j);
-		own[tmpsq] = -1;
+		own[tmpsq] = -3;
 	    }
 
 	    /*
@@ -254,8 +271,22 @@ int *divvy_rectangle(int w, int h, int k, random_state *rs)
 	    for (i = 0; i < wh; i++) {
 		int dir;
 
-		if (own[order[i]] >= 0)
+		if (own[order[i]] != -1)
 		    continue;	       /* this square is claimed */
+
+		/*
+		 * Special case: if our current omino was size 1
+		 * and then had a square stolen from it, it's now
+		 * size zero, which means it's valid to `expand'
+		 * it into _any_ unclaimed square.
+		 */
+		if (sizes[j] == 1 && tmpsq >= 0)
+		    break;	       /* got one */
+
+		/*
+		 * Failing that, we must do the full test for
+		 * addability.
+		 */
 		for (dir = 0; dir < 4; dir++)
 		    if (addable[order[i]*4+dir] == j) {
 			/*
@@ -274,10 +305,18 @@ int *divvy_rectangle(int w, int h, int k, random_state *rs)
 		    }
 		if (dir == 4)
 		    continue;	       /* we can't add this square to j */
+
 		break;		       /* got one! */
 	    }
 	    if (i < wh) {
 		i = order[i];
+
+		/*
+		 * Restore the temporarily removed square _before_
+		 * we start shifting ownerships about.
+		 */
+		if (tmpsq >= 0)
+		    own[tmpsq] = j;
 
 		/*
 		 * We are done. We can add square i to omino j,
@@ -451,6 +490,27 @@ int *divvy_rectangle(int w, int h, int k, random_state *rs)
 }
 
 #ifdef TESTMODE
+static int fail_counter = 0;
+#endif
+
+int *divvy_rectangle(int w, int h, int k, random_state *rs)
+{
+    int *ret;
+
+    do {
+	ret = divvy_internal(w, h, k, rs);
+
+#ifdef TESTMODE
+	if (!ret)
+	    fail_counter++;
+#endif
+
+    } while (!ret);
+
+    return ret;
+}
+
+#ifdef TESTMODE
 
 /*
  * gcc -g -O0 -DTESTMODE -I.. -o divvy divvy.c ../random.c ../malloc.c ../dsf.c ../misc.c ../nullfe.c
@@ -463,7 +523,7 @@ int *divvy_rectangle(int w, int h, int k, random_state *rs)
 int main(int argc, char **argv)
 {
     int *dsf;
-    int i, successes;
+    int i;
     int w = 9, h = 4, k = 6, tries = 100;
     random_state *rs;
 
@@ -478,84 +538,80 @@ int main(int argc, char **argv)
     if (argc > 4)
 	tries = atoi(argv[4]);
 
-    successes = 0;
     for (i = 0; i < tries; i++) {
+	int x, y;
+
 	dsf = divvy_rectangle(w, h, k, rs);
-	if (dsf) {
-	    int x, y;
+	assert(dsf);
 
-	    successes++;
-
-	    for (y = 0; y <= 2*h; y++) {
-		for (x = 0; x <= 2*w; x++) {
-		    int miny = y/2 - 1, maxy = y/2;
-		    int minx = x/2 - 1, maxx = x/2;
-		    int classes[4], tx, ty;
-		    for (ty = 0; ty < 2; ty++)
-			for (tx = 0; tx < 2; tx++) {
-			    int cx = minx+tx, cy = miny+ty;
-			    if (cx < 0 || cx >= w || cy < 0 || cy >= h)
-				classes[ty*2+tx] = -1;
-			    else
-				classes[ty*2+tx] = dsf_canonify(dsf, cy*w+cx);
-			}
-		    switch (y%2 * 2 + x%2) {
-		      case 0:	       /* corner */
-			/*
-			 * Cases for the corner:
-			 * 
-			 *  - if all four surrounding squares
-			 *    belong to the same omino, we print a
-			 *    space.
-			 * 
-			 *  - if the top two are the same and the
-			 *    bottom two are the same, we print a
-			 *    horizontal line.
-			 * 
-			 *  - if the left two are the same and the
-			 *    right two are the same, we print a
-			 *    vertical line.
-			 * 
-			 *  - otherwise, we print a cross.
-			 */
-			if (classes[0] == classes[1] &&
-			    classes[1] == classes[2] &&
-			    classes[2] == classes[3])
-			    printf(" ");
-			else if (classes[0] == classes[1] &&
-				 classes[2] == classes[3])
-			    printf("-");
-			else if (classes[0] == classes[2] &&
-				 classes[1] == classes[3])
-			    printf("|");
+	for (y = 0; y <= 2*h; y++) {
+	    for (x = 0; x <= 2*w; x++) {
+		int miny = y/2 - 1, maxy = y/2;
+		int minx = x/2 - 1, maxx = x/2;
+		int classes[4], tx, ty;
+		for (ty = 0; ty < 2; ty++)
+		    for (tx = 0; tx < 2; tx++) {
+			int cx = minx+tx, cy = miny+ty;
+			if (cx < 0 || cx >= w || cy < 0 || cy >= h)
+			    classes[ty*2+tx] = -1;
 			else
-			    printf("+");
-			break;
-		      case 1:	       /* horiz edge */
-			if (classes[1] == classes[3])
-			    printf("  ");
-			else
-			    printf("--");
-			break;
-		      case 2:	       /* vert edge */
-			if (classes[2] == classes[3])
-			    printf(" ");
-			else
-			    printf("|");
-			break;
-		      case 3:	       /* square centre */
-			printf("  ");
-			break;
+			    classes[ty*2+tx] = dsf_canonify(dsf, cy*w+cx);
 		    }
+		switch (y%2 * 2 + x%2) {
+		  case 0:	       /* corner */
+		    /*
+		     * Cases for the corner:
+		     *
+		     * 	- if all four surrounding squares belong
+		     * 	  to the same omino, we print a space.
+		     *
+		     * 	- if the top two are the same and the
+		     * 	  bottom two are the same, we print a
+		     * 	  horizontal line.
+		     *
+		     * 	- if the left two are the same and the
+		     * 	  right two are the same, we print a
+		     * 	  vertical line.
+		     *
+		     *  - otherwise, we print a cross.
+		     */
+		    if (classes[0] == classes[1] &&
+			classes[1] == classes[2] &&
+			classes[2] == classes[3])
+			printf(" ");
+		    else if (classes[0] == classes[1] &&
+			     classes[2] == classes[3])
+			printf("-");
+		    else if (classes[0] == classes[2] &&
+			     classes[1] == classes[3])
+			printf("|");
+		    else
+			printf("+");
+		    break;
+		  case 1:	       /* horiz edge */
+		    if (classes[1] == classes[3])
+			printf("  ");
+		    else
+			printf("--");
+		    break;
+		  case 2:	       /* vert edge */
+		    if (classes[2] == classes[3])
+			printf(" ");
+		    else
+			printf("|");
+		    break;
+		  case 3:	       /* square centre */
+		    printf("  ");
+		    break;
 		}
-		printf("\n");
 	    }
 	    printf("\n");
-	    sfree(dsf);
 	}
+	printf("\n");
+	sfree(dsf);
     }
 
-    printf("%d successes out of %d tries\n", successes, tries);
+    printf("%d retries needed for %d successes\n", fail_counter, tries);
 
     return 0;
 }
