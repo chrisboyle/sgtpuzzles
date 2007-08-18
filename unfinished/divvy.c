@@ -201,6 +201,9 @@ int *divvy_rectangle(int w, int h, int k, random_state *rs)
 	if (j == 0)
 	    break;		       /* all ominoes are complete! */
 	j = tmp[random_upto(rs, j)];
+#ifdef DIVVY_DIAGNOSTICS
+	printf("Trying to extend %d\n", j);
+#endif
 
 	/*
 	 * So we're trying to expand omino j. We breadth-first
@@ -263,7 +266,7 @@ int *divvy_rectangle(int w, int h, int k, random_state *rs)
 			 * addable to this omino when the omino is
 			 * missing a square. To do this it's only
 			 * necessary to re-check addremcommon.
-~|~			 */
+			 */
 			if (!addremcommon(w, h, order[i]%w, order[i]/w,
 					  own, j))
 			    continue;
@@ -282,13 +285,25 @@ int *divvy_rectangle(int w, int h, int k, random_state *rs)
 		 * moving squares between ominoes, ending up
 		 * expanding our starting omino by one.
 		 */
+#ifdef DIVVY_DIAGNOSTICS
+		printf("(%d,%d)", i%w, i/w);
+#endif
 		while (1) {
 		    own[i] = j;
+#ifdef DIVVY_DIAGNOSTICS
+		    printf(" -> %d", j);
+#endif
 		    if (tmp[2*j] == -2)
 			break;
 		    i = tmp[2*j+1];
 		    j = tmp[2*j];
+#ifdef DIVVY_DIAGNOSTICS
+		    printf("; (%d,%d)", i%w, i/w);
+#endif
 		}
+#ifdef DIVVY_DIAGNOSTICS
+		printf("\n");
+#endif
 
 		/*
 		 * Increment the size of the starting omino.
@@ -365,10 +380,25 @@ int *divvy_rectangle(int w, int h, int k, random_state *rs)
 	     * FIXME: or should we loop over all ominoes before we
 	     * give up?
 	     */
+#ifdef DIVVY_DIAGNOSTICS
+	    printf("FAIL!\n");
+#endif
 	    retdsf = NULL;
 	    goto cleanup;
 	}
     }
+
+#ifdef DIVVY_DIAGNOSTICS
+    {
+	int x, y;
+	printf("SUCCESS! Final grid:\n");
+	for (y = 0; y < h; y++) {
+	    for (x = 0; x < w; x++)
+		printf("%3d", own[y*w+x]);
+	    printf("\n");
+	}
+    }
+#endif
 
     /*
      * Construct the output dsf.
