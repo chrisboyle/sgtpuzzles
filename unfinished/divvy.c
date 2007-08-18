@@ -19,7 +19,10 @@
  *    an omino and failing if that particular square doesn't
  *    happen to work.
  * 
- * However, I don't currently think it's neecss~|~
+ * However, I don't currently think it's necessary to do either of
+ * these, because the failure rate is already low enough to be
+ * easily tolerable, under all circumstances I've been able to
+ * think of.
  */
 
 #include <assert.h>
