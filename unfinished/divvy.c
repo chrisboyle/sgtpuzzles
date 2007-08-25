@@ -113,14 +113,13 @@
  * 
  * When adding a square to an omino, this is precisely the
  * criterion which tells us that adding the square won't leave a
- * hole in the middle of the omino. (There's no explicit
- * requirement in the statement of our problem that the ominoes be
- * simply connected, but we do know they must be all of equal size
- * and so it's clear that we must avoid leaving holes, since a
- * hole would necessarily be smaller than the maximum omino size.)
+ * hole in the middle of the omino. (If it did, then things get
+ * more complicated; see above.)
  * 
  * When removing a square from an omino, the _same_ criterion
  * tells us that removing the square won't disconnect the omino.
+ * (This only works _because_ we've ensured the omino is simply
+ * connected.)
  */
 static int addremcommon(int w, int h, int x, int y, int *own, int val)
 {
