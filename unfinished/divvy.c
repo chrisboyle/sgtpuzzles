@@ -8,6 +8,75 @@
  */
 
 /*
+ * This code is restricted to simply connected solutions: that is,
+ * no single polyomino may completely surround another (not even
+ * with a corner visible to the outside world, in the sense that a
+ * 7-omino can `surround' a single square).
+ * 
+ * It's tempting to think that this is a natural consequence of
+ * all the ominoes being the same size - after all, a division of
+ * anything into 7-ominoes must necessarily have all of them
+ * simply connected, because if one was not then the 1-square
+ * space in the middle could not be part of any 7-omino - but in
+ * fact, for sufficiently large k, it is perfectly possible for a
+ * k-omino to completely surround another k-omino. A simple
+ * example is this one with two 25-ominoes:
+ * 
+ *   +--+--+--+--+--+--+--+
+ *   |                    |
+ *   +  +--+--+--+--+--+  +
+ *   |  |              |  |
+ *   +  +              +  +
+ *   |  |              |  |
+ *   +  +              +  +--+
+ *   |  |              |     |
+ *   +  +              +  +--+
+ *   |  |              |  |
+ *   +  +              +  +
+ *   |  |              |  |
+ *   +  +--+--+--+--+--+  +
+ *   |                    |
+ *   +--+--+--+--+--+--+--+
+ * 
+ * I believe the smallest k which can manage this is 23, which I
+ * derive by considering the largest _rectangle_ a k-omino can
+ * surround. Consider: to surround an m x n rectangle, a polyomino
+ * must have 2m squares along the two m-sides of the rectangle, 2n
+ * squares along the n-sides, and fill in three of the corners. So
+ * m+n must be at most (k-3)/2. Hence, to find the largest area of
+ * such a rectangle, we must find m so as to maximise the product
+ * m((k-3)/2-m). This is achieved when m is as close as possible
+ * to half of (k-3)/2; so the largest rectangle surroundable by a
+ * k-omino is equal to floor(k'/2)*ceil(k'/2), with k'=(k-3)/2.
+ * The smallest k for which this is at least k is 23: a 23-omino
+ * can surround a 5x5 rectangle, whereas the best a 22-omino can
+ * manage is a 5x4.
+ * 
+ * (I don't have a definite argument to show that a k-omino cannot
+ * surround a larger area in non-rectangular than rectangular
+ * form, but it seems intuitively obvious to me that it can't. I
+ * may update this with a more rigorous proof if I think of one.)
+ * 
+ * Anyway: the point is, although constructions of this type are
+ * possible for sufficiently large k, divvy_rectangle() will never
+ * generate them. This could be considered a weakness for some
+ * purposes, in the sense that we can't generate all possible
+ * divisions. However, there are many divisions which we are
+ * highly unlikely to generate anyway, so in practice it probably
+ * isn't _too_ bad.
+ * 
+ * If I wanted to fix this issue, I would have to make the rules
+ * more complicated for determining when a square can safely be
+ * _removed_ from a polyomino. Adding one becomes easier (a square
+ * may be added to a polyomino iff it is 4-adjacent to any square
+ * currently part of the polyomino, and the current test for loop
+ * formation may be dispensed with), but to determine which
+ * squares may be removed we must now resort to analysis of the
+ * overall structure of the polyomino rather than the simple local
+ * properties we can currently get away with measuring.
+ */
+
+/*
  * Possible improvements which might cut the fail rate:
  * 
  *  - instead of picking one omino to extend in an iteration, try
