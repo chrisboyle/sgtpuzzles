@@ -38,32 +38,123 @@
  *   |                    |
  *   +--+--+--+--+--+--+--+
  * 
- * I believe the smallest k which can manage this is 23, which I
- * derive by considering the largest _rectangle_ a k-omino can
- * surround. Consider: to surround an m x n rectangle, a polyomino
- * must have 2m squares along the two m-sides of the rectangle, 2n
- * squares along the n-sides, and fill in three of the corners. So
- * m+n must be at most (k-3)/2. Hence, to find the largest area of
- * such a rectangle, we must find m so as to maximise the product
- * m((k-3)/2-m). This is achieved when m is as close as possible
- * to half of (k-3)/2; so the largest rectangle surroundable by a
- * k-omino is equal to floor(k'/2)*ceil(k'/2), with k'=(k-3)/2.
- * The smallest k for which this is at least k is 23: a 23-omino
- * can surround a 5x5 rectangle, whereas the best a 22-omino can
- * manage is a 5x4.
+ * I claim the smallest k which can manage this is 23. More
+ * formally:
  * 
- * (I don't have a definite argument to show that a k-omino cannot
- * surround a larger area in non-rectangular than rectangular
- * form, but it seems intuitively obvious to me that it can't. I
- * may update this with a more rigorous proof if I think of one.)
+ *   If a k-omino P is completely surrounded by another k-omino Q,
+ *   such that every edge of P borders on Q, then k >= 23.
  * 
- * Anyway: the point is, although constructions of this type are
- * possible for sufficiently large k, divvy_rectangle() will never
- * generate them. This could be considered a weakness for some
- * purposes, in the sense that we can't generate all possible
- * divisions. However, there are many divisions which we are
- * highly unlikely to generate anyway, so in practice it probably
- * isn't _too_ bad.
+ * Proof:
+ * 
+ * It's relatively simple to find the largest _rectangle_ a
+ * k-omino can enclose. So I'll construct my proof in two parts:
+ * firstly, show that no 22-omino or smaller can enclose a
+ * rectangle as large as itself, and secondly, show that no
+ * polyomino can enclose a larger non-rectangle than a rectangle.
+ * 
+ * The first of those claims:
+ * 
+ * To surround an m x n rectangle, a polyomino must have 2m
+ * squares along the two m-sides of the rectangle, 2n squares
+ * along the two n-sides, and must fill in at least three of the
+ * corners in order to be connected. Thus, 2(m+n)+3 <= k. We wish
+ * to find the largest value of mn subject to that constraint, and
+ * it's clear that this is achieved when m and n are as close to
+ * equal as possible. (If they aren't, WLOG suppose m < n; then
+ * (m+1)(n-1) = mn + n - m - 1 >= mn, with equality only when
+ * m=n-1.)
+ * 
+ * So the area of the largest rectangle which can be enclosed by a
+ * k-omino is given by floor(k'/2) * ceil(k'/2), where k' =
+ * (k-3)/2. This is a monotonic function in k, so there will be a
+ * unique point at which it goes from being smaller than k to
+ * being larger than k. That point is between 22 (maximum area 20)
+ * and 23 (maximum area 25).
+ * 
+ * The second claim:
+ * 
+ * Suppose we have an inner polyomino P surrounded by an outer
+ * polyomino Q. I seek to show that if P is non-rectangular, then
+ * P is also non-maximal, in the sense that we can transform P and
+ * Q into a new pair of polyominoes in which P is larger and Q is
+ * at most the same size.
+ * 
+ * Consider walking along the boundary of P in a clockwise
+ * direction. (We may assume, of course, that there is only _one_
+ * boundary of P, i.e. P has no hole in the middle. If it does
+ * have a hole in the middle, it's _trivially_ non-maximal because
+ * we can just fill the hole in!) Our walk will take us along many
+ * edges between squares; sometimes we might turn left, and
+ * certainly sometimes we will turn right. Always there will be a
+ * square of P on our right, and a square of Q on our left.
+ * 
+ * The net angle through which we turn during the entire walk must
+ * add up to 360 degrees rightwards. So if there are no left
+ * turns, then we must turn right exactly four times, meaning we
+ * have described a rectangle. Hence, if P is _not_ rectangular,
+ * then there must have been a left turn at some point. A left
+ * turn must mean we walk along two edges of the same square of Q.
+ * 
+ * Thus, there is some square X in Q which is adjacent to two
+ * diagonally separated squares in P. Let us call those two
+ * squares N and E; let us refer to the other two neighbours of X
+ * as S and W; let us refer to the other mutual neighbour of S and
+ * W as D; and let us refer to the other mutual neighbour of S and
+ * E as Y. In other words, we have named seven squares, arranged
+ * thus:
+ * 
+ *     N
+ *   W X E
+ *   D S Y
+ * 
+ * where N and E are in P, and X is in Q.
+ * 
+ * Clearly at least one of W and S must be in Q (because otherwise
+ * X would not be connected to any other square in Q, and would
+ * hence have to be the whole of Q; and evidently if Q were a
+ * 1-omino it could not enclose _anything_). So we divide into
+ * cases:
+ * 
+ * If both W and S are in Q, then we take X out of Q and put it in
+ * P, which does not expose any edge of P. If this disconnects Q,
+ * then we can reconnect it by adding D to Q.
+ * 
+ * If only one of W and S is in Q, then wlog let it be W. If S is
+ * in _P_, then we have a particularly easy case: we can simply
+ * take X out of Q and add it to P, and this cannot disconnect X
+ * since X was a leaf square of Q.
+ * 
+ * Our remaining case is that W is in Q and S is in neither P nor
+ * Q. Again we take X out of Q and put it in P; we also add S to
+ * Q. This ensures we do not expose an edge of P, but we must now
+ * prove that S is adjacent to some other existing square of Q so
+ * that we haven't disconnected Q by adding it.
+ * 
+ * To do this, we recall that we walked along the edge XE, and
+ * then turned left to walk along XN. So just before doing all
+ * that, we must have reached the corner XSE, and we must have
+ * done it by walking along one of the three edges meeting at that
+ * corner which are _not_ XE. It can't have been SY, since S would
+ * then have been on our left and it isn't in Q; and it can't have
+ * been XS, since S would then have been on our right and it isn't
+ * in P. So it must have been YE, in which case Y was on our left,
+ * and hence is in Q.
+ * 
+ * So in all cases we have shown that we can take X out of Q and
+ * add it to P, and add at most one square to Q to restore the
+ * containment and connectedness properties. Hence, we can keep
+ * doing this until we run out of left turns and P becomes
+ * rectangular. []
+ * 
+ * ------------
+ * 
+ * Anyway, that entire proof was a bit of a sidetrack. The point
+ * is, although constructions of this type are possible for
+ * sufficiently large k, divvy_rectangle() will never generate
+ * them. This could be considered a weakness for some purposes, in
+ * the sense that we can't generate all possible divisions.
+ * However, there are many divisions which we are highly unlikely
+ * to generate anyway, so in practice it probably isn't _too_ bad.
  * 
  * If I wanted to fix this issue, I would have to make the rules
  * more complicated for determining when a square can safely be
