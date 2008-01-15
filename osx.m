@@ -167,6 +167,18 @@ void document_add_puzzle(document *doc, const game *game, game_params *par,
 {
 }
 
+/*
+ * setAppleMenu isn't listed in the NSApplication header, but an
+ * NSApp responds to it, so we're adding it here to silence
+ * warnings. (This was removed from the headers in 10.4, so we
+ * only need to include it for 10.4+.)
+ */
+#if MAC_OS_X_VERSION_MAX_ALLOWED >= 1040
+@interface NSApplication(NSAppleMenu)
+- (void)setAppleMenu:(NSMenu *)menu;
+@end
+#endif
+
 /* ----------------------------------------------------------------------
  * Tiny extension to NSMenuItem which carries a payload of a `void
  * *', allowing several menu items to invoke the same message but
@@ -407,7 +419,7 @@ struct frontend {
     NSTextField *status;
 }
 - (id)initWithGame:(const game *)g;
-- dealloc;
+- (void)dealloc;
 - (void)processButton:(int)b x:(int)x y:(int)y;
 - (void)keyDown:(NSEvent *)ev;
 - (void)activateTimer;
@@ -590,7 +602,7 @@ struct frontend {
     return self;
 }
 
-- dealloc
+- (void)dealloc
 {
     int i;
     for (i = 0; i < fe.ncolours; i++) {
@@ -598,7 +610,7 @@ struct frontend {
     }
     sfree(fe.colours);
     midend_free(me);
-    return [super dealloc];
+    [super dealloc];
 }
 
 - (void)processButton:(int)b x:(int)x y:(int)y
@@ -713,7 +725,7 @@ struct frontend {
     NSSavePanel *sp = [NSSavePanel savePanel];
 
     if ([sp runModal] == NSFileHandlingPanelOKButton) {
-	const char *name = [[sp filename] cString];
+       const char *name = [[sp filename] UTF8String];
 
         FILE *fp = fopen(name, "w");
 
@@ -1179,7 +1191,7 @@ struct frontend {
 	      case C_STRING:
 		sfree(i->sval);
 		i->sval = dupstr([[[(id)cfg_controls[k+1] cell]
-				   title] cString]);
+                                  title] UTF8String]);
 		k += 2;
 		break;
 	      case C_BOOLEAN:
@@ -1586,4 +1598,6 @@ int main(int argc, char **argv)
 
     [NSApp run];
     [pool release];
+
+    return 0;
 }
