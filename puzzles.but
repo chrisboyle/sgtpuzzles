@@ -2233,9 +2233,11 @@ Filling was contributed to this collection by Jonas K\u00F6{oe}lker.
 \H{filling-controls} \I{controls, for Filling}Filling controls
 
 To play Filling, simply click the mouse in any empty square and then
-type a digit on the keyboard to fill that square.  If you make a
-mistake, click the mouse in the incorrect square and press 0, Space,
-Backspace or Enter to clear it again (or use the Undo feature).
+type a digit on the keyboard to fill that square. By dragging the
+mouse, you can select multiple squares to fill with a single keypress.
+If you make a mistake, click the mouse in the incorrect square and
+press 0, Space, Backspace or Enter to clear it again (or use the Undo
+feature).
 
 (All the actions described in \k{common-actions} are also available.)
 

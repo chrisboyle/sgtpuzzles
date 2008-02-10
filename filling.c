@@ -976,20 +976,22 @@ static char *solve_game(game_state *state, game_state *currstate,
  *****************************************************************************/
 
 struct game_ui {
-    int x, y; /* highlighted square, or (-1, -1) if none */
+    int *sel; /* w*h highlighted squares, or NULL */
 };
 
 static game_ui *new_ui(game_state *state)
 {
     game_ui *ui = snew(game_ui);
 
-    ui->x = ui->y = -1;
+    ui->sel = NULL;
 
     return ui;
 }
 
 static void free_ui(game_ui *ui)
 {
+    if (ui->sel)
+        sfree(ui->sel);
     sfree(ui);
 }
 
@@ -1005,6 +1007,11 @@ static void decode_ui(game_ui *ui, char *encoding)
 static void game_changed_state(game_ui *ui, game_state *oldstate,
                                game_state *newstate)
 {
+    /* Clear any selection */
+    if (ui->sel) {
+        sfree(ui->sel);
+        ui->sel = NULL;
+    }
 }
 
 #define PREFERRED_TILE_SIZE 32
@@ -1029,23 +1036,34 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
     const int tx = (x + TILE_SIZE - BORDER) / TILE_SIZE - 1;
     const int ty = (y + TILE_SIZE - BORDER) / TILE_SIZE - 1;
 
+    char *move = NULL;
+    int i;
+
     assert(ui);
     assert(ds);
 
     button &= ~MOD_MASK;
 
-    if (tx >= 0 && tx < w && ty >= 0 && ty < h) {
+    if (button == LEFT_BUTTON || button == LEFT_DRAG) {
+        /* A left-click anywhere will clear the current selection. */
         if (button == LEFT_BUTTON) {
-            if ((tx == ui->x && ty == ui->y) || state->shared->clues[w*ty+tx])
-                ui->x = ui->y = -1;
-            else ui->x = tx, ui->y = ty;
-            return ""; /* redraw */
+            if (ui->sel) {
+                sfree(ui->sel);
+                ui->sel = NULL;
+            }
         }
+        if (tx >= 0 && tx < w && ty >= 0 && ty < h) {
+            if (!ui->sel) {
+                ui->sel = snewn(w*h, int);
+                memset(ui->sel, 0, w*h*sizeof(int));
+            }
+            if (!state->shared->clues[w*ty+tx])
+                ui->sel[w*ty+tx] = 1;
+        }
+        return ""; /* redraw */
     }
 
-    assert((ui->x == -1) == (ui->y == -1));
-    if (ui->x == -1) return NULL;
-    assert(state->shared->clues[w*ui->y + ui->x] == 0);
+    if (!ui->sel) return NULL;
 
     switch (button) {
       case ' ':
@@ -1061,17 +1079,32 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
         if (button > (w == 2 && h == 2? 3: max(w, h))) return NULL;
     }
 
-    {
-        const int i = w*ui->y + ui->x;
-        char buf[64];
-        ui->x = ui->y = -1;
-	if (state->board[i] == button) {
-	    return "";		       /* no change - just update ui */
-	} else {
-	    sprintf(buf, "%d_%d", i, button);
-	    return dupstr(buf);
-	}
+    for (i = 0; i < w*h; i++) {
+        char buf[32];
+        if (ui->sel[i]) {
+            assert(state->shared->clues[i] == 0);
+            if (state->board[i] != button) {
+                sprintf(buf, "%s%d", move ? "," : "", i);
+                if (move) {
+                    move = srealloc(move, strlen(move)+strlen(buf)+1);
+                    strcat(move, buf);
+                } else {
+                    move = smalloc(strlen(buf)+1);
+                    strcpy(move, buf);
+                }
+            }
+        }
     }
+    if (move) {
+        char buf[32];
+        sprintf(buf, "_%d", button);
+        move = srealloc(move, strlen(move)+strlen(buf)+1);
+        strcat(move, buf);
+    }
+    sfree(ui->sel);
+    ui->sel = NULL;
+    /* Need to update UI at least, as we cleared the selection */
+    return move ? move : "";
 }
 
 static game_state *execute_move(game_state *state, char *move)
@@ -1085,18 +1118,22 @@ static game_state *execute_move(game_state *state, char *move)
         for (++move; i < sz; ++i) new_state->board[i] = move[i] - '0';
         new_state->cheated = TRUE;
     } else {
-        char *endptr;
-        const int i = strtol(move, &endptr, 0);
         int value;
-        if (endptr == move) return NULL;
-        if (*endptr != '_') return NULL;
-        move = endptr + 1;
-        value = strtol(move, &endptr, 0);
-        if (endptr == move) return NULL;
-        if (*endptr != '\0') return NULL;
-        if (i < 0 || i >= sz || value < 0 || value > 9) return NULL;
+        char *endptr, *delim = strchr(move, '_');
+        if (!delim) return NULL;
+        value = strtol(delim+1, &endptr, 0);
+        if (*endptr || endptr == delim+1) return NULL;
+        if (value < 0 || value > 9) return NULL;
         new_state = dup_game(state);
-        new_state->board[i] = value;
+        while (*move) {
+            const int i = strtol(move, &endptr, 0);
+            if (endptr == move) return NULL;
+            if (i < 0 || i >= sz) return NULL;
+            new_state->board[i] = value;
+            if (*endptr == '_') break;
+            if (*endptr != ',') return NULL;
+            move = endptr + 1;
+        }
     }
 
     /*
@@ -1414,7 +1451,7 @@ static void draw_grid(drawing *dr, game_drawstate *ds, game_state *state,
 
             if (flashy || !shading) {
                 /* clear all background flags */
-            } else if (x == ui->x && y == ui->y) {
+            } else if (ui->sel && ui->sel[y*w+x]) {
                 flags |= CURSOR_BG;
             } else if (v) {
                 int size = dsf_size(ds->dsf_scratch, y*w+x);
