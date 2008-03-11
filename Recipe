@@ -119,14 +119,23 @@ FORCE:
 # md5sum readily available. We do, however, have `md5 -r' which
 # generates _nearly_ the same output, but it has no check function.
 !begin osx
-version.o: FORCE;
+version.ppc.o: FORCE;
 FORCE:
 	if test -z "$(VER)" && test -f manifest && (md5 -r `awk '{print $$2}' manifest` | diff -w manifest -); then \
-		$(CC) $(COMPAT) $(XFLAGS) $(CFLAGS) `cat version.def` -c version.c; \
+		$(CC) -arch ppc $(COMPAT) $(XFLAGS) $(CFLAGS) `cat version.def` -c version.c -o version.ppc.o; \
 	elif test -z "$(VER)" && test -d .svn && svnversion . >/dev/null 2>&1; then \
-		$(CC) $(COMPAT) $(XFLAGS) $(CFLAGS) "-DREVISION=`svnversion .`" -c version.c; \
+		$(CC) -arch ppc $(COMPAT) $(XFLAGS) $(CFLAGS) "-DREVISION=`svnversion .`" -c version.c -o version.ppc.o; \
 	else \
-		$(CC) $(COMPAT) $(XFLAGS) $(CFLAGS) $(VER) -c version.c; \
+		$(CC) -arch ppc $(COMPAT) $(XFLAGS) $(CFLAGS) $(VER) -c version.c -o version.ppc.o; \
+	fi
+version.i386.o: FORCE2;
+FORCE2:
+	if test -z "$(VER)" && test -f manifest && (md5 -r `awk '{print $$2}' manifest` | diff -w manifest -); then \
+		$(CC) -arch i386 $(COMPAT) $(XFLAGS) $(CFLAGS) `cat version.def` -c version.c -o version.i386.o; \
+	elif test -z "$(VER)" && test -d .svn && svnversion . >/dev/null 2>&1; then \
+		$(CC) -arch i386 $(COMPAT) $(XFLAGS) $(CFLAGS) "-DREVISION=`svnversion .`" -c version.c -o version.i386.o; \
+	else \
+		$(CC) -arch i386 $(COMPAT) $(XFLAGS) $(CFLAGS) $(VER) -c version.c -o version.i386.o; \
 	fi
 !end
 !specialobj osx version

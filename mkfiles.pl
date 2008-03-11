@@ -1351,6 +1351,7 @@ if (defined $makefiles{'lcc'}) {
 if (defined $makefiles{'osx'}) {
     $mftyp = 'osx';
     $dirpfx = &dirpfx($makefiles{'osx'}, "/");
+    @osxarchs = ('ppc', 'i386');
 
     ##-- Mac OS X makefile
     open OUT, ">$makefiles{'osx'}"; select OUT;
@@ -1363,6 +1364,7 @@ if (defined $makefiles{'osx'}) {
     print $_;
     print
     "CC = \$(TOOLPATH)gcc\n".
+    "LIPO = \$(TOOLPATH)lipo\n".
     "\n".
     &splitline("CFLAGS = -O2 -Wall -Werror -g " .
 	       (join " ", map {"-I$dirpfx$_"} @srcdirs))."\n".
@@ -1376,7 +1378,6 @@ if (defined $makefiles{'osx'}) {
     print "\n\n";
     foreach $p (&prognames("MX")) {
       ($prog, $type) = split ",", $p;
-      $objstr = &objects($p, "X.o", undef, undef);
       $icon = &special($p, ".icns");
       $infoplist = &special($p, "info.plist");
       print "${prog}.app:\n\tmkdir -p \$\@\n";
@@ -1394,34 +1395,49 @@ if (defined $makefiles{'osx'}) {
       }
       $targets .= " \$(${prog}_extra)";
       print &splitline("${prog}: $targets", 69) . "\n\n";
-      print &splitline("${prog}.app/Contents/MacOS/$prog: ".
-	               "${prog}.app/Contents/MacOS " . $objstr), "\n";
       $libstr = &objects($p, undef, undef, "-lX");
-      print &splitline("\t\$(CC)" . $mw . " \$(LDFLAGS) -o \$@ " .
+      $archbins = "";
+      foreach $arch (@osxarchs) {
+	$objstr = &objects($p, "X.${arch}.o", undef, undef);
+	print &splitline("${prog}.${arch}.bin: " . $objstr), "\n";
+	print &splitline("\t\$(CC) -arch ${arch} -mmacosx-version-min=10.3 \$(LDFLAGS) -o \$@ " .
                        $objstr . " $libstr", 69), "\n\n";
+	$archbins .= " ${prog}.${arch}.bin";
+      }
+      print &splitline("${prog}.app/Contents/MacOS/$prog: ".
+	               "${prog}.app/Contents/MacOS" . $archbins), "\n";
+      print &splitline("\t\$(LIPO) -create $archbins -output \$@", 69), "\n\n";
     }
     foreach $p (&prognames("U")) {
       ($prog, $type) = split ",", $p;
-      $objstr = &objects($p, "X.o", undef, undef);
-      print &splitline($prog . ": " . $objstr), "\n";
       $libstr = &objects($p, undef, undef, "-lX");
-      print &splitline("\t\$(CC)" . $mw . " \$(ULDFLAGS) -o \$@ " .
-		       $objstr . " $libstr", 69), "\n\n";
+      $archbins = "";
+      foreach $arch (@osxarchs) {
+	$objstr = &objects($p, "X.${arch}.o", undef, undef);
+	print &splitline("${prog}.${arch}: " . $objstr), "\n";
+	print &splitline("\t\$(CC) -arch ${arch} -mmacosx-version-min=10.3 \$(ULDFLAGS) -o \$@ " .
+                       $objstr . " $libstr", 69), "\n\n";
+	$archbins .= " ${prog}.${arch}";
+      }
+      print &splitline("${prog}:" . $archbins), "\n";
+      print &splitline("\t\$(LIPO) -create $archbins -output \$@", 69), "\n\n";
     }
-    foreach $d (&deps("X.o", undef, $dirpfx, "/")) {
-      print &splitline(sprintf("%s: %s", $d->{obj}, join " ", @{$d->{deps}})),
-          "\n";
-      $deflist = join "", map { " -D$_" } @{$d->{defs}};
-      if ($d->{deps}->[0] =~ /\.m$/) {
-	print "\t\$(CC) -x objective-c \$(COMPAT) \$(FWHACK) \$(CFLAGS)".
-	    " \$(XFLAGS)$deflist -c \$< -o \$\@\n";
-      } else {
-	print "\t\$(CC) \$(COMPAT) \$(FWHACK) \$(CFLAGS) \$(XFLAGS)$deflist" .
-	    " -c \$< -o \$\@\n";
+    foreach $arch (@osxarchs) {
+      foreach $d (&deps("X.${arch}.o", undef, $dirpfx, "/")) {
+        print &splitline(sprintf("%s: %s", $d->{obj}, join " ", @{$d->{deps}})),
+            "\n";
+        $deflist = join "", map { " -D$_" } @{$d->{defs}};
+        if ($d->{deps}->[0] =~ /\.m$/) {
+	  print "\t\$(CC) -arch $arch -mmacosx-version-min=10.3 -x objective-c \$(COMPAT) \$(FWHACK) \$(CFLAGS)".
+	      " \$(XFLAGS)$deflist -c \$< -o \$\@\n";
+        } else {
+	  print "\t\$(CC) -arch $arch -mmacosx-version-min=10.3 \$(COMPAT) \$(FWHACK) \$(CFLAGS) \$(XFLAGS)$deflist" .
+	      " -c \$< -o \$\@\n";
+        }
       }
     }
     print "\nclean:\n".
-    "\trm -f *.o *.dmg". (join "", map { " $_" } &progrealnames("U")) . "\n".
+    "\trm -f *.o *.dmg". (join "", map { my $a=$_; (" $a", map { " ${a}.$_" } @osxarchs) } &progrealnames("U")) . "\n".
     "\trm -rf *.app\n";
     select STDOUT; close OUT;
 }
