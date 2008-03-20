@@ -8,7 +8,7 @@ in puzzles do perl mkfiles.pl
 in puzzles do make
 
 # Now build the screenshots and icons.
-in puzzles/icons do xvfb-run make web winicons gtkicons
+in puzzles/icons do xvfb-run -s "-cc TrueColor" make web winicons gtkicons
 
 # Re-run mkfiles.pl now that it knows the icons are there.
 in puzzles do perl mkfiles.pl
