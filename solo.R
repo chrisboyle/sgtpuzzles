@@ -6,8 +6,8 @@ solo     : [X] GTK COMMON SOLO solo-icon|no-icon
 
 solo     : [G] WINDOWS COMMON SOLO solo.res|noicon.res
 
-solosolver :    [U] solo[STANDALONE_SOLVER] dsf STANDALONE
-solosolver :    [C] solo[STANDALONE_SOLVER] dsf STANDALONE
+solosolver :    [U] solo[STANDALONE_SOLVER] divvy dsf STANDALONE
+solosolver :    [C] solo[STANDALONE_SOLVER] divvy dsf STANDALONE
 
 ALL += SOLO
 

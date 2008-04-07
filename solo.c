@@ -2571,6 +2571,8 @@ static char *validate_desc(game_params *params, char *desc)
         return "Too much data to fit in grid";
 
     if (params->r == 1) {
+	int pos;
+
 	/*
 	 * Now we expect a suffix giving the jigsaw block
 	 * structure. Parse it and validate that it divides the
@@ -2579,7 +2581,7 @@ static char *validate_desc(game_params *params, char *desc)
 	 */
 	if (*desc != ',')
 	    return "Expected jigsaw block structure in game description";
-	int pos = 0;
+	pos = 0;
 
 	dsf = snew_dsf(area);
 	desc++;
