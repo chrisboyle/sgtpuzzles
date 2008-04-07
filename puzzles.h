@@ -208,7 +208,7 @@ void print_get_colour(drawing *dr, int colour, int printing_in_colour,
 int print_mono_colour(drawing *dr, int grey); /* 0==black, 1==white */
 int print_grey_colour(drawing *dr, float grey);
 int print_hatched_colour(drawing *dr, int hatch);
-int print_rgb_mono_colour(drawing *dr, float r, float g, float b, float mono);
+int print_rgb_mono_colour(drawing *dr, float r, float g, float b, int mono);
 int print_rgb_grey_colour(drawing *dr, float r, float g, float b, float grey);
 int print_rgb_hatched_colour(drawing *dr, float r, float g, float b,
 			     int hatch);
