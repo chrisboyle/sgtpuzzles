@@ -1,13 +1,15 @@
 # -*- makefile -*-
 
-solo     : [X] GTK COMMON solo solo-icon|no-icon
+SOLO     = solo divvy dsf
 
-solo     : [G] WINDOWS COMMON solo solo.res|noicon.res
+solo     : [X] GTK COMMON SOLO solo-icon|no-icon
 
-solosolver :    [U] solo[STANDALONE_SOLVER] STANDALONE
-solosolver :    [C] solo[STANDALONE_SOLVER] STANDALONE
+solo     : [G] WINDOWS COMMON SOLO solo.res|noicon.res
 
-ALL += solo
+solosolver :    [U] solo[STANDALONE_SOLVER] dsf STANDALONE
+solosolver :    [C] solo[STANDALONE_SOLVER] dsf STANDALONE
+
+ALL += SOLO
 
 !begin gtk
 GAMES += solo

@@ -3,6 +3,26 @@
  *
  * TODO:
  *
+ *  - Jigsaw Sudoku is currently an undocumented feature enabled
+ *    by setting r (`Rows of sub-blocks' in the GUI configurer) to
+ *    1. The reason it's undocumented is because they're rather
+ *    erratic to generate, because gridgen tends to hang up for
+ *    ages. I think this is because some jigsaw block layouts
+ *    simply do not admit very many valid filled grids (and
+ *    perhaps some have none at all).
+ *     + To fix this, I think probably the solution is a change in
+ * 	 grid generation policy: gridgen needs to have less of an
+ * 	 all-or-nothing attitude and instead make only a limited
+ * 	 amount of effort to construct a filled grid before giving
+ * 	 up and trying a new layout. (Come to think of it, this
+ * 	 same change might also make 5x5 standard Sudoku more
+ * 	 practical to generate, if correctly tuned.)
+ *     + If I get this fixed, other work needed on jigsaw mode is:
+ * 	  * introduce a GUI config checkbox. game_configure()
+ * 	    ticks this box iff r==1; if it's ticked in a call to
+ * 	    custom_params(), we replace (c, r) with (c*r, 1).
+ *        * document it.
+ *
  *  - reports from users are that `Trivial'-mode puzzles are still
  *    rather hard compared to newspapers' easy ones, so some better
  *    low-end difficulty grading would be nice
@@ -110,6 +130,7 @@ typedef unsigned char digit;
 #define PREFERRED_TILE_SIZE 32
 #define TILE_SIZE (ds->tilesize)
 #define BORDER (TILE_SIZE / 2)
+#define GRIDEXTRA (TILE_SIZE / 32)
 
 #define FLASH_TIME 0.4F
 
@@ -121,6 +142,7 @@ enum { DIFF_BLOCK, DIFF_SIMPLE, DIFF_INTERSECT, DIFF_SET, DIFF_EXTREME,
 
 enum {
     COL_BACKGROUND,
+    COL_XDIAGONALS,
     COL_GRID,
     COL_CLUE,
     COL_USER,
@@ -131,11 +153,65 @@ enum {
 };
 
 struct game_params {
+    /*
+     * For a square puzzle, `c' and `r' indicate the puzzle
+     * parameters as described above.
+     * 
+     * A jigsaw-style puzzle is indicated by r==1, in which case c
+     * can be whatever it likes (there is no constraint on
+     * compositeness - a 7x7 jigsaw sudoku makes perfect sense).
+     */
     int c, r, symm, diff;
+    int xtype;			       /* require all digits in X-diagonals */
+};
+
+struct block_structure {
+    int refcount;
+
+    /*
+     * For text formatting, we do need c and r here.
+     */
+    int c, r;
+
+    /*
+     * For any square index, whichblock[i] gives its block index.
+     * 
+     * For 0 <= b,i < cr, blocks[b][i] gives the index of the ith
+     * square in block b.
+     * 
+     * whichblock and blocks are each dynamically allocated in
+     * their own right, but the subarrays in blocks are appended
+     * to the whichblock array, so shouldn't be freed
+     * individually.
+     */
+    int *whichblock, **blocks;
+
+#ifdef STANDALONE_SOLVER
+    /*
+     * Textual descriptions of each block. For normal Sudoku these
+     * are of the form "(1,3)"; for jigsaw they are "starting at
+     * (5,7)". So the sensible usage in both cases is to say
+     * "elimination within block %s" with one of these strings.
+     * 
+     * Only blocknames itself needs individually freeing; it's all
+     * one block.
+     */
+    char **blocknames;
+#endif
 };
 
 struct game_state {
-    int c, r;
+    /*
+     * For historical reasons, I use `cr' to denote the overall
+     * width/height of the puzzle. It was a natural notation when
+     * all puzzles were divided into blocks in a grid, but doesn't
+     * really make much sense given jigsaw puzzles. However, the
+     * obvious `n' is heavily used in the solver to describe the
+     * index of a number being placed, so `cr' will have to stay.
+     */
+    int cr;
+    struct block_structure *blocks;
+    int xtype;
     digit *grid;
     unsigned char *pencil;             /* c*r*c*r elements */
     unsigned char *immutable;	       /* marks which digits are clues */
@@ -147,6 +223,7 @@ static game_params *default_params(void)
     game_params *ret = snew(game_params);
 
     ret->c = ret->r = 3;
+    ret->xtype = FALSE;
     ret->symm = SYMM_ROT2;	       /* a plausible default */
     ret->diff = DIFF_BLOCK;	       /* so is this */
 
@@ -171,17 +248,19 @@ static int game_fetch_preset(int i, char **name, game_params **params)
         char *title;
         game_params params;
     } presets[] = {
-        { "2x2 Trivial", { 2, 2, SYMM_ROT2, DIFF_BLOCK } },
-        { "2x3 Basic", { 2, 3, SYMM_ROT2, DIFF_SIMPLE } },
-        { "3x3 Trivial", { 3, 3, SYMM_ROT2, DIFF_BLOCK } },
-        { "3x3 Basic", { 3, 3, SYMM_ROT2, DIFF_SIMPLE } },
-        { "3x3 Intermediate", { 3, 3, SYMM_ROT2, DIFF_INTERSECT } },
-        { "3x3 Advanced", { 3, 3, SYMM_ROT2, DIFF_SET } },
-        { "3x3 Extreme", { 3, 3, SYMM_ROT2, DIFF_EXTREME } },
-        { "3x3 Unreasonable", { 3, 3, SYMM_ROT2, DIFF_RECURSIVE } },
+        { "2x2 Trivial", { 2, 2, SYMM_ROT2, DIFF_BLOCK, FALSE } },
+        { "2x3 Basic", { 2, 3, SYMM_ROT2, DIFF_SIMPLE, FALSE } },
+        { "3x3 Trivial", { 3, 3, SYMM_ROT2, DIFF_BLOCK, FALSE } },
+        { "3x3 Basic", { 3, 3, SYMM_ROT2, DIFF_SIMPLE, FALSE } },
+        { "3x3 Basic X", { 3, 3, SYMM_ROT2, DIFF_SIMPLE, TRUE } },
+        { "3x3 Intermediate", { 3, 3, SYMM_ROT2, DIFF_INTERSECT, FALSE } },
+        { "3x3 Advanced", { 3, 3, SYMM_ROT2, DIFF_SET, FALSE } },
+        { "3x3 Advanced X", { 3, 3, SYMM_ROT2, DIFF_SET, TRUE } },
+        { "3x3 Extreme", { 3, 3, SYMM_ROT2, DIFF_EXTREME, FALSE } },
+        { "3x3 Unreasonable", { 3, 3, SYMM_ROT2, DIFF_RECURSIVE, FALSE } },
 #ifndef SLOW_SYSTEM
-        { "3x4 Basic", { 3, 4, SYMM_ROT2, DIFF_SIMPLE } },
-        { "4x4 Basic", { 4, 4, SYMM_ROT2, DIFF_SIMPLE } },
+        { "3x4 Basic", { 3, 4, SYMM_ROT2, DIFF_SIMPLE, FALSE } },
+        { "4x4 Basic", { 4, 4, SYMM_ROT2, DIFF_SIMPLE, FALSE } },
 #endif
     };
 
@@ -196,15 +275,27 @@ static int game_fetch_preset(int i, char **name, game_params **params)
 
 static void decode_params(game_params *ret, char const *string)
 {
+    int seen_r = FALSE;
+
     ret->c = ret->r = atoi(string);
+    ret->xtype = FALSE;
     while (*string && isdigit((unsigned char)*string)) string++;
     if (*string == 'x') {
         string++;
         ret->r = atoi(string);
+	seen_r = TRUE;
 	while (*string && isdigit((unsigned char)*string)) string++;
     }
     while (*string) {
-        if (*string == 'r' || *string == 'm' || *string == 'a') {
+        if (*string == 'j') {
+	    string++;
+	    if (seen_r)
+		ret->c *= ret->r;
+	    ret->r = 1;
+	} else if (*string == 'x') {
+	    string++;
+	    ret->xtype = TRUE;
+	} else if (*string == 'r' || *string == 'm' || *string == 'a') {
             int sn, sc, sd;
             sc = *string++;
             if (sc == 'm' && *string == 'd') {
@@ -250,7 +341,13 @@ static char *encode_params(game_params *params, int full)
 {
     char str[80];
 
-    sprintf(str, "%dx%d", params->c, params->r);
+    if (params->r > 1)
+	sprintf(str, "%dx%d", params->c, params->r);
+    else
+	sprintf(str, "%dj", params->c);
+    if (params->xtype)
+	strcat(str, "x");
+
     if (full) {
         switch (params->symm) {
           case SYMM_REF8: strcat(str, "m8"); break;
@@ -279,7 +376,7 @@ static config_item *game_configure(game_params *params)
     config_item *ret;
     char buf[80];
 
-    ret = snewn(5, config_item);
+    ret = snewn(6, config_item);
 
     ret[0].name = "Columns of sub-blocks";
     ret[0].type = C_STRING;
@@ -293,22 +390,27 @@ static config_item *game_configure(game_params *params)
     ret[1].sval = dupstr(buf);
     ret[1].ival = 0;
 
-    ret[2].name = "Symmetry";
-    ret[2].type = C_CHOICES;
-    ret[2].sval = ":None:2-way rotation:4-way rotation:2-way mirror:"
+    ret[2].name = "\"X\" (require every number in each main diagonal)";
+    ret[2].type = C_BOOLEAN;
+    ret[2].sval = NULL;
+    ret[2].ival = params->xtype;
+
+    ret[3].name = "Symmetry";
+    ret[3].type = C_CHOICES;
+    ret[3].sval = ":None:2-way rotation:4-way rotation:2-way mirror:"
         "2-way diagonal mirror:4-way mirror:4-way diagonal mirror:"
         "8-way mirror";
-    ret[2].ival = params->symm;
+    ret[3].ival = params->symm;
 
-    ret[3].name = "Difficulty";
-    ret[3].type = C_CHOICES;
-    ret[3].sval = ":Trivial:Basic:Intermediate:Advanced:Extreme:Unreasonable";
-    ret[3].ival = params->diff;
+    ret[4].name = "Difficulty";
+    ret[4].type = C_CHOICES;
+    ret[4].sval = ":Trivial:Basic:Intermediate:Advanced:Extreme:Unreasonable";
+    ret[4].ival = params->diff;
 
-    ret[4].name = NULL;
-    ret[4].type = C_END;
-    ret[4].sval = NULL;
-    ret[4].ival = 0;
+    ret[5].name = NULL;
+    ret[5].type = C_END;
+    ret[5].sval = NULL;
+    ret[5].ival = 0;
 
     return ret;
 }
@@ -319,15 +421,16 @@ static game_params *custom_params(config_item *cfg)
 
     ret->c = atoi(cfg[0].sval);
     ret->r = atoi(cfg[1].sval);
-    ret->symm = cfg[2].ival;
-    ret->diff = cfg[3].ival;
+    ret->xtype = cfg[2].ival;
+    ret->symm = cfg[3].ival;
+    ret->diff = cfg[4].ival;
 
     return ret;
 }
 
 static char *validate_params(game_params *params, int full)
 {
-    if (params->c < 2 || params->r < 2)
+    if (params->c < 2)
 	return "Both dimensions must be at least 2";
     if (params->c > ORDER_MAX || params->r > ORDER_MAX)
 	return "Dimensions greater than "STR(ORDER_MAX)" are not supported";
@@ -391,28 +494,7 @@ static char *validate_params(game_params *params, int full)
  *       the numbers' possible positions (or the spaces' possible
  *       contents).
  * 
- *  - Mutual neighbour elimination: find two squares A,B and a
- *    number N in the possible set of A, such that putting N in A
- *    would rule out enough possibilities from the mutual
- *    neighbours of A and B that there would be no possibilities
- *    left for B. Thereby rule out N in A.
- *     + The simplest case of this is if B has two possibilities
- * 	 (wlog {1,2}), and there are two mutual neighbours of A and
- * 	 B which have possibilities {1,3} and {2,3}. Thus, if A
- * 	 were to be 3, then those neighbours would contain 1 and 2,
- * 	 and hence there would be nothing left which could go in B.
- *     + There can be more complex cases of it too: if A and B are
- * 	 in the same column of large blocks, then they can have
- * 	 more than two mutual neighbours, some of which can also be
- * 	 neighbours of one another. Suppose, for example, that B
- * 	 has possibilities {1,2,3}; there's one square P in the
- * 	 same column as B and the same block as A, with
- * 	 possibilities {1,4}; and there are _two_ squares Q,R in
- * 	 the same column as A and the same block as B with
- * 	 possibilities {2,3,4}. Then if A contained 4, P would
- * 	 contain 1, and Q and R would have to contain 2 and 3 in
- * 	 _some_ order; therefore, once again, B would have no
- * 	 remaining possibilities.
+ *  - Forcing chains (see comment for solver_forcing().)
  * 
  *  - Recursion. If all else fails, we pick one of the currently
  *    most constrained empty squares and take a random guess at its
@@ -420,31 +502,16 @@ static char *validate_params(game_params *params, int full)
  *    get any further.
  */
 
-/*
- * Within this solver, I'm going to transform all y-coordinates by
- * inverting the significance of the block number and the position
- * within the block. That is, we will start with the top row of
- * each block in order, then the second row of each block in order,
- * etc.
- * 
- * This transformation has the enormous advantage that it means
- * every row, column _and_ block is described by an arithmetic
- * progression of coordinates within the cubic array, so that I can
- * use the same very simple function to do blockwise, row-wise and
- * column-wise elimination.
- */
-#define YTRANS(y) (((y)%c)*r+(y)/c)
-#define YUNTRANS(y) (((y)%r)*c+(y)/r)
-
 struct solver_usage {
-    int c, r, cr;
+    int cr;
+    struct block_structure *blocks;
     /*
      * We set up a cubic array, indexed by x, y and digit; each
      * element of this array is TRUE or FALSE according to whether
      * or not that digit _could_ in principle go in that position.
      *
-     * The way to index this array is cube[(x*cr+y)*cr+n-1].
-     * y-coordinates in here are transformed.
+     * The way to index this array is cube[(y*cr+x)*cr+n-1]; there
+     * are macros below to help with this.
      */
     unsigned char *cube;
     /*
@@ -461,11 +528,20 @@ struct solver_usage {
     unsigned char *row;
     /* col[x*cr+n-1] TRUE if digit n has been placed in row x */
     unsigned char *col;
-    /* blk[(y*c+x)*cr+n-1] TRUE if digit n has been placed in block (x,y) */
+    /* blk[i*cr+n-1] TRUE if digit n has been placed in block i */
     unsigned char *blk;
+    /* diag[i*cr+n-1] TRUE if digit n has been placed in diagonal i */
+    unsigned char *diag;	       /* diag 0 is \, 1 is / */
 };
-#define cubepos(x,y,n) (((x)*usage->cr+(y))*usage->cr+(n)-1)
+#define cubepos2(xy,n) ((xy)*usage->cr+(n)-1)
+#define cubepos(x,y,n) cubepos2((y)*usage->cr+(x),n)
 #define cube(x,y,n) (usage->cube[cubepos(x,y,n)])
+#define cube2(xy,n) (usage->cube[cubepos2(xy,n)])
+
+#define ondiag0(xy) ((xy) % (cr+1) == 0)
+#define ondiag1(xy) ((xy) % (cr-1) == 0 && (xy) > 0 && (xy) < cr*cr-1)
+#define diag0(i) ((i) * (cr+1))
+#define diag1(i) ((i+1) * (cr-1))
 
 /*
  * Function called when we are certain that a particular square has
@@ -474,8 +550,9 @@ struct solver_usage {
  */
 static void solver_place(struct solver_usage *usage, int x, int y, int n)
 {
-    int c = usage->c, r = usage->r, cr = usage->cr;
-    int i, j, bx, by;
+    int cr = usage->cr;
+    int sqindex = y*cr+x;
+    int i, bi;
 
     assert(cube(x,y,n));
 
@@ -503,33 +580,48 @@ static void solver_place(struct solver_usage *usage, int x, int y, int n)
     /*
      * Rule out this number in all other positions in the block.
      */
-    bx = (x/r)*r;
-    by = y % r;
-    for (i = 0; i < r; i++)
-	for (j = 0; j < c; j++)
-	    if (bx+i != x || by+j*r != y)
-		cube(bx+i,by+j*r,n) = FALSE;
+    bi = usage->blocks->whichblock[sqindex];
+    for (i = 0; i < cr; i++) {
+	int bp = usage->blocks->blocks[bi][i];
+	if (bp != sqindex)
+	    cube2(bp,n) = FALSE;
+    }
 
     /*
      * Enter the number in the result grid.
      */
-    usage->grid[YUNTRANS(y)*cr+x] = n;
+    usage->grid[sqindex] = n;
 
     /*
      * Cross out this number from the list of numbers left to place
      * in its row, its column and its block.
      */
     usage->row[y*cr+n-1] = usage->col[x*cr+n-1] =
-	usage->blk[((y%r)*c+(x/r))*cr+n-1] = TRUE;
+	usage->blk[bi*cr+n-1] = TRUE;
+
+    if (usage->diag) {
+	if (ondiag0(sqindex)) {
+	    for (i = 0; i < cr; i++)
+		if (diag0(i) != sqindex)
+		    cube2(diag0(i),n) = FALSE;
+	    usage->diag[n-1] = TRUE;
+	}
+	if (ondiag1(sqindex)) {
+	    for (i = 0; i < cr; i++)
+		if (diag1(i) != sqindex)
+		    cube2(diag1(i),n) = FALSE;
+	    usage->diag[cr+n-1] = TRUE;
+	}
+    }
 }
 
-static int solver_elim(struct solver_usage *usage, int start, int step
+static int solver_elim(struct solver_usage *usage, int *indices
 #ifdef STANDALONE_SOLVER
                        , char *fmt, ...
 #endif
                        )
 {
-    int c = usage->c, r = usage->r, cr = c*r;
+    int cr = usage->cr;
     int fpos, m, i;
 
     /*
@@ -539,8 +631,8 @@ static int solver_elim(struct solver_usage *usage, int start, int step
     m = 0;
     fpos = -1;
     for (i = 0; i < cr; i++)
-	if (usage->cube[start+i*step]) {
-	    fpos = start+i*step;
+	if (usage->cube[indices[i]]) {
+	    fpos = indices[i];
 	    m++;
 	}
 
@@ -549,11 +641,11 @@ static int solver_elim(struct solver_usage *usage, int start, int step
 	assert(fpos >= 0);
 
 	n = 1 + fpos % cr;
-	y = fpos / cr;
-	x = y / cr;
-	y %= cr;
+	x = fpos / cr;
+	y = x / cr;
+	x %= cr;
 
-        if (!usage->grid[YUNTRANS(y)*cr+x]) {
+        if (!usage->grid[y*cr+x]) {
 #ifdef STANDALONE_SOLVER
             if (solver_show_working) {
                 va_list ap;
@@ -562,7 +654,7 @@ static int solver_elim(struct solver_usage *usage, int start, int step
                 vprintf(fmt, ap);
                 va_end(ap);
                 printf(":\n%*s  placing %d at (%d,%d)\n",
-                       solver_recurse_depth*4, "", n, 1+x, 1+YUNTRANS(y));
+                       solver_recurse_depth*4, "", n, 1+x, 1+y);
             }
 #endif
             solver_place(usage, x, y, n);
@@ -587,25 +679,29 @@ static int solver_elim(struct solver_usage *usage, int start, int step
 }
 
 static int solver_intersect(struct solver_usage *usage,
-                            int start1, int step1, int start2, int step2
+                            int *indices1, int *indices2
 #ifdef STANDALONE_SOLVER
                             , char *fmt, ...
 #endif
                             )
 {
-    int c = usage->c, r = usage->r, cr = c*r;
-    int ret, i;
+    int cr = usage->cr;
+    int ret, i, j;
 
     /*
      * Loop over the first domain and see if there's any set bit
      * not also in the second.
      */
-    for (i = 0; i < cr; i++) {
-        int p = start1+i*step1;
-        if (usage->cube[p] &&
-            !(p >= start2 && p < start2+cr*step2 &&
-              (p - start2) % step2 == 0))
-            return 0;		       /* there is, so we can't deduce */
+    for (i = j = 0; i < cr; i++) {
+        int p = indices1[i];
+	while (j < cr && indices2[j] < p)
+	    j++;
+        if (usage->cube[p]) {
+	    if (j < cr && indices2[j] == p)
+		continue;	       /* both domains contain this index */
+	    else
+		return 0;	       /* there is, so we can't deduce */
+	}
     }
 
     /*
@@ -615,11 +711,11 @@ static int solver_intersect(struct solver_usage *usage,
      * overlap; return +1 iff we actually _did_ anything.
      */
     ret = 0;
-    for (i = 0; i < cr; i++) {
-        int p = start2+i*step2;
-        if (usage->cube[p] &&
-            !(p >= start1 && p < start1+cr*step1 && (p - start1) % step1 == 0))
-        {
+    for (i = j = 0; i < cr; i++) {
+        int p = indices2[i];
+	while (j < cr && indices1[j] < p)
+	    j++;
+        if (usage->cube[p] && (j >= cr || indices1[j] != p)) {
 #ifdef STANDALONE_SOLVER
             if (solver_show_working) {
                 int px, py, pn;
@@ -634,12 +730,12 @@ static int solver_intersect(struct solver_usage *usage,
                 }
 
                 pn = 1 + p % cr;
-                py = p / cr;
-                px = py / cr;
-                py %= cr;
+                px = p / cr;
+                py = px / cr;
+                px %= cr;
 
                 printf("%*s  ruling out %d at (%d,%d)\n",
-                       solver_recurse_depth*4, "", pn, 1+px, 1+YUNTRANS(py));
+                       solver_recurse_depth*4, "", pn, 1+px, 1+py);
             }
 #endif
             ret = +1;		       /* we did something */
@@ -653,6 +749,7 @@ static int solver_intersect(struct solver_usage *usage,
 struct solver_scratch {
     unsigned char *grid, *rowidx, *colidx, *set;
     int *neighbours, *bfsqueue;
+    int *indexlist, *indexlist2;
 #ifdef STANDALONE_SOLVER
     int *bfsprev;
 #endif
@@ -660,13 +757,13 @@ struct solver_scratch {
 
 static int solver_set(struct solver_usage *usage,
                       struct solver_scratch *scratch,
-                      int start, int step1, int step2
+                      int *indices
 #ifdef STANDALONE_SOLVER
                       , char *fmt, ...
 #endif
                       )
 {
-    int c = usage->c, r = usage->r, cr = c*r;
+    int cr = usage->cr;
     int i, j, n, count;
     unsigned char *grid = scratch->grid;
     unsigned char *rowidx = scratch->rowidx;
@@ -684,7 +781,7 @@ static int solver_set(struct solver_usage *usage,
     for (i = 0; i < cr; i++) {
         int count = 0, first = -1;
         for (j = 0; j < cr; j++)
-            if (usage->cube[start+i*step1+j*step2])
+            if (usage->cube[indices[i*cr+j]])
                 first = j, count++;
 
 	/*
@@ -717,7 +814,7 @@ static int solver_set(struct solver_usage *usage,
      */
     for (i = 0; i < n; i++)
         for (j = 0; j < n; j++)
-            grid[i*cr+j] = usage->cube[start+rowidx[i]*step1+colidx[j]*step2];
+            grid[i*cr+j] = usage->cube[indices[rowidx[i]*cr+colidx[j]]];
 
     /*
      * Having done that, we now have a matrix in which every row
@@ -800,8 +897,7 @@ static int solver_set(struct solver_usage *usage,
                     if (!ok) {
                         for (j = 0; j < n; j++)
                             if (!set[j] && grid[i*cr+j]) {
-                                int fpos = (start+rowidx[i]*step1+
-                                            colidx[j]*step2);
+                                int fpos = indices[rowidx[i]*cr+colidx[j]];
 #ifdef STANDALONE_SOLVER
                                 if (solver_show_working) {
                                     int px, py, pn;
@@ -817,13 +913,13 @@ static int solver_set(struct solver_usage *usage,
                                     }
 
                                     pn = 1 + fpos % cr;
-                                    py = fpos / cr;
-                                    px = py / cr;
-                                    py %= cr;
+                                    px = fpos / cr;
+                                    py = px / cr;
+                                    px %= cr;
 
                                     printf("%*s  ruling out %d at (%d,%d)\n",
 					   solver_recurse_depth*4, "",
-                                           pn, 1+px, 1+YUNTRANS(py));
+                                           pn, 1+px, 1+py);
                                 }
 #endif
                                 progress = TRUE;
@@ -855,158 +951,6 @@ static int solver_set(struct solver_usage *usage,
 }
 
 /*
- * Try to find a number in the possible set of (x1,y1) which can be
- * ruled out because it would leave no possibilities for (x2,y2).
- */
-static int solver_mne(struct solver_usage *usage,
-		      struct solver_scratch *scratch,
-		      int x1, int y1, int x2, int y2)
-{
-    int c = usage->c, r = usage->r, cr = c*r;
-    int *nb[2];
-    unsigned char *set = scratch->set;
-    unsigned char *numbers = scratch->rowidx;
-    unsigned char *numbersleft = scratch->colidx;
-    int nnb, count;
-    int i, j, n, nbi;
-
-    nb[0] = scratch->neighbours;
-    nb[1] = scratch->neighbours + cr;
-
-    /*
-     * First, work out the mutual neighbour squares of the two. We
-     * can assert that they're not actually in the same block,
-     * which leaves two possibilities: they're in different block
-     * rows _and_ different block columns (thus their mutual
-     * neighbours are precisely the other two corners of the
-     * rectangle), or they're in the same row (WLOG) and different
-     * columns, in which case their mutual neighbours are the
-     * column of each block aligned with the other square.
-     * 
-     * We divide the mutual neighbours into two separate subsets
-     * nb[0] and nb[1]; squares in the same subset are not only
-     * adjacent to both our key squares, but are also always
-     * adjacent to one another.
-     */
-    if (x1 / r != x2 / r && y1 % r != y2 % r) {
-	/* Corners of the rectangle. */
-	nnb = 1;
-	nb[0][0] = cubepos(x2, y1, 1);
-	nb[1][0] = cubepos(x1, y2, 1);
-    } else if (x1 / r != x2 / r) {
-	/* Same row of blocks; different blocks within that row. */
-	int x1b = x1 - (x1 % r);
-	int x2b = x2 - (x2 % r);
-
-	nnb = r;
-	for (i = 0; i < r; i++) {
-	    nb[0][i] = cubepos(x2b+i, y1, 1);
-	    nb[1][i] = cubepos(x1b+i, y2, 1);
-	}
-    } else {
-	/* Same column of blocks; different blocks within that column. */
-	int y1b = y1 % r;
-	int y2b = y2 % r;
-
-	assert(y1 % r != y2 % r);
-
-	nnb = c;
-	for (i = 0; i < c; i++) {
-	    nb[0][i] = cubepos(x2, y1b+i*r, 1);
-	    nb[1][i] = cubepos(x1, y2b+i*r, 1);
-	}
-    }
-
-    /*
-     * Right. Now loop over each possible number.
-     */
-    for (n = 1; n <= cr; n++) {
-	if (!cube(x1, y1, n))
-	    continue;
-	for (j = 0; j < cr; j++)
-	    numbersleft[j] = cube(x2, y2, j+1);
-
-	/*
-	 * Go over every possible subset of each neighbour list,
-	 * and see if its union of possible numbers minus n has the
-	 * same size as the subset. If so, add the numbers in that
-	 * subset to the set of things which would be ruled out
-	 * from (x2,y2) if n were placed at (x1,y1).
-	 */
-	memset(set, 0, nnb);
-	count = 0;
-	while (1) {
-	    /*
-	     * Binary increment: change the rightmost 0 to a 1, and
-	     * change all 1s to the right of it to 0s.
-	     */
-	    i = nnb;
-	    while (i > 0 && set[i-1])
-		set[--i] = 0, count--;
-	    if (i > 0)
-		set[--i] = 1, count++;
-	    else
-		break;		       /* done */
-
-	    /*
-	     * Examine this subset of each neighbour set.
-	     */
-	    for (nbi = 0; nbi < 2; nbi++) {
-		int *nbs = nb[nbi];
-		
-		memset(numbers, 0, cr);
-
-		for (i = 0; i < nnb; i++)
-		    if (set[i])
-			for (j = 0; j < cr; j++)
-			    if (j != n-1 && usage->cube[nbs[i] + j])
-				numbers[j] = 1;
-
-		for (i = j = 0; j < cr; j++)
-		    i += numbers[j];
-
-		if (i == count) {
-		    /*
-		     * Got one. This subset of nbs, in the absence
-		     * of n, would definitely contain all the
-		     * numbers listed in `numbers'. Rule them out
-		     * of `numbersleft'.
-		     */
-		    for (j = 0; j < cr; j++)
-			if (numbers[j])
-			    numbersleft[j] = 0;
-		}
-	    }
-	}
-
-	/*
-	 * If we've got nothing left in `numbersleft', we have a
-	 * successful mutual neighbour elimination.
-	 */
-	for (j = 0; j < cr; j++)
-	    if (numbersleft[j])
-		break;
-
-	if (j == cr) {
-#ifdef STANDALONE_SOLVER
-	    if (solver_show_working) {
-		printf("%*smutual neighbour elimination, (%d,%d) vs (%d,%d):\n",
-		       solver_recurse_depth*4, "",
-		       1+x1, 1+YUNTRANS(y1), 1+x2, 1+YUNTRANS(y2));
-		printf("%*s  ruling out %d at (%d,%d)\n",
-		       solver_recurse_depth*4, "",
-		       n, 1+x1, 1+YUNTRANS(y1));
-	    }
-#endif
-	    cube(x1, y1, n) = FALSE;
-	    return +1;
-	}
-    }
-
-    return 0;			       /* nothing found */
-}
-
-/*
  * Look for forcing chains. A forcing chain is a path of
  * pairwise-exclusive squares (i.e. each pair of adjacent squares
  * in the path are in the same row, column or block) with the
@@ -1015,23 +959,23 @@ static int solver_mne(struct solver_usage *usage,
  *  (a) Each square on the path has precisely two possible numbers.
  *
  *  (b) Each pair of squares which are adjacent on the path share
- *      at least one possible number in common.
+ * 	at least one possible number in common.
  *
  *  (c) Each square in the middle of the path shares _both_ of its
- *      numbers with at least one of its neighbours (not the same
- *      one with both neighbours).
+ * 	numbers with at least one of its neighbours (not the same
+ * 	one with both neighbours).
  *
  * These together imply that at least one of the possible number
  * choices at one end of the path forces _all_ the rest of the
  * numbers along the path. In order to make real use of this, we
  * need further properties:
  *
- *  (c) Ruling out some number N from the square at one end
- *      of the path forces the square at the other end to
- *      take number N.
+ *  (c) Ruling out some number N from the square at one end of the
+ * 	path forces the square at the other end to take the same
+ * 	number N.
  *
  *  (d) The two end squares are both in line with some third
- *      square.
+ * 	square.
  *
  *  (e) That third square currently has N as a possibility.
  *
@@ -1045,7 +989,7 @@ static int solver_mne(struct solver_usage *usage,
 static int solver_forcing(struct solver_usage *usage,
                           struct solver_scratch *scratch)
 {
-    int c = usage->c, r = usage->r, cr = c*r;
+    int cr = usage->cr;
     int *bfsqueue = scratch->bfsqueue;
 #ifdef STANDALONE_SOLVER
     int *bfsprev = scratch->bfsprev;
@@ -1094,7 +1038,7 @@ static int solver_forcing(struct solver_usage *usage,
                     number[y*cr+x] = t - n;
 
                     while (head < tail) {
-                        int xx, yy, nneighbours, xt, yt, xblk, i;
+                        int xx, yy, nneighbours, xt, yt, i;
 
                         xx = bfsqueue[head++];
                         yy = xx / cr;
@@ -1110,10 +1054,20 @@ static int solver_forcing(struct solver_usage *usage,
                             neighbours[nneighbours++] = yt*cr+xx;
                         for (xt = 0; xt < cr; xt++)
                             neighbours[nneighbours++] = yy*cr+xt;
-                        xblk = xx - (xx % r);
-                        for (yt = yy % r; yt < cr; yt += r)
-                            for (xt = xblk; xt < xblk+r; xt++)
-                                neighbours[nneighbours++] = yt*cr+xt;
+                        xt = usage->blocks->whichblock[yy*cr+xx];
+                        for (yt = 0; yt < cr; yt++)
+			    neighbours[nneighbours++] = usage->blocks->blocks[xt][yt];
+			if (usage->diag) {
+			    int sqindex = yy*cr+xx;
+			    if (ondiag0(sqindex)) {
+				for (i = 0; i < cr; i++)
+				    neighbours[nneighbours++] = diag0(i);
+			    }
+			    if (ondiag1(sqindex)) {
+				for (i = 0; i < cr; i++)
+				    neighbours[nneighbours++] = diag1(i);
+			    }
+			}
 
                         /*
                          * Try visiting each of those neighbours.
@@ -1166,7 +1120,9 @@ static int solver_forcing(struct solver_usage *usage,
                              */
                             if (currn == orign &&
                                 (xt == x || yt == y ||
-                                 (xt / r == x / r && yt % r == y % r))) {
+                                 (usage->blocks->whichblock[yt*cr+xt] == usage->blocks->whichblock[y*cr+x]) ||
+				 (usage->diag && ((ondiag0(yt*cr+xt) && ondiag0(y*cr+x)) ||
+						  (ondiag1(yt*cr+xt) && ondiag1(y*cr+x)))))) {
 #ifdef STANDALONE_SOLVER
                                 if (solver_show_working) {
                                     char *sep = "";
@@ -1177,7 +1133,7 @@ static int solver_forcing(struct solver_usage *usage,
                                     yl = yy;
                                     while (1) {
                                         printf("%s(%d,%d)", sep, 1+xl,
-                                               1+YUNTRANS(yl));
+                                               1+yl);
                                         xl = bfsprev[yl*cr+xl];
                                         if (xl < 0)
                                             break;
@@ -1187,7 +1143,7 @@ static int solver_forcing(struct solver_usage *usage,
                                     }
                                     printf("\n%*s  ruling out %d at (%d,%d)\n",
                                            solver_recurse_depth*4, "",
-                                           orign, 1+xt, 1+YUNTRANS(yt));
+                                           orign, 1+xt, 1+yt);
                                 }
 #endif
                                 cube(xt, yt, orign) = FALSE;
@@ -1209,11 +1165,13 @@ static struct solver_scratch *solver_new_scratch(struct solver_usage *usage)
     scratch->rowidx = snewn(cr, unsigned char);
     scratch->colidx = snewn(cr, unsigned char);
     scratch->set = snewn(cr, unsigned char);
-    scratch->neighbours = snewn(3*cr, int);
+    scratch->neighbours = snewn(5*cr, int);
     scratch->bfsqueue = snewn(cr*cr, int);
 #ifdef STANDALONE_SOLVER
     scratch->bfsprev = snewn(cr*cr, int);
 #endif
+    scratch->indexlist = snewn(cr*cr, int);   /* used for set elimination */
+    scratch->indexlist2 = snewn(cr, int);   /* only used for intersect() */
     return scratch;
 }
 
@@ -1228,15 +1186,17 @@ static void solver_free_scratch(struct solver_scratch *scratch)
     sfree(scratch->colidx);
     sfree(scratch->rowidx);
     sfree(scratch->grid);
+    sfree(scratch->indexlist);
+    sfree(scratch->indexlist2);
     sfree(scratch);
 }
 
-static int solver(int c, int r, digit *grid, int maxdiff)
+static int solver(int cr, struct block_structure *blocks, int xtype,
+		  digit *grid, int maxdiff)
 {
     struct solver_usage *usage;
     struct solver_scratch *scratch;
-    int cr = c*r;
-    int x, y, x2, y2, n, ret;
+    int x, y, b, i, n, ret;
     int diff = DIFF_BLOCK;
 
     /*
@@ -1244,9 +1204,8 @@ static int solver(int c, int r, digit *grid, int maxdiff)
      * possible).
      */
     usage = snew(struct solver_usage);
-    usage->c = c;
-    usage->r = r;
     usage->cr = cr;
+    usage->blocks = blocks;
     usage->cube = snewn(cr*cr*cr, unsigned char);
     usage->grid = grid;		       /* write straight back to the input */
     memset(usage->cube, TRUE, cr*cr*cr);
@@ -1258,6 +1217,12 @@ static int solver(int c, int r, digit *grid, int maxdiff)
     memset(usage->col, FALSE, cr * cr);
     memset(usage->blk, FALSE, cr * cr);
 
+    if (xtype) {
+	usage->diag = snewn(cr * 2, unsigned char);
+	memset(usage->diag, FALSE, cr * 2);
+    } else
+	usage->diag = NULL; 
+
     scratch = solver_new_scratch(usage);
 
     /*
@@ -1266,7 +1231,7 @@ static int solver(int c, int r, digit *grid, int maxdiff)
     for (x = 0; x < cr; x++)
 	for (y = 0; y < cr; y++)
 	    if (grid[y*cr+x])
-		solver_place(usage, x, YTRANS(y), grid[y*cr+x]);
+		solver_place(usage, x, y, grid[y*cr+x]);
 
     /*
      * Now loop over the grid repeatedly trying all permitted modes
@@ -1288,24 +1253,26 @@ static int solver(int c, int r, digit *grid, int maxdiff)
 	/*
 	 * Blockwise positional elimination.
 	 */
-	for (x = 0; x < cr; x += r)
-	    for (y = 0; y < r; y++)
-		for (n = 1; n <= cr; n++)
-		    if (!usage->blk[(y*c+(x/r))*cr+n-1]) {
-			ret = solver_elim(usage, cubepos(x,y,n), r*cr
+	for (b = 0; b < cr; b++)
+	    for (n = 1; n <= cr; n++)
+		if (!usage->blk[b*cr+n-1]) {
+		    for (i = 0; i < cr; i++)
+			scratch->indexlist[i] = cubepos2(usage->blocks->blocks[b][i],n);
+		    ret = solver_elim(usage, scratch->indexlist
 #ifdef STANDALONE_SOLVER
-					  , "positional elimination,"
-					  " %d in block (%d,%d)", n, 1+x/r, 1+y
+				      , "positional elimination,"
+				      " %d in block %s", n,
+				      usage->blocks->blocknames[b]
 #endif
-					  );
-			if (ret < 0) {
-			    diff = DIFF_IMPOSSIBLE;
-			    goto got_result;
-			} else if (ret > 0) {
-			    diff = max(diff, DIFF_BLOCK);
-			    goto cont;
-			}
-                    }
+				      );
+		    if (ret < 0) {
+			diff = DIFF_IMPOSSIBLE;
+			goto got_result;
+		    } else if (ret > 0) {
+			diff = max(diff, DIFF_BLOCK);
+			goto cont;
+		    }
+		}
 
 	if (maxdiff <= DIFF_BLOCK)
 	    break;
@@ -1316,10 +1283,12 @@ static int solver(int c, int r, digit *grid, int maxdiff)
 	for (y = 0; y < cr; y++)
 	    for (n = 1; n <= cr; n++)
 		if (!usage->row[y*cr+n-1]) {
-		    ret = solver_elim(usage, cubepos(0,y,n), cr*cr
+		    for (x = 0; x < cr; x++)
+			scratch->indexlist[x] = cubepos(x, y, n);
+		    ret = solver_elim(usage, scratch->indexlist
 #ifdef STANDALONE_SOLVER
 				      , "positional elimination,"
-				      " %d in row %d", n, 1+YUNTRANS(y)
+				      " %d in row %d", n, 1+y
 #endif
 				      );
 		    if (ret < 0) {
@@ -1336,7 +1305,9 @@ static int solver(int c, int r, digit *grid, int maxdiff)
 	for (x = 0; x < cr; x++)
 	    for (n = 1; n <= cr; n++)
 		if (!usage->col[x*cr+n-1]) {
-		    ret = solver_elim(usage, cubepos(x,0,n), cr
+		    for (y = 0; y < cr; y++)
+			scratch->indexlist[y] = cubepos(x, y, n);
+		    ret = solver_elim(usage, scratch->indexlist
 #ifdef STANDALONE_SOLVER
 				      , "positional elimination,"
 				      " %d in column %d", n, 1+x
@@ -1352,15 +1323,59 @@ static int solver(int c, int r, digit *grid, int maxdiff)
                 }
 
 	/*
+	 * X-diagonal positional elimination.
+	 */
+	if (usage->diag) {
+	    for (n = 1; n <= cr; n++)
+		if (!usage->diag[n-1]) {
+		    for (i = 0; i < cr; i++)
+			scratch->indexlist[i] = cubepos2(diag0(i), n);
+		    ret = solver_elim(usage, scratch->indexlist
+#ifdef STANDALONE_SOLVER
+				      , "positional elimination,"
+				      " %d in \\-diagonal", n
+#endif
+				      );
+		    if (ret < 0) {
+			diff = DIFF_IMPOSSIBLE;
+			goto got_result;
+		    } else if (ret > 0) {
+			diff = max(diff, DIFF_SIMPLE);
+			goto cont;
+		    }
+                }
+	    for (n = 1; n <= cr; n++)
+		if (!usage->diag[cr+n-1]) {
+		    for (i = 0; i < cr; i++)
+			scratch->indexlist[i] = cubepos2(diag1(i), n);
+		    ret = solver_elim(usage, scratch->indexlist
+#ifdef STANDALONE_SOLVER
+				      , "positional elimination,"
+				      " %d in /-diagonal", n
+#endif
+				      );
+		    if (ret < 0) {
+			diff = DIFF_IMPOSSIBLE;
+			goto got_result;
+		    } else if (ret > 0) {
+			diff = max(diff, DIFF_SIMPLE);
+			goto cont;
+		    }
+                }
+	}
+
+	/*
 	 * Numeric elimination.
 	 */
 	for (x = 0; x < cr; x++)
 	    for (y = 0; y < cr; y++)
-		if (!usage->grid[YUNTRANS(y)*cr+x]) {
-		    ret = solver_elim(usage, cubepos(x,y,1), 1
+		if (!usage->grid[y*cr+x]) {
+		    for (n = 1; n <= cr; n++)
+			scratch->indexlist[n-1] = cubepos(x, y, n);
+		    ret = solver_elim(usage, scratch->indexlist
 #ifdef STANDALONE_SOLVER
-				      , "numeric elimination at (%d,%d)", 1+x,
-				      1+YUNTRANS(y)
+				      , "numeric elimination at (%d,%d)",
+				      1+x, 1+y
 #endif
 				      );
 		    if (ret < 0) {
@@ -1379,60 +1394,140 @@ static int solver(int c, int r, digit *grid, int maxdiff)
          * Intersectional analysis, rows vs blocks.
          */
         for (y = 0; y < cr; y++)
-            for (x = 0; x < cr; x += r)
-                for (n = 1; n <= cr; n++)
+            for (b = 0; b < cr; b++)
+                for (n = 1; n <= cr; n++) {
+                    if (usage->row[y*cr+n-1] ||
+                        usage->blk[b*cr+n-1])
+			continue;
+		    for (i = 0; i < cr; i++) {
+			scratch->indexlist[i] = cubepos(i, y, n);
+			scratch->indexlist2[i] = cubepos2(usage->blocks->blocks[b][i], n);
+		    }
 		    /*
 		     * solver_intersect() never returns -1.
 		     */
-                    if (!usage->row[y*cr+n-1] &&
-                        !usage->blk[((y%r)*c+(x/r))*cr+n-1] &&
-                        (solver_intersect(usage, cubepos(0,y,n), cr*cr,
-                                          cubepos(x,y%r,n), r*cr
+		    if (solver_intersect(usage, scratch->indexlist,
+					 scratch->indexlist2
 #ifdef STANDALONE_SOLVER
                                           , "intersectional analysis,"
-                                          " %d in row %d vs block (%d,%d)",
-                                          n, 1+YUNTRANS(y), 1+x/r, 1+y%r
+                                          " %d in row %d vs block %s",
+                                          n, 1+y, usage->blocks->blocknames[b]
 #endif
                                           ) ||
-                         solver_intersect(usage, cubepos(x,y%r,n), r*cr,
-                                          cubepos(0,y,n), cr*cr
+                         solver_intersect(usage, scratch->indexlist2,
+					 scratch->indexlist
 #ifdef STANDALONE_SOLVER
                                           , "intersectional analysis,"
-                                          " %d in block (%d,%d) vs row %d",
-                                          n, 1+x/r, 1+y%r, 1+YUNTRANS(y)
+                                          " %d in block %s vs row %d",
+                                          n, usage->blocks->blocknames[b], 1+y
 #endif
-                                          ))) {
+                                          )) {
                         diff = max(diff, DIFF_INTERSECT);
                         goto cont;
                     }
+		}
 
         /*
          * Intersectional analysis, columns vs blocks.
          */
         for (x = 0; x < cr; x++)
-            for (y = 0; y < r; y++)
-                for (n = 1; n <= cr; n++)
-                    if (!usage->col[x*cr+n-1] &&
-                        !usage->blk[(y*c+(x/r))*cr+n-1] &&
-                        (solver_intersect(usage, cubepos(x,0,n), cr,
-                                          cubepos((x/r)*r,y,n), r*cr
+            for (b = 0; b < cr; b++)
+                for (n = 1; n <= cr; n++) {
+                    if (usage->col[x*cr+n-1] ||
+                        usage->blk[b*cr+n-1])
+			continue;
+		    for (i = 0; i < cr; i++) {
+			scratch->indexlist[i] = cubepos(x, i, n);
+			scratch->indexlist2[i] = cubepos2(usage->blocks->blocks[b][i], n);
+		    }
+		    if (solver_intersect(usage, scratch->indexlist,
+					 scratch->indexlist2
 #ifdef STANDALONE_SOLVER
                                           , "intersectional analysis,"
-                                          " %d in column %d vs block (%d,%d)",
-                                          n, 1+x, 1+x/r, 1+y
+                                          " %d in column %d vs block %s",
+                                          n, 1+x, usage->blocks->blocknames[b]
 #endif
                                           ) ||
-                         solver_intersect(usage, cubepos((x/r)*r,y,n), r*cr,
-                                          cubepos(x,0,n), cr
+                         solver_intersect(usage, scratch->indexlist2,
+					 scratch->indexlist
 #ifdef STANDALONE_SOLVER
                                           , "intersectional analysis,"
-                                          " %d in block (%d,%d) vs column %d",
-                                          n, 1+x/r, 1+y, 1+x
+                                          " %d in block %s vs column %d",
+                                          n, usage->blocks->blocknames[b], 1+x
 #endif
-                                          ))) {
+                                          )) {
                         diff = max(diff, DIFF_INTERSECT);
                         goto cont;
                     }
+		}
+
+	if (usage->diag) {
+	    /*
+	     * Intersectional analysis, \-diagonal vs blocks.
+	     */
+            for (b = 0; b < cr; b++)
+                for (n = 1; n <= cr; n++) {
+                    if (usage->diag[n-1] ||
+                        usage->blk[b*cr+n-1])
+			continue;
+		    for (i = 0; i < cr; i++) {
+			scratch->indexlist[i] = cubepos2(diag0(i), n);
+			scratch->indexlist2[i] = cubepos2(usage->blocks->blocks[b][i], n);
+		    }
+		    if (solver_intersect(usage, scratch->indexlist,
+					 scratch->indexlist2
+#ifdef STANDALONE_SOLVER
+                                          , "intersectional analysis,"
+                                          " %d in \\-diagonal vs block %s",
+                                          n, 1+x, usage->blocks->blocknames[b]
+#endif
+                                          ) ||
+                         solver_intersect(usage, scratch->indexlist2,
+					 scratch->indexlist
+#ifdef STANDALONE_SOLVER
+                                          , "intersectional analysis,"
+                                          " %d in block %s vs \\-diagonal",
+                                          n, usage->blocks->blocknames[b], 1+x
+#endif
+                                          )) {
+                        diff = max(diff, DIFF_INTERSECT);
+                        goto cont;
+                    }
+		}
+
+	    /*
+	     * Intersectional analysis, /-diagonal vs blocks.
+	     */
+            for (b = 0; b < cr; b++)
+                for (n = 1; n <= cr; n++) {
+                    if (usage->diag[cr+n-1] ||
+                        usage->blk[b*cr+n-1])
+			continue;
+		    for (i = 0; i < cr; i++) {
+			scratch->indexlist[i] = cubepos2(diag1(i), n);
+			scratch->indexlist2[i] = cubepos2(usage->blocks->blocks[b][i], n);
+		    }
+		    if (solver_intersect(usage, scratch->indexlist,
+					 scratch->indexlist2
+#ifdef STANDALONE_SOLVER
+                                          , "intersectional analysis,"
+                                          " %d in /-diagonal vs block %s",
+                                          n, 1+x, usage->blocks->blocknames[b]
+#endif
+                                          ) ||
+                         solver_intersect(usage, scratch->indexlist2,
+					 scratch->indexlist
+#ifdef STANDALONE_SOLVER
+                                          , "intersectional analysis,"
+                                          " %d in block %s vs /-diagonal",
+                                          n, usage->blocks->blocknames[b], 1+x
+#endif
+                                          )) {
+                        diff = max(diff, DIFF_INTERSECT);
+                        goto cont;
+                    }
+		}
+	}
 
 	if (maxdiff <= DIFF_INTERSECT)
 	    break;
@@ -1440,29 +1535,35 @@ static int solver(int c, int r, digit *grid, int maxdiff)
 	/*
 	 * Blockwise set elimination.
 	 */
-	for (x = 0; x < cr; x += r)
-	    for (y = 0; y < r; y++) {
-		ret = solver_set(usage, scratch, cubepos(x,y,1), r*cr, 1
+	for (b = 0; b < cr; b++) {
+	    for (i = 0; i < cr; i++)
+		for (n = 1; n <= cr; n++)
+		    scratch->indexlist[i*cr+n-1] = cubepos2(usage->blocks->blocks[b][i], n);
+	    ret = solver_set(usage, scratch, scratch->indexlist
 #ifdef STANDALONE_SOLVER
-				 , "set elimination, block (%d,%d)", 1+x/r, 1+y
+			     , "set elimination, block %s",
+			     usage->blocks->blocknames[b]
 #endif
 				 );
-		if (ret < 0) {
-		    diff = DIFF_IMPOSSIBLE;
-		    goto got_result;
-		} else if (ret > 0) {
-		    diff = max(diff, DIFF_SET);
-		    goto cont;
-		}
+	    if (ret < 0) {
+		diff = DIFF_IMPOSSIBLE;
+		goto got_result;
+	    } else if (ret > 0) {
+		diff = max(diff, DIFF_SET);
+		goto cont;
 	    }
+	}
 
 	/*
 	 * Row-wise set elimination.
 	 */
 	for (y = 0; y < cr; y++) {
-            ret = solver_set(usage, scratch, cubepos(0,y,1), cr*cr, 1
+	    for (x = 0; x < cr; x++)
+		for (n = 1; n <= cr; n++)
+		    scratch->indexlist[x*cr+n-1] = cubepos(x, y, n);
+	    ret = solver_set(usage, scratch, scratch->indexlist
 #ifdef STANDALONE_SOLVER
-			     , "set elimination, row %d", 1+YUNTRANS(y)
+			     , "set elimination, row %d", 1+y
 #endif
 			     );
 	    if (ret < 0) {
@@ -1478,7 +1579,10 @@ static int solver(int c, int r, digit *grid, int maxdiff)
 	 * Column-wise set elimination.
 	 */
 	for (x = 0; x < cr; x++) {
-            ret = solver_set(usage, scratch, cubepos(x,0,1), cr, 1
+	    for (y = 0; y < cr; y++)
+		for (n = 1; n <= cr; n++)
+		    scratch->indexlist[y*cr+n-1] = cubepos(x, y, n);
+            ret = solver_set(usage, scratch, scratch->indexlist
 #ifdef STANDALONE_SOLVER
 			     , "set elimination, column %d", 1+x
 #endif
@@ -1492,11 +1596,57 @@ static int solver(int c, int r, digit *grid, int maxdiff)
 	    }
 	}
 
+	if (usage->diag) {
+	    /*
+	     * \-diagonal set elimination.
+	     */
+	    for (i = 0; i < cr; i++)
+		for (n = 1; n <= cr; n++)
+		    scratch->indexlist[i*cr+n-1] = cubepos2(diag0(i), n);
+            ret = solver_set(usage, scratch, scratch->indexlist
+#ifdef STANDALONE_SOLVER
+			     , "set elimination, \\-diagonal"
+#endif
+			     );
+	    if (ret < 0) {
+		diff = DIFF_IMPOSSIBLE;
+		goto got_result;
+	    } else if (ret > 0) {
+		diff = max(diff, DIFF_SET);
+		goto cont;
+	    }
+
+	    /*
+	     * /-diagonal set elimination.
+	     */
+	    for (i = 0; i < cr; i++)
+		for (n = 1; n <= cr; n++)
+		    scratch->indexlist[i*cr+n-1] = cubepos2(diag1(i), n);
+            ret = solver_set(usage, scratch, scratch->indexlist
+#ifdef STANDALONE_SOLVER
+			     , "set elimination, \\-diagonal"
+#endif
+			     );
+	    if (ret < 0) {
+		diff = DIFF_IMPOSSIBLE;
+		goto got_result;
+	    } else if (ret > 0) {
+		diff = max(diff, DIFF_SET);
+		goto cont;
+	    }
+	}
+
+	if (maxdiff <= DIFF_SET)
+	    break;
+
 	/*
 	 * Row-vs-column set elimination on a single number.
 	 */
 	for (n = 1; n <= cr; n++) {
-            ret = solver_set(usage, scratch, cubepos(0,0,n), cr*cr, cr
+	    for (y = 0; y < cr; y++)
+		for (x = 0; x < cr; x++)
+		    scratch->indexlist[y*cr+x] = cubepos(x, y, n);
+            ret = solver_set(usage, scratch, scratch->indexlist
 #ifdef STANDALONE_SOLVER
 			     , "positional set elimination, number %d", n
 #endif
@@ -1507,45 +1657,6 @@ static int solver(int c, int r, digit *grid, int maxdiff)
 	    } else if (ret > 0) {
 		diff = max(diff, DIFF_EXTREME);
 		goto cont;
-	    }
-	}
-
-	/*
-	 * Mutual neighbour elimination.
-	 */
-	for (y = 0; y+1 < cr; y++) {
-	    for (x = 0; x+1 < cr; x++) {
-		for (y2 = y+1; y2 < cr; y2++) {
-		    for (x2 = x+1; x2 < cr; x2++) {
-			/*
-			 * Can't do mutual neighbour elimination
-			 * between elements of the same actual
-			 * block.
-			 */
-			if (x/r == x2/r && y%r == y2%r)
-			    continue;
-
-			/*
-			 * Otherwise, try (x,y) vs (x2,y2) in both
-			 * directions, and likewise (x2,y) vs
-			 * (x,y2).
-			 */
-			if (!usage->grid[YUNTRANS(y)*cr+x] &&
-			    !usage->grid[YUNTRANS(y2)*cr+x2] &&
-			    (solver_mne(usage, scratch, x, y, x2, y2) ||
-			     solver_mne(usage, scratch, x2, y2, x, y))) {
-			    diff = max(diff, DIFF_EXTREME);
-			    goto cont;
-			}
-			if (!usage->grid[YUNTRANS(y)*cr+x2] &&
-			    !usage->grid[YUNTRANS(y2)*cr+x] &&
-			    (solver_mne(usage, scratch, x2, y, x, y2) ||
-			     solver_mne(usage, scratch, x, y2, x2, y))) {
-			    diff = max(diff, DIFF_EXTREME);
-			    goto cont;
-			}
-		    }
-		}
 	    }
 	}
 
@@ -1588,7 +1699,7 @@ static int solver(int c, int r, digit *grid, int maxdiff)
 		     */
 		    count = 0;
 		    for (n = 1; n <= cr; n++)
-			if (cube(x,YTRANS(y),n))
+			if (cube(x,y,n))
 			    count++;
 
 		    /*
@@ -1622,7 +1733,7 @@ static int solver(int c, int r, digit *grid, int maxdiff)
 
 	    /* Make a list of the possible digits. */
 	    for (j = 0, n = 1; n <= cr; n++)
-		if (cube(x,YTRANS(y),n))
+		if (cube(x,y,n))
 		    list[j++] = n;
 
 #ifdef STANDALONE_SOLVER
@@ -1655,7 +1766,7 @@ static int solver(int c, int r, digit *grid, int maxdiff)
 		solver_recurse_depth++;
 #endif
 
-		ret = solver(c, r, outgrid, maxdiff);
+		ret = solver(cr, blocks, xtype, outgrid, maxdiff);
 
 #ifdef STANDALONE_SOLVER
 		solver_recurse_depth--;
@@ -1767,7 +1878,8 @@ static int solver(int c, int r, digit *grid, int maxdiff)
  */
 struct gridgen_coord { int x, y, r; };
 struct gridgen_usage {
-    int c, r, cr;		       /* cr == c*r */
+    int cr;
+    struct block_structure *blocks;
     /* grid is a copy of the input grid, modified as we go along */
     digit *grid;
     /* row[y*cr+n-1] TRUE if digit n has been placed in row y */
@@ -1776,6 +1888,8 @@ struct gridgen_usage {
     unsigned char *col;
     /* blk[(y*c+x)*cr+n-1] TRUE if digit n has been placed in block (x,y) */
     unsigned char *blk;
+    /* diag[i*cr+n-1] TRUE if digit n has been placed in diagonal i */
+    unsigned char *diag;
     /* This lists all the empty spaces remaining in the grid. */
     struct gridgen_coord *spaces;
     int nspaces;
@@ -1785,10 +1899,13 @@ struct gridgen_usage {
 
 /*
  * The real recursive step in the generating function.
+ *
+ * Return values: 1 means solution found, 0 means no solution
+ * found on this branch.
  */
 static int gridgen_real(struct gridgen_usage *usage, digit *grid)
 {
-    int c = usage->c, r = usage->r, cr = usage->cr;
+    int cr = usage->cr;
     int i, j, n, sx, sy, bestm, bestr, ret;
     int *digits;
 
@@ -1818,7 +1935,9 @@ static int gridgen_real(struct gridgen_usage *usage, digit *grid)
 	m = 0;
 	for (n = 0; n < cr; n++)
 	    if (!usage->row[y*cr+n] && !usage->col[x*cr+n] &&
-		!usage->blk[((y/c)*c+(x/r))*cr+n])
+		!usage->blk[usage->blocks->whichblock[y*cr+x]*cr+n] &&
+		(!usage->diag || ((!ondiag0(y*cr+x) || !usage->diag[n]) &&
+				  (!ondiag1(y*cr+x) || !usage->diag[cr+n]))))
 		m++;
 
 	if (m < bestm || (m == bestm && usage->spaces[j].r < bestr)) {
@@ -1850,7 +1969,9 @@ static int gridgen_real(struct gridgen_usage *usage, digit *grid)
     j = 0;
     for (n = 0; n < cr; n++)
 	if (!usage->row[sy*cr+n] && !usage->col[sx*cr+n] &&
-	    !usage->blk[((sy/c)*c+(sx/r))*cr+n]) {
+	    !usage->blk[usage->blocks->whichblock[sy*cr+sx]*cr+n] &&
+	    (!usage->diag || ((!ondiag0(sy*cr+sx) || !usage->diag[n]) &&
+			      (!ondiag1(sy*cr+sx) || !usage->diag[cr+n])))) {
 	    digits[j++] = n+1;
 	}
 
@@ -1864,7 +1985,13 @@ static int gridgen_real(struct gridgen_usage *usage, digit *grid)
 
 	/* Update the usage structure to reflect the placing of this digit. */
 	usage->row[sy*cr+n-1] = usage->col[sx*cr+n-1] =
-	    usage->blk[((sy/c)*c+(sx/r))*cr+n-1] = TRUE;
+	    usage->blk[usage->blocks->whichblock[sy*cr+sx]*cr+n-1] = TRUE;
+	if (usage->diag) {
+	    if (ondiag0(sy*cr+sx))
+		usage->diag[n-1] = TRUE;
+	    if (ondiag1(sy*cr+sx))
+		usage->diag[cr+n-1] = TRUE;
+	}
 	usage->grid[sy*cr+sx] = n;
 	usage->nspaces--;
 
@@ -1874,7 +2001,13 @@ static int gridgen_real(struct gridgen_usage *usage, digit *grid)
 
 	/* Revert the usage structure. */
 	usage->row[sy*cr+n-1] = usage->col[sx*cr+n-1] =
-	    usage->blk[((sy/c)*c+(sx/r))*cr+n-1] = FALSE;
+	    usage->blk[usage->blocks->whichblock[sy*cr+sx]*cr+n-1] = FALSE;
+	if (usage->diag) {
+	    if (ondiag0(sy*cr+sx))
+		usage->diag[n-1] = FALSE;
+	    if (ondiag1(sy*cr+sx))
+		usage->diag[cr+n-1] = FALSE;
+	}
 	usage->grid[sy*cr+sx] = 0;
 	usage->nspaces++;
 
@@ -1887,13 +2020,14 @@ static int gridgen_real(struct gridgen_usage *usage, digit *grid)
 }
 
 /*
- * Entry point to generator. You give it dimensions and a starting
+ * Entry point to generator. You give it parameters and a starting
  * grid, which is simply an array of cr*cr digits.
  */
-static void gridgen(int c, int r, digit *grid, random_state *rs)
+static int gridgen(int cr, struct block_structure *blocks, int xtype,
+		   digit *grid, random_state *rs)
 {
     struct gridgen_usage *usage;
-    int x, y, cr = c*r;
+    int x, y, ret;
 
     /*
      * Clear the grid to start with.
@@ -1905,9 +2039,8 @@ static void gridgen(int c, int r, digit *grid, random_state *rs)
      */
     usage = snew(struct gridgen_usage);
 
-    usage->c = c;
-    usage->r = r;
     usage->cr = cr;
+    usage->blocks = blocks;
 
     usage->grid = snewn(cr * cr, digit);
     memcpy(usage->grid, grid, cr * cr);
@@ -1918,6 +2051,13 @@ static void gridgen(int c, int r, digit *grid, random_state *rs)
     memset(usage->row, FALSE, cr * cr);
     memset(usage->col, FALSE, cr * cr);
     memset(usage->blk, FALSE, cr * cr);
+
+    if (xtype) {
+	usage->diag = snewn(2 * cr, unsigned char);
+	memset(usage->diag, FALSE, 2 * cr);
+    } else {
+	usage->diag = NULL;
+    }
 
     usage->spaces = snewn(cr * cr, struct gridgen_coord);
     usage->nspaces = 0;
@@ -1939,7 +2079,7 @@ static void gridgen(int c, int r, digit *grid, random_state *rs)
     /*
      * Run the real generator function.
      */
-    gridgen_real(usage, grid);
+    ret = gridgen_real(usage, grid);
 
     /*
      * Clean up the usage structure now we have our answer.
@@ -1950,6 +2090,8 @@ static void gridgen(int c, int r, digit *grid, random_state *rs)
     sfree(usage->row);
     sfree(usage->grid);
     sfree(usage);
+
+    return ret;
 }
 
 /* ----------------------------------------------------------------------
@@ -1959,11 +2101,11 @@ static void gridgen(int c, int r, digit *grid, random_state *rs)
 /*
  * Check whether a grid contains a valid complete puzzle.
  */
-static int check_valid(int c, int r, digit *grid)
+static int check_valid(int cr, struct block_structure *blocks, int xtype,
+		       digit *grid)
 {
-    int cr = c*r;
     unsigned char *used;
-    int x, y, n;
+    int x, y, i, j, n;
 
     used = snewn(cr, unsigned char);
 
@@ -2000,20 +2142,40 @@ static int check_valid(int c, int r, digit *grid)
     /*
      * Check that each block contains precisely one of everything.
      */
-    for (x = 0; x < cr; x += r) {
-	for (y = 0; y < cr; y += c) {
-	    int xx, yy;
-	    memset(used, FALSE, cr);
-	    for (xx = x; xx < x+r; xx++)
-		for (yy = 0; yy < y+c; yy++)
-		    if (grid[yy*cr+xx] > 0 && grid[yy*cr+xx] <= cr)
-			used[grid[yy*cr+xx]-1] = TRUE;
-	    for (n = 0; n < cr; n++)
-		if (!used[n]) {
-		    sfree(used);
-		    return FALSE;
-		}
-	}
+    for (i = 0; i < cr; i++) {
+	memset(used, FALSE, cr);
+	for (j = 0; j < cr; j++)
+	    if (grid[blocks->blocks[i][j]] > 0 &&
+		grid[blocks->blocks[i][j]] <= cr)
+		used[grid[blocks->blocks[i][j]]-1] = TRUE;
+	for (n = 0; n < cr; n++)
+	    if (!used[n]) {
+		sfree(used);
+		return FALSE;
+	    }
+    }
+
+    /*
+     * Check that each diagonal contains precisely one of everything.
+     */
+    if (xtype) {
+	memset(used, FALSE, cr);
+	for (i = 0; i < cr; i++)
+	    if (grid[diag0(i)] > 0 && grid[diag0(i)] <= cr)
+		used[grid[diag0(i)]-1] = TRUE;
+	for (n = 0; n < cr; n++)
+	    if (!used[n]) {
+		sfree(used);
+		return FALSE;
+	    }
+	for (i = 0; i < cr; i++)
+	    if (grid[diag1(i)] > 0 && grid[diag1(i)] <= cr)
+		used[grid[diag1(i)]-1] = TRUE;
+	for (n = 0; n < cr; n++)
+	    if (!used[n]) {
+		sfree(used);
+		return FALSE;
+	    }
     }
 
     sfree(used);
@@ -2120,6 +2282,7 @@ static char *new_game_desc(game_params *params, random_state *rs,
 {
     int c = params->c, r = params->r, cr = c*r;
     int area = cr*cr;
+    struct block_structure *blocks;
     digit *grid, *grid2;
     struct xy { int x, y; } *locs;
     int nlocs;
@@ -2142,17 +2305,58 @@ static char *new_game_desc(game_params *params, random_state *rs,
     locs = snewn(area, struct xy);
     grid2 = snewn(area, digit);
 
+    blocks = snew(struct block_structure);
+    blocks->c = params->c; blocks->r = params->r;
+    blocks->whichblock = snewn(area*2, int);
+    blocks->blocks = snewn(cr, int *);
+    for (i = 0; i < cr; i++)
+	blocks->blocks[i] = blocks->whichblock + area + i*cr;
+#ifdef STANDALONE_SOLVER
+    assert(!"This should never happen, so we don't need to create blocknames");
+#endif
+
     /*
      * Loop until we get a grid of the required difficulty. This is
      * nasty, but it seems to be unpleasantly hard to generate
      * difficult grids otherwise.
      */
-    do {
+    while (1) {
         /*
-         * Generate a random solved state.
+         * Generate a random solved state, starting by
+         * constructing the block structure.
          */
-        gridgen(c, r, grid, rs);
-        assert(check_valid(c, r, grid));
+	if (r == 1) {		       /* jigsaw mode */
+	    int *dsf = divvy_rectangle(cr, cr, cr, rs);
+	    int nb = 0;
+
+	    for (i = 0; i < area; i++)
+		blocks->whichblock[i] = -1;
+	    for (i = 0; i < area; i++) {
+		int j = dsf_canonify(dsf, i);
+		if (blocks->whichblock[j] < 0)
+		    blocks->whichblock[j] = nb++;
+		blocks->whichblock[i] = blocks->whichblock[j];
+	    }
+	    assert(nb == cr);
+
+	    sfree(dsf);
+	} else {		       /* basic Sudoku mode */
+	    for (y = 0; y < cr; y++)
+		for (x = 0; x < cr; x++)
+		    blocks->whichblock[y*cr+x] = (y/c) * c + (x/r);
+	}
+	for (i = 0; i < cr; i++)
+	    blocks->blocks[i][cr-1] = 0;
+	for (i = 0; i < area; i++) {
+	    int b = blocks->whichblock[i];
+	    j = blocks->blocks[b][cr-1]++;
+	    assert(j < cr);
+	    blocks->blocks[b][j] = i;
+	}
+
+        if (!gridgen(cr, blocks, params->xtype, grid, rs))
+	    continue;  /* this might happen if the jigsaw is unsuitable */
+        assert(check_valid(cr, blocks, params->xtype, grid));
 
 	/*
 	 * Save the solved grid in aux.
@@ -2219,7 +2423,7 @@ static char *new_game_desc(game_params *params, random_state *rs,
             for (j = 0; j < ncoords; j++)
                 grid2[coords[2*j+1]*cr+coords[2*j]] = 0;
 
-            ret = solver(c, r, grid2, maxdiff);
+            ret = solver(cr, blocks, params->xtype, grid2, maxdiff);
             if (ret <= maxdiff) {
                 for (j = 0; j < ncoords; j++)
                     grid[coords[2*j+1]*cr+coords[2*j]] = 0;
@@ -2227,7 +2431,10 @@ static char *new_game_desc(game_params *params, random_state *rs,
         }
 
         memcpy(grid2, grid, area);
-    } while (solver(c, r, grid2, maxdiff) < maxdiff);
+	
+	if (solver(cr, blocks, params->xtype, grid2, maxdiff) == maxdiff)
+	    break;		       /* found one! */
+    }
 
     sfree(grid2);
     sfree(locs);
@@ -2240,7 +2447,7 @@ static char *new_game_desc(game_params *params, random_state *rs,
 	char *p;
 	int run, i;
 
-	desc = snewn(5 * area, char);
+	desc = snewn(7 * area, char);
 	p = desc;
 	run = 0;
 	for (i = 0; i <= area; i++) {
@@ -2271,7 +2478,60 @@ static char *new_game_desc(game_params *params, random_state *rs,
 		run = 0;
 	    }
 	}
-	assert(p - desc < 5 * area);
+
+	if (r == 1) {
+	    int currrun = 0;
+
+	    *p++ = ',';
+
+	    /*
+	     * Encode the block structure. We do this by encoding
+	     * the pattern of dividing lines: first we iterate
+	     * over the cr*(cr-1) internal vertical grid lines in
+	     * ordinary reading order, then over the cr*(cr-1)
+	     * internal horizontal ones in transposed reading
+	     * order.
+	     * 
+	     * We encode the number of non-lines between the
+	     * lines; _ means zero (two adjacent divisions), a
+	     * means 1, ..., y means 25, and z means 25 non-lines
+	     * _and no following line_ (so that za means 26, zb 27
+	     * etc).
+	     */
+	    for (i = 0; i <= 2*cr*(cr-1); i++) {
+		int p0, p1, edge;
+
+		if (i == 2*cr*(cr-1)) {
+		    edge = TRUE;       /* terminating virtual edge */
+		} else {
+		    if (i < cr*(cr-1)) {
+			y = i/(cr-1);
+			x = i%(cr-1);
+			p0 = y*cr+x;
+			p1 = y*cr+x+1;
+		    } else {
+			x = i/(cr-1) - cr;
+			y = i%(cr-1);
+			p0 = y*cr+x;
+			p1 = (y+1)*cr+x;
+		    }
+		    edge = (blocks->whichblock[p0] != blocks->whichblock[p1]);
+		}
+
+		if (edge) {
+		    while (currrun > 25)
+			*p++ = 'z', currrun -= 25;
+		    if (currrun)
+			*p++ = 'a'-1 + currrun;
+		    else
+			*p++ = '_';
+		    currrun = 0;
+		} else
+		    currrun++;
+	    }
+	}
+
+	assert(p - desc < 7 * area);
 	*p++ = '\0';
 	desc = sresize(desc, p - desc, char);
     }
@@ -2283,10 +2543,11 @@ static char *new_game_desc(game_params *params, random_state *rs,
 
 static char *validate_desc(game_params *params, char *desc)
 {
-    int area = params->r * params->r * params->c * params->c;
+    int cr = params->c * params->r, area = cr*cr;
     int squares = 0;
+    int *dsf;
 
-    while (*desc) {
+    while (*desc && *desc != ',') {
         int n = *desc++;
         if (n >= 'a' && n <= 'z') {
             squares += n - 'a' + 1;
@@ -2309,6 +2570,138 @@ static char *validate_desc(game_params *params, char *desc)
     if (squares > area)
         return "Too much data to fit in grid";
 
+    if (params->r == 1) {
+	/*
+	 * Now we expect a suffix giving the jigsaw block
+	 * structure. Parse it and validate that it divides the
+	 * grid into the right number of regions which are the
+	 * right size.
+	 */
+	if (*desc != ',')
+	    return "Expected jigsaw block structure in game description";
+	int pos = 0;
+
+	dsf = snew_dsf(area);
+	desc++;
+
+	while (*desc) {
+	    int c, adv;
+
+	    if (*desc == '_')
+		c = 0;
+	    else if (*desc >= 'a' && *desc <= 'z')
+		c = *desc - 'a' + 1;
+	    else {
+		sfree(dsf);
+		return "Invalid character in game description";
+	    }
+	    desc++;
+
+	    adv = (c != 25);	       /* 'z' is a special case */
+
+	    while (c-- > 0) {
+		int p0, p1;
+
+		/*
+		 * Non-edge; merge the two dsf classes on either
+		 * side of it.
+		 */
+		if (pos >= 2*cr*(cr-1)) {
+		    sfree(dsf);
+		    return "Too much data in block structure specification";
+		} else if (pos < cr*(cr-1)) {
+		    int y = pos/(cr-1);
+		    int x = pos%(cr-1);
+		    p0 = y*cr+x;
+		    p1 = y*cr+x+1;
+		} else {
+		    int x = pos/(cr-1) - cr;
+		    int y = pos%(cr-1);
+		    p0 = y*cr+x;
+		    p1 = (y+1)*cr+x;
+		}
+		dsf_merge(dsf, p0, p1);
+
+		pos++;
+	    }
+	    if (adv)
+		pos++;
+	}
+
+	/*
+	 * When desc is exhausted, we expect to have gone exactly
+	 * one space _past_ the end of the grid, due to the dummy
+	 * edge at the end.
+	 */
+	if (pos != 2*cr*(cr-1)+1) {
+	    sfree(dsf);
+	    return "Not enough data in block structure specification";
+	}
+
+	/*
+	 * Now we've got our dsf. Verify that it matches
+	 * expectations.
+	 */
+	{
+	    int *canons, *counts;
+	    int i, j, c, ncanons = 0;
+
+	    canons = snewn(cr, int);
+	    counts = snewn(cr, int);
+
+	    for (i = 0; i < area; i++) {
+		j = dsf_canonify(dsf, i);
+
+		for (c = 0; c < ncanons; c++)
+		    if (canons[c] == j) {
+			counts[c]++;
+			if (counts[c] > cr) {
+			    sfree(dsf);
+			    sfree(canons);
+			    sfree(counts);
+			    return "A jigsaw block is too big";
+			}
+			break;
+		    }
+
+		if (c == ncanons) {
+		    if (ncanons >= cr) {
+			sfree(dsf);
+			sfree(canons);
+			sfree(counts);
+			return "Too many distinct jigsaw blocks";
+		    }
+		    canons[ncanons] = j;
+		    counts[ncanons] = 1;
+		    ncanons++;
+		}
+	    }
+
+	    /*
+	     * If we've managed to get through that loop without
+	     * tripping either of the error conditions, then we
+	     * must have partitioned the entire grid into at most
+	     * cr blocks of at most cr squares each; therefore we
+	     * must have _exactly_ cr blocks of _exactly_ cr
+	     * squares each. I'll verify that by assertion just in
+	     * case something has gone horribly wrong, but it
+	     * shouldn't have been able to happen by duff input,
+	     * only by a bug in the above code.
+	     */
+	    assert(ncanons == cr);
+	    for (c = 0; c < ncanons; c++)
+		assert(counts[c] == cr);
+
+	    sfree(canons);
+	    sfree(counts);
+	}
+
+	sfree(dsf);
+    } else {
+	if (*desc)
+	    return "Unexpected jigsaw block structure in game description";
+    }
+
     return NULL;
 }
 
@@ -2318,8 +2711,8 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
     int c = params->c, r = params->r, cr = c*r, area = cr * cr;
     int i;
 
-    state->c = params->c;
-    state->r = params->r;
+    state->cr = cr;
+    state->xtype = params->xtype;
 
     state->grid = snewn(area, digit);
     state->pencil = snewn(area * cr, unsigned char);
@@ -2327,10 +2720,21 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
     state->immutable = snewn(area, unsigned char);
     memset(state->immutable, FALSE, area);
 
+    state->blocks = snew(struct block_structure);
+    state->blocks->c = c; state->blocks->r = r;
+    state->blocks->refcount = 1;
+    state->blocks->whichblock = snewn(area*2, int);
+    state->blocks->blocks = snewn(cr, int *);
+    for (i = 0; i < cr; i++)
+	state->blocks->blocks[i] = state->blocks->whichblock + area + i*cr;
+#ifdef STANDALONE_SOLVER
+    state->blocks->blocknames = (char **)smalloc(cr*(sizeof(char *)+80));
+#endif
+
     state->completed = state->cheated = FALSE;
 
     i = 0;
-    while (*desc) {
+    while (*desc && *desc != ',') {
         int n = *desc++;
         if (n >= 'a' && n <= 'z') {
             int run = n - 'a' + 1;
@@ -2351,16 +2755,147 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
     }
     assert(i == area);
 
+    if (r == 1) {
+	int pos = 0;
+	int *dsf;
+	int nb;
+
+	assert(*desc == ',');
+
+	dsf = snew_dsf(area);
+	desc++;
+
+	while (*desc) {
+	    int c, adv;
+
+	    if (*desc == '_')
+		c = 0;
+	    else if (*desc >= 'a' && *desc <= 'z')
+		c = *desc - 'a' + 1;
+	    else
+		assert(!"Shouldn't get here");
+	    desc++;
+
+	    adv = (c != 25);	       /* 'z' is a special case */
+
+	    while (c-- > 0) {
+		int p0, p1;
+
+		/*
+		 * Non-edge; merge the two dsf classes on either
+		 * side of it.
+		 */
+		assert(pos < 2*cr*(cr-1));
+		if (pos < cr*(cr-1)) {
+		    int y = pos/(cr-1);
+		    int x = pos%(cr-1);
+		    p0 = y*cr+x;
+		    p1 = y*cr+x+1;
+		} else {
+		    int x = pos/(cr-1) - cr;
+		    int y = pos%(cr-1);
+		    p0 = y*cr+x;
+		    p1 = (y+1)*cr+x;
+		}
+		dsf_merge(dsf, p0, p1);
+
+		pos++;
+	    }
+	    if (adv)
+		pos++;
+	}
+
+	/*
+	 * When desc is exhausted, we expect to have gone exactly
+	 * one space _past_ the end of the grid, due to the dummy
+	 * edge at the end.
+	 */
+	assert(pos == 2*cr*(cr-1)+1);
+
+	/*
+	 * Now we've got our dsf. Translate it into a block
+	 * structure.
+	 */
+	nb = 0;
+	for (i = 0; i < area; i++)
+	    state->blocks->whichblock[i] = -1;
+	for (i = 0; i < area; i++) {
+	    int j = dsf_canonify(dsf, i);
+	    if (state->blocks->whichblock[j] < 0)
+		state->blocks->whichblock[j] = nb++;
+	    state->blocks->whichblock[i] = state->blocks->whichblock[j];
+	}
+	assert(nb == cr);
+
+	sfree(dsf);
+    } else {
+	int x, y;
+
+	assert(!*desc);
+
+	for (y = 0; y < cr; y++)
+	    for (x = 0; x < cr; x++)
+		state->blocks->whichblock[y*cr+x] = (y/c) * c + (x/r);
+    }
+
+    /*
+     * Having sorted out whichblock[], set up the block index arrays.
+     */
+    for (i = 0; i < cr; i++)
+	state->blocks->blocks[i][cr-1] = 0;
+    for (i = 0; i < area; i++) {
+	int b = state->blocks->whichblock[i];
+	int j = state->blocks->blocks[b][cr-1]++;
+	assert(j < cr);
+	state->blocks->blocks[b][j] = i;
+    }
+
+#ifdef STANDALONE_SOLVER
+    /*
+     * Set up the block names for solver diagnostic output.
+     */
+    {
+	char *p = (char *)(state->blocks->blocknames + cr);
+
+	if (r == 1) {
+	    for (i = 0; i < cr; i++)
+		state->blocks->blocknames[i] = NULL;
+
+	    for (i = 0; i < area; i++) {
+		int j = state->blocks->whichblock[i];
+		if (!state->blocks->blocknames[j]) {
+		    state->blocks->blocknames[j] = p;
+		    p += 1 + sprintf(p, "starting at (%d,%d)",
+				     1 + i%cr, 1 + i/cr);
+		}
+	    }
+	} else {
+	    int bx, by;
+	    for (by = 0; by < r; by++)
+		for (bx = 0; bx < c; bx++) {
+		    state->blocks->blocknames[by*c+bx] = p;
+		    p += 1 + sprintf(p, "(%d,%d)", bx+1, by+1);
+		}
+	}
+	assert(p - (char *)state->blocks->blocknames < cr*(sizeof(char *)+80));
+	for (i = 0; i < cr; i++)
+	    assert(state->blocks->blocknames[i]);
+    }
+#endif
+
     return state;
 }
 
 static game_state *dup_game(game_state *state)
 {
     game_state *ret = snew(game_state);
-    int c = state->c, r = state->r, cr = c*r, area = cr * cr;
+    int cr = state->cr, area = cr * cr;
 
-    ret->c = state->c;
-    ret->r = state->r;
+    ret->cr = state->cr;
+    ret->xtype = state->xtype;
+
+    ret->blocks = state->blocks;
+    ret->blocks->refcount++;
 
     ret->grid = snewn(area, digit);
     memcpy(ret->grid, state->grid, area);
@@ -2379,6 +2914,14 @@ static game_state *dup_game(game_state *state)
 
 static void free_game(game_state *state)
 {
+    if (--state->blocks->refcount == 0) {
+	sfree(state->blocks->whichblock);
+	sfree(state->blocks->blocks);
+#ifdef STANDALONE_SOLVER
+	sfree(state->blocks->blocknames);
+#endif
+	sfree(state->blocks);
+    }
     sfree(state->immutable);
     sfree(state->pencil);
     sfree(state->grid);
@@ -2388,7 +2931,7 @@ static void free_game(game_state *state)
 static char *solve_game(game_state *state, game_state *currstate,
 			char *ai, char **error)
 {
-    int c = state->c, r = state->r, cr = c*r;
+    int cr = state->cr;
     char *ret;
     digit *grid;
     int solve_ret;
@@ -2402,7 +2945,7 @@ static char *solve_game(game_state *state, game_state *currstate,
 
     grid = snewn(cr*cr, digit);
     memcpy(grid, state->grid, cr*cr);
-    solve_ret = solver(c, r, grid, DIFF_RECURSIVE);
+    solve_ret = solver(cr, state->blocks, state->xtype, grid, DIFF_RECURSIVE);
 
     *error = NULL;
 
@@ -2423,66 +2966,197 @@ static char *solve_game(game_state *state, game_state *currstate,
     return ret;
 }
 
-static char *grid_text_format(int c, int r, digit *grid)
+static char *grid_text_format(int cr, struct block_structure *blocks,
+			      int xtype, digit *grid)
 {
-    int cr = c*r;
+    int vmod, hmod;
     int x, y;
-    int maxlen;
-    char *ret, *p;
+    int totallen, linelen, nlines;
+    char *ret, *p, ch;
 
     /*
-     * There are cr lines of digits, plus r-1 lines of block
-     * separators. Each line contains cr digits, cr-1 separating
-     * spaces, and c-1 two-character block separators. Thus, the
-     * total length of a line is 2*cr+2*c-3 (not counting the
-     * newline), and there are cr+r-1 of them.
+     * For non-jigsaw Sudoku, we format in the way we always have,
+     * by having the digits unevenly spaced so that the dividing
+     * lines can fit in:
+     *
+     * . . | . .
+     * . . | . .
+     * ----+----
+     * . . | . .
+     * . . | . .
+     *
+     * For jigsaw puzzles, however, we must leave space between
+     * _all_ pairs of digits for an optional dividing line, so we
+     * have to move to the rather ugly
+     * 
+     * .   .   .   .
+     * ------+------
+     * .   . | .   .
+     *       +---+  
+     * .   . | . | .
+     * ------+   |  
+     * .   .   . | .
+     * 
+     * We deal with both cases using the same formatting code; we
+     * simply invent a vmod value such that there's a vertical
+     * dividing line before column i iff i is divisible by vmod
+     * (so it's r in the first case and 1 in the second), and hmod
+     * likewise for horizontal dividing lines.
      */
-    maxlen = (cr+r-1) * (2*cr+2*c-2);
-    ret = snewn(maxlen+1, char);
-    p = ret;
 
-    for (y = 0; y < cr; y++) {
-        for (x = 0; x < cr; x++) {
-            int ch = grid[y * cr + x];
-            if (ch == 0)
-                ch = '.';
-            else if (ch <= 9)
-                ch = '0' + ch;
-            else
-                ch = 'a' + ch-10;
-            *p++ = ch;
-            if (x+1 < cr) {
-		*p++ = ' ';
-                if ((x+1) % r == 0) {
-                    *p++ = '|';
-		    *p++ = ' ';
-		}
-            }
-        }
-	*p++ = '\n';
-        if (y+1 < cr && (y+1) % c == 0) {
-            for (x = 0; x < cr; x++) {
-                *p++ = '-';
-                if (x+1 < cr) {
-		    *p++ = '-';
-                    if ((x+1) % r == 0) {
-			*p++ = '+';
-			*p++ = '-';
-		    }
-                }
-            }
-	    *p++ = '\n';
-        }
+    if (blocks->r != 1) {
+	vmod = blocks->r;
+	hmod = blocks->c;
+    } else {
+	vmod = hmod = 1;
     }
 
-    assert(p - ret == maxlen);
+    /*
+     * Line length: we have cr digits, each with a space after it,
+     * and (cr-1)/vmod dividing lines, each with a space after it.
+     * The final space is replaced by a newline, but that doesn't
+     * affect the length.
+     */
+    linelen = 2*(cr + (cr-1)/vmod);
+
+    /*
+     * Number of lines: we have cr rows of digits, and (cr-1)/hmod
+     * dividing rows.
+     */
+    nlines = cr + (cr-1)/hmod;
+
+    /*
+     * Allocate the space.
+     */
+    totallen = linelen * nlines;
+    ret = snewn(totallen+1, char);     /* leave room for terminating NUL */
+
+    /*
+     * Write the text.
+     */
+    p = ret;
+    for (y = 0; y < cr; y++) {
+	/*
+	 * Row of digits.
+	 */
+	for (x = 0; x < cr; x++) {
+	    /*
+	     * Digit.
+	     */
+	    digit d = grid[y*cr+x];
+
+            if (d == 0) {
+		/*
+		 * Empty space: we usually write a dot, but we'll
+		 * highlight spaces on the X-diagonals (in X mode)
+		 * by using underscores instead.
+		 */
+		if (xtype && (ondiag0(y*cr+x) || ondiag1(y*cr+x)))
+		    ch = '_';
+		else
+		    ch = '.';
+	    } else if (d <= 9) {
+                ch = '0' + d;
+	    } else {
+                ch = 'a' + d-10;
+	    }
+
+	    *p++ = ch;
+	    if (x == cr-1) {
+		*p++ = '\n';
+		continue;
+	    }
+	    *p++ = ' ';
+
+	    if ((x+1) % vmod)
+		continue;
+
+	    /*
+	     * Optional dividing line.
+	     */
+	    if (blocks->whichblock[y*cr+x] != blocks->whichblock[y*cr+x+1])
+		ch = '|';
+	    else
+		ch = ' ';
+	    *p++ = ch;
+	    *p++ = ' ';
+	}
+	if (y == cr-1 || (y+1) % hmod)
+	    continue;
+
+	/*
+	 * Dividing row.
+	 */
+	for (x = 0; x < cr; x++) {
+	    int dwid;
+	    int tl, tr, bl, br;
+
+	    /*
+	     * Division between two squares. This varies
+	     * complicatedly in length.
+	     */
+	    dwid = 2;		       /* digit and its following space */
+	    if (x == cr-1)
+		dwid--;		       /* no following space at end of line */
+	    if (x > 0 && x % vmod == 0)
+		dwid++;		       /* preceding space after a divider */
+
+	    if (blocks->whichblock[y*cr+x] != blocks->whichblock[(y+1)*cr+x])
+		ch = '-';
+	    else
+		ch = ' ';
+
+	    while (dwid-- > 0)
+		*p++ = ch;
+
+	    if (x == cr-1) {
+		*p++ = '\n';
+		break;
+	    }
+
+	    if ((x+1) % vmod)
+		continue;
+
+	    /*
+	     * Corner square. This is:
+	     * 	- a space if all four surrounding squares are in
+	     * 	  the same block
+	     * 	- a vertical line if the two left ones are in one
+	     * 	  block and the two right in another
+	     * 	- a horizontal line if the two top ones are in one
+	     * 	  block and the two bottom in another
+	     * 	- a plus sign in all other cases. (If we had a
+	     * 	  richer character set available we could break
+	     * 	  this case up further by doing fun things with
+	     * 	  line-drawing T-pieces.)
+	     */
+	    tl = blocks->whichblock[y*cr+x];
+	    tr = blocks->whichblock[y*cr+x+1];
+	    bl = blocks->whichblock[(y+1)*cr+x];
+	    br = blocks->whichblock[(y+1)*cr+x+1];
+
+	    if (tl == tr && tr == bl && bl == br)
+		ch = ' ';
+	    else if (tl == bl && tr == br)
+		ch = '|';
+	    else if (tl == tr && bl == br)
+		ch = '-';
+	    else
+		ch = '+';
+
+	    *p++ = ch;
+	}
+    }
+
+    assert(p - ret == totallen);
     *p = '\0';
     return ret;
 }
 
 static char *game_text_format(game_state *state)
 {
-    return grid_text_format(state->c, state->r, state->grid);
+    return grid_text_format(state->cr, state->blocks, state->xtype,
+			    state->grid);
 }
 
 struct game_ui {
@@ -2527,7 +3201,7 @@ static void decode_ui(game_ui *ui, char *encoding)
 static void game_changed_state(game_ui *ui, game_state *oldstate,
                                game_state *newstate)
 {
-    int c = newstate->c, r = newstate->r, cr = c*r;
+    int cr = newstate->cr;
     /*
      * We prevent pencil-mode highlighting of a filled square. So
      * if the user has just filled in a square which we had a
@@ -2542,7 +3216,7 @@ static void game_changed_state(game_ui *ui, game_state *oldstate,
 
 struct game_drawstate {
     int started;
-    int c, r, cr;
+    int cr, xtype;
     int tilesize;
     digit *grid;
     unsigned char *pencil;
@@ -2554,7 +3228,7 @@ struct game_drawstate {
 static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
 			    int x, int y, int button)
 {
-    int c = state->c, r = state->r, cr = c*r;
+    int cr = state->cr;
     int tx, ty;
     char buf[80];
 
@@ -2639,7 +3313,7 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
 
 static game_state *execute_move(game_state *from, char *move)
 {
-    int c = from->c, r = from->r, cr = c*r;
+    int cr = from->cr;
     game_state *ret;
     int x, y, n;
 
@@ -2679,7 +3353,8 @@ static game_state *execute_move(game_state *from, char *move)
              * We've made a real change to the grid. Check to see
              * if the game has been completed.
              */
-            if (!ret->completed && check_valid(c, r, ret->grid)) {
+            if (!ret->completed && check_valid(cr, ret->blocks, ret->xtype,
+					       ret->grid)) {
                 ret->completed = TRUE;
             }
         }
@@ -2718,6 +3393,10 @@ static float *game_colours(frontend *fe, int *ncolours)
 
     frontend_default_colour(fe, &ret[COL_BACKGROUND * 3]);
 
+    ret[COL_XDIAGONALS * 3 + 0] = 0.9F * ret[COL_BACKGROUND * 3 + 0];
+    ret[COL_XDIAGONALS * 3 + 1] = 0.9F * ret[COL_BACKGROUND * 3 + 1];
+    ret[COL_XDIAGONALS * 3 + 2] = 0.9F * ret[COL_BACKGROUND * 3 + 2];
+
     ret[COL_GRID * 3 + 0] = 0.0F;
     ret[COL_GRID * 3 + 1] = 0.0F;
     ret[COL_GRID * 3 + 2] = 0.0F;
@@ -2730,9 +3409,9 @@ static float *game_colours(frontend *fe, int *ncolours)
     ret[COL_USER * 3 + 1] = 0.6F * ret[COL_BACKGROUND * 3 + 1];
     ret[COL_USER * 3 + 2] = 0.0F;
 
-    ret[COL_HIGHLIGHT * 3 + 0] = 0.85F * ret[COL_BACKGROUND * 3 + 0];
-    ret[COL_HIGHLIGHT * 3 + 1] = 0.85F * ret[COL_BACKGROUND * 3 + 1];
-    ret[COL_HIGHLIGHT * 3 + 2] = 0.85F * ret[COL_BACKGROUND * 3 + 2];
+    ret[COL_HIGHLIGHT * 3 + 0] = 0.78F * ret[COL_BACKGROUND * 3 + 0];
+    ret[COL_HIGHLIGHT * 3 + 1] = 0.78F * ret[COL_BACKGROUND * 3 + 1];
+    ret[COL_HIGHLIGHT * 3 + 2] = 0.78F * ret[COL_BACKGROUND * 3 + 2];
 
     ret[COL_ERROR * 3 + 0] = 1.0F;
     ret[COL_ERROR * 3 + 1] = 0.0F;
@@ -2749,14 +3428,13 @@ static float *game_colours(frontend *fe, int *ncolours)
 static game_drawstate *game_new_drawstate(drawing *dr, game_state *state)
 {
     struct game_drawstate *ds = snew(struct game_drawstate);
-    int c = state->c, r = state->r, cr = c*r;
+    int cr = state->cr;
 
     ds->started = FALSE;
-    ds->c = c;
-    ds->r = r;
     ds->cr = cr;
+    ds->xtype = state->xtype;
     ds->grid = snewn(cr*cr, digit);
-    memset(ds->grid, 0, cr*cr);
+    memset(ds->grid, cr+2, cr*cr);
     ds->pencil = snewn(cr*cr*cr, digit);
     memset(ds->pencil, 0, cr*cr*cr);
     ds->hl = snewn(cr*cr, unsigned char);
@@ -2778,7 +3456,7 @@ static void game_free_drawstate(drawing *dr, game_drawstate *ds)
 static void draw_number(drawing *dr, game_drawstate *ds, game_state *state,
 			int x, int y, int hl)
 {
-    int c = state->c, r = state->r, cr = c*r;
+    int cr = state->cr;
     int tx, ty;
     int cx, cy, cw, ch;
     char str[2];
@@ -2788,27 +3466,43 @@ static void draw_number(drawing *dr, game_drawstate *ds, game_state *state,
         !memcmp(ds->pencil+(y*cr+x)*cr, state->pencil+(y*cr+x)*cr, cr))
 	return;			       /* no change required */
 
-    tx = BORDER + x * TILE_SIZE + 2;
-    ty = BORDER + y * TILE_SIZE + 2;
+    tx = BORDER + x * TILE_SIZE + 1 + GRIDEXTRA;
+    ty = BORDER + y * TILE_SIZE + 1 + GRIDEXTRA;
 
     cx = tx;
     cy = ty;
-    cw = TILE_SIZE-3;
-    ch = TILE_SIZE-3;
+    cw = TILE_SIZE-1-2*GRIDEXTRA;
+    ch = TILE_SIZE-1-2*GRIDEXTRA;
 
-    if (x % r)
-	cx--, cw++;
-    if ((x+1) % r)
-	cw++;
-    if (y % c)
-	cy--, ch++;
-    if ((y+1) % c)
-	ch++;
+    if (x > 0 && state->blocks->whichblock[y*cr+x] == state->blocks->whichblock[y*cr+x-1])
+	cx -= GRIDEXTRA, cw += GRIDEXTRA;
+    if (x+1 < cr && state->blocks->whichblock[y*cr+x] == state->blocks->whichblock[y*cr+x+1])
+	cw += GRIDEXTRA;
+    if (y > 0 && state->blocks->whichblock[y*cr+x] == state->blocks->whichblock[(y-1)*cr+x])
+	cy -= GRIDEXTRA, ch += GRIDEXTRA;
+    if (y+1 < cr && state->blocks->whichblock[y*cr+x] == state->blocks->whichblock[(y+1)*cr+x])
+	ch += GRIDEXTRA;
 
     clip(dr, cx, cy, cw, ch);
 
     /* background needs erasing */
-    draw_rect(dr, cx, cy, cw, ch, (hl & 15) == 1 ? COL_HIGHLIGHT : COL_BACKGROUND);
+    draw_rect(dr, cx, cy, cw, ch,
+	      ((hl & 15) == 1 ? COL_HIGHLIGHT :
+	       (ds->xtype && (ondiag0(y*cr+x) || ondiag1(y*cr+x))) ? COL_XDIAGONALS :
+	       COL_BACKGROUND));
+
+    /*
+     * Draw the corners of thick lines in corner-adjacent squares,
+     * which jut into this square by one pixel.
+     */
+    if (x > 0 && y > 0 && state->blocks->whichblock[y*cr+x] != state->blocks->whichblock[(y-1)*cr+x-1])
+	draw_rect(dr, tx-GRIDEXTRA, ty-GRIDEXTRA, GRIDEXTRA, GRIDEXTRA, COL_GRID);
+    if (x+1 < cr && y > 0 && state->blocks->whichblock[y*cr+x] != state->blocks->whichblock[(y-1)*cr+x+1])
+	draw_rect(dr, tx+TILE_SIZE-1-2*GRIDEXTRA, ty-GRIDEXTRA, GRIDEXTRA, GRIDEXTRA, COL_GRID);
+    if (x > 0 && y+1 < cr && state->blocks->whichblock[y*cr+x] != state->blocks->whichblock[(y+1)*cr+x-1])
+	draw_rect(dr, tx-GRIDEXTRA, ty+TILE_SIZE-1-2*GRIDEXTRA, GRIDEXTRA, GRIDEXTRA, COL_GRID);
+    if (x+1 < cr && y+1 < cr && state->blocks->whichblock[y*cr+x] != state->blocks->whichblock[(y+1)*cr+x+1])
+	draw_rect(dr, tx+TILE_SIZE-1-2*GRIDEXTRA, ty+TILE_SIZE-1-2*GRIDEXTRA, GRIDEXTRA, GRIDEXTRA, COL_GRID);
 
     /* pencil-mode highlight */
     if ((hl & 15) == 2) {
@@ -2884,7 +3578,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 			game_state *state, int dir, game_ui *ui,
 			float animtime, float flashtime)
 {
-    int c = state->c, r = state->r, cr = c*r;
+    int cr = state->cr;
     int x, y;
 
     if (!ds->started) {
@@ -2897,18 +3591,13 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 	draw_rect(dr, 0, 0, SIZE(cr), SIZE(cr), COL_BACKGROUND);
 
 	/*
-	 * Draw the grid.
+	 * Draw the grid. We draw it as a big thick rectangle of
+	 * COL_GRID initially; individual calls to draw_number()
+	 * will poke the right-shaped holes in it.
 	 */
-	for (x = 0; x <= cr; x++) {
-	    int thick = (x % r ? 0 : 1);
-	    draw_rect(dr, BORDER + x*TILE_SIZE - thick, BORDER-1,
-		      1+2*thick, cr*TILE_SIZE+3, COL_GRID);
-	}
-	for (y = 0; y <= cr; y++) {
-	    int thick = (y % c ? 0 : 1);
-	    draw_rect(dr, BORDER-1, BORDER + y*TILE_SIZE - thick,
-		      cr*TILE_SIZE+3, 1+2*thick, COL_GRID);
-	}
+	draw_rect(dr, BORDER-GRIDEXTRA, BORDER-GRIDEXTRA,
+		  cr*TILE_SIZE+1+2*GRIDEXTRA, cr*TILE_SIZE+1+2*GRIDEXTRA,
+		  COL_GRID);
     }
 
     /*
@@ -2921,10 +3610,16 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 	for (y = 0; y < cr; y++) {
 	    digit d = state->grid[y*cr+x];
 	    if (d) {
-		int box = (x/r)+(y/c)*c;
-		ds->entered_items[x*cr+d-1] |= ((ds->entered_items[x*cr+d-1] & 1) << 1) | 1;
+		int box = state->blocks->whichblock[y*cr+x];
+ 		ds->entered_items[x*cr+d-1] |= ((ds->entered_items[x*cr+d-1] & 1) << 1) | 1;
 		ds->entered_items[y*cr+d-1] |= ((ds->entered_items[y*cr+d-1] & 4) << 1) | 4;
 		ds->entered_items[box*cr+d-1] |= ((ds->entered_items[box*cr+d-1] & 16) << 1) | 16;
+		if (ds->xtype) {
+		    if (ondiag0(y*cr+x))
+			ds->entered_items[d-1] |= ((ds->entered_items[d-1] & 64) << 1) | 64;
+		    if (ondiag1(y*cr+x))
+			ds->entered_items[cr+d-1] |= ((ds->entered_items[cr+d-1] & 64) << 1) | 64;
+		}
 	    }
 	}
 
@@ -2949,7 +3644,9 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 	     * in a single row, column, or box). */
 	    if (d && ((ds->entered_items[x*cr+d-1] & 2) ||
 		      (ds->entered_items[y*cr+d-1] & 8) ||
-		      (ds->entered_items[((x/r)+(y/c)*c)*cr+d-1] & 32)))
+		      (ds->entered_items[state->blocks->whichblock[y*cr+x]*cr+d-1] & 32) ||
+		      (ds->xtype && ((ondiag0(y*cr+x) && (ds->entered_items[d-1] & 128)) ||
+				     (ondiag1(y*cr+x) && (ds->entered_items[cr+d-1] & 128))))))
 		highlight |= 16;
 
 	    draw_number(dr, ds, state, x, y, highlight);
@@ -3001,7 +3698,7 @@ static void game_print_size(game_params *params, float *x, float *y)
 
 static void game_print(drawing *dr, game_state *state, int tilesize)
 {
-    int c = state->c, r = state->r, cr = c*r;
+    int cr = state->cr;
     int ink = print_mono_colour(dr, 0);
     int x, y;
 
@@ -3016,17 +3713,179 @@ static void game_print(drawing *dr, game_state *state, int tilesize)
     draw_rect_outline(dr, BORDER, BORDER, cr*TILE_SIZE, cr*TILE_SIZE, ink);
 
     /*
-     * Grid.
+     * Highlight X-diagonal squares.
+     */
+    if (state->xtype) {
+	int i;
+	int xhighlight = print_grey_colour(dr, HATCH_SLASH, 0.90F);
+
+	for (i = 0; i < cr; i++)
+	    draw_rect(dr, BORDER + i*TILE_SIZE, BORDER + i*TILE_SIZE,
+		      TILE_SIZE, TILE_SIZE, xhighlight);
+	for (i = 0; i < cr; i++)
+	    if (i*2 != cr-1)  /* avoid redoing centre square, just for fun */
+		draw_rect(dr, BORDER + i*TILE_SIZE,
+			  BORDER + (cr-1-i)*TILE_SIZE,
+			  TILE_SIZE, TILE_SIZE, xhighlight);
+    }
+
+    /*
+     * Main grid.
      */
     for (x = 1; x < cr; x++) {
-	print_line_width(dr, (x % r ? 1 : 3) * TILE_SIZE / 40);
+	print_line_width(dr, TILE_SIZE / 40);
 	draw_line(dr, BORDER+x*TILE_SIZE, BORDER,
 		  BORDER+x*TILE_SIZE, BORDER+cr*TILE_SIZE, ink);
     }
     for (y = 1; y < cr; y++) {
-	print_line_width(dr, (y % c ? 1 : 3) * TILE_SIZE / 40);
+	print_line_width(dr, TILE_SIZE / 40);
 	draw_line(dr, BORDER, BORDER+y*TILE_SIZE,
 		  BORDER+cr*TILE_SIZE, BORDER+y*TILE_SIZE, ink);
+    }
+
+    /*
+     * Thick lines between cells. In order to do this using the
+     * line-drawing rather than rectangle-drawing API (so as to
+     * get line thicknesses to scale correctly) and yet have
+     * correctly mitred joins between lines, we must do this by
+     * tracing the boundary of each sub-block and drawing it in
+     * one go as a single polygon.
+     */
+    {
+	int *coords;
+	int bi, i, n;
+	int x, y, dx, dy, sx, sy, sdx, sdy;
+
+	print_line_width(dr, 3 * TILE_SIZE / 40);
+
+	/*
+	 * Maximum perimeter of a k-omino is 2k+2. (Proof: start
+	 * with k unconnected squares, with total perimeter 4k.
+	 * Now repeatedly join two disconnected components
+	 * together into a larger one; every time you do so you
+	 * remove at least two unit edges, and you require k-1 of
+	 * these operations to create a single connected piece, so
+	 * you must have at most 4k-2(k-1) = 2k+2 unit edges left
+	 * afterwards.)
+	 */
+	coords = snewn(4*cr+4, int);   /* 2k+2 points, 2 coords per point */
+
+	/*
+	 * Iterate over all the blocks.
+	 */
+	for (bi = 0; bi < cr; bi++) {
+
+	    /*
+	     * For each block, find a starting square within it
+	     * which has a boundary at the left.
+	     */
+	    for (i = 0; i < cr; i++) {
+		int j = state->blocks->blocks[bi][i];
+		if (j % cr == 0 || state->blocks->whichblock[j-1] != bi)
+		    break;
+	    }
+	    assert(i < cr); /* every block must have _some_ leftmost square */
+	    x = state->blocks->blocks[bi][i] % cr;
+	    y = state->blocks->blocks[bi][i] / cr;
+	    dx = -1;
+	    dy = 0;
+
+	    /*
+	     * Now begin tracing round the perimeter. At all
+	     * times, (x,y) describes some square within the
+	     * block, and (x+dx,y+dy) is some adjacent square
+	     * outside it; so the edge between those two squares
+	     * is always an edge of the block.
+	     */
+	    sx = x, sy = y, sdx = dx, sdy = dy;   /* save starting position */
+	    n = 0;
+	    do {
+		int cx, cy, tx, ty, nin;
+
+		/*
+		 * To begin with, record the point at one end of
+		 * the edge. To do this, we translate (x,y) down
+		 * and right by half a unit (so they're describing
+		 * a point in the _centre_ of the square) and then
+		 * translate back again in a manner rotated by dy
+		 * and dx.
+		 */
+		assert(n < 2*cr+2);
+		cx = ((2*x+1) + dy + dx) / 2;
+		cy = ((2*y+1) - dx + dy) / 2;
+		coords[2*n+0] = BORDER + cx * TILE_SIZE;
+		coords[2*n+1] = BORDER + cy * TILE_SIZE;
+		n++;
+
+		/*
+		 * Now advance to the next edge, by looking at the
+		 * two squares beyond it. If they're both outside
+		 * the block, we turn right (by leaving x,y the
+		 * same and rotating dx,dy clockwise); if they're
+		 * both inside, we turn left (by rotating dx,dy
+		 * anticlockwise and contriving to leave x+dx,y+dy
+		 * unchanged); if one of each, we go straight on
+		 * (and may enforce by assertion that they're one
+		 * of each the _right_ way round).
+		 */
+		nin = 0;
+		tx = x - dy + dx;
+		ty = y + dx + dy;
+		nin += (tx >= 0 && tx < cr && ty >= 0 && ty < cr &&
+			state->blocks->whichblock[ty*cr+tx] == bi);
+		tx = x - dy;
+		ty = y + dx;
+		nin += (tx >= 0 && tx < cr && ty >= 0 && ty < cr &&
+			state->blocks->whichblock[ty*cr+tx] == bi);
+		if (nin == 0) {
+		    /*
+		     * Turn right.
+		     */
+		    int tmp;
+		    tmp = dx;
+		    dx = -dy;
+		    dy = tmp;
+		} else if (nin == 2) {
+		    /*
+		     * Turn left.
+		     */
+		    int tmp;
+
+		    x += dx;
+		    y += dy;
+		    
+		    tmp = dx;
+		    dx = dy;
+		    dy = -tmp;
+
+		    x -= dx;
+		    y -= dy;
+		} else {
+		    /*
+		     * Go straight on.
+		     */
+		    x -= dy;
+		    y += dx;
+		}
+
+		/*
+		 * Now enforce by assertion that we ended up
+		 * somewhere sensible.
+		 */
+		assert(x >= 0 && x < cr && y >= 0 && y < cr &&
+		       state->blocks->whichblock[y*cr+x] == bi);
+		assert(x+dx < 0 || x+dx >= cr || y+dy < 0 || y+dy >= cr ||
+		       state->blocks->whichblock[(y+dy)*cr+(x+dx)] != bi);
+
+	    } while (x != sx || y != sy || dx != sdx || dy != sdy);
+
+	    /*
+	     * That's our polygon; now draw it.
+	     */
+	    draw_polygon(dr, coords, n, -1, ink);
+	}
+
+	sfree(coords);
     }
 
     /*
@@ -3133,7 +3992,7 @@ int main(int argc, char **argv)
     }
     s = new_game(NULL, p, desc);
 
-    ret = solver(p->c, p->r, s->grid, DIFF_RECURSIVE);
+    ret = solver(s->cr, s->blocks, s->xtype, s->grid, DIFF_RECURSIVE);
     if (grade) {
 	printf("Difficulty rating: %s\n",
 	       ret==DIFF_BLOCK ? "Trivial (blockwise positional elimination only)":
@@ -3146,7 +4005,7 @@ int main(int argc, char **argv)
 	       ret==DIFF_IMPOSSIBLE ? "Impossible (no solution exists)":
 	       "INTERNAL ERROR: unrecognised difficulty code");
     } else {
-        printf("%s\n", grid_text_format(p->c, p->r, s->grid));
+        printf("%s\n", grid_text_format(s->cr, s->blocks, s->xtype, s->grid));
     }
 
     return 0;

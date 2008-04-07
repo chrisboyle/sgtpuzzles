@@ -930,6 +930,12 @@ rows, into which the main grid is divided. (The size of a block is
 the inverse of this: for example, if you select 2 columns and 3 rows,
 each actual block will have 3 columns and 2 rows.)
 
+You can introduce an optional extra constraint on the puzzles,
+requiring that the two main diagonals of the grid also contain one
+of every digit. (This is sometimes known as \q{Sudoku-X} in
+newspapers.) In this mode, the squares on the two main diagonals
+will be shaded slightly so that you know it's enabled.
+
 You can also configure the type of symmetry shown in the generated
 puzzles. More symmetry makes the puzzles look prettier but may also
 make them easier, since the symmetry constraints can force more

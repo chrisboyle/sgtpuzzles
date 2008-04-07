@@ -382,6 +382,12 @@ combi_ctx *next_combi(combi_ctx *combi); /* returns NULL for end */
 void free_combi(combi_ctx *combi);
 
 /*
+ * divvy.c
+ */
+/* divides w*h rectangle into pieces of size k. Returns w*h dsf. */
+int *divvy_rectangle(int w, int h, int k, random_state *rs);
+
+/*
  * Data structure containing the function calls and data specific
  * to a particular game. This is enclosed in a data structure so
  * that a particular platform can choose, if it wishes, to compile
