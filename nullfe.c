@@ -27,8 +27,13 @@ void blitter_free(drawing *dr, blitter *bl) {}
 void blitter_save(drawing *dr, blitter *bl, int x, int y) {}
 void blitter_load(drawing *dr, blitter *bl, int x, int y) {}
 int print_mono_colour(drawing *dr, int grey) { return 0; }
-int print_grey_colour(drawing *dr, int hatch, float grey) { return 0; }
-int print_rgb_colour(drawing *dr, int hatch, float r, float g, float b)
+int print_grey_colour(drawing *dr, float grey) { return 0; }
+int print_hatched_colour(drawing *dr, int hatch) { return 0; }
+int print_rgb_mono_colour(drawing *dr, float r, float g, float b, int grey)
+{ return 0; }
+int print_rgb_grey_colour(drawing *dr, float r, float g, float b, float grey)
+{ return 0; }
+int print_rgb_hatched_colour(drawing *dr, float r, float g, float b, int hatch)
 { return 0; }
 void print_line_width(drawing *dr, int width) {}
 void midend_supersede_game_desc(midend *me, char *desc, char *privdesc) {}

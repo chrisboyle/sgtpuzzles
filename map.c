@@ -2977,8 +2977,9 @@ static void game_print(drawing *dr, game_state *state, int tilesize)
 
     ink = print_mono_colour(dr, 0);
     for (i = 0; i < FOUR; i++)
-	c[i] = print_rgb_colour(dr, map_hatching[i], map_colours[i][0],
-				map_colours[i][1], map_colours[i][2]);
+	c[i] = print_rgb_hatched_colour(dr, map_colours[i][0],
+					map_colours[i][1], map_colours[i][2],
+					map_hatching[i]);
 
     coordsize = 0;
     coords = NULL;

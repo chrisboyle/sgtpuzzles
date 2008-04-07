@@ -35,12 +35,13 @@ static void ps_fill(psdata *ps, int colour)
     int hatch;
     float r, g, b;
 
-    print_get_colour(ps->drawing, colour, &hatch, &r, &g, &b);
+    print_get_colour(ps->drawing, colour, ps->colour, &hatch, &r, &g, &b);
 
-    if (ps->colour) {
-	ps_printf(ps, "%g %g %g setrgbcolor fill\n", r, g, b);
-    } else if (hatch == HATCH_SOLID || hatch == HATCH_CLEAR) {
-	ps_printf(ps, "%d setgray fill\n", hatch == HATCH_CLEAR);
+    if (hatch < 0) {
+	if (ps->colour)
+	    ps_printf(ps, "%g %g %g setrgbcolor fill\n", r, g, b);
+	else
+	    ps_printf(ps, "%g setgray fill\n", r);
     } else {
 	/* Clip to the region. */
 	ps_printf(ps, "gsave clip\n");
@@ -77,20 +78,17 @@ static void ps_setcolour_internal(psdata *ps, int colour, char *suffix)
     int hatch;
     float r, g, b;
 
-    print_get_colour(ps->drawing, colour, &hatch, &r, &g, &b);
+    print_get_colour(ps->drawing, colour, ps->colour, &hatch, &r, &g, &b);
 
-    if (ps->colour) {
-	if (r != g || r != b)
-	    ps_printf(ps, "%g %g %g setrgbcolor%s\n", r, g, b, suffix);
-	else
-	    ps_printf(ps, "%g setgray%s\n", r, suffix);
-    } else {
-	/*
-	 * Stroking in hatched colours is not permitted.
-	 */
-	assert(hatch == HATCH_SOLID || hatch == HATCH_CLEAR);
-	ps_printf(ps, "%d setgray%s\n", hatch == HATCH_CLEAR, suffix);
-    }
+    /*
+     * Stroking in hatched colours is not permitted.
+     */
+    assert(hatch < 0);
+    
+    if (ps->colour)
+	ps_printf(ps, "%g %g %g setrgbcolor%s\n", r, g, b, suffix);
+    else
+	ps_printf(ps, "%g setgray%s\n", r, suffix);
 }
 
 static void ps_setcolour(psdata *ps, int colour)

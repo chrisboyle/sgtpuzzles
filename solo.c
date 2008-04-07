@@ -3719,7 +3719,7 @@ static void game_print(drawing *dr, game_state *state, int tilesize)
      */
     if (state->xtype) {
 	int i;
-	int xhighlight = print_grey_colour(dr, HATCH_SLASH, 0.90F);
+	int xhighlight = print_grey_colour(dr, 0.90F);
 
 	for (i = 0; i < cr; i++)
 	    draw_rect(dr, BORDER + i*TILE_SIZE, BORDER + i*TILE_SIZE,

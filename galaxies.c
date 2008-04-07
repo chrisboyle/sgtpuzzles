@@ -3252,9 +3252,9 @@ static void game_print(drawing *dr, game_state *state, int sz)
     game_drawstate ads, *ds = &ads;
     ds->tilesize = sz;
 
-    white = print_grey_colour(dr, HATCH_CLEAR, 1.0F);
-    black = print_grey_colour(dr, HATCH_SOLID, 0.0F);
-    blackish = print_grey_colour(dr, HATCH_X, 0.5F);
+    white = print_mono_colour(dr, 1);
+    black = print_mono_colour(dr, 0);
+    blackish = print_hatched_colour(dr, HATCH_X);
 
     /*
      * Get the completion information.

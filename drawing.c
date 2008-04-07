@@ -33,7 +33,9 @@
 
 struct print_colour {
     int hatch;
+    int hatch_when;		       /* 0=never 1=only-in-b&w 2=always */
     float r, g, b;
+    float grey;
 };
 
 struct drawing {
@@ -199,17 +201,27 @@ void print_end_doc(drawing *dr)
     dr->api->end_doc(dr->handle);
 }
 
-void print_get_colour(drawing *dr, int colour, int *hatch,
-		      float *r, float *g, float *b)
+void print_get_colour(drawing *dr, int colour, int printing_in_colour,
+		      int *hatch, float *r, float *g, float *b)
 {
     assert(colour >= 0 && colour < dr->ncolours);
-    *hatch = dr->colours[colour].hatch;
-    *r = dr->colours[colour].r;
-    *g = dr->colours[colour].g;
-    *b = dr->colours[colour].b;
+    if (dr->colours[colour].hatch_when == 2 ||
+	(dr->colours[colour].hatch_when == 1 && !printing_in_colour)) {
+	*hatch = dr->colours[colour].hatch;
+    } else {
+	*hatch = -1;
+	if (printing_in_colour) {
+	    *r = dr->colours[colour].r;
+	    *g = dr->colours[colour].g;
+	    *b = dr->colours[colour].b;
+	} else {
+	    *r = *g = *b = dr->colours[colour].grey;
+	}
+    }
 }
 
-int print_rgb_colour(drawing *dr, int hatch, float r, float g, float b)
+static int print_generic_colour(drawing *dr, float r, float g, float b,
+				float grey, int hatch, int hatch_when)
 {
     if (dr->ncolours >= dr->coloursize) {
 	dr->coloursize = dr->ncolours + 16;
@@ -217,21 +229,42 @@ int print_rgb_colour(drawing *dr, int hatch, float r, float g, float b)
 			      struct print_colour);
     }
     dr->colours[dr->ncolours].hatch = hatch;
+    dr->colours[dr->ncolours].hatch_when = hatch_when;
     dr->colours[dr->ncolours].r = r;
     dr->colours[dr->ncolours].g = g;
     dr->colours[dr->ncolours].b = b;
+    dr->colours[dr->ncolours].grey = grey;
     return dr->ncolours++;
-}
-
-int print_grey_colour(drawing *dr, int hatch, float grey)
-{
-    return print_rgb_colour(dr, hatch, grey, grey, grey);
 }
 
 int print_mono_colour(drawing *dr, int grey)
 {
-    return print_rgb_colour(dr, grey ? HATCH_CLEAR : HATCH_SOLID,
-			    grey, grey, grey);
+    return print_generic_colour(dr, grey, grey, grey, grey, -1, 0);
+}
+
+int print_grey_colour(drawing *dr, float grey)
+{
+    return print_generic_colour(dr, grey, grey, grey, grey, -1, 0);
+}
+
+int print_hatched_colour(drawing *dr, int hatch)
+{
+    return print_generic_colour(dr, 0, 0, 0, 0, hatch, 2);
+}
+
+int print_rgb_mono_colour(drawing *dr, float r, float g, float b, int grey)
+{
+    return print_generic_colour(dr, r, g, b, grey, -1, 0);
+}
+
+int print_rgb_grey_colour(drawing *dr, float r, float g, float b, float grey)
+{
+    return print_generic_colour(dr, r, g, b, grey, -1, 0);
+}
+
+int print_rgb_hatched_colour(drawing *dr, float r, float g, float b, int hatch)
+{
+    return print_generic_colour(dr, r, g, b, 0, hatch, 1);
 }
 
 void print_line_width(drawing *dr, int width)

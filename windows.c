@@ -398,12 +398,14 @@ static void win_text_colour(frontend *fe, int colour)
     if (fe->drawstatus == PRINTING) {
 	int hatch;
 	float r, g, b;
-	print_get_colour(fe->dr, colour, &hatch, &r, &g, &b);
-	if (fe->printcolour)
-	    SetTextColor(fe->hdc, RGB(r * 255, g * 255, b * 255));
-	else
-	    SetTextColor(fe->hdc,
-			 hatch == HATCH_CLEAR ? RGB(255,255,255) : RGB(0,0,0));
+	print_get_colour(fe->dr, colour, fe->printcolour, &hatch, &r, &g, &b);
+
+	/*
+	 * Displaying text in hatched colours is not permitted.
+	 */
+	assert(hatch < 0);
+
+	SetTextColor(fe->hdc, RGB(r * 255, g * 255, b * 255));
     } else {
 	SetTextColor(fe->hdc, fe->colours[colour]);
     }
@@ -417,14 +419,10 @@ static void win_set_brush(frontend *fe, int colour)
     if (fe->drawstatus == PRINTING) {
 	int hatch;
 	float r, g, b;
-	print_get_colour(fe->dr, colour, &hatch, &r, &g, &b);
+	print_get_colour(fe->dr, colour, fe->printcolour, &hatch, &r, &g, &b);
 
-	if (fe->printcolour) {
+	if (hatch < 0) {
 	    br = CreateSolidBrush(RGB(r * 255, g * 255, b * 255));
-	} else if (hatch == HATCH_SOLID) {
-	    br = CreateSolidBrush(RGB(0,0,0));
-	} else if (hatch == HATCH_CLEAR) {
-	    br = CreateSolidBrush(RGB(255,255,255));
 	} else {
 #ifdef _WIN32_WCE
 	    /*
@@ -469,18 +467,12 @@ static void win_set_pen(frontend *fe, int colour, int thin)
 	float r, g, b;
 	int width = thin ? 0 : fe->linewidth;
 
-	print_get_colour(fe->dr, colour, &hatch, &r, &g, &b);
-	if (fe->printcolour)
-	    pen = CreatePen(PS_SOLID, width,
-			    RGB(r * 255, g * 255, b * 255));
-	else if (hatch == HATCH_SOLID)
-	    pen = CreatePen(PS_SOLID, width, RGB(0, 0, 0));
-	else if (hatch == HATCH_CLEAR)
-	    pen = CreatePen(PS_SOLID, width, RGB(255,255,255));
-	else {
-	    assert(!"This shouldn't happen");
-	    pen = CreatePen(PS_SOLID, 1, RGB(0, 0, 0));
-	}
+	print_get_colour(fe->dr, colour, fe->printcolour, &hatch, &r, &g, &b);
+	/*
+	 * Stroking in hatched colours is not permitted.
+	 */
+	assert(hatch < 0);
+	pen = CreatePen(PS_SOLID, width, RGB(r * 255, g * 255, b * 255));
     } else {
 	pen = fe->pens[colour];
     }

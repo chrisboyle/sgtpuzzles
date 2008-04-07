@@ -1991,7 +1991,7 @@ black; if \c{grey} is 1, the colour is white.
 
 \S{print-grey-colour} \cw{print_grey_colour()}
 
-\c int print_grey_colour(drawing *dr, int hatch, float grey);
+\c int print_grey_colour(drawing *dr, float grey);
 
 This function allocates a colour index for a grey-scale colour
 during printing.
@@ -1999,18 +1999,17 @@ during printing.
 \c{grey} may be any number between 0 (black) and 1 (white); for
 example, 0.5 indicates a medium grey.
 
-If printing in black and white only, the \c{grey} value will not be
-used; instead, regions shaded in this colour will be hatched with
-parallel lines. The \c{hatch} parameter defines what type of
-hatching should be used in place of this colour:
+The chosen colour will be rendered to the limits of the printer's
+halftoning capability.
 
-\dt \cw{HATCH_SOLID}
+\S{print-hatched-colour} \cw{print_hatched_colour()}
 
-\dd In black and white, this colour will be replaced by solid black.
+\c int print_hatched_colour(drawing *dr, int hatch);
 
-\dt \cw{HATCH_CLEAR}
-
-\dd In black and white, this colour will be replaced by solid white.
+This function allocates a colour index which does not represent a
+literal \e{colour}. Instead, regions shaded in this colour will be
+hatched with parallel lines. The \c{hatch} parameter defines what
+type of hatching should be used in place of this colour:
 
 \dt \cw{HATCH_SLASH}
 
@@ -2039,29 +2038,59 @@ vertical lines.
 
 \dd This colour will be hatched by criss-crossing diagonal lines.
 
-Colours defined to use hatching may not be used for drawing lines;
-they may only be used for filling areas. That is, they may be used
-as the \c{fillcolour} parameter to \cw{draw_circle()} and
+Colours defined to use hatching may not be used for drawing lines or
+text; they may only be used for filling areas. That is, they may be
+used as the \c{fillcolour} parameter to \cw{draw_circle()} and
 \cw{draw_polygon()}, and as the colour parameter to
 \cw{draw_rect()}, but may not be used as the \c{outlinecolour}
 parameter to \cw{draw_circle()} or \cw{draw_polygon()}, or with
-\cw{draw_line()}.
+\cw{draw_line()} or \cw{draw_text()}.
 
-\S{print-rgb-colour} \cw{print_rgb_colour()}
+\S{print-rgb-mono-colour} \cw{print_rgb_mono_colour()}
 
-\c int print_rgb_colour(drawing *dr, int hatch,
-\c                      float r, float g, float b);
+\c int print_rgb_mono_colour(drawing *dr, float r, float g,
+\c                           float b, float grey);
 
 This function allocates a colour index for a fully specified RGB
 colour during printing.
 
 \c{r}, \c{g} and \c{b} may each be anywhere in the range from 0 to 1.
 
-If printing in black and white only, these values will not be used;
-instead, regions shaded in this colour will be hatched with parallel
-lines. The \c{hatch} parameter defines what type of hatching should
-be used in place of this colour; see \k{print-grey-colour} for its
-definition.
+If printing in black and white only, these values will be ignored,
+and either pure black or pure white will be used instead, according
+to the \q{grey} parameter. (The fallback colour is the same as the
+one which would be allocated by \cw{print_mono_colour(grey)}.)
+
+\S{print-rgb-grey-colour} \cw{print_rgb_grey_colour()}
+
+\c int print_rgb_grey_colour(drawing *dr, float r, float g,
+\c                           float b, float grey);
+
+This function allocates a colour index for a fully specified RGB
+colour during printing.
+
+\c{r}, \c{g} and \c{b} may each be anywhere in the range from 0 to 1.
+
+If printing in black and white only, these values will be ignored,
+and a shade of grey given by the \c{grey} parameter will be used
+instead. (The fallback colour is the same as the one which would be
+allocated by \cw{print_grey_colour(grey)}.)
+
+\S{print-rgb-hatched-colour} \cw{print_rgb_hatched_colour()}
+
+\c int print_rgb_hatched_colour(drawing *dr, float r, float g,
+\c                              float b, float hatched);
+
+This function allocates a colour index for a fully specified RGB
+colour during printing.
+
+\c{r}, \c{g} and \c{b} may each be anywhere in the range from 0 to 1.
+
+If printing in black and white only, these values will be ignored,
+and a form of cross-hatching given by the \c{hatch} parameter will
+be used instead; see \k{print-hatched-colour} for the possible
+values of this parameter. (The fallback colour is the same as the
+one which would be allocated by \cw{print_hatched_colour(hatch)}.)
 
 \S{print-line-width} \cw{print_line_width()}
 
@@ -2395,20 +2424,27 @@ the front end.
 
 \S{drawing-print-get-colour} \cw{print_get_colour()}
 
-\c void print_get_colour(drawing *dr, int colour, int *hatch,
-\c                       float *r, float *g, float *b)
+\c void print_get_colour(drawing *dr, int colour, int printincolour,
+\c                       int *hatch, float *r, float *g, float *b)
 
 This function is called by the implementations of the drawing API
 functions when they are called in a printing context. It takes a
 colour index as input, and returns the description of the colour as
 requested by the back end.
 
-\c{*r}, \c{*g} and \c{*b} are filled with the RGB values of the
-desired colour if printing in colour.
+\c{printincolour} is \cw{TRUE} iff the implementation is printing in
+colour. This will alter the results returned if the colour in
+question was specified with a black-and-white fallback value.
 
-\c{*hatch} is filled with the type of hatching (or not) desired if
-printing in black and white. See \k{print-grey-colour} for details
-of the values this integer can take.
+If the colour should be rendered by hatching, \c{*hatch} is filled
+with the type of hatching desired. See \k{print-grey-colour} for
+details of the values this integer can take.
+
+If the colour should be rendered as solid colour, \c{*hatch} is
+given a negative value, and \c{*r}, \c{*g} and \c{*b} are filled
+with the RGB values of the desired colour (if printing in colour),
+or all filled with the grey-scale value (if printing in black and
+white).
 
 \C{midend} The API provided by the mid-end
 

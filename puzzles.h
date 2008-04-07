@@ -110,14 +110,12 @@ typedef struct psdata psdata;
 #define FONT_VARIABLE 1
 
 /* For printing colours */
-#define HATCH_SOLID 0
-#define HATCH_CLEAR 1
-#define HATCH_SLASH 2
-#define HATCH_BACKSLASH 3
-#define HATCH_HORIZ 4
-#define HATCH_VERT 5
-#define HATCH_PLUS 6
-#define HATCH_X 7
+#define HATCH_SLASH     1
+#define HATCH_BACKSLASH 2
+#define HATCH_HORIZ     3
+#define HATCH_VERT      4
+#define HATCH_PLUS      5
+#define HATCH_X         6
 
 /*
  * Structure used to pass configuration data between frontend and
@@ -205,11 +203,15 @@ void print_begin_puzzle(drawing *dr, float xm, float xc,
 void print_end_puzzle(drawing *dr);
 void print_end_page(drawing *dr, int number);
 void print_end_doc(drawing *dr);
-void print_get_colour(drawing *dr, int colour, int *hatch,
-		      float *r, float *g, float *b);
+void print_get_colour(drawing *dr, int colour, int printing_in_colour,
+		      int *hatch, float *r, float *g, float *b);
 int print_mono_colour(drawing *dr, int grey); /* 0==black, 1==white */
-int print_grey_colour(drawing *dr, int hatch, float grey);
-int print_rgb_colour(drawing *dr, int hatch, float r, float g, float b);
+int print_grey_colour(drawing *dr, float grey);
+int print_hatched_colour(drawing *dr, int hatch);
+int print_rgb_mono_colour(drawing *dr, float r, float g, float b, float mono);
+int print_rgb_grey_colour(drawing *dr, float r, float g, float b, float grey);
+int print_rgb_hatched_colour(drawing *dr, float r, float g, float b,
+			     int hatch);
 void print_line_width(drawing *dr, int width);
 
 /*
