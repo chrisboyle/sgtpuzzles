@@ -31,7 +31,7 @@ struct midend {
     const game *ourgame;
 
     game_params **presets;
-    char **preset_names;
+    char **preset_names, **preset_encodings;
     int npresets, presetsize;
 
     /*
@@ -115,6 +115,7 @@ midend *midend_new(frontend *fe, const game *ourgame,
     me->oldstate = NULL;
     me->presets = NULL;
     me->preset_names = NULL;
+    me->preset_encodings = NULL;
     me->npresets = me->presetsize = 0;
     me->anim_time = me->anim_pos = 0.0F;
     me->flash_time = me->flash_pos = 0.0F;
@@ -186,9 +187,11 @@ void midend_free(midend *me)
 	for (i = 0; i < me->npresets; i++) {
 	    sfree(me->presets[i]);
 	    sfree(me->preset_names[i]);
+	    sfree(me->preset_encodings[i]);
 	}
 	sfree(me->presets);
 	sfree(me->preset_names);
+	sfree(me->preset_encodings);
     }
     if (me->ui)
         me->ourgame->free_ui(me->ui);
@@ -836,10 +839,14 @@ int midend_num_presets(midend *me)
                                       game_params *);
                 me->preset_names = sresize(me->preset_names, me->presetsize,
                                            char *);
+                me->preset_encodings = sresize(me->preset_encodings,
+					       me->presetsize, char *);
             }
 
             me->presets[me->npresets] = preset;
             me->preset_names[me->npresets] = name;
+            me->preset_encodings[me->npresets] =
+		me->ourgame->encode_params(preset, TRUE);;
             me->npresets++;
         }
     }
@@ -890,10 +897,14 @@ int midend_num_presets(midend *me)
                                           game_params *);
                     me->preset_names = sresize(me->preset_names,
                                                me->presetsize, char *);
+                    me->preset_encodings = sresize(me->preset_encodings,
+						   me->presetsize, char *);
                 }
 
                 me->presets[me->npresets] = preset;
                 me->preset_names[me->npresets] = dupstr(name);
+                me->preset_encodings[me->npresets] =
+		    me->ourgame->encode_params(preset, TRUE);
                 me->npresets++;
             }
         }
@@ -908,6 +919,22 @@ void midend_fetch_preset(midend *me, int n,
     assert(n >= 0 && n < me->npresets);
     *name = me->preset_names[n];
     *params = me->presets[n];
+}
+
+int midend_which_preset(midend *me)
+{
+    char *encoding = me->ourgame->encode_params(me->params, TRUE);
+    int i, ret;
+
+    ret = -1;
+    for (i = 0; i < me->npresets; i++)
+	if (!strcmp(encoding, me->preset_encodings[i])) {
+	    ret = i;
+	    break;
+	}
+
+    sfree(encoding);
+    return ret;
 }
 
 int midend_wants_statusbar(midend *me)

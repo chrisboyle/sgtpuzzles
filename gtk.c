@@ -79,6 +79,8 @@ void fatal(char *fmt, ...)
  * GTK front end to puzzles.
  */
 
+static void update_preset_tick(frontend *fe);
+
 struct font {
 #ifdef USE_PANGO
     PangoFontDescription *desc;
@@ -122,6 +124,9 @@ struct frontend {
     int pw, ph;                        /* pixmap size (w, h are area size) */
     int ox, oy;                        /* offset of pixmap in drawing area */
     char *filesel_name;
+    int npresets;
+    GtkWidget **preset_bullets;
+    GtkWidget *preset_custom_bullet;
 };
 
 void get_random_seed(void **randseed, int *randseedsize)
@@ -844,6 +849,7 @@ static void config_ok_button_clicked(GtkButton *button, gpointer data)
     else {
 	fe->cfgret = TRUE;
 	gtk_widget_destroy(fe->cfgbox);
+	update_preset_tick(fe);
     }
 }
 
@@ -1100,6 +1106,29 @@ static void get_size(frontend *fe, int *px, int *py)
 	gdk_window_resize(GTK_WIDGET(win)->window, x, y)
 #endif
 
+static void update_menuitem_bullet(GtkWidget *label, int visible)
+{
+    if (visible) {
+	gtk_label_set_text(GTK_LABEL(label), "\xE2\x80\xA2");
+    } else {
+	gtk_label_set_text(GTK_LABEL(label), "");
+    }
+}
+
+static void update_preset_tick(frontend *fe)
+{
+    int n = midend_which_preset(fe->me);
+    int i;
+
+    if (fe->preset_bullets) {
+	for (i = 0; i < fe->npresets; i++)
+	    update_menuitem_bullet(fe->preset_bullets[i], n == i);
+    }
+    if (fe->preset_custom_bullet) {
+	update_menuitem_bullet(fe->preset_custom_bullet, n < 0);
+    }
+}
+
 static void resize_fe(frontend *fe)
 {
     int x, y;
@@ -1129,6 +1158,7 @@ static void menu_preset_event(GtkMenuItem *menuitem, gpointer data)
 
     midend_set_params(fe->me, params);
     midend_new_game(fe->me);
+    update_preset_tick(fe);
     resize_fe(fe);
 }
 
@@ -1358,6 +1388,7 @@ static void menu_load_event(GtkMenuItem *menuitem, gpointer data)
             return;
         }
 
+	update_preset_tick(fe);
         resize_fe(fe);
     }
 }
@@ -1447,6 +1478,34 @@ static void add_menu_separator(GtkContainer *cont)
 }
 
 enum { ARG_EITHER, ARG_SAVE, ARG_ID }; /* for argtype */
+
+static GtkWidget *make_preset_menuitem(GtkWidget **bulletlabel,
+				       const char *name)
+{
+    GtkWidget *hbox, *lab1, *lab2, *menuitem;
+    GtkRequisition req;
+
+    hbox = gtk_hbox_new(FALSE, 0);
+    gtk_widget_show(hbox);
+    lab1 = gtk_label_new("\xE2\x80\xA2 ");
+    gtk_widget_show(lab1);
+    gtk_box_pack_start(GTK_BOX(hbox), lab1, FALSE, FALSE, 0);
+    gtk_misc_set_alignment(GTK_MISC(lab1), 0.0, 0.0);
+    lab2 = gtk_label_new(name);
+    gtk_widget_show(lab2);
+    gtk_box_pack_start(GTK_BOX(hbox), lab2, TRUE, TRUE, 0);
+    gtk_misc_set_alignment(GTK_MISC(lab2), 0.0, 0.0);
+
+    gtk_widget_size_request(lab1, &req);
+    gtk_widget_set_usize(lab1, req.width, -1);
+    gtk_label_set_text(GTK_LABEL(lab1), "");
+
+    menuitem = gtk_menu_item_new();
+    gtk_container_add(GTK_CONTAINER(menuitem), hbox);
+
+    *bulletlabel = lab1;
+    return menuitem;
+}
 
 static frontend *new_window(char *arg, int argtype, char **error)
 {
@@ -1583,13 +1642,17 @@ static frontend *new_window(char *arg, int argtype, char **error)
         submenu = gtk_menu_new();
         gtk_menu_item_set_submenu(GTK_MENU_ITEM(menuitem), submenu);
 
+	fe->npresets = n;
+	fe->preset_bullets = snewn(n, GtkWidget *);
+
         for (i = 0; i < n; i++) {
             char *name;
             game_params *params;
 
             midend_fetch_preset(fe->me, i, &name, &params);
 
-            menuitem = gtk_menu_item_new_with_label(name);
+	    menuitem = make_preset_menuitem(&fe->preset_bullets[i], name);
+
             gtk_container_add(GTK_CONTAINER(submenu), menuitem);
             gtk_object_set_data(GTK_OBJECT(menuitem), "user-data", params);
             gtk_signal_connect(GTK_OBJECT(menuitem), "activate",
@@ -1598,14 +1661,23 @@ static frontend *new_window(char *arg, int argtype, char **error)
         }
 
 	if (thegame.can_configure) {
-            menuitem = gtk_menu_item_new_with_label("Custom...");
+	    menuitem = make_preset_menuitem(&fe->preset_custom_bullet,
+					    "Custom...");
+
+            gtk_container_add(GTK_CONTAINER(submenu), menuitem);
             gtk_object_set_data(GTK_OBJECT(menuitem), "user-data",
 				GPOINTER_TO_INT(CFG_SETTINGS));
-            gtk_container_add(GTK_CONTAINER(submenu), menuitem);
             gtk_signal_connect(GTK_OBJECT(menuitem), "activate",
                                GTK_SIGNAL_FUNC(menu_config_event), fe);
             gtk_widget_show(menuitem);
-	}
+	} else
+	    fe->preset_custom_bullet = NULL;
+
+	update_preset_tick(fe);
+    } else {
+	fe->npresets = 0;
+	fe->preset_bullets = NULL;
+	fe->preset_custom_bullet = NULL;
     }
 
     add_menu_separator(GTK_CONTAINER(menu));

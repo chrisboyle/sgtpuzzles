@@ -2728,6 +2728,16 @@ are owned by the mid-end structure: the front end should not ever
 free them directly, because they will be freed automatically during
 \cw{midend_free()}.
 
+\H{midend-which-preset} \cw{midend_which_preset()}
+
+\c int midend_which_preset(midend *me);
+
+Returns the numeric index of the preset game parameter structure
+which matches the current game parameters, or a negative number if
+no preset matches. Front ends could use this to maintain a tick
+beside one of the items in the menu (or tick the \q{Custom} option
+if the return value is less than zero).
+
 \H{midend-wants-statusbar} \cw{midend_wants_statusbar()}
 
 \c int midend_wants_statusbar(midend *me);

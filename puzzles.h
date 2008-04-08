@@ -235,6 +235,7 @@ void midend_timer(midend *me, float tplus);
 int midend_num_presets(midend *me);
 void midend_fetch_preset(midend *me, int n,
                          char **name, game_params **params);
+int midend_which_preset(midend *me);
 int midend_wants_statusbar(midend *me);
 enum { CFG_SETTINGS, CFG_SEED, CFG_DESC, CFG_FRONTEND_SPECIFIC };
 config_item *midend_get_config(midend *me, int which, char **wintitle);
