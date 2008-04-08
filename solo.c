@@ -1897,13 +1897,28 @@ struct gridgen_usage {
     random_state *rs;
 };
 
+static void gridgen_place(struct gridgen_usage *usage, int x, int y, digit n,
+			  int placing)
+{
+    int cr = usage->cr;
+    usage->row[y*cr+n-1] = usage->col[x*cr+n-1] =
+	usage->blk[usage->blocks->whichblock[y*cr+x]*cr+n-1] = placing;
+    if (usage->diag) {
+	if (ondiag0(y*cr+x))
+	    usage->diag[n-1] = placing;
+	if (ondiag1(y*cr+x))
+	    usage->diag[cr+n-1] = placing;
+    }
+    usage->grid[y*cr+x] = placing ? n : 0;
+}
+
 /*
  * The real recursive step in the generating function.
  *
  * Return values: 1 means solution found, 0 means no solution
  * found on this branch.
  */
-static int gridgen_real(struct gridgen_usage *usage, digit *grid)
+static int gridgen_real(struct gridgen_usage *usage, digit *grid, int *steps)
 {
     int cr = usage->cr;
     int i, j, n, sx, sy, bestm, bestr, ret;
@@ -1913,10 +1928,15 @@ static int gridgen_real(struct gridgen_usage *usage, digit *grid)
      * Firstly, check for completion! If there are no spaces left
      * in the grid, we have a solution.
      */
-    if (usage->nspaces == 0) {
-        memcpy(grid, usage->grid, cr * cr);
+    if (usage->nspaces == 0)
 	return TRUE;
-    }
+
+    /*
+     * Next, abandon generation if we went over our steps limit.
+     */
+    if (*steps <= 0)
+	return FALSE;
+    (*steps)--;
 
     /*
      * Otherwise, there must be at least one space. Find the most
@@ -1984,35 +2004,18 @@ static int gridgen_real(struct gridgen_usage *usage, digit *grid)
 	n = digits[i];
 
 	/* Update the usage structure to reflect the placing of this digit. */
-	usage->row[sy*cr+n-1] = usage->col[sx*cr+n-1] =
-	    usage->blk[usage->blocks->whichblock[sy*cr+sx]*cr+n-1] = TRUE;
-	if (usage->diag) {
-	    if (ondiag0(sy*cr+sx))
-		usage->diag[n-1] = TRUE;
-	    if (ondiag1(sy*cr+sx))
-		usage->diag[cr+n-1] = TRUE;
-	}
-	usage->grid[sy*cr+sx] = n;
+	gridgen_place(usage, sx, sy, n, TRUE);
 	usage->nspaces--;
 
 	/* Call the solver recursively. Stop when we find a solution. */
-	if (gridgen_real(usage, grid))
+	if (gridgen_real(usage, grid, steps)) {
             ret = TRUE;
+	    break;
+	}
 
 	/* Revert the usage structure. */
-	usage->row[sy*cr+n-1] = usage->col[sx*cr+n-1] =
-	    usage->blk[usage->blocks->whichblock[sy*cr+sx]*cr+n-1] = FALSE;
-	if (usage->diag) {
-	    if (ondiag0(sy*cr+sx))
-		usage->diag[n-1] = FALSE;
-	    if (ondiag1(sy*cr+sx))
-		usage->diag[cr+n-1] = FALSE;
-	}
-	usage->grid[sy*cr+sx] = 0;
+	gridgen_place(usage, sx, sy, n, FALSE);
 	usage->nspaces++;
-
-        if (ret)
-            break;
     }
 
     sfree(digits);
@@ -2024,7 +2027,7 @@ static int gridgen_real(struct gridgen_usage *usage, digit *grid)
  * grid, which is simply an array of cr*cr digits.
  */
 static int gridgen(int cr, struct block_structure *blocks, int xtype,
-		   digit *grid, random_state *rs)
+		   digit *grid, random_state *rs, int maxsteps)
 {
     struct gridgen_usage *usage;
     int x, y, ret;
@@ -2042,8 +2045,7 @@ static int gridgen(int cr, struct block_structure *blocks, int xtype,
     usage->cr = cr;
     usage->blocks = blocks;
 
-    usage->grid = snewn(cr * cr, digit);
-    memcpy(usage->grid, grid, cr * cr);
+    usage->grid = grid;
 
     usage->row = snewn(cr * cr, unsigned char);
     usage->col = snewn(cr * cr, unsigned char);
@@ -2059,15 +2061,29 @@ static int gridgen(int cr, struct block_structure *blocks, int xtype,
 	usage->diag = NULL;
     }
 
+    /*
+     * Begin by filling in the whole top row with randomly chosen
+     * numbers. This cannot introduce any bias or restriction on
+     * the available grids, since we already know those numbers
+     * are all distinct so all we're doing is choosing their
+     * labels.
+     */
+    for (x = 0; x < cr; x++)
+	grid[x] = x+1;
+    shuffle(grid, cr, sizeof(*grid), rs);
+    for (x = 0; x < cr; x++)
+	gridgen_place(usage, x, 0, grid[x], TRUE);
+
     usage->spaces = snewn(cr * cr, struct gridgen_coord);
     usage->nspaces = 0;
 
     usage->rs = rs;
 
     /*
-     * Initialise the list of grid spaces.
+     * Initialise the list of grid spaces, taking care to leave
+     * out the row I've already filled in above.
      */
-    for (y = 0; y < cr; y++) {
+    for (y = 1; y < cr; y++) {
 	for (x = 0; x < cr; x++) {
             usage->spaces[usage->nspaces].x = x;
             usage->spaces[usage->nspaces].y = y;
@@ -2079,7 +2095,7 @@ static int gridgen(int cr, struct block_structure *blocks, int xtype,
     /*
      * Run the real generator function.
      */
-    ret = gridgen_real(usage, grid);
+    ret = gridgen_real(usage, grid, &maxsteps);
 
     /*
      * Clean up the usage structure now we have our answer.
@@ -2088,7 +2104,6 @@ static int gridgen(int cr, struct block_structure *blocks, int xtype,
     sfree(usage->blk);
     sfree(usage->col);
     sfree(usage->row);
-    sfree(usage->grid);
     sfree(usage);
 
     return ret;
@@ -2354,8 +2369,8 @@ static char *new_game_desc(game_params *params, random_state *rs,
 	    blocks->blocks[b][j] = i;
 	}
 
-        if (!gridgen(cr, blocks, params->xtype, grid, rs))
-	    continue;  /* this might happen if the jigsaw is unsuitable */
+        if (!gridgen(cr, blocks, params->xtype, grid, rs, area*area))
+	    continue;
         assert(check_valid(cr, blocks, params->xtype, grid));
 
 	/*
