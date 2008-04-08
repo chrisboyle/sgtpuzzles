@@ -861,9 +861,9 @@ menu are \e{Width} and \e{Height}, which are self-explanatory.
 
 \cfg{winhelp-topic}{games.solo}
 
-You have a square grid, which is divided into square or rectangular
-blocks. Each square must be filled in with a digit from 1 to the
-size of the grid, in such a way that
+You have a square grid, which is divided into as many equally sized
+sub-blocks as the grid has rows. Each square must be filled in with
+a digit from 1 to the size of the grid, in such a way that
 
 \b every row contains only one occurrence of each digit
 
@@ -871,13 +871,19 @@ size of the grid, in such a way that
 
 \b every block contains only one occurrence of each digit.
 
+\b (optionally, by default off) each of the square's two main
+diagonals contains only one occurrence of each digit.
+
 You are given some of the numbers as clues; your aim is to place the
 rest of the numbers correctly.
 
-The default puzzle size is 3\by\.3 (a 9\by\.9 actual grid, divided
-into nine 3\by\.3 blocks). You can also select sizes with
-rectangular blocks instead of square ones, such as 2\by\.3 (a
-6\by\.6 grid divided into six 3\by\.2 blocks).
+Under the default settings, the sub-blocks are square or
+rectangular. The default puzzle size is 3\by\.3 (a 9\by\.9 actual
+grid, divided into nine 3\by\.3 blocks). You can also select sizes
+with rectangular blocks instead of square ones, such as 2\by\.3 (a
+6\by\.6 grid divided into six 3\by\.2 blocks). Alternatively, you
+can select \q{jigsaw} mode, in which the sub-blocks are arbitrary
+shapes which differ between individual puzzles.
 
 If you select a puzzle size which requires more than 9 digits, the
 additional digits will be letters of the alphabet. For example, if
@@ -930,11 +936,18 @@ rows, into which the main grid is divided. (The size of a block is
 the inverse of this: for example, if you select 2 columns and 3 rows,
 each actual block will have 3 columns and 2 rows.)
 
-You can introduce an optional extra constraint on the puzzles,
-requiring that the two main diagonals of the grid also contain one
+If you tick the \q{X} checkbox, Solo will apply the optional extra
+constraint that the two main diagonals of the grid also contain one
 of every digit. (This is sometimes known as \q{Sudoku-X} in
 newspapers.) In this mode, the squares on the two main diagonals
 will be shaded slightly so that you know it's enabled.
+
+If you tick the \q{Jigsaw} checkbox, Solo will generate randomly
+shaped sub-blocks. In this mode, the actual grid size will be taken
+to be the product of the numbers entered in the \q{Columns} and
+\q{Rows} boxes. There is no reason why you have to enter a number
+greater than 1 in both boxes; Jigsaw mode has no constraint on the
+grid size, and it can even be a prime number if you feel like it.
 
 You can also configure the type of symmetry shown in the generated
 puzzles. More symmetry makes the puzzles look prettier but may also

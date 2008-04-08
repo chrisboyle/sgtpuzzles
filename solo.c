@@ -3,26 +3,6 @@
  *
  * TODO:
  *
- *  - Jigsaw Sudoku is currently an undocumented feature enabled
- *    by setting r (`Rows of sub-blocks' in the GUI configurer) to
- *    1. The reason it's undocumented is because they're rather
- *    erratic to generate, because gridgen tends to hang up for
- *    ages. I think this is because some jigsaw block layouts
- *    simply do not admit very many valid filled grids (and
- *    perhaps some have none at all).
- *     + To fix this, I think probably the solution is a change in
- * 	 grid generation policy: gridgen needs to have less of an
- * 	 all-or-nothing attitude and instead make only a limited
- * 	 amount of effort to construct a filled grid before giving
- * 	 up and trying a new layout. (Come to think of it, this
- * 	 same change might also make 5x5 standard Sudoku more
- * 	 practical to generate, if correctly tuned.)
- *     + If I get this fixed, other work needed on jigsaw mode is:
- * 	  * introduce a GUI config checkbox. game_configure()
- * 	    ticks this box iff r==1; if it's ticked in a call to
- * 	    custom_params(), we replace (c, r) with (c*r, 1).
- *        * document it.
- *
  *  - reports from users are that `Trivial'-mode puzzles are still
  *    rather hard compared to newspapers' easy ones, so some better
  *    low-end difficulty grading would be nice
@@ -258,6 +238,9 @@ static int game_fetch_preset(int i, char **name, game_params **params)
         { "3x3 Advanced X", { 3, 3, SYMM_ROT2, DIFF_SET, TRUE } },
         { "3x3 Extreme", { 3, 3, SYMM_ROT2, DIFF_EXTREME, FALSE } },
         { "3x3 Unreasonable", { 3, 3, SYMM_ROT2, DIFF_RECURSIVE, FALSE } },
+        { "9 Jigsaw Basic", { 9, 1, SYMM_ROT2, DIFF_SIMPLE, FALSE } },
+        { "9 Jigsaw Basic X", { 9, 1, SYMM_ROT2, DIFF_SIMPLE, TRUE } },
+        { "9 Jigsaw Advanced", { 9, 1, SYMM_ROT2, DIFF_SET, FALSE } },
 #ifndef SLOW_SYSTEM
         { "3x4 Basic", { 3, 4, SYMM_ROT2, DIFF_SIMPLE, FALSE } },
         { "4x4 Basic", { 4, 4, SYMM_ROT2, DIFF_SIMPLE, FALSE } },
@@ -376,7 +359,7 @@ static config_item *game_configure(game_params *params)
     config_item *ret;
     char buf[80];
 
-    ret = snewn(6, config_item);
+    ret = snewn(7, config_item);
 
     ret[0].name = "Columns of sub-blocks";
     ret[0].type = C_STRING;
@@ -395,22 +378,27 @@ static config_item *game_configure(game_params *params)
     ret[2].sval = NULL;
     ret[2].ival = params->xtype;
 
-    ret[3].name = "Symmetry";
-    ret[3].type = C_CHOICES;
-    ret[3].sval = ":None:2-way rotation:4-way rotation:2-way mirror:"
+    ret[3].name = "Jigsaw (irregularly shaped sub-blocks)";
+    ret[3].type = C_BOOLEAN;
+    ret[3].sval = NULL;
+    ret[3].ival = (params->r == 1);
+
+    ret[4].name = "Symmetry";
+    ret[4].type = C_CHOICES;
+    ret[4].sval = ":None:2-way rotation:4-way rotation:2-way mirror:"
         "2-way diagonal mirror:4-way mirror:4-way diagonal mirror:"
         "8-way mirror";
-    ret[3].ival = params->symm;
+    ret[4].ival = params->symm;
 
-    ret[4].name = "Difficulty";
-    ret[4].type = C_CHOICES;
-    ret[4].sval = ":Trivial:Basic:Intermediate:Advanced:Extreme:Unreasonable";
-    ret[4].ival = params->diff;
+    ret[5].name = "Difficulty";
+    ret[5].type = C_CHOICES;
+    ret[5].sval = ":Trivial:Basic:Intermediate:Advanced:Extreme:Unreasonable";
+    ret[5].ival = params->diff;
 
-    ret[5].name = NULL;
-    ret[5].type = C_END;
-    ret[5].sval = NULL;
-    ret[5].ival = 0;
+    ret[6].name = NULL;
+    ret[6].type = C_END;
+    ret[6].sval = NULL;
+    ret[6].ival = 0;
 
     return ret;
 }
@@ -422,8 +410,12 @@ static game_params *custom_params(config_item *cfg)
     ret->c = atoi(cfg[0].sval);
     ret->r = atoi(cfg[1].sval);
     ret->xtype = cfg[2].ival;
-    ret->symm = cfg[3].ival;
-    ret->diff = cfg[4].ival;
+    if (cfg[3].ival) {
+	ret->c *= ret->r;
+	ret->r = 1;
+    }
+    ret->symm = cfg[4].ival;
+    ret->diff = cfg[5].ival;
 
     return ret;
 }
