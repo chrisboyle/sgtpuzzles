@@ -426,6 +426,7 @@ struct frontend {
 - (void)deactivateTimer;
 - (void)setStatusLine:(char *)text;
 - (void)resizeForNewGameParams;
+- (void)updateTypeMenuTick;
 @end
 
 @implementation MyImageView
@@ -766,6 +767,7 @@ struct frontend {
         }
 
 	[self resizeForNewGameParams];
+	[self updateTypeMenuTick];
     }
 }
 - (void)undoMove:(id)sender
@@ -815,6 +817,19 @@ struct frontend {
 {
     while ([typemenu numberOfItems] > 1)
 	[typemenu removeItemAtIndex:0];
+    [[typemenu itemAtIndex:0] setState:NSOffState];
+}
+
+- (void)updateTypeMenuTick
+{
+    int i, total, n;
+
+    total = [typemenu numberOfItems];
+    n = midend_which_preset(me);
+    if (n < 0)
+	n = total - 1;		       /* that's always where "Custom" lives */
+    for (i = 0; i < total; i++)
+	[[typemenu itemAtIndex:i] setState:(i == n ? NSOnState : NSOffState)];
 }
 
 - (void)becomeKeyWindow
@@ -849,6 +864,8 @@ struct frontend {
 	    [typemenu insertItem:item atIndex:0];
 	}
     }
+
+    [self updateTypeMenuTick];
 }
 
 - (void)resignKeyWindow
@@ -894,6 +911,7 @@ struct frontend {
     midend_new_game(me);
 
     [self resizeForNewGameParams];
+    [self updateTypeMenuTick];
 }
 
 - (void)startConfigureSheet:(int)which
@@ -1215,6 +1233,7 @@ struct frontend {
 	} else {
 	    midend_new_game(me);
 	    [self resizeForNewGameParams];
+	    [self updateTypeMenuTick];
 	}
     }
     sfree(cfg_controls);
