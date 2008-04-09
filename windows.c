@@ -195,6 +195,7 @@ struct frontend {
     HBRUSH *brushes;
     HPEN *pens;
     HRGN clip;
+    HMENU typemenu;
     UINT timer;
     DWORD timer_last_tickcount;
     int npresets;
@@ -219,6 +220,8 @@ struct frontend {
     drawing *dr;
     int xmin, ymin;
 };
+
+static void update_type_menu_tick(frontend *fe);
 
 void fatal(char *fmt, ...)
 {
@@ -584,10 +587,11 @@ static void win_draw_text(void *handle, int x, int y, int fonttype,
 		xy.y -= tm.tmAscent;
 	}
 #ifndef _WIN32_WCE
-	if (GetTextExtentPoint32(fe->hdc, text, strlen(text), &size)) {
+	if (GetTextExtentPoint32(fe->hdc, text, strlen(text), &size))
 #else
-	if (GetTextExtentPoint32(fe->hdc, wText, wcslen(wText), &size)) {
+	if (GetTextExtentPoint32(fe->hdc, wText, wcslen(wText), &size))
 #endif
+	{
 	    if (align & ALIGN_HCENTRE)
 		xy.x -= size.cx / 2;
 	    else if (align & ALIGN_HRIGHT)
@@ -1613,7 +1617,10 @@ static frontend *new_window(HINSTANCE inst, char *game_id, char **error)
 	    if (thegame.can_configure) {
 		AppendMenu(sub, MF_ENABLED, IDM_CONFIG, TEXT("&Custom..."));
 	    }
-	}
+
+	    fe->typemenu = sub;
+	} else
+	    fe->typemenu = INVALID_HANDLE_VALUE;
 
 	AppendMenu(menu, MF_SEPARATOR, 0, 0);
 #ifndef _WIN32_WCE
@@ -1671,6 +1678,8 @@ static frontend *new_window(HINSTANCE inst, char *game_id, char **error)
 
     ShowWindow(fe->hwnd, SW_SHOWNORMAL);
     SetForegroundWindow(fe->hwnd);
+
+    update_type_menu_tick(fe);
 
     midend_redraw(fe->me);
 
@@ -2628,10 +2637,31 @@ static void adjust_game_size(frontend *fe, RECT *proposed, int isedge,
     *wx_r = wx; *wy_r = wy;
 }
 
+static void update_type_menu_tick(frontend *fe)
+{
+    int total, n, i;
+
+    if (fe->typemenu == INVALID_HANDLE_VALUE)
+	return;
+
+    total = GetMenuItemCount(fe->typemenu);
+    n = midend_which_preset(fe->me);
+    if (n < 0)
+	n = total - 1;		       /* "Custom" item */
+
+    for (i = 0; i < total; i++) {
+	int flag = (i == n ? MF_CHECKED : MF_UNCHECKED);
+	CheckMenuItem(fe->typemenu, i, MF_BYPOSITION | flag);
+    }
+
+    DrawMenuBar(fe->hwnd);
+}
+
 static void new_game_type(frontend *fe)
 {
     midend_new_game(fe->me);
     new_game_size(fe);
+    update_type_menu_tick(fe);
 }
 
 static int is_alt_pressed(void)
