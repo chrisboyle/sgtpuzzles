@@ -2779,10 +2779,10 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
 
 	    if (*desc == '_')
 		c = 0;
-	    else if (*desc >= 'a' && *desc <= 'z')
+	    else {
+                assert(*desc >= 'a' && *desc <= 'z');
 		c = *desc - 'a' + 1;
-	    else
-		assert(!"Shouldn't get here");
+            }
 	    desc++;
 
 	    adv = (c != 25);	       /* 'z' is a special case */
