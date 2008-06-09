@@ -37,8 +37,10 @@
  */
 
 #include <stdio.h>
+#include <string.h>
 #include <limits.h>
 #include <assert.h>
+#include <math.h>
 
 #include "puzzles.h"
 #include "tree234.h"
@@ -87,13 +89,19 @@
 
 struct sets;
 
+struct ancestor {
+    struct set *prev;		       /* index of ancestor set in set list */
+    unsigned char pa, pb, po, pr;      /* operation that got here from prev */
+};
+
 struct set {
     int *numbers;		       /* rationals stored as n,d pairs */
     short nnumbers;		       /* # of rationals, so half # of ints */
     short flags;		       /* SETFLAG_CONCAT only, at present */
-    struct set *prev;		       /* index of ancestor set in set list */
-    unsigned char pa, pb, po, pr;      /* operation that got here from prev */
     int npaths;			       /* number of ways to reach this set */
+    struct ancestor a;		       /* primary ancestor */
+    struct ancestor *as;	       /* further ancestors, if we care */
+    int nas, assize;
 };
 
 struct output {
@@ -121,6 +129,8 @@ struct sets {
 
 #define OPFLAG_NEEDS_CONCAT 1
 #define OPFLAG_KEEPS_CONCAT 2
+#define OPFLAG_UNARY        4
+#define OPFLAG_UNARYPFX     8
 
 struct operation {
     /*
@@ -195,7 +205,10 @@ struct rules {
 
 #define OUT(output, n, d) do { \
     int g = gcd((n),(d)); \
+    if (g < 0) g = -g; \
     if ((d) < 0) g = -g; \
+    if (g == -1 && (n) < -INT_MAX) return FALSE; \
+    if (g == -1 && (d) < -INT_MAX) return FALSE; \
     (output)[0] = (n)/g; \
     (output)[1] = (d)/g; \
     assert((output)[1] > 0); \
@@ -299,9 +312,10 @@ static int perform_concat(int *a, int *b, int *output)
     int t1, t2, p10;
 
     /*
-     * We can't concatenate anything which isn't an integer.
+     * We can't concatenate anything which isn't a non-negative
+     * integer.
      */
-    if (a[1] != 1 || b[1] != 1)
+    if (a[1] != 1 || b[1] != 1 || a[0] < 0 || b[0] < 0)
 	return FALSE;
 
     /*
@@ -341,6 +355,78 @@ static int perform_concat(int *a, int *b, int *output)
     return TRUE;
 }
 
+#define IPOW(ret, x, y) do { \
+    int ipow_limit = (y); \
+    if ((x) == 1 || (x) == 0) ipow_limit = 1; \
+    else if ((x) == -1) ipow_limit &= 1; \
+    (ret) = 1; \
+    while (ipow_limit-- > 0) { \
+	int tmp; \
+	MUL(tmp, ret, x); \
+	ret = tmp; \
+    } \
+} while (0)
+
+static int perform_exp(int *a, int *b, int *output)
+{
+    int an, ad, xn, xd, limit, t, i;
+
+    /*
+     * Exponentiation is permitted if the result is rational. This
+     * means that:
+     * 
+     * 	- first we see whether we can take the (denominator-of-b)th
+     * 	  root of a and get a rational; if not, we give up.
+     * 
+     *  - then we do take that root of a
+     * 
+     *  - then we multiply by itself (numerator-of-b) times.
+     */
+    if (b[1] > 1) {
+	an = 0.5 + pow(a[0], 1.0/b[1]);
+	ad = 0.5 + pow(a[1], 1.0/b[1]);
+	IPOW(xn, an, b[1]);
+	IPOW(xd, ad, b[1]);
+	if (xn != a[0] || xd != a[1])
+	    return FALSE;
+    } else {
+	an = a[0];
+	ad = a[1];
+    }
+    if (b[0] >= 0) {
+	IPOW(xn, an, b[0]);
+	IPOW(xd, ad, b[0]);
+    } else {
+	IPOW(xd, an, -b[0]);
+	IPOW(xn, ad, -b[0]);
+    }
+    if (xd == 0)
+	return FALSE;
+
+    OUT(output, xn, xd);
+    return TRUE;
+}
+
+static int perform_factorial(int *a, int *b, int *output)
+{
+    int ret, t, i;
+
+    /*
+     * Factorials of non-negative integers are permitted.
+     */
+    if (a[1] != 1 || a[0] < 0)
+	return FALSE;
+
+    ret = 1;
+    for (i = 1; i <= a[0]; i++) {
+	MUL(t, ret, i);
+	ret = t;
+    }
+
+    OUT(output, ret, 1);
+    return TRUE;
+}
+
 const static struct operation op_add = {
     TRUE, "+", 0, 10, 0, TRUE, perform_add
 };
@@ -359,6 +445,12 @@ const static struct operation op_xdiv = {
 const static struct operation op_concat = {
     FALSE, "", OPFLAG_NEEDS_CONCAT | OPFLAG_KEEPS_CONCAT,
 	1000, 0, FALSE, perform_concat
+};
+const static struct operation op_exp = {
+    TRUE, "^", 0, 30, 1, FALSE, perform_exp
+};
+const static struct operation op_factorial = {
+    TRUE, "!", OPFLAG_UNARY, 40, 0, FALSE, perform_factorial
 };
 
 /*
@@ -393,6 +485,17 @@ const static struct operation *const ops_four4s[] = {
 };
 const static struct rules rules_four4s = {
     ops_four4s, TRUE
+};
+
+/*
+ * The most permissive ruleset I can think of. Permits
+ * exponentiation, and also silly unary operators like factorials.
+ */
+const static struct operation *const ops_anythinggoes[] = {
+    &op_add, &op_mul, &op_sub, &op_div, &op_concat, &op_exp, &op_factorial, NULL
+};
+const static struct rules rules_anythinggoes = {
+    ops_anythinggoes, TRUE
 };
 
 #define ratcmp(a,op,b) ( (long long)(a)[0] * (b)[1] op \
@@ -480,7 +583,8 @@ static int outputfindcmp(void *av, void *bv)
     return 0;
 }
 
-static void addset(struct sets *s, struct set *set, struct set *prev)
+static void addset(struct sets *s, struct set *set, int multiple,
+		   struct set *prev, int pa, int po, int pb, int pr)
 {
     struct set *s2;
     int npaths = (prev ? prev->npaths : 1);
@@ -491,15 +595,36 @@ static void addset(struct sets *s, struct set *set, struct set *prev)
 	/*
 	 * New set added to the tree.
 	 */
-	set->prev = prev;
+	set->a.prev = prev;
+	set->a.pa = pa;
+	set->a.po = po;
+	set->a.pb = pb;
+	set->a.pr = pr;
 	set->npaths = npaths;
 	s->nsets++;
 	s->nnumbers += 2 * set->nnumbers;
+	set->as = NULL;
+	set->nas = set->assize = 0;
     } else {
 	/*
-	 * Rediscovered an existing set. Update its npaths only.
+	 * Rediscovered an existing set. Update its npaths.
 	 */
 	s2->npaths += npaths;
+	/*
+	 * And optionally enter it as an additional ancestor.
+	 */
+	if (multiple) {
+	    if (s2->nas >= s2->assize) {
+		s2->assize = s2->nas * 3 / 2 + 4;
+		s2->as = sresize(s2->as, s2->assize, struct ancestor);
+	    }
+	    s2->as[s2->nas].prev = prev;
+	    s2->as[s2->nas].pa = pa;
+	    s2->as[s2->nas].po = po;
+	    s2->as[s2->nas].pb = pb;
+	    s2->as[s2->nas].pr = pr;
+	    s2->nas++;
+	}
     }
 }
 
@@ -564,7 +689,8 @@ static int addoutput(struct sets *s, struct set *ss, int index, int *n)
 }
 
 static struct sets *do_search(int ninputs, int *inputs,
-			      const struct rules *rules, int *target)
+			      const struct rules *rules, int *target,
+			      int multiple)
 {
     struct sets *s;
     struct set *sn;
@@ -592,7 +718,7 @@ static struct sets *do_search(int ninputs, int *inputs,
 	newnumber[1] = 1;
 	addtoset(sn, newnumber);
     }
-    addset(s, sn, NULL);
+    addset(s, sn, multiple, NULL, 0, 0, 0, 0);
 
     /*
      * Now perform the breadth-first search: keep looping over sets
@@ -627,13 +753,17 @@ static struct sets *do_search(int ninputs, int *inputs,
 		!(ss->flags & SETFLAG_CONCAT))
 		continue;	       /* can't use this operation here */
 	    for (i = 0; i < ss->nnumbers; i++) {
-		for (j = 0; j < ss->nnumbers; j++) {
+		int jlimit = (ops[k]->flags & OPFLAG_UNARY ? 1 : ss->nnumbers);
+		for (j = 0; j < jlimit; j++) {
 		    int n[2];
+		    int pa, po, pb, pr;
 
-		    if (i == j)
-			continue;      /* can't combine a number with itself */
-		    if (i > j && ops[k]->commutes)
-			continue;      /* no need to do this both ways round */
+		    if (!(ops[k]->flags & OPFLAG_UNARY)) {
+			if (i == j)
+			    continue;  /* can't combine a number with itself */
+			if (i > j && ops[k]->commutes)
+			    continue;  /* no need to do this both ways round */
+		    }
 		    if (!ops[k]->perform(ss->numbers+2*i, ss->numbers+2*j, n))
 			continue;      /* operation failed */
 
@@ -643,17 +773,21 @@ static struct sets *do_search(int ninputs, int *inputs,
 			sn->flags &= ~SETFLAG_CONCAT;
 
 		    for (m = 0; m < ss->nnumbers; m++) {
-			if (m == i || m == j)
+			if (m == i || (!(ops[k]->flags & OPFLAG_UNARY) &&
+				       m == j))
 			    continue;
 			sn->numbers[2*sn->nnumbers] = ss->numbers[2*m];
 			sn->numbers[2*sn->nnumbers + 1] = ss->numbers[2*m + 1];
 			sn->nnumbers++;
 		    }
-		    sn->pa = i;
-		    sn->pb = j;
-		    sn->po = k;
-		    sn->pr = addtoset(sn, n);
-		    addset(s, sn, ss);
+		    pa = i;
+		    if (ops[k]->flags & OPFLAG_UNARY)
+			pb = sn->nnumbers+10;
+		    else
+			pb = j;
+		    po = k;
+		    pr = addtoset(sn, n);
+		    addset(s, sn, multiple, ss, pa, po, pb, pr);
 		}
 	    }
 	}
@@ -683,13 +817,15 @@ static void free_sets(struct sets *s)
 }
 
 /*
- * Construct a text formula for producing a given output.
+ * Print a text formula for producing a given output.
  */
-void mkstring_recurse(char **str, int *len,
-		      struct sets *s, struct set *ss, int index,
-		      int priority, int assoc, int child)
+void print_recurse(struct sets *s, struct set *ss, int pathindex, int index,
+		   int priority, int assoc, int child);
+void print_recurse_inner(struct sets *s, struct set *ss,
+			 struct ancestor *a, int pathindex, int index,
+			 int priority, int assoc, int child)
 {
-    if (ss->prev && index != ss->pr) {
+    if (a->prev && index != a->pr) {
 	int pi;
 
 	/*
@@ -698,17 +834,17 @@ void mkstring_recurse(char **str, int *len,
 	 * recurse to there.
 	 */
 	pi = index;
-	assert(pi != ss->pr);
-	if (pi > ss->pr)
+	assert(pi != a->pr);
+	if (pi > a->pr)
 	    pi--;
-	if (pi >= min(ss->pa, ss->pb)) {
+	if (pi >= min(a->pa, a->pb)) {
 	    pi++;
-	    if (pi >= max(ss->pa, ss->pb))
+	    if (pi >= max(a->pa, a->pb))
 		pi++;
 	}
-	mkstring_recurse(str, len, s, ss->prev, pi, priority, assoc, child);
-    } else if (ss->prev && index == ss->pr &&
-	       s->ops[ss->po]->display) {
+	print_recurse(s, a->prev, pathindex, pi, priority, assoc, child);
+    } else if (a->prev && index == a->pr &&
+	       s->ops[a->po]->display) {
 	/*
 	 * This number was created by a displayed operator in the
 	 * transition from this set to its predecessor. Hence we
@@ -722,66 +858,67 @@ void mkstring_recurse(char **str, int *len,
 	/*
 	 * Determine whether we need parentheses.
 	 */
-	thispri = s->ops[ss->po]->priority;
-	thisassoc = s->ops[ss->po]->assoc;
+	thispri = s->ops[a->po]->priority;
+	thisassoc = s->ops[a->po]->assoc;
 	parens = (thispri < priority ||
 		  (thispri == priority && (assoc & child)));
 
-	if (parens) {
-	    if (str)
-		*(*str)++ = '(';
-	    if (len)
-		(*len)++;
-	}
-	mkstring_recurse(str, len, s, ss->prev, ss->pa, thispri, thisassoc, 1);
-	for (op = s->ops[ss->po]->text; *op; op++) {
-	    if (str)
-		*(*str)++ = *op;
-	    if (len)
-		(*len)++;
-	}
-	mkstring_recurse(str, len, s, ss->prev, ss->pb, thispri, thisassoc, 2);
-	if (parens) {
-	    if (str)
-		*(*str)++ = ')';
-	    if (len)
-		(*len)++;
-	}
+	if (parens)
+	    putchar('(');
+
+	if (s->ops[a->po]->flags & OPFLAG_UNARYPFX)
+	    for (op = s->ops[a->po]->text; *op; op++)
+		putchar(*op);
+
+	print_recurse(s, a->prev, pathindex, a->pa, thispri, thisassoc, 1);
+
+	if (!(s->ops[a->po]->flags & OPFLAG_UNARYPFX))
+	    for (op = s->ops[a->po]->text; *op; op++)
+		putchar(*op);
+
+	if (!(s->ops[a->po]->flags & OPFLAG_UNARY))
+	    print_recurse(s, a->prev, pathindex, a->pb, thispri, thisassoc, 2);
+
+	if (parens)
+	    putchar(')');
     } else {
 	/*
 	 * This number is either an original, or something formed
 	 * by a non-displayed operator (concatenation). Either way,
 	 * we display it as is.
 	 */
-	char buf[80], *p;
-	int blen;
-	blen = sprintf(buf, "%d", ss->numbers[2*index]);
+	printf("%d", ss->numbers[2*index]);
 	if (ss->numbers[2*index+1] != 1)
-	    blen += sprintf(buf+blen, "/%d", ss->numbers[2*index+1]);
-	assert(blen < lenof(buf));
-	for (p = buf; *p; p++) {
-	    if (str)
-		*(*str)++ = *p;
-	    if (len)
-		(*len)++;
+	    printf("/%d", ss->numbers[2*index+1]);
+    }
+}
+void print_recurse(struct sets *s, struct set *ss, int pathindex, int index,
+		   int priority, int assoc, int child)
+{
+    if (!ss->a.prev || pathindex < ss->a.prev->npaths) {
+	print_recurse_inner(s, ss, &ss->a, pathindex,
+			    index, priority, assoc, child);
+    } else {
+	int i;
+	pathindex -= ss->a.prev->npaths;
+	for (i = 0; i < ss->nas; i++) {
+	    if (pathindex < ss->as[i].prev->npaths) {
+		print_recurse_inner(s, ss, &ss->as[i], pathindex,
+				    index, priority, assoc, child);
+		break;
+	    }
+	    pathindex -= ss->as[i].prev->npaths;
 	}
     }
 }
-char *mkstring(struct sets *s, struct output *o)
+void print(int pathindex, struct sets *s, struct output *o)
 {
-    int len;
-    char *str, *p;
-
-    len = 0;
-    mkstring_recurse(NULL, &len, s, o->set, o->index, 0, 0, 0);
-    str = snewn(len+1, char);
-    p = str;
-    mkstring_recurse(&p, NULL, s, o->set, o->index, 0, 0, 0);
-    assert(p - str <= len);
-    *p = '\0';
-    return str;
+    print_recurse(s, o->set, pathindex, o->index, 0, 0, 0);
 }
 
+/*
+ * gcc -g -O0 -o numgame numgame.c -I.. ../{malloc,tree234,nullfe}.c -lm
+ */
 int main(int argc, char **argv)
 {
     int doing_opts = TRUE;
@@ -791,6 +928,7 @@ int main(int argc, char **argv)
     int numbers[10], nnumbers = 0;
     int verbose = FALSE;
     int pathcounts = FALSE;
+    int multiple = FALSE;
 
     struct output *o;
     struct sets *s;
@@ -816,11 +954,17 @@ int main(int argc, char **argv)
 	      case 'D':
 		rules = &rules_four4s;
 		break;
+	      case 'A':
+		rules = &rules_anythinggoes;
+		break;
 	      case 'v':
 		verbose = TRUE;
 		break;
 	      case 'p':
 		pathcounts = TRUE;
+		break;
+	      case 'm':
+		multiple = TRUE;
 		break;
 	      case 't':
 		{
@@ -860,7 +1004,7 @@ int main(int argc, char **argv)
     }
 
     if (!rules) {
-	fprintf(stderr, "%s: no rule set specified; use -C,-B,-D\n", pname);
+	fprintf(stderr, "%s: no rule set specified; use -C,-B,-D,-A\n", pname);
 	return 1;
     }
 
@@ -869,7 +1013,8 @@ int main(int argc, char **argv)
 	return 1;
     }
 
-    s = do_search(nnumbers, numbers, rules, (got_target ? &target : NULL));
+    s = do_search(nnumbers, numbers, rules, (got_target ? &target : NULL),
+		  multiple);
 
     if (got_target) {
 	o = findrelpos234(s->outputtree, &target, outputfindcmp,
@@ -892,20 +1037,31 @@ int main(int argc, char **argv)
     }
 
     for (i = start; i < limit; i++) {
+	char buf[256];
+
 	o = index234(s->outputtree, i);
 
-	printf("%d", o->number);
+	sprintf(buf, "%d", o->number);
 
 	if (pathcounts)
-	    printf(" [%d]", o->npaths);
+	    sprintf(buf + strlen(buf), " [%d]", o->npaths);
 
 	if (got_target || verbose) {
-	    char *p = mkstring(s, o);
-	    printf(" = %s", p);
-	    sfree(p);
-	}
+	    int j, npaths;
 
-	printf("\n");
+	    if (multiple)
+		npaths = o->npaths;
+	    else
+		npaths = 1;
+
+	    for (j = 0; j < npaths; j++) {
+		printf("%s = ", buf);
+		print(j, s, o);
+		putchar('\n');
+	    }
+	} else {
+	    printf("%s\n", buf);
+	}
     }
 
     free_sets(s);
