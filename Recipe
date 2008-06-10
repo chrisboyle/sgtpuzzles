@@ -13,6 +13,7 @@
 !makefile wce Makefile.wce
 !makefile cygwin Makefile.cyg
 !makefile osx Makefile.osx
+!makefile nestedvm Makefile.nestedvm
 
 !srcdir icons/
 
@@ -115,6 +116,18 @@ FORCE:
 	fi
 !end
 !specialobj gtk version
+!begin nestedvm
+version.o: FORCE;
+FORCE:
+	if test -z "$(VER)" && test -f manifest && md5sum -c manifest; then \
+		$(CC) $(COMPAT) $(XFLAGS) $(CFLAGS) `cat version.def` -c version.c; \
+	elif test -z "$(VER)" && test -d .svn && svnversion . >/dev/null 2>&1; then \
+		$(CC) $(COMPAT) $(XFLAGS) $(CFLAGS) "-DREVISION=`svnversion .`" -c version.c; \
+	else \
+		$(CC) $(COMPAT) $(XFLAGS) $(CFLAGS) $(VER) -c version.c; \
+	fi
+!end
+!specialobj nestedvm version
 # For OS X, this is made more fiddly by the fact that we don't have
 # md5sum readily available. We do, however, have `md5 -r' which
 # generates _nearly_ the same output, but it has no check function.
@@ -147,4 +160,27 @@ install:
 		$(INSTALL_PROGRAM) -m 755 $$i $(DESTDIR)$(gamesdir)/$$i \
 		|| exit 1; \
 	done
+!end
+!begin nestedvm
+.PRECIOUS: %.class
+%.class: %.mips
+	java -cp $(NESTEDVM)/build:$(NESTEDVM)/upstream/build/classgen/build \
+		org.ibex.nestedvm.Compiler -outformat class -d . \
+		PuzzleEngine $<
+		mv PuzzleEngine.class $@
+
+org:
+	mkdir -p org/ibex/nestedvm/util
+	cp $(NESTEDVM)/build/org/ibex/nestedvm/{Registers,UsermodeConstants,Runtime*}.class org/ibex/nestedvm
+	cp $(NESTEDVM)/build/org/ibex/nestedvm/util/{Platform*,Seekable*}.class org/ibex/nestedvm/util
+	echo "Main-Class: PuzzleApplet" >applet.manifest
+
+PuzzleApplet.class: PuzzleApplet.java org
+	javac -source 1.3 -target 1.3 PuzzleApplet.java
+
+%.jar: %.class PuzzleApplet.class org
+	mv $< PuzzleEngine.class
+	jar cfm $@ applet.manifest PuzzleEngine.class PuzzleApplet*.class org
+	echo '<applet archive="'$@'" code="PuzzleApplet" width="700" height="500"></applet>' >$*.html
+	mv PuzzleEngine.class $<
 !end

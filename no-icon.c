@@ -1,4 +1,3 @@
-#include <X11/Intrinsic.h>
 
 /*
  * Dummy source file which replaces the files generated in the
