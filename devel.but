@@ -2671,6 +2671,11 @@ Calling this function is very likely to result in calls back to the
 front end's drawing API and/or \cw{activate_timer()}
 (\k{frontend-activate-timer}).
 
+The return value from \cw{midend_process_key()} is non-zero, unless
+the effect of the keypress was to request termination of the
+program. A front end should shut down the puzzle in response to a
+zero return.
+
 \H{midend-colours} \cw{midend_colours()}
 
 \c float *midend_colours(midend *me, int *ncolours);
