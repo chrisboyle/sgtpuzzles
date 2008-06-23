@@ -142,9 +142,10 @@ struct operation {
     int display;
 
     /*
-     * Text display of the operator.
+     * Text display of the operator, in expressions and for
+     * debugging respectively.
      */
-    char *text;
+    char *text, *dbgtext;
 
     /*
      * Flags dictating when the operator can be applied.
@@ -417,6 +418,13 @@ static int perform_factorial(int *a, int *b, int *output)
     if (a[1] != 1 || a[0] < 0)
 	return FALSE;
 
+    /*
+     * However, a special case: we don't take a factorial of
+     * anything which would thereby remain the same.
+     */
+    if (a[0] == 1 || a[0] == 2)
+	return FALSE;
+
     ret = 1;
     for (i = 1; i <= a[0]; i++) {
 	MUL(t, ret, i);
@@ -428,29 +436,29 @@ static int perform_factorial(int *a, int *b, int *output)
 }
 
 const static struct operation op_add = {
-    TRUE, "+", 0, 10, 0, TRUE, perform_add
+    TRUE, "+", "+", 0, 10, 0, TRUE, perform_add
 };
 const static struct operation op_sub = {
-    TRUE, "-", 0, 10, 2, FALSE, perform_sub
+    TRUE, "-", "-", 0, 10, 2, FALSE, perform_sub
 };
 const static struct operation op_mul = {
-    TRUE, "*", 0, 20, 0, TRUE, perform_mul
+    TRUE, "*", "*", 0, 20, 0, TRUE, perform_mul
 };
 const static struct operation op_div = {
-    TRUE, "/", 0, 20, 2, FALSE, perform_div
+    TRUE, "/", "/", 0, 20, 2, FALSE, perform_div
 };
 const static struct operation op_xdiv = {
-    TRUE, "/", 0, 20, 2, FALSE, perform_exact_div
+    TRUE, "/", "/", 0, 20, 2, FALSE, perform_exact_div
 };
 const static struct operation op_concat = {
-    FALSE, "", OPFLAG_NEEDS_CONCAT | OPFLAG_KEEPS_CONCAT,
+    FALSE, "", "concat", OPFLAG_NEEDS_CONCAT | OPFLAG_KEEPS_CONCAT,
 	1000, 0, FALSE, perform_concat
 };
 const static struct operation op_exp = {
-    TRUE, "^", 0, 30, 1, FALSE, perform_exp
+    TRUE, "^", "^", 0, 30, 1, FALSE, perform_exp
 };
 const static struct operation op_factorial = {
-    TRUE, "!", OPFLAG_UNARY, 40, 0, FALSE, perform_factorial
+    TRUE, "!", "!", OPFLAG_UNARY, 40, 0, FALSE, perform_factorial
 };
 
 /*
@@ -690,7 +698,7 @@ static int addoutput(struct sets *s, struct set *ss, int index, int *n)
 
 static struct sets *do_search(int ninputs, int *inputs,
 			      const struct rules *rules, int *target,
-			      int multiple)
+			      int debug, int multiple)
 {
     struct sets *s;
     struct set *sn;
@@ -729,6 +737,17 @@ static struct sets *do_search(int ninputs, int *inputs,
 	struct set *ss = s->setlists[qpos / SETLISTLEN] + qpos % SETLISTLEN;
 	struct set *sn;
 	int i, j, k, m;
+
+	if (debug) {
+	    int i;
+	    printf("processing set:");
+	    for (i = 0; i < ss->nnumbers; i++) {
+		printf(" %d", ss->numbers[2*i]);
+		if (ss->numbers[2*i+1] != 1)
+		    printf("/%d", ss->numbers[2*i]+1);
+	    }
+	    printf("\n");
+	}
 
 	/*
 	 * Record all the valid output numbers in this state. We
@@ -788,6 +807,16 @@ static struct sets *do_search(int ninputs, int *inputs,
 		    po = k;
 		    pr = addtoset(sn, n);
 		    addset(s, sn, multiple, ss, pa, po, pb, pr);
+		    if (debug) {
+			int i;
+			printf("  %d %s %d ->", pa, ops[po]->dbgtext, pb);
+			for (i = 0; i < sn->nnumbers; i++) {
+			    printf(" %d", sn->numbers[2*i]);
+			    if (sn->numbers[2*i+1] != 1)
+				printf("/%d", sn->numbers[2*i]+1);
+			}
+			printf("\n");
+		    }
 		}
 	    }
 	}
@@ -929,6 +958,7 @@ int main(int argc, char **argv)
     int verbose = FALSE;
     int pathcounts = FALSE;
     int multiple = FALSE;
+    int debug_bfs = FALSE;
 
     struct output *o;
     struct sets *s;
@@ -944,6 +974,14 @@ int main(int argc, char **argv)
 	    if (!strcmp(p, "-")) {
 		doing_opts = FALSE;
 		continue;
+	    } else if (*p == '-') {
+		p++;
+		if (!strcmp(p, "debug-bfs")) {
+		    debug_bfs = TRUE;
+		} else {
+		    fprintf(stderr, "%s: option '--%s' not recognised\n",
+			    pname, p);
+		}
 	    } else while (*p) switch (c = *p++) {
 	      case 'C':
 		rules = &rules_countdown;
@@ -1014,7 +1052,7 @@ int main(int argc, char **argv)
     }
 
     s = do_search(nnumbers, numbers, rules, (got_target ? &target : NULL),
-		  multiple);
+		  debug_bfs, multiple);
 
     if (got_target) {
 	o = findrelpos234(s->outputtree, &target, outputfindcmp,
