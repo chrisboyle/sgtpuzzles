@@ -130,7 +130,7 @@ struct sets {
 #define OPFLAG_NEEDS_CONCAT 1
 #define OPFLAG_KEEPS_CONCAT 2
 #define OPFLAG_UNARY        4
-#define OPFLAG_UNARYPFX     8
+#define OPFLAG_UNARYPREFIX  8
 
 struct operation {
     /*
@@ -308,6 +308,26 @@ static int perform_exact_div(int *a, int *b, int *output)
     return (output[1] == 1);
 }
 
+static int max_p10(int n, int *p10_r)
+{
+    /*
+     * Find the smallest power of ten strictly greater than n.
+     *
+     * Special case: we must return at least 10, even if n is
+     * zero. (This is because this function is used for finding
+     * the power of ten by which to multiply a number being
+     * concatenated to the front of n, and concatenating 1 to 0
+     * should yield 10 and not 1.)
+     */
+    int p10 = 10;
+    while (p10 <= (INT_MAX/10) && p10 <= n)
+	p10 *= 10;
+    if (p10 > INT_MAX/10)
+	return FALSE;		       /* integer overflow */
+    *p10_r = p10;
+    return TRUE;
+}
+
 static int perform_concat(int *a, int *b, int *output)
 {
     int t1, t2, p10;
@@ -338,18 +358,8 @@ static int perform_concat(int *a, int *b, int *output)
     if (a[0] == 0)
 	return FALSE;
 
-    /*
-     * Find the smallest power of ten strictly greater than b. This
-     * is the power of ten by which we'll multiply a.
-     * 
-     * Special case: we must multiply a by at least 10, even if b
-     * is zero.
-     */
-    p10 = 10;
-    while (p10 <= (INT_MAX/10) && p10 <= b[0])
-	p10 *= 10;
-    if (p10 > INT_MAX/10)
-	return FALSE;		       /* integer overflow */
+    if (!max_p10(b[0], &p10)) return FALSE;
+
     MUL(t1, p10, a[0]);
     ADD(t2, t1, b[0]);
     OUT(output, t2, 1);
@@ -370,7 +380,7 @@ static int perform_concat(int *a, int *b, int *output)
 
 static int perform_exp(int *a, int *b, int *output)
 {
-    int an, ad, xn, xd, limit, t, i;
+    int an, ad, xn, xd;
 
     /*
      * Exponentiation is permitted if the result is rational. This
@@ -384,8 +394,8 @@ static int perform_exp(int *a, int *b, int *output)
      *  - then we multiply by itself (numerator-of-b) times.
      */
     if (b[1] > 1) {
-	an = 0.5 + pow(a[0], 1.0/b[1]);
-	ad = 0.5 + pow(a[1], 1.0/b[1]);
+	an = (int)(0.5 + pow(a[0], 1.0/b[1]));
+	ad = (int)(0.5 + pow(a[1], 1.0/b[1]));
 	IPOW(xn, an, b[1]);
 	IPOW(xd, ad, b[1]);
 	if (xn != a[0] || xd != a[1])
@@ -435,6 +445,72 @@ static int perform_factorial(int *a, int *b, int *output)
     return TRUE;
 }
 
+static int perform_decimal(int *a, int *b, int *output)
+{
+    int p10;
+
+    /*
+     * Add a decimal digit to the front of a number;
+     * fail if it's not an integer.
+     * So, 1 --> 0.1, 15 --> 0.15,
+     * or, rather, 1 --> 1/10, 15 --> 15/100,
+     * x --> x / (smallest power of 10 > than x)
+     *
+     */
+    if (a[1] != 1) return FALSE;
+
+    if (!max_p10(a[0], &p10)) return FALSE;
+
+    OUT(output, a[0], p10);
+    return TRUE;
+}
+
+static int perform_recur(int *a, int *b, int *output)
+{
+    int p10, tn, bn;
+
+    /*
+     * This converts a number like .4 to .44444..., or .45 to .45454...
+     * The input number must be -1 < a < 1.
+     *
+     * Calculate the smallest power of 10 that divides the denominator exactly,
+     * returning if no such power of 10 exists. Then multiply the numerator
+     * up accordingly, and the new denominator becomes that power of 10 - 1.
+     */
+    if (abs(a[0]) >= abs(a[1])) return FALSE; /* -1 < a < 1 */
+
+    p10 = 10;
+    while (p10 <= (INT_MAX/10)) {
+        if ((a[1] <= p10) && (p10 % a[1]) == 0) goto found;
+        p10 *= 10;
+    }
+    return FALSE;
+found:
+    tn = a[0] * (p10 / a[1]);
+    bn = p10 - 1;
+
+    OUT(output, tn, bn);
+    return TRUE;
+}
+
+static int perform_root(int *a, int *b, int *output)
+{
+    /*
+     * A root B is: 1           iff a == 0
+     *              B ^ (1/A)   otherwise
+     */
+    int ainv[2], res;
+
+    if (a[0] == 0) {
+        OUT(output, 1, 1);
+        return TRUE;
+    }
+
+    OUT(ainv, a[1], a[0]);
+    res = perform_exp(b, ainv, output);
+    return res;
+}
+
 const static struct operation op_add = {
     TRUE, "+", "+", 0, 10, 0, TRUE, perform_add
 };
@@ -459,6 +535,15 @@ const static struct operation op_exp = {
 };
 const static struct operation op_factorial = {
     TRUE, "!", "!", OPFLAG_UNARY, 40, 0, FALSE, perform_factorial
+};
+const static struct operation op_decimal = {
+    TRUE, ".", ".", OPFLAG_UNARY | OPFLAG_UNARYPREFIX | OPFLAG_NEEDS_CONCAT | OPFLAG_KEEPS_CONCAT, 50, 0, FALSE, perform_decimal
+};
+const static struct operation op_recur = {
+    TRUE, "...", "recur", OPFLAG_UNARY | OPFLAG_NEEDS_CONCAT, 45, 2, FALSE, perform_recur
+};
+const static struct operation op_root = {
+    TRUE, "v~", "root", 0, 30, 1, FALSE, perform_root
 };
 
 /*
@@ -500,7 +585,8 @@ const static struct rules rules_four4s = {
  * exponentiation, and also silly unary operators like factorials.
  */
 const static struct operation *const ops_anythinggoes[] = {
-    &op_add, &op_mul, &op_sub, &op_div, &op_concat, &op_exp, &op_factorial, NULL
+    &op_add, &op_mul, &op_sub, &op_div, &op_concat, &op_exp, &op_factorial, 
+    &op_decimal, &op_recur, &op_root, NULL
 };
 const static struct rules rules_anythinggoes = {
     ops_anythinggoes, TRUE
@@ -744,7 +830,7 @@ static struct sets *do_search(int ninputs, int *inputs,
 	    for (i = 0; i < ss->nnumbers; i++) {
 		printf(" %d", ss->numbers[2*i]);
 		if (ss->numbers[2*i+1] != 1)
-		    printf("/%d", ss->numbers[2*i]+1);
+		    printf("/%d", ss->numbers[2*i+1]);
 	    }
 	    printf("\n");
 	}
@@ -809,11 +895,16 @@ static struct sets *do_search(int ninputs, int *inputs,
 		    addset(s, sn, multiple, ss, pa, po, pb, pr);
 		    if (debug) {
 			int i;
-			printf("  %d %s %d ->", pa, ops[po]->dbgtext, pb);
+                        if (ops[k]->flags & OPFLAG_UNARYPREFIX)
+                            printf("  %s %d ->", ops[po]->dbgtext, pa);
+                        else if (ops[k]->flags & OPFLAG_UNARY)
+                            printf("  %d %s ->", pa, ops[po]->dbgtext);
+                        else
+			    printf("  %d %s %d ->", pa, ops[po]->dbgtext, pb);
 			for (i = 0; i < sn->nnumbers; i++) {
 			    printf(" %d", sn->numbers[2*i]);
 			    if (sn->numbers[2*i+1] != 1)
-				printf("/%d", sn->numbers[2*i]+1);
+				printf("/%d", sn->numbers[2*i+1]);
 			}
 			printf("\n");
 		    }
@@ -895,13 +986,13 @@ void print_recurse_inner(struct sets *s, struct set *ss,
 	if (parens)
 	    putchar('(');
 
-	if (s->ops[a->po]->flags & OPFLAG_UNARYPFX)
+	if (s->ops[a->po]->flags & OPFLAG_UNARYPREFIX)
 	    for (op = s->ops[a->po]->text; *op; op++)
 		putchar(*op);
 
 	print_recurse(s, a->prev, pathindex, a->pa, thispri, thisassoc, 1);
 
-	if (!(s->ops[a->po]->flags & OPFLAG_UNARYPFX))
+	if (!(s->ops[a->po]->flags & OPFLAG_UNARYPREFIX))
 	    for (op = s->ops[a->po]->text; *op; op++)
 		putchar(*op);
 
