@@ -33,6 +33,7 @@ public class PuzzleApplet extends JApplet implements Runtime.CallJavaCB {
     private JLabel statusBar;
     private PuzzlePanel pp;
     private Runtime runtime;
+    private String[] puzzle_args;
     private Graphics2D  gg;
     private Timer timer;
     private int xarg1, xarg2, xarg3;
@@ -172,9 +173,23 @@ public class PuzzleApplet extends JApplet implements Runtime.CallJavaCB {
                     runtimeCall("jcallback_timer_func", new int[0]);
                 }
             });
+	    String gameid;
+	    try {
+		gameid = getParameter("game_id");
+	    } catch (java.lang.NullPointerException ex) {
+		gameid = null;
+	    }
+	    System.out.println("ooh " + gameid);
+	    if (gameid == null) {
+		puzzle_args = null;
+	    } else {
+		puzzle_args = new String[2];
+		puzzle_args[0] = "puzzle";
+		puzzle_args[1] = gameid;
+	    }
             SwingUtilities.invokeLater(new Runnable() {
                 public void run() {
-                    runtime.start();
+                    runtime.start(puzzle_args);
                     runtime.execute();
                 }
             });
