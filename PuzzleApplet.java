@@ -476,11 +476,13 @@ public class PuzzleApplet extends JApplet implements Runtime.CallJavaCB {
         }
 
         public void createBackBuffer(int w, int h, Color bg) {
-            backBuffer = new BufferedImage(w,h, BufferedImage.TYPE_3BYTE_BGR);
-            Graphics g = backBuffer.createGraphics();
-            g.setColor(bg);
-            g.fillRect(0, 0, w, h);
-            g.dispose();
+	    if (w > 0 && h > 0) {
+		backBuffer = new BufferedImage(w,h, BufferedImage.TYPE_3BYTE_BGR);
+		Graphics g = backBuffer.createGraphics();
+		g.setColor(bg);
+		g.fillRect(0, 0, w, h);
+		g.dispose();
+	    }
         }
 
         protected void paintComponent(Graphics g) {
