@@ -100,6 +100,12 @@ in puzzles do zip -j puzzles.zip winbin/*.exe puzzles.chm puzzles.hlp puzzles.cn
 # _parent_ directory, so be careful when we deliver it.)
 in puzzles do ./makedist.sh $(revision)
 
+# Build the Java applets. This requires .bob.conf on the master
+# build machine to have defined the variable NESTEDVM pointing at
+# the top-level directory of an installation of the NestedVM
+# compiler and tools.
+in puzzles do make -f Makefile.nestedvm NESTEDVM=$(NESTEDVM)
+
 # Set up .htaccess containing a redirect for the archive filename.
 in puzzles do echo "AddType application/octet-stream .chm" > .htaccess
 in puzzles do echo "AddType application/octet-stream .hlp" >> .htaccess
@@ -119,6 +125,7 @@ deliver puzzles/puzzles.hlp $@
 deliver puzzles/puzzles.cnt $@
 deliver puzzles/puzzles.zip $@
 deliver puzzles/Output/setup.exe puzzles-r$(revision)-installer.exe
+deliver puzzles/*.jar java/$@
 
 # deliver puzzles/puzzles.armv4.cab $@ # (not built at the moment)
 
