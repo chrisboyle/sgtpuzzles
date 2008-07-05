@@ -179,7 +179,6 @@ public class PuzzleApplet extends JApplet implements Runtime.CallJavaCB {
 	    } catch (java.lang.NullPointerException ex) {
 		gameid = null;
 	    }
-	    System.out.println("ooh " + gameid);
 	    if (gameid == null) {
 		puzzle_args = null;
 	    } else {
