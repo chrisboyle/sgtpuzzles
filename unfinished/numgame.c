@@ -542,9 +542,9 @@ static int perform_sqrt(int *a, int *b, int *output)
     int half[2] = { 1, 2 };
 
     /*
-     * sqrt(1) == 1: don't perform unary noops.
+     * sqrt(0) == 0, sqrt(1) == 1: don't perform unary noops.
      */
-    if (a[0] == 1 && a[1] == 1) return FALSE;
+    if (a[0] == 0 || (a[0] == 1 && a[1] == 1)) return FALSE;
 
     return perform_exp(a, half, output);
 }
