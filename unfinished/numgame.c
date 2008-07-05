@@ -131,6 +131,7 @@ struct sets {
 #define OPFLAG_KEEPS_CONCAT 2
 #define OPFLAG_UNARY        4
 #define OPFLAG_UNARYPREFIX  8
+#define OPFLAG_FN           16
 
 struct operation {
     /*
@@ -511,6 +512,43 @@ static int perform_root(int *a, int *b, int *output)
     return res;
 }
 
+static int perform_perc(int *a, int *b, int *output)
+{
+    if (a[0] == 0) return FALSE; /* 0% = 0, uninteresting. */
+    if (a[1] > (INT_MAX/100)) return FALSE;
+
+    OUT(output, a[0], a[1]*100);
+    return TRUE;
+}
+
+static int perform_gamma(int *a, int *b, int *output)
+{
+    int asub1[2];
+
+    /*
+     * gamma(a) = (a-1)!
+     *
+     * special case not caught by perform_fact: gamma(1) is 1 so
+     * don't bother.
+     */
+    if (a[0] == 1 && a[1] == 1) return FALSE;
+
+    OUT(asub1, a[0]-a[1], a[1]);
+    return perform_factorial(asub1, b, output);
+}
+
+static int perform_sqrt(int *a, int *b, int *output)
+{
+    int half[2] = { 1, 2 };
+
+    /*
+     * sqrt(1) == 1: don't perform unary noops.
+     */
+    if (a[0] == 1 && a[1] == 1) return FALSE;
+
+    return perform_exp(a, half, output);
+}
+
 const static struct operation op_add = {
     TRUE, "+", "+", 0, 10, 0, TRUE, perform_add
 };
@@ -544,6 +582,15 @@ const static struct operation op_recur = {
 };
 const static struct operation op_root = {
     TRUE, "v~", "root", 0, 30, 1, FALSE, perform_root
+};
+const static struct operation op_perc = {
+    TRUE, "%", "%", OPFLAG_UNARY | OPFLAG_NEEDS_CONCAT, 45, 1, FALSE, perform_perc
+};
+const static struct operation op_gamma = {
+    TRUE, "gamma", "gamma", OPFLAG_UNARY | OPFLAG_UNARYPREFIX | OPFLAG_FN, 1, 3, FALSE, perform_gamma
+};
+const static struct operation op_sqrt = {
+    TRUE, "v~", "sqrt", OPFLAG_UNARY | OPFLAG_UNARYPREFIX, 30, 1, FALSE, perform_sqrt
 };
 
 /*
@@ -586,7 +633,7 @@ const static struct rules rules_four4s = {
  */
 const static struct operation *const ops_anythinggoes[] = {
     &op_add, &op_mul, &op_sub, &op_div, &op_concat, &op_exp, &op_factorial, 
-    &op_decimal, &op_recur, &op_root, NULL
+    &op_decimal, &op_recur, &op_root, &op_perc, &op_gamma, &op_sqrt, NULL
 };
 const static struct rules rules_anythinggoes = {
     ops_anythinggoes, TRUE
@@ -860,7 +907,7 @@ static struct sets *do_search(int ninputs, int *inputs,
 	    for (i = 0; i < ss->nnumbers; i++) {
 		int jlimit = (ops[k]->flags & OPFLAG_UNARY ? 1 : ss->nnumbers);
 		for (j = 0; j < jlimit; j++) {
-		    int n[2];
+		    int n[2], newnn = ss->nnumbers;
 		    int pa, po, pb, pr;
 
 		    if (!(ops[k]->flags & OPFLAG_UNARY)) {
@@ -868,11 +915,12 @@ static struct sets *do_search(int ninputs, int *inputs,
 			    continue;  /* can't combine a number with itself */
 			if (i > j && ops[k]->commutes)
 			    continue;  /* no need to do this both ways round */
+                        newnn--;
 		    }
 		    if (!ops[k]->perform(ss->numbers+2*i, ss->numbers+2*j, n))
 			continue;      /* operation failed */
 
-		    sn = newset(s, ss->nnumbers-1, ss->flags);
+		    sn = newset(s, newnn, ss->flags);
 
 		    if (!(ops[k]->flags & OPFLAG_KEEPS_CONCAT))
 			sn->flags &= ~SETFLAG_CONCAT;
@@ -990,7 +1038,13 @@ void print_recurse_inner(struct sets *s, struct set *ss,
 	    for (op = s->ops[a->po]->text; *op; op++)
 		putchar(*op);
 
+        if (s->ops[a->po]->flags & OPFLAG_FN)
+            putchar('(');
+
 	print_recurse(s, a->prev, pathindex, a->pa, thispri, thisassoc, 1);
+
+        if (s->ops[a->po]->flags & OPFLAG_FN)
+            putchar(')');
 
 	if (!(s->ops[a->po]->flags & OPFLAG_UNARYPREFIX))
 	    for (op = s->ops[a->po]->text; *op; op++)
@@ -1050,6 +1104,7 @@ int main(int argc, char **argv)
     int pathcounts = FALSE;
     int multiple = FALSE;
     int debug_bfs = FALSE;
+    int got_range = FALSE, rangemin = 0, rangemax = 0;
 
     struct output *o;
     struct sets *s;
@@ -1073,7 +1128,7 @@ int main(int argc, char **argv)
 		    fprintf(stderr, "%s: option '--%s' not recognised\n",
 			    pname, p);
 		}
-	    } else while (*p) switch (c = *p++) {
+	    } else while (p && *p) switch (c = *p++) {
 	      case 'C':
 		rules = &rules_countdown;
 		break;
@@ -1096,6 +1151,7 @@ int main(int argc, char **argv)
 		multiple = TRUE;
 		break;
 	      case 't':
+              case 'r':
 		{
 		    char *v;
 		    if (*p) {
@@ -1113,6 +1169,19 @@ int main(int argc, char **argv)
 			got_target = TRUE;
 			target = atoi(v);
 			break;
+                      case 'r':
+                        {
+                             char *sep = strchr(v, '-');
+                             got_range = TRUE;
+                             if (sep) {
+                                 rangemin = atoi(v);
+                                 rangemax = atoi(sep+1);
+                             } else {
+                                 rangemin = 0;
+                                 rangemax = atoi(v);
+                             }
+                        }
+                        break;
 		    }
 		}
 		break;
@@ -1142,6 +1211,17 @@ int main(int argc, char **argv)
 	return 1;
     }
 
+    if (got_range) {
+        if (got_target) {
+            fprintf(stderr, "%s: only one of -t and -r may be specified\n", pname);
+            return 1;
+        }
+        if (rangemin >= rangemax) {
+            fprintf(stderr, "%s: range not sensible (%d - %d)\n", pname, rangemin, rangemax);
+            return 1;
+        }
+    }
+
     s = do_search(nnumbers, numbers, rules, (got_target ? &target : NULL),
 		  debug_bfs, multiple);
 
@@ -1160,6 +1240,15 @@ int main(int argc, char **argv)
 	else if (limit == -1)
 	    limit = start;
 	limit++;
+    } else if (got_range) {
+        if (!findrelpos234(s->outputtree, &rangemin, outputfindcmp,
+                           REL234_GE, &start) ||
+            !findrelpos234(s->outputtree, &rangemax, outputfindcmp,
+                           REL234_LE, &limit)) {
+            printf("No solutions available in specified range %d-%d\n", rangemin, rangemax);
+            return 1;
+        }
+        limit++;
     } else {
 	start = 0;
 	limit = count234(s->outputtree);
@@ -1197,3 +1286,5 @@ int main(int argc, char **argv)
 
     return 0;
 }
+
+/* vim: set shiftwidth=4 tabstop=8: */
