@@ -104,7 +104,7 @@ in puzzles do ./makedist.sh $(revision)
 # build machine to have defined the variable NESTEDVM pointing at
 # the top-level directory of an installation of the NestedVM
 # compiler and tools.
-in puzzles do make -f Makefile.nestedvm NESTEDVM=$(NESTEDVM)
+in puzzles do make -f Makefile.nestedvm NESTEDVM=$(NESTEDVM) VER=-DREVISION=$(revision)
 
 # Set up .htaccess containing a redirect for the archive filename.
 in puzzles do echo "AddType application/octet-stream .chm" > .htaccess
