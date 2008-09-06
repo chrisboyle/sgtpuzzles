@@ -1,10 +1,10 @@
 # -*- makefile -*-
 
-LOOPY    = loopy tree234 dsf
+LOOPY     = loopy tree234 dsf grid
 
-loopy    : [X] GTK COMMON LOOPY loopy-icon|no-icon
+loopy     : [X] GTK COMMON LOOPY loopy-icon|no-icon
 
-loopy    : [G] WINDOWS COMMON LOOPY loopy.res|noicon.res
+loopy     : [G] WINDOWS COMMON LOOPY loopy.res|noicon.res
 
 ALL += LOOPY
 

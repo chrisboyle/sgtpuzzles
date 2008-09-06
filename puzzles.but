@@ -1797,17 +1797,26 @@ Unreasonable puzzles may require guessing and backtracking.
 
 \cfg{winhelp-topic}{games.loopy}
 
-You are given a grid of dots. Your aim is to draw a single unbroken
+You are given a grid of dots, marked with yellow lines to indicate
+which dots you are allowed to connect directly together. Your aim is
+to use some subset of those yellow lines to draw a single unbroken
 loop from dot to dot within the grid.
 
-Some of the square spaces between the dots contain numbers. These
-numbers indicate how many of the four edges of that square are part
-of the loop. The loop you draw must correctly satisfy all of these
-clues to be considered a correct solution.
+Some of the spaces between the lines contain numbers. These numbers
+indicate how many of the lines around that space form part of the
+loop. The loop you draw must correctly satisfy all of these clues to
+be considered a correct solution.
 
-Credit for this puzzle goes to \i{Nikoli} \k{nikoli-loopy}.
+In the default mode, the dots are arranged in a grid of squares;
+however, you can also play on triangular or hexagonal grids, or even
+more exotic ones.
 
-Loopy was contributed to this collection by Mike Pinna.
+Credit for the basic puzzle idea goes to \i{Nikoli}
+\k{nikoli-loopy}.
+
+Loopy was originally contributed to this collection by Mike Pinna,
+and subsequently enhanced to handle various types of non-square grid
+by Lambros Lambrou.
 
 \B{nikoli-loopy}
 \W{http://www.nikoli.co.jp/puzzles/3/index-e.htm}\cw{http://www.nikoli.co.jp/puzzles/3/index-e.htm}
@@ -1817,12 +1826,14 @@ Loopy was contributed to this collection by Mike Pinna.
 
 \IM{Loopy controls} controls, for Loopy
 
-Click the left mouse button between two dots to add a line segment
-connecting them. Click again to remove that line segment.
+Click the left mouse button on a yellow line to turn it black,
+indicating that you think it is part of the loop. Click again to
+turn the line yellow again (meaning you aren't sure yet).
 
 If you are sure that a particular line segment is \e{not} part of
-the loop, you can click the right mouse button to add a small cross
-indicating this. Click again to remove the cross.
+the loop, you can click the right mouse button to remove it
+completely. Again, clicking a second time will turn the line back to
+yellow.
 
 (All the actions described in \k{common-actions} are also available.)
 
@@ -1833,7 +1844,20 @@ These parameters are available from the \q{Custom...} option on the
 
 \dt \e{Width}, \e{Height}
 
-\dd Size of grid in squares.
+\dd Size of grid, measured in number of regions across and down. For
+square grids, it's clear how this is counted; for other types of
+grid you may have to think a bit to see how the dimensions are
+measured.
+
+\dt \e{Grid type}
+
+\dd Allows you to choose between a selection of types of tiling.
+Some have all the faces the same but may have multiple different
+types of vertex (e.g. the \e{Cairo} or \e{Kites} mode); others have
+all the vertices the same but may have differnt types of face (e.g.
+the \e{Great Hexagonal}). The square, triangular and honeycomb grids
+are fully regular, and have all their vertices \e{and} faces the
+same; this makes them the least confusing to play.
 
 \dt \e{Difficulty}
 

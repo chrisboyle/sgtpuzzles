@@ -1,15 +1,15 @@
 /*
- * loopy.c: An implementation of the Nikoli game 'Loop the loop'.
+ * loopy.c:
+ *
+ * An implementation of the Nikoli game 'Loop the loop'.
  * (c) Mike Pinna, 2005, 2006
+ * Substantially rewritten to allowing for more general types of grid.
+ * (c) Lambros Lambrou 2008
  *
  * vim: set shiftwidth=4 :set textwidth=80:
- */ 
+ */
 
 /*
- * TODO:
- *
- *  - Setting very high recursion depth seems to cause memory munching: are we
- *    recursing before checking completion, by any chance?
  *
  *  - There's an interesting deductive technique which makes use of topology
  *    rather than just graph theory. Each _square_ in the grid is either inside
@@ -37,10 +37,15 @@
 
 #include "puzzles.h"
 #include "tree234.h"
+#include "grid.h"
 
 /* Debugging options */
-/*#define DEBUG_CACHES*/
-/*#define SHOW_WORKING*/
+
+/*
+#define DEBUG_CACHES
+#define SHOW_WORKING
+#define DEBUG_DLINES
+*/
 
 /* ----------------------------------------------------------------------
  * Struct, enum and function declarations
@@ -49,24 +54,29 @@
 enum {
     COL_BACKGROUND,
     COL_FOREGROUND,
+    COL_LINEUNKNOWN,
     COL_HIGHLIGHT,
     COL_MISTAKE,
+    COL_SATISFIED,
     NCOLOURS
 };
 
 struct game_state {
-    int w, h;
-    
-    /* Put -1 in a square that doesn't get a clue */
+    grid *game_grid;
+
+    /* Put -1 in a face that doesn't get a clue */
     signed char *clues;
-    
-    /* Arrays of line states, stored left-to-right, top-to-bottom */
-    char *hl, *vl;
+
+    /* Array of line states, to store whether each line is
+     * YES, NO or UNKNOWN */
+    char *lines;
 
     int solved;
     int cheated;
 
-    int recursion_depth;
+    /* Used in game_text_format(), so that it knows what type of
+     * grid it's trying to render as ASCII text. */
+    int grid_type;
 };
 
 enum solver_status {
@@ -76,9 +86,12 @@ enum solver_status {
     SOLVER_INCOMPLETE /* This may be a partial solution */
 };
 
+/* ------ Solver state ------ */
 typedef struct normal {
-    char *dot_atleastone;
-    char *dot_atmostone;
+    /* For each dline, store a bitmask for whether we know:
+     * (bit 0) at least one is YES
+     * (bit 1) at most one is YES */
+    char *dlines;
 } normal_mode_state;
 
 typedef struct hard {
@@ -87,18 +100,17 @@ typedef struct hard {
 
 typedef struct solver_state {
     game_state *state;
-    int recursion_remaining;
     enum solver_status solver_status;
     /* NB looplen is the number of dots that are joined together at a point, ie a
      * looplen of 1 means there are no lines to a particular dot */
     int *looplen;
 
     /* caches */
-    char *dot_yescount;
-    char *dot_nocount;
-    char *square_yescount;
-    char *square_nocount;
-    char *dot_solved, *square_solved;
+    char *dot_yes_count;
+    char *dot_no_count;
+    char *face_yes_count;
+    char *face_no_count;
+    char *dot_solved, *face_solved;
     int *dotdsf;
 
     normal_mode_state *normal;
@@ -130,39 +142,31 @@ static int (*(solver_fns[]))(solver_state *) = { DIFFLIST(SOLVER_FN) };
 struct game_params {
     int w, h;
     int diff;
-    int rec;
+    int type;
+
+    /* Grid generation is expensive, so keep a (ref-counted) reference to the
+     * grid for these parameters, and only generate when required. */
+    grid *game_grid;
 };
 
 enum line_state { LINE_YES, LINE_UNKNOWN, LINE_NO };
 
-#define OPP(state) \
-    (2 - state)
+#define OPP(line_state) \
+    (2 - line_state)
 
-enum direction { UP, LEFT, RIGHT, DOWN };
-
-#define OPP_DIR(dir) \
-    (3 - dir) 
 
 struct game_drawstate {
     int started;
-    int tilesize, linewidth;
+    int tilesize;
     int flashing;
-    char *hl, *vl;
+    char *lines;
     char *clue_error;
+    char *clue_satisfied;
 };
 
-static int game_can_format_as_text_now(game_params *params)
-{
-    return TRUE;
-}
-
-static char *game_text_format(game_state *state);
-static char *state_to_text(const game_state *state);
 static char *validate_desc(game_params *params, char *desc);
-static int get_line_status_from_point(const game_state *state,
-                                      int x, int y, enum direction d);
-static int dot_order(const game_state* state, int i, int j, char line_type);
-static int square_order(const game_state* state, int i, int j, char line_type);
+static int dot_order(const game_state* state, int i, char line_type);
+static int face_order(const game_state* state, int i, char line_type);
 static solver_state *solve_game_rec(const solver_state *sstate,
                                     int diff);
 
@@ -172,40 +176,44 @@ static void check_caches(const solver_state* sstate);
 #define check_caches(s)
 #endif
 
+/* ------- List of grid generators ------- */
+#define GRIDLIST(A) \
+    A(Squares,grid_new_square) \
+    A(Triangular,grid_new_triangular) \
+    A(Honeycomb,grid_new_honeycomb) \
+    A(Snub-Square,grid_new_snubsquare) \
+    A(Cairo,grid_new_cairo) \
+    A(Great-Hexagonal,grid_new_greathexagonal) \
+    A(Octagonal,grid_new_octagonal) \
+    A(Kites,grid_new_kites)
+
+#define GRID_NAME(title,fn) #title,
+#define GRID_CONFIG(title,fn) ":" #title
+#define GRID_FN(title,fn) &fn,
+static char const *const gridnames[] = { GRIDLIST(GRID_NAME) };
+#define GRID_CONFIGS GRIDLIST(GRID_CONFIG)
+static grid * (*(grid_fns[]))(int w, int h) = { GRIDLIST(GRID_FN) };
+static const int NUM_GRID_TYPES = sizeof(grid_fns) / sizeof(grid_fns[0]);
+
+/* Generates a (dynamically allocated) new grid, according to the
+ * type and size requested in params.  Does nothing if the grid is already
+ * generated.  The allocated grid is owned by the params object, and will be
+ * freed in free_params(). */
+static void params_generate_grid(game_params *params)
+{
+    if (!params->game_grid) {
+        params->game_grid = grid_fns[params->type](params->w, params->h);
+    }
+}
+
 /* ----------------------------------------------------------------------
- * Preprocessor magic 
+ * Preprocessor magic
  */
 
 /* General constants */
 #define PREFERRED_TILE_SIZE 32
-#define TILE_SIZE (ds->tilesize)
-#define LINEWIDTH (ds->linewidth)
-#define BORDER (TILE_SIZE / 2)
+#define BORDER(tilesize) ((tilesize) / 2)
 #define FLASH_TIME 0.5F
-
-/* Counts of various things that we're interested in */
-#define HL_COUNT(state) ((state)->w * ((state)->h + 1))
-#define VL_COUNT(state) (((state)->w + 1) * (state)->h)
-#define LINE_COUNT(state) (HL_COUNT(state) + VL_COUNT(state))
-#define DOT_COUNT(state) (((state)->w + 1) * ((state)->h + 1))
-#define SQUARE_COUNT(state) ((state)->w * (state)->h)
-
-/* For indexing into arrays */
-#define DOT_INDEX(state, x, y) ((x) + ((state)->w + 1) * (y))
-#define SQUARE_INDEX(state, x, y) ((x) + ((state)->w) * (y))
-#define HL_INDEX(state, x, y) SQUARE_INDEX(state, x, y)
-#define VL_INDEX(state, x, y) DOT_INDEX(state, x, y)
-
-/* Useful utility functions */
-#define LEGAL_DOT(state, i, j) ((i) >= 0 && (j) >= 0 && \
-                                (i) <= (state)->w && (j) <= (state)->h)
-#define LEGAL_SQUARE(state, i, j) ((i) >= 0 && (j) >= 0 && \
-                                   (i) < (state)->w && (j) < (state)->h)
-
-#define CLUE_AT(state, i, j) (LEGAL_SQUARE(state, i, j) ? \
-                              LV_CLUE_AT(state, i, j) : -1)
-                             
-#define LV_CLUE_AT(state, i, j) ((state)->clues[SQUARE_INDEX(state, i, j)])
 
 #define BIT_SET(field, bit) ((field) & (1<<(bit)))
 
@@ -215,81 +223,8 @@ static void check_caches(const solver_state* sstate);
 #define CLEAR_BIT(field, bit) (BIT_SET(field, bit) ? \
                                ((field) &= ~(1<<(bit)), TRUE) : FALSE)
 
-#define DIR2STR(d) \
-    ((d == UP) ? "up" : \
-     (d == DOWN) ? "down" : \
-     (d == LEFT) ? "left" : \
-     (d == RIGHT) ? "right" : "oops")
-
 #define CLUE2CHAR(c) \
     ((c < 0) ? ' ' : c + '0')
-
-/* Lines that have particular relationships with given dots or squares */
-#define ABOVE_SQUARE(state, i, j) ((state)->hl[(i) + (state)->w * (j)])
-#define BELOW_SQUARE(state, i, j) ABOVE_SQUARE(state, i, (j)+1)
-#define LEFTOF_SQUARE(state, i, j)  ((state)->vl[(i) + ((state)->w + 1) * (j)])
-#define RIGHTOF_SQUARE(state, i, j) LEFTOF_SQUARE(state, (i)+1, j)
-
-/*
- * These macros return rvalues only, but can cope with being passed
- * out-of-range coordinates.
- */
-/* XXX replace these with functions so we can create an array of function
- * pointers for nicer iteration over them.  This could probably be done with
- * loads of other things for eliminating many nasty hacks. */
-#define ABOVE_DOT(state, i, j) ((!LEGAL_DOT(state, i, j) || j <= 0) ? \
-                                LINE_NO : LV_ABOVE_DOT(state, i, j))
-#define BELOW_DOT(state, i, j) ((!LEGAL_DOT(state, i, j) || j >= (state)->h) ? \
-                                LINE_NO : LV_BELOW_DOT(state, i, j))
-
-#define LEFTOF_DOT(state, i, j)  ((!LEGAL_DOT(state, i, j) || i <= 0) ? \
-                                  LINE_NO : LV_LEFTOF_DOT(state, i, j))
-#define RIGHTOF_DOT(state, i, j) ((!LEGAL_DOT(state, i, j) || i >= (state)->w)? \
-                                  LINE_NO : LV_RIGHTOF_DOT(state, i, j))
-
-/*
- * These macros expect to be passed valid coordinates, and return
- * lvalues.
- */
-#define LV_BELOW_DOT(state, i, j) ((state)->vl[VL_INDEX(state, i, j)])
-#define LV_ABOVE_DOT(state, i, j) LV_BELOW_DOT(state, i, (j)-1)
-
-#define LV_RIGHTOF_DOT(state, i, j) ((state)->hl[HL_INDEX(state, i, j)])
-#define LV_LEFTOF_DOT(state, i, j)  LV_RIGHTOF_DOT(state, (i)-1, j)
-
-/* Counts of interesting things */
-#define DOT_YES_COUNT(sstate, i, j) \
-    ((sstate)->dot_yescount[DOT_INDEX((sstate)->state, i, j)])
-
-#define DOT_NO_COUNT(sstate, i, j) \
-    ((sstate)->dot_nocount[DOT_INDEX((sstate)->state, i, j)])
-
-#define SQUARE_YES_COUNT(sstate, i, j) \
-    ((sstate)->square_yescount[SQUARE_INDEX((sstate)->state, i, j)])
-
-#define SQUARE_NO_COUNT(sstate, i, j) \
-    ((sstate)->square_nocount[SQUARE_INDEX((sstate)->state, i, j)])
-
-/* Iterators.  NB these iterate over height more slowly than over width so that
- * the elements come out in 'reading' order */
-/* XXX considering adding a 'current' element to each of these which gets the
- * address of the current dot, say.  But expecting we'd need more than that
- * most of the time.  */
-#define FORALL(i, j, w, h) \
-    for ((j) = 0; (j) < (h); ++(j)) \
-        for ((i) = 0; (i) < (w); ++(i))
-
-#define FORALL_DOTS(state, i, j) \
-    FORALL(i, j, (state)->w + 1, (state)->h + 1)
-
-#define FORALL_SQUARES(state, i, j) \
-    FORALL(i, j, (state)->w, (state)->h)
-
-#define FORALL_HL(state, i, j) \
-    FORALL(i, j, (state)->w, (state)->h+1)
-
-#define FORALL_VL(state, i, j) \
-    FORALL(i, j, (state)->w+1, (state)->h)
 
 /* ----------------------------------------------------------------------
  * General struct manipulation and other straightforward code
@@ -299,91 +234,77 @@ static game_state *dup_game(game_state *state)
 {
     game_state *ret = snew(game_state);
 
-    ret->h = state->h;
-    ret->w = state->w;
+    ret->game_grid = state->game_grid;
+    ret->game_grid->refcount++;
+
     ret->solved = state->solved;
     ret->cheated = state->cheated;
 
-    ret->clues = snewn(SQUARE_COUNT(state), signed char);
-    memcpy(ret->clues, state->clues, SQUARE_COUNT(state));
+    ret->clues = snewn(state->game_grid->num_faces, signed char);
+    memcpy(ret->clues, state->clues, state->game_grid->num_faces);
 
-    ret->hl = snewn(HL_COUNT(state), char);
-    memcpy(ret->hl, state->hl, HL_COUNT(state));
+    ret->lines = snewn(state->game_grid->num_edges, char);
+    memcpy(ret->lines, state->lines, state->game_grid->num_edges);
 
-    ret->vl = snewn(VL_COUNT(state), char);
-    memcpy(ret->vl, state->vl, VL_COUNT(state));
-
-    ret->recursion_depth = state->recursion_depth;
-
+    ret->grid_type = state->grid_type;
     return ret;
 }
 
 static void free_game(game_state *state)
 {
     if (state) {
+        grid_free(state->game_grid);
         sfree(state->clues);
-        sfree(state->hl);
-        sfree(state->vl);
+        sfree(state->lines);
         sfree(state);
     }
 }
 
-static solver_state *new_solver_state(const game_state *state, int diff) {
-    int i, j;
+static solver_state *new_solver_state(game_state *state, int diff) {
+    int i;
+    int num_dots = state->game_grid->num_dots;
+    int num_faces = state->game_grid->num_faces;
+    int num_edges = state->game_grid->num_edges;
     solver_state *ret = snew(solver_state);
 
-    ret->state = dup_game((game_state *)state);
-    
-    ret->recursion_remaining = state->recursion_depth;
-    ret->solver_status = SOLVER_INCOMPLETE; 
+    ret->state = dup_game(state);
 
-    ret->dotdsf = snew_dsf(DOT_COUNT(state));
-    ret->looplen = snewn(DOT_COUNT(state), int);
+    ret->solver_status = SOLVER_INCOMPLETE;
 
-    for (i = 0; i < DOT_COUNT(state); i++) {
+    ret->dotdsf = snew_dsf(num_dots);
+    ret->looplen = snewn(num_dots, int);
+
+    for (i = 0; i < num_dots; i++) {
         ret->looplen[i] = 1;
     }
 
-    ret->dot_solved = snewn(DOT_COUNT(state), char);
-    ret->square_solved = snewn(SQUARE_COUNT(state), char);
-    memset(ret->dot_solved, FALSE, DOT_COUNT(state));
-    memset(ret->square_solved, FALSE, SQUARE_COUNT(state));
+    ret->dot_solved = snewn(num_dots, char);
+    ret->face_solved = snewn(num_faces, char);
+    memset(ret->dot_solved, FALSE, num_dots);
+    memset(ret->face_solved, FALSE, num_faces);
 
-    ret->dot_yescount = snewn(DOT_COUNT(state), char);
-    memset(ret->dot_yescount, 0, DOT_COUNT(state));
-    ret->dot_nocount = snewn(DOT_COUNT(state), char);
-    memset(ret->dot_nocount, 0, DOT_COUNT(state));
-    ret->square_yescount = snewn(SQUARE_COUNT(state), char);
-    memset(ret->square_yescount, 0, SQUARE_COUNT(state));
-    ret->square_nocount = snewn(SQUARE_COUNT(state), char);
-    memset(ret->square_nocount, 0, SQUARE_COUNT(state));
-
-    /* dot_nocount needs special initialisation as we define lines coming off
-     * dots on edges as fixed at NO */
-
-    FORALL_DOTS(state, i, j) {
-        if (i == 0 || i == state->w)
-            ++ret->dot_nocount[DOT_INDEX(state, i, j)];
-        if (j == 0 || j == state->h)
-            ++ret->dot_nocount[DOT_INDEX(state, i, j)];
-    }
+    ret->dot_yes_count = snewn(num_dots, char);
+    memset(ret->dot_yes_count, 0, num_dots);
+    ret->dot_no_count = snewn(num_dots, char);
+    memset(ret->dot_no_count, 0, num_dots);
+    ret->face_yes_count = snewn(num_faces, char);
+    memset(ret->face_yes_count, 0, num_faces);
+    ret->face_no_count = snewn(num_faces, char);
+    memset(ret->face_no_count, 0, num_faces);
 
     if (diff < DIFF_NORMAL) {
         ret->normal = NULL;
     } else {
         ret->normal = snew(normal_mode_state);
-
-        ret->normal->dot_atmostone = snewn(DOT_COUNT(state), char);
-        memset(ret->normal->dot_atmostone, 0, DOT_COUNT(state));
-        ret->normal->dot_atleastone = snewn(DOT_COUNT(state), char);
-        memset(ret->normal->dot_atleastone, 0, DOT_COUNT(state));
+        ret->normal->dlines = snewn(2*num_edges, char);
+        memset(ret->normal->dlines, 0, 2*num_edges);
     }
 
     if (diff < DIFF_HARD) {
         ret->hard = NULL;
     } else {
         ret->hard = snew(hard_mode_state);
-        ret->hard->linedsf = snew_dsf(LINE_COUNT(state));
+        ret->hard->linedsf = snew_dsf(state->game_grid->num_edges);
     }
 
     return ret;
@@ -395,15 +316,14 @@ static void free_solver_state(solver_state *sstate) {
         sfree(sstate->dotdsf);
         sfree(sstate->looplen);
         sfree(sstate->dot_solved);
-        sfree(sstate->square_solved);
-        sfree(sstate->dot_yescount);
-        sfree(sstate->dot_nocount);
-        sfree(sstate->square_yescount);
-        sfree(sstate->square_nocount);
+        sfree(sstate->face_solved);
+        sfree(sstate->dot_yes_count);
+        sfree(sstate->dot_no_count);
+        sfree(sstate->face_yes_count);
+        sfree(sstate->face_no_count);
 
         if (sstate->normal) {
-            sfree(sstate->normal->dot_atleastone);
-            sfree(sstate->normal->dot_atmostone);
+            sfree(sstate->normal->dlines);
             sfree(sstate->normal);
         }
 
@@ -417,61 +337,52 @@ static void free_solver_state(solver_state *sstate) {
 }
 
 static solver_state *dup_solver_state(const solver_state *sstate) {
-    game_state *state;
-
+    game_state *state = sstate->state;
+    int num_dots = state->game_grid->num_dots;
+    int num_faces = state->game_grid->num_faces;
+    int num_edges = state->game_grid->num_edges;
     solver_state *ret = snew(solver_state);
 
     ret->state = state = dup_game(sstate->state);
 
-    ret->recursion_remaining = sstate->recursion_remaining;
     ret->solver_status = sstate->solver_status;
 
-    ret->dotdsf = snewn(DOT_COUNT(state), int);
-    ret->looplen = snewn(DOT_COUNT(state), int);
-    memcpy(ret->dotdsf, sstate->dotdsf, 
-           DOT_COUNT(state) * sizeof(int));
-    memcpy(ret->looplen, sstate->looplen, 
-           DOT_COUNT(state) * sizeof(int));
+    ret->dotdsf = snewn(num_dots, int);
+    ret->looplen = snewn(num_dots, int);
+    memcpy(ret->dotdsf, sstate->dotdsf,
+           num_dots * sizeof(int));
+    memcpy(ret->looplen, sstate->looplen,
+           num_dots * sizeof(int));
 
-    ret->dot_solved = snewn(DOT_COUNT(state), char);
-    ret->square_solved = snewn(SQUARE_COUNT(state), char);
-    memcpy(ret->dot_solved, sstate->dot_solved, 
-           DOT_COUNT(state));
-    memcpy(ret->square_solved, sstate->square_solved, 
-           SQUARE_COUNT(state));
+    ret->dot_solved = snewn(num_dots, char);
+    ret->face_solved = snewn(num_faces, char);
+    memcpy(ret->dot_solved, sstate->dot_solved, num_dots);
+    memcpy(ret->face_solved, sstate->face_solved, num_faces);
 
-    ret->dot_yescount = snewn(DOT_COUNT(state), char);
-    memcpy(ret->dot_yescount, sstate->dot_yescount,
-           DOT_COUNT(state));
-    ret->dot_nocount = snewn(DOT_COUNT(state), char);
-    memcpy(ret->dot_nocount, sstate->dot_nocount,
-           DOT_COUNT(state));
+    ret->dot_yes_count = snewn(num_dots, char);
+    memcpy(ret->dot_yes_count, sstate->dot_yes_count, num_dots);
+    ret->dot_no_count = snewn(num_dots, char);
+    memcpy(ret->dot_no_count, sstate->dot_no_count, num_dots);
 
-    ret->square_yescount = snewn(SQUARE_COUNT(state), char);
-    memcpy(ret->square_yescount, sstate->square_yescount,
-           SQUARE_COUNT(state));
-    ret->square_nocount = snewn(SQUARE_COUNT(state), char);
-    memcpy(ret->square_nocount, sstate->square_nocount,
-           SQUARE_COUNT(state));
+    ret->face_yes_count = snewn(num_faces, char);
+    memcpy(ret->face_yes_count, sstate->face_yes_count, num_faces);
+    ret->face_no_count = snewn(num_faces, char);
+    memcpy(ret->face_no_count, sstate->face_no_count, num_faces);
 
     if (sstate->normal) {
         ret->normal = snew(normal_mode_state);
-        ret->normal->dot_atmostone = snewn(DOT_COUNT(state), char);
-        memcpy(ret->normal->dot_atmostone, sstate->normal->dot_atmostone,
-               DOT_COUNT(state));
-
-        ret->normal->dot_atleastone = snewn(DOT_COUNT(state), char);
-        memcpy(ret->normal->dot_atleastone, sstate->normal->dot_atleastone,
-               DOT_COUNT(state));
+        ret->normal->dlines = snewn(2*num_edges, char);
+        memcpy(ret->normal->dlines, sstate->normal->dlines,
+               2*num_edges);
     } else {
         ret->normal = NULL;
     }
 
     if (sstate->hard) {
         ret->hard = snew(hard_mode_state);
-        ret->hard->linedsf = snewn(LINE_COUNT(state), int);
-        memcpy(ret->hard->linedsf, sstate->hard->linedsf, 
-               LINE_COUNT(state) * sizeof(int));
+        ret->hard->linedsf = snewn(num_edges, int);
+        memcpy(ret->hard->linedsf, sstate->hard->linedsf,
+               num_edges * sizeof(int));
     } else {
         ret->hard = NULL;
     }
@@ -484,14 +395,16 @@ static game_params *default_params(void)
     game_params *ret = snew(game_params);
 
 #ifdef SLOW_SYSTEM
-    ret->h = 4;
-    ret->w = 4;
+    ret->h = 7;
+    ret->w = 7;
 #else
     ret->h = 10;
     ret->w = 10;
 #endif
     ret->diff = DIFF_EASY;
-    ret->rec = 0;
+    ret->type = 0;
+
+    ret->game_grid = NULL;
 
     return ret;
 }
@@ -499,30 +412,28 @@ static game_params *default_params(void)
 static game_params *dup_params(game_params *params)
 {
     game_params *ret = snew(game_params);
+
     *ret = *params;                       /* structure copy */
+    if (ret->game_grid) {
+        ret->game_grid->refcount++;
+    }
     return ret;
 }
 
 static const game_params presets[] = {
-    {  4,  4, DIFF_EASY, 0 },
-    {  4,  4, DIFF_NORMAL, 0 },
-    {  4,  4, DIFF_HARD, 0 },
-    {  7,  7, DIFF_EASY, 0 },
-    {  7,  7, DIFF_NORMAL, 0 },
-    {  7,  7, DIFF_HARD, 0 },
-    { 10, 10, DIFF_EASY, 0 },
-    { 10, 10, DIFF_NORMAL, 0 },
-    { 10, 10, DIFF_HARD, 0 },
-#ifndef SLOW_SYSTEM
-    { 15, 15, DIFF_EASY, 0 },
-    { 15, 15, DIFF_NORMAL, 0 },
-    { 15, 15, DIFF_HARD, 0 },
-#ifndef SMALL_SCREEN
-    { 30, 20, DIFF_EASY, 0 },
-    { 30, 20, DIFF_NORMAL, 0 },
-    { 30, 20, DIFF_HARD, 0 }
-#endif
-#endif
+    {  7,  7, DIFF_EASY, 0, NULL },
+    {  10,  10, DIFF_EASY, 0, NULL },
+    {  7,  7, DIFF_NORMAL, 0, NULL },
+    {  10,  10, DIFF_NORMAL, 0, NULL },
+    {  7,  7, DIFF_HARD, 0, NULL },
+    {  10,  10, DIFF_HARD, 0, NULL },
+    {  10,  10, DIFF_HARD, 1, NULL },
+    {  12,  10, DIFF_HARD, 2, NULL },
+    {  7,  7, DIFF_HARD, 3, NULL },
+    {  9,  9, DIFF_HARD, 4, NULL },
+    {  5,  4, DIFF_HARD, 5, NULL },
+    {  7,  7, DIFF_HARD, 6, NULL },
+    {  5,  5, DIFF_HARD, 7, NULL },
 };
 
 static int game_fetch_preset(int i, char **name, game_params **params)
@@ -536,7 +447,8 @@ static int game_fetch_preset(int i, char **name, game_params **params)
     tmppar = snew(game_params);
     *tmppar = presets[i];
     *params = tmppar;
-    sprintf(buf, "%dx%d %s", tmppar->h, tmppar->w, diffnames[tmppar->diff]);
+    sprintf(buf, "%dx%d %s - %s", tmppar->h, tmppar->w,
+            gridnames[tmppar->type], diffnames[tmppar->diff]);
     *name = dupstr(buf);
 
     return TRUE;
@@ -544,13 +456,19 @@ static int game_fetch_preset(int i, char **name, game_params **params)
 
 static void free_params(game_params *params)
 {
+    if (params->game_grid) {
+        grid_free(params->game_grid);
+    }
     sfree(params);
 }
 
 static void decode_params(game_params *params, char const *string)
 {
+    if (params->game_grid) {
+        grid_free(params->game_grid);
+        params->game_grid = NULL;
+    }
     params->h = params->w = atoi(string);
-    params->rec = 0;
     params->diff = DIFF_EASY;
     while (*string && isdigit((unsigned char)*string)) string++;
     if (*string == 'x') {
@@ -558,9 +476,9 @@ static void decode_params(game_params *params, char const *string)
         params->h = atoi(string);
         while (*string && isdigit((unsigned char)*string)) string++;
     }
-    if (*string == 'r') {
+    if (*string == 't') {
         string++;
-        params->rec = atoi(string);
+        params->type = atoi(string);
         while (*string && isdigit((unsigned char)*string)) string++;
     }
     if (*string == 'd') {
@@ -576,9 +494,9 @@ static void decode_params(game_params *params, char const *string)
 static char *encode_params(game_params *params, int full)
 {
     char str[80];
-    sprintf(str, "%dx%d", params->w, params->h);
+    sprintf(str, "%dx%dt%d", params->w, params->h, params->type);
     if (full)
-    sprintf(str + strlen(str), "r%dd%c", params->rec, diffchars[params->diff]);
+        sprintf(str + strlen(str), "d%c", diffchars[params->diff]);
     return dupstr(str);
 }
 
@@ -587,7 +505,7 @@ static config_item *game_configure(game_params *params)
     config_item *ret;
     char buf[80];
 
-    ret = snewn(4, config_item);
+    ret = snewn(5, config_item);
 
     ret[0].name = "Width";
     ret[0].type = C_STRING;
@@ -601,15 +519,20 @@ static config_item *game_configure(game_params *params)
     ret[1].sval = dupstr(buf);
     ret[1].ival = 0;
 
-    ret[2].name = "Difficulty";
+    ret[2].name = "Grid type";
     ret[2].type = C_CHOICES;
-    ret[2].sval = DIFFCONFIG;
-    ret[2].ival = params->diff;
+    ret[2].sval = GRID_CONFIGS;
+    ret[2].ival = params->type;
 
-    ret[3].name = NULL;
-    ret[3].type = C_END;
-    ret[3].sval = NULL;
-    ret[3].ival = 0;
+    ret[3].name = "Difficulty";
+    ret[3].type = C_CHOICES;
+    ret[3].sval = DIFFCONFIG;
+    ret[3].ival = params->diff;
+
+    ret[4].name = NULL;
+    ret[4].type = C_END;
+    ret[4].sval = NULL;
+    ret[4].ival = 0;
 
     return ret;
 }
@@ -620,18 +543,19 @@ static game_params *custom_params(config_item *cfg)
 
     ret->w = atoi(cfg[0].sval);
     ret->h = atoi(cfg[1].sval);
-    ret->rec = 0;
-    ret->diff = cfg[2].ival;
+    ret->type = cfg[2].ival;
+    ret->diff = cfg[3].ival;
 
+    ret->game_grid = NULL;
     return ret;
 }
 
 static char *validate_params(game_params *params, int full)
 {
-    if (params->w < 4 || params->h < 4)
-        return "Width and height must both be at least 4";
-    if (params->rec < 0)
-        return "Recursion depth can't be negative";
+    if (params->w < 3 || params->h < 3)
+        return "Width and height must both be at least 3";
+    if (params->type < 0 || params->type >= NUM_GRID_TYPES)
+        return "Illegal grid type";
 
     /*
      * This shouldn't be able to happen at all, since decode_params
@@ -646,14 +570,16 @@ static char *validate_params(game_params *params, int full)
 /* Returns a newly allocated string describing the current puzzle */
 static char *state_to_text(const game_state *state)
 {
+    grid *g = state->game_grid;
     char *retval;
-    char *description = snewn(SQUARE_COUNT(state) + 1, char);
+    int num_faces = g->num_faces;
+    char *description = snewn(num_faces + 1, char);
     char *dp = description;
     int empty_count = 0;
-    int i, j;
+    int i;
 
-    FORALL_SQUARES(state, i, j) {
-        if (CLUE_AT(state, i, j) < 0) {
+    for (i = 0; i < num_faces; i++) {
+        if (state->clues[i] < 0) {
             if (empty_count > 25) {
                 dp += sprintf(dp, "%c", (int)(empty_count + 'a' - 1));
                 empty_count = 0;
@@ -664,7 +590,7 @@ static char *state_to_text(const game_state *state)
                 dp += sprintf(dp, "%c", (int)(empty_count + 'a' - 1));
                 empty_count = 0;
             }
-            dp += sprintf(dp, "%c", (int)CLUE2CHAR(CLUE_AT(state, i, j)));
+            dp += sprintf(dp, "%c", (int)CLUE2CHAR(state->clues[i]));
         }
     }
 
@@ -682,6 +608,9 @@ static char *state_to_text(const game_state *state)
 static char *validate_desc(game_params *params, char *desc)
 {
     int count = 0;
+    grid *g;
+    params_generate_grid(params);
+    g = params->game_grid;
 
     for (; *desc; ++desc) {
         if (*desc >= '0' && *desc <= '9') {
@@ -695,9 +624,9 @@ static char *validate_desc(game_params *params, char *desc)
         return "Unknown character in description";
     }
 
-    if (count < SQUARE_COUNT(params))
+    if (count < g->num_faces)
         return "Description too short for board size";
-    if (count > SQUARE_COUNT(params))
+    if (count > g->num_faces)
         return "Description too long for board size";
 
     return NULL;
@@ -719,49 +648,34 @@ static int len_0_to_n(int n)
 
 static char *encode_solve_move(const game_state *state)
 {
-    int len, i, j;
+    int len;
     char *ret, *p;
+    int i;
+    int num_edges = state->game_grid->num_edges;
+
     /* This is going to return a string representing the moves needed to set
      * every line in a grid to be the same as the ones in 'state'.  The exact
      * length of this string is predictable. */
 
     len = 1;  /* Count the 'S' prefix */
-    /* Numbers in horizontal lines */
-    /* Horizontal lines, x position */
-    len += len_0_to_n(state->w) * (state->h + 1);
-    /* Horizontal lines, y position */
-    len += len_0_to_n(state->h + 1) * (state->w);
-    /* Vertical lines, y position */
-    len += len_0_to_n(state->h) * (state->w + 1);
-    /* Vertical lines, x position */
-    len += len_0_to_n(state->w + 1) * (state->h);
-    /* For each line we also have two letters and a comma */
-    len += 3 * (LINE_COUNT(state));
+    /* Numbers in all lines */
+    len += len_0_to_n(num_edges);
+    /* For each line we also have a letter */
+    len += num_edges;
 
     ret = snewn(len + 1, char);
     p = ret;
 
     p += sprintf(p, "S");
 
-    FORALL_HL(state, i, j) {
-        switch (RIGHTOF_DOT(state, i, j)) {
-            case LINE_YES:
-                p += sprintf(p, "%d,%dhy", i, j);
-                break;
-            case LINE_NO:
-                p += sprintf(p, "%d,%dhn", i, j);
-                break;
-        }
-    }
-
-    FORALL_VL(state, i, j) {
-        switch (BELOW_DOT(state, i, j)) {
-            case LINE_YES:
-                p += sprintf(p, "%d,%dvy", i, j);
-                break;
-            case LINE_NO:
-                p += sprintf(p, "%d,%dvn", i, j);
-                break;
+    for (i = 0; i < num_edges; i++) {
+        switch (state->lines[i]) {
+	  case LINE_YES:
+	    p += sprintf(p, "%dy", i);
+	    break;
+	  case LINE_NO:
+	    p += sprintf(p, "%dn", i);
+	    break;
         }
     }
 
@@ -793,23 +707,25 @@ static void game_changed_state(game_ui *ui, game_state *oldstate,
 {
 }
 
-#define SIZE(d) ((d) * TILE_SIZE + 2 * BORDER + 1)
-
 static void game_compute_size(game_params *params, int tilesize,
                               int *x, int *y)
 {
-    struct { int tilesize; } ads, *ds = &ads;
-    ads.tilesize = tilesize;
-
-    *x = SIZE(params->w);
-    *y = SIZE(params->h);
+    grid *g;
+    params_generate_grid(params);
+    g = params->game_grid;
+    int grid_width = g->highest_x - g->lowest_x;
+    int grid_height = g->highest_y - g->lowest_y;
+    /* multiply first to minimise rounding error on integer division */
+    int rendered_width = grid_width * tilesize / g->tilesize;
+    int rendered_height = grid_height * tilesize / g->tilesize;
+    *x = rendered_width + 2 * BORDER(tilesize) + 1;
+    *y = rendered_height + 2 * BORDER(tilesize) + 1;
 }
 
 static void game_set_size(drawing *dr, game_drawstate *ds,
-              game_params *params, int tilesize)
+			  game_params *params, int tilesize)
 {
     ds->tilesize = tilesize;
-    ds->linewidth = max(1,tilesize/16);
 }
 
 static float *game_colours(frontend *fe, int *ncolours)
@@ -822,6 +738,10 @@ static float *game_colours(frontend *fe, int *ncolours)
     ret[COL_FOREGROUND * 3 + 1] = 0.0F;
     ret[COL_FOREGROUND * 3 + 2] = 0.0F;
 
+    ret[COL_LINEUNKNOWN * 3 + 0] = 0.8F;
+    ret[COL_LINEUNKNOWN * 3 + 1] = 0.8F;
+    ret[COL_LINEUNKNOWN * 3 + 2] = 0.0F;
+
     ret[COL_HIGHLIGHT * 3 + 0] = 1.0F;
     ret[COL_HIGHLIGHT * 3 + 1] = 1.0F;
     ret[COL_HIGHLIGHT * 3 + 2] = 1.0F;
@@ -830,6 +750,10 @@ static float *game_colours(frontend *fe, int *ncolours)
     ret[COL_MISTAKE * 3 + 1] = 0.0F;
     ret[COL_MISTAKE * 3 + 2] = 0.0F;
 
+    ret[COL_SATISFIED * 3 + 0] = 0.0F;
+    ret[COL_SATISFIED * 3 + 1] = 0.0F;
+    ret[COL_SATISFIED * 3 + 2] = 0.0F;
+
     *ncolours = NCOLOURS;
     return ret;
 }
@@ -837,17 +761,19 @@ static float *game_colours(frontend *fe, int *ncolours)
 static game_drawstate *game_new_drawstate(drawing *dr, game_state *state)
 {
     struct game_drawstate *ds = snew(struct game_drawstate);
+    int num_faces = state->game_grid->num_faces;
+    int num_edges = state->game_grid->num_edges;
 
-    ds->tilesize = ds->linewidth = 0;
+    ds->tilesize = 0;
     ds->started = 0;
-    ds->hl = snewn(HL_COUNT(state), char);
-    ds->vl = snewn(VL_COUNT(state), char);
-    ds->clue_error = snewn(SQUARE_COUNT(state), char);
+    ds->lines = snewn(num_edges, char);
+    ds->clue_error = snewn(num_faces, char);
+    ds->clue_satisfied = snewn(num_faces, char);
     ds->flashing = 0;
 
-    memset(ds->hl, LINE_UNKNOWN, HL_COUNT(state));
-    memset(ds->vl, LINE_UNKNOWN, VL_COUNT(state));
-    memset(ds->clue_error, 0, SQUARE_COUNT(state));
+    memset(ds->lines, LINE_UNKNOWN, num_edges);
+    memset(ds->clue_error, 0, num_faces);
+    memset(ds->clue_satisfied, 0, num_faces);
 
     return ds;
 }
@@ -855,8 +781,8 @@ static game_drawstate *game_new_drawstate(drawing *dr, game_state *state)
 static void game_free_drawstate(drawing *dr, game_drawstate *ds)
 {
     sfree(ds->clue_error);
-    sfree(ds->hl);
-    sfree(ds->vl);
+    sfree(ds->clue_satisfied);
+    sfree(ds->lines);
     sfree(ds);
 }
 
@@ -871,63 +797,86 @@ static float game_anim_length(game_state *oldstate, game_state *newstate,
     return 0.0F;
 }
 
+static int game_can_format_as_text_now(game_params *params)
+{
+    if (params->type != 0)
+        return FALSE;
+    return TRUE;
+}
+
 static char *game_text_format(game_state *state)
 {
-    int i, j;
-    int len;
-    char *ret, *rp;
+    int w, h, W, H;
+    int x, y, i;
+    int cell_size;
+    char *ret;
+    grid *g = state->game_grid;
+    grid_face *f;
 
-    len = (2 * state->w + 2) * (2 * state->h + 1);
-    rp = ret = snewn(len + 1, char);
-    
-#define DRAW_HL \
-    switch (ABOVE_SQUARE(state, i, j)) { \
-        case LINE_YES: \
-            rp += sprintf(rp, " -"); \
-            break; \
-        case LINE_NO: \
-            rp += sprintf(rp, " x"); \
-            break; \
-        case LINE_UNKNOWN: \
-            rp += sprintf(rp, "  "); \
-            break; \
-        default: \
-            assert(!"Illegal line state for HL"); \
+    assert(state->grid_type == 0);
+
+    /* Work out the basic size unit */
+    f = g->faces; /* first face */
+    assert(f->order == 4);
+    /* The dots are ordered clockwise, so the two opposite
+     * corners are guaranteed to span the square */
+    cell_size = abs(f->dots[0]->x - f->dots[2]->x);
+
+    w = (g->highest_x - g->lowest_x) / cell_size;
+    h = (g->highest_y - g->lowest_y) / cell_size;
+
+    /* Create a blank "canvas" to "draw" on */
+    W = 2 * w + 2;
+    H = 2 * h + 1;
+    ret = snewn(W * H + 1, char);
+    for (y = 0; y < H; y++) {
+        for (x = 0; x < W-1; x++) {
+            ret[y*W + x] = ' ';
+        }
+        ret[y*W + W-1] = '\n';
+    }
+    ret[H*W] = '\0';
+
+    /* Fill in edge info */
+    for (i = 0; i < g->num_edges; i++) {
+        grid_edge *e = g->edges + i;
+        /* Cell coordinates, from (0,0) to (w-1,h-1) */
+        int x1 = (e->dot1->x - g->lowest_x) / cell_size;
+        int x2 = (e->dot2->x - g->lowest_x) / cell_size;
+        int y1 = (e->dot1->y - g->lowest_y) / cell_size;
+        int y2 = (e->dot2->y - g->lowest_y) / cell_size;
+        /* Midpoint, in canvas coordinates (canvas coordinates are just twice
+         * cell coordinates) */
+        x = x1 + x2;
+        y = y1 + y2;
+        switch (state->lines[i]) {
+	  case LINE_YES:
+	    ret[y*W + x] = (y1 == y2) ? '-' : '|';
+	    break;
+	  case LINE_NO:
+	    ret[y*W + x] = 'x';
+	    break;
+	  case LINE_UNKNOWN:
+	    break; /* already a space */
+	  default:
+	    assert(!"Illegal line state");
+        }
     }
 
-#define DRAW_VL \
-    switch (LEFTOF_SQUARE(state, i, j)) { \
-        case LINE_YES: \
-            rp += sprintf(rp, "|"); \
-            break; \
-        case LINE_NO: \
-            rp += sprintf(rp, "x"); \
-            break; \
-        case LINE_UNKNOWN: \
-            rp += sprintf(rp, " "); \
-            break; \
-        default: \
-            assert(!"Illegal line state for VL"); \
+    /* Fill in clues */
+    for (i = 0; i < g->num_faces; i++) {
+        f = g->faces + i;
+        assert(f->order == 4);
+        /* Cell coordinates, from (0,0) to (w-1,h-1) */
+        int x1 = (f->dots[0]->x - g->lowest_x) / cell_size;
+        int x2 = (f->dots[2]->x - g->lowest_x) / cell_size;
+        int y1 = (f->dots[0]->y - g->lowest_y) / cell_size;
+        int y2 = (f->dots[2]->y - g->lowest_y) / cell_size;
+        /* Midpoint, in canvas coordinates */
+        x = x1 + x2;
+        y = y1 + y2;
+        ret[y*W + x] = CLUE2CHAR(state->clues[i]);
     }
-    
-    for (j = 0; j < state->h; ++j) {
-        for (i = 0; i < state->w; ++i) {
-            DRAW_HL;
-        }
-        rp += sprintf(rp, " \n");
-        for (i = 0; i < state->w; ++i) {
-            DRAW_VL;
-            rp += sprintf(rp, "%c", (int)CLUE2CHAR(CLUE_AT(state, i, j)));
-        }
-        DRAW_VL;
-        rp += sprintf(rp, "\n");
-    }
-    for (i = 0; i < state->w; ++i) {
-        DRAW_HL;
-    }
-    rp += sprintf(rp, " \n");
-    
-    assert(strlen(ret) == len);
     return ret;
 }
 
@@ -938,37 +887,18 @@ static char *game_text_format(game_state *state)
 #ifdef DEBUG_CACHES
 static void check_caches(const solver_state* sstate)
 {
-    int i, j;
+    int i;
     const game_state *state = sstate->state;
+    const grid *g = state->game_grid;
 
-    FORALL_DOTS(state, i, j) {
-#if 0
-        fprintf(stderr, "dot [%d,%d] y: %d %d n: %d %d\n", i, j,
-               dot_order(state, i, j, LINE_YES),
-               sstate->dot_yescount[i + (state->w + 1) * j],
-               dot_order(state, i, j, LINE_NO),
-               sstate->dot_nocount[i + (state->w + 1) * j]);
-#endif
-                    
-        assert(dot_order(state, i, j, LINE_YES) ==
-               DOT_YES_COUNT(sstate, i, j));
-        assert(dot_order(state, i, j, LINE_NO) ==
-               DOT_NO_COUNT(sstate, i, j));
+    for (i = 0; i < g->num_dots; i++) {
+        assert(dot_order(state, i, LINE_YES) == sstate->dot_yes_count[i]);
+        assert(dot_order(state, i, LINE_NO) == sstate->dot_no_count[i]);
     }
 
-    FORALL_SQUARES(state, i, j) {
-#if 0
-        fprintf(stderr, "square [%d,%d] y: %d %d n: %d %d\n", i, j,
-               square_order(state, i, j, LINE_YES),
-               sstate->square_yescount[i + state->w * j],
-               square_order(state, i, j, LINE_NO),
-               sstate->square_nocount[i + state->w * j]);
-#endif
-                    
-        assert(square_order(state, i, j, LINE_YES) ==
-               SQUARE_YES_COUNT(sstate, i, j));
-        assert(square_order(state, i, j, LINE_NO) ==
-               SQUARE_NO_COUNT(sstate, i, j));
+    for (i = 0; i < g->num_faces; i++) {
+        assert(face_order(state, i, LINE_YES) == sstate->face_yes_count[i]);
+        assert(face_order(state, i, LINE_NO) == sstate->face_no_count[i]);
     }
 }
 
@@ -985,135 +915,66 @@ static void check_caches(const solver_state* sstate)
  * Solver utility functions
  */
 
-static int set_line_bydot(solver_state *sstate, int x, int y, enum direction d,
-                          enum line_state line_new
+/* Sets the line (with index i) to the new state 'line_new', and updates
+ * the cached counts of any affected faces and dots.
+ * Returns TRUE if this actually changed the line's state. */
+static int solver_set_line(solver_state *sstate, int i,
+                           enum line_state line_new
 #ifdef SHOW_WORKING
-                          , const char *reason
+			   , const char *reason
 #endif
-                          ) 
+			   )
 {
     game_state *state = sstate->state;
-
-    /* This line borders at most two squares in our board.  We figure out the
-     * x and y positions of those squares so we can record that their yes or no
-     * counts have been changed */
-    int sq1_x=-1, sq1_y=-1, sq2_x=-1, sq2_y=-1;
-    int otherdot_x=-1, otherdot_y=-1;
-
-    int progress = FALSE;
-
-#if 0
-    fprintf(stderr, "set_line_bydot [%d,%d], %s, %d\n",
-            x, y, DIR2STR(d), line_new);
-#endif
+    grid *g;
+    grid_edge *e;
 
     assert(line_new != LINE_UNKNOWN);
 
     check_caches(sstate);
 
-    switch (d) {
-        case LEFT:
-            assert(x > 0);
-
-            if (LEFTOF_DOT(state, x, y) != line_new) {
-                LV_LEFTOF_DOT(state, x, y) = line_new;
-
-                otherdot_x = x-1;
-                otherdot_y = y;
-
-                sq1_x = x-1;
-                sq1_y = y-1;
-                sq2_x = x-1;
-                sq2_y = y;
-
-                progress = TRUE;
-            }
-            break;
-        case RIGHT:
-            assert(x < state->w);
-            if (RIGHTOF_DOT(state, x, y) != line_new) {
-                LV_RIGHTOF_DOT(state, x, y) = line_new;
-
-                otherdot_x = x+1;
-                otherdot_y = y;
-
-                sq1_x = x;
-                sq1_y = y-1;
-                sq2_x = x;
-                sq2_y = y;
-
-                progress = TRUE;
-            }
-            break;
-        case UP:
-            assert(y > 0);
-            if (ABOVE_DOT(state, x, y) != line_new) {
-                LV_ABOVE_DOT(state, x, y) = line_new;
-
-                otherdot_x = x;
-                otherdot_y = y-1;
-
-                sq1_x = x-1;
-                sq1_y = y-1;
-                sq2_x = x;
-                sq2_y = y-1;
-
-                progress = TRUE;
-            }
-            break;
-        case DOWN:
-            assert(y < state->h);
-            if (BELOW_DOT(state, x, y) != line_new) {
-                LV_BELOW_DOT(state, x, y) = line_new;
-
-                otherdot_x = x;
-                otherdot_y = y+1;
-
-                sq1_x = x-1;
-                sq1_y = y;
-                sq2_x = x;
-                sq2_y = y;
-
-                progress = TRUE;
-            }
-            break;
+    if (state->lines[i] == line_new) {
+        return FALSE; /* nothing changed */
     }
-
-    if (!progress)
-        return progress;
+    state->lines[i] = line_new;
 
 #ifdef SHOW_WORKING
-    fprintf(stderr, "set line [%d,%d] -> [%d,%d] to %s (%s)\n",
-            x, y, otherdot_x, otherdot_y, line_new == LINE_YES ? "YES" : "NO",
+    fprintf(stderr, "solver: set line [%d] to %s (%s)\n",
+            i, line_new == LINE_YES ? "YES" : "NO",
             reason);
 #endif
 
-    /* Above we updated the cache for the dot that the line in question reaches
-     * from the dot we've been told about.  Here we update that for the dot
-     * named in our arguments. */
+    g = state->game_grid;
+    e = g->edges + i;
+
+    /* Update the cache for both dots and both faces affected by this. */
     if (line_new == LINE_YES) {
-        if (sq1_x >= 0 && sq1_y >= 0)
-            ++SQUARE_YES_COUNT(sstate, sq1_x, sq1_y);
-        if (sq2_x < state->w && sq2_y < state->h)
-            ++SQUARE_YES_COUNT(sstate, sq2_x, sq2_y);
-        ++DOT_YES_COUNT(sstate, x, y);
-        ++DOT_YES_COUNT(sstate, otherdot_x, otherdot_y);
+        sstate->dot_yes_count[e->dot1 - g->dots]++;
+        sstate->dot_yes_count[e->dot2 - g->dots]++;
+        if (e->face1) {
+            sstate->face_yes_count[e->face1 - g->faces]++;
+        }
+        if (e->face2) {
+            sstate->face_yes_count[e->face2 - g->faces]++;
+        }
     } else {
-        if (sq1_x >= 0 && sq1_y >= 0)
-            ++SQUARE_NO_COUNT(sstate, sq1_x, sq1_y);
-        if (sq2_x < state->w && sq2_y < state->h)
-            ++SQUARE_NO_COUNT(sstate, sq2_x, sq2_y);
-        ++DOT_NO_COUNT(sstate, x, y);
-        ++DOT_NO_COUNT(sstate, otherdot_x, otherdot_y);
+        sstate->dot_no_count[e->dot1 - g->dots]++;
+        sstate->dot_no_count[e->dot2 - g->dots]++;
+        if (e->face1) {
+            sstate->face_no_count[e->face1 - g->faces]++;
+        }
+        if (e->face2) {
+            sstate->face_no_count[e->face2 - g->faces]++;
+        }
     }
-    
+
     check_caches(sstate);
-    return progress;
+    return TRUE;
 }
 
 #ifdef SHOW_WORKING
-#define set_line_bydot(a, b, c, d, e) \
-    set_line_bydot(a, b, c, d, e, __FUNCTION__)
+#define solver_set_line(a, b, c) \
+    solver_set_line(a, b, c, __FUNCTION__)
 #endif
 
 /*
@@ -1123,12 +984,14 @@ static int set_line_bydot(solver_state *sstate, int x, int y, enum direction d,
  * Returns TRUE if the dots were already linked, ie if they are part of a
  * closed loop, and false otherwise.
  */
-static int merge_dots(solver_state *sstate, int x1, int y1, int x2, int y2)
+static int merge_dots(solver_state *sstate, int edge_index)
 {
     int i, j, len;
+    grid *g = sstate->state->game_grid;
+    grid_edge *e = g->edges + edge_index;
 
-    i = y1 * (sstate->state->w + 1) + x1;
-    j = y2 * (sstate->state->w + 1) + x2;
+    i = e->dot1 - g->dots;
+    j = e->dot2 - g->dots;
 
     i = dsf_canonify(sstate->dotdsf, i);
     j = dsf_canonify(sstate->dotdsf, j);
@@ -1144,51 +1007,20 @@ static int merge_dots(solver_state *sstate, int x1, int y1, int x2, int y2)
     }
 }
 
-/* Seriously, these should be functions */
-
-#define LINEDSF_INDEX(state, x, y, d) \
-   ((d == UP)    ? ((y-1) * (state->w + 1) + x) : \
-    (d == DOWN)  ? ((y)   * (state->w + 1) + x) : \
-    (d == LEFT)  ? ((y) * (state->w) + x-1 + VL_COUNT(state)) : \
-    (d == RIGHT) ? ((y) * (state->w) + x   + VL_COUNT(state)) : \
-    (assert(!"bad direction value"), 0))
-
-static void linedsf_deindex(const game_state *state, int i, 
-                            int *px, int *py, enum direction *pd)
-{
-    int i_mod;
-    if (i < VL_COUNT(state)) {
-        *(pd) = DOWN;
-        *(px) = (i) % (state->w+1);
-        *(py) = (i) / (state->w+1);
-    } else {
-        i_mod = i - VL_COUNT(state);
-        *(pd) = RIGHT;
-        *(px) = (i_mod) % (state->w);
-        *(py) = (i_mod) / (state->w);
-    }
-}
-
 /* Merge two lines because the solver has deduced that they must be either
  * identical or opposite.   Returns TRUE if this is new information, otherwise
  * FALSE. */
-static int merge_lines(solver_state *sstate, 
-                       int x1, int y1, enum direction d1,
-                       int x2, int y2, enum direction d2,
-                       int inverse
+static int merge_lines(solver_state *sstate, int i, int j, int inverse
 #ifdef SHOW_WORKING
                        , const char *reason
 #endif
-                      )
+		       )
 {
-    int i, j, inv_tmp;
+    int inv_tmp;
 
-    i = LINEDSF_INDEX(sstate->state, x1, y1, d1);
-    j = LINEDSF_INDEX(sstate->state, x2, y2, d2);
+    assert(i < sstate->state->game_grid->num_edges);
+    assert(j < sstate->state->game_grid->num_edges);
 
-    assert(i < LINE_COUNT(sstate->state));
-    assert(j < LINE_COUNT(sstate->state));
-    
     i = edsf_canonify(sstate->hard->linedsf, i, &inv_tmp);
     inverse ^= inv_tmp;
     j = edsf_canonify(sstate->hard->linedsf, j, &inv_tmp);
@@ -1198,10 +1030,8 @@ static int merge_lines(solver_state *sstate,
 
 #ifdef SHOW_WORKING
     if (i != j) {
-        fprintf(stderr, "%s [%d,%d,%s] [%d,%d,%s] %s(%s)\n",
-                __FUNCTION__, 
-                x1, y1, DIR2STR(d1),
-                x2, y2, DIR2STR(d2),
+        fprintf(stderr, "%s [%d] [%d] %s(%s)\n",
+                __FUNCTION__, i, j,
                 inverse ? "inverse " : "", reason);
     }
 #endif
@@ -1209,457 +1039,452 @@ static int merge_lines(solver_state *sstate,
 }
 
 #ifdef SHOW_WORKING
-#define merge_lines(a, b, c, d, e, f, g, h) \
-    merge_lines(a, b, c, d, e, f, g, h, __FUNCTION__)
-#endif
-
-/* Return 0 if the given lines are not in the same equivalence class, 1 if they
- * are known identical, or 2 if they are known opposite */
-#if 0
-static int lines_related(solver_state *sstate,
-                         int x1, int y1, enum direction d1, 
-                         int x2, int y2, enum direction d2)
-{
-    int i, j, inv1, inv2;
-
-    i = LINEDSF_INDEX(sstate->state, x1, y1, d1);
-    j = LINEDSF_INDEX(sstate->state, x2, y2, d2);
-  
-    i = edsf_canonify(sstate->hard->linedsf, i, &inv1);
-    j = edsf_canonify(sstate->hard->linedsf, j, &inv2);
-
-    if (i == j)
-        return (inv1 == inv2) ? 1 : 2;
-    else
-        return 0;
-}
+#define merge_lines(a, b, c, d) \
+    merge_lines(a, b, c, d, __FUNCTION__)
 #endif
 
 /* Count the number of lines of a particular type currently going into the
- * given dot.  Lines going off the edge of the board are assumed fixed no. */
-static int dot_order(const game_state* state, int i, int j, char line_type)
+ * given dot. */
+static int dot_order(const game_state* state, int dot, char line_type)
 {
     int n = 0;
+    grid *g = state->game_grid;
+    grid_dot *d = g->dots + dot;
+    int i;
 
-    if (i > 0) {
-        if (line_type == LV_LEFTOF_DOT(state, i, j))
-            ++n;
-    } else {
-        if (line_type == LINE_NO)
+    for (i = 0; i < d->order; i++) {
+        grid_edge *e = d->edges[i];
+        if (state->lines[e - g->edges] == line_type)
             ++n;
     }
-    if (i < state->w) {
-        if (line_type == LV_RIGHTOF_DOT(state, i, j))
-            ++n;
-    } else {
-        if (line_type == LINE_NO)
-            ++n;
-    }
-    if (j > 0) {
-        if (line_type == LV_ABOVE_DOT(state, i, j))
-            ++n;
-    } else {
-        if (line_type == LINE_NO)
-            ++n;
-    }
-    if (j < state->h) {
-        if (line_type == LV_BELOW_DOT(state, i, j))
-            ++n;
-    } else {
-        if (line_type == LINE_NO)
-            ++n;
-    }
-
     return n;
 }
 
 /* Count the number of lines of a particular type currently surrounding the
- * given square */
-static int square_order(const game_state* state, int i, int j, char line_type)
+ * given face */
+static int face_order(const game_state* state, int face, char line_type)
 {
     int n = 0;
+    grid *g = state->game_grid;
+    grid_face *f = g->faces + face;
+    int i;
 
-    if (ABOVE_SQUARE(state, i, j) == line_type)
-        ++n;
-    if (BELOW_SQUARE(state, i, j) == line_type)
-        ++n;
-    if (LEFTOF_SQUARE(state, i, j) == line_type)
-        ++n;
-    if (RIGHTOF_SQUARE(state, i, j) == line_type)
-        ++n;
-
+    for (i = 0; i < f->order; i++) {
+        grid_edge *e = f->edges[i];
+        if (state->lines[e - g->edges] == line_type)
+            ++n;
+    }
     return n;
 }
 
-/* Set all lines bordering a dot of type old_type to type new_type 
+/* Set all lines bordering a dot of type old_type to type new_type
  * Return value tells caller whether this function actually did anything */
-static int dot_setall(solver_state *sstate, int i, int j,
+static int dot_setall(solver_state *sstate, int dot,
+		      char old_type, char new_type)
+{
+    int retval = FALSE, r;
+    game_state *state = sstate->state;
+    grid *g;
+    grid_dot *d;
+    int i;
+
+    if (old_type == new_type)
+        return FALSE;
+
+    g = state->game_grid;
+    d = g->dots + dot;
+
+    for (i = 0; i < d->order; i++) {
+        int line_index = d->edges[i] - g->edges;
+        if (state->lines[line_index] == old_type) {
+            r = solver_set_line(sstate, line_index, new_type);
+            assert(r == TRUE);
+            retval = TRUE;
+        }
+    }
+    return retval;
+}
+
+/* Set all lines bordering a face of type old_type to type new_type */
+static int face_setall(solver_state *sstate, int face,
                        char old_type, char new_type)
 {
     int retval = FALSE, r;
     game_state *state = sstate->state;
-    
+    grid *g;
+    grid_face *f;
+    int i;
+
     if (old_type == new_type)
         return FALSE;
 
-    if (i > 0        && LEFTOF_DOT(state, i, j) == old_type) {
-        r = set_line_bydot(sstate, i, j, LEFT, new_type);
-        assert(r == TRUE);
-        retval = TRUE;
-    }
+    g = state->game_grid;
+    f = g->faces + face;
 
-    if (i < state->w && RIGHTOF_DOT(state, i, j) == old_type) {
-        r = set_line_bydot(sstate, i, j, RIGHT, new_type);
-        assert(r == TRUE);
-        retval = TRUE;
+    for (i = 0; i < f->order; i++) {
+        int line_index = f->edges[i] - g->edges;
+        if (state->lines[line_index] == old_type) {
+            r = solver_set_line(sstate, line_index, new_type);
+            assert(r == TRUE);
+            retval = TRUE;
+        }
     }
-
-    if (j > 0        && ABOVE_DOT(state, i, j) == old_type) {
-        r = set_line_bydot(sstate, i, j, UP, new_type);
-        assert(r == TRUE);
-        retval = TRUE;
-    }
-
-    if (j < state->h && BELOW_DOT(state, i, j) == old_type) {
-        r = set_line_bydot(sstate, i, j, DOWN, new_type);
-        assert(r == TRUE);
-        retval = TRUE;
-    }
-
     return retval;
-}
-
-/* Set all lines bordering a square of type old_type to type new_type */
-static int square_setall(solver_state *sstate, int i, int j,
-                         char old_type, char new_type)
-{
-    int r = FALSE;
-    game_state *state = sstate->state;
-
-#if 0
-    fprintf(stderr, "square_setall [%d,%d] from %d to %d\n", i, j,
-                    old_type, new_type);
-#endif
-    if (ABOVE_SQUARE(state, i, j) == old_type) {
-        r = set_line_bydot(sstate, i, j, RIGHT, new_type);
-        assert(r == TRUE);
-    }
-    if (BELOW_SQUARE(state, i, j) == old_type) {
-        r = set_line_bydot(sstate, i, j+1, RIGHT, new_type);
-        assert(r == TRUE);
-    }
-    if (LEFTOF_SQUARE(state, i, j) == old_type) {
-        r = set_line_bydot(sstate, i, j, DOWN, new_type);
-        assert(r == TRUE);
-    }
-    if (RIGHTOF_SQUARE(state, i, j) == old_type) {
-        r = set_line_bydot(sstate, i+1, j, DOWN, new_type);
-        assert(r == TRUE);
-    }
-
-    return r;
 }
 
 /* ----------------------------------------------------------------------
  * Loop generation and clue removal
  */
 
-/* We're going to store a list of current candidate squares for lighting.
- * Each square gets a 'score', which tells us how adding that square right
+/* We're going to store a list of current candidate faces for lighting.
+ * Each face gets a 'score', which tells us how adding that face right
  * now would affect the length of the solution loop.  We're trying to
- * maximise that quantity so will bias our random selection of squares to
+ * maximise that quantity so will bias our random selection of faces to
  * light towards those with high scores */
-struct square { 
+struct face {
     int score;
     unsigned long random;
-    int x, y;
+    grid_face *f;
 };
 
-static int get_square_cmpfn(void *v1, void *v2) 
+static int get_face_cmpfn(void *v1, void *v2)
 {
-    struct square *s1 = v1;
-    struct square *s2 = v2;
-    int r;
-    
-    r = s1->x - s2->x;
-    if (r)
-        return r;
-
-    r = s1->y - s2->y;
-    if (r)
-        return r;
-
-    return 0;
+    struct face *f1 = v1;
+    struct face *f2 = v2;
+    /* These grid_face pointers always point into the same list of
+     * 'grid_face's, so it's valid to subtract them. */
+    return f1->f - f2->f;
 }
 
-static int square_sort_cmpfn(void *v1, void *v2)
+static int face_sort_cmpfn(void *v1, void *v2)
 {
-    struct square *s1 = v1;
-    struct square *s2 = v2;
+    struct face *f1 = v1;
+    struct face *f2 = v2;
     int r;
 
-    r = s2->score - s1->score;
+    r = f2->score - f1->score;
     if (r) {
         return r;
     }
 
-    if (s1->random < s2->random)
+    if (f1->random < f2->random)
         return -1;
-    else if (s1->random > s2->random)
+    else if (f1->random > f2->random)
         return 1;
 
     /*
-     * It's _just_ possible that two squares might have been given
+     * It's _just_ possible that two faces might have been given
      * the same random value. In that situation, fall back to
-     * comparing based on the coordinates. This introduces a tiny
-     * directional bias, but not a significant one.
+     * comparing based on the positions within the grid's face-list.
+     * This introduces a tiny directional bias, but not a significant one.
      */
-    return get_square_cmpfn(v1, v2);
+    return get_face_cmpfn(f1, f2);
 }
 
-enum { SQUARE_LIT, SQUARE_UNLIT };
+enum { FACE_LIT, FACE_UNLIT };
 
-#define SQUARE_STATE(i, j) \
-    ( LEGAL_SQUARE(state, i, j) ? \
-        LV_SQUARE_STATE(i,j) : \
-        SQUARE_UNLIT )
+/* face should be of type grid_face* here. */
+#define FACE_LIT_STATE(face) \
+    ( (face) == NULL ? FACE_UNLIT : \
+	  board[(face) - g->faces] )
 
-#define LV_SQUARE_STATE(i, j) board[SQUARE_INDEX(state, i, j)]
+/* 'board' is an array of these enums, indicating which faces are
+ * currently lit.  Returns whether it's legal to light up the
+ * given face. */
+static int can_light_face(grid *g, char* board, int face_index)
+{
+    int i, j;
+    grid_face *test_face = g->faces + face_index;
+    grid_face *starting_face, *current_face;
+    int transitions;
+    int current_state, s;
+    int found_lit_neighbour = FALSE;
+    assert(board[face_index] == FACE_UNLIT);
 
-/* Generate a new complete set of clues for the given game_state (respecting
- * the dimensions provided by said game_state) */
+    /* Can only consider a face for lighting if it's adjacent to an
+     * already lit face. */
+    for (i = 0; i < test_face->order; i++) {
+        grid_edge *e = test_face->edges[i];
+        grid_face *f = (e->face1 == test_face) ? e->face2 : e->face1;
+        if (FACE_LIT_STATE(f) == FACE_LIT) {
+            found_lit_neighbour = TRUE;
+            break;
+        }
+    }
+    if (!found_lit_neighbour)
+        return FALSE;
+
+    /* Need to avoid creating a loop of lit faces around some unlit faces.
+     * Also need to avoid meeting another lit face at a corner, with
+     * unlit faces in between.  Here's a simple test that (I believe) takes
+     * care of both these conditions:
+     *
+     * Take the circular path formed by this face's edges, and inflate it
+     * slightly outwards.  Imagine walking around this path and consider
+     * the faces that you visit in sequence.  This will include all faces
+     * touching the given face, either along an edge or just at a corner.
+     * Count the number of LIT/UNLIT transitions you encounter, as you walk
+     * along the complete loop.  This will obviously turn out to be an even
+     * number.
+     * If 0, we're either in a completely unlit zone, or this face is a hole
+     * in a completely lit zone.  If the former, we would create a brand new
+     * island by lighting this face.  And the latter ought to be impossible -
+     * it would mean there's already a lit loop, so something went wrong
+     * earlier.
+     * If 4 or greater, there are too many separate lit regions touching this
+     * face, and lighting it up would create a loop or a corner-violation.
+     * The only allowed case is when the count is exactly 2. */
+
+    /* i points to a dot around the test face.
+     * j points to a face around the i^th dot.
+     * The current face will always be:
+     *     test_face->dots[i]->faces[j]
+     * We assume dots go clockwise around the test face,
+     * and faces go clockwise around dots. */
+    i = j = 0;
+    starting_face = test_face->dots[0]->faces[0];
+    if (starting_face == test_face) {
+        j = 1;
+        starting_face = test_face->dots[0]->faces[1];
+    }
+    current_face = starting_face;
+    transitions = 0;
+    current_state = FACE_LIT_STATE(current_face);
+
+    do {
+        /* Advance to next face.
+         * Need to loop here because it might take several goes to
+         * find it. */
+        while (TRUE) {
+            j++;
+            if (j == test_face->dots[i]->order)
+                j = 0;
+
+            if (test_face->dots[i]->faces[j] == test_face) {
+                /* Advance to next dot round test_face, then
+                 * find current_face around new dot
+                 * and advance to the next face clockwise */
+                i++;
+                if (i == test_face->order)
+                    i = 0;
+                for (j = 0; j < test_face->dots[i]->order; j++) {
+                    if (test_face->dots[i]->faces[j] == current_face)
+                        break;
+                }
+                /* Must actually find current_face around new dot,
+                 * or else something's wrong with the grid. */
+                assert(j != test_face->dots[i]->order);
+                /* Found, so advance to next face and try again */
+            } else {
+                break;
+            }
+        }
+        /* (i,j) are now advanced to next face */
+        current_face = test_face->dots[i]->faces[j];
+        s = FACE_LIT_STATE(current_face);
+        if (s != current_state) {
+            ++transitions;
+            current_state = s;
+            if (transitions > 2)
+                return FALSE; /* no point in continuing */
+        }
+    } while (current_face != starting_face);
+
+    return (transitions == 2) ? TRUE : FALSE;
+}
+
+/* The 'score' of a face reflects its current desirability for selection
+ * as the next face to light.  We want to encourage moving into uncharted
+ * areas so we give scores according to how many of the face's neighbours
+ * are currently unlit. */
+static int face_score(grid *g, char *board, grid_face *face)
+{
+    /* Simple formula: score = neighbours unlit - neighbours lit */
+    int lit_count = 0, unlit_count = 0;
+    int i;
+    grid_face *f;
+    grid_edge *e;
+    for (i = 0; i < face->order; i++) {
+        e = face->edges[i];
+        f = (e->face1 == face) ? e->face2 : e->face1;
+        if (FACE_LIT_STATE(f) == FACE_LIT)
+            ++lit_count;
+        else
+            ++unlit_count;
+    }
+    return unlit_count - lit_count;
+}
+
+/* Generate a new complete set of clues for the given game_state. */
 static void add_full_clues(game_state *state, random_state *rs)
 {
-    signed char *clues;
+    signed char *clues = state->clues;
     char *board;
-    int i, j, a, b, c;
-    int board_area = SQUARE_COUNT(state);
-    int t;
+    grid *g = state->game_grid;
+    int i, j, c;
+    int num_faces = g->num_faces;
+    int first_time = TRUE;
 
-    struct square *square, *tmpsquare, *sq;
-    struct square square_pos;
+    struct face *face, *tmpface;
+    struct face face_pos;
 
     /* These will contain exactly the same information, sorted into different
      * orders */
-    tree234 *lightable_squares_sorted, *lightable_squares_gettable;
+    tree234 *lightable_faces_sorted, *lightable_faces_gettable;
 
-#define SQUARE_REACHABLE(i,j) \
-     (t = (SQUARE_STATE(i-1, j) == SQUARE_LIT || \
-           SQUARE_STATE(i+1, j) == SQUARE_LIT || \
-           SQUARE_STATE(i, j-1) == SQUARE_LIT || \
-           SQUARE_STATE(i, j+1) == SQUARE_LIT), \
-      t)
+#define IS_LIGHTING_CANDIDATE(i) \
+    (board[i] == FACE_UNLIT && \
+	 can_light_face(g, board, i))
 
-    /* One situation in which we may not light a square is if that'll leave one
-     * square above/below and one left/right of us unlit, separated by a lit
-     * square diagnonal from us */
-#define SQUARE_DIAGONAL_VIOLATION(i, j, h, v) \
-    (t = (SQUARE_STATE((i)+(h), (j))     == SQUARE_UNLIT && \
-          SQUARE_STATE((i),     (j)+(v)) == SQUARE_UNLIT && \
-          SQUARE_STATE((i)+(h), (j)+(v)) == SQUARE_LIT), \
-     t)
-
-    /* We also may not light a square if it will form a loop of lit squares
-     * around some unlit squares, as then the game soln won't have a single
-     * loop */
-#define SQUARE_LOOP_VIOLATION(i, j, lit1, lit2) \
-    (SQUARE_STATE((i)+1, (j)) == lit1    && \
-     SQUARE_STATE((i)-1, (j)) == lit1    && \
-     SQUARE_STATE((i), (j)+1) == lit2    && \
-     SQUARE_STATE((i), (j)-1) == lit2)
-
-#define CAN_LIGHT_SQUARE(i, j) \
-    (SQUARE_REACHABLE(i, j)                                 && \
-     !SQUARE_DIAGONAL_VIOLATION(i, j, -1, -1)               && \
-     !SQUARE_DIAGONAL_VIOLATION(i, j, +1, -1)               && \
-     !SQUARE_DIAGONAL_VIOLATION(i, j, -1, +1)               && \
-     !SQUARE_DIAGONAL_VIOLATION(i, j, +1, +1)               && \
-     !SQUARE_LOOP_VIOLATION(i, j, SQUARE_LIT, SQUARE_UNLIT) && \
-     !SQUARE_LOOP_VIOLATION(i, j, SQUARE_UNLIT, SQUARE_LIT))
-
-#define IS_LIGHTING_CANDIDATE(i, j) \
-    (SQUARE_STATE(i, j) == SQUARE_UNLIT && \
-     CAN_LIGHT_SQUARE(i,j))
-
-    /* The 'score' of a square reflects its current desirability for selection
-     * as the next square to light.  We want to encourage moving into uncharted
-     * areas so we give scores according to how many of the square's neighbours
-     * are currently unlit. */
-
-   /* UNLIT    SCORE
-    *   3        2
-    *   2        0
-    *   1       -2
-    */
-#define SQUARE_SCORE(i,j) \
-    (2*((SQUARE_STATE(i-1, j) == SQUARE_UNLIT)  + \
-        (SQUARE_STATE(i+1, j) == SQUARE_UNLIT)  + \
-        (SQUARE_STATE(i, j-1) == SQUARE_UNLIT)  + \
-        (SQUARE_STATE(i, j+1) == SQUARE_UNLIT)) - 4)
-
-    /* When a square gets lit, this defines how far away from that square we
-     * need to go recomputing scores */
-#define SCORE_DISTANCE 1
-
-    board = snewn(board_area, char);
-    clues = state->clues;
+    board = snewn(num_faces, char);
 
     /* Make a board */
-    memset(board, SQUARE_UNLIT, board_area);
-    
-    /* Seed the board with a single lit square near the middle */
-    i = state->w / 2;
-    j = state->h / 2;
-    if (state->w & 1 && random_bits(rs, 1))
-        ++i;
-    if (state->h & 1 && random_bits(rs, 1))
-        ++j;
+    memset(board, FACE_UNLIT, num_faces);
 
-    LV_SQUARE_STATE(i, j) = SQUARE_LIT;
-
-    /* We need a way of favouring squares that will increase our loopiness.
-     * We do this by maintaining a list of all candidate squares sorted by
-     * their score and choose randomly from that with appropriate skew. 
-     * In order to avoid consistently biasing towards particular squares, we
+    /* We need a way of favouring faces that will increase our loopiness.
+     * We do this by maintaining a list of all candidate faces sorted by
+     * their score and choose randomly from that with appropriate skew.
+     * In order to avoid consistently biasing towards particular faces, we
      * need the sort order _within_ each group of scores to be completely
      * random.  But it would be abusing the hospitality of the tree234 data
      * structure if our comparison function were nondeterministic :-).  So with
-     * each square we associate a random number that does not change during a
+     * each face we associate a random number that does not change during a
      * particular run of the generator, and use that as a secondary sort key.
-     * Yes, this means we will be biased towards particular random squares in
+     * Yes, this means we will be biased towards particular random faces in
      * any one run but that doesn't actually matter. */
-    
-    lightable_squares_sorted   = newtree234(square_sort_cmpfn);
-    lightable_squares_gettable = newtree234(get_square_cmpfn);
-#define ADD_SQUARE(s) \
+
+    lightable_faces_sorted   = newtree234(face_sort_cmpfn);
+    lightable_faces_gettable = newtree234(get_face_cmpfn);
+#define ADD_FACE(f) \
     do { \
-        sq = add234(lightable_squares_sorted, s); \
-        assert(sq == s); \
-        sq = add234(lightable_squares_gettable, s); \
-        assert(sq == s); \
+        struct face *x = add234(lightable_faces_sorted, f); \
+        assert(x == f); \
+        x = add234(lightable_faces_gettable, f); \
+        assert(x == f); \
     } while (0)
 
-#define REMOVE_SQUARE(s) \
+#define REMOVE_FACE(f) \
     do { \
-        sq = del234(lightable_squares_sorted, s); \
-        assert(sq); \
-        sq = del234(lightable_squares_gettable, s); \
-        assert(sq); \
+        struct face *x = del234(lightable_faces_sorted, f); \
+        assert(x); \
+        x = del234(lightable_faces_gettable, f); \
+        assert(x); \
     } while (0)
-        
-#define HANDLE_DIR(a, b) \
-    square = snew(struct square); \
-    square->x = (i)+(a); \
-    square->y = (j)+(b); \
-    square->score = 2; \
-    square->random = random_bits(rs, 31); \
-    ADD_SQUARE(square);
-    HANDLE_DIR(-1, 0);
-    HANDLE_DIR( 1, 0);
-    HANDLE_DIR( 0,-1);
-    HANDLE_DIR( 0, 1);
-#undef HANDLE_DIR
-    
-    /* Light squares one at a time until the board is interesting enough */
+
+    /* Light faces one at a time until the board is interesting enough */
     while (TRUE)
     {
-        /* We have count234(lightable_squares) possibilities, and in
-         * lightable_squares_sorted they are sorted with the most desirable
-         * first.  */
-        c = count234(lightable_squares_sorted);
-        if (c == 0)
-            break;
-        assert(c == count234(lightable_squares_gettable));
+        if (first_time) {
+            first_time = FALSE;
+            /* lightable_faces_xxx are empty, so start the process by
+             * lighting up the middle face.  These tree234s should
+             * remain empty, consistent with what would happen if
+             * first_time were FALSE. */
+            board[g->middle_face - g->faces] = FACE_LIT;
+            face = snew(struct face);
+            face->f = g->middle_face;
+            /* No need to initialise any more of 'face' here, no other fields
+             * are used in this case. */
+        } else {
+            /* We have count234(lightable_faces_gettable) possibilities, and in
+             * lightable_faces_sorted they are sorted with the most desirable
+             * first. */
+            c = count234(lightable_faces_sorted);
+            if (c == 0)
+                break;
+            assert(c == count234(lightable_faces_gettable));
 
-        /* Check that the best square available is any good */
-        square = (struct square *)index234(lightable_squares_sorted, 0);
-        assert(square);
+            /* Check that the best face available is any good */
+            face = (struct face *)index234(lightable_faces_sorted, 0);
+            assert(face);
 
-        /*
-         * We never want to _decrease_ the loop's perimeter. Making
-         * moves that leave the perimeter the same is occasionally
-         * useful: if it were _never_ done then the user would be
-         * able to deduce illicitly that any degree-zero vertex was
-         * on the outside of the loop. So we do it sometimes but
-         * not always.
-         */
-        if (square->score < 0 || (square->score == 0 &&
-                                  random_upto(rs, 2) == 0)) {
-            break;
+            /*
+             * The situation for a general grid is slightly different from
+             * a square grid.  Decreasing the perimeter should be allowed
+             * sometimes (think about creating a hexagon of lit triangles,
+             * for example).  For if it were _never_ done, then the user would
+             * be able to illicitly deduce certain things.  So we do it
+             * sometimes but not always.
+             */
+            if (face->score <= 0 && random_upto(rs, 2) == 0) {
+                break;
+            }
+
+            assert(face->f); /* not the infinite face */
+            assert(FACE_LIT_STATE(face->f) == FACE_UNLIT);
+
+            /* Update data structures */
+            /* Light up the face and remove it from the lists */
+            board[face->f - g->faces] = FACE_LIT;
+            REMOVE_FACE(face);
         }
 
-        assert(square->score == SQUARE_SCORE(square->x, square->y));
-        assert(SQUARE_STATE(square->x, square->y) == SQUARE_UNLIT);
-        assert(square->x >= 0 && square->x < state->w);
-        assert(square->y >= 0 && square->y < state->h);
-
-        /* Update data structures */
-        LV_SQUARE_STATE(square->x, square->y) = SQUARE_LIT;
-        REMOVE_SQUARE(square);
-
-        /* We might have changed the score of any squares up to 2 units away in
-         * any direction */
-        for (b = -SCORE_DISTANCE; b <= SCORE_DISTANCE; b++) {
-            for (a = -SCORE_DISTANCE; a <= SCORE_DISTANCE; a++) {
-                if (!a && !b) 
+        /* The face we've just lit up potentially affects the lightability
+         * of any neighbouring faces (touching at a corner or edge).  So the
+         * search needs to be conducted around all faces touching the one
+         * we've just lit.  Iterate over its corners, then over each corner's
+         * faces. */
+        for (i = 0; i < face->f->order; i++) {
+            grid_dot *d = face->f->dots[i];
+            for (j = 0; j < d->order; j++) {
+                grid_face *f2 = d->faces[j];
+                if (f2 == NULL)
                     continue;
-                square_pos.x = square->x + a;
-                square_pos.y = square->y + b;
-                if (square_pos.x < 0 || square_pos.x >= state->w ||
-                    square_pos.y < 0 || square_pos.y >= state->h) {
-                   continue; 
-                }
-                tmpsquare = find234(lightable_squares_gettable, &square_pos,
-                                    NULL);
-                if (tmpsquare) {
-                    assert(tmpsquare->x == square_pos.x);
-                    assert(tmpsquare->y == square_pos.y);
-                    assert(SQUARE_STATE(tmpsquare->x, tmpsquare->y) == 
-                           SQUARE_UNLIT);
-                    REMOVE_SQUARE(tmpsquare);
+                if (f2 == face->f)
+                    continue;
+                face_pos.f = f2;
+                tmpface = find234(lightable_faces_gettable, &face_pos, NULL);
+                if (tmpface) {
+                    assert(tmpface->f == face_pos.f);
+                    assert(FACE_LIT_STATE(tmpface->f) == FACE_UNLIT);
+                    REMOVE_FACE(tmpface);
                 } else {
-                    tmpsquare = snew(struct square);
-                    tmpsquare->x = square_pos.x;
-                    tmpsquare->y = square_pos.y;
-                    tmpsquare->random = random_bits(rs, 31);
+                    tmpface = snew(struct face);
+                    tmpface->f = face_pos.f;
+                    tmpface->random = random_bits(rs, 31);
                 }
-                tmpsquare->score = SQUARE_SCORE(tmpsquare->x, tmpsquare->y);
+                tmpface->score = face_score(g, board, tmpface->f);
 
-                if (IS_LIGHTING_CANDIDATE(tmpsquare->x, tmpsquare->y)) {
-                    ADD_SQUARE(tmpsquare);
+                if (IS_LIGHTING_CANDIDATE(tmpface->f - g->faces)) {
+                    ADD_FACE(tmpface);
                 } else {
-                    sfree(tmpsquare);
+                    sfree(tmpface);
                 }
             }
         }
-        sfree(square);
+        sfree(face);
     }
 
     /* Clean up */
-    while ((square = delpos234(lightable_squares_gettable, 0)) != NULL)
-        sfree(square);
-    freetree234(lightable_squares_gettable);
-    freetree234(lightable_squares_sorted);
+    while ((face = delpos234(lightable_faces_gettable, 0)) != NULL)
+        sfree(face);
+    freetree234(lightable_faces_gettable);
+    freetree234(lightable_faces_sorted);
 
-    /* Copy out all the clues */
-    FORALL_SQUARES(state, i, j) {
-        c = SQUARE_STATE(i, j);
-        LV_CLUE_AT(state, i, j) = 0;
-        if (SQUARE_STATE(i-1, j) != c) ++LV_CLUE_AT(state, i, j);
-        if (SQUARE_STATE(i+1, j) != c) ++LV_CLUE_AT(state, i, j);
-        if (SQUARE_STATE(i, j-1) != c) ++LV_CLUE_AT(state, i, j);
-        if (SQUARE_STATE(i, j+1) != c) ++LV_CLUE_AT(state, i, j);
+    /* Fill out all the clues by initialising to 0, then iterating over
+     * all edges and incrementing each clue as we find edges that border
+     * between LIT/UNLIT faces */
+    memset(clues, 0, num_faces);
+    for (i = 0; i < g->num_edges; i++) {
+        grid_edge *e = g->edges + i;
+        grid_face *f1 = e->face1;
+        grid_face *f2 = e->face2;
+        if (FACE_LIT_STATE(f1) != FACE_LIT_STATE(f2)) {
+            if (f1) clues[f1 - g->faces]++;
+            if (f2) clues[f2 - g->faces]++;
+        }
     }
 
     sfree(board);
 }
+
 
 static int game_has_unique_soln(const game_state *state, int diff)
 {
     int ret;
     solver_state *sstate_new;
     solver_state *sstate = new_solver_state((game_state *)state, diff);
-    
+
     sstate_new = solve_game_rec(sstate, diff);
 
     assert(sstate_new->solver_status != SOLVER_MISTAKE);
@@ -1671,39 +1496,30 @@ static int game_has_unique_soln(const game_state *state, int diff)
     return ret;
 }
 
+
 /* Remove clues one at a time at random. */
-static game_state *remove_clues(game_state *state, random_state *rs, 
+static game_state *remove_clues(game_state *state, random_state *rs,
                                 int diff)
 {
-    int *square_list, squares;
+    int *face_list;
+    int num_faces = state->game_grid->num_faces;
     game_state *ret = dup_game(state), *saved_ret;
     int n;
-#ifdef SHOW_WORKING
-    char *desc;
-#endif
 
     /* We need to remove some clues.  We'll do this by forming a list of all
      * available clues, shuffling it, then going along one at a
      * time clearing each clue in turn for which doing so doesn't render the
      * board unsolvable. */
-    squares = state->w * state->h;
-    square_list = snewn(squares, int);
-    for (n = 0; n < squares; ++n) {
-        square_list[n] = n;
+    face_list = snewn(num_faces, int);
+    for (n = 0; n < num_faces; ++n) {
+        face_list[n] = n;
     }
 
-    shuffle(square_list, squares, sizeof(int), rs);
-    
-    for (n = 0; n < squares; ++n) {
-        saved_ret = dup_game(ret);
-        LV_CLUE_AT(ret, square_list[n] % state->w,
-                   square_list[n] / state->w) = -1;
+    shuffle(face_list, num_faces, sizeof(int), rs);
 
-#ifdef SHOW_WORKING
-        desc = state_to_text(ret);
-        fprintf(stderr, "%dx%d:%s\n", state->w, state->h, desc);
-        sfree(desc);
-#endif
+    for (n = 0; n < num_faces; ++n) {
+        saved_ret = dup_game(ret);
+        ret->clues[face_list[n]] = -1;
 
         if (game_has_unique_soln(ret, diff)) {
             free_game(saved_ret);
@@ -1712,36 +1528,37 @@ static game_state *remove_clues(game_state *state, random_state *rs,
             ret = saved_ret;
         }
     }
-    sfree(square_list);
+    sfree(face_list);
 
     return ret;
 }
+
 
 static char *new_game_desc(game_params *params, random_state *rs,
                            char **aux, int interactive)
 {
     /* solution and description both use run-length encoding in obvious ways */
     char *retval;
-    game_state *state = snew(game_state), *state_new;
+    grid *g;
+    game_state *state = snew(game_state);
+    game_state *state_new;
+    params_generate_grid(params);
+    state->game_grid = g = params->game_grid;
+    g->refcount++;
+    state->clues = snewn(g->num_faces, signed char);
+    state->lines = snewn(g->num_edges, char);
 
-    state->h = params->h;
-    state->w = params->w;
+    state->grid_type = params->type;
 
-    state->clues = snewn(SQUARE_COUNT(params), signed char);
-    state->hl = snewn(HL_COUNT(params), char);
-    state->vl = snewn(VL_COUNT(params), char);
+    newboard_please:
 
-newboard_please:
-    memset(state->hl, LINE_UNKNOWN, HL_COUNT(params));
-    memset(state->vl, LINE_UNKNOWN, VL_COUNT(params));
+    memset(state->lines, LINE_UNKNOWN, g->num_edges);
 
     state->solved = state->cheated = FALSE;
-    state->recursion_depth = params->rec;
 
     /* Get a new random solvable board with all its clues filled in.  Yes, this
      * can loop for ever if the params are suitably unfavourable, but
      * preventing games smaller than 4x4 seems to stop this happening */
-
     do {
         add_full_clues(state, rs);
     } while (!game_has_unique_soln(state, params->diff));
@@ -1749,6 +1566,7 @@ newboard_please:
     state_new = remove_clues(state, rs, params->diff);
     free_game(state);
     state = state_new;
+
 
     if (params->diff > 0 && game_has_unique_soln(state, params->diff-1)) {
 #ifdef SHOW_WORKING
@@ -1760,7 +1578,7 @@ newboard_please:
     retval = state_to_text(state);
 
     free_game(state);
-    
+
     assert(!validate_desc(params, retval));
 
     return retval;
@@ -1768,45 +1586,46 @@ newboard_please:
 
 static game_state *new_game(midend *me, game_params *params, char *desc)
 {
-    int i,j;
+    int i;
     game_state *state = snew(game_state);
     int empties_to_make = 0;
     int n;
     const char *dp = desc;
+    grid *g;
+    params_generate_grid(params);
+    state->game_grid = g = params->game_grid;
+    g->refcount++;
+    int num_faces = g->num_faces;
+    int num_edges = g->num_edges;
 
-    state->recursion_depth = 0; /* XXX pending removal, probably */
-    
-    state->h = params->h;
-    state->w = params->w;
-
-    state->clues = snewn(SQUARE_COUNT(params), signed char);
-    state->hl = snewn(HL_COUNT(params), char);
-    state->vl = snewn(VL_COUNT(params), char);
+    state->clues = snewn(num_faces, signed char);
+    state->lines = snewn(num_edges, char);
 
     state->solved = state->cheated = FALSE;
 
-    FORALL_SQUARES(params, i, j) {
+    state->grid_type = params->type;
+
+    for (i = 0; i < num_faces; i++) {
         if (empties_to_make) {
             empties_to_make--;
-            LV_CLUE_AT(state, i, j) = -1;
+            state->clues[i] = -1;
             continue;
         }
 
         assert(*dp);
         n = *dp - '0';
         if (n >= 0 && n < 10) {
-            LV_CLUE_AT(state, i, j) = n;
+            state->clues[i] = n;
         } else {
             n = *dp - 'a' + 1;
             assert(n > 0);
-            LV_CLUE_AT(state, i, j) = -1;
+            state->clues[i] = -1;
             empties_to_make = n - 1;
         }
         ++dp;
     }
 
-    memset(state->hl, LINE_UNKNOWN, HL_COUNT(params));
-    memset(state->vl, LINE_UNKNOWN, VL_COUNT(params));
+    memset(state->lines, LINE_UNKNOWN, num_edges);
 
     return state;
 }
@@ -1822,184 +1641,98 @@ enum { LOOP_NONE=0, LOOP_SOLN, LOOP_NOT_SOLN };
  *   Just implement the rules of the game.
  *
  *   Normal Mode
- *   For each pair of lines through each dot we store a bit for whether
- *   at least one of them is on and whether at most one is on.  (If we know
- *   both or neither is on that's already stored more directly.)  That's six
- *   bits per dot.  Bit number n represents the lines shown in dline_desc.
+ *   For each (adjacent) pair of lines through each dot we store a bit for
+ *   whether at least one of them is on and whether at most one is on.  (If we
+ *   know both or neither is on that's already stored more directly.)
  *
  *   Advanced Mode
  *   Use edsf data structure to make equivalence classes of lines that are
  *   known identical to or opposite to one another.
  */
 
-/* The order the following are defined in is very important, see below.
- * The last two fields may seem non-obvious: they specify that when talking
- * about a square the dx and dy offsets should be added to the square coords to
- * get to the right dot.  Where dx and dy are -1 this means that the dline
- * doesn't make sense for a square. */
-/* XXX can this be done with a struct instead? */
-#define DLINES \
-    DLINE(DLINE_UD, UP,   DOWN,  -1, -1) \
-    DLINE(DLINE_LR, LEFT, RIGHT, -1, -1) \
-    DLINE(DLINE_UR, UP,   RIGHT,  0,  1) \
-    DLINE(DLINE_DL, DOWN, LEFT,   1,  0) \
-    DLINE(DLINE_UL, UP,   LEFT,   1,  1) \
-    DLINE(DLINE_DR, DOWN, RIGHT,  0,  0)
 
-#define OPP_DLINE(dline_desc) ((dline_desc) ^ 1)
+/* DLines:
+ * For general grids, we consider "dlines" to be pairs of lines joined
+ * at a dot.  The lines must be adjacent around the dot, so we can think of
+ * a dline as being a dot+face combination.  Or, a dot+edge combination where
+ * the second edge is taken to be the next clockwise edge from the dot.
+ * Original loopy code didn't have this extra restriction of the lines being
+ * adjacent.  From my tests with square grids, this extra restriction seems to
+ * take little, if anything, away from the quality of the puzzles.
+ * A dline can be uniquely identified by an edge/dot combination, given that
+ * a dline-pair always goes clockwise around its common dot.  The edge/dot
+ * combination can be represented by an edge/bool combination - if bool is
+ * TRUE, use edge->dot1 else use edge->dot2.  So the total number of dlines is
+ * exactly twice the number of edges in the grid - although the dlines
+ * spanning the infinite face are not all that useful to the solver.
+ * Note that, by convention, a dline goes clockwise around its common dot,
+ * which means the dline goes anti-clockwise around its common face.
+ */
 
-enum dline_desc {
-#define DLINE(desc, dir1, dir2, dx, dy) \
-    desc,
-    DLINES
-#undef DLINE
-};
+/* Helper functions for obtaining an index into an array of dlines, given
+ * various information.  We assume the grid layout conventions about how
+ * the various lists are interleaved - see grid_make_consistent() for
+ * details. */
 
-struct dline {
-    enum dline_desc desc;
-    enum direction dir1, dir2;
-    int dx, dy;
-};
-
-const static struct dline dlines[] =  {
-#define DLINE(desc, dir1, dir2, dx, dy) \
-    { desc, dir1, dir2, dx, dy },
-    DLINES
-#undef DLINE
-};
-
-#define FORALL_DOT_DLINES(dl_iter) \
-    for (dl_iter = 0; dl_iter < lenof(dlines); ++dl_iter)
-
-#define FORALL_SQUARE_DLINES(dl_iter) \
-    for (dl_iter = 2; dl_iter < lenof(dlines); ++dl_iter)
-
-#define DL2STR(d) \
-    ((d==DLINE_UD) ? "DLINE_UD": \
-     (d==DLINE_LR) ? "DLINE_LR": \
-     (d==DLINE_UR) ? "DLINE_UR": \
-     (d==DLINE_DL) ? "DLINE_DL": \
-     (d==DLINE_UL) ? "DLINE_UL": \
-     (d==DLINE_DR) ? "DLINE_DR": \
-     "oops")
-
-#define CHECK_DLINE_SENSIBLE(d) assert(dlines[(d)].dx != -1 && dlines[(d)].dy != -1)
-
-/* This will fail an assertion if the directions handed to it are the same, as
- * no dline corresponds to that */
-static enum dline_desc dline_desc_from_dirs(enum direction dir1, 
-                                            enum direction dir2)
+/* i points to the first edge of the dline pair, reading clockwise around
+ * the dot. */
+static int dline_index_from_dot(grid *g, grid_dot *d, int i)
 {
-    int i;
-
-    assert (dir1 != dir2);
-
-    for (i = 0; i < lenof(dlines); ++i) {
-        if ((dir1 == dlines[i].dir1 && dir2 == dlines[i].dir2) ||
-            (dir1 == dlines[i].dir2 && dir2 == dlines[i].dir1)) {
-            return dlines[i].desc;
-        }
-    }
-
-    assert(!"dline not found");
-    return DLINE_UD; /* placate compiler */
-}
-
-/* The following functions allow you to get or set info about the selected
- * dline corresponding to the dot or square at [i,j].  You'll get an assertion
- * failure if you talk about a dline that doesn't exist, ie if you ask about
- * non-touching lines around a square. */
-static int get_dot_dline(const game_state *state, const char *dline_array,
-                         int i, int j, enum dline_desc desc)
-{
-/*    fprintf(stderr, "get_dot_dline %p [%d,%d] %s\n", dline_array, i, j, DL2STR(desc)); */
-    return BIT_SET(dline_array[i + (state->w + 1) * j], desc);
-}
-
-static int set_dot_dline(game_state *state, char *dline_array,
-                         int i, int j, enum dline_desc desc
-#ifdef SHOW_WORKING
-                         , const char *reason
-#endif
-                         )
-{
+    grid_edge *e = d->edges[i];
     int ret;
-    ret = SET_BIT(dline_array[i + (state->w + 1) * j], desc);
-
-#ifdef SHOW_WORKING
-    if (ret)
-        fprintf(stderr, "set_dot_dline %p [%d,%d] %s (%s)\n", dline_array, i, j, DL2STR(desc), reason);
+#ifdef DEBUG_DLINES
+    grid_edge *e2;
+    int i2 = i+1;
+    if (i2 == d->order) i2 = 0;
+    e2 = d->edges[i2];
+#endif
+    ret = 2 * (e - g->edges) + ((e->dot1 == d) ? 1 : 0);
+#ifdef DEBUG_DLINES
+    printf("dline_index_from_dot: d=%d,i=%d, edges [%d,%d] - %d\n",
+           (int)(d - g->dots), i, (int)(e - g->edges),
+           (int)(e2 - g->edges), ret);
 #endif
     return ret;
 }
-
-static int get_square_dline(game_state *state, char *dline_array,
-                            int i, int j, enum dline_desc desc)
+/* i points to the second edge of the dline pair, reading clockwise around
+ * the face.  That is, the edges of the dline, starting at edge{i}, read
+ * anti-clockwise around the face.  By layout conventions, the common dot
+ * of the dline will be f->dots[i] */
+static int dline_index_from_face(grid *g, grid_face *f, int i)
 {
-    CHECK_DLINE_SENSIBLE(desc);
-/*    fprintf(stderr, "get_square_dline %p [%d,%d] %s\n", dline_array, i, j, DL2STR(desc)); */
-    return BIT_SET(dline_array[(i+dlines[desc].dx) + (state->w + 1) * (j+dlines[desc].dy)], 
-                   desc);
-}
-
-static int set_square_dline(game_state *state, char *dline_array,
-                            int i, int j, enum dline_desc desc
-#ifdef SHOW_WORKING
-                            , const char *reason
-#endif
-                            )
-{
+    grid_edge *e = f->edges[i];
+    grid_dot *d = f->dots[i];
     int ret;
-    CHECK_DLINE_SENSIBLE(desc);
-    ret = SET_BIT(dline_array[(i+dlines[desc].dx) + (state->w + 1) * (j+dlines[desc].dy)], desc);
-#ifdef SHOW_WORKING
-    if (ret)
-        fprintf(stderr, "set_square_dline %p [%d,%d] %s (%s)\n", dline_array, i, j, DL2STR(desc), reason);
+#ifdef DEBUG_DLINES
+    grid_edge *e2;
+    int i2 = i - 1;
+    if (i2 < 0) i2 += f->order;
+    e2 = f->edges[i2];
+#endif
+    ret = 2 * (e - g->edges) + ((e->dot1 == d) ? 1 : 0);
+#ifdef DEBUG_DLINES
+    printf("dline_index_from_face: f=%d,i=%d, edges [%d,%d] - %d\n",
+           (int)(f - g->faces), i, (int)(e - g->edges),
+           (int)(e2 - g->edges), ret);
 #endif
     return ret;
 }
-
-#ifdef SHOW_WORKING
-#define set_dot_dline(a, b, c, d, e) \
-        set_dot_dline(a, b, c, d, e, __FUNCTION__)
-#define set_square_dline(a, b, c, d, e) \
-        set_square_dline(a, b, c, d, e, __FUNCTION__)
-#endif
-
-static int set_dot_opp_dline(game_state *state, char *dline_array,
-                             int i, int j, enum dline_desc desc)
+static int is_atleastone(const char *dline_array, int index)
 {
-    return set_dot_dline(state, dline_array, i, j, OPP_DLINE(desc));
+    return BIT_SET(dline_array[index], 0);
 }
-
-static int set_square_opp_dline(game_state *state, char *dline_array,
-                                int i, int j, enum dline_desc desc)
+static int set_atleastone(char *dline_array, int index)
 {
-    return set_square_dline(state, dline_array, i, j, OPP_DLINE(desc));
+    return SET_BIT(dline_array[index], 0);
 }
-
-/* Find out if both the lines in the given dline are UNKNOWN */
-static int dline_both_unknown(const game_state *state, int i, int j,
-                              enum dline_desc desc)
+static int is_atmostone(const char *dline_array, int index)
 {
-    return 
-        (get_line_status_from_point(state, i, j, dlines[desc].dir1) == LINE_UNKNOWN) &&
-        (get_line_status_from_point(state, i, j, dlines[desc].dir2) == LINE_UNKNOWN);
+    return BIT_SET(dline_array[index], 1);
 }
-
-#define SQUARE_DLINES \
-                   HANDLE_DLINE(DLINE_UL, RIGHTOF_SQUARE, BELOW_SQUARE, 1, 1); \
-                   HANDLE_DLINE(DLINE_UR, LEFTOF_SQUARE,  BELOW_SQUARE, 0, 1); \
-                   HANDLE_DLINE(DLINE_DL, RIGHTOF_SQUARE, ABOVE_SQUARE, 1, 0); \
-                   HANDLE_DLINE(DLINE_DR, LEFTOF_SQUARE,  ABOVE_SQUARE, 0, 0); 
-
-#define DOT_DLINES \
-                   HANDLE_DLINE(DLINE_UD,    ABOVE_DOT,  BELOW_DOT); \
-                   HANDLE_DLINE(DLINE_LR,    LEFTOF_DOT, RIGHTOF_DOT); \
-                   HANDLE_DLINE(DLINE_UL,    ABOVE_DOT,  LEFTOF_DOT); \
-                   HANDLE_DLINE(DLINE_UR,    ABOVE_DOT,  RIGHTOF_DOT); \
-                   HANDLE_DLINE(DLINE_DL,    BELOW_DOT,  LEFTOF_DOT); \
-                   HANDLE_DLINE(DLINE_DR,    BELOW_DOT,  RIGHTOF_DOT); 
+static int set_atmostone(char *dline_array, int index)
+{
+    return SET_BIT(dline_array[index], 1);
+}
 
 static void array_setall(char *array, char from, char to, int len)
 {
@@ -2013,306 +1746,185 @@ static void array_setall(char *array, char from, char to, int len)
     }
 }
 
-
-
-static int get_line_status_from_point(const game_state *state,
-                                      int x, int y, enum direction d)
+/* Helper, called when doing dline dot deductions, in the case where we
+ * have 4 UNKNOWNs, and two of them (adjacent) have *exactly* one YES between
+ * them (because of dline atmostone/atleastone).
+ * On entry, edge points to the first of these two UNKNOWNs.  This function
+ * will find the opposite UNKNOWNS (if they are adjacent to one another)
+ * and set their corresponding dline to atleastone.  (Setting atmostone
+ * already happens in earlier dline deductions) */
+static int dline_set_opp_atleastone(solver_state *sstate,
+                                    grid_dot *d, int edge)
 {
-    switch (d) {
-        case LEFT:
-            return LEFTOF_DOT(state, x, y);
-        case RIGHT:
-            return RIGHTOF_DOT(state, x, y);
-        case UP:
-            return ABOVE_DOT(state, x, y);
-        case DOWN:
-            return BELOW_DOT(state, x, y);
+    game_state *state = sstate->state;
+    grid *g = state->game_grid;
+    int N = d->order;
+    int opp, opp2;
+    for (opp = 0; opp < N; opp++) {
+        int opp_dline_index;
+        if (opp == edge || opp == edge+1 || opp == edge-1)
+            continue;
+        if (opp == 0 && edge == N-1)
+            continue;
+        if (opp == N-1 && edge == 0)
+            continue;
+        opp2 = opp + 1;
+        if (opp2 == N) opp2 = 0;
+        /* Check if opp, opp2 point to LINE_UNKNOWNs */
+        if (state->lines[d->edges[opp] - g->edges] != LINE_UNKNOWN)
+            continue;
+        if (state->lines[d->edges[opp2] - g->edges] != LINE_UNKNOWN)
+            continue;
+        /* Found opposite UNKNOWNS and they're next to each other */
+        opp_dline_index = dline_index_from_dot(g, d, opp);
+        return set_atleastone(sstate->normal->dlines, opp_dline_index);
     }
-
-    return 0;
+    return FALSE;
 }
 
-/* First and second args are coord offset from top left of square to one end
- * of line in question, third and fourth args are the direction from the first
- * end of the line to the second.  Fifth arg is the direction of the line from
- * the coord offset position.
- * How confusing.  
- */
-#define SQUARE_LINES \
-    SQUARE_LINE( 0,  0, RIGHT, RIGHTOF_DOT, UP); \
-    SQUARE_LINE( 0, +1, RIGHT, RIGHTOF_DOT, DOWN); \
-    SQUARE_LINE( 0,  0, DOWN,  BELOW_DOT,   LEFT); \
-    SQUARE_LINE(+1,  0, DOWN,  BELOW_DOT,   RIGHT); 
 
-/* Set pairs of lines around this square which are known to be identical to
+/* Set pairs of lines around this face which are known to be identical, to
  * the given line_state */
-static int square_setall_identical(solver_state *sstate, int x, int y,
-                                   enum line_state line_new)
+static int face_setall_identical(solver_state *sstate, int face_index,
+                                 enum line_state line_new)
 {
     /* can[dir] contains the canonical line associated with the line in
      * direction dir from the square in question.  Similarly inv[dir] is
      * whether or not the line in question is inverse to its canonical
      * element. */
-    int can[4], inv[4], i, j;
     int retval = FALSE;
-
-    i = 0;
-
-#if 0
-    fprintf(stderr, "Setting all identical unknown lines around square "
-                    "[%d,%d] to %d:\n", x, y, line_new);                 
-#endif
-
-#define SQUARE_LINE(dx, dy, linedir, dir_dot, sqdir) \
-    can[sqdir] = \
-        edsf_canonify(sstate->hard->linedsf, \
-                      LINEDSF_INDEX(sstate->state, x+(dx), y+(dy), linedir), \
-                      &inv[sqdir]);
-    
-    SQUARE_LINES;
-
-#undef SQUARE_LINE
-
-    for (j = 0; j < 4; ++j) {
-        for (i = 0; i < 4; ++i) {
-            if (i == j)
-                continue;
-
-            if (can[i] == can[j] && inv[i] == inv[j]) {
-
-                /* Lines in directions i and j are identical.
-                 * Only do j now, we'll do i when the loop causes us to
-                 * consider {i,j} in the opposite order. */
-#define SQUARE_LINE(dx, dy, dir, c, sqdir) \
-                if (j == sqdir) { \
-                    retval = set_line_bydot(sstate, x+(dx), y+(dy), dir, line_new); \
-                    if (retval) { \
-                        break; \
-                    } \
-                }
-                
-                SQUARE_LINES;
-
-#undef SQUARE_LINE
-            }
-        }
-    }
-
-    return retval;
-}
-
-#if 0
-/* Set all identical lines passing through the current dot to the chosen line
- * state.  (implicitly this only looks at UNKNOWN lines) */
-static int dot_setall_identical(solver_state *sstate, int x, int y,
-                                enum line_state line_new)
-{
-    /* The implementation of this is a little naughty but I can't see how to do
-     * it elegantly any other way */
-    int can[4], inv[4], i, j;
-    enum direction d;
-    int retval = FALSE;
-
-    for (d = 0; d < 4; ++d) {
-        can[d] = edsf_canonify(sstate->hard->linedsf, 
-                               LINEDSF_INDEX(sstate->state, x, y, d),
-                               inv+d);
-    }
-    
-    for (j = 0; j < 4; ++j) {
-next_j:
-        for (i = 0; i < j; ++i) {
-            if (can[i] == can[j] && inv[i] == inv[j]) {
-                /* Lines in directions i and j are identical */
-                if (get_line_status_from_point(sstate->state, x, y, j) ==
-                        LINE_UNKNOWN) {
-                    set_line_bydot(sstate->state, x, y, j, 
-                                               line_new);
-                    retval = TRUE;
-                    goto next_j;
-                }
-            }
-
-        }
-    }
-
-    return retval;
-}
-#endif
-
-static int square_setboth_in_dline(solver_state *sstate, enum dline_desc dd,
-                                   int i, int j, enum line_state line_new)
-{
-    int retval = FALSE;
-    const struct dline dll = dlines[dd], *dl = &dll;
-    
-#if 0
-    fprintf(stderr, "square_setboth_in_dline %s [%d,%d] to %d\n",
-                    DL2STR(dd), i, j, line_new);
-#endif
-
-    CHECK_DLINE_SENSIBLE(dd);
-    
-    retval |=
-        set_line_bydot(sstate, i+dl->dx, j+dl->dy, dl->dir1, line_new);
-    retval |=
-        set_line_bydot(sstate, i+dl->dx, j+dl->dy, dl->dir2, line_new);
-
-    return retval;
-}
-
-/* Call this function to register that the two unknown lines going into the dot
- * [x,y] are identical or opposite (depending on the value of 'inverse').  This
- * function will cause an assertion failure if anything other than exactly two
- * lines into the dot are unknown. 
- * As usual returns TRUE if any progress was made, otherwise FALSE. */
-static int dot_relate_2_unknowns(solver_state *sstate, int x, int y, int inverse)
-{
-    enum direction d1=DOWN, d2=DOWN; /* Just to keep compiler quiet */
-    int dirs_set = 0;
-
-#define TRY_DIR(d) \
-              if (get_line_status_from_point(sstate->state, x, y, d) == \
-                      LINE_UNKNOWN) { \
-                  if (dirs_set == 0) \
-                      d1 = d; \
-                  else { \
-                      assert(dirs_set == 1); \
-                      d2 = d; \
-                  } \
-                  dirs_set++; \
-              } while (0)
-    
-    TRY_DIR(UP);
-    TRY_DIR(DOWN);
-    TRY_DIR(LEFT);
-    TRY_DIR(RIGHT);
-#undef TRY_DIR
-
-    assert(dirs_set == 2);
-    assert(d1 != d2);
-
-#if 0
-    fprintf(stderr, "Lines in direction %s and %s from dot [%d,%d] are %s\n",
-            DIR2STR(d1), DIR2STR(d2), x, y, inverse?"opposite":"the same");
-#endif
-
-    return merge_lines(sstate, x, y, d1, x, y, d2, inverse);
-}
-
-/* Very similar to dot_relate_2_unknowns. */
-static int square_relate_2_unknowns(solver_state *sstate, int x, int y, int inverse)
-{
-    enum direction d1=DOWN, d2=DOWN;
-    int x1=-1, y1=-1, x2=-1, y2=-1;
-    int dirs_set = 0;
-
-#if 0
-    fprintf(stderr, "2 unknowns around square [%d,%d] are %s\n",
-                     x, y, inverse?"opposite":"the same");
-#endif
-
-#define TRY_DIR(i, j, d, dir_sq) \
-          do { \
-              if (dir_sq(sstate->state, x, y) == LINE_UNKNOWN) { \
-                  if (dirs_set == 0) { \
-                      d1 = d; x1 = i; y1 = j; \
-                  } else { \
-                      assert(dirs_set == 1); \
-                      d2 = d; x2 = i; y2 = j; \
-                  } \
-                  dirs_set++; \
-              } \
-          } while (0)
-    
-    TRY_DIR(x,   y,   RIGHT, ABOVE_SQUARE);
-    TRY_DIR(x,   y,   DOWN, LEFTOF_SQUARE);
-    TRY_DIR(x+1, y,   DOWN, RIGHTOF_SQUARE);
-    TRY_DIR(x,   y+1, RIGHT, BELOW_SQUARE);
-#undef TRY_DIR
-
-    assert(dirs_set == 2);
-
-#if 0
-    fprintf(stderr, "Line in direction %s from dot [%d,%d] and line in direction %s from dot [%2d,%2d] are %s\n",
-            DIR2STR(d1), x1, y1, DIR2STR(d2), x2, y2, inverse?"opposite":"the same");
-#endif
-
-    return merge_lines(sstate, x1, y1, d1, x2, y2, d2, inverse);
-}
-
-/* Figure out if any dlines can be 'collapsed' (and do so if they can).  This
- * can happen if one of the lines is known and due to the dline status this
- * tells us state of the other, or if there's an interaction with the linedsf
- * (ie if atmostone is set for a dline and the lines are known identical they
- * must both be LINE_NO, etc).  XXX at the moment only the former is
- * implemented, and indeed the latter should be implemented in the hard mode
- * solver only.
- */
-static int dot_collapse_dlines(solver_state *sstate, int i, int j)
-{
-    int progress = FALSE;
-    enum direction dir1, dir2;
-    int dir1st;
-    int dlset;
     game_state *state = sstate->state;
-    enum dline_desc dd;
+    grid *g = state->game_grid;
+    grid_face *f = g->faces + face_index;
+    int N = f->order;
+    int i, j;
+    int can1, can2, inv1, inv2;
 
-    for (dir1 = 0; dir1 < 4; dir1++) {
-        dir1st = get_line_status_from_point(state, i, j, dir1);
-        if (dir1st == LINE_UNKNOWN)
+    for (i = 0; i < N; i++) {
+        int line1_index = f->edges[i] - g->edges;
+        if (state->lines[line1_index] != LINE_UNKNOWN)
             continue;
-        /* dir2 iterates over the whole range rather than starting at dir1+1
-         * because test below is asymmetric */
-        for (dir2 = 0; dir2 < 4; dir2++) {
-            if (dir1 == dir2)
+        for (j = i + 1; j < N; j++) {
+            int line2_index = f->edges[j] - g->edges;
+            if (state->lines[line2_index] != LINE_UNKNOWN)
                 continue;
 
-            if ((i == 0        && (dir1 == LEFT  || dir2 == LEFT))  ||
-                (j == 0        && (dir1 == UP    || dir2 == UP))    ||
-                (i == state->w && (dir1 == RIGHT || dir2 == RIGHT)) ||
-                (j == state->h && (dir1 == DOWN  || dir2 == DOWN))) {
-                continue;
-            }
-
-#if 0
-        fprintf(stderr, "dot_collapse_dlines [%d,%d], %s %s\n", i, j,
-                    DIR2STR(dir1), DIR2STR(dir2));
-#endif
-
-            if (get_line_status_from_point(state, i, j, dir2) == 
-                LINE_UNKNOWN) {
-                dd = dline_desc_from_dirs(dir1, dir2);
-
-                dlset = get_dot_dline(state, sstate->normal->dot_atmostone, i, j, dd);
-                if (dlset && dir1st == LINE_YES) {
-/*                    fprintf(stderr, "setting %s to NO\n", DIR2STR(dir2)); */
-                    progress |= 
-                        set_line_bydot(sstate, i, j, dir2, LINE_NO);
-                }
-
-                dlset = get_dot_dline(state, sstate->normal->dot_atleastone, i, j, dd);
-                if (dlset && dir1st == LINE_NO) {
-/*                    fprintf(stderr, "setting %s to YES\n", DIR2STR(dir2)); */
-                    progress |=
-                        set_line_bydot(sstate, i, j, dir2, LINE_YES);
-                }
+            /* Found two UNKNOWNS */
+            can1 = edsf_canonify(sstate->hard->linedsf, line1_index, &inv1);
+            can2 = edsf_canonify(sstate->hard->linedsf, line2_index, &inv2);
+            if (can1 == can2 && inv1 == inv2) {
+                solver_set_line(sstate, line1_index, line_new);
+                solver_set_line(sstate, line2_index, line_new);
             }
         }
     }
-
-    return progress;
+    return retval;
 }
+
+/* Given a dot or face, and a count of LINE_UNKNOWNs, find them and
+ * return the edge indices into e. */
+static void find_unknowns(game_state *state,
+    grid_edge **edge_list, /* Edge list to search (from a face or a dot) */
+    int expected_count, /* Number of UNKNOWNs (comes from solver's cache) */
+    int *e /* Returned edge indices */)
+{
+    int c = 0;
+    grid *g = state->game_grid;
+    while (c < expected_count) {
+        int line_index = *edge_list - g->edges;
+        if (state->lines[line_index] == LINE_UNKNOWN) {
+            e[c] = line_index;
+            c++;
+        }
+        ++edge_list;
+    }
+}
+
+/* If we have a list of edges, and we know whether the number of YESs should
+ * be odd or even, and there are only a few UNKNOWNs, we can do some simple
+ * linedsf deductions.  This can be used for both face and dot deductions.
+ * Returns the difficulty level of the next solver that should be used,
+ * or DIFF_MAX if no progress was made. */
+static int parity_deductions(solver_state *sstate,
+    grid_edge **edge_list, /* Edge list (from a face or a dot) */
+    int total_parity, /* Expected number of YESs modulo 2 (either 0 or 1) */
+    int unknown_count)
+{
+    game_state *state = sstate->state;
+    int diff = DIFF_MAX;
+    int *linedsf = sstate->hard->linedsf;
+
+    if (unknown_count == 2) {
+        /* Lines are known alike/opposite, depending on inv. */
+        int e[2];
+        find_unknowns(state, edge_list, 2, e);
+        if (merge_lines(sstate, e[0], e[1], total_parity))
+            diff = min(diff, DIFF_HARD);
+    } else if (unknown_count == 3) {
+        int e[3];
+        int can[3]; /* canonical edges */
+        int inv[3]; /* whether can[x] is inverse to e[x] */
+        find_unknowns(state, edge_list, 3, e);
+        can[0] = edsf_canonify(linedsf, e[0], inv);
+        can[1] = edsf_canonify(linedsf, e[1], inv+1);
+        can[2] = edsf_canonify(linedsf, e[2], inv+2);
+        if (can[0] == can[1]) {
+            if (solver_set_line(sstate, e[2], (total_parity^inv[0]^inv[1]) ?
+				LINE_YES : LINE_NO))
+                diff = min(diff, DIFF_EASY);
+        }
+        if (can[0] == can[2]) {
+            if (solver_set_line(sstate, e[1], (total_parity^inv[0]^inv[2]) ?
+				LINE_YES : LINE_NO))
+                diff = min(diff, DIFF_EASY);
+        }
+        if (can[1] == can[2]) {
+            if (solver_set_line(sstate, e[0], (total_parity^inv[1]^inv[2]) ?
+				LINE_YES : LINE_NO))
+                diff = min(diff, DIFF_EASY);
+        }
+    } else if (unknown_count == 4) {
+        int e[4];
+        int can[4]; /* canonical edges */
+        int inv[4]; /* whether can[x] is inverse to e[x] */
+        find_unknowns(state, edge_list, 4, e);
+        can[0] = edsf_canonify(linedsf, e[0], inv);
+        can[1] = edsf_canonify(linedsf, e[1], inv+1);
+        can[2] = edsf_canonify(linedsf, e[2], inv+2);
+        can[3] = edsf_canonify(linedsf, e[3], inv+3);
+        if (can[0] == can[1]) {
+            if (merge_lines(sstate, e[2], e[3], total_parity^inv[0]^inv[1]))
+                diff = min(diff, DIFF_HARD);
+        } else if (can[0] == can[2]) {
+            if (merge_lines(sstate, e[1], e[3], total_parity^inv[0]^inv[2]))
+                diff = min(diff, DIFF_HARD);
+        } else if (can[0] == can[3]) {
+            if (merge_lines(sstate, e[1], e[2], total_parity^inv[0]^inv[3]))
+                diff = min(diff, DIFF_HARD);
+        } else if (can[1] == can[2]) {
+            if (merge_lines(sstate, e[0], e[3], total_parity^inv[1]^inv[2]))
+                diff = min(diff, DIFF_HARD);
+        } else if (can[1] == can[3]) {
+            if (merge_lines(sstate, e[0], e[2], total_parity^inv[1]^inv[3]))
+                diff = min(diff, DIFF_HARD);
+        } else if (can[2] == can[3]) {
+            if (merge_lines(sstate, e[0], e[1], total_parity^inv[2]^inv[3]))
+                diff = min(diff, DIFF_HARD);
+        }
+    }
+    return diff;
+}
+
 
 /*
- * These are the main solver functions.  
+ * These are the main solver functions.
  *
  * Their return values are diff values corresponding to the lowest mode solver
  * that would notice the work that they have done.  For example if the normal
  * mode solver adds actual lines or crosses, it will return DIFF_EASY as the
  * easy mode solver might be able to make progress using that.  It doesn't make
  * sense for one of them to return a diff value higher than that of the
- * function itself.  
+ * function itself.
  *
  * Each function returns the lowest value it can, as early as possible, in
  * order to try and pass as much work as possible back to the lower level
@@ -2334,63 +1946,55 @@ static int dot_collapse_dlines(solver_state *sstate, int i, int j)
  * (easiest first) until either a deduction is made (and an event therefore
  * emerges) or no further deductions can be made (in which case we've failed).
  *
- * QUESTIONS: 
+ * QUESTIONS:
  *    * How do we 'loop over' a solver when both dots and squares are concerned.
  *      Answer: first all squares then all dots.
  */
 
 static int easy_mode_deductions(solver_state *sstate)
 {
-    int i, j, h, w, current_yes, current_no;
-    game_state *state;
+    int i, current_yes, current_no;
+    game_state *state = sstate->state;
+    grid *g = state->game_grid;
     int diff = DIFF_MAX;
 
-    state = sstate->state;
-    h = state->h;
-    w = state->w;
-    
-    /* Per-square deductions */
-    FORALL_SQUARES(state, i, j) {
-        if (sstate->square_solved[SQUARE_INDEX(state, i, j)])
+    /* Per-face deductions */
+    for (i = 0; i < g->num_faces; i++) {
+        grid_face *f = g->faces + i;
+
+        if (sstate->face_solved[i])
             continue;
 
-        current_yes = SQUARE_YES_COUNT(sstate, i, j);
-        current_no  = SQUARE_NO_COUNT(sstate, i, j);
+        current_yes = sstate->face_yes_count[i];
+        current_no  = sstate->face_no_count[i];
 
-        if (current_yes + current_no == 4)  {
-            sstate->square_solved[SQUARE_INDEX(state, i, j)] = TRUE;
-/*            diff = min(diff, DIFF_EASY); */
+        if (current_yes + current_no == f->order)  {
+            sstate->face_solved[i] = TRUE;
             continue;
         }
 
-        if (CLUE_AT(state, i, j) < 0)
+        if (state->clues[i] < 0)
             continue;
 
-        if (CLUE_AT(state, i, j) < current_yes) {
-#if 0
-            fprintf(stderr, "detected error [%d,%d] in %s at line %d\n", i, j, __FUNCTION__, __LINE__);
-#endif
+        if (state->clues[i] < current_yes) {
             sstate->solver_status = SOLVER_MISTAKE;
             return DIFF_EASY;
         }
-        if (CLUE_AT(state, i, j) == current_yes) {
-            if (square_setall(sstate, i, j, LINE_UNKNOWN, LINE_NO))
+        if (state->clues[i] == current_yes) {
+            if (face_setall(sstate, i, LINE_UNKNOWN, LINE_NO))
                 diff = min(diff, DIFF_EASY);
-            sstate->square_solved[SQUARE_INDEX(state, i, j)] = TRUE;
+            sstate->face_solved[i] = TRUE;
             continue;
         }
 
-        if (4 - CLUE_AT(state, i, j) < current_no) {
-#if 0
-            fprintf(stderr, "detected error [%d,%d] in %s at line %d\n", i, j, __FUNCTION__, __LINE__);
-#endif
+        if (f->order - state->clues[i] < current_no) {
             sstate->solver_status = SOLVER_MISTAKE;
             return DIFF_EASY;
         }
-        if (4 - CLUE_AT(state, i, j) == current_no) {
-            if (square_setall(sstate, i, j, LINE_UNKNOWN, LINE_YES))
+        if (f->order - state->clues[i] == current_no) {
+            if (face_setall(sstate, i, LINE_UNKNOWN, LINE_YES))
                 diff = min(diff, DIFF_EASY);
-            sstate->square_solved[SQUARE_INDEX(state, i, j)] = TRUE;
+            sstate->face_solved[i] = TRUE;
             continue;
         }
     }
@@ -2398,58 +2002,42 @@ static int easy_mode_deductions(solver_state *sstate)
     check_caches(sstate);
 
     /* Per-dot deductions */
-    FORALL_DOTS(state, i, j) {
-        if (sstate->dot_solved[DOT_INDEX(state, i, j)])
+    for (i = 0; i < g->num_dots; i++) {
+        grid_dot *d = g->dots + i;
+        int yes, no, unknown;
+
+        if (sstate->dot_solved[i])
             continue;
 
-        switch (DOT_YES_COUNT(sstate, i, j)) {
-            case 0:
-                switch (DOT_NO_COUNT(sstate, i, j)) {
-                    case 3:
-#if 0
-                        fprintf(stderr, "dot [%d,%d]: 0 yes, 3 no\n", i, j);
-#endif
-                        dot_setall(sstate, i, j, LINE_UNKNOWN, LINE_NO);
-                        diff = min(diff, DIFF_EASY);
-                        /* fall through */
-                    case 4:
-                        sstate->dot_solved[DOT_INDEX(state, i, j)] = TRUE;
-                        break;
-                }
-                break;
-            case 1:
-                switch (DOT_NO_COUNT(sstate, i, j)) {
-                    case 2: /* 1 yes, 2 no */
-#if 0
-                        fprintf(stderr, "dot [%d,%d]: 1 yes, 2 no\n", i, j);
-#endif
-                        dot_setall(sstate, i, j, LINE_UNKNOWN, LINE_YES);
-                        diff = min(diff, DIFF_EASY);
-                        sstate->dot_solved[DOT_INDEX(state, i, j)] = TRUE;
-                        break;
-                    case 3: /* 1 yes, 3 no */
-#if 0
-                        fprintf(stderr, "detected error [%d,%d] in %s at line %d\n", i, j, __FUNCTION__, __LINE__);
-#endif
-                        sstate->solver_status = SOLVER_MISTAKE;
-                        return DIFF_EASY;
-                }
-                break;
-            case 2:
-#if 0
-                fprintf(stderr, "dot [%d,%d]: 2 yes\n", i, j);
-#endif
-                dot_setall(sstate, i, j, LINE_UNKNOWN, LINE_NO);
+        yes = sstate->dot_yes_count[i];
+        no = sstate->dot_no_count[i];
+        unknown = d->order - yes - no;
+
+        if (yes == 0) {
+            if (unknown == 0) {
+                sstate->dot_solved[i] = TRUE;
+            } else if (unknown == 1) {
+                dot_setall(sstate, i, LINE_UNKNOWN, LINE_NO);
                 diff = min(diff, DIFF_EASY);
-                sstate->dot_solved[DOT_INDEX(state, i, j)] = TRUE;
-                break;
-            case 3:
-            case 4:
-#if 0
-                fprintf(stderr, "detected error [%d,%d] in %s at line %d\n", i, j, __FUNCTION__, __LINE__);
-#endif
+                sstate->dot_solved[i] = TRUE;
+            }
+        } else if (yes == 1) {
+            if (unknown == 0) {
                 sstate->solver_status = SOLVER_MISTAKE;
                 return DIFF_EASY;
+            } else if (unknown == 1) {
+                dot_setall(sstate, i, LINE_UNKNOWN, LINE_YES);
+                diff = min(diff, DIFF_EASY);
+            }
+        } else if (yes == 2) {
+            if (unknown > 0) {
+                dot_setall(sstate, i, LINE_UNKNOWN, LINE_NO);
+                diff = min(diff, DIFF_EASY);
+            }
+            sstate->dot_solved[i] = TRUE;
+        } else {
+            sstate->solver_status = SOLVER_MISTAKE;
+            return DIFF_EASY;
         }
     }
 
@@ -2460,417 +2048,440 @@ static int easy_mode_deductions(solver_state *sstate)
 
 static int normal_mode_deductions(solver_state *sstate)
 {
-    int i, j;
     game_state *state = sstate->state;
-    enum dline_desc dd;
+    grid *g = state->game_grid;
+    char *dlines = sstate->normal->dlines;
+    int i;
     int diff = DIFF_MAX;
 
-    FORALL_SQUARES(state, i, j) {
-        if (sstate->square_solved[SQUARE_INDEX(state, i, j)])
+    /* ------ Face deductions ------ */
+
+    /* Given a set of dline atmostone/atleastone constraints, need to figure
+     * out if we can deduce any further info.  For more general faces than
+     * squares, this turns out to be a tricky problem.
+     * The approach taken here is to define (per face) NxN matrices:
+     * "maxs" and "mins".
+     * The entries maxs(j,k) and mins(j,k) define the upper and lower limits
+     * for the possible number of edges that are YES between positions j and k
+     * going clockwise around the face.  Can think of j and k as marking dots
+     * around the face (recall the labelling scheme: edge0 joins dot0 to dot1,
+     * edge1 joins dot1 to dot2 etc).
+     * Trivially, mins(j,j) = maxs(j,j) = 0, and we don't even bother storing
+     * these.  mins(j,j+1) and maxs(j,j+1) are determined by whether edge{j}
+     * is YES, NO or UNKNOWN.  mins(j,j+2) and maxs(j,j+2) are related to
+     * the dline atmostone/atleastone status for edges j and j+1.
+     *
+     * Then we calculate the remaining entries recursively.  We definitely
+     * know that
+     * mins(j,k) >= { mins(j,u) + mins(u,k) } for any u between j and k.
+     * This is because any valid placement of YESs between j and k must give
+     * a valid placement between j and u, and also between u and k.
+     * I believe it's sufficient to use just the two values of u:
+     * j+1 and j+2.  Seems to work well in practice - the bounds we compute
+     * are rigorous, even if they might not be best-possible.
+     *
+     * Once we have maxs and mins calculated, we can make inferences about
+     * each dline{j,j+1} by looking at the possible complementary edge-counts
+     * mins(j+2,j) and maxs(j+2,j) and comparing these with the face clue.
+     * As well as dlines, we can make similar inferences about single edges.
+     * For example, consider a pentagon with clue 3, and we know at most one
+     * of (edge0, edge1) is YES, and at most one of (edge2, edge3) is YES.
+     * We could then deduce edge4 is YES, because maxs(0,4) would be 2, so
+     * that final edge would have to be YES to make the count up to 3.
+     */
+
+    /* Much quicker to allocate arrays on the stack than the heap, so
+     * define the largest possible face size, and base our array allocations
+     * on that.  We check this with an assertion, in case someone decides to
+     * make a grid which has larger faces than this.  Note, this algorithm
+     * could get quite expensive if there are many large faces. */
+#define MAX_FACE_SIZE 8
+
+    for (i = 0; i < g->num_faces; i++) {
+        int maxs[MAX_FACE_SIZE][MAX_FACE_SIZE];
+        int mins[MAX_FACE_SIZE][MAX_FACE_SIZE];
+        grid_face *f = g->faces + i;
+        int N = f->order;
+        int j,m;
+        int clue = state->clues[i];
+        assert(N <= MAX_FACE_SIZE);
+        if (sstate->face_solved[i])
             continue;
+        if (clue < 0) continue;
 
-        if (CLUE_AT(state, i, j) < 0)
-            continue;
+        /* Calculate the (j,j+1) entries */
+        for (j = 0; j < N; j++) {
+            int edge_index = f->edges[j] - g->edges;
+            int dline_index;
+            enum line_state line1 = state->lines[edge_index];
+            enum line_state line2;
+            int tmp;
+            int k = j + 1;
+            if (k >= N) k = 0;
+            maxs[j][k] = (line1 == LINE_NO) ? 0 : 1;
+            mins[j][k] = (line1 == LINE_YES) ? 1 : 0;
+            /* Calculate the (j,j+2) entries */
+            dline_index = dline_index_from_face(g, f, k);
+            edge_index = f->edges[k] - g->edges;
+            line2 = state->lines[edge_index];
+            k++;
+            if (k >= N) k = 0;
 
-        switch (CLUE_AT(state, i, j)) {
-            case 1:
-#if 0
-                fprintf(stderr, "clue [%d,%d] is 1, doing dline ops\n",
-                        i, j);
-#endif
-                FORALL_SQUARE_DLINES(dd) {
-                    /* At most one of any DLINE can be set */
-                    if (set_square_dline(state, 
-                                         sstate->normal->dot_atmostone, 
-                                         i, j, dd)) {
-                        diff = min(diff, DIFF_NORMAL);
-                    }
+            /* max */
+            tmp = 2;
+            if (line1 == LINE_NO) tmp--;
+            if (line2 == LINE_NO) tmp--;
+            if (tmp == 2 && is_atmostone(dlines, dline_index))
+                tmp = 1;
+            maxs[j][k] = tmp;
 
-                    if (get_square_dline(state,
-                                         sstate->normal->dot_atleastone, 
-                                         i, j, dd)) {
-                        /* This DLINE provides enough YESes to solve the clue */
-                        if (square_setboth_in_dline(sstate, OPP_DLINE(dd),
-                                                     i, j, LINE_NO)) {
-                            diff = min(diff, DIFF_EASY);
-                        }
-                    }
-                }
+            /* min */
+            tmp = 0;
+            if (line1 == LINE_YES) tmp++;
+            if (line2 == LINE_YES) tmp++;
+            if (tmp == 0 && is_atleastone(dlines, dline_index))
+                tmp = 1;
+            mins[j][k] = tmp;
+        }
 
-                break;
-            case 2:
-                /* If at least one of one DLINE is set, at most one
-                 * of the opposing one is and vice versa */
-#if 0
-                fprintf(stderr, "clue [%d,%d] is 2, doing dline ops\n",
-                               i, j);
-#endif
-                FORALL_SQUARE_DLINES(dd) {
-                    if (get_square_dline(state,
-                                         sstate->normal->dot_atmostone,
-                                         i, j, dd)) {
-                        if (set_square_opp_dline(state,
-                                                 sstate->normal->dot_atleastone,
-                                                 i, j, dd)) {
-                            diff = min(diff, DIFF_NORMAL);
-                        }
-                    }
-                    if (get_square_dline(state,
-                                         sstate->normal->dot_atleastone,
-                                         i, j, dd)) {
-                        if (set_square_opp_dline(state,
-                                                 sstate->normal->dot_atmostone,
-                                                 i, j, dd)) {
-                            diff = min(diff, DIFF_NORMAL);
-                        }
-                    }
-                }
-                break;
-            case 3:
-#if 0
-                fprintf(stderr, "clue [%d,%d] is 3, doing dline ops\n",
-                                i, j);
-#endif
-                FORALL_SQUARE_DLINES(dd) {
-                    /* At least one of any DLINE must be set */
-                    if (set_square_dline(state, 
-                                         sstate->normal->dot_atleastone, 
-                                         i, j, dd)) {
-                        diff = min(diff, DIFF_NORMAL);
-                    }
+        /* Calculate the (j,j+m) entries for m between 3 and N-1 */
+        for (m = 3; m < N; m++) {
+            for (j = 0; j < N; j++) {
+                int k = j + m;
+                int u = j + 1;
+                int v = j + 2;
+                int tmp;
+                if (k >= N) k -= N;
+                if (u >= N) u -= N;
+                if (v >= N) v -= N;
+                maxs[j][k] = maxs[j][u] + maxs[u][k];
+                mins[j][k] = mins[j][u] + mins[u][k];
+                tmp = maxs[j][v] + maxs[v][k];
+                maxs[j][k] = min(maxs[j][k], tmp);
+                tmp = mins[j][v] + mins[v][k];
+                mins[j][k] = max(mins[j][k], tmp);
+            }
+        }
 
-                    if (get_square_dline(state,
-                                         sstate->normal->dot_atmostone, 
-                                         i, j, dd)) {
-                        /* This DLINE provides enough NOs to solve the clue */
-                        if (square_setboth_in_dline(sstate, OPP_DLINE(dd),
-                                                    i, j, LINE_YES)) {
-                            diff = min(diff, DIFF_EASY);
-                        }
-                    }
-                }
-                break;
+        /* See if we can make any deductions */
+        for (j = 0; j < N; j++) {
+            int k;
+            grid_edge *e = f->edges[j];
+            int line_index = e - g->edges;
+            int dline_index;
+
+            if (state->lines[line_index] != LINE_UNKNOWN)
+                continue;
+            k = j + 1;
+            if (k >= N) k = 0;
+
+            /* minimum YESs in the complement of this edge */
+            if (mins[k][j] > clue) {
+                sstate->solver_status = SOLVER_MISTAKE;
+                return DIFF_EASY;
+            }
+            if (mins[k][j] == clue) {
+                /* setting this edge to YES would make at least
+                 * (clue+1) edges - contradiction */
+                solver_set_line(sstate, line_index, LINE_NO);
+                diff = min(diff, DIFF_EASY);
+            }
+            if (maxs[k][j] < clue - 1) {
+                sstate->solver_status = SOLVER_MISTAKE;
+                return DIFF_EASY;
+            }
+            if (maxs[k][j] == clue - 1) {
+                /* Only way to satisfy the clue is to set edge{j} as YES */
+                solver_set_line(sstate, line_index, LINE_YES);
+                diff = min(diff, DIFF_EASY);
+            }
+
+            /* Now see if we can make dline deduction for edges{j,j+1} */
+            e = f->edges[k];
+            if (state->lines[e - g->edges] != LINE_UNKNOWN)
+                /* Only worth doing this for an UNKNOWN,UNKNOWN pair.
+                 * Dlines where one of the edges is known, are handled in the
+                 * dot-deductions */
+                continue;
+
+            dline_index = dline_index_from_face(g, f, k);
+            k++;
+            if (k >= N) k = 0;
+
+            /* minimum YESs in the complement of this dline */
+            if (mins[k][j] > clue - 2) {
+                /* Adding 2 YESs would break the clue */
+                if (set_atmostone(dlines, dline_index))
+                    diff = min(diff, DIFF_NORMAL);
+            }
+            /* maximum YESs in the complement of this dline */
+            if (maxs[k][j] < clue) {
+                /* Adding 2 NOs would mean not enough YESs */
+                if (set_atleastone(dlines, dline_index))
+                    diff = min(diff, DIFF_NORMAL);
+            }
         }
     }
-
-    check_caches(sstate);
 
     if (diff < DIFF_NORMAL)
         return diff;
 
-    FORALL_DOTS(state, i, j) {
-        if (sstate->dot_solved[DOT_INDEX(state, i, j)])
+    /* ------ Dot deductions ------ */
+
+    for (i = 0; i < g->num_dots; i++) {
+        grid_dot *d = g->dots + i;
+        int N = d->order;
+        int yes, no, unknown;
+        int j;
+        if (sstate->dot_solved[i])
             continue;
+        yes = sstate->dot_yes_count[i];
+        no = sstate->dot_no_count[i];
+        unknown = N - yes - no;
 
-#if 0
-        text = game_text_format(state);
-        fprintf(stderr, "-----------------\n%s", text);
-        sfree(text);
-#endif
+        for (j = 0; j < N; j++) {
+            int k;
+            int dline_index;
+            int line1_index, line2_index;
+            enum line_state line1, line2;
+            k = j + 1;
+            if (k >= N) k = 0;
+            dline_index = dline_index_from_dot(g, d, j);
+            line1_index = d->edges[j] - g->edges;
+            line2_index = d->edges[k] - g->edges;
+            line1 = state->lines[line1_index];
+            line2 = state->lines[line2_index];
 
-        switch (DOT_YES_COUNT(sstate, i, j)) {
-        case 0:
-            switch (DOT_NO_COUNT(sstate, i, j)) {
-                case 1:
-                    /* Make note that at most one of each unknown DLINE
-                     * is YES */
-                    break;
+            /* Infer dline state from line state */
+            if (line1 == LINE_NO || line2 == LINE_NO) {
+                if (set_atmostone(dlines, dline_index))
+                    diff = min(diff, DIFF_NORMAL);
             }
-            break;
+            if (line1 == LINE_YES || line2 == LINE_YES) {
+                if (set_atleastone(dlines, dline_index))
+                    diff = min(diff, DIFF_NORMAL);
+            }
+            /* Infer line state from dline state */
+            if (is_atmostone(dlines, dline_index)) {
+                if (line1 == LINE_YES && line2 == LINE_UNKNOWN) {
+                    solver_set_line(sstate, line2_index, LINE_NO);
+                    diff = min(diff, DIFF_EASY);
+                }
+                if (line2 == LINE_YES && line1 == LINE_UNKNOWN) {
+                    solver_set_line(sstate, line1_index, LINE_NO);
+                    diff = min(diff, DIFF_EASY);
+                }
+            }
+            if (is_atleastone(dlines, dline_index)) {
+                if (line1 == LINE_NO && line2 == LINE_UNKNOWN) {
+                    solver_set_line(sstate, line2_index, LINE_YES);
+                    diff = min(diff, DIFF_EASY);
+                }
+                if (line2 == LINE_NO && line1 == LINE_UNKNOWN) {
+                    solver_set_line(sstate, line1_index, LINE_YES);
+                    diff = min(diff, DIFF_EASY);
+                }
+            }
+            /* Deductions that depend on the numbers of lines.
+             * Only bother if both lines are UNKNOWN, otherwise the
+             * easy-mode solver (or deductions above) would have taken
+             * care of it. */
+            if (line1 != LINE_UNKNOWN || line2 != LINE_UNKNOWN)
+                continue;
 
-        case 1:
-            switch (DOT_NO_COUNT(sstate, i, j)) {
-                case 1: 
-                    /* 1 yes, 1 no, so exactly one of unknowns is
-                     * yes */
-#if 0
-                    fprintf(stderr, "dot [%d,%d]: 1 yes, 1 no\n", i, j);
-#endif
-                    FORALL_DOT_DLINES(dd) {
-                        if (dline_both_unknown(state, 
-                                               i, j, dd)) {
-                            if (set_dot_dline(state,
-                                              sstate->normal->dot_atleastone,
-                                              i, j, dd)) {
-                                diff = min(diff, DIFF_NORMAL); 
+            if (yes == 0 && unknown == 2) {
+                /* Both these unknowns must be identical.  If we know
+                 * atmostone or atleastone, we can make progress. */
+                if (is_atmostone(dlines, dline_index)) {
+                    solver_set_line(sstate, line1_index, LINE_NO);
+                    solver_set_line(sstate, line2_index, LINE_NO);
+                    diff = min(diff, DIFF_EASY);
+                }
+                if (is_atleastone(dlines, dline_index)) {
+                    solver_set_line(sstate, line1_index, LINE_YES);
+                    solver_set_line(sstate, line2_index, LINE_YES);
+                    diff = min(diff, DIFF_EASY);
+                }
+            }
+            if (yes == 1) {
+                if (set_atmostone(dlines, dline_index))
+                    diff = min(diff, DIFF_NORMAL);
+                if (unknown == 2) {
+                    if (set_atleastone(dlines, dline_index))
+                        diff = min(diff, DIFF_NORMAL);
+                }
+            }
+
+            /* If we have atleastone set for this dline, infer
+             * atmostone for each "opposite" dline (that is, each
+             * dline without edges in common with this one).
+             * Again, this test is only worth doing if both these
+             * lines are UNKNOWN.  For if one of these lines were YES,
+             * the (yes == 1) test above would kick in instead. */
+            if (is_atleastone(dlines, dline_index)) {
+                int opp;
+                for (opp = 0; opp < N; opp++) {
+                    int opp_dline_index;
+                    if (opp == j || opp == j+1 || opp == j-1)
+                        continue;
+                    if (j == 0 && opp == N-1)
+                        continue;
+                    if (j == N-1 && opp == 0)
+                        continue;
+                    opp_dline_index = dline_index_from_dot(g, d, opp);
+                    if (set_atmostone(dlines, opp_dline_index))
+                        diff = min(diff, DIFF_NORMAL);
+                }
+
+                if (yes == 0 && is_atmostone(dlines, dline_index)) {
+                    /* This dline has *exactly* one YES and there are no
+                     * other YESs.  This allows more deductions. */
+                    if (unknown == 3) {
+                        /* Third unknown must be YES */
+                        for (opp = 0; opp < N; opp++) {
+                            int opp_index;
+                            if (opp == j || opp == k)
+                                continue;
+                            opp_index = d->edges[opp] - g->edges;
+                            if (state->lines[opp_index] == LINE_UNKNOWN) {
+                                solver_set_line(sstate, opp_index, LINE_YES);
+                                diff = min(diff, DIFF_EASY);
                             }
                         }
+                    } else if (unknown == 4) {
+                        /* Exactly one of opposite UNKNOWNS is YES.  We've
+                         * already set atmostone, so set atleastone as well.
+                         */
+                        if (dline_set_opp_atleastone(sstate, d, j))
+                            diff = min(diff, DIFF_NORMAL);
                     }
-
-                    /* fall through */
-                case 0: 
-#if 0
-                    fprintf(stderr, "dot [%d,%d]: 1 yes, 0 or 1 no\n", i, j);
-#endif
-                    /* 1 yes, fewer than 2 no, so at most one of
-                     * unknowns is yes */
-                    FORALL_DOT_DLINES(dd) {
-                        if (dline_both_unknown(state, 
-                                               i, j, dd)) {
-                            if (set_dot_dline(state,
-                                              sstate->normal->dot_atmostone,
-                                              i, j, dd)) {
-                                diff = min(diff, DIFF_NORMAL); 
-                            }
-                        }
-                    }
-                    break;
-            }
-            break;
-        }
-
-        /* DLINE deductions that don't depend on the exact number of
-         * LINE_YESs or LINE_NOs */
-
-        /* If at least one of a dline in a dot is YES, at most one
-         * of the opposite dline to that dot must be YES. */
-        FORALL_DOT_DLINES(dd) {
-            if (get_dot_dline(state, 
-                              sstate->normal->dot_atleastone,
-                              i, j, dd)) {
-                if (set_dot_opp_dline(state,
-                                      sstate->normal->dot_atmostone,
-                                      i, j, dd)) {
-                    diff = min(diff, DIFF_NORMAL); 
                 }
             }
         }
-
-        if (dot_collapse_dlines(sstate, i, j))
-            diff = min(diff, DIFF_EASY);
     }
-    check_caches(sstate);
-
     return diff;
 }
 
 static int hard_mode_deductions(solver_state *sstate)
 {
-    int i, j, a, b, s;
     game_state *state = sstate->state;
-    const int h=state->h, w=state->w;
-    enum direction dir1, dir2;
-    int can1, can2, inv1, inv2;
+    grid *g = state->game_grid;
+    char *dlines = sstate->normal->dlines;
+    int i;
     int diff = DIFF_MAX;
-    enum dline_desc dd;
+    int diff_tmp;
 
-    FORALL_SQUARES(state, i, j) {
-        if (sstate->square_solved[SQUARE_INDEX(state, i, j)])
+    /* ------ Face deductions ------ */
+
+    /* A fully-general linedsf deduction seems overly complicated
+     * (I suspect the problem is NP-complete, though in practice it might just
+     * be doable because faces are limited in size).
+     * For simplicity, we only consider *pairs* of LINE_UNKNOWNS that are
+     * known to be identical.  If setting them both to YES (or NO) would break
+     * the clue, set them to NO (or YES). */
+
+    for (i = 0; i < g->num_faces; i++) {
+        int N, yes, no, unknown;
+        int clue;
+
+        if (sstate->face_solved[i])
+            continue;
+        clue = state->clues[i];
+        if (clue < 0)
             continue;
 
-        switch (CLUE_AT(state, i, j)) {
-            case -1:
-                continue;
-
-            case 1:
-                if (square_setall_identical(sstate, i, j, LINE_NO)) 
-                    diff = min(diff, DIFF_EASY);
-                break;
-            case 3:
-                if (square_setall_identical(sstate, i, j, LINE_YES))
-                    diff = min(diff, DIFF_EASY);
-                break;
+        N = g->faces[i].order;
+        yes = sstate->face_yes_count[i];
+        if (yes + 1 == clue) {
+            if (face_setall_identical(sstate, i, LINE_NO))
+                diff = min(diff, DIFF_EASY);
+        }
+        no = sstate->face_no_count[i];
+        if (no + 1 == N - clue) {
+            if (face_setall_identical(sstate, i, LINE_YES))
+                diff = min(diff, DIFF_EASY);
         }
 
-        if (SQUARE_YES_COUNT(sstate, i, j) + 
-            SQUARE_NO_COUNT(sstate, i, j) == 2) {
-            /* There are exactly two unknown lines bordering this
-             * square. */
-            if (SQUARE_YES_COUNT(sstate, i, j) + 1 == 
-                CLUE_AT(state, i, j)) {
-                /* They must be different */
-                if (square_relate_2_unknowns(sstate, i, j, TRUE))
+        /* Reload YES count, it might have changed */
+        yes = sstate->face_yes_count[i];
+        unknown = N - no - yes;
+
+        /* Deductions with small number of LINE_UNKNOWNs, based on overall
+         * parity of lines. */
+        diff_tmp = parity_deductions(sstate, g->faces[i].edges,
+                                     (clue - yes) % 2, unknown);
+        diff = min(diff, diff_tmp);
+    }
+
+    /* ------ Dot deductions ------ */
+    for (i = 0; i < g->num_dots; i++) {
+        grid_dot *d = g->dots + i;
+        int N = d->order;
+        int j;
+        int yes, no, unknown;
+        /* Go through dlines, and do any dline<->linedsf deductions wherever
+         * we find two UNKNOWNS. */
+        for (j = 0; j < N; j++) {
+            int dline_index = dline_index_from_dot(g, d, j);
+            int line1_index;
+            int line2_index;
+            int can1, can2, inv1, inv2;
+            int j2;
+            line1_index = d->edges[j] - g->edges;
+            if (state->lines[line1_index] != LINE_UNKNOWN)
+                continue;
+            j2 = j + 1;
+            if (j2 == N) j2 = 0;
+            line2_index = d->edges[j2] - g->edges;
+            if (state->lines[line2_index] != LINE_UNKNOWN)
+                continue;
+            /* Infer dline flags from linedsf */
+            can1 = edsf_canonify(sstate->hard->linedsf, line1_index, &inv1);
+            can2 = edsf_canonify(sstate->hard->linedsf, line2_index, &inv2);
+            if (can1 == can2 && inv1 != inv2) {
+                /* These are opposites, so set dline atmostone/atleastone */
+                if (set_atmostone(dlines, dline_index))
+                    diff = min(diff, DIFF_NORMAL);
+                if (set_atleastone(dlines, dline_index))
+                    diff = min(diff, DIFF_NORMAL);
+                continue;
+            }
+            /* Infer linedsf from dline flags */
+            if (is_atmostone(dlines, dline_index)
+		&& is_atleastone(dlines, dline_index)) {
+                if (merge_lines(sstate, line1_index, line2_index, 1))
                     diff = min(diff, DIFF_HARD);
             }
         }
+
+        /* Deductions with small number of LINE_UNKNOWNs, based on overall
+         * parity of lines. */
+        yes = sstate->dot_yes_count[i];
+        no = sstate->dot_no_count[i];
+        unknown = N - yes - no;
+        diff_tmp = parity_deductions(sstate, d->edges,
+                                     yes % 2, unknown);
+        diff = min(diff, diff_tmp);
     }
 
-    check_caches(sstate);
-
-    FORALL_DOTS(state, i, j) {
-        if (DOT_YES_COUNT(sstate, i, j) == 1 &&
-            DOT_NO_COUNT(sstate, i, j) == 1) {
-            if (dot_relate_2_unknowns(sstate, i, j, TRUE))
-                diff = min(diff, DIFF_HARD);
-            continue;
-        }
-
-        if (DOT_YES_COUNT(sstate, i, j) == 0 &&
-            DOT_NO_COUNT(sstate, i, j) == 2) {
-            if (dot_relate_2_unknowns(sstate, i, j, FALSE))
-                diff = min(diff, DIFF_HARD);
-            continue;
-        }
-    }
-
-    /* If two lines into a dot are related, the other two lines into that dot
-     * are related in the same way. */
-
-    /* iter over points that aren't on edges */
-    for (i = 1; i < w; ++i) {
-        for (j = 1; j < h; ++j) {
-            if (sstate->dot_solved[DOT_INDEX(state, i, j)])
-                continue;
-
-            /* iter over directions */
-            for (dir1 = 0; dir1 < 4; ++dir1) {
-                for (dir2 = dir1+1; dir2 < 4; ++dir2) {
-                    /* canonify both lines */
-                    can1 = edsf_canonify
-                        (sstate->hard->linedsf,
-                         LINEDSF_INDEX(state, i, j, dir1),
-                         &inv1);
-                    can2 = edsf_canonify
-                        (sstate->hard->linedsf,
-                         LINEDSF_INDEX(state, i, j, dir2),
-                         &inv2);
-                    /* merge opposite lines */
-                    if (can1 == can2) {
-                        if (merge_lines(sstate, 
-                                        i, j, OPP_DIR(dir1),
-                                        i, j, OPP_DIR(dir2),
-                                        inv1 ^ inv2)) {
-                            diff = min(diff, DIFF_HARD);
-                        }
-                    }
-                }
-            }
-        }
-    }
+    /* ------ Edge dsf deductions ------ */
 
     /* If the state of a line is known, deduce the state of its canonical line
-     * too. */
-    FORALL_DOTS(state, i, j) {
-        /* Do this even if the dot we're on is solved */
-        if (i < w) {
-            can1 = edsf_canonify(sstate->hard->linedsf, 
-                                 LINEDSF_INDEX(state, i, j, RIGHT),
-                                 &inv1);
-            linedsf_deindex(state, can1, &a, &b, &dir1);
-            s = RIGHTOF_DOT(state, i, j);
-            if (s != LINE_UNKNOWN)
-            {
-                if (set_line_bydot(sstate, a, b, dir1, inv1 ? OPP(s) : s))
-                    diff = min(diff, DIFF_EASY);
-            }
-        }
-        if (j < h) {
-            can1 = edsf_canonify(sstate->hard->linedsf, 
-                                 LINEDSF_INDEX(state, i, j, DOWN),
-                                 &inv1);
-            linedsf_deindex(state, can1, &a, &b, &dir1);
-            s = BELOW_DOT(state, i, j);
-            if (s != LINE_UNKNOWN)
-            {
-                if (set_line_bydot(sstate, a, b, dir1, inv1 ? OPP(s) : s))
-                    diff = min(diff, DIFF_EASY);
-            }
-        }
-    }
-
-    /* Interactions between dline and linedsf */
-    FORALL_DOTS(state, i, j) {
-        if (sstate->dot_solved[DOT_INDEX(state, i, j)])
+     * too, and vice versa. */
+    for (i = 0; i < g->num_edges; i++) {
+        int can, inv;
+        enum line_state s;
+        can = edsf_canonify(sstate->hard->linedsf, i, &inv);
+        if (can == i)
             continue;
-
-        FORALL_DOT_DLINES(dd) {
-            const struct dline dll = dlines[dd], *dl = &dll;
-            if (i == 0 && (dl->dir1 == LEFT || dl->dir2 == LEFT))
-                continue;
-            if (i == w && (dl->dir1 == RIGHT || dl->dir2 == RIGHT))
-                continue;
-            if (j == 0 && (dl->dir1 == UP || dl->dir2 == UP))
-                continue;
-            if (j == h && (dl->dir1 == DOWN || dl->dir2 == DOWN))
-                continue;
-
-            if (get_dot_dline(state, sstate->normal->dot_atleastone,
-                              i, j, dd) &&
-                get_dot_dline(state, sstate->normal->dot_atmostone,
-                              i, j, dd)) {
-                /* atleastone && atmostone => inverse */
-                if (merge_lines(sstate, i, j, dl->dir1, i, j, dl->dir2, 1)) {
-                    diff = min(diff, DIFF_HARD);
-                }
-            } else {
-                /* don't have atleastone and atmostone for this dline */
-                can1 = edsf_canonify(sstate->hard->linedsf,
-                                     LINEDSF_INDEX(state, i, j, dl->dir1),
-                                     &inv1);
-                can2 = edsf_canonify(sstate->hard->linedsf,
-                                     LINEDSF_INDEX(state, i, j, dl->dir2),
-                                     &inv2);
-                if (can1 == can2) {
-                    if (inv1 == inv2) {
-                        /* identical => collapse dline */
-                        if (get_dot_dline(state, 
-                                          sstate->normal->dot_atleastone,
-                                          i, j, dd)) {
-                            if (set_line_bydot(sstate, i, j, 
-                                               dl->dir1, LINE_YES)) {
-                                diff = min(diff, DIFF_EASY);
-                            }
-                            if (set_line_bydot(sstate, i, j, 
-                                               dl->dir2, LINE_YES)) {
-                                diff = min(diff, DIFF_EASY);
-                            }
-                        } else if (get_dot_dline(state, 
-                                                 sstate->normal->dot_atmostone,
-                                                 i, j, dd)) {
-                            if (set_line_bydot(sstate, i, j, 
-                                               dl->dir1, LINE_NO)) {
-                                diff = min(diff, DIFF_EASY);
-                            }
-                            if (set_line_bydot(sstate, i, j, 
-                                               dl->dir2, LINE_NO)) {
-                                diff = min(diff, DIFF_EASY);
-                            }
-                        }
-                    } else {
-                        /* inverse => atleastone && atmostone */
-                        if (set_dot_dline(state, 
-                                          sstate->normal->dot_atleastone,
-                                          i, j, dd)) {
-                            diff = min(diff, DIFF_NORMAL);
-                        }
-                        if (set_dot_dline(state, 
-                                          sstate->normal->dot_atmostone,
-                                          i, j, dd)) {
-                            diff = min(diff, DIFF_NORMAL);
-                        }
-                    }
-                }
-            }
-        }
-    }
-    
-    /* If the state of the canonical line for line 'l' is known, deduce the
-     * state of 'l' */
-    FORALL_DOTS(state, i, j) {
-        if (sstate->dot_solved[DOT_INDEX(state, i, j)])
-            continue;
-
-        if (i < w) {
-            can1 = edsf_canonify(sstate->hard->linedsf, 
-                                 LINEDSF_INDEX(state, i, j, RIGHT),
-                                 &inv1);
-            linedsf_deindex(state, can1, &a, &b, &dir1);
-            s = get_line_status_from_point(state, a, b, dir1);
-            if (s != LINE_UNKNOWN)
-            {
-                if (set_line_bydot(sstate, i, j, RIGHT, inv1 ? OPP(s) : s))
-                    diff = min(diff, DIFF_EASY);
-            }
-        }
-        if (j < h) {
-            can1 = edsf_canonify(sstate->hard->linedsf, 
-                                 LINEDSF_INDEX(state, i, j, DOWN),
-                                 &inv1);
-            linedsf_deindex(state, can1, &a, &b, &dir1);
-            s = get_line_status_from_point(state, a, b, dir1);
-            if (s != LINE_UNKNOWN)
-            {
-                if (set_line_bydot(sstate, i, j, DOWN, inv1 ? OPP(s) : s))
+        s = sstate->state->lines[can];
+        if (s != LINE_UNKNOWN) {
+            if (solver_set_line(sstate, i, inv ? OPP(s) : s))
+                diff = min(diff, DIFF_EASY);
+        } else {
+            s = sstate->state->lines[i];
+            if (s != LINE_UNKNOWN) {
+                if (solver_set_line(sstate, can, inv ? OPP(s) : s))
                     diff = min(diff, DIFF_EASY);
             }
         }
@@ -2883,35 +2494,34 @@ static int loop_deductions(solver_state *sstate)
 {
     int edgecount = 0, clues = 0, satclues = 0, sm1clues = 0;
     game_state *state = sstate->state;
-    int shortest_chainlen = DOT_COUNT(state);
+    grid *g = state->game_grid;
+    int shortest_chainlen = g->num_dots;
     int loop_found = FALSE;
-    int d;
     int dots_connected;
     int progress = FALSE;
-    int i, j;
+    int i;
 
     /*
      * Go through the grid and update for all the new edges.
      * Since merge_dots() is idempotent, the simplest way to
      * do this is just to update for _all_ the edges.
-     * 
-     * Also, while we're here, we count the edges, count the
-     * clues, count the satisfied clues, and count the
+     * Also, while we're here, we count the edges.
+     */
+    for (i = 0; i < g->num_edges; i++) {
+        if (state->lines[i] == LINE_YES) {
+            loop_found |= merge_dots(sstate, i);
+            edgecount++;
+        }
+    }
+
+    /*
+     * Count the clues, count the satisfied clues, and count the
      * satisfied-minus-one clues.
      */
-    FORALL_DOTS(state, i, j) {
-        if (RIGHTOF_DOT(state, i, j) == LINE_YES) {
-            loop_found |= merge_dots(sstate, i, j, i+1, j);
-            edgecount++;
-        }
-        if (BELOW_DOT(state, i, j) == LINE_YES) {
-            loop_found |= merge_dots(sstate, i, j, i, j+1);
-            edgecount++;
-        }
-
-        if (CLUE_AT(state, i, j) >= 0) {
-            int c = CLUE_AT(state, i, j);
-            int o = SQUARE_YES_COUNT(sstate, i, j);
+    for (i = 0; i < g->num_faces; i++) {
+        int c = state->clues[i];
+        if (c >= 0) {
+            int o = sstate->face_yes_count[i];
             if (o == c)
                 satclues++;
             else if (o == c-1)
@@ -2920,8 +2530,8 @@ static int loop_deductions(solver_state *sstate)
         }
     }
 
-    for (i = 0; i < DOT_COUNT(state); ++i) {
-        dots_connected = 
+    for (i = 0; i < g->num_dots; ++i) {
+        dots_connected =
             sstate->looplen[dsf_canonify(sstate->dotdsf, i)];
         if (dots_connected > 1)
             shortest_chainlen = min(shortest_chainlen, dots_connected);
@@ -2933,7 +2543,7 @@ static int loop_deductions(solver_state *sstate)
         sstate->solver_status = SOLVER_SOLVED;
         /* This discovery clearly counts as progress, even if we haven't
          * just added any lines or anything */
-        progress = TRUE; 
+        progress = TRUE;
         goto finished_loop_deductionsing;
     }
 
@@ -2943,179 +2553,134 @@ static int loop_deductions(solver_state *sstate)
      * equivalence class. If we find one, test to see if the
      * loop it would create is a solution.
      */
-    FORALL_DOTS(state, i, j) {
-        for (d = 0; d < 2; d++) {
-            int i2, j2, eqclass, val;
+    for (i = 0; i < g->num_edges; i++) {
+        grid_edge *e = g->edges + i;
+        int d1 = e->dot1 - g->dots;
+        int d2 = e->dot2 - g->dots;
+        int eqclass, val;
+        if (state->lines[i] != LINE_UNKNOWN)
+            continue;
 
-            if (d == 0) {
-                if (RIGHTOF_DOT(state, i, j) !=
-                        LINE_UNKNOWN)
-                    continue;
-                i2 = i+1;
-                j2 = j;
-            } else {
-                if (BELOW_DOT(state, i, j) !=
-                    LINE_UNKNOWN) {
-                    continue;
-                }
-                i2 = i;
-                j2 = j+1;
-            }
+        eqclass = dsf_canonify(sstate->dotdsf, d1);
+        if (eqclass != dsf_canonify(sstate->dotdsf, d2))
+            continue;
 
-            eqclass = dsf_canonify(sstate->dotdsf, j * (state->w+1) + i);
-            if (eqclass != dsf_canonify(sstate->dotdsf,
-                                        j2 * (state->w+1) + i2)) {
-                continue;
-            }
+        val = LINE_NO;  /* loop is bad until proven otherwise */
 
-            val = LINE_NO;  /* loop is bad until proven otherwise */
+        /*
+         * This edge would form a loop. Next
+         * question: how long would the loop be?
+         * Would it equal the total number of edges
+         * (plus the one we'd be adding if we added
+         * it)?
+         */
+        if (sstate->looplen[eqclass] == edgecount + 1) {
+            int sm1_nearby;
 
             /*
-             * This edge would form a loop. Next
-             * question: how long would the loop be?
-             * Would it equal the total number of edges
-             * (plus the one we'd be adding if we added
-             * it)?
+             * This edge would form a loop which
+             * took in all the edges in the entire
+             * grid. So now we need to work out
+             * whether it would be a valid solution
+             * to the puzzle, which means we have to
+             * check if it satisfies all the clues.
+             * This means that every clue must be
+             * either satisfied or satisfied-minus-
+             * 1, and also that the number of
+             * satisfied-minus-1 clues must be at
+             * most two and they must lie on either
+             * side of this edge.
              */
-            if (sstate->looplen[eqclass] == edgecount + 1) {
-                int sm1_nearby;
-                int cx, cy;
-
-                /*
-                 * This edge would form a loop which
-                 * took in all the edges in the entire
-                 * grid. So now we need to work out
-                 * whether it would be a valid solution
-                 * to the puzzle, which means we have to
-                 * check if it satisfies all the clues.
-                 * This means that every clue must be
-                 * either satisfied or satisfied-minus-
-                 * 1, and also that the number of
-                 * satisfied-minus-1 clues must be at
-                 * most two and they must lie on either
-                 * side of this edge.
-                 */
-                sm1_nearby = 0;
-                cx = i - (j2-j);
-                cy = j - (i2-i);
-                if (CLUE_AT(state, cx,cy) >= 0 &&
-                        square_order(state, cx,cy, LINE_YES) ==
-                        CLUE_AT(state, cx,cy) - 1) {
+            sm1_nearby = 0;
+            if (e->face1) {
+                int f = e->face1 - g->faces;
+                int c = state->clues[f];
+                if (c >= 0 && sstate->face_yes_count[f] == c - 1)
                     sm1_nearby++;
-                }
-                if (CLUE_AT(state, i, j) >= 0 &&
-                        SQUARE_YES_COUNT(sstate, i, j) ==
-                        CLUE_AT(state, i, j) - 1) {
+            }
+            if (e->face2) {
+                int f = e->face2 - g->faces;
+                int c = state->clues[f];
+                if (c >= 0 && sstate->face_yes_count[f] == c - 1)
                     sm1_nearby++;
-                }
-                if (sm1clues == sm1_nearby &&
-                    sm1clues + satclues == clues) {
-                    val = LINE_YES;  /* loop is good! */
-                }
             }
+            if (sm1clues == sm1_nearby &&
+		sm1clues + satclues == clues) {
+                val = LINE_YES;  /* loop is good! */
+            }
+        }
 
-            /*
-             * Right. Now we know that adding this edge
-             * would form a loop, and we know whether
-             * that loop would be a viable solution or
-             * not.
-             * 
-             * If adding this edge produces a solution,
-             * then we know we've found _a_ solution but
-             * we don't know that it's _the_ solution -
-             * if it were provably the solution then
-             * we'd have deduced this edge some time ago
-             * without the need to do loop detection. So
-             * in this state we return SOLVER_AMBIGUOUS,
-             * which has the effect that hitting Solve
-             * on a user-provided puzzle will fill in a
-             * solution but using the solver to
-             * construct new puzzles won't consider this
-             * a reasonable deduction for the user to
-             * make.
-             */
-            if (d == 0) {
-                progress = set_line_bydot(sstate, i, j, RIGHT, val);
-                assert(progress == TRUE);
-            } else {
-                progress = set_line_bydot(sstate, i, j, DOWN, val);
-                assert(progress == TRUE);
-            }
-            if (val == LINE_YES) {
-                sstate->solver_status = SOLVER_AMBIGUOUS;
-                goto finished_loop_deductionsing;
-            }
+        /*
+         * Right. Now we know that adding this edge
+         * would form a loop, and we know whether
+         * that loop would be a viable solution or
+         * not.
+         *
+         * If adding this edge produces a solution,
+         * then we know we've found _a_ solution but
+         * we don't know that it's _the_ solution -
+         * if it were provably the solution then
+         * we'd have deduced this edge some time ago
+         * without the need to do loop detection. So
+         * in this state we return SOLVER_AMBIGUOUS,
+         * which has the effect that hitting Solve
+         * on a user-provided puzzle will fill in a
+         * solution but using the solver to
+         * construct new puzzles won't consider this
+         * a reasonable deduction for the user to
+         * make.
+         */
+        progress = solver_set_line(sstate, i, val);
+        assert(progress == TRUE);
+        if (val == LINE_YES) {
+            sstate->solver_status = SOLVER_AMBIGUOUS;
+            goto finished_loop_deductionsing;
         }
     }
 
-finished_loop_deductionsing:
+    finished_loop_deductionsing:
     return progress ? DIFF_EASY : DIFF_MAX;
 }
 
 /* This will return a dynamically allocated solver_state containing the (more)
  * solved grid */
-static solver_state *solve_game_rec(const solver_state *sstate_start, 
+static solver_state *solve_game_rec(const solver_state *sstate_start,
                                     int diff)
 {
-    int i, j;
-    int w, h;
-    solver_state *sstate, *sstate_saved, *sstate_tmp;
-    solver_state *sstate_rec_solved;
-    int recursive_soln_count;
+    solver_state *sstate, *sstate_saved;
     int solver_progress;
     game_state *state;
 
     /* Indicates which solver we should call next.  This is a sensible starting
      * point */
     int current_solver = DIFF_EASY, next_solver;
-#ifdef SHOW_WORKING
-    char *text;
-#endif
-
-#if 0
-    printf("solve_game_rec: recursion_remaining = %d\n", 
-           sstate_start->recursion_remaining);
-#endif
-
     sstate = dup_solver_state(sstate_start);
- 
+
     /* Cache the values of some variables for readability */
     state = sstate->state;
-    h = state->h;
-    w = state->w;
 
     sstate_saved = NULL;
 
-nonrecursive_solver:
     solver_progress = FALSE;
 
     check_caches(sstate);
 
     do {
-#ifdef SHOW_WORKING
-        text = game_text_format(state);
-        fprintf(stderr, "-----------------\n%s", text);
-        sfree(text);
-#endif
-
         if (sstate->solver_status == SOLVER_MISTAKE)
             return sstate;
 
-/*        fprintf(stderr, "Invoking solver %d\n", current_solver); */
         next_solver = solver_fns[current_solver](sstate);
 
         if (next_solver == DIFF_MAX) {
-/*            fprintf(stderr, "Current solver failed\n"); */
             if (current_solver < diff && current_solver + 1 < DIFF_MAX) {
                 /* Try next beefier solver */
                 next_solver = current_solver + 1;
             } else {
-/*                fprintf(stderr, "Doing loop deductions\n"); */
                 next_solver = loop_deductions(sstate);
             }
         }
 
-        if (sstate->solver_status == SOLVER_SOLVED || 
+        if (sstate->solver_status == SOLVER_SOLVED ||
             sstate->solver_status == SOLVER_AMBIGUOUS) {
 /*            fprintf(stderr, "Solver completed\n"); */
             break;
@@ -3129,116 +2694,13 @@ nonrecursive_solver:
     if (sstate->solver_status == SOLVER_SOLVED ||
         sstate->solver_status == SOLVER_AMBIGUOUS) {
         /* s/LINE_UNKNOWN/LINE_NO/g */
-        array_setall(sstate->state->hl, LINE_UNKNOWN, LINE_NO, 
-                     HL_COUNT(sstate->state));
-        array_setall(sstate->state->vl, LINE_UNKNOWN, LINE_NO, 
-                     VL_COUNT(sstate->state));
+        array_setall(sstate->state->lines, LINE_UNKNOWN, LINE_NO,
+                     sstate->state->game_grid->num_edges);
         return sstate;
-    }
-
-    /* Perform recursive calls */
-    if (sstate->recursion_remaining) {
-        sstate_saved = dup_solver_state(sstate);
-
-        sstate->recursion_remaining--;
-
-        recursive_soln_count = 0;
-        sstate_rec_solved = NULL;
-
-        /* Memory management: 
-         * sstate_saved won't be modified but needs to be freed when we have
-         * finished with it.
-         * sstate is expected to contain our 'best' solution by the time we
-         * finish this section of code.  It's the thing we'll try adding lines
-         * to, seeing if they make it more solvable.
-         * If sstate_rec_solved is non-NULL, it will supersede sstate
-         * eventually.  sstate_tmp should not hold a value persistently.
-         */
-
-        /* NB SOLVER_AMBIGUOUS is like SOLVER_SOLVED except the solver is aware
-         * of the possibility of additional solutions.  So as soon as we have a
-         * SOLVER_AMBIGUOUS we can safely propagate it back to our caller, but
-         * if we get a SOLVER_SOLVED we want to keep trying in case we find
-         * further solutions and have to mark it ambiguous.
-         */
-
-#define DO_RECURSIVE_CALL(dir_dot) \
-    if (dir_dot(sstate->state, i, j) == LINE_UNKNOWN) { \
-        debug(("Trying " #dir_dot " at [%d,%d]\n", i, j)); \
-        LV_##dir_dot(sstate->state, i, j) = LINE_YES; \
-        sstate_tmp = solve_game_rec(sstate, diff); \
-        switch (sstate_tmp->solver_status) { \
-            case SOLVER_AMBIGUOUS: \
-                debug(("Solver ambiguous, returning\n")); \
-                sstate_rec_solved = sstate_tmp; \
-                goto finished_recursion; \
-            case SOLVER_SOLVED: \
-                switch (++recursive_soln_count) { \
-                    case 1: \
-                        debug(("One solution found\n")); \
-                        sstate_rec_solved = sstate_tmp; \
-                        break; \
-                    case 2: \
-                        debug(("Ambiguous solutions found\n")); \
-                        free_solver_state(sstate_tmp); \
-                        sstate_rec_solved->solver_status = SOLVER_AMBIGUOUS; \
-                        goto finished_recursion; \
-                    default: \
-                        assert(!"recursive_soln_count out of range"); \
-                        break; \
-                } \
-                break; \
-            case SOLVER_MISTAKE: \
-                debug(("Non-solution found\n")); \
-                free_solver_state(sstate_tmp); \
-                free_solver_state(sstate_saved); \
-                LV_##dir_dot(sstate->state, i, j) = LINE_NO; \
-                goto nonrecursive_solver; \
-            case SOLVER_INCOMPLETE: \
-                debug(("Recursive step inconclusive\n")); \
-                free_solver_state(sstate_tmp); \
-                break; \
-        } \
-        free_solver_state(sstate); \
-        sstate = dup_solver_state(sstate_saved); \
-    }
-       
-       FORALL_DOTS(state, i, j) {
-           /* Only perform recursive calls on 'loose ends' */
-           if (DOT_YES_COUNT(sstate, i, j) == 1) {
-               DO_RECURSIVE_CALL(LEFTOF_DOT);
-               DO_RECURSIVE_CALL(RIGHTOF_DOT);
-               DO_RECURSIVE_CALL(ABOVE_DOT);
-               DO_RECURSIVE_CALL(BELOW_DOT);
-           }
-       }
-
-finished_recursion:
-
-       if (sstate_rec_solved) {
-           free_solver_state(sstate);
-           sstate = sstate_rec_solved;
-       } 
     }
 
     return sstate;
 }
-
-#if 0
-#define HANDLE_DLINE(dline, dir1_sq, dir2_sq, a, b) \
-               if (sstate->normal->dot_atmostone[i+a + (sstate->state->w + 1) * (j+b)] & \
-                   1<<dline) { \
-                   if (square_order(sstate->state, i, j,  LINE_UNKNOWN) - 1 == \
-                       CLUE_AT(sstate->state, i, j) - '0') { \
-                       square_setall(sstate->state, i, j, LINE_UNKNOWN, LINE_YES); \
-                           /* XXX the following may overwrite known data! */ \
-                       dir1_sq(sstate->state, i, j) = LINE_UNKNOWN; \
-                       dir2_sq(sstate->state, i, j) = LINE_UNKNOWN; \
-                   } \
-               }
-               SQUARE_DLINES;
-#undef HANDLE_DLINE
-#endif
 
 static char *solve_game(game_state *state, game_state *currstate,
                         char *aux, char **error)
@@ -3272,99 +2734,65 @@ static char *solve_game(game_state *state, game_state *currstate,
 static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
                             int x, int y, int button)
 {
-    int hl_selected;
-    int i, j, p, q; 
+    grid *g = state->game_grid;
+    grid_edge *e;
+    int i;
     char *ret, buf[80];
     char button_char = ' ';
     enum line_state old_state;
 
     button &= ~MOD_MASK;
 
-    /* Around each line is a diamond-shaped region where points within that
-     * region are closer to this line than any other.  We assume any click
-     * within a line's diamond was meant for that line.  It would all be a lot
-     * simpler if the / and % operators respected modulo arithmetic properly
-     * for negative numbers. */
-    
-    x -= BORDER;
-    y -= BORDER;
+    /* Convert mouse-click (x,y) to grid coordinates */
+    x -= BORDER(ds->tilesize);
+    y -= BORDER(ds->tilesize);
+    x = x * g->tilesize / ds->tilesize;
+    y = y * g->tilesize / ds->tilesize;
+    x += g->lowest_x;
+    y += g->lowest_y;
 
-    /* Get the coordinates of the square the click was in */
-    i = (x + TILE_SIZE) / TILE_SIZE - 1; 
-    j = (y + TILE_SIZE) / TILE_SIZE - 1;
-
-    /* Get the precise position inside square [i,j] */
-    p = (x + TILE_SIZE) % TILE_SIZE;
-    q = (y + TILE_SIZE) % TILE_SIZE;
-
-    /* After this bit of magic [i,j] will correspond to the point either above
-     * or to the left of the line selected */
-    if (p > q) { 
-        if (TILE_SIZE - p > q) {
-            hl_selected = TRUE;
-        } else {
-            hl_selected = FALSE;
-            ++i;
-        }
-    } else {
-        if (TILE_SIZE - q > p) {
-            hl_selected = FALSE;
-        } else {
-            hl_selected = TRUE;
-            ++j;
-        }
-    }
-
-    if (i < 0 || j < 0)
+    e = grid_nearest_edge(g, x, y);
+    if (e == NULL)
         return NULL;
 
-    if (hl_selected) {
-        if (i >= state->w || j >= state->h + 1)
-            return NULL;
-    } else { 
-        if (i >= state->w + 1 || j >= state->h)
-            return NULL;
-    }
+    i = e - g->edges;
 
     /* I think it's only possible to play this game with mouse clicks, sorry */
     /* Maybe will add mouse drag support some time */
-    if (hl_selected)
-        old_state = RIGHTOF_DOT(state, i, j);
-    else
-        old_state = BELOW_DOT(state, i, j);
+    old_state = state->lines[i];
 
     switch (button) {
-        case LEFT_BUTTON:
-            switch (old_state) {
-                case LINE_UNKNOWN:
-                    button_char = 'y';
-                    break;
-                case LINE_YES:
-                case LINE_NO:
-                    button_char = 'u';
-                    break;
-            }
-            break;
-        case MIDDLE_BUTTON:
-            button_char = 'u';
-            break;
-        case RIGHT_BUTTON:
-            switch (old_state) {
-                case LINE_UNKNOWN:
-                    button_char = 'n';
-                    break;
-                case LINE_NO:
-                case LINE_YES:
-                    button_char = 'u';
-                    break;
-            }
-            break;
-        default:
-            return NULL;
+      case LEFT_BUTTON:
+	switch (old_state) {
+	  case LINE_UNKNOWN:
+	    button_char = 'y';
+	    break;
+	  case LINE_YES:
+	  case LINE_NO:
+	    button_char = 'u';
+	    break;
+	}
+	break;
+      case MIDDLE_BUTTON:
+	button_char = 'u';
+	break;
+      case RIGHT_BUTTON:
+	switch (old_state) {
+	  case LINE_UNKNOWN:
+	    button_char = 'n';
+	    break;
+	  case LINE_NO:
+	  case LINE_YES:
+	    button_char = 'u';
+	    break;
+	}
+	break;
+      default:
+	return NULL;
     }
 
 
-    sprintf(buf, "%d,%d%c%c", i, j, (int)(hl_selected ? 'h' : 'v'), (int)button_char);
+    sprintf(buf, "%d%c", i, (int)button_char);
     ret = dupstr(buf);
 
     return ret;
@@ -3372,8 +2800,9 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
 
 static game_state *execute_move(game_state *state, char *move)
 {
-    int i, j;
+    int i;
     game_state *newstate = dup_game(state);
+    grid *g = state->game_grid;
 
     if (move[0] == 'S') {
         move++;
@@ -3382,104 +2811,60 @@ static game_state *execute_move(game_state *state, char *move)
 
     while (*move) {
         i = atoi(move);
-        move = strchr(move, ',');
-        if (!move)
-            goto fail;
-        j = atoi(++move);
         move += strspn(move, "1234567890");
         switch (*(move++)) {
-            case 'h':
-                if (i >= newstate->w || j > newstate->h)
-                    goto fail;
-                switch (*(move++)) {
-                    case 'y':
-                        LV_RIGHTOF_DOT(newstate, i, j) = LINE_YES;
-                        break;
-                    case 'n':
-                        LV_RIGHTOF_DOT(newstate, i, j) = LINE_NO;
-                        break;
-                    case 'u':
-                        LV_RIGHTOF_DOT(newstate, i, j) = LINE_UNKNOWN;
-                        break;
-                    default:
-                        goto fail;
-                }
-                break;
-            case 'v':
-                if (i > newstate->w || j >= newstate->h)
-                    goto fail;
-                switch (*(move++)) {
-                    case 'y':
-                        LV_BELOW_DOT(newstate, i, j) = LINE_YES;
-                        break;
-                    case 'n':
-                        LV_BELOW_DOT(newstate, i, j) = LINE_NO;
-                        break;
-                    case 'u':
-                        LV_BELOW_DOT(newstate, i, j) = LINE_UNKNOWN;
-                        break;
-                    default:
-                        goto fail;
-                }
-                break;
-            default:
-                goto fail;
+	  case 'y':
+	    newstate->lines[i] = LINE_YES;
+	    break;
+	  case 'n':
+	    newstate->lines[i] = LINE_NO;
+	    break;
+	  case 'u':
+	    newstate->lines[i] = LINE_UNKNOWN;
+	    break;
+	  default:
+	    goto fail;
         }
     }
 
     /*
      * Check for completion.
      */
-    i = 0;                   /* placate optimiser */
-    for (j = 0; j <= newstate->h; j++) {
-        for (i = 0; i < newstate->w; i++)
-            if (LV_RIGHTOF_DOT(newstate, i, j) == LINE_YES)
-                break;
-        if (i < newstate->w)
+    for (i = 0; i < g->num_edges; i++) {
+        if (newstate->lines[i] == LINE_YES)
             break;
     }
-    if (j <= newstate->h) {
-        int prevdir = 'R';
-        int x = i, y = j;
+    if (i < g->num_edges) {
         int looplen, count;
-
+        grid_edge *start_edge = g->edges + i;
+        grid_edge *e = start_edge;
+        grid_dot *d = e->dot1;
         /*
-         * We've found a horizontal edge at (i,j). Follow it round
+         * We've found an edge i. Follow it round
          * to see if it's part of a loop.
          */
         looplen = 0;
         while (1) {
-            int order = dot_order(newstate, x, y, LINE_YES);
+            int j;
+            int order = dot_order(newstate, d - g->dots, LINE_YES);
             if (order != 2)
                 goto completion_check_done;
 
-            if (LEFTOF_DOT(newstate, x, y) == LINE_YES && prevdir != 'L') {
-                x--;
-                prevdir = 'R';
-            } else if (RIGHTOF_DOT(newstate, x, y) == LINE_YES &&
-                       prevdir != 'R') {
-                x++;
-                prevdir = 'L';
-            } else if (ABOVE_DOT(newstate, x, y) == LINE_YES &&
-                       prevdir != 'U') {
-                y--;
-                prevdir = 'D';
-            } else if (BELOW_DOT(newstate, x, y) == LINE_YES && 
-                       prevdir != 'D') {
-                y++;
-                prevdir = 'U';
-            } else {
-                assert(!"Can't happen");   /* dot_order guarantees success */
+            /* Find other edge around this dot */
+            for (j = 0; j < d->order; j++) {
+                grid_edge *e2 = d->edges[j];
+                if (e2 != e && newstate->lines[e2 - g->edges] == LINE_YES)
+                    break;
             }
+            assert(j != d->order); /* dot_order guarantees success */
 
+            e = d->edges[j];
+            d = (e->dot1 == d) ? e->dot2 : e->dot1;
             looplen++;
 
-            if (x == i && y == j)
+            if (e == start_edge)
                 break;
         }
-
-        if (x != i || y != j || looplen == 0)
-            goto completion_check_done;
 
         /*
          * We've traced our way round a loop, and we know how many
@@ -3488,9 +2873,9 @@ static game_state *execute_move(game_state *state, char *move)
          * all.
          */
         count = 0;
-        FORALL_DOTS(newstate, i, j) {
-            count += ((RIGHTOF_DOT(newstate, i, j) == LINE_YES) +
-                      (BELOW_DOT(newstate, i, j) == LINE_YES));
+        for (i = 0; i < g->num_edges; i++) {
+            if (newstate->lines[i] == LINE_YES)
+                count++;
         }
         assert(count >= looplen);
         if (count != looplen)
@@ -3500,10 +2885,10 @@ static game_state *execute_move(game_state *state, char *move)
          * The grid contains one closed loop and nothing else.
          * Check that all the clues are satisfied.
          */
-        FORALL_SQUARES(newstate, i, j) {
-            if (CLUE_AT(newstate, i, j) >= 0) {
-                if (square_order(newstate, i, j, LINE_YES) != 
-                    CLUE_AT(newstate, i, j)) {
+        for (i = 0; i < g->num_faces; i++) {
+            int c = newstate->clues[i];
+            if (c >= 0) {
+                if (face_order(newstate, i, LINE_YES) != c) {
                     goto completion_check_done;
                 }
             }
@@ -3515,10 +2900,10 @@ static game_state *execute_move(game_state *state, char *move)
         newstate->solved = TRUE;
     }
 
-completion_check_done:
+    completion_check_done:
     return newstate;
 
-fail:
+    fail:
     free_game(newstate);
     return NULL;
 }
@@ -3526,14 +2911,58 @@ fail:
 /* ----------------------------------------------------------------------
  * Drawing routines.
  */
+
+/* Convert from grid coordinates to screen coordinates */
+static void grid_to_screen(const game_drawstate *ds, const grid *g,
+                           int grid_x, int grid_y, int *x, int *y)
+{
+    *x = grid_x - g->lowest_x;
+    *y = grid_y - g->lowest_y;
+    *x = *x * ds->tilesize / g->tilesize;
+    *y = *y * ds->tilesize / g->tilesize;
+    *x += BORDER(ds->tilesize);
+    *y += BORDER(ds->tilesize);
+}
+
+/* Returns (into x,y) position of centre of face for rendering the text clue.
+ */
+static void face_text_pos(const game_drawstate *ds, const grid *g,
+                          const grid_face *f, int *x, int *y)
+{
+    int i;
+
+    /* Simplest solution is the centroid. Might not work in some cases. */
+
+    /* Another algorithm to look into:
+     * Find the midpoints of the sides, find the bounding-box,
+     * then take the centre of that. */
+
+    /* Best solution probably involves incentres (inscribed circles) */
+
+    int sx = 0, sy = 0; /* sums */
+    for (i = 0; i < f->order; i++) {
+        grid_dot *d = f->dots[i];
+        sx += d->x;
+        sy += d->y;
+    }
+    sx /= f->order;
+    sy /= f->order;
+
+    /* convert to screen coordinates */
+    grid_to_screen(ds, g, sx, sy, x, y);
+}
+
 static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
                         game_state *state, int dir, game_ui *ui,
                         float animtime, float flashtime)
 {
-    int i, j, n;
+    grid *g = state->game_grid;
+    int border = BORDER(ds->tilesize);
+    int i, n;
     char c[2];
     int line_colour, flash_changed;
     int clue_mistake;
+    int clue_satisfied;
 
     if (!ds->started) {
         /*
@@ -3542,76 +2971,126 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
          * should start by drawing a big background-colour rectangle
          * covering the whole window.
          */
-        draw_rect(dr, 0, 0, SIZE(state->w), SIZE(state->h), COL_BACKGROUND);
-
-        /* Draw dots */
-        FORALL_DOTS(state, i, j) {
-            draw_rect(dr, 
-                      BORDER + i * TILE_SIZE - LINEWIDTH/2,
-                      BORDER + j * TILE_SIZE - LINEWIDTH/2,
-                      LINEWIDTH, LINEWIDTH, COL_FOREGROUND);
-        }
+        int grid_width = g->highest_x - g->lowest_x;
+        int grid_height = g->highest_y - g->lowest_y;
+        int w = grid_width * ds->tilesize / g->tilesize;
+        int h = grid_height * ds->tilesize / g->tilesize;
+        draw_rect(dr, 0, 0, w + 2 * border, h + 2 * border, COL_BACKGROUND);
 
         /* Draw clues */
-        FORALL_SQUARES(state, i, j) {
-            c[0] = CLUE2CHAR(CLUE_AT(state, i, j));
+        for (i = 0; i < g->num_faces; i++) {
+            c[0] = CLUE2CHAR(state->clues[i]);
             c[1] = '\0';
-            draw_text(dr, 
-                      BORDER + i * TILE_SIZE + TILE_SIZE/2,
-                      BORDER + j * TILE_SIZE + TILE_SIZE/2,
-                      FONT_VARIABLE, TILE_SIZE/2, 
+            int x, y;
+            grid_face *f = g->faces + i;
+            face_text_pos(ds, g, f, &x, &y);
+            draw_text(dr, x, y, FONT_VARIABLE, ds->tilesize/2,
                       ALIGN_VCENTRE | ALIGN_HCENTRE, COL_FOREGROUND, c);
         }
-        draw_update(dr, 0, 0,
-                    state->w * TILE_SIZE + 2*BORDER + 1,
-                    state->h * TILE_SIZE + 2*BORDER + 1);
-        ds->started = TRUE;
+        draw_update(dr, 0, 0, w + 2 * border, h + 2 * border);
     }
 
-    if (flashtime > 0 && 
+    if (flashtime > 0 &&
         (flashtime <= FLASH_TIME/3 ||
          flashtime >= FLASH_TIME*2/3)) {
         flash_changed = !ds->flashing;
         ds->flashing = TRUE;
-        line_colour = COL_HIGHLIGHT;
     } else {
         flash_changed = ds->flashing;
         ds->flashing = FALSE;
-        line_colour = COL_FOREGROUND;
     }
 
-#define CROSS_SIZE (3 * LINEWIDTH / 2)
-    
+    /* Some platforms may perform anti-aliasing, which may prevent clean
+     * repainting of lines when the colour is changed.
+     * If a line needs to be over-drawn in a different colour, erase a
+     * bounding-box around the line, then flag all nearby objects for redraw.
+     */
+    if (ds->started) {
+        const char redraw_flag = 1<<7;
+        for (i = 0; i < g->num_edges; i++) {
+            /* If we're changing state, AND
+             * the previous state was a coloured line */
+            if ((state->lines[i] != (ds->lines[i] & ~redraw_flag)) &&
+		((ds->lines[i] & ~redraw_flag) != LINE_NO)) {
+                grid_edge *e = g->edges + i;
+                int x1 = e->dot1->x;
+                int y1 = e->dot1->y;
+                int x2 = e->dot2->x;
+                int y2 = e->dot2->y;
+                int xmin, xmax, ymin, ymax;
+                int j;
+                grid_to_screen(ds, g, x1, y1, &x1, &y1);
+                grid_to_screen(ds, g, x2, y2, &x2, &y2);
+                /* Allow extra margin for dots, and thickness of lines */
+                xmin = min(x1, x2) - 2;
+                xmax = max(x1, x2) + 2;
+                ymin = min(y1, y2) - 2;
+                ymax = max(y1, y2) + 2;
+                /* For testing, I find it helpful to change COL_BACKGROUND
+                 * to COL_SATISFIED here. */
+                draw_rect(dr, xmin, ymin, xmax - xmin + 1, ymax - ymin + 1,
+                          COL_BACKGROUND);
+                draw_update(dr, xmin, ymin, xmax - xmin + 1, ymax - ymin + 1);
+
+                /* Mark nearby lines for redraw */
+                for (j = 0; j < e->dot1->order; j++)
+                    ds->lines[e->dot1->edges[j] - g->edges] |= redraw_flag;
+                for (j = 0; j < e->dot2->order; j++)
+                    ds->lines[e->dot2->edges[j] - g->edges] |= redraw_flag;
+                /* Mark nearby clues for redraw.  Use a value that is
+                 * neither TRUE nor FALSE for this. */
+                if (e->face1)
+                    ds->clue_error[e->face1 - g->faces] = 2;
+                if (e->face2)
+                    ds->clue_error[e->face2 - g->faces] = 2;
+            }
+        }
+    }
+
     /* Redraw clue colours if necessary */
-    FORALL_SQUARES(state, i, j) {
-        n = CLUE_AT(state, i, j);
+    for (i = 0; i < g->num_faces; i++) {
+        grid_face *f = g->faces + i;
+        int sides = f->order;
+        int j;
+        n = state->clues[i];
         if (n < 0)
             continue;
 
-        assert(n >= 0 && n <= 4);
-
-        c[0] = CLUE2CHAR(CLUE_AT(state, i, j));
+        c[0] = CLUE2CHAR(n);
         c[1] = '\0';
 
-        clue_mistake = (square_order(state, i, j, LINE_YES) > n ||
-                        square_order(state, i, j, LINE_NO ) > (4-n));
+        clue_mistake = (face_order(state, i, LINE_YES) > n ||
+                        face_order(state, i, LINE_NO ) > (sides-n));
 
-        if (clue_mistake != ds->clue_error[SQUARE_INDEX(state, i, j)]) {
-            draw_rect(dr, 
-                      BORDER + i * TILE_SIZE + CROSS_SIZE,
-                      BORDER + j * TILE_SIZE + CROSS_SIZE,
-                      TILE_SIZE - CROSS_SIZE * 2, TILE_SIZE - CROSS_SIZE * 2,
+        clue_satisfied = (face_order(state, i, LINE_YES) == n &&
+                          face_order(state, i, LINE_NO ) == (sides-n));
+
+        if (clue_mistake != ds->clue_error[i]
+	    || clue_satisfied != ds->clue_satisfied[i]) {
+            int x, y;
+            face_text_pos(ds, g, f, &x, &y);
+            /* There seems to be a certain amount of trial-and-error
+             * involved in working out the correct bounding-box for
+             * the text. */
+            draw_rect(dr, x - ds->tilesize/4 - 1, y - ds->tilesize/4 - 3,
+                      ds->tilesize/2 + 2, ds->tilesize/2 + 5,
                       COL_BACKGROUND);
-            draw_text(dr, 
-                      BORDER + i * TILE_SIZE + TILE_SIZE/2,
-                      BORDER + j * TILE_SIZE + TILE_SIZE/2,
-                      FONT_VARIABLE, TILE_SIZE/2, 
-                      ALIGN_VCENTRE | ALIGN_HCENTRE, 
-                      clue_mistake ? COL_MISTAKE : COL_FOREGROUND, c);
-            draw_update(dr, i * TILE_SIZE + BORDER, j * TILE_SIZE + BORDER,
-                        TILE_SIZE, TILE_SIZE);
+            draw_text(dr, x, y,
+                      FONT_VARIABLE, ds->tilesize/2,
+                      ALIGN_VCENTRE | ALIGN_HCENTRE,
+                      clue_mistake ? COL_MISTAKE :
+                      clue_satisfied ? COL_SATISFIED : COL_FOREGROUND, c);
+            draw_update(dr, x - ds->tilesize/4 - 1, y - ds->tilesize/4 - 3,
+                        ds->tilesize/2 + 2, ds->tilesize/2 + 5);
 
-            ds->clue_error[SQUARE_INDEX(state, i, j)] = clue_mistake;
+            ds->clue_error[i] = clue_mistake;
+            ds->clue_satisfied[i] = clue_satisfied;
+
+            /* Sometimes, the bounding-box encroaches into the surrounding
+             * lines (particularly if the window is resized fairly small).
+             * So redraw them. */
+            for (j = 0; j < f->order; j++)
+                ds->lines[f->edges[j] - g->edges] = -1;
         }
     }
 
@@ -3619,115 +3098,69 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
      * loop, or if more than two lines go into any point.  I think that would
      * be good some time. */
 
-#define CLEAR_VL(i, j) \
-    do { \
-       draw_rect(dr, \
-                 BORDER + i * TILE_SIZE - CROSS_SIZE, \
-                 BORDER + j * TILE_SIZE + LINEWIDTH - LINEWIDTH/2, \
-                 CROSS_SIZE * 2, \
-                 TILE_SIZE - LINEWIDTH, \
-                 COL_BACKGROUND); \
-        draw_update(dr, \
-                    BORDER + i * TILE_SIZE - CROSS_SIZE, \
-                    BORDER + j * TILE_SIZE - CROSS_SIZE, \
-                    CROSS_SIZE*2, \
-                    TILE_SIZE + CROSS_SIZE*2); \
-    } while (0)
+    /* Lines */
+    for (i = 0; i < g->num_edges; i++) {
+        grid_edge *e = g->edges + i;
+        int x1, x2, y1, y2;
+        int xmin, ymin, xmax, ymax;
+        int need_draw = (state->lines[i] != ds->lines[i]) ? TRUE : FALSE;
+        if (flash_changed && (state->lines[i] == LINE_YES))
+            need_draw = TRUE;
+        if (!ds->started)
+            need_draw = TRUE; /* draw everything at the start */
+        ds->lines[i] = state->lines[i];
+        if (!need_draw)
+            continue;
+        if (state->lines[i] == LINE_UNKNOWN)
+            line_colour = COL_LINEUNKNOWN;
+        else if (state->lines[i] == LINE_NO)
+            line_colour = COL_BACKGROUND;
+        else if (ds->flashing)
+            line_colour = COL_HIGHLIGHT;
+        else
+            line_colour = COL_FOREGROUND;
 
-#define CLEAR_HL(i, j) \
-    do { \
-       draw_rect(dr, \
-                 BORDER + i * TILE_SIZE + LINEWIDTH - LINEWIDTH/2, \
-                 BORDER + j * TILE_SIZE - CROSS_SIZE, \
-                 TILE_SIZE - LINEWIDTH, \
-                 CROSS_SIZE * 2, \
-                 COL_BACKGROUND); \
-       draw_update(dr, \
-                   BORDER + i * TILE_SIZE - CROSS_SIZE, \
-                   BORDER + j * TILE_SIZE - CROSS_SIZE, \
-                   TILE_SIZE + CROSS_SIZE*2, \
-                   CROSS_SIZE*2); \
-    } while (0)
+        /* Convert from grid to screen coordinates */
+        grid_to_screen(ds, g, e->dot1->x, e->dot1->y, &x1, &y1);
+        grid_to_screen(ds, g, e->dot2->x, e->dot2->y, &x2, &y2);
 
-    /* Vertical lines */
-    FORALL_VL(state, i, j) {
-        switch (BELOW_DOT(state, i, j)) {
-            case LINE_UNKNOWN:
-                if (ds->vl[VL_INDEX(state, i, j)] != BELOW_DOT(state, i, j)) {
-                    CLEAR_VL(i, j);
-                }
-                break;
-            case LINE_YES:
-                if (ds->vl[VL_INDEX(state, i, j)] != BELOW_DOT(state, i, j) ||
-                    flash_changed) {
-                    CLEAR_VL(i, j);
-                    draw_rect(dr,
-                              BORDER + i * TILE_SIZE - LINEWIDTH/2,
-                              BORDER + j * TILE_SIZE + LINEWIDTH - LINEWIDTH/2,
-                              LINEWIDTH, TILE_SIZE - LINEWIDTH, 
-                              line_colour);
-                }
-                break;
-            case LINE_NO:
-                if (ds->vl[VL_INDEX(state, i, j)] != BELOW_DOT(state, i, j)) {
-                    CLEAR_VL(i, j);
-                    draw_line(dr,
-                              BORDER + i * TILE_SIZE - CROSS_SIZE,
-                              BORDER + j * TILE_SIZE + TILE_SIZE/2 - CROSS_SIZE,
-                              BORDER + i * TILE_SIZE + CROSS_SIZE - 1,
-                              BORDER + j * TILE_SIZE + TILE_SIZE/2 + CROSS_SIZE - 1,
-                              COL_FOREGROUND);
-                    draw_line(dr,
-                              BORDER + i * TILE_SIZE + CROSS_SIZE - 1,
-                              BORDER + j * TILE_SIZE + TILE_SIZE/2 - CROSS_SIZE,
-                              BORDER + i * TILE_SIZE - CROSS_SIZE,
-                              BORDER + j * TILE_SIZE + TILE_SIZE/2 + CROSS_SIZE - 1,
-                              COL_FOREGROUND);
-                }
-                break;
+        xmin = min(x1, x2);
+        xmax = max(x1, x2);
+        ymin = min(y1, y2);
+        ymax = max(y1, y2);
+
+        if (line_colour != COL_BACKGROUND) {
+            /* (dx, dy) points roughly from (x1, y1) to (x2, y2).
+             * The line is then "fattened" in a (roughly) perpendicular
+             * direction to create a thin rectangle. */
+            int dx = (x1 > x2) ? -1 : ((x1 < x2) ? 1 : 0);
+            int dy = (y1 > y2) ? -1 : ((y1 < y2) ? 1 : 0);
+            int points[] = {
+                x1 + dy, y1 - dx,
+                x1 - dy, y1 + dx,
+                x2 - dy, y2 + dx,
+                x2 + dy, y2 - dx
+            };
+            draw_polygon(dr, points, 4, line_colour, line_colour);
         }
-        ds->vl[VL_INDEX(state, i, j)] = BELOW_DOT(state, i, j);
+        if (ds->started) {
+            /* Draw dots at ends of the line */
+            draw_circle(dr, x1, y1, 2, COL_FOREGROUND, COL_FOREGROUND);
+            draw_circle(dr, x2, y2, 2, COL_FOREGROUND, COL_FOREGROUND);
+        }
+        draw_update(dr, xmin-2, ymin-2, xmax - xmin + 4, ymax - ymin + 4);
     }
 
-    /* Horizontal lines */
-    FORALL_HL(state, i, j) {
-        switch (RIGHTOF_DOT(state, i, j)) {
-            case LINE_UNKNOWN:
-                if (ds->hl[HL_INDEX(state, i, j)] != RIGHTOF_DOT(state, i, j)) {
-                    CLEAR_HL(i, j);
-                }
-                break;
-            case LINE_YES:
-                if (ds->hl[HL_INDEX(state, i, j)] != RIGHTOF_DOT(state, i, j) ||
-                    flash_changed) {
-                    CLEAR_HL(i, j);
-                    draw_rect(dr,
-                              BORDER + i * TILE_SIZE + LINEWIDTH - LINEWIDTH/2,
-                              BORDER + j * TILE_SIZE - LINEWIDTH/2,
-                              TILE_SIZE - LINEWIDTH, LINEWIDTH, 
-                              line_colour);
-                }
-                break; 
-            case LINE_NO:
-                if (ds->hl[HL_INDEX(state, i, j)] != RIGHTOF_DOT(state, i, j)) {
-                    CLEAR_HL(i, j);
-                    draw_line(dr,
-                              BORDER + i * TILE_SIZE + TILE_SIZE/2 - CROSS_SIZE,
-                              BORDER + j * TILE_SIZE + CROSS_SIZE - 1,
-                              BORDER + i * TILE_SIZE + TILE_SIZE/2 + CROSS_SIZE - 1,
-                              BORDER + j * TILE_SIZE - CROSS_SIZE,
-                              COL_FOREGROUND);
-                    draw_line(dr,
-                              BORDER + i * TILE_SIZE + TILE_SIZE/2 - CROSS_SIZE,
-                              BORDER + j * TILE_SIZE - CROSS_SIZE,
-                              BORDER + i * TILE_SIZE + TILE_SIZE/2 + CROSS_SIZE - 1,
-                              BORDER + j * TILE_SIZE + CROSS_SIZE - 1,
-                              COL_FOREGROUND);
-                    break;
-                }
+    /* Draw dots */
+    if (!ds->started) {
+        for (i = 0; i < g->num_dots; i++) {
+            grid_dot *d = g->dots + i;
+            int x, y;
+            grid_to_screen(ds, g, d->x, d->y, &x, &y);
+            draw_circle(dr, x, y, 2, COL_FOREGROUND, COL_FOREGROUND);
         }
-        ds->hl[HL_INDEX(state, i, j)] = RIGHTOF_DOT(state, i, j);
     }
+    ds->started = TRUE;
 }
 
 static float game_flash_length(game_state *oldstate, game_state *newstate,
@@ -3746,7 +3179,7 @@ static void game_print_size(game_params *params, float *x, float *y)
     int pw, ph;
 
     /*
-     * I'll use 7mm squares by default.
+     * I'll use 7mm "squares" by default.
      */
     game_compute_size(params, 700, &pw, &ph);
     *x = pw / 100.0F;
@@ -3756,53 +3189,75 @@ static void game_print_size(game_params *params, float *x, float *y)
 static void game_print(drawing *dr, game_state *state, int tilesize)
 {
     int ink = print_mono_colour(dr, 0);
-    int x, y;
+    int i;
     game_drawstate ads, *ds = &ads;
+    grid *g = state->game_grid;
 
     game_set_size(dr, ds, NULL, tilesize);
 
-    /*
-     * Dots. I'll deliberately make the dots a bit wider than the
-     * lines, so you can still see them. (And also because it's
-     * annoyingly tricky to make them _exactly_ the same size...)
-     */
-    FORALL_DOTS(state, x, y) {
-        draw_circle(dr, BORDER + x * TILE_SIZE, BORDER + y * TILE_SIZE,
-                    LINEWIDTH, ink, ink);
+    for (i = 0; i < g->num_dots; i++) {
+        int x, y;
+        grid_to_screen(ds, g, g->dots[i].x, g->dots[i].y, &x, &y);
+        draw_circle(dr, x, y, ds->tilesize / 15, ink, ink);
     }
 
     /*
      * Clues.
      */
-    FORALL_SQUARES(state, x, y) {
-        if (CLUE_AT(state, x, y) >= 0) {
+    for (i = 0; i < g->num_faces; i++) {
+        grid_face *f = g->faces + i;
+        int clue = state->clues[i];
+        if (clue >= 0) {
             char c[2];
-
-            c[0] = CLUE2CHAR(CLUE_AT(state, x, y));
+            int x, y;
+            c[0] = CLUE2CHAR(clue);
             c[1] = '\0';
-            draw_text(dr, 
-                      BORDER + x * TILE_SIZE + TILE_SIZE/2,
-                      BORDER + y * TILE_SIZE + TILE_SIZE/2,
-                      FONT_VARIABLE, TILE_SIZE/2, 
+            face_text_pos(ds, g, f, &x, &y);
+            draw_text(dr, x, y,
+                      FONT_VARIABLE, ds->tilesize / 2,
                       ALIGN_VCENTRE | ALIGN_HCENTRE, ink, c);
         }
     }
 
     /*
-     * Lines. (At the moment, I'm not bothering with crosses.)
+     * Lines.
      */
-    FORALL_HL(state, x, y) {
-        if (RIGHTOF_DOT(state, x, y) == LINE_YES)
-        draw_rect(dr, BORDER + x * TILE_SIZE,
-                  BORDER + y * TILE_SIZE - LINEWIDTH/2,
-                  TILE_SIZE, (LINEWIDTH/2) * 2 + 1, ink);
-    }
-
-    FORALL_VL(state, x, y) {
-        if (BELOW_DOT(state, x, y) == LINE_YES)
-        draw_rect(dr, BORDER + x * TILE_SIZE - LINEWIDTH/2,
-                  BORDER + y * TILE_SIZE,
-                  (LINEWIDTH/2) * 2 + 1, TILE_SIZE, ink);
+    for (i = 0; i < g->num_edges; i++) {
+        int thickness = (state->lines[i] == LINE_YES) ? 30 : 150;
+        grid_edge *e = g->edges + i;
+        int x1, y1, x2, y2;
+        grid_to_screen(ds, g, e->dot1->x, e->dot1->y, &x1, &y1);
+        grid_to_screen(ds, g, e->dot2->x, e->dot2->y, &x2, &y2);
+        if (state->lines[i] == LINE_YES)
+        {
+            /* (dx, dy) points from (x1, y1) to (x2, y2).
+             * The line is then "fattened" in a perpendicular
+             * direction to create a thin rectangle. */
+            double d = sqrt(SQ((double)x1 - x2) + SQ((double)y1 - y2));
+            double dx = (x2 - x1) / d;
+            double dy = (y2 - y1) / d;
+            dx = (dx * ds->tilesize) / thickness;
+            dy = (dy * ds->tilesize) / thickness;
+            int points[] = {
+                x1 + dy, y1 - dx,
+                x1 - dy, y1 + dx,
+                x2 - dy, y2 + dx,
+                x2 + dy, y2 - dx
+            };
+            draw_polygon(dr, points, 4, ink, ink);
+        }
+        else
+        {
+            /* Draw a dotted line */
+            int divisions = 6;
+            int j;
+            for (j = 1; j < divisions; j++) {
+                /* Weighted average */
+                int x = (x1 * (divisions -j) + x2 * j) / divisions;
+                int y = (y1 * (divisions -j) + y2 * j) / divisions;
+                draw_circle(dr, x, y, ds->tilesize / thickness, ink, ink);
+            }
+        }
     }
 }
 
