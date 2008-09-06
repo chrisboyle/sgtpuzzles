@@ -1705,6 +1705,11 @@ done:
     return move;
 }
 
+static int game_can_format_as_text_now(game_params *params)
+{
+    return TRUE;
+}
+
 /* 'borrowed' from slant.c, mainly. I could have printed it one
  * character per cell (like debug_state) but that comes out tiny.
  * 'L' is used for 'light here' because 'O' looks too much like '0'
@@ -2240,7 +2245,7 @@ const struct game thegame = {
     dup_game,
     free_game,
     TRUE, solve_game,
-    TRUE, game_text_format,
+    TRUE, game_can_format_as_text_now, game_text_format,
     new_ui,
     free_ui,
     encode_ui,

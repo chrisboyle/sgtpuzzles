@@ -3162,6 +3162,11 @@ static char *grid_text_format(int cr, struct block_structure *blocks,
     return ret;
 }
 
+static int game_can_format_as_text_now(game_params *params)
+{
+    return TRUE;
+}
+
 static char *game_text_format(game_state *state)
 {
     return grid_text_format(state->cr, state->blocks, state->xtype,
@@ -3935,7 +3940,7 @@ const struct game thegame = {
     dup_game,
     free_game,
     TRUE, solve_game,
-    TRUE, game_text_format,
+    TRUE, game_can_format_as_text_now, game_text_format,
     new_ui,
     free_ui,
     encode_ui,

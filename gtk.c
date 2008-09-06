@@ -79,7 +79,7 @@ void fatal(char *fmt, ...)
  * GTK front end to puzzles.
  */
 
-static void update_preset_tick(frontend *fe);
+static void changed_preset(frontend *fe);
 
 struct font {
 #ifdef USE_PANGO
@@ -127,6 +127,7 @@ struct frontend {
     int npresets;
     GtkWidget **preset_bullets;
     GtkWidget *preset_custom_bullet;
+    GtkWidget *copy_menu_item;
 };
 
 void get_random_seed(void **randseed, int *randseedsize)
@@ -849,7 +850,7 @@ static void config_ok_button_clicked(GtkButton *button, gpointer data)
     else {
 	fe->cfgret = TRUE;
 	gtk_widget_destroy(fe->cfgbox);
-	update_preset_tick(fe);
+	changed_preset(fe);
     }
 }
 
@@ -1115,17 +1116,32 @@ static void update_menuitem_bullet(GtkWidget *label, int visible)
     }
 }
 
-static void update_preset_tick(frontend *fe)
+/*
+ * Called when any other code in this file has changed the
+ * selected game parameters.
+ */
+static void changed_preset(frontend *fe)
 {
     int n = midend_which_preset(fe->me);
     int i;
 
+    /*
+     * Update the tick mark in the Type menu.
+     */
     if (fe->preset_bullets) {
 	for (i = 0; i < fe->npresets; i++)
 	    update_menuitem_bullet(fe->preset_bullets[i], n == i);
     }
     if (fe->preset_custom_bullet) {
 	update_menuitem_bullet(fe->preset_custom_bullet, n < 0);
+    }
+
+    /*
+     * Update the greying on the Copy menu option.
+     */
+    if (fe->copy_menu_item) {
+	int enabled = midend_can_format_as_text_now(fe->me);
+	gtk_widget_set_sensitive(fe->copy_menu_item, enabled);
     }
 }
 
@@ -1158,7 +1174,7 @@ static void menu_preset_event(GtkMenuItem *menuitem, gpointer data)
 
     midend_set_params(fe->me, params);
     midend_new_game(fe->me);
-    update_preset_tick(fe);
+    changed_preset(fe);
     resize_fe(fe);
 }
 
@@ -1388,7 +1404,7 @@ static void menu_load_event(GtkMenuItem *menuitem, gpointer data)
             return;
         }
 
-	update_preset_tick(fe);
+	changed_preset(fe);
         resize_fe(fe);
     }
 }
@@ -1673,7 +1689,7 @@ static frontend *new_window(char *arg, int argtype, char **error)
 	} else
 	    fe->preset_custom_bullet = NULL;
 
-	update_preset_tick(fe);
+	changed_preset(fe);
     } else {
 	fe->npresets = 0;
 	fe->preset_bullets = NULL;
@@ -1694,13 +1710,16 @@ static frontend *new_window(char *arg, int argtype, char **error)
     add_menu_separator(GTK_CONTAINER(menu));
     add_menu_item_with_key(fe, GTK_CONTAINER(menu), "Undo", 'u');
     add_menu_item_with_key(fe, GTK_CONTAINER(menu), "Redo", 'r');
-    if (thegame.can_format_as_text) {
+    if (thegame.can_format_as_text_ever) {
 	add_menu_separator(GTK_CONTAINER(menu));
 	menuitem = gtk_menu_item_new_with_label("Copy");
 	gtk_container_add(GTK_CONTAINER(menu), menuitem);
 	gtk_signal_connect(GTK_OBJECT(menuitem), "activate",
 			   GTK_SIGNAL_FUNC(menu_copy_event), fe);
 	gtk_widget_show(menuitem);
+	fe->copy_menu_item = menuitem;
+    } else {
+	fe->copy_menu_item = NULL;
     }
     if (thegame.can_solve) {
 	add_menu_separator(GTK_CONTAINER(menu));

@@ -242,6 +242,7 @@ config_item *midend_get_config(midend *me, int which, char **wintitle);
 char *midend_set_config(midend *me, int which, config_item *cfg);
 char *midend_game_id(midend *me, char *id);
 char *midend_get_game_id(midend *me);
+int midend_can_format_as_text_now(midend *me);
 char *midend_text_format(midend *me);
 char *midend_solve(midend *me);
 void midend_supersede_game_desc(midend *me, char *desc, char *privdesc);
@@ -419,7 +420,8 @@ struct game {
     int can_solve;
     char *(*solve)(game_state *orig, game_state *curr,
                    char *aux, char **error);
-    int can_format_as_text;
+    int can_format_as_text_ever;
+    int (*can_format_as_text_now)(game_params *params);
     char *(*text_format)(game_state *state);
     game_ui *(*new_ui)(game_state *state);
     void (*free_ui)(game_ui *ui);

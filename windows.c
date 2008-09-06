@@ -195,7 +195,7 @@ struct frontend {
     HBRUSH *brushes;
     HPEN *pens;
     HRGN clip;
-    HMENU typemenu;
+    HMENU gamemenu, typemenu;
     UINT timer;
     DWORD timer_last_tickcount;
     int npresets;
@@ -222,6 +222,7 @@ struct frontend {
 };
 
 static void update_type_menu_tick(frontend *fe);
+static void update_copy_menu_greying(frontend *fe);
 
 void fatal(char *fmt, ...)
 {
@@ -1573,6 +1574,7 @@ static frontend *new_window(HINSTANCE inst, char *game_id, char **error)
 	HMENU menu = SHGetSubMenu(SHFindMenuBar(fe->hwnd), ID_GAME);
 	DeleteMenu(menu, 0, MF_BYPOSITION);
 #endif
+	fe->gamemenu = menu;
 	AppendMenu(menu, MF_ENABLED, IDM_NEW, TEXT("&New"));
 	AppendMenu(menu, MF_ENABLED, IDM_RESTART, TEXT("&Restart"));
 #ifndef _WIN32_WCE
@@ -1635,7 +1637,7 @@ static frontend *new_window(HINSTANCE inst, char *game_id, char **error)
 	AppendMenu(menu, MF_ENABLED, IDM_UNDO, TEXT("Undo"));
 	AppendMenu(menu, MF_ENABLED, IDM_REDO, TEXT("Redo"));
 #ifndef _WIN32_WCE
-	if (thegame.can_format_as_text) {
+	if (thegame.can_format_as_text_ever) {
 	    AppendMenu(menu, MF_SEPARATOR, 0, 0);
 	    AppendMenu(menu, MF_ENABLED, IDM_COPY, TEXT("&Copy"));
 	}
@@ -1680,6 +1682,7 @@ static frontend *new_window(HINSTANCE inst, char *game_id, char **error)
     SetForegroundWindow(fe->hwnd);
 
     update_type_menu_tick(fe);
+    update_copy_menu_greying(fe);
 
     midend_redraw(fe->me);
 
@@ -2657,11 +2660,19 @@ static void update_type_menu_tick(frontend *fe)
     DrawMenuBar(fe->hwnd);
 }
 
+static void update_copy_menu_greying(frontend *fe)
+{
+    UINT enable = (midend_can_format_as_text_now(fe->me) ?
+		   MF_ENABLED : MF_GRAYED);
+    EnableMenuItem(fe->gamemenu, IDM_COPY, MF_BYCOMMAND | enable);
+}
+
 static void new_game_type(frontend *fe)
 {
     midend_new_game(fe->me);
     new_game_size(fe);
     update_type_menu_tick(fe);
+    update_copy_menu_greying(fe);
 }
 
 static int is_alt_pressed(void)

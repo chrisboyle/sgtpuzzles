@@ -1365,17 +1365,50 @@ called.
 
 \H{backend-misc} Miscellaneous
 
-\S{backend-can-format-as-text} \c{can_format_as_text}
+\S{backend-can-format-as-text-ever} \c{can_format_as_text_ever}
 
-\c int can_format_as_text;
+\c int can_format_as_text_ever;
 
 This boolean field is \cw{TRUE} if the game supports formatting a
 game state as ASCII text (typically ASCII art) for copying to the
 clipboard and pasting into other applications. If it is \cw{FALSE},
 front ends will not offer the \q{Copy} command at all.
 
-If this field is \cw{FALSE}, the function \cw{text_format()}
-(\k{backend-text-format}) is not expected to do anything at all.
+If this field is \cw{TRUE}, the game does not necessarily have to
+support text formatting for \e{all} games: e.g. a game which can be
+played on a square grid or a triangular one might only support copy
+and paste for the former, because triangular grids in ASCII art are
+just too difficult.
+
+If this field is \cw{FALSE}, the functions
+\cw{can_format_as_text_now()} (\k{backend-can-format-as-text-now})
+and \cw{text_format()} (\k{backend-text-format}) are never called.
+
+\S{backend-can-format-as-text-now} \c{can_format_as_text_now()}
+
+\c int (*can_format_as_text_now)(game_params *params);
+
+This function is passed a \c{game_params} and returns a boolean,
+which is \cw{TRUE} if the game can support ASCII text output for
+this particular game type. If it returns \cw{FALSE}, front ends will
+grey out or otherwise disable the \q{Copy} command.
+
+Games may enable and disable the copy-and-paste function for
+different game \e{parameters}, but are currently constrained to
+return the same answer from this function for all game \e{states}
+sharing the same parameters. In other words, the \q{Copy} function
+may enable or disable itself when the player changes game preset,
+but will never change during play of a single game or when another
+game of exactly the same type is generated.
+
+This function should not take into account aspects of the game
+parameters which are not encoded by \cw{encode_params()}
+(\k{backend-encode-params}) when the \c{full} parameter is set to
+\cw{FALSE}. Such parameters will not necessarily match up between a
+call to this function and a subsequent call to \cw{text_format()}
+itself. (For instance, game \e{difficulty} should not affect whether
+the game can be copied to the clipboard. Only the actual visible
+\e{shape} of the game can affect that.)
 
 \S{backend-text-format} \cw{text_format()}
 
@@ -1386,9 +1419,11 @@ allocated C string containing an ASCII representation of that game
 state. It is used to implement the \q{Copy} operation in many front
 ends.
 
-This function should only be called if the back end field
-\c{can_format_as_text} (\k{backend-can-format-as-text}) is
-\cw{TRUE}.
+This function will only ever be called if the back end field
+\c{can_format_as_text_ever} (\k{backend-can-format-as-text-ever}) is
+\cw{TRUE} \e{and} the function \cw{can_format_as_text_now()}
+(\k{backend-can-format-as-text-now}) has returned \cw{TRUE} for the
+currently selected game parameters.
 
 The returned string may contain line endings (and will probably want
 to), using the normal C internal \cq{\\n} convention. For
@@ -2852,6 +2887,16 @@ Returns a descriptive game ID (i.e. one in the form
 \cq{params:description}) describing the game currently active in the
 mid-end. The returned string is dynamically allocated.
 
+\H{midend-can-format-as-text-now} \cw{midend_can_format_as_text_now()}
+
+\c int midend_can_format_as_text_now(midend *me);
+
+Returns \cw{TRUE} if the game code is capable of formatting puzzles
+of the currently selected game type as ASCII.
+
+If this returns \cw{FALSE}, then \cw{midend_text_format()}
+(\k{midend-text-format}) will return \cw{NULL}.
+
 \H{midend-text-format} \cw{midend_text_format()}
 
 \c char *midend_text_format(midend *me);
@@ -2860,8 +2905,9 @@ Formats the current game's current state as ASCII text suitable for
 copying to the clipboard. The returned string is dynamically
 allocated.
 
-You should not call this function if the game's
-\c{can_format_as_text} flag is \cw{FALSE}.
+If the game's \c{can_format_as_text_ever} flag is \cw{FALSE}, or if
+its \cw{can_format_as_text_now()} function returns \cw{FALSE}, then
+this function will return \cw{NULL}.
 
 If the returned string contains multiple lines (which is likely), it
 will use the normal C line ending convention (\cw{\\n} only). On
@@ -2964,8 +3010,8 @@ mid-end because there didn't seem much point in doing so:
 \b fetching the \c{name} field to use in window titles and similar
 
 \b reading the \c{can_configure}, \c{can_solve} and
-\c{can_format_as_text} fields to decide whether to add those items
-to the menu bar or equivalent
+\c{can_format_as_text_ever} fields to decide whether to add those
+items to the menu bar or equivalent
 
 \b reading the \c{winhelp_topic} field (Windows only)
 

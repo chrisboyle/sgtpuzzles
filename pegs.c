@@ -711,6 +711,11 @@ static char *solve_game(game_state *state, game_state *currstate,
     return NULL;
 }
 
+static int game_can_format_as_text_now(game_params *params)
+{
+    return TRUE;
+}
+
 static char *game_text_format(game_state *state)
 {
     int w = state->w, h = state->h;
@@ -1201,7 +1206,7 @@ const struct game thegame = {
     dup_game,
     free_game,
     FALSE, solve_game,
-    TRUE, game_text_format,
+    TRUE, game_can_format_as_text_now, game_text_format,
     new_ui,
     free_ui,
     encode_ui,

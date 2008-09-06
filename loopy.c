@@ -151,6 +151,11 @@ struct game_drawstate {
     char *clue_error;
 };
 
+static int game_can_format_as_text_now(game_params *params)
+{
+    return TRUE;
+}
+
 static char *game_text_format(game_state *state);
 static char *state_to_text(const game_state *state);
 static char *validate_desc(game_params *params, char *desc);
@@ -3821,7 +3826,7 @@ const struct game thegame = {
     dup_game,
     free_game,
     1, solve_game,
-    TRUE, game_text_format,
+    TRUE, game_can_format_as_text_now, game_text_format,
     new_ui,
     free_ui,
     encode_ui,

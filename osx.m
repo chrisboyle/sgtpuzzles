@@ -806,7 +806,8 @@ struct frontend {
 - (BOOL)validateMenuItem:(NSMenuItem *)item
 {
     if ([item action] == @selector(copy:))
-	return (ourgame->can_format_as_text ? YES : NO);
+	return (ourgame->can_format_as_text_ever &&
+		midend_can_format_as_text_now(me) ? YES : NO);
     else if ([item action] == @selector(solveGame:))
 	return (ourgame->can_solve ? YES : NO);
     else
