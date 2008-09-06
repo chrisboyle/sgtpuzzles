@@ -1689,7 +1689,6 @@ static frontend *new_window(char *arg, int argtype, char **error)
 	} else
 	    fe->preset_custom_bullet = NULL;
 
-	changed_preset(fe);
     } else {
 	fe->npresets = 0;
 	fe->preset_bullets = NULL;
@@ -1744,6 +1743,8 @@ static frontend *new_window(char *arg, int argtype, char **error)
     gtk_signal_connect(GTK_OBJECT(menuitem), "activate",
 		       GTK_SIGNAL_FUNC(menu_about_event), fe);
     gtk_widget_show(menuitem);
+
+    changed_preset(fe);
 
     {
         int i, ncolours;
