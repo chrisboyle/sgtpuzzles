@@ -10,9 +10,7 @@
 #define PUZZLES_GRID_H
 
 /* Useful macros */
-#ifndef SQ
-#  define SQ(x) ( (x) * (x) )
-#endif
+#define SQ(x) ( (x) * (x) )
 
 /* ----------------------------------------------------------------------
  * Grid structures:

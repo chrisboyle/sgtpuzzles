@@ -81,8 +81,9 @@ static double point_line_distance(int px, int py,
                                   int bx, int by)
 {
     int det = ax*by - bx*ay + bx*py - px*by + px*ay - ax*py;
+    double len;
     det = max(det, -det);
-    double len = sqrt(SQ(ax - bx) + SQ(ay - by));
+    len = sqrt(SQ(ax - bx) + SQ(ay - by));
     return det / len;
 }
 
@@ -136,9 +137,10 @@ grid_edge *grid_nearest_edge(grid *g, int x, int y)
             int j;
             if (!f) continue;
             for (j = 0; j < f->order; j++) {
+		int new_dist;
                 grid_dot *d = f->dots[j];
                 if (d == cur) continue;
-                int new_dist = SQ(d->x - x) + SQ(d->y - y);
+                new_dist = SQ(d->x - x) + SQ(d->y - y);
                 if (new_dist < dist) {
                     new = d;
                     break; /* found closer dot */

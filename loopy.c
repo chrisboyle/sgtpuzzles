@@ -711,13 +711,15 @@ static void game_compute_size(game_params *params, int tilesize,
                               int *x, int *y)
 {
     grid *g;
+    int grid_width, grid_height, rendered_width, rendered_height;
+
     params_generate_grid(params);
     g = params->game_grid;
-    int grid_width = g->highest_x - g->lowest_x;
-    int grid_height = g->highest_y - g->lowest_y;
+    grid_width = g->highest_x - g->lowest_x;
+    grid_height = g->highest_y - g->lowest_y;
     /* multiply first to minimise rounding error on integer division */
-    int rendered_width = grid_width * tilesize / g->tilesize;
-    int rendered_height = grid_height * tilesize / g->tilesize;
+    rendered_width = grid_width * tilesize / g->tilesize;
+    rendered_height = grid_height * tilesize / g->tilesize;
     *x = rendered_width + 2 * BORDER(tilesize) + 1;
     *y = rendered_height + 2 * BORDER(tilesize) + 1;
 }
@@ -865,13 +867,15 @@ static char *game_text_format(game_state *state)
 
     /* Fill in clues */
     for (i = 0; i < g->num_faces; i++) {
+	int x1, x2, y1, y2;
+
         f = g->faces + i;
         assert(f->order == 4);
         /* Cell coordinates, from (0,0) to (w-1,h-1) */
-        int x1 = (f->dots[0]->x - g->lowest_x) / cell_size;
-        int x2 = (f->dots[2]->x - g->lowest_x) / cell_size;
-        int y1 = (f->dots[0]->y - g->lowest_y) / cell_size;
-        int y2 = (f->dots[2]->y - g->lowest_y) / cell_size;
+	x1 = (f->dots[0]->x - g->lowest_x) / cell_size;
+	x2 = (f->dots[2]->x - g->lowest_x) / cell_size;
+	y1 = (f->dots[0]->y - g->lowest_y) / cell_size;
+	y2 = (f->dots[2]->y - g->lowest_y) / cell_size;
         /* Midpoint, in canvas coordinates */
         x = x1 + x2;
         y = y1 + y2;
@@ -1592,11 +1596,13 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
     int n;
     const char *dp = desc;
     grid *g;
+    int num_faces, num_edges;
+
     params_generate_grid(params);
     state->game_grid = g = params->game_grid;
     g->refcount++;
-    int num_faces = g->num_faces;
-    int num_edges = g->num_edges;
+    num_faces = g->num_faces;
+    num_edges = g->num_edges;
 
     state->clues = snewn(num_faces, signed char);
     state->lines = snewn(num_edges, char);
@@ -2979,10 +2985,12 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 
         /* Draw clues */
         for (i = 0; i < g->num_faces; i++) {
+	    grid_face *f;
+            int x, y;
+
             c[0] = CLUE2CHAR(state->clues[i]);
             c[1] = '\0';
-            int x, y;
-            grid_face *f = g->faces + i;
+            f = g->faces + i;
             face_text_pos(ds, g, f, &x, &y);
             draw_text(dr, x, y, FONT_VARIABLE, ds->tilesize/2,
                       ALIGN_VCENTRE | ALIGN_HCENTRE, COL_FOREGROUND, c);
@@ -3236,14 +3244,18 @@ static void game_print(drawing *dr, game_state *state, int tilesize)
             double d = sqrt(SQ((double)x1 - x2) + SQ((double)y1 - y2));
             double dx = (x2 - x1) / d;
             double dy = (y2 - y1) / d;
+	    int points[8];
+
             dx = (dx * ds->tilesize) / thickness;
             dy = (dy * ds->tilesize) / thickness;
-            int points[] = {
-                x1 + dy, y1 - dx,
-                x1 - dy, y1 + dx,
-                x2 - dy, y2 + dx,
-                x2 + dy, y2 - dx
-            };
+	    points[0] = x1 + dy;
+	    points[1] = y1 - dx;
+	    points[2] = x1 - dy;
+	    points[3] = y1 + dx;
+	    points[4] = x2 - dy;
+	    points[5] = y2 + dx;
+	    points[6] = x2 + dy;
+	    points[7] = y2 - dx;
             draw_polygon(dr, points, 4, ink, ink);
         }
         else
