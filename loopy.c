@@ -10,18 +10,61 @@
  */
 
 /*
- *
- *  - There's an interesting deductive technique which makes use of topology
- *    rather than just graph theory. Each _square_ in the grid is either inside
- *    or outside the loop; you can tell that two squares are on the same side
- *    of the loop if they're separated by an x (or, more generally, by a path
- *    crossing no LINE_UNKNOWNs and an even number of LINE_YESes), and on the
- *    opposite side of the loop if they're separated by a line (or an odd
- *    number of LINE_YESes and no LINE_UNKNOWNs). Oh, and any square separated
- *    from the outside of the grid by a LINE_YES or a LINE_NO is on the inside
- *    or outside respectively. So if you can track this for all squares, you
- *    figure out the state of the line between a pair once their relative
- *    insideness is known.
+ * Possible future solver enhancements:
+ * 
+ *  - There's an interesting deductive technique which makes use
+ *    of topology rather than just graph theory. Each _face_ in
+ *    the grid is either inside or outside the loop; you can tell
+ *    that two faces are on the same side of the loop if they're
+ *    separated by a LINE_NO (or, more generally, by a path
+ *    crossing no LINE_UNKNOWNs and an even number of LINE_YESes),
+ *    and on the opposite side of the loop if they're separated by
+ *    a LINE_YES (or an odd number of LINE_YESes and no
+ *    LINE_UNKNOWNs). Oh, and any face separated from the outside
+ *    of the grid by a LINE_YES or a LINE_NO is on the inside or
+ *    outside respectively. So if you can track this for all
+ *    faces, you figure out the state of the line between a pair
+ *    once their relative insideness is known.
+ *     + The way I envisage this working is simply to keep an edsf
+ * 	 of all _faces_, which indicates whether they're on
+ * 	 opposite sides of the loop from one another. We also
+ * 	 include a special entry in the edsf for the infinite
+ * 	 exterior "face".
+ *     + So, the simple way to do this is to just go through the
+ * 	 edges: every time we see an edge in a state other than
+ * 	 LINE_UNKNOWN which separates two faces that aren't in the
+ * 	 same edsf class, we can rectify that by merging the
+ * 	 classes. Then, conversely, an edge in LINE_UNKNOWN state
+ * 	 which separates two faces that _are_ in the same edsf
+ * 	 class can immediately have its state determined.
+ *     + But you can go one better, if you're prepared to loop
+ * 	 over all _pairs_ of edges. Suppose we have edges A and B,
+ * 	 which respectively separate faces A1,A2 and B1,B2.
+ * 	 Suppose that A,B are in the same edge-edsf class and that
+ * 	 A1,B1 (wlog) are in the same face-edsf class; then we can
+ * 	 immediately place A2,B2 into the same face-edsf class (as
+ * 	 each other, not as A1 and A2) one way round or the other.
+ * 	 And conversely again, if A1,B1 are in the same face-edsf
+ * 	 class and so are A2,B2, then we can put A,B into the same
+ * 	 face-edsf class.
+ * 	  * Of course, this deduction requires a quadratic-time
+ * 	    loop over all pairs of edges in the grid, so it should
+ * 	    be reserved until there's nothing easier left to be
+ * 	    done.
+ * 
+ *  - The generalised grid support has made me (SGT) notice a
+ *    possible extension to the loop-avoidance code. When you have
+ *    a path of connected edges such that no other edges at all
+ *    are incident on any vertex in the middle of the path - or,
+ *    alternatively, such that any such edges are already known to
+ *    be LINE_NO - then you know those edges are either all
+ *    LINE_YES or all LINE_NO. Hence you can mentally merge the
+ *    entire path into a single long curly edge for the purposes
+ *    of loop avoidance, and look directly at whether or not the
+ *    extreme endpoints of the path are connected by some other
+ *    route. I find this coming up fairly often when I play on the
+ *    octagonal grid setting, so it might be worth implementing in
+ *    the solver.
  *
  *  - (Just a speed optimisation.)  Consider some todo list queue where every
  *    time we modify something we mark it for consideration by other bits of
