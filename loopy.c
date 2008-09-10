@@ -236,7 +236,7 @@ static void check_caches(const solver_state* sstate);
 static char const *const gridnames[] = { GRIDLIST(GRID_NAME) };
 #define GRID_CONFIGS GRIDLIST(GRID_CONFIG)
 static grid * (*(grid_fns[]))(int w, int h) = { GRIDLIST(GRID_FN) };
-static const int NUM_GRID_TYPES = sizeof(grid_fns) / sizeof(grid_fns[0]);
+#define NUM_GRID_TYPES (sizeof(grid_fns) / sizeof(grid_fns[0]))
 
 /* Generates a (dynamically allocated) new grid, according to the
  * type and size requested in params.  Does nothing if the grid is already
@@ -464,6 +464,18 @@ static game_params *dup_params(game_params *params)
 }
 
 static const game_params presets[] = {
+#ifdef SMALL_SCREEN
+    {  7,  7, DIFF_EASY, 0, NULL },
+    {  7,  7, DIFF_NORMAL, 0, NULL },
+    {  7,  7, DIFF_HARD, 0, NULL },
+    {  7,  7, DIFF_HARD, 1, NULL },
+    {  7,  7, DIFF_HARD, 2, NULL },
+    {  5,  5, DIFF_HARD, 3, NULL },
+    {  7,  7, DIFF_HARD, 4, NULL },
+    {  5,  4, DIFF_HARD, 5, NULL },
+    {  5,  5, DIFF_HARD, 6, NULL },
+    {  5,  5, DIFF_HARD, 7, NULL },
+#else
     {  7,  7, DIFF_EASY, 0, NULL },
     {  10,  10, DIFF_EASY, 0, NULL },
     {  7,  7, DIFF_NORMAL, 0, NULL },
@@ -477,6 +489,7 @@ static const game_params presets[] = {
     {  5,  4, DIFF_HARD, 5, NULL },
     {  7,  7, DIFF_HARD, 6, NULL },
     {  5,  5, DIFF_HARD, 7, NULL },
+#endif
 };
 
 static int game_fetch_preset(int i, char **name, game_params **params)
@@ -3291,14 +3304,14 @@ static void game_print(drawing *dr, game_state *state, int tilesize)
 
             dx = (dx * ds->tilesize) / thickness;
             dy = (dy * ds->tilesize) / thickness;
-	    points[0] = x1 + dy;
-	    points[1] = y1 - dx;
-	    points[2] = x1 - dy;
-	    points[3] = y1 + dx;
-	    points[4] = x2 - dy;
-	    points[5] = y2 + dx;
-	    points[6] = x2 + dy;
-	    points[7] = y2 - dx;
+	    points[0] = x1 + (int)dy;
+	    points[1] = y1 - (int)dx;
+	    points[2] = x1 - (int)dy;
+	    points[3] = y1 + (int)dx;
+	    points[4] = x2 - (int)dy;
+	    points[5] = y2 + (int)dx;
+	    points[6] = x2 + (int)dy;
+	    points[7] = y2 - (int)dx;
             draw_polygon(dr, points, 4, ink, ink);
         }
         else

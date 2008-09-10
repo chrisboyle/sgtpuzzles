@@ -50,7 +50,7 @@ void grid_free(grid *g)
 
 /* Used by the other grid generators.  Create a brand new grid with nothing
  * initialised (all lists are NULL) */
-static grid *grid_new()
+static grid *grid_new(void)
 {
     grid *g = snew(grid);
     g->faces = NULL;
@@ -76,11 +76,11 @@ static grid *grid_new()
  *
  * Combining gives: distance = determinant / line-length(a,b)
  */
-static double point_line_distance(int px, int py,
-                                  int ax, int ay,
-                                  int bx, int by)
+static double point_line_distance(long px, long py,
+                                  long ax, long ay,
+                                  long bx, long by)
 {
-    int det = ax*by - bx*ay + bx*py - px*by + px*ay - ax*py;
+    long det = ax*by - bx*ay + bx*py - px*by + px*ay - ax*py;
     double len;
     det = max(det, -det);
     len = sqrt(SQ(ax - bx) + SQ(ay - by));
@@ -125,7 +125,7 @@ grid_edge *grid_nearest_edge(grid *g, int x, int y)
 
     for (;;) {
         /* Target to beat */
-        int dist = SQ(cur->x - x) + SQ(cur->y - y);
+        long dist = SQ((long)cur->x - (long)x) + SQ((long)cur->y - (long)y);
         /* Look for nearer dot - if found, store in 'new'. */
         grid_dot *new = cur;
         int i;
@@ -137,10 +137,10 @@ grid_edge *grid_nearest_edge(grid *g, int x, int y)
             int j;
             if (!f) continue;
             for (j = 0; j < f->order; j++) {
-		int new_dist;
+		long new_dist;
                 grid_dot *d = f->dots[j];
                 if (d == cur) continue;
-                new_dist = SQ(d->x - x) + SQ(d->y - y);
+                new_dist = SQ((long)d->x - (long)x) + SQ((long)d->y - (long)y);
                 if (new_dist < dist) {
                     new = d;
                     break; /* found closer dot */
@@ -157,23 +157,22 @@ grid_edge *grid_nearest_edge(grid *g, int x, int y)
             cur = new;
         }
     }
-    
     /* 'cur' is nearest dot, so find which of the dot's edges is closest. */
     best_edge = NULL;
 
     for (i = 0; i < cur->order; i++) {
         grid_edge *e = cur->edges[i];
-        int e2; /* squared length of edge */
-        int a2, b2; /* squared lengths of other sides */
+        long e2; /* squared length of edge */
+        long a2, b2; /* squared lengths of other sides */
         double dist;
 
         /* See if edge e is eligible - the triangle must have acute angles
          * at the edge's dots.
          * Pythagoras formula h^2 = a^2 + b^2 detects right-angles,
          * so detect acute angles by testing for h^2 < a^2 + b^2 */
-        e2 = SQ(e->dot1->x - e->dot2->x) + SQ(e->dot1->y - e->dot2->y);
-        a2 = SQ(e->dot1->x - x) + SQ(e->dot1->y - y);
-        b2 = SQ(e->dot2->x - x) + SQ(e->dot2->y - y);
+        e2 = SQ((long)e->dot1->x - (long)e->dot2->x) + SQ((long)e->dot1->y - (long)e->dot2->y);
+        a2 = SQ((long)e->dot1->x - (long)x) + SQ((long)e->dot1->y - (long)y);
+        b2 = SQ((long)e->dot2->x - (long)x) + SQ((long)e->dot2->y - (long)y);
         if (a2 >= e2 + b2) continue;
         if (b2 >= e2 + a2) continue;
          
@@ -187,9 +186,9 @@ grid_edge *grid_nearest_edge(grid *g, int x, int y)
          * Alternatively, we could check that the angle at the point is obtuse.
          * That would amount to testing a circular region with the edge as
          * diameter. */
-        dist = point_line_distance(x, y,
-                                   e->dot1->x, e->dot1->y,
-                                   e->dot2->x, e->dot2->y);
+        dist = point_line_distance((long)x, (long)y,
+                                   (long)e->dot1->x, (long)e->dot1->y,
+                                   (long)e->dot2->x, (long)e->dot2->y);
         /* Is dist more than half edge length ? */
         if (4 * SQ(dist) > e2)
             continue;
