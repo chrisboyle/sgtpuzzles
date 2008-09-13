@@ -179,7 +179,7 @@ enum { DIFFLIST(ENUM) DIFF_MAX };
 static char const *const diffnames[] = { DIFFLIST(TITLE) };
 static char const diffchars[] = DIFFLIST(ENCODE);
 #define DIFFCONFIG DIFFLIST(CONFIG)
-DIFFLIST(SOLVER_FN_DECL);
+DIFFLIST(SOLVER_FN_DECL)
 static int (*(solver_fns[]))(solver_state *) = { DIFFLIST(SOLVER_FN) };
 
 struct game_params {
@@ -3070,7 +3070,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
      * bounding-box around the line, then flag all nearby objects for redraw.
      */
     if (ds->started) {
-        const char redraw_flag = 1<<7;
+        const char redraw_flag = (char)(1<<7);
         for (i = 0; i < g->num_edges; i++) {
             /* If we're changing state, AND
              * the previous state was a coloured line */
@@ -3199,12 +3199,15 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
              * direction to create a thin rectangle. */
             int dx = (x1 > x2) ? -1 : ((x1 < x2) ? 1 : 0);
             int dy = (y1 > y2) ? -1 : ((y1 < y2) ? 1 : 0);
-            int points[] = {
-                x1 + dy, y1 - dx,
-                x1 - dy, y1 + dx,
-                x2 - dy, y2 + dx,
-                x2 + dy, y2 - dx
-            };
+            int points[8];
+	    points[0] = x1 + dy;
+	    points[1] = y1 - dx;
+	    points[2] = x1 - dy;
+	    points[3] = y1 + dx;
+	    points[4] = x2 - dy;
+	    points[5] = y2 + dx;
+	    points[6] = x2 + dy;
+	    points[7] = y2 - dx;
             draw_polygon(dr, points, 4, line_colour, line_colour);
         }
         if (ds->started) {

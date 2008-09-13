@@ -1597,7 +1597,8 @@ static void game_compute_size(game_params *params, int tilesize,
 			      int *x, int *y)
 {
     /* fool the macros */
-    struct dummy { int tilesize; } dummy = { tilesize }, *ds = &dummy;
+    struct dummy { int tilesize; } dummy, *ds = &dummy;
+    dummy.tilesize = tilesize;
 
     *x = params->w * TILESIZE + 2*BORDER;
     *y = params->h * TILESIZE + 2*BORDER;

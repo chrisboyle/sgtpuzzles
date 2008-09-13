@@ -643,8 +643,14 @@ static grid_dot *grid_dot_add_new(grid *g, int x, int y)
  * Assumes g->dots has enough capacity allocated */
 static grid_dot *grid_get_dot(grid *g, tree234 *dot_list, int x, int y)
 {
-    grid_dot test = {0, NULL, NULL, x, y};
-    grid_dot *ret = find234(dot_list, &test, NULL);
+    grid_dot test, *ret;
+
+    test.order = 0;
+    test.edges = NULL;
+    test.faces = NULL;
+    test.x = x;
+    test.y = y;
+    ret = find234(dot_list, &test, NULL);
     if (ret)
         return ret;
 

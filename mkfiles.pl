@@ -1108,7 +1108,7 @@ if (defined $makefiles{'gtk'}) {
     "# to 1.2 if it isn't found.\n".
     "GTK_CONFIG = sh -c 'pkg-config gtk+-2.0 \$\$0 2>/dev/null || gtk-config \$\$0'\n".
     "\n".
-    &splitline("CFLAGS = -O2 -Wall -Werror -g " .
+    &splitline("CFLAGS = -O2 -Wall -Werror -ansi -pedantic -g " .
 	       (join " ", map {"-I$dirpfx$_"} @srcdirs) .
 	       " `\$(GTK_CONFIG) --cflags`")."\n".
     "XLDFLAGS = `\$(GTK_CONFIG) --libs`\n".
