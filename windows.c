@@ -839,7 +839,7 @@ static void win_begin_puzzle(void *handle, float xm, float xc,
      * Work out what that comes to in pixels.
      */
     pox = (int)(mmox * (float)ppw / mmpw);
-    poy = (int)(mmoy * (float)ppw / mmpw);
+    poy = (int)(mmoy * (float)pph / mmph);
 
     /*
      * And determine the scale.
