@@ -281,5 +281,5 @@ void print_line_width(drawing *dr, int width)
      * _square root_ of the main puzzle scale. Double the puzzle
      * size, and the line width multiplies by 1.4.
      */
-    dr->api->line_width(dr->handle, sqrt(dr->scale) * width);
+    dr->api->line_width(dr->handle, (float)sqrt(dr->scale) * width);
 }

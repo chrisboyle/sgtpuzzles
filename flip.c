@@ -1099,12 +1099,12 @@ static void draw_tile(drawing *dr, game_drawstate *ds,
 
 	coords[0] = bx + TILE_SIZE;
 	coords[1] = by;
-	coords[2] = bx + TILE_SIZE * animtime;
-	coords[3] = by + TILE_SIZE * animtime;
+	coords[2] = bx + (int)((float)TILE_SIZE * animtime);
+	coords[3] = by + (int)((float)TILE_SIZE * animtime);
 	coords[4] = bx;
 	coords[5] = by + TILE_SIZE;
-	coords[6] = bx + TILE_SIZE - TILE_SIZE * animtime;
-	coords[7] = by + TILE_SIZE - TILE_SIZE * animtime;
+	coords[6] = bx + TILE_SIZE - (int)((float)TILE_SIZE * animtime);
+	coords[7] = by + TILE_SIZE - (int)((float)TILE_SIZE * animtime);
 
 	colour = (tile & 1 ? COL_WRONG : COL_RIGHT);
 	if (animtime < 0.5)
@@ -1185,7 +1185,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
     }
 
     if (flashtime)
-	flashframe = flashtime / FLASH_FRAME;
+	flashframe = (int)(flashtime / FLASH_FRAME);
     else
 	flashframe = -1;
 

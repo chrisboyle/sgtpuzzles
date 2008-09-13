@@ -1000,8 +1000,8 @@ static char *solve_game(game_state *state, game_state *currstate,
         pts[i].d = 2;
         ox *= pts[i].d;
         oy *= pts[i].d;
-        pts[i].x = ox + 0.5;
-        pts[i].y = oy + 0.5;
+        pts[i].x = (long)(ox + 0.5F);
+        pts[i].y = (long)(oy + 0.5F);
 
         extra = sprintf(buf, ";P%d:%ld,%ld/%ld", i,
                         pts[i].x, pts[i].y, pts[i].d);
@@ -1077,7 +1077,7 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
 {
     int n = state->params.n;
 
-    if (button == LEFT_BUTTON) {
+    if (IS_MOUSE_DOWN(button)) {
 	int i, best;
         long bestd;
 
@@ -1111,12 +1111,12 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
 	    return "";
 	}
 
-    } else if (button == LEFT_DRAG && ui->dragpoint >= 0) {
+    } else if (IS_MOUSE_DRAG(button) && ui->dragpoint >= 0) {
 	ui->newpoint.x = x;
 	ui->newpoint.y = y;
 	ui->newpoint.d = ds->tilesize;
 	return "";
-    } else if (button == LEFT_RELEASE && ui->dragpoint >= 0) {
+    } else if (IS_MOUSE_RELEASE(button) && ui->dragpoint >= 0) {
 	int p = ui->dragpoint;
 	char buf[80];
 
@@ -1268,8 +1268,8 @@ static point mix(point a, point b, float distance)
     point ret;
 
     ret.d = a.d * b.d;
-    ret.x = a.x * b.d + distance * (b.x * a.d - a.x * b.d);
-    ret.y = a.y * b.d + distance * (b.y * a.d - a.y * b.d);
+    ret.x = (long)(a.x * b.d + distance * (b.x * a.d - a.x * b.d));
+    ret.y = (long)(a.y * b.d + distance * (b.y * a.d - a.y * b.d));
 
     return ret;
 }

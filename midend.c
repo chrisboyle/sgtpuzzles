@@ -335,9 +335,9 @@ void midend_new_game(midend *me)
             char newseed[16];
             int i;
             newseed[15] = '\0';
-            newseed[0] = '1' + random_upto(me->random, 9);
+            newseed[0] = '1' + (char)random_upto(me->random, 9);
             for (i = 1; i < 15; i++)
-                newseed[i] = '0' + random_upto(me->random, 10);
+                newseed[i] = '0' + (char)random_upto(me->random, 10);
             sfree(me->seedstr);
             me->seedstr = dupstr(newseed);
 
@@ -832,9 +832,9 @@ float *midend_colours(midend *me, int *ncolours)
 	    buf[k] = '\0';
             if ((e = getenv(buf)) != NULL &&
                 sscanf(e, "%2x%2x%2x", &r, &g, &b) == 3) {
-                ret[i*3 + 0] = r / 255.0;
-                ret[i*3 + 1] = g / 255.0;
-                ret[i*3 + 2] = b / 255.0;
+                ret[i*3 + 0] = r / 255.0F;
+                ret[i*3 + 1] = g / 255.0F;
+                ret[i*3 + 2] = b / 255.0F;
             }
         }
     }
@@ -1304,7 +1304,7 @@ char *midend_rewrite_statusbar(midend *me, char *text)
 	char timebuf[100], *ret;
 	int min, sec;
 
-	sec = me->elapsed;
+	sec = (int)me->elapsed;
 	min = sec / 60;
 	sec %= 60;
 	sprintf(timebuf, "[%d:%02d] ", min, sec);
@@ -1608,7 +1608,7 @@ char *midend_deserialise(midend *me,
                 uistr = val;
                 val = NULL;
             } else if (!strcmp(key, "TIME")) {
-                elapsed = atof(val);
+                elapsed = (float)atof(val);
             } else if (!strcmp(key, "NSTATES")) {
                 nstates = atoi(val);
                 if (nstates <= 0) {

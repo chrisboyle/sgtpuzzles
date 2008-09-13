@@ -232,7 +232,7 @@ static void decode_params(game_params *ret, char const *string)
 	    ret->wrapping = TRUE;
 	} else if (*p == 'b') {
 	    p++;
-            ret->barrier_probability = atof(p);
+            ret->barrier_probability = (float)atof(p);
 	    while (*p && (*p == '.' || isdigit((unsigned char)*p))) p++;
 	} else if (*p == 'a') {
             p++;
@@ -2863,8 +2863,8 @@ static void game_print_size(game_params *params, float *x, float *y)
      * I'll use 8mm squares by default.
      */
     game_compute_size(params, 800, &pw, &ph);
-    *x = pw / 100.0;
-    *y = ph / 100.0;
+    *x = pw / 100.0F;
+    *y = ph / 100.0F;
 }
 
 static void draw_diagram(drawing *dr, game_drawstate *ds, int x, int y,

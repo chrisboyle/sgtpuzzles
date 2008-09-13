@@ -2171,8 +2171,8 @@ static void game_print_size(game_params *params, float *x, float *y)
      * I'll use 6mm squares by default.
      */
     game_compute_size(params, 600, &pw, &ph);
-    *x = pw / 100.0;
-    *y = ph / 100.0;
+    *x = pw / 100.0F;
+    *y = ph / 100.0F;
 }
 
 static void game_print(drawing *dr, game_state *state, int tilesize)

@@ -992,9 +992,9 @@ static float *game_colours(frontend *fe, int *ncolours)
 
     /* We also want to be able to tell the difference between BACKGROUND
      * and EMPTY, for similar distinguishing-hint reasons. */
-    ret[COL_EMPTY * 3 + 0] = ret[COL_BACKGROUND * 3 + 0] * 2.0 / 3.0;
-    ret[COL_EMPTY * 3 + 1] = ret[COL_BACKGROUND * 3 + 1] * 2.0 / 3.0;
-    ret[COL_EMPTY * 3 + 2] = ret[COL_BACKGROUND * 3 + 2] * 2.0 / 3.0;
+    ret[COL_EMPTY * 3 + 0] = ret[COL_BACKGROUND * 3 + 0] * 2.0F / 3.0F;
+    ret[COL_EMPTY * 3 + 1] = ret[COL_BACKGROUND * 3 + 1] * 2.0F / 3.0F;
+    ret[COL_EMPTY * 3 + 2] = ret[COL_BACKGROUND * 3 + 2] * 2.0F / 3.0F;
 
     *ncolours = NCOLOURS;
     return ret;

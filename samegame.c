@@ -1126,7 +1126,7 @@ static char *sel_movedesc(game_ui *ui, game_state *state)
 	if (ui->tiles[i] & TILE_SELECTED) {
 	    sprintf(buf, "%s%d", sep, i);
 	    sep = ",";
-	    if (retlen + strlen(buf) >= retsize) {
+	    if (retlen + (int)strlen(buf) >= retsize) {
 		retsize = retlen + strlen(buf) + 256;
 		ret = sresize(ret, retsize, char);
 	    }
@@ -1419,9 +1419,9 @@ static float *game_colours(frontend *fe, int *ncolours)
     ret[COL_HIGHLIGHT * 3 + 1] = 1.0F;
     ret[COL_HIGHLIGHT * 3 + 2] = 1.0F;
 
-    ret[COL_LOWLIGHT * 3 + 0] = ret[COL_BACKGROUND * 3 + 0] * 2.0 / 3.0;
-    ret[COL_LOWLIGHT * 3 + 1] = ret[COL_BACKGROUND * 3 + 1] * 2.0 / 3.0;
-    ret[COL_LOWLIGHT * 3 + 2] = ret[COL_BACKGROUND * 3 + 2] * 2.0 / 3.0;
+    ret[COL_LOWLIGHT * 3 + 0] = ret[COL_BACKGROUND * 3 + 0] * 2.0F / 3.0F;
+    ret[COL_LOWLIGHT * 3 + 1] = ret[COL_BACKGROUND * 3 + 1] * 2.0F / 3.0F;
+    ret[COL_LOWLIGHT * 3 + 2] = ret[COL_BACKGROUND * 3 + 2] * 2.0F / 3.0F;
 
     *ncolours = NCOLOURS;
     return ret;
