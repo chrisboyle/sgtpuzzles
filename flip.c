@@ -905,8 +905,7 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
     int w = state->w, h = state->h, wh = w * h;
     char buf[80], *nullret = NULL;
 
-    if (button == LEFT_BUTTON || button == CURSOR_SELECT ||
-        button == ' ' || button == '\r' || button == '\n') {
+    if (button == LEFT_BUTTON || IS_CURSOR_SELECT(button)) {
         int tx, ty;
         if (button == LEFT_BUTTON) {
             tx = FROMCOORD(x), ty = FROMCOORD(y);
@@ -936,8 +935,7 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
             }
         }
     }
-    else if (button == CURSOR_UP || button == CURSOR_DOWN ||
-	     button == CURSOR_RIGHT || button == CURSOR_LEFT) {
+    else if (IS_CURSOR_MOVE(button)) {
         int dx = 0, dy = 0;
         switch (button) {
         case CURSOR_UP:         dy = -1; break;

@@ -1580,7 +1580,8 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
         dir = 1;
     else if (button == (MOD_NUM_KEYPAD | '3'))
         dir = 3;
-    else if (button == ' ' && state->soln && state->solnpos < state->soln->len)
+    else if (IS_CURSOR_SELECT(button) &&
+             state->soln && state->solnpos < state->soln->len)
 	dir = state->soln->list[state->solnpos];
 
     if (dir < 0)

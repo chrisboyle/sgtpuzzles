@@ -244,4 +244,77 @@ void draw_rect_outline(drawing *dr, int x, int y, int w, int h, int colour)
     draw_polygon(dr, coords, 4, -1, colour);
 }
 
+void move_cursor(int button, int *x, int *y, int maxw, int maxh, int wrap)
+{
+    int dx = 0, dy = 0;
+    switch (button) {
+    case CURSOR_UP:         dy = -1; break;
+    case CURSOR_DOWN:       dy = 1; break;
+    case CURSOR_RIGHT:      dx = 1; break;
+    case CURSOR_LEFT:       dx = -1; break;
+    default: return;
+    }
+    if (wrap) {
+        *x = (*x + dx + maxw) % maxw;
+        *y = (*y + dy + maxh) % maxh;
+    } else {
+        *x = min(max(*x+dx, 0), maxw - 1);
+        *y = min(max(*y+dy, 0), maxh - 1);
+    }
+}
+
+/* Used in netslide.c and sixteen.c for cursor movement around edge. */
+
+int c2pos(int w, int h, int cx, int cy)
+{
+    if (cy == -1)
+        return cx;                      /* top row, 0 .. w-1 (->) */
+    else if (cx == w)
+        return w + cy;                  /* R col, w .. w+h -1 (v) */
+    else if (cy == h)
+        return w + h + (w-cx-1);        /* bottom row, w+h .. w+h+w-1 (<-) */
+    else if (cx == -1)
+        return w + h + w + (h-cy-1);    /* L col, w+h+w .. w+h+w+h-1 (^) */
+
+    assert(!"invalid cursor pos!");
+    return -1; /* not reached */
+}
+
+void pos2c(int w, int h, int pos, int *cx, int *cy)
+{
+    int max = w+h+w+h;
+
+    pos = (pos + max) % max;
+
+    if (pos < w) {
+        *cx = pos; *cy = -1; return;
+    }
+    pos -= w;
+    if (pos < h) {
+        *cx = w; *cy = pos; return;
+    }
+    pos -= h;
+    if (pos < w) {
+        *cx = w-pos-1; *cy = h; return;
+    }
+    pos -= w;
+    if (pos < h) {
+      *cx = -1; *cy = h-pos-1; return;
+    }
+    assert(!"invalid pos, huh?"); /* limited by % above! */
+}
+
+void draw_text_outline(drawing *dr, int x, int y, int fonttype,
+                       int fontsize, int align,
+                       int text_colour, int outline_colour, char *text)
+{
+    if (outline_colour > -1) {
+        draw_text(dr, x-1, y, fonttype, fontsize, align, outline_colour, text);
+        draw_text(dr, x+1, y, fonttype, fontsize, align, outline_colour, text);
+        draw_text(dr, x, y-1, fonttype, fontsize, align, outline_colour, text);
+        draw_text(dr, x, y+1, fonttype, fontsize, align, outline_colour, text);
+    }
+    draw_text(dr, x, y, fonttype, fontsize, align, text_colour, text);
+}
+
 /* vim: set shiftwidth=4 tabstop=8: */

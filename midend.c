@@ -683,6 +683,14 @@ int midend_process_key(midend *me, int x, int y, int button)
      * like a left click for the benefit of users of other
      * implementations. So the last of the above points is modified
      * in the presence of an (optional) button priority order.
+     *
+     * A further addition: we translate certain keyboard presses to
+     * cursor key 'select' buttons, so that a) frontends don't have
+     * to translate these themselves (like they do for CURSOR_UP etc),
+     * and b) individual games don't have to hard-code button presses
+     * of '\n' etc for keyboard-based cursors. The choice of buttons
+     * here could eventually be controlled by a runtime configuration
+     * option.
      */
     if (IS_MOUSE_DRAG(button) || IS_MOUSE_RELEASE(button)) {
         if (me->pressed_mouse_button) {
@@ -711,6 +719,14 @@ int midend_process_key(midend *me, int x, int y, int button)
             (me, x, y, (me->pressed_mouse_button +
                         (LEFT_RELEASE - LEFT_BUTTON)));
     }
+
+    /*
+     * Translate keyboard presses to cursor selection.
+     */
+    if (button == '\n' || button == '\r')
+      button = CURSOR_SELECT;
+    if (button == ' ')
+      button = CURSOR_SELECT2;
 
     /*
      * Now send on the event we originally received.

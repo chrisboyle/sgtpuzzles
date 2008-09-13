@@ -46,6 +46,7 @@ enum {
     CURSOR_LEFT,
     CURSOR_RIGHT,
     CURSOR_SELECT,
+    CURSOR_SELECT2,
     
     /* made smaller because of 'limited range of datatype' errors. */
     MOD_CTRL       = 0x1000,
@@ -60,6 +61,9 @@ enum {
                                (unsigned)(RIGHT_DRAG - LEFT_DRAG))
 #define IS_MOUSE_RELEASE(m) ( (unsigned)((m) - LEFT_RELEASE) <= \
                                (unsigned)(RIGHT_RELEASE - LEFT_RELEASE))
+#define IS_CURSOR_MOVE(m) ( (m) == CURSOR_UP || (m) == CURSOR_DOWN || \
+                            (m) == CURSOR_RIGHT || (m) == CURSOR_LEFT )
+#define IS_CURSOR_SELECT(m) ( (m) == CURSOR_SELECT || (m) == CURSOR_SELECT2)
 
 /*
  * Flags in the back end's `flags' word.
@@ -297,6 +301,17 @@ void shuffle(void *array, int nelts, int eltsize, random_state *rs);
 void draw_rect_outline(drawing *dr, int x, int y, int w, int h,
                        int colour);
 
+void move_cursor(int button, int *x, int *y, int maxw, int maxh, int wrap);
+
+/* Used in netslide.c and sixteen.c for cursor movement around edge. */
+int c2pos(int w, int h, int cx, int cy);
+void pos2c(int w, int h, int pos, int *cx, int *cy);
+
+/* Draws text with an 'outline' formed by offsetting the text
+ * by one pixel; useful for highlighting. Outline is omitted if -1. */
+void draw_text_outline(drawing *dr, int x, int y, int fonttype,
+                       int fontsize, int align,
+                       int text_colour, int outline_colour, char *text);
 /*
  * dsf.c
  */
