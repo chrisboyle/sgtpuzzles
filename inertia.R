@@ -4,7 +4,7 @@ inertia  : [X] GTK COMMON inertia inertia-icon|no-icon
 
 inertia  : [G] WINDOWS COMMON inertia inertia.res|noicon.res
 
-ALL += inertia
+ALL += inertia[COMBINED]
 
 !begin gtk
 GAMES += inertia

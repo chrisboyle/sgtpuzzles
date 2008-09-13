@@ -1,15 +1,15 @@
 # -*- makefile -*-
 
-TENTS    = tents maxflow
+TENTS_EXTRA = maxflow
 
-tents    : [X] GTK COMMON TENTS tents-icon|no-icon
+tents    : [X] GTK COMMON tents TENTS_EXTRA tents-icon|no-icon
 
-tents    : [G] WINDOWS COMMON TENTS tents.res|noicon.res
+tents    : [G] WINDOWS COMMON tents TENTS_EXTRA tents.res|noicon.res
 
-ALL += TENTS
+ALL += tents[COMBINED] TENTS_EXTRA
 
-tentssolver :   [U] tents[STANDALONE_SOLVER] maxflow STANDALONE
-tentssolver :   [C] tents[STANDALONE_SOLVER] maxflow STANDALONE
+tentssolver :   [U] tents[STANDALONE_SOLVER] TENTS_EXTRA STANDALONE
+tentssolver :   [C] tents[STANDALONE_SOLVER] TENTS_EXTRA STANDALONE
 
 !begin gtk
 GAMES += tents

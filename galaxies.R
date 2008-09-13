@@ -1,19 +1,19 @@
 # -*- makefile -*-
 
-GALAXIES = galaxies dsf
+GALAXIES_EXTRA = dsf
 
-galaxies : [X] GTK COMMON GALAXIES galaxies-icon|no-icon
+galaxies : [X] GTK COMMON galaxies GALAXIES_EXTRA galaxies-icon|no-icon
 
-galaxies : [G] WINDOWS COMMON GALAXIES galaxies.res|noicon.res
+galaxies : [G] WINDOWS COMMON galaxies GALAXIES_EXTRA galaxies.res|noicon.res
 
-galaxiessolver : [U] galaxies[STANDALONE_SOLVER] dsf STANDALONE m.lib
-galaxiessolver : [C] galaxies[STANDALONE_SOLVER] dsf STANDALONE
+galaxiessolver : [U] galaxies[STANDALONE_SOLVER] GALAXIES_EXTRA STANDALONE m.lib
+galaxiessolver : [C] galaxies[STANDALONE_SOLVER] GALAXIES_EXTRA STANDALONE
 
-galaxiespicture : [U] galaxies[STANDALONE_PICTURE_GENERATOR] dsf STANDALONE
+galaxiespicture : [U] galaxies[STANDALONE_PICTURE_GENERATOR] GALAXIES_EXTRA STANDALONE
                 + m.lib
-galaxiespicture : [C] galaxies[STANDALONE_PICTURE_GENERATOR] dsf STANDALONE
+galaxiespicture : [C] galaxies[STANDALONE_PICTURE_GENERATOR] GALAXIES_EXTRA STANDALONE
 
-ALL += galaxies
+ALL += galaxies[COMBINED] GALAXIES_EXTRA
 
 !begin gtk
 GAMES += galaxies

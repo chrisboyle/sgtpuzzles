@@ -4,7 +4,7 @@ twiddle  : [X] GTK COMMON twiddle twiddle-icon|no-icon
 
 twiddle  : [G] WINDOWS COMMON twiddle twiddle.res|noicon.res
 
-ALL += twiddle
+ALL += twiddle[COMBINED]
 
 !begin gtk
 GAMES += twiddle

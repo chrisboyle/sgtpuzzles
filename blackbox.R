@@ -4,7 +4,7 @@ blackbox : [X] GTK COMMON blackbox blackbox-icon|no-icon
 
 blackbox : [G] WINDOWS COMMON blackbox blackbox.res|noicon.res
 
-ALL += blackbox
+ALL += blackbox[COMBINED]
 
 !begin gtk
 GAMES += blackbox

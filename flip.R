@@ -1,12 +1,12 @@
 # -*- makefile -*-
 
-FLIP     = flip tree234
+FLIP_EXTRA = tree234
 
-flip     : [X] GTK COMMON FLIP flip-icon|no-icon
+flip     : [X] GTK COMMON flip FLIP_EXTRA flip-icon|no-icon
 
-flip     : [G] WINDOWS COMMON FLIP flip.res|noicon.res
+flip     : [G] WINDOWS COMMON flip FLIP_EXTRA flip.res|noicon.res
 
-ALL += FLIP
+ALL += flip[COMBINED] FLIP_EXTRA
 
 !begin gtk
 GAMES += flip

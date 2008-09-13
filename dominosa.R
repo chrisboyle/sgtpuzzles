@@ -4,7 +4,7 @@ dominosa : [X] GTK COMMON dominosa dominosa-icon|no-icon
 
 dominosa : [G] WINDOWS COMMON dominosa dominosa.res|noicon.res
 
-ALL += dominosa
+ALL += dominosa[COMBINED]
 
 !begin gtk
 GAMES += dominosa

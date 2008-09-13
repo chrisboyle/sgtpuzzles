@@ -4,7 +4,7 @@ guess    : [X] GTK COMMON guess guess-icon|no-icon
 
 guess    : [G] WINDOWS COMMON guess guess.res|noicon.res
 
-ALL += guess
+ALL += guess[COMBINED]
 
 !begin gtk
 GAMES += guess

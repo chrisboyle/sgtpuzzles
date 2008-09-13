@@ -1,15 +1,15 @@
 # -*- makefile -*-
 
-FILLING = filling dsf
+FILLING_EXTRA = dsf
 
-fillingsolver :	[U] filling[STANDALONE_SOLVER] dsf STANDALONE
-fillingsolver :	[C] filling[STANDALONE_SOLVER] dsf STANDALONE
+fillingsolver :	[U] filling[STANDALONE_SOLVER] FILLING_EXTRA STANDALONE
+fillingsolver :	[C] filling[STANDALONE_SOLVER] FILLING_EXTRA STANDALONE
 
-filling : [X] GTK COMMON FILLING filling-icon|no-icon
+filling : [X] GTK COMMON filling FILLING_EXTRA filling-icon|no-icon
 
-filling : [G] WINDOWS COMMON FILLING filling.res|noicon.res
+filling : [G] WINDOWS COMMON filling FILLING_EXTRA filling.res|noicon.res
 
-ALL += filling
+ALL += filling[COMBINED] FILLING_EXTRA
 
 !begin gtk
 GAMES += filling

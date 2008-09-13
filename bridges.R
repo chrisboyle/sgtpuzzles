@@ -1,12 +1,12 @@
 # -*- makefile -*-
 
-BRIDGES  = bridges dsf
+BRIDGES_EXTRA = dsf
 
-bridges  : [X] GTK COMMON BRIDGES bridges-icon|no-icon
+bridges  : [X] GTK COMMON bridges BRIDGES_EXTRA bridges-icon|no-icon
 
-bridges  : [G] WINDOWS COMMON BRIDGES bridges.res|noicon.res
+bridges  : [G] WINDOWS COMMON bridges BRIDGES_EXTRA bridges.res|noicon.res
 
-ALL += BRIDGES
+ALL += bridges[COMBINED] BRIDGES_EXTRA
 
 !begin gtk
 GAMES += bridges

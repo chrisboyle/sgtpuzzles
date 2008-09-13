@@ -77,6 +77,8 @@
  *    recreate it.
  */
 
+#define COMBINED /* we put all the puzzles in one binary in this port */
+
 #include <ctype.h>
 #include <sys/time.h>
 #import <Cocoa/Cocoa.h>

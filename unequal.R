@@ -1,10 +1,10 @@
 # -*- makefile -*-
 
-UNEQUAL  = unequal latin tree234 maxflow
+UNEQUAL_EXTRA = latin tree234 maxflow
 
-unequal  : [X] GTK COMMON UNEQUAL unequal-icon|no-icon
+unequal  : [X] GTK COMMON unequal UNEQUAL_EXTRA unequal-icon|no-icon
 
-unequal  : [G] WINDOWS COMMON UNEQUAL unequal.res|noicon.res
+unequal  : [G] WINDOWS COMMON unequal UNEQUAL_EXTRA unequal.res|noicon.res
 
 unequalsolver : [U] unequal[STANDALONE_SOLVER] latin[STANDALONE_SOLVER] tree234 maxflow STANDALONE
 unequalsolver : [C] unequal[STANDALONE_SOLVER] latin[STANDALONE_SOLVER] tree234 maxflow STANDALONE
@@ -12,7 +12,7 @@ unequalsolver : [C] unequal[STANDALONE_SOLVER] latin[STANDALONE_SOLVER] tree234 
 latincheck : [U] latin[STANDALONE_LATIN_TEST] tree234 maxflow STANDALONE
 latincheck : [C] latin[STANDALONE_LATIN_TEST] tree234 maxflow STANDALONE
 
-ALL += UNEQUAL
+ALL += unequal[COMBINED] UNEQUAL_EXTRA
 
 !begin gtk
 GAMES += unequal

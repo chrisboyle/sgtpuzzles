@@ -1,12 +1,12 @@
 # -*- makefile -*-
 
-NETSLIDE = netslide tree234
+NETSLIDE_EXTRA = tree234
 
-netslide : [X] GTK COMMON NETSLIDE netslide-icon|no-icon
+netslide : [X] GTK COMMON netslide NETSLIDE_EXTRA netslide-icon|no-icon
 
-netslide : [G] WINDOWS COMMON NETSLIDE netslide.res|noicon.res
+netslide : [G] WINDOWS COMMON netslide NETSLIDE_EXTRA netslide.res|noicon.res
 
-ALL += NETSLIDE
+ALL += netslide[COMBINED] NETSLIDE_EXTRA
 
 !begin gtk
 GAMES += netslide

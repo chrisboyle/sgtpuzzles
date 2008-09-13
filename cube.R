@@ -4,7 +4,7 @@ cube     : [X] GTK COMMON cube cube-icon|no-icon
 
 cube     : [G] WINDOWS COMMON cube cube.res|noicon.res
 
-ALL += cube
+ALL += cube[COMBINED]
 
 !begin gtk
 GAMES += cube

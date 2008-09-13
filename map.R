@@ -1,15 +1,15 @@
 # -*- makefile -*-
 
-MAP      = map dsf
+MAP_EXTRA = dsf
 
-map      : [X] GTK COMMON MAP map-icon|no-icon
+map      : [X] GTK COMMON map MAP_EXTRA map-icon|no-icon
 
-map      : [G] WINDOWS COMMON MAP map.res|noicon.res
+map      : [G] WINDOWS COMMON map MAP_EXTRA map.res|noicon.res
 
-mapsolver :     [U] map[STANDALONE_SOLVER] dsf STANDALONE m.lib
-mapsolver :     [C] map[STANDALONE_SOLVER] dsf STANDALONE
+mapsolver :     [U] map[STANDALONE_SOLVER] MAP_EXTRA STANDALONE m.lib
+mapsolver :     [C] map[STANDALONE_SOLVER] MAP_EXTRA STANDALONE
 
-ALL += MAP
+ALL += map[COMBINED] MAP_EXTRA
 
 !begin gtk
 GAMES += map

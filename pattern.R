@@ -7,7 +7,7 @@ pattern  : [G] WINDOWS COMMON pattern pattern.res|noicon.res
 patternsolver : [U] pattern[STANDALONE_SOLVER] STANDALONE
 patternsolver : [C] pattern[STANDALONE_SOLVER] STANDALONE
 
-ALL += pattern
+ALL += pattern[COMBINED]
 
 !begin gtk
 GAMES += pattern

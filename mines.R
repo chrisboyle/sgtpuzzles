@@ -1,15 +1,15 @@
 # -*- makefile -*-
 
-MINES    = mines tree234
+MINES_EXTRA = tree234
 
-mines    : [X] GTK COMMON MINES mines-icon|no-icon
+mines    : [X] GTK COMMON mines MINES_EXTRA mines-icon|no-icon
 
-mines    : [G] WINDOWS COMMON MINES mines.res|noicon.res
+mines    : [G] WINDOWS COMMON mines MINES_EXTRA mines.res|noicon.res
 
-mineobfusc :    [U] mines[STANDALONE_OBFUSCATOR] tree234 STANDALONE
-mineobfusc :    [C] mines[STANDALONE_OBFUSCATOR] tree234 STANDALONE
+mineobfusc :    [U] mines[STANDALONE_OBFUSCATOR] MINES_EXTRA STANDALONE
+mineobfusc :    [C] mines[STANDALONE_OBFUSCATOR] MINES_EXTRA STANDALONE
 
-ALL += MINES
+ALL += mines[COMBINED] MINES_EXTRA
 
 !begin gtk
 GAMES += mines
