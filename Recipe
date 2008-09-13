@@ -61,7 +61,6 @@ Puzzles  : [MX] osx osx.icns osx-info.plist COMMON ALL
 # all the puzzles. Then I've also got some code in here to build a
 # distributable .dmg disk image.
 !begin osx
-CFLAGS += -DCOMBINED
 Puzzles_extra = Puzzles.app/Contents/Resources/Help/index.html
 Puzzles.app/Contents/Resources/Help/index.html: \
 	Puzzles.app/Contents/Resources/Help osx-help.but puzzles.but
