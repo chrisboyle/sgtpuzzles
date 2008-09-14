@@ -1764,11 +1764,12 @@ static frontend *new_window(char *arg, int argtype, char **error)
         gdk_colormap_alloc_colors(fe->colmap, fe->colours, ncolours,
                                   FALSE, FALSE, success);
         for (i = 0; i < ncolours; i++) {
-            if (!success[i])
+            if (!success[i]) {
                 g_error("couldn't allocate colour %d (#%02x%02x%02x)\n",
                         i, fe->colours[i].red >> 8,
                         fe->colours[i].green >> 8,
                         fe->colours[i].blue >> 8);
+            }
         }
     }
 
