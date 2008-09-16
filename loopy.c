@@ -3037,7 +3037,8 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
         int grid_height = g->highest_y - g->lowest_y;
         int w = grid_width * ds->tilesize / g->tilesize;
         int h = grid_height * ds->tilesize / g->tilesize;
-        draw_rect(dr, 0, 0, w + 2 * border, h + 2 * border, COL_BACKGROUND);
+        draw_rect(dr, 0, 0, w + 2 * border + 1, h + 2 * border + 1,
+                  COL_BACKGROUND);
 
         /* Draw clues */
         for (i = 0; i < g->num_faces; i++) {
