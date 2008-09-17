@@ -83,7 +83,6 @@ typedef struct game_clues {
 
 #define ERR_VERTEX 1
 #define ERR_SQUARE 2
-#define ERR_SQUARE_TMP 4
 
 struct game_state {
     struct game_params p;
@@ -1259,7 +1258,7 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
     state->clues->h = h;
     state->clues->clues = snewn(W*H, signed char);
     state->clues->refcount = 1;
-    state->clues->tmpdsf = snewn(W*H, int);
+    state->clues->tmpdsf = snewn(W*H*2+W+H, int);
     memset(state->clues->clues, -1, W*H);
     while (*desc) {
         int n = *desc++;
@@ -1353,159 +1352,92 @@ static int vertex_degree(int w, int h, signed char *soln, int x, int y,
 static int check_completion(game_state *state)
 {
     int w = state->p.w, h = state->p.h, W = w+1, H = h+1;
-    int i, x, y, err = FALSE;
+    int x, y, err = FALSE;
     int *dsf;
 
     memset(state->errors, 0, W*H);
 
     /*
      * To detect loops in the grid, we iterate through each edge
-     * building up a dsf of connected components, and raise the
-     * alarm whenever we find an edge that connects two
-     * already-connected vertices.
-     * 
+     * building up a dsf of connected components of the space
+     * around the edges; if there's more than one such component,
+     * we have a loop, and in particular we can then easily
+     * identify and highlight every edge forming part of a loop
+     * because it separates two nonequivalent regions.
+     *
      * We use the `tmpdsf' scratch space in the shared clues
      * structure, to avoid mallocing too often.
-     * 
-     * When we find such an edge, we then search around the grid to
-     * find the loop it is a part of, so that we can highlight it
-     * as an error for the user. We do this by the hand-on-one-wall
-     * technique: the search will follow branches off the inside of
-     * the loop, discover they're dead ends, and unhighlight them
-     * again when returning to the actual loop.
-     * 
-     * This technique guarantees that every loop it tracks will
-     * surround a disjoint area of the grid (since if an existing
-     * loop appears on the boundary of a new one, so that there are
-     * multiple possible paths that would come back to the starting
-     * point, it will pick the one that allows it to turn right
-     * most sharply and hence the one that does not re-surround the
-     * area of the previous one). Thus, the total time taken in
-     * searching round loops is linear in the grid area since every
-     * edge is visited at most twice.
+     *
+     * For these purposes, the grid is considered to be divided
+     * into diamond-shaped regions surrounding an orthogonal edge.
+     * This means we have W*h vertical edges and w*H horizontal
+     * ones; so our vertical edges are indexed in the dsf as
+     * (y*W+x) (0<=y<h, 0<=x<W), and the horizontal ones as (W*h +
+     * y*w+x) (0<=y<H, 0<=x<w), where (x,y) is the topmost or
+     * leftmost point on the edge.
      */
     dsf = state->clues->tmpdsf;
-    dsf_init(dsf, W*H);
+    dsf_init(dsf, W*h + w*H);
+    /* Start by identifying all the outer edges with each other. */
+    for (y = 0; y < h; y++) {
+	dsf_merge(dsf, 0, y*W+0);
+	dsf_merge(dsf, 0, y*W+w);
+    }
+    for (x = 0; x < w; x++) {
+	dsf_merge(dsf, 0, W*h + 0*w+x);
+	dsf_merge(dsf, 0, W*h + h*w+x);
+    }
+    /* Now go through the actual grid. */
     for (y = 0; y < h; y++)
         for (x = 0; x < w; x++) {
-            int i1, i2;
-
-            if (state->soln[y*w+x] == 0)
-                continue;
-            if (state->soln[y*w+x] < 0) {
-                i1 = y*W+x;
-                i2 = (y+1)*W+(x+1);
-            } else {
-                i1 = y*W+(x+1);
-                i2 = (y+1)*W+x;
-            }
-
-            /*
-             * Our edge connects i1 with i2. If they're already
-             * connected, flag an error. Otherwise, link them.
-             */
-            if (dsf_canonify(dsf, i1) == dsf_canonify(dsf, i2)) {
-		int x1, y1, x2, y2, dx, dy, dt, pass;
-
-		err = TRUE;
-
+            if (state->soln[y*w+x] >= 0) {
 		/*
-		 * Now search around the boundary of the loop to
-		 * highlight it.
-		 * 
-		 * We have to do this in two passes. The first
-		 * time, we toggle ERR_SQUARE_TMP on each edge;
-		 * this pass terminates with ERR_SQUARE_TMP set on
-		 * exactly the loop edges. In the second pass, we
-		 * trace round that loop again and turn
-		 * ERR_SQUARE_TMP into ERR_SQUARE. We have to do
-		 * this because otherwise we might cancel part of a
-		 * loop highlighted in a previous iteration of the
-		 * outer loop.
+		 * There isn't a \ in this square, so we can unify
+		 * the top edge with the left, and the bottom with
+		 * the right.
 		 */
-
-		for (pass = 0; pass < 2; pass++) {
-
-		    x1 = i1 % W;
-		    y1 = i1 / W;
-		    x2 = i2 % W;
-		    y2 = i2 / W;
-
-		    do {
-			/* Mark this edge. */
-			if (pass == 0) {
-			    state->errors[min(y1,y2)*W+min(x1,x2)] ^=
-				ERR_SQUARE_TMP;
-			} else {
-			    state->errors[min(y1,y2)*W+min(x1,x2)] |=
-				ERR_SQUARE;
-			    state->errors[min(y1,y2)*W+min(x1,x2)] &=
-				~ERR_SQUARE_TMP;
-			}
-
-			/*
-			 * Progress to the next edge by turning as
-			 * sharply right as possible. In fact we do
-			 * this by facing back along the edge and
-			 * turning _left_ until we see an edge we
-			 * can follow.
-			 */
-			dx = x1 - x2;
-			dy = y1 - y2;
-
-			for (i = 0; i < 4; i++) {
-			    /*
-			     * Rotate (dx,dy) to the left.
-			     */
-			    dt = dx; dx = dy; dy = -dt;
-
-			    /*
-			     * See if (x2,y2) has an edge in direction
-			     * (dx,dy).
-			     */
-			    if (x2+dx < 0 || x2+dx >= W ||
-				y2+dy < 0 || y2+dy >= H)
-				continue;  /* off the side of the grid */
-			    /* In the second pass, ignore unmarked edges. */
-			    if (pass == 1 &&
-				!(state->errors[(y2-(dy<0))*W+x2-(dx<0)] &
-				  ERR_SQUARE_TMP))
-				continue;
-			    if (state->soln[(y2-(dy<0))*w+x2-(dx<0)] ==
-				(dx==dy ? -1 : +1))
-				break;
-			}
-
-			/*
-			 * In pass 0, we expect to have found
-			 * _some_ edge we can follow, even if it
-			 * was found by rotating all the way round
-			 * and going back the way we came.
-			 * 
-			 * In pass 1, because we're removing the
-			 * mark on each edge that allows us to
-			 * follow it, we expect to find _no_ edge
-			 * we can follow when we've come all the
-			 * way round the loop.
-			 */
-			if (pass == 1 && i == 4)
-			    break;
-			assert(i < 4);
-
-			/*
-			 * Set x1,y1 to x2,y2, and x2,y2 to be the
-			 * other end of the new edge.
-			 */
-			x1 = x2;
-			y1 = y2;
-			x2 += dx;
-			y2 += dy;
-		    } while (y2*W+x2 != i2);
-
-		}
-		
-	    } else
-                dsf_merge(dsf, i1, i2);
+		dsf_merge(dsf, y*W+x, W*h + y*w+x);
+		dsf_merge(dsf, y*W+(x+1), W*h + (y+1)*w+x);
+	    }
+            if (state->soln[y*w+x] <= 0) {
+		/*
+		 * There isn't a / in this square, so we can unify
+		 * the top edge with the right, and the bottom
+		 * with the left.
+		 */
+		dsf_merge(dsf, y*W+x, W*h + (y+1)*w+x);
+		dsf_merge(dsf, y*W+(x+1), W*h + y*w+x);
+	    }
+        }
+    /* Now go through again and mark the appropriate edges as erroneous. */
+    for (y = 0; y < h; y++)
+        for (x = 0; x < w; x++) {
+	    int erroneous = 0;
+            if (state->soln[y*w+x] > 0) {
+		/*
+		 * A / separates the top and left edges (which
+		 * must already have been identified with each
+		 * other) from the bottom and right (likewise).
+		 * Hence it is erroneous if and only if the top
+		 * and right edges are nonequivalent.
+		 */
+		erroneous = (dsf_canonify(dsf, y*W+(x+1)) !=
+			     dsf_canonify(dsf, W*h + y*w+x));
+	    } else if (state->soln[y*w+x] < 0) {
+		/*
+		 * A \ separates the top and right edges (which
+		 * must already have been identified with each
+		 * other) from the bottom and left (likewise).
+		 * Hence it is erroneous if and only if the top
+		 * and left edges are nonequivalent.
+		 */
+		erroneous = (dsf_canonify(dsf, y*W+x) !=
+			     dsf_canonify(dsf, W*h + y*w+x));
+	    }
+	    if (erroneous) {
+		state->errors[y*W+x] |= ERR_SQUARE;
+		err = TRUE;
+	    }
         }
 
     /*
