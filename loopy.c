@@ -114,6 +114,8 @@ struct game_state {
      * YES, NO or UNKNOWN */
     char *lines;
 
+    unsigned char *line_errors;
+
     int solved;
     int cheated;
 
@@ -192,7 +194,12 @@ struct game_params {
     grid *game_grid;
 };
 
+/* line_drawstate is the same as line_state, but with the extra ERROR
+ * possibility.  The drawing code copies line_state to line_drawstate,
+ * except in the case that the line is an error. */
 enum line_state { LINE_YES, LINE_UNKNOWN, LINE_NO };
+enum line_drawstate { DS_LINE_YES, DS_LINE_UNKNOWN,
+                      DS_LINE_NO, DS_LINE_ERROR };
 
 #define OPP(line_state) \
     (2 - line_state)
@@ -289,6 +296,9 @@ static game_state *dup_game(game_state *state)
     ret->lines = snewn(state->game_grid->num_edges, char);
     memcpy(ret->lines, state->lines, state->game_grid->num_edges);
 
+    ret->line_errors = snewn(state->game_grid->num_edges, unsigned char);
+    memcpy(ret->line_errors, state->line_errors, state->game_grid->num_edges);
+
     ret->grid_type = state->grid_type;
     return ret;
 }
@@ -299,6 +309,7 @@ static void free_game(game_state *state)
         grid_free(state->game_grid);
         sfree(state->clues);
         sfree(state->lines);
+        sfree(state->line_errors);
         sfree(state);
     }
 }
@@ -1607,12 +1618,14 @@ static char *new_game_desc(game_params *params, random_state *rs,
     g->refcount++;
     state->clues = snewn(g->num_faces, signed char);
     state->lines = snewn(g->num_edges, char);
+    state->line_errors = snewn(g->num_edges, unsigned char);
 
     state->grid_type = params->type;
 
     newboard_please:
 
     memset(state->lines, LINE_UNKNOWN, g->num_edges);
+    memset(state->line_errors, 0, g->num_edges);
 
     state->solved = state->cheated = FALSE;
 
@@ -1662,6 +1675,7 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
 
     state->clues = snewn(num_faces, signed char);
     state->lines = snewn(num_edges, char);
+    state->line_errors = snewn(num_edges, unsigned char);
 
     state->solved = state->cheated = FALSE;
 
@@ -1688,11 +1702,165 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
     }
 
     memset(state->lines, LINE_UNKNOWN, num_edges);
-
+    memset(state->line_errors, 0, num_edges);
     return state;
 }
 
-enum { LOOP_NONE=0, LOOP_SOLN, LOOP_NOT_SOLN };
+/* Calculates the line_errors data, and checks if the current state is a
+ * solution */
+static int check_completion(game_state *state)
+{
+    grid *g = state->game_grid;
+    int *dsf;
+    int num_faces = g->num_faces;
+    int i;
+    int infinite_area, finite_area;
+    int loops_found = 0;
+    int found_edge_not_in_loop = FALSE;
+
+    memset(state->line_errors, 0, g->num_edges);
+
+    /* LL implementation of SGT's idea:
+     * A loop will partition the grid into an inside and an outside.
+     * If there is more than one loop, the grid will be partitioned into
+     * even more distinct regions.  We can therefore track equivalence of
+     * faces, by saying that two faces are equivalent when there is a non-YES
+     * edge between them.
+     * We could keep track of the number of connected components, by counting
+     * the number of dsf-merges that aren't no-ops.
+     * But we're only interested in 3 separate cases:
+     * no loops, one loop, more than one loop.
+     *
+     * No loops: all faces are equivalent to the infinite face.
+     * One loop: only two equivalence classes - finite and infinite.
+     * >= 2 loops: there are 2 distinct finite regions.
+     *
+     * So we simply make two passes through all the edges.
+     * In the first pass, we dsf-merge the two faces bordering each non-YES
+     * edge.
+     * In the second pass, we look for YES-edges bordering:
+     * a) two non-equivalent faces.
+     * b) two non-equivalent faces, and one of them is part of a different
+     *    finite area from the first finite area we've seen.
+     *
+     * An occurrence of a) means there is at least one loop.
+     * An occurrence of b) means there is more than one loop.
+     * Edges satisfying a) are marked as errors.
+     *
+     * While we're at it, we set a flag if we find a YES edge that is not
+     * part of a loop.
+     * This information will help decide, if there's a single loop, whether it
+     * is a candidate for being a solution (that is, all YES edges are part of
+     * this loop).
+     *
+     * If there is a candidate loop, we then go through all clues and check
+     * they are all satisfied.  If so, we have found a solution and we can
+     * unmark all line_errors.
+     */
+    
+    /* Infinite face is at the end - its index is num_faces.
+     * This macro is just to make this obvious! */
+    #define INF_FACE num_faces
+    dsf = snewn(num_faces + 1, int);
+    dsf_init(dsf, num_faces + 1);
+    
+    /* First pass */
+    for (i = 0; i < g->num_edges; i++) {
+        grid_edge *e = g->edges + i;
+        int f1 = e->face1 ? e->face1 - g->faces : INF_FACE;
+        int f2 = e->face2 ? e->face2 - g->faces : INF_FACE;
+        if (state->lines[i] != LINE_YES)
+            dsf_merge(dsf, f1, f2);
+    }
+    
+    /* Second pass */
+    infinite_area = dsf_canonify(dsf, INF_FACE);
+    finite_area = -1;
+    for (i = 0; i < g->num_edges; i++) {
+        grid_edge *e = g->edges + i;
+        int f1 = e->face1 ? e->face1 - g->faces : INF_FACE;
+        int can1 = dsf_canonify(dsf, f1);
+        int f2 = e->face2 ? e->face2 - g->faces : INF_FACE;
+        int can2 = dsf_canonify(dsf, f2);
+        if (state->lines[i] != LINE_YES) continue;
+
+        if (can1 == can2) {
+            /* Faces are equivalent, so this edge not part of a loop */
+            found_edge_not_in_loop = TRUE;
+            continue;
+        }
+        state->line_errors[i] = TRUE;
+        if (loops_found == 0) loops_found = 1;
+
+        /* Don't bother with further checks if we've already found 2 loops */
+        if (loops_found == 2) continue;
+
+        if (finite_area == -1) {
+            /* Found our first finite area */
+            if (can1 != infinite_area)
+                finite_area = can1;
+            else
+                finite_area = can2;
+        }
+
+        /* Have we found a second area? */
+        if (finite_area != -1) {
+            if (can1 != infinite_area && can1 != finite_area) {
+                loops_found = 2;
+                continue;
+            }
+            if (can2 != infinite_area && can2 != finite_area) {
+                loops_found = 2;
+            }
+        }
+    }
+
+/*
+    printf("loops_found = %d\n", loops_found);
+    printf("found_edge_not_in_loop = %s\n",
+        found_edge_not_in_loop ? "TRUE" : "FALSE");
+*/
+
+    sfree(dsf); /* No longer need the dsf */
+    
+    /* Have we found a candidate loop? */
+    if (loops_found == 1 && !found_edge_not_in_loop) {
+        /* Yes, so check all clues are satisfied */
+        int found_clue_violation = FALSE;
+        for (i = 0; i < num_faces; i++) {
+            int c = state->clues[i];
+            if (c >= 0) {
+                if (face_order(state, i, LINE_YES) != c) {
+                    found_clue_violation = TRUE;
+                    break;
+                }
+            }
+        }
+        
+        if (!found_clue_violation) {
+            /* The loop is good */
+            memset(state->line_errors, 0, g->num_edges);
+            return TRUE; /* No need to bother checking for dot violations */
+        }
+    }
+
+    /* Check for dot violations */
+    for (i = 0; i < g->num_dots; i++) {
+        int yes = dot_order(state, i, LINE_YES);
+        int unknown = dot_order(state, i, LINE_UNKNOWN);
+        if ((yes == 1 && unknown == 0) || (yes >= 3)) {
+            /* violation, so mark all YES edges as errors */
+            grid_dot *d = g->dots + i;
+            int j;
+            for (j = 0; j < d->order; j++) {
+                int e = d->edges[j] - g->edges;
+                if (state->lines[e] == LINE_YES)
+                    state->line_errors[e] = TRUE;
+            }
+        }
+    }
+    return FALSE;
+}
 
 /* ----------------------------------------------------------------------
  * Solver logic
@@ -2864,7 +3032,6 @@ static game_state *execute_move(game_state *state, char *move)
 {
     int i;
     game_state *newstate = dup_game(state);
-    grid *g = state->game_grid;
 
     if (move[0] == 'S') {
         move++;
@@ -2892,77 +3059,9 @@ static game_state *execute_move(game_state *state, char *move)
     /*
      * Check for completion.
      */
-    for (i = 0; i < g->num_edges; i++) {
-        if (newstate->lines[i] == LINE_YES)
-            break;
-    }
-    if (i < g->num_edges) {
-        int looplen, count;
-        grid_edge *start_edge = g->edges + i;
-        grid_edge *e = start_edge;
-        grid_dot *d = e->dot1;
-        /*
-         * We've found an edge i. Follow it round
-         * to see if it's part of a loop.
-         */
-        looplen = 0;
-        while (1) {
-            int j;
-            int order = dot_order(newstate, d - g->dots, LINE_YES);
-            if (order != 2)
-                goto completion_check_done;
-
-            /* Find other edge around this dot */
-            for (j = 0; j < d->order; j++) {
-                grid_edge *e2 = d->edges[j];
-                if (e2 != e && newstate->lines[e2 - g->edges] == LINE_YES)
-                    break;
-            }
-            assert(j != d->order); /* dot_order guarantees success */
-
-            e = d->edges[j];
-            d = (e->dot1 == d) ? e->dot2 : e->dot1;
-            looplen++;
-
-            if (e == start_edge)
-                break;
-        }
-
-        /*
-         * We've traced our way round a loop, and we know how many
-         * line segments were involved. Count _all_ the line
-         * segments in the grid, to see if the loop includes them
-         * all.
-         */
-        count = 0;
-        for (i = 0; i < g->num_edges; i++) {
-            if (newstate->lines[i] == LINE_YES)
-                count++;
-        }
-        assert(count >= looplen);
-        if (count != looplen)
-            goto completion_check_done;
-
-        /*
-         * The grid contains one closed loop and nothing else.
-         * Check that all the clues are satisfied.
-         */
-        for (i = 0; i < g->num_faces; i++) {
-            int c = newstate->clues[i];
-            if (c >= 0) {
-                if (face_order(newstate, i, LINE_YES) != c) {
-                    goto completion_check_done;
-                }
-            }
-        }
-
-        /*
-         * Completed!
-         */
+    if (check_completion(newstate))
         newstate->solved = TRUE;
-    }
 
-    completion_check_done:
     return newstate;
 
     fail:
@@ -3073,10 +3172,14 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
     if (ds->started) {
         const char redraw_flag = (char)(1<<7);
         for (i = 0; i < g->num_edges; i++) {
+            char prev_ds = (ds->lines[i] & ~redraw_flag);
+            char new_ds = state->lines[i];
+            if (state->line_errors[i])
+                new_ds = DS_LINE_ERROR;
+
             /* If we're changing state, AND
              * the previous state was a coloured line */
-            if ((state->lines[i] != (ds->lines[i] & ~redraw_flag)) &&
-		((ds->lines[i] & ~redraw_flag) != LINE_NO)) {
+            if ((prev_ds != new_ds) && (prev_ds != LINE_NO)) {
                 grid_edge *e = g->edges + i;
                 int x1 = e->dot1->x;
                 int y1 = e->dot1->y;
@@ -3159,24 +3262,26 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
         }
     }
 
-    /* I've also had a request to colour lines red if they make a non-solution
-     * loop, or if more than two lines go into any point.  I think that would
-     * be good some time. */
-
     /* Lines */
     for (i = 0; i < g->num_edges; i++) {
         grid_edge *e = g->edges + i;
         int x1, x2, y1, y2;
         int xmin, ymin, xmax, ymax;
-        int need_draw = (state->lines[i] != ds->lines[i]) ? TRUE : FALSE;
+        char new_ds, need_draw;
+        new_ds = state->lines[i];
+        if (state->line_errors[i])
+            new_ds = DS_LINE_ERROR;
+        need_draw = (new_ds != ds->lines[i]) ? TRUE : FALSE;
         if (flash_changed && (state->lines[i] == LINE_YES))
             need_draw = TRUE;
         if (!ds->started)
             need_draw = TRUE; /* draw everything at the start */
-        ds->lines[i] = state->lines[i];
+        ds->lines[i] = new_ds;
         if (!need_draw)
             continue;
-        if (state->lines[i] == LINE_UNKNOWN)
+        if (state->line_errors[i])
+            line_colour = COL_MISTAKE;
+        else if (state->lines[i] == LINE_UNKNOWN)
             line_colour = COL_LINEUNKNOWN;
         else if (state->lines[i] == LINE_NO)
             line_colour = COL_BACKGROUND;
