@@ -228,22 +228,30 @@ static void check_caches(const solver_state* sstate);
 
 /* ------- List of grid generators ------- */
 #define GRIDLIST(A) \
-    A(Squares,grid_new_square) \
-    A(Triangular,grid_new_triangular) \
-    A(Honeycomb,grid_new_honeycomb) \
-    A(Snub-Square,grid_new_snubsquare) \
-    A(Cairo,grid_new_cairo) \
-    A(Great-Hexagonal,grid_new_greathexagonal) \
-    A(Octagonal,grid_new_octagonal) \
-    A(Kites,grid_new_kites)
+    A(Squares,grid_new_square,3,3) \
+    A(Triangular,grid_new_triangular,3,3) \
+    A(Honeycomb,grid_new_honeycomb,3,3) \
+    A(Snub-Square,grid_new_snubsquare,3,3) \
+    A(Cairo,grid_new_cairo,3,4) \
+    A(Great-Hexagonal,grid_new_greathexagonal,3,3) \
+    A(Octagonal,grid_new_octagonal,3,3) \
+    A(Kites,grid_new_kites,3,3)
 
-#define GRID_NAME(title,fn) #title,
-#define GRID_CONFIG(title,fn) ":" #title
-#define GRID_FN(title,fn) &fn,
+#define GRID_NAME(title,fn,amin,omin) #title,
+#define GRID_CONFIG(title,fn,amin,omin) ":" #title
+#define GRID_FN(title,fn,amin,omin) &fn,
+#define GRID_SIZES(title,fn,amin,omin) \
+    {amin, omin, \
+     "Width and height for this grid type must both be at least " #amin, \
+     "At least one of width and height for this grid type must be at least " #omin,},
 static char const *const gridnames[] = { GRIDLIST(GRID_NAME) };
 #define GRID_CONFIGS GRIDLIST(GRID_CONFIG)
 static grid * (*(grid_fns[]))(int w, int h) = { GRIDLIST(GRID_FN) };
 #define NUM_GRID_TYPES (sizeof(grid_fns) / sizeof(grid_fns[0]))
+static const struct {
+    int amin, omin;
+    char *aerr, *oerr;
+} grid_size_limits[] = { GRIDLIST(GRID_SIZES) };
 
 /* Generates a (dynamically allocated) new grid, according to the
  * type and size requested in params.  Does nothing if the grid is already
@@ -619,10 +627,14 @@ static game_params *custom_params(config_item *cfg)
 
 static char *validate_params(game_params *params, int full)
 {
-    if (params->w < 3 || params->h < 3)
-        return "Width and height must both be at least 3";
     if (params->type < 0 || params->type >= NUM_GRID_TYPES)
         return "Illegal grid type";
+    if (params->w < grid_size_limits[params->type].amin ||
+	params->h < grid_size_limits[params->type].amin)
+        return grid_size_limits[params->type].aerr;
+    if (params->w < grid_size_limits[params->type].omin &&
+	params->h < grid_size_limits[params->type].omin)
+        return grid_size_limits[params->type].oerr;
 
     /*
      * This shouldn't be able to happen at all, since decode_params
