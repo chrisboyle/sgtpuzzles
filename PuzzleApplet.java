@@ -604,7 +604,7 @@ public class PuzzleApplet extends JApplet implements Runtime.CallJavaCB {
                     break;
                 case C_CHOICES:
                     JComboBox jcm = (JComboBox)cc.component;
-                    runtimeCall("jcallback_config_set_boolean", new int[] {cc.configItemPointer, jcm.getSelectedIndex()});
+                    runtimeCall("jcallback_config_set_choice", new int[] {cc.configItemPointer, jcm.getSelectedIndex()});
                     break;
                 }
             }
