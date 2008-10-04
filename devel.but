@@ -170,7 +170,7 @@ other miscellaneous functions. All of these are documented in
 
 There are a number of function call interfaces within Puzzles, and
 this guide will discuss each one in a chapter of its own. After
-that, (\k{writing}) discusses how to design new games, with some
+that, \k{writing} discusses how to design new games, with some
 general design thoughts and tips.
 
 \C{backend} Interface to the back end
