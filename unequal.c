@@ -1296,8 +1296,6 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
             return "";
         }
     }
-    if (button == 'H' || button == 'h')
-        return dupstr("H");
 
     if (ui->hx != -1 && ui->hy != -1) {
         debug(("button %d, cbutton %d", button, (int)((char)button)));
@@ -1323,6 +1321,10 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
 
         return dupstr(buf);
     }
+
+    if (button == 'H' || button == 'h')
+        return dupstr("H");
+
     return NULL;
 }
 
