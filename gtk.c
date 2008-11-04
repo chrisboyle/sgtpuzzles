@@ -1328,10 +1328,16 @@ static char *file_selector(frontend *fe, char *title, int save)
     return fe->filesel_name;
 }
 
+struct savefile_write_ctx {
+    FILE *fp;
+    int error;
+};
+
 static void savefile_write(void *wctx, void *buf, int len)
 {
-    FILE *fp = (FILE *)wctx;
-    fwrite(buf, 1, len, fp);
+    struct savefile_write_ctx *ctx = (struct savefile_write_ctx *)wctx;
+    if (fwrite(buf, 1, len, ctx->fp) < len)
+	ctx->error = 1;
 }
 
 static int savefile_read(void *wctx, void *buf, int len)
@@ -1373,9 +1379,18 @@ static void menu_save_event(GtkMenuItem *menuitem, gpointer data)
             return;
         }
 
-        midend_serialise(fe->me, savefile_write, fp);
+	{
+	    struct savefile_write_ctx ctx;
+	    ctx.fp = fp;
+	    ctx.error = 0;
+	    midend_serialise(fe->me, savefile_write, &ctx);
+	    fclose(fp);
+	    if (ctx.error) {
+		error_box(fe->window, "Error writing save file");
+		return;
+	    }
+	}
 
-        fclose(fp);
     }
 }
 
