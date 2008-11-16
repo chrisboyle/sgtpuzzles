@@ -2077,14 +2077,14 @@ static char *interpret_move(game_state *state, game_ui *ui,
     } else if (button == 'a' || button == 's' || button == 'd' ||
 	       button == 'A' || button == 'S' || button == 'D' ||
                button == 'f' || button == 'F' ||
-	       button == CURSOR_SELECT) {
+	       button == CURSOR_SELECT  || button == CURSOR_SELECT2) {
 	tx = ui->cur_x;
 	ty = ui->cur_y;
 	if (button == 'a' || button == 'A' || button == CURSOR_SELECT)
 	    action = ROTATE_LEFT;
 	else if (button == 's' || button == 'S')
 	    action = TOGGLE_LOCK;
-	else if (button == 'd' || button == 'D')
+	else if (button == 'd' || button == 'D' || button == CURSOR_SELECT2)
 	    action = ROTATE_RIGHT;
         else if (button == 'f' || button == 'F')
             action = ROTATE_180;

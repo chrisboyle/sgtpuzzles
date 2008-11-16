@@ -764,7 +764,7 @@ static int try_solve_light(game_state *state, int ox, int oy,
                            unsigned int flags, int lights)
 {
     ll_data lld;
-    int sx,sy,n = 0;
+    int sx = 0, sy = 0, n = 0;
 
     if (lights > 0) return 0;
     if (flags & F_BLACK) return 0;
@@ -1840,13 +1840,13 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
         cx = FROMCOORD(x);
         cy = FROMCOORD(y);
         action = (button == LEFT_BUTTON) ? FLIP_LIGHT : FLIP_IMPOSSIBLE;
-    } else if (button == CURSOR_SELECT ||
+    } else if (button == CURSOR_SELECT || button == CURSOR_SELECT2 ||
                button == 'i' || button == 'I' ||
                button == ' ' || button == '\r' || button == '\n') {
         ui->cur_visible = 1;
         cx = ui->cur_x;
         cy = ui->cur_y;
-        action = (button == 'i' || button == 'I') ?
+        action = (button == 'i' || button == 'I' || button == CURSOR_SELECT2) ?
             FLIP_IMPOSSIBLE : FLIP_LIGHT;
     } else if (button == CURSOR_UP || button == CURSOR_DOWN ||
                button == CURSOR_RIGHT || button == CURSOR_LEFT) {
