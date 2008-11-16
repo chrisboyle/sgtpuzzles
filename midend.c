@@ -383,6 +383,25 @@ void midend_new_game(midend *me)
     me->states[me->nstates].state =
 	me->ourgame->new_game(me, me->params, me->desc);
 
+    /*
+     * As part of our commitment to self-testing, test the aux
+     * string to make sure nothing ghastly went wrong.
+     */
+    if (me->ourgame->can_solve && me->aux_info) {
+	game_state *s;
+	char *msg, *movestr;
+
+	msg = NULL;
+	movestr = me->ourgame->solve(me->states[0].state,
+				     me->states[0].state,
+				     me->aux_info, &msg);
+	assert(movestr && !msg);
+	s = me->ourgame->execute_move(me->states[0].state, movestr);
+	assert(s);
+	me->ourgame->free_game(s);
+	sfree(movestr);
+    }
+
     me->states[me->nstates].movestr = NULL;
     me->states[me->nstates].movetype = NEWGAME;
     me->nstates++;
@@ -537,6 +556,9 @@ static int midend_really_process_key(midend *me, int x, int y, int button)
 		   button == '\x12' || button == '\x19') {
 	    midend_stop_anim(me);
 	    if (!midend_redo(me))
+		goto done;
+	} else if (button == '\x13' && me->ourgame->can_solve) {
+	    if (midend_solve(me))
 		goto done;
 	} else if (button == 'q' || button == 'Q' || button == '\x11') {
 	    ret = 0;
