@@ -2304,7 +2304,7 @@ static void game_print(drawing *dr, game_state *state, int tilesize)
 }
 
 #ifdef COMBINED
-#define thegame nullgame
+#define thegame slide
 #endif
 
 const struct game thegame = {
