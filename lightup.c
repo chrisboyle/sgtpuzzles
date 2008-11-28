@@ -1016,9 +1016,9 @@ static void try_rule_out(game_state *state, int x, int y,
 
     get_surrounds(state, x, y, &s);
     for (i = 0; i < s.npoints; i++) {
-        if (!GRID(state,flags,s.points[i].x,s.points[i].y) & F_NUMBERED)
+        if (!(GRID(state,flags,s.points[i].x,s.points[i].y) & F_NUMBERED))
             continue;
-        /* we have an adjacent clue square; find /it's/ surrounds
+        /* we have an adjacent clue square; find /its/ surrounds
          * and count the remaining lights it needs. */
         get_surrounds(state,s.points[i].x,s.points[i].y,&ss);
         curr_lights = 0;
