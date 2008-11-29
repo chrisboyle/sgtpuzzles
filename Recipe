@@ -53,6 +53,9 @@ const game *gamelist[] = { GAMELIST(REF) };
 const int gamecount = lenof(gamelist);
 !end
 
+# Unix standalone application for special-purpose obfuscation.
+obfusc : [U] obfusc STANDALONE
+
 # Mac OS X unified application containing all the puzzles.
 Puzzles  : [MX] osx osx.icns osx-info.plist COMMON ALL
 # For OS X, we must create the online help and include it in the
