@@ -368,6 +368,29 @@ There are various other options which affect printing; see below.
 
 }
 
+\dt \cw{--save }\e{file-prefix} [ \cw{--save-suffix }\e{file-suffix} ]
+
+\dd If this option is specified, instead of a puzzle being
+displayed, saved-game files for one or more unsolved puzzles are
+written to files constructed from the supplied prefix and/or suffix.
+
+\lcont{
+
+If \c{--generate} has also been specified, the invented game IDs will
+be used to generate the printed output. Otherwise, a list of game IDs
+is expected on standard input (which can be descriptive or random
+seeds; see \k{common-id}), in the same format produced by
+\c{--generate}.
+
+For example:
+
+\c net --generate 12 --save game --save-suffix .sav
+
+will generate twelve Net saved-game files with the names
+\cw{game0.sav} to \cw{game11.sav}.
+
+}
+
 \dt \cw{--version}
 
 \dd Prints version information about the game, and then quits.

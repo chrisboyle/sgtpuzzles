@@ -1337,7 +1337,7 @@ static void savefile_write(void *wctx, void *buf, int len)
 {
     struct savefile_write_ctx *ctx = (struct savefile_write_ctx *)wctx;
     if (fwrite(buf, 1, len, ctx->fp) < len)
-	ctx->error = 1;
+	ctx->error = errno;
 }
 
 static int savefile_read(void *wctx, void *buf, int len)
@@ -1386,7 +1386,10 @@ static void menu_save_event(GtkMenuItem *menuitem, gpointer data)
 	    midend_serialise(fe->me, savefile_write, &ctx);
 	    fclose(fp);
 	    if (ctx.error) {
-		error_box(fe->window, "Error writing save file");
+		char boxmsg[512];
+		sprintf(boxmsg, "Error writing save file: %.400s",
+			strerror(errno));
+		error_box(fe->window, boxmsg);
 		return;
 	    }
 	}
@@ -1910,6 +1913,7 @@ int main(int argc, char **argv)
     int soln = FALSE, colour = FALSE;
     float scale = 1.0F;
     float redo_proportion = 0.0F;
+    char *savefile = NULL, *savesuffix = NULL;
     char *arg = NULL;
     int argtype = ARG_EITHER;
     char *screenshot_file = NULL;
@@ -1958,6 +1962,23 @@ int main(int argc, char **argv)
 		}
 	    } else
 		ngenerate = 1;
+	} else if (doing_opts && !strcmp(p, "--save")) {
+	    if (--ac > 0) {
+		savefile = *++av;
+	    } else {
+		fprintf(stderr, "%s: '--save' expected a filename\n",
+			pname);
+		return 1;
+	    }
+	} else if (doing_opts && (!strcmp(p, "--save-suffix") ||
+				  !strcmp(p, "--savesuffix"))) {
+	    if (--ac > 0) {
+		savesuffix = *++av;
+	    } else {
+		fprintf(stderr, "%s: '--save-suffix' expected a filename\n",
+			pname);
+		return 1;
+	    }
 	} else if (doing_opts && !strcmp(p, "--print")) {
 	    if (!thegame.can_print) {
 		fprintf(stderr, "%s: this game does not support printing\n",
@@ -2088,7 +2109,7 @@ int main(int argc, char **argv)
      * you may specify it to be 1). Sorry; that was the
      * simplest-to-parse command-line syntax I came up with.
      */
-    if (ngenerate > 0 || print) {
+    if (ngenerate > 0 || print || savefile || savesuffix) {
 	int i, n = 1;
 	midend *me;
 	char *id;
@@ -2098,6 +2119,11 @@ int main(int argc, char **argv)
 
 	me = midend_new(NULL, &thegame, NULL, NULL);
 	i = 0;
+
+	if (savefile && !savesuffix)
+	    savesuffix = "";
+	if (!savefile && savesuffix)
+	    savefile = "";
 
 	if (print)
 	    doc = document_new(px, py, scale);
@@ -2155,7 +2181,32 @@ int main(int argc, char **argv)
 		    fprintf(stderr, "%s: error in printing: %s\n", pname, err);
 		    return 1;
 		}
-	    } else {
+	    }
+	    if (savefile) {
+		struct savefile_write_ctx ctx;
+		char *realname = snewn(40 + strlen(savefile) +
+				       strlen(savesuffix), char);
+		sprintf(realname, "%s%d%s", savefile, i, savesuffix);
+		ctx.fp = fopen(realname, "w");
+		if (!ctx.fp) {
+		    fprintf(stderr, "%s: open: %s\n", realname,
+			    strerror(errno));
+		    return 1;
+		}
+		sfree(realname);
+		midend_serialise(me, savefile_write, &ctx);
+		if (ctx.error) {
+		    fprintf(stderr, "%s: write: %s\n", realname,
+			    strerror(ctx.error));
+		    return 1;
+		}
+		if (fclose(ctx.fp)) {
+		    fprintf(stderr, "%s: close: %s\n", realname,
+			    strerror(errno));
+		    return 1;
+		}
+	    }
+	    if (!doc && !savefile) {
 		id = midend_get_game_id(me);
 		puts(id);
 		sfree(id);
