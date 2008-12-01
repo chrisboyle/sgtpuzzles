@@ -1244,6 +1244,7 @@ void write_clip(frontend *fe, char *data)
 
     if (gtk_selection_owner_set(fe->area, GDK_SELECTION_PRIMARY,
 				CurrentTime)) {
+	gtk_selection_clear_targets(fe->area, GDK_SELECTION_PRIMARY);
 	gtk_selection_add_target(fe->area, GDK_SELECTION_PRIMARY,
 				 GDK_SELECTION_TYPE_STRING, 1);
 	gtk_selection_add_target(fe->area, GDK_SELECTION_PRIMARY,
