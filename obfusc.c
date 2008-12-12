@@ -114,7 +114,11 @@ int main(int argc, char **argv)
     obfuscate_bitmap(data, datalen * 8, decode);
 
     if (outputmode == BINARY) {
-	fwrite(data, 1, datalen, stdout);
+	int ret = fwrite(data, 1, datalen, stdout);
+        if (ret < 0) {
+            fprintf(stderr, "obfusc: write: %s\n", strerror(errno));
+            return 1;
+        }
     } else {
 	int i;
 	for (i = 0; i < datalen; i++)
