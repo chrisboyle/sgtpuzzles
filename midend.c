@@ -278,6 +278,8 @@ void midend_size(midend *me, int *x, int *y, int user_size)
     *y = me->winheight;
 }
 
+int midend_tilesize(midend *me) { return me->tilesize; }
+
 void midend_set_params(midend *me, game_params *params)
 {
     me->ourgame->free_params(me->params);

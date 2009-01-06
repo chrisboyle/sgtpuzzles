@@ -259,6 +259,7 @@ char *midend_deserialise(midend *me,
                          void *rctx);
 /* Printing functions supplied by the mid-end */
 char *midend_print_puzzle(midend *me, document *doc, int with_soln);
+int midend_tilesize(midend *me);
 
 /*
  * malloc.c
