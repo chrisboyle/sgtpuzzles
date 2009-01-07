@@ -3635,3 +3635,130 @@ const struct game thegame = {
     FALSE, game_timing_state,
     0,                                       /* mouse_priorities */
 };
+
+#ifdef STANDALONE_SOLVER
+
+/*
+ * Half-hearted standalone solver. It can't output the solution to
+ * anything but a square puzzle, and it can't log the deductions
+ * it makes either. But it can solve square puzzles, and more
+ * importantly it can use its solver to grade the difficulty of
+ * any puzzle you give it.
+ */
+
+#include <stdarg.h>
+
+int main(int argc, char **argv)
+{
+    game_params *p;
+    game_state *s;
+    char *id = NULL, *desc, *err;
+    int grade = FALSE;
+    int ret, diff;
+#if 0 /* verbose solver not supported here (yet) */
+    int really_verbose = FALSE;
+#endif
+
+    while (--argc > 0) {
+        char *p = *++argv;
+#if 0 /* verbose solver not supported here (yet) */
+        if (!strcmp(p, "-v")) {
+            really_verbose = TRUE;
+        } else
+#endif
+	if (!strcmp(p, "-g")) {
+            grade = TRUE;
+        } else if (*p == '-') {
+            fprintf(stderr, "%s: unrecognised option `%s'\n", argv[0], p);
+            return 1;
+        } else {
+            id = p;
+        }
+    }
+
+    if (!id) {
+        fprintf(stderr, "usage: %s [-g | -v] <game_id>\n", argv[0]);
+        return 1;
+    }
+
+    desc = strchr(id, ':');
+    if (!desc) {
+        fprintf(stderr, "%s: game id expects a colon in it\n", argv[0]);
+        return 1;
+    }
+    *desc++ = '\0';
+
+    p = default_params();
+    decode_params(p, id);
+    err = validate_desc(p, desc);
+    if (err) {
+        fprintf(stderr, "%s: %s\n", argv[0], err);
+        return 1;
+    }
+    s = new_game(NULL, p, desc);
+
+    /*
+     * When solving an Easy puzzle, we don't want to bother the
+     * user with Hard-level deductions. For this reason, we grade
+     * the puzzle internally before doing anything else.
+     */
+    ret = -1;			       /* placate optimiser */
+    for (diff = 0; diff < DIFF_MAX; diff++) {
+	solver_state *sstate_new;
+	solver_state *sstate = new_solver_state((game_state *)s, diff);
+
+	sstate_new = solve_game_rec(sstate, diff);
+
+	if (sstate_new->solver_status == SOLVER_MISTAKE)
+	    ret = 0;
+	else if (sstate_new->solver_status == SOLVER_SOLVED)
+	    ret = 1;
+	else
+	    ret = 2;
+
+	free_solver_state(sstate_new);
+	free_solver_state(sstate);
+
+	if (ret < 2)
+	    break;
+    }
+
+    if (diff == DIFF_MAX) {
+	if (grade)
+	    printf("Difficulty rating: harder than Hard, or ambiguous\n");
+	else
+	    printf("Unable to find a unique solution\n");
+    } else {
+	if (grade) {
+	    if (ret == 0)
+		printf("Difficulty rating: impossible (no solution exists)\n");
+	    else if (ret == 1)
+		printf("Difficulty rating: %s\n", diffnames[diff]);
+	} else {
+	    solver_state *sstate_new;
+	    solver_state *sstate = new_solver_state((game_state *)s, diff);
+
+	    /* If we supported a verbose solver, we'd set verbosity here */
+
+	    sstate_new = solve_game_rec(sstate, diff);
+
+	    if (sstate_new->solver_status == SOLVER_MISTAKE)
+		printf("Puzzle is inconsistent\n");
+	    else {
+		assert(sstate_new->solver_status == SOLVER_SOLVED);
+		if (s->grid_type == 0) {
+		    fputs(game_text_format(sstate_new->state), stdout);
+		} else {
+		    printf("Unable to output non-square grids\n");
+		}
+	    }
+
+	    free_solver_state(sstate_new);
+	    free_solver_state(sstate);
+	}
+    }
+
+    return 0;
+}
+
+#endif
