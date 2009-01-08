@@ -1978,7 +1978,11 @@ static char *interpret_move(game_state *state, game_ui *ui,
              * Middle button never drags: it only toggles the lock.
              */
             action = TOGGLE_LOCK;
-        } else if (button == LEFT_BUTTON || button == RIGHT_BUTTON) {
+        } else if (button == LEFT_BUTTON
+#ifndef STYLUS_BASED
+                   || button == RIGHT_BUTTON /* (see above) */
+#endif
+                  ) {
             /*
              * Otherwise, we note down the start point for a drag.
              */
@@ -1988,7 +1992,11 @@ static char *interpret_move(game_state *state, game_ui *ui,
             ui->dragstarty = y % TILE_SIZE;
             ui->dragged = FALSE;
             return nullret;            /* no actual action */
-        } else if (button == LEFT_DRAG || button == RIGHT_DRAG) {
+        } else if (button == LEFT_DRAG
+#ifndef STYLUS_BASED
+                   || button == RIGHT_DRAG
+#endif
+                  ) {
             /*
              * Find the new drag point and see if it necessitates a
              * rotation.
@@ -2037,7 +2045,11 @@ static char *interpret_move(game_state *state, game_ui *ui,
                 ui->dragstarty = yC;
                 ui->dragged = TRUE;
             }
-        } else if (button == LEFT_RELEASE || button == RIGHT_RELEASE) {
+        } else if (button == LEFT_RELEASE
+#ifndef STYLUS_BASED
+                   || button == RIGHT_RELEASE
+#endif
+                  ) {
             if (!ui->dragged) {
                 /*
                  * There was a click but no perceptible drag:
@@ -2061,8 +2073,7 @@ static char *interpret_move(game_state *state, game_ui *ui,
 
 #endif /* USE_DRAGGING */
 
-    } else if (button == CURSOR_UP || button == CURSOR_DOWN ||
-	       button == CURSOR_RIGHT || button == CURSOR_LEFT) {
+    } else if (IS_CURSOR_MOVE(button)) {
         switch (button) {
           case CURSOR_UP:       dir = U; break;
           case CURSOR_DOWN:     dir = D; break;
@@ -2077,14 +2088,14 @@ static char *interpret_move(game_state *state, game_ui *ui,
     } else if (button == 'a' || button == 's' || button == 'd' ||
 	       button == 'A' || button == 'S' || button == 'D' ||
                button == 'f' || button == 'F' ||
-	       button == CURSOR_SELECT  || button == CURSOR_SELECT2) {
+               IS_CURSOR_SELECT(button)) {
 	tx = ui->cur_x;
 	ty = ui->cur_y;
 	if (button == 'a' || button == 'A' || button == CURSOR_SELECT)
 	    action = ROTATE_LEFT;
-	else if (button == 's' || button == 'S')
+	else if (button == 's' || button == 'S' || button == CURSOR_SELECT2)
 	    action = TOGGLE_LOCK;
-	else if (button == 'd' || button == 'D' || button == CURSOR_SELECT2)
+	else if (button == 'd' || button == 'D')
 	    action = ROTATE_RIGHT;
         else if (button == 'f' || button == 'F')
             action = ROTATE_180;

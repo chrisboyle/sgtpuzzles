@@ -23,6 +23,7 @@ enum {
     COL_MINE, COL_BANG, COL_CROSS, COL_FLAG, COL_FLAGBASE, COL_QUERY,
     COL_HIGHLIGHT, COL_LOWLIGHT,
     COL_WRONGNUMBER,
+    COL_CURSOR,
     NCOLOURS
 };
 
@@ -2350,6 +2351,7 @@ struct game_ui {
     int validradius;
     int flash_is_death;
     int deaths, completed;
+    int cur_x, cur_y, cur_visible;
 };
 
 static game_ui *new_ui(game_state *state)
@@ -2360,6 +2362,7 @@ static game_ui *new_ui(game_state *state)
     ui->deaths = 0;
     ui->completed = FALSE;
     ui->flash_is_death = FALSE;	       /* *shrug* */
+    ui->cur_x = ui->cur_y = ui->cur_visible = 0;
     return ui;
 }
 
@@ -2409,6 +2412,7 @@ struct game_drawstate {
      * 	- -22 and -23 mean the tile is highlighted for a possible
      * 	  click.
      */
+    int cur_x, cur_y; /* -1, -1 for no cursor displayed. */
 };
 
 static char *interpret_move(game_state *from, game_ui *ui, game_drawstate *ds,
@@ -2420,12 +2424,41 @@ static char *interpret_move(game_state *from, game_ui *ui, game_drawstate *ds,
     if (from->dead || from->won)
 	return NULL;		       /* no further moves permitted */
 
-    if (!IS_MOUSE_DOWN(button) && !IS_MOUSE_DRAG(button) &&
-	!IS_MOUSE_RELEASE(button))
-	return NULL;
-
     cx = FROMCOORD(x);
     cy = FROMCOORD(y);
+
+    if (IS_CURSOR_MOVE(button)) {
+        move_cursor(button, &ui->cur_x, &ui->cur_y, from->w, from->h, 0);
+        ui->cur_visible = 1;
+        return "";
+    }
+    if (IS_CURSOR_SELECT(button)) {
+        int v = from->grid[ui->cur_y * from->w + ui->cur_x];
+
+        if (!ui->cur_visible) {
+            ui->cur_visible = 1;
+            return "";
+        }
+        if (button == CURSOR_SELECT2) {
+            /* As for RIGHT_BUTTON; only works on covered square. */
+            if (v != -2 && v != -1)
+                return NULL;
+            sprintf(buf, "F%d,%d", ui->cur_x, ui->cur_y);
+            return dupstr(buf);
+        }
+        /* Otherwise, treat as LEFT_BUTTON, for a single square. */
+        if (v == -2 || v == -3) {
+            if (from->layout->mines &&
+                from->layout->mines[ui->cur_y * from->w + ui->cur_x])
+                ui->deaths++;
+
+            sprintf(buf, "O%d,%d", ui->cur_x, ui->cur_y);
+            return dupstr(buf);
+        }
+        cx = ui->cur_x; cy = ui->cur_y;
+        ui->validradius = 1;
+        goto uncover;
+    }
 
     if (button == LEFT_BUTTON || button == LEFT_DRAG ||
 	button == MIDDLE_BUTTON || button == MIDDLE_DRAG) {
@@ -2443,6 +2476,7 @@ static char *interpret_move(game_state *from, game_ui *ui, game_drawstate *ds,
 	    ui->validradius = ui->hradius;
 	else if (button == MIDDLE_BUTTON)
 	    ui->validradius = 1;
+        ui->cur_visible = 0;
 	return "";
     }
 
@@ -2492,7 +2526,12 @@ static char *interpret_move(game_state *from, game_ui *ui, game_drawstate *ds,
 	    sprintf(buf, "O%d,%d", cx, cy);
 	    return dupstr(buf);
 	}
+        goto uncover;
+    }
+    return NULL;
 
+uncover:
+    {
 	/*
 	 * Left-clicking or middle-clicking on an uncovered tile:
 	 * first we check to see if the number of mine markers
@@ -2549,8 +2588,6 @@ static char *interpret_move(game_state *from, game_ui *ui, game_drawstate *ds,
 
 	return "";
     }
-
-    return NULL;
 }
 
 static game_state *execute_move(game_state *from, char *move)
@@ -2654,9 +2691,9 @@ static float *game_colours(frontend *fe, int *ncolours)
 
     frontend_default_colour(fe, &ret[COL_BACKGROUND * 3]);
 
-    ret[COL_BACKGROUND2 * 3 + 0] = ret[COL_BACKGROUND * 3 + 0] * 19.0 / 20.0;
-    ret[COL_BACKGROUND2 * 3 + 1] = ret[COL_BACKGROUND * 3 + 1] * 19.0 / 20.0;
-    ret[COL_BACKGROUND2 * 3 + 2] = ret[COL_BACKGROUND * 3 + 2] * 19.0 / 20.0;
+    ret[COL_BACKGROUND2 * 3 + 0] = ret[COL_BACKGROUND * 3 + 0] * 19.0F / 20.0F;
+    ret[COL_BACKGROUND2 * 3 + 1] = ret[COL_BACKGROUND * 3 + 1] * 19.0F / 20.0F;
+    ret[COL_BACKGROUND2 * 3 + 2] = ret[COL_BACKGROUND * 3 + 2] * 19.0F / 20.0F;
 
     ret[COL_1 * 3 + 0] = 0.0F;
     ret[COL_1 * 3 + 1] = 0.0F;
@@ -2718,13 +2755,18 @@ static float *game_colours(frontend *fe, int *ncolours)
     ret[COL_HIGHLIGHT * 3 + 1] = 1.0F;
     ret[COL_HIGHLIGHT * 3 + 2] = 1.0F;
 
-    ret[COL_LOWLIGHT * 3 + 0] = ret[COL_BACKGROUND * 3 + 0] * 2.0 / 3.0;
-    ret[COL_LOWLIGHT * 3 + 1] = ret[COL_BACKGROUND * 3 + 1] * 2.0 / 3.0;
-    ret[COL_LOWLIGHT * 3 + 2] = ret[COL_BACKGROUND * 3 + 2] * 2.0 / 3.0;
+    ret[COL_LOWLIGHT * 3 + 0] = ret[COL_BACKGROUND * 3 + 0] * 2.0F / 3.0F;
+    ret[COL_LOWLIGHT * 3 + 1] = ret[COL_BACKGROUND * 3 + 1] * 2.0F / 3.0F;
+    ret[COL_LOWLIGHT * 3 + 2] = ret[COL_BACKGROUND * 3 + 2] * 2.0F / 3.0F;
 
     ret[COL_WRONGNUMBER * 3 + 0] = 1.0F;
     ret[COL_WRONGNUMBER * 3 + 1] = 0.6F;
     ret[COL_WRONGNUMBER * 3 + 2] = 0.6F;
+
+    /* Red tinge to a light colour, for the cursor. */
+    ret[COL_CURSOR * 3 + 0] = ret[COL_HIGHLIGHT * 3 + 0];
+    ret[COL_CURSOR * 3 + 1] = ret[COL_HIGHLIGHT * 3 + 0] / 2.0F;
+    ret[COL_CURSOR * 3 + 2] = ret[COL_HIGHLIGHT * 3 + 0] / 2.0F;
 
     *ncolours = NCOLOURS;
     return ret;
@@ -2740,6 +2782,7 @@ static game_drawstate *game_new_drawstate(drawing *dr, game_state *state)
     ds->tilesize = 0;                  /* not decided yet */
     ds->grid = snewn(ds->w * ds->h, signed char);
     ds->bg = -1;
+    ds->cur_x = ds->cur_y = -1;
 
     memset(ds->grid, -99, ds->w * ds->h);
 
@@ -2796,20 +2839,20 @@ static void draw_tile(drawing *dr, game_drawstate *ds,
 	     * Draw a flag.
 	     */
 #define SETCOORD(n, dx, dy) do { \
-    coords[(n)*2+0] = x + TILE_SIZE * (dx); \
-    coords[(n)*2+1] = y + TILE_SIZE * (dy); \
+    coords[(n)*2+0] = x + (int)(TILE_SIZE * (dx)); \
+    coords[(n)*2+1] = y + (int)(TILE_SIZE * (dy)); \
 } while (0)
-	    SETCOORD(0, 0.6, 0.35);
-	    SETCOORD(1, 0.6, 0.7);
-	    SETCOORD(2, 0.8, 0.8);
-	    SETCOORD(3, 0.25, 0.8);
-	    SETCOORD(4, 0.55, 0.7);
-	    SETCOORD(5, 0.55, 0.35);
+	    SETCOORD(0, 0.6F,  0.35F);
+	    SETCOORD(1, 0.6F,  0.7F);
+	    SETCOORD(2, 0.8F,  0.8F);
+	    SETCOORD(3, 0.25F, 0.8F);
+	    SETCOORD(4, 0.55F, 0.7F);
+	    SETCOORD(5, 0.55F, 0.35F);
 	    draw_polygon(dr, coords, 6, COL_FLAGBASE, COL_FLAGBASE);
 
-	    SETCOORD(0, 0.6, 0.2);
-	    SETCOORD(1, 0.6, 0.5);
-	    SETCOORD(2, 0.2, 0.35);
+	    SETCOORD(0, 0.6F, 0.2F);
+	    SETCOORD(1, 0.6F, 0.5F);
+	    SETCOORD(2, 0.2F, 0.35F);
 	    draw_polygon(dr, coords, 3, COL_FLAG, COL_FLAG);
 #undef SETCOORD
 
@@ -2924,9 +2967,10 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 {
     int x, y;
     int mines, markers, bg;
+    int cx = -1, cy = -1, cmoved;
 
     if (flashtime) {
-	int frame = (flashtime / FLASH_FRAME);
+	int frame = (int)(flashtime / FLASH_FRAME);
 	if (frame % 2)
 	    bg = (ui->flash_is_death ? COL_BACKGROUND : COL_LOWLIGHT);
 	else
@@ -2966,6 +3010,10 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
         ds->started = TRUE;
     }
 
+    if (ui->cur_visible) cx = ui->cur_x;
+    if (ui->cur_visible) cy = ui->cur_y;
+    cmoved = (cx != ds->cur_x || cy != ds->cur_y);
+
     /*
      * Now draw the tiles. Also in this loop, count up the number
      * of mines and mine markers.
@@ -2973,7 +3021,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
     mines = markers = 0;
     for (y = 0; y < ds->h; y++)
 	for (x = 0; x < ds->w; x++) {
-	    int v = state->grid[y*ds->w+x];
+	    int v = state->grid[y*ds->w+x], cc = 0;
 
 	    if (v == -1)
 		markers++;
@@ -3004,12 +3052,18 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 		(abs(x-ui->hx) <= ui->hradius && abs(y-ui->hy) <= ui->hradius))
 		v -= 20;
 
-	    if (ds->grid[y*ds->w+x] != v || bg != ds->bg) {
-		draw_tile(dr, ds, COORD(x), COORD(y), v, bg);
+            if (cmoved && /* if cursor has moved, force redraw of curr and prev pos */
+                ((x == cx && y == cy) || (x == ds->cur_x && y == ds->cur_y)))
+              cc = 1;
+
+	    if (ds->grid[y*ds->w+x] != v || bg != ds->bg || cc) {
+		draw_tile(dr, ds, COORD(x), COORD(y), v,
+                          (x == cx && y == cy) ? COL_CURSOR : bg);
 		ds->grid[y*ds->w+x] = v;
 	    }
 	}
     ds->bg = bg;
+    ds->cur_x = cx; ds->cur_y = cy;
 
     if (!state->layout->mines)
 	mines = state->layout->n;
@@ -3186,3 +3240,5 @@ int main(int argc, char **argv)
 }
 
 #endif
+
+/* vim: set shiftwidth=4 tabstop=8: */

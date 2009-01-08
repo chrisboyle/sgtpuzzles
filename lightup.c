@@ -1840,27 +1840,20 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
         cx = FROMCOORD(x);
         cy = FROMCOORD(y);
         action = (button == LEFT_BUTTON) ? FLIP_LIGHT : FLIP_IMPOSSIBLE;
-    } else if (button == CURSOR_SELECT || button == CURSOR_SELECT2 ||
+    } else if (IS_CURSOR_SELECT(button) ||
                button == 'i' || button == 'I' ||
                button == ' ' || button == '\r' || button == '\n') {
-        ui->cur_visible = 1;
-        cx = ui->cur_x;
-        cy = ui->cur_y;
-        action = (button == 'i' || button == 'I' || button == CURSOR_SELECT2) ?
-            FLIP_IMPOSSIBLE : FLIP_LIGHT;
-    } else if (button == CURSOR_UP || button == CURSOR_DOWN ||
-               button == CURSOR_RIGHT || button == CURSOR_LEFT) {
-        int dx = 0, dy = 0;
-        switch (button) {
-        case CURSOR_UP:         dy = -1; break;
-        case CURSOR_DOWN:       dy = 1; break;
-        case CURSOR_RIGHT:      dx = 1; break;
-        case CURSOR_LEFT:       dx = -1; break;
-        default: assert(!"shouldn't get here");
+        if (ui->cur_visible) {
+            /* Only allow cursor-effect operations if the cursor is visible
+             * (otherwise you have no idea which square it might be affecting) */
+            cx = ui->cur_x;
+            cy = ui->cur_y;
+            action = (button == 'i' || button == 'I' || button == CURSOR_SELECT2) ?
+                FLIP_IMPOSSIBLE : FLIP_LIGHT;
         }
-        ui->cur_x += dx; ui->cur_y += dy;
-        ui->cur_x = min(max(ui->cur_x, 0), state->w - 1);
-        ui->cur_y = min(max(ui->cur_y, 0), state->h - 1);
+        ui->cur_visible = 1;
+    } else if (IS_CURSOR_MOVE(button)) {
+        move_cursor(button, &ui->cur_x, &ui->cur_y, state->w, state->h, 0);
         ui->cur_visible = 1;
         nullret = empty;
     } else
