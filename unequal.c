@@ -229,7 +229,7 @@ static char *validate_params(game_params *params, int full)
     if (params->order < 3 || params->order > 32)
         return "Order must be between 3 and 32";
     if (params->diff >= DIFFCOUNT)
-        return "Unknown difficulty rating.";
+        return "Unknown difficulty rating";
     return NULL;
 }
 
@@ -1210,18 +1210,16 @@ static char *solve_game(game_state *state, game_state *currstate,
  */
 
 struct game_ui {
-    int hx, hy, hpencil;        /* as for solo.c, highlight pos and type */
-    int cx, cy;                 /* cursor position (-1,-1 for none) */
+    int hx, hy;                         /* as for solo.c, highlight pos */
+    int hshow, hpencil, hcursor;        /* show state, type, and ?cursor. */
 };
 
 static game_ui *new_ui(game_state *state)
 {
     game_ui *ui = snew(game_ui);
 
-    ui->hx = ui->hy = -1;
-    ui->hpencil = 0;
-
-    ui->cx = ui->cy = -1;
+    ui->hx = ui->hy = 0;
+    ui->hpencil = ui->hshow = ui->hcursor = 0;
 
     return ui;
 }
@@ -1246,20 +1244,19 @@ static void game_changed_state(game_ui *ui, game_state *oldstate,
     /* See solo.c; if we were pencil-mode highlighting and
      * somehow a square has just been properly filled, cancel
      * pencil mode. */
-    if (ui->hx >= 0 && ui->hy >= 0 && ui->hpencil &&
+    if (ui->hshow && ui->hpencil && !ui->hcursor &&
         GRID(newstate, nums, ui->hx, ui->hy) != 0) {
-        ui->hx = ui->hy = -1;
+        ui->hshow = 0;
     }
 }
 
 struct game_drawstate {
     int tilesize, order, started;
-    digit *nums;                  /* copy of nums, o^2 */
-    unsigned char *hints;                 /* copy of hints, o^3 */
+    digit *nums;                /* copy of nums, o^2 */
+    unsigned char *hints;       /* copy of hints, o^3 */
     unsigned int *flags;        /* o^2 */
 
-    int hx, hy, hpencil;
-    int cx, cy;
+    int hx, hy, hshow, hpencil; /* as for game_ui. */
     int hflash;
 };
 
@@ -1276,28 +1273,50 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
         if (button == LEFT_BUTTON) {
             /* normal highlighting for non-immutable squares */
             if (GRID(state, flags, x, y) & F_IMMUTABLE)
-                ui->hx = ui->hy = -1;
-            else if (x == ui->hx && y == ui->hy && ui->hpencil == 0)
-                ui->hx = ui->hy = -1;
+                ui->hshow = 0;
+            else if (x == ui->hx && y == ui->hy &&
+                     ui->hshow && ui->hpencil == 0)
+                ui->hshow = 0;
             else {
                 ui->hx = x; ui->hy = y; ui->hpencil = 0;
+                ui->hshow = 1;
             }
+            ui->hcursor = 0;
             return "";
         }
         if (button == RIGHT_BUTTON) {
             /* pencil highlighting for non-filled squares */
             if (GRID(state, nums, x, y) != 0)
-                ui->hx = ui->hy = -1;
-            else if (x == ui->hx && y == ui->hy && ui->hpencil)
-                ui->hx = ui->hy = -1;
+                ui->hshow = 0;
+            else if (x == ui->hx && y == ui->hy &&
+                     ui->hshow && ui->hpencil)
+                ui->hshow = 0;
             else {
                 ui->hx = x; ui->hy = y; ui->hpencil = 1;
+                ui->hshow = 1;
             }
+            ui->hcursor = 0;
             return "";
         }
     }
+    if (button == 'H' || button == 'h')
+        return dupstr("H");
+    if (button == 'M' || button == 'm')
+        return dupstr("M");
 
-    if (ui->hx != -1 && ui->hy != -1) {
+    if (IS_CURSOR_MOVE(button)) {
+        move_cursor(button, &ui->hx, &ui->hy, ds->order, ds->order, 0);
+        ui->hshow = ui->hcursor = 1;
+        return "";
+    }
+    if (ui->hshow && IS_CURSOR_SELECT(button)) {
+        ui->hpencil = 1 - ui->hpencil;
+        ui->hcursor = 1;
+        return "";
+    }
+
+
+    if (ui->hshow) {
         debug(("button %d, cbutton %d", button, (int)((char)button)));
         n = c2n(button, state->order);
 
@@ -1317,14 +1336,10 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
         sprintf(buf, "%c%d,%d,%d",
                 (char)(ui->hpencil && n > 0 ? 'P' : 'R'), ui->hx, ui->hy, n);
 
-        ui->hx = ui->hy = -1;
+        if (!ui->hcursor) ui->hshow = 0;
 
         return dupstr(buf);
     }
-
-    if (button == 'H' || button == 'h')
-        return dupstr("H");
-
     return NULL;
 }
 
@@ -1369,6 +1384,16 @@ static game_state *execute_move(game_state *state, char *move)
         if (*p) goto badmove;
         rc = check_complete(ret->nums, ret, 1);
 	assert(rc > 0);
+        return ret;
+    } else if (move[0] == 'M') {
+        ret = dup_game(state);
+        for (x = 0; x < state->order; x++) {
+            for (y = 0; y < state->order; y++) {
+                for (n = 0; n < state->order; n++) {
+                    HINT(ret, x, y, n) = 1;
+                }
+            }
+        }
         return ret;
     } else if (move[0] == 'H') {
         return solver_hint(state, NULL, DIFF_EASY, DIFF_EASY);
@@ -1446,8 +1471,8 @@ static game_drawstate *game_new_drawstate(drawing *dr, game_state *state)
     memset(ds->hints, 0, o3);
     memset(ds->flags, 0, o2*sizeof(unsigned int));
 
-    ds->hx = ds->hy = ds->cx = ds->cy = -1;
-    ds->started = ds->hpencil = ds->hflash = 0;
+    ds->hx = ds->hy = 0;
+    ds->started = ds->hshow = ds->hpencil = ds->hflash = 0;
 
     return ds;
 }
@@ -1497,13 +1522,12 @@ static void draw_gts(drawing *dr, game_drawstate *ds, int ox, int oy,
 static void draw_furniture(drawing *dr, game_drawstate *ds, game_state *state,
                            game_ui *ui, int x, int y, int hflash)
 {
-    int ox = COORD(x), oy = COORD(y), bg, hon, con;
+    int ox = COORD(x), oy = COORD(y), bg, hon;
     unsigned int f = GRID(state, flags, x, y);
 
     bg = hflash ? COL_HIGHLIGHT : COL_BACKGROUND;
 
-    hon = (x == ui->hx && y == ui->hy);
-    con = (x == ui->cx && y == ui->cy);
+    hon = (ui->hshow && x == ui->hx && y == ui->hy);
 
     /* Clear square. */
     draw_rect(dr, ox, oy, TILE_SIZE, TILE_SIZE,
@@ -1522,8 +1546,7 @@ static void draw_furniture(drawing *dr, game_drawstate *ds, game_state *state,
     }
 
     /* Draw the square outline (which is the cursor, if we're the cursor). */
-    draw_rect_outline(dr, ox, oy, TILE_SIZE, TILE_SIZE,
-                      con ? COL_GUESS : COL_GRID);
+    draw_rect_outline(dr, ox, oy, TILE_SIZE, TILE_SIZE, COL_GRID);
 
     draw_update(dr, ox, oy, TILE_SIZE, TILE_SIZE);
 
@@ -1588,7 +1611,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 			game_state *state, int dir, game_ui *ui,
 			float animtime, float flashtime)
 {
-    int x, y, i, hchanged = 0, cchanged = 0, stale, hflash = 0;
+    int x, y, i, hchanged = 0, stale, hflash = 0;
 
     debug(("highlight old (%d,%d), new (%d,%d)", ds->hx, ds->hy, ui->hx, ui->hy));
 
@@ -1600,10 +1623,9 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
         draw_rect(dr, 0, 0, DRAW_SIZE, DRAW_SIZE, COL_BACKGROUND);
         draw_update(dr, 0, 0, DRAW_SIZE, DRAW_SIZE);
     }
-    if (ds->hx != ui->hx || ds->hy != ui->hy || ds->hpencil != ui->hpencil)
+    if (ds->hx != ui->hx || ds->hy != ui->hy ||
+        ds->hshow != ui->hshow || ds->hpencil != ui->hpencil)
         hchanged = 1;
-    if (ds->cx != ui->cx || ds->cy != ui->cy)
-        cchanged = 1;
 
     for (x = 0; x < ds->order; x++) {
         for (y = 0; y < ds->order; y++) {
@@ -1617,11 +1639,6 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
             if (hchanged) {
                 if ((x == ui->hx && y == ui->hy) ||
                     (x == ds->hx && y == ds->hy))
-                    stale = 1;
-            }
-            if (cchanged) {
-                if ((x == ui->cx && y == ui->cy) ||
-                    (x == ds->cx && y == ds->cy))
                     stale = 1;
             }
 
@@ -1652,8 +1669,10 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
             }
         }
     }
-    ds->hx = ui->hx; ds->hy = ui->hy; ds->hpencil = ui->hpencil;
-    ds->cx = ui->cx; ds->cy = ui->cy;
+    ds->hx = ui->hx; ds->hy = ui->hy;
+    ds->hshow = ui->hshow;
+    ds->hpencil = ui->hpencil;
+
     ds->started = 1;
     ds->hflash = hflash;
 }

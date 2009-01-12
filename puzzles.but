@@ -1046,6 +1046,12 @@ turn, and so on if any of them also has no surrounding mines. This
 will be done for you automatically; so sometimes when you uncover a
 square, a whole new area will open up to be explored.
 
+You can also use the cursor keys to move around the minefield.
+Pressing the return key in a covered square uncovers it, and in an
+uncovered square will clear around it (so it acts as the left button),
+pressing the space bar in a covered square will place a flag
+(similarly, it acts as the right button).
+
 All the actions described in \k{common-actions} are also available.
 
 Even Undo is available, although you might consider it cheating to
@@ -2189,6 +2195,10 @@ the same number again.
 All pencil marks in a square are erased when you left-click and type
 a number, or when you left-click and press space. Right-clicking and
 pressing space will also erase pencil marks.
+
+As for Solo, the cursor keys can be used in conjunction with the digit
+keys to set numbers or pencil marks. You can also use the 'M' key to
+auto-fill every numeric hint, ready for removal as required. 
 
 (All the actions described in \k{common-actions} are also available.)
 
