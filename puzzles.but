@@ -2315,6 +2315,12 @@ If you make a mistake, click the mouse in the incorrect square and
 press 0, Space, Backspace or Enter to clear it again (or use the Undo
 feature).
 
+You can also move around the grid with the cursor keys; typing a digit will
+fill the square containing the cursor with that number, or typing 0, Space,
+or Enter will clear it. You can also select multiple squares for numbering
+or clearing by using the return key, before typing a digit to fill in the
+highlighted squares (as above).
+
 (All the actions described in \k{common-actions} are also available.)
 
 \H{filling-parameters} \I{parameters, for Filling}Filling parameters
