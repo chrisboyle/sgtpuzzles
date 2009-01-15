@@ -761,11 +761,19 @@ specification.
 
 \H{rectangles-controls} \I{controls, for Rectangles}Rectangles controls
 
-This game is played with the mouse.
+This game is played with the mouse or cursor keys.
 
-Left-click any edge to toggle it on or off, or click and drag to draw
-an entire rectangle (or line) on the grid in one go (removing any
-existing edges within that rectangle).
+Left-click any edge to toggle it on or off, or left-click and drag to draw
+an entire rectangle (or line) on the grid in one go (removing any existing
+edges within that rectangle). Right-clicking and dragging will allow you
+to erase the contents of a rectangle without affecting its edges. 
+
+Alternatively, use the cursor keys to move the position indicator
+around the board. Pressing the return key then allows you to use the
+cursor keys to drag a rectangle out from that position, and pressing
+the return key again completes the rectangle. Using the space bar
+instead of the return key allows you to erase the contents of a
+rectangle without affecting its edges, as above.
 
 When a rectangle of the correct size is completed, it will be shaded.
 
