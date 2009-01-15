@@ -2263,6 +2263,13 @@ them, or destroy them by dropping them off the edge of the grid.
 pick it up and move it around to make it clearer. It will swivel
 constantly as you drag it, to stay pointed at its parent dot.)
 
+You can also use the cursor keys to move around the grid squares and
+lines.  Pressing the return key when over a grid line will draw or
+clear its edge, as above. Pressing the return key when over a dot will
+pick up an arrow, to be dropped the nest time the return key is
+pressed; this can also be used to move existing arrows around, removing
+them by dropping them on a dot or another arrow.
+
 (All the actions described in \k{common-actions} are also available.)
 
 \H{galaxies-parameters} \I{parameters, for Galaxies}Galaxies parameters
