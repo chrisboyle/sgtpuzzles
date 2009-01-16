@@ -2006,6 +2006,11 @@ blank square in the region you cover will be turned green, and no
 other squares will be affected. (This is useful for clearing the
 remainder of a row once you have placed all its tents.)
 
+You can also use the cursor keys to move around the grid. Pressing the
+return key over an empty square will place a tent, and pressing the
+space bar over an empty square will colour it green; either key will
+clear an occupied square.
+
 (All the actions described in \k{common-actions} are also available.)
 
 \H{tents-parameters} \I{parameters, for Tents}Tents parameters
