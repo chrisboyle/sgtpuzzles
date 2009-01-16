@@ -1642,6 +1642,10 @@ blank, and if you right-click repeatedly the square will change from
 blank to \cw{/} to \cw{\\} back to blank. (Therefore, you can play
 the game entirely with one button if you need to.)
 
+You can also use the cursor keys to move around the grid. Pressing the
+return or space keys will place a \cw{\\} or a \cw{/}, respectively,
+and will then cycle them as above.
+
 (All the actions described in \k{common-actions} are also available.)
 
 \H{slant-parameters} \I{parameters, for Slant}Slant parameters
