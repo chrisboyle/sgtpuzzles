@@ -2528,6 +2528,15 @@ without closing the window...)
 
 Frees a mid-end structure and all its associated data.
 
+\H{midend-tilesize} 
+
+\c int midend_tilesize(midend *me);
+
+Returns the \cq{tilesize} parameter being used to display the
+current puzzle.
+
+\k{backend-preferred-tilesize}
+
 \H{midend-set-params} \cw{midend_set_params()}
 
 \c void midend_set_params(midend *me, game_params *params);
