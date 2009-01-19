@@ -942,7 +942,8 @@ Space to clear it again (or use the Undo feature).
 
 If you \e{right}-click in a square and then type a number, that
 number will be entered in the square as a \q{pencil mark}. You can
-have pencil marks for multiple numbers in the same square.
+have pencil marks for multiple numbers in the same square. Squares
+containing filled-in numbers cannot also contain pencil marks.
 
 The game pays no attention to pencil marks, so exactly what you use
 them for is up to you: you can use them as reminders that a
@@ -956,6 +957,12 @@ the same number again.
 All pencil marks in a square are erased when you left-click and type
 a number, or when you left-click and press space. Right-clicking and
 pressing space will also erase pencil marks.
+
+Alternatively, use the cursor keys to move the mark around the grid.
+Pressing the return key toggles the mark (from a normal mark to a
+pencil mark), and typing a number in is entered in the square in the
+appropriate way; typing in a 0 or using the space bar will clear a
+filled square. 
 
 (All the actions described in \k{common-actions} are also available.)
 
