@@ -16,11 +16,15 @@
 #define GRID_PEG  1
 #define GRID_OBST 2
 
+#define GRID_CURSOR 10
+#define GRID_JUMPING 20
+
 enum {
     COL_BACKGROUND,
     COL_HIGHLIGHT,
     COL_LOWLIGHT,
     COL_PEG,
+    COL_CURSOR,
     NCOLOURS
 };
 
@@ -739,14 +743,30 @@ struct game_ui {
     int dragging;		       /* boolean: is a drag in progress? */
     int sx, sy;			       /* grid coords of drag start cell */
     int dx, dy;			       /* pixel coords of current drag posn */
+    int cur_x, cur_y, cur_visible, cur_jumping;
 };
 
 static game_ui *new_ui(game_state *state)
 {
     game_ui *ui = snew(game_ui);
+    int x, y, v;
 
     ui->sx = ui->sy = ui->dx = ui->dy = 0;
     ui->dragging = FALSE;
+    ui->cur_visible = ui->cur_jumping = 0;
+
+    /* make sure we start the cursor somewhere on the grid. */
+    for (x = 0; x < state->w; x++) {
+        for (y = 0; y < state->h; y++) {
+            v = state->grid[y*state->w+x];
+            if (v == GRID_PEG || v == GRID_HOLE) {
+                ui->cur_x = x; ui->cur_y = y;
+                goto found;
+            }
+        }
+    }
+    assert(!"new_ui found nowhere for cursor");
+found:
 
     return ui;
 }
@@ -798,6 +818,7 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
 			    int x, int y, int button)
 {
     int w = state->w, h = state->h;
+    char buf[80];
 
     if (button == LEFT_BUTTON) {
 	int tx, ty;
@@ -824,6 +845,7 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
 	    ui->sy = ty;
 	    ui->dx = x;
 	    ui->dy = y;
+            ui->cur_visible = ui->cur_jumping = 0;
 	    return "";		       /* ui modified */
 	}
     } else if (button == LEFT_DRAG && ui->dragging) {
@@ -834,7 +856,6 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
 	ui->dy = y;
 	return "";		       /* ui modified */
     } else if (button == LEFT_RELEASE && ui->dragging) {
-	char buf[80];
 	int tx, ty, dx, dy;
 
 	/*
@@ -864,7 +885,60 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
 	 */
 	sprintf(buf, "%d,%d-%d,%d", ui->sx, ui->sy, tx, ty);
 	return dupstr(buf);
+    } else if (IS_CURSOR_MOVE(button)) {
+        if (!ui->cur_jumping) {
+            /* Not jumping; move cursor as usual, making sure we don't
+             * leave the gameboard (which may be an irregular shape) */
+            int cx = ui->cur_x, cy = ui->cur_y;
+            move_cursor(button, &cx, &cy, w, h, 0);
+            ui->cur_visible = 1;
+            if (state->grid[cy*w+cx] == GRID_HOLE ||
+                state->grid[cy*w+cx] == GRID_PEG) {
+                ui->cur_x = cx;
+                ui->cur_y = cy;
+            }
+            return "";
+        } else {
+            int dx, dy, mx, my, jx, jy;
+
+            /* We're jumping; if the requested direction has a hole, and
+             * there's a peg in the way, */
+            assert(state->grid[ui->cur_y*w+ui->cur_x] == GRID_PEG);
+            dx = (button == CURSOR_RIGHT) ? 1 : (button == CURSOR_LEFT) ? -1 : 0;
+            dy = (button == CURSOR_DOWN) ? 1 : (button == CURSOR_UP) ? -1 : 0;
+
+            mx = ui->cur_x+dx; my = ui->cur_y+dy;
+            jx = mx+dx; jy = my+dy;
+
+            ui->cur_jumping = 0; /* reset, whatever. */
+            if (jx >= 0 && jy >= 0 && jx < w && jy < h &&
+                state->grid[my*w+mx] == GRID_PEG &&
+                state->grid[jy*w+jx] == GRID_HOLE) {
+                /* Move cursor to the jumped-to location (this felt more
+                 * natural while playtesting) */
+                sprintf(buf, "%d,%d-%d,%d", ui->cur_x, ui->cur_y, jx, jy);
+                ui->cur_x = jx; ui->cur_y = jy;
+                return dupstr(buf);
+            }
+            return "";
+        }
+    } else if (IS_CURSOR_SELECT(button)) {
+        if (!ui->cur_visible) {
+            ui->cur_visible = 1;
+            return "";
+        }
+        if (ui->cur_jumping) {
+            ui->cur_jumping = 0;
+            return "";
+        }
+        if (state->grid[ui->cur_y*w+ui->cur_x] == GRID_PEG) {
+            /* cursor is on peg: next arrow-move wil jump. */
+            ui->cur_jumping = 1;
+            return "";
+        }
+        return NULL;
     }
+
     return NULL;
 }
 
@@ -955,6 +1029,10 @@ static float *game_colours(frontend *fe, int *ncolours)
     ret[COL_PEG * 3 + 1] = 0.0F;
     ret[COL_PEG * 3 + 2] = 1.0F;
 
+    ret[COL_CURSOR * 3 + 0] = 0.5F;
+    ret[COL_CURSOR * 3 + 1] = 0.5F;
+    ret[COL_CURSOR * 3 + 2] = 1.0F;
+
     *ncolours = NCOLOURS;
     return ret;
 }
@@ -993,16 +1071,30 @@ static void game_free_drawstate(drawing *dr, game_drawstate *ds)
 static void draw_tile(drawing *dr, game_drawstate *ds,
 		      int x, int y, int v, int bgcolour)
 {
+    int cursor = 0, jumping = 0, bg;
+
     if (bgcolour >= 0) {
 	draw_rect(dr, x, y, TILESIZE, TILESIZE, bgcolour);
     }
+    if (v >= GRID_JUMPING) {
+        jumping = 1; v -= GRID_JUMPING;
+    }
+    if (v >= GRID_CURSOR) {
+        cursor = 1; v -= GRID_CURSOR;
+    }
 
     if (v == GRID_HOLE) {
+        bg = cursor ? COL_HIGHLIGHT : COL_LOWLIGHT;
+        assert(!jumping); /* can't jump from a hole! */
 	draw_circle(dr, x+TILESIZE/2, y+TILESIZE/2, TILESIZE/4,
-		    COL_LOWLIGHT, COL_LOWLIGHT);
+                    bg, bg);
     } else if (v == GRID_PEG) {
+        bg = (cursor || jumping) ? COL_CURSOR : COL_PEG;
 	draw_circle(dr, x+TILESIZE/2, y+TILESIZE/2, TILESIZE/3,
-		    COL_PEG, COL_PEG);
+		    bg, bg);
+        bg = (!cursor || jumping) ? COL_PEG : COL_CURSOR;
+        draw_circle(dr, x+TILESIZE/2, y+TILESIZE/2, TILESIZE/4,
+                    bg, bg);
     }
 
     draw_update(dr, x, y, TILESIZE, TILESIZE);
@@ -1137,6 +1229,10 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 	     */
 	    if (ui->dragging && ui->sx == x && ui->sy == y && v == GRID_PEG)
 		v = GRID_HOLE;
+
+            if (ui->cur_visible && ui->cur_x == x && ui->cur_y == y)
+                v += ui->cur_jumping ? GRID_JUMPING : GRID_CURSOR;
+
 	    if (v != GRID_OBST &&
                 (bgcolour != ds->bgcolour || /* always redraw when flashing */
                  v != ds->grid[y*w+x])) {
@@ -1226,3 +1322,5 @@ const struct game thegame = {
     FALSE, game_timing_state,
     0,				       /* flags */
 };
+
+/* vim: set shiftwidth=4 tabstop=8: */

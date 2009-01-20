@@ -1360,6 +1360,11 @@ Vacant spaces which you can move a peg into are marked with holes. A
 space with no peg and no hole is not available for moving at all: it
 is an obstacle which you must work around.
 
+You can also use the cursor keys to move a position indicator around
+the board. Pressing the return key while over a peg, followed by a
+cursor key, will jump the peg in that direction (if that is a legal
+move).
+
 (All the actions described in \k{common-actions} are also available.)
 
 \H{pegs-parameters} \I{parameters, for Pegs}Pegs parameters
