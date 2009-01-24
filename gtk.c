@@ -25,7 +25,12 @@
 #include "puzzles.h"
 
 #if GTK_CHECK_VERSION(2,0,0)
-#define USE_PANGO
+# define USE_PANGO
+# ifdef PANGO_VERSION_CHECK
+#  if PANGO_VERSION_CHECK(1,8,0)
+#   define HAVE_SENSIBLE_ABSOLUTE_SIZE_FUNCTION
+#  endif
+# endif
 #endif
 
 #ifdef DEBUGGING
