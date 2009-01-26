@@ -306,6 +306,7 @@ void move_cursor(int button, int *x, int *y, int maxw, int maxh, int wrap);
 
 /* Used in netslide.c and sixteen.c for cursor movement around edge. */
 int c2pos(int w, int h, int cx, int cy);
+int c2diff(int w, int h, int cx, int cy, int button);
 void pos2c(int w, int h, int pos, int *cx, int *cy);
 
 /* Draws text with an 'outline' formed by offsetting the text

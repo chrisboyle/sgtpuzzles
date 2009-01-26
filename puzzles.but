@@ -646,9 +646,13 @@ rather than just engineering.
 
 \H{sixteen-controls} \I{controls, for Sixteen}Sixteen controls
 
-This game is played with the mouse. Left-clicking on an arrow will
-move the appropriate row or column in the direction indicated.
-Right-clicking will move it in the opposite direction.
+Left-clicking on an arrow will move the appropriate row or column in
+the direction indicated.  Right-clicking will move it in the opposite
+direction.
+
+Alternatively, use the cursor keys to move the position indicator
+around the edge of the grid, and use the return key to move the
+row/column in the direction indicated. 
 
 (All the actions described in \k{common-actions} are also available.)
 
@@ -833,8 +837,8 @@ movement of Sixteen (see \k{sixteen}): you have a Net grid, but
 instead of rotating tiles back into place you have to slide them
 into place by moving a whole row at a time. 
 
-As in Sixteen, \I{controls, for Netslide}control is with the mouse.
-See \k{sixteen-controls}.
+As in Sixteen, \I{controls, for Netslide}control is with the mouse or
+cursor keys. See \k{sixteen-controls}.
 
 \I{parameters, for Netslide}The available game parameters have similar
 meanings to those in Net (see \k{net-params}) and Sixteen (see
@@ -2210,7 +2214,8 @@ Space to clear it again (or use the Undo feature).
 
 If you \e{right}-click in a square and then type a number, that
 number will be entered in the square as a \q{pencil mark}. You can
-have pencil marks for multiple numbers in the same square.
+have pencil marks for multiple numbers in the same square. Squares
+containing filled-in numbers cannot also contain pencil marks.
 
 The game pays no attention to pencil marks, so exactly what you use
 them for is up to you: you can use them as reminders that a
@@ -2227,7 +2232,14 @@ pressing space will also erase pencil marks.
 
 As for Solo, the cursor keys can be used in conjunction with the digit
 keys to set numbers or pencil marks. You can also use the 'M' key to
-auto-fill every numeric hint, ready for removal as required. 
+auto-fill every numeric hint, ready for removal as required, or the 'H'
+key to do the same but also to remove all obvious hints. 
+
+Alternatively, use the cursor keys to move the mark around the grid.
+Pressing the return key toggles the mark (from a normal mark to a
+pencil mark), and typing a number in is entered in the square in the
+appropriate way; typing in a 0 or using the space bar will clear a
+filled square. 
 
 (All the actions described in \k{common-actions} are also available.)
 

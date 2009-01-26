@@ -553,13 +553,24 @@ static char *game_text_format(game_state *state)
     return ret;
 }
 
+struct game_ui {
+    int cur_x, cur_y;
+    int cur_visible;
+};
+
 static game_ui *new_ui(game_state *state)
 {
-    return NULL;
+    game_ui *ui = snew(game_ui);
+    ui->cur_x = 0;
+    ui->cur_y = -1;
+    ui->cur_visible = FALSE;
+
+    return ui;
 }
 
 static void free_ui(game_ui *ui)
 {
+  sfree(ui);
 }
 
 static char *encode_ui(game_ui *ui)
@@ -581,20 +592,47 @@ struct game_drawstate {
     int w, h, bgcolour;
     int *tiles;
     int tilesize;
+    int cur_x, cur_y;
 };
 
 static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
 			    int x, int y, int button)
 {
-    int cx, cy, dx, dy;
+    int cx = -1, cy = -1, dx, dy;
     char buf[80];
 
     button &= ~MOD_MASK;
-    if (button != LEFT_BUTTON && button != RIGHT_BUTTON)
-        return NULL;
 
-    cx = FROMCOORD(x);
-    cy = FROMCOORD(y);
+    if (IS_CURSOR_MOVE(button)) {
+        /* right/down rotates cursor clockwise,
+         * left/up rotates anticlockwise. */
+        int cpos, diff;
+        cpos = c2pos(state->w, state->h, ui->cur_x, ui->cur_y);
+        diff = c2diff(state->w, state->h, ui->cur_x, ui->cur_y, button);
+
+        cpos += diff;
+        pos2c(state->w, state->h, cpos, &ui->cur_x, &ui->cur_y);
+
+        ui->cur_visible = 1;
+        return "";
+    }
+
+    if (button == LEFT_BUTTON || button == RIGHT_BUTTON) {
+        cx = FROMCOORD(x);
+        cy = FROMCOORD(y);
+        ui->cur_visible = 0;
+    } else if (IS_CURSOR_SELECT(button)) {
+        if (ui->cur_visible) {
+            cx = ui->cur_x;
+            cy = ui->cur_y;
+        } else {
+            ui->cur_visible = 1;
+            return "";
+        }
+    } else {
+	return NULL;
+    }
+
     if (cx == -1 && cy >= 0 && cy < state->h)
         dx = -1, dy = 0;
     else if (cx == state->w && cy >= 0 && cy < state->h)
@@ -604,10 +642,10 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
     else if (cy == state->h && cx >= 0 && cx < state->w)
         dy = +1, dx = 0;
     else
-        return NULL;                   /* invalid click location */
+        return "";                   /* invalid click location */
 
     /* reverse direction if right hand button is pressed */
-    if (button == RIGHT_BUTTON) {
+    if (button == RIGHT_BUTTON || button == CURSOR_SELECT2) {
         dx = -dx;
         dy = -dy;
     }
@@ -731,6 +769,7 @@ static game_drawstate *game_new_drawstate(drawing *dr, game_state *state)
     ds->tilesize = 0;                  /* haven't decided yet */
     for (i = 0; i < ds->w*ds->h; i++)
         ds->tiles[i] = -1;
+    ds->cur_x = ds->cur_y = -1;
 
     return ds;
 }
@@ -777,7 +816,7 @@ static void draw_tile(drawing *dr, game_drawstate *ds,
 }
 
 static void draw_arrow(drawing *dr, game_drawstate *ds,
-                       int x, int y, int xdx, int xdy)
+                       int x, int y, int xdx, int xdy, int cur)
 {
     int coords[14];
     int ydy = -xdx, ydx = xdy;
@@ -794,7 +833,27 @@ static void draw_arrow(drawing *dr, game_drawstate *ds,
     POINT(5, 3 * TILE_SIZE / 8, TILE_SIZE / 2);   /* left concave */
     POINT(6,     TILE_SIZE / 4, TILE_SIZE / 2);   /* left corner */
 
-    draw_polygon(dr, coords, 7, COL_LOWLIGHT, COL_TEXT);
+    draw_polygon(dr, coords, 7, cur ? COL_HIGHLIGHT : COL_LOWLIGHT, COL_TEXT);
+}
+
+static void draw_arrow_for_cursor(drawing *dr, game_drawstate *ds,
+                                  int cur_x, int cur_y, int cur)
+{
+    if (cur_x == -1 && cur_y == -1)
+        return; /* 'no cursur here */
+    else if (cur_x == -1) /* LH column. */
+        draw_arrow(dr, ds, COORD(0), COORD(cur_y+1), 0, -1, cur);
+    else if (cur_x == ds->w) /* RH column */
+        draw_arrow(dr, ds, COORD(ds->w), COORD(cur_y), 0, +1, cur);
+    else if (cur_y == -1) /* Top row */
+        draw_arrow(dr, ds, COORD(cur_x), COORD(0), +1, 0, cur);
+    else if (cur_y == ds->h) /* Bottom row */
+        draw_arrow(dr, ds, COORD(cur_x+1), COORD(ds->h), -1, 0, cur);
+    else
+        assert(!"Invalid cursor position");
+
+    draw_update(dr, COORD(cur_x), COORD(cur_y),
+                TILE_SIZE, TILE_SIZE);
 }
 
 static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
@@ -802,6 +861,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
                  float animtime, float flashtime)
 {
     int i, bgcolour;
+    int cur_x = -1, cur_y = -1;
 
     if (flashtime > 0) {
         int frame = (int)(flashtime / FLASH_FRAME);
@@ -842,15 +902,27 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
          * Arrows for making moves.
          */
         for (i = 0; i < state->w; i++) {
-            draw_arrow(dr, ds, COORD(i), COORD(0), +1, 0);
-            draw_arrow(dr, ds, COORD(i+1), COORD(state->h), -1, 0);
+            draw_arrow(dr, ds, COORD(i), COORD(0), +1, 0, 0);
+            draw_arrow(dr, ds, COORD(i+1), COORD(state->h), -1, 0, 0);
         }
         for (i = 0; i < state->h; i++) {
-            draw_arrow(dr, ds, COORD(state->w), COORD(i), 0, +1);
-            draw_arrow(dr, ds, COORD(0), COORD(i+1), 0, -1);
+            draw_arrow(dr, ds, COORD(state->w), COORD(i), 0, +1, 0);
+            draw_arrow(dr, ds, COORD(0), COORD(i+1), 0, -1, 0);
         }
 
         ds->started = TRUE;
+    }
+    /*
+     * Cursor (highlighted arrow around edge)
+     */
+    if (ui->cur_visible) {
+        cur_x = ui->cur_x; cur_y = ui->cur_y;
+    }
+    if (cur_x != ds->cur_x || cur_y != ds->cur_y) {
+        /* Cursor has changed; redraw two (prev and curr) arrows. */
+        draw_arrow_for_cursor(dr, ds, cur_x, cur_y, 1);
+        draw_arrow_for_cursor(dr, ds, ds->cur_x, ds->cur_y, 0);
+        ds->cur_x = cur_x; ds->cur_y = cur_y;
     }
 
     /*
@@ -1054,3 +1126,5 @@ const struct game thegame = {
     FALSE, game_timing_state,
     0,				       /* flags */
 };
+
+/* vim: set shiftwidth=4 tabstop=8: */
