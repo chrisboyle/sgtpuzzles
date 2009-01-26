@@ -32,6 +32,9 @@
 #  endif
 # endif
 #endif
+#if !GTK_CHECK_VERSION(2,4,0)
+# define OLD_FILESEL
+#endif
 
 #ifdef DEBUGGING
 static FILE *debug_fp = NULL;
@@ -128,7 +131,9 @@ struct frontend {
     int paste_data_len;
     int pw, ph;                        /* pixmap size (w, h are area size) */
     int ox, oy;                        /* offset of pixmap in drawing area */
+#ifdef OLD_FILESEL
     char *filesel_name;
+#endif
     int npresets;
     GtkWidget **preset_bullets;
     GtkWidget *preset_custom_bullet;
@@ -1293,6 +1298,8 @@ static void menu_copy_event(GtkMenuItem *menuitem, gpointer data)
     }
 }
 
+#ifdef OLD_FILESEL
+
 static void filesel_ok(GtkButton *button, gpointer data)
 {
     frontend *fe = (frontend *)data;
@@ -1333,6 +1340,34 @@ static char *file_selector(frontend *fe, char *title, int save)
 
     return fe->filesel_name;
 }
+
+#else
+
+static char *file_selector(frontend *fe, char *title, int save)
+{
+    char *filesel_name = NULL;
+
+    GtkWidget *filesel =
+        gtk_file_chooser_dialog_new(title,
+				    GTK_WINDOW(fe->window),
+				    save ? GTK_FILE_CHOOSER_ACTION_SAVE :
+				    GTK_FILE_CHOOSER_ACTION_OPEN,
+				    GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
+				    save ? GTK_STOCK_SAVE : GTK_STOCK_OPEN,
+				    GTK_RESPONSE_ACCEPT,
+				    NULL);
+
+    if (gtk_dialog_run(GTK_DIALOG(filesel)) == GTK_RESPONSE_ACCEPT) {
+        const char *name = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(filesel));
+        filesel_name = dupstr(name);
+    }
+
+    gtk_widget_destroy(filesel);
+
+    return filesel_name;
+}
+
+#endif
 
 struct savefile_write_ctx {
     FILE *fp;
