@@ -1299,10 +1299,6 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
             return "";
         }
     }
-    if (button == 'H' || button == 'h')
-        return dupstr("H");
-    if (button == 'M' || button == 'm')
-        return dupstr("M");
 
     if (IS_CURSOR_MOVE(button)) {
         move_cursor(button, &ui->hx, &ui->hy, ds->order, ds->order, 0);
@@ -1340,6 +1336,12 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
 
         return dupstr(buf);
     }
+
+    if (button == 'H' || button == 'h')
+        return dupstr("H");
+    if (button == 'M' || button == 'm')
+        return dupstr("M");
+
     return NULL;
 }
 
