@@ -884,6 +884,10 @@ a vertical or horizontal line of squares black or white at a time
 with Shift held down, you can colour a whole rectangle of squares
 grey.
 
+You can also move around the grid with the cursor keys. Pressing the
+return key will cycle the current cell through empty --> black -->
+white --> empty, and the space bar does the same cycle in reverse.
+
 (All the actions described in \k{common-actions} are also available.)
 
 \H{pattern-parameters} \I{parameters, for Pattern}Pattern parameters
