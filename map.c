@@ -1950,7 +1950,7 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
 
 	for (i = 0; i < state->map->ngraph + n; i++) {
 	    bestx[i] = besty[i] = -1;
-	    best[i] = 2*(w+h)+1;
+	    best[i] = (float)(2*(w+h)+1);
 	    ax[i] = ay[i] = 0.0F;
 	    an[i] = 0;
 	}
@@ -2090,7 +2090,7 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
 			     */
 			    ax[gindex] += ex[i];
 			    ay[gindex] += ey[i];
-			    an[gindex] += 1.0F;
+			    an[gindex] += 1;
 			} else {
 			    /*
 			     * In pass 1, work out whether this
@@ -2102,7 +2102,7 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
 			    assert(an[gindex] > 0);
 			    dx = ex[i] - ax[gindex];
 			    dy = ey[i] - ay[gindex];
-			    d = sqrt(dx*dx + dy*dy);
+			    d = (float)sqrt(dx*dx + dy*dy);
 			    if (d < best[gindex]) {
 				best[gindex] = d;
 				bestx[gindex] = ex[i];
@@ -2270,6 +2270,8 @@ struct game_ui {
     int drag_pencil;
     int dragx, dragy;
     int show_numbers;
+
+    int cur_x, cur_y, cur_visible, cur_moved, cur_lastmove;
 };
 
 static game_ui *new_ui(game_state *state)
@@ -2277,7 +2279,10 @@ static game_ui *new_ui(game_state *state)
     game_ui *ui = snew(game_ui);
     ui->dragx = ui->dragy = -1;
     ui->drag_colour = -2;
+    ui->drag_pencil = 0;
     ui->show_numbers = FALSE;
+    ui->cur_x = ui->cur_y = ui->cur_visible = ui->cur_moved = 0;
+    ui->cur_lastmove = 0;
     return ui;
 }
 
@@ -2323,6 +2328,19 @@ struct game_drawstate {
 #define COORD(x)  ( (x) * TILESIZE + BORDER )
 #define FROMCOORD(x)  ( ((x) - BORDER + TILESIZE) / TILESIZE - 1 )
 
+ /*
+  * EPSILON_FOO are epsilons added to absolute cursor position by
+  * cursor movement, such that in pathological cases (e.g. a very
+  * small diamond-shaped area) it's relatively easy to select the
+  * region you wanted.
+  */
+
+#define EPSILON_X(button) (((button) == CURSOR_RIGHT) ? +1 : \
+                           ((button) == CURSOR_LEFT)  ? -1 : 0)
+#define EPSILON_Y(button) (((button) == CURSOR_DOWN)  ? +1 : \
+                           ((button) == CURSOR_UP)    ? -1 : 0)
+
+
 static int region_from_coords(game_state *state, game_drawstate *ds,
                               int x, int y)
 {
@@ -2346,6 +2364,7 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
 			    int x, int y, int button)
 {
     char *bufp, buf[256];
+    int alt_button;
 
     /*
      * Enable or disable numeric labels on regions.
@@ -2353,6 +2372,43 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
     if (button == 'l' || button == 'L') {
         ui->show_numbers = !ui->show_numbers;
         return "";
+    }
+
+    if (IS_CURSOR_MOVE(button)) {
+        move_cursor(button, &ui->cur_x, &ui->cur_y, state->p.w, state->p.h, 0);
+        ui->cur_visible = 1;
+        ui->cur_moved = 1;
+        ui->cur_lastmove = button;
+        ui->dragx = COORD(ui->cur_x) + TILESIZE/2 + EPSILON_X(button);
+        ui->dragy = COORD(ui->cur_y) + TILESIZE/2 + EPSILON_Y(button);
+        return "";
+    }
+    if (IS_CURSOR_SELECT(button)) {
+        if (!ui->cur_visible) {
+            ui->dragx = COORD(ui->cur_x) + TILESIZE/2 + EPSILON_X(ui->cur_lastmove);
+            ui->dragy = COORD(ui->cur_y) + TILESIZE/2 + EPSILON_Y(ui->cur_lastmove);
+            ui->cur_visible = 1;
+            return "";
+        }
+        if (ui->drag_colour == -2) { /* not currently cursor-dragging, start. */
+            int r = region_from_coords(state, ds, ui->dragx, ui->dragy);
+            if (r >= 0) {
+                ui->drag_colour = state->colouring[r];
+                ui->drag_pencil = (ui->drag_colour >= 0) ? 0 : state->pencil[r];
+            } else {
+                ui->drag_colour = -1;
+                ui->drag_pencil = 0;
+            }
+            ui->cur_moved = 0;
+            return "";
+        } else { /* currently cursor-dragging; drop the colour in the new region. */
+            x = COORD(ui->cur_x) + TILESIZE/2 + EPSILON_X(ui->cur_lastmove);
+            y = COORD(ui->cur_y) + TILESIZE/2 + EPSILON_Y(ui->cur_lastmove);
+            alt_button = (button == CURSOR_SELECT2) ? 1 : 0;
+            /* Double-select removes current colour. */
+            if (!ui->cur_moved) ui->drag_colour = -1;
+            goto drag_dropped;
+        }
     }
 
     if (button == LEFT_BUTTON || button == RIGHT_BUTTON) {
@@ -2369,6 +2425,7 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
 	}
         ui->dragx = x;
         ui->dragy = y;
+        ui->cur_visible = 0;
         return "";
     }
 
@@ -2381,6 +2438,14 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
 
     if ((button == LEFT_RELEASE || button == RIGHT_RELEASE) &&
         ui->drag_colour > -2) {
+        alt_button = (button == RIGHT_RELEASE) ? 1 : 0;
+        goto drag_dropped;
+    }
+
+    return NULL;
+
+drag_dropped:
+    {
 	int r = region_from_coords(state, ds, x, y);
         int c = ui->drag_colour;
 	int p = ui->drag_pencil;
@@ -2390,7 +2455,6 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
          * Cancel the drag, whatever happens.
          */
         ui->drag_colour = -2;
-        ui->dragx = ui->dragy = -1;
 
 	if (r < 0)
             return "";                 /* drag into border; do nothing else */
@@ -2401,7 +2465,7 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
         if (state->colouring[r] == c && state->pencil[r] == p)
             return "";                 /* don't _need_ to change this region */
 
-	if (button == RIGHT_RELEASE) {
+	if (alt_button) {
 	    if (state->colouring[r] >= 0) {
 		/* Can't pencil on a coloured region */
 		return "";
@@ -2430,8 +2494,6 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
 
 	return dupstr(buf+1);	       /* ignore first semicolon */
     }
-
-    return NULL;
 }
 
 static game_state *execute_move(game_state *state, char *move)
@@ -2908,13 +2970,26 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
     /*
      * Draw the dragged colour blob if any.
      */
-    if (ui->drag_colour > -2) {
+    if ((ui->drag_colour > -2) || ui->cur_visible) {
+        int bg, iscur = 0;
+        if (ui->drag_colour >= 0)
+            bg = COL_0 + ui->drag_colour;
+        else if (ui->drag_colour == -1) {
+            bg = COL_BACKGROUND;
+        } else {
+            int r = region_from_coords(state, ds, ui->dragx, ui->dragy);
+            int c = (r < 0) ? -1 : state->colouring[r];
+            assert(ui->cur_visible);
+            /*bg = COL_GRID;*/
+            bg = (c < 0) ? COL_BACKGROUND : COL_0 + c;
+            iscur = 1;
+        }
+
         ds->dragx = ui->dragx - TILESIZE/2 - 2;
         ds->dragy = ui->dragy - TILESIZE/2 - 2;
         blitter_save(dr, ds->bl, ds->dragx, ds->dragy);
-        draw_circle(dr, ui->dragx, ui->dragy, TILESIZE/2,
-                    (ui->drag_colour < 0 ? COL_BACKGROUND :
-                     COL_0 + ui->drag_colour), COL_GRID);
+        draw_circle(dr, ui->dragx, ui->dragy,
+                    iscur ? TILESIZE/4 : TILESIZE/2, bg, COL_GRID);
 	for (i = 0; i < FOUR; i++)
 	    if (ui->drag_pencil & (1 << i))
 		draw_circle(dr, ui->dragx + ((i*4+2)%10-3) * TILESIZE/10,
@@ -2942,7 +3017,7 @@ static float game_flash_length(game_state *oldstate, game_state *newstate,
 		flash_type = atoi(env);
 	    else
 		flash_type = 0;
-	    flash_length = (flash_type == 1 ? 0.50 : 0.30);
+	    flash_length = (flash_type == 1 ? 0.50F : 0.30F);
 	}
 	return flash_length;
     } else
@@ -2964,8 +3039,8 @@ static void game_print_size(game_params *params, float *x, float *y)
      * given tile size and then scale.
      */
     game_compute_size(params, 400, &pw, &ph);
-    *x = pw / 100.0;
-    *y = ph / 100.0;
+    *x = pw / 100.0F;
+    *y = ph / 100.0F;
 }
 
 static void game_print(drawing *dr, game_state *state, int tilesize)
@@ -3250,3 +3325,5 @@ int main(int argc, char **argv)
 }
 
 #endif
+
+/* vim: set shiftwidth=4 tabstop=8: */

@@ -1810,6 +1810,18 @@ you think the region \e{might} be that colour. A region can contain
 stipples in multiple colours at once. (This is often useful at the
 harder difficulty levels.)
 
+You can also use the cursor keys to move around the map: the colour of
+the cursor indicates the position of the colour you would drag (which
+is not obvious if you're on a region's boundary, since it depends on the
+direction from which you approached the boundary). Pressing the return
+key starts a drag of that colour, as above, which you control with the
+cursor keys; pressing the return key again finishes the drag. The
+space bar can be used similarly to create a stippled region. 
+Double-pressing the return key (without moving the cursor) will clear
+the region, as a drag from an empty region does: this is useful with
+the cursor mode if you have filled the entire map in but need to 
+correct the layout.
+
 If you press L during play, the game will toggle display of a number
 in each region of the map. This is useful if you want to discuss a
 particular puzzle instance with a friend \dash having an unambiguous
