@@ -1583,9 +1583,13 @@ right-clicking; whole rows and columns may be similarly locked by
 right-clicking in the laser firing range above/below that column, or
 to the left/right of that row.  
 
+The cursor keys may also be used to move around the grid. Pressing the
+Enter key will add a new ball-location guess, and pressing Space will
+lock a cell or a row/column.
+
 When an appropriate number of balls have been guessed a button will
-appear at the top-left corner of the grid; clicking that will mark
-your guesses. 
+appear at the top-left corner of the grid; clicking that (with mouse or
+cursor) will mark your guesses. 
 
 If you click the \q{mark} button and your guesses are not correct,
 the game will show you as little information as possible to
