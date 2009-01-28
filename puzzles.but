@@ -707,6 +707,11 @@ the centre tile of the square you want to rotate.
 Clicking with the left mouse button rotates the group anticlockwise.
 Clicking with the right button rotates it clockwise.
 
+You can also move an outline square around the grid with the cursor
+keys; the square is the size above (2\by\.2 by default, or larger).
+Pressing the return key or space bar will rotate the current square
+anticlockwise or clockwise respectively.
+
 (All the actions described in \k{common-actions} are also available.)
 
 \H{twiddle-parameters} \I{parameters, for Twiddle}Twiddle parameters

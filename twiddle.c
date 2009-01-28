@@ -31,6 +31,7 @@ enum {
     COL_HIGHLIGHT_GENTLE,
     COL_LOWLIGHT,
     COL_LOWLIGHT_GENTLE,
+    COL_HIGHCURSOR, COL_LOWCURSOR,
     NCOLOURS
 };
 
@@ -597,13 +598,25 @@ static char *game_text_format(game_state *state)
     return ret;
 }
 
+struct game_ui {
+    int cur_x, cur_y;
+    int cur_visible;
+};
+
 static game_ui *new_ui(game_state *state)
 {
-    return NULL;
+    game_ui *ui = snew(game_ui);
+
+    ui->cur_x = 0;
+    ui->cur_y = 0;
+    ui->cur_visible = FALSE;
+
+    return ui;
 }
 
 static void free_ui(game_ui *ui)
 {
+    sfree(ui);
 }
 
 static char *encode_ui(game_ui *ui)
@@ -625,6 +638,7 @@ struct game_drawstate {
     int w, h, bgcolour;
     int *grid;
     int tilesize;
+    int cur_x, cur_y;
 };
 
 static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
@@ -635,6 +649,19 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
     int dir;
 
     button = button & (~MOD_MASK | MOD_NUM_KEYPAD);
+
+    if (IS_CURSOR_MOVE(button)) {
+        if (button == CURSOR_LEFT && ui->cur_x > 0)
+            ui->cur_x--;
+        if (button == CURSOR_RIGHT && (ui->cur_x+n) < (w))
+            ui->cur_x++;
+        if (button == CURSOR_UP && ui->cur_y > 0)
+            ui->cur_y--;
+        if (button == CURSOR_DOWN && (ui->cur_y+n) < (h))
+            ui->cur_y++;
+        ui->cur_visible = 1;
+        return "";
+    }
 
     if (button == LEFT_BUTTON || button == RIGHT_BUTTON) {
 	/*
@@ -649,6 +676,16 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
 	dir = (button == LEFT_BUTTON ? 1 : -1);
 	if (x < 0 || x > w-n || y < 0 || y > h-n)
 	    return NULL;
+        ui->cur_visible = 0;
+    } else if (IS_CURSOR_SELECT(button)) {
+        if (ui->cur_visible) {
+            x = ui->cur_x;
+            y = ui->cur_y;
+            dir = (button == CURSOR_SELECT2) ? -1 : +1;
+        } else {
+            ui->cur_visible = 1;
+            return "";
+        }
     } else if (button == 'a' || button == 'A' || button==MOD_NUM_KEYPAD+'7') {
         x = y = 0;
         dir = (button == 'A' ? -1 : +1);
@@ -770,10 +807,16 @@ static float *game_colours(frontend *fe, int *ncolours)
 
     game_mkhighlight(fe, ret, COL_BACKGROUND, COL_HIGHLIGHT, COL_LOWLIGHT);
 
+    /* cursor is light-background with a red tinge. */
+    ret[COL_HIGHCURSOR * 3 + 0] = ret[COL_BACKGROUND * 3 + 0] * 1.0F;
+    ret[COL_HIGHCURSOR * 3 + 1] = ret[COL_BACKGROUND * 3 + 1] * 0.5F;
+    ret[COL_HIGHCURSOR * 3 + 2] = ret[COL_BACKGROUND * 3 + 2] * 0.5F;
+
     for (i = 0; i < 3; i++) {
         ret[COL_HIGHLIGHT_GENTLE * 3 + i] = ret[COL_BACKGROUND * 3 + i] * 1.1F;
         ret[COL_LOWLIGHT_GENTLE * 3 + i] = ret[COL_BACKGROUND * 3 + i] * 0.9F;
         ret[COL_TEXT * 3 + i] = 0.0;
+        ret[COL_LOWCURSOR * 3 + i] = ret[COL_HIGHCURSOR * 3 + i] * 0.6F;
     }
 
     *ncolours = NCOLOURS;
@@ -793,6 +836,7 @@ static game_drawstate *game_new_drawstate(drawing *dr, game_state *state)
     ds->tilesize = 0;                  /* haven't decided yet */
     for (i = 0; i < ds->w*ds->h; i++)
         ds->grid[i] = -1;
+    ds->cur_x = ds->cur_y = -state->n;
 
     return ds;
 }
@@ -813,20 +857,25 @@ struct rotation {
 static void rotate(int *xy, struct rotation *rot)
 {
     if (rot) {
-	float xf = xy[0] - rot->ox, yf = xy[1] - rot->oy;
+	float xf = (float)xy[0] - rot->ox, yf = (float)xy[1] - rot->oy;
 	float xf2, yf2;
 
 	xf2 = rot->c * xf + rot->s * yf;
 	yf2 = - rot->s * xf + rot->c * yf;
 
-	xy[0] = xf2 + rot->ox + 0.5;   /* round to nearest */
-	xy[1] = yf2 + rot->oy + 0.5;   /* round to nearest */
+	xy[0] = (int)(xf2 + rot->ox + 0.5);   /* round to nearest */
+	xy[1] = (int)(yf2 + rot->oy + 0.5);   /* round to nearest */
     }
 }
 
+#define CUR_TOP         1
+#define CUR_RIGHT       2
+#define CUR_BOTTOM      4
+#define CUR_LEFT        8
+
 static void draw_tile(drawing *dr, game_drawstate *ds, game_state *state,
                       int x, int y, int tile, int flash_colour,
-                      struct rotation *rot)
+                      struct rotation *rot, unsigned cedges)
 {
     int coords[8];
     char str[40];
@@ -863,28 +912,28 @@ static void draw_tile(drawing *dr, game_drawstate *ds, game_state *state,
     coords[3] = y;
     rotate(coords+2, rot);
     draw_polygon(dr, coords, 3, rot ? rot->rc : COL_LOWLIGHT,
-		 rot ? rot->rc : COL_LOWLIGHT);
+		 rot ? rot->rc : (cedges & CUR_RIGHT) ? COL_LOWCURSOR : COL_LOWLIGHT);
 
     /* Bottom side. */
     coords[2] = x;
     coords[3] = y + TILE_SIZE - 1;
     rotate(coords+2, rot);
     draw_polygon(dr, coords, 3, rot ? rot->bc : COL_LOWLIGHT,
-		 rot ? rot->bc : COL_LOWLIGHT);
+		 rot ? rot->bc : (cedges & CUR_BOTTOM) ? COL_LOWCURSOR : COL_LOWLIGHT);
 
     /* Left side. */
     coords[0] = x;
     coords[1] = y;
     rotate(coords+0, rot);
     draw_polygon(dr, coords, 3, rot ? rot->lc : COL_HIGHLIGHT,
-		 rot ? rot->lc : COL_HIGHLIGHT);
+		 rot ? rot->lc : (cedges & CUR_LEFT) ? COL_HIGHCURSOR : COL_HIGHLIGHT);
 
     /* Top side. */
     coords[2] = x + TILE_SIZE - 1;
     coords[3] = y;
     rotate(coords+2, rot);
     draw_polygon(dr, coords, 3, rot ? rot->tc : COL_HIGHLIGHT,
-		 rot ? rot->tc : COL_HIGHLIGHT);
+		 rot ? rot->tc : (cedges & CUR_TOP) ? COL_HIGHCURSOR : COL_HIGHLIGHT);
 
     /*
      * Now the main blank area in the centre of the tile.
@@ -1008,7 +1057,7 @@ static int highlight_colour(float angle)
 static float game_anim_length(game_state *oldstate, game_state *newstate,
 			      int dir, game_ui *ui)
 {
-    return ANIM_PER_RADIUS_UNIT * sqrt(newstate->n-1);
+    return (float)(ANIM_PER_RADIUS_UNIT * sqrt(newstate->n-1));
 }
 
 static float game_flash_length(game_state *oldstate, game_state *newstate,
@@ -1028,6 +1077,12 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
     int i, bgcolour;
     struct rotation srot, *rot;
     int lastx = -1, lasty = -1, lastr = -1;
+    int cx, cy, cmoved = 0, n = state->n;
+
+    cx = ui->cur_visible ? ui->cur_x : -state->n;
+    cy = ui->cur_visible ? ui->cur_y : -state->n;
+    if (cx != ds->cur_x || cy != ds->cur_y)
+        cmoved = 1;
 
     if (flashtime > 0) {
         int frame = (int)(flashtime / FLASH_FRAME);
@@ -1092,17 +1147,17 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 	rot->cw = rot->ch = TILE_SIZE * state->n;
 	rot->ox = rot->cx + rot->cw/2;
 	rot->oy = rot->cy + rot->ch/2;
-	angle = (-PI/2 * lastr) * (1.0 - animtime / anim_max);
-	rot->c = cos(angle);
-	rot->s = sin(angle);
+	angle = (float)((-PI/2 * lastr) * (1.0 - animtime / anim_max));
+	rot->c = (float)cos(angle);
+	rot->s = (float)sin(angle);
 
 	/*
 	 * Sort out the colours of the various sides of the tile.
 	 */
-	rot->lc = highlight_colour(PI + angle);
+	rot->lc = highlight_colour((float)PI + angle);
 	rot->rc = highlight_colour(angle);
-	rot->tc = highlight_colour(PI/2 + angle);
-	rot->bc = highlight_colour(-PI/2 + angle);
+	rot->tc = highlight_colour((float)(PI/2.0) + angle);
+	rot->bc = highlight_colour((float)(-PI/2.0) + angle);
 
 	draw_rect(dr, rot->cx, rot->cy, rot->cw, rot->ch, bgcolour);
     } else
@@ -1112,7 +1167,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
      * Now draw each tile.
      */
     for (i = 0; i < state->w * state->h; i++) {
-	int t;
+	int t, cc = 0;
 	int tx = i % state->w, ty = i / state->w;
 
 	/*
@@ -1129,15 +1184,31 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 	else
 	    t = state->grid[i];
 
-	if (ds->bgcolour != bgcolour ||   /* always redraw when flashing */
-	    ds->grid[i] != t || ds->grid[i] == -1 || t == -1) {
-	    int x = COORD(tx), y = COORD(ty);
+        if (cmoved) {
+            /* cursor has moved (or changed visibility)... */
+            if (tx == cx || tx == cx+n-1 || ty == cy || ty == cy+n-1)
+                cc = 1; /* ...we're on new cursor, redraw */
+            if (tx == ds->cur_x || tx == ds->cur_x+n-1 ||
+                ty == ds->cur_y || ty == ds->cur_y+n-1)
+                cc = 1; /* ...we were on old cursor, redraw */
+        }
 
-	    draw_tile(dr, ds, state, x, y, state->grid[i], bgcolour, rot);
+	if (ds->bgcolour != bgcolour ||   /* always redraw when flashing */
+	    ds->grid[i] != t || ds->grid[i] == -1 || t == -1 || cc) {
+	    int x = COORD(tx), y = COORD(ty);
+            unsigned cedges = 0;
+
+            if (tx == cx     && ty >= cy && ty <= cy+n-1) cedges |= CUR_LEFT;
+            if (ty == cy     && tx >= cx && tx <= cx+n-1) cedges |= CUR_TOP;
+            if (tx == cx+n-1 && ty >= cy && ty <= cy+n-1) cedges |= CUR_RIGHT;
+            if (ty == cy+n-1 && tx >= cx && tx <= cx+n-1) cedges |= CUR_BOTTOM;
+
+	    draw_tile(dr, ds, state, x, y, state->grid[i], bgcolour, rot, cedges);
             ds->grid[i] = t;
         }
     }
     ds->bgcolour = bgcolour;
+    ds->cur_x = cx; ds->cur_y = cy;
 
     /*
      * Update the status bar.
@@ -1221,3 +1292,5 @@ const struct game thegame = {
     FALSE, game_timing_state,
     0,				       /* flags */
 };
+
+/* vim: set shiftwidth=4 tabstop=8: */
