@@ -16,7 +16,6 @@
 #include "puzzles.h"
 
 /* Turn this on for hints about which lines are considered possibilities. */
-#undef DRAW_HINTS
 #undef DRAW_GRID
 #undef DRAW_DSF
 
@@ -40,6 +39,7 @@ enum {
     COL_SELECTED, COL_MARK,
     COL_HINT, COL_GRID,
     COL_WARNING,
+    COL_CURSOR,
     NCOLOURS
 };
 
@@ -66,9 +66,10 @@ struct game_params {
 #define G_REDRAW        0x0100
 #define G_FLASH         0x0200
 #define G_WARN          0x0400
+#define G_CURSOR        0x0800
 
 /* flags used by the solver etc. */
-#define G_SWEEP         0x0800
+#define G_SWEEP         0x1000
 
 #define G_FLAGSH        (G_LINEH|G_MARKH|G_NOLINEH)
 #define G_FLAGSV        (G_LINEV|G_MARKV|G_NOLINEV)
@@ -1674,6 +1675,7 @@ static void free_game(game_state *state)
 }
 
 #define MAX_NEWISLAND_TRIES     50
+#define MIN_SENSIBLE_ISLANDS    3
 
 #define ORDER(a,b) do { if (a < b) { int tmp=a; int a=b; int b=tmp; } } while(0)
 
@@ -1683,7 +1685,7 @@ static char *new_game_desc(game_params *params, random_state *rs,
     game_state *tobuild  = NULL;
     int i, j, wh = params->w * params->h, x, y, dx, dy;
     int minx, miny, maxx, maxy, joinx, joiny, newx, newy, diffx, diffy;
-    int ni_req = max((params->islands * wh) / 100, 2), ni_curr, ni_bad;
+    int ni_req = max((params->islands * wh) / 100, MIN_SENSIBLE_ISLANDS), ni_curr, ni_bad;
     struct island *is, *is2;
     char *ret;
     unsigned int echeck;
@@ -1818,7 +1820,8 @@ generated:
     map_find_orthogonal(tobuild);
 
     if (params->difficulty > 0) {
-        if (solve_from_scratch(tobuild, params->difficulty-1) > 0) {
+        if ((ni_curr > MIN_SENSIBLE_ISLANDS) &&
+            (solve_from_scratch(tobuild, params->difficulty-1) > 0)) {
             debug(("Grid is solvable at difficulty %d (too easy); retrying.\n",
                    params->difficulty-1));
             goto generate;
@@ -1936,6 +1939,9 @@ struct game_ui {
     int dragx_dst, dragy_dst;   /* src's closest orth island. */
     grid_type todraw;
     int dragging, drag_is_noline, nlines;
+
+    int cur_x, cur_y, cur_visible;      /* cursor position */
+    int show_hints;
 };
 
 static char *ui_cancel_drag(game_ui *ui)
@@ -1950,6 +1956,10 @@ static game_ui *new_ui(game_state *state)
 {
     game_ui *ui = snew(game_ui);
     ui_cancel_drag(ui);
+    ui->cur_x = state->islands[0].x;
+    ui->cur_y = state->islands[0].y;
+    ui->cur_visible = 0;
+    ui->show_hints = 0;
     return ui;
 }
 
@@ -1978,6 +1988,7 @@ struct game_drawstate {
     grid_type *grid;
     int *lv, *lh;
     int started, dragging;
+    int show_hints;
 };
 
 static char *update_drag_dst(game_state *state, game_ui *ui, game_drawstate *ds,
@@ -2085,6 +2096,7 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
 
     if (button == LEFT_BUTTON || button == RIGHT_BUTTON) {
         if (!INGRID(state, gx, gy)) return NULL;
+        ui->cur_visible = 0;
         if ((ggrid & G_ISLAND) && !(ggrid & G_MARK)) {
             ui->dragx_src = gx;
             ui->dragy_src = gy;
@@ -2118,6 +2130,96 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
         ret = game_state_diff(state, solved);
         free_game(solved);
         return ret;
+    } else if (IS_CURSOR_MOVE(button)) {
+        ui->cur_visible = 1;
+        if (ui->dragging) {
+            int nx = ui->cur_x, ny = ui->cur_y;
+
+            move_cursor(button, &nx, &ny, state->w, state->h, 0);
+            update_drag_dst(state, ui, ds,
+                             COORD(nx)+TILE_SIZE/2,
+                             COORD(ny)+TILE_SIZE/2);
+            return finish_drag(state, ui);
+        } else {
+            int dx = (button == CURSOR_RIGHT) ? +1 : (button == CURSOR_LEFT) ? -1 : 0;
+            int dy = (button == CURSOR_DOWN)  ? +1 : (button == CURSOR_UP)   ? -1 : 0;
+            int dorthx = 1 - abs(dx), dorthy = 1 - abs(dy);
+            int dir, orth, nx = x, ny = y;
+
+            /* 'orthorder' is a tweak to ensure that if you press RIGHT and
+             * happen to move upwards, when you press LEFT you then tend
+             * downwards (rather than upwards again). */
+            int orthorder = (button == CURSOR_LEFT || button == CURSOR_UP) ? 1 : -1;
+
+            /* This attempts to find an island in the direction you're
+             * asking for, broadly speaking. If you ask to go right, for
+             * example, it'll look for islands to the right and slightly
+             * above or below your current horiz. position, allowing
+             * further above/below the further away it searches. */
+
+            assert(GRID(state, ui->cur_x, ui->cur_y) & G_ISLAND);
+            /* currently this is depth-first (so orthogonally-adjacent
+             * islands across the other side of the grid will be moved to
+             * before closer islands slightly offset). Swap the order of
+             * these two loops to change to breadth-first search. */
+            for (orth = 0; ; orth++) {
+                int oingrid = 0;
+                for (dir = 1; ; dir++) {
+                    int dingrid = 0;
+
+                    if (orth > dir) continue; /* only search in cone outwards. */
+
+                    nx = ui->cur_x + dir*dx + orth*dorthx*orthorder;
+                    ny = ui->cur_y + dir*dy + orth*dorthy*orthorder;
+                    if (INGRID(state, nx, ny)) {
+                        dingrid = oingrid = 1;
+                        if (GRID(state, nx, ny) & G_ISLAND) goto found;
+                    }
+
+                    nx = ui->cur_x + dir*dx - orth*dorthx*orthorder;
+                    ny = ui->cur_y + dir*dy - orth*dorthy*orthorder;
+                    if (INGRID(state, nx, ny)) {
+                        dingrid = oingrid = 1;
+                        if (GRID(state, nx, ny) & G_ISLAND) goto found;
+                    }
+
+                    if (!dingrid) break;
+                }
+                if (!oingrid) return "";
+            }
+            /* not reached */
+
+found:
+            ui->cur_x = nx;
+            ui->cur_y = ny;
+            return "";
+        }
+    } else if (IS_CURSOR_SELECT(button)) {
+        if (!ui->cur_visible) {
+            ui->cur_visible = 1;
+            return "";
+        }
+        if (ui->dragging) {
+            ui_cancel_drag(ui);
+            if (ui->dragx_dst == -1 && ui->dragy_dst == -1) {
+                sprintf(buf, "M%d,%d", ui->cur_x, ui->cur_y);
+                return dupstr(buf);
+            } else
+                return "";
+        } else {
+            grid_type v = GRID(state, ui->cur_x, ui->cur_y);
+            if (v & G_ISLAND) {
+                ui->dragging = 1;
+                ui->dragx_src = ui->cur_x;
+                ui->dragy_src = ui->cur_y;
+                ui->dragx_dst = ui->dragy_dst = -1;
+                ui->drag_is_noline = (button == CURSOR_SELECT2) ? 1 : 0;
+                return "";
+            }
+        }
+    } else if (button == 'g' || button == 'G') {
+        ui->show_hints = 1 - ui->show_hints;
+        return "";
     }
 
     return NULL;
@@ -2255,6 +2357,10 @@ static float *game_colours(frontend *fe, int *ncolours)
     ret[COL_SELECTED * 3 + 1] = 1.00F;
     ret[COL_SELECTED * 3 + 2] = 0.25F;
 
+    ret[COL_CURSOR * 3 + 0] = min(ret[COL_BACKGROUND * 3 + 0] * 1.4F, 1.0F);
+    ret[COL_CURSOR * 3 + 1] = ret[COL_BACKGROUND * 3 + 1] * 0.8F;
+    ret[COL_CURSOR * 3 + 2] = ret[COL_BACKGROUND * 3 + 2] * 0.8F;
+
     *ncolours = NCOLOURS;
     return ret;
 }
@@ -2274,6 +2380,7 @@ static game_drawstate *game_new_drawstate(drawing *dr, game_state *state)
     ds->lh = snewn(wh, int);
     memset(ds->lv, 0, wh*sizeof(int));
     memset(ds->lh, 0, wh*sizeof(int));
+    ds->show_hints = 0;
 
     return ds;
 }
@@ -2325,7 +2432,25 @@ static void line_cross(drawing *dr, game_drawstate *ds,
     draw_line(dr, ox+off, oy, ox,     oy+off, col);
 }
 
-static void lines_lvlh(game_state *state, int x, int y, grid_type v,
+static int between_island(game_state *state, int sx, int sy, int dx, int dy)
+{
+    int x = sx - dx, y = sy - dy;
+
+    while (INGRID(state, x, y)) {
+        if (GRID(state, x, y) & G_ISLAND) goto found;
+        x -= dx; y -= dy;
+    }
+    return 0;
+found:
+    x = sx + dx, y = sy + dy;
+    while (INGRID(state, x, y)) {
+        if (GRID(state, x, y) & G_ISLAND) return 1;
+        x += dx; y += dy;
+    }
+    return 0;
+}
+
+static void lines_lvlh(game_state *state, game_ui *ui, int x, int y, grid_type v,
                        int *lv_r, int *lh_r)
 {
     int lh = 0, lv = 0;
@@ -2333,14 +2458,10 @@ static void lines_lvlh(game_state *state, int x, int y, grid_type v,
     if (v & G_LINEV) lv = INDEX(state,lines,x,y);
     if (v & G_LINEH) lh = INDEX(state,lines,x,y);
 
-#ifdef DRAW_HINTS
-    if (INDEX(state, possv, x, y) && !lv) {
-        lv = INDEX(state, possv, x, y);
+    if (ui->show_hints) {
+        if (between_island(state, x, y, 0, 1) && !lv) lv = 1;
+        if (between_island(state, x, y, 1, 0) && !lh) lh = 1;
     }
-    if (INDEX(state, possh, x, y) && !lh) {
-        lh = INDEX(state, possh, x, y);
-    }
-#endif
     /*debug(("lvlh: (%d,%d) v 0x%x lv %d lh %d.\n", x, y, v, lv, lh));*/
     *lv_r = lv; *lh_r = lh;
 }
@@ -2376,13 +2497,17 @@ static void lines_redraw(drawing *dr,
     }
 
     draw_rect(dr, ox, oy, TILE_SIZE, TILE_SIZE, COL_BACKGROUND);
+    /*if (v & G_CURSOR)
+        draw_rect(dr, ox+TILE_SIZE/4, oy+TILE_SIZE/4,
+                  TILE_SIZE/2, TILE_SIZE/2, COL_CURSOR);*/
 
-#ifdef DRAW_HINTS
-    if (INDEX(state, possv, x, y) && !(v & G_LINEV))
-        vcol = COL_HINT;
-    if (INDEX(state, possh, x, y) && !(v & G_LINEH))
-        hcol = COL_HINT;
-#endif
+
+    if (ui->show_hints) {
+        if (between_island(state, x, y, 0, 1) && !(v & G_LINEV))
+            vcol = COL_HINT;
+        if (between_island(state, x, y, 1, 0) && !(v & G_LINEH))
+            hcol = COL_HINT;
+    }
 #ifdef DRAW_GRID
     draw_rect_outline(dr, ox, oy, TILE_SIZE, TILE_SIZE, COL_GRID);
 #endif
@@ -2395,10 +2520,11 @@ static void lines_redraw(drawing *dr,
         line_cross(dr, ds, ox + TS8(1), oy + TS8(3), hcol, todraw);
         line_cross(dr, ds, ox + TS8(5), oy + TS8(3), hcol, todraw);
     }
-    if (lv)
-        lines_vert(dr, ds, ox, oy, lv, vcol, v);
-    if (lh)
-        lines_horiz(dr, ds, ox, oy, lh, hcol, v);
+    /* if we're drawing a real line and a hint, make sure we draw the real
+     * line on top. */
+    if (lv && vcol == COL_HINT) lines_vert(dr, ds, ox, oy, lv, vcol, v);
+    if (lh) lines_horiz(dr, ds, ox, oy, lh, hcol, v);
+    if (lv && vcol != COL_HINT) lines_vert(dr, ds, ox, oy, lv, vcol, v);
 
     dsf_debug_draw(dr, state, ds, x, y);
     draw_update(dr, ox, oy, TILE_SIZE, TILE_SIZE);
@@ -2422,7 +2548,8 @@ static void island_redraw(drawing *dr,
     int tcol = (v & G_FLASH) ? COL_HIGHLIGHT :
               (v & G_WARN)  ? COL_WARNING : COL_FOREGROUND;
     int col = (v & G_ISSEL) ? COL_SELECTED : tcol;
-    int bg = (v & G_MARK) ? COL_MARK : COL_BACKGROUND;
+    int bg = (v & G_CURSOR) ? COL_CURSOR :
+        (v & G_MARK) ? COL_MARK : COL_BACKGROUND;
     char str[10];
 
 #ifdef DRAW_GRID
@@ -2484,6 +2611,11 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
     } else
         ds->dragging = 0;
 
+    if (ui->show_hints != ds->show_hints) {
+        force = 1;
+        ds->show_hints = ui->show_hints;
+    }
+
     /* Draw all lines (and hints, if we want), but *not* islands. */
     for (x = 0; x < ds->w; x++) {
         for (y = 0; y < ds->h; y++) {
@@ -2497,7 +2629,10 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
                     WITHIN(y,is_drag_src->y, is_drag_dst->y))
                     v |= G_ISSEL;
             }
-            lines_lvlh(state, x, y, v, &lv, &lh);
+            lines_lvlh(state, ui, x, y, v, &lv, &lh);
+
+            /*if (ui->cur_visible && ui->cur_x == x && ui->cur_y == y)
+                v |= G_CURSOR;*/
 
             if (v != dsv ||
                 lv != INDEX(ds,lv,x,y) ||
@@ -2533,6 +2668,9 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 
         if (island_impossible(is, v & G_MARK)) v |= G_WARN;
 
+        if (ui->cur_visible && ui->cur_x == is->x && ui->cur_y == is->y)
+            v |= G_CURSOR;
+
         if ((v != GRID(ds, is->x, is->y)) || force || redraw) {
             GRID(ds,is->x,is->y) = v;
             island_redraw(dr, state, ds, is, v);
@@ -2567,8 +2705,8 @@ static void game_print_size(game_params *params, float *x, float *y)
 
     /* 10mm squares by default. */
     game_compute_size(params, 1000, &pw, &ph);
-    *x = pw / 100.0;
-    *y = ph / 100.0;
+    *x = pw / 100.0F;
+    *y = ph / 100.0F;
 }
 
 static void game_print(drawing *dr, game_state *state, int ts)

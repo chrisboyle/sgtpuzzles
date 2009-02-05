@@ -2135,6 +2135,15 @@ will be prevented from accidentally modifying any of those bridges
 in future. Left-clicking again on a highlighted island will unmark
 it and restore your ability to modify it.
 
+You can also use the cursor keys to move around the grid: if possible
+the cursor will always move orthogonally, otherwise it will move
+towards the nearest island to the indicated direction. Pressing the
+return key followed by a cursor key will lay an island in that direction
+(if available); pressing the space bar followed by a cursor key will
+lay a \q{non-bridge} marker.
+
+You can mark an island as finished by pressing the return key twice.
+
 Violations of the puzzle rules will be marked in red:
 
 \b An island with too many bridges will be highlighted in red.
