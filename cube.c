@@ -179,7 +179,6 @@ struct grid_square {
     float points[8];                   /* maximum */
     int directions[8];                 /* bit masks showing point pairs */
     int flip;
-    int blue;
     int tetra_class;
 };
 
@@ -195,12 +194,25 @@ struct game_params {
     int d1, d2;
 };
 
+typedef struct game_grid game_grid;
+struct game_grid {
+    int refcount;
+    struct grid_square *squares;
+    int nsquares;
+};
+
+#define SET_SQUARE(state, i, val) \
+    ((state)->bluemask[(i)/32] &= ~(1 << ((i)%32)), \
+     (state)->bluemask[(i)/32] |= ((!!val) << ((i)%32)))
+#define GET_SQUARE(state, i) \
+    (((state)->bluemask[(i)/32] >> ((i)%32)) & 1)
+
 struct game_state {
     struct game_params params;
     const struct solid *solid;
     int *facecolours;
-    struct grid_square *squares;
-    int nsquares;
+    game_grid *grid;
+    unsigned long *bluemask;
     int current;                       /* index of current grid square */
     int sgkey[2];                      /* key-point indices into grid sq */
     int dgkey[2];                      /* key-point indices into grid sq */
@@ -689,11 +701,9 @@ static char *new_game_desc(game_params *params, random_state *rs,
 
 static void add_grid_square_callback(void *ctx, struct grid_square *sq)
 {
-    game_state *state = (game_state *)ctx;
+    game_grid *grid = (game_grid *)ctx;
 
-    state->squares[state->nsquares] = *sq;   /* structure copy */
-    state->squares[state->nsquares].blue = FALSE;
-    state->nsquares++;
+    grid->squares[grid->nsquares++] = *sq;   /* structure copy */
 }
 
 static int lowest_face(const struct solid *solid)
@@ -865,6 +875,7 @@ static char *validate_desc(game_params *params, char *desc)
 
 static game_state *new_game(midend *me, game_params *params, char *desc)
 {
+    game_grid *grid = snew(game_grid);
     game_state *state = snew(game_state);
     int area;
 
@@ -872,13 +883,19 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
     state->solid = solids[params->solid];
 
     area = grid_area(params->d1, params->d2, state->solid->order);
-    state->squares = snewn(area, struct grid_square);
-    state->nsquares = 0;
-    enum_grid_squares(params, add_grid_square_callback, state);
-    assert(state->nsquares == area);
+    grid->squares = snewn(area, struct grid_square);
+    grid->nsquares = 0;
+    enum_grid_squares(params, add_grid_square_callback, grid);
+    assert(grid->nsquares == area);
+    state->grid = grid;
+    grid->refcount = 1;
 
     state->facecolours = snewn(state->solid->nfaces, int);
     memset(state->facecolours, 0, state->solid->nfaces * sizeof(int));
+
+    state->bluemask = snewn((state->grid->nsquares + 31) / 32, unsigned long);
+    memset(state->bluemask, 0, (state->grid->nsquares + 31) / 32 *
+	   sizeof(unsigned long));
 
     /*
      * Set up the blue squares and polyhedron position according to
@@ -890,7 +907,7 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
 
 	j = 8;
 	v = 0;
-	for (i = 0; i < state->nsquares; i++) {
+	for (i = 0; i < state->grid->nsquares; i++) {
 	    if (j == 8) {
 		v = *p++;
 		if (v >= '0' && v <= '9')
@@ -903,7 +920,7 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
 		    break;
 	    }
 	    if (v & j)
-		state->squares[i].blue = TRUE;
+		SET_SQUARE(state, i, TRUE);
 	    j >>= 1;
 	    if (j == 0)
 		j = 8;
@@ -913,7 +930,7 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
 	    p++;
 
 	state->current = atoi(p);
-	if (state->current < 0 || state->current >= state->nsquares)
+	if (state->current < 0 || state->current >= state->grid->nsquares)
 	    state->current = 0;	       /* got to do _something_ */
     }
 
@@ -925,7 +942,7 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
         int pkey[4];
         int ret;
 
-        ret = align_poly(state->solid, &state->squares[state->current], pkey);
+        ret = align_poly(state->solid, &state->grid->squares[state->current], pkey);
         assert(ret);
 
         state->dpkey[0] = state->spkey[0] = pkey[0];
@@ -951,11 +968,12 @@ static game_state *dup_game(game_state *state)
     ret->facecolours = snewn(ret->solid->nfaces, int);
     memcpy(ret->facecolours, state->facecolours,
            ret->solid->nfaces * sizeof(int));
-    ret->nsquares = state->nsquares;
     ret->current = state->current;
-    ret->squares = snewn(ret->nsquares, struct grid_square);
-    memcpy(ret->squares, state->squares,
-           ret->nsquares * sizeof(struct grid_square));
+    ret->grid = state->grid;
+    ret->grid->refcount++;
+    ret->bluemask = snewn((ret->grid->nsquares + 31) / 32, unsigned long);
+    memcpy(ret->bluemask, state->bluemask, (ret->grid->nsquares + 31) / 32 *
+	   sizeof(unsigned long));
     ret->dpkey[0] = state->dpkey[0];
     ret->dpkey[1] = state->dpkey[1];
     ret->dgkey[0] = state->dgkey[0];
@@ -974,7 +992,10 @@ static game_state *dup_game(game_state *state)
 
 static void free_game(game_state *state)
 {
-    sfree(state->squares);
+    if (--state->grid->refcount <= 0) {
+	sfree(state->grid->squares);
+	sfree(state->grid);
+    }
     sfree(state->facecolours);
     sfree(state);
 }
@@ -1036,13 +1057,13 @@ static int find_move_dest(game_state *from, int direction,
      * Find the two points in the current grid square which
      * correspond to this move.
      */
-    mask = from->squares[from->current].directions[direction];
+    mask = from->grid->squares[from->current].directions[direction];
     if (mask == 0)
         return -1;
-    for (i = j = 0; i < from->squares[from->current].npoints; i++)
+    for (i = j = 0; i < from->grid->squares[from->current].npoints; i++)
         if (mask & (1 << i)) {
-            points[j*2] = from->squares[from->current].points[i*2];
-            points[j*2+1] = from->squares[from->current].points[i*2+1];
+            points[j*2] = from->grid->squares[from->current].points[i*2];
+            points[j*2+1] = from->grid->squares[from->current].points[i*2+1];
             skey[j] = i;
             j++;
         }
@@ -1053,18 +1074,18 @@ static int find_move_dest(game_state *from, int direction,
      * This is our move destination.
      */
     dest = -1;
-    for (i = 0; i < from->nsquares; i++)
+    for (i = 0; i < from->grid->nsquares; i++)
         if (i != from->current) {
             int match = 0;
             float dist;
 
-            for (j = 0; j < from->squares[i].npoints; j++) {
-                dist = (SQ(from->squares[i].points[j*2] - points[0]) +
-                        SQ(from->squares[i].points[j*2+1] - points[1]));
+            for (j = 0; j < from->grid->squares[i].npoints; j++) {
+                dist = (SQ(from->grid->squares[i].points[j*2] - points[0]) +
+                        SQ(from->grid->squares[i].points[j*2+1] - points[1]));
                 if (dist < 0.1)
                     dkey[match++] = j;
-                dist = (SQ(from->squares[i].points[j*2] - points[2]) +
-                        SQ(from->squares[i].points[j*2+1] - points[3]));
+                dist = (SQ(from->grid->squares[i].points[j*2] - points[2]) +
+                        SQ(from->grid->squares[i].points[j*2+1] - points[3]));
                 if (dist < 0.1)
                     dkey[match++] = j;
             }
@@ -1115,8 +1136,8 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
         int cx, cy;
         double angle;
 
-        cx = (int)(state->squares[state->current].x * GRID_SCALE) + ds->ox;
-        cy = (int)(state->squares[state->current].y * GRID_SCALE) + ds->oy;
+        cx = (int)(state->grid->squares[state->current].x * GRID_SCALE) + ds->ox;
+        cy = (int)(state->grid->squares[state->current].y * GRID_SCALE) + ds->oy;
 
         if (x == cx && y == cy)
             return NULL;               /* clicked in exact centre!  */
@@ -1141,7 +1162,7 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
          * x-axis, not anticlockwise as most mathematicians would
          * instinctively assume.
          */
-        if (state->squares[state->current].npoints == 4) {
+        if (state->grid->squares[state->current].npoints == 4) {
             /* Square. */
             if (fabs(angle) > 3*PI/4)
                 direction = LEFT;
@@ -1151,7 +1172,7 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
                 direction = DOWN;
             else
                 direction = UP;
-        } else if (state->squares[state->current].directions[UP] == 0) {
+        } else if (state->grid->squares[state->current].directions[UP] == 0) {
             /* Up-pointing triangle. */
             if (angle < -PI/2 || angle > 5*PI/6)
                 direction = LEFT;
@@ -1161,7 +1182,7 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
                 direction = RIGHT;
         } else {
             /* Down-pointing triangle. */
-            assert(state->squares[state->current].directions[DOWN] == 0);
+            assert(state->grid->squares[state->current].directions[DOWN] == 0);
             if (angle > PI/2 || angle < -5*PI/6)
                 direction = LEFT;
             else if (angle < -PI/6)
@@ -1172,7 +1193,7 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
     } else
         return NULL;
 
-    mask = state->squares[state->current].directions[direction];
+    mask = state->grid->squares[state->current].directions[direction];
     if (mask == 0)
         return NULL;
 
@@ -1181,7 +1202,7 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
      */
     if (direction > DOWN) {
 	for (i = LEFT; i <= DOWN; i++)
-	    if (state->squares[state->current].directions[i] == mask) {
+	    if (state->grid->squares[state->current].directions[i] == mask) {
 		direction = i;
 		break;
 	    }
@@ -1237,7 +1258,7 @@ static game_state *execute_move(game_state *from, char *move)
      */
     {
         int all_pkey[4];
-        align_poly(from->solid, &from->squares[from->current], all_pkey);
+        align_poly(from->solid, &from->grid->squares[from->current], all_pkey);
         pkey[0] = all_pkey[skey[0]];
         pkey[1] = all_pkey[skey[1]];
         /*
@@ -1297,19 +1318,19 @@ static game_state *execute_move(game_state *from, char *move)
             angle = -angle;            /* HACK */
 
         poly = transform_poly(from->solid,
-                              from->squares[from->current].flip,
+                              from->grid->squares[from->current].flip,
                               pkey[0], pkey[1], angle);
-        flip_poly(poly, from->squares[ret->current].flip);
-        success = align_poly(poly, &from->squares[ret->current], all_pkey);
+        flip_poly(poly, from->grid->squares[ret->current].flip);
+        success = align_poly(poly, &from->grid->squares[ret->current], all_pkey);
 
         if (!success) {
             sfree(poly);
             angle = -angle;
             poly = transform_poly(from->solid,
-                                  from->squares[from->current].flip,
+                                  from->grid->squares[from->current].flip,
                                   pkey[0], pkey[1], angle);
-            flip_poly(poly, from->squares[ret->current].flip);
-            success = align_poly(poly, &from->squares[ret->current], all_pkey);
+            flip_poly(poly, from->grid->squares[ret->current].flip);
+            success = align_poly(poly, &from->grid->squares[ret->current], all_pkey);
         }
 
         assert(success);
@@ -1375,8 +1396,8 @@ static game_state *execute_move(game_state *from, char *move)
     if (!ret->completed) {
         i = lowest_face(from->solid);
         j = ret->facecolours[i];
-        ret->facecolours[i] = ret->squares[ret->current].blue;
-        ret->squares[ret->current].blue = j;
+        ret->facecolours[i] = GET_SQUARE(ret, ret->current);
+        SET_SQUARE(ret, ret->current, j);
 
         /*
          * Detect game completion.
@@ -1399,7 +1420,7 @@ static game_state *execute_move(game_state *from, char *move)
         int pkey[4];
         int success;
 
-        success = align_poly(ret->solid, &ret->squares[ret->current], pkey);
+        success = align_poly(ret->solid, &ret->grid->squares[ret->current], pkey);
         assert(success);
 
         ret->dpkey[0] = pkey[0];
@@ -1561,25 +1582,25 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
     newstate = state;
     state = oldstate;
 
-    for (i = 0; i < state->nsquares; i++) {
+    for (i = 0; i < state->grid->nsquares; i++) {
         int coords[8];
 
-        for (j = 0; j < state->squares[i].npoints; j++) {
-            coords[2*j] = ((int)(state->squares[i].points[2*j] * GRID_SCALE)
+        for (j = 0; j < state->grid->squares[i].npoints; j++) {
+            coords[2*j] = ((int)(state->grid->squares[i].points[2*j] * GRID_SCALE)
 			   + ds->ox);
-            coords[2*j+1] = ((int)(state->squares[i].points[2*j+1]*GRID_SCALE)
+            coords[2*j+1] = ((int)(state->grid->squares[i].points[2*j+1]*GRID_SCALE)
 			     + ds->oy);
         }
 
-        draw_polygon(dr, coords, state->squares[i].npoints,
-                     state->squares[i].blue ? COL_BLUE : COL_BACKGROUND,
+        draw_polygon(dr, coords, state->grid->squares[i].npoints,
+                     GET_SQUARE(state, i) ? COL_BLUE : COL_BACKGROUND,
 		     COL_BORDER);
     }
 
     /*
      * Now compute and draw the polyhedron.
      */
-    poly = transform_poly(state->solid, state->squares[square].flip,
+    poly = transform_poly(state->solid, state->grid->squares[square].flip,
                           pkey[0], pkey[1], angle);
 
     /*
@@ -1595,7 +1616,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 
             if (i < 2) {
                 grid_coord =
-                    state->squares[square].points[gkey[j]*2+i];
+                    state->grid->squares[square].points[gkey[j]*2+i];
             } else {
                 grid_coord = 0.0;
             }
