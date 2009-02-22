@@ -929,10 +929,18 @@ with rectangular blocks instead of square ones, such as 2\by\.3 (a
 can select \q{jigsaw} mode, in which the sub-blocks are arbitrary
 shapes which differ between individual puzzles.
 
+Another available mode is \q{killer}. In this mode, clues are not
+given in the form of filled-in squares; instead, the grid is divided
+into \q{cages} by coloured lines, and for each cage the game tells
+you what the sum of all the digits in that cage should be. Also, no
+digit may appear more than once within a cage, even if the cage
+crosses the boundaries of existing regions.
+
 If you select a puzzle size which requires more than 9 digits, the
 additional digits will be letters of the alphabet. For example, if
 you select 3\by\.4 then the digits which go in your grid will be 1
-to 9, plus \cq{a}, \cq{b} and \cq{c}.
+to 9, plus \cq{a}, \cq{b} and \cq{c}. This cannot be selected for
+killer puzzles.
 
 I first saw this puzzle in \i{Nikoli} \k{nikoli-solo}, although it's
 also been popularised by various newspapers under the name
@@ -999,6 +1007,11 @@ to be the product of the numbers entered in the \q{Columns} and
 \q{Rows} boxes. There is no reason why you have to enter a number
 greater than 1 in both boxes; Jigsaw mode has no constraint on the
 grid size, and it can even be a prime number if you feel like it.
+
+If you tick the \q{Killer} checkbox, Solo will generate a set of
+of cages, which are randomly shaped and drawn in an outline of a
+different colour.  Each of these regions contains a smaller clue
+which shows the digit sum of all the squares in this region.
 
 You can also configure the type of symmetry shown in the generated
 puzzles. More symmetry makes the puzzles look prettier but may also
@@ -2417,8 +2430,8 @@ grid, through the \q{Type} menu.
 This software is \i{copyright} 2004-2008 Simon Tatham.
 
 Portions copyright Richard Boulton, James Harvey, Mike Pinna, Jonas
-K\u00F6{oe}lker, Dariusz Olszewski, Michael Schierl and Lambros
-Lambrou.
+K\u00F6{oe}lker, Dariusz Olszewski, Michael Schierl, Lambros
+Lambrou and Bernd Schmidt.
 
 Permission is hereby granted, free of charge, to any person
 obtaining a copy of this software and associated documentation files
