@@ -217,6 +217,7 @@ int print_rgb_grey_colour(drawing *dr, float r, float g, float b, float grey);
 int print_rgb_hatched_colour(drawing *dr, float r, float g, float b,
 			     int hatch);
 void print_line_width(drawing *dr, int width);
+void print_line_dotted(drawing *dr, int dotted);
 
 /*
  * midend.c
@@ -505,6 +506,7 @@ struct drawing_api {
     void (*end_page)(void *handle, int number);
     void (*end_doc)(void *handle);
     void (*line_width)(void *handle, float width);
+    void (*line_dotted)(void *handle, int dotted);
 };
 
 /*

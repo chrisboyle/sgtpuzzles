@@ -36,6 +36,7 @@ int print_rgb_grey_colour(drawing *dr, float r, float g, float b, float grey)
 int print_rgb_hatched_colour(drawing *dr, float r, float g, float b, int hatch)
 { return 0; }
 void print_line_width(drawing *dr, int width) {}
+void print_line_dotted(drawing *dr, int dotted) {}
 void midend_supersede_game_desc(midend *me, char *desc, char *privdesc) {}
 void status_bar(drawing *dr, char *text) {}
 

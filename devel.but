@@ -2143,6 +2143,22 @@ however, that it is a hint only: the central printing system may
 choose to vary line thicknesses at user request or due to printer
 capabilities.
 
+\S{print-line-width} \cw{print_line_dotted()}
+
+\c void print_line_dotted(drawing *dr, int dotted);
+
+This function is called to toggle the drawing of dotted lines during
+printing. It is not supported during drawing.
+
+The parameter \cq{dotted} is a boolean; \cw{TRUE} means that future
+lines drawn by \cw{draw_line()}, \cw{draw_circle} and
+\cw{draw_polygon()} will be dotted, and \cw{FALSE} means that they
+will be solid.
+
+Some front ends may impose restrictions on the width of dotted
+lines. Asking for a dotted line via this front end will override any
+line width request if the front end requires it.
+
 \H{drawing-frontend} The drawing API as implemented by the front end
 
 This section describes the drawing API in the function-pointer form

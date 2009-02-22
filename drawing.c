@@ -283,3 +283,8 @@ void print_line_width(drawing *dr, int width)
      */
     dr->api->line_width(dr->handle, (float)sqrt(dr->scale) * width);
 }
+
+void print_line_dotted(drawing *dr, int dotted)
+{
+    dr->api->line_dotted(dr->handle, dotted);
+}

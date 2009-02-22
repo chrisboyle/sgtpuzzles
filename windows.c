@@ -225,7 +225,7 @@ struct frontend {
     int printoffsetx, printoffsety;
     float printpixelscale;
     int fontstart;
-    int linewidth;
+    int linewidth, linedotted;
     drawing *dr;
     int xmin, ymin;
     float puzz_scale;
@@ -493,12 +493,16 @@ static void win_set_pen(frontend *fe, int colour, int thin)
 	float r, g, b;
 	int width = thin ? 0 : fe->linewidth;
 
+	if (fe->linedotted)
+	    width = 0;
+
 	print_get_colour(fe->dr, colour, fe->printcolour, &hatch, &r, &g, &b);
 	/*
 	 * Stroking in hatched colours is not permitted.
 	 */
 	assert(hatch < 0);
-	pen = CreatePen(PS_SOLID, width, RGB(r * 255, g * 255, b * 255));
+	pen = CreatePen(fe->linedotted ? PS_DOT : PS_SOLID,
+			width, RGB(r * 255, g * 255, b * 255));
     } else {
 	pen = fe->pens[colour];
     }
@@ -792,6 +796,17 @@ static void win_line_width(void *handle, float width)
     fe->linewidth = (int)(width * fe->printpixelscale);
 }
 
+static void win_line_dotted(void *handle, int dotted)
+{
+    frontend *fe = (frontend *)handle;
+
+    assert(fe->drawstatus != DRAWING);
+    if (fe->drawstatus == NOTHING)
+	return;
+
+    fe->linedotted = dotted;
+}
+
 static void win_begin_doc(void *handle, int pages)
 {
     frontend *fe = (frontend *)handle;
@@ -882,6 +897,7 @@ static void win_begin_puzzle(void *handle, float xm, float xc,
     fe->printpixelscale = scale;
 
     fe->linewidth = 1;
+    fe->linedotted = FALSE;
 }
 
 static void win_end_puzzle(void *handle)
@@ -963,6 +979,7 @@ const struct drawing_api win_drawing = {
     win_end_page,
     win_end_doc,
     win_line_width,
+    win_line_dotted,
 };
 
 void print(frontend *fe)

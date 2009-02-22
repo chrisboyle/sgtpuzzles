@@ -231,6 +231,17 @@ static void ps_line_width(void *handle, float width)
     ps_printf(ps, "%g setlinewidth\n", width);
 }
 
+static void ps_line_dotted(void *handle, int dotted)
+{
+    psdata *ps = (psdata *)handle;
+
+    if (dotted) {
+	ps_printf(ps, "[ currentlinewidth 3 mul ] 0 setdash\n");
+    } else {
+	ps_printf(ps, "[ ] 0 setdash\n");
+    }
+}
+
 static void ps_begin_doc(void *handle, int pages)
 {
     psdata *ps = (psdata *)handle;
@@ -321,6 +332,7 @@ static const struct drawing_api ps_drawing = {
     ps_end_page,
     ps_end_doc,
     ps_line_width,
+    ps_line_dotted,
 };
 
 psdata *ps_init(FILE *outfile, int colour)
