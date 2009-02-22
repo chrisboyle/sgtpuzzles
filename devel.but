@@ -2143,7 +2143,7 @@ however, that it is a hint only: the central printing system may
 choose to vary line thicknesses at user request or due to printer
 capabilities.
 
-\S{print-line-width} \cw{print_line_dotted()}
+\S{print-line-dotted} \cw{print_line_dotted()}
 
 \c void print_line_dotted(drawing *dr, int dotted);
 
