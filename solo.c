@@ -4723,8 +4723,35 @@ static void draw_number(drawing *dr, game_drawstate *ds, game_state *state,
 
     if (state->kblocks) {
 	int t = GRIDEXTRA * 3;
-	int kl = cx - 1, kt = cy - 1, kr = cx + cw, kb = cy + ch;
+	int kcx, kcy, kcw, kch;
+	int kl, kt, kr, kb;
 	int has_left = 0, has_right = 0, has_top = 0, has_bottom = 0;
+
+	/*
+	 * In non-jigsaw mode, the Killer cages are placed at a
+	 * fixed offset from the outer edge of the cell dividing
+	 * lines, so that they look right whether those lines are
+	 * thick or thin. In jigsaw mode, however, doing this will
+	 * sometimes cause the cage outlines in adjacent squares to
+	 * fail to match up with each other, so we must offset a
+	 * fixed amount from the _centre_ of the cell dividing
+	 * lines.
+	 */
+	if (state->blocks->r == 1) {
+	    kcx = tx;
+	    kcy = ty;
+	    kcw = tw;
+	    kch = th;
+	} else {
+	    kcx = cx;
+	    kcy = cy;
+	    kcw = cw;
+	    kch = ch;
+	}
+	kl = kcx - 1;
+	kt = kcy - 1;
+	kr = kcx + kcw;
+	kb = kcy + kch;
 
 	/*
 	 * First, draw the lines dividing this area from neighbouring
@@ -4759,20 +4786,20 @@ static void draw_number(drawing *dr, game_drawstate *ds, game_state *state,
 	if (x+1 < cr && y > 0 && !has_right && !has_top
 	    && state->kblocks->whichblock[y*cr+x] != state->kblocks->whichblock[(y-1)*cr+x+1])
 	{
-	    draw_line(dr, cx + cw - t, kt + t, cx + cw, kt + t, col_killer);
-	    draw_line(dr, cx + cw - t, kt, cx + cw - t, kt + t, col_killer);
+	    draw_line(dr, kcx + kcw - t, kt + t, kcx + kcw, kt + t, col_killer);
+	    draw_line(dr, kcx + kcw - t, kt, kcx + kcw - t, kt + t, col_killer);
 	}
 	if (x > 0 && y+1 < cr && !has_left && !has_bottom
 	    && state->kblocks->whichblock[y*cr+x] != state->kblocks->whichblock[(y+1)*cr+x-1])
 	{
-	    draw_line(dr, kl, cy + ch - t, kl + t, cy + ch - t, col_killer);
-	    draw_line(dr, kl + t, cy + ch - t, kl + t, cy + ch, col_killer);
+	    draw_line(dr, kl, kcy + kch - t, kl + t, kcy + kch - t, col_killer);
+	    draw_line(dr, kl + t, kcy + kch - t, kl + t, kcy + kch, col_killer);
 	}
 	if (x+1 < cr && y+1 < cr && !has_right && !has_bottom
 	    && state->kblocks->whichblock[y*cr+x] != state->kblocks->whichblock[(y+1)*cr+x+1])
 	{
-	    draw_line(dr, cx + cw - t, cy + ch - t, cx + cw - t, cy + ch, col_killer);
-	    draw_line(dr, cx + cw - t, cy + ch - t, cx + cw, cy + ch - t, col_killer);
+	    draw_line(dr, kcx + kcw - t, kcy + kch - t, kcx + kcw - t, kcy + kch, col_killer);
+	    draw_line(dr, kcx + kcw - t, kcy + kch - t, kcx + kcw, kcy + kch - t, col_killer);
 	}
 
     }
