@@ -546,6 +546,10 @@ static gint key_event(GtkWidget *widget, GdkEventKey *event, gpointer data)
         return TRUE;
 #endif
 
+    /* Handle mnemonics. */
+    if (gtk_window_activate_key(GTK_WINDOW(fe->window), event))
+        return TRUE;
+
     if (event->keyval == GDK_Up)
         keyval = shift | ctrl | CURSOR_UP;
     else if (event->keyval == GDK_KP_Up || event->keyval == GDK_KP_8)
@@ -1675,7 +1679,7 @@ static frontend *new_window(char *arg, int argtype, char **error)
     gtk_box_pack_start(vbox, menubar, FALSE, FALSE, 0);
     gtk_widget_show(menubar);
 
-    menuitem = gtk_menu_item_new_with_label("Game");
+    menuitem = gtk_menu_item_new_with_mnemonic("_Game");
     gtk_container_add(GTK_CONTAINER(menubar), menuitem);
     gtk_widget_show(menuitem);
 
@@ -1710,7 +1714,7 @@ static frontend *new_window(char *arg, int argtype, char **error)
         GtkWidget *submenu;
         int i;
 
-        menuitem = gtk_menu_item_new_with_label("Type");
+        menuitem = gtk_menu_item_new_with_mnemonic("_Type");
         gtk_container_add(GTK_CONTAINER(menubar), menuitem);
         gtk_widget_show(menuitem);
 
@@ -1790,7 +1794,7 @@ static frontend *new_window(char *arg, int argtype, char **error)
     add_menu_separator(GTK_CONTAINER(menu));
     add_menu_item_with_key(fe, GTK_CONTAINER(menu), "Exit", 'q');
 
-    menuitem = gtk_menu_item_new_with_label("Help");
+    menuitem = gtk_menu_item_new_with_mnemonic("_Help");
     gtk_container_add(GTK_CONTAINER(menubar), menuitem);
     gtk_widget_show(menuitem);
 
