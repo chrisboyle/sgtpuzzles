@@ -1,10 +1,12 @@
 # -*- makefile -*-
 
-dominosa : [X] GTK COMMON dominosa dominosa-icon|no-icon
+DOMINOSA_EXTRA = laydomino
 
-dominosa : [G] WINDOWS COMMON dominosa dominosa.res|noicon.res
+dominosa : [X] GTK COMMON dominosa DOMINOSA_EXTRA dominosa-icon|no-icon
 
-ALL += dominosa[COMBINED]
+dominosa : [G] WINDOWS COMMON dominosa DOMINOSA_EXTRA dominosa.res|noicon.res
+
+ALL += dominosa[COMBINED] DOMINOSA_EXTRA
 
 !begin gtk
 GAMES += dominosa

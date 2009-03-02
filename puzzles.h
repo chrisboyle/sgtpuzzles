@@ -339,6 +339,12 @@ void dsf_merge(int *dsf, int v1, int v2);
 void dsf_init(int *dsf, int len);
 
 /*
+ * laydomino.c
+ */
+int *domino_layout(int w, int h, random_state *rs);
+void domino_layout_prealloc(int w, int h, random_state *rs,
+                            int *grid, int *grid2, int *list);
+/*
  * version.c
  */
 extern char ver[];
