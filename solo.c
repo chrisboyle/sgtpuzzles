@@ -146,19 +146,19 @@ enum {
 #define MAX_2SUMS 5
 #define MAX_3SUMS 8
 #define MAX_4SUMS 12
-unsigned int sum_bits2[18][MAX_2SUMS];
-unsigned int sum_bits3[25][MAX_3SUMS];
-unsigned int sum_bits4[31][MAX_4SUMS];
+unsigned long sum_bits2[18][MAX_2SUMS];
+unsigned long sum_bits3[25][MAX_3SUMS];
+unsigned long sum_bits4[31][MAX_4SUMS];
 
-static int find_sum_bits(unsigned int *array, int idx, int value_left,
+static int find_sum_bits(unsigned long *array, int idx, int value_left,
 			 int addends_left, int min_addend,
-			 unsigned int bitmask_so_far)
+			 unsigned long bitmask_so_far)
 {
     int i;
     assert(addends_left >= 2);
 
     for (i = min_addend; i < value_left; i++) {
-	unsigned int new_bitmask = bitmask_so_far | (1 << i);
+	unsigned long new_bitmask = bitmask_so_far | (1L << i);
 	assert(bitmask_so_far != new_bitmask);
 
 	if (addends_left == 2) {
@@ -167,7 +167,7 @@ static int find_sum_bits(unsigned int *array, int idx, int value_left,
 		break;
 	    if (j > 9)
 		continue;
-	    array[idx++] = new_bitmask | (1 << j);
+	    array[idx++] = new_bitmask | (1L << j);
 	} else
 	    idx = find_sum_bits(array, idx, value_left - i,
 				addends_left - 1, i + 1,
@@ -1448,7 +1448,7 @@ static int solver_killer_sums(struct solver_usage *usage, int b,
     int cr = usage->cr;
     int i, ret, max_sums;
     int nsquares = cages->nr_squares[b];
-    unsigned int *sumbits, possible_addends;
+    unsigned long *sumbits, possible_addends;
 
     if (clue == 0) {
 	assert(nsquares == 0);
@@ -1514,18 +1514,18 @@ static int solver_killer_sums(struct solver_usage *usage, int b,
     possible_addends = 0;
     for (i = 0; i < max_sums; i++) {
 	int j;
-	unsigned int bits = sumbits[i];
+	unsigned long bits = sumbits[i];
 
 	if (bits == 0)
 	    break;
 
 	for (j = 0; j < nsquares; j++) {
 	    int n;
-	    unsigned int square_bits = bits;
+	    unsigned long square_bits = bits;
 	    int x = cages->blocks[b][j];
 	    for (n = 1; n <= cr; n++)
 		if (!cube2(x, n))
-		    square_bits &= ~(1 << n);
+		    square_bits &= ~(1L << n);
 	    if (square_bits == 0) {
 		break;
 	    }
