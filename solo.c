@@ -2933,8 +2933,8 @@ static int gridgen(int cr, struct block_structure *blocks,
 /*
  * Check whether a grid contains a valid complete puzzle.
  */
-static int check_valid(int cr, struct block_structure *blocks, int xtype,
-		       digit *grid)
+static int check_valid(int cr, struct block_structure *blocks,
+		       struct block_structure *kblocks, int xtype, digit *grid)
 {
     unsigned char *used;
     int x, y, i, j, n;
@@ -2985,6 +2985,25 @@ static int check_valid(int cr, struct block_structure *blocks, int xtype,
 		sfree(used);
 		return FALSE;
 	    }
+    }
+
+    /*
+     * Check that each Killer cage, if any, contains at most one of
+     * everything.
+     */
+    if (kblocks) {
+	for (i = 0; i < kblocks->nr_blocks; i++) {
+	    memset(used, FALSE, cr);
+	    for (j = 0; j < kblocks->nr_squares[i]; j++)
+		if (grid[kblocks->blocks[i][j]] > 0 &&
+		    grid[kblocks->blocks[i][j]] <= cr) {
+		    if (used[grid[kblocks->blocks[i][j]]-1]) {
+			sfree(used);
+			return FALSE;
+		    }
+		    used[grid[kblocks->blocks[i][j]]-1] = TRUE;
+		}
+	}
     }
 
     /*
@@ -3528,7 +3547,7 @@ static char *new_game_desc(game_params *params, random_state *rs,
 
         if (!gridgen(cr, blocks, kblocks, params->xtype, grid, rs, area*area))
 	    continue;
-        assert(check_valid(cr, blocks, params->xtype, grid));
+        assert(check_valid(cr, blocks, kblocks, params->xtype, grid));
 
 	/*
 	 * Save the solved grid in aux.
@@ -4409,7 +4428,7 @@ struct game_drawstate {
     unsigned char *pencil;
     unsigned char *hl;
     /* This is scratch space used within a single call to game_redraw. */
-    int *entered_items;
+    int nregions, *entered_items;
 };
 
 static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
@@ -4553,8 +4572,8 @@ static game_state *execute_move(game_state *from, char *move)
              * We've made a real change to the grid. Check to see
              * if the game has been completed.
              */
-            if (!ret->completed && check_valid(cr, ret->blocks, ret->xtype,
-					       ret->grid)) {
+            if (!ret->completed && check_valid(cr, ret->blocks, ret->kblocks,
+					       ret->xtype, ret->grid)) {
                 ret->completed = TRUE;
             }
         }
@@ -4643,7 +4662,15 @@ static game_drawstate *game_new_drawstate(drawing *dr, game_state *state)
     memset(ds->pencil, 0, cr*cr*cr);
     ds->hl = snewn(cr*cr, unsigned char);
     memset(ds->hl, 0, cr*cr);
-    ds->entered_items = snewn(cr*cr, int);
+    /*
+     * ds->entered_items needs one row of cr entries per entity in
+     * which digits may not be duplicated. That's one for each row,
+     * each column, each block, each diagonal, and each Killer cage.
+     */
+    ds->nregions = cr*3 + 2;
+    if (state->kblocks)
+	ds->nregions += state->kblocks->nr_blocks;
+    ds->entered_items = snewn(cr * ds->nregions, int);
     ds->tilesize = 0;                  /* not decided yet */
     return ds;
 }
@@ -4970,21 +4997,36 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
      * This array is used to keep track of rows, columns and boxes
      * which contain a number more than once.
      */
-    for (x = 0; x < cr * cr; x++)
+    for (x = 0; x < cr * ds->nregions; x++)
 	ds->entered_items[x] = 0;
     for (x = 0; x < cr; x++)
 	for (y = 0; y < cr; y++) {
 	    digit d = state->grid[y*cr+x];
 	    if (d) {
-		int box = state->blocks->whichblock[y*cr+x];
- 		ds->entered_items[x*cr+d-1] |= ((ds->entered_items[x*cr+d-1] & 1) << 1) | 1;
-		ds->entered_items[y*cr+d-1] |= ((ds->entered_items[y*cr+d-1] & 4) << 1) | 4;
-		ds->entered_items[box*cr+d-1] |= ((ds->entered_items[box*cr+d-1] & 16) << 1) | 16;
+		int box, kbox;
+
+		/* Rows */
+ 		ds->entered_items[x*cr+d-1]++;
+
+		/* Columns */
+		ds->entered_items[(y+cr)*cr+d-1]++;
+
+		/* Blocks */
+		box = state->blocks->whichblock[y*cr+x];
+		ds->entered_items[(box+2*cr)*cr+d-1]++;
+
+		/* Diagonals */
 		if (ds->xtype) {
 		    if (ondiag0(y*cr+x))
-			ds->entered_items[d-1] |= ((ds->entered_items[d-1] & 64) << 1) | 64;
+			ds->entered_items[(3*cr)*cr+d-1]++;
 		    if (ondiag1(y*cr+x))
-			ds->entered_items[cr+d-1] |= ((ds->entered_items[cr+d-1] & 64) << 1) | 64;
+			ds->entered_items[(3*cr+1)*cr+d-1]++;
+		}
+
+		/* Killer cages */
+		if (state->kblocks) {
+		    kbox = state->kblocks->whichblock[y*cr+x];
+		    ds->entered_items[(kbox+3*cr+2)*cr+d-1]++;
 		}
 	    }
 	}
@@ -5008,11 +5050,17 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 
 	    /* Mark obvious errors (ie, numbers which occur more than once
 	     * in a single row, column, or box). */
-	    if (d && ((ds->entered_items[x*cr+d-1] & 2) ||
-		      (ds->entered_items[y*cr+d-1] & 8) ||
-		      (ds->entered_items[state->blocks->whichblock[y*cr+x]*cr+d-1] & 32) ||
-		      (ds->xtype && ((ondiag0(y*cr+x) && (ds->entered_items[d-1] & 128)) ||
-				     (ondiag1(y*cr+x) && (ds->entered_items[cr+d-1] & 128))))))
+	    if (d && (ds->entered_items[x*cr+d-1] > 1 ||
+		      ds->entered_items[(y+cr)*cr+d-1] > 1 ||
+		      ds->entered_items[(state->blocks->whichblock[y*cr+x]
+					 +2*cr)*cr+d-1] > 1 ||
+		      (ds->xtype && ((ondiag0(y*cr+x) &&
+				      ds->entered_items[(3*cr)*cr+d-1] > 1) ||
+				     (ondiag1(y*cr+x) &&
+				      ds->entered_items[(3*cr+1)*cr+d-1]>1)))||
+		      (state->kblocks &&
+		       ds->entered_items[(state->kblocks->whichblock[y*cr+x]
+					  +3*cr+2)*cr+d-1] > 1)))
 		highlight |= 16;
 
 	    if (d && state->kblocks) {
