@@ -3340,32 +3340,70 @@ static void merge_blocks(struct block_structure *b, int n1, int n2)
     b->nr_blocks = n1;
 }
 
-static void merge_some_cages(struct block_structure *b, int cr, int area,
+static int merge_some_cages(struct block_structure *b, int cr, int area,
 			     digit *grid, random_state *rs)
 {
-    do {
-	/* Find two candidates for merging.  */
-	int i, n1, n2;
-	int x = 1 + random_bits(rs, 20) % (cr - 2);
-	int y = 1 + random_bits(rs, 20) % (cr - 2);
-	int xy = y*cr + x;
-	int off = random_bits(rs, 1) == 0 ? -1 : 1;
-	int other = xy;
+    /*
+     * Make a list of all the pairs of adjacent blocks.
+     */
+    int i, j, k;
+    struct pair {
+	int b1, b2;
+    } *pairs;
+    int npairs;
+
+    pairs = snewn(b->nr_blocks * b->nr_blocks, struct pair);
+    npairs = 0;
+
+    for (i = 0; i < b->nr_blocks; i++) {
+	for (j = i+1; j < b->nr_blocks; j++) {
+
+	    /*
+	     * Rule the merger out of consideration if it's
+	     * obviously not viable.
+	     */
+	    if (b->nr_squares[i] + b->nr_squares[j] > b->max_nr_squares)
+		continue;	       /* we couldn't merge these anyway */
+
+	    /*
+	     * See if these two blocks have a pair of squares
+	     * adjacent to each other.
+	     */
+	    for (k = 0; k < b->nr_squares[i]; k++) {
+		int xy = b->blocks[i][k];
+		int y = xy / cr, x = xy % cr;
+		if ((y   > 0  && b->whichblock[xy - cr] == j) ||
+		    (y+1 < cr && b->whichblock[xy + cr] == j) ||
+		    (x   > 0  && b->whichblock[xy -  1] == j) ||
+		    (x+1 < cr && b->whichblock[xy +  1] == j)) {
+		    /*
+		     * Yes! Add this pair to our list.
+		     */
+		    pairs[npairs].b1 = i;
+		    pairs[npairs].b2 = j;
+		    break;
+		}
+	    }
+	}
+    }
+
+    /*
+     * Now go through that list in random order until we find a pair
+     * of blocks we can merge.
+     */
+    while (npairs > 0) {
+	int n1, n2;
 	unsigned int digits_found;
 
-	if (random_bits(rs, 1) == 0)
-	    other = xy + off;
-	else
-	    other = xy + off * cr;
-	n1 = b->whichblock[xy];
-	n2 = b->whichblock[other];
-	if (n1 == n2)
-	    continue;
-
-	assert(n1 >= 0 && n2 >= 0 && n1 < b->nr_blocks && n2 < b->nr_blocks);
-
-	if (b->nr_squares[n1] + b->nr_squares[n2] > b->max_nr_squares)
-	    continue;
+	/*
+	 * Pick a random pair, and remove it from the list.
+	 */
+	i = random_upto(rs, npairs);
+	n1 = pairs[i].b1;
+	n2 = pairs[i].b2;
+	if (i != npairs-1)
+	    pairs[i] = pairs[npairs-1];
+	npairs--;
 
 	/* Guarantee that the merged cage would still be a region.  */
 	digits_found = 0;
@@ -3377,9 +3415,16 @@ static void merge_some_cages(struct block_structure *b, int cr, int area,
 	if (i != b->nr_squares[n2])
 	    continue;
 
+	/*
+	 * Got one! Do the merge.
+	 */
 	merge_blocks(b, n1, n2);
-	break;
-    } while (1);
+	sfree(pairs);
+	return TRUE;
+    }
+
+    sfree(pairs);
+    return FALSE;
 }
 
 static void compute_kclues(struct block_structure *cages, digit *kclues,
@@ -3593,7 +3638,8 @@ static char *new_game_desc(game_params *params, random_state *rs,
 			free_block_structure(good_cages);
 		    ntries = 0;
 		    good_cages = dup_block_structure(kblocks);
-		    merge_some_cages(kblocks, cr, area, grid2, rs);
+		    if (!merge_some_cages(kblocks, cr, area, grid2, rs))
+			break;
 		} else if (dlev.diff > dlev.maxdiff || dlev.kdiff > dlev.maxkdiff) {
 		    /*
 		     * Give up after too many tries and either use the good one we
@@ -3610,7 +3656,8 @@ static char *new_game_desc(game_params *params, random_state *rs,
 		    if (good_cages != NULL) {
 			free_block_structure(kblocks);
 			kblocks = dup_block_structure(good_cages);
-			merge_some_cages(kblocks, cr, area, grid2, rs);
+			if (!merge_some_cages(kblocks, cr, area, grid2, rs))
+			    break;
 		    } else {
 			if (last_cages == NULL)
 			    break;
@@ -3622,7 +3669,8 @@ static char *new_game_desc(game_params *params, random_state *rs,
 		    if (last_cages)
 			free_block_structure(last_cages);
 		    last_cages = dup_block_structure(kblocks);
-		    merge_some_cages(kblocks, cr, area, grid2, rs);
+		    if (!merge_some_cages(kblocks, cr, area, grid2, rs))
+			break;
 		}
 	    }
 	    if (last_cages)
