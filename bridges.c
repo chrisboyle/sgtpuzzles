@@ -2244,6 +2244,8 @@ static game_state *execute_move(game_state *state, char *move)
             if (sscanf(move, "%d,%d,%d,%d,%d%n",
                        &x1, &y1, &x2, &y2, &nl, &n) != 5)
                 goto badmove;
+            if (!INGRID(ret, x1, y1) || !INGRID(ret, x2, y2))
+                goto badmove;
             is1 = INDEX(ret, gridi, x1, y1);
             is2 = INDEX(ret, gridi, x2, y2);
             if (!is1 || !is2) goto badmove;
@@ -2253,6 +2255,8 @@ static game_state *execute_move(game_state *state, char *move)
             if (sscanf(move, "%d,%d,%d,%d%n",
                        &x1, &y1, &x2, &y2, &n) != 4)
                 goto badmove;
+            if (!INGRID(ret, x1, y1) || !INGRID(ret, x2, y2))
+                goto badmove;
             is1 = INDEX(ret, gridi, x1, y1);
             is2 = INDEX(ret, gridi, x2, y2);
             if (!is1 || !is2) goto badmove;
@@ -2260,6 +2264,8 @@ static game_state *execute_move(game_state *state, char *move)
         } else if (c == 'M') {
             if (sscanf(move, "%d,%d%n",
                        &x1, &y1, &n) != 2)
+                goto badmove;
+            if (!INGRID(ret, x1, y1))
                 goto badmove;
             is1 = INDEX(ret, gridi, x1, y1);
             if (!is1) goto badmove;

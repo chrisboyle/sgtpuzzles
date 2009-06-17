@@ -582,7 +582,6 @@ static struct block_structure *dup_block_structure(struct block_structure *b)
 	nb->blocks[i] = nb->blocks_data + i*nb->max_nr_squares;
 
 #ifdef STANDALONE_SOLVER
-    nb->blocknames = (char **)smalloc(b->c * b->r *(sizeof(char *)+80));
     memcpy(nb->blocknames, b->blocknames, b->c * b->r *(sizeof(char *)+80));
     {
 	int i;
@@ -1697,7 +1696,10 @@ static void solver(int cr, struct block_structure *blocks,
     usage->cube = snewn(cr*cr*cr, unsigned char);
     usage->grid = grid;		       /* write straight back to the input */
     if (kgrid) {
-	int nclues = kblocks->nr_blocks;
+	int nclues;
+
+        assert(kblocks);
+        nclues = kblocks->nr_blocks;
 	/*
 	 * Allow for expansion of the killer regions, the absolute
 	 * limit is obviously one region per square.
@@ -2589,6 +2591,8 @@ static void solver(int cr, struct block_structure *blocks,
 	       "one solution");
 #endif
 
+    sfree(usage->sq2region);
+    sfree(usage->regions);
     sfree(usage->cube);
     sfree(usage->row);
     sfree(usage->col);
@@ -2598,6 +2602,7 @@ static void solver(int cr, struct block_structure *blocks,
 	free_block_structure(usage->extra_cages);
 	sfree(usage->extra_clues);
     }
+    if (usage->kclues) sfree(usage->kclues);
     sfree(usage);
 
     solver_free_scratch(scratch);
@@ -3551,13 +3556,8 @@ static char *new_game_desc(game_params *params, random_state *rs,
 
     blocks = alloc_block_structure (c, r, area, cr, cr);
 
-    if (params->killer) {
-	kblocks = alloc_block_structure (c, r, area, cr, area);
-	kgrid = snewn(area, digit);
-    } else {
-	kblocks = NULL;
-	kgrid = NULL;
-    }
+    kblocks = NULL;
+    kgrid = (params->killer) ? snewn(area, digit) : NULL;
 
 #ifdef STANDALONE_SOLVER
     assert(!"This should never happen, so we don't need to create blocknames");
@@ -3587,6 +3587,7 @@ static char *new_game_desc(game_params *params, random_state *rs,
 	make_blocks_from_whichblock(blocks);
 
 	if (params->killer) {
+            if (kblocks) free_block_structure(kblocks);
 	    kblocks = gen_killer_cages(cr, rs, params->kdiff > DIFF_KSINGLE);
 	}
 
@@ -3753,6 +3754,11 @@ static char *new_game_desc(game_params *params, random_state *rs,
     desc = encode_puzzle_desc(params, grid, blocks, kgrid, kblocks);
 
     sfree(grid);
+    free_block_structure(blocks);
+    if (params->killer) {
+        free_block_structure(kblocks);
+        sfree(kgrid);
+    }
 
     return desc;
 }
@@ -4150,6 +4156,7 @@ static void free_game(game_state *state)
     sfree(state->immutable);
     sfree(state->pencil);
     sfree(state->grid);
+    if (state->kgrid) sfree(state->kgrid);
     sfree(state);
 }
 

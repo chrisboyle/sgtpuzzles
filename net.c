@@ -950,8 +950,10 @@ static void perturb(int w, int h, unsigned char *tiles, int wrapping,
     }
     sfree(perim2);
 
-    if (i == nperim)
+    if (i == nperim) {
+        sfree(perimeter);
 	return;			       /* nothing we can do! */
+    }
 
     /*
      * Now we've constructed a new link, we need to find the entire
@@ -2195,7 +2197,7 @@ static char *interpret_move(game_state *state, game_ui *ui,
 static game_state *execute_move(game_state *from, char *move)
 {
     game_state *ret;
-    int tx, ty, n, noanim, orig;
+    int tx = -1, ty = -1, n, noanim, orig;
 
     ret = dup_game(from);
 
@@ -2244,6 +2246,7 @@ static game_state *execute_move(game_state *from, char *move)
 	}
     }
     if (!noanim) {
+        if (tx == -1 || ty == -1) { free_game(ret); return NULL; }
 	ret->last_rotate_x = tx;
 	ret->last_rotate_y = ty;
     }

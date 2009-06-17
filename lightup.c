@@ -727,6 +727,7 @@ static void place_lights(game_state *state, random_state *rs)
         debug_state(state);
         assert(!"place_lights failed to resolve overlapping lights!");
     }
+    sfree(numindices);
 }
 
 /* Fills in all black squares with numbers of adjacent lights. */

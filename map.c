@@ -1373,6 +1373,7 @@ static int map_solver(struct solver_scratch *sc,
              */
         }
 
+        sfree(origcolouring);
         sfree(subcolouring);
         free_scratch(rsc);
 
@@ -1788,9 +1789,9 @@ static char *validate_desc(game_params *params, char *desc)
 
     map = snewn(2*wh, int);
     ret = parse_edge_list(params, &desc, map);
+    sfree(map);
     if (ret)
 	return ret;
-    sfree(map);
 
     if (*desc != ',')
 	return "Expected comma before clue list";

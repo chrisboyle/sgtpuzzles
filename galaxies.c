@@ -365,7 +365,7 @@ static char *game_text_format(game_state *state)
                 case s_tile:
                     if (sp->flags & F_TILE_ASSOC) {
                         space *dot = sp2dot(state, sp->x, sp->y);
-                        if (dot->flags & F_DOT)
+                        if (dot && dot->flags & F_DOT)
                             *p++ = (dot->flags & F_DOT_BLACK) ? 'B' : 'W';
                         else
                             *p++ = '?'; /* association with not-a-dot. */
@@ -1450,6 +1450,7 @@ generate:
 		state = copy2;
 	    }
 	}
+        sfree(posns);
     }
 #endif
 

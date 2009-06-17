@@ -1138,7 +1138,7 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
 
 static game_state *execute_move(game_state *state, char *move)
 {
-    game_state *new_state;
+    game_state *new_state = NULL;
     const int sz = state->shared->params.w * state->shared->params.h;
 
     if (*move == 's') {
@@ -1149,18 +1149,18 @@ static game_state *execute_move(game_state *state, char *move)
     } else {
         int value;
         char *endptr, *delim = strchr(move, '_');
-        if (!delim) return NULL;
+        if (!delim) goto err;
         value = strtol(delim+1, &endptr, 0);
-        if (*endptr || endptr == delim+1) return NULL;
-        if (value < 0 || value > 9) return NULL;
+        if (*endptr || endptr == delim+1) goto err;
+        if (value < 0 || value > 9) goto err;
         new_state = dup_game(state);
         while (*move) {
             const int i = strtol(move, &endptr, 0);
-            if (endptr == move) return NULL;
-            if (i < 0 || i >= sz) return NULL;
+            if (endptr == move) goto err;
+            if (i < 0 || i >= sz) goto err;
             new_state->board[i] = value;
             if (*endptr == '_') break;
-            if (*endptr != ',') return NULL;
+            if (*endptr != ',') goto err;
             move = endptr + 1;
         }
     }
@@ -1181,6 +1181,10 @@ static game_state *execute_move(game_state *state, char *move)
     }
 
     return new_state;
+
+err:
+    if (new_state) free_game(new_state);
+    return NULL;
 }
 
 /* ----------------------------------------------------------------------

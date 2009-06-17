@@ -569,7 +569,7 @@ static char *validate_desc(game_params *params, char *desc)
         if (*desc && isdigit((unsigned char)*desc)) {
             do {
                 p = desc;
-                while (desc && isdigit((unsigned char)*desc)) desc++;
+                while (*desc && isdigit((unsigned char)*desc)) desc++;
                 n = atoi(p);
                 rowspace -= n+1;
 
@@ -620,7 +620,7 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
         if (*desc && isdigit((unsigned char)*desc)) {
             do {
                 p = desc;
-                while (desc && isdigit((unsigned char)*desc)) desc++;
+                while (*desc && isdigit((unsigned char)*desc)) desc++;
                 state->rowdata[state->rowsize * i + state->rowlen[i]++] =
                     atoi(p);
             } while (*desc++ == '.');

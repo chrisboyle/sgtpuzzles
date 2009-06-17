@@ -947,6 +947,7 @@ int midend_num_presets(midend *me)
 		    me->ourgame->encode_params(preset, TRUE);
                 me->npresets++;
             }
+            sfree(e);
         }
     }
 
