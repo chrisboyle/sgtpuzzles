@@ -646,6 +646,11 @@ static gint motion_event(GtkWidget *widget, GdkEventMotion *event,
     if (!midend_process_key(fe->me, event->x - fe->ox,
                             event->y - fe->oy, button))
 	gtk_widget_destroy(fe->window);
+#if GTK_CHECK_VERSION(2,12,0)
+    gdk_event_request_motions(event);
+#else
+    gdk_window_get_pointer(widget->window, NULL, NULL, NULL);
+#endif
 
     return TRUE;
 }
@@ -1898,7 +1903,8 @@ static frontend *new_window(char *arg, int argtype, char **error)
     gtk_widget_add_events(GTK_WIDGET(fe->area),
                           GDK_BUTTON_PRESS_MASK |
                           GDK_BUTTON_RELEASE_MASK |
-			  GDK_BUTTON_MOTION_MASK);
+			  GDK_BUTTON_MOTION_MASK |
+			  GDK_POINTER_MOTION_HINT_MASK);
 
     if (n_xpm_icons) {
 	gtk_widget_realize(fe->window);
