@@ -102,6 +102,7 @@ enum {
     COL_HIGHLIGHT,
     COL_MISTAKE,
     COL_SATISFIED,
+    COL_FAINT,
     NCOLOURS
 };
 
@@ -843,6 +844,14 @@ static float *game_colours(frontend *fe, int *ncolours)
     ret[COL_SATISFIED * 3 + 0] = 0.0F;
     ret[COL_SATISFIED * 3 + 1] = 0.0F;
     ret[COL_SATISFIED * 3 + 2] = 0.0F;
+
+    /* We want the faint lines to be a bit darker than the background.
+     * Except if the background is pretty dark already; then it ought to be a
+     * bit lighter.  Oy vey.
+     */
+    ret[COL_FAINT * 3 + 0] = ret[COL_BACKGROUND * 3 + 0] * 0.9F;
+    ret[COL_FAINT * 3 + 1] = ret[COL_BACKGROUND * 3 + 1] * 0.9F;
+    ret[COL_FAINT * 3 + 2] = ret[COL_BACKGROUND * 3 + 2] * 0.9F;
 
     *ncolours = NCOLOURS;
     return ret;
@@ -3467,7 +3476,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
         else if (state->lines[i] == LINE_UNKNOWN)
             line_colour = COL_LINEUNKNOWN;
         else if (state->lines[i] == LINE_NO)
-            line_colour = COL_BACKGROUND;
+            line_colour = COL_FAINT;
         else if (ds->flashing)
             line_colour = COL_HIGHLIGHT;
         else
@@ -3482,7 +3491,16 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
         ymin = min(y1, y2);
         ymax = max(y1, y2);
 
-        if (line_colour != COL_BACKGROUND) {
+	if (line_colour == COL_FAINT) {
+            static int draw_faint_lines = -1;
+            if (draw_faint_lines < 0) {
+		char *env = getenv("LOOPY_FAINT_LINES");
+		draw_faint_lines = (!env || (env[0] == 'y' ||
+					     env[0] == 'Y'));
+            }
+	    if (draw_faint_lines)
+		draw_line(dr, x1, y1, x2, y2, line_colour);
+	} else {
             /* (dx, dy) points roughly from (x1, y1) to (x2, y2).
              * The line is then "fattened" in a (roughly) perpendicular
              * direction to create a thin rectangle. */
