@@ -134,9 +134,10 @@ struct frontend {
 #ifdef OLD_FILESEL
     char *filesel_name;
 #endif
-    int npresets;
-    GtkWidget **preset_bullets;
-    GtkWidget *preset_custom_bullet;
+    GSList *preset_radio;
+    int n_preset_menu_items;
+    int preset_threaded;
+    GtkWidget *preset_custom;
     GtkWidget *copy_menu_item;
 };
 
@@ -1126,15 +1127,6 @@ static void get_size(frontend *fe, int *px, int *py)
 	gdk_window_resize(GTK_WIDGET(win)->window, x, y)
 #endif
 
-static void update_menuitem_bullet(GtkWidget *label, int visible)
-{
-    if (visible) {
-	gtk_label_set_text(GTK_LABEL(label), "\xE2\x80\xA2");
-    } else {
-	gtk_label_set_text(GTK_LABEL(label), "");
-    }
-}
-
 /*
  * Called when any other code in this file has changed the
  * selected game parameters.
@@ -1142,18 +1134,30 @@ static void update_menuitem_bullet(GtkWidget *label, int visible)
 static void changed_preset(frontend *fe)
 {
     int n = midend_which_preset(fe->me);
-    int i;
 
-    /*
-     * Update the tick mark in the Type menu.
-     */
-    if (fe->preset_bullets) {
-	for (i = 0; i < fe->npresets; i++)
-	    update_menuitem_bullet(fe->preset_bullets[i], n == i);
+    fe->preset_threaded = TRUE;
+    if (n < 0 && fe->preset_custom) {
+	gtk_check_menu_item_set_active(
+	    GTK_CHECK_MENU_ITEM(fe->preset_custom),
+	    TRUE);
+    } else {
+	GSList *gs = fe->preset_radio;
+	int i = fe->n_preset_menu_items - 1 - n;
+	if (fe->preset_custom)
+	    gs = gs->next;
+	while (i && gs) {
+	    i--;
+	    gs = gs->next;
+	}
+	if (gs) {
+	    gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(gs->data),
+					   TRUE);
+	} else for (gs = fe->preset_radio; gs; gs = gs->next) {
+	    gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(gs->data),
+					   FALSE);
+	}
     }
-    if (fe->preset_custom_bullet) {
-	update_menuitem_bullet(fe->preset_custom_bullet, n < 0);
-    }
+    fe->preset_threaded = FALSE;
 
     /*
      * Update the greying on the Copy menu option.
@@ -1191,6 +1195,10 @@ static void menu_preset_event(GtkMenuItem *menuitem, gpointer data)
     game_params *params =
         (game_params *)gtk_object_get_data(GTK_OBJECT(menuitem), "user-data");
 
+    if (fe->preset_threaded ||
+	(GTK_IS_CHECK_MENU_ITEM(menuitem) &&
+	 !gtk_check_menu_item_get_active(GTK_CHECK_MENU_ITEM(menuitem))))
+	return;
     midend_set_params(fe->me, params);
     midend_new_game(fe->me);
     changed_preset(fe);
@@ -1501,6 +1509,11 @@ static void menu_config_event(GtkMenuItem *menuitem, gpointer data)
     int which = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(menuitem),
 						    "user-data"));
 
+    if (fe->preset_threaded ||
+	(GTK_IS_CHECK_MENU_ITEM(menuitem) &&
+	 !gtk_check_menu_item_get_active(GTK_CHECK_MENU_ITEM(menuitem))))
+	return;
+    changed_preset(fe); 		/* Put the old preset back! */
     if (!get_config(fe, which))
 	return;
 
@@ -1562,34 +1575,6 @@ static void add_menu_separator(GtkContainer *cont)
 }
 
 enum { ARG_EITHER, ARG_SAVE, ARG_ID }; /* for argtype */
-
-static GtkWidget *make_preset_menuitem(GtkWidget **bulletlabel,
-				       const char *name)
-{
-    GtkWidget *hbox, *lab1, *lab2, *menuitem;
-    GtkRequisition req;
-
-    hbox = gtk_hbox_new(FALSE, 0);
-    gtk_widget_show(hbox);
-    lab1 = gtk_label_new("\xE2\x80\xA2 ");
-    gtk_widget_show(lab1);
-    gtk_box_pack_start(GTK_BOX(hbox), lab1, FALSE, FALSE, 0);
-    gtk_misc_set_alignment(GTK_MISC(lab1), 0.0, 0.0);
-    lab2 = gtk_label_new(name);
-    gtk_widget_show(lab2);
-    gtk_box_pack_start(GTK_BOX(hbox), lab2, TRUE, TRUE, 0);
-    gtk_misc_set_alignment(GTK_MISC(lab2), 0.0, 0.0);
-
-    gtk_widget_size_request(lab1, &req);
-    gtk_widget_set_usize(lab1, req.width, -1);
-    gtk_label_set_text(GTK_LABEL(lab1), "");
-
-    menuitem = gtk_menu_item_new();
-    gtk_container_add(GTK_CONTAINER(menuitem), hbox);
-
-    *bulletlabel = lab1;
-    return menuitem;
-}
 
 static frontend *new_window(char *arg, int argtype, char **error)
 {
@@ -1715,6 +1700,10 @@ static frontend *new_window(char *arg, int argtype, char **error)
 		       GTK_SIGNAL_FUNC(menu_config_event), fe);
     gtk_widget_show(menuitem);
 
+    fe->preset_radio = NULL;
+    fe->preset_custom = NULL;
+    fe->n_preset_menu_items = 0;
+    fe->preset_threaded = FALSE;
     if ((n = midend_num_presets(fe->me)) > 0 || thegame.can_configure) {
         GtkWidget *submenu;
         int i;
@@ -1726,17 +1715,17 @@ static frontend *new_window(char *arg, int argtype, char **error)
         submenu = gtk_menu_new();
         gtk_menu_item_set_submenu(GTK_MENU_ITEM(menuitem), submenu);
 
-	fe->npresets = n;
-	fe->preset_bullets = snewn(n, GtkWidget *);
-
         for (i = 0; i < n; i++) {
             char *name;
             game_params *params;
 
             midend_fetch_preset(fe->me, i, &name, &params);
 
-	    menuitem = make_preset_menuitem(&fe->preset_bullets[i], name);
-
+	    menuitem =
+		gtk_radio_menu_item_new_with_label(fe->preset_radio, name);
+	    fe->preset_radio =
+		gtk_radio_menu_item_group(GTK_RADIO_MENU_ITEM(menuitem));
+	    fe->n_preset_menu_items++;
             gtk_container_add(GTK_CONTAINER(submenu), menuitem);
             gtk_object_set_data(GTK_OBJECT(menuitem), "user-data", params);
             gtk_signal_connect(GTK_OBJECT(menuitem), "activate",
@@ -1745,22 +1734,19 @@ static frontend *new_window(char *arg, int argtype, char **error)
         }
 
 	if (thegame.can_configure) {
-	    menuitem = make_preset_menuitem(&fe->preset_custom_bullet,
-					    "Custom...");
-
+	    menuitem = fe->preset_custom =
+		gtk_radio_menu_item_new_with_label(fe->preset_radio,
+						   "Custom...");
+	    fe->preset_radio =
+		gtk_radio_menu_item_group(GTK_RADIO_MENU_ITEM(menuitem));
             gtk_container_add(GTK_CONTAINER(submenu), menuitem);
             gtk_object_set_data(GTK_OBJECT(menuitem), "user-data",
 				GPOINTER_TO_INT(CFG_SETTINGS));
             gtk_signal_connect(GTK_OBJECT(menuitem), "activate",
                                GTK_SIGNAL_FUNC(menu_config_event), fe);
             gtk_widget_show(menuitem);
-	} else
-	    fe->preset_custom_bullet = NULL;
+	}
 
-    } else {
-	fe->npresets = 0;
-	fe->preset_bullets = NULL;
-	fe->preset_custom_bullet = NULL;
     }
 
     add_menu_separator(GTK_CONTAINER(menu));
