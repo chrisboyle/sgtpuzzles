@@ -969,7 +969,7 @@ static int get_config(frontend *fe, int which)
 	    w = gtk_label_new(i->name);
 	    gtk_misc_set_alignment(GTK_MISC(w), 0.0, 0.5);
 	    gtk_table_attach(GTK_TABLE(table), w, 0, 1, y, y+1,
-			     GTK_EXPAND | GTK_SHRINK | GTK_FILL,
+			     GTK_SHRINK | GTK_FILL,
 			     GTK_EXPAND | GTK_SHRINK | GTK_FILL,
 			     3, 3);
 	    gtk_widget_show(w);
@@ -1011,8 +1011,8 @@ static int get_config(frontend *fe, int which)
 	    w = gtk_label_new(i->name);
 	    gtk_misc_set_alignment(GTK_MISC(w), 0.0, 0.5);
 	    gtk_table_attach(GTK_TABLE(table), w, 0, 1, y, y+1,
-			     GTK_EXPAND | GTK_SHRINK | GTK_FILL,
-			     GTK_EXPAND | GTK_SHRINK | GTK_FILL,
+			     GTK_SHRINK | GTK_FILL,
+			     GTK_EXPAND | GTK_SHRINK | GTK_FILL ,
 			     3, 3);
 	    gtk_widget_show(w);
 
