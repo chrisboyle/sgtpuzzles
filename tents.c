@@ -1954,7 +1954,8 @@ static void draw_tile(drawing *dr, game_drawstate *ds,
     if (cur) {
       int coff = TILESIZE/8;
       draw_rect_outline(dr, tx + coff, ty + coff,
-                        TILESIZE - coff*2, TILESIZE - coff*2, COL_GRID);
+                        TILESIZE - coff*2 + 1, TILESIZE - coff*2 + 1,
+			COL_GRID);
     }
 
     unclip(dr);
