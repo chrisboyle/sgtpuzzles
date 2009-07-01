@@ -1513,6 +1513,7 @@ static void add_full_clues(game_state *state, random_state *rs)
     face_scores = snewn(num_faces, struct face_score);
     for (i = 0; i < num_faces; i++) {
         face_scores[i].random = random_bits(rs, 31);
+        face_scores[i].black_score = face_scores[i].white_score = 0;
     }
     
     /* Colour a random, finite face white.  The infinite face is implicitly
@@ -3232,6 +3233,8 @@ static game_state *execute_move(game_state *state, char *move)
 
     while (*move) {
         i = atoi(move);
+        if (i < 0 || i >= newstate->game_grid->num_edges)
+            goto fail;
         move += strspn(move, "1234567890");
         switch (*(move++)) {
 	  case 'y':

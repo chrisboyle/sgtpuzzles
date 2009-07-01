@@ -1500,7 +1500,7 @@ static void draw_grid(drawing *dr, game_drawstate *ds, game_state *state,
 
             if (flashy || !shading) {
                 /* clear all background flags */
-            } else if (ui->sel && ui->sel[y*w+x]) {
+            } else if (ui && ui->sel && ui->sel[y*w+x]) {
                 flags |= HIGH_BG;
             } else if (v) {
                 int size = dsf_size(ds->dsf_scratch, y*w+x);
@@ -1509,7 +1509,7 @@ static void draw_grid(drawing *dr, game_drawstate *ds, game_state *state,
                 else if (size > v)
                     flags |= ERROR_BG;
             }
-            if (ui->cur_visible && x == ui->cur_x && y == ui->cur_y)
+            if (ui && ui->cur_visible && x == ui->cur_x && y == ui->cur_y)
               flags |= CURSOR_SQ;
 
             /*

@@ -1045,6 +1045,7 @@ static game_drawstate *game_new_drawstate(drawing *dr, game_state *state)
     ds->visible = snewn(ds->w * ds->h, unsigned char);
     ds->tilesize = 0;                  /* not decided yet */
     memset(ds->visible, 255, ds->w * ds->h);
+    ds->cur_x = ds->cur_y = 0;
 
     return ds;
 }

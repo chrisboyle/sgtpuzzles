@@ -996,6 +996,7 @@ static void free_game(game_state *state)
 	sfree(state->grid->squares);
 	sfree(state->grid);
     }
+    sfree(state->bluemask);
     sfree(state->facecolours);
     sfree(state);
 }
