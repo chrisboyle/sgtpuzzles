@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: sgt-puzzles\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2009-06-23 17:25+0200\n"
-"PO-Revision-Date: 2009-06-28 13:20+0200\n"
+"PO-Revision-Date: 2009-08-16 20:27+0100\n"
 "Last-Translator: Helge Kreutzmann <debian@helgefjell.de>\n"
 "Language-Team: de <debian-l10n-german@lists.debian.org>\n"
 "MIME-Version: 1.0\n"
@@ -1077,7 +1077,7 @@ msgstr ""
 
 #: puzzles.but:479
 msgid "\\e{Jumble tiles}: \\q{J} key"
-msgstr "\\e{Kacheln durcheinanderwürfeln}: \\{J}-Taste"
+msgstr "\\e{Kacheln durcheinanderwürfeln}: \\q{J}-Taste"
 
 #: puzzles.but:482
 msgid "This key turns all tiles that are not locked to random orientations."
@@ -1538,11 +1538,7 @@ msgid ""
 "Twiddle is a tile-rearrangement puzzle, visually similar to Sixteen (see \\k"
 "{sixteen}): you are given a grid of square tiles, each containing a number, "
 "and your aim is to arrange the numbers into ascending order."
-msgstr ""
-"Twiddle ist ein Platten-Neuanordnungspuzzle, visuell ähnlich zu Sixteen "
-"(siehe \\k{Sixteen}). Sie erhalten ein Gitter von quadratischen Kacheln die "
-"jede eine Zahl enthalten und Ihr Ziel besteht darin, diese in aufsteigender "
-"Reihenfolge anzuordnen."
+msgstr "Twiddle ist ein Platten-Neuanordnungspuzzle, visuell ähnlich zu Sixteen (siehe \\k{sixteen}). Sie erhalten ein Gitter von quadratischen Kacheln die jede eine Zahl enthalten und Ihr Ziel besteht darin, diese in aufsteigender Reihenfolge anzuordnen."
 
 #: puzzles.but:692
 msgid ""
@@ -1752,12 +1748,7 @@ msgid ""
 "an entire rectangle (or line) on the grid in one go (removing any existing "
 "edges within that rectangle). Right-clicking and dragging will allow you to "
 "erase the contents of a rectangle without affecting its edges."
-msgstr ""
-"Klicken Sie links auf eine Ecke, um Sie ein- oder auszuschalten oder klicken "
-"Sie links und ziehen Sie, um das gesamte Rechteck (oder eine Linie) auf dem "
-"Gitter in einem Durchlauf zu zeichnen (und dabei alle existierenden Ecken "
-"innerhalb des Rechtecks zu entfernen). Durch rechtsklick und ziehen können "
-"Sie den Inhalt eines Rechtecks löschen, ohne seine Ecken zu beeinflussen." 
+msgstr "Klicken Sie links auf eine Ecke, um Sie ein- oder auszuschalten oder klicken Sie links und ziehen Sie, um das gesamte Rechteck (oder eine Linie) auf dem Gitter in einem Durchlauf zu zeichnen (und dabei alle existierenden Ecken innerhalb des Rechtecks zu entfernen). Durch rechtsklick und ziehen können Sie den Inhalt eines Rechtecks löschen, ohne seine Ecken zu beeinflussen."
 
 #: puzzles.but:788
 msgid ""
@@ -1878,19 +1869,14 @@ msgstr ""
 msgid ""
 "As in Sixteen, \\I{controls, for Netslide}control is with the mouse or "
 "cursor keys. See \\k{sixteen-controls}."
-msgstr ""
-"Wie in Sixteen, \\I{Steuerung, für Netslide}erfolgt die Steuerung mit der "
-"Maus oder den Pfeiltasten. Siehe \\{Sixteen-Steuerung}."
+msgstr "Wie in Sixteen, \\I{Steuerung, für Netslide}erfolgt die Steuerung mit der Maus oder den Pfeiltasten. Siehe \\k{sixteen-controls}."
 
 #: puzzles.but:853
 msgid ""
 "\\I{parameters, for Netslide}The available game parameters have similar "
 "meanings to those in Net (see \\k{net-params}) and Sixteen (see \\k{sixteen-"
 "params})."
-msgstr ""
-"\\{Parameter, für Netslide}Die verfügbaren Spielparameter haben ähnliche "
-"Bedeutungen wie bei Net (siehe \\k{net-params}) und Sixteen (siehe "
-"\\k{sixteen-params})."
+msgstr "\\I{Parameter, für Netslide}Die verfügbaren Spielparameter haben ähnliche Bedeutungen wie bei Net (siehe \\k{net-params}) und Sixteen (siehe \\k{sixteen-params})."
 
 #: puzzles.but:855
 msgid "Netslide was contributed to this collection by Richard Boulton."
@@ -2395,14 +2381,7 @@ msgid ""
 "\\e{not} flagged will be uncovered. So once you think you know the location "
 "of all the mines around a square, you can use this function as a shortcut to "
 "avoid having to click on each of the remaining squares one by one."
-msgstr ""
-"Falls Sie in ein aufgedecktes Quadrat linksklicken wird die Umgebung des "
-"Quadrats \\q{bereinigt}. Dies bedeutet: Falls um das Quadrat genausoviele "
-"Flaggen markiert wurden wie Minen vorhanden sein sollten, dann werden alle "
-"benachbarten abgedeckten Quadrate \\e{ohne) Flagge aufgedeckt. Sie können "
-"diese Funktion daher benutzen, wenn Sie glauben, dass Sie den Ort aller "
-"Minden rund um das Quadrat kennen, um nicht alle verbliebenen Quadrate "
-"einzeln durch Klicken aufdecken zu müssen."
+msgstr "Falls Sie in ein aufgedecktes Quadrat linksklicken wird die Umgebung des Quadrats \\q{bereinigt}. Dies bedeutet: Falls um das Quadrat genausoviele Flaggen markiert wurden wie Minen vorhanden sein sollten, dann werden alle benachbarten abgedeckten Quadrate \\e{ohne} Flagge aufgedeckt. Sie können diese Funktion daher benutzen, wenn Sie glauben, dass Sie den Ort aller Minden rund um das Quadrat kennen, um nicht alle verbliebenen Quadrate einzeln durch Klicken aufdecken zu müssen."
 
 #: puzzles.but:1091
 msgid ""
@@ -2787,7 +2766,7 @@ msgstr ""
 
 #: puzzles.but:1280
 msgid "\\i{Guess}"
-msgstr "\\i{Guess"
+msgstr "\\i{Guess}"
 
 #: puzzles.but:1282
 msgid "\\cfg{winhelp-topic}{games.guess}"
