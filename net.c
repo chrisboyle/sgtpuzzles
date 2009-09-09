@@ -1652,7 +1652,7 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
             if (!(barrier(state, x, 0) & U) ||
                 !(barrier(state, x, state->height-1) & D))
                 state->wrapping = TRUE;
-        for (y = 0; y < state->width; y++)
+        for (y = 0; y < state->height; y++)
             if (!(barrier(state, 0, y) & L) ||
                 !(barrier(state, state->width-1, y) & R))
                 state->wrapping = TRUE;
