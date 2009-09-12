@@ -4,18 +4,6 @@
  * 
  * TODO:
  * 
- *  - error highlighting?
- *     * highlighting adjacent tents is easy
- *     * highlighting violated numeric clues is almost as easy
- *       (might want to pay attention to NONTENTs here)
- *     * but how in hell do we highlight a failure of maxflow
- *       during completion checking?
- *        + well, the _obvious_ approach is to use maxflow's own
- *          error report: it will provide, via the `cut' parameter,
- *          a set of trees which have too few tents between them.
- *          It's unclear that this will be particularly obvious to
- *          a user, however. Is there any other way?
- * 
  *  - it might be nice to make setter-provided tent/nontent clues
  *    inviolable?
  *     * on the other hand, this would introduce considerable extra
@@ -269,6 +257,8 @@ enum {
     COL_TREETRUNK,
     COL_TREELEAF,
     COL_TENT,
+    COL_ERROR,
+    COL_ERRTEXT,
     NCOLOURS
 };
 
@@ -1452,7 +1442,7 @@ struct game_drawstate {
     int tilesize;
     int started;
     game_params p;
-    char *drawn;
+    int *drawn, *numbersdrawn;
     int cx, cy;         /* last-drawn cursor pos, or (-1,-1) if absent. */
 };
 
@@ -1881,6 +1871,14 @@ static float *game_colours(frontend *fe, int *ncolours)
     ret[COL_TENT * 3 + 1] = 0.7F;
     ret[COL_TENT * 3 + 2] = 0.0F;
 
+    ret[COL_ERROR * 3 + 0] = 1.0F;
+    ret[COL_ERROR * 3 + 1] = 0.0F;
+    ret[COL_ERROR * 3 + 2] = 0.0F;
+
+    ret[COL_ERRTEXT * 3 + 0] = 1.0F;
+    ret[COL_ERRTEXT * 3 + 1] = 1.0F;
+    ret[COL_ERRTEXT * 3 + 2] = 1.0F;
+
     *ncolours = NCOLOURS;
     return ret;
 }
@@ -1889,12 +1887,17 @@ static game_drawstate *game_new_drawstate(drawing *dr, game_state *state)
 {
     int w = state->p.w, h = state->p.h;
     struct game_drawstate *ds = snew(struct game_drawstate);
+    int i;
 
     ds->tilesize = 0;
     ds->started = FALSE;
     ds->p = state->p;                  /* structure copy */
-    ds->drawn = snewn(w*h, char);
-    memset(ds->drawn, MAGIC, w*h);
+    ds->drawn = snewn(w*h, int);
+    for (i = 0; i < w*h; i++)
+	ds->drawn[i] = MAGIC;
+    ds->numbersdrawn = snewn(w+h, int);
+    for (i = 0; i < w+h; i++)
+	ds->numbersdrawn[i] = 2;
     ds->cx = ds->cy = -1;
 
     return ds;
@@ -1903,20 +1906,233 @@ static game_drawstate *game_new_drawstate(drawing *dr, game_state *state)
 static void game_free_drawstate(drawing *dr, game_drawstate *ds)
 {
     sfree(ds->drawn);
+    sfree(ds->numbersdrawn);
     sfree(ds);
+}
+
+enum {
+    ERR_ADJ_TOPLEFT = 4,
+    ERR_ADJ_TOP,
+    ERR_ADJ_TOPRIGHT,
+    ERR_ADJ_LEFT,
+    ERR_ADJ_RIGHT,
+    ERR_ADJ_BOTLEFT,
+    ERR_ADJ_BOT,
+    ERR_ADJ_BOTRIGHT,
+    ERR_OVERCOMMITTED
+};
+
+static int *find_errors(game_state *state)
+{
+    int w = state->p.w, h = state->p.h;
+    int *ret = snewn(w*h + w + h, int);
+    int *tmp = snewn(w*h*2, int), *dsf = tmp + w*h;
+    int x, y;
+
+    /*
+     * ret[0] through to ret[w*h-1] give error markers for the grid
+     * squares. After that, ret[w*h] to ret[w*h+w-1] give error
+     * markers for the column numbers, and ret[w*h+w] to
+     * ret[w*h+w+h-1] for the row numbers.
+     */
+
+    /*
+     * Spot tent-adjacency violations.
+     */
+    for (x = 0; x < w*h; x++)
+	ret[x] = 0;
+    for (y = 0; y < h; y++) {
+	for (x = 0; x < w; x++) {
+	    if (y+1 < h && x+1 < w &&
+		((state->grid[y*w+x] == TENT &&
+		  state->grid[(y+1)*w+(x+1)] == TENT) ||
+		 (state->grid[(y+1)*w+x] == TENT &&
+		  state->grid[y*w+(x+1)] == TENT))) {
+		ret[y*w+x] |= 1 << ERR_ADJ_BOTRIGHT;
+		ret[(y+1)*w+x] |= 1 << ERR_ADJ_TOPRIGHT;
+		ret[y*w+(x+1)] |= 1 << ERR_ADJ_BOTLEFT;
+		ret[(y+1)*w+(x+1)] |= 1 << ERR_ADJ_TOPLEFT;
+	    }
+	    if (y+1 < h &&
+		state->grid[y*w+x] == TENT &&
+		state->grid[(y+1)*w+x] == TENT) {
+		ret[y*w+x] |= 1 << ERR_ADJ_BOT;
+		ret[(y+1)*w+x] |= 1 << ERR_ADJ_TOP;
+	    }
+	    if (x+1 < w &&
+		state->grid[y*w+x] == TENT &&
+		state->grid[y*w+(x+1)] == TENT) {
+		ret[y*w+x] |= 1 << ERR_ADJ_RIGHT;
+		ret[y*w+(x+1)] |= 1 << ERR_ADJ_LEFT;
+	    }
+	}
+    }
+
+    /*
+     * Spot numeric clue violations.
+     */
+    for (x = 0; x < w; x++) {
+	int tents = 0, maybetents = 0;
+	for (y = 0; y < h; y++) {
+	    if (state->grid[y*w+x] == TENT)
+		tents++;
+	    else if (state->grid[y*w+x] == BLANK)
+		maybetents++;
+	}
+	ret[w*h+x] = (tents > state->numbers->numbers[x] ||
+		      tents + maybetents < state->numbers->numbers[x]);
+    }
+    for (y = 0; y < h; y++) {
+	int tents = 0, maybetents = 0;
+	for (x = 0; x < w; x++) {
+	    if (state->grid[y*w+x] == TENT)
+		tents++;
+	    else if (state->grid[y*w+x] == BLANK)
+		maybetents++;
+	}
+	ret[w*h+w+y] = (tents > state->numbers->numbers[w+y] ||
+			tents + maybetents < state->numbers->numbers[w+y]);
+    }
+
+    /*
+     * Identify groups of tents with too few trees between them,
+     * which we do by constructing the connected components of the
+     * bipartite adjacency graph between tents and trees
+     * ('bipartite' in the sense that we deliberately ignore
+     * adjacency between tents or between trees), and highlighting
+     * all the tents in any component which has a smaller tree
+     * count.
+     */
+    dsf_init(dsf, w*h);
+    /* Construct the equivalence classes. */
+    for (y = 0; y < h; y++) {
+	for (x = 0; x < w-1; x++) {
+	    if ((state->grid[y*w+x]==TREE && state->grid[y*w+x+1]==TENT) ||
+		(state->grid[y*w+x]==TENT && state->grid[y*w+x+1]==TREE))
+		dsf_merge(dsf, y*w+x, y*w+x+1);
+	}
+    }
+    for (y = 0; y < h-1; y++) {
+	for (x = 0; x < w; x++) {
+	    if ((state->grid[y*w+x]==TREE && state->grid[(y+1)*w+x]==TENT) ||
+		(state->grid[y*w+x]==TENT && state->grid[(y+1)*w+x]==TREE))
+		dsf_merge(dsf, y*w+x, (y+1)*w+x);
+	}
+    }
+    /* Count up the tent/tree difference in each one. */
+    for (x = 0; x < w*h; x++)
+	tmp[x] = 0;
+    for (x = 0; x < w*h; x++) {
+	y = dsf_canonify(dsf, x);
+	if (state->grid[x] == TREE)
+	    tmp[y]++;
+	else if (state->grid[x] == TENT)
+	    tmp[y]--;
+    }
+    /* And highlight any tent belonging to an equivalence class with
+     * a score less than zero. */
+    for (x = 0; x < w*h; x++) {
+	y = dsf_canonify(dsf, x);
+	if (state->grid[x] == TENT && tmp[y] < 0)
+	    ret[x] |= 1 << ERR_OVERCOMMITTED;
+    }
+
+    /*
+     * Identify groups of trees with too few tents between them.
+     * This is done similarly, except that we now count BLANK as
+     * equivalent to TENT, i.e. we only highlight such trees when
+     * the user hasn't even left _room_ to provide tents for them
+     * all. (Otherwise, we'd highlight all trees red right at the
+     * start of the game, before the user had done anything wrong!)
+     */
+#define TENT(x) ((x)==TENT || (x)==BLANK)
+    dsf_init(dsf, w*h);
+    /* Construct the equivalence classes. */
+    for (y = 0; y < h; y++) {
+	for (x = 0; x < w-1; x++) {
+	    if ((state->grid[y*w+x]==TREE && TENT(state->grid[y*w+x+1])) ||
+		(TENT(state->grid[y*w+x]) && state->grid[y*w+x+1]==TREE))
+		dsf_merge(dsf, y*w+x, y*w+x+1);
+	}
+    }
+    for (y = 0; y < h-1; y++) {
+	for (x = 0; x < w; x++) {
+	    if ((state->grid[y*w+x]==TREE && TENT(state->grid[(y+1)*w+x])) ||
+		(TENT(state->grid[y*w+x]) && state->grid[(y+1)*w+x]==TREE))
+		dsf_merge(dsf, y*w+x, (y+1)*w+x);
+	}
+    }
+    /* Count up the tent/tree difference in each one. */
+    for (x = 0; x < w*h; x++)
+	tmp[x] = 0;
+    for (x = 0; x < w*h; x++) {
+	y = dsf_canonify(dsf, x);
+	if (state->grid[x] == TREE)
+	    tmp[y]++;
+	else if (TENT(state->grid[x]))
+	    tmp[y]--;
+    }
+    /* And highlight any tree belonging to an equivalence class with
+     * a score more than zero. */
+    for (x = 0; x < w*h; x++) {
+	y = dsf_canonify(dsf, x);
+	if (state->grid[x] == TREE && tmp[y] > 0)
+	    ret[x] |= 1 << ERR_OVERCOMMITTED;
+    }
+#undef TENT
+
+    sfree(tmp);
+    return ret;
+}
+
+static void draw_err_adj(drawing *dr, game_drawstate *ds, int x, int y)
+{
+    int coords[8];
+    int yext, xext;
+
+    /*
+     * Draw a diamond.
+     */
+    coords[0] = x - TILESIZE*2/5;
+    coords[1] = y;
+    coords[2] = x;
+    coords[3] = y - TILESIZE*2/5;
+    coords[4] = x + TILESIZE*2/5;
+    coords[5] = y;
+    coords[6] = x;
+    coords[7] = y + TILESIZE*2/5;
+    draw_polygon(dr, coords, 4, COL_ERROR, COL_GRID);
+
+    /*
+     * Draw an exclamation mark in the diamond. This turns out to
+     * look unpleasantly off-centre if done via draw_text, so I do
+     * it by hand on the basis that exclamation marks aren't that
+     * difficult to draw...
+     */
+    xext = TILESIZE/16;
+    yext = TILESIZE*2/5 - (xext*2+2);
+    draw_rect(dr, x-xext, y-yext, xext*2+1, yext*2+1 - (xext*3),
+	      COL_ERRTEXT);
+    draw_rect(dr, x-xext, y+yext-xext*2+1, xext*2+1, xext*2, COL_ERRTEXT);
 }
 
 static void draw_tile(drawing *dr, game_drawstate *ds,
                       int x, int y, int v, int cur, int printing)
 {
+    int err;
     int tx = COORD(x), ty = COORD(y);
     int cx = tx + TILESIZE/2, cy = ty + TILESIZE/2;
 
-    clip(dr, tx+1, ty+1, TILESIZE-1, TILESIZE-1);
+    err = v & ~15;
+    v &= 15;
 
-    if (!printing)
+    clip(dr, tx, ty, TILESIZE, TILESIZE);
+
+    if (!printing) {
+	draw_rect(dr, tx, ty, TILESIZE, TILESIZE, COL_GRID);
 	draw_rect(dr, tx+1, ty+1, TILESIZE-1, TILESIZE-1,
 		  (v == BLANK ? COL_BACKGROUND : COL_GRASS));
+    }
 
     if (v == TREE) {
 	int i;
@@ -1924,10 +2140,12 @@ static void draw_tile(drawing *dr, game_drawstate *ds,
 	(printing ? draw_rect_outline : draw_rect)
 	(dr, cx-TILESIZE/15, ty+TILESIZE*3/10,
 	 2*(TILESIZE/15)+1, (TILESIZE*9/10 - TILESIZE*3/10),
-	 COL_TREETRUNK);
+	 (err & (1<<ERR_OVERCOMMITTED) ? COL_ERROR : COL_TREETRUNK));
 
 	for (i = 0; i < (printing ? 2 : 1); i++) {
-	    int col = (i == 1 ? COL_BACKGROUND : COL_TREELEAF);
+	    int col = (i == 1 ? COL_BACKGROUND :
+		       (err & (1<<ERR_OVERCOMMITTED) ? COL_ERROR : 
+			COL_TREELEAF));
 	    int sub = i * (TILESIZE/32);
 	    draw_circle(dr, cx, ty+TILESIZE*4/10, TILESIZE/4 - sub,
 			col, col);
@@ -1942,14 +2160,33 @@ static void draw_tile(drawing *dr, game_drawstate *ds,
 	}
     } else if (v == TENT) {
         int coords[6];
+	int col;
         coords[0] = cx - TILESIZE/3;
         coords[1] = cy + TILESIZE/3;
         coords[2] = cx + TILESIZE/3;
         coords[3] = cy + TILESIZE/3;
         coords[4] = cx;
         coords[5] = cy - TILESIZE/3;
-        draw_polygon(dr, coords, 3, (printing ? -1 : COL_TENT), COL_TENT);
+	col = (err & (1<<ERR_OVERCOMMITTED) ? COL_ERROR : COL_TENT);
+        draw_polygon(dr, coords, 3, (printing ? -1 : col), col);
     }
+
+    if (err & (1 << ERR_ADJ_TOPLEFT))
+	draw_err_adj(dr, ds, tx, ty);
+    if (err & (1 << ERR_ADJ_TOP))
+	draw_err_adj(dr, ds, tx+TILESIZE/2, ty);
+    if (err & (1 << ERR_ADJ_TOPRIGHT))
+	draw_err_adj(dr, ds, tx+TILESIZE, ty);
+    if (err & (1 << ERR_ADJ_LEFT))
+	draw_err_adj(dr, ds, tx, ty+TILESIZE/2);
+    if (err & (1 << ERR_ADJ_RIGHT))
+	draw_err_adj(dr, ds, tx+TILESIZE, ty+TILESIZE/2);
+    if (err & (1 << ERR_ADJ_BOTLEFT))
+	draw_err_adj(dr, ds, tx, ty+TILESIZE);
+    if (err & (1 << ERR_ADJ_BOT))
+	draw_err_adj(dr, ds, tx+TILESIZE/2, ty+TILESIZE);
+    if (err & (1 << ERR_ADJ_BOTRIGHT))
+	draw_err_adj(dr, ds, tx+TILESIZE, ty+TILESIZE);
 
     if (cur) {
       int coff = TILESIZE/8;
@@ -1973,6 +2210,7 @@ static void int_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
     int x, y, flashing;
     int cx = -1, cy = -1;
     int cmoved = 0;
+    int *errors;
 
     if (ui) {
       if (ui->cdisp) { cx = ui->cx; cy = ui->cy; }
@@ -1998,24 +2236,6 @@ static void int_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
             draw_line(dr, COORD(0), COORD(y), COORD(w), COORD(y), COL_GRID);
         for (x = 0; x <= w; x++)
             draw_line(dr, COORD(x), COORD(0), COORD(x), COORD(h), COL_GRID);
-
-        /*
-         * Draw the numbers.
-         */
-        for (y = 0; y < h; y++) {
-            char buf[80];
-            sprintf(buf, "%d", state->numbers->numbers[y+w]);
-            draw_text(dr, COORD(w+1), COORD(y) + TILESIZE/2,
-                      FONT_VARIABLE, TILESIZE/2, ALIGN_HRIGHT|ALIGN_VCENTRE,
-                      COL_GRID, buf);
-        }
-        for (x = 0; x < w; x++) {
-            char buf[80];
-            sprintf(buf, "%d", state->numbers->numbers[x]);
-            draw_text(dr, COORD(x) + TILESIZE/2, COORD(h+1),
-                      FONT_VARIABLE, TILESIZE/2, ALIGN_HCENTRE|ALIGN_VNORMAL,
-                      COL_GRID, buf);
-        }
     }
 
     if (flashtime > 0)
@@ -2024,9 +2244,14 @@ static void int_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 	flashing = FALSE;
 
     /*
+     * Find errors.
+     */
+    errors = find_errors(state);
+
+    /*
      * Draw the grid.
      */
-    for (y = 0; y < h; y++)
+    for (y = 0; y < h; y++) {
         for (x = 0; x < w; x++) {
             int v = state->grid[y*w+x];
             int credraw = 0;
@@ -2048,13 +2273,53 @@ static void int_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
                   (x == ds->cx && y == ds->cy)) credraw = 1;
             }
 
+	    v |= errors[y*w+x];
+
             if (printing || ds->drawn[y*w+x] != v || credraw) {
                 draw_tile(dr, ds, x, y, v, (x == cx && y == cy), printing);
                 if (!printing)
 		    ds->drawn[y*w+x] = v;
             }
         }
-    if (cmoved) { ds->cx = cx; ds->cy = cy; }
+    }
+
+    /*
+     * Draw (or redraw, if their error-highlighted state has
+     * changed) the numbers.
+     */
+    for (x = 0; x < w; x++) {
+	if (ds->numbersdrawn[x] != errors[w*h+x]) {
+	    char buf[80];
+	    draw_rect(dr, COORD(x), COORD(h)+1, TILESIZE, BRBORDER-1,
+		      COL_BACKGROUND);
+	    sprintf(buf, "%d", state->numbers->numbers[x]);
+	    draw_text(dr, COORD(x) + TILESIZE/2, COORD(h+1),
+		      FONT_VARIABLE, TILESIZE/2, ALIGN_HCENTRE|ALIGN_VNORMAL,
+		      (errors[w*h+x] ? COL_ERROR : COL_GRID), buf);
+	    draw_update(dr, COORD(x), COORD(h)+1, TILESIZE, BRBORDER-1);
+	    ds->numbersdrawn[x] = errors[w*h+x];
+	}
+    }
+    for (y = 0; y < h; y++) {
+	if (ds->numbersdrawn[w+y] != errors[w*h+w+y]) {
+	    char buf[80];
+	    draw_rect(dr, COORD(w)+1, COORD(y), BRBORDER-1, TILESIZE,
+		      COL_BACKGROUND);
+	    sprintf(buf, "%d", state->numbers->numbers[w+y]);
+	    draw_text(dr, COORD(w+1), COORD(y) + TILESIZE/2,
+		      FONT_VARIABLE, TILESIZE/2, ALIGN_HRIGHT|ALIGN_VCENTRE,
+		      (errors[w*h+w+y] ? COL_ERROR : COL_GRID), buf);
+	    draw_update(dr, COORD(w)+1, COORD(y), BRBORDER-1, TILESIZE);
+	    ds->numbersdrawn[w+y] = errors[w*h+w+y];
+	}
+    }
+
+    if (cmoved) {
+	ds->cx = cx;
+	ds->cy = cy;
+    }
+
+    sfree(errors);
 }
 
 static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,

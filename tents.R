@@ -1,6 +1,6 @@
 # -*- makefile -*-
 
-TENTS_EXTRA = maxflow
+TENTS_EXTRA = maxflow dsf
 
 tents    : [X] GTK COMMON tents TENTS_EXTRA tents-icon|no-icon
 
