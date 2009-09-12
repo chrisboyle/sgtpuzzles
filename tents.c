@@ -1922,7 +1922,7 @@ enum {
     ERR_OVERCOMMITTED
 };
 
-static int *find_errors(game_state *state)
+static int *find_errors(game_state *state, char *grid)
 {
     int w = state->p.w, h = state->p.h;
     int *ret = snewn(w*h + w + h, int);
@@ -1944,24 +1944,24 @@ static int *find_errors(game_state *state)
     for (y = 0; y < h; y++) {
 	for (x = 0; x < w; x++) {
 	    if (y+1 < h && x+1 < w &&
-		((state->grid[y*w+x] == TENT &&
-		  state->grid[(y+1)*w+(x+1)] == TENT) ||
-		 (state->grid[(y+1)*w+x] == TENT &&
-		  state->grid[y*w+(x+1)] == TENT))) {
+		((grid[y*w+x] == TENT &&
+		  grid[(y+1)*w+(x+1)] == TENT) ||
+		 (grid[(y+1)*w+x] == TENT &&
+		  grid[y*w+(x+1)] == TENT))) {
 		ret[y*w+x] |= 1 << ERR_ADJ_BOTRIGHT;
 		ret[(y+1)*w+x] |= 1 << ERR_ADJ_TOPRIGHT;
 		ret[y*w+(x+1)] |= 1 << ERR_ADJ_BOTLEFT;
 		ret[(y+1)*w+(x+1)] |= 1 << ERR_ADJ_TOPLEFT;
 	    }
 	    if (y+1 < h &&
-		state->grid[y*w+x] == TENT &&
-		state->grid[(y+1)*w+x] == TENT) {
+		grid[y*w+x] == TENT &&
+		grid[(y+1)*w+x] == TENT) {
 		ret[y*w+x] |= 1 << ERR_ADJ_BOT;
 		ret[(y+1)*w+x] |= 1 << ERR_ADJ_TOP;
 	    }
 	    if (x+1 < w &&
-		state->grid[y*w+x] == TENT &&
-		state->grid[y*w+(x+1)] == TENT) {
+		grid[y*w+x] == TENT &&
+		grid[y*w+(x+1)] == TENT) {
 		ret[y*w+x] |= 1 << ERR_ADJ_RIGHT;
 		ret[y*w+(x+1)] |= 1 << ERR_ADJ_LEFT;
 	    }
@@ -1974,9 +1974,9 @@ static int *find_errors(game_state *state)
     for (x = 0; x < w; x++) {
 	int tents = 0, maybetents = 0;
 	for (y = 0; y < h; y++) {
-	    if (state->grid[y*w+x] == TENT)
+	    if (grid[y*w+x] == TENT)
 		tents++;
-	    else if (state->grid[y*w+x] == BLANK)
+	    else if (grid[y*w+x] == BLANK)
 		maybetents++;
 	}
 	ret[w*h+x] = (tents > state->numbers->numbers[x] ||
@@ -1985,9 +1985,9 @@ static int *find_errors(game_state *state)
     for (y = 0; y < h; y++) {
 	int tents = 0, maybetents = 0;
 	for (x = 0; x < w; x++) {
-	    if (state->grid[y*w+x] == TENT)
+	    if (grid[y*w+x] == TENT)
 		tents++;
-	    else if (state->grid[y*w+x] == BLANK)
+	    else if (grid[y*w+x] == BLANK)
 		maybetents++;
 	}
 	ret[w*h+w+y] = (tents > state->numbers->numbers[w+y] ||
@@ -2007,15 +2007,15 @@ static int *find_errors(game_state *state)
     /* Construct the equivalence classes. */
     for (y = 0; y < h; y++) {
 	for (x = 0; x < w-1; x++) {
-	    if ((state->grid[y*w+x]==TREE && state->grid[y*w+x+1]==TENT) ||
-		(state->grid[y*w+x]==TENT && state->grid[y*w+x+1]==TREE))
+	    if ((grid[y*w+x] == TREE && grid[y*w+x+1] == TENT) ||
+		(grid[y*w+x] == TENT && grid[y*w+x+1] == TREE))
 		dsf_merge(dsf, y*w+x, y*w+x+1);
 	}
     }
     for (y = 0; y < h-1; y++) {
 	for (x = 0; x < w; x++) {
-	    if ((state->grid[y*w+x]==TREE && state->grid[(y+1)*w+x]==TENT) ||
-		(state->grid[y*w+x]==TENT && state->grid[(y+1)*w+x]==TREE))
+	    if ((grid[y*w+x] == TREE && grid[(y+1)*w+x] == TENT) ||
+		(grid[y*w+x] == TENT && grid[(y+1)*w+x] == TREE))
 		dsf_merge(dsf, y*w+x, (y+1)*w+x);
 	}
     }
@@ -2024,16 +2024,16 @@ static int *find_errors(game_state *state)
 	tmp[x] = 0;
     for (x = 0; x < w*h; x++) {
 	y = dsf_canonify(dsf, x);
-	if (state->grid[x] == TREE)
+	if (grid[x] == TREE)
 	    tmp[y]++;
-	else if (state->grid[x] == TENT)
+	else if (grid[x] == TENT)
 	    tmp[y]--;
     }
     /* And highlight any tent belonging to an equivalence class with
      * a score less than zero. */
     for (x = 0; x < w*h; x++) {
 	y = dsf_canonify(dsf, x);
-	if (state->grid[x] == TENT && tmp[y] < 0)
+	if (grid[x] == TENT && tmp[y] < 0)
 	    ret[x] |= 1 << ERR_OVERCOMMITTED;
     }
 
@@ -2050,15 +2050,15 @@ static int *find_errors(game_state *state)
     /* Construct the equivalence classes. */
     for (y = 0; y < h; y++) {
 	for (x = 0; x < w-1; x++) {
-	    if ((state->grid[y*w+x]==TREE && TENT(state->grid[y*w+x+1])) ||
-		(TENT(state->grid[y*w+x]) && state->grid[y*w+x+1]==TREE))
+	    if ((grid[y*w+x] == TREE && TENT(grid[y*w+x+1])) ||
+		(TENT(grid[y*w+x]) && grid[y*w+x+1] == TREE))
 		dsf_merge(dsf, y*w+x, y*w+x+1);
 	}
     }
     for (y = 0; y < h-1; y++) {
 	for (x = 0; x < w; x++) {
-	    if ((state->grid[y*w+x]==TREE && TENT(state->grid[(y+1)*w+x])) ||
-		(TENT(state->grid[y*w+x]) && state->grid[(y+1)*w+x]==TREE))
+	    if ((grid[y*w+x] == TREE && TENT(grid[(y+1)*w+x])) ||
+		(TENT(grid[y*w+x]) && grid[(y+1)*w+x] == TREE))
 		dsf_merge(dsf, y*w+x, (y+1)*w+x);
 	}
     }
@@ -2067,16 +2067,16 @@ static int *find_errors(game_state *state)
 	tmp[x] = 0;
     for (x = 0; x < w*h; x++) {
 	y = dsf_canonify(dsf, x);
-	if (state->grid[x] == TREE)
+	if (grid[x] == TREE)
 	    tmp[y]++;
-	else if (TENT(state->grid[x]))
+	else if (TENT(grid[x]))
 	    tmp[y]--;
     }
     /* And highlight any tree belonging to an equivalence class with
      * a score more than zero. */
     for (x = 0; x < w*h; x++) {
 	y = dsf_canonify(dsf, x);
-	if (state->grid[x] == TREE && tmp[y] > 0)
+	if (grid[x] == TREE && tmp[y] > 0)
 	    ret[x] |= 1 << ERR_OVERCOMMITTED;
     }
 #undef TENT
@@ -2210,6 +2210,7 @@ static void int_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
     int x, y, flashing;
     int cx = -1, cy = -1;
     int cmoved = 0;
+    char *tmpgrid;
     int *errors;
 
     if (ui) {
@@ -2244,9 +2245,22 @@ static void int_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 	flashing = FALSE;
 
     /*
-     * Find errors.
+     * Find errors. For this we use _part_ of the information from a
+     * currently active drag: we transform dsx,dsy but not anything
+     * else. (This seems to strike a good compromise between having
+     * the error highlights respond instantly to single clicks, but
+     * not give constant feedback during a right-drag.)
      */
-    errors = find_errors(state);
+    if (ui && ui->drag_button >= 0) {
+	tmpgrid = snewn(w*h, char);
+	memcpy(tmpgrid, state->grid, w*h);
+	tmpgrid[ui->dsy * w + ui->dsx] =
+	    drag_xform(ui, ui->dsx, ui->dsy, tmpgrid[ui->dsy * w + ui->dsx]);
+	errors = find_errors(state, tmpgrid);
+	sfree(tmpgrid);
+    } else {
+	errors = find_errors(state, state->grid);
+    }
 
     /*
      * Draw the grid.
