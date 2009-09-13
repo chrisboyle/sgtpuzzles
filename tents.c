@@ -3,7 +3,38 @@
  * some confusing conditions.
  * 
  * TODO:
+ *
+ *  - my technique for highlighting errors in the tent/tree matching
+ *    is not perfect. It currently works by finding the connected
+ *    components of the bipartite adjacency graph between tents and
+ *    trees, and highlighting red all the tents in such a component
+ *    if they outnumber the trees (the red meaning "these tents have
+ *    too few trees between them") and vice versa if the trees
+ *    outnumber the tents (but this time considering BLANKs as
+ *    potential tents as yet unplaced, to avoid highlighting
+ *    'errors' from the word go before the player has actually made
+ *    any mistake). However, something more subtle can go wrong
+ *    within a component: consider, for instance, the setup
  * 
+ *            T
+ *          tTtT
+ *           t
+ * 
+ *    in which there is one connected component containing equal
+ *    numbers of trees and tents, but nonetheless there is no
+ *    perfect matching that can link the two sensibly. This will be
+ *    rejected by the rigorous solution checker, but the error
+ *    highlighter won't currently spot it.
+ * 
+ *    Well, the _matching_ error highlighter won't spot it, anyway.
+ *    In that diagram, there are two pairs of diagonally adjacent
+ *    tents, which will be flagged as erroneous because that's much
+ *    easier. So if I could prove that _all_ such setups require
+ *    diagonally adjacent tents, I could safely ignore this problem.
+ *    If not, however, then a proper treatment will require running
+ *    the maxflow matcher over each component once I've identified
+ *    them.
+ *
  *  - it might be nice to make setter-provided tent/nontent clues
  *    inviolable?
  *     * on the other hand, this would introduce considerable extra
@@ -259,6 +290,7 @@ enum {
     COL_TENT,
     COL_ERROR,
     COL_ERRTEXT,
+    COL_ERRTRUNK,
     NCOLOURS
 };
 
@@ -1879,6 +1911,10 @@ static float *game_colours(frontend *fe, int *ncolours)
     ret[COL_ERRTEXT * 3 + 1] = 1.0F;
     ret[COL_ERRTEXT * 3 + 2] = 1.0F;
 
+    ret[COL_ERRTRUNK * 3 + 0] = 0.6F;
+    ret[COL_ERRTRUNK * 3 + 1] = 0.0F;
+    ret[COL_ERRTRUNK * 3 + 2] = 0.0F;
+
     *ncolours = NCOLOURS;
     return ret;
 }
@@ -2140,7 +2176,7 @@ static void draw_tile(drawing *dr, game_drawstate *ds,
 	(printing ? draw_rect_outline : draw_rect)
 	(dr, cx-TILESIZE/15, ty+TILESIZE*3/10,
 	 2*(TILESIZE/15)+1, (TILESIZE*9/10 - TILESIZE*3/10),
-	 (err & (1<<ERR_OVERCOMMITTED) ? COL_ERROR : COL_TREETRUNK));
+	 (err & (1<<ERR_OVERCOMMITTED) ? COL_ERRTRUNK : COL_TREETRUNK));
 
 	for (i = 0; i < (printing ? 2 : 1); i++) {
 	    int col = (i == 1 ? COL_BACKGROUND :
