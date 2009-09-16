@@ -4,37 +4,6 @@
  * 
  * TODO:
  *
- *  - my technique for highlighting errors in the tent/tree matching
- *    is not perfect. It currently works by finding the connected
- *    components of the bipartite adjacency graph between tents and
- *    trees, and highlighting red all the tents in such a component
- *    if they outnumber the trees (the red meaning "these tents have
- *    too few trees between them") and vice versa if the trees
- *    outnumber the tents (but this time considering BLANKs as
- *    potential tents as yet unplaced, to avoid highlighting
- *    'errors' from the word go before the player has actually made
- *    any mistake). However, something more subtle can go wrong
- *    within a component: consider, for instance, the setup
- * 
- *            T
- *          tTtT
- *           t
- * 
- *    in which there is one connected component containing equal
- *    numbers of trees and tents, but nonetheless there is no
- *    perfect matching that can link the two sensibly. This will be
- *    rejected by the rigorous solution checker, but the error
- *    highlighter won't currently spot it.
- * 
- *    Well, the _matching_ error highlighter won't spot it, anyway.
- *    In that diagram, there are two pairs of diagonally adjacent
- *    tents, which will be flagged as erroneous because that's much
- *    easier. So if I could prove that _all_ such setups require
- *    diagonally adjacent tents, I could safely ignore this problem.
- *    If not, however, then a proper treatment will require running
- *    the maxflow matcher over each component once I've identified
- *    them.
- *
  *  - it might be nice to make setter-provided tent/nontent clues
  *    inviolable?
  *     * on the other hand, this would introduce considerable extra
@@ -1964,6 +1933,144 @@ static int *find_errors(game_state *state, char *grid)
     int *ret = snewn(w*h + w + h, int);
     int *tmp = snewn(w*h*2, int), *dsf = tmp + w*h;
     int x, y;
+
+    /*
+     * This function goes through a grid and works out where to
+     * highlight play errors in red. The aim is that it should
+     * produce at least one error highlight for any complete grid
+     * (or complete piece of grid) violating a puzzle constraint, so
+     * that a grid containing no BLANK squares is either a win or is
+     * marked up in some way that indicates why not.
+     *
+     * So it's easy enough to highlight errors in the numeric clues
+     * - just light up any row or column number which is not
+     * fulfilled - and it's just as easy to highlight adjacent
+     * tents. The difficult bit is highlighting failures in the
+     * tent/tree matching criterion.
+     *
+     * A natural approach would seem to be to apply the maxflow
+     * algorithm to find the tent/tree matching; if this fails, it
+     * must necessarily terminate with a min-cut which can be
+     * reinterpreted as some set of trees which have too few tents
+     * between them (or vice versa). However, it's bad for
+     * localising errors, because it's not easy to make the
+     * algorithm narrow down to the _smallest_ such set of trees: if
+     * trees A and B have only one tent between them, for instance,
+     * it might perfectly well highlight not only A and B but also
+     * trees C and D which are correctly matched on the far side of
+     * the grid, on the grounds that those four trees between them
+     * have only three tents.
+     *
+     * Also, that approach fares badly when you introduce the
+     * additional requirement that incomplete grids should have
+     * errors highlighted only when they can be proved to be errors
+     * - so that a tree surrounded by BLANK squares should not be
+     * marked as erroneous (it would be patronising, since the
+     * overwhelming likelihood is not that the player has forgotten
+     * to put a tree there but that they have merely not put one
+     * there _yet), but one surrounded by NONTENTs should.
+     *
+     * So I adopt an alternative approach, which is to consider the
+     * bipartite adjacency graph between trees and tents
+     * ('bipartite' in the sense that for these purposes I
+     * deliberately ignore two adjacent trees or two adjacent
+     * tents), divide that graph up into its connected components
+     * using a dsf, and look for components which contain different
+     * numbers of trees and tents. This allows me to highlight
+     * groups of tents with too few trees between them immediately,
+     * and then in order to find groups of trees with too few tents
+     * I redo the same process but counting BLANKs as potential
+     * tents (so that the only trees highlighted are those
+     * surrounded by enough NONTENTs to make it impossible to give
+     * them enough tents).
+     *
+     * However, this technique is incomplete: it is not a sufficient
+     * condition for the existence of a perfect matching that every
+     * connected component of the graph has the same number of tents
+     * and trees. An example of a graph which satisfies the latter
+     * condition but still has no perfect matching is
+     * 
+     *     A    B    C
+     *     |   /   ,/|
+     *     |  /  ,'/ |
+     *     | / ,' /  |
+     *     |/,'  /   |
+     *     1    2    3
+     *
+     * which can be realised in Tents as
+     * 
+     *       B
+     *     A 1 C 2
+     *         3
+     *
+     * The matching-error highlighter described above will not mark
+     * this construction as erroneous. However, something else will:
+     * the three tents in the above diagram (let us suppose A,B,C
+     * are the tents, though it doesn't matter which) contain two
+     * diagonally adjacent pairs. So there will be _an_ error
+     * highlighted for the above layout, even though not all types
+     * of error will be highlighted.
+     *
+     * And in fact we can prove that this will always be the case:
+     * that the shortcomings of the matching-error highlighter will
+     * always be made up for by the easy tent adjacency highlighter.
+     *
+     * Lemma: Let G be a bipartite graph between n trees and n
+     * tents, which is connected, and in which no tree has degree
+     * more than two (but a tent may). Then G has a perfect matching.
+     * 
+     * (Note: in the statement and proof of the Lemma I will
+     * consistently use 'tree' to indicate a type of graph vertex as
+     * opposed to a tent, and not to indicate a tree in the graph-
+     * theoretic sense.)
+     *
+     * Proof:
+     * 
+     * If we can find a tent of degree 1 joined to a tree of degree
+     * 2, then any perfect matching must pair that tent with that
+     * tree. Hence, we can remove both, leaving a smaller graph G'
+     * which still satisfies all the conditions of the Lemma, and
+     * which has a perfect matching iff G does.
+     *
+     * So, wlog, we may assume G contains no tent of degree 1 joined
+     * to a tree of degree 2; if it does, we can reduce it as above.
+     *
+     * If G has no tent of degree 1 at all, then every tent has
+     * degree at least two, so there are at least 2n edges in the
+     * graph. But every tree has degree at most two, so there are at
+     * most 2n edges. Hence there must be exactly 2n edges, so every
+     * tree and every tent must have degree exactly two, which means
+     * that the whole graph consists of a single loop (by
+     * connectedness), and therefore certainly has a perfect
+     * matching.
+     *
+     * Alternatively, if G does have a tent of degree 1 but it is
+     * not connected to a tree of degree 2, then the tree it is
+     * connected to must have degree 1 - and, by connectedness, that
+     * must mean that that tent and that tree between them form the
+     * entire graph. This trivial graph has a trivial perfect
+     * matching. []
+     *
+     * That proves the lemma. Hence, in any case where the matching-
+     * error highlighter fails to highlight an erroneous component
+     * (because it has the same number of tents as trees, but they
+     * cannot be matched up), the above lemma tells us that there
+     * must be a tree with degree more than 2, i.e. a tree
+     * orthogonally adjacent to at least three tents. But in that
+     * case, there must be some pair of those three tents which are
+     * diagonally adjacent to each other, so the tent-adjacency
+     * highlighter will necessarily show an error. So any filled
+     * layout in Tents which is not a correct solution to the puzzle
+     * must have _some_ error highlighted by the subroutine below.
+     *
+     * (Of course it would be nicer if we could highlight all
+     * errors: in the above example layout, we would like to
+     * highlight tents A,B as having too few trees between them, and
+     * trees 2,3 as having too few tents, in addition to marking the
+     * adjacency problems. But I can't immediately think of any way
+     * to find the smallest sets of such tents and trees without an
+     * O(2^N) loop over all subsets of a given component.)
+     */
 
     /*
      * ret[0] through to ret[w*h-1] give error markers for the grid
