@@ -1964,11 +1964,14 @@ static int *find_errors(game_state *state, char *grid)
      * Also, that approach fares badly when you introduce the
      * additional requirement that incomplete grids should have
      * errors highlighted only when they can be proved to be errors
-     * - so that a tree surrounded by BLANK squares should not be
-     * marked as erroneous (it would be patronising, since the
-     * overwhelming likelihood is not that the player has forgotten
-     * to put a tree there but that they have merely not put one
-     * there _yet), but one surrounded by NONTENTs should.
+     * - so that trees should not be marked as having too few tents
+     * if there are enough BLANK squares remaining around them that
+     * could be turned into the missing tents (to do so would be
+     * patronising, since the overwhelming likelihood is not that
+     * the player has forgotten to put a tree there but that they
+     * have merely not put one there _yet_). However, tents with too
+     * few trees can be marked immediately, since those are
+     * definitely player error.
      *
      * So I adopt an alternative approach, which is to consider the
      * bipartite adjacency graph between trees and tents
@@ -2392,7 +2395,7 @@ static void int_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
      * currently active drag: we transform dsx,dsy but not anything
      * else. (This seems to strike a good compromise between having
      * the error highlights respond instantly to single clicks, but
-     * not give constant feedback during a right-drag.)
+     * not giving constant feedback during a right-drag.)
      */
     if (ui && ui->drag_button >= 0) {
 	tmpgrid = snewn(w*h, char);
