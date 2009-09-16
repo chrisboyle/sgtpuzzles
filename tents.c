@@ -1210,6 +1210,10 @@ static char *validate_desc(game_params *params, char *desc)
 
 	desc++;
     }
+    if (area < w * h + 1)
+	return "Not enough data to fill grid";
+    else if (area > w * h + 1)
+	return "Too much data to fill grid";
 
     for (i = 0; i < w+h; i++) {
 	if (!*desc)
