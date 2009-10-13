@@ -2431,9 +2431,10 @@ static char *interpret_move(game_state *from, game_ui *ui, game_drawstate *ds,
 	(xc != ui->drag_end_x || yc != ui->drag_end_y)) {
 	int t;
 
+	if (ui->drag_end_x != -1 && ui->drag_end_y != -1)
+	    ui->dragged = TRUE;
         ui->drag_end_x = xc;
         ui->drag_end_y = yc;
-        ui->dragged = TRUE;
         active = TRUE;
 
 	if (xc >= 0 && xc <= 2*from->w &&
@@ -2813,7 +2814,8 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
     {
 	char buf[256];
 
-	if (ui->x1 >= 0 && ui->y1 >= 0 &&
+	if (ui->dragged &&
+	    ui->x1 >= 0 && ui->y1 >= 0 &&
 	    ui->x2 >= 0 && ui->y2 >= 0) {
 	    sprintf(buf, "%dx%d ",
 		    ui->x2-ui->x1,
