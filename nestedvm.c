@@ -408,7 +408,9 @@ int main(int argc, char **argv)
 #ifdef COMBINED
     // Android special
     for(i = 0; i < gamecount; i++) {
-	if( strcasecmp(gamelist[i]->name, argv[0]) == 0 ) {
+	// Need the "internal name"...
+	if( ! gamelist[i]->htmlhelp_topic ) continue;
+	if( strcasecmp(gamelist[i]->htmlhelp_topic, argv[0]) == 0 ) {
 	    thegame = *(gamelist[i]);
 	    break;
 	}

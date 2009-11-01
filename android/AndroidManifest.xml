@@ -2,7 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
       package="name.boyle.chris.sgtpuzzles"
       android:versionCode="1"
-      android:versionName="8220.1">
+      android:versionName="8220.2">
     <application android:icon="@drawable/icon" android:label="@string/app_name">
         <activity android:name=".SGTPuzzles"
                   android:label="@string/app_name" android:stateNotNeeded="true" android:launchMode="singleTask">
