@@ -870,7 +870,12 @@ struct game_ui {
 static game_ui *new_ui(game_state *state)
 {
     game_ui *ui = snew(game_ui);
-    ui->cx = ui->cy = ui->cdraw = 0;
+    ui->cx = ui->cy = 0;
+#ifdef ANDROID
+    ui->cdraw = 1;
+#else
+    ui->cdraw = 0;
+#endif
     return ui;
 }
 

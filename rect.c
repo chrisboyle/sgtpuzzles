@@ -37,6 +37,7 @@ enum {
     COL_TEXT,
     COL_GRID,
     COL_DRAG,
+    COL_CURSOR,
     NCOLOURS
 };
 
@@ -146,7 +147,7 @@ static void decode_params(game_params *ret, char const *string)
     }
     if (*string == 'e') {
 	string++;
-	ret->expandfactor = atof(string);
+	ret->expandfactor = (float)atof(string);
 	while (*string &&
 	       (*string == '.' || isdigit((unsigned char)*string))) string++;
     }
@@ -213,7 +214,7 @@ static game_params *custom_params(config_item *cfg)
 
     ret->w = atoi(cfg[0].sval);
     ret->h = atoi(cfg[1].sval);
-    ret->expandfactor = atof(cfg[2].sval);
+    ret->expandfactor = (float)atof(cfg[2].sval);
     ret->unique = cfg[3].ival;
 
     return ret;
@@ -1159,9 +1160,9 @@ static char *new_game_desc(game_params *params, random_state *rs,
          * Set up the smaller width and height which we will use to
          * generate the base grid.
          */
-        params2->w = params->w / (1.0F + params->expandfactor);
+        params2->w = (int)((float)params->w / (1.0F + params->expandfactor));
         if (params2->w < 2 && params->w >= 2) params2->w = 2;
-        params2->h = params->h / (1.0F + params->expandfactor);
+        params2->h = (int)((float)params->h / (1.0F + params->expandfactor));
         if (params2->h < 2 && params->h >= 2) params2->h = 2;
 
         grid = snewn(params2->w * params2->h, int);
@@ -2171,6 +2172,11 @@ struct game_ui {
     int y1;
     int x2;
     int y2;
+    /*
+     * These are the coordinates of a cursor, whether it's visible, and
+     * whether it was used to start a drag.
+     */
+    int cur_x, cur_y, cur_visible, cur_dragging;
 };
 
 static game_ui *new_ui(game_state *state)
@@ -2185,6 +2191,7 @@ static game_ui *new_ui(game_state *state)
     ui->y1 = -1;
     ui->x2 = -1;
     ui->y2 = -1;
+    ui->cur_x = ui->cur_y = ui->cur_visible = ui->cur_dragging = 0;
     return ui;
 }
 
@@ -2360,15 +2367,42 @@ static char *interpret_move(game_state *from, game_ui *ui, game_drawstate *ds,
 
     button &= ~MOD_MASK;
 
+    coord_round(FROMCOORD((float)x), FROMCOORD((float)y), &xc, &yc);
+
     if (button == LEFT_BUTTON) {
         startdrag = TRUE;
+        ui->cur_visible = ui->cur_dragging = 0;
+        active = TRUE;
     } else if (button == LEFT_RELEASE) {
+        /* We assert we should have had a LEFT_BUTTON first. */
+        assert(!ui->cur_visible);
+        assert(!ui->cur_dragging);
         enddrag = TRUE;
+    } else if (IS_CURSOR_MOVE(button)) {
+        move_cursor(button, &ui->cur_x, &ui->cur_y, from->w, from->h, 0);
+        ui->cur_visible = 1;
+        active = TRUE;
+        if (!ui->cur_dragging) return "";
+        coord_round((float)ui->cur_x + 0.5F, (float)ui->cur_y + 0.5F, &xc, &yc);
+    } else if (IS_CURSOR_SELECT(button)) {
+        if (!ui->cur_visible) {
+            assert(!ui->cur_dragging);
+            ui->cur_visible = 1;
+            return "";
+        }
+        coord_round((float)ui->cur_x + 0.5F, (float)ui->cur_y + 0.5F, &xc, &yc);
+        if (ui->cur_dragging) {
+            ui->cur_dragging = 0;
+            enddrag = TRUE;
+            active = 1;
+        } else {
+            ui->cur_dragging = 1;
+            startdrag = TRUE;
+            active = 1;
+        }
     } else if (button != LEFT_DRAG) {
         return NULL;
     }
-
-    coord_round(FROMCOORD((float)x), FROMCOORD((float)y), &xc, &yc);
 
     if (startdrag &&
 	xc >= 0 && xc <= 2*from->w &&
@@ -2376,8 +2410,8 @@ static char *interpret_move(game_state *from, game_ui *ui, game_drawstate *ds,
 
         ui->drag_start_x = xc;
         ui->drag_start_y = yc;
-        ui->drag_end_x = xc;
-        ui->drag_end_y = yc;
+        ui->drag_end_x = -1;
+        ui->drag_end_y = -1;
         ui->dragged = FALSE;
         active = TRUE;
     }
@@ -2539,6 +2573,7 @@ static game_state *execute_move(game_state *from, char *move)
  */
 
 #define CORRECT (1L<<16)
+#define CURSOR  (1L<<17)
 
 #define COLOUR(k) ( (k)==1 ? COL_LINE : COL_DRAG )
 #define MAX4(x,y,z,w) ( max(max(x,y),max(z,w)) )
@@ -2586,6 +2621,10 @@ static float *game_colours(frontend *fe, int *ncolours)
     ret[COL_TEXT * 3 + 1] = 0.0F;
     ret[COL_TEXT * 3 + 2] = 0.0F;
 
+    ret[COL_CURSOR * 3 + 0] = 1.0F;
+    ret[COL_CURSOR * 3 + 1] = 0.5F;
+    ret[COL_CURSOR * 3 + 2] = 0.5F;
+
     *ncolours = NCOLOURS;
     return ret;
 }
@@ -2614,14 +2653,15 @@ static void game_free_drawstate(drawing *dr, game_drawstate *ds)
 
 static void draw_tile(drawing *dr, game_drawstate *ds, game_state *state,
                       int x, int y, unsigned char *hedge, unsigned char *vedge,
-                      unsigned char *corners, int correct)
+                      unsigned char *corners, unsigned long bgflags)
 {
     int cx = COORD(x), cy = COORD(y);
     char str[80];
 
     draw_rect(dr, cx, cy, TILE_SIZE+1, TILE_SIZE+1, COL_GRID);
     draw_rect(dr, cx+1, cy+1, TILE_SIZE-1, TILE_SIZE-1,
-	      correct ? COL_CORRECT : COL_BACKGROUND);
+	      (bgflags & CURSOR) ? COL_CURSOR :
+              (bgflags & CORRECT) ? COL_CORRECT : COL_BACKGROUND);
 
     if (grid(state,x,y)) {
 	sprintf(str, "%d", grid(state,x,y));
@@ -2742,10 +2782,12 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 		c |= (unsigned long)index(state,corners,x+1,y+1) << 14;
 	    if (index(state, state->correct, x, y) && !flashtime)
 		c |= CORRECT;
+            if (ui->cur_visible && ui->cur_x == x && ui->cur_y == y)
+                c |= CURSOR;
 
 	    if (index(ds,ds->visible,x,y) != c) {
 		draw_tile(dr, ds, state, x, y, hedge, vedge, corners,
-                          (c & CORRECT) ? 1 : 0);
+                          (c & (CORRECT|CURSOR)) );
 		index(ds,ds->visible,x,y) = c;
 	    }
 	}
@@ -2806,8 +2848,8 @@ static void game_print_size(game_params *params, float *x, float *y)
      * I'll use 5mm squares by default.
      */
     game_compute_size(params, 500, &pw, &ph);
-    *x = pw / 100.0;
-    *y = ph / 100.0;
+    *x = pw / 100.0F;
+    *y = ph / 100.0F;
 }
 
 static void game_print(drawing *dr, game_state *state, int tilesize)
@@ -2903,3 +2945,5 @@ const struct game thegame = {
     FALSE, game_timing_state,
     0,				       /* flags */
 };
+
+/* vim: set shiftwidth=4 tabstop=8: */

@@ -13,6 +13,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.DialogInterface.OnCancelListener;
+import android.content.res.Configuration;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
@@ -46,7 +47,7 @@ public class SGTPuzzles extends Activity
 	Engine engine;
 	String[] games;
 	String engineName;
-	Menu menu;
+	SubMenu typeMenu;
 	TreeMap<Integer,String> gameTypes;
 	int currentType = 0;
 	boolean solveEnabled = false, customVisible = false, dead = false;
@@ -60,14 +61,18 @@ public class SGTPuzzles extends Activity
 		public void handleMessage( Message msg ) {
 			switch(Messages.values()[msg.what]) {
 			case QUIT: quit(); break;
-			case DIE: die("Fatal error", getStackTrace((Throwable)msg.obj)); break;
+			case DIE: die(getStackTrace((Throwable)msg.obj)); break;
 			case INIT:
 				setTitle( (String)msg.obj );
 				txtView.setVisibility( msg.arg1 > 0 ? View.VISIBLE : View.GONE );
 				engine.layoutDone = true;
 				break;
 			case SETBG:  gameView.setBackgroundColor(gameView.colours[0]); break;
-			case STATUS: txtView.setText((String)msg.obj); break;
+			case STATUS:
+				String status = (String)msg.obj;
+				if( status.length() == 0 ) status = " ";
+				txtView.setText(status);
+				break;
 			case DONE:
 				if( progress != null ) progress.dismiss();
 				engine.handler.sendEmptyMessage(Messages.SAVE.ordinal());
@@ -95,7 +100,7 @@ public class SGTPuzzles extends Activity
 						engine.handler.sendEmptyMessage(Messages.DIALOG_CANCEL.ordinal());
 					}
 				});
-				dialog.setButton("OK", new DialogInterface.OnClickListener() {
+				dialog.setButton(getResources().getString(android.R.string.ok), new DialogInterface.OnClickListener() {
 					public void onClick(DialogInterface d, int which) {
 						for( Integer i : dialogIds ) {
 							View v = dialogLayout.findViewById(i);
@@ -111,7 +116,7 @@ public class SGTPuzzles extends Activity
 							}
 						}
 						dialog.dismiss();
-						progress = ProgressDialog.show( SGTPuzzles.this, null, "Starting custom game",
+						progress = ProgressDialog.show( SGTPuzzles.this, null, getResources().getString(R.string.starting_custom),
 								true, true, quitListener );
 						engine.handler.sendEmptyMessage(Messages.DIALOG_FINISH.ordinal());
 					}
@@ -192,21 +197,34 @@ public class SGTPuzzles extends Activity
 		if( prefs.contains("savedGame") ) {
 			String name = prefs.getString("engineName", games[0]);
 			startGame(name, new String[]{ name, "-s", prefs.getString("savedGame","")});
-		} else if( ! engine.isAlive() ) showDialog(0);
+		} else {
+			new AlertDialog.Builder(this)
+				.setMessage(R.string.welcome)
+				.setOnCancelListener(quitListener)
+				.setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
+					public void onClick(DialogInterface d, int which) { showDialog(0); }})
+				.show();
+		}
 	}
-	
+
+	public void onConfigurationChanged(Configuration newConfig)
+	{
+		//TODO: gameView.stopDrawing = true;  // engine must reset this reliably
+		super.onConfigurationChanged(newConfig);
+	}
+
 	public Dialog onCreateDialog(int id)
 	{
 		Dialog d = new Dialog(this);
-		d.setTitle("Which game?");
+		d.setTitle(R.string.chooser_title);
 		d.setCancelable(true);
 		GridView gv = new GridView(this);
 		gv.setNumColumns(GridView.AUTO_FIT);
 		gv.setColumnWidth(50);
 		gv.setOnItemClickListener(new OnItemClickListener() {
 			public void onItemClick(AdapterView<?> arg0, View arg1, int which, long arg3) {
-				String engine = games[which];
-				startGame(engine, new String[]{ engine });
+				String savedEngine = games[which];
+				startGame(savedEngine, new String[]{ savedEngine });
 				SGTPuzzles.this.dismissDialog(0);
 			}
 		});
@@ -238,7 +256,6 @@ public class SGTPuzzles extends Activity
 	public boolean onCreateOptionsMenu(Menu menu)
 	{
 		super.onCreateOptionsMenu(menu);
-		this.menu = menu;
 		getMenuInflater().inflate(R.menu.main, menu);
 		return true;
 	}
@@ -249,7 +266,7 @@ public class SGTPuzzles extends Activity
 		menu.findItem(R.id.solve).setEnabled(solveEnabled);
 		MenuItem typeItem = menu.findItem(R.id.type);
 		typeItem.setEnabled(! gameTypes.isEmpty() || customVisible);
-		SubMenu typeMenu = typeItem.getSubMenu();
+		typeMenu = typeItem.getSubMenu();
 		for( Integer i : gameTypes.keySet() ) {
 			if( menu.findItem(i) == null ) typeMenu.add(R.id.typeGroup, i, Menu.NONE, gameTypes.get(i) );
 		}
@@ -267,11 +284,11 @@ public class SGTPuzzles extends Activity
 		Messages m;
 		int arg1 = 0;
 		// Are we affecting game state without triggering a DONE message?
-		Boolean needSave = false;
+		boolean needSave = false;
 		switch(item.getItemId()) {
 		case R.id.other:   showDialog(0); return true;
 		case R.id.newgame:
-			progress = ProgressDialog.show( this, null, "Starting new game", true, true, quitListener );
+			progress = ProgressDialog.show( this, null, getResources().getString(R.string.starting_new), true, true, quitListener );
 			m = Messages.NEWGAME;
 			break;
 		case R.id.restart:  m = Messages.RESTART; needSave = true; break;
@@ -289,6 +306,17 @@ public class SGTPuzzles extends Activity
 			startActivity(new Intent(Intent.ACTION_VIEW,
 				Uri.parse("http://www.chiark.greenend.org.uk/~sgtatham/puzzles/doc/"+engineName+".html")));
 			return true;
+		case R.id.website:
+			startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("http://chris.boyle.name/projects/android-puzzles")));
+			return true;
+		case R.id.email:
+			// Damn, Android Email doesn't cope with ?subject=foo yet.
+			/*String vName;
+			try {
+				vName = getPackageManager().getPackageInfo(getPackageName(),0).versionName;
+			} catch(Exception e) { die(e.toString()); return true; }*/
+			startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("mailto:chris@boyle.name")));
+			return true;
 		case R.id.about: m = Messages.ABOUT; break;
 		/*case R.id.load:
 			// TODO: load
@@ -299,7 +327,7 @@ public class SGTPuzzles extends Activity
 		default:
 			int id = item.getItemId();
 			if( gameTypes.get(id) != null ) {
-				progress = ProgressDialog.show( this, null, "Changing game type", true, true, quitListener );
+				progress = ProgressDialog.show( this, null, getResources().getString(R.string.changing_type), true, true, quitListener );
 				engine.handler.obtainMessage(Messages.PRESET.ordinal(),id,0).sendToTarget();
 			}
 			else super.onOptionsItemSelected(item);
@@ -332,7 +360,7 @@ public class SGTPuzzles extends Activity
 	void alert( String title, String msg, boolean fatal )
 	{
 		if( progress != null ) progress.dismiss();
-		new AlertDialog.Builder(this)
+		AlertDialog.Builder b = new AlertDialog.Builder(this)
 			.setTitle( title )
 			.setMessage( msg )
 			.setIcon(android.R.drawable.ic_dialog_alert)
@@ -340,21 +368,33 @@ public class SGTPuzzles extends Activity
 					new OnCancelListener() { public void onCancel(DialogInterface d) {
 						if( progress != null ) progress.dismiss();
 						showDialog(0);
-					}})
-			.show();		
+					}});
+		if( fatal ) {
+			b.setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
+				public void onClick(DialogInterface d, int which) { d.cancel(); }});
+			b.setNegativeButton(android.R.string.no, new DialogInterface.OnClickListener() {
+				public void onClick(DialogInterface d, int which) {
+					SharedPreferences.Editor ed = prefs.edit();
+					ed.clear();
+					ed.commit();
+					d.cancel();
+				}
+			});
+		}
+		b.show();
 	}
 
-	void die( String title, String msg )
+	void die( String msg )
 	{
 		if( dead ) return;
 		dead = true;
-		alert( title, msg, true );
+		alert( "Died. Keep saved game?", msg, true );
 	}
 
 	void startGame(String engineName, String[] args)
 	{
-		progress = ProgressDialog.show( this, null,
-				(args.length < 2) ? "Starting game" : "Resuming game", true, true, quitListener );
+		progress = ProgressDialog.show( this, null, getResources().getString( (args.length < 2)
+				? R.string.starting : R.string.resuming), true, true, quitListener );
 		try {
 			if( engine.isAlive() ) {
 				gameView.clear();
@@ -362,11 +402,11 @@ public class SGTPuzzles extends Activity
 				if( engine.handler != null ) engine.handler.sendEmptyMessage(Messages.QUIT.ordinal());
 				solveEnabled = false;
 				customVisible = false;
-				if( menu != null ) for( Integer i : gameTypes.keySet() ) menu.removeItem(i);
-				gameTypes.clear();
 				txtView.setVisibility( View.GONE );
 				engine = new Engine(handler, gameView);
 			}
+			if( typeMenu != null ) for( Integer i : gameTypes.keySet() ) typeMenu.removeItem(i);
+			gameTypes.clear();
 			engine.load(args);
 			this.engineName = engineName;
 			engine.start();
@@ -415,7 +455,8 @@ public class SGTPuzzles extends Activity
 			// we probably don't want Engine.MOD_NUM_KEYPAD here (numbers are in a line on G1 at least)
 			key = event.getNumber();
 			break;
-		case KeyEvent.KEYCODE_DPAD_CENTER: case KeyEvent.KEYCODE_SPACE: key = ' '; break;
+		case KeyEvent.KEYCODE_DPAD_CENTER: case KeyEvent.KEYCODE_ENTER: key = '\n'; break;
+		case KeyEvent.KEYCODE_FOCUS: case KeyEvent.KEYCODE_SPACE: key = ' '; break;
 		case KeyEvent.KEYCODE_Q: key = 'q'; break;
 		default: return super.onKeyDown(keyCode, event);
 		}

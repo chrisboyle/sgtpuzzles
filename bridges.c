@@ -40,6 +40,7 @@ enum {
     COL_SELECTED, COL_MARK,
     COL_HINT, COL_GRID,
     COL_WARNING,
+    COL_CURSOR,
     NCOLOURS
 };
 
@@ -66,9 +67,10 @@ struct game_params {
 #define G_REDRAW        0x0100
 #define G_FLASH         0x0200
 #define G_WARN          0x0400
+#define G_CURSOR        0x0800
 
 /* flags used by the solver etc. */
-#define G_SWEEP         0x0800
+#define G_SWEEP         0x1000
 
 #define G_FLAGSH        (G_LINEH|G_MARKH|G_NOLINEH)
 #define G_FLAGSV        (G_LINEV|G_MARKV|G_NOLINEV)
@@ -1674,6 +1676,7 @@ static void free_game(game_state *state)
 }
 
 #define MAX_NEWISLAND_TRIES     50
+#define MIN_SENSIBLE_ISLANDS    3
 
 #define ORDER(a,b) do { if (a < b) { int tmp=a; int a=b; int b=tmp; } } while(0)
 
@@ -1683,7 +1686,7 @@ static char *new_game_desc(game_params *params, random_state *rs,
     game_state *tobuild  = NULL;
     int i, j, wh = params->w * params->h, x, y, dx, dy;
     int minx, miny, maxx, maxy, joinx, joiny, newx, newy, diffx, diffy;
-    int ni_req = max((params->islands * wh) / 100, 2), ni_curr, ni_bad;
+    int ni_req = max((params->islands * wh) / 100, MIN_SENSIBLE_ISLANDS), ni_curr, ni_bad;
     struct island *is, *is2;
     char *ret;
     unsigned int echeck;
@@ -1818,7 +1821,8 @@ generated:
     map_find_orthogonal(tobuild);
 
     if (params->difficulty > 0) {
-        if (solve_from_scratch(tobuild, params->difficulty-1) > 0) {
+        if ((ni_curr > MIN_SENSIBLE_ISLANDS) &&
+            (solve_from_scratch(tobuild, params->difficulty-1) > 0)) {
             debug(("Grid is solvable at difficulty %d (too easy); retrying.\n",
                    params->difficulty-1));
             goto generate;
@@ -1936,6 +1940,8 @@ struct game_ui {
     int dragx_dst, dragy_dst;   /* src's closest orth island. */
     grid_type todraw;
     int dragging, drag_is_noline, nlines;
+
+    int cur_x, cur_y, cur_visible;      /* cursor position */
 };
 
 static char *ui_cancel_drag(game_ui *ui)
@@ -1950,6 +1956,7 @@ static game_ui *new_ui(game_state *state)
 {
     game_ui *ui = snew(game_ui);
     ui_cancel_drag(ui);
+    ui->cur_x = ui->cur_y = ui->cur_visible = 0;
     return ui;
 }
 
@@ -2085,6 +2092,7 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
 
     if (button == LEFT_BUTTON || button == RIGHT_BUTTON) {
         if (!INGRID(state, gx, gy)) return NULL;
+        ui->cur_visible = 0;
         if ((ggrid & G_ISLAND) && !(ggrid & G_MARK)) {
             ui->dragx_src = gx;
             ui->dragy_src = gy;
@@ -2118,6 +2126,46 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
         ret = game_state_diff(state, solved);
         free_game(solved);
         return ret;
+    } else if (IS_CURSOR_MOVE(button)) {
+        int nx = ui->cur_x, ny = ui->cur_y;
+        ui->cur_visible = 1;
+        move_cursor(button, &nx, &ny, state->w, state->h, 0);
+        if (ui->dragging) {
+            update_drag_dst(state, ui, ds,
+                             COORD(nx)+TILE_SIZE/2,
+                             COORD(ny)+TILE_SIZE/2);
+            if (ui->dragx_dst == -1 && ui->dragy_dst == -1)
+                return "";
+            else
+                return finish_drag(state, ui);
+        } else {
+            ui->cur_x = nx;
+            ui->cur_y = ny;
+            return "";
+        }
+    } else if (IS_CURSOR_SELECT(button)) {
+        if (!ui->cur_visible) {
+            ui->cur_visible = 1;
+            return "";
+        }
+        if (ui->dragging) {
+            ui_cancel_drag(ui);
+            if (ui->dragx_dst == -1 && ui->dragy_dst == -1) {
+                sprintf(buf, "M%d,%d", ui->cur_x, ui->cur_y);
+                return dupstr(buf);
+            } else
+                return "";
+        } else {
+            grid_type v = GRID(state, ui->cur_x, ui->cur_y);
+            if (v & G_ISLAND) {
+                ui->dragging = 1;
+                ui->dragx_src = ui->cur_x;
+                ui->dragy_src = ui->cur_y;
+                ui->dragx_dst = ui->dragy_dst = -1;
+                ui->drag_is_noline = (button == CURSOR_SELECT2) ? 1 : 0;
+                return "";
+            }
+        }
     }
 
     return NULL;
@@ -2255,6 +2303,10 @@ static float *game_colours(frontend *fe, int *ncolours)
     ret[COL_SELECTED * 3 + 1] = 1.00F;
     ret[COL_SELECTED * 3 + 2] = 0.25F;
 
+    ret[COL_CURSOR * 3 + 0] = min(ret[COL_BACKGROUND * 3 + 0] * 1.4F, 1.0F);
+    ret[COL_CURSOR * 3 + 1] = ret[COL_BACKGROUND * 3 + 1] * 0.8F;
+    ret[COL_CURSOR * 3 + 2] = ret[COL_BACKGROUND * 3 + 2] * 0.8F;
+
     *ncolours = NCOLOURS;
     return ret;
 }
@@ -2376,6 +2428,10 @@ static void lines_redraw(drawing *dr,
     }
 
     draw_rect(dr, ox, oy, TILE_SIZE, TILE_SIZE, COL_BACKGROUND);
+    if (v & G_CURSOR)
+        draw_rect(dr, ox+TILE_SIZE/4, oy+TILE_SIZE/4,
+                  TILE_SIZE/2, TILE_SIZE/2, COL_CURSOR);
+
 
 #ifdef DRAW_HINTS
     if (INDEX(state, possv, x, y) && !(v & G_LINEV))
@@ -2422,7 +2478,8 @@ static void island_redraw(drawing *dr,
     int tcol = (v & G_FLASH) ? COL_HIGHLIGHT :
               (v & G_WARN)  ? COL_WARNING : COL_FOREGROUND;
     int col = (v & G_ISSEL) ? COL_SELECTED : tcol;
-    int bg = (v & G_MARK) ? COL_MARK : COL_BACKGROUND;
+    int bg = (v & G_CURSOR) ? COL_CURSOR :
+        (v & G_MARK) ? COL_MARK : COL_BACKGROUND;
     char str[10];
 
 #ifdef DRAW_GRID
@@ -2499,6 +2556,9 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
             }
             lines_lvlh(state, x, y, v, &lv, &lh);
 
+            if (ui->cur_visible && ui->cur_x == x && ui->cur_y == y)
+                v |= G_CURSOR;
+
             if (v != dsv ||
                 lv != INDEX(ds,lv,x,y) ||
                 lh != INDEX(ds,lh,x,y) ||
@@ -2532,6 +2592,9 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
         }
 
         if (island_impossible(is, v & G_MARK)) v |= G_WARN;
+
+        if (ui->cur_visible && ui->cur_x == is->x && ui->cur_y == is->y)
+            v |= G_CURSOR;
 
         if ((v != GRID(ds, is->x, is->y)) || force || redraw) {
             GRID(ds,is->x,is->y) = v;
@@ -2567,8 +2630,8 @@ static void game_print_size(game_params *params, float *x, float *y)
 
     /* 10mm squares by default. */
     game_compute_size(params, 1000, &pw, &ph);
-    *x = pw / 100.0;
-    *y = ph / 100.0;
+    *x = pw / 100.0F;
+    *y = ph / 100.0F;
 }
 
 static void game_print(drawing *dr, game_state *state, int ts)

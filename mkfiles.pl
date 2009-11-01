@@ -1424,7 +1424,7 @@ if (defined $makefiles{"android"}) {
     "# You can define this path to point at your tools if you need to\n".
     "TOOLPATH = \$(NESTEDVM)/upstream/install/bin\n".
     "CC = \$(TOOLPATH)/mips-unknown-elf-gcc\n".
-    &splitline("CFLAGS = -O2 -Wall -Werror -DSLOW_SYSTEM -g " .
+    &splitline("CFLAGS = -O2 -Wall -Werror -DSLOW_SYSTEM -DANDROID -g " .
 	       (join " ", map {"-I$dirpfx$_"} @srcdirs))."\n".
     "\n".
     $makefile_extra{'android'}."\n";

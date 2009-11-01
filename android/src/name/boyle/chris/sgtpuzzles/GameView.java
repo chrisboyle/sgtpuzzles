@@ -27,10 +27,11 @@ class GameView extends View
 	int longTimeout = ViewConfiguration.getLongPressTimeout();
 	int button;
 	boolean waiting = false;
+	boolean stopDrawing = false;
 	float startX, startY, maxDist = 5.0f;
 	static final int DRAG = Engine.LEFT_DRAG - Engine.LEFT_BUTTON,  // not bit fields, but there's a pattern
 			RELEASE = Engine.LEFT_RELEASE - Engine.LEFT_BUTTON;
-	
+
 	GameView(SGTPuzzles parent)
 	{
 		super(parent);
@@ -38,14 +39,14 @@ class GameView extends View
 		paint = new Paint();
 		blitters = new Bitmap[512];
 	}
-	
+
 	Runnable sendRightClick = new Runnable() {
 		public void run() {
 			button = Engine.RIGHT_BUTTON;
 			toEngine.obtainMessage(Messages.KEY.ordinal(), (int)startX, (int)startY,
 					new Integer(button)).sendToTarget();
 			waiting = false;
-		}		
+		}
 	};
 
 	public boolean onTouchEvent(MotionEvent event)
@@ -74,7 +75,9 @@ class GameView extends View
 					toEngine.removeCallbacks( sendRightClick );
 				}
 			}
-			toEngine.obtainMessage(Messages.KEY.ordinal(), (int)x, (int)y,
+			// DRAG is the same as KEY but the distinction allows removing all DRAGs from the queue
+			toEngine.removeMessages(Messages.DRAG.ordinal());
+			toEngine.obtainMessage(Messages.DRAG.ordinal(), (int)x, (int)y,
 					new Integer(button + DRAG)).sendToTarget();
 			return true;
 		case MotionEvent.ACTION_UP:
@@ -100,13 +103,9 @@ class GameView extends View
 
 	protected void onSizeChanged( int w, int h, int oldw, int oldh )
 	{
-		Bitmap b = Bitmap.createBitmap(w, h, Bitmap.Config.RGB_565);
-		canvas.setBitmap(b);
-		if( bitmap != null ) {
-			canvas.drawBitmap(bitmap, 0, 0, null);
-			bitmap.recycle();
-		}
-		bitmap = b;
+		bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.RGB_565);
+		canvas.setBitmap(bitmap);
+		clear();
 		this.w = w; this.h = h;
 		if( toEngine == null ) return;
 		if( oldw != 0 ) toEngine.obtainMessage(Messages.RESIZE.ordinal(), w, h).sendToTarget();
@@ -127,9 +126,9 @@ class GameView extends View
 	{
 		if (x == 0 && y == 0) return;
 		int w = getWidth(), h = getHeight();
-		paint.setColor(Color.BLACK);
+		/*paint.setColor(Color.BLACK);
 		paint.setStyle(Paint.Style.FILL);
-		/*canvas.drawRect(0, 0, x, h, paint);
+		canvas.drawRect(0, 0, x, h, paint);
 		canvas.drawRect(0, 0, w, y, paint);
 		canvas.drawRect(w - x, 0, x, h, paint);
 		canvas.drawRect(0, h - y, w, y, paint);*/
@@ -152,17 +151,22 @@ class GameView extends View
 	}
 	void fillRect(int x1, int y1, int x2, int y2, int colour)
 	{
+		if( stopDrawing ) return;
 		paint.setColor(colours[colour]);
 		paint.setStyle(Paint.Style.FILL);
 		canvas.drawRect(x1, y1, x2, y2, paint);
 	}
 	void drawLine(int x1, int y1, int x2, int y2, int colour)
 	{
+		if( stopDrawing ) return;
 		paint.setColor(colours[colour]);
+		paint.setAntiAlias( true );
 		canvas.drawLine(x1, y1, x2, y2, paint);
+		paint.setAntiAlias( false );
 	}
 	void drawPoly(Path p, int lineColour, int fillColour)
 	{
+		if( stopDrawing ) return;
 		if (fillColour != -1) {
 			paint.setColor(colours[fillColour]);
 			paint.setStyle(Paint.Style.FILL);
@@ -174,6 +178,7 @@ class GameView extends View
 	}
 	void drawCircle(int x, int y, int r, int lineColour, int fillColour)
 	{
+		if( stopDrawing ) return;
 		if (fillColour != -1) {
 			paint.setColor(colours[fillColour]);
 			paint.setStyle(Paint.Style.FILL);
@@ -185,6 +190,7 @@ class GameView extends View
 	}
 	void drawText(String text, int x, int y, int size, Typeface tf, int align, int colour)
 	{
+		if( stopDrawing ) return;
 		paint.setColor(colours[colour]);
 		paint.setTypeface( tf );
 		paint.setTextSize(size);
@@ -195,7 +201,9 @@ class GameView extends View
 		if ((align & Engine.ALIGN_HCENTRE) != 0) paint.setTextAlign( Paint.Align.CENTER );
 		else if ((align & Engine.ALIGN_HRIGHT) != 0) paint.setTextAlign( Paint.Align.RIGHT );
 		else paint.setTextAlign( Paint.Align.LEFT );
+		paint.setAntiAlias( true );
 		canvas.drawText( text, x, y, paint );
+		paint.setAntiAlias( false );
 	}
 	int blitterAlloc(int w, int h)
 	{

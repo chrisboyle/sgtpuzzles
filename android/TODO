@@ -1,0 +1,10 @@
+To do...
+. Chase random null pointer exception in solving unequal?
+. Stop drawing during orientation change, safely... (see stopDrawing)
+/ Cursor patches
+/ Solo thick lines
+/ Option to discard state on fatal error
+/ Orientation change
+/ Anti-aliasing
+/ Clear type menu
+

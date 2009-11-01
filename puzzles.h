@@ -259,6 +259,7 @@ char *midend_deserialise(midend *me,
                          void *rctx);
 /* Printing functions supplied by the mid-end */
 char *midend_print_puzzle(midend *me, document *doc, int with_soln);
+int midend_tilesize(midend *me);
 
 /*
  * malloc.c
@@ -335,6 +336,12 @@ void edsf_merge(int *dsf, int v1, int v2, int inverse);
 void dsf_merge(int *dsf, int v1, int v2);
 void dsf_init(int *dsf, int len);
 
+/*
+ * laydomino.c
+ */
+int *domino_layout(int w, int h, random_state *rs);
+void domino_layout_prealloc(int w, int h, random_state *rs,
+                            int *grid, int *grid2, int *list);
 /*
  * version.c
  */

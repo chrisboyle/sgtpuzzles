@@ -3176,9 +3176,7 @@ static char *game_text_format(game_state *state)
 struct game_ui {
     /*
      * These are the coordinates of the currently highlighted
-     * square on the grid, or -1,-1 if there isn't one. When there
-     * is, pressing a valid number or letter key or Space will
-     * enter that number or letter in the grid.
+     * square on the grid, if hshow = 1.
      */
     int hx, hy;
     /*
@@ -3186,14 +3184,28 @@ struct game_ui {
      * pencil-mark one or a real one.
      */
     int hpencil;
+    /*
+     * This indicates whether or not we're showing the highlight
+     * (used to be hx = hy = -1); important so that when we're
+     * using the cursor keys it doesn't keep coming back at a
+     * fixed position. When hshow = 1, pressing a valid number
+     * or letter key or Space will enter that number or letter in the grid.
+     */
+    int hshow;
+    /*
+     * This indicates whether we're using the highlight as a cursor;
+     * it means that it doesn't vanish on a keypress, and that it is
+     * allowed on immutable squares.
+     */
+    int hcursor;
 };
 
 static game_ui *new_ui(game_state *state)
 {
     game_ui *ui = snew(game_ui);
 
-    ui->hx = ui->hy = -1;
-    ui->hpencil = 0;
+    ui->hx = ui->hy = 0;
+    ui->hpencil = ui->hshow = ui->hcursor = 0;
 
     return ui;
 }
@@ -3217,14 +3229,14 @@ static void game_changed_state(game_ui *ui, game_state *oldstate,
 {
     int cr = newstate->cr;
     /*
-     * We prevent pencil-mode highlighting of a filled square. So
-     * if the user has just filled in a square which we had a
-     * pencil-mode highlight in (by Undo, or by Redo, or by Solve),
-     * then we cancel the highlight.
+     * We prevent pencil-mode highlighting of a filled square, unless
+     * we're using the cursor keys. So if the user has just filled in
+     * a square which we had a pencil-mode highlight in (by Undo, or
+     * by Redo, or by Solve), then we cancel the highlight.
      */
-    if (ui->hx >= 0 && ui->hy >= 0 && ui->hpencil &&
+    if (ui->hshow && ui->hpencil && !ui->hcursor &&
         newstate->grid[ui->hy * cr + ui->hx] != 0) {
-        ui->hx = ui->hy = -1;
+        ui->hshow = 0;
     }
 }
 
@@ -3254,14 +3266,17 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
     if (tx >= 0 && tx < cr && ty >= 0 && ty < cr) {
         if (button == LEFT_BUTTON) {
             if (state->immutable[ty*cr+tx]) {
-                ui->hx = ui->hy = -1;
-            } else if (tx == ui->hx && ty == ui->hy && ui->hpencil == 0) {
-                ui->hx = ui->hy = -1;
+                ui->hshow = 0;
+            } else if (tx == ui->hx && ty == ui->hy &&
+                       ui->hshow && ui->hpencil == 0) {
+                ui->hshow = 0;
             } else {
                 ui->hx = tx;
                 ui->hy = ty;
+                ui->hshow = 1;
                 ui->hpencil = 0;
             }
+            ui->hcursor = 0;
             return "";		       /* UI activity occurred */
         }
         if (button == RIGHT_BUTTON) {
@@ -3269,47 +3284,57 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
              * Pencil-mode highlighting for non filled squares.
              */
             if (state->grid[ty*cr+tx] == 0) {
-                if (tx == ui->hx && ty == ui->hy && ui->hpencil) {
-                    ui->hx = ui->hy = -1;
+                if (tx == ui->hx && ty == ui->hy &&
+                    ui->hshow && ui->hpencil) {
+                    ui->hshow = 0;
                 } else {
                     ui->hpencil = 1;
                     ui->hx = tx;
                     ui->hy = ty;
+                    ui->hshow = 1;
                 }
             } else {
-                ui->hx = ui->hy = -1;
+                ui->hshow = 0;
             }
+            ui->hcursor = 0;
             return "";		       /* UI activity occurred */
         }
     }
+    if (IS_CURSOR_MOVE(button)) {
+        move_cursor(button, &ui->hx, &ui->hy, cr, cr, 0);
+        ui->hshow = ui->hcursor = 1;
+        return "";
+    }
+    if (ui->hshow &&
+        (IS_CURSOR_SELECT(button))) {
+        ui->hpencil = 1 - ui->hpencil;
+        ui->hcursor = 1;
+        return "";
+    }
 
-    if (ui->hx != -1 && ui->hy != -1 &&
+    if (ui->hshow &&
 	((button >= '1' && button <= '9' && button - '0' <= cr) ||
 	 (button >= 'a' && button <= 'z' && button - 'a' + 10 <= cr) ||
 	 (button >= 'A' && button <= 'Z' && button - 'A' + 10 <= cr) ||
-	 button == ' ' || button == '\010' || button == '\177')) {
+	 button == CURSOR_SELECT2 || button == '\010' || button == '\177')) {
 	int n = button - '0';
 	if (button >= 'A' && button <= 'Z')
 	    n = button - 'A' + 10;
 	if (button >= 'a' && button <= 'z')
 	    n = button - 'a' + 10;
-	if (button == ' ' || button == '\010' || button == '\177')
+	if (button == CURSOR_SELECT2 || button == '\010' || button == '\177')
 	    n = 0;
 
         /*
-         * Can't overwrite this square. In principle this shouldn't
-         * happen anyway because we should never have even been
-         * able to highlight the square, but it never hurts to be
-         * careful.
+         * Can't overwrite this square. This can only happen here
+         * if we're using the cursor keys.
          */
 	if (state->immutable[ui->hy*cr+ui->hx])
 	    return NULL;
 
         /*
-         * Can't make pencil marks in a filled square. In principle
-         * this shouldn't happen anyway because we should never
-         * have even been able to pencil-highlight the square, but
-         * it never hurts to be careful.
+         * Can't make pencil marks in a filled square. Again, this
+         * can only become highlighted if we're using cursor keys.
          */
         if (ui->hpencil && state->grid[ui->hy*cr+ui->hx])
             return NULL;
@@ -3317,7 +3342,7 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
 	sprintf(buf, "%c%d,%d,%d",
 		(char)(ui->hpencil && n > 0 ? 'P' : 'R'), ui->hx, ui->hy, n);
 
-	ui->hx = ui->hy = -1;
+        if (!ui->hcursor) ui->hshow = 0;
 
 	return dupstr(buf);
     }
@@ -3651,7 +3676,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
                 highlight = 1;
 
             /* Highlight active input areas. */
-            if (x == ui->hx && y == ui->hy)
+            if (x == ui->hx && y == ui->hy && ui->hshow)
                 highlight = ui->hpencil ? 2 : 1;
 
 	    /* Mark obvious errors (ie, numbers which occur more than once
@@ -3706,8 +3731,8 @@ static void game_print_size(game_params *params, float *x, float *y)
      * of pencil marks in the squares.
      */
     game_compute_size(params, 900, &pw, &ph);
-    *x = pw / 100.0;
-    *y = ph / 100.0;
+    *x = pw / 100.0F;
+    *y = ph / 100.0F;
 }
 
 static void game_print(drawing *dr, game_state *state, int tilesize)
@@ -4026,3 +4051,5 @@ int main(int argc, char **argv)
 }
 
 #endif
+
+/* vim: set shiftwidth=4 tabstop=8: */

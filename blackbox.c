@@ -287,13 +287,15 @@ done:
 #define BALL_GUESS      0x02
 #define BALL_LOCK       0x04
 
-#define LASER_FLAGMASK  0xf800
-#define LASER_OMITTED   0x0800
-#define LASER_REFLECT   0x1000
-#define LASER_HIT       0x2000
-#define LASER_WRONG     0x4000
-#define LASER_FLASHED   0x8000
-#define LASER_EMPTY     (~0)
+#define LASER_FLAGMASK  0x1f800
+#define LASER_OMITTED    0x0800
+#define LASER_REFLECT    0x1000
+#define LASER_HIT        0x2000
+#define LASER_WRONG      0x4000
+#define LASER_FLASHED    0x8000
+#define LASER_EMPTY      (~0)
+
+#define FLAG_CURSOR     0x10000 /* needs to be disjoint from both sets */
 
 struct game_state {
     int w, h, minballs, maxballs, nballs, nlasers;
@@ -476,6 +478,8 @@ static char *game_text_format(game_state *state)
 struct game_ui {
     int flash_laserno;
     int errors, newmove;
+    int cur_x, cur_y, cur_visible;
+    int flash_laser; /* 0 = never, 1 = always, 2 = if anim. */
 };
 
 static game_ui *new_ui(game_state *state)
@@ -484,6 +488,12 @@ static game_ui *new_ui(game_state *state)
     ui->flash_laserno = LASER_EMPTY;
     ui->errors = 0;
     ui->newmove = FALSE;
+
+    ui->cur_x = ui->cur_y = 1;
+    ui->cur_visible = 0;
+
+    ui->flash_laser = 0;
+
     return ui;
 }
 
@@ -872,14 +882,50 @@ struct game_drawstate {
 static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
 			    int x, int y, int button)
 {
-    int gx = -1, gy = -1, rangeno = -1;
+    int gx = -1, gy = -1, rangeno = -1, wouldflash = 0;
     enum { NONE, TOGGLE_BALL, TOGGLE_LOCK, FIRE, REVEAL,
            TOGGLE_COLUMN_LOCK, TOGGLE_ROW_LOCK} action = NONE;
     char buf[80], *nullret = NULL;
 
+    if (IS_CURSOR_MOVE(button)) {
+        int cx = ui->cur_x, cy = ui->cur_y;
+
+        move_cursor(button, &cx, &cy, state->w+2, state->h+2, 0);
+        if ((cx == 0 && cy == 0 && !CAN_REVEAL(state)) ||
+            (cx == 0 && cy == state->h+1) ||
+            (cx == state->w+1 && cy == 0) ||
+            (cx == state->w+1 && cy == state->h+1))
+            return NULL; /* disallow moving cursor to corners. */
+        ui->cur_x = cx;
+        ui->cur_y = cy;
+        ui->cur_visible = 1;
+        return "";
+    }
+
     if (button == LEFT_BUTTON || button == RIGHT_BUTTON) {
         gx = FROMDRAW(x);
         gy = FROMDRAW(y);
+        ui->cur_visible = 0;
+        wouldflash = 1;
+    } else if (button == LEFT_RELEASE) {
+        ui->flash_laser = 0;
+        return "";
+    } else if (IS_CURSOR_SELECT(button)) {
+        if (ui->cur_visible) {
+            gx = ui->cur_x;
+            gy = ui->cur_y;
+            ui->flash_laser = 0;
+            wouldflash = 2;
+        } else {
+            ui->cur_visible = 1;
+            return "";
+        }
+        /* Fix up 'button' for the below logic. */
+        if (button == CURSOR_SELECT2) button = RIGHT_BUTTON;
+        else button = LEFT_BUTTON;
+    }
+
+    if (gx != -1 && gy != -1) {
         if (gx == 0 && gy == 0 && button == LEFT_BUTTON)
             action = REVEAL;
         if (gx >= 1 && gx <= state->w && gy >= 1 && gy <= state->h) {
@@ -897,9 +943,6 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
             else
                 action = TOGGLE_ROW_LOCK;    /* and use gy */
         }
-    } else if (button == LEFT_RELEASE) {
-        ui->flash_laserno = LASER_EMPTY;
-        return "";
     }
 
     switch (action) {
@@ -923,6 +966,7 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
 	if (state->reveal && state->exits[rangeno] == LASER_EMPTY)
 	    return nullret;
         ui->flash_laserno = rangeno;
+        ui->flash_laser = wouldflash;
         nullret = "";
         if (state->exits[rangeno] != LASER_EMPTY)
             return "";
@@ -1131,11 +1175,14 @@ static void game_free_drawstate(drawing *dr, game_drawstate *ds)
 }
 
 static void draw_arena_tile(drawing *dr, game_state *gs, game_drawstate *ds,
-                            int ax, int ay, int force, int isflash)
+                            game_ui *ui, int ax, int ay, int force, int isflash)
 {
     int gx = ax+1, gy = ay+1;
     int gs_tile = GRID(gs, gx, gy), ds_tile = GRID(ds, gx, gy);
     int dx = TODRAW(gx), dy = TODRAW(gy);
+
+    if (ui->cur_visible && ui->cur_x == gx && ui->cur_y == gy)
+        gs_tile |= FLAG_CURSOR;
 
     if (gs_tile != ds_tile || gs->reveal != ds->reveal || force) {
         int bcol, bg;
@@ -1168,6 +1215,14 @@ static void draw_arena_tile(drawing *dr, game_state *gs, game_drawstate *ds,
 
         draw_circle(dr, dx + TILE_SIZE/2, dy + TILE_SIZE/2, ds->crad-1,
                     bcol, bcol);
+
+        if (gs_tile & FLAG_CURSOR) {
+            int coff = TILE_SIZE/8;
+             draw_rect_outline(dr, dx + coff, dy + coff,
+                               TILE_SIZE - coff*2,
+                               TILE_SIZE - coff*2,
+                               COL_DIMLASER);
+        }
 
         if (gs->reveal &&
             (gs_tile & BALL_GUESS) &&
@@ -1223,21 +1278,24 @@ static void draw_laser_tile(drawing *dr, game_state *gs, game_drawstate *ds,
     hit = gs_tile & LASER_HIT;
     laserval = gs_tile & ~LASER_FLAGMASK;
 
-    if (lno == ui->flash_laserno)
+    if (lno == ds->flash_laserno)
         gs_tile |= LASER_FLASHED;
     else if (!(gs->exits[lno] & (LASER_HIT | LASER_REFLECT))) {
-        if (exitno == ui->flash_laserno)
+        if (exitno == ds->flash_laserno)
             gs_tile |= LASER_FLASHED;
     }
     if (gs_tile & LASER_FLASHED) flash = 1;
 
     gs_tile |= wrong | omitted;
 
+    if (ui->cur_visible && ui->cur_x == gx && ui->cur_y == gy)
+        gs_tile |= FLAG_CURSOR;
+
     if (gs_tile != ds_tile || force) {
         draw_rect(dr, dx, dy, TILE_SIZE, TILE_SIZE, COL_BACKGROUND);
         draw_rect_outline(dr, dx, dy, TILE_SIZE, TILE_SIZE, COL_GRID);
 
-        if (gs_tile &~ (LASER_WRONG | LASER_OMITTED)) {
+        if (gs_tile &~ (LASER_WRONG | LASER_OMITTED | FLAG_CURSOR)) {
             char str[10];
             int tcol = flash ? COL_FLASHTEXT : omitted ? COL_WRONG : COL_TEXT;
 
@@ -1259,11 +1317,20 @@ static void draw_laser_tile(drawing *dr, game_state *gs, game_drawstate *ds,
                       FONT_VARIABLE, TILE_SIZE/2, ALIGN_VCENTRE | ALIGN_HCENTRE,
                       tcol, str);
         }
+        if (gs_tile & FLAG_CURSOR) {
+            int coff = TILE_SIZE/16;
+             draw_rect_outline(dr, dx + coff, dy + coff,
+                               TILE_SIZE - coff*2,
+                               TILE_SIZE - coff*2,
+                               COL_DIMLASER);
+        }
+
         draw_update(dr, dx, dy, TILE_SIZE, TILE_SIZE);
     }
     GRID(ds, gx, gy) = gs_tile;
 }
 
+#define CUR_ANIM 0.2F
 
 static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 			game_state *state, int dir, game_ui *ui,
@@ -1311,20 +1378,30 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
     /* draw the arena */
     for (x = 0; x < state->w; x++) {
         for (y = 0; y < state->h; y++) {
-            draw_arena_tile(dr, state, ds, x, y, force, isflash);
+            draw_arena_tile(dr, state, ds, ui, x, y, force, isflash);
         }
     }
 
     /* draw the lasers */
+    ds->flash_laserno = LASER_EMPTY;
+    if (ui->flash_laser == 1)
+        ds->flash_laserno = ui->flash_laserno;
+    else if (ui->flash_laser == 2 && animtime > 0)
+        ds->flash_laserno = ui->flash_laserno;
+
     for (i = 0; i < 2*(state->w+state->h); i++) {
         draw_laser_tile(dr, state, ds, ui, i, force);
     }
 
     /* draw the 'finish' button */
     if (CAN_REVEAL(state)) {
+        int col = (ui->cur_visible && ui->cur_x == 0 && ui->cur_y == 0)
+            ? COL_DIMLASER : COL_BALL;
         clip(dr, TODRAW(0), TODRAW(0), TILE_SIZE-1, TILE_SIZE-1);
         draw_circle(dr, TODRAW(0) + ds->crad, TODRAW(0) + ds->crad, ds->crad,
-                    COL_BUTTON, COL_BALL);
+                    COL_BUTTON, col);
+        draw_circle(dr, TODRAW(0) + ds->crad, TODRAW(0) + ds->crad, ds->crad-1,
+                    COL_BUTTON, col);
 	unclip(dr);
     } else {
         draw_rect(dr, TODRAW(0), TODRAW(0),
@@ -1332,7 +1409,6 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
     }
     draw_update(dr, TODRAW(0), TODRAW(0), TILE_SIZE, TILE_SIZE);
     ds->reveal = state->reveal;
-    ds->flash_laserno = ui->flash_laserno;
     ds->isflash = isflash;
 
     {
@@ -1373,7 +1449,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 static float game_anim_length(game_state *oldstate, game_state *newstate,
 			      int dir, game_ui *ui)
 {
-    return 0.0F;
+    return (ui->flash_laser == 2) ? CUR_ANIM : 0.0F;
 }
 
 static float game_flash_length(game_state *oldstate, game_state *newstate,

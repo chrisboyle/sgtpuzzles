@@ -1,4 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Puzzles</string>
+    <string name="welcome">Welcome to the Android version of Simon Tatham\'s Puzzles. N.B. the trackball is easier to use than the touchscreen for most of these. For right-click, press the camera button halfway or do a long press on the touchscreen. Online help is available under Menu/Help. This project is released under the MIT license.</string>
+    <string name="chooser_title">Which game?</string>
+    <string name="starting">Starting game</string>
+    <string name="starting_new">Starting new game</string>
+    <string name="starting_custom">Starting custom game</string>
+    <string name="resuming">Resuming game</string>
+    <string name="changing_type">Changing game type</string>
 </resources>

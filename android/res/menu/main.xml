@@ -17,6 +17,8 @@
 <item android:title="Help" android:id="@+id/help" android:icon="@android:drawable/ic_menu_help"><menu>
 	<item android:title="Contents" android:id="@+id/contents"></item>
 	<item android:title="On this game" android:id="@+id/thisgame"></item>
+	<item android:title="Project website" android:id="@+id/website"></item>
+	<item android:title="Email developer" android:id="@+id/email"></item>
 	<item android:title="About" android:id="@+id/about"></item>
 </menu></item>
 <item android:title="Undo" android:id="@+id/undo" android:alphabeticShortcut="u" android:icon="@android:drawable/ic_menu_revert"/>

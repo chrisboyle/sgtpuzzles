@@ -11,7 +11,6 @@ import android.graphics.Typeface;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
-import android.util.Log;
 
 public class Engine extends Thread implements Runtime.CallJavaCB
 {
@@ -20,7 +19,7 @@ public class Engine extends Thread implements Runtime.CallJavaCB
 	Handler handler, toParent;
 	/** True when we have a critical error and want to stop servicing any
 	 * (probably wrong) calls from the engine or making any calls to it */
-	protected boolean handbrake = true;
+	boolean handbrake = true;
 	boolean layoutDone = false;
 	boolean gameWantsTimer = false;
 	int timerInterval = 20;
@@ -62,7 +61,10 @@ public class Engine extends Thread implements Runtime.CallJavaCB
 				if( handbrake && msg.what != Messages.QUIT.ordinal() ) return;
 				switch( Messages.values()[msg.what] ) {
 				case QUIT:     getLooper().quit(); break;
-				case RESIZE:   runtimeCall("jcallback_resize",        new int[]{msg.arg1,msg.arg2}); break;
+				case RESIZE:
+					gameView.stopDrawing = false;
+					runtimeCall("jcallback_resize", new int[]{msg.arg1,msg.arg2});
+					break;
 				case TIMER:    runtimeCall("jcallback_timer_func",    new int[0]);
 					if( gameWantsTimer ) sendMessageDelayed(obtainMessage(Messages.TIMER.ordinal()), timerInterval);
 					break;
@@ -79,7 +81,7 @@ public class Engine extends Thread implements Runtime.CallJavaCB
 				case REDO:     runtimeCall("jcallback_key_event",     new int[]{ 0, 0, 'r' }); break;
 				case ABOUT:    runtimeCall("jcallback_about_event",   new int[0]); break;
 				case CONFIG:   runtimeCall("jcallback_config_event",  new int[]{ msg.arg1 }); break;
-				case KEY:
+				case KEY: case DRAG:  // DRAG is the same as KEY but the distinction allows removing all DRAGs from the queue
 					int k = ((Integer)msg.obj).intValue();
 					if( runtimeCall("jcallback_key_event", new int[]{ msg.arg1, msg.arg2, k }) == 0 )
 						toParent.sendEmptyMessage(Messages.QUIT.ordinal());
@@ -168,7 +170,11 @@ public class Engine extends Thread implements Runtime.CallJavaCB
 			case 3: { // Resize
 				// Refuse this, we have a fixed size screen (except for orientation changes)
 				int w = gameView.w, h = gameView.h;
-				if( w == 0 || h == 0 ) throw new Exception("View size unknown");
+				if( w == 0 || h == 0 ) {
+					sleep(200); // hope UI thread wakes up and fills this in
+					w = gameView.w; h = gameView.h;
+					if( w == 0 || h == 0 ) return 0;
+				}
 				runtimeCall("jcallback_resize", new int[] {w,h});
 				return 0; }
 			case 4: // drawing tasks
@@ -205,8 +211,10 @@ public class Engine extends Thread implements Runtime.CallJavaCB
 				if( arg1 == 0 ) path.moveTo(arg2, arg3);
 				else path.lineTo(arg2, arg3);
 				return 0;
-			case 7: gameView.drawText( runtime.cstring(arg3), xarg1, xarg2, arg1,
-						(xarg3 & 0x10) != 0 ? Typeface.MONOSPACE : Typeface.DEFAULT, xarg3, arg2); return 0;
+			case 7:
+				gameView.drawText( runtime.cstring(arg3), xarg1, xarg2, arg1,
+						(xarg3 & 0x10) != 0 ? Typeface.MONOSPACE : Typeface.DEFAULT, xarg3, arg2);
+				return 0;
 			case 8: gameView.blitterSave(arg1,arg2,arg3); return 0;
 			case 9: gameView.blitterLoad(arg1,arg2,arg3); return 0;
 			case 10: // dialog_init
@@ -247,7 +255,7 @@ public class Engine extends Thread implements Runtime.CallJavaCB
 				savingState.append(new String(buf));
 				return 0;
 			case 15:
-				Log.d("engine",runtime.cstring(arg1));
+				//Log.d("engine",runtime.cstring(arg1));
 				return 0;
 			default:
 				if (cmd >= 1024 && cmd < 2048) gameView.colours[cmd-1024] = Color.rgb(arg1, arg2, arg3);

@@ -101,6 +101,7 @@ enum {
     COL_HIGHLIGHT,
     COL_MISTAKE,
     COL_SATISFIED,
+    COL_CURSOR,
     NCOLOURS
 };
 
@@ -204,6 +205,10 @@ enum line_drawstate { DS_LINE_YES, DS_LINE_UNKNOWN,
 #define OPP(line_state) \
     (2 - line_state)
 
+/* Define this to display the crosshair cursor. The highlighted-edge
+ * cursor is always displayed (this is the thing you're actually
+ * interested in). */
+#define CURSOR_IS_VISIBLE 1
 
 struct game_drawstate {
     int started;
@@ -212,6 +217,13 @@ struct game_drawstate {
     char *lines;
     char *clue_error;
     char *clue_satisfied;
+
+    int cur_visible;
+#ifdef CURSOR_IS_VISIBLE
+    int cur_bl_x, cur_bl_y;
+    blitter *cur_bl;
+#endif
+    grid_edge *cur_edge;
 };
 
 static char *validate_desc(game_params *params, char *desc);
@@ -763,13 +775,27 @@ static char *encode_solve_move(const game_state *state)
     return ret;
 }
 
+struct game_ui {
+    int cur_x, cur_y; /* grid coordinates. */
+    int cur_visible;
+};
+
+
 static game_ui *new_ui(game_state *state)
 {
-    return NULL;
+    grid *g = state->game_grid;
+    grid_edge *e = g->middle_face->edges[0]; /* an edge on the middle face. */
+
+    game_ui *ui = snew(game_ui);
+    ui->cur_x = (e->dot1->x + e->dot2->x)/2; /* cursor starts in the middle... */
+    ui->cur_y = (e->dot1->y + e->dot2->y)/2; /* ... of that edge. */
+    ui->cur_visible = 0;
+    return ui;
 }
 
 static void free_ui(game_ui *ui)
 {
+    sfree(ui);
 }
 
 static char *encode_ui(game_ui *ui)
@@ -803,10 +829,23 @@ static void game_compute_size(game_params *params, int tilesize,
     *y = rendered_height + 2 * BORDER(tilesize) + 1;
 }
 
+#ifdef CURSOR_IS_VISIBLE
+#define BLITTER_HSZ ((ds->tilesize)/8)
+#define BLITTER_SZ (2*(BLITTER_HSZ)+1)
+
+#define CUR_HSZ 1
+#define CUR_SZ 3
+#endif
+
 static void game_set_size(drawing *dr, game_drawstate *ds,
 			  game_params *params, int tilesize)
 {
     ds->tilesize = tilesize;
+
+#ifdef CURSOR_IS_VISIBLE
+    assert(!ds->cur_bl);
+    ds->cur_bl = blitter_new(dr, BLITTER_SZ, BLITTER_SZ);
+#endif
 }
 
 static float *game_colours(frontend *fe, int *ncolours)
@@ -830,6 +869,10 @@ static float *game_colours(frontend *fe, int *ncolours)
     ret[COL_MISTAKE * 3 + 0] = 1.0F;
     ret[COL_MISTAKE * 3 + 1] = 0.0F;
     ret[COL_MISTAKE * 3 + 2] = 0.0F;
+
+    ret[COL_CURSOR * 3 + 0] = 0.5F;
+    ret[COL_CURSOR * 3 + 1] = 0.5F;
+    ret[COL_CURSOR * 3 + 2] = 1.0F;
 
     ret[COL_SATISFIED * 3 + 0] = 0.0F;
     ret[COL_SATISFIED * 3 + 1] = 0.0F;
@@ -856,11 +899,22 @@ static game_drawstate *game_new_drawstate(drawing *dr, game_state *state)
     memset(ds->clue_error, 0, num_faces);
     memset(ds->clue_satisfied, 0, num_faces);
 
+    ds->cur_visible = 0;
+#ifdef CURSOR_IS_VISIBLE
+    ds->cur_bl_x = ds->cur_bl_y = 0;
+    ds->cur_bl = NULL;
+#endif
+    ds->cur_edge = NULL;
+
     return ds;
 }
 
 static void game_free_drawstate(drawing *dr, game_drawstate *ds)
 {
+#ifdef CURSOR_IS_VISIBLE
+    if (ds->cur_bl) blitter_free(dr, ds->cur_bl);
+#endif
+
     sfree(ds->clue_error);
     sfree(ds->clue_satisfied);
     sfree(ds->lines);
@@ -2983,6 +3037,54 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
     char button_char = ' ';
     enum line_state old_state;
 
+    if (IS_CURSOR_MOVE(button)) {
+        int dx = 0, dy = 0, x = ui->cur_x, y = ui->cur_y;
+        grid_edge *newe;
+
+        switch (button) {
+        case CURSOR_UP:         dy = -1; break;
+        case CURSOR_DOWN:       dy = 1; break;
+        case CURSOR_RIGHT:      dx = 1; break;
+        case CURSOR_LEFT:       dx = -1; break;
+        default: assert(!"unknown cursor");
+        }
+
+        /* We keep moving in the offset direction until we reach the sides
+         * of the grid (in which case we don't move the cursor) or we are
+         * nearer to a new edge (in which case we update the cursor position
+         * and return that). */
+        e = newe = grid_nearest_edge(g, ui->cur_x, ui->cur_y);
+        x = ui->cur_x; y = ui->cur_y;
+        while (newe == e || newe == NULL) {
+            x += dx; y += dy;
+            if (x < g->lowest_x || x > g->highest_x) goto hitedge;
+            if (y < g->lowest_y || y > g->highest_y) goto hitedge;
+            newe = grid_nearest_edge(g, x, y);
+        }
+        ui->cur_x = x; ui->cur_y = y;
+hitedge:
+        ui->cur_visible = 1;
+        return "";
+    } else if (IS_CURSOR_SELECT(button)) {
+        if (!ui->cur_visible) {
+            ui->cur_visible = 1;
+            return "";
+        }
+        e = grid_nearest_edge(g, ui->cur_x, ui->cur_y);
+        if (e == NULL)
+            return NULL;
+        i = e - g->edges;
+
+        old_state = state->lines[i];
+
+        if (button == CURSOR_SELECT2)
+            button_char = (old_state == LINE_UNKNOWN) ? 'n' : 'u';
+        else
+            button_char = (old_state == LINE_UNKNOWN) ? 'y' : 'u';
+
+        goto makemove;
+    }
+
     button &= ~MOD_MASK;
 
     /* Convert mouse-click (x,y) to grid coordinates */
@@ -3033,7 +3135,9 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
 	return NULL;
     }
 
+    ui->cur_visible = 0;
 
+makemove:
     sprintf(buf, "%d%c", i, (int)button_char);
     ret = dupstr(buf);
 
@@ -3085,6 +3189,17 @@ static game_state *execute_move(game_state *state, char *move)
  * Drawing routines.
  */
 
+static void draw_clue(drawing *dr, game_drawstate *ds, int clue, int cx, int cy, int col)
+{
+    char c[2];
+
+    c[0] = CLUE2CHAR(clue);
+    c[1] = '\0';
+    draw_text(dr, cx, cy,
+              FONT_VARIABLE, ds->tilesize/2, 
+              ALIGN_VCENTRE | ALIGN_HCENTRE, col, c);
+}
+
 /* Convert from grid coordinates to screen coordinates */
 static void grid_to_screen(const game_drawstate *ds, const grid *g,
                            int grid_x, int grid_y, int *x, int *y)
@@ -3125,6 +3240,24 @@ static void face_text_pos(const game_drawstate *ds, const grid *g,
     grid_to_screen(ds, g, sx, sy, x, y);
 }
 
+#define PERC(s,e,p) (s + ( (((e)-(s)) * p) /100))
+
+static void draw_thickline_perc(drawing *dr, int x1, int y1, int x2, int y2,
+                                int start, int end, int line_colour)
+{
+  int dx = (x1 > x2) ? -1 : ((x1 < x2) ? 1 : 0);
+  int dy = (y1 > y2) ? -1 : ((y1 < y2) ? 1 : 0);
+  int xs = PERC(x1, x2, start), xe = PERC(x1, x2, end);
+  int ys = PERC(y1, y2, start), ye = PERC(y1, y2, end);
+  int points[] = {
+    xs + dy, ys - dx,
+    xs - dy, ys + dx,
+    xe - dy, ye + dx,
+    xe + dy, ye - dx
+  };
+  draw_polygon(dr, points, 4, line_colour, line_colour);
+}
+
 static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
                         game_state *state, int dir, game_ui *ui,
                         float animtime, float flashtime)
@@ -3132,10 +3265,24 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
     grid *g = state->game_grid;
     int border = BORDER(ds->tilesize);
     int i, n;
-    char c[2];
-    int line_colour, flash_changed;
+    int line_colour, dot_colour, flash_changed;
     int clue_mistake;
     int clue_satisfied;
+    grid_edge *cur_edge;
+
+#ifdef CURSOR_IS_VISIBLE
+    if (ds->cur_visible) {
+        assert(ds->cur_bl);
+        blitter_load(dr, ds->cur_bl, ds->cur_bl_x, ds->cur_bl_y);
+        draw_update(dr, ds->cur_bl_x, ds->cur_bl_y, BLITTER_SZ, BLITTER_SZ);
+    }
+#endif
+
+    if (ui->cur_visible) {
+        cur_edge = grid_nearest_edge(g, ui->cur_x, ui->cur_y);
+    } else {
+        cur_edge = NULL;
+    }
 
     if (!ds->started) {
         /*
@@ -3156,12 +3303,9 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 	    grid_face *f;
             int x, y;
 
-            c[0] = CLUE2CHAR(state->clues[i]);
-            c[1] = '\0';
             f = g->faces + i;
             face_text_pos(ds, g, f, &x, &y);
-            draw_text(dr, x, y, FONT_VARIABLE, ds->tilesize/2,
-                      ALIGN_VCENTRE | ALIGN_HCENTRE, COL_FOREGROUND, c);
+            draw_clue(dr, ds, state->clues[i], x, y, COL_FOREGROUND);
         }
         draw_update(dr, 0, 0, w + 2 * border, h + 2 * border);
     }
@@ -3236,9 +3380,6 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
         if (n < 0)
             continue;
 
-        c[0] = CLUE2CHAR(n);
-        c[1] = '\0';
-
         clue_mistake = (face_order(state, i, LINE_YES) > n ||
                         face_order(state, i, LINE_NO ) > (sides-n));
 
@@ -3255,11 +3396,9 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
             draw_rect(dr, x - ds->tilesize/4 - 1, y - ds->tilesize/4 - 3,
                       ds->tilesize/2 + 2, ds->tilesize/2 + 5,
                       COL_BACKGROUND);
-            draw_text(dr, x, y,
-                      FONT_VARIABLE, ds->tilesize/2,
-                      ALIGN_VCENTRE | ALIGN_HCENTRE,
+            draw_clue(dr, ds, n, x, y,
                       clue_mistake ? COL_MISTAKE :
-                      clue_satisfied ? COL_SATISFIED : COL_FOREGROUND, c);
+                      clue_satisfied ? COL_SATISFIED : COL_FOREGROUND);
             draw_update(dr, x - ds->tilesize/4 - 1, y - ds->tilesize/4 - 3,
                         ds->tilesize/2 + 2, ds->tilesize/2 + 5);
 
@@ -3286,6 +3425,8 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
         need_draw = (new_ds != ds->lines[i]) ? TRUE : FALSE;
         if (flash_changed && (state->lines[i] == LINE_YES))
             need_draw = TRUE;
+        if (e == cur_edge || e == ds->cur_edge)
+            need_draw = TRUE;
         if (!ds->started)
             need_draw = TRUE; /* draw everything at the start */
         ds->lines[i] = new_ds;
@@ -3302,6 +3443,11 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
         else
             line_colour = COL_FOREGROUND;
 
+        if (e == cur_edge)
+            dot_colour = COL_CURSOR;
+        else
+            dot_colour = COL_FOREGROUND;
+
         /* Convert from grid to screen coordinates */
         grid_to_screen(ds, g, e->dot1->x, e->dot1->y, &x1, &y1);
         grid_to_screen(ds, g, e->dot2->x, e->dot2->y, &x2, &y2);
@@ -3311,6 +3457,11 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
         ymin = min(y1, y2);
         ymax = max(y1, y2);
 
+        draw_thickline_perc(dr, x1, y1, x2, y2, 0, 100, line_colour);
+        if (e == cur_edge) {
+            draw_thickline_perc(dr, x1, y1, x2, y2, 25,  75, COL_CURSOR);
+        }
+#if 0
         if (line_colour != COL_BACKGROUND) {
             /* (dx, dy) points roughly from (x1, y1) to (x2, y2).
              * The line is then "fattened" in a (roughly) perpendicular
@@ -3328,10 +3479,11 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 	    points[7] = y2 - dx;
             draw_polygon(dr, points, 4, line_colour, line_colour);
         }
+#endif
         if (ds->started) {
             /* Draw dots at ends of the line */
-            draw_circle(dr, x1, y1, 2, COL_FOREGROUND, COL_FOREGROUND);
-            draw_circle(dr, x2, y2, 2, COL_FOREGROUND, COL_FOREGROUND);
+            draw_circle(dr, x1, y1, 2, dot_colour, dot_colour);
+            draw_circle(dr, x2, y2, 2, dot_colour, dot_colour);
         }
         draw_update(dr, xmin-2, ymin-2, xmax - xmin + 4, ymax - ymin + 4);
     }
@@ -3346,6 +3498,26 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
         }
     }
     ds->started = TRUE;
+
+#ifdef CURSOR_IS_VISIBLE
+    /* Draw current cursor, if present (after all other drawing) */
+    if (ui->cur_visible) {
+        int cx, cy;
+        grid_to_screen(ds, g, ui->cur_x, ui->cur_y, &cx, &cy);
+
+        ds->cur_bl_x = cx - BLITTER_HSZ;
+        ds->cur_bl_y = cy - BLITTER_HSZ;
+        blitter_save(dr, ds->cur_bl, ds->cur_bl_x, ds->cur_bl_y);
+
+        draw_rect(dr, ds->cur_bl_x, cy-CUR_HSZ, BLITTER_SZ, CUR_SZ, COL_CURSOR);
+        draw_rect(dr, cx-CUR_HSZ, ds->cur_bl_y, CUR_SZ, BLITTER_SZ, COL_CURSOR);
+
+        draw_update(dr, ds->cur_bl_x, ds->cur_bl_y, BLITTER_SZ, BLITTER_SZ);
+    }
+#endif
+
+    ds->cur_edge = cur_edge;
+    ds->cur_visible = ui->cur_visible;
 }
 
 static float game_flash_length(game_state *oldstate, game_state *newstate,
@@ -3490,3 +3662,4 @@ const struct game thegame = {
     FALSE, game_timing_state,
     0,                                       /* mouse_priorities */
 };
+/* vim: set shiftwidth=4 tabstop=8: */
