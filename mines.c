@@ -2397,6 +2397,9 @@ static void game_changed_state(game_ui *ui, game_state *oldstate,
 {
     if (newstate->won)
 	ui->completed = TRUE;
+#ifdef ANDROID
+    if (newstate->won && ! newstate->used_solve && oldstate && ! oldstate->won) nestedvm_completed();
+#endif
 }
 
 struct game_drawstate {

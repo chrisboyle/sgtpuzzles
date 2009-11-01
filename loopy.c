@@ -811,6 +811,9 @@ static void decode_ui(game_ui *ui, char *encoding)
 static void game_changed_state(game_ui *ui, game_state *oldstate,
                                game_state *newstate)
 {
+#ifdef ANDROID
+    if (newstate->solved && ! newstate->cheated && oldstate && ! oldstate->solved) nestedvm_completed();
+#endif
 }
 
 static void game_compute_size(game_params *params, int tilesize,

@@ -793,6 +793,9 @@ static void game_changed_state(game_ui *ui, game_state *oldstate,
      * unoccupied.
      */
     ui->dragging = FALSE;
+#ifdef ANDROID
+    if (newstate->completed && oldstate && ! oldstate->completed) nestedvm_completed();
+#endif
 }
 
 #define PREFERRED_TILE_SIZE 33

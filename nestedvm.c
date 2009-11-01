@@ -9,6 +9,7 @@
 #include <stdarg.h>
 #include <string.h>
 #include <errno.h>
+#include <ctype.h>
 
 #include <sys/time.h>
 
@@ -368,11 +369,12 @@ void jcallback_serialise(int ctx)
 
 int nestedvm_deserialise_read(void *ctx, void *buf, int len)
 {
-    if( _fe->readlen < len ) return FALSE;
-    memcpy( buf, _fe->readptr, len );
-    _fe->readptr += len;
-    _fe->readlen -= len;
-    return TRUE;
+    int l = min(len, _fe->readlen);
+    if (l <= 0) return FALSE;
+    memcpy( buf, _fe->readptr, l );
+    _fe->readptr += l;
+    _fe->readlen -= l;
+    return l == len;
 }
 
 int nestedvm_deserialise(char* ptr)
@@ -398,6 +400,19 @@ int jcallback_about_event()
     return 0;
 }
 
+#ifdef COMBINED
+// Android special
+int jcallback_game_htmlhelptopic(int i)
+{
+    return (int)thegame.htmlhelp_topic;
+}
+#endif
+
+void nestedvm_completed()
+{
+	_call_java(2, 0, (int)"Completed!", 0);
+}
+
 int main(int argc, char **argv)
 {
     int i, n;
@@ -407,15 +422,14 @@ int main(int argc, char **argv)
     _fe->timer_active = FALSE;
 #ifdef COMBINED
     // Android special
-    for(i = 0; i < gamecount; i++) {
-	// Need the "internal name"...
-	if( ! gamelist[i]->htmlhelp_topic ) continue;
-	if( strcasecmp(gamelist[i]->htmlhelp_topic, argv[0]) == 0 ) {
-	    thegame = *(gamelist[i]);
-	    break;
-	}
+    if (isdigit(argv[0][0])) {
+	thegame = *(gamelist[atoi(argv[0])]);
+    } else {
+	// Find out which game the savefile is from
+	_fe->me = NULL;  // magic in midend_deserialise
+	if (argc < 3 || nestedvm_deserialise(argv[2]) != 0) exit(1);
+	// thegame is now set
     }
-    if( i == gamecount ) exit(1);
 #endif
     _fe->me = midend_new(_fe, &thegame, &nestedvm_drawing, _fe);
     if (argc > 2 && strcmp(argv[1],"-s") == 0) {

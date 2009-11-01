@@ -1016,6 +1016,9 @@ static void decode_ui(game_ui *ui, char *encoding)
 static void game_changed_state(game_ui *ui, game_state *oldstate,
                                game_state *newstate)
 {
+#ifdef ANDROID
+    if (newstate->completed && oldstate && ! oldstate->completed) nestedvm_completed();
+#endif
 }
 
 struct game_drawstate {
@@ -1385,8 +1388,10 @@ static game_state *execute_move(game_state *from, char *move)
         for (i = 0; i < ret->solid->nfaces; i++)
             if (ret->facecolours[i])
                 j++;
-        if (j == ret->solid->nfaces)
+        if (j == ret->solid->nfaces) {
             ret->completed = ret->movecount;
+        }
+
     }
 
     sfree(poly);

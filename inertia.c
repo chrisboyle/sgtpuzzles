@@ -1512,6 +1512,9 @@ static void game_changed_state(game_ui *ui, game_state *oldstate,
 	ui->just_died = FALSE;
     }
     ui->just_made_move = FALSE;
+#ifdef ANDROID
+    if (!newstate->gems && ! newstate->cheated && oldstate && oldstate->gems) nestedvm_completed();
+#endif
 }
 
 struct game_drawstate {
@@ -1665,6 +1668,9 @@ static game_state *execute_move(game_state *state, char *move)
 	if (AT(w, h, ret->grid, ret->px, ret->py) == GEM) {
 	    LV_AT(w, h, ret->grid, ret->px, ret->py) = BLANK;
 	    ret->gems--;
+#ifdef ANDROID
+	    nestedvm_completed();
+#endif
 	}
 
 	if (AT(w, h, ret->grid, ret->px, ret->py) == MINE) {

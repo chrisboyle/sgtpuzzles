@@ -21,6 +21,7 @@
 WINDOWS  = windows printing
          + user32.lib gdi32.lib comctl32.lib comdlg32.lib winspool.lib
 COMMON   = midend drawing misc malloc random version
+COMMON_COMBINED = midend[COMBINED] drawing misc malloc random version
 GTK      = gtk printing ps
 # Objects needed for auxiliary command-line programs.
 STANDALONE = nullfe random misc malloc
@@ -191,24 +192,34 @@ PuzzleApplet.class: PuzzleApplet.java org
 	mv PuzzleEngine.class $<
 !end
 
-android/puzzles.mips  : [GA] nestedvm[COMBINED] printing COMMON ALL
+android/puzzles.mips  : [GA] nestedvm[COMBINED] printing COMMON_COMBINED ALL
 !begin android
-all: SGTPuzzles_unsigned.apk
+all: SGTPuzzles.apk
 
-SGTPuzzles_unsigned.apk: android/classes.dex android/resources.apk
+install: SGTPuzzles.apk
+	$(ANDROID)/tools/adb install -r $<
+.PHONY: install
+
+SGTPuzzles.apk: android/SGTPuzzles_unsigned.apk
+	@echo \# Trying to sign the package. If you are not Chris Boyle, this \
+	will fail and you should sign $< with some other key \(from keytool\).
+	jarsigner -signedjar $@ $< cmb
+
+android/SGTPuzzles_unsigned.apk: android/classes.dex android/resources.apk
 	$(ANDROID)/tools/apkbuilder $@ -u -f $< -z android/resources.apk -rf android/src
 
 android/classes.dex: android/bin android/bin-stamp
 	$(ANDROID)/tools/dx -JXmx512M --dex --verbose --output=$@ $<
 
 android/resources.apk: android/res/drawable/icon.png android/res/values/arrays.xml \
-		android/AndroidManifest.xml android/res/values/strings.xml
+		android/res/layout/* android/AndroidManifest.xml android/res/values/* \
+		android/res/menu/*
 	$(ANDROID)/tools/aapt package -f -M android/AndroidManifest.xml \
 		-S android/res -I $(ANDROID)/android.jar -F $@
 
 android/src/name/boyle/chris/sgtpuzzles/R.java: android/res/drawable/icon.png \
 		android/AndroidManifest.xml android/res/values/arrays.xml \
-		android/res/values/strings.xml
+		android/res/values/* android/res/layout/* android/res/menu/*
 	$(ANDROID)/tools/aapt package -m -J android/src -M android/AndroidManifest.xml \
 		-S android/res -I $(ANDROID)/android.jar
 
@@ -228,8 +239,9 @@ android/bin/name/boyle/chris/sgtpuzzles/PuzzlesRuntime.class: android/puzzles.mi
 android/bin-stamp: android/bin android/bin/name/boyle/chris/sgtpuzzles/PuzzlesRuntime.class \
 		android/src/name/boyle/chris/sgtpuzzles/*.java \
 		android/src/name/boyle/chris/sgtpuzzles/R.java
-	javac -source 1.5 -target 1.5 -cp .:$(ANDROID)/android.jar -d $< \
-		android/src/name/boyle/chris/sgtpuzzles/*.java
+	javac -source 1.5 -target 1.5 -cp \
+		android/bin:$(ANDROID)/android.jar:$(NESTEDVM)/build:$(NESTEDVM)/upstream/build/classgen/build \
+		-d $< android/src/name/boyle/chris/sgtpuzzles/*.java
 	touch $@
 
 version.o: FORCE;

@@ -1021,6 +1021,9 @@ static void game_changed_state(game_ui *ui, game_state *oldstate,
         sfree(ui->sel);
         ui->sel = NULL;
     }
+#ifdef ANDROID
+    if (newstate->completed && ! newstate->cheated && oldstate && ! oldstate->completed) nestedvm_completed();
+#endif
 }
 
 #define PREFERRED_TILE_SIZE 32

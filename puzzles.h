@@ -524,4 +524,8 @@ extern const int gamecount;
 extern const game thegame;
 #endif
 
+#ifdef ANDROID
+extern void nestedvm_completed();
+#endif
+
 #endif /* PUZZLES_PUZZLES_H */

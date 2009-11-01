@@ -2288,6 +2288,9 @@ static void decode_ui(game_ui *ui, char *encoding)
 static void game_changed_state(game_ui *ui, game_state *oldstate,
                                game_state *newstate)
 {
+#ifdef ANDROID
+    if (newstate->completed && ! newstate->used_solve && oldstate && ! oldstate->completed) nestedvm_completed();
+#endif
 }
 
 #define FLASH_TIME 0.15F
@@ -2883,8 +2886,12 @@ static game_state *execute_move(game_state *state, char *move)
         else if (*move)
             goto badmove;
     }
-    if (check_complete(ret, NULL, NULL))
+    if (check_complete(ret, NULL, NULL)) {
         ret->completed = 1;
+#ifdef ANDROID
+        nestedvm_completed();
+#endif
+    }
     return ret;
 
 badmove:

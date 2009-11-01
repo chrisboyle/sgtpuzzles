@@ -1108,6 +1108,9 @@ static void game_changed_state(game_ui *ui, game_state *oldstate,
      */
     if (newstate->complete || newstate->impossible)
 	ui->displaysel = 0;
+#ifdef ANDROID
+    if (newstate->complete && oldstate && ! oldstate->complete) nestedvm_completed();
+#endif
 }
 
 static char *sel_movedesc(game_ui *ui, game_state *state)

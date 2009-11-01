@@ -13,6 +13,11 @@
 
 #include "puzzles.h"
 
+#ifdef COMBINED
+// For identifying games from saves in midend_deserialise
+extern struct game thegame;
+#endif
+
 enum { DEF_PARAMS, DEF_SEED, DEF_DESC };   /* for midend_game_id_int */
 
 enum { NEWGAME, MOVE, SOLVE, RESTART };/* for midend_state_entry.movetype */
@@ -1470,6 +1475,7 @@ void midend_serialise(midend *me,
 
 /*
  * This function returns NULL on success, or an error message.
+ * Accepts me == null, to identify the game only.
  */
 char *midend_deserialise(midend *me,
                          int (*read)(void *ctx, void *buf, int len),
@@ -1568,10 +1574,27 @@ char *midend_deserialise(midend *me,
                     goto cleanup;
                 }
             } else if (!strcmp(key, "GAME")) {
-                if (strcmp(val, me->ourgame->name)) {
-                    ret = "Save file is from a different game";
+#ifdef COMBINED
+                if (me) {
+#endif
+                    if (strcmp(val, me->ourgame->name)) {
+                        ret = "Save file is from a different game";
+                        goto cleanup;
+                    }
+#ifdef COMBINED
+                } else {
+                    // Look for a game with this name
+                    for (i = 0; i < gamecount; i++) {
+                        if (!strcmp(gamelist[i]->name, val)) {
+                            thegame = *(gamelist[i]);
+                            ret = NULL;
+                            goto cleanup;
+                        }
+                    }
+                    ret = "Save file is not from a game in this collection";
                     goto cleanup;
                 }
+#endif
             } else if (!strcmp(key, "PARAMS")) {
                 sfree(parstr);
                 parstr = val;

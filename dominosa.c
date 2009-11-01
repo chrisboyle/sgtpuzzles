@@ -64,6 +64,7 @@ enum {
     COL_DOMINOCLASH,
     COL_DOMINOTEXT,
     COL_EDGE,
+    COL_CURSOR, COL_DOMINOCURSOR,
     NCOLOURS
 };
 
@@ -546,7 +547,7 @@ static char *new_game_desc(game_params *params, random_state *rs,
 {
     int n = params->n, w = n+2, h = n+1, wh = w*h;
     int *grid, *grid2, *list;
-    int i, j, k, m, todo, done, len;
+    int i, j, k, len;
     char *ret;
 
     /*
@@ -586,241 +587,7 @@ static char *new_game_desc(game_params *params, random_state *rs,
      */
 
     do {
-        /*
-         * To begin with, set grid[i] = i for all i to indicate
-         * that all squares are currently singletons. Later we'll
-         * set grid[i] to be the index of the other end of the
-         * domino on i.
-         */
-        for (i = 0; i < wh; i++)
-            grid[i] = i;
-
-        /*
-         * Now prepare a list of the possible domino locations. There
-         * are w*(h-1) possible vertical locations, and (w-1)*h
-         * horizontal ones, for a total of 2*wh - h - w.
-         *
-         * I'm going to denote the vertical domino placement with
-         * its top in square i as 2*i, and the horizontal one with
-         * its left half in square i as 2*i+1.
-         */
-        k = 0;
-        for (j = 0; j < h-1; j++)
-            for (i = 0; i < w; i++)
-                list[k++] = 2 * (j*w+i);   /* vertical positions */
-        for (j = 0; j < h; j++)
-            for (i = 0; i < w-1; i++)
-                list[k++] = 2 * (j*w+i) + 1;   /* horizontal positions */
-        assert(k == 2*wh - h - w);
-
-        /*
-         * Shuffle the list.
-         */
-        shuffle(list, k, sizeof(*list), rs);
-
-        /*
-         * Work down the shuffled list, placing a domino everywhere
-         * we can.
-         */
-        for (i = 0; i < k; i++) {
-            int horiz, xy, xy2;
-
-            horiz = list[i] % 2;
-            xy = list[i] / 2;
-            xy2 = xy + (horiz ? 1 : w);
-
-            if (grid[xy] == xy && grid[xy2] == xy2) {
-                /*
-                 * We can place this domino. Do so.
-                 */
-                grid[xy] = xy2;
-                grid[xy2] = xy;
-            }
-        }
-
-#ifdef GENERATION_DIAGNOSTICS
-        printf("generated initial layout\n");
-#endif
-
-        /*
-         * Now we've placed as many dominoes as we can immediately
-         * manage. There will be squares remaining, but they'll be
-         * singletons. So loop round and deal with the singletons
-         * two by two.
-         */
-        while (1) {
-#ifdef GENERATION_DIAGNOSTICS
-            for (j = 0; j < h; j++) {
-                for (i = 0; i < w; i++) {
-                    int xy = j*w+i;
-                    int v = grid[xy];
-                    int c = (v == xy+1 ? '[' : v == xy-1 ? ']' :
-                             v == xy+w ? 'n' : v == xy-w ? 'U' : '.');
-                    putchar(c);
-                }
-                putchar('\n');
-            }
-            putchar('\n');
-#endif
-
-            /*
-             * Our strategy is:
-             *
-             * First find a singleton square.
-             *
-             * Then breadth-first search out from the starting
-             * square. From that square (and any others we reach on
-             * the way), examine all four neighbours of the square.
-             * If one is an end of a domino, we move to the _other_
-             * end of that domino before looking at neighbours
-             * again. When we encounter another singleton on this
-             * search, stop.
-             *
-             * This will give us a path of adjacent squares such
-             * that all but the two ends are covered in dominoes.
-             * So we can now shuffle every domino on the path up by
-             * one.
-             *
-             * (Chessboard colours are mathematically important
-             * here: we always end up pairing each singleton with a
-             * singleton of the other colour. However, we never
-             * have to track this manually, since it's
-             * automatically taken care of by the fact that we
-             * always make an even number of orthogonal moves.)
-             */
-            for (i = 0; i < wh; i++)
-                if (grid[i] == i)
-                    break;
-            if (i == wh)
-                break;                 /* no more singletons; we're done. */
-
-#ifdef GENERATION_DIAGNOSTICS
-            printf("starting b.f.s. at singleton %d\n", i);
-#endif
-            /*
-             * Set grid2 to -1 everywhere. It will hold our
-             * distance-from-start values, and also our
-             * backtracking data, during the b.f.s.
-             */
-            for (j = 0; j < wh; j++)
-                grid2[j] = -1;
-            grid2[i] = 0;              /* starting square has distance zero */
-
-            /*
-             * Start our to-do list of squares. It'll live in
-             * `list'; since the b.f.s can cover every square at
-             * most once there is no need for it to be circular.
-             * We'll just have two counters tracking the end of the
-             * list and the squares we've already dealt with.
-             */
-            done = 0;
-            todo = 1;
-            list[0] = i;
-
-            /*
-             * Now begin the b.f.s. loop.
-             */
-            while (done < todo) {
-                int d[4], nd, x, y;
-
-                i = list[done++];
-
-#ifdef GENERATION_DIAGNOSTICS
-                printf("b.f.s. iteration from %d\n", i);
-#endif
-                x = i % w;
-                y = i / w;
-                nd = 0;
-                if (x > 0)
-                    d[nd++] = i - 1;
-                if (x+1 < w)
-                    d[nd++] = i + 1;
-                if (y > 0)
-                    d[nd++] = i - w;
-                if (y+1 < h)
-                    d[nd++] = i + w;
-                /*
-                 * To avoid directional bias, process the
-                 * neighbours of this square in a random order.
-                 */
-                shuffle(d, nd, sizeof(*d), rs);
-
-                for (j = 0; j < nd; j++) {
-                    k = d[j];
-                    if (grid[k] == k) {
-#ifdef GENERATION_DIAGNOSTICS
-                        printf("found neighbouring singleton %d\n", k);
-#endif
-                        grid2[k] = i;
-                        break;         /* found a target singleton! */
-                    }
-
-                    /*
-                     * We're moving through a domino here, so we
-                     * have two entries in grid2 to fill with
-                     * useful data. In grid[k] - the square
-                     * adjacent to where we came from - I'm going
-                     * to put the address _of_ the square we came
-                     * from. In the other end of the domino - the
-                     * square from which we will continue the
-                     * search - I'm going to put the distance.
-                     */
-                    m = grid[k];
-
-                    if (grid2[m] < 0 || grid2[m] > grid2[i]+1) {
-#ifdef GENERATION_DIAGNOSTICS
-                        printf("found neighbouring domino %d/%d\n", k, m);
-#endif
-                        grid2[m] = grid2[i]+1;
-                        grid2[k] = i;
-                        /*
-                         * And since we've now visited a new
-                         * domino, add m to the to-do list.
-                         */
-                        assert(todo < wh);
-                        list[todo++] = m;
-                    }
-                }
-
-                if (j < nd) {
-                    i = k;
-#ifdef GENERATION_DIAGNOSTICS
-                    printf("terminating b.f.s. loop, i = %d\n", i);
-#endif
-                    break;
-                }
-
-                i = -1;                /* just in case the loop terminates */
-            }
-
-            /*
-             * We expect this b.f.s. to have found us a target
-             * square.
-             */
-            assert(i >= 0);
-
-            /*
-             * Now we can follow the trail back to our starting
-             * singleton, re-laying dominoes as we go.
-             */
-            while (1) {
-                j = grid2[i];
-                assert(j >= 0 && j < wh);
-                k = grid[j];
-
-                grid[i] = j;
-                grid[j] = i;
-#ifdef GENERATION_DIAGNOSTICS
-                printf("filling in domino %d/%d (next %d)\n", i, j, k);
-#endif
-                if (j == k)
-                    break;             /* we've reached the other singleton */
-                i = k;
-            }
-#ifdef GENERATION_DIAGNOSTICS
-            printf("fixup path completed\n");
-#endif
-        }
+        domino_layout_prealloc(w, h, rs, grid, grid2, list);
 
         /*
          * Now we have a complete layout covering the whole
@@ -1181,13 +948,21 @@ static char *game_text_format(game_state *state)
     return NULL;
 }
 
+struct game_ui {
+    int cur_x, cur_y, cur_visible;
+};
+
 static game_ui *new_ui(game_state *state)
 {
-    return NULL;
+    game_ui *ui = snew(game_ui);
+    ui->cur_x = ui->cur_y = 0;
+    ui->cur_visible = 0;
+    return ui;
 }
 
 static void free_ui(game_ui *ui)
 {
+    sfree(ui);
 }
 
 static char *encode_ui(game_ui *ui)
@@ -1202,6 +977,11 @@ static void decode_ui(game_ui *ui, char *encoding)
 static void game_changed_state(game_ui *ui, game_state *oldstate,
                                game_state *newstate)
 {
+    if (!oldstate->completed && newstate->completed)
+        ui->cur_visible = 0;
+#ifdef ANDROID
+    if (newstate->completed && ! newstate->cheated && oldstate && ! oldstate->completed) nestedvm_completed();
+#endif
 }
 
 #define PREFERRED_TILESIZE 32
@@ -1263,7 +1043,31 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
             (state->grid[d1] != d1 || state->grid[d2] != d2))
             return NULL;
 
+        ui->cur_visible = 0;
         sprintf(buf, "%c%d,%d", (int)(button == RIGHT_BUTTON ? 'E' : 'D'), d1, d2);
+        return dupstr(buf);
+    } else if (IS_CURSOR_MOVE(button)) {
+        move_cursor(button, &ui->cur_x, &ui->cur_y, w*2-1, h*2-1, 0);
+        ui->cur_visible = 1;
+        return "";
+    } else if (IS_CURSOR_SELECT(button)) {
+        int d1, d2;
+        if (!ui->cur_visible) {
+            ui->cur_visible = 1;
+            return "";
+        }
+        /* if we're not on an edge then return. */
+        if ((ui->cur_x % 2) == 0 && (ui->cur_y % 2) == 0) return NULL;
+        if ((ui->cur_x % 2) != 0 && (ui->cur_y % 2) != 0) return NULL;
+
+        d1 = (ui->cur_y/2)*w + (ui->cur_x/2);
+        d2 = d1 + ((ui->cur_x % 2) ? 1 : w);
+
+        if (button == CURSOR_SELECT2 &&
+            (state->grid[d1] != d1 || state->grid[d2] != d2))
+            return NULL;
+
+        sprintf(buf, "%c%d,%d", (int)(button == CURSOR_SELECT2 ? 'E' : 'D'), d1, d2);
         return dupstr(buf);
     }
 
@@ -1466,9 +1270,19 @@ static float *game_colours(frontend *fe, int *ncolours)
     ret[COL_DOMINOTEXT * 3 + 1] = 1.0F;
     ret[COL_DOMINOTEXT * 3 + 2] = 1.0F;
 
-    ret[COL_EDGE * 3 + 0] = ret[COL_BACKGROUND * 3 + 0] * 2 / 3; 
+    ret[COL_EDGE * 3 + 0] = ret[COL_BACKGROUND * 3 + 0] * 2 / 3;
     ret[COL_EDGE * 3 + 1] = ret[COL_BACKGROUND * 3 + 1] * 2 / 3;
     ret[COL_EDGE * 3 + 2] = ret[COL_BACKGROUND * 3 + 2] * 2 / 3;
+
+    /* Cursors are (currently) usually reddish; however, since reddish
+     * is used here for DOMINOCLASH, I'll go greenish. */
+    ret[COL_CURSOR * 3 + 0] = 0.0F;
+    ret[COL_CURSOR * 3 + 1] = 0.5F;
+    ret[COL_CURSOR * 3 + 2] = 0.0F;
+
+    ret[COL_DOMINOCURSOR * 3 + 0] = 0.25F;
+    ret[COL_DOMINOCURSOR * 3 + 1] = 1.0F;
+    ret[COL_DOMINOCURSOR * 3 + 2] = 0.25F;
 
     *ncolours = NCOLOURS;
     return ret;
@@ -1505,12 +1319,26 @@ enum {
     TYPE_MASK = 0x0F
 };
 
+/* These flags must be disjoint with:
+   * the above enum (TYPE_*)    [0x000 -- 0x00F]
+   * EDGE_*                     [0x100 -- 0xF00]
+ * and must fit into an unsigned long (32 bits).
+ */
+#define DF_FLASH        0x40
+#define DF_CLASH        0x80
+
+#define DF_CURSOR       0x1000
+#define DF_CURSOR_DOM   0x2000
+
+#define CEDGE_OFF       (TILESIZE / 8)
+#define IS_EMPTY(s,x,y) ((s)->grid[(y)*(s)->w+(x)] == ((y)*(s)->w+(x)))
+
 static void draw_tile(drawing *dr, game_drawstate *ds, game_state *state,
                       int x, int y, int type)
 {
     int w = state->w /*, h = state->h */;
     int cx = COORD(x), cy = COORD(y);
-    int nc;
+    int nc, noc = -1;
     char str[80];
     int flags;
 
@@ -1530,13 +1358,13 @@ static void draw_tile(drawing *dr, game_drawstate *ds, game_state *state,
          *  - a slight shift in the number
          */
 
-        if (flags & 0x80)
+        if (flags & DF_CLASH)
             bg = COL_DOMINOCLASH;
         else
             bg = COL_DOMINO;
         nc = COL_DOMINOTEXT;
 
-        if (flags & 0x40) {
+        if (flags & DF_FLASH) {
             int tmp = nc;
             nc = bg;
             bg = tmp;
@@ -1587,12 +1415,21 @@ static void draw_tile(drawing *dr, game_drawstate *ds, game_state *state,
         if (flags & EDGE_R)
             draw_rect(dr, cx+TILESIZE-1, cy+DOMINO_GUTTER,
                       1, TILESIZE-2*DOMINO_GUTTER, COL_EDGE);
+
         nc = COL_TEXT;
     }
 
+    if (flags & DF_CURSOR) {
+        noc = nc;
+        if (nc == COL_TEXT)
+            nc = (flags & DF_CURSOR_DOM) ? COL_DOMINOCURSOR : COL_DOMINOTEXT;
+        else
+            nc = (flags & DF_CURSOR_DOM) ? COL_CURSOR : COL_TEXT;
+    }
+
     sprintf(str, "%d", state->numbers->numbers[y*w+x]);
-    draw_text(dr, cx+TILESIZE/2, cy+TILESIZE/2, FONT_VARIABLE, TILESIZE/2,
-              ALIGN_HCENTRE | ALIGN_VCENTRE, nc, str);
+    draw_text_outline(dr, cx+TILESIZE/2, cy+TILESIZE/2, FONT_VARIABLE, TILESIZE/2,
+              ALIGN_HCENTRE | ALIGN_VCENTRE, nc, noc, str);
 
     draw_update(dr, cx, cy, TILESIZE, TILESIZE);
 }
@@ -1655,13 +1492,24 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
                 n2 = state->numbers->numbers[state->grid[n]];
                 di = DINDEX(n1, n2);
                 if (used[di] > 1)
-                    c |= 0x80;         /* highlight a clash */
+                    c |= DF_CLASH;         /* highlight a clash */
             } else {
                 c |= state->edges[n];
             }
 
             if (flashtime != 0)
-                c |= 0x40;             /* we're flashing */
+                c |= DF_FLASH;             /* we're flashing */
+
+            if (ui->cur_visible) {
+                if (ui->cur_x >= (2*x-1) && ui->cur_x <= (2*x+1) &&
+                    ui->cur_y >= (2*y-1) && ui->cur_y <= (2*y+1))
+                    c |= DF_CURSOR;
+
+                if ((ui->cur_x % 2) && !(ui->cur_y % 2))
+                    c |= DF_CURSOR_DOM;
+                if (!(ui->cur_x % 2) && (ui->cur_y % 2))
+                    c |= DF_CURSOR_DOM;
+            }
 
 	    if (ds->visible[n] != c) {
 		draw_tile(dr, ds, state, x, y, c);
@@ -1700,8 +1548,8 @@ static void game_print_size(game_params *params, float *x, float *y)
      * I'll use 6mm squares by default.
      */
     game_compute_size(params, 600, &pw, &ph);
-    *x = pw / 100.0;
-    *y = ph / 100.0;
+    *x = pw / 100.0F;
+    *y = ph / 100.0F;
 }
 
 static void game_print(drawing *dr, game_state *state, int tilesize)
@@ -1780,3 +1628,6 @@ const struct game thegame = {
     FALSE, game_timing_state,
     0,				       /* flags */
 };
+
+/* vim: set shiftwidth=4 :set textwidth=80: */
+

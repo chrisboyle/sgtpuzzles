@@ -2350,6 +2350,9 @@ static int ui_draw_rect(game_state *state, game_ui *ui,
 static void game_changed_state(game_ui *ui, game_state *oldstate,
                                game_state *newstate)
 {
+#ifdef ANDROID
+    if (newstate->completed && ! newstate->cheated && oldstate && ! oldstate->completed) nestedvm_completed();
+#endif
 }
 
 struct game_drawstate {

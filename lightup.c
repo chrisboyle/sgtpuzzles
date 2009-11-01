@@ -1797,6 +1797,9 @@ static void game_changed_state(game_ui *ui, game_state *oldstate,
 {
     if (newstate->completed)
         ui->cur_visible = 0;
+#ifdef ANDROID
+    if (newstate->completed && ! newstate->used_solve && oldstate && ! oldstate->completed) nestedvm_completed();
+#endif
 }
 
 #define DF_BLACK        1       /* black square */
@@ -1919,7 +1922,8 @@ static game_state *execute_move(game_state *state, char *move)
             move++;
         else if (*move) goto badmove;
     }
-    if (grid_correct(ret)) ret->completed = 1;
+    if (grid_correct(ret))
+        ret->completed = 1;
     return ret;
 
 badmove:

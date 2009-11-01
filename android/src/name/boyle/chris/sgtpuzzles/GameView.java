@@ -17,7 +17,7 @@ import android.view.ViewConfiguration;
 
 class GameView extends View
 {
-	Handler toEngine;
+	SGTPuzzles parent;
 	Bitmap bitmap;
 	Canvas canvas;
 	Paint paint;
@@ -27,41 +27,41 @@ class GameView extends View
 	int longTimeout = ViewConfiguration.getLongPressTimeout();
 	int button;
 	boolean waiting = false;
-	boolean stopDrawing = false;
 	float startX, startY, maxDist = 5.0f;
-	static final int DRAG = Engine.LEFT_DRAG - Engine.LEFT_BUTTON,  // not bit fields, but there's a pattern
-			RELEASE = Engine.LEFT_RELEASE - Engine.LEFT_BUTTON;
+	static final int DRAG = SGTPuzzles.LEFT_DRAG - SGTPuzzles.LEFT_BUTTON,  // not bit fields, but there's a pattern
+			RELEASE = SGTPuzzles.LEFT_RELEASE - SGTPuzzles.LEFT_BUTTON;
 
 	GameView(SGTPuzzles parent)
 	{
 		super(parent);
-		canvas = new Canvas();
+		this.parent = parent;
+		bitmap = Bitmap.createBitmap(100, 100, Bitmap.Config.RGB_565);  // for safety
+		canvas = new Canvas(bitmap);
 		paint = new Paint();
 		blitters = new Bitmap[512];
 	}
 
 	Runnable sendRightClick = new Runnable() {
 		public void run() {
-			button = Engine.RIGHT_BUTTON;
-			toEngine.obtainMessage(Messages.KEY.ordinal(), (int)startX, (int)startY,
-					new Integer(button)).sendToTarget();
+			button = SGTPuzzles.RIGHT_BUTTON;
+			parent.sendKey((int)startX, (int)startY, button);
 			waiting = false;
 		}
 	};
 
 	public boolean onTouchEvent(MotionEvent event)
 	{
-		if( toEngine == null ) return false;
+		// TODO: if (!gameRunning) return false;
 		switch( event.getAction() ) {
 		case MotionEvent.ACTION_DOWN:
 			int meta = event.getMetaState();
-			button = ( meta & KeyEvent.META_ALT_ON ) > 0 ? Engine.MIDDLE_BUTTON :
-				( meta & KeyEvent.META_SHIFT_ON ) > 0  ? Engine.RIGHT_BUTTON :
-				Engine.LEFT_BUTTON;
+			button = ( meta & KeyEvent.META_ALT_ON ) > 0 ? SGTPuzzles.MIDDLE_BUTTON :
+				( meta & KeyEvent.META_SHIFT_ON ) > 0  ? SGTPuzzles.RIGHT_BUTTON :
+				SGTPuzzles.LEFT_BUTTON;
 			startX = event.getX();
 			startY = event.getY();
 			waiting = true;
-			toEngine.postDelayed( sendRightClick, longTimeout );
+			parent.handler.postDelayed( sendRightClick, longTimeout );
 			return true;
 		case MotionEvent.ACTION_MOVE:
 			float x = event.getX(), y = event.getY();
@@ -69,26 +69,19 @@ class GameView extends View
 				if( Math.abs(x-startX) <= maxDist && Math.abs(y-startY) <= maxDist ) {
 					return true;
 				} else {
-					toEngine.obtainMessage(Messages.KEY.ordinal(), (int)startX, (int)startY,
-							new Integer(button)).sendToTarget();
+					parent.sendKey((int)startX, (int)startY, button);
 					waiting = false;
-					toEngine.removeCallbacks( sendRightClick );
+					parent.handler.removeCallbacks( sendRightClick );
 				}
 			}
-			// DRAG is the same as KEY but the distinction allows removing all DRAGs from the queue
-			toEngine.removeMessages(Messages.DRAG.ordinal());
-			toEngine.obtainMessage(Messages.DRAG.ordinal(), (int)x, (int)y,
-					new Integer(button + DRAG)).sendToTarget();
+			parent.sendKey((int)x, (int)y, button + DRAG);
 			return true;
 		case MotionEvent.ACTION_UP:
 			if( waiting ) {
-				toEngine.removeCallbacks( sendRightClick );
-				toEngine.obtainMessage(Messages.KEY.ordinal(), (int)startX, (int)startY,
-						new Integer(button)).sendToTarget();
+				parent.handler.removeCallbacks( sendRightClick );
+				parent.sendKey((int)startX, (int)startY, button);
 			}
-			toEngine.obtainMessage(Messages.KEY.ordinal(), (int)event.getX(), (int)event.getY(),
-				new Integer(button + RELEASE)).sendToTarget();
-			toEngine.sendEmptyMessage(Messages.SAVE.ordinal());
+			parent.sendKey((int)event.getX(), (int)event.getY(), button + RELEASE);
 			return true;
 		default:
 			return false;
@@ -107,8 +100,7 @@ class GameView extends View
 		canvas.setBitmap(bitmap);
 		clear();
 		this.w = w; this.h = h;
-		if( toEngine == null ) return;
-		if( oldw != 0 ) toEngine.obtainMessage(Messages.RESIZE.ordinal(), w, h).sendToTarget();
+		parent.gameViewResized();
 	}
 
 	public void setBackgroundColor( int colour )
@@ -151,14 +143,12 @@ class GameView extends View
 	}
 	void fillRect(int x1, int y1, int x2, int y2, int colour)
 	{
-		if( stopDrawing ) return;
 		paint.setColor(colours[colour]);
 		paint.setStyle(Paint.Style.FILL);
 		canvas.drawRect(x1, y1, x2, y2, paint);
 	}
 	void drawLine(int x1, int y1, int x2, int y2, int colour)
 	{
-		if( stopDrawing ) return;
 		paint.setColor(colours[colour]);
 		paint.setAntiAlias( true );
 		canvas.drawLine(x1, y1, x2, y2, paint);
@@ -166,7 +156,6 @@ class GameView extends View
 	}
 	void drawPoly(Path p, int lineColour, int fillColour)
 	{
-		if( stopDrawing ) return;
 		if (fillColour != -1) {
 			paint.setColor(colours[fillColour]);
 			paint.setStyle(Paint.Style.FILL);
@@ -178,7 +167,6 @@ class GameView extends View
 	}
 	void drawCircle(int x, int y, int r, int lineColour, int fillColour)
 	{
-		if( stopDrawing ) return;
 		if (fillColour != -1) {
 			paint.setColor(colours[fillColour]);
 			paint.setStyle(Paint.Style.FILL);
@@ -190,16 +178,15 @@ class GameView extends View
 	}
 	void drawText(String text, int x, int y, int size, Typeface tf, int align, int colour)
 	{
-		if( stopDrawing ) return;
 		paint.setColor(colours[colour]);
 		paint.setTypeface( tf );
 		paint.setTextSize(size);
 		Paint.FontMetrics fm = paint.getFontMetrics();
 		float asc = Math.abs(fm.ascent), desc = Math.abs(fm.descent);
-		if ((align & Engine.ALIGN_VCENTRE) != 0) y += asc - (asc+desc)/2;
+		if ((align & SGTPuzzles.ALIGN_VCENTRE) != 0) y += asc - (asc+desc)/2;
 		else y += asc;
-		if ((align & Engine.ALIGN_HCENTRE) != 0) paint.setTextAlign( Paint.Align.CENTER );
-		else if ((align & Engine.ALIGN_HRIGHT) != 0) paint.setTextAlign( Paint.Align.RIGHT );
+		if ((align & SGTPuzzles.ALIGN_HCENTRE) != 0) paint.setTextAlign( Paint.Align.CENTER );
+		else if ((align & SGTPuzzles.ALIGN_HRIGHT) != 0) paint.setTextAlign( Paint.Align.RIGHT );
 		else paint.setTextAlign( Paint.Align.LEFT );
 		paint.setAntiAlias( true );
 		canvas.drawText( text, x, y, paint );
