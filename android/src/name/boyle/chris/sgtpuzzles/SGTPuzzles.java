@@ -60,7 +60,7 @@ public class SGTPuzzles extends Activity
 		TableLayout dialogLayout;
 		public void handleMessage( Message msg ) {
 			switch(Messages.values()[msg.what]) {
-			case QUIT: quit(); break;
+			case QUIT: quit(false); break;
 			case DIE: die(getStackTrace((Throwable)msg.obj)); break;
 			case INIT:
 				setTitle( (String)msg.obj );
@@ -223,8 +223,8 @@ public class SGTPuzzles extends Activity
 		gv.setColumnWidth(50);
 		gv.setOnItemClickListener(new OnItemClickListener() {
 			public void onItemClick(AdapterView<?> arg0, View arg1, int which, long arg3) {
-				String savedEngine = games[which];
-				startGame(savedEngine, new String[]{ savedEngine });
+				String chosenEngine = games[which];
+				startGame(chosenEngine, new String[]{ chosenEngine });
 				SGTPuzzles.this.dismissDialog(0);
 			}
 		});
@@ -339,15 +339,15 @@ public class SGTPuzzles extends Activity
 		return true;
 	}
 
-	void quit()
+	void quit(boolean fromDestroy)
 	{
 		engine.stopRuntime(null);
 		if( engine.isAlive() && engine.handler != null ) engine.handler.sendEmptyMessage(Messages.QUIT.ordinal());
-		finish();
+		if( ! fromDestroy ) finish();
 	}
 	
 	OnCancelListener quitListener = new OnCancelListener() {
-		public void onCancel(DialogInterface dialog) { quit(); }
+		public void onCancel(DialogInterface dialog) { quit(false); }
 	};
 
 	String getStackTrace( Throwable t )
@@ -429,7 +429,7 @@ public class SGTPuzzles extends Activity
 
 	protected void onDestroy()
 	{
-		quit();
+		quit(true);
 		super.onDestroy();
 	}
 

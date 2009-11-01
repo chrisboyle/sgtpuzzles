@@ -156,8 +156,6 @@ public class Engine extends Thread implements Runtime.CallJavaCB
 				if ((arg2 & 1) != 0) toParent.sendEmptyMessage(Messages.ENABLE_CUSTOM.ordinal());
 				if ((arg2 & 4) != 0) toParent.sendEmptyMessage(Messages.ENABLE_SOLVE.ordinal());
 				gameView.colours = new int[arg3];
-				// Waiting here speeds things up by preventing a resize/redraw event later
-				if( hasStatus ) while(! layoutDone) sleep(100);
 				return 0;
 			case 1: // Type menu item
 				toParent.obtainMessage(Messages.ADDTYPE.ordinal(),arg2,0,runtime.cstring(arg1)).sendToTarget();
@@ -169,13 +167,9 @@ public class Engine extends Thread implements Runtime.CallJavaCB
 				return 0;
 			case 3: { // Resize
 				// Refuse this, we have a fixed size screen (except for orientation changes)
-				int w = gameView.w, h = gameView.h;
-				if( w == 0 || h == 0 ) {
-					sleep(200); // hope UI thread wakes up and fills this in
-					w = gameView.w; h = gameView.h;
-					if( w == 0 || h == 0 ) return 0;
-				}
-				runtimeCall("jcallback_resize", new int[] {w,h});
+				// (wait for UI to finish doing layout first)
+				while(gameView.w == 0 || gameView.h == 0 || ! layoutDone) sleep(200);
+				runtimeCall("jcallback_resize", new int[] {gameView.w,gameView.h});
 				return 0; }
 			case 4: // drawing tasks
 				switch(arg1) {
