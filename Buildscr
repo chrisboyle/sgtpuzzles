@@ -106,6 +106,13 @@ in puzzles do ./makedist.sh $(revision)
 # compiler and tools.
 in puzzles do make -f Makefile.nestedvm NESTEDVM=$(NESTEDVM) VER=-DREVISION=$(revision)
 
+# Build the Android application. This requires NESTEDVM as above
+# and ANDROID pointing at the Android SDK. Also, the apk (Android
+# package) file it produces will be unsigned and must be signed
+# with jarsigner (with any key) before devices will accept it.
+# http://code.google.com/android/intro/develop-and-debug.html#signing
+in puzzles do make -f Makefile.android ANDROID=$(ANDROID) NESTEDVM=$(NESTEDVM) VER=-DREVISION=$(revision)
+
 # Set up .htaccess containing a redirect for the archive filename.
 in puzzles do echo "AddType application/octet-stream .chm" > .htaccess
 in puzzles do echo "AddType application/octet-stream .hlp" >> .htaccess

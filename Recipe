@@ -14,6 +14,7 @@
 !makefile cygwin Makefile.cyg
 !makefile osx Makefile.osx
 !makefile nestedvm Makefile.nestedvm
+!makefile android Makefile.android
 
 !srcdir icons/
 
@@ -127,6 +128,7 @@ FORCE:
 	fi
 !end
 !specialobj nestedvm version
+
 # For OS X, this is made more fiddly by the fact that we don't have
 # md5sum readily available. We do, however, have `md5 -r' which
 # generates _nearly_ the same output, but it has no check function.
@@ -170,16 +172,74 @@ install:
 
 org:
 	mkdir -p org/ibex/nestedvm/util
-	cp $(NESTEDVM)/build/org/ibex/nestedvm/{Registers,UsermodeConstants,Runtime*}.class org/ibex/nestedvm
-	cp $(NESTEDVM)/build/org/ibex/nestedvm/util/{Platform*,Seekable*}.class org/ibex/nestedvm/util
+	cp $(NESTEDVM)/build/org/ibex/nestedvm/Registers.class org/ibex/nestedvm
+	cp $(NESTEDVM)/build/org/ibex/nestedvm/UsermodeConstants.class org/ibex/nestedvm
+	cp $(NESTEDVM)/build/org/ibex/nestedvm/Runtime*.class org/ibex/nestedvm
+	cp $(NESTEDVM)/build/org/ibex/nestedvm/util/Platform*.class org/ibex/nestedvm/util
+	cp $(NESTEDVM)/build/org/ibex/nestedvm/util/Seekable*.class org/ibex/nestedvm/util
+
+applet.manifest:
 	echo "Main-Class: PuzzleApplet" >applet.manifest
 
 PuzzleApplet.class: PuzzleApplet.java org
 	javac -source 1.3 -target 1.3 PuzzleApplet.java
 
-%.jar: %.class PuzzleApplet.class org
+%.jar: %.class PuzzleApplet.class org applet.manifest
 	mv $< PuzzleEngine.class
 	jar cfm $@ applet.manifest PuzzleEngine.class PuzzleApplet*.class org
 	echo '<applet archive="'$@'" code="PuzzleApplet" width="700" height="500"></applet>' >$*.html
 	mv PuzzleEngine.class $<
 !end
+
+android/puzzles.mips  : [GA] nestedvm[COMBINED] printing COMMON ALL
+!begin android
+all: SGTPuzzles.apk
+
+SGTPuzzles.apk: android/classes.dex android/resources.apk
+	$(ANDROID)/tools/apkbuilder $@ -u -f $< -z android/resources.apk -rf android/src
+
+android/classes.dex: android/bin android/bin-stamp
+	$(ANDROID)/tools/dx -JXmx512M --dex --verbose --output=$@ $<
+
+android/resources.apk: android/res/drawable/icon.png android/res/values/arrays.xml \
+		android/AndroidManifest.xml
+	$(ANDROID)/tools/aapt package -f -M android/AndroidManifest.xml \
+		-S android/res -I $(ANDROID)/android.jar -F $@
+
+android/src/name/boyle/chris/sgtpuzzles/R.java: android/res/drawable/icon.png \
+		android/AndroidManifest.xml android/res/values/arrays.xml
+	$(ANDROID)/tools/aapt package -m -J android/src -M android/AndroidManifest.xml \
+		-S android/res -I $(ANDROID)/android.jar
+
+android/bin:
+	mkdir -p $@/org/ibex/nestedvm/util
+	cp $(NESTEDVM)/build/org/ibex/nestedvm/Registers.class $@/org/ibex/nestedvm
+	cp $(NESTEDVM)/build/org/ibex/nestedvm/UsermodeConstants.class $@/org/ibex/nestedvm
+	cp $(NESTEDVM)/build/org/ibex/nestedvm/Runtime*.class $@/org/ibex/nestedvm
+	cp $(NESTEDVM)/build/org/ibex/nestedvm/util/Platform*.class $@/org/ibex/nestedvm/util
+	cp $(NESTEDVM)/build/org/ibex/nestedvm/util/Seekable*.class $@/org/ibex/nestedvm/util
+
+android/bin/name/boyle/chris/sgtpuzzles/PuzzlesRuntime.class: android/puzzles.mips
+	java -cp $(NESTEDVM)/build:$(NESTEDVM)/upstream/build/classgen/build \
+		org.ibex.nestedvm.Compiler -outformat class -d android/bin \
+		name.boyle.chris.sgtpuzzles.PuzzlesRuntime $<
+
+android/bin-stamp: android/bin android/bin/name/boyle/chris/sgtpuzzles/PuzzlesRuntime.class \
+		android/src/name/boyle/chris/sgtpuzzles/*.java \
+		android/src/name/boyle/chris/sgtpuzzles/R.java
+	javac -source 1.5 -target 1.5 -cp .:$(ANDROID)/android.jar -d $< \
+		android/src/name/boyle/chris/sgtpuzzles/*.java
+	touch $@
+
+version.o: FORCE;
+FORCE:
+	if test -z "$(VER)" && test -f manifest && md5sum -c manifest; then \
+		$(CC) $(COMPAT) $(GAFLAGS) $(CFLAGS) `cat version.def` -c version.c; \
+	elif test -z "$(VER)" && test -d .svn && svnversion . >/dev/null 2>&1; then \
+		$(CC) $(COMPAT) $(GAFLAGS) $(CFLAGS) "-DREVISION=`svnversion .`" -c version.c; \
+	else \
+		$(CC) $(COMPAT) $(GAFLAGS) $(CFLAGS) $(VER) -c version.c; \
+	fi
+!end
+!specialobj android version
+

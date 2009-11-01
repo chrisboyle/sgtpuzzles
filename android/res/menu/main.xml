@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+<item android:title="Game" android:id="@+id/game" android:icon="@android:drawable/ic_menu_manage"><menu>
+	<item android:title="Other game" android:id="@+id/other" android:alphabeticShortcut="o" android:icon="@android:drawable/ic_menu_today"/>
+	<item android:title="New game" android:id="@+id/newgame" android:alphabeticShortcut="n" android:icon="@android:drawable/ic_menu_close_clear_cancel"/>
+	<item android:title="Restart" android:id="@+id/restart" android:alphabeticShortcut="e" android:icon="@android:drawable/ic_menu_delete"/>
+	<item android:title="Specific..." android:id="@+id/specific" android:alphabeticShortcut="p"></item>
+	<item android:title="Random seed..." android:id="@+id/seed" android:alphabeticShortcut="d"></item>
+	<!--item android:title="Load..." android:id="@+id/load" android:enabled="false" android:alphabeticShortcut="l" android:icon="@android:drawable/ic_menu_upload"></item>
+	<item android:title="Save..." android:id="@+id/save" android:enabled="false" android:alphabeticShortcut="w" android:icon="@android:drawable/ic_menu_save"></item-->
+</menu></item>
+<item android:title="Type" android:id="@+id/type" android:enabled="false" android:icon="@android:drawable/ic_menu_edit"><menu>
+	<group android:id="@+id/typeGroup" android:checkableBehavior="single">
+		<item android:title="Custom..." android:id="@+id/custom" android:visible="false" android:checkable="true" android:menuCategory="secondary" android:alphabeticShortcut="c" android:icon="@android:drawable/ic_menu_edit"/>
+	</group>
+</menu></item>
+<item android:title="Help" android:id="@+id/help" android:icon="@android:drawable/ic_menu_help"><menu>
+	<item android:title="Contents" android:id="@+id/contents"></item>
+	<item android:title="On this game" android:id="@+id/thisgame"></item>
+	<item android:title="About" android:id="@+id/about"></item>
+</menu></item>
+<item android:title="Undo" android:id="@+id/undo" android:alphabeticShortcut="u" android:icon="@android:drawable/ic_menu_revert"/>
+<item android:title="Redo" android:id="@+id/redo" android:alphabeticShortcut="r" android:icon="@android:drawable/ic_menu_rotate"/>
+<item android:title="Solve" android:id="@+id/solve" android:enabled="false" android:alphabeticShortcut="s" android:icon="@android:drawable/ic_menu_directions"/>
+</menu>
