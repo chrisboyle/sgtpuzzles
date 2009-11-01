@@ -1,15 +1,9 @@
 To do...
-/ Fix inescapable crash on startup in Rectangles
-/ Lag (e.g. trackball in Galaxies 15x15)
-/ Fix shortcut collision Solve / Net lock square (+ others?)
-/ Fix screen remnants on changing game size
-/ Add dominosa cursor
-/ List view with game descriptions
-/ Crash reporting
-/ Warn that generation may take up to 90 secs
-/ Warn of specific slow games
-/ Toast on win
+/ Fix dropdown off-by-one / inclusion of label
+. Save/load files on SD card
+. Galaxies cursor slower as completion approaches?
 . Separate packages
+. Ship help?
 . Chase endless resume?
 . Chase random null pointer exception in solving unequal?
 

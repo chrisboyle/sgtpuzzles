@@ -174,7 +174,7 @@ public class SGTPuzzles extends Activity implements PuzzlesRuntime.CallJavaCB
 
 	void save()
 	{
-		if( runtime == null || dead ) return;
+		if( runtime == null || dead || progress != null ) return;
 		savingState = new StringBuffer();
 		runtimeCall("jcallback_serialise", new int[] { 0 });
 		if( savingState.length() > 0 ) lastSave = savingState.toString();
@@ -780,7 +780,6 @@ public class SGTPuzzles extends Activity implements PuzzlesRuntime.CallJavaCB
 					String joined = runtime.cstring(arg1);
 					StringTokenizer st = new StringTokenizer(joined.substring(1),joined.substring(0,1));
 					ArrayList<String> choices = new ArrayList<String>();
-					choices.add(name);
 					while(st.hasMoreTokens()) choices.add(st.nextToken());
 					dialogIds.add(xarg1);
 					Spinner s = new Spinner(SGTPuzzles.this);
