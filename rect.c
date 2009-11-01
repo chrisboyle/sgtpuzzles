@@ -36,7 +36,7 @@ enum {
     COL_LINE,
     COL_TEXT,
     COL_GRID,
-    COL_DRAG,
+    COL_DRAG, COL_DRAGERASE,
     COL_CURSOR,
     NCOLOURS
 };
@@ -2164,6 +2164,11 @@ struct game_ui {
      * treated as a small drag rather than a click.
      */
     int dragged;
+    /* This flag is set if we're doing an erase operation (i.e.
+     * removing edges in the centre of the rectangle without altering
+     * the outlines).
+     */
+    int erasing;
     /*
      * These are the co-ordinates of the top-left and bottom-right squares
      * in the drag box, respectively, or -1 otherwise.
@@ -2186,7 +2191,7 @@ static game_ui *new_ui(game_state *state)
     ui->drag_start_y = -1;
     ui->drag_end_x = -1;
     ui->drag_end_y = -1;
-    ui->dragged = FALSE;
+    ui->dragged = ui->erasing = FALSE;
     ui->x1 = -1;
     ui->y1 = -1;
     ui->x2 = -1;
@@ -2298,7 +2303,7 @@ static void coord_round(float x, float y, int *xr, int *yr)
  */
 static int grid_draw_rect(game_state *state,
 			  unsigned char *hedge, unsigned char *vedge,
-			  int c, int really,
+			  int c, int really, int outline,
 			  int x1, int y1, int x2, int y2)
 {
     int x, y;
@@ -2311,9 +2316,10 @@ static int grid_draw_rect(game_state *state,
         for (y = y1; y <= y2; y++)
             if (HRANGE(state,x,y)) {
                 int val = index(state,hedge,x,y);
-                if (y == y1 || y == y2)
+                if (y == y1 || y == y2) {
+                    if (!outline) continue;
                     val = c;
-                else if (c == 1)
+                } else if (c == 1)
                     val = 0;
 		changed = changed || (index(state,hedge,x,y) != val);
 		if (really)
@@ -2327,9 +2333,10 @@ static int grid_draw_rect(game_state *state,
         for (x = x1; x <= x2; x++)
             if (VRANGE(state,x,y)) {
                 int val = index(state,vedge,x,y);
-                if (x == x1 || x == x2)
+                if (x == x1 || x == x2) {
+                    if (!outline) continue;
                     val = c;
-                else if (c == 1)
+                } else if (c == 1)
                     val = 0;
 		changed = changed || (index(state,vedge,x,y) != val);
                 if (really)
@@ -2341,9 +2348,9 @@ static int grid_draw_rect(game_state *state,
 
 static int ui_draw_rect(game_state *state, game_ui *ui,
 			unsigned char *hedge, unsigned char *vedge, int c,
-			int really)
+			int really, int outline)
 {
-    return grid_draw_rect(state, hedge, vedge, c, really,
+    return grid_draw_rect(state, hedge, vedge, c, really, outline,
 			  ui->x1, ui->y1, ui->x2, ui->y2);
 }
 
@@ -2365,45 +2372,48 @@ static char *interpret_move(game_state *from, game_ui *ui, game_drawstate *ds,
 			    int x, int y, int button)
 {
     int xc, yc;
-    int startdrag = FALSE, enddrag = FALSE, active = FALSE;
+    int startdrag = FALSE, enddrag = FALSE, active = FALSE, erasing = FALSE;
     char buf[80], *ret;
 
     button &= ~MOD_MASK;
 
     coord_round(FROMCOORD((float)x), FROMCOORD((float)y), &xc, &yc);
 
-    if (button == LEFT_BUTTON) {
+    if (button == LEFT_BUTTON || button == RIGHT_BUTTON) {
         startdrag = TRUE;
-        ui->cur_visible = ui->cur_dragging = 0;
+        ui->cur_visible = ui->cur_dragging = FALSE;
         active = TRUE;
-    } else if (button == LEFT_RELEASE) {
+        erasing = (button == RIGHT_BUTTON);
+    } else if (button == LEFT_RELEASE || button == RIGHT_RELEASE) {
         /* We assert we should have had a LEFT_BUTTON first. */
         assert(!ui->cur_visible);
         assert(!ui->cur_dragging);
         enddrag = TRUE;
+        erasing = (button == RIGHT_RELEASE);
     } else if (IS_CURSOR_MOVE(button)) {
         move_cursor(button, &ui->cur_x, &ui->cur_y, from->w, from->h, 0);
-        ui->cur_visible = 1;
+        ui->cur_visible = TRUE;
         active = TRUE;
         if (!ui->cur_dragging) return "";
         coord_round((float)ui->cur_x + 0.5F, (float)ui->cur_y + 0.5F, &xc, &yc);
     } else if (IS_CURSOR_SELECT(button)) {
         if (!ui->cur_visible) {
             assert(!ui->cur_dragging);
-            ui->cur_visible = 1;
+           ui->cur_visible = TRUE;
             return "";
         }
         coord_round((float)ui->cur_x + 0.5F, (float)ui->cur_y + 0.5F, &xc, &yc);
+        erasing = (button == CURSOR_SELECT2);
         if (ui->cur_dragging) {
-            ui->cur_dragging = 0;
+            ui->cur_dragging = FALSE;
             enddrag = TRUE;
-            active = 1;
+            active = TRUE;
         } else {
-            ui->cur_dragging = 1;
+            ui->cur_dragging = TRUE;
             startdrag = TRUE;
-            active = 1;
+            active = TRUE;
         }
-    } else if (button != LEFT_DRAG) {
+    } else if (button != LEFT_DRAG && button != RIGHT_DRAG) {
         return NULL;
     }
 
@@ -2416,6 +2426,7 @@ static char *interpret_move(game_state *from, game_ui *ui, game_drawstate *ds,
         ui->drag_end_x = -1;
         ui->drag_end_y = -1;
         ui->dragged = FALSE;
+        ui->erasing = erasing;
         active = TRUE;
     }
 
@@ -2423,9 +2434,10 @@ static char *interpret_move(game_state *from, game_ui *ui, game_drawstate *ds,
 	(xc != ui->drag_end_x || yc != ui->drag_end_y)) {
 	int t;
 
+	if (ui->drag_end_x != -1 && ui->drag_end_y != -1)
+	    ui->dragged = TRUE;
         ui->drag_end_x = xc;
         ui->drag_end_y = yc;
-        ui->dragged = TRUE;
         active = TRUE;
 
 	if (xc >= 0 && xc <= 2*from->w &&
@@ -2454,12 +2466,14 @@ static char *interpret_move(game_state *from, game_ui *ui, game_drawstate *ds,
 
     if (enddrag && (ui->drag_start_x >= 0)) {
 	if (xc >= 0 && xc <= 2*from->w &&
-	    yc >= 0 && yc <= 2*from->h) {
+	    yc >= 0 && yc <= 2*from->h &&
+            erasing == ui->erasing) {
 
 	    if (ui->dragged) {
 		if (ui_draw_rect(from, ui, from->hedge,
-				 from->vedge, 1, FALSE)) {
-		    sprintf(buf, "R%d,%d,%d,%d",
+				 from->vedge, 1, FALSE, !ui->erasing)) {
+		    sprintf(buf, "%c%d,%d,%d,%d",
+			    (int)(ui->erasing ? 'E' : 'R'),
 			    ui->x1, ui->y1, ui->x2 - ui->x1, ui->y2 - ui->y1);
 		    ret = dupstr(buf);
 		}
@@ -2523,7 +2537,7 @@ static game_state *execute_move(game_state *from, char *move)
 
 	return ret;
 
-    } else if (move[0] == 'R' &&
+    } else if ((move[0] == 'R' || move[0] == 'E') &&
 	sscanf(move+1, "%d,%d,%d,%d", &x1, &y1, &x2, &y2) == 4 &&
 	x1 >= 0 && x2 >= 0 && x1+x2 <= from->w &&
 	y1 >= 0 && y2 >= 0 && y1+y2 <= from->h) {
@@ -2540,8 +2554,9 @@ static game_state *execute_move(game_state *from, char *move)
 
     ret = dup_game(from);
 
-    if (mode == 'R') {
-	grid_draw_rect(ret, ret->hedge, ret->vedge, 1, TRUE, x1, y1, x2, y2);
+    if (mode == 'R' || mode == 'E') {
+	grid_draw_rect(ret, ret->hedge, ret->vedge, 1, TRUE,
+                       mode == 'R', x1, y1, x2, y2);
     } else if (mode == 'H') {
 	hedge(ret,x1,y1) = !hedge(ret,x1,y1);
     } else if (mode == 'V') {
@@ -2578,7 +2593,7 @@ static game_state *execute_move(game_state *from, char *move)
 #define CORRECT (1L<<16)
 #define CURSOR  (1L<<17)
 
-#define COLOUR(k) ( (k)==1 ? COL_LINE : COL_DRAG )
+#define COLOUR(k) ( (k)==1 ? COL_LINE : (k)==2 ? COL_DRAG : COL_DRAGERASE )
 #define MAX4(x,y,z,w) ( max(max(x,y),max(z,w)) )
 
 static void game_compute_size(game_params *params, int tilesize,
@@ -2611,6 +2626,10 @@ static float *game_colours(frontend *fe, int *ncolours)
     ret[COL_DRAG * 3 + 0] = 1.0F;
     ret[COL_DRAG * 3 + 1] = 0.0F;
     ret[COL_DRAG * 3 + 2] = 0.0F;
+
+    ret[COL_DRAGERASE * 3 + 0] = 0.2F;
+    ret[COL_DRAGERASE * 3 + 1] = 0.2F;
+    ret[COL_DRAGERASE * 3 + 2] = 1.0F;
 
     ret[COL_CORRECT * 3 + 0] = 0.75F * ret[COL_BACKGROUND * 3 + 0];
     ret[COL_CORRECT * 3 + 1] = 0.75F * ret[COL_BACKGROUND * 3 + 1];
@@ -2723,7 +2742,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
         vedge = snewn(state->w*state->h, unsigned char);
         memcpy(hedge, state->hedge, state->w*state->h);
         memcpy(vedge, state->vedge, state->w*state->h);
-        ui_draw_rect(state, ui, hedge, vedge, 2, TRUE);
+        ui_draw_rect(state, ui, hedge, vedge, ui->erasing ? 3 : 2, TRUE, TRUE);
     } else {
         hedge = state->hedge;
         vedge = state->vedge;
@@ -2798,7 +2817,8 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
     {
 	char buf[256];
 
-	if (ui->x1 >= 0 && ui->y1 >= 0 &&
+	if (ui->dragged &&
+	    ui->x1 >= 0 && ui->y1 >= 0 &&
 	    ui->x2 >= 0 && ui->y2 >= 0) {
 	    sprintf(buf, "%dx%d ",
 		    ui->x2-ui->x1,

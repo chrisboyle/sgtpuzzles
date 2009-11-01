@@ -365,7 +365,7 @@ static char *game_text_format(game_state *state)
                 case s_tile:
                     if (sp->flags & F_TILE_ASSOC) {
                         space *dot = sp2dot(state, sp->x, sp->y);
-                        if (dot->flags & F_DOT)
+                        if (dot && dot->flags & F_DOT)
                             *p++ = (dot->flags & F_DOT_BLACK) ? 'B' : 'W';
                         else
                             *p++ = '?'; /* association with not-a-dot. */
@@ -1450,6 +1450,7 @@ generate:
 		state = copy2;
 	    }
 	}
+        sfree(posns);
     }
 #endif
 
@@ -2574,17 +2575,16 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
         sp = &SPACE(state, ui->cur_x, ui->cur_y);
         if (ui->dragging) {
             ui->dragging = FALSE;
-            if (sp->type != s_tile) return "";
-            if (sp->flags & F_DOT || sp->flags & F_TILE_ASSOC)
-                return "";
 
             if ((ui->srcx != ui->dotx || ui->srcy != ui->doty) &&
                 SPACE(state, ui->srcx, ui->srcy).flags & F_TILE_ASSOC) {
                 sprintf(buf, "%sU%d,%d", sep, ui->srcx, ui->srcy);
                 sep = ";";
             }
-            sprintf(buf + strlen(buf), "%sA%d,%d,%d,%d",
-                    sep, ui->cur_x, ui->cur_y, ui->dotx, ui->doty);
+            if (sp->type == s_tile && !(sp->flags & F_DOT) && !(sp->flags & F_TILE_ASSOC)) {
+                sprintf(buf + strlen(buf), "%sA%d,%d,%d,%d",
+                        sep, ui->cur_x, ui->cur_y, ui->dotx, ui->doty);
+            }
             return dupstr(buf);
         } else if (sp->flags & F_DOT) {
             ui->dragging = TRUE;

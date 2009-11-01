@@ -950,8 +950,10 @@ static void perturb(int w, int h, unsigned char *tiles, int wrapping,
     }
     sfree(perim2);
 
-    if (i == nperim)
+    if (i == nperim) {
+        sfree(perimeter);
 	return;			       /* nothing we can do! */
+    }
 
     /*
      * Now we've constructed a new link, we need to find the entire
@@ -1650,7 +1652,7 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
             if (!(barrier(state, x, 0) & U) ||
                 !(barrier(state, x, state->height-1) & D))
                 state->wrapping = TRUE;
-        for (y = 0; y < state->width; y++)
+        for (y = 0; y < state->height; y++)
             if (!(barrier(state, 0, y) & L) ||
                 !(barrier(state, state->width-1, y) & R))
                 state->wrapping = TRUE;
@@ -2096,8 +2098,7 @@ static char *interpret_move(game_state *state, game_ui *ui,
 	ty = ui->cur_y;
 	if (button == 'a' || button == 'A')
 	    action = ROTATE_LEFT;
-	else if (button == 's' || button == 'S' ||
-                 button == CURSOR_SELECT2)
+	else if (button == 's' || button == 'S' || button == CURSOR_SELECT2)
 	    action = TOGGLE_LOCK;
 	else if (button == 'd' || button == 'D' ||
                  button == CURSOR_SELECT)
@@ -2200,7 +2201,7 @@ static char *interpret_move(game_state *state, game_ui *ui,
 static game_state *execute_move(game_state *from, char *move)
 {
     game_state *ret;
-    int tx, ty, n, noanim, orig;
+    int tx = -1, ty = -1, n, noanim, orig;
 
     ret = dup_game(from);
 
@@ -2249,6 +2250,7 @@ static game_state *execute_move(game_state *from, char *move)
 	}
     }
     if (!noanim) {
+        if (tx == -1 || ty == -1) { free_game(ret); return NULL; }
 	ret->last_rotate_x = tx;
 	ret->last_rotate_y = ty;
     }

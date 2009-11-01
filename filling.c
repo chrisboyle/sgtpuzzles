@@ -1072,6 +1072,7 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
             if (!state->shared->clues[w*ty+tx])
                 ui->sel[w*ty+tx] = 1;
         }
+        ui->cur_visible = 0;
         return ""; /* redraw */
     }
 
@@ -1094,10 +1095,6 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
         return "";
     }
 
-
-
-    if (!ui->sel) return NULL;
-
     switch (button) {
       case ' ':
       case '\r':
@@ -1114,8 +1111,9 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
 
     for (i = 0; i < w*h; i++) {
         char buf[32];
-        if (ui->sel[i]) {
-            assert(state->shared->clues[i] == 0);
+        if ((ui->sel && ui->sel[i]) ||
+            (!ui->sel && ui->cur_visible && (w*ui->cur_y+ui->cur_x) == i)) {
+            if (state->shared->clues[i] != 0) continue; /* in case cursor is on clue */
             if (state->board[i] != button) {
                 sprintf(buf, "%s%d", move ? "," : "", i);
                 if (move) {
@@ -1134,6 +1132,7 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
         move = srealloc(move, strlen(move)+strlen(buf)+1);
         strcat(move, buf);
     }
+    if (!ui->sel) return move ? move : NULL;
     sfree(ui->sel);
     ui->sel = NULL;
     /* Need to update UI at least, as we cleared the selection */
@@ -1142,7 +1141,7 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
 
 static game_state *execute_move(game_state *state, char *move)
 {
-    game_state *new_state;
+    game_state *new_state = NULL;
     const int sz = state->shared->params.w * state->shared->params.h;
 
     if (*move == 's') {
@@ -1153,18 +1152,18 @@ static game_state *execute_move(game_state *state, char *move)
     } else {
         int value;
         char *endptr, *delim = strchr(move, '_');
-        if (!delim) return NULL;
+        if (!delim) goto err;
         value = strtol(delim+1, &endptr, 0);
-        if (*endptr || endptr == delim+1) return NULL;
-        if (value < 0 || value > 9) return NULL;
+        if (*endptr || endptr == delim+1) goto err;
+        if (value < 0 || value > 9) goto err;
         new_state = dup_game(state);
         while (*move) {
             const int i = strtol(move, &endptr, 0);
-            if (endptr == move) return NULL;
-            if (i < 0 || i >= sz) return NULL;
+            if (endptr == move) goto err;
+            if (i < 0 || i >= sz) goto err;
             new_state->board[i] = value;
             if (*endptr == '_') break;
-            if (*endptr != ',') return NULL;
+            if (*endptr != ',') goto err;
             move = endptr + 1;
         }
     }
@@ -1185,6 +1184,10 @@ static game_state *execute_move(game_state *state, char *move)
     }
 
     return new_state;
+
+err:
+    if (new_state) free_game(new_state);
+    return NULL;
 }
 
 /* ----------------------------------------------------------------------
@@ -1500,7 +1503,7 @@ static void draw_grid(drawing *dr, game_drawstate *ds, game_state *state,
 
             if (flashy || !shading) {
                 /* clear all background flags */
-            } else if (ui->sel && ui->sel[y*w+x]) {
+            } else if (ui && ui->sel && ui->sel[y*w+x]) {
                 flags |= HIGH_BG;
             } else if (v) {
                 int size = dsf_size(ds->dsf_scratch, y*w+x);
@@ -1509,7 +1512,7 @@ static void draw_grid(drawing *dr, game_drawstate *ds, game_state *state,
                 else if (size > v)
                     flags |= ERROR_BG;
             }
-            if (ui->cur_visible && x == ui->cur_x && y == ui->cur_y)
+            if (ui && ui->cur_visible && x == ui->cur_x && y == ui->cur_y)
               flags |= CURSOR_SQ;
 
             /*

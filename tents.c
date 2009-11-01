@@ -3,19 +3,7 @@
  * some confusing conditions.
  * 
  * TODO:
- * 
- *  - error highlighting?
- *     * highlighting adjacent tents is easy
- *     * highlighting violated numeric clues is almost as easy
- *       (might want to pay attention to NONTENTs here)
- *     * but how in hell do we highlight a failure of maxflow
- *       during completion checking?
- *        + well, the _obvious_ approach is to use maxflow's own
- *          error report: it will provide, via the `cut' parameter,
- *          a set of trees which have too few tents between them.
- *          It's unclear that this will be particularly obvious to
- *          a user, however. Is there any other way?
- * 
+ *
  *  - it might be nice to make setter-provided tent/nontent clues
  *    inviolable?
  *     * on the other hand, this would introduce considerable extra
@@ -269,6 +257,9 @@ enum {
     COL_TREETRUNK,
     COL_TREELEAF,
     COL_TENT,
+    COL_ERROR,
+    COL_ERRTEXT,
+    COL_ERRTRUNK,
     NCOLOURS
 };
 
@@ -1219,6 +1210,10 @@ static char *validate_desc(game_params *params, char *desc)
 
 	desc++;
     }
+    if (area < w * h + 1)
+	return "Not enough data to fill grid";
+    else if (area > w * h + 1)
+	return "Too much data to fill grid";
 
     for (i = 0; i < w+h; i++) {
 	if (!*desc)
@@ -1455,7 +1450,7 @@ struct game_drawstate {
     int tilesize;
     int started;
     game_params p;
-    char *drawn;
+    int *drawn, *numbersdrawn;
     int cx, cy;         /* last-drawn cursor pos, or (-1,-1) if absent. */
 };
 
@@ -1884,6 +1879,18 @@ static float *game_colours(frontend *fe, int *ncolours)
     ret[COL_TENT * 3 + 1] = 0.7F;
     ret[COL_TENT * 3 + 2] = 0.0F;
 
+    ret[COL_ERROR * 3 + 0] = 1.0F;
+    ret[COL_ERROR * 3 + 1] = 0.0F;
+    ret[COL_ERROR * 3 + 2] = 0.0F;
+
+    ret[COL_ERRTEXT * 3 + 0] = 1.0F;
+    ret[COL_ERRTEXT * 3 + 1] = 1.0F;
+    ret[COL_ERRTEXT * 3 + 2] = 1.0F;
+
+    ret[COL_ERRTRUNK * 3 + 0] = 0.6F;
+    ret[COL_ERRTRUNK * 3 + 1] = 0.0F;
+    ret[COL_ERRTRUNK * 3 + 2] = 0.0F;
+
     *ncolours = NCOLOURS;
     return ret;
 }
@@ -1892,12 +1899,17 @@ static game_drawstate *game_new_drawstate(drawing *dr, game_state *state)
 {
     int w = state->p.w, h = state->p.h;
     struct game_drawstate *ds = snew(struct game_drawstate);
+    int i;
 
     ds->tilesize = 0;
     ds->started = FALSE;
     ds->p = state->p;                  /* structure copy */
-    ds->drawn = snewn(w*h, char);
-    memset(ds->drawn, MAGIC, w*h);
+    ds->drawn = snewn(w*h, int);
+    for (i = 0; i < w*h; i++)
+	ds->drawn[i] = MAGIC;
+    ds->numbersdrawn = snewn(w+h, int);
+    for (i = 0; i < w+h; i++)
+	ds->numbersdrawn[i] = 2;
     ds->cx = ds->cy = -1;
 
     return ds;
@@ -1906,20 +1918,374 @@ static game_drawstate *game_new_drawstate(drawing *dr, game_state *state)
 static void game_free_drawstate(drawing *dr, game_drawstate *ds)
 {
     sfree(ds->drawn);
+    sfree(ds->numbersdrawn);
     sfree(ds);
+}
+
+enum {
+    ERR_ADJ_TOPLEFT = 4,
+    ERR_ADJ_TOP,
+    ERR_ADJ_TOPRIGHT,
+    ERR_ADJ_LEFT,
+    ERR_ADJ_RIGHT,
+    ERR_ADJ_BOTLEFT,
+    ERR_ADJ_BOT,
+    ERR_ADJ_BOTRIGHT,
+    ERR_OVERCOMMITTED
+};
+
+static int *find_errors(game_state *state, char *grid)
+{
+    int w = state->p.w, h = state->p.h;
+    int *ret = snewn(w*h + w + h, int);
+    int *tmp = snewn(w*h*2, int), *dsf = tmp + w*h;
+    int x, y;
+
+    /*
+     * This function goes through a grid and works out where to
+     * highlight play errors in red. The aim is that it should
+     * produce at least one error highlight for any complete grid
+     * (or complete piece of grid) violating a puzzle constraint, so
+     * that a grid containing no BLANK squares is either a win or is
+     * marked up in some way that indicates why not.
+     *
+     * So it's easy enough to highlight errors in the numeric clues
+     * - just light up any row or column number which is not
+     * fulfilled - and it's just as easy to highlight adjacent
+     * tents. The difficult bit is highlighting failures in the
+     * tent/tree matching criterion.
+     *
+     * A natural approach would seem to be to apply the maxflow
+     * algorithm to find the tent/tree matching; if this fails, it
+     * must necessarily terminate with a min-cut which can be
+     * reinterpreted as some set of trees which have too few tents
+     * between them (or vice versa). However, it's bad for
+     * localising errors, because it's not easy to make the
+     * algorithm narrow down to the _smallest_ such set of trees: if
+     * trees A and B have only one tent between them, for instance,
+     * it might perfectly well highlight not only A and B but also
+     * trees C and D which are correctly matched on the far side of
+     * the grid, on the grounds that those four trees between them
+     * have only three tents.
+     *
+     * Also, that approach fares badly when you introduce the
+     * additional requirement that incomplete grids should have
+     * errors highlighted only when they can be proved to be errors
+     * - so that trees should not be marked as having too few tents
+     * if there are enough BLANK squares remaining around them that
+     * could be turned into the missing tents (to do so would be
+     * patronising, since the overwhelming likelihood is not that
+     * the player has forgotten to put a tree there but that they
+     * have merely not put one there _yet_). However, tents with too
+     * few trees can be marked immediately, since those are
+     * definitely player error.
+     *
+     * So I adopt an alternative approach, which is to consider the
+     * bipartite adjacency graph between trees and tents
+     * ('bipartite' in the sense that for these purposes I
+     * deliberately ignore two adjacent trees or two adjacent
+     * tents), divide that graph up into its connected components
+     * using a dsf, and look for components which contain different
+     * numbers of trees and tents. This allows me to highlight
+     * groups of tents with too few trees between them immediately,
+     * and then in order to find groups of trees with too few tents
+     * I redo the same process but counting BLANKs as potential
+     * tents (so that the only trees highlighted are those
+     * surrounded by enough NONTENTs to make it impossible to give
+     * them enough tents).
+     *
+     * However, this technique is incomplete: it is not a sufficient
+     * condition for the existence of a perfect matching that every
+     * connected component of the graph has the same number of tents
+     * and trees. An example of a graph which satisfies the latter
+     * condition but still has no perfect matching is
+     * 
+     *     A    B    C
+     *     |   /   ,/|
+     *     |  /  ,'/ |
+     *     | / ,' /  |
+     *     |/,'  /   |
+     *     1    2    3
+     *
+     * which can be realised in Tents as
+     * 
+     *       B
+     *     A 1 C 2
+     *         3
+     *
+     * The matching-error highlighter described above will not mark
+     * this construction as erroneous. However, something else will:
+     * the three tents in the above diagram (let us suppose A,B,C
+     * are the tents, though it doesn't matter which) contain two
+     * diagonally adjacent pairs. So there will be _an_ error
+     * highlighted for the above layout, even though not all types
+     * of error will be highlighted.
+     *
+     * And in fact we can prove that this will always be the case:
+     * that the shortcomings of the matching-error highlighter will
+     * always be made up for by the easy tent adjacency highlighter.
+     *
+     * Lemma: Let G be a bipartite graph between n trees and n
+     * tents, which is connected, and in which no tree has degree
+     * more than two (but a tent may). Then G has a perfect matching.
+     * 
+     * (Note: in the statement and proof of the Lemma I will
+     * consistently use 'tree' to indicate a type of graph vertex as
+     * opposed to a tent, and not to indicate a tree in the graph-
+     * theoretic sense.)
+     *
+     * Proof:
+     * 
+     * If we can find a tent of degree 1 joined to a tree of degree
+     * 2, then any perfect matching must pair that tent with that
+     * tree. Hence, we can remove both, leaving a smaller graph G'
+     * which still satisfies all the conditions of the Lemma, and
+     * which has a perfect matching iff G does.
+     *
+     * So, wlog, we may assume G contains no tent of degree 1 joined
+     * to a tree of degree 2; if it does, we can reduce it as above.
+     *
+     * If G has no tent of degree 1 at all, then every tent has
+     * degree at least two, so there are at least 2n edges in the
+     * graph. But every tree has degree at most two, so there are at
+     * most 2n edges. Hence there must be exactly 2n edges, so every
+     * tree and every tent must have degree exactly two, which means
+     * that the whole graph consists of a single loop (by
+     * connectedness), and therefore certainly has a perfect
+     * matching.
+     *
+     * Alternatively, if G does have a tent of degree 1 but it is
+     * not connected to a tree of degree 2, then the tree it is
+     * connected to must have degree 1 - and, by connectedness, that
+     * must mean that that tent and that tree between them form the
+     * entire graph. This trivial graph has a trivial perfect
+     * matching. []
+     *
+     * That proves the lemma. Hence, in any case where the matching-
+     * error highlighter fails to highlight an erroneous component
+     * (because it has the same number of tents as trees, but they
+     * cannot be matched up), the above lemma tells us that there
+     * must be a tree with degree more than 2, i.e. a tree
+     * orthogonally adjacent to at least three tents. But in that
+     * case, there must be some pair of those three tents which are
+     * diagonally adjacent to each other, so the tent-adjacency
+     * highlighter will necessarily show an error. So any filled
+     * layout in Tents which is not a correct solution to the puzzle
+     * must have _some_ error highlighted by the subroutine below.
+     *
+     * (Of course it would be nicer if we could highlight all
+     * errors: in the above example layout, we would like to
+     * highlight tents A,B as having too few trees between them, and
+     * trees 2,3 as having too few tents, in addition to marking the
+     * adjacency problems. But I can't immediately think of any way
+     * to find the smallest sets of such tents and trees without an
+     * O(2^N) loop over all subsets of a given component.)
+     */
+
+    /*
+     * ret[0] through to ret[w*h-1] give error markers for the grid
+     * squares. After that, ret[w*h] to ret[w*h+w-1] give error
+     * markers for the column numbers, and ret[w*h+w] to
+     * ret[w*h+w+h-1] for the row numbers.
+     */
+
+    /*
+     * Spot tent-adjacency violations.
+     */
+    for (x = 0; x < w*h; x++)
+	ret[x] = 0;
+    for (y = 0; y < h; y++) {
+	for (x = 0; x < w; x++) {
+	    if (y+1 < h && x+1 < w &&
+		((grid[y*w+x] == TENT &&
+		  grid[(y+1)*w+(x+1)] == TENT) ||
+		 (grid[(y+1)*w+x] == TENT &&
+		  grid[y*w+(x+1)] == TENT))) {
+		ret[y*w+x] |= 1 << ERR_ADJ_BOTRIGHT;
+		ret[(y+1)*w+x] |= 1 << ERR_ADJ_TOPRIGHT;
+		ret[y*w+(x+1)] |= 1 << ERR_ADJ_BOTLEFT;
+		ret[(y+1)*w+(x+1)] |= 1 << ERR_ADJ_TOPLEFT;
+	    }
+	    if (y+1 < h &&
+		grid[y*w+x] == TENT &&
+		grid[(y+1)*w+x] == TENT) {
+		ret[y*w+x] |= 1 << ERR_ADJ_BOT;
+		ret[(y+1)*w+x] |= 1 << ERR_ADJ_TOP;
+	    }
+	    if (x+1 < w &&
+		grid[y*w+x] == TENT &&
+		grid[y*w+(x+1)] == TENT) {
+		ret[y*w+x] |= 1 << ERR_ADJ_RIGHT;
+		ret[y*w+(x+1)] |= 1 << ERR_ADJ_LEFT;
+	    }
+	}
+    }
+
+    /*
+     * Spot numeric clue violations.
+     */
+    for (x = 0; x < w; x++) {
+	int tents = 0, maybetents = 0;
+	for (y = 0; y < h; y++) {
+	    if (grid[y*w+x] == TENT)
+		tents++;
+	    else if (grid[y*w+x] == BLANK)
+		maybetents++;
+	}
+	ret[w*h+x] = (tents > state->numbers->numbers[x] ||
+		      tents + maybetents < state->numbers->numbers[x]);
+    }
+    for (y = 0; y < h; y++) {
+	int tents = 0, maybetents = 0;
+	for (x = 0; x < w; x++) {
+	    if (grid[y*w+x] == TENT)
+		tents++;
+	    else if (grid[y*w+x] == BLANK)
+		maybetents++;
+	}
+	ret[w*h+w+y] = (tents > state->numbers->numbers[w+y] ||
+			tents + maybetents < state->numbers->numbers[w+y]);
+    }
+
+    /*
+     * Identify groups of tents with too few trees between them,
+     * which we do by constructing the connected components of the
+     * bipartite adjacency graph between tents and trees
+     * ('bipartite' in the sense that we deliberately ignore
+     * adjacency between tents or between trees), and highlighting
+     * all the tents in any component which has a smaller tree
+     * count.
+     */
+    dsf_init(dsf, w*h);
+    /* Construct the equivalence classes. */
+    for (y = 0; y < h; y++) {
+	for (x = 0; x < w-1; x++) {
+	    if ((grid[y*w+x] == TREE && grid[y*w+x+1] == TENT) ||
+		(grid[y*w+x] == TENT && grid[y*w+x+1] == TREE))
+		dsf_merge(dsf, y*w+x, y*w+x+1);
+	}
+    }
+    for (y = 0; y < h-1; y++) {
+	for (x = 0; x < w; x++) {
+	    if ((grid[y*w+x] == TREE && grid[(y+1)*w+x] == TENT) ||
+		(grid[y*w+x] == TENT && grid[(y+1)*w+x] == TREE))
+		dsf_merge(dsf, y*w+x, (y+1)*w+x);
+	}
+    }
+    /* Count up the tent/tree difference in each one. */
+    for (x = 0; x < w*h; x++)
+	tmp[x] = 0;
+    for (x = 0; x < w*h; x++) {
+	y = dsf_canonify(dsf, x);
+	if (grid[x] == TREE)
+	    tmp[y]++;
+	else if (grid[x] == TENT)
+	    tmp[y]--;
+    }
+    /* And highlight any tent belonging to an equivalence class with
+     * a score less than zero. */
+    for (x = 0; x < w*h; x++) {
+	y = dsf_canonify(dsf, x);
+	if (grid[x] == TENT && tmp[y] < 0)
+	    ret[x] |= 1 << ERR_OVERCOMMITTED;
+    }
+
+    /*
+     * Identify groups of trees with too few tents between them.
+     * This is done similarly, except that we now count BLANK as
+     * equivalent to TENT, i.e. we only highlight such trees when
+     * the user hasn't even left _room_ to provide tents for them
+     * all. (Otherwise, we'd highlight all trees red right at the
+     * start of the game, before the user had done anything wrong!)
+     */
+#define TENT(x) ((x)==TENT || (x)==BLANK)
+    dsf_init(dsf, w*h);
+    /* Construct the equivalence classes. */
+    for (y = 0; y < h; y++) {
+	for (x = 0; x < w-1; x++) {
+	    if ((grid[y*w+x] == TREE && TENT(grid[y*w+x+1])) ||
+		(TENT(grid[y*w+x]) && grid[y*w+x+1] == TREE))
+		dsf_merge(dsf, y*w+x, y*w+x+1);
+	}
+    }
+    for (y = 0; y < h-1; y++) {
+	for (x = 0; x < w; x++) {
+	    if ((grid[y*w+x] == TREE && TENT(grid[(y+1)*w+x])) ||
+		(TENT(grid[y*w+x]) && grid[(y+1)*w+x] == TREE))
+		dsf_merge(dsf, y*w+x, (y+1)*w+x);
+	}
+    }
+    /* Count up the tent/tree difference in each one. */
+    for (x = 0; x < w*h; x++)
+	tmp[x] = 0;
+    for (x = 0; x < w*h; x++) {
+	y = dsf_canonify(dsf, x);
+	if (grid[x] == TREE)
+	    tmp[y]++;
+	else if (TENT(grid[x]))
+	    tmp[y]--;
+    }
+    /* And highlight any tree belonging to an equivalence class with
+     * a score more than zero. */
+    for (x = 0; x < w*h; x++) {
+	y = dsf_canonify(dsf, x);
+	if (grid[x] == TREE && tmp[y] > 0)
+	    ret[x] |= 1 << ERR_OVERCOMMITTED;
+    }
+#undef TENT
+
+    sfree(tmp);
+    return ret;
+}
+
+static void draw_err_adj(drawing *dr, game_drawstate *ds, int x, int y)
+{
+    int coords[8];
+    int yext, xext;
+
+    /*
+     * Draw a diamond.
+     */
+    coords[0] = x - TILESIZE*2/5;
+    coords[1] = y;
+    coords[2] = x;
+    coords[3] = y - TILESIZE*2/5;
+    coords[4] = x + TILESIZE*2/5;
+    coords[5] = y;
+    coords[6] = x;
+    coords[7] = y + TILESIZE*2/5;
+    draw_polygon(dr, coords, 4, COL_ERROR, COL_GRID);
+
+    /*
+     * Draw an exclamation mark in the diamond. This turns out to
+     * look unpleasantly off-centre if done via draw_text, so I do
+     * it by hand on the basis that exclamation marks aren't that
+     * difficult to draw...
+     */
+    xext = TILESIZE/16;
+    yext = TILESIZE*2/5 - (xext*2+2);
+    draw_rect(dr, x-xext, y-yext, xext*2+1, yext*2+1 - (xext*3),
+	      COL_ERRTEXT);
+    draw_rect(dr, x-xext, y+yext-xext*2+1, xext*2+1, xext*2, COL_ERRTEXT);
 }
 
 static void draw_tile(drawing *dr, game_drawstate *ds,
                       int x, int y, int v, int cur, int printing)
 {
+    int err;
     int tx = COORD(x), ty = COORD(y);
     int cx = tx + TILESIZE/2, cy = ty + TILESIZE/2;
 
-    clip(dr, tx+1, ty+1, TILESIZE-1, TILESIZE-1);
+    err = v & ~15;
+    v &= 15;
 
-    if (!printing)
+    clip(dr, tx, ty, TILESIZE, TILESIZE);
+
+    if (!printing) {
+	draw_rect(dr, tx, ty, TILESIZE, TILESIZE, COL_GRID);
 	draw_rect(dr, tx+1, ty+1, TILESIZE-1, TILESIZE-1,
 		  (v == BLANK ? COL_BACKGROUND : COL_GRASS));
+    }
 
     if (v == TREE) {
 	int i;
@@ -1927,10 +2293,12 @@ static void draw_tile(drawing *dr, game_drawstate *ds,
 	(printing ? draw_rect_outline : draw_rect)
 	(dr, cx-TILESIZE/15, ty+TILESIZE*3/10,
 	 2*(TILESIZE/15)+1, (TILESIZE*9/10 - TILESIZE*3/10),
-	 COL_TREETRUNK);
+	 (err & (1<<ERR_OVERCOMMITTED) ? COL_ERRTRUNK : COL_TREETRUNK));
 
 	for (i = 0; i < (printing ? 2 : 1); i++) {
-	    int col = (i == 1 ? COL_BACKGROUND : COL_TREELEAF);
+	    int col = (i == 1 ? COL_BACKGROUND :
+		       (err & (1<<ERR_OVERCOMMITTED) ? COL_ERROR : 
+			COL_TREELEAF));
 	    int sub = i * (TILESIZE/32);
 	    draw_circle(dr, cx, ty+TILESIZE*4/10, TILESIZE/4 - sub,
 			col, col);
@@ -1945,13 +2313,39 @@ static void draw_tile(drawing *dr, game_drawstate *ds,
 	}
     } else if (v == TENT) {
         int coords[6];
+	int col;
         coords[0] = cx - TILESIZE/3;
         coords[1] = cy + TILESIZE/3;
         coords[2] = cx + TILESIZE/3;
         coords[3] = cy + TILESIZE/3;
         coords[4] = cx;
         coords[5] = cy - TILESIZE/3;
-        draw_polygon(dr, coords, 3, (printing ? -1 : COL_TENT), COL_TENT);
+	col = (err & (1<<ERR_OVERCOMMITTED) ? COL_ERROR : COL_TENT);
+        draw_polygon(dr, coords, 3, (printing ? -1 : col), col);
+    }
+
+    if (err & (1 << ERR_ADJ_TOPLEFT))
+	draw_err_adj(dr, ds, tx, ty);
+    if (err & (1 << ERR_ADJ_TOP))
+	draw_err_adj(dr, ds, tx+TILESIZE/2, ty);
+    if (err & (1 << ERR_ADJ_TOPRIGHT))
+	draw_err_adj(dr, ds, tx+TILESIZE, ty);
+    if (err & (1 << ERR_ADJ_LEFT))
+	draw_err_adj(dr, ds, tx, ty+TILESIZE/2);
+    if (err & (1 << ERR_ADJ_RIGHT))
+	draw_err_adj(dr, ds, tx+TILESIZE, ty+TILESIZE/2);
+    if (err & (1 << ERR_ADJ_BOTLEFT))
+	draw_err_adj(dr, ds, tx, ty+TILESIZE);
+    if (err & (1 << ERR_ADJ_BOT))
+	draw_err_adj(dr, ds, tx+TILESIZE/2, ty+TILESIZE);
+    if (err & (1 << ERR_ADJ_BOTRIGHT))
+	draw_err_adj(dr, ds, tx+TILESIZE, ty+TILESIZE);
+
+    if (cur) {
+      int coff = TILESIZE/8;
+      draw_rect_outline(dr, tx + coff, ty + coff,
+                        TILESIZE - coff*2 + 1, TILESIZE - coff*2 + 1,
+			COL_GRID);
     }
 
     if (cur) {
@@ -1975,6 +2369,8 @@ static void int_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
     int x, y, flashing;
     int cx = -1, cy = -1;
     int cmoved = 0;
+    char *tmpgrid;
+    int *errors;
 
     if (ui) {
       if (ui->cdisp) { cx = ui->cx; cy = ui->cy; }
@@ -2000,24 +2396,6 @@ static void int_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
             draw_line(dr, COORD(0), COORD(y), COORD(w), COORD(y), COL_GRID);
         for (x = 0; x <= w; x++)
             draw_line(dr, COORD(x), COORD(0), COORD(x), COORD(h), COL_GRID);
-
-        /*
-         * Draw the numbers.
-         */
-        for (y = 0; y < h; y++) {
-            char buf[80];
-            sprintf(buf, "%d", state->numbers->numbers[y+w]);
-            draw_text(dr, COORD(w+1), COORD(y) + TILESIZE/2,
-                      FONT_VARIABLE, TILESIZE/2, ALIGN_HRIGHT|ALIGN_VCENTRE,
-                      COL_GRID, buf);
-        }
-        for (x = 0; x < w; x++) {
-            char buf[80];
-            sprintf(buf, "%d", state->numbers->numbers[x]);
-            draw_text(dr, COORD(x) + TILESIZE/2, COORD(h+1),
-                      FONT_VARIABLE, TILESIZE/2, ALIGN_HCENTRE|ALIGN_VNORMAL,
-                      COL_GRID, buf);
-        }
     }
 
     if (flashtime > 0)
@@ -2026,9 +2404,27 @@ static void int_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 	flashing = FALSE;
 
     /*
+     * Find errors. For this we use _part_ of the information from a
+     * currently active drag: we transform dsx,dsy but not anything
+     * else. (This seems to strike a good compromise between having
+     * the error highlights respond instantly to single clicks, but
+     * not giving constant feedback during a right-drag.)
+     */
+    if (ui && ui->drag_button >= 0) {
+	tmpgrid = snewn(w*h, char);
+	memcpy(tmpgrid, state->grid, w*h);
+	tmpgrid[ui->dsy * w + ui->dsx] =
+	    drag_xform(ui, ui->dsx, ui->dsy, tmpgrid[ui->dsy * w + ui->dsx]);
+	errors = find_errors(state, tmpgrid);
+	sfree(tmpgrid);
+    } else {
+	errors = find_errors(state, state->grid);
+    }
+
+    /*
      * Draw the grid.
      */
-    for (y = 0; y < h; y++)
+    for (y = 0; y < h; y++) {
         for (x = 0; x < w; x++) {
             int v = state->grid[y*w+x];
             int credraw = 0;
@@ -2050,13 +2446,53 @@ static void int_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
                   (x == ds->cx && y == ds->cy)) credraw = 1;
             }
 
+	    v |= errors[y*w+x];
+
             if (printing || ds->drawn[y*w+x] != v || credraw) {
                 draw_tile(dr, ds, x, y, v, (x == cx && y == cy), printing);
                 if (!printing)
 		    ds->drawn[y*w+x] = v;
             }
         }
-    if (cmoved) { ds->cx = cx; ds->cy = cy; }
+    }
+
+    /*
+     * Draw (or redraw, if their error-highlighted state has
+     * changed) the numbers.
+     */
+    for (x = 0; x < w; x++) {
+	if (ds->numbersdrawn[x] != errors[w*h+x]) {
+	    char buf[80];
+	    draw_rect(dr, COORD(x), COORD(h)+1, TILESIZE, BRBORDER-1,
+		      COL_BACKGROUND);
+	    sprintf(buf, "%d", state->numbers->numbers[x]);
+	    draw_text(dr, COORD(x) + TILESIZE/2, COORD(h+1),
+		      FONT_VARIABLE, TILESIZE/2, ALIGN_HCENTRE|ALIGN_VNORMAL,
+		      (errors[w*h+x] ? COL_ERROR : COL_GRID), buf);
+	    draw_update(dr, COORD(x), COORD(h)+1, TILESIZE, BRBORDER-1);
+	    ds->numbersdrawn[x] = errors[w*h+x];
+	}
+    }
+    for (y = 0; y < h; y++) {
+	if (ds->numbersdrawn[w+y] != errors[w*h+w+y]) {
+	    char buf[80];
+	    draw_rect(dr, COORD(w)+1, COORD(y), BRBORDER-1, TILESIZE,
+		      COL_BACKGROUND);
+	    sprintf(buf, "%d", state->numbers->numbers[w+y]);
+	    draw_text(dr, COORD(w+1), COORD(y) + TILESIZE/2,
+		      FONT_VARIABLE, TILESIZE/2, ALIGN_HRIGHT|ALIGN_VCENTRE,
+		      (errors[w*h+w+y] ? COL_ERROR : COL_GRID), buf);
+	    draw_update(dr, COORD(w)+1, COORD(y), BRBORDER-1, TILESIZE);
+	    ds->numbersdrawn[w+y] = errors[w*h+w+y];
+	}
+    }
+
+    if (cmoved) {
+	ds->cx = cx;
+	ds->cy = cy;
+    }
+
+    sfree(errors);
 }
 
 static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,

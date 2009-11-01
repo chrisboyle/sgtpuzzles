@@ -727,6 +727,7 @@ static void place_lights(game_state *state, random_state *rs)
         debug_state(state);
         assert(!"place_lights failed to resolve overlapping lights!");
     }
+    sfree(numindices);
 }
 
 /* Fills in all black squares with numbers of adjacent lights. */
@@ -764,7 +765,7 @@ static int try_solve_light(game_state *state, int ox, int oy,
                            unsigned int flags, int lights)
 {
     ll_data lld;
-    int sx,sy,n = 0;
+    int sx = 0, sy = 0, n = 0;
 
     if (lights > 0) return 0;
     if (flags & F_BLACK) return 0;
@@ -1016,9 +1017,9 @@ static void try_rule_out(game_state *state, int x, int y,
 
     get_surrounds(state, x, y, &s);
     for (i = 0; i < s.npoints; i++) {
-        if (!GRID(state,flags,s.points[i].x,s.points[i].y) & F_NUMBERED)
+        if (!(GRID(state,flags,s.points[i].x,s.points[i].y) & F_NUMBERED))
             continue;
-        /* we have an adjacent clue square; find /it's/ surrounds
+        /* we have an adjacent clue square; find /its/ surrounds
          * and count the remaining lights it needs. */
         get_surrounds(state,s.points[i].x,s.points[i].y,&ss);
         curr_lights = 0;
@@ -1843,14 +1844,18 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
         cx = FROMCOORD(x);
         cy = FROMCOORD(y);
         action = (button == LEFT_BUTTON) ? FLIP_LIGHT : FLIP_IMPOSSIBLE;
-    } else if (IS_CURSOR_SELECT(button)) {
+    } else if (IS_CURSOR_SELECT(button) ||
+               button == 'i' || button == 'I' ||
+               button == ' ' || button == '\r' || button == '\n') {
         if (ui->cur_visible) {
             /* Only allow cursor-effect operations if the cursor is visible
              * (otherwise you have no idea which square it might be affecting) */
             cx = ui->cur_x;
             cy = ui->cur_y;
-            action = (button == CURSOR_SELECT2) ? FLIP_IMPOSSIBLE : FLIP_LIGHT;
+            action = (button == 'i' || button == 'I' || button == CURSOR_SELECT2) ?
+                FLIP_IMPOSSIBLE : FLIP_LIGHT;
         }
+        ui->cur_visible = 1;
     } else if (IS_CURSOR_MOVE(button)) {
         move_cursor(button, &ui->cur_x, &ui->cur_y, state->w, state->h, 0);
         ui->cur_visible = 1;

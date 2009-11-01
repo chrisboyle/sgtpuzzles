@@ -24,7 +24,7 @@
 
 This is a collection of small one-player puzzle games.
 
-\copyright This manual is copyright 2004-2008 Simon Tatham. All rights
+\copyright This manual is copyright 2004-2009 Simon Tatham. All rights
 reserved. You may distribute this documentation under the MIT licence.
 See \k{licence} for the licence text in full.
 
@@ -368,6 +368,29 @@ There are various other options which affect printing; see below.
 
 }
 
+\dt \cw{--save }\e{file-prefix} [ \cw{--save-suffix }\e{file-suffix} ]
+
+\dd If this option is specified, instead of a puzzle being
+displayed, saved-game files for one or more unsolved puzzles are
+written to files constructed from the supplied prefix and/or suffix.
+
+\lcont{
+
+If \c{--generate} has also been specified, the invented game IDs will
+be used to generate the printed output. Otherwise, a list of game IDs
+is expected on standard input (which can be descriptive or random
+seeds; see \k{common-id}), in the same format produced by
+\c{--generate}.
+
+For example:
+
+\c net --generate 12 --save game --save-suffix .sav
+
+will generate twelve Net saved-game files with the names
+\cw{game0.sav} to \cw{game11.sav}.
+
+}
+
 \dt \cw{--version}
 
 \dd Prints version information about the game, and then quits.
@@ -623,9 +646,13 @@ rather than just engineering.
 
 \H{sixteen-controls} \I{controls, for Sixteen}Sixteen controls
 
-This game is played with the mouse. Left-clicking on an arrow will
-move the appropriate row or column in the direction indicated.
-Right-clicking will move it in the opposite direction.
+Left-clicking on an arrow will move the appropriate row or column in
+the direction indicated.  Right-clicking will move it in the opposite
+direction.
+
+Alternatively, use the cursor keys to move the position indicator
+around the edge of the grid, and use the return key to move the
+row/column in the direction indicated. 
 
 (All the actions described in \k{common-actions} are also available.)
 
@@ -679,6 +706,11 @@ the centre tile of the square you want to rotate.
 
 Clicking with the left mouse button rotates the group anticlockwise.
 Clicking with the right button rotates it clockwise.
+
+You can also move an outline square around the grid with the cursor
+keys; the square is the size above (2\by\.2 by default, or larger).
+Pressing the return key or space bar will rotate the current square
+anticlockwise or clockwise respectively.
 
 (All the actions described in \k{common-actions} are also available.)
 
@@ -738,11 +770,19 @@ specification.
 
 \H{rectangles-controls} \I{controls, for Rectangles}Rectangles controls
 
-This game is played with the mouse.
+This game is played with the mouse or cursor keys.
 
-Left-click any edge to toggle it on or off, or click and drag to draw
-an entire rectangle (or line) on the grid in one go (removing any
-existing edges within that rectangle).
+Left-click any edge to toggle it on or off, or left-click and drag to draw
+an entire rectangle (or line) on the grid in one go (removing any existing
+edges within that rectangle). Right-clicking and dragging will allow you
+to erase the contents of a rectangle without affecting its edges. 
+
+Alternatively, use the cursor keys to move the position indicator
+around the board. Pressing the return key then allows you to use the
+cursor keys to drag a rectangle out from that position, and pressing
+the return key again completes the rectangle. Using the space bar
+instead of the return key allows you to erase the contents of a
+rectangle without affecting its edges, as above.
 
 When a rectangle of the correct size is completed, it will be shaded.
 
@@ -802,8 +842,8 @@ movement of Sixteen (see \k{sixteen}): you have a Net grid, but
 instead of rotating tiles back into place you have to slide them
 into place by moving a whole row at a time. 
 
-As in Sixteen, \I{controls, for Netslide}control is with the mouse.
-See \k{sixteen-controls}.
+As in Sixteen, \I{controls, for Netslide}control is with the mouse or
+cursor keys. See \k{sixteen-controls}.
 
 \I{parameters, for Netslide}The available game parameters have similar
 meanings to those in Net (see \k{net-params}) and Sixteen (see
@@ -849,6 +889,10 @@ a vertical or horizontal line of squares black or white at a time
 with Shift held down, you can colour a whole rectangle of squares
 grey.
 
+You can also move around the grid with the cursor keys. Pressing the
+return key will cycle the current cell through empty --> black -->
+white --> empty, and the space bar does the same cycle in reverse.
+
 (All the actions described in \k{common-actions} are also available.)
 
 \H{pattern-parameters} \I{parameters, for Pattern}Pattern parameters
@@ -885,10 +929,18 @@ with rectangular blocks instead of square ones, such as 2\by\.3 (a
 can select \q{jigsaw} mode, in which the sub-blocks are arbitrary
 shapes which differ between individual puzzles.
 
+Another available mode is \q{killer}. In this mode, clues are not
+given in the form of filled-in squares; instead, the grid is divided
+into \q{cages} by coloured lines, and for each cage the game tells
+you what the sum of all the digits in that cage should be. Also, no
+digit may appear more than once within a cage, even if the cage
+crosses the boundaries of existing regions.
+
 If you select a puzzle size which requires more than 9 digits, the
 additional digits will be letters of the alphabet. For example, if
 you select 3\by\.4 then the digits which go in your grid will be 1
-to 9, plus \cq{a}, \cq{b} and \cq{c}.
+to 9, plus \cq{a}, \cq{b} and \cq{c}. This cannot be selected for
+killer puzzles.
 
 I first saw this puzzle in \i{Nikoli} \k{nikoli-solo}, although it's
 also been popularised by various newspapers under the name
@@ -911,7 +963,8 @@ Space to clear it again (or use the Undo feature).
 
 If you \e{right}-click in a square and then type a number, that
 number will be entered in the square as a \q{pencil mark}. You can
-have pencil marks for multiple numbers in the same square.
+have pencil marks for multiple numbers in the same square. Squares
+containing filled-in numbers cannot also contain pencil marks.
 
 The game pays no attention to pencil marks, so exactly what you use
 them for is up to you: you can use them as reminders that a
@@ -925,6 +978,12 @@ the same number again.
 All pencil marks in a square are erased when you left-click and type
 a number, or when you left-click and press space. Right-clicking and
 pressing space will also erase pencil marks.
+
+Alternatively, use the cursor keys to move the mark around the grid.
+Pressing the return key toggles the mark (from a normal mark to a
+pencil mark), and typing a number in is entered in the square in the
+appropriate way; typing in a 0 or using the space bar will clear a
+filled square. 
 
 (All the actions described in \k{common-actions} are also available.)
 
@@ -948,6 +1007,11 @@ to be the product of the numbers entered in the \q{Columns} and
 \q{Rows} boxes. There is no reason why you have to enter a number
 greater than 1 in both boxes; Jigsaw mode has no constraint on the
 grid size, and it can even be a prime number if you feel like it.
+
+If you tick the \q{Killer} checkbox, Solo will generate a set of
+of cages, which are randomly shaped and drawn in an outline of a
+different colour.  Each of these regions contains a smaller clue
+which shows the digit sum of all the squares in this region.
 
 You can also configure the type of symmetry shown in the generated
 puzzles. More symmetry makes the puzzles look prettier but may also
@@ -1022,6 +1086,12 @@ eight squares, then it is obviously safe to uncover those squares in
 turn, and so on if any of them also has no surrounding mines. This
 will be done for you automatically; so sometimes when you uncover a
 square, a whole new area will open up to be explored.
+
+You can also use the cursor keys to move around the minefield.
+Pressing the return key in a covered square uncovers it, and in an
+uncovered square will clear around it (so it acts as the left button),
+pressing the space bar in a covered square will place a flag
+(similarly, it acts as the right button).
 
 All the actions described in \k{common-actions} are also available.
 
@@ -1316,6 +1386,11 @@ Vacant spaces which you can move a peg into are marked with holes. A
 space with no peg and no hole is not available for moving at all: it
 is an obstacle which you must work around.
 
+You can also use the cursor keys to move a position indicator around
+the board. Pressing the return key while over a peg, followed by a
+cursor key, will jump the peg in that direction (if that is a legal
+move).
+
 (All the actions described in \k{common-actions} are also available.)
 
 \H{pegs-parameters} \I{parameters, for Pegs}Pegs parameters
@@ -1521,9 +1596,13 @@ right-clicking; whole rows and columns may be similarly locked by
 right-clicking in the laser firing range above/below that column, or
 to the left/right of that row.  
 
+The cursor keys may also be used to move around the grid. Pressing the
+Enter key will add a new ball-location guess, and pressing Space will
+lock a cell or a row/column.
+
 When an appropriate number of balls have been guessed a button will
-appear at the top-left corner of the grid; clicking that will mark
-your guesses. 
+appear at the top-left corner of the grid; clicking that (with mouse or
+cursor) will mark your guesses. 
 
 If you click the \q{mark} button and your guesses are not correct,
 the game will show you as little information as possible to
@@ -1604,6 +1683,10 @@ blank square it will change from blank to \cw{\\} to \cw{/} back to
 blank, and if you right-click repeatedly the square will change from
 blank to \cw{/} to \cw{\\} back to blank. (Therefore, you can play
 the game entirely with one button if you need to.)
+
+You can also use the cursor keys to move around the grid. Pressing the
+return or space keys will place a \cw{\\} or a \cw{/}, respectively,
+and will then cycle them as above.
 
 (All the actions described in \k{common-actions} are also available.)
 
@@ -1752,6 +1835,18 @@ region in that colour, which you can use as a note to yourself that
 you think the region \e{might} be that colour. A region can contain
 stipples in multiple colours at once. (This is often useful at the
 harder difficulty levels.)
+
+You can also use the cursor keys to move around the map: the colour of
+the cursor indicates the position of the colour you would drag (which
+is not obvious if you're on a region's boundary, since it depends on the
+direction from which you approached the boundary). Pressing the return
+key starts a drag of that colour, as above, which you control with the
+cursor keys; pressing the return key again finishes the drag. The
+space bar can be used similarly to create a stippled region. 
+Double-pressing the return key (without moving the cursor) will clear
+the region, as a drag from an empty region does: this is useful with
+the cursor mode if you have filled the entire map in but need to 
+correct the layout.
 
 If you press L during play, the game will toggle display of a number
 in each region of the map. This is useful if you want to discuss a
@@ -1969,6 +2064,11 @@ blank square in the region you cover will be turned green, and no
 other squares will be affected. (This is useful for clearing the
 remainder of a row once you have placed all its tents.)
 
+You can also use the cursor keys to move around the grid. Pressing the
+return key over an empty square will place a tent, and pressing the
+space bar over an empty square will colour it green; either key will
+clear an occupied square.
+
 (All the actions described in \k{common-actions} are also available.)
 
 \H{tents-parameters} \I{parameters, for Tents}Tents parameters
@@ -2047,6 +2147,15 @@ This will highlight it and all the bridges connected to it, and you
 will be prevented from accidentally modifying any of those bridges
 in future. Left-clicking again on a highlighted island will unmark
 it and restore your ability to modify it.
+
+You can also use the cursor keys to move around the grid: if possible
+the cursor will always move orthogonally, otherwise it will move
+towards the nearest island to the indicated direction. Pressing the
+return key followed by a cursor key will lay an island in that direction
+(if available); pressing the space bar followed by a cursor key will
+lay a \q{non-bridge} marker.
+
+You can mark an island as finished by pressing the return key twice.
 
 Violations of the puzzle rules will be marked in red:
 
@@ -2152,7 +2261,8 @@ Space to clear it again (or use the Undo feature).
 
 If you \e{right}-click in a square and then type a number, that
 number will be entered in the square as a \q{pencil mark}. You can
-have pencil marks for multiple numbers in the same square.
+have pencil marks for multiple numbers in the same square. Squares
+containing filled-in numbers cannot also contain pencil marks.
 
 The game pays no attention to pencil marks, so exactly what you use
 them for is up to you: you can use them as reminders that a
@@ -2166,6 +2276,17 @@ the same number again.
 All pencil marks in a square are erased when you left-click and type
 a number, or when you left-click and press space. Right-clicking and
 pressing space will also erase pencil marks.
+
+As for Solo, the cursor keys can be used in conjunction with the digit
+keys to set numbers or pencil marks. You can also use the 'M' key to
+auto-fill every numeric hint, ready for removal as required, or the 'H'
+key to do the same but also to remove all obvious hints. 
+
+Alternatively, use the cursor keys to move the mark around the grid.
+Pressing the return key toggles the mark (from a normal mark to a
+pencil mark), and typing a number in is entered in the square in the
+appropriate way; typing in a 0 or using the space bar will clear a
+filled square. 
 
 (All the actions described in \k{common-actions} are also available.)
 
@@ -2230,6 +2351,13 @@ them, or destroy them by dropping them off the edge of the grid.
 pick it up and move it around to make it clearer. It will swivel
 constantly as you drag it, to stay pointed at its parent dot.)
 
+You can also use the cursor keys to move around the grid squares and
+lines.  Pressing the return key when over a grid line will draw or
+clear its edge, as above. Pressing the return key when over a dot will
+pick up an arrow, to be dropped the nest time the return key is
+pressed; this can also be used to move existing arrows around, removing
+them by dropping them on a dot or another arrow.
+
 (All the actions described in \k{common-actions} are also available.)
 
 \H{galaxies-parameters} \I{parameters, for Galaxies}Galaxies parameters
@@ -2282,6 +2410,12 @@ If you make a mistake, click the mouse in the incorrect square and
 press 0, Space, Backspace or Enter to clear it again (or use the Undo
 feature).
 
+You can also move around the grid with the cursor keys; typing a digit will
+fill the square containing the cursor with that number, or typing 0, Space,
+or Enter will clear it. You can also select multiple squares for numbering
+or clearing by using the return key, before typing a digit to fill in the
+highlighted squares (as above).
+
 (All the actions described in \k{common-actions} are also available.)
 
 \H{filling-parameters} \I{parameters, for Filling}Filling parameters
@@ -2293,11 +2427,11 @@ grid, through the \q{Type} menu.
 
 \A{licence} \I{MIT licence}\ii{Licence}
 
-This software is \i{copyright} 2004-2008 Simon Tatham.
+This software is \i{copyright} 2004-2009 Simon Tatham.
 
 Portions copyright Richard Boulton, James Harvey, Mike Pinna, Jonas
-K\u00F6{oe}lker, Dariusz Olszewski, Michael Schierl and Lambros
-Lambrou.
+K\u00F6{oe}lker, Dariusz Olszewski, Michael Schierl, Lambros
+Lambrou and Bernd Schmidt.
 
 Permission is hereby granted, free of charge, to any person
 obtaining a copy of this software and associated documentation files

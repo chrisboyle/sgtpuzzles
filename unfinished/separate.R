@@ -1,12 +1,12 @@
 # -*- makefile -*-
 
-SEPARATE = separate divvy dsf
+SEPARATE_EXTRA = divvy dsf
 
-separate : [X] GTK COMMON SEPARATE separate-icon|no-icon
+separate       : [X] GTK COMMON separate SEPARATE_EXTRA separate-icon|no-icon
 
-separate : [G] WINDOWS COMMON SEPARATE separate.res|noicon.res
+separate       : [G] WINDOWS COMMON separate SEPARATE_EXTRA separate.res|noicon.res
 
-ALL += separate
+ALL += separate[COMBINED] SEPARATE_EXTRA
 
 !begin gtk
 GAMES += separate

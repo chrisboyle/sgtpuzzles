@@ -1044,7 +1044,7 @@ int move_type(game_state *state, int dx, int dy)
 static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
 			    int x, int y, int button)
 {
-    int dx, dy;
+    int dx=0, dy=0;
     char *move;
 
     /*
@@ -1071,8 +1071,22 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
         dx = -1, dy = +1;
     else if (button == (MOD_NUM_KEYPAD | '3'))
         dx = +1, dy = +1;
+    else if (button == LEFT_BUTTON)
+    {
+        if(x < COORD(state->px))
+            dx = -1;
+        else if (x > COORD(state->px + 1))
+            dx = 1;
+        if(y < COORD(state->py))
+            dy = -1;
+        else if (y > COORD(state->py + 1))
+            dy = 1;
+    }
     else
         return NULL;
+
+    if((dx == 0) && (dy == 0))
+        return(NULL);
 
     if (move_type(state, dx, dy) < 0)
         return NULL;

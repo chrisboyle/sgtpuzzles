@@ -1068,16 +1068,16 @@ static char *interpret_move(game_state *state, game_ui *ui,
     button &= ~MOD_MASK;
 
     if (IS_CURSOR_MOVE(button)) {
-        /* right/down rotates cursor clockwise,
-         * left/up rotates anticlockwise. */
-        int cpos, diff;
+        int cpos, diff = 0;
         cpos = c2pos(state->width, state->height, ui->cur_x, ui->cur_y);
-        diff = (button == CURSOR_RIGHT || button == CURSOR_DOWN) ? +1 : -1;
+        diff = c2diff(state->width, state->height, ui->cur_x, ui->cur_y, button);
 
-        do { /* we might have to do this more than once to skip missing arrows */
-            cpos += diff;
-            pos2c(state->width, state->height, cpos, &ui->cur_x, &ui->cur_y);
-        } while (ui->cur_x == state->cx || ui->cur_y == state->cy);
+        if (diff != 0) {
+            do { /* we might have to do this more than once to skip missing arrows */
+                cpos += diff;
+                pos2c(state->width, state->height, cpos, &ui->cur_x, &ui->cur_y);
+            } while (ui->cur_x == state->cx || ui->cur_y == state->cy);
+        }
 
         ui->cur_visible = 1;
         return "";

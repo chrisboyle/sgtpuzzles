@@ -191,7 +191,7 @@ const struct drawing_api nestedvm_drawing = {
     nestedvm_blitter_save,
     nestedvm_blitter_load,
     NULL, NULL, NULL, NULL, NULL, NULL, /* {begin,end}_{doc,page,puzzle} */
-    NULL,			       /* line_width */
+    NULL, NULL,			       /* line_width, line_dotted */
 };
 
 int jcallback_key_event(int x, int y, int keyval)

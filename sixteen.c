@@ -611,7 +611,7 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
          * left/up rotates anticlockwise. */
         int cpos, diff;
         cpos = c2pos(state->w, state->h, ui->cur_x, ui->cur_y);
-        diff = (button == CURSOR_RIGHT || button == CURSOR_DOWN) ? +1 : -1;
+        diff = c2diff(state->w, state->h, ui->cur_x, ui->cur_y, button);
 
         cpos += diff;
         pos2c(state->w, state->h, cpos, &ui->cur_x, &ui->cur_y);
@@ -632,6 +632,8 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
             ui->cur_visible = 1;
             return "";
         }
+    } else {
+	return NULL;
     }
 
     if (cx == -1 && cy >= 0 && cy < state->h)

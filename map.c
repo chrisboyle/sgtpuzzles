@@ -1373,6 +1373,7 @@ static int map_solver(struct solver_scratch *sc,
              */
         }
 
+        sfree(origcolouring);
         sfree(subcolouring);
         free_scratch(rsc);
 
@@ -1788,9 +1789,9 @@ static char *validate_desc(game_params *params, char *desc)
 
     map = snewn(2*wh, int);
     ret = parse_edge_list(params, &desc, map);
+    sfree(map);
     if (ret)
 	return ret;
-    sfree(map);
 
     if (*desc != ',')
 	return "Expected comma before clue list";
@@ -2271,7 +2272,7 @@ struct game_ui {
     int dragx, dragy;
     int show_numbers;
 
-    int cur_x, cur_y, cur_visible;
+    int cur_x, cur_y, cur_visible, cur_moved, cur_lastmove;
 };
 
 static game_ui *new_ui(game_state *state)
@@ -2281,7 +2282,8 @@ static game_ui *new_ui(game_state *state)
     ui->drag_colour = -2;
     ui->drag_pencil = 0;
     ui->show_numbers = FALSE;
-    ui->cur_x = ui->cur_y = ui->cur_visible = 0;
+    ui->cur_x = ui->cur_y = ui->cur_visible = ui->cur_moved = 0;
+    ui->cur_lastmove = 0;
     return ui;
 }
 
@@ -2330,6 +2332,19 @@ struct game_drawstate {
 #define COORD(x)  ( (x) * TILESIZE + BORDER )
 #define FROMCOORD(x)  ( ((x) - BORDER + TILESIZE) / TILESIZE - 1 )
 
+ /*
+  * EPSILON_FOO are epsilons added to absolute cursor position by
+  * cursor movement, such that in pathological cases (e.g. a very
+  * small diamond-shaped area) it's relatively easy to select the
+  * region you wanted.
+  */
+
+#define EPSILON_X(button) (((button) == CURSOR_RIGHT) ? +1 : \
+                           ((button) == CURSOR_LEFT)  ? -1 : 0)
+#define EPSILON_Y(button) (((button) == CURSOR_DOWN)  ? +1 : \
+                           ((button) == CURSOR_UP)    ? -1 : 0)
+
+
 static int region_from_coords(game_state *state, game_drawstate *ds,
                               int x, int y)
 {
@@ -2366,12 +2381,16 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
     if (IS_CURSOR_MOVE(button)) {
         move_cursor(button, &ui->cur_x, &ui->cur_y, state->p.w, state->p.h, 0);
         ui->cur_visible = 1;
-        ui->dragx = COORD(ui->cur_x) + TILESIZE/2;
-        ui->dragy = COORD(ui->cur_y) + TILESIZE/2;
+        ui->cur_moved = 1;
+        ui->cur_lastmove = button;
+        ui->dragx = COORD(ui->cur_x) + TILESIZE/2 + EPSILON_X(button);
+        ui->dragy = COORD(ui->cur_y) + TILESIZE/2 + EPSILON_Y(button);
         return "";
     }
     if (IS_CURSOR_SELECT(button)) {
         if (!ui->cur_visible) {
+            ui->dragx = COORD(ui->cur_x) + TILESIZE/2 + EPSILON_X(ui->cur_lastmove);
+            ui->dragy = COORD(ui->cur_y) + TILESIZE/2 + EPSILON_Y(ui->cur_lastmove);
             ui->cur_visible = 1;
             return "";
         }
@@ -2384,11 +2403,14 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
                 ui->drag_colour = -1;
                 ui->drag_pencil = 0;
             }
+            ui->cur_moved = 0;
             return "";
         } else { /* currently cursor-dragging; drop the colour in the new region. */
-            x = COORD(ui->cur_x) + TILESIZE/2;
-            y = COORD(ui->cur_y) + TILESIZE/2;
+            x = COORD(ui->cur_x) + TILESIZE/2 + EPSILON_X(ui->cur_lastmove);
+            y = COORD(ui->cur_y) + TILESIZE/2 + EPSILON_Y(ui->cur_lastmove);
             alt_button = (button == CURSOR_SELECT2) ? 1 : 0;
+            /* Double-select removes current colour. */
+            if (!ui->cur_moved) ui->drag_colour = -1;
             goto drag_dropped;
         }
     }

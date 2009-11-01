@@ -42,6 +42,7 @@ delegate windows
   return puzzles/*.exe
   return puzzles/Output/setup.exe
 enddelegate
+in puzzles do chmod +x *.exe
 
 # Build the Pocket PC binaries and CAB.
 #

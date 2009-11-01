@@ -1,12 +1,12 @@
 # -*- makefile -*-
 
-PEARL    = pearl dsf
+PEARL_EXTRA    = dsf
 
-pearl    : [X] GTK COMMON PEARL pearl-icon|no-icon
+pearl          : [X] GTK COMMON pearl PEARL_EXTRA pearl-icon|no-icon
 
-pearl    : [G] WINDOWS COMMON PEARL pearl.res?
+pearl          : [G] WINDOWS COMMON pearl PEARL_EXTRA pearl.res?
 
-ALL += PEARL
+ALL += pearl[COMBINED] PEARL_EXTRA
 
 !begin gtk
 GAMES += pearl
@@ -14,4 +14,8 @@ GAMES += pearl
 
 !begin >list.c
     A(pearl) \
+!end
+
+!begin >wingames.lst
+pearl.exe:Pearl
 !end

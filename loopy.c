@@ -103,6 +103,7 @@ enum {
     COL_MISTAKE,
     COL_SATISFIED,
     COL_CURSOR,
+    COL_FAINT,
     NCOLOURS
 };
 
@@ -134,23 +135,16 @@ enum solver_status {
 };
 
 /* ------ Solver state ------ */
-typedef struct normal {
-    /* For each dline, store a bitmask for whether we know:
-     * (bit 0) at least one is YES
-     * (bit 1) at most one is YES */
-    char *dlines;
-} normal_mode_state;
-
-typedef struct hard {
-    int *linedsf;
-} hard_mode_state;
-
 typedef struct solver_state {
     game_state *state;
     enum solver_status solver_status;
     /* NB looplen is the number of dots that are joined together at a point, ie a
      * looplen of 1 means there are no lines to a particular dot */
     int *looplen;
+
+    /* Difficulty level of solver.  Used by solver functions that want to
+     * vary their behaviour depending on the requested difficulty level. */
+    int diff;
 
     /* caches */
     char *dot_yes_count;
@@ -160,8 +154,14 @@ typedef struct solver_state {
     char *dot_solved, *face_solved;
     int *dotdsf;
 
-    normal_mode_state *normal;
-    hard_mode_state *hard;
+    /* Information for Normal level deductions:
+     * For each dline, store a bitmask for whether we know:
+     * (bit 0) at least one is YES
+     * (bit 1) at most one is YES */
+    char *dlines;
+
+    /* Hard level information */
+    int *linedsf;
 } solver_state;
 
 /*
@@ -170,21 +170,39 @@ typedef struct solver_state {
  */
 
 #define DIFFLIST(A) \
-    A(EASY,Easy,e,easy_mode_deductions) \
-    A(NORMAL,Normal,n,normal_mode_deductions) \
-    A(HARD,Hard,h,hard_mode_deductions)
-#define ENUM(upper,title,lower,fn) DIFF_ ## upper,
-#define TITLE(upper,title,lower,fn) #title,
-#define ENCODE(upper,title,lower,fn) #lower
-#define CONFIG(upper,title,lower,fn) ":" #title
-#define SOLVER_FN_DECL(upper,title,lower,fn) static int fn(solver_state *);
-#define SOLVER_FN(upper,title,lower,fn) &fn,
+    A(EASY,Easy,e) \
+    A(NORMAL,Normal,n) \
+    A(TRICKY,Tricky,t) \
+    A(HARD,Hard,h)
+#define ENUM(upper,title,lower) DIFF_ ## upper,
+#define TITLE(upper,title,lower) #title,
+#define ENCODE(upper,title,lower) #lower
+#define CONFIG(upper,title,lower) ":" #title
 enum { DIFFLIST(ENUM) DIFF_MAX };
 static char const *const diffnames[] = { DIFFLIST(TITLE) };
 static char const diffchars[] = DIFFLIST(ENCODE);
 #define DIFFCONFIG DIFFLIST(CONFIG)
-DIFFLIST(SOLVER_FN_DECL)
-static int (*(solver_fns[]))(solver_state *) = { DIFFLIST(SOLVER_FN) };
+
+/*
+ * Solver routines, sorted roughly in order of computational cost.
+ * The solver will run the faster deductions first, and slower deductions are
+ * only invoked when the faster deductions are unable to make progress.
+ * Each function is associated with a difficulty level, so that the generated
+ * puzzles are solvable by applying only the functions with the chosen
+ * difficulty level or lower.
+ */
+#define SOLVERLIST(A) \
+    A(trivial_deductions, DIFF_EASY) \
+    A(dline_deductions, DIFF_NORMAL) \
+    A(linedsf_deductions, DIFF_HARD) \
+    A(loop_deductions, DIFF_EASY)
+#define SOLVER_FN_DECL(fn,diff) static int fn(solver_state *);
+#define SOLVER_FN(fn,diff) &fn,
+#define SOLVER_DIFF(fn,diff) diff,
+SOLVERLIST(SOLVER_FN_DECL)
+static int (*(solver_fns[]))(solver_state *) = { SOLVERLIST(SOLVER_FN) };
+static int const solver_diffs[] = { SOLVERLIST(SOLVER_DIFF) };
+const int NUM_SOLVERS = sizeof(solver_diffs)/sizeof(*solver_diffs);
 
 struct game_params {
     int w, h;
@@ -230,8 +248,7 @@ struct game_drawstate {
 static char *validate_desc(game_params *params, char *desc);
 static int dot_order(const game_state* state, int i, char line_type);
 static int face_order(const game_state* state, int i, char line_type);
-static solver_state *solve_game_rec(const solver_state *sstate,
-                                    int diff);
+static solver_state *solve_game_rec(const solver_state *sstate);
 
 #ifdef DEBUG_CACHES
 static void check_caches(const solver_state* sstate);
@@ -345,6 +362,7 @@ static solver_state *new_solver_state(game_state *state, int diff) {
     ret->state = dup_game(state);
 
     ret->solver_status = SOLVER_INCOMPLETE;
+    ret->diff = diff;
 
     ret->dotdsf = snew_dsf(num_dots);
     ret->looplen = snewn(num_dots, int);
@@ -368,18 +386,16 @@ static solver_state *new_solver_state(game_state *state, int diff) {
     memset(ret->face_no_count, 0, num_faces);
 
     if (diff < DIFF_NORMAL) {
-        ret->normal = NULL;
+        ret->dlines = NULL;
     } else {
-        ret->normal = snew(normal_mode_state);
-        ret->normal->dlines = snewn(2*num_edges, char);
-        memset(ret->normal->dlines, 0, 2*num_edges);
+        ret->dlines = snewn(2*num_edges, char);
+        memset(ret->dlines, 0, 2*num_edges);
     }
 
     if (diff < DIFF_HARD) {
-        ret->hard = NULL;
+        ret->linedsf = NULL;
     } else {
-        ret->hard = snew(hard_mode_state);
-        ret->hard->linedsf = snew_dsf(state->game_grid->num_edges);
+        ret->linedsf = snew_dsf(state->game_grid->num_edges);
     }
 
     return ret;
@@ -397,15 +413,9 @@ static void free_solver_state(solver_state *sstate) {
         sfree(sstate->face_yes_count);
         sfree(sstate->face_no_count);
 
-        if (sstate->normal) {
-            sfree(sstate->normal->dlines);
-            sfree(sstate->normal);
-        }
-
-        if (sstate->hard) {
-            sfree(sstate->hard->linedsf);
-            sfree(sstate->hard);
-        }
+        /* OK, because sfree(NULL) is a no-op */
+        sfree(sstate->dlines);
+        sfree(sstate->linedsf);
 
         sfree(sstate);
     }
@@ -421,6 +431,7 @@ static solver_state *dup_solver_state(const solver_state *sstate) {
     ret->state = state = dup_game(sstate->state);
 
     ret->solver_status = sstate->solver_status;
+    ret->diff = sstate->diff;
 
     ret->dotdsf = snewn(num_dots, int);
     ret->looplen = snewn(num_dots, int);
@@ -444,22 +455,20 @@ static solver_state *dup_solver_state(const solver_state *sstate) {
     ret->face_no_count = snewn(num_faces, char);
     memcpy(ret->face_no_count, sstate->face_no_count, num_faces);
 
-    if (sstate->normal) {
-        ret->normal = snew(normal_mode_state);
-        ret->normal->dlines = snewn(2*num_edges, char);
-        memcpy(ret->normal->dlines, sstate->normal->dlines,
+    if (sstate->dlines) {
+        ret->dlines = snewn(2*num_edges, char);
+        memcpy(ret->dlines, sstate->dlines,
                2*num_edges);
     } else {
-        ret->normal = NULL;
+        ret->dlines = NULL;
     }
 
-    if (sstate->hard) {
-        ret->hard = snew(hard_mode_state);
-        ret->hard->linedsf = snewn(num_edges, int);
-        memcpy(ret->hard->linedsf, sstate->hard->linedsf,
+    if (sstate->linedsf) {
+        ret->linedsf = snewn(num_edges, int);
+        memcpy(ret->linedsf, sstate->linedsf,
                num_edges * sizeof(int));
     } else {
-        ret->hard = NULL;
+        ret->linedsf = NULL;
     }
 
     return ret;
@@ -882,6 +891,14 @@ static float *game_colours(frontend *fe, int *ncolours)
     ret[COL_SATISFIED * 3 + 1] = 0.0F;
     ret[COL_SATISFIED * 3 + 2] = 0.0F;
 
+    /* We want the faint lines to be a bit darker than the background.
+     * Except if the background is pretty dark already; then it ought to be a
+     * bit lighter.  Oy vey.
+     */
+    ret[COL_FAINT * 3 + 0] = ret[COL_BACKGROUND * 3 + 0] * 0.9F;
+    ret[COL_FAINT * 3 + 1] = ret[COL_BACKGROUND * 3 + 1] * 0.9F;
+    ret[COL_FAINT * 3 + 2] = ret[COL_BACKGROUND * 3 + 2] * 0.9F;
+
     *ncolours = NCOLOURS;
     return ret;
 }
@@ -1162,12 +1179,12 @@ static int merge_lines(solver_state *sstate, int i, int j, int inverse
     assert(i < sstate->state->game_grid->num_edges);
     assert(j < sstate->state->game_grid->num_edges);
 
-    i = edsf_canonify(sstate->hard->linedsf, i, &inv_tmp);
+    i = edsf_canonify(sstate->linedsf, i, &inv_tmp);
     inverse ^= inv_tmp;
-    j = edsf_canonify(sstate->hard->linedsf, j, &inv_tmp);
+    j = edsf_canonify(sstate->linedsf, j, &inv_tmp);
     inverse ^= inv_tmp;
 
-    edsf_merge(sstate->hard->linedsf, i, j, inverse);
+    edsf_merge(sstate->linedsf, i, j, inverse);
 
 #ifdef SHOW_WORKING
     if (i != j) {
@@ -1553,6 +1570,7 @@ static void add_full_clues(game_state *state, random_state *rs)
     face_scores = snewn(num_faces, struct face_score);
     for (i = 0; i < num_faces; i++) {
         face_scores[i].random = random_bits(rs, 31);
+        face_scores[i].black_score = face_scores[i].white_score = 0;
     }
     
     /* Colour a random, finite face white.  The infinite face is implicitly
@@ -1770,7 +1788,7 @@ static int game_has_unique_soln(const game_state *state, int diff)
     solver_state *sstate_new;
     solver_state *sstate = new_solver_state((game_state *)state, diff);
 
-    sstate_new = solve_game_rec(sstate, diff);
+    sstate_new = solve_game_rec(sstate);
 
     assert(sstate_new->solver_status != SOLVER_MISTAKE);
     ret = (sstate_new->solver_status == SOLVER_SOLVED);
@@ -2084,7 +2102,7 @@ static int check_completion(game_state *state)
  *   Easy Mode
  *   Just implement the rules of the game.
  *
- *   Normal Mode
+ *   Normal and Tricky Modes
  *   For each (adjacent) pair of lines through each dot we store a bit for
  *   whether at least one of them is on and whether at most one is on.  (If we
  *   know both or neither is on that's already stored more directly.)
@@ -2221,7 +2239,7 @@ static int dline_set_opp_atleastone(solver_state *sstate,
             continue;
         /* Found opposite UNKNOWNS and they're next to each other */
         opp_dline_index = dline_index_from_dot(g, d, opp);
-        return set_atleastone(sstate->normal->dlines, opp_dline_index);
+        return set_atleastone(sstate->dlines, opp_dline_index);
     }
     return FALSE;
 }
@@ -2254,8 +2272,8 @@ static int face_setall_identical(solver_state *sstate, int face_index,
                 continue;
 
             /* Found two UNKNOWNS */
-            can1 = edsf_canonify(sstate->hard->linedsf, line1_index, &inv1);
-            can2 = edsf_canonify(sstate->hard->linedsf, line2_index, &inv2);
+            can1 = edsf_canonify(sstate->linedsf, line1_index, &inv1);
+            can2 = edsf_canonify(sstate->linedsf, line2_index, &inv2);
             if (can1 == can2 && inv1 == inv2) {
                 solver_set_line(sstate, line1_index, line_new);
                 solver_set_line(sstate, line2_index, line_new);
@@ -2296,7 +2314,7 @@ static int parity_deductions(solver_state *sstate,
 {
     game_state *state = sstate->state;
     int diff = DIFF_MAX;
-    int *linedsf = sstate->hard->linedsf;
+    int *linedsf = sstate->linedsf;
 
     if (unknown_count == 2) {
         /* Lines are known alike/opposite, depending on inv. */
@@ -2395,7 +2413,7 @@ static int parity_deductions(solver_state *sstate,
  *      Answer: first all squares then all dots.
  */
 
-static int easy_mode_deductions(solver_state *sstate)
+static int trivial_deductions(solver_state *sstate)
 {
     int i, current_yes, current_no;
     game_state *state = sstate->state;
@@ -2490,11 +2508,11 @@ static int easy_mode_deductions(solver_state *sstate)
     return diff;
 }
 
-static int normal_mode_deductions(solver_state *sstate)
+static int dline_deductions(solver_state *sstate)
 {
     game_state *state = sstate->state;
     grid *g = state->game_grid;
-    char *dlines = sstate->normal->dlines;
+    char *dlines = sstate->dlines;
     int i;
     int diff = DIFF_MAX;
 
@@ -2640,29 +2658,34 @@ static int normal_mode_deductions(solver_state *sstate)
                 diff = min(diff, DIFF_EASY);
             }
 
-            /* Now see if we can make dline deduction for edges{j,j+1} */
-            e = f->edges[k];
-            if (state->lines[e - g->edges] != LINE_UNKNOWN)
-                /* Only worth doing this for an UNKNOWN,UNKNOWN pair.
-                 * Dlines where one of the edges is known, are handled in the
-                 * dot-deductions */
-                continue;
-
-            dline_index = dline_index_from_face(g, f, k);
-            k++;
-            if (k >= N) k = 0;
-
-            /* minimum YESs in the complement of this dline */
-            if (mins[k][j] > clue - 2) {
-                /* Adding 2 YESs would break the clue */
-                if (set_atmostone(dlines, dline_index))
-                    diff = min(diff, DIFF_NORMAL);
-            }
-            /* maximum YESs in the complement of this dline */
-            if (maxs[k][j] < clue) {
-                /* Adding 2 NOs would mean not enough YESs */
-                if (set_atleastone(dlines, dline_index))
-                    diff = min(diff, DIFF_NORMAL);
+            /* More advanced deduction that allows propagation along diagonal
+             * chains of faces connected by dots, for example, 3-2-...-2-3
+             * in square grids. */
+            if (sstate->diff >= DIFF_TRICKY) {
+                /* Now see if we can make dline deduction for edges{j,j+1} */
+                e = f->edges[k];
+                if (state->lines[e - g->edges] != LINE_UNKNOWN)
+                    /* Only worth doing this for an UNKNOWN,UNKNOWN pair.
+                     * Dlines where one of the edges is known, are handled in the
+                     * dot-deductions */
+                    continue;
+    
+                dline_index = dline_index_from_face(g, f, k);
+                k++;
+                if (k >= N) k = 0;
+    
+                /* minimum YESs in the complement of this dline */
+                if (mins[k][j] > clue - 2) {
+                    /* Adding 2 YESs would break the clue */
+                    if (set_atmostone(dlines, dline_index))
+                        diff = min(diff, DIFF_NORMAL);
+                }
+                /* maximum YESs in the complement of this dline */
+                if (maxs[k][j] < clue) {
+                    /* Adding 2 NOs would mean not enough YESs */
+                    if (set_atleastone(dlines, dline_index))
+                        diff = min(diff, DIFF_NORMAL);
+                }
             }
         }
     }
@@ -2756,48 +2779,54 @@ static int normal_mode_deductions(solver_state *sstate)
                 }
             }
 
-            /* If we have atleastone set for this dline, infer
-             * atmostone for each "opposite" dline (that is, each
-             * dline without edges in common with this one).
-             * Again, this test is only worth doing if both these
-             * lines are UNKNOWN.  For if one of these lines were YES,
-             * the (yes == 1) test above would kick in instead. */
-            if (is_atleastone(dlines, dline_index)) {
-                int opp;
-                for (opp = 0; opp < N; opp++) {
-                    int opp_dline_index;
-                    if (opp == j || opp == j+1 || opp == j-1)
-                        continue;
-                    if (j == 0 && opp == N-1)
-                        continue;
-                    if (j == N-1 && opp == 0)
-                        continue;
-                    opp_dline_index = dline_index_from_dot(g, d, opp);
-                    if (set_atmostone(dlines, opp_dline_index))
-                        diff = min(diff, DIFF_NORMAL);
-                }
-
-                if (yes == 0 && is_atmostone(dlines, dline_index)) {
-                    /* This dline has *exactly* one YES and there are no
-                     * other YESs.  This allows more deductions. */
-                    if (unknown == 3) {
-                        /* Third unknown must be YES */
-                        for (opp = 0; opp < N; opp++) {
-                            int opp_index;
-                            if (opp == j || opp == k)
-                                continue;
-                            opp_index = d->edges[opp] - g->edges;
-                            if (state->lines[opp_index] == LINE_UNKNOWN) {
-                                solver_set_line(sstate, opp_index, LINE_YES);
-                                diff = min(diff, DIFF_EASY);
-                            }
-                        }
-                    } else if (unknown == 4) {
-                        /* Exactly one of opposite UNKNOWNS is YES.  We've
-                         * already set atmostone, so set atleastone as well.
-                         */
-                        if (dline_set_opp_atleastone(sstate, d, j))
+            /* More advanced deduction that allows propagation along diagonal
+             * chains of faces connected by dots, for example: 3-2-...-2-3
+             * in square grids. */
+            if (sstate->diff >= DIFF_TRICKY) {
+                /* If we have atleastone set for this dline, infer
+                 * atmostone for each "opposite" dline (that is, each
+                 * dline without edges in common with this one).
+                 * Again, this test is only worth doing if both these
+                 * lines are UNKNOWN.  For if one of these lines were YES,
+                 * the (yes == 1) test above would kick in instead. */
+                if (is_atleastone(dlines, dline_index)) {
+                    int opp;
+                    for (opp = 0; opp < N; opp++) {
+                        int opp_dline_index;
+                        if (opp == j || opp == j+1 || opp == j-1)
+                            continue;
+                        if (j == 0 && opp == N-1)
+                            continue;
+                        if (j == N-1 && opp == 0)
+                            continue;
+                        opp_dline_index = dline_index_from_dot(g, d, opp);
+                        if (set_atmostone(dlines, opp_dline_index))
                             diff = min(diff, DIFF_NORMAL);
+                    }
+                    if (yes == 0 && is_atmostone(dlines, dline_index)) {
+                        /* This dline has *exactly* one YES and there are no
+                         * other YESs.  This allows more deductions. */
+                        if (unknown == 3) {
+                            /* Third unknown must be YES */
+                            for (opp = 0; opp < N; opp++) {
+                                int opp_index;
+                                if (opp == j || opp == k)
+                                    continue;
+                                opp_index = d->edges[opp] - g->edges;
+                                if (state->lines[opp_index] == LINE_UNKNOWN) {
+                                    solver_set_line(sstate, opp_index,
+                                                    LINE_YES);
+                                    diff = min(diff, DIFF_EASY);
+                                }
+                            }
+                        } else if (unknown == 4) {
+                            /* Exactly one of opposite UNKNOWNS is YES.  We've
+                             * already set atmostone, so set atleastone as
+                             * well.
+                             */
+                            if (dline_set_opp_atleastone(sstate, d, j))
+                                diff = min(diff, DIFF_NORMAL);
+                        }
                     }
                 }
             }
@@ -2806,11 +2835,11 @@ static int normal_mode_deductions(solver_state *sstate)
     return diff;
 }
 
-static int hard_mode_deductions(solver_state *sstate)
+static int linedsf_deductions(solver_state *sstate)
 {
     game_state *state = sstate->state;
     grid *g = state->game_grid;
-    char *dlines = sstate->normal->dlines;
+    char *dlines = sstate->dlines;
     int i;
     int diff = DIFF_MAX;
     int diff_tmp;
@@ -2880,8 +2909,8 @@ static int hard_mode_deductions(solver_state *sstate)
             if (state->lines[line2_index] != LINE_UNKNOWN)
                 continue;
             /* Infer dline flags from linedsf */
-            can1 = edsf_canonify(sstate->hard->linedsf, line1_index, &inv1);
-            can2 = edsf_canonify(sstate->hard->linedsf, line2_index, &inv2);
+            can1 = edsf_canonify(sstate->linedsf, line1_index, &inv1);
+            can2 = edsf_canonify(sstate->linedsf, line2_index, &inv2);
             if (can1 == can2 && inv1 != inv2) {
                 /* These are opposites, so set dline atmostone/atleastone */
                 if (set_atmostone(dlines, dline_index))
@@ -2915,7 +2944,7 @@ static int hard_mode_deductions(solver_state *sstate)
     for (i = 0; i < g->num_edges; i++) {
         int can, inv;
         enum line_state s;
-        can = edsf_canonify(sstate->hard->linedsf, i, &inv);
+        can = edsf_canonify(sstate->linedsf, i, &inv);
         if (can == i)
             continue;
         s = sstate->state->lines[can];
@@ -3088,52 +3117,59 @@ static int loop_deductions(solver_state *sstate)
 
 /* This will return a dynamically allocated solver_state containing the (more)
  * solved grid */
-static solver_state *solve_game_rec(const solver_state *sstate_start,
-                                    int diff)
+static solver_state *solve_game_rec(const solver_state *sstate_start)
 {
-    solver_state *sstate, *sstate_saved;
-    int solver_progress;
-    game_state *state;
+    solver_state *sstate;
 
-    /* Indicates which solver we should call next.  This is a sensible starting
-     * point */
-    int current_solver = DIFF_EASY, next_solver;
+    /* Index of the solver we should call next. */
+    int i = 0;
+    
+    /* As a speed-optimisation, we avoid re-running solvers that we know
+     * won't make any progress.  This happens when a high-difficulty
+     * solver makes a deduction that can only help other high-difficulty
+     * solvers.
+     * For example: if a new 'dline' flag is set by dline_deductions, the
+     * trivial_deductions solver cannot do anything with this information.
+     * If we've already run the trivial_deductions solver (because it's
+     * earlier in the list), there's no point running it again.
+     *
+     * Therefore: if a solver is earlier in the list than "threshold_index",
+     * we don't bother running it if it's difficulty level is less than
+     * "threshold_diff".
+     */
+    int threshold_diff = 0;
+    int threshold_index = 0;
+    
     sstate = dup_solver_state(sstate_start);
-
-    /* Cache the values of some variables for readability */
-    state = sstate->state;
-
-    sstate_saved = NULL;
-
-    solver_progress = FALSE;
 
     check_caches(sstate);
 
-    do {
+    while (i < NUM_SOLVERS) {
         if (sstate->solver_status == SOLVER_MISTAKE)
             return sstate;
-
-        next_solver = solver_fns[current_solver](sstate);
-
-        if (next_solver == DIFF_MAX) {
-            if (current_solver < diff && current_solver + 1 < DIFF_MAX) {
-                /* Try next beefier solver */
-                next_solver = current_solver + 1;
-            } else {
-                next_solver = loop_deductions(sstate);
-            }
-        }
-
         if (sstate->solver_status == SOLVER_SOLVED ||
             sstate->solver_status == SOLVER_AMBIGUOUS) {
-/*            fprintf(stderr, "Solver completed\n"); */
+            /* solver finished */
             break;
         }
 
-        /* Once we've looped over all permitted solvers then the loop
-         * deductions without making any progress, we'll exit this while loop */
-        current_solver = next_solver;
-    } while (current_solver < DIFF_MAX);
+        if ((solver_diffs[i] >= threshold_diff || i >= threshold_index)
+            && solver_diffs[i] <= sstate->diff) {
+            /* current_solver is eligible, so use it */
+            int next_diff = solver_fns[i](sstate);
+            if (next_diff != DIFF_MAX) {
+                /* solver made progress, so use new thresholds and
+                * start again at top of list. */
+                threshold_diff = next_diff;
+                threshold_index = i;
+                i = 0;
+                continue;
+            }
+        }
+        /* current_solver is ineligible, or failed to make progress, so
+         * go to the next solver in the list */
+        i++;
+    }
 
     if (sstate->solver_status == SOLVER_SOLVED ||
         sstate->solver_status == SOLVER_AMBIGUOUS) {
@@ -3153,7 +3189,7 @@ static char *solve_game(game_state *state, game_state *currstate,
     solver_state *sstate, *new_sstate;
 
     sstate = new_solver_state(state, DIFF_MAX);
-    new_sstate = solve_game_rec(sstate, DIFF_MAX);
+    new_sstate = solve_game_rec(sstate);
 
     if (new_sstate->solver_status == SOLVER_SOLVED) {
         soln = encode_solve_move(new_sstate->state);
@@ -3304,6 +3340,8 @@ static game_state *execute_move(game_state *state, char *move)
 
     while (*move) {
         i = atoi(move);
+        if (i < 0 || i >= newstate->game_grid->num_edges)
+            goto fail;
         move += strspn(move, "1234567890");
         switch (*(move++)) {
 	  case 'y':
@@ -3585,7 +3623,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
         else if (state->lines[i] == LINE_UNKNOWN)
             line_colour = COL_LINEUNKNOWN;
         else if (state->lines[i] == LINE_NO)
-            line_colour = COL_BACKGROUND;
+            line_colour = COL_FAINT;
         else if (ds->flashing)
             line_colour = COL_HIGHLIGHT;
         else
@@ -3605,12 +3643,16 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
         ymin = min(y1, y2);
         ymax = max(y1, y2);
 
-        draw_thickline_perc(dr, x1, y1, x2, y2, 0, 100, line_colour);
-        if (e == cur_edge) {
-            draw_thickline_perc(dr, x1, y1, x2, y2, 25,  75, COL_CURSOR);
-        }
-#if 0
-        if (line_colour != COL_BACKGROUND) {
+	if (line_colour == COL_FAINT) {
+            static int draw_faint_lines = -1;
+            if (draw_faint_lines < 0) {
+		char *env = getenv("LOOPY_FAINT_LINES");
+		draw_faint_lines = (!env || (env[0] == 'y' ||
+					     env[0] == 'Y'));
+            }
+	    if (draw_faint_lines)
+		draw_line(dr, x1, y1, x2, y2, line_colour);
+	} else {
             /* (dx, dy) points roughly from (x1, y1) to (x2, y2).
              * The line is then "fattened" in a (roughly) perpendicular
              * direction to create a thin rectangle. */
@@ -3810,4 +3852,130 @@ const struct game thegame = {
     FALSE, game_timing_state,
     0,                                       /* mouse_priorities */
 };
-/* vim: set shiftwidth=4 tabstop=8: */
+
+#ifdef STANDALONE_SOLVER
+
+/*
+ * Half-hearted standalone solver. It can't output the solution to
+ * anything but a square puzzle, and it can't log the deductions
+ * it makes either. But it can solve square puzzles, and more
+ * importantly it can use its solver to grade the difficulty of
+ * any puzzle you give it.
+ */
+
+#include <stdarg.h>
+
+int main(int argc, char **argv)
+{
+    game_params *p;
+    game_state *s;
+    char *id = NULL, *desc, *err;
+    int grade = FALSE;
+    int ret, diff;
+#if 0 /* verbose solver not supported here (yet) */
+    int really_verbose = FALSE;
+#endif
+
+    while (--argc > 0) {
+        char *p = *++argv;
+#if 0 /* verbose solver not supported here (yet) */
+        if (!strcmp(p, "-v")) {
+            really_verbose = TRUE;
+        } else
+#endif
+	if (!strcmp(p, "-g")) {
+            grade = TRUE;
+        } else if (*p == '-') {
+            fprintf(stderr, "%s: unrecognised option `%s'\n", argv[0], p);
+            return 1;
+        } else {
+            id = p;
+        }
+    }
+
+    if (!id) {
+        fprintf(stderr, "usage: %s [-g | -v] <game_id>\n", argv[0]);
+        return 1;
+    }
+
+    desc = strchr(id, ':');
+    if (!desc) {
+        fprintf(stderr, "%s: game id expects a colon in it\n", argv[0]);
+        return 1;
+    }
+    *desc++ = '\0';
+
+    p = default_params();
+    decode_params(p, id);
+    err = validate_desc(p, desc);
+    if (err) {
+        fprintf(stderr, "%s: %s\n", argv[0], err);
+        return 1;
+    }
+    s = new_game(NULL, p, desc);
+
+    /*
+     * When solving an Easy puzzle, we don't want to bother the
+     * user with Hard-level deductions. For this reason, we grade
+     * the puzzle internally before doing anything else.
+     */
+    ret = -1;			       /* placate optimiser */
+    for (diff = 0; diff < DIFF_MAX; diff++) {
+	solver_state *sstate_new;
+	solver_state *sstate = new_solver_state((game_state *)s, diff);
+
+	sstate_new = solve_game_rec(sstate);
+
+	if (sstate_new->solver_status == SOLVER_MISTAKE)
+	    ret = 0;
+	else if (sstate_new->solver_status == SOLVER_SOLVED)
+	    ret = 1;
+	else
+	    ret = 2;
+
+	free_solver_state(sstate_new);
+	free_solver_state(sstate);
+
+	if (ret < 2)
+	    break;
+    }
+
+    if (diff == DIFF_MAX) {
+	if (grade)
+	    printf("Difficulty rating: harder than Hard, or ambiguous\n");
+	else
+	    printf("Unable to find a unique solution\n");
+    } else {
+	if (grade) {
+	    if (ret == 0)
+		printf("Difficulty rating: impossible (no solution exists)\n");
+	    else if (ret == 1)
+		printf("Difficulty rating: %s\n", diffnames[diff]);
+	} else {
+	    solver_state *sstate_new;
+	    solver_state *sstate = new_solver_state((game_state *)s, diff);
+
+	    /* If we supported a verbose solver, we'd set verbosity here */
+
+	    sstate_new = solve_game_rec(sstate);
+
+	    if (sstate_new->solver_status == SOLVER_MISTAKE)
+		printf("Puzzle is inconsistent\n");
+	    else {
+		assert(sstate_new->solver_status == SOLVER_SOLVED);
+		if (s->grid_type == 0) {
+		    fputs(game_text_format(sstate_new->state), stdout);
+		} else {
+		    printf("Unable to output non-square grids\n");
+		}
+	    }
+
+	    free_solver_state(sstate_new);
+	    free_solver_state(sstate);
+	}
+    }
+
+    return 0;
+}
+
+#endif

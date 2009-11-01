@@ -32,7 +32,7 @@ enum {
     COL_TEXT, COL_FLASHTEXT,
     COL_HIGHLIGHT, COL_LOWLIGHT, COL_GRID,
     COL_BALL, COL_WRONG, COL_BUTTON,
-    COL_LASER, COL_DIMLASER,
+    COL_CURSOR,
     NCOLOURS
 };
 
@@ -975,6 +975,7 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
 
     case REVEAL:
         if (!CAN_REVEAL(state)) return nullret;
+        if (ui->cur_visible == 1) ui->cur_x = ui->cur_y = 1;
         sprintf(buf, "R");
         break;
 
@@ -1130,13 +1131,9 @@ static float *game_colours(frontend *fe, int *ncolours)
     ret[COL_BUTTON * 3 + 1] = 1.0F;
     ret[COL_BUTTON * 3 + 2] = 0.0F;
 
-    ret[COL_LASER * 3 + 0] = 1.0F;
-    ret[COL_LASER * 3 + 1] = 0.0F;
-    ret[COL_LASER * 3 + 2] = 0.0F;
-
-    ret[COL_DIMLASER * 3 + 0] = 0.5F;
-    ret[COL_DIMLASER * 3 + 1] = 0.0F;
-    ret[COL_DIMLASER * 3 + 2] = 0.0F;
+    ret[COL_CURSOR * 3 + 0] = 1.0F;
+    ret[COL_CURSOR * 3 + 1] = 0.0F;
+    ret[COL_CURSOR * 3 + 2] = 0.0F;
 
     for (i = 0; i < 3; i++) {
         ret[COL_GRID * 3 + i] = ret[COL_BACKGROUND * 3 + i] * 0.9F;
@@ -1174,6 +1171,16 @@ static void game_free_drawstate(drawing *dr, game_drawstate *ds)
     sfree(ds);
 }
 
+static void draw_square_cursor(drawing *dr, game_drawstate *ds, int dx, int dy)
+{
+    int coff = TILE_SIZE/8;
+    draw_rect_outline(dr, dx + coff, dy + coff,
+                      TILE_SIZE - coff*2,
+                      TILE_SIZE - coff*2,
+                      COL_CURSOR);
+}
+
+
 static void draw_arena_tile(drawing *dr, game_state *gs, game_drawstate *ds,
                             game_ui *ui, int ax, int ay, int force, int isflash)
 {
@@ -1185,7 +1192,7 @@ static void draw_arena_tile(drawing *dr, game_state *gs, game_drawstate *ds,
         gs_tile |= FLAG_CURSOR;
 
     if (gs_tile != ds_tile || gs->reveal != ds->reveal || force) {
-        int bcol, bg;
+        int bcol, ocol, bg;
 
         bg = (gs->reveal ? COL_BACKGROUND :
               (gs_tile & BALL_LOCK) ? COL_LOCK : COL_COVER);
@@ -1212,17 +1219,16 @@ static void draw_arena_tile(drawing *dr, game_state *gs, game_drawstate *ds,
                 bcol = bg;
             }
         }
+        ocol = (gs_tile & FLAG_CURSOR && bcol != bg) ? COL_CURSOR : bcol;
 
         draw_circle(dr, dx + TILE_SIZE/2, dy + TILE_SIZE/2, ds->crad-1,
+                    ocol, ocol);
+        draw_circle(dr, dx + TILE_SIZE/2, dy + TILE_SIZE/2, ds->crad-3,
                     bcol, bcol);
 
-        if (gs_tile & FLAG_CURSOR) {
-            int coff = TILE_SIZE/8;
-             draw_rect_outline(dr, dx + coff, dy + coff,
-                               TILE_SIZE - coff*2,
-                               TILE_SIZE - coff*2,
-                               COL_DIMLASER);
-        }
+
+        if (gs_tile & FLAG_CURSOR && bcol == bg)
+            draw_square_cursor(dr, ds, dx, dy);
 
         if (gs->reveal &&
             (gs_tile & BALL_GUESS) &&
@@ -1317,13 +1323,8 @@ static void draw_laser_tile(drawing *dr, game_state *gs, game_drawstate *ds,
                       FONT_VARIABLE, TILE_SIZE/2, ALIGN_VCENTRE | ALIGN_HCENTRE,
                       tcol, str);
         }
-        if (gs_tile & FLAG_CURSOR) {
-            int coff = TILE_SIZE/16;
-             draw_rect_outline(dr, dx + coff, dy + coff,
-                               TILE_SIZE - coff*2,
-                               TILE_SIZE - coff*2,
-                               COL_DIMLASER);
-        }
+        if (gs_tile & FLAG_CURSOR)
+            draw_square_cursor(dr, ds, dx, dy);
 
         draw_update(dr, dx, dy, TILE_SIZE, TILE_SIZE);
     }
@@ -1395,13 +1396,13 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 
     /* draw the 'finish' button */
     if (CAN_REVEAL(state)) {
-        int col = (ui->cur_visible && ui->cur_x == 0 && ui->cur_y == 0)
-            ? COL_DIMLASER : COL_BALL;
+        int outline = (ui->cur_visible && ui->cur_x == 0 && ui->cur_y == 0)
+            ? COL_CURSOR : COL_BALL;
         clip(dr, TODRAW(0), TODRAW(0), TILE_SIZE-1, TILE_SIZE-1);
         draw_circle(dr, TODRAW(0) + ds->crad, TODRAW(0) + ds->crad, ds->crad,
-                    COL_BUTTON, col);
-        draw_circle(dr, TODRAW(0) + ds->crad, TODRAW(0) + ds->crad, ds->crad-1,
-                    COL_BUTTON, col);
+                    outline, outline);
+        draw_circle(dr, TODRAW(0) + ds->crad, TODRAW(0) + ds->crad, ds->crad-2,
+                    COL_BUTTON, COL_BUTTON);
 	unclip(dr);
     } else {
         draw_rect(dr, TODRAW(0), TODRAW(0),

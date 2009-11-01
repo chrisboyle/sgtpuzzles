@@ -1,15 +1,15 @@
 # -*- makefile -*-
 
-SLIDE    = slide dsf tree234
+SLIDE_EXTRA    = dsf tree234
 
-slide    : [X] GTK COMMON SLIDE slide-icon|no-icon
+slide          : [X] GTK COMMON slide SLIDE_EXTRA slide-icon|no-icon
 
-slide    : [G] WINDOWS COMMON SLIDE slide.res|noicon.res
+slide          : [G] WINDOWS COMMON slide SLIDE_EXTRA slide.res|noicon.res
 
-slidesolver :   [U] slide[STANDALONE_SOLVER] dsf tree234 STANDALONE
-slidesolver :   [C] slide[STANDALONE_SOLVER] dsf tree234 STANDALONE
+slidesolver :   [U] slide[STANDALONE_SOLVER] SLIDE_EXTRA STANDALONE
+slidesolver :   [C] slide[STANDALONE_SOLVER] SLIDE_EXTRA STANDALONE
 
-ALL += SLIDE
+ALL += slide[COMBINED] SLIDE_EXTRA
 
 !begin gtk
 GAMES += slide

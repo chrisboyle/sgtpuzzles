@@ -18,8 +18,9 @@
 
 !srcdir icons/
 
-WINDOWS  = windows printing
+WINDOWS_COMMON = printing
          + user32.lib gdi32.lib comctl32.lib comdlg32.lib winspool.lib
+WINDOWS  = windows WINDOWS_COMMON
 COMMON   = midend drawing misc malloc random version
 COMMON_COMBINED = midend[COMBINED] drawing misc malloc random version
 GTK      = gtk printing ps
@@ -54,6 +55,11 @@ GAMELIST(DECL)
 const game *gamelist[] = { GAMELIST(REF) };
 const int gamecount = lenof(gamelist);
 !end
+
+# Unix standalone application for special-purpose obfuscation.
+obfusc : [U] obfusc STANDALONE
+
+puzzles  : [G] windows[COMBINED] WINDOWS_COMMON COMMON ALL noicon.res
 
 # Mac OS X unified application containing all the puzzles.
 Puzzles  : [MX] osx osx.icns osx-info.plist COMMON ALL

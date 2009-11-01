@@ -39,7 +39,7 @@ enum {
     COL_SLANT1,
     COL_SLANT2,
     COL_ERROR,
-    COL_CURSOR,
+    COL_CURSOR, COL_LOWLIGHT, /* LOWLIGHT currently not used. */
     NCOLOURS
 };
 
@@ -1812,7 +1812,8 @@ static float *game_colours(frontend *fe, int *ncolours)
 {
     float *ret = snewn(3 * NCOLOURS, float);
 
-    frontend_default_colour(fe, &ret[COL_BACKGROUND * 3]);
+    /* CURSOR colour is a background highlight. LOWLIGHT is unused. */
+    game_mkhighlight(fe, ret, COL_BACKGROUND, COL_CURSOR, COL_LOWLIGHT);
 
     ret[COL_GRID * 3 + 0] = ret[COL_BACKGROUND * 3 + 0] * 0.7F;
     ret[COL_GRID * 3 + 1] = ret[COL_BACKGROUND * 3 + 1] * 0.7F;

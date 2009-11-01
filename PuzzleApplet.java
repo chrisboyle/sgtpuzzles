@@ -383,8 +383,6 @@ public class PuzzleApplet extends JApplet implements Runtime.CallJavaCB {
                     int asc = fm.getAscent(), desc = fm.getDescent();
                     if ((xarg3 & ALIGN_VCENTRE) != 0)
                         xarg2 += asc - (asc+desc)/2;
-                    else
-                        xarg2 += asc;
                     int wid = fm.stringWidth(text);
                     if ((xarg3 & ALIGN_HCENTRE) != 0)
                         xarg1 -= wid / 2;

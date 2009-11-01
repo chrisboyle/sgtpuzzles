@@ -25,7 +25,15 @@
 #include "puzzles.h"
 
 #if GTK_CHECK_VERSION(2,0,0)
-#define USE_PANGO
+# define USE_PANGO
+# ifdef PANGO_VERSION_CHECK
+#  if PANGO_VERSION_CHECK(1,8,0)
+#   define HAVE_SENSIBLE_ABSOLUTE_SIZE_FUNCTION
+#  endif
+# endif
+#endif
+#if !GTK_CHECK_VERSION(2,4,0)
+# define OLD_FILESEL
 #endif
 
 #ifdef DEBUGGING
@@ -123,10 +131,13 @@ struct frontend {
     int paste_data_len;
     int pw, ph;                        /* pixmap size (w, h are area size) */
     int ox, oy;                        /* offset of pixmap in drawing area */
+#ifdef OLD_FILESEL
     char *filesel_name;
-    int npresets;
-    GtkWidget **preset_bullets;
-    GtkWidget *preset_custom_bullet;
+#endif
+    GSList *preset_radio;
+    int n_preset_menu_items;
+    int preset_threaded;
+    GtkWidget *preset_custom;
     GtkWidget *copy_menu_item;
 };
 
@@ -536,6 +547,10 @@ static gint key_event(GtkWidget *widget, GdkEventKey *event, gpointer data)
         return TRUE;
 #endif
 
+    /* Handle mnemonics. */
+    if (gtk_window_activate_key(GTK_WINDOW(fe->window), event))
+        return TRUE;
+
     if (event->keyval == GDK_Up)
         keyval = shift | ctrl | CURSOR_UP;
     else if (event->keyval == GDK_KP_Up || event->keyval == GDK_KP_8)
@@ -632,6 +647,11 @@ static gint motion_event(GtkWidget *widget, GdkEventMotion *event,
     if (!midend_process_key(fe->me, event->x - fe->ox,
                             event->y - fe->oy, button))
 	gtk_widget_destroy(fe->window);
+#if GTK_CHECK_VERSION(2,12,0)
+    gdk_event_request_motions(event);
+#else
+    gdk_window_get_pointer(widget->window, NULL, NULL, NULL);
+#endif
 
     return TRUE;
 }
@@ -955,7 +975,7 @@ static int get_config(frontend *fe, int which)
 	    w = gtk_label_new(i->name);
 	    gtk_misc_set_alignment(GTK_MISC(w), 0.0, 0.5);
 	    gtk_table_attach(GTK_TABLE(table), w, 0, 1, y, y+1,
-			     GTK_EXPAND | GTK_SHRINK | GTK_FILL,
+			     GTK_SHRINK | GTK_FILL,
 			     GTK_EXPAND | GTK_SHRINK | GTK_FILL,
 			     3, 3);
 	    gtk_widget_show(w);
@@ -997,8 +1017,8 @@ static int get_config(frontend *fe, int which)
 	    w = gtk_label_new(i->name);
 	    gtk_misc_set_alignment(GTK_MISC(w), 0.0, 0.5);
 	    gtk_table_attach(GTK_TABLE(table), w, 0, 1, y, y+1,
-			     GTK_EXPAND | GTK_SHRINK | GTK_FILL,
-			     GTK_EXPAND | GTK_SHRINK | GTK_FILL,
+			     GTK_SHRINK | GTK_FILL,
+			     GTK_EXPAND | GTK_SHRINK | GTK_FILL ,
 			     3, 3);
 	    gtk_widget_show(w);
 
@@ -1107,15 +1127,6 @@ static void get_size(frontend *fe, int *px, int *py)
 	gdk_window_resize(GTK_WIDGET(win)->window, x, y)
 #endif
 
-static void update_menuitem_bullet(GtkWidget *label, int visible)
-{
-    if (visible) {
-	gtk_label_set_text(GTK_LABEL(label), "\xE2\x80\xA2");
-    } else {
-	gtk_label_set_text(GTK_LABEL(label), "");
-    }
-}
-
 /*
  * Called when any other code in this file has changed the
  * selected game parameters.
@@ -1123,18 +1134,30 @@ static void update_menuitem_bullet(GtkWidget *label, int visible)
 static void changed_preset(frontend *fe)
 {
     int n = midend_which_preset(fe->me);
-    int i;
 
-    /*
-     * Update the tick mark in the Type menu.
-     */
-    if (fe->preset_bullets) {
-	for (i = 0; i < fe->npresets; i++)
-	    update_menuitem_bullet(fe->preset_bullets[i], n == i);
+    fe->preset_threaded = TRUE;
+    if (n < 0 && fe->preset_custom) {
+	gtk_check_menu_item_set_active(
+	    GTK_CHECK_MENU_ITEM(fe->preset_custom),
+	    TRUE);
+    } else {
+	GSList *gs = fe->preset_radio;
+	int i = fe->n_preset_menu_items - 1 - n;
+	if (fe->preset_custom)
+	    gs = gs->next;
+	while (i && gs) {
+	    i--;
+	    gs = gs->next;
+	}
+	if (gs) {
+	    gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(gs->data),
+					   TRUE);
+	} else for (gs = fe->preset_radio; gs; gs = gs->next) {
+	    gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(gs->data),
+					   FALSE);
+	}
     }
-    if (fe->preset_custom_bullet) {
-	update_menuitem_bullet(fe->preset_custom_bullet, n < 0);
-    }
+    fe->preset_threaded = FALSE;
 
     /*
      * Update the greying on the Copy menu option.
@@ -1172,6 +1195,10 @@ static void menu_preset_event(GtkMenuItem *menuitem, gpointer data)
     game_params *params =
         (game_params *)gtk_object_get_data(GTK_OBJECT(menuitem), "user-data");
 
+    if (fe->preset_threaded ||
+	(GTK_IS_CHECK_MENU_ITEM(menuitem) &&
+	 !gtk_check_menu_item_get_active(GTK_CHECK_MENU_ITEM(menuitem))))
+	return;
     midend_set_params(fe->me, params);
     midend_new_game(fe->me);
     changed_preset(fe);
@@ -1244,6 +1271,7 @@ void write_clip(frontend *fe, char *data)
 
     if (gtk_selection_owner_set(fe->area, GDK_SELECTION_PRIMARY,
 				CurrentTime)) {
+	gtk_selection_clear_targets(fe->area, GDK_SELECTION_PRIMARY);
 	gtk_selection_add_target(fe->area, GDK_SELECTION_PRIMARY,
 				 GDK_SELECTION_TYPE_STRING, 1);
 	gtk_selection_add_target(fe->area, GDK_SELECTION_PRIMARY,
@@ -1287,6 +1315,8 @@ static void menu_copy_event(GtkMenuItem *menuitem, gpointer data)
     }
 }
 
+#ifdef OLD_FILESEL
+
 static void filesel_ok(GtkButton *button, gpointer data)
 {
     frontend *fe = (frontend *)data;
@@ -1328,6 +1358,34 @@ static char *file_selector(frontend *fe, char *title, int save)
     return fe->filesel_name;
 }
 
+#else
+
+static char *file_selector(frontend *fe, char *title, int save)
+{
+    char *filesel_name = NULL;
+
+    GtkWidget *filesel =
+        gtk_file_chooser_dialog_new(title,
+				    GTK_WINDOW(fe->window),
+				    save ? GTK_FILE_CHOOSER_ACTION_SAVE :
+				    GTK_FILE_CHOOSER_ACTION_OPEN,
+				    GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
+				    save ? GTK_STOCK_SAVE : GTK_STOCK_OPEN,
+				    GTK_RESPONSE_ACCEPT,
+				    NULL);
+
+    if (gtk_dialog_run(GTK_DIALOG(filesel)) == GTK_RESPONSE_ACCEPT) {
+        const char *name = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(filesel));
+        filesel_name = dupstr(name);
+    }
+
+    gtk_widget_destroy(filesel);
+
+    return filesel_name;
+}
+
+#endif
+
 struct savefile_write_ctx {
     FILE *fp;
     int error;
@@ -1337,7 +1395,7 @@ static void savefile_write(void *wctx, void *buf, int len)
 {
     struct savefile_write_ctx *ctx = (struct savefile_write_ctx *)wctx;
     if (fwrite(buf, 1, len, ctx->fp) < len)
-	ctx->error = 1;
+	ctx->error = errno;
 }
 
 static int savefile_read(void *wctx, void *buf, int len)
@@ -1386,7 +1444,10 @@ static void menu_save_event(GtkMenuItem *menuitem, gpointer data)
 	    midend_serialise(fe->me, savefile_write, &ctx);
 	    fclose(fp);
 	    if (ctx.error) {
-		error_box(fe->window, "Error writing save file");
+		char boxmsg[512];
+		sprintf(boxmsg, "Error writing save file: %.400s",
+			strerror(errno));
+		error_box(fe->window, boxmsg);
 		return;
 	    }
 	}
@@ -1448,6 +1509,11 @@ static void menu_config_event(GtkMenuItem *menuitem, gpointer data)
     int which = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(menuitem),
 						    "user-data"));
 
+    if (fe->preset_threaded ||
+	(GTK_IS_CHECK_MENU_ITEM(menuitem) &&
+	 !gtk_check_menu_item_get_active(GTK_CHECK_MENU_ITEM(menuitem))))
+	return;
+    changed_preset(fe); 		/* Put the old preset back! */
     if (!get_config(fe, which))
 	return;
 
@@ -1509,34 +1575,6 @@ static void add_menu_separator(GtkContainer *cont)
 }
 
 enum { ARG_EITHER, ARG_SAVE, ARG_ID }; /* for argtype */
-
-static GtkWidget *make_preset_menuitem(GtkWidget **bulletlabel,
-				       const char *name)
-{
-    GtkWidget *hbox, *lab1, *lab2, *menuitem;
-    GtkRequisition req;
-
-    hbox = gtk_hbox_new(FALSE, 0);
-    gtk_widget_show(hbox);
-    lab1 = gtk_label_new("\xE2\x80\xA2 ");
-    gtk_widget_show(lab1);
-    gtk_box_pack_start(GTK_BOX(hbox), lab1, FALSE, FALSE, 0);
-    gtk_misc_set_alignment(GTK_MISC(lab1), 0.0, 0.0);
-    lab2 = gtk_label_new(name);
-    gtk_widget_show(lab2);
-    gtk_box_pack_start(GTK_BOX(hbox), lab2, TRUE, TRUE, 0);
-    gtk_misc_set_alignment(GTK_MISC(lab2), 0.0, 0.0);
-
-    gtk_widget_size_request(lab1, &req);
-    gtk_widget_set_usize(lab1, req.width, -1);
-    gtk_label_set_text(GTK_LABEL(lab1), "");
-
-    menuitem = gtk_menu_item_new();
-    gtk_container_add(GTK_CONTAINER(menuitem), hbox);
-
-    *bulletlabel = lab1;
-    return menuitem;
-}
 
 static frontend *new_window(char *arg, int argtype, char **error)
 {
@@ -1631,7 +1669,7 @@ static frontend *new_window(char *arg, int argtype, char **error)
     gtk_box_pack_start(vbox, menubar, FALSE, FALSE, 0);
     gtk_widget_show(menubar);
 
-    menuitem = gtk_menu_item_new_with_label("Game");
+    menuitem = gtk_menu_item_new_with_mnemonic("_Game");
     gtk_container_add(GTK_CONTAINER(menubar), menuitem);
     gtk_widget_show(menuitem);
 
@@ -1662,19 +1700,20 @@ static frontend *new_window(char *arg, int argtype, char **error)
 		       GTK_SIGNAL_FUNC(menu_config_event), fe);
     gtk_widget_show(menuitem);
 
+    fe->preset_radio = NULL;
+    fe->preset_custom = NULL;
+    fe->n_preset_menu_items = 0;
+    fe->preset_threaded = FALSE;
     if ((n = midend_num_presets(fe->me)) > 0 || thegame.can_configure) {
         GtkWidget *submenu;
         int i;
 
-        menuitem = gtk_menu_item_new_with_label("Type");
+        menuitem = gtk_menu_item_new_with_mnemonic("_Type");
         gtk_container_add(GTK_CONTAINER(menubar), menuitem);
         gtk_widget_show(menuitem);
 
         submenu = gtk_menu_new();
         gtk_menu_item_set_submenu(GTK_MENU_ITEM(menuitem), submenu);
-
-	fe->npresets = n;
-	fe->preset_bullets = snewn(n, GtkWidget *);
 
         for (i = 0; i < n; i++) {
             char *name;
@@ -1682,8 +1721,11 @@ static frontend *new_window(char *arg, int argtype, char **error)
 
             midend_fetch_preset(fe->me, i, &name, &params);
 
-	    menuitem = make_preset_menuitem(&fe->preset_bullets[i], name);
-
+	    menuitem =
+		gtk_radio_menu_item_new_with_label(fe->preset_radio, name);
+	    fe->preset_radio =
+		gtk_radio_menu_item_group(GTK_RADIO_MENU_ITEM(menuitem));
+	    fe->n_preset_menu_items++;
             gtk_container_add(GTK_CONTAINER(submenu), menuitem);
             gtk_object_set_data(GTK_OBJECT(menuitem), "user-data", params);
             gtk_signal_connect(GTK_OBJECT(menuitem), "activate",
@@ -1692,22 +1734,19 @@ static frontend *new_window(char *arg, int argtype, char **error)
         }
 
 	if (thegame.can_configure) {
-	    menuitem = make_preset_menuitem(&fe->preset_custom_bullet,
-					    "Custom...");
-
+	    menuitem = fe->preset_custom =
+		gtk_radio_menu_item_new_with_label(fe->preset_radio,
+						   "Custom...");
+	    fe->preset_radio =
+		gtk_radio_menu_item_group(GTK_RADIO_MENU_ITEM(menuitem));
             gtk_container_add(GTK_CONTAINER(submenu), menuitem);
             gtk_object_set_data(GTK_OBJECT(menuitem), "user-data",
 				GPOINTER_TO_INT(CFG_SETTINGS));
             gtk_signal_connect(GTK_OBJECT(menuitem), "activate",
                                GTK_SIGNAL_FUNC(menu_config_event), fe);
             gtk_widget_show(menuitem);
-	} else
-	    fe->preset_custom_bullet = NULL;
+	}
 
-    } else {
-	fe->npresets = 0;
-	fe->preset_bullets = NULL;
-	fe->preset_custom_bullet = NULL;
     }
 
     add_menu_separator(GTK_CONTAINER(menu));
@@ -1746,7 +1785,7 @@ static frontend *new_window(char *arg, int argtype, char **error)
     add_menu_separator(GTK_CONTAINER(menu));
     add_menu_item_with_key(fe, GTK_CONTAINER(menu), "Exit", 'q');
 
-    menuitem = gtk_menu_item_new_with_label("Help");
+    menuitem = gtk_menu_item_new_with_mnemonic("_Help");
     gtk_container_add(GTK_CONTAINER(menubar), menuitem);
     gtk_widget_show(menuitem);
 
@@ -1850,7 +1889,8 @@ static frontend *new_window(char *arg, int argtype, char **error)
     gtk_widget_add_events(GTK_WIDGET(fe->area),
                           GDK_BUTTON_PRESS_MASK |
                           GDK_BUTTON_RELEASE_MASK |
-			  GDK_BUTTON_MOTION_MASK);
+			  GDK_BUTTON_MOTION_MASK |
+			  GDK_POINTER_MOTION_HINT_MASK);
 
     if (n_xpm_icons) {
 	gtk_widget_realize(fe->window);
@@ -1910,6 +1950,7 @@ int main(int argc, char **argv)
     int soln = FALSE, colour = FALSE;
     float scale = 1.0F;
     float redo_proportion = 0.0F;
+    char *savefile = NULL, *savesuffix = NULL;
     char *arg = NULL;
     int argtype = ARG_EITHER;
     char *screenshot_file = NULL;
@@ -1958,6 +1999,23 @@ int main(int argc, char **argv)
 		}
 	    } else
 		ngenerate = 1;
+	} else if (doing_opts && !strcmp(p, "--save")) {
+	    if (--ac > 0) {
+		savefile = *++av;
+	    } else {
+		fprintf(stderr, "%s: '--save' expected a filename\n",
+			pname);
+		return 1;
+	    }
+	} else if (doing_opts && (!strcmp(p, "--save-suffix") ||
+				  !strcmp(p, "--savesuffix"))) {
+	    if (--ac > 0) {
+		savesuffix = *++av;
+	    } else {
+		fprintf(stderr, "%s: '--save-suffix' expected a filename\n",
+			pname);
+		return 1;
+	    }
 	} else if (doing_opts && !strcmp(p, "--print")) {
 	    if (!thegame.can_print) {
 		fprintf(stderr, "%s: this game does not support printing\n",
@@ -2088,7 +2146,7 @@ int main(int argc, char **argv)
      * you may specify it to be 1). Sorry; that was the
      * simplest-to-parse command-line syntax I came up with.
      */
-    if (ngenerate > 0 || print) {
+    if (ngenerate > 0 || print || savefile || savesuffix) {
 	int i, n = 1;
 	midend *me;
 	char *id;
@@ -2098,6 +2156,11 @@ int main(int argc, char **argv)
 
 	me = midend_new(NULL, &thegame, NULL, NULL);
 	i = 0;
+
+	if (savefile && !savesuffix)
+	    savesuffix = "";
+	if (!savefile && savesuffix)
+	    savefile = "";
 
 	if (print)
 	    doc = document_new(px, py, scale);
@@ -2155,7 +2218,32 @@ int main(int argc, char **argv)
 		    fprintf(stderr, "%s: error in printing: %s\n", pname, err);
 		    return 1;
 		}
-	    } else {
+	    }
+	    if (savefile) {
+		struct savefile_write_ctx ctx;
+		char *realname = snewn(40 + strlen(savefile) +
+				       strlen(savesuffix), char);
+		sprintf(realname, "%s%d%s", savefile, i, savesuffix);
+		ctx.fp = fopen(realname, "w");
+		if (!ctx.fp) {
+		    fprintf(stderr, "%s: open: %s\n", realname,
+			    strerror(errno));
+		    return 1;
+		}
+		sfree(realname);
+		midend_serialise(me, savefile_write, &ctx);
+		if (ctx.error) {
+		    fprintf(stderr, "%s: write: %s\n", realname,
+			    strerror(ctx.error));
+		    return 1;
+		}
+		if (fclose(ctx.fp)) {
+		    fprintf(stderr, "%s: close: %s\n", realname,
+			    strerror(errno));
+		    return 1;
+		}
+	    }
+	    if (!doc && !savefile) {
 		id = midend_get_game_id(me);
 		puts(id);
 		sfree(id);

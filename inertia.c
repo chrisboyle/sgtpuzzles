@@ -1902,32 +1902,10 @@ static void draw_tile(drawing *dr, game_drawstate *ds, int x, int y, int v)
 	int cx = tx + TILESIZE / 2;
 	int cy = ty + TILESIZE / 2;
 	int r = TILESIZE / 2 - 3;
-	int coords[4*5*2];
-	int xdx = 1, xdy = 0, ydx = 0, ydy = 1;
-	int tdx, tdy, i;
 
-	for (i = 0; i < 4*5*2; i += 5*2) {
-	    coords[i+2*0+0] = cx - r/6*xdx + r*4/5*ydx;
-	    coords[i+2*0+1] = cy - r/6*xdy + r*4/5*ydy;
-	    coords[i+2*1+0] = cx - r/6*xdx + r*ydx;
-	    coords[i+2*1+1] = cy - r/6*xdy + r*ydy;
-	    coords[i+2*2+0] = cx + r/6*xdx + r*ydx;
-	    coords[i+2*2+1] = cy + r/6*xdy + r*ydy;
-	    coords[i+2*3+0] = cx + r/6*xdx + r*4/5*ydx;
-	    coords[i+2*3+1] = cy + r/6*xdy + r*4/5*ydy;
-	    coords[i+2*4+0] = cx + r*3/5*xdx + r*3/5*ydx;
-	    coords[i+2*4+1] = cy + r*3/5*xdy + r*3/5*ydy;
-
-	    tdx = ydx;
-	    tdy = ydy;
-	    ydx = xdx;
-	    ydy = xdy;
-	    xdx = -tdx;
-	    xdy = -tdy;
-	}
-
-	draw_polygon(dr, coords, 5*4, COL_MINE, COL_MINE);
-
+	draw_circle(dr, cx, cy, 5*r/6, COL_MINE, COL_MINE);
+	draw_rect(dr, cx - r/6, cy - r, 2*(r/6)+1, 2*r+1, COL_MINE);
+	draw_rect(dr, cx - r, cy - r/6, 2*r+1, 2*(r/6)+1, COL_MINE);
 	draw_rect(dr, cx-r/3, cy-r/3, r/3, r/4, COL_HIGHLIGHT);
     } else if (v == STOP) {
 	draw_circle(dr, tx + TILESIZE/2, ty + TILESIZE/2,

@@ -107,7 +107,7 @@ int solver_show_working, solver_recurse_depth;
 typedef unsigned char digit;
 #define ORDER_MAX 255
 
-#define PREFERRED_TILE_SIZE 32
+#define PREFERRED_TILE_SIZE 48
 #define TILE_SIZE (ds->tilesize)
 #define BORDER (TILE_SIZE / 2)
 #define GRIDEXTRA max((TILE_SIZE / 32),1)
@@ -117,8 +117,11 @@ typedef unsigned char digit;
 enum { SYMM_NONE, SYMM_ROT2, SYMM_ROT4, SYMM_REF2, SYMM_REF2D, SYMM_REF4,
        SYMM_REF4D, SYMM_REF8 };
 
-enum { DIFF_BLOCK, DIFF_SIMPLE, DIFF_INTERSECT, DIFF_SET, DIFF_EXTREME,
-       DIFF_RECURSIVE, DIFF_AMBIGUOUS, DIFF_IMPOSSIBLE };
+enum { DIFF_BLOCK,
+       DIFF_SIMPLE, DIFF_INTERSECT, DIFF_SET, DIFF_EXTREME, DIFF_RECURSIVE,
+       DIFF_AMBIGUOUS, DIFF_IMPOSSIBLE };
+
+enum { DIFF_KSINGLE, DIFF_KMINMAX, DIFF_KSUMS, DIFF_KINTERSECT };
 
 enum {
     COL_BACKGROUND,
@@ -129,8 +132,73 @@ enum {
     COL_HIGHLIGHT,
     COL_ERROR,
     COL_PENCIL,
+    COL_KILLER,
     NCOLOURS
 };
+
+/*
+ * To determine all possible ways to reach a given sum by adding two or
+ * three numbers from 1..9, each of which occurs exactly once in the sum,
+ * these arrays contain a list of bitmasks for each sum value, where if
+ * bit N is set, it means that N occurs in the sum.  Each list is
+ * terminated by a zero if it is shorter than the size of the array.
+ */
+#define MAX_2SUMS 5
+#define MAX_3SUMS 8
+#define MAX_4SUMS 12
+unsigned long sum_bits2[18][MAX_2SUMS];
+unsigned long sum_bits3[25][MAX_3SUMS];
+unsigned long sum_bits4[31][MAX_4SUMS];
+
+static int find_sum_bits(unsigned long *array, int idx, int value_left,
+			 int addends_left, int min_addend,
+			 unsigned long bitmask_so_far)
+{
+    int i;
+    assert(addends_left >= 2);
+
+    for (i = min_addend; i < value_left; i++) {
+	unsigned long new_bitmask = bitmask_so_far | (1L << i);
+	assert(bitmask_so_far != new_bitmask);
+
+	if (addends_left == 2) {
+	    int j = value_left - i;
+	    if (j <= i)
+		break;
+	    if (j > 9)
+		continue;
+	    array[idx++] = new_bitmask | (1L << j);
+	} else
+	    idx = find_sum_bits(array, idx, value_left - i,
+				addends_left - 1, i + 1,
+				new_bitmask);
+    }
+    return idx;
+}
+
+static void precompute_sum_bits(void)
+{
+    int i;
+    for (i = 3; i < 31; i++) {
+	int j;
+	if (i < 18) {
+	    j = find_sum_bits(sum_bits2[i], 0, i, 2, 1, 0);
+	    assert (j <= MAX_2SUMS);
+	    if (j < MAX_2SUMS)
+		sum_bits2[i][j] = 0;
+	}
+	if (i < 25) {
+	    j = find_sum_bits(sum_bits3[i], 0, i, 3, 1, 0);
+	    assert (j <= MAX_3SUMS);
+	    if (j < MAX_3SUMS)
+		sum_bits3[i][j] = 0;
+	}
+	j = find_sum_bits(sum_bits4[i], 0, i, 4, 1, 0);
+	assert (j <= MAX_4SUMS);
+	if (j < MAX_4SUMS)
+	    sum_bits4[i][j] = 0;
+    }
+}
 
 struct game_params {
     /*
@@ -141,8 +209,9 @@ struct game_params {
      * can be whatever it likes (there is no constraint on
      * compositeness - a 7x7 jigsaw sudoku makes perfect sense).
      */
-    int c, r, symm, diff;
+    int c, r, symm, diff, kdiff;
     int xtype;			       /* require all digits in X-diagonals */
+    int killer;
 };
 
 struct block_structure {
@@ -151,20 +220,22 @@ struct block_structure {
     /*
      * For text formatting, we do need c and r here.
      */
-    int c, r;
+    int c, r, area;
 
     /*
      * For any square index, whichblock[i] gives its block index.
-     * 
+     *
      * For 0 <= b,i < cr, blocks[b][i] gives the index of the ith
-     * square in block b.
-     * 
-     * whichblock and blocks are each dynamically allocated in
-     * their own right, but the subarrays in blocks are appended
-     * to the whichblock array, so shouldn't be freed
-     * individually.
+     * square in block b.  nr_squares[b] gives the number of squares
+     * in block b (also the number of valid elements in blocks[b]).
+     *
+     * blocks_data holds the data pointed to by blocks.
+     *
+     * nr_squares may be NULL for block structures where all blocks are
+     * the same size.
      */
-    int *whichblock, **blocks;
+    int *whichblock, **blocks, *nr_squares, *blocks_data;
+    int nr_blocks, max_nr_squares;
 
 #ifdef STANDALONE_SOLVER
     /*
@@ -191,8 +262,9 @@ struct game_state {
      */
     int cr;
     struct block_structure *blocks;
-    int xtype;
-    digit *grid;
+    struct block_structure *kblocks;   /* Blocks for killer puzzles.  */
+    int xtype, killer;
+    digit *grid, *kgrid;
     unsigned char *pencil;             /* c*r*c*r elements */
     unsigned char *immutable;	       /* marks which digits are clues */
     int completed, cheated;
@@ -204,8 +276,10 @@ static game_params *default_params(void)
 
     ret->c = ret->r = 3;
     ret->xtype = FALSE;
+    ret->killer = FALSE;
     ret->symm = SYMM_ROT2;	       /* a plausible default */
     ret->diff = DIFF_BLOCK;	       /* so is this */
+    ret->kdiff = DIFF_KINTERSECT;      /* so is this */
 
     return ret;
 }
@@ -228,22 +302,23 @@ static int game_fetch_preset(int i, char **name, game_params **params)
         char *title;
         game_params params;
     } presets[] = {
-        { "2x2 Trivial", { 2, 2, SYMM_ROT2, DIFF_BLOCK, FALSE } },
-        { "2x3 Basic", { 2, 3, SYMM_ROT2, DIFF_SIMPLE, FALSE } },
-        { "3x3 Trivial", { 3, 3, SYMM_ROT2, DIFF_BLOCK, FALSE } },
-        { "3x3 Basic", { 3, 3, SYMM_ROT2, DIFF_SIMPLE, FALSE } },
-        { "3x3 Basic X", { 3, 3, SYMM_ROT2, DIFF_SIMPLE, TRUE } },
-        { "3x3 Intermediate", { 3, 3, SYMM_ROT2, DIFF_INTERSECT, FALSE } },
-        { "3x3 Advanced", { 3, 3, SYMM_ROT2, DIFF_SET, FALSE } },
-        { "3x3 Advanced X", { 3, 3, SYMM_ROT2, DIFF_SET, TRUE } },
-        { "3x3 Extreme", { 3, 3, SYMM_ROT2, DIFF_EXTREME, FALSE } },
-        { "3x3 Unreasonable", { 3, 3, SYMM_ROT2, DIFF_RECURSIVE, FALSE } },
-        { "9 Jigsaw Basic", { 9, 1, SYMM_ROT2, DIFF_SIMPLE, FALSE } },
-        { "9 Jigsaw Basic X", { 9, 1, SYMM_ROT2, DIFF_SIMPLE, TRUE } },
-        { "9 Jigsaw Advanced", { 9, 1, SYMM_ROT2, DIFF_SET, FALSE } },
+        { "2x2 Trivial", { 2, 2, SYMM_ROT2, DIFF_BLOCK, DIFF_KMINMAX, FALSE, FALSE } },
+        { "2x3 Basic", { 2, 3, SYMM_ROT2, DIFF_SIMPLE, DIFF_KMINMAX, FALSE, FALSE } },
+        { "3x3 Trivial", { 3, 3, SYMM_ROT2, DIFF_BLOCK, DIFF_KMINMAX, FALSE, FALSE } },
+        { "3x3 Basic", { 3, 3, SYMM_ROT2, DIFF_SIMPLE, DIFF_KMINMAX, FALSE, FALSE } },
+        { "3x3 Basic X", { 3, 3, SYMM_ROT2, DIFF_SIMPLE, DIFF_KMINMAX, TRUE } },
+        { "3x3 Intermediate", { 3, 3, SYMM_ROT2, DIFF_INTERSECT, DIFF_KMINMAX, FALSE, FALSE } },
+        { "3x3 Advanced", { 3, 3, SYMM_ROT2, DIFF_SET, DIFF_KMINMAX, FALSE, FALSE } },
+        { "3x3 Advanced X", { 3, 3, SYMM_ROT2, DIFF_SET, DIFF_KMINMAX, TRUE } },
+        { "3x3 Extreme", { 3, 3, SYMM_ROT2, DIFF_EXTREME, DIFF_KMINMAX, FALSE, FALSE } },
+        { "3x3 Unreasonable", { 3, 3, SYMM_ROT2, DIFF_RECURSIVE, DIFF_KMINMAX, FALSE, FALSE } },
+        { "3x3 Killer", { 3, 3, SYMM_NONE, DIFF_BLOCK, DIFF_KINTERSECT, FALSE, TRUE } },
+        { "9 Jigsaw Basic", { 9, 1, SYMM_ROT2, DIFF_SIMPLE, DIFF_KMINMAX, FALSE, FALSE } },
+        { "9 Jigsaw Basic X", { 9, 1, SYMM_ROT2, DIFF_SIMPLE, DIFF_KMINMAX, TRUE } },
+        { "9 Jigsaw Advanced", { 9, 1, SYMM_ROT2, DIFF_SET, DIFF_KMINMAX, FALSE, FALSE } },
 #ifndef SLOW_SYSTEM
-        { "3x4 Basic", { 3, 4, SYMM_ROT2, DIFF_SIMPLE, FALSE } },
-        { "4x4 Basic", { 4, 4, SYMM_ROT2, DIFF_SIMPLE, FALSE } },
+        { "3x4 Basic", { 3, 4, SYMM_ROT2, DIFF_SIMPLE, DIFF_KMINMAX, FALSE, FALSE } },
+        { "4x4 Basic", { 4, 4, SYMM_ROT2, DIFF_SIMPLE, DIFF_KMINMAX, FALSE, FALSE } },
 #endif
     };
 
@@ -262,6 +337,7 @@ static void decode_params(game_params *ret, char const *string)
 
     ret->c = ret->r = atoi(string);
     ret->xtype = FALSE;
+    ret->killer = FALSE;
     while (*string && isdigit((unsigned char)*string)) string++;
     if (*string == 'x') {
         string++;
@@ -278,6 +354,9 @@ static void decode_params(game_params *ret, char const *string)
 	} else if (*string == 'x') {
 	    string++;
 	    ret->xtype = TRUE;
+	} else if (*string == 'k') {
+	    string++;
+	    ret->killer = TRUE;
 	} else if (*string == 'r' || *string == 'm' || *string == 'a') {
             int sn, sc, sd;
             sc = *string++;
@@ -330,6 +409,8 @@ static char *encode_params(game_params *params, int full)
 	sprintf(str, "%dj", params->c);
     if (params->xtype)
 	strcat(str, "x");
+    if (params->killer)
+	strcat(str, "k");
 
     if (full) {
         switch (params->symm) {
@@ -359,7 +440,7 @@ static config_item *game_configure(game_params *params)
     config_item *ret;
     char buf[80];
 
-    ret = snewn(7, config_item);
+    ret = snewn(8, config_item);
 
     ret[0].name = "Columns of sub-blocks";
     ret[0].type = C_STRING;
@@ -383,22 +464,27 @@ static config_item *game_configure(game_params *params)
     ret[3].sval = NULL;
     ret[3].ival = (params->r == 1);
 
-    ret[4].name = "Symmetry";
-    ret[4].type = C_CHOICES;
-    ret[4].sval = ":None:2-way rotation:4-way rotation:2-way mirror:"
+    ret[4].name = "Killer (digit sums)";
+    ret[4].type = C_BOOLEAN;
+    ret[4].sval = NULL;
+    ret[4].ival = params->killer;
+
+    ret[5].name = "Symmetry";
+    ret[5].type = C_CHOICES;
+    ret[5].sval = ":None:2-way rotation:4-way rotation:2-way mirror:"
         "2-way diagonal mirror:4-way mirror:4-way diagonal mirror:"
         "8-way mirror";
-    ret[4].ival = params->symm;
+    ret[5].ival = params->symm;
 
-    ret[5].name = "Difficulty";
-    ret[5].type = C_CHOICES;
-    ret[5].sval = ":Trivial:Basic:Intermediate:Advanced:Extreme:Unreasonable";
-    ret[5].ival = params->diff;
+    ret[6].name = "Difficulty";
+    ret[6].type = C_CHOICES;
+    ret[6].sval = ":Trivial:Basic:Intermediate:Advanced:Extreme:Unreasonable";
+    ret[6].ival = params->diff;
 
-    ret[6].name = NULL;
-    ret[6].type = C_END;
-    ret[6].sval = NULL;
-    ret[6].ival = 0;
+    ret[7].name = NULL;
+    ret[7].type = C_END;
+    ret[7].sval = NULL;
+    ret[7].ival = 0;
 
     return ret;
 }
@@ -414,8 +500,10 @@ static game_params *custom_params(config_item *cfg)
 	ret->c *= ret->r;
 	ret->r = 1;
     }
-    ret->symm = cfg[4].ival;
-    ret->diff = cfg[5].ival;
+    ret->killer = cfg[4].ival;
+    ret->symm = cfg[5].ival;
+    ret->diff = cfg[6].ival;
+    ret->kdiff = DIFF_KINTERSECT;
 
     return ret;
 }
@@ -426,9 +514,131 @@ static char *validate_params(game_params *params, int full)
 	return "Both dimensions must be at least 2";
     if (params->c > ORDER_MAX || params->r > ORDER_MAX)
 	return "Dimensions greater than "STR(ORDER_MAX)" are not supported";
-    if ((params->c * params->r) > 35)
-        return "Unable to support more than 35 distinct symbols in a puzzle";
+    if ((params->c * params->r) > 31)
+        return "Unable to support more than 31 distinct symbols in a puzzle";
+    if (params->killer && params->c * params->r > 9)
+	return "Killer puzzle dimensions must be smaller than 10.";
     return NULL;
+}
+
+/*
+ * ----------------------------------------------------------------------
+ * Block structure functions.
+ */
+
+static struct block_structure *alloc_block_structure(int c, int r, int area,
+						     int max_nr_squares,
+						     int nr_blocks)
+{
+    int i;
+    struct block_structure *b = snew(struct block_structure);
+
+    b->refcount = 1;
+    b->nr_blocks = nr_blocks;
+    b->max_nr_squares = max_nr_squares;
+    b->c = c; b->r = r; b->area = area;
+    b->whichblock = snewn(area, int);
+    b->blocks_data = snewn(nr_blocks * max_nr_squares, int);
+    b->blocks = snewn(nr_blocks, int *);
+    b->nr_squares = snewn(nr_blocks, int);
+
+    for (i = 0; i < nr_blocks; i++)
+	b->blocks[i] = b->blocks_data + i*max_nr_squares;
+
+#ifdef STANDALONE_SOLVER
+    b->blocknames = (char **)smalloc(c*r*(sizeof(char *)+80));
+    for (i = 0; i < c * r; i++)
+	b->blocknames[i] = NULL;
+#endif
+    return b;
+}
+
+static void free_block_structure(struct block_structure *b)
+{
+    if (--b->refcount == 0) {
+	sfree(b->whichblock);
+	sfree(b->blocks);
+	sfree(b->blocks_data);
+#ifdef STANDALONE_SOLVER
+	sfree(b->blocknames);
+#endif
+	sfree(b->nr_squares);
+	sfree(b);
+    }
+}
+
+static struct block_structure *dup_block_structure(struct block_structure *b)
+{
+    struct block_structure *nb;
+    int i;
+
+    nb = alloc_block_structure(b->c, b->r, b->area, b->max_nr_squares,
+			       b->nr_blocks);
+    memcpy(nb->nr_squares, b->nr_squares, b->nr_blocks * sizeof *b->nr_squares);
+    memcpy(nb->whichblock, b->whichblock, b->area * sizeof *b->whichblock);
+    memcpy(nb->blocks_data, b->blocks_data,
+	   b->nr_blocks * b->max_nr_squares * sizeof *b->blocks_data);
+    for (i = 0; i < b->nr_blocks; i++)
+	nb->blocks[i] = nb->blocks_data + i*nb->max_nr_squares;
+
+#ifdef STANDALONE_SOLVER
+    memcpy(nb->blocknames, b->blocknames, b->c * b->r *(sizeof(char *)+80));
+    {
+	int i;
+	for (i = 0; i < b->c * b->r; i++)
+	    if (b->blocknames[i] == NULL)
+		nb->blocknames[i] = NULL;
+	    else
+		nb->blocknames[i] = ((char *)nb->blocknames) + (b->blocknames[i] - (char *)b->blocknames);
+    }
+#endif
+    return nb;
+}
+
+static void split_block(struct block_structure *b, int *squares, int nr_squares)
+{
+    int i, j;
+    int previous_block = b->whichblock[squares[0]];
+    int newblock = b->nr_blocks;
+
+    assert(b->max_nr_squares >= nr_squares);
+    assert(b->nr_squares[previous_block] > nr_squares);
+
+    b->nr_blocks++;
+    b->blocks_data = sresize(b->blocks_data,
+			     b->nr_blocks * b->max_nr_squares, int);
+    b->nr_squares = sresize(b->nr_squares, b->nr_blocks, int);
+    sfree(b->blocks);
+    b->blocks = snewn(b->nr_blocks, int *);
+    for (i = 0; i < b->nr_blocks; i++)
+	b->blocks[i] = b->blocks_data + i*b->max_nr_squares;
+    for (i = 0; i < nr_squares; i++) {
+	assert(b->whichblock[squares[i]] == previous_block);
+	b->whichblock[squares[i]] = newblock;
+	b->blocks[newblock][i] = squares[i];
+    }
+    for (i = j = 0; i < b->nr_squares[previous_block]; i++) {
+	int k;
+	int sq = b->blocks[previous_block][i];
+	for (k = 0; k < nr_squares; k++)
+	    if (squares[k] == sq)
+		break;
+	if (k == nr_squares)
+	    b->blocks[previous_block][j++] = sq;
+    }
+    b->nr_squares[previous_block] -= nr_squares;
+    b->nr_squares[newblock] = nr_squares;
+}
+
+static void remove_from_block(struct block_structure *blocks, int b, int n)
+{
+    int i, j;
+    blocks->whichblock[n] = -1;
+    for (i = j = 0; i < blocks->nr_squares[b]; i++)
+	if (blocks->blocks[b][i] != n)
+	    blocks->blocks[b][j++] = blocks->blocks[b][i];
+    assert(j+1 == i);
+    blocks->nr_squares[b]--;
 }
 
 /* ----------------------------------------------------------------------
@@ -451,6 +661,10 @@ static char *validate_params(game_params *params, int full)
  *  - Positional elimination: a number must go in a particular
  *    square because all the other empty squares in a given
  *    row/col/blk are ruled out.
+ *
+ *  - Killer minmax elimination: for killer-type puzzles, a number
+ *    is impossible if choosing it would cause the sum in a killer
+ *    region to be guaranteed to be too large or too small.
  *
  *  - Numeric elimination: a square must have a particular number
  *    in because all the other numbers that could go in it are
@@ -496,7 +710,7 @@ static char *validate_params(game_params *params, int full)
 
 struct solver_usage {
     int cr;
-    struct block_structure *blocks;
+    struct block_structure *blocks, *kblocks, *extra_cages;
     /*
      * We set up a cubic array, indexed by x, y and digit; each
      * element of this array is TRUE or FALSE according to whether
@@ -512,6 +726,11 @@ struct solver_usage {
      */
     digit *grid;
     /*
+     * For killer-type puzzles, kclues holds the secondary clue for
+     * each cage.  For derived cages, the clue is in extra_clues.
+     */
+    digit *kclues, *extra_clues;
+    /*
      * Now we keep track, at a slightly higher level, of what we
      * have yet to work out, to prevent doing the same deduction
      * many times.
@@ -524,6 +743,10 @@ struct solver_usage {
     unsigned char *blk;
     /* diag[i*cr+n-1] TRUE if digit n has been placed in diagonal i */
     unsigned char *diag;	       /* diag 0 is \, 1 is / */
+
+    int *regions;
+    int nr_regions;
+    int **sq2region;
 };
 #define cubepos2(xy,n) ((xy)*usage->cr+(n)-1)
 #define cubepos(x,y,n) cubepos2((y)*usage->cr+(x),n)
@@ -1149,6 +1372,256 @@ static int solver_forcing(struct solver_usage *usage,
     return 0;
 }
 
+static int solver_killer_minmax(struct solver_usage *usage,
+				struct block_structure *cages, digit *clues,
+				int b
+#ifdef STANDALONE_SOLVER
+				, const char *extra
+#endif
+				)
+{
+    int cr = usage->cr;
+    int i;
+    int ret = 0;
+    int nsquares = cages->nr_squares[b];
+
+    if (clues[b] == 0)
+	return 0;
+
+    for (i = 0; i < nsquares; i++) {
+	int n, x = cages->blocks[b][i];
+
+	for (n = 1; n <= cr; n++)
+	    if (cube2(x, n)) {
+		int maxval = 0, minval = 0;
+		int j;
+		for (j = 0; j < nsquares; j++) {
+		    int m;
+		    int y = cages->blocks[b][j];
+		    if (i == j)
+			continue;
+		    for (m = 1; m <= cr; m++)
+			if (cube2(y, m)) {
+			    minval += m;
+			    break;
+			}
+		    for (m = cr; m > 0; m--)
+			if (cube2(y, m)) {
+			    maxval += m;
+			    break;
+			}
+		}
+		if (maxval + n < clues[b]) {
+		    cube2(x, n) = FALSE;
+		    ret = 1;
+#ifdef STANDALONE_SOLVER
+		    if (solver_show_working)
+			printf("%*s  ruling out %d at (%d,%d) as too low %s\n",
+			       solver_recurse_depth*4, "killer minmax analysis",
+			       n, 1 + x%cr, 1 + x/cr, extra);
+#endif
+		}
+		if (minval + n > clues[b]) {
+		    cube2(x, n) = FALSE;
+		    ret = 1;
+#ifdef STANDALONE_SOLVER
+		    if (solver_show_working)
+			printf("%*s  ruling out %d at (%d,%d) as too high %s\n",
+			       solver_recurse_depth*4, "killer minmax analysis",
+			       n, 1 + x%cr, 1 + x/cr, extra);
+#endif
+		}
+	    }
+    }
+    return ret;
+}
+
+static int solver_killer_sums(struct solver_usage *usage, int b,
+			      struct block_structure *cages, int clue,
+			      int cage_is_region
+#ifdef STANDALONE_SOLVER
+			      , const char *cage_type
+#endif
+			      )
+{
+    int cr = usage->cr;
+    int i, ret, max_sums;
+    int nsquares = cages->nr_squares[b];
+    unsigned long *sumbits, possible_addends;
+
+    if (clue == 0) {
+	assert(nsquares == 0);
+	return 0;
+    }
+    assert(nsquares > 0);
+
+    if (nsquares > 4)
+	return 0;
+
+    if (!cage_is_region) {
+	int known_row = -1, known_col = -1, known_block = -1;
+	/*
+	 * Verify that the cage lies entirely within one region,
+	 * so that using the precomputed sums is valid.
+	 */
+	for (i = 0; i < nsquares; i++) {
+	    int x = cages->blocks[b][i];
+
+	    assert(usage->grid[x] == 0);
+
+	    if (i == 0) {
+		known_row = x/cr;
+		known_col = x%cr;
+		known_block = usage->blocks->whichblock[x];
+	    } else {
+		if (known_row != x/cr)
+		    known_row = -1;
+		if (known_col != x%cr)
+		    known_col = -1;
+		if (known_block != usage->blocks->whichblock[x])
+		    known_block = -1;
+	    }
+	}
+	if (known_block == -1 && known_col == -1 && known_row == -1)
+	    return 0;
+    }
+    if (nsquares == 2) {
+	if (clue < 3 || clue > 17)
+	    return -1;
+
+	sumbits = sum_bits2[clue];
+	max_sums = MAX_2SUMS;
+    } else if (nsquares == 3) {
+	if (clue < 6 || clue > 24)
+	    return -1;
+
+	sumbits = sum_bits3[clue];
+	max_sums = MAX_3SUMS;
+    } else {
+	if (clue < 10 || clue > 30)
+	    return -1;
+
+	sumbits = sum_bits4[clue];
+	max_sums = MAX_4SUMS;
+    }
+    /*
+     * For every possible way to get the sum, see if there is
+     * one square in the cage that disallows all the required
+     * addends.  If we find one such square, this way to compute
+     * the sum is impossible.
+     */
+    possible_addends = 0;
+    for (i = 0; i < max_sums; i++) {
+	int j;
+	unsigned long bits = sumbits[i];
+
+	if (bits == 0)
+	    break;
+
+	for (j = 0; j < nsquares; j++) {
+	    int n;
+	    unsigned long square_bits = bits;
+	    int x = cages->blocks[b][j];
+	    for (n = 1; n <= cr; n++)
+		if (!cube2(x, n))
+		    square_bits &= ~(1L << n);
+	    if (square_bits == 0) {
+		break;
+	    }
+	}
+	if (j == nsquares)
+	    possible_addends |= bits;
+    }
+    /*
+     * Now we know which addends can possibly be used to
+     * compute the sum.  Remove all other digits from the
+     * set of possibilities.
+     */
+    if (possible_addends == 0)
+	return -1;
+
+    ret = 0;
+    for (i = 0; i < nsquares; i++) {
+	int n;
+	int x = cages->blocks[b][i];
+	for (n = 1; n <= cr; n++) {
+	    if (!cube2(x, n))
+		continue;
+	    if ((possible_addends & (1 << n)) == 0) {
+		cube2(x, n) = FALSE;
+		ret = 1;
+#ifdef STANDALONE_SOLVER
+		if (solver_show_working) {
+		    printf("%*s  using %s\n",
+			   solver_recurse_depth*4, "killer sums analysis",
+			   cage_type);
+		    printf("%*s  ruling out %d at (%d,%d) due to impossible %d-sum\n",
+			   solver_recurse_depth*4, "",
+			   n, 1 + x%cr, 1 + x/cr, nsquares);
+		}
+#endif
+	    }
+	}
+    }
+    return ret;
+}
+
+static int filter_whole_cages(struct solver_usage *usage, int *squares, int n,
+			      int *filtered_sum)
+{
+    int b, i, j, off;
+    *filtered_sum = 0;
+
+    /* First, filter squares with a clue.  */
+    for (i = j = 0; i < n; i++)
+	if (usage->grid[squares[i]])
+	    *filtered_sum += usage->grid[squares[i]];
+	else
+	    squares[j++] = squares[i];
+    n = j;
+
+    /*
+     * Filter all cages that are covered entirely by the list of
+     * squares.
+     */
+    off = 0;
+    for (b = 0; b < usage->kblocks->nr_blocks && off < n; b++) {
+	int b_squares = usage->kblocks->nr_squares[b];
+	int matched = 0;
+
+	if (b_squares == 0)
+	    continue;
+
+	/*
+	 * Find all squares of block b that lie in our list,
+	 * and make them contiguous at off, which is the current position
+	 * in the output list.
+	 */
+	for (i = 0; i < b_squares; i++) {
+	    for (j = off; j < n; j++)
+		if (squares[j] == usage->kblocks->blocks[b][i]) {
+		    int t = squares[off + matched];
+		    squares[off + matched] = squares[j];
+		    squares[j] = t;
+		    matched++;
+		    break;
+		}
+	}
+	/* If so, filter out all squares of b from the list.  */
+	if (matched != usage->kblocks->nr_squares[b]) {
+	    off += matched;
+	    continue;
+	}
+	memmove(squares + off, squares + off + matched,
+		(n - off - matched) * sizeof *squares);
+	n -= matched;
+
+	*filtered_sum += usage->kclues[b];
+    }
+    assert(off == n);
+    return off;
+}
+
 static struct solver_scratch *solver_new_scratch(struct solver_usage *usage)
 {
     struct solver_scratch *scratch = snew(struct solver_scratch);
@@ -1183,13 +1656,26 @@ static void solver_free_scratch(struct solver_scratch *scratch)
     sfree(scratch);
 }
 
-static int solver(int cr, struct block_structure *blocks, int xtype,
-		  digit *grid, int maxdiff)
+/*
+ * Used for passing information about difficulty levels between the solver
+ * and its callers.
+ */
+struct difficulty {
+    /* Maximum levels allowed.  */
+    int maxdiff, maxkdiff;
+    /* Levels reached by the solver.  */
+    int diff, kdiff;
+};
+
+static void solver(int cr, struct block_structure *blocks,
+		  struct block_structure *kblocks, int xtype,
+		  digit *grid, digit *kgrid, struct difficulty *dlev)
 {
     struct solver_usage *usage;
     struct solver_scratch *scratch;
     int x, y, b, i, n, ret;
     int diff = DIFF_BLOCK;
+    int kdiff = DIFF_KSINGLE;
 
     /*
      * Set up a usage structure as a clean slate (everything
@@ -1198,8 +1684,38 @@ static int solver(int cr, struct block_structure *blocks, int xtype,
     usage = snew(struct solver_usage);
     usage->cr = cr;
     usage->blocks = blocks;
+    if (kblocks) {
+	usage->kblocks = dup_block_structure(kblocks);
+	usage->extra_cages = alloc_block_structure (kblocks->c, kblocks->r,
+						    cr * cr, cr, cr * cr);
+	usage->extra_clues = snewn(cr*cr, digit);
+    } else {
+	usage->kblocks = usage->extra_cages = NULL;
+	usage->extra_clues = NULL;
+    }
     usage->cube = snewn(cr*cr*cr, unsigned char);
     usage->grid = grid;		       /* write straight back to the input */
+    if (kgrid) {
+	int nclues;
+
+        assert(kblocks);
+        nclues = kblocks->nr_blocks;
+	/*
+	 * Allow for expansion of the killer regions, the absolute
+	 * limit is obviously one region per square.
+	 */
+	usage->kclues = snewn(cr*cr, digit);
+	for (i = 0; i < nclues; i++) {
+	    for (n = 0; n < kblocks->nr_squares[i]; n++)
+		if (kgrid[kblocks->blocks[i][n]] != 0)
+		    usage->kclues[i] = kgrid[kblocks->blocks[i][n]];
+	    assert(usage->kclues[i] > 0);
+	}
+	memset(usage->kclues + nclues, 0, cr*cr - nclues);
+    } else {
+	usage->kclues = NULL;
+    }
+
     memset(usage->cube, TRUE, cr*cr*cr);
 
     usage->row = snewn(cr * cr, unsigned char);
@@ -1214,6 +1730,24 @@ static int solver(int cr, struct block_structure *blocks, int xtype,
 	memset(usage->diag, FALSE, cr * 2);
     } else
 	usage->diag = NULL; 
+
+    usage->nr_regions = cr * 3 + (xtype ? 2 : 0);
+    usage->regions = snewn(cr * usage->nr_regions, int);
+    usage->sq2region = snewn(cr * cr * 3, int *);
+
+    for (n = 0; n < cr; n++) {
+	for (i = 0; i < cr; i++) {
+	    x = n*cr+i;
+	    y = i*cr+n;
+	    b = usage->blocks->blocks[n][i];
+	    usage->regions[cr*n*3 + i] = x;
+	    usage->regions[cr*n*3 + cr + i] = y;
+	    usage->regions[cr*n*3 + 2*cr + i] = b;
+	    usage->sq2region[x*3] = usage->regions + cr*n*3;
+	    usage->sq2region[y*3 + 1] = usage->regions + cr*n*3 + cr;
+	    usage->sq2region[b*3 + 2] = usage->regions + cr*n*3 + 2*cr;
+	}
+    }
 
     scratch = solver_new_scratch(usage);
 
@@ -1266,7 +1800,241 @@ static int solver(int cr, struct block_structure *blocks, int xtype,
 		    }
 		}
 
-	if (maxdiff <= DIFF_BLOCK)
+	if (usage->kclues != NULL) {
+	    int changed = FALSE;
+
+	    /*
+	     * First, bring the kblocks into a more useful form: remove
+	     * all filled-in squares, and reduce the sum by their values.
+	     * Walk in reverse order, since otherwise remove_from_block
+	     * can move element past our loop counter.
+	     */
+	    for (b = 0; b < usage->kblocks->nr_blocks; b++)
+		for (i = usage->kblocks->nr_squares[b] -1; i >= 0; i--) {
+		    int x = usage->kblocks->blocks[b][i];
+		    int t = usage->grid[x];
+
+		    if (t == 0)
+			continue;
+		    remove_from_block(usage->kblocks, b, x);
+		    if (t > usage->kclues[b]) {
+			diff = DIFF_IMPOSSIBLE;
+			goto got_result;
+		    }
+		    usage->kclues[b] -= t;
+		    /*
+		     * Since cages are regions, this tells us something
+		     * about the other squares in the cage.
+		     */
+		    for (n = 0; n < usage->kblocks->nr_squares[b]; n++) {
+			cube2(usage->kblocks->blocks[b][n], t) = FALSE;
+		    }
+		}
+
+	    /*
+	     * The most trivial kind of solver for killer puzzles: fill
+	     * single-square cages.
+	     */
+	    for (b = 0; b < usage->kblocks->nr_blocks; b++) {
+		int squares = usage->kblocks->nr_squares[b];
+		if (squares == 1) {
+		    int v = usage->kclues[b];
+		    if (v < 1 || v > cr) {
+			diff = DIFF_IMPOSSIBLE;
+			goto got_result;
+		    }
+		    x = usage->kblocks->blocks[b][0] % cr;
+		    y = usage->kblocks->blocks[b][0] / cr;
+		    if (!cube(x, y, v)) {
+			diff = DIFF_IMPOSSIBLE;
+			goto got_result;
+		    }
+		    solver_place(usage, x, y, v);
+
+#ifdef STANDALONE_SOLVER
+		    if (solver_show_working) {
+			printf("%*s  placing %d at (%d,%d)\n",
+			       solver_recurse_depth*4, "killer single-square cage",
+			       v, 1 + x%cr, 1 + x/cr);
+		    }
+#endif
+		    changed = TRUE;
+		}
+	    }
+
+	    if (changed) {
+		kdiff = max(kdiff, DIFF_KSINGLE);
+		goto cont;
+	    }
+	}
+	if (dlev->maxkdiff >= DIFF_KINTERSECT && usage->kclues != NULL) {
+	    int changed = FALSE;
+	    /*
+	     * Now, create the extra_cages information.  Every full region
+	     * (row, column, or block) has the same sum total (45 for 3x3
+	     * puzzles.  After we try to cover these regions with cages that
+	     * lie entirely within them, any squares that remain must bring
+	     * the total to this known value, and so they form additional
+	     * cages which aren't immediately evident in the displayed form
+	     * of the puzzle.
+	     */
+	    usage->extra_cages->nr_blocks = 0;
+	    for (i = 0; i < 3; i++) {
+		for (n = 0; n < cr; n++) {
+		    int *region = usage->regions + cr*n*3 + i*cr;
+		    int sum = cr * (cr + 1) / 2;
+		    int nsquares = cr;
+		    int filtered;
+		    int n_extra = usage->extra_cages->nr_blocks;
+		    int *extra_list = usage->extra_cages->blocks[n_extra];
+		    memcpy(extra_list, region, cr * sizeof *extra_list);
+
+		    nsquares = filter_whole_cages(usage, extra_list, nsquares, &filtered);
+		    sum -= filtered;
+		    if (nsquares == cr || nsquares == 0)
+			continue;
+		    if (dlev->maxdiff >= DIFF_RECURSIVE) {
+			if (sum <= 0) {
+			    dlev->diff = DIFF_IMPOSSIBLE;
+			    goto got_result;
+			}
+		    }
+		    assert(sum > 0);
+
+		    if (nsquares == 1) {
+			if (sum > cr) {
+			    diff = DIFF_IMPOSSIBLE;
+			    goto got_result;
+			}
+			x = extra_list[0] % cr;
+			y = extra_list[0] / cr;
+			if (!cube(x, y, sum)) {
+			    diff = DIFF_IMPOSSIBLE;
+			    goto got_result;
+			}
+			solver_place(usage, x, y, sum);
+			changed = TRUE;
+#ifdef STANDALONE_SOLVER
+			if (solver_show_working) {
+			    printf("%*s  placing %d at (%d,%d)\n",
+				   solver_recurse_depth*4, "killer single-square deduced cage",
+				   sum, 1 + x, 1 + y);
+			}
+#endif
+		    }
+
+		    b = usage->kblocks->whichblock[extra_list[0]];
+		    for (x = 1; x < nsquares; x++)
+			if (usage->kblocks->whichblock[extra_list[x]] != b)
+			    break;
+		    if (x == nsquares) {
+			assert(usage->kblocks->nr_squares[b] > nsquares);
+			split_block(usage->kblocks, extra_list, nsquares);
+			assert(usage->kblocks->nr_squares[usage->kblocks->nr_blocks - 1] == nsquares);
+			usage->kclues[usage->kblocks->nr_blocks - 1] = sum;
+			usage->kclues[b] -= sum;
+		    } else {
+			usage->extra_cages->nr_squares[n_extra] = nsquares;
+			usage->extra_cages->nr_blocks++;
+			usage->extra_clues[n_extra] = sum;
+		    }
+		}
+	    }
+	    if (changed) {
+		kdiff = max(kdiff, DIFF_KINTERSECT);
+		goto cont;
+	    }
+	}
+
+	/*
+	 * Another simple killer-type elimination.  For every square in a
+	 * cage, find the minimum and maximum possible sums of all the
+	 * other squares in the same cage, and rule out possibilities
+	 * for the given square based on whether they are guaranteed to
+	 * cause the sum to be either too high or too low.
+	 * This is a special case of trying all possible sums across a
+	 * region, which is a recursive algorithm.  We should probably
+	 * implement it for a higher difficulty level.
+	 */
+	if (dlev->maxkdiff >= DIFF_KMINMAX && usage->kclues != NULL) {
+	    int changed = FALSE;
+	    for (b = 0; b < usage->kblocks->nr_blocks; b++) {
+		int ret = solver_killer_minmax(usage, usage->kblocks,
+					       usage->kclues, b
+#ifdef STANDALONE_SOLVER
+					     , ""
+#endif
+					       );
+		if (ret < 0) {
+		    diff = DIFF_IMPOSSIBLE;
+		    goto got_result;
+		} else if (ret > 0)
+		    changed = TRUE;
+	    }
+	    for (b = 0; b < usage->extra_cages->nr_blocks; b++) {
+		int ret = solver_killer_minmax(usage, usage->extra_cages,
+					       usage->extra_clues, b
+#ifdef STANDALONE_SOLVER
+					       , "using deduced cages"
+#endif
+					       );
+		if (ret < 0) {
+		    diff = DIFF_IMPOSSIBLE;
+		    goto got_result;
+		} else if (ret > 0)
+		    changed = TRUE;
+	    }
+	    if (changed) {
+		kdiff = max(kdiff, DIFF_KMINMAX);
+		goto cont;
+	    }
+	}
+
+	/*
+	 * Try to use knowledge of which numbers can be used to generate
+	 * a given sum.
+	 * This can only be used if a cage lies entirely within a region.
+	 */
+	if (dlev->maxkdiff >= DIFF_KSUMS && usage->kclues != NULL) {
+	    int changed = FALSE;
+
+	    for (b = 0; b < usage->kblocks->nr_blocks; b++) {
+		int ret = solver_killer_sums(usage, b, usage->kblocks,
+					     usage->kclues[b], TRUE
+#ifdef STANDALONE_SOLVER
+					     , "regular clues"
+#endif
+					     );
+		if (ret > 0) {
+		    changed = TRUE;
+		    kdiff = max(kdiff, DIFF_KSUMS);
+		} else if (ret < 0) {
+		    diff = DIFF_IMPOSSIBLE;
+		    goto got_result;
+		}
+	    }
+
+	    for (b = 0; b < usage->extra_cages->nr_blocks; b++) {
+		int ret = solver_killer_sums(usage, b, usage->extra_cages,
+					     usage->extra_clues[b], FALSE
+#ifdef STANDALONE_SOLVER
+					     , "deduced clues"
+#endif
+					     );
+		if (ret > 0) {
+		    changed = TRUE;
+		    kdiff = max(kdiff, DIFF_KINTERSECT);
+		} else if (ret < 0) {
+		    diff = DIFF_IMPOSSIBLE;
+		    goto got_result;
+		}
+	    }
+
+	    if (changed)
+		goto cont;
+	}
+
+	if (dlev->maxdiff <= DIFF_BLOCK)
 	    break;
 
 	/*
@@ -1379,7 +2147,7 @@ static int solver(int cr, struct block_structure *blocks, int xtype,
 		    }
                 }
 
-	if (maxdiff <= DIFF_SIMPLE)
+	if (dlev->maxdiff <= DIFF_SIMPLE)
 	    break;
 
         /*
@@ -1521,7 +2289,7 @@ static int solver(int cr, struct block_structure *blocks, int xtype,
 		}
 	}
 
-	if (maxdiff <= DIFF_INTERSECT)
+	if (dlev->maxdiff <= DIFF_INTERSECT)
 	    break;
 
 	/*
@@ -1628,7 +2396,7 @@ static int solver(int cr, struct block_structure *blocks, int xtype,
 	    }
 	}
 
-	if (maxdiff <= DIFF_SET)
+	if (dlev->maxdiff <= DIFF_SET)
 	    break;
 
 	/*
@@ -1674,7 +2442,7 @@ static int solver(int cr, struct block_structure *blocks, int xtype,
      * has the effect of pruning the search tree as much as
      * possible.
      */
-    if (maxdiff >= DIFF_RECURSIVE) {
+    if (dlev->maxdiff >= DIFF_RECURSIVE) {
 	int best, bestcount;
 
 	best = -1;
@@ -1746,8 +2514,6 @@ static int solver(int cr, struct block_structure *blocks, int xtype,
 	     * main solver at every stage.
 	     */
 	    for (i = 0; i < j; i++) {
-		int ret;
-
 		memcpy(outgrid, ingrid, cr * cr);
 		outgrid[y*cr+x] = list[i];
 
@@ -1758,7 +2524,7 @@ static int solver(int cr, struct block_structure *blocks, int xtype,
 		solver_recurse_depth++;
 #endif
 
-		ret = solver(cr, blocks, xtype, outgrid, maxdiff);
+		solver(cr, blocks, kblocks, xtype, outgrid, kgrid, dlev);
 
 #ifdef STANDALONE_SOLVER
 		solver_recurse_depth--;
@@ -1772,12 +2538,12 @@ static int solver(int cr, struct block_structure *blocks, int xtype,
 		 * If we have our first solution, copy it into the
 		 * grid we will return.
 		 */
-		if (diff == DIFF_IMPOSSIBLE && ret != DIFF_IMPOSSIBLE)
+		if (diff == DIFF_IMPOSSIBLE && dlev->diff != DIFF_IMPOSSIBLE)
 		    memcpy(grid, outgrid, cr*cr);
 
-		if (ret == DIFF_AMBIGUOUS)
+		if (dlev->diff == DIFF_AMBIGUOUS)
 		    diff = DIFF_AMBIGUOUS;
-		else if (ret == DIFF_IMPOSSIBLE)
+		else if (dlev->diff == DIFF_IMPOSSIBLE)
 		    /* do not change our return value */;
 		else {
 		    /* the recursion turned up exactly one solution */
@@ -1812,7 +2578,9 @@ static int solver(int cr, struct block_structure *blocks, int xtype,
                     diff = DIFF_IMPOSSIBLE;
     }
 
-    got_result:;
+    got_result:
+    dlev->diff = diff;
+    dlev->kdiff = kdiff;
 
 #ifdef STANDALONE_SOLVER
     if (solver_show_working)
@@ -1823,19 +2591,29 @@ static int solver(int cr, struct block_structure *blocks, int xtype,
 	       "one solution");
 #endif
 
+    sfree(usage->sq2region);
+    sfree(usage->regions);
     sfree(usage->cube);
     sfree(usage->row);
     sfree(usage->col);
     sfree(usage->blk);
+    if (usage->kblocks) {
+	free_block_structure(usage->kblocks);
+	free_block_structure(usage->extra_cages);
+	sfree(usage->extra_clues);
+    }
+    if (usage->kclues) sfree(usage->kclues);
     sfree(usage);
 
     solver_free_scratch(scratch);
-
-    return diff;
 }
 
 /* ----------------------------------------------------------------------
  * End of solver code.
+ */
+
+/* ----------------------------------------------------------------------
+ * Killer set generator.
  */
 
 /* ----------------------------------------------------------------------
@@ -1862,6 +2640,9 @@ static int solver(int cr, struct block_structure *blocks, int xtype,
  * any squares with only one possibility) will cut down on the list
  * of possibilities for other squares and hence reduce the enormous
  * search space as much as possible as early as possible.
+ *
+ * The use of bit sets implies that we support puzzles up to a size of
+ * 32x32 (less if anyone finds a 16-bit machine to compile this on).
  */
 
 /*
@@ -1871,17 +2652,18 @@ static int solver(int cr, struct block_structure *blocks, int xtype,
 struct gridgen_coord { int x, y, r; };
 struct gridgen_usage {
     int cr;
-    struct block_structure *blocks;
+    struct block_structure *blocks, *kblocks;
     /* grid is a copy of the input grid, modified as we go along */
     digit *grid;
-    /* row[y*cr+n-1] TRUE if digit n has been placed in row y */
-    unsigned char *row;
-    /* col[x*cr+n-1] TRUE if digit n has been placed in row x */
-    unsigned char *col;
-    /* blk[(y*c+x)*cr+n-1] TRUE if digit n has been placed in block (x,y) */
-    unsigned char *blk;
-    /* diag[i*cr+n-1] TRUE if digit n has been placed in diagonal i */
-    unsigned char *diag;
+    /*
+     * Bitsets.  In each of them, bit n is set if digit n has been placed
+     * in the corresponding region.  row, col and blk are used for all
+     * puzzles.  cge is used only for killer puzzles, and diag is used
+     * only for x-type puzzles.
+     * All of these have cr entries, except diag which only has 2,
+     * and cge, which has as many entries as kblocks.
+     */
+    unsigned int *row, *col, *blk, *cge, *diag;
     /* This lists all the empty spaces remaining in the grid. */
     struct gridgen_coord *spaces;
     int nspaces;
@@ -1889,20 +2671,43 @@ struct gridgen_usage {
     random_state *rs;
 };
 
-static void gridgen_place(struct gridgen_usage *usage, int x, int y, digit n,
-			  int placing)
+static void gridgen_place(struct gridgen_usage *usage, int x, int y, digit n)
 {
+    unsigned int bit = 1 << n;
     int cr = usage->cr;
-    usage->row[y*cr+n-1] = usage->col[x*cr+n-1] =
-	usage->blk[usage->blocks->whichblock[y*cr+x]*cr+n-1] = placing;
+    usage->row[y] |= bit;
+    usage->col[x] |= bit;
+    usage->blk[usage->blocks->whichblock[y*cr+x]] |= bit;
+    if (usage->cge)
+	usage->cge[usage->kblocks->whichblock[y*cr+x]] |= bit;
     if (usage->diag) {
 	if (ondiag0(y*cr+x))
-	    usage->diag[n-1] = placing;
+	    usage->diag[0] |= bit;
 	if (ondiag1(y*cr+x))
-	    usage->diag[cr+n-1] = placing;
+	    usage->diag[1] |= bit;
     }
-    usage->grid[y*cr+x] = placing ? n : 0;
+    usage->grid[y*cr+x] = n;
 }
+
+static void gridgen_remove(struct gridgen_usage *usage, int x, int y, digit n)
+{
+    unsigned int mask = ~(1 << n);
+    int cr = usage->cr;
+    usage->row[y] &= mask;
+    usage->col[x] &= mask;
+    usage->blk[usage->blocks->whichblock[y*cr+x]] &= mask;
+    if (usage->cge)
+	usage->cge[usage->kblocks->whichblock[y*cr+x]] &= mask;
+    if (usage->diag) {
+	if (ondiag0(y*cr+x))
+	    usage->diag[0] &= mask;
+	if (ondiag1(y*cr+x))
+	    usage->diag[1] &= mask;
+    }
+    usage->grid[y*cr+x] = 0;
+}
+
+#define N_SINGLE 32
 
 /*
  * The real recursive step in the generating function.
@@ -1915,6 +2720,7 @@ static int gridgen_real(struct gridgen_usage *usage, digit *grid, int *steps)
     int cr = usage->cr;
     int i, j, n, sx, sy, bestm, bestr, ret;
     int *digits;
+    unsigned int used;
 
     /*
      * Firstly, check for completion! If there are no spaces left
@@ -1936,28 +2742,42 @@ static int gridgen_real(struct gridgen_usage *usage, digit *grid, int *steps)
      */
     bestm = cr+1;		       /* so that any space will beat it */
     bestr = 0;
+    used = ~0;
     i = sx = sy = -1;
     for (j = 0; j < usage->nspaces; j++) {
 	int x = usage->spaces[j].x, y = usage->spaces[j].y;
+	unsigned int used_xy;
 	int m;
+
+	m = usage->blocks->whichblock[y*cr+x];
+	used_xy = usage->row[y] | usage->col[x] | usage->blk[m];
+	if (usage->cge != NULL)
+	    used_xy |= usage->cge[usage->kblocks->whichblock[y*cr+x]];
+	if (usage->cge != NULL)
+	    used_xy |= usage->cge[usage->kblocks->whichblock[y*cr+x]];
+	if (usage->diag != NULL) {
+	    if (ondiag0(y*cr+x))
+		used_xy |= usage->diag[0];
+	    if (ondiag1(y*cr+x))
+		used_xy |= usage->diag[1];
+	}
 
 	/*
 	 * Find the number of digits that could go in this space.
 	 */
 	m = 0;
-	for (n = 0; n < cr; n++)
-	    if (!usage->row[y*cr+n] && !usage->col[x*cr+n] &&
-		!usage->blk[usage->blocks->whichblock[y*cr+x]*cr+n] &&
-		(!usage->diag || ((!ondiag0(y*cr+x) || !usage->diag[n]) &&
-				  (!ondiag1(y*cr+x) || !usage->diag[cr+n]))))
+	for (n = 1; n <= cr; n++) {
+	    unsigned int bit = 1 << n;
+	    if ((used_xy & bit) == 0)
 		m++;
-
+	}
 	if (m < bestm || (m == bestm && usage->spaces[j].r < bestr)) {
 	    bestm = m;
 	    bestr = usage->spaces[j].r;
 	    sx = x;
 	    sy = y;
 	    i = j;
+	    used = used_xy;
 	}
     }
 
@@ -1978,14 +2798,14 @@ static int gridgen_real(struct gridgen_usage *usage, digit *grid, int *steps)
      * randomly first if necessary.
      */
     digits = snewn(bestm, int);
+
     j = 0;
-    for (n = 0; n < cr; n++)
-	if (!usage->row[sy*cr+n] && !usage->col[sx*cr+n] &&
-	    !usage->blk[usage->blocks->whichblock[sy*cr+sx]*cr+n] &&
-	    (!usage->diag || ((!ondiag0(sy*cr+sx) || !usage->diag[n]) &&
-			      (!ondiag1(sy*cr+sx) || !usage->diag[cr+n])))) {
-	    digits[j++] = n+1;
-	}
+    for (n = 1; n <= cr; n++) {
+	unsigned int bit = 1 << n;
+
+	if ((used & bit) == 0)
+	    digits[j++] = n;
+    }
 
     if (usage->rs)
 	shuffle(digits, j, sizeof(*digits), usage->rs);
@@ -1996,7 +2816,7 @@ static int gridgen_real(struct gridgen_usage *usage, digit *grid, int *steps)
 	n = digits[i];
 
 	/* Update the usage structure to reflect the placing of this digit. */
-	gridgen_place(usage, sx, sy, n, TRUE);
+	gridgen_place(usage, sx, sy, n);
 	usage->nspaces--;
 
 	/* Call the solver recursively. Stop when we find a solution. */
@@ -2006,7 +2826,7 @@ static int gridgen_real(struct gridgen_usage *usage, digit *grid, int *steps)
 	}
 
 	/* Revert the usage structure. */
-	gridgen_place(usage, sx, sy, n, FALSE);
+	gridgen_remove(usage, sx, sy, n);
 	usage->nspaces++;
     }
 
@@ -2018,7 +2838,8 @@ static int gridgen_real(struct gridgen_usage *usage, digit *grid, int *steps)
  * Entry point to generator. You give it parameters and a starting
  * grid, which is simply an array of cr*cr digits.
  */
-static int gridgen(int cr, struct block_structure *blocks, int xtype,
+static int gridgen(int cr, struct block_structure *blocks,
+		   struct block_structure *kblocks, int xtype,
 		   digit *grid, random_state *rs, int maxsteps)
 {
     struct gridgen_usage *usage;
@@ -2039,16 +2860,24 @@ static int gridgen(int cr, struct block_structure *blocks, int xtype,
 
     usage->grid = grid;
 
-    usage->row = snewn(cr * cr, unsigned char);
-    usage->col = snewn(cr * cr, unsigned char);
-    usage->blk = snewn(cr * cr, unsigned char);
-    memset(usage->row, FALSE, cr * cr);
-    memset(usage->col, FALSE, cr * cr);
-    memset(usage->blk, FALSE, cr * cr);
+    usage->row = snewn(cr, unsigned int);
+    usage->col = snewn(cr, unsigned int);
+    usage->blk = snewn(cr, unsigned int);
+    if (kblocks != NULL) {
+	usage->kblocks = kblocks;
+	usage->cge = snewn(usage->kblocks->nr_blocks, unsigned int);
+	memset(usage->cge, FALSE, kblocks->nr_blocks * sizeof *usage->cge);
+    } else {
+	usage->cge = NULL;
+    }
+
+    memset(usage->row, 0, cr * sizeof *usage->row);
+    memset(usage->col, 0, cr * sizeof *usage->col);
+    memset(usage->blk, 0, cr * sizeof *usage->blk);
 
     if (xtype) {
-	usage->diag = snewn(2 * cr, unsigned char);
-	memset(usage->diag, FALSE, 2 * cr);
+	usage->diag = snewn(2, unsigned int);
+	memset(usage->diag, 0, 2 * sizeof *usage->diag);
     } else {
 	usage->diag = NULL;
     }
@@ -2064,7 +2893,7 @@ static int gridgen(int cr, struct block_structure *blocks, int xtype,
 	grid[x] = x+1;
     shuffle(grid, cr, sizeof(*grid), rs);
     for (x = 0; x < cr; x++)
-	gridgen_place(usage, x, 0, grid[x], TRUE);
+	gridgen_place(usage, x, 0, grid[x]);
 
     usage->spaces = snewn(cr * cr, struct gridgen_coord);
     usage->nspaces = 0;
@@ -2093,6 +2922,7 @@ static int gridgen(int cr, struct block_structure *blocks, int xtype,
      * Clean up the usage structure now we have our answer.
      */
     sfree(usage->spaces);
+    sfree(usage->cge);
     sfree(usage->blk);
     sfree(usage->col);
     sfree(usage->row);
@@ -2108,8 +2938,8 @@ static int gridgen(int cr, struct block_structure *blocks, int xtype,
 /*
  * Check whether a grid contains a valid complete puzzle.
  */
-static int check_valid(int cr, struct block_structure *blocks, int xtype,
-		       digit *grid)
+static int check_valid(int cr, struct block_structure *blocks,
+		       struct block_structure *kblocks, int xtype, digit *grid)
 {
     unsigned char *used;
     int x, y, i, j, n;
@@ -2160,6 +2990,25 @@ static int check_valid(int cr, struct block_structure *blocks, int xtype,
 		sfree(used);
 		return FALSE;
 	    }
+    }
+
+    /*
+     * Check that each Killer cage, if any, contains at most one of
+     * everything.
+     */
+    if (kblocks) {
+	for (i = 0; i < kblocks->nr_blocks; i++) {
+	    memset(used, FALSE, cr);
+	    for (j = 0; j < kblocks->nr_squares[i]; j++)
+		if (grid[kblocks->blocks[i][j]] > 0 &&
+		    grid[kblocks->blocks[i][j]] <= cr) {
+		    if (used[grid[kblocks->blocks[i][j]]-1]) {
+			sfree(used);
+			return FALSE;
+		    }
+		    used[grid[kblocks->blocks[i][j]]-1] = TRUE;
+		}
+	}
     }
 
     /*
@@ -2284,19 +3133,411 @@ static char *encode_solve_move(int cr, digit *grid)
     return ret;
 }
 
+static void dsf_to_blocks(int *dsf, struct block_structure *blocks,
+			  int min_expected, int max_expected)
+{
+    int cr = blocks->c * blocks->r, area = cr * cr;
+    int i, nb = 0;
+
+    for (i = 0; i < area; i++)
+	blocks->whichblock[i] = -1;
+    for (i = 0; i < area; i++) {
+	int j = dsf_canonify(dsf, i);
+	if (blocks->whichblock[j] < 0)
+	    blocks->whichblock[j] = nb++;
+	blocks->whichblock[i] = blocks->whichblock[j];
+    }
+    assert(nb >= min_expected && nb <= max_expected);
+    blocks->nr_blocks = nb;
+}
+
+static void make_blocks_from_whichblock(struct block_structure *blocks)
+{
+    int i;
+
+    for (i = 0; i < blocks->nr_blocks; i++) {
+	blocks->blocks[i][blocks->max_nr_squares-1] = 0;
+	blocks->nr_squares[i] = 0;
+    }
+    for (i = 0; i < blocks->area; i++) {
+	int b = blocks->whichblock[i];
+	int j = blocks->blocks[b][blocks->max_nr_squares-1]++;
+	assert(j < blocks->max_nr_squares);
+	blocks->blocks[b][j] = i;
+	blocks->nr_squares[b]++;
+    }
+}
+
+static char *encode_block_structure_desc(char *p, struct block_structure *blocks)
+{
+    int i, currrun = 0;
+    int c = blocks->c, r = blocks->r, cr = c * r;
+
+    /*
+     * Encode the block structure. We do this by encoding
+     * the pattern of dividing lines: first we iterate
+     * over the cr*(cr-1) internal vertical grid lines in
+     * ordinary reading order, then over the cr*(cr-1)
+     * internal horizontal ones in transposed reading
+     * order.
+     * 
+     * We encode the number of non-lines between the
+     * lines; _ means zero (two adjacent divisions), a
+     * means 1, ..., y means 25, and z means 25 non-lines
+     * _and no following line_ (so that za means 26, zb 27
+     * etc).
+     */
+    for (i = 0; i <= 2*cr*(cr-1); i++) {
+	int x, y, p0, p1, edge;
+
+	if (i == 2*cr*(cr-1)) {
+	    edge = TRUE;       /* terminating virtual edge */
+	} else {
+	    if (i < cr*(cr-1)) {
+		y = i/(cr-1);
+		x = i%(cr-1);
+		p0 = y*cr+x;
+		p1 = y*cr+x+1;
+	    } else {
+		x = i/(cr-1) - cr;
+		y = i%(cr-1);
+		p0 = y*cr+x;
+		p1 = (y+1)*cr+x;
+	    }
+	    edge = (blocks->whichblock[p0] != blocks->whichblock[p1]);
+	}
+
+	if (edge) {
+	    while (currrun > 25)
+		*p++ = 'z', currrun -= 25;
+	    if (currrun)
+		*p++ = 'a'-1 + currrun;
+	    else
+		*p++ = '_';
+	    currrun = 0;
+	} else
+	    currrun++;
+    }
+    return p;
+}
+
+static char *encode_grid(char *desc, digit *grid, int area)
+{
+    int run, i;
+    char *p = desc;
+
+    run = 0;
+    for (i = 0; i <= area; i++) {
+	int n = (i < area ? grid[i] : -1);
+
+	if (!n)
+	    run++;
+	else {
+	    if (run) {
+		while (run > 0) {
+		    int c = 'a' - 1 + run;
+		    if (run > 26)
+			c = 'z';
+		    *p++ = c;
+		    run -= c - ('a' - 1);
+		}
+	    } else {
+		/*
+		 * If there's a number in the very top left or
+		 * bottom right, there's no point putting an
+		 * unnecessary _ before or after it.
+		 */
+		if (p > desc && n > 0)
+		    *p++ = '_';
+	    }
+	    if (n > 0)
+		p += sprintf(p, "%d", n);
+	    run = 0;
+	}
+    }
+    return p;
+}
+
+/*
+ * Conservatively stimate the number of characters required for
+ * encoding a grid of a certain area.
+ */
+static int grid_encode_space (int area)
+{
+    int t, count;
+    for (count = 1, t = area; t > 26; t -= 26)
+	count++;
+    return count * area;
+}
+
+/*
+ * Conservatively stimate the number of characters required for
+ * encoding a given blocks structure.
+ */
+static int blocks_encode_space(struct block_structure *blocks)
+{
+    int cr = blocks->c * blocks->r, area = cr * cr;
+    return grid_encode_space(area);
+}
+
+static char *encode_puzzle_desc(game_params *params, digit *grid,
+				struct block_structure *blocks,
+				digit *kgrid,
+				struct block_structure *kblocks)
+{
+    int c = params->c, r = params->r, cr = c*r;
+    int area = cr*cr;
+    char *p, *desc;
+    int space;
+
+    space = grid_encode_space(area) + 1;
+    if (r == 1)
+	space += blocks_encode_space(blocks) + 1;
+    if (params->killer) {
+	space += blocks_encode_space(kblocks) + 1;
+	space += grid_encode_space(area) + 1;
+    }
+    desc = snewn(space, char);
+    p = encode_grid(desc, grid, area);
+
+    if (r == 1) {
+	*p++ = ',';
+	p = encode_block_structure_desc(p, blocks);
+    }
+    if (params->killer) {
+	*p++ = ',';
+	p = encode_block_structure_desc(p, kblocks);
+	*p++ = ',';
+	p = encode_grid(p, kgrid, area);
+    }
+    assert(p - desc < space);
+    *p++ = '\0';
+    desc = sresize(desc, p - desc, char);
+
+    return desc;
+}
+
+static void merge_blocks(struct block_structure *b, int n1, int n2)
+{
+    int i;
+    /* Move data towards the lower block number.  */
+    if (n2 < n1) {
+	int t = n2;
+	n2 = n1;
+	n1 = t;
+    }
+
+    /* Merge n2 into n1, and move the last block into n2's position.  */
+    for (i = 0; i < b->nr_squares[n2]; i++)
+	b->whichblock[b->blocks[n2][i]] = n1;
+    memcpy(b->blocks[n1] + b->nr_squares[n1], b->blocks[n2],
+	   b->nr_squares[n2] * sizeof **b->blocks);
+    b->nr_squares[n1] += b->nr_squares[n2];
+
+    n1 = b->nr_blocks - 1;
+    if (n2 != n1) {
+	memcpy(b->blocks[n2], b->blocks[n1],
+	       b->nr_squares[n1] * sizeof **b->blocks);
+	for (i = 0; i < b->nr_squares[n1]; i++)
+	    b->whichblock[b->blocks[n1][i]] = n2;
+	b->nr_squares[n2] = b->nr_squares[n1];
+    }
+    b->nr_blocks = n1;
+}
+
+static int merge_some_cages(struct block_structure *b, int cr, int area,
+			     digit *grid, random_state *rs)
+{
+    /*
+     * Make a list of all the pairs of adjacent blocks.
+     */
+    int i, j, k;
+    struct pair {
+	int b1, b2;
+    } *pairs;
+    int npairs;
+
+    pairs = snewn(b->nr_blocks * b->nr_blocks, struct pair);
+    npairs = 0;
+
+    for (i = 0; i < b->nr_blocks; i++) {
+	for (j = i+1; j < b->nr_blocks; j++) {
+
+	    /*
+	     * Rule the merger out of consideration if it's
+	     * obviously not viable.
+	     */
+	    if (b->nr_squares[i] + b->nr_squares[j] > b->max_nr_squares)
+		continue;	       /* we couldn't merge these anyway */
+
+	    /*
+	     * See if these two blocks have a pair of squares
+	     * adjacent to each other.
+	     */
+	    for (k = 0; k < b->nr_squares[i]; k++) {
+		int xy = b->blocks[i][k];
+		int y = xy / cr, x = xy % cr;
+		if ((y   > 0  && b->whichblock[xy - cr] == j) ||
+		    (y+1 < cr && b->whichblock[xy + cr] == j) ||
+		    (x   > 0  && b->whichblock[xy -  1] == j) ||
+		    (x+1 < cr && b->whichblock[xy +  1] == j)) {
+		    /*
+		     * Yes! Add this pair to our list.
+		     */
+		    pairs[npairs].b1 = i;
+		    pairs[npairs].b2 = j;
+		    break;
+		}
+	    }
+	}
+    }
+
+    /*
+     * Now go through that list in random order until we find a pair
+     * of blocks we can merge.
+     */
+    while (npairs > 0) {
+	int n1, n2;
+	unsigned int digits_found;
+
+	/*
+	 * Pick a random pair, and remove it from the list.
+	 */
+	i = random_upto(rs, npairs);
+	n1 = pairs[i].b1;
+	n2 = pairs[i].b2;
+	if (i != npairs-1)
+	    pairs[i] = pairs[npairs-1];
+	npairs--;
+
+	/* Guarantee that the merged cage would still be a region.  */
+	digits_found = 0;
+	for (i = 0; i < b->nr_squares[n1]; i++)
+	    digits_found |= 1 << grid[b->blocks[n1][i]];
+	for (i = 0; i < b->nr_squares[n2]; i++)
+	    if (digits_found & (1 << grid[b->blocks[n2][i]]))
+		break;
+	if (i != b->nr_squares[n2])
+	    continue;
+
+	/*
+	 * Got one! Do the merge.
+	 */
+	merge_blocks(b, n1, n2);
+	sfree(pairs);
+	return TRUE;
+    }
+
+    sfree(pairs);
+    return FALSE;
+}
+
+static void compute_kclues(struct block_structure *cages, digit *kclues,
+			   digit *grid, int area)
+{
+    int i;
+    memset(kclues, 0, area * sizeof *kclues);
+    for (i = 0; i < cages->nr_blocks; i++) {
+	int j, sum = 0;
+	for (j = 0; j < area; j++)
+	    if (cages->whichblock[j] == i)
+		sum += grid[j];
+	for (j = 0; j < area; j++)
+	    if (cages->whichblock[j] == i)
+		break;
+	assert (j != area);
+	kclues[j] = sum;
+    }
+}
+
+static struct block_structure *gen_killer_cages(int cr, random_state *rs,
+						int remove_singletons)
+{
+    int nr;
+    int x, y, area = cr * cr;
+    int n_singletons = 0;
+    struct block_structure *b = alloc_block_structure (1, cr, area, cr, area);
+
+    for (x = 0; x < area; x++)
+	b->whichblock[x] = -1;
+    nr = 0;
+    for (y = 0; y < cr; y++)
+	for (x = 0; x < cr; x++) {
+	    int rnd;
+	    int xy = y*cr+x;
+	    if (b->whichblock[xy] != -1)
+		continue;
+	    b->whichblock[xy] = nr;
+
+	    rnd = random_bits(rs, 4);
+	    if (xy + 1 < area && (rnd >= 4 || (!remove_singletons && rnd >= 1))) {
+		int xy2 = xy + 1;
+		if (x + 1 == cr || b->whichblock[xy2] != -1 ||
+		    (xy + cr < area && random_bits(rs, 1) == 0))
+		    xy2 = xy + cr;
+		if (xy2 >= area)
+		    n_singletons++;
+		else
+		    b->whichblock[xy2] = nr;
+	    } else
+		n_singletons++;
+	    nr++;
+	}
+
+    b->nr_blocks = nr;
+    make_blocks_from_whichblock(b);
+
+    for (x = y = 0; x < b->nr_blocks; x++)
+	if (b->nr_squares[x] == 1)
+	    y++;
+    assert(y == n_singletons);
+
+    if (n_singletons > 0 && remove_singletons) {
+	int n;
+	for (n = 0; n < b->nr_blocks;) {
+	    int xy, x, y, xy2, other;
+	    if (b->nr_squares[n] > 1) {
+		n++;
+		continue;
+	    }
+	    xy = b->blocks[n][0];
+	    x = xy % cr;
+	    y = xy / cr;
+	    if (xy + 1 == area)
+		xy2 = xy - 1;
+	    else if (x + 1 < cr && (y + 1 == cr || random_bits(rs, 1) == 0))
+		xy2 = xy + 1;
+	    else
+		xy2 = xy + cr;
+	    other = b->whichblock[xy2];
+
+	    if (b->nr_squares[other] == 1)
+		n_singletons--;
+	    n_singletons--;
+	    merge_blocks(b, n, other);
+	    if (n < other)
+		n++;
+	}
+	assert(n_singletons == 0);
+    }
+    return b;
+}
+
 static char *new_game_desc(game_params *params, random_state *rs,
 			   char **aux, int interactive)
 {
     int c = params->c, r = params->r, cr = c*r;
     int area = cr*cr;
-    struct block_structure *blocks;
-    digit *grid, *grid2;
+    struct block_structure *blocks, *kblocks;
+    digit *grid, *grid2, *kgrid;
     struct xy { int x, y; } *locs;
     int nlocs;
     char *desc;
     int coords[16], ncoords;
-    int maxdiff;
     int x, y, i, j;
+    struct difficulty dlev;
+
+    precompute_sum_bits();
 
     /*
      * Adjust the maximum difficulty level to be consistent with
@@ -2304,20 +3545,20 @@ static char *new_game_desc(game_params *params, random_state *rs,
      * (DIFF_BLOCK) so we cannot hold out for even a Basic
      * (DIFF_SIMPLE) one.
      */
-    maxdiff = params->diff;
+    dlev.maxdiff = params->diff;
+    dlev.maxkdiff = params->kdiff;
     if (c == 2 && r == 2)
-        maxdiff = DIFF_BLOCK;
+        dlev.maxdiff = DIFF_BLOCK;
 
     grid = snewn(area, digit);
     locs = snewn(area, struct xy);
     grid2 = snewn(area, digit);
 
-    blocks = snew(struct block_structure);
-    blocks->c = params->c; blocks->r = params->r;
-    blocks->whichblock = snewn(area*2, int);
-    blocks->blocks = snewn(cr, int *);
-    for (i = 0; i < cr; i++)
-	blocks->blocks[i] = blocks->whichblock + area + i*cr;
+    blocks = alloc_block_structure (c, r, area, cr, cr);
+
+    kblocks = NULL;
+    kgrid = (params->killer) ? snewn(area, digit) : NULL;
+
 #ifdef STANDALONE_SOLVER
     assert(!"This should never happen, so we don't need to create blocknames");
 #endif
@@ -2334,17 +3575,8 @@ static char *new_game_desc(game_params *params, random_state *rs,
          */
 	if (r == 1) {		       /* jigsaw mode */
 	    int *dsf = divvy_rectangle(cr, cr, cr, rs);
-	    int nb = 0;
 
-	    for (i = 0; i < area; i++)
-		blocks->whichblock[i] = -1;
-	    for (i = 0; i < area; i++) {
-		int j = dsf_canonify(dsf, i);
-		if (blocks->whichblock[j] < 0)
-		    blocks->whichblock[j] = nb++;
-		blocks->whichblock[i] = blocks->whichblock[j];
-	    }
-	    assert(nb == cr);
+	    dsf_to_blocks (dsf, blocks, cr, cr);
 
 	    sfree(dsf);
 	} else {		       /* basic Sudoku mode */
@@ -2352,18 +3584,16 @@ static char *new_game_desc(game_params *params, random_state *rs,
 		for (x = 0; x < cr; x++)
 		    blocks->whichblock[y*cr+x] = (y/c) * c + (x/r);
 	}
-	for (i = 0; i < cr; i++)
-	    blocks->blocks[i][cr-1] = 0;
-	for (i = 0; i < area; i++) {
-	    int b = blocks->whichblock[i];
-	    j = blocks->blocks[b][cr-1]++;
-	    assert(j < cr);
-	    blocks->blocks[b][j] = i;
+	make_blocks_from_whichblock(blocks);
+
+	if (params->killer) {
+            if (kblocks) free_block_structure(kblocks);
+	    kblocks = gen_killer_cages(cr, rs, params->kdiff > DIFF_KSINGLE);
 	}
 
-        if (!gridgen(cr, blocks, params->xtype, grid, rs, area*area))
+        if (!gridgen(cr, blocks, kblocks, params->xtype, grid, rs, area*area))
 	    continue;
-        assert(check_valid(cr, blocks, params->xtype, grid));
+        assert(check_valid(cr, blocks, kblocks, params->xtype, grid));
 
 	/*
 	 * Save the solved grid in aux.
@@ -2381,10 +3611,80 @@ static char *new_game_desc(game_params *params, random_state *rs,
             *aux = encode_solve_move(cr, grid);
 	}
 
-        /*
-         * Now we have a solved grid, start removing things from it
-         * while preserving solubility.
-         */
+	/*
+	 * Now we have a solved grid. For normal puzzles, we start removing
+	 * things from it while preserving solubility.  Killer puzzles are
+	 * different: we just pass the empty grid to the solver, and use
+	 * the puzzle if it comes back solved.
+	 */
+
+	if (params->killer) {
+	    struct block_structure *good_cages = NULL;
+	    struct block_structure *last_cages = NULL;
+	    int ntries = 0;
+
+            memcpy(grid2, grid, area);
+
+	    for (;;) {
+		compute_kclues(kblocks, kgrid, grid2, area);
+
+		memset(grid, 0, area * sizeof *grid);
+		solver(cr, blocks, kblocks, params->xtype, grid, kgrid, &dlev);
+		if (dlev.diff == dlev.maxdiff && dlev.kdiff == dlev.maxkdiff) {
+		    /*
+		     * We have one that matches our difficulty.  Store it for
+		     * later, but keep going.
+		     */
+		    if (good_cages)
+			free_block_structure(good_cages);
+		    ntries = 0;
+		    good_cages = dup_block_structure(kblocks);
+		    if (!merge_some_cages(kblocks, cr, area, grid2, rs))
+			break;
+		} else if (dlev.diff > dlev.maxdiff || dlev.kdiff > dlev.maxkdiff) {
+		    /*
+		     * Give up after too many tries and either use the good one we
+		     * found, or generate a new grid.
+		     */
+		    if (++ntries > 50)
+			break;
+		    /*
+		     * The difficulty level got too high.  If we have a good
+		     * one, use it, otherwise go back to the last one that
+		     * was at a lower difficulty and restart the process from
+		     * there.
+		     */
+		    if (good_cages != NULL) {
+			free_block_structure(kblocks);
+			kblocks = dup_block_structure(good_cages);
+			if (!merge_some_cages(kblocks, cr, area, grid2, rs))
+			    break;
+		    } else {
+			if (last_cages == NULL)
+			    break;
+			free_block_structure(kblocks);
+			kblocks = last_cages;
+			last_cages = NULL;
+		    }
+		} else {
+		    if (last_cages)
+			free_block_structure(last_cages);
+		    last_cages = dup_block_structure(kblocks);
+		    if (!merge_some_cages(kblocks, cr, area, grid2, rs))
+			break;
+		}
+	    }
+	    if (last_cages)
+		free_block_structure(last_cages);
+	    if (good_cages != NULL) {
+		free_block_structure(kblocks);
+		kblocks = good_cages;
+		compute_kclues(kblocks, kgrid, grid2, area);
+		memset(grid, 0, area * sizeof *grid);
+		break;
+	    }
+	    continue;
+	}
 
         /*
          * Find the set of equivalence classes of squares permitted
@@ -2420,8 +3720,6 @@ static char *new_game_desc(game_params *params, random_state *rs,
          * from the grid will still leave the grid soluble.
          */
         for (i = 0; i < nlocs; i++) {
-            int ret;
-
             x = locs[i].x;
             y = locs[i].y;
 
@@ -2430,16 +3728,19 @@ static char *new_game_desc(game_params *params, random_state *rs,
             for (j = 0; j < ncoords; j++)
                 grid2[coords[2*j+1]*cr+coords[2*j]] = 0;
 
-            ret = solver(cr, blocks, params->xtype, grid2, maxdiff);
-            if (ret <= maxdiff) {
+            solver(cr, blocks, kblocks, params->xtype, grid2, kgrid, &dlev);
+            if (dlev.diff <= dlev.maxdiff &&
+		(!params->killer || dlev.kdiff <= dlev.maxkdiff)) {
                 for (j = 0; j < ncoords; j++)
                     grid[coords[2*j+1]*cr+coords[2*j]] = 0;
             }
         }
 
         memcpy(grid2, grid, area);
-	
-	if (solver(cr, blocks, params->xtype, grid2, maxdiff) == maxdiff)
+
+	solver(cr, blocks, kblocks, params->xtype, grid2, kgrid, &dlev);
+	if (dlev.diff == dlev.maxdiff &&
+	    (!params->killer || dlev.kdiff == dlev.maxkdiff))
 	    break;		       /* found one! */
     }
 
@@ -2450,110 +3751,116 @@ static char *new_game_desc(game_params *params, random_state *rs,
      * Now we have the grid as it will be presented to the user.
      * Encode it in a game desc.
      */
-    {
-	char *p;
-	int run, i;
-
-	desc = snewn(7 * area, char);
-	p = desc;
-	run = 0;
-	for (i = 0; i <= area; i++) {
-	    int n = (i < area ? grid[i] : -1);
-
-	    if (!n)
-		run++;
-	    else {
-		if (run) {
-		    while (run > 0) {
-			int c = 'a' - 1 + run;
-			if (run > 26)
-			    c = 'z';
-			*p++ = c;
-			run -= c - ('a' - 1);
-		    }
-		} else {
-		    /*
-		     * If there's a number in the very top left or
-		     * bottom right, there's no point putting an
-		     * unnecessary _ before or after it.
-		     */
-		    if (p > desc && n > 0)
-			*p++ = '_';
-		}
-		if (n > 0)
-		    p += sprintf(p, "%d", n);
-		run = 0;
-	    }
-	}
-
-	if (r == 1) {
-	    int currrun = 0;
-
-	    *p++ = ',';
-
-	    /*
-	     * Encode the block structure. We do this by encoding
-	     * the pattern of dividing lines: first we iterate
-	     * over the cr*(cr-1) internal vertical grid lines in
-	     * ordinary reading order, then over the cr*(cr-1)
-	     * internal horizontal ones in transposed reading
-	     * order.
-	     * 
-	     * We encode the number of non-lines between the
-	     * lines; _ means zero (two adjacent divisions), a
-	     * means 1, ..., y means 25, and z means 25 non-lines
-	     * _and no following line_ (so that za means 26, zb 27
-	     * etc).
-	     */
-	    for (i = 0; i <= 2*cr*(cr-1); i++) {
-		int p0, p1, edge;
-
-		if (i == 2*cr*(cr-1)) {
-		    edge = TRUE;       /* terminating virtual edge */
-		} else {
-		    if (i < cr*(cr-1)) {
-			y = i/(cr-1);
-			x = i%(cr-1);
-			p0 = y*cr+x;
-			p1 = y*cr+x+1;
-		    } else {
-			x = i/(cr-1) - cr;
-			y = i%(cr-1);
-			p0 = y*cr+x;
-			p1 = (y+1)*cr+x;
-		    }
-		    edge = (blocks->whichblock[p0] != blocks->whichblock[p1]);
-		}
-
-		if (edge) {
-		    while (currrun > 25)
-			*p++ = 'z', currrun -= 25;
-		    if (currrun)
-			*p++ = 'a'-1 + currrun;
-		    else
-			*p++ = '_';
-		    currrun = 0;
-		} else
-		    currrun++;
-	    }
-	}
-
-	assert(p - desc < 7 * area);
-	*p++ = '\0';
-	desc = sresize(desc, p - desc, char);
-    }
+    desc = encode_puzzle_desc(params, grid, blocks, kgrid, kblocks);
 
     sfree(grid);
+    free_block_structure(blocks);
+    if (params->killer) {
+        free_block_structure(kblocks);
+        sfree(kgrid);
+    }
 
     return desc;
 }
 
-static char *validate_desc(game_params *params, char *desc)
+static char *spec_to_grid(char *desc, digit *grid, int area)
 {
-    int cr = params->c * params->r, area = cr*cr;
-    int squares = 0;
+    int i = 0;
+    while (*desc && *desc != ',') {
+        int n = *desc++;
+        if (n >= 'a' && n <= 'z') {
+            int run = n - 'a' + 1;
+            assert(i + run <= area);
+            while (run-- > 0)
+                grid[i++] = 0;
+        } else if (n == '_') {
+            /* do nothing */;
+        } else if (n > '0' && n <= '9') {
+            assert(i < area);
+            grid[i++] = atoi(desc-1);
+            while (*desc >= '0' && *desc <= '9')
+                desc++;
+        } else {
+            assert(!"We can't get here");
+        }
+    }
+    assert(i == area);
+    return desc;
+}
+
+/*
+ * Create a DSF from a spec found in *pdesc. Update this to point past the
+ * end of the block spec, and return an error string or NULL if everything
+ * is OK. The DSF is stored in *PDSF.
+ */
+static char *spec_to_dsf(char **pdesc, int **pdsf, int cr, int area)
+{
+    char *desc = *pdesc;
+    int pos = 0;
     int *dsf;
 
+    *pdsf = dsf = snew_dsf(area);
+
+    while (*desc && *desc != ',') {
+	int c, adv;
+
+	if (*desc == '_')
+	    c = 0;
+	else if (*desc >= 'a' && *desc <= 'z')
+	    c = *desc - 'a' + 1;
+	else {
+	    sfree(dsf);
+	    return "Invalid character in game description";
+	}
+	desc++;
+
+	adv = (c != 25);	       /* 'z' is a special case */
+
+	while (c-- > 0) {
+	    int p0, p1;
+
+	    /*
+	     * Non-edge; merge the two dsf classes on either
+	     * side of it.
+	     */
+	    assert(pos < 2*cr*(cr-1));
+	    if (pos < cr*(cr-1)) {
+		int y = pos/(cr-1);
+		int x = pos%(cr-1);
+		p0 = y*cr+x;
+		p1 = y*cr+x+1;
+	    } else {
+		int x = pos/(cr-1) - cr;
+		int y = pos%(cr-1);
+		p0 = y*cr+x;
+		p1 = (y+1)*cr+x;
+	    }
+	    dsf_merge(dsf, p0, p1);
+
+	    pos++;
+	}
+	if (adv)
+	    pos++;
+    }
+    *pdesc = desc;
+
+    /*
+     * When desc is exhausted, we expect to have gone exactly
+     * one space _past_ the end of the grid, due to the dummy
+     * edge at the end.
+     */
+    if (pos != 2*cr*(cr-1)+1) {
+	sfree(dsf);
+	return "Not enough data in block structure specification";
+    }
+
+    return NULL;
+}
+
+static char *validate_grid_desc(char **pdesc, int range, int area)
+{
+    char *desc = *pdesc;
+    int squares = 0;
     while (*desc && *desc != ',') {
         int n = *desc++;
         if (n >= 'a' && n <= 'z') {
@@ -2562,7 +3869,7 @@ static char *validate_desc(game_params *params, char *desc)
             /* do nothing */;
         } else if (n > '0' && n <= '9') {
             int val = atoi(desc-1);
-            if (val < 1 || val > params->c * params->r)
+            if (val < 1 || val > range)
                 return "Out-of-range number in game description";
             squares++;
             while (*desc >= '0' && *desc <= '9')
@@ -2576,10 +3883,97 @@ static char *validate_desc(game_params *params, char *desc)
 
     if (squares > area)
         return "Too much data to fit in grid";
+    *pdesc = desc;
+    return NULL;
+}
+
+static char *validate_block_desc(char **pdesc, int cr, int area,
+				 int min_nr_blocks, int max_nr_blocks,
+				 int min_nr_squares, int max_nr_squares)
+{
+    char *err;
+    int *dsf;
+
+    err = spec_to_dsf(pdesc, &dsf, cr, area);
+    if (err) {
+	return err;
+    }
+
+    if (min_nr_squares == max_nr_squares) {
+	assert(min_nr_blocks == max_nr_blocks);
+	assert(min_nr_blocks * min_nr_squares == area);
+    }
+    /*
+     * Now we've got our dsf. Verify that it matches
+     * expectations.
+     */
+    {
+	int *canons, *counts;
+	int i, j, c, ncanons = 0;
+
+	canons = snewn(max_nr_blocks, int);
+	counts = snewn(max_nr_blocks, int);
+
+	for (i = 0; i < area; i++) {
+	    j = dsf_canonify(dsf, i);
+
+	    for (c = 0; c < ncanons; c++)
+		if (canons[c] == j) {
+		    counts[c]++;
+		    if (counts[c] > max_nr_squares) {
+			sfree(dsf);
+			sfree(canons);
+			sfree(counts);
+			return "A jigsaw block is too big";
+		    }
+		    break;
+		}
+
+	    if (c == ncanons) {
+		if (ncanons >= max_nr_blocks) {
+		    sfree(dsf);
+		    sfree(canons);
+		    sfree(counts);
+		    return "Too many distinct jigsaw blocks";
+		}
+		canons[ncanons] = j;
+		counts[ncanons] = 1;
+		ncanons++;
+	    }
+	}
+
+	if (ncanons < min_nr_blocks) {
+	    sfree(dsf);
+	    sfree(canons);
+	    sfree(counts);
+	    return "Not enough distinct jigsaw blocks";
+	}
+	for (c = 0; c < ncanons; c++) {
+	    if (counts[c] < min_nr_squares) {
+		sfree(dsf);
+		sfree(canons);
+		sfree(counts);
+		return "A jigsaw block is too small";
+	    }
+	}
+	sfree(canons);
+	sfree(counts);
+    }
+
+    sfree(dsf);
+    return NULL;
+}
+
+static char *validate_desc(game_params *params, char *desc)
+{
+    int cr = params->c * params->r, area = cr*cr;
+    char *err;
+
+    err = validate_grid_desc(&desc, cr, area);
+    if (err)
+	return err;
 
     if (params->r == 1) {
-	int pos;
-
 	/*
 	 * Now we expect a suffix giving the jigsaw block
 	 * structure. Parse it and validate that it divides the
@@ -2588,128 +3982,28 @@ static char *validate_desc(game_params *params, char *desc)
 	 */
 	if (*desc != ',')
 	    return "Expected jigsaw block structure in game description";
-	pos = 0;
-
-	dsf = snew_dsf(area);
 	desc++;
+	err = validate_block_desc(&desc, cr, area, cr, cr, cr, cr);
+	if (err)
+	    return err;
 
-	while (*desc) {
-	    int c, adv;
-
-	    if (*desc == '_')
-		c = 0;
-	    else if (*desc >= 'a' && *desc <= 'z')
-		c = *desc - 'a' + 1;
-	    else {
-		sfree(dsf);
-		return "Invalid character in game description";
-	    }
-	    desc++;
-
-	    adv = (c != 25);	       /* 'z' is a special case */
-
-	    while (c-- > 0) {
-		int p0, p1;
-
-		/*
-		 * Non-edge; merge the two dsf classes on either
-		 * side of it.
-		 */
-		if (pos >= 2*cr*(cr-1)) {
-		    sfree(dsf);
-		    return "Too much data in block structure specification";
-		} else if (pos < cr*(cr-1)) {
-		    int y = pos/(cr-1);
-		    int x = pos%(cr-1);
-		    p0 = y*cr+x;
-		    p1 = y*cr+x+1;
-		} else {
-		    int x = pos/(cr-1) - cr;
-		    int y = pos%(cr-1);
-		    p0 = y*cr+x;
-		    p1 = (y+1)*cr+x;
-		}
-		dsf_merge(dsf, p0, p1);
-
-		pos++;
-	    }
-	    if (adv)
-		pos++;
-	}
-
-	/*
-	 * When desc is exhausted, we expect to have gone exactly
-	 * one space _past_ the end of the grid, due to the dummy
-	 * edge at the end.
-	 */
-	if (pos != 2*cr*(cr-1)+1) {
-	    sfree(dsf);
-	    return "Not enough data in block structure specification";
-	}
-
-	/*
-	 * Now we've got our dsf. Verify that it matches
-	 * expectations.
-	 */
-	{
-	    int *canons, *counts;
-	    int i, j, c, ncanons = 0;
-
-	    canons = snewn(cr, int);
-	    counts = snewn(cr, int);
-
-	    for (i = 0; i < area; i++) {
-		j = dsf_canonify(dsf, i);
-
-		for (c = 0; c < ncanons; c++)
-		    if (canons[c] == j) {
-			counts[c]++;
-			if (counts[c] > cr) {
-			    sfree(dsf);
-			    sfree(canons);
-			    sfree(counts);
-			    return "A jigsaw block is too big";
-			}
-			break;
-		    }
-
-		if (c == ncanons) {
-		    if (ncanons >= cr) {
-			sfree(dsf);
-			sfree(canons);
-			sfree(counts);
-			return "Too many distinct jigsaw blocks";
-		    }
-		    canons[ncanons] = j;
-		    counts[ncanons] = 1;
-		    ncanons++;
-		}
-	    }
-
-	    /*
-	     * If we've managed to get through that loop without
-	     * tripping either of the error conditions, then we
-	     * must have partitioned the entire grid into at most
-	     * cr blocks of at most cr squares each; therefore we
-	     * must have _exactly_ cr blocks of _exactly_ cr
-	     * squares each. I'll verify that by assertion just in
-	     * case something has gone horribly wrong, but it
-	     * shouldn't have been able to happen by duff input,
-	     * only by a bug in the above code.
-	     */
-	    assert(ncanons == cr);
-	    for (c = 0; c < ncanons; c++)
-		assert(counts[c] == cr);
-
-	    sfree(canons);
-	    sfree(counts);
-	}
-
-	sfree(dsf);
-    } else {
-	if (*desc)
-	    return "Unexpected jigsaw block structure in game description";
     }
+    if (params->killer) {
+	if (*desc != ',')
+	    return "Expected killer block structure in game description";
+	desc++;
+	err = validate_block_desc(&desc, cr, area, cr, area, 2, cr);
+	if (err)
+	    return err;
+	if (*desc != ',')
+	    return "Expected killer clue grid in game description";
+	desc++;
+	err = validate_grid_desc(&desc, cr * area, area);
+	if (err)
+	    return err;
+    }
+    if (*desc)
+	return "Unexpected data at end of game description";
 
     return NULL;
 }
@@ -2720,8 +4014,11 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
     int c = params->c, r = params->r, cr = c*r, area = cr * cr;
     int i;
 
+    precompute_sum_bits();
+
     state->cr = cr;
     state->xtype = params->xtype;
+    state->killer = params->killer;
 
     state->grid = snewn(area, digit);
     state->pencil = snewn(area * cr, unsigned char);
@@ -2729,135 +4026,56 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
     state->immutable = snewn(area, unsigned char);
     memset(state->immutable, FALSE, area);
 
-    state->blocks = snew(struct block_structure);
-    state->blocks->c = c; state->blocks->r = r;
-    state->blocks->refcount = 1;
-    state->blocks->whichblock = snewn(area*2, int);
-    state->blocks->blocks = snewn(cr, int *);
-    for (i = 0; i < cr; i++)
-	state->blocks->blocks[i] = state->blocks->whichblock + area + i*cr;
-#ifdef STANDALONE_SOLVER
-    state->blocks->blocknames = (char **)smalloc(cr*(sizeof(char *)+80));
-#endif
+    state->blocks = alloc_block_structure (c, r, area, cr, cr);
 
+    if (params->killer) {
+	state->kblocks = alloc_block_structure (c, r, area, cr, area);
+	state->kgrid = snewn(area, digit);
+    } else {
+	state->kblocks = NULL;
+	state->kgrid = NULL;
+    }
     state->completed = state->cheated = FALSE;
 
-    i = 0;
-    while (*desc && *desc != ',') {
-        int n = *desc++;
-        if (n >= 'a' && n <= 'z') {
-            int run = n - 'a' + 1;
-            assert(i + run <= area);
-            while (run-- > 0)
-                state->grid[i++] = 0;
-        } else if (n == '_') {
-            /* do nothing */;
-        } else if (n > '0' && n <= '9') {
-            assert(i < area);
+    desc = spec_to_grid(desc, state->grid, area);
+    for (i = 0; i < area; i++)
+	if (state->grid[i] != 0)
 	    state->immutable[i] = TRUE;
-            state->grid[i++] = atoi(desc-1);
-            while (*desc >= '0' && *desc <= '9')
-                desc++;
-        } else {
-            assert(!"We can't get here");
-        }
-    }
-    assert(i == area);
 
     if (r == 1) {
-	int pos = 0;
+	char *err;
 	int *dsf;
-	int nb;
-
 	assert(*desc == ',');
-
-	dsf = snew_dsf(area);
 	desc++;
-
-	while (*desc) {
-	    int c, adv;
-
-	    if (*desc == '_')
-		c = 0;
-	    else {
-                assert(*desc >= 'a' && *desc <= 'z');
-		c = *desc - 'a' + 1;
-            }
-	    desc++;
-
-	    adv = (c != 25);	       /* 'z' is a special case */
-
-	    while (c-- > 0) {
-		int p0, p1;
-
-		/*
-		 * Non-edge; merge the two dsf classes on either
-		 * side of it.
-		 */
-		assert(pos < 2*cr*(cr-1));
-		if (pos < cr*(cr-1)) {
-		    int y = pos/(cr-1);
-		    int x = pos%(cr-1);
-		    p0 = y*cr+x;
-		    p1 = y*cr+x+1;
-		} else {
-		    int x = pos/(cr-1) - cr;
-		    int y = pos%(cr-1);
-		    p0 = y*cr+x;
-		    p1 = (y+1)*cr+x;
-		}
-		dsf_merge(dsf, p0, p1);
-
-		pos++;
-	    }
-	    if (adv)
-		pos++;
-	}
-
-	/*
-	 * When desc is exhausted, we expect to have gone exactly
-	 * one space _past_ the end of the grid, due to the dummy
-	 * edge at the end.
-	 */
-	assert(pos == 2*cr*(cr-1)+1);
-
-	/*
-	 * Now we've got our dsf. Translate it into a block
-	 * structure.
-	 */
-	nb = 0;
-	for (i = 0; i < area; i++)
-	    state->blocks->whichblock[i] = -1;
-	for (i = 0; i < area; i++) {
-	    int j = dsf_canonify(dsf, i);
-	    if (state->blocks->whichblock[j] < 0)
-		state->blocks->whichblock[j] = nb++;
-	    state->blocks->whichblock[i] = state->blocks->whichblock[j];
-	}
-	assert(nb == cr);
-
+	err = spec_to_dsf(&desc, &dsf, cr, area);
+	assert(err == NULL);
+	dsf_to_blocks(dsf, state->blocks, cr, cr);
 	sfree(dsf);
     } else {
 	int x, y;
-
-	assert(!*desc);
 
 	for (y = 0; y < cr; y++)
 	    for (x = 0; x < cr; x++)
 		state->blocks->whichblock[y*cr+x] = (y/c) * c + (x/r);
     }
+    make_blocks_from_whichblock(state->blocks);
 
-    /*
-     * Having sorted out whichblock[], set up the block index arrays.
-     */
-    for (i = 0; i < cr; i++)
-	state->blocks->blocks[i][cr-1] = 0;
-    for (i = 0; i < area; i++) {
-	int b = state->blocks->whichblock[i];
-	int j = state->blocks->blocks[b][cr-1]++;
-	assert(j < cr);
-	state->blocks->blocks[b][j] = i;
+    if (params->killer) {
+	char *err;
+	int *dsf;
+	assert(*desc == ',');
+	desc++;
+	err = spec_to_dsf(&desc, &dsf, cr, area);
+	assert(err == NULL);
+	dsf_to_blocks(dsf, state->kblocks, cr, area);
+	sfree(dsf);
+	make_blocks_from_whichblock(state->kblocks);
+
+	assert(*desc == ',');
+	desc++;
+	desc = spec_to_grid(desc, state->kgrid, area);
     }
+    assert(!*desc);
 
 #ifdef STANDALONE_SOLVER
     /*
@@ -2867,9 +4085,6 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
 	char *p = (char *)(state->blocks->blocknames + cr);
 
 	if (r == 1) {
-	    for (i = 0; i < cr; i++)
-		state->blocks->blocknames[i] = NULL;
-
 	    for (i = 0; i < area; i++) {
 		int j = state->blocks->whichblock[i];
 		if (!state->blocks->blocknames[j]) {
@@ -2886,7 +4101,7 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
 		    p += 1 + sprintf(p, "(%d,%d)", bx+1, by+1);
 		}
 	}
-	assert(p - (char *)state->blocks->blocknames < cr*(sizeof(char *)+80));
+	assert(p - (char *)state->blocks->blocknames < (int)(cr*(sizeof(char *)+80)));
 	for (i = 0; i < cr; i++)
 	    assert(state->blocks->blocknames[i]);
     }
@@ -2902,12 +4117,23 @@ static game_state *dup_game(game_state *state)
 
     ret->cr = state->cr;
     ret->xtype = state->xtype;
+    ret->killer = state->killer;
 
     ret->blocks = state->blocks;
     ret->blocks->refcount++;
 
+    ret->kblocks = state->kblocks;
+    if (ret->kblocks)
+	ret->kblocks->refcount++;
+
     ret->grid = snewn(area, digit);
     memcpy(ret->grid, state->grid, area);
+
+    if (state->killer) {
+	ret->kgrid = snewn(area, digit);
+	memcpy(ret->kgrid, state->kgrid, area);
+    } else
+	ret->kgrid = NULL;
 
     ret->pencil = snewn(area * cr, unsigned char);
     memcpy(ret->pencil, state->pencil, area * cr);
@@ -2923,17 +4149,14 @@ static game_state *dup_game(game_state *state)
 
 static void free_game(game_state *state)
 {
-    if (--state->blocks->refcount == 0) {
-	sfree(state->blocks->whichblock);
-	sfree(state->blocks->blocks);
-#ifdef STANDALONE_SOLVER
-	sfree(state->blocks->blocknames);
-#endif
-	sfree(state->blocks);
-    }
+    free_block_structure(state->blocks);
+    if (state->kblocks)
+	free_block_structure(state->kblocks);
+
     sfree(state->immutable);
     sfree(state->pencil);
     sfree(state->grid);
+    if (state->kgrid) sfree(state->kgrid);
     sfree(state);
 }
 
@@ -2943,7 +4166,7 @@ static char *solve_game(game_state *state, game_state *currstate,
     int cr = state->cr;
     char *ret;
     digit *grid;
-    int solve_ret;
+    struct difficulty dlev;
 
     /*
      * If we already have the solution in ai, save ourselves some
@@ -2954,13 +4177,16 @@ static char *solve_game(game_state *state, game_state *currstate,
 
     grid = snewn(cr*cr, digit);
     memcpy(grid, state->grid, cr*cr);
-    solve_ret = solver(cr, state->blocks, state->xtype, grid, DIFF_RECURSIVE);
+    dlev.maxdiff = DIFF_RECURSIVE;
+    dlev.maxkdiff = DIFF_KINTERSECT;
+    solver(cr, state->blocks, state->kblocks, state->xtype, grid,
+	   state->kgrid, &dlev);
 
     *error = NULL;
 
-    if (solve_ret == DIFF_IMPOSSIBLE)
+    if (dlev.diff == DIFF_IMPOSSIBLE)
 	*error = "No solution exists for this puzzle";
-    else if (solve_ret == DIFF_AMBIGUOUS)
+    else if (dlev.diff == DIFF_AMBIGUOUS)
 	*error = "Multiple solutions exist for this puzzle";
 
     if (*error) {
@@ -3164,11 +4390,20 @@ static char *grid_text_format(int cr, struct block_structure *blocks,
 
 static int game_can_format_as_text_now(game_params *params)
 {
+    /*
+     * Formatting Killer puzzles as text is currently unsupported. I
+     * can't think of any sensible way of doing it which doesn't
+     * involve expanding the puzzle to such a large scale as to make
+     * it unusable.
+     */
+    if (params->killer)
+        return FALSE;
     return TRUE;
 }
 
 static char *game_text_format(game_state *state)
 {
+    assert(!state->kblocks);
     return grid_text_format(state->cr, state->blocks, state->xtype,
 			    state->grid);
 }
@@ -3251,7 +4486,7 @@ struct game_drawstate {
     unsigned char *pencil;
     unsigned char *hl;
     /* This is scratch space used within a single call to game_redraw. */
-    int *entered_items;
+    int nregions, *entered_items;
 };
 
 static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
@@ -3309,14 +4544,14 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
         return "";
     }
     if (ui->hshow &&
-        (IS_CURSOR_SELECT(button))) {
+        (button == CURSOR_SELECT)) {
         ui->hpencil = 1 - ui->hpencil;
         ui->hcursor = 1;
         return "";
     }
 
     if (ui->hshow &&
-	((button >= '1' && button <= '9' && button - '0' <= cr) ||
+	((button >= '0' && button <= '9' && button - '0' <= cr) ||
 	 (button >= 'a' && button <= 'z' && button - 'a' + 10 <= cr) ||
 	 (button >= 'A' && button <= 'Z' && button - 'A' + 10 <= cr) ||
 	 button == CURSOR_SELECT2 || button == '\010' || button == '\177')) {
@@ -3395,8 +4630,8 @@ static game_state *execute_move(game_state *from, char *move)
              * We've made a real change to the grid. Check to see
              * if the game has been completed.
              */
-            if (!ret->completed && check_valid(cr, ret->blocks, ret->xtype,
-					       ret->grid)) {
+            if (!ret->completed && check_valid(cr, ret->blocks, ret->kblocks,
+					       ret->xtype, ret->grid)) {
                 ret->completed = TRUE;
             }
         }
@@ -3463,6 +4698,10 @@ static float *game_colours(frontend *fe, int *ncolours)
     ret[COL_PENCIL * 3 + 1] = 0.5F * ret[COL_BACKGROUND * 3 + 1];
     ret[COL_PENCIL * 3 + 2] = ret[COL_BACKGROUND * 3 + 2];
 
+    ret[COL_KILLER * 3 + 0] = 0.5F * ret[COL_BACKGROUND * 3 + 0];
+    ret[COL_KILLER * 3 + 1] = 0.5F * ret[COL_BACKGROUND * 3 + 1];
+    ret[COL_KILLER * 3 + 2] = 0.1F * ret[COL_BACKGROUND * 3 + 2];
+
     *ncolours = NCOLOURS;
     return ret;
 }
@@ -3481,7 +4720,15 @@ static game_drawstate *game_new_drawstate(drawing *dr, game_state *state)
     memset(ds->pencil, 0, cr*cr*cr);
     ds->hl = snewn(cr*cr, unsigned char);
     memset(ds->hl, 0, cr*cr);
-    ds->entered_items = snewn(cr*cr, int);
+    /*
+     * ds->entered_items needs one row of cr entries per entity in
+     * which digits may not be duplicated. That's one for each row,
+     * each column, each block, each diagonal, and each Killer cage.
+     */
+    ds->nregions = cr*3 + 2;
+    if (state->kblocks)
+	ds->nregions += state->kblocks->nr_blocks;
+    ds->entered_items = snewn(cr * ds->nregions, int);
     ds->tilesize = 0;                  /* not decided yet */
     return ds;
 }
@@ -3499,9 +4746,10 @@ static void draw_number(drawing *dr, game_drawstate *ds, game_state *state,
 			int x, int y, int hl)
 {
     int cr = state->cr;
-    int tx, ty;
+    int tx, ty, tw, th;
     int cx, cy, cw, ch;
-    char str[2];
+    int col_killer = (hl & 32 ? COL_ERROR : COL_KILLER);
+    char str[20];
 
     if (ds->grid[y*cr+x] == state->grid[y*cr+x] &&
         ds->hl[y*cr+x] == hl &&
@@ -3513,8 +4761,8 @@ static void draw_number(drawing *dr, game_drawstate *ds, game_state *state,
 
     cx = tx;
     cy = ty;
-    cw = TILE_SIZE-1-2*GRIDEXTRA;
-    ch = TILE_SIZE-1-2*GRIDEXTRA;
+    cw = tw = TILE_SIZE-1-2*GRIDEXTRA;
+    ch = th = TILE_SIZE-1-2*GRIDEXTRA;
 
     if (x > 0 && state->blocks->whichblock[y*cr+x] == state->blocks->whichblock[y*cr+x-1])
 	cx -= GRIDEXTRA, cw += GRIDEXTRA;
@@ -3558,6 +4806,96 @@ static void draw_number(drawing *dr, game_drawstate *ds, game_state *state,
         draw_polygon(dr, coords, 3, COL_HIGHLIGHT, COL_HIGHLIGHT);
     }
 
+    if (state->kblocks) {
+	int t = GRIDEXTRA * 3;
+	int kcx, kcy, kcw, kch;
+	int kl, kt, kr, kb;
+	int has_left = 0, has_right = 0, has_top = 0, has_bottom = 0;
+
+	/*
+	 * In non-jigsaw mode, the Killer cages are placed at a
+	 * fixed offset from the outer edge of the cell dividing
+	 * lines, so that they look right whether those lines are
+	 * thick or thin. In jigsaw mode, however, doing this will
+	 * sometimes cause the cage outlines in adjacent squares to
+	 * fail to match up with each other, so we must offset a
+	 * fixed amount from the _centre_ of the cell dividing
+	 * lines.
+	 */
+	if (state->blocks->r == 1) {
+	    kcx = tx;
+	    kcy = ty;
+	    kcw = tw;
+	    kch = th;
+	} else {
+	    kcx = cx;
+	    kcy = cy;
+	    kcw = cw;
+	    kch = ch;
+	}
+	kl = kcx - 1;
+	kt = kcy - 1;
+	kr = kcx + kcw;
+	kb = kcy + kch;
+
+	/*
+	 * First, draw the lines dividing this area from neighbouring
+	 * different areas.
+	 */
+	if (x == 0 || state->kblocks->whichblock[y*cr+x] != state->kblocks->whichblock[y*cr+x-1])
+	    has_left = 1, kl += t;
+	if (x+1 >= cr || state->kblocks->whichblock[y*cr+x] != state->kblocks->whichblock[y*cr+x+1])
+	    has_right = 1, kr -= t;
+	if (y == 0 || state->kblocks->whichblock[y*cr+x] != state->kblocks->whichblock[(y-1)*cr+x])
+	    has_top = 1, kt += t;
+	if (y+1 >= cr || state->kblocks->whichblock[y*cr+x] != state->kblocks->whichblock[(y+1)*cr+x])
+	    has_bottom = 1, kb -= t;
+	if (has_top)
+	    draw_line(dr, kl, kt, kr, kt, col_killer);
+	if (has_bottom)
+	    draw_line(dr, kl, kb, kr, kb, col_killer);
+	if (has_left)
+	    draw_line(dr, kl, kt, kl, kb, col_killer);
+	if (has_right)
+	    draw_line(dr, kr, kt, kr, kb, col_killer);
+	/*
+	 * Now, take care of the corners (just as for the normal borders).
+	 * We only need a corner if there wasn't a full edge.
+	 */
+	if (x > 0 && y > 0 && !has_left && !has_top
+	    && state->kblocks->whichblock[y*cr+x] != state->kblocks->whichblock[(y-1)*cr+x-1])
+	{
+	    draw_line(dr, kl, kt + t, kl + t, kt + t, col_killer);
+	    draw_line(dr, kl + t, kt, kl + t, kt + t, col_killer);
+	}
+	if (x+1 < cr && y > 0 && !has_right && !has_top
+	    && state->kblocks->whichblock[y*cr+x] != state->kblocks->whichblock[(y-1)*cr+x+1])
+	{
+	    draw_line(dr, kcx + kcw - t, kt + t, kcx + kcw, kt + t, col_killer);
+	    draw_line(dr, kcx + kcw - t, kt, kcx + kcw - t, kt + t, col_killer);
+	}
+	if (x > 0 && y+1 < cr && !has_left && !has_bottom
+	    && state->kblocks->whichblock[y*cr+x] != state->kblocks->whichblock[(y+1)*cr+x-1])
+	{
+	    draw_line(dr, kl, kcy + kch - t, kl + t, kcy + kch - t, col_killer);
+	    draw_line(dr, kl + t, kcy + kch - t, kl + t, kcy + kch, col_killer);
+	}
+	if (x+1 < cr && y+1 < cr && !has_right && !has_bottom
+	    && state->kblocks->whichblock[y*cr+x] != state->kblocks->whichblock[(y+1)*cr+x+1])
+	{
+	    draw_line(dr, kcx + kcw - t, kcy + kch - t, kcx + kcw - t, kcy + kch, col_killer);
+	    draw_line(dr, kcx + kcw - t, kcy + kch - t, kcx + kcw, kcy + kch - t, col_killer);
+	}
+
+    }
+
+    if (state->killer && state->kgrid[y*cr+x]) {
+	sprintf (str, "%d", state->kgrid[y*cr+x]);
+	draw_text(dr, tx + GRIDEXTRA * 4, ty + GRIDEXTRA * 4 + TILE_SIZE/4,
+		  FONT_VARIABLE, TILE_SIZE/4, ALIGN_VNORMAL | ALIGN_HLEFT,
+		  col_killer, str);
+    }
+
     /* new number needs drawing? */
     if (state->grid[y*cr+x]) {
 	str[1] = '\0';
@@ -3569,42 +4907,113 @@ static void draw_number(drawing *dr, game_drawstate *ds, game_state *state,
 		  state->immutable[y*cr+x] ? COL_CLUE : (hl & 16) ? COL_ERROR : COL_USER, str);
     } else {
         int i, j, npencil;
-	int pw, ph, pmax, fontsize;
+	int pl, pr, pt, pb;
+	float bestsize;
+	int pw, ph, minph, pbest, fontsize;
 
-        /* count the pencil marks required */
+        /* Count the pencil marks required. */
         for (i = npencil = 0; i < cr; i++)
             if (state->pencil[(y*cr+x)*cr+i])
 		npencil++;
+	if (npencil) {
 
-	/*
-	 * It's not sensible to arrange pencil marks in the same
-	 * layout as the squares within a block, because this leads
-	 * to the font being too small. Instead, we arrange pencil
-	 * marks in the nearest thing we can to a square layout,
-	 * and we adjust the square layout depending on the number
-	 * of pencil marks in the square.
-	 */
-	for (pw = 1; pw * pw < npencil; pw++);
-	if (pw < 3) pw = 3;	       /* otherwise it just looks _silly_ */
-	ph = (npencil + pw - 1) / pw;
-	if (ph < 2) ph = 2;	       /* likewise */
-	pmax = max(pw, ph);
-	fontsize = TILE_SIZE/(pmax*(11-pmax)/8);
+	    minph = 2;
 
-        for (i = j = 0; i < cr; i++)
-            if (state->pencil[(y*cr+x)*cr+i]) {
-                int dx = j % pw, dy = j / pw;
+	    /*
+	     * Determine the bounding rectangle within which we're going
+	     * to put the pencil marks.
+	     */
+	    /* Start with the whole square */
+	    pl = tx + GRIDEXTRA;
+	    pr = pl + TILE_SIZE - GRIDEXTRA;
+	    pt = ty + GRIDEXTRA;
+	    pb = pt + TILE_SIZE - GRIDEXTRA;
+	    if (state->killer) {
+		/*
+		 * Make space for the Killer cages. We do this
+		 * unconditionally, for uniformity between squares,
+		 * rather than making it depend on whether a Killer
+		 * cage edge is actually present on any given side.
+		 */
+		pl += GRIDEXTRA * 3;
+		pr -= GRIDEXTRA * 3;
+		pt += GRIDEXTRA * 3;
+		pb -= GRIDEXTRA * 3;
+		if (state->kgrid[y*cr+x] != 0) {
+		    /* Make further space for the Killer number. */
+		    pt += TILE_SIZE/4;
+		    /* minph--; */
+		}
+	    }
 
-                str[1] = '\0';
-                str[0] = i + '1';
-                if (str[0] > '9')
-                    str[0] += 'a' - ('9'+1);
-                draw_text(dr, tx + (4*dx+3) * TILE_SIZE / (4*pw+2),
-                          ty + (4*dy+3) * TILE_SIZE / (4*ph+2),
-                          FONT_VARIABLE, fontsize,
-                          ALIGN_VCENTRE | ALIGN_HCENTRE, COL_PENCIL, str);
-                j++;
-            }
+	    /*
+	     * We arrange our pencil marks in a grid layout, with
+	     * the number of rows and columns adjusted to allow the
+	     * maximum font size.
+	     *
+	     * So now we work out what the grid size ought to be.
+	     */
+	    bestsize = 0.0;
+	    pbest = 0;
+	    /* Minimum */
+	    for (pw = 3; pw < max(npencil,4); pw++) {
+		float fw, fh, fs;
+
+		ph = (npencil + pw - 1) / pw;
+		ph = max(ph, minph);
+		fw = (pr - pl) / (float)pw;
+		fh = (pb - pt) / (float)ph;
+		fs = min(fw, fh);
+		if (fs > bestsize) {
+		    bestsize = fs;
+		    pbest = pw;
+		}
+	    }
+	    assert(pbest > 0);
+	    pw = pbest;
+	    ph = (npencil + pw - 1) / pw;
+	    ph = max(ph, minph);
+
+	    /*
+	     * Now we've got our grid dimensions, work out the pixel
+	     * size of a grid element, and round it to the nearest
+	     * pixel. (We don't want rounding errors to make the
+	     * grid look uneven at low pixel sizes.)
+	     */
+	    fontsize = min((pr - pl) / pw, (pb - pt) / ph);
+
+	    /*
+	     * Centre the resulting figure in the square.
+	     */
+	    pl = tx + (TILE_SIZE - fontsize * pw) / 2;
+	    pt = ty + (TILE_SIZE - fontsize * ph) / 2;
+
+	    /*
+	     * And move it down a bit if it's collided with the
+	     * Killer cage number.
+	     */
+	    if (state->killer && state->kgrid[y*cr+x] != 0) {
+		pt = max(pt, ty + GRIDEXTRA * 3 + TILE_SIZE/4);
+	    }
+
+	    /*
+	     * Now actually draw the pencil marks.
+	     */
+	    for (i = j = 0; i < cr; i++)
+		if (state->pencil[(y*cr+x)*cr+i]) {
+		    int dx = j % pw, dy = j / pw;
+
+		    str[1] = '\0';
+		    str[0] = i + '1';
+		    if (str[0] > '9')
+			str[0] += 'a' - ('9'+1);
+		    draw_text(dr, pl + fontsize * (2*dx+1) / 2,
+			      pt + fontsize * (2*dy+1) / 2,
+			      FONT_VARIABLE, fontsize,
+			      ALIGN_VCENTRE | ALIGN_HCENTRE, COL_PENCIL, str);
+		    j++;
+		}
+	}
     }
 
     unclip(dr);
@@ -3646,21 +5055,36 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
      * This array is used to keep track of rows, columns and boxes
      * which contain a number more than once.
      */
-    for (x = 0; x < cr * cr; x++)
+    for (x = 0; x < cr * ds->nregions; x++)
 	ds->entered_items[x] = 0;
     for (x = 0; x < cr; x++)
 	for (y = 0; y < cr; y++) {
 	    digit d = state->grid[y*cr+x];
 	    if (d) {
-		int box = state->blocks->whichblock[y*cr+x];
- 		ds->entered_items[x*cr+d-1] |= ((ds->entered_items[x*cr+d-1] & 1) << 1) | 1;
-		ds->entered_items[y*cr+d-1] |= ((ds->entered_items[y*cr+d-1] & 4) << 1) | 4;
-		ds->entered_items[box*cr+d-1] |= ((ds->entered_items[box*cr+d-1] & 16) << 1) | 16;
+		int box, kbox;
+
+		/* Rows */
+ 		ds->entered_items[x*cr+d-1]++;
+
+		/* Columns */
+		ds->entered_items[(y+cr)*cr+d-1]++;
+
+		/* Blocks */
+		box = state->blocks->whichblock[y*cr+x];
+		ds->entered_items[(box+2*cr)*cr+d-1]++;
+
+		/* Diagonals */
 		if (ds->xtype) {
 		    if (ondiag0(y*cr+x))
-			ds->entered_items[d-1] |= ((ds->entered_items[d-1] & 64) << 1) | 64;
+			ds->entered_items[(3*cr)*cr+d-1]++;
 		    if (ondiag1(y*cr+x))
-			ds->entered_items[cr+d-1] |= ((ds->entered_items[cr+d-1] & 64) << 1) | 64;
+			ds->entered_items[(3*cr+1)*cr+d-1]++;
+		}
+
+		/* Killer cages */
+		if (state->kblocks) {
+		    kbox = state->kblocks->whichblock[y*cr+x];
+		    ds->entered_items[(kbox+3*cr+2)*cr+d-1]++;
 		}
 	    }
 	}
@@ -3684,12 +5108,41 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 
 	    /* Mark obvious errors (ie, numbers which occur more than once
 	     * in a single row, column, or box). */
-	    if (d && ((ds->entered_items[x*cr+d-1] & 2) ||
-		      (ds->entered_items[y*cr+d-1] & 8) ||
-		      (ds->entered_items[state->blocks->whichblock[y*cr+x]*cr+d-1] & 32) ||
-		      (ds->xtype && ((ondiag0(y*cr+x) && (ds->entered_items[d-1] & 128)) ||
-				     (ondiag1(y*cr+x) && (ds->entered_items[cr+d-1] & 128))))))
+	    if (d && (ds->entered_items[x*cr+d-1] > 1 ||
+		      ds->entered_items[(y+cr)*cr+d-1] > 1 ||
+		      ds->entered_items[(state->blocks->whichblock[y*cr+x]
+					 +2*cr)*cr+d-1] > 1 ||
+		      (ds->xtype && ((ondiag0(y*cr+x) &&
+				      ds->entered_items[(3*cr)*cr+d-1] > 1) ||
+				     (ondiag1(y*cr+x) &&
+				      ds->entered_items[(3*cr+1)*cr+d-1]>1)))||
+		      (state->kblocks &&
+		       ds->entered_items[(state->kblocks->whichblock[y*cr+x]
+					  +3*cr+2)*cr+d-1] > 1)))
 		highlight |= 16;
+
+	    if (d && state->kblocks) {
+		int i, b = state->kblocks->whichblock[y*cr+x];
+		int n_squares = state->kblocks->nr_squares[b];
+		int sum = 0, clue = 0;
+		for (i = 0; i < n_squares; i++) {
+		    int xy = state->kblocks->blocks[b][i];
+		    if (state->grid[xy] == 0)
+			break;
+
+		    sum += state->grid[xy];
+		    if (state->kgrid[xy]) {
+			assert(clue == 0);
+			clue = state->kgrid[xy];
+		    }
+		}
+
+		if (i == n_squares) {
+		    assert(clue != 0);
+		    if (sum != clue)
+			highlight |= 32;
+		}
+	    }
 
 	    draw_number(dr, ds, state, x, y, highlight);
 	}
@@ -3721,6 +5174,8 @@ static float game_flash_length(game_state *oldstate, game_state *newstate,
 
 static int game_timing_state(game_state *state, game_ui *ui)
 {
+    if (state->completed)
+	return FALSE;
     return TRUE;
 }
 
@@ -3736,6 +5191,175 @@ static void game_print_size(game_params *params, float *x, float *y)
     game_compute_size(params, 900, &pw, &ph);
     *x = pw / 100.0F;
     *y = ph / 100.0F;
+}
+
+/*
+ * Subfunction to draw the thick lines between cells. In order to do
+ * this using the line-drawing rather than rectangle-drawing API (so
+ * as to get line thicknesses to scale correctly) and yet have
+ * correctly mitred joins between lines, we must do this by tracing
+ * the boundary of each sub-block and drawing it in one go as a
+ * single polygon.
+ *
+ * This subfunction is also reused with thinner dotted lines to
+ * outline the Killer cages, this time offsetting the outline toward
+ * the interior of the affected squares.
+ */
+static void outline_block_structure(drawing *dr, game_drawstate *ds,
+				    game_state *state,
+				    struct block_structure *blocks,
+				    int ink, int inset)
+{
+    int cr = state->cr;
+    int *coords;
+    int bi, i, n;
+    int x, y, dx, dy, sx, sy, sdx, sdy;
+
+    /*
+     * Maximum perimeter of a k-omino is 2k+2. (Proof: start
+     * with k unconnected squares, with total perimeter 4k.
+     * Now repeatedly join two disconnected components
+     * together into a larger one; every time you do so you
+     * remove at least two unit edges, and you require k-1 of
+     * these operations to create a single connected piece, so
+     * you must have at most 4k-2(k-1) = 2k+2 unit edges left
+     * afterwards.)
+     */
+    coords = snewn(4*cr+4, int);   /* 2k+2 points, 2 coords per point */
+
+    /*
+     * Iterate over all the blocks.
+     */
+    for (bi = 0; bi < blocks->nr_blocks; bi++) {
+	if (blocks->nr_squares[bi] == 0)
+	    continue;
+
+	/*
+	 * For each block, find a starting square within it
+	 * which has a boundary at the left.
+	 */
+	for (i = 0; i < cr; i++) {
+	    int j = blocks->blocks[bi][i];
+	    if (j % cr == 0 || blocks->whichblock[j-1] != bi)
+		break;
+	}
+	assert(i < cr); /* every block must have _some_ leftmost square */
+	x = blocks->blocks[bi][i] % cr;
+	y = blocks->blocks[bi][i] / cr;
+	dx = -1;
+	dy = 0;
+
+	/*
+	 * Now begin tracing round the perimeter. At all
+	 * times, (x,y) describes some square within the
+	 * block, and (x+dx,y+dy) is some adjacent square
+	 * outside it; so the edge between those two squares
+	 * is always an edge of the block.
+	 */
+	sx = x, sy = y, sdx = dx, sdy = dy;   /* save starting position */
+	n = 0;
+	do {
+	    int cx, cy, tx, ty, nin;
+
+	    /*
+	     * Advance to the next edge, by looking at the two
+	     * squares beyond it. If they're both outside the block,
+	     * we turn right (by leaving x,y the same and rotating
+	     * dx,dy clockwise); if they're both inside, we turn
+	     * left (by rotating dx,dy anticlockwise and contriving
+	     * to leave x+dx,y+dy unchanged); if one of each, we go
+	     * straight on (and may enforce by assertion that
+	     * they're one of each the _right_ way round).
+	     */
+	    nin = 0;
+	    tx = x - dy + dx;
+	    ty = y + dx + dy;
+	    nin += (tx >= 0 && tx < cr && ty >= 0 && ty < cr &&
+		    blocks->whichblock[ty*cr+tx] == bi);
+	    tx = x - dy;
+	    ty = y + dx;
+	    nin += (tx >= 0 && tx < cr && ty >= 0 && ty < cr &&
+		    blocks->whichblock[ty*cr+tx] == bi);
+	    if (nin == 0) {
+		/*
+		 * Turn right.
+		 */
+		int tmp;
+		tmp = dx;
+		dx = -dy;
+		dy = tmp;
+	    } else if (nin == 2) {
+		/*
+		 * Turn left.
+		 */
+		int tmp;
+
+		x += dx;
+		y += dy;
+
+		tmp = dx;
+		dx = dy;
+		dy = -tmp;
+
+		x -= dx;
+		y -= dy;
+	    } else {
+		/*
+		 * Go straight on.
+		 */
+		x -= dy;
+		y += dx;
+	    }
+
+	    /*
+	     * Now enforce by assertion that we ended up
+	     * somewhere sensible.
+	     */
+	    assert(x >= 0 && x < cr && y >= 0 && y < cr &&
+		   blocks->whichblock[y*cr+x] == bi);
+	    assert(x+dx < 0 || x+dx >= cr || y+dy < 0 || y+dy >= cr ||
+		   blocks->whichblock[(y+dy)*cr+(x+dx)] != bi);
+
+	    /*
+	     * Record the point we just went past at one end of the
+	     * edge. To do this, we translate (x,y) down and right
+	     * by half a unit (so they're describing a point in the
+	     * _centre_ of the square) and then translate back again
+	     * in a manner rotated by dy and dx.
+	     */
+	    assert(n < 2*cr+2);
+	    cx = ((2*x+1) + dy + dx) / 2;
+	    cy = ((2*y+1) - dx + dy) / 2;
+	    coords[2*n+0] = BORDER + cx * TILE_SIZE;
+	    coords[2*n+1] = BORDER + cy * TILE_SIZE;
+	    coords[2*n+0] -= dx * inset;
+	    coords[2*n+1] -= dy * inset;
+	    if (nin == 0) {
+		/*
+		 * We turned right, so inset this corner back along
+		 * the edge towards the centre of the square.
+		 */
+		coords[2*n+0] -= dy * inset;
+		coords[2*n+1] += dx * inset;
+	    } else if (nin == 2) {
+		/*
+		 * We turned left, so inset this corner further
+		 * _out_ along the edge into the next square.
+		 */
+		coords[2*n+0] += dy * inset;
+		coords[2*n+1] -= dx * inset;
+	    }
+	    n++;
+
+	} while (x != sx || y != sy || dx != sdx || dy != sdy);
+
+	/*
+	 * That's our polygon; now draw it.
+	 */
+	draw_polygon(dr, coords, n, -1, ink);
+    }
+
+    sfree(coords);
 }
 
 static void game_print(drawing *dr, game_state *state, int tilesize)
@@ -3786,152 +5410,36 @@ static void game_print(drawing *dr, game_state *state, int tilesize)
     }
 
     /*
-     * Thick lines between cells. In order to do this using the
-     * line-drawing rather than rectangle-drawing API (so as to
-     * get line thicknesses to scale correctly) and yet have
-     * correctly mitred joins between lines, we must do this by
-     * tracing the boundary of each sub-block and drawing it in
-     * one go as a single polygon.
+     * Thick lines between cells.
      */
-    {
-	int *coords;
-	int bi, i, n;
-	int x, y, dx, dy, sx, sy, sdx, sdy;
+    print_line_width(dr, 3 * TILE_SIZE / 40);
+    outline_block_structure(dr, ds, state, state->blocks, ink, 0);
 
-	print_line_width(dr, 3 * TILE_SIZE / 40);
-
-	/*
-	 * Maximum perimeter of a k-omino is 2k+2. (Proof: start
-	 * with k unconnected squares, with total perimeter 4k.
-	 * Now repeatedly join two disconnected components
-	 * together into a larger one; every time you do so you
-	 * remove at least two unit edges, and you require k-1 of
-	 * these operations to create a single connected piece, so
-	 * you must have at most 4k-2(k-1) = 2k+2 unit edges left
-	 * afterwards.)
-	 */
-	coords = snewn(4*cr+4, int);   /* 2k+2 points, 2 coords per point */
-
-	/*
-	 * Iterate over all the blocks.
-	 */
-	for (bi = 0; bi < cr; bi++) {
-
-	    /*
-	     * For each block, find a starting square within it
-	     * which has a boundary at the left.
-	     */
-	    for (i = 0; i < cr; i++) {
-		int j = state->blocks->blocks[bi][i];
-		if (j % cr == 0 || state->blocks->whichblock[j-1] != bi)
-		    break;
-	    }
-	    assert(i < cr); /* every block must have _some_ leftmost square */
-	    x = state->blocks->blocks[bi][i] % cr;
-	    y = state->blocks->blocks[bi][i] / cr;
-	    dx = -1;
-	    dy = 0;
-
-	    /*
-	     * Now begin tracing round the perimeter. At all
-	     * times, (x,y) describes some square within the
-	     * block, and (x+dx,y+dy) is some adjacent square
-	     * outside it; so the edge between those two squares
-	     * is always an edge of the block.
-	     */
-	    sx = x, sy = y, sdx = dx, sdy = dy;   /* save starting position */
-	    n = 0;
-	    do {
-		int cx, cy, tx, ty, nin;
-
-		/*
-		 * To begin with, record the point at one end of
-		 * the edge. To do this, we translate (x,y) down
-		 * and right by half a unit (so they're describing
-		 * a point in the _centre_ of the square) and then
-		 * translate back again in a manner rotated by dy
-		 * and dx.
-		 */
-		assert(n < 2*cr+2);
-		cx = ((2*x+1) + dy + dx) / 2;
-		cy = ((2*y+1) - dx + dy) / 2;
-		coords[2*n+0] = BORDER + cx * TILE_SIZE;
-		coords[2*n+1] = BORDER + cy * TILE_SIZE;
-		n++;
-
-		/*
-		 * Now advance to the next edge, by looking at the
-		 * two squares beyond it. If they're both outside
-		 * the block, we turn right (by leaving x,y the
-		 * same and rotating dx,dy clockwise); if they're
-		 * both inside, we turn left (by rotating dx,dy
-		 * anticlockwise and contriving to leave x+dx,y+dy
-		 * unchanged); if one of each, we go straight on
-		 * (and may enforce by assertion that they're one
-		 * of each the _right_ way round).
-		 */
-		nin = 0;
-		tx = x - dy + dx;
-		ty = y + dx + dy;
-		nin += (tx >= 0 && tx < cr && ty >= 0 && ty < cr &&
-			state->blocks->whichblock[ty*cr+tx] == bi);
-		tx = x - dy;
-		ty = y + dx;
-		nin += (tx >= 0 && tx < cr && ty >= 0 && ty < cr &&
-			state->blocks->whichblock[ty*cr+tx] == bi);
-		if (nin == 0) {
-		    /*
-		     * Turn right.
-		     */
-		    int tmp;
-		    tmp = dx;
-		    dx = -dy;
-		    dy = tmp;
-		} else if (nin == 2) {
-		    /*
-		     * Turn left.
-		     */
-		    int tmp;
-
-		    x += dx;
-		    y += dy;
-		    
-		    tmp = dx;
-		    dx = dy;
-		    dy = -tmp;
-
-		    x -= dx;
-		    y -= dy;
-		} else {
-		    /*
-		     * Go straight on.
-		     */
-		    x -= dy;
-		    y += dx;
+    /*
+     * Killer cages and their totals.
+     */
+    if (state->kblocks) {
+	print_line_width(dr, TILE_SIZE / 40);
+	print_line_dotted(dr, TRUE);
+	outline_block_structure(dr, ds, state, state->kblocks, ink,
+				5 * TILE_SIZE / 40);
+	print_line_dotted(dr, FALSE);
+	for (y = 0; y < cr; y++)
+	    for (x = 0; x < cr; x++)
+		if (state->kgrid[y*cr+x]) {
+		    char str[20];
+		    sprintf(str, "%d", state->kgrid[y*cr+x]);
+		    draw_text(dr,
+			      BORDER+x*TILE_SIZE + 7*TILE_SIZE/40,
+			      BORDER+y*TILE_SIZE + 16*TILE_SIZE/40,
+			      FONT_VARIABLE, TILE_SIZE/4,
+			      ALIGN_VNORMAL | ALIGN_HLEFT,
+			      ink, str);
 		}
-
-		/*
-		 * Now enforce by assertion that we ended up
-		 * somewhere sensible.
-		 */
-		assert(x >= 0 && x < cr && y >= 0 && y < cr &&
-		       state->blocks->whichblock[y*cr+x] == bi);
-		assert(x+dx < 0 || x+dx >= cr || y+dy < 0 || y+dy >= cr ||
-		       state->blocks->whichblock[(y+dy)*cr+(x+dx)] != bi);
-
-	    } while (x != sx || y != sy || dx != sdx || dy != sdy);
-
-	    /*
-	     * That's our polygon; now draw it.
-	     */
-	    draw_polygon(dr, coords, n, -1, ink);
-	}
-
-	sfree(coords);
     }
 
     /*
-     * Numbers.
+     * Standard (non-Killer) clue numbers.
      */
     for (y = 0; y < cr; y++)
 	for (x = 0; x < cr; x++)
@@ -3997,7 +5505,7 @@ int main(int argc, char **argv)
     game_state *s;
     char *id = NULL, *desc, *err;
     int grade = FALSE;
-    int ret;
+    struct difficulty dlev;
 
     while (--argc > 0) {
         char *p = *++argv;
@@ -4034,18 +5542,27 @@ int main(int argc, char **argv)
     }
     s = new_game(NULL, p, desc);
 
-    ret = solver(s->cr, s->blocks, s->xtype, s->grid, DIFF_RECURSIVE);
+    dlev.maxdiff = DIFF_RECURSIVE;
+    dlev.maxkdiff = DIFF_KINTERSECT;
+    solver(s->cr, s->blocks, s->kblocks, s->xtype, s->grid, s->kgrid, &dlev);
     if (grade) {
 	printf("Difficulty rating: %s\n",
-	       ret==DIFF_BLOCK ? "Trivial (blockwise positional elimination only)":
-	       ret==DIFF_SIMPLE ? "Basic (row/column/number elimination required)":
-	       ret==DIFF_INTERSECT ? "Intermediate (intersectional analysis required)":
-	       ret==DIFF_SET ? "Advanced (set elimination required)":
-	       ret==DIFF_EXTREME ? "Extreme (complex non-recursive techniques required)":
-	       ret==DIFF_RECURSIVE ? "Unreasonable (guesswork and backtracking required)":
-	       ret==DIFF_AMBIGUOUS ? "Ambiguous (multiple solutions exist)":
-	       ret==DIFF_IMPOSSIBLE ? "Impossible (no solution exists)":
+	       dlev.diff==DIFF_BLOCK ? "Trivial (blockwise positional elimination only)":
+	       dlev.diff==DIFF_SIMPLE ? "Basic (row/column/number elimination required)":
+	       dlev.diff==DIFF_INTERSECT ? "Intermediate (intersectional analysis required)":
+	       dlev.diff==DIFF_SET ? "Advanced (set elimination required)":
+	       dlev.diff==DIFF_EXTREME ? "Extreme (complex non-recursive techniques required)":
+	       dlev.diff==DIFF_RECURSIVE ? "Unreasonable (guesswork and backtracking required)":
+	       dlev.diff==DIFF_AMBIGUOUS ? "Ambiguous (multiple solutions exist)":
+	       dlev.diff==DIFF_IMPOSSIBLE ? "Impossible (no solution exists)":
 	       "INTERNAL ERROR: unrecognised difficulty code");
+	if (p->killer)
+	    printf("Killer diffculty: %s\n",
+		   dlev.kdiff==DIFF_KSINGLE ? "Trivial (single square cages only)":
+		   dlev.kdiff==DIFF_KMINMAX ? "Simple (maximum sum analysis required)":
+		   dlev.kdiff==DIFF_KSUMS ? "Intermediate (sum possibilities)":
+		   dlev.kdiff==DIFF_KINTERSECT ? "Advanced (sum region intersections)":
+		   "INTERNAL ERROR: unrecognised difficulty code");
     } else {
         printf("%s\n", grid_text_format(s->cr, s->blocks, s->xtype, s->grid));
     }

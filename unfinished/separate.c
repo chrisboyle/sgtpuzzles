@@ -809,11 +809,11 @@ static void game_print(drawing *dr, game_state *state, int tilesize)
 }
 
 #ifdef COMBINED
-#define thegame nullgame
+#define thegame separate
 #endif
 
 const struct game thegame = {
-    "Null Game", NULL, NULL,
+    "Separate", NULL, NULL,
     default_params,
     game_fetch_preset,
     decode_params,
