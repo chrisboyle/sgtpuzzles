@@ -632,7 +632,7 @@ static void game_changed_state(game_ui *ui, game_state *oldstate,
                                game_state *newstate)
 {
 #ifdef ANDROID
-    if (newstate->completed && ! newstate->used_solve && oldstate && ! oldstate->completed) nestedvm_completed();
+    if (newstate->completed && ! newstate->used_solve && oldstate && ! oldstate->completed) android_completed();
 #endif
 }
 

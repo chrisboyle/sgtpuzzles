@@ -182,10 +182,9 @@ public class PuzzleApplet extends JApplet implements Runtime.CallJavaCB {
 	    if (gameid == null) {
 		puzzle_args = null;
 	    } else {
-		puzzle_args = new String[3];
+		puzzle_args = new String[2];
 		puzzle_args[0] = "puzzle";
-		puzzle_args[1] = "-i";
-		puzzle_args[2] = gameid;
+		puzzle_args[1] = gameid;
 	    }
             SwingUtilities.invokeLater(new Runnable() {
                 public void run() {
@@ -581,7 +580,6 @@ public class PuzzleApplet extends JApplet implements Runtime.CallJavaCB {
             buttons.add(b=new JButton("Cancel"));
             b.addActionListener(new ActionListener() {
                 public void actionPerformed(ActionEvent e) {
-                    cancel();
                     dispose();
                 }
             });
@@ -609,9 +607,6 @@ public class PuzzleApplet extends JApplet implements Runtime.CallJavaCB {
                 }
             }
             runtimeCall("jcallback_config_ok", new int[0]);
-        }
-        private void cancel() {
-            runtimeCall("jcallback_config_cancel", new int[0]);
         }
     }
 }

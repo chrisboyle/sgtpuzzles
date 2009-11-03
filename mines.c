@@ -2398,7 +2398,7 @@ static void game_changed_state(game_ui *ui, game_state *oldstate,
     if (newstate->won)
 	ui->completed = TRUE;
 #ifdef ANDROID
-    if (newstate->won && ! newstate->used_solve && oldstate && ! oldstate->won) nestedvm_completed();
+    if (newstate->won && ! newstate->used_solve && oldstate && ! oldstate->won) android_completed();
 #endif
 }
 

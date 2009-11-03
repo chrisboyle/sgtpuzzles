@@ -1069,7 +1069,7 @@ static void game_changed_state(game_ui *ui, game_state *oldstate,
     ui->just_moved = ui->just_dragged;
     ui->just_dragged = FALSE;
 #ifdef ANDROID
-    if (newstate->completed && ! newstate->cheated && oldstate && ! oldstate->completed) nestedvm_completed();
+    if (newstate->completed && ! newstate->cheated && oldstate && ! oldstate->completed) android_completed();
 #endif
 }
 

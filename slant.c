@@ -1244,7 +1244,9 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
 {
     int w = params->w, h = params->h, W = w+1, H = h+1;
     game_state *state = snew(game_state);
+#ifndef NDEBUG
     int area = W*H;
+#endif
     int squares = 0;
 
     state->p = *params;
@@ -1624,7 +1626,7 @@ static void game_changed_state(game_ui *ui, game_state *oldstate,
                                game_state *newstate)
 {
 #ifdef ANDROID
-    if (newstate->completed && ! newstate->used_solve && oldstate && ! oldstate->completed) nestedvm_completed();
+    if (newstate->completed && ! newstate->used_solve && oldstate && ! oldstate->completed) android_completed();
 #endif
 }
 

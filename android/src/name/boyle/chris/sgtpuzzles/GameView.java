@@ -35,6 +35,7 @@ class GameView extends View
 	{
 		super(parent);
 		this.parent = parent;
+		setFocusableInTouchMode(true);
 		bitmap = Bitmap.createBitmap(100, 100, Bitmap.Config.RGB_565);  // for safety
 		canvas = new Canvas(bitmap);
 		paint = new Paint();
@@ -96,6 +97,8 @@ class GameView extends View
 
 	protected void onSizeChanged( int w, int h, int oldw, int oldh )
 	{
+		if( w <= 0 ) w = 1;
+		if( h <= 0 ) h = 1;
 		bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.RGB_565);
 		canvas.setBitmap(bitmap);
 		clear();
@@ -118,12 +121,12 @@ class GameView extends View
 	{
 		if (x == 0 && y == 0) return;
 		int w = getWidth(), h = getHeight();
-		/*paint.setColor(Color.BLACK);
+		paint.setColor(Color.BLACK);
 		paint.setStyle(Paint.Style.FILL);
 		canvas.drawRect(0, 0, x, h, paint);
 		canvas.drawRect(0, 0, w, y, paint);
 		canvas.drawRect(w - x, 0, x, h, paint);
-		canvas.drawRect(0, h - y, w, y, paint);*/
+		canvas.drawRect(0, h - y, w, y, paint);
 		canvas.clipRect(new Rect(x, y, w - x, h - y), Region.Op.REPLACE);
 	}
 	void clipRect(int x, int y, int w, int h)
@@ -141,11 +144,11 @@ class GameView extends View
 			canvas.clipRect(new Rect(x, y, w - x, h - y), Region.Op.REPLACE);
 		}
 	}
-	void fillRect(int x1, int y1, int x2, int y2, int colour)
+	void fillRect(int x, int y, int w, int h, int colour)
 	{
 		paint.setColor(colours[colour]);
 		paint.setStyle(Paint.Style.FILL);
-		canvas.drawRect(x1, y1, x2, y2, paint);
+		canvas.drawRect(x, y, x+w, y+h, paint);
 	}
 	void drawLine(int x1, int y1, int x2, int y2, int colour)
 	{
@@ -176,17 +179,17 @@ class GameView extends View
 		paint.setStyle(Paint.Style.STROKE);
 		canvas.drawOval(new RectF(x-r, y-r, x+r, y+r), paint);
 	}
-	void drawText(String text, int x, int y, int size, Typeface tf, int align, int colour)
+	void drawText(int x, int y, int flags, int size, int colour, String text)
 	{
 		paint.setColor(colours[colour]);
-		paint.setTypeface( tf );
+		paint.setTypeface( (flags & SGTPuzzles.TEXT_MONO) != 0 ? Typeface.MONOSPACE : Typeface.DEFAULT );
 		paint.setTextSize(size);
 		Paint.FontMetrics fm = paint.getFontMetrics();
 		float asc = Math.abs(fm.ascent), desc = Math.abs(fm.descent);
-		if ((align & SGTPuzzles.ALIGN_VCENTRE) != 0) y += asc - (asc+desc)/2;
+		if ((flags & SGTPuzzles.ALIGN_VCENTRE) != 0) y += asc - (asc+desc)/2;
 		else y += asc;
-		if ((align & SGTPuzzles.ALIGN_HCENTRE) != 0) paint.setTextAlign( Paint.Align.CENTER );
-		else if ((align & SGTPuzzles.ALIGN_HRIGHT) != 0) paint.setTextAlign( Paint.Align.RIGHT );
+		if ((flags & SGTPuzzles.ALIGN_HCENTRE) != 0) paint.setTextAlign( Paint.Align.CENTER );
+		else if ((flags & SGTPuzzles.ALIGN_HRIGHT) != 0) paint.setTextAlign( Paint.Align.RIGHT );
 		else paint.setTextAlign( Paint.Align.LEFT );
 		paint.setAntiAlias( true );
 		canvas.drawText( text, x, y, paint );

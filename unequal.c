@@ -976,7 +976,10 @@ static void game_strip(game_state *new, int *scratch, digit *latin,
         gg_solved++;
         if (solver_state(copy, difficulty) != 1) {
             /* put clue back, we can't solve without it. */
-            int ret = gg_place_clue(new, scratch[i], latin, 0);
+#ifndef NDEBUG
+            int ret =
+#endif
+                gg_place_clue(new, scratch[i], latin, 0);
             assert(ret == 1);
         } else {
 #ifdef STANDALONE_SOLVER
@@ -1249,7 +1252,7 @@ static void game_changed_state(game_ui *ui, game_state *oldstate,
         ui->hshow = 0;
     }
 #ifdef ANDROID
-    if (newstate->completed && ! newstate->cheated && oldstate && ! oldstate->completed) nestedvm_completed();
+    if (newstate->completed && ! newstate->cheated && oldstate && ! oldstate->completed) android_completed();
 #endif
 }
 

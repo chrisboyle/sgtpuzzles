@@ -528,7 +528,9 @@ extern const game thegame;
 #endif
 
 #ifdef ANDROID
-extern void nestedvm_completed();
+extern void android_completed();
+extern int android_cancelled();
+extern void android_keys(const char *keys);
 #endif
 
 #endif /* PUZZLES_PUZZLES_H */

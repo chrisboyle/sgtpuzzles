@@ -1799,7 +1799,7 @@ static void game_changed_state(game_ui *ui, game_state *oldstate,
     if (newstate->completed)
         ui->cur_visible = 0;
 #ifdef ANDROID
-    if (newstate->completed && ! newstate->used_solve && oldstate && ! oldstate->completed) nestedvm_completed();
+    if (newstate->completed && ! newstate->used_solve && oldstate && ! oldstate->completed) android_completed();
 #endif
 }
 

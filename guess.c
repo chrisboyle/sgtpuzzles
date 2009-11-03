@@ -505,7 +505,7 @@ static void game_changed_state(game_ui *ui, game_state *oldstate,
     if (!ui->markable && ui->peg_cur == newstate->solution->npegs)
 	ui->peg_cur--;
 #ifdef ANDROID
-    if (newstate->solved && oldstate && ! oldstate->solved && newstate->next_go < newstate->params.nguesses) nestedvm_completed();
+    if (newstate->solved && oldstate && ! oldstate->solved && newstate->next_go < newstate->params.nguesses) android_completed();
 #endif
 }
 

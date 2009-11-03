@@ -821,7 +821,7 @@ static void game_changed_state(game_ui *ui, game_state *oldstate,
                                game_state *newstate)
 {
 #ifdef ANDROID
-    if (newstate->solved && ! newstate->cheated && oldstate && ! oldstate->solved) nestedvm_completed();
+    if (newstate->solved && ! newstate->cheated && oldstate && ! oldstate->solved) android_completed();
 #endif
 }
 
@@ -1621,7 +1621,9 @@ static void add_full_clues(game_state *state, random_state *rs)
         enum face_colour colour;
         struct face_score *fs_white, *fs_black;
         int c_lightable = count234(lightable_faces_sorted);
+#ifndef NDEBUG
         int c_darkable = count234(darkable_faces_sorted);
+#endif
         if (c_lightable == 0) {
             /* No more lightable faces.  Because of how the algorithm
              * works, there should be no more darkable faces either. */
@@ -3426,24 +3428,6 @@ static void face_text_pos(const game_drawstate *ds, const grid *g,
     grid_to_screen(ds, g, sx, sy, x, y);
 }
 
-#define PERC(s,e,p) (s + ( (((e)-(s)) * p) /100))
-
-static void draw_thickline_perc(drawing *dr, int x1, int y1, int x2, int y2,
-                                int start, int end, int line_colour)
-{
-  int dx = (x1 > x2) ? -1 : ((x1 < x2) ? 1 : 0);
-  int dy = (y1 > y2) ? -1 : ((y1 < y2) ? 1 : 0);
-  int xs = PERC(x1, x2, start), xe = PERC(x1, x2, end);
-  int ys = PERC(y1, y2, start), ye = PERC(y1, y2, end);
-  int points[] = {
-    xs + dy, ys - dx,
-    xs - dy, ys + dx,
-    xe - dy, ye + dx,
-    xe + dy, ye - dx
-  };
-  draw_polygon(dr, points, 4, line_colour, line_colour);
-}
-
 static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
                         game_state *state, int dir, game_ui *ui,
                         float animtime, float flashtime)
@@ -3669,7 +3653,6 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 	    points[7] = y2 - dx;
             draw_polygon(dr, points, 4, line_colour, line_colour);
         }
-#endif
         if (ds->started) {
             /* Draw dots at ends of the line */
             draw_circle(dr, x1, y1, 2, dot_colour, dot_colour);

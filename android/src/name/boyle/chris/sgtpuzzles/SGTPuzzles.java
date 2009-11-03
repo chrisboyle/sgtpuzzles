@@ -1,22 +1,22 @@
 package name.boyle.chris.sgtpuzzles;
 
-import android.util.Log;
-
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.StringTokenizer;
-import java.util.TreeMap;
 
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.ProgressDialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -27,17 +27,18 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
-import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.graphics.PorterDuff.Mode;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.text.InputType;
 import android.text.Spannable;
 import android.text.SpannableString;
 import android.text.style.ForegroundColorSpan;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -45,9 +46,11 @@ import android.view.SubMenu;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
+import android.view.WindowManager;
 import android.widget.AbsListView;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.FrameLayout;
@@ -64,14 +67,16 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.AdapterView.OnItemClickListener;
 
-public class SGTPuzzles extends Activity implements PuzzlesRuntime.CallJavaCB
+public class SGTPuzzles extends Activity
 {
+	private static final String TAG = "SGTPuzzles";
 	ProgressDialog progress;
 	TextView txtView;
+	FrameLayout placeholder;
 	GameView gameView;
 	String[] games;
 	SubMenu typeMenu;
-	TreeMap<Integer,String> gameTypes;
+	LinkedHashMap<Integer,String> gameTypes;
 	int currentType = 0;
 	boolean gameRunning = false;
 	boolean solveEnabled = false, customVisible = false, dead = false;
@@ -83,9 +88,8 @@ public class SGTPuzzles extends Activity implements PuzzlesRuntime.CallJavaCB
 		LEFT_RELEASE = 0x206, CURSOR_UP = 0x209, CURSOR_DOWN = 0x20a,
 		CURSOR_LEFT = 0x20b, CURSOR_RIGHT = 0x20c, MOD_CTRL = 0x1000,
 		MOD_SHFT = 0x2000, MOD_NUM_KEYPAD = 0x4000, ALIGN_VCENTRE = 0x100,
-		ALIGN_HCENTRE = 0x001, ALIGN_HRIGHT = 0x002, C_STRING = 0,
-		C_CHOICES = 1, C_BOOLEAN = 2;
-	PuzzlesRuntime runtime;
+		ALIGN_HCENTRE = 0x001, ALIGN_HRIGHT = 0x002, TEXT_MONO = 0x10,
+		C_STRING = 0, C_CHOICES = 1, C_BOOLEAN = 2;
 	boolean gameWantsTimer = false, resizeOnDone = false;
 	int timerInterval = 20;
 	int xarg1, xarg2, xarg3;
@@ -95,8 +99,9 @@ public class SGTPuzzles extends Activity implements PuzzlesRuntime.CallJavaCB
 	ArrayList<Integer> dialogIds;
 	TableLayout dialogLayout;
 	String helpTopic;
+	Thread worker;
 
-	enum MsgType { INIT, TIMER, DONE, DIE, SETBG, STATUS, MESSAGEBOX };
+	enum MsgType { INIT, TIMER, DONE, DIE, ABORT, SETBG, STATUS, MESSAGEBOX };
 	Handler handler = new Handler() {
 		public void handleMessage( Message msg ) {
 			switch( MsgType.values()[msg.what] ) {
@@ -107,18 +112,23 @@ public class SGTPuzzles extends Activity implements PuzzlesRuntime.CallJavaCB
 				if ((msg.arg1 & 4) != 0) solveEnabled = true;
 				break;
 			case TIMER:
-				runtimeCall("jcallback_timer_func", new int[0]);
+				if( progress == null ) timerTick();
 				if( gameWantsTimer ) sendMessageDelayed(obtainMessage(MsgType.TIMER.ordinal()), timerInterval);
 				break;
 			case DONE:
 				if( resizeOnDone ) {
-					runtimeCall("jcallback_resize", new int[]{gameView.w,gameView.h});
+					resizeEvent(gameView.w, gameView.h);
 					resizeOnDone = false;
 				}
 				dismissProgress();
 				save();
 				break;
 			case DIE: die((String)msg.obj); break;
+			case ABORT:
+				stopRuntime(null);
+				dismissProgress();
+				showDialog(0);
+				break;
 			case SETBG: gameView.setBackgroundColor(gameView.colours[0]); break;
 			case STATUS:
 				String status = (String)msg.obj;
@@ -150,7 +160,7 @@ public class SGTPuzzles extends Activity implements PuzzlesRuntime.CallJavaCB
 		progress.setCancelable( true );
 		progress.setOnCancelListener( abortListener );
 		final int msgId2 = msgId;
-		progress.setButton( getResources().getString(R.string.background), new DialogInterface.OnClickListener() {
+		progress.setButton( DialogInterface.BUTTON_POSITIVE, getResources().getString(R.string.background), new DialogInterface.OnClickListener() {
 			public void onClick( DialogInterface d, int which ) {
 				// Cheat slightly: just launch home screen
 				startActivity(new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME));
@@ -159,9 +169,7 @@ public class SGTPuzzles extends Activity implements PuzzlesRuntime.CallJavaCB
 				Toast.makeText(SGTPuzzles.this, R.string.bg_unreliable_warn, Toast.LENGTH_LONG).show();
 			}
 		});
-		progress.setButton2( getResources().getString(android.R.string.cancel), new DialogInterface.OnClickListener() {
-			public void onClick( DialogInterface d, int which ) { abort(); }
-		});
+		progress.setButton( DialogInterface.BUTTON_NEGATIVE, getResources().getString(android.R.string.cancel), handler.obtainMessage(MsgType.ABORT.ordinal()));
 		progress.show();
 	}
 
@@ -174,10 +182,11 @@ public class SGTPuzzles extends Activity implements PuzzlesRuntime.CallJavaCB
 
 	void save()
 	{
-		if( runtime == null || dead || progress != null ) return;
+		if( dead || ! gameRunning || progress != null ) return;
 		savingState = new StringBuffer();
-		runtimeCall("jcallback_serialise", new int[] { 0 });
-		if( savingState.length() > 0 ) lastSave = savingState.toString();
+		serialise();  // serialiseWrite() callbacks will happen in here
+		String s = savingState.toString();
+		if( savingState.length() > 0 ) lastSave = s;
 		savingState = null;
 		if( lastSave == null ) return;
 		SharedPreferences.Editor ed = prefs.edit();
@@ -188,16 +197,14 @@ public class SGTPuzzles extends Activity implements PuzzlesRuntime.CallJavaCB
 
 	void load(String state)
 	{
-		int s = runtime.strdup(state);
-		runtimeCall("jcallback_deserialise", new int[]{s});
-		runtime.free(s);
+		deserialise(state);
 		save();
 	}
 
 	void gameViewResized()
 	{
 		if( progress == null && gameView.w > 0 && gameView.h > 0 )
-			runtimeCall("jcallback_resize", new int[]{gameView.w,gameView.h});
+			resizeEvent(gameView.w, gameView.h);
 		else
 			resizeOnDone = true;
 	}
@@ -206,13 +213,13 @@ public class SGTPuzzles extends Activity implements PuzzlesRuntime.CallJavaCB
 	{
 		super.onCreate(savedInstanceState);
 		games = getResources().getStringArray(R.array.games);
-		gameTypes = new TreeMap<Integer,String>();
+		gameTypes = new LinkedHashMap<Integer,String>();
 		requestWindowFeature(Window.FEATURE_INDETERMINATE_PROGRESS);
 		setContentView(R.layout.main);
-		gameView = new GameView(this);
-		((FrameLayout)findViewById(R.id.placeholder)).addView( gameView,
-				FrameLayout.LayoutParams.FILL_PARENT, FrameLayout.LayoutParams.FILL_PARENT);
 		txtView = (TextView)findViewById(R.id.txtView);
+		placeholder = (FrameLayout)findViewById(R.id.placeholder);
+		gameView = new GameView(this);
+		placeholder.addView( gameView, FrameLayout.LayoutParams.FILL_PARENT, FrameLayout.LayoutParams.FILL_PARENT );
 		setDefaultKeyMode(DEFAULT_KEYS_SHORTCUT);
 
 		prefs = getSharedPreferences("state", MODE_PRIVATE);
@@ -262,9 +269,9 @@ public class SGTPuzzles extends Activity implements PuzzlesRuntime.CallJavaCB
 		{
 			boolean newGrid;
 			switch(item.getItemId()) {
-			case R.id.listchooser: newGrid = false; break;
-			case R.id.gridchooser: newGrid = true; break;
-			default: return super.onMenuItemSelected(f,item);
+				case R.id.listchooser: newGrid = false; break;
+				case R.id.gridchooser: newGrid = true; break;
+				default: return super.onMenuItemSelected(f,item);
 			}
 			if( useGrid == newGrid ) return true;
 			useGrid = newGrid;
@@ -277,24 +284,12 @@ public class SGTPuzzles extends Activity implements PuzzlesRuntime.CallJavaCB
 
 		void rebuild()
 		{
-			ViewGroup content;
 			if( useGrid ) {
-				content = gv = new GridView(SGTPuzzles.this);
+				gv = new GridView(SGTPuzzles.this);
 				((GridView)gv).setNumColumns(GridView.AUTO_FIT);
 				((GridView)gv).setColumnWidth(64);
 			} else {
-				content = new LinearLayout(SGTPuzzles.this);
-				((LinearLayout)content).setOrientation(LinearLayout.VERTICAL);
-				TextView tv = new TextView(SGTPuzzles.this);
-				String part1 = getResources().getString(R.string.listchooser_header1);
-				String part2 = getResources().getString(R.string.listchooser_header2);
-				tv.setText(part1+", "+part2, TextView.BufferType.SPANNABLE);
-				Spannable s = (Spannable)tv.getText();
-				s.setSpan(new ForegroundColorSpan(0xFFFF0000), 0, part1.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-				s.setSpan(new ForegroundColorSpan(0xFFFFFF00), part1.length()+2, s.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-				content.addView(tv);
 				gv = new ListView(SGTPuzzles.this);
-				content.addView(gv);
 			}
 			gv.setOnItemClickListener(new OnItemClickListener() {
 				public void onItemClick(AdapterView<?> arg0, View arg1, int which, long arg3) {
@@ -306,19 +301,10 @@ public class SGTPuzzles extends Activity implements PuzzlesRuntime.CallJavaCB
 			for( int i = 0; i < games.length; i++ ) {
 				Map<String,Object> map = new HashMap<String,Object>();
 				int nameId = getResources().getIdentifier("name_"+games[i], "string", getPackageName());
-				int flagId = getResources().getIdentifier("flag_"+games[i], "string", getPackageName());
 				int descId = getResources().getIdentifier("desc_"+games[i], "string", getPackageName());
 				String desc;
-				int colour = 0;
 				if( nameId > 0 ) desc = getResources().getString(nameId);
 				else desc = games[i].substring(0,1).toUpperCase() + games[i].substring(1);
-				if( flagId > 0 ) {
-					String f = getResources().getString(flagId);
-					desc += f;
-					colour = f.length() > 1 ? 0xFFFF0000 :
-							f.length() > 0 ? 0xFFFFFF00 :
-							0;
-				}
 				desc += ": " + getResources().getString( descId > 0 ? descId : R.string.no_desc );
 				map.put( LABEL, desc );
 				Drawable d = getResources().getDrawable(getResources().getIdentifier(games[i], "drawable", getPackageName()));
@@ -326,14 +312,6 @@ public class SGTPuzzles extends Activity implements PuzzlesRuntime.CallJavaCB
 				Canvas c = new Canvas(b);
 				d.setBounds(0,0,d.getIntrinsicWidth(),d.getIntrinsicHeight());
 				d.draw(c);
-				if( colour != 0 ) {
-					Log.d("chooser","painting");
-					Paint p = new Paint();
-					p.setColor(colour);
-					p.setStyle(Paint.Style.STROKE);
-					p.setStrokeWidth(8.0f);
-					c.drawRect(0,0,d.getIntrinsicWidth()-1,d.getIntrinsicHeight()-1,p);
-				}
 				map.put( ICON, b );
 				gameDescs.add( map );
 			}
@@ -349,7 +327,7 @@ public class SGTPuzzles extends Activity implements PuzzlesRuntime.CallJavaCB
 				}
 			});
 			gv.setAdapter(s);
-			setContentView(content);
+			setContentView(gv);
 		}
 
 		void prepare()
@@ -390,7 +368,8 @@ public class SGTPuzzles extends Activity implements PuzzlesRuntime.CallJavaCB
 		typeMenu.setGroupCheckable(R.id.typeGroup, true, true);
 		if( currentType < 0 ) customItem.setChecked(true);
 		else menu.findItem((Integer)gameTypes.keySet().toArray()[currentType]).setChecked(true);
-		menu.findItem(R.id.thisgame).setTitle("Help on "+this.getTitle());
+		menu.findItem(R.id.thisgame).setTitle(MessageFormat.format(
+					getResources().getString(R.string.help_on_game),new Object[]{this.getTitle()}));
 		return true;
 	}
 	
@@ -400,33 +379,34 @@ public class SGTPuzzles extends Activity implements PuzzlesRuntime.CallJavaCB
 		case R.id.other:   showDialog(0); break;
 		case R.id.newgame:
 			showProgress( R.string.starting_new );
-			new Thread() { public void run() {
+			(worker = new Thread("newGame") { public void run() {
 				try {
-					runtimeCall("jcallback_key_event", new int[]{ 0, 0, 'n' });
+					sendKey(0, 0, 'n');
 					handler.sendEmptyMessage(MsgType.DONE.ordinal());
 				} catch (Exception e) {
 					handler.obtainMessage(MsgType.DIE.ordinal(),SGTPuzzles.this.getStackTrace(e)).sendToTarget();
 				}
-			}}.start();
+			}}).start();
 			break;
-		case R.id.restart:  runtimeCall("jcallback_restart_event", new int[0]); break;
-		case R.id.undo:     runtimeCall("jcallback_key_event",     new int[]{ 0, 0, 'u' }); break;
-		case R.id.redo:     runtimeCall("jcallback_key_event",     new int[]{ 0, 0, 'r' }); break;
-		case R.id.solve:    runtimeCall("jcallback_solve_event",   new int[0]); break;
-		case R.id.custom:   runtimeCall("jcallback_config_event",  new int[]{ CFG_SETTINGS }); break;
-		case R.id.specific: runtimeCall("jcallback_config_event",  new int[]{ CFG_DESC }); break;
-		case R.id.seed:     runtimeCall("jcallback_config_event",  new int[]{ CFG_SEED }); break;
-		case R.id.about:    runtimeCall("jcallback_about_event",   new int[0]); break;
+		case R.id.restart:  restartEvent(); break;
+		case R.id.undo:     sendKey(0, 0, 'u'); break;
+		case R.id.redo:     sendKey(0, 0, 'r'); break;
+		case R.id.solve:    solveEvent(); break;
+		case R.id.custom:   configEvent( CFG_SETTINGS ); break;
+		case R.id.specific: configEvent( CFG_DESC ); break;
+		case R.id.seed:     configEvent( CFG_SEED ); break;
+		case R.id.about:    aboutEvent(); break;
 		case R.id.contents:
 			startActivity(new Intent(Intent.ACTION_VIEW,
-					Uri.parse("http://www.chiark.greenend.org.uk/~sgtatham/puzzles/doc/")));
+					Uri.parse(getResources().getString(R.string.help_contents_url))));
 			break;
 		case R.id.thisgame:
 			startActivity(new Intent(Intent.ACTION_VIEW,
-				Uri.parse("http://www.chiark.greenend.org.uk/~sgtatham/puzzles/doc/"+helpTopic+".html")));
+				Uri.parse(MessageFormat.format(getResources().getString(R.string.help_game_url),new Object[]{helpTopic}))));
 			break;
 		case R.id.website:
-			startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("http://chris.boyle.name/projects/android-puzzles")));
+			startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(
+							getResources().getString(R.string.website_url))));
 			break;
 		case R.id.email:
 			// Damn, Android Email doesn't cope with ?subject=foo yet.
@@ -443,14 +423,14 @@ public class SGTPuzzles extends Activity implements PuzzlesRuntime.CallJavaCB
 			if( gameTypes.get(id) != null ) {
 				showProgress( R.string.changing_type );
 				gameView.clear();
-				new Thread() { public void run() {
+				(worker = new Thread("presetGame") { public void run() {
 					try {
-						runtimeCall("jcallback_preset_event", new int[]{id});
+						presetEvent(id);
 						handler.sendEmptyMessage(MsgType.DONE.ordinal());
 					} catch (Exception e) {
 						handler.obtainMessage(MsgType.DIE.ordinal(),SGTPuzzles.this.getStackTrace(e)+"\npreset:"+gameTypes.get(id)).sendToTarget();
 					}
-				}}.start();
+				}}).start();
 			}
 			else super.onOptionsItemSelected(item);
 			break;
@@ -468,15 +448,10 @@ public class SGTPuzzles extends Activity implements PuzzlesRuntime.CallJavaCB
 		public void onCancel(DialogInterface dialog) { quit(false); }
 	};
 
-	void abort()
-	{
-		stopRuntime(null);
-		dismissProgress();
-		showDialog(0);
-	}
-
 	OnCancelListener abortListener = new OnCancelListener() {
-		public void onCancel(DialogInterface dialog) { abort(); }
+		public void onCancel(DialogInterface dialog) {
+			handler.sendEmptyMessage(MsgType.ABORT.ordinal());
+		}
 	};
 
 	String getStackTrace( Throwable t )
@@ -534,10 +509,10 @@ public class SGTPuzzles extends Activity implements PuzzlesRuntime.CallJavaCB
 	{
 		if( dead ) return;
 		dead = true;
-		alert( "Fatal error", msg, true );
+		alert( getResources().getString(R.string.fatal_error), msg, true );
 	}
 
-	void startGame(int which, String savedGame)
+	void startGame(final int which, final String savedGame)
 	{
 		showProgress( (savedGame == null) ? R.string.starting : R.string.resuming );
 		try {
@@ -551,24 +526,18 @@ public class SGTPuzzles extends Activity implements PuzzlesRuntime.CallJavaCB
 			if( typeMenu != null ) for( Integer i : gameTypes.keySet() ) typeMenu.removeItem(i);
 			gameTypes.clear();
 			gameRunning = true;
-			final String[] args = (savedGame == null) ? new String[]{ Integer.toString(which) } : new String[] { "puzzles", "-s", savedGame };
-			final int which2 = which;
-			final String save2 = savedGame;
-			new Thread() { public void run() {
+			(worker = new Thread("startGame") { public void run() {
 				try {
-					runtime = new PuzzlesRuntime();
-					runtime.setCallJavaCB(SGTPuzzles.this);
-					runtime.start(args);
-					if( runtime.execute() ) throw (runtime.exitException == null) ? new Exception( "Runtime exited" ) : runtime.exitException;
-					helpTopic = runtime.cstring(runtimeCall("jcallback_game_htmlhelptopic", new int[0]));
+					init(gameView, which, savedGame);
+					helpTopic = htmlHelpTopic();
 					handler.sendEmptyMessage(MsgType.DONE.ordinal());
 				} catch (Exception e) {
 					if( ! gameRunning ) return;  // stopRuntime was called (probably user aborted)
-					handler.obtainMessage(MsgType.DIE.ordinal(),SGTPuzzles.this.getStackTrace(e)+"\nwhich:"+Integer.toString(which2)+"\nstate:"+((save2==null)?"null":save2)).sendToTarget();
+					handler.obtainMessage(MsgType.DIE.ordinal(),SGTPuzzles.this.getStackTrace(e)+"\nwhich:"+Integer.toString(which)+"\nstate:"+((savedGame==null)?"null":savedGame)).sendToTarget();
 				}
-			}}.start();
-		} catch (Throwable t) {  // Runtime throws Errors that should really be Exceptions
-			alert( "Engine failed to load", getStackTrace(t), false );
+			}}).start();
+		} catch (Exception e) {
+			alert( getResources().getString(R.string.startgame_fail), getStackTrace(e), false );
 		}
 	}
 
@@ -576,13 +545,15 @@ public class SGTPuzzles extends Activity implements PuzzlesRuntime.CallJavaCB
 	{
 		if( e != null && gameRunning ) die(getStackTrace(e));
 		gameRunning = false;
-		try { runtime.stop(); } catch(Exception e2) {}
+		while(true) { try {
+			worker.join();  // we may ANR if native code is spinning - safer than leaving a runaway native thread
+			break;
+		} catch (InterruptedException i) {} }
 	}
 
 	protected void onPause()
 	{
 		if( gameRunning ) handler.removeMessages(MsgType.TIMER.ordinal());
-		//try { dismissDialog(0); } catch( IllegalArgumentException e ) {}
 		save();
 		super.onPause();
 	}
@@ -629,197 +600,194 @@ public class SGTPuzzles extends Activity implements PuzzlesRuntime.CallJavaCB
 		return true;
 	}
 
-	int runtimeCall(String func, int[] args)
-	{
-		if( ! gameRunning || runtime == null ) return 0;
-		int s = runtime.getState();
-		if( s != PuzzlesRuntime.PAUSED && s != PuzzlesRuntime.CALLJAVA ) return 0;
-		try {
-			return runtime.call(func, args);
-		} catch (Exception e) {
-			stopRuntime(e);
-			return 0;
-		}
-	}
-
 	void sendKey(int x, int y, int k)
 	{
-		if( runtimeCall("jcallback_key_event", new int[]{ x, y, k }) == 0 )
-			quit(false);
+		if (keyEvent(x, y, k) == 0) quit(false);
 	}
 
-	public int call(int cmd, int arg1, int arg2, int arg3)
+	public void onConfigurationChanged(Configuration newConfig)
 	{
-		if( ! gameRunning || runtime == null ) return 0;
-		try {
-			switch( cmd ) {
-			case 0: // initialise
-				handler.obtainMessage(MsgType.INIT.ordinal(), arg2, 0,
-						runtime.cstring(arg1) ).sendToTarget();
-				gameView.colours = new int[arg3];
-				return 0;
-			case 1: // Type menu item
-				gameTypes.put(arg2, runtime.cstring(arg1));
-				return 0;
-			case 2: // MessageBox
-				handler.obtainMessage(MsgType.MESSAGEBOX.ordinal(), arg3, 0,
-						new String[] {(arg1>0) ? runtime.cstring(arg1) : null,runtime.cstring(arg2)}).sendToTarget();
-				// I don't think we need to wait before returning here (and we can't)
-				return 0;
-			case 3: { // Resize
-				// Refuse this, we have a fixed size screen (except for orientation changes)
-				// (wait for UI to finish doing layout first)
-				if(gameView.w == 0 || gameView.h == 0 ) Thread.sleep(200);
-				if(gameView.w > 0 && gameView.h > 0 )
-					runtimeCall("jcallback_resize", new int[] {gameView.w,gameView.h});
-				return 0; }
-			case 4: // drawing tasks
-				switch(arg1) {
-				case 0: handler.obtainMessage(MsgType.STATUS.ordinal(),runtime.cstring(arg2)).sendToTarget(); break;
-				case 1: gameView.setMargins( arg2, arg3 ); break;
-				case 2: gameView.postInvalidate(); break;
-				case 3: gameView.clipRect(arg2, arg3, xarg1, xarg2); break;
-				case 4: gameView.unClip( arg2, arg3 ); break;
-				case 5: gameView.fillRect(arg2, arg3, arg2 + xarg1, arg3 + xarg2, xarg3); break;
-				case 6: gameView.drawLine(arg2, arg3, xarg1, xarg2, xarg3); break;
-				case 7: path = new Path(); break;
-				case 8: path.close(); gameView.drawPoly(path, arg2, arg3); break;
-				case 9: gameView.drawCircle(xarg1,xarg2,xarg3,arg2,arg3); break;
-				case 10: return gameView.blitterAlloc( arg2, arg3 );
-				case 11: gameView.blitterFree(arg2); break;
-				case 12:
-					if( gameWantsTimer ) break;
-					gameWantsTimer = true;
-					handler.sendMessageDelayed(handler.obtainMessage(MsgType.TIMER.ordinal()), timerInterval);
-					break;
-				case 13:
-					gameWantsTimer = false;
-					handler.removeMessages(MsgType.TIMER.ordinal());
-					break;
-				}
-				return 0;
-			case 5: // more arguments
-				xarg1 = arg1;
-				xarg2 = arg2;
-				xarg3 = arg3;
-				return 0;
-			case 6: // polygon vertex
-				if( arg1 == 0 ) path.moveTo(arg2, arg3);
-				else path.lineTo(arg2, arg3);
-				return 0;
-			case 7:
-				gameView.drawText( runtime.cstring(arg3), xarg1, xarg2, arg1,
-						(xarg3 & 0x10) != 0 ? Typeface.MONOSPACE : Typeface.DEFAULT, xarg3, arg2);
-				return 0;
-			case 8: gameView.blitterSave(arg1,arg2,arg3); return 0;
-			case 9: gameView.blitterLoad(arg1,arg2,arg3); return 0;
-			case 10: // dialog_init
-				ScrollView sv = new ScrollView(SGTPuzzles.this);
-				dialog = new AlertDialog.Builder(SGTPuzzles.this)
-						.setTitle(runtime.cstring(arg1))
-						.setView(sv)
-						.create();
-				sv.addView(dialogLayout = new TableLayout(SGTPuzzles.this));
-				dialog.setOnCancelListener(new OnCancelListener() {
-					public void onCancel(DialogInterface dialog) {
-						runtimeCall("jcallback_config_cancel", new int[0]);
-					}
-				});
-				dialog.setButton(getResources().getString(android.R.string.ok), new DialogInterface.OnClickListener() {
-					public void onClick(DialogInterface d, int which) {
-						for( Integer i : dialogIds ) {
-							View v = dialogLayout.findViewById(i);
-							if( v instanceof EditText ) {
-								runtimeCall("jcallback_config_set_string", new int[]{i, runtime.strdup(((EditText)v).getText().toString())});
-							} else if( v instanceof CheckBox ) {
-								runtimeCall("jcallback_config_set_boolean", new int[]{i, ((CheckBox)v).isChecked() ? 1 : 0});
-							} else if( v instanceof Spinner ) {
-								runtimeCall("jcallback_config_set_choice", new int[]{i, ((Spinner)v).getSelectedItemPosition()});
-							}
-						}
-						dialog.dismiss();
-						showProgress( R.string.starting_custom );
-						gameView.clear();
-						new Thread() { public void run() {
-							try {
-								runtimeCall("jcallback_config_ok", new int[0]);
-								handler.sendEmptyMessage(MsgType.DONE.ordinal());
-							} catch (Exception e) {
-								handler.obtainMessage(MsgType.DIE.ordinal(),SGTPuzzles.this.getStackTrace(e)).sendToTarget();
-							}
-						}}.start();
-					}
-				});
-				dialogIds = new ArrayList<Integer>();
-				return 0;
-			case 11: // dialog_add_control
-			{
-				String name = runtime.cstring(xarg3);
-				switch(xarg2) {
-				case C_STRING: {
-					dialogIds.add(xarg1);
-					EditText et = new EditText(SGTPuzzles.this);
-					et.setId(xarg1);
-					et.setText(runtime.cstring(arg1));
-					TextView tv = new TextView(SGTPuzzles.this);
-					tv.setText(name);
-					TableRow tr = new TableRow(SGTPuzzles.this);
-					tr.addView(tv);
-					tr.addView(et);
-					dialogLayout.addView(tr);
-					break; }
-				case C_BOOLEAN: {
-					dialogIds.add(xarg1);
-					CheckBox c = new CheckBox(SGTPuzzles.this);
-					c.setId(xarg1);
-					c.setText(name);
-					c.setChecked(arg2 != 0);
-					dialogLayout.addView(c);
-					break; }
-				case C_CHOICES: {
-					String joined = runtime.cstring(arg1);
-					StringTokenizer st = new StringTokenizer(joined.substring(1),joined.substring(0,1));
-					ArrayList<String> choices = new ArrayList<String>();
-					while(st.hasMoreTokens()) choices.add(st.nextToken());
-					dialogIds.add(xarg1);
-					Spinner s = new Spinner(SGTPuzzles.this);
-					s.setId(xarg1);
-					ArrayAdapter<String> a = new ArrayAdapter<String>(SGTPuzzles.this,
-							android.R.layout.simple_spinner_item, choices.toArray(new String[0]));
-					a.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-					s.setAdapter(a);
-					s.setSelection(arg2);
-					TextView tv = new TextView(SGTPuzzles.this);
-					tv.setText(name);
-					TableRow tr = new TableRow(SGTPuzzles.this);
-					tr.addView(tv);
-					tr.addView(s);
-					dialogLayout.addView(tr);
-					break; }
-				}
+		super.onConfigurationChanged(newConfig);
+	}
+
+	// Callbacks from native code:
+
+	void gameStarted(String name, int flags, float[] colours)
+	{
+		gameView.colours = new int[colours.length/3];
+		for (int i=0; i<colours.length/3; i++)
+			gameView.colours[i] = Color.rgb((int)(colours[i*3]*255),(int)(colours[i*3+1]*255),(int)(colours[i*3+2]*255));
+		if (colours.length > 0) handler.sendEmptyMessage(MsgType.SETBG.ordinal());
+		handler.obtainMessage(MsgType.INIT.ordinal(), flags, 0, name ).sendToTarget();
+	}
+
+	void addTypeItem(int id, String label) { gameTypes.put(id, label); }
+
+	void messageBox(String title, String msg, int flag)
+	{
+		handler.obtainMessage(MsgType.MESSAGEBOX.ordinal(), flag, 0,
+				new String[] {title, msg}).sendToTarget();
+		// I don't think we need to wait before returning here (and we can't)
+	}
+
+	void requestResize(int x, int y)
+	{
+		// Refuse this, we have a fixed size screen (except for orientation changes)
+		// (wait for UI to finish doing layout first)
+		if(gameView.w == 0 || gameView.h == 0 ) try { Thread.sleep(200); } catch( InterruptedException ignored ) {}
+		if(gameView.w > 0 && gameView.h > 0 ) resizeEvent(gameView.w, gameView.h);
+	}
+
+	void setStatus(String status)
+	{
+		handler.obtainMessage(MsgType.STATUS.ordinal(), status).sendToTarget();
+	}
+
+	void requestTimer(boolean on)
+	{
+		if( gameWantsTimer && on ) return;
+		gameWantsTimer = on;
+		if( on ) handler.sendMessageDelayed(handler.obtainMessage(MsgType.TIMER.ordinal()), timerInterval);
+		else handler.removeMessages(MsgType.TIMER.ordinal());
+	}
+
+	void drawPoly(int[] points, int ox, int oy, int line, int fill)
+	{
+		path = new Path();
+		path.moveTo(points[0]+ox, points[1]+oy);
+		for( int i=1; i < points.length/2; i++ )
+			path.lineTo(points[2*i]+ox, points[2*i+1]+oy);
+		path.close();
+		gameView.drawPoly(path, line, fill);
+	}
+
+	// TODO: coalesce dialog calls into one call?
+	void dialogInit(String title)
+	{
+		ScrollView sv = new ScrollView(SGTPuzzles.this);
+		dialog = new AlertDialog.Builder(SGTPuzzles.this)
+				.setTitle(title)
+				.setView(sv)
+				.create();
+		sv.addView(dialogLayout = new TableLayout(SGTPuzzles.this));
+		dialog.setOnCancelListener(new OnCancelListener() {
+			public void onCancel(DialogInterface dialog) {
+				configCancel();
 			}
-			return 0;
-			case 12:
-				dialogLayout.setColumnStretchable(1, true);
-				dialog.show();
-				return 0;
-			case 13: // tick a menu item
-				currentType = arg1;
-				return 0;
-			case 14:
-				byte[] buf = new byte[arg3];
-				runtime.copyin(arg2, buf, arg3);
-				savingState.append(new String(buf));
-				return 0;
-			default:
-				if (cmd >= 1024 && cmd < 2048) gameView.colours[cmd-1024] = Color.rgb(arg1, arg2, arg3);
-				if (cmd == 1024)
-					handler.sendEmptyMessage(MsgType.SETBG.ordinal());
-				return 0;
+		});
+		dialog.setButton(DialogInterface.BUTTON_POSITIVE, getResources().getString(android.R.string.ok), new DialogInterface.OnClickListener() {
+			public void onClick(DialogInterface d, int which) {
+				for( Integer i : dialogIds ) {
+					View v = dialogLayout.findViewById(i);
+					if( v instanceof EditText ) {
+						configSetString(i, ((EditText)v).getText().toString());
+					} else if( v instanceof CheckBox ) {
+						configSetBool(i, ((CheckBox)v).isChecked() ? 1 : 0);
+					} else if( v instanceof Spinner ) {
+						configSetChoice(i, ((Spinner)v).getSelectedItemPosition());
+					}
+				}
+				dialog.dismiss();
+				showProgress( R.string.starting_custom );
+				gameView.clear();
+				(worker = new Thread("startCustomGame") { public void run() {
+					try {
+						configOK();
+						handler.sendEmptyMessage(MsgType.DONE.ordinal());
+					} catch (Exception e) {
+						handler.obtainMessage(MsgType.DIE.ordinal(),SGTPuzzles.this.getStackTrace(e)).sendToTarget();
+					}
+				}}).start();
 			}
-		} catch( Exception e ) {
-			handler.obtainMessage(MsgType.DIE.ordinal(),getStackTrace(e)+"\nargs:"+cmd+","+arg1+","+arg2+","+arg3).sendToTarget();
-			return 0;
+		});
+		dialogIds = new ArrayList<Integer>();
+	}
+
+	void dialogAdd(int id, int type, String name, String value, int selection)
+	{
+		switch(type) {
+		case C_STRING: {
+			dialogIds.add(id);
+			EditText et = new EditText(SGTPuzzles.this);
+			// TODO: C_INT, C_UINT, C_UDOUBLE, C_DOUBLE
+			et.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL | InputType.TYPE_NUMBER_FLAG_SIGNED);
+			et.setId(id);
+			et.setText(value);
+			TextView tv = new TextView(SGTPuzzles.this);
+			tv.setText(name);
+			TableRow tr = new TableRow(SGTPuzzles.this);
+			tr.addView(tv);
+			tr.addView(et);
+			dialogLayout.addView(tr);
+			break; }
+		case C_BOOLEAN: {
+			dialogIds.add(id);
+			CheckBox c = new CheckBox(SGTPuzzles.this);
+			c.setId(id);
+			c.setText(name);
+			c.setChecked(selection != 0);
+			dialogLayout.addView(c);
+			break; }
+		case C_CHOICES: {
+			StringTokenizer st = new StringTokenizer(value.substring(1),value.substring(0,1));
+			ArrayList<String> choices = new ArrayList<String>();
+			while(st.hasMoreTokens()) choices.add(st.nextToken());
+			dialogIds.add(id);
+			Spinner s = new Spinner(SGTPuzzles.this);
+			s.setId(id);
+			ArrayAdapter<String> a = new ArrayAdapter<String>(SGTPuzzles.this,
+					android.R.layout.simple_spinner_item, choices.toArray(new String[0]));
+			a.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+			s.setAdapter(a);
+			s.setSelection(selection);
+			TextView tv = new TextView(SGTPuzzles.this);
+			tv.setText(name);
+			TableRow tr = new TableRow(SGTPuzzles.this);
+			tr.addView(tv);
+			tr.addView(s);
+			dialogLayout.addView(tr);
+			break; }
 		}
+	}
+
+	void dialogShow()
+	{
+		dialogLayout.setColumnStretchable(1, true);
+		dialog.show();
+	}
+
+	void tickTypeItem(int which)
+	{
+		currentType = which;
+	}
+
+	void serialiseWrite(byte[] buffer)
+	{
+		savingState.append(new String(buffer));
+	}
+
+	native static void initNative(Class vcls);
+	native void init(GameView _gameView, int whichGame, String gameState);
+	native void timerTick();
+	native String htmlHelpTopic();
+	native int keyEvent(int x, int y, int k);
+	native int menuKeyEvent(int k);
+	native void restartEvent();
+	native void solveEvent();
+	native void aboutEvent();
+	native void resizeEvent(int x, int y);
+	native void presetEvent(int id);
+	native void configEvent(int which);
+	native void configOK();
+	native void configCancel();
+	native void configSetString(int item_ptr, String s);
+	native void configSetBool(int item_ptr, int selected);
+	native void configSetChoice(int item_ptr, int selected);
+	native void serialise();
+	native int deserialise(String s);
+
+	static {
+		System.loadLibrary("puzzles");
+		initNative(GameView.class);
 	}
 }

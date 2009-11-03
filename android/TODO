@@ -1,9 +1,3 @@
 To do...
-/ Fix dropdown off-by-one / inclusion of label
 . Save/load files on SD card
-. Galaxies cursor slower as completion approaches?
-. Separate packages
 . Ship help?
-. Chase endless resume?
-. Chase random null pointer exception in solving unequal?
-

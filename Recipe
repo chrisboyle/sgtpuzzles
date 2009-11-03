@@ -198,7 +198,7 @@ PuzzleApplet.class: PuzzleApplet.java org
 	mv PuzzleEngine.class $<
 !end
 
-android/puzzles.mips  : [GA] nestedvm[COMBINED] printing COMMON_COMBINED ALL
+android/lib/armeabi/libpuzzles.so  : [GA] android[COMBINED] printing COMMON_COMBINED ALL
 !begin android
 all: SGTPuzzles.apk
 
@@ -206,58 +206,57 @@ install: SGTPuzzles.apk
 	$(ANDROID)/tools/adb install -r $<
 .PHONY: install
 
-SGTPuzzles.apk: android/SGTPuzzles_unsigned.apk
+SGTPuzzles.apk: android/SGTPuzzles_unaligned.apk
+	rm -f $@
+	$(ANDROID)/tools/zipalign 4 $< $@
+
+android/SGTPuzzles_unaligned.apk: android/SGTPuzzles_unsigned.apk
 	@echo \# Trying to sign the package. If you are not Chris Boyle, this \
-	will fail and you should sign $< with some other key \(from keytool\).
-	jarsigner -signedjar $@ $< cmb
+	will fail and try to use the default Android debug key instead. \
+	\*\*\* The resulting apk will not be valid for release \*\*\*.
+	@stty -echo || true
+	jarsigner -signedjar $@ $< cmb || jarsigner -keystore ~/.android/debug.keystore -storepass android -signedjar $@ $< androiddebugkey
+	@stty echo && echo "" || true
 
-android/SGTPuzzles_unsigned.apk: android/classes.dex android/resources.apk
-	$(ANDROID)/tools/apkbuilder $@ -u -f $< -z android/resources.apk -rf android/src
+android/SGTPuzzles_unsigned.apk: android/classes.dex android/resources.apk android/lib/armeabi/libpuzzles.so
+	$(ANDROID)/tools/apkbuilder $@ -u -f $< -z android/resources.apk -rf android/src -nf `pwd`/android/lib
 
-android/classes.dex: android/bin android/bin-stamp
-	$(ANDROID)/tools/dx -JXmx512M --dex --verbose --output=$@ $<
+# to raise the memory limit, add -JXmx512M
+android/classes.dex: android/bin-stamp
+	$(ANDROID)/platforms/android-1.6/tools/dx --dex --verbose --output=$@ android/bin
 
 android/resources.apk: android/res/drawable/icon.png android/res/values/arrays.xml \
 		android/res/layout/* android/AndroidManifest.xml android/res/values/* \
 		android/res/menu/*
-	$(ANDROID)/tools/aapt package -f -M android/AndroidManifest.xml \
-		-S android/res -I $(ANDROID)/android.jar -F $@
+	$(ANDROID)/platforms/android-1.6/tools/aapt package -f -M android/AndroidManifest.xml \
+		-S android/res -I $(ANDROID)/platforms/android-1.6/android.jar -F $@
 
 android/src/name/boyle/chris/sgtpuzzles/R.java: android/res/drawable/icon.png \
 		android/AndroidManifest.xml android/res/values/arrays.xml \
 		android/res/values/* android/res/layout/* android/res/menu/*
-	$(ANDROID)/tools/aapt package -m -J android/src -M android/AndroidManifest.xml \
-		-S android/res -I $(ANDROID)/android.jar
+	$(ANDROID)/platforms/android-1.6/tools/aapt package -m -J android/src \
+		-M android/AndroidManifest.xml -S android/res \
+		-I $(ANDROID)/platforms/android-1.6/android.jar
 
 android/bin:
-	mkdir -p $@/org/ibex/nestedvm/util
-	cp $(NESTEDVM)/build/org/ibex/nestedvm/Registers.class $@/org/ibex/nestedvm
-	cp $(NESTEDVM)/build/org/ibex/nestedvm/UsermodeConstants.class $@/org/ibex/nestedvm
-	cp $(NESTEDVM)/build/org/ibex/nestedvm/Runtime*.class $@/org/ibex/nestedvm
-	cp $(NESTEDVM)/build/org/ibex/nestedvm/util/Platform*.class $@/org/ibex/nestedvm/util
-	cp $(NESTEDVM)/build/org/ibex/nestedvm/util/Seekable*.class $@/org/ibex/nestedvm/util
+	mkdir -p $@
+	mkdir -p android/lib/armeabi
 
-android/bin/name/boyle/chris/sgtpuzzles/PuzzlesRuntime.class: android/puzzles.mips
-	java -cp $(NESTEDVM)/build:$(NESTEDVM)/upstream/build/classgen/build \
-		org.ibex.nestedvm.Compiler -outformat class -d android/bin \
-		name.boyle.chris.sgtpuzzles.PuzzlesRuntime $<
-
-android/bin-stamp: android/bin android/bin/name/boyle/chris/sgtpuzzles/PuzzlesRuntime.class \
+android/bin-stamp: android/bin android/lib/armeabi/libpuzzles.so \
 		android/src/name/boyle/chris/sgtpuzzles/*.java \
 		android/src/name/boyle/chris/sgtpuzzles/R.java
-	javac -source 1.5 -target 1.5 -cp \
-		android/bin:$(ANDROID)/android.jar:$(NESTEDVM)/build:$(NESTEDVM)/upstream/build/classgen/build \
+	javac -source 1.5 -target 1.5 -cp $(ANDROID)/platforms/android-1.6/android.jar \
 		-d $< android/src/name/boyle/chris/sgtpuzzles/*.java
 	touch $@
 
-version.o: FORCE;
+android/tmp/version.o: FORCE;
 FORCE:
 	if test -z "$(VER)" && test -f manifest && md5sum -c manifest; then \
-		$(CC) $(COMPAT) $(CFLAGS) `cat version.def` -c version.c; \
+		$(CC) $(COMPAT) $(CFLAGS) `cat version.def` -c version.c -o android/tmp/version.o; \
 	elif test -z "$(VER)" && test -d .svn && svnversion . >/dev/null 2>&1; then \
-		$(CC) $(COMPAT) $(CFLAGS) "-DREVISION=`svnversion .`" -c version.c; \
+		$(CC) $(COMPAT) $(CFLAGS) "-DREVISION=`svnversion .`" -c version.c -o android/tmp/version.o; \
 	else \
-		$(CC) $(COMPAT) $(CFLAGS) $(VER) -c version.c; \
+		$(CC) $(COMPAT) $(CFLAGS) $(VER) -c version.c -o android/tmp/version.o; \
 	fi
 !end
 !specialobj android version

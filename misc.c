@@ -199,6 +199,7 @@ void game_mkhighlight(frontend *fe, float *ret,
     game_mkhighlight_specific(fe, ret, background, highlight, lowlight);
 }
 
+#ifndef ANDROID
 static void memswap(void *av, void *bv, int size)
 {
     char tmpbuf[512];
@@ -214,6 +215,7 @@ static void memswap(void *av, void *bv, int size)
 	size -= thislen;
     }
 }
+#endif
 
 void shuffle(void *array, int nelts, int eltsize, random_state *rs)
 {

@@ -4,11 +4,13 @@ PUZZLES = blackbox bridges cube dominosa fifteen filling flip galaxies guess \
 	  inertia lightup loopy map mines net netslide pattern pegs rect \
 	  samegame sixteen slant solo tents twiddle unequal untangle
 
+BINARIES = $(patsubst %,../%,$(PUZZLES))
 BASE = $(patsubst %,%-base.png,$(PUZZLES))
 WEB = $(patsubst %,%-web.png,$(PUZZLES))
 
 IBASE = $(patsubst %,%-ibase.png,$(PUZZLES))
 IBASE4 = $(patsubst %,%-ibase4.png,$(PUZZLES))
+P64D24 = $(patsubst %,%-64d24.png,$(PUZZLES))
 P48D24 = $(patsubst %,%-48d24.png,$(PUZZLES))
 P48D8 = $(patsubst %,%-48d8.png,$(PUZZLES))
 P48D4 = $(patsubst %,%-48d4.png,$(PUZZLES))
@@ -27,10 +29,15 @@ PIC = ./
 
 base: $(BASE)
 web: $(WEB)
-pngicons: $(P48D24) $(P32D24) $(P16D24)
+pngicons: $(P64D24) $(P48D24) $(P32D24) $(P16D24)
 winicons: $(ICONS) $(RC)
 gtkicons: $(CICONS)
 all: base web pngicons winicons gtkicons
+
+# Make sure puzzle binaries are built with the right rules
+$(BINARIES): ../%:
+	@echo "*** Building $@ GTK version to create screenshot: if you can't do this, you can instead (cd icons && make) on another machine"
+	$(MAKE) -C .. $*
 
 # Build the base puzzle screenshots from which all the other images
 # are derived. Some of them involve showing a move animation
@@ -85,6 +92,8 @@ $(IBASE4): %-ibase4.png: %-ibase.png
 	convert -colors 16 +dither -map $(PIC)win16pal.xpm $^ $@
 
 # Build the 24-bit PNGs for the icons, at three sizes.
+$(P64D24): %-64d24.png: %-ibase.png
+	$(PIC)square.pl 64 4 $^ $@
 $(P48D24): %-48d24.png: %-ibase.png
 	$(PIC)square.pl 48 4 $^ $@
 $(P32D24): %-32d24.png: %-ibase.png

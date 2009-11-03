@@ -1,10 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
       package="name.boyle.chris.sgtpuzzles"
-      android:versionCode="6"
-      android:versionName="8295.2">
+      android:versionCode="7"
+      android:versionName="8732.1">
+    <uses-sdk android:minSdkVersion="3" android:targetSdkVersion="4"/>
+    <!-- You must be able to navigate and enter numbers, so: { 5-way or touchscreen } and { qwerty or number-pad } -->
+    <uses-configuration android:reqFiveWayNav="true" android:reqKeyboardType="qwerty" />
+    <uses-configuration android:reqFiveWayNav="true" android:reqKeyboardType="twelvekey" />
+    <uses-configuration android:reqTouchScreen="finger" android:reqKeyboardType="qwerty" />
+    <uses-configuration android:reqTouchScreen="finger" android:reqKeyboardType="twelvekey" />
     <application android:icon="@drawable/icon" android:label="@string/app_name" android:debuggable="true">
-        <activity android:name=".SGTPuzzles"
+        <activity android:name=".SGTPuzzles" android:windowSoftInputMode="adjustPan"
                   android:label="@string/app_name" android:stateNotNeeded="true" android:launchMode="singleTask" android:configChanges="keyboard|keyboardHidden|orientation">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

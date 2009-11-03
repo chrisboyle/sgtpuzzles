@@ -794,7 +794,7 @@ static void game_changed_state(game_ui *ui, game_state *oldstate,
      */
     ui->dragging = FALSE;
 #ifdef ANDROID
-    if (newstate->completed && oldstate && ! oldstate->completed) nestedvm_completed();
+    if (newstate->completed && oldstate && ! oldstate->completed) android_completed();
 #endif
 }
 

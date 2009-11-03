@@ -369,6 +369,13 @@ void midend_new_game(midend *me)
 					 &me->aux_info, (me->drawing != NULL));
 	me->privdesc = NULL;
         random_free(rs);
+	if (! me->desc) {
+	    /* Cancelled */
+	    sfree(me->aux_info);
+	    me->aux_info = NULL;
+	    me->genmode = GOT_NOTHING;
+	    return;
+	}
     }
 
     ensure(me);

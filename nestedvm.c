@@ -9,15 +9,10 @@
 #include <stdarg.h>
 #include <string.h>
 #include <errno.h>
-#include <ctype.h>
 
 #include <sys/time.h>
 
 #include "puzzles.h"
-
-#ifdef COMBINED
-struct game thegame;
-#endif
 
 extern void _pause();
 extern int _call_java(int cmd, int arg1, int arg2, int arg3);
@@ -39,10 +34,8 @@ struct frontend {
     int timer_active;
     struct timeval last_time;
     config_item *cfg;
-    int cfg_which;
+    int cfg_which, cfgret;
     int ox, oy;
-    char *readptr;
-    int readlen;
 };
 
 static frontend *_fe;
@@ -249,6 +242,20 @@ void activate_timer(frontend *fe)
     fe->timer_active = TRUE;
 }
 
+void jcallback_config_ok()
+{
+    frontend *fe = (frontend *)_fe;
+    char *err;
+
+    err = midend_set_config(fe->me, fe->cfg_which, fe->cfg);
+
+    if (err)
+	_call_java(2, (int) "Error", (int)err, 1);
+    else {
+	fe->cfgret = TRUE;
+    }
+}
+
 void jcallback_config_set_string(int item_ptr, int char_ptr) {
     config_item *i = (config_item *)item_ptr;
     char* newval = (char*) char_ptr;
@@ -265,6 +272,23 @@ void jcallback_config_set_boolean(int item_ptr, int selected) {
 void jcallback_config_set_choice(int item_ptr, int selected) {
     config_item *i = (config_item *)item_ptr;
     i->ival = selected;
+}
+
+static int get_config(frontend *fe, int which)
+{
+    char *title;
+    config_item *i;
+    fe->cfg = midend_get_config(fe->me, which, &title);
+    fe->cfg_which = which;
+    fe->cfgret = FALSE;
+    _call_java(10, (int)title, 0, 0);
+    for (i = fe->cfg; i->type != C_END; i++) {
+	_call_java(5, (int)i, i->type, (int)i->name);
+	_call_java(11, (int)i->sval, i->ival, 0);
+    }
+    _call_java(12,0,0,0);
+    free_cfg(fe->cfg);
+    return fe->cfgret;
 }
 
 int jcallback_menu_key_event(int key)
@@ -318,73 +342,17 @@ int jcallback_restart_event()
     return 0;
 }
 
-void jcallback_config_event(int which)
+int jcallback_config_event(int which)
 {
     frontend *fe = (frontend *)_fe;
-    char *title;
-    config_item *i;
     _call_java(13, midend_which_preset(fe->me), 0, 0);
-    fe->cfg = midend_get_config(fe->me, which, &title);
-    fe->cfg_which = which;
-    _call_java(10, (int)title, 0, 0);
-    for (i = fe->cfg; i->type != C_END; i++) {
-	_call_java(5, (int)i, i->type, (int)i->name);
-	_call_java(11, (int)i->sval, i->ival, 0);
-    }
-    _call_java(12,0,0,0);
-}
-
-void jcallback_config_ok()
-{
-    frontend *fe = (frontend *)_fe;
-    char *err;
-
-    err = midend_set_config(fe->me, fe->cfg_which, fe->cfg);
-    free_cfg(fe->cfg);
-
-    if (err) {
-	_call_java(2, (int) "Error", (int)err, 1);
-	return;
-    }
+    if (!get_config(fe, which))
+	return 0;
     midend_new_game(fe->me);
     resize_fe(fe);
     _call_java(13, midend_which_preset(fe->me), 0, 0);
+    return 0;
 }
-
-void jcallback_config_cancel()
-{
-    frontend *fe = (frontend *)_fe;
-    free_cfg(fe->cfg);
-}
-
-void nestedvm_serialise_write(void *ctx, void *buf, int len)
-{
-    _call_java(14, (int)ctx, (int)buf, len);
-}
-
-void jcallback_serialise(int ctx)
-{
-    midend_serialise(_fe->me, nestedvm_serialise_write, (void*)ctx);
-}
-
-int nestedvm_deserialise_read(void *ctx, void *buf, int len)
-{
-    int l = min(len, _fe->readlen);
-    if (l <= 0) return FALSE;
-    memcpy( buf, _fe->readptr, l );
-    _fe->readptr += l;
-    _fe->readlen -= l;
-    return l == len;
-}
-
-int nestedvm_deserialise(char* ptr)
-{
-    _fe->readptr = ptr;
-    _fe->readlen = strlen(_fe->readptr);
-    return (int)midend_deserialise(_fe->me, nestedvm_deserialise_read, NULL);
-}
-
-int jcallback_deserialise(int ptr) { return nestedvm_deserialise((char*)ptr); }
 
 int jcallback_about_event()
 {
@@ -400,19 +368,6 @@ int jcallback_about_event()
     return 0;
 }
 
-#ifdef COMBINED
-// Android special
-int jcallback_game_htmlhelptopic(int i)
-{
-    return (int)thegame.htmlhelp_topic;
-}
-#endif
-
-void nestedvm_completed()
-{
-	_call_java(2, 0, (int)"Completed!", 0);
-}
-
 int main(int argc, char **argv)
 {
     int i, n;
@@ -420,26 +375,10 @@ int main(int argc, char **argv)
 
     _fe = snew(frontend);
     _fe->timer_active = FALSE;
-#ifdef COMBINED
-    // Android special
-    if (isdigit(argv[0][0])) {
-	thegame = *(gamelist[atoi(argv[0])]);
-    } else {
-	// Find out which game the savefile is from
-	_fe->me = NULL;  // magic in midend_deserialise
-	if (argc < 3 || nestedvm_deserialise(argv[2]) != 0) exit(1);
-	// thegame is now set
-    }
-#endif
     _fe->me = midend_new(_fe, &thegame, &nestedvm_drawing, _fe);
-    if (argc > 2 && strcmp(argv[1],"-s") == 0) {
-	if( nestedvm_deserialise(argv[2]) != 0 )
-	    midend_new_game(_fe->me);
-    } else {
-	if (argc > 2 && strcmp(argv[1],"-i") == 0)
-	    midend_game_id(_fe->me, argv[1]);   /* ignore failure */
-	midend_new_game(_fe->me);
-    }
+    if (argc > 1)
+	midend_game_id(_fe->me, argv[1]);   /* ignore failure */
+    midend_new_game(_fe->me);
 
     if ((n = midend_num_presets(_fe->me)) > 0) {
         int i;

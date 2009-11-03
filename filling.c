@@ -395,6 +395,7 @@ static void make_board(int *board, int w, int h, random_state *rs) {
     assert(FALSE); /* unreachable */
 }
 
+#ifndef NDEBUG
 static int rhofree(int *hop, int start) {
     int turtle = start, rabbit = hop[start];
     while (rabbit != turtle) { /* find a cycle */
@@ -407,6 +408,7 @@ static int rhofree(int *hop, int start) {
     } while (rabbit != turtle);
     return 0;
 }
+#endif
 
 static void merge(int *dsf, int *connected, int a, int b) {
     int c;
@@ -1022,7 +1024,7 @@ static void game_changed_state(game_ui *ui, game_state *oldstate,
         ui->sel = NULL;
     }
 #ifdef ANDROID
-    if (newstate->completed && ! newstate->cheated && oldstate && ! oldstate->completed) nestedvm_completed();
+    if (newstate->completed && ! newstate->cheated && oldstate && ! oldstate->completed) android_completed();
 #endif
 }
 
