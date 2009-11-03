@@ -62,6 +62,7 @@ int verbose = FALSE;
 #define DIFFLIST(A) \
     A(EASY,Easy,e) \
     A(HARD,Hard,h)
+// _("Easy"), _("Hard")
 #define ENUM(upper,title,lower) DIFF_ ## upper,
 #define TITLE(upper,title,lower) #title,
 #define ENCODE(upper,title,lower) #lower
@@ -69,7 +70,7 @@ int verbose = FALSE;
 enum { DIFFLIST(ENUM) DIFFCOUNT };
 static char const *const slant_diffnames[] = { DIFFLIST(TITLE) };
 static char const slant_diffchars[] = DIFFLIST(ENCODE);
-#define DIFFCONFIG DIFFLIST(CONFIG)
+#define DIFFCONFIG _(DIFFLIST(CONFIG))
 
 struct game_params {
     int w, h, diff;
@@ -124,7 +125,7 @@ static int game_fetch_preset(int i, char **name, game_params **params)
     ret = snew(game_params);
     *ret = slant_presets[i];
 
-    sprintf(str, "%dx%d %s", ret->w, ret->h, slant_diffnames[ret->diff]);
+    sprintf(str, "%dx%d %s", ret->w, ret->h, _(slant_diffnames[ret->diff]));
 
     *name = dupstr(str);
     *params = ret;
@@ -180,19 +181,19 @@ static config_item *game_configure(game_params *params)
 
     ret = snewn(4, config_item);
 
-    ret[0].name = "Width";
+    ret[0].name = _("Width");
     ret[0].type = C_STRING;
     sprintf(buf, "%d", params->w);
     ret[0].sval = dupstr(buf);
     ret[0].ival = 0;
 
-    ret[1].name = "Height";
+    ret[1].name = _("Height");
     ret[1].type = C_STRING;
     sprintf(buf, "%d", params->h);
     ret[1].sval = dupstr(buf);
     ret[1].ival = 0;
 
-    ret[2].name = "Difficulty";
+    ret[2].name = _("Difficulty");
     ret[2].type = C_CHOICES;
     ret[2].sval = DIFFCONFIG;
     ret[2].ival = params->diff;
@@ -228,7 +229,7 @@ static char *validate_params(game_params *params, int full)
      */
 
     if (params->w < 2 || params->h < 2)
-	return "Width and height must both be at least two";
+	return _("Width and height must both be at least two");
 
     return NULL;
 }
@@ -1136,6 +1137,7 @@ static char *new_game_desc(game_params *params, random_state *rs,
             return NULL;
         }
 #endif
+
 	/*
 	 * Remove as many clues as possible while retaining solubility.
 	 *
@@ -1270,14 +1272,14 @@ static char *validate_desc(game_params *params, char *desc)
         } else if (n >= '0' && n <= '4') {
             squares++;
         } else
-            return "Invalid character in game description";
+            return _("Invalid character in game description");
     }
 
     if (squares < area)
-        return "Not enough data to fill grid";
+        return _("Not enough data to fill grid");
 
     if (squares > area)
-        return "Too much data to fit in grid";
+        return _("Too much data to fit in grid");
 
     return NULL;
 }
@@ -1311,8 +1313,9 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
             squares += n - 'a' + 1;
         } else if (n >= '0' && n <= '4') {
             state->clues->clues[squares++] = n - '0';
-        } else
+        } else {
 	    assert(!"can't get here");
+	}
     }
     assert(squares == area);
 

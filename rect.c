@@ -177,25 +177,25 @@ static config_item *game_configure(game_params *params)
 
     ret = snewn(5, config_item);
 
-    ret[0].name = "Width";
+    ret[0].name = _("Width");
     ret[0].type = C_STRING;
     sprintf(buf, "%d", params->w);
     ret[0].sval = dupstr(buf);
     ret[0].ival = 0;
 
-    ret[1].name = "Height";
+    ret[1].name = _("Height");
     ret[1].type = C_STRING;
     sprintf(buf, "%d", params->h);
     ret[1].sval = dupstr(buf);
     ret[1].ival = 0;
 
-    ret[2].name = "Expansion factor";
+    ret[2].name = _("Expansion factor");
     ret[2].type = C_STRING;
     sprintf(buf, "%g", params->expandfactor);
     ret[2].sval = dupstr(buf);
     ret[2].ival = 0;
 
-    ret[3].name = "Ensure unique solution";
+    ret[3].name = _("Ensure unique solution");
     ret[3].type = C_BOOLEAN;
     ret[3].sval = NULL;
     ret[3].ival = params->unique;
@@ -223,11 +223,11 @@ static game_params *custom_params(config_item *cfg)
 static char *validate_params(game_params *params, int full)
 {
     if (params->w <= 0 || params->h <= 0)
-	return "Width and height must both be greater than zero";
+	return _("Width and height must both be greater than zero");
     if (params->w*params->h < 2)
-	return "Grid area must be greater than one";
+	return _("Grid area must be greater than one");
     if (params->expandfactor < 0.0F)
-	return "Expansion factor may not be negative";
+	return _("Expansion factor may not be negative");
     return NULL;
 }
 
@@ -1864,14 +1864,14 @@ static char *validate_desc(game_params *params, char *desc)
             while (*desc >= '0' && *desc <= '9')
                 desc++;
         } else
-            return "Invalid character in game description";
+            return _("Invalid character in game description");
     }
 
     if (squares < area)
-        return "Not enough data to fill grid";
+        return _("Not enough data to fill grid");
 
     if (squares > area)
-        return "Too much data to fit in grid";
+        return _("Too much data to fit in grid");
 
     return NULL;
 }
@@ -2471,7 +2471,7 @@ static char *interpret_move(game_state *from, game_ui *ui, game_drawstate *ds,
     } else if (IS_CURSOR_SELECT(button)) {
         if (!ui->cur_visible) {
             assert(!ui->cur_dragging);
-           ui->cur_visible = TRUE;
+            ui->cur_visible = TRUE;
             return "";
         }
         coord_round((float)ui->cur_x + 0.5F, (float)ui->cur_y + 0.5F, &xc, &yc);
@@ -2900,9 +2900,9 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 	}
 
         if (state->cheated)
-            strcat(buf, "Auto-solved.");
+            strcat(buf, _("Auto-solved."));
         else if (state->completed)
-            strcat(buf, "COMPLETED!");
+            strcat(buf, _("COMPLETED!"));
 
         status_bar(dr, buf);
     }

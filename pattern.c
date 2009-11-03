@@ -137,13 +137,13 @@ static config_item *game_configure(game_params *params)
 
     ret = snewn(3, config_item);
 
-    ret[0].name = "Width";
+    ret[0].name = _("Width");
     ret[0].type = C_STRING;
     sprintf(buf, "%d", params->w);
     ret[0].sval = dupstr(buf);
     ret[0].ival = 0;
 
-    ret[1].name = "Height";
+    ret[1].name = _("Height");
     ret[1].type = C_STRING;
     sprintf(buf, "%d", params->h);
     ret[1].sval = dupstr(buf);
@@ -170,7 +170,7 @@ static game_params *custom_params(config_item *cfg)
 static char *validate_params(game_params *params, int full)
 {
     if (params->w <= 0 || params->h <= 0)
-	return "Width and height must both be greater than zero";
+	return _("Width and height must both be greater than zero");
     return NULL;
 }
 
@@ -608,9 +608,9 @@ static char *validate_desc(game_params *params, char *desc)
 
                 if (rowspace < 0) {
                     if (i < params->w)
-                        return "at least one column contains more numbers than will fit";
+                        return _("at least one column contains more numbers than will fit");
                     else
-                        return "at least one row contains more numbers than will fit";
+                        return _("at least one row contains more numbers than will fit");
                 }
             } while (*desc++ == '.');
         } else {
@@ -619,12 +619,12 @@ static char *validate_desc(game_params *params, char *desc)
 
         if (desc[-1] == '/') {
             if (i+1 == params->w + params->h)
-                return "too many row/column specifications";
+                return _("too many row/column specifications");
         } else if (desc[-1] == '\0') {
             if (i+1 < params->w + params->h)
-                return "too few row/column specifications";
+                return _("too few row/column specifications");
         } else
-            return "unrecognised character in game specification";
+            return _("unrecognised character in game specification");
     }
 
     return NULL;
@@ -744,7 +744,7 @@ static char *solve_game(game_state *state, game_state *currstate,
     for (i = 0; i < w*h; i++) {
         if (matrix[i] != BLOCK && matrix[i] != DOT) {
             sfree(matrix);
-            *error = "Solving algorithm cannot complete this puzzle";
+            *error = _("Solving algorithm cannot complete this puzzle");
             return NULL;
         }
     }

@@ -170,6 +170,13 @@ void frontend_default_colour(frontend *fe, float *output);
 void deactivate_timer(frontend *fe);
 void activate_timer(frontend *fe);
 void get_random_seed(void **randseed, int *randseedsize);
+char *get_text(const char *text);
+#ifdef ANDROID
+#define _(x) get_text(x)
+#else
+/* No i18n on other platforms yet */
+#define _(x) (x)
+#endif
 
 /*
  * drawing.c
@@ -347,7 +354,7 @@ void domino_layout_prealloc(int w, int h, random_state *rs,
 /*
  * version.c
  */
-extern char ver[];
+extern char ver[], vernum[];
 
 /*
  * random.c

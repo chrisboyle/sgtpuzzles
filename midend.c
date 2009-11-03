@@ -1014,7 +1014,7 @@ config_item *midend_get_config(midend *me, int which, char **wintitle)
 
     switch (which) {
       case CFG_SETTINGS:
-	sprintf(titlebuf, "%s configuration", me->ourgame->name);
+	sprintf(titlebuf, _("%s configuration"), me->ourgame->name);
 	*wintitle = titlebuf;
 	return me->ourgame->configure(me->params);
       case CFG_SEED:
@@ -1023,17 +1023,17 @@ config_item *midend_get_config(midend *me, int which, char **wintitle)
           sfree(titlebuf);
           return NULL;
         }
-        sprintf(titlebuf, "%s %s selection", me->ourgame->name,
-                which == CFG_SEED ? "random" : "game");
+        sprintf(titlebuf, which == CFG_SEED ? _("%s random selection")
+                : _("%s game selection"), me->ourgame->name);
         *wintitle = titlebuf;
 
 	ret = snewn(2, config_item);
 
 	ret[0].type = C_STRING;
         if (which == CFG_SEED)
-            ret[0].name = "Game random seed";
+            ret[0].name = _("Game random seed");
         else
-            ret[0].name = "Game ID";
+            ret[0].name = _("Game ID");
 	ret[0].ival = 0;
         /*
          * For CFG_DESC the text going in here will be a string
@@ -1274,10 +1274,10 @@ char *midend_solve(midend *me)
     char *msg, *movestr;
 
     if (!me->ourgame->can_solve)
-	return "This game does not support the Solve operation";
+	return _("This game does not support the Solve operation");
 
     if (me->statepos < 1)
-	return "No game set up to solve";   /* _shouldn't_ happen! */
+	return _("No game set up to solve");   /* _shouldn't_ happen! */
 
     msg = NULL;
     movestr = me->ourgame->solve(me->states[0].state,
@@ -1285,7 +1285,7 @@ char *midend_solve(midend *me)
 				 me->aux_info, &msg);
     if (!movestr) {
 	if (!msg)
-	    msg = "Solve operation failed";   /* _shouldn't_ happen, but can */
+	    msg = _("Solve operation failed");   /* _shouldn't_ happen, but can */
 	return msg;
     }
     s = me->ourgame->execute_move(me->states[me->statepos-1].state, movestr);
@@ -1519,7 +1519,7 @@ char *midend_deserialise(midend *me,
 
     char *val = NULL;
     /* Initially all errors give the same report */
-    char *ret = "Data does not appear to be a saved game file";
+    char *ret = _("Data does not appear to be a saved game file");
 
     /*
      * We construct all the new state in local variables while we
@@ -1557,7 +1557,7 @@ char *midend_deserialise(midend *me,
 
         if (key[8] != ':') {
             if (started)
-                ret = "Data was incorrectly formatted for a saved game file";
+                ret = _("Data was incorrectly formatted for a saved game file");
 	    goto cleanup;
         }
         len = strcspn(key, ": ");
@@ -1577,8 +1577,7 @@ char *midend_deserialise(midend *me,
                 len = (len * 10) + (c - '0');
             } else {
                 if (started)
-                    ret = "Data was incorrectly formatted for a"
-                    " saved game file";
+                    ret = _("Data was incorrectly formatted for a saved game file");
                 goto cleanup;
             }
         }
@@ -1596,13 +1595,12 @@ char *midend_deserialise(midend *me,
                 goto cleanup;
             }
             /* Now most errors are this one, unless otherwise specified */
-            ret = "Saved data ended unexpectedly";
+            ret = _("Saved data ended unexpectedly");
             started = TRUE;
         } else {
             if (!strcmp(key, "VERSION")) {
                 if (strcmp(val, SERIALISE_VERSION)) {
-                    ret = "Cannot handle this version of the saved game"
-                        " file format";
+                    ret = _("Cannot handle this version of the saved game file format");
                     goto cleanup;
                 }
             } else if (!strcmp(key, "GAME")) {
@@ -1610,7 +1608,7 @@ char *midend_deserialise(midend *me,
                 if (me) {
 #endif
                     if (strcmp(val, me->ourgame->name)) {
-                        ret = "Save file is from a different game";
+                        ret = _("Save file is from a different game");
                         goto cleanup;
                     }
 #ifdef COMBINED
@@ -1623,7 +1621,7 @@ char *midend_deserialise(midend *me,
                             goto cleanup;
                         }
                     }
-                    ret = "Save file is not from a game in this collection";
+                    ret = _("Save file is not from a game in this collection");
                     goto cleanup;
                 }
 #endif
@@ -1667,11 +1665,11 @@ char *midend_deserialise(midend *me,
             } else if (!strcmp(key, "NSTATES")) {
                 nstates = atoi(val);
                 if (nstates <= 0) {
-                    ret = "Number of states in save file was negative";
+                    ret = _("Number of states in save file was negative");
                     goto cleanup;
                 }
                 if (states) {
-                    ret = "Two state counts provided in save file";
+                    ret = _("Two state counts provided in save file");
                     goto cleanup;
                 }
                 states = snewn(nstates, struct midend_state_entry);
@@ -1707,13 +1705,13 @@ char *midend_deserialise(midend *me,
     params = me->ourgame->default_params();
     me->ourgame->decode_params(params, parstr);
     if (me->ourgame->validate_params(params, TRUE)) {
-        ret = "Long-term parameters in save file are invalid";
+        ret = _("Long-term parameters in save file are invalid");
         goto cleanup;
     }
     cparams = me->ourgame->default_params();
     me->ourgame->decode_params(cparams, cparstr);
     if (me->ourgame->validate_params(cparams, FALSE)) {
-        ret = "Short-term parameters in save file are invalid";
+        ret = _("Short-term parameters in save file are invalid");
         goto cleanup;
     }
     if (seed && me->ourgame->validate_params(cparams, TRUE)) {
@@ -1725,18 +1723,18 @@ char *midend_deserialise(midend *me,
         seed = NULL;
     }
     if (!desc) {
-        ret = "Game description in save file is missing";
+        ret = _("Game description in save file is missing");
         goto cleanup;
     } else if (me->ourgame->validate_desc(params, desc)) {
-        ret = "Game description in save file is invalid";
+        ret = _("Game description in save file is invalid");
         goto cleanup;
     }
     if (privdesc && me->ourgame->validate_desc(params, privdesc)) {
-        ret = "Game private description in save file is invalid";
+        ret = _("Game private description in save file is invalid");
         goto cleanup;
     }
     if (statepos < 0 || statepos >= nstates) {
-        ret = "Game position in save file is out of range";
+        ret = _("Game position in save file is out of range");
     }
 
     states[0].state = me->ourgame->new_game(me, params,
@@ -1749,13 +1747,13 @@ char *midend_deserialise(midend *me,
             states[i].state = me->ourgame->execute_move(states[i-1].state,
                                                         states[i].movestr);
             if (states[i].state == NULL) {
-                ret = "Save file contained an invalid move";
+                ret = _("Save file contained an invalid move");
                 goto cleanup;
             }
             break;
           case RESTART:
             if (me->ourgame->validate_desc(params, states[i].movestr)) {
-                ret = "Save file contained an invalid restart move";
+                ret = _("Save file contained an invalid restart move");
                 goto cleanup;
             }
             states[i].state = me->ourgame->new_game(me, params,
@@ -1879,15 +1877,15 @@ char *midend_print_puzzle(midend *me, document *doc, int with_soln)
     game_state *soln = NULL;
 
     if (me->statepos < 1)
-	return "No game set up to print";/* _shouldn't_ happen! */
+	return _("No game set up to print");/* _shouldn't_ happen! */
 
     if (with_soln) {
 	char *msg, *movestr;
 
 	if (!me->ourgame->can_solve)
-	    return "This game does not support the Solve operation";
+	    return _("This game does not support the Solve operation");
 
-	msg = "Solve operation failed";/* game _should_ overwrite on error */
+	msg = _("Solve operation failed");/* game _should_ overwrite on error */
 	movestr = me->ourgame->solve(me->states[0].state,
 				     me->states[me->statepos-1].state,
 				     me->aux_info, &msg);

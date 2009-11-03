@@ -36,6 +36,7 @@ enum {
     A(CROSS,Cross,cross) \
     A(OCTAGON,Octagon,octagon) \
     A(RANDOM,Random,random)
+// _("Cross"), _("Octagon"), _("Random")
 #define ENUM(upper,title,lower) TYPE_ ## upper,
 #define TITLE(upper,title,lower) #title,
 #define LOWER(upper,title,lower) #lower,
@@ -88,7 +89,7 @@ static int game_fetch_preset(int i, char **name, game_params **params)
     ret = snew(game_params);
     *ret = pegs_presets[i];
 
-    strcpy(str, pegs_titletypes[ret->type]);
+    strcpy(str, _(pegs_titletypes[ret->type]));
     if (ret->type == TYPE_RANDOM)
 	sprintf(str + strlen(str), " %dx%d", ret->w, ret->h);
 
@@ -146,19 +147,19 @@ static config_item *game_configure(game_params *params)
     config_item *ret = snewn(4, config_item);
     char buf[80];
 
-    ret[0].name = "Width";
+    ret[0].name = _("Width");
     ret[0].type = C_STRING;
     sprintf(buf, "%d", params->w);
     ret[0].sval = dupstr(buf);
     ret[0].ival = 0;
 
-    ret[1].name = "Height";
+    ret[1].name = _("Height");
     ret[1].type = C_STRING;
     sprintf(buf, "%d", params->h);
     ret[1].sval = dupstr(buf);
     ret[1].ival = 0;
 
-    ret[2].name = "Board type";
+    ret[2].name = _("Board type");
     ret[2].type = C_CHOICES;
     ret[2].sval = TYPECONFIG;
     ret[2].ival = params->type;
@@ -185,7 +186,7 @@ static game_params *custom_params(config_item *cfg)
 static char *validate_params(game_params *params, int full)
 {
     if (full && (params->w <= 3 || params->h <= 3))
-	return "Width and height must both be greater than three";
+	return _("Width and height must both be greater than three");
 
     /*
      * It might be possible to implement generalisations of Cross
@@ -195,7 +196,7 @@ static char *validate_params(game_params *params, int full)
      */
     if (full && (params->type == TYPE_CROSS || params->type == TYPE_OCTAGON)) {
 	if (params->w != 7 || params->h != 7)
-	    return "This board type is only supported at 7x7";
+	    return _("This board type is only supported at 7x7");
     }
     return NULL;
 }
@@ -665,9 +666,9 @@ static char *validate_desc(game_params *params, char *desc)
     int len = params->w * params->h;
 
     if (len != strlen(desc))
-	return "Game description is wrong length";
+	return _("Game description is wrong length");
     if (len != strspn(desc, "PHO"))
-	return "Invalid character in game description";
+	return _("Invalid character in game description");
 
     return NULL;
 }

@@ -55,6 +55,7 @@ static float flash_length;
     A(NORMAL,Normal,n) \
     A(HARD,Hard,h) \
     A(RECURSE,Unreasonable,u)
+// _("Easy"), _("Normal"), _("Hard"), _("Unreasonable")
 #define ENUM(upper,title,lower) DIFF_ ## upper,
 #define TITLE(upper,title,lower) #title,
 #define ENCODE(upper,title,lower) #lower
@@ -62,7 +63,7 @@ static float flash_length;
 enum { DIFFLIST(ENUM) DIFFCOUNT };
 static char const *const map_diffnames[] = { DIFFLIST(TITLE) };
 static char const map_diffchars[] = DIFFLIST(ENCODE);
-#define DIFFCONFIG DIFFLIST(CONFIG)
+#define DIFFCONFIG _(DIFFLIST(CONFIG))
 
 enum { TE, BE, LE, RE };               /* top/bottom/left/right edges */
 
@@ -142,8 +143,8 @@ static int game_fetch_preset(int i, char **name, game_params **params)
     ret = snew(game_params);
     *ret = map_presets[i];
 
-    sprintf(str, "%dx%d, %d regions, %s", ret->w, ret->h, ret->n,
-	    map_diffnames[ret->diff]);
+    sprintf(str, _("%dx%d, %d regions, %s"), ret->w, ret->h, ret->n,
+	    _(map_diffnames[ret->diff]));
 
     *name = dupstr(str);
     *params = ret;
@@ -210,25 +211,25 @@ static config_item *game_configure(game_params *params)
 
     ret = snewn(5, config_item);
 
-    ret[0].name = "Width";
+    ret[0].name = _("Width");
     ret[0].type = C_STRING;
     sprintf(buf, "%d", params->w);
     ret[0].sval = dupstr(buf);
     ret[0].ival = 0;
 
-    ret[1].name = "Height";
+    ret[1].name = _("Height");
     ret[1].type = C_STRING;
     sprintf(buf, "%d", params->h);
     ret[1].sval = dupstr(buf);
     ret[1].ival = 0;
 
-    ret[2].name = "Regions";
+    ret[2].name = _("Regions");
     ret[2].type = C_STRING;
     sprintf(buf, "%d", params->n);
     ret[2].sval = dupstr(buf);
     ret[2].ival = 0;
 
-    ret[3].name = "Difficulty";
+    ret[3].name = _("Difficulty");
     ret[3].type = C_CHOICES;
     ret[3].sval = DIFFCONFIG;
     ret[3].ival = params->diff;
@@ -256,11 +257,11 @@ static game_params *custom_params(config_item *cfg)
 static char *validate_params(game_params *params, int full)
 {
     if (params->w < 2 || params->h < 2)
-	return "Width and height must be at least two";
+	return _("Width and height must be at least two");
     if (params->n < 5)
-	return "Must have at least five regions";
+	return _("Must have at least five regions");
     if (params->n > params->w * params->h)
-	return "Too many regions to fit in grid";
+	return _("Too many regions to fit in grid");
     return NULL;
 }
 
@@ -1733,7 +1734,7 @@ static char *parse_edge_list(game_params *params, char **desc, int *map)
      */
     while (*p && *p != ',') {
 	if (*p < 'a' || *p > 'z')
-	    return "Unexpected character in edge list";
+	    return _("Unexpected character in edge list");
 	if (*p == 'z')
 	    k = 25;
 	else
@@ -1757,7 +1758,7 @@ static char *parse_edge_list(game_params *params, char **desc, int *map)
 		dx = 1;
 		dy = 0;
 	    } else
-		return "Too much data in edge list";
+		return _("Too much data in edge list");
 	    if (!state)
 		dsf_merge(map+wh, y*w+x, (y+dy)*w+(x+dx));
 
@@ -1769,7 +1770,7 @@ static char *parse_edge_list(game_params *params, char **desc, int *map)
     }
     assert(pos <= 2*wh-w-h);
     if (pos < 2*wh-w-h)
-	return "Too little data in edge list";
+	return _("Too little data in edge list");
 
     /*
      * Now go through again and allocate region numbers.
@@ -1784,7 +1785,7 @@ static char *parse_edge_list(game_params *params, char **desc, int *map)
 	map[i] = map[k];
     }
     if (pos != n)
-	return "Edge list defines the wrong number of regions";
+	return _("Edge list defines the wrong number of regions");
 
     *desc = p;
 
@@ -1805,7 +1806,7 @@ static char *validate_desc(game_params *params, char *desc)
 	return ret;
 
     if (*desc != ',')
-	return "Expected comma before clue list";
+	return _("Expected comma before clue list");
     desc++;			       /* eat comma */
 
     area = 0;
@@ -1815,13 +1816,13 @@ static char *validate_desc(game_params *params, char *desc)
 	else if (*desc >= 'a' && *desc <= 'z')
 	    area += *desc - 'a' + 1;
 	else
-	    return "Unexpected character in clue list";
+	    return _("Unexpected character in clue list");
 	desc++;
     }
     if (area < n)
-	return "Too little data in clue list";
+	return _("Too little data in clue list");
     else if (area > n)
-	return "Too much data in clue list";
+	return _("Too much data in clue list");
 
     return NULL;
 }
@@ -2224,9 +2225,9 @@ static char *solve_game(game_state *state, game_state *currstate,
 	if (sret != 1) {
 	    sfree(colouring);
 	    if (sret == 0)
-		*error = "Puzzle is inconsistent";
+		*error = _("Puzzle is inconsistent");
 	    else
-		*error = "Unable to find a unique solution for this puzzle";
+		*error = _("Unable to find a unique solution for this puzzle");
 	    return NULL;
 	}
 

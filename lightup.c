@@ -177,8 +177,8 @@ static int game_fetch_preset(int i, char **name, game_params **params)
 
     sprintf(buf, "%dx%d %s",
             ret->w, ret->h,
-            ret->difficulty == 2 ? "hard" :
-            ret->difficulty == 1 ? "tricky" : "easy");
+            ret->difficulty == 2 ? _("Hard") :
+            ret->difficulty == 1 ? _("Tricky") : _("Easy"));
     *name = dupstr(buf);
 
     return TRUE;
@@ -250,34 +250,32 @@ static config_item *game_configure(game_params *params)
 
     ret = snewn(6, config_item);
 
-    ret[0].name = "Width";
+    ret[0].name = _("Width");
     ret[0].type = C_STRING;
     sprintf(buf, "%d", params->w);
     ret[0].sval = dupstr(buf);
     ret[0].ival = 0;
 
-    ret[1].name = "Height";
+    ret[1].name = _("Height");
     ret[1].type = C_STRING;
     sprintf(buf, "%d", params->h);
     ret[1].sval = dupstr(buf);
     ret[1].ival = 0;
 
-    ret[2].name = "%age of black squares";
+    ret[2].name = _("%age of black squares");
     ret[2].type = C_STRING;
     sprintf(buf, "%d", params->blackpc);
     ret[2].sval = dupstr(buf);
     ret[2].ival = 0;
 
-    ret[3].name = "Symmetry";
+    ret[3].name = _("Symmetry");
     ret[3].type = C_CHOICES;
-    ret[3].sval = ":None"
-                  ":2-way mirror:2-way rotational"
-                  ":4-way mirror:4-way rotational";
+    ret[3].sval = _(":None:2-way mirror:2-way rotational:4-way mirror:4-way rotational");
     ret[3].ival = params->symm;
 
-    ret[4].name = "Difficulty";
+    ret[4].name = _("Difficulty");
     ret[4].type = C_CHOICES;
-    ret[4].sval = ":Easy:Tricky:Hard";
+    ret[4].sval = _(":Easy:Tricky:Hard");
     ret[4].ival = params->difficulty;
 
     ret[5].name = NULL;
@@ -304,18 +302,18 @@ static game_params *custom_params(config_item *cfg)
 static char *validate_params(game_params *params, int full)
 {
     if (params->w < 2 || params->h < 2)
-        return "Width and height must be at least 2";
+        return _("Width and height must be at least 2");
     if (full) {
         if (params->blackpc < 5 || params->blackpc > 100)
-            return "Percentage of black squares must be between 5% and 100%";
+            return _("Percentage of black squares must be between 5% and 100%");
         if (params->w != params->h) {
             if (params->symm == SYMM_ROT4)
-                return "4-fold symmetry is only available with square grids";
+                return _("4-fold symmetry is only available with square grids");
         }
         if (params->symm < 0 || params->symm >= SYMM_MAX)
-            return "Unknown symmetry type";
+            return _("Unknown symmetry type");
         if (params->difficulty < 0 || params->difficulty > DIFFCOUNT)
-            return "Unknown difficulty level";
+            return _("Unknown difficulty level");
     }
     return NULL;
 }
@@ -1605,13 +1603,13 @@ static char *validate_desc(game_params *params, char *desc)
         else if (*desc >= 'a' && *desc <= 'z')
             i += *desc - 'a';	       /* and the i++ will add another one */
         else if (!*desc)
-            return "Game description shorter than expected";
+            return _("Game description shorter than expected");
         else
-            return "Game description contained unexpected character";
+            return _("Invalid character in game description");
         desc++;
     }
     if (*desc || i > params->w*params->h)
-        return "Game description longer than expected";
+        return _("Game description longer than expected");
 
     return NULL;
 }
@@ -1685,7 +1683,7 @@ static char *solve_game(game_state *state, game_state *currstate,
     /* That didn't work; try solving from the clean puzzle. */
     solved = dup_game(state);
     if (dosolve(solved, sflags, NULL) > 0) goto solved;
-    *error = "Puzzle is not self-consistent.";
+    *error = _("Puzzle is not self-consistent.");
     goto done;
 
 solved:

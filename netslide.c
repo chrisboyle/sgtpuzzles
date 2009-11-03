@@ -159,15 +159,16 @@ static game_params *default_params(void)
 
 static const struct { int x, y, wrap, bprob; const char* desc; }
 netslide_presets[] = {
-    {3, 3, FALSE, 1, " easy"},
-    {3, 3, FALSE, 0, " medium"},
-    {3, 3, TRUE,  0, " hard"},
-    {4, 4, FALSE, 1, " easy"},
-    {4, 4, FALSE, 0, " medium"},
-    {4, 4, TRUE,  0, " hard"},
-    {5, 5, FALSE, 1, " easy"},
-    {5, 5, FALSE, 0, " medium"},
-    {5, 5, TRUE,  0, " hard"},
+    {3, 3, FALSE, 1, "Easy"},
+    {3, 3, FALSE, 0, "Medium"},
+    {3, 3, TRUE,  0, "Hard"},
+    {4, 4, FALSE, 1, "Easy"},
+    {4, 4, FALSE, 0, "Medium"},
+    {4, 4, TRUE,  0, "Hard"},
+    {5, 5, FALSE, 1, "Easy"},
+    {5, 5, FALSE, 0, "Medium"},
+    {5, 5, TRUE,  0, "Hard"},
+// _("Easy"), _("Medium"), _("Hard")
 };
 
 static int game_fetch_preset(int i, char **name, game_params **params)
@@ -185,7 +186,7 @@ static int game_fetch_preset(int i, char **name, game_params **params)
     ret->barrier_probability = (float)netslide_presets[i].bprob;
     ret->movetarget = 0;
 
-    sprintf(str, "%dx%d%s", ret->width, ret->height, netslide_presets[i].desc);
+    sprintf(str, "%dx%d %s", ret->width, ret->height, _(netslide_presets[i].desc));
 
     *name = dupstr(str);
     *params = ret;
@@ -259,30 +260,30 @@ static config_item *game_configure(game_params *params)
 
     ret = snewn(6, config_item);
 
-    ret[0].name = "Width";
+    ret[0].name = _("Width");
     ret[0].type = C_STRING;
     sprintf(buf, "%d", params->width);
     ret[0].sval = dupstr(buf);
     ret[0].ival = 0;
 
-    ret[1].name = "Height";
+    ret[1].name = _("Height");
     ret[1].type = C_STRING;
     sprintf(buf, "%d", params->height);
     ret[1].sval = dupstr(buf);
     ret[1].ival = 0;
 
-    ret[2].name = "Walls wrap around";
+    ret[2].name = _("Walls wrap around");
     ret[2].type = C_BOOLEAN;
     ret[2].sval = NULL;
     ret[2].ival = params->wrapping;
 
-    ret[3].name = "Barrier probability";
+    ret[3].name = _("Barrier probability");
     ret[3].type = C_STRING;
     sprintf(buf, "%g", params->barrier_probability);
     ret[3].sval = dupstr(buf);
     ret[3].ival = 0;
 
-    ret[4].name = "Number of shuffling moves";
+    ret[4].name = _("Number of shuffling moves");
     ret[4].type = C_STRING;
     sprintf(buf, "%d", params->movetarget);
     ret[4].sval = dupstr(buf);
@@ -312,11 +313,11 @@ static game_params *custom_params(config_item *cfg)
 static char *validate_params(game_params *params, int full)
 {
     if (params->width <= 1 || params->height <= 1)
-	return "Width and height must both be greater than one";
+	return _("Width and height must both be greater than one");
     if (params->barrier_probability < 0)
-	return "Barrier probability may not be negative";
+	return _("Barrier probability may not be negative");
     if (params->barrier_probability > 1)
-	return "Barrier probability may not be greater than 1";
+	return _("Barrier probability may not be greater than 1");
     return NULL;
 }
 
@@ -718,15 +719,15 @@ static char *validate_desc(game_params *params, char *desc)
         else if (*desc >= 'A' && *desc <= 'F')
             /* OK */;
         else if (!*desc)
-            return "Game description shorter than expected";
+            return _("Game description shorter than expected");
         else
-            return "Game description contained unexpected character";
+            return _("Invalid character in game description");
         desc++;
         while (*desc == 'h' || *desc == 'v')
             desc++;
     }
     if (*desc)
-        return "Game description longer than expected";
+        return _("Game description longer than expected");
 
     return NULL;
 }
@@ -897,7 +898,7 @@ static char *solve_game(game_state *state, game_state *currstate,
 			char *aux, char **error)
 {
     if (!aux) {
-	*error = "Solution not known for this puzzle";
+	*error = _("Solution not known for this puzzle");
 	return NULL;
     }
 
@@ -1791,18 +1792,25 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 		a++;
 
 	if (state->used_solve)
-	    sprintf(statusbuf, "Moves since auto-solve: %d",
+	    sprintf(statusbuf, _("Moves since auto-solve: %d"),
 		    state->move_count - state->completed);
-	else
-	    sprintf(statusbuf, "%sMoves: %d",
-		    (state->completed ? "COMPLETED! " : ""),
+	else {
+	    if (state->completed) {
+		strcpy(statusbuf, _("COMPLETED!"));
+		strcpy(statusbuf+strlen(statusbuf)," ");
+	    } else statusbuf[0]='\0';
+	    sprintf(statusbuf+strlen(statusbuf), _("Moves: %d"),
 		    (state->completed ? state->completed : state->move_count));
+	}
 
-        if (state->movetarget)
-            sprintf(statusbuf + strlen(statusbuf), " (target %d)",
+        if (state->movetarget) {
+	    strcpy(statusbuf + strlen(statusbuf), " ");
+            sprintf(statusbuf + strlen(statusbuf), _("(target %d)"),
                     state->movetarget);
+	}
 
-	sprintf(statusbuf + strlen(statusbuf), " Active: %d/%d", a, n);
+	strcpy(statusbuf + strlen(statusbuf), " ");
+	sprintf(statusbuf + strlen(statusbuf), _("Active: %d/%d"), a, n);
 
 	status_bar(dr, statusbuf);
     }

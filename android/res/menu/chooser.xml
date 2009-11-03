@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
 	<group android:id="@+id/chooserStyle" android:checkableBehavior="single">
-		<item android:title="Grid" android:id="@+id/gridchooser" android:checkable="true" android:icon="@android:drawable/ic_menu_gallery"/>
-		<item android:title="Details" android:id="@+id/listchooser" android:checkable="true" android:icon="@android:drawable/ic_menu_info_details"/>
+        <item android:title="@string/Grid" android:id="@+id/gridchooser" android:checkable="true" android:icon="@android:drawable/ic_menu_gallery"/>
+        <item android:title="@string/Details" android:id="@+id/listchooser" android:checkable="true" android:icon="@android:drawable/ic_menu_info_details"/>
 	</group>
 </menu>

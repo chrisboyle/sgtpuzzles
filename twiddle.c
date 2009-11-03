@@ -92,11 +92,12 @@ static int game_fetch_preset(int i, char **name, game_params **params)
         { "5x5 radius 3", { 5, 5, 3, FALSE } },
         { "6x6 radius 4", { 6, 6, 4, FALSE } },
     };
+    // _("3x3 rows only"), _("3x3 normal"), _("3x3 orientable"), _("4x4 normal"), _("4x4 orientable"), _("4x4 radius 3"), _("5x5 radius 3"), _("6x6 radius 4")
 
     if (i < 0 || i >= lenof(presets))
         return FALSE;
 
-    *name = dupstr(presets[i].title);
+    *name = dupstr(_(presets[i].title));
     *params = dup_params(&presets[i].params);
 
     return TRUE;
@@ -153,35 +154,35 @@ static config_item *game_configure(game_params *params)
 
     ret = snewn(7, config_item);
 
-    ret[0].name = "Width";
+    ret[0].name = _("Width");
     ret[0].type = C_STRING;
     sprintf(buf, "%d", params->w);
     ret[0].sval = dupstr(buf);
     ret[0].ival = 0;
 
-    ret[1].name = "Height";
+    ret[1].name = _("Height");
     ret[1].type = C_STRING;
     sprintf(buf, "%d", params->h);
     ret[1].sval = dupstr(buf);
     ret[1].ival = 0;
 
-    ret[2].name = "Rotation radius";
+    ret[2].name = _("Rotation radius");
     ret[2].type = C_STRING;
     sprintf(buf, "%d", params->n);
     ret[2].sval = dupstr(buf);
     ret[2].ival = 0;
 
-    ret[3].name = "One number per row";
+    ret[3].name = _("One number per row");
     ret[3].type = C_BOOLEAN;
     ret[3].sval = NULL;
     ret[3].ival = params->rowsonly;
 
-    ret[4].name = "Orientation matters";
+    ret[4].name = _("Orientation matters");
     ret[4].type = C_BOOLEAN;
     ret[4].sval = NULL;
     ret[4].ival = params->orientable;
 
-    ret[5].name = "Number of shuffling moves";
+    ret[5].name = _("Number of shuffling moves");
     ret[5].type = C_STRING;
     sprintf(buf, "%d", params->movetarget);
     ret[5].sval = dupstr(buf);
@@ -212,11 +213,11 @@ static game_params *custom_params(config_item *cfg)
 static char *validate_params(game_params *params, int full)
 {
     if (params->n < 2)
-	return "Rotation radius must be at least two";
+	return _("Rotation radius must be at least two");
     if (params->w < params->n)
-	return "Width must be at least the rotation radius";
+	return _("Width must be at least the rotation radius");
     if (params->h < params->n)
-	return "Height must be at least the rotation radius";
+	return _("Height must be at least the rotation radius");
     return NULL;
 }
 
@@ -441,17 +442,17 @@ static char *validate_desc(game_params *params, char *desc)
 
     for (i = 0; i < wh; i++) {
 	if (*p < '0' || *p > '9')
-	    return "Not enough numbers in string";
+	    return _("Not enough numbers in string");
 	while (*p >= '0' && *p <= '9')
 	    p++;
 	if (!params->orientable && i < wh-1) {
 	    if (*p != ',')
-		return "Expected comma after number";
+		return _("Expected comma after number");
 	} else if (params->orientable && i < wh) {
 	    if (*p != 'l' && *p != 'r' && *p != 'u' && *p != 'd')
-		return "Expected orientation letter after number";
+		return _("Expected orientation letter after number");
 	} else if (i == wh-1 && *p) {
-	    return "Excess junk at end of string";
+	    return _("Excess junk at end of string");
 	}
 
 	if (*p) p++;		       /* eat comma */
@@ -1227,15 +1228,20 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
             state = oldstate;
 
 	if (state->used_solve)
-	    sprintf(statusbuf, "Moves since auto-solve: %d",
+	    sprintf(statusbuf, _("Moves since auto-solve: %d"),
 		    state->movecount - state->completed);
 	else {
-	    sprintf(statusbuf, "%sMoves: %d",
-		    (state->completed ? "COMPLETED! " : ""),
+	    if (state->completed) {
+		strcpy(statusbuf, _("COMPLETED!"));
+		strcpy(statusbuf+strlen(statusbuf)," ");
+	    } else statusbuf[0]='\0';
+	    sprintf(statusbuf+strlen(statusbuf), _("Moves: %d"),
 		    (state->completed ? state->completed : state->movecount));
-            if (state->movetarget)
-                sprintf(statusbuf+strlen(statusbuf), " (target %d)",
+            if (state->movetarget) {
+                strcpy(statusbuf+strlen(statusbuf)," ");
+                sprintf(statusbuf+strlen(statusbuf), _("(target %d)"),
                         state->movetarget);
+	    }
         }
 
 	status_bar(dr, statusbuf);

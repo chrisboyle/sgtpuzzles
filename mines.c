@@ -124,7 +124,7 @@ static int game_fetch_preset(int i, char **name, game_params **params)
     ret = snew(game_params);
     *ret = mines_presets[i];
 
-    sprintf(str, "%dx%d, %d mines", ret->w, ret->h, ret->n);
+    sprintf(str, _("%dx%d, %d mines"), ret->w, ret->h, ret->n);
 
     *name = dupstr(str);
     *params = ret;
@@ -200,25 +200,25 @@ static config_item *game_configure(game_params *params)
 
     ret = snewn(5, config_item);
 
-    ret[0].name = "Width";
+    ret[0].name = _("Width");
     ret[0].type = C_STRING;
     sprintf(buf, "%d", params->w);
     ret[0].sval = dupstr(buf);
     ret[0].ival = 0;
 
-    ret[1].name = "Height";
+    ret[1].name = _("Height");
     ret[1].type = C_STRING;
     sprintf(buf, "%d", params->h);
     ret[1].sval = dupstr(buf);
     ret[1].ival = 0;
 
-    ret[2].name = "Mines";
+    ret[2].name = _("Mines");
     ret[2].type = C_STRING;
     sprintf(buf, "%d", params->n);
     ret[2].sval = dupstr(buf);
     ret[2].ival = 0;
 
-    ret[3].name = "Ensure solubility";
+    ret[3].name = _("Ensure solubility");
     ret[3].type = C_BOOLEAN;
     ret[3].sval = NULL;
     ret[3].ival = params->unique;
@@ -262,9 +262,9 @@ static char *validate_params(game_params *params, int full)
      * position of.
      */
     if (full && params->unique && (params->w <= 2 || params->h <= 2))
-	return "Width and height must both be greater than two";
+	return _("Width and height must both be greater than two");
     if (params->n > params->w * params->h - 9)
-	return "Too many mines for grid size";
+	return _("Too many mines for grid size");
 
     /*
      * FIXME: Need more constraints here. Not sure what the
@@ -2002,37 +2002,37 @@ static char *validate_desc(game_params *params, char *desc)
     if (*desc == 'r') {
         desc++;
 	if (!*desc || !isdigit((unsigned char)*desc))
-	    return "No initial mine count in game description";
+	    return _("No initial mine count in game description");
 	while (*desc && isdigit((unsigned char)*desc))
 	    desc++;		       /* skip over mine count */
 	if (*desc != ',')
-	    return "No ',' after initial x-coordinate in game description";
+	    return _("No ',' after initial x-coordinate in game description");
 	desc++;
 	if (*desc != 'u' && *desc != 'a')
-	    return "No uniqueness specifier in game description";
+	    return _("No uniqueness specifier in game description");
 	desc++;
 	if (*desc != ',')
-	    return "No ',' after uniqueness specifier in game description";
+	    return _("No ',' after uniqueness specifier in game description");
 	/* now ignore the rest */
     } else {
 	if (*desc && isdigit((unsigned char)*desc)) {
 	    x = atoi(desc);
 	    if (x < 0 || x >= params->w)
-		return "Initial x-coordinate was out of range";
+		return _("Initial x-coordinate was out of range");
 	    while (*desc && isdigit((unsigned char)*desc))
 		desc++;		       /* skip over x coordinate */
 	    if (*desc != ',')
-		return "No ',' after initial x-coordinate in game description";
+		return _("No ',' after initial x-coordinate in game description");
 	    desc++;		       /* eat comma */
 	    if (!*desc || !isdigit((unsigned char)*desc))
-		return "No initial y-coordinate in game description";
+		return _("No initial y-coordinate in game description");
 	    y = atoi(desc);
 	    if (y < 0 || y >= params->h)
-		return "Initial y-coordinate was out of range";
+		return _("Initial y-coordinate was out of range");
 	    while (*desc && isdigit((unsigned char)*desc))
 		desc++;		       /* skip over y coordinate */
 	    if (*desc != ',')
-		return "No ',' after initial y-coordinate in game description";
+		return _("No ',' after initial y-coordinate in game description");
 	    desc++;		       /* eat comma */
 	}
 	/* eat `m' for `masked' or `u' for `unmasked', if present */
@@ -2040,7 +2040,7 @@ static char *validate_desc(game_params *params, char *desc)
 	    desc++;
 	/* now just check length of remainder */
 	if (strlen(desc) != (wh+3)/4)
-	    return "Game description is wrong length";
+	    return _("Game description is wrong length");
     }
 
     return NULL;
@@ -2306,7 +2306,7 @@ static char *solve_game(game_state *state, game_state *currstate,
 			char *aux, char **error)
 {
     if (!state->layout->mines) {
-	*error = "Game has not been started yet";
+	*error = _("Game has not been started yet");
 	return NULL;
     }
 
@@ -3046,18 +3046,20 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
     {
 	char statusbar[512];
 	if (state->dead) {
-	    sprintf(statusbar, "DEAD!");
+	    sprintf(statusbar, _("DEAD!"));
 	} else if (state->won) {
             if (state->used_solve)
-                sprintf(statusbar, "Auto-solved.");
+                sprintf(statusbar, _("Auto-solved."));
             else
-                sprintf(statusbar, "COMPLETED!");
+                sprintf(statusbar, _("COMPLETED!"));
 	} else {
-	    sprintf(statusbar, "Marked: %d / %d", markers, mines);
+	    sprintf(statusbar, _("Marked: %d / %d"), markers, mines);
 	}
-        if (ui->deaths)
+        if (ui->deaths) {
+            strcpy(statusbar + strlen(statusbar), "  ");
             sprintf(statusbar + strlen(statusbar),
-                    "  Deaths: %d", ui->deaths);
+                    _("Deaths: %d"), ui->deaths);
+        }
 	status_bar(dr, statusbar);
     }
 }

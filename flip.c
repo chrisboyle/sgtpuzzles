@@ -94,7 +94,7 @@ static int game_fetch_preset(int i, char **name, game_params **params)
     *ret = flip_presets[i];
 
     sprintf(str, "%dx%d %s", ret->w, ret->h,
-            ret->matrix_type == CROSSES ? "Crosses" : "Random");
+            ret->matrix_type == CROSSES ? _("Crosses") : _("Random"));
 
     *name = dupstr(str);
     *params = ret;
@@ -146,21 +146,21 @@ static config_item *game_configure(game_params *params)
     config_item *ret = snewn(4, config_item);
     char buf[80];
 
-    ret[0].name = "Width";
+    ret[0].name = _("Width");
     ret[0].type = C_STRING;
     sprintf(buf, "%d", params->w);
     ret[0].sval = dupstr(buf);
     ret[0].ival = 0;
 
-    ret[1].name = "Height";
+    ret[1].name = _("Height");
     ret[1].type = C_STRING;
     sprintf(buf, "%d", params->h);
     ret[1].sval = dupstr(buf);
     ret[1].ival = 0;
 
-    ret[2].name = "Shape type";
+    ret[2].name = _("Shape type");
     ret[2].type = C_CHOICES;
-    ret[2].sval = ":Crosses:Random";
+    ret[2].sval = _(":Crosses:Random");
     ret[2].ival = params->matrix_type;
 
     ret[3].name = NULL;
@@ -185,7 +185,7 @@ static game_params *custom_params(config_item *cfg)
 static char *validate_params(game_params *params, int full)
 {
     if (params->w <= 0 || params->h <= 0)
-        return "Width and height must both be greater than zero";
+        return _("Width and height must both be greater than zero");
     return NULL;
 }
 
@@ -653,13 +653,13 @@ static char *validate_desc(game_params *params, char *desc)
     int mlen = (wh*wh+3)/4, glen = (wh+3)/4;
 
     if (strspn(desc, "0123456789abcdefABCDEF") != mlen)
-        return "Matrix description is wrong length";
+        return _("Matrix description is wrong length");
     if (desc[mlen] != ',')
-        return "Expected comma after matrix description";
+        return _("Expected comma after matrix description");
     if (strspn(desc+mlen+1, "0123456789abcdefABCDEF") != glen)
-        return "Grid description is wrong length";
+        return _("Grid description is wrong length");
     if (desc[mlen+1+glen])
-        return "Unexpected data after grid description";
+        return _("Unexpected data after grid description");
 
     return NULL;
 }
@@ -778,7 +778,7 @@ static char *solve_game(game_state *state, game_state *currstate,
 	if (i == wh) {
 	    for (j = rowsdone; j < wh; j++)
 		if (equations[j * (wh+1) + wh]) {
-		    *error = "No solution exists for this position";
+		    *error = _("No solution exists for this position");
 		    sfree(equations);
 		    sfree(und);
 		    return NULL;
@@ -1285,11 +1285,11 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
     {
 	char buf[256];
 
-	sprintf(buf, "%sMoves: %d",
-		(state->completed ? 
-		 (state->cheated ? "Auto-solved. " : "COMPLETED! ") :
-		 (state->cheated ? "Auto-solver used. " : "")),
-		state->moves);
+	strcpy(buf, state->completed ?
+		 (state->cheated ? _("Auto-solved.") : _("COMPLETED!")) :
+		 (state->cheated ? _("Auto-solver used.") : ""));
+	if (strlen(buf)) strcpy(buf+strlen(buf)," ");
+	sprintf(buf+strlen(buf), _("Moves: %d"), state->moves);
 
 	status_bar(dr, buf);
     }

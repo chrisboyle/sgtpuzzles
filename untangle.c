@@ -137,7 +137,7 @@ static int game_fetch_preset(int i, char **name, game_params **params)
       default: return FALSE;
     }
 
-    sprintf(buf, "%d points", n);
+    sprintf(buf, _("%d points"), n);
     *name = dupstr(buf);
 
     *params = ret = snew(game_params);
@@ -179,7 +179,7 @@ static config_item *game_configure(game_params *params)
 
     ret = snewn(3, config_item);
 
-    ret[0].name = "Number of points";
+    ret[0].name = _("Number of points");
     ret[0].type = C_STRING;
     sprintf(buf, "%d", params->n);
     ret[0].sval = dupstr(buf);
@@ -205,7 +205,7 @@ static game_params *custom_params(config_item *cfg)
 static char *validate_params(game_params *params, int full)
 {
     if (params->n < 4)
-        return "Number of points must be at least four";
+        return _("Number of points must be at least four");
     return NULL;
 }
 
@@ -738,18 +738,18 @@ static char *validate_desc(game_params *params, char *desc)
     while (*desc) {
 	a = atoi(desc);
 	if (a < 0 || a >= params->n)
-	    return "Number out of range in game description";
+	    return _("Number out of range in game description");
 	while (*desc && isdigit((unsigned char)*desc)) desc++;
 	if (*desc != '-')
-	    return "Expected '-' after number in game description";
+	    return _("Expected '-' after number in game description");
 	desc++;			       /* eat dash */
 	b = atoi(desc);
 	if (b < 0 || b >= params->n)
-	    return "Number out of range in game description";
+	    return _("Number out of range in game description");
 	while (*desc && isdigit((unsigned char)*desc)) desc++;
 	if (*desc) {
 	    if (*desc != ',')
-		return "Expected ',' after number in game description";
+		return _("Expected ',' after number in game description");
 	    desc++;		       /* eat comma */
 	}
     }
@@ -888,7 +888,7 @@ static char *solve_game(game_state *state, game_state *currstate,
     int retlen, retsize;
 
     if (!aux) {
-	*error = "Solution not known for this puzzle";
+	*error = _("Solution not known for this puzzle");
 	return NULL;
     }
 
@@ -902,7 +902,7 @@ static char *solve_game(game_state *state, game_state *currstate,
         long x, y, d;
 	int ret = sscanf(aux, ";P%d:%ld,%ld/%ld%n", &p, &x, &y, &d, &k);
         if (ret != 4 || p != i) {
-            *error = "Internal error: aux_info badly formatted";
+            *error = _("Internal error: aux_info badly formatted");
             sfree(pts);
             return NULL;
         }

@@ -165,13 +165,13 @@ static config_item *game_configure(game_params *params)
 
     ret = snewn(3, config_item);
 
-    ret[0].name = "Width";
+    ret[0].name = _("Width");
     ret[0].type = C_STRING;
     sprintf(buf, "%d", params->w);
     ret[0].sval = dupstr(buf);
     ret[0].ival = 0;
 
-    ret[1].name = "Height";
+    ret[1].name = _("Height");
     ret[1].type = C_STRING;
     sprintf(buf, "%d", params->h);
     ret[1].sval = dupstr(buf);
@@ -205,7 +205,7 @@ static char *validate_params(game_params *params, int full)
      * random as well.
      */
     if (params->w < 2 || params->h < 2)
-	return "Width and height must both be at least two";
+	return _("Width and height must both be at least two");
 
     /*
      * The grid construction algorithm creates 1/5 as many gems as
@@ -214,7 +214,7 @@ static char *validate_params(game_params *params, int full)
      * the above constraint, so the practical minimum is six.
      */
     if (params->w * params->h < 6)
-	return "Grid area must be at least six squares";
+	return _("Grid area must be at least six squares");
 
     return NULL;
 }
@@ -604,23 +604,23 @@ static char *validate_desc(game_params *params, char *desc)
 
     for (i = 0; i < wh; i++) {
 	if (!desc[i])
-	    return "Not enough data to fill grid";
+	    return _("Not enough data to fill grid");
 	if (desc[i] != WALL && desc[i] != START && desc[i] != STOP &&
 	    desc[i] != GEM && desc[i] != MINE && desc[i] != BLANK)
-	    return "Unrecognised character in game description";
+	    return _("Unrecognised character in game description");
 	if (desc[i] == START)
 	    starts++;
 	if (desc[i] == GEM)
 	    gems++;
     }
     if (desc[i])
-	return "Too much data to fill grid";
+	return _("Too much data to fit in grid");
     if (starts < 1)
-	return "No starting square specified";
+	return _("No starting square specified");
     if (starts > 1)
-	return "More than one starting square specified";
+	return _("More than one starting square specified");
     if (gems < 1)
-	return "No gems specified";
+	return _("No gems specified");
 
     return NULL;
 }
@@ -759,7 +759,7 @@ static char *solve_game(game_state *state, game_state *currstate,
 	if (currstate->grid[i] == GEM)
 	    break;
     if (i == wh) {
-	*error = "Game is already solved";
+	*error = _("Game is already solved");
 	return NULL;
     }
 
@@ -1099,7 +1099,7 @@ static char *solve_game(game_state *state, game_state *currstate,
 	     * We couldn't find a round trip taking in this gem _at
 	     * all_. Give up.
 	     */
-	    err = "Unable to find a solution from this starting point";
+	    err = _("Unable to find a solution from this starting point");
 	    break;
 	}
 #ifdef TSP_DIAGNOSTICS
@@ -1245,7 +1245,7 @@ static char *solve_game(game_state *state, game_state *currstate,
 	     */
 	    for (i = 0; i < wh; i++) {
 		if (currstate->grid[i] == GEM && unvisited[i] == 0) {
-		    err = "Unable to find a solution from this starting point";
+		    err = _("Unable to find a solution from this starting point");
 		    break;
 		}
 	    }
@@ -2071,17 +2071,18 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
      * completion of the move animation that did it.)
      */
     if (state->dead && (!oldstate || oldstate->dead)) {
-	sprintf(status, "DEAD!");
+	sprintf(status, _("DEAD!"));
     } else if (state->gems || (oldstate && oldstate->gems)) {
-	if (state->cheated)
-	    sprintf(status, "Auto-solver used. ");
-	else
+	if (state->cheated) {
+	    strcpy(status, _("Auto-solver used."));
+	    strcpy(status+strlen(status)," ");
+	} else
 	    *status = '\0';
-	sprintf(status + strlen(status), "Gems: %d", gems);
+	sprintf(status + strlen(status), _("Gems: %d"), gems);
     } else if (state->cheated) {
-	sprintf(status, "Auto-solved.");
+	sprintf(status, _("Auto-solved."));
     } else {
-	sprintf(status, "COMPLETED!");
+	sprintf(status, _("COMPLETED!"));
     }
     /* We subtract one from the visible death counter if we're still
      * animating the move at the end of which the death took place. */
@@ -2090,8 +2091,10 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 	assert(deaths > 0);
 	deaths--;
     }
-    if (deaths)
-	sprintf(status + strlen(status), "   Deaths: %d", deaths);
+    if (deaths) {
+	strcpy(status + strlen(status), "   ");
+	sprintf(status + strlen(status), _("Deaths: %d"), deaths);
+    }
     status_bar(dr, status);
 
     /*

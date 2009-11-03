@@ -90,6 +90,7 @@ struct game_state {
     A(SET,Tricky,k)             \
     A(EXTREME,Extreme,x)        \
     A(RECURSIVE,Recursive,r)
+// _("Trivial"), _("Easy"), _("Tricky"), _("Extreme"), _("Recursive")
 
 #define ENUM(upper,title,lower) DIFF_ ## upper,
 #define TITLE(upper,title,lower) #title,
@@ -99,7 +100,7 @@ enum { DIFFLIST(ENUM) DIFF_IMPOSSIBLE = diff_impossible, DIFF_AMBIGUOUS = diff_a
 static char const *const unequal_diffnames[] = { DIFFLIST(TITLE) };
 static char const unequal_diffchars[] = DIFFLIST(ENCODE);
 #define DIFFCOUNT lenof(unequal_diffchars)
-#define DIFFCONFIG DIFFLIST(CONFIG)
+#define DIFFCONFIG _(DIFFLIST(CONFIG))
 
 #define DEFAULT_PRESET 0
 
@@ -127,7 +128,7 @@ static int game_fetch_preset(int i, char **name, game_params **params)
     *ret = unequal_presets[i]; /* structure copy */
 
     sprintf(buf, "%dx%d %s", ret->order, ret->order,
-            unequal_diffnames[ret->diff]);
+            _(unequal_diffnames[ret->diff]));
 
     *name = dupstr(buf);
     *params = ret;
@@ -195,13 +196,13 @@ static config_item *game_configure(game_params *params)
 
     ret = snewn(3, config_item);
 
-    ret[0].name = "Size (s*s)";
+    ret[0].name = _("Size (s*s)");
     ret[0].type = C_STRING;
     sprintf(buf, "%d", params->order);
     ret[0].sval = dupstr(buf);
     ret[0].ival = 0;
 
-    ret[1].name = "Difficulty";
+    ret[1].name = _("Difficulty");
     ret[1].type = C_CHOICES;
     ret[1].sval = DIFFCONFIG;
     ret[1].ival = params->diff;
@@ -227,9 +228,9 @@ static game_params *custom_params(config_item *cfg)
 static char *validate_params(game_params *params, int full)
 {
     if (params->order < 3 || params->order > 32)
-        return "Order must be between 3 and 32";
+        return _("Order must be between 3 and 32");
     if (params->diff >= DIFFCOUNT)
-        return "Unknown difficulty rating";
+        return _("Unknown difficulty rating");
     return NULL;
 }
 
@@ -1131,15 +1132,15 @@ static game_state *load_game(game_params *params, char *desc,
             p++;
         }
         if (i >= o*o) {
-            why = "Too much data to fill grid"; goto fail;
+            why = _("Too much data to fit in grid"); goto fail;
         }
 
         if (*p < '0' && *p > '9') {
-            why = "Expecting number in game description"; goto fail;
+            why = _("Expecting number in game description"); goto fail;
         }
         n = atoi(p);
         if (n < 0 || n > o) {
-            why = "Out-of-range number in game description"; goto fail;
+            why = _("Number out of range in game description"); goto fail;
         }
         state->nums[i] = (digit)n;
         while (*p >= '0' && *p <= '9') p++; /* skip number */
@@ -1153,18 +1154,18 @@ static game_state *load_game(game_params *params, char *desc,
             case 'R': state->flags[i] |= F_GT_RIGHT; break;
             case 'D': state->flags[i] |= F_GT_DOWN;  break;
             case 'L': state->flags[i] |= F_GT_LEFT;  break;
-            default: why = "Expecting flag URDL in game description"; goto fail;
+            default: why = _("Expecting flag URDL in game description"); goto fail;
             }
             p++;
         }
         i++;
         if (i < o*o && *p != ',') {
-            why = "Missing separator"; goto fail;
+            why = _("Missing separator"); goto fail;
         }
         if (*p == ',') p++;
     }
     if (i < o*o) {
-        why = "Not enough data to fill grid"; goto fail;
+        why = _("Not enough data to fill grid"); goto fail;
     }
     i = 0;
     for (y = 0; y < o; y++) {
@@ -1175,12 +1176,12 @@ static game_state *load_game(game_params *params, char *desc,
                     int ny = y + gtthan[n].dy;
                     /* a flag must not point us off the grid. */
                     if (nx < 0 || ny < 0 || nx >= o || ny >= o) {
-                        why = "Flags go off grid"; goto fail;
+                        why = _("Flags go off grid"); goto fail;
                     }
                     /* if one cell is GT another, the other must not also
                      * be GT the first. */
                     if (GRID(state, flags, nx, ny) & gtthan[n].fo) {
-                        why = "Flags contradicting each other"; goto fail;
+                        why = _("Flags contradicting each other"); goto fail;
                     }
                 }
             }

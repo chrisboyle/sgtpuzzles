@@ -192,8 +192,8 @@ static int game_fetch_preset(int i, char **name, game_params **params)
     ret = snew(game_params);
     *ret = net_presets[i];
 
-    sprintf(str, "%dx%d%s", ret->width, ret->height,
-            ret->wrapping ? " wrapping" : "");
+    sprintf(str, ret->wrapping ? _("%dx%d wrapping") : "%dx%d",
+            ret->width, ret->height);
 
     *name = dupstr(str);
     *params = ret;
@@ -267,30 +267,30 @@ static config_item *game_configure(game_params *params)
 
     ret = snewn(6, config_item);
 
-    ret[0].name = "Width";
+    ret[0].name = _("Width");
     ret[0].type = C_STRING;
     sprintf(buf, "%d", params->width);
     ret[0].sval = dupstr(buf);
     ret[0].ival = 0;
 
-    ret[1].name = "Height";
+    ret[1].name = _("Height");
     ret[1].type = C_STRING;
     sprintf(buf, "%d", params->height);
     ret[1].sval = dupstr(buf);
     ret[1].ival = 0;
 
-    ret[2].name = "Walls wrap around";
+    ret[2].name = _("Walls wrap around");
     ret[2].type = C_BOOLEAN;
     ret[2].sval = NULL;
     ret[2].ival = params->wrapping;
 
-    ret[3].name = "Barrier probability";
+    ret[3].name = _("Barrier probability");
     ret[3].type = C_STRING;
     sprintf(buf, "%g", params->barrier_probability);
     ret[3].sval = dupstr(buf);
     ret[3].ival = 0;
 
-    ret[4].name = "Ensure unique solution";
+    ret[4].name = _("Ensure unique solution");
     ret[4].type = C_BOOLEAN;
     ret[4].sval = NULL;
     ret[4].ival = params->unique;
@@ -319,13 +319,13 @@ static game_params *custom_params(config_item *cfg)
 static char *validate_params(game_params *params, int full)
 {
     if (params->width <= 0 || params->height <= 0)
-	return "Width and height must both be greater than zero";
+	return _("Width and height must both be greater than zero");
     if (params->width <= 1 && params->height <= 1)
-	return "At least one of width and height must be greater than one";
+	return _("At least one of width and height must be greater than one");
     if (params->barrier_probability < 0)
-	return "Barrier probability may not be negative";
+	return _("Barrier probability may not be negative");
     if (params->barrier_probability > 1)
-	return "Barrier probability may not be greater than 1";
+	return _("Barrier probability may not be greater than 1");
 
     /*
      * Specifying either grid dimension as 2 in a wrapping puzzle
@@ -372,8 +372,7 @@ static char *validate_params(game_params *params, int full)
      */
     if (full && params->unique && params->wrapping &&
         (params->width == 2 || params->height == 2))
-        return "No wrapping puzzle with a width or height of 2 can have"
-        " a unique solution";
+        return _("No wrapping puzzle with a width or height of 2 can have a unique solution");
 
     return NULL;
 }
@@ -1567,15 +1566,15 @@ static char *validate_desc(game_params *params, char *desc)
         else if (*desc >= 'A' && *desc <= 'F')
             /* OK */;
         else if (!*desc)
-            return "Game description shorter than expected";
+            return _("Game description shorter than expected");
         else
-            return "Game description contained unexpected character";
+            return _("Invalid character in game description");
         desc++;
         while (*desc == 'h' || *desc == 'v')
             desc++;
     }
     if (*desc)
-        return "Game description longer than expected";
+        return _("Game description longer than expected");
 
     return NULL;
 }
@@ -2105,12 +2104,11 @@ static char *interpret_move(game_state *state, game_ui *ui,
                IS_CURSOR_SELECT(button)) {
 	tx = ui->cur_x;
 	ty = ui->cur_y;
-	if (button == 'a' || button == 'A')
+	if (button == 'a' || button == 'A' || button == CURSOR_SELECT)
 	    action = ROTATE_LEFT;
 	else if (button == 's' || button == 'S' || button == CURSOR_SELECT2)
 	    action = TOGGLE_LOCK;
-	else if (button == 'd' || button == 'D' ||
-                 button == CURSOR_SELECT)
+	else if (button == 'd' || button == 'D')
 	    action = ROTATE_RIGHT;
         else if (button == 'f' || button == 'F')
             action = ROTATE_180;
@@ -2831,9 +2829,16 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
                 n2++;
         }
 
-	sprintf(statusbuf, "%sActive: %d/%d",
-		(state->used_solve ? "Auto-solved. " :
-		 state->completed ? "COMPLETED! " : ""), a, n2);
+	if (state->used_solve) {
+		strcpy(statusbuf, _("Auto-solved."));
+		strcpy(statusbuf+strlen(statusbuf)," ");
+	} else if (state->completed) {
+		strcpy(statusbuf, _("COMPLETED!"));
+		strcpy(statusbuf+strlen(statusbuf)," ");
+	} else {
+		statusbuf[0]='\0';
+	}
+	sprintf(statusbuf+strlen(statusbuf), _("Active: %d/%d"), a, n2);
 
 	status_bar(dr, statusbuf);
     }

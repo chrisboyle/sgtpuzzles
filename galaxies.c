@@ -97,6 +97,7 @@ enum { DIFFLIST(ENUM)
     DIFF_IMPOSSIBLE, DIFF_AMBIGUOUS, DIFF_UNFINISHED, DIFF_MAX };
 static char const *const galaxies_diffnames[] = {
     DIFFLIST(TITLE) "Impossible", "Ambiguous", "Unfinished" };
+// _("Normal"), _("Unreasonable"), _("Impossible"), _("Ambiguous"), _("Unfinished")
 static char const galaxies_diffchars[] = DIFFLIST(ENCODE);
 #define DIFFCONFIG DIFFLIST(CONFIG)
 
@@ -175,7 +176,7 @@ static int game_fetch_preset(int i, char **name, game_params **params)
     *ret = galaxies_presets[i]; /* structure copy */
 
     sprintf(buf, "%dx%d %s", ret->w, ret->h,
-            galaxies_diffnames[ret->diff]);
+            _(galaxies_diffnames[ret->diff]));
 
     if (name) *name = dupstr(buf);
     *params = ret;
@@ -237,19 +238,19 @@ static config_item *game_configure(game_params *params)
 
     ret = snewn(4, config_item);
 
-    ret[0].name = "Width";
+    ret[0].name = _("Width");
     ret[0].type = C_STRING;
     sprintf(buf, "%d", params->w);
     ret[0].sval = dupstr(buf);
     ret[0].ival = 0;
 
-    ret[1].name = "Height";
+    ret[1].name = _("Height");
     ret[1].type = C_STRING;
     sprintf(buf, "%d", params->h);
     ret[1].sval = dupstr(buf);
     ret[1].ival = 0;
 
-    ret[2].name = "Difficulty";
+    ret[2].name = _("Difficulty");
     ret[2].type = C_CHOICES;
     ret[2].sval = DIFFCONFIG;
     ret[2].ival = params->diff;
@@ -276,7 +277,7 @@ static game_params *custom_params(config_item *cfg)
 static char *validate_params(game_params *params, int full)
 {
     if (params->w < 3 || params->h < 3)
-        return "Width and height must both be at least 3";
+        return _("Width and height must both be at least 3");
     /*
      * This shouldn't be able to happen at all, since decode_params
      * and custom_params will never generate anything that isn't
@@ -1509,13 +1510,13 @@ static game_state *load_game(game_params *params, char *desc,
             i += n - 'A';
             df = F_DOT_BLACK;
         } else {
-            why = "Invalid characters in game description"; goto fail;
+            why = _("Invalid character in game description"); goto fail;
         }
         /* if we got here we incremented i and have a dot to add. */
         y = (i / (state->sx-2)) + 1;
         x = (i % (state->sx-2)) + 1;
         if (!INUI(state, x, y)) {
-            why = "Too much data to fit in grid"; goto fail;
+            why = _("Too much data to fit in grid"); goto fail;
         }
         add_dot(&SPACE(state, x, y));
         SPACE(state, x, y).flags |= df;
@@ -1524,7 +1525,7 @@ static game_state *load_game(game_params *params, char *desc,
     game_update_dots(state);
 
     if (dots_too_close(state)) {
-        why = "Dots too close together"; goto fail;
+        why = _("Dots too close together"); goto fail;
     }
 
     return state;
@@ -2409,7 +2410,7 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
         char *ret;
         game_state *tmp = dup_game(state);
         state->cdiff = solver_state(tmp, DIFF_UNREASONABLE-1);
-        ret = diff_game(state, tmp, 0);
+        ret = diff_game(state, tmp, 1);
         free_game(tmp);
         return ret;
     }

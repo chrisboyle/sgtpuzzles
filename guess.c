@@ -87,7 +87,7 @@ static int game_fetch_preset(int i, char **name, game_params **params)
     if (i < 0 || i >= lenof(guess_presets))
         return FALSE;
 
-    *name = dupstr(guess_presets[i].name);
+    *name = dupstr(_(guess_presets[i].name)); // _("Standard"), _("Super")
     /*
      * get round annoying const issues
      */
@@ -163,30 +163,30 @@ static config_item *game_configure(game_params *params)
 
     ret = snewn(6, config_item);
 
-    ret[0].name = "Colours";
+    ret[0].name = _("Colours");
     ret[0].type = C_STRING;
     sprintf(buf, "%d", params->ncolours);
     ret[0].sval = dupstr(buf);
     ret[0].ival = 0;
 
-    ret[1].name = "Pegs per guess";
+    ret[1].name = _("Pegs per guess");
     ret[1].type = C_STRING;
     sprintf(buf, "%d", params->npegs);
     ret[1].sval = dupstr(buf);
     ret[1].ival = 0;
 
-    ret[2].name = "Guesses";
+    ret[2].name = _("Guesses");
     ret[2].type = C_STRING;
     sprintf(buf, "%d", params->nguesses);
     ret[2].sval = dupstr(buf);
     ret[2].ival = 0;
 
-    ret[3].name = "Allow blanks";
+    ret[3].name = _("Allow blanks");
     ret[3].type = C_BOOLEAN;
     ret[3].sval = NULL;
     ret[3].ival = params->allow_blank;
 
-    ret[4].name = "Allow duplicates";
+    ret[4].name = _("Allow duplicates");
     ret[4].type = C_BOOLEAN;
     ret[4].sval = NULL;
     ret[4].ival = params->allow_multiple;
@@ -216,15 +216,15 @@ static game_params *custom_params(config_item *cfg)
 static char *validate_params(game_params *params, int full)
 {
     if (params->ncolours < 2 || params->npegs < 2)
-	return "Trivial solutions are uninteresting";
+	return _("Trivial solutions are uninteresting");
     /* NB as well as the no. of colours we define, max(ncolours) must
      * also fit in an unsigned char; see new_game_desc. */
     if (params->ncolours > 10)
-	return "Too many colours";
+	return _("Too many colours");
     if (params->nguesses < 1)
-	return "Must have at least one guess";
+	return _("Must have at least one guess");
     if (!params->allow_multiple && params->ncolours < params->npegs)
-        return "Disallowing multiple colours requires at least as many colours as pegs";
+        return _("Disallowing multiple colours requires at least as many colours as pegs");
     return NULL;
 }
 
@@ -296,13 +296,13 @@ static char *validate_desc(game_params *params, char *desc)
      * it's the correct length and (when unobfuscated) contains only
      * sensible colours. */
     if (strlen(desc) != params->npegs * 2)
-        return "Game description is wrong length";
+        return _("Game description is wrong length");
     bmp = hex2bin(desc, params->npegs);
     obfuscate_bitmap(bmp, params->npegs*8, TRUE);
     for (i = 0; i < params->npegs; i++) {
         if (bmp[i] < 1 || bmp[i] > params->ncolours) {
             sfree(bmp);
-            return "Game description is corrupted";
+            return _("Game description is corrupted");
         }
     }
     sfree(bmp);

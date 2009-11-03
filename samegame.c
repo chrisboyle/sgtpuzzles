@@ -169,7 +169,7 @@ static int game_fetch_preset(int i, char **name, game_params **params)
     ret = snew(game_params);
     *ret = samegame_presets[i];
 
-    sprintf(str, "%dx%d, %d colours", ret->w, ret->h, ret->ncols);
+    sprintf(str, _("%dx%d, %d colours"), ret->w, ret->h, ret->ncols);
 
     *name = dupstr(str);
     *params = ret;
@@ -238,30 +238,30 @@ static config_item *game_configure(game_params *params)
 
     ret = snewn(6, config_item);
 
-    ret[0].name = "Width";
+    ret[0].name = _("Width");
     ret[0].type = C_STRING;
     sprintf(buf, "%d", params->w);
     ret[0].sval = dupstr(buf);
     ret[0].ival = 0;
 
-    ret[1].name = "Height";
+    ret[1].name = _("Height");
     ret[1].type = C_STRING;
     sprintf(buf, "%d", params->h);
     ret[1].sval = dupstr(buf);
     ret[1].ival = 0;
 
-    ret[2].name = "No. of colours";
+    ret[2].name = _("No. of colours");
     ret[2].type = C_STRING;
     sprintf(buf, "%d", params->ncols);
     ret[2].sval = dupstr(buf);
     ret[2].ival = 0;
 
-    ret[3].name = "Scoring system";
+    ret[3].name = _("Scoring system");
     ret[3].type = C_CHOICES;
-    ret[3].sval = ":(n-1)^2:(n-2)^2";
+    ret[3].sval = _(":(n-1)^2:(n-2)^2");
     ret[3].ival = params->scoresub-1;
 
-    ret[4].name = "Ensure solubility";
+    ret[4].name = _("Ensure solubility");
     ret[4].type = C_BOOLEAN;
     ret[4].sval = NULL;
     ret[4].ival = params->soluble;
@@ -290,27 +290,27 @@ static game_params *custom_params(config_item *cfg)
 static char *validate_params(game_params *params, int full)
 {
     if (params->w < 1 || params->h < 1)
-	return "Width and height must both be positive";
+	return _("Width and height must both be greater than zero");
 
     if (params->ncols > 9)
-	return "Maximum of 9 colours";
+	return _("Maximum of 9 colours");
 
     if (params->soluble) {
 	if (params->ncols < 3)
-	    return "Number of colours must be at least three";
+	    return _("Number of colours must be at least three");
 	if (params->w * params->h <= 1)
-	    return "Grid area must be greater than 1";
+	    return _("Grid area must be greater than one");
     } else {
 	if (params->ncols < 2)
-	    return "Number of colours must be at least three";
+	    return _("Number of colours must be at least three");
 	/* ...and we must make sure we can generate at least 2 squares
 	 * of each colour so it's theoretically soluble. */
 	if ((params->w * params->h) < (params->ncols * 2))
-	    return "Too many colours makes given grid size impossible";
+	    return _("Too many colours makes given grid size impossible");
     }
 
     if ((params->scoresub < 1) || (params->scoresub > 2))
-	return "Scoring system not recognised";
+	return _("Scoring system not recognised");
 
     return NULL;
 }
@@ -992,17 +992,17 @@ static char *validate_desc(game_params *params, char *desc)
 	int n;
 
 	if (!isdigit((unsigned char)*p))
-	    return "Not enough numbers in string";
+	    return _("Not enough numbers in string");
 	while (isdigit((unsigned char)*p)) p++;
 
 	if (i < area-1 && *p != ',')
-	    return "Expected comma after number";
+	    return _("Expected comma after number");
 	else if (i == area-1 && *p)
-	    return "Excess junk at end of string";
+	    return _("Excess junk at end of string");
 
 	n = atoi(q);
 	if (n < 0 || n > params->ncols)
-	    return "Colour out of range";
+	    return _("Colour out of range");
 
 	if (*p) p++; /* eat comma */
     }
@@ -1617,17 +1617,24 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
     {
 	char status[255], score[80];
 
-	sprintf(score, "Score: %d", state->score);
+	sprintf(score, _("Score: %d"), state->score);
 
-	if (state->complete)
-	    sprintf(status, "COMPLETE! %s", score);
-	else if (state->impossible)
-	    sprintf(status, "Cannot move! %s", score);
-	else if (ui->nselected)
-	    sprintf(status, "%s  Selected: %d (%d)",
-		    score, ui->nselected, npoints(&state->params, ui->nselected));
-	else
-	    sprintf(status, "%s", score);
+	if (state->complete) {
+	    strcpy(status, _("COMPLETED!"));
+	    strcpy(status+strlen(status)," ");
+	    strcpy(status+strlen(status),score);
+	} else if (state->impossible) {
+	    strcpy(status, _("Cannot move!"));
+	    strcpy(status+strlen(status)," ");
+	    strcpy(status+strlen(status),score);
+	} else if (ui->nselected) {
+	    strcpy(status,score);
+	    strcpy(status+strlen(status),"  ");
+	    sprintf(status+strlen(status), _("Selected: %d (%d)"),
+		    ui->nselected, npoints(&state->params, ui->nselected));
+	} else {
+	    strcpy(status, score);
+        }
 	status_bar(dr, status);
     }
 }

@@ -245,6 +245,7 @@ android/bin:
 android/bin-stamp: android/bin android/lib/armeabi/libpuzzles.so \
 		android/src/name/boyle/chris/sgtpuzzles/*.java \
 		android/src/name/boyle/chris/sgtpuzzles/R.java
+	./android/i18ncheck.pl
 	javac -source 1.5 -target 1.5 -cp $(ANDROID)/platforms/android-1.6/android.jar \
 		-d $< android/src/name/boyle/chris/sgtpuzzles/*.java
 	touch $@

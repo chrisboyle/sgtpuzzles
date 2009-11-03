@@ -242,25 +242,25 @@ static int game_fetch_preset(int i, char **name, game_params **params)
 
     switch (i) {
       case 0:
-        str = "Cube";
+        str = _("Cube");
         ret->solid = CUBE;
         ret->d1 = 4;
         ret->d2 = 4;
         break;
       case 1:
-        str = "Tetrahedron";
+        str = _("Tetrahedron");
         ret->solid = TETRAHEDRON;
         ret->d1 = 1;
         ret->d2 = 2;
         break;
       case 2:
-        str = "Octahedron";
+        str = _("Octahedron");
         ret->solid = OCTAHEDRON;
         ret->d1 = 2;
         ret->d2 = 2;
         break;
       case 3:
-        str = "Icosahedron";
+        str = _("Icosahedron");
         ret->solid = ICOSAHEDRON;
         ret->d1 = 3;
         ret->d2 = 3;
@@ -486,18 +486,18 @@ static config_item *game_configure(game_params *params)
     config_item *ret = snewn(4, config_item);
     char buf[80];
 
-    ret[0].name = "Type of solid";
+    ret[0].name = _("Type of solid");
     ret[0].type = C_CHOICES;
-    ret[0].sval = ":Tetrahedron:Cube:Octahedron:Icosahedron";
+    ret[0].sval = _(":Tetrahedron:Cube:Octahedron:Icosahedron");
     ret[0].ival = params->solid;
 
-    ret[1].name = "Width / top";
+    ret[1].name = _("Width / top");
     ret[1].type = C_STRING;
     sprintf(buf, "%d", params->d1);
     ret[1].sval = dupstr(buf);
     ret[1].ival = 0;
 
-    ret[2].name = "Height / bottom";
+    ret[2].name = _("Height / bottom");
     ret[2].type = C_STRING;
     sprintf(buf, "%d", params->d2);
     ret[2].sval = dupstr(buf);
@@ -543,14 +543,14 @@ static char *validate_params(game_params *params, int full)
     int i;
 
     if (params->solid < 0 || params->solid >= lenof(solids))
-	return "Unrecognised solid type";
+	return _("Unrecognised solid type");
 
     if (solids[params->solid]->order == 4) {
 	if (params->d1 <= 0 || params->d2 <= 0)
-	    return "Both grid dimensions must be greater than zero";
+	    return _("Both grid dimensions must be greater than zero");
     } else {
 	if (params->d1 <= 0 && params->d2 <= 0)
-	    return "At least one grid dimension must be greater than zero";
+	    return _("At least one grid dimension must be greater than zero");
     }
 
     for (i = 0; i < 4; i++)
@@ -565,11 +565,11 @@ static char *validate_params(game_params *params, int full)
 
     for (i = 0; i < classes[4]; i++)
 	if (classes[i] < solids[params->solid]->nfaces / classes[4])
-	    return "Not enough grid space to place all blue faces";
+	    return _("Not enough grid space to place all blue faces");
 
     if (grid_area(params->d1, params->d2, solids[params->solid]->order) <
 	solids[params->solid]->nfaces + 1)
-	return "Not enough space to place the solid on an empty square";
+	return _("Not enough space to place the solid on an empty square");
 
     return NULL;
 }
@@ -856,17 +856,17 @@ static char *validate_desc(game_params *params, char *desc)
 	if (c >= '0' && c <= '9') continue;
 	if (c >= 'A' && c <= 'F') continue;
 	if (c >= 'a' && c <= 'f') continue;
-	return "Not enough hex digits at start of string";
+	return _("Not enough hex digits at start of string");
 	/* NB if desc[j]=='\0' that will also be caught here, so we're safe */
     }
 
     if (desc[i] != ',')
-	return "Expected ',' after hex digits";
+	return _("Expected ',' after hex digits");
 
     i++;
     do {
 	if (desc[i] < '0' || desc[i] > '9')
-	    return "Expected decimal integer after ','";
+	    return _("Expected decimal integer after ','");
 	i++;
     } while (desc[i]);
 
@@ -1695,8 +1695,11 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
     {
 	char statusbuf[256];
 
-	sprintf(statusbuf, "%sMoves: %d",
-		(state->completed ? "COMPLETED! " : ""),
+	if (state->completed) {
+		strcpy(statusbuf, _("COMPLETED!"));
+		strcpy(statusbuf+strlen(statusbuf), " ");
+	} else statusbuf[0] = '\0';
+	sprintf(statusbuf+strlen(statusbuf), _("Moves: %d"),
 		(state->completed ? state->completed : state->movecount));
 
 	status_bar(dr, statusbuf);

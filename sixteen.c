@@ -134,19 +134,19 @@ static config_item *game_configure(game_params *params)
 
     ret = snewn(4, config_item);
 
-    ret[0].name = "Width";
+    ret[0].name = _("Width");
     ret[0].type = C_STRING;
     sprintf(buf, "%d", params->w);
     ret[0].sval = dupstr(buf);
     ret[0].ival = 0;
 
-    ret[1].name = "Height";
+    ret[1].name = _("Height");
     ret[1].type = C_STRING;
     sprintf(buf, "%d", params->h);
     ret[1].sval = dupstr(buf);
     ret[1].ival = 0;
 
-    ret[2].name = "Number of shuffling moves";
+    ret[2].name = _("Number of shuffling moves");
     ret[2].type = C_STRING;
     sprintf(buf, "%d", params->movetarget);
     ret[2].sval = dupstr(buf);
@@ -174,7 +174,7 @@ static game_params *custom_params(config_item *cfg)
 static char *validate_params(game_params *params, int full)
 {
     if (params->w < 2 || params->h < 2)
-	return "Width and height must both be at least two";
+	return _("Width and height must both be at least two");
 
     return NULL;
 }
@@ -417,26 +417,26 @@ static char *validate_desc(game_params *params, char *desc)
 	int n;
 
 	if (*p < '0' || *p > '9') {
-	    err = "Not enough numbers in string";
+	    err = _("Not enough numbers in string");
 	    goto leave;
 	}
 	while (*p >= '0' && *p <= '9')
 	    p++;
 	if (i < area-1 && *p != ',') {
-	    err = "Expected comma after number";
+	    err = _("Expected comma after number");
 	    goto leave;
 	}
 	else if (i == area-1 && *p) {
-	    err = "Excess junk at end of string";
+	    err = _("Excess junk at end of string");
 	    goto leave;
 	}
 	n = atoi(q);
 	if (n < 1 || n > area) {
-	    err = "Number out of range";
+	    err = _("Number out of range");
 	    goto leave;
 	}
 	if (used[n-1]) {
-	    err = "Number used twice";
+	    err = _("Number used twice");
 	    goto leave;
 	}
 	used[n-1] = TRUE;
@@ -1045,15 +1045,18 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
             state = oldstate;
 
 	if (state->used_solve)
-	    sprintf(statusbuf, "Moves since auto-solve: %d",
+	    sprintf(statusbuf, _("Moves since auto-solve: %d"),
 		    state->movecount - state->completed);
 	else {
-	    sprintf(statusbuf, "%sMoves: %d",
-		    (state->completed ? "COMPLETED! " : ""),
+            if (state->completed) strcpy(statusbuf, _("COMPLETED!"));
+            else statusbuf[0]='\0';
+	    sprintf(statusbuf+strlen(statusbuf), _("Moves: %d"),
 		    (state->completed ? state->completed : state->movecount));
-            if (state->movetarget)
-                sprintf(statusbuf+strlen(statusbuf), " (target %d)",
+            if (state->movetarget) {
+                strcpy(statusbuf+strlen(statusbuf), " ");
+                sprintf(statusbuf+strlen(statusbuf), _("(target %d)"),
                         state->movetarget);
+            }
 	}
 
 	status_bar(dr, statusbuf);

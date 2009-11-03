@@ -46,6 +46,15 @@ static JNIEnv *env;
 static jobject obj;
 static int cancelled;
 
+// TODO get rid of this horrible hack
+/* This is so that the numerous callers of _() don't have to free strings.
+ * Unfortunately they may need a few to be valid at a time (game config
+ * dialogs). */
+#define GETTEXTED_SIZE 256
+#define GETTEXTED_COUNT 8
+static char gettexted[GETTEXTED_COUNT][GETTEXTED_SIZE];
+static int next_gettexted = 0;
+
 static jobject gameView;
 static jmethodID
 	addTypeItem,
@@ -63,6 +72,7 @@ static jmethodID
 	drawText,
 	fillRect,
 	gameStarted,
+	getText,
 	messageBox,
 	postInvalidate,
 	requestResize,
@@ -344,7 +354,7 @@ void Java_name_boyle_chris_sgtpuzzles_SGTPuzzles_solveEvent(JNIEnv *_env, jobjec
 	if (msg) {
 		jstring js = (*env)->NewStringUTF(env, msg);
 		if( js == NULL ) return;
-		jstring js2 = (*env)->NewStringUTF(env, "Error");
+		jstring js2 = (*env)->NewStringUTF(env, _("Error"));
 		if( js2 == NULL ) return;
 		(*env)->CallVoidMethod(env, obj, messageBox, js2, js, 1);
 	}
@@ -393,7 +403,7 @@ void Java_name_boyle_chris_sgtpuzzles_SGTPuzzles_configOK(JNIEnv *_env, jobject 
 	if (err) {
 		jstring js = (*env)->NewStringUTF(env, err);
 		if( js == NULL ) return;
-		jstring js2 = (*env)->NewStringUTF(env, "Error");
+		jstring js2 = (*env)->NewStringUTF(env, _("Error"));
 		if( js2 == NULL ) return;
 		(*env)->CallVoidMethod(env, obj, messageBox, js2, js, 1);
 		return;
@@ -459,10 +469,10 @@ void Java_name_boyle_chris_sgtpuzzles_SGTPuzzles_aboutEvent(JNIEnv *_env, jobjec
 	char textbuf[1024];
 	env = _env;
 
-	sprintf(titlebuf, "About %.200s", thegame.name);
+	sprintf(titlebuf, _("About %.200s"), thegame.name);
 	sprintf(textbuf,
-			"From Simon Tatham's Portable Puzzle Collection\n\n"
-			"%.500s", ver);
+			_("From Simon Tatham's Portable Puzzle Collection\n\n"
+			"Revision: %s"), vernum);
 	jstring js = (*env)->NewStringUTF(env, titlebuf);
 	if( js == NULL ) return;
 	jstring js2 = (*env)->NewStringUTF(env, textbuf);
@@ -479,7 +489,7 @@ jstring Java_name_boyle_chris_sgtpuzzles_SGTPuzzles_htmlHelpTopic(JNIEnv *_env, 
 
 void android_completed()
 {
-	jstring js = (*env)->NewStringUTF(env, "COMPLETED!");
+	jstring js = (*env)->NewStringUTF(env, _("COMPLETED!"));
 	if( js == NULL ) return;
 	(*env)->CallVoidMethod(env, obj, messageBox, NULL, js, 0);
 }
@@ -487,6 +497,20 @@ void android_completed()
 inline int android_cancelled()
 {
 	return cancelled;
+}
+
+char * get_text(const char *s)
+{
+	if (!s || ! s[0]) return (char*)s;  // slightly naughty cast...
+	jstring j = (jstring)(*env)->CallObjectMethod(env, obj, getText, (*env)->NewStringUTF(env, s));
+	const char * c = (*env)->GetStringUTFChars(env, j, NULL);
+	// TODO get rid of this horrible hack
+	char * ret = gettexted[next_gettexted];
+	next_gettexted = (next_gettexted + 1) % GETTEXTED_COUNT;
+	strncpy(ret, c, GETTEXTED_SIZE);
+	ret[GETTEXTED_SIZE-1] = '\0';
+	(*env)->ReleaseStringUTFChars(env, j, c);
+	return ret;
 }
 
 void Java_name_boyle_chris_sgtpuzzles_SGTPuzzles_initNative(JNIEnv *_env, jclass cls, jclass vcls)
@@ -507,6 +531,7 @@ void Java_name_boyle_chris_sgtpuzzles_SGTPuzzles_initNative(JNIEnv *_env, jclass
 	drawText       = (*env)->GetMethodID(env, vcls, "drawText", "(IIIIILjava/lang/String;)V");
 	fillRect       = (*env)->GetMethodID(env, vcls, "fillRect", "(IIIII)V");
 	gameStarted    = (*env)->GetMethodID(env, cls,  "gameStarted", "(Ljava/lang/String;I[F)V");
+	getText        = (*env)->GetMethodID(env, cls,  "gettext", "(Ljava/lang/String;)Ljava/lang/String;");
 	messageBox     = (*env)->GetMethodID(env, cls,  "messageBox", "(Ljava/lang/String;Ljava/lang/String;I)V");
 	postInvalidate = (*env)->GetMethodID(env, vcls, "postInvalidate", "()V");
 	requestResize  = (*env)->GetMethodID(env, cls,  "requestResize", "(II)V");

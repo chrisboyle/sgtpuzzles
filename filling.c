@@ -163,13 +163,13 @@ static config_item *game_configure(game_params *params)
 
     ret = snewn(3, config_item);
 
-    ret[0].name = "Width";
+    ret[0].name = _("Width");
     ret[0].type = C_STRING;
     sprintf(buf, "%d", params->w);
     ret[0].sval = dupstr(buf);
     ret[0].ival = 0;
 
-    ret[1].name = "Height";
+    ret[1].name = _("Height");
     ret[1].type = C_STRING;
     sprintf(buf, "%d", params->h);
     ret[1].sval = dupstr(buf);
@@ -195,8 +195,8 @@ static game_params *custom_params(config_item *cfg)
 
 static char *validate_params(game_params *params, int full)
 {
-    if (params->w < 1) return "Width must be at least one";
-    if (params->h < 1) return "Height must be at least one";
+    if (params->w < 1) return _("Width must be at least one");
+    if (params->h < 1) return _("Height must be at least one");
 
     return NULL;
 }
@@ -931,11 +931,11 @@ static char *validate_desc(game_params *params, char *desc)
 
     for (i = 0; desc[i] && i < sz; ++i)
         if (!isdigit((unsigned char) *desc))
-	    return "non-digit in string";
+	    return _("non-digit in string");
 	else if (desc[i] > m)
-	    return "too large digit in string";
-    if (desc[i]) return "string too long";
-    else if (i < sz) return "string too short";
+	    return _("too large digit in string");
+    if (desc[i]) return _("string too long");
+    else if (i < sz) return _("string too short");
     return NULL;
 }
 
@@ -988,7 +988,7 @@ static char *solve_game(game_state *state, game_state *currstate,
         const int w = state->shared->params.w;
         const int h = state->shared->params.h;
         if (!solver(state->board, w, h, &aux))
-            *error = "Sorry, I couldn't find a solution";
+            *error = _("Sorry, I couldn't find a solution");
     }
     return aux;
 }

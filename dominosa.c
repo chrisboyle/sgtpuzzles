@@ -119,7 +119,7 @@ static int game_fetch_preset(int i, char **name, game_params **params)
       default: return FALSE;
     }
 
-    sprintf(buf, "Up to double-%d", n);
+    sprintf(buf, _("Up to double-%d"), n);
     *name = dupstr(buf);
 
     *params = ret = snew(game_params);
@@ -165,13 +165,13 @@ static config_item *game_configure(game_params *params)
 
     ret = snewn(3, config_item);
 
-    ret[0].name = "Maximum number on dominoes";
+    ret[0].name = _("Maximum number on dominoes");
     ret[0].type = C_STRING;
     sprintf(buf, "%d", params->n);
     ret[0].sval = dupstr(buf);
     ret[0].ival = 0;
 
-    ret[1].name = "Ensure unique solution";
+    ret[1].name = _("Ensure unique solution");
     ret[1].type = C_BOOLEAN;
     ret[1].sval = NULL;
     ret[1].ival = params->unique;
@@ -197,7 +197,7 @@ static game_params *custom_params(config_item *cfg)
 static char *validate_params(game_params *params, int full)
 {
     if (params->n < 1)
-        return "Maximum face number must be at least one";
+        return _("Maximum face number must be at least one");
     return NULL;
 }
 
@@ -769,7 +769,7 @@ static char *validate_desc(game_params *params, char *desc)
 
     for (i = 0; i < wh; i++) {
         if (!*desc) {
-            ret = ret ? ret : "Game description is too short";
+            ret = ret ? ret : _("Game description shorter than expected");
         } else {
             if (*desc >= '0' && *desc <= '9')
                 j = *desc++ - '0';
@@ -778,27 +778,27 @@ static char *validate_desc(game_params *params, char *desc)
                 j = atoi(desc);
                 while (*desc && isdigit((unsigned char)*desc)) desc++;
                 if (*desc != ']')
-                    ret = ret ? ret : "Missing ']' in game description";
+                    ret = ret ? ret : _("Missing ']' in game description");
                 else
                     desc++;
             } else {
                 j = -1;
-                ret = ret ? ret : "Invalid syntax in game description";
+                ret = ret ? ret : _("Invalid syntax in game description");
             }
             if (j < 0 || j > n)
-                ret = ret ? ret : "Number out of range in game description";
+                ret = ret ? ret : _("Number out of range in game description");
             else
                 occurrences[j]++;
         }
     }
 
     if (*desc)
-        ret = ret ? ret : "Game description is too long";
+        ret = ret ? ret : _("Game description longer than expected");
 
     if (!ret) {
         for (i = 0; i <= n; i++)
             if (occurrences[i] != n+2)
-                ret = "Incorrect number balance in game description";
+                ret = _("Incorrect number balance in game description");
     }
 
     sfree(occurrences);

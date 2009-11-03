@@ -592,8 +592,8 @@ static int game_fetch_preset(int i, char **name, game_params **params)
     *params = ret;
 
     sprintf(buf, "%dx%d %s", ret->w, ret->h,
-            ret->difficulty == 0 ? "easy" :
-            ret->difficulty == 1 ? "medium" : "hard");
+            ret->difficulty == 0 ? _("Easy") :
+            ret->difficulty == 1 ? _("Medium") : _("Hard"));
     *name = dupstr(buf);
 
     return TRUE;
@@ -670,39 +670,39 @@ static config_item *game_configure(game_params *params)
 
     ret = snewn(8, config_item);
 
-    ret[0].name = "Width";
+    ret[0].name = _("Width");
     ret[0].type = C_STRING;
     sprintf(buf, "%d", params->w);
     ret[0].sval = dupstr(buf);
     ret[0].ival = 0;
 
-    ret[1].name = "Height";
+    ret[1].name = _("Height");
     ret[1].type = C_STRING;
     sprintf(buf, "%d", params->h);
     ret[1].sval = dupstr(buf);
     ret[1].ival = 0;
 
-    ret[2].name = "Difficulty";
+    ret[2].name = _("Difficulty");
     ret[2].type = C_CHOICES;
-    ret[2].sval = ":Easy:Medium:Hard";
+    ret[2].sval = _(":Easy:Medium:Hard");
     ret[2].ival = params->difficulty;
 
-    ret[3].name = "Allow loops";
+    ret[3].name = _("Allow loops");
     ret[3].type = C_BOOLEAN;
     ret[3].sval = NULL;
     ret[3].ival = params->allowloops;
 
-    ret[4].name = "Max. bridges per direction";
+    ret[4].name = _("Max. bridges per direction");
     ret[4].type = C_CHOICES;
     ret[4].sval = ":1:2:3:4"; /* keep up-to-date with MAX_BRIDGES */
     ret[4].ival = params->maxb - 1;
 
-    ret[5].name = "%age of island squares";
+    ret[5].name = _("%age of island squares");
     ret[5].type = C_CHOICES;
     ret[5].sval = ":5%:10%:15%:20%:25%:30%";
     ret[5].ival = (params->islands / 5)-1;
 
-    ret[6].name = "Expansion factor (%age)";
+    ret[6].name = _("Expansion factor (%age)");
     ret[6].type = C_CHOICES;
     ret[6].sval = ":0%:10%:20%:30%:40%:50%:60%:70%:80%:90%:100%";
     ret[6].ival = params->expansion / 10;
@@ -733,14 +733,14 @@ static game_params *custom_params(config_item *cfg)
 static char *validate_params(game_params *params, int full)
 {
     if (params->w < 3 || params->h < 3)
-        return "Width and height must be at least 3";
+        return _("Width and height must be at least 3");
     if (params->maxb < 1 || params->maxb > MAX_BRIDGES)
-        return "Too many bridges.";
+        return _("Too many bridges.");
     if (full) {
         if (params->islands <= 0 || params->islands > 30)
-            return "%age of island squares must be between 1% and 30%";
+            return _("%age of island squares must be between 1% and 30%");
         if (params->expansion < 0 || params->expansion > 100)
-            return "Expansion factor must be between 0 and 100";
+            return _("Expansion factor must be between 0 and 100");
     }
     return NULL;
 }
@@ -1872,13 +1872,13 @@ static char *validate_desc(game_params *params, char *desc)
                  *desc == 'J' || *desc == 'K')
             /* OK */;
         else if (!*desc)
-            return "Game description shorter than expected";
+            return _("Game description shorter than expected");
         else
-            return "Game description containers unexpected character";
+            return _("Invalid character in game description");
         desc++;
     }
     if (*desc || i > wh)
-        return "Game description longer than expected";
+        return _("Game description longer than expected");
 
     return NULL;
 }
@@ -2311,7 +2311,7 @@ static char *solve_game(game_state *state, game_state *currstate,
         debug(("solve_game: aux = %s\n", aux));
         solved = execute_move(state, aux);
         if (!solved) {
-            *error = "Generated aux string is not a valid move (!).";
+            *error = _("Generated aux string is not a valid move (!).");
             return NULL;
         }
     } else {
@@ -2319,7 +2319,7 @@ static char *solve_game(game_state *state, game_state *currstate,
         /* solve with max strength... */
         if (solve_from_scratch(solved, 10) == 0) {
             free_game(solved);
-            *error = "Game does not have a (non-recursive) solution.";
+            *error = _("Game does not have a (non-recursive) solution.");
             return NULL;
         }
     }

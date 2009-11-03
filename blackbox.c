@@ -71,10 +71,10 @@ static int game_fetch_preset(int i, char **name, game_params **params)
     *ret = blackbox_presets[i];
 
     if (ret->minballs == ret->maxballs)
-        sprintf(str, "%dx%d, %d balls",
+        sprintf(str, _("%dx%d, %d balls"),
                 ret->w, ret->h, ret->minballs);
     else
-        sprintf(str, "%dx%d, %d-%d balls",
+        sprintf(str, _("%dx%d, %d-%d balls"),
                 ret->w, ret->h, ret->minballs, ret->maxballs);
 
     *name = dupstr(str);
@@ -145,19 +145,19 @@ static config_item *game_configure(game_params *params)
 
     ret = snewn(4, config_item);
 
-    ret[0].name = "Width";
+    ret[0].name = _("Width");
     ret[0].type = C_STRING;
     sprintf(buf, "%d", params->w);
     ret[0].sval = dupstr(buf);
     ret[0].ival = 0;
 
-    ret[1].name = "Height";
+    ret[1].name = _("Height");
     ret[1].type = C_STRING;
     sprintf(buf, "%d", params->h);
     ret[1].sval = dupstr(buf);
     ret[1].ival = 0;
 
-    ret[2].name = "No. of balls";
+    ret[2].name = _("No. of balls");
     ret[2].type = C_STRING;
     if (params->minballs == params->maxballs)
         sprintf(buf, "%d", params->minballs);
@@ -191,15 +191,15 @@ static game_params *custom_params(config_item *cfg)
 static char *validate_params(game_params *params, int full)
 {
     if (params->w < 2 || params->h < 2)
-        return "Width and height must both be at least two";
+        return _("Width and height must both be at least two");
     /* next one is just for ease of coding stuff into 'char'
      * types, and could be worked around if required. */
     if (params->w > 255 || params->h > 255)
-        return "Widths and heights greater than 255 are not supported";
+        return _("Widths and heights greater than 255 are not supported");
     if (params->minballs > params->maxballs)
-        return "Minimum number of balls may not be greater than maximum";
+        return _("Minimum number of balls may not be greater than maximum");
     if (params->minballs >= params->w * params->h)
-        return "Too many balls to fit in grid";
+        return _("Too many balls to fit in grid");
     return NULL;
 }
 
@@ -269,11 +269,11 @@ static char *validate_desc(game_params *params, char *desc)
 
     if (dlen < 4 || dlen % 4 ||
         nballs < params->minballs || nballs > params->maxballs)
-        return "Game description is wrong length";
+        return _("Game description is wrong length");
 
     bmp = hex2bin(desc, nballs*2 + 2);
     obfuscate_bitmap(bmp, (nballs*2 + 2) * 8, TRUE);
-    ret = "Game description is corrupted";
+    ret = _("Game description is corrupted");
     /* check general grid size */
     if (bmp[0] != params->w || bmp[1] != params->h)
         goto done;
@@ -1426,29 +1426,29 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
             if (state->nwrong == 0 &&
                 state->nmissed == 0 &&
                 state->nright >= state->minballs)
-                sprintf(buf, "CORRECT!");
+                sprintf(buf, _("CORRECT!"));
             else
-                sprintf(buf, "%d wrong and %d missed balls.",
+                sprintf(buf, _("%d wrong and %d missed balls."),
                         state->nwrong, state->nmissed);
         } else if (state->justwrong) {
-	    sprintf(buf, "Wrong! Guess again.");
+	    sprintf(buf, _("Wrong! Guess again."));
 	} else {
             if (state->nguesses > state->maxballs)
-                sprintf(buf, "%d too many balls marked.",
+                sprintf(buf, _("%d too many balls marked."),
                         state->nguesses - state->maxballs);
             else if (state->nguesses <= state->maxballs &&
                      state->nguesses >= state->minballs)
-                sprintf(buf, "Click button to verify guesses.");
+                sprintf(buf, _("Click button to verify guesses."));
             else if (state->maxballs == state->minballs)
-                sprintf(buf, "Balls marked: %d / %d",
+                sprintf(buf, _("Balls marked: %d / %d"),
                         state->nguesses, state->minballs);
             else
-                sprintf(buf, "Balls marked: %d / %d-%d.",
+                sprintf(buf, _("Balls marked: %d / %d-%d."),
                         state->nguesses, state->minballs, state->maxballs);
         }
 	if (ui->errors) {
-	    sprintf(buf + strlen(buf), " (%d error%s)",
-		    ui->errors, ui->errors > 1 ? "s" : "");
+	    if (ui->errors == 1) strcpy(buf + strlen(buf), _(" (1 error)"));
+	    else sprintf(buf + strlen(buf), _(" (%d errors)"), ui->errors);
 	}
         status_bar(dr, buf);
     }

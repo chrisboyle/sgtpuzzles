@@ -767,6 +767,31 @@ public class SGTPuzzles extends Activity
 		savingState.append(new String(buffer));
 	}
 
+	String gettext(String s)
+	{
+		if (s.startsWith(":")) {
+			String[] choices = s.substring(1).split(":");
+			String ret = "";
+			for (String choice : choices) ret += ":"+gettext(choice);
+			return ret;
+		}
+		String id = s
+				.replaceAll("^[0-9]","_")
+				.replaceAll("%age","percentage")
+				.replaceAll("','","comma")
+				.replaceAll("%[.0-9]*u?[sd]","X")
+				.replaceAll("[^A-Za-z0-9_]+","_");
+		if( id.endsWith("_") ) id = id.substring(0,id.length()-1);
+		int resId = getResources().getIdentifier(id, "string", getPackageName());
+		if( resId > 0 ) {
+			String ret = getResources().getString(resId);
+			Log.d(TAG,"gettext: "+s+" -> "+id+" -> "+ret);
+			return ret;
+		}
+		Log.i(TAG,"gettext: NO TRANSLATION: "+s+" -> "+id+" -> ???");
+		return s;
+	}
+
 	native static void initNative(Class vcls);
 	native void init(GameView _gameView, int whichGame, String gameState);
 	native void cancel();

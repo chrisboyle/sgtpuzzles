@@ -320,12 +320,13 @@ static int game_fetch_preset(int i, char **name, game_params **params)
         { "3x4 Basic", { 3, 4, SYMM_ROT2, DIFF_SIMPLE, DIFF_KMINMAX, FALSE, FALSE } },
         { "4x4 Basic", { 4, 4, SYMM_ROT2, DIFF_SIMPLE, DIFF_KMINMAX, FALSE, FALSE } },
 #endif
+// _("2x2 Trivial"), _("2x3 Basic"), _("3x3 Trivial"), _("3x3 Basic"), _("3x3 Basic X"), _("3x3 Intermediate"), _("3x3 Advanced"), _("3x3 Advanced X"), _("3x3 Extreme"), _("3x3 Unreasonable"), _("3x3 Killer"), _("9 Jigsaw Basic"), _("9 Jigsaw Basic X"), _("9 Jigsaw Advanced"), _("3x4 Basic"), _("4x4 Basic")
     };
 
     if (i < 0 || i >= lenof(presets))
         return FALSE;
 
-    *name = dupstr(presets[i].title);
+    *name = dupstr(_(presets[i].title));
     *params = dup_params(&presets[i].params);
 
     return TRUE;
@@ -442,43 +443,41 @@ static config_item *game_configure(game_params *params)
 
     ret = snewn(8, config_item);
 
-    ret[0].name = "Columns of sub-blocks";
+    ret[0].name = _("Columns of sub-blocks");
     ret[0].type = C_STRING;
     sprintf(buf, "%d", params->c);
     ret[0].sval = dupstr(buf);
     ret[0].ival = 0;
 
-    ret[1].name = "Rows of sub-blocks";
+    ret[1].name = _("Rows of sub-blocks");
     ret[1].type = C_STRING;
     sprintf(buf, "%d", params->r);
     ret[1].sval = dupstr(buf);
     ret[1].ival = 0;
 
-    ret[2].name = "\"X\" (require every number in each main diagonal)";
+    ret[2].name = _("\"X\" (require every number in each main diagonal)");
     ret[2].type = C_BOOLEAN;
     ret[2].sval = NULL;
     ret[2].ival = params->xtype;
 
-    ret[3].name = "Jigsaw (irregularly shaped sub-blocks)";
+    ret[3].name = _("Jigsaw (irregularly shaped sub-blocks)");
     ret[3].type = C_BOOLEAN;
     ret[3].sval = NULL;
     ret[3].ival = (params->r == 1);
 
-    ret[4].name = "Killer (digit sums)";
+    ret[4].name = _("Killer (digit sums)");
     ret[4].type = C_BOOLEAN;
     ret[4].sval = NULL;
     ret[4].ival = params->killer;
 
-    ret[5].name = "Symmetry";
+    ret[5].name = _("Symmetry");
     ret[5].type = C_CHOICES;
-    ret[5].sval = ":None:2-way rotation:4-way rotation:2-way mirror:"
-        "2-way diagonal mirror:4-way mirror:4-way diagonal mirror:"
-        "8-way mirror";
+    ret[5].sval = _(":None:2-way rotational:4-way rotational:2-way mirror:2-way diagonal mirror:4-way mirror:4-way diagonal mirror:8-way mirror");
     ret[5].ival = params->symm;
 
-    ret[6].name = "Difficulty";
+    ret[6].name = _("Difficulty");
     ret[6].type = C_CHOICES;
-    ret[6].sval = ":Trivial:Basic:Intermediate:Advanced:Extreme:Unreasonable";
+    ret[6].sval = _(":Trivial:Basic:Intermediate:Advanced:Extreme:Unreasonable");
     ret[6].ival = params->diff;
 
     ret[7].name = NULL;
@@ -511,13 +510,14 @@ static game_params *custom_params(config_item *cfg)
 static char *validate_params(game_params *params, int full)
 {
     if (params->c < 2)
-	return "Both dimensions must be at least 2";
+	return _("Both dimensions must be at least 2");
     if (params->c > ORDER_MAX || params->r > ORDER_MAX)
-	return "Dimensions greater than "STR(ORDER_MAX)" are not supported";
+	return _(/*hide from i18ncheck*/"Dimensions greater than "STR(ORDER_MAX)" are not supported");
+    // _("Dimensions greater than 255 are not supported")
     if ((params->c * params->r) > 31)
-        return "Unable to support more than 31 distinct symbols in a puzzle";
+        return _("Unable to support more than 31 distinct symbols in a puzzle");
     if (params->killer && params->c * params->r > 9)
-	return "Killer puzzle dimensions must be smaller than 10.";
+	return _("Killer puzzle dimensions must be smaller than 10.");
     return NULL;
 }
 
@@ -3879,7 +3879,7 @@ static char *spec_to_dsf(char **pdesc, int **pdsf, int cr, int area)
 	    c = *desc - 'a' + 1;
 	else {
 	    sfree(dsf);
-	    return "Invalid character in game description";
+	    return _("Invalid character in game description");
 	}
 	desc++;
 
@@ -3920,7 +3920,7 @@ static char *spec_to_dsf(char **pdesc, int **pdsf, int cr, int area)
      */
     if (pos != 2*cr*(cr-1)+1) {
 	sfree(dsf);
-	return "Not enough data in block structure specification";
+	return _("Not enough data in block structure specification");
     }
 
     return NULL;
@@ -3939,19 +3939,19 @@ static char *validate_grid_desc(char **pdesc, int range, int area)
         } else if (n > '0' && n <= '9') {
             int val = atoi(desc-1);
             if (val < 1 || val > range)
-                return "Out-of-range number in game description";
+                return _("Number out of range in game description");
             squares++;
             while (*desc >= '0' && *desc <= '9')
                 desc++;
         } else
-            return "Invalid character in game description";
+            return _("Invalid character in game description");
     }
 
     if (squares < area)
-        return "Not enough data to fill grid";
+        return _("Not enough data to fill grid");
 
     if (squares > area)
-        return "Too much data to fit in grid";
+        return _("Too much data to fit in grid");
     *pdesc = desc;
     return NULL;
 }
@@ -3993,7 +3993,7 @@ static char *validate_block_desc(char **pdesc, int cr, int area,
 			sfree(dsf);
 			sfree(canons);
 			sfree(counts);
-			return "A jigsaw block is too big";
+			return _("A jigsaw block is too big");
 		    }
 		    break;
 		}
@@ -4003,7 +4003,7 @@ static char *validate_block_desc(char **pdesc, int cr, int area,
 		    sfree(dsf);
 		    sfree(canons);
 		    sfree(counts);
-		    return "Too many distinct jigsaw blocks";
+		    return _("Too many distinct jigsaw blocks");
 		}
 		canons[ncanons] = j;
 		counts[ncanons] = 1;
@@ -4015,14 +4015,14 @@ static char *validate_block_desc(char **pdesc, int cr, int area,
 	    sfree(dsf);
 	    sfree(canons);
 	    sfree(counts);
-	    return "Not enough distinct jigsaw blocks";
+	    return _("Not enough distinct jigsaw blocks");
 	}
 	for (c = 0; c < ncanons; c++) {
 	    if (counts[c] < min_nr_squares) {
 		sfree(dsf);
 		sfree(canons);
 		sfree(counts);
-		return "A jigsaw block is too small";
+		return _("A jigsaw block is too small");
 	    }
 	}
 	sfree(canons);
@@ -4050,7 +4050,7 @@ static char *validate_desc(game_params *params, char *desc)
 	 * right size.
 	 */
 	if (*desc != ',')
-	    return "Expected jigsaw block structure in game description";
+	    return _("Expected jigsaw block structure in game description");
 	desc++;
 	err = validate_block_desc(&desc, cr, area, cr, cr, cr, cr);
 	if (err)
@@ -4059,20 +4059,20 @@ static char *validate_desc(game_params *params, char *desc)
     }
     if (params->killer) {
 	if (*desc != ',')
-	    return "Expected killer block structure in game description";
+	    return _("Expected killer block structure in game description");
 	desc++;
 	err = validate_block_desc(&desc, cr, area, cr, area, 2, cr);
 	if (err)
 	    return err;
 	if (*desc != ',')
-	    return "Expected killer clue grid in game description";
+	    return _("Expected killer clue grid in game description");
 	desc++;
 	err = validate_grid_desc(&desc, cr * area, area);
 	if (err)
 	    return err;
     }
     if (*desc)
-	return "Unexpected data at end of game description";
+	return _("Unexpected data at end of game description");
 
     return NULL;
 }
@@ -4254,9 +4254,9 @@ static char *solve_game(game_state *state, game_state *currstate,
     *error = NULL;
 
     if (dlev.diff == DIFF_IMPOSSIBLE)
-	*error = "No solution exists for this puzzle";
+	*error = _("No solution exists for this puzzle");
     else if (dlev.diff == DIFF_AMBIGUOUS)
-	*error = "Multiple solutions exist for this puzzle";
+	*error = _("Multiple solutions exist for this puzzle");
 
     if (*error) {
         sfree(grid);

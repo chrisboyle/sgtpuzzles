@@ -266,21 +266,19 @@ static void check_caches(const solver_state* sstate);
     A(Great-Hexagonal,grid_new_greathexagonal,3,3) \
     A(Octagonal,grid_new_octagonal,3,3) \
     A(Kites,grid_new_kites,3,3)
+// _("Squares"), _("Triangular"), _("Honeycomb"), _("Snub-Square"), _("Cairo"), _("Great-Hexagonal"), _("Octagonal"), _("Kites")
 
 #define GRID_NAME(title,fn,amin,omin) #title,
 #define GRID_CONFIG(title,fn,amin,omin) ":" #title
 #define GRID_FN(title,fn,amin,omin) &fn,
 #define GRID_SIZES(title,fn,amin,omin) \
-    {amin, omin, \
-     "Width and height for this grid type must both be at least " #amin, \
-     "At least one of width and height for this grid type must be at least " #omin,},
+    {amin, omin},
 static char const *const gridnames[] = { GRIDLIST(GRID_NAME) };
-#define GRID_CONFIGS GRIDLIST(GRID_CONFIG)
+#define GRID_CONFIGS _(GRIDLIST(GRID_CONFIG))
 static grid * (*(grid_fns[]))(int w, int h) = { GRIDLIST(GRID_FN) };
 #define NUM_GRID_TYPES (sizeof(grid_fns) / sizeof(grid_fns[0]))
 static const struct {
     int amin, omin;
-    char *aerr, *oerr;
 } grid_size_limits[] = { GRIDLIST(GRID_SIZES) };
 
 /* Generates a (dynamically allocated) new grid, according to the
@@ -545,7 +543,7 @@ static int game_fetch_preset(int i, char **name, game_params **params)
     *tmppar = presets[i];
     *params = tmppar;
     sprintf(buf, "%dx%d %s - %s", tmppar->h, tmppar->w,
-            gridnames[tmppar->type], diffnames[tmppar->diff]);
+            _(gridnames[tmppar->type]), diffnames[tmppar->diff]);
     *name = dupstr(buf);
 
     return TRUE;
@@ -604,24 +602,24 @@ static config_item *game_configure(game_params *params)
 
     ret = snewn(5, config_item);
 
-    ret[0].name = "Width";
+    ret[0].name = _("Width");
     ret[0].type = C_STRING;
     sprintf(buf, "%d", params->w);
     ret[0].sval = dupstr(buf);
     ret[0].ival = 0;
 
-    ret[1].name = "Height";
+    ret[1].name = _("Height");
     ret[1].type = C_STRING;
     sprintf(buf, "%d", params->h);
     ret[1].sval = dupstr(buf);
     ret[1].ival = 0;
 
-    ret[2].name = "Grid type";
+    ret[2].name = _("Grid type");
     ret[2].type = C_CHOICES;
     ret[2].sval = GRID_CONFIGS;
     ret[2].ival = params->type;
 
-    ret[3].name = "Difficulty";
+    ret[3].name = _("Difficulty");
     ret[3].type = C_CHOICES;
     ret[3].sval = DIFFCONFIG;
     ret[3].ival = params->diff;
@@ -649,14 +647,19 @@ static game_params *custom_params(config_item *cfg)
 
 static char *validate_params(game_params *params, int full)
 {
+    static char err[128];
     if (params->type < 0 || params->type >= NUM_GRID_TYPES)
-        return "Illegal grid type";
-    if (params->w < grid_size_limits[params->type].amin ||
-	params->h < grid_size_limits[params->type].amin)
-        return grid_size_limits[params->type].aerr;
-    if (params->w < grid_size_limits[params->type].omin &&
-	params->h < grid_size_limits[params->type].omin)
-        return grid_size_limits[params->type].oerr;
+        return _("Illegal grid type");
+    int l = grid_size_limits[params->type].amin;
+    if (params->w < l || params->h < l) {
+        sprintf(err, _("Width and height for this grid type must both be at least %d"), l);
+        return err;
+    }
+    l = grid_size_limits[params->type].omin;
+    if (params->w < l && params->h < l) {
+        sprintf(err, _("At least one of width and height for this grid type must be at least %d"), l);
+        return err;
+    }
 
     /*
      * This shouldn't be able to happen at all, since decode_params
@@ -722,13 +725,13 @@ static char *validate_desc(game_params *params, char *desc)
             count += *desc - 'a' + 1;
             continue;
         }
-        return "Unknown character in description";
+        return _("Unknown character in description");
     }
 
     if (count < g->num_faces)
-        return "Description too short for board size";
+        return _("Description too short for board size");
     if (count > g->num_faces)
-        return "Description too long for board size";
+        return _("Description too long for board size");
 
     return NULL;
 }

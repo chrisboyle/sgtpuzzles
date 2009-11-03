@@ -241,6 +241,7 @@ int verbose = FALSE;
 #define DIFFLIST(A) \
     A(EASY,Easy,e) \
     A(TRICKY,Tricky,t)
+// _("Easy"), _("Tricky")
 #define ENUM(upper,title,lower) DIFF_ ## upper,
 #define TITLE(upper,title,lower) #title,
 #define ENCODE(upper,title,lower) #lower
@@ -248,7 +249,7 @@ int verbose = FALSE;
 enum { DIFFLIST(ENUM) DIFFCOUNT };
 static char const *const tents_diffnames[] = { DIFFLIST(TITLE) };
 static char const tents_diffchars[] = DIFFLIST(ENCODE);
-#define DIFFCONFIG DIFFLIST(CONFIG)
+#define DIFFCONFIG _(DIFFLIST(CONFIG))
 
 enum {
     COL_BACKGROUND,
@@ -312,7 +313,7 @@ static int game_fetch_preset(int i, char **name, game_params **params)
     ret = snew(game_params);
     *ret = tents_presets[i];
 
-    sprintf(str, "%dx%d %s", ret->w, ret->h, tents_diffnames[ret->diff]);
+    sprintf(str, "%dx%d %s", ret->w, ret->h, _(tents_diffnames[ret->diff]));
 
     *name = dupstr(str);
     *params = ret;
@@ -368,19 +369,19 @@ static config_item *game_configure(game_params *params)
 
     ret = snewn(4, config_item);
 
-    ret[0].name = "Width";
+    ret[0].name = _("Width");
     ret[0].type = C_STRING;
     sprintf(buf, "%d", params->w);
     ret[0].sval = dupstr(buf);
     ret[0].ival = 0;
 
-    ret[1].name = "Height";
+    ret[1].name = _("Height");
     ret[1].type = C_STRING;
     sprintf(buf, "%d", params->h);
     ret[1].sval = dupstr(buf);
     ret[1].ival = 0;
 
-    ret[2].name = "Difficulty";
+    ret[2].name = _("Difficulty");
     ret[2].type = C_CHOICES;
     ret[2].sval = DIFFCONFIG;
     ret[2].ival = params->diff;
@@ -411,7 +412,7 @@ static char *validate_params(game_params *params, int full)
      * or another.
      */
     if (params->w < 4 || params->h < 4)
-	return "Width and height must both be at least four";
+	return _("Width and height must both be at least four");
     return NULL;
 }
 
@@ -1221,26 +1222,26 @@ static char *validate_desc(game_params *params, char *desc)
         else if (*desc == '!' || *desc == '-')
             /* do nothing */;
         else
-            return "Invalid character in grid specification";
+            return _("Invalid character in grid specification");
 
 	desc++;
     }
     if (area < w * h + 1)
-	return "Not enough data to fill grid";
+	return _("Not enough data to fill grid");
     else if (area > w * h + 1)
-	return "Too much data to fill grid";
+	return _("Too much data to fit in grid");
 
     for (i = 0; i < w+h; i++) {
 	if (!*desc)
-            return "Not enough numbers given after grid specification";
+            return _("Not enough numbers given after grid specification");
         else if (*desc != ',')
-            return "Invalid character in number list";
+            return _("Invalid character in number list");
 	desc++;
 	while (*desc && isdigit((unsigned char)*desc)) desc++;
     }
 
     if (*desc)
-        return "Unexpected additional data at end of game description";
+        return _("Unexpected additional data at end of game description");
     return NULL;
 }
 
@@ -1354,9 +1355,9 @@ static char *solve_game(game_state *state, game_state *currstate,
 	if (ret != 1) {
 	    sfree(soln);
 	    if (ret == 0)
-		*error = "This puzzle is not self-consistent";
+		*error = _("This puzzle is not self-consistent");
 	    else
-		*error = "Unable to find a unique solution for this puzzle";
+		*error = _("Unable to find a unique solution for this puzzle");
             return NULL;
 	}
 
