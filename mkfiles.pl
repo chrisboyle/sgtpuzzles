@@ -1418,9 +1418,9 @@ if (defined $makefiles{"android"}) {
     print
     "\n".
     "# This path points at the Native Development Kit root directory\n".
-    "ANDROID_NDK = /opt/android-ndk-1.6_r1\n".
+    "ANDROID_NDK ?= /opt/android-ndk-1.6_r1\n".
     "# This should be the Android SDK root directory\n".
-    "ANDROID = /opt/android-sdk-linux\n".
+    "ANDROID ?= /opt/android-sdk-linux\n".
     "# You can define this path to point at your tools if you need to\n".
     "TOOLPATH = \$(ANDROID_NDK)/build/prebuilt/linux-x86/arm-eabi-4.2.1/bin\n".
     "CC = \$(TOOLPATH)/arm-eabi-gcc\n".
