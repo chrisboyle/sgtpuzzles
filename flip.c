@@ -364,6 +364,13 @@ static char *new_game_desc(game_params *params, random_state *rs,
     switch (params->matrix_type) {
       case CROSSES:
         for (i = 0; i < wh; i++) {
+#ifdef ANDROID
+            if (android_cancelled()) {
+                sfree(matrix);
+                sfree(grid);
+                return NULL;
+            }
+#endif
             int ix = i % w, iy = i / w;
             for (j = 0; j < wh; j++) {
                 int jx = j % w, jy = j / w;
@@ -378,6 +385,13 @@ static char *new_game_desc(game_params *params, random_state *rs,
         while (1) {
             tree234 *pick, *cov, *osize;
             int limit;
+#ifdef ANDROID
+            if (android_cancelled()) {
+                sfree(matrix);
+                sfree(grid);
+                return NULL;
+            }
+#endif
 
             pick = newtree234(sqcmp_pick);
             cov = newtree234(sqcmp_cov);
@@ -390,6 +404,9 @@ static char *new_game_desc(game_params *params, random_state *rs,
 
             for (i = 0; i < wh; i++) {
                 int ix = i % w, iy = i / w;
+#ifdef ANDROID
+                if (android_cancelled()) break;
+#endif
                 addneighbours(pick, w, h, ix, iy, ix, iy, matrix);
                 addneighbours(cov, w, h, ix, iy, ix, iy, matrix);
                 addneighbours(osize, w, h, ix, iy, ix, iy, matrix);
@@ -406,6 +423,9 @@ static char *new_game_desc(game_params *params, random_state *rs,
             while (limit-- > 0) {
                 struct sq *sq, *sq2, sqlocal;
                 int k;
+#ifdef ANDROID
+                if (android_cancelled()) break;
+#endif
 
                 /*
                  * Find the lowest element in the pick tree.
@@ -446,6 +466,9 @@ static char *new_game_desc(game_params *params, random_state *rs,
                                          REL234_GT)) != NULL &&
                        sq2->coverage == sq->coverage &&
                        sq2->x == sq->x && sq2->y == sq->y) {
+#ifdef ANDROID
+                    if (android_cancelled()) break;
+#endif
                     del234(pick, sq2);
                     del234(cov, sq2);
                     del234(osize, sq2);
@@ -454,6 +477,9 @@ static char *new_game_desc(game_params *params, random_state *rs,
                     add234(cov, sq2);
                     add234(osize, sq2);
                 }
+#ifdef ANDROID
+                if (android_cancelled()) break;
+#endif
 
                 /*
                  * Correct the omino size field of any sq which
@@ -465,6 +491,9 @@ static char *new_game_desc(game_params *params, random_state *rs,
                                          REL234_GT)) != NULL &&
                        sq2->ominosize == sq->ominosize &&
                        sq2->cx == sq->cx && sq2->cy == sq->cy) {
+#ifdef ANDROID
+                    if (android_cancelled()) break;
+#endif
                     del234(pick, sq2);
                     del234(cov, sq2);
                     del234(osize, sq2);
@@ -473,6 +502,9 @@ static char *new_game_desc(game_params *params, random_state *rs,
                     add234(cov, sq2);
                     add234(osize, sq2);
                 }
+#ifdef ANDROID
+                if (android_cancelled()) break;
+#endif
 
                 /*
                  * The sq we actually picked out of the tree is
@@ -496,6 +528,9 @@ static char *new_game_desc(game_params *params, random_state *rs,
             freetree234(pick);
             freetree234(cov);
             freetree234(osize);
+#ifdef ANDROID
+            if (android_cancelled()) continue;
+#endif
 
             /*
              * Finally, check to see if any two matrix rows are
@@ -517,6 +552,9 @@ static char *new_game_desc(game_params *params, random_state *rs,
              * better, they're welcome to submit a patch.
              */
             for (i = 0; i < wh; i++) {
+#ifdef ANDROID
+                if (android_cancelled()) break;
+#endif
                 for (j = 0; j < wh; j++)
                     if (i != j &&
                         !memcmp(matrix + i * wh, matrix + j * wh, wh))
@@ -564,12 +602,18 @@ static char *new_game_desc(game_params *params, random_state *rs,
     while (1) {
         memset(grid, 0, wh);
         for (i = 0; i < wh; i++) {
+#ifdef ANDROID
+            if (android_cancelled()) break;
+#endif
             int v = random_upto(rs, 2);
             if (v) {
                 for (j = 0; j < wh; j++)
                     grid[j] ^= matrix[i*wh+j];
             }
         }
+#ifdef ANDROID
+        if (android_cancelled()) break;
+#endif
         /*
          * Ensure we don't have the starting state already!
          */
@@ -579,6 +623,13 @@ static char *new_game_desc(game_params *params, random_state *rs,
         if (i < wh)
             break;
     }
+#ifdef ANDROID
+    if (android_cancelled()) {
+        sfree(matrix);
+        sfree(grid);
+        return NULL;
+    }
+#endif
 
     /*
      * Now encode the matrix and the starting grid as a game

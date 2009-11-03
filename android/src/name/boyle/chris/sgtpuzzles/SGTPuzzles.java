@@ -545,6 +545,7 @@ public class SGTPuzzles extends Activity
 	{
 		if( e != null && gameRunning ) die(getStackTrace(e));
 		gameRunning = false;
+		cancel();  // set flag in native code
 		while(true) { try {
 			worker.join();  // we may ANR if native code is spinning - safer than leaving a runaway native thread
 			break;
@@ -768,6 +769,7 @@ public class SGTPuzzles extends Activity
 
 	native static void initNative(Class vcls);
 	native void init(GameView _gameView, int whichGame, String gameState);
+	native void cancel();
 	native void timerTick();
 	native String htmlHelpTopic();
 	native int keyEvent(int x, int y, int k);

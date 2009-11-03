@@ -1703,6 +1703,12 @@ generate:
     debug(("Created initial island at (%d,%d).\n", x, y));
 
     while (ni_curr < ni_req) {
+#ifdef ANDROID
+        if (android_cancelled()) {
+            free_game(tobuild);
+            return NULL;
+        }
+#endif
         /* Pick a random island to try and extend from. */
         i = random_upto(rs, tobuild->n_islands);
         is = &tobuild->islands[i];

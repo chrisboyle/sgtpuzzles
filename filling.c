@@ -350,6 +350,12 @@ static void make_board(int *board, int w, int h, random_state *rs) {
 	shuffle(board, sz, sizeof (int), rs);
 	/* while the board can in principle be fixed */
 	do {
+#ifdef ANDROID
+	    if (android_cancelled()) {
+		sfree(dsf);
+		return;
+	    }
+#endif
 	    change = FALSE;
 	    for (i = 0; i < (int)sz; ++i) {
 		int a = SENTINEL;
@@ -886,6 +892,13 @@ static char *new_game_desc(game_params *params, random_state *rs,
     }
 
     make_board(board, w, h, rs);
+#ifdef ANDROID
+    if (android_cancelled()) {
+	sfree(randomize);
+	sfree(board);
+	return NULL;
+    }
+#endif
     g_board = board;
     qsort(randomize, sz, sizeof (int), compare);
     minimize_clue_set(board, w, h, randomize);

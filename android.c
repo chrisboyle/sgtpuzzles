@@ -44,6 +44,7 @@ struct frontend {
 static frontend *_fe;
 static JNIEnv *env;
 static jobject obj;
+static int cancelled;
 
 static jobject gameView;
 static jmethodID
@@ -328,6 +329,7 @@ void Java_name_boyle_chris_sgtpuzzles_SGTPuzzles_presetEvent(JNIEnv *_env, jobje
 
 	midend_set_params(fe->me, params);
 	midend_new_game(fe->me);
+	if (cancelled) return;
 	resize_fe(fe);
 	(*env)->CallVoidMethod(env, obj, tickTypeItem, midend_which_preset(fe->me));
 }
@@ -397,6 +399,7 @@ void Java_name_boyle_chris_sgtpuzzles_SGTPuzzles_configOK(JNIEnv *_env, jobject 
 		return;
 	}
 	midend_new_game(fe->me);
+	if (cancelled) return;
 	resize_fe(fe);
 	(*env)->CallVoidMethod(env, obj, tickTypeItem, midend_which_preset(fe->me));
 }
@@ -481,6 +484,11 @@ void android_completed()
 	(*env)->CallVoidMethod(env, obj, messageBox, NULL, js, 0);
 }
 
+inline int android_cancelled()
+{
+	return cancelled;
+}
+
 void Java_name_boyle_chris_sgtpuzzles_SGTPuzzles_initNative(JNIEnv *_env, jclass cls, jclass vcls)
 {
 	env = _env;
@@ -510,11 +518,17 @@ void Java_name_boyle_chris_sgtpuzzles_SGTPuzzles_initNative(JNIEnv *_env, jclass
 	unClip         = (*env)->GetMethodID(env, vcls, "unClip", "(II)V");
 }
 
+void Java_name_boyle_chris_sgtpuzzles_SGTPuzzles_cancel(JNIEnv *_env, jobject _obj)
+{
+	cancelled = TRUE;
+}
+
 void Java_name_boyle_chris_sgtpuzzles_SGTPuzzles_init(JNIEnv *_env, jobject _obj, jobject _gameView, jint whichGame, jstring gameState)
 {
 	int n;
 	float* colours;
 
+	cancelled = FALSE;
 	env = _env;
 	obj = _obj;
 	gameView = (*env)->NewGlobalRef(env, _gameView);
@@ -533,6 +547,7 @@ void Java_name_boyle_chris_sgtpuzzles_SGTPuzzles_init(JNIEnv *_env, jobject _obj
 	_fe->me = midend_new(_fe, &thegame, &android_drawing, _fe);
 	if( whichGame >= 0 || android_deserialise(gameState) != 0 )
 		midend_new_game(_fe->me);
+	if (cancelled) return;
 
 	if ((n = midend_num_presets(_fe->me)) > 0) {
 		int i;

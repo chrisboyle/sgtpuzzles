@@ -319,6 +319,9 @@ static int compute_rowdata(int *ret, unsigned char *start, int len, int step)
     n = 0;
 
     for (i = 0; i < len; i++) {
+#ifdef ANDROID
+        if (android_cancelled()) return 0;
+#endif
         if (start[i*step] == GRID_FULL) {
             int runlen = 1;
             while (i+runlen < len && start[(i+runlen)*step] == GRID_FULL)
@@ -344,6 +347,9 @@ static void do_recurse(unsigned char *known, unsigned char *deduced,
                        int freespace, int ndone, int lowest)
 {
     int i, j, k;
+#ifdef ANDROID
+    if (android_cancelled()) return;
+#endif
 
     if (data[ndone]) {
 	for (i=0; i<=freespace; i++) {
@@ -381,6 +387,9 @@ static int do_row(unsigned char *known, unsigned char *deduced,
     }
 
     do_recurse(known, deduced, row, data, len, freespace, 0, 0);
+#ifdef ANDROID
+    if (android_cancelled()) return 0;
+#endif
     done_any = FALSE;
     for (i=0; i<len; i++)
 	if (deduced[i] && deduced[i] != STILL_UNKNOWN && !known[i]) {
@@ -405,6 +414,15 @@ static unsigned char *generate_soluble(random_state *rs, int w, int h)
     ntries = 0;
 
     do {
+#ifdef ANDROID
+        if (android_cancelled()) {
+            sfree(grid);
+            sfree(matrix);
+            sfree(workspace);
+            sfree(rowdata);
+            return NULL;
+        }
+#endif
         ntries++;
 
         generate(rs, w, h, grid);
@@ -440,6 +458,15 @@ static unsigned char *generate_soluble(random_state *rs, int w, int h)
         memset(matrix, 0, w*h);
 
         do {
+#ifdef ANDROID
+            if (android_cancelled()) {
+                sfree(grid);
+                sfree(matrix);
+                sfree(workspace);
+                sfree(rowdata);
+                return NULL;
+            }
+#endif
             done_any = 0;
             for (i=0; i<h; i++) {
                 rowdata[compute_rowdata(rowdata, grid+i*w, w, 1)] = 0;
@@ -477,6 +504,9 @@ static char *new_game_desc(game_params *params, random_state *rs,
     int desclen, descpos;
 
     grid = generate_soluble(rs, params->w, params->h);
+#ifdef ANDROID
+    if (android_cancelled()) return NULL;
+#endif
     max = max(params->w, params->h);
     rowdata = snewn(max, int);
 
@@ -552,6 +582,9 @@ static char *new_game_desc(game_params *params, random_state *rs,
     desc[desclen-1] = '\0';
     sfree(rowdata);
     sfree(grid);
+#ifdef ANDROID
+    if (android_cancelled()) return NULL;
+#endif
     return desc;
 }
 

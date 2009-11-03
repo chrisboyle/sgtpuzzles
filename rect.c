@@ -349,6 +349,14 @@ static int rect_solver(int w, int h, int nrects, struct numberdata *numbers,
      */
     rectpositions = snewn(nrects, struct rectlist);
     for (i = 0; i < nrects; i++) {
+#ifdef ANDROID
+        if (android_cancelled()) {
+            for (i = 0; i < nrects; i++)
+                sfree(rectpositions[i].rects);
+            sfree(rectpositions);
+            return 0;
+        }
+#endif
         int rw, rh, area = numbers[i].area;
         int j, minx, miny, maxx, maxy;
         struct rect *rlist;
@@ -379,6 +387,9 @@ static int rect_solver(int w, int h, int nrects, struct numberdata *numbers,
 
         for (rw = 1; rw <= area && rw <= w; rw++) {
             int x, y;
+#ifdef ANDROID
+            if (android_cancelled()) return 0;
+#endif
 
             if (area % rw)
                 continue;
@@ -456,6 +467,15 @@ static int rect_solver(int w, int h, int nrects, struct numberdata *numbers,
 
         for (j = 0; j < rectpositions[i].n; j++) {
             int xx, yy;
+#ifdef ANDROID
+            if (android_cancelled()) {
+                sfree(overlaps);
+                for (i = 0; i < nrects; i++)
+                    sfree(rectpositions[i].rects);
+                sfree(rectpositions);
+                return 0;
+            }
+#endif
 
             for (yy = 0; yy < rectpositions[i].rects[j].h; yy++)
                 for (xx = 0; xx < rectpositions[i].rects[j].w; xx++)
@@ -500,6 +520,17 @@ static int rect_solver(int w, int h, int nrects, struct numberdata *numbers,
      */
     while (1) {
         int done_something = FALSE;
+#ifdef ANDROID
+        if (android_cancelled()) {
+            sfree(rectbyplace);
+            sfree(workspace);
+            sfree(overlaps);
+            for (i = 0; i < nrects; i++)
+                sfree(rectpositions[i].rects);
+            sfree(rectpositions);
+            return 0;
+        }
+#endif
 
 #ifdef SOLVER_DIAGNOSTICS
         printf("starting deduction loop\n");
@@ -1187,6 +1218,15 @@ static char *new_game_desc(game_params *params, random_state *rs,
             int n;
             struct rect r;
 
+#ifdef ANDROID
+            if (android_cancelled()) {
+                sfree(grid);
+                sfree(numbers);
+                sfree(enum_rects_scratch);
+                return NULL;
+            }
+#endif
+
             x = params2->w;
             y = params2->h;
             for (y = 0; y < params2->h; y++) {
@@ -1437,6 +1477,14 @@ static char *new_game_desc(game_params *params, random_state *rs,
             }
         }
 
+#ifdef ANDROID
+        if (android_cancelled()) {
+            sfree(grid);
+            sfree(numbers);
+            return NULL;
+        }
+#endif
+
         /*
          * We have now constructed a grid of the size specified in
          * params2. Now we extend it into a grid of the size specified
@@ -1614,6 +1662,14 @@ static char *new_game_desc(game_params *params, random_state *rs,
 #endif
         }
 
+#ifdef ANDROID
+        if (android_cancelled()) {
+            sfree(grid);
+            sfree(numbers);
+            return NULL;
+        }
+#endif
+
         /*
          * Run the solver to narrow down the possible number
          * placements.
@@ -1665,6 +1721,16 @@ static char *new_game_desc(game_params *params, random_state *rs,
 				  NULL, NULL, rs);
 	    else
 		ret = 1;	       /* allow any number placement at all */
+#ifdef ANDROID
+            if (android_cancelled()) {
+                for (i = 0; i < nnumbers; i++)
+                    sfree(nd[i].points);
+                sfree(nd);
+                sfree(grid);
+                sfree(numbers);
+                return NULL;
+            }
+#endif
 
             if (ret == 1) {
                 /*
@@ -1776,6 +1842,9 @@ static char *new_game_desc(game_params *params, random_state *rs,
     sfree(grid);
     sfree(numbers);
 
+#ifdef ANDROID
+    if (android_cancelled()) return NULL;
+#endif
     return desc;
 }
 

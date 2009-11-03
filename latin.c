@@ -197,6 +197,9 @@ int latin_solver_set(struct latin_solver *solver,
     memset(set, 0, n);
     count = 0;
     while (1) {
+#ifdef ANDROID
+        if (android_cancelled()) return -1;
+#endif
         /*
          * We have a candidate set. If its size is <=1 or >=n-1
          * then we move on immediately.

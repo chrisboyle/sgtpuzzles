@@ -517,6 +517,9 @@ static int slant_solve(int w, int h, const signed char *clues,
      * Repeatedly try to deduce something until we can't.
      */
     do {
+#ifdef ANDROID
+	if (android_cancelled()) return 0;
+#endif
 	done_something = FALSE;
 
 	/*
@@ -718,6 +721,9 @@ static int slant_solve(int w, int h, const signed char *clues,
 		}
 	    }
 
+#ifdef ANDROID
+	if (android_cancelled()) return 0;
+#endif
 	if (done_something)
 	    continue;
 
@@ -834,6 +840,9 @@ static int slant_solve(int w, int h, const signed char *clues,
 		}
 	    }
 
+#ifdef ANDROID
+	if (android_cancelled()) return 0;
+#endif
 	if (done_something)
 	    continue;
 
@@ -1084,6 +1093,16 @@ static char *new_game_desc(game_params *params, random_state *rs,
 	 */
 	slant_generate(w, h, soln, rs);
 
+#ifdef ANDROID
+        if (android_cancelled()) {
+	    free_scratch(sc);
+	    sfree(clueindices);
+	    sfree(clues);
+	    sfree(tmpsoln);
+	    sfree(soln);
+            return NULL;
+        }
+#endif
 	/*
 	 * Fill in the complete set of clues.
 	 */
@@ -1107,6 +1126,16 @@ static char *new_game_desc(game_params *params, random_state *rs,
 	 */
 	assert(slant_solve(w, h, clues, tmpsoln, sc, DIFF_EASY) == 1);
 
+#ifdef ANDROID
+        if (android_cancelled()) {
+	    free_scratch(sc);
+	    sfree(clueindices);
+	    sfree(clues);
+	    sfree(tmpsoln);
+	    sfree(soln);
+            return NULL;
+        }
+#endif
 	/*
 	 * Remove as many clues as possible while retaining solubility.
 	 *
@@ -1147,6 +1176,16 @@ static char *new_game_desc(game_params *params, random_state *rs,
 		    if (slant_solve(w, h, clues, tmpsoln, sc,
 				    params->diff) != 1)
 			clues[y*W+x] = v;	       /* put it back */
+#ifdef ANDROID
+		    if (android_cancelled()) {
+			free_scratch(sc);
+			sfree(clueindices);
+			sfree(clues);
+			sfree(tmpsoln);
+			sfree(soln);
+			return NULL;
+		    }
+#endif
 		}
 	    }
 	}
@@ -1212,6 +1251,9 @@ static char *new_game_desc(game_params *params, random_state *rs,
     sfree(tmpsoln);
     sfree(soln);
 
+#ifdef ANDROID
+    if (android_cancelled()) return NULL;
+#endif
     return desc;
 }
 

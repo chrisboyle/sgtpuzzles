@@ -669,6 +669,14 @@ static char *new_game_desc(game_params *params, random_state *rs,
                 j += 2;
             }
         assert(j == k);
+#ifdef ANDROID
+        if (android_cancelled()) {
+            sfree(list);
+            sfree(grid2);
+            sfree(grid);
+            return NULL;
+        }
+#endif
     } while (params->unique && solver(w, h, n, grid2, NULL) > 1);
 
 #ifdef GENERATION_DIAGNOSTICS

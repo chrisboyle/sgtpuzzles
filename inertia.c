@@ -462,6 +462,14 @@ static char *gengrid(int w, int h, random_state *rs)
 	int possgems;
 	int *dist, *list, head, tail, maxdist;
 
+#ifdef ANDROID
+	if (android_cancelled()) {
+	    free_scratch(sc);
+	    sfree(grid);
+	    return NULL;
+	}
+#endif
+
 	/*
 	 * We're going to fill the grid with the five basic piece
 	 * types in about 1/5 proportion. For the moment, though,

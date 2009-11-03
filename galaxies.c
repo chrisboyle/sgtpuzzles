@@ -1246,6 +1246,13 @@ static char *new_game_desc(game_params *params, random_state *rs,
     for (i = 0; i < sz; i++) scratch[i] = i;
 
 generate:
+#ifdef ANDROID
+    if (android_cancelled()) {
+	free_game(state);
+	sfree(scratch);
+	return NULL;
+    }
+#endif
     clear_game(state, 1);
     ntries++;
 
@@ -1660,6 +1667,9 @@ static int solver_obvious_dot(game_state *state, space *dot)
     assert(dot->flags & F_DOT);
     for (dx = -1; dx <= 1; dx++) {
         for (dy = -1; dy <= 1; dy++) {
+#ifdef ANDROID
+            if (android_cancelled()) return -1;
+#endif
             if (!INGRID(state, dot->x+dx, dot->y+dy)) continue;
 
             tile = &SPACE(state, dot->x+dx, dot->y+dy);
@@ -2094,6 +2104,12 @@ static int solver_recurse(game_state *state, int maxdiff)
 
     for (n = 0; n < state->ndots; n++) {
         memcpy(state->grid, ingrid, gsz * sizeof(struct space));
+#ifdef ANDROID
+        if (android_cancelled()) {
+            sfree(ingrid);
+            return DIFF_IMPOSSIBLE;
+        }
+#endif
 
         if (!dotfortile(state, rctx.best, state->dots[n])) continue;
 
@@ -2172,6 +2188,9 @@ static int solver_state(game_state *state, int maxdiff)
 
     while (1) {
 cont:
+#ifdef ANDROID
+        if (android_cancelled()) CHECKRET(-1);
+#endif
         ret = foreach_edge(state, solver_lines_opposite_cb,
                            IMPOSSIBLE_QUITS, sctx);
         CHECKRET(DIFF_NORMAL);
