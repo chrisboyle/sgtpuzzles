@@ -1451,6 +1451,7 @@ if (defined $makefiles{"android"}) {
       $objstr = &objects($p, "X.o", undef, undef);
       $objstr =~ s#\S+#android/tmp/$&#g;
       print &splitline($prog . ": " . $objstr), "\n".
+        "\tmkdir -p android/lib/armeabi/\n" .
         "\t\$(CC) -nostdlib -Wl,-soname,\$@ -Wl,-shared,-Bsymbolic " .
         "-Wl,--whole-archive  -Wl,--no-whole-archive -Wl,--no-undefined " .
         "-Wl,-rpath-link=\$(ANDROID_NDK)/build/platforms/android-3/arch-arm/usr/lib " .
