@@ -1199,10 +1199,25 @@ fail:
 static game_state *new_game(midend *me, game_params *params, char *desc)
 {
     game_state *state = load_game(params, desc, NULL);
+#ifdef ANDROID
+    int order = state ? state->order : 0;
+    char off = (order > 9) ? '0' : '1';
+    char keys[order + 2];
+    int i;
+#endif
     if (!state) {
         assert("Unable to load ?validated game.");
         return NULL;
     }
+#ifdef ANDROID
+    for(i = 0; i < order; i++) {
+	if (i==10) off = 'A'-10;
+	keys[i] = i + off;
+    }
+    keys[order] = '\0';
+    keys[order+1] = '\b';
+    android_keys(keys);
+#endif
     return state;
 }
 

@@ -4082,6 +4082,15 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
     game_state *state = snew(game_state);
     int c = params->c, r = params->r, cr = c*r, area = cr * cr;
     int i;
+#ifdef ANDROID
+    char keys[cr+2];
+    for (i = 0; i <= cr; i++) {
+	if (i<10) keys[i] = '0' + i;
+	else keys[i] = 'A' + i - 10;
+    }
+    keys[cr+1] = '\0';
+    android_keys(keys);
+#endif
 
     precompute_sum_bits();
 

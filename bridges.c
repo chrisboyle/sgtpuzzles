@@ -1937,6 +1937,9 @@ static game_state *new_game_sub(game_params *params, char *desc)
 
 static game_state *new_game(midend *me, game_params *params, char *desc)
 {
+#ifdef ANDROID
+    android_keys("GH");
+#endif
     return new_game_sub(params, desc);
 }
 

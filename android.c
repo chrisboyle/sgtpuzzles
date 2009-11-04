@@ -78,6 +78,7 @@ static jmethodID
 	requestResize,
 	requestTimer,
 	serialiseWrite,
+	setKeys,
 	setMargins,
 	setStatus,
 	tickTypeItem,
@@ -499,6 +500,11 @@ inline int android_cancelled()
 	return cancelled;
 }
 
+void android_keys(const char *keys)
+{
+	(*env)->CallVoidMethod(env, obj, setKeys, (*env)->NewStringUTF(env, keys));
+}
+
 char * get_text(const char *s)
 {
 	if (!s || ! s[0]) return (char*)s;  // slightly naughty cast...
@@ -537,6 +543,7 @@ void Java_name_boyle_chris_sgtpuzzles_SGTPuzzles_initNative(JNIEnv *_env, jclass
 	requestResize  = (*env)->GetMethodID(env, cls,  "requestResize", "(II)V");
 	requestTimer   = (*env)->GetMethodID(env, cls,  "requestTimer", "(Z)V");
 	serialiseWrite = (*env)->GetMethodID(env, cls,  "serialiseWrite", "([B)V");
+	setKeys        = (*env)->GetMethodID(env, cls,  "setKeys", "(Ljava/lang/String;)V");
 	setMargins     = (*env)->GetMethodID(env, vcls, "setMargins", "(II)V");
 	setStatus      = (*env)->GetMethodID(env, cls,  "setStatus", "(Ljava/lang/String;)V");
 	tickTypeItem   = (*env)->GetMethodID(env, cls,  "tickTypeItem", "(I)V");

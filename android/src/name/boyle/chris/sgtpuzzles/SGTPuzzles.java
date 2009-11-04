@@ -73,6 +73,8 @@ public class SGTPuzzles extends Activity
 	ProgressDialog progress;
 	TextView txtView;
 	FrameLayout placeholder;
+	LinearLayout keyboard, keyRow;
+	LinearLayout gameAndKeys;
 	GameView gameView;
 	String[] games;
 	SubMenu typeMenu;
@@ -101,7 +103,7 @@ public class SGTPuzzles extends Activity
 	String helpTopic;
 	Thread worker;
 
-	enum MsgType { INIT, TIMER, DONE, DIE, ABORT, SETBG, STATUS, MESSAGEBOX };
+	enum MsgType { INIT, TIMER, DONE, DIE, ABORT, SETBG, STATUS, MESSAGEBOX, KEYBOARD };
 	Handler handler = new Handler() {
 		public void handleMessage( Message msg ) {
 			switch( MsgType.values()[msg.what] ) {
@@ -148,6 +150,24 @@ public class SGTPuzzles extends Activity
 								: android.R.drawable.ic_dialog_alert )
 						.show();
 				break; }
+			case KEYBOARD: {
+				String keys = (String) msg.obj;
+				keyboard.removeAllViews();
+				keyRow = new LinearLayout(SGTPuzzles.this);
+				keyRow.setGravity( Gravity.CENTER );
+				for( final char c : keys.toCharArray() ) {
+					Button b = new Button(SGTPuzzles.this);
+					b.setText( new String() + c );
+					b.setEms(2);
+					b.setOnClickListener( new View.OnClickListener(){
+						public void onClick(View v) {
+							sendKey(0, 0, c);
+						}
+					});
+					keyRow.addView( b );
+				}
+				keyboard.addView(keyRow);
+				setKeyboardVisibility(getResources().getConfiguration()); }
 			}
 		}
 	};
@@ -218,6 +238,8 @@ public class SGTPuzzles extends Activity
 		setContentView(R.layout.main);
 		txtView = (TextView)findViewById(R.id.txtView);
 		placeholder = (FrameLayout)findViewById(R.id.placeholder);
+		keyboard = (LinearLayout)findViewById(R.id.keyboard);
+		gameAndKeys = (LinearLayout)findViewById(R.id.gameAndKeys);
 		gameView = new GameView(this);
 		placeholder.addView( gameView, FrameLayout.LayoutParams.FILL_PARENT, FrameLayout.LayoutParams.FILL_PARENT );
 		setDefaultKeyMode(DEFAULT_KEYS_SHORTCUT);
@@ -522,6 +544,7 @@ public class SGTPuzzles extends Activity
 				solveEnabled = false;
 				customVisible = false;
 				txtView.setVisibility( View.GONE );
+				keyboard.setVisibility( View.GONE );
 			}
 			if( typeMenu != null ) for( Integer i : gameTypes.keySet() ) typeMenu.removeItem(i);
 			gameTypes.clear();
@@ -606,8 +629,30 @@ public class SGTPuzzles extends Activity
 		if (keyEvent(x, y, k) == 0) quit(false);
 	}
 
+	void setKeyboardVisibility(Configuration c)
+	{
+		boolean landscape = (c.orientation == Configuration.ORIENTATION_LANDSCAPE);
+		gameAndKeys.setOrientation( landscape ? LinearLayout.HORIZONTAL : LinearLayout.VERTICAL );
+		keyboard.setOrientation( landscape ? LinearLayout.HORIZONTAL : LinearLayout.VERTICAL );
+		if( keyRow != null ) {
+			keyRow.setOrientation( landscape ? LinearLayout.VERTICAL : LinearLayout.HORIZONTAL );
+			keyboard.updateViewLayout(keyRow, landscape
+					? new LinearLayout.LayoutParams( LinearLayout.LayoutParams.FILL_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT, 42 )
+					: new LinearLayout.LayoutParams( LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.FILL_PARENT, 42 ));
+		}
+		gameAndKeys.updateViewLayout(placeholder, landscape
+				? new LinearLayout.LayoutParams( LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.FILL_PARENT, 42 )
+				: new LinearLayout.LayoutParams( LinearLayout.LayoutParams.FILL_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT, 42 ));
+		gameAndKeys.updateViewLayout(keyboard, landscape
+				? new LinearLayout.LayoutParams( LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.FILL_PARENT, 0 )
+				: new LinearLayout.LayoutParams( LinearLayout.LayoutParams.FILL_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT, 0 ));
+		keyboard.setVisibility( (c.hardKeyboardHidden == Configuration.HARDKEYBOARDHIDDEN_NO)
+				? View.GONE : View.VISIBLE );
+	}
+
 	public void onConfigurationChanged(Configuration newConfig)
 	{
+		setKeyboardVisibility(newConfig);
 		super.onConfigurationChanged(newConfig);
 	}
 
@@ -765,6 +810,12 @@ public class SGTPuzzles extends Activity
 	void serialiseWrite(byte[] buffer)
 	{
 		savingState.append(new String(buffer));
+	}
+
+	void setKeys(String keys)
+	{
+		if( keys.length() == 0 ) return;
+		handler.obtainMessage(MsgType.KEYBOARD.ordinal(),keys).sendToTarget();
 	}
 
 	String gettext(String s)

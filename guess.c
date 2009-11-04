@@ -316,6 +316,9 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
     unsigned char *bmp;
     int i;
 
+#ifdef ANDROID
+    android_keys("LDH");
+#endif
     state->params = *params;
     state->guesses = snewn(params->nguesses, pegrow);
     for (i = 0; i < params->nguesses; i++)

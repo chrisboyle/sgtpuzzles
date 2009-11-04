@@ -944,6 +944,9 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
     game_state *state = snew(game_state);
     int sz = params->w * params->h;
     int i;
+#ifdef ANDROID
+    android_keys("0123456789");
+#endif
 
     state->cheated = state->completed = FALSE;
     state->shared = snew(struct shared_state);

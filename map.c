@@ -1833,6 +1833,9 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
     int i, pos;
     char *p;
     game_state *state = snew(game_state);
+#ifdef ANDROID
+    android_keys("L");
+#endif
 
     state->p = *params;
     state->colouring = snewn(n, int);
