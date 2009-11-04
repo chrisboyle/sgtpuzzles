@@ -36,7 +36,7 @@ enum {
     A(CROSS,Cross,cross) \
     A(OCTAGON,Octagon,octagon) \
     A(RANDOM,Random,random)
-// _("Cross"), _("Octagon"), _("Random")
+/* _("Cross"), _("Octagon"), _("Random") */
 #define ENUM(upper,title,lower) TYPE_ ## upper,
 #define TITLE(upper,title,lower) #title,
 #define LOWER(upper,title,lower) #lower,

@@ -266,7 +266,7 @@ static void check_caches(const solver_state* sstate);
     A(Great-Hexagonal,grid_new_greathexagonal,3,3) \
     A(Octagonal,grid_new_octagonal,3,3) \
     A(Kites,grid_new_kites,3,3)
-// _("Squares"), _("Triangular"), _("Honeycomb"), _("Snub-Square"), _("Cairo"), _("Great-Hexagonal"), _("Octagonal"), _("Kites")
+/* _("Squares"), _("Triangular"), _("Honeycomb"), _("Snub-Square"), _("Cairo"), _("Great-Hexagonal"), _("Octagonal"), _("Kites") */
 
 #define GRID_NAME(title,fn,amin,omin) #title,
 #define GRID_CONFIG(title,fn,amin,omin) ":" #title
@@ -648,9 +648,9 @@ static game_params *custom_params(config_item *cfg)
 static char *validate_params(game_params *params, int full)
 {
     static char err[128];
+    int l = grid_size_limits[params->type].amin;
     if (params->type < 0 || params->type >= NUM_GRID_TYPES)
         return _("Illegal grid type");
-    int l = grid_size_limits[params->type].amin;
     if (params->w < l || params->h < l) {
         sprintf(err, _("Width and height for this grid type must both be at least %d"), l);
         return err;

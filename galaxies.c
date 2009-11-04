@@ -97,7 +97,7 @@ enum { DIFFLIST(ENUM)
     DIFF_IMPOSSIBLE, DIFF_AMBIGUOUS, DIFF_UNFINISHED, DIFF_MAX };
 static char const *const galaxies_diffnames[] = {
     DIFFLIST(TITLE) "Impossible", "Ambiguous", "Unfinished" };
-// _("Normal"), _("Unreasonable"), _("Impossible"), _("Ambiguous"), _("Unfinished")
+/* _("Normal"), _("Unreasonable"), _("Impossible"), _("Ambiguous"), _("Unfinished") */
 static char const galaxies_diffchars[] = DIFFLIST(ENCODE);
 #define DIFFCONFIG DIFFLIST(CONFIG)
 

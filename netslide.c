@@ -168,7 +168,7 @@ netslide_presets[] = {
     {5, 5, FALSE, 1, "Easy"},
     {5, 5, FALSE, 0, "Medium"},
     {5, 5, TRUE,  0, "Hard"},
-// _("Easy"), _("Medium"), _("Hard")
+/* _("Easy"), _("Medium"), _("Hard") */
 };
 
 static int game_fetch_preset(int i, char **name, game_params **params)

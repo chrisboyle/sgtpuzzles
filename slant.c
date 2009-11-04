@@ -62,7 +62,7 @@ int verbose = FALSE;
 #define DIFFLIST(A) \
     A(EASY,Easy,e) \
     A(HARD,Hard,h)
-// _("Easy"), _("Hard")
+/* _("Easy"), _("Hard") */
 #define ENUM(upper,title,lower) DIFF_ ## upper,
 #define TITLE(upper,title,lower) #title,
 #define ENCODE(upper,title,lower) #lower

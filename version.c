@@ -5,7 +5,7 @@
 #define STR1(x) #x
 #define STR(x) STR1(x)
 
-// cmb: No idea how to wrap these in _(), so have done it in android.c for Android.
+/* cmb: No idea how to wrap these in _(), so have done it in android.c for Android. */
 
 #if defined REVISION
 

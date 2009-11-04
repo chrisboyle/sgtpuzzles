@@ -320,7 +320,7 @@ static int game_fetch_preset(int i, char **name, game_params **params)
         { "3x4 Basic", { 3, 4, SYMM_ROT2, DIFF_SIMPLE, DIFF_KMINMAX, FALSE, FALSE } },
         { "4x4 Basic", { 4, 4, SYMM_ROT2, DIFF_SIMPLE, DIFF_KMINMAX, FALSE, FALSE } },
 #endif
-// _("2x2 Trivial"), _("2x3 Basic"), _("3x3 Trivial"), _("3x3 Basic"), _("3x3 Basic X"), _("3x3 Intermediate"), _("3x3 Advanced"), _("3x3 Advanced X"), _("3x3 Extreme"), _("3x3 Unreasonable"), _("3x3 Killer"), _("9 Jigsaw Basic"), _("9 Jigsaw Basic X"), _("9 Jigsaw Advanced"), _("3x4 Basic"), _("4x4 Basic")
+/* _("2x2 Trivial"), _("2x3 Basic"), _("3x3 Trivial"), _("3x3 Basic"), _("3x3 Basic X"), _("3x3 Intermediate"), _("3x3 Advanced"), _("3x3 Advanced X"), _("3x3 Extreme"), _("3x3 Unreasonable"), _("3x3 Killer"), _("9 Jigsaw Basic"), _("9 Jigsaw Basic X"), _("9 Jigsaw Advanced"), _("3x4 Basic"), _("4x4 Basic") */
     };
 
     if (i < 0 || i >= lenof(presets))
@@ -513,7 +513,7 @@ static char *validate_params(game_params *params, int full)
 	return _("Both dimensions must be at least 2");
     if (params->c > ORDER_MAX || params->r > ORDER_MAX)
 	return _(/*hide from i18ncheck*/"Dimensions greater than "STR(ORDER_MAX)" are not supported");
-    // _("Dimensions greater than 255 are not supported")
+    /* _("Dimensions greater than 255 are not supported") */
     if ((params->c * params->r) > 31)
         return _("Unable to support more than 31 distinct symbols in a puzzle");
     if (params->killer && params->c * params->r > 9)
@@ -4512,7 +4512,7 @@ static game_ui *new_ui(game_state *state)
     ui->hpencil = ui->hshow = 0;
     ui->hcursor =
 #ifdef ANDROID
-        1;  // and never unset
+        1;  /* and never unset */
 #else
         0;
 #endif
@@ -4590,7 +4590,7 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
                 ui->hpencil = 0;
             }
 #ifndef ANDROID
-            // Android is always in cursor mode
+            /* Android is always in cursor mode */
             ui->hcursor = 0;
 #endif
             return "";		       /* UI activity occurred */
@@ -4613,7 +4613,7 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
                 ui->hshow = 0;
             }
 #ifndef ANDROID
-            // Android is always in cursor mode
+            /* Android is always in cursor mode */
             ui->hcursor = 0;
 #endif
             return "";		       /* UI activity occurred */
