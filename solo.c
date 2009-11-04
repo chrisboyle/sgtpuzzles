@@ -4509,7 +4509,13 @@ static game_ui *new_ui(game_state *state)
     game_ui *ui = snew(game_ui);
 
     ui->hx = ui->hy = 0;
-    ui->hpencil = ui->hshow = ui->hcursor = 0;
+    ui->hpencil = ui->hshow = 0;
+    ui->hcursor =
+#ifdef ANDROID
+        1;  // and never unset
+#else
+        0;
+#endif
 
     return ui;
 }
@@ -4583,7 +4589,10 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
                 ui->hshow = 1;
                 ui->hpencil = 0;
             }
+#ifndef ANDROID
+            // Android is always in cursor mode
             ui->hcursor = 0;
+#endif
             return "";		       /* UI activity occurred */
         }
         if (button == RIGHT_BUTTON) {
@@ -4603,7 +4612,10 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
             } else {
                 ui->hshow = 0;
             }
+#ifndef ANDROID
+            // Android is always in cursor mode
             ui->hcursor = 0;
+#endif
             return "";		       /* UI activity occurred */
         }
     }
