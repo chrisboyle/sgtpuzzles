@@ -2151,7 +2151,7 @@ it and restore your ability to modify it.
 You can also use the cursor keys to move around the grid: if possible
 the cursor will always move orthogonally, otherwise it will move
 towards the nearest island to the indicated direction. Pressing the
-return key followed by a cursor key will lay an island in that direction
+return key followed by a cursor key will lay a bridge in that direction
 (if available); pressing the space bar followed by a cursor key will
 lay a \q{non-bridge} marker.
 
@@ -2354,7 +2354,7 @@ constantly as you drag it, to stay pointed at its parent dot.)
 You can also use the cursor keys to move around the grid squares and
 lines.  Pressing the return key when over a grid line will draw or
 clear its edge, as above. Pressing the return key when over a dot will
-pick up an arrow, to be dropped the nest time the return key is
+pick up an arrow, to be dropped the next time the return key is
 pressed; this can also be used to move existing arrows around, removing
 them by dropping them on a dot or another arrow.
 
