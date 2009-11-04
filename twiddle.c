@@ -92,7 +92,7 @@ static int game_fetch_preset(int i, char **name, game_params **params)
         { "5x5 radius 3", { 5, 5, 3, FALSE } },
         { "6x6 radius 4", { 6, 6, 4, FALSE } },
     };
-    // _("3x3 rows only"), _("3x3 normal"), _("3x3 orientable"), _("4x4 normal"), _("4x4 orientable"), _("4x4 radius 3"), _("5x5 radius 3"), _("6x6 radius 4")
+    /* _("3x3 rows only"), _("3x3 normal"), _("3x3 orientable"), _("4x4 normal"), _("4x4 orientable"), _("4x4 radius 3"), _("5x5 radius 3"), _("6x6 radius 4") */
 
     if (i < 0 || i >= lenof(presets))
         return FALSE;

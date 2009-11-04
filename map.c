@@ -55,7 +55,7 @@ static float flash_length;
     A(NORMAL,Normal,n) \
     A(HARD,Hard,h) \
     A(RECURSE,Unreasonable,u)
-// _("Easy"), _("Normal"), _("Hard"), _("Unreasonable")
+/* _("Easy"), _("Normal"), _("Hard"), _("Unreasonable") */
 #define ENUM(upper,title,lower) DIFF_ ## upper,
 #define TITLE(upper,title,lower) #title,
 #define ENCODE(upper,title,lower) #lower

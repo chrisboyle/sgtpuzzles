@@ -90,7 +90,7 @@ struct game_state {
     A(SET,Tricky,k)             \
     A(EXTREME,Extreme,x)        \
     A(RECURSIVE,Recursive,r)
-// _("Trivial"), _("Easy"), _("Tricky"), _("Extreme"), _("Recursive")
+/* _("Trivial"), _("Easy"), _("Tricky"), _("Extreme"), _("Recursive") */
 
 #define ENUM(upper,title,lower) DIFF_ ## upper,
 #define TITLE(upper,title,lower) #title,

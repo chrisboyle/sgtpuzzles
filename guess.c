@@ -87,7 +87,7 @@ static int game_fetch_preset(int i, char **name, game_params **params)
     if (i < 0 || i >= lenof(guess_presets))
         return FALSE;
 
-    *name = dupstr(_(guess_presets[i].name)); // _("Standard"), _("Super")
+    *name = dupstr(_(guess_presets[i].name)); /* _("Standard"), _("Super") */
     /*
      * get round annoying const issues
      */

@@ -41,3 +41,17 @@ tents
 twiddle
 unequal
 untangle
+*.html
+*solver
+*picture
+HACKING
+latincheck
+mineobfusc
+nullgame
+obfusc
+puzzles.cnt
+puzzles.hhc
+puzzles.hhk
+puzzles.hhp
+puzzles.hlp
+puzzles.txt
