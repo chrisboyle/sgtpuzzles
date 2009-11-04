@@ -2649,9 +2649,6 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
             /*if (ui->cur_visible && ui->cur_x == x && ui->cur_y == y)
                 v |= G_CURSOR;*/
 
-            if (ui->cur_visible && ui->cur_x == x && ui->cur_y == y)
-                v |= G_CURSOR;
-
             if (v != dsv ||
                 lv != INDEX(ds,lv,x,y) ||
                 lh != INDEX(ds,lh,x,y) ||
