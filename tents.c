@@ -2364,12 +2364,6 @@ static void draw_tile(drawing *dr, game_drawstate *ds,
 			COL_GRID);
     }
 
-    if (cur) {
-      int coff = TILESIZE/8;
-      draw_rect_outline(dr, tx + coff, ty + coff,
-                        TILESIZE - coff*2, TILESIZE - coff*2, COL_GRID);
-    }
-
     unclip(dr);
     draw_update(dr, tx+1, ty+1, TILESIZE-1, TILESIZE-1);
 }
