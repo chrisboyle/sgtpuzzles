@@ -117,7 +117,7 @@ had done before saving).
 allowing you to print an arbitrary number of puzzles randomly
 generated from the current parameters, optionally including the
 current puzzle. (Only for puzzles which make sense to print, of
-course - it's hard to think of a sensible printable representation
+course \dash it's hard to think of a sensible printable representation
 of Fifteen!)
 
 \dt \ii\e{Undo} (\q{U}, Ctrl+\q{Z}, Ctrl+\q{_})
@@ -890,8 +890,8 @@ with Shift held down, you can colour a whole rectangle of squares
 grey.
 
 You can also move around the grid with the cursor keys. Pressing the
-return key will cycle the current cell through empty --> black -->
-white --> empty, and the space bar does the same cycle in reverse.
+return key will cycle the current cell through empty, then black, then
+white, then empty, and the space bar does the same cycle in reverse.
 
 (All the actions described in \k{common-actions} are also available.)
 
