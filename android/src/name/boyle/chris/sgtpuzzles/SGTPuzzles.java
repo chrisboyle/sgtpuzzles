@@ -744,6 +744,7 @@ public class SGTPuzzles extends Activity
 			et.setText(value);
 			TextView tv = new TextView(SGTPuzzles.this);
 			tv.setText(name);
+			tv.setPadding(2,2,2,2);
 			TableRow tr = new TableRow(SGTPuzzles.this);
 			tr.addView(tv);
 			tr.addView(et);
@@ -781,6 +782,8 @@ public class SGTPuzzles extends Activity
 
 	void dialogShow()
 	{
+		dialogLayout.setColumnShrinkable(0, true);
+		dialogLayout.setColumnShrinkable(1, true);
 		dialogLayout.setColumnStretchable(1, true);
 		dialog.show();
 	}
