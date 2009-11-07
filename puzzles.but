@@ -117,7 +117,7 @@ had done before saving).
 allowing you to print an arbitrary number of puzzles randomly
 generated from the current parameters, optionally including the
 current puzzle. (Only for puzzles which make sense to print, of
-course - it's hard to think of a sensible printable representation
+course \dash it's hard to think of a sensible printable representation
 of Fifteen!)
 
 \dt \ii\e{Undo} (\q{U}, Ctrl+\q{Z}, Ctrl+\q{_})
@@ -890,8 +890,8 @@ with Shift held down, you can colour a whole rectangle of squares
 grey.
 
 You can also move around the grid with the cursor keys. Pressing the
-return key will cycle the current cell through empty --> black -->
-white --> empty, and the space bar does the same cycle in reverse.
+return key will cycle the current cell through empty, then black, then
+white, then empty, and the space bar does the same cycle in reverse.
 
 (All the actions described in \k{common-actions} are also available.)
 
@@ -1501,41 +1501,42 @@ points in the generated graph.
 
 \cfg{winhelp-topic}{games.blackbox}
 
-A number of balls are hidden in a rectangular arena. You have to 
-deduce the positions of the balls by firing lasers from positions
-on the edge of the arena and observing how they are deflected. 
+A number of balls are hidden in a rectangular arena. You have to
+deduce the positions of the balls by firing from lasers positioned at
+the edges of the arena and observing how their beams are deflected. 
 
-Lasers will fire straight until they hit the opposite side of the
-arena (at which point they emerge), unless affected by balls in one of
-the following ways:
+Beams will travel straight from their origin until they hit the
+opposite side of the arena (at which point they emerge), unless
+affected by balls in one of the following ways:
 
-\b A laser that hits a ball head-on is absorbed and will never re-emerge.
-   This includes lasers that meet a ball on the first rank of the arena.
+\b A beam that hits a ball head-on is absorbed and will never
+   re-emerge. This includes beams that meet a ball on the first rank
+   of the arena.
 
-\b A laser with a ball to its front-left square gets deflected 90 degrees
+\b A beam with a ball to its front-left square gets deflected 90 degrees
    to the right.
 
-\b A laser with a ball to its front-right square gets similarly deflected 
+\b A beam with a ball to its front-right square gets similarly deflected 
    to the left. 
 
-\b A laser that would re-emerge from the entry location is considered to be
+\b A beam that would re-emerge from its entry location is considered to be
    \q{reflected}. 
 
-\b A laser which would get deflected before entering the arena (down the
-   \q{firing range}) by a ball to the front-left or front-right of its
-   entry point is also considered to be \q{reflected}.
+\b A beam which would get deflected before entering the arena by a
+   ball to the front-left or front-right of its entry point is also
+   considered to be \q{reflected}.
 
-Lasers that are reflected appear as a \q{R}; lasers that hit balls
-dead-on appear as \q{H}. Otherwise, a number appears at the firing point
-and the location where the laser emerges (this number is unique to
-that shot).
+Beams that are reflected appear as a \q{R}; beams that hit balls
+head-on appear as \q{H}. Otherwise, a number appears at the firing
+point and the location where the beam emerges (this number is unique
+to that shot).
 
 You can place guesses as to the location of the balls, based on the
-entry and exit patterns of the lasers; once you have placed enough
+entry and exit patterns of the beams; once you have placed enough
 balls a button appears enabling you to have your guesses checked. 
 
 Here is a diagram showing how the positions of balls can create each
-of the laser behaviours shown above:
+of the beam behaviours shown above:
 
 \c  1RHR---- 
 \c |..O.O...|
@@ -1548,15 +1549,15 @@ of the laser behaviours shown above:
 \c |.....O..|
 \c  12-RH---
 
-As shown, it is possible for a ball to receive multiple reflections
-before re-emerging (see turn 3). Similarly, a ball may be reflected
+As shown, it is possible for a beam to receive multiple reflections
+before re-emerging (see turn 3). Similarly, a beam may be reflected
 (possibly more than once) before receiving a hit (the \q{H} on the
 left side of the example).
 
-Note that any layout with more that 4 balls may have a non-unique
+Note that any layout with more than 4 balls may have a non-unique
 solution.  The following diagram illustrates this; if you know the
 board contains 5 balls, it is impossible to determine where the fifth
-ball is (possible positions marked with an x):
+ball is (possible positions marked with an \cw{x}):
 
 \c  -------- 
 \c |........|
@@ -1569,59 +1570,62 @@ ball is (possible positions marked with an x):
 \c |........|
 \c  --------
 
-For this reason when you have your guesses checked the game will
+For this reason, when you have your guesses checked, the game will
 check that your solution \e{produces the same results} as the
 computer's, rather than that your solution is identical to the
 computer's. So in the above example, you could put the fifth ball at
-\e{any} of the locations marked with an x, and you would still win.
+\e{any} of the locations marked with an \cw{x}, and you would still
+win.
 
 Black Box was contributed to this collection by James Harvey.
 
 \H{blackbox-controls} \i{Black Box controls}
 
-\IM{Black Box controls}controls, for Black Box
+\IM{Black Box controls} controls, for Black Box
+\IM{Black Box controls} keys, for Black Box
+\IM{Black Box controls} shortcuts (keyboard), for Black Box
 
-To fire a laser, left-click in a square around the side of the arena.
-The results will be displayed immediately. Lasers may not be fired
-twice (because the results will never change). Holding down the left
-button will highlight the current go (or a previous go) to confirm the
-exit point for that laser, if applicable.
+To fire a laser beam, left-click in a square around the edge of the
+arena. The results will be displayed immediately. Clicking or holding
+the left button on one of these squares will highlight the current go
+(or a previous go) to confirm the exit point for that laser, if
+applicable.
 
 To guess the location of a ball, left-click within the arena and a
-black circle will appear marking the guess; to remove the guessed ball
-click again. 
+black circle will appear marking the guess; click again to remove the
+guessed ball.
 
 Locations in the arena may be locked against modification by
 right-clicking; whole rows and columns may be similarly locked by
-right-clicking in the laser firing range above/below that column, or
-to the left/right of that row.  
+right-clicking in the laser square above/below that column, or to the
+left/right of that row.
 
 The cursor keys may also be used to move around the grid. Pressing the
-Enter key will add a new ball-location guess, and pressing Space will
-lock a cell or a row/column.
+Enter key will fire a laser or add a new ball-location guess, and
+pressing Space will lock a cell, row, or column.
 
-When an appropriate number of balls have been guessed a button will
-appear at the top-left corner of the grid; clicking that (with mouse or
-cursor) will mark your guesses. 
+When an appropriate number of balls have been guessed, a button will
+appear at the top-left corner of the grid; clicking that (with mouse
+or cursor) will check your guesses. 
 
-If you click the \q{mark} button and your guesses are not correct,
-the game will show you as little information as possible to
+If you click the \q{check} button and your guesses are not correct,
+the game will show you the minimum information necessary to
 demonstrate this to you, so you can try again. If your ball
-positions are not consistent with the laser paths you already know
-about, one laser path will be circled to indicate that it proves you
-wrong. If your positions match all the existing laser paths but are
-still wrong, one new laser path will be revealed (written in red)
+positions are not consistent with the beam paths you already know
+about, one beam path will be circled to indicate that it proves you
+wrong. If your positions match all the existing beam paths but are
+still wrong, one new beam path will be revealed (written in red)
 which is not consistent with your current guesses.
 
 If you decide to give up completely, you can select Solve to reveal
 the actual ball positions. At this point, correctly-placed balls
-will be displayed as filled black circles; incorrectly-placed balls
-are displayed as filled black circles with red crosses, and missing
-balls are filled red circles. In addition, a red circle marks any
-laser you had already fired which is not consistent with your ball
-layout (just as when you press the mark button), and red text marks
-any laser you \e{could} have fired in order to distinguish your ball
-layout from the right one.
+will be displayed as filled black circles, incorrectly-placed balls
+as filled black circles with red crosses, and missing balls as filled
+red circles. In addition, a red circle marks any laser you had already
+fired which is not consistent with your ball layout (just as when you
+press the \q{check} button), and red text marks any laser you
+\e{could} have fired in order to distinguish your ball layout from the
+correct one.
 
 (All the actions described in \k{common-actions} are also available.)
 
@@ -1642,7 +1646,7 @@ or a range (separated with a hyphen, like \q{2-6}), and determines the
 number of balls to place on the grid. The \q{reveal} button is only
 enabled if you have guessed an appropriate number of balls; a guess
 using a different number to the original solution is still acceptable,
-if all the laser inputs and outputs match.
+if all the beam inputs and outputs match.
 
 
 \C{slant} \i{Slant}
@@ -2151,7 +2155,7 @@ it and restore your ability to modify it.
 You can also use the cursor keys to move around the grid: if possible
 the cursor will always move orthogonally, otherwise it will move
 towards the nearest island to the indicated direction. Pressing the
-return key followed by a cursor key will lay an island in that direction
+return key followed by a cursor key will lay a bridge in that direction
 (if available); pressing the space bar followed by a cursor key will
 lay a \q{non-bridge} marker.
 
@@ -2354,7 +2358,7 @@ constantly as you drag it, to stay pointed at its parent dot.)
 You can also use the cursor keys to move around the grid squares and
 lines.  Pressing the return key when over a grid line will draw or
 clear its edge, as above. Pressing the return key when over a dot will
-pick up an arrow, to be dropped the nest time the return key is
+pick up an arrow, to be dropped the next time the return key is
 pressed; this can also be used to move existing arrows around, removing
 them by dropping them on a dot or another arrow.
 
