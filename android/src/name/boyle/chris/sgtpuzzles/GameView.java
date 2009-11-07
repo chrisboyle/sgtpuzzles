@@ -1,5 +1,6 @@
 package name.boyle.chris.sgtpuzzles;
 
+import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -10,12 +11,14 @@ import android.graphics.RectF;
 import android.graphics.Region;
 import android.graphics.Typeface;
 import android.os.Handler;
+import android.util.AttributeSet;
+import android.util.Log;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
 
-class GameView extends View
+public class GameView extends View
 {
 	SGTPuzzles parent;
 	Bitmap bitmap;
@@ -30,16 +33,18 @@ class GameView extends View
 	float startX, startY, maxDist = 5.0f;
 	static final int DRAG = SGTPuzzles.LEFT_DRAG - SGTPuzzles.LEFT_BUTTON,  // not bit fields, but there's a pattern
 			RELEASE = SGTPuzzles.LEFT_RELEASE - SGTPuzzles.LEFT_BUTTON;
+	static final String TAG = "GameView";
 
-	GameView(SGTPuzzles parent)
+	public GameView(Context context, AttributeSet attrs)
 	{
-		super(parent);
-		this.parent = parent;
+		super(context, attrs);
+		this.parent = (SGTPuzzles)context;
 		setFocusableInTouchMode(true);
 		bitmap = Bitmap.createBitmap(100, 100, Bitmap.Config.RGB_565);  // for safety
 		canvas = new Canvas(bitmap);
 		paint = new Paint();
 		blitters = new Bitmap[512];
+		Log.d(TAG,"finished constructor");
 	}
 
 	Runnable sendRightClick = new Runnable() {

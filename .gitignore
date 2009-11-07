@@ -4,7 +4,8 @@
 *.unstripped
 Makefile.*
 /Makefile
-*.png
+icons/*.png
+android/res/drawable
 *.apk
 *.dex
 R.java

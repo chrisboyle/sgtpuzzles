@@ -72,8 +72,7 @@ public class SGTPuzzles extends Activity
 	private static final String TAG = "SGTPuzzles";
 	ProgressDialog progress;
 	TextView txtView;
-	FrameLayout placeholder;
-	LinearLayout keyboard, keyRow;
+	SmallKeyboard keyboard;
 	LinearLayout gameAndKeys;
 	GameView gameView;
 	String[] games;
@@ -102,6 +101,7 @@ public class SGTPuzzles extends Activity
 	TableLayout dialogLayout;
 	String helpTopic;
 	Thread worker;
+	String lastKeys;
 
 	enum MsgType { INIT, TIMER, DONE, DIE, ABORT, SETBG, STATUS, MESSAGEBOX, KEYBOARD };
 	Handler handler = new Handler() {
@@ -151,22 +151,7 @@ public class SGTPuzzles extends Activity
 						.show();
 				break; }
 			case KEYBOARD: {
-				String keys = (String) msg.obj;
-				keyboard.removeAllViews();
-				keyRow = new LinearLayout(SGTPuzzles.this);
-				keyRow.setGravity( Gravity.CENTER );
-				for( final char c : keys.toCharArray() ) {
-					Button b = new Button(SGTPuzzles.this);
-					b.setText( new String() + c );
-					b.setEms(2);
-					b.setOnClickListener( new View.OnClickListener(){
-						public void onClick(View v) {
-							sendKey(0, 0, c);
-						}
-					});
-					keyRow.addView( b );
-				}
-				keyboard.addView(keyRow);
+				lastKeys = (String) msg.obj;
 				setKeyboardVisibility(getResources().getConfiguration()); }
 			}
 		}
@@ -237,11 +222,11 @@ public class SGTPuzzles extends Activity
 		requestWindowFeature(Window.FEATURE_INDETERMINATE_PROGRESS);
 		setContentView(R.layout.main);
 		txtView = (TextView)findViewById(R.id.txtView);
-		placeholder = (FrameLayout)findViewById(R.id.placeholder);
-		keyboard = (LinearLayout)findViewById(R.id.keyboard);
+		keyboard = (SmallKeyboard)findViewById(R.id.keyboard);
 		gameAndKeys = (LinearLayout)findViewById(R.id.gameAndKeys);
-		gameView = new GameView(this);
-		placeholder.addView( gameView, FrameLayout.LayoutParams.FILL_PARENT, FrameLayout.LayoutParams.FILL_PARENT );
+		gameView = (GameView)findViewById(R.id.game);
+		Log.d(TAG,"gameView = "+gameView);
+		if (gameView == null) { throw new RuntimeException("WTF?!?!?!?"); }
 		setDefaultKeyMode(DEFAULT_KEYS_SHORTCUT);
 
 		prefs = getSharedPreferences("state", MODE_PRIVATE);
@@ -545,6 +530,7 @@ public class SGTPuzzles extends Activity
 				customVisible = false;
 				txtView.setVisibility( View.GONE );
 				keyboard.setVisibility( View.GONE );
+				lastKeys = "";
 			}
 			if( typeMenu != null ) for( Integer i : gameTypes.keySet() ) typeMenu.removeItem(i);
 			gameTypes.clear();
@@ -633,19 +619,7 @@ public class SGTPuzzles extends Activity
 	{
 		boolean landscape = (c.orientation == Configuration.ORIENTATION_LANDSCAPE);
 		gameAndKeys.setOrientation( landscape ? LinearLayout.HORIZONTAL : LinearLayout.VERTICAL );
-		keyboard.setOrientation( landscape ? LinearLayout.HORIZONTAL : LinearLayout.VERTICAL );
-		if( keyRow != null ) {
-			keyRow.setOrientation( landscape ? LinearLayout.VERTICAL : LinearLayout.HORIZONTAL );
-			keyboard.updateViewLayout(keyRow, landscape
-					? new LinearLayout.LayoutParams( LinearLayout.LayoutParams.FILL_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT, 42 )
-					: new LinearLayout.LayoutParams( LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.FILL_PARENT, 42 ));
-		}
-		gameAndKeys.updateViewLayout(placeholder, landscape
-				? new LinearLayout.LayoutParams( LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.FILL_PARENT, 42 )
-				: new LinearLayout.LayoutParams( LinearLayout.LayoutParams.FILL_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT, 42 ));
-		gameAndKeys.updateViewLayout(keyboard, landscape
-				? new LinearLayout.LayoutParams( LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.FILL_PARENT, 0 )
-				: new LinearLayout.LayoutParams( LinearLayout.LayoutParams.FILL_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT, 0 ));
+		keyboard.setKeys(lastKeys, landscape);
 		keyboard.setVisibility( (c.hardKeyboardHidden == Configuration.HARDKEYBOARDHIDDEN_NO)
 				? View.GONE : View.VISIBLE );
 	}
@@ -678,10 +652,8 @@ public class SGTPuzzles extends Activity
 
 	void requestResize(int x, int y)
 	{
-		// Refuse this, we have a fixed size screen (except for orientation changes)
-		// (wait for UI to finish doing layout first)
-		if(gameView.w == 0 || gameView.h == 0 ) try { Thread.sleep(200); } catch( InterruptedException ignored ) {}
-		if(gameView.w > 0 && gameView.h > 0 ) resizeEvent(gameView.w, gameView.h);
+		gameView.clear();
+		gameViewResized();
 	}
 
 	void setStatus(String status)
@@ -843,7 +815,6 @@ public class SGTPuzzles extends Activity
 		return s;
 	}
 
-	native static void initNative(Class vcls);
 	native void init(GameView _gameView, int whichGame, String gameState);
 	native void cancel();
 	native void timerTick();
@@ -866,6 +837,5 @@ public class SGTPuzzles extends Activity
 
 	static {
 		System.loadLibrary("puzzles");
-		initNative(GameView.class);
 	}
 }

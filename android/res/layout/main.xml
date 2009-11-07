@@ -4,8 +4,8 @@
     android:layout_width="fill_parent"
     android:id="@+id/mainLayout" android:layout_height="fill_parent">
 <LinearLayout android:layout_height="wrap_content" android:id="@+id/gameAndKeys" android:orientation="vertical" android:layout_width="fill_parent" android:layout_weight="42" android:background="#000">
-<FrameLayout android:layout_height="wrap_content" android:id="@+id/placeholder" android:layout_width="fill_parent" android:layout_weight="42" android:background="#000"></FrameLayout>
-<LinearLayout android:layout_height="wrap_content" android:layout_width="fill_parent" android:id="@+id/keyboard" android:layout_weight="0" android:background="#000" android:visibility="gone"></LinearLayout>
+<name.boyle.chris.sgtpuzzles.GameView android:layout_height="wrap_content" android:id="@+id/game" android:layout_width="wrap_content" android:layout_weight="42" android:background="#000"/>
+<name.boyle.chris.sgtpuzzles.SmallKeyboard android:layout_height="wrap_content" android:layout_width="wrap_content" android:id="@+id/keyboard" android:layout_weight="0" android:background="#000" android:visibility="gone" android:keyTextSize="22sp" android:layout_gravity="center"/>
 </LinearLayout>
 <TextView android:layout_height="wrap_content" android:layout_width="fill_parent" android:id="@+id/txtView" android:layout_weight="0" android:background="#000" android:visibility="gone"></TextView>
 </LinearLayout>

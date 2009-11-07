@@ -1438,7 +1438,7 @@ if (defined $makefiles{"android"}) {
         "\t\$(MAKE) -C icons pngicons\n".
         "\tmkdir android/res/drawable 2>/dev/null || true\n";
     print "\tcp icons/$_-64d24.png android/res/drawable/${_}.png\n" for(@realgames);
-    print "\tcp icons/net-64d24.png android/res/drawable/icon.png\n\n";
+    print "\tcp icons/net-64d24.png android/res/drawable/icon.png\n\tcp android/sym_keyboard_delete.png android/res/drawable/\n\n";
 
     print "android/res/values/arrays.xml:\n".
         &splitline("\t".'echo "<?xml version=\"1.0\" encoding=\"utf-8\"?>'.

@@ -51,7 +51,7 @@ static int cancelled;
  * Unfortunately they may need a few to be valid at a time (game config
  * dialogs). */
 #define GETTEXTED_SIZE 256
-#define GETTEXTED_COUNT 8
+#define GETTEXTED_COUNT 32
 static char gettexted[GETTEXTED_COUNT][GETTEXTED_SIZE];
 static int next_gettexted = 0;
 
@@ -519,9 +519,12 @@ char * get_text(const char *s)
 	return ret;
 }
 
-void Java_name_boyle_chris_sgtpuzzles_SGTPuzzles_initNative(JNIEnv *_env, jclass cls, jclass vcls)
+JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
 {
-	env = _env;
+	jclass cls, vcls;
+	if ((*jvm)->GetEnv(jvm, (void **)&env, JNI_VERSION_1_2)) return JNI_ERR;
+	cls = (*env)->FindClass(env, "name/boyle/chris/sgtpuzzles/SGTPuzzles");
+	vcls = (*env)->FindClass(env, "name/boyle/chris/sgtpuzzles/GameView");
 	addTypeItem    = (*env)->GetMethodID(env, cls,  "addTypeItem", "(ILjava/lang/String;)V");
 	blitterAlloc   = (*env)->GetMethodID(env, vcls, "blitterAlloc", "(II)I");
 	blitterFree    = (*env)->GetMethodID(env, vcls, "blitterFree", "(I)V");
@@ -548,6 +551,7 @@ void Java_name_boyle_chris_sgtpuzzles_SGTPuzzles_initNative(JNIEnv *_env, jclass
 	setStatus      = (*env)->GetMethodID(env, cls,  "setStatus", "(Ljava/lang/String;)V");
 	tickTypeItem   = (*env)->GetMethodID(env, cls,  "tickTypeItem", "(I)V");
 	unClip         = (*env)->GetMethodID(env, vcls, "unClip", "(II)V");
+	return JNI_VERSION_1_2;
 }
 
 void Java_name_boyle_chris_sgtpuzzles_SGTPuzzles_cancel(JNIEnv *_env, jobject _obj)

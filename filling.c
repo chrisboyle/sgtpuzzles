@@ -945,7 +945,7 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
     int sz = params->w * params->h;
     int i;
 #ifdef ANDROID
-    android_keys("0123456789");
+    android_keys("\b123456789");
 #endif
 
     state->cheated = state->completed = FALSE;

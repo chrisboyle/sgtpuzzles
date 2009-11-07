@@ -4084,7 +4084,8 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
     int i;
 #ifdef ANDROID
     char keys[cr+2];
-    for (i = 0; i <= cr; i++) {
+    keys[0] = '\b';
+    for (i = 1; i <= cr; i++) {
 	if (i<10) keys[i] = '0' + i;
 	else keys[i] = 'A' + i - 10;
     }
