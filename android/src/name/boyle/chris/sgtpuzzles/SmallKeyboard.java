@@ -1,6 +1,8 @@
 package name.boyle.chris.sgtpuzzles;
 
 import android.content.Context;
+import android.content.res.Configuration;
+import android.graphics.Color;
 import android.inputmethodservice.Keyboard;
 import android.inputmethodservice.KeyboardView;
 import android.util.AttributeSet;
@@ -20,11 +22,9 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 		int mDefaultWidth = 40, mDefaultHeight = 40, mDefaultHorizontalGap = 0, mDefaultVerticalGap = 0, mTotalWidth, mTotalHeight;
 		Context context;
 		List<Key> mKeys;
-		public KeyboardModel(Context context, CharSequence characters, boolean columnMajor)
+		public KeyboardModel(Context context, CharSequence characters, boolean columnMajor, int maxPx)
 		{
 			super(context, R.layout.keyboard_template);
-			DisplayMetrics dm = context.getResources().getDisplayMetrics();
-			final int maxMajorPx = columnMajor ? dm.heightPixels : dm.widthPixels;
 			int minorPx = 0;
 			int majorPx = 0;
 			int minor = 0;
@@ -40,7 +40,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 					? mDefaultHeight + mDefaultVerticalGap
 					: mDefaultWidth + mDefaultHorizontalGap;
 			// How many rows do we need?
-			final int majors = (int)Math.ceil((double)(characters.length() * keyPlusPad)/maxMajorPx);
+			final int majors = (int)Math.ceil((double)(characters.length() * keyPlusPad)/maxPx);
 			// Spread the keys as evenly as possible
 			final int minorsPerMajor = (int)Math.ceil((double)characters.length() / majors);
 			for (int i = 0; i < characters.length(); i++) {
@@ -104,16 +104,33 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 		public int getMinWidth() { return mTotalWidth; }
 	}
 
+	public SmallKeyboard(Context c) { this(c,null); }
+
 	public SmallKeyboard(Context c, AttributeSet a)
 	{
 		super(c,a);
 		parent = (SGTPuzzles)c;
+		setBackgroundColor( Color.BLACK );
 		setOnKeyboardActionListener(this);
 	}
 
+	CharSequence lastKeys = "";
 	public void setKeys(CharSequence keys, boolean landscape)
 	{
-		setKeyboard(new KeyboardModel(parent, keys, landscape));
+		lastKeys = keys;
+		requestLayout();
+	}
+
+	public void onMeasure(int wSpec, int hSpec)
+	{
+		boolean landscape =
+			(parent.getResources().getConfiguration().orientation
+			 == Configuration.ORIENTATION_LANDSCAPE);
+		Log.d(TAG,"onMeasure "+MeasureSpec.getMode(wSpec)+" "+MeasureSpec.getSize(wSpec)+" "+MeasureSpec.getMode(hSpec)+" "+MeasureSpec.getSize(hSpec));
+		int maxPx = landscape ? MeasureSpec.getSize(hSpec) : MeasureSpec.getSize(wSpec);
+		// Doing this here seems the only way to be sure of dimensions.
+		setKeyboard(new KeyboardModel(parent, lastKeys, landscape, maxPx));
+		super.onMeasure(wSpec, hSpec);
 	}
 
 	public void swipeUp() {}

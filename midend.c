@@ -14,7 +14,7 @@
 #include "puzzles.h"
 
 #ifdef COMBINED
-// For identifying games from saves in midend_deserialise
+/* For identifying games from saves in midend_deserialise */
 extern struct game thegame;
 #endif
 

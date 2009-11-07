@@ -4085,10 +4085,11 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
 #ifdef ANDROID
     char keys[cr+2];
     keys[0] = '\b';
-    for (i = 1; i <= cr; i++) {
-	if (i<10) keys[i] = '0' + i;
-	else keys[i] = 'A' + i - 10;
+    for (i = 0; i < cr; i++) {
+	if (i<9) keys[i] = '1' + i;
+	else keys[i] = 'A' + i - 9;
     }
+    keys[cr] = '\b';
     keys[cr+1] = '\0';
     android_keys(keys);
 #endif

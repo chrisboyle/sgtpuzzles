@@ -150,9 +150,10 @@ public class SGTPuzzles extends Activity
 								: android.R.drawable.ic_dialog_alert )
 						.show();
 				break; }
-			case KEYBOARD: {
+			case KEYBOARD:
 				lastKeys = (String) msg.obj;
-				setKeyboardVisibility(getResources().getConfiguration()); }
+				setKeyboardVisibility(getResources().getConfiguration());
+				break;
 			}
 		}
 	};
@@ -222,7 +223,6 @@ public class SGTPuzzles extends Activity
 		requestWindowFeature(Window.FEATURE_INDETERMINATE_PROGRESS);
 		setContentView(R.layout.main);
 		txtView = (TextView)findViewById(R.id.txtView);
-		keyboard = (SmallKeyboard)findViewById(R.id.keyboard);
 		gameAndKeys = (LinearLayout)findViewById(R.id.gameAndKeys);
 		gameView = (GameView)findViewById(R.id.game);
 		Log.d(TAG,"gameView = "+gameView);
@@ -529,7 +529,7 @@ public class SGTPuzzles extends Activity
 				solveEnabled = false;
 				customVisible = false;
 				txtView.setVisibility( View.GONE );
-				keyboard.setVisibility( View.GONE );
+				if (keyboard != null) keyboard.setVisibility( View.GONE );
 				lastKeys = "";
 			}
 			if( typeMenu != null ) for( Integer i : gameTypes.keySet() ) typeMenu.removeItem(i);
@@ -615,13 +615,24 @@ public class SGTPuzzles extends Activity
 		if (keyEvent(x, y, k) == 0) quit(false);
 	}
 
+	boolean prevLandscape = false;
 	void setKeyboardVisibility(Configuration c)
 	{
 		boolean landscape = (c.orientation == Configuration.ORIENTATION_LANDSCAPE);
 		gameAndKeys.setOrientation( landscape ? LinearLayout.HORIZONTAL : LinearLayout.VERTICAL );
+		if (landscape != prevLandscape || keyboard == null) {
+			// Must recreate KeyboardView on orientation change because it caches the x,y for its preview popups
+			// http://code.google.com/p/android/issues/detail?id=4559
+			if (keyboard != null) gameAndKeys.removeView(keyboard);
+			keyboard = new SmallKeyboard(this);
+			LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT, 0);
+			lp.gravity = Gravity.CENTER;
+			gameAndKeys.addView(keyboard, lp);
+		}
 		keyboard.setKeys(lastKeys, landscape);
 		keyboard.setVisibility( (c.hardKeyboardHidden == Configuration.HARDKEYBOARDHIDDEN_NO)
 				? View.GONE : View.VISIBLE );
+		prevLandscape = landscape;
 	}
 
 	public void onConfigurationChanged(Configuration newConfig)
