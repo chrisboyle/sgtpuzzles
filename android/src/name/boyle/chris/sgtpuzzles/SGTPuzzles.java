@@ -813,7 +813,7 @@ public class SGTPuzzles extends Activity
 			return ret;
 		}
 		String id = s
-				.replaceAll("^[0-9]","_")
+				.replaceAll("^([0-9])","_$1")
 				.replaceAll("%age","percentage")
 				.replaceAll("','","comma")
 				.replaceAll("%[.0-9]*u?[sd]","X")
