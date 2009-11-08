@@ -2488,23 +2488,21 @@ static void draw_tile(drawing *dr, game_state *state, game_drawstate *ds,
               tile & LOCKED ? COL_LOCKED : COL_BACKGROUND);
 
     /*
-     * Draw an inset outline rectangle as a cursor, in whichever of
-     * COL_LOCKED and COL_BACKGROUND we aren't currently drawing
-     * in.
+     * Draw an inset outline rectangle as a cursor, in COL_BARRIER
      */
     if (cursor) {
 	draw_line(dr, bx+TILE_SIZE/8, by+TILE_SIZE/8,
 		  bx+TILE_SIZE/8, by+TILE_SIZE-TILE_SIZE/8,
-		  tile & LOCKED ? COL_BACKGROUND : COL_LOCKED);
+		  COL_BARRIER);
 	draw_line(dr, bx+TILE_SIZE/8, by+TILE_SIZE/8,
 		  bx+TILE_SIZE-TILE_SIZE/8, by+TILE_SIZE/8,
-		  tile & LOCKED ? COL_BACKGROUND : COL_LOCKED);
+		  COL_BARRIER);
 	draw_line(dr, bx+TILE_SIZE-TILE_SIZE/8, by+TILE_SIZE/8,
 		  bx+TILE_SIZE-TILE_SIZE/8, by+TILE_SIZE-TILE_SIZE/8,
-		  tile & LOCKED ? COL_BACKGROUND : COL_LOCKED);
+		  COL_BARRIER);
 	draw_line(dr, bx+TILE_SIZE/8, by+TILE_SIZE-TILE_SIZE/8,
 		  bx+TILE_SIZE-TILE_SIZE/8, by+TILE_SIZE-TILE_SIZE/8,
-		  tile & LOCKED ? COL_BACKGROUND : COL_LOCKED);
+		  COL_BARRIER);
     }
 
     /*
