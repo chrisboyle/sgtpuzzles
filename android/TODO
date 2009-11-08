@@ -1,8 +1,5 @@
 To do...
-. Multi-row keyboard
-. Improve keyboard positioning with very large/small aspect ratio
-. Fix graphics glitches (redrawing before keyboard has size?)
-Later...
+. Improve keyboard positioning with very large/small aspect ratio?
 . Disable redo/undo buttons where appropriate
 . Catch native crashes
 . Save/load files on SD card

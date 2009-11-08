@@ -126,7 +126,6 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 		boolean landscape =
 			(parent.getResources().getConfiguration().orientation
 			 == Configuration.ORIENTATION_LANDSCAPE);
-		Log.d(TAG,"onMeasure "+MeasureSpec.getMode(wSpec)+" "+MeasureSpec.getSize(wSpec)+" "+MeasureSpec.getMode(hSpec)+" "+MeasureSpec.getSize(hSpec));
 		int maxPx = landscape ? MeasureSpec.getSize(hSpec) : MeasureSpec.getSize(wSpec);
 		// Doing this here seems the only way to be sure of dimensions.
 		setKeyboard(new KeyboardModel(parent, lastKeys, landscape, maxPx));

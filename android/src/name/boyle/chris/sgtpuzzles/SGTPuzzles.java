@@ -225,8 +225,6 @@ public class SGTPuzzles extends Activity
 		txtView = (TextView)findViewById(R.id.txtView);
 		gameAndKeys = (LinearLayout)findViewById(R.id.gameAndKeys);
 		gameView = (GameView)findViewById(R.id.game);
-		Log.d(TAG,"gameView = "+gameView);
-		if (gameView == null) { throw new RuntimeException("WTF?!?!?!?"); }
 		setDefaultKeyMode(DEFAULT_KEYS_SHORTCUT);
 
 		prefs = getSharedPreferences("state", MODE_PRIVATE);

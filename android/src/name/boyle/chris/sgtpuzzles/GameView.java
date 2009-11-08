@@ -44,7 +44,6 @@ public class GameView extends View
 		canvas = new Canvas(bitmap);
 		paint = new Paint();
 		blitters = new Bitmap[512];
-		Log.d(TAG,"finished constructor");
 	}
 
 	Runnable sendRightClick = new Runnable() {
