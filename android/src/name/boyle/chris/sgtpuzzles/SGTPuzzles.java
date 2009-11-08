@@ -103,7 +103,7 @@ public class SGTPuzzles extends Activity
 	TableLayout dialogLayout;
 	String helpTopic;
 	Thread worker;
-	String lastKeys;
+	String lastKeys = "";
 
 	enum MsgType { INIT, TIMER, DONE, DIE, ABORT, SETBG, STATUS, MESSAGEBOX, KEYBOARD };
 	Handler handler = new Handler() {
@@ -812,7 +812,7 @@ public class SGTPuzzles extends Activity
 
 	void setKeys(String keys)
 	{
-		if( keys.length() == 0 ) return;
+		if( keys == null || keys.length() == 0 ) return;
 		handler.obtainMessage(MsgType.KEYBOARD.ordinal(),keys).sendToTarget();
 	}
 
