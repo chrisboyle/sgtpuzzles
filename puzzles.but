@@ -265,7 +265,8 @@ following sections.
 
 \H{common-cmdline} Specifying game parameters on the \i{command line}
 
-(This section does not apply to the \i{Mac OS X} version.)
+(This section does not apply to the \i{Android} or \i{Mac OS X}
+versions.)
 
 The games in this collection deliberately do not ever save
 information on to the computer they run on: they have no high score

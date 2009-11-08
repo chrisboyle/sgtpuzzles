@@ -227,9 +227,15 @@ android/classes.dex: android/bin-stamp
 
 android/resources.apk: android/res/drawable/icon.png android/res/values/arrays.xml \
 		android/res/layout/* android/AndroidManifest.xml android/res/values/* \
-		android/res/menu/*
+		android/res/menu/* android/assets
 	$(ANDROID)/platforms/android-1.6/tools/aapt package -f -M android/AndroidManifest.xml \
-		-S android/res -I $(ANDROID)/platforms/android-1.6/android.jar -F $@
+		-S android/res -A android/assets -I $(ANDROID)/platforms/android-1.6/android.jar -F $@
+
+android/assets: puzzles.but
+	rm -rf android/assets
+	$(MAKE) -f Makefile.doc puzzles.hhp
+	mkdir -p android/assets
+	cp *.html android/assets/
 
 android/src/name/boyle/chris/sgtpuzzles/R.java: android/res/drawable/icon.png \
 		android/AndroidManifest.xml android/res/values/arrays.xml \

@@ -37,8 +37,6 @@ Revision: %s"</string>
     <!-- Help menu -->
     <!-- {0} is a game name -->
     <string name="help_on_game">Help on {0}</string>
-    <string name="help_contents_url">http://www.chiark.greenend.org.uk/~sgtatham/puzzles/doc/</string>
-    <string name="help_game_url">http://www.chiark.greenend.org.uk/~sgtatham/puzzles/doc/{0}.html</string>
     <!-- Errors -->
     <string name="fatal_error">Fatal error</string>
     <string name="startgame_fail">Engine failed to load</string>

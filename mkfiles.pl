@@ -1470,7 +1470,7 @@ if (defined $makefiles{"android"}) {
 	  " -c \$< -o \$\@\n";
     }
     print "\nclean:\n".
-    &splitline("\trm -rf *.o *.html *.jar *.apk libpuzzles.so.unstripped android/*.apk android/tmp android/bin android/bin-stamp android/classes.dex android/lib android/src/name/boyle/chris/sgtpuzzles/R.java android/res/drawable android/res/values/arrays.xml\n");
+    &splitline("\trm -rf *.o *.html *.jar *.apk libpuzzles.so.unstripped android/*.apk android/tmp android/bin android/bin-stamp android/classes.dex android/lib android/src/name/boyle/chris/sgtpuzzles/R.java android/res/drawable android/assets android/res/values/arrays.xml\n");
     select STDOUT; close OUT;
 }
 

@@ -47,6 +47,8 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
+import android.webkit.WebChromeClient;
+import android.webkit.WebView;
 import android.widget.AbsListView;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -378,6 +380,24 @@ public class SGTPuzzles extends Activity
 		return true;
 	}
 	
+	public void showHelp(String topic)
+	{
+		final Dialog d = new Dialog(this,android.R.style.Theme);
+		final WebView wv = new WebView(this);
+		d.setOnKeyListener(new DialogInterface.OnKeyListener(){ public boolean onKey(DialogInterface di, int key, KeyEvent evt) {
+			if (evt.getAction() != KeyEvent.ACTION_DOWN || key != KeyEvent.KEYCODE_BACK) return false;
+			if (wv.canGoBack()) wv.goBack(); else d.cancel();
+			return true;
+		}});
+		d.setContentView(wv);
+		wv.setWebChromeClient(new WebChromeClient(){
+			public void onReceivedTitle(WebView w, String title) { d.setTitle(title); }
+		});
+		wv.getSettings().setBuiltInZoomControls(true);
+		wv.loadUrl("file:///android_asset/"+topic+".html");
+		d.show();
+	}
+
 	public boolean onOptionsItemSelected(MenuItem item)
 	{
 		switch(item.getItemId()) {
@@ -401,14 +421,8 @@ public class SGTPuzzles extends Activity
 		case R.id.specific: configEvent( CFG_DESC ); break;
 		case R.id.seed:     configEvent( CFG_SEED ); break;
 		case R.id.about:    aboutEvent(); break;
-		case R.id.contents:
-			startActivity(new Intent(Intent.ACTION_VIEW,
-					Uri.parse(getResources().getString(R.string.help_contents_url))));
-			break;
-		case R.id.thisgame:
-			startActivity(new Intent(Intent.ACTION_VIEW,
-				Uri.parse(MessageFormat.format(getResources().getString(R.string.help_game_url),new Object[]{helpTopic}))));
-			break;
+		case R.id.contents: showHelp("index"); break;
+		case R.id.thisgame: showHelp(helpTopic); break;
 		case R.id.website:
 			startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(
 							getResources().getString(R.string.website_url))));
