@@ -1182,6 +1182,7 @@ static node234 *split234_internal(tree234 *t, int index) {
     /*
      * Search down the tree to find the split point.
      */
+    halves[0] = halves[1] = NULL;
     lparent = rparent = NULL;
     pki = -1;
     while (n) {
@@ -1273,6 +1274,8 @@ static node234 *split234_internal(tree234 *t, int index) {
      */
     LOG(("  fell off bottom, lroot is %p, rroot is %p\n",
 	 halves[0], halves[1]));
+    assert(halves[0] != NULL);
+    assert(halves[1] != NULL);
     lparent->counts[pki] = rparent->counts[0] = 0;
     lparent->kids[pki] = rparent->kids[0] = NULL;
 
@@ -1475,6 +1478,7 @@ tree234 *copytree234(tree234 *t, copyfn234 copyfn, void *copyfnstate) {
  * if not.)
  */
 
+#include <string.h>
 #include <stdarg.h>
 
 #define srealloc realloc
