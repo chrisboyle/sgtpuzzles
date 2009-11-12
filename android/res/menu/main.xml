@@ -6,8 +6,8 @@
 	<item android:title="@string/Restart" android:id="@+id/restart" android:alphabeticShortcut="t" android:icon="@android:drawable/ic_menu_delete"/>
 	<item android:title="@string/Specific_" android:id="@+id/specific" android:alphabeticShortcut="p"></item>
 	<item android:title="@string/Random_seed_" android:id="@+id/seed" android:alphabeticShortcut="m"></item>
-	<!--item android:title="@string/Load_" android:id="@+id/load" android:enabled="false" android:alphabeticShortcut="y" android:icon="@android:drawable/ic_menu_upload"></item>
-	<item android:title="@string/Save_" android:id="@+id/save" android:enabled="false" android:alphabeticShortcut="w" android:icon="@android:drawable/ic_menu_save"></item-->
+	<item android:title="@string/Load_" android:id="@+id/load" android:alphabeticShortcut="y" android:icon="@android:drawable/ic_menu_upload"></item>
+	<item android:title="@string/Save_" android:id="@+id/save" android:alphabeticShortcut="w" android:icon="@android:drawable/ic_menu_save"></item>
 </menu></item>
 <item android:title="@string/Type" android:id="@+id/type" android:enabled="false" android:icon="@android:drawable/ic_menu_edit"><menu>
 	<group android:id="@+id/typeGroup" android:checkableBehavior="single">

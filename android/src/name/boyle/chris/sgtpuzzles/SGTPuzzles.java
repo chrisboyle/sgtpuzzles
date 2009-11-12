@@ -1,10 +1,15 @@
 package name.boyle.chris.sgtpuzzles;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.io.PrintStream;
+import java.io.RandomAccessFile;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.text.MessageFormat;
+import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -31,12 +36,15 @@ import android.graphics.drawable.Drawable;
 import android.graphics.PorterDuff.Mode;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
+import android.text.Editable;
 import android.text.InputType;
 import android.text.Spannable;
 import android.text.SpannableString;
 import android.text.style.ForegroundColorSpan;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.KeyEvent;
@@ -83,7 +91,6 @@ public class SGTPuzzles extends Activity
 	int currentType = 0;
 	boolean gameRunning = false;
 	boolean solveEnabled = false, customVisible = false, dead = false;
-	String lastSave;
 	SharedPreferences prefs;
 	static final int CFG_SETTINGS = 0, CFG_SEED = 1, CFG_DESC = 2,
 		LEFT_BUTTON = 0x0200, MIDDLE_BUTTON = 0x201, RIGHT_BUTTON = 0x202,
@@ -93,6 +100,7 @@ public class SGTPuzzles extends Activity
 		MOD_SHFT = 0x2000, MOD_NUM_KEYPAD = 0x4000, ALIGN_VCENTRE = 0x100,
 		ALIGN_HCENTRE = 0x001, ALIGN_HRIGHT = 0x002, TEXT_MONO = 0x10,
 		C_STRING = 0, C_CHOICES = 1, C_BOOLEAN = 2;
+	static final long MAX_SAVE_SIZE = 1000000; // 1MB; we only have 16MB of heap
 	boolean gameWantsTimer = false, resizeOnDone = false;
 	int timerInterval = 20;
 	int xarg1, xarg2, xarg3;
@@ -104,6 +112,7 @@ public class SGTPuzzles extends Activity
 	String helpTopic;
 	Thread worker;
 	String lastKeys = "";
+	static final File storageDir = Environment.getExternalStorageDirectory();
 
 	enum MsgType { INIT, TIMER, DONE, DIE, ABORT, SETBG, STATUS, MESSAGEBOX, KEYBOARD };
 	Handler handler = new Handler() {
@@ -129,6 +138,9 @@ public class SGTPuzzles extends Activity
 				break;
 			case DIE: die((String)msg.obj); break;
 			case ABORT:
+				if (msg.obj != null) {
+					Toast.makeText(SGTPuzzles.this, (String)msg.obj, Toast.LENGTH_LONG).show();
+				}
 				stopRuntime(null);
 				dismissProgress();
 				showDialog(0);
@@ -188,25 +200,24 @@ public class SGTPuzzles extends Activity
 		progress = null;
 	}
 
-	void save()
+	String saveToString()
 	{
-		if( dead || ! gameRunning || progress != null ) return;
+		if( dead || ! gameRunning || progress != null ) return null;
 		savingState = new StringBuffer();
 		serialise();  // serialiseWrite() callbacks will happen in here
 		String s = savingState.toString();
-		if( savingState.length() > 0 ) lastSave = s;
 		savingState = null;
-		if( lastSave == null ) return;
-		SharedPreferences.Editor ed = prefs.edit();
-		ed.remove("engineName");
-		ed.putString("savedGame", lastSave);
-		ed.commit();
+		return s;
 	}
 
-	void load(String state)
+	void save()
 	{
-		deserialise(state);
-		save();
+		String s = saveToString();
+		if (s == null) return;
+		SharedPreferences.Editor ed = prefs.edit();
+		ed.remove("engineName");
+		ed.putString("savedGame", s);
+		ed.commit();
 	}
 
 	void gameViewResized()
@@ -278,6 +289,7 @@ public class SGTPuzzles extends Activity
 			switch(item.getItemId()) {
 				case R.id.listchooser: newGrid = false; break;
 				case R.id.gridchooser: newGrid = true; break;
+				case R.id.load: SGTPuzzles.this.showLoadPrompt(); return true;
 				default: return super.onMenuItemSelected(f,item);
 			}
 			if( useGrid == newGrid ) return true;
@@ -431,12 +443,14 @@ public class SGTPuzzles extends Activity
 			// Damn, Android Email doesn't cope with ?subject=foo yet.
 			startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(getResources().getString(R.string.mailto_author))));
 			break;
-		/*case R.id.load:
-			// TODO: load
-			break;
+		case R.id.load: showLoadPrompt(); break;
 		case R.id.save:
-			// TODO: save
-			break;*/
+			if (! Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)) {
+				Toast.makeText(SGTPuzzles.this, R.string.storage_not_ready, Toast.LENGTH_SHORT).show();
+				break;
+			}
+			new FilePicker(storageDir,true).show();
+			break;
 		default:
 			final int id = item.getItemId();
 			if( gameTypes.get(id) != null ) {
@@ -457,6 +471,126 @@ public class SGTPuzzles extends Activity
 		return true;
 	}
 
+	void showLoadPrompt()
+	{
+		if (! Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)) {
+			Toast.makeText(SGTPuzzles.this, R.string.storage_not_ready, Toast.LENGTH_SHORT).show();
+			return;
+		}
+		new FilePicker(storageDir,false).show();
+	}
+
+	class FilePicker extends Dialog
+	{
+		String[] files;
+		ListView lv;
+		FilePicker parent;
+		void dismissAll()
+		{
+			try {
+				SGTPuzzles.this.dismissDialog(0);
+			} catch (Exception e) {}
+			dismiss();
+			FilePicker fp = this.parent;
+			while (fp != null) {
+				fp.dismiss();
+				fp = fp.parent;
+			}
+		}
+		void load(final File f) throws IOException
+		{
+			byte[] b = new byte[(int)f.length()];
+			new RandomAccessFile(f,"r").readFully(b);
+			String s = new String(b);
+			SGTPuzzles.this.startGame(-1,s);
+			dismissAll();
+		}
+		void save(final File f) throws IOException
+		{
+			if (f.exists()) {
+				AlertDialog.Builder b = new AlertDialog.Builder(SGTPuzzles.this)
+					.setMessage(R.string.file_exists)
+					.setCancelable(true)
+					.setIcon(android.R.drawable.ic_dialog_alert);
+				b.setPositiveButton(android.R.string.yes, new OnClickListener(){ public void onClick(DialogInterface d, int which) {
+					try {
+						f.delete();
+						save(f);
+					} catch (Exception e) {
+						Toast.makeText(SGTPuzzles.this, e.toString(), Toast.LENGTH_LONG).show();
+					}
+					d.dismiss();
+				}});
+				b.setNegativeButton(android.R.string.no, new OnClickListener(){ public void onClick(DialogInterface d, int which) {
+					d.cancel();
+				}});
+				return;
+			}
+			String s = saveToString();
+			FileWriter w = new FileWriter(f);
+			w.write(s,0,s.length());
+			w.close();
+			Toast.makeText(SGTPuzzles.this, MessageFormat.format(
+					getResources().getString(R.string.file_saved),new Object[]{f.getPath()}),
+					Toast.LENGTH_LONG).show();
+			dismissAll();
+		}
+		FilePicker(final File path, final boolean isSave) { this(path, isSave, null); }
+		FilePicker(final File path, final boolean isSave, FilePicker parent)
+		{
+			super(SGTPuzzles.this, android.R.style.Theme);  // full screen
+			this.parent = parent;
+			this.files = path.list();
+			Arrays.sort(this.files);
+			setTitle(path.getName());
+			setCancelable(true);
+			setContentView(isSave ? R.layout.file_save : R.layout.file_load);
+			lv = (ListView)findViewById(R.id.filelist);
+			lv.setAdapter(new ArrayAdapter<String>(SGTPuzzles.this, android.R.layout.simple_list_item_1, files));
+			lv.setOnItemClickListener(new OnItemClickListener() {
+				public void onItemClick(AdapterView<?> arg0, View arg1, int which, long arg3) {
+					File f = new File(path,files[which]);
+					if (f.isDirectory()) {
+						new FilePicker(f,isSave,FilePicker.this).show();
+						return;
+					}
+					try {
+						if (isSave) {
+							save(f);
+							return;
+						}
+						if (f.length() > MAX_SAVE_SIZE) {
+							Toast.makeText(SGTPuzzles.this, R.string.file_too_big, Toast.LENGTH_LONG).show();
+							return;
+						}
+						load(f);
+					} catch (Exception e) {
+						Toast.makeText(SGTPuzzles.this, e.toString(), Toast.LENGTH_LONG).show();
+					}
+				}
+			});
+			if (!isSave) return;
+			final EditText et = (EditText)findViewById(R.id.savebox);
+			et.addTextChangedListener(new TextWatcher(){
+				public void onTextChanged(CharSequence s,int a,int b, int c){}
+				public void beforeTextChanged(CharSequence s,int a,int b, int c){}
+				public void afterTextChanged(Editable s) {
+					lv.setFilterText(s.toString());
+				}
+			});
+			et.setOnKeyListener(new View.OnKeyListener() { public boolean onKey(View v, int keyCode, KeyEvent event) {
+				if ((event.getAction() != KeyEvent.ACTION_DOWN) || (keyCode != KeyEvent.KEYCODE_ENTER)) return false;
+				try {
+					save(new File(path,et.getText().toString()));
+				} catch (Exception e) {
+					Toast.makeText(SGTPuzzles.this, e.toString(), Toast.LENGTH_LONG).show();
+				}
+				return true;
+			}});
+			et.requestFocus();
+		}
+	}
+
 	void quit(boolean fromDestroy)
 	{
 		stopRuntime(null);
@@ -467,10 +601,13 @@ public class SGTPuzzles extends Activity
 		public void onCancel(DialogInterface dialog) { quit(false); }
 	};
 
+	void abort(String why)
+	{
+		handler.obtainMessage(MsgType.ABORT.ordinal(), why).sendToTarget();
+	}
+
 	OnCancelListener abortListener = new OnCancelListener() {
-		public void onCancel(DialogInterface dialog) {
-			handler.sendEmptyMessage(MsgType.ABORT.ordinal());
-		}
+		public void onCancel(DialogInterface dialog) { abort(null); }
 	};
 
 	String getStackTrace( Throwable t )
@@ -702,7 +839,6 @@ public class SGTPuzzles extends Activity
 		gameView.drawPoly(path, line, fill);
 	}
 
-	// TODO: coalesce dialog calls into one call?
 	void dialogInit(String title)
 	{
 		ScrollView sv = new ScrollView(SGTPuzzles.this);
@@ -859,7 +995,7 @@ public class SGTPuzzles extends Activity
 	native void configSetBool(int item_ptr, int selected);
 	native void configSetChoice(int item_ptr, int selected);
 	native void serialise();
-	native int deserialise(String s);
+	native String deserialise(String s);
 
 	static {
 		System.loadLibrary("puzzles");

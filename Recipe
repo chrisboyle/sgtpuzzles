@@ -204,7 +204,10 @@ all: SGTPuzzles.apk
 
 install: SGTPuzzles.apk
 	$(ANDROID)/tools/adb install -r $<
-.PHONY: install
+
+run: install
+	$(ANDROID)/tools/adb shell am start -n name.boyle.chris.sgtpuzzles/.SGTPuzzles
+.PHONY: install run
 
 SGTPuzzles.apk: android/SGTPuzzles_unaligned.apk
 	rm -f $@

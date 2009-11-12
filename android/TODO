@@ -1,5 +1,10 @@
 To do...
-. Improve keyboard positioning with very large/small aspect ratio?
+. Undo/redo buttons in soft keyboard.
 . Disable redo/undo buttons where appropriate
 . Catch native crashes
-. Save/load files on SD card
+Later...
+. Remember and return to last location on SD card
+. Zoom
+. Patch (+upstream) Solo and Unequal not to create no-change moves when overwriting a number with itself.
+. Improve keyboard positioning with very large/small aspect ratio?
+. Key previews still disappear sometimes? (seen in portrait orientation)

@@ -57,6 +57,7 @@ static int next_gettexted = 0;
 
 static jobject gameView;
 static jmethodID
+	abortMethod,
 	addTypeItem,
 	blitterAlloc,
 	blitterFree,
@@ -250,7 +251,7 @@ void Java_name_boyle_chris_sgtpuzzles_SGTPuzzles_resizeEvent(JNIEnv *_env, jobje
 	env = _env;
 	frontend *fe = (frontend *)_fe;
 	int x, y;
-	if (!fe) return;
+	if (!fe || !fe->me) return;
 	x = width;
 	y = height;
 	midend_size(fe->me, &x, &y, TRUE);
@@ -325,7 +326,7 @@ jint Java_name_boyle_chris_sgtpuzzles_SGTPuzzles_menuKeyEvent(JNIEnv *_env, jobj
 static void resize_fe(frontend *fe)
 {
 	int x, y;
-	if (!fe) return;
+	if (!fe || !fe->me) return;
 	x = INT_MAX;
 	y = INT_MAX;
 	midend_size(fe->me, &x, &y, FALSE);
@@ -448,20 +449,14 @@ int android_deserialise_read(void *ctx, void *buf, int len)
 	return l == len;
 }
 
-int android_deserialise(jstring s)
+const char* android_deserialise(jstring s)
 {
 	const char * c = (*env)->GetStringUTFChars(env, s, NULL);
 	_fe->readptr = c;
 	_fe->readlen = strlen(_fe->readptr);
-	int ret = (int)midend_deserialise(_fe->me, android_deserialise_read, NULL);
+	const char * ret = midend_deserialise(_fe->me, android_deserialise_read, NULL);
 	(*env)->ReleaseStringUTFChars(env, s, c);
 	return ret;
-}
-
-jint Java_name_boyle_chris_sgtpuzzles_SGTPuzzles_deserialise(JNIEnv *_env, jobject _obj, jstring s)
-{
-	env = _env;
-	return android_deserialise(s);
 }
 
 void Java_name_boyle_chris_sgtpuzzles_SGTPuzzles_aboutEvent(JNIEnv *_env, jobject _obj)
@@ -525,6 +520,7 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
 	if ((*jvm)->GetEnv(jvm, (void **)&env, JNI_VERSION_1_2)) return JNI_ERR;
 	cls = (*env)->FindClass(env, "name/boyle/chris/sgtpuzzles/SGTPuzzles");
 	vcls = (*env)->FindClass(env, "name/boyle/chris/sgtpuzzles/GameView");
+	abortMethod    = (*env)->GetMethodID(env, cls,  "abort", "(Ljava/lang/String;)V");
 	addTypeItem    = (*env)->GetMethodID(env, cls,  "addTypeItem", "(ILjava/lang/String;)V");
 	blitterAlloc   = (*env)->GetMethodID(env, vcls, "blitterAlloc", "(II)I");
 	blitterFree    = (*env)->GetMethodID(env, vcls, "blitterFree", "(I)V");
@@ -577,7 +573,11 @@ void Java_name_boyle_chris_sgtpuzzles_SGTPuzzles_init(JNIEnv *_env, jobject _obj
 	} else {
 		// Find out which game the savefile is from
 		_fe->me = NULL;  // magic in midend_deserialise
-		if (android_deserialise(gameState) != 0) exit(1);
+		const char *reason = android_deserialise(gameState);
+		if (reason) {
+			(*env)->CallVoidMethod(env, obj, abortMethod, (*env)->NewStringUTF(env, reason));
+			return;
+		}
 		// thegame is now set
 	}
 	_fe->me = midend_new(_fe, &thegame, &android_drawing, _fe);
