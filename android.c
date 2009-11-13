@@ -535,7 +535,7 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
 	drawPoly       = (*env)->GetMethodID(env, cls,  "drawPoly", "([IIIII)V");
 	drawText       = (*env)->GetMethodID(env, vcls, "drawText", "(IIIIILjava/lang/String;)V");
 	fillRect       = (*env)->GetMethodID(env, vcls, "fillRect", "(IIIII)V");
-	gameStarted    = (*env)->GetMethodID(env, cls,  "gameStarted", "(Ljava/lang/String;I[F)V");
+	gameStarted    = (*env)->GetMethodID(env, cls,  "gameStarted", "(Ljava/lang/String;ZZZ[F)V");
 	getText        = (*env)->GetMethodID(env, cls,  "gettext", "(Ljava/lang/String;)Ljava/lang/String;");
 	messageBox     = (*env)->GetMethodID(env, cls,  "messageBox", "(Ljava/lang/String;Ljava/lang/String;I)V");
 	postInvalidate = (*env)->GetMethodID(env, vcls, "postInvalidate", "()V");
@@ -602,10 +602,8 @@ void Java_name_boyle_chris_sgtpuzzles_SGTPuzzles_init(JNIEnv *_env, jobject _obj
 	if (colsj == NULL) return;
 	(*env)->SetFloatArrayRegion(env, colsj, 0, n*3, colours);
 	(*env)->CallVoidMethod(env, obj, gameStarted,
-			(*env)->NewStringUTF(env, thegame.name),
-			(thegame.can_configure ? 1 : 0) |
-			(midend_wants_statusbar(_fe->me) ? 2 : 0) |
-			(thegame.can_solve ? 4 : 0), colsj);
+			(*env)->NewStringUTF(env, thegame.name), thegame.can_configure,
+			midend_wants_statusbar(_fe->me), thegame.can_solve, colsj);
 	resize_fe(_fe);
 
 	(*env)->CallVoidMethod(env, obj, tickTypeItem, midend_which_preset(_fe->me));

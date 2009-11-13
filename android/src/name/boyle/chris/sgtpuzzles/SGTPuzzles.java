@@ -114,16 +114,10 @@ public class SGTPuzzles extends Activity
 	String lastKeys = "";
 	static final File storageDir = Environment.getExternalStorageDirectory();
 
-	enum MsgType { INIT, TIMER, DONE, DIE, ABORT, SETBG, STATUS, MESSAGEBOX, KEYBOARD };
+	enum MsgType { INIT, TIMER, DONE, DIE, ABORT };
 	Handler handler = new Handler() {
 		public void handleMessage( Message msg ) {
 			switch( MsgType.values()[msg.what] ) {
-			case INIT:
-				setTitle( (String)msg.obj );
-				txtView.setVisibility( ((msg.arg1 & 2) > 0) ? View.VISIBLE : View.GONE );
-				if ((msg.arg1 & 1) != 0) customVisible = true;
-				if ((msg.arg1 & 4) != 0) solveEnabled = true;
-				break;
 			case TIMER:
 				if( progress == null ) timerTick();
 				if( gameWantsTimer ) sendMessageDelayed(obtainMessage(MsgType.TIMER.ordinal()), timerInterval);
@@ -144,29 +138,6 @@ public class SGTPuzzles extends Activity
 				stopRuntime(null);
 				dismissProgress();
 				showDialog(0);
-				break;
-			case SETBG: gameView.setBackgroundColor(gameView.colours[0]); break;
-			case STATUS:
-				String status = (String)msg.obj;
-				if( status.length() == 0 ) status = " ";
-				txtView.setText(status);
-				break;
-			case MESSAGEBOX: {
-				dismissProgress();
-				String[] strings = (String[]) msg.obj;
-				if( strings[0] == null )
-					Toast.makeText(SGTPuzzles.this, strings[1], Toast.LENGTH_SHORT).show();
-				else new AlertDialog.Builder(SGTPuzzles.this)
-						.setTitle( strings[0] )
-						.setMessage( strings[1] )
-						.setIcon( ( msg.arg1 == 0 )
-								? android.R.drawable.ic_dialog_info
-								: android.R.drawable.ic_dialog_alert )
-						.show();
-				break; }
-			case KEYBOARD:
-				lastKeys = (String) msg.obj;
-				setKeyboardVisibility(getResources().getConfiguration());
 				break;
 			}
 		}
@@ -793,21 +764,36 @@ public class SGTPuzzles extends Activity
 
 	// Callbacks from native code:
 
-	void gameStarted(String name, int flags, float[] colours)
+	void gameStarted(final String title, final boolean hasCustom, final boolean hasStatus, final boolean canSolve, float[] colours)
 	{
 		gameView.colours = new int[colours.length/3];
 		for (int i=0; i<colours.length/3; i++)
 			gameView.colours[i] = Color.rgb((int)(colours[i*3]*255),(int)(colours[i*3+1]*255),(int)(colours[i*3+2]*255));
-		if (colours.length > 0) handler.sendEmptyMessage(MsgType.SETBG.ordinal());
-		handler.obtainMessage(MsgType.INIT.ordinal(), flags, 0, name ).sendToTarget();
+		customVisible = hasCustom;
+		solveEnabled = canSolve;
+		runOnUiThread(new Runnable(){public void run(){
+			if (gameView.colours.length > 0) gameView.setBackgroundColor(gameView.colours[0]);
+			setTitle(title);
+			txtView.setVisibility( hasStatus ? View.VISIBLE : View.GONE );
+		}});
 	}
 
 	void addTypeItem(int id, String label) { gameTypes.put(id, label); }
 
-	void messageBox(String title, String msg, int flag)
+	void messageBox(final String title, final String msg, final int flag)
 	{
-		handler.obtainMessage(MsgType.MESSAGEBOX.ordinal(), flag, 0,
-				new String[] {title, msg}).sendToTarget();
+		runOnUiThread(new Runnable(){public void run(){
+			dismissProgress();
+			if( title == null )
+				Toast.makeText(SGTPuzzles.this, msg, Toast.LENGTH_SHORT).show();
+			else new AlertDialog.Builder(SGTPuzzles.this)
+					.setTitle(title)
+					.setMessage(msg)
+					.setIcon( (flag == 0)
+							? android.R.drawable.ic_dialog_info
+							: android.R.drawable.ic_dialog_alert )
+					.show();
+		}});
 		// I don't think we need to wait before returning here (and we can't)
 	}
 
@@ -817,9 +803,11 @@ public class SGTPuzzles extends Activity
 		gameViewResized();
 	}
 
-	void setStatus(String status)
+	void setStatus(final String status)
 	{
-		handler.obtainMessage(MsgType.STATUS.ordinal(), status).sendToTarget();
+		runOnUiThread(new Runnable(){public void run(){
+			txtView.setText(status.length() == 0 ? " " : status);
+		}});
 	}
 
 	void requestTimer(boolean on)
@@ -950,7 +938,10 @@ public class SGTPuzzles extends Activity
 	void setKeys(String keys)
 	{
 		if( keys == null || keys.length() == 0 ) return;
-		handler.obtainMessage(MsgType.KEYBOARD.ordinal(),keys).sendToTarget();
+		lastKeys = keys;
+		runOnUiThread(new Runnable(){public void run(){
+			setKeyboardVisibility(getResources().getConfiguration());
+		}});
 	}
 
 	String gettext(String s)
