@@ -3,6 +3,7 @@ To do...
 . Disable redo/undo buttons where appropriate
 . Catch native crashes
 Later...
+. Code cleanup!
 . Remember and return to last location on SD card
 . Zoom
 . Patch (+upstream) Solo and Unequal not to create no-change moves when overwriting a number with itself.

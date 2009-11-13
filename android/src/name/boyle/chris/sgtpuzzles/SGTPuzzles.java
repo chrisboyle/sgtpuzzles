@@ -524,6 +524,7 @@ public class SGTPuzzles extends Activity
 				b.setNegativeButton(android.R.string.no, new OnClickListener(){ public void onClick(DialogInterface d, int which) {
 					d.cancel();
 				}});
+				b.show();
 				return;
 			}
 			String s = saveToString();
