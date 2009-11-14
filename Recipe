@@ -235,7 +235,7 @@ android/resources.apk: android/res/drawable/icon.png android/res/values/arrays.x
 		-S android/res -A android/assets -I $(ANDROID)/platforms/android-1.6/android.jar -F $@
 
 android/assets: puzzles.but
-	rm -rf android/assets
+	rm -rf android/assets puzzles.hhp
 	$(MAKE) -f Makefile.doc puzzles.hhp
 	mkdir -p android/assets
 	cp *.html android/assets/
