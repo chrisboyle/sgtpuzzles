@@ -55,6 +55,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
+import android.view.inputmethod.EditorInfo;
 import android.webkit.WebChromeClient;
 import android.webkit.WebView;
 import android.widget.AbsListView;
@@ -476,7 +477,7 @@ public class SGTPuzzles extends Activity
 			SGTPuzzles.this.startGame(-1,s);
 			dismissAll();
 		}
-		void save(final File f) throws IOException
+		void save(final File f)
 		{
 			if (f.exists()) {
 				AlertDialog.Builder b = new AlertDialog.Builder(SGTPuzzles.this)
@@ -498,14 +499,18 @@ public class SGTPuzzles extends Activity
 				b.show();
 				return;
 			}
-			String s = saveToString();
-			FileWriter w = new FileWriter(f);
-			w.write(s,0,s.length());
-			w.close();
-			Toast.makeText(SGTPuzzles.this, MessageFormat.format(
-					getResources().getString(R.string.file_saved),new Object[]{f.getPath()}),
-					Toast.LENGTH_LONG).show();
-			dismissAll();
+			try {
+				String s = saveToString();
+				FileWriter w = new FileWriter(f);
+				w.write(s,0,s.length());
+				w.close();
+				Toast.makeText(SGTPuzzles.this, MessageFormat.format(
+						getResources().getString(R.string.file_saved),new Object[]{f.getPath()}),
+						Toast.LENGTH_LONG).show();
+				dismissAll();
+			} catch (Exception e) {
+				Toast.makeText(SGTPuzzles.this, e.toString(), Toast.LENGTH_LONG).show();
+			}
 		}
 		FilePicker(final File path, final boolean isSave) { this(path, isSave, null); }
 		FilePicker(final File path, final boolean isSave, FilePicker parent)
@@ -526,11 +531,11 @@ public class SGTPuzzles extends Activity
 						new FilePicker(f,isSave,FilePicker.this).show();
 						return;
 					}
+					if (isSave) {
+						save(f);
+						return;
+					}
 					try {
-						if (isSave) {
-							save(f);
-							return;
-						}
 						if (f.length() > MAX_SAVE_SIZE) {
 							Toast.makeText(SGTPuzzles.this, R.string.file_too_big, Toast.LENGTH_LONG).show();
 							return;
@@ -550,14 +555,17 @@ public class SGTPuzzles extends Activity
 					lv.setFilterText(s.toString());
 				}
 			});
-			et.setOnKeyListener(new View.OnKeyListener() { public boolean onKey(View v, int keyCode, KeyEvent event) {
-				if ((event.getAction() != KeyEvent.ACTION_DOWN) || (keyCode != KeyEvent.KEYCODE_ENTER)) return false;
-				try {
-					save(new File(path,et.getText().toString()));
-				} catch (Exception e) {
-					Toast.makeText(SGTPuzzles.this, e.toString(), Toast.LENGTH_LONG).show();
-				}
+			et.setOnEditorActionListener(new TextView.OnEditorActionListener() { public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
+				Log.d(TAG,"actionId: "+actionId+", event: "+event);
+				if (actionId == EditorInfo.IME_ACTION_DONE) return false;
+				if ((event != null && event.getAction() != KeyEvent.ACTION_DOWN)
+						|| et.length() == 0) return true;
+				save(new File(path,et.getText().toString()));
 				return true;
+			}});
+			final Button saveButton = (Button)findViewById(R.id.savebutton);
+			saveButton.setOnClickListener(new View.OnClickListener(){public void onClick(View v){
+				save(new File(path,et.getText().toString()));
 			}});
 			et.requestFocus();
 		}

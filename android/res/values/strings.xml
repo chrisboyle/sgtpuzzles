@@ -34,6 +34,9 @@ Revision: %s"</string>
     <string name="welcome">Welcome to the Android version of Simon Tatham\'s Puzzles. N.B. the trackball is easier to use than the touchscreen for most of these. For right-click, press the camera button halfway or do a long press on the touchscreen. Online help is available under Menu/Help. This project is released under the MIT license.</string>
     <string name="mailto_author">mailto:chris@boyle.name</string>
     <string name="website_url">http://chris.boyle.name/projects/android-puzzles</string>
+    <!-- For saving and loading game state on the SD card -->
+    <string name="filename">Filename</string>
+    <string name="save">Save</string>
     <string name="storage_not_ready">Storage device is not ready</string>
     <string name="file_too_big">This looks much too big to be a saved game</string>
     <string name="file_exists">File exists; overwrite it?</string>
