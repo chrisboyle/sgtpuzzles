@@ -41,7 +41,7 @@ struct frontend {
 	int readlen;
 };
 
-static frontend *_fe;
+static frontend *_fe = NULL;
 static JNIEnv *env;
 static jobject obj;
 static int cancelled;
@@ -55,7 +55,7 @@ static int cancelled;
 static char gettexted[GETTEXTED_COUNT][GETTEXTED_SIZE];
 static int next_gettexted = 0;
 
-static jobject gameView;
+static jobject gameView = NULL;
 static jmethodID
 	abortMethod,
 	addTypeItem,
@@ -563,6 +563,18 @@ void Java_name_boyle_chris_sgtpuzzles_SGTPuzzles_cancel(JNIEnv *_env, jobject _o
 	cancelled = TRUE;
 }
 
+void Java_name_boyle_chris_sgtpuzzles_SGTPuzzles_freeNativeResources(JNIEnv *_env, jobject _obj)
+{
+	if (gameView) {
+		(*env)->DeleteGlobalRef(env, gameView);
+		gameView = NULL;
+	}
+	if (_fe && _fe->me) {
+		midend_free(_fe->me);
+		_fe->me = NULL;
+	}
+}
+
 void Java_name_boyle_chris_sgtpuzzles_SGTPuzzles_init(JNIEnv *_env, jobject _obj, jobject _gameView, jint whichGame, jstring gameState)
 {
 	int n;
@@ -571,6 +583,7 @@ void Java_name_boyle_chris_sgtpuzzles_SGTPuzzles_init(JNIEnv *_env, jobject _obj
 	cancelled = FALSE;
 	env = _env;
 	obj = _obj;
+	Java_name_boyle_chris_sgtpuzzles_SGTPuzzles_freeNativeResources(env, obj);
 	gameView = (*env)->NewGlobalRef(env, _gameView);
 
 	_fe = snew(frontend);
@@ -589,8 +602,15 @@ void Java_name_boyle_chris_sgtpuzzles_SGTPuzzles_init(JNIEnv *_env, jobject _obj
 		// thegame is now set
 	}
 	_fe->me = midend_new(_fe, &thegame, &android_drawing, _fe);
-	if( whichGame >= 0 || android_deserialise(gameState) != 0 )
+	if( whichGame >= 0 ) {
 		midend_new_game(_fe->me);
+	} else {
+		const char *reason = android_deserialise(gameState);
+		if (reason) {
+			(*env)->CallVoidMethod(env, obj, abortMethod, (*env)->NewStringUTF(env, reason));
+			return;
+		}
+	}
 	if (cancelled) return;
 
 	if ((n = midend_num_presets(_fe->me)) > 0) {
@@ -615,9 +635,4 @@ void Java_name_boyle_chris_sgtpuzzles_SGTPuzzles_init(JNIEnv *_env, jobject _obj
 	resize_fe(_fe);
 
 	(*env)->CallVoidMethod(env, obj, tickTypeItem, midend_which_preset(_fe->me));
-
-	// shut down when the VM is resumed.
-	//deactivate_timer(_fe);
-	//midend_free(_fe->me);
-	//return 0;
 }

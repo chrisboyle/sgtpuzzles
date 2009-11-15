@@ -134,12 +134,12 @@ public class SGTPuzzles extends Activity
 				break;
 			case DIE: die((String)msg.obj); break;
 			case ABORT:
-				if (msg.obj != null) {
-					Toast.makeText(SGTPuzzles.this, (String)msg.obj, Toast.LENGTH_LONG).show();
-				}
 				stopRuntime(null);
 				dismissProgress();
 				showDialog(0);
+				if (msg.obj != null) {
+					messageBox(getResources().getString(R.string.Error), (String)msg.obj, 1);
+				}
 				break;
 			}
 		}
@@ -693,6 +693,7 @@ public class SGTPuzzles extends Activity
 			worker.join();  // we may ANR if native code is spinning - safer than leaving a runaway native thread
 			break;
 		} catch (InterruptedException i) {} }
+		freeNativeResources(); // free native resources
 	}
 
 	protected void onPause()
@@ -1007,6 +1008,7 @@ public class SGTPuzzles extends Activity
 	native void configSetChoice(int item_ptr, int selected);
 	native void serialise();
 	native String deserialise(String s);
+	native void freeNativeResources();
 
 	static {
 		System.loadLibrary("puzzles");
