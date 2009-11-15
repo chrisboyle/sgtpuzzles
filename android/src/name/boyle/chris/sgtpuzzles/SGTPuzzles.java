@@ -91,7 +91,8 @@ public class SGTPuzzles extends Activity
 	LinkedHashMap<Integer,String> gameTypes;
 	int currentType = 0;
 	boolean gameRunning = false;
-	boolean solveEnabled = false, customVisible = false, dead = false;
+	boolean solveEnabled = false, customVisible = false, dead = false,
+			undoEnabled = false, redoEnabled = false;
 	SharedPreferences prefs;
 	static final int CFG_SETTINGS = 0, CFG_SEED = 1, CFG_DESC = 2,
 		LEFT_BUTTON = 0x0200, MIDDLE_BUTTON = 0x201, RIGHT_BUTTON = 0x202,
@@ -348,6 +349,8 @@ public class SGTPuzzles extends Activity
 	{
 		super.onPrepareOptionsMenu(menu);
 		menu.findItem(R.id.solve).setEnabled(solveEnabled);
+		menu.findItem(R.id.undo).setEnabled(undoEnabled);
+		menu.findItem(R.id.redo).setEnabled(redoEnabled);
 		MenuItem typeItem = menu.findItem(R.id.type);
 		typeItem.setEnabled(! gameTypes.isEmpty() || customVisible);
 		typeMenu = typeItem.getSubMenu();
@@ -656,6 +659,8 @@ public class SGTPuzzles extends Activity
 				gameView.clear();
 				stopRuntime(null);
 				solveEnabled = false;
+				undoEnabled = false;
+				redoEnabled = false;
 				customVisible = false;
 				txtView.setVisibility( View.GONE );
 				if (keyboard != null) keyboard.setVisibility( View.GONE );
@@ -975,6 +980,12 @@ public class SGTPuzzles extends Activity
 		}
 		Log.i(TAG,"gettext: NO TRANSLATION: "+s+" -> "+id+" -> ???");
 		return s;
+	}
+
+	void changedState(boolean canUndo, boolean canRedo)
+	{
+		undoEnabled = canUndo;
+		redoEnabled = canRedo;
 	}
 
 	native void init(GameView _gameView, int whichGame, String gameState);

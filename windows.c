@@ -980,6 +980,7 @@ const struct drawing_api win_drawing = {
     win_end_doc,
     win_line_width,
     win_line_dotted,
+    NULL, /* changed_state */
 };
 
 void print(frontend *fe)

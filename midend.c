@@ -440,6 +440,7 @@ static int midend_undo(midend *me)
                                        me->states[me->statepos-2].state);
 	me->statepos--;
         me->dir = -1;
+        changed_state(me->drawing, me->statepos > 1, me->statepos < me->nstates);
         return 1;
     } else
         return 0;
@@ -454,6 +455,7 @@ static int midend_redo(midend *me)
                                        me->states[me->statepos].state);
 	me->statepos++;
         me->dir = +1;
+        changed_state(me->drawing, me->statepos > 1, me->statepos < me->nstates);
         return 1;
     } else
         return 0;
@@ -530,10 +532,12 @@ void midend_restart_game(midend *me)
     me->states[me->nstates].movestr = dupstr(me->desc);
     me->states[me->nstates].movetype = RESTART;
     me->statepos = ++me->nstates;
-    if (me->ui)
+    if (me->ui) {
         me->ourgame->changed_state(me->ui,
                                    me->states[me->statepos-2].state,
                                    me->states[me->statepos-1].state);
+        changed_state(me->drawing, me->statepos > 1, me->statepos < me->nstates);
+    }
     me->anim_time = 0.0;
     midend_finish_move(me);
     midend_redraw(me);
@@ -608,10 +612,12 @@ static int midend_really_process_key(midend *me, int x, int y, int button)
             me->states[me->nstates].movetype = MOVE;
             me->statepos = ++me->nstates;
             me->dir = +1;
-	    if (me->ui)
+	    if (me->ui) {
 		me->ourgame->changed_state(me->ui,
 					   me->states[me->statepos-2].state,
 					   me->states[me->statepos-1].state);
+                changed_state(me->drawing, me->statepos > 1, me->statepos < me->nstates);
+            }
         } else {
             goto done;
         }
@@ -1305,10 +1311,12 @@ char *midend_solve(midend *me)
     me->states[me->nstates].movestr = movestr;
     me->states[me->nstates].movetype = SOLVE;
     me->statepos = ++me->nstates;
-    if (me->ui)
+    if (me->ui) {
         me->ourgame->changed_state(me->ui,
                                    me->states[me->statepos-2].state,
                                    me->states[me->statepos-1].state);
+        changed_state(me->drawing, me->statepos > 1, me->statepos < me->nstates);
+    }
     me->dir = +1;
     if (me->ourgame->flags & SOLVE_ANIMATES) {
 	me->oldstate = me->ourgame->dup_game(me->states[me->statepos-2].state);
@@ -1842,6 +1850,7 @@ char *midend_deserialise(midend *me,
     midend_size_new_drawstate(me);
 
     ret = NULL;                        /* success! */
+    changed_state(me->drawing, me->statepos > 1, me->statepos < me->nstates);
 
     cleanup:
     sfree(val);

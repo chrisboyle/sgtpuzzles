@@ -63,6 +63,7 @@ static jmethodID
 	blitterFree,
 	blitterLoad,
 	blitterSave,
+	changedState,
 	clipRect,
 	dialogAdd,
 	dialogInit,
@@ -214,6 +215,11 @@ void android_end_draw(void *handle)
 	(*env)->CallVoidMethod(env, gameView, postInvalidate);
 }
 
+void android_changed_state(void *handle, int can_undo, int can_redo)
+{
+	(*env)->CallVoidMethod(env, obj, changedState, can_undo, can_redo);
+}
+
 const struct drawing_api android_drawing = {
 	android_draw_text,
 	android_draw_rect,
@@ -232,6 +238,7 @@ const struct drawing_api android_drawing = {
 	android_blitter_load,
 	NULL, NULL, NULL, NULL, NULL, NULL, /* {begin,end}_{doc,page,puzzle} */
 	NULL, NULL,				   /* line_width, line_dotted */
+	android_changed_state,
 };
 
 jint Java_name_boyle_chris_sgtpuzzles_SGTPuzzles_keyEvent(JNIEnv *_env, jobject _obj, jint x, jint y, jint keyval)
@@ -526,6 +533,7 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
 	blitterFree    = (*env)->GetMethodID(env, vcls, "blitterFree", "(I)V");
 	blitterLoad    = (*env)->GetMethodID(env, vcls, "blitterLoad", "(III)V");
 	blitterSave    = (*env)->GetMethodID(env, vcls, "blitterSave", "(III)V");
+	changedState   = (*env)->GetMethodID(env, cls,  "changedState", "(ZZ)V");
 	clipRect       = (*env)->GetMethodID(env, vcls, "clipRect", "(IIII)V");
 	dialogAdd      = (*env)->GetMethodID(env, cls,  "dialogAdd", "(IILjava/lang/String;Ljava/lang/String;I)V");
 	dialogInit     = (*env)->GetMethodID(env, cls,  "dialogInit", "(Ljava/lang/String;)V");

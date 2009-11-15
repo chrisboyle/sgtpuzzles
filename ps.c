@@ -333,6 +333,7 @@ static const struct drawing_api ps_drawing = {
     ps_end_doc,
     ps_line_width,
     ps_line_dotted,
+    NULL, /* changed_state */
 };
 
 psdata *ps_init(FILE *outfile, int colour)

@@ -288,3 +288,9 @@ void print_line_dotted(drawing *dr, int dotted)
 {
     dr->api->line_dotted(dr->handle, dotted);
 }
+
+void changed_state(drawing *dr, int can_undo, int can_redo)
+{
+    if (! dr->api->changed_state) return;
+    dr->api->changed_state(dr->handle, can_undo, can_redo);
+}

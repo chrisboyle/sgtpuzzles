@@ -1479,6 +1479,7 @@ const struct drawing_api osx_drawing = {
     osx_blitter_load,
     NULL, NULL, NULL, NULL, NULL, NULL, /* {begin,end}_{doc,page,puzzle} */
     NULL,			       /* line_width */
+    NULL, /* changed_state */
 };
 
 void deactivate_timer(frontend *fe)

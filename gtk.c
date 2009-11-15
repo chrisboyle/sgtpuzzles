@@ -517,6 +517,7 @@ const struct drawing_api gtk_drawing = {
     gtk_blitter_load,
     NULL, NULL, NULL, NULL, NULL, NULL, /* {begin,end}_{doc,page,puzzle} */
     NULL,			       /* line_width */
+    NULL, /* changed_state */
 };
 
 static void destroy(GtkWidget *widget, gpointer data)
