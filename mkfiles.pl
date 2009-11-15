@@ -1424,7 +1424,7 @@ if (defined $makefiles{"android"}) {
     "# You can define this path to point at your tools if you need to\n".
     "TOOLPATH = \$(ANDROID_NDK)/build/prebuilt/linux-x86/arm-eabi-4.2.1/bin\n".
     "CC = \$(TOOLPATH)/arm-eabi-gcc\n".
-    &splitline("CFLAGS = -O2 -Wall -Werror -DSLOW_SYSTEM -DANDROID -g " .
+    &splitline("CFLAGS = -O2 -Wall -Werror -DSLOW_SYSTEM -DANDROID -DNO_PRINTING -g " .
 	       "-I\$(ANDROID_NDK)/build/platforms/android-3/arch-arm/usr/include " .
 	       "-march=armv5te -mtune=xscale -msoft-float -fpic -mthumb-interwork " .
 	       "-ffunction-sections -funwind-tables -fstack-protector " .

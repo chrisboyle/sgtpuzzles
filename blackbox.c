@@ -1517,7 +1517,9 @@ const struct game thegame = {
     game_redraw,
     game_anim_length,
     game_flash_length,
+#ifndef NO_PRINTING
     FALSE, FALSE, game_print_size, game_print,
+#endif
     TRUE,			       /* wants_statusbar */
     FALSE, game_timing_state,
     REQUIRE_RBUTTON,		       /* flags */

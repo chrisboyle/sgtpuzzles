@@ -1084,6 +1084,7 @@ static int game_timing_state(game_state *state, game_ui *ui)
     return TRUE;
 }
 
+#ifndef NO_PRINTING
 static void game_print_size(game_params *params, float *x, float *y)
 {
 }
@@ -1091,6 +1092,7 @@ static void game_print_size(game_params *params, float *x, float *y)
 static void game_print(drawing *dr, game_state *state, int tilesize)
 {
 }
+#endif
 
 #ifdef COMBINED
 #define thegame sixteen
@@ -1127,7 +1129,9 @@ const struct game thegame = {
     game_redraw,
     game_anim_length,
     game_flash_length,
+#ifndef NO_PRINTING
     FALSE, FALSE, game_print_size, game_print,
+#endif
     TRUE,			       /* wants_statusbar */
     FALSE, game_timing_state,
     0,				       /* flags */

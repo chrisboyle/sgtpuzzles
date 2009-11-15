@@ -206,6 +206,7 @@ void blitter_free(drawing *dr, blitter *bl);
 void blitter_save(drawing *dr, blitter *bl, int x, int y);
 #define BLITTER_FROMSAVED (-1)
 void blitter_load(drawing *dr, blitter *bl, int x, int y);
+#ifndef NO_PRINTING
 void print_begin_doc(drawing *dr, int pages);
 void print_begin_page(drawing *dr, int number);
 void print_begin_puzzle(drawing *dr, float xm, float xc,
@@ -225,6 +226,7 @@ int print_rgb_hatched_colour(drawing *dr, float r, float g, float b,
 			     int hatch);
 void print_line_width(drawing *dr, int width);
 void print_line_dotted(drawing *dr, int dotted);
+#endif
 void changed_state(drawing *dr, int can_undo, int can_redo);
 
 /*
@@ -478,9 +480,11 @@ struct game {
 			 game_ui *ui);
     float (*flash_length)(game_state *oldstate, game_state *newstate, int dir,
 			  game_ui *ui);
+#ifndef NO_PRINTING
     int can_print, can_print_in_colour;
     void (*print_size)(game_params *params, float *x, float *y);
     void (*print)(drawing *dr, game_state *state, int tilesize);
+#endif
     int wants_statusbar;
     int is_timed;
     int (*timing_state)(game_state *state, game_ui *ui);

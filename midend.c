@@ -1881,7 +1881,7 @@ char *midend_deserialise(midend *me,
     return ret;
 }
 
-#ifndef ANDROID
+#ifndef NO_PRINTING
 char *midend_print_puzzle(midend *me, document *doc, int with_soln)
 {
     game_state *soln = NULL;

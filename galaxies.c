@@ -3377,6 +3377,7 @@ static int game_timing_state(game_state *state, game_ui *ui)
 }
 
 #ifndef EDITOR
+#ifndef NO_PRINTING
 static void game_print_size(game_params *params, float *x, float *y)
 {
    int pw, ph;
@@ -3551,6 +3552,7 @@ static void game_print(drawing *dr, game_state *state, int sz)
     sfree(coords);
 }
 #endif
+#endif
 
 #ifdef COMBINED
 #define thegame galaxies
@@ -3592,10 +3594,14 @@ const struct game thegame = {
     game_anim_length,
     game_flash_length,
 #ifdef EDITOR
+#ifndef NO_PRINTING
     FALSE, FALSE, NULL, NULL,
+#endif
     TRUE,                              /* wants_statusbar */
 #else
+#ifndef NO_PRINTING
     TRUE, FALSE, game_print_size, game_print,
+#endif
     FALSE,			       /* wants_statusbar */
 #endif
     FALSE, game_timing_state,
