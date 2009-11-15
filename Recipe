@@ -198,7 +198,7 @@ PuzzleApplet.class: PuzzleApplet.java org
 	mv PuzzleEngine.class $<
 !end
 
-android/lib/armeabi/libpuzzles.so  : [GA] android[COMBINED] printing COMMON_COMBINED ALL
+android/lib/armeabi/libpuzzles.so  : [GA] android[COMBINED] COMMON_COMBINED ALL
 !begin android
 all: SGTPuzzles.apk
 
