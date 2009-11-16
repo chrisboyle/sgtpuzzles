@@ -1369,6 +1369,7 @@ static int can_colour_face(grid *g, char* board, int face_index,
     int i, j;
     grid_face *test_face = g->faces + face_index;
     grid_face *starting_face, *current_face;
+    grid_dot *starting_dot;
     int transitions;
     int current_state, s; /* booleans: equal or not-equal to 'colour' */
     int found_same_coloured_neighbour = FALSE;
@@ -1413,17 +1414,39 @@ static int can_colour_face(grid *g, char* board, int face_index,
      *     test_face->dots[i]->faces[j]
      * We assume dots go clockwise around the test face,
      * and faces go clockwise around dots. */
+
+    /*
+     * The end condition is slightly fiddly. In sufficiently strange
+     * degenerate grids, our test face may be adjacent to the same
+     * other face multiple times (typically if it's the exterior
+     * face). Consider this, in particular:
+     * 
+     *   +--+
+     *   |  |
+     *   +--+--+
+     *   |  |  |
+     *   +--+--+
+     * 
+     * The bottom left face there is adjacent to the exterior face
+     * twice, so we can't just terminate our iteration when we reach
+     * the same _face_ we started at. Furthermore, we can't
+     * condition on having the same (i,j) pair either, because
+     * several (i,j) pairs identify the bottom left contiguity with
+     * the exterior face! We canonicalise the (i,j) pair by taking
+     * one step around before we set the termination tracking.
+     */
+
     i = j = 0;
-    starting_face = test_face->dots[0]->faces[0];
-    if (starting_face == test_face) {
+    current_face = test_face->dots[0]->faces[0];
+    if (current_face == test_face) {
         j = 1;
-        starting_face = test_face->dots[0]->faces[1];
+        current_face = test_face->dots[0]->faces[1];
     }
-    current_face = starting_face;
     transitions = 0;
     current_state = (FACE_COLOUR(current_face) == colour);
-
-    do {
+    starting_dot = NULL;
+    starting_face = NULL;
+    while (TRUE) {
         /* Advance to next face.
          * Need to loop here because it might take several goes to
          * find it. */
@@ -1454,13 +1477,22 @@ static int can_colour_face(grid *g, char* board, int face_index,
         /* (i,j) are now advanced to next face */
         current_face = test_face->dots[i]->faces[j];
         s = (FACE_COLOUR(current_face) == colour);
-        if (s != current_state) {
-            ++transitions;
-            current_state = s;
-            if (transitions > 2)
-                return FALSE; /* no point in continuing */
+	if (!starting_dot) {
+	    starting_dot = test_face->dots[i];
+	    starting_face = current_face;
+	    current_state = s;
+	} else {
+	    if (s != current_state) {
+		++transitions;
+		current_state = s;
+		if (transitions > 2)
+		    break;
+	    }
+	    if (test_face->dots[i] == starting_dot &&
+		current_face == starting_face)
+		break;
         }
-    } while (current_face != starting_face);
+    }
 
     return (transitions == 2) ? TRUE : FALSE;
 }
@@ -1640,9 +1672,7 @@ static void add_full_clues(game_state *state, random_state *rs)
         enum face_colour colour;
         struct face_score *fs_white, *fs_black;
         int c_lightable = count234(lightable_faces_sorted);
-#ifndef NDEBUG
         int c_darkable = count234(darkable_faces_sorted);
-#endif
 #ifdef ANDROID
         if (android_cancelled()) {
             sfree(board);
@@ -1652,12 +1682,11 @@ static void add_full_clues(game_state *state, random_state *rs)
             return;
         }
 #endif
-        if (c_lightable == 0) {
-            /* No more lightable faces.  Because of how the algorithm
-             * works, there should be no more darkable faces either. */
-            assert(c_darkable == 0);
+        if (c_lightable == 0 && c_darkable == 0) {
+            /* No more faces we can use at all. */
             break;
         }
+	assert(c_lightable != 0 && c_darkable != 0);
 
         fs_white = (struct face_score *)index234(lightable_faces_sorted, 0);
         fs_black = (struct face_score *)index234(darkable_faces_sorted, 0);
