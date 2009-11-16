@@ -234,7 +234,7 @@ android/resources.apk: android/res/drawable/icon.png android/res/values/arrays.x
 	$(ANDROID)/platforms/android-1.6/tools/aapt package -f -M android/AndroidManifest.xml \
 		-S android/res -A android/assets -I $(ANDROID)/platforms/android-1.6/android.jar -F $@
 
-android/assets: puzzles.but
+android/assets: puzzles.but po/*.po
 	rm -rf android/assets
 	$(MAKE) -f Makefile.doc htmldocs
 	mkdir -p android/assets
