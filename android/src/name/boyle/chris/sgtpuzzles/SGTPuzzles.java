@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.StringTokenizer;
 
@@ -381,7 +382,10 @@ public class SGTPuzzles extends Activity
 			public void onReceivedTitle(WebView w, String title) { d.setTitle(title); }
 		});
 		wv.getSettings().setBuiltInZoomControls(true);
-		wv.loadUrl("file:///android_asset/"+topic+".html");
+		String lang = Locale.getDefault().getLanguage();
+		if (lang == null || lang.equals("")) lang = "en";
+		wv.loadUrl(MessageFormat.format("file:///android_asset/{0}/{1}.html",
+				new Object[]{lang,topic}));
 		d.show();
 	}
 

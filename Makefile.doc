@@ -29,6 +29,15 @@ doc/puzzles.txt.%: doc/puzzles.but.%
 	halibut --text=$@ --input-charset=UTF-8 $<
 all: $(addprefix doc/puzzles.txt.,$(filter-out en,$(LANGUAGES)))
 
+doc/puzzles.but.en: puzzles.but
+	cp -f $< $@
+doc/%: doc/puzzles.but.%
+	mkdir -p $@
+	cd $@; halibut --html --input-charset=UTF-8 ../../$<
+htmldocs: $(addprefix doc/,$(LANGUAGES))
+all: htmldocs
+.PHONY: htmldocs all
+
 clean:
 	rm -f puzzles.hlp puzzles.txt HACKING *.html *.hh[pck]
 	rm -rf doc
