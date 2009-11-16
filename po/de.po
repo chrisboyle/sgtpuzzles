@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sgt-puzzles\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2009-11-16 21:28+0000\n"
+"POT-Creation-Date: 2009-11-16 22:20+0000\n"
 "PO-Revision-Date: 2009-11-04 11:10-0800\n"
 "Last-Translator: Helge Kreutzmann <debian@helgefjell.de>\n"
 "Language-Team: de <debian-l10n-german@lists.debian.org>\n"
@@ -619,7 +619,9 @@ msgstr "Spieleparameter auf der \\i{Befehlszeile} eingeben"
 #: puzzles.but:269
 msgid ""
 "(This section does not apply to the \\i{Android} or \\i{Mac OS X} versions.)"
-msgstr "(Dieser Abschnitt betrifft nicht die \\i{Android}- und \\i{Mac OS X}-Versions.)"
+msgstr ""
+"(Dieser Abschnitt betrifft nicht die \\i{Android}- und \\i{Mac OS X}-"
+"Versions.)"
 
 #: puzzles.but:275
 msgid ""
@@ -1980,7 +1982,6 @@ msgstr ""
 "Rechteck an Quadraten grau färben."
 
 #: puzzles.but:895
-#, fuzzy
 msgid ""
 "You can also move around the grid with the cursor keys. Pressing the return "
 "key will cycle the current cell through empty, then black, then white, then "
@@ -3277,7 +3278,6 @@ msgid "\\cfg{winhelp-topic}{games.blackbox}"
 msgstr "\\cfg{winhelp-topic}{games.blackbox}"
 
 #: puzzles.but:1507
-#, fuzzy
 msgid ""
 "A number of balls are hidden in a rectangular arena. You have to deduce the "
 "positions of the balls by firing from lasers positioned at the edges of the "
@@ -3289,7 +3289,6 @@ msgstr ""
 "werden. "
 
 #: puzzles.but:1511
-#, fuzzy
 msgid ""
 "Beams will travel straight from their origin until they hit the opposite "
 "side of the arena (at which point they emerge), unless affected by balls in "
@@ -3300,7 +3299,6 @@ msgstr ""
 "Arten von Bällen betroffen sind:"
 
 #: puzzles.but:1515
-#, fuzzy
 msgid ""
 "A beam that hits a ball head-on is absorbed and will never re-emerge. This "
 "includes beams that meet a ball on the first rank of the arena."
@@ -3310,7 +3308,6 @@ msgstr ""
 "Arena treffen."
 
 #: puzzles.but:1518
-#, fuzzy
 msgid ""
 "A beam with a ball to its front-left square gets deflected 90 degrees to the "
 "right."
@@ -3319,7 +3316,6 @@ msgstr ""
 "reflektiert."
 
 #: puzzles.but:1521
-#, fuzzy
 msgid ""
 "A beam with a ball to its front-right square gets similarly deflected to the "
 "left."
@@ -3328,7 +3324,6 @@ msgstr ""
 "links reflektiert."
 
 #: puzzles.but:1524
-#, fuzzy
 msgid ""
 "A beam that would re-emerge from its entry location is considered to be \\q"
 "{reflected}."
@@ -3337,7 +3332,6 @@ msgstr ""
 "\\q{reflektiert}."
 
 #: puzzles.but:1528
-#, fuzzy
 msgid ""
 "A beam which would get deflected before entering the arena by a ball to the "
 "front-left or front-right of its entry point is also considered to be \\q"
@@ -3348,7 +3342,6 @@ msgstr ""
 "{Feuerstrahls}), wird auch als \\q{reflektiert} betrachtet."
 
 #: puzzles.but:1533
-#, fuzzy
 msgid ""
 "Beams that are reflected appear as a \\q{R}; beams that hit balls head-on "
 "appear as \\q{H}. Otherwise, a number appears at the firing point and the "
@@ -3360,7 +3353,6 @@ msgstr ""
 "diesem Schuss zugeordnet)."
 
 #: puzzles.but:1537
-#, fuzzy
 msgid ""
 "You can place guesses as to the location of the balls, based on the entry "
 "and exit patterns of the beams; once you have placed enough balls a button "
@@ -3372,7 +3364,6 @@ msgstr ""
 "erlaubt."
 
 #: puzzles.but:1540
-#, fuzzy
 msgid ""
 "Here is a diagram showing how the positions of balls can create each of the "
 "beam behaviours shown above:"
@@ -3427,7 +3418,6 @@ msgid "12-RH---"
 msgstr "12-RH---"
 
 #: puzzles.but:1556
-#, fuzzy
 msgid ""
 "As shown, it is possible for a beam to receive multiple reflections before "
 "re-emerging (see turn 3). Similarly, a beam may be reflected (possibly more "
@@ -3499,17 +3489,16 @@ msgid "controls, for Black Box"
 msgstr "Steuerung, von Black Box"
 
 #: puzzles.but:1585
-#, fuzzy, no-wrap
+#, no-wrap
 msgid "keys, for Black Box"
 msgstr "Steuerung, von Black Box"
 
 #: puzzles.but:1586
-#, fuzzy, no-wrap
+#, no-wrap
 msgid "shortcuts (keyboard), for Black Box"
 msgstr "Tastaturkürzel, für Flip"
 
 #: puzzles.but:1593
-#, fuzzy
 msgid ""
 "To fire a laser beam, left-click in a square around the edge of the arena. "
 "The results will be displayed immediately. Clicking or holding the left "
@@ -3523,7 +3512,6 @@ msgstr ""
 "Austrittspunkt für den Laser, falls zutreffend, zu bestätigen."
 
 #: puzzles.but:1597
-#, fuzzy
 msgid ""
 "To guess the location of a ball, left-click within the arena and a black "
 "circle will appear marking the guess; click again to remove the guessed ball."
@@ -3533,7 +3521,6 @@ msgstr ""
 "klicken Sie einfach erneut."
 
 #: puzzles.but:1602
-#, fuzzy
 msgid ""
 "Locations in the arena may be locked against modification by right-clicking; "
 "whole rows and columns may be similarly locked by right-clicking in the "
@@ -3545,7 +3532,6 @@ msgstr ""
 "der Zeile gesperrt werden."
 
 #: puzzles.but:1606
-#, fuzzy
 msgid ""
 "The cursor keys may also be used to move around the grid. Pressing the Enter "
 "key will fire a laser or add a new ball-location guess, and pressing Space "
@@ -3556,7 +3542,6 @@ msgstr ""
 "durch Drücken der Leertaste wird eine Zelle oder eine Zeile/Spalte gesperrt."
 
 #: puzzles.but:1610
-#, fuzzy
 msgid ""
 "When an appropriate number of balls have been guessed, a button will appear "
 "at the top-left corner of the grid; clicking that (with mouse or cursor) "
@@ -3567,7 +3552,6 @@ msgstr ""
 "Cursor) wird Ihre Vermutung markiert."
 
 #: puzzles.but:1619
-#, fuzzy
 msgid ""
 "If you click the \\q{check} button and your guesses are not correct, the "
 "game will show you the minimum information necessary to demonstrate this to "
@@ -3587,7 +3571,6 @@ msgstr ""
 "(angezeigt in rot) aufgedeckt, der nicht zu Ihrer aktuellen Vermutung passt."
 
 #: puzzles.but:1629
-#, fuzzy
 msgid ""
 "If you decide to give up completely, you can select Solve to reveal the "
 "actual ball positions. At this point, correctly-placed balls will be "
@@ -3626,7 +3609,6 @@ msgid "No. of balls"
 msgstr "No. of balls"
 
 #: puzzles.but:1650
-#, fuzzy
 msgid ""
 "Number of balls to place in the grid. This can be a single number, or a "
 "range (separated with a hyphen, like \\q{2-6}), and determines the number of "
@@ -5313,134 +5295,125 @@ msgstr "MIT-Lizenz"
 msgid "licence, MIT"
 msgstr "Lizenz, MIT"
 
-#. Translator: conventional name for manual section 6
-#: mkmanpages.pl:28
-msgid "Games"
-msgstr "Spiele"
+#~ msgid "Games"
+#~ msgstr "Spiele"
 
-msgid "guessing game"
-msgstr "Ratespiel"
+#~ msgid "guessing game"
+#~ msgstr "Ratespiel"
 
-msgid "topological deduction game"
-msgstr "Topologisches Puzzlespiel"
+#~ msgid "topological deduction game"
+#~ msgstr "Topologisches Puzzlespiel"
 
-msgid "tile manipulation puzzle game"
-msgstr "Kachelmanipulations-Puzzlespiel"
+#~ msgid "tile manipulation puzzle game"
+#~ msgstr "Kachelmanipulations-Puzzlespiel"
 
-msgid "domino puzzle game"
-msgstr "Domino-Puzzlespiel"
+#~ msgid "domino puzzle game"
+#~ msgstr "Domino-Puzzlespiel"
 
-msgid "puzzle game"
-msgstr "Puzzlespiel"
+#~ msgid "puzzle game"
+#~ msgstr "Puzzlespiel"
 
-msgid "guessing game based on Mastermind"
-msgstr "Ratespiel basierend auf Mastermind"
+#~ msgid "guessing game based on Mastermind"
+#~ msgstr "Ratespiel basierend auf Mastermind"
 
-msgid "map colouring game"
-msgstr "Kartenfärbespiel"
+#~ msgid "map colouring game"
+#~ msgstr "Kartenfärbespiel"
 
-msgid "game based on Minesweeper"
-msgstr "Spiel basierend auf Minesweeper"
+#~ msgid "game based on Minesweeper"
+#~ msgstr "Spiel basierend auf Minesweeper"
 
-msgid "tile manipulation puzzle game based on FreeNet"
-msgstr "Kachelmanipulations-Puzzlespiel basierend auf FreeNet"
+#~ msgid "tile manipulation puzzle game based on FreeNet"
+#~ msgstr "Kachelmanipulations-Puzzlespiel basierend auf FreeNet"
 
-msgid "nonogram puzzle game"
-msgstr "Nonogram-Puzzlespiel"
+#~ msgid "nonogram puzzle game"
+#~ msgstr "Nonogram-Puzzlespiel"
 
-msgid "peg solitaire puzzle game"
-msgstr "Stifte-Solitaire-Puzzlespiel"
+#~ msgid "peg solitaire puzzle game"
+#~ msgstr "Stifte-Solitaire-Puzzlespiel"
 
-msgid "puzzle game based on Divide by Squares"
-msgstr "Puzzlespiel basierend auf »Divide by Squares«"
+#~ msgid "puzzle game based on Divide by Squares"
+#~ msgstr "Puzzlespiel basierend auf »Divide by Squares«"
 
-msgid "puzzle game based on Sudoku"
-msgstr "Puzzlespiel basierend auf Sudoku"
+#~ msgid "puzzle game based on Sudoku"
+#~ msgstr "Puzzlespiel basierend auf Sudoku"
 
-msgid "puzzle game based on Futoshiki"
-msgstr "Puzzlespiel basierend auf Futoshiki"
+#~ msgid "puzzle game based on Futoshiki"
+#~ msgstr "Puzzlespiel basierend auf Futoshiki"
 
-msgid "puzzle game based on Planarity"
-msgstr "Puzzlespiel basierend auf Planarity"
+#~ msgid "puzzle game based on Planarity"
+#~ msgstr "Puzzlespiel basierend auf Planarity"
 
-msgid "January"
-msgstr "Januar"
+#~ msgid "January"
+#~ msgstr "Januar"
 
-msgid "February"
-msgstr "Februar"
+#~ msgid "February"
+#~ msgstr "Februar"
 
-msgid "March"
-msgstr "März"
+#~ msgid "March"
+#~ msgstr "März"
 
-msgid "April"
-msgstr "April"
+#~ msgid "April"
+#~ msgstr "April"
 
-msgid "May"
-msgstr "Mai"
+#~ msgid "May"
+#~ msgstr "Mai"
 
-msgid "June"
-msgstr "Juni"
+#~ msgid "June"
+#~ msgstr "Juni"
 
-msgid "July"
-msgstr "Juli"
+#~ msgid "July"
+#~ msgstr "Juli"
 
-msgid "August"
-msgstr "August"
+#~ msgid "August"
+#~ msgstr "August"
 
-msgid "September"
-msgstr "September"
+#~ msgid "September"
+#~ msgstr "September"
 
-msgid "October"
-msgstr "Oktober"
+#~ msgid "October"
+#~ msgstr "Oktober"
 
-msgid "November"
-msgstr "November"
+#~ msgid "November"
+#~ msgstr "November"
 
-msgid "December"
-msgstr "Dezember"
+#~ msgid "December"
+#~ msgstr "Dezember"
 
-msgid "NAME"
-msgstr "NAME"
+#~ msgid "NAME"
+#~ msgstr "NAME"
 
-msgid "SYNOPSIS"
-msgstr "SYNOPSIS"
+#~ msgid "SYNOPSIS"
+#~ msgstr "SYNOPSIS"
 
-#. Translator: abbreviation for 'number'
-msgid "n"
-msgstr "n"
+#~ msgid "n"
+#~ msgstr "n"
 
-#. Translator: abbreviation for 'width'
-msgid "w"
-msgstr "b"
+#~ msgid "w"
+#~ msgstr "b"
 
-#. Translator: abbreviation for 'height'
-msgid "h"
-msgstr "h"
+#~ msgid "h"
+#~ msgstr "h"
 
-msgid "game-parameters"
-msgstr "Spiele-Parameter"
+#~ msgid "game-parameters"
+#~ msgstr "Spiele-Parameter"
 
-msgid "game-ID"
-msgstr "Spiele-ID"
+#~ msgid "game-ID"
+#~ msgstr "Spiele-ID"
 
-msgid "random-seed"
-msgstr "Zufallsstartwert"
+#~ msgid "random-seed"
+#~ msgstr "Zufallsstartwert"
 
-msgid "DESCRIPTION"
-msgstr "BESCHREIBUNG"
+#~ msgid "DESCRIPTION"
+#~ msgstr "BESCHREIBUNG"
 
-msgid "SEE ALSO"
-msgstr "SIEHE AUCH"
+#~ msgid "SEE ALSO"
+#~ msgstr "SIEHE AUCH"
 
-#. Translator: "Full documentation in <filename>."
-#, perl-format
-msgid "Full documentation in %s."
-msgstr "Komplette Dokumentation in %s."
+#~ msgid "Full documentation in %s."
+#~ msgstr "Komplette Dokumentation in %s."
 
-#. Translator: earlier in the manual page
-msgid "above"
-msgstr "oben"
+#~ msgid "above"
+#~ msgstr "oben"
 
-#. Translator: later in the manual page
-msgid "below"
-msgstr "unten"
+#~ msgid "below"
+#~ msgstr "unten"
