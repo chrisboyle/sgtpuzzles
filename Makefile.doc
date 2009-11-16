@@ -10,5 +10,25 @@ chm: puzzles.hhp
 puzzles.hhp: puzzles.but chm.but
 	halibut --html puzzles.but chm.but
 
+LANGUAGES := en $(patsubst po/%.po,%,$(wildcard po/*.po))
+
+po/puzzles-doc.pot: puzzles.but
+	po4a-gettextize -f halibut -m $< -p $@
+po/%.po: po/puzzles-doc.pot
+	msgmerge -o po/$*.new.po po/$*.po $<
+	mv po/$*.new.po po/$*.po
+update-po: po/puzzles-doc.pot $(wildcard po/*.po)
+.PHONY: update-po
+
+doc/puzzles.but.%: puzzles.but po/%.po
+	mkdir -p doc
+	po4a-translate -k 0 -f halibut -m puzzles.but -p po/$*.po -l $@
+.PRECIOUS: $(addprefix doc/puzzles.but.,$(LANGUAGES))
+
+doc/puzzles.txt.%: doc/puzzles.but.%
+	halibut --text=$@ --input-charset=UTF-8 $<
+all: $(addprefix doc/puzzles.txt.,$(filter-out en,$(LANGUAGES)))
+
 clean:
 	rm -f puzzles.hlp puzzles.txt HACKING *.html *.hh[pck]
+	rm -rf doc
