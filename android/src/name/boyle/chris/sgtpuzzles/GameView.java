@@ -125,12 +125,12 @@ public class GameView extends View
 	{
 		if (x == 0 && y == 0) return;
 		int w = getWidth(), h = getHeight();
-		paint.setColor(Color.BLACK);
+		/*paint.setColor(Color.BLACK);
 		paint.setStyle(Paint.Style.FILL);
 		canvas.drawRect(0, 0, x, h, paint);
 		canvas.drawRect(0, 0, w, y, paint);
 		canvas.drawRect(w - x, 0, x, h, paint);
-		canvas.drawRect(0, h - y, w, y, paint);
+		canvas.drawRect(0, h - y, w, y, paint);*/
 		canvas.clipRect(new Rect(x, y, w - x, h - y), Region.Op.REPLACE);
 	}
 	void clipRect(int x, int y, int w, int h)
