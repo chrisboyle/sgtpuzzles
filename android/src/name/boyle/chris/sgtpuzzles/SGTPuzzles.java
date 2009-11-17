@@ -694,10 +694,12 @@ public class SGTPuzzles extends Activity
 		if( e != null && gameRunning ) die(getStackTrace(e));
 		gameRunning = false;
 		cancel();  // set flag in native code
-		while(true) { try {
-			worker.join();  // we may ANR if native code is spinning - safer than leaving a runaway native thread
-			break;
-		} catch (InterruptedException i) {} }
+		if (worker != null) {
+			while(true) { try {
+				worker.join();  // we may ANR if native code is spinning - safer than leaving a runaway native thread
+				break;
+			} catch (InterruptedException i) {} }
+		}
 		freeNativeResources(); // free native resources
 	}
 
@@ -731,23 +733,41 @@ public class SGTPuzzles extends Activity
 	
 	public boolean onKeyDown( int keyCode, KeyEvent event )
 	{
-		int key = 0;
+		int key = 0, repeat = event.getRepeatCount();
+		Log.d(TAG,"onKeyDown "+keyCode+", "+event);
+		if (repeat > 1) return super.onKeyDown(keyCode,event);
 		switch( keyCode ) {
 		case KeyEvent.KEYCODE_DPAD_UP:    key = CURSOR_UP;    break;
 		case KeyEvent.KEYCODE_DPAD_DOWN:  key = CURSOR_DOWN;  break;
 		case KeyEvent.KEYCODE_DPAD_LEFT:  key = CURSOR_LEFT;  break;
 		case KeyEvent.KEYCODE_DPAD_RIGHT: key = CURSOR_RIGHT; break;
-		case KeyEvent.KEYCODE_DPAD_CENTER: case KeyEvent.KEYCODE_ENTER: key = '\n'; break;
+		// dpad center auto-repeats on at least Tattoo, Hero
+		case KeyEvent.KEYCODE_DPAD_CENTER:
+			if (repeat > 0) {
+				// first try to undo the initial press...
+				sendKeyEvent('\n',event);
+				key = ' ';
+			} else {
+				key = '\n';
+			}
+			break;
+		case KeyEvent.KEYCODE_ENTER: key = '\n'; break;
 		case KeyEvent.KEYCODE_FOCUS: case KeyEvent.KEYCODE_SPACE: key = ' '; break;
 		case KeyEvent.KEYCODE_DEL: key = '\b'; break;
 		}
 		// we probably don't want MOD_NUM_KEYPAD here (numbers are in a line on G1 at least)
 		if( key == 0 ) key = event.getMatch("0123456789abcdefghijklqrsux".toCharArray());
 		if( key == 0 ) return super.onKeyDown(keyCode, event);  // handles Back etc.
+		sendKeyEvent(key,event);
+		return true;
+	}
+
+	void sendKeyEvent(int key, KeyEvent event)
+	{
+		if(! gameRunning) return;
 		if( event.isShiftPressed() ) key |= MOD_SHFT;
 		if( event.isAltPressed() ) key |= MOD_CTRL;
-		if( gameRunning ) sendKey( 0, 0, key );
-		return true;
+		sendKey( 0, 0, key );
 	}
 
 	void sendKey(int x, int y, int k)
