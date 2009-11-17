@@ -30,6 +30,7 @@ doc/puzzles.txt.%: doc/puzzles.but.%
 all: $(addprefix doc/puzzles.txt.,$(filter-out en,$(LANGUAGES)))
 
 doc/puzzles.but.en: puzzles.but
+	mkdir -p doc
 	cp -f $< $@
 doc/%: doc/puzzles.but.%
 	mkdir -p $@
