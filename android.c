@@ -590,13 +590,13 @@ void Java_name_boyle_chris_sgtpuzzles_SGTPuzzles_cancel(JNIEnv *_env, jobject _o
 
 void Java_name_boyle_chris_sgtpuzzles_SGTPuzzles_freeNativeResources(JNIEnv *_env, jobject _obj)
 {
+	if (_fe && _fe->me) {
+		midend_free(_fe->me);  // might use gameView (e.g. blitters)
+		_fe->me = NULL;
+	}
 	if (gameView) {
 		(*env)->DeleteGlobalRef(env, gameView);
 		gameView = NULL;
-	}
-	if (_fe && _fe->me) {
-		midend_free(_fe->me);
-		_fe->me = NULL;
 	}
 }
 
