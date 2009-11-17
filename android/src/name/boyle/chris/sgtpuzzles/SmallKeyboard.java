@@ -15,16 +15,18 @@ import java.util.List;
 public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboardActionListener
 {
 	static final String TAG="SmallKeyboard";
+	static final int KEYSP = 44;
 	SGTPuzzles parent;
 
 	class KeyboardModel extends Keyboard
 	{
-		int mDefaultWidth = 40, mDefaultHeight = 40, mDefaultHorizontalGap = 0, mDefaultVerticalGap = 0, mTotalWidth, mTotalHeight;
+		int mDefaultWidth = KEYSP, mDefaultHeight = KEYSP, mDefaultHorizontalGap = 0, mDefaultVerticalGap = 0, mTotalWidth, mTotalHeight;
 		Context context;
 		List<Key> mKeys;
 		public KeyboardModel(Context context, CharSequence characters, boolean columnMajor, int maxPx)
 		{
 			super(context, R.layout.keyboard_template);
+			mDefaultWidth = mDefaultHeight = (int)Math.round(context.getResources().getDisplayMetrics().density * KEYSP);
 			int minorPx = 0;
 			int majorPx = 0;
 			int minor = 0;
