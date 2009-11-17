@@ -999,6 +999,12 @@ public class SGTPuzzles extends Activity
 	 * from this function the process will soon exit. */
 	void nativeCrashed()
 	{
+		if (prefs != null) {
+			try {
+				System.err.println("saved game was:\n"+prefs.getString("savedGame",""));
+			} catch(Exception e) {}
+		}
+		new RuntimeException("crashed here (native trace should follow after the Java trace)").printStackTrace();
 		startActivity(new Intent(this, CrashHandler.class));
 	}
 
