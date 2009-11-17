@@ -47,8 +47,9 @@ Revision: %s"</string>
     <!-- Errors -->
     <string name="fatal_error">Fatal error</string>
     <string name="startgame_fail">Engine failed to load</string>
-    <!-- Crash report dialog, currently not used -->
-    <string name="report_url">http://chris.boyle.name/projects/android-puzzles/report</string>
+    <!-- Crash report dialog -->
+    <string name="crashtitle">Well, this is embarrassing...</string>
+    <string name="crashed">Sorry, Puzzles encountered a problem and had to close. Would you like to send a crash report, which may help the author to fix the problem?</string>
     <string name="report">Report</string>
     <string name="close">Close</string>
     <string name="clear_state">Forget state</string>

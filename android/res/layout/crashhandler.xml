@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	android:orientation="vertical"
+	android:layout_width="fill_parent"
+	android:id="@+id/mainLayout" android:layout_height="fill_parent">
+	<TextView android:layout_height="wrap_content" android:layout_width="fill_parent" android:id="@+id/txtView" android:text="@string/crashed" android:textSize="18sp" android:padding="5sp" android:layout_alignParentTop="true" />
+	<CheckBox android:id="@+id/forget" android:text="@string/clear_state" android:layout_width="fill_parent" android:layout_height="wrap_content" android:checked="true" android:layout_marginLeft="5sp" android:layout_marginTop="5sp" android:layout_marginBottom="5sp"/>
+	<LinearLayout android:orientation="horizontal" android:padding="5sp" android:layout_width="fill_parent" android:layout_height="wrap_content">
+		<Button android:layout_height="wrap_content" android:id="@+id/report" android:text="@string/report" android:layout_width="wrap_content" android:layout_weight="1"/>
+		<Button android:layout_height="wrap_content" android:id="@+id/close" android:text="@string/close" android:layout_width="wrap_content" android:layout_weight="1"/>
+	</LinearLayout>
+</LinearLayout>

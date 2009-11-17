@@ -620,11 +620,12 @@ public class SGTPuzzles extends Activity
 					vName = getPackageManager().getPackageInfo(getPackageName(),0).versionName;
 				} catch(Exception e) { vName = "unknown"; }
 				if( c.isChecked() ) clearState();
-				try {
-					startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(
-							getResources().getString(R.string.report_url)+
-							"?v="+vName+"&e="+URLEncoder.encode(msg2,"UTF-8"))));
-				} catch (UnsupportedEncodingException e) { /* It's really not our lucky day...*/ }
+//				try {
+					// TODO!
+//					startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(
+//							getResources().getString(R.string . report_url)+
+//							"?v="+vName+"&e="+URLEncoder.encode(msg2,"UTF-8"))));
+//				} catch (UnsupportedEncodingException e) { /* It's really not our lucky day...*/ }
 				d.cancel();
 			}});
 		b.setNegativeButton(R.string.close, new DialogInterface.OnClickListener() {
@@ -991,6 +992,14 @@ public class SGTPuzzles extends Activity
 	{
 		undoEnabled = canUndo;
 		redoEnabled = canRedo;
+	}
+
+	/** A signal handler in native code has been triggered. As our last gasp,
+	 * launch the crash handler (in its own process), because when we return
+	 * from this function the process will soon exit. */
+	void nativeCrashed()
+	{
+		startActivity(new Intent(this, CrashHandler.class));
 	}
 
 	native void init(GameView _gameView, int whichGame, String gameState);

@@ -12,6 +12,7 @@
 #include <string.h>
 #include <errno.h>
 #include <ctype.h>
+#include <signal.h>
 
 #include <sys/time.h>
 
@@ -76,6 +77,7 @@ static jmethodID
 	gameStarted,
 	getText,
 	messageBox,
+	nativeCrashed,
 	postInvalidate,
 	requestResize,
 	requestTimer,
@@ -249,7 +251,7 @@ jint Java_name_boyle_chris_sgtpuzzles_SGTPuzzles_keyEvent(JNIEnv *_env, jobject 
 		return 1;
 	if (keyval >= 0 &&
 		!midend_process_key(fe->me, x - fe->ox, y - fe->oy, keyval))
-	return 42;
+		return 42;
 	return 1;
 }
 
@@ -521,6 +523,14 @@ char * get_text(const char *s)
 	return ret;
 }
 
+static struct sigaction old_sa[NSIG];
+
+void android_sigaction(int signal, siginfo_t *info, void *reserved)
+{
+	(*env)->CallVoidMethod(env, obj, nativeCrashed);
+	old_sa[signal].sa_handler(signal);
+}
+
 JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
 {
 	jclass cls, vcls;
@@ -546,6 +556,7 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
 	gameStarted    = (*env)->GetMethodID(env, cls,  "gameStarted", "(Ljava/lang/String;ZZZ[F)V");
 	getText        = (*env)->GetMethodID(env, cls,  "gettext", "(Ljava/lang/String;)Ljava/lang/String;");
 	messageBox     = (*env)->GetMethodID(env, cls,  "messageBox", "(Ljava/lang/String;Ljava/lang/String;I)V");
+	nativeCrashed  = (*env)->GetMethodID(env, cls,  "nativeCrashed", "()V");
 	postInvalidate = (*env)->GetMethodID(env, vcls, "postInvalidate", "()V");
 	requestResize  = (*env)->GetMethodID(env, cls,  "requestResize", "(II)V");
 	requestTimer   = (*env)->GetMethodID(env, cls,  "requestTimer", "(Z)V");
@@ -555,6 +566,20 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
 	setStatus      = (*env)->GetMethodID(env, cls,  "setStatus", "(Ljava/lang/String;)V");
 	tickTypeItem   = (*env)->GetMethodID(env, cls,  "tickTypeItem", "(I)V");
 	unClip         = (*env)->GetMethodID(env, vcls, "unClip", "(II)V");
+
+	// Try to catch crashes...
+	struct sigaction handler;
+	memset(&handler, 0, sizeof(sigaction));
+	handler.sa_sigaction = android_sigaction;
+#define CATCHSIG(X) sigaction(X, &handler, &old_sa[X])
+	CATCHSIG(SIGILL);
+	CATCHSIG(SIGABRT);
+	CATCHSIG(SIGBUS);
+	CATCHSIG(SIGFPE);
+	CATCHSIG(SIGSEGV);
+	CATCHSIG(SIGSTKFLT);
+	CATCHSIG(SIGPIPE);
+
 	return JNI_VERSION_1_2;
 }
 

@@ -17,5 +17,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity android:name=".CrashHandler" android:process=":CrashHandler" android:stateNotNeeded="true" android:exported="false" android:configChanges="keyboard|keyboardHidden|orientation">
+        </activity>
     </application>
 </manifest>
