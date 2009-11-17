@@ -1090,7 +1090,9 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
             if (!state->shared->clues[w*ty+tx])
                 ui->sel[w*ty+tx] = 1;
         }
+#ifndef ANDROID
         ui->cur_visible = 0;
+#endif
         return ""; /* redraw */
     }
 
