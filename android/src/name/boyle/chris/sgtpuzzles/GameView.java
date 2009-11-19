@@ -29,7 +29,7 @@ public class GameView extends View
 	int w, h;
 	int longTimeout = ViewConfiguration.getLongPressTimeout();
 	int button;
-	boolean waiting = false;
+	boolean waiting = false, waitingSpace = false;
 	float startX, startY, maxDist = 5.0f;
 	static final int DRAG = SGTPuzzles.LEFT_DRAG - SGTPuzzles.LEFT_BUTTON,  // not bit fields, but there's a pattern
 			RELEASE = SGTPuzzles.LEFT_RELEASE - SGTPuzzles.LEFT_BUTTON;
@@ -49,14 +49,14 @@ public class GameView extends View
 	Runnable sendRightClick = new Runnable() {
 		public void run() {
 			button = SGTPuzzles.RIGHT_BUTTON;
-			parent.sendKey((int)startX, (int)startY, button);
 			waiting = false;
+			parent.sendKey((int)startX, (int)startY, button);
 		}
 	};
 
 	public boolean onTouchEvent(MotionEvent event)
 	{
-		// TODO: if (!gameRunning) return false;
+		if (! parent.gameRunning) return false;
 		switch( event.getAction() ) {
 		case MotionEvent.ACTION_DOWN:
 			int meta = event.getMetaState();
@@ -66,6 +66,7 @@ public class GameView extends View
 			startX = event.getX();
 			startY = event.getY();
 			waiting = true;
+			parent.handler.removeCallbacks( sendRightClick );
 			parent.handler.postDelayed( sendRightClick, longTimeout );
 			return true;
 		case MotionEvent.ACTION_MOVE:
@@ -91,6 +92,56 @@ public class GameView extends View
 		default:
 			return false;
 		}
+	}
+
+	Runnable sendSpace = new Runnable() {
+		public void run() {
+			waitingSpace = false;
+			parent.sendKey(0, 0, ' ');
+		}
+	};
+
+	public boolean onKeyDown( int keyCode, KeyEvent event )
+	{
+		int key = 0, repeat = event.getRepeatCount();
+		Log.d(TAG,"onKeyDown "+keyCode+", "+event);
+		switch( keyCode ) {
+		case KeyEvent.KEYCODE_DPAD_UP:    key = SGTPuzzles.CURSOR_UP;    break;
+		case KeyEvent.KEYCODE_DPAD_DOWN:  key = SGTPuzzles.CURSOR_DOWN;  break;
+		case KeyEvent.KEYCODE_DPAD_LEFT:  key = SGTPuzzles.CURSOR_LEFT;  break;
+		case KeyEvent.KEYCODE_DPAD_RIGHT: key = SGTPuzzles.CURSOR_RIGHT; break;
+		// dpad center auto-repeats on at least Tattoo, Hero
+		case KeyEvent.KEYCODE_DPAD_CENTER:
+			if (repeat > 0) return false;
+			if ((event.getMetaState() & KeyEvent.META_SHIFT_ON) > 0) {
+				key = ' ';
+				break;
+			}
+			startX = startY = 0;
+			waitingSpace = true;
+			parent.handler.removeCallbacks( sendSpace );
+			parent.handler.postDelayed( sendSpace, longTimeout );
+			return true;
+		case KeyEvent.KEYCODE_ENTER: key = '\n'; break;
+		case KeyEvent.KEYCODE_FOCUS: case KeyEvent.KEYCODE_SPACE: key = ' '; break;
+		case KeyEvent.KEYCODE_DEL: key = '\b'; break;
+		}
+		// we probably don't want MOD_NUM_KEYPAD here (numbers are in a line on G1 at least)
+		if( key == 0 ) key = event.getMatch("0123456789abcdefghijklqrsux".toCharArray());
+		if( key == 0 ) return super.onKeyDown(keyCode, event);  // handles Back etc.
+		if( event.isShiftPressed() ) key |= SGTPuzzles.MOD_SHFT;
+		if( event.isAltPressed() ) key |= SGTPuzzles.MOD_CTRL;
+		parent.sendKey( 0, 0, key );
+		return true;
+	}
+
+	public boolean onKeyUp( int keyCode, KeyEvent event )
+	{
+		if (keyCode != KeyEvent.KEYCODE_DPAD_CENTER || ! waitingSpace)
+			return super.onKeyUp(keyCode, event);
+		parent.handler.removeCallbacks( sendSpace );
+		parent.sendKey(0, 0, '\n');
+		return true;
 	}
 
 	protected void onDraw( Canvas c )
