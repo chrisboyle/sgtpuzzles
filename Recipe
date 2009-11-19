@@ -261,13 +261,7 @@ android/bin-stamp: android/bin android/lib/armeabi/libpuzzles.so \
 
 android/tmp/version.o: FORCE;
 FORCE:
-	if test -z "$(VER)" && test -f manifest && md5sum -c manifest; then \
-		$(CC) $(COMPAT) $(CFLAGS) `cat version.def` -c version.c -o android/tmp/version.o; \
-	elif test -z "$(VER)" && test -d .svn && svnversion . >/dev/null 2>&1; then \
-		$(CC) $(COMPAT) $(CFLAGS) "-DREVISION=`svnversion .`" -c version.c -o android/tmp/version.o; \
-	else \
-		$(CC) $(COMPAT) $(CFLAGS) $(VER) -c version.c -o android/tmp/version.o; \
-	fi
+	$(CC) $(COMPAT) $(CFLAGS) $(VER) -c version.c -o android/tmp/version.o
 !end
 !specialobj android version
 

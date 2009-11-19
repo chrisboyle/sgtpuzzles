@@ -1417,6 +1417,8 @@ if (defined $makefiles{"android"}) {
     print $_;
     print
     "\n".
+    "# Version number\n".
+    "VER ?= -DREVISION=\"`grep versionName android/AndroidManifest.xml |sed 's/.*\\\"\\(.*\\)\\\".*/\\1/'`\"\n".
     "# This path points at the Native Development Kit root directory\n".
     "ANDROID_NDK ?= /opt/android-ndk-1.6_r1\n".
     "# This should be the Android SDK root directory\n".
