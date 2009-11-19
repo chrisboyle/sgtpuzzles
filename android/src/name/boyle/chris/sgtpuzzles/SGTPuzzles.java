@@ -22,6 +22,7 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.ProgressDialog;
+import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -35,7 +36,9 @@ import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.drawable.Drawable;
 import android.graphics.PorterDuff.Mode;
+import android.net.MailTo;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
@@ -92,7 +95,7 @@ public class SGTPuzzles extends Activity
 	LinkedHashMap<Integer,String> gameTypes;
 	int currentType = 0;
 	boolean gameRunning = false;
-	boolean solveEnabled = false, customVisible = false, dead = false,
+	boolean solveEnabled = false, customVisible = false, fakeCrash = false,
 			undoEnabled = false, redoEnabled = false;
 	SharedPreferences prefs;
 	static final int CFG_SETTINGS = 0, CFG_SEED = 1, CFG_DESC = 2,
@@ -117,7 +120,7 @@ public class SGTPuzzles extends Activity
 	String lastKeys = "";
 	static final File storageDir = Environment.getExternalStorageDirectory();
 
-	enum MsgType { INIT, TIMER, DONE, DIE, ABORT };
+	enum MsgType { INIT, TIMER, DONE, ABORT };
 	Handler handler = new Handler() {
 		public void handleMessage( Message msg ) {
 			switch( MsgType.values()[msg.what] ) {
@@ -133,13 +136,12 @@ public class SGTPuzzles extends Activity
 				dismissProgress();
 				save();
 				break;
-			case DIE: die((String)msg.obj); break;
 			case ABORT:
-				stopRuntime(null);
+				stopNative();
 				dismissProgress();
 				showDialog(0);
 				if (msg.obj != null) {
-					messageBox(getResources().getString(R.string.Error), (String)msg.obj, 1);
+					messageBox(getString(R.string.Error), (String)msg.obj, 1);
 				}
 				break;
 			}
@@ -149,12 +151,12 @@ public class SGTPuzzles extends Activity
 	void showProgress( int msgId )
 	{
 		progress = new ProgressDialog(this);
-		progress.setMessage( getResources().getString(msgId) );
+		progress.setMessage( getString(msgId) );
 		progress.setIndeterminate( true );
 		progress.setCancelable( true );
 		progress.setOnCancelListener( abortListener );
 		final int msgId2 = msgId;
-		progress.setButton( DialogInterface.BUTTON_POSITIVE, getResources().getString(R.string.background), new DialogInterface.OnClickListener() {
+		progress.setButton( DialogInterface.BUTTON_POSITIVE, getString(R.string.background), new DialogInterface.OnClickListener() {
 			public void onClick( DialogInterface d, int which ) {
 				// Cheat slightly: just launch home screen
 				startActivity(new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME));
@@ -163,7 +165,7 @@ public class SGTPuzzles extends Activity
 				Toast.makeText(SGTPuzzles.this, R.string.bg_unreliable_warn, Toast.LENGTH_LONG).show();
 			}
 		});
-		progress.setButton( DialogInterface.BUTTON_NEGATIVE, getResources().getString(android.R.string.cancel), handler.obtainMessage(MsgType.ABORT.ordinal()));
+		progress.setButton( DialogInterface.BUTTON_NEGATIVE, getString(android.R.string.cancel), handler.obtainMessage(MsgType.ABORT.ordinal()));
 		progress.show();
 	}
 
@@ -176,7 +178,7 @@ public class SGTPuzzles extends Activity
 
 	String saveToString()
 	{
-		if( dead || ! gameRunning || progress != null ) return null;
+		if( ! gameRunning || progress != null ) return null;
 		savingState = new StringBuffer();
 		serialise();  // serialiseWrite() callbacks will happen in here
 		String s = savingState.toString();
@@ -204,6 +206,16 @@ public class SGTPuzzles extends Activity
 
 	protected void onCreate(Bundle savedInstanceState)
 	{
+		Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler(){
+			/** Somewhat controversially, make life much worse: crash in native code.
+			 *  This is so that "debuggerd" will get us a native trace, which we may
+			 *  need, because we're quite often in Java-in-native-in-Java (e.g. drawing).
+			 *  It also leads to an exit(1) (all threads) which we want. */
+			public void uncaughtException(Thread t, Throwable e) {
+				e.printStackTrace();
+				crashMeHarder();  // see you in nativeCrashed()
+			}
+		});
 		super.onCreate(savedInstanceState);
 		games = getResources().getStringArray(R.array.games);
 		gameTypes = new LinkedHashMap<Integer,String>();
@@ -296,9 +308,9 @@ public class SGTPuzzles extends Activity
 				int nameId = getResources().getIdentifier("name_"+games[i], "string", getPackageName());
 				int descId = getResources().getIdentifier("desc_"+games[i], "string", getPackageName());
 				String desc;
-				if( nameId > 0 ) desc = getResources().getString(nameId);
+				if( nameId > 0 ) desc = getString(nameId);
 				else desc = games[i].substring(0,1).toUpperCase() + games[i].substring(1);
-				desc += ": " + getResources().getString( descId > 0 ? descId : R.string.no_desc );
+				desc += ": " + getString( descId > 0 ? descId : R.string.no_desc );
 				map.put( LABEL, desc );
 				Drawable d = getResources().getDrawable(getResources().getIdentifier(games[i], "drawable", getPackageName()));
 				Bitmap b = Bitmap.createBitmap(d.getIntrinsicWidth(),d.getIntrinsicHeight(), Bitmap.Config.RGB_565);
@@ -364,7 +376,7 @@ public class SGTPuzzles extends Activity
 		if( currentType < 0 ) customItem.setChecked(true);
 		else menu.findItem((Integer)gameTypes.keySet().toArray()[currentType]).setChecked(true);
 		menu.findItem(R.id.thisgame).setTitle(MessageFormat.format(
-					getResources().getString(R.string.help_on_game),new Object[]{this.getTitle()}));
+					getString(R.string.help_on_game),new Object[]{this.getTitle()}));
 		return true;
 	}
 	
@@ -384,7 +396,7 @@ public class SGTPuzzles extends Activity
 		wv.getSettings().setBuiltInZoomControls(true);
 		String lang = Locale.getDefault().getLanguage();
 		if (lang == null || lang.equals("")) lang = "en";
-		wv.loadUrl(MessageFormat.format("file:///android_asset/{0}/{1}.html",
+		wv.loadUrl(MessageFormat.format(getString(R.string.docs_url),
 				new Object[]{lang,topic}));
 		d.show();
 	}
@@ -396,12 +408,8 @@ public class SGTPuzzles extends Activity
 		case R.id.newgame:
 			showProgress( R.string.starting_new );
 			(worker = new Thread("newGame") { public void run() {
-				try {
-					sendKey(0, 0, 'n');
-					handler.sendEmptyMessage(MsgType.DONE.ordinal());
-				} catch (Exception e) {
-					handler.obtainMessage(MsgType.DIE.ordinal(),SGTPuzzles.this.getStackTrace(e)).sendToTarget();
-				}
+				sendKey(0, 0, 'n');
+				handler.sendEmptyMessage(MsgType.DONE.ordinal());
 			}}).start();
 			break;
 		case R.id.restart:  restartEvent(); break;
@@ -416,11 +424,10 @@ public class SGTPuzzles extends Activity
 		case R.id.thisgame: showHelp(helpTopic); break;
 		case R.id.website:
 			startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(
-							getResources().getString(R.string.website_url))));
+							getString(R.string.website_url))));
 			break;
 		case R.id.email:
-			// Damn, Android Email doesn't cope with ?subject=foo yet.
-			startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(getResources().getString(R.string.mailto_author))));
+			tryEmailAuthor(this, false, null);
 			break;
 		case R.id.load: showLoadPrompt(); break;
 		case R.id.save:
@@ -435,19 +442,41 @@ public class SGTPuzzles extends Activity
 			if( gameTypes.get(id) != null ) {
 				showProgress( R.string.changing_type );
 				gameView.clear();
+				Log.d(TAG, "preset: "+id+": "+gameTypes.get(id));
 				(worker = new Thread("presetGame") { public void run() {
-					try {
-						presetEvent(id);
-						handler.sendEmptyMessage(MsgType.DONE.ordinal());
-					} catch (Exception e) {
-						handler.obtainMessage(MsgType.DIE.ordinal(),SGTPuzzles.this.getStackTrace(e)+"\npreset:"+gameTypes.get(id)).sendToTarget();
-					}
+					presetEvent(id);
+					handler.sendEmptyMessage(MsgType.DONE.ordinal());
 				}}).start();
 			}
 			else super.onOptionsItemSelected(item);
 			break;
 		}
 		return true;
+	}
+
+	static boolean tryEmailAuthor(Context c, boolean isCrash, String body)
+	{
+		String addr = c.getString(R.string.author_email);
+		Intent i = new Intent(Intent.ACTION_SEND);
+		// second empty address because of http://code.google.com/p/k9mail/issues/detail?id=589
+		i.putExtra(Intent.EXTRA_EMAIL, new String[]{addr, ""});
+		i.putExtra(Intent.EXTRA_SUBJECT, MessageFormat.format(c.getString(
+					isCrash ? R.string.crash_subject : R.string.email_subject),
+					getVersion(c), Build.MODEL));
+		i.setType("message/rfc822");
+		i.putExtra(Intent.EXTRA_TEXT, body!=null ? body : "");
+		try {
+			c.startActivity(i);
+			return true;
+		} catch (ActivityNotFoundException e) {
+			try {
+				c.startActivity(Intent.createChooser(i,null));
+				return true;
+			} catch (Exception e2) {
+				Toast.makeText(c, e2.toString(), Toast.LENGTH_LONG).show();
+				return false;
+			}
+		}
 	}
 
 	void showLoadPrompt()
@@ -512,7 +541,7 @@ public class SGTPuzzles extends Activity
 				w.write(s,0,s.length());
 				w.close();
 				Toast.makeText(SGTPuzzles.this, MessageFormat.format(
-						getResources().getString(R.string.file_saved),new Object[]{f.getPath()}),
+						getString(R.string.file_saved),new Object[]{f.getPath()}),
 						Toast.LENGTH_LONG).show();
 				dismissAll();
 			} catch (Exception e) {
@@ -580,7 +609,7 @@ public class SGTPuzzles extends Activity
 
 	void quit(boolean fromDestroy)
 	{
-		stopRuntime(null);
+		stopNative();
 		if( ! fromDestroy ) finish();
 	}
 
@@ -604,94 +633,41 @@ public class SGTPuzzles extends Activity
 		return b.toString();
 	}
 
-	void alert( String title, String msg, boolean fatal )
+	static String getVersion(Context c)
 	{
-		dismissProgress();
-		AlertDialog.Builder b = new AlertDialog.Builder(this)
-			.setTitle( title )
-			.setIcon(android.R.drawable.ic_dialog_alert)
-			.setOnCancelListener( fatal ? quitListener : abortListener );
-		final CheckBox c = new CheckBox(SGTPuzzles.this);
-		final String msg2 = msg;
-		b.setPositiveButton(R.string.report, new DialogInterface.OnClickListener() {
-			public void onClick(DialogInterface d, int which) {
-				String vName;
-				try {
-					vName = getPackageManager().getPackageInfo(getPackageName(),0).versionName;
-				} catch(Exception e) { vName = "unknown"; }
-				if( c.isChecked() ) clearState();
-//				try {
-					// TODO!
-//					startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(
-//							getResources().getString(R.string . report_url)+
-//							"?v="+vName+"&e="+URLEncoder.encode(msg2,"UTF-8"))));
-//				} catch (UnsupportedEncodingException e) { /* It's really not our lucky day...*/ }
-				d.cancel();
-			}});
-		b.setNegativeButton(R.string.close, new DialogInterface.OnClickListener() {
-			public void onClick(DialogInterface d, int which) {
-				if( c.isChecked() ) clearState();
-				d.cancel();
-			}
-		});
-		TextView tv = new TextView(SGTPuzzles.this);
-		tv.setText(msg);
-		ScrollView sv = new ScrollView(SGTPuzzles.this);
-		sv.addView(tv);
-		c.setText(R.string.clear_state);
-		c.setChecked(true);
-		LinearLayout ll = new LinearLayout(SGTPuzzles.this);
-		ll.setOrientation(LinearLayout.VERTICAL);
-		ll.addView(sv, new LinearLayout.LayoutParams(
-					LinearLayout.LayoutParams.FILL_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT, 42 ));
-		ll.addView(c, new LinearLayout.LayoutParams(
-					LinearLayout.LayoutParams.FILL_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT, 0 ));
-		b.setView(ll).show();
-	}
-
-	void die( String msg )
-	{
-		if( dead ) return;
-		dead = true;
-		alert( getResources().getString(R.string.fatal_error), msg, true );
+		try {
+			return c.getPackageManager().getPackageInfo(c.getPackageName(),0).versionName;
+		} catch(Exception e) { return c.getString(R.string.unknown_version); }
 	}
 
 	void startGame(final int which, final String savedGame)
 	{
+		Log.d(TAG, "startGame: "+which+", "+((savedGame==null)?"null":(savedGame.length()+" bytes")));
 		showProgress( (savedGame == null) ? R.string.starting : R.string.resuming );
-		try {
-			if( gameRunning ) {
-				gameView.clear();
-				stopRuntime(null);
-				solveEnabled = false;
-				undoEnabled = false;
-				redoEnabled = false;
-				customVisible = false;
-				txtView.setVisibility( View.GONE );
-				if (keyboard != null) keyboard.setVisibility( View.GONE );
-				lastKeys = "";
-			}
-			if( typeMenu != null ) for( Integer i : gameTypes.keySet() ) typeMenu.removeItem(i);
-			gameTypes.clear();
-			gameRunning = true;
-			(worker = new Thread("startGame") { public void run() {
-				try {
-					init(gameView, which, savedGame);
-					helpTopic = htmlHelpTopic();
-					handler.sendEmptyMessage(MsgType.DONE.ordinal());
-				} catch (Exception e) {
-					if( ! gameRunning ) return;  // stopRuntime was called (probably user aborted)
-					handler.obtainMessage(MsgType.DIE.ordinal(),SGTPuzzles.this.getStackTrace(e)+"\nwhich:"+Integer.toString(which)+"\nstate:"+((savedGame==null)?"null":savedGame)).sendToTarget();
-				}
-			}}).start();
-		} catch (Exception e) {
-			alert( getResources().getString(R.string.startgame_fail), getStackTrace(e), false );
+		if( gameRunning ) {
+			gameView.clear();
+			stopNative();
+			solveEnabled = false;
+			undoEnabled = false;
+			redoEnabled = false;
+			customVisible = false;
+			txtView.setVisibility( View.GONE );
+			if (keyboard != null) keyboard.setVisibility( View.GONE );
+			lastKeys = "";
 		}
+		if( typeMenu != null ) for( Integer i : gameTypes.keySet() ) typeMenu.removeItem(i);
+		gameTypes.clear();
+		gameRunning = true;
+		(worker = new Thread("startGame") { public void run() {
+			init(gameView, which, savedGame);
+			if( ! gameRunning ) return;  // stopNative was called (probably user aborted)
+			helpTopic = htmlHelpTopic();
+			handler.sendEmptyMessage(MsgType.DONE.ordinal());
+		}}).start();
 	}
 
-	public void stopRuntime(Exception e)
+	public void stopNative()
 	{
-		if( e != null && gameRunning ) die(getStackTrace(e));
 		gameRunning = false;
 		cancel();  // set flag in native code
 		if (worker != null) {
@@ -708,13 +684,6 @@ public class SGTPuzzles extends Activity
 		if( gameRunning ) handler.removeMessages(MsgType.TIMER.ordinal());
 		save();
 		super.onPause();
-	}
-
-	void clearState()
-	{
-		SharedPreferences.Editor ed = prefs.edit();
-		ed.clear();
-		ed.commit();
 	}
 
 	protected void onDestroy()
@@ -880,7 +849,7 @@ public class SGTPuzzles extends Activity
 				configCancel();
 			}
 		});
-		dialog.setButton(DialogInterface.BUTTON_POSITIVE, getResources().getString(android.R.string.ok), new DialogInterface.OnClickListener() {
+		dialog.setButton(DialogInterface.BUTTON_POSITIVE, getString(android.R.string.ok), new DialogInterface.OnClickListener() {
 			public void onClick(DialogInterface d, int which) {
 				for( Integer i : dialogIds ) {
 					View v = dialogLayout.findViewById(i);
@@ -896,12 +865,8 @@ public class SGTPuzzles extends Activity
 				showProgress( R.string.starting_custom );
 				gameView.clear();
 				(worker = new Thread("startCustomGame") { public void run() {
-					try {
-						configOK();
-						handler.sendEmptyMessage(MsgType.DONE.ordinal());
-					} catch (Exception e) {
-						handler.obtainMessage(MsgType.DIE.ordinal(),SGTPuzzles.this.getStackTrace(e)).sendToTarget();
-					}
+					configOK();
+					handler.sendEmptyMessage(MsgType.DONE.ordinal());
 				}}).start();
 			}
 		});
@@ -1000,8 +965,8 @@ public class SGTPuzzles extends Activity
 		if( id.endsWith("_") ) id = id.substring(0,id.length()-1);
 		int resId = getResources().getIdentifier(id, "string", getPackageName());
 		if( resId > 0 ) {
-			String ret = getResources().getString(resId);
-			Log.d(TAG,"gettext: "+s+" -> "+id+" -> "+ret);
+			String ret = getString(resId);
+			//Log.d(TAG,"gettext: "+s+" -> "+id+" -> "+ret);
 			return ret;
 		}
 		Log.i(TAG,"gettext: NO TRANSLATION: "+s+" -> "+id+" -> ???");
@@ -1048,6 +1013,7 @@ public class SGTPuzzles extends Activity
 	native void serialise();
 	native String deserialise(String s);
 	native void freeNativeResources();
+	native void crashMeHarder();
 
 	static {
 		System.loadLibrary("puzzles");

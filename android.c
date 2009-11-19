@@ -571,6 +571,7 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
 	struct sigaction handler;
 	memset(&handler, 0, sizeof(sigaction));
 	handler.sa_sigaction = android_sigaction;
+	handler.sa_flags = SA_RESETHAND;
 #define CATCHSIG(X) sigaction(X, &handler, &old_sa[X])
 	CATCHSIG(SIGILL);
 	CATCHSIG(SIGABRT);
@@ -598,6 +599,12 @@ void Java_name_boyle_chris_sgtpuzzles_SGTPuzzles_freeNativeResources(JNIEnv *_en
 		(*env)->DeleteGlobalRef(env, gameView);
 		gameView = NULL;
 	}
+}
+
+void Java_name_boyle_chris_sgtpuzzles_SGTPuzzles_crashMeHarder(JNIEnv *_env, jobject _obj)
+{
+	// Dear debuggerd, please give me a native stack trace in logcat. And a pony.
+	abort();
 }
 
 void Java_name_boyle_chris_sgtpuzzles_SGTPuzzles_init(JNIEnv *_env, jobject _obj, jobject _gameView, jint whichGame, jstring gameState)

@@ -32,8 +32,20 @@ Revision: %s"</string>
     <!-- Things used by the Android front-end only -->
     <string name="app_name">Puzzles</string>
     <string name="welcome">Welcome to the Android version of Simon Tatham\'s Puzzles. N.B. the trackball is easier to use than the touchscreen for most of these. For right-click, press the camera button halfway or do a long press on the touchscreen. Online help is available under Menu/Help. This project is released under the MIT license.</string>
-    <string name="mailto_author">mailto:chris@boyle.name</string>
     <string name="website_url">http://chris.boyle.name/projects/android-puzzles</string>
+    <string name="docs_url">file:///android_asset/{0}/{1}.html</string>
+    <string name="author_email">chris@boyle.name</string>
+    <string name="unknown_version">UNKNOWN</string>
+    <!-- {0} = version, {1} = device model number -->
+    <string name="email_subject">Puzzles v{0} on {1}</string>
+    <!-- Crash report dialog -->
+    <string name="crash_subject">Crash: Puzzles v{0} on {1}</string>
+    <string name="crash_preamble">Please describe what you were doing just before the crash if possible, and then press Send:</string>
+    <string name="crashtitle">Well, this is embarrassing...</string>
+    <string name="crashed">Sorry, Puzzles encountered a problem and had to close. Would you like to send a crash report, which may help the author to fix the problem?</string>
+    <string name="report">Report</string>
+    <string name="close">Close</string>
+    <string name="clear_state">Forget state</string>
     <!-- For saving and loading game state on the SD card -->
     <string name="filename">Filename</string>
     <string name="save">Save</string>
@@ -44,15 +56,6 @@ Revision: %s"</string>
     <!-- Help menu -->
     <!-- {0} is a game name -->
     <string name="help_on_game">Help on {0}</string>
-    <!-- Errors -->
-    <string name="fatal_error">Fatal error</string>
-    <string name="startgame_fail">Engine failed to load</string>
-    <!-- Crash report dialog -->
-    <string name="crashtitle">Well, this is embarrassing...</string>
-    <string name="crashed">Sorry, Puzzles encountered a problem and had to close. Would you like to send a crash report, which may help the author to fix the problem?</string>
-    <string name="report">Report</string>
-    <string name="close">Close</string>
-    <string name="clear_state">Forget state</string>
     <!-- Progress dialog when generating/resuming a game -->
     <string name="starting">Starting game (complex games may take a minute)</string>
     <string name="starting_new">Starting new game (complex games may take a minute)</string>
