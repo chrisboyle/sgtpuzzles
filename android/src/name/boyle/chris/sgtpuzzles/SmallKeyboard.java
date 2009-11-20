@@ -17,15 +17,26 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 	static final String TAG="SmallKeyboard";
 	static final int KEYSP = 44;
 	SGTPuzzles parent;
+	boolean undoEnabled = false, redoEnabled = false;
+
+	/** Key which can be disabled */
+	class DKey extends Keyboard.Key
+	{
+		boolean enabled;
+		DKey(Keyboard.Row r) { super(r); }
+	}
 
 	class KeyboardModel extends Keyboard
 	{
 		int mDefaultWidth = KEYSP, mDefaultHeight = KEYSP, mDefaultHorizontalGap = 0, mDefaultVerticalGap = 0, mTotalWidth, mTotalHeight;
 		Context context;
 		List<Key> mKeys;
-		public KeyboardModel(Context context, CharSequence characters, boolean columnMajor, int maxPx)
+		int undoKey, redoKey;
+		boolean initDone = false;
+		public KeyboardModel(Context context, CharSequence characters, boolean columnMajor, int maxPx, boolean undoEnabled, boolean redoEnabled)
 		{
 			super(context, R.layout.keyboard_template);
+			this.context = context;
 			mDefaultWidth = mDefaultHeight = (int)Math.round(context.getResources().getDisplayMetrics().density * KEYSP);
 			int minorPx = 0;
 			int majorPx = 0;
@@ -56,7 +67,8 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 						: mDefaultVerticalGap + mDefaultHeight;
 					minor = 0;
 				}
-				final Key key = new Key(row);
+				final DKey key = new DKey(row);
+				mKeys.add(key);
 				key.edgeFlags = 0;
 				// No two of these flags are mutually exclusive
 				if (i < minorsPerMajor)               key.edgeFlags |= columnMajor ? EDGE_LEFT   : EDGE_TOP;
@@ -68,16 +80,30 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 				key.width = mDefaultWidth;
 				key.height = mDefaultHeight;
 				key.gap = mDefaultHorizontalGap;
-				if (c=='\b') {
-					key.icon = context.getResources().getDrawable(R.drawable.sym_keyboard_delete);
-					key.repeatable = true;
-				} else {
-					key.label = String.valueOf(c);
+				switch(c) {
+					case 'u':
+						undoKey = mKeys.size() - 1;
+						key.repeatable = true;
+						setUndoRedoEnabled(false, undoEnabled);
+						break;
+					case 'r':
+						redoKey = mKeys.size() - 1;
+						key.repeatable = true;
+						setUndoRedoEnabled(true, redoEnabled);
+						break;
+					case '\b':
+						key.icon = context.getResources().getDrawable(R.drawable.sym_keyboard_delete);
+						key.repeatable = true;
+						key.enabled = true;
+						break;
+					default:
+						key.label = String.valueOf(c);
+						key.enabled = true;
+						break;
 				}
 				key.codes = new int[] { c };
 				minor++;
 				minorPx += keyPlusPad;
-				mKeys.add(key);
 				if (columnMajor) {
 					if (minorPx > mTotalHeight) mTotalHeight = minorPx;
 				} else {
@@ -89,6 +115,19 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 			} else {
 				mTotalHeight = majorPx + mDefaultHeight;
 			}
+			initDone = true;
+		}
+		void setUndoRedoEnabled( boolean redo, boolean enabled )
+		{
+			Log.d(TAG, "setURE "+redo+" "+enabled);
+			int i = redo ? redoKey : undoKey;
+			if (i < 0) return;
+			DKey k = (DKey)mKeys.get(i);
+			k.icon = context.getResources().getDrawable(redo ?
+					enabled ? R.drawable.sym_keyboard_redo : R.drawable.sym_keyboard_redo_disabled :
+					enabled ? R.drawable.sym_keyboard_undo : R.drawable.sym_keyboard_undo_disabled);
+			k.enabled = enabled;
+			if (initDone) invalidateKey(i);
 		}
 		@Override
 		public List<Key> getKeys() { return mKeys; }
@@ -96,7 +135,8 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 		public int[] getNearestKeys(int x, int y)
 		{
 			for (int i=0; i<mKeys.size(); i++) {
-				if (mKeys.get(i).isInside(x,y)) return new int[]{i};
+				DKey k = (DKey)mKeys.get(i);
+				if (k.isInside(x,y) && k.enabled) return new int[]{i};
 			}
 			return new int[0];
 		}
@@ -106,7 +146,12 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 		public int getMinWidth() { return mTotalWidth; }
 	}
 
-	public SmallKeyboard(Context c) { this(c,null); }
+	public SmallKeyboard(Context c, boolean undoEnabled, boolean redoEnabled)
+	{
+		this(c,null);
+		this.undoEnabled = undoEnabled;
+		this.redoEnabled = redoEnabled;
+	}
 
 	public SmallKeyboard(Context c, AttributeSet a)
 	{
@@ -130,8 +175,16 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 			 == Configuration.ORIENTATION_LANDSCAPE);
 		int maxPx = landscape ? MeasureSpec.getSize(hSpec) : MeasureSpec.getSize(wSpec);
 		// Doing this here seems the only way to be sure of dimensions.
-		setKeyboard(new KeyboardModel(parent, lastKeys, landscape, maxPx));
+		setKeyboard(new KeyboardModel(parent, lastKeys, landscape, maxPx, undoEnabled, redoEnabled));
 		super.onMeasure(wSpec, hSpec);
+	}
+
+	void setUndoRedoEnabled(boolean redo, boolean enabled)
+	{
+		if (redo) redoEnabled = enabled; else undoEnabled = enabled;
+		KeyboardModel m = (KeyboardModel)getKeyboard();
+		if (m == null) return;
+		m.setUndoRedoEnabled(redo,enabled);
 	}
 
 	public void swipeUp() {}

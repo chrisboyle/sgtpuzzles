@@ -536,8 +536,8 @@ void midend_restart_game(midend *me)
         me->ourgame->changed_state(me->ui,
                                    me->states[me->statepos-2].state,
                                    me->states[me->statepos-1].state);
-        changed_state(me->drawing, me->statepos > 1, me->statepos < me->nstates);
     }
+    changed_state(me->drawing, me->statepos > 1, me->statepos < me->nstates);
     me->anim_time = 0.0;
     midend_finish_move(me);
     midend_redraw(me);
@@ -616,8 +616,8 @@ static int midend_really_process_key(midend *me, int x, int y, int button)
 		me->ourgame->changed_state(me->ui,
 					   me->states[me->statepos-2].state,
 					   me->states[me->statepos-1].state);
-                changed_state(me->drawing, me->statepos > 1, me->statepos < me->nstates);
             }
+            changed_state(me->drawing, me->statepos > 1, me->statepos < me->nstates);
         } else {
             goto done;
         }
@@ -1315,8 +1315,8 @@ char *midend_solve(midend *me)
         me->ourgame->changed_state(me->ui,
                                    me->states[me->statepos-2].state,
                                    me->states[me->statepos-1].state);
-        changed_state(me->drawing, me->statepos > 1, me->statepos < me->nstates);
     }
+    changed_state(me->drawing, me->statepos > 1, me->statepos < me->nstates);
     me->dir = +1;
     if (me->ourgame->flags & SOLVE_ANIMATES) {
 	me->oldstate = me->ourgame->dup_game(me->states[me->statepos-2].state);

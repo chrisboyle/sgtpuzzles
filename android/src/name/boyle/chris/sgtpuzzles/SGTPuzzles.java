@@ -408,6 +408,7 @@ public class SGTPuzzles extends Activity
 		case R.id.other:   showDialog(0); break;
 		case R.id.newgame:
 			showProgress( R.string.starting_new );
+			changedState(false, false);
 			(worker = new Thread("newGame") { public void run() {
 				sendKey(0, 0, 'n');
 				handler.sendEmptyMessage(MsgType.DONE.ordinal());
@@ -650,8 +651,7 @@ public class SGTPuzzles extends Activity
 			gameView.clear();
 			stopNative();
 			solveEnabled = false;
-			undoEnabled = false;
-			redoEnabled = false;
+			changedState(false, false);
 			customVisible = false;
 			txtView.setVisibility( View.GONE );
 			if (keyboard != null) keyboard.setVisibility( View.GONE );
@@ -661,6 +661,7 @@ public class SGTPuzzles extends Activity
 		gameTypes.clear();
 		gameRunning = true;
 		(worker = new Thread("startGame") { public void run() {
+			setKeys("");
 			init(gameView, which, savedGame);
 			if( ! gameRunning ) return;  // stopNative was called (probably user aborted)
 			helpTopic = htmlHelpTopic();
@@ -717,7 +718,7 @@ public class SGTPuzzles extends Activity
 			// Must recreate KeyboardView on orientation change because it caches the x,y for its preview popups
 			// http://code.google.com/p/android/issues/detail?id=4559
 			if (keyboard != null) gameAndKeys.removeView(keyboard);
-			keyboard = new SmallKeyboard(this);
+			keyboard = new SmallKeyboard(this, undoEnabled, redoEnabled);
 			LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT, 0);
 			lp.gravity = Gravity.CENTER;
 			gameAndKeys.addView(keyboard, lp);
@@ -905,8 +906,8 @@ public class SGTPuzzles extends Activity
 
 	void setKeys(String keys)
 	{
-		if( keys == null || keys.length() == 0 ) return;
-		lastKeys = keys;
+		if( keys == null ) return;
+		lastKeys = keys + "ur";
 		runOnUiThread(new Runnable(){public void run(){
 			setKeyboardVisibility(getResources().getConfiguration());
 		}});
@@ -941,6 +942,9 @@ public class SGTPuzzles extends Activity
 	{
 		undoEnabled = canUndo;
 		redoEnabled = canRedo;
+		if (keyboard == null) return;
+		keyboard.setUndoRedoEnabled(false, canUndo);
+		keyboard.setUndoRedoEnabled(true, canRedo);
 	}
 
 	/** A signal handler in native code has been triggered. As our last gasp,
