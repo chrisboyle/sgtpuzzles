@@ -471,12 +471,13 @@ public class SGTPuzzles extends Activity
 			return true;
 		} catch (ActivityNotFoundException e) {
 			try {
+				// Get the OS to present a nicely formatted, translated error
 				c.startActivity(Intent.createChooser(i,null));
-				return true;
 			} catch (Exception e2) {
+				e2.printStackTrace();
 				Toast.makeText(c, e2.toString(), Toast.LENGTH_LONG).show();
-				return false;
 			}
+			return false;
 		}
 	}
 

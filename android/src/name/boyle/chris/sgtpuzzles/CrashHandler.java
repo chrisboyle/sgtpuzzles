@@ -27,16 +27,18 @@ public class CrashHandler extends Activity
 			   c = (Button)findViewById(R.id.close);
 		final CheckBox cl = (CheckBox)findViewById(R.id.forget);
 		b.setOnClickListener(new View.OnClickListener(){public void onClick(View v){
-			if (cl.isChecked()) clearState();
 			try {
-				Process process = Runtime.getRuntime().exec(new String[]{"logcat","-d"});
+				Process process = Runtime.getRuntime().exec(new String[]{"logcat","-d","-v","threadtime"});
 				String log = readAllOf(process.getInputStream());
-				SGTPuzzles.tryEmailAuthor(CrashHandler.this, true,
-						getString(R.string.crash_preamble)+"\n\n\n\n"+log);
+				if (SGTPuzzles.tryEmailAuthor(CrashHandler.this, true,
+						getString(R.string.crash_preamble)+"\n\n\n\n"+log)) {
+					if (cl.isChecked()) clearState();
+					finish();
+				}
 			} catch (IOException e) {
-				Toast.makeText(CrashHandler.this, "Exception in crash handler! "+e.toString(), Toast.LENGTH_LONG).show();
+				e.printStackTrace();
+				Toast.makeText(CrashHandler.this, e.toString(), Toast.LENGTH_LONG).show();
 			}
-			finish();
 		}});
 		c.setOnClickListener(new View.OnClickListener(){public void onClick(View v){
 			if (cl.isChecked()) clearState();
