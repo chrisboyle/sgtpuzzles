@@ -125,8 +125,8 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 					enabled ? R.drawable.sym_keyboard_redo : R.drawable.sym_keyboard_redo_disabled :
 					enabled ? R.drawable.sym_keyboard_undo : R.drawable.sym_keyboard_undo_disabled);
 			k.enabled = enabled;
-			// invalidateKey for 1.5
-			if (initDone) postInvalidate(k.x, k.y, k.x+k.width, k.y+k.height);
+			// Ugly hack for 1.5 compatibility: invalidateKey() is 1.6 and invalidate() doesn't work on KeyboardView, so try to change shift state (and claim, when asked below, that everything needs a redraw).
+			if (initDone) SmallKeyboard.this.setShifted(false);
 		}
 		@Override
 		public List<Key> getKeys() { return mKeys; }
@@ -143,6 +143,9 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 		public int getHeight() { return mTotalHeight; }
 		@Override
 		public int getMinWidth() { return mTotalWidth; }
+		/** Ugly hack for 1.5 compatibility: invalidate() doesn't work on KeyboardView, so pretend we've changed shift state so everything needs redrawing on that basis. */
+		@Override
+		public boolean setShifted(boolean shifted) { return true; }
 	}
 
 	public SmallKeyboard(Context c, boolean undoEnabled, boolean redoEnabled)
