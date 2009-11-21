@@ -1,9 +1,6 @@
 To do...
-. Undo/redo buttons in soft keyboard.
-Later...
 . Code cleanup!
 . Remember and return to last location on SD card
 . Zoom
 . Patch (+upstream) Solo and Unequal not to create no-change moves when overwriting a number with itself.
 . Improve keyboard positioning with very large/small aspect ratio?
-. Key previews still disappear sometimes? (seen in portrait orientation)
