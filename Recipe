@@ -226,13 +226,13 @@ android/SGTPuzzles_unsigned.apk: android/classes.dex android/resources.apk andro
 
 # to raise the memory limit, add -JXmx512M
 android/classes.dex: android/bin-stamp
-	$(ANDROID)/platforms/android-1.6/tools/dx --dex --verbose --output=$@ android/bin
+	$(ANDROID)/platforms/android-1.5/tools/dx --dex --verbose --output=$@ android/bin
 
 android/resources.apk: android/res/drawable/icon.png android/res/values/arrays.xml \
 		android/res/layout/* android/AndroidManifest.xml android/res/values/* \
 		android/res/menu/* android/assets
-	$(ANDROID)/platforms/android-1.6/tools/aapt package -f -M android/AndroidManifest.xml \
-		-S android/res -A android/assets -I $(ANDROID)/platforms/android-1.6/android.jar -F $@
+	$(ANDROID)/platforms/android-1.5/tools/aapt package -f -M android/AndroidManifest.xml \
+		-S android/res -A android/assets -I $(ANDROID)/platforms/android-1.5/android.jar -F $@
 
 android/assets: puzzles.but po/*.po
 	rm -rf android/assets
@@ -243,9 +243,9 @@ android/assets: puzzles.but po/*.po
 android/src/name/boyle/chris/sgtpuzzles/R.java: android/res/drawable/icon.png \
 		android/AndroidManifest.xml android/res/values/arrays.xml \
 		android/res/values/* android/res/layout/* android/res/menu/*
-	$(ANDROID)/platforms/android-1.6/tools/aapt package -m -J android/src \
+	$(ANDROID)/platforms/android-1.5/tools/aapt package -m -J android/src \
 		-M android/AndroidManifest.xml -S android/res \
-		-I $(ANDROID)/platforms/android-1.6/android.jar
+		-I $(ANDROID)/platforms/android-1.5/android.jar
 
 android/bin:
 	mkdir -p $@
@@ -255,7 +255,7 @@ android/bin-stamp: android/bin android/lib/armeabi/libpuzzles.so \
 		android/src/name/boyle/chris/sgtpuzzles/*.java \
 		android/src/name/boyle/chris/sgtpuzzles/R.java
 	./android/i18ncheck.pl
-	javac -source 1.5 -target 1.5 -cp $(ANDROID)/platforms/android-1.6/android.jar \
+	javac -source 1.5 -target 1.5 -cp $(ANDROID)/platforms/android-1.5/android.jar \
 		-d $< android/src/name/boyle/chris/sgtpuzzles/*.java
 	touch $@
 

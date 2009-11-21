@@ -28,10 +28,10 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 
 	class KeyboardModel extends Keyboard
 	{
-		int mDefaultWidth = KEYSP, mDefaultHeight = KEYSP, mDefaultHorizontalGap = 0, mDefaultVerticalGap = 0, mTotalWidth, mTotalHeight;
+		int mDefaultWidth = KEYSP, mDefaultHeight = KEYSP, mDefaultHorizontalGap = 0, mDefaultVerticalGap = 0, mTotalWidth = 0, mTotalHeight = 0;
 		Context context;
 		List<Key> mKeys;
-		int undoKey, redoKey;
+		int undoKey = -1, redoKey = -1;
 		boolean initDone = false;
 		public KeyboardModel(Context context, CharSequence characters, boolean columnMajor, int maxPx, boolean undoEnabled, boolean redoEnabled)
 		{
@@ -41,8 +41,6 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 			int minorPx = 0;
 			int majorPx = 0;
 			int minor = 0;
-			mTotalWidth = 0;
-			undoKey = redoKey = -1;
 			mKeys = new ArrayList<Key>();
 			
 			Row row = new Row(this);
@@ -127,7 +125,8 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 					enabled ? R.drawable.sym_keyboard_redo : R.drawable.sym_keyboard_redo_disabled :
 					enabled ? R.drawable.sym_keyboard_undo : R.drawable.sym_keyboard_undo_disabled);
 			k.enabled = enabled;
-			if (initDone) invalidateKey(i);
+			// invalidateKey for 1.5
+			if (initDone) postInvalidate(k.x, k.y, k.x+k.width, k.y+k.height);
 		}
 		@Override
 		public List<Key> getKeys() { return mKeys; }
