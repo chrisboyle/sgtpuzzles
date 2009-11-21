@@ -42,6 +42,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 			int majorPx = 0;
 			int minor = 0;
 			mTotalWidth = 0;
+			undoKey = redoKey = -1;
 			mKeys = new ArrayList<Key>();
 			
 			Row row = new Row(this);
