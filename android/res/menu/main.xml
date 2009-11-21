@@ -21,7 +21,7 @@
 	<item android:title="@string/Email_developer" android:id="@+id/email"></item>
 	<item android:title="@string/About" android:id="@+id/about"></item>
 </menu></item>
-<item android:title="@string/Undo" android:id="@+id/undo" android:alphabeticShortcut="u" android:icon="@drawable/ic_menu_undo"/>
-<item android:title="@string/Redo" android:id="@+id/redo" android:alphabeticShortcut="r" android:icon="@drawable/ic_menu_redo"/>
+<item android:title="@string/Undo" android:id="@+id/undo" android:alphabeticShortcut="u" android:icon="@drawable/ic_menu_undo" android:visible="false"/>
+<item android:title="@string/Redo" android:id="@+id/redo" android:alphabeticShortcut="r" android:icon="@drawable/ic_menu_redo" android:visible="false"/>
 <item android:title="@string/Solve" android:id="@+id/solve" android:enabled="false" android:alphabeticShortcut="v" android:icon="@android:drawable/ic_menu_directions"/>
 </menu>
