@@ -654,14 +654,12 @@ public class SGTPuzzles extends Activity
 			changedState(false, false);
 			customVisible = false;
 			txtView.setVisibility( View.GONE );
-			if (keyboard != null) keyboard.setVisibility( View.GONE );
-			lastKeys = "";
 		}
+		setKeys("");
 		if( typeMenu != null ) for( Integer i : gameTypes.keySet() ) typeMenu.removeItem(i);
 		gameTypes.clear();
 		gameRunning = true;
 		(worker = new Thread("startGame") { public void run() {
-			setKeys("");
 			init(gameView, which, savedGame);
 			if( ! gameRunning ) return;  // stopNative was called (probably user aborted)
 			helpTopic = htmlHelpTopic();
