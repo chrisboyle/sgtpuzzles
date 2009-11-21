@@ -120,7 +120,6 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 		}
 		void setUndoRedoEnabled( boolean redo, boolean enabled )
 		{
-			Log.d(TAG, "setURE "+redo+" "+enabled);
 			int i = redo ? redoKey : undoKey;
 			if (i < 0) return;
 			DKey k = (DKey)mKeys.get(i);

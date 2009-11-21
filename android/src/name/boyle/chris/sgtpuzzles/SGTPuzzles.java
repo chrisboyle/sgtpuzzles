@@ -189,7 +189,7 @@ public class SGTPuzzles extends Activity
 	void save()
 	{
 		String s = saveToString();
-		if (s == null) return;
+		if (s == null || s.length() == 0) return;
 		SharedPreferences.Editor ed = prefs.edit();
 		ed.remove("engineName");
 		ed.putString("savedGame", s);
@@ -228,7 +228,7 @@ public class SGTPuzzles extends Activity
 		gameView.requestFocus();
 
 		prefs = getSharedPreferences("state", MODE_PRIVATE);
-		if( prefs.contains("savedGame") ) {
+		if( prefs.contains("savedGame") && prefs.getString("savedGame","").length() > 0 ) {
 			startGame(-1, prefs.getString("savedGame",""));
 		} else {
 			new AlertDialog.Builder(this)
@@ -622,6 +622,7 @@ public class SGTPuzzles extends Activity
 
 	void abort(String why)
 	{
+		gameRunning = false;
 		handler.obtainMessage(MsgType.ABORT.ordinal(), why).sendToTarget();
 	}
 
@@ -661,7 +662,7 @@ public class SGTPuzzles extends Activity
 		gameRunning = true;
 		(worker = new Thread("startGame") { public void run() {
 			init(gameView, which, savedGame);
-			if( ! gameRunning ) return;  // stopNative was called (probably user aborted)
+			if( ! gameRunning ) return;  // stopNative or abort was called
 			helpTopic = htmlHelpTopic();
 			handler.sendEmptyMessage(MsgType.DONE.ordinal());
 		}}).start();
@@ -677,7 +678,6 @@ public class SGTPuzzles extends Activity
 				break;
 			} catch (InterruptedException i) {} }
 		}
-		freeNativeResources(); // free native resources
 	}
 
 	protected void onPause()
@@ -980,7 +980,6 @@ public class SGTPuzzles extends Activity
 	native void configSetChoice(int item_ptr, int selected);
 	native void serialise();
 	native String deserialise(String s);
-	native void freeNativeResources();
 	native void crashMeHarder();
 
 	static {

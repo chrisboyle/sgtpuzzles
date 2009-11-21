@@ -589,18 +589,6 @@ void Java_name_boyle_chris_sgtpuzzles_SGTPuzzles_cancel(JNIEnv *_env, jobject _o
 	cancelled = TRUE;
 }
 
-void Java_name_boyle_chris_sgtpuzzles_SGTPuzzles_freeNativeResources(JNIEnv *_env, jobject _obj)
-{
-	if (_fe && _fe->me) {
-		midend_free(_fe->me);  // might use gameView (e.g. blitters)
-		_fe->me = NULL;
-	}
-	if (gameView) {
-		(*env)->DeleteGlobalRef(env, gameView);
-		gameView = NULL;
-	}
-}
-
 void Java_name_boyle_chris_sgtpuzzles_SGTPuzzles_crashMeHarder(JNIEnv *_env, jobject _obj)
 {
 	// Dear debuggerd, please give me a native stack trace in logcat. And a pony.
@@ -615,11 +603,15 @@ void Java_name_boyle_chris_sgtpuzzles_SGTPuzzles_init(JNIEnv *_env, jobject _obj
 	cancelled = FALSE;
 	env = _env;
 	obj = _obj;
-	Java_name_boyle_chris_sgtpuzzles_SGTPuzzles_freeNativeResources(env, obj);
-	gameView = (*env)->NewGlobalRef(env, _gameView);
-
+	if (_fe) {
+		if (_fe->me) midend_free(_fe->me);  // might use gameView (e.g. blitters)
+		sfree(_fe);
+	}
 	_fe = snew(frontend);
 	_fe->timer_active = FALSE;
+	if (gameView) (*env)->DeleteGlobalRef(env, gameView);
+	gameView = (*env)->NewGlobalRef(env, _gameView);
+
 	// Android special
 	if (whichGame >= 0) {
 		thegame = *(gamelist[whichGame]);
@@ -640,6 +632,8 @@ void Java_name_boyle_chris_sgtpuzzles_SGTPuzzles_init(JNIEnv *_env, jobject _obj
 		const char *reason = android_deserialise(gameState);
 		if (reason) {
 			(*env)->CallVoidMethod(env, obj, abortMethod, (*env)->NewStringUTF(env, reason));
+			midend_free(_fe->me);
+			_fe->me = NULL;
 			return;
 		}
 	}
