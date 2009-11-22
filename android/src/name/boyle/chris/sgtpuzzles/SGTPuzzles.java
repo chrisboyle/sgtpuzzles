@@ -464,7 +464,7 @@ public class SGTPuzzles extends Activity
 		i.putExtra(Intent.EXTRA_EMAIL, new String[]{addr, ""});
 		i.putExtra(Intent.EXTRA_SUBJECT, MessageFormat.format(c.getString(
 					isCrash ? R.string.crash_subject : R.string.email_subject),
-					getVersion(c), Build.MODEL));
+					getVersion(c), Build.MODEL, Build.FINGERPRINT));
 		i.setType("message/rfc822");
 		i.putExtra(Intent.EXTRA_TEXT, body!=null ? body : "");
 		try {
