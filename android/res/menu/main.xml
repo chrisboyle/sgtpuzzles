@@ -14,6 +14,9 @@
 		<item android:title="@string/Custom_" android:id="@+id/custom" android:visible="false" android:checkable="true" android:menuCategory="secondary" android:alphabeticShortcut="z" android:icon="@android:drawable/ic_menu_edit"/>
 	</group>
 </menu></item>
+<item android:title="@string/Solve" android:id="@+id/solve" android:enabled="false" android:alphabeticShortcut="v" android:icon="@android:drawable/ic_menu_directions"/>
+<item android:title="@string/Undo" android:id="@+id/undo" android:alphabeticShortcut="u" android:icon="@drawable/ic_menu_undo" android:visible="false"/>
+<item android:title="@string/Redo" android:id="@+id/redo" android:alphabeticShortcut="r" android:icon="@drawable/ic_menu_redo" android:visible="false"/>
 <item android:title="@string/Help" android:id="@+id/help" android:icon="@android:drawable/ic_menu_help"><menu>
 	<item android:title="@string/Contents" android:id="@+id/contents"></item>
 	<item android:title="@string/On_this_game" android:id="@+id/thisgame"></item>
@@ -21,7 +24,4 @@
 	<item android:title="@string/Email_developer" android:id="@+id/email"></item>
 	<item android:title="@string/About" android:id="@+id/about"></item>
 </menu></item>
-<item android:title="@string/Undo" android:id="@+id/undo" android:alphabeticShortcut="u" android:icon="@drawable/ic_menu_undo" android:visible="false"/>
-<item android:title="@string/Redo" android:id="@+id/redo" android:alphabeticShortcut="r" android:icon="@drawable/ic_menu_redo" android:visible="false"/>
-<item android:title="@string/Solve" android:id="@+id/solve" android:enabled="false" android:alphabeticShortcut="v" android:icon="@android:drawable/ic_menu_directions"/>
 </menu>
