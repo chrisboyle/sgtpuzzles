@@ -14,9 +14,6 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.Toast;
-import java.io.BufferedReader;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.IOException;
 import java.text.MessageFormat;
 import java.util.ArrayList;
@@ -47,7 +44,7 @@ public class CrashHandler extends Activity
 				protected Void doInBackground(Void... v) {
 					try {
 						process = Runtime.getRuntime().exec(new String[]{"logcat","-d","-v","threadtime"});
-						log = readAllOf(process.getInputStream());
+						log = SGTPuzzles.readAllOf(process.getInputStream());
 					} catch (IOException e) {
 						e.printStackTrace();
 						Toast.makeText(CrashHandler.this, e.toString(), Toast.LENGTH_LONG).show();
@@ -86,18 +83,6 @@ public class CrashHandler extends Activity
 			if (cl.isChecked()) clearState();
 			finish();
 		}});
-	}
-
-	String readAllOf(InputStream s) throws IOException
-	{
-		BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(s),8096);
-		String line;
-		StringBuilder log = new StringBuilder();
-		while ((line = bufferedReader.readLine()) != null) {
-			log.append(line);
-			log.append("\n");
-		}
-		return log.toString();
 	}
 
 	void clearState()

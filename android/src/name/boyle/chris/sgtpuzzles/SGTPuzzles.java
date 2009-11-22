@@ -1,8 +1,11 @@
 package name.boyle.chris.sgtpuzzles;
 
+import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileWriter;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.RandomAccessFile;
@@ -460,11 +463,17 @@ public class SGTPuzzles extends Activity
 	{
 		String addr = c.getString(R.string.author_email);
 		Intent i = new Intent(Intent.ACTION_SEND);
+		String modVer = "";
+		try {
+			Process p = Runtime.getRuntime().exec(new String[]{"getprop","ro.modversion"});
+			modVer = readAllOf(p.getInputStream()).trim();
+		} catch (Exception e) {}
+		if (modVer.length() == 0) modVer = "original";
 		// second empty address because of http://code.google.com/p/k9mail/issues/detail?id=589
 		i.putExtra(Intent.EXTRA_EMAIL, new String[]{addr, ""});
 		i.putExtra(Intent.EXTRA_SUBJECT, MessageFormat.format(c.getString(
 					isCrash ? R.string.crash_subject : R.string.email_subject),
-					getVersion(c), Build.MODEL, Build.FINGERPRINT));
+					getVersion(c), Build.MODEL, modVer, Build.FINGERPRINT));
 		i.setType("message/rfc822");
 		i.putExtra(Intent.EXTRA_TEXT, body!=null ? body : "");
 		try {
@@ -959,6 +968,18 @@ public class SGTPuzzles extends Activity
 		}
 		new RuntimeException("crashed here (native trace should follow after the Java trace)").printStackTrace();
 		startActivity(new Intent(this, CrashHandler.class));
+	}
+
+	static String readAllOf(InputStream s) throws IOException
+	{
+		BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(s),8096);
+		String line;
+		StringBuilder log = new StringBuilder();
+		while ((line = bufferedReader.readLine()) != null) {
+			log.append(line);
+			log.append("\n");
+		}
+		return log.toString();
 	}
 
 	native void init(GameView _gameView, int whichGame, String gameState);

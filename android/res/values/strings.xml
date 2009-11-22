@@ -37,9 +37,9 @@ Revision: %s"</string>
     <string name="author_email">chris@boyle.name</string>
     <string name="unknown_version">UNKNOWN</string>
     <!-- {0} = version, {1} = device model number -->
-    <string name="email_subject">Puzzles v{0} on {1} / {2}</string>
+    <string name="email_subject">Puzzles v{0} on {1} / {2} / {3}</string>
     <!-- Crash report dialog -->
-    <string name="crash_subject">Crash: Puzzles v{0} on {1} / {2}</string>
+    <string name="crash_subject">Crash: Puzzles v{0} on {1} / {2} / {3}</string>
     <string name="crash_preamble">Please describe what you were doing just before the crash if possible, and then press Send:</string>
     <string name="crashtitle">Well, this is embarrassing...</string>
     <string name="crashed">Sorry, Puzzles encountered a problem and had to close. Would you like to send a crash report, which may help the author to fix the problem?</string>
