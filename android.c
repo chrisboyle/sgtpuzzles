@@ -243,7 +243,7 @@ const struct drawing_api android_drawing = {
 	android_changed_state,
 };
 
-jint Java_name_boyle_chris_sgtpuzzles_SGTPuzzles_keyEvent(JNIEnv *_env, jobject _obj, jint x, jint y, jint keyval)
+jint JNICALL keyEvent(JNIEnv *_env, jobject _obj, jint x, jint y, jint keyval)
 {
 	env = _env;
 	frontend *fe = (frontend *)_fe;
@@ -255,7 +255,7 @@ jint Java_name_boyle_chris_sgtpuzzles_SGTPuzzles_keyEvent(JNIEnv *_env, jobject 
 	return 1;
 }
 
-void Java_name_boyle_chris_sgtpuzzles_SGTPuzzles_resizeEvent(JNIEnv *_env, jobject _obj, jint width, jint height)
+void JNICALL resizeEvent(JNIEnv *_env, jobject _obj, jint width, jint height)
 {
 	env = _env;
 	frontend *fe = (frontend *)_fe;
@@ -269,7 +269,7 @@ void Java_name_boyle_chris_sgtpuzzles_SGTPuzzles_resizeEvent(JNIEnv *_env, jobje
 	midend_force_redraw(fe->me);
 }
 
-void Java_name_boyle_chris_sgtpuzzles_SGTPuzzles_timerTick(JNIEnv *_env, jobject _obj)
+void JNICALL timerTick(JNIEnv *_env, jobject _obj)
 {
 	env = _env;
 	frontend *fe = (frontend *)_fe;
@@ -301,7 +301,7 @@ void activate_timer(frontend *fe)
 	fe->timer_active = TRUE;
 }
 
-void Java_name_boyle_chris_sgtpuzzles_SGTPuzzles_configSetString(JNIEnv *_env, jobject _obj, jint item_ptr, jstring s)
+void JNICALL configSetString(JNIEnv *_env, jobject _obj, jint item_ptr, jstring s)
 {
 	env = _env;
 	config_item *i = (config_item *)item_ptr;
@@ -311,21 +311,21 @@ void Java_name_boyle_chris_sgtpuzzles_SGTPuzzles_configSetString(JNIEnv *_env, j
 	(*env)->ReleaseStringUTFChars(env, s, newval);
 }
 
-void Java_name_boyle_chris_sgtpuzzles_SGTPuzzles_configSetBool(JNIEnv *_env, jobject _obj, jint item_ptr, jint selected)
+void JNICALL configSetBool(JNIEnv *_env, jobject _obj, jint item_ptr, jint selected)
 {
 	env = _env;
 	config_item *i = (config_item *)item_ptr;
 	i->ival = selected != 0 ? TRUE : FALSE;
 }
 
-void Java_name_boyle_chris_sgtpuzzles_SGTPuzzles_configSetChoice(JNIEnv *_env, jobject _obj, jint item_ptr, jint selected)
+void JNICALL configSetChoice(JNIEnv *_env, jobject _obj, jint item_ptr, jint selected)
 {
 	env = _env;
 	config_item *i = (config_item *)item_ptr;
 	i->ival = selected;
 }
 
-jint Java_name_boyle_chris_sgtpuzzles_SGTPuzzles_menuKeyEvent(JNIEnv *_env, jobject _obj, jint key)
+jint JNICALL menuKeyEvent(JNIEnv *_env, jobject _obj, jint key)
 {
 	frontend *fe = (frontend *)_fe;
 	env = _env;
@@ -342,7 +342,7 @@ static void resize_fe(frontend *fe)
 	(*env)->CallVoidMethod(env, obj, requestResize, x, y);
 }
 
-void Java_name_boyle_chris_sgtpuzzles_SGTPuzzles_presetEvent(JNIEnv *_env, jobject _obj, jint ptr_game_params)
+void JNICALL presetEvent(JNIEnv *_env, jobject _obj, jint ptr_game_params)
 {
 	frontend *fe = (frontend *)_fe;
 	game_params *params = (game_params *)ptr_game_params;
@@ -355,7 +355,7 @@ void Java_name_boyle_chris_sgtpuzzles_SGTPuzzles_presetEvent(JNIEnv *_env, jobje
 	(*env)->CallVoidMethod(env, obj, tickTypeItem, midend_which_preset(fe->me));
 }
 
-void Java_name_boyle_chris_sgtpuzzles_SGTPuzzles_solveEvent(JNIEnv *_env, jobject _obj)
+void JNICALL solveEvent(JNIEnv *_env, jobject _obj)
 {
 	frontend *fe = (frontend *)_fe;
 	char *msg;
@@ -371,14 +371,14 @@ void Java_name_boyle_chris_sgtpuzzles_SGTPuzzles_solveEvent(JNIEnv *_env, jobjec
 	}
 }
 
-void Java_name_boyle_chris_sgtpuzzles_SGTPuzzles_restartEvent(JNIEnv *_env, jobject _obj)
+void JNICALL restartEvent(JNIEnv *_env, jobject _obj)
 {
 	frontend *fe = (frontend *)_fe;
 	env = _env;
 	midend_restart_game(fe->me);
 }
 
-void Java_name_boyle_chris_sgtpuzzles_SGTPuzzles_configEvent(JNIEnv *_env, jobject _obj, jint which)
+void JNICALL configEvent(JNIEnv *_env, jobject _obj, jint which)
 {
 	env = _env;
 	frontend *fe = (frontend *)_fe;
@@ -402,7 +402,7 @@ void Java_name_boyle_chris_sgtpuzzles_SGTPuzzles_configEvent(JNIEnv *_env, jobje
 	(*env)->CallVoidMethod(env, obj, dialogShow);
 }
 
-void Java_name_boyle_chris_sgtpuzzles_SGTPuzzles_configOK(JNIEnv *_env, jobject _obj)
+void JNICALL configOK(JNIEnv *_env, jobject _obj)
 {
 	env = _env;
 	frontend *fe = (frontend *)_fe;
@@ -425,7 +425,7 @@ void Java_name_boyle_chris_sgtpuzzles_SGTPuzzles_configOK(JNIEnv *_env, jobject 
 	(*env)->CallVoidMethod(env, obj, tickTypeItem, midend_which_preset(fe->me));
 }
 
-void Java_name_boyle_chris_sgtpuzzles_SGTPuzzles_configCancel(JNIEnv *_env, jobject _obj)
+void JNICALL configCancel(JNIEnv *_env, jobject _obj)
 {
 	env = _env;
 	frontend *fe = (frontend *)_fe;
@@ -441,7 +441,7 @@ void android_serialise_write(void *ctx, void *buf, int len)
 	(*env)->DeleteLocalRef(env, bytesj);
 }
 
-void Java_name_boyle_chris_sgtpuzzles_SGTPuzzles_serialise(JNIEnv *_env, jobject _obj)
+void JNICALL serialise(JNIEnv *_env, jobject _obj)
 {
 	env = _env;
 	if (!_fe) return;
@@ -468,7 +468,7 @@ const char* android_deserialise(jstring s)
 	return ret;
 }
 
-void Java_name_boyle_chris_sgtpuzzles_SGTPuzzles_aboutEvent(JNIEnv *_env, jobject _obj)
+void JNICALL aboutEvent(JNIEnv *_env, jobject _obj)
 {
 	char titlebuf[256];
 	char textbuf[1024];
@@ -486,7 +486,7 @@ void Java_name_boyle_chris_sgtpuzzles_SGTPuzzles_aboutEvent(JNIEnv *_env, jobjec
 	return;
 }
 
-jstring Java_name_boyle_chris_sgtpuzzles_SGTPuzzles_htmlHelpTopic(JNIEnv *_env, jobject _obj)
+jstring JNICALL htmlHelpTopic(JNIEnv *_env, jobject _obj)
 {
 	env = _env;
 	return (*env)->NewStringUTF(env, thegame.htmlhelp_topic);
@@ -531,71 +531,18 @@ void android_sigaction(int signal, siginfo_t *info, void *reserved)
 	old_sa[signal].sa_handler(signal);
 }
 
-JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
-{
-	jclass cls, vcls;
-	if ((*jvm)->GetEnv(jvm, (void **)&env, JNI_VERSION_1_2)) return JNI_ERR;
-	cls = (*env)->FindClass(env, "name/boyle/chris/sgtpuzzles/SGTPuzzles");
-	vcls = (*env)->FindClass(env, "name/boyle/chris/sgtpuzzles/GameView");
-	abortMethod    = (*env)->GetMethodID(env, cls,  "abort", "(Ljava/lang/String;)V");
-	addTypeItem    = (*env)->GetMethodID(env, cls,  "addTypeItem", "(ILjava/lang/String;)V");
-	blitterAlloc   = (*env)->GetMethodID(env, vcls, "blitterAlloc", "(II)I");
-	blitterFree    = (*env)->GetMethodID(env, vcls, "blitterFree", "(I)V");
-	blitterLoad    = (*env)->GetMethodID(env, vcls, "blitterLoad", "(III)V");
-	blitterSave    = (*env)->GetMethodID(env, vcls, "blitterSave", "(III)V");
-	changedState   = (*env)->GetMethodID(env, cls,  "changedState", "(ZZ)V");
-	clipRect       = (*env)->GetMethodID(env, vcls, "clipRect", "(IIII)V");
-	dialogAdd      = (*env)->GetMethodID(env, cls,  "dialogAdd", "(IILjava/lang/String;Ljava/lang/String;I)V");
-	dialogInit     = (*env)->GetMethodID(env, cls,  "dialogInit", "(Ljava/lang/String;)V");
-	dialogShow     = (*env)->GetMethodID(env, cls,  "dialogShow", "()V");
-	drawCircle     = (*env)->GetMethodID(env, vcls, "drawCircle", "(IIIII)V");
-	drawLine       = (*env)->GetMethodID(env, vcls, "drawLine", "(IIIII)V");
-	drawPoly       = (*env)->GetMethodID(env, cls,  "drawPoly", "([IIIII)V");
-	drawText       = (*env)->GetMethodID(env, vcls, "drawText", "(IIIIILjava/lang/String;)V");
-	fillRect       = (*env)->GetMethodID(env, vcls, "fillRect", "(IIIII)V");
-	gameStarted    = (*env)->GetMethodID(env, cls,  "gameStarted", "(Ljava/lang/String;ZZZ[F)V");
-	getText        = (*env)->GetMethodID(env, cls,  "gettext", "(Ljava/lang/String;)Ljava/lang/String;");
-	messageBox     = (*env)->GetMethodID(env, cls,  "messageBox", "(Ljava/lang/String;Ljava/lang/String;I)V");
-	nativeCrashed  = (*env)->GetMethodID(env, cls,  "nativeCrashed", "()V");
-	postInvalidate = (*env)->GetMethodID(env, vcls, "postInvalidate", "()V");
-	requestResize  = (*env)->GetMethodID(env, cls,  "requestResize", "(II)V");
-	requestTimer   = (*env)->GetMethodID(env, cls,  "requestTimer", "(Z)V");
-	serialiseWrite = (*env)->GetMethodID(env, cls,  "serialiseWrite", "([B)V");
-	setKeys        = (*env)->GetMethodID(env, cls,  "setKeys", "(Ljava/lang/String;)V");
-	setMargins     = (*env)->GetMethodID(env, vcls, "setMargins", "(II)V");
-	setStatus      = (*env)->GetMethodID(env, cls,  "setStatus", "(Ljava/lang/String;)V");
-	tickTypeItem   = (*env)->GetMethodID(env, cls,  "tickTypeItem", "(I)V");
-	unClip         = (*env)->GetMethodID(env, vcls, "unClip", "(II)V");
-
-	// Try to catch crashes...
-	struct sigaction handler;
-	memset(&handler, 0, sizeof(sigaction));
-	handler.sa_sigaction = android_sigaction;
-	handler.sa_flags = SA_RESETHAND;
-#define CATCHSIG(X) sigaction(X, &handler, &old_sa[X])
-	CATCHSIG(SIGILL);
-	CATCHSIG(SIGABRT);
-	CATCHSIG(SIGBUS);
-	CATCHSIG(SIGFPE);
-	CATCHSIG(SIGSEGV);
-	CATCHSIG(SIGSTKFLT);
-	CATCHSIG(SIGPIPE);
-
-	return JNI_VERSION_1_2;
-}
-
-void Java_name_boyle_chris_sgtpuzzles_SGTPuzzles_cancel(JNIEnv *_env, jobject _obj)
+void cancel(JNIEnv *_env, jobject _obj)
 {
 	cancelled = TRUE;
 }
 
-void Java_name_boyle_chris_sgtpuzzles_SGTPuzzles_crashMeHarder(JNIEnv *_env, jobject _obj)
+void crashMeHarder(JNIEnv *_env, jobject _obj)
 {
 	// Dear debuggerd, please give me a native stack trace in logcat. And a pony.
 	abort();
 }
 
-void Java_name_boyle_chris_sgtpuzzles_SGTPuzzles_init(JNIEnv *_env, jobject _obj, jobject _gameView, jint whichGame, jstring gameState)
+void init(JNIEnv *_env, jobject _obj, jobject _gameView, jint whichGame, jstring gameState)
 {
 	int n;
 	float* colours;
@@ -661,4 +608,80 @@ void Java_name_boyle_chris_sgtpuzzles_SGTPuzzles_init(JNIEnv *_env, jobject _obj
 	resize_fe(_fe);
 
 	(*env)->CallVoidMethod(env, obj, tickTypeItem, midend_which_preset(_fe->me));
+}
+
+JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
+{
+	jclass cls, vcls;
+	if ((*jvm)->GetEnv(jvm, (void **)&env, JNI_VERSION_1_2)) return JNI_ERR;
+	cls = (*env)->FindClass(env, "name/boyle/chris/sgtpuzzles/SGTPuzzles");
+	vcls = (*env)->FindClass(env, "name/boyle/chris/sgtpuzzles/GameView");
+	abortMethod    = (*env)->GetMethodID(env, cls,  "abort", "(Ljava/lang/String;)V");
+	addTypeItem    = (*env)->GetMethodID(env, cls,  "addTypeItem", "(ILjava/lang/String;)V");
+	blitterAlloc   = (*env)->GetMethodID(env, vcls, "blitterAlloc", "(II)I");
+	blitterFree    = (*env)->GetMethodID(env, vcls, "blitterFree", "(I)V");
+	blitterLoad    = (*env)->GetMethodID(env, vcls, "blitterLoad", "(III)V");
+	blitterSave    = (*env)->GetMethodID(env, vcls, "blitterSave", "(III)V");
+	changedState   = (*env)->GetMethodID(env, cls,  "changedState", "(ZZ)V");
+	clipRect       = (*env)->GetMethodID(env, vcls, "clipRect", "(IIII)V");
+	dialogAdd      = (*env)->GetMethodID(env, cls,  "dialogAdd", "(IILjava/lang/String;Ljava/lang/String;I)V");
+	dialogInit     = (*env)->GetMethodID(env, cls,  "dialogInit", "(Ljava/lang/String;)V");
+	dialogShow     = (*env)->GetMethodID(env, cls,  "dialogShow", "()V");
+	drawCircle     = (*env)->GetMethodID(env, vcls, "drawCircle", "(IIIII)V");
+	drawLine       = (*env)->GetMethodID(env, vcls, "drawLine", "(IIIII)V");
+	drawPoly       = (*env)->GetMethodID(env, cls,  "drawPoly", "([IIIII)V");
+	drawText       = (*env)->GetMethodID(env, vcls, "drawText", "(IIIIILjava/lang/String;)V");
+	fillRect       = (*env)->GetMethodID(env, vcls, "fillRect", "(IIIII)V");
+	gameStarted    = (*env)->GetMethodID(env, cls,  "gameStarted", "(Ljava/lang/String;ZZZ[F)V");
+	getText        = (*env)->GetMethodID(env, cls,  "gettext", "(Ljava/lang/String;)Ljava/lang/String;");
+	messageBox     = (*env)->GetMethodID(env, cls,  "messageBox", "(Ljava/lang/String;Ljava/lang/String;I)V");
+	nativeCrashed  = (*env)->GetMethodID(env, cls,  "nativeCrashed", "()V");
+	postInvalidate = (*env)->GetMethodID(env, vcls, "postInvalidate", "()V");
+	requestResize  = (*env)->GetMethodID(env, cls,  "requestResize", "(II)V");
+	requestTimer   = (*env)->GetMethodID(env, cls,  "requestTimer", "(Z)V");
+	serialiseWrite = (*env)->GetMethodID(env, cls,  "serialiseWrite", "([B)V");
+	setKeys        = (*env)->GetMethodID(env, cls,  "setKeys", "(Ljava/lang/String;)V");
+	setMargins     = (*env)->GetMethodID(env, vcls, "setMargins", "(II)V");
+	setStatus      = (*env)->GetMethodID(env, cls,  "setStatus", "(Ljava/lang/String;)V");
+	tickTypeItem   = (*env)->GetMethodID(env, cls,  "tickTypeItem", "(I)V");
+	unClip         = (*env)->GetMethodID(env, vcls, "unClip", "(II)V");
+
+	JNINativeMethod methods[] = {
+		{ "keyEvent", "(III)I", keyEvent },
+		{ "resizeEvent", "(II)V", resizeEvent },
+		{ "timerTick", "()V", timerTick },
+		{ "configSetString", "(ILjava/lang/String;)V", configSetString },
+		{ "configSetBool", "(II)V", configSetBool },
+		{ "configSetChoice", "(II)V", configSetChoice },
+		{ "menuKeyEvent", "(I)I", menuKeyEvent },
+		{ "presetEvent", "(I)V", presetEvent },
+		{ "solveEvent", "()V", solveEvent },
+		{ "restartEvent", "()V", restartEvent },
+		{ "configEvent", "(I)V", configEvent },
+		{ "configOK", "()V", configOK },
+		{ "configCancel", "()V", configCancel },
+		{ "serialise", "()V", serialise },
+		{ "aboutEvent", "()V", aboutEvent },
+		{ "htmlHelpTopic", "()Ljava/lang/String;", htmlHelpTopic },
+		{ "cancel", "()V", cancel },
+		{ "crashMeHarder", "()V", crashMeHarder },
+		{ "init", "(Lname/boyle/chris/sgtpuzzles/GameView;ILjava/lang/String;)V", init },
+	};
+	(*env)->RegisterNatives(env, cls, methods, sizeof(methods)/sizeof(JNINativeMethod));
+
+	// Try to catch crashes...
+	struct sigaction handler;
+	memset(&handler, 0, sizeof(sigaction));
+	handler.sa_sigaction = android_sigaction;
+	handler.sa_flags = SA_RESETHAND;
+#define CATCHSIG(X) sigaction(X, &handler, &old_sa[X])
+	CATCHSIG(SIGILL);
+	CATCHSIG(SIGABRT);
+	CATCHSIG(SIGBUS);
+	CATCHSIG(SIGFPE);
+	CATCHSIG(SIGSEGV);
+	CATCHSIG(SIGSTKFLT);
+	CATCHSIG(SIGPIPE);
+
+	return JNI_VERSION_1_2;
 }
