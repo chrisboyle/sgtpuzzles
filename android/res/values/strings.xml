@@ -31,7 +31,7 @@ Translated by: nobody, this is the original English
 Revision: %s"</string>
     <!-- Things used by the Android front-end only -->
     <string name="app_name">Puzzles</string>
-    <string name="welcome">Welcome to the Android version of Simon Tatham\'s Puzzles. N.B. the trackball is easier to use than the touchscreen for most of these. For right-click, press the camera button halfway or do a long press on the touchscreen. Online help is available under Menu/Help. This project is released under the MIT license.</string>
+    <string name="welcome">Welcome to the Android version of Simon Tatham\'s Puzzles. The trackball is easier to use than the touchscreen for most of these. For right-click, do a long press. Help is available under Menu/Help. This project is released under the MIT license.</string>
     <string name="website_url">http://chris.boyle.name/projects/android-puzzles</string>
     <string name="docs_url">file:///android_asset/{0}/{1}.html</string>
     <string name="author_email">chris@boyle.name</string>
