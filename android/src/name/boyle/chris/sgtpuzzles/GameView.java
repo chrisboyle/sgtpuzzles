@@ -34,6 +34,7 @@ public class GameView extends View
 	static final int DRAG = SGTPuzzles.LEFT_DRAG - SGTPuzzles.LEFT_BUTTON,  // not bit fields, but there's a pattern
 			RELEASE = SGTPuzzles.LEFT_RELEASE - SGTPuzzles.LEFT_BUTTON;
 	static final String TAG = "GameView";
+	int keysHandled = 0;  // debug
 
 	public GameView(Context context, AttributeSet attrs)
 	{
@@ -104,7 +105,6 @@ public class GameView extends View
 	public boolean onKeyDown( int keyCode, KeyEvent event )
 	{
 		int key = 0, repeat = event.getRepeatCount();
-		Log.d(TAG,"onKeyDown "+keyCode+", "+event);
 		switch( keyCode ) {
 		case KeyEvent.KEYCODE_DPAD_UP:    key = SGTPuzzles.CURSOR_UP;    break;
 		case KeyEvent.KEYCODE_DPAD_DOWN:  key = SGTPuzzles.CURSOR_DOWN;  break;
@@ -121,6 +121,7 @@ public class GameView extends View
 			waitingSpace = true;
 			parent.handler.removeCallbacks( sendSpace );
 			parent.handler.postDelayed( sendSpace, longTimeout );
+			keysHandled++;
 			return true;
 		case KeyEvent.KEYCODE_ENTER: key = '\n'; break;
 		case KeyEvent.KEYCODE_FOCUS: case KeyEvent.KEYCODE_SPACE: key = ' '; break;
@@ -132,6 +133,7 @@ public class GameView extends View
 		if( event.isShiftPressed() ) key |= SGTPuzzles.MOD_SHFT;
 		if( event.isAltPressed() ) key |= SGTPuzzles.MOD_CTRL;
 		parent.sendKey( 0, 0, key );
+		keysHandled++;
 		return true;
 	}
 

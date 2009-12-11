@@ -671,6 +671,7 @@ public class SGTPuzzles extends Activity
 		if( typeMenu != null ) for( Integer i : gameTypes.keySet() ) typeMenu.removeItem(i);
 		gameTypes.clear();
 		gameRunning = true;
+		gameView.keysHandled = 0;
 		(worker = new Thread("startGame") { public void run() {
 			init(gameView, which, savedGame);
 			if( ! gameRunning ) return;  // stopNative or abort was called
@@ -966,8 +967,16 @@ public class SGTPuzzles extends Activity
 	{
 		if (prefs != null) {
 			try {
-				System.err.println("saved game was:\n"+prefs.getString("savedGame",""));
-			} catch(Exception e) {}
+				Log.d(TAG, "saved game was:\n"+prefs.getString("savedGame",""));
+			} catch(Exception e) {
+				Log.d(TAG, "couldn't report saved game because: "+e.toString());
+			}
+		}
+		try {
+			if (gameView == null) Log.d(TAG, "GameView is null");
+			else Log.d(TAG, "GameView has seen "+gameView.keysHandled+" keys since init");
+		} catch(Exception e) {
+			Log.d(TAG, "couldn't report key count because: "+e.toString());
 		}
 		new RuntimeException("crashed here (native trace should follow after the Java trace)").printStackTrace();
 		startActivity(new Intent(this, CrashHandler.class));
