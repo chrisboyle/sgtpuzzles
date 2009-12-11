@@ -122,6 +122,8 @@ public class SGTPuzzles extends Activity
 	Thread worker;
 	String lastKeys = "";
 	static final File storageDir = Environment.getExternalStorageDirectory();
+	// Ugly temporary hack: in custom game dialog, all text boxes are numeric, in the other two dialogs they aren't.
+	boolean configIsCustom = false;
 
 	enum MsgType { INIT, TIMER, DONE, ABORT };
 	Handler handler = new Handler() {
@@ -421,9 +423,9 @@ public class SGTPuzzles extends Activity
 		case R.id.undo:     sendKey(0, 0, 'u'); break;
 		case R.id.redo:     sendKey(0, 0, 'r'); break;
 		case R.id.solve:    solveEvent(); break;
-		case R.id.custom:   configEvent( CFG_SETTINGS ); break;
-		case R.id.specific: configEvent( CFG_DESC ); break;
-		case R.id.seed:     configEvent( CFG_SEED ); break;
+		case R.id.custom:   configIsCustom = true; configEvent( CFG_SETTINGS ); break;
+		case R.id.specific: configIsCustom = false; configEvent( CFG_DESC ); break;
+		case R.id.seed:     configIsCustom = false; configEvent( CFG_SEED ); break;
 		case R.id.about:    aboutEvent(); break;
 		case R.id.contents: showHelp("index"); break;
 		case R.id.thisgame: showHelp(helpTopic); break;
@@ -854,7 +856,8 @@ public class SGTPuzzles extends Activity
 			dialogIds.add(id);
 			EditText et = new EditText(SGTPuzzles.this);
 			// TODO: C_INT, C_UINT, C_UDOUBLE, C_DOUBLE
-			et.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL | InputType.TYPE_NUMBER_FLAG_SIGNED);
+			// Ugly temporary hack: in custom game dialog, all text boxes are numeric, in the other two dialogs they aren't.
+			if (configIsCustom) et.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL | InputType.TYPE_NUMBER_FLAG_SIGNED);
 			et.setId(id);
 			et.setText(value);
 			TextView tv = new TextView(SGTPuzzles.this);
