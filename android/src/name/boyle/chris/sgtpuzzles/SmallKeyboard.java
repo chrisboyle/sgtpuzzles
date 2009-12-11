@@ -126,7 +126,9 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 					enabled ? R.drawable.sym_keyboard_undo : R.drawable.sym_keyboard_undo_disabled);
 			k.enabled = enabled;
 			// Ugly hack for 1.5 compatibility: invalidateKey() is 1.6 and invalidate() doesn't work on KeyboardView, so try to change shift state (and claim, when asked below, that everything needs a redraw).
-			if (initDone) SmallKeyboard.this.setShifted(false);
+			if (initDone) SmallKeyboard.this.parent.runOnUiThread(new Runnable(){public void run(){
+				SmallKeyboard.this.setShifted(false);
+			}});
 		}
 		@Override
 		public List<Key> getKeys() { return mKeys; }
