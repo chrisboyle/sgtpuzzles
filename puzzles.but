@@ -1502,7 +1502,7 @@ points in the generated graph.
 \cfg{winhelp-topic}{games.blackbox}
 
 A number of balls are hidden in a rectangular arena. You have to
-deduce the positions of the balls by firing from lasers positioned at
+deduce the positions of the balls by firing lasers positioned at
 the edges of the arena and observing how their beams are deflected. 
 
 Beams will travel straight from their origin until they hit the
