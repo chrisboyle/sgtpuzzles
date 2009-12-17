@@ -1579,7 +1579,7 @@ enum { ARG_EITHER, ARG_SAVE, ARG_ID }; /* for argtype */
 static frontend *new_window(char *arg, int argtype, char **error)
 {
     frontend *fe;
-    GtkBox *vbox;
+    GtkBox *vbox, *hbox;
     GtkWidget *menubar, *menu, *menuitem;
     GdkPixmap *iconpm;
     GList *iconlist;
@@ -1665,8 +1665,12 @@ static frontend *new_window(char *arg, int argtype, char **error)
     fe->accelgroup = gtk_accel_group_new();
     gtk_window_add_accel_group(GTK_WINDOW(fe->window), fe->accelgroup);
 
+    hbox = GTK_BOX(gtk_hbox_new(FALSE, 0));
+    gtk_box_pack_start(vbox, GTK_WIDGET(hbox), FALSE, FALSE, 0);
+    gtk_widget_show(GTK_WIDGET(hbox));
+
     menubar = gtk_menu_bar_new();
-    gtk_box_pack_start(vbox, menubar, FALSE, FALSE, 0);
+    gtk_box_pack_start(hbox, menubar, TRUE, TRUE, 0);
     gtk_widget_show(menubar);
 
     menuitem = gtk_menu_item_new_with_mnemonic("_Game");
@@ -1760,9 +1764,11 @@ static frontend *new_window(char *arg, int argtype, char **error)
     gtk_signal_connect(GTK_OBJECT(menuitem), "activate",
 		       GTK_SIGNAL_FUNC(menu_save_event), fe);
     gtk_widget_show(menuitem);
+#ifndef STYLUS_BASED
     add_menu_separator(GTK_CONTAINER(menu));
     add_menu_item_with_key(fe, GTK_CONTAINER(menu), "Undo", 'u');
     add_menu_item_with_key(fe, GTK_CONTAINER(menu), "Redo", 'r');
+#endif
     if (thegame.can_format_as_text_ever) {
 	add_menu_separator(GTK_CONTAINER(menu));
 	menuitem = gtk_menu_item_new_with_label("Copy");
@@ -1797,6 +1803,42 @@ static frontend *new_window(char *arg, int argtype, char **error)
     gtk_signal_connect(GTK_OBJECT(menuitem), "activate",
 		       GTK_SIGNAL_FUNC(menu_about_event), fe);
     gtk_widget_show(menuitem);
+
+#ifdef STYLUS_BASED
+    menuitem=gtk_button_new_with_mnemonic("_Redo");
+    gtk_object_set_data(GTK_OBJECT(menuitem), "user-data",
+			GINT_TO_POINTER((int)('r')));
+    gtk_signal_connect(GTK_OBJECT(menuitem), "clicked",
+		       GTK_SIGNAL_FUNC(menu_key_event), fe);
+    gtk_box_pack_end(hbox, menuitem, FALSE, FALSE, 0);
+    gtk_widget_show(menuitem);
+
+    menuitem=gtk_button_new_with_mnemonic("_Undo");
+    gtk_object_set_data(GTK_OBJECT(menuitem), "user-data",
+			GINT_TO_POINTER((int)('u')));
+    gtk_signal_connect(GTK_OBJECT(menuitem), "clicked",
+		       GTK_SIGNAL_FUNC(menu_key_event), fe);
+    gtk_box_pack_end(hbox, menuitem, FALSE, FALSE, 0);
+    gtk_widget_show(menuitem);
+
+    if (thegame.flags & REQUIRE_NUMPAD) {
+	hbox = GTK_BOX(gtk_hbox_new(FALSE, 0));
+	gtk_box_pack_start(vbox, GTK_WIDGET(hbox), FALSE, FALSE, 0);
+	gtk_widget_show(GTK_WIDGET(hbox));
+
+	*((int*)errbuf)=0;
+	errbuf[1]='\0';
+	for(errbuf[0]='0';errbuf[0]<='9';errbuf[0]++) {
+	    menuitem=gtk_button_new_with_label(errbuf);
+	    gtk_object_set_data(GTK_OBJECT(menuitem), "user-data",
+				GINT_TO_POINTER((int)(errbuf[0])));
+	    gtk_signal_connect(GTK_OBJECT(menuitem), "clicked",
+			       GTK_SIGNAL_FUNC(menu_key_event), fe);
+	    gtk_box_pack_start(hbox, menuitem, TRUE, TRUE, 0);
+	    gtk_widget_show(menuitem);
+	}
+    }
+#endif /* STYLUS_BASED */
 
     changed_preset(fe);
 
