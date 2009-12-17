@@ -1869,11 +1869,19 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
         if (flags & F_BLACK)
             return nullret;
         if (action == FLIP_LIGHT) {
+#ifdef STYLUS_BASED
+            if (flags & F_IMPOSSIBLE || flags & F_LIGHT) c = 'I'; else c = 'L';
+#else
             if (flags & F_IMPOSSIBLE) return nullret;
             c = 'L';
+#endif
         } else {
+#ifdef STYLUS_BASED
+            if (flags & F_IMPOSSIBLE || flags & F_LIGHT) c = 'L'; else c = 'I';
+#else
             if (flags & F_LIGHT) return nullret;
             c = 'I';
+#endif
         }
         sprintf(buf, "%c%d,%d", (int)c, cx, cy);
         break;
