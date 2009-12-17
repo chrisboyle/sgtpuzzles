@@ -2066,7 +2066,7 @@ static void tile_redraw(drawing *dr, game_drawstate *ds, game_state *state,
         draw_rect(dr, dx, dy, TILE_SIZE, TILE_SIZE, COL_BLACK);
         if (ds_flags & DF_NUMBERED) {
             int ccol = (ds_flags & DF_NUMBERWRONG) ? COL_ERROR : COL_LIGHT;
-            char str[10];
+            char str[32];
 
             /* We know that this won't change over the course of the game
              * so it's OK to ignore this when calculating whether or not
@@ -2214,7 +2214,7 @@ static void game_print(drawing *dr, game_state *state, int tilesize)
 	    if (ds_flags & DF_BLACK) {
 		draw_rect(dr, dx, dy, TILE_SIZE, TILE_SIZE, ink);
 		if (ds_flags & DF_NUMBERED) {
-		    char str[10];
+		    char str[32];
 		    sprintf(str, "%d", GRID(state, lights, x, y));
 		    draw_text(dr, dx + TILE_SIZE/2, dy + TILE_SIZE/2,
 			      FONT_VARIABLE, TILE_SIZE*3/5,

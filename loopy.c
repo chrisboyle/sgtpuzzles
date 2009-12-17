@@ -3609,7 +3609,7 @@ static void game_print(drawing *dr, game_state *state, int tilesize)
     game_drawstate ads, *ds = &ads;
     grid *g = state->game_grid;
 
-    game_set_size(dr, ds, NULL, tilesize);
+    ds->tilesize = tilesize;
 
     for (i = 0; i < g->num_dots; i++) {
         int x, y;

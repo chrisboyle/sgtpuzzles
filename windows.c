@@ -3397,6 +3397,7 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
 	DispatchMessage(&msg);
     }
 
+    DestroyWindow(fe->hwnd);
     cleanup_help();
 
     return msg.wParam;
