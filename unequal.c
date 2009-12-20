@@ -392,7 +392,7 @@ static char n2c(digit n, int order) {
 static int c2n(int c, int order) {
     if (c < 0 || c > 0xff)
         return -1;
-    if (c == ' ' || c == '\010' || c == '\177')
+    if (c == ' ' || c == '\b')
         return 0;
     if (order < 10) {
         if (c >= '1' && c <= '9')

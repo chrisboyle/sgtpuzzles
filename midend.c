@@ -753,6 +753,15 @@ int midend_process_key(midend *me, int x, int y, int button)
       button = CURSOR_SELECT2;
 
     /*
+     * Normalise both backspace characters (8 and 127) to \b. Easier
+     * to do this once, here, than to require all front ends to
+     * carefully generate the same one - now each front end can
+     * generate whichever is easiest.
+     */
+    if (button == '\177')
+	button = '\b';
+
+    /*
      * Now send on the event we originally received.
      */
     ret = ret && midend_really_process_key(me, x, y, button);
