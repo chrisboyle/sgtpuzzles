@@ -303,6 +303,9 @@ void shuffle(void *array, int nelts, int eltsize, random_state *rs);
 void draw_rect_outline(drawing *dr, int x, int y, int w, int h,
                        int colour);
 
+/* Draw a set of rectangle corners (e.g. for a cursor display). */
+void draw_rect_corners(drawing *dr, int cx, int cy, int r, int col);
+
 void move_cursor(int button, int *x, int *y, int maxw, int maxh, int wrap);
 
 /* Used in netslide.c and sixteen.c for cursor movement around edge. */

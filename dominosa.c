@@ -951,13 +951,21 @@ static char *game_text_format(game_state *state)
     return NULL;
 }
 
+struct game_ui {
+    int cur_x, cur_y, cur_visible;
+};
+
 static game_ui *new_ui(game_state *state)
 {
-    return NULL;
+    game_ui *ui = snew(game_ui);
+    ui->cur_x = ui->cur_y = 0;
+    ui->cur_visible = 0;
+    return ui;
 }
 
 static void free_ui(game_ui *ui)
 {
+    sfree(ui);
 }
 
 static char *encode_ui(game_ui *ui)
@@ -972,6 +980,8 @@ static void decode_ui(game_ui *ui, char *encoding)
 static void game_changed_state(game_ui *ui, game_state *oldstate,
                                game_state *newstate)
 {
+    if (!oldstate->completed && newstate->completed)
+        ui->cur_visible = 0;
 }
 
 #define PREFERRED_TILESIZE 32
@@ -980,6 +990,7 @@ static void game_changed_state(game_ui *ui, game_state *oldstate,
 #define DOMINO_GUTTER (TILESIZE / 16)
 #define DOMINO_RADIUS (TILESIZE / 8)
 #define DOMINO_COFFSET (DOMINO_GUTTER + DOMINO_RADIUS)
+#define CURSOR_RADIUS (TILESIZE / 4)
 
 #define COORD(x) ( (x) * TILESIZE + BORDER )
 #define FROMCOORD(x) ( ((x) - BORDER + TILESIZE) / TILESIZE - 1 )
@@ -1033,7 +1044,31 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
             (state->grid[d1] != d1 || state->grid[d2] != d2))
             return NULL;
 
+        ui->cur_visible = 0;
         sprintf(buf, "%c%d,%d", (int)(button == RIGHT_BUTTON ? 'E' : 'D'), d1, d2);
+        return dupstr(buf);
+    } else if (IS_CURSOR_MOVE(button)) {
+	ui->cur_visible = 1;
+
+        move_cursor(button, &ui->cur_x, &ui->cur_y, 2*w-1, 2*h-1, 0);
+
+	return "";
+    } else if (IS_CURSOR_SELECT(button)) {
+        int d1, d2;
+
+	if (!((ui->cur_x ^ ui->cur_y) & 1))
+	    return NULL;	       /* must have exactly one dimension odd */
+	d1 = (ui->cur_y / 2) * w + (ui->cur_x / 2);
+	d2 = ((ui->cur_y+1) / 2) * w + ((ui->cur_x+1) / 2);
+
+        /*
+         * We can't mark an edge next to any domino.
+         */
+        if (button == CURSOR_SELECT2 &&
+            (state->grid[d1] != d1 || state->grid[d2] != d2))
+            return NULL;
+
+        sprintf(buf, "%c%d,%d", (int)(button == CURSOR_SELECT2 ? 'E' : 'D'), d1, d2);
         return dupstr(buf);
     }
 
@@ -1236,7 +1271,7 @@ static float *game_colours(frontend *fe, int *ncolours)
     ret[COL_DOMINOTEXT * 3 + 1] = 1.0F;
     ret[COL_DOMINOTEXT * 3 + 2] = 1.0F;
 
-    ret[COL_EDGE * 3 + 0] = ret[COL_BACKGROUND * 3 + 0] * 2 / 3; 
+    ret[COL_EDGE * 3 + 0] = ret[COL_BACKGROUND * 3 + 0] * 2 / 3;
     ret[COL_EDGE * 3 + 1] = ret[COL_BACKGROUND * 3 + 1] * 2 / 3;
     ret[COL_EDGE * 3 + 2] = ret[COL_BACKGROUND * 3 + 2] * 2 / 3;
 
@@ -1275,6 +1310,24 @@ enum {
     TYPE_MASK = 0x0F
 };
 
+/* These flags must be disjoint with:
+   * the above enum (TYPE_*)    [0x000 -- 0x00F]
+   * EDGE_*                     [0x100 -- 0xF00]
+ * and must fit into an unsigned long (32 bits).
+ */
+#define DF_FLASH        0x40
+#define DF_CLASH        0x80
+
+#define DF_CURSOR        0x01000
+#define DF_CURSOR_USEFUL 0x02000
+#define DF_CURSOR_XBASE  0x10000
+#define DF_CURSOR_XMASK  0x30000
+#define DF_CURSOR_YBASE  0x40000
+#define DF_CURSOR_YMASK  0xC0000
+
+#define CEDGE_OFF       (TILESIZE / 8)
+#define IS_EMPTY(s,x,y) ((s)->grid[(y)*(s)->w+(x)] == ((y)*(s)->w+(x)))
+
 static void draw_tile(drawing *dr, game_drawstate *ds, game_state *state,
                       int x, int y, int type)
 {
@@ -1284,6 +1337,7 @@ static void draw_tile(drawing *dr, game_drawstate *ds, game_state *state,
     char str[80];
     int flags;
 
+    clip(dr, cx, cy, TILESIZE, TILESIZE);
     draw_rect(dr, cx, cy, TILESIZE, TILESIZE, COL_BACKGROUND);
 
     flags = type &~ TYPE_MASK;
@@ -1300,13 +1354,13 @@ static void draw_tile(drawing *dr, game_drawstate *ds, game_state *state,
          *  - a slight shift in the number
          */
 
-        if (flags & 0x80)
+        if (flags & DF_CLASH)
             bg = COL_DOMINOCLASH;
         else
             bg = COL_DOMINO;
         nc = COL_DOMINOTEXT;
 
-        if (flags & 0x40) {
+        if (flags & DF_FLASH) {
             int tmp = nc;
             nc = bg;
             bg = tmp;
@@ -1360,11 +1414,23 @@ static void draw_tile(drawing *dr, game_drawstate *ds, game_state *state,
         nc = COL_TEXT;
     }
 
+    if (flags & DF_CURSOR) {
+	int curx = ((flags & DF_CURSOR_XMASK) / DF_CURSOR_XBASE) & 3;
+	int cury = ((flags & DF_CURSOR_YMASK) / DF_CURSOR_YBASE) & 3;
+	int ox = cx + curx*TILESIZE/2;
+	int oy = cy + cury*TILESIZE/2;
+
+	draw_rect_corners(dr, ox, oy, CURSOR_RADIUS, nc);
+        if (flags & DF_CURSOR_USEFUL)
+	    draw_rect_corners(dr, ox, oy, CURSOR_RADIUS+1, nc);
+    }
+
     sprintf(str, "%d", state->numbers->numbers[y*w+x]);
     draw_text(dr, cx+TILESIZE/2, cy+TILESIZE/2, FONT_VARIABLE, TILESIZE/2,
               ALIGN_HCENTRE | ALIGN_VCENTRE, nc, str);
 
     draw_update(dr, cx, cy, TILESIZE, TILESIZE);
+    unclip(dr);
 }
 
 static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
@@ -1425,13 +1491,25 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
                 n2 = state->numbers->numbers[state->grid[n]];
                 di = DINDEX(n1, n2);
                 if (used[di] > 1)
-                    c |= 0x80;         /* highlight a clash */
+                    c |= DF_CLASH;         /* highlight a clash */
             } else {
                 c |= state->edges[n];
             }
 
             if (flashtime != 0)
-                c |= 0x40;             /* we're flashing */
+                c |= DF_FLASH;             /* we're flashing */
+
+            if (ui->cur_visible) {
+		unsigned curx = (unsigned)(ui->cur_x - (2*x-1));
+		unsigned cury = (unsigned)(ui->cur_y - (2*y-1));
+		if (curx < 3 && cury < 3) {
+		    c |= (DF_CURSOR |
+			  (curx * DF_CURSOR_XBASE) |
+			  (cury * DF_CURSOR_YBASE));
+                    if ((ui->cur_x ^ ui->cur_y) & 1)
+                        c |= DF_CURSOR_USEFUL;
+                }
+            }
 
 	    if (ds->visible[n] != c) {
 		draw_tile(dr, ds, state, x, y, c);

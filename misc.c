@@ -244,6 +244,18 @@ void draw_rect_outline(drawing *dr, int x, int y, int w, int h, int colour)
     draw_polygon(dr, coords, 4, -1, colour);
 }
 
+void draw_rect_corners(drawing *dr, int cx, int cy, int r, int col)
+{
+    draw_line(dr, cx - r, cy - r, cx - r, cy - r/2, col);
+    draw_line(dr, cx - r, cy - r, cx - r/2, cy - r, col);
+    draw_line(dr, cx - r, cy + r, cx - r, cy + r/2, col);
+    draw_line(dr, cx - r, cy + r, cx - r/2, cy + r, col);
+    draw_line(dr, cx + r, cy - r, cx + r, cy - r/2, col);
+    draw_line(dr, cx + r, cy - r, cx + r/2, cy - r, col);
+    draw_line(dr, cx + r, cy + r, cx + r, cy + r/2, col);
+    draw_line(dr, cx + r, cy + r, cx + r/2, cy + r, col);
+}
+
 void move_cursor(int button, int *x, int *y, int maxw, int maxh, int wrap)
 {
     int dx = 0, dy = 0;
