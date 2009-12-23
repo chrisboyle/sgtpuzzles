@@ -104,7 +104,6 @@ void latin_solver_debug(unsigned char *cube, int o);
 
 /* --- Generation and checking --- */
 
-digit *latin_generate_quick(int o, random_state *rs);
 digit *latin_generate(int o, random_state *rs);
 
 int latin_check(digit *sq, int order); /* !0 => not a latin square */
