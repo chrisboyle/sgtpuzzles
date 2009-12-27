@@ -16,6 +16,10 @@
  * Solver.
  */
 
+#ifdef STANDALONE_SOLVER
+int solver_show_working, solver_recurse_depth;
+#endif
+
 /*
  * Function called when we are certain that a particular square has
  * a particular number in it. The y-coordinate passed in here is

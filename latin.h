@@ -8,7 +8,7 @@ typedef unsigned char digit;
 /* --- Solver structures, definitions --- */
 
 #ifdef STANDALONE_SOLVER
-int solver_show_working, solver_recurse_depth;
+extern int solver_show_working, solver_recurse_depth;
 #endif
 
 struct latin_solver {
