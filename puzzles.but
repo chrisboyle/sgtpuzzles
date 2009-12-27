@@ -2240,21 +2240,33 @@ tightly-packed islands.
 \cfg{winhelp-topic}{games.unequal}
 
 You have a square grid; each square may contain a digit from 1 to
-the size of the grid, and some squares have greater-than signs between
+the size of the grid, and some squares have clue signs between
 them. Your aim is to fully populate the grid with numbers such that:
 
 \b Each row contains only one occurrence of each digit
 
 \b Each column contains only one occurrence of each digit
 
-\b All the greater-than signs are satisfied. 
+\b All the clue signs are satisfied. 
 
-In \q{Trivial} mode (available via the \q{Custom} game type
-selector), there are no greater-than signs; the puzzle is to solve
-the \i{Latin square} only.
+There are two modes for this game, \q{Unequal} and \q{Adjacent}.
 
-At the time of writing, this puzzle is appearing in the Guardian
-weekly under the name \q{\i{Futoshiki}}.
+In \q{Unequal} mode, the clue signs are greater-than symbols indicating one
+square's value is greater than its neighbour's. In this mode not all clues
+may be visible, particularly at higher difficulty levels. 
+
+In \q{Adjacent} mode, the clue signs are bars indicating
+one square's value is numerically adjacent (i.e. one higher or one lower)
+than its neighbour. In this mode all clues are always visible: absence of
+a bar thus means that a square's value is definitely not numerically adjacent
+to that neighbour's.  
+
+In \q{Trivial} difficulty level (available via the \q{Custom} game type
+selector), there are no greater-than signs in \q{Unequal} mode; the puzzle is
+to solve the \i{Latin square} only.
+
+At the time of writing, the \q{Unequal} mode of this puzzle is appearing in the
+Guardian weekly under the name \q{\i{Futoshiki}}.
 
 Unequal was contributed to this collection by James Harvey.
 
@@ -2304,6 +2316,10 @@ filled square.
 
 These parameters are available from the \q{Custom...} option on the
 \q{Type} menu.
+
+\dt \e{Mode}
+
+\dd Mode of the puzzle (\q{Unequal} or \q{Adjacent})
 
 \dt \e{Size (s*s)}
 
