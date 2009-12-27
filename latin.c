@@ -104,7 +104,7 @@ int latin_solver_elim(struct latin_solver *solver, int start, int step
                 vprintf(fmt, ap);
                 va_end(ap);
                 printf(":\n%*s  placing %d at (%d,%d)\n",
-                       solver_recurse_depth*4, "", n, x, YUNTRANS(y));
+                       solver_recurse_depth*4, "", n, x+1, YUNTRANS(y)+1);
             }
 #endif
             latin_solver_place(solver, x, y, n);
@@ -294,7 +294,7 @@ int latin_solver_set(struct latin_solver *solver,
 
                                     printf("%*s  ruling out %d at (%d,%d)\n",
 					   solver_recurse_depth*4, "",
-                                           pn, px, YUNTRANS(py));
+                                           pn, px+1, YUNTRANS(py)+1);
                                 }
 #endif
                                 progress = TRUE;
@@ -490,8 +490,8 @@ int latin_solver_forcing(struct latin_solver *solver,
                                     xl = xx;
                                     yl = yy;
                                     while (1) {
-                                        printf("%s(%d,%d)", sep, xl,
-                                               YUNTRANS(yl));
+                                        printf("%s(%d,%d)", sep, xl+1,
+                                               YUNTRANS(yl)+1);
                                         xl = bfsprev[yl*o+xl];
                                         if (xl < 0)
                                             break;
@@ -501,7 +501,7 @@ int latin_solver_forcing(struct latin_solver *solver,
                                     }
                                     printf("\n%*s  ruling out %d at (%d,%d)\n",
                                            solver_recurse_depth*4, "",
-                                           orign, xt, YUNTRANS(yt));
+                                           orign, xt+1, YUNTRANS(yt)+1);
                                 }
 #endif
                                 cube(xt, yt, orign) = FALSE;
@@ -584,7 +584,7 @@ int latin_solver_diff_simple(struct latin_solver *solver)
                 ret = latin_solver_elim(solver, cubepos(0,y,n), o*o
 #ifdef STANDALONE_SOLVER
 					, "positional elimination,"
-					" %d in row %d", n, YUNTRANS(y)
+					" %d in row %d", n, YUNTRANS(y)+1
 #endif
 					);
                 if (ret != 0) return ret;
@@ -598,7 +598,7 @@ int latin_solver_diff_simple(struct latin_solver *solver)
                 ret = latin_solver_elim(solver, cubepos(x,0,n), o
 #ifdef STANDALONE_SOLVER
 					, "positional elimination,"
-					" %d in column %d", n, x
+					" %d in column %d", n, x+1
 #endif
 					);
                 if (ret != 0) return ret;
@@ -612,8 +612,8 @@ int latin_solver_diff_simple(struct latin_solver *solver)
             if (!solver->grid[YUNTRANS(y)*o+x]) {
                 ret = latin_solver_elim(solver, cubepos(x,y,1), 1
 #ifdef STANDALONE_SOLVER
-					, "numeric elimination at (%d,%d)", x,
-					YUNTRANS(y)
+					, "numeric elimination at (%d,%d)",
+					x+1, YUNTRANS(y)+1
 #endif
 					);
                 if (ret != 0) return ret;
@@ -634,7 +634,7 @@ int latin_solver_diff_set(struct latin_solver *solver,
         for (y = 0; y < o; y++) {
             ret = latin_solver_set(solver, scratch, cubepos(0,y,1), o*o, 1
 #ifdef STANDALONE_SOLVER
-                                   , "set elimination, row %d", YUNTRANS(y)
+                                   , "set elimination, row %d", YUNTRANS(y)+1
 #endif
                                   );
             if (ret != 0) return ret;
@@ -645,7 +645,7 @@ int latin_solver_diff_set(struct latin_solver *solver,
         for (x = 0; x < o; x++) {
             ret = latin_solver_set(solver, scratch, cubepos(x,0,1), o, 1
 #ifdef STANDALONE_SOLVER
-                                   , "set elimination, column %d", x
+                                   , "set elimination, column %d", x+1
 #endif
                                   );
             if (ret != 0) return ret;
@@ -743,7 +743,7 @@ static int latin_solver_recurse
         if (solver_show_working) {
             char *sep = "";
             printf("%*srecursing on (%d,%d) [",
-                   solver_recurse_depth*4, "", x, y);
+                   solver_recurse_depth*4, "", x+1, y+1);
             for (i = 0; i < j; i++) {
                 printf("%s%d", sep, list[i]);
                 sep = " or ";
@@ -766,7 +766,7 @@ static int latin_solver_recurse
 #ifdef STANDALONE_SOLVER
             if (solver_show_working)
                 printf("%*sguessing %d at (%d,%d)\n",
-                       solver_recurse_depth*4, "", list[i], x, y);
+                       solver_recurse_depth*4, "", list[i], x+1, y+1);
             solver_recurse_depth++;
 #endif
 
@@ -786,7 +786,7 @@ static int latin_solver_recurse
             solver_recurse_depth--;
             if (solver_show_working) {
                 printf("%*sretracting %d at (%d,%d)\n",
-                       solver_recurse_depth*4, "", list[i], x, y);
+                       solver_recurse_depth*4, "", list[i], x+1, y+1);
             }
 #endif
             /* we recurse as deep as we can, so we should never find
