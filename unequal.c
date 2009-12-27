@@ -728,7 +728,7 @@ static int solver_adjacent_set(struct latin_solver *solver, void *vctx)
 
     for (x = 0; x < o; x++) {
         for (y = 0; y < o; y++) {
-            for (i = 0; i < o; i++) {
+            for (i = 0; i < 4; i++) {
                 int isadjacent = (GRID(ctx->state, flags, x, y) & adjthan[i].f);
 
                 nx = x + adjthan[i].dx, ny = y + adjthan[i].dy;
