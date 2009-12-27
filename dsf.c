@@ -165,7 +165,7 @@ void edsf_merge(int *dsf, int v1, int v2, int inverse)
 	 * We always make the smaller of v1 and v2 the new canonical
 	 * element. This ensures that the canonical element of any
 	 * class in this structure is always the first element in
-	 * it.
+	 * it. 'Keen' depends critically on this property.
 	 *
 	 * (Jonas Koelker previously had this code choosing which
 	 * way round to connect the trees by examining the sizes of
