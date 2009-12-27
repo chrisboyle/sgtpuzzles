@@ -1848,6 +1848,54 @@ the back end function \cw{colours()} (\k{backend-colours}).
 
 This function may be used for both drawing and printing.
 
+The character set used to encode the text passed to this function is
+specified \e{by the drawing object}, although it must be a superset
+of ASCII. If a puzzle wants to display text that is not contained in
+ASCII, it should use the \cw{text_fallback()} function
+(\k{drawing-text-fallback}) to query the drawing object for an
+appropriate representation of the characters it wants.
+
+\S{drawing-text-fallback} \cw{text_fallback()}
+
+\c char *text_fallback(drawing *dr, const char *const *strings,
+\c                     int nstrings);
+
+This function is used to request a translation of UTF-8 text into
+whatever character encoding is expected by the drawing object's
+implementation of \cw{draw_text()}.
+
+The input is a list of strings encoded in UTF-8: \cw{nstrings} gives
+the number of strings in the list, and \cw{strings[0]},
+\cw{strings[1]}, ..., \cw{strings[nstrings-1]} are the strings
+themselves.
+
+The returned string (which is dynamically allocated and must be
+freed when finished with) is derived from the first string in the
+list that the drawing object expects to be able to display reliably;
+it will consist of that string translated into the character set
+expected by \cw{draw_text()}.
+
+Drawing implementations are not required to handle anything outside
+ASCII, but are permitted to assume that \e{some} string will be
+successfully translated. So every call to this function must include
+a string somewhere in the list (presumably the last element) which
+consists of nothing but ASCII, to be used by any front end which
+cannot handle anything else.
+
+For example, if a puzzle wished to display a string including a
+multiplication sign (U+00D7 in Unicode, represented by the bytes C3
+97 in UTF-8), it might do something like this:
+
+\c static const char *const times_signs[] = { "\xC3\x97", "x" };
+\c char *times_sign = text_fallback(dr, times_signs, 2);
+\c sprintf(buffer, "%d%s%d", width, times_sign, height);
+\c draw_text(dr, x, y, font, size, align, colour, buffer);
+\c sfree(buffer);
+
+which would draw a string with a times sign in the middle on
+platforms that support it, and fall back to a simple ASCII \cq{x}
+where there was no alternative.
+
 \S{drawing-clip} \cw{clip()}
 
 \c void clip(drawing *dr, int x, int y, int w, int h);
@@ -2441,6 +2489,19 @@ as the rest of the drawing.
 Implementations of this API which do not provide printing services
 may define this function pointer to be \cw{NULL}; it will never be
 called unless printing is attempted.
+
+\S{drawingapi-text-fallback} \cw{text_fallback()}
+
+\c char *(*text_fallback)(void *handle, const char *const *strings,
+\c                        int nstrings);
+
+This function behaves exactly like the back end \cw{text_fallback()}
+function; see \k{drawing-text-fallback}.
+
+Implementations of this API which do not support any characters
+outside ASCII may define this function pointer to be \cw{NULL}, in
+which case the central code in \cw{drawing.c} will provide a default
+implementation.
 
 \H{drawingapi-frontend} The drawing API as called by the front end
 

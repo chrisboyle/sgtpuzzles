@@ -373,7 +373,7 @@ public class PuzzleApplet extends JApplet implements Runtime.CallJavaCB {
             case 7: // string
                 gg.setColor(colors[arg2]);
                 {
-                    String text = runtime.cstring(arg3);
+                    String text = runtime.utfstring(arg3);
                     Font ft = new Font((xarg3 & 0x10) != 0 ? "Monospaced" : "Dialog",
                             Font.PLAIN, 100);
                     int height100 = this.getFontMetrics(ft).getHeight();

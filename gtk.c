@@ -499,6 +499,17 @@ void gtk_end_draw(void *handle)
     }
 }
 
+#ifdef USE_PANGO
+char *gtk_text_fallback(void *handle, const char *const *strings, int nstrings)
+{
+    /*
+     * We assume Pango can cope with any UTF-8 likely to be emitted
+     * by a puzzle.
+     */
+    return dupstr(strings[0]);
+}
+#endif
+
 const struct drawing_api gtk_drawing = {
     gtk_draw_text,
     gtk_draw_rect,
@@ -516,7 +527,12 @@ const struct drawing_api gtk_drawing = {
     gtk_blitter_save,
     gtk_blitter_load,
     NULL, NULL, NULL, NULL, NULL, NULL, /* {begin,end}_{doc,page,puzzle} */
-    NULL,			       /* line_width */
+    NULL, NULL,			       /* line_width, line_dotted */
+#ifdef USE_PANGO
+    gtk_text_fallback,
+#else
+    NULL,
+#endif
 };
 
 static void destroy(GtkWidget *widget, gpointer data)

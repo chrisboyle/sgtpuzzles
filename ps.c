@@ -109,7 +109,7 @@ static void ps_draw_text(void *handle, int x, int y, int fonttype,
     y = ps->ytop - y;
     ps_setcolour(ps, colour);
     ps_printf(ps, "/%s findfont %d scalefont setfont\n",
-	      fonttype == FONT_FIXED ? "Courier" : "Helvetica",
+	      fonttype == FONT_FIXED ? "Courier-L1" : "Helvetica-L1",
 	      fontsize);
     if (align & ALIGN_VCENTRE) {
 	ps_printf(ps, "newpath 0 0 moveto (X) true charpath flattenpath"
@@ -242,6 +242,49 @@ static void ps_line_dotted(void *handle, int dotted)
     }
 }
 
+static char *ps_text_fallback(void *handle, const char *const *strings,
+			      int nstrings)
+{
+    /*
+     * We can handle anything in ISO 8859-1, and we'll manually
+     * translate it out of UTF-8 for the purpose.
+     */
+    int i, maxlen;
+    char *ret;
+
+    maxlen = 0;
+    for (i = 0; i < nstrings; i++) {
+	int len = strlen(strings[i]);
+	if (maxlen < len) maxlen = len;
+    }
+
+    ret = snewn(maxlen + 1, char);
+
+    for (i = 0; i < nstrings; i++) {
+	const char *p = strings[i];
+	char *q = ret;
+
+	while (*p) {
+	    int c = (unsigned char)*p++;
+	    if (c < 0x80) {
+		*q++ = c;	       /* ASCII */
+	    } else if ((c == 0xC2 || c == 0xC3) && (*p & 0xC0) == 0x80) {
+		*q++ = (c << 6) | (*p++ & 0x3F);   /* top half of 8859-1 */
+	    } else {
+		break;
+	    }
+	}
+
+	if (!*p) {
+	    *q = '\0';
+	    return ret;
+	}
+    }
+
+    assert(!"Should never reach here");
+    return NULL;
+}
+
 static void ps_begin_doc(void *handle, int pages)
 {
     psdata *ps = (psdata *)handle;
@@ -259,6 +302,34 @@ static void ps_begin_doc(void *handle, int pages)
     fputs("%%IncludeResource: font Helvetica\n", ps->fp);
     fputs("%%IncludeResource: font Courier\n", ps->fp);
     fputs("%%EndSetup\n", ps->fp);
+    fputs("%%BeginProlog\n", ps->fp);
+    /*
+     * Re-encode Helvetica and Courier into ISO-8859-1, which gives
+     * us times and divide signs - and also (according to the
+     * Language Reference Manual) a bonus in that the ASCII '-' code
+     * point now points to a minus sign instead of a hyphen.
+     */
+    fputs("/Helvetica findfont " /* get the font dictionary */
+	  "dup maxlength dict dup begin " /* create and open a new dict */
+	  "exch " /* move the original font to top of stack */
+	  "{1 index /FID ne {def} {pop pop} ifelse} forall "
+				       /* copy everything except FID */
+	  "/Encoding ISOLatin1Encoding def "
+			      /* set the thing we actually wanted to change */
+	  "/FontName /Helvetica-L1 def " /* set a new font name */
+	  "FontName end exch definefont" /* and define the font */
+	  "\n", ps->fp);
+    fputs("/Courier findfont " /* get the font dictionary */
+	  "dup maxlength dict dup begin " /* create and open a new dict */
+	  "exch " /* move the original font to top of stack */
+	  "{1 index /FID ne {def} {pop pop} ifelse} forall "
+				       /* copy everything except FID */
+	  "/Encoding ISOLatin1Encoding def "
+			      /* set the thing we actually wanted to change */
+	  "/FontName /Courier-L1 def " /* set a new font name */
+	  "FontName end exch definefont" /* and define the font */
+	  "\n", ps->fp);
+    fputs("%%EndProlog\n", ps->fp);
 }
 
 static void ps_begin_page(void *handle, int number)
@@ -333,6 +404,7 @@ static const struct drawing_api ps_drawing = {
     ps_end_doc,
     ps_line_width,
     ps_line_dotted,
+    ps_text_fallback,
 };
 
 psdata *ps_init(FILE *outfile, int colour)

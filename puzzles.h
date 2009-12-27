@@ -189,6 +189,7 @@ void unclip(drawing *dr);
 void start_draw(drawing *dr);
 void draw_update(drawing *dr, int x, int y, int w, int h);
 void end_draw(drawing *dr);
+char *text_fallback(drawing *dr, const char *const *strings, int nstrings);
 void status_bar(drawing *dr, char *text);
 blitter *blitter_new(drawing *dr, int w, int h);
 void blitter_free(drawing *dr, blitter *bl);
@@ -516,6 +517,8 @@ struct drawing_api {
     void (*end_doc)(void *handle);
     void (*line_width)(void *handle, float width);
     void (*line_dotted)(void *handle, int dotted);
+    char *(*text_fallback)(void *handle, const char *const *strings,
+			   int nstrings);
 };
 
 /*

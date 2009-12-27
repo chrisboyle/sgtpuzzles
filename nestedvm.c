@@ -167,6 +167,16 @@ void nestedvm_end_draw(void *handle)
     _call_java(4,2,0,0);
 }
 
+char *nestedvm_text_fallback(void *handle, const char *const *strings,
+			     int nstrings)
+{
+    /*
+     * We assume Java can cope with any UTF-8 likely to be emitted
+     * by a puzzle.
+     */
+    return dupstr(strings[0]);
+}
+
 const struct drawing_api nestedvm_drawing = {
     nestedvm_draw_text,
     nestedvm_draw_rect,
@@ -185,6 +195,7 @@ const struct drawing_api nestedvm_drawing = {
     nestedvm_blitter_load,
     NULL, NULL, NULL, NULL, NULL, NULL, /* {begin,end}_{doc,page,puzzle} */
     NULL, NULL,			       /* line_width, line_dotted */
+    nestedvm_text_fallback,
 };
 
 int jcallback_key_event(int x, int y, int keyval)
