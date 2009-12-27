@@ -87,17 +87,17 @@ struct game_state {
  */
 
 /* Steal the method from map.c for difficulty levels. */
-#define DIFFLIST(A)             \
-    A(LATIN,Trivial,t)          \
-    A(EASY,Easy,e)              \
-    A(SET,Tricky,k)             \
-    A(EXTREME,Extreme,x)        \
-    A(RECURSIVE,Recursive,r)
+#define DIFFLIST(A)               \
+    A(LATIN,Trivial,NULL,t)       \
+    A(EASY,Easy,solver_easy, e)   \
+    A(SET,Tricky,solver_set, k)   \
+    A(EXTREME,Extreme,NULL,x)     \
+    A(RECURSIVE,Recursive,NULL,r)
 
-#define ENUM(upper,title,lower) DIFF_ ## upper,
-#define TITLE(upper,title,lower) #title,
-#define ENCODE(upper,title,lower) #lower
-#define CONFIG(upper,title,lower) ":" #title
+#define ENUM(upper,title,func,lower) DIFF_ ## upper,
+#define TITLE(upper,title,func,lower) #title,
+#define ENCODE(upper,title,func,lower) #lower
+#define CONFIG(upper,title,func,lower) ":" #title
 enum { DIFFLIST(ENUM) DIFF_IMPOSSIBLE = diff_impossible, DIFF_AMBIGUOUS = diff_ambiguous, DIFF_UNFINISHED = diff_unfinished };
 static char const *const unequal_diffnames[] = { DIFFLIST(TITLE) };
 static char const unequal_diffchars[] = DIFFLIST(ENCODE);
@@ -523,88 +523,75 @@ struct solver_link {
     int len, gx, gy, lx, ly;
 };
 
-typedef struct game_solver {
-    struct latin_solver latin; /* keep first in struct! */
-
+struct solver_ctx {
     game_state *state;
 
     int nlinks, alinks;
     struct solver_link *links;
-} game_solver;
+};
 
-#if 0
-static void solver_debug(game_solver *solver, int wide)
-{
-#ifdef STANDALONE_SOLVER
-    if (solver_show_working) {
-        if (!wide)
-            game_debug(solver->state);
-        else
-            latin_solver_debug(solver->latin.cube, solver->latin.o);
-    }
-#endif
-}
-#endif
-
-static void solver_add_link(game_solver *solver,
+static void solver_add_link(struct solver_ctx *ctx,
                             int gx, int gy, int lx, int ly, int len)
 {
-    if (solver->alinks < solver->nlinks+1) {
-        solver->alinks = solver->alinks*2 + 1;
-        /*debug(("resizing solver->links, new size %d", solver->alinks));*/
-        solver->links = sresize(solver->links, solver->alinks, struct solver_link);
+    if (ctx->alinks < ctx->nlinks+1) {
+        ctx->alinks = ctx->alinks*2 + 1;
+        /*debug(("resizing ctx->links, new size %d", ctx->alinks));*/
+        ctx->links = sresize(ctx->links, ctx->alinks, struct solver_link);
     }
-    solver->links[solver->nlinks].gx = gx;
-    solver->links[solver->nlinks].gy = gy;
-    solver->links[solver->nlinks].lx = lx;
-    solver->links[solver->nlinks].ly = ly;
-    solver->links[solver->nlinks].len = len;
-    solver->nlinks++;
+    ctx->links[ctx->nlinks].gx = gx;
+    ctx->links[ctx->nlinks].gy = gy;
+    ctx->links[ctx->nlinks].lx = lx;
+    ctx->links[ctx->nlinks].ly = ly;
+    ctx->links[ctx->nlinks].len = len;
+    ctx->nlinks++;
     /*debug(("Adding new link: len %d (%d,%d) < (%d,%d), nlinks now %d",
-           len, lx, ly, gx, gy, solver->nlinks));*/
+           len, lx, ly, gx, gy, ctx->nlinks));*/
 }
 
-static game_solver *new_solver(digit *grid, game_state *state)
+static struct solver_ctx *new_ctx(game_state *state)
 {
-    game_solver *solver = snew(game_solver);
+    struct solver_ctx *ctx = snew(struct solver_ctx);
     int o = state->order;
     int i, x, y;
     unsigned int f;
 
-    latin_solver_alloc(&solver->latin, grid, o);
+    ctx->nlinks = ctx->alinks = 0;
+    ctx->links = NULL;
+    ctx->state = state;
 
-    solver->nlinks = solver->alinks = 0;
-    solver->links = NULL;
-    solver->state = state;
-
-    if (state->adjacent) return solver; /* adjacent mode doesn't use links. */
+    if (state->adjacent) return ctx; /* adjacent mode doesn't use links. */
 
     for (x = 0; x < o; x++) {
         for (y = 0; y < o; y++) {
             f = GRID(state, flags, x, y);
             for (i = 0; i < 4; i++) {
                 if (f & adjthan[i].f)
-                    solver_add_link(solver, x, y, x+adjthan[i].dx, y+adjthan[i].dy, 1);
+                    solver_add_link(ctx, x, y, x+adjthan[i].dx, y+adjthan[i].dy, 1);
             }
         }
     }
 
-    return solver;
+    return ctx;
 }
 
-static void free_solver(game_solver *solver)
+static void *clone_ctx(void *vctx)
 {
-    if (solver->links) sfree(solver->links);
-    latin_solver_free(&solver->latin);
-    sfree(solver);
+    struct solver_ctx *ctx = (struct solver_ctx *)vctx;
+    return new_ctx(ctx->state);
 }
 
-static void solver_nminmax(game_solver *usolver,
+static void free_ctx(void *vctx)
+{
+    struct solver_ctx *ctx = (struct solver_ctx *)vctx;
+    if (ctx->links) sfree(ctx->links);
+    sfree(ctx);
+}
+
+static void solver_nminmax(struct latin_solver *solver,
                            int x, int y, int *min_r, int *max_r,
                            unsigned char **ns_r)
 {
-    struct latin_solver *solver = &usolver->latin;
-    int o = usolver->latin.o, min = o, max = 0, n;
+    int o = solver->o, min = o, max = 0, n;
     unsigned char *ns;
 
     assert(x >= 0 && y >= 0 && x < o && y < o);
@@ -626,17 +613,17 @@ static void solver_nminmax(game_solver *usolver,
     if (ns_r) *ns_r = ns;
 }
 
-static int solver_links(game_solver *usolver)
+static int solver_links(struct latin_solver *solver, void *vctx)
 {
+    struct solver_ctx *ctx = (struct solver_ctx *)vctx;
     int i, j, lmin, gmax, nchanged = 0;
     unsigned char *gns, *lns;
     struct solver_link *link;
-    struct latin_solver *solver = &usolver->latin;
 
-    for (i = 0; i < usolver->nlinks; i++) {
-        link = &usolver->links[i];
-        solver_nminmax(usolver, link->gx, link->gy, NULL, &gmax, &gns);
-        solver_nminmax(usolver, link->lx, link->ly, &lmin, NULL, &lns);
+    for (i = 0; i < ctx->nlinks; i++) {
+        link = &ctx->links[i];
+        solver_nminmax(solver, link->gx, link->gy, NULL, &gmax, &gns);
+        solver_nminmax(solver, link->lx, link->ly, &lmin, NULL, &lns);
 
         for (j = 0; j < solver->o; j++) {
             /* For the 'greater' end of the link, discount all numbers
@@ -680,10 +667,10 @@ static int solver_links(game_solver *usolver)
     return nchanged;
 }
 
-static int solver_adjacent(game_solver *usolver)
+static int solver_adjacent(struct latin_solver *solver, void *vctx)
 {
-    struct latin_solver *solver = &usolver->latin;
-    int nchanged = 0, x, y, i, n, o = usolver->latin.o, nx, ny, gd;
+    struct solver_ctx *ctx = (struct solver_ctx *)vctx;
+    int nchanged = 0, x, y, i, n, o = solver->o, nx, ny, gd;
 
     /* Update possible values based on known values and adjacency clues. */
 
@@ -695,7 +682,7 @@ static int solver_adjacent(game_solver *usolver)
              * adjacent possibles reflect the adjacent/non-adjacent clue. */
 
             for (i = 0; i < 4; i++) {
-                int isadjacent = (GRID(usolver->state, flags, x, y) & adjthan[i].f);
+                int isadjacent = (GRID(ctx->state, flags, x, y) & adjthan[i].f);
 
                 nx = x + adjthan[i].dx, ny = y + adjthan[i].dy;
                 if (nx < 0 || ny < 0 || nx >= o || ny >= o)
@@ -730,10 +717,10 @@ static int solver_adjacent(game_solver *usolver)
     return nchanged;
 }
 
-static int solver_adjacent_set(game_solver *usolver)
+static int solver_adjacent_set(struct latin_solver *solver, void *vctx)
 {
-    struct latin_solver *solver = &usolver->latin;
-    int x, y, i, n, nn, o = usolver->latin.o, nx, ny, gd;
+    struct solver_ctx *ctx = (struct solver_ctx *)vctx;
+    int x, y, i, n, nn, o = solver->o, nx, ny, gd;
     int nchanged = 0, *scratch = snewn(o, int);
 
     /* Update possible values based on other possible values
@@ -742,7 +729,7 @@ static int solver_adjacent_set(game_solver *usolver)
     for (x = 0; x < o; x++) {
         for (y = 0; y < o; y++) {
             for (i = 0; i < o; i++) {
-                int isadjacent = (GRID(usolver->state, flags, x, y) & adjthan[i].f);
+                int isadjacent = (GRID(ctx->state, flags, x, y) & adjthan[i].f);
 
                 nx = x + adjthan[i].dx, ny = y + adjthan[i].dy;
                 if (nx < 0 || ny < 0 || nx >= o || ny >= o)
@@ -794,147 +781,45 @@ static int solver_adjacent_set(game_solver *usolver)
     return nchanged;
 }
 
-static int solver_grid(digit *grid, int o, int maxdiff, void *ctx)
+static int solver_easy(struct latin_solver *solver, void *vctx)
 {
-    game_state *state = (game_state *)ctx;
-    game_solver *solver;
-    struct latin_solver *lsolver;
-    struct latin_solver_scratch *scratch;
-    int ret, diff = DIFF_LATIN;
-
-    assert(maxdiff <= DIFF_RECURSIVE);
-
-    assert(state->order == o);
-    solver = new_solver(grid, state);
-
-    lsolver = &solver->latin;
-    scratch = latin_solver_new_scratch(lsolver);
-
-    while (1) {
-cont:
-        ret = latin_solver_diff_simple(lsolver);
-        if (ret < 0) {
-            diff = DIFF_IMPOSSIBLE;
-            goto got_result;
-        } else if (ret > 0) {
-            diff = max(diff, DIFF_LATIN);
-            goto cont;
-        }
-
-        if (maxdiff <= DIFF_LATIN)
-            break;
-
-        if (state->adjacent) {
-            /* Adjacent-specific: set possibles from known numbers
-             * and adjacency clues. */
-            ret = solver_adjacent(solver);
-        } else {
-            /* Unequal-specific: set possibles from chains of
-             * inequalities. */
-            ret = solver_links(solver);
-        }
-        if (ret < 0) {
-            diff = DIFF_IMPOSSIBLE;
-            goto got_result;
-        } else if (ret > 0) {
-            diff = max(diff, DIFF_EASY);
-            goto cont;
-        }
-
-        if (maxdiff <= DIFF_EASY)
-            break;
-
-        /* Row- and column-wise set elimination */
-        ret = latin_solver_diff_set(lsolver, scratch, 0);
-        if (ret < 0) {
-            diff = DIFF_IMPOSSIBLE;
-            goto got_result;
-        } else if (ret > 0) {
-            diff = max(diff, DIFF_SET);
-            goto cont;
-        }
-
-        if (state->adjacent) {
-            /* Adjacent-specific: set possibles from other possibles
-             * and adjacency clues. */
-            ret = solver_adjacent_set(solver);
-            if (ret < 0) {
-                diff = DIFF_IMPOSSIBLE;
-                goto got_result;
-            } else if (ret > 0) {
-                diff = max(diff, DIFF_SET);
-                goto cont;
-            }
-        }
-
-        if (maxdiff <= DIFF_SET)
-            break;
-
-        ret = latin_solver_diff_set(lsolver, scratch, 1);
-        if (ret < 0) {
-            diff = DIFF_IMPOSSIBLE;
-            goto got_result;
-        } else if (ret > 0) {
-            diff = max(diff, DIFF_EXTREME);
-            goto cont;
-        }
-
-        /*
-         * Forcing chains.
-         */
-        if (latin_solver_forcing(lsolver, scratch)) {
-            diff = max(diff, DIFF_EXTREME);
-            goto cont;
-        }
-
-        /*
-         * If we reach here, we have made no deductions in this
-         * iteration, so the algorithm terminates.
-         */
-        break;
-    }
-    /*
-     * Last chance: if we haven't fully solved the puzzle yet, try
-     * recursing based on guesses for a particular square. We pick
-     * one of the most constrained empty squares we can find, which
-     * has the effect of pruning the search tree as much as
-     * possible.
-     */
-    if (maxdiff == DIFF_RECURSIVE) {
-        int nsol = latin_solver_recurse(lsolver, DIFF_RECURSIVE, solver_grid, ctx);
-        if (nsol < 0) diff = DIFF_IMPOSSIBLE;
-        else if (nsol == 1) diff = DIFF_RECURSIVE;
-        else if (nsol > 1) diff = DIFF_AMBIGUOUS;
-        /* if nsol == 0 then we were complete anyway
-         * (and thus don't need to change diff) */
-    } else {
-        int cc = check_complete(grid, state, 0);
-        if (cc == -1) diff = DIFF_IMPOSSIBLE;
-        if (cc == 0) diff = DIFF_UNFINISHED;
-    }
-
-got_result:
-
-#ifdef STANDALONE_SOLVER
-    if (solver_show_working)
-        printf("%*s%s found\n",
-               solver_recurse_depth*4, "",
-               diff == DIFF_IMPOSSIBLE ? "no solution (impossible)" :
-               diff == DIFF_UNFINISHED ? "no solution (unfinished)" :
-               diff == DIFF_AMBIGUOUS ? "multiple solutions" :
-               "one solution");
-#endif
-
-    latin_solver_free_scratch(scratch);
-    memcpy(state->hints, solver->latin.cube, o*o*o);
-    free_solver(solver);
-
-    return diff;
+    struct solver_ctx *ctx = (struct solver_ctx *)vctx;
+    if (ctx->state->adjacent)
+	return solver_adjacent(solver, vctx);
+    else
+	return solver_links(solver, vctx);
 }
+
+static int solver_set(struct latin_solver *solver, void *vctx)
+{
+    struct solver_ctx *ctx = (struct solver_ctx *)vctx;
+    if (ctx->state->adjacent)
+	return solver_adjacent_set(solver, vctx);
+    else
+	return 0;
+}
+
+#define SOLVER(upper,title,func,lower) func,
+static usersolver_t const unequal_solvers[] = { DIFFLIST(SOLVER) };
 
 static int solver_state(game_state *state, int maxdiff)
 {
-    int diff = solver_grid(state->nums, state->order, maxdiff, (void*)state);
+    struct solver_ctx *ctx = new_ctx(state);
+    struct latin_solver solver;
+    int diff;
+
+    latin_solver_alloc(&solver, state->nums, state->order);
+
+    diff = latin_solver_main(&solver, maxdiff,
+			     DIFF_LATIN, DIFF_SET, DIFF_EXTREME,
+			     DIFF_EXTREME, DIFF_RECURSIVE,
+			     unequal_solvers, ctx, clone_ctx, free_ctx);
+
+    memcpy(state->hints, solver.cube, state->order*state->order*state->order);
+
+    free_ctx(ctx);
+
+    latin_solver_free(&solver);
 
     if (diff == DIFF_IMPOSSIBLE)
         return -1;
@@ -2126,17 +2011,29 @@ static void pdiff(int diff)
 
 static int solve(game_params *p, char *desc, int debug)
 {
-    game_state *st = new_game(NULL, p, desc);
+    game_state *state = new_game(NULL, p, desc);
+    struct solver_ctx *ctx = new_ctx(state);
+    struct latin_solver solver;
     int diff;
 
     solver_show_working = debug;
-    game_debug(st);
+    game_debug(state);
 
-    diff = solver_grid(st->nums, st->order, DIFF_RECURSIVE, (void*)st);
+    latin_solver_alloc(&solver, state->nums, state->order);
+
+    diff = latin_solver_main(&solver, DIFF_RECURSIVE,
+			     DIFF_LATIN, DIFF_SET, DIFF_EXTREME,
+			     DIFF_EXTREME, DIFF_RECURSIVE,
+			     unequal_solvers, ctx, clone_ctx, free_ctx);
+
+    free_ctx(ctx);
+
+    latin_solver_free(&solver);
+
     if (debug) pdiff(diff);
 
-    game_debug(st);
-    free_game(st);
+    game_debug(state);
+    free_game(state);
     return diff;
 }
 
