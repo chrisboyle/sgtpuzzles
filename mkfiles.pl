@@ -654,7 +654,7 @@ if (defined $makefiles{'vc'}) {
       "MAKEFILE = Makefile.vc\n".
       "\n".
       "# C compilation flags\n".
-      "CFLAGS = /nologo /W3 /O1 /D_WINDOWS /D_WIN32_WINDOWS=0x401 /DWINVER=0x401\n".
+      "CFLAGS = /nologo /W3 /O1 /D_WINDOWS /D_WIN32_WINDOWS=0x401 /DWINVER=0x401 /I.\n".
       "LFLAGS = /incremental:no /fixed\n".
       "\n";
     print &splitline("all:" . join "", map { " $_.exe" } &progrealnames("G:C"));
