@@ -1748,8 +1748,8 @@ static void game_free_drawstate(drawing *dr, game_drawstate *ds)
     sfree(ds);
 }
 
-void draw_tile(drawing *dr, game_drawstate *ds, struct clues *clues,
-	       int x, int y, long tile)
+static void draw_tile(drawing *dr, game_drawstate *ds, struct clues *clues,
+		      int x, int y, long tile)
 {
     int w = clues->w /* , a = w*w */;
     int tx, ty, tw, th;

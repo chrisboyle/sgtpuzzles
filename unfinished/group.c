@@ -1316,8 +1316,8 @@ static void game_free_drawstate(drawing *dr, game_drawstate *ds)
     sfree(ds);
 }
 
-void draw_tile(drawing *dr, game_drawstate *ds, int x, int y, long tile,
-	       long pencil, long error)
+static void draw_tile(drawing *dr, game_drawstate *ds, int x, int y, long tile,
+		      long pencil, long error)
 {
     int w = ds->w /* , a = w*w */;
     int tx, ty, tw, th;
