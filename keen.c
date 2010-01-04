@@ -281,8 +281,8 @@ static int solver_common(struct latin_solver *solver, void *vctx, int diff)
     for (box = 0; box < ctx->nboxes; box++) {
 	int *sq = ctx->boxlist + ctx->boxes[box];
 	int n = ctx->boxes[box+1] - ctx->boxes[box];
-	int value = ctx->clues[box] & ~CMASK;
-	int op = ctx->clues[box] & CMASK;
+	long value = ctx->clues[box] & ~CMASK;
+	long op = ctx->clues[box] & CMASK;
 
 	if (diff == DIFF_HARD) {
 	    for (i = 0; i < n; i++)
