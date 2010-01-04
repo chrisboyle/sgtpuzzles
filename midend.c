@@ -156,6 +156,15 @@ midend *midend_new(frontend *fe, const game *ourgame,
     return me;
 }
 
+static void midend_purge_states(midend *me)
+{
+    while (me->nstates > me->statepos) {
+        me->ourgame->free_game(me->states[--me->nstates].state);
+        if (me->states[me->nstates].movestr)
+            sfree(me->states[me->nstates].movestr);
+    }
+}
+
 static void midend_free_game(midend *me)
 {
     while (me->nstates > 0) {
@@ -511,8 +520,7 @@ void midend_restart_game(midend *me)
      * Now enter the restarted state as the next move.
      */
     midend_stop_anim(me);
-    while (me->nstates > me->statepos)
-	me->ourgame->free_game(me->states[--me->nstates].state);
+    midend_purge_states(me);
     ensure(me);
     me->states[me->nstates].state = s;
     me->states[me->nstates].movestr = dupstr(me->desc);
@@ -587,8 +595,7 @@ static int midend_really_process_key(midend *me, int x, int y, int button)
             goto done;
         } else if (s) {
 	    midend_stop_anim(me);
-            while (me->nstates > me->statepos)
-                me->ourgame->free_game(me->states[--me->nstates].state);
+            midend_purge_states(me);
             ensure(me);
             assert(movestr != NULL);
             me->states[me->nstates].state = s;
@@ -1292,11 +1299,7 @@ char *midend_solve(midend *me)
      * Now enter the solved state as the next move.
      */
     midend_stop_anim(me);
-    while (me->nstates > me->statepos) {
-	me->ourgame->free_game(me->states[--me->nstates].state);
-        if (me->states[me->nstates].movestr)
-            sfree(me->states[me->nstates].movestr);
-    }
+    midend_purge_states(me);
     ensure(me);
     me->states[me->nstates].state = s;
     me->states[me->nstates].movestr = movestr;
