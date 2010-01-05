@@ -24,17 +24,6 @@
  * 	 (e.g. a group of order divisible by 5 must contain an
  * 	 element of order 5), but I think in fact this is probably
  * 	 silly.
- *
- *  - a mode which shuffles the identity element into the mix
- *    instead of keeping it clearly shown for you?
- *     * shuffle more fully during table generation
- *     * start clue removal by clearing the identity row and column
- * 	 completely, or else it'll be totally obvious where it is
- *     * have to print the group elements outside the grid
- *     * new_ui should start the cursor at 0,0 not 1,1, and cursor
- * 	 should not be constrained to x,y >= 1
- *     * get rid of the COL_IDENTITY highlights
- *     * will we need more checks in check_errors?
  */
 
 #include <stdio.h>
@@ -68,7 +57,6 @@ static char const group_diffchars[] = DIFFLIST(ENCODE);
 
 enum {
     COL_BACKGROUND,
-    COL_IDENTITY,
     COL_GRID,
     COL_USER,
     COL_HIGHLIGHT,
@@ -84,7 +72,7 @@ enum {
 #define TOCHAR(c) ((c)>=10 ? (c)-10+'a' : (c)+'0')
 
 struct game_params {
-    int w, diff;
+    int w, diff, id;
 };
 
 struct game_state {
@@ -101,13 +89,19 @@ static game_params *default_params(void)
 
     ret->w = 6;
     ret->diff = DIFF_NORMAL;
+    ret->id = TRUE;
 
     return ret;
 }
 
 const static struct game_params group_presets[] = {
-    {  4, DIFF_NORMAL         },
-    {  6, DIFF_NORMAL         },
+    {  6, DIFF_NORMAL, TRUE },
+    {  6, DIFF_NORMAL, FALSE },
+    {  6, DIFF_HARD, TRUE },
+    {  6, DIFF_HARD, FALSE },
+    {  8, DIFF_NORMAL, TRUE },
+    {  8, DIFF_NORMAL, FALSE },
+    { 12, DIFF_NORMAL, TRUE },
 };
 
 static int game_fetch_preset(int i, char **name, game_params **params)
@@ -121,7 +115,8 @@ static int game_fetch_preset(int i, char **name, game_params **params)
     ret = snew(game_params);
     *ret = group_presets[i]; /* structure copy */
 
-    sprintf(buf, "%dx%d %s", ret->w, ret->w, group_diffnames[ret->diff]);
+    sprintf(buf, "%dx%d %s%s", ret->w, ret->w, group_diffnames[ret->diff],
+	    ret->id ? "" : ", identity hidden");
 
     *name = dupstr(buf);
     *params = ret;
@@ -146,18 +141,24 @@ static void decode_params(game_params *params, char const *string)
 
     params->w = atoi(p);
     while (*p && isdigit((unsigned char)*p)) p++;
+    params->diff = DIFF_NORMAL;
+    params->id = TRUE;
 
-    if (*p == 'd') {
-        int i;
-        p++;
-        params->diff = DIFFCOUNT+1; /* ...which is invalid */
-        if (*p) {
-            for (i = 0; i < DIFFCOUNT; i++) {
-                if (*p == group_diffchars[i])
-                    params->diff = i;
-            }
-            p++;
-        }
+    while (*p) {
+	if (*p == 'd') {
+	    int i;
+	    p++;
+	    params->diff = DIFFCOUNT+1; /* ...which is invalid */
+	    if (*p) {
+		for (i = 0; i < DIFFCOUNT; i++) {
+		    if (*p == group_diffchars[i])
+			params->diff = i;
+		}
+		p++;
+	    }
+	} else if (*p == 'i') {
+	    params->id = FALSE;
+	}
     }
 }
 
@@ -168,6 +169,8 @@ static char *encode_params(game_params *params, int full)
     sprintf(ret, "%d", params->w);
     if (full)
         sprintf(ret + strlen(ret), "d%c", group_diffchars[params->diff]);
+    if (!params->id)
+        sprintf(ret + strlen(ret), "i");
 
     return dupstr(ret);
 }
@@ -177,7 +180,7 @@ static config_item *game_configure(game_params *params)
     config_item *ret;
     char buf[80];
 
-    ret = snewn(3, config_item);
+    ret = snewn(4, config_item);
 
     ret[0].name = "Grid size";
     ret[0].type = C_STRING;
@@ -190,10 +193,15 @@ static config_item *game_configure(game_params *params)
     ret[1].sval = DIFFCONFIG;
     ret[1].ival = params->diff;
 
-    ret[2].name = NULL;
-    ret[2].type = C_END;
+    ret[2].name = "Show identity";
+    ret[2].type = C_BOOLEAN;
     ret[2].sval = NULL;
-    ret[2].ival = 0;
+    ret[2].ival = params->id;
+
+    ret[3].name = NULL;
+    ret[3].type = C_END;
+    ret[3].sval = NULL;
+    ret[3].ival = 0;
 
     return ret;
 }
@@ -204,6 +212,7 @@ static game_params *custom_params(config_item *cfg)
 
     ret->w = atoi(cfg[0].sval);
     ret->diff = cfg[1].ival;
+    ret->id = cfg[2].ival;
 
     return ret;
 }
@@ -642,24 +651,44 @@ done
 	}
 	/* That's got the canonical table. Now shuffle it. */
 	for (i = 0; i < w; i++)
-	    grid[i] = i+1;
-	shuffle(grid+1, w-1, sizeof(*grid), rs);
-	for (i = 1; i < w; i++)
-	    for (j = 0; j < w; j++)
-		grid[(grid[i]-1)*w+(grid[j]-1)] = grid[soln[i*w+j]-1];
+	    soln2[i] = i;
+	if (params->id)		       /* do we shuffle in the identity? */
+	    shuffle(soln2+1, w-1, sizeof(*soln2), rs);
+	else
+	    shuffle(soln2, w, sizeof(*soln2), rs);
 	for (i = 0; i < w; i++)
-	    grid[i] = i+1;
+	    for (j = 0; j < w; j++)
+		grid[(soln2[i])*w+(soln2[j])] = soln2[soln[i*w+j]-1]+1;
 
 	/*
 	 * Remove entries one by one while the puzzle is still
 	 * soluble at the appropriate difficulty level.
 	 */
 	memcpy(soln, grid, a);
+	if (!params->id) {
+	    /*
+	     * Start by blanking the entire identity row and column,
+	     * and also another row and column so that the player
+	     * can't trivially determine which element is the
+	     * identity.
+	     */
+
+	    j = 1 + random_upto(rs, w-1);  /* pick a second row/col to blank */
+	    for (i = 0; i < w; i++) {
+		grid[(soln2[0])*w+i] = grid[i*w+(soln2[0])] = 0;
+		grid[(soln2[j])*w+i] = grid[i*w+(soln2[j])] = 0;
+	    }
+
+	    memcpy(soln2, grid, a);
+	    if (solver(w, soln2, diff) > diff)
+		continue;	       /* go round again if that didn't work */
+	}
 
 	k = 0;
-	for (i = 1; i < w; i++)
-	    for (j = 1; j < w; j++)
-		indices[k++] = i*w+j;
+	for (i = (params->id ? 1 : 0); i < w; i++)
+	    for (j = (params->id ? 1 : 0); j < w; j++)
+		if (grid[i*w+j])
+		    indices[k++] = i*w+j;
 	shuffle(indices, k, sizeof(*indices), rs);
 
 	for (i = 0; i < k; i++) {
@@ -933,7 +962,7 @@ static game_ui *new_ui(game_state *state)
 {
     game_ui *ui = snew(game_ui);
 
-    ui->hx = ui->hy = 1;
+    ui->hx = ui->hy = 0;
     ui->hpencil = ui->hshow = ui->hcursor = 0;
 
     return ui;
@@ -972,9 +1001,10 @@ static void game_changed_state(game_ui *ui, game_state *oldstate,
 #define PREFERRED_TILESIZE 48
 #define TILESIZE (ds->tilesize)
 #define BORDER (TILESIZE / 2)
+#define LEGEND (TILESIZE)
 #define GRIDEXTRA max((TILESIZE / 32),1)
-#define COORD(x) ((x)*TILESIZE + BORDER)
-#define FROMCOORD(x) (((x)+(TILESIZE-BORDER)) / TILESIZE - 1)
+#define COORD(x) ((x)*TILESIZE + BORDER + LEGEND)
+#define FROMCOORD(x) (((x)+(TILESIZE-BORDER-LEGEND)) / TILESIZE - 1)
 
 #define FLASH_TIME 0.4F
 
@@ -1090,7 +1120,7 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
     tx = FROMCOORD(x);
     ty = FROMCOORD(y);
 
-    if (tx > 0 && tx < w && ty > 0 && ty < w) {
+    if (tx >= 0 && tx < w && ty >= 0 && ty < w) {
         if (button == LEFT_BUTTON) {
 	    if (tx == ui->hx && ty == ui->hy &&
 		ui->hshow && ui->hpencil == 0) {
@@ -1126,9 +1156,7 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
         }
     }
     if (IS_CURSOR_MOVE(button)) {
-	ui->hx--; ui->hy--;
-        move_cursor(button, &ui->hx, &ui->hy, w-1, w-1, 0);
-	ui->hx++; ui->hy++;
+        move_cursor(button, &ui->hx, &ui->hy, w, w, 0);
         ui->hshow = ui->hcursor = 1;
         return "";
     }
@@ -1236,7 +1264,7 @@ static game_state *execute_move(game_state *from, char *move)
  * Drawing routines.
  */
 
-#define SIZE(w) ((w) * TILESIZE + 2*BORDER)
+#define SIZE(w) ((w) * TILESIZE + 2*BORDER + LEGEND)
 
 static void game_compute_size(game_params *params, int tilesize,
 			      int *x, int *y)
@@ -1263,10 +1291,6 @@ static float *game_colours(frontend *fe, int *ncolours)
     ret[COL_GRID * 3 + 0] = 0.0F;
     ret[COL_GRID * 3 + 1] = 0.0F;
     ret[COL_GRID * 3 + 2] = 0.0F;
-
-    ret[COL_IDENTITY * 3 + 0] = 0.89F * ret[COL_BACKGROUND * 3 + 0];
-    ret[COL_IDENTITY * 3 + 1] = 0.89F * ret[COL_BACKGROUND * 3 + 1];
-    ret[COL_IDENTITY * 3 + 2] = 0.89F * ret[COL_BACKGROUND * 3 + 2];
 
     ret[COL_USER * 3 + 0] = 0.0F;
     ret[COL_USER * 3 + 1] = 0.6F * ret[COL_BACKGROUND * 3 + 1];
@@ -1324,8 +1348,8 @@ static void draw_tile(drawing *dr, game_drawstate *ds, int x, int y, long tile,
     int cx, cy, cw, ch;
     char str[64];
 
-    tx = BORDER + x * TILESIZE + 1;
-    ty = BORDER + y * TILESIZE + 1;
+    tx = BORDER + LEGEND + x * TILESIZE + 1;
+    ty = BORDER + LEGEND + y * TILESIZE + 1;
 
     cx = tx;
     cy = ty;
@@ -1336,8 +1360,7 @@ static void draw_tile(drawing *dr, game_drawstate *ds, int x, int y, long tile,
 
     /* background needs erasing */
     draw_rect(dr, cx, cy, cw, ch,
-	      (tile & DF_HIGHLIGHT) ? COL_HIGHLIGHT :
-	      (x == 0 || y == 0) ? COL_IDENTITY : COL_BACKGROUND);
+	      (tile & DF_HIGHLIGHT) ? COL_HIGHLIGHT : COL_BACKGROUND);
 
     /* pencil-mode highlight */
     if (tile & DF_HIGHLIGHT_PENCIL) {
@@ -1492,6 +1515,21 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 		  w*TILESIZE+1+GRIDEXTRA*2, w*TILESIZE+1+GRIDEXTRA*2,
 		  COL_GRID);
 
+	/*
+	 * Table legend.
+	 */
+	for (x = 0; x < w; x++) {
+	    char str[2];
+	    str[1] = '\0';
+	    str[0] = TOCHAR(x+1);
+	    draw_text(dr, COORD(x) + TILESIZE/2, BORDER + TILESIZE/2,
+		      FONT_VARIABLE, TILESIZE/2,
+		      ALIGN_VCENTRE | ALIGN_HCENTRE, COL_GRID, str);
+	    draw_text(dr, BORDER + TILESIZE/2, COORD(x) + TILESIZE/2,
+		      FONT_VARIABLE, TILESIZE/2,
+		      ALIGN_VCENTRE | ALIGN_HCENTRE, COL_GRID, str);
+	}
+
 	draw_update(dr, 0, 0, SIZE(w), SIZE(w));
 
 	ds->started = TRUE;
@@ -1571,7 +1609,6 @@ static void game_print(drawing *dr, game_state *state, int tilesize)
 {
     int w = state->par.w;
     int ink = print_mono_colour(dr, 0);
-    int ehighlight = print_grey_colour(dr, 0.90F);
     int x, y;
 
     /* Ick: fake up `ds->tilesize' for macro expansion purposes */
@@ -1579,33 +1616,41 @@ static void game_print(drawing *dr, game_state *state, int tilesize)
     game_set_size(dr, ds, NULL, tilesize);
 
     /*
-     * Highlight the identity row and column.
-     */
-    for (x = 1; x < w; x++)
-	draw_rect(dr, BORDER + x*TILESIZE, BORDER,
-		  TILESIZE, TILESIZE, ehighlight);
-    for (y = 0; y < w; y++)
-	draw_rect(dr, BORDER, BORDER + y*TILESIZE,
-		  TILESIZE, TILESIZE, ehighlight);
-
-    /*
      * Border.
      */
     print_line_width(dr, 3 * TILESIZE / 40);
-    draw_rect_outline(dr, BORDER, BORDER, w*TILESIZE, w*TILESIZE, ink);
+    draw_rect_outline(dr, BORDER + LEGEND, BORDER + LEGEND,
+		      w*TILESIZE, w*TILESIZE, ink);
+
+    /*
+     * Legend on table.
+     */
+    for (x = 0; x < w; x++) {
+	char str[2];
+	str[1] = '\0';
+	str[0] = TOCHAR(x+1);
+	draw_text(dr, BORDER+LEGEND + x*TILESIZE + TILESIZE/2,
+		  BORDER + TILESIZE/2,
+		  FONT_VARIABLE, TILESIZE/2,
+		  ALIGN_VCENTRE | ALIGN_HCENTRE, ink, str);
+	draw_text(dr, BORDER + TILESIZE/2,
+		  BORDER+LEGEND + x*TILESIZE + TILESIZE/2,
+		  FONT_VARIABLE, TILESIZE/2,
+		  ALIGN_VCENTRE | ALIGN_HCENTRE, ink, str);
+    }
 
     /*
      * Main grid.
      */
     for (x = 1; x < w; x++) {
 	print_line_width(dr, TILESIZE / 40);
-	draw_line(dr, BORDER+x*TILESIZE, BORDER,
-		  BORDER+x*TILESIZE, BORDER+w*TILESIZE, ink);
+	draw_line(dr, BORDER+LEGEND+x*TILESIZE, BORDER+LEGEND,
+		  BORDER+LEGEND+x*TILESIZE, BORDER+LEGEND+w*TILESIZE, ink);
     }
     for (y = 1; y < w; y++) {
 	print_line_width(dr, TILESIZE / 40);
-	draw_line(dr, BORDER, BORDER+y*TILESIZE,
-		  BORDER+w*TILESIZE, BORDER+y*TILESIZE, ink);
+	draw_line(dr, BORDER+LEGEND, BORDER+LEGEND+y*TILESIZE,
+		  BORDER+LEGEND+w*TILESIZE, BORDER+LEGEND+y*TILESIZE, ink);
     }
 
     /*
@@ -1617,8 +1662,8 @@ static void game_print(drawing *dr, game_state *state, int tilesize)
 		char str[2];
 		str[1] = '\0';
 		str[0] = TOCHAR(state->grid[y*w+x]);
-		draw_text(dr, BORDER + x*TILESIZE + TILESIZE/2,
-			  BORDER + y*TILESIZE + TILESIZE/2,
+		draw_text(dr, BORDER+LEGEND + x*TILESIZE + TILESIZE/2,
+			  BORDER+LEGEND + y*TILESIZE + TILESIZE/2,
 			  FONT_VARIABLE, TILESIZE/2,
 			  ALIGN_VCENTRE | ALIGN_HCENTRE, ink, str);
 	    }
