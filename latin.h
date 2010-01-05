@@ -19,6 +19,10 @@ struct latin_solver {
 
   unsigned char *row;   /* o^2: row[y*cr+n-1] TRUE if n is in row y */
   unsigned char *col;   /* o^2: col[x*cr+n-1] TRUE if n is in col x */
+
+#ifdef STANDALONE_SOLVER
+  char **names;         /* o: names[n-1] gives name of 'digit' n */
+#endif
 };
 #define cubepos(x,y,n) (((x)*solver->o+(y))*solver->o+(n)-1)
 #define cube(x,y,n) (solver->cube[cubepos(x,y,n)])
