@@ -660,7 +660,7 @@ done
 	for (i = 1; i < w; i++)
 	    for (j = 1; j < w; j++)
 		indices[k++] = i*w+j;
-	shuffle(indices, k, sizeof(indices), rs);
+	shuffle(indices, k, sizeof(*indices), rs);
 
 	for (i = 0; i < k; i++) {
 	    memcpy(soln2, grid, a);
