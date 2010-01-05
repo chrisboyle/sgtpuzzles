@@ -9,7 +9,7 @@ Print("    const struct group *groups;\n};\n\n");
 Print("static const struct group groupdata[] = {\n");
 offsets := [0];
 offset := 0;
-for n in [2..31] do
+for n in [2..26] do
   Print("    /* order ", n, " */\n");
   for G in AllSmallGroups(n) do
 
@@ -72,7 +72,7 @@ for n in [2..31] do
       fi;
       sep := "\\0";
       for i in ListPerm(x) do
-        chars := "123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        chars := "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
         Add(s, chars[i]);
       od;
     od;

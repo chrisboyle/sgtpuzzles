@@ -65,11 +65,16 @@ enum {
     NCOLOURS
 };
 
-#define FROMCHAR(c) ((c)>='0'&&(c)<='9' ? (c)-'0' : \
-			 (c)>='A'&&(c)<='Z' ? (c)-'A'+10 : (c)-'a'+10)
-#define ISCHAR(c) (((c)>='0'&&(c)<='9') || \
-		       ((c)>='A'&&(c)<='Z') || ((c)>='a'&&(c)<='z'))
-#define TOCHAR(c) ((c)>=10 ? (c)-10+'a' : (c)+'0')
+/*
+ * In identity mode, we number the elements e,a,b,c,d,f,g,h,...
+ * Otherwise, they're a,b,c,d,e,f,g,h,... in the obvious way.
+ */
+#define E_TO_FRONT(c,id) ( (id) && (c)<=5 ? (c) % 5 + 1 : (c) )
+#define E_FROM_FRONT(c,id) ( (id) && (c)<=5 ? ((c) + 3) % 5 + 1 : (c) )
+
+#define FROMCHAR(c,id) E_TO_FRONT((((c)-('A'-1)) & ~0x20), id)
+#define ISCHAR(c) (((c)>='A'&&(c)<='Z') || ((c)>='a'&&(c)<='z'))
+#define TOCHAR(c,id) (E_FROM_FRONT(c,id) + ('a'-1))
 
 struct game_params {
     int w, diff, id;
@@ -97,10 +102,10 @@ static game_params *default_params(void)
 const static struct game_params group_presets[] = {
     {  6, DIFF_NORMAL, TRUE },
     {  6, DIFF_NORMAL, FALSE },
-    {  6, DIFF_HARD, TRUE },
-    {  6, DIFF_HARD, FALSE },
     {  8, DIFF_NORMAL, TRUE },
     {  8, DIFF_NORMAL, FALSE },
+    {  8, DIFF_HARD, TRUE },
+    {  8, DIFF_HARD, FALSE },
     { 12, DIFF_NORMAL, TRUE },
 };
 
@@ -158,6 +163,10 @@ static void decode_params(game_params *params, char const *string)
 	    }
 	} else if (*p == 'i') {
 	    params->id = FALSE;
+	    p++;
+	} else {
+	    /* unrecognised character */
+	    p++;
 	}
     }
 }
@@ -219,10 +228,20 @@ static game_params *custom_params(config_item *cfg)
 
 static char *validate_params(game_params *params, int full)
 {
-    if (params->w < 3 || params->w > 31)
-        return "Grid size must be between 3 and 31";
+    if (params->w < 3 || params->w > 26)
+        return "Grid size must be between 3 and 26";
     if (params->diff >= DIFFCOUNT)
         return "Unknown difficulty rating";
+    if (!params->id && params->diff == DIFF_TRIVIAL) {
+	/*
+	 * We can't have a Trivial-difficulty puzzle (i.e. latin
+	 * square deductions only) without a clear identity, because
+	 * identityless puzzles always have two rows and two columns
+	 * entirely blank, and no latin-square deduction permits the
+	 * distinguishing of two such rows.
+	 */
+	return "Trivial puzzles must have an identity";
+    }
     return NULL;
 }
 
@@ -233,6 +252,9 @@ static char *validate_params(game_params *params, int full)
 static int solver_normal(struct latin_solver *solver, void *vctx)
 {
     int w = solver->o;
+#ifdef STANDALONE_SOLVER
+    char **names = solver->names;
+#endif
     digit *grid = solver->grid;
     int i, j, k;
 
@@ -253,13 +275,14 @@ static int solver_normal(struct latin_solver *solver, void *vctx)
 		    int n = grid[(grid[i*w+j]-1)*w+k];
 #ifdef STANDALONE_SOLVER
 		    if (solver_show_working) {
-			printf("%*sassociativity on %d,%d,%d: %d*%d = %d*%d\n",
+			printf("%*sassociativity on %s,%s,%s: %s*%s = %s*%s\n",
 			       solver_recurse_depth*4, "",
-			       i+1, j+1, k+1,
-			       grid[i*w+j], k+1, i+1, grid[j*w+k]);
-			printf("%*s  placing %d at (%d,%d)\n",
+			       names[i], names[j], names[k],
+			       names[grid[i*w+j]-1], names[k],
+			       names[i], names[grid[j*w+k]-1]);
+			printf("%*s  placing %s at (%d,%d)\n",
 			       solver_recurse_depth*4, "",
-			       n, x+1, y+1);
+			       names[n-1], x+1, y+1);
 		    }
 #endif
 		    if (solver->cube[(x*w+y)*w+n-1]) {
@@ -280,13 +303,14 @@ static int solver_normal(struct latin_solver *solver, void *vctx)
 		    int n = grid[i*w+(grid[j*w+k]-1)];
 #ifdef STANDALONE_SOLVER
 		    if (solver_show_working) {
-			printf("%*sassociativity on %d,%d,%d: %d*%d = %d*%d\n",
+			printf("%*sassociativity on %s,%s,%s: %s*%s = %s*%s\n",
 			       solver_recurse_depth*4, "",
-			       i+1, j+1, k+1,
-			       grid[i*w+j], k+1, i+1, grid[j*w+k]);
-			printf("%*s  placing %d at (%d,%d)\n",
+			       names[i], names[j], names[k],
+			       names[grid[i*w+j]-1], names[k],
+			       names[i], names[grid[j*w+k]-1]);
+			printf("%*s  placing %s at (%d,%d)\n",
 			       solver_recurse_depth*4, "",
-			       n, x+1, y+1);
+			       names[n-1], x+1, y+1);
 		    }
 #endif
 		    if (solver->cube[(x*w+y)*w+n-1]) {
@@ -309,14 +333,32 @@ static int solver_normal(struct latin_solver *solver, void *vctx)
 #define SOLVER(upper,title,func,lower) func,
 static usersolver_t const group_solvers[] = { DIFFLIST(SOLVER) };
 
-static int solver(int w, digit *grid, int maxdiff)
+static int solver(game_params *params, digit *grid, int maxdiff)
 {
+    int w = params->w;
     int ret;
-    
-    ret = latin_solver(grid, w, maxdiff,
-		       DIFF_TRIVIAL, DIFF_HARD, DIFF_EXTREME,
-		       DIFF_EXTREME, DIFF_UNREASONABLE,
-		       group_solvers, NULL, NULL, NULL);
+    struct latin_solver solver;
+#ifdef STANDALONE_SOLVER
+    char *p, text[100], *names[50];
+    int i;
+#endif
+
+    latin_solver_alloc(&solver, grid, w);
+#ifdef STANDALONE_SOLVER
+    for (i = 0, p = text; i < w; i++) {
+	names[i] = p;
+	*p++ = TOCHAR(i+1, params->id);
+	*p++ = '\0';
+    }
+    solver.names = names;
+#endif
+
+    ret = latin_solver_main(&solver, maxdiff,
+			    DIFF_TRIVIAL, DIFF_HARD, DIFF_EXTREME,
+			    DIFF_EXTREME, DIFF_UNREASONABLE,
+			    group_solvers, NULL, NULL, NULL);
+
+    latin_solver_free(&solver);
 
     return ret;
 }
@@ -376,187 +418,151 @@ struct groups {
 
 static const struct group groupdata[] = {
     /* order 2 */
-    {1L, 2, 1, "21"},
+    {1L, 2, 1, "BA"},
     /* order 3 */
-    {2L, 3, 1, "231"},
+    {2L, 3, 1, "BCA"},
     /* order 4 */
-    {2L, 4, 1, "2341"},
-    {6L, 4, 2, "2143" "3412"},
+    {2L, 4, 1, "BCDA"},
+    {6L, 4, 2, "BADC" "CDAB"},
     /* order 5 */
-    {4L, 5, 1, "23451"},
+    {4L, 5, 1, "BCDEA"},
     /* order 6 */
-    {6L, 6, 2, "365214" "214365"},
-    {2L, 6, 1, "436521"},
+    {6L, 6, 2, "CFEBAD" "BADCFE"},
+    {2L, 6, 1, "DCFEBA"},
     /* order 7 */
-    {6L, 7, 1, "2345671"},
+    {6L, 7, 1, "BCDEFGA"},
     /* order 8 */
-    {4L, 8, 1, "23564781"},
-    {8L, 8, 2, "24567183" "57284361"},
-    {8L, 8, 2, "57284361" "21563487"},
-    {24L, 8, 2, "24567183" "38472516"},
-    {168L, 8, 3, "21563487" "35172846" "46718235"},
+    {4L, 8, 1, "BCEFDGHA"},
+    {8L, 8, 2, "BDEFGAHC" "EGBHDCFA"},
+    {8L, 8, 2, "EGBHDCFA" "BAEFCDHG"},
+    {24L, 8, 2, "BDEFGAHC" "CHDGBEAF"},
+    {168L, 8, 3, "BAEFCDHG" "CEAGBHDF" "DFGAHBCE"},
     /* order 9 */
-    {6L, 9, 1, "245378691"},
-    {48L, 9, 2, "245178396" "356781924"},
+    {6L, 9, 1, "BDECGHFIA"},
+    {48L, 9, 2, "BDEAGHCIF" "CEFGHAIBD"},
     /* order 10 */
-    {20L, 10, 2, "3A52749618" "21436587A9"},
-    {4L, 10, 1, "436587A921"},
+    {20L, 10, 2, "CJEBGDIFAH" "BADCFEHGJI"},
+    {4L, 10, 1, "DCFEHGJIBA"},
     /* order 11 */
-    {10L, 11, 1, "23456789AB1"},
+    {10L, 11, 1, "BCDEFGHIJKA"},
     /* order 12 */
-    {12L, 12, 2, "7C4BA5832916" "2356179A4BC8"},
-    {4L, 12, 1, "589AB32C4761"},
-    {24L, 12, 2, "256719AB34C8" "6A2B8C574391"},
-    {12L, 12, 2, "7C4BA5832916" "2156349A78CB"},
-    {12L, 12, 2, "649A78C2B153" "794B6C83A512"},
+    {12L, 12, 2, "GLDKJEHCBIAF" "BCEFAGIJDKLH"},
+    {4L, 12, 1, "EHIJKCBLDGFA"},
+    {24L, 12, 2, "BEFGAIJKCDLH" "FJBKHLEGDCIA"},
+    {12L, 12, 2, "GLDKJEHCBIAF" "BAEFCDIJGHLK"},
+    {12L, 12, 2, "FDIJGHLBKAEC" "GIDKFLHCJEAB"},
     /* order 13 */
-    {12L, 13, 1, "23456789ABCD1"},
+    {12L, 13, 1, "BCDEFGHIJKLMA"},
     /* order 14 */
-    {42L, 14, 2, "5C7E92B4D6183A" "21436587A9CBED"},
-    {6L, 14, 1, "6587A9CBED2143"},
+    {42L, 14, 2, "ELGNIBKDMFAHCJ" "BADCFEHGJILKNM"},
+    {6L, 14, 1, "FEHGJILKNMBADC"},
     /* order 15 */
-    {8L, 15, 1, "5783AB6DE9F2C41"},
+    {8L, 15, 1, "EGHCJKFMNIOBLDA"},
     /* order 16 */
-    {8L, 16, 1, "DBEG6F1427C3958A"},
-    {96L, 16, 2, "9CB3FE6G54A87D12" "2467891BCDE3F5GA"},
-    {32L, 16, 2, "D98G643FE2C1BA75" "25678AB1CDEF34G9"},
-    {32L, 16, 2, "9613F7CD45A2EGB8" "25678AB1CDEF34G9"},
-    {16L, 16, 2, "DF8G6B39E2C14A75" "2467895BCDEAF1G3"},
-    {16L, 16, 2, "D98G64AFE2C5B371" "2467895BCDEAF1G3"},
-    {32L, 16, 2, "DF8G6439E2C5BA71" "21678345CDE9ABGF"},
-    {16L, 16, 2, "D98G6BAFE2C14375" "74G8EF5B6C2391DA"},
-    {32L, 16, 2, "D92G64AF78C5B3E1" "3C59A7DGB1F8E642"},
+    {8L, 16, 1, "MKNPFOADBGLCIEHJ"},
+    {96L, 16, 2, "ILKCONFPEDJHGMAB" "BDFGHIAKLMNCOEPJ"},
+    {32L, 16, 2, "MIHPFDCONBLAKJGE" "BEFGHJKALMNOCDPI"},
+    {32L, 16, 2, "IFACOGLMDEJBNPKH" "BEFGHJKALMNOCDPI"},
+    {16L, 16, 2, "MOHPFKCINBLADJGE" "BDFGHIEKLMNJOAPC"},
+    {16L, 16, 2, "MIHPFDJONBLEKCGA" "BDFGHIEKLMNJOAPC"},
+    {32L, 16, 2, "MOHPFDCINBLEKJGA" "BAFGHCDELMNIJKPO"},
+    {16L, 16, 2, "MIHPFKJONBLADCGE" "GDPHNOEKFLBCIAMJ"},
+    {32L, 16, 2, "MIBPFDJOGHLEKCNA" "CLEIJGMPKAOHNFDB"},
     {192L, 16, 3,
-     "D38G619AE2C45F7B" "25678AB1CDEF34G9" "7BC2EF546G8A91D3"},
-    {64L, 16, 3, "D38G619AE2C45F7B" "CF76GBA92ED54381" "3D19A8G645FE2CB7"},
+     "MCHPFAIJNBLDEOGK" "BEFGHJKALMNOCDPI" "GKLBNOEDFPHJIAMC"},
+    {64L, 16, 3, "MCHPFAIJNBLDEOGK" "LOGFPKJIBNMEDCHA" "CMAIJHPFDEONBLKG"},
     {192L, 16, 3,
-     "9GB3F7DC54A2E618" "25678AB1CDEF34G9" "3D59A2G6B1F78C4E"},
-    {48L, 16, 3, "9G4AFE6C5B327D18" "6A2CD5F378GB19E4" "4795BC8EAF1DG236"},
+     "IPKCOGMLEDJBNFAH" "BEFGHJKALMNOCDPI" "CMEIJBPFKAOGHLDN"},
+    {48L, 16, 3, "IPDJONFLEKCBGMAH" "FJBLMEOCGHPKAIND" "DGIEKLHNJOAMPBCF"},
     {20160L, 16, 4,
-     "58AB1DE2F34G679C" "21678345CDE9ABGF" "3619A2CD45F78GBE"
-     "4791BC2E3F56G8AD"},
+     "EHJKAMNBOCDPFGIL" "BAFGHCDELMNIJKPO" "CFAIJBLMDEOGHPKN"
+     "DGIAKLBNCOEFPHJM"},
     /* order 17 */
-    {16L, 17, 1, "56789ABCDEFGH1234"},
+    {16L, 17, 1, "EFGHIJKLMNOPQABCD"},
     /* order 18 */
-    {54L, 18, 2, "DB9HFGE17CI5342A86" "215634ABC789FGDEIH"},
-    {6L, 18, 1, "53AB786FG4DECI9H21"},
-    {12L, 18, 2, "53AB782FG1DE6I4HC9" "BEFGH36I5978CA1D24"},
+    {54L, 18, 2, "MKIQOPNAGLRECDBJHF" "BAEFCDJKLGHIOPMNRQ"},
+    {6L, 18, 1, "ECJKGHFOPDMNLRIQBA"},
+    {12L, 18, 2, "ECJKGHBOPAMNFRDQLI" "KNOPQCFREIGHLJAMBD"},
     {432L, 18, 3,
-     "96E1BCH34FG278I5DA" "EFH36I978BCA1DG245" "215634ABC789FGDEIH"},
-    {48L, 18, 2, "53AB782FG1DE6I4HC9" "64BC89FG2DE1I5H3A7"},
+     "IFNAKLQCDOPBGHREMJ" "NOQCFRIGHKLJAMPBDE" "BAEFCDJKLGHIOPMNRQ"},
+    {48L, 18, 2, "ECJKGHBOPAMNFRDQLI" "FDKLHIOPBMNAREQCJG"},
     /* order 19 */
-    {18L, 19, 1, "56789ABCDEFGHIJ1234"},
+    {18L, 19, 1, "EFGHIJKLMNOPQRSABCD"},
     /* order 20 */
-    {40L, 20, 2, "7K4BI58F29CJ6DG3AH1E" "5129346D78AHBCEKFGIJ"},
-    {8L, 20, 1, "589AC3DEG7HIJB2K4F61"},
-    {20L, 20, 2, "4AJ8HE3CKI7G52B196FD" "5129346D78AHBCEKFGIJ"},
-    {40L, 20, 2, "7K4BI58F29CJ6DG3AH1E" "5329176D4BAH8FEKCJIG"},
-    {24L, 20, 2, "976D4BAH8FEKCJI5G321" "649A78DEBCHIFGK2J153"},
+    {40L, 20, 2, "GTDKREHOBILSFMPCJQAN" "EABICDFMGHJQKLNTOPRS"},
+    {8L, 20, 1, "EHIJLCMNPGQRSKBTDOFA"},
+    {20L, 20, 2, "DJSHQNCLTRGPEBKAIFOM" "EABICDFMGHJQKLNTOPRS"},
+    {40L, 20, 2, "GTDKREHOBILSFMPCJQAN" "ECBIAGFMDKJQHONTLSRP"},
+    {24L, 20, 2, "IGFMDKJQHONTLSREPCBA" "FDIJGHMNKLQROPTBSAEC"},
     /* order 21 */
-    {42L, 21, 2, "9KCJ2FL5I4817B3AE6DHG" "5A8CDBFGEIJH1LK342679"},
-    {12L, 21, 1, "5783AB6DE9GHCJKFL2I41"},
+    {42L, 21, 2, "ITLSBOUERDHAGKCJNFMQP" "EJHLMKOPNRSQAUTCDBFGI"},
+    {12L, 21, 1, "EGHCJKFMNIPQLSTOUBRDA"},
     /* order 22 */
-    {110L, 22, 2, "5K7M92B4D6F8HAJCLE1G3I" "21436587A9CBEDGFIHKJML"},
-    {10L, 22, 1, "6587A9CBEDGFIHKJML2143"},
+    {110L, 22, 2, "ETGVIBKDMFOHQJSLUNAPCR" "BADCFEHGJILKNMPORQTSVU"},
+    {10L, 22, 1, "FEHGJILKNMPORQTSVUBADC"},
     /* order 23 */
-    {22L, 23, 1, "56789ABCDEFGHIJKLMN1234"},
+    {22L, 23, 1, "EFGHIJKLMNOPQRSTUVWABCD"},
     /* order 24 */
-    {24L, 24, 2, "HO5ANGLDBCI9M26KJ1378E4F" "8IEFGJN3KLM2C49AO671BHD5"},
-    {8L, 24, 1, "DH2KL4IN678OA5C9EFGBJ1M3"},
-    {24L, 24, 2, "9FHI25LM6N78BC1ODEGJ34KA" "EAOFM74BJDK69GH5C3LI2N18"},
-    {48L, 24, 2, "HL5ANMO6BCI9G7DEJ132FK48" "8JEFGNC4KLM2I91BO673H5DA"},
-    {24L, 24, 2, "HO5ANGLDBCI9M26KJ1378E4F" "KN8EOCI9FGLDJ13HM2645A7B"},
-    {48L, 24, 2, "HL5ANMO6BCI9G7DEJ132FK48" "21678345DEFG9ABCKLMHIJON"},
+    {24L, 24, 2, "QXEJWPUMKLRIVBFTSACGHNDO" "HRNOPSWCTUVBLDIJXFGAKQME"},
+    {8L, 24, 1, "MQBTUDRWFGHXJELINOPKSAVC"},
+    {24L, 24, 2, "IOQRBEUVFWGHKLAXMNPSCDTJ" "NJXOVGDKSMTFIPQELCURBWAH"},
+    {48L, 24, 2, "QUEJWVXFKLRIPGMNSACBOTDH" "HSNOPWLDTUVBRIAKXFGCQEMJ"},
+    {24L, 24, 2, "QXEJWPUMKLRIVBFTSACGHNDO" "TWHNXLRIOPUMSACQVBFDEJGK"},
+    {48L, 24, 2, "QUEJWVXFKLRIPGMNSACBOTDH" "BAFGHCDEMNOPIJKLTUVQRSXW"},
     {48L, 24, 3,
-     "HOBANMLD5JI9G76KC432FE18" "AL5HIGO6BCN3M2DEJ1978K4F"
-     "8JEFGNC4KLM2I91BO673H5DA"},
+     "QXKJWVUMESRIPGFTLDCBONAH" "JUEQRPXFKLWCVBMNSAIGHTDO"
+     "HSNOPWLDTUVBRIAKXFGCQEMJ"},
     {24L, 24, 3,
-     "HLBANGO65JI9M2DEC4378K1F" "AO5HIMLDBCN3G76KJ192FE48"
-     "KIFEOCN38MLDJ19AG7645H2B"},
-    {16L, 24, 2, "DI7KLCN9FG6OJ4AH2ME5B381" "MBO8FH1JEKG23N45L679ACDI"},
-    {16L, 24, 2, "DI7KLCN9FG6OJ4AH2ME5B381" "IDCN97KLJ4AHFG6O5B32ME18"},
-    {48L, 24, 2, "9LCHI7ODJ43NFGEK5BA2M618" "7CDFGIJ4KL2MN95B6O8AH1E3"},
-    {24L, 24, 2, "LAGODI3JE87KCN9B6M254HF1" "EIL6MCN9GODFA54H87K3J12B"},
-    {24L, 24, 2, "D92KL1HI678O345NEFGABCMJ" "FBOM6NJ37LKE4IHA2GD1C985"},
+     "QUKJWPXFESRIVBMNLDCGHTAO" "JXEQRVUMKLWCPGFTSAIBONDH"
+     "TRONXLWCHVUMSAIJPGFDEQBK"},
+    {16L, 24, 2, "MRGTULWIOPFXSDJQBVNEKCHA" "VKXHOQASNTPBCWDEUFGIJLMR"},
+    {16L, 24, 2, "MRGTULWIOPFXSDJQBVNEKCHA" "RMLWIGTUSDJQOPFXEKCBVNAH"},
+    {48L, 24, 2, "IULQRGXMSDCWOPNTEKJBVFAH" "GLMOPRSDTUBVWIEKFXHJQANC"},
+    {24L, 24, 2, "UJPXMRCSNHGTLWIKFVBEDQOA" "NRUFVLWIPXMOJEDQHGTCSABK"},
+    {24L, 24, 2, "MIBTUAQRFGHXCDEWNOPJKLVS" "OKXVFWSCGUTNDRQJBPMALIHE"},
     {144L, 24, 3,
-     "HOBANMLD5JI9G76KC432FE18" "AL5HIGO6BCN3M2DEJ1978K4F"
-     "21678345DEFG9ABCKLMHIJON"},
+     "QXKJWVUMESRIPGFTLDCBONAH" "JUEQRPXFKLWCVBMNSAIGHTDO"
+     "BAFGHCDEMNOPIJKLTUVQRSXW"},
     {336L, 24, 3,
-     "HKBANFEO5JI98MLDC43G7612" "AE5HI8KLBCN3FGO6J19M2D47"
-     "85EFGABCKLM2HIJ1O67N34D9"},
+     "QTKJWONXESRIHVUMLDCPGFAB" "JNEQRHTUKLWCOPXFSAIVBMDG"
+     "HENOPJKLTUVBQRSAXFGWCDMI"},
     /* order 25 */
-    {20L, 25, 1, "589CDEGHIJ6KLM2ANO4FP71B3"},
-    {480L, 25, 2, "589CDEGHIJ3KLM26NO4AP7FB1" "245789BCDE1GHIJ3KLM6NOAPF"},
+    {20L, 25, 1, "EHILMNPQRSFTUVBJWXDOYGAKC"},
+    {480L, 25, 2, "EHILMNPQRSCTUVBFWXDJYGOKA" "BDEGHIKLMNAPQRSCTUVFWXJYO"},
     /* order 26 */
     {156L, 26, 2,
-     "5O7Q92B4D6F8HAJCLENGPI1K3M" "21436587A9CBEDGFIHKJMLONQP"},
-    {12L, 26, 1, "6587A9CBEDGFIHKJMLONQP2143"},
-    /* order 27 */
-    {18L, 27, 1, "53BC689IJKDE4GHOP7LMANRFQ12"},
-    {108L, 27, 2,
-     "54BC79AIJKEFGH1OPLM2N3RQ68D" "DI2LG5O67Q4NBCREF9A8JKMH1P3"},
-    {432L, 27, 2,
-     "51BC234IJK6789AOPDEFGHRLMNQ" "3E89PLM1GHRB7Q64NKIJFDA5O2C"},
-    {54L, 27, 2,
-     "54BC79AIJKEFGH1OPLM2N3RQ68D" "DR2LNKI67QA8P5OEFH1GBCM34J9"},
-    {11232L, 27, 3,
-     "51BC234IJK6789AOPDEFGHRLMNQ" "3689BDE1GHIJ2LM4N5OP7QACRFK"
-     "479ACEFGH1JKLM2N3OP5Q68RBDI"},
-    /* order 28 */
-    {84L, 28, 2,
-     "7S4BQ58F29CJ6DGNAHKRELO3IP1M" "5129346D78AHBCELFGIPJKMSNOQR"},
-    {12L, 28, 1, "589AC3DEG7HIKBLMOFPQRJ2S4N61"},
-    {84L, 28, 2,
-     "7S4BQ58F29CJ6DGNAHKRELO3IP1M" "5329176D4BAH8FELCJIPGNMSKRQO"},
-    {36L, 28, 2,
-     "976D4BAH8FELCJIPGNMSKRQ5O321" "649A78DEBCHIFGLMJKPQNOS2R153"},
-    /* order 29 */
-    {28L, 29, 1, "56789ABCDEFGHIJKLMNOPQRST1234"},
-    /* order 30 */
-    {24L, 30, 2,
-     "LHQ7NOTDERSA9JK6UGF1PBCM34I285" "BFHIL3NO5Q78RSATDE6UG9JKCM1P24"},
-    {40L, 30, 2,
-     "DU4JOA89PS2GEFT56MKL7BCRQ1HI3N" "BQGHT36MNL78CRS1DEIU54JKOA9P2F"},
-    {120L, 30, 2,
-     "DS4JU589POABEFT2GHKL76MNQ1CR3I" "215634ABC789GHIDEFMNOJKLRSPQUT"},
-    {8L, 30, 1, "HEMNJKCRS9PQIU5FT3OABL782G1D64"},
-    /* order 31 */
-    {30L, 31, 1, "56789ABCDEFGHIJKLMNOPQRSTUV1234"},
+     "EXGZIBKDMFOHQJSLUNWPYRATCV" "BADCFEHGJILKNMPORQTSVUXWZY"},
+    {12L, 26, 1, "FEHGJILKNMPORQTSVUXWZYBADC"},
 };
 
 static const struct groups groups[] = {
-    {0, NULL},			/* trivial case: 0 */
-    {0, NULL},			/* trivial case: 1 */
-    {1, groupdata + 0},		/* 2 */
-    {1, groupdata + 1},		/* 3 */
-    {2, groupdata + 2},		/* 4 */
-    {1, groupdata + 4},		/* 5 */
-    {2, groupdata + 5},		/* 6 */
-    {1, groupdata + 7},		/* 7 */
-    {5, groupdata + 8},		/* 8 */
-    {2, groupdata + 13},	/* 9 */
-    {2, groupdata + 15},	/* 10 */
-    {1, groupdata + 17},	/* 11 */
-    {5, groupdata + 18},	/* 12 */
-    {1, groupdata + 23},	/* 13 */
-    {2, groupdata + 24},	/* 14 */
-    {1, groupdata + 26},	/* 15 */
-    {14, groupdata + 27},	/* 16 */
-    {1, groupdata + 41},	/* 17 */
-    {5, groupdata + 42},	/* 18 */
-    {1, groupdata + 47},	/* 19 */
-    {5, groupdata + 48},	/* 20 */
-    {2, groupdata + 53},	/* 21 */
-    {2, groupdata + 55},	/* 22 */
-    {1, groupdata + 57},	/* 23 */
-    {15, groupdata + 58},	/* 24 */
-    {2, groupdata + 73},	/* 25 */
-    {2, groupdata + 75},	/* 26 */
-    {5, groupdata + 77},	/* 27 */
-    {4, groupdata + 82},	/* 28 */
-    {1, groupdata + 86},	/* 29 */
-    {4, groupdata + 87},	/* 30 */
-    {1, groupdata + 91},	/* 31 */
+    {0, NULL},                  /* trivial case: 0 */
+    {0, NULL},                  /* trivial case: 1 */
+    {1, groupdata + 0},         /* 2 */
+    {1, groupdata + 1},         /* 3 */
+    {2, groupdata + 2},         /* 4 */
+    {1, groupdata + 4},         /* 5 */
+    {2, groupdata + 5},         /* 6 */
+    {1, groupdata + 7},         /* 7 */
+    {5, groupdata + 8},         /* 8 */
+    {2, groupdata + 13},        /* 9 */
+    {2, groupdata + 15},        /* 10 */
+    {1, groupdata + 17},        /* 11 */
+    {5, groupdata + 18},        /* 12 */
+    {1, groupdata + 23},        /* 13 */
+    {2, groupdata + 24},        /* 14 */
+    {1, groupdata + 26},        /* 15 */
+    {14, groupdata + 27},       /* 16 */
+    {1, groupdata + 41},        /* 17 */
+    {5, groupdata + 42},        /* 18 */
+    {1, groupdata + 47},        /* 19 */
+    {5, groupdata + 48},        /* 20 */
+    {2, groupdata + 53},        /* 21 */
+    {2, groupdata + 55},        /* 22 */
+    {1, groupdata + 57},        /* 23 */
+    {15, groupdata + 58},       /* 24 */
+    {2, groupdata + 73},        /* 25 */
+    {2, groupdata + 75},        /* 26 */
 };
 
 /* ----- data generated by group.gap ends ----- */
@@ -583,10 +589,12 @@ static char *new_game_desc(game_params *params, random_state *rs,
      * I tested it using the following shell command:
 
 for d in t n h x u; do
-  for i in {3..9}; do
-    echo ./group --generate 1 ${i}d${d}
-    perl -e 'alarm 30; exec @ARGV' ./group --generate 5 ${i}d${d} >/dev/null \
-      || echo broken
+  for id in '' i; do
+    for i in {3..9}; do
+      echo -n "./group --generate 1 ${i}d${d}${id}: "
+      perl -e 'alarm 30; exec @ARGV' \
+        ./group --generate 1 ${i}d${d}${id} >/dev/null && echo ok
+    done
   done
 done
 
@@ -594,12 +602,16 @@ done
      * _out_, so as to detect exceptions that should be removed as
      * well as those which should be added.
      */
-    if (w <= 9 && diff == DIFF_EXTREME)
+#if 0
+    if (w < 5 && diff == DIFF_UNREASONABLE)
 	diff--;
-    if (w <= 6 && diff == DIFF_HARD)
+    if ((w < 5 || ((w == 6 || w == 8) && params->id)) && diff == DIFF_EXTREME)
 	diff--;
-    if (w <= 4 && diff > DIFF_TRIVIAL)
-	diff = DIFF_TRIVIAL;
+    if ((w < 6 || (w == 6 && params->id)) && diff == DIFF_HARD)
+	diff--;
+    if ((w < 4 || (w == 4 && params->id)) && diff == DIFF_NORMAL)
+	diff--;
+#endif
 
     grid = snewn(a, digit);
     soln = snewn(a, digit);
@@ -640,11 +652,11 @@ done
 		 * Apply each group generator to row, constructing a
 		 * new row.
 		 */
-		nri = FROMCHAR(gen[row[0]-1]);   /* which row is it? */
+		nri = gen[row[0]-1] - 'A' + 1;   /* which row is it? */
 		newrow = soln + (nri-1)*w;
 		if (!newrow[0]) {   /* not done yet */
 		    for (k = 0; k < w; k++)
-			newrow[k] = FROMCHAR(gen[row[k]-1]);
+			newrow[k] = gen[row[k]-1] - 'A' + 1;
 		    grid[qt++] = nri;
 		}
 	    }
@@ -680,7 +692,7 @@ done
 	    }
 
 	    memcpy(soln2, grid, a);
-	    if (solver(w, soln2, diff) > diff)
+	    if (solver(params, soln2, diff) > diff)
 		continue;	       /* go round again if that didn't work */
 	}
 
@@ -694,7 +706,7 @@ done
 	for (i = 0; i < k; i++) {
 	    memcpy(soln2, grid, a);
 	    soln2[indices[i]] = 0;
-	    if (solver(w, soln2, diff) <= diff)
+	    if (solver(params, soln2, diff) <= diff)
 		grid[indices[i]] = 0;
 	}
 
@@ -703,7 +715,7 @@ done
 	 */
 	if (diff > 0) {
 	    memcpy(soln2, grid, a);
-	    if (solver(w, soln2, diff-1) < diff)
+	    if (solver(params, soln2, diff-1) < diff)
 		continue;	       /* go round and try again */
 	}
 
@@ -727,7 +739,7 @@ done
     *aux = snewn(a+2, char);
     (*aux)[0] = 'S';
     for (i = 0; i < a; i++)
-	(*aux)[i+1] = TOCHAR(soln[i]);
+	(*aux)[i+1] = TOCHAR(soln[i], params->id);
     (*aux)[a+1] = '\0';
 
     sfree(grid);
@@ -873,7 +885,7 @@ static char *solve_game(game_state *state, game_state *currstate,
     soln = snewn(a, digit);
     memcpy(soln, state->grid, a*sizeof(digit));
 
-    ret = solver(w, soln, DIFFCOUNT-1);
+    ret = solver(&state->par, soln, DIFFCOUNT-1);
 
     if (ret == diff_impossible) {
 	*error = "No solution exists for this puzzle";
@@ -885,7 +897,7 @@ static char *solve_game(game_state *state, game_state *currstate,
 	out = snewn(a+2, char);
 	out[0] = 'S';
 	for (i = 0; i < a; i++)
-	    out[i+1] = TOCHAR(soln[i]);
+	    out[i+1] = TOCHAR(soln[i], state->par.id);
 	out[a+1] = '\0';
     }
 
@@ -914,7 +926,7 @@ static char *game_text_format(game_state *state)
             if (d == 0) {
 		ch = '.';
 	    } else {
-		ch = TOCHAR(d);
+		ch = TOCHAR(d, state->par.id);
 	    }
 
 	    *p++ = ch;
@@ -1022,6 +1034,7 @@ static void game_changed_state(game_ui *ui, game_state *oldstate,
 #define EF_LATIN (1UL << (6*EF_DIGIT_SHIFT))
 
 struct game_drawstate {
+    game_params par;
     int w, tilesize;
     int started;
     long *tiles, *pencil, *errors;
@@ -1168,9 +1181,9 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
     }
 
     if (ui->hshow &&
-	((ISCHAR(button) && FROMCHAR(button) <= w) ||
+	((ISCHAR(button) && FROMCHAR(button, state->par.id) <= w) ||
 	 button == CURSOR_SELECT2 || button == '\b')) {
-	int n = FROMCHAR(button);
+	int n = FROMCHAR(button, state->par.id);
 	if (button == CURSOR_SELECT2 || button == '\b')
 	    n = 0;
 
@@ -1212,11 +1225,11 @@ static game_state *execute_move(game_state *from, char *move)
 	ret->completed = ret->cheated = TRUE;
 
 	for (i = 0; i < a; i++) {
-	    if (!ISCHAR(move[i+1]) || FROMCHAR(move[i+1]) > w) {
+	    if (!ISCHAR(move[i+1]) || FROMCHAR(move[i+1], from->par.id) > w) {
 		free_game(ret);
 		return NULL;
 	    }
-	    ret->grid[i] = FROMCHAR(move[i+1]);
+	    ret->grid[i] = FROMCHAR(move[i+1], from->par.id);
 	    ret->pencil[i] = 0;
 	}
 
@@ -1319,6 +1332,7 @@ static game_drawstate *game_new_drawstate(drawing *dr, game_state *state)
     int i;
 
     ds->w = w;
+    ds->par = state->par;	       /* structure copy */
     ds->tilesize = 0;
     ds->started = FALSE;
     ds->tiles = snewn(a, long);
@@ -1377,7 +1391,7 @@ static void draw_tile(drawing *dr, game_drawstate *ds, int x, int y, long tile,
     /* new number needs drawing? */
     if (tile & DF_DIGIT_MASK) {
 	str[1] = '\0';
-	str[0] = TOCHAR(tile & DF_DIGIT_MASK);
+	str[0] = TOCHAR(tile & DF_DIGIT_MASK, ds->par.id);
 	draw_text(dr, tx + TILESIZE/2, ty + TILESIZE/2,
 		  FONT_VARIABLE, TILESIZE/2, ALIGN_VCENTRE | ALIGN_HCENTRE,
 		  (error & EF_LATIN) ? COL_ERROR :
@@ -1388,7 +1402,8 @@ static void draw_tile(drawing *dr, game_drawstate *ds, int x, int y, long tile,
 	    int b = (error >> (EF_LEFT_SHIFT+1*EF_DIGIT_SHIFT))&EF_DIGIT_MASK;
 	    int c = (error >> (EF_LEFT_SHIFT                 ))&EF_DIGIT_MASK;
 	    char buf[10];
-	    sprintf(buf, "(%c%c)%c", TOCHAR(a), TOCHAR(b), TOCHAR(c));
+	    sprintf(buf, "(%c%c)%c", TOCHAR(a, ds->par.id),
+		    TOCHAR(b, ds->par.id), TOCHAR(c, ds->par.id));
 	    draw_text(dr, tx + TILESIZE/2, ty + TILESIZE/6,
 		      FONT_VARIABLE, TILESIZE/6, ALIGN_VCENTRE | ALIGN_HCENTRE,
 		      COL_ERROR, buf);
@@ -1398,7 +1413,8 @@ static void draw_tile(drawing *dr, game_drawstate *ds, int x, int y, long tile,
 	    int b = (error >> (EF_RIGHT_SHIFT+1*EF_DIGIT_SHIFT))&EF_DIGIT_MASK;
 	    int c = (error >> (EF_RIGHT_SHIFT                 ))&EF_DIGIT_MASK;
 	    char buf[10];
-	    sprintf(buf, "%c(%c%c)", TOCHAR(a), TOCHAR(b), TOCHAR(c));
+	    sprintf(buf, "%c(%c%c)", TOCHAR(a, ds->par.id),
+		    TOCHAR(b, ds->par.id), TOCHAR(c, ds->par.id));
 	    draw_text(dr, tx + TILESIZE/2, ty + TILESIZE - TILESIZE/6,
 		      FONT_VARIABLE, TILESIZE/6, ALIGN_VCENTRE | ALIGN_HCENTRE,
 		      COL_ERROR, buf);
@@ -1477,7 +1493,7 @@ static void draw_tile(drawing *dr, game_drawstate *ds, int x, int y, long tile,
 		    int dx = j % pw, dy = j / pw;
 
 		    str[1] = '\0';
-		    str[0] = TOCHAR(i);
+		    str[0] = TOCHAR(i, ds->par.id);
 		    draw_text(dr, pl + fontsize * (2*dx+1) / 2,
 			      pt + fontsize * (2*dy+1) / 2,
 			      FONT_VARIABLE, fontsize,
@@ -1521,7 +1537,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 	for (x = 0; x < w; x++) {
 	    char str[2];
 	    str[1] = '\0';
-	    str[0] = TOCHAR(x+1);
+	    str[0] = TOCHAR(x+1, ds->par.id);
 	    draw_text(dr, COORD(x) + TILESIZE/2, BORDER + TILESIZE/2,
 		      FONT_VARIABLE, TILESIZE/2,
 		      ALIGN_VCENTRE | ALIGN_HCENTRE, COL_GRID, str);
@@ -1628,7 +1644,7 @@ static void game_print(drawing *dr, game_state *state, int tilesize)
     for (x = 0; x < w; x++) {
 	char str[2];
 	str[1] = '\0';
-	str[0] = TOCHAR(x+1);
+	str[0] = TOCHAR(x+1, state->par.id);
 	draw_text(dr, BORDER+LEGEND + x*TILESIZE + TILESIZE/2,
 		  BORDER + TILESIZE/2,
 		  FONT_VARIABLE, TILESIZE/2,
@@ -1661,7 +1677,7 @@ static void game_print(drawing *dr, game_state *state, int tilesize)
 	    if (state->grid[y*w+x]) {
 		char str[2];
 		str[1] = '\0';
-		str[0] = TOCHAR(state->grid[y*w+x]);
+		str[0] = TOCHAR(state->grid[y*w+x], state->par.id);
 		draw_text(dr, BORDER+LEGEND + x*TILESIZE + TILESIZE/2,
 			  BORDER+LEGEND + y*TILESIZE + TILESIZE/2,
 			  FONT_VARIABLE, TILESIZE/2,
@@ -1769,7 +1785,7 @@ int main(int argc, char **argv)
     solver_show_working = FALSE;
     for (diff = 0; diff < DIFFCOUNT; diff++) {
 	memcpy(grid, s->grid, p->w * p->w);
-	ret = solver(p->w, grid, diff);
+	ret = solver(&s->par, grid, diff);
 	if (ret <= diff)
 	    break;
     }
@@ -1788,7 +1804,7 @@ int main(int argc, char **argv)
 	} else {
 	    solver_show_working = really_show_working;
 	    memcpy(grid, s->grid, p->w * p->w);
-	    ret = solver(p->w, grid, diff);
+	    ret = solver(&s->par, grid, diff);
 	    if (ret != diff)
 		printf("Puzzle is inconsistent\n");
 	    else {
