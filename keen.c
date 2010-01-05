@@ -1844,7 +1844,7 @@ static void draw_tile(drawing *dr, game_drawstate *ds, struct clues *clues,
 
         /* Count the pencil marks required. */
         for (i = 1, npencil = 0; i <= w; i++)
-            if (tile & (1 << (i + DF_PENCIL_SHIFT)))
+            if (tile & (1L << (i + DF_PENCIL_SHIFT)))
 		npencil++;
 	if (npencil) {
 
@@ -1914,7 +1914,7 @@ static void draw_tile(drawing *dr, game_drawstate *ds, struct clues *clues,
 	     * Now actually draw the pencil marks.
 	     */
 	    for (i = 1, j = 0; i <= w; i++)
-		if (tile & (1 << (i + DF_PENCIL_SHIFT))) {
+		if (tile & (1L << (i + DF_PENCIL_SHIFT))) {
 		    int dx = j % pw, dy = j / pw;
 
 		    str[1] = '\0';
