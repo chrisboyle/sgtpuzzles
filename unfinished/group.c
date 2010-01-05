@@ -1047,6 +1047,34 @@ static int check_errors(game_state *state, long *errors)
     digit *grid = state->grid;
     int i, j, k, x, y, errs = FALSE;
 
+    /*
+     * To verify that we have a valid group table, it suffices to
+     * test latin-square-hood and associativity only. All the other
+     * group axioms follow from those two.
+     *
+     * Proof:
+     *
+     * Associativity is given; closure is obvious from latin-
+     * square-hood. We need to show that an identity exists and that
+     * every element has an inverse.
+     *
+     * Identity: take any element a. There will be some element e
+     * such that ea=a (in a latin square, every element occurs in
+     * every row and column, so a must occur somewhere in the a
+     * column, say on row e). For any other element b, there must
+     * exist x such that ax=b (same argument from latin-square-hood
+     * again), and then associativity gives us eb = e(ax) = (ea)x =
+     * ax = b. Hence eb=b for all b, i.e. e is a left-identity. A
+     * similar argument tells us that there must be some f which is
+     * a right-identity, and then we show they are the same element
+     * by observing that ef must simultaneously equal e and equal f.
+     *
+     * Inverses: given any a, by the latin-square argument again,
+     * there must exist p and q such that pa=e and aq=e (i.e. left-
+     * and right-inverses). We can show these are equal by
+     * associativity: p = pe = p(aq) = (pa)q = eq = q. []
+     */
+
     if (errors)
 	for (i = 0; i < a; i++)
 	    errors[i] = 0;
