@@ -1859,6 +1859,13 @@ static void draw_tile(drawing *dr, game_drawstate *ds, struct clues *clues,
 	    pr = pl + TILESIZE - GRIDEXTRA;
 	    pt = ty + GRIDEXTRA;
 	    pb = pt + TILESIZE - GRIDEXTRA;
+	    if (dsf_canonify(clues->dsf, y*w+x) == y*w+x) {
+		/*
+		 * Make space for the clue text.
+		 */
+		pt += TILESIZE/4;
+		/* minph--; */
+	    }
 
 	    /*
 	     * We arrange our pencil marks in a grid layout, with
