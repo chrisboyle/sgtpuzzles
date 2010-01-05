@@ -1602,8 +1602,21 @@ static void game_free_drawstate(drawing *dr, game_drawstate *ds)
 static void draw_gt(drawing *dr, int ox, int oy,
                     int dx1, int dy1, int dx2, int dy2, int col)
 {
-    draw_line(dr, ox, oy, ox+dx1, oy+dy1, col);
-    draw_line(dr, ox+dx1, oy+dy1, ox+dx1+dx2, oy+dy1+dy2, col);
+    int coords[12];
+    int xdx = (dx1+dx2 ? 0 : 1), xdy = (dx1+dx2 ? 1 : 0);
+    coords[0] = ox + xdx;
+    coords[1] = oy + xdy;
+    coords[2] = ox + xdx + dx1;
+    coords[3] = oy + xdy + dy1;
+    coords[4] = ox + xdx + dx1 + dx2;
+    coords[5] = oy + xdy + dy1 + dy2;
+    coords[6] = ox - xdx + dx1 + dx2;
+    coords[7] = oy - xdy + dy1 + dy2;
+    coords[8] = ox - xdx + dx1;
+    coords[9] = oy - xdy + dy1;
+    coords[10] = ox - xdx;
+    coords[11] = oy - xdy;
+    draw_polygon(dr, coords, 6, col, col);
 }
 
 static void draw_gts(drawing *dr, game_drawstate *ds, int ox, int oy,
