@@ -2579,7 +2579,7 @@ Your task is to build a tower on every square, in such a way that:
 \b Each numeric clue describes the number of towers that can be seen
 if you look into the square from that direction, assuming that
 shorter towers are hidden behind taller ones. For example, in a
-5\by.5 grid, a clue marked \q{5} indicates that the five tower
+5\by\.5 grid, a clue marked \q{5} indicates that the five tower
 heights must appear in increasing order (otherwise you would not be
 able to see all five towers), whereas a clue marked \q{1} indicates
 that the tallest tower (the one marked 5) must come first.
