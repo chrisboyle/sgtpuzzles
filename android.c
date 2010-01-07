@@ -222,6 +222,16 @@ void android_changed_state(void *handle, int can_undo, int can_redo)
 	(*env)->CallVoidMethod(env, obj, changedState, can_undo, can_redo);
 }
 
+static char *android_text_fallback(void *handle, const char *const *strings,
+			       int nstrings)
+{
+    /*
+     * We assume Android can cope with any UTF-8 likely to be emitted
+     * by a puzzle.
+     */
+    return dupstr(strings[0]);
+}
+
 const struct drawing_api android_drawing = {
 	android_draw_text,
 	android_draw_rect,
@@ -240,6 +250,7 @@ const struct drawing_api android_drawing = {
 	android_blitter_load,
 	NULL, NULL, NULL, NULL, NULL, NULL, /* {begin,end}_{doc,page,puzzle} */
 	NULL, NULL,				   /* line_width, line_dotted */
+	android_text_fallback,
 	android_changed_state,
 };
 

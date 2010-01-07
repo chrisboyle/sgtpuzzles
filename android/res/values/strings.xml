@@ -100,6 +100,7 @@ Revision: %s"</string>
     <string name="name_galaxies">Galaxies</string>
     <string name="name_guess">Guess</string>
     <string name="name_inertia">Inertia</string>
+    <string name="name_keen">Keen</string>
     <string name="name_lightup">Light Up</string>
     <string name="name_loopy">Loopy</string>
     <string name="name_map">Map</string>
@@ -130,6 +131,7 @@ Revision: %s"</string>
     <string name="desc_galaxies">Divide the grid into 180-degree rotationally symmetric regions each centred on a dot.</string>
     <string name="desc_guess">Guess the hidden colour sequence: black is correct, white is the correct colour in the wrong place.</string>
     <string name="desc_inertia">Move the ball around to collect all the gems without hitting a mine.</string>
+    <string name="desc_keen">Enter digits so every row and column contains exactly one of each digit and the arithmetic clues are satisfied.</string>
     <string name="desc_lightup">Place lamps so all squares are lit, no lamp lights another and numbered squares have the given number of adjacent lamps.</string>
     <string name="desc_loopy">Draw a single unbroken and uncrossing line such that numbered squares have the given number of edges filled.</string>
     <string name="desc_map">Copy the 4 colours to colour the map with no regions of the same colour touching.</string>
@@ -467,10 +469,14 @@ Revision: %s"</string>
     <string name="Height_must_be_at_least_the_rotation_radius">Height must be at least the rotation radius</string>
     <string name="Expected_orientation_letter_after_number">Expected orientation letter after number</string>
     <!-- Unequal -->
+    <string name="Mode">Mode</string>
+    <string name="Unequal">Unequal</string>
+    <string name="Adjacent">Adjacent</string>
     <!-- An extra difficulty level, meaning solving the puzzle requires a recursive approach -->
     <string name="Recursive">Recursive</string>
     <string name="Size_s_s">Size (s*s)</string>
     <string name="Order_must_be_between_3_and_32">Order must be between 3 and 32</string>
+    <string name="Order_must_be_at_least_5_for_Adjacent_puzzles_of_this_difficulty">Order must be at least 5 for Adjacent puzzles of this difficulty</string>
     <string name="Unknown_difficulty_rating">Unknown difficulty rating</string>
     <string name="Expecting_number_in_game_description">Expecting number in game description</string>
     <string name="Expecting_flag_URDL_in_game_description">Expecting flag URDL in game description</string>

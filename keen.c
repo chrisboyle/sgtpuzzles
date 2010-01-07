@@ -1191,6 +1191,17 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
     char *err;
     const char *p = desc;
     int i;
+#ifdef ANDROID
+    char keys[w+2];
+    keys[0] = '\b';
+    for (i = 0; i < w; i++) {
+	if (i<9) keys[i] = '1' + i;
+	else keys[i] = 'A' + i - 9;
+    }
+    keys[w] = '\b';
+    keys[w+1] = '\0';
+    android_keys(keys);
+#endif
 
     state->par = *params;	       /* structure copy */
     state->clues = snew(struct clues);
@@ -2019,6 +2030,7 @@ static int game_timing_state(game_state *state, game_ui *ui)
     return TRUE;
 }
 
+#ifndef NO_PRINTING
 static void game_print_size(game_params *params, float *x, float *y)
 {
     int pw, ph;
@@ -2248,6 +2260,7 @@ static void game_print(drawing *dr, game_state *state, int tilesize)
 			  ALIGN_VCENTRE | ALIGN_HCENTRE, ink, str);
 	    }
 }
+#endif
 
 #ifdef COMBINED
 #define thegame keen
@@ -2284,7 +2297,9 @@ const struct game thegame = {
     game_redraw,
     game_anim_length,
     game_flash_length,
+#ifndef NO_PRINTING
     TRUE, FALSE, game_print_size, game_print,
+#endif
     FALSE,			       /* wants_statusbar */
     FALSE, game_timing_state,
     REQUIRE_RBUTTON | REQUIRE_NUMPAD,  /* flags */
