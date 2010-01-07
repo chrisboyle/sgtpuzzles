@@ -1160,8 +1160,10 @@ static void game_changed_state(game_ui *ui, game_state *oldstate,
 
 struct game_drawstate {
     int tilesize;
+    int three_d;		/* default 3D graphics are user-disableable */
     int started;
-    long *tiles;
+    long *tiles;		       /* (w+2)*(w+2) temp space */
+    long *drawn;		       /* (w+2)*(w+2)*4: current drawn data */
     int *errtmp;
 };
 
@@ -1465,10 +1467,12 @@ static game_drawstate *game_new_drawstate(drawing *dr, game_state *state)
     int i;
 
     ds->tilesize = 0;
+    ds->three_d = !getenv("TOWERS_2D");
     ds->started = FALSE;
     ds->tiles = snewn((w+2)*(w+2), long);
-    for (i = 0; i < (w+2)*(w+2); i++)
-	ds->tiles[i] = -1;
+    ds->drawn = snewn((w+2)*(w+2)*4, long);
+    for (i = 0; i < (w+2)*(w+2)*4; i++)
+	ds->drawn[i] = -1;
     ds->errtmp = snewn((w+2)*(w+2), int);
 
     return ds;
@@ -1478,6 +1482,7 @@ static void game_free_drawstate(drawing *dr, game_drawstate *ds)
 {
     sfree(ds->errtmp);
     sfree(ds->tiles);
+    sfree(ds->drawn);
     sfree(ds);
 }
 
@@ -1485,34 +1490,73 @@ static void draw_tile(drawing *dr, game_drawstate *ds, struct clues *clues,
 		      int x, int y, long tile)
 {
     int w = clues->w /* , a = w*w */;
-    int tx, ty, tw, th;
-    int cx, cy, cw, ch;
+    int tx, ty;
     char str[64];
 
-    tx = BORDER + x * TILESIZE + 1;
-    ty = BORDER + y * TILESIZE + 1;
+    tx = COORD(x);
+    ty = COORD(y);
 
-    cx = tx;
-    cy = ty;
-    cw = tw = TILESIZE-1;
-    ch = th = TILESIZE-1;
+    /* draw tower */
+    if (ds->three_d && (tile & DF_PLAYAREA) && (tile & DF_DIGIT_MASK)) {
+	int coords[8];
+	int xoff = (tile & DF_DIGIT_MASK) * TILESIZE / (8 * w);
+	int yoff = (tile & DF_DIGIT_MASK) * TILESIZE / (4 * w);
 
-    clip(dr, cx, cy, cw, ch);
+	/* left face of tower */
+	coords[0] = tx;
+	coords[1] = ty - 1;
+	coords[2] = tx;
+	coords[3] = ty + TILESIZE - 1;
+	coords[4] = coords[2] + xoff;
+	coords[5] = coords[3] - yoff;
+	coords[6] = coords[0] + xoff;
+	coords[7] = coords[1] - yoff;
+	draw_polygon(dr, coords, 4, COL_BACKGROUND, COL_GRID);
 
-    /* background needs erasing */
-    draw_rect(dr, cx, cy, cw, ch,
+	/* bottom face of tower */
+	coords[0] = tx + TILESIZE;
+	coords[1] = ty + TILESIZE - 1;
+	coords[2] = tx;
+	coords[3] = ty + TILESIZE - 1;
+	coords[4] = coords[2] + xoff;
+	coords[5] = coords[3] - yoff;
+	coords[6] = coords[0] + xoff;
+	coords[7] = coords[1] - yoff;
+	draw_polygon(dr, coords, 4, COL_BACKGROUND, COL_GRID);
+
+	/* now offset all subsequent drawing to the top of the tower */
+	tx += xoff;
+	ty -= yoff;
+    }
+
+    /* erase background */
+    draw_rect(dr, tx, ty, TILESIZE, TILESIZE,
 	      (tile & DF_HIGHLIGHT) ? COL_HIGHLIGHT : COL_BACKGROUND);
 
     /* pencil-mode highlight */
     if (tile & DF_HIGHLIGHT_PENCIL) {
         int coords[6];
-        coords[0] = cx;
-        coords[1] = cy;
-        coords[2] = cx+cw/2;
-        coords[3] = cy;
-        coords[4] = cx;
-        coords[5] = cy+ch/2;
+        coords[0] = tx;
+        coords[1] = ty;
+        coords[2] = tx+TILESIZE/2;
+        coords[3] = ty;
+        coords[4] = tx;
+        coords[5] = ty+TILESIZE/2;
         draw_polygon(dr, coords, 3, COL_HIGHLIGHT, COL_HIGHLIGHT);
+    }
+
+    /* draw box outline */
+    if (tile & DF_PLAYAREA) {
+        int coords[8];
+        coords[0] = tx;
+        coords[1] = ty - 1;
+        coords[2] = tx + TILESIZE;
+        coords[3] = ty - 1;
+        coords[4] = tx + TILESIZE;
+        coords[5] = ty + TILESIZE - 1;
+        coords[6] = tx;
+        coords[7] = ty + TILESIZE - 1;
+        draw_polygon(dr, coords, 4, -1, COL_GRID);
     }
 
     /* new number needs drawing? */
@@ -1543,11 +1587,11 @@ static void draw_tile(drawing *dr, game_drawstate *ds, struct clues *clues,
 	     * Determine the bounding rectangle within which we're going
 	     * to put the pencil marks.
 	     */
-	    /* Start with the whole square */
-	    pl = tx;
-	    pr = pl + TILESIZE;
+	    /* Start with the whole square, minus space for impinging towers */
+	    pl = tx + TILESIZE/8;
+	    pr = tx + TILESIZE;
 	    pt = ty;
-	    pb = pt + TILESIZE;
+	    pb = ty + TILESIZE - TILESIZE/4;
 
 	    /*
 	     * We arrange our pencil marks in a grid layout, with
@@ -1588,8 +1632,8 @@ static void draw_tile(drawing *dr, game_drawstate *ds, struct clues *clues,
 	    /*
 	     * Centre the resulting figure in the square.
 	     */
-	    pl = tx + (TILESIZE - fontsize * pw) / 2;
-	    pt = ty + (TILESIZE - fontsize * ph) / 2;
+	    pl = pl + (pr - pl - fontsize * pw) / 2;
+	    pt = pt + (pb - pt - fontsize * ph) / 2;
 
 	    /*
 	     * Now actually draw the pencil marks.
@@ -1608,10 +1652,6 @@ static void draw_tile(drawing *dr, game_drawstate *ds, struct clues *clues,
 		}
 	}
     }
-
-    unclip(dr);
-
-    draw_update(dr, cx, cy, cw, ch);
 }
 
 static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
@@ -1630,13 +1670,6 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 	 */
 	draw_rect(dr, 0, 0, SIZE(w), SIZE(w), COL_BACKGROUND);
 
-	/*
-	 * Big containing rectangle.
-	 */
-	draw_rect(dr, COORD(0), COORD(0),
-		  w*TILESIZE+1, w*TILESIZE+1,
-		  COL_GRID);
-
 	draw_update(dr, 0, 0, SIZE(w), SIZE(w));
 
 	ds->started = TRUE;
@@ -1645,28 +1678,22 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
     check_errors(state, ds->errtmp);
 
     /*
-     * Draw the clues.
+     * Work out what data each tile should contain.
      */
+    for (i = 0; i < (w+2)*(w+2); i++)
+	ds->tiles[i] = 0;	       /* completely blank square */
+    /* The clue squares... */
     for (i = 0; i < 4*w; i++) {
 	long tile = state->clues->clues[i];
-
-	if (!tile)
-	    continue;
 
 	CLUEPOS(x, y, i, w);
 
 	if (ds->errtmp[(y+1)*(w+2)+(x+1)])
 	    tile |= DF_ERROR;
 
-	if (ds->tiles[(y+1)*(w+2)+(x+1)] != tile) {
-	    ds->tiles[(y+1)*(w+2)+(x+1)] = tile;
-	    draw_tile(dr, ds, state->clues, x, y, tile);
-	}
+	ds->tiles[(y+1)*(w+2)+(x+1)] = tile;
     }
-
-    /*
-     * Draw the main grid.
-     */
+    /* ... and the main grid. */
     for (y = 0; y < w; y++) {
 	for (x = 0; x < w; x++) {
 	    long tile = DF_PLAYAREA;
@@ -1690,9 +1717,42 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 	    if (ds->errtmp[(y+1)*(w+2)+(x+1)])
 		tile |= DF_ERROR;
 
-	    if (ds->tiles[(y+1)*(w+2)+(x+1)] != tile) {
-		ds->tiles[(y+1)*(w+2)+(x+1)] = tile;
-		draw_tile(dr, ds, state->clues, x, y, tile);
+	    ds->tiles[(y+1)*(w+2)+(x+1)] = tile;
+	}
+    }
+
+    /*
+     * Now actually draw anything that needs to be changed.
+     */
+    for (y = 0; y < w+2; y++) {
+	for (x = 0; x < w+2; x++) {
+	    long tl, tr, bl, br;
+	    int i = y*(w+2)+x;
+
+	    tr = ds->tiles[y*(w+2)+x];
+	    tl = (x == 0 ? 0 : ds->tiles[y*(w+2)+(x-1)]);
+	    br = (y == w+1 ? 0 : ds->tiles[(y+1)*(w+2)+x]);
+	    bl = (x == 0 || y == w+1 ? 0 : ds->tiles[(y+1)*(w+2)+(x-1)]);
+
+	    if (ds->drawn[i*4] != tl || ds->drawn[i*4+1] != tr ||
+		ds->drawn[i*4+2] != bl || ds->drawn[i*4+3] != br) {
+		clip(dr, COORD(x-1), COORD(y-1), TILESIZE, TILESIZE);
+
+		draw_tile(dr, ds, state->clues, x-1, y-1, tr);
+		if (x > 0)
+		    draw_tile(dr, ds, state->clues, x-2, y-1, tl);
+		if (y <= w)
+		    draw_tile(dr, ds, state->clues, x-1, y, br);
+		if (x > 0 && y <= w)
+		    draw_tile(dr, ds, state->clues, x-2, y, bl);
+
+		unclip(dr);
+		draw_update(dr, COORD(x-1), COORD(y-1), TILESIZE, TILESIZE);
+
+		ds->drawn[i*4] = tl;
+		ds->drawn[i*4+1] = tr;
+		ds->drawn[i*4+2] = bl;
+		ds->drawn[i*4+3] = br;
 	    }
 	}
     }
