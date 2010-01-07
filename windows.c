@@ -239,6 +239,7 @@ void frontend_free(frontend *fe)
     sfree(fe->brushes);
     sfree(fe->pens);
     sfree(fe->presets);
+    sfree(fe->fonts);
 
     sfree(fe);
 }
