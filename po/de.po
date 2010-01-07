@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sgt-puzzles\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2010-01-07 18:58+0000\n"
+"POT-Creation-Date: 2010-01-07 23:05+0000\n"
 "PO-Revision-Date: 2009-11-04 11:10-0800\n"
 "Last-Translator: Helge Kreutzmann <debian@helgefjell.de>\n"
 "Language-Team: de <debian-l10n-german@lists.debian.org>\n"
@@ -84,36 +84,6 @@ msgstr "\\cfg{ps-filename}{puzzles.ps}"
 #: puzzles.but:20
 msgid "\\cfg{pdf-filename}{puzzles.pdf}"
 msgstr "\\cfg{pdf-filename}{puzzles.pdf}"
-
-#. type: define
-#: puzzles.but:21
-#, no-wrap
-msgid "\\u00D7{x}"
-msgstr "\\u00D7{x}"
-
-#. type: define
-#: puzzles.but:23
-#, no-wrap
-msgid "\\u2013{-}"
-msgstr "\\u2013{-}"
-
-#. type: define
-#: puzzles.but:25
-#, fuzzy, no-wrap
-msgid "\\u00D7{*}"
-msgstr "\\u00D7{x}"
-
-#. type: define
-#: puzzles.but:27
-#, fuzzy, no-wrap
-msgid "\\u00F7{/}"
-msgstr "\\u00D7{x}"
-
-#. type: define
-#: puzzles.but:29
-#, fuzzy, no-wrap
-msgid "\\u2212{-}"
-msgstr "\\u2013{-}"
 
 #. type: Plain text
 #: puzzles.but:32
