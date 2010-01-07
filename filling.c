@@ -1120,7 +1120,6 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
       case '\r':
       case '\n':
       case '\b':
-      case '\177':
         button = 0;
         break;
       default:

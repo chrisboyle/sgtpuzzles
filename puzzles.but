@@ -22,6 +22,12 @@
 
 \define{dash} \u2013{-}
 
+\define{times} \u00D7{*}
+
+\define{divide} \u00F7{/}
+
+\define{minus} \u2212{-}
+
 This is a collection of small one-player puzzle games.
 
 \copyright This manual is copyright 2004-2009 Simon Tatham. All rights
@@ -1440,6 +1446,12 @@ them, which you can use to remind yourself that you know those two
 numbers are \e{not} covered by a single domino. Right-clicking again
 removes the line.
 
+You can also use the cursor keys to move a cursor around the grid.
+When the cursor is half way between two adjacent numbers, pressing
+the return key will place a domino covering those numbers, or
+pressing the space bar will lay a line between the two squares.
+Repeating either action removes the domino or line.
+
 (All the actions described in \k{common-actions} are also available.)
 
 \H{dominosa-parameters} \I{parameters, for Dominosa}Dominosa parameters
@@ -1502,7 +1514,7 @@ points in the generated graph.
 \cfg{winhelp-topic}{games.blackbox}
 
 A number of balls are hidden in a rectangular arena. You have to
-deduce the positions of the balls by firing from lasers positioned at
+deduce the positions of the balls by firing lasers positioned at
 the edges of the arena and observing how their beams are deflected. 
 
 Beams will travel straight from their origin until they hit the
@@ -2234,21 +2246,33 @@ tightly-packed islands.
 \cfg{winhelp-topic}{games.unequal}
 
 You have a square grid; each square may contain a digit from 1 to
-the size of the grid, and some squares have greater-than signs between
+the size of the grid, and some squares have clue signs between
 them. Your aim is to fully populate the grid with numbers such that:
 
 \b Each row contains only one occurrence of each digit
 
 \b Each column contains only one occurrence of each digit
 
-\b All the greater-than signs are satisfied. 
+\b All the clue signs are satisfied. 
 
-In \q{Trivial} mode (available via the \q{Custom} game type
-selector), there are no greater-than signs; the puzzle is to solve
-the \i{Latin square} only.
+There are two modes for this game, \q{Unequal} and \q{Adjacent}.
 
-At the time of writing, this puzzle is appearing in the Guardian
-weekly under the name \q{\i{Futoshiki}}.
+In \q{Unequal} mode, the clue signs are greater-than symbols indicating one
+square's value is greater than its neighbour's. In this mode not all clues
+may be visible, particularly at higher difficulty levels. 
+
+In \q{Adjacent} mode, the clue signs are bars indicating
+one square's value is numerically adjacent (i.e. one higher or one lower)
+than its neighbour. In this mode all clues are always visible: absence of
+a bar thus means that a square's value is definitely not numerically adjacent
+to that neighbour's.  
+
+In \q{Trivial} difficulty level (available via the \q{Custom} game type
+selector), there are no greater-than signs in \q{Unequal} mode; the puzzle is
+to solve the \i{Latin square} only.
+
+At the time of writing, the \q{Unequal} mode of this puzzle is appearing in the
+Guardian weekly under the name \q{\i{Futoshiki}}.
 
 Unequal was contributed to this collection by James Harvey.
 
@@ -2298,6 +2322,10 @@ filled square.
 
 These parameters are available from the \q{Custom...} option on the
 \q{Type} menu.
+
+\dt \e{Mode}
+
+\dd Mode of the puzzle (\q{Unequal} or \q{Adjacent})
 
 \dt \e{Size (s*s)}
 
@@ -2428,6 +2456,110 @@ Filling allows you to configure the number of rows and columns of the
 grid, through the \q{Type} menu.
 
 
+\C{keen} \i{Keen}
+
+\cfg{winhelp-topic}{games.keen}
+
+You have a square grid; each square may contain a digit from 1 to
+the size of the grid. The grid is divided into blocks of varying
+shape and size, with arithmetic clues written in them. Your aim is
+to fully populate the grid with digits such that:
+
+\b Each row contains only one occurrence of each digit
+
+\b Each column contains only one occurrence of each digit
+
+\b The digits in each block can be combined to form the number
+stated in the clue, using the arithmetic operation given in the
+clue. That is:
+
+\lcont{
+
+\b An addition clue means that the sum of the digits in the block
+must be the given number. For example, \q{15+} means the contents of
+the block adds up to fifteen.
+
+\b A multiplication clue (e.g. \q{60\times}), similarly, means that
+the product of the digits in the block must be the given number.
+
+\b A subtraction clue will always be written in a block of size two,
+and it means that one of the digits in the block is greater than the
+other by the given amount. For example, \q{2\minus} means that one
+of the digits in the block is 2 more than the other, or equivalently
+that one digit minus the other one is 2. The two digits could be
+either way round, though.
+
+\b A division clue (e.g. \q{3\divide}), similarly, is always in a
+block of size two and means that one digit divided by the other is
+equal to the given amount.
+
+Note that a block may contain more than one digit the same (provided
+the identical ones are not in the same row and column). This rule is
+precisely the opposite of the rule in Solo's \q{Killer} mode (see
+\k{solo}).
+
+}
+
+This puzzle appears in the Times under the name \q{KenKen}.
+
+
+\H{keen-controls} \i{Keen controls}
+
+\IM{Keen controls} controls, for Keen
+
+Keen shares much of its control system with Solo (and Unequal).
+
+To play Keen, simply click the mouse in any empty square and then
+type a digit on the keyboard to fill that square. If you make a
+mistake, click the mouse in the incorrect square and press Space to
+clear it again (or use the Undo feature).
+
+If you \e{right}-click in a square and then type a number, that
+number will be entered in the square as a \q{pencil mark}. You can
+have pencil marks for multiple numbers in the same square. Squares
+containing filled-in numbers cannot also contain pencil marks.
+
+The game pays no attention to pencil marks, so exactly what you use
+them for is up to you: you can use them as reminders that a
+particular square needs to be re-examined once you know more about a
+particular number, or you can use them as lists of the possible
+numbers in a given square, or anything else you feel like.
+
+To erase a single pencil mark, right-click in the square and type
+the same number again.
+
+All pencil marks in a square are erased when you left-click and type
+a number, or when you left-click and press space. Right-clicking and
+pressing space will also erase pencil marks.
+
+As for Solo, the cursor keys can be used in conjunction with the
+digit keys to set numbers or pencil marks. Use the cursor keys to
+move a highlight around the grid, and type a digit to enter it in
+the highlighted square. Pressing return toggles the highlight into a
+mode in which you can enter or remove pencil marks.
+
+Pressing M will fill in a full set of pencil marks in every square
+that does not have a main digit in it.
+
+(All the actions described in \k{common-actions} are also available.)
+
+\H{keen-parameters} \I{parameters, for Keen}Keen parameters
+
+These parameters are available from the \q{Custom...} option on the
+\q{Type} menu.
+
+\dt \e{Grid size}
+
+\dd Specifies the size of the grid. Lower limit is 3; upper limit is
+9 (because the user interface would become more difficult with
+\q{digits} bigger than 9!).
+
+\dt \e{Difficulty}
+
+\dd Controls the difficulty of the generated puzzle. At Unreasonable
+level, some backtracking will be required, but the solution should
+still be unique. The remaining levels require increasingly complex
+reasoning to avoid having to backtrack.
 
 \A{licence} \I{MIT licence}\ii{Licence}
 

@@ -161,6 +161,15 @@ midend *midend_new(frontend *fe, const game *ourgame,
     return me;
 }
 
+static void midend_purge_states(midend *me)
+{
+    while (me->nstates > me->statepos) {
+        me->ourgame->free_game(me->states[--me->nstates].state);
+        if (me->states[me->nstates].movestr)
+            sfree(me->states[me->nstates].movestr);
+    }
+}
+
 static void midend_free_game(midend *me)
 {
     while (me->nstates > 0) {
@@ -525,8 +534,7 @@ void midend_restart_game(midend *me)
      * Now enter the restarted state as the next move.
      */
     midend_stop_anim(me);
-    while (me->nstates > me->statepos)
-	me->ourgame->free_game(me->states[--me->nstates].state);
+    midend_purge_states(me);
     ensure(me);
     me->states[me->nstates].state = s;
     me->states[me->nstates].movestr = dupstr(me->desc);
@@ -603,8 +611,7 @@ static int midend_really_process_key(midend *me, int x, int y, int button)
             goto done;
         } else if (s) {
 	    midend_stop_anim(me);
-            while (me->nstates > me->statepos)
-                me->ourgame->free_game(me->states[--me->nstates].state);
+            midend_purge_states(me);
             ensure(me);
             assert(movestr != NULL);
             me->states[me->nstates].state = s;
@@ -769,6 +776,15 @@ int midend_process_key(midend *me, int x, int y, int button)
       button = CURSOR_SELECT;
     if (button == ' ')
       button = CURSOR_SELECT2;
+
+    /*
+     * Normalise both backspace characters (8 and 127) to \b. Easier
+     * to do this once, here, than to require all front ends to
+     * carefully generate the same one - now each front end can
+     * generate whichever is easiest.
+     */
+    if (button == '\177')
+	button = '\b';
 
     /*
      * Now send on the event we originally received.
@@ -1301,11 +1317,7 @@ char *midend_solve(midend *me)
      * Now enter the solved state as the next move.
      */
     midend_stop_anim(me);
-    while (me->nstates > me->statepos) {
-	me->ourgame->free_game(me->states[--me->nstates].state);
-        if (me->states[me->nstates].movestr)
-            sfree(me->states[me->nstates].movestr);
-    }
+    midend_purge_states(me);
     ensure(me);
     me->states[me->nstates].state = s;
     me->states[me->nstates].movestr = movestr;

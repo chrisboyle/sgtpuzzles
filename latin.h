@@ -8,7 +8,7 @@ typedef unsigned char digit;
 /* --- Solver structures, definitions --- */
 
 #ifdef STANDALONE_SOLVER
-int solver_show_working, solver_recurse_depth;
+extern int solver_show_working, solver_recurse_depth;
 #endif
 
 struct latin_solver {
@@ -19,6 +19,10 @@ struct latin_solver {
 
   unsigned char *row;   /* o^2: row[y*cr+n-1] TRUE if n is in row y */
   unsigned char *col;   /* o^2: col[x*cr+n-1] TRUE if n is in col x */
+
+#ifdef STANDALONE_SOLVER
+  char **names;         /* o: names[n-1] gives name of 'digit' n */
+#endif
 };
 #define cubepos(x,y,n) (((x)*solver->o+(y))*solver->o+(n)-1)
 #define cube(x,y,n) (solver->cube[cubepos(x,y,n)])
@@ -88,23 +92,32 @@ int latin_solver_diff_set(struct latin_solver *solver,
                           struct latin_solver_scratch *scratch,
                           int extreme);
 
-typedef int (latin_solver_callback)(digit *, int, int, void*);
-/* Use to provide a standard way of dealing with solvers which can recurse;
- * pass in your enumeration for 'recursive diff' and your solver
- * callback. Returns #solutions (0 == already solved). */
-int latin_solver_recurse(struct latin_solver *solver, int recdiff,
-                         latin_solver_callback cb, void *ctx);
+typedef int (*usersolver_t)(struct latin_solver *solver, void *ctx);
+typedef void *(*ctxnew_t)(void *ctx);
+typedef void (*ctxfree_t)(void *ctx);
 
 /* Individual puzzles should use their enumerations for their
  * own difficulty levels, ensuring they don't clash with these. */
 enum { diff_impossible = 10, diff_ambiguous, diff_unfinished };
-int latin_solver(digit *grid, int order, int maxdiff, void *unused);
+
+/* Externally callable function that allocates and frees a latin_solver */
+int latin_solver(digit *grid, int o, int maxdiff,
+		 int diff_simple, int diff_set_0, int diff_set_1,
+		 int diff_forcing, int diff_recursive,
+		 usersolver_t const *usersolvers, void *ctx,
+		 ctxnew_t ctxnew, ctxfree_t ctxfree);
+
+/* Version you can call if you want to alloc and free latin_solver yourself */
+int latin_solver_main(struct latin_solver *solver, int maxdiff,
+		      int diff_simple, int diff_set_0, int diff_set_1,
+		      int diff_forcing, int diff_recursive,
+		      usersolver_t const *usersolvers, void *ctx,
+		      ctxnew_t ctxnew, ctxfree_t ctxfree);
 
 void latin_solver_debug(unsigned char *cube, int o);
 
 /* --- Generation and checking --- */
 
-digit *latin_generate_quick(int o, random_state *rs);
 digit *latin_generate(int o, random_state *rs);
 
 int latin_check(digit *sq, int order); /* !0 => not a latin square */

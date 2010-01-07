@@ -56,14 +56,17 @@ enum {
 };
 
 struct game_params {
-    int order, diff;
+    int order;          /* Size of latin square */
+    int diff;           /* Difficulty */
+    int adjacent;       /* Puzzle indicators are 'adjacent number'
+                            not 'greater-than'. */
 };
 
 #define F_IMMUTABLE     1       /* passed in as game description */
-#define F_GT_UP         2
-#define F_GT_RIGHT      4
-#define F_GT_DOWN       8
-#define F_GT_LEFT       16
+#define F_ADJ_UP        2
+#define F_ADJ_RIGHT     4
+#define F_ADJ_DOWN      8
+#define F_ADJ_LEFT      16
 #define F_ERROR         32
 #define F_ERROR_UP      64
 #define F_ERROR_RIGHT   128
@@ -73,7 +76,7 @@ struct game_params {
 #define F_ERROR_MASK (F_ERROR|F_ERROR_UP|F_ERROR_RIGHT|F_ERROR_DOWN|F_ERROR_LEFT)
 
 struct game_state {
-    int order, completed, cheated;
+    int order, completed, cheated, adjacent;
     digit *nums;                 /* actual numbers (size order^2) */
     unsigned char *hints;        /* remaining possiblities (size order^3) */
     unsigned int *flags;         /* flags (size order^2) */
@@ -84,18 +87,18 @@ struct game_state {
  */
 
 /* Steal the method from map.c for difficulty levels. */
-#define DIFFLIST(A)             \
-    A(LATIN,Trivial,t)          \
-    A(EASY,Easy,e)              \
-    A(SET,Tricky,k)             \
-    A(EXTREME,Extreme,x)        \
-    A(RECURSIVE,Recursive,r)
+#define DIFFLIST(A)               \
+    A(LATIN,Trivial,NULL,t)       \
+    A(EASY,Easy,solver_easy, e)   \
+    A(SET,Tricky,solver_set, k)   \
+    A(EXTREME,Extreme,NULL,x)     \
+    A(RECURSIVE,Recursive,NULL,r)
 /* _("Trivial"), _("Easy"), _("Tricky"), _("Extreme"), _("Recursive") */
 
-#define ENUM(upper,title,lower) DIFF_ ## upper,
-#define TITLE(upper,title,lower) #title,
-#define ENCODE(upper,title,lower) #lower
-#define CONFIG(upper,title,lower) ":" #title
+#define ENUM(upper,title,func,lower) DIFF_ ## upper,
+#define TITLE(upper,title,func,lower) #title,
+#define ENCODE(upper,title,func,lower) #lower
+#define CONFIG(upper,title,func,lower) ":" #title
 enum { DIFFLIST(ENUM) DIFF_IMPOSSIBLE = diff_impossible, DIFF_AMBIGUOUS = diff_ambiguous, DIFF_UNFINISHED = diff_unfinished };
 static char const *const unequal_diffnames[] = { DIFFLIST(TITLE) };
 static char const unequal_diffchars[] = DIFFLIST(ENCODE);
@@ -105,15 +108,18 @@ static char const unequal_diffchars[] = DIFFLIST(ENCODE);
 #define DEFAULT_PRESET 0
 
 const static struct game_params unequal_presets[] = {
-    {  4, DIFF_EASY     },
-    {  5, DIFF_EASY     },
-    {  5, DIFF_SET      },
-    {  5, DIFF_EXTREME  },
-    {  6, DIFF_EASY     },
-    {  6, DIFF_SET      },
-    {  6, DIFF_EXTREME  },
-    {  7, DIFF_SET      },
-    {  7, DIFF_EXTREME  },
+    {  4, DIFF_EASY,    0 },
+    {  5, DIFF_EASY,    0 },
+    {  5, DIFF_SET,     0 },
+    {  5, DIFF_SET,     1 },
+    {  5, DIFF_EXTREME, 0 },
+    {  6, DIFF_EASY,    0 },
+    {  6, DIFF_SET,     0 },
+    {  6, DIFF_SET,     1 },
+    {  6, DIFF_EXTREME, 0 },
+    {  7, DIFF_SET,     0 },
+    {  7, DIFF_SET,     1 },
+    {  7, DIFF_EXTREME, 0 }
 };
 
 static int game_fetch_preset(int i, char **name, game_params **params)
@@ -127,7 +133,9 @@ static int game_fetch_preset(int i, char **name, game_params **params)
     ret = snew(game_params);
     *ret = unequal_presets[i]; /* structure copy */
 
-    sprintf(buf, "%dx%d %s", ret->order, ret->order,
+    sprintf(buf, "%s: %dx%d %s",
+            ret->adjacent ? "Adjacent" : "Unequal",
+            ret->order, ret->order,
             _(unequal_diffnames[ret->diff]));
 
     *name = dupstr(buf);
@@ -164,6 +172,12 @@ static void decode_params(game_params *ret, char const *string)
     ret->order = atoi(p);
     while (*p && isdigit((unsigned char)*p)) p++;
 
+    if (*p == 'a') {
+        p++;
+        ret->adjacent = 1;
+    } else
+        ret->adjacent = 0;
+
     if (*p == 'd') {
         int i;
         p++;
@@ -183,6 +197,8 @@ static char *encode_params(game_params *params, int full)
     char ret[80];
 
     sprintf(ret, "%d", params->order);
+    if (params->adjacent)
+        sprintf(ret + strlen(ret), "a");
     if (full)
         sprintf(ret + strlen(ret), "d%c", unequal_diffchars[params->diff]);
 
@@ -194,23 +210,28 @@ static config_item *game_configure(game_params *params)
     config_item *ret;
     char buf[80];
 
-    ret = snewn(3, config_item);
+    ret = snewn(4, config_item);
 
-    ret[0].name = _("Size (s*s)");
-    ret[0].type = C_STRING;
+    ret[0].name = _("Mode");
+    ret[0].type = C_CHOICES;
+    ret[0].sval = _(":Unequal:Adjacent");
+    ret[0].ival = params->adjacent;
+
+    ret[1].name = _("Size (s*s)");
+    ret[1].type = C_STRING;
     sprintf(buf, "%d", params->order);
-    ret[0].sval = dupstr(buf);
-    ret[0].ival = 0;
+    ret[1].sval = dupstr(buf);
+    ret[1].ival = 0;
 
-    ret[1].name = _("Difficulty");
-    ret[1].type = C_CHOICES;
-    ret[1].sval = DIFFCONFIG;
-    ret[1].ival = params->diff;
+    ret[2].name = _("Difficulty");
+    ret[2].type = C_CHOICES;
+    ret[2].sval = DIFFCONFIG;
+    ret[2].ival = params->diff;
 
-    ret[2].name = NULL;
-    ret[2].type = C_END;
-    ret[2].sval = NULL;
-    ret[2].ival = 0;
+    ret[3].name = NULL;
+    ret[3].type = C_END;
+    ret[3].sval = NULL;
+    ret[3].ival = 0;
 
     return ret;
 }
@@ -219,8 +240,9 @@ static game_params *custom_params(config_item *cfg)
 {
     game_params *ret = snew(game_params);
 
-    ret->order = atoi(cfg[0].sval);
-    ret->diff = cfg[1].ival;
+    ret->adjacent = cfg[0].ival;
+    ret->order = atoi(cfg[1].sval);
+    ret->diff = cfg[2].ival;
 
     return ret;
 }
@@ -231,6 +253,9 @@ static char *validate_params(game_params *params, int full)
         return _("Order must be between 3 and 32");
     if (params->diff >= DIFFCOUNT)
         return _("Unknown difficulty rating");
+    if (params->order < 5 && params->adjacent &&
+        params->diff >= DIFF_SET)
+        return _("Order must be at least 5 for Adjacent puzzles of this difficulty.");
     return NULL;
 }
 
@@ -238,19 +263,20 @@ static char *validate_params(game_params *params, int full)
  * Various utility functions
  */
 
-static const struct { unsigned int f, fo, fe; int dx, dy; char c; } gtthan[] = {
-    { F_GT_UP,    F_GT_DOWN,  F_ERROR_UP,     0, -1, '^' },
-    { F_GT_RIGHT, F_GT_LEFT,  F_ERROR_RIGHT,  1,  0, '>' },
-    { F_GT_DOWN,  F_GT_UP,    F_ERROR_DOWN,   0,  1, 'v' },
-    { F_GT_LEFT,  F_GT_RIGHT, F_ERROR_LEFT,  -1,  0, '<' }
+static const struct { unsigned int f, fo, fe; int dx, dy; char c, ac; } adjthan[] = {
+    { F_ADJ_UP,    F_ADJ_DOWN,  F_ERROR_UP,     0, -1, '^', '-' },
+    { F_ADJ_RIGHT, F_ADJ_LEFT,  F_ERROR_RIGHT,  1,  0, '>', '|' },
+    { F_ADJ_DOWN,  F_ADJ_UP,    F_ERROR_DOWN,   0,  1, 'v', '-' },
+    { F_ADJ_LEFT,  F_ADJ_RIGHT, F_ERROR_LEFT,  -1,  0, '<', '|' }
 };
 
-static game_state *blank_game(int order)
+static game_state *blank_game(int order, int adjacent)
 {
     game_state *state = snew(game_state);
     int o2 = order*order, o3 = o2*order;
 
     state->order = order;
+    state->adjacent = adjacent;
     state->completed = state->cheated = 0;
 
     state->nums = snewn(o2, digit);
@@ -266,7 +292,7 @@ static game_state *blank_game(int order)
 
 static game_state *dup_game(game_state *state)
 {
-    game_state *ret = blank_game(state->order);
+    game_state *ret = blank_game(state->order, state->adjacent);
     int o2 = state->order*state->order, o3 = o2*state->order;
 
     memcpy(ret->nums, state->nums, o2 * sizeof(digit));
@@ -287,34 +313,47 @@ static void free_game(game_state *state)
 #define CHECKG(x,y) grid[(y)*o+(x)]
 
 /* Returns 0 if it finds an error, 1 otherwise. */
-static int check_gt(digit *grid, game_state *state,
-                    int x, int y, int dx, int dy)
-{
-    int o = state->order;
-    int n = CHECKG(x,y), dn = CHECKG(x+dx, y+dy);
-
-    assert(n != 0);
-    if (dn == 0) return 1;
-
-    if (n <= dn) {
-        debug(("check_gt error (%d,%d) (%d,%d)", x, y, x+dx, y+dy));
-        return 0;
-    }
-    return 1;
-}
-
-/* Returns 0 if it finds an error, 1 otherwise. */
-static int check_num_gt(digit *grid, game_state *state,
+static int check_num_adj(digit *grid, game_state *state,
                         int x, int y, int me)
 {
     unsigned int f = GRID(state, flags, x, y);
-    int ret = 1, i;
+    int ret = 1, i, o = state->order;
 
     for (i = 0; i < 4; i++) {
-        if ((f & gtthan[i].f) &&
-            !check_gt(grid, state, x, y, gtthan[i].dx, gtthan[i].dy)) {
-            if (me) GRID(state, flags, x, y) |= gtthan[i].fe;
-            ret = 0;
+        int dx = adjthan[i].dx, dy = adjthan[i].dy, n, dn;
+
+        if (x+dx < 0 || x+dx >= o || y+dy < 0 || y+dy >= o)
+            continue;
+
+        n = CHECKG(x, y);
+        dn = CHECKG(x+dx, y+dy);
+
+        assert (n != 0);
+        if (dn == 0) continue;
+
+        if (state->adjacent) {
+            int gd = abs(n-dn);
+
+            if ((f & adjthan[i].f) && (gd != 1)) {
+                debug(("check_adj error (%d,%d):%d should be | (%d,%d):%d",
+                       x, y, n, x+dx, y+dy, dn));
+                if (me) GRID(state, flags, x, y) |= adjthan[i].fe;
+                ret = 0;
+            }
+            if (!(f & adjthan[i].f) && (gd == 1)) {
+                debug(("check_adj error (%d,%d):%d should not be | (%d,%d):%d",
+                       x, y, n, x+dx, y+dy, dn));
+                if (me) GRID(state, flags, x, y) |= adjthan[i].fe;
+                ret = 0;
+            }
+
+        } else {
+            if ((f & adjthan[i].f) && (n <= dn)) {
+                debug(("check_adj error (%d,%d):%d not > (%d,%d):%d",
+                       x, y, n, x+dx, y+dy, dn));
+                if (me) GRID(state, flags, x, y) |= adjthan[i].fe;
+                ret = 0;
+            }
         }
     }
     return ret;
@@ -367,7 +406,7 @@ static int check_complete(digit *grid, game_state *state, int mark_errors)
                 ret = 0;
             } else {
                 if (!check_num_error(grid, state, x, y, mark_errors)) ret = -1;
-                if (!check_num_gt(grid, state, x, y, mark_errors)) ret = -1;
+                if (!check_num_adj(grid, state, x, y, mark_errors)) ret = -1;
             }
         }
     }
@@ -393,10 +432,10 @@ static char n2c(digit n, int order) {
 static int c2n(int c, int order) {
     if (c < 0 || c > 0xff)
         return -1;
-    if (c == ' ' || c == '\010' || c == '\177')
+    if (c == ' ' || c == '\b')
         return 0;
     if (order < 10) {
-        if (c >= '1' && c <= '9')
+        if (c >= '0' && c <= '9')
             return (int)(c - '0');
     } else {
         if (c >= '0' && c <= '9')
@@ -429,24 +468,32 @@ static char *game_text_format(game_state *state)
             *p++ = n > 0 ? n2c(n, state->order) : '.';
 
             if (x < (state->order-1)) {
-                if (GRID(state, flags, x, y) & F_GT_RIGHT)
-                    *p++ = '>';
-                else if (GRID(state, flags, x+1, y) & F_GT_LEFT)
-                    *p++ = '<';
-                else
-                    *p++ = ' ';
+                if (state->adjacent) {
+                    *p++ = (GRID(state, flags, x, y) & F_ADJ_RIGHT) ? '|' : ' ';
+                } else {
+                    if (GRID(state, flags, x, y) & F_ADJ_RIGHT)
+                        *p++ = '>';
+                    else if (GRID(state, flags, x+1, y) & F_ADJ_LEFT)
+                        *p++ = '<';
+                    else
+                        *p++ = ' ';
+                }
             }
         }
         *p++ = '\n';
 
         if (y < (state->order-1)) {
             for (x = 0; x < state->order; x++) {
-                if (GRID(state, flags, x, y) & F_GT_DOWN)
-                    *p++ = 'v';
-                else if (GRID(state, flags, x, y+1) & F_GT_UP)
-                    *p++ = '^';
-                else
-                    *p++ = ' ';
+                if (state->adjacent) {
+                    *p++ = (GRID(state, flags, x, y) & F_ADJ_DOWN) ? '-' : ' ';
+                } else {
+                    if (GRID(state, flags, x, y) & F_ADJ_DOWN)
+                        *p++ = 'v';
+                    else if (GRID(state, flags, x, y+1) & F_ADJ_UP)
+                        *p++ = '^';
+                    else
+                        *p++ = ' ';
+                }
 
                 if (x < state->order-1)
                   *p++ = ' ';
@@ -477,85 +524,75 @@ struct solver_link {
     int len, gx, gy, lx, ly;
 };
 
-typedef struct game_solver {
-    struct latin_solver latin; /* keep first in struct! */
-
+struct solver_ctx {
     game_state *state;
 
     int nlinks, alinks;
     struct solver_link *links;
-} game_solver;
+};
 
-#if 0
-static void solver_debug(game_solver *solver, int wide)
-{
-#ifdef STANDALONE_SOLVER
-    if (solver_show_working) {
-        if (!wide)
-            game_debug(solver->state);
-        else
-            latin_solver_debug(solver->latin.cube, solver->latin.o);
-    }
-#endif
-}
-#endif
-
-static void solver_add_link(game_solver *solver,
+static void solver_add_link(struct solver_ctx *ctx,
                             int gx, int gy, int lx, int ly, int len)
 {
-    if (solver->alinks < solver->nlinks+1) {
-        solver->alinks = solver->alinks*2 + 1;
-        /*debug(("resizing solver->links, new size %d", solver->alinks));*/
-        solver->links = sresize(solver->links, solver->alinks, struct solver_link);
+    if (ctx->alinks < ctx->nlinks+1) {
+        ctx->alinks = ctx->alinks*2 + 1;
+        /*debug(("resizing ctx->links, new size %d", ctx->alinks));*/
+        ctx->links = sresize(ctx->links, ctx->alinks, struct solver_link);
     }
-    solver->links[solver->nlinks].gx = gx;
-    solver->links[solver->nlinks].gy = gy;
-    solver->links[solver->nlinks].lx = lx;
-    solver->links[solver->nlinks].ly = ly;
-    solver->links[solver->nlinks].len = len;
-    solver->nlinks++;
+    ctx->links[ctx->nlinks].gx = gx;
+    ctx->links[ctx->nlinks].gy = gy;
+    ctx->links[ctx->nlinks].lx = lx;
+    ctx->links[ctx->nlinks].ly = ly;
+    ctx->links[ctx->nlinks].len = len;
+    ctx->nlinks++;
     /*debug(("Adding new link: len %d (%d,%d) < (%d,%d), nlinks now %d",
-           len, lx, ly, gx, gy, solver->nlinks));*/
+           len, lx, ly, gx, gy, ctx->nlinks));*/
 }
 
-static game_solver *new_solver(digit *grid, game_state *state)
+static struct solver_ctx *new_ctx(game_state *state)
 {
-    game_solver *solver = snew(game_solver);
+    struct solver_ctx *ctx = snew(struct solver_ctx);
     int o = state->order;
     int i, x, y;
     unsigned int f;
 
-    latin_solver_alloc(&solver->latin, grid, o);
+    ctx->nlinks = ctx->alinks = 0;
+    ctx->links = NULL;
+    ctx->state = state;
 
-    solver->nlinks = solver->alinks = 0;
-    solver->links = NULL;
+    if (state->adjacent) return ctx; /* adjacent mode doesn't use links. */
 
     for (x = 0; x < o; x++) {
         for (y = 0; y < o; y++) {
             f = GRID(state, flags, x, y);
             for (i = 0; i < 4; i++) {
-                if (f & gtthan[i].f)
-                    solver_add_link(solver, x, y, x+gtthan[i].dx, y+gtthan[i].dy, 1);
+                if (f & adjthan[i].f)
+                    solver_add_link(ctx, x, y, x+adjthan[i].dx, y+adjthan[i].dy, 1);
             }
         }
     }
 
-    return solver;
+    return ctx;
 }
 
-static void free_solver(game_solver *solver)
+static void *clone_ctx(void *vctx)
 {
-    if (solver->links) sfree(solver->links);
-    latin_solver_free(&solver->latin);
-    sfree(solver);
+    struct solver_ctx *ctx = (struct solver_ctx *)vctx;
+    return new_ctx(ctx->state);
 }
 
-static void solver_nminmax(game_solver *usolver,
+static void free_ctx(void *vctx)
+{
+    struct solver_ctx *ctx = (struct solver_ctx *)vctx;
+    if (ctx->links) sfree(ctx->links);
+    sfree(ctx);
+}
+
+static void solver_nminmax(struct latin_solver *solver,
                            int x, int y, int *min_r, int *max_r,
                            unsigned char **ns_r)
 {
-    struct latin_solver *solver = &usolver->latin;
-    int o = usolver->latin.o, min = o, max = 0, n;
+    int o = solver->o, min = o, max = 0, n;
     unsigned char *ns;
 
     assert(x >= 0 && y >= 0 && x < o && y < o);
@@ -577,17 +614,17 @@ static void solver_nminmax(game_solver *usolver,
     if (ns_r) *ns_r = ns;
 }
 
-static int solver_links(game_solver *usolver)
+static int solver_links(struct latin_solver *solver, void *vctx)
 {
+    struct solver_ctx *ctx = (struct solver_ctx *)vctx;
     int i, j, lmin, gmax, nchanged = 0;
     unsigned char *gns, *lns;
     struct solver_link *link;
-    struct latin_solver *solver = &usolver->latin;
 
-    for (i = 0; i < usolver->nlinks; i++) {
-        link = &usolver->links[i];
-        solver_nminmax(usolver, link->gx, link->gy, NULL, &gmax, &gns);
-        solver_nminmax(usolver, link->lx, link->ly, &lmin, NULL, &lns);
+    for (i = 0; i < ctx->nlinks; i++) {
+        link = &ctx->links[i];
+        solver_nminmax(solver, link->gx, link->gy, NULL, &gmax, &gns);
+        solver_nminmax(solver, link->lx, link->ly, &lmin, NULL, &lns);
 
         for (j = 0; j < solver->o; j++) {
             /* For the 'greater' end of the link, discount all numbers
@@ -598,10 +635,10 @@ static int solver_links(game_solver *usolver)
                     if (solver_show_working) {
                         printf("%*slink elimination, (%d,%d) > (%d,%d):\n",
                                solver_recurse_depth*4, "",
-                               link->gx, link->gy, link->lx, link->ly);
+                               link->gx+1, link->gy+1, link->lx+1, link->ly+1);
                         printf("%*s  ruling out %d at (%d,%d)\n",
                                solver_recurse_depth*4, "",
-                               j+1, link->gx, link->gy);
+                               j+1, link->gx+1, link->gy+1);
                     }
 #endif
                     cube(link->gx, link->gy, j+1) = FALSE;
@@ -616,10 +653,10 @@ static int solver_links(game_solver *usolver)
                     if (solver_show_working) {
                         printf("%*slink elimination, (%d,%d) > (%d,%d):\n",
                                solver_recurse_depth*4, "",
-                               link->gx, link->gy, link->lx, link->ly);
+                               link->gx+1, link->gy+1, link->lx+1, link->ly+1);
                         printf("%*s  ruling out %d at (%d,%d)\n",
                                solver_recurse_depth*4, "",
-                               j+1, link->lx, link->ly);
+                               j+1, link->lx+1, link->ly+1);
                     }
 #endif
                     cube(link->lx, link->ly, j+1) = FALSE;
@@ -631,137 +668,162 @@ static int solver_links(game_solver *usolver)
     return nchanged;
 }
 
-static int solver_grid(digit *grid, int o, int maxdiff, void *ctx)
+static int solver_adjacent(struct latin_solver *solver, void *vctx)
 {
-    game_state *state = (game_state *)ctx;
-    game_solver *solver;
-    struct latin_solver *lsolver;
-    struct latin_solver_scratch *scratch;
-    int ret, diff = DIFF_LATIN;
+    struct solver_ctx *ctx = (struct solver_ctx *)vctx;
+    int nchanged = 0, x, y, i, n, o = solver->o, nx, ny, gd;
 
-    assert(maxdiff <= DIFF_RECURSIVE);
+    /* Update possible values based on known values and adjacency clues. */
 
-    assert(state->order == o);
-    solver = new_solver(grid, state);
+    for (x = 0; x < o; x++) {
+        for (y = 0; y < o; y++) {
+            if (grid(x, y) == 0) continue;
 
-    lsolver = &solver->latin;
-    scratch = latin_solver_new_scratch(lsolver);
+            /* We have a definite number here. Make sure that any
+             * adjacent possibles reflect the adjacent/non-adjacent clue. */
 
-    while (1) {
-cont:
-#ifdef ANDROID
-        if (android_cancelled()) {
-            latin_solver_free_scratch(scratch);
-            free_solver(solver);
-            return 1;
-        }
-#endif
-        ret = latin_solver_diff_simple(lsolver);
-        if (ret < 0) {
-            diff = DIFF_IMPOSSIBLE;
-            goto got_result;
-        } else if (ret > 0) {
-            diff = max(diff, DIFF_LATIN);
-            goto cont;
-        }
+            for (i = 0; i < 4; i++) {
+                int isadjacent = (GRID(ctx->state, flags, x, y) & adjthan[i].f);
 
-        if (maxdiff <= DIFF_LATIN)
-            break;
+                nx = x + adjthan[i].dx, ny = y + adjthan[i].dy;
+                if (nx < 0 || ny < 0 || nx >= o || ny >= o)
+                    continue;
 
-        /* This bit is unequal-specific */
-        ret = solver_links(solver);
-        if (ret < 0) {
-            diff = DIFF_IMPOSSIBLE;
-            goto got_result;
-        } else if (ret > 0) {
-            diff = max(diff, DIFF_EASY);
-            goto cont;
-        }
+                for (n = 0; n < o; n++) {
+                    /* Continue past numbers the adjacent square _could_ be,
+                     * given the clue we have. */
+                    gd = abs((n+1) - grid(x, y));
+                    if (isadjacent && (gd == 1)) continue;
+                    if (!isadjacent && (gd != 1)) continue;
 
-        if (maxdiff <= DIFF_EASY)
-            break;
-
-        /* Row- and column-wise set elimination */
-        ret = latin_solver_diff_set(lsolver, scratch, 0);
-        if (ret < 0) {
-            diff = DIFF_IMPOSSIBLE;
-            goto got_result;
-        } else if (ret > 0) {
-            diff = max(diff, DIFF_SET);
-            goto cont;
-        }
-
-        if (maxdiff <= DIFF_SET)
-            break;
-
-        ret = latin_solver_diff_set(lsolver, scratch, 1);
-        if (ret < 0) {
-            diff = DIFF_IMPOSSIBLE;
-            goto got_result;
-        } else if (ret > 0) {
-            diff = max(diff, DIFF_EXTREME);
-            goto cont;
-        }
-
-        /*
-         * Forcing chains.
-         */
-        if (latin_solver_forcing(lsolver, scratch)) {
-            diff = max(diff, DIFF_EXTREME);
-            goto cont;
-        }
-
-        /*
-         * If we reach here, we have made no deductions in this
-         * iteration, so the algorithm terminates.
-         */
-        break;
-    }
-    /*
-     * Last chance: if we haven't fully solved the puzzle yet, try
-     * recursing based on guesses for a particular square. We pick
-     * one of the most constrained empty squares we can find, which
-     * has the effect of pruning the search tree as much as
-     * possible.
-     */
-    if (maxdiff == DIFF_RECURSIVE) {
-        int nsol = latin_solver_recurse(lsolver, DIFF_RECURSIVE, solver_grid, ctx);
-        if (nsol < 0) diff = DIFF_IMPOSSIBLE;
-        else if (nsol == 1) diff = DIFF_RECURSIVE;
-        else if (nsol > 1) diff = DIFF_AMBIGUOUS;
-        /* if nsol == 0 then we were complete anyway
-         * (and thus don't need to change diff) */
-    } else {
-        int cc = check_complete(grid, state, 0);
-        if (cc == -1) diff = DIFF_IMPOSSIBLE;
-        if (cc == 0) diff = DIFF_UNFINISHED;
-    }
-
-got_result:
+                    if (cube(nx, ny, n+1) == FALSE)
+                        continue; /* already discounted this possibility. */
 
 #ifdef STANDALONE_SOLVER
-    if (solver_show_working)
-        printf("%*s%s found\n",
-               solver_recurse_depth*4, "",
-               diff == DIFF_IMPOSSIBLE ? "no solution (impossible)" :
-               diff == DIFF_UNFINISHED ? "no solution (unfinished)" :
-               diff == DIFF_AMBIGUOUS ? "multiple solutions" :
-               "one solution");
+                    if (solver_show_working) {
+                        printf("%*sadjacent elimination, (%d,%d):%d %s (%d,%d):\n",
+                               solver_recurse_depth*4, "",
+                               x+1, y+1, grid(x, y), isadjacent ? "|" : "!|", nx+1, ny+1);
+                        printf("%*s  ruling out %d at (%d,%d)\n",
+                               solver_recurse_depth*4, "", n+1, nx+1, ny+1);
+                    }
 #endif
+                    cube(nx, ny, n+1) = FALSE;
+                    nchanged++;
+                }
+            }
+        }
+    }
 
-    latin_solver_free_scratch(scratch);
-    memcpy(state->hints, solver->latin.cube, o*o*o);
-    free_solver(solver);
-
-    return diff;
+    return nchanged;
 }
+
+static int solver_adjacent_set(struct latin_solver *solver, void *vctx)
+{
+    struct solver_ctx *ctx = (struct solver_ctx *)vctx;
+    int x, y, i, n, nn, o = solver->o, nx, ny, gd;
+    int nchanged = 0, *scratch = snewn(o, int);
+
+    /* Update possible values based on other possible values
+     * of adjacent squares, and adjacency clues. */
+
+    for (x = 0; x < o; x++) {
+        for (y = 0; y < o; y++) {
+            for (i = 0; i < 4; i++) {
+                int isadjacent = (GRID(ctx->state, flags, x, y) & adjthan[i].f);
+
+                nx = x + adjthan[i].dx, ny = y + adjthan[i].dy;
+                if (nx < 0 || ny < 0 || nx >= o || ny >= o)
+                    continue;
+
+                /* We know the current possibles for the square (x,y)
+                 * and also the adjacency clue from (x,y) to (nx,ny).
+                 * Construct a maximum set of possibles for (nx,ny)
+                 * in scratch, based on these constraints... */
+
+                memset(scratch, 0, o*sizeof(int));
+
+                for (n = 0; n < o; n++) {
+                    if (cube(x, y, n+1) == FALSE) continue;
+
+                    for (nn = 0; nn < o; nn++) {
+                        if (n == nn) continue;
+
+                        gd = abs(nn - n);
+                        if (isadjacent && (gd != 1)) continue;
+                        if (!isadjacent && (gd == 1)) continue;
+
+                        scratch[nn] = 1;
+                    }
+                }
+
+                /* ...and remove any possibilities for (nx,ny) that are
+                 * currently set but are not indicated in scratch. */
+                for (n = 0; n < o; n++) {
+                    if (scratch[n] == 1) continue;
+                    if (cube(nx, ny, n+1) == FALSE) continue;
+
+#ifdef STANDALONE_SOLVER
+                    if (solver_show_working) {
+                        printf("%*sadjacent possible elimination, (%d,%d) %s (%d,%d):\n",
+                               solver_recurse_depth*4, "",
+                               x+1, y+1, isadjacent ? "|" : "!|", nx+1, ny+1);
+                        printf("%*s  ruling out %d at (%d,%d)\n",
+                               solver_recurse_depth*4, "", n+1, nx+1, ny+1);
+                    }
+#endif
+                    cube(nx, ny, n+1) = FALSE;
+                    nchanged++;
+                }
+            }
+        }
+    }
+
+    return nchanged;
+}
+
+static int solver_easy(struct latin_solver *solver, void *vctx)
+{
+    struct solver_ctx *ctx = (struct solver_ctx *)vctx;
+    if (ctx->state->adjacent)
+	return solver_adjacent(solver, vctx);
+    else
+	return solver_links(solver, vctx);
+}
+
+static int solver_set(struct latin_solver *solver, void *vctx)
+{
+    struct solver_ctx *ctx = (struct solver_ctx *)vctx;
+    if (ctx->state->adjacent)
+	return solver_adjacent_set(solver, vctx);
+    else
+	return 0;
+}
+
+#define SOLVER(upper,title,func,lower) func,
+static usersolver_t const unequal_solvers[] = { DIFFLIST(SOLVER) };
 
 static int solver_state(game_state *state, int maxdiff)
 {
-    int diff = solver_grid(state->nums, state->order, maxdiff, (void*)state);
+    struct solver_ctx *ctx = new_ctx(state);
+    struct latin_solver solver;
+    int diff;
 #ifdef ANDROID
     if (android_cancelled()) return 1;
 #endif
+
+    latin_solver_alloc(&solver, state->nums, state->order);
+
+    diff = latin_solver_main(&solver, maxdiff,
+			     DIFF_LATIN, DIFF_SET, DIFF_EXTREME,
+			     DIFF_EXTREME, DIFF_RECURSIVE,
+			     unequal_solvers, ctx, clone_ctx, free_ctx);
+
+    memcpy(state->hints, solver.cube, state->order*state->order*state->order);
+
+    free_ctx(ctx);
+
+    latin_solver_free(&solver);
 
     if (diff == DIFF_IMPOSSIBLE)
         return -1;
@@ -818,7 +880,7 @@ static int gg_place_clue(game_state *state, int ccode, digit *latin, int checkon
 #ifdef STANDALONE_SOLVER
             if (state->nums[loc] != latin[loc]) {
                 printf("inconsistency for (%d,%d): state %d latin %d\n",
-                       x, y, state->nums[loc], latin[loc]);
+                       x+1, y+1, state->nums[loc], latin[loc]);
             }
 #endif
             assert(state->nums[loc] == latin[loc]);
@@ -830,20 +892,24 @@ static int gg_place_clue(game_state *state, int ccode, digit *latin, int checkon
     } else {                    /* add flag */
         int lx, ly, lloc;
 
-        if (state->flags[loc] & gtthan[which].f)
+        if (state->adjacent)
+            return 0; /* never add flag clues in adjacent mode (they're always
+                         all present) */
+
+        if (state->flags[loc] & adjthan[which].f)
             return 0; /* already has flag. */
 
-        lx = x + gtthan[which].dx;
-        ly = y + gtthan[which].dy;
+        lx = x + adjthan[which].dx;
+        ly = y + adjthan[which].dy;
         if (lx < 0 || ly < 0 || lx >= state->order || ly >= state->order)
             return 0; /* flag compares to off grid */
 
-        lloc = loc + gtthan[which].dx + gtthan[which].dy*state->order;
+        lloc = loc + adjthan[which].dx + adjthan[which].dy*state->order;
         if (latin[loc] <= latin[lloc])
             return 0; /* flag would be incorrect */
 
         if (!checkonly) {
-            state->flags[loc] |= gtthan[which].f;
+            state->flags[loc] |= adjthan[which].f;
         }
     }
     return 1;
@@ -865,19 +931,22 @@ static int gg_remove_clue(game_state *state, int ccode, int checkonly)
 #ifdef STANDALONE_SOLVER
             if (solver_show_working)
                 printf("gg_remove_clue: removing %d at (%d,%d)",
-                       state->nums[loc], x, y);
+                       state->nums[loc], x+1, y+1);
 #endif
             state->nums[loc] = 0;
         }
     } else {                    /* remove flag */
-        if (!(state->flags[loc] & gtthan[which].f)) return 0;
+        if (state->adjacent)
+            return 0; /* never remove clues in adjacent mode. */
+
+        if (!(state->flags[loc] & adjthan[which].f)) return 0;
         if (!checkonly) {
 #ifdef STANDALONE_SOLVER
             if (solver_show_working)
                printf("gg_remove_clue: removing %c at (%d,%d)",
-                       gtthan[which].c, x, y);
+                       adjthan[which].c, x+1, y+1);
 #endif
-            state->flags[loc] &= ~gtthan[which].f;
+            state->flags[loc] &= ~adjthan[which].f;
         }
     }
     return 1;
@@ -905,7 +974,7 @@ static int gg_best_clue(game_state *state, int *scratch, digit *latin)
             if (state->hints[loc*state->order + j]) nposs++;
         }
         for (j = nclues = 0; j < 4; j++) {
-            if (state->flags[loc] & gtthan[j].f) nclues++;
+            if (state->flags[loc] & adjthan[j].f) nclues++;
         }
         if ((nposs > maxposs) ||
             (nposs == maxposs && nclues < minclues)) {
@@ -913,7 +982,7 @@ static int gg_best_clue(game_state *state, int *scratch, digit *latin)
 #ifdef STANDALONE_SOLVER
             if (solver_show_working)
                 printf("gg_best_clue: b%d (%d,%d) new best [%d poss, %d clues].\n",
-                       best, x, y, nposs, nclues);
+                       best, x+1, y+1, nposs, nclues);
 #endif
         }
     }
@@ -975,7 +1044,7 @@ static void game_strip(game_state *new, int *scratch, digit *latin,
                        int difficulty)
 {
     int o = new->order, o2 = o*o, lscratch = o2*5, i;
-    game_state *copy = blank_game(new->order);
+    game_state *copy = blank_game(new->order, new->adjacent);
 
     /* For each symbol (if it exists in new), try and remove it and
      * solve again; if we couldn't solve without it put it back. */
@@ -1013,6 +1082,28 @@ static void game_strip(game_state *new, int *scratch, digit *latin,
 #endif
 }
 
+static void add_adjacent_flags(game_state *state, digit *latin)
+{
+    int x, y, o = state->order;
+
+    /* All clues in adjacent mode are always present (the only variables are
+     * the numbers). This adds all the flags to state based on the supplied
+     * latin square. */
+
+    for (y = 0; y < o; y++) {
+        for (x = 0; x < o; x++) {
+            if (x < (o-1) && (abs(latin[y*o+x] - latin[y*o+x+1]) == 1)) {
+                GRID(state, flags, x, y) |= F_ADJ_RIGHT;
+                GRID(state, flags, x+1, y) |= F_ADJ_LEFT;
+            }
+            if (y < (o-1) && (abs(latin[y*o+x] - latin[(y+1)*o+x]) == 1)) {
+                GRID(state, flags, x, y) |= F_ADJ_DOWN;
+                GRID(state, flags, x, y+1) |= F_ADJ_UP;
+            }
+        }
+    }
+}
+
 static char *new_game_desc(game_params *params, random_state *rs,
 			   char **aux, int interactive)
 {
@@ -1021,7 +1112,7 @@ static char *new_game_desc(game_params *params, random_state *rs,
     int o2 = params->order * params->order, ntries = 1;
     int *scratch, lscratch = o2*5;
     char *ret, buf[80];
-    game_state *state = blank_game(params->order);
+    game_state *state = blank_game(params->order, params->adjacent);
 
     /* Generate a list of 'things to strip' (randomised later) */
     scratch = snewn(lscratch, int);
@@ -1039,7 +1130,7 @@ generate:
 #endif
 #ifdef STANDALONE_SOLVER
     if (solver_show_working)
-        printf("new_game_desc: generating %s puzzle, ntries so far %d",
+        printf("new_game_desc: generating %s puzzle, ntries so far %d\n",
                unequal_diffnames[params->diff], ntries);
 #endif
     if (sq) sfree(sq);
@@ -1051,6 +1142,11 @@ generate:
 
     memset(state->nums, 0, o2 * sizeof(digit));
     memset(state->flags, 0, o2 * sizeof(unsigned int));
+
+    if (state->adjacent) {
+        /* All adjacency flags are always present. */
+        add_adjacent_flags(state, sq);
+    }
 
     gg_solved = 0;
     if (game_assemble(state, scratch, sq, params->diff) < 0)
@@ -1099,10 +1195,10 @@ generate:
             unsigned int f = GRID(state, flags, x, y);
             k = sprintf(buf, "%d%s%s%s%s,",
                         GRID(state, nums, x, y),
-                        (f & F_GT_UP)    ? "U" : "",
-                        (f & F_GT_RIGHT) ? "R" : "",
-                        (f & F_GT_DOWN)  ? "D" : "",
-                        (f & F_GT_LEFT)  ? "L" : "");
+                        (f & F_ADJ_UP)    ? "U" : "",
+                        (f & F_ADJ_RIGHT) ? "R" : "",
+                        (f & F_ADJ_DOWN)  ? "D" : "",
+                        (f & F_ADJ_LEFT)  ? "L" : "");
 
             ret = sresize(ret, retlen + k + 1, char);
             strcpy(ret + retlen, buf);
@@ -1121,7 +1217,7 @@ generate:
 static game_state *load_game(game_params *params, char *desc,
                              char **why_r)
 {
-    game_state *state = blank_game(params->order);
+    game_state *state = blank_game(params->order, params->adjacent);
     char *p = desc;
     int i = 0, n, o = params->order, x, y;
     char *why = NULL;
@@ -1150,10 +1246,10 @@ static game_state *load_game(game_params *params, char *desc,
 
         while (*p == 'U' || *p == 'R' || *p == 'D' || *p == 'L') {
             switch (*p) {
-            case 'U': state->flags[i] |= F_GT_UP;    break;
-            case 'R': state->flags[i] |= F_GT_RIGHT; break;
-            case 'D': state->flags[i] |= F_GT_DOWN;  break;
-            case 'L': state->flags[i] |= F_GT_LEFT;  break;
+            case 'U': state->flags[i] |= F_ADJ_UP;    break;
+            case 'R': state->flags[i] |= F_ADJ_RIGHT; break;
+            case 'D': state->flags[i] |= F_ADJ_DOWN;  break;
+            case 'L': state->flags[i] |= F_ADJ_LEFT;  break;
             default: why = _("Expecting flag URDL in game description"); goto fail;
             }
             p++;
@@ -1171,17 +1267,25 @@ static game_state *load_game(game_params *params, char *desc,
     for (y = 0; y < o; y++) {
         for (x = 0; x < o; x++) {
             for (n = 0; n < 4; n++) {
-                if (GRID(state, flags, x, y) & gtthan[n].f) {
-                    int nx = x + gtthan[n].dx;
-                    int ny = y + gtthan[n].dy;
+                if (GRID(state, flags, x, y) & adjthan[n].f) {
+                    int nx = x + adjthan[n].dx;
+                    int ny = y + adjthan[n].dy;
                     /* a flag must not point us off the grid. */
                     if (nx < 0 || ny < 0 || nx >= o || ny >= o) {
                         why = _("Flags go off grid"); goto fail;
                     }
-                    /* if one cell is GT another, the other must not also
-                     * be GT the first. */
-                    if (GRID(state, flags, nx, ny) & gtthan[n].fo) {
-                        why = _("Flags contradicting each other"); goto fail;
+                    if (params->adjacent) {
+                        /* if one cell is adjacent to another, the other must
+                         * also be adjacent to the first. */
+                        if (!(GRID(state, flags, nx, ny) & adjthan[n].fo)) {
+                            why = _("Flags contradicting each other"); goto fail;
+                        }
+                    } else {
+                        /* if one cell is GT another, the other must _not_ also
+                         * be GT the first. */
+                        if (GRID(state, flags, nx, ny) & adjthan[n].fo) {
+                            why = _("Flags contradicting each other"); goto fail;
+                        }
                     }
                 }
             }
@@ -1308,7 +1412,7 @@ static void game_changed_state(game_ui *ui, game_state *oldstate,
 }
 
 struct game_drawstate {
-    int tilesize, order, started;
+    int tilesize, order, started, adjacent;
     digit *nums;                /* copy of nums, o^2 */
     unsigned char *hints;       /* copy of hints, o^3 */
     unsigned int *flags;        /* o^2 */
@@ -1532,6 +1636,7 @@ static game_drawstate *game_new_drawstate(drawing *dr, game_state *state)
 
     ds->tilesize = 0;
     ds->order = state->order;
+    ds->adjacent = state->adjacent;
 
     ds->nums = snewn(o2, digit);
     ds->hints = snewn(o3, unsigned char);
@@ -1557,35 +1662,87 @@ static void game_free_drawstate(drawing *dr, game_drawstate *ds)
 static void draw_gt(drawing *dr, int ox, int oy,
                     int dx1, int dy1, int dx2, int dy2, int col)
 {
-    draw_line(dr, ox, oy, ox+dx1, oy+dy1, col);
-    draw_line(dr, ox+dx1, oy+dy1, ox+dx1+dx2, oy+dy1+dy2, col);
+    int coords[12];
+    int xdx = (dx1+dx2 ? 0 : 1), xdy = (dx1+dx2 ? 1 : 0);
+    coords[0] = ox + xdx;
+    coords[1] = oy + xdy;
+    coords[2] = ox + xdx + dx1;
+    coords[3] = oy + xdy + dy1;
+    coords[4] = ox + xdx + dx1 + dx2;
+    coords[5] = oy + xdy + dy1 + dy2;
+    coords[6] = ox - xdx + dx1 + dx2;
+    coords[7] = oy - xdy + dy1 + dy2;
+    coords[8] = ox - xdx + dx1;
+    coords[9] = oy - xdy + dy1;
+    coords[10] = ox - xdx;
+    coords[11] = oy - xdy;
+    draw_polygon(dr, coords, 6, col, col);
 }
 
 static void draw_gts(drawing *dr, game_drawstate *ds, int ox, int oy,
-                     unsigned int f, int col, int needsupdate)
+                     unsigned int f, int col)
 {
     int g = GAP_SIZE, g2 = (g+1)/2, g4 = (g+1)/4;
 
-    if (f & F_GT_UP) {
+    /* Draw all the greater-than signs emanating from this tile. */
+
+    if (f & F_ADJ_UP) {
         draw_gt(dr, ox+g2, oy-g4, g2, -g2, g2, g2,
                (f & F_ERROR_UP) ? COL_ERROR : col);
-        if (needsupdate) draw_update(dr, ox, oy-g, TILE_SIZE, g);
+        draw_update(dr, ox, oy-g, TILE_SIZE, g);
     }
-    if (f & F_GT_RIGHT) {
+    if (f & F_ADJ_RIGHT) {
         draw_gt(dr, ox+TILE_SIZE+g4, oy+g2, g2, g2, -g2, g2,
                 (f & F_ERROR_RIGHT) ? COL_ERROR : col);
-        if (needsupdate) draw_update(dr, ox+TILE_SIZE, oy, g, TILE_SIZE);
+        draw_update(dr, ox+TILE_SIZE, oy, g, TILE_SIZE);
     }
-    if (f & F_GT_DOWN) {
+    if (f & F_ADJ_DOWN) {
         draw_gt(dr, ox+g2, oy+TILE_SIZE+g4, g2, g2, g2, -g2,
                (f & F_ERROR_DOWN) ? COL_ERROR : col);
-        if (needsupdate) draw_update(dr, ox, oy+TILE_SIZE, TILE_SIZE, g);
+        draw_update(dr, ox, oy+TILE_SIZE, TILE_SIZE, g);
     }
-    if (f & F_GT_LEFT) {
+    if (f & F_ADJ_LEFT) {
         draw_gt(dr, ox-g4, oy+g2, -g2, g2, g2, g2,
                 (f & F_ERROR_LEFT) ? COL_ERROR : col);
-        if (needsupdate) draw_update(dr, ox-g, oy, g, TILE_SIZE);
+        draw_update(dr, ox-g, oy, g, TILE_SIZE);
     }
+}
+
+static void draw_adjs(drawing *dr, game_drawstate *ds, int ox, int oy,
+                     unsigned int f, int col)
+{
+    int g = GAP_SIZE, g38 = 3*(g+1)/8, g4 = (g+1)/4;
+
+    /* Draw all the adjacency bars relevant to this tile; we only have
+     * to worry about F_ADJ_RIGHT and F_ADJ_DOWN.
+     *
+     * If we _only_ have the error flag set (i.e. it's not supposed to be
+     * adjacent, but adjacent numbers were entered) draw an outline red bar.
+     */
+
+    if (f & (F_ADJ_RIGHT|F_ERROR_RIGHT)) {
+        if (f & F_ADJ_RIGHT) {
+            draw_rect(dr, ox+TILE_SIZE+g38, oy, g4, TILE_SIZE,
+                      (f & F_ERROR_RIGHT) ? COL_ERROR : col);
+        } else {
+            draw_rect_outline(dr, ox+TILE_SIZE+g38, oy, g4, TILE_SIZE, COL_ERROR);
+        }
+    } else {
+        draw_rect(dr, ox+TILE_SIZE+g38, oy, g4, TILE_SIZE, COL_BACKGROUND);
+    }
+    draw_update(dr, ox+TILE_SIZE, oy, g, TILE_SIZE);
+
+    if (f & (F_ADJ_DOWN|F_ERROR_DOWN)) {
+        if (f & F_ADJ_DOWN) {
+            draw_rect(dr, ox, oy+TILE_SIZE+g38, TILE_SIZE, g4,
+                      (f & F_ERROR_DOWN) ? COL_ERROR : col);
+        } else {
+            draw_rect_outline(dr, ox, oy+TILE_SIZE+g38, TILE_SIZE, g4, COL_ERROR);
+        }
+    } else {
+        draw_rect(dr, ox, oy+TILE_SIZE+g38, TILE_SIZE, g4, COL_BACKGROUND);
+    }
+    draw_update(dr, ox, oy+TILE_SIZE, TILE_SIZE, g);
 }
 
 static void draw_furniture(drawing *dr, game_drawstate *ds, game_state *state,
@@ -1619,8 +1776,11 @@ static void draw_furniture(drawing *dr, game_drawstate *ds, game_state *state,
 
     draw_update(dr, ox, oy, TILE_SIZE, TILE_SIZE);
 
-    /* Draw the GT signs. */
-    draw_gts(dr, ds, ox, oy, f, COL_TEXT, 1);
+    /* Draw the adjacent clue signs. */
+    if (ds->adjacent)
+        draw_adjs(dr, ds, ox, oy, f, COL_GRID);
+    else
+        draw_gts(dr, ds, ox, oy, f, COL_TEXT);
 }
 
 static void draw_num(drawing *dr, game_drawstate *ds, int x, int y)
@@ -1803,7 +1963,10 @@ static void game_print(drawing *dr, game_state *state, int tilesize)
                       FONT_VARIABLE, TILE_SIZE/2, ALIGN_VCENTRE | ALIGN_HCENTRE,
                       ink, str);
 
-            draw_gts(dr, ds, ox, oy, GRID(state, flags, x, y), ink, 1);
+            if (ds->adjacent)
+                draw_adjs(dr, ds, ox, oy, GRID(state, flags, x, y), ink);
+            else
+                draw_gts(dr, ds, ox, oy, GRID(state, flags, x, y), ink);
         }
     }
 }
@@ -1925,17 +2088,29 @@ static void pdiff(int diff)
 
 static int solve(game_params *p, char *desc, int debug)
 {
-    game_state *st = new_game(NULL, p, desc);
+    game_state *state = new_game(NULL, p, desc);
+    struct solver_ctx *ctx = new_ctx(state);
+    struct latin_solver solver;
     int diff;
 
     solver_show_working = debug;
-    game_debug(st);
+    game_debug(state);
 
-    diff = solver_grid(st->nums, st->order, DIFF_RECURSIVE, (void*)st);
+    latin_solver_alloc(&solver, state->nums, state->order);
+
+    diff = latin_solver_main(&solver, DIFF_RECURSIVE,
+			     DIFF_LATIN, DIFF_SET, DIFF_EXTREME,
+			     DIFF_EXTREME, DIFF_RECURSIVE,
+			     unequal_solvers, ctx, clone_ctx, free_ctx);
+
+    free_ctx(ctx);
+
+    latin_solver_free(&solver);
+
     if (debug) pdiff(diff);
 
-    game_debug(st);
-    free_game(st);
+    game_debug(state);
+    free_game(state);
     return diff;
 }
 
@@ -1978,7 +2153,8 @@ static void soak(game_params *p, random_state *rs)
 
     tt_start = tt_now = time(NULL);
 
-    printf("Soak-generating a %dx%d grid, difficulty %s.\n",
+    printf("Soak-generating an %s %dx%d grid, difficulty %s.\n",
+           p->adjacent ? "adjacent" : "unequal",
            p->order, p->order, unequal_diffnames[p->diff]);
 
     while (1) {

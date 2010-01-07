@@ -196,6 +196,7 @@ void unclip(drawing *dr);
 void start_draw(drawing *dr);
 void draw_update(drawing *dr, int x, int y, int w, int h);
 void end_draw(drawing *dr);
+char *text_fallback(drawing *dr, const char *const *strings, int nstrings);
 void status_bar(drawing *dr, char *text);
 blitter *blitter_new(drawing *dr, int w, int h);
 void blitter_free(drawing *dr, blitter *bl);
@@ -312,6 +313,9 @@ void shuffle(void *array, int nelts, int eltsize, random_state *rs);
 /* Draw a rectangle outline, using the drawing API's draw_line. */
 void draw_rect_outline(drawing *dr, int x, int y, int w, int h,
                        int colour);
+
+/* Draw a set of rectangle corners (e.g. for a cursor display). */
+void draw_rect_corners(drawing *dr, int cx, int cy, int r, int col);
 
 void move_cursor(int button, int *x, int *y, int maxw, int maxh, int wrap);
 
@@ -525,6 +529,8 @@ struct drawing_api {
     void (*end_doc)(void *handle);
     void (*line_width)(void *handle, float width);
     void (*line_dotted)(void *handle, int dotted);
+    char *(*text_fallback)(void *handle, const char *const *strings,
+			   int nstrings);
     void (*changed_state)(void *handle, int can_undo, int can_redo);
 };
 

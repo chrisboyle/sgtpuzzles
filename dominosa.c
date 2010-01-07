@@ -1002,6 +1002,7 @@ static void game_changed_state(game_ui *ui, game_state *oldstate,
 #define DOMINO_GUTTER (TILESIZE / 16)
 #define DOMINO_RADIUS (TILESIZE / 8)
 #define DOMINO_COFFSET (DOMINO_GUTTER + DOMINO_RADIUS)
+#define CURSOR_RADIUS (TILESIZE / 4)
 
 #define COORD(x) ( (x) * TILESIZE + BORDER )
 #define FROMCOORD(x) ( ((x) - BORDER + TILESIZE) / TILESIZE - 1 )
@@ -1059,22 +1060,22 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
         sprintf(buf, "%c%d,%d", (int)(button == RIGHT_BUTTON ? 'E' : 'D'), d1, d2);
         return dupstr(buf);
     } else if (IS_CURSOR_MOVE(button)) {
-        move_cursor(button, &ui->cur_x, &ui->cur_y, w*2-1, h*2-1, 0);
-        ui->cur_visible = 1;
-        return "";
+	ui->cur_visible = 1;
+
+        move_cursor(button, &ui->cur_x, &ui->cur_y, 2*w-1, 2*h-1, 0);
+
+	return "";
     } else if (IS_CURSOR_SELECT(button)) {
         int d1, d2;
-        if (!ui->cur_visible) {
-            ui->cur_visible = 1;
-            return "";
-        }
-        /* if we're not on an edge then return. */
-        if ((ui->cur_x % 2) == 0 && (ui->cur_y % 2) == 0) return NULL;
-        if ((ui->cur_x % 2) != 0 && (ui->cur_y % 2) != 0) return NULL;
 
-        d1 = (ui->cur_y/2)*w + (ui->cur_x/2);
-        d2 = d1 + ((ui->cur_x % 2) ? 1 : w);
+	if (!((ui->cur_x ^ ui->cur_y) & 1))
+	    return NULL;	       /* must have exactly one dimension odd */
+	d1 = (ui->cur_y / 2) * w + (ui->cur_x / 2);
+	d2 = ((ui->cur_y+1) / 2) * w + ((ui->cur_x+1) / 2);
 
+        /*
+         * We can't mark an edge next to any domino.
+         */
         if (button == CURSOR_SELECT2 &&
             (state->grid[d1] != d1 || state->grid[d2] != d2))
             return NULL;
@@ -1339,8 +1340,12 @@ enum {
 #define DF_FLASH        0x40
 #define DF_CLASH        0x80
 
-#define DF_CURSOR       0x1000
-#define DF_CURSOR_DOM   0x2000
+#define DF_CURSOR        0x01000
+#define DF_CURSOR_USEFUL 0x02000
+#define DF_CURSOR_XBASE  0x10000
+#define DF_CURSOR_XMASK  0x30000
+#define DF_CURSOR_YBASE  0x40000
+#define DF_CURSOR_YMASK  0xC0000
 
 #define CEDGE_OFF       (TILESIZE / 8)
 #define IS_EMPTY(s,x,y) ((s)->grid[(y)*(s)->w+(x)] == ((y)*(s)->w+(x)))
@@ -1354,6 +1359,7 @@ static void draw_tile(drawing *dr, game_drawstate *ds, game_state *state,
     char str[80];
     int flags;
 
+    clip(dr, cx, cy, TILESIZE, TILESIZE);
     draw_rect(dr, cx, cy, TILESIZE, TILESIZE, COL_BACKGROUND);
 
     flags = type &~ TYPE_MASK;
@@ -1432,11 +1438,14 @@ static void draw_tile(drawing *dr, game_drawstate *ds, game_state *state,
     }
 
     if (flags & DF_CURSOR) {
-        noc = nc;
-        if (nc == COL_TEXT)
-            nc = (flags & DF_CURSOR_DOM) ? COL_DOMINOCURSOR : COL_DOMINOTEXT;
-        else
-            nc = (flags & DF_CURSOR_DOM) ? COL_CURSOR : COL_TEXT;
+	int curx = ((flags & DF_CURSOR_XMASK) / DF_CURSOR_XBASE) & 3;
+	int cury = ((flags & DF_CURSOR_YMASK) / DF_CURSOR_YBASE) & 3;
+	int ox = cx + curx*TILESIZE/2;
+	int oy = cy + cury*TILESIZE/2;
+
+	draw_rect_corners(dr, ox, oy, CURSOR_RADIUS, nc);
+        if (flags & DF_CURSOR_USEFUL)
+	    draw_rect_corners(dr, ox, oy, CURSOR_RADIUS+1, nc);
     }
 
     sprintf(str, "%d", state->numbers->numbers[y*w+x]);
@@ -1444,6 +1453,7 @@ static void draw_tile(drawing *dr, game_drawstate *ds, game_state *state,
               ALIGN_HCENTRE | ALIGN_VCENTRE, nc, noc, str);
 
     draw_update(dr, cx, cy, TILESIZE, TILESIZE);
+    unclip(dr);
 }
 
 static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
@@ -1513,14 +1523,15 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
                 c |= DF_FLASH;             /* we're flashing */
 
             if (ui->cur_visible) {
-                if (ui->cur_x >= (2*x-1) && ui->cur_x <= (2*x+1) &&
-                    ui->cur_y >= (2*y-1) && ui->cur_y <= (2*y+1))
-                    c |= DF_CURSOR;
-
-                if ((ui->cur_x % 2) && !(ui->cur_y % 2))
-                    c |= DF_CURSOR_DOM;
-                if (!(ui->cur_x % 2) && (ui->cur_y % 2))
-                    c |= DF_CURSOR_DOM;
+		unsigned curx = (unsigned)(ui->cur_x - (2*x-1));
+		unsigned cury = (unsigned)(ui->cur_y - (2*y-1));
+		if (curx < 3 && cury < 3) {
+		    c |= (DF_CURSOR |
+			  (curx * DF_CURSOR_XBASE) |
+			  (cury * DF_CURSOR_YBASE));
+                    if ((ui->cur_x ^ ui->cur_y) & 1)
+                        c |= DF_CURSOR_USEFUL;
+                }
             }
 
 	    if (ds->visible[n] != c) {

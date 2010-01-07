@@ -601,10 +601,8 @@ static void win_draw_text(void *handle, int x, int y, int fonttype,
 	HFONT oldfont;
 	TEXTMETRIC tm;
 	SIZE size;
-#ifdef _WIN32_WCE
 	TCHAR wText[256];
-	MultiByteToWideChar (CP_ACP, 0, text, -1, wText, 256);
-#endif
+	MultiByteToWideChar (CP_UTF8, 0, text, -1, wText, 256);
 
 	oldfont = SelectObject(fe->hdc, fe->fonts[i].font);
 	if (GetTextMetrics(fe->hdc, &tm)) {
@@ -613,11 +611,7 @@ static void win_draw_text(void *handle, int x, int y, int fonttype,
 	    else
 		xy.y -= tm.tmAscent;
 	}
-#ifndef _WIN32_WCE
-	if (GetTextExtentPoint32(fe->hdc, text, strlen(text), &size))
-#else
-	if (GetTextExtentPoint32(fe->hdc, wText, wcslen(wText), &size))
-#endif
+	if (GetTextExtentPoint32W(fe->hdc, wText, wcslen(wText), &size))
 	{
 	    if (align & ALIGN_HCENTRE)
 		xy.x -= size.cx / 2;
@@ -626,11 +620,7 @@ static void win_draw_text(void *handle, int x, int y, int fonttype,
 	}
 	SetBkMode(fe->hdc, TRANSPARENT);
 	win_text_colour(fe, colour);
-#ifndef _WIN32_WCE
-	TextOut(fe->hdc, xy.x, xy.y, text, strlen(text));
-#else
-	ExtTextOut(fe->hdc, xy.x, xy.y, 0, NULL, wText, wcslen(wText), NULL);
-#endif
+	ExtTextOutW(fe->hdc, xy.x, xy.y, 0, NULL, wText, wcslen(wText), NULL);
 	SelectObject(fe->hdc, oldfont);
     }
 }
@@ -956,6 +946,15 @@ static void win_end_doc(void *handle)
     }
 }
 
+char *win_text_fallback(void *handle, const char *const *strings, int nstrings)
+{
+    /*
+     * We assume Windows can cope with any UTF-8 likely to be
+     * emitted by a puzzle.
+     */
+    return dupstr(strings[0]);
+}
+
 const struct drawing_api win_drawing = {
     win_draw_text,
     win_draw_rect,
@@ -980,6 +979,7 @@ const struct drawing_api win_drawing = {
     win_end_doc,
     win_line_width,
     win_line_dotted,
+    win_text_fallback,
     NULL, /* changed_state */
 };
 
@@ -3398,6 +3398,7 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
 	DispatchMessage(&msg);
     }
 
+    DestroyWindow(fe->hwnd);
     cleanup_help();
 
     return msg.wParam;

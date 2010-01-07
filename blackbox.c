@@ -1309,7 +1309,7 @@ static void draw_laser_tile(drawing *dr, game_state *gs, game_drawstate *ds,
         draw_rect_outline(dr, dx, dy, TILE_SIZE, TILE_SIZE, COL_GRID);
 
         if (gs_tile &~ (LASER_WRONG | LASER_OMITTED | FLAG_CURSOR)) {
-            char str[10];
+            char str[32];
             int tcol = flash ? COL_FLASHTEXT : omitted ? COL_WRONG : COL_TEXT;
 
             if (reflect || hit)

@@ -2491,7 +2491,7 @@ static void dsf_debug_draw(drawing *dr,
 #ifdef DRAW_DSF
     int ts = TILE_SIZE/2;
     int ox = COORD(x) + ts/2, oy = COORD(y) + ts/2;
-    char str[10];
+    char str[32];
 
     sprintf(str, "%d", dsf_canonify(state->solver->dsf, DINDEX(x,y)));
     draw_text(dr, ox, oy, FONT_VARIABLE, ts,
@@ -2568,7 +2568,7 @@ static void island_redraw(drawing *dr,
     int col = (v & G_ISSEL) ? COL_SELECTED : tcol;
     int bg = (v & G_CURSOR) ? COL_CURSOR :
         (v & G_MARK) ? COL_MARK : COL_BACKGROUND;
-    char str[10];
+    char str[32];
 
 #ifdef DRAW_GRID
     draw_rect_outline(dr, COORD(is->x), COORD(is->y),
@@ -2772,7 +2772,7 @@ static void game_print(drawing *dr, game_state *state, int ts)
 
     /* Islands */
     for (i = 0; i < state->n_islands; i++) {
-        char str[10];
+        char str[32];
         struct island *is = &state->islands[i];
         grid = GRID(state, is->x, is->y);
         cx = COORD(is->x) + ts/2;

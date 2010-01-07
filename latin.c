@@ -16,6 +16,16 @@
  * Solver.
  */
 
+static int latin_solver_top(struct latin_solver *solver, int maxdiff,
+			    int diff_simple, int diff_set_0, int diff_set_1,
+			    int diff_forcing, int diff_recursive,
+			    usersolver_t const *usersolvers, void *ctx,
+			    ctxnew_t ctxnew, ctxfree_t ctxfree);
+
+#ifdef STANDALONE_SOLVER
+int solver_show_working, solver_recurse_depth;
+#endif
+
 /*
  * Function called when we are certain that a particular square has
  * a particular number in it. The y-coordinate passed in here is
@@ -68,6 +78,9 @@ int latin_solver_elim(struct latin_solver *solver, int start, int step
 		      )
 {
     int o = solver->o;
+#ifdef STANDALONE_SOLVER
+    char **names = solver->names;
+#endif
     int fpos, m, i;
 
     /*
@@ -99,8 +112,9 @@ int latin_solver_elim(struct latin_solver *solver, int start, int step
                 va_start(ap, fmt);
                 vprintf(fmt, ap);
                 va_end(ap);
-                printf(":\n%*s  placing %d at (%d,%d)\n",
-                       solver_recurse_depth*4, "", n, x, YUNTRANS(y));
+                printf(":\n%*s  placing %s at (%d,%d)\n",
+                       solver_recurse_depth*4, "", names[n-1],
+		       x+1, YUNTRANS(y)+1);
             }
 #endif
             latin_solver_place(solver, x, y, n);
@@ -141,6 +155,9 @@ int latin_solver_set(struct latin_solver *solver,
                      )
 {
     int o = solver->o;
+#ifdef STANDALONE_SOLVER
+    char **names = solver->names;
+#endif
     int i, j, n, count;
     unsigned char *grid = scratch->grid;
     unsigned char *rowidx = scratch->rowidx;
@@ -291,9 +308,9 @@ int latin_solver_set(struct latin_solver *solver,
                                     px = py / o;
                                     py %= o;
 
-                                    printf("%*s  ruling out %d at (%d,%d)\n",
+                                    printf("%*s  ruling out %s at (%d,%d)\n",
 					   solver_recurse_depth*4, "",
-                                           pn, px, YUNTRANS(py));
+                                           names[pn-1], px+1, YUNTRANS(py)+1);
                                 }
 #endif
                                 progress = TRUE;
@@ -364,6 +381,9 @@ int latin_solver_forcing(struct latin_solver *solver,
                          struct latin_solver_scratch *scratch)
 {
     int o = solver->o;
+#ifdef STANDALONE_SOLVER
+    char **names = solver->names;
+#endif
     int *bfsqueue = scratch->bfsqueue;
 #ifdef STANDALONE_SOLVER
     int *bfsprev = scratch->bfsprev;
@@ -484,13 +504,14 @@ int latin_solver_forcing(struct latin_solver *solver,
                                 if (solver_show_working) {
                                     char *sep = "";
                                     int xl, yl;
-                                    printf("%*sforcing chain, %d at ends of ",
-                                           solver_recurse_depth*4, "", orign);
+                                    printf("%*sforcing chain, %s at ends of ",
+                                           solver_recurse_depth*4, "",
+					   names[orign-1]);
                                     xl = xx;
                                     yl = yy;
                                     while (1) {
-                                        printf("%s(%d,%d)", sep, xl,
-                                               YUNTRANS(yl));
+                                        printf("%s(%d,%d)", sep, xl+1,
+                                               YUNTRANS(yl)+1);
                                         xl = bfsprev[yl*o+xl];
                                         if (xl < 0)
                                             break;
@@ -498,9 +519,10 @@ int latin_solver_forcing(struct latin_solver *solver,
                                         xl %= o;
                                         sep = "-";
                                     }
-                                    printf("\n%*s  ruling out %d at (%d,%d)\n",
+                                    printf("\n%*s  ruling out %s at (%d,%d)\n",
                                            solver_recurse_depth*4, "",
-                                           orign, xt, YUNTRANS(yt));
+                                           names[orign-1],
+					   xt+1, YUNTRANS(yt)+1);
                                 }
 #endif
                                 cube(xt, yt, orign) = FALSE;
@@ -562,6 +584,10 @@ void latin_solver_alloc(struct latin_solver *solver, digit *grid, int o)
 	for (y = 0; y < o; y++)
 	    if (grid[y*o+x])
 		latin_solver_place(solver, x, YTRANS(y), grid[y*o+x]);
+
+#ifdef STANDALONE_SOLVER
+    solver->names = NULL;
+#endif
 }
 
 void latin_solver_free(struct latin_solver *solver)
@@ -574,6 +600,10 @@ void latin_solver_free(struct latin_solver *solver)
 int latin_solver_diff_simple(struct latin_solver *solver)
 {
     int x, y, n, ret, o = solver->o;
+#ifdef STANDALONE_SOLVER
+    char **names = solver->names;
+#endif
+
     /*
      * Row-wise positional elimination.
      */
@@ -583,7 +613,8 @@ int latin_solver_diff_simple(struct latin_solver *solver)
                 ret = latin_solver_elim(solver, cubepos(0,y,n), o*o
 #ifdef STANDALONE_SOLVER
 					, "positional elimination,"
-					" %d in row %d", n, YUNTRANS(y)
+					" %s in row %d", names[n-1],
+					YUNTRANS(y)+1
 #endif
 					);
                 if (ret != 0) return ret;
@@ -597,7 +628,7 @@ int latin_solver_diff_simple(struct latin_solver *solver)
                 ret = latin_solver_elim(solver, cubepos(x,0,n), o
 #ifdef STANDALONE_SOLVER
 					, "positional elimination,"
-					" %d in column %d", n, x
+					" %s in column %d", names[n-1], x+1
 #endif
 					);
                 if (ret != 0) return ret;
@@ -611,8 +642,8 @@ int latin_solver_diff_simple(struct latin_solver *solver)
             if (!solver->grid[YUNTRANS(y)*o+x]) {
                 ret = latin_solver_elim(solver, cubepos(x,y,1), 1
 #ifdef STANDALONE_SOLVER
-					, "numeric elimination at (%d,%d)", x,
-					YUNTRANS(y)
+					, "numeric elimination at (%d,%d)",
+					x+1, YUNTRANS(y)+1
 #endif
 					);
                 if (ret != 0) return ret;
@@ -625,6 +656,9 @@ int latin_solver_diff_set(struct latin_solver *solver,
                           int extreme)
 {
     int x, y, n, ret, o = solver->o;
+#ifdef STANDALONE_SOLVER
+    char **names = solver->names;
+#endif
 
     if (!extreme) {
         /*
@@ -633,7 +667,7 @@ int latin_solver_diff_set(struct latin_solver *solver,
         for (y = 0; y < o; y++) {
             ret = latin_solver_set(solver, scratch, cubepos(0,y,1), o*o, 1
 #ifdef STANDALONE_SOLVER
-                                   , "set elimination, row %d", YUNTRANS(y)
+                                   , "set elimination, row %d", YUNTRANS(y)+1
 #endif
                                   );
             if (ret != 0) return ret;
@@ -644,7 +678,7 @@ int latin_solver_diff_set(struct latin_solver *solver,
         for (x = 0; x < o; x++) {
             ret = latin_solver_set(solver, scratch, cubepos(x,0,1), o, 1
 #ifdef STANDALONE_SOLVER
-                                   , "set elimination, column %d", x
+                                   , "set elimination, column %d", x+1
 #endif
                                   );
             if (ret != 0) return ret;
@@ -657,7 +691,8 @@ int latin_solver_diff_set(struct latin_solver *solver,
         for (n = 1; n <= o; n++) {
             ret = latin_solver_set(solver, scratch, cubepos(0,0,n), o*o, o
 #ifdef STANDALONE_SOLVER
-                                   , "positional set elimination, number %d", n
+                                   , "positional set elimination on %s",
+				   names[n-1]
 #endif
                                   );
             if (ret != 0) return ret;
@@ -666,11 +701,8 @@ int latin_solver_diff_set(struct latin_solver *solver,
     return 0;
 }
 
-/* This uses our own diff_* internally, but doesn't require callers
- * to; this is so it can be used by games that want to rewrite
- * the solver so as to use a different set of difficulties.
- *
- * It returns:
+/*
+ * Returns:
  * 0 for 'didn't do anything' implying it was already solved.
  * -1 for 'impossible' (no solution)
  * 1 for 'single solution'
@@ -679,11 +711,17 @@ int latin_solver_diff_set(struct latin_solver *solver,
  *
  * and this function may well assert if given an impossible board.
  */
-int latin_solver_recurse(struct latin_solver *solver, int recdiff,
-                         latin_solver_callback cb, void *ctx)
+static int latin_solver_recurse
+    (struct latin_solver *solver, int diff_simple, int diff_set_0,
+     int diff_set_1, int diff_forcing, int diff_recursive,
+     usersolver_t const *usersolvers, void *ctx,
+     ctxnew_t ctxnew, ctxfree_t ctxfree)
 {
     int best, bestcount;
     int o = solver->o, x, y, n;
+#ifdef STANDALONE_SOLVER
+    char **names = solver->names;
+#endif
 
     best = -1;
     bestcount = o+1;
@@ -742,9 +780,9 @@ int latin_solver_recurse(struct latin_solver *solver, int recdiff,
         if (solver_show_working) {
             char *sep = "";
             printf("%*srecursing on (%d,%d) [",
-                   solver_recurse_depth*4, "", x, y);
+                   solver_recurse_depth*4, "", x+1, y+1);
             for (i = 0; i < j; i++) {
-                printf("%s%d", sep, list[i]);
+                printf("%s%s", sep, names[list[i]-1]);
                 sep = " or ";
             }
             printf("]\n");
@@ -757,24 +795,41 @@ int latin_solver_recurse(struct latin_solver *solver, int recdiff,
          */
         for (i = 0; i < j; i++) {
             int ret;
+	    void *newctx;
+	    struct latin_solver subsolver;
 
             memcpy(outgrid, ingrid, o*o);
             outgrid[y*o+x] = list[i];
 
 #ifdef STANDALONE_SOLVER
             if (solver_show_working)
-                printf("%*sguessing %d at (%d,%d)\n",
-                       solver_recurse_depth*4, "", list[i], x, y);
+                printf("%*sguessing %s at (%d,%d)\n",
+                       solver_recurse_depth*4, "", names[list[i]-1], x+1, y+1);
             solver_recurse_depth++;
 #endif
 
-            ret = cb(outgrid, o, recdiff, ctx);
+	    if (ctxnew) {
+		newctx = ctxnew(ctx);
+	    } else {
+		newctx = ctx;
+	    }
+	    latin_solver_alloc(&subsolver, outgrid, o);
+#ifdef STANDALONE_SOLVER
+	    subsolver.names = solver->names;
+#endif
+            ret = latin_solver_top(&subsolver, diff_recursive,
+				   diff_simple, diff_set_0, diff_set_1,
+				   diff_forcing, diff_recursive,
+				   usersolvers, newctx, ctxnew, ctxfree);
+	    latin_solver_free(&subsolver);
+	    if (ctxnew)
+		ctxfree(newctx);
 
 #ifdef STANDALONE_SOLVER
             solver_recurse_depth--;
             if (solver_show_working) {
-                printf("%*sretracting %d at (%d,%d)\n",
-                       solver_recurse_depth*4, "", list[i], x, y);
+                printf("%*sretracting %s at (%d,%d)\n",
+                       solver_recurse_depth*4, "", names[list[i]-1], x+1, y+1);
             }
 #endif
             /* we recurse as deep as we can, so we should never find
@@ -796,7 +851,7 @@ int latin_solver_recurse(struct latin_solver *solver, int recdiff,
             else {
                 /* the recursion turned up exactly one solution */
                 if (diff == diff_impossible)
-                    diff = recdiff;
+                    diff = diff_recursive;
                 else
                     diff = diff_ambiguous;
             }
@@ -818,15 +873,17 @@ int latin_solver_recurse(struct latin_solver *solver, int recdiff,
         else if (diff == diff_ambiguous)
             return 2;
         else {
-            assert(diff == recdiff);
+            assert(diff == diff_recursive);
             return 1;
         }
     }
 }
 
-enum { diff_simple = 1, diff_set, diff_extreme, diff_recursive };
-
-static int latin_solver_sub(struct latin_solver *solver, int maxdiff, void *ctx)
+static int latin_solver_top(struct latin_solver *solver, int maxdiff,
+			    int diff_simple, int diff_set_0, int diff_set_1,
+			    int diff_forcing, int diff_recursive,
+			    usersolver_t const *usersolvers, void *ctx,
+			    ctxnew_t ctxnew, ctxfree_t ctxfree)
 {
     struct latin_solver_scratch *scratch = latin_solver_new_scratch(solver);
     int ret, diff = diff_simple;
@@ -840,56 +897,34 @@ static int latin_solver_sub(struct latin_solver *solver, int maxdiff, void *ctx)
      * not.
      */
     while (1) {
-        /*
-         * I'd like to write `continue;' inside each of the
-         * following loops, so that the solver returns here after
-         * making some progress. However, I can't specify that I
-         * want to continue an outer loop rather than the innermost
-         * one, so I'm apologetically resorting to a goto.
-         */
+	int i;
+
 	cont:
+
         latin_solver_debug(solver->cube, solver->o);
 
-        ret = latin_solver_diff_simple(solver);
-        if (ret < 0) {
-            diff = diff_impossible;
-            goto got_result;
-        } else if (ret > 0) {
-            diff = max(diff, diff_simple);
-            goto cont;
-        }
+	for (i = 0; i <= maxdiff; i++) {
+	    if (usersolvers[i])
+		ret = usersolvers[i](solver, ctx);
+	    else
+		ret = 0;
+	    if (ret == 0 && i == diff_simple)
+		ret = latin_solver_diff_simple(solver);
+	    if (ret == 0 && i == diff_set_0)
+		ret = latin_solver_diff_set(solver, scratch, 0);
+	    if (ret == 0 && i == diff_set_1)
+		ret = latin_solver_diff_set(solver, scratch, 1);
+	    if (ret == 0 && i == diff_forcing)
+		ret = latin_solver_forcing(solver, scratch);
 
-        if (maxdiff <= diff_simple)
-            break;
-
-        ret = latin_solver_diff_set(solver, scratch, 0);
-        if (ret < 0) {
-            diff = diff_impossible;
-            goto got_result;
-        } else if (ret > 0) {
-            diff = max(diff, diff_set);
-            goto cont;
-        }
-
-        if (maxdiff <= diff_set)
-            break;
-
-        ret = latin_solver_diff_set(solver, scratch, 1);
-        if (ret < 0) {
-            diff = diff_impossible;
-            goto got_result;
-        } else if (ret > 0) {
-            diff = max(diff, diff_extreme);
-            goto cont;
-        }
-
-        /*
-         * Forcing chains.
-         */
-        if (latin_solver_forcing(solver, scratch)) {
-            diff = max(diff, diff_extreme);
-            goto cont;
-        }
+	    if (ret < 0) {
+		diff = diff_impossible;
+		goto got_result;
+	    } else if (ret > 0) {
+		diff = max(diff, i);
+		goto cont;
+	    }
+	}
 
         /*
          * If we reach here, we have made no deductions in this
@@ -906,7 +941,10 @@ static int latin_solver_sub(struct latin_solver *solver, int maxdiff, void *ctx)
      * possible.
      */
     if (maxdiff == diff_recursive) {
-        int nsol = latin_solver_recurse(solver, diff_recursive, latin_solver, ctx);
+        int nsol = latin_solver_recurse(solver,
+					diff_simple, diff_set_0, diff_set_1,
+					diff_forcing, diff_recursive,
+					usersolvers, ctx, ctxnew, ctxfree);
         if (nsol < 0) diff = diff_impossible;
         else if (nsol == 1) diff = diff_recursive;
         else if (nsol > 1) diff = diff_ambiguous;
@@ -943,13 +981,62 @@ static int latin_solver_sub(struct latin_solver *solver, int maxdiff, void *ctx)
     return diff;
 }
 
-int latin_solver(digit *grid, int o, int maxdiff, void *ctx)
+int latin_solver_main(struct latin_solver *solver, int maxdiff,
+		      int diff_simple, int diff_set_0, int diff_set_1,
+		      int diff_forcing, int diff_recursive,
+		      usersolver_t const *usersolvers, void *ctx,
+		      ctxnew_t ctxnew, ctxfree_t ctxfree)
+{
+    int diff;
+#ifdef STANDALONE_SOLVER
+    int o = solver->o;
+    char *text = NULL, **names = NULL;
+#endif
+
+#ifdef STANDALONE_SOLVER
+    if (!solver->names) {
+	char *p;
+	int i;
+
+	text = snewn(40 * o, char);
+	p = text;
+
+	solver->names = snewn(o, char *);
+
+	for (i = 0; i < o; i++) {
+	    solver->names[i] = p;
+	    p += 1 + sprintf(p, "%d", i+1);
+	}
+    }
+#endif
+
+    diff = latin_solver_top(solver, maxdiff,
+			    diff_simple, diff_set_0, diff_set_1,
+			    diff_forcing, diff_recursive,
+			    usersolvers, ctx, ctxnew, ctxfree);
+
+#ifdef STANDALONE_SOLVER
+    sfree(names);
+    sfree(text);
+#endif
+
+    return diff;
+}
+
+int latin_solver(digit *grid, int o, int maxdiff,
+		 int diff_simple, int diff_set_0, int diff_set_1,
+		 int diff_forcing, int diff_recursive,
+		 usersolver_t const *usersolvers, void *ctx,
+		 ctxnew_t ctxnew, ctxfree_t ctxfree)
 {
     struct latin_solver solver;
     int diff;
 
     latin_solver_alloc(&solver, grid, o);
-    diff = latin_solver_sub(&solver, maxdiff, ctx);
+    diff = latin_solver_main(&solver, maxdiff,
+			     diff_simple, diff_set_0, diff_set_1,
+			     diff_forcing, diff_recursive,
+			     usersolvers, ctx, ctxnew, ctxfree);
     latin_solver_free(&solver);
     return diff;
 }
@@ -957,7 +1044,7 @@ int latin_solver(digit *grid, int o, int maxdiff, void *ctx)
 void latin_solver_debug(unsigned char *cube, int o)
 {
 #ifdef STANDALONE_SOLVER
-    if (solver_show_working) {
+    if (solver_show_working > 1) {
         struct latin_solver ls, *solver = &ls;
         char *dbg;
         int x, y, i, c = 0;

@@ -17,6 +17,8 @@ void draw_polygon(drawing *dr, int *coords, int npoints,
                   int fillcolour, int outlinecolour) {}
 void draw_circle(drawing *dr, int cx, int cy, int radius,
                  int fillcolour, int outlinecolour) {}
+char *text_fallback(drawing *dr, const char *const *strings, int nstrings)
+{ return dupstr(strings[0]); }
 void clip(drawing *dr, int x, int y, int w, int h) {}
 void unclip(drawing *dr) {}
 void start_draw(drawing *dr) {}

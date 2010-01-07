@@ -3429,6 +3429,10 @@ hitedge:
 	    button_char = 'y';
 	    break;
 	  case LINE_YES:
+#ifdef STYLUS_BASED
+	    button_char = 'n';
+	    break;
+#endif
 	  case LINE_NO:
 	    button_char = 'u';
 	    break;
@@ -3443,6 +3447,10 @@ hitedge:
 	    button_char = 'n';
 	    break;
 	  case LINE_NO:
+#ifdef STYLUS_BASED
+	    button_char = 'y';
+	    break;
+#endif
 	  case LINE_YES:
 	    button_char = 'u';
 	    break;
@@ -3855,7 +3863,7 @@ static void game_print(drawing *dr, game_state *state, int tilesize)
     game_drawstate ads, *ds = &ads;
     grid *g = state->game_grid;
 
-    game_set_size(dr, ds, NULL, tilesize);
+    ds->tilesize = tilesize;
 
     for (i = 0; i < g->num_dots; i++) {
         int x, y;

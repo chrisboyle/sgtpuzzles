@@ -127,6 +127,39 @@ void end_draw(drawing *dr)
     dr->api->end_draw(dr->handle);
 }
 
+char *text_fallback(drawing *dr, const char *const *strings, int nstrings)
+{
+    int i;
+
+    /*
+     * If the drawing implementation provides one of these, use it.
+     */
+    if (dr && dr->api->text_fallback)
+	return dr->api->text_fallback(dr->handle, strings, nstrings);
+
+    /*
+     * Otherwise, do the simple thing and just pick the first string
+     * that fits in plain ASCII. It will then need no translation
+     * out of UTF-8.
+     */
+    for (i = 0; i < nstrings; i++) {
+	const char *p;
+
+	for (p = strings[i]; *p; p++)
+	    if (*p & 0x80)
+		break;
+	if (!*p)
+	    return dupstr(strings[i]);
+    }
+
+    /*
+     * The caller was responsible for making sure _some_ string in
+     * the list was in plain ASCII.
+     */
+    assert(!"Should never get here");
+    return NULL;		       /* placate optimiser */
+}
+
 void status_bar(drawing *dr, char *text)
 {
     char *rewritten;

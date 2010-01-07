@@ -655,7 +655,7 @@ if (defined $makefiles{'vc'}) {
       "MAKEFILE = Makefile.vc\n".
       "\n".
       "# C compilation flags\n".
-      "CFLAGS = /nologo /W3 /O1 /D_WINDOWS /D_WIN32_WINDOWS=0x401 /DWINVER=0x401\n".
+      "CFLAGS = /nologo /W3 /O1 /D_WINDOWS /D_WIN32_WINDOWS=0x401 /DWINVER=0x401 /I.\n".
       "LFLAGS = /incremental:no /fixed\n".
       "\n";
     print &splitline("all:" . join "", map { " $_.exe" } &progrealnames("G:C"));
@@ -1101,7 +1101,7 @@ if (defined $makefiles{'gtk'}) {
     "\n".
     "# You can define this path to point at your tools if you need to\n".
     "# TOOLPATH = /opt/gcc/bin\n".
-    "CC = \$(TOOLPATH)cc\n".
+    "CC := \$(TOOLPATH)\$(CC)\n".
     "# You can manually set this to `gtk-config' or `pkg-config gtk+-1.2'\n".
     "# (depending on what works on your system) if you want to enforce\n".
     "# building with GTK 1.2, or you can set it to `pkg-config gtk+-2.0'\n".
@@ -1109,9 +1109,9 @@ if (defined $makefiles{'gtk'}) {
     "# to 1.2 if it isn't found.\n".
     "GTK_CONFIG = sh -c 'pkg-config gtk+-2.0 \$\$0 2>/dev/null || gtk-config \$\$0'\n".
     "\n".
-    &splitline("CFLAGS = -O2 -Wall -Werror -ansi -pedantic -g " .
+    &splitline("CFLAGS := -O2 -Wall -Werror -ansi -pedantic -g " .
 	       (join " ", map {"-I$dirpfx$_"} @srcdirs) .
-	       " `\$(GTK_CONFIG) --cflags`")."\n".
+	       " `\$(GTK_CONFIG) --cflags` \$(CFLAGS)")."\n".
     "XLDFLAGS = `\$(GTK_CONFIG) --libs`\n".
     "ULDFLAGS =#\n".
     "INSTALL=install\n",

@@ -844,7 +844,7 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
             ui->drag = LEFT_DRAG;
             ui->release = LEFT_RELEASE;
 #ifdef STYLUS_BASED
-            ui->state = currstate == GRID_FULL ? GRID_UNKNOWN : GRID_FULL;
+            ui->state = (currstate + 2) % 3; /* FULL -> EMPTY -> UNKNOWN */
 #else
             ui->state = GRID_FULL;
 #endif
@@ -852,7 +852,7 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
             ui->drag = RIGHT_DRAG;
             ui->release = RIGHT_RELEASE;
 #ifdef STYLUS_BASED
-            ui->state = currstate == GRID_EMPTY ? GRID_UNKNOWN : GRID_EMPTY;
+            ui->state = (currstate + 1) % 3; /* EMPTY -> FULL -> UNKNOWN */
 #else
             ui->state = GRID_EMPTY;
 #endif

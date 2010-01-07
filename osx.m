@@ -1344,7 +1344,8 @@ static void osx_draw_text(void *handle, int x, int y, int fonttype,
 			  int fontsize, int align, int colour, char *text)
 {
     frontend *fe = (frontend *)handle;
-    NSString *string = [NSString stringWithCString:text];
+    NSString *string = [NSString stringWithCString:text
+			encoding:NSUTF8StringEncoding];
     NSDictionary *attr;
     NSFont *font;
     NSSize size;
@@ -1377,6 +1378,15 @@ static void osx_draw_text(void *handle, int x, int y, int fonttype,
 	point.y -= size.height;
 
     [string drawAtPoint:point withAttributes:attr];
+}
+static char *osx_text_fallback(void *handle, const char *const *strings,
+			       int nstrings)
+{
+    /*
+     * We assume OS X can cope with any UTF-8 likely to be emitted
+     * by a puzzle.
+     */
+    return dupstr(strings[0]);
 }
 struct blitter {
     int w, h;
@@ -1478,7 +1488,8 @@ const struct drawing_api osx_drawing = {
     osx_blitter_save,
     osx_blitter_load,
     NULL, NULL, NULL, NULL, NULL, NULL, /* {begin,end}_{doc,page,puzzle} */
-    NULL,			       /* line_width */
+    NULL, NULL,			       /* line_width, line_dotted */
+    osx_text_fallback,
     NULL, /* changed_state */
 };
 

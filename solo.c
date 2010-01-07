@@ -4646,13 +4646,13 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
 	((button >= '0' && button <= '9' && button - '0' <= cr) ||
 	 (button >= 'a' && button <= 'z' && button - 'a' + 10 <= cr) ||
 	 (button >= 'A' && button <= 'Z' && button - 'A' + 10 <= cr) ||
-	 button == CURSOR_SELECT2 || button == '\010' || button == '\177')) {
+	 button == CURSOR_SELECT2 || button == '\b')) {
 	int n = button - '0';
 	if (button >= 'A' && button <= 'Z')
 	    n = button - 'A' + 10;
 	if (button >= 'a' && button <= 'z')
 	    n = button - 'a' + 10;
-	if (button == CURSOR_SELECT2 || button == '\010' || button == '\177')
+	if (button == CURSOR_SELECT2 || button == '\b')
 	    n = 0;
 
         /*
