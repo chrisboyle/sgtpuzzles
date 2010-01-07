@@ -74,6 +74,7 @@ sixteen-ibase.png : override CROP=288x288 144x144+144+144
 slant-ibase.png : override CROP=321x321 160x160+160+160
 solo-ibase.png : override CROP=481x481 145x145+24+24
 tents-ibase.png : override CROP=320x320 165x165+142+0
+towers-ibase.png : override CROP=300x300 102x102+151+6
 twiddle-ibase.png : override CROP=192x192 102x102+69+21
 unequal-ibase.png : override CROP=208x208 104x104+104+104
 untangle-ibase.png : override CROP=320x320 164x164+3+116
