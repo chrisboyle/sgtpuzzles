@@ -2,7 +2,8 @@
 
 PUZZLES = blackbox bridges cube dominosa fifteen filling flip galaxies guess \
 	  inertia keen lightup loopy map mines net netslide pattern pegs \
-	  rect samegame sixteen slant solo tents twiddle unequal untangle
+	  rect samegame sixteen slant solo tents towers twiddle unequal \
+	  untangle
 
 BASE = $(patsubst %,%-base.png,$(PUZZLES))
 WEB = $(patsubst %,%-web.png,$(PUZZLES))

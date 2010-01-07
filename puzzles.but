@@ -2561,6 +2561,96 @@ level, some backtracking will be required, but the solution should
 still be unique. The remaining levels require increasingly complex
 reasoning to avoid having to backtrack.
 
+
+\C{towers} \i{Towers}
+
+\cfg{winhelp-topic}{games.towers}
+
+You have a square grid. On each square of the grid you can build a
+tower, with its height ranging from 1 to the size of the grid.
+Around the edge of the grid are some numeric clues.
+
+Your task is to build a tower on every square, in such a way that:
+
+\b Each row contains every possible height of tower once
+
+\b Each column contains every possible height of tower once
+
+\b Each numeric clue describes the number of towers that can be seen
+if you look into the square from that direction, assuming that
+shorter towers are hidden behind taller ones. For example, in a
+5\by.5 grid, a clue marked \q{5} indicates that the five tower
+heights must appear in increasing order (otherwise you would not be
+able to see all five towers), whereas a clue marked \q{1} indicates
+that the tallest tower (the one marked 5) must come first.
+
+In harder or larger puzzles, some towers will be specified for you
+as well as the clues round the edge, and some edge clues may be
+missing.
+
+This puzzle appears on the web under various names, particularly
+\q{Skyscrapers}, but I don't know who first invented it.
+
+
+\H{towers-controls} \i{Towers controls}
+
+\IM{Towers controls} controls, for Towers
+
+Towers shares much of its control system with Solo, Unequal and Keen.
+
+To play Towers, simply click the mouse in any empty square and then
+type a digit on the keyboard to fill that square with a tower of the
+given height. If you make a mistake, click the mouse in the
+incorrect square and press Space to clear it again (or use the Undo
+feature).
+
+If you \e{right}-click in a square and then type a number, that
+number will be entered in the square as a \q{pencil mark}. You can
+have pencil marks for multiple numbers in the same square. A square
+containing a tower cannot also contain pencil marks.
+
+The game pays no attention to pencil marks, so exactly what you use
+them for is up to you: you can use them as reminders that a
+particular square needs to be re-examined once you know more about a
+particular number, or you can use them as lists of the possible
+numbers in a given square, or anything else you feel like.
+
+To erase a single pencil mark, right-click in the square and type
+the same number again.
+
+All pencil marks in a square are erased when you left-click and type
+a number, or when you left-click and press space. Right-clicking and
+pressing space will also erase pencil marks.
+
+As for Solo, the cursor keys can be used in conjunction with the
+digit keys to set numbers or pencil marks. Use the cursor keys to
+move a highlight around the grid, and type a digit to enter it in
+the highlighted square. Pressing return toggles the highlight into a
+mode in which you can enter or remove pencil marks.
+
+Pressing M will fill in a full set of pencil marks in every square
+that does not have a main digit in it.
+
+(All the actions described in \k{common-actions} are also available.)
+
+\H{towers-parameters} \I{parameters, for Towers}Towers parameters
+
+These parameters are available from the \q{Custom...} option on the
+\q{Type} menu.
+
+\dt \e{Grid size}
+
+\dd Specifies the size of the grid. Lower limit is 3; upper limit is
+9 (because the user interface would become more difficult with
+\q{digits} bigger than 9!).
+
+\dt \e{Difficulty}
+
+\dd Controls the difficulty of the generated puzzle. At Unreasonable
+level, some backtracking will be required, but the solution should
+still be unique. The remaining levels require increasingly complex
+reasoning to avoid having to backtrack.
+
 \A{licence} \I{MIT licence}\ii{Licence}
 
 This software is \i{copyright} 2004-2009 Simon Tatham.
