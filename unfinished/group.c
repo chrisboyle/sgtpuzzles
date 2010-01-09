@@ -242,6 +242,17 @@ static char *validate_params(game_params *params, int full)
 	 */
 	return "Trivial puzzles must have an identity";
     }
+    if (!params->id && params->w == 3) {
+	/*
+	 * We can't have a 3x3 puzzle without an identity either,
+	 * because 3x3 puzzles can't ever be harder than Trivial
+	 * (there are no 3x3 latin squares which aren't also valid
+	 * group tables, so enabling group-based deductions doesn't
+	 * rule out any possible solutions) and - as above - Trivial
+	 * puzzles can't not have an identity.
+	 */
+	return "3x3 puzzles must have an identity";
+    }
     return NULL;
 }
 
@@ -602,7 +613,6 @@ done
      * _out_, so as to detect exceptions that should be removed as
      * well as those which should be added.
      */
-#if 0
     if (w < 5 && diff == DIFF_UNREASONABLE)
 	diff--;
     if ((w < 5 || ((w == 6 || w == 8) && params->id)) && diff == DIFF_EXTREME)
@@ -611,7 +621,6 @@ done
 	diff--;
     if ((w < 4 || (w == 4 && params->id)) && diff == DIFF_NORMAL)
 	diff--;
-#endif
 
     grid = snewn(a, digit);
     soln = snewn(a, digit);
