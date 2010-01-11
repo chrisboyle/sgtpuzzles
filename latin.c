@@ -1236,6 +1236,24 @@ digit *latin_generate(int o, random_state *rs)
     return sq;
 }
 
+digit *latin_generate_rect(int w, int h, random_state *rs)
+{
+    int o = max(w, h), x, y;
+    digit *latin, *latin_rect;
+
+    latin = latin_generate(o, rs);
+    latin_rect = snewn(w*h, digit);
+
+    for (x = 0; x < w; x++) {
+        for (y = 0; y < h; y++) {
+            latin_rect[y*w + x] = latin[y*o + x];
+        }
+    }
+
+    sfree(latin);
+    return latin_rect;
+}
+
 /* --------------------------------------------------------
  * Checking.
  */

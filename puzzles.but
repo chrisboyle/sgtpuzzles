@@ -2651,6 +2651,57 @@ level, some backtracking will be required, but the solution should
 still be unique. The remaining levels require increasingly complex
 reasoning to avoid having to backtrack.
 
+
+\C{singles} \i{Singles}
+
+\cfg{winhelp-topic}{games.singles}
+
+You have a grid of squares, all of which contain numbers. Your task
+is to colour some of the squares black (removing the number) so as to satisfy
+all of the following conditions:
+
+\b No number occurs more than once in any row or column.
+
+\b No black square is horizontally adjacent to any other black square.
+
+\b The remaining white squares must all form one contiguous region.
+
+Credit for this puzzle goes to \i{Nikoli} \k{nikoli-singles} who call it Hitori. 
+
+Singles was contributed to this collection by James Harvey.
+
+\B{nikoli-hitori}
+\W{http://www.nikoli.com/en/puzzles/hitori/index.html}\cw{http://www.nikoli.com/en/puzzles/hitori/index.html}
+(beware of Flash)
+
+\H{singles-controls} \i{Singles controls}
+
+\IM{Singles controls} controls, for Singles
+
+Left-clicking on an empty square will colour it black; left-clicking again 
+will replace the number. Right-clicking will add a circle (useful for 
+indicating that a cell is definitely not black). 
+
+You can also use the cursor keys to move around the grid. Pressing the
+return or space keys will turn a square black or add a circle respectively,
+and pressing the key again will replace the number or remove the circle.
+
+(All the actions described in \k{common-actions} are also available.)
+
+\H{singles-parameters} \I{parameters, for Singles}Singles parameters
+
+These parameters are available from the \q{Custom...} option on the
+\q{Type} menu.
+
+\dt \e{Width}, \e{Height}
+
+\dd Size of grid in squares.
+
+\dt \e{Difficulty}
+
+\dd Controls the difficulty of the generated puzzle.
+
+
 \A{licence} \I{MIT licence}\ii{Licence}
 
 This software is \i{copyright} 2004-2010 Simon Tatham.
