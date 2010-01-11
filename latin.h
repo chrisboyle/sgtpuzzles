@@ -30,14 +30,6 @@ struct latin_solver {
 #define gridpos(x,y) ((y)*solver->o+(x))
 #define grid(x,y) (solver->grid[gridpos(x,y)])
 
-/* A solo solver using this code would need these defined. See solo.c. */
-#ifndef YTRANS
-#define YTRANS(y) (y)
-#endif
-#ifndef YUNTRANS
-#define YUNTRANS(y) (y)
-#endif
-
 
 /* --- Solver individual strategies --- */
 
