@@ -1456,10 +1456,6 @@ static float *game_colours(frontend *fe, int *ncolours)
     return ret;
 }
 
-static const char *const minus_signs[] = { "\xE2\x88\x92", "-" };
-static const char *const times_signs[] = { "\xC3\x97", "*" };
-static const char *const divide_signs[] = { "\xC3\xB7", "/" };
-
 static game_drawstate *game_new_drawstate(drawing *dr, game_state *state)
 {
     int w = state->par.w /*, a = w*w */;
