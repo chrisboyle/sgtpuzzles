@@ -1148,6 +1148,10 @@ static void game_changed_state(game_ui *ui, game_state *oldstate,
 #define COORD(x) ((x)*TILESIZE + BORDER)
 #define FROMCOORD(x) (((x)+(TILESIZE-BORDER)) / TILESIZE - 1)
 
+/* These always return positive values, though y offsets are actually -ve */
+#define X_3D_DISP(height, w) ((height) * TILESIZE / (8 * (w)))
+#define Y_3D_DISP(height, w) ((height) * TILESIZE / (4 * (w)))
+
 #define FLASH_TIME 0.4F
 
 #define DF_PENCIL_SHIFT 16
@@ -1263,6 +1267,40 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
 
     tx = FROMCOORD(x);
     ty = FROMCOORD(y);
+
+    if (ds->three_d) {
+	/*
+	 * In 3D mode, just locating the mouse click in the natural
+	 * square grid may not be sufficient to tell which tower the
+	 * user clicked on. Investigate the _tops_ of the nearby
+	 * towers to see if a click on one grid square was actually
+	 * a click on a tower protruding into that region from
+	 * another.
+	 */
+	int dx, dy;
+	for (dy = 0; dy <= 1; dy++)
+	    for (dx = 0; dx >= -1; dx--) {
+		int cx = tx + dx, cy = ty + dy;
+		if (cx >= 0 && cx < w && cy >= 0 && cy < w) {
+		    int height = state->grid[cy*w+cx];
+		    int bx = COORD(cx), by = COORD(cy);
+		    int ox = bx + X_3D_DISP(height, w);
+		    int oy = by - Y_3D_DISP(height, w);
+		    if (/* on top face? */
+			(x - ox >= 0 && x - ox < TILESIZE &&
+			 y - oy >= 0 && y - oy < TILESIZE) ||
+			/* in triangle between top-left corners? */
+			(ox > bx && x >= bx && x <= ox &&
+			 (by-y) * (ox-bx) <= (by-oy) * (x-bx)) ||
+			/* in triangle between bottom-right corners? */
+			(ox > bx && x >= bx+TILESIZE && x <= ox+TILESIZE &&
+			 (by-y+TILESIZE)*(ox-bx) >= (by-oy)*(x-bx-TILESIZE))) {
+			tx = cx;
+			ty = cy;
+		    }
+		}
+	    }
+    }
 
     if (tx >= 0 && tx < w && ty >= 0 && ty < w) {
         if (button == LEFT_BUTTON) {
@@ -1495,8 +1533,8 @@ static void draw_tile(drawing *dr, game_drawstate *ds, struct clues *clues,
     /* draw tower */
     if (ds->three_d && (tile & DF_PLAYAREA) && (tile & DF_DIGIT_MASK)) {
 	int coords[8];
-	int xoff = (tile & DF_DIGIT_MASK) * TILESIZE / (8 * w);
-	int yoff = (tile & DF_DIGIT_MASK) * TILESIZE / (4 * w);
+	int xoff = X_3D_DISP(tile & DF_DIGIT_MASK, w);
+	int yoff = Y_3D_DISP(tile & DF_DIGIT_MASK, w);
 
 	/* left face of tower */
 	coords[0] = tx;
@@ -1584,10 +1622,10 @@ static void draw_tile(drawing *dr, game_drawstate *ds, struct clues *clues,
 	     * to put the pencil marks.
 	     */
 	    /* Start with the whole square, minus space for impinging towers */
-	    pl = tx + TILESIZE/8;
+	    pl = tx + (ds->three_d ? X_3D_DISP(w,w) : 0);
 	    pr = tx + TILESIZE;
 	    pt = ty;
-	    pb = ty + TILESIZE - TILESIZE/4;
+	    pb = ty + TILESIZE - (ds->three_d ? Y_3D_DISP(w,w) : 0);
 
 	    /*
 	     * We arrange our pencil marks in a grid layout, with
