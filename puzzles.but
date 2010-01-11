@@ -2500,7 +2500,7 @@ precisely the opposite of the rule in Solo's \q{Killer} mode (see
 
 }
 
-This puzzle appears in the Times under the name \q{KenKen}.
+This puzzle appears in the Times under the name \q{\i{KenKen}}.
 
 
 \H{keen-controls} \i{Keen controls}
@@ -2589,7 +2589,7 @@ as well as the clues round the edge, and some edge clues may be
 missing.
 
 This puzzle appears on the web under various names, particularly
-\q{Skyscrapers}, but I don't know who first invented it.
+\q{\i{Skyscrapers}}, but I don't know who first invented it.
 
 
 \H{towers-controls} \i{Towers controls}
@@ -2656,17 +2656,20 @@ reasoning to avoid having to backtrack.
 
 \cfg{winhelp-topic}{games.singles}
 
-You have a grid of squares, all of which contain numbers. Your task
+You have a grid of white squares, all of which contain numbers. Your task
 is to colour some of the squares black (removing the number) so as to satisfy
 all of the following conditions:
 
 \b No number occurs more than once in any row or column.
 
-\b No black square is horizontally adjacent to any other black square.
+\b No black square is horizontally or vertically adjacent to any other black
+square.
 
-\b The remaining white squares must all form one contiguous region.
+\b The remaining white squares must all form one contiguous region
+(connected by edges, not just touching at corners).
 
-Credit for this puzzle goes to \i{Nikoli} \k{nikoli-hitori} who call it Hitori. 
+Credit for this puzzle goes to \i{Nikoli} \k{nikoli-hitori} who call it
+\i{Hitori}. 
 
 Singles was contributed to this collection by James Harvey.
 
