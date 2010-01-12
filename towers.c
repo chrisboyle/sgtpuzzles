@@ -1290,10 +1290,11 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
 			(x - ox >= 0 && x - ox < TILESIZE &&
 			 y - oy >= 0 && y - oy < TILESIZE) ||
 			/* in triangle between top-left corners? */
-			(ox > bx && x >= bx && x <= ox &&
+			(ox > bx && x >= bx && x <= ox && y <= by &&
 			 (by-y) * (ox-bx) <= (by-oy) * (x-bx)) ||
 			/* in triangle between bottom-right corners? */
 			(ox > bx && x >= bx+TILESIZE && x <= ox+TILESIZE &&
+			 y >= oy+TILESIZE &&
 			 (by-y+TILESIZE)*(ox-bx) >= (by-oy)*(x-bx-TILESIZE))) {
 			tx = cx;
 			ty = cy;
