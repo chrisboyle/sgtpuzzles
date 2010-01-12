@@ -154,11 +154,17 @@ void debug_printf(char *fmt, ...)
 {
     char buf[4096];
     va_list ap;
+    static int debugging = -1;
 
-    va_start(ap, fmt);
-    _vsnprintf(buf, 4095, fmt, ap);
-    dputs(buf);
-    va_end(ap);
+    if (debugging == -1)
+        debugging = getenv("DEBUG_PUZZLES") ? 1 : 0;
+
+    if (debugging) {
+        va_start(ap, fmt);
+        _vsnprintf(buf, 4095, fmt, ap);
+	dputs(buf);
+        va_end(ap);
+    }
 }
 #endif
 
