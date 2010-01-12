@@ -1164,11 +1164,11 @@ static char *solve_game(game_state *state, game_state *currstate,
     game_state *solved = dup_game(currstate);
     char *move = NULL;
 
-    if (solve_specific(solved, DIFF_ANY, 0)) goto solved;
+    if (solve_specific(solved, DIFF_ANY, 0) > 0) goto solved;
     free_game(solved);
 
     solved = dup_game(state);
-    if (solve_specific(solved, DIFF_ANY, 0)) goto solved;
+    if (solve_specific(solved, DIFF_ANY, 0) > 0) goto solved;
     free_game(solved);
 
     *error = "Unable to solve puzzle.";
@@ -1256,7 +1256,7 @@ static int best_black_col(game_state *state, random_state *rs, int *scratch,
     for (i = 0; i < o; i++) {
         j = scratch[i] + 1;
         if (rownums[y*o + j-1] == 1 && colnums[x*o + j-1] == 1)
-            return j;
+            goto found;
     }
 
     /* Then try each number in turn returning the first one that's
@@ -1264,10 +1264,16 @@ static int best_black_col(game_state *state, random_state *rs, int *scratch,
     for (i = 0; i < o; i++) {
         j = scratch[i] + 1;
         if (rownums[y*o + j-1] != 0 || colnums[x*o + j-1] != 0)
-            return j;
+            goto found;
     }
     assert(!"unable to place number under black cell.");
     return 0;
+
+found:
+    /* Update column and row counts assuming this number will be placed. */
+    rownums[y*o + j-1] += 1;
+    colnums[x*o + j-1] += 1;
+    return j;
 }
 
 static char *new_game_desc(game_params *params, random_state *rs,
