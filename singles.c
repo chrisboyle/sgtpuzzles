@@ -1941,13 +1941,13 @@ int main(int argc, char **argv)
 
         if (verbose) {
             tgame = game_text_format(s);
-            printf(tgame);
+            fputs(tgame, stdout);
             sfree(tgame);
         }
 
         soln = solve_specific(s, DIFF_ANY, 0);
         tgame = game_text_format(s);
-        printf(tgame);
+        fputs(tgame, stdout);
         sfree(tgame);
         printf("Game was %s.\n\n",
                soln < 0 ? "impossible" : soln > 0 ? "solved" : "not solved");
