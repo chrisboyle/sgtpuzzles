@@ -1809,8 +1809,10 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
             movech = ' ';
         else
             movech = '.';
-    } else
+    } else {
         assert(!"unknown action");
+	movech = 0;		       /* placate optimiser */
+    }
 
     sprintf(buf, "%c%d,%d", movech, gx, gy);
 
