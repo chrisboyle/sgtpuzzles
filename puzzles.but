@@ -2705,6 +2705,76 @@ These parameters are available from the \q{Custom...} option on the
 \dd Controls the difficulty of the generated puzzle.
 
 
+\C{magnets} \i{Magnets}
+
+\cfg{winhelp-topic}{games.magnets}
+
+A rectangular grid has been filled with a mixture of magnets (that is,
+dominoes with one positive end and one negative end) and blank dominoes
+(that is, dominoes with two neutral poles).
+These dominoes are initially only seen in silhouette. Around the grid
+are placed a number of clues indicating the number of positive and
+negative poles contained in certain columns and rows.
+
+Your aim is to correctly place the magnets and blank dominoes such that
+all the clues are satisfied, with the additional constraint that no two
+similar magnetic poles may be orgothonally adjacent (since they repel).
+Neutral poles do not repel, and can be adjacacent to any other pole. 
+
+Credit for this puzzle goes to \i{Janko} \k{janko-magnets}.
+
+Magnets was contributed to this collection by James Harvey.
+
+\B{janko-magnets}
+\W{http://www.janko.at/Raetsel/Magnete/index.htm}\cw{http://www.janko.at/Raetsel/Magnete/index.htm}
+
+\H{magnets-controls} \i{Magnets controls}
+
+\IM{Magnets controls} controls, for Magnets
+
+Left-clicking on an empty square places a magnet at that position with
+the positive pole on the square and the negative pole on the other half
+of the magnet; left-clicking again reverses the polarity, and a third
+click removes the magnet.
+
+Right-clicking on an empty square places a blank domino there.
+Right-clicking again places two question marks on the domino, signifying
+'this cannot be blank' (which can be useful to note deductions while
+solving, and right-clicking again empties the domino. 
+
+You can also use the cursor keys to move a cursor around the grid. 
+Pressing the return key will lay a domino with a positive pole at that
+position; pressing again reverses the polarity and then removes the
+domino, as with left-clicking. Using the space bar allows placement
+of blank dominoes and cannot-be-blank hints, as for right-clicking. 
+
+(All the actions described in \k{common-actions} are also available.)
+
+\H{magnets-parameters} \I{parameters, for Magnets}Magnets parameters
+
+These parameters are available from the \q{Custom...} option on the
+\q{Type} menu.
+
+\dt \e{Width}, \e{Height}
+
+\dd Size of grid in squares. There will be half \e{Width} \by \e{Height}
+dominoes in the grid: if this number is odd then one square will be blank.
+
+(Grids with at least one odd dimension tend to be easier to solve)
+
+\dt \e{Difficulty}
+
+\dd Controls the difficulty of the generated puzzle. At Tricky level,
+you are required to make more deductions about empty dominoes and
+row/column counts. 
+
+\dt \e{Strip clues}
+
+\dd If true, some of the clues around the grid are removed at generation
+time, making the puzzle more difficult.
+
+
+
 \A{licence} \I{MIT licence}\ii{Licence}
 
 This software is \i{copyright} 2004-2010 Simon Tatham.
