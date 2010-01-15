@@ -62,7 +62,7 @@ void latin_solver_place(struct latin_solver *solver, int x, int y, int n)
     /*
      * Enter the number in the result grid.
      */
-    solver->grid[YUNTRANS(y)*o+x] = n;
+    solver->grid[y*o+x] = n;
 
     /*
      * Cross out this number from the list of numbers left to place
@@ -104,7 +104,7 @@ int latin_solver_elim(struct latin_solver *solver, int start, int step
 	x = y / o;
 	y %= o;
 
-        if (!solver->grid[YUNTRANS(y)*o+x]) {
+        if (!solver->grid[y*o+x]) {
 #ifdef STANDALONE_SOLVER
             if (solver_show_working) {
                 va_list ap;
@@ -114,7 +114,7 @@ int latin_solver_elim(struct latin_solver *solver, int start, int step
                 va_end(ap);
                 printf(":\n%*s  placing %s at (%d,%d)\n",
                        solver_recurse_depth*4, "", names[n-1],
-		       x+1, YUNTRANS(y)+1);
+		       x+1, y+1);
             }
 #endif
             latin_solver_place(solver, x, y, n);
@@ -310,7 +310,7 @@ int latin_solver_set(struct latin_solver *solver,
 
                                     printf("%*s  ruling out %s at (%d,%d)\n",
 					   solver_recurse_depth*4, "",
-                                           names[pn-1], px+1, YUNTRANS(py)+1);
+                                           names[pn-1], px+1, py+1);
                                 }
 #endif
                                 progress = TRUE;
@@ -511,7 +511,7 @@ int latin_solver_forcing(struct latin_solver *solver,
                                     yl = yy;
                                     while (1) {
                                         printf("%s(%d,%d)", sep, xl+1,
-                                               YUNTRANS(yl)+1);
+                                               yl+1);
                                         xl = bfsprev[yl*o+xl];
                                         if (xl < 0)
                                             break;
@@ -522,7 +522,7 @@ int latin_solver_forcing(struct latin_solver *solver,
                                     printf("\n%*s  ruling out %s at (%d,%d)\n",
                                            solver_recurse_depth*4, "",
                                            names[orign-1],
-					   xt+1, YUNTRANS(yt)+1);
+					   xt+1, yt+1);
                                 }
 #endif
                                 cube(xt, yt, orign) = FALSE;
@@ -583,7 +583,7 @@ void latin_solver_alloc(struct latin_solver *solver, digit *grid, int o)
     for (x = 0; x < o; x++)
 	for (y = 0; y < o; y++)
 	    if (grid[y*o+x])
-		latin_solver_place(solver, x, YTRANS(y), grid[y*o+x]);
+		latin_solver_place(solver, x, y, grid[y*o+x]);
 
 #ifdef STANDALONE_SOLVER
     solver->names = NULL;
@@ -614,7 +614,7 @@ int latin_solver_diff_simple(struct latin_solver *solver)
 #ifdef STANDALONE_SOLVER
 					, "positional elimination,"
 					" %s in row %d", names[n-1],
-					YUNTRANS(y)+1
+					y+1
 #endif
 					);
                 if (ret != 0) return ret;
@@ -639,11 +639,11 @@ int latin_solver_diff_simple(struct latin_solver *solver)
      */
     for (x = 0; x < o; x++)
         for (y = 0; y < o; y++)
-            if (!solver->grid[YUNTRANS(y)*o+x]) {
+            if (!solver->grid[y*o+x]) {
                 ret = latin_solver_elim(solver, cubepos(x,y,1), 1
 #ifdef STANDALONE_SOLVER
 					, "numeric elimination at (%d,%d)",
-					x+1, YUNTRANS(y)+1
+					x+1, y+1
 #endif
 					);
                 if (ret != 0) return ret;
@@ -667,7 +667,7 @@ int latin_solver_diff_set(struct latin_solver *solver,
         for (y = 0; y < o; y++) {
             ret = latin_solver_set(solver, scratch, cubepos(0,y,1), o*o, 1
 #ifdef STANDALONE_SOLVER
-                                   , "set elimination, row %d", YUNTRANS(y)+1
+                                   , "set elimination, row %d", y+1
 #endif
                                   );
             if (ret != 0) return ret;
@@ -737,7 +737,7 @@ static int latin_solver_recurse
                  */
                 count = 0;
                 for (n = 1; n <= o; n++)
-                    if (cube(x,YTRANS(y),n))
+                    if (cube(x,y,n))
                         count++;
 
                 /*
@@ -773,7 +773,7 @@ static int latin_solver_recurse
 
         /* Make a list of the possible digits. */
         for (j = 0, n = 1; n <= o; n++)
-            if (cube(x,YTRANS(y),n))
+            if (cube(x,y,n))
                 list[j++] = n;
 
 #ifdef STANDALONE_SOLVER
@@ -1237,6 +1237,24 @@ digit *latin_generate(int o, random_state *rs)
      * ... and return our completed latin square.
      */
     return sq;
+}
+
+digit *latin_generate_rect(int w, int h, random_state *rs)
+{
+    int o = max(w, h), x, y;
+    digit *latin, *latin_rect;
+
+    latin = latin_generate(o, rs);
+    latin_rect = snewn(w*h, digit);
+
+    for (x = 0; x < w; x++) {
+        for (y = 0; y < h; y++) {
+            latin_rect[y*w + x] = latin[y*o + x];
+        }
+    }
+
+    sfree(latin);
+    return latin_rect;
 }
 
 /* --------------------------------------------------------

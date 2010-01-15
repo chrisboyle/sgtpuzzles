@@ -30,7 +30,7 @@
 
 This is a collection of small one-player puzzle games.
 
-\copyright This manual is copyright 2004-2009 Simon Tatham. All rights
+\copyright This manual is copyright 2004-2010 Simon Tatham. All rights
 reserved. You may distribute this documentation under the MIT licence.
 See \k{licence} for the licence text in full.
 
@@ -2500,7 +2500,7 @@ precisely the opposite of the rule in Solo's \q{Killer} mode (see
 
 }
 
-This puzzle appears in the Times under the name \q{KenKen}.
+This puzzle appears in the Times under the name \q{\i{KenKen}}.
 
 
 \H{keen-controls} \i{Keen controls}
@@ -2561,9 +2561,223 @@ level, some backtracking will be required, but the solution should
 still be unique. The remaining levels require increasingly complex
 reasoning to avoid having to backtrack.
 
+
+\C{towers} \i{Towers}
+
+\cfg{winhelp-topic}{games.towers}
+
+You have a square grid. On each square of the grid you can build a
+tower, with its height ranging from 1 to the size of the grid.
+Around the edge of the grid are some numeric clues.
+
+Your task is to build a tower on every square, in such a way that:
+
+\b Each row contains every possible height of tower once
+
+\b Each column contains every possible height of tower once
+
+\b Each numeric clue describes the number of towers that can be seen
+if you look into the square from that direction, assuming that
+shorter towers are hidden behind taller ones. For example, in a
+5\by\.5 grid, a clue marked \q{5} indicates that the five tower
+heights must appear in increasing order (otherwise you would not be
+able to see all five towers), whereas a clue marked \q{1} indicates
+that the tallest tower (the one marked 5) must come first.
+
+In harder or larger puzzles, some towers will be specified for you
+as well as the clues round the edge, and some edge clues may be
+missing.
+
+This puzzle appears on the web under various names, particularly
+\q{\i{Skyscrapers}}, but I don't know who first invented it.
+
+
+\H{towers-controls} \i{Towers controls}
+
+\IM{Towers controls} controls, for Towers
+
+Towers shares much of its control system with Solo, Unequal and Keen.
+
+To play Towers, simply click the mouse in any empty square and then
+type a digit on the keyboard to fill that square with a tower of the
+given height. If you make a mistake, click the mouse in the
+incorrect square and press Space to clear it again (or use the Undo
+feature).
+
+If you \e{right}-click in a square and then type a number, that
+number will be entered in the square as a \q{pencil mark}. You can
+have pencil marks for multiple numbers in the same square. A square
+containing a tower cannot also contain pencil marks.
+
+The game pays no attention to pencil marks, so exactly what you use
+them for is up to you: you can use them as reminders that a
+particular square needs to be re-examined once you know more about a
+particular number, or you can use them as lists of the possible
+numbers in a given square, or anything else you feel like.
+
+To erase a single pencil mark, right-click in the square and type
+the same number again.
+
+All pencil marks in a square are erased when you left-click and type
+a number, or when you left-click and press space. Right-clicking and
+pressing space will also erase pencil marks.
+
+As for Solo, the cursor keys can be used in conjunction with the
+digit keys to set numbers or pencil marks. Use the cursor keys to
+move a highlight around the grid, and type a digit to enter it in
+the highlighted square. Pressing return toggles the highlight into a
+mode in which you can enter or remove pencil marks.
+
+Pressing M will fill in a full set of pencil marks in every square
+that does not have a main digit in it.
+
+(All the actions described in \k{common-actions} are also available.)
+
+\H{towers-parameters} \I{parameters, for Towers}Towers parameters
+
+These parameters are available from the \q{Custom...} option on the
+\q{Type} menu.
+
+\dt \e{Grid size}
+
+\dd Specifies the size of the grid. Lower limit is 3; upper limit is
+9 (because the user interface would become more difficult with
+\q{digits} bigger than 9!).
+
+\dt \e{Difficulty}
+
+\dd Controls the difficulty of the generated puzzle. At Unreasonable
+level, some backtracking will be required, but the solution should
+still be unique. The remaining levels require increasingly complex
+reasoning to avoid having to backtrack.
+
+
+\C{singles} \i{Singles}
+
+\cfg{winhelp-topic}{games.singles}
+
+You have a grid of white squares, all of which contain numbers. Your task
+is to colour some of the squares black (removing the number) so as to satisfy
+all of the following conditions:
+
+\b No number occurs more than once in any row or column.
+
+\b No black square is horizontally or vertically adjacent to any other black
+square.
+
+\b The remaining white squares must all form one contiguous region
+(connected by edges, not just touching at corners).
+
+Credit for this puzzle goes to \i{Nikoli} \k{nikoli-hitori} who call it
+\i{Hitori}. 
+
+Singles was contributed to this collection by James Harvey.
+
+\B{nikoli-hitori}
+\W{http://www.nikoli.com/en/puzzles/hitori/index.html}\cw{http://www.nikoli.com/en/puzzles/hitori/index.html}
+(beware of Flash)
+
+\H{singles-controls} \i{Singles controls}
+
+\IM{Singles controls} controls, for Singles
+
+Left-clicking on an empty square will colour it black; left-clicking again 
+will replace the number. Right-clicking will add a circle (useful for 
+indicating that a cell is definitely not black). 
+
+You can also use the cursor keys to move around the grid. Pressing the
+return or space keys will turn a square black or add a circle respectively,
+and pressing the key again will replace the number or remove the circle.
+
+(All the actions described in \k{common-actions} are also available.)
+
+\H{singles-parameters} \I{parameters, for Singles}Singles parameters
+
+These parameters are available from the \q{Custom...} option on the
+\q{Type} menu.
+
+\dt \e{Width}, \e{Height}
+
+\dd Size of grid in squares.
+
+\dt \e{Difficulty}
+
+\dd Controls the difficulty of the generated puzzle.
+
+
+\C{magnets} \i{Magnets}
+
+\cfg{winhelp-topic}{games.magnets}
+
+A rectangular grid has been filled with a mixture of magnets (that is,
+dominoes with one positive end and one negative end) and blank dominoes
+(that is, dominoes with two neutral poles).
+These dominoes are initially only seen in silhouette. Around the grid
+are placed a number of clues indicating the number of positive and
+negative poles contained in certain columns and rows.
+
+Your aim is to correctly place the magnets and blank dominoes such that
+all the clues are satisfied, with the additional constraint that no two
+similar magnetic poles may be orgothonally adjacent (since they repel).
+Neutral poles do not repel, and can be adjacacent to any other pole. 
+
+Credit for this puzzle goes to \i{Janko} \k{janko-magnets}.
+
+Magnets was contributed to this collection by James Harvey.
+
+\B{janko-magnets}
+\W{http://www.janko.at/Raetsel/Magnete/index.htm}\cw{http://www.janko.at/Raetsel/Magnete/index.htm}
+
+\H{magnets-controls} \i{Magnets controls}
+
+\IM{Magnets controls} controls, for Magnets
+
+Left-clicking on an empty square places a magnet at that position with
+the positive pole on the square and the negative pole on the other half
+of the magnet; left-clicking again reverses the polarity, and a third
+click removes the magnet.
+
+Right-clicking on an empty square places a blank domino there.
+Right-clicking again places two question marks on the domino, signifying
+'this cannot be blank' (which can be useful to note deductions while
+solving, and right-clicking again empties the domino. 
+
+You can also use the cursor keys to move a cursor around the grid. 
+Pressing the return key will lay a domino with a positive pole at that
+position; pressing again reverses the polarity and then removes the
+domino, as with left-clicking. Using the space bar allows placement
+of blank dominoes and cannot-be-blank hints, as for right-clicking. 
+
+(All the actions described in \k{common-actions} are also available.)
+
+\H{magnets-parameters} \I{parameters, for Magnets}Magnets parameters
+
+These parameters are available from the \q{Custom...} option on the
+\q{Type} menu.
+
+\dt \e{Width}, \e{Height}
+
+\dd Size of grid in squares. There will be half \e{Width} \by \e{Height}
+dominoes in the grid: if this number is odd then one square will be blank.
+
+(Grids with at least one odd dimension tend to be easier to solve)
+
+\dt \e{Difficulty}
+
+\dd Controls the difficulty of the generated puzzle. At Tricky level,
+you are required to make more deductions about empty dominoes and
+row/column counts. 
+
+\dt \e{Strip clues}
+
+\dd If true, some of the clues around the grid are removed at generation
+time, making the puzzle more difficult.
+
+
+
 \A{licence} \I{MIT licence}\ii{Licence}
 
-This software is \i{copyright} 2004-2009 Simon Tatham.
+This software is \i{copyright} 2004-2010 Simon Tatham.
 
 Portions copyright Richard Boulton, James Harvey, Mike Pinna, Jonas
 K\u00F6{oe}lker, Dariusz Olszewski, Michael Schierl, Lambros

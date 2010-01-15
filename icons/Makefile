@@ -1,8 +1,9 @@
 # Makefile for Puzzles icons.
 
 PUZZLES = blackbox bridges cube dominosa fifteen filling flip galaxies guess \
-	  inertia keen lightup loopy map mines net netslide pattern pegs \
-	  rect samegame sixteen slant solo tents twiddle unequal untangle
+	  inertia keen lightup loopy magnets map mines net netslide pattern \
+	  pegs rect samegame singles sixteen slant solo tents towers twiddle \
+	  unequal untangle
 
 BINARIES = $(patsubst %,../%,$(PUZZLES))
 BASE = $(patsubst %,%-base.png,$(PUZZLES))
@@ -70,16 +71,19 @@ inertia-ibase.png : override CROP=321x321 128x128+193+0
 keen-ibase.png : override CROP=288x288 96x96+24+120
 lightup-ibase.png : override CROP=256x256 112x112+144+0
 loopy-ibase.png : override CROP=257x257 113x113+0+0
+magnets-ibase.png : override CROP=264x232 96x96+36+100
 mines-ibase.png : override CROP=240x240 110x110+130+130
 net-ibase.png : override CROP=193x193 113x113+0+80
 netslide-ibase.png : override CROP=289x289 144x144+0+0
 pattern-ibase.png : override CROP=384x384 223x223+0+0
 pegs-ibase.png : override CROP=263x263 147x147+116+0
 rect-ibase.png : override CROP=205x205 115x115+90+0
+singles-ibase.png : override CROP=224x224 98x98+15+15
 sixteen-ibase.png : override CROP=288x288 144x144+144+144
 slant-ibase.png : override CROP=321x321 160x160+160+160
 solo-ibase.png : override CROP=481x481 145x145+24+24
 tents-ibase.png : override CROP=320x320 165x165+142+0
+towers-ibase.png : override CROP=300x300 102x102+151+6
 twiddle-ibase.png : override CROP=192x192 102x102+69+21
 unequal-ibase.png : override CROP=208x208 104x104+104+104
 untangle-ibase.png : override CROP=320x320 164x164+3+116
