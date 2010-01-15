@@ -1,0 +1,513 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+
+Welcome, translators!
+
+One difference from other Android applications: most strings come from C and
+may have percent-escapes for sprintf, like %s, %d, etc: you can't change the
+order of percent-escapes.
+
+If you're not familiar with translation on Android, here's how that works: This
+file is res/values/strings.xml. A translator produces a new version of this
+file, with the string names the same but the values different, and then I put
+it at, let's say the translation is French, res/values-fr/strings.xml, and an
+Android device will automatically try there first if the language is set to
+French, falling back on this file otherwise. Cool, isn't it? :-)
+
+Please credit yourself in the about box, see the second string below.
+
+Thank you for volunteering. When you've finished, send this file to
+chris@boyle.name and I'll be happy to include it in future versions.
+
+-->
+
+<resources>
+    <!-- About box -->
+    <string name="About_X">Über %.200s</string>
+    <string name="From_Simon_Tatham_s_Portable_Puzzle_Collection_Revision_X">"Aus Simon Tathams portable Puzzle-Sammlung
+
+Übersetzt von: Chris Boyle
+
+Revision: %s"</string>
+    <!-- Things used by the Android front-end only -->
+    <string name="app_name">Puzzles</string>
+    <string name="welcome">Willkommen auf der Android-Version von Simon Tathams Puzzles. Der Trackball finden Sie in der Regel vermutlich einfacher als den Touchscreen. Um rechts zu klicken, halten Sie den Trackball oder den Touchscreen gedrückt. Hilfe gibt es unter Menu/Hilfe. Dieses Projekt steht unter der MIT-Lizenz veröffentlicht.</string>
+    <string name="website_url">http://chris.boyle.name/projects/android-puzzles</string>
+    <string name="docs_url">file:///android_asset/{0}/{1}.html</string>
+    <string name="author_email">chris@boyle.name</string>
+    <string name="unknown_version">UNBEKANNT</string>
+    <!-- {0} = version, {1} = device model number -->
+    <string name="email_subject">Puzzles v{0} auf {1} / {2} / {3}</string>
+    <!-- Crash report dialog -->
+    <string name="crash_subject">Absturz: Puzzles v{0} auf {1} / {2} / {3}</string>
+    <string name="crash_preamble">Bitte beschreiben Sie, was Sie kurz vor dem Absturz taten und dann die Nachricht versenden.</string>
+    <string name="crashtitle">Tja, das ist peinlich...</string>
+    <string name="crashed">Es tut mir leid, Puzzles ist ein Problem aufgetreten und mussten schließen. Möchten Sie einen Absturzbericht schicken, der dem Autor vielleicht zur Behebung des Problems helfen kann?</string>
+    <string name="report">Melden</string>
+    <string name="close">Beenden</string>
+    <string name="clear_state">Zustand vergessen</string>
+    <string name="getting_log">Logdatei wird geholt...</string>
+    <string name="starting_email">Emailprogramm wird gestartet...</string>
+    <string name="get_log_failed">Konnte die Logdatei nicht lesen. Vielleicht benutzen Sie ein T-Mobile Pulse (Huawei U8220) wo logcat funktioniert nicht (beschweren Sie sich bei Huawei?) Schicken Sie bitte einen Fehlerbericht an {0}, beschreiben Sie was Sie getan haben und was passiert ist, und vielleicht kann ich Ihnen helfen.</string>
+    <!-- For saving and loading game state on the SD card -->
+    <string name="filename">Dateiname</string>
+    <string name="save">Speichern</string>
+    <string name="storage_not_ready">Speichermedium ist nicht bereit</string>
+    <string name="file_too_big">Datei ist zu groß um ein Puzzles-Spiel zu sein</string>
+    <string name="file_exists">Datei existiert. Überschreiben?</string>
+    <string name="file_saved">Spiel in {0} gespeichert</string>
+    <!-- Help menu -->
+    <!-- {0} is a game name -->
+    <string name="help_on_game">Hilfe über {0}</string>
+    <!-- Progress dialog when generating/resuming a game -->
+    <string name="starting">Spiel wird gestartet (komplexe Spiele könnten einen Moment dauern)</string>
+    <string name="starting_new">Neues Spiel wird gestartet (komplexe Spiele könnten einen Moment dauern)</string>
+    <string name="starting_custom">Benutzerdefiniertes Spiel wird gestartet (komplexe Spiele könnten einen Moment dauern)</string>
+    <string name="resuming">Spiel wird wieder aufgenommen (komplexe Spiele könnten einen Moment dauern)</string>
+    <string name="changing_type">Spieltyp wird geändert (komplexe Spiele könnten einen Moment dauern)</string>
+    <string name="background">Zum Hintergrund</string>
+    <string name="bg_unreliable_warn">Prozess kann aufgegeben werden, bei unzureichender Speicher</string>
+    <!-- Menu -->
+    <string name="Game">Spiel</string>
+    <string name="Other_game">Anderes Spiel</string>
+    <string name="Grid">Gitter</string>
+    <string name="Details">Beschreibungen</string>
+    <string name="New_game">Neues Spiel</string>
+    <string name="Restart">Wieder beginnen</string>
+    <string name="Specific_">Bestimmt...</string>
+    <string name="Random_seed_">Anfangswert...</string>
+    <string name="Load_">Laden...</string>
+    <string name="Save_">Speichern...</string>
+    <string name="Type">Typ</string>
+    <string name="Custom_">Benutzerdefiniert...</string>
+    <string name="Help">Hilfe</string>
+    <string name="Contents">Inhaltsverzeichnis</string>
+    <string name="On_this_game">Über dieses Spiel</string>
+    <string name="Project_website">Project-Website</string>
+    <string name="Email_developer">Email an Entwickler</string>
+    <string name="About">Über</string>
+    <string name="Undo">Rückgängig</string>
+    <string name="Redo">Nochmals tun</string>
+    <string name="Solve">Lösen</string>
+    <!-- Names default to their program names with the first letter uppercased -->
+    <string name="name_blackbox">Black Box</string>
+    <string name="name_bridges">Bridges</string>
+    <string name="name_cube">Cube</string>
+    <string name="name_dominosa">Dominosa</string>
+    <string name="name_fifteen">Fifteen</string>
+    <string name="name_filling">Filling</string>
+    <string name="name_flip">Flip</string>
+    <string name="name_galaxies">Galaxies</string>
+    <string name="name_guess">Guess</string>
+    <string name="name_inertia">Inertia</string>
+    <string name="name_keen">Keen</string>
+    <string name="name_lightup">Light Up</string>
+    <string name="name_loopy">Loopy</string>
+    <string name="name_map">Map</string>
+    <string name="name_mines">Mines</string>
+    <string name="name_net">Net</string>
+    <string name="name_netslide">Netslide</string>
+    <string name="name_pattern">Pattern</string>
+    <string name="name_pegs">Pegs</string>
+    <string name="name_rect">Rectangles</string>
+    <string name="name_samegame">Same Game</string>
+    <string name="name_sixteen">Sixteen</string>
+    <string name="name_slant">Slant</string>
+    <string name="name_solo">Solo</string>
+    <string name="name_tents">Tents</string>
+    <string name="name_twiddle">Twiddle</string>
+    <string name="name_unequal">Unequal</string>
+    <string name="name_untangle">Untangle</string>
+    <!-- These are for Menu/Game/Other (detail mode) -->
+    <string name="chooser_title">Welches Spiel?</string>
+    <string name="no_desc">(keine Zusammenfassung verfügbar)</string>
+    <string name="desc_blackbox">Locate the balls inside the box by firing lasers and observing how they are deflected or absorbed.</string>
+    <string name="desc_bridges">Connect the islands with the given bridge counts so no bridges are crossing.</string>
+    <string name="desc_cube">Roll the cube to collect all the paint.</string>
+    <string name="desc_dominosa">Pair the numbers to form a complete and distinct set of dominoes.</string>
+    <string name="desc_fifteen">Slide tiles around to form a grid in numerical order.</string>
+    <string name="desc_filling">Number the squares to form regions with the same number, which is also the size of the region.</string>
+    <string name="desc_flip">Turn over squares until all are light side up, but flipping one flips its neighbours.</string>
+    <string name="desc_galaxies">Divide the grid into 180-degree rotationally symmetric regions each centred on a dot.</string>
+    <string name="desc_guess">Guess the hidden colour sequence: black is correct, white is the correct colour in the wrong place.</string>
+    <string name="desc_inertia">Move the ball around to collect all the gems without hitting a mine.</string>
+    <string name="desc_keen">Enter digits so every row and column contains exactly one of each digit and the arithmetic clues are satisfied.</string>
+    <string name="desc_lightup">Place lamps so all squares are lit, no lamp lights another and numbered squares have the given number of adjacent lamps.</string>
+    <string name="desc_loopy">Draw a single unbroken and uncrossing line such that numbered squares have the given number of edges filled.</string>
+    <string name="desc_map">Copy the 4 colours to colour the map with no regions of the same colour touching.</string>
+    <string name="desc_mines">Uncover all squares except the mines using the given counts of adjacent mines. *N.B.* Game is generated after first move; you may see \"not responding\" warnings.</string>
+    <string name="desc_net">Rotate tiles to connect all tiles to the centre tile.</string>
+    <string name="desc_netslide">Slide rows and columns to connect all tiles to the centre tile.</string>
+    <string name="desc_pattern">Fill the grid so that the numbers are the length of each stretch of black tiles in order.</string>
+    <string name="desc_pegs">Remove pegs by jumping others over them, until only one is left.</string>
+    <string name="desc_rect">Divide the grid into rectangles containing only one number, which is also the area of the rectangle.</string>
+    <string name="desc_samegame">Remove groups (2 or more) of the same colour to clear the grid, scoring more for larger groups.</string>
+    <string name="desc_sixteen">Slide rows and columns around to form a grid in numerical order.</string>
+    <string name="desc_slant">Draw diagonal lines in every square such that circles have the given numbers of lines meeting at them and there are no loops.</string>
+    <string name="desc_solo">Fill the grid so each block, row and column contains exactly one of each digit.</string>
+    <string name="desc_tents">Place tents so each tree has a separate adjacent tent (not diagonally), no tents are next to each other (even diagonally) and the row and column counts are correct.</string>
+    <string name="desc_twiddle">Rotate groups of 4 to form a grid in numerical order.</string>
+    <string name="desc_unequal">Enter digits so every row and column contains exactly one of each digit and the greater-than signs are satisfied.</string>
+    <string name="desc_untangle">Move points around until no lines cross.</string>
+    <!-- Everything below here is from C -->
+    <!-- Difficulties for most games, in order: -->
+    <string name="Easy">Einfach</string>
+    <string name="Medium">Mittlere</string>
+    <string name="Tricky">Knifflig</string>
+    <string name="Hard">Schwer</string>
+    <!-- Difficulties for Solo (Sudoku), in order: -->
+    <string name="Trivial">Trivial</string>
+    <string name="Basic">Elementar</string>
+    <string name="Intermediate">Mittlere</string>
+    <string name="Advanced">Fortgeschrittene</string>
+    <string name="Extreme">Extreme</string>
+    <string name="Unreasonable">Unvernünftig</string>
+    <!-- "Map" is different again and uses Easy, Normal, Hard, Unreasonable -->
+    <string name="Normal">Normal</string>
+    <!-- Dialog titles: %s is a game name here -->
+    <string name="X_configuration">%s-Einstellungen</string>
+    <string name="X_random_selection">%s-Anfangswert</string>
+    <string name="X_game_selection">%s-Spielwahl</string>
+    <string name="Error">Fehler</string>
+    <string name="Game_random_seed">Anfangswert</string>
+    <string name="Game_ID">Spiel-ID</string>
+    <!-- Types of symmetry -->
+    <string name="Symmetry">Symmetrie</string>
+    <string name="None">Keine</string>
+    <string name="_2_way_diagonal_mirror">2-weg-diagonal-spiegel-</string>
+    <string name="_2_way_mirror">2-weg-spiegel-</string>
+    <string name="_2_way_rotational">2-weg-dreh-</string>
+    <string name="_4_way_diagonal_mirror">4-weg-dreh-spiegel-</string>
+    <string name="_4_way_mirror">4-weg-spiegel-</string>
+    <string name="_4_way_rotational">4-weg-dreh-</string>
+    <string name="_8_way_mirror">8-weg-spiegel-</string>
+    <!-- Some more things common to multiple games -->
+    <string name="Active_X_X">Betätigt: %d/%d</string>
+    <string name="Auto_solved">Automatisch gelöst.</string>
+    <string name="Auto_solver_used">Automatischer Löser benutzt.</string>
+    <string name="Barrier_probability">Grenzewahrscheinlichkeit</string>
+    <string name="Barrier_probability_may_not_be_negative">Grenzewahrscheinlichkeit kann nicht negativ sein</string>
+    <string name="Barrier_probability_may_not_be_greater_than_1">Grenzewahrscheinlichkeit kann nicht größer als 1 sein</string>
+    <string name="COMPLETED">FERTIG!</string>
+    <string name="DEAD">TOT!</string>
+    <string name="Deaths_X">Todesfälle: %d</string>
+    <string name="Difficulty">Schwierigkeit</string>
+    <string name="Ensure_solubility">Lösbarkeit garantieren</string>
+    <string name="Ensure_unique_solution">Eindeutiglösbarkeit garantieren</string>
+    <string name="Excess_junk_at_end_of_string">Quatsch am Reihungende</string>
+    <string name="Expected_comma_after_number">Komma erwartet nach Nummer</string>
+    <string name="Invalid_character_in_game_description">Ungültiges Zeichen in Spielbezeichnung</string>
+    <string name="Game_description_is_corrupted">Spielbezeichnung ist beschädigt</string>
+    <string name="Game_description_is_wrong_length">Spielbezeichnung hat falsche Länge</string>
+    <string name="Game_description_longer_than_expected">Spielbezeichnung länger als erwartet</string>
+    <string name="Game_description_shorter_than_expected">Spielbezeichnung kürzer als erwartet</string>
+    <string name="Grid_area_must_be_greater_than_one">Gitterfläche muss größer als 1 sein</string>
+    <string name="Height">Höhe</string>
+    <string name="Moves_since_auto_solve_X">Züge seit automatische Lösung: %d</string>
+    <string name="Moves_X">Züge: %d</string>
+    <string name="_target_X">(Ziel %d)</string>
+    <string name="Not_enough_data_to_fill_grid">Unzureichender Daten um Gitter zu füllen</string>
+    <string name="Not_enough_numbers_in_string">Unzureichender Zahlen in der Reihung</string>
+    <string name="Number_of_shuffling_moves">Zahl von Einmischungen</string>
+    <string name="Number_out_of_range">Zahl außerhalb des Bereichs</string>
+    <string name="Number_out_of_range_in_game_description">Zahl in der Spielbeschreibung außerhalb des Bereichs</string>
+    <string name="Number_used_twice">Zahl zweimal benutzt</string>
+    <string name="Random">Random</string>
+    <string name="Solution_not_known_for_this_puzzle">Lösung dieses Spiels unbekannt</string>
+    <string name="Solve_operation_failed">Lösen gescheitert</string>
+    <string name="This_puzzle_is_not_self_consistent">Dieses Spiel widerspricht sich</string>
+    <string name="Too_much_data_to_fit_in_grid">Zu viele Daten im Gitter einzusetzen</string>
+    <string name="Unable_to_find_a_unique_solution_for_this_puzzle">Kann keine eindeutige Lösung finden</string>
+    <string name="Walls_wrap_around">Umlaufende Grenzen</string>
+    <string name="Width">Breite</string>
+    <string name="Width_and_height_must_both_be_at_least_two">Breite und Höhe müssen beide größer als 2 sein</string>
+    <string name="Width_and_height_must_both_be_greater_than_zero">Breite und Höhe müssen beide größer als 0 sein</string>
+    <!-- Black Box -->
+    <string name="XxX_X_balls">%dx%d, %d balls</string>
+    <string name="XxX_X_X_balls">%dx%d, %d-%d balls</string>
+    <string name="No_of_balls">No. of balls</string>
+    <string name="Widths_and_heights_greater_than_255_are_not_supported">Widths and heights greater than 255 are not supported</string>
+    <string name="Minimum_number_of_balls_may_not_be_greater_than_maximum">Minimum number of balls may not be greater than maximum</string>
+    <string name="Too_many_balls_to_fit_in_grid">Too many balls to fit in grid</string>
+    <string name="CORRECT">CORRECT!</string>
+    <string name="X_wrong_and_X_missed_balls">%d wrong and %d missed balls.</string>
+    <string name="Wrong_Guess_again">Wrong! Guess again.</string>
+    <string name="X_too_many_balls_marked">%d too many balls marked.</string>
+    <string name="Click_button_to_verify_guesses">Click button to verify guesses.</string>
+    <string name="Balls_marked_X_X">Balls marked: %d / %d</string>
+    <string name="Balls_marked_X_X_X">Balls marked: %d / %d-%d.</string>
+    <string name="_1_error"> (1 error)</string>
+    <string name="_X_errors"> (%d errors)</string>
+    <!-- Bridges -->
+    <string name="Allow_loops">Allow loops</string>
+    <string name="Max_bridges_per_direction">Max. bridges per direction</string>
+    <string name="percentage_of_island_squares">%age of island squares</string>
+    <string name="Expansion_factor_percentage">Expansion factor (%age)</string>
+    <string name="Width_and_height_must_be_at_least_3">Width and height must be at least 3</string>
+    <string name="Too_many_bridges">Too many bridges.</string>
+    <string name="percentage_of_island_squares_must_be_between_1_and_30">%age of island squares must be between 1% and 30%</string>
+    <string name="Expansion_factor_must_be_between_0_and_100">Expansion factor must be between 0 and 100</string>
+    <string name="Generated_aux_string_is_not_a_valid_move">Generated aux string is not a valid move (!).</string>
+    <string name="Game_does_not_have_a_non_recursive_solution">Game does not have a (non-recursive) solution.</string>
+    <!-- Cube -->
+    <string name="Type_of_solid">Type of solid</string>
+    <string name="Tetrahedron">Tetrahedron</string>
+    <string name="Cube">Cube</string>
+    <string name="Octahedron">Octahedron</string>
+    <string name="Icosahedron">Icosahedron</string>
+    <string name="Width_top">Width / top</string>
+    <string name="Height_bottom">Height / bottom</string>
+    <string name="Unrecognised_solid_type">Unrecognised solid type</string>
+    <string name="Both_grid_dimensions_must_be_greater_than_zero">Both grid dimensions must be greater than zero</string>
+    <string name="At_least_one_grid_dimension_must_be_greater_than_zero">At least one grid dimension must be greater than zero</string>
+    <string name="Not_enough_grid_space_to_place_all_blue_faces">Not enough grid space to place all blue faces</string>
+    <string name="Not_enough_space_to_place_the_solid_on_an_empty_square">Not enough space to place the solid on an empty square</string>
+    <string name="Not_enough_hex_digits_at_start_of_string">Not enough hex digits at start of string</string>
+    <string name="Expected_comma_after_hex_digits">Expected \',\' after hex digits</string>
+    <string name="Expected_decimal_integer_after_comma">Expected decimal integer after \',\'</string>
+    <!-- Dominosa -->
+    <string name="Up_to_double_X">Up to double-%d</string>
+    <string name="Maximum_number_on_dominoes">Maximum number on dominoes</string>
+    <string name="Maximum_face_number_must_be_at_least_one">Maximum face number must be at least one</string>
+    <string name="Missing_in_game_description">Missing \']\' in game description</string>
+    <string name="Invalid_syntax_in_game_description">Invalid syntax in game description</string>
+    <string name="Incorrect_number_balance_in_game_description">Incorrect number balance in game description</string>
+    <!-- Fifteen: all strings in that game are common! -->
+    <!-- Filling -->
+    <string name="Width_must_be_at_least_one">Width must be at least one</string>
+    <string name="Height_must_be_at_least_one">Height must be at least one</string>
+    <string name="non_digit_in_string">non-digit in string</string>
+    <string name="too_large_digit_in_string">too large digit in string</string>
+    <string name="string_too_long">string too long</string>
+    <string name="string_too_short">string too short</string>
+    <string name="Sorry_I_couldn_t_find_a_solution">Sorry, I couldn\'t find a solution</string>
+    <!-- Flip -->
+    <string name="Shape_type">Shape type</string>
+    <string name="Crosses">Crosses</string>
+    <string name="Matrix_description_is_wrong_length">Matrix description is wrong length</string>
+    <string name="Expected_comma_after_matrix_description">Expected comma after matrix description</string>
+    <string name="Grid_description_is_wrong_length">Grid description is wrong length</string>
+    <string name="Unexpected_data_after_grid_description">Unexpected data after grid description</string>
+    <string name="No_solution_exists_for_this_position">No solution exists for this position</string>
+    <!-- Galaxies -->
+    <string name="Impossible">Impossible</string>
+    <string name="Ambiguous">Ambiguous</string>
+    <string name="Unfinished">Unfinished</string>
+    <string name="Width_and_height_must_both_be_at_least_3">Width and height must both be at least 3</string>
+    <string name="Dots_too_close_together">Dots too close together</string>
+    <!-- Guess -->
+    <string name="Standard">Standard</string>
+    <string name="Super">Super</string>
+    <string name="Colours">Colours</string>
+    <string name="Pegs_per_guess">Pegs per guess</string>
+    <string name="Guesses">Guesses</string>
+    <string name="Allow_blanks">Allow blanks</string>
+    <string name="Allow_duplicates">Allow duplicates</string>
+    <string name="Trivial_solutions_are_uninteresting">Trivial solutions are uninteresting</string>
+    <string name="Too_many_colours">Too many colours</string>
+    <string name="Must_have_at_least_one_guess">Must have at least one guess</string>
+    <string name="Disallowing_multiple_colours_requires_at_least_as_many_colours_as_pegs">Disallowing multiple colours requires at least as many colours as pegs</string>
+    <!-- Inertia -->
+    <string name="Grid_area_must_be_at_least_six_squares">Grid area must be at least six squares</string>
+    <string name="Unrecognised_character_in_game_description">Unrecognised character in game description</string>
+    <string name="No_starting_square_specified">No starting square specified</string>
+    <string name="More_than_one_starting_square_specified">More than one starting square specified</string>
+    <string name="No_gems_specified">No gems specified</string>
+    <string name="Game_is_already_solved">Game is already solved</string>
+    <string name="Unable_to_find_a_solution_from_this_starting_point">Unable to find a solution from this starting point</string>
+    <string name="Gems_X">Gems: %d</string>
+    <!-- Light Up -->
+    <string name="percentage_of_black_squares">%age of black squares</string>
+    <string name="Width_and_height_must_be_at_least_2">Width and height must be at least 2</string>
+    <string name="Percentage_of_black_squares_must_be_between_5_and_100">Percentage of black squares must be between 5% and 100%</string>
+    <string name="_4_fold_symmetry_is_only_available_with_square_grids">4-fold symmetry is only available with square grids</string>
+    <string name="Unknown_symmetry_type">Unknown symmetry type</string>
+    <string name="Unknown_difficulty_level">Unknown difficulty level</string>
+    <string name="Puzzle_is_not_self_consistent">Puzzle is not self-consistent.</string>
+    <!-- Loopy -->
+    <string name="Grid_type">Grid type</string>
+    <string name="Squares">Squares</string>
+    <string name="Triangular">Triangular</string>
+    <string name="Honeycomb">Honeycomb</string>
+    <string name="Snub_Square">Snub-Square</string>
+    <string name="Cairo">Cairo</string>
+    <string name="Great_Hexagonal">Great-Hexagonal</string>
+    <string name="Octagonal">Octagonal</string>
+    <string name="Kites">Kites</string>
+    <string name="Illegal_grid_type">Illegal grid type</string>
+    <string name="Width_and_height_for_this_grid_type_must_both_be_at_least_X">Width and height for this grid type must both be at least %d</string>
+    <string name="At_least_one_of_width_and_height_for_this_grid_type_must_be_at_least_X">At least one of width and height for this grid type must be at least %d</string>
+    <string name="Unknown_character_in_description">Unknown character in description</string>
+    <string name="Description_too_short_for_board_size">Description too short for board size</string>
+    <string name="Description_too_long_for_board_size">Description too long for board size</string>
+    <!-- Map -->
+    <string name="XxX_X_regions_X">%dx%d, %d regions, %s</string>
+    <string name="Regions">Regions</string>
+    <string name="Width_and_height_must_be_at_least_two">Width and height must be at least two</string>
+    <string name="Must_have_at_least_five_regions">Must have at least five regions</string>
+    <string name="Too_many_regions_to_fit_in_grid">Too many regions to fit in grid</string>
+    <string name="Unexpected_character_in_edge_list">Unexpected character in edge list</string>
+    <string name="Too_much_data_in_edge_list">Too much data in edge list</string>
+    <string name="Too_little_data_in_edge_list">Too little data in edge list</string>
+    <string name="Edge_list_defines_the_wrong_number_of_regions">Edge list defines the wrong number of regions</string>
+    <string name="Expected_comma_before_clue_list">Expected comma before clue list</string>
+    <string name="Unexpected_character_in_clue_list">Unexpected character in clue list</string>
+    <string name="Too_little_data_in_clue_list">Too little data in clue list</string>
+    <string name="Too_much_data_in_clue_list">Too much data in clue list</string>
+    <string name="Puzzle_is_inconsistent">Puzzle is inconsistent</string>
+    <!-- Mines -->
+    <string name="XxX_X_mines">%dx%d, %d mines</string>
+    <!-- This is the label for the choice of number of mines, not the name of the game -->
+    <string name="Mines">Mines</string>
+    <string name="Width_and_height_must_both_be_greater_than_two">Width and height must both be greater than two</string>
+    <string name="Too_many_mines_for_grid_size">Too many mines for grid size</string>
+    <string name="No_initial_mine_count_in_game_description">No initial mine count in game description</string>
+    <string name="No_comma_after_initial_x_coordinate_in_game_description">No \',\' after initial x-coordinate in game description</string>
+    <string name="No_uniqueness_specifier_in_game_description">No uniqueness specifier in game description</string>
+    <string name="No_comma_after_uniqueness_specifier_in_game_description">No \',\' after uniqueness specifier in game description</string>
+    <string name="Initial_x_coordinate_was_out_of_range">Initial x-coordinate was out of range</string>
+    <string name="No_initial_y_coordinate_in_game_description">No initial y-coordinate in game description</string>
+    <string name="Initial_y_coordinate_was_out_of_range">Initial y-coordinate was out of range</string>
+    <string name="No_comma_after_initial_y_coordinate_in_game_description">No \',\' after initial y-coordinate in game description</string>
+    <string name="Game_has_not_been_started_yet">Game has not been started yet</string>
+    <string name="Marked_X_X">Marked: %d / %d</string>
+    <!-- Net -->
+    <string name="XxX_wrapping">%dx%d wrapping</string>
+    <string name="At_least_one_of_width_and_height_must_be_greater_than_one">At least one of width and height must be greater than one</string>
+    <string name="No_wrapping_puzzle_with_a_width_or_height_of_2_can_have_a_unique_solution">No wrapping puzzle with a width or height of 2 can have a unique solution</string>
+    <!-- Netslide -->
+    <string name="Width_and_height_must_both_be_greater_than_one">Width and height must both be greater than one</string>
+    <!-- Pattern -->
+    <string name="at_least_one_column_contains_more_numbers_than_will_fit">at least one column contains more numbers than will fit</string>
+    <string name="at_least_one_row_contains_more_numbers_than_will_fit">at least one row contains more numbers than will fit</string>
+    <string name="too_many_row_column_specifications">too many row/column specifications</string>
+    <string name="too_few_row_column_specifications">too few row/column specifications</string>
+    <string name="unrecognised_character_in_game_specification">unrecognised character in game specification</string>
+    <string name="Solving_algorithm_cannot_complete_this_puzzle">Solving algorithm cannot complete this puzzle</string>
+    <!-- Pegs -->
+    <string name="Board_type">Board type</string>
+    <string name="Cross">Cross</string>
+    <string name="Octagon">Octagon</string>
+    <string name="Width_and_height_must_both_be_greater_than_three">Width and height must both be greater than three</string>
+    <string name="This_board_type_is_only_supported_at_7x7">This board type is only supported at 7x7</string>
+    <!-- Rectangles -->
+    <string name="Expansion_factor">Expansion factor</string>
+    <string name="Expansion_factor_may_not_be_negative">Expansion factor may not be negative</string>
+    <!-- Same Game -->
+    <string name="XxX_X_colours">%dx%d, %d colours</string>
+    <string name="No_of_colours">No. of colours</string>
+    <string name="Scoring_system">Scoring system</string>
+    <string name="_n_1_2">(n-1)^2</string>
+    <string name="_n_2_2">(n-2)^2</string>
+    <string name="Maximum_of_9_colours">Maximum of 9 colours</string>
+    <string name="Number_of_colours_must_be_at_least_three">Number of colours must be at least three</string>
+    <string name="Too_many_colours_makes_given_grid_size_impossible">Too many colours makes given grid size impossible</string>
+    <string name="Scoring_system_not_recognised">Scoring system not recognised</string>
+    <string name="Colour_out_of_range">Colour out of range</string>
+    <string name="Score_X">Score: %d</string>
+    <string name="Cannot_move">Cannot move!</string>
+    <string name="Selected_X_X">Selected: %d (%d)</string>
+    <!-- Sixteen: all strings in that game are common! -->
+    <!-- Slant: all strings in that game are common! -->
+    <!-- solo.c -->
+    <string name="_2x2_Trivial">2x2 Trivial</string>
+    <string name="_2x3_Basic">2x3 Basic</string>
+    <string name="_3x3_Trivial">3x3 Trivial</string>
+    <string name="_3x3_Basic">3x3 Basic</string>
+    <string name="_3x3_Basic_X">3x3 Basic X</string>
+    <string name="_3x3_Intermediate">3x3 Intermediate</string>
+    <string name="_3x3_Advanced">3x3 Advanced</string>
+    <string name="_3x3_Advanced_X">3x3 Advanced X</string>
+    <string name="_3x3_Extreme">3x3 Extreme</string>
+    <string name="_3x3_Unreasonable">3x3 Unreasonable</string>
+    <string name="_3x3_Killer">3x3 Killer</string>
+    <string name="_9_Jigsaw_Basic">9 Jigsaw Basic</string>
+    <string name="_9_Jigsaw_Basic_X">9 Jigsaw Basic X</string>
+    <string name="_9_Jigsaw_Advanced">9 Jigsaw Advanced</string>
+    <string name="_3x4_Basic">3x4 Basic</string>
+    <string name="_4x4_Basic">4x4 Basic</string>
+    <string name="Columns_of_sub_blocks">Columns of sub-blocks</string>
+    <string name="Rows_of_sub_blocks">Rows of sub-blocks</string>
+    <string name="_X_require_every_number_in_each_main_diagonal">"X" (require every number in each main diagonal)</string>
+    <string name="Jigsaw_irregularly_shaped_sub_blocks">Jigsaw (irregularly shaped sub-blocks)</string>
+    <string name="Killer_digit_sums">Killer (digit sums)</string>
+    <string name="Both_dimensions_must_be_at_least_2">Both dimensions must be at least 2</string>
+    <string name="Dimensions_greater_than_255_are_not_supported">Dimensions greater than 255 are not supported</string>
+    <string name="Unable_to_support_more_than_31_distinct_symbols_in_a_puzzle">Unable to support more than 31 distinct symbols in a puzzle</string>
+    <string name="Killer_puzzle_dimensions_must_be_smaller_than_10">Killer puzzle dimensions must be smaller than 10.</string>
+    <string name="Not_enough_data_in_block_structure_specification">Not enough data in block structure specification</string>
+    <string name="A_jigsaw_block_is_too_big">A jigsaw block is too big</string>
+    <string name="Too_many_distinct_jigsaw_blocks">Too many distinct jigsaw blocks</string>
+    <string name="Not_enough_distinct_jigsaw_blocks">Not enough distinct jigsaw blocks</string>
+    <string name="A_jigsaw_block_is_too_small">A jigsaw block is too small</string>
+    <string name="Expected_jigsaw_block_structure_in_game_description">Expected jigsaw block structure in game description</string>
+    <string name="Expected_killer_block_structure_in_game_description">Expected killer block structure in game description</string>
+    <string name="Expected_killer_clue_grid_in_game_description">Expected killer clue grid in game description</string>
+    <string name="Unexpected_data_at_end_of_game_description">Unexpected data at end of game description</string>
+    <string name="No_solution_exists_for_this_puzzle">No solution exists for this puzzle</string>
+    <string name="Multiple_solutions_exist_for_this_puzzle">Multiple solutions exist for this puzzle</string>
+    <!-- Tents -->
+    <string name="Width_and_height_must_both_be_at_least_four">Width and height must both be at least four</string>
+    <string name="Invalid_character_in_grid_specification">Invalid character in grid specification</string>
+    <string name="Not_enough_numbers_given_after_grid_specification">Not enough numbers given after grid specification</string>
+    <string name="Invalid_character_in_number_list">Invalid character in number list</string>
+    <string name="Unexpected_additional_data_at_end_of_game_description">Unexpected additional data at end of game description</string>
+    <!-- Twiddle -->
+    <string name="_3x3_rows_only">3x3 rows only</string>
+    <string name="_3x3_normal">3x3 normal</string>
+    <string name="_3x3_orientable">3x3 orientable</string>
+    <string name="_4x4_normal">4x4 normal</string>
+    <string name="_4x4_orientable">4x4 orientable</string>
+    <string name="_4x4_radius_3">4x4 radius 3</string>
+    <string name="_5x5_radius_3">5x5 radius 3</string>
+    <string name="_6x6_radius_4">6x6 radius 4</string>
+    <string name="Rotation_radius">Rotation radius</string>
+    <string name="One_number_per_row">One number per row</string>
+    <string name="Orientation_matters">Orientation matters</string>
+    <string name="Rotation_radius_must_be_at_least_two">Rotation radius must be at least two</string>
+    <string name="Width_must_be_at_least_the_rotation_radius">Width must be at least the rotation radius</string>
+    <string name="Height_must_be_at_least_the_rotation_radius">Height must be at least the rotation radius</string>
+    <string name="Expected_orientation_letter_after_number">Expected orientation letter after number</string>
+    <!-- Unequal -->
+    <string name="Mode">Mode</string>
+    <string name="Unequal">Unequal</string>
+    <string name="Adjacent">Adjacent</string>
+    <!-- An extra difficulty level, meaning solving the puzzle requires a recursive approach -->
+    <string name="Recursive">Recursive</string>
+    <string name="Size_s_s">Size (s*s)</string>
+    <string name="Order_must_be_between_3_and_32">Order must be between 3 and 32</string>
+    <string name="Order_must_be_at_least_5_for_Adjacent_puzzles_of_this_difficulty">Order must be at least 5 for Adjacent puzzles of this difficulty</string>
+    <string name="Unknown_difficulty_rating">Unknown difficulty rating</string>
+    <string name="Expecting_number_in_game_description">Expecting number in game description</string>
+    <string name="Expecting_flag_URDL_in_game_description">Expecting flag URDL in game description</string>
+    <string name="Missing_separator">Missing separator</string>
+    <string name="Flags_go_off_grid">Flags go off grid</string>
+    <string name="Flags_contradicting_each_other">Flags contradicting each other</string>
+    <!-- untangle.c -->
+    <string name="X_points">%d points</string>
+    <string name="Number_of_points">Number of points</string>
+    <string name="Number_of_points_must_be_at_least_four">Number of points must be at least four</string>
+    <string name="Expected_after_number_in_game_description">Expected \'-\' after number in game description</string>
+    <string name="Expected_comma_after_number_in_game_description">Expected \',\' after number in game description</string>
+    <string name="Internal_error_aux_info_badly_formatted">Internal error: aux_info badly formatted</string>
+    <!-- These errors are very unlikely to be reached: for example, on Android we don't support save files yet, except internally to preserve state between uses of the app -->
+    <string name="This_game_does_not_support_the_Solve_operation">This game does not support the Solve operation</string>
+    <string name="No_game_set_up_to_solve">No game set up to solve</string>
+    <string name="Data_does_not_appear_to_be_a_saved_game_file">Data does not appear to be a saved game file</string>
+    <string name="Data_was_incorrectly_formatted_for_a_saved_game_file">Data was incorrectly formatted for a saved game file</string>
+    <string name="Saved_data_ended_unexpectedly">Saved data ended unexpectedly</string>
+    <string name="Cannot_handle_this_version_of_the_saved_game_file_format">Cannot handle this version of the saved game file format</string>
+    <string name="Save_file_is_from_a_different_game">Save file is from a different game</string>
+    <string name="Save_file_is_not_from_a_game_in_this_collection">Save file is not from a game in this collection</string>
+    <string name="Number_of_states_in_save_file_was_negative">Number of states in save file was negative</string>
+    <string name="Two_state_counts_provided_in_save_file">Two state counts provided in save file</string>
+    <string name="Long_term_parameters_in_save_file_are_invalid">Long-term parameters in save file are invalid</string>
+    <string name="Short_term_parameters_in_save_file_are_invalid">Short-term parameters in save file are invalid</string>
+    <string name="Game_description_in_save_file_is_missing">Game description in save file is missing</string>
+    <string name="Game_description_in_save_file_is_invalid">Game description in save file is invalid</string>
+    <string name="Game_private_description_in_save_file_is_invalid">Game private description in save file is invalid</string>
+    <string name="Game_position_in_save_file_is_out_of_range">Game position in save file is out of range</string>
+    <string name="Save_file_contained_an_invalid_move">Save file contained an invalid move</string>
+    <string name="Save_file_contained_an_invalid_restart_move">Save file contained an invalid restart move</string>
+    <string name="No_game_set_up_to_print">No game set up to print</string>
+</resources>
