@@ -617,6 +617,17 @@ static char *new_game_desc(game_params *params, random_state *rs,
     int i, ret;
     int diff = params->diff;
     char *desc, *p;
+#ifdef ANDROID
+    char keys[w+2];
+    keys[0] = '\b';
+    for (i = 0; i < w; i++) {
+	if (i<9) keys[i] = '1' + i;
+	else keys[i] = 'A' + i - 9;
+    }
+    keys[w] = '\b';
+    keys[w+1] = '\0';
+    android_keys(keys);
+#endif
 
     /*
      * Difficulty exceptions: some combinations of size and
@@ -1178,9 +1189,11 @@ static int check_errors(game_state *state, int *errors)
     int *clues = state->clues->clues;
     digit *grid = state->grid;
     int i, x, y, errs = FALSE;
+#ifdef DEBUG
     int tmp[32];
 
     assert(w < lenof(tmp));
+#endif
 
     if (errors)
 	for (i = 0; i < A; i++)
@@ -1815,6 +1828,7 @@ static int game_timing_state(game_state *state, game_ui *ui)
     return TRUE;
 }
 
+#ifndef NO_PRINTING
 static void game_print_size(game_params *params, float *x, float *y)
 {
     int pw, ph;
@@ -1891,6 +1905,7 @@ static void game_print(drawing *dr, game_state *state, int tilesize)
 			  ALIGN_VCENTRE | ALIGN_HCENTRE, ink, str);
 	    }
 }
+#endif
 
 #ifdef COMBINED
 #define thegame towers
@@ -1927,7 +1942,9 @@ const struct game thegame = {
     game_redraw,
     game_anim_length,
     game_flash_length,
+#ifndef NO_PRINTING
     TRUE, FALSE, game_print_size, game_print,
+#endif
     FALSE,			       /* wants_statusbar */
     FALSE, game_timing_state,
     REQUIRE_RBUTTON | REQUIRE_NUMPAD,  /* flags */

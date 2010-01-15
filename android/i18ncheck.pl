@@ -61,7 +61,7 @@ for my $source (@sources) {
 for my $id ( keys %srcstrings ) {
 	if ( ! defined $resstrings{$id} ) {
 		warn "No string resource for $id from $srcstrings{$id}[1]\n";
-		$problem = 1;
+		$problem = 1 unless $id =~ /^desc_/;
 	}
 }
 

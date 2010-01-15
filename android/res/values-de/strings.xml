@@ -103,6 +103,7 @@ Revision: %s"</string>
     <string name="name_keen">Keen</string>
     <string name="name_lightup">Light Up</string>
     <string name="name_loopy">Loopy</string>
+    <string name="name_magnets">Magnets</string>
     <string name="name_map">Map</string>
     <string name="name_mines">Mines</string>
     <string name="name_net">Net</string>
@@ -111,10 +112,12 @@ Revision: %s"</string>
     <string name="name_pegs">Pegs</string>
     <string name="name_rect">Rectangles</string>
     <string name="name_samegame">Same Game</string>
+    <string name="name_singles">Singles</string>
     <string name="name_sixteen">Sixteen</string>
     <string name="name_slant">Slant</string>
     <string name="name_solo">Solo</string>
     <string name="name_tents">Tents</string>
+    <string name="name_towers">Towers</string>
     <string name="name_twiddle">Twiddle</string>
     <string name="name_unequal">Unequal</string>
     <string name="name_untangle">Untangle</string>
