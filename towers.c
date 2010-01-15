@@ -617,17 +617,6 @@ static char *new_game_desc(game_params *params, random_state *rs,
     int i, ret;
     int diff = params->diff;
     char *desc, *p;
-#ifdef ANDROID
-    char keys[w+2];
-    keys[0] = '\b';
-    for (i = 0; i < w; i++) {
-	if (i<9) keys[i] = '1' + i;
-	else keys[i] = 'A' + i - 9;
-    }
-    keys[w] = '\b';
-    keys[w+1] = '\0';
-    android_keys(keys);
-#endif
 
     /*
      * Difficulty exceptions: some combinations of size and
@@ -885,6 +874,17 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
     game_state *state = snew(game_state);
     const char *p = desc;
     int i;
+#ifdef ANDROID
+    char keys[w+2];
+    keys[0] = '\b';
+    for (i = 0; i < w; i++) {
+	if (i<9) keys[i] = '1' + i;
+	else keys[i] = 'A' + i - 9;
+    }
+    keys[w] = '\b';
+    keys[w+1] = '\0';
+    android_keys(keys);
+#endif
 
     state->par = *params;	       /* structure copy */
     state->clues = snew(struct clues);
@@ -1118,7 +1118,13 @@ static game_ui *new_ui(game_state *state)
     game_ui *ui = snew(game_ui);
 
     ui->hx = ui->hy = 0;
-    ui->hpencil = ui->hshow = ui->hcursor = 0;
+    ui->hpencil = ui->hshow = 0;
+    ui->hcursor =
+#ifdef ANDROID
+        1;  /* and never unset */
+#else
+        0;
+#endif
 
     return ui;
 }
@@ -1327,7 +1333,9 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
 		ui->hshow = !state->clues->immutable[ty*w+tx];
                 ui->hpencil = 0;
             }
+#ifndef ANDROID
             ui->hcursor = 0;
+#endif
             return "";		       /* UI activity occurred */
         }
         if (button == RIGHT_BUTTON) {
@@ -1347,7 +1355,9 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
             } else {
                 ui->hshow = 0;
             }
+#ifndef ANDROID
             ui->hcursor = 0;
+#endif
             return "";		       /* UI activity occurred */
         }
     }
