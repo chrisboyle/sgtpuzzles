@@ -82,6 +82,7 @@ enum { DIFFLIST(ENUM) DIFFCOUNT };
 static char const *const magnets_diffnames[] = { DIFFLIST(TITLE) "(count)" };
 static char const magnets_diffchars[] = DIFFLIST(ENCODE);
 #define DIFFCONFIG DIFFLIST(CONFIG)
+/* _("Easy"), _("Tricky") */
 
 
 /* --------------------------------------------------------------- */
@@ -190,24 +191,24 @@ static config_item *game_configure(game_params *params)
 
     ret = snewn(5, config_item);
 
-    ret[0].name = "Width";
+    ret[0].name = _("Width");
     ret[0].type = C_STRING;
     sprintf(buf, "%d", params->w);
     ret[0].sval = dupstr(buf);
     ret[0].ival = 0;
 
-    ret[1].name = "Height";
+    ret[1].name = _("Height");
     ret[1].type = C_STRING;
     sprintf(buf, "%d", params->h);
     ret[1].sval = dupstr(buf);
     ret[1].ival = 0;
 
-    ret[2].name = "Difficulty";
+    ret[2].name = _("Difficulty");
     ret[2].type = C_CHOICES;
     ret[2].sval = DIFFCONFIG;
     ret[2].ival = params->diff;
 
-    ret[3].name = "Strip clues";
+    ret[3].name = _("Strip clues");
     ret[3].type = C_BOOLEAN;
     ret[3].sval = NULL;
     ret[3].ival = params->stripclues;
@@ -234,10 +235,10 @@ static game_params *custom_params(config_item *cfg)
 
 static char *validate_params(game_params *params, int full)
 {
-    if (params->w < 2) return "Width must be at least one";
-    if (params->h < 2) return "Height must be at least one";
+    if (params->w < 2) return _("Width must be at least one");
+    if (params->h < 2) return _("Height must be at least one");
     if (params->diff < 0 || params->diff >= DIFFCOUNT)
-        return "Unknown difficulty level";
+        return _("Unknown difficulty level");
 
     return NULL;
 }
@@ -417,8 +418,8 @@ static char *readrow(char *desc, int n, int *array, int off, const char **prob)
 
 badchar:
     *prob = (c == 0) ?
-                "Game description too short" :
-                "Game description contained unexpected characters";
+                _("Game description too short") :
+                _("Invalid character in game description");
     return NULL;
 }
 
@@ -456,7 +457,7 @@ static game_state *new_game_int(game_params *params, char *desc, const char **pr
             count[x*3+NEUTRAL] =
                 state->h - count[x*3+POSITIVE] - count[x*3+NEGATIVE];
             if (count[x*3+NEUTRAL] < 0) {
-                *prob = "Column counts inconsistent";
+                *prob = _("Column counts inconsistent");
                 goto done;
             }
         }
@@ -469,7 +470,7 @@ static game_state *new_game_int(game_params *params, char *desc, const char **pr
             count[y*3+NEUTRAL] =
                 state->w - count[y*3+POSITIVE] - count[y*3+NEGATIVE];
             if (count[y*3+NEUTRAL] < 0) {
-                *prob = "Row counts inconsistent";
+                *prob = _("Row counts inconsistent");
                 goto done;
             }
         }
@@ -504,7 +505,7 @@ nextchar:
         if (state->common->dominoes[idx] < 0 ||
             state->common->dominoes[idx] > state->wh ||
             state->common->dominoes[state->common->dominoes[idx]] != idx) {
-            *prob = "Domino descriptions inconsistent";
+            *prob = _("Domino descriptions inconsistent");
             goto done;
         }
         if (state->common->dominoes[idx] == idx) {
@@ -518,8 +519,8 @@ nextchar:
 
 badchar:
     *prob = (c == 0) ?
-                "Game description too short" :
-                "Game description contained unexpected characters";
+                _("Game description too short") :
+                _("Invalid character in game description");
 
 done:
     if (*prob) {
@@ -1464,7 +1465,7 @@ static char *solve_game(game_state *state, game_state *currstate,
     if (ret > 0) goto solved;
     free_game(solved);
 
-    *error = (ret < 0) ? "Puzzle is impossible." : "Unable to solve puzzle.";
+    *error = (ret < 0) ? _("Puzzle is impossible.") : _("Unable to solve puzzle.");
     return NULL;
 
 solved:

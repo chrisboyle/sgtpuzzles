@@ -51,6 +51,7 @@ enum { DIFFLIST(ENUM) DIFFCOUNT };
 static char const *const towers_diffnames[] = { DIFFLIST(TITLE) };
 static char const towers_diffchars[] = DIFFLIST(ENCODE);
 #define DIFFCONFIG DIFFLIST(CONFIG)
+/* _("Easy"), _("Hard"), _("Extreme"), _("Unreasonable") */
 
 enum {
     COL_BACKGROUND,
@@ -213,13 +214,13 @@ static config_item *game_configure(game_params *params)
 
     ret = snewn(3, config_item);
 
-    ret[0].name = "Grid size";
+    ret[0].name = _("Grid size");
     ret[0].type = C_STRING;
     sprintf(buf, "%d", params->w);
     ret[0].sval = dupstr(buf);
     ret[0].ival = 0;
 
-    ret[1].name = "Difficulty";
+    ret[1].name = _("Difficulty");
     ret[1].type = C_CHOICES;
     ret[1].sval = DIFFCONFIG;
     ret[1].ival = params->diff;
@@ -245,9 +246,9 @@ static game_params *custom_params(config_item *cfg)
 static char *validate_params(game_params *params, int full)
 {
     if (params->w < 3 || params->w > 9)
-        return "Grid size must be between 3 and 9";
+        return _("Grid size must be between 3 and 9");
     if (params->diff >= DIFFCOUNT)
-        return "Unknown difficulty rating";
+        return _("Unknown difficulty rating");
     return NULL;
 }
 
@@ -815,11 +816,11 @@ static char *validate_desc(game_params *params, char *desc)
      */
     for (i = 0; i < 4*w; i++) {
 	if (!*p)
-	    return "Too few clues for grid size";
+	    return _("Too few clues for grid size");
 
 	if (i > 0) {
 	    if (*p != '/')
-		return "Expected commas between clues";
+		return _("Expected commas between clues");
 	    p++;
 	}
 
@@ -828,11 +829,11 @@ static char *validate_desc(game_params *params, char *desc)
 	    while (*p && isdigit((unsigned char)*p)) p++;
 
 	    if (clue <= 0 || clue > w)
-		return "Clue number out of range";
+		return _("Clue number out of range");
 	}
     }
     if (*p == '/')
-	return "Too many clues for grid size";
+	return _("Too many clues for grid size");
 
     if (*p == ',') {
 	/*
@@ -851,18 +852,18 @@ static char *validate_desc(game_params *params, char *desc)
 	    } else if (c > '0' && c <= '9') {
 		int val = atoi(p-1);
 		if (val < 1 || val > w)
-		    return "Out-of-range number in grid description";
+		    return _("Out-of-range number in grid description");
 		squares++;
 		while (*p && isdigit((unsigned char)*p)) p++;
 	    } else
-		return "Invalid character in game description";
+		return _("Invalid character in game description");
 	}
 
 	if (squares < a)
-	    return "Not enough data to fill grid";
+	    return _("Not enough data to fill grid");
 
 	if (squares > a)
-	    return "Too much data to fit in grid";
+	    return _("Too much data to fit in grid");
     }
 
     return NULL;
@@ -992,10 +993,10 @@ static char *solve_game(game_state *state, game_state *currstate,
     ret = solver(w, state->clues->clues, soln, DIFFCOUNT-1);
 
     if (ret == diff_impossible) {
-	*error = "No solution exists for this puzzle";
+	*error = _("No solution exists for this puzzle");
 	out = NULL;
     } else if (ret == diff_ambiguous) {
-	*error = "Multiple solutions exist for this puzzle";
+	*error = _("Multiple solutions exist for this puzzle");
 	out = NULL;
     } else {
 	out = snewn(a+2, char);

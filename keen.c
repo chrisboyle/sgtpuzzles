@@ -30,6 +30,7 @@ enum { DIFFLIST(ENUM) DIFFCOUNT };
 static char const *const keen_diffnames[] = { DIFFLIST(TITLE) };
 static char const keen_diffchars[] = DIFFLIST(ENCODE);
 #define DIFFCONFIG DIFFLIST(CONFIG)
+/* _("Easy"), _("Normal"), _("Hard"), _("Extreme"), _("Unreasonable") */
 
 /*
  * Clue notation. Important here that ADD and MUL come before SUB
@@ -161,13 +162,13 @@ static config_item *game_configure(game_params *params)
 
     ret = snewn(3, config_item);
 
-    ret[0].name = "Grid size";
+    ret[0].name = _("Grid size");
     ret[0].type = C_STRING;
     sprintf(buf, "%d", params->w);
     ret[0].sval = dupstr(buf);
     ret[0].ival = 0;
 
-    ret[1].name = "Difficulty";
+    ret[1].name = _("Difficulty");
     ret[1].type = C_CHOICES;
     ret[1].sval = DIFFCONFIG;
     ret[1].ival = params->diff;
@@ -193,9 +194,9 @@ static game_params *custom_params(config_item *cfg)
 static char *validate_params(game_params *params, int full)
 {
     if (params->w < 3 || params->w > 9)
-        return "Grid size must be between 3 and 9";
+        return _("Grid size must be between 3 and 9");
     if (params->diff >= DIFFCOUNT)
-        return "Unknown difficulty rating";
+        return _("Unknown difficulty rating");
     return NULL;
 }
 
@@ -686,7 +687,7 @@ static char *parse_block_structure(const char **p, int w, int *dsf)
 		while (**p && isdigit((unsigned char)**p)) (*p)++;
 	    }
 	} else
-	    return "Invalid character in game description";
+	    return _("Invalid character in game description");
 
 	adv = (c != 25);	       /* 'z' is a special case */
 
@@ -698,7 +699,7 @@ static char *parse_block_structure(const char **p, int w, int *dsf)
 	     * side of it.
 	     */
 	    if (pos >= 2*w*(w-1))
-		return "Too much data in block structure specification";
+		return _("Too much data in block structure specification");
 	    if (pos < w*(w-1)) {
 		int y = pos/(w-1);
 		int x = pos%(w-1);
@@ -717,7 +718,7 @@ static char *parse_block_structure(const char **p, int w, int *dsf)
 	if (adv) {
 	    pos++;
 	    if (pos > 2*w*(w-1)+1)
-		return "Too much data in block structure specification";
+		return _("Too much data in block structure specification");
 	}
     }
 
@@ -727,7 +728,7 @@ static char *parse_block_structure(const char **p, int w, int *dsf)
      * edge at the end.
      */
     if (pos != 2*w*(w-1)+1)
-	return "Not enough data in block structure specification";
+	return _("Not enough data in block structure specification");
 
     return NULL;
 }
@@ -1155,7 +1156,7 @@ static char *validate_desc(game_params *params, char *desc)
     }
 
     if (*p != ',')
-	return "Expected ',' after block structure description";
+	return _("Expected ',' after block structure description");
     p++;
 
     /*
@@ -1168,18 +1169,18 @@ static char *validate_desc(game_params *params, char *desc)
 		/* these clues need no validation */
 	    } else if (*p == 'd' || *p == 's') {
 		if (dsf_size(dsf, i) != 2)
-		    return "Subtraction and division blocks must have area 2";
+		    return _("Subtraction and division blocks must have area 2");
 	    } else if (!*p) {
-		return "Too few clues for block structure";
+		return _("Too few clues for block structure");
 	    } else {
-		return "Unrecognised clue type";
+		return _("Unrecognised clue type");
 	    }
 	    p++;
 	    while (*p && isdigit((unsigned char)*p)) p++;
 	}
     }
     if (*p)
-	return "Too many clues for block structure";
+	return _("Too many clues for block structure");
 
     return NULL;
 }
@@ -1306,10 +1307,10 @@ static char *solve_game(game_state *state, game_state *currstate,
 		 soln, DIFFCOUNT-1);
 
     if (ret == diff_impossible) {
-	*error = "No solution exists for this puzzle";
+	*error = _("No solution exists for this puzzle");
 	out = NULL;
     } else if (ret == diff_ambiguous) {
-	*error = "Multiple solutions exist for this puzzle";
+	*error = _("Multiple solutions exist for this puzzle");
 	out = NULL;
     } else {
 	out = snewn(a+2, char);

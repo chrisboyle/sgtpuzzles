@@ -124,6 +124,7 @@ static char const *const singles_diffnames[] = { DIFFLIST(TITLE) };
 static char const singles_diffchars[] = DIFFLIST(ENCODE);
 #define DIFFCOUNT lenof(singles_diffchars)
 #define DIFFCONFIG DIFFLIST(CONFIG)
+/* _("Easy"), _("Tricky") */
 
 static game_params *default_params(void)
 {
@@ -219,19 +220,19 @@ static config_item *game_configure(game_params *params)
 
     ret = snewn(4, config_item);
 
-    ret[0].name = "Width";
+    ret[0].name = _("Width");
     ret[0].type = C_STRING;
     sprintf(buf, "%d", params->w);
     ret[0].sval = dupstr(buf);
     ret[0].ival = 0;
 
-    ret[1].name = "Height";
+    ret[1].name = _("Height");
     ret[1].type = C_STRING;
     sprintf(buf, "%d", params->h);
     ret[1].sval = dupstr(buf);
     ret[1].ival = 0;
 
-    ret[2].name = "Difficulty";
+    ret[2].name = _("Difficulty");
     ret[2].type = C_CHOICES;
     ret[2].sval = DIFFCONFIG;
     ret[2].ival = params->diff;
@@ -258,12 +259,12 @@ static game_params *custom_params(config_item *cfg)
 static char *validate_params(game_params *params, int full)
 {
     if (params->w < 2 || params->h < 2)
-	return "Width and neight must be at least two";
+	return _("Width and height must be at least two");
     if (params->w > 10+26+26 || params->h > 10+26+26)
-        return "Puzzle is too large";
+        return _("Puzzle is too large");
     if (full) {
         if (params->diff < 0 || params->diff >= DIFF_MAX)
-            return "Unknown difficulty rating";
+            return _("Unknown difficulty rating");
     }
 
     return NULL;
@@ -341,13 +342,13 @@ static void unpick_desc(game_params *params, char *desc,
     int num = 0, i = 0;
 
     if (strlen(desc) != state->n) {
-        msg = "Game description is wrong length";
+        msg = _("Game description is wrong length");
         goto done;
     }
     for (i = 0; i < state->n; i++) {
         num = c2n(desc[i]);
         if (num <= 0 || num > state->o) {
-            msg = "Game description contains unexpected characters";
+            msg = _("Invalid character in game description");
             goto done;
         }
         state->nums[i] = num;
