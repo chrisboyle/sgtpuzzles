@@ -3,7 +3,7 @@
 use strict;
 
 my @sources = <*.c android/AndroidManifest.xml android/res/menu/*.xml android/res/layout/*.xml android/src/name/boyle/chris/sgtpuzzles/*.java>;
-my $stringsfile = "android/res/values/strings.xml";
+my @stringsfiles = <android/res/values*/strings.xml>;
 my %srcstrings;
 my %resstrings;
 
@@ -21,13 +21,15 @@ sub mangle($)
 
 my $problem = 0;
 
-open(RES,$stringsfile) or die "Can't open $stringsfile: $!\n";
-while (<RES>) {
-	chomp;
-	next unless /<string\s+name="([^"]+)">(.*)<\/string>/;
-	$resstrings{$1} = [ $2, "$stringsfile:$." ];
+for my $lang ( @stringsfiles ) {
+	open(RES,$lang) or die "Can't open $lang: $!\n";
+	while (<RES>) {
+		chomp;
+		next unless /<string\s+name="([^"]+)">(.*)<\/string>/;
+		$resstrings{$lang}->{$1} = [ $2, "$lang:$." ];
+	}
+	close(RES);
 }
-close(RES);
 
 for my $source (@sources) {
 	my $isgame = 0;
@@ -59,17 +61,20 @@ for my $source (@sources) {
 }
 
 for my $id ( keys %srcstrings ) {
-	if ( ! defined $resstrings{$id} ) {
-		warn "No string resource for $id from $srcstrings{$id}[1]\n";
-		$problem = 1 unless $id =~ /^desc_/;
+	for my $lang ( keys %resstrings ) {
+		if ( ! defined $resstrings{$lang}->{$id} ) {
+			warn "No string resource in $lang for $id from $srcstrings{$id}[1]\n";
+			$problem = 1 unless $id =~ /^desc_/;
+		}
 	}
 }
 
-for my $id ( keys %resstrings ) {
-	if ( ! defined $srcstrings{$id} ) {
-#		print "\"$id\" -> undef\n";
-		warn "String resource $id might be unused, from $resstrings{$id}[1]\n";
-		$problem = 1;
+for my $lang ( keys %resstrings ) {
+	for my $id ( keys %{$resstrings{$lang}} ) {
+		if ( ! defined $srcstrings{$id} ) {
+			warn "String resource $lang:$id might be unused, from $resstrings{$lang}->{$id}[1]\n";
+			$problem = 1;
+		}
 	}
 }
 
