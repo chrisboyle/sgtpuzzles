@@ -137,6 +137,7 @@ Revision: %s"</string>
     <string name="desc_keen">Enter digits so every row and column contains exactly one of each digit and the arithmetic clues are satisfied.</string>
     <string name="desc_lightup">Place lamps so all squares are lit, no lamp lights another and numbered squares have the given number of adjacent lamps.</string>
     <string name="desc_loopy">Draw a single unbroken and uncrossing line such that numbered squares have the given number of edges filled.</string>
+    <string name="desc_magnets">Place magnets and neutrals to satisfy the +/- counts and avoid magnets repelling.</string>
     <string name="desc_map">Copy the 4 colours to colour the map with no regions of the same colour touching.</string>
     <string name="desc_mines">Uncover all squares except the mines using the given counts of adjacent mines. *N.B.* Game is generated after first move; you may see \"not responding\" warnings.</string>
     <string name="desc_net">Rotate tiles to connect all tiles to the centre tile.</string>
@@ -145,10 +146,12 @@ Revision: %s"</string>
     <string name="desc_pegs">Remove pegs by jumping others over them, until only one is left.</string>
     <string name="desc_rect">Divide the grid into rectangles containing only one number, which is also the area of the rectangle.</string>
     <string name="desc_samegame">Remove groups (2 or more) of the same colour to clear the grid, scoring more for larger groups.</string>
+    <string name="desc_singles">Remove numbers so no number appears twice in any row/column, no two black squares are adjacent and the white squares are all connected.</string>
     <string name="desc_sixteen">Slide rows and columns around to form a grid in numerical order.</string>
     <string name="desc_slant">Draw diagonal lines in every square such that circles have the given numbers of lines meeting at them and there are no loops.</string>
     <string name="desc_solo">Fill the grid so each block, row and column contains exactly one of each digit.</string>
     <string name="desc_tents">Place tents so each tree has a separate adjacent tent (not diagonally), no tents are next to each other (even diagonally) and the row and column counts are correct.</string>
+    <string name="desc_towers">Place towers so each row/column contains one of each height and each clue matches the number of towers visible looking into the grid from that point.</string>
     <string name="desc_twiddle">Rotate groups of 4 to form a grid in numerical order.</string>
     <string name="desc_unequal">Enter digits so every row and column contains exactly one of each digit and the greater-than signs are satisfied.</string>
     <string name="desc_untangle">Move points around until no lines cross.</string>
@@ -474,7 +477,7 @@ Revision: %s"</string>
     <string name="Unexpected_additional_data_at_end_of_game_description">Unexpected additional data at end of game description</string>
     <!-- Towers -->
     <string name="Grid_size">Grid size</string>
-    <string name="Clue_number_out_of_range"></string>
+    <string name="Clue_number_out_of_range">Clue number out of range</string>
     <string name="Grid_size_must_be_between_3_and_9">Grid size must be between 3 and 9</string>
     <string name="Too_few_clues_for_grid_size">Too few clues for grid size</string>
     <string name="Too_many_clues_for_grid_size">Too many clues for grid size</string>
