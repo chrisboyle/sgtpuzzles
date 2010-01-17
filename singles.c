@@ -450,7 +450,10 @@ static void connect_dsf(game_state *state, int *dsf)
     }
 }
 
-static int check_rowcol(game_state *state, int starti, int di, int sz, int mark_errors)
+#define CC_MARK_ERRORS  1
+#define CC_MUST_FILL    2
+
+static int check_rowcol(game_state *state, int starti, int di, int sz, unsigned flags)
 {
     int nerr = 0, n, m, i, j;
 
@@ -466,7 +469,7 @@ static int check_rowcol(game_state *state, int starti, int di, int sz, int mark_
             if (state->nums[i] != state->nums[j]) continue;
 
             nerr++; /* ok, we have two numbers the same in a row. */
-            if (!mark_errors) continue;
+            if (!(flags & CC_MARK_ERRORS)) continue;
 
             /* If we have two circles in the same row around
              * two identical numbers, they are _both_ wrong. */
@@ -491,16 +494,26 @@ static int check_rowcol(game_state *state, int starti, int di, int sz, int mark_
     return nerr;
 }
 
-static int check_complete(game_state *state, int mark_errors)
+static int check_complete(game_state *state, unsigned flags)
 {
     int *dsf = snewn(state->n, int);
     int x, y, i, error = 0, nwhite, w = state->w, h = state->h;
 
-    if (mark_errors) {
+    if (flags & CC_MARK_ERRORS) {
         for (i = 0; i < state->n; i++)
             state->flags[i] &= ~F_ERROR;
     }
     connect_dsf(state, dsf);
+
+    /* If we're the solver we need the grid all to be definitively
+     * black or definitively white (i.e. circled) otherwise the solver
+     * has found an ambiguous grid. */
+    if (flags & CC_MUST_FILL) {
+        for (i = 0; i < state->n; i++) {
+            if (!(state->flags[i] & F_BLACK) && !(state->flags[i] & F_CIRCLE))
+                error += 1;
+        }
+    }
 
     /* Mark any black squares in groups of >1 as errors.
      * Count number of white squares. */
@@ -509,7 +522,7 @@ static int check_complete(game_state *state, int mark_errors)
         if (state->flags[i] & F_BLACK) {
             if (dsf_size(dsf, i) > 1) {
                 error += 1;
-                if (mark_errors)
+                if (flags & CC_MARK_ERRORS)
                     state->flags[i] |= F_ERROR;
             }
         } else
@@ -518,9 +531,9 @@ static int check_complete(game_state *state, int mark_errors)
 
     /* Check attributes of white squares, row- and column-wise. */
     for (x = 0; x < w; x++) /* check cols from (x,0) */
-        error += check_rowcol(state, x,   w, h, mark_errors);
+        error += check_rowcol(state, x,   w, h, flags);
     for (y = 0; y < h; y++) /* check rows from (0,y) */
-        error += check_rowcol(state, y*w, 1, w, mark_errors);
+        error += check_rowcol(state, y*w, 1, w, flags);
 
     /* mark (all) white regions as an error if there is more than one.
      * may want to make this less in-your-face (by only marking
@@ -530,7 +543,7 @@ static int check_complete(game_state *state, int mark_errors)
         if (!(state->flags[i] & F_BLACK) &&
             dsf_size(dsf, i) < nwhite) {
             error += 1;
-            if (mark_errors)
+            if (flags & CC_MARK_ERRORS)
                 state->flags[i] |= F_ERROR;
         }
     }
@@ -1155,7 +1168,7 @@ static int solve_specific(game_state *state, int diff, int sneaky)
     }
 
     solver_state_free(ss);
-    return state->impossible ? -1 : check_complete(state, 0);
+    return state->impossible ? -1 : check_complete(state, CC_MUST_FILL);
 }
 
 static char *solve_game(game_state *state, game_state *currstate,
@@ -1542,7 +1555,7 @@ static game_state *execute_move(game_state *state, char *move)
         else if (*move)
             goto badmove;
     }
-    if (check_complete(ret, 1)) ret->completed = 1;
+    if (check_complete(ret, CC_MARK_ERRORS)) ret->completed = 1;
     return ret;
 
 badmove:
