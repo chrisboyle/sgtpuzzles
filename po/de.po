@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sgt-puzzles\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2010-01-15 00:17+0000\n"
+"POT-Creation-Date: 2010-01-17 16:14+0000\n"
 "PO-Revision-Date: 2009-11-04 11:10-0800\n"
 "Last-Translator: Helge Kreutzmann <debian@helgefjell.de>\n"
 "Language-Team: de <debian-l10n-german@lists.debian.org>\n"
@@ -6072,7 +6072,8 @@ msgstr "Steuerung, von Towers"
 #. type: Plain text
 #: puzzles.but:2600
 msgid "Towers shares much of its control system with Solo, Unequal and Keen."
-msgstr "Towers hat viel mit dem Steuersystem von Solo, Unequal und Keen gemeinsam."
+msgstr ""
+"Towers hat viel mit dem Steuersystem von Solo, Unequal und Keen gemeinsam."
 
 #. type: Plain text
 #: puzzles.but:2606
@@ -6150,7 +6151,9 @@ msgstr ""
 msgid ""
 "Credit for this puzzle goes to \\i{Nikoli} \\k{nikoli-hitori} who call it \\i"
 "{Hitori}."
-msgstr "Dank für dieses Puzzle geht an \\i{Nikoli} \\k{nikoli-hitori}, wer es {Hitori} genannt hat."
+msgstr ""
+"Dank für dieses Puzzle geht an \\i{Nikoli} \\k{nikoli-hitori}, wer es "
+"{Hitori} genannt hat."
 
 #. type: Plain text
 #: puzzles.but:2675
@@ -6234,8 +6237,8 @@ msgstr ""
 msgid ""
 "Your aim is to correctly place the magnets and blank dominoes such that all "
 "the clues are satisfied, with the additional constraint that no two similar "
-"magnetic poles may be orgothonally adjacent (since they repel).  Neutral "
-"poles do not repel, and can be adjacacent to any other pole."
+"magnetic poles may be orthogonally adjacent (since they repel).  Neutral "
+"poles do not repel, and can be adjacent to any other pole."
 msgstr ""
 
 #. type: Plain text
@@ -6287,8 +6290,8 @@ msgstr ""
 #: puzzles.but:2744
 msgid ""
 "Right-clicking on an empty square places a blank domino there.  Right-"
-"clicking again places two question marks on the domino, signifying 'this "
-"cannot be blank' (which can be useful to note deductions while solving, and "
+"clicking again places two question marks on the domino, signifying \\q{this "
+"cannot be blank} (which can be useful to note deductions while solving), and "
 "right-clicking again empties the domino."
 msgstr ""
 
@@ -6316,7 +6319,7 @@ msgstr ""
 
 #. type: Plain text
 #: puzzles.but:2764
-msgid "(Grids with at least one odd dimension tend to be easier to solve)"
+msgid "(Grids with at least one odd dimension tend to be easier to solve.)"
 msgstr ""
 
 #. type: Plain text
