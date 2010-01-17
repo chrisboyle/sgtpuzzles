@@ -42,13 +42,13 @@ Revision: %s"</string>
     <string name="crash_subject">Absturz: Puzzles v{0} auf {1} / {2} / {3}</string>
     <string name="crash_preamble">Bitte beschreiben Sie, was Sie kurz vor dem Absturz taten und dann die Nachricht versenden.</string>
     <string name="crashtitle">Tja, das ist peinlich...</string>
-    <string name="crashed">Es tut mir leid, Puzzles ist ein Problem aufgetreten und mussten schließen. Möchten Sie einen Absturzbericht schicken, der dem Autor vielleicht zur Behebung des Problems helfen kann?</string>
+    <string name="crashed">Es tut mir leid, Puzzles ist einen Problem aufgetreten und mussten schließen. Möchten Sie einen Absturzbericht schicken, der dem Autor vielleicht zur Behebung des Problems helfen kann?</string>
     <string name="report">Melden</string>
     <string name="close">Beenden</string>
     <string name="clear_state">Zustand vergessen</string>
     <string name="getting_log">Logdatei wird geholt...</string>
     <string name="starting_email">Emailprogramm wird gestartet...</string>
-    <string name="get_log_failed">Konnte die Logdatei nicht lesen. Vielleicht benutzen Sie ein T-Mobile Pulse (Huawei U8220) wo logcat funktioniert nicht (beschweren Sie sich bei Huawei?) Schicken Sie bitte einen Fehlerbericht an {0}, beschreiben Sie was Sie getan haben und was passiert ist, und vielleicht kann ich Ihnen helfen.</string>
+    <string name="get_log_failed">Konnte die Logdatei nicht lesen. Vielleicht benutzen Sie einen T-Mobile Pulse (Huawei U8220) wo logcat funktioniert nicht (beschweren Sie sich bei Huawei?) Schicken Sie bitte einen Fehlerbericht an {0}, beschreiben Sie was Sie getan haben und was passiert ist, und vielleicht kann ich Ihnen helfen.</string>
     <!-- For saving and loading game state on the SD card -->
     <string name="filename">Dateiname</string>
     <string name="save">Speichern</string>
@@ -133,11 +133,11 @@ Revision: %s"</string>
     <string name="desc_flip">Hellen Sie alle Quadraten auf: wenn Sie ein Quadrat umschalten, ändern benachbarte Quadrate ihren Zustand.</string>
     <string name="desc_galaxies">Teilen Sie das Gitter in Regionen die 180-degree rotationssymmetrisch sind und einen Punkt im Symmetriezentrum haben.</string>
     <string name="desc_guess">Raten Sie die Farbesequenz (schwarz = korrekt, weiß = korrekt gefärbt, falscher Platz).</string>
-    <string name="desc_inertia">Sammeln Sie die Edelsteine ohne einer Mine zu treffen.</string>
+    <string name="desc_inertia">Sammeln Sie die Edelsteine ohne eine Mine zu treffen.</string>
     <string name="desc_keen">Jede Zeile/Spalte muss jede Ziffer einmal enthalten: arithmetische Hinweise.</string>
     <string name="desc_lightup">Setzen Sie Glühbirnen in Übereinstimmung mit die Angrenzenhinweisen ein, ohne eine Sichtverbindung zwischen die Glühbirnen zu schaffen.</string>
     <string name="desc_loopy">Zeichnen Sie eine einzige, nicht-unterbrochene Schleife in Übereinstimmung mit die Angrenzenhinweisen.</string>
-    <string name="desc_magnets">Setzen Sie Magnete in Übereinstimmung mit die Magnet-Anzahlen ein, ohne dass die Magnete sich abweisen.</string>
+    <string name="desc_magnets">Setzen Sie Magnete in Übereinstimmung mit die Magnet-Anzahlen ein, ohne dass zwei Magnete sich abweisen.</string>
     <string name="desc_map">Färben Sie die Karte ein, ohne dass zwei Regionen mit gemeinsamer Grenze die gleiche Farbe haben.</string>
     <string name="desc_mines">Decken Sie alle Quadraten auf, außer die Minen. *N.B.* Spiel ist nach ersten Zug erzeugt, während welcher Zeit eine Abnahmung kann erscheinen.</string>
     <string name="desc_net">Drehen Sie die Platten, um sie alle zur zentrale Platte zu verbinden.</string>
@@ -150,15 +150,15 @@ Revision: %s"</string>
     <string name="desc_sixteen">Verschieben Sie Spalten/Zeilen, um die Platten in numerische Reihenfolge anzuordnen.</string>
     <string name="desc_slant">Zeichnen Sie eine einzige, nicht-unterbrochene Schleife in Übereinstimmung mit die Punktverbindunghinweisen.</string>
     <string name="desc_solo">Jede Zeile/Spalte/Block muss jede Ziffer einmal enthalten.</string>
-    <string name="desc_tents">Platzieren Sie Zelte in Übereinstimmung mit die Zeile-/Spalte-Hinweisen, so dass jede Zelte sich (horizontal oder vertikal) neben einem Baum befindet, keine zwei Zelte sich nebeneinander befinden.</string>
+    <string name="desc_tents">Platzieren Sie Zelte in Übereinstimmung mit die Zeile-/Spalte-Hinweisen, so dass jede Zelte sich (horizontal oder vertikal) neben einem Baum befindet, und keine zwei Zelte sich nebeneinander befinden.</string>
     <string name="desc_towers">Jede Zeile/Spalte muss einen Turm jedes Höhes enthalten: jeder Hinweis ist die Anzahl von Türmen, die man von diesem Aussichtspunkt sehen kann.</string>
-    <string name="desc_twiddle">Rotieren Sie Gruppen von vier Platten um die Platten in numerische Reihenfolge anzuordnen.</string>
+    <string name="desc_twiddle">Rotieren Sie Gruppen von vier Platten um alle Platten in numerische Reihenfolge anzuordnen.</string>
     <string name="desc_unequal">Jede Zeile/Spalte muss jede Ziffer einmal enthalten. Hinweise: Größer-Als-Zeichen oder numerisch Angrenzen.</string>
     <string name="desc_untangle">Verschieben Sie die Punkte, so dass keine Linie eine andere Linie kreutzt.</string>
     <!-- Everything below here is from C -->
     <!-- Difficulties for most games, in order: -->
     <string name="Easy">Einfach</string>
-    <string name="Medium">Mittlere</string>
+    <string name="Medium">Mittler</string>
     <string name="Tricky">Knifflig</string>
     <string name="Hard">Schwer</string>
     <!-- Difficulties for Solo (Sudoku), in order: -->
@@ -180,30 +180,30 @@ Revision: %s"</string>
     <!-- Types of symmetry -->
     <string name="Symmetry">Symmetrie</string>
     <string name="None">Keine</string>
-    <string name="_2_way_diagonal_mirror">2-weg-diagonal-spiegel-</string>
-    <string name="_2_way_mirror">2-weg-spiegel-</string>
-    <string name="_2_way_rotational">2-weg-dreh-</string>
-    <string name="_4_way_diagonal_mirror">4-weg-dreh-spiegel-</string>
-    <string name="_4_way_mirror">4-weg-spiegel-</string>
-    <string name="_4_way_rotational">4-weg-dreh-</string>
-    <string name="_8_way_mirror">8-weg-spiegel-</string>
+    <string name="_2_way_diagonal_mirror">2-weg diagonal spiegelartig</string>
+    <string name="_2_way_mirror">2-weg spiegelartig</string>
+    <string name="_2_way_rotational">2-weg turnusmäßig</string>
+    <string name="_4_way_diagonal_mirror">4-weg diagonal spiegelartig</string>
+    <string name="_4_way_mirror">4-weg spiegelartig</string>
+    <string name="_4_way_rotational">4-weg turnusmäßig</string>
+    <string name="_8_way_mirror">8-weg spiegelartig</string>
     <!-- Save file errors -->
     <string name="Data_does_not_appear_to_be_a_saved_game_file">Datei erscheint kein Puzzles-Spiel zu sein</string>
     <string name="Data_was_incorrectly_formatted_for_a_saved_game_file">Datei ist als Puzzles-Spiel ungültig</string>
     <string name="Saved_data_ended_unexpectedly">Datei ist unerwartet beendet</string>
-    <string name="Cannot_handle_this_version_of_the_saved_game_file_format">Kann diese Version des Puzzles-Spiel-Format nicht lesen</string>
+    <string name="Cannot_handle_this_version_of_the_saved_game_file_format">Außerstand diese Version des Puzzles-Spiel-Formats zu lesen</string>
     <string name="Save_file_is_from_a_different_game">Spieldatei ist aus ein anderes Spiel</string>
     <string name="Save_file_is_not_from_a_game_in_this_collection">Spieldatei ist nicht aus dieser Spielsammlung</string>
-    <string name="Number_of_states_in_save_file_was_negative">Negative anzahl von Spielzustände in Spieldatei</string>
+    <string name="Number_of_states_in_save_file_was_negative">Negative Anzahl von Spielzustände in Spieldatei</string>
     <string name="Two_state_counts_provided_in_save_file">Mehrere Zustandanzahlen in Spieldatei</string>
-    <string name="Long_term_parameters_in_save_file_are_invalid">Ungültige langzeitige Parameter in Spieldatei</string>
-    <string name="Short_term_parameters_in_save_file_are_invalid">Ungültige kurzeitige Parameter in Spieldatei</string>
+    <string name="Long_term_parameters_in_save_file_are_invalid">Ungültige Langzeit-Parameter in Spieldatei</string>
+    <string name="Short_term_parameters_in_save_file_are_invalid">Ungültige Kurzzeit-Parameter in Spieldatei</string>
     <string name="Game_description_in_save_file_is_missing">Fehlende Spielbeschreibung in Spieldatei</string>
     <string name="Game_description_in_save_file_is_invalid">Ungültige Spielbeschreibung in Spieldatei</string>
     <string name="Game_private_description_in_save_file_is_invalid">Ungültige innerliche Spielbeschreibung in Spieldatei</string>
     <string name="Game_position_in_save_file_is_out_of_range">Spielstellung außerhalb des Bereichs in Spieldatei</string>
-    <string name="Save_file_contained_an_invalid_move">Ungultiges Zug in Spieldatei</string>
-    <string name="Save_file_contained_an_invalid_restart_move">Ungultiges Wideranlaufzug in Spieldatei</string>
+    <string name="Save_file_contained_an_invalid_move">Ungültiges Zug in Spieldatei</string>
+    <string name="Save_file_contained_an_invalid_restart_move">Ungültiges Wideranlaufzug in Spieldatei</string>
     <!-- Some more things common to multiple games -->
     <string name="Active_X_X">Betätigt: %d/%d</string>
     <string name="Auto_solved">Automatisch gelöst.</string>
@@ -229,8 +229,8 @@ Revision: %s"</string>
     <string name="Moves_since_auto_solve_X">Züge seit automatische Lösung: %d</string>
     <string name="Moves_X">Züge: %d</string>
     <string name="_target_X">(Ziel %d)</string>
-    <string name="Not_enough_data_to_fill_grid">Unzureichender Daten um Gitter zu füllen</string>
-    <string name="Not_enough_numbers_in_string">Unzureichender Zahlen in der Reihung</string>
+    <string name="Not_enough_data_to_fill_grid">Unzureichende Daten um Gitter zu füllen</string>
+    <string name="Not_enough_numbers_in_string">Unzureichende Zahlen in der Reihung</string>
     <string name="Number_of_shuffling_moves">Zahl von Einmischungen</string>
     <string name="Number_out_of_range">Zahl außerhalb des Bereichs</string>
     <string name="Number_out_of_range_in_game_description">Zahl in der Spielbeschreibung außerhalb des Bereichs</string>
@@ -248,7 +248,7 @@ Revision: %s"</string>
     <!-- Errors unlikely to be reached -->
     <string name="This_game_does_not_support_the_Solve_operation">Dieses Spiel unterstützt nicht die Lösen-Funktion</string>
     <string name="No_game_set_up_to_solve">Kein Spiel für Lösen angeordnet</string>
-    <string name="No_game_set_up_to_print">Kein Spiel für drucken angeordnet</string>
+    <string name="No_game_set_up_to_print">Kein Spiel für Drucken angeordnet</string>
     <!-- Black Box -->
     <string name="XxX_X_balls">%dx%d, %d Bälle</string>
     <string name="XxX_X_X_balls">%dx%d, %d-%d Bälle</string>
@@ -287,8 +287,8 @@ Revision: %s"</string>
     <string name="Unrecognised_solid_type">Unbekannte Körperart</string>
     <string name="Both_grid_dimensions_must_be_greater_than_zero">Beide Dimensionen müssen größer als 0 sein</string>
     <string name="At_least_one_grid_dimension_must_be_greater_than_zero">Mindestens eine Dimension muss größer als 0 sein</string>
-    <string name="Not_enough_grid_space_to_place_all_blue_faces">Unzureichender Gitterfläche, um die blaue Seiten zu platzieren</string>
-    <string name="Not_enough_space_to_place_the_solid_on_an_empty_square">Unzureichender Gitterfläche, um den Körper auf ein leeres Quadrat zu platzieren</string>
+    <string name="Not_enough_grid_space_to_place_all_blue_faces">Unzureichende Gitterfläche, um die blaue Seiten zu platzieren</string>
+    <string name="Not_enough_space_to_place_the_solid_on_an_empty_square">Unzureichende Gitterfläche, um den Körper auf ein leeres Quadrat zu platzieren</string>
     <string name="Not_enough_hex_digits_at_start_of_string">Unzureichende Hexadezimalzahlen am Reihunganfang</string>
     <string name="Expected_comma_after_hex_digits">Komma erwartet nach Hexadezimalzahlen</string>
     <string name="Expected_decimal_integer_after_comma">Dezimalganzzahl erwartet nach Komma</string>
@@ -431,7 +431,7 @@ Revision: %s"</string>
     <string name="Cross">Kreuz</string>
     <string name="Octagon">Oktagon</string>
     <string name="Width_and_height_must_both_be_greater_than_three">Breite und Höhe müssen größer als 3 sein</string>
-    <string name="This_board_type_is_only_supported_at_7x7">Diese Brettart ist nur am 7x7 unterstützt</string>
+    <string name="This_board_type_is_only_supported_at_7x7">Diese Brettart ist nur an 7x7 unterstützt</string>
     <!-- Rectangles -->
     <string name="Expansion_factor">Expansionsfactor</string>
     <string name="Expansion_factor_may_not_be_negative">Expansionsfactor darf nicht negativ sein</string>
