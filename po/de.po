@@ -6147,11 +6147,10 @@ msgstr ""
 
 #. type: Plain text
 #: puzzles.but:2673
-#, fuzzy
 msgid ""
 "Credit for this puzzle goes to \\i{Nikoli} \\k{nikoli-hitori} who call it \\i"
 "{Hitori}."
-msgstr "Dank für dieses Puzzle geht an \\i{Nikoli} \\k{nikoli-fillomino}."
+msgstr "Dank für dieses Puzzle geht an \\i{Nikoli} \\k{nikoli-hitori}, wer es {Hitori} genannt hat."
 
 #. type: Plain text
 #: puzzles.but:2675
@@ -6207,7 +6206,7 @@ msgstr "\\I{Parameter, für Singles}Singles-Parameter"
 #. type: Plain text
 #: puzzles.but:2706
 msgid "Controls the difficulty of the generated puzzle."
-msgstr ""
+msgstr "Steuert die Schwierigkeit des generierten Puzzles."
 
 #. type: Plain text
 #: puzzles.but:2709
