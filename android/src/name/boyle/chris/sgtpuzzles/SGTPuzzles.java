@@ -367,6 +367,7 @@ public class SGTPuzzles extends Activity
 	public boolean onPrepareOptionsMenu(Menu menu)
 	{
 		super.onPrepareOptionsMenu(menu);
+		if( progress != null ) return false;  // not safe/useful until game is loaded
 		menu.findItem(R.id.solve).setEnabled(solveEnabled);
 		menu.findItem(R.id.undo).setEnabled(undoEnabled);
 		menu.findItem(R.id.redo).setEnabled(redoEnabled);
@@ -380,7 +381,7 @@ public class SGTPuzzles extends Activity
 		customItem.setVisible(customVisible);
 		typeMenu.setGroupCheckable(R.id.typeGroup, true, true);
 		if( currentType < 0 ) customItem.setChecked(true);
-		else menu.findItem((Integer)gameTypes.keySet().toArray()[currentType]).setChecked(true);
+		else if( currentType < gameTypes.size() ) menu.findItem((Integer)gameTypes.keySet().toArray()[currentType]).setChecked(true);
 		menu.findItem(R.id.thisgame).setTitle(MessageFormat.format(
 					getString(R.string.help_on_game),new Object[]{this.getTitle()}));
 		return true;
