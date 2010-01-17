@@ -1549,11 +1549,13 @@ static void draw_tile(drawing *dr, game_drawstate *ds, struct clues *clues,
 		      int x, int y, long tile)
 {
     int w = clues->w /* , a = w*w */;
-    int tx, ty;
+    int tx, ty, bg;
     char str[64];
 
     tx = COORD(x);
     ty = COORD(y);
+
+    bg = (tile & DF_HIGHLIGHT) ? COL_HIGHLIGHT : COL_BACKGROUND;
 
     /* draw tower */
     if (ds->three_d && (tile & DF_PLAYAREA) && (tile & DF_DIGIT_MASK)) {
@@ -1570,7 +1572,7 @@ static void draw_tile(drawing *dr, game_drawstate *ds, struct clues *clues,
 	coords[5] = coords[3] - yoff;
 	coords[6] = coords[0] + xoff;
 	coords[7] = coords[1] - yoff;
-	draw_polygon(dr, coords, 4, COL_BACKGROUND, COL_GRID);
+	draw_polygon(dr, coords, 4, bg, COL_GRID);
 
 	/* bottom face of tower */
 	coords[0] = tx + TILESIZE;
@@ -1581,7 +1583,7 @@ static void draw_tile(drawing *dr, game_drawstate *ds, struct clues *clues,
 	coords[5] = coords[3] - yoff;
 	coords[6] = coords[0] + xoff;
 	coords[7] = coords[1] - yoff;
-	draw_polygon(dr, coords, 4, COL_BACKGROUND, COL_GRID);
+	draw_polygon(dr, coords, 4, bg, COL_GRID);
 
 	/* now offset all subsequent drawing to the top of the tower */
 	tx += xoff;
@@ -1589,8 +1591,7 @@ static void draw_tile(drawing *dr, game_drawstate *ds, struct clues *clues,
     }
 
     /* erase background */
-    draw_rect(dr, tx, ty, TILESIZE, TILESIZE,
-	      (tile & DF_HIGHLIGHT) ? COL_HIGHLIGHT : COL_BACKGROUND);
+    draw_rect(dr, tx, ty, TILESIZE, TILESIZE, bg);
 
     /* pencil-mode highlight */
     if (tile & DF_HIGHLIGHT_PENCIL) {

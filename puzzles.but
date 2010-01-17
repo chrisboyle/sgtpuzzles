@@ -2718,8 +2718,8 @@ negative poles contained in certain columns and rows.
 
 Your aim is to correctly place the magnets and blank dominoes such that
 all the clues are satisfied, with the additional constraint that no two
-similar magnetic poles may be orgothonally adjacent (since they repel).
-Neutral poles do not repel, and can be adjacacent to any other pole. 
+similar magnetic poles may be orthogonally adjacent (since they repel).
+Neutral poles do not repel, and can be adjacent to any other pole. 
 
 Credit for this puzzle goes to \i{Janko} \k{janko-magnets}.
 
@@ -2739,8 +2739,8 @@ click removes the magnet.
 
 Right-clicking on an empty square places a blank domino there.
 Right-clicking again places two question marks on the domino, signifying
-'this cannot be blank' (which can be useful to note deductions while
-solving, and right-clicking again empties the domino. 
+\q{this cannot be blank} (which can be useful to note deductions while
+solving), and right-clicking again empties the domino. 
 
 You can also use the cursor keys to move a cursor around the grid. 
 Pressing the return key will lay a domino with a positive pole at that
@@ -2760,7 +2760,7 @@ These parameters are available from the \q{Custom...} option on the
 \dd Size of grid in squares. There will be half \e{Width} \by \e{Height}
 dominoes in the grid: if this number is odd then one square will be blank.
 
-(Grids with at least one odd dimension tend to be easier to solve)
+(Grids with at least one odd dimension tend to be easier to solve.)
 
 \dt \e{Difficulty}
 
