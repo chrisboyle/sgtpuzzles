@@ -187,6 +187,23 @@ Revision: %s"</string>
     <string name="_4_way_mirror">4-way mirror</string>
     <string name="_4_way_rotational">4-way rotational</string>
     <string name="_8_way_mirror">8-way mirror</string>
+    <!-- Save file errors -->
+    <string name="Data_does_not_appear_to_be_a_saved_game_file">Data does not appear to be a saved game file</string>
+    <string name="Data_was_incorrectly_formatted_for_a_saved_game_file">Data was incorrectly formatted for a saved game file</string>
+    <string name="Saved_data_ended_unexpectedly">Saved data ended unexpectedly</string>
+    <string name="Cannot_handle_this_version_of_the_saved_game_file_format">Cannot handle this version of the saved game file format</string>
+    <string name="Save_file_is_from_a_different_game">Save file is from a different game</string>
+    <string name="Save_file_is_not_from_a_game_in_this_collection">Save file is not from a game in this collection</string>
+    <string name="Number_of_states_in_save_file_was_negative">Number of states in save file was negative</string>
+    <string name="Two_state_counts_provided_in_save_file">Two state counts provided in save file</string>
+    <string name="Long_term_parameters_in_save_file_are_invalid">Long-term parameters in save file are invalid</string>
+    <string name="Short_term_parameters_in_save_file_are_invalid">Short-term parameters in save file are invalid</string>
+    <string name="Game_description_in_save_file_is_missing">Game description in save file is missing</string>
+    <string name="Game_description_in_save_file_is_invalid">Game description in save file is invalid</string>
+    <string name="Game_private_description_in_save_file_is_invalid">Game private description in save file is invalid</string>
+    <string name="Game_position_in_save_file_is_out_of_range">Game position in save file is out of range</string>
+    <string name="Save_file_contained_an_invalid_move">Save file contained an invalid move</string>
+    <string name="Save_file_contained_an_invalid_restart_move">Save file contained an invalid restart move</string>
     <!-- Some more things common to multiple games -->
     <string name="Active_X_X">Active: %d/%d</string>
     <string name="Auto_solved">Auto-solved.</string>
@@ -244,6 +261,10 @@ Revision: %s"</string>
     <string name="Balls_marked_X_X_X">Balls marked: %d / %d-%d.</string>
     <string name="_1_error"> (1 error)</string>
     <string name="_X_errors"> (%d errors)</string>
+    <!-- Errors unlikely to be reached -->
+    <string name="This_game_does_not_support_the_Solve_operation">This game does not support the Solve operation</string>
+    <string name="No_game_set_up_to_solve">No game set up to solve</string>
+    <string name="No_game_set_up_to_print">No game set up to print</string>
     <!-- Bridges -->
     <string name="Allow_loops">Allow loops</string>
     <string name="Max_bridges_per_direction">Max. bridges per direction</string>
@@ -514,31 +535,11 @@ Revision: %s"</string>
     <string name="Missing_separator">Missing separator</string>
     <string name="Flags_go_off_grid">Flags go off grid</string>
     <string name="Flags_contradicting_each_other">Flags contradicting each other</string>
-    <!-- untangle.c -->
+    <!-- Untangle -->
     <string name="X_points">%d points</string>
     <string name="Number_of_points">Number of points</string>
     <string name="Number_of_points_must_be_at_least_four">Number of points must be at least four</string>
     <string name="Expected_after_number_in_game_description">Expected \'-\' after number in game description</string>
     <string name="Expected_comma_after_number_in_game_description">Expected \',\' after number in game description</string>
     <string name="Internal_error_aux_info_badly_formatted">Internal error: aux_info badly formatted</string>
-    <!-- These errors are very unlikely to be reached: for example, on Android we don't support save files yet, except internally to preserve state between uses of the app -->
-    <string name="This_game_does_not_support_the_Solve_operation">This game does not support the Solve operation</string>
-    <string name="No_game_set_up_to_solve">No game set up to solve</string>
-    <string name="Data_does_not_appear_to_be_a_saved_game_file">Data does not appear to be a saved game file</string>
-    <string name="Data_was_incorrectly_formatted_for_a_saved_game_file">Data was incorrectly formatted for a saved game file</string>
-    <string name="Saved_data_ended_unexpectedly">Saved data ended unexpectedly</string>
-    <string name="Cannot_handle_this_version_of_the_saved_game_file_format">Cannot handle this version of the saved game file format</string>
-    <string name="Save_file_is_from_a_different_game">Save file is from a different game</string>
-    <string name="Save_file_is_not_from_a_game_in_this_collection">Save file is not from a game in this collection</string>
-    <string name="Number_of_states_in_save_file_was_negative">Number of states in save file was negative</string>
-    <string name="Two_state_counts_provided_in_save_file">Two state counts provided in save file</string>
-    <string name="Long_term_parameters_in_save_file_are_invalid">Long-term parameters in save file are invalid</string>
-    <string name="Short_term_parameters_in_save_file_are_invalid">Short-term parameters in save file are invalid</string>
-    <string name="Game_description_in_save_file_is_missing">Game description in save file is missing</string>
-    <string name="Game_description_in_save_file_is_invalid">Game description in save file is invalid</string>
-    <string name="Game_private_description_in_save_file_is_invalid">Game private description in save file is invalid</string>
-    <string name="Game_position_in_save_file_is_out_of_range">Game position in save file is out of range</string>
-    <string name="Save_file_contained_an_invalid_move">Save file contained an invalid move</string>
-    <string name="Save_file_contained_an_invalid_restart_move">Save file contained an invalid restart move</string>
-    <string name="No_game_set_up_to_print">No game set up to print</string>
 </resources>

@@ -187,6 +187,23 @@ Revision: %s"</string>
     <string name="_4_way_mirror">4-weg-spiegel-</string>
     <string name="_4_way_rotational">4-weg-dreh-</string>
     <string name="_8_way_mirror">8-weg-spiegel-</string>
+    <!-- Save file errors -->
+    <string name="Data_does_not_appear_to_be_a_saved_game_file">Datei erscheint kein Puzzles-Spiel zu sein</string>
+    <string name="Data_was_incorrectly_formatted_for_a_saved_game_file">Datei ist als Puzzles-Spiel ungültig</string>
+    <string name="Saved_data_ended_unexpectedly">Datei ist unerwartet beendet</string>
+    <string name="Cannot_handle_this_version_of_the_saved_game_file_format">Kann diese Version des Puzzles-Spiel-Format nicht lesen</string>
+    <string name="Save_file_is_from_a_different_game">Spieldatei ist aus ein anderes Spiel</string>
+    <string name="Save_file_is_not_from_a_game_in_this_collection">Spieldatei ist nicht aus dieser Spielsammlung</string>
+    <string name="Number_of_states_in_save_file_was_negative">Negative anzahl von Spielzustände in Spieldatei</string>
+    <string name="Two_state_counts_provided_in_save_file">Mehrere Zustandanzahlen in Spieldatei</string>
+    <string name="Long_term_parameters_in_save_file_are_invalid">Ungültige langzeitige Parameter in Spieldatei</string>
+    <string name="Short_term_parameters_in_save_file_are_invalid">Ungültige kurzeitige Parameter in Spieldatei</string>
+    <string name="Game_description_in_save_file_is_missing">Fehlende Spielbeschreibung in Spieldatei</string>
+    <string name="Game_description_in_save_file_is_invalid">Ungültige Spielbeschreibung in Spieldatei</string>
+    <string name="Game_private_description_in_save_file_is_invalid">Ungültige innerliche Spielbeschreibung in Spieldatei</string>
+    <string name="Game_position_in_save_file_is_out_of_range">Spielstellung außerhalb des Bereichs in Spieldatei</string>
+    <string name="Save_file_contained_an_invalid_move">Ungultiges Zug in Spieldatei</string>
+    <string name="Save_file_contained_an_invalid_restart_move">Ungultiges Wideranlaufzug in Spieldatei</string>
     <!-- Some more things common to multiple games -->
     <string name="Active_X_X">Betätigt: %d/%d</string>
     <string name="Auto_solved">Automatisch gelöst.</string>
@@ -228,6 +245,10 @@ Revision: %s"</string>
     <string name="Width">Breite</string>
     <string name="Width_and_height_must_both_be_at_least_two">Breite und Höhe müssen beide größer als 2 sein</string>
     <string name="Width_and_height_must_both_be_greater_than_zero">Breite und Höhe müssen beide größer als 0 sein</string>
+    <!-- Errors unlikely to be reached -->
+    <string name="This_game_does_not_support_the_Solve_operation">Dieses Spiel unterstützt nicht die Lösen-Funktion</string>
+    <string name="No_game_set_up_to_solve">Kein Spiel für Lösen angeordnet</string>
+    <string name="No_game_set_up_to_print">Kein Spiel für drucken angeordnet</string>
     <!-- Black Box -->
     <string name="XxX_X_balls">%dx%d, %d Bälle</string>
     <string name="XxX_X_X_balls">%dx%d, %d-%d Bälle</string>
@@ -514,31 +535,11 @@ Revision: %s"</string>
     <string name="Missing_separator">Fehlender Separator</string>
     <string name="Flags_go_off_grid">Flaggen sind außerhalb den Gitter</string>
     <string name="Flags_contradicting_each_other">Flaggen sind widersprechend</string>
-    <!-- untangle.c -->
+    <!-- Untangle -->
     <string name="X_points">%d Punkte</string>
     <string name="Number_of_points">Anzahl von Punkte</string>
     <string name="Number_of_points_must_be_at_least_four">Anzahl von Punkte muss mindestens 4 sein</string>
     <string name="Expected_after_number_in_game_description">\'-\' erwartet nach Zahl in der Spielbeschreibung</string>
     <string name="Expected_comma_after_number_in_game_description">Komma erwartet nach Zahl in der Spielbeschreibung</string>
     <string name="Internal_error_aux_info_badly_formatted">Innerlicher Fehler: aux_info ungültig</string>
-    <!-- These errors are very unlikely to be reached: for example, on Android we don't support save files yet, except internally to preserve state between uses of the app -->
-    <string name="This_game_does_not_support_the_Solve_operation">Dieses Spiel unterstützt nicht die Lösen-Funktion</string>
-    <string name="No_game_set_up_to_solve">Kein Spiel für Lösen angeordnet</string>
-    <string name="Data_does_not_appear_to_be_a_saved_game_file">Datei erscheint kein Puzzles-Spiel zu sein</string>
-    <string name="Data_was_incorrectly_formatted_for_a_saved_game_file">Datei ist als Puzzles-Spiel ungültig</string>
-    <string name="Saved_data_ended_unexpectedly">Datei ist unerwartet beendet</string>
-    <string name="Cannot_handle_this_version_of_the_saved_game_file_format">Kann diese Version des Puzzles-Spiel-Format nicht lesen</string>
-    <string name="Save_file_is_from_a_different_game">Spieldatei ist aus ein anderes Spiel</string>
-    <string name="Save_file_is_not_from_a_game_in_this_collection">Spieldatei ist nicht aus dieser Spielsammlung</string>
-    <string name="Number_of_states_in_save_file_was_negative">Negative anzahl von Spielzustände in Spieldatei</string>
-    <string name="Two_state_counts_provided_in_save_file">Mehrere Zustandanzahlen in Spieldatei</string>
-    <string name="Long_term_parameters_in_save_file_are_invalid">Ungültige langzeitige Parameter in Spieldatei</string>
-    <string name="Short_term_parameters_in_save_file_are_invalid">Ungültige kurzeitige Parameter in Spieldatei</string>
-    <string name="Game_description_in_save_file_is_missing">Fehlende Spielbeschreibung in Spieldatei</string>
-    <string name="Game_description_in_save_file_is_invalid">Ungültige Spielbeschreibung in Spieldatei</string>
-    <string name="Game_private_description_in_save_file_is_invalid">Ungültige innerliche Spielbeschreibung in Spieldatei</string>
-    <string name="Game_position_in_save_file_is_out_of_range">Spielstellung außerhalb des Bereichs in Spieldatei</string>
-    <string name="Save_file_contained_an_invalid_move">Ungultiges Zug in Spieldatei</string>
-    <string name="Save_file_contained_an_invalid_restart_move">Ungultiges Wideranlaufzug in Spieldatei</string>
-    <string name="No_game_set_up_to_print">Kein Spiel für drucken angeordnet</string>
 </resources>
