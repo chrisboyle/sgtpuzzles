@@ -12,7 +12,9 @@ file is res/values/strings.xml. A translator produces a new version of this
 file, with the string names the same but the values different, and then I put
 it at, let's say the translation is French, res/values-fr/strings.xml, and an
 Android device will automatically try there first if the language is set to
-French, falling back on this file otherwise. Cool, isn't it? :-)
+French, falling back on res/values/strings.xml otherwise.
+
+N.B. This will be migrated to po4a when I have the time (generating this file).
 
 Please credit yourself in the about box, see the second string below.
 
