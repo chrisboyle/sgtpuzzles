@@ -159,6 +159,7 @@ Revision: %s"</string>
     <string name="desc_untangle">Verschieben Sie die Punkte, so dass keine Linie eine andere Linie kreutzt.</string>
     <!-- Everything below here is from C -->
     <!-- Difficulties for most games, in order: -->
+    <string name="XxX_X">%dx%d %s</string>
     <string name="Easy">Einfach</string>
     <string name="Medium">Mittler</string>
     <string name="Tricky">Knifflig</string>
@@ -377,6 +378,7 @@ Revision: %s"</string>
     <string name="Description_too_short_for_board_size">Beschreibung zu kurz für dieser Brettgröße</string>
     <string name="Description_too_long_for_board_size">Beschreibung zu lang für dieser Brettgröße</string>
     <!-- Magnets -->
+    <string name="XxX_X_strip_clues">%dx%d %s, Hinweise ablösen</string>
     <string name="Strip_clues">Hinweise ablösen</string>
     <string name="Column_counts_inconsistent">Spalte-Anzahlen sind widersprechend</string>
     <string name="Row_counts_inconsistent">Zeile-Anzahlen sind widersprechend</string>

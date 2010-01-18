@@ -159,6 +159,7 @@ Revision: %s"</string>
     <string name="desc_untangle">Move points around until no lines cross.</string>
     <!-- Everything below here is from C -->
     <!-- Difficulties for most games, in order: -->
+    <string name="XxX_X">%dx%d %s</string>
     <string name="Easy">Easy</string>
     <string name="Medium">Medium</string>
     <string name="Tricky">Tricky</string>
@@ -377,6 +378,7 @@ Revision: %s"</string>
     <string name="Description_too_short_for_board_size">Description too short for board size</string>
     <string name="Description_too_long_for_board_size">Description too long for board size</string>
     <!-- Magnets -->
+    <string name="XxX_X_strip_clues">%dx%d %s, strip clues</string>
     <string name="Strip_clues">Strip clues</string>
     <string name="Column_counts_inconsistent">Column counts inconsistent</string>
     <string name="Row_counts_inconsistent">Row counts inconsistent</string>

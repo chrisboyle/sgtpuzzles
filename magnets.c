@@ -125,10 +125,10 @@ static int game_fetch_preset(int i, char **name, game_params **params)
     *ret = magnets_presets[i]; /* struct copy */
     *params = ret;
 
-    sprintf(buf, "%dx%d %s%s",
+    sprintf(buf, magnets_presets[i].stripclues
+            ? _("%dx%d %s, strip clues") : _("%dx%d %s"),
             magnets_presets[i].w, magnets_presets[i].h,
-            magnets_diffnames[magnets_presets[i].diff],
-            magnets_presets[i].stripclues ? ", strip clues" : "");
+            _(magnets_diffnames[magnets_presets[i].diff]));
     *name = dupstr(buf);
 
     return TRUE;
@@ -205,7 +205,7 @@ static config_item *game_configure(game_params *params)
 
     ret[2].name = _("Difficulty");
     ret[2].type = C_CHOICES;
-    ret[2].sval = DIFFCONFIG;
+    ret[2].sval = _(DIFFCONFIG);
     ret[2].ival = params->diff;
 
     ret[3].name = _("Strip clues");

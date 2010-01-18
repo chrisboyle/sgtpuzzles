@@ -160,7 +160,7 @@ static int game_fetch_preset(int i, char **name, game_params **params)
     *ret = singles_presets[i];
     *params = ret;
 
-    sprintf(buf, "%dx%d %s", ret->w, ret->h, singles_diffnames[ret->diff]);
+    sprintf(buf, "%dx%d %s", ret->w, ret->h, _(singles_diffnames[ret->diff]));
     *name = dupstr(buf);
 
     return TRUE;
@@ -234,7 +234,7 @@ static config_item *game_configure(game_params *params)
 
     ret[2].name = _("Difficulty");
     ret[2].type = C_CHOICES;
-    ret[2].sval = DIFFCONFIG;
+    ret[2].sval = _(DIFFCONFIG);
     ret[2].ival = params->diff;
 
     ret[3].name = NULL;

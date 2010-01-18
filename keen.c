@@ -104,7 +104,7 @@ static int game_fetch_preset(int i, char **name, game_params **params)
     ret = snew(game_params);
     *ret = keen_presets[i]; /* structure copy */
 
-    sprintf(buf, "%dx%d %s", ret->w, ret->w, keen_diffnames[ret->diff]);
+    sprintf(buf, "%dx%d %s", ret->w, ret->w, _(keen_diffnames[ret->diff]));
 
     *name = dupstr(buf);
     *params = ret;
@@ -170,7 +170,7 @@ static config_item *game_configure(game_params *params)
 
     ret[1].name = _("Difficulty");
     ret[1].type = C_CHOICES;
-    ret[1].sval = DIFFCONFIG;
+    ret[1].sval = _(DIFFCONFIG);
     ret[1].ival = params->diff;
 
     ret[2].name = NULL;
