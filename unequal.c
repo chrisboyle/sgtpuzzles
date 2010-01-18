@@ -1902,7 +1902,7 @@ static void game_print(drawing *dr, game_state *state, int tilesize)
                       FONT_VARIABLE, TILE_SIZE/2, ALIGN_VCENTRE | ALIGN_HCENTRE,
                       ink, str);
 
-            if (ds->adjacent)
+            if (state->adjacent)
                 draw_adjs(dr, ds, ox, oy, GRID(state, flags, x, y), ink);
             else
                 draw_gts(dr, ds, ox, oy, GRID(state, flags, x, y), ink);
