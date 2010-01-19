@@ -1111,8 +1111,8 @@ if (defined $makefiles{'gtk'}) {
     &splitline("CFLAGS := -O2 -Wall -Werror -ansi -pedantic -g " .
 	       (join " ", map {"-I$dirpfx$_"} @srcdirs) .
 	       " `\$(GTK_CONFIG) --cflags` \$(CFLAGS)")."\n".
-    "XLDFLAGS = `\$(GTK_CONFIG) --libs`\n".
-    "ULDFLAGS =#\n".
+    "XLIBS = `\$(GTK_CONFIG) --libs`\n".
+    "ULIBS =#\n".
     "INSTALL=install\n",
     "INSTALL_PROGRAM=\$(INSTALL)\n",
     "INSTALL_DATA=\$(INSTALL)\n",
@@ -1130,8 +1130,8 @@ if (defined $makefiles{'gtk'}) {
       $objstr = &objects($p, "X.o", undef, undef);
       print &splitline($prog . ": " . $objstr), "\n";
       $libstr = &objects($p, undef, undef, "-lX");
-      print &splitline("\t\$(CC)" . $mw . " \$(${type}LDFLAGS) -o \$@ " .
-                       $objstr . " $libstr", 69), "\n\n";
+      print &splitline("\t\$(CC) -o \$@ $objstr $libstr \$(${type}LIBS)", 69),
+	  "\n\n";
     }
     foreach $d (&deps("X.o", undef, $dirpfx, "/")) {
       print &splitline(sprintf("%s: %s", $d->{obj}, join " ", @{$d->{deps}})),
@@ -1380,7 +1380,7 @@ if (defined $makefiles{'nestedvm'}) {
       $objstr =~ s/gtk\.o/nestedvm\.o/g;
       print &splitline($prog . ".mips: " . $objstr), "\n";
       $libstr = &objects($p, undef, undef, "-lX");
-      print &splitline("\t\$(CC)" . $mw . " \$(${type}LDFLAGS) -o \$@ " .
+      print &splitline("\t\$(CC) \$(${type}LDFLAGS) -o \$@ " .
                        $objstr . " $libstr -lm", 69), "\n\n";
     }
     foreach $d (&deps("X.o", undef, $dirpfx, "/")) {
