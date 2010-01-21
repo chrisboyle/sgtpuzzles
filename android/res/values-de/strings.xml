@@ -42,7 +42,7 @@ Revision: %s"</string>
     <string name="email_subject">Puzzles v{0} auf {1} / {2} / {3}</string>
     <!-- Crash report dialog -->
     <string name="crash_subject">Absturz: Puzzles v{0} auf {1} / {2} / {3}</string>
-    <string name="crash_preamble">Bitte beschreiben Sie, was Sie kurz vor dem Absturz taten und dann die Nachricht versenden.</string>
+    <string name="crash_preamble">Bitte beschreiben Sie (falls möglich auf Englisch), was Sie kurz vor dem Absturz taten und dann die Nachricht versenden.</string>
     <string name="crashtitle">Tja, das ist peinlich...</string>
     <string name="crashed">Es tut mir leid, Puzzles ist einen Problem aufgetreten und mussten schließen. Möchten Sie einen Absturzbericht schicken, der dem Autor vielleicht zur Behebung des Problems helfen kann?</string>
     <string name="report">Melden</string>
@@ -50,7 +50,7 @@ Revision: %s"</string>
     <string name="clear_state">Zustand vergessen</string>
     <string name="getting_log">Logdatei wird geholt...</string>
     <string name="starting_email">Emailprogramm wird gestartet...</string>
-    <string name="get_log_failed">Konnte die Logdatei nicht lesen. Vielleicht benutzen Sie einen T-Mobile Pulse (Huawei U8220) wo logcat funktioniert nicht (beschweren Sie sich bei Huawei?) Schicken Sie bitte einen Fehlerbericht an {0}, beschreiben Sie was Sie getan haben und was passiert ist, und vielleicht kann ich Ihnen helfen.</string>
+    <string name="get_log_failed">Konnte die Logdatei nicht lesen. Vielleicht benutzen Sie einen T-Mobile Pulse (Huawei U8220) wo logcat funktioniert nicht (beschweren Sie sich bei Huawei?) Schicken Sie bitte einen Fehlerbericht an {0}, beschreiben Sie (falls möglich auf Englisch) was Sie getan haben und was passiert ist, und vielleicht kann ich Ihnen helfen.</string>
     <!-- For saving and loading game state on the SD card -->
     <string name="filename">Dateiname</string>
     <string name="save">Speichern</string>
