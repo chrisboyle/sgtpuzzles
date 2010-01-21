@@ -1160,7 +1160,12 @@ static void draw_numbers(drawing *dr, game_drawstate *ds, game_state *state,
 
 	    sprintf(str, "%d", rowdata[j]);
 	    draw_text(dr, x+TILE_SIZE/2, y+TILE_SIZE/2, FONT_VARIABLE,
-		      TILE_SIZE/2, ALIGN_HCENTRE | ALIGN_VCENTRE, colour, str);
+#ifdef ANDROID
+		      TILE_SIZE,
+#else
+		      TILE_SIZE/2,
+#endif
+		      ALIGN_HCENTRE | ALIGN_VCENTRE, colour, str);
 	}
     }
 }
