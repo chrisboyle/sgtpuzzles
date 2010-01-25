@@ -528,9 +528,9 @@ public class SGTPuzzles extends Activity
 			SGTPuzzles.this.startGame(-1,s);
 			dismissAll();
 		}
-		void save(final File f)
+		void save(final File f, Boolean force)
 		{
-			if (f.exists()) {
+			if (! force && f.exists()) {
 				AlertDialog.Builder b = new AlertDialog.Builder(SGTPuzzles.this)
 					.setMessage(R.string.file_exists)
 					.setCancelable(true)
@@ -538,7 +538,7 @@ public class SGTPuzzles extends Activity
 				b.setPositiveButton(android.R.string.yes, new OnClickListener(){ public void onClick(DialogInterface d, int which) {
 					try {
 						f.delete();
-						save(f);
+						save(f, true);
 					} catch (Exception e) {
 						Toast.makeText(SGTPuzzles.this, e.toString(), Toast.LENGTH_LONG).show();
 					}
@@ -583,7 +583,7 @@ public class SGTPuzzles extends Activity
 						return;
 					}
 					if (isSave) {
-						save(f);
+						save(f, false);
 						return;
 					}
 					try {
@@ -611,12 +611,12 @@ public class SGTPuzzles extends Activity
 				if (actionId == EditorInfo.IME_ACTION_DONE) return false;
 				if ((event != null && event.getAction() != KeyEvent.ACTION_DOWN)
 						|| et.length() == 0) return true;
-				save(new File(path,et.getText().toString()));
+				save(new File(path,et.getText().toString()), false);
 				return true;
 			}});
 			final Button saveButton = (Button)findViewById(R.id.savebutton);
 			saveButton.setOnClickListener(new View.OnClickListener(){public void onClick(View v){
-				save(new File(path,et.getText().toString()));
+				save(new File(path,et.getText().toString()), false);
 			}});
 			et.requestFocus();
 		}
