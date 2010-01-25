@@ -1193,14 +1193,15 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
     const char *p = desc;
     int i;
 #ifdef ANDROID
-    char keys[w+2];
+    char keys[w+3];
     keys[0] = '\b';
     for (i = 0; i < w; i++) {
 	if (i<9) keys[i] = '1' + i;
 	else keys[i] = 'A' + i - 9;
     }
     keys[w] = '\b';
-    keys[w+1] = '\0';
+    keys[w+1] = 'M';
+    keys[w+2] = '\0';
     android_keys(keys);
 #endif
 

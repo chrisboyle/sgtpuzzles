@@ -5,7 +5,7 @@
 	<item android:title="@string/New_game" android:id="@+id/newgame" android:alphabeticShortcut="n" android:icon="@android:drawable/ic_menu_close_clear_cancel"/>
 	<item android:title="@string/Restart" android:id="@+id/restart" android:alphabeticShortcut="t" android:icon="@android:drawable/ic_menu_delete"/>
 	<item android:title="@string/Specific_" android:id="@+id/specific" android:alphabeticShortcut="p"></item>
-	<item android:title="@string/Random_seed_" android:id="@+id/seed" android:alphabeticShortcut="m"></item>
+	<item android:title="@string/Random_seed_" android:id="@+id/seed" android:alphabeticShortcut="x"></item>
 	<item android:title="@string/Load_" android:id="@+id/load" android:alphabeticShortcut="y" android:icon="@android:drawable/ic_menu_upload"></item>
 	<item android:title="@string/Save_" android:id="@+id/save" android:alphabeticShortcut="w" android:icon="@android:drawable/ic_menu_save"></item>
 </menu></item>

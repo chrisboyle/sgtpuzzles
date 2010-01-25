@@ -1306,7 +1306,7 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
 #ifdef ANDROID
     int order = state ? state->order : 0;
     char off = (order > 9) ? '0' : '1';
-    char keys[order + 2];
+    char keys[order + 3];
     int i;
 #endif
     if (!state) {
@@ -1319,7 +1319,8 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
 	keys[i] = i + off;
     }
     keys[order] = '\b';
-    keys[order+1] = '\0';
+    keys[order+1] = 'M';
+    keys[order+2] = '\0';
     android_keys(keys);
 #endif
     return state;
