@@ -244,7 +244,6 @@ public class GameView extends View
 		Paint.FontMetrics fm = paint.getFontMetrics();
 		float asc = Math.abs(fm.ascent), desc = Math.abs(fm.descent);
 		if ((flags & SGTPuzzles.ALIGN_VCENTRE) != 0) y += asc - (asc+desc)/2;
-		else y += asc;
 		if ((flags & SGTPuzzles.ALIGN_HCENTRE) != 0) paint.setTextAlign( Paint.Align.CENTER );
 		else if ((flags & SGTPuzzles.ALIGN_HRIGHT) != 0) paint.setTextAlign( Paint.Align.RIGHT );
 		else paint.setTextAlign( Paint.Align.LEFT );
