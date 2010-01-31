@@ -43,7 +43,7 @@ struct game_state {
     pegrow solution;
     int next_go; /* from 0 to nguesses-1;
                     if next_go == nguesses then they've lost. */
-    int solved;
+    int solved, cheated;
 };
 
 static game_params *default_params(void)
@@ -333,7 +333,7 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
     sfree(bmp);
 
     memset(state->holds, 0, sizeof(int) * params->npegs);
-    state->next_go = state->solved = 0;
+    state->next_go = state->solved = state->cheated = 0;
 
     return state;
 }
@@ -508,7 +508,7 @@ static void game_changed_state(game_ui *ui, game_state *oldstate,
     if (!ui->markable && ui->peg_cur == newstate->solution->npegs)
 	ui->peg_cur--;
 #ifdef ANDROID
-    if (newstate->solved && oldstate && ! oldstate->solved && newstate->next_go < newstate->params.nguesses) android_completed();
+    if (newstate->solved && ! newstate->cheated && oldstate && ! oldstate->solved && newstate->next_go < newstate->params.nguesses) android_completed();
 #endif
 }
 
@@ -796,7 +796,7 @@ static game_state *execute_move(game_state *from, char *move)
 
     if (!strcmp(move, "S")) {
 	ret = dup_game(from);
-	ret->solved = 1;
+	ret->solved = ret->cheated = 1;
 	return ret;
     } else if (move[0] == 'G') {
 	p = move+1;
@@ -827,7 +827,7 @@ static game_state *execute_move(game_state *from, char *move)
 	} else {
 	    ret->next_go = from->next_go + 1;
 	    if (ret->next_go >= ret->params.nguesses)
-		ret->solved = 1; /* 'lose' so we show the pegs. */
+		ret->solved = ret->cheated = 1; /* 'lose' so we show the pegs. */
 	}
 
 	return ret;
