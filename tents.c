@@ -2486,7 +2486,7 @@ static void int_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
      * changed) the numbers.
      */
     for (x = 0; x < w; x++) {
-	if (ds->numbersdrawn[x] != errors[w*h+x]) {
+	if (printing || ds->numbersdrawn[x] != errors[w*h+x]) {
 	    char buf[80];
 	    draw_rect(dr, COORD(x), COORD(h)+1, TILESIZE, BRBORDER-1,
 		      COL_BACKGROUND);
@@ -2495,11 +2495,12 @@ static void int_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 		      FONT_VARIABLE, TILESIZE/2, ALIGN_HCENTRE|ALIGN_VNORMAL,
 		      (errors[w*h+x] ? COL_ERROR : COL_GRID), buf);
 	    draw_update(dr, COORD(x), COORD(h)+1, TILESIZE, BRBORDER-1);
-	    ds->numbersdrawn[x] = errors[w*h+x];
+	    if (!printing)
+                ds->numbersdrawn[x] = errors[w*h+x];
 	}
     }
     for (y = 0; y < h; y++) {
-	if (ds->numbersdrawn[w+y] != errors[w*h+w+y]) {
+	if (printing || ds->numbersdrawn[w+y] != errors[w*h+w+y]) {
 	    char buf[80];
 	    draw_rect(dr, COORD(w)+1, COORD(y), BRBORDER-1, TILESIZE,
 		      COL_BACKGROUND);
@@ -2508,7 +2509,8 @@ static void int_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 		      FONT_VARIABLE, TILESIZE/2, ALIGN_HRIGHT|ALIGN_VCENTRE,
 		      (errors[w*h+w+y] ? COL_ERROR : COL_GRID), buf);
 	    draw_update(dr, COORD(w)+1, COORD(y), BRBORDER-1, TILESIZE);
-	    ds->numbersdrawn[w+y] = errors[w*h+w+y];
+	    if (!printing)
+                ds->numbersdrawn[w+y] = errors[w*h+w+y];
 	}
     }
 

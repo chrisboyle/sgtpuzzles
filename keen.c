@@ -2261,6 +2261,10 @@ static void game_print(drawing *dr, game_state *state, int tilesize)
 			  FONT_VARIABLE, TILESIZE/2,
 			  ALIGN_VCENTRE | ALIGN_HCENTRE, ink, str);
 	    }
+
+    sfree(minus_sign);
+    sfree(times_sign);
+    sfree(divide_sign);
 }
 #endif
 
