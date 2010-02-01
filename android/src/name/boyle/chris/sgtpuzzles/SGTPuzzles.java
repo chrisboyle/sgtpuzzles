@@ -717,7 +717,7 @@ public class SGTPuzzles extends Activity
 	void sendKey(int x, int y, int k)
 	{
 		if(! gameRunning) return;
-		if (keyEvent(x, y, k) == 0) quit(false);
+		keyEvent(x, y, k);
 	}
 
 	boolean prevLandscape = false;
@@ -999,8 +999,7 @@ public class SGTPuzzles extends Activity
 	native void cancel();
 	native void timerTick();
 	native String htmlHelpTopic();
-	native int keyEvent(int x, int y, int k);
-	native int menuKeyEvent(int k);
+	native void keyEvent(int x, int y, int k);
 	native void restartEvent();
 	native void solveEvent();
 	native void aboutEvent();

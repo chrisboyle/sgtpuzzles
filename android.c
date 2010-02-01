@@ -13,6 +13,7 @@
 #include <errno.h>
 #include <ctype.h>
 #include <signal.h>
+#include <pthread.h>
 
 #include <sys/time.h>
 
@@ -42,9 +43,9 @@ struct frontend {
 	int readlen;
 };
 
-static frontend *_fe = NULL;
-static JNIEnv *env;
-static jobject obj;
+static frontend *fe = NULL;
+static pthread_key_t envKey;
+static jobject obj = NULL;
 static int cancelled;
 
 // TODO get rid of this horrible hack
@@ -103,35 +104,41 @@ void frontend_default_colour(frontend *fe, float *output)
 
 void android_status_bar(void *handle, char *text)
 {
+	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
 	jstring js = (*env)->NewStringUTF(env, text);
 	if( js == NULL ) return;
 	(*env)->CallVoidMethod(env, obj, setStatus, js);
 	(*env)->DeleteLocalRef(env, js);
 }
 
+#define CHECK_DR_HANDLE if ((frontend*)handle != fe) return;
+
 void android_start_draw(void *handle)
 {
-	frontend *fe = (frontend *)handle;
-	if (!fe) return;
+	CHECK_DR_HANDLE
+	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
 	(*env)->CallVoidMethod(env, gameView, setMargins, fe->ox, fe->oy);
 }
 
 void android_clip(void *handle, int x, int y, int w, int h)
 {
-	frontend *fe = (frontend *)handle;
+	CHECK_DR_HANDLE
+	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
 	(*env)->CallVoidMethod(env, gameView, clipRect, x + fe->ox, y + fe->oy, w, h);
 }
 
 void android_unclip(void *handle)
 {
-	frontend *fe = (frontend *)handle;
+	CHECK_DR_HANDLE
+	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
 	(*env)->CallVoidMethod(env, gameView, unClip, fe->ox, fe->oy);
 }
 
 void android_draw_text(void *handle, int x, int y, int fonttype, int fontsize,
 		int align, int colour, char *text)
 {
-	frontend *fe = (frontend *)handle;
+	CHECK_DR_HANDLE
+	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
 	jstring js = (*env)->NewStringUTF(env, text);
 	if( js == NULL ) return;
 	(*env)->CallVoidMethod(env, gameView, drawText, x + fe->ox, y + fe->oy,
@@ -142,21 +149,24 @@ void android_draw_text(void *handle, int x, int y, int fonttype, int fontsize,
 
 void android_draw_rect(void *handle, int x, int y, int w, int h, int colour)
 {
-	frontend *fe = (frontend *)handle;
+	CHECK_DR_HANDLE
+	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
 	(*env)->CallVoidMethod(env, gameView, fillRect, x + fe->ox, y + fe->oy, w, h, colour);
 }
 
 void android_draw_line(void *handle, int x1, int y1, int x2, int y2, 
 		int colour)
 {
-	frontend *fe = (frontend *)handle;
+	CHECK_DR_HANDLE
+	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
 	(*env)->CallVoidMethod(env, gameView, drawLine, x1 + fe->ox, y1 + fe->oy, x2 + fe->ox, y2 + fe->oy, colour);
 }
 
 void android_draw_poly(void *handle, int *coords, int npoints,
 		int fillcolour, int outlinecolour)
 {
-	frontend *fe = (frontend *)handle;
+	CHECK_DR_HANDLE
+	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
 	jintArray coordsj = (*env)->NewIntArray(env, npoints*2);
 	if (coordsj == NULL) return;
 	(*env)->SetIntArrayRegion(env, coordsj, 0, npoints*2, coords);
@@ -167,7 +177,8 @@ void android_draw_poly(void *handle, int *coords, int npoints,
 void android_draw_circle(void *handle, int cx, int cy, int radius,
 		 int fillcolour, int outlinecolour)
 {
-	frontend *fe = (frontend *)handle;
+	CHECK_DR_HANDLE
+	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
 	(*env)->CallVoidMethod(env, gameView, drawCircle, cx+fe->ox, cy+fe->oy, radius, outlinecolour, fillcolour);
 }
 
@@ -186,16 +197,19 @@ blitter *android_blitter_new(void *handle, int w, int h)
 
 void android_blitter_free(void *handle, blitter *bl)
 {
-	if (bl->handle != -1)
+	if (bl->handle != -1) {
+		JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
 		(*env)->CallVoidMethod(env, gameView, blitterFree, bl->handle);
+	}
 	sfree(bl);
 }
 
 void android_blitter_save(void *handle, blitter *bl, int x, int y)
 {
-	frontend *fe = (frontend *)handle;	
+	CHECK_DR_HANDLE
+	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
 	if (bl->handle == -1)
-	bl->handle = (*env)->CallIntMethod(env, gameView, blitterAlloc, bl->w, bl->h);
+		bl->handle = (*env)->CallIntMethod(env, gameView, blitterAlloc, bl->w, bl->h);
 	bl->x = x;
 	bl->y = y;
 	(*env)->CallVoidMethod(env, gameView, blitterSave, bl->handle, x + fe->ox, y + fe->oy);
@@ -203,22 +217,25 @@ void android_blitter_save(void *handle, blitter *bl, int x, int y)
 
 void android_blitter_load(void *handle, blitter *bl, int x, int y)
 {
-	frontend *fe = (frontend *)handle;
+	CHECK_DR_HANDLE
 	assert(bl->handle != -1);
 	if (x == BLITTER_FROMSAVED && y == BLITTER_FROMSAVED) {
 		x = bl->x;
 		y = bl->y;
 	}
+	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
 	(*env)->CallVoidMethod(env, gameView, blitterLoad, bl->handle, x + fe->ox, y + fe->oy);
 }
 
 void android_end_draw(void *handle)
 {
+	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
 	(*env)->CallVoidMethod(env, gameView, postInvalidate);
 }
 
 void android_changed_state(void *handle, int can_undo, int can_redo)
 {
+	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
 	(*env)->CallVoidMethod(env, obj, changedState, can_undo, can_redo);
 }
 
@@ -254,22 +271,16 @@ const struct drawing_api android_drawing = {
 	android_changed_state,
 };
 
-jint JNICALL keyEvent(JNIEnv *_env, jobject _obj, jint x, jint y, jint keyval)
+void JNICALL keyEvent(JNIEnv *env, jobject _obj, jint x, jint y, jint keyval)
 {
-	env = _env;
-	frontend *fe = (frontend *)_fe;
-	if (fe->ox == -1)
-		return 1;
-	if (keyval >= 0 &&
-		!midend_process_key(fe->me, x - fe->ox, y - fe->oy, keyval))
-		return 42;
-	return 1;
+	pthread_setspecific(envKey, env);
+	if (fe->ox == -1 || keyval < 0) return;
+	midend_process_key(fe->me, x - fe->ox, y - fe->oy, keyval);
 }
 
-void JNICALL resizeEvent(JNIEnv *_env, jobject _obj, jint width, jint height)
+void JNICALL resizeEvent(JNIEnv *env, jobject _obj, jint width, jint height)
 {
-	env = _env;
-	frontend *fe = (frontend *)_fe;
+	pthread_setspecific(envKey, env);
 	int x, y;
 	if (!fe || !fe->me) return;
 	x = width;
@@ -280,11 +291,10 @@ void JNICALL resizeEvent(JNIEnv *_env, jobject _obj, jint width, jint height)
 	midend_force_redraw(fe->me);
 }
 
-void JNICALL timerTick(JNIEnv *_env, jobject _obj)
+void JNICALL timerTick(JNIEnv *env, jobject _obj)
 {
-	env = _env;
-	frontend *fe = (frontend *)_fe;
-	if (fe->timer_active) {
+	if (! fe->timer_active) return;
+	pthread_setspecific(envKey, env);
 	struct timeval now;
 	float elapsed;
 	gettimeofday(&now, NULL);
@@ -292,29 +302,30 @@ void JNICALL timerTick(JNIEnv *_env, jobject _obj)
 			(now.tv_sec - fe->last_time.tv_sec));
 		midend_timer(fe->me, elapsed);  // may clear timer_active
 	fe->last_time = now;
-	}
-	return;
 }
 
-void deactivate_timer(frontend *fe)
+void deactivate_timer(frontend *_fe)
 {
-	if (fe->timer_active)
+	if (fe->timer_active) {
+		JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
 		(*env)->CallVoidMethod(env, obj, requestTimer, FALSE);
+	}
 	fe->timer_active = FALSE;
 }
 
-void activate_timer(frontend *fe)
+void activate_timer(frontend *_fe)
 {
 	if (!fe->timer_active) {
+		JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
 		(*env)->CallVoidMethod(env, obj, requestTimer, TRUE);
 		gettimeofday(&fe->last_time, NULL);
 	}
 	fe->timer_active = TRUE;
 }
 
-void JNICALL configSetString(JNIEnv *_env, jobject _obj, jint item_ptr, jstring s)
+void JNICALL configSetString(JNIEnv *env, jobject _obj, jint item_ptr, jstring s)
 {
-	env = _env;
+	pthread_setspecific(envKey, env);
 	config_item *i = (config_item *)item_ptr;
 	const char* newval = (*env)->GetStringUTFChars(env, s, NULL);
 	sfree(i->sval);
@@ -322,77 +333,64 @@ void JNICALL configSetString(JNIEnv *_env, jobject _obj, jint item_ptr, jstring 
 	(*env)->ReleaseStringUTFChars(env, s, newval);
 }
 
-void JNICALL configSetBool(JNIEnv *_env, jobject _obj, jint item_ptr, jint selected)
+void JNICALL configSetBool(JNIEnv *env, jobject _obj, jint item_ptr, jint selected)
 {
-	env = _env;
+	pthread_setspecific(envKey, env);
 	config_item *i = (config_item *)item_ptr;
 	i->ival = selected != 0 ? TRUE : FALSE;
 }
 
-void JNICALL configSetChoice(JNIEnv *_env, jobject _obj, jint item_ptr, jint selected)
+void JNICALL configSetChoice(JNIEnv *env, jobject _obj, jint item_ptr, jint selected)
 {
-	env = _env;
+	pthread_setspecific(envKey, env);
 	config_item *i = (config_item *)item_ptr;
 	i->ival = selected;
 }
 
-jint JNICALL menuKeyEvent(JNIEnv *_env, jobject _obj, jint key)
-{
-	frontend *fe = (frontend *)_fe;
-	env = _env;
-	return midend_process_key(fe->me, 0, 0, key) ? 0 : 42;
-}
-
-static void resize_fe(frontend *fe)
+static void resize_fe()
 {
 	int x, y;
 	if (!fe || !fe->me) return;
 	x = INT_MAX;
 	y = INT_MAX;
 	midend_size(fe->me, &x, &y, FALSE);
+	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
 	(*env)->CallVoidMethod(env, obj, requestResize, x, y);
 }
 
-void JNICALL presetEvent(JNIEnv *_env, jobject _obj, jint ptr_game_params)
+void JNICALL presetEvent(JNIEnv *env, jobject _obj, jint ptr_game_params)
 {
-	frontend *fe = (frontend *)_fe;
+	pthread_setspecific(envKey, env);
 	game_params *params = (game_params *)ptr_game_params;
-	env = _env;
 
 	midend_set_params(fe->me, params);
 	midend_new_game(fe->me);
 	if (cancelled) return;
-	resize_fe(fe);
+	resize_fe();
 	(*env)->CallVoidMethod(env, obj, tickTypeItem, midend_which_preset(fe->me));
 }
 
-void JNICALL solveEvent(JNIEnv *_env, jobject _obj)
+void JNICALL solveEvent(JNIEnv *env, jobject _obj)
 {
-	frontend *fe = (frontend *)_fe;
-	char *msg;
-	env = _env;
-
-	msg = midend_solve(fe->me);
-	if (msg) {
-		jstring js = (*env)->NewStringUTF(env, msg);
-		if( js == NULL ) return;
-		jstring js2 = (*env)->NewStringUTF(env, _("Error"));
-		if( js2 == NULL ) return;
-		(*env)->CallVoidMethod(env, obj, messageBox, js2, js, 1);
-	}
+	pthread_setspecific(envKey, env);
+	char *msg = midend_solve(fe->me);
+	if (! msg) return;
+	jstring js = (*env)->NewStringUTF(env, msg);
+	if( js == NULL ) return;
+	jstring js2 = (*env)->NewStringUTF(env, _("Error"));
+	if( js2 == NULL ) return;
+	(*env)->CallVoidMethod(env, obj, messageBox, js2, js, 1);
 }
 
-void JNICALL restartEvent(JNIEnv *_env, jobject _obj)
+void JNICALL restartEvent(JNIEnv *env, jobject _obj)
 {
-	frontend *fe = (frontend *)_fe;
-	env = _env;
+	pthread_setspecific(envKey, env);
 	midend_restart_game(fe->me);
 }
 
-void JNICALL configEvent(JNIEnv *_env, jobject _obj, jint which)
+void JNICALL configEvent(JNIEnv *env, jobject _obj, jint which)
 {
-	env = _env;
-	frontend *fe = (frontend *)_fe;
+	pthread_setspecific(envKey, env);
 	char *title;
 	config_item *i;
 	(*env)->CallVoidMethod(env, obj, tickTypeItem, midend_which_preset(fe->me));
@@ -413,13 +411,10 @@ void JNICALL configEvent(JNIEnv *_env, jobject _obj, jint which)
 	(*env)->CallVoidMethod(env, obj, dialogShow);
 }
 
-void JNICALL configOK(JNIEnv *_env, jobject _obj)
+void JNICALL configOK(JNIEnv *env, jobject _obj)
 {
-	env = _env;
-	frontend *fe = (frontend *)_fe;
-	char *err;
-
-	err = midend_set_config(fe->me, fe->cfg_which, fe->cfg);
+	pthread_setspecific(envKey, env);
+	char *err = midend_set_config(fe->me, fe->cfg_which, fe->cfg);
 	free_cfg(fe->cfg);
 
 	if (err) {
@@ -432,19 +427,19 @@ void JNICALL configOK(JNIEnv *_env, jobject _obj)
 	}
 	midend_new_game(fe->me);
 	if (cancelled) return;
-	resize_fe(fe);
+	resize_fe();
 	(*env)->CallVoidMethod(env, obj, tickTypeItem, midend_which_preset(fe->me));
 }
 
-void JNICALL configCancel(JNIEnv *_env, jobject _obj)
+void JNICALL configCancel(JNIEnv *env, jobject _obj)
 {
-	env = _env;
-	frontend *fe = (frontend *)_fe;
+	pthread_setspecific(envKey, env);
 	free_cfg(fe->cfg);
 }
 
 void android_serialise_write(void *ctx, void *buf, int len)
 {
+	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
 	jbyteArray bytesj = (*env)->NewByteArray(env, len);
 	if (bytesj == NULL) return;
 	(*env)->SetByteArrayRegion(env, bytesj, 0, len, buf);
@@ -452,38 +447,39 @@ void android_serialise_write(void *ctx, void *buf, int len)
 	(*env)->DeleteLocalRef(env, bytesj);
 }
 
-void JNICALL serialise(JNIEnv *_env, jobject _obj)
+void JNICALL serialise(JNIEnv *env, jobject _obj)
 {
-	env = _env;
-	if (!_fe) return;
-	midend_serialise(_fe->me, android_serialise_write, (void*)0);
+	if (!fe) return;
+	pthread_setspecific(envKey, env);
+	midend_serialise(fe->me, android_serialise_write, (void*)0);
 }
 
 int android_deserialise_read(void *ctx, void *buf, int len)
 {
-	int l = min(len, _fe->readlen);
+	int l = min(len, fe->readlen);
 	if (l <= 0) return FALSE;
-	memcpy( buf, _fe->readptr, l );
-	_fe->readptr += l;
-	_fe->readlen -= l;
+	memcpy( buf, fe->readptr, l );
+	fe->readptr += l;
+	fe->readlen -= l;
 	return l == len;
 }
 
 const char* android_deserialise(jstring s)
 {
+	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
 	const char * c = (*env)->GetStringUTFChars(env, s, NULL);
-	_fe->readptr = c;
-	_fe->readlen = strlen(_fe->readptr);
-	const char * ret = midend_deserialise(_fe->me, android_deserialise_read, NULL);
+	fe->readptr = c;
+	fe->readlen = strlen(fe->readptr);
+	const char * ret = midend_deserialise(fe->me, android_deserialise_read, NULL);
 	(*env)->ReleaseStringUTFChars(env, s, c);
 	return ret;
 }
 
-void JNICALL aboutEvent(JNIEnv *_env, jobject _obj)
+void JNICALL aboutEvent(JNIEnv *env, jobject _obj)
 {
 	char titlebuf[256];
 	char textbuf[1024];
-	env = _env;
+	pthread_setspecific(envKey, env);
 
 	sprintf(titlebuf, _("About %.200s"), thegame.name);
 	sprintf(textbuf,
@@ -494,17 +490,17 @@ void JNICALL aboutEvent(JNIEnv *_env, jobject _obj)
 	jstring js2 = (*env)->NewStringUTF(env, textbuf);
 	if( js2 == NULL ) return;
 	(*env)->CallVoidMethod(env, obj, messageBox, js, js2, 0);
-	return;
 }
 
-jstring JNICALL htmlHelpTopic(JNIEnv *_env, jobject _obj)
+jstring JNICALL htmlHelpTopic(JNIEnv *env, jobject _obj)
 {
-	env = _env;
+	//pthread_setspecific(envKey, env);
 	return (*env)->NewStringUTF(env, thegame.htmlhelp_topic);
 }
 
 void android_completed()
 {
+	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
 	jstring js = (*env)->NewStringUTF(env, _("COMPLETED!"));
 	if( js == NULL ) return;
 	(*env)->CallVoidMethod(env, obj, messageBox, NULL, js, 0);
@@ -517,12 +513,14 @@ inline int android_cancelled()
 
 void android_keys(const char *keys)
 {
+	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
 	(*env)->CallVoidMethod(env, obj, setKeys, (*env)->NewStringUTF(env, keys));
 }
 
 char * get_text(const char *s)
 {
 	if (!s || ! s[0]) return (char*)s;  // slightly naughty cast...
+	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
 	jstring j = (jstring)(*env)->CallObjectMethod(env, obj, getText, (*env)->NewStringUTF(env, s));
 	const char * c = (*env)->GetStringUTFChars(env, j, NULL);
 	// TODO get rid of this horrible hack
@@ -538,35 +536,40 @@ static struct sigaction old_sa[NSIG];
 
 void android_sigaction(int signal, siginfo_t *info, void *reserved)
 {
+	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
 	(*env)->CallVoidMethod(env, obj, nativeCrashed);
 	old_sa[signal].sa_handler(signal);
 }
 
-void cancel(JNIEnv *_env, jobject _obj)
+void cancel(JNIEnv *env, jobject _obj)
 {
+	//pthread_setspecific(envKey, env);
 	cancelled = TRUE;
 }
 
-void crashMeHarder(JNIEnv *_env, jobject _obj)
+void crashMeHarder(JNIEnv *env, jobject _obj)
 {
+	//pthread_setspecific(envKey, env);
 	// Dear debuggerd, please give me a native stack trace in logcat. And a pony.
 	abort();
 }
 
-void init(JNIEnv *_env, jobject _obj, jobject _gameView, jint whichGame, jstring gameState)
+void init(JNIEnv *env, jobject _obj, jobject _gameView, jint whichGame, jstring gameState)
 {
 	int n;
 	float* colours;
+	pthread_setspecific(envKey, env);
 
 	cancelled = FALSE;
-	env = _env;
-	obj = _obj;
-	if (_fe) {
-		if (_fe->me) midend_free(_fe->me);  // might use gameView (e.g. blitters)
-		sfree(_fe);
+	if (fe) {
+		if (fe->me) midend_free(fe->me);  // might use gameView (e.g. blitters)
+		sfree(fe);
 	}
-	_fe = snew(frontend);
-	_fe->timer_active = FALSE;
+	fe = snew(frontend);
+	memset(fe, 0, sizeof(frontend));
+	fe->timer_active = FALSE;
+	if (obj) (*env)->DeleteGlobalRef(env, obj);
+	obj = (*env)->NewGlobalRef(env, _obj);
 	if (gameView) (*env)->DeleteGlobalRef(env, gameView);
 	gameView = (*env)->NewGlobalRef(env, _gameView);
 
@@ -575,7 +578,7 @@ void init(JNIEnv *_env, jobject _obj, jobject _gameView, jint whichGame, jstring
 		thegame = *(gamelist[whichGame]);
 	} else {
 		// Find out which game the savefile is from
-		_fe->me = NULL;  // magic in midend_deserialise
+		fe->me = NULL;  // magic in midend_deserialise
 		const char *reason = android_deserialise(gameState);
 		if (reason) {
 			(*env)->CallVoidMethod(env, obj, abortMethod, (*env)->NewStringUTF(env, reason));
@@ -583,48 +586,51 @@ void init(JNIEnv *_env, jobject _obj, jobject _gameView, jint whichGame, jstring
 		}
 		// thegame is now set
 	}
-	_fe->me = midend_new(_fe, &thegame, &android_drawing, _fe);
+	fe->me = midend_new(fe, &thegame, &android_drawing, fe);
 	if( whichGame >= 0 ) {
-		midend_new_game(_fe->me);
+		midend_new_game(fe->me);
 	} else {
 		const char *reason = android_deserialise(gameState);
 		if (reason) {
 			(*env)->CallVoidMethod(env, obj, abortMethod, (*env)->NewStringUTF(env, reason));
-			midend_free(_fe->me);
-			_fe->me = NULL;
+			midend_free(fe->me);
+			fe->me = NULL;
 			return;
 		}
 	}
 	if (cancelled) return;
 
-	if ((n = midend_num_presets(_fe->me)) > 0) {
+	if ((n = midend_num_presets(fe->me)) > 0) {
 		int i;
 		for (i = 0; i < n; i++) {
 			char *name;
 			game_params *params;
-			midend_fetch_preset(_fe->me, i, &name, &params);
+			midend_fetch_preset(fe->me, i, &name, &params);
 			(*env)->CallVoidMethod(env, obj, addTypeItem, params, (*env)->NewStringUTF(env, name));
 		}
 	}
 
-	colours = midend_colours(_fe->me, &n);
-	_fe->ox = -1;
+	colours = midend_colours(fe->me, &n);
+	fe->ox = -1;
 
 	jfloatArray colsj = (*env)->NewFloatArray(env, n*3);
 	if (colsj == NULL) return;
 	(*env)->SetFloatArrayRegion(env, colsj, 0, n*3, colours);
 	(*env)->CallVoidMethod(env, obj, gameStarted,
 			(*env)->NewStringUTF(env, thegame.name), thegame.can_configure,
-			midend_wants_statusbar(_fe->me), thegame.can_solve, colsj);
-	resize_fe(_fe);
+			midend_wants_statusbar(fe->me), thegame.can_solve, colsj);
+	resize_fe();
 
-	(*env)->CallVoidMethod(env, obj, tickTypeItem, midend_which_preset(_fe->me));
+	(*env)->CallVoidMethod(env, obj, tickTypeItem, midend_which_preset(fe->me));
 }
 
 JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
 {
 	jclass cls, vcls;
+	JNIEnv *env;
 	if ((*jvm)->GetEnv(jvm, (void **)&env, JNI_VERSION_1_2)) return JNI_ERR;
+	pthread_key_create(&envKey, NULL);
+	pthread_setspecific(envKey, env);
 	cls = (*env)->FindClass(env, "name/boyle/chris/sgtpuzzles/SGTPuzzles");
 	vcls = (*env)->FindClass(env, "name/boyle/chris/sgtpuzzles/GameView");
 	abortMethod    = (*env)->GetMethodID(env, cls,  "abort", "(Ljava/lang/String;)V");
@@ -658,13 +664,12 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
 	unClip         = (*env)->GetMethodID(env, vcls, "unClip", "(II)V");
 
 	JNINativeMethod methods[] = {
-		{ "keyEvent", "(III)I", keyEvent },
+		{ "keyEvent", "(III)V", keyEvent },
 		{ "resizeEvent", "(II)V", resizeEvent },
 		{ "timerTick", "()V", timerTick },
 		{ "configSetString", "(ILjava/lang/String;)V", configSetString },
 		{ "configSetBool", "(II)V", configSetBool },
 		{ "configSetChoice", "(II)V", configSetChoice },
-		{ "menuKeyEvent", "(I)I", menuKeyEvent },
 		{ "presetEvent", "(I)V", presetEvent },
 		{ "solveEvent", "()V", solveEvent },
 		{ "restartEvent", "()V", restartEvent },
