@@ -1455,6 +1455,9 @@ static void game_changed_state(game_ui *ui, game_state *oldstate,
 {
     if (!oldstate->completed && newstate->completed)
         ui->cshow = 0;
+#ifdef ANDROID
+    if (newstate->completed && ! newstate->used_solve && oldstate && ! oldstate->completed) android_completed();
+#endif
 }
 
 #define DS_BLACK        0x1
