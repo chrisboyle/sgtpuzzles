@@ -178,8 +178,10 @@ static void midend_free_game(midend *me)
 	sfree(me->states[me->nstates].movestr);
     }
 
-    if (me->drawstate)
+    if (me->drawstate) {
         me->ourgame->free_drawstate(me->drawing, me->drawstate);
+        me->drawstate = NULL;
+    }
 }
 
 void midend_free(midend *me)

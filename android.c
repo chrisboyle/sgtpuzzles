@@ -416,6 +416,7 @@ void JNICALL configOK(JNIEnv *env, jobject _obj)
 	pthread_setspecific(envKey, env);
 	char *err = midend_set_config(fe->me, fe->cfg_which, fe->cfg);
 	free_cfg(fe->cfg);
+	fe->cfg = NULL;
 
 	if (err) {
 		jstring js = (*env)->NewStringUTF(env, err);
@@ -435,6 +436,7 @@ void JNICALL configCancel(JNIEnv *env, jobject _obj)
 {
 	pthread_setspecific(envKey, env);
 	free_cfg(fe->cfg);
+	fe->cfg = NULL;
 }
 
 void android_serialise_write(void *ctx, void *buf, int len)
