@@ -203,6 +203,7 @@ public class SGTPuzzles extends Activity
 
 	void gameViewResized()
 	{
+		if( ! gameRunning ) return;
 		if( progress == null && gameView.w > 0 && gameView.h > 0 )
 			resizeEvent(gameView.w, gameView.h);
 		else
@@ -716,7 +717,7 @@ public class SGTPuzzles extends Activity
 	
 	void sendKey(int x, int y, int k)
 	{
-		if(! gameRunning) return;
+		if(! gameRunning || progress != null) return;
 		keyEvent(x, y, k);
 	}
 
