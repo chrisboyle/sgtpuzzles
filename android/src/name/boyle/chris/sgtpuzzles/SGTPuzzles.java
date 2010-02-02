@@ -1013,7 +1013,6 @@ public class SGTPuzzles extends Activity
 	native void configSetBool(int item_ptr, int selected);
 	native void configSetChoice(int item_ptr, int selected);
 	native void serialise();
-	native String deserialise(String s);
 	native void crashMeHarder();
 
 	static {
