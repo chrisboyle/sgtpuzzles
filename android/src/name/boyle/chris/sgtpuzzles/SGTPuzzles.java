@@ -414,10 +414,11 @@ public class SGTPuzzles extends Activity
 		switch(item.getItemId()) {
 		case R.id.other:   showDialog(0); break;
 		case R.id.newgame:
+			if(! gameRunning || progress != null) break;
 			showProgress( R.string.starting_new );
 			changedState(false, false);
 			(worker = new Thread("newGame") { public void run() {
-				sendKey(0, 0, 'n');
+				keyEvent(0, 0, 'n');
 				handler.sendEmptyMessage(MsgType.DONE.ordinal());
 			}}).start();
 			break;
