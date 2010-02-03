@@ -403,7 +403,8 @@ public class SGTPuzzles extends Activity
 		});
 		wv.getSettings().setBuiltInZoomControls(true);
 		String lang = Locale.getDefault().getLanguage();
-		if (lang == null || lang.equals("")) lang = "en";
+		// Add other supported non-English documentation languages here
+		if (lang == null || ! lang.equals("de")) lang = "en";
 		wv.loadUrl(MessageFormat.format(getString(R.string.docs_url),
 				new Object[]{lang,topic}));
 		d.show();
