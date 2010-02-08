@@ -89,31 +89,31 @@ msgstr "\\cfg{pdf-filename}{puzzles.pdf}"
 #: puzzles.but:21
 #, no-wrap
 msgid "\\u00D7{x}"
-msgstr ""
+msgstr "\u00D7{x}"
 
 #. type: define
 #: puzzles.but:23
 #, no-wrap
 msgid "\\u2013{-}"
-msgstr ""
+msgstr "\\u2013{-}"
 
 #. type: define
 #: puzzles.but:25
 #, no-wrap
 msgid "\\u00D7{*}"
-msgstr ""
+msgstr "\\u00D7{*}"
 
 #. type: define
 #: puzzles.but:27
 #, no-wrap
 msgid "\\u00F7{/}"
-msgstr ""
+msgstr "\\u00F7{/}"
 
 #. type: define
 #: puzzles.but:29
 #, no-wrap
 msgid "\\u2212{-}"
-msgstr ""
+msgstr "\\u2212{-}"
 
 #. type: Plain text
 #: puzzles.but:32
@@ -3712,7 +3712,6 @@ msgstr "\\cfg{winhelp-topic}{games.blackbox}"
 
 #. type: Plain text
 #: puzzles.but:1519
-#, fuzzy
 msgid ""
 "A number of balls are hidden in a rectangular arena. You have to deduce the "
 "positions of the balls by firing lasers positioned at the edges of the arena "
@@ -5478,13 +5477,12 @@ msgstr ""
 
 #. type: Plain text
 #: puzzles.but:2276
-#, fuzzy
 msgid ""
 "At the time of writing, the \\q{Unequal} mode of this puzzle is appearing in "
 "the Guardian weekly under the name \\q{\\i{Futoshiki}}."
 msgstr ""
-"Zum Zeitpunkt des Schreiben erscheint das Puzzle in der »Guardian weekly« "
-"unter dem Namen \\q{\\i{Futoshiki}}."
+"Zum Zeitpunkt des Schreiben erscheint der \\q{Unequal} Modus dieses Puzzles "
+"in der »Guardian weekly« unter dem Namen \\q{\\i{Futoshiki}}."
 
 #. type: Plain text
 #: puzzles.but:2278
@@ -6091,7 +6089,6 @@ msgstr ""
 
 #. type: Plain text
 #: puzzles.but:2611
-#, fuzzy
 msgid ""
 "If you \\e{right}-click in a square and then type a number, that number will "
 "be entered in the square as a \\q{pencil mark}. You can have pencil marks "
@@ -6253,13 +6250,12 @@ msgstr "Magnets wurde von James Harvey zu dieser Sammlung beigesteuert."
 
 #. type: Plain text
 #: puzzles.but:2730
-#, fuzzy
 msgid ""
 "\\W{http://www.janko.at/Raetsel/Magnete/index.htm}\\cw{http://www.janko.at/"
 "Raetsel/Magnete/index.htm}"
 msgstr ""
-"\\W{http://www.nikoli.co.jp/puzzles/14/index-e.htm}\\cw{http://www.nikoli.co."
-"jp/puzzles/14/index-e.htm}"
+"\\W{http://www.janko.at/Raetsel/Magnete/index.htm}\\cw{http://www.janko.at/"
+"Raetsel/Magnete/index.htm}"
 
 #. type: Plain text
 #: puzzles.but:2732
