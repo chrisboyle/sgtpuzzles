@@ -89,7 +89,7 @@ msgstr "\\cfg{pdf-filename}{puzzles.pdf}"
 #: puzzles.but:21
 #, no-wrap
 msgid "\\u00D7{x}"
-msgstr "\u00D7{x}"
+msgstr "\\u00D7{x}"
 
 #. type: define
 #: puzzles.but:23
@@ -6438,7 +6438,7 @@ msgstr "Spiele-ID, erzeugen"
 #. type: IM{#1}
 #: puzzles.but:2817
 msgid "specific"
-msgstr "specific"
+msgstr "bestimmt"
 
 #. type: IM
 #: puzzles.but:2817
@@ -6449,7 +6449,7 @@ msgstr "\\q{Bestimmt}, Menüoption"
 #. type: IM{#1}
 #: puzzles.but:2818
 msgid "custom"
-msgstr "custom"
+msgstr "benutzerdefiniert"
 
 #. type: IM
 #: puzzles.but:2818
