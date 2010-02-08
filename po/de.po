@@ -276,7 +276,7 @@ msgid ""
 "These actions are all available from the \\I{Game menu}\\q{Game} menu and "
 "via \\I{keys}keyboard shortcuts, in addition to any game-specific actions."
 msgstr ""
-"Diese Aktionen sind vom Menüpunkt \\I{Game menu}\\q{Game} und über \\I"
+"Diese Aktionen sind vom Menüpunkt \\I{Game menu}\\q{Spiel} und über \\I"
 "{Tasten}Tastaturkürzel verfügbar, zusätzlich zu allen spielspezifischen "
 "Aktionen."
 
@@ -294,7 +294,7 @@ msgstr ""
 #. type: Plain text
 #: puzzles.but:97
 msgid "\\ii\\e{New game} (\\q{N}, Ctrl+\\q{N})"
-msgstr "\\ii\\e{New game} (\\q{N}, Ctrl+\\q{N})"
+msgstr "\\ii\\e{Neues Spiel} (\\q{N}, Ctrl+\\q{N})"
 
 #. type: Plain text
 #: puzzles.but:99
@@ -304,7 +304,7 @@ msgstr "Beginnt ein neues Spiel, mit einem zufälligen Startzustand."
 #. type: Plain text
 #: puzzles.but:101
 msgid "\\ii\\e{Restart game}"
-msgstr "\\ii\\e{Restart game}"
+msgstr "\\ii\\e{Wieder beginnen}"
 
 #. type: Plain text
 #: puzzles.but:103
@@ -316,7 +316,7 @@ msgstr ""
 #. type: Plain text
 #: puzzles.but:105
 msgid "\\ii\\e{Load}"
-msgstr "\\ii\\e{Load}"
+msgstr "\\ii\\e{Laden}"
 
 #. type: Plain text
 #: puzzles.but:107
@@ -326,7 +326,7 @@ msgstr "Lädt ein gespeichertes Spiel aus einer Datei auf der Platte."
 #. type: Plain text
 #: puzzles.but:109
 msgid "\\ii\\e{Save}"
-msgstr "\\ii\\e{Save}"
+msgstr "\\ii\\e{Speichern}"
 
 #. type: Plain text
 #: puzzles.but:111
@@ -348,7 +348,7 @@ msgstr ""
 #. type: Plain text
 #: puzzles.but:121
 msgid "\\I{printing, on Windows}\\e{Print}"
-msgstr "\\I{Drucken, unter Windows}\\e{Print}"
+msgstr "\\I{Drucken, unter Windows}\\e{Drücken}"
 
 #. type: Plain text
 #: puzzles.but:128
@@ -369,7 +369,7 @@ msgstr ""
 #. type: Plain text
 #: puzzles.but:130
 msgid "\\ii\\e{Undo} (\\q{U}, Ctrl+\\q{Z}, Ctrl+\\q{_})"
-msgstr "\\ii\\e{Undo} (\\q{U}, Ctrl+\\q{Z}, Ctrl+\\q{_})"
+msgstr "\\ii\\e{Rückgängig} (\\q{U}, Ctrl+\\q{Z}, Ctrl+\\q{_})"
 
 #. type: Plain text
 #: puzzles.but:133
@@ -382,7 +382,7 @@ msgstr ""
 #. type: Plain text
 #: puzzles.but:135
 msgid "\\ii\\e{Redo} (\\q{R}, Ctrl+\\q{R})"
-msgstr "\\ii\\e{Redo} (\\q{R}, Ctrl+\\q{R})"
+msgstr "\\ii\\e{Nochmals} (\\q{R}, Ctrl+\\q{R})"
 
 #. type: Plain text
 #: puzzles.but:137
@@ -392,7 +392,7 @@ msgstr "Nimmt einen vorher zurückgesetzten Spielzug wieder vor."
 #. type: Plain text
 #: puzzles.but:139
 msgid "\\ii\\e{Copy}"
-msgstr "\\ii\\e{Copy}"
+msgstr "\\ii\\e{Kopieren}"
 
 #. type: Plain text
 #: puzzles.but:144
@@ -410,7 +410,7 @@ msgstr ""
 #. type: Plain text
 #: puzzles.but:146
 msgid "\\ii\\e{Solve}"
-msgstr "\\ii\\e{Solve}"
+msgstr "\\ii\\e{Lösen}"
 
 #. type: Plain text
 #: puzzles.but:156
@@ -457,7 +457,7 @@ msgid ""
 "for the puzzle. In other words, if you want to go back to solving it "
 "yourself after seeing the answer, you can just press Undo."
 msgstr ""
-"Der \\q{Solve}-Befehl fügt den gelösten Zustand an das Ende der Undo-Kette "
+"Der \\q{Lösen}-Befehl fügt den gelösten Zustand an das Ende der Undo-Kette "
 "für das Puzzle hinzu. Mit anderen Worten, falls Sie zum eigenständigen Lösen "
 "zurückkehren wollen, nachdem Sie die Antwort gesehen habe, wählen Sie "
 "einfach Undo aus."
@@ -465,7 +465,7 @@ msgstr ""
 #. type: Plain text
 #: puzzles.but:173
 msgid "\\I{exit}\\ii\\e{Quit} (\\q{Q}, Ctrl+\\q{Q})"
-msgstr "\\I{exit}\\ii\\e{Quit} (\\q{Q}, Ctrl+\\q{Q})"
+msgstr "\\I{exit}\\ii\\e{Beenden} (\\q{Q}, Ctrl+\\q{Q})"
 
 #. type: Plain text
 #: puzzles.but:175
@@ -495,8 +495,8 @@ msgid ""
 "piece of text (a \\q{game ID}) which is sufficient to reconstruct precisely "
 "the same game at a later date."
 msgstr ""
-"Die Optionen \\q{\\i{Specific}} und \\q{\\i{Random Seed}} aus dem Menü \\I"
-"{Game menu}\\q{Game} (oder \\q{File} unter \\i{Mac OS X}) zeigen jeweils ein "
+"Die Optionen \\q{\\i{Bestimmt}} und \\q{\\i{Anfangswert}} aus dem Menü \\I"
+"{Game menu}\\q{Spiel} (oder \\q{File} unter \\i{Mac OS X}) zeigen jeweils ein "
 "Stück Text (eine \\q{Spiele-ID}), der ausreicht, um genau dieses Spiel zu "
 "einem späteren Zeitpunkt zu rekonstruieren."
 
@@ -509,7 +509,7 @@ msgid ""
 "line} argument (on Windows or Unix); see \\k{common-cmdline} for more detail."
 msgstr ""
 "Sie können eines dieser Textstücke später wieder im Programm eingeben (über "
-"die gleiche Menüoption \\q{Specific} oder \\q{Random Seed}) und es wird das "
+"die gleiche Menüoption \\q{Bestimmt} oder \\q{Anfangswert}) und es wird das "
 "gleiche Spiel wieder erzeugt. Sie können auch eines davon (unter Windows "
 "oder Unix) als \\i{Befehlszeilen}-Argument verwenden; lesen Sie \\k{common-"
 "cmdline} für weitere Details."
@@ -599,7 +599,7 @@ msgid ""
 "program. Programs with the same version number running on different "
 "platforms should still be random-seed compatible.)"
 msgstr ""
-"(Verwenden Sie die Menüoption \\q{About} um die Versionsnummer des Programms "
+"(Verwenden Sie die Menüoption \\q{Über} um die Versionsnummer des Programms "
 "herauszufinden. Programme mit der gleichen Versionsnummer auf verschiedenen "
 "Plattformen sollten im Hinblick auf die Zufallsstartwerte kompatibel sein.)"
 
@@ -666,19 +666,19 @@ msgid ""
 msgstr ""
 "Diese zusätzlichen Parameter werden auch nicht permanent gesetzt, falls Sie "
 "eine Spiele-ID eingeben. Nehmen wir beispielsweise an, Sie haben den "
-"Schwierigkeitsgrad \\q{Advanced} in Solo eingestellt und ein Freund bittet "
+"Schwierigkeitsgrad \\q{Fortgeschritten} in Solo eingestellt und ein Freund bittet "
 "Sie um Unterstützung bei einem Spiel der Schwierigkeit \\q{Trivial}. Er "
 "liest daher einen einen Zufallsstartwert unter Benutzung der Schwierigkeit "
 "\\q{Trivial} aus und Sie geben diesen ein. Das Programm wird Ihnen das "
 "gleiche Gitter mit der Schwierigkeit \\q{Trivial} erstellen, mit dem Ihr "
 "Freund Probleme hatte, aber sobald Sie es zuende gespielt haben und um ein "
 "neues Spiel bitten, wird wieder automatisch auf die Schwierigkeit \\q"
-"{Advanced} zurückgeschaltet, die vorher eingestellt worden war."
+"{Fortgeschritten} zurückgeschaltet, die vorher eingestellt worden war."
 
 #. type: Plain text
 #: puzzles.but:262
 msgid "The \\q{Type} menu"
-msgstr "Das Menü \\q{Type} "
+msgstr "Das Menü \\q{Art} "
 
 #. type: Plain text
 #: puzzles.but:266
@@ -687,7 +687,7 @@ msgid ""
 "{preset} game settings. Selecting one of these will start a new random game "
 "with the parameters specified."
 msgstr ""
-"Das Menü \\I{Type menu}\\q{Type} kann, falls vorhanden, eine Liste der \\i"
+"Das Menü \\I{Menü \\q{Art}}\\q{Art} kann, falls vorhanden, eine Liste der \\i"
 "{voreingestellten} Spieleeinstellungen enthalten. Wird eines dieser Einträge "
 "ausgewählt, wird ein neues Spiel mit den angegebenen Parametern gestartet."
 
@@ -698,7 +698,7 @@ msgid ""
 "you to fine-tune game \\i{parameters}. The parameters available are specific "
 "to each game and are described in the following sections."
 msgstr ""
-"Das Menü \\q{Type} kann auch eine Option \\q{\\i{Custom}} enthalten, die es "
+"Das Menü \\q{Art} kann auch eine Option \\q{\\i{Benutzerdefiniert}} enthalten, die es "
 "Ihnen erlaubt, die \\i{Parameter} des Spiels im Detail einzustellen. Die "
 "Parameter sind spielspezifisch und werden in den folgenden Abschnitten "
 "beschrieben."
@@ -754,12 +754,12 @@ msgid ""
 "for example, and anything else you set using the \\q{Type} menu)."
 msgstr ""
 "Am einfachsten erfolgt dies, indem Sie die gewünschten Parameter mit dem "
-"Menü \\q{Type} einrichten (siehe \\k{common-type}) und dann \\q{Random Seed} "
-"aus dem Menü \\q{Game} oder \\q{File} (siehe \\k{common-id}) auswählen. Der "
-"Text in dem Kasten \\q{Game ID} wird dann aus zwei Teilen bestehen, getrennt "
+"Menü \\q{Art} einrichten (siehe \\k{common-type}) und dann \\q{Anfangswert} "
+"aus dem Menü \\q{Spiel} oder \\q{File} (siehe \\k{common-id}) auswählen. Der "
+"Text in dem Kasten \\q{Spiel-ID} wird dann aus zwei Teilen bestehen, getrennt "
 "durch eine Raute. Der erste dieser Teile stellt die Spieleparameter das "
 "(beispielsweise die Größe des Spielbereichs, und alles was Sie über das Menü "
-"\\q{Type} eingestellt haben)."
+"\\q{Art} eingestellt haben)."
 
 #. type: Plain text
 #: puzzles.but:296
@@ -779,8 +779,8 @@ msgid ""
 "hash (\\cq{o2x2}), and start Cube with that text on the command line: \\cq"
 "{cube o2x2}."
 msgstr ""
-"Beispiel: Sie führen Cube aus (siehe \\k{cube}), wählen \\q{Octahedron} aus "
-"dem Menü \\q{Type} aus und gehen dann zu der Auswahl der Spiele-ID. Dort "
+"Beispiel: Sie führen Cube aus (siehe \\k{cube}), wählen \\q{Octaeder} aus "
+"dem Menü \\q{Art} aus und gehen dann zu der Auswahl der Spiele-ID. Dort "
 "sehen Sie eine Zeichenkette der Form \\cq{o2x2#338686542711620}. Verwenden "
 "Sie nur den Teil vor der Raute (\\cq{o2x2}) und starten Sie Cube mit diesem "
 "Text auf der Befehlszeile: \\cq{cube o2x2}."
@@ -807,7 +807,7 @@ msgid ""
 "for more details on this.)"
 msgstr ""
 "(Sie können die kodierten Spieleparameter auch aus der Menüoption \\q"
-"{Specific} statt \\q{Random Seed} auslesen, allerdings werden dann einige "
+"{Bestimmt} statt \\q{Anfangswert} auslesen, allerdings werden dann einige "
 "Parameter wie der Schwierigkeitsgrad in Sole fehlen. Lesen Sie \\k{common-"
 "id} für weitere Details darüber.)"
 
@@ -1267,7 +1267,7 @@ msgid ""
 "These parameters are available from the \\q{Custom...} option on the \\q"
 "{Type} menu."
 msgstr ""
-"Diese Parameter sind von der Option \\q{Custom...} im Menü \\q{Type} "
+"Diese Parameter sind von der Option \\q{Benutzerdefiniert...} im Menü \\q{Art} "
 "verfügbar."
 
 #. type: Plain text
@@ -1277,7 +1277,7 @@ msgstr ""
 #: puzzles.but:2096 puzzles.but:2205 puzzles.but:2401 puzzles.but:2700
 #: puzzles.but:2759
 msgid "\\e{Width}, \\e{Height}"
-msgstr "\\e{Width} (Breite), \\e{Height} (Höhe)"
+msgstr "\\e{Breite}, \\e{Höhe}"
 
 #. type: Plain text
 #: puzzles.but:497
@@ -1287,7 +1287,7 @@ msgstr "Größe des Gitters in Kacheln."
 #. type: e{#1}
 #: puzzles.but:499
 msgid "Walls wrap around"
-msgstr "Walls wrap around"
+msgstr "Umlaufende Grenzen"
 
 #. type: Plain text
 #: puzzles.but:502
@@ -1345,7 +1345,7 @@ msgstr ""
 #. type: e{#1}
 #: puzzles.but:526 puzzles.but:833 puzzles.but:1470
 msgid "Ensure unique solution"
-msgstr "Eindeutige Lösung sicherstellen"
+msgstr "Eindeutiglösbarkeit garantieren"
 
 #. type: Plain text
 #: puzzles.but:533
@@ -1612,8 +1612,8 @@ msgid ""
 "menu are \\e{Width} and \\e{Height}, which are self-explanatory. (Once "
 "you've changed these, it's not a \\q{15-puzzle} any more, of course!)"
 msgstr ""
-"Die einzigen unter \\q{Custom...} im Menü \\q{Type} verfügbaren Optionen "
-"sind die \\e{Width} (Breite) und \\e{Height} (Höhe), die selbsterklärend "
+"Die einzigen unter \\q{Benutzerdefiniert...} im Menü \\q{Art} verfügbaren Optionen "
+"sind die \\e{Breite} und \\e{Höhe}, die selbsterklärend "
 "sind. (Sobald Sie diese ändern, ist es natürlich kein \\q{15er Puzzle} mehr!)"
 
 #. type: Plain text
@@ -1705,13 +1705,13 @@ msgid ""
 "The parameters available from the \\q{Custom...} option on the \\q{Type} "
 "menu are:"
 msgstr ""
-"Die von der Option \\q{Custom...} im Menü \\q{Type} verfügbaren Parameter "
+"Die von der Option \\q{Benutzerdefiniert...} im Menü \\q{Art} verfügbaren Parameter "
 "lauten:"
 
 #. type: Plain text
 #: puzzles.but:671
 msgid "\\e{Width} and \\e{Height}, which are self-explanatory."
-msgstr "\\e{Width} (Breite) und \\e{Height} (Höhe) sind selbsterklärend."
+msgstr "\\e{Breite} und \\e{Höhe} sind selbsterklärend."
 
 #. type: Plain text
 #: puzzles.but:681
@@ -1848,7 +1848,7 @@ msgid ""
 "the \\q{Type} menu:"
 msgstr ""
 "Twiddle stellt mehrere Konfigurationsmöglichkeiten über die Option \\q"
-"{Custom} im Menü \\q{Type} bereit:"
+"{Benutzerdefiniert} im Menü \\q{Art} bereit:"
 
 #. type: Plain text
 #: puzzles.but:729
@@ -2266,8 +2266,8 @@ msgid ""
 "The only options available from the \\q{Custom...} option on the \\q{Type} "
 "menu are \\e{Width} and \\e{Height}, which are self-explanatory."
 msgstr ""
-"Die einzigen unter der Option \\q{Custom...} im Menü \\q{Type} verfügbaren "
-"Optionen sind \\e{Width} (Breite) und \\e{Height} (Höhe), die "
+"Die einzigen unter der Option \\q{Benutzerdefiniert...} im Menü \\q{Art} verfügbaren "
+"Optionen sind \\e{Breite} und \\e{Höhe}, die "
 "selbsterklärend sind."
 
 #. type: Plain text
@@ -2339,7 +2339,7 @@ msgstr ""
 "eingeteilt in neun 3\\.by\\.3 Blöcke). Sie können auch Größen mit "
 "rechteckigen statt quadratischen Blöcken auswählen, wie beispielsweise 2\\by"
 "\\.3 (ein 6\\by\\.6 Gitter unterteilt in sechs 3\\by\\.2 Blöcke). Alternativ "
-"können Sie den \\q{Jigsaw}-Modus auswählen, bei dem die Unterblöcke "
+"können Sie den \\q{Zickzack}-Modus auswählen, bei dem die Unterblöcke "
 "beliebige Formen haben, die sich zwischen den einzelnen Puzzlen "
 "unterscheiden."
 
@@ -2506,7 +2506,7 @@ msgid ""
 "3 columns and 2 rows.)"
 msgstr ""
 "Solo erlaubt Ihnen, zwei separate Dimensionen des Puzzlegitters im Menü \\q"
-"{Type} zu konfigurieren: die Anzahl der Spalten und die Anzahl der Zeilen, "
+"{Art} zu konfigurieren: die Anzahl der Spalten und die Anzahl der Zeilen, "
 "in die das Hauptgitter eingeteilt wird. (Die Größe eines Blocks ist hierzu "
 "invers: Falls Sie beispielsweise 2 Spalten und 3 Zeilen wählen, wird jeder "
 "Block tatsächlich 3 Spalten und 2 Zeilen haben.)"
@@ -2536,9 +2536,9 @@ msgid ""
 "mode has no constraint on the grid size, and it can even be a prime number "
 "if you feel like it."
 msgstr ""
-"Falls Sie die Auswahl \\q{Jigsaw} ankreuzen, wird Solo zufällig generierte "
+"Falls Sie die Auswahl \\q{Zickzack} ankreuzen, wird Solo zufällig generierte "
 "Teilblöcke erstellen. In diesem Modus wird die tatsächliche Gittergröße das "
-"Produkt der in die Felder \\q{Columns} und \\q{Rows} eingetragenen Werte "
+"Produkt der in die Felder \\q{Spalten} und \\q{Zeilen} eingetragenen Werte "
 "darstellen. Es gibt keinen Grund, warum Sie eine Zahl größer als 1 in beide "
 "Felder eingeben müssen; der Jigsaw-Modus kennt keine Grenzen in der Gitter-"
 "Größe und es kann sogar eine Primzahl sein, wenn Sie dies möchten."
@@ -2592,10 +2592,10 @@ msgstr ""
 "einen Schlussfolgerungsmodus, der in der vorherigen Stufe nicht notwendig "
 "war. Insbesondere gibt es in den Schwierigkeitsstufen \\q{Trivial} und \\q"
 "{Basic} ein Quadrat, in dem Sie zu allen Zeiten eine einzelne Zahl eintragen "
-"können, während Sie in der Stufe \\q{Intermediate} und höher "
+"können, während Sie in der Stufe \\q{Mittle} und höher "
 "Teilschlussfolgerungen über die \\e{Menge} aller Quadrate machen müssen, in "
 "denen eine Zahl sein könnte (oder der Satz an Zahlen, der in einem Quadrat "
-"sein könnte). \\#{Advanced, Extreme?} In der Stufe \\q{Unreasonable} ist "
+"sein könnte). \\#{Advanced, Extreme?} In der Stufe \\q{Unvernünftig} ist "
 "selbst dies nicht genug und Sie müssen schließlich raten und falls sich die "
 "geratene Zahl als falsch herausstellt wieder schrittweise zurückgehen."
 
@@ -2784,7 +2784,7 @@ msgstr "\\I{Parameter, für Mines}Mines-Parameter"
 msgid ""
 "The options available from the \\q{Custom...} option on the \\q{Type} menu "
 "are:"
-msgstr "Die unter \\q{Custom} im Menü \\q{Type} verfügbaren Optionen sind:"
+msgstr "Die unter \\q{Benutzerdefiniert} im Menü \\q{Art} verfügbaren Optionen sind:"
 
 #. type: Plain text
 #: puzzles.but:1124 puzzles.but:1196 puzzles.but:1269 puzzles.but:1717
@@ -2796,7 +2796,7 @@ msgstr "Größe des Gitters in Quadraten"
 #. type: e{#1}
 #: puzzles.but:1126
 msgid "Mines"
-msgstr "Mines"
+msgstr "Minen"
 
 #. type: Plain text
 #: puzzles.but:1131
@@ -2821,7 +2821,7 @@ msgstr ""
 #. type: e{#1}
 #: puzzles.but:1140 puzzles.but:1212
 msgid "Ensure solubility"
-msgstr "Ensure solubility"
+msgstr "Lösbarkeit garantieren"
 
 #. type: Plain text
 #: puzzles.but:1145
@@ -2958,7 +2958,7 @@ msgstr "\\I{Parameter, für Same Game}Same Game-Parameter"
 #. type: e{#1}
 #: puzzles.but:1198
 msgid "No. of colours"
-msgstr "No. of colours"
+msgstr "Farbenanzahl"
 
 #. type: Plain text
 #: puzzles.but:1202
@@ -2974,7 +2974,7 @@ msgstr ""
 #. type: e{#1}
 #: puzzles.but:1204
 msgid "Scoring system"
-msgstr "Scoring system"
+msgstr "Spielstandsystem"
 
 #. type: Plain text
 #: puzzles.but:1210
@@ -3097,7 +3097,7 @@ msgid ""
 "mark will appear in it to indicate that you will need to reverse that "
 "operation to reach the solution.)"
 msgstr ""
-"Falls Sie die Funktion \\q{Solve} in diesem Spiel benutzen, wird es einige "
+"Falls Sie die Funktion \\q{Lösen} in diesem Spiel benutzen, wird es einige "
 "Quadrate rot markieren. Falls Sie einmal auf jedes Quadrat mit einer roten "
 "Markierung klicken, sollte das Spiel gelöst sein. (Falls Sie auf ein Quadrat "
 "\\e{ohne} eine rote Markierung klicken, wird darin eine rote Markierung "
@@ -3112,7 +3112,7 @@ msgstr "\\I{Parameter, für Flip}Flip-Parameter"
 #. type: e{#1}
 #: puzzles.but:1271
 msgid "Shape type"
-msgstr "Shape type"
+msgstr "Form"
 
 #. type: Plain text
 #: puzzles.but:1278
@@ -3124,10 +3124,10 @@ msgid ""
 "be chosen for every square, so the game is different every time."
 msgstr ""
 "Diese Einstellung bestimmt die Form der Region, die durch klicken in eines "
-"der zugehörigen Quadrate gedreht wird. \\q{Crosses} führt dazu, dass jedes "
+"der zugehörigen Quadrate gedreht wird. \\q{Kreuze} führt dazu, dass jedes "
 "Quadrat und seine vier direkten Nachbarn (oder drei oder zwei, falls es an "
 "einer Seite oder in einer Ecke ist) umgedreht werden. Die andere "
-"Einstellung, \\q{Random}, führt dazu, dass eine zufällige Region um jedes "
+"Einstellung, \\q{zufällig}, führt dazu, dass eine zufällige Region um jedes "
 "Quadrat gewählt wird, so dass das Spiel jedes mal anders ist."
 
 #. type: Plain text
@@ -3269,7 +3269,7 @@ msgid ""
 "be revealed."
 msgstr ""
 "Falls Sie alle Stifte korrekt platzieren wird die Lösung unten angezeigt; "
-"falls Ihnen die Vermutungsrunden ausgehen (oder Sie \\q{Solve...} verwenden) "
+"falls Ihnen die Vermutungsrunden ausgehen (oder Sie \\q{Lösen...} verwenden) "
 "wird die Lösung auch offengelegt."
 
 #. type: Plain text
@@ -3284,14 +3284,14 @@ msgid ""
 "{Type} menu. The default game matches the parameters for the board game \\q"
 "{Mastermind}."
 msgstr ""
-"Diese Parameter sind von der Option \\q{Custom...} im Menü \\q{Type} "
+"Diese Parameter sind von der Option \\q{Benutzerdefiniert...} im Menü \\q{Art} "
 "verfügbar. Das Standardspiel stimmt mit den Parametern für das Brettspiel \\q"
 "{Mastermind} überein."
 
 #. type: e{#1}
 #: puzzles.but:1341
 msgid "Colours"
-msgstr "Colours"
+msgstr "Farben"
 
 #. type: Plain text
 #: puzzles.but:1344
@@ -3304,7 +3304,7 @@ msgstr ""
 #. type: e{#1}
 #: puzzles.but:1346
 msgid "Pegs per guess"
-msgstr "Pegs per guess"
+msgstr "Stifte pro Vermutung"
 
 #. type: Plain text
 #: puzzles.but:1348
@@ -3314,7 +3314,7 @@ msgstr "Anzahl der Stifte pro Vermutung (mehr ist schwerer)"
 #. type: e{#1}
 #: puzzles.but:1350
 msgid "Guesses"
-msgstr "Guesses"
+msgstr "Rateversuche"
 
 #. type: Plain text
 #: puzzles.but:1352
@@ -3326,7 +3326,7 @@ msgstr ""
 #. type: e{#1}
 #: puzzles.but:1354
 msgid "Allow blanks"
-msgstr "Allow blanks"
+msgstr "Leere Stifte erlauben"
 
 #. type: Plain text
 #: puzzles.but:1358
@@ -3351,7 +3351,7 @@ msgstr ""
 #. type: e{#1}
 #: puzzles.but:1363
 msgid "Allow duplicates"
-msgstr "Allow duplicates"
+msgstr "Duplikate erlauben"
 
 #. type: Plain text
 #: puzzles.but:1367
@@ -3464,7 +3464,7 @@ msgstr "Größe des Gitters in Löchern."
 #. type: e{#1}
 #: puzzles.but:1412
 msgid "Board type"
-msgstr "Board type"
+msgstr "Brettart"
 
 #. type: Plain text
 #: puzzles.but:1419
@@ -3478,9 +3478,9 @@ msgid ""
 msgstr ""
 "Stellt ein, ob Sie ein Brett in der Standardform oder in einer zufällig "
 "erstellten Form erhalten. Die derzeit unterstützen Standardformen sind \\q"
-"{Cross} (Kreuz) und \\q{Octagon} (Oktaeder) (auch als englisches bzw "
-"europäisches Brettformat bekannt). Durch die Auswahl von \\q{Random} "
-"(Zufall) erhalten Sie jedes Mal eine andere Brettform (aber immer eine, von "
+"{Kreuz} und \\q{Oktaeder} (auch als englisches bzw "
+"europäisches Brettformat bekannt). Durch die Auswahl von \\q{zufällig} "
+"erhalten Sie jedes Mal eine andere Brettform (aber immer eine, von "
 "der eine Lösung bekannt ist)."
 
 #. type: Plain text
@@ -3577,7 +3577,7 @@ msgstr "\\I{Parameter, für Dominosa}Dominosa-Parameter"
 #. type: e{#1}
 #: puzzles.but:1463
 msgid "Maximum number on dominoes"
-msgstr "Maximum number on dominoes"
+msgstr "Maximale Zahl auf Dominos"
 
 #. type: Plain text
 #: puzzles.but:1468
@@ -3683,13 +3683,13 @@ msgid ""
 "There is only one parameter available from the \\q{Custom...} option on the "
 "\\q{Type} menu:"
 msgstr ""
-"Es gibt nur einen über die \\q{Custom...}-Option im \\q{Type}-Menü "
+"Es gibt nur einen über die \\q{Benutzerdefiniert...}-Option im \\q{Art}-Menü "
 "verfügbare Parameter:"
 
 #. type: e{#1}
 #: puzzles.but:1507
 msgid "Number of points"
-msgstr "Number of points"
+msgstr "Anzahl von Punkte"
 
 #. type: Plain text
 #: puzzles.but:1510
@@ -4074,13 +4074,13 @@ msgid ""
 "Size of grid in squares. There are 2 \\by \\e{Width} \\by \\e{Height} lasers "
 "per grid, two per row and two per column."
 msgstr ""
-"Größe des Gitters in Quadraten. Es gibt 2 \\by \\e{Width} \\by \\e{Height} "
+"Größe des Gitters in Quadraten. Es gibt 2 \\by \\e{Breite} \\by \\e{Höhe} "
 "Laser pro Gitter, zwei pro Zeile und zwei pro Spalte."
 
 #. type: e{#1}
 #: puzzles.but:1655
 msgid "No. of balls"
-msgstr "No. of balls"
+msgstr "Zahl von Bällen"
 
 #. type: Plain text
 #: puzzles.but:1662
@@ -4224,7 +4224,7 @@ msgstr "\\I{Parameter, für Slant}Slant-Parameter"
 #: puzzles.but:2100 puzzles.but:2209 puzzles.but:2335 puzzles.but:2405
 #: puzzles.but:2558 puzzles.but:2648 puzzles.but:2704 puzzles.but:2766
 msgid "Difficulty"
-msgstr "Difficulty"
+msgstr "Schwierigkeit"
 
 #. type: Plain text
 #: puzzles.but:1728
@@ -4397,7 +4397,7 @@ msgstr "\\I{Parameter, für Light Up}Light Up-Parameter"
 #. type: e{#1}
 #: puzzles.but:1790
 msgid "%age of black squares"
-msgstr "%age of black squares"
+msgstr "Prozentanzahl von schwarzen Quadraten"
 
 #. type: Plain text
 #: puzzles.but:1792
@@ -4419,7 +4419,7 @@ msgstr ""
 #. type: e{#1}
 #: puzzles.but:1802
 msgid "Symmetry"
-msgstr "Symmetry"
+msgstr "Symmetrie"
 
 #. type: Plain text
 #: puzzles.but:1806
@@ -4436,8 +4436,8 @@ msgid ""
 "\\q{Easy} means that the puzzles should be soluble without backtracking or "
 "guessing, \\q{Hard} means that some guesses will probably be necessary."
 msgstr ""
-"\\q{Easy} bedeutet, dass das Spiel ohne Rückverfolgungen oder Raten gelöst "
-"werden kann, \\q{Hard} bedeutet, dass Raten wahrscheinlich notwendig sein "
+"\\q{Einfach} bedeutet, dass das Spiel ohne Rückverfolgungen oder Raten gelöst "
+"werden kann, \\q{Schwer} bedeutet, dass Raten wahrscheinlich notwendig sein "
 "wird."
 
 #. type: Plain text
@@ -4601,7 +4601,7 @@ msgstr "\\I{Parameter, für Map}Map-Parameter"
 #. type: e{#1}
 #: puzzles.but:1886
 msgid "Regions"
-msgstr "Regions"
+msgstr "Bereiche"
 
 #. type: Plain text
 #: puzzles.but:1888
@@ -4616,8 +4616,8 @@ msgid ""
 "have to use increasingly complex logic to deduce the colour of some regions. "
 "However, it will always be possible without having to guess or backtrack."
 msgstr ""
-"Im Modus \\q{Easy} sollte es immer mindestens eine Region geben, dessen "
-"Farbe trivial ermittelt werden kann. In den Modi \\q{Normal} und \\q{Hard} "
+"Im Modus \\q{Einfach} sollte es immer mindestens eine Region geben, dessen "
+"Farbe trivial ermittelt werden kann. In den Modi \\q{Normal} und \\q{Schwer} "
 "müssen Sie zunehmend komplexe Logik verwenden, um die Farbe einiger Regionen "
 "zu bestimmen. Es wird allerdings immer ohne Raten oder Rückverfolgen möglich "
 "sein."
@@ -4630,7 +4630,7 @@ msgid ""
 "they should still have a unique solution. Solving Unreasonable puzzles may "
 "require guessing and backtracking."
 msgstr ""
-"Im Modus \\q{Unreasonable} wird das Programm die Freiheit einsetzen, so "
+"Im Modus \\q{Unvernünftig} wird das Programm die Freiheit einsetzen, so "
 "schwer wie möglich lösbare Puzzle zu generieren. Die einzige Randbedingung "
 "ist, dass sie immer noch eine eindeutige Lösung haben sollten. Das Lösen von "
 "Puzzlen dieser Schwierigkeit kann Raten und Rückverfolgung verlangen."
@@ -4769,7 +4769,7 @@ msgstr ""
 #. type: e{#1}
 #: puzzles.but:1964
 msgid "Grid type"
-msgstr "Grid type"
+msgstr "Gitterart"
 
 # msgstr "Art des Gitters"
 #. type: Plain text
@@ -4916,7 +4916,7 @@ msgid ""
 "the provided path; you can then use \\q{Solve} again to generate a new path "
 "if you want to."
 msgstr ""
-"Falls Sie die Funktion \\q{Solve} in diesem Spiel verwenden, wird das "
+"Falls Sie die Funktion \\q{Lösen} in diesem Spiel verwenden, wird das "
 "Programm einen Pfad durch das Gitter berechnen, dass alle verbliebenen "
 "Edelsteine einsammelt und zu der aktuellen Position zurückkehrt. Ein "
 "Hinweispfeil wird am Ball erscheinen, der die Richtung anzeigt, in die Sie "
@@ -4926,7 +4926,7 @@ msgstr ""
 "automatisch in die Richtung des Hinweispfeils zu bewegen. Falls Sie den Ball "
 "in eine andere Richtung als die vom Hinweispfeil angezeigte bewegen, dann "
 "wird der Hinweispfeil nicht mehr angezeigt, da Sie vom vorgegebenen Pfad "
-"abgewichen sind; Sie können dann \\q{Solve} erneut aufrufen, um einen neuen "
+"abgewichen sind; Sie können dann \\q{Lösen} erneut aufrufen, um einen neuen "
 "Pfad zu erzeugen, falls Sie dies möchten."
 
 #. type: Plain text
@@ -5333,7 +5333,7 @@ msgstr "Schwierigkeitsgrad des Puzzles."
 #. type: e{#1}
 #: puzzles.but:2213
 msgid "Allow loops"
-msgstr "Allow loops"
+msgstr "Schleifen erlauben"
 
 #. type: Plain text
 #: puzzles.but:2217
@@ -5349,7 +5349,7 @@ msgstr ""
 #. type: e{#1}
 #: puzzles.but:2219
 msgid "Max. bridges per direction"
-msgstr "Max. bridges per direction"
+msgstr "Max. Brücken in jede Richtung"
 
 #. type: Plain text
 #: puzzles.but:2223
@@ -5471,7 +5471,7 @@ msgid ""
 "selector), there are no greater-than signs in \\q{Unequal} mode; the puzzle "
 "is to solve the \\i{Latin square} only."
 msgstr ""
-"Im Modus \\q{Trivial} (erreichbar über die \\q{Custom}-Spieltypauswahl) gibt "
+"Im Modus \\q{Trivial} (erreichbar über die \\q{Benutzerdefiniert}-Spieltypauswahl) gibt "
 "es keine Größer-Als-Zeichen; das Puzzle besteht nur darin, dass \\i"
 "{Lateinische Quadrat} zu lösen."
 
@@ -5547,7 +5547,7 @@ msgstr "\\I{Parameter, für Unequal}Unequal-Parameter"
 #. type: e{#1}
 #: puzzles.but:2327
 msgid "Mode"
-msgstr ""
+msgstr "Modus"
 
 #. type: Plain text
 #: puzzles.but:2329
@@ -5557,7 +5557,7 @@ msgstr ""
 #. type: e{#1}
 #: puzzles.but:2331
 msgid "Size (s*s)"
-msgstr "Size (s*s)"
+msgstr "Größe (g*g)"
 
 #. type: Plain text
 #: puzzles.but:2333
@@ -5576,7 +5576,7 @@ msgid ""
 msgstr ""
 "Steuert die Schwierigkeit des erstellten Puzzles. Auf der Stufe Trivial gibt "
 "es keine Größer-Als-Zeichen; das Puzzle ist nur das lateinische Quadrat. In "
-"der Recursive-Stufe (nur über die \\q{Custom}-Spieltypauswahl verfügbar) ist "
+"der Recursive-Stufe (nur über die \\q{Benutzerdefiniert}-Spieltypauswahl verfügbar) ist "
 "Rückverfolgung notwendig, aber die Lösung sollte immer noch eindeutig sein. "
 "Die Stufen dazwischen benötigen zunehmend komplexe Argumentation um "
 "Rückverfolgung zu vermeiden."
@@ -5722,7 +5722,7 @@ msgid ""
 msgstr ""
 "Steuert die Schwierigkeit des erstellten Puzzles. Schwierigere Puzzle "
 "verlangen komplexere Schlüsse und bei der Schwierigkeitsstufe \\q"
-"{Unreasonable} könnte Rückverfolgung notwendig sein."
+"{Unvernünftig} könnte Rückverfolgung notwendig sein."
 
 #. type: Plain text
 #: puzzles.but:2413
@@ -5838,7 +5838,7 @@ msgid ""
 "through the \\q{Type} menu."
 msgstr ""
 "Filling erlaubt Ihnen, die Anzahl der Zeilen und Spalten des Gitters mittels "
-"des \\q{Type}-Menüs einzustellen."
+"des \\q{Art}-Menüs einzustellen."
 
 #. type: Plain text
 #: puzzles.but:2460
@@ -5972,7 +5972,7 @@ msgstr "\\I{Parameter, für Keen}Keen-Parameter"
 #. type: e{#1}
 #: puzzles.but:2552 puzzles.but:2642
 msgid "Grid size"
-msgstr ""
+msgstr "Gittergröße"
 
 #. type: Plain text
 #: puzzles.but:2556 puzzles.but:2646
@@ -6328,7 +6328,7 @@ msgstr ""
 #. type: e{#1}
 #: puzzles.but:2772
 msgid "Strip clues"
-msgstr ""
+msgstr "Hinweise entfernen"
 
 #. type: Plain text
 #: puzzles.but:2775
@@ -6444,7 +6444,7 @@ msgstr "specific"
 #: puzzles.but:2817
 #, no-wrap
 msgid "\\q{Specific}, menu option"
-msgstr "\\q{Specific}, Menüoption"
+msgstr "\\q{Bestimmt}, Menüoption"
 
 #. type: IM{#1}
 #: puzzles.but:2818
@@ -6455,7 +6455,7 @@ msgstr "custom"
 #: puzzles.but:2818
 #, no-wrap
 msgid "\\q{Custom}, menu option"
-msgstr "\\q{Custom}, Menüoption"
+msgstr "\\q{Benutzerdefiniert}, Menüoption"
 
 #. type: IM{#1}
 #: puzzles.but:2820 puzzles.but:2821

@@ -211,9 +211,9 @@ Revision: %s"</string>
     <string name="Active_X_X">Betätigt: %d/%d</string>
     <string name="Auto_solved">Automatisch gelöst.</string>
     <string name="Auto_solver_used">Automatischer Löser benutzt.</string>
-    <string name="Barrier_probability">Grenzewahrscheinlichkeit</string>
-    <string name="Barrier_probability_may_not_be_negative">Grenzewahrscheinlichkeit kann nicht negativ sein</string>
-    <string name="Barrier_probability_may_not_be_greater_than_1">Grenzewahrscheinlichkeit kann nicht größer als 1 sein</string>
+    <string name="Barrier_probability">Barrierenwahrscheinlichkeit</string>
+    <string name="Barrier_probability_may_not_be_negative">Barrierenwahrscheinlichkeit kann nicht negativ sein</string>
+    <string name="Barrier_probability_may_not_be_greater_than_1">Barrierenwahrscheinlichkeit kann nicht größer als 1 sein</string>
     <string name="COMPLETED">FERTIG!</string>
     <string name="DEAD">TOT!</string>
     <string name="Deaths_X">Todesfälle: %d</string>
