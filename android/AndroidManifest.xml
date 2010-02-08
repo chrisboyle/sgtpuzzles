@@ -1,18 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
       package="name.boyle.chris.sgtpuzzles"
-      android:versionCode="23"
-      android:versionName="8853.3">
-    <uses-sdk android:minSdkVersion="3"/><!-- android:targetSdkVersion="4"-->
+      android:versionCode="24"
+      android:versionName="8853.4">
+    <uses-sdk android:minSdkVersion="3" android:targetSdkVersion="7"/>
     <!-- You must be able to navigate and enter numbers, so: { 5-way and keyboard } or touchscreen -->
     <uses-configuration android:reqFiveWayNav="true" android:reqKeyboardType="qwerty" />
     <uses-configuration android:reqFiveWayNav="true" android:reqKeyboardType="twelvekey" />
     <uses-configuration android:reqTouchScreen="finger" />
-    <!--supports-screens
+    <supports-screens
           android:largeScreens="true"
           android:normalScreens="true"
           android:smallScreens="true"
-          android:anyDensity="true" /-->
+          android:anyDensity="true" />
     <!-- For saved games -->
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <!-- For crash reports -->

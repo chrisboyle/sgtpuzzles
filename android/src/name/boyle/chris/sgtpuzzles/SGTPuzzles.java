@@ -299,7 +299,7 @@ public class SGTPuzzles extends Activity
 			if( useGrid ) {
 				gv = new GridView(SGTPuzzles.this);
 				((GridView)gv).setNumColumns(GridView.AUTO_FIT);
-				((GridView)gv).setColumnWidth(64);
+				((GridView)gv).setColumnWidth((int)Math.round(getResources().getDisplayMetrics().density * 64));
 			} else {
 				gv = new ListView(SGTPuzzles.this);
 			}
