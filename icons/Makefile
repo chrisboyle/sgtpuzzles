@@ -2,8 +2,8 @@
 
 PUZZLES = blackbox bridges cube dominosa fifteen filling flip galaxies guess \
 	  inertia keen lightup loopy magnets map mines net netslide pattern \
-	  pegs rect samegame singles sixteen slant solo tents towers twiddle \
-	  unequal untangle
+	  pegs rect samegame signpost singles sixteen slant solo tents towers \
+	  twiddle unequal untangle
 
 BASE = $(patsubst %,%-base.png,$(PUZZLES))
 WEB = $(patsubst %,%-web.png,$(PUZZLES))
@@ -71,6 +71,7 @@ netslide-ibase.png : override CROP=289x289 144x144+0+0
 pattern-ibase.png : override CROP=384x384 223x223+0+0
 pegs-ibase.png : override CROP=263x263 147x147+116+0
 rect-ibase.png : override CROP=205x205 115x115+90+0
+signpost-ibase.png : override CROP=240x240 98x98+23+23
 singles-ibase.png : override CROP=224x224 98x98+15+15
 sixteen-ibase.png : override CROP=288x288 144x144+144+144
 slant-ibase.png : override CROP=321x321 160x160+160+160

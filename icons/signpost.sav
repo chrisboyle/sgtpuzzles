@@ -1,0 +1,23 @@
+SAVEFILE:41:Simon Tatham's Portable Puzzle Collection
+VERSION :1:1
+GAME    :8:Signpost
+PARAMS  :4:4x4c
+CPARAMS :4:4x4c
+SEED    :15:230468784719861
+DESC    :19:1eceebecfbfhgcaa16a
+NSTATES :2:15
+STATEPOS:2:11
+MOVE    :8:L2,1-3,1
+MOVE    :8:L0,1-1,0
+MOVE    :8:L2,2-1,1
+MOVE    :8:L1,2-0,3
+MOVE    :8:L0,2-2,0
+MOVE    :8:L1,3-1,2
+MOVE    :8:L1,1-1,3
+MOVE    :8:L1,0-3,0
+MOVE    :8:L0,0-0,1
+MOVE    :8:L3,0-3,2
+MOVE    :8:L3,2-0,2
+MOVE    :8:L3,1-2,2
+MOVE    :8:L2,3-2,1
+MOVE    :8:L2,0-2,3
