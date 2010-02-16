@@ -1834,7 +1834,7 @@ static void tile_redraw(drawing *dr, game_drawstate *ds, int tx, int ty,
     /* Draw text (number or set). */
 
     if (num != 0) {
-        assert(num > 0);
+        /* assert(num > 0); - actually, no, this obstructs legal play */
         if (set == 0) {
             sprintf(buf, "%d", n);
         } else {
