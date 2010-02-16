@@ -1,9 +1,5 @@
 /*
  * signpost.c: implementation of the janko game 'arrow path'
- *
- * Remaining troublesome games:
- *
- * 4x4#438520052525454
  */
 
 #include <stdio.h>
