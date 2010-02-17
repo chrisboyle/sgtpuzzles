@@ -916,7 +916,7 @@ static int used_colour(game_state *state, int i, int start)
 
 static int head_number(game_state *state, int i, int *scratch)
 {
-    int off = 0, start = -1, ss, j = i, c, n, sz;
+    int off = 0, found = 0, start, ss, j = i, c, n, sz;
     const char *why = NULL;
 
     assert(state->prev[i] == -1 && state->next[i] != -1);
@@ -926,11 +926,12 @@ static int head_number(game_state *state, int i, int *scratch)
     while (j != -1) {
         if (state->flags[j] & FLAG_IMMUTABLE) {
             ss = state->nums[j] - off;
-            if (start == -1) {
+            if (!found) {
                 start = ss;
+                found = 1;
                 why = "contains cell with immutable number";
             } else if (start != ss) {
-                debug(("head_number: chain with non-sequential numbers."));
+                debug(("head_number: chain with non-sequential numbers!"));
                 state->impossible = 1;
             }
         }
@@ -938,7 +939,7 @@ static int head_number(game_state *state, int i, int *scratch)
         j = state->next[j];
         assert(j != i); /* we have created a loop, obviously wrong */
     }
-    if (start != -1) goto found;
+    if (found) goto done;
 
     if (state->nums[i] == 0) {
         if (state->nums[state->next[i]] != 0) {
@@ -949,6 +950,7 @@ static int head_number(game_state *state, int i, int *scratch)
             start = lowest_start(state, scratch);
             why = "lowest available colour group";
         }
+        found = 1;
     } else {
         c = COLOUR(state->nums[i]);
         n = 1;
@@ -958,6 +960,7 @@ static int head_number(game_state *state, int i, int *scratch)
             j = state->next[j];
             if (state->nums[j] == 0) {
                 start = START(c);
+                found = 1;
                 why = "adding blank cell to end of numbered region";
                 break;
             }
@@ -972,14 +975,16 @@ static int head_number(game_state *state, int i, int *scratch)
                     start = START(c);
                     why = "joining two coloured regions, taking largest";
                 }
+                found = 1;
                 break;
             }
         }
         /* If we got here then we may have split a region into
          * two; make sure we don't assign a colour we've already used. */
-        if (start == -1) {
+        if (!found) {
             start = (c == 0) ? lowest_start(state, scratch) : START(c);
             why = "got to end of coloured region";
+            found = 1;
         }
         if (used_colour(state, i, start)) {
             start = lowest_start(state, scratch);
@@ -987,8 +992,8 @@ static int head_number(game_state *state, int i, int *scratch)
         }
     }
 
-found:
-    assert(start != -1 && why != NULL);
+done:
+    assert(found && why != NULL);
     debug(("Chain at (%d,%d) numbered at %d: %s.",
            i%state->w, i/state->w, start, why));
     return start;
@@ -1035,10 +1040,8 @@ static void update_numbers(game_state *state)
     int i, j, nnum;
     int *scratch = snewn(state->n, int);
 
-    for (i = 0; i < state->n; i++) {
-        assert(state->nums[i] >= 0);
+    for (i = 0; i < state->n; i++)
         state->numsi[i] = -1;
-    }
 
     for (i = 0; i < state->n; i++) {
         if (state->flags[i] & FLAG_IMMUTABLE) {
@@ -1117,6 +1120,17 @@ static int check_completion(game_state *state, int mark_errors)
              * visible; this ensures that the link from 3 to 4 is also made. */
             if (mark_errors)
                 makelink(state, state->numsi[n], state->numsi[n+1]);
+        }
+    }
+
+    /* Search and mark numbers less than 0, or 0 with links. */
+    for (n = 1; n < state->n; n++) {
+        if ((state->nums[n] < 0) ||
+            (state->nums[n] == 0 &&
+             (state->next[n] != -1 || state->prev[n] != -1))) {
+            error = 1;
+            if (mark_errors)
+                state->flags[n] |= FLAG_ERROR;
         }
     }
 
@@ -1729,7 +1743,7 @@ static int num2col(game_drawstate *ds, int num)
 {
     int set = num / (ds->n+1);
 
-    if (num <= 0) return COL_BACKGROUND;
+    if (num <= 0) return COL_B0;
     return COL_B0 + (set % 16);
 }
 
@@ -1750,8 +1764,19 @@ static void tile_redraw(drawing *dr, game_drawstate *ds, int tx, int ty,
     int cb = TILE_SIZE / 16, textsz;
     char buf[20];
     int arrowcol, sarrowcol, setcol, textcol;
-    int n = num % (ds->n+1), set = num / (ds->n+1);
-    int acx, acy, asz;
+    int acx, acy, asz, empty = 0;
+
+    if (num == 0 && !(f & F_ARROW_POINT) && !(f & F_ARROW_INPOINT)) {
+        empty = 1;
+        /*
+         * We don't display text in empty cells: typically these are
+         * signified by num=0. However, in some cases a cell could
+         * have had the number 0 assigned to it if the user made an
+         * error (e.g. tried to connect a chain of length 5 to the
+         * immutable number 4) so we _do_ display the 0 if the cell
+         * has a link in or a link out.
+         */
+    }
 
     /* Calculate colours. */
 
@@ -1763,7 +1788,7 @@ static void tile_redraw(drawing *dr, game_drawstate *ds, int tx, int ty,
 	setcol = sarrowcol = -1;       /* placate optimiser */
     } else {
 
-	setcol = num2col(ds, num);
+	setcol = empty ? COL_BACKGROUND : num2col(ds, num);
 
 #define dim(fg,bg) ( \
       (bg)==COL_BACKGROUND ? COL_ARROW_BG_DIM : \
@@ -1833,11 +1858,14 @@ static void tile_redraw(drawing *dr, game_drawstate *ds, int tx, int ty,
 
     /* Draw text (number or set). */
 
-    if (num != 0) {
-        /* assert(num > 0); - actually, no, this obstructs legal play */
-        if (set == 0) {
-            sprintf(buf, "%d", n);
+    if (!empty) {
+        int set = (num <= 0) ? 0 : num / (ds->n+1);
+
+        if (set == 0 || num <= 0) {
+            sprintf(buf, "%d", num);
         } else {
+            int n = num % (ds->n+1);
+
             if (n == 0)
                 sprintf(buf, "%c", (int)(set+'a'-1));
             else
