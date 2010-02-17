@@ -1965,7 +1965,7 @@ measured.
 \dd Allows you to choose between a selection of types of tiling.
 Some have all the faces the same but may have multiple different
 types of vertex (e.g. the \e{Cairo} or \e{Kites} mode); others have
-all the vertices the same but may have differnt types of face (e.g.
+all the vertices the same but may have different types of face (e.g.
 the \e{Great Hexagonal}). The square, triangular and honeycomb grids
 are fully regular, and have all their vertices \e{and} faces the
 same; this makes them the least confusing to play.
