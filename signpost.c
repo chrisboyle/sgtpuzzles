@@ -916,7 +916,7 @@ static int used_colour(game_state *state, int i, int start)
 
 static int head_number(game_state *state, int i, int *scratch)
 {
-    int off = 0, found = 0, start, ss, j = i, c, n, sz;
+    int off = 0, found = 0, start = 0, ss, j = i, c, n, sz;
     const char *why = NULL;
 
     assert(state->prev[i] == -1 && state->next[i] != -1);
