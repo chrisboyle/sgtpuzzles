@@ -159,8 +159,9 @@ static int isvalidmove(game_state *state, int clever,
 
     nfrom = state->nums[from]; nto = state->nums[to];
 
-    /* can't move _from_ the final number, or _to_ the 1. */
-    if (nfrom == state->n || nto == 1)
+    /* can't move _from_ the preset final number, or _to_ the preset 1. */
+    if (((nfrom == state->n) && (state->flags[from] & FLAG_IMMUTABLE)) ||
+        ((nto   == 1)        && (state->flags[to]   & FLAG_IMMUTABLE)))
         return 0;
 
     /* can't create a new connection between cells in the same region
@@ -847,7 +848,7 @@ static char *validate_desc(game_params *params, char *desc)
 /* --- Linked-list and numbers array --- */
 
 /* Assuming numbers are always up-to-date, there are only four possibilities
- * for regions changing:
+ * for regions changing after a single valid move:
  *
  * 1) two differently-coloured regions being combined (the resulting colouring
  *     should be based on the larger of the two regions)
@@ -861,76 +862,45 @@ static char *validate_desc(game_params *params, char *desc)
  * There should never be any complications with regions containing 3 colours
  * being combined, since two of those colours should have been merged on a
  * previous move.
- */
-
-/* New algorithm for working out numbering:
  *
- * At start, only remove numbers from cells with neither prev nor next.
- * Search for all cells with !prev && next (head of chain); for each one:
-   * Search the group for a 'real' number: if we find one the num. for
-      the head of the chain is trivial.
-   * Otherwise, if we _don't_ have a number already:
-     * If head->next has a number, that number is the one we should use
-     * Otherwise pick the smallest unused colour set.
-   * and if we _do_ have a number already:
-     * Work out the size of this group (the dsf must already have been set up)
-     * Start enumerating through the group counting squares that have the
-        same colouring as us
-     * If we reach a square with a different colour, work out which set is
-        bigger (ncol1 vs ncol2 == sz-ncol1), and use that colour
-     * If we reached a square with no colour (or the end of the group, which
-        would be weird under the circumstances) just keep the existing colour.
+ * Most of the complications are in ensuring we don't accidentally set two
+ * regions with the same colour (e.g. if a region was split). If this happens
+ * we always try and give the largest original portion the original colour.
  */
 
 #define COLOUR(a) ((a) / (state->n+1))
 #define START(c) ((c) * (state->n+1))
 
-static int lowest_start(game_state *state, int *scratch)
+struct head_meta {
+    int i;      /* position */
+    int sz;     /* size of region */
+    int start;  /* region start number preferred, or 0 if !preference */
+    int preference; /* 0 if we have no preference (and should just pick one) */
+    const char *why;
+};
+
+static void head_number(game_state *state, int i, struct head_meta *head)
 {
-    int i, c;
+    int off = 0, ss, j = i, c, n, sz;
 
-    /* Fill in 'scratch' array with the currently-used colours... */
-    memset(scratch, 0, state->n * sizeof(int));
-    for (i = 0; i < state->n; i++) {
-        if (state->nums[i] != 0)
-            scratch[COLOUR(state->nums[i])] = 1;
-    }
-    /* ... and return the first one that was unused. */
-    for (c = 1; c < state->n; c++) { /* NB start at 1 */
-        if (scratch[c] == 0)
-            return START(c);
-    }
-    assert(!"shouldn't get here");
-    return -1; /* suyb */
-}
-
-static int used_colour(game_state *state, int i, int start)
-{
-    int j;
-    for (j = 0; j < i; j++) {
-        if (state->nums[j] == start)
-            return 1;
-    }
-    return 0;
-}
-
-static int head_number(game_state *state, int i, int *scratch)
-{
-    int off = 0, found = 0, start = 0, ss, j = i, c, n, sz;
-    const char *why = NULL;
-
+    /* Insist we really were passed the head of a chain. */
     assert(state->prev[i] == -1 && state->next[i] != -1);
+
+    head->i = i;
+    head->sz = dsf_size(state->dsf, i);
+    head->why = NULL;
 
     /* Search through this chain looking for real numbers, checking that
      * they match up (if there are more than one). */
+    head->preference = 0;
     while (j != -1) {
         if (state->flags[j] & FLAG_IMMUTABLE) {
             ss = state->nums[j] - off;
-            if (!found) {
-                start = ss;
-                found = 1;
-                why = "contains cell with immutable number";
-            } else if (start != ss) {
+            if (!head->preference) {
+                head->start = ss;
+                head->preference = 1;
+                head->why = "contains cell with immutable number";
+            } else if (head->start != ss) {
                 debug(("head_number: chain with non-sequential numbers!"));
                 state->impossible = 1;
             }
@@ -939,18 +909,22 @@ static int head_number(game_state *state, int i, int *scratch)
         j = state->next[j];
         assert(j != i); /* we have created a loop, obviously wrong */
     }
-    if (found) goto done;
+    if (head->preference) goto done;
 
-    if (state->nums[i] == 0) {
-        if (state->nums[state->next[i]] != 0) {
-            /* make sure we start at a 0 offset. */
-            start = START(COLOUR(state->nums[state->next[i]]));
-            why = "adding blank cell to head of numbered region";
-        } else {
-            start = lowest_start(state, scratch);
-            why = "lowest available colour group";
-        }
-        found = 1;
+    if (state->nums[i] == 0 && state->nums[state->next[i]] > state->n) {
+        /* (probably) empty cell onto the head of a coloured region:
+         * make sure we start at a 0 offset. */
+        head->start = START(COLOUR(state->nums[state->next[i]]));
+        head->preference = 1;
+        head->why = "adding blank cell to head of numbered region";
+    } else if (state->nums[i] <= state->n) {
+        /* if we're 0 we're probably just blank -- but even if we're a
+         * (real) numbered region, we don't have an immutable number
+         * in it (any more) otherwise it'd have been caught above, so
+         * reassign the colour. */
+        head->start = 0;
+        head->preference = 0;
+        head->why = "lowest available colour group";
     } else {
         c = COLOUR(state->nums[i]);
         n = 1;
@@ -958,45 +932,51 @@ static int head_number(game_state *state, int i, int *scratch)
         j = i;
         while (state->next[j] != -1) {
             j = state->next[j];
-            if (state->nums[j] == 0) {
-                start = START(c);
-                found = 1;
-                why = "adding blank cell to end of numbered region";
-                break;
+            if (state->nums[j] == 0 && state->next[j] == -1) {
+                head->start = START(c);
+                head->preference = 1;
+                head->why = "adding blank cell to end of numbered region";
+                goto done;
             }
             if (COLOUR(state->nums[j]) == c)
                 n++;
             else {
                 int start_alternate = START(COLOUR(state->nums[j]));
-                if (n < (sz - n) && !used_colour(state, i, start_alternate)) {
-                    start = start_alternate;
-                    why = "joining two coloured regions, swapping to larger colour";
+                if (n < (sz - n)) {
+                    head->start = start_alternate;
+                    head->preference = 1;
+                    head->why = "joining two coloured regions, swapping to larger colour";
                 } else {
-                    start = START(c);
-                    why = "joining two coloured regions, taking largest";
+                    head->start = START(c);
+                    head->preference = 1;
+                    head->why = "joining two coloured regions, taking largest";
                 }
-                found = 1;
-                break;
+                goto done;
             }
         }
         /* If we got here then we may have split a region into
          * two; make sure we don't assign a colour we've already used. */
-        if (!found) {
-            start = (c == 0) ? lowest_start(state, scratch) : START(c);
-            why = "got to end of coloured region";
-            found = 1;
+        if (c == 0) {
+            /* not convinced this shouldn't be an assertion failure here. */
+            head->start = 0;
+            head->preference = 0;
+        } else {
+            head->start = START(c);
+            head->preference = 1;
         }
-        if (used_colour(state, i, start)) {
-            start = lowest_start(state, scratch);
-            why = "split region in two, lowest available colour group";
-        }
+        head->why = "got to end of coloured region";
     }
 
 done:
-    assert(found && why != NULL);
-    debug(("Chain at (%d,%d) numbered at %d: %s.",
-           i%state->w, i/state->w, start, why));
-    return start;
+    assert(head->why != NULL);
+    if (head->preference)
+        debug(("Chain at (%d,%d) numbered for preference at %d (colour %d): %s.",
+               head->i%state->w, head->i/state->w,
+               head->start, COLOUR(head->start), head->why));
+    else
+        debug(("Chain at (%d,%d) using next available colour: %s.",
+               head->i%state->w, head->i/state->w,
+               head->why));
 }
 
 #if 0
@@ -1035,17 +1015,59 @@ static void connect_numbers(game_state *state)
     }
 }
 
+static int compare_heads(const void *a, const void *b)
+{
+    struct head_meta *ha = (struct head_meta *)a;
+    struct head_meta *hb = (struct head_meta *)b;
+
+    /* Heads with preferred colours first... */
+    if (ha->preference && !hb->preference) return -1;
+    if (hb->preference && !ha->preference) return 1;
+
+    /* ...then heads with low colours first... */
+    if (ha->start < hb->start) return -1;
+    if (ha->start > hb->start) return 1;
+
+    /* ... then large regions first... */
+    if (ha->sz > hb->sz) return -1;
+    if (ha->sz < hb->sz) return 1;
+
+    /* ... then position. */
+    if (ha->i > hb->i) return -1;
+    if (ha->i < hb->i) return 1;
+
+    return 0;
+}
+
+static int lowest_start(game_state *state, struct head_meta *heads, int nheads)
+{
+    int n, c;
+
+    /* NB start at 1: colour 0 is real numbers */
+    for (c = 1; c < state->n; c++) {
+        for (n = 0; n < nheads; n++) {
+            if (COLOUR(heads[n].start) == c)
+                goto used;
+        }
+        return c;
+used:
+        ;
+    }
+    assert(!"No available colours!");
+    return 0;
+}
+
 static void update_numbers(game_state *state)
 {
-    int i, j, nnum;
-    int *scratch = snewn(state->n, int);
+    int i, j, n, nnum, nheads;
+    struct head_meta *heads = snewn(state->n, struct head_meta);
 
-    for (i = 0; i < state->n; i++)
-        state->numsi[i] = -1;
+    for (n = 0; n < state->n; n++)
+        state->numsi[n] = -1;
 
     for (i = 0; i < state->n; i++) {
         if (state->flags[i] & FLAG_IMMUTABLE) {
-            assert(state->nums[i] >= 0);
+            assert(state->nums[i] > 0);
             assert(state->nums[i] <= state->n);
             state->numsi[state->nums[i]] = i;
         }
@@ -1054,23 +1076,63 @@ static void update_numbers(game_state *state)
     }
     connect_numbers(state);
 
+    /* Construct an array of the heads of all current regions, together
+     * with their preferred colours. */
+    nheads = 0;
     for (i = 0; i < state->n; i++) {
         /* Look for a cell that is the start of a chain
          * (has a next but no prev). */
         if (state->prev[i] != -1 || state->next[i] == -1) continue;
 
-        nnum = head_number(state, i, scratch);
-        j = i;
+        head_number(state, i, &heads[nheads++]);
+    }
+
+    /* Sort that array:
+     * - heads with preferred colours first, then
+     * - heads with low colours first, then
+     * - large regions first
+     */
+    qsort(heads, nheads, sizeof(struct head_meta), compare_heads);
+
+    /* Remove duplicate-coloured regions. */
+    for (n = nheads-1; n >= 0; n--) { /* order is important! */
+        if ((n != 0) && (heads[n].start == heads[n-1].start)) {
+            /* We have a duplicate-coloured region: since we're
+             * sorted in size order and this is not the first
+             * of its colour it's not the largest: recolour it. */
+            heads[n].start = START(lowest_start(state, heads, nheads));
+            heads[n].preference = -1; /* '-1' means 'was duplicate' */
+        }
+        else if (!heads[n].preference) {
+            assert(heads[n].start == 0);
+            heads[n].start = START(lowest_start(state, heads, nheads));
+        }
+    }
+
+    debug(("Region colouring after duplicate removal:"));
+
+    for (n = 0; n < nheads; n++) {
+        debug(("  Chain at (%d,%d) sz %d numbered at %d (colour %d): %s%s",
+               heads[n].i % state->w, heads[n].i / state->w, heads[n].sz,
+               heads[n].start, COLOUR(heads[n].start), heads[n].why,
+               heads[n].preference == 0 ? " (next available)" :
+               heads[n].preference < 0 ? " (duplicate, next available)" : ""));
+
+        nnum = heads[n].start;
+        j = heads[n].i;
         while (j != -1) {
-            if (nnum > 0 && nnum <= state->n)
-                state->numsi[nnum] = j;
-            state->nums[j] = nnum++;
+            if (!(state->flags[j] & FLAG_IMMUTABLE)) {
+                if (nnum > 0 && nnum <= state->n)
+                    state->numsi[nnum] = j;
+                state->nums[j] = nnum;
+            }
+            nnum++;
             j = state->next[j];
-            assert(j != i); /* loop?! */
+            assert(j != heads[n].i); /* loop?! */
         }
     }
     /*debug_numbers(state);*/
-    sfree(scratch);
+    sfree(heads);
 }
 
 static int check_completion(game_state *state, int mark_errors)
@@ -1400,10 +1462,14 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
 
         if (button == LEFT_BUTTON) {
             /* disallow dragging from the final number. */
-            if (state->nums[y*w+x] == state->n) return NULL;
+            if ((state->nums[y*w+x] == state->n) &&
+                (state->flags[y*w+x] & FLAG_IMMUTABLE))
+                return NULL;
         } else if (button == RIGHT_BUTTON) {
             /* disallow dragging to the first number. */
-            if (state->nums[y*w+x] == 1) return NULL;
+            if ((state->nums[y*w+x] == 1) &&
+                (state->flags[y*w+x] & FLAG_IMMUTABLE))
+                return NULL;
         }
 
         ui->dragging = TRUE;
@@ -1810,7 +1876,7 @@ static void tile_redraw(drawing *dr, game_drawstate *ds, int tx, int ty,
 	else if (f & F_ARROW_POINT) arrowcol = mid(COL_ARROW, setcol);
 	else arrowcol = COL_ARROW;
 
-	if (f & (F_ERROR)) textcol = COL_ERROR;
+	if ((f & F_ERROR) && !(f & F_IMMUTABLE)) textcol = COL_ERROR;
 	else {
 	    if (f & F_IMMUTABLE) textcol = COL_NUMBER_SET;
 	    else textcol = COL_NUMBER;
