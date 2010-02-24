@@ -555,7 +555,7 @@ static int isball(game_state *state, int gx, int gy, int direction, int lookwher
     debug(("isball, new (%d, %d)\n", gx, gy));
 
     /* if we're off the grid (into the firing range) there's never a ball. */
-    if (gx < 1 || gy < 1 || gx > state->h || gy > state->w)
+    if (gx < 1 || gy < 1 || gx > state->w || gy > state->h)
         return 0;
 
     if (GRID(state, gx,gy) & BALL_CORRECT)
