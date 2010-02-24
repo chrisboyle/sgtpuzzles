@@ -372,7 +372,7 @@ static int grid2range(game_state *state, int x, int y, int *rangeno)
     int ret, x1 = state->w+1, y1 = state->h+1;
 
     if (x > 0 && x < x1 && y > 0 && y < y1) return 0; /* in arena */
-    if (x < 0 || x > y1 || y < 0 || y > y1) return 0; /* outside grid */
+    if (x < 0 || x > x1 || y < 0 || y > y1) return 0; /* outside grid */
 
     if ((x == 0 || x == x1) && (y == 0 || y == y1))
         return 0; /* one of 4 corners */
