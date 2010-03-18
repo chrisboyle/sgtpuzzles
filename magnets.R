@@ -20,5 +20,5 @@ GAMES += magnets
 !end
 
 !begin >wingames.lst
-magnets.exe:magnets
+magnets.exe:Magnets
 !end

@@ -379,7 +379,7 @@ static int grid2range(game_state *state, int x, int y, int *rangeno)
     int ret, x1 = state->w+1, y1 = state->h+1;
 
     if (x > 0 && x < x1 && y > 0 && y < y1) return 0; /* in arena */
-    if (x < 0 || x > y1 || y < 0 || y > y1) return 0; /* outside grid */
+    if (x < 0 || x > x1 || y < 0 || y > y1) return 0; /* outside grid */
 
     if ((x == 0 || x == x1) && (y == 0 || y == y1))
         return 0; /* one of 4 corners */
@@ -562,7 +562,7 @@ static int isball(game_state *state, int gx, int gy, int direction, int lookwher
     debug(("isball, new (%d, %d)\n", gx, gy));
 
     /* if we're off the grid (into the firing range) there's never a ball. */
-    if (gx < 1 || gy < 1 || gx > state->h || gy > state->w)
+    if (gx < 1 || gy < 1 || gx > state->w || gy > state->h)
         return 0;
 
     if (GRID(state, gx,gy) & BALL_CORRECT)
