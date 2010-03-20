@@ -278,6 +278,7 @@ static void strip_nums(game_state *state) {
     dsf_init(state->dsf, state->n);
 }
 
+#ifdef DEBUGGING
 static int check_nums(game_state *orig, game_state *copy, int only_immutable)
 {
     int i, ret = 1;
@@ -294,6 +295,7 @@ static int check_nums(game_state *orig, game_state *copy, int only_immutable)
     }
     return ret;
 }
+#endif
 
 /* --- Game parameter/presets functions --- */
 
@@ -327,8 +329,9 @@ static int game_fetch_preset(int i, char **name, game_params **params)
     *ret = signpost_presets[i];
     *params = ret;
 
-    sprintf(buf, "%dx%d%s", ret->w, ret->h,
-            ret->force_corner_start ? "" : ", free ends");
+    sprintf(buf, ret->force_corner_start
+            ? "%dx%d" : _("%dx%d, free ends"),
+            ret->w, ret->h);
     *name = dupstr(buf);
 
     return TRUE;
@@ -383,19 +386,19 @@ static config_item *game_configure(game_params *params)
 
     ret = snewn(4, config_item);
 
-    ret[0].name = "Width";
+    ret[0].name = _("Width");
     ret[0].type = C_STRING;
     sprintf(buf, "%d", params->w);
     ret[0].sval = dupstr(buf);
     ret[0].ival = 0;
 
-    ret[1].name = "Height";
+    ret[1].name = _("Height");
     ret[1].type = C_STRING;
     sprintf(buf, "%d", params->h);
     ret[1].sval = dupstr(buf);
     ret[1].ival = 0;
 
-    ret[2].name = "Start and end in corners";
+    ret[2].name = _("Start and end in corners");
     ret[2].type = C_BOOLEAN;
     ret[2].sval = NULL;
     ret[2].ival = params->force_corner_start;
@@ -422,7 +425,7 @@ static game_params *custom_params(config_item *cfg)
 static char *validate_params(game_params *params, int full)
 {
     if (params->w < 2 || params->h < 2)
-	return "Width and height must both be at least two";
+	return _("Width and height must both be at least two");
 
     return NULL;
 }
@@ -506,7 +509,7 @@ static void unpick_desc(game_params *params, char *desc,
 
     while (*desc) {
         if (i >= state->n) {
-            msg = "Game description longer than expected";
+            msg = _("Game description longer than expected");
             goto done;
         }
 
@@ -514,7 +517,7 @@ static void unpick_desc(game_params *params, char *desc,
         if (isdigit(c)) {
             num = (num*10) + (int)(c-'0');
             if (num > state->n) {
-                msg = "Number too large";
+                msg = _("Number out of range");
                 goto done;
             }
         } else if ((c-'a') >= 0 && (c-'a') < DIR_MAX) {
@@ -525,16 +528,16 @@ static void unpick_desc(game_params *params, char *desc,
             state->dirs[i] = c - 'a';
             i++;
         } else if (!*desc) {
-            msg = "Game description shorter than expected";
+            msg = _("Game description shorter than expected");
             goto done;
         } else {
-            msg = "Game description contains unexpected characters";
+            msg = _("Invalid character in game description");
             goto done;
         }
         desc++;
     }
     if (i < state->n) {
-        msg = "Game description shorter than expected";
+        msg = _("Game description shorter than expected");
         goto done;
     }
 
@@ -751,7 +754,9 @@ static int new_game_strip(game_state *state, random_state *rs)
         state->flags[j] |= FLAG_IMMUTABLE;
         debug_state("Copy of state: ", copy);
         if (solve_state(copy) > 0) goto solved;
+#ifdef DEBUGGING
         assert(check_nums(state, copy, 1));
+#endif
     }
     ret = 0;
     goto done;
@@ -772,7 +777,9 @@ solved:
             dup_game_to(copy, state);
             strip_nums(copy);
             if (solve_state(copy) > 0) {
+#ifdef DEBUGGING
                 assert(check_nums(state, copy, 0));
+#endif
                 debug(("new_game_strip: OK, removing number"));
             } else {
                 assert(state->nums[j] <= state->n);
@@ -1201,6 +1208,9 @@ static int check_completion(game_state *state, int mark_errors)
 }
 static game_state *new_game(midend *me, game_params *params, char *desc)
 {
+#ifdef ANDROID
+    android_keys("\b");
+#endif
     game_state *state = NULL;
 
     unpick_desc(params, desc, &state, NULL);
@@ -1346,9 +1356,9 @@ static char *solve_game(game_state *state, game_state *currstate,
     tosolve = dup_game(state);
     result = solve_state(tosolve);
     if (result < 0)
-        *error = "Puzzle is impossible.";
+        *error = _("Puzzle is impossible.");
     else if (result == 0)
-        *error = "Unable to solve puzzle.";
+        *error = _("Unable to solve puzzle.");
     else
         ret = generate_desc(tosolve, 1);
 
@@ -1402,6 +1412,9 @@ static void game_changed_state(game_ui *ui, game_state *oldstate,
 {
     if (!oldstate->completed && newstate->completed)
         ui->cshow = ui->dragging = 0;
+#ifdef ANDROID
+    if (newstate->completed && ! newstate->used_solve && oldstate && ! oldstate->completed) android_completed();
+#endif
 }
 
 struct game_drawstate {
@@ -1507,12 +1520,12 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
         return dupstr(buf);
     } /* else if (button == 'H' || button == 'h')
         return dupstr("H"); */
-    else if ((button == 'x' || button == 'X') && ui->cshow) {
+    else if ((button == 'x' || button == 'X' || button == '\b') && ui->cshow) {
         int si = ui->cy*w + ui->cx;
         if (state->prev[si] == -1 && state->next[si] == -1)
             return "";
         sprintf(buf, "%c%d,%d",
-                (button == 'x') ? 'C' : 'X', ui->cx, ui->cy);
+                (button == 'x' || button == '\b') ? 'C' : 'X', ui->cx, ui->cy);
         return dupstr(buf);
     }
 
@@ -2124,6 +2137,7 @@ static int game_timing_state(game_state *state, game_ui *ui)
     return TRUE;
 }
 
+#ifndef NO_PRINTING
 static void game_print_size(game_params *params, float *x, float *y)
 {
     int pw, ph;
@@ -2164,6 +2178,7 @@ static void game_print(drawing *dr, game_state *state, int tilesize)
 	    tile_redraw(dr, ds, COORD(x), COORD(y), state->dirs[y*state->w+x],
 			0, state->nums[y*state->w+x], 0, 0.0, ink);
 }
+#endif
 
 #ifdef COMBINED
 #define thegame signpost
@@ -2200,7 +2215,9 @@ const struct game thegame = {
     game_redraw,
     game_anim_length,
     game_flash_length,
+#ifndef NO_PRINTING
     TRUE, FALSE, game_print_size, game_print,
+#endif
     FALSE,			       /* wants_statusbar */
     FALSE, game_timing_state,
     REQUIRE_RBUTTON | REQUIRE_NUMPAD,  /* flags */

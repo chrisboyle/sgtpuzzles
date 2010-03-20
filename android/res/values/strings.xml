@@ -114,6 +114,7 @@ Revision: %s"</string>
     <string name="name_pegs">Pegs</string>
     <string name="name_rect">Rectangles</string>
     <string name="name_samegame">Same Game</string>
+    <string name="name_signpost">Signpost</string>
     <string name="name_singles">Singles</string>
     <string name="name_sixteen">Sixteen</string>
     <string name="name_slant">Slant</string>
@@ -148,6 +149,7 @@ Revision: %s"</string>
     <string name="desc_pegs">Remove pegs by jumping others over them, until only one is left.</string>
     <string name="desc_rect">Divide the grid into rectangles containing only one number, which is also the area of the rectangle.</string>
     <string name="desc_samegame">Remove groups (2 or more) of the same colour to clear the grid, scoring more for larger groups.</string>
+    <string name="desc_signpost">Connect the squares into a path following the arrows.</string>
     <string name="desc_singles">Remove numbers so no number appears twice in any row/column, no two black squares are adjacent and the white squares are all connected.</string>
     <string name="desc_sixteen">Slide rows and columns around to form a grid in numerical order.</string>
     <string name="desc_slant">Draw diagonal lines in every square such that circles have the given numbers of lines meeting at them and there are no loops.</string>
@@ -453,6 +455,9 @@ Revision: %s"</string>
     <string name="Score_X">Score: %d</string>
     <string name="Cannot_move">Cannot move!</string>
     <string name="Selected_X_X">Selected: %d (%d)</string>
+    <!-- Signpost -->
+    <string name="XxX_free_ends">%dx%d, free ends</string>
+    <string name="Start_and_end_in_corners">Start and end in corners</string>
     <!-- Singles -->
     <string name="Puzzle_is_too_large">Puzzle is too large</string>
     <!-- Sixteen: all strings in that game are common! -->

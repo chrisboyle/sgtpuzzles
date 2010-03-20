@@ -114,6 +114,7 @@ Revision: %s"</string>
     <string name="name_pegs">Pegs</string>
     <string name="name_rect">Rectangles</string>
     <string name="name_samegame">Same Game</string>
+    <string name="name_signpost">Signpost</string>
     <string name="name_singles">Singles</string>
     <string name="name_sixteen">Sixteen</string>
     <string name="name_slant">Slant</string>
@@ -148,6 +149,7 @@ Revision: %s"</string>
     <string name="desc_pegs">Entfernen Sie die Stiften, indem Sie andere Stifte darüber springen lassen.</string>
     <string name="desc_rect">Bauen Sie Regionen (indem Sie das Gitter teilen), die die gleiche Ziffer enthalten, wie ihren Flächen.</string>
     <string name="desc_samegame">Entfernen Sie Farberegionen, um das Gitter zu leeren. Größere Regionen ergeben mehr Punkte.</string>
+    <string name="desc_signpost">Schließen Sie die Quadrate zu einem Pfad nach der Pfeile.</string>
     <string name="desc_singles">Jede Zeile/Spalte muss jede Ziffer einmal enthalten: entfernen Sie Ziffern, so dass keine schwarze Quadraten benachbart sind, und keine weiße Quadraten abgeschieden sind.</string>
     <string name="desc_sixteen">Verschieben Sie Spalten/Zeilen, um die Platten in numerische Reihenfolge anzuordnen.</string>
     <string name="desc_slant">Zeichnen Sie eine einzige, nicht-unterbrochene Schleife in Übereinstimmung mit den Punktverbindunghinweisen.</string>
@@ -453,6 +455,9 @@ Revision: %s"</string>
     <string name="Score_X">Spielstand: %d</string>
     <string name="Cannot_move">Kann nicht ziehen!</string>
     <string name="Selected_X_X">Ausgewählt: %d (%d)</string>
+    <!-- Signpost -->
+    <string name="XxX_free_ends">%dx%d, freie Enden</string>
+    <string name="Start_and_end_in_corners">Start- und Endpunkte in Ecken</string>
     <!-- Singles -->
     <string name="Puzzle_is_too_large">Spiel ist zu groß</string>
     <!-- Sixteen: all strings in that game are common! -->
