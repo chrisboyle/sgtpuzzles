@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
       package="name.boyle.chris.sgtpuzzles"
-      android:versionCode="42"
-      android:versionName="8905.1">
+      android:versionCode="43"
+      android:versionName="8905.2">
     <uses-sdk android:minSdkVersion="3" android:targetSdkVersion="7"/>
     <!-- You must be able to navigate and enter numbers, so: { 5-way and keyboard } or touchscreen -->
     <uses-configuration android:reqFiveWayNav="true" android:reqKeyboardType="qwerty" />
