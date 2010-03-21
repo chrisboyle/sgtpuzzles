@@ -30,7 +30,7 @@ public class GameView extends View
 	int longTimeout = ViewConfiguration.getLongPressTimeout();
 	int button;
 	boolean waiting = false, waitingSpace = false;
-	float startX, startY, maxDist = 5.0f;
+	double startX, startY, maxDistSq;
 	static final int DRAG = SGTPuzzles.LEFT_DRAG - SGTPuzzles.LEFT_BUTTON,  // not bit fields, but there's a pattern
 			RELEASE = SGTPuzzles.LEFT_RELEASE - SGTPuzzles.LEFT_BUTTON;
 	static final String TAG = "GameView";
@@ -45,6 +45,7 @@ public class GameView extends View
 		canvas = new Canvas(bitmap);
 		paint = new Paint();
 		blitters = new Bitmap[512];
+		maxDistSq = Math.pow(getResources().getDisplayMetrics().density * 8.0f, 2);
 	}
 
 	Runnable sendRightClick = new Runnable() {
@@ -73,7 +74,7 @@ public class GameView extends View
 		case MotionEvent.ACTION_MOVE:
 			float x = event.getX(), y = event.getY();
 			if( waiting ) {
-				if( Math.abs(x-startX) <= maxDist && Math.abs(y-startY) <= maxDist ) {
+				if( Math.pow(Math.abs(x-startX),2) + Math.pow(Math.abs(y-startY),2) <= maxDistSq ) {
 					return true;
 				} else {
 					parent.sendKey((int)startX, (int)startY, button);
