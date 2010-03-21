@@ -542,9 +542,24 @@ static int island_impossible(struct island *is, int strict)
         assert(is_orth);
 
         ifree = is_orth->count - island_countbridges(is_orth);
-        if (ifree > 0)
-            nsurrspc += min(ifree, MAXIMUM(is->state, dx,
-                                           is->adj.points[i].x, is->adj.points[i].y));
+        if (ifree > 0) {
+	    /*
+	     * ifree is the number of bridges unfilled in the other
+	     * island, which is clearly an upper bound on the number
+	     * of extra bridges this island may run to it.
+	     *
+	     * Another upper bound is the number of bridges unfilled
+	     * on the specific line between here and there. We must
+	     * take the minimum of both.
+	     */
+	    int bmax = MAXIMUM(is->state, dx,
+			       is->adj.points[i].x, is->adj.points[i].y);
+	    int bcurr = GRIDCOUNT(is->state,
+				  is->adj.points[i].x, is->adj.points[i].y,
+				  dx ? G_LINEH : G_LINEV);
+	    assert(bcurr <= bmax);
+            nsurrspc += min(ifree, bmax - bcurr);
+	}
     }
     if (nsurrspc < nspc) {
         debug(("island at (%d,%d) impossible: surr. islands %d spc, need %d.\n",
