@@ -99,11 +99,10 @@ struct game_state {
 #define TITLE(upper,title,func,lower) #title,
 #define ENCODE(upper,title,func,lower) #lower
 #define CONFIG(upper,title,func,lower) ":" #title
-enum { DIFFLIST(ENUM) DIFF_IMPOSSIBLE = diff_impossible, DIFF_AMBIGUOUS = diff_ambiguous, DIFF_UNFINISHED = diff_unfinished };
+enum { DIFFLIST(ENUM) DIFFCOUNT, DIFF_IMPOSSIBLE = diff_impossible, DIFF_AMBIGUOUS = diff_ambiguous, DIFF_UNFINISHED = diff_unfinished };
 static char const *const unequal_diffnames[] = { DIFFLIST(TITLE) };
 static char const unequal_diffchars[] = DIFFLIST(ENCODE);
-#define DIFFCOUNT lenof(unequal_diffchars) - 1
-#define DIFFCONFIG _(DIFFLIST(CONFIG))
+#define DIFFCONFIG DIFFLIST(CONFIG)
 
 #define DEFAULT_PRESET 0
 
@@ -1352,7 +1351,7 @@ static char *solve_game(game_state *state, game_state *currstate,
         if (!(solved->flags[r] & F_IMMUTABLE))
             solved->nums[r] = 0;
     }
-    r = solver_state(solved, DIFFCOUNT - 1);
+    r = solver_state(solved, DIFFCOUNT-1);   /* always use full solver */
     if (r > 0) ret = latin_desc(solved->nums, solved->order);
     free_game(solved);
     return ret;
