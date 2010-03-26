@@ -35,7 +35,7 @@ Revision: %s"</string>
     <string name="app_name">Puzzles</string>
     <string name="welcome">Willkommen bei der Android-Version von Simon Tathams Puzzles. Den Trackball finden Sie in der Regel vermutlich einfacher als den Touchscreen. Um rechts zu klicken, halten Sie den Trackball oder den Touchscreen gedrückt. Hilfe gibt es unter Menü/Hilfe. Dieses Projekt ist unter der MIT-Lizenz veröffentlicht.</string>
     <string name="website_url">http://chris.boyle.name/projects/android-puzzles</string>
-    <string name="docs_url">file:///android_asset/{0}/{1}.html</string>
+    <string name="docs_url">file:///android_asset/de/{0}.html</string>
     <string name="author_email">chris@boyle.name</string>
     <string name="unknown_version">UNBEKANNT</string>
     <!-- {0} = version, {1} = device model number -->
