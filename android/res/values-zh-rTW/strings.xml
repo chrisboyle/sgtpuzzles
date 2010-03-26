@@ -96,6 +96,7 @@
   <string name="name_pegs">Pegs</string> 
   <string name="name_rect">Rectangles</string> 
   <string name="name_samegame">Same Game</string> 
+  <string name="name_signpost">Signpost</string>
   <string name="name_singles">Singles</string> 
   <string name="name_sixteen">Sixteen</string> 
   <string name="name_slant">Slant</string> 
@@ -131,6 +132,7 @@
   <string name="desc_pegs">透過將圓盤跳躍過另一圓盤來移除它們，使它們直到剩下一個為止。</string> 
   <string name="desc_rect">將網格劃分成僅包含一個數字的矩形，使所含數字與矩形面積相同。</string> 
   <string name="desc_samegame">移除同色的組（含兩個方格或更多）已清空網格，組越大得分越多。</string> 
+  <string name="desc_signpost">根据箭头把方块连接起来。</string>
   <string name="desc_singles">移動數字，使得在任何一行 / 列中沒有數字出現兩次, 沒有兩個黑色的方塊是相鄰的且白色的方塊是全部連在一起的。</string> 
   <string name="desc_sixteen">將網格中的數字按照行與列的方向滑動，使其按照數字順序排列。。</string> 
   <string name="desc_slant">在每個方格上標注斜線，使標有數字的圓有著相同數量的斜線與之連線，斜線不能形成閉環。</string> 
@@ -468,6 +470,9 @@
   <string name="Score_X">得分: %d</string> 
   <string name="Cannot_move">無法移動!</string> 
   <string name="Selected_X_X">已選定: %d (%d)</string> 
+  <!-- Signpost -->
+  <string name="XxX_free_ends">%dx%d, 免费结束</string>
+  <string name="Start_and_end_in_corners">起始并终止于角落</string>
   <!--  Singles 
   --> 
   <string name="Puzzle_is_too_large">拼圖太大了</string> 
