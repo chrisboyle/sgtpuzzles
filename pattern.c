@@ -342,6 +342,10 @@ static int compute_rowdata(int *ret, unsigned char *start, int len, int step)
 #define DOT 2
 #define STILL_UNKNOWN 3
 
+#ifdef STANDALONE_SOLVER
+int verbose = FALSE;
+#endif
+
 static void do_recurse(unsigned char *known, unsigned char *deduced,
                        unsigned char *row, int *data, int len,
                        int freespace, int ndone, int lowest)
@@ -373,7 +377,11 @@ static void do_recurse(unsigned char *known, unsigned char *deduced,
 
 static int do_row(unsigned char *known, unsigned char *deduced,
                   unsigned char *row,
-                  unsigned char *start, int len, int step, int *data)
+                  unsigned char *start, int len, int step, int *data
+#ifdef STANDALONE_SOLVER
+		  , const char *rowcol, int index, int cluewid
+#endif
+		  )
 {
     int rowlen, i, freespace, done_any;
 
@@ -396,6 +404,27 @@ static int do_row(unsigned char *known, unsigned char *deduced,
 	    start[i*step] = deduced[i];
 	    done_any = TRUE;
 	}
+#ifdef STANDALONE_SOLVER
+    if (verbose && done_any) {
+	char buf[80];
+	int thiscluewid;
+	printf("%s %2d: [", rowcol, index);
+	for (thiscluewid = -1, i = 0; data[i]; i++)
+	    thiscluewid += sprintf(buf, " %d", data[i]);
+	printf("%*s", cluewid - thiscluewid, "");
+	for (i = 0; data[i]; i++)
+	    printf(" %d", data[i]);
+	printf(" ] ");
+	for (i = 0; i < len; i++)
+	    putchar(known[i] == BLOCK ? '#' :
+		    known[i] == DOT ? '.' : '?');
+	printf(" -> ");
+	for (i = 0; i < len; i++)
+	    putchar(start[i*step] == BLOCK ? '#' :
+		    start[i*step] == DOT ? '.' : '?');
+	putchar('\n');
+    }
+#endif
     return done_any;
 }
 
@@ -471,12 +500,20 @@ static unsigned char *generate_soluble(random_state *rs, int w, int h)
             for (i=0; i<h; i++) {
                 rowdata[compute_rowdata(rowdata, grid+i*w, w, 1)] = 0;
                 done_any |= do_row(workspace, workspace+max, workspace+2*max,
-                                   matrix+i*w, w, 1, rowdata);
+                                   matrix+i*w, w, 1, rowdata
+#ifdef STANDALONE_SOLVER
+				   , NULL, 0, 0 /* never do diagnostics here */
+#endif
+				   );
             }
             for (i=0; i<w; i++) {
                 rowdata[compute_rowdata(rowdata, grid+i, h, w)] = 0;
                 done_any |= do_row(workspace, workspace+max, workspace+2*max,
-                                   matrix+i, h, w, rowdata);
+                                   matrix+i, h, w, rowdata
+#ifdef STANDALONE_SOLVER
+				   , NULL, 0, 0 /* never do diagnostics here */
+#endif
+				   );
             }
         } while (done_any);
 
@@ -728,13 +765,21 @@ static char *solve_game(game_state *state, game_state *currstate,
                    max*sizeof(int));
             rowdata[state->rowlen[w+i]] = 0;
             done_any |= do_row(workspace, workspace+max, workspace+2*max,
-                               matrix+i*w, w, 1, rowdata);
+                               matrix+i*w, w, 1, rowdata
+#ifdef STANDALONE_SOLVER
+			       , NULL, 0, 0 /* never do diagnostics here */
+#endif
+			       );
         }
         for (i=0; i<w; i++) {
             memcpy(rowdata, state->rowdata + state->rowsize*i, max*sizeof(int));
             rowdata[state->rowlen[i]] = 0;
             done_any |= do_row(workspace, workspace+max, workspace+2*max,
-                               matrix+i, h, w, rowdata);
+                               matrix+i, h, w, rowdata
+#ifdef STANDALONE_SOLVER
+			       , NULL, 0, 0 /* never do diagnostics here */
+#endif
+			       );
         }
     } while (done_any);
 
@@ -1403,8 +1448,12 @@ int main(int argc, char **argv)
     while (--argc > 0) {
         char *p = *++argv;
 	if (*p == '-') {
-            fprintf(stderr, "%s: unrecognised option `%s'\n", argv[0], p);
-            return 1;
+	    if (!strcmp(p, "-v")) {
+		verbose = TRUE;
+	    } else {
+		fprintf(stderr, "%s: unrecognised option `%s'\n", argv[0], p);
+		return 1;
+	    }
         } else {
             id = p;
         }
@@ -1432,7 +1481,7 @@ int main(int argc, char **argv)
     s = new_game(NULL, p, desc);
 
     {
-	int w = p->w, h = p->h, i, j, done_any, max;
+	int w = p->w, h = p->h, i, j, done_any, max, cluewid = 0;
 	unsigned char *matrix, *workspace;
 	int *rowdata;
 
@@ -1443,6 +1492,22 @@ int main(int argc, char **argv)
 
         memset(matrix, 0, w*h);
 
+	if (verbose) {
+	    int thiswid;
+	    /*
+	     * Work out the maximum text width of the clue numbers
+	     * in a row or column, so we can print the solver's
+	     * working in a nicely lined up way.
+	     */
+	    for (i = 0; i < (w+h); i++) {
+		char buf[80];
+		for (thiswid = -1, j = 0; j < s->rowlen[i]; j++)
+		    thiswid += sprintf(buf, " %d", s->rowdata[s->rowsize*i+j]);
+		if (cluewid < thiswid)
+		    cluewid = thiswid;
+	    }
+	}
+
         do {
             done_any = 0;
             for (i=0; i<h; i++) {
@@ -1450,13 +1515,21 @@ int main(int argc, char **argv)
 		       max*sizeof(int));
 		rowdata[s->rowlen[w+i]] = 0;
                 done_any |= do_row(workspace, workspace+max, workspace+2*max,
-                                   matrix+i*w, w, 1, rowdata);
+                                   matrix+i*w, w, 1, rowdata
+#ifdef STANDALONE_SOLVER
+				   , "row", i+1, cluewid
+#endif
+				   );
             }
             for (i=0; i<w; i++) {
 		memcpy(rowdata, s->rowdata + s->rowsize*i, max*sizeof(int));
 		rowdata[s->rowlen[i]] = 0;
                 done_any |= do_row(workspace, workspace+max, workspace+2*max,
-                                   matrix+i, h, w, rowdata);
+                                   matrix+i, h, w, rowdata
+#ifdef STANDALONE_SOLVER
+				   , "col", i+1, cluewid
+#endif
+				   );
             }
         } while (done_any);
 

@@ -426,6 +426,8 @@ static char *validate_params(game_params *params, int full)
 {
     if (params->w < 2 || params->h < 2)
 	return _("Width and height must both be at least two");
+    if (params->w == 2 && params->h == 2)   /* leads to generation hang */
+	return _("Width and height cannot both be two");
 
     return NULL;
 }
