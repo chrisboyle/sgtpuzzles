@@ -458,6 +458,7 @@ Revision: %s"</string>
     <!-- Signpost -->
     <string name="XxX_free_ends">%dx%d, free ends</string>
     <string name="Start_and_end_in_corners">Start and end in corners</string>
+    <string name="Width_and_height_cannot_both_be_two">Width and height cannot both be two</string>
     <!-- Singles -->
     <string name="Puzzle_is_too_large">Puzzle is too large</string>
     <!-- Sixteen: all strings in that game are common! -->

@@ -473,6 +473,7 @@
   <!-- Signpost -->
   <string name="XxX_free_ends">%dx%d, 免費結束</string>
   <string name="Start_and_end_in_corners">起始并終止于角落</string>
+  <string name="Width_and_height_cannot_both_be_two">宽度和高度不能同时是2。</string>
   <!--  Singles 
   --> 
   <string name="Puzzle_is_too_large">拼图太大了</string> 

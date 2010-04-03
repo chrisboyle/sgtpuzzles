@@ -458,6 +458,7 @@ Revision: %s"</string>
     <!-- Signpost -->
     <string name="XxX_free_ends">%dx%d, freie Enden</string>
     <string name="Start_and_end_in_corners">Start- und Endpunkte in Ecken</string>
+    <string name="Width_and_height_cannot_both_be_two">Breite und Höhe können nicht beide 2 sein.</string>
     <!-- Singles -->
     <string name="Puzzle_is_too_large">Spiel ist zu groß</string>
     <!-- Sixteen: all strings in that game are common! -->
