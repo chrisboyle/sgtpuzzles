@@ -752,6 +752,7 @@ static int new_game_strip(game_state *state, random_state *rs)
         copy->flags[j] |= FLAG_IMMUTABLE;
         state->flags[j] |= FLAG_IMMUTABLE;
         debug_state("Copy of state: ", copy);
+        strip_nums(copy);
         if (solve_state(copy) > 0) goto solved;
         assert(check_nums(state, copy, 1));
     }
