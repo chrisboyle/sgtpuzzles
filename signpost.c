@@ -513,7 +513,7 @@ static void unpick_desc(game_params *params, char *desc,
         }
 
         c = *desc;
-        if (isdigit(c)) {
+        if (isdigit((unsigned char)c)) {
             num = (num*10) + (int)(c-'0');
             if (num > state->n) {
                 msg = "Number too large";

@@ -386,7 +386,7 @@ static char n2c(int num) { /* XXX cloned from singles.c */
 }
 
 static int c2n(char c) { /* XXX cloned from singles.c */
-    if (isdigit(c))
+    if (isdigit((unsigned char)c))
         return (int)(c - '0');
     else if (c >= 'a' && c <= 'z')
         return (int)(c - 'a' + 10);
