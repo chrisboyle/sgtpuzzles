@@ -1160,7 +1160,7 @@ tree234 *join234r(tree234 *t1, tree234 *t2) {
  * in t.
  */
 static node234 *split234_internal(tree234 *t, int index) {
-    node234 *halves[2], *n, *sib, *sub;
+    node234 *halves[2] = { NULL, NULL }, *n, *sib, *sub;
     node234 *lparent, *rparent;
     int ki, pki, i, half, lcount, rcount;
 
