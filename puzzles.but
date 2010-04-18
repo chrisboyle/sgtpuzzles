@@ -2493,10 +2493,10 @@ either way round, though.
 block of size two and means that one digit divided by the other is
 equal to the given amount.
 
-Note that a block may contain more than one digit the same (provided
-the identical ones are not in the same row and column). This rule is
-precisely the opposite of the rule in Solo's \q{Killer} mode (see
-\k{solo}).
+Note that a block may contain the same digit more than once
+(provided the identical ones are not in the same row and column).
+This rule is precisely the opposite of the rule in Solo's \q{Killer}
+mode (see \k{solo}).
 
 }
 
@@ -2682,12 +2682,12 @@ Singles was contributed to this collection by James Harvey.
 \IM{Singles controls} controls, for Singles
 
 Left-clicking on an empty square will colour it black; left-clicking again 
-will replace the number. Right-clicking will add a circle (useful for 
+will restore the number. Right-clicking will add a circle (useful for 
 indicating that a cell is definitely not black). 
 
 You can also use the cursor keys to move around the grid. Pressing the
 return or space keys will turn a square black or add a circle respectively,
-and pressing the key again will replace the number or remove the circle.
+and pressing the key again will restore the number or remove the circle.
 
 (All the actions described in \k{common-actions} are also available.)
 
