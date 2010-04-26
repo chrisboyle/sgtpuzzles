@@ -152,9 +152,9 @@ version2.def: FORCE
 # generates _nearly_ the same output, but it has no check function.
 !begin osx
 version.ppc.o: version.c version2.def
-	$(CC) -arch ppc $(COMPAT) $(XFLAGS) $(CFLAGS) `cat version2.def` -c version.c
+	$(CC) -arch ppc $(COMPAT) $(XFLAGS) $(CFLAGS) `cat version2.def` -c version.c -o $@
 version.i386.o: version.c version2.def
-	$(CC) -arch i386 $(COMPAT) $(XFLAGS) $(CFLAGS) `cat version2.def` -c version.c
+	$(CC) -arch i386 $(COMPAT) $(XFLAGS) $(CFLAGS) `cat version2.def` -c version.c -o $@
 version2.def: FORCE
 	if test -z "$(VER)" && test -f manifest && (md5 -r `awk '{print $$2}' manifest` | diff -w manifest -); then \
 		cat version.def > version2.def.new; \
