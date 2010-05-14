@@ -1123,7 +1123,7 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
         button = 0;
         break;
       default:
-        if (!isdigit(button)) return NULL;
+        if (button < '0' || button > '9') return NULL;
         button -= '0';
         if (button > (w == 2 && h == 2? 3: max(w, h))) return NULL;
     }

@@ -325,7 +325,7 @@ static char n2c(int num) {
 }
 
 static int c2n(char c) {
-    if (isdigit(c))
+    if (isdigit((unsigned char)c))
         return (int)(c - '0');
     else if (c >= 'a' && c <= 'z')
         return (int)(c - 'a' + 10);

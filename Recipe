@@ -112,27 +112,41 @@ FORCE:
 # For Unix, we also need the gross MD5 hack that causes automatic
 # version number selection in release source archives.
 !begin gtk
-version.o: FORCE;
-FORCE:
+version.o: version.c version2.def
+	$(CC) $(COMPAT) $(XFLAGS) $(CFLAGS) `cat version2.def` -c version.c
+version2.def: FORCE
 	if test -z "$(VER)" && test -f manifest && md5sum -c manifest; then \
-		$(CC) $(COMPAT) $(XFLAGS) $(CFLAGS) `cat version.def` -c version.c; \
+		cat version.def > version2.def.new; \
 	elif test -z "$(VER)" && test -d .svn && svnversion . >/dev/null 2>&1; then \
-		$(CC) $(COMPAT) $(XFLAGS) $(CFLAGS) "-DREVISION=`svnversion .`" -c version.c; \
+		echo "-DREVISION=`svnversion .`" >version2.def.new; \
 	else \
-		$(CC) $(COMPAT) $(XFLAGS) $(CFLAGS) $(VER) -c version.c; \
+		echo "$(VER)" >version2.def.new; \
+	fi && \
+	if diff -q version2.def.new version2.def; then \
+		rm version2.def.new; \
+	else \
+		mv version2.def.new version2.def; \
 	fi
+.PHONY: FORCE
 !end
 !specialobj gtk version
 !begin nestedvm
-version.o: FORCE;
-FORCE:
+version.o: version.c version2.def
+	$(CC) $(COMPAT) $(XFLAGS) $(CFLAGS) `cat version2.def` -c version.c
+version2.def: FORCE
 	if test -z "$(VER)" && test -f manifest && md5sum -c manifest; then \
-		$(CC) $(COMPAT) $(XFLAGS) $(CFLAGS) `cat version.def` -c version.c; \
+		cat version.def > version2.def.new; \
 	elif test -z "$(VER)" && test -d .svn && svnversion . >/dev/null 2>&1; then \
-		$(CC) $(COMPAT) $(XFLAGS) $(CFLAGS) "-DREVISION=`svnversion .`" -c version.c; \
+		echo "-DREVISION=`svnversion .`" >version2.def.new; \
 	else \
-		$(CC) $(COMPAT) $(XFLAGS) $(CFLAGS) $(VER) -c version.c; \
+		echo "$(VER)" >version2.def.new; \
+	fi && \
+	if diff -q version2.def.new version2.def; then \
+		rm version2.def.new; \
+	else \
+		mv version2.def.new version2.def; \
 	fi
+.PHONY: FORCE
 !end
 !specialobj nestedvm version
 
@@ -140,25 +154,24 @@ FORCE:
 # md5sum readily available. We do, however, have `md5 -r' which
 # generates _nearly_ the same output, but it has no check function.
 !begin osx
-version.ppc.o: FORCE;
-FORCE:
+version.ppc.o: version.c version2.def
+	$(CC) -arch ppc $(COMPAT) $(XFLAGS) $(CFLAGS) `cat version2.def` -c version.c -o $@
+version.i386.o: version.c version2.def
+	$(CC) -arch i386 $(COMPAT) $(XFLAGS) $(CFLAGS) `cat version2.def` -c version.c -o $@
+version2.def: FORCE
 	if test -z "$(VER)" && test -f manifest && (md5 -r `awk '{print $$2}' manifest` | diff -w manifest -); then \
-		$(CC) -arch ppc $(COMPAT) $(XFLAGS) $(CFLAGS) `cat version.def` -c version.c -o version.ppc.o; \
+		cat version.def > version2.def.new; \
 	elif test -z "$(VER)" && test -d .svn && svnversion . >/dev/null 2>&1; then \
-		$(CC) -arch ppc $(COMPAT) $(XFLAGS) $(CFLAGS) "-DREVISION=`svnversion .`" -c version.c -o version.ppc.o; \
+		echo "-DREVISION=`svnversion .`" >version2.def.new; \
 	else \
-		$(CC) -arch ppc $(COMPAT) $(XFLAGS) $(CFLAGS) $(VER) -c version.c -o version.ppc.o; \
-	fi
-version.i386.o: FORCE2;
-FORCE2:
-	if test -z "$(VER)" && test -f manifest && (md5 -r `awk '{print $$2}' manifest` | diff -w manifest -); then \
-		$(CC) -arch i386 $(COMPAT) $(XFLAGS) $(CFLAGS) `cat version.def` -c version.c -o version.i386.o; \
-	elif test -z "$(VER)" && test -d .svn && svnversion . >/dev/null 2>&1; then \
-		$(CC) -arch i386 $(COMPAT) $(XFLAGS) $(CFLAGS) "-DREVISION=`svnversion .`" -c version.c -o version.i386.o; \
+		echo "$(VER)" >version2.def.new; \
+	fi && \
+	if diff -q version2.def.new version2.def; then \
+		rm version2.def.new; \
 	else \
-		$(CC) -arch i386 $(COMPAT) $(XFLAGS) $(CFLAGS) $(VER) -c version.c -o version.i386.o; \
+		mv version2.def.new version2.def; \
 	fi
-!end
+.PHONY: FORCE
 !specialobj osx version
 
 # make install for Unix.

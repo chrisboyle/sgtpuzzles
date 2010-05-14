@@ -187,8 +187,10 @@ void game_mkhighlight_specific(frontend *fe, float *ret,
     }
 
     for (i = 0; i < 3; i++) {
-        ret[highlight * 3 + i] = ret[background * 3 + i] * 1.2F;
-        ret[lowlight * 3 + i] = ret[background * 3 + i] * 0.8F;
+	if (highlight >= 0)
+	    ret[highlight * 3 + i] = ret[background * 3 + i] * 1.2F;
+	if (lowlight >= 0)
+	    ret[lowlight * 3 + i] = ret[background * 3 + i] * 0.8F;
     }
 }
 

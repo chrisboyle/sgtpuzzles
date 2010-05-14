@@ -516,7 +516,7 @@ static void unpick_desc(game_params *params, char *desc,
         }
 
         c = *desc;
-        if (isdigit(c)) {
+        if (isdigit((unsigned char)c)) {
             num = (num*10) + (int)(c-'0');
             if (num > state->n) {
                 msg = _("Number out of range");
@@ -755,6 +755,7 @@ static int new_game_strip(game_state *state, random_state *rs)
         copy->flags[j] |= FLAG_IMMUTABLE;
         state->flags[j] |= FLAG_IMMUTABLE;
         debug_state("Copy of state: ", copy);
+        strip_nums(copy);
         if (solve_state(copy) > 0) goto solved;
 #ifdef DEBUGGING
         assert(check_nums(state, copy, 1));
@@ -2222,7 +2223,7 @@ const struct game thegame = {
 #endif
     FALSE,			       /* wants_statusbar */
     FALSE, game_timing_state,
-    REQUIRE_RBUTTON | REQUIRE_NUMPAD,  /* flags */
+    REQUIRE_RBUTTON,		       /* flags */
 };
 
 #ifdef STANDALONE_SOLVER
