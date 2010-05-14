@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sgt-puzzles\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2010-03-19 23:53+0000\n"
+"POT-Creation-Date: 2010-05-14 22:24+0200\n"
 "PO-Revision-Date: 2009-11-04 11:10-0800\n"
 "Last-Translator: Helge Kreutzmann <debian@helgefjell.de>\n"
 "Language-Team: de <debian-l10n-german@lists.debian.org>\n"
@@ -5902,8 +5902,8 @@ msgstr ""
 #. type: Plain text
 #: puzzles.but:2502
 msgid ""
-"Note that a block may contain more than one digit the same (provided the "
-"identical ones are not in the same row and column). This rule is precisely "
+"Note that a block may contain the same digit more than once (provided the "
+"identical ones are not in the same row and column).  This rule is precisely "
 "the opposite of the rule in Solo's \\q{Killer} mode (see \\k{solo})."
 msgstr ""
 
@@ -6185,7 +6185,7 @@ msgstr "Steuerung, von Singles"
 #: puzzles.but:2687
 msgid ""
 "Left-clicking on an empty square will colour it black; left-clicking again "
-"will replace the number. Right-clicking will add a circle (useful for "
+"will restore the number. Right-clicking will add a circle (useful for "
 "indicating that a cell is definitely not black)."
 msgstr ""
 
@@ -6194,7 +6194,7 @@ msgstr ""
 msgid ""
 "You can also use the cursor keys to move around the grid. Pressing the "
 "return or space keys will turn a square black or add a circle respectively, "
-"and pressing the key again will replace the number or remove the circle."
+"and pressing the key again will restore the number or remove the circle."
 msgstr ""
 
 #. type: Plain text
