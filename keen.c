@@ -1450,11 +1450,12 @@ static int check_errors(game_state *state, long *errors)
 		break;
 	      case C_DIV:
 		{
-		    int d1 = cluevals[j], d2 = state->grid[i];
-		    if (d1 == 0 || d2 == 0)
+		    int d1 = min(cluevals[j], state->grid[i]);
+		    int d2 = max(cluevals[j], state->grid[i]);
+		    if (d1 == 0 || d2 % d1 != 0)
 			cluevals[j] = 0;
 		    else
-			cluevals[j] = d2/d1 + d1/d2;/* one of them is 0 :-) */
+			cluevals[j] = d2 / d1;
 		}
 		break;
 	    }
