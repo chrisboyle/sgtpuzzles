@@ -9,6 +9,7 @@
 #include <stdarg.h>
 #include <string.h>
 #include <errno.h>
+#include <math.h>
 
 #include <sys/time.h>
 
@@ -34,6 +35,9 @@
 #endif
 #if !GTK_CHECK_VERSION(2,4,0)
 # define OLD_FILESEL
+#endif
+#if GTK_CHECK_VERSION(2,8,0)
+# define USE_CAIRO
 #endif
 
 #ifdef DEBUGGING
@@ -112,13 +116,20 @@ struct frontend {
     GtkWidget *area;
     GtkWidget *statusbar;
     guint statusctx;
-    GdkPixmap *pixmap;
-    GdkColor *colours;
-    int ncolours;
-    GdkColormap *colmap;
     int w, h;
     midend *me;
+#ifdef USE_CAIRO
+    const float *colours;
+    cairo_t *cr;
+    cairo_surface_t *image;
+    GdkPixmap *pixmap;
+#else
+    GdkPixmap *pixmap;
     GdkGC *gc;
+    GdkColor *colours;
+    GdkColormap *colmap;
+#endif
+    int ncolours;
     int bbox_l, bbox_r, bbox_u, bbox_d;
     int timer_active, timer_id;
     struct timeval last_time;
@@ -139,6 +150,15 @@ struct frontend {
     int preset_threaded;
     GtkWidget *preset_custom;
     GtkWidget *copy_menu_item;
+};
+
+struct blitter {
+#ifdef USE_CAIRO
+    cairo_surface_t *image;
+#else
+    GdkPixmap *pixmap;
+#endif
+    int w, h, x, y;
 };
 
 void get_random_seed(void **randseed, int *randseedsize)
@@ -167,40 +187,620 @@ void gtk_status_bar(void *handle, char *text)
     gtk_statusbar_push(GTK_STATUSBAR(fe->statusbar), fe->statusctx, text);
 }
 
-void gtk_start_draw(void *handle)
+/* ----------------------------------------------------------------------
+ * Cairo drawing functions.
+ */
+
+#ifdef USE_CAIRO
+
+static void setup_drawing(frontend *fe)
 {
-    frontend *fe = (frontend *)handle;
-    fe->gc = gdk_gc_new(fe->area->window);
-    fe->bbox_l = fe->w;
-    fe->bbox_r = 0;
-    fe->bbox_u = fe->h;
-    fe->bbox_d = 0;
+    fe->cr = cairo_create(fe->image);
+    cairo_set_antialias(fe->cr, CAIRO_ANTIALIAS_GRAY);
+    cairo_set_line_width(fe->cr, 1.0);
+    cairo_set_line_cap(fe->cr, CAIRO_LINE_CAP_SQUARE);
+    cairo_set_line_join(fe->cr, CAIRO_LINE_JOIN_ROUND);
 }
 
-void gtk_clip(void *handle, int x, int y, int w, int h)
+static void teardown_drawing(frontend *fe)
 {
-    frontend *fe = (frontend *)handle;
+    cairo_t *cr;
+
+    cairo_destroy(fe->cr);
+    fe->cr = NULL;
+
+    cr = gdk_cairo_create(fe->pixmap);
+    cairo_set_source_surface(cr, fe->image, 0, 0);
+    cairo_rectangle(cr,
+		    fe->bbox_l - 1,
+		    fe->bbox_u - 1,
+		    fe->bbox_r - fe->bbox_l + 2,
+		    fe->bbox_d - fe->bbox_u + 2);
+    cairo_fill(cr);
+    cairo_destroy(cr);
+}
+
+static void snaffle_colours(frontend *fe)
+{
+    fe->colours = midend_colours(fe->me, &fe->ncolours);
+}
+
+static void set_colour(frontend *fe, int colour)
+{
+    cairo_set_source_rgb(fe->cr,
+			 fe->colours[3*colour + 0],
+			 fe->colours[3*colour + 1],
+			 fe->colours[3*colour + 2]);
+}
+
+static void set_window_background(frontend *fe, int colour)
+{
+    GdkColormap *colmap;
+    GdkColor backg;
+
+    colmap = gdk_colormap_get_system();
+    backg.red = fe->colours[3*colour + 0] * 65535;
+    backg.green = fe->colours[3*colour + 1] * 65535;
+    backg.blue = fe->colours[3*colour + 2] * 65535;
+    if (!gdk_colormap_alloc_color(colmap, &backg, FALSE, FALSE)) {
+	g_error("couldn't allocate background (#%02x%02x%02x)\n",
+		backg.red >> 8, backg.green >> 8, backg.blue >> 8);
+    }
+    gdk_window_set_background(fe->area->window, &backg);
+    gdk_window_set_background(fe->window->window, &backg);
+}
+
+static PangoLayout *make_pango_layout(frontend *fe)
+{
+    return (pango_cairo_create_layout(fe->cr));
+}
+
+static void draw_pango_layout(frontend *fe, PangoLayout *layout,
+			      int x, int y)
+{
+    cairo_move_to(fe->cr, x, y);
+    pango_cairo_show_layout(fe->cr, layout);
+}
+
+static void save_screenshot_png(frontend *fe, const char *screenshot_file)
+{
+    cairo_surface_write_to_png(fe->image, screenshot_file);
+}
+
+static void do_clip(frontend *fe, int x, int y, int w, int h)
+{
+    cairo_new_path(fe->cr);
+    cairo_rectangle(fe->cr, x, y, w, h);
+    cairo_clip(fe->cr);
+}
+
+static void do_unclip(frontend *fe)
+{
+    cairo_reset_clip(fe->cr);
+}
+
+static void do_draw_rect(frontend *fe, int x, int y, int w, int h)
+{
+    cairo_save(fe->cr);
+    cairo_new_path(fe->cr);
+    cairo_set_antialias(fe->cr, CAIRO_ANTIALIAS_NONE);
+    cairo_rectangle(fe->cr, x, y, w, h);
+    cairo_fill(fe->cr);
+    cairo_restore(fe->cr);
+}
+
+static void do_draw_line(frontend *fe, int x1, int y1, int x2, int y2)
+{
+    cairo_new_path(fe->cr);
+    cairo_move_to(fe->cr, x1 + 0.5, y1 + 0.5);
+    cairo_line_to(fe->cr, x2 + 0.5, y2 + 0.5);
+    cairo_stroke(fe->cr);
+}
+
+static void do_draw_poly(frontend *fe, int *coords, int npoints,
+			 int fillcolour, int outlinecolour)
+{
+    int i;
+
+    cairo_new_path(fe->cr);
+    for (i = 0; i < npoints; i++)
+	cairo_line_to(fe->cr, coords[i*2] + 0.5, coords[i*2 + 1] + 0.5);
+    cairo_close_path(fe->cr);
+    if (fillcolour >= 0) {
+        set_colour(fe, fillcolour);
+	cairo_fill_preserve(fe->cr);
+    }
+    assert(outlinecolour >= 0);
+    set_colour(fe, outlinecolour);
+    cairo_stroke(fe->cr);
+}
+
+static void do_draw_circle(frontend *fe, int cx, int cy, int radius,
+			   int fillcolour, int outlinecolour)
+{
+    cairo_new_path(fe->cr);
+    cairo_arc(fe->cr, cx + 0.5, cy + 0.5, radius, 0, 2*PI);
+    cairo_close_path(fe->cr);		/* Just in case... */
+    if (fillcolour >= 0) {
+	set_colour(fe, fillcolour);
+	cairo_fill_preserve(fe->cr);
+    }
+    assert(outlinecolour >= 0);
+    set_colour(fe, outlinecolour);
+    cairo_stroke(fe->cr);
+}
+
+static void setup_blitter(blitter *bl, int w, int h)
+{
+    bl->image = cairo_image_surface_create(CAIRO_FORMAT_RGB24, w, h);
+}
+
+static void teardown_blitter(blitter *bl)
+{
+    cairo_surface_destroy(bl->image);
+}
+
+static void do_blitter_save(frontend *fe, blitter *bl, int x, int y)
+{
+    cairo_t *cr = cairo_create(bl->image);
+
+    cairo_set_source_surface(cr, fe->image, -x, -y);
+    cairo_paint(cr);
+    cairo_destroy(cr);
+}
+
+static void do_blitter_load(frontend *fe, blitter *bl, int x, int y)
+{
+    cairo_set_source_surface(fe->cr, bl->image, x, y);
+    cairo_paint(fe->cr);
+}
+
+static void clear_backing_store(frontend *fe)
+{
+    fe->image = NULL;
+}
+
+static void setup_backing_store(frontend *fe)
+{
+    cairo_t *cr;
+    int i;
+
+    fe->pixmap = gdk_pixmap_new(fe->area->window, fe->pw, fe->ph, -1);
+    fe->image = cairo_image_surface_create(CAIRO_FORMAT_RGB24,
+					   fe->pw, fe->ph);
+
+    for (i = 0; i < 3; i++) {
+	switch (i) {
+	    case 0: cr = cairo_create(fe->image); break;
+	    case 1: cr = gdk_cairo_create(fe->pixmap); break;
+	    case 2: cr = gdk_cairo_create(fe->area->window); break;
+	}
+	cairo_set_source_rgb(cr,
+			     fe->colours[0], fe->colours[1], fe->colours[2]);
+	cairo_paint(cr);
+	cairo_destroy(cr);
+    }
+}
+
+static int backing_store_ok(frontend *fe)
+{
+    return (!!fe->image);
+}
+
+static void teardown_backing_store(frontend *fe)
+{
+    cairo_surface_destroy(fe->image);
+    gdk_pixmap_unref(fe->pixmap);
+    fe->image = NULL;
+}
+
+static void repaint_rectangle(frontend *fe, GtkWidget *widget,
+			      int x, int y, int w, int h)
+{
+    gdk_draw_pixmap(widget->window,
+		    widget->style->fg_gc[GTK_WIDGET_STATE(fe->area)],
+		    fe->pixmap,
+		    x - fe->ox, y - fe->oy, x, y, w, h);
+}
+
+#endif
+
+/* ----------------------------------------------------------------------
+ * GDK drawing functions.
+ */
+
+#ifndef USE_CAIRO
+
+static void setup_drawing(frontend *fe)
+{
+    fe->gc = gdk_gc_new(fe->area->window);
+}
+
+static void teardown_drawing(frontend *fe)
+{
+    gdk_gc_unref(fe->gc);
+    fe->gc = NULL;
+}
+
+static void snaffle_colours(frontend *fe)
+{
+    int i, ncolours;
+    float *colours;
+    gboolean *success;
+
+    fe->colmap = gdk_colormap_get_system();
+    colours = midend_colours(fe->me, &ncolours);
+    fe->ncolours = ncolours;
+    fe->colours = snewn(ncolours, GdkColor);
+    for (i = 0; i < ncolours; i++) {
+	fe->colours[i].red = colours[i*3] * 0xFFFF;
+	fe->colours[i].green = colours[i*3+1] * 0xFFFF;
+	fe->colours[i].blue = colours[i*3+2] * 0xFFFF;
+    }
+    success = snewn(ncolours, gboolean);
+    gdk_colormap_alloc_colors(fe->colmap, fe->colours, ncolours,
+			      FALSE, FALSE, success);
+    for (i = 0; i < ncolours; i++) {
+	if (!success[i]) {
+	    g_error("couldn't allocate colour %d (#%02x%02x%02x)\n",
+		    i, fe->colours[i].red >> 8,
+		    fe->colours[i].green >> 8,
+		    fe->colours[i].blue >> 8);
+	}
+    }
+}
+
+static void set_window_background(frontend *fe, int colour)
+{
+    gdk_window_set_background(fe->area->window, &fe->colours[colour]);
+    gdk_window_set_background(fe->window->window, &fe->colours[colour]);
+}
+
+static void set_colour(frontend *fe, int colour)
+{
+    gdk_gc_set_foreground(fe->gc, &fe->colours[colour]);
+}
+
+#ifdef USE_PANGO
+static PangoLayout *make_pango_layout(frontend *fe)
+{
+    return (pango_layout_new(gtk_widget_get_pango_context(fe->area)));
+}
+
+static void draw_pango_layout(frontend *fe, PangoLayout *layout,
+			      int x, int y)
+{
+    gdk_draw_layout(fe->pixmap, fe->gc, x, y, layout);
+}
+#endif
+
+static void save_screenshot_png(frontend *fe, const char *screenshot_file)
+{
+    GdkPixbuf *pb;
+    GError *gerror = NULL;
+
+    midend_redraw(fe->me);
+
+    pb = gdk_pixbuf_get_from_drawable(NULL, fe->pixmap,
+				      NULL, 0, 0, 0, 0, -1, -1);
+    gdk_pixbuf_save(pb, screenshot_file, "png", &gerror, NULL);
+}
+
+static void do_clip(frontend *fe, int x, int y, int w, int h)
+{
     GdkRectangle rect;
 
     rect.x = x;
     rect.y = y;
     rect.width = w;
     rect.height = h;
-
     gdk_gc_set_clip_rectangle(fe->gc, &rect);
 }
 
-void gtk_unclip(void *handle)
+static void do_unclip(frontend *fe)
 {
-    frontend *fe = (frontend *)handle;
     GdkRectangle rect;
 
     rect.x = 0;
     rect.y = 0;
     rect.width = fe->w;
     rect.height = fe->h;
-
     gdk_gc_set_clip_rectangle(fe->gc, &rect);
+}
+
+static void do_draw_rect(frontend *fe, int x, int y, int w, int h)
+{
+    gdk_draw_rectangle(fe->pixmap, fe->gc, 1, x, y, w, h);
+}
+
+static void do_draw_line(frontend *fe, int x1, int y1, int x2, int y2)
+{
+    gdk_draw_line(fe->pixmap, fe->gc, x1, y1, x2, y2);
+}
+
+static void do_draw_poly(frontend *fe, int *coords, int npoints,
+			 int fillcolour, int outlinecolour)
+{
+    GdkPoint *points = snewn(npoints, GdkPoint);
+    int i;
+
+    for (i = 0; i < npoints; i++) {
+        points[i].x = coords[i*2];
+        points[i].y = coords[i*2+1];
+    }
+
+    if (fillcolour >= 0) {
+	set_colour(fe, fillcolour);
+	gdk_draw_polygon(fe->pixmap, fe->gc, TRUE, points, npoints);
+    }
+    assert(outlinecolour >= 0);
+    set_colour(fe, outlinecolour);
+
+    /*
+     * In principle we ought to be able to use gdk_draw_polygon for
+     * the outline as well. In fact, it turns out to interact badly
+     * with a clipping region, for no terribly obvious reason, so I
+     * draw the outline as a sequence of lines instead.
+     */
+    for (i = 0; i < npoints; i++)
+	gdk_draw_line(fe->pixmap, fe->gc,
+		      points[i].x, points[i].y,
+		      points[(i+1)%npoints].x, points[(i+1)%npoints].y);
+
+    sfree(points);
+}
+
+static void do_draw_circle(frontend *fe, int cx, int cy, int radius,
+			   int fillcolour, int outlinecolour)
+{
+    if (fillcolour >= 0) {
+	set_colour(fe, fillcolour);
+	gdk_draw_arc(fe->pixmap, fe->gc, TRUE,
+		     cx - radius, cy - radius,
+		     2 * radius, 2 * radius, 0, 360 * 64);
+    }
+
+    assert(outlinecolour >= 0);
+    set_colour(fe, outlinecolour);
+    gdk_draw_arc(fe->pixmap, fe->gc, FALSE,
+		 cx - radius, cy - radius,
+		 2 * radius, 2 * radius, 0, 360 * 64);
+}
+
+static void setup_blitter(blitter *bl, int w, int h)
+{
+    /*
+     * We can't create the pixmap right now, because fe->window
+     * might not yet exist. So we just cache w and h and create it
+     * during the firs call to blitter_save.
+     */
+    bl->pixmap = NULL;
+}
+
+static void teardown_blitter(blitter *bl)
+{
+    if (bl->pixmap)
+	gdk_pixmap_unref(bl->pixmap);
+}
+
+static void do_blitter_save(frontend *fe, blitter *bl, int x, int y)
+{
+    if (!bl->pixmap)
+        bl->pixmap = gdk_pixmap_new(fe->area->window, bl->w, bl->h, -1);
+    gdk_draw_pixmap(bl->pixmap,
+                    fe->area->style->fg_gc[GTK_WIDGET_STATE(fe->area)],
+                    fe->pixmap,
+                    x, y, 0, 0, bl->w, bl->h);
+}
+
+static void do_blitter_load(frontend *fe, blitter *bl, int x, int y)
+{
+    assert(bl->pixmap);
+    gdk_draw_pixmap(fe->pixmap,
+                    fe->area->style->fg_gc[GTK_WIDGET_STATE(fe->area)],
+                    bl->pixmap,
+                    0, 0, x, y, bl->w, bl->h);
+}
+
+static void clear_backing_store(frontend *fe)
+{
+    fe->pixmap = NULL;
+}
+
+static void setup_backing_store(frontend *fe)
+{
+    GdkGC *gc;
+
+    fe->pixmap = gdk_pixmap_new(fe->area->window, fe->pw, fe->ph, -1);
+
+    gc = gdk_gc_new(fe->area->window);
+    gdk_gc_set_foreground(gc, &fe->colours[0]);
+    gdk_draw_rectangle(fe->pixmap, gc, 1, 0, 0, fe->pw, fe->ph);
+    gdk_draw_rectangle(fe->area->window, gc, 1, 0, 0, fe->w, fe->h);
+    gdk_gc_unref(gc);
+}
+
+static int backing_store_ok(frontend *fe)
+{
+    return (!!fe->pixmap);
+}
+
+static void teardown_backing_store(frontend *fe)
+{
+    gdk_pixmap_unref(fe->pixmap);
+    fe->pixmap = NULL;
+}
+
+static void repaint_rectangle(frontend *fe, GtkWidget *widget,
+			      int x, int y, int w, int h)
+{
+    gdk_draw_pixmap(widget->window,
+		    widget->style->fg_gc[GTK_WIDGET_STATE(fe->area)],
+		    fe->pixmap,
+		    x - fe->ox, y - fe->oy, x, y, w, h);
+}
+
+#endif
+
+/* ----------------------------------------------------------------------
+ * Pango font functions.
+ */
+
+#ifdef USE_PANGO
+
+static void add_font(frontend *fe, int index, int fonttype, int fontsize)
+{
+    /*
+     * Use Pango to find the closest match to the requested
+     * font.
+     */
+    PangoFontDescription *fd;
+
+    fd = pango_font_description_new();
+    /* `Monospace' and `Sans' are meta-families guaranteed to exist */
+    pango_font_description_set_family(fd, fonttype == FONT_FIXED ?
+				      "Monospace" : "Sans");
+    pango_font_description_set_weight(fd, PANGO_WEIGHT_BOLD);
+    /*
+     * I found some online Pango documentation which
+     * described a function called
+     * pango_font_description_set_absolute_size(), which is
+     * _exactly_ what I want here. Unfortunately, none of
+     * my local Pango installations have it (presumably
+     * they're too old), so I'm going to have to hack round
+     * it by figuring out the point size myself. This
+     * limits me to X and probably also breaks in later
+     * Pango installations, so ideally I should add another
+     * CHECK_VERSION type ifdef and use set_absolute_size
+     * where available. All very annoying.
+     */
+#ifdef HAVE_SENSIBLE_ABSOLUTE_SIZE_FUNCTION
+    pango_font_description_set_absolute_size(fd, PANGO_SCALE*fontsize);
+#else
+    {
+	Display *d = GDK_DISPLAY();
+	int s = DefaultScreen(d);
+	double resolution =
+	    (PANGO_SCALE * 72.27 / 25.4) *
+	    ((double) DisplayWidthMM(d, s) / DisplayWidth (d, s));
+	pango_font_description_set_size(fd, resolution * fontsize);
+    }
+#endif
+    fe->fonts[index].desc = fd;
+}
+
+static void align_and_draw_text(frontend *fe,
+				int index, int align, int x, int y,
+				const char *text)
+{
+    PangoLayout *layout;
+    PangoRectangle rect;
+
+    layout = make_pango_layout(fe);
+
+    /*
+     * Create a layout.
+     */
+    pango_layout_set_font_description(layout, fe->fonts[index].desc);
+    pango_layout_set_text(layout, text, strlen(text));
+    pango_layout_get_pixel_extents(layout, NULL, &rect);
+
+    if (align & ALIGN_VCENTRE)
+	rect.y -= rect.height / 2;
+    else
+	rect.y -= rect.height;
+
+    if (align & ALIGN_HCENTRE)
+	rect.x -= rect.width / 2;
+    else if (align & ALIGN_HRIGHT)
+	rect.x -= rect.width;
+
+    draw_pango_layout(fe, layout, rect.x + x, rect.y + y);
+
+    g_object_unref(layout);
+}
+
+#endif
+
+/* ----------------------------------------------------------------------
+ * Old-fashioned font functions.
+ */
+
+#ifndef USE_PANGO
+
+static void add_font(int index, int fonttype, int fontsize)
+{
+    /*
+     * In GTK 1.2, I don't know of any plausible way to
+     * pick a suitable font, so I'm just going to be
+     * tedious.
+     */
+    fe->fonts[i].font = gdk_font_load(fonttype == FONT_FIXED ?
+				      "fixed" : "variable");
+}
+
+static void align_and_draw_text(int index, int align, int x, int y,
+				const char *text)
+{
+    int lb, rb, wid, asc, desc;
+
+    /*
+     * Measure vertical string extents with respect to the same
+     * string always...
+     */
+    gdk_string_extents(fe->fonts[i].font,
+		       "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+		       &lb, &rb, &wid, &asc, &desc);
+    if (align & ALIGN_VCENTRE)
+	y += asc - (asc+desc)/2;
+    else
+	y += asc;
+
+    /*
+     * ... but horizontal extents with respect to the provided
+     * string. This means that multiple pieces of text centred
+     * on the same y-coordinate don't have different baselines.
+     */
+    gdk_string_extents(fe->fonts[i].font, text,
+		       &lb, &rb, &wid, &asc, &desc);
+
+    if (align & ALIGN_HCENTRE)
+	x -= wid / 2;
+    else if (align & ALIGN_HRIGHT)
+	x -= wid;
+
+    /*
+     * Actually draw the text.
+     */
+    gdk_draw_string(fe->pixmap, fe->fonts[i].font, fe->gc, x, y, text);
+}
+
+#endif
+
+/* ----------------------------------------------------------------------
+ * The exported drawing functions.
+ */
+
+void gtk_start_draw(void *handle)
+{
+    frontend *fe = (frontend *)handle;
+    fe->bbox_l = fe->w;
+    fe->bbox_r = 0;
+    fe->bbox_u = fe->h;
+    fe->bbox_d = 0;
+    setup_drawing(fe);
+}
+
+void gtk_clip(void *handle, int x, int y, int w, int h)
+{
+    frontend *fe = (frontend *)handle;
+    do_clip(fe, x, y, w, h);
+}
+
+void gtk_unclip(void *handle)
+{
+    frontend *fe = (frontend *)handle;
+    do_unclip(fe);
 }
 
 void gtk_draw_text(void *handle, int x, int y, int fonttype, int fontsize,
@@ -226,215 +826,48 @@ void gtk_draw_text(void *handle, int x, int y, int fonttype, int fontsize,
 
         fe->fonts[i].type = fonttype;
         fe->fonts[i].size = fontsize;
-
-#ifdef USE_PANGO
-        /*
-         * Use Pango to find the closest match to the requested
-         * font.
-         */
-        {
-            PangoFontDescription *fd;
-
-            fd = pango_font_description_new();
-            /* `Monospace' and `Sans' are meta-families guaranteed to exist */
-            pango_font_description_set_family(fd, fonttype == FONT_FIXED ?
-                                              "Monospace" : "Sans");
-            pango_font_description_set_weight(fd, PANGO_WEIGHT_BOLD);
-            /*
-             * I found some online Pango documentation which
-             * described a function called
-             * pango_font_description_set_absolute_size(), which is
-             * _exactly_ what I want here. Unfortunately, none of
-             * my local Pango installations have it (presumably
-             * they're too old), so I'm going to have to hack round
-             * it by figuring out the point size myself. This
-             * limits me to X and probably also breaks in later
-             * Pango installations, so ideally I should add another
-             * CHECK_VERSION type ifdef and use set_absolute_size
-             * where available. All very annoying.
-             */
-#ifdef HAVE_SENSIBLE_ABSOLUTE_SIZE_FUNCTION
-            pango_font_description_set_absolute_size(fd, PANGO_SCALE*fontsize);
-#else
-            {
-                Display *d = GDK_DISPLAY();
-                int s = DefaultScreen(d);
-                double resolution =
-                    (PANGO_SCALE * 72.27 / 25.4) * 
-                    ((double) DisplayWidthMM(d, s) / DisplayWidth (d, s));
-                pango_font_description_set_size(fd, resolution * fontsize);
-            }
-#endif
-            fe->fonts[i].desc = fd;
-        }
-
-#else
-	/*
-	 * In GTK 1.2, I don't know of any plausible way to
-	 * pick a suitable font, so I'm just going to be
-	 * tedious.
-	 */
-	fe->fonts[i].font = gdk_font_load(fonttype == FONT_FIXED ?
-					  "fixed" : "variable");
-#endif
-
+	add_font(fe, i, fonttype, fontsize);
     }
 
     /*
-     * Set the colour.
+     * Do the job.
      */
-    gdk_gc_set_foreground(fe->gc, &fe->colours[colour]);
-
-#ifdef USE_PANGO
-
-    {
-	PangoLayout *layout;
-	PangoRectangle rect;
-
-	/*
-	 * Create a layout.
-	 */
-	layout = pango_layout_new(gtk_widget_get_pango_context(fe->area));
-	pango_layout_set_font_description(layout, fe->fonts[i].desc);
-	pango_layout_set_text(layout, text, strlen(text));
-	pango_layout_get_pixel_extents(layout, NULL, &rect);
-
-        if (align & ALIGN_VCENTRE)
-            rect.y -= rect.height / 2;
-	else
-	    rect.y -= rect.height;
-
-        if (align & ALIGN_HCENTRE)
-            rect.x -= rect.width / 2;
-        else if (align & ALIGN_HRIGHT)
-            rect.x -= rect.width;
-
-	gdk_draw_layout(fe->pixmap, fe->gc, rect.x + x, rect.y + y, layout);
-
-	g_object_unref(layout);
-    }
-
-#else
-    /*
-     * Find string dimensions and process alignment.
-     */
-    {
-        int lb, rb, wid, asc, desc;
-
-	/*
-	 * Measure vertical string extents with respect to the same
-	 * string always...
-	 */
-        gdk_string_extents(fe->fonts[i].font,
-			   "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
-                           &lb, &rb, &wid, &asc, &desc);
-        if (align & ALIGN_VCENTRE)
-            y += asc - (asc+desc)/2;
-	else
-            y += asc;
-
-	/*
-	 * ... but horizontal extents with respect to the provided
-	 * string. This means that multiple pieces of text centred
-	 * on the same y-coordinate don't have different baselines.
-	 */
-        gdk_string_extents(fe->fonts[i].font, text,
-                           &lb, &rb, &wid, &asc, &desc);
-
-        if (align & ALIGN_HCENTRE)
-            x -= wid / 2;
-        else if (align & ALIGN_HRIGHT)
-            x -= wid;
-
-    }
-
-    /*
-     * Actually draw the text.
-     */
-    gdk_draw_string(fe->pixmap, fe->fonts[i].font, fe->gc, x, y, text);
-#endif
-
+    set_colour(fe, colour);
+    align_and_draw_text(fe, i, align, x, y, text);
 }
 
 void gtk_draw_rect(void *handle, int x, int y, int w, int h, int colour)
 {
     frontend *fe = (frontend *)handle;
-    gdk_gc_set_foreground(fe->gc, &fe->colours[colour]);
-    gdk_draw_rectangle(fe->pixmap, fe->gc, 1, x, y, w, h);
+    set_colour(fe, colour);
+    do_draw_rect(fe, x, y, w, h);
 }
 
 void gtk_draw_line(void *handle, int x1, int y1, int x2, int y2, int colour)
 {
     frontend *fe = (frontend *)handle;
-    gdk_gc_set_foreground(fe->gc, &fe->colours[colour]);
-    gdk_draw_line(fe->pixmap, fe->gc, x1, y1, x2, y2);
+    set_colour(fe, colour);
+    do_draw_line(fe, x1, y1, x2, y2);
 }
 
 void gtk_draw_poly(void *handle, int *coords, int npoints,
 		   int fillcolour, int outlinecolour)
 {
     frontend *fe = (frontend *)handle;
-    GdkPoint *points = snewn(npoints, GdkPoint);
-    int i;
-
-    for (i = 0; i < npoints; i++) {
-        points[i].x = coords[i*2];
-        points[i].y = coords[i*2+1];
-    }
-
-    if (fillcolour >= 0) {
-	gdk_gc_set_foreground(fe->gc, &fe->colours[fillcolour]);
-	gdk_draw_polygon(fe->pixmap, fe->gc, TRUE, points, npoints);
-    }
-    assert(outlinecolour >= 0);
-    gdk_gc_set_foreground(fe->gc, &fe->colours[outlinecolour]);
-
-    /*
-     * In principle we ought to be able to use gdk_draw_polygon for
-     * the outline as well. In fact, it turns out to interact badly
-     * with a clipping region, for no terribly obvious reason, so I
-     * draw the outline as a sequence of lines instead.
-     */
-    for (i = 0; i < npoints; i++)
-	gdk_draw_line(fe->pixmap, fe->gc,
-		      points[i].x, points[i].y,
-		      points[(i+1)%npoints].x, points[(i+1)%npoints].y);
-
-    sfree(points);
+    do_draw_poly(fe, coords, npoints, fillcolour, outlinecolour);
 }
 
 void gtk_draw_circle(void *handle, int cx, int cy, int radius,
 		     int fillcolour, int outlinecolour)
 {
     frontend *fe = (frontend *)handle;
-    if (fillcolour >= 0) {
-	gdk_gc_set_foreground(fe->gc, &fe->colours[fillcolour]);
-	gdk_draw_arc(fe->pixmap, fe->gc, TRUE,
-		     cx - radius, cy - radius,
-		     2 * radius, 2 * radius, 0, 360 * 64);
-    }
-
-    assert(outlinecolour >= 0);
-    gdk_gc_set_foreground(fe->gc, &fe->colours[outlinecolour]);
-    gdk_draw_arc(fe->pixmap, fe->gc, FALSE,
-		 cx - radius, cy - radius,
-		 2 * radius, 2 * radius, 0, 360 * 64);
+    do_draw_circle(fe, cx, cy, radius, fillcolour, outlinecolour);
 }
-
-struct blitter {
-    GdkPixmap *pixmap;
-    int w, h, x, y;
-};
 
 blitter *gtk_blitter_new(void *handle, int w, int h)
 {
-    /*
-     * We can't create the pixmap right now, because fe->window
-     * might not yet exist. So we just cache w and h and create it
-     * during the firs call to blitter_save.
-     */
     blitter *bl = snew(blitter);
-    bl->pixmap = NULL;
+    setup_blitter(bl, w, h);
     bl->w = w;
     bl->h = h;
     return bl;
@@ -442,36 +875,26 @@ blitter *gtk_blitter_new(void *handle, int w, int h)
 
 void gtk_blitter_free(void *handle, blitter *bl)
 {
-    if (bl->pixmap)
-        gdk_pixmap_unref(bl->pixmap);
+    teardown_blitter(bl);
     sfree(bl);
 }
 
 void gtk_blitter_save(void *handle, blitter *bl, int x, int y)
 {
     frontend *fe = (frontend *)handle;
-    if (!bl->pixmap)
-        bl->pixmap = gdk_pixmap_new(fe->area->window, bl->w, bl->h, -1);
+    do_blitter_save(fe, bl, x, y);
     bl->x = x;
     bl->y = y;
-    gdk_draw_pixmap(bl->pixmap,
-                    fe->area->style->fg_gc[GTK_WIDGET_STATE(fe->area)],
-                    fe->pixmap,
-                    x, y, 0, 0, bl->w, bl->h);
 }
 
 void gtk_blitter_load(void *handle, blitter *bl, int x, int y)
 {
     frontend *fe = (frontend *)handle;
-    assert(bl->pixmap);
     if (x == BLITTER_FROMSAVED && y == BLITTER_FROMSAVED) {
         x = bl->x;
         y = bl->y;
     }
-    gdk_draw_pixmap(fe->pixmap,
-                    fe->area->style->fg_gc[GTK_WIDGET_STATE(fe->area)],
-                    bl->pixmap,
-                    0, 0, x, y, bl->w, bl->h);
+    do_blitter_load(fe, bl, x, y);
 }
 
 void gtk_draw_update(void *handle, int x, int y, int w, int h)
@@ -486,16 +909,15 @@ void gtk_draw_update(void *handle, int x, int y, int w, int h)
 void gtk_end_draw(void *handle)
 {
     frontend *fe = (frontend *)handle;
-    gdk_gc_unref(fe->gc);
-    fe->gc = NULL;
+
+    teardown_drawing(fe);
 
     if (fe->bbox_l < fe->bbox_r && fe->bbox_u < fe->bbox_d) {
-	gdk_draw_pixmap(fe->area->window,
-			fe->area->style->fg_gc[GTK_WIDGET_STATE(fe->area)],
-			fe->pixmap,
-                        fe->bbox_l, fe->bbox_u,
-                        fe->ox + fe->bbox_l, fe->oy + fe->bbox_u,
-                        fe->bbox_r - fe->bbox_l, fe->bbox_d - fe->bbox_u);
+	repaint_rectangle(fe, fe->area,
+			  fe->bbox_l - 1 + fe->ox,
+			  fe->bbox_u - 1 + fe->oy,
+			  fe->bbox_r - fe->bbox_l + 2,
+			  fe->bbox_d - fe->bbox_u + 2);
     }
 }
 
@@ -550,7 +972,7 @@ static gint key_event(GtkWidget *widget, GdkEventKey *event, gpointer data)
     int shift = (event->state & GDK_SHIFT_MASK) ? MOD_SHFT : 0;
     int ctrl = (event->state & GDK_CONTROL_MASK) ? MOD_CTRL : 0;
 
-    if (!fe->pixmap)
+    if (!backing_store_ok(fe))
         return TRUE;
 
 #if !GTK_CHECK_VERSION(2,0,0)
@@ -617,7 +1039,7 @@ static gint button_event(GtkWidget *widget, GdkEventButton *event,
     frontend *fe = (frontend *)data;
     int button;
 
-    if (!fe->pixmap)
+    if (!backing_store_ok(fe))
         return TRUE;
 
     if (event->type != GDK_BUTTON_PRESS && event->type != GDK_BUTTON_RELEASE)
@@ -648,7 +1070,7 @@ static gint motion_event(GtkWidget *widget, GdkEventMotion *event,
     frontend *fe = (frontend *)data;
     int button;
 
-    if (!fe->pixmap)
+    if (!backing_store_ok(fe))
         return TRUE;
 
     if (event->state & (GDK_BUTTON2_MASK | GDK_SHIFT_MASK))
@@ -677,13 +1099,10 @@ static gint expose_area(GtkWidget *widget, GdkEventExpose *event,
 {
     frontend *fe = (frontend *)data;
 
-    if (fe->pixmap) {
-	gdk_draw_pixmap(widget->window,
-			widget->style->fg_gc[GTK_WIDGET_STATE(widget)],
-			fe->pixmap,
-			event->area.x - fe->ox, event->area.y - fe->oy,
-			event->area.x, event->area.y,
-			event->area.width, event->area.height);
+    if (backing_store_ok(fe)) {
+	repaint_rectangle(fe, widget,
+			  event->area.x, event->area.y,
+			  event->area.width, event->area.height);
     }
     return TRUE;
 }
@@ -707,11 +1126,10 @@ static gint configure_area(GtkWidget *widget,
                            GdkEventConfigure *event, gpointer data)
 {
     frontend *fe = (frontend *)data;
-    GdkGC *gc;
     int x, y;
 
-    if (fe->pixmap)
-        gdk_pixmap_unref(fe->pixmap);
+    if (backing_store_ok(fe))
+	teardown_backing_store(fe);
 
     x = fe->w = event->width;
     y = fe->h = event->height;
@@ -721,15 +1139,7 @@ static gint configure_area(GtkWidget *widget,
     fe->ox = (fe->w - fe->pw) / 2;
     fe->oy = (fe->h - fe->ph) / 2;
 
-    fe->pixmap = gdk_pixmap_new(widget->window, fe->pw, fe->ph, -1);
-
-    gc = gdk_gc_new(fe->area->window);
-    gdk_gc_set_foreground(gc, &fe->colours[0]);
-    gdk_draw_rectangle(fe->pixmap, gc, 1, 0, 0, fe->pw, fe->ph);
-    gdk_draw_rectangle(widget->window, gc, 1, 0, 0,
-		       event->width, event->height);
-    gdk_gc_unref(gc);
-
+    setup_backing_store(fe);
     midend_force_redraw(fe->me);
 
     return TRUE;
@@ -1821,32 +2231,7 @@ static frontend *new_window(char *arg, int argtype, char **error)
 
     changed_preset(fe);
 
-    {
-        int i, ncolours;
-        float *colours;
-        gboolean *success;
-
-        fe->colmap = gdk_colormap_get_system();
-        colours = midend_colours(fe->me, &ncolours);
-        fe->ncolours = ncolours;
-        fe->colours = snewn(ncolours, GdkColor);
-        for (i = 0; i < ncolours; i++) {
-            fe->colours[i].red = colours[i*3] * 0xFFFF;
-            fe->colours[i].green = colours[i*3+1] * 0xFFFF;
-            fe->colours[i].blue = colours[i*3+2] * 0xFFFF;
-        }
-        success = snewn(ncolours, gboolean);
-        gdk_colormap_alloc_colors(fe->colmap, fe->colours, ncolours,
-                                  FALSE, FALSE, success);
-        for (i = 0; i < ncolours; i++) {
-            if (!success[i]) {
-                g_error("couldn't allocate colour %d (#%02x%02x%02x)\n",
-                        i, fe->colours[i].red >> 8,
-                        fe->colours[i].green >> 8,
-                        fe->colours[i].blue >> 8);
-            }
-        }
-    }
+    snaffle_colours(fe);
 
     if (midend_wants_statusbar(fe->me)) {
 	GtkWidget *viewport;
@@ -1882,7 +2267,7 @@ static frontend *new_window(char *arg, int argtype, char **error)
 
     gtk_box_pack_end(vbox, fe->area, TRUE, TRUE, 0);
 
-    fe->pixmap = NULL;
+    clear_backing_store(fe);
     fe->fonts = NULL;
     fe->nfonts = fe->fontsize = 0;
 
@@ -1940,9 +2325,7 @@ static frontend *new_window(char *arg, int argtype, char **error)
      * the window.
      */
     gtk_drawing_area_size(GTK_DRAWING_AREA(fe->area), 1, 1);
-
-    gdk_window_set_background(fe->area->window, &fe->colours[0]);
-    gdk_window_set_background(fe->window->window, &fe->colours[0]);
+    set_window_background(fe, 0);
 
     return fe;
 }
@@ -2316,15 +2699,7 @@ int main(int argc, char **argv)
 	}
 
 	if (screenshot_file) {
-	    GdkPixbuf *pb;
-            GError *gerror = NULL;
-
-	    midend_redraw(fe->me);
-
-	    pb = gdk_pixbuf_get_from_drawable(NULL, fe->pixmap,
-					      NULL, 0, 0, 0, 0, -1, -1);
-	    gdk_pixbuf_save(pb, screenshot_file, "png", &gerror, NULL);
-
+	    save_screenshot_png(fe, screenshot_file);
 	    exit(0);
 	}
 
