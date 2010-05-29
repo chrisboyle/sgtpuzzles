@@ -1872,6 +1872,9 @@ static frontend *new_window(char *arg, int argtype, char **error)
 	fe->statusbar = NULL;
 
     fe->area = gtk_drawing_area_new();
+#if GTK_CHECK_VERSION(2,0,0)
+    GTK_WIDGET_UNSET_FLAGS(fe->area, GTK_DOUBLE_BUFFERED);
+#endif
     get_size(fe, &x, &y);
     gtk_drawing_area_size(GTK_DRAWING_AREA(fe->area), x, y);
     fe->w = x;
