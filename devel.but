@@ -1641,6 +1641,43 @@ end does any drawing it informs the front end of which parts of the
 window it has accessed, and hence which parts need repainting. This
 is done by calling \cw{draw_update()} (\k{drawing-draw-update}).
 
+Persistence of old drawing is convenient. However, a puzzle should
+be very careful about how it updates its drawing area. The problem
+is that some front ends do anti-aliased drawing: rather than simply
+choosing between leaving each pixel untouched or painting it a
+specified colour, an antialiased drawing function will \e{blend} the
+original and new colours in pixels at a figure's boundary according
+to the proportion of the pixel occupied by the figure (probably
+modified by some heuristic fudge factors). All of this produces a
+smoother appearance for curves and diagonal lines.
+
+An unfortunate effect of drawing an anti-aliased figure repeatedly
+is that the pixels around the figure's boundary come steadily more
+saturated with \q{ink} and the boundary appears to \q{spread out}.
+Worse, redrawing a figure in a different colour won't fully paint
+over the old boundary pixels, so the end result is a rather ugly
+smudge.
+
+A good strategy to avoid unpleasant anti-aliasing artifacts is to
+identify a number of rectangular areas which need to be redrawn,
+clear them to the background colour, and then redraw their contents
+from scratch, being careful all the while not to stray beyond the
+boundaries of the original rectangles. The \cw{clip()} function
+(\k{drawing-clip}) comes in very handy here. Games based on a square
+grid can often do this fairly easily. Other games may need to be
+somewhat more careful. For example, Loopy's redraw function first
+identifies portions of the display which need to be updated. Then,
+if the changes are fairly well localised, it clears and redraws a
+rectangle containing each changed area. Otherwise, it gives up and
+redraws the entire grid from scratch.
+
+It is possible to avoid clearing to background and redrawing from
+scratch if one is very careful about which drawing functions one
+uses: if a function is documented as not anti-aliasing under some
+circumstances, you can rely on each pixel in a drawing either being
+left entirely alone or being set to the requested colour, with no
+blending being performed.
+
 In the following sections I first discuss the drawing API as seen by
 the back end, and then the \e{almost} identical function-pointer
 form seen by the front end.
@@ -1715,8 +1752,9 @@ the back end function \cw{colours()} (\k{backend-colours}).
 
 Some platforms may perform anti-aliasing on this function.
 Therefore, do not assume that you can erase a line by drawing the
-same line over it in the background colour; anti-aliasing might
-lead to perceptible ghost artefacts around the vanished line.
+same line over it in the background colour; anti-aliasing might lead
+to perceptible ghost artefacts around the vanished line. Horizontal
+and vertical lines, however, are pixel-perfect and not anti-aliased.
 
 This function may be used for both drawing and printing.
 
@@ -1753,7 +1791,8 @@ same polygon over it in the background colour. Also, be prepared for
 the polygon to extend a pixel beyond its obvious bounding box as a
 result of this; if you really need it not to do this to avoid
 interfering with other delicate graphics, you should probably use
-\cw{clip()} (\k{drawing-clip}).
+\cw{clip()} (\k{drawing-clip}). You can rely on horizontal and
+vertical lines not being anti-aliased.
 
 This function may be used for both drawing and printing.
 
@@ -1792,6 +1831,32 @@ the circle to extend a pixel beyond its obvious bounding box as a
 result of this; if you really need it not to do this to avoid
 interfering with other delicate graphics, you should probably use
 \cw{clip()} (\k{drawing-clip}).
+
+This function may be used for both drawing and printing.
+
+\S{drawing-draw-thick-line} \cw{draw_thick_line()}
+
+\c void draw_thick_line(drawing *dr, float thickness,
+\c                      float x1, float y1, float x2, float y2,
+\c                      int colour)
+
+Draws a line in the puzzle window, giving control over the line's
+thickness.
+
+\c{x1} and \c{y1} give the coordinates of one end of the line.
+\c{x2} and \c{y2} give the coordinates of the other end.
+\c{thickness} gives the thickness of the line, in pixels.
+
+Note that the coordinates and thickness are floating-point: the
+continuous coordinate system is in effect here. It's important to
+be able to address points with better-than-pixel precision in this
+case, because one can't otherwise properly express the endpoints of
+lines with both odd and even thicknesses.
+
+Some platforms may perform anti-aliasing on this function. The
+precise pixels affected by a thick-line drawing operation may vary
+between platforms, and no particular guarantees are provided.
+Indeed, even horizontal or vertical lines may be anti-aliased.
 
 This function may be used for both drawing and printing.
 
@@ -1911,7 +1976,9 @@ inclusive. (These are exactly the same semantics as
 
 After this call, no drawing operation will affect anything outside
 the specified rectangle. The effect can be reversed by calling
-\cw{unclip()} (\k{drawing-unclip}).
+\cw{unclip()} (\k{drawing-unclip}). The clipping rectangle is
+pixel-perfect: pixels within the rectangle are affected as usual by
+drawing functions; pixels outside are completely untouched.
 
 Back ends should not assume that a clipping rectangle will be
 automatically cleared up by the front end if it's left lying around;
@@ -2264,6 +2331,20 @@ function; see \k{drawing-draw-polygon}.
 
 This function behaves exactly like the back end \cw{draw_circle()}
 function; see \k{drawing-draw-circle}.
+
+\S{drawingapi-draw-thick-line} \cw{draw_thick_line()}
+
+\c void draw_thick_line(drawing *dr, float thickness,
+\c                      float x1, float y1, float x2, float y2,
+\c                      int colour)
+
+This function behaves exactly like the back end
+\cw{draw_thick_line()} function; see \k{drawing-draw-thick-line}.
+
+An implementation of this API which doesn't provide high-quality
+rendering of thick lines is permitted to define this function
+pointer to be \cw{NULL}. The middleware in \cw{drawing.c} will notice
+and provide a low-quality alternative using \cw{draw_polygon()}.
 
 \S{drawingapi-draw-update} \cw{draw_update()}
 
