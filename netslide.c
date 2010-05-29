@@ -1307,8 +1307,8 @@ static float *game_colours(frontend *fe, int *ncolours)
     return ret;
 }
 
-static void draw_thick_line(drawing *dr, int x1, int y1, int x2, int y2,
-                            int colour)
+static void draw_filled_line(drawing *dr, int x1, int y1, int x2, int y2,
+			     int colour)
 {
     draw_line(dr, x1-1, y1, x2-1, y2, COL_WIRE);
     draw_line(dr, x1+1, y1, x2+1, y2, COL_WIRE);
@@ -1420,9 +1420,9 @@ static void draw_tile(drawing *dr, game_drawstate *ds, game_state *state,
         if (tile & dir) {
             ex = (TILE_SIZE - TILE_BORDER - 1.0F) / 2.0F * X(dir);
             ey = (TILE_SIZE - TILE_BORDER - 1.0F) / 2.0F * Y(dir);
-            draw_thick_line(dr, bx+(int)cx, by+(int)cy,
-			    bx+(int)(cx+ex), by+(int)(cy+ey),
-                            COL_WIRE);
+            draw_filled_line(dr, bx+(int)cx, by+(int)cy,
+			     bx+(int)(cx+ex), by+(int)(cy+ey),
+			     COL_WIRE);
         }
     }
     for (dir = 1; dir < 0x10; dir <<= 1) {

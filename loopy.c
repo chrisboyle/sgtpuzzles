@@ -3543,21 +3543,10 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 	    if (draw_faint_lines)
 		draw_line(dr, x1, y1, x2, y2, line_colour);
 	} else {
-            /* (dx, dy) points roughly from (x1, y1) to (x2, y2).
-             * The line is then "fattened" in a (roughly) perpendicular
-             * direction to create a thin rectangle. */
-            int dx = (x1 > x2) ? -1 : ((x1 < x2) ? 1 : 0);
-            int dy = (y1 > y2) ? -1 : ((y1 < y2) ? 1 : 0);
-            int points[8];
-	    points[0] = x1 + dy;
-	    points[1] = y1 - dx;
-	    points[2] = x1 - dy;
-	    points[3] = y1 + dx;
-	    points[4] = x2 - dy;
-	    points[5] = y2 + dx;
-	    points[6] = x2 + dy;
-	    points[7] = y2 - dx;
-            draw_polygon(dr, points, 4, line_colour, line_colour);
+	    draw_thick_line(dr, 3.0,
+			    x1 + 0.5, y1 + 0.5,
+			    x2 + 0.5, y2 + 0.5,
+			    line_colour);
         }
         if (ds->started) {
             /* Draw dots at ends of the line */

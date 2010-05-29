@@ -40,6 +40,8 @@
 # define USE_CAIRO
 #endif
 
+/* #undef USE_CAIRO */
+/* #define NO_THICK_LINE */
 #ifdef DEBUGGING
 static FILE *debug_fp = NULL;
 
@@ -297,6 +299,18 @@ static void do_draw_line(frontend *fe, int x1, int y1, int x2, int y2)
     cairo_stroke(fe->cr);
 }
 
+static void do_draw_thick_line(frontend *fe, float thickness,
+			       float x1, float y1, float x2, float y2)
+{
+    cairo_save(fe->cr);
+    cairo_set_line_width(fe->cr, thickness);
+    cairo_new_path(fe->cr);
+    cairo_move_to(fe->cr, x1, y1);
+    cairo_line_to(fe->cr, x2, y2);
+    cairo_stroke(fe->cr);
+    cairo_restore(fe->cr);
+}
+
 static void do_draw_poly(frontend *fe, int *coords, int npoints,
 			 int fillcolour, int outlinecolour)
 {
@@ -516,6 +530,25 @@ static void do_draw_rect(frontend *fe, int x, int y, int w, int h)
 static void do_draw_line(frontend *fe, int x1, int y1, int x2, int y2)
 {
     gdk_draw_line(fe->pixmap, fe->gc, x1, y1, x2, y2);
+}
+
+static void do_draw_thick_line(frontend *fe, float thickness,
+			       float x1, float y1, float x2, float y2)
+{
+    GdkGCValues save;
+
+    gdk_gc_get_values(fe->gc, &save);
+    gdk_gc_set_line_attributes(fe->gc,
+			       thickness,
+			       GDK_LINE_SOLID,
+			       GDK_CAP_BUTT,
+			       GDK_JOIN_BEVEL);
+    gdk_draw_line(fe->pixmap, fe->gc, x1, y1, x2, y2);
+    gdk_gc_set_line_attributes(fe->gc,
+			       save.line_width,
+			       save.line_style,
+			       save.cap_style,
+			       save.join_style);
 }
 
 static void do_draw_poly(frontend *fe, int *coords, int npoints,
@@ -850,6 +883,14 @@ void gtk_draw_line(void *handle, int x1, int y1, int x2, int y2, int colour)
     do_draw_line(fe, x1, y1, x2, y2);
 }
 
+void gtk_draw_thick_line(void *handle, float thickness,
+			 float x1, float y1, float x2, float y2, int colour)
+{
+    frontend *fe = (frontend *)handle;
+    set_colour(fe, colour);
+    do_draw_thick_line(fe, thickness, x1, y1, x2, y2);
+}
+
 void gtk_draw_poly(void *handle, int *coords, int npoints,
 		   int fillcolour, int outlinecolour)
 {
@@ -954,6 +995,11 @@ const struct drawing_api gtk_drawing = {
     gtk_text_fallback,
 #else
     NULL,
+#endif
+#ifdef NO_THICK_LINE
+    NULL,
+#else
+    gtk_draw_thick_line,
 #endif
 };
 
