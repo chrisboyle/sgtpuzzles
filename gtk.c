@@ -826,18 +826,18 @@ int message_box(GtkWidget *parent, char *title, char *msg, int centre,
     gtk_label_set_line_wrap(GTK_LABEL(text), TRUE);
 
     if (type == MB_OK) {
-	titles = "OK\0";
+	titles = GTK_STOCK_OK "\0";
 	def = cancel = 0;
     } else {
 	assert(type == MB_YESNO);
-	titles = "Yes\0No\0";
-	def = 0;
-	cancel = 1;
+	titles = GTK_STOCK_NO "\0" GTK_STOCK_YES "\0";
+	def = 1;
+	cancel = 0;
     }
     i = 0;
     
     while (*titles) {
-	button = gtk_button_new_with_label(titles);
+	button = gtk_button_new_from_stock(titles);
 	gtk_box_pack_end(GTK_BOX(GTK_DIALOG(window)->action_area),
 			 button, FALSE, FALSE, 0);
 	gtk_widget_show(button);
@@ -866,7 +866,7 @@ int message_box(GtkWidget *parent, char *title, char *msg, int centre,
     gtk_widget_show(window);
     i = -1;
     gtk_main();
-    return (type == MB_YESNO ? i == 0 : TRUE);
+    return (type == MB_YESNO ? i == 1 : TRUE);
 }
 
 void error_box(GtkWidget *parent, char *msg)
@@ -956,7 +956,15 @@ static int get_config(frontend *fe, int which)
     gtk_window_set_title(GTK_WINDOW(fe->cfgbox), title);
     sfree(title);
 
-    w = gtk_button_new_with_label("OK");
+    w = gtk_button_new_from_stock(GTK_STOCK_CANCEL);
+    gtk_box_pack_end(GTK_BOX(GTK_DIALOG(fe->cfgbox)->action_area),
+                     w, FALSE, FALSE, 0);
+    gtk_widget_show(w);
+    gtk_signal_connect(GTK_OBJECT(w), "clicked",
+                       GTK_SIGNAL_FUNC(config_cancel_button_clicked), fe);
+    cancel = w;
+
+    w = gtk_button_new_from_stock(GTK_STOCK_OK);
     gtk_box_pack_end(GTK_BOX(GTK_DIALOG(fe->cfgbox)->action_area),
                      w, FALSE, FALSE, 0);
     gtk_widget_show(w);
@@ -964,14 +972,6 @@ static int get_config(frontend *fe, int which)
     gtk_window_set_default(GTK_WINDOW(fe->cfgbox), w);
     gtk_signal_connect(GTK_OBJECT(w), "clicked",
                        GTK_SIGNAL_FUNC(config_ok_button_clicked), fe);
-
-    w = gtk_button_new_with_label("Cancel");
-    gtk_box_pack_end(GTK_BOX(GTK_DIALOG(fe->cfgbox)->action_area),
-                     w, FALSE, FALSE, 0);
-    gtk_widget_show(w);
-    gtk_signal_connect(GTK_OBJECT(w), "clicked",
-                       GTK_SIGNAL_FUNC(config_cancel_button_clicked), fe);
-    cancel = w;
 
     table = gtk_table_new(1, 2, FALSE);
     y = 0;
