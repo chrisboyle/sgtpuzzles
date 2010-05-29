@@ -3347,224 +3347,274 @@ static void face_text_pos(const game_drawstate *ds, const grid *g,
     grid_to_screen(ds, g, sx, sy, x, y);
 }
 
+static void game_redraw_clue(drawing *dr, game_drawstate *ds,
+			     game_state *state, int i)
+{
+    grid *g = state->game_grid;
+    grid_face *f = g->faces + i;
+    int x, y;
+    char c[2];
+
+    c[0] = CLUE2CHAR(state->clues[i]);
+    c[1] = '\0';
+
+    face_text_pos(ds, g, f, &x, &y);
+    draw_text(dr, x, y,
+	      FONT_VARIABLE, ds->tilesize/2,
+	      ALIGN_VCENTRE | ALIGN_HCENTRE,
+	      ds->clue_error[i] ? COL_MISTAKE :
+	      ds->clue_satisfied[i] ? COL_SATISFIED : COL_FOREGROUND, c);
+}
+
+static void game_redraw_line(drawing *dr, game_drawstate *ds,
+			     game_state *state, int i)
+{
+    grid *g = state->game_grid;
+    grid_edge *e = g->edges + i;
+    int x1, x2, y1, y2;
+    int xmin, ymin, xmax, ymax;
+    int line_colour;
+
+    if (state->line_errors[i])
+	line_colour = COL_MISTAKE;
+    else if (state->lines[i] == LINE_UNKNOWN)
+	line_colour = COL_LINEUNKNOWN;
+    else if (state->lines[i] == LINE_NO)
+	line_colour = COL_FAINT;
+    else if (ds->flashing)
+	line_colour = COL_HIGHLIGHT;
+    else
+	line_colour = COL_FOREGROUND;
+
+    /* Convert from grid to screen coordinates */
+    grid_to_screen(ds, g, e->dot1->x, e->dot1->y, &x1, &y1);
+    grid_to_screen(ds, g, e->dot2->x, e->dot2->y, &x2, &y2);
+
+    xmin = min(x1, x2);
+    xmax = max(x1, x2);
+    ymin = min(y1, y2);
+    ymax = max(y1, y2);
+
+    if (line_colour == COL_FAINT) {
+	static int draw_faint_lines = -1;
+	if (draw_faint_lines < 0) {
+	    char *env = getenv("LOOPY_FAINT_LINES");
+	    draw_faint_lines = (!env || (env[0] == 'y' ||
+					 env[0] == 'Y'));
+	}
+	if (draw_faint_lines)
+	    draw_line(dr, x1, y1, x2, y2, line_colour);
+    } else {
+	draw_thick_line(dr, 3.0,
+			x1 + 0.5, y1 + 0.5,
+			x2 + 0.5, y2 + 0.5,
+			line_colour);
+    }
+}
+
+static void game_redraw_dot(drawing *dr, game_drawstate *ds,
+			    game_state *state, int i)
+{
+    grid *g = state->game_grid;
+    grid_dot *d = g->dots + i;
+    int x, y;
+
+    grid_to_screen(ds, g, d->x, d->y, &x, &y);
+    draw_circle(dr, x, y, 2, COL_FOREGROUND, COL_FOREGROUND);
+}
+
 static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
                         game_state *state, int dir, game_ui *ui,
                         float animtime, float flashtime)
 {
+#define REDRAW_OBJECTS_LIMIT 16		/* Somewhat arbitrary tradeoff */
+
     grid *g = state->game_grid;
     int border = BORDER(ds->tilesize);
-    int i, n;
-    char c[2];
-    int line_colour, flash_changed;
-    int clue_mistake;
-    int clue_satisfied;
+    int i;
+    int flash_changed;
+    int redraw_everything = FALSE;
 
-    if (!ds->started) {
-        /*
-         * The initial contents of the window are not guaranteed and
-         * can vary with front ends. To be on the safe side, all games
-         * should start by drawing a big background-colour rectangle
-         * covering the whole window.
-         */
+    int edges[REDRAW_OBJECTS_LIMIT], nedges = 0;
+    int faces[REDRAW_OBJECTS_LIMIT], nfaces = 0;
+
+    /* Redrawing is somewhat involved.
+     *
+     * An update can theoretically affect an arbitrary number of edges
+     * (consider, for example, completing or breaking a cycle which doesn't
+     * satisfy all the clues -- we'll switch many edges between error and
+     * normal states).  On the other hand, redrawing the whole grid takes a
+     * while, making the game feel sluggish, and many updates are actually
+     * quite well localized.
+     *
+     * This redraw algorithm attempts to cope with both situations gracefully
+     * and correctly.  For localized changes, we set a clip rectangle, fill
+     * it with background, and then redraw (a plausible but conservative
+     * guess at) the objects which intersect the rectangle; if several
+     * objects need redrawing, we'll do them individually.  However, if lots
+     * of objects are affected, we'll just redraw everything.
+     *
+     * The reason for all of this is that it's just not safe to do the redraw
+     * piecemeal.  If you try to draw an antialiased diagonal line over
+     * itself, you get a slightly thicker antialiased diagonal line, which
+     * looks rather ugly after a while.
+     *
+     * So, we take two passes over the grid.  The first attempts to work out
+     * what needs doing, and the second actually does it.
+     */
+
+    if (!ds->started)
+	redraw_everything = TRUE;
+    else {
+
+	/* First, trundle through the faces. */
+	for (i = 0; i < g->num_faces; i++) {
+	    grid_face *f = g->faces + i;
+	    int sides = f->order;
+	    int clue_mistake;
+	    int clue_satisfied;
+	    int n = state->clues[i];
+	    if (n < 0)
+		continue;
+
+	    clue_mistake = (face_order(state, i, LINE_YES) > n ||
+			    face_order(state, i, LINE_NO ) > (sides-n));
+	    clue_satisfied = (face_order(state, i, LINE_YES) == n &&
+			      face_order(state, i, LINE_NO ) == (sides-n));
+
+	    if (clue_mistake != ds->clue_error[i] ||
+		clue_satisfied != ds->clue_satisfied[i]) {
+		ds->clue_error[i] = clue_mistake;
+		ds->clue_satisfied[i] = clue_satisfied;
+		if (nfaces == REDRAW_OBJECTS_LIMIT)
+		    redraw_everything = TRUE;
+		else
+		    faces[nfaces++] = i;
+	    }
+	}
+
+	/* Work out what the flash state needs to be. */
+	if (flashtime > 0 &&
+	    (flashtime <= FLASH_TIME/3 ||
+	     flashtime >= FLASH_TIME*2/3)) {
+	    flash_changed = !ds->flashing;
+	    ds->flashing = TRUE;
+	} else {
+	    flash_changed = ds->flashing;
+	    ds->flashing = FALSE;
+	}
+
+	/* Now, trundle through the edges. */
+	for (i = 0; i < g->num_edges; i++) {
+	    char new_ds =
+		state->line_errors[i] ? DS_LINE_ERROR : state->lines[i];
+	    if (new_ds != ds->lines[i] ||
+		(flash_changed && state->lines[i] == LINE_YES)) {
+		ds->lines[i] = new_ds;
+		if (nedges == REDRAW_OBJECTS_LIMIT)
+		    redraw_everything = TRUE;
+		else
+		    edges[nedges++] = i;
+	    }
+	}
+    }
+
+    /* Pass one is now done.  Now we do the actual drawing. */
+    if (redraw_everything) {
+
+	/* This is the unsubtle version. */
+
         int grid_width = g->highest_x - g->lowest_x;
         int grid_height = g->highest_y - g->lowest_y;
         int w = grid_width * ds->tilesize / g->tilesize;
         int h = grid_height * ds->tilesize / g->tilesize;
-        draw_rect(dr, 0, 0, w + 2 * border + 1, h + 2 * border + 1,
-                  COL_BACKGROUND);
 
-        /* Draw clues */
-        for (i = 0; i < g->num_faces; i++) {
-	    grid_face *f;
-            int x, y;
+	draw_rect(dr, 0, 0, w + 2*border + 1, h + 2*border + 1,
+		  COL_BACKGROUND);
 
-            c[0] = CLUE2CHAR(state->clues[i]);
-            c[1] = '\0';
-            f = g->faces + i;
-            face_text_pos(ds, g, f, &x, &y);
-            draw_text(dr, x, y, FONT_VARIABLE, ds->tilesize/2,
-                      ALIGN_VCENTRE | ALIGN_HCENTRE, COL_FOREGROUND, c);
-        }
-        draw_update(dr, 0, 0, w + 2 * border, h + 2 * border);
-    }
+	for (i = 0; i < g->num_faces; i++)
+	    game_redraw_clue(dr, ds, state, i);
+	for (i = 0; i < g->num_edges; i++)
+	    game_redraw_line(dr, ds, state, i);
+	for (i = 0; i < g->num_dots; i++)
+	    game_redraw_dot(dr, ds, state, i);
 
-    if (flashtime > 0 &&
-        (flashtime <= FLASH_TIME/3 ||
-         flashtime >= FLASH_TIME*2/3)) {
-        flash_changed = !ds->flashing;
-        ds->flashing = TRUE;
+	draw_update(dr, 0, 0, w + 2*border + 1, h + 2*border + 1);
     } else {
-        flash_changed = ds->flashing;
-        ds->flashing = FALSE;
+
+	/* Right.  Now we roll up our sleeves. */
+
+	for (i = 0; i < nfaces; i++) {
+	    grid_face *f = g->faces + faces[i];
+	    int xx, yy;
+	    int x, y, w, h;
+	    int j;
+
+	    /* There seems to be a certain amount of trial-and-error
+	     * involved in working out the correct bounding-box for
+	     * the text. */
+	    face_text_pos(ds, g, f, &xx, &yy);
+
+	    x = xx - ds->tilesize/4 - 1; w = ds->tilesize/2 + 2;
+	    y = yy - ds->tilesize/4 - 3; h = ds->tilesize/2 + 5;
+	    clip(dr, x, y, w, h);
+	    draw_rect(dr, x, y, w, h, COL_BACKGROUND);
+
+	    game_redraw_clue(dr, ds, state, faces[i]);
+	    for (j = 0; j < f->order; j++)
+		game_redraw_line(dr, ds, state, f->edges[j] - g->edges);
+	    for (j = 0; j < f->order; j++)
+		game_redraw_dot(dr, ds, state, f->dots[j] - g->dots);
+	    unclip(dr);
+	    draw_update(dr, x, y, w, h);
+	}
+
+	for (i = 0; i < nedges; i++) {
+	    grid_edge *e = g->edges + edges[i], *ee;
+	    int x1 = e->dot1->x;
+	    int y1 = e->dot1->y;
+	    int x2 = e->dot2->x;
+	    int y2 = e->dot2->y;
+	    int xmin, xmax, ymin, ymax;
+	    int j;
+
+	    grid_to_screen(ds, g, x1, y1, &x1, &y1);
+	    grid_to_screen(ds, g, x2, y2, &x2, &y2);
+	    /* Allow extra margin for dots, and thickness of lines */
+	    xmin = min(x1, x2) - 2;
+	    xmax = max(x1, x2) + 2;
+	    ymin = min(y1, y2) - 2;
+	    ymax = max(y1, y2) + 2;
+	    /* For testing, I find it helpful to change COL_BACKGROUND
+	     * to COL_SATISFIED here. */
+	    clip(dr, xmin, ymin, xmax - xmin + 1, ymax - ymin + 1);
+	    draw_rect(dr, xmin, ymin, xmax - xmin + 1, ymax - ymin + 1,
+		      COL_BACKGROUND);
+
+	    if (e->face1)
+		game_redraw_clue(dr, ds, state, e->face1 - g->faces);
+	    if (e->face2)
+		game_redraw_clue(dr, ds, state, e->face2 - g->faces);
+
+	    game_redraw_line(dr, ds, state, edges[i]);
+	    for (j = 0; j < e->dot1->order; j++) {
+		ee = e->dot1->edges[j];
+		if (ee != e)
+		    game_redraw_line(dr, ds, state, ee - g->edges);
+	    }
+	    for (j = 0; j < e->dot2->order; j++) {
+		ee = e->dot2->edges[j];
+		if (ee != e)
+		    game_redraw_line(dr, ds, state, ee - g->edges);
+	    }
+	    game_redraw_dot(dr, ds, state, e->dot1 - g->dots);
+	    game_redraw_dot(dr, ds, state, e->dot2 - g->dots);
+
+	    unclip(dr);
+	    draw_update(dr, xmin, ymin, xmax - xmin + 1, ymax - ymin + 1);
+	}
     }
 
-    /* Some platforms may perform anti-aliasing, which may prevent clean
-     * repainting of lines when the colour is changed.
-     * If a line needs to be over-drawn in a different colour, erase a
-     * bounding-box around the line, then flag all nearby objects for redraw.
-     */
-    if (ds->started) {
-        const char redraw_flag = (char)(1<<7);
-        for (i = 0; i < g->num_edges; i++) {
-            char prev_ds = (ds->lines[i] & ~redraw_flag);
-            char new_ds = state->lines[i];
-            if (state->line_errors[i])
-                new_ds = DS_LINE_ERROR;
-
-            /* If we're changing state, AND
-             * the previous state was a coloured line */
-            if ((prev_ds != new_ds) && (prev_ds != LINE_NO)) {
-                grid_edge *e = g->edges + i;
-                int x1 = e->dot1->x;
-                int y1 = e->dot1->y;
-                int x2 = e->dot2->x;
-                int y2 = e->dot2->y;
-                int xmin, xmax, ymin, ymax;
-                int j;
-                grid_to_screen(ds, g, x1, y1, &x1, &y1);
-                grid_to_screen(ds, g, x2, y2, &x2, &y2);
-                /* Allow extra margin for dots, and thickness of lines */
-                xmin = min(x1, x2) - 2;
-                xmax = max(x1, x2) + 2;
-                ymin = min(y1, y2) - 2;
-                ymax = max(y1, y2) + 2;
-                /* For testing, I find it helpful to change COL_BACKGROUND
-                 * to COL_SATISFIED here. */
-                draw_rect(dr, xmin, ymin, xmax - xmin + 1, ymax - ymin + 1,
-                          COL_BACKGROUND);
-                draw_update(dr, xmin, ymin, xmax - xmin + 1, ymax - ymin + 1);
-
-                /* Mark nearby lines for redraw */
-                for (j = 0; j < e->dot1->order; j++)
-                    ds->lines[e->dot1->edges[j] - g->edges] |= redraw_flag;
-                for (j = 0; j < e->dot2->order; j++)
-                    ds->lines[e->dot2->edges[j] - g->edges] |= redraw_flag;
-                /* Mark nearby clues for redraw.  Use a value that is
-                 * neither TRUE nor FALSE for this. */
-                if (e->face1)
-                    ds->clue_error[e->face1 - g->faces] = 2;
-                if (e->face2)
-                    ds->clue_error[e->face2 - g->faces] = 2;
-            }
-        }
-    }
-
-    /* Redraw clue colours if necessary */
-    for (i = 0; i < g->num_faces; i++) {
-        grid_face *f = g->faces + i;
-        int sides = f->order;
-        int j;
-        n = state->clues[i];
-        if (n < 0)
-            continue;
-
-        c[0] = CLUE2CHAR(n);
-        c[1] = '\0';
-
-        clue_mistake = (face_order(state, i, LINE_YES) > n ||
-                        face_order(state, i, LINE_NO ) > (sides-n));
-
-        clue_satisfied = (face_order(state, i, LINE_YES) == n &&
-                          face_order(state, i, LINE_NO ) == (sides-n));
-
-        if (clue_mistake != ds->clue_error[i]
-	    || clue_satisfied != ds->clue_satisfied[i]) {
-            int x, y;
-            face_text_pos(ds, g, f, &x, &y);
-            /* There seems to be a certain amount of trial-and-error
-             * involved in working out the correct bounding-box for
-             * the text. */
-            draw_rect(dr, x - ds->tilesize/4 - 1, y - ds->tilesize/4 - 3,
-                      ds->tilesize/2 + 2, ds->tilesize/2 + 5,
-                      COL_BACKGROUND);
-            draw_text(dr, x, y,
-                      FONT_VARIABLE, ds->tilesize/2,
-                      ALIGN_VCENTRE | ALIGN_HCENTRE,
-                      clue_mistake ? COL_MISTAKE :
-                      clue_satisfied ? COL_SATISFIED : COL_FOREGROUND, c);
-            draw_update(dr, x - ds->tilesize/4 - 1, y - ds->tilesize/4 - 3,
-                        ds->tilesize/2 + 2, ds->tilesize/2 + 5);
-
-            ds->clue_error[i] = clue_mistake;
-            ds->clue_satisfied[i] = clue_satisfied;
-
-            /* Sometimes, the bounding-box encroaches into the surrounding
-             * lines (particularly if the window is resized fairly small).
-             * So redraw them. */
-            for (j = 0; j < f->order; j++)
-                ds->lines[f->edges[j] - g->edges] = -1;
-        }
-    }
-
-    /* Lines */
-    for (i = 0; i < g->num_edges; i++) {
-        grid_edge *e = g->edges + i;
-        int x1, x2, y1, y2;
-        int xmin, ymin, xmax, ymax;
-        char new_ds, need_draw;
-        new_ds = state->lines[i];
-        if (state->line_errors[i])
-            new_ds = DS_LINE_ERROR;
-        need_draw = (new_ds != ds->lines[i]) ? TRUE : FALSE;
-        if (flash_changed && (state->lines[i] == LINE_YES))
-            need_draw = TRUE;
-        if (!ds->started)
-            need_draw = TRUE; /* draw everything at the start */
-        ds->lines[i] = new_ds;
-        if (!need_draw)
-            continue;
-        if (state->line_errors[i])
-            line_colour = COL_MISTAKE;
-        else if (state->lines[i] == LINE_UNKNOWN)
-            line_colour = COL_LINEUNKNOWN;
-        else if (state->lines[i] == LINE_NO)
-            line_colour = COL_FAINT;
-        else if (ds->flashing)
-            line_colour = COL_HIGHLIGHT;
-        else
-            line_colour = COL_FOREGROUND;
-
-        /* Convert from grid to screen coordinates */
-        grid_to_screen(ds, g, e->dot1->x, e->dot1->y, &x1, &y1);
-        grid_to_screen(ds, g, e->dot2->x, e->dot2->y, &x2, &y2);
-
-        xmin = min(x1, x2);
-        xmax = max(x1, x2);
-        ymin = min(y1, y2);
-        ymax = max(y1, y2);
-
-	if (line_colour == COL_FAINT) {
-            static int draw_faint_lines = -1;
-            if (draw_faint_lines < 0) {
-		char *env = getenv("LOOPY_FAINT_LINES");
-		draw_faint_lines = (!env || (env[0] == 'y' ||
-					     env[0] == 'Y'));
-            }
-	    if (draw_faint_lines)
-		draw_line(dr, x1, y1, x2, y2, line_colour);
-	} else {
-	    draw_thick_line(dr, 3.0,
-			    x1 + 0.5, y1 + 0.5,
-			    x2 + 0.5, y2 + 0.5,
-			    line_colour);
-        }
-        if (ds->started) {
-            /* Draw dots at ends of the line */
-            draw_circle(dr, x1, y1, 2, COL_FOREGROUND, COL_FOREGROUND);
-            draw_circle(dr, x2, y2, 2, COL_FOREGROUND, COL_FOREGROUND);
-        }
-        draw_update(dr, xmin-2, ymin-2, xmax - xmin + 4, ymax - ymin + 4);
-    }
-
-    /* Draw dots */
-    if (!ds->started) {
-        for (i = 0; i < g->num_dots; i++) {
-            grid_dot *d = g->dots + i;
-            int x, y;
-            grid_to_screen(ds, g, d->x, d->y, &x, &y);
-            draw_circle(dr, x, y, 2, COL_FOREGROUND, COL_FOREGROUND);
-        }
-    }
     ds->started = TRUE;
 }
 
