@@ -1626,21 +1626,25 @@ static void draw_gts(drawing *dr, game_drawstate *ds, int ox, int oy,
     /* Draw all the greater-than signs emanating from this tile. */
 
     if (f & F_ADJ_UP) {
+	draw_rect(dr, ox, oy - g, TILE_SIZE, g, COL_BACKGROUND);
         draw_gt(dr, ox+g2, oy-g4, g2, -g2, g2, g2,
                (f & F_ERROR_UP) ? COL_ERROR : col);
         draw_update(dr, ox, oy-g, TILE_SIZE, g);
     }
     if (f & F_ADJ_RIGHT) {
+	draw_rect(dr, ox + TILE_SIZE, oy, g, TILE_SIZE, COL_BACKGROUND);
         draw_gt(dr, ox+TILE_SIZE+g4, oy+g2, g2, g2, -g2, g2,
                 (f & F_ERROR_RIGHT) ? COL_ERROR : col);
         draw_update(dr, ox+TILE_SIZE, oy, g, TILE_SIZE);
     }
     if (f & F_ADJ_DOWN) {
+	draw_rect(dr, ox, oy + TILE_SIZE, TILE_SIZE, g, COL_BACKGROUND);
         draw_gt(dr, ox+g2, oy+TILE_SIZE+g4, g2, g2, g2, -g2,
                (f & F_ERROR_DOWN) ? COL_ERROR : col);
         draw_update(dr, ox, oy+TILE_SIZE, TILE_SIZE, g);
     }
     if (f & F_ADJ_LEFT) {
+	draw_rect(dr, ox - g, oy, g, TILE_SIZE, COL_BACKGROUND);
         draw_gt(dr, ox-g4, oy+g2, -g2, g2, g2, g2,
                 (f & F_ERROR_LEFT) ? COL_ERROR : col);
         draw_update(dr, ox-g, oy, g, TILE_SIZE);
