@@ -87,6 +87,34 @@ void draw_line(drawing *dr, int x1, int y1, int x2, int y2, int colour)
     dr->api->draw_line(dr->handle, x1, y1, x2, y2, colour);
 }
 
+void draw_thick_line(drawing *dr, float thickness,
+		     float x1, float y1, float x2, float y2, int colour)
+{
+    if (dr->api->draw_thick_line) {
+	dr->api->draw_thick_line(dr->handle, thickness,
+				 x1, y1, x2, y2, colour);
+    } else {
+	/* We'll fake it up with a filled polygon.  The tweak to the
+	 * thickness empirically compensates for rounding errors, because
+	 * polygon rendering uses integer coordinates.
+	 */
+	float len = sqrt((x2 - x1)*(x2 - x1) + (y2 - y1)*(y2 - y1));
+	float tvhatx = (x2 - x1)/len * (thickness/2 - 0.2);
+	float tvhaty = (y2 - y1)/len * (thickness/2 - 0.2);
+	int p[8];
+
+	p[0] = x1 - tvhaty;
+	p[1] = y1 + tvhatx;
+	p[2] = x2 - tvhaty;
+	p[3] = y2 + tvhatx;
+	p[4] = x2 + tvhaty;
+	p[5] = y2 - tvhatx;
+	p[6] = x1 + tvhaty;
+	p[7] = y1 - tvhatx;
+	dr->api->draw_polygon(dr->handle, p, 4, colour, colour);
+    }
+}
+
 void draw_polygon(drawing *dr, int *coords, int npoints,
                   int fillcolour, int outlinecolour)
 {

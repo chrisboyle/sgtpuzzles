@@ -1,4 +1,4 @@
-#!/usr/bin/env perl
+#!/usr/bin/env perl -w
 #
 # Cross-platform Makefile generator.
 #
@@ -49,21 +49,29 @@ $project_name = "project"; # this is a good enough default
 @allobjs = (); # all object file names
 
 readinput: while (1) {
+  $in = $filestack[$#filestack];
   while (not defined ($_ = <$in>)) {
-    close $in;
+    close $filestack[$#filestack];
+    pop @filestack;
     last readinput if 0 == scalar @filestack;
-    $in = pop @filestack;
+    $in = $filestack[$#filestack];
   }
-
   chomp;
-  split;
+  @_ = split;
 
-  # Skip comments (unless the comments belong, for example because
-  # they're part of a diversion).
-  next if /^\s*#/ and !defined $divert;
+  # If we're gathering help text, keep doing so.
+  if (defined $divert) {
+      if ((defined $_[0]) && $_[0] eq "!end") {
+	  $divert = undef;
+      } else {
+	  ${$divert} .= "$_\n";
+      }
+      next;
+  }
+  # Skip comments and blank lines.
+  next if /^\s*#/ or scalar @_ == 0;
 
   if ($_[0] eq "!begin" and $_[1] eq "help") { $divert = \$help; next; }
-  if ($_[0] eq "!end") { $divert = undef; next; }
   if ($_[0] eq "!name") { $project_name = $_[1]; next; }
   if ($_[0] eq "!srcdir") { push @srcdirs, $_[1]; next; }
   if ($_[0] eq "!makefile" and &mfval($_[1])) { $makefiles{$_[1]}=$_[2]; next;}
@@ -87,13 +95,8 @@ readinput: while (1) {
 	  open $f, "<$file" or die "unable to open include file '$file'\n";
 	  push @filestack, $f;
       }
-      $in = $filestack[$#filestack];
       next;
   }
-  # If we're gathering help text, keep doing so.
-  if (defined $divert) { ${$divert} .= "$_\n"; next; }
-  # Ignore blank lines.
-  next if scalar @_ == 0;
 
   # Now we have an ordinary line. See if it's an = line, a : line
   # or a + line.
@@ -207,7 +210,7 @@ foreach $i (@allobjs) {
 foreach $i (@prognames) {
   ($prog, $type) = split ",", $i;
   # Strip duplicate object names.
-  $prev = undef;
+  $prev = '';
   @list = grep { $status = ($prev ne $_); $prev=$_; $status }
           sort @{$programs{$i}};
   $programs{$i} = [@list];
@@ -239,7 +242,6 @@ foreach $i (@prognames) {
 while (scalar @scanlist > 0) {
   $file = shift @scanlist;
   next if defined $further{$file}; # skip if we've already done it
-  $resource = ($file =~ /\.rc$/ ? 1 : 0);
   $further{$file} = [];
   $dirfile = &findfile($file);
   open IN, "$dirfile" or die "unable to open source file $file\n";
@@ -268,7 +270,7 @@ foreach $i (keys %depends) {
   while (scalar @scanlist > 0) {
     $file = shift @scanlist;
     foreach $j (@{$further{$file}}) {
-      if ($dep{$j} != 1) {
+      if (!$dep{$j}) {
         $dep{$j} = 1;
         push @{$depends{$i}}, $j;
         push @scanlist, $j;
@@ -297,7 +299,8 @@ sub mfval($) {
 sub dirpfx {
     my ($path) = shift @_;
     my ($sep) = shift @_;
-    my $ret = "", $i;
+    my $ret = "";
+    my $i;
     while (($i = index $path, $sep) >= 0) {
 	$path = substr $path, ($i + length $sep);
 	$ret .= "..$sep";
@@ -351,6 +354,7 @@ sub objects {
   my ($prog, $otmpl, $rtmpl, $ltmpl, $prefix, $dirsep) = @_;
   my @ret;
   my ($i, $x, $y);
+  ($otmpl, $rtmpl, $ltmpl) = map { defined $_ ? $_ : "" } ($otmpl, $rtmpl, $ltmpl);
   @ret = ();
   foreach $ii (@{$programs{$prog}}) {
     $i = $objname{$ii};
@@ -385,7 +389,8 @@ sub special {
 
 sub splitline {
   my ($line, $width, $splitchar) = @_;
-  my ($result, $len);
+  my $result = "";
+  my $len;
   $len = (defined $width ? $width : 76);
   $splitchar = (defined $splitchar ? $splitchar : '\\');
   while (length $line > $len) {
@@ -401,7 +406,8 @@ sub splitline {
 sub deps {
   my ($otmpl, $rtmpl, $prefix, $dirsep, $depchar, $splitchar) = @_;
   my ($i, $x, $y);
-  my @deps, @ret;
+  my @deps;
+  my @ret;
   @ret = ();
   $depchar ||= ':';
   foreach $ii (sort keys %depends) {
@@ -573,7 +579,7 @@ if (defined $makefiles{'borland'}) {
     print "\n\n";
     foreach $p (&prognames("G:C")) {
       ($prog, $type) = split ",", $p;
-      $objstr = &objects($p, "X.obj", "X.res", undef);
+      $objstr =  &objects($p, "X.obj", "X.res", undef);
       print &splitline("$prog.exe: " . $objstr . " $prog.rsp"), "\n";
       my $ap = ($type eq "G") ? "-aa" : "-ap";
       print "\tilink32 $ap -Gn -L\$(BCB)\\lib \@$prog.rsp\n\n";

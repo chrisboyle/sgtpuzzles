@@ -172,6 +172,7 @@ version2.def: FORCE
 		mv version2.def.new version2.def; \
 	fi
 .PHONY: FORCE
+!end
 !specialobj osx version
 
 # make install for Unix.
