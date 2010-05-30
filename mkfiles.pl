@@ -1,4 +1,4 @@
-#!/usr/bin/env perl -w
+#!/usr/bin/env perl
 #
 # Cross-platform Makefile generator.
 #
@@ -17,6 +17,7 @@
 #  - special-define objects (foo.o[PREPROCSYMBOL]) are not
 #    supported in the mac or vcproj makefiles.
 
+use warnings;
 use IO::Handle;
 use Cwd;
 
