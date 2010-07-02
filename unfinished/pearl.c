@@ -217,6 +217,7 @@ int pearl_solve(int w, int h, char *clues, char *result)
      * Now repeatedly try to find something we can do.
      */
     while (1) {
+	int done_something = FALSE;
 
 #ifdef SOLVER_DIAGNOSTICS
 	for (y = 0; y < H; y++) {
@@ -225,8 +226,6 @@ int pearl_solve(int w, int h, char *clues, char *result)
 	    printf("\n");
 	}
 #endif
-
-	int done_something = FALSE;
 
 	/*
 	 * Go through the square state words, and discard any
@@ -267,9 +266,9 @@ int pearl_solve(int w, int h, char *clues, char *result)
 		if (!workspace[(2*y+1)*W+(2*x+1)]) {
 #ifdef SOLVER_DIAGNOSTICS
 		    printf("edge check at (%d,%d): inconsistency\n", x, y);
+#endif
 		    ret = 0;
 		    goto cleanup;
-#endif
 		}
 	    }
 
@@ -298,9 +297,9 @@ int pearl_solve(int w, int h, char *clues, char *result)
 		if (edgeand & ~edgeor) {
 #ifdef SOLVER_DIAGNOSTICS
 		    printf("square check at (%d,%d): inconsistency\n", x, y);
+#endif
 		    ret = 0;
 		    goto cleanup;
-#endif
 		}
 
 		for (d = 1; d <= 8; d += d) {
@@ -384,7 +383,6 @@ int pearl_solve(int w, int h, char *clues, char *result)
 			    }
 			}
 		    }
-
 
 		    break;
 		  case STRAIGHT:
