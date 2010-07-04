@@ -2552,7 +2552,6 @@ int main(int argc, const char *argv[])
     err = validate_desc(p, desc);
     if (err) {
         fprintf(stderr, "%s: %s\nDescription: %s\n", quis, err, desc);
-        free_params(p);
         goto done;
     }
     s = new_game(NULL, p, desc);
