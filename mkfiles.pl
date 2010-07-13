@@ -1427,11 +1427,11 @@ if (defined $makefiles{"android"}) {
     "# Version number\n".
     "VER ?= -DREVISION=\"`grep versionName android/AndroidManifest.xml |sed 's/.*\\\"\\(.*\\)\\\".*/\\1/'`\"\n".
     "# This path points at the Native Development Kit root directory\n".
-    "ANDROID_NDK ?= /opt/android-ndk-r3\n".
+    "ANDROID_NDK ?= /opt/android-ndk-r4b\n".
     "# This should be the Android SDK root directory\n".
     "ANDROID ?= /opt/android-sdk-linux\n".
     "# You can define this path to point at your tools if you need to\n".
-    "TOOLPATH = \$(ANDROID_NDK)/build/prebuilt/linux-x86/arm-eabi-4.2.1/bin\n".
+    "TOOLPATH = \$(ANDROID_NDK)/build/prebuilt/linux-x86/arm-eabi-4.4.0/bin\n".
     "CC = \$(TOOLPATH)/arm-eabi-gcc\n".
     &splitline("CFLAGS = -O2 -Wall -Werror -DSLOW_SYSTEM -DANDROID -DNO_PRINTING -g " .
 	       "-I\$(ANDROID_NDK)/build/platforms/android-3/arch-arm/usr/include " .
@@ -1467,7 +1467,7 @@ if (defined $makefiles{"android"}) {
         "-o \$@ \$^ \$(ANDROID_NDK)/build/platforms/android-3/arch-arm/usr/lib/libc.so " .
         "\$(ANDROID_NDK)/build/platforms/android-3/arch-arm/usr/lib/libm.so\n";
       print "\tcp \$@ libpuzzles.so.unstripped\n";
-      print "\t\$(ANDROID_NDK)/build/prebuilt/linux-x86/arm-eabi-4.2.1/bin/arm-eabi-strip -v --strip-debug \$@\n\n";
+      print "\t\$(ANDROID_NDK)/build/prebuilt/linux-x86/arm-eabi-4.4.0/bin/arm-eabi-strip -v --strip-debug \$@\n\n";
     }
     foreach $d (&deps("X.o", undef, $dirpfx, "/")) {
       $oobjs = $d->{obj};
