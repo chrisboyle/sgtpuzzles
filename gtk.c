@@ -411,6 +411,32 @@ static void teardown_backing_store(frontend *fe)
 static void repaint_rectangle(frontend *fe, GtkWidget *widget,
 			      int x, int y, int w, int h)
 {
+    if (x < fe->ox) {
+	gdk_draw_rectangle(widget->window,
+			   widget->style->bg_gc[GTK_WIDGET_STATE(fe->area)],
+			   TRUE, x, y, fe->ox - x, h);
+	w -= (fe->ox - x);
+	x = fe->ox;
+    }
+    if (y < fe->oy) {
+	gdk_draw_rectangle(widget->window,
+			   widget->style->bg_gc[GTK_WIDGET_STATE(fe->area)],
+			   TRUE, x, y, w, fe->oy - y);
+	h -= (fe->oy - y);
+	y = fe->oy;
+    }
+    if (w > fe->pw) {
+	gdk_draw_rectangle(widget->window,
+			   widget->style->bg_gc[GTK_WIDGET_STATE(fe->area)],
+			   TRUE, x + fe->pw, y, w - fe->pw, h);
+	w = fe->pw;
+    }
+    if (h > fe->ph) {
+	gdk_draw_rectangle(widget->window,
+			   widget->style->bg_gc[GTK_WIDGET_STATE(fe->area)],
+			   TRUE, x, y + fe->ph, w, h - fe->ph);
+	h = fe->ph;
+    }
     gdk_draw_pixmap(widget->window,
 		    widget->style->fg_gc[GTK_WIDGET_STATE(fe->area)],
 		    fe->pixmap,
