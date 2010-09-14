@@ -2851,6 +2851,62 @@ These parameters are available from the \q{Custom...} option on the
 (the start at the top left, and the end at the bottom right). If false the start
 and end squares are placed randomly (although always both shown). 
 
+\C{range} \i{Range}
+
+\cfg{winhelp-topic}{games.range}
+
+You have a grid of squares; some squares contain numbers.  Your job is
+to colour some of the squares black, such that several criteria are
+satisfied:
+
+\b no square with a number is coloured black.
+
+\b no two black squares are adjacent (horizontally or vertically).
+
+\b for any two white squares, there is a path between them using only
+white squares.
+
+\b for each square with a number, that number denotes the number of
+squares reachable from that square going in each direction until
+hitting a wall or a black square.
+
+For instance, a square containing the number one must have four black
+squares as its neighbours by the last criterion; but then it's
+impossible for it to be connected to any outside white square, which
+violates the second to last criterion.  So no square will contain the
+number one.
+
+Credit for this puzzle goes to \i{Nikoli}, who have variously called
+it \q{Kurodoko}, \q{Kuromasu} or \q{Where is Black Cells}.
+\k{nikoli-range}.
+
+Range was contributed to this collection by Jonas K\u00F6{oe}lker.
+
+\B{nikoli-range}
+\W{http://www.nikoli.co.jp/en/puzzles/where_is_black_cells/}\cw{http://www.nikoli.co.jp/en/puzzles/where_is_black_cells/}
+
+\H{range-controls} \I{controls, for Range}Range controls
+
+Click with the left button to paint a square black, or with the right
+button to mark a square with a dot to indicate that you are sure it
+should \e{not} be painted black. Repeated clicking with either button
+will cycle the square through the three possible states (filled,
+dotted or empty) in opposite directions.
+
+You can also use the cursor keys to move around the grid squares.
+Pressing Return does the same as clicking with the left button, while
+pressing Space does the same as a right button click.
+
+(All the actions described in \k{common-actions} are also available.)
+
+\H{range-parameters} \I{parameters, for Range}Range parameters
+
+These parameters are available from the \q{Custom...} option on the
+\q{Type} menu.
+
+\dt \e{Width}, \e{Height}
+
+\dd Size of grid in squares.
 
 \A{licence} \I{MIT licence}\ii{Licence}
 
