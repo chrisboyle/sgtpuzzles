@@ -13,6 +13,7 @@ import android.graphics.Typeface;
 import android.os.Handler;
 import android.util.AttributeSet;
 import android.util.Log;
+import android.view.HapticFeedbackConstants;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
@@ -52,6 +53,7 @@ public class GameView extends View
 		public void run() {
 			button = SGTPuzzles.RIGHT_BUTTON;
 			waiting = false;
+			performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
 			parent.sendKey((int)startX, (int)startY, button);
 		}
 	};
