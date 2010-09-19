@@ -1459,6 +1459,9 @@ static void game_changed_state(game_ui *ui, game_state *oldstate,
                                game_state *newstate)
 {
     if (newstate->has_cheated) ui->cheated = TRUE;
+#ifdef ANDROID
+    if (newstate->was_solved && ! newstate->has_cheated && oldstate && ! oldstate->was_solved) android_completed();
+#endif
 }
 
 static float game_anim_length(game_state *oldstate, game_state *newstate,
@@ -1472,7 +1475,7 @@ static float game_anim_length(game_state *oldstate, game_state *newstate,
 static float game_flash_length(game_state *from, game_state *to,
                                int dir, game_ui *ui)
 {
-    if (!from->was_solved && to->was_solved && !ui->cheated)
+    if (!from->was_solved && to->was_solved)
         return FLASH_TIME;
     return 0.0F;
 }
