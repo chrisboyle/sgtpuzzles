@@ -94,6 +94,7 @@
   <string name="name_netslide">Netslide</string> 
   <string name="name_pattern">Pattern</string> 
   <string name="name_pegs">Pegs</string> 
+  <string name="name_range">Range</string>
   <string name="name_rect">Rectangles</string> 
   <string name="name_samegame">Same Game</string> 
   <string name="name_signpost">Signpost</string>
@@ -130,6 +131,7 @@
   <string name="desc_netslide">将砖片按照行与列的方向滑动，使所有的砖片连接到中心的砖片。</string> 
   <string name="desc_pattern">网格的每行每列标注了要求填充的砖片长度与顺序，填充网格以满足要求。</string> 
   <string name="desc_pegs">通过将圆盘跳跃过另一圆盘来移除它们，使它们直到剩下一个为止。</string> 
+  <string name="desc_range">Place black squares to limit the visible distance from each numbered cell.</string>
   <string name="desc_rect">将网格划分成仅包含一个数字的矩形，使所含数字与矩形面积相同。</string> 
   <string name="desc_samegame">移除同色的组（含两个方格或更多）已清空网格，组越大得分越多。</string> 
   <string name="desc_signpost">依箭頭把方塊連線起來。</string>
@@ -451,6 +453,8 @@
   <string name="Octagon">八边形</string> 
   <string name="Width_and_height_must_both_be_greater_than_three">宽度和高度都必须大于 3</string> 
   <string name="This_board_type_is_only_supported_at_7x7">这种板型只支持 7x7</string> 
+  <!-- Range -->
+  <string name="Error_w_h_is_too_big">Error: w + h is too big</string>
   <!--  Rectangles 
   --> 
   <string name="Expansion_factor">扩展系数</string> 

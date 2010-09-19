@@ -146,12 +146,12 @@ static config_item *game_configure(game_params *params)
 
     ret = snewn(3, config_item);
 
-    ret[0].name = "Width";
+    ret[0].name = _("Width");
     ret[0].type = C_STRING;
     ret[0].sval = nfmtstr(10, "%d", params->w);
     ret[0].ival = 0;
 
-    ret[1].name = "Height";
+    ret[1].name = _("Height");
     ret[1].type = C_STRING;
     ret[1].sval = nfmtstr(10, "%d", params->h);
     ret[1].ival = 0;
@@ -308,7 +308,7 @@ static char *solve_game(game_state *orig, game_state *curpos,
         for (it = base; it < moves; ++it)
             str += sprintf(str, "%c,%d,%d", colour[it->colour],
                            it->square.r, it->square.c);
-    } else *error = "This puzzle instance contains a contradiction";
+    } else *error = _("Puzzle is inconsistent");
 
     sfree(base);
     return ret;
@@ -891,16 +891,13 @@ static int dfs_count_white(game_state *state, int cell)
 static char *validate_params(game_params *params, int full)
 {
     int const w = params->w, h = params->h;
-    if (w < 1) return "Error: width is less than 1";
-    if (h < 1) return "Error: height is less than 1";
-    if (w * h < 1) return "Error: size is less than 1";
-    if (w + h - 1 > SCHAR_MAX) return "Error: w + h is too big";
+    if (w < 1) return _("Width must be at least one");
+    if (h < 1) return _("Height must be at least one");
+    // w * h >= 1
+    if (w + h - 1 > SCHAR_MAX) return _("Error: w + h is too big");
     /* I might be unable to store clues in my puzzle_size *grid; */
     if (full) {
-        if (w == 2 && h == 2) return "Error: can't create 2x2 puzzles";
-        if (w == 1 && h == 2) return "Error: can't create 1x2 puzzles";
-        if (w == 2 && h == 1) return "Error: can't create 2x1 puzzles";
-        if (w == 1 && h == 1) return "Error: can't create 1x1 puzzles";
+        if (w < 3 || h < 3) return _("Width and height must both be at least 3");
     }
     return NULL;
 }
@@ -1070,19 +1067,19 @@ static char *validate_desc(game_params *params, char *desc)
         } else if (c > '0' && c <= '9') {
             int val = atoi(desc-1);
             if (val < 1 || val > range)
-                return "Out-of-range number in game description";
+                return _("Number out of range in game description");
             squares++;
             while (*desc >= '0' && *desc <= '9')
                 desc++;
         } else
-            return "Invalid character in game description";
+            return _("Invalid character in game description");
     }
 
     if (squares < n)
-        return "Not enough data to fill grid";
+        return _("Not enough data to fill grid");
 
     if (squares > n)
-        return "Too much data to fit in grid";
+        return _("Too much data to fit in grid");
 
     return NULL;
 }
@@ -1655,6 +1652,7 @@ static int game_timing_state(game_state *state, game_ui *ui)
     return FALSE; /* the (non-existing) timer should not be running */
 }
 
+#ifndef NO_PRINTING
 /* ----------------------------------------------------------------------
  * User interface: print
  */
@@ -1689,6 +1687,7 @@ static void game_print(drawing *dr, game_state *state, int tilesize)
     print_line_width(dr, 3 * tilesize / 40);
     draw_rect_outline(dr, BORDER, BORDER, w*TILESIZE, h*TILESIZE, COL_GRID);
 }
+#endif
 
 /* And that's about it ;-) **************************************************/
 
@@ -1727,7 +1726,9 @@ struct game const thegame = {
     game_redraw,
     game_anim_length,
     game_flash_length,
+#ifndef NO_PRINTING
     TRUE, FALSE, game_print_size, game_print,
+#endif
     FALSE, /* wants_statusbar */
     FALSE, game_timing_state,
     0, /* flags */

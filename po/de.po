@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sgt-puzzles\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2010-07-13 22:24+0200\n"
+"POT-Creation-Date: 2010-09-19 11:43+0200\n"
 "PO-Revision-Date: 2009-11-04 11:10-0800\n"
 "Last-Translator: Helge Kreutzmann <debian@helgefjell.de>\n"
 "Language-Team: de <debian-l10n-german@lists.debian.org>\n"
@@ -1247,7 +1247,7 @@ msgstr ""
 #: puzzles.but:1779 puzzles.but:1875 puzzles.but:1950 puzzles.but:2089
 #: puzzles.but:2198 puzzles.but:2320 puzzles.but:2394 puzzles.but:2452
 #: puzzles.but:2545 puzzles.but:2635 puzzles.but:2693 puzzles.but:2752
-#: puzzles.but:2838
+#: puzzles.but:2838 puzzles.but:2901
 msgid "(All the actions described in \\k{common-actions} are also available.)"
 msgstr ""
 "(Alle in \\k{common-actions} beschriebene Aktionen sind auch verfügbar.)"
@@ -1263,7 +1263,7 @@ msgstr "\\I{Parameter, für Net}Net-Parameter"
 #: puzzles.but:1713 puzzles.but:1784 puzzles.but:1880 puzzles.but:1955
 #: puzzles.but:2038 puzzles.but:2094 puzzles.but:2203 puzzles.but:2325
 #: puzzles.but:2399 puzzles.but:2550 puzzles.but:2640 puzzles.but:2698
-#: puzzles.but:2757 puzzles.but:2843
+#: puzzles.but:2757 puzzles.but:2843 puzzles.but:2906
 msgid ""
 "These parameters are available from the \\q{Custom...} option on the \\q"
 "{Type} menu."
@@ -1276,7 +1276,7 @@ msgstr ""
 #: puzzles.but:1267 puzzles.but:1408 puzzles.but:1650 puzzles.but:1715
 #: puzzles.but:1786 puzzles.but:1882 puzzles.but:1957 puzzles.but:2040
 #: puzzles.but:2096 puzzles.but:2205 puzzles.but:2401 puzzles.but:2700
-#: puzzles.but:2759 puzzles.but:2845
+#: puzzles.but:2759 puzzles.but:2845 puzzles.but:2908
 msgid "\\e{Width}, \\e{Height}"
 msgstr "\\e{Breite}, \\e{Höhe}"
 
@@ -2792,6 +2792,7 @@ msgstr ""
 #: puzzles.but:1124 puzzles.but:1196 puzzles.but:1269 puzzles.but:1717
 #: puzzles.but:1788 puzzles.but:1884 puzzles.but:2042 puzzles.but:2098
 #: puzzles.but:2207 puzzles.but:2403 puzzles.but:2702 puzzles.but:2847
+#: puzzles.but:2910
 msgid "Size of grid in squares."
 msgstr "Größe des Gitters in Quadraten"
 
@@ -6469,17 +6470,118 @@ msgid ""
 msgstr ""
 
 #. type: Plain text
-#: puzzles.but:2856
+#: puzzles.but:2855
+msgid "\\i{Range}"
+msgstr "\\i{Range}"
+
+#. type: Plain text
+#: puzzles.but:2857
+msgid "\\cfg{winhelp-topic}{games.range}"
+msgstr "\\cfg{winhelp-topic}{games.range}"
+
+#. type: Plain text
+#: puzzles.but:2861
+msgid ""
+"You have a grid of squares; some squares contain numbers.  Your job is to "
+"colour some of the squares black, such that several criteria are satisfied:"
+msgstr ""
+
+#. type: Plain text
+#: puzzles.but:2863
+msgid "no square with a number is coloured black."
+msgstr ""
+
+#. type: Plain text
+#: puzzles.but:2865
+msgid "no two black squares are adjacent (horizontally or vertically)."
+msgstr ""
+
+#. type: Plain text
+#: puzzles.but:2868
+msgid ""
+"for any two white squares, there is a path between them using only white "
+"squares."
+msgstr ""
+
+#. type: Plain text
+#: puzzles.but:2872
+msgid ""
+"for each square with a number, that number denotes the number of squares "
+"reachable from that square going in each direction until hitting a wall or a "
+"black square."
+msgstr ""
+
+#. type: Plain text
+#: puzzles.but:2878
+msgid ""
+"For instance, a square containing the number one must have four black "
+"squares as its neighbours by the last criterion; but then it's impossible "
+"for it to be connected to any outside white square, which violates the "
+"second to last criterion.  So no square will contain the number one."
+msgstr ""
+
+#. type: Plain text
+#: puzzles.but:2882
+msgid ""
+"Credit for this puzzle goes to \\i{Nikoli}, who have variously called it \\q"
+"{Kurodoko}, \\q{Kuromasu} or \\q{Where is Black Cells}.  \\k{nikoli-range}."
+msgstr ""
+
+#. type: Plain text
+#: puzzles.but:2884
+msgid "Range was contributed to this collection by Jonas K\\u00F6{oe}lker."
+msgstr ""
+"Range wurde von Jonas K\\u00F6{oe}lker zu dieser Sammlung beigesteuert."
+
+#. type: Plain text
+#: puzzles.but:2887
+msgid ""
+"\\W{http://www.nikoli.co.jp/en/puzzles/where_is_black_cells/}\\cw{http://www."
+"nikoli.co.jp/en/puzzles/where_is_black_cells/}"
+msgstr ""
+"\\W{http://www.nikoli.co.jp/en/puzzles/where_is_black_cells/}\\cw{http://www."
+"nikoli.co.jp/en/puzzles/where_is_black_cells/}"
+
+#. type: Plain text
+#: puzzles.but:2889
+msgid "\\I{controls, for Range}Range controls"
+msgstr "\\I{Steuerung, von Range}Range-Steuerung"
+
+#. type: Plain text
+#: puzzles.but:2895
+msgid ""
+"Click with the left button to paint a square black, or with the right button "
+"to mark a square with a dot to indicate that you are sure it should \\e{not} "
+"be painted black. Repeated clicking with either button will cycle the square "
+"through the three possible states (filled, dotted or empty) in opposite "
+"directions."
+msgstr ""
+
+#. type: Plain text
+#: puzzles.but:2899
+msgid ""
+"You can also use the cursor keys to move around the grid squares.  Pressing "
+"Return does the same as clicking with the left button, while pressing Space "
+"does the same as a right button click."
+msgstr ""
+
+#. type: Plain text
+#: puzzles.but:2903
+msgid "\\I{parameters, for Range}Range parameters"
+msgstr "\\I{Parameter, für Range}Range-Parameter"
+
+#. type: Plain text
+#: puzzles.but:2912
 msgid "\\I{MIT licence}\\ii{Licence}"
 msgstr "\\I{MIT-Lizenz}\\ii{Lizenz}"
 
 #. type: Plain text
-#: puzzles.but:2858
+#: puzzles.but:2914
 msgid "This software is \\i{copyright} 2004-2010 Simon Tatham."
 msgstr "Diese Software ist \\i{copyright} 2004-2010 Simon Tatham."
 
 #. type: Plain text
-#: puzzles.but:2862
+#: puzzles.but:2918
 msgid ""
 "Portions copyright Richard Boulton, James Harvey, Mike Pinna, Jonas K\\u00F6"
 "{oe}lker, Dariusz Olszewski, Michael Schierl, Lambros Lambrou, Bernd Schmidt "
@@ -6490,7 +6592,7 @@ msgstr ""
 "Schmidt und Chris Boyle."
 
 #. type: Plain text
-#: puzzles.but:2870
+#: puzzles.but:2926
 msgid ""
 "Permission is hereby granted, free of charge, to any person obtaining a copy "
 "of this software and associated documentation files (the \\q{Software}), to "
@@ -6501,14 +6603,14 @@ msgid ""
 msgstr ""
 
 #. type: Plain text
-#: puzzles.but:2873
+#: puzzles.but:2929
 msgid ""
 "The above copyright notice and this permission notice shall be included in "
 "all copies or substantial portions of the Software."
 msgstr ""
 
 #. type: Plain text
-#: puzzles.but:2882
+#: puzzles.but:2938
 msgid ""
 "THE SOFTWARE IS PROVIDED \\q{AS IS}, WITHOUT WARRANTY OF ANY KIND, EXPRESS "
 "OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, "
@@ -6520,136 +6622,136 @@ msgid ""
 msgstr ""
 
 #. type: IM{#1}
-#: puzzles.but:2883
+#: puzzles.but:2939
 msgid "command-line"
 msgstr "Befehlszeile"
 
 #. type: IM
-#: puzzles.but:2883
+#: puzzles.but:2939
 #, no-wrap
 msgid "{command line} command line"
 msgstr "{Befehlszeile} Befehlszeile"
 
 #. type: IM{#1}
-#: puzzles.but:2885 puzzles.but:2886
+#: puzzles.but:2941 puzzles.but:2942
 #, no-wrap
 msgid "default parameters, specifying"
 msgstr "Standardparameter, angeben"
 
 #. type: IM
-#: puzzles.but:2886
+#: puzzles.but:2942
 #, no-wrap
 msgid "preferences, specifying default"
 msgstr "Voreinstellungen, Standard angeben"
 
 #. type: IM{#1}
-#: puzzles.but:2888 puzzles.but:2889
+#: puzzles.but:2944 puzzles.but:2945
 #, no-wrap
 msgid "Unix"
 msgstr "Unix"
 
 #. type: IM
-#: puzzles.but:2889
+#: puzzles.but:2945
 #, no-wrap
 msgid "Linux"
 msgstr "Linux"
 
 #. type: IM{#1}
-#: puzzles.but:2891 puzzles.but:2892
+#: puzzles.but:2947 puzzles.but:2948
 #, no-wrap
 msgid "generating game IDs"
 msgstr "Erzeugen von Spiele-IDs"
 
 #. type: IM
-#: puzzles.but:2892
+#: puzzles.but:2948
 #, no-wrap
 msgid "game ID, generating"
 msgstr "Spiele-ID, erzeugen"
 
 #. type: IM{#1}
-#: puzzles.but:2894
+#: puzzles.but:2950
 msgid "specific"
 msgstr "bestimmt"
 
 #. type: IM
-#: puzzles.but:2894
+#: puzzles.but:2950
 #, no-wrap
 msgid "\\q{Specific}, menu option"
 msgstr "\\q{Bestimmt}, Menüoption"
 
 #. type: IM{#1}
-#: puzzles.but:2895
+#: puzzles.but:2951
 msgid "custom"
 msgstr "benutzerdefiniert"
 
 #. type: IM
-#: puzzles.but:2895
+#: puzzles.but:2951
 #, no-wrap
 msgid "\\q{Custom}, menu option"
 msgstr "\\q{Benutzerdefiniert}, Menüoption"
 
 #. type: IM{#1}
-#: puzzles.but:2897 puzzles.but:2898
+#: puzzles.but:2953 puzzles.but:2954
 #, no-wrap
 msgid "game ID"
 msgstr "Spiele-ID"
 
 #. type: IM
-#: puzzles.but:2898
+#: puzzles.but:2954
 #, no-wrap
 msgid "ID, game"
 msgstr "ID, Spiel"
 
 #. type: IM{#1}
-#: puzzles.but:2899 puzzles.but:2900 puzzles.but:2901
+#: puzzles.but:2955 puzzles.but:2956 puzzles.but:2957
 #, no-wrap
 msgid "ID format"
 msgstr "ID-Format"
 
 #. type: IM
-#: puzzles.but:2900
+#: puzzles.but:2956
 #, no-wrap
 msgid "format, ID"
 msgstr "Format, ID"
 
 #. type: IM
-#: puzzles.but:2901
+#: puzzles.but:2957
 #, no-wrap
 msgid "game ID, format"
 msgstr "Spiele-ID, Format"
 
 #. type: IM{#1}
-#: puzzles.but:2903 puzzles.but:2904
+#: puzzles.but:2959 puzzles.but:2960
 #, no-wrap
 msgid "keys"
 msgstr "Tasten"
 
 #. type: IM
-#: puzzles.but:2904
+#: puzzles.but:2960
 #, no-wrap
 msgid "shortcuts (keyboard)"
 msgstr "Tastaturkürzel"
 
 #. type: IM{#1}
-#: puzzles.but:2906 puzzles.but:2907
+#: puzzles.but:2962 puzzles.but:2963
 #, no-wrap
 msgid "initial state"
 msgstr "Anfangszustand"
 
 #. type: IM
-#: puzzles.but:2907
+#: puzzles.but:2963
 #, no-wrap
 msgid "state, initial"
 msgstr "Zustand, anfänglicher"
 
 #. type: IM{#1}
-#: puzzles.but:2909 puzzles.but:2910
+#: puzzles.but:2965 puzzles.but:2966
 #, no-wrap
 msgid "MIT licence"
 msgstr "MIT-Lizenz"
 
 #. type: IM
-#: puzzles.but:2910
+#: puzzles.but:2966
 #, no-wrap
 msgid "licence, MIT"
 msgstr "Lizenz, MIT"

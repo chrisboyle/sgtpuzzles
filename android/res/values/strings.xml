@@ -112,6 +112,7 @@ Revision: %s"</string>
     <string name="name_netslide">Netslide</string>
     <string name="name_pattern">Pattern</string>
     <string name="name_pegs">Pegs</string>
+    <string name="name_range">Range</string>
     <string name="name_rect">Rectangles</string>
     <string name="name_samegame">Same Game</string>
     <string name="name_signpost">Signpost</string>
@@ -147,6 +148,7 @@ Revision: %s"</string>
     <string name="desc_netslide">Slide rows and columns to connect all tiles to the centre tile.</string>
     <string name="desc_pattern">Fill the grid so that the numbers are the length of each stretch of black tiles in order.</string>
     <string name="desc_pegs">Remove pegs by jumping others over them, until only one is left.</string>
+    <string name="desc_range">Place black squares to limit the visible distance from each numbered cell.</string>
     <string name="desc_rect">Divide the grid into rectangles containing only one number, which is also the area of the rectangle.</string>
     <string name="desc_samegame">Remove groups (2 or more) of the same colour to clear the grid, scoring more for larger groups.</string>
     <string name="desc_signpost">Connect the squares into a path following the arrows.</string>
@@ -248,6 +250,8 @@ Revision: %s"</string>
     <string name="Unable_to_find_a_unique_solution_for_this_puzzle">Unable to find a unique solution for this puzzle</string>
     <string name="Walls_wrap_around">Walls wrap around</string>
     <string name="Width">Width</string>
+    <string name="Width_must_be_at_least_one">Width must be at least one</string>
+    <string name="Height_must_be_at_least_one">Height must be at least one</string>
     <string name="Width_and_height_must_both_be_at_least_two">Width and height must both be at least two</string>
     <string name="Width_and_height_must_both_be_greater_than_zero">Width and height must both be greater than zero</string>
     <!-- Black Box -->
@@ -306,8 +310,6 @@ Revision: %s"</string>
     <string name="Incorrect_number_balance_in_game_description">Incorrect number balance in game description</string>
     <!-- Fifteen: all strings in that game are common! -->
     <!-- Filling -->
-    <string name="Width_must_be_at_least_one">Width must be at least one</string>
-    <string name="Height_must_be_at_least_one">Height must be at least one</string>
     <string name="non_digit_in_string">non-digit in string</string>
     <string name="too_large_digit_in_string">too large digit in string</string>
     <string name="string_too_long">string too long</string>
@@ -438,6 +440,8 @@ Revision: %s"</string>
     <string name="Octagon">Octagon</string>
     <string name="Width_and_height_must_both_be_greater_than_three">Width and height must both be greater than three</string>
     <string name="This_board_type_is_only_supported_at_7x7">This board type is only supported at 7x7</string>
+    <!-- Range -->
+    <string name="Error_w_h_is_too_big">Error: w + h is too big</string>
     <!-- Rectangles -->
     <string name="Expansion_factor">Expansion factor</string>
     <string name="Expansion_factor_may_not_be_negative">Expansion factor may not be negative</string>
@@ -463,7 +467,7 @@ Revision: %s"</string>
     <string name="Puzzle_is_too_large">Puzzle is too large</string>
     <!-- Sixteen: all strings in that game are common! -->
     <!-- Slant: all strings in that game are common! -->
-    <!-- solo.c -->
+    <!-- Solo -->
     <string name="_2x2_Trivial">2x2 Trivial</string>
     <string name="_2x3_Basic">2x3 Basic</string>
     <string name="_3x3_Trivial">3x3 Trivial</string>

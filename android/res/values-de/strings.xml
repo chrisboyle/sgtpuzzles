@@ -112,6 +112,7 @@ Revision: %s"</string>
     <string name="name_netslide">Netslide</string>
     <string name="name_pattern">Pattern</string>
     <string name="name_pegs">Pegs</string>
+    <string name="name_range">Range</string>
     <string name="name_rect">Rectangles</string>
     <string name="name_samegame">Same Game</string>
     <string name="name_signpost">Signpost</string>
@@ -147,6 +148,7 @@ Revision: %s"</string>
     <string name="desc_netslide">Verschieben Sie Spalten/Zeilen, um alle Platten mit der zentralen Platte zu verbinden.</string>
     <string name="desc_pattern">Füllen Sie das Gitter aus: jede Zahl ist ein Lauf von schwarzen Quadraten in der Spalte/Zeile.</string>
     <string name="desc_pegs">Entfernen Sie die Stiften, indem Sie andere Stifte darüber springen lassen.</string>
+    <string name="desc_range">Platzieren Sie schwarze Quadraten, um die Sichtweite aus jedem nummerierten Quadrat zu beschränken.</string>
     <string name="desc_rect">Bauen Sie Regionen (indem Sie das Gitter teilen), die die gleiche Ziffer enthalten, wie ihren Flächen.</string>
     <string name="desc_samegame">Entfernen Sie Farberegionen, um das Gitter zu leeren. Größere Regionen ergeben mehr Punkte.</string>
     <string name="desc_signpost">Schließen Sie die Quadrate zu einem Pfad nach der Pfeile.</string>
@@ -438,6 +440,8 @@ Revision: %s"</string>
     <string name="Octagon">Achteck</string>
     <string name="Width_and_height_must_both_be_greater_than_three">Breite und Höhe müssen größer als 3 sein</string>
     <string name="This_board_type_is_only_supported_at_7x7">Diese Brettart wird nur bei 7x7 unterstützt</string>
+    <!-- Range -->
+    <string name="Error_w_h_is_too_big">Fehler: w + h ist zu groß</string>
     <!-- Rectangles -->
     <string name="Expansion_factor">Expansionsfaktor</string>
     <string name="Expansion_factor_may_not_be_negative">Expansionsfaktor darf nicht negativ sein</string>
