@@ -307,7 +307,7 @@ public class PuzzleApplet extends JApplet implements Runtime.CallJavaCB {
 			int left = arg2, right = arg2 + xarg2;
 			int top = arg3, bottom = arg3 + xarg3;
 			int width = getWidth(), height = getHeight();
-                        gg.setColor(Color.black);
+                        gg.setColor(colors != null ? colors[0] : Color.black);
                         gg.fillRect(0, 0, left, height);
                         gg.fillRect(right, 0, width-right, height);
                         gg.fillRect(0, 0, width, top);
