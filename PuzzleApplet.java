@@ -297,16 +297,22 @@ public class PuzzleApplet extends JApplet implements Runtime.CallJavaCB {
 		    String text = runtime.cstring(arg2);
 		    if (text.equals("")) text = " ";
 		    System.out.println("status '" + text + "'");
-		    statusBar.setText(text); break;
+		    statusBar.setText(text);
+		    break;
                 case 1:
                     gg = pp.backBuffer.createGraphics();
-                    if (arg2 != 0 || arg3 != 0) {
+                    if (arg2 != 0 || arg3 != 0 ||
+			arg2 + xarg2 != getWidth() ||
+			arg3 + xarg3 != getHeight()) {
+			int left = arg2, right = arg2 + xarg2;
+			int top = arg3, bottom = arg3 + xarg3;
+			int width = getWidth(), height = getHeight();
                         gg.setColor(Color.black);
-                        gg.fillRect(0, 0, arg2, getHeight());
-                        gg.fillRect(0, 0, getWidth(), arg3);
-                        gg.fillRect(getWidth() - arg2, 0, arg2, getHeight());
-                        gg.fillRect(0, getHeight() - arg3, getWidth(), arg3);
-                        gg.setClip(arg2, arg3, getWidth()-2*arg2, getHeight()-2*arg3);
+                        gg.fillRect(0, 0, left, height);
+                        gg.fillRect(right, 0, width-right, height);
+                        gg.fillRect(0, 0, width, top);
+                        gg.fillRect(0, bottom, width, height-bottom);
+                        gg.setClip(left, top, right-left, bottom-top);
                     }
                     break;
                 case 2: gg.dispose(); pp.repaint(); break;
