@@ -215,9 +215,9 @@ static char *validate_params(game_params *params, int full)
     if (params->n < 2)
 	return _("Rotating block size must be at least two");
     if (params->w < params->n)
-	return _("Width must be at least the rotation radius");
+	return _("Width must be at least the rotating block size");
     if (params->h < params->n)
-	return _("Height must be at least the rotation radius");
+	return _("Height must be at least the rotating block size");
     return NULL;
 }
 

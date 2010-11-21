@@ -549,12 +549,12 @@
   <string name="_4x4_radius_3">4x4 半徑 3</string> 
   <string name="_5x5_radius_3">5x5 半徑 3</string> 
   <string name="_6x6_radius_4">6x6 半徑 4</string> 
-  <string name="Rotation_radius">旋轉半徑</string> 
+  <string name="Rotating_block_size">旋轉半徑</string> 
   <string name="One_number_per_row">每行一個號碼</string> 
   <string name="Orientation_matters">定向問題</string> 
-  <string name="Rotation_radius_must_be_at_least_two">旋轉半徑至少必須為 2</string> 
-  <string name="Width_must_be_at_least_the_rotation_radius">寬度至少必須是旋轉半徑</string> 
-  <string name="Height_must_be_at_least_the_rotation_radius">高度至少必須是旋轉半徑</string> 
+  <string name="Rotating_block_size_must_be_at_least_two">旋轉半徑至少必須為 2</string> 
+  <string name="Width_must_be_at_least_the_rotating_block_size">寬度至少必須是旋轉半徑</string> 
+  <string name="Height_must_be_at_least_the_rotating_block_size">高度至少必須是旋轉半徑</string> 
   <string name="Expected_orientation_letter_after_number">在數字後面的預期的目的字母</string> 
   <!--  Unequal 
   --> 

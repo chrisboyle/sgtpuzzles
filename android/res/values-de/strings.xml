@@ -527,12 +527,12 @@ Revision: %s"</string>
     <string name="_4x4_radius_3">4x4 Radius 3</string>
     <string name="_5x5_radius_3">5x5 Radius 3</string>
     <string name="_6x6_radius_4">6x6 Radius 4</string>
-    <string name="Rotation_radius">Rotationsradius</string>
+    <string name="Rotating_block_size">Rotationsradius</string>
     <string name="One_number_per_row">Eine Zahl pro Zeile</string>
     <string name="Orientation_matters">Ausrichtung ist wichtig</string>
-    <string name="Rotation_radius_must_be_at_least_two">Rotationsradius muss mindestens 2 sein</string>
-    <string name="Width_must_be_at_least_the_rotation_radius">Breite muss mindestens der Rotationsradius sein</string>
-    <string name="Height_must_be_at_least_the_rotation_radius">Höhe muss mindestens der Rotationsradius sein</string>
+    <string name="Rotating_block_size_must_be_at_least_two">Rotationsradius muss mindestens 2 sein</string>
+    <string name="Width_must_be_at_least_the_rotating_block_size">Breite muss mindestens der Rotationsradius sein</string>
+    <string name="Height_must_be_at_least_the_rotating_block_size">Höhe muss mindestens der Rotationsradius sein</string>
     <string name="Expected_orientation_letter_after_number">Ausrichtungszeichen nach Zahl erwartet</string>
     <!-- Unequal -->
     <string name="Mode">Betriebsart</string>
