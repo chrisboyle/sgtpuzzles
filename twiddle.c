@@ -21,7 +21,7 @@
 #define COORD(x)  ( (x) * TILE_SIZE + BORDER )
 #define FROMCOORD(x)  ( ((x) - BORDER + TILE_SIZE) / TILE_SIZE - 1 )
 
-#define ANIM_PER_RADIUS_UNIT 0.13F
+#define ANIM_PER_BLKSIZE_UNIT 0.13F
 #define FLASH_FRAME 0.13F
 
 enum {
@@ -88,9 +88,9 @@ static int game_fetch_preset(int i, char **name, game_params **params)
         { "3x3 orientable", { 3, 3, 2, FALSE, TRUE } },
         { "4x4 normal", { 4, 4, 2, FALSE } },
         { "4x4 orientable", { 4, 4, 2, FALSE, TRUE } },
-        { "4x4 radius 3", { 4, 4, 3, FALSE } },
-        { "5x5 radius 3", { 5, 5, 3, FALSE } },
-        { "6x6 radius 4", { 6, 6, 4, FALSE } },
+        { "4x4, rotating 3x3 blocks", { 4, 4, 3, FALSE } },
+        { "5x5, rotating 3x3 blocks", { 5, 5, 3, FALSE } },
+        { "6x6, rotating 4x4 blocks", { 6, 6, 4, FALSE } },
     };
     /* _("3x3 rows only"), _("3x3 normal"), _("3x3 orientable"), _("4x4 normal"), _("4x4 orientable"), _("4x4 radius 3"), _("5x5 radius 3"), _("6x6 radius 4") */
 
@@ -166,7 +166,7 @@ static config_item *game_configure(game_params *params)
     ret[1].sval = dupstr(buf);
     ret[1].ival = 0;
 
-    ret[2].name = _("Rotation radius");
+    ret[2].name = _("Rotating block size");
     ret[2].type = C_STRING;
     sprintf(buf, "%d", params->n);
     ret[2].sval = dupstr(buf);
@@ -213,7 +213,7 @@ static game_params *custom_params(config_item *cfg)
 static char *validate_params(game_params *params, int full)
 {
     if (params->n < 2)
-	return _("Rotation radius must be at least two");
+	return _("Rotating block size must be at least two");
     if (params->w < params->n)
 	return _("Width must be at least the rotation radius");
     if (params->h < params->n)
@@ -1061,7 +1061,7 @@ static int highlight_colour(float angle)
 static float game_anim_length(game_state *oldstate, game_state *newstate,
 			      int dir, game_ui *ui)
 {
-    return (float)(ANIM_PER_RADIUS_UNIT * sqrt(newstate->n-1));
+    return (float)(ANIM_PER_BLKSIZE_UNIT * sqrt(newstate->n-1));
 }
 
 static float game_flash_length(game_state *oldstate, game_state *newstate,

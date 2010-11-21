@@ -35,7 +35,7 @@ struct frontend {
     struct timeval last_time;
     config_item *cfg;
     int cfg_which, cfgret;
-    int ox, oy;
+    int ox, oy, w, h;
 };
 
 static frontend *_fe;
@@ -61,6 +61,7 @@ void nestedvm_status_bar(void *handle, char *text)
 void nestedvm_start_draw(void *handle)
 {
     frontend *fe = (frontend *)handle;
+    _call_java(5, 0, fe->w, fe->h);
     _call_java(4, 1, fe->ox, fe->oy);
 }
 
@@ -219,6 +220,8 @@ int jcallback_resize(int width, int height)
     midend_size(fe->me, &x, &y, TRUE);
     fe->ox = (width - x) / 2;
     fe->oy = (height - y) / 2;
+    fe->w = x;
+    fe->h = y;
     midend_force_redraw(fe->me);
     return 0;
 }

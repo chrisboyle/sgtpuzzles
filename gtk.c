@@ -125,11 +125,13 @@ struct frontend {
     cairo_t *cr;
     cairo_surface_t *image;
     GdkPixmap *pixmap;
+    GdkColor background;	       /* for painting outside puzzle area */
 #else
     GdkPixmap *pixmap;
     GdkGC *gc;
     GdkColor *colours;
     GdkColormap *colmap;
+    int backgroundindex;	       /* which of colours[] is background */
 #endif
     int ncolours;
     int bbox_l, bbox_r, bbox_u, bbox_d;
@@ -238,18 +240,18 @@ static void set_colour(frontend *fe, int colour)
 static void set_window_background(frontend *fe, int colour)
 {
     GdkColormap *colmap;
-    GdkColor backg;
 
     colmap = gdk_colormap_get_system();
-    backg.red = fe->colours[3*colour + 0] * 65535;
-    backg.green = fe->colours[3*colour + 1] * 65535;
-    backg.blue = fe->colours[3*colour + 2] * 65535;
-    if (!gdk_colormap_alloc_color(colmap, &backg, FALSE, FALSE)) {
+    fe->background.red = fe->colours[3*colour + 0] * 65535;
+    fe->background.green = fe->colours[3*colour + 1] * 65535;
+    fe->background.blue = fe->colours[3*colour + 2] * 65535;
+    if (!gdk_colormap_alloc_color(colmap, &fe->background, FALSE, FALSE)) {
 	g_error("couldn't allocate background (#%02x%02x%02x)\n",
-		backg.red >> 8, backg.green >> 8, backg.blue >> 8);
+		fe->background.red >> 8, fe->background.green >> 8,
+		fe->background.blue >> 8);
     }
-    gdk_window_set_background(fe->area->window, &backg);
-    gdk_window_set_background(fe->window->window, &backg);
+    gdk_window_set_background(fe->area->window, &fe->background);
+    gdk_window_set_background(fe->window->window, &fe->background);
 }
 
 static PangoLayout *make_pango_layout(frontend *fe)
@@ -408,41 +410,6 @@ static void teardown_backing_store(frontend *fe)
     fe->image = NULL;
 }
 
-static void repaint_rectangle(frontend *fe, GtkWidget *widget,
-			      int x, int y, int w, int h)
-{
-    if (x < fe->ox) {
-	gdk_draw_rectangle(widget->window,
-			   widget->style->bg_gc[GTK_WIDGET_STATE(fe->area)],
-			   TRUE, x, y, fe->ox - x, h);
-	w -= (fe->ox - x);
-	x = fe->ox;
-    }
-    if (y < fe->oy) {
-	gdk_draw_rectangle(widget->window,
-			   widget->style->bg_gc[GTK_WIDGET_STATE(fe->area)],
-			   TRUE, x, y, w, fe->oy - y);
-	h -= (fe->oy - y);
-	y = fe->oy;
-    }
-    if (w > fe->pw) {
-	gdk_draw_rectangle(widget->window,
-			   widget->style->bg_gc[GTK_WIDGET_STATE(fe->area)],
-			   TRUE, x + fe->pw, y, w - fe->pw, h);
-	w = fe->pw;
-    }
-    if (h > fe->ph) {
-	gdk_draw_rectangle(widget->window,
-			   widget->style->bg_gc[GTK_WIDGET_STATE(fe->area)],
-			   TRUE, x, y + fe->ph, w, h - fe->ph);
-	h = fe->ph;
-    }
-    gdk_draw_pixmap(widget->window,
-		    widget->style->fg_gc[GTK_WIDGET_STATE(fe->area)],
-		    fe->pixmap,
-		    x - fe->ox, y - fe->oy, x, y, w, h);
-}
-
 #endif
 
 /* ----------------------------------------------------------------------
@@ -492,6 +459,7 @@ static void snaffle_colours(frontend *fe)
 
 static void set_window_background(frontend *fe, int colour)
 {
+    fe->backgroundindex = colour;
     gdk_window_set_background(fe->area->window, &fe->colours[colour]);
     gdk_window_set_background(fe->window->window, &fe->colours[colour]);
 }
@@ -690,16 +658,43 @@ static void teardown_backing_store(frontend *fe)
     fe->pixmap = NULL;
 }
 
+#endif
+
 static void repaint_rectangle(frontend *fe, GtkWidget *widget,
 			      int x, int y, int w, int h)
 {
-    gdk_draw_pixmap(widget->window,
-		    widget->style->fg_gc[GTK_WIDGET_STATE(fe->area)],
-		    fe->pixmap,
-		    x - fe->ox, y - fe->oy, x, y, w, h);
-}
-
+    GdkGC *gc = gdk_gc_new(widget->window);
+#ifdef USE_CAIRO
+    gdk_gc_set_foreground(gc, &fe->background);
+#else
+    gdk_gc_set_foreground(gc, &fe->colours[fe->backgroundindex]);
 #endif
+    if (x < fe->ox) {
+	gdk_draw_rectangle(widget->window, gc,
+			   TRUE, x, y, fe->ox - x, h);
+	w -= (fe->ox - x);
+	x = fe->ox;
+    }
+    if (y < fe->oy) {
+	gdk_draw_rectangle(widget->window, gc,
+			   TRUE, x, y, w, fe->oy - y);
+	h -= (fe->oy - y);
+	y = fe->oy;
+    }
+    if (w > fe->pw) {
+	gdk_draw_rectangle(widget->window, gc,
+			   TRUE, x + fe->pw, y, w - fe->pw, h);
+	w = fe->pw;
+    }
+    if (h > fe->ph) {
+	gdk_draw_rectangle(widget->window, gc,
+			   TRUE, x, y + fe->ph, w, h - fe->ph);
+	h = fe->ph;
+    }
+    gdk_draw_pixmap(widget->window, gc, fe->pixmap,
+		    x - fe->ox, y - fe->oy, x, y, w, h);
+    gdk_gc_unref(gc);
+}
 
 /* ----------------------------------------------------------------------
  * Pango font functions.

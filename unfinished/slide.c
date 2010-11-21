@@ -821,6 +821,9 @@ static void generate_board(int w, int h, int *rtx, int *rty, int *minmoves,
 	}
     }
 
+    sfree(dsf);
+    sfree(list);
+    sfree(tried_merge);
     sfree(board2);
 
     *rtx = tx;
