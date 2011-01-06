@@ -217,10 +217,10 @@ android/lib/armeabi/libpuzzles.so  : [GA] android[COMBINED] COMMON_COMBINED ALL
 all: SGTPuzzles.apk
 
 install: SGTPuzzles.apk
-	$(ANDROID)/tools/adb install -r $<
+	$(ANDROID)/platform-tools/adb install -r $<
 
 run: install
-	$(ANDROID)/tools/adb shell am start -n name.boyle.chris.sgtpuzzles/.SGTPuzzles
+	$(ANDROID)/platform-tools/adb shell am start -n name.boyle.chris.sgtpuzzles/.SGTPuzzles
 .PHONY: install run
 
 SGTPuzzles.apk: android/SGTPuzzles_unaligned.apk
