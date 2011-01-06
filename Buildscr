@@ -101,6 +101,10 @@ in puzzles do zip -j puzzles.zip winbin/*.exe puzzles.chm puzzles.hlp puzzles.cn
 # _parent_ directory, so be careful when we deliver it.)
 in puzzles do ./makedist.sh $(revision)
 
+ifneq "$(JAVA_UNFINISHED)" "" in puzzles do perl -i~ -pe 'print "!srcdir unfinished/\n" if /!srcdir icons/' Recipe
+ifneq "$(JAVA_UNFINISHED)" "" in puzzles do ln -s unfinished/group.R .
+ifneq "$(JAVA_UNFINISHED)" "" in puzzles do perl mkfiles.pl
+
 # Build the Java applets. This requires .bob.conf on the master
 # build machine to have defined the variable NESTEDVM pointing at
 # the top-level directory of an installation of the NestedVM
