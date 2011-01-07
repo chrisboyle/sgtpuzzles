@@ -1943,19 +1943,30 @@ static void tile_redraw(drawing *dr, game_drawstate *ds, int tx, int ty,
     if (!empty) {
         int set = (num <= 0) ? 0 : num / (ds->n+1);
 
+        char *p = buf;
         if (set == 0 || num <= 0) {
             sprintf(buf, "%d", num);
         } else {
             int n = num % (ds->n+1);
+            p += sizeof(buf) - 1;
 
-            if (n == 0)
-                sprintf(buf, "%c", (int)(set+'a'-1));
-            else
-                sprintf(buf, "%c+%d", (int)(set+'a'-1), n);
+            if (n != 0) {
+                sprintf(buf, "+%d", n);  /* Just to get the length... */
+                p -= strlen(buf);
+                sprintf(p, "+%d", n);
+            } else {
+                *p = '\0';
+            }
+            do {
+                set--;
+                p--;
+                *p = (char)((set % 26)+'a');
+                set /= 26;
+            } while (set);
         }
-        textsz = min(2*asz, (TILE_SIZE - 2 * cb) / (int)strlen(buf));
+        textsz = min(2*asz, (TILE_SIZE - 2 * cb) / (int)strlen(p));
         draw_text(dr, tx + cb, ty + TILE_SIZE/4, FONT_VARIABLE, textsz,
-                  ALIGN_VCENTRE | ALIGN_HLEFT, textcol, buf);
+                  ALIGN_VCENTRE | ALIGN_HLEFT, textcol, p);
     }
 
     if (print_ink < 0) {
