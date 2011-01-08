@@ -86,6 +86,7 @@ struct game_state {
     unsigned char *immutable;
     int *pencil;		       /* bitmaps using bits 1<<1..1<<n */
     int completed, cheated;
+    digit *sequence;                   /* sequence of group elements shown */
 };
 
 static game_params *default_params(void)
@@ -841,6 +842,10 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
 	state->immutable[i] = 0;
 	state->pencil[i] = 0;
     }
+    state->sequence = snewn(w, digit);
+    for (i = 0; i < w; i++) {
+	state->sequence[i] = i;
+    }
 
     desc = spec_to_grid(desc, state->grid, a);
     for (i = 0; i < a; i++)
@@ -862,9 +867,11 @@ static game_state *dup_game(game_state *state)
     ret->grid = snewn(a, digit);
     ret->immutable = snewn(a, unsigned char);
     ret->pencil = snewn(a, int);
+    ret->sequence = snewn(w, digit);
     memcpy(ret->grid, state->grid, a*sizeof(digit));
     memcpy(ret->immutable, state->immutable, a*sizeof(unsigned char));
     memcpy(ret->pencil, state->pencil, a*sizeof(int));
+    memcpy(ret->sequence, state->sequence, w*sizeof(digit));
 
     ret->completed = state->completed;
     ret->cheated = state->cheated;
@@ -877,6 +884,7 @@ static void free_game(game_state *state)
     sfree(state->grid);
     sfree(state->immutable);
     sfree(state->pencil);
+    sfree(state->sequence);
     sfree(state);
 }
 
@@ -977,6 +985,13 @@ struct game_ui {
      * allowed on immutable squares.
      */
     int hcursor;
+    /*
+     * This indicates whether we're dragging a table header to
+     * reposition an entire row or column.
+     */
+    int drag;                          /* 0=none 1=row 2=col */
+    int dragnum;                       /* element being dragged */
+    int dragpos;                       /* its current position */
 };
 
 static game_ui *new_ui(game_state *state)
@@ -985,6 +1000,7 @@ static game_ui *new_ui(game_state *state)
 
     ui->hx = ui->hy = 0;
     ui->hpencil = ui->hshow = ui->hcursor = 0;
+    ui->drag = 0;
 
     return ui;
 }
@@ -1032,6 +1048,7 @@ static void game_changed_state(game_ui *ui, game_state *oldstate,
 #define DF_HIGHLIGHT 0x0400
 #define DF_HIGHLIGHT_PENCIL 0x0200
 #define DF_IMMUTABLE 0x0100
+#define DF_LEGEND 0x0080
 #define DF_DIGIT_MASK 0x001F
 
 #define EF_DIGIT_SHIFT 5
@@ -1046,8 +1063,9 @@ struct game_drawstate {
     game_params par;
     int w, tilesize;
     int started;
-    long *tiles, *pencil, *errors;
+    long *tiles, *legend, *pencil, *errors;
     long *errtmp;
+    digit *sequence;
 };
 
 static int check_errors(game_state *state, long *errors)
@@ -1170,41 +1188,70 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
     tx = FROMCOORD(x);
     ty = FROMCOORD(y);
 
-    if (tx >= 0 && tx < w && ty >= 0 && ty < w) {
-        if (button == LEFT_BUTTON) {
-	    if (tx == ui->hx && ty == ui->hy &&
-		ui->hshow && ui->hpencil == 0) {
-                ui->hshow = 0;
-            } else {
-                ui->hx = tx;
-                ui->hy = ty;
-		ui->hshow = !state->immutable[ty*w+tx];
-                ui->hpencil = 0;
+    if (ui->drag) {
+        if (IS_MOUSE_DRAG(button)) {
+            int tcoord = (ui->drag == 1 ? ty : tx);
+            if (tcoord >= 0 && tcoord < w) {
+                ui->dragpos = tcoord;
+                return "";
             }
-            ui->hcursor = 0;
-            return "";		       /* UI activity occurred */
+        } else if (IS_MOUSE_RELEASE(button)) {
+            ui->drag = 0;              /* end drag */
+            if (state->sequence[ui->dragpos] == ui->dragnum)
+                return "";             /* drag was a no-op overall */
+            sprintf(buf, "D%d,%d", ui->dragnum, ui->dragpos);
+            return dupstr(buf);
         }
-        if (button == RIGHT_BUTTON) {
-            /*
-             * Pencil-mode highlighting for non filled squares.
-             */
-            if (state->grid[ty*w+tx] == 0) {
+    } else if (IS_MOUSE_DOWN(button)) {
+        if (tx >= 0 && tx < w && ty >= 0 && ty < w) {
+            tx = state->sequence[tx];
+            ty = state->sequence[ty];
+            if (button == LEFT_BUTTON) {
                 if (tx == ui->hx && ty == ui->hy &&
-                    ui->hshow && ui->hpencil) {
+                    ui->hshow && ui->hpencil == 0) {
                     ui->hshow = 0;
                 } else {
-                    ui->hpencil = 1;
                     ui->hx = tx;
                     ui->hy = ty;
-                    ui->hshow = 1;
+                    ui->hshow = !state->immutable[ty*w+tx];
+                    ui->hpencil = 0;
                 }
-            } else {
-                ui->hshow = 0;
+                ui->hcursor = 0;
+                return "";		       /* UI activity occurred */
             }
-            ui->hcursor = 0;
-            return "";		       /* UI activity occurred */
+            if (button == RIGHT_BUTTON) {
+                /*
+                 * Pencil-mode highlighting for non filled squares.
+                 */
+                if (state->grid[ty*w+tx] == 0) {
+                    if (tx == ui->hx && ty == ui->hy &&
+                        ui->hshow && ui->hpencil) {
+                        ui->hshow = 0;
+                    } else {
+                        ui->hpencil = 1;
+                        ui->hx = tx;
+                        ui->hy = ty;
+                        ui->hshow = 1;
+                    }
+                } else {
+                    ui->hshow = 0;
+                }
+                ui->hcursor = 0;
+                return "";		       /* UI activity occurred */
+            }
+        } else if (tx >= 0 && tx < w && ty == -1) {
+            ui->drag = 2;
+            ui->dragnum = state->sequence[tx];
+            ui->dragpos = tx;
+            return "";
+        } else if (ty >= 0 && ty < w && tx == -1) {
+            ui->drag = 1;
+            ui->dragnum = state->sequence[ty];
+            ui->dragpos = ty;
+            return "";
         }
     }
+
     if (IS_CURSOR_MOVE(button)) {
         move_cursor(button, &ui->hx, &ui->hy, w, w, 0);
         ui->hshow = ui->hcursor = 1;
@@ -1255,7 +1302,7 @@ static game_state *execute_move(game_state *from, char *move)
 {
     int w = from->par.w, a = w*w;
     game_state *ret;
-    int x, y, i, n;
+    int x, y, i, j, n;
 
     if (move[0] == 'S') {
 	ret = dup_game(from);
@@ -1304,6 +1351,23 @@ static game_state *execute_move(game_state *from, char *move)
 	for (i = 0; i < a; i++) {
 	    if (!ret->grid[i])
 		ret->pencil[i] = (1 << (w+1)) - (1 << 1);
+	}
+	return ret;
+    } else if (move[0] == 'D' &&
+               sscanf(move+1, "%d,%d", &x, &y) == 2) {
+	/*
+	 * Reorder the rows and columns so that digit x is in position
+	 * y.
+	 */
+	ret = dup_game(from);
+	for (i = j = 0; i < w; i++) {
+            if (i == y) {
+                ret->sequence[i] = x;
+            } else {
+                if (from->sequence[j] == x)
+                    j++;
+                ret->sequence[i] = from->sequence[j++];
+            }
 	}
 	return ret;
     } else
@@ -1373,10 +1437,14 @@ static game_drawstate *game_new_drawstate(drawing *dr, game_state *state)
     ds->tilesize = 0;
     ds->started = FALSE;
     ds->tiles = snewn(a, long);
+    ds->legend = snewn(w, long);
     ds->pencil = snewn(a, long);
     ds->errors = snewn(a, long);
+    ds->sequence = snewn(a, digit);
     for (i = 0; i < a; i++)
 	ds->tiles[i] = ds->pencil[i] = -1;
+    for (i = 0; i < w; i++)
+	ds->legend[i] = -1;
     ds->errtmp = snewn(a, long);
 
     return ds;
@@ -1388,6 +1456,7 @@ static void game_free_drawstate(drawing *dr, game_drawstate *ds)
     sfree(ds->pencil);
     sfree(ds->errors);
     sfree(ds->errtmp);
+    sfree(ds->sequence);
     sfree(ds);
 }
 
@@ -1406,6 +1475,14 @@ static void draw_tile(drawing *dr, game_drawstate *ds, int x, int y, long tile,
     cy = ty;
     cw = tw = TILESIZE-1;
     ch = th = TILESIZE-1;
+
+    if (tile & DF_LEGEND) {
+        cx += TILESIZE/10;
+        cy += TILESIZE/10;
+        cw -= TILESIZE/5;
+        ch -= TILESIZE/5;
+        tile |= DF_IMMUTABLE;
+    }
 
     clip(dr, cx, cy, cw, ch);
 
@@ -1550,7 +1627,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 			float animtime, float flashtime)
 {
     int w = state->par.w /*, a = w*w */;
-    int x, y;
+    int x, y, i, j;
 
     if (!ds->started) {
 	/*
@@ -1568,21 +1645,6 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 		  w*TILESIZE+1+GRIDEXTRA*2, w*TILESIZE+1+GRIDEXTRA*2,
 		  COL_GRID);
 
-	/*
-	 * Table legend.
-	 */
-	for (x = 0; x < w; x++) {
-	    char str[2];
-	    str[1] = '\0';
-	    str[0] = TOCHAR(x+1, ds->par.id);
-	    draw_text(dr, COORD(x) + TILESIZE/2, BORDER + TILESIZE/2,
-		      FONT_VARIABLE, TILESIZE/2,
-		      ALIGN_VCENTRE | ALIGN_HCENTRE, COL_GRID, str);
-	    draw_text(dr, BORDER + TILESIZE/2, COORD(x) + TILESIZE/2,
-		      FONT_VARIABLE, TILESIZE/2,
-		      ALIGN_VCENTRE | ALIGN_HCENTRE, COL_GRID, str);
-	}
-
 	draw_update(dr, 0, 0, SIZE(w), SIZE(w));
 
 	ds->started = TRUE;
@@ -1590,19 +1652,57 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 
     check_errors(state, ds->errtmp);
 
+    /*
+     * Construct a modified version of state->sequence which takes
+     * into account an unfinished drag operation.
+     */
+    if (ui->drag) {
+        x = ui->dragnum;
+        y = ui->dragpos;
+    } else {
+        x = y = -1;
+    }
+    for (i = j = 0; i < w; i++) {
+        if (i == y) {
+            ds->sequence[i] = x;
+        } else {
+            if (state->sequence[j] == x)
+                j++;
+            ds->sequence[i] = state->sequence[j++];
+        }
+    }
+
+    /*
+     * Draw the table legend.
+     */
+    for (x = 0; x < w; x++) {
+        int sx = ds->sequence[x];
+        long tile = (sx+1) | DF_LEGEND;
+        if (ds->legend[x] != tile) {
+            ds->legend[x] = tile;
+            draw_tile(dr, ds, -1, x, tile, 0, 0);
+            draw_tile(dr, ds, x, -1, tile, 0, 0);
+        }
+    }
+
     for (y = 0; y < w; y++) {
+        int sy = ds->sequence[y];
 	for (x = 0; x < w; x++) {
 	    long tile = 0L, pencil = 0L, error;
+            int sx = ds->sequence[x];
 
-	    if (state->grid[y*w+x])
-		tile = state->grid[y*w+x];
+	    if (state->grid[sy*w+sx])
+		tile = state->grid[sy*w+sx];
 	    else
-		pencil = (long)state->pencil[y*w+x];
+		pencil = (long)state->pencil[sy*w+sx];
 
-	    if (state->immutable[y*w+x])
+	    if (state->immutable[sy*w+sx])
 		tile |= DF_IMMUTABLE;
 
-	    if (ui->hshow && ui->hx == x && ui->hy == y)
+            if ((ui->drag == 1 && ui->dragnum == sy) ||
+                (ui->drag == 2 && ui->dragnum == sx))
+                tile |= DF_HIGHLIGHT;
+	    else if (ui->hshow && ui->hx == sx && ui->hy == sy)
 		tile |= (ui->hpencil ? DF_HIGHLIGHT_PENCIL : DF_HIGHLIGHT);
 
             if (flashtime > 0 &&
