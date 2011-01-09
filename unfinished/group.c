@@ -1710,7 +1710,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
                  flashtime >= FLASH_TIME*2/3))
                 tile |= DF_HIGHLIGHT;  /* completion flash */
 
-	    error = ds->errtmp[y*w+x];
+	    error = ds->errtmp[sy*w+sx];
 
 	    if (ds->tiles[y*w+x] != tile ||
 		ds->pencil[y*w+x] != pencil ||
