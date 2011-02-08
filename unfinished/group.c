@@ -87,6 +87,22 @@ struct game_state {
     int *pencil;		       /* bitmaps using bits 1<<1..1<<n */
     int completed, cheated;
     digit *sequence;                   /* sequence of group elements shown */
+
+    /*
+     * This array indicates thick lines separating rows and columns
+     * placed and unplaced manually by the user as a visual aid, e.g.
+     * to delineate a subgroup and its cosets.
+     *
+     * When a line is placed, it's deemed to be between the two
+     * particular group elements that are on either side of it at the
+     * time; dragging those two away from each other automatically
+     * gets rid of the line. Hence, for a given element i, dividers[i]
+     * is either -1 (indicating no divider to the right of i), or some
+     * other element (indicating a divider to the right of i iff that
+     * element is the one right of it). These are eagerly cleared
+     * during drags.
+     */
+    int *dividers;                     /* thick lines between rows/cols */
 };
 
 static game_params *default_params(void)
@@ -843,8 +859,10 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
 	state->pencil[i] = 0;
     }
     state->sequence = snewn(w, digit);
+    state->dividers = snewn(w, int);
     for (i = 0; i < w; i++) {
 	state->sequence[i] = i;
+	state->dividers[i] = -1;
     }
 
     desc = spec_to_grid(desc, state->grid, a);
@@ -868,10 +886,12 @@ static game_state *dup_game(game_state *state)
     ret->immutable = snewn(a, unsigned char);
     ret->pencil = snewn(a, int);
     ret->sequence = snewn(w, digit);
+    ret->dividers = snewn(w, int);
     memcpy(ret->grid, state->grid, a*sizeof(digit));
     memcpy(ret->immutable, state->immutable, a*sizeof(unsigned char));
     memcpy(ret->pencil, state->pencil, a*sizeof(int));
     memcpy(ret->sequence, state->sequence, w*sizeof(digit));
+    memcpy(ret->dividers, state->dividers, w*sizeof(int));
 
     ret->completed = state->completed;
     ret->cheated = state->cheated;
@@ -992,6 +1012,7 @@ struct game_ui {
     int drag;                          /* 0=none 1=row 2=col */
     int dragnum;                       /* element being dragged */
     int dragpos;                       /* its current position */
+    int edgepos;
 };
 
 static game_ui *new_ui(game_state *state)
@@ -1045,6 +1066,10 @@ static void game_changed_state(game_ui *ui, game_state *oldstate,
 
 #define FLASH_TIME 0.4F
 
+#define DF_DIVIDER_TOP 0x1000
+#define DF_DIVIDER_BOT 0x2000
+#define DF_DIVIDER_LEFT 0x4000
+#define DF_DIVIDER_RIGHT 0x8000
 #define DF_HIGHLIGHT 0x0400
 #define DF_HIGHLIGHT_PENCIL 0x0200
 #define DF_IMMUTABLE 0x0100
@@ -1190,17 +1215,29 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
 
     if (ui->drag) {
         if (IS_MOUSE_DRAG(button)) {
-            int tcoord = (ui->drag == 1 ? ty : tx);
+            int tcoord = ((ui->drag &~ 4) == 1 ? ty : tx);
+            ui->drag |= 4;             /* some movement has happened */
             if (tcoord >= 0 && tcoord < w) {
                 ui->dragpos = tcoord;
                 return "";
             }
         } else if (IS_MOUSE_RELEASE(button)) {
-            ui->drag = 0;              /* end drag */
-            if (state->sequence[ui->dragpos] == ui->dragnum)
-                return "";             /* drag was a no-op overall */
-            sprintf(buf, "D%d,%d", ui->dragnum, ui->dragpos);
-            return dupstr(buf);
+            if (ui->drag & 4) {
+                ui->drag = 0;          /* end drag */
+                if (state->sequence[ui->dragpos] == ui->dragnum)
+                    return "";         /* drag was a no-op overall */
+                sprintf(buf, "D%d,%d", ui->dragnum, ui->dragpos);
+                return dupstr(buf);
+            } else {
+                ui->drag = 0;          /* end 'drag' */
+                if (ui->edgepos > 0 && ui->edgepos < w) {
+                    sprintf(buf, "V%d,%d",
+                            state->sequence[ui->edgepos-1],
+                            state->sequence[ui->edgepos]);
+                    return dupstr(buf);
+                } else
+                    return "";         /* no-op */
+            }
         }
     } else if (IS_MOUSE_DOWN(button)) {
         if (tx >= 0 && tx < w && ty >= 0 && ty < w) {
@@ -1243,11 +1280,13 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
             ui->drag = 2;
             ui->dragnum = state->sequence[tx];
             ui->dragpos = tx;
+            ui->edgepos = FROMCOORD(x + TILESIZE/2);
             return "";
         } else if (ty >= 0 && ty < w && tx == -1) {
             ui->drag = 1;
             ui->dragnum = state->sequence[ty];
             ui->dragpos = ty;
+            ui->edgepos = FROMCOORD(y + TILESIZE/2);
             return "";
         }
     }
@@ -1369,6 +1408,22 @@ static game_state *execute_move(game_state *from, char *move)
                 ret->sequence[i] = from->sequence[j++];
             }
 	}
+        /*
+         * Eliminate any obsoleted dividers.
+         */
+        for (x = 0; x+1 < w; x++) {
+            int i = ret->sequence[x], j = ret->sequence[x+1];
+            if (ret->dividers[i] != j)
+                ret->dividers[i] = -1;
+        }
+	return ret;
+    } else if (move[0] == 'V' &&
+               sscanf(move+1, "%d,%d", &i, &j) == 2) {
+	ret = dup_game(from);
+        if (ret->dividers[i] == j)
+            ret->dividers[i] = -1;
+        else
+            ret->dividers[i] = j;
 	return ret;
     } else
 	return NULL;		       /* couldn't parse move string */
@@ -1489,6 +1544,16 @@ static void draw_tile(drawing *dr, game_drawstate *ds, int x, int y, long tile,
     /* background needs erasing */
     draw_rect(dr, cx, cy, cw, ch,
 	      (tile & DF_HIGHLIGHT) ? COL_HIGHLIGHT : COL_BACKGROUND);
+
+    /* dividers */
+    if (tile & DF_DIVIDER_TOP)
+        draw_rect(dr, cx, cy, cw, 1, COL_GRID);
+    if (tile & DF_DIVIDER_BOT)
+        draw_rect(dr, cx, cy+ch-1, cw, 1, COL_GRID);
+    if (tile & DF_DIVIDER_LEFT)
+        draw_rect(dr, cx, cy, 1, ch, COL_GRID);
+    if (tile & DF_DIVIDER_RIGHT)
+        draw_rect(dr, cx+cw-1, cy, 1, ch, COL_GRID);
 
     /* pencil-mode highlight */
     if (tile & DF_HIGHLIGHT_PENCIL) {
@@ -1699,8 +1764,8 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 	    if (state->immutable[sy*w+sx])
 		tile |= DF_IMMUTABLE;
 
-            if ((ui->drag == 1 && ui->dragnum == sy) ||
-                (ui->drag == 2 && ui->dragnum == sx))
+            if ((ui->drag == 5 && ui->dragnum == sy) ||
+                (ui->drag == 6 && ui->dragnum == sx))
                 tile |= DF_HIGHLIGHT;
 	    else if (ui->hshow && ui->hx == sx && ui->hy == sy)
 		tile |= (ui->hpencil ? DF_HIGHLIGHT_PENCIL : DF_HIGHLIGHT);
@@ -1709,6 +1774,15 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
                 (flashtime <= FLASH_TIME/3 ||
                  flashtime >= FLASH_TIME*2/3))
                 tile |= DF_HIGHLIGHT;  /* completion flash */
+
+            if (y <= 0 || state->dividers[ds->sequence[y-1]] == sy)
+                tile |= DF_DIVIDER_TOP;
+            if (y+1 >= w || state->dividers[sy] == ds->sequence[y+1])
+                tile |= DF_DIVIDER_BOT;
+            if (x <= 0 || state->dividers[ds->sequence[x-1]] == sx)
+                tile |= DF_DIVIDER_LEFT;
+            if (x+1 >= w || state->dividers[sx] == ds->sequence[x+1])
+                tile |= DF_DIVIDER_RIGHT;
 
 	    error = ds->errtmp[sy*w+sx];
 
