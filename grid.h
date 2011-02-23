@@ -85,6 +85,7 @@ grid *grid_new_snubsquare(int width, int height);
 grid *grid_new_cairo(int width, int height);
 grid *grid_new_greathexagonal(int width, int height);
 grid *grid_new_octagonal(int width, int height);
+grid *grid_new_floret(int width, int height);
 grid *grid_new_kites(int width, int height);
 
 void grid_free(grid *g);

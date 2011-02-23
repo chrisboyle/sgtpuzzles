@@ -253,7 +253,8 @@ static void check_caches(const solver_state* sstate);
     A(Cairo,grid_new_cairo,3,4) \
     A(Great-Hexagonal,grid_new_greathexagonal,3,3) \
     A(Octagonal,grid_new_octagonal,3,3) \
-    A(Kites,grid_new_kites,3,3)
+    A(Kites,grid_new_kites,3,3) \
+    A(Floret,grid_new_floret,1,2)
 
 #define GRID_NAME(title,fn,amin,omin) #title,
 #define GRID_CONFIG(title,fn,amin,omin) ":" #title
@@ -504,6 +505,7 @@ static const game_params presets[] = {
     {  5,  4, DIFF_HARD, 5, NULL },
     {  5,  5, DIFF_HARD, 6, NULL },
     {  5,  5, DIFF_HARD, 7, NULL },
+    {  3,  3, DIFF_HARD, 8, NULL },
 #else
     {  7,  7, DIFF_EASY, 0, NULL },
     {  10,  10, DIFF_EASY, 0, NULL },
@@ -518,6 +520,7 @@ static const game_params presets[] = {
     {  5,  4, DIFF_HARD, 5, NULL },
     {  7,  7, DIFF_HARD, 6, NULL },
     {  5,  5, DIFF_HARD, 7, NULL },
+    {  5,  5, DIFF_HARD, 8, NULL },
 #endif
 };
 
