@@ -141,13 +141,11 @@ grid_edge *grid_nearest_edge(grid *g, int x, int y)
                 grid_dot *d = f->dots[j];
                 if (d == cur) continue;
                 new_dist = SQ((long)d->x - (long)x) + SQ((long)d->y - (long)y);
-                if (new_dist < dist) {
+                if (new_dist < dist) { /* found closer dot */
                     new = d;
-                    break; /* found closer dot */
+                    dist = new_dist;
                 }
             }
-            if (new != cur)
-                break; /* found closer dot */
         }
 
         if (new == cur) {
