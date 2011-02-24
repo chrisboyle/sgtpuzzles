@@ -254,7 +254,9 @@ static void check_caches(const solver_state* sstate);
     A(Great-Hexagonal,grid_new_greathexagonal,3,3) \
     A(Octagonal,grid_new_octagonal,3,3) \
     A(Kites,grid_new_kites,3,3) \
-    A(Floret,grid_new_floret,1,2)
+    A(Floret,grid_new_floret,1,2) \
+    A(Dodecagonal,grid_new_dodecagonal,2,2) \
+    A(Great-Dodecagonal,grid_new_greatdodecagonal,2,2)
 
 #define GRID_NAME(title,fn,amin,omin) #title,
 #define GRID_CONFIG(title,fn,amin,omin) ":" #title
@@ -301,7 +303,7 @@ static void params_generate_grid(game_params *params)
                                ((field) &= ~(1<<(bit)), TRUE) : FALSE)
 
 #define CLUE2CHAR(c) \
-    ((c < 0) ? ' ' : c + '0')
+    ((c < 0) ? ' ' : c < 10 ? c + '0' : c - 10 + 'A')
 
 /* ----------------------------------------------------------------------
  * General struct manipulation and other straightforward code
@@ -506,6 +508,8 @@ static const game_params presets[] = {
     {  5,  5, DIFF_HARD, 6, NULL },
     {  5,  5, DIFF_HARD, 7, NULL },
     {  3,  3, DIFF_HARD, 8, NULL },
+    {  3,  3, DIFF_HARD, 9, NULL },
+    {  3,  3, DIFF_HARD, 10, NULL },
 #else
     {  7,  7, DIFF_EASY, 0, NULL },
     {  10,  10, DIFF_EASY, 0, NULL },
@@ -521,6 +525,8 @@ static const game_params presets[] = {
     {  7,  7, DIFF_HARD, 6, NULL },
     {  5,  5, DIFF_HARD, 7, NULL },
     {  5,  5, DIFF_HARD, 8, NULL },
+    {  5,  4, DIFF_HARD, 9, NULL },
+    {  5,  4, DIFF_HARD, 10, NULL },
 #endif
 };
 
@@ -705,7 +711,7 @@ static char *validate_desc(game_params *params, char *desc)
     g = params->game_grid;
 
     for (; *desc; ++desc) {
-        if (*desc >= '0' && *desc <= '9') {
+        if ((*desc >= '0' && *desc <= '9') || (*desc >= 'A' && *desc <= 'Z')) {
             count++;
             continue;
         }
@@ -1822,6 +1828,7 @@ static char *new_game_desc(game_params *params, random_state *rs,
     grid *g;
     game_state *state = snew(game_state);
     game_state *state_new;
+    int count = 0;
     params_generate_grid(params);
     state->game_grid = g = params->game_grid;
     g->refcount++;
@@ -1843,6 +1850,7 @@ static char *new_game_desc(game_params *params, random_state *rs,
      * preventing games smaller than 4x4 seems to stop this happening */
     do {
         add_full_clues(state, rs);
+        if (++count%100 == 0) printf("tried %d times to make a unique board\n", count);
     } while (!game_has_unique_soln(state, params->diff));
 
     state_new = remove_clues(state, rs, params->diff);
@@ -1871,7 +1879,7 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
     int i;
     game_state *state = snew(game_state);
     int empties_to_make = 0;
-    int n;
+    int n,n2;
     const char *dp = desc;
     grid *g;
     int num_faces, num_edges;
@@ -1899,8 +1907,11 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
 
         assert(*dp);
         n = *dp - '0';
+        n2 = *dp - 'A' + 10;
         if (n >= 0 && n < 10) {
             state->clues[i] = n;
+	} else if (n2 >= 10 && n2 < 36) {
+            state->clues[i] = n2;
         } else {
             n = *dp - 'a' + 1;
             assert(n > 0);
@@ -2534,7 +2545,7 @@ static int dline_deductions(solver_state *sstate)
      * on that.  We check this with an assertion, in case someone decides to
      * make a grid which has larger faces than this.  Note, this algorithm
      * could get quite expensive if there are many large faces. */
-#define MAX_FACE_SIZE 8
+#define MAX_FACE_SIZE 12
 
     for (i = 0; i < g->num_faces; i++) {
         int maxs[MAX_FACE_SIZE][MAX_FACE_SIZE];
@@ -3356,10 +3367,14 @@ static void game_redraw_clue(drawing *dr, game_drawstate *ds,
     grid *g = state->game_grid;
     grid_face *f = g->faces + i;
     int x, y;
-    char c[2];
+    char c[3];
 
-    c[0] = CLUE2CHAR(state->clues[i]);
-    c[1] = '\0';
+    if (state->clues[i] < 10) {
+        c[0] = CLUE2CHAR(state->clues[i]);
+        c[1] = '\0';
+    } else {
+        sprintf(c, "%d", state->clues[i]);
+    }
 
     face_text_pos(ds, g, f, &x, &y);
     draw_text(dr, x, y,
