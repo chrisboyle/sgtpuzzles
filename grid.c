@@ -57,7 +57,6 @@ static grid *grid_new(void)
     g->edges = NULL;
     g->dots = NULL;
     g->num_faces = g->num_edges = g->num_dots = 0;
-    g->middle_face = NULL;
     g->refcount = 1;
     g->lowest_x = g->lowest_y = g->highest_x = g->highest_y = 0;
     return g;
@@ -92,17 +91,9 @@ static double point_line_distance(long px, long py,
  * Returns the nearest edge, or NULL if no edge is reasonably
  * near the position.
  *
- * This algorithm is nice and generic, and doesn't depend on any particular
- * geometric layout of the grid:
- *   Start at any dot (pick one next to middle_face).
- *   Walk along a path by choosing, from all nearby dots, the one that is
- *   nearest the target (x,y).  Hopefully end up at the dot which is closest
- *   to (x,y).  Should work, as long as faces aren't too badly shaped.
- *   Then examine each edge around this dot, and pick whichever one is
- *   closest (perpendicular distance) to (x,y).
- *   Using perpendicular distance is not quite right - the edge might be
- *   "off to one side".  So we insist that the triangle with (x,y) has
- *   acute angles at the edge's dots.
+ * Just judging edges by perpendicular distance is not quite right -
+ * the edge might be "off to one side". So we insist that the triangle
+ * with (x,y) has acute angles at the edge's dots.
  *
  *     edge1
  *  *---------*------
@@ -116,50 +107,14 @@ static double point_line_distance(long px, long py,
  */
 grid_edge *grid_nearest_edge(grid *g, int x, int y)
 {
-    grid_dot *cur;
     grid_edge *best_edge;
     double best_distance = 0;
     int i;
 
-    cur = g->middle_face->dots[0];
-
-    for (;;) {
-        /* Target to beat */
-        long dist = SQ((long)cur->x - (long)x) + SQ((long)cur->y - (long)y);
-        /* Look for nearer dot - if found, store in 'new'. */
-        grid_dot *new = cur;
-        int i;
-        /* Search all dots in all faces touching this dot.  Some shapes
-         * (such as in Cairo) don't quite work properly if we only search
-         * the dot's immediate neighbours. */
-        for (i = 0; i < cur->order; i++) {
-            grid_face *f = cur->faces[i];
-            int j;
-            if (!f) continue;
-            for (j = 0; j < f->order; j++) {
-		long new_dist;
-                grid_dot *d = f->dots[j];
-                if (d == cur) continue;
-                new_dist = SQ((long)d->x - (long)x) + SQ((long)d->y - (long)y);
-                if (new_dist < dist) { /* found closer dot */
-                    new = d;
-                    dist = new_dist;
-                }
-            }
-        }
-
-        if (new == cur) {
-            /* Didn't find a closer dot among the neighbours of 'cur' */
-            break;
-        } else {
-            cur = new;
-        }
-    }
-    /* 'cur' is nearest dot, so find which of the dot's edges is closest. */
     best_edge = NULL;
 
-    for (i = 0; i < cur->order; i++) {
-        grid_edge *e = cur->edges[i];
+    for (i = 0; i < g->num_edges; i++) {
+        grid_edge *e = &g->edges[i];
         long e2; /* squared length of edge */
         long a2, b2; /* squared lengths of other sides */
         double dist;
@@ -222,7 +177,6 @@ static void grid_print_basic(grid *g)
         }
         printf("]\n");
     }
-    printf("Middle face: %d\n", (int)(g->middle_face - g->faces));
 }
 /* Show the derived grid information, computed by grid_make_consistent */
 static void grid_print_derived(grid *g)
@@ -724,7 +678,6 @@ grid *grid_new_square(int width, int height)
     freetree234(points);
     assert(g->num_faces <= max_faces);
     assert(g->num_dots <= max_dots);
-    g->middle_face = g->faces + (height/2) * width + (width/2);
 
     grid_make_consistent(g);
     return g;
@@ -779,7 +732,6 @@ grid *grid_new_honeycomb(int width, int height)
     freetree234(points);
     assert(g->num_faces <= max_faces);
     assert(g->num_dots <= max_dots);
-    g->middle_face = g->faces + (height/2) * width + (width/2);
 
     grid_make_consistent(g);
     return g;
@@ -857,10 +809,6 @@ grid *grid_new_triangular(int width, int height)
             index += 2;
         }
     }
-
-    /* "+ width" takes us to the middle of the row, because each row has
-     * (2*width) faces. */
-    g->middle_face = g->faces + (height / 2) * 2 * width + width;
 
     grid_make_consistent(g);
     return g;
@@ -960,7 +908,6 @@ grid *grid_new_snubsquare(int width, int height)
     freetree234(points);
     assert(g->num_faces <= max_faces);
     assert(g->num_dots <= max_dots);
-    g->middle_face = g->faces + (height/2) * width + (width/2);
 
     grid_make_consistent(g);
     return g;
@@ -1053,7 +1000,6 @@ grid *grid_new_cairo(int width, int height)
     freetree234(points);
     assert(g->num_faces <= max_faces);
     assert(g->num_dots <= max_dots);
-    g->middle_face = g->faces + (height/2) * width + (width/2);
 
     grid_make_consistent(g);
     return g;
@@ -1169,7 +1115,6 @@ grid *grid_new_greathexagonal(int width, int height)
     freetree234(points);
     assert(g->num_faces <= max_faces);
     assert(g->num_dots <= max_dots);
-    g->middle_face = g->faces + (height/2) * width + (width/2);
 
     grid_make_consistent(g);
     return g;
@@ -1238,7 +1183,6 @@ grid *grid_new_octagonal(int width, int height)
     freetree234(points);
     assert(g->num_faces <= max_faces);
     assert(g->num_dots <= max_dots);
-    g->middle_face = g->faces + (height/2) * width + (width/2);
 
     grid_make_consistent(g);
     return g;
@@ -1344,7 +1288,6 @@ grid *grid_new_kites(int width, int height)
     freetree234(points);
     assert(g->num_faces <= max_faces);
     assert(g->num_dots <= max_dots);
-    g->middle_face = g->faces + 6 * ((height/2) * width + (width/2));
 
     grid_make_consistent(g);
     return g;
@@ -1433,7 +1376,6 @@ grid *grid_new_floret(int width, int height)
     freetree234(points);
     assert(g->num_faces <= max_faces);
     assert(g->num_dots <= max_dots);
-    g->middle_face = g->faces + 6 * ((height/2) * width + (width/2));
 
     grid_make_consistent(g);
     return g;
