@@ -228,6 +228,7 @@ struct game_drawstate {
     int started;
     int tilesize;
     int flashing;
+    int *textx, *texty;
     char *lines;
     char *clue_error;
     char *clue_satisfied;
@@ -871,17 +872,22 @@ static game_drawstate *game_new_drawstate(drawing *dr, game_state *state)
     struct game_drawstate *ds = snew(struct game_drawstate);
     int num_faces = state->game_grid->num_faces;
     int num_edges = state->game_grid->num_edges;
+    int i;
 
     ds->tilesize = 0;
     ds->started = 0;
     ds->lines = snewn(num_edges, char);
     ds->clue_error = snewn(num_faces, char);
     ds->clue_satisfied = snewn(num_faces, char);
+    ds->textx = snewn(num_faces, int);
+    ds->texty = snewn(num_faces, int);
     ds->flashing = 0;
 
     memset(ds->lines, LINE_UNKNOWN, num_edges);
     memset(ds->clue_error, 0, num_faces);
     memset(ds->clue_satisfied, 0, num_faces);
+    for (i = 0; i < num_faces; i++)
+        ds->textx[i] = ds->texty[i] = -1;
 
     return ds;
 }
@@ -3336,29 +3342,175 @@ static void grid_to_screen(const game_drawstate *ds, const grid *g,
 /* Returns (into x,y) position of centre of face for rendering the text clue.
  */
 static void face_text_pos(const game_drawstate *ds, const grid *g,
-                          const grid_face *f, int *x, int *y)
+                          const grid_face *f, int *xret, int *yret)
 {
-    int i;
+    int x, y, x0, y0, x1, y1, xbest, ybest, i, shift;
+    long bestdist;
+    int faceindex = f - g->faces;
 
-    /* Simplest solution is the centroid. Might not work in some cases. */
-
-    /* Another algorithm to look into:
-     * Find the midpoints of the sides, find the bounding-box,
-     * then take the centre of that. */
-
-    /* Best solution probably involves incentres (inscribed circles) */
-
-    int sx = 0, sy = 0; /* sums */
-    for (i = 0; i < f->order; i++) {
-        grid_dot *d = f->dots[i];
-        sx += d->x;
-        sy += d->y;
+    /*
+     * Return the cached position for this face, if we've already
+     * worked it out.
+     */
+    if (ds->textx[faceindex] >= 0) {
+        *xret = ds->textx[faceindex];
+        *yret = ds->texty[faceindex];
+        return;
     }
-    sx /= f->order;
-    sy /= f->order;
+
+    /*
+     * Otherwise, try to find the point in the polygon with the
+     * maximum distance to any edge or corner.
+     *
+     * Start by working out the face's bounding box, in grid
+     * coordinates.
+     */
+    x0 = x1 = f->dots[0]->x;
+    y0 = y1 = f->dots[0]->y;
+    for (i = 1; i < f->order; i++) {
+        if (x0 > f->dots[i]->x) x0 = f->dots[i]->x;
+        if (x1 < f->dots[i]->x) x1 = f->dots[i]->x;
+        if (y0 > f->dots[i]->y) y0 = f->dots[i]->y;
+        if (y1 < f->dots[i]->y) y1 = f->dots[i]->y;
+    }
+
+    /*
+     * If the grid is at excessive resolution, decide on a scaling
+     * factor to bring it within reasonable bounds so we don't have to
+     * think too hard or suffer integer overflow.
+     */
+    shift = 0;
+    while (x1 - x0 > 128 || y1 - y0 > 128) {
+        shift++;
+        x0 >>= 1;
+        x1 >>= 1;
+        y0 >>= 1;
+        y1 >>= 1;
+    }
+
+    /*
+     * Now iterate over every point in that bounding box.
+     */
+    xbest = ybest = -1;
+    bestdist = -1;
+    for (y = y0; y <= y1; y++) {
+        for (x = x0; x <= x1; x++) {
+            /*
+             * First, disqualify the point if it's not inside the
+             * polygon, which we work out by counting the edges to the
+             * right of the point. (For tiebreaking purposes when
+             * edges start or end on our y-coordinate or go right
+             * through it, we consider our point to be offset by a
+             * small _positive_ epsilon in both the x- and
+             * y-direction.)
+             */
+            int in = 0;
+            for (i = 0; i < f->order; i++) {
+                int xs = f->edges[i]->dot1->x >> shift;
+                int xe = f->edges[i]->dot2->x >> shift;
+                int ys = f->edges[i]->dot1->y >> shift;
+                int ye = f->edges[i]->dot2->y >> shift;
+                if ((y >= ys && y < ye) || (y >= ye && y < ys)) {
+                    /*
+                     * The line goes past our y-position. Now we need
+                     * to know if its x-coordinate when it does so is
+                     * to our right.
+                     *
+                     * The x-coordinate in question is mathematically
+                     * (y - ys) * (xe - xs) / (ye - ys), and we want
+                     * to know whether (x - xs) >= that. Of course we
+                     * avoid the division, so we can work in integers;
+                     * to do this we must multiply both sides of the
+                     * inequality by ye - ys, which means we must
+                     * first check that's not negative.
+                     */
+                    int num = xe - xs, denom = ye - ys;
+                    if (denom < 0) {
+                        num = -num;
+                        denom = -denom;
+                    }
+                    if ((x - xs) * denom >= (y - ys) * num)
+                        in ^= 1;
+                }
+            }
+
+            if (in) {
+                long mindist = LONG_MAX;
+
+                /*
+                 * This point is inside the polygon, so now we check
+                 * its minimum distance to every edge and corner.
+                 * First the corners ...
+                 */
+                for (i = 0; i < f->order; i++) {
+                    int xp = f->dots[i]->x >> shift;
+                    int yp = f->dots[i]->y >> shift;
+                    int dx = x - xp, dy = y - yp;
+                    long dist = (long)dx*dx + (long)dy*dy;
+                    if (mindist > dist)
+                        mindist = dist;
+                }
+
+                /*
+                 * ... and now also check the perpendicular distance
+                 * to every edge, if the perpendicular lies between
+                 * the edge's endpoints.
+                 */
+                for (i = 0; i < f->order; i++) {
+                    int xs = f->edges[i]->dot1->x >> shift;
+                    int xe = f->edges[i]->dot2->x >> shift;
+                    int ys = f->edges[i]->dot1->y >> shift;
+                    int ye = f->edges[i]->dot2->y >> shift;
+
+                    /*
+                     * If s and e are our endpoints, and p our
+                     * candidate circle centre, the foot of a
+                     * perpendicular from p to the line se lies
+                     * between s and e if and only if (p-s).(e-s) lies
+                     * strictly between 0 and (e-s).(e-s).
+                     */
+                    int edx = xe - xs, edy = ye - ys;
+                    int pdx = x - xs, pdy = y - ys;
+                    long pde = (long)pdx * edx + (long)pdy * edy;
+                    long ede = (long)edx * edx + (long)edy * edy;
+                    if (0 < pde && pde < ede) {
+                        /*
+                         * Yes, the nearest point on this edge is
+                         * closer than either endpoint, so we must
+                         * take it into account by measuring the
+                         * perpendicular distance to the edge and
+                         * checking its square against mindist.
+                         */
+
+                        long pdre = (long)pdx * edy - (long)pdy * edx;
+                        long sqlen = pdre * pdre / ede;
+
+                        if (mindist > sqlen)
+                            mindist = sqlen;
+                    }
+                }
+
+                /*
+                 * Right. Now we know the biggest circle around this
+                 * point, so we can check it against bestdist.
+                 */
+                if (bestdist < mindist) {
+                    bestdist = mindist;
+                    xbest = x;
+                    ybest = y;
+                }
+            }
+        }
+    }
+
+    assert(bestdist >= 0);
 
     /* convert to screen coordinates */
-    grid_to_screen(ds, g, sx, sy, x, y);
+    grid_to_screen(ds, g, xbest << shift, ybest << shift,
+                   &ds->textx[faceindex], &ds->texty[faceindex]);
+
+    *xret = ds->textx[faceindex];
+    *yret = ds->texty[faceindex];
 }
 
 static void game_redraw_clue(drawing *dr, game_drawstate *ds,
