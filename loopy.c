@@ -3384,8 +3384,13 @@ static void game_redraw_clue(drawing *dr, game_drawstate *ds,
 	      ds->clue_satisfied[i] ? COL_SATISFIED : COL_FOREGROUND, c);
 }
 
+static const int loopy_line_redraw_phases[] = {
+    COL_FAINT, COL_LINEUNKNOWN, COL_FOREGROUND, COL_HIGHLIGHT, COL_MISTAKE
+};
+#define NPHASES lenof(loopy_line_redraw_phases)
+
 static void game_redraw_line(drawing *dr, game_drawstate *ds,
-			     game_state *state, int i)
+			     game_state *state, int i, int phase)
 {
     grid *g = state->game_grid;
     grid_edge *e = g->edges + i;
@@ -3403,6 +3408,8 @@ static void game_redraw_line(drawing *dr, game_drawstate *ds,
 	line_colour = COL_HIGHLIGHT;
     else
 	line_colour = COL_FOREGROUND;
+    if (line_colour != loopy_line_redraw_phases[phase])
+        return;
 
     /* Convert from grid to screen coordinates */
     grid_to_screen(ds, g, e->dot1->x, e->dot1->y, &x1, &y1);
@@ -3449,7 +3456,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 
     grid *g = state->game_grid;
     int border = BORDER(ds->tilesize);
-    int i;
+    int i, phase;
     int flash_changed;
     int redraw_everything = FALSE;
 
@@ -3552,8 +3559,9 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 
 	for (i = 0; i < g->num_faces; i++)
 	    game_redraw_clue(dr, ds, state, i);
-	for (i = 0; i < g->num_edges; i++)
-	    game_redraw_line(dr, ds, state, i);
+	for (phase = 0; phase < NPHASES; phase++)
+            for (i = 0; i < g->num_edges; i++)
+                game_redraw_line(dr, ds, state, i, phase);
 	for (i = 0; i < g->num_dots; i++)
 	    game_redraw_dot(dr, ds, state, i);
 
@@ -3579,8 +3587,10 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 	    draw_rect(dr, x, y, w, h, COL_BACKGROUND);
 
 	    game_redraw_clue(dr, ds, state, faces[i]);
-	    for (j = 0; j < f->order; j++)
-		game_redraw_line(dr, ds, state, f->edges[j] - g->edges);
+            for (phase = 0; phase < NPHASES; phase++)
+                for (j = 0; j < f->order; j++)
+                    game_redraw_line(dr, ds, state, f->edges[j] - g->edges,
+                                     phase);
 	    for (j = 0; j < f->order; j++)
 		game_redraw_dot(dr, ds, state, f->dots[j] - g->dots);
 	    unclip(dr);
@@ -3614,17 +3624,19 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 	    if (e->face2)
 		game_redraw_clue(dr, ds, state, e->face2 - g->faces);
 
-	    game_redraw_line(dr, ds, state, edges[i]);
-	    for (j = 0; j < e->dot1->order; j++) {
-		ee = e->dot1->edges[j];
-		if (ee != e)
-		    game_redraw_line(dr, ds, state, ee - g->edges);
-	    }
-	    for (j = 0; j < e->dot2->order; j++) {
-		ee = e->dot2->edges[j];
-		if (ee != e)
-		    game_redraw_line(dr, ds, state, ee - g->edges);
-	    }
+            for (phase = 0; phase < NPHASES; phase++) {
+                game_redraw_line(dr, ds, state, edges[i], phase);
+                for (j = 0; j < e->dot1->order; j++) {
+                    ee = e->dot1->edges[j];
+                    if (ee != e)
+                        game_redraw_line(dr, ds, state, ee - g->edges, phase);
+                }
+                for (j = 0; j < e->dot2->order; j++) {
+                    ee = e->dot2->edges[j];
+                    if (ee != e)
+                        game_redraw_line(dr, ds, state, ee - g->edges, phase);
+                }
+            }
 	    game_redraw_dot(dr, ds, state, e->dot1 - g->dots);
 	    game_redraw_dot(dr, ds, state, e->dot2 - g->dots);
 
