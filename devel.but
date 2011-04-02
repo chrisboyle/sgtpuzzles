@@ -1224,6 +1224,28 @@ a mine from the colour it uses when you complete the game. In order
 to achieve this, its \cw{flash_length()} function has to store a
 flag in the \c{game_ui} to indicate which flash type is required.)
 
+\S{backend-is-solved} \cw{is_solved()}
+
+\c int (*is_solved)(game_state *state);
+
+This function returns \cw{TRUE} if the game represented by \cw{state}
+is currently in a solved state. The mid-end uses this to implement
+\cw{midend_is_solved()} (\k{midend-is-solved}).
+
+Front ends may wish to use this as a cue to proactively offer the
+option of starting a new game. Therefore, back ends should consider
+returning TRUE in situations where the game is \e{lost} as well as
+won, if losing makes it unlikely that the player would play on.
+
+(For instance, games with hidden information such as Guess or Mines
+might well set this flag whenever they reveal the solution, whether or
+not the player guessed it correctly, on the grounds that a player
+would be unlikely to hide the solution and continue playing after the
+answer was spoiled. On the other hand, games where you can merely get
+into a dead end such as Same Game or Inertia might choose not to, on
+the grounds that the player would quite likely press Undo and carry on
+playing.)
+
 \S{backend-redraw} \cw{redraw()}
 
 \c void (*redraw)(drawing *dr, game_drawstate *ds,
@@ -3095,6 +3117,19 @@ user.
 The front end can expect its drawing API and/or
 \cw{activate_timer()} to be called from within a call to this
 function.
+
+\S{midend-is-solved} \cw{midend_is_solved()}
+
+\c int midend_is_solved(midend *me);
+
+This function returns \cw{TRUE} if the midend is currently displaying
+a game in a solved state, according to the back end's \cw{is_solved()}
+function. Front ends may wish to use this as a cue to proactively
+offer the option of starting a new game.
+
+(See \k{backend-is-solved} for more detail about the back end's
+\cw{is_solved()} function and discussion of what should count as
+\q{solved} anyway).
 
 \H{midend-can-undo} \cw{midend_can_undo()}
 

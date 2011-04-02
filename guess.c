@@ -1314,6 +1314,18 @@ static float game_flash_length(game_state *oldstate, game_state *newstate,
     return 0.0F;
 }
 
+static int game_is_solved(game_state *state)
+{
+    /*
+     * We return true whenever the solution has been revealed, even
+     * (on spoiler grounds) if it wasn't guessed correctly.
+     *
+     * However, in that situation, 'solved' is still true, so we don't
+     * have to make any effort to arrange this.
+     */
+    return state->solved;
+}
+
 static int game_timing_state(game_state *state, game_ui *ui)
 {
     return TRUE;
@@ -1362,6 +1374,7 @@ const struct game thegame = {
     game_redraw,
     game_anim_length,
     game_flash_length,
+    game_is_solved,
     FALSE, FALSE, game_print_size, game_print,
     FALSE,			       /* wants_statusbar */
     FALSE, game_timing_state,

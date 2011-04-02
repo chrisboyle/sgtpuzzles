@@ -1336,6 +1336,21 @@ char *midend_solve(midend *me)
     return NULL;
 }
 
+int midend_is_solved(midend *me)
+{
+    /*
+     * We should probably never be called when the state stack has no
+     * states on it at all - ideally, midends should never be left in
+     * that state for long enough to get put down and forgotten about.
+     * But if we are, I think we return _true_ - pedantically speaking
+     * a midend in that state is 'vacuously solved', and more
+     * practically, a user whose midend has been left in that state
+     * probably _does_ want the 'new game' option to be prominent.
+     */
+    return (me->statepos == 0 ||
+            me->ourgame->is_solved(me->states[me->statepos-1].state));
+}
+
 char *midend_rewrite_statusbar(midend *me, char *text)
 {
     /*

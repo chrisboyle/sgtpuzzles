@@ -1480,6 +1480,11 @@ static float game_flash_length(game_state *from, game_state *to,
     return 0.0F;
 }
 
+static int game_is_solved(game_state *state)
+{
+    return state->was_solved;
+}
+
 /* ----------------------------------------------------------------------
  * Drawing routines.
  */
@@ -1727,6 +1732,7 @@ struct game const thegame = {
     game_redraw,
     game_anim_length,
     game_flash_length,
+    game_is_solved,
     TRUE, FALSE, game_print_size, game_print,
     FALSE, /* wants_statusbar */
     FALSE, game_timing_state,
