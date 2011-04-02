@@ -3096,6 +3096,24 @@ The front end can expect its drawing API and/or
 \cw{activate_timer()} to be called from within a call to this
 function.
 
+\H{midend-can-undo} \cw{midend_can_undo()}
+
+\c int midend_can_undo(midend *me);
+
+Returns \cw{TRUE} if the midend is currently in a state where the undo
+operation is meaningful (i.e. at least one position exists on the undo
+chain before the present one). Front ends may wish to use this to
+visually activate and deactivate an undo button.
+
+\H{midend-can-redo} \cw{midend_can_redo()}
+
+\c int midend_can_redo(midend *me);
+
+Returns \cw{TRUE} if the midend is currently in a state where the redo
+operation is meaningful (i.e. at least one position exists on the redo
+chain after the present one). Front ends may wish to use this to
+visually activate and deactivate a redo button.
+
 \H{midend-serialise} \cw{midend_serialise()}
 
 \c void midend_serialise(midend *me,

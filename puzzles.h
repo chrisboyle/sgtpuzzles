@@ -253,6 +253,8 @@ char *midend_get_game_id(midend *me);
 int midend_can_format_as_text_now(midend *me);
 char *midend_text_format(midend *me);
 char *midend_solve(midend *me);
+int midend_can_undo(midend *me);
+int midend_can_redo(midend *me);
 void midend_supersede_game_desc(midend *me, char *desc, char *privdesc);
 char *midend_rewrite_statusbar(midend *me, char *text);
 void midend_serialise(midend *me,

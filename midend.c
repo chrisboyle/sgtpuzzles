@@ -428,6 +428,16 @@ void midend_new_game(midend *me)
     me->pressed_mouse_button = 0;
 }
 
+int midend_can_undo(midend *me)
+{
+    return (me->statepos > 1);
+}
+
+int midend_can_redo(midend *me)
+{
+    return (me->statepos < me->nstates);
+}
+
 static int midend_undo(midend *me)
 {
     if (me->statepos > 1) {
