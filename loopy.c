@@ -3513,6 +3513,21 @@ static void face_text_pos(const game_drawstate *ds, const grid *g,
     *yret = ds->texty[faceindex];
 }
 
+static void face_text_bbox(game_drawstate *ds, grid *g, grid_face *f,
+                           int *x, int *y, int *w, int *h)
+{
+    int xx, yy;
+    face_text_pos(ds, g, f, &xx, &yy);
+
+    /* There seems to be a certain amount of trial-and-error involved
+     * in working out the correct bounding-box for the text. */
+
+    *x = xx - ds->tilesize/4 - 1;
+    *y = yy - ds->tilesize/4 - 3;
+    *w = ds->tilesize/2 + 2;
+    *h = ds->tilesize/2 + 5;
+}
+
 static void game_redraw_clue(drawing *dr, game_drawstate *ds,
 			     game_state *state, int i)
 {
@@ -3534,6 +3549,42 @@ static void game_redraw_clue(drawing *dr, game_drawstate *ds,
 	      ALIGN_VCENTRE | ALIGN_HCENTRE,
 	      ds->clue_error[i] ? COL_MISTAKE :
 	      ds->clue_satisfied[i] ? COL_SATISFIED : COL_FOREGROUND, c);
+}
+
+static void edge_bbox(game_drawstate *ds, grid *g, grid_edge *e,
+                      int *x, int *y, int *w, int *h)
+{
+    int x1 = e->dot1->x;
+    int y1 = e->dot1->y;
+    int x2 = e->dot2->x;
+    int y2 = e->dot2->y;
+    int xmin, xmax, ymin, ymax;
+
+    grid_to_screen(ds, g, x1, y1, &x1, &y1);
+    grid_to_screen(ds, g, x2, y2, &x2, &y2);
+    /* Allow extra margin for dots, and thickness of lines */
+    xmin = min(x1, x2) - 2;
+    xmax = max(x1, x2) + 2;
+    ymin = min(y1, y2) - 2;
+    ymax = max(y1, y2) + 2;
+
+    *x = xmin;
+    *y = ymin;
+    *w = xmax - xmin + 1;
+    *h = ymax - ymin + 1;
+}
+
+static void dot_bbox(game_drawstate *ds, grid *g, grid_dot *d,
+                     int *x, int *y, int *w, int *h)
+{
+    int x1, y1;
+
+    grid_to_screen(ds, g, d->x, d->y, &x1, &y1);
+
+    *x = x1 - 2;
+    *y = y1 - 2;
+    *w = 5;
+    *h = 5;
 }
 
 static const int loopy_line_redraw_phases[] = {
@@ -3600,6 +3651,49 @@ static void game_redraw_dot(drawing *dr, game_drawstate *ds,
     draw_circle(dr, x, y, 2, COL_FOREGROUND, COL_FOREGROUND);
 }
 
+static int boxes_intersect(int x0, int y0, int w0, int h0,
+                           int x1, int y1, int w1, int h1)
+{
+    /*
+     * Two intervals intersect iff neither is wholly on one side of
+     * the other. Two boxes intersect iff their horizontal and
+     * vertical intervals both intersect.
+     */
+    return (x0 < x1+w1 && x1 < x0+w0 && y0 < y1+h1 && y1 < y0+h0);
+}
+
+static void game_redraw_in_rect(drawing *dr, game_drawstate *ds,
+                                game_state *state, int x, int y, int w, int h)
+{
+    grid *g = state->game_grid;
+    int i, phase;
+    int bx, by, bw, bh;
+
+    clip(dr, x, y, w, h);
+    draw_rect(dr, x, y, w, h, COL_BACKGROUND);
+
+    for (i = 0; i < g->num_faces; i++) {
+        face_text_bbox(ds, g, &g->faces[i], &bx, &by, &bw, &bh);
+        if (boxes_intersect(x, y, w, h, bx, by, bw, bh))
+            game_redraw_clue(dr, ds, state, i);
+    }
+    for (phase = 0; phase < NPHASES; phase++) {
+        for (i = 0; i < g->num_edges; i++) {
+            edge_bbox(ds, g, &g->edges[i], &bx, &by, &bw, &bh);
+            if (boxes_intersect(x, y, w, h, bx, by, bw, bh))
+                game_redraw_line(dr, ds, state, i, phase);
+        }
+    }
+    for (i = 0; i < g->num_dots; i++) {
+        dot_bbox(ds, g, &g->dots[i], &bx, &by, &bw, &bh);
+        if (boxes_intersect(x, y, w, h, bx, by, bw, bh))
+            game_redraw_dot(dr, ds, state, i);
+    }
+
+    unclip(dr);
+    draw_update(dr, x, y, w, h);
+}
+
 static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
                         game_state *state, int dir, game_ui *ui,
                         float animtime, float flashtime)
@@ -3608,7 +3702,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 
     grid *g = state->game_grid;
     int border = BORDER(ds->tilesize);
-    int i, phase;
+    int i;
     int flash_changed;
     int redraw_everything = FALSE;
 
@@ -3698,102 +3792,31 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 
     /* Pass one is now done.  Now we do the actual drawing. */
     if (redraw_everything) {
-
-	/* This is the unsubtle version. */
-
         int grid_width = g->highest_x - g->lowest_x;
         int grid_height = g->highest_y - g->lowest_y;
         int w = grid_width * ds->tilesize / g->tilesize;
         int h = grid_height * ds->tilesize / g->tilesize;
 
-	draw_rect(dr, 0, 0, w + 2*border + 1, h + 2*border + 1,
-		  COL_BACKGROUND);
-
-	for (i = 0; i < g->num_faces; i++)
-	    game_redraw_clue(dr, ds, state, i);
-	for (phase = 0; phase < NPHASES; phase++)
-            for (i = 0; i < g->num_edges; i++)
-                game_redraw_line(dr, ds, state, i, phase);
-	for (i = 0; i < g->num_dots; i++)
-	    game_redraw_dot(dr, ds, state, i);
-
-	draw_update(dr, 0, 0, w + 2*border + 1, h + 2*border + 1);
+        game_redraw_in_rect(dr, ds, state,
+                            0, 0, w + 2*border + 1, h + 2*border + 1);
     } else {
 
 	/* Right.  Now we roll up our sleeves. */
 
 	for (i = 0; i < nfaces; i++) {
 	    grid_face *f = g->faces + faces[i];
-	    int xx, yy;
 	    int x, y, w, h;
-	    int j;
 
-	    /* There seems to be a certain amount of trial-and-error
-	     * involved in working out the correct bounding-box for
-	     * the text. */
-	    face_text_pos(ds, g, f, &xx, &yy);
-
-	    x = xx - ds->tilesize/4 - 1; w = ds->tilesize/2 + 2;
-	    y = yy - ds->tilesize/4 - 3; h = ds->tilesize/2 + 5;
-	    clip(dr, x, y, w, h);
-	    draw_rect(dr, x, y, w, h, COL_BACKGROUND);
-
-	    game_redraw_clue(dr, ds, state, faces[i]);
-            for (phase = 0; phase < NPHASES; phase++)
-                for (j = 0; j < f->order; j++)
-                    game_redraw_line(dr, ds, state, f->edges[j] - g->edges,
-                                     phase);
-	    for (j = 0; j < f->order; j++)
-		game_redraw_dot(dr, ds, state, f->dots[j] - g->dots);
-	    unclip(dr);
-	    draw_update(dr, x, y, w, h);
+            face_text_bbox(ds, g, f, &x, &y, &w, &h);
+            game_redraw_in_rect(dr, ds, state, x, y, w, h);
 	}
 
 	for (i = 0; i < nedges; i++) {
-	    grid_edge *e = g->edges + edges[i], *ee;
-	    int x1 = e->dot1->x;
-	    int y1 = e->dot1->y;
-	    int x2 = e->dot2->x;
-	    int y2 = e->dot2->y;
-	    int xmin, xmax, ymin, ymax;
-	    int j;
+	    grid_edge *e = g->edges + edges[i];
+            int x, y, w, h;
 
-	    grid_to_screen(ds, g, x1, y1, &x1, &y1);
-	    grid_to_screen(ds, g, x2, y2, &x2, &y2);
-	    /* Allow extra margin for dots, and thickness of lines */
-	    xmin = min(x1, x2) - 2;
-	    xmax = max(x1, x2) + 2;
-	    ymin = min(y1, y2) - 2;
-	    ymax = max(y1, y2) + 2;
-	    /* For testing, I find it helpful to change COL_BACKGROUND
-	     * to COL_SATISFIED here. */
-	    clip(dr, xmin, ymin, xmax - xmin + 1, ymax - ymin + 1);
-	    draw_rect(dr, xmin, ymin, xmax - xmin + 1, ymax - ymin + 1,
-		      COL_BACKGROUND);
-
-	    if (e->face1)
-		game_redraw_clue(dr, ds, state, e->face1 - g->faces);
-	    if (e->face2)
-		game_redraw_clue(dr, ds, state, e->face2 - g->faces);
-
-            for (phase = 0; phase < NPHASES; phase++) {
-                game_redraw_line(dr, ds, state, edges[i], phase);
-                for (j = 0; j < e->dot1->order; j++) {
-                    ee = e->dot1->edges[j];
-                    if (ee != e)
-                        game_redraw_line(dr, ds, state, ee - g->edges, phase);
-                }
-                for (j = 0; j < e->dot2->order; j++) {
-                    ee = e->dot2->edges[j];
-                    if (ee != e)
-                        game_redraw_line(dr, ds, state, ee - g->edges, phase);
-                }
-            }
-	    game_redraw_dot(dr, ds, state, e->dot1 - g->dots);
-	    game_redraw_dot(dr, ds, state, e->dot2 - g->dots);
-
-	    unclip(dr);
-	    draw_update(dr, xmin, ymin, xmax - xmin + 1, ymax - ymin + 1);
+            edge_bbox(ds, g, e, &x, &y, &w, &h);
+            game_redraw_in_rect(dr, ds, state, x, y, w, h);
 	}
     }
 
