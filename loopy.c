@@ -1834,7 +1834,6 @@ static char *new_game_desc(game_params *params, random_state *rs,
     grid *g;
     game_state *state = snew(game_state);
     game_state *state_new;
-    int count = 0;
     params_generate_grid(params);
     state->game_grid = g = params->game_grid;
     g->refcount++;
@@ -1856,7 +1855,6 @@ static char *new_game_desc(game_params *params, random_state *rs,
      * preventing games smaller than 4x4 seems to stop this happening */
     do {
         add_full_clues(state, rs);
-        if (++count%100 == 0) printf("tried %d times to make a unique board\n", count);
     } while (!game_has_unique_soln(state, params->diff));
 
     state_new = remove_clues(state, rs, params->diff);
@@ -2432,6 +2430,13 @@ static int trivial_deductions(solver_state *sstate)
         if (state->clues[i] < 0)
             continue;
 
+        /*
+         * This code checks whether the numeric clue on a face is so
+         * large as to permit all its remaining LINE_UNKNOWNs to be
+         * filled in as LINE_YES, or alternatively so small as to
+         * permit them all to be filled in as LINE_NO.
+         */
+
         if (state->clues[i] < current_yes) {
             sstate->solver_status = SOLVER_MISTAKE;
             return DIFF_EASY;
@@ -2452,6 +2457,57 @@ static int trivial_deductions(solver_state *sstate)
                 diff = min(diff, DIFF_EASY);
             sstate->face_solved[i] = TRUE;
             continue;
+        }
+
+        if (f->order - state->clues[i] == current_no + 1 &&
+            f->order - current_yes - current_no > 2) {
+            /*
+             * One small refinement to the above: we also look for any
+             * adjacent pair of LINE_UNKNOWNs around the face with
+             * some LINE_YES incident on it from elsewhere. If we find
+             * one, then we know that pair of LINE_UNKNOWNs can't
+             * _both_ be LINE_YES, and hence that pushes us one line
+             * closer to being able to determine all the rest.
+             */
+            int j, k, e1, e2, e, d;
+
+            for (j = 0; j < f->order; j++) {
+                e1 = f->edges[j] - g->edges;
+                e2 = f->edges[j+1 < f->order ? j+1 : 0] - g->edges;
+
+                if (g->edges[e1].dot1 == g->edges[e2].dot1 ||
+                    g->edges[e1].dot1 == g->edges[e2].dot2) {
+                    d = g->edges[e1].dot1 - g->dots;
+                } else {
+                    assert(g->edges[e1].dot2 == g->edges[e2].dot1 ||
+                           g->edges[e1].dot2 == g->edges[e2].dot2);
+                    d = g->edges[e1].dot2 - g->dots;
+                }
+
+                if (state->lines[e1] == LINE_UNKNOWN &&
+                    state->lines[e2] == LINE_UNKNOWN) {
+                    for (k = 0; k < g->dots[d].order; k++) {
+                        int e = g->dots[d].edges[k] - g->edges;
+                        if (state->lines[e] == LINE_YES)
+                            goto found;    /* multi-level break */
+                    }
+                }
+            }
+            continue;
+
+          found:
+            /*
+             * If we get here, we've found such a pair of edges, and
+             * they're e1 and e2.
+             */
+            for (j = 0; j < f->order; j++) {
+                e = f->edges[j] - g->edges;
+                if (state->lines[e] == LINE_UNKNOWN && e != e1 && e != e2) {
+                    int r = solver_set_line(sstate, e, LINE_YES);
+                    assert(r);
+                    diff = min(diff, DIFF_EASY);
+                }
+            }
         }
     }
 
