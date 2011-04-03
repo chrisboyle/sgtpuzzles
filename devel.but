@@ -1234,8 +1234,8 @@ is currently in a solved state. The mid-end uses this to implement
 
 Front ends may wish to use this as a cue to proactively offer the
 option of starting a new game. Therefore, back ends should consider
-returning TRUE in situations where the game is \e{lost} as well as
-won, if losing makes it unlikely that the player would play on.
+returning \cw{TRUE} in situations where the game is \e{lost} as well
+as won, if losing makes it unlikely that the player would play on.
 
 (For instance, games with hidden information such as Guess or Mines
 might well set this flag whenever they reveal the solution, whether or
