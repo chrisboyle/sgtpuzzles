@@ -3118,7 +3118,7 @@ The front end can expect its drawing API and/or
 \cw{activate_timer()} to be called from within a call to this
 function.
 
-\S{midend-is-solved} \cw{midend_is_solved()}
+\H{midend-is-solved} \cw{midend_is_solved()}
 
 \c int midend_is_solved(midend *me);
 
