@@ -319,7 +319,7 @@ public class PuzzleApplet extends JApplet implements Runtime.CallJavaCB {
                 case 3: gg.setClip(arg2, arg3, xarg1, xarg2); break;
                 case 4:
                     if (arg2 == 0 && arg3 == 0) {
-                        gg.fillRect(0, 0, getWidth(), getHeight());
+                        gg.setClip(0, 0, getWidth(), getHeight());
                     } else {
                         gg.setClip(arg2, arg3, getWidth()-2*arg2, getHeight()-2*arg3);
                     }
