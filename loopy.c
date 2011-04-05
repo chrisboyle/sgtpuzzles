@@ -839,8 +839,14 @@ static float *game_colours(frontend *fe, int *ncolours)
     ret[COL_FOREGROUND * 3 + 1] = 0.0F;
     ret[COL_FOREGROUND * 3 + 2] = 0.0F;
 
-    ret[COL_LINEUNKNOWN * 3 + 0] = 0.8F;
-    ret[COL_LINEUNKNOWN * 3 + 1] = 0.8F;
+    /*
+     * We want COL_LINEUNKNOWN to be a yellow which is a bit darker
+     * than the background. (I previously set it to 0.8,0.8,0, but
+     * found that this went badly with the 0.8,0.8,0.8 favoured as a
+     * background by the Java frontend.)
+     */
+    ret[COL_LINEUNKNOWN * 3 + 0] = ret[COL_BACKGROUND * 3 + 0] * 0.9F;
+    ret[COL_LINEUNKNOWN * 3 + 1] = ret[COL_BACKGROUND * 3 + 1] * 0.9F;
     ret[COL_LINEUNKNOWN * 3 + 2] = 0.0F;
 
     ret[COL_HIGHLIGHT * 3 + 0] = 1.0F;
