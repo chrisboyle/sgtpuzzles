@@ -296,7 +296,6 @@ public class PuzzleApplet extends JApplet implements Runtime.CallJavaCB {
                 case 0:
 		    String text = runtime.cstring(arg2);
 		    if (text.equals("")) text = " ";
-		    System.out.println("status '" + text + "'");
 		    statusBar.setText(text);
 		    break;
                 case 1:
