@@ -575,6 +575,7 @@ static void grid_face_add_new(grid *g, int face_size)
     for (i = 0; i < face_size; i++)
         new_face->dots[i] = NULL;
     new_face->edges = NULL;
+    new_face->has_incentre = FALSE;
     g->num_faces++;
 }
 /* Assumes dot list has enough space */
