@@ -3735,9 +3735,11 @@ static void game_redraw_in_rect(drawing *dr, game_drawstate *ds,
     draw_rect(dr, x, y, w, h, COL_BACKGROUND);
 
     for (i = 0; i < g->num_faces; i++) {
-        face_text_bbox(ds, g, &g->faces[i], &bx, &by, &bw, &bh);
-        if (boxes_intersect(x, y, w, h, bx, by, bw, bh))
-            game_redraw_clue(dr, ds, state, i);
+        if (state->clues[i] >= 0) {
+            face_text_bbox(ds, g, &g->faces[i], &bx, &by, &bw, &bh);
+            if (boxes_intersect(x, y, w, h, bx, by, bw, bh))
+                game_redraw_clue(dr, ds, state, i);
+        }
     }
     for (phase = 0; phase < NPHASES; phase++) {
         for (i = 0; i < g->num_edges; i++) {
