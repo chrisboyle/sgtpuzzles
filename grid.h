@@ -34,6 +34,22 @@ struct grid_face {
   int order; /* Number of edges, also the number of dots */
   grid_edge **edges; /* edges around this face */
   grid_dot **dots; /* corners of this face */
+  /*
+   * For each face, we optionally compute and store its 'incentre'.
+   * The incentre of a triangle is the centre of a circle tangent to
+   * all three edges; I generalise the concept to arbitrary polygons
+   * by defining it to be the centre of the largest circle you can fit
+   * anywhere in the polygon. It's a useful thing to know because if
+   * you want to draw any symbol or text in the face (e.g. clue
+   * numbers in Loopy), that's the place it will most easily fit.
+   *
+   * When a grid is first generated, no face has this information
+   * computed, because it's fiddly to do. You can call
+   * grid_find_incentre() on a face, and it will fill in ix,iy below
+   * and set has_incentre to indicate that it's done so.
+   */
+  int has_incentre;
+  int ix, iy;      /* incentre (centre of largest inscribed circle) */
 };
 struct grid_edge {
   grid_dot *dot1, *dot2;
@@ -88,5 +104,7 @@ grid *grid_new_greatdodecagonal(int width, int height);
 void grid_free(grid *g);
 
 grid_edge *grid_nearest_edge(grid *g, int x, int y);
+
+void grid_find_incentre(grid_face *f);
 
 #endif /* PUZZLES_GRID_H */
