@@ -12,10 +12,12 @@
 #include <assert.h>
 #include <ctype.h>
 #include <math.h>
+#include <errno.h>
 
 #include "puzzles.h"
 #include "tree234.h"
 #include "grid.h"
+#include "penrose.h"
 
 /* Debugging options */
 
@@ -50,7 +52,7 @@ void grid_free(grid *g)
 
 /* Used by the other grid generators.  Create a brand new grid with nothing
  * initialised (all lists are NULL) */
-static grid *grid_new(void)
+static grid *grid_empty()
 {
     grid *g = snew(grid);
     g->faces = NULL;
@@ -158,13 +160,93 @@ grid_edge *grid_nearest_edge(grid *g, int x, int y)
  * Grid generation
  */
 
-#ifdef DEBUG_GRID
+#ifdef SVG_GRID
+
+#define SVG_DOTS  1
+#define SVG_EDGES 2
+#define SVG_FACES 4
+
+#define FACE_COLOUR "red"
+#define EDGE_COLOUR "blue"
+#define DOT_COLOUR "black"
+
+static void grid_output_svg(FILE *fp, grid *g, int which)
+{
+    int i, j;
+
+    fprintf(fp,"\
+<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n\
+<!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 20010904//EN\"\n\
+\"http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd\">\n\
+\n\
+<svg xmlns=\"http://www.w3.org/2000/svg\"\n\
+xmlns:xlink=\"http://www.w3.org/1999/xlink\">\n\n");
+
+    if (which & SVG_FACES) {
+        fprintf(fp, "<g>\n");
+        for (i = 0; i < g->num_faces; i++) {
+            grid_face *f = g->faces + i;
+            fprintf(fp, "<polygon points=\"");
+            for (j = 0; j < f->order; j++) {
+                grid_dot *d = f->dots[j];
+                fprintf(fp, "%s%d,%d", (j == 0) ? "" : " ",
+                        d->x, d->y);
+            }
+            fprintf(fp, "\" style=\"fill: %s; fill-opacity: 0.2; stroke: %s\" />\n",
+                    FACE_COLOUR, FACE_COLOUR);
+        }
+        fprintf(fp, "</g>\n");
+    }
+    if (which & SVG_EDGES) {
+        fprintf(fp, "<g>\n");
+        for (i = 0; i < g->num_edges; i++) {
+            grid_edge *e = g->edges + i;
+            grid_dot *d1 = e->dot1, *d2 = e->dot2;
+
+            fprintf(fp, "<line x1=\"%d\" y1=\"%d\" x2=\"%d\" y2=\"%d\" "
+                        "style=\"stroke: %s\" />\n",
+                        d1->x, d1->y, d2->x, d2->y, EDGE_COLOUR);
+        }
+        fprintf(fp, "</g>\n");
+    }
+
+    if (which & SVG_DOTS) {
+        fprintf(fp, "<g>\n");
+        for (i = 0; i < g->num_dots; i++) {
+            grid_dot *d = g->dots + i;
+            fprintf(fp, "<ellipse cx=\"%d\" cy=\"%d\" rx=\"%d\" ry=\"%d\" fill=\"%s\" />",
+                    d->x, d->y, g->tilesize/20, g->tilesize/20, DOT_COLOUR);
+        }
+        fprintf(fp, "</g>\n");
+    }
+
+    fprintf(fp, "</svg>\n");
+}
+#endif
+
+#ifdef SVG_GRID
+static void grid_try_svg(grid *g, int which)
+{
+    char *svg = getenv("PUZZLES_SVG_GRID");
+    if (svg) {
+        FILE *svgf = fopen(svg, "w");
+        if (svgf) {
+            grid_output_svg(svgf, g, which);
+            fclose(svgf);
+        } else {
+            fprintf(stderr, "Unable to open file `%s': %s", svg, strerror(errno));
+        }
+    }
+}
+#endif
+
 /* Show the basic grid information, before doing grid_make_consistent */
-static void grid_print_basic(grid *g)
+static void grid_debug_basic(grid *g)
 {
     /* TODO: Maybe we should generate an SVG image of the dots and lines
      * of the grid here, before grid_make_consistent.
      * Would help with debugging grid generation. */
+#ifdef DEBUG_GRID
     int i;
     printf("--- Basic Grid Data ---\n");
     for (i = 0; i < g->num_faces; i++) {
@@ -177,10 +259,16 @@ static void grid_print_basic(grid *g)
         }
         printf("]\n");
     }
+#endif
+#ifdef SVG_GRID
+    grid_try_svg(g, SVG_FACES);
+#endif
 }
+
 /* Show the derived grid information, computed by grid_make_consistent */
-static void grid_print_derived(grid *g)
+static void grid_debug_derived(grid *g)
 {
+#ifdef DEBUG_GRID
     /* edges */
     int i;
     printf("--- Derived Grid Data ---\n");
@@ -220,8 +308,11 @@ static void grid_print_derived(grid *g)
         }
         printf("]\n");
     }
+#endif
+#ifdef SVG_GRID
+    grid_try_svg(g, SVG_DOTS | SVG_EDGES | SVG_FACES);
+#endif
 }
-#endif /* DEBUG_GRID */
 
 /* Helper function for building incomplete-edges list in
  * grid_make_consistent() */
@@ -250,6 +341,147 @@ static int grid_edge_bydots_cmpfn(void *v1, void *v2)
     return 0;
 }
 
+/*
+ * 'Vigorously trim' a grid, by which I mean deleting any isolated or
+ * uninteresting faces. By which, in turn, I mean: ensure that the
+ * grid is composed solely of faces adjacent to at least one
+ * 'landlocked' dot (i.e. one not in contact with the infinite
+ * exterior face), and that all those dots are in a single connected
+ * component.
+ *
+ * This function operates on, and returns, a grid satisfying the
+ * preconditions to grid_make_consistent() rather than the
+ * postconditions. (So call it first.)
+ */
+static void grid_trim_vigorously(grid *g)
+{
+    int *dotpairs, *faces, *dots;
+    int *dsf;
+    int i, j, k, size, newfaces, newdots;
+
+    /*
+     * First construct a matrix in which each ordered pair of dots is
+     * mapped to the index of the face in which those dots occur in
+     * that order.
+     */
+    dotpairs = snewn(g->num_dots * g->num_dots, int);
+    for (i = 0; i < g->num_dots; i++)
+        for (j = 0; j < g->num_dots; j++)
+            dotpairs[i*g->num_dots+j] = -1;
+    for (i = 0; i < g->num_faces; i++) {
+        grid_face *f = g->faces + i;
+        int dot0 = f->dots[f->order-1] - g->dots;
+        for (j = 0; j < f->order; j++) {
+            int dot1 = f->dots[j] - g->dots;
+            dotpairs[dot0 * g->num_dots + dot1] = i;
+            dot0 = dot1;
+        }
+    }
+
+    /*
+     * Now we can identify landlocked dots: they're the ones all of
+     * whose edges have a mirror-image counterpart in this matrix.
+     */
+    dots = snewn(g->num_dots, int);
+    for (i = 0; i < g->num_dots; i++) {
+        dots[i] = TRUE;
+        for (j = 0; j < g->num_dots; j++) {
+            if ((dotpairs[i*g->num_dots+j] >= 0) ^
+                (dotpairs[j*g->num_dots+i] >= 0))
+                dots[i] = FALSE;    /* non-duplicated edge: coastal dot */
+        }
+    }
+
+    /*
+     * Now identify connected pairs of landlocked dots, and form a dsf
+     * unifying them.
+     */
+    dsf = snew_dsf(g->num_dots);
+    for (i = 0; i < g->num_dots; i++)
+        for (j = 0; j < i; j++)
+            if (dots[i] && dots[j] &&
+                dotpairs[i*g->num_dots+j] >= 0 &&
+                dotpairs[j*g->num_dots+i] >= 0)
+                dsf_merge(dsf, i, j);
+
+    /*
+     * Now look for the largest component.
+     */
+    size = 0;
+    j = -1;
+    for (i = 0; i < g->num_dots; i++) {
+        int newsize;
+        if (dots[i] && dsf_canonify(dsf, i) == i &&
+            (newsize = dsf_size(dsf, i)) > size) {
+            j = i;
+            size = newsize;
+        }
+    }
+
+    /*
+     * Work out which faces we're going to keep (precisely those with
+     * at least one dot in the same connected component as j) and
+     * which dots (those required by any face we're keeping).
+     *
+     * At this point we reuse the 'dots' array to indicate the dots
+     * we're keeping, rather than the ones that are landlocked.
+     */
+    faces = snewn(g->num_faces, int);
+    for (i = 0; i < g->num_faces; i++)
+        faces[i] = 0;
+    for (i = 0; i < g->num_dots; i++)
+        dots[i] = 0;
+    for (i = 0; i < g->num_faces; i++) {
+        grid_face *f = g->faces + i;
+        int keep = FALSE;
+        for (k = 0; k < f->order; k++)
+            if (dsf_canonify(dsf, f->dots[k] - g->dots) == j)
+                keep = TRUE;
+        if (keep) {
+            faces[i] = TRUE;
+            for (k = 0; k < f->order; k++)
+                dots[f->dots[k]-g->dots] = TRUE;
+        }
+    }
+
+    /*
+     * Work out the new indices of those faces and dots, when we
+     * compact the arrays containing them.
+     */
+    for (i = newfaces = 0; i < g->num_faces; i++)
+        faces[i] = (faces[i] ? newfaces++ : -1);
+    for (i = newdots = 0; i < g->num_dots; i++)
+        dots[i] = (dots[i] ? newdots++ : -1);
+
+    /*
+     * Go through and compact the arrays.
+     */
+    for (i = 0; i < g->num_dots; i++)
+        if (dots[i] >= 0) {
+            grid_dot *dnew = g->dots + dots[i], *dold = g->dots + i;
+            *dnew = *dold;             /* structure copy */
+        }
+    for (i = 0; i < g->num_faces; i++)
+        if (faces[i] >= 0) {
+            grid_face *fnew = g->faces + faces[i], *fold = g->faces + i;
+            *fnew = *fold;             /* structure copy */
+            for (j = 0; j < fnew->order; j++) {
+                /*
+                 * Reindex the dots in this face.
+                 */
+                k = fnew->dots[j] - g->dots;
+                fnew->dots[j] = g->dots + dots[k];
+            }
+        }
+    g->num_faces = newfaces;
+    g->num_dots = newdots;
+
+    sfree(dotpairs);
+    sfree(dsf);
+    sfree(dots);
+    sfree(faces);
+}
+
 /* Input: grid has its dots and faces initialised:
  * - dots have (optionally) x and y coordinates, but no edges or faces
  * (pointers are NULL).
@@ -265,9 +497,7 @@ static void grid_make_consistent(grid *g)
     tree234 *incomplete_edges;
     grid_edge *next_new_edge; /* Where new edge will go into g->edges */
 
-#ifdef DEBUG_GRID
-    grid_print_basic(g);
-#endif
+    grid_debug_basic(g);
 
     /* ====== Stage 1 ======
      * Generate edges
@@ -545,10 +775,8 @@ static void grid_make_consistent(grid *g)
             g->highest_y = max(g->highest_y, d->y);
         }
     }
-    
-#ifdef DEBUG_GRID
-    grid_print_derived(g);
-#endif
+
+    grid_debug_derived(g);
 }
 
 /* Helpers for making grid-generation easier.  These functions are only
@@ -1139,11 +1367,23 @@ void grid_find_incentre(grid_face *f)
  * arithmetic here!
  */
 
-grid *grid_new_square(int width, int height)
+#define SQUARE_TILESIZE 20
+
+void grid_size_square(int width, int height,
+                      int *tilesize, int *xextent, int *yextent)
+{
+    int a = SQUARE_TILESIZE;
+
+    *tilesize = a;
+    *xextent = width * a;
+    *yextent = height * a;
+}
+
+grid *grid_new_square(int width, int height, char *desc)
 {
     int x, y;
     /* Side length */
-    int a = 20;
+    int a = SQUARE_TILESIZE;
 
     /* Upper bounds - don't have to be exact */
     int max_faces = width * height;
@@ -1151,7 +1391,7 @@ grid *grid_new_square(int width, int height)
 
     tree234 *points;
 
-    grid *g = grid_new();
+    grid *g = grid_empty();
     g->tilesize = a;
     g->faces = snewn(max_faces, grid_face);
     g->dots = snewn(max_dots, grid_dot);
@@ -1186,21 +1426,36 @@ grid *grid_new_square(int width, int height)
     return g;
 }
 
-grid *grid_new_honeycomb(int width, int height)
+#define HONEY_TILESIZE 45
+/* Vector for side of hexagon - ratio is close to sqrt(3) */
+#define HONEY_A 15
+#define HONEY_B 26
+
+void grid_size_honeycomb(int width, int height,
+                         int *tilesize, int *xextent, int *yextent)
+{
+    int a = HONEY_A;
+    int b = HONEY_B;
+
+    *tilesize = HONEY_TILESIZE;
+    *xextent = (3 * a * (width-1)) + 4*a;
+    *yextent = (2 * b * (height-1)) + 3*b;
+}
+
+grid *grid_new_honeycomb(int width, int height, char *desc)
 {
     int x, y;
-    /* Vector for side of hexagon - ratio is close to sqrt(3) */
-    int a = 15;
-    int b = 26;
+    int a = HONEY_A;
+    int b = HONEY_B;
 
     /* Upper bounds - don't have to be exact */
     int max_faces = width * height;
     int max_dots = 2 * (width + 1) * (height + 1);
-    
+
     tree234 *points;
 
-    grid *g = grid_new();
-    g->tilesize = 3 * a;
+    grid *g = grid_empty();
+    g->tilesize = HONEY_TILESIZE;
     g->faces = snewn(max_faces, grid_face);
     g->dots = snewn(max_dots, grid_dot);
 
@@ -1240,23 +1495,39 @@ grid *grid_new_honeycomb(int width, int height)
     return g;
 }
 
+#define TRIANGLE_TILESIZE 18
+/* Vector for side of triangle - ratio is close to sqrt(3) */
+#define TRIANGLE_VEC_X 15
+#define TRIANGLE_VEC_Y 26
+
+void grid_size_triangular(int width, int height,
+                          int *tilesize, int *xextent, int *yextent)
+{
+    int vec_x = TRIANGLE_VEC_X;
+    int vec_y = TRIANGLE_VEC_Y;
+
+    *tilesize = TRIANGLE_TILESIZE;
+    *xextent = width * 2 * vec_x + vec_x;
+    *yextent = height * vec_y;
+}
+
 /* Doesn't use the previous method of generation, it pre-dates it!
  * A triangular grid is just about simple enough to do by "brute force" */
-grid *grid_new_triangular(int width, int height)
+grid *grid_new_triangular(int width, int height, char *desc)
 {
     int x,y;
     
     /* Vector for side of triangle - ratio is close to sqrt(3) */
-    int vec_x = 15;
-    int vec_y = 26;
+    int vec_x = TRIANGLE_VEC_X;
+    int vec_y = TRIANGLE_VEC_Y;
     
     int index;
 
     /* convenient alias */
     int w = width + 1;
 
-    grid *g = grid_new();
-    g->tilesize = 18; /* adjust to your taste */
+    grid *g = grid_empty();
+    g->tilesize = TRIANGLE_TILESIZE;
 
     g->num_faces = width * height * 2;
     g->num_dots = (width + 1) * (height + 1);
@@ -1317,21 +1588,36 @@ grid *grid_new_triangular(int width, int height)
     return g;
 }
 
-grid *grid_new_snubsquare(int width, int height)
+#define SNUBSQUARE_TILESIZE 18
+/* Vector for side of triangle - ratio is close to sqrt(3) */
+#define SNUBSQUARE_A 15
+#define SNUBSQUARE_B 26
+
+void grid_size_snubsquare(int width, int height,
+                          int *tilesize, int *xextent, int *yextent)
+{
+    int a = SNUBSQUARE_A;
+    int b = SNUBSQUARE_B;
+
+    *tilesize = SNUBSQUARE_TILESIZE;
+    *xextent = (a+b) * (width-1) + a + b;
+    *yextent = (a+b) * (height-1) + a + b;
+}
+
+grid *grid_new_snubsquare(int width, int height, char *desc)
 {
     int x, y;
-    /* Vector for side of triangle - ratio is close to sqrt(3) */
-    int a = 15;
-    int b = 26;
+    int a = SNUBSQUARE_A;
+    int b = SNUBSQUARE_B;
 
     /* Upper bounds - don't have to be exact */
     int max_faces = 3 * width * height;
     int max_dots = 2 * (width + 1) * (height + 1);
-    
+
     tree234 *points;
 
-    grid *g = grid_new();
-    g->tilesize = 18;
+    grid *g = grid_empty();
+    g->tilesize = SNUBSQUARE_TILESIZE;
     g->faces = snewn(max_faces, grid_face);
     g->dots = snewn(max_dots, grid_dot);
 
@@ -1416,21 +1702,35 @@ grid *grid_new_snubsquare(int width, int height)
     return g;
 }
 
-grid *grid_new_cairo(int width, int height)
+#define CAIRO_TILESIZE 40
+/* Vector for side of pentagon - ratio is close to (4+sqrt(7))/3 */
+#define CAIRO_A 14
+#define CAIRO_B 31
+
+void grid_size_cairo(int width, int height,
+                          int *tilesize, int *xextent, int *yextent)
+{
+    int b = CAIRO_B; /* a unused in determining grid size. */
+
+    *tilesize = CAIRO_TILESIZE;
+    *xextent = 2*b*(width-1) + 2*b;
+    *yextent = 2*b*(height-1) + 2*b;
+}
+
+grid *grid_new_cairo(int width, int height, char *desc)
 {
     int x, y;
-    /* Vector for side of pentagon - ratio is close to (4+sqrt(7))/3 */
-    int a = 14;
-    int b = 31;
+    int a = CAIRO_A;
+    int b = CAIRO_B;
 
     /* Upper bounds - don't have to be exact */
     int max_faces = 2 * width * height;
     int max_dots = 3 * (width + 1) * (height + 1);
-    
+
     tree234 *points;
 
-    grid *g = grid_new();
-    g->tilesize = 40;
+    grid *g = grid_empty();
+    g->tilesize = CAIRO_TILESIZE;
     g->faces = snewn(max_faces, grid_face);
     g->dots = snewn(max_dots, grid_dot);
 
@@ -1508,12 +1808,27 @@ grid *grid_new_cairo(int width, int height)
     return g;
 }
 
-grid *grid_new_greathexagonal(int width, int height)
+#define GREATHEX_TILESIZE 18
+/* Vector for side of triangle - ratio is close to sqrt(3) */
+#define GREATHEX_A 15
+#define GREATHEX_B 26
+
+void grid_size_greathexagonal(int width, int height,
+                          int *tilesize, int *xextent, int *yextent)
+{
+    int a = GREATHEX_A;
+    int b = GREATHEX_B;
+
+    *tilesize = GREATHEX_TILESIZE;
+    *xextent = (3*a + b) * (width-1) + 4*a;
+    *yextent = (2*a + 2*b) * (height-1) + 3*b + a;
+}
+
+grid *grid_new_greathexagonal(int width, int height, char *desc)
 {
     int x, y;
-    /* Vector for side of triangle - ratio is close to sqrt(3) */
-    int a = 15;
-    int b = 26;
+    int a = GREATHEX_A;
+    int b = GREATHEX_B;
 
     /* Upper bounds - don't have to be exact */
     int max_faces = 6 * (width + 1) * (height + 1);
@@ -1521,8 +1836,8 @@ grid *grid_new_greathexagonal(int width, int height)
 
     tree234 *points;
 
-    grid *g = grid_new();
-    g->tilesize = 18;
+    grid *g = grid_empty();
+    g->tilesize = GREATHEX_TILESIZE;
     g->faces = snewn(max_faces, grid_face);
     g->dots = snewn(max_dots, grid_dot);
 
@@ -1623,12 +1938,27 @@ grid *grid_new_greathexagonal(int width, int height)
     return g;
 }
 
-grid *grid_new_octagonal(int width, int height)
+#define OCTAGONAL_TILESIZE 40
+/* b/a approx sqrt(2) */
+#define OCTAGONAL_A 29
+#define OCTAGONAL_B 41
+
+void grid_size_octagonal(int width, int height,
+                          int *tilesize, int *xextent, int *yextent)
+{
+    int a = OCTAGONAL_A;
+    int b = OCTAGONAL_B;
+
+    *tilesize = OCTAGONAL_TILESIZE;
+    *xextent = (2*a + b) * width;
+    *yextent = (2*a + b) * height;
+}
+
+grid *grid_new_octagonal(int width, int height, char *desc)
 {
     int x, y;
-    /* b/a approx sqrt(2) */
-    int a = 29;
-    int b = 41;
+    int a = OCTAGONAL_A;
+    int b = OCTAGONAL_B;
 
     /* Upper bounds - don't have to be exact */
     int max_faces = 2 * width * height;
@@ -1636,8 +1966,8 @@ grid *grid_new_octagonal(int width, int height)
 
     tree234 *points;
 
-    grid *g = grid_new();
-    g->tilesize = 40;
+    grid *g = grid_empty();
+    g->tilesize = OCTAGONAL_TILESIZE;
     g->faces = snewn(max_faces, grid_face);
     g->dots = snewn(max_dots, grid_dot);
 
@@ -1691,12 +2021,27 @@ grid *grid_new_octagonal(int width, int height)
     return g;
 }
 
-grid *grid_new_kites(int width, int height)
+#define KITE_TILESIZE 40
+/* b/a approx sqrt(3) */
+#define KITE_A 15
+#define KITE_B 26
+
+void grid_size_kites(int width, int height,
+                     int *tilesize, int *xextent, int *yextent)
+{
+    int a = KITE_A;
+    int b = KITE_B;
+
+    *tilesize = KITE_TILESIZE;
+    *xextent = 4*b * width + 2*b;
+    *yextent = 6*a * (height-1) + 8*a;
+}
+
+grid *grid_new_kites(int width, int height, char *desc)
 {
     int x, y;
-    /* b/a approx sqrt(3) */
-    int a = 15;
-    int b = 26;
+    int a = KITE_A;
+    int b = KITE_B;
 
     /* Upper bounds - don't have to be exact */
     int max_faces = 6 * width * height;
@@ -1704,8 +2049,8 @@ grid *grid_new_kites(int width, int height)
 
     tree234 *points;
 
-    grid *g = grid_new();
-    g->tilesize = 40;
+    grid *g = grid_empty();
+    g->tilesize = KITE_TILESIZE;
     g->faces = snewn(max_faces, grid_face);
     g->dots = snewn(max_dots, grid_dot);
 
@@ -1796,25 +2141,45 @@ grid *grid_new_kites(int width, int height)
     return g;
 }
 
-grid *grid_new_floret(int width, int height)
+#define FLORET_TILESIZE 150
+/* -py/px is close to tan(30 - atan(sqrt(3)/9))
+ * using py=26 makes everything lean to the left, rather than right
+ */
+#define FLORET_PX 75
+#define FLORET_PY -26
+
+void grid_size_floret(int width, int height,
+                          int *tilesize, int *xextent, int *yextent)
+{
+    int px = FLORET_PX, py = FLORET_PY;         /* |( 75, -26)| = 79.43 */
+    int qx = 4*px/5, qy = -py*2;                /* |( 60,  52)| = 79.40 */
+    int ry = qy-py;
+    /* rx unused in determining grid size. */
+
+    *tilesize = FLORET_TILESIZE;
+    *xextent = (6*px+3*qx)/2 * (width-1) + 4*qx + 2*px;
+    *yextent = (5*qy-4*py) * (height-1) + 4*qy + 2*ry;
+}
+
+grid *grid_new_floret(int width, int height, char *desc)
 {
     int x, y;
     /* Vectors for sides; weird numbers needed to keep puzzle aligned with window
      * -py/px is close to tan(30 - atan(sqrt(3)/9))
      * using py=26 makes everything lean to the left, rather than right
      */
-    int px = 75, py = -26;       /* |( 75, -26)| = 79.43 */
-    int qx = 4*px/5, qy = -py*2; /* |( 60,  52)| = 79.40 */
-    int rx = qx-px, ry = qy-py;  /* |(-15,  78)| = 79.38 */
+    int px = FLORET_PX, py = FLORET_PY;         /* |( 75, -26)| = 79.43 */
+    int qx = 4*px/5, qy = -py*2;                /* |( 60,  52)| = 79.40 */
+    int rx = qx-px, ry = qy-py;                 /* |(-15,  78)| = 79.38 */
 
     /* Upper bounds - don't have to be exact */
     int max_faces = 6 * width * height;
     int max_dots = 9 * (width + 1) * (height + 1);
-    
+
     tree234 *points;
 
-    grid *g = grid_new();
-    g->tilesize = 2 * px;
+    grid *g = grid_empty();
+    g->tilesize = FLORET_TILESIZE;
     g->faces = snewn(max_faces, grid_face);
     g->dots = snewn(max_dots, grid_dot);
 
@@ -1884,12 +2249,28 @@ grid *grid_new_floret(int width, int height)
     return g;
 }
 
-grid *grid_new_dodecagonal(int width, int height)
+/* DODEC_* are used for dodecagonal and great-dodecagonal grids. */
+#define DODEC_TILESIZE 26
+/* Vector for side of triangle - ratio is close to sqrt(3) */
+#define DODEC_A 15
+#define DODEC_B 26
+
+void grid_size_dodecagonal(int width, int height,
+                          int *tilesize, int *xextent, int *yextent)
+{
+    int a = DODEC_A;
+    int b = DODEC_B;
+
+    *tilesize = DODEC_TILESIZE;
+    *xextent = (4*a + 2*b) * (width-1) + 3*(2*a + b);
+    *yextent = (3*a + 2*b) * (height-1) + 2*(2*a + b);
+}
+
+grid *grid_new_dodecagonal(int width, int height, char *desc)
 {
     int x, y;
-    /* Vector for side of triangle - ratio is close to sqrt(3) */
-    int a = 15;
-    int b = 26;
+    int a = DODEC_A;
+    int b = DODEC_B;
 
     /* Upper bounds - don't have to be exact */
     int max_faces = 3 * width * height;
@@ -1897,8 +2278,8 @@ grid *grid_new_dodecagonal(int width, int height)
 
     tree234 *points;
 
-    grid *g = grid_new();
-    g->tilesize = b;
+    grid *g = grid_empty();
+    g->tilesize = DODEC_TILESIZE;
     g->faces = snewn(max_faces, grid_face);
     g->dots = snewn(max_dots, grid_dot);
 
@@ -1954,12 +2335,23 @@ grid *grid_new_dodecagonal(int width, int height)
     return g;
 }
 
-grid *grid_new_greatdodecagonal(int width, int height)
+void grid_size_greatdodecagonal(int width, int height,
+                          int *tilesize, int *xextent, int *yextent)
+{
+    int a = DODEC_A;
+    int b = DODEC_B;
+
+    *tilesize = DODEC_TILESIZE;
+    *xextent = (6*a + 2*b) * (width-1) + 2*(2*a + b) + 3*a + b;
+    *yextent = (3*a + 3*b) * (height-1) + 2*(2*a + b);
+}
+
+grid *grid_new_greatdodecagonal(int width, int height, char *desc)
 {
     int x, y;
     /* Vector for side of triangle - ratio is close to sqrt(3) */
-    int a = 15;
-    int b = 26;
+    int a = DODEC_A;
+    int b = DODEC_B;
 
     /* Upper bounds - don't have to be exact */
     int max_faces = 30 * width * height;
@@ -1967,8 +2359,8 @@ grid *grid_new_greatdodecagonal(int width, int height)
 
     tree234 *points;
 
-    grid *g = grid_new();
-    g->tilesize = b;
+    grid *g = grid_empty();
+    g->tilesize = DODEC_TILESIZE;
     g->faces = snewn(max_faces, grid_face);
     g->dots = snewn(max_dots, grid_dot);
 
@@ -2057,4 +2449,279 @@ grid *grid_new_greatdodecagonal(int width, int height)
     return g;
 }
 
+typedef struct setface_ctx
+{
+    int xmin, xmax, ymin, ymax;
+    int aoff;
+
+    grid *g;
+    tree234 *points;
+} setface_ctx;
+
+double round(double r)
+{
+    return (r > 0.0) ? floor(r + 0.5) : ceil(r - 0.5);
+}
+
+int set_faces(penrose_state *state, vector *vs, int n, int depth)
+{
+    setface_ctx *sf_ctx = (setface_ctx *)state->ctx;
+    int i;
+    int xs[4], ys[4];
+    double cosa = cos(sf_ctx->aoff * PI / 180.0);
+    double sina = sin(sf_ctx->aoff * PI / 180.0);
+
+    if (depth < state->max_depth) return 0;
+#ifdef DEBUG_PENROSE
+    if (n != 4) return 0; /* triangles are sent as debugging. */
+#endif
+
+    for (i = 0; i < n; i++) {
+        double tx = v_x(vs, i), ty = v_y(vs, i);
+
+        xs[i] = (int)round( tx*cosa + ty*sina);
+        ys[i] = (int)round(-tx*sina + ty*cosa);
+
+        if (xs[i] < sf_ctx->xmin || xs[i] > sf_ctx->xmax) return 0;
+        if (ys[i] < sf_ctx->ymin || ys[i] > sf_ctx->ymax) return 0;
+    }
+
+    grid_face_add_new(sf_ctx->g, n);
+    debug(("penrose: new face l=%f gen=%d...",
+           penrose_side_length(state->start_size, depth), depth));
+    for (i = 0; i < n; i++) {
+        grid_dot *d = grid_get_dot(sf_ctx->g, sf_ctx->points,
+                                   xs[i], ys[i]);
+        grid_face_set_dot(sf_ctx->g, d, i);
+        debug((" ... dot 0x%x (%d,%d) (was %2.2f,%2.2f)",
+               d, d->x, d->y, v_x(vs, i), v_y(vs, i)));
+    }
+
+    return 0;
+}
+
+#define PENROSE_TILESIZE 100
+
+void grid_size_penrose(int width, int height,
+                       int *tilesize, int *xextent, int *yextent)
+{
+    int l = PENROSE_TILESIZE;
+
+    *tilesize = l;
+    *xextent = l * width;
+    *yextent = l * height;
+}
+
+static char *grid_new_desc_penrose(grid_type type, int width, int height, random_state *rs)
+{
+    int tilesize = PENROSE_TILESIZE, startsz, depth, xoff, yoff, aoff;
+    double outer_radius;
+    int inner_radius;
+    char gd[255];
+    int which = (type == GRID_PENROSE_P2 ? PENROSE_P2 : PENROSE_P3);
+
+    /* We want to produce a random bit of penrose tiling, so we calculate
+     * a random offset (within the patch that penrose.c calculates for us)
+     * and an angle (multiple of 36) to rotate the patch. */
+
+    penrose_calculate_size(which, tilesize, width, height,
+                           &outer_radius, &startsz, &depth);
+
+    /* Calculate radius of (circumcircle of) patch, subtract from
+     * radius calculated. */
+    inner_radius = (int)(outer_radius - sqrt(width*width + height*height));
+
+    /* Pick a random offset (the easy way: choose within outer square,
+     * discarding while it's outside the circle) */
+    do {
+        xoff = random_upto(rs, 2*inner_radius) - inner_radius;
+        yoff = random_upto(rs, 2*inner_radius) - inner_radius;
+    } while (sqrt(xoff*xoff+yoff*yoff) > inner_radius);
+
+    aoff = random_upto(rs, 360/36) * 36;
+
+    debug(("grid_desc: ts %d, %dx%d patch, orad %2.2f irad %d",
+           tilesize, width, height, outer_radius, inner_radius));
+    debug(("    -> xoff %d yoff %d aoff %d", xoff, yoff, aoff));
+
+    sprintf(gd, "G%d,%d,%d", xoff, yoff, aoff);
+
+    return dupstr(gd);
+}
+
+static char *grid_validate_desc_penrose(grid_type type, int width, int height, char *desc)
+{
+    int tilesize = PENROSE_TILESIZE, startsz, depth, xoff, yoff, aoff, inner_radius;
+    double outer_radius;
+    int which = (type == GRID_PENROSE_P2 ? PENROSE_P2 : PENROSE_P3);
+
+    if (!desc)
+        return "Missing grid description string.";
+
+    penrose_calculate_size(which, tilesize, width, height,
+                           &outer_radius, &startsz, &depth);
+    inner_radius = (int)(outer_radius - sqrt(width*width + height*height));
+
+    if (sscanf(desc, "G%d,%d,%d", &xoff, &yoff, &aoff) != 3)
+        return "Invalid format grid description string.";
+
+    if (sqrt(xoff*xoff + yoff*yoff) > inner_radius)
+        return "Patch offset out of bounds.";
+    if ((aoff % 36) != 0 || aoff < 0 || aoff >= 360)
+        return "Angle offset out of bounds.";
+
+    return NULL;
+}
+
+/*
+ * We're asked for a grid of a particular size, and we generate enough
+ * of the tiling so we can be sure to have enough random grid from which
+ * to pick.
+ */
+
+static grid *grid_new_penrose(int width, int height, int which, char *desc)
+{
+    int max_faces, max_dots, tilesize = PENROSE_TILESIZE;
+    int xsz, ysz, xoff, yoff;
+    double rradius;
+
+    tree234 *points;
+    grid *g;
+
+    penrose_state ps;
+    setface_ctx sf_ctx;
+
+    penrose_calculate_size(which, tilesize, width, height,
+                           &rradius, &ps.start_size, &ps.max_depth);
+
+    debug(("penrose: w%d h%d, tile size %d, start size %d, depth %d",
+           width, height, tilesize, ps.start_size, ps.max_depth));
+
+    ps.new_tile = set_faces;
+    ps.ctx = &sf_ctx;
+
+    max_faces = (width*3) * (height*3); /* somewhat paranoid... */
+    max_dots = max_faces * 4; /* ditto... */
+
+    g = grid_empty();
+    g->tilesize = tilesize;
+    g->faces = snewn(max_faces, grid_face);
+    g->dots = snewn(max_dots, grid_dot);
+
+    points = newtree234(grid_point_cmp_fn);
+
+    memset(&sf_ctx, 0, sizeof(sf_ctx));
+    sf_ctx.g = g;
+    sf_ctx.points = points;
+
+    if (desc != NULL) {
+        if (sscanf(desc, "G%d,%d,%d", &xoff, &yoff, &sf_ctx.aoff) != 3)
+            assert(!"Invalid grid description.");
+    } else {
+        xoff = yoff = 0;
+    }
+
+    xsz = width * tilesize;
+    ysz = height * tilesize;
+
+    sf_ctx.xmin = xoff - xsz/2;
+    sf_ctx.xmax = xoff + xsz/2;
+    sf_ctx.ymin = yoff - ysz/2;
+    sf_ctx.ymax = yoff + ysz/2;
+
+    debug(("penrose: centre (%f, %f) xsz %f ysz %f",
+           0.0, 0.0, xsz, ysz));
+    debug(("penrose: x range (%f --> %f), y range (%f --> %f)",
+           sf_ctx.xmin, sf_ctx.xmax, sf_ctx.ymin, sf_ctx.ymax));
+
+    penrose(&ps, which);
+
+    freetree234(points);
+    assert(g->num_faces <= max_faces);
+    assert(g->num_dots <= max_dots);
+
+    debug(("penrose: %d faces total (equivalent to %d wide by %d high)",
+           g->num_faces, g->num_faces/height, g->num_faces/width));
+
+    grid_trim_vigorously(g);
+    grid_make_consistent(g);
+
+    /*
+     * Centre the grid in its originally promised rectangle.
+     */
+    g->lowest_x -= ((sf_ctx.xmax - sf_ctx.xmin) -
+                    (g->highest_x - g->lowest_x)) / 2;
+    g->highest_x = g->lowest_x + (sf_ctx.xmax - sf_ctx.xmin);
+    g->lowest_y -= ((sf_ctx.ymax - sf_ctx.ymin) -
+                    (g->highest_y - g->lowest_y)) / 2;
+    g->highest_y = g->lowest_y + (sf_ctx.ymax - sf_ctx.ymin);
+
+    return g;
+}
+
+void grid_size_penrose_p2_kite(int width, int height,
+                       int *tilesize, int *xextent, int *yextent)
+{
+    grid_size_penrose(width, height, tilesize, xextent, yextent);
+}
+
+void grid_size_penrose_p3_thick(int width, int height,
+                       int *tilesize, int *xextent, int *yextent)
+{
+    grid_size_penrose(width, height, tilesize, xextent, yextent);
+}
+
+grid *grid_new_penrose_p2_kite(int width, int height, char *desc)
+{
+    return grid_new_penrose(width, height, PENROSE_P2, desc);
+}
+
+grid *grid_new_penrose_p3_thick(int width, int height, char *desc)
+{
+    return grid_new_penrose(width, height, PENROSE_P3, desc);
+}
+
 /* ----------- End of grid generators ------------- */
+
+#define FNNEW(upper,lower) &grid_new_ ## lower,
+#define FNSZ(upper,lower) &grid_size_ ## lower,
+
+static grid *(*(grid_news[]))(int, int, char*) = { GRIDGEN_LIST(FNNEW) };
+static void(*(grid_sizes[]))(int, int, int*, int*, int*) = { GRIDGEN_LIST(FNSZ) };
+
+char *grid_new_desc(grid_type type, int width, int height, random_state *rs)
+{
+    if (type != GRID_PENROSE_P2 && type != GRID_PENROSE_P3)
+        return NULL;
+
+    return grid_new_desc_penrose(type, width, height, rs);
+}
+
+char *grid_validate_desc(grid_type type, int width, int height, char *desc)
+{
+    if (type != GRID_PENROSE_P2 && type != GRID_PENROSE_P3) {
+        if (desc != NULL)
+            return "Grid description strings not used with this grid type";
+        return NULL;
+    }
+
+    return grid_validate_desc_penrose(type, width, height, desc);
+}
+
+grid *grid_new(grid_type type, int width, int height, char *desc)
+{
+    char *err = grid_validate_desc(type, width, height, desc);
+    if (err) assert(!"Invalid grid description.");
+
+    return grid_news[type](width, height, desc);
+}
+
+void grid_compute_size(grid_type type, int width, int height,
+                       int *tilesize, int *xextent, int *yextent)
+{
+    grid_sizes[type](width, height, tilesize, xextent, yextent);
+}
+
+/* ----------- End of grid helpers ------------- */
+
+/* vim: set shiftwidth=4 tabstop=8: */

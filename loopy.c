@@ -107,7 +107,7 @@ enum {
 };
 
 struct game_state {
-    grid *game_grid;
+    grid *game_grid; /* ref-counted (internally) */
 
     /* Put -1 in a face that doesn't get a clue */
     signed char *clues;
@@ -207,10 +207,6 @@ struct game_params {
     int w, h;
     int diff;
     int type;
-
-    /* Grid generation is expensive, so keep a (ref-counted) reference to the
-     * grid for these parameters, and only generate when required. */
-    grid *game_grid;
 };
 
 /* line_drawstate is the same as line_state, but with the extra ERROR
@@ -247,29 +243,31 @@ static void check_caches(const solver_state* sstate);
 
 /* ------- List of grid generators ------- */
 #define GRIDLIST(A) \
-    A(Squares,grid_new_square,3,3) \
-    A(Triangular,grid_new_triangular,3,3) \
-    A(Honeycomb,grid_new_honeycomb,3,3) \
-    A(Snub-Square,grid_new_snubsquare,3,3) \
-    A(Cairo,grid_new_cairo,3,4) \
-    A(Great-Hexagonal,grid_new_greathexagonal,3,3) \
-    A(Octagonal,grid_new_octagonal,3,3) \
-    A(Kites,grid_new_kites,3,3) \
-    A(Floret,grid_new_floret,1,2) \
-    A(Dodecagonal,grid_new_dodecagonal,2,2) \
-    A(Great-Dodecagonal,grid_new_greatdodecagonal,2,2)
+    A(Squares,GRID_SQUARE,3,3) \
+    A(Triangular,GRID_TRIANGULAR,3,3) \
+    A(Honeycomb,GRID_HONEYCOMB,3,3) \
+    A(Snub-Square,GRID_SNUBSQUARE,3,3) \
+    A(Cairo,GRID_CAIRO,3,4) \
+    A(Great-Hexagonal,GRID_GREATHEXAGONAL,3,3) \
+    A(Octagonal,GRID_OCTAGONAL,3,3) \
+    A(Kites,GRID_KITE,3,3) \
+    A(Floret,GRID_FLORET,1,2) \
+    A(Dodecagonal,GRID_DODECAGONAL,2,2) \
+    A(Great-Dodecagonal,GRID_GREATDODECAGONAL,2,2) \
+    A(Penrose (kite/dart),GRID_PENROSE_P2,3,3) \
+    A(Penrose (rhombs),GRID_PENROSE_P3,3,3)
 
-#define GRID_NAME(title,fn,amin,omin) #title,
-#define GRID_CONFIG(title,fn,amin,omin) ":" #title
-#define GRID_FN(title,fn,amin,omin) &fn,
-#define GRID_SIZES(title,fn,amin,omin) \
+#define GRID_NAME(title,type,amin,omin) #title,
+#define GRID_CONFIG(title,type,amin,omin) ":" #title
+#define GRID_TYPE(title,type,amin,omin) type,
+#define GRID_SIZES(title,type,amin,omin) \
     {amin, omin, \
      "Width and height for this grid type must both be at least " #amin, \
      "At least one of width and height for this grid type must be at least " #omin,},
 static char const *const gridnames[] = { GRIDLIST(GRID_NAME) };
 #define GRID_CONFIGS GRIDLIST(GRID_CONFIG)
-static grid * (*(grid_fns[]))(int w, int h) = { GRIDLIST(GRID_FN) };
-#define NUM_GRID_TYPES (sizeof(grid_fns) / sizeof(grid_fns[0]))
+static grid_type grid_types[] = { GRIDLIST(GRID_TYPE) };
+#define NUM_GRID_TYPES (sizeof(grid_types) / sizeof(grid_types[0]))
 static const struct {
     int amin, omin;
     char *aerr, *oerr;
@@ -277,13 +275,10 @@ static const struct {
 
 /* Generates a (dynamically allocated) new grid, according to the
  * type and size requested in params.  Does nothing if the grid is already
- * generated.  The allocated grid is owned by the params object, and will be
- * freed in free_params(). */
-static void params_generate_grid(game_params *params)
+ * generated. */
+static grid *loopy_generate_grid(game_params *params, char *grid_desc)
 {
-    if (!params->game_grid) {
-        params->game_grid = grid_fns[params->type](params->w, params->h);
-    }
+    return grid_new(grid_types[params->type], params->w, params->h, grid_desc);
 }
 
 /* ----------------------------------------------------------------------
@@ -480,8 +475,6 @@ static game_params *default_params(void)
     ret->diff = DIFF_EASY;
     ret->type = 0;
 
-    ret->game_grid = NULL;
-
     return ret;
 }
 
@@ -490,44 +483,45 @@ static game_params *dup_params(game_params *params)
     game_params *ret = snew(game_params);
 
     *ret = *params;                       /* structure copy */
-    if (ret->game_grid) {
-        ret->game_grid->refcount++;
-    }
     return ret;
 }
 
 static const game_params presets[] = {
 #ifdef SMALL_SCREEN
-    {  7,  7, DIFF_EASY, 0, NULL },
-    {  7,  7, DIFF_NORMAL, 0, NULL },
-    {  7,  7, DIFF_HARD, 0, NULL },
-    {  7,  7, DIFF_HARD, 1, NULL },
-    {  7,  7, DIFF_HARD, 2, NULL },
-    {  5,  5, DIFF_HARD, 3, NULL },
-    {  7,  7, DIFF_HARD, 4, NULL },
-    {  5,  4, DIFF_HARD, 5, NULL },
-    {  5,  5, DIFF_HARD, 6, NULL },
-    {  5,  5, DIFF_HARD, 7, NULL },
-    {  3,  3, DIFF_HARD, 8, NULL },
-    {  3,  3, DIFF_HARD, 9, NULL },
-    {  3,  3, DIFF_HARD, 10, NULL },
+    {  7,  7, DIFF_EASY, 0 },
+    {  7,  7, DIFF_NORMAL, 0 },
+    {  7,  7, DIFF_HARD, 0 },
+    {  7,  7, DIFF_HARD, 1 },
+    {  7,  7, DIFF_HARD, 2 },
+    {  5,  5, DIFF_HARD, 3 },
+    {  7,  7, DIFF_HARD, 4 },
+    {  5,  4, DIFF_HARD, 5 },
+    {  5,  5, DIFF_HARD, 6 },
+    {  5,  5, DIFF_HARD, 7 },
+    {  3,  3, DIFF_HARD, 8 },
+    {  3,  3, DIFF_HARD, 9 },
+    {  3,  3, DIFF_HARD, 10 },
+    {  6,  6, DIFF_HARD, 11 },
+    {  6,  6, DIFF_HARD, 12 },
 #else
-    {  7,  7, DIFF_EASY, 0, NULL },
-    {  10,  10, DIFF_EASY, 0, NULL },
-    {  7,  7, DIFF_NORMAL, 0, NULL },
-    {  10,  10, DIFF_NORMAL, 0, NULL },
-    {  7,  7, DIFF_HARD, 0, NULL },
-    {  10,  10, DIFF_HARD, 0, NULL },
-    {  10,  10, DIFF_HARD, 1, NULL },
-    {  12,  10, DIFF_HARD, 2, NULL },
-    {  7,  7, DIFF_HARD, 3, NULL },
-    {  9,  9, DIFF_HARD, 4, NULL },
-    {  5,  4, DIFF_HARD, 5, NULL },
-    {  7,  7, DIFF_HARD, 6, NULL },
-    {  5,  5, DIFF_HARD, 7, NULL },
-    {  5,  5, DIFF_HARD, 8, NULL },
-    {  5,  4, DIFF_HARD, 9, NULL },
-    {  5,  4, DIFF_HARD, 10, NULL },
+    {  7,  7, DIFF_EASY, 0 },
+    {  10,  10, DIFF_EASY, 0 },
+    {  7,  7, DIFF_NORMAL, 0 },
+    {  10,  10, DIFF_NORMAL, 0 },
+    {  7,  7, DIFF_HARD, 0 },
+    {  10,  10, DIFF_HARD, 0 },
+    {  10,  10, DIFF_HARD, 1 },
+    {  12,  10, DIFF_HARD, 2 },
+    {  7,  7, DIFF_HARD, 3 },
+    {  9,  9, DIFF_HARD, 4 },
+    {  5,  4, DIFF_HARD, 5 },
+    {  7,  7, DIFF_HARD, 6 },
+    {  5,  5, DIFF_HARD, 7 },
+    {  5,  5, DIFF_HARD, 8 },
+    {  5,  4, DIFF_HARD, 9 },
+    {  5,  4, DIFF_HARD, 10 },
+    {  10, 10, DIFF_HARD, 11 },
+    {  10, 10, DIFF_HARD, 12 }
 #endif
 };
 
@@ -551,18 +545,11 @@ static int game_fetch_preset(int i, char **name, game_params **params)
 
 static void free_params(game_params *params)
 {
-    if (params->game_grid) {
-        grid_free(params->game_grid);
-    }
     sfree(params);
 }
 
 static void decode_params(game_params *params, char const *string)
 {
-    if (params->game_grid) {
-        grid_free(params->game_grid);
-        params->game_grid = NULL;
-    }
     params->h = params->w = atoi(string);
     params->diff = DIFF_EASY;
     while (*string && isdigit((unsigned char)*string)) string++;
@@ -641,7 +628,6 @@ static game_params *custom_params(config_item *cfg)
     ret->type = cfg[2].ival;
     ret->diff = cfg[3].ival;
 
-    ret->game_grid = NULL;
     return ret;
 }
 
@@ -702,14 +688,44 @@ static char *state_to_text(const game_state *state)
     return retval;
 }
 
+#define GRID_DESC_SEP '_'
+
+/* Splits up a (optional) grid_desc from the game desc. Returns the
+ * grid_desc (which needs freeing) and updates the desc pointer to
+ * start of real desc, or returns NULL if no desc. */
+static char *extract_grid_desc(char **desc)
+{
+    char *sep = strchr(*desc, GRID_DESC_SEP), *gd;
+    int gd_len;
+
+    if (!sep) return NULL;
+
+    gd_len = sep - (*desc);
+    gd = snewn(gd_len+1, char);
+    memcpy(gd, *desc, gd_len);
+    gd[gd_len] = '\0';
+
+    *desc = sep+1;
+
+    return gd;
+}
+
 /* We require that the params pass the test in validate_params and that the
  * description fills the entire game area */
 static char *validate_desc(game_params *params, char *desc)
 {
     int count = 0;
     grid *g;
-    params_generate_grid(params);
-    g = params->game_grid;
+    char *grid_desc, *ret;
+
+    /* It's pretty inefficient to do this just for validation. All we need to
+     * know is the precise number of faces. */
+    grid_desc = extract_grid_desc(&desc);
+    ret = grid_validate_desc(grid_types[params->type], params->w, params->h, grid_desc);
+    if (ret) return ret;
+
+    g = loopy_generate_grid(params, grid_desc);
+    if (grid_desc) sfree(grid_desc);
 
     for (; *desc; ++desc) {
         if ((*desc >= '0' && *desc <= '9') || (*desc >= 'A' && *desc <= 'Z')) {
@@ -727,6 +743,8 @@ static char *validate_desc(game_params *params, char *desc)
         return "Description too short for board size";
     if (count > g->num_faces)
         return "Description too long for board size";
+
+    grid_free(g);
 
     return NULL;
 }
@@ -809,16 +827,15 @@ static void game_changed_state(game_ui *ui, game_state *oldstate,
 static void game_compute_size(game_params *params, int tilesize,
                               int *x, int *y)
 {
-    grid *g;
     int grid_width, grid_height, rendered_width, rendered_height;
+    int g_tilesize;
 
-    params_generate_grid(params);
-    g = params->game_grid;
-    grid_width = g->highest_x - g->lowest_x;
-    grid_height = g->highest_y - g->lowest_y;
+    grid_compute_size(grid_types[params->type], params->w, params->h,
+                      &g_tilesize, &grid_width, &grid_height);
+
     /* multiply first to minimise rounding error on integer division */
-    rendered_width = grid_width * tilesize / g->tilesize;
-    rendered_height = grid_height * tilesize / g->tilesize;
+    rendered_width = grid_width * tilesize / g_tilesize;
+    rendered_height = grid_height * tilesize / g_tilesize;
     *x = rendered_width + 2 * BORDER(tilesize) + 1;
     *y = rendered_height + 2 * BORDER(tilesize) + 1;
 }
@@ -1836,13 +1853,14 @@ static char *new_game_desc(game_params *params, random_state *rs,
                            char **aux, int interactive)
 {
     /* solution and description both use run-length encoding in obvious ways */
-    char *retval;
+    char *retval, *game_desc, *grid_desc;
     grid *g;
     game_state *state = snew(game_state);
     game_state *state_new;
-    params_generate_grid(params);
-    state->game_grid = g = params->game_grid;
-    g->refcount++;
+
+    grid_desc = grid_new_desc(grid_types[params->type], params->w, params->h, rs);
+    state->game_grid = g = loopy_generate_grid(params, grid_desc);
+
     state->clues = snewn(g->num_faces, signed char);
     state->lines = snewn(g->num_edges, char);
     state->line_errors = snewn(g->num_edges, unsigned char);
@@ -1875,9 +1893,18 @@ static char *new_game_desc(game_params *params, random_state *rs,
         goto newboard_please;
     }
 
-    retval = state_to_text(state);
+    game_desc = state_to_text(state);
 
     free_game(state);
+
+    if (grid_desc) {
+        retval = snewn(strlen(grid_desc) + 1 + strlen(game_desc) + 1, char);
+        sprintf(retval, "%s%c%s", grid_desc, GRID_DESC_SEP, game_desc);
+        sfree(grid_desc);
+        sfree(game_desc);
+    } else {
+        retval = game_desc;
+    }
 
     assert(!validate_desc(params, retval));
 
@@ -1890,13 +1917,17 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
     game_state *state = snew(game_state);
     int empties_to_make = 0;
     int n,n2;
-    const char *dp = desc;
+    const char *dp;
+    char *grid_desc;
     grid *g;
     int num_faces, num_edges;
 
-    params_generate_grid(params);
-    state->game_grid = g = params->game_grid;
-    g->refcount++;
+    grid_desc = extract_grid_desc(&desc);
+    state->game_grid = g = loopy_generate_grid(params, grid_desc);
+    if (grid_desc) sfree(grid_desc);
+
+    dp = desc;
+
     num_faces = g->num_faces;
     num_edges = g->num_edges;
 
@@ -4017,3 +4048,5 @@ int main(int argc, char **argv)
 }
 
 #endif
+
+/* vim: set shiftwidth=4 tabstop=8: */

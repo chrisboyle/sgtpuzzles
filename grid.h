@@ -9,6 +9,8 @@
 #ifndef PUZZLES_GRID_H
 #define PUZZLES_GRID_H
 
+#include "puzzles.h" /* for random_state */
+
 /* Useful macros */
 #define SQ(x) ( (x) * (x) )
 
@@ -89,21 +91,40 @@ typedef struct grid {
   int refcount;
 } grid;
 
-grid *grid_new_square(int width, int height);
-grid *grid_new_honeycomb(int width, int height);
-grid *grid_new_triangular(int width, int height);
-grid *grid_new_snubsquare(int width, int height);
-grid *grid_new_cairo(int width, int height);
-grid *grid_new_greathexagonal(int width, int height);
-grid *grid_new_octagonal(int width, int height);
-grid *grid_new_kites(int width, int height);
-grid *grid_new_floret(int width, int height);
-grid *grid_new_dodecagonal(int width, int height);
-grid *grid_new_greatdodecagonal(int width, int height);
+/* Grids are specified by type: GRID_SQUARE, GRID_KITE, etc. */
+
+#define GRIDGEN_LIST(A) \
+  A(SQUARE,square) \
+  A(HONEYCOMB,honeycomb) \
+  A(TRIANGULAR,triangular) \
+  A(SNUBSQUARE,snubsquare) \
+  A(CAIRO,cairo) \
+  A(GREATHEXAGONAL,greathexagonal) \
+  A(OCTAGONAL,octagonal) \
+  A(KITE,kites) \
+  A(FLORET,floret) \
+  A(DODECAGONAL,dodecagonal) \
+  A(GREATDODECAGONAL,greatdodecagonal) \
+  A(PENROSE_P2,penrose_p2_kite) \
+  A(PENROSE_P3,penrose_p3_thick)
+
+#define ENUM(upper,lower) GRID_ ## upper,
+typedef enum grid_type { GRIDGEN_LIST(ENUM) GRID_TYPE_MAX } grid_type;
+#undef ENUM
+
+/* Free directly after use if non-NULL. Will never contain an underscore
+ * (so clients can safely use that as a separator). */
+char *grid_new_desc(grid_type type, int width, int height, random_state *rs);
+char *grid_validate_desc(grid_type type, int width, int height, char *desc);
+
+grid *grid_new(grid_type type, int width, int height, char *desc);
 
 void grid_free(grid *g);
 
 grid_edge *grid_nearest_edge(grid *g, int x, int y);
+
+void grid_compute_size(grid_type type, int width, int height,
+                       int *tilesize, int *xextent, int *yextent);
 
 void grid_find_incentre(grid_face *f);
 
