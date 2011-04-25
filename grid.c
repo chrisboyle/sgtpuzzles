@@ -1559,9 +1559,11 @@ grid *grid_new_triangular(int width, int height, char *desc)
             f1->edges = NULL;
             f1->order = 3;
             f1->dots = snewn(f1->order, grid_dot*);
+            f1->has_incentre = FALSE;
             f2->edges = NULL;
             f2->order = 3;
             f2->dots = snewn(f2->order, grid_dot*);
+            f2->has_incentre = FALSE;
 
             /* face descriptions depend on whether the row-number is
              * odd or even */
