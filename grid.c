@@ -454,6 +454,14 @@ static void grid_trim_vigorously(grid *g)
         dots[i] = (dots[i] ? newdots++ : -1);
 
     /*
+     * Free the dynamically allocated 'dots' pointer lists in faces
+     * we're going to discard.
+     */
+    for (i = 0; i < g->num_faces; i++)
+        if (faces[i] < 0)
+            sfree(g->faces[i].dots);
+
+    /*
      * Go through and compact the arrays.
      */
     for (i = 0; i < g->num_dots; i++)

@@ -917,6 +917,8 @@ static game_drawstate *game_new_drawstate(drawing *dr, game_state *state)
 
 static void game_free_drawstate(drawing *dr, game_drawstate *ds)
 {
+    sfree(ds->textx);
+    sfree(ds->texty);
     sfree(ds->clue_error);
     sfree(ds->clue_satisfied);
     sfree(ds->lines);
