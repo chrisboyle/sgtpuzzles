@@ -931,7 +931,7 @@ done
 		for (k = 1; k <= w; k++)
 		    if (v % k == 0 && v / k <= w && v / k != k)
 			n++;
-		if (n > 1)
+		if (n > 2)
 		    singletons[j] |= F_MUL;
 		else
 		    singletons[j] |= F_MUL_BAD;
