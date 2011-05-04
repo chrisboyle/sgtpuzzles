@@ -1496,7 +1496,7 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
             if (state->prev[si] == -1 && state->next[si] == -1)
                 return "";
             sprintf(buf, "%c%d,%d",
-                    ui->drag_is_from ? 'C' : 'X', ui->sx, ui->sy);
+                    (int)(ui->drag_is_from ? 'C' : 'X'), ui->sx, ui->sy);
             return dupstr(buf);
         }
 
@@ -1515,7 +1515,7 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
         if (state->prev[si] == -1 && state->next[si] == -1)
             return "";
         sprintf(buf, "%c%d,%d",
-                (button == 'x') ? 'C' : 'X', ui->cx, ui->cy);
+                (int)((button == 'x') ? 'C' : 'X'), ui->cx, ui->cy);
         return dupstr(buf);
     }
 

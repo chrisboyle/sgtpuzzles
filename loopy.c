@@ -201,7 +201,7 @@ static char const diffchars[] = DIFFLIST(ENCODE);
 SOLVERLIST(SOLVER_FN_DECL)
 static int (*(solver_fns[]))(solver_state *) = { SOLVERLIST(SOLVER_FN) };
 static int const solver_diffs[] = { SOLVERLIST(SOLVER_DIFF) };
-const int NUM_SOLVERS = sizeof(solver_diffs)/sizeof(*solver_diffs);
+static const int NUM_SOLVERS = sizeof(solver_diffs)/sizeof(*solver_diffs);
 
 struct game_params {
     int w, h;
@@ -1901,7 +1901,7 @@ static char *new_game_desc(game_params *params, random_state *rs,
 
     if (grid_desc) {
         retval = snewn(strlen(grid_desc) + 1 + strlen(game_desc) + 1, char);
-        sprintf(retval, "%s%c%s", grid_desc, GRID_DESC_SEP, game_desc);
+        sprintf(retval, "%s%c%s", grid_desc, (int)GRID_DESC_SEP, game_desc);
         sfree(grid_desc);
         sfree(game_desc);
     } else {

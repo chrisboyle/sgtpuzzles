@@ -12,7 +12,7 @@
 #include <assert.h>
 #include <ctype.h>
 #include <math.h>
-#include <errno.h>
+#include <float.h>
 
 #include "puzzles.h"
 #include "tree234.h"
@@ -52,7 +52,7 @@ void grid_free(grid *g)
 
 /* Used by the other grid generators.  Create a brand new grid with nothing
  * initialised (all lists are NULL) */
-static grid *grid_empty()
+static grid *grid_empty(void)
 {
     grid *g = snew(grid);
     g->faces = NULL;
@@ -225,6 +225,8 @@ xmlns:xlink=\"http://www.w3.org/1999/xlink\">\n\n");
 #endif
 
 #ifdef SVG_GRID
+#include <errno.h>
+
 static void grid_try_svg(grid *g, int which)
 {
     char *svg = getenv("PUZZLES_SVG_GRID");
@@ -1268,7 +1270,15 @@ void grid_find_incentre(grid_face *f)
                     }
 
                     if (in) {
+#ifdef HUGE_VAL
                         double mindist = HUGE_VAL;
+#else
+#ifdef DBL_MAX
+                        double mindist = DBL_MAX;
+#else
+#error No way to get maximum floating-point number.
+#endif
+#endif
                         int e, d;
 
                         /*
@@ -1377,7 +1387,7 @@ void grid_find_incentre(grid_face *f)
 
 #define SQUARE_TILESIZE 20
 
-void grid_size_square(int width, int height,
+static void grid_size_square(int width, int height,
                       int *tilesize, int *xextent, int *yextent)
 {
     int a = SQUARE_TILESIZE;
@@ -1387,7 +1397,7 @@ void grid_size_square(int width, int height,
     *yextent = height * a;
 }
 
-grid *grid_new_square(int width, int height, char *desc)
+static grid *grid_new_square(int width, int height, char *desc)
 {
     int x, y;
     /* Side length */
@@ -1439,7 +1449,7 @@ grid *grid_new_square(int width, int height, char *desc)
 #define HONEY_A 15
 #define HONEY_B 26
 
-void grid_size_honeycomb(int width, int height,
+static void grid_size_honeycomb(int width, int height,
                          int *tilesize, int *xextent, int *yextent)
 {
     int a = HONEY_A;
@@ -1450,7 +1460,7 @@ void grid_size_honeycomb(int width, int height,
     *yextent = (2 * b * (height-1)) + 3*b;
 }
 
-grid *grid_new_honeycomb(int width, int height, char *desc)
+static grid *grid_new_honeycomb(int width, int height, char *desc)
 {
     int x, y;
     int a = HONEY_A;
@@ -1508,7 +1518,7 @@ grid *grid_new_honeycomb(int width, int height, char *desc)
 #define TRIANGLE_VEC_X 15
 #define TRIANGLE_VEC_Y 26
 
-void grid_size_triangular(int width, int height,
+static void grid_size_triangular(int width, int height,
                           int *tilesize, int *xextent, int *yextent)
 {
     int vec_x = TRIANGLE_VEC_X;
@@ -1521,7 +1531,7 @@ void grid_size_triangular(int width, int height,
 
 /* Doesn't use the previous method of generation, it pre-dates it!
  * A triangular grid is just about simple enough to do by "brute force" */
-grid *grid_new_triangular(int width, int height, char *desc)
+static grid *grid_new_triangular(int width, int height, char *desc)
 {
     int x,y;
     
@@ -1603,7 +1613,7 @@ grid *grid_new_triangular(int width, int height, char *desc)
 #define SNUBSQUARE_A 15
 #define SNUBSQUARE_B 26
 
-void grid_size_snubsquare(int width, int height,
+static void grid_size_snubsquare(int width, int height,
                           int *tilesize, int *xextent, int *yextent)
 {
     int a = SNUBSQUARE_A;
@@ -1614,7 +1624,7 @@ void grid_size_snubsquare(int width, int height,
     *yextent = (a+b) * (height-1) + a + b;
 }
 
-grid *grid_new_snubsquare(int width, int height, char *desc)
+static grid *grid_new_snubsquare(int width, int height, char *desc)
 {
     int x, y;
     int a = SNUBSQUARE_A;
@@ -1717,7 +1727,7 @@ grid *grid_new_snubsquare(int width, int height, char *desc)
 #define CAIRO_A 14
 #define CAIRO_B 31
 
-void grid_size_cairo(int width, int height,
+static void grid_size_cairo(int width, int height,
                           int *tilesize, int *xextent, int *yextent)
 {
     int b = CAIRO_B; /* a unused in determining grid size. */
@@ -1727,7 +1737,7 @@ void grid_size_cairo(int width, int height,
     *yextent = 2*b*(height-1) + 2*b;
 }
 
-grid *grid_new_cairo(int width, int height, char *desc)
+static grid *grid_new_cairo(int width, int height, char *desc)
 {
     int x, y;
     int a = CAIRO_A;
@@ -1823,7 +1833,7 @@ grid *grid_new_cairo(int width, int height, char *desc)
 #define GREATHEX_A 15
 #define GREATHEX_B 26
 
-void grid_size_greathexagonal(int width, int height,
+static void grid_size_greathexagonal(int width, int height,
                           int *tilesize, int *xextent, int *yextent)
 {
     int a = GREATHEX_A;
@@ -1834,7 +1844,7 @@ void grid_size_greathexagonal(int width, int height,
     *yextent = (2*a + 2*b) * (height-1) + 3*b + a;
 }
 
-grid *grid_new_greathexagonal(int width, int height, char *desc)
+static grid *grid_new_greathexagonal(int width, int height, char *desc)
 {
     int x, y;
     int a = GREATHEX_A;
@@ -1953,7 +1963,7 @@ grid *grid_new_greathexagonal(int width, int height, char *desc)
 #define OCTAGONAL_A 29
 #define OCTAGONAL_B 41
 
-void grid_size_octagonal(int width, int height,
+static void grid_size_octagonal(int width, int height,
                           int *tilesize, int *xextent, int *yextent)
 {
     int a = OCTAGONAL_A;
@@ -1964,7 +1974,7 @@ void grid_size_octagonal(int width, int height,
     *yextent = (2*a + b) * height;
 }
 
-grid *grid_new_octagonal(int width, int height, char *desc)
+static grid *grid_new_octagonal(int width, int height, char *desc)
 {
     int x, y;
     int a = OCTAGONAL_A;
@@ -2036,7 +2046,7 @@ grid *grid_new_octagonal(int width, int height, char *desc)
 #define KITE_A 15
 #define KITE_B 26
 
-void grid_size_kites(int width, int height,
+static void grid_size_kites(int width, int height,
                      int *tilesize, int *xextent, int *yextent)
 {
     int a = KITE_A;
@@ -2047,7 +2057,7 @@ void grid_size_kites(int width, int height,
     *yextent = 6*a * (height-1) + 8*a;
 }
 
-grid *grid_new_kites(int width, int height, char *desc)
+static grid *grid_new_kites(int width, int height, char *desc)
 {
     int x, y;
     int a = KITE_A;
@@ -2158,7 +2168,7 @@ grid *grid_new_kites(int width, int height, char *desc)
 #define FLORET_PX 75
 #define FLORET_PY -26
 
-void grid_size_floret(int width, int height,
+static void grid_size_floret(int width, int height,
                           int *tilesize, int *xextent, int *yextent)
 {
     int px = FLORET_PX, py = FLORET_PY;         /* |( 75, -26)| = 79.43 */
@@ -2171,7 +2181,7 @@ void grid_size_floret(int width, int height,
     *yextent = (5*qy-4*py) * (height-1) + 4*qy + 2*ry;
 }
 
-grid *grid_new_floret(int width, int height, char *desc)
+static grid *grid_new_floret(int width, int height, char *desc)
 {
     int x, y;
     /* Vectors for sides; weird numbers needed to keep puzzle aligned with window
@@ -2265,7 +2275,7 @@ grid *grid_new_floret(int width, int height, char *desc)
 #define DODEC_A 15
 #define DODEC_B 26
 
-void grid_size_dodecagonal(int width, int height,
+static void grid_size_dodecagonal(int width, int height,
                           int *tilesize, int *xextent, int *yextent)
 {
     int a = DODEC_A;
@@ -2276,7 +2286,7 @@ void grid_size_dodecagonal(int width, int height,
     *yextent = (3*a + 2*b) * (height-1) + 2*(2*a + b);
 }
 
-grid *grid_new_dodecagonal(int width, int height, char *desc)
+static grid *grid_new_dodecagonal(int width, int height, char *desc)
 {
     int x, y;
     int a = DODEC_A;
@@ -2345,7 +2355,7 @@ grid *grid_new_dodecagonal(int width, int height, char *desc)
     return g;
 }
 
-void grid_size_greatdodecagonal(int width, int height,
+static void grid_size_greatdodecagonal(int width, int height,
                           int *tilesize, int *xextent, int *yextent)
 {
     int a = DODEC_A;
@@ -2356,7 +2366,7 @@ void grid_size_greatdodecagonal(int width, int height,
     *yextent = (3*a + 3*b) * (height-1) + 2*(2*a + b);
 }
 
-grid *grid_new_greatdodecagonal(int width, int height, char *desc)
+static grid *grid_new_greatdodecagonal(int width, int height, char *desc)
 {
     int x, y;
     /* Vector for side of triangle - ratio is close to sqrt(3) */
@@ -2468,12 +2478,12 @@ typedef struct setface_ctx
     tree234 *points;
 } setface_ctx;
 
-double round(double r)
+static double round_int_nearest_away(double r)
 {
     return (r > 0.0) ? floor(r + 0.5) : ceil(r - 0.5);
 }
 
-int set_faces(penrose_state *state, vector *vs, int n, int depth)
+static int set_faces(penrose_state *state, vector *vs, int n, int depth)
 {
     setface_ctx *sf_ctx = (setface_ctx *)state->ctx;
     int i;
@@ -2489,8 +2499,8 @@ int set_faces(penrose_state *state, vector *vs, int n, int depth)
     for (i = 0; i < n; i++) {
         double tx = v_x(vs, i), ty = v_y(vs, i);
 
-        xs[i] = (int)round( tx*cosa + ty*sina);
-        ys[i] = (int)round(-tx*sina + ty*cosa);
+        xs[i] = (int)round_int_nearest_away( tx*cosa + ty*sina);
+        ys[i] = (int)round_int_nearest_away(-tx*sina + ty*cosa);
 
         if (xs[i] < sf_ctx->xmin || xs[i] > sf_ctx->xmax) return 0;
         if (ys[i] < sf_ctx->ymin || ys[i] > sf_ctx->ymax) return 0;
@@ -2512,7 +2522,7 @@ int set_faces(penrose_state *state, vector *vs, int n, int depth)
 
 #define PENROSE_TILESIZE 100
 
-void grid_size_penrose(int width, int height,
+static void grid_size_penrose(int width, int height,
                        int *tilesize, int *xextent, int *yextent)
 {
     int l = PENROSE_TILESIZE;
@@ -2669,24 +2679,24 @@ static grid *grid_new_penrose(int width, int height, int which, char *desc)
     return g;
 }
 
-void grid_size_penrose_p2_kite(int width, int height,
+static void grid_size_penrose_p2_kite(int width, int height,
                        int *tilesize, int *xextent, int *yextent)
 {
     grid_size_penrose(width, height, tilesize, xextent, yextent);
 }
 
-void grid_size_penrose_p3_thick(int width, int height,
+static void grid_size_penrose_p3_thick(int width, int height,
                        int *tilesize, int *xextent, int *yextent)
 {
     grid_size_penrose(width, height, tilesize, xextent, yextent);
 }
 
-grid *grid_new_penrose_p2_kite(int width, int height, char *desc)
+static grid *grid_new_penrose_p2_kite(int width, int height, char *desc)
 {
     return grid_new_penrose(width, height, PENROSE_P2, desc);
 }
 
-grid *grid_new_penrose_p3_thick(int width, int height, char *desc)
+static grid *grid_new_penrose_p3_thick(int width, int height, char *desc)
 {
     return grid_new_penrose(width, height, PENROSE_P3, desc);
 }
