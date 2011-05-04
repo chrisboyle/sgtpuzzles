@@ -951,7 +951,7 @@ static int gg_best_clue(game_state *state, int *scratch, digit *latin)
 {
     int ls = state->order * state->order * 5;
     int maxposs = 0, minclues = 5, best = -1, i, j;
-    int nposs, nclues, loc, x, y;
+    int nposs, nclues, loc;
 
 #ifdef STANDALONE_SOLVER
     if (solver_show_working) {
@@ -964,7 +964,6 @@ static int gg_best_clue(game_state *state, int *scratch, digit *latin)
         if (!gg_place_clue(state, scratch[i], latin, 1)) continue;
 
         loc = scratch[i] / 5;
-        x = loc % state->order; y = loc / state->order;
         for (j = nposs = 0; j < state->order; j++) {
             if (state->hints[loc*state->order + j]) nposs++;
         }
@@ -975,9 +974,11 @@ static int gg_best_clue(game_state *state, int *scratch, digit *latin)
             (nposs == maxposs && nclues < minclues)) {
             best = i; maxposs = nposs; minclues = nclues;
 #ifdef STANDALONE_SOLVER
-            if (solver_show_working)
+            if (solver_show_working) {
+                int x = loc % state->order, y = loc / state->order;
                 printf("gg_best_clue: b%d (%d,%d) new best [%d poss, %d clues].\n",
                        best, x+1, y+1, nposs, nclues);
+            }
 #endif
         }
     }

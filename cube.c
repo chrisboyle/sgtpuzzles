@@ -1546,7 +1546,6 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
     int *pkey, *gkey;
     float t[3];
     float angle;
-    game_state *newstate;
     int square;
 
     draw_rect(dr, 0, 0, XSIZE(GRID_SCALE, bb, state->solid),
@@ -1580,7 +1579,6 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
         pkey = state->spkey;
         gkey = state->sgkey;
     }
-    newstate = state;
     state = oldstate;
 
     for (i = 0; i < state->grid->nsquares; i++) {

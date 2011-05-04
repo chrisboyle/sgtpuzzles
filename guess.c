@@ -1210,10 +1210,9 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 			game_state *state, int dir, game_ui *ui,
 			float animtime, float flashtime)
 {
-    int i, new_move, last_go;
+    int i, new_move;
 
     new_move = (state->next_go != ds->next_go) || !ds->started;
-    last_go = (state->next_go == state->params.nguesses-1);
 
     if (!ds->started) {
       draw_rect(dr, 0, 0, ds->w, ds->h, COL_BACKGROUND);

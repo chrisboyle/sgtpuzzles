@@ -432,12 +432,11 @@ static char *new_game_desc(game_params *params, random_state *rs,
 
 static char *validate_desc(game_params *params, char *desc)
 {
-    char *p, *err;
+    char *p;
     int w = params->w, h = params->h, wh = w*h;
     int i;
 
     p = desc;
-    err = NULL;
 
     for (i = 0; i < wh; i++) {
 	if (*p < '0' || *p > '9')

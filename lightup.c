@@ -1402,6 +1402,7 @@ static int strip_unused_nums(game_state *state)
             }
         }
     }
+    debug(("Stripped %d unused numbers.\n", n));
     return n;
 }
 
@@ -1475,7 +1476,7 @@ static char *new_game_desc(game_params *params, random_state *rs,
 			   char **aux, int interactive)
 {
     game_state *news = new_state(params), *copys;
-    int nsol, i, j, run, x, y, wh = params->w*params->h, num;
+    int i, j, run, x, y, wh = params->w*params->h, num;
     char *ret, *p;
     int *numindices;
 
@@ -1499,8 +1500,7 @@ static char *new_game_desc(game_params *params, random_state *rs,
             /* Take a copy, remove numbers we didn't use and check there's
              * still a unique solution; if so, use the copy subsequently. */
             copys = dup_game(news);
-            nsol = strip_unused_nums(copys);
-            debug(("Stripped %d unused numbers.\n", nsol));
+            strip_unused_nums(copys);
             if (!puzzle_is_good(copys, params->difficulty)) {
                 debug(("Stripped grid is not good, reverting.\n"));
                 free_game(copys);

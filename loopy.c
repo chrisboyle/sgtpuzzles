@@ -3548,7 +3548,6 @@ static void game_redraw_line(drawing *dr, game_drawstate *ds,
     grid *g = state->game_grid;
     grid_edge *e = g->edges + i;
     int x1, x2, y1, y2;
-    int xmin, ymin, xmax, ymax;
     int line_colour;
 
     if (state->line_errors[i])
@@ -3567,11 +3566,6 @@ static void game_redraw_line(drawing *dr, game_drawstate *ds,
     /* Convert from grid to screen coordinates */
     grid_to_screen(ds, g, e->dot1->x, e->dot1->y, &x1, &y1);
     grid_to_screen(ds, g, e->dot2->x, e->dot2->y, &x2, &y2);
-
-    xmin = min(x1, x2);
-    xmax = max(x1, x2);
-    ymin = min(y1, y2);
-    ymax = max(y1, y2);
 
     if (line_colour == COL_FAINT) {
 	static int draw_faint_lines = -1;

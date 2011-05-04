@@ -995,7 +995,7 @@ done
 		    /* didn't find a nice one, use a nasty one */
 		    for (i = 0; i < a; i++) {
 			j = order[i];
-			if (singletons[j] & good) {
+			if (singletons[j] & bad) {
 			    clues[j] = clue;
 			    singletons[j] = 0;
 			    break;
@@ -1188,7 +1188,6 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
 {
     int w = params->w, a = w*w;
     game_state *state = snew(game_state);
-    char *err;
     const char *p = desc;
     int i;
 
@@ -1197,7 +1196,7 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
     state->clues->refcount = 1;
     state->clues->w = w;
     state->clues->dsf = snew_dsf(a);
-    err = parse_block_structure(&p, w, state->clues->dsf);
+    parse_block_structure(&p, w, state->clues->dsf);
 
     assert(*p == ',');
     p++;

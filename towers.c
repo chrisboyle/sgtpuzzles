@@ -1225,14 +1225,13 @@ static int check_errors(game_state *state, int *errors)
     }
 
     for (i = 0; i < 4*w; i++) {
-	int start, step, j, k, n, best;
+	int start, step, j, n, best;
 	STARTSTEP(start, step, i, w);
 
 	if (!clues[i])
 	    continue;
 
 	best = n = 0;
-	k = 0;
 	for (j = 0; j < w; j++) {
 	    int number = grid[start+j*step];
 	    if (!number)

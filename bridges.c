@@ -513,7 +513,6 @@ static int island_impossible(struct island *is, int strict)
 {
     int curr = island_countbridges(is), nspc = is->count - curr, nsurrspc;
     int i, poss;
-    grid_type v;
     struct island *is_orth;
 
     if (nspc < 0) {
@@ -533,7 +532,6 @@ static int island_impossible(struct island *is, int strict)
         int ifree, dx = is->adj.points[i].dx;
 
         if (!is->adj.points[i].off) continue;
-        v = GRID(is->state, is->adj.points[i].x, is->adj.points[i].y);
         poss = POSSIBLES(is->state, dx,
                          is->adj.points[i].x, is->adj.points[i].y);
         if (poss == 0) continue;

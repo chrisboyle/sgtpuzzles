@@ -895,7 +895,7 @@ static char *validate_desc(game_params *params, char *desc)
 {
     int w = params->w, h = params->h, wh = w*h;
     int *active, *link;
-    int mains = 0, mpos = -1;
+    int mains = 0;
     int i, tx, ty, minmoves;
     char *ret;
 
@@ -966,7 +966,6 @@ static char *validate_desc(game_params *params, char *desc)
 		link[i] = -1;
 		if (strchr("mM", c) != NULL) {
 		    mains++;
-		    mpos = i;
 		}
 		i++;
 	    }
@@ -2363,14 +2362,17 @@ int main(int argc, char **argv)
     game_state *s;
     char *id = NULL, *desc, *err;
     int count = FALSE;
-    int ret, really_verbose = FALSE;
+    int ret;
     int *moves;
 
     while (--argc > 0) {
         char *p = *++argv;
+        /*
         if (!strcmp(p, "-v")) {
-            really_verbose = TRUE;
-        } else if (!strcmp(p, "-c")) {
+            verbose = TRUE;
+        } else
+        */
+        if (!strcmp(p, "-c")) {
             count = TRUE;
         } else if (*p == '-') {
             fprintf(stderr, "%s: unrecognised option `%s'\n", argv[0], p);

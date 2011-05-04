@@ -459,7 +459,7 @@ static int tents_solve(int w, int h, const char *grid, int *numbers,
 		       char *soln, struct solver_scratch *sc, int diff)
 {
     int x, y, d, i, j;
-    char *mrow, *mrow1, *mrow2, *trow, *trow1, *trow2;
+    char *mrow, *trow, *trow1, *trow2;
 
     /*
      * Set up solver data.
@@ -746,8 +746,6 @@ static int tents_solve(int w, int h, const char *grid, int *numbers,
 	     * hasn't been set up yet.
 	     */
 	    mrow = sc->mrows;
-	    mrow1 = sc->mrows + len;
-	    mrow2 = sc->mrows + 2*len;
 	    trow = sc->trows;
 	    trow1 = sc->trows + len;
 	    trow2 = sc->trows + 2*len;

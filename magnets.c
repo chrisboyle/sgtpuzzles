@@ -1046,7 +1046,7 @@ static int solve_rowcols(game_state *state, rowcolfn fn)
 
 static int solve_force(game_state *state)
 {
-    int x, y, i, which, didsth = 0;
+    int i, which, didsth = 0;
     unsigned long f;
 
     for (i = 0; i < state->wh; i++) {
@@ -1062,7 +1062,6 @@ static int solve_force(game_state *state)
         if (f == (GS_NOTNEGATIVE|GS_NOTNEUTRAL))
             which = POSITIVE;
         if (which != -1) {
-            x = i%state->w; y = i/state->w;
             if (solve_set(state, i, which, "forced by flags", NULL) < 0)
                 return -1;
             didsth = 1;
@@ -1073,7 +1072,7 @@ static int solve_force(game_state *state)
 
 static int solve_neither(game_state *state)
 {
-    int x, y, i, j, didsth = 0;
+    int i, j, didsth = 0;
 
     for (i = 0; i < state->wh; i++) {
         if (state->flags[i] & GS_SET) continue;
@@ -1084,7 +1083,6 @@ static int solve_neither(game_state *state)
              (state->flags[j] & GS_NOTPOSITIVE)) ||
             ((state->flags[i] & GS_NOTNEGATIVE) &&
              (state->flags[j] & GS_NOTNEGATIVE))) {
-            x = i%state->w; y = i/state->w;
             if (solve_set(state, i, NEUTRAL, "neither tile magnet", NULL) < 0)
                 return -1;
             didsth = 1;
@@ -1494,7 +1492,7 @@ static int solve_unnumbered(game_state *state)
 
 static int lay_dominoes(game_state *state, random_state *rs, int *scratch)
 {
-    int n, i, ret = 0, x, y, nlaid = 0, n_initial_neutral;
+    int n, i, ret = 0, nlaid = 0, n_initial_neutral;
 
     for (i = 0; i < state->wh; i++) {
         scratch[i] = i;
@@ -1513,8 +1511,7 @@ static int lay_dominoes(game_state *state, random_state *rs, int *scratch)
 
         /* ...and lay a domino if we can. */
 
-        x = i%state->w; y = i/state->w;
-        debug(("Laying domino at i:%d, (%d,%d)\n", i, x, y));
+        debug(("Laying domino at i:%d, (%d,%d)\n", i, i%state->w, i/state->w));
 
         /* The choice of which type of domino to lay here leads to subtle differences
          * in the sorts of boards that get produced. Too much bias towards magnets
@@ -2262,7 +2259,7 @@ static void game_print(drawing *dr, game_state *state, int tilesize)
     int w = state->w, h = state->h;
     int ink = print_mono_colour(dr, 0);
     int paper = print_mono_colour(dr, 1);
-    int x, y, target, count, which, i, j;
+    int x, y, which, i, j;
 
     /* Ick: fake up `ds->tilesize' for macro expansion purposes */
     game_drawstate ads, *ds = &ads;
@@ -2277,16 +2274,12 @@ static void game_print(drawing *dr, game_state *state, int tilesize)
     draw_sym(dr, ds, state->w, state->h, NEGATIVE, ink);
     for (which = POSITIVE, j = 0; j < 2; which = OPPOSITE(which), j++) {
         for (i = 0; i < w; i++) {
-            target = state->common->colcount[i*3+which];
-            count = count_rowcol(state, i, COLUMN, which);
             draw_num_col(dr, ds, COLUMN, which, i, paper, ink,
-                     state->common->colcount[i*3+which]);
+                         state->common->colcount[i*3+which]);
         }
         for (i = 0; i < h; i++) {
-            target = state->common->rowcount[i*3+which];
-            count = count_rowcol(state, i, ROW, which);
             draw_num_col(dr, ds, ROW, which, i, paper, ink,
-                     state->common->rowcount[i*3+which]);
+                         state->common->rowcount[i*3+which]);
         }
     }
 

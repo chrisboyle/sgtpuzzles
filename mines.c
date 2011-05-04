@@ -2170,7 +2170,7 @@ static int open_square(game_state *state, int x, int y)
 static game_state *new_game(midend *me, game_params *params, char *desc)
 {
     game_state *state = snew(game_state);
-    int i, wh, x, y, ret, masked;
+    int i, wh, x, y, masked;
     unsigned char *bmp;
 
     state->w = params->w;
@@ -2265,7 +2265,7 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
 	}
 
 	if (x >= 0 && y >= 0)
-	    ret = open_square(state, x, y);
+	    open_square(state, x, y);
         sfree(bmp);
     }
 
