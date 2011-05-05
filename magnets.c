@@ -1544,7 +1544,8 @@ static int lay_dominoes(game_state *state, random_state *rs, int *scratch)
                 ret = solve_set(state, i, NEUTRAL, "layout", NULL);
         }
         if (!ret) {
-            debug(("Unable to lay anything at (%d,%d), giving up.", x, y));
+            debug(("Unable to lay anything at (%d,%d), giving up.",
+                   i%state->w, i/state->w));
             ret = -1;
             break;
         }
