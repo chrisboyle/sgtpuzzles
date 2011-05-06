@@ -42,7 +42,7 @@ struct penrose_state {
 
 enum { PENROSE_P2, PENROSE_P3 };
 
-extern int penrose(penrose_state *state, int which);
+extern int penrose(penrose_state *state, int which, int angle);
 
 /* Returns the side-length of a penrose tile at recursion level
  * gen, given a starting side length. */

@@ -434,7 +434,7 @@ void penrose_count_tiles(int depth, int *nlarge, int *nsmall)
  * (later mail: this is an overestimate by about 5%)
  */
 
-int penrose(penrose_state *state, int which)
+int penrose(penrose_state *state, int which, int angle)
 {
     vector vo = v_origin();
     vector vb = v_origin();
@@ -443,6 +443,9 @@ int penrose(penrose_state *state, int which)
     vo = v_shrinkphi(v_shrinkphi(vo));
 
     vb.b = state->start_size;
+
+    vo = v_rotate(vo, angle);
+    vb = v_rotate(vb, angle);
 
     if (which == PENROSE_P2)
         return penrose_p2_large(state, 0, 1, vo, vb);

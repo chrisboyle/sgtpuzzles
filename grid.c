@@ -2472,7 +2472,6 @@ static grid *grid_new_greatdodecagonal(int width, int height, char *desc)
 typedef struct setface_ctx
 {
     int xmin, xmax, ymin, ymax;
-    int aoff;
 
     grid *g;
     tree234 *points;
@@ -2488,8 +2487,6 @@ static int set_faces(penrose_state *state, vector *vs, int n, int depth)
     setface_ctx *sf_ctx = (setface_ctx *)state->ctx;
     int i;
     int xs[4], ys[4];
-    double cosa = cos(sf_ctx->aoff * PI / 180.0);
-    double sina = sin(sf_ctx->aoff * PI / 180.0);
 
     if (depth < state->max_depth) return 0;
 #ifdef DEBUG_PENROSE
@@ -2499,8 +2496,8 @@ static int set_faces(penrose_state *state, vector *vs, int n, int depth)
     for (i = 0; i < n; i++) {
         double tx = v_x(vs, i), ty = v_y(vs, i);
 
-        xs[i] = (int)round_int_nearest_away( tx*cosa + ty*sina);
-        ys[i] = (int)round_int_nearest_away(-tx*sina + ty*cosa);
+        xs[i] = (int)round_int_nearest_away(tx);
+        ys[i] = (int)round_int_nearest_away(ty);
 
         if (xs[i] < sf_ctx->xmin || xs[i] > sf_ctx->xmax) return 0;
         if (ys[i] < sf_ctx->ymin || ys[i] > sf_ctx->ymax) return 0;
@@ -2602,7 +2599,7 @@ static char *grid_validate_desc_penrose(grid_type type, int width, int height, c
 static grid *grid_new_penrose(int width, int height, int which, char *desc)
 {
     int max_faces, max_dots, tilesize = PENROSE_TILESIZE;
-    int xsz, ysz, xoff, yoff;
+    int xsz, ysz, xoff, yoff, aoff;
     double rradius;
 
     tree234 *points;
@@ -2635,7 +2632,7 @@ static grid *grid_new_penrose(int width, int height, int which, char *desc)
     sf_ctx.points = points;
 
     if (desc != NULL) {
-        if (sscanf(desc, "G%d,%d,%d", &xoff, &yoff, &sf_ctx.aoff) != 3)
+        if (sscanf(desc, "G%d,%d,%d", &xoff, &yoff, &aoff) != 3)
             assert(!"Invalid grid description.");
     } else {
         xoff = yoff = 0;
@@ -2654,7 +2651,7 @@ static grid *grid_new_penrose(int width, int height, int which, char *desc)
     debug(("penrose: x range (%f --> %f), y range (%f --> %f)",
            sf_ctx.xmin, sf_ctx.xmax, sf_ctx.ymin, sf_ctx.ymax));
 
-    penrose(&ps, which);
+    penrose(&ps, which, aoff);
 
     freetree234(points);
     assert(g->num_faces <= max_faces);
