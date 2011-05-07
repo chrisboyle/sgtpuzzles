@@ -887,13 +887,11 @@ done
 	 * suitable for what.
 	 */
 #define F_ADD     0x01
-#define F_ADD_BAD 0x02
-#define F_SUB     0x04
-#define F_SUB_BAD 0x08
-#define F_MUL     0x10
-#define F_MUL_BAD 0x20
-#define F_DIV     0x40
-#define F_DIV_BAD 0x80
+#define F_SUB     0x02
+#define F_MUL     0x04
+#define F_DIV     0x08
+#define BAD_SHIFT 4
+
 	for (i = 0; i < a; i++) {
 	    singletons[i] = 0;
 	    j = dsf_canonify(dsf, i);
@@ -916,25 +914,23 @@ done
 		v = p + q;
 		if (v > 4 && v < 2*w-2)
 		    singletons[j] |= F_ADD;
-		else
-		    singletons[j] |= F_ADD_BAD;
+                else
+		    singletons[j] |= F_ADD << BAD_SHIFT;
 
 		/*
-		 * Multiplication clues: similarly, we prefer clues
-		 * of this type which leave multiple options open.
-		 * We can't rule out all the others, though, because
-		 * there are very very few 2-square multiplication
-		 * clues that _don't_ leave only one option.
+		 * Multiplication clues: above Normal difficulty, we
+		 * prefer (but don't absolutely insist on) clues of
+		 * this type which leave multiple options open.
 		 */
 		v = p * q;
 		n = 0;
 		for (k = 1; k <= w; k++)
 		    if (v % k == 0 && v / k <= w && v / k != k)
 			n++;
-		if (n > 2)
+		if (n <= 2 && diff > DIFF_NORMAL)
+		    singletons[j] |= F_MUL << BAD_SHIFT;
+                else
 		    singletons[j] |= F_MUL;
-		else
-		    singletons[j] |= F_MUL_BAD;
 
 		/*
 		 * Subtraction: we completely avoid a difference of
@@ -976,11 +972,10 @@ done
 		long clue;
 		int good, bad;
 		switch (k) {
-		  case 0: clue = C_DIV; good = F_DIV; bad = F_DIV_BAD; break;
-		  case 1: clue = C_SUB; good = F_SUB; bad = F_SUB_BAD; break;
-		  case 2: clue = C_MUL; good = F_MUL; bad = F_MUL_BAD; break;
-		  default /* case 3 */ :
-		    clue = C_ADD; good = F_ADD; bad = F_ADD_BAD; break;
+		  case 0:                clue = C_DIV; good = F_DIV; break;
+		  case 1:                clue = C_SUB; good = F_SUB; break;
+		  case 2:                clue = C_MUL; good = F_MUL; break;
+		  default /* case 3 */ : clue = C_ADD; good = F_ADD; break;
 		}
 
 		for (i = 0; i < a; i++) {
@@ -993,6 +988,7 @@ done
 		}
 		if (i == a) {
 		    /* didn't find a nice one, use a nasty one */
+                    bad = good << BAD_SHIFT;
 		    for (i = 0; i < a; i++) {
 			j = order[i];
 			if (singletons[j] & bad) {
@@ -1010,13 +1006,10 @@ done
 		break;
 	}
 #undef F_ADD
-#undef F_ADD_BAD
 #undef F_SUB
-#undef F_SUB_BAD
 #undef F_MUL
-#undef F_MUL_BAD
 #undef F_DIV
-#undef F_DIV_BAD
+#undef BAD_SHIFT
 
 	/*
 	 * Having chosen the clue types, calculate the clue values.
