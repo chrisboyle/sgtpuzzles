@@ -3805,6 +3805,10 @@ static void game_print(drawing *dr, game_state *state, int tilesize)
     grid *g = state->game_grid;
 
     ds->tilesize = tilesize;
+    ds->textx = snewn(g->num_faces, int);
+    ds->texty = snewn(g->num_faces, int);
+    for (i = 0; i < g->num_faces; i++)
+        ds->textx[i] = ds->texty[i] = -1;
 
     for (i = 0; i < g->num_dots; i++) {
         int x, y;
@@ -3874,6 +3878,9 @@ static void game_print(drawing *dr, game_state *state, int tilesize)
             }
         }
     }
+
+    sfree(ds->textx);
+    sfree(ds->texty);
 }
 
 #ifdef COMBINED
