@@ -1620,40 +1620,40 @@ static void draw_gt(drawing *dr, int ox, int oy,
 }
 
 static void draw_gts(drawing *dr, game_drawstate *ds, int ox, int oy,
-                     unsigned int f, int col)
+                     unsigned int f, int bg, int fg)
 {
     int g = GAP_SIZE, g2 = (g+1)/2, g4 = (g+1)/4;
 
     /* Draw all the greater-than signs emanating from this tile. */
 
     if (f & F_ADJ_UP) {
-	draw_rect(dr, ox, oy - g, TILE_SIZE, g, COL_BACKGROUND);
+	if (bg >= 0) draw_rect(dr, ox, oy - g, TILE_SIZE, g, bg);
         draw_gt(dr, ox+g2, oy-g4, g2, -g2, g2, g2,
-               (f & F_ERROR_UP) ? COL_ERROR : col);
+               (f & F_ERROR_UP) ? COL_ERROR : fg);
         draw_update(dr, ox, oy-g, TILE_SIZE, g);
     }
     if (f & F_ADJ_RIGHT) {
-	draw_rect(dr, ox + TILE_SIZE, oy, g, TILE_SIZE, COL_BACKGROUND);
+	if (bg >= 0) draw_rect(dr, ox + TILE_SIZE, oy, g, TILE_SIZE, bg);
         draw_gt(dr, ox+TILE_SIZE+g4, oy+g2, g2, g2, -g2, g2,
-                (f & F_ERROR_RIGHT) ? COL_ERROR : col);
+                (f & F_ERROR_RIGHT) ? COL_ERROR : fg);
         draw_update(dr, ox+TILE_SIZE, oy, g, TILE_SIZE);
     }
     if (f & F_ADJ_DOWN) {
-	draw_rect(dr, ox, oy + TILE_SIZE, TILE_SIZE, g, COL_BACKGROUND);
+	if (bg >= 0) draw_rect(dr, ox, oy + TILE_SIZE, TILE_SIZE, g, bg);
         draw_gt(dr, ox+g2, oy+TILE_SIZE+g4, g2, g2, g2, -g2,
-               (f & F_ERROR_DOWN) ? COL_ERROR : col);
+               (f & F_ERROR_DOWN) ? COL_ERROR : fg);
         draw_update(dr, ox, oy+TILE_SIZE, TILE_SIZE, g);
     }
     if (f & F_ADJ_LEFT) {
-	draw_rect(dr, ox - g, oy, g, TILE_SIZE, COL_BACKGROUND);
+	if (bg >= 0) draw_rect(dr, ox - g, oy, g, TILE_SIZE, bg);
         draw_gt(dr, ox-g4, oy+g2, -g2, g2, g2, g2,
-                (f & F_ERROR_LEFT) ? COL_ERROR : col);
+                (f & F_ERROR_LEFT) ? COL_ERROR : fg);
         draw_update(dr, ox-g, oy, g, TILE_SIZE);
     }
 }
 
 static void draw_adjs(drawing *dr, game_drawstate *ds, int ox, int oy,
-                     unsigned int f, int col)
+                      unsigned int f, int bg, int fg)
 {
     int g = GAP_SIZE, g38 = 3*(g+1)/8, g4 = (g+1)/4;
 
@@ -1667,24 +1667,24 @@ static void draw_adjs(drawing *dr, game_drawstate *ds, int ox, int oy,
     if (f & (F_ADJ_RIGHT|F_ERROR_RIGHT)) {
         if (f & F_ADJ_RIGHT) {
             draw_rect(dr, ox+TILE_SIZE+g38, oy, g4, TILE_SIZE,
-                      (f & F_ERROR_RIGHT) ? COL_ERROR : col);
+                      (f & F_ERROR_RIGHT) ? COL_ERROR : fg);
         } else {
             draw_rect_outline(dr, ox+TILE_SIZE+g38, oy, g4, TILE_SIZE, COL_ERROR);
         }
-    } else {
-        draw_rect(dr, ox+TILE_SIZE+g38, oy, g4, TILE_SIZE, COL_BACKGROUND);
+    } else if (bg >= 0) {
+        draw_rect(dr, ox+TILE_SIZE+g38, oy, g4, TILE_SIZE, bg);
     }
     draw_update(dr, ox+TILE_SIZE, oy, g, TILE_SIZE);
 
     if (f & (F_ADJ_DOWN|F_ERROR_DOWN)) {
         if (f & F_ADJ_DOWN) {
             draw_rect(dr, ox, oy+TILE_SIZE+g38, TILE_SIZE, g4,
-                      (f & F_ERROR_DOWN) ? COL_ERROR : col);
+                      (f & F_ERROR_DOWN) ? COL_ERROR : fg);
         } else {
             draw_rect_outline(dr, ox, oy+TILE_SIZE+g38, TILE_SIZE, g4, COL_ERROR);
         }
-    } else {
-        draw_rect(dr, ox, oy+TILE_SIZE+g38, TILE_SIZE, g4, COL_BACKGROUND);
+    } else if (bg >= 0) {
+        draw_rect(dr, ox, oy+TILE_SIZE+g38, TILE_SIZE, g4, bg);
     }
     draw_update(dr, ox, oy+TILE_SIZE, TILE_SIZE, g);
 }
@@ -1722,9 +1722,9 @@ static void draw_furniture(drawing *dr, game_drawstate *ds, game_state *state,
 
     /* Draw the adjacent clue signs. */
     if (ds->adjacent)
-        draw_adjs(dr, ds, ox, oy, f, COL_GRID);
+        draw_adjs(dr, ds, ox, oy, f, COL_BACKGROUND, COL_GRID);
     else
-        draw_gts(dr, ds, ox, oy, f, COL_TEXT);
+        draw_gts(dr, ds, ox, oy, f, COL_BACKGROUND, COL_TEXT);
 }
 
 static void draw_num(drawing *dr, game_drawstate *ds, int x, int y)
@@ -1912,9 +1912,9 @@ static void game_print(drawing *dr, game_state *state, int tilesize)
                       ink, str);
 
             if (state->adjacent)
-                draw_adjs(dr, ds, ox, oy, GRID(state, flags, x, y), ink);
+                draw_adjs(dr, ds, ox, oy, GRID(state, flags, x, y), -1, ink);
             else
-                draw_gts(dr, ds, ox, oy, GRID(state, flags, x, y), ink);
+                draw_gts(dr, ds, ox, oy, GRID(state, flags, x, y), -1, ink);
         }
     }
 }
