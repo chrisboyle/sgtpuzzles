@@ -1611,14 +1611,13 @@ static float game_flash_length(game_state *oldstate, game_state *newstate,
 	return 0.0F;
 }
 
-static int game_is_solved(game_state *state)
+static int game_status(game_state *state)
 {
     /*
-     * If the player has run out of moves without winning, we don't
-     * list the game as solved, because they're more likely to undo
-     * and carry on than to give up and start a new game.
+     * Dead-end situations are assumed to be rescuable by Undo, so we
+     * don't bother to identify them and return -1.
      */
-    return state->complete;
+    return state->complete ? +1 : 0;
 }
 
 static int game_timing_state(game_state *state, game_ui *ui)
@@ -1669,7 +1668,7 @@ const struct game thegame = {
     game_redraw,
     game_anim_length,
     game_flash_length,
-    game_is_solved,
+    game_status,
     FALSE, FALSE, game_print_size, game_print,
     TRUE,			       /* wants_statusbar */
     FALSE, game_timing_state,

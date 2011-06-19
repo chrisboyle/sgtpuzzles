@@ -2135,14 +2135,14 @@ static float game_flash_length(game_state *oldstate, game_state *newstate,
     return 0.0F;
 }
 
-static int game_is_solved(game_state *state)
+static int game_status(game_state *state)
 {
     /*
-     * If the player has died, we don't list the game as solved,
-     * because they're more likely to undo and carry on than to give
-     * up and start a new game.
+     * We never report the game as lost, on the grounds that if the
+     * player has died they're quite likely to want to undo and carry
+     * on.
      */
-    return !state->gems;
+    return state->gems == 0 ? +1 : 0;
 }
 
 static int game_timing_state(game_state *state, game_ui *ui)
@@ -2193,7 +2193,7 @@ const struct game thegame = {
     game_redraw,
     game_anim_length,
     game_flash_length,
-    game_is_solved,
+    game_status,
     FALSE, FALSE, game_print_size, game_print,
     TRUE,			       /* wants_statusbar */
     FALSE, game_timing_state,

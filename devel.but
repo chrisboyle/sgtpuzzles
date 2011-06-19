@@ -1224,27 +1224,33 @@ a mine from the colour it uses when you complete the game. In order
 to achieve this, its \cw{flash_length()} function has to store a
 flag in the \c{game_ui} to indicate which flash type is required.)
 
-\S{backend-is-solved} \cw{is_solved()}
+\S{backend-status} \cw{status()}
 
-\c int (*is_solved)(game_state *state);
+\c int (*status)(game_state *state);
 
-This function returns \cw{TRUE} if the game represented by \cw{state}
-is currently in a solved state. The mid-end uses this to implement
-\cw{midend_is_solved()} (\k{midend-is-solved}).
+This function returns a status value indicating whether the current
+game is still in play, or has been won, or has been conclusively lost.
+The mid-end uses this to implement \cw{midend_status()}
+(\k{midend-status}).
 
-Front ends may wish to use this as a cue to proactively offer the
-option of starting a new game. Therefore, back ends should consider
-returning \cw{TRUE} in situations where the game is \e{lost} as well
-as won, if losing makes it unlikely that the player would play on.
+The return value should be +1 if the game has been successfully
+solved. If the game has been lost in a situation where further play is
+unlikely, the return value should be -1. If neither is true (so play
+is still ongoing), return zero.
+
+Front ends may wish to use a non-zero status as a cue to proactively
+offer the option of starting a new game. Therefore, back ends should
+not return -1 if the game has been \e{technically} lost but undoing
+and continuing is still a realistic possibility.
 
 (For instance, games with hidden information such as Guess or Mines
-might well set this flag whenever they reveal the solution, whether or
-not the player guessed it correctly, on the grounds that a player
-would be unlikely to hide the solution and continue playing after the
-answer was spoiled. On the other hand, games where you can merely get
-into a dead end such as Same Game or Inertia might choose not to, on
-the grounds that the player would quite likely press Undo and carry on
-playing.)
+might well return a non-zero status whenever they reveal the solution,
+whether or not the player guessed it correctly, on the grounds that a
+player would be unlikely to hide the solution and continue playing
+after the answer was spoiled. On the other hand, games where you can
+merely get into a dead end such as Same Game or Inertia might choose
+to return 0 in that situation, on the grounds that the player would
+quite likely press Undo and carry on playing.)
 
 \S{backend-redraw} \cw{redraw()}
 
@@ -3118,18 +3124,19 @@ The front end can expect its drawing API and/or
 \cw{activate_timer()} to be called from within a call to this
 function.
 
-\H{midend-is-solved} \cw{midend_is_solved()}
+\H{midend-status} \cw{midend_status()}
 
-\c int midend_is_solved(midend *me);
+\c int midend_status(midend *me);
 
-This function returns \cw{TRUE} if the midend is currently displaying
-a game in a solved state, according to the back end's \cw{is_solved()}
+This function returns +1 if the midend is currently displaying a game
+in a solved state, -1 if the game is in a permanently lost state, or 0
+otherwise. This function just calls the back end's \cw{status()}
 function. Front ends may wish to use this as a cue to proactively
 offer the option of starting a new game.
 
-(See \k{backend-is-solved} for more detail about the back end's
-\cw{is_solved()} function and discussion of what should count as
-\q{solved} anyway).
+(See \k{backend-status} for more detail about the back end's
+\cw{status()} function and discussion of what should count as which
+status code.)
 
 \H{midend-can-undo} \cw{midend_can_undo()}
 
