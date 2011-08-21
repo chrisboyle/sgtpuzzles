@@ -442,6 +442,16 @@ void midend_new_game(midend *me)
     me->pressed_mouse_button = 0;
 }
 
+int midend_can_undo(midend *me)
+{
+    return (me->statepos > 1);
+}
+
+int midend_can_redo(midend *me)
+{
+    return (me->statepos < me->nstates);
+}
+
 static int midend_undo(midend *me)
 {
     if (me->statepos > 1) {
@@ -1346,6 +1356,23 @@ char *midend_solve(midend *me)
     midend_redraw(me);
     midend_set_timer(me);
     return NULL;
+}
+
+int midend_status(midend *me)
+{
+    /*
+     * We should probably never be called when the state stack has no
+     * states on it at all - ideally, midends should never be left in
+     * that state for long enough to get put down and forgotten about.
+     * But if we are, I think we return _true_ - pedantically speaking
+     * a midend in that state is 'vacuously solved', and more
+     * practically, a user whose midend has been left in that state
+     * probably _does_ want the 'new game' option to be prominent.
+     */
+    if (me->statepos == 0)
+        return +1;
+
+    return me->ourgame->status(me->states[me->statepos-1].state);
 }
 
 char *midend_rewrite_statusbar(midend *me, char *text)

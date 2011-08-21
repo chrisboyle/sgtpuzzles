@@ -1138,7 +1138,7 @@ if (defined $makefiles{'gtk'}) {
       $objstr = &objects($p, "X.o", undef, undef);
       print &splitline($prog . ": " . $objstr), "\n";
       $libstr = &objects($p, undef, undef, "-lX");
-      print &splitline("\t\$(CC) -o \$@ $objstr $libstr \$(${type}LIBS)", 69),
+      print &splitline("\t\$(CC) -o \$@ $objstr $libstr \$(XLFLAGS) \$(${type}LIBS)", 69),
 	  "\n\n";
     }
     foreach $d (&deps("X.o", undef, $dirpfx, "/")) {

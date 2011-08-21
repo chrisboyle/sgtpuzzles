@@ -433,12 +433,11 @@ static char *new_game_desc(game_params *params, random_state *rs,
 
 static char *validate_desc(game_params *params, char *desc)
 {
-    char *p, *err;
+    char *p;
     int w = params->w, h = params->h, wh = w*h;
     int i;
 
     p = desc;
-    err = NULL;
 
     for (i = 0; i < wh; i++) {
 	if (*p < '0' || *p > '9')
@@ -1074,6 +1073,11 @@ static float game_flash_length(game_state *oldstate, game_state *newstate,
         return 0.0F;
 }
 
+static int game_status(game_state *state)
+{
+    return state->completed ? +1 : 0;
+}
+
 static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 			game_state *state, int dir, game_ui *ui,
 			float animtime, float flashtime)
@@ -1298,6 +1302,7 @@ const struct game thegame = {
     game_redraw,
     game_anim_length,
     game_flash_length,
+    game_status,
 #ifndef NO_PRINTING
     FALSE, FALSE, game_print_size, game_print,
 #endif

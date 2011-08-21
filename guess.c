@@ -43,7 +43,7 @@ struct game_state {
     pegrow solution;
     int next_go; /* from 0 to nguesses-1;
                     if next_go == nguesses then they've lost. */
-    int solved, cheated;
+    int solved;   /* +1 = win, -1 = lose, 0 = still playing */
 };
 
 static game_params *default_params(void)
@@ -796,7 +796,7 @@ static game_state *execute_move(game_state *from, char *move)
 
     if (!strcmp(move, "S")) {
 	ret = dup_game(from);
-	ret->solved = ret->cheated = 1;
+	ret->solved = -1;
 	return ret;
     } else if (move[0] == 'G') {
 	p = move+1;
@@ -823,11 +823,11 @@ static game_state *execute_move(game_state *from, char *move)
 	nc_place = mark_pegs(ret->guesses[from->next_go], ret->solution, ret->params.ncolours);
 
 	if (nc_place == ret->solution->npegs) {
-	    ret->solved = 1; /* win! */
+	    ret->solved = +1; /* win! */
 	} else {
 	    ret->next_go = from->next_go + 1;
 	    if (ret->next_go >= ret->params.nguesses)
-		ret->solved = ret->cheated = 1; /* 'lose' so we show the pegs. */
+		ret->solved = -1; /* lose, meaning we show the pegs. */
 	}
 
 	return ret;
@@ -1216,10 +1216,9 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 			game_state *state, int dir, game_ui *ui,
 			float animtime, float flashtime)
 {
-    int i, new_move, last_go;
+    int i, new_move;
 
     new_move = (state->next_go != ds->next_go) || !ds->started;
-    last_go = (state->next_go == state->params.nguesses-1);
 
     if (!ds->started) {
       draw_rect(dr, 0, 0, ds->w, ds->h, COL_BACKGROUND);
@@ -1280,7 +1279,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
         currmove_redraw(dr, ds, state->next_go, COL_HOLD);
 
     /* draw the solution (or the big rectangle) */
-    if ((state->solved != ds->solved) || !ds->started) {
+    if ((!state->solved ^ !ds->solved) || !ds->started) {
         draw_rect(dr, SOLN_OX, SOLN_OY, SOLN_W, SOLN_H,
                   state->solved ? COL_BACKGROUND : COL_EMPTY);
         draw_update(dr, SOLN_OX, SOLN_OY, SOLN_W, SOLN_H);
@@ -1318,6 +1317,17 @@ static float game_flash_length(game_state *oldstate, game_state *newstate,
 			       int dir, game_ui *ui)
 {
     return 0.0F;
+}
+
+static int game_status(game_state *state)
+{
+    /*
+     * We return nonzero whenever the solution has been revealed, even
+     * (on spoiler grounds) if it wasn't guessed correctly. The
+     * correct return value from this function is already in
+     * state->solved.
+     */
+    return state->solved;
 }
 
 static int game_timing_state(game_state *state, game_ui *ui)
@@ -1370,6 +1380,7 @@ const struct game thegame = {
     game_redraw,
     game_anim_length,
     game_flash_length,
+    game_status,
 #ifndef NO_PRINTING
     FALSE, FALSE, game_print_size, game_print,
 #endif

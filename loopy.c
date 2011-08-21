@@ -108,7 +108,7 @@ enum {
 };
 
 struct game_state {
-    grid *game_grid;
+    grid *game_grid; /* ref-counted (internally) */
 
     /* Put -1 in a face that doesn't get a clue */
     signed char *clues;
@@ -202,16 +202,12 @@ static char const diffchars[] = DIFFLIST(ENCODE);
 SOLVERLIST(SOLVER_FN_DECL)
 static int (*(solver_fns[]))(solver_state *) = { SOLVERLIST(SOLVER_FN) };
 static int const solver_diffs[] = { SOLVERLIST(SOLVER_DIFF) };
-const int NUM_SOLVERS = sizeof(solver_diffs)/sizeof(*solver_diffs);
+static const int NUM_SOLVERS = sizeof(solver_diffs)/sizeof(*solver_diffs);
 
 struct game_params {
     int w, h;
     int diff;
     int type;
-
-    /* Grid generation is expensive, so keep a (ref-counted) reference to the
-     * grid for these parameters, and only generate when required. */
-    grid *game_grid;
 };
 
 /* line_drawstate is the same as line_state, but with the extra ERROR
@@ -233,6 +229,7 @@ struct game_drawstate {
     int started;
     int tilesize;
     int flashing;
+    int *textx, *texty;
     char *lines;
     char *clue_error;
     char *clue_satisfied;
@@ -258,38 +255,40 @@ static void check_caches(const solver_state* sstate);
 
 /* ------- List of grid generators ------- */
 #define GRIDLIST(A) \
-    A(Squares,grid_new_square,3,3) \
-    A(Triangular,grid_new_triangular,3,3) \
-    A(Honeycomb,grid_new_honeycomb,3,3) \
-    A(Snub-Square,grid_new_snubsquare,3,3) \
-    A(Cairo,grid_new_cairo,3,4) \
-    A(Great-Hexagonal,grid_new_greathexagonal,3,3) \
-    A(Octagonal,grid_new_octagonal,3,3) \
-    A(Kites,grid_new_kites,3,3)
-/* _("Squares"), _("Triangular"), _("Honeycomb"), _("Snub-Square"), _("Cairo"), _("Great-Hexagonal"), _("Octagonal"), _("Kites") */
+    A(Squares,GRID_SQUARE,3,3) \
+    A(Triangular,GRID_TRIANGULAR,3,3) \
+    A(Honeycomb,GRID_HONEYCOMB,3,3) \
+    A(Snub-Square,GRID_SNUBSQUARE,3,3) \
+    A(Cairo,GRID_CAIRO,3,4) \
+    A(Great-Hexagonal,GRID_GREATHEXAGONAL,3,3) \
+    A(Octagonal,GRID_OCTAGONAL,3,3) \
+    A(Kites,GRID_KITE,3,3) \
+    A(Floret,GRID_FLORET,1,2) \
+    A(Dodecagonal,GRID_DODECAGONAL,2,2) \
+    A(Great-Dodecagonal,GRID_GREATDODECAGONAL,2,2) \
+    A(Penrose (kite/dart),GRID_PENROSE_P2,3,3) \
+    A(Penrose (rhombs),GRID_PENROSE_P3,3,3)
+/* _("Squares"), _("Triangular"), _("Honeycomb"), _("Snub-Square"), _("Cairo"), _("Great-Hexagonal"), _("Octagonal"), _("Kites"), _("Floret"), _("Dodecagonal"), _("Great-Dodecagonal"), _("Penrose (kite/dart)"), _("Penrose (rhombs)") */
 
-#define GRID_NAME(title,fn,amin,omin) #title,
-#define GRID_CONFIG(title,fn,amin,omin) ":" #title
-#define GRID_FN(title,fn,amin,omin) &fn,
-#define GRID_SIZES(title,fn,amin,omin) \
+#define GRID_NAME(title,type,amin,omin) #title,
+#define GRID_CONFIG(title,type,amin,omin) ":" #title
+#define GRID_TYPE(title,type,amin,omin) type,
+#define GRID_SIZES(title,type,amin,omin) \
     {amin, omin},
 static char const *const gridnames[] = { GRIDLIST(GRID_NAME) };
-#define GRID_CONFIGS _(GRIDLIST(GRID_CONFIG))
-static grid * (*(grid_fns[]))(int w, int h) = { GRIDLIST(GRID_FN) };
-#define NUM_GRID_TYPES (sizeof(grid_fns) / sizeof(grid_fns[0]))
+#define GRID_CONFIGS GRIDLIST(GRID_CONFIG)
+static grid_type grid_types[] = { GRIDLIST(GRID_TYPE) };
+#define NUM_GRID_TYPES (sizeof(grid_types) / sizeof(grid_types[0]))
 static const struct {
     int amin, omin;
 } grid_size_limits[] = { GRIDLIST(GRID_SIZES) };
 
 /* Generates a (dynamically allocated) new grid, according to the
  * type and size requested in params.  Does nothing if the grid is already
- * generated.  The allocated grid is owned by the params object, and will be
- * freed in free_params(). */
-static void params_generate_grid(game_params *params)
+ * generated. */
+static grid *loopy_generate_grid(game_params *params, char *grid_desc)
 {
-    if (!params->game_grid) {
-        params->game_grid = grid_fns[params->type](params->w, params->h);
-    }
+    return grid_new(grid_types[params->type], params->w, params->h, grid_desc);
 }
 
 /* ----------------------------------------------------------------------
@@ -310,7 +309,7 @@ static void params_generate_grid(game_params *params)
                                ((field) &= ~(1<<(bit)), TRUE) : FALSE)
 
 #define CLUE2CHAR(c) \
-    ((c < 0) ? ' ' : c + '0')
+    ((c < 0) ? ' ' : c < 10 ? c + '0' : c - 10 + 'A')
 
 /* ----------------------------------------------------------------------
  * General struct manipulation and other straightforward code
@@ -486,8 +485,6 @@ static game_params *default_params(void)
     ret->diff = DIFF_EASY;
     ret->type = 0;
 
-    ret->game_grid = NULL;
-
     return ret;
 }
 
@@ -496,38 +493,45 @@ static game_params *dup_params(game_params *params)
     game_params *ret = snew(game_params);
 
     *ret = *params;                       /* structure copy */
-    if (ret->game_grid) {
-        ret->game_grid->refcount++;
-    }
     return ret;
 }
 
 static const game_params presets[] = {
 #ifdef SMALL_SCREEN
-    {  7,  7, DIFF_EASY, 0, NULL },
-    {  7,  7, DIFF_NORMAL, 0, NULL },
-    {  7,  7, DIFF_HARD, 0, NULL },
-    {  7,  7, DIFF_HARD, 1, NULL },
-    {  7,  7, DIFF_HARD, 2, NULL },
-    {  5,  5, DIFF_HARD, 3, NULL },
-    {  7,  7, DIFF_HARD, 4, NULL },
-    {  5,  4, DIFF_HARD, 5, NULL },
-    {  5,  5, DIFF_HARD, 6, NULL },
-    {  5,  5, DIFF_HARD, 7, NULL },
+    {  7,  7, DIFF_EASY, 0 },
+    {  7,  7, DIFF_NORMAL, 0 },
+    {  7,  7, DIFF_HARD, 0 },
+    {  7,  7, DIFF_HARD, 1 },
+    {  7,  7, DIFF_HARD, 2 },
+    {  5,  5, DIFF_HARD, 3 },
+    {  7,  7, DIFF_HARD, 4 },
+    {  5,  4, DIFF_HARD, 5 },
+    {  5,  5, DIFF_HARD, 6 },
+    {  5,  5, DIFF_HARD, 7 },
+    {  3,  3, DIFF_HARD, 8 },
+    {  3,  3, DIFF_HARD, 9 },
+    {  3,  3, DIFF_HARD, 10 },
+    {  6,  6, DIFF_HARD, 11 },
+    {  6,  6, DIFF_HARD, 12 },
 #else
-    {  7,  7, DIFF_EASY, 0, NULL },
-    {  10,  10, DIFF_EASY, 0, NULL },
-    {  7,  7, DIFF_NORMAL, 0, NULL },
-    {  10,  10, DIFF_NORMAL, 0, NULL },
-    {  7,  7, DIFF_HARD, 0, NULL },
-    {  10,  10, DIFF_HARD, 0, NULL },
-    {  10,  10, DIFF_HARD, 1, NULL },
-    {  12,  10, DIFF_HARD, 2, NULL },
-    {  7,  7, DIFF_HARD, 3, NULL },
-    {  9,  9, DIFF_HARD, 4, NULL },
-    {  5,  4, DIFF_HARD, 5, NULL },
-    {  7,  7, DIFF_HARD, 6, NULL },
-    {  5,  5, DIFF_HARD, 7, NULL },
+    {  7,  7, DIFF_EASY, 0 },
+    {  10,  10, DIFF_EASY, 0 },
+    {  7,  7, DIFF_NORMAL, 0 },
+    {  10,  10, DIFF_NORMAL, 0 },
+    {  7,  7, DIFF_HARD, 0 },
+    {  10,  10, DIFF_HARD, 0 },
+    {  10,  10, DIFF_HARD, 1 },
+    {  12,  10, DIFF_HARD, 2 },
+    {  7,  7, DIFF_HARD, 3 },
+    {  9,  9, DIFF_HARD, 4 },
+    {  5,  4, DIFF_HARD, 5 },
+    {  7,  7, DIFF_HARD, 6 },
+    {  5,  5, DIFF_HARD, 7 },
+    {  5,  5, DIFF_HARD, 8 },
+    {  5,  4, DIFF_HARD, 9 },
+    {  5,  4, DIFF_HARD, 10 },
+    {  10, 10, DIFF_HARD, 11 },
+    {  10, 10, DIFF_HARD, 12 }
 #endif
 };
 
@@ -551,18 +555,11 @@ static int game_fetch_preset(int i, char **name, game_params **params)
 
 static void free_params(game_params *params)
 {
-    if (params->game_grid) {
-        grid_free(params->game_grid);
-    }
     sfree(params);
 }
 
 static void decode_params(game_params *params, char const *string)
 {
-    if (params->game_grid) {
-        grid_free(params->game_grid);
-        params->game_grid = NULL;
-    }
     params->h = params->w = atoi(string);
     params->diff = DIFF_EASY;
     while (*string && isdigit((unsigned char)*string)) string++;
@@ -641,7 +638,6 @@ static game_params *custom_params(config_item *cfg)
     ret->type = cfg[2].ival;
     ret->diff = cfg[3].ival;
 
-    ret->game_grid = NULL;
     return ret;
 }
 
@@ -707,17 +703,47 @@ static char *state_to_text(const game_state *state)
     return retval;
 }
 
+#define GRID_DESC_SEP '_'
+
+/* Splits up a (optional) grid_desc from the game desc. Returns the
+ * grid_desc (which needs freeing) and updates the desc pointer to
+ * start of real desc, or returns NULL if no desc. */
+static char *extract_grid_desc(char **desc)
+{
+    char *sep = strchr(*desc, GRID_DESC_SEP), *gd;
+    int gd_len;
+
+    if (!sep) return NULL;
+
+    gd_len = sep - (*desc);
+    gd = snewn(gd_len+1, char);
+    memcpy(gd, *desc, gd_len);
+    gd[gd_len] = '\0';
+
+    *desc = sep+1;
+
+    return gd;
+}
+
 /* We require that the params pass the test in validate_params and that the
  * description fills the entire game area */
 static char *validate_desc(game_params *params, char *desc)
 {
     int count = 0;
     grid *g;
-    params_generate_grid(params);
-    g = params->game_grid;
+    char *grid_desc, *ret;
+
+    /* It's pretty inefficient to do this just for validation. All we need to
+     * know is the precise number of faces. */
+    grid_desc = extract_grid_desc(&desc);
+    ret = grid_validate_desc(grid_types[params->type], params->w, params->h, grid_desc);
+    if (ret) return ret;
+
+    g = loopy_generate_grid(params, grid_desc);
+    if (grid_desc) sfree(grid_desc);
 
     for (; *desc; ++desc) {
-        if (*desc >= '0' && *desc <= '9') {
+        if ((*desc >= '0' && *desc <= '9') || (*desc >= 'A' && *desc <= 'Z')) {
             count++;
             continue;
         }
@@ -732,6 +758,8 @@ static char *validate_desc(game_params *params, char *desc)
         return _("Description too short for board size");
     if (count > g->num_faces)
         return _("Description too long for board size");
+
+    grid_free(g);
 
     return NULL;
 }
@@ -831,16 +859,15 @@ static void game_changed_state(game_ui *ui, game_state *oldstate,
 static void game_compute_size(game_params *params, int tilesize,
                               int *x, int *y)
 {
-    grid *g;
     int grid_width, grid_height, rendered_width, rendered_height;
+    int g_tilesize;
 
-    params_generate_grid(params);
-    g = params->game_grid;
-    grid_width = g->highest_x - g->lowest_x;
-    grid_height = g->highest_y - g->lowest_y;
+    grid_compute_size(grid_types[params->type], params->w, params->h,
+                      &g_tilesize, &grid_width, &grid_height);
+
     /* multiply first to minimise rounding error on integer division */
-    rendered_width = grid_width * tilesize / g->tilesize;
-    rendered_height = grid_height * tilesize / g->tilesize;
+    rendered_width = grid_width * tilesize / g_tilesize;
+    rendered_height = grid_height * tilesize / g_tilesize;
     *x = rendered_width + 2 * BORDER(tilesize) + 1;
     *y = rendered_height + 2 * BORDER(tilesize) + 1;
 }
@@ -874,8 +901,14 @@ static float *game_colours(frontend *fe, int *ncolours)
     ret[COL_FOREGROUND * 3 + 1] = 0.0F;
     ret[COL_FOREGROUND * 3 + 2] = 0.0F;
 
-    ret[COL_LINEUNKNOWN * 3 + 0] = 0.8F;
-    ret[COL_LINEUNKNOWN * 3 + 1] = 0.8F;
+    /*
+     * We want COL_LINEUNKNOWN to be a yellow which is a bit darker
+     * than the background. (I previously set it to 0.8,0.8,0, but
+     * found that this went badly with the 0.8,0.8,0.8 favoured as a
+     * background by the Java frontend.)
+     */
+    ret[COL_LINEUNKNOWN * 3 + 0] = ret[COL_BACKGROUND * 3 + 0] * 0.9F;
+    ret[COL_LINEUNKNOWN * 3 + 1] = ret[COL_BACKGROUND * 3 + 1] * 0.9F;
     ret[COL_LINEUNKNOWN * 3 + 2] = 0.0F;
 
     ret[COL_HIGHLIGHT * 3 + 0] = 1.0F;
@@ -911,17 +944,22 @@ static game_drawstate *game_new_drawstate(drawing *dr, game_state *state)
     struct game_drawstate *ds = snew(struct game_drawstate);
     int num_faces = state->game_grid->num_faces;
     int num_edges = state->game_grid->num_edges;
+    int i;
 
     ds->tilesize = 0;
     ds->started = 0;
     ds->lines = snewn(num_edges, char);
     ds->clue_error = snewn(num_faces, char);
     ds->clue_satisfied = snewn(num_faces, char);
+    ds->textx = snewn(num_faces, int);
+    ds->texty = snewn(num_faces, int);
     ds->flashing = 0;
 
     memset(ds->lines, LINE_UNKNOWN, num_edges);
     memset(ds->clue_error, 0, num_faces);
     memset(ds->clue_satisfied, 0, num_faces);
+    for (i = 0; i < num_faces; i++)
+        ds->textx[i] = ds->texty[i] = -1;
 
     ds->cur_visible = 0;
 #ifdef CURSOR_IS_VISIBLE
@@ -939,6 +977,8 @@ static void game_free_drawstate(drawing *dr, game_drawstate *ds)
     if (ds->cur_bl) blitter_free(dr, ds->cur_bl);
 #endif
 
+    sfree(ds->textx);
+    sfree(ds->texty);
     sfree(ds->clue_error);
     sfree(ds->clue_satisfied);
     sfree(ds->lines);
@@ -1919,13 +1959,14 @@ static char *new_game_desc(game_params *params, random_state *rs,
                            char **aux, int interactive)
 {
     /* solution and description both use run-length encoding in obvious ways */
-    char *retval;
+    char *retval, *game_desc, *grid_desc;
     grid *g;
     game_state *state = snew(game_state);
     game_state *state_new;
-    params_generate_grid(params);
-    state->game_grid = g = params->game_grid;
-    g->refcount++;
+
+    grid_desc = grid_new_desc(grid_types[params->type], params->w, params->h, rs);
+    state->game_grid = g = loopy_generate_grid(params, grid_desc);
+
     state->clues = snewn(g->num_faces, signed char);
     state->lines = snewn(g->num_edges, char);
     state->line_errors = snewn(g->num_edges, unsigned char);
@@ -1976,9 +2017,18 @@ static char *new_game_desc(game_params *params, random_state *rs,
     }
 #endif
 
-    retval = state_to_text(state);
+    game_desc = state_to_text(state);
 
     free_game(state);
+
+    if (grid_desc) {
+        retval = snewn(strlen(grid_desc) + 1 + strlen(game_desc) + 1, char);
+        sprintf(retval, "%s%c%s", grid_desc, (int)GRID_DESC_SEP, game_desc);
+        sfree(grid_desc);
+        sfree(game_desc);
+    } else {
+        retval = game_desc;
+    }
 
     assert(!validate_desc(params, retval));
 
@@ -1990,14 +2040,18 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
     int i;
     game_state *state = snew(game_state);
     int empties_to_make = 0;
-    int n;
-    const char *dp = desc;
+    int n,n2;
+    const char *dp;
+    char *grid_desc;
     grid *g;
     int num_faces, num_edges;
 
-    params_generate_grid(params);
-    state->game_grid = g = params->game_grid;
-    g->refcount++;
+    grid_desc = extract_grid_desc(&desc);
+    state->game_grid = g = loopy_generate_grid(params, grid_desc);
+    if (grid_desc) sfree(grid_desc);
+
+    dp = desc;
+
     num_faces = g->num_faces;
     num_edges = g->num_edges;
 
@@ -2018,8 +2072,11 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
 
         assert(*dp);
         n = *dp - '0';
+        n2 = *dp - 'A' + 10;
         if (n >= 0 && n < 10) {
             state->clues[i] = n;
+	} else if (n2 >= 10 && n2 < 36) {
+            state->clues[i] = n2;
         } else {
             n = *dp - 'a' + 1;
             assert(n > 0);
@@ -2537,6 +2594,13 @@ static int trivial_deductions(solver_state *sstate)
         if (state->clues[i] < 0)
             continue;
 
+        /*
+         * This code checks whether the numeric clue on a face is so
+         * large as to permit all its remaining LINE_UNKNOWNs to be
+         * filled in as LINE_YES, or alternatively so small as to
+         * permit them all to be filled in as LINE_NO.
+         */
+
         if (state->clues[i] < current_yes) {
             sstate->solver_status = SOLVER_MISTAKE;
             return DIFF_EASY;
@@ -2557,6 +2621,57 @@ static int trivial_deductions(solver_state *sstate)
                 diff = min(diff, DIFF_EASY);
             sstate->face_solved[i] = TRUE;
             continue;
+        }
+
+        if (f->order - state->clues[i] == current_no + 1 &&
+            f->order - current_yes - current_no > 2) {
+            /*
+             * One small refinement to the above: we also look for any
+             * adjacent pair of LINE_UNKNOWNs around the face with
+             * some LINE_YES incident on it from elsewhere. If we find
+             * one, then we know that pair of LINE_UNKNOWNs can't
+             * _both_ be LINE_YES, and hence that pushes us one line
+             * closer to being able to determine all the rest.
+             */
+            int j, k, e1, e2, e, d;
+
+            for (j = 0; j < f->order; j++) {
+                e1 = f->edges[j] - g->edges;
+                e2 = f->edges[j+1 < f->order ? j+1 : 0] - g->edges;
+
+                if (g->edges[e1].dot1 == g->edges[e2].dot1 ||
+                    g->edges[e1].dot1 == g->edges[e2].dot2) {
+                    d = g->edges[e1].dot1 - g->dots;
+                } else {
+                    assert(g->edges[e1].dot2 == g->edges[e2].dot1 ||
+                           g->edges[e1].dot2 == g->edges[e2].dot2);
+                    d = g->edges[e1].dot2 - g->dots;
+                }
+
+                if (state->lines[e1] == LINE_UNKNOWN &&
+                    state->lines[e2] == LINE_UNKNOWN) {
+                    for (k = 0; k < g->dots[d].order; k++) {
+                        int e = g->dots[d].edges[k] - g->edges;
+                        if (state->lines[e] == LINE_YES)
+                            goto found;    /* multi-level break */
+                    }
+                }
+            }
+            continue;
+
+          found:
+            /*
+             * If we get here, we've found such a pair of edges, and
+             * they're e1 and e2.
+             */
+            for (j = 0; j < f->order; j++) {
+                e = f->edges[j] - g->edges;
+                if (state->lines[e] == LINE_UNKNOWN && e != e1 && e != e2) {
+                    int r = solver_set_line(sstate, e, LINE_YES);
+                    assert(r);
+                    diff = min(diff, DIFF_EASY);
+                }
+            }
         }
     }
 
@@ -2659,7 +2774,7 @@ static int dline_deductions(solver_state *sstate)
      * on that.  We check this with an assertion, in case someone decides to
      * make a grid which has larger faces than this.  Note, this algorithm
      * could get quite expensive if there are many large faces. */
-#define MAX_FACE_SIZE 8
+#define MAX_FACE_SIZE 12
 
     for (i = 0; i < g->num_faces; i++) {
 #ifdef ANDROID
@@ -3531,29 +3646,45 @@ static void grid_to_screen(const game_drawstate *ds, const grid *g,
 /* Returns (into x,y) position of centre of face for rendering the text clue.
  */
 static void face_text_pos(const game_drawstate *ds, const grid *g,
-                          const grid_face *f, int *x, int *y)
+                          grid_face *f, int *xret, int *yret)
 {
-    int i;
+    int faceindex = f - g->faces;
 
-    /* Simplest solution is the centroid. Might not work in some cases. */
-
-    /* Another algorithm to look into:
-     * Find the midpoints of the sides, find the bounding-box,
-     * then take the centre of that. */
-
-    /* Best solution probably involves incentres (inscribed circles) */
-
-    int sx = 0, sy = 0; /* sums */
-    for (i = 0; i < f->order; i++) {
-        grid_dot *d = f->dots[i];
-        sx += d->x;
-        sy += d->y;
+    /*
+     * Return the cached position for this face, if we've already
+     * worked it out.
+     */
+    if (ds->textx[faceindex] >= 0) {
+        *xret = ds->textx[faceindex];
+        *yret = ds->texty[faceindex];
+        return;
     }
-    sx /= f->order;
-    sy /= f->order;
 
-    /* convert to screen coordinates */
-    grid_to_screen(ds, g, sx, sy, x, y);
+    /*
+     * Otherwise, use the incentre computed by grid.c and convert it
+     * to screen coordinates.
+     */
+    grid_find_incentre(f);
+    grid_to_screen(ds, g, f->ix, f->iy,
+                   &ds->textx[faceindex], &ds->texty[faceindex]);
+
+    *xret = ds->textx[faceindex];
+    *yret = ds->texty[faceindex];
+}
+
+static void face_text_bbox(game_drawstate *ds, grid *g, grid_face *f,
+                           int *x, int *y, int *w, int *h)
+{
+    int xx, yy;
+    face_text_pos(ds, g, f, &xx, &yy);
+
+    /* There seems to be a certain amount of trial-and-error involved
+     * in working out the correct bounding-box for the text. */
+
+    *x = xx - ds->tilesize/4 - 1;
+    *y = yy - ds->tilesize/4 - 3;
+    *w = ds->tilesize/2 + 2;
+    *h = ds->tilesize/2 + 5;
 }
 
 static void game_redraw_clue(drawing *dr, game_drawstate *ds,
@@ -3562,10 +3693,14 @@ static void game_redraw_clue(drawing *dr, game_drawstate *ds,
     grid *g = state->game_grid;
     grid_face *f = g->faces + i;
     int x, y;
-    char c[2];
+    char c[3];
 
-    c[0] = CLUE2CHAR(state->clues[i]);
-    c[1] = '\0';
+    if (state->clues[i] < 10) {
+        c[0] = CLUE2CHAR(state->clues[i]);
+        c[1] = '\0';
+    } else {
+        sprintf(c, "%d", state->clues[i]);
+    }
 
     face_text_pos(ds, g, f, &x, &y);
     draw_text(dr, x, y,
@@ -3575,13 +3710,53 @@ static void game_redraw_clue(drawing *dr, game_drawstate *ds,
 	      ds->clue_satisfied[i] ? COL_SATISFIED : COL_FOREGROUND, c);
 }
 
+static void edge_bbox(game_drawstate *ds, grid *g, grid_edge *e,
+                      int *x, int *y, int *w, int *h)
+{
+    int x1 = e->dot1->x;
+    int y1 = e->dot1->y;
+    int x2 = e->dot2->x;
+    int y2 = e->dot2->y;
+    int xmin, xmax, ymin, ymax;
+
+    grid_to_screen(ds, g, x1, y1, &x1, &y1);
+    grid_to_screen(ds, g, x2, y2, &x2, &y2);
+    /* Allow extra margin for dots, and thickness of lines */
+    xmin = min(x1, x2) - 2;
+    xmax = max(x1, x2) + 2;
+    ymin = min(y1, y2) - 2;
+    ymax = max(y1, y2) + 2;
+
+    *x = xmin;
+    *y = ymin;
+    *w = xmax - xmin + 1;
+    *h = ymax - ymin + 1;
+}
+
+static void dot_bbox(game_drawstate *ds, grid *g, grid_dot *d,
+                     int *x, int *y, int *w, int *h)
+{
+    int x1, y1;
+
+    grid_to_screen(ds, g, d->x, d->y, &x1, &y1);
+
+    *x = x1 - 2;
+    *y = y1 - 2;
+    *w = 5;
+    *h = 5;
+}
+
+static const int loopy_line_redraw_phases[] = {
+    COL_FAINT, COL_LINEUNKNOWN, COL_FOREGROUND, COL_HIGHLIGHT, COL_MISTAKE
+};
+#define NPHASES lenof(loopy_line_redraw_phases)
+
 static void game_redraw_line(drawing *dr, game_drawstate *ds,
-			     game_state *state, int i)
+			     game_state *state, int i, int phase)
 {
     grid *g = state->game_grid;
     grid_edge *e = g->edges + i;
     int x1, x2, y1, y2;
-    int xmin, ymin, xmax, ymax;
     int line_colour;
 
     if (state->line_errors[i])
@@ -3594,15 +3769,12 @@ static void game_redraw_line(drawing *dr, game_drawstate *ds,
 	line_colour = COL_HIGHLIGHT;
     else
 	line_colour = COL_FOREGROUND;
+    if (line_colour != loopy_line_redraw_phases[phase])
+        return;
 
     /* Convert from grid to screen coordinates */
     grid_to_screen(ds, g, e->dot1->x, e->dot1->y, &x1, &y1);
     grid_to_screen(ds, g, e->dot2->x, e->dot2->y, &x2, &y2);
-
-    xmin = min(x1, x2);
-    xmax = max(x1, x2);
-    ymin = min(y1, y2);
-    ymax = max(y1, y2);
 
     if (line_colour == COL_FAINT) {
 	static int draw_faint_lines = -1;
@@ -3631,6 +3803,51 @@ static void game_redraw_dot(drawing *dr, game_drawstate *ds,
 
     grid_to_screen(ds, g, d->x, d->y, &x, &y);
     draw_circle(dr, x, y, 2, dot_colour, dot_colour);
+}
+
+static int boxes_intersect(int x0, int y0, int w0, int h0,
+                           int x1, int y1, int w1, int h1)
+{
+    /*
+     * Two intervals intersect iff neither is wholly on one side of
+     * the other. Two boxes intersect iff their horizontal and
+     * vertical intervals both intersect.
+     */
+    return (x0 < x1+w1 && x1 < x0+w0 && y0 < y1+h1 && y1 < y0+h0);
+}
+
+static void game_redraw_in_rect(drawing *dr, game_drawstate *ds,
+                                game_state *state, int x, int y, int w, int h)
+{
+    grid *g = state->game_grid;
+    int i, phase;
+    int bx, by, bw, bh;
+
+    clip(dr, x, y, w, h);
+    draw_rect(dr, x, y, w, h, COL_BACKGROUND);
+
+    for (i = 0; i < g->num_faces; i++) {
+        if (state->clues[i] >= 0) {
+            face_text_bbox(ds, g, &g->faces[i], &bx, &by, &bw, &bh);
+            if (boxes_intersect(x, y, w, h, bx, by, bw, bh))
+                game_redraw_clue(dr, ds, state, i);
+        }
+    }
+    for (phase = 0; phase < NPHASES; phase++) {
+        for (i = 0; i < g->num_edges; i++) {
+            edge_bbox(ds, g, &g->edges[i], &bx, &by, &bw, &bh);
+            if (boxes_intersect(x, y, w, h, bx, by, bw, bh))
+                game_redraw_line(dr, ds, state, i, phase);
+        }
+    }
+    for (i = 0; i < g->num_dots; i++) {
+        dot_bbox(ds, g, &g->dots[i], &bx, &by, &bw, &bh);
+        if (boxes_intersect(x, y, w, h, bx, by, bw, bh))
+            game_redraw_dot(dr, ds, state, i);
+    }
+
+    unclip(dr);
+    draw_update(dr, x, y, w, h);
 }
 
 static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
@@ -3756,99 +3973,31 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
     }
 
     if (redraw_everything) {
-
-	/* This is the unsubtle version. */
-
         int grid_width = g->highest_x - g->lowest_x;
         int grid_height = g->highest_y - g->lowest_y;
         int w = grid_width * ds->tilesize / g->tilesize;
         int h = grid_height * ds->tilesize / g->tilesize;
 
-	draw_rect(dr, 0, 0, w + 2*border + 1, h + 2*border + 1,
-		  COL_BACKGROUND);
-
-	for (i = 0; i < g->num_faces; i++)
-	    game_redraw_clue(dr, ds, state, i);
-	for (i = 0; i < g->num_edges; i++)
-	    game_redraw_line(dr, ds, state, i);
-	for (i = 0; i < g->num_dots; i++)
-	    game_redraw_dot(dr, ds, state, i, i==cur1 || i==cur2);
-
-	draw_update(dr, 0, 0, w + 2*border + 1, h + 2*border + 1);
+        game_redraw_in_rect(dr, ds, state,
+                            0, 0, w + 2*border + 1, h + 2*border + 1);
     } else {
 
 	/* Right.  Now we roll up our sleeves. */
 
 	for (i = 0; i < nfaces; i++) {
 	    grid_face *f = g->faces + faces[i];
-	    int xx, yy;
 	    int x, y, w, h;
-	    int j;
 
-	    /* There seems to be a certain amount of trial-and-error
-	     * involved in working out the correct bounding-box for
-	     * the text. */
-	    face_text_pos(ds, g, f, &xx, &yy);
-
-	    x = xx - ds->tilesize/4 - 1; w = ds->tilesize/2 + 2;
-	    y = yy - ds->tilesize/4 - 3; h = ds->tilesize/2 + 5;
-	    clip(dr, x, y, w, h);
-	    draw_rect(dr, x, y, w, h, COL_BACKGROUND);
-
-	    game_redraw_clue(dr, ds, state, faces[i]);
-	    for (j = 0; j < f->order; j++)
-		game_redraw_line(dr, ds, state, f->edges[j] - g->edges);
-	    for (j = 0; j < f->order; j++) {
-		int d = f->dots[j] - g->dots;
-		game_redraw_dot(dr, ds, state, d, d==cur1 || d==cur2);
-	    }
-	    unclip(dr);
-	    draw_update(dr, x, y, w, h);
+            face_text_bbox(ds, g, f, &x, &y, &w, &h);
+            game_redraw_in_rect(dr, ds, state, x, y, w, h);
 	}
 
 	for (i = 0; i < nedges; i++) {
-	    grid_edge *e = g->edges + edges[i], *ee;
-	    int x1 = e->dot1->x;
-	    int y1 = e->dot1->y;
-	    int x2 = e->dot2->x;
-	    int y2 = e->dot2->y;
-	    int xmin, xmax, ymin, ymax;
-	    int j;
+	    grid_edge *e = g->edges + edges[i];
+            int x, y, w, h;
 
-	    grid_to_screen(ds, g, x1, y1, &x1, &y1);
-	    grid_to_screen(ds, g, x2, y2, &x2, &y2);
-	    /* Allow extra margin for dots, and thickness of lines */
-	    xmin = min(x1, x2) - 2;
-	    xmax = max(x1, x2) + 2;
-	    ymin = min(y1, y2) - 2;
-	    ymax = max(y1, y2) + 2;
-	    /* For testing, I find it helpful to change COL_BACKGROUND
-	     * to COL_SATISFIED here. */
-	    clip(dr, xmin, ymin, xmax - xmin + 1, ymax - ymin + 1);
-	    draw_rect(dr, xmin, ymin, xmax - xmin + 1, ymax - ymin + 1,
-		      COL_BACKGROUND);
-
-	    if (e->face1)
-		game_redraw_clue(dr, ds, state, e->face1 - g->faces);
-	    if (e->face2)
-		game_redraw_clue(dr, ds, state, e->face2 - g->faces);
-
-	    game_redraw_line(dr, ds, state, edges[i]);
-	    for (j = 0; j < e->dot1->order; j++) {
-		ee = e->dot1->edges[j];
-		if (ee != e)
-		    game_redraw_line(dr, ds, state, ee - g->edges);
-	    }
-	    for (j = 0; j < e->dot2->order; j++) {
-		ee = e->dot2->edges[j];
-		if (ee != e)
-		    game_redraw_line(dr, ds, state, ee - g->edges);
-	    }
-	    game_redraw_dot(dr, ds, state, e->dot1 - g->dots, e == cur_edge);
-	    game_redraw_dot(dr, ds, state, e->dot2 - g->dots, e == cur_edge);
-
-	    unclip(dr);
-	    draw_update(dr, xmin, ymin, xmax - xmin + 1, ymax - ymin + 1);
+            edge_bbox(ds, g, e, &x, &y, &w, &h);
+            game_redraw_in_rect(dr, ds, state, x, y, w, h);
 	}
     }
 
@@ -3886,6 +4035,11 @@ static float game_flash_length(game_state *oldstate, game_state *newstate,
     return 0.0F;
 }
 
+static int game_status(game_state *state)
+{
+    return state->solved ? +1 : 0;
+}
+
 #ifndef NO_PRINTING
 static void game_print_size(game_params *params, float *x, float *y)
 {
@@ -3907,6 +4061,10 @@ static void game_print(drawing *dr, game_state *state, int tilesize)
     grid *g = state->game_grid;
 
     ds->tilesize = tilesize;
+    ds->textx = snewn(g->num_faces, int);
+    ds->texty = snewn(g->num_faces, int);
+    for (i = 0; i < g->num_faces; i++)
+        ds->textx[i] = ds->texty[i] = -1;
 
     for (i = 0; i < g->num_dots; i++) {
         int x, y;
@@ -3976,6 +4134,9 @@ static void game_print(drawing *dr, game_state *state, int tilesize)
             }
         }
     }
+
+    sfree(ds->textx);
+    sfree(ds->texty);
 }
 #endif
 
@@ -4014,6 +4175,7 @@ const struct game thegame = {
     game_redraw,
     game_anim_length,
     game_flash_length,
+    game_status,
 #ifndef NO_PRINTING
     TRUE, FALSE, game_print_size, game_print,
 #endif
@@ -4148,3 +4310,5 @@ int main(int argc, char **argv)
 }
 
 #endif
+
+/* vim: set shiftwidth=4 tabstop=8: */

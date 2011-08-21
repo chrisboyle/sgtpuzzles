@@ -830,6 +830,24 @@ static void solver_place(struct solver_usage *usage, int x, int y, int n)
     }
 }
 
+#if defined STANDALONE_SOLVER && defined __GNUC__
+/*
+ * Forward-declare the functions taking printf-like format arguments
+ * with __attribute__((format)) so as to ensure the argument syntax
+ * gets debugged.
+ */
+struct solver_scratch;
+static int solver_elim(struct solver_usage *usage, int *indices,
+                       char *fmt, ...) __attribute__((format(printf,3,4)));
+static int solver_intersect(struct solver_usage *usage,
+                            int *indices1, int *indices2, char *fmt, ...)
+    __attribute__((format(printf,4,5)));
+static int solver_set(struct solver_usage *usage,
+                      struct solver_scratch *scratch,
+                      int *indices, char *fmt, ...)
+    __attribute__((format(printf,4,5)));
+#endif
+
 static int solver_elim(struct solver_usage *usage, int *indices
 #ifdef STANDALONE_SOLVER
                        , char *fmt, ...
@@ -2239,7 +2257,7 @@ static void solver(int cr, struct block_structure *blocks,
 #ifdef STANDALONE_SOLVER
                                           , "intersectional analysis,"
                                           " %d in \\-diagonal vs block %s",
-                                          n, 1+x, usage->blocks->blocknames[b]
+                                          n, usage->blocks->blocknames[b]
 #endif
                                           ) ||
                          solver_intersect(usage, scratch->indexlist2,
@@ -2247,7 +2265,7 @@ static void solver(int cr, struct block_structure *blocks,
 #ifdef STANDALONE_SOLVER
                                           , "intersectional analysis,"
                                           " %d in block %s vs \\-diagonal",
-                                          n, usage->blocks->blocknames[b], 1+x
+                                          n, usage->blocks->blocknames[b]
 #endif
                                           )) {
                         diff = max(diff, DIFF_INTERSECT);
@@ -2272,7 +2290,7 @@ static void solver(int cr, struct block_structure *blocks,
 #ifdef STANDALONE_SOLVER
                                           , "intersectional analysis,"
                                           " %d in /-diagonal vs block %s",
-                                          n, 1+x, usage->blocks->blocknames[b]
+                                          n, usage->blocks->blocknames[b]
 #endif
                                           ) ||
                          solver_intersect(usage, scratch->indexlist2,
@@ -2280,7 +2298,7 @@ static void solver(int cr, struct block_structure *blocks,
 #ifdef STANDALONE_SOLVER
                                           , "intersectional analysis,"
                                           " %d in block %s vs /-diagonal",
-                                          n, usage->blocks->blocknames[b], 1+x
+                                          n, usage->blocks->blocknames[b]
 #endif
                                           )) {
                         diff = max(diff, DIFF_INTERSECT);
@@ -5264,6 +5282,11 @@ static float game_flash_length(game_state *oldstate, game_state *newstate,
     return 0.0F;
 }
 
+static int game_status(game_state *state)
+{
+    return state->completed ? +1 : 0;
+}
+
 static int game_timing_state(game_state *state, game_ui *ui)
 {
     if (state->completed)
@@ -5585,6 +5608,7 @@ const struct game thegame = {
     game_redraw,
     game_anim_length,
     game_flash_length,
+    game_status,
 #ifndef NO_PRINTING
     TRUE, FALSE, game_print_size, game_print,
 #endif

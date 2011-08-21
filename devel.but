@@ -1224,6 +1224,34 @@ a mine from the colour it uses when you complete the game. In order
 to achieve this, its \cw{flash_length()} function has to store a
 flag in the \c{game_ui} to indicate which flash type is required.)
 
+\S{backend-status} \cw{status()}
+
+\c int (*status)(game_state *state);
+
+This function returns a status value indicating whether the current
+game is still in play, or has been won, or has been conclusively lost.
+The mid-end uses this to implement \cw{midend_status()}
+(\k{midend-status}).
+
+The return value should be +1 if the game has been successfully
+solved. If the game has been lost in a situation where further play is
+unlikely, the return value should be -1. If neither is true (so play
+is still ongoing), return zero.
+
+Front ends may wish to use a non-zero status as a cue to proactively
+offer the option of starting a new game. Therefore, back ends should
+not return -1 if the game has been \e{technically} lost but undoing
+and continuing is still a realistic possibility.
+
+(For instance, games with hidden information such as Guess or Mines
+might well return a non-zero status whenever they reveal the solution,
+whether or not the player guessed it correctly, on the grounds that a
+player would be unlikely to hide the solution and continue playing
+after the answer was spoiled. On the other hand, games where you can
+merely get into a dead end such as Same Game or Inertia might choose
+to return 0 in that situation, on the grounds that the player would
+quite likely press Undo and carry on playing.)
+
 \S{backend-redraw} \cw{redraw()}
 
 \c void (*redraw)(drawing *dr, game_drawstate *ds,
@@ -3095,6 +3123,38 @@ user.
 The front end can expect its drawing API and/or
 \cw{activate_timer()} to be called from within a call to this
 function.
+
+\H{midend-status} \cw{midend_status()}
+
+\c int midend_status(midend *me);
+
+This function returns +1 if the midend is currently displaying a game
+in a solved state, -1 if the game is in a permanently lost state, or 0
+otherwise. This function just calls the back end's \cw{status()}
+function. Front ends may wish to use this as a cue to proactively
+offer the option of starting a new game.
+
+(See \k{backend-status} for more detail about the back end's
+\cw{status()} function and discussion of what should count as which
+status code.)
+
+\H{midend-can-undo} \cw{midend_can_undo()}
+
+\c int midend_can_undo(midend *me);
+
+Returns \cw{TRUE} if the midend is currently in a state where the undo
+operation is meaningful (i.e. at least one position exists on the undo
+chain before the present one). Front ends may wish to use this to
+visually activate and deactivate an undo button.
+
+\H{midend-can-redo} \cw{midend_can_redo()}
+
+\c int midend_can_redo(midend *me);
+
+Returns \cw{TRUE} if the midend is currently in a state where the redo
+operation is meaningful (i.e. at least one position exists on the redo
+chain after the present one). Front ends may wish to use this to
+visually activate and deactivate a redo button.
 
 \H{midend-serialise} \cw{midend_serialise()}
 

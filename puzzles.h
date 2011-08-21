@@ -263,6 +263,9 @@ char *midend_get_game_id(midend *me);
 int midend_can_format_as_text_now(midend *me);
 char *midend_text_format(midend *me);
 char *midend_solve(midend *me);
+int midend_status(midend *me);
+int midend_can_undo(midend *me);
+int midend_can_redo(midend *me);
 void midend_supersede_game_desc(midend *me, char *desc, char *privdesc);
 char *midend_rewrite_statusbar(midend *me, char *text);
 void midend_serialise(midend *me,
@@ -486,6 +489,7 @@ struct game {
 			 game_ui *ui);
     float (*flash_length)(game_state *oldstate, game_state *newstate, int dir,
 			  game_ui *ui);
+    int (*status)(game_state *state);
 #ifndef NO_PRINTING
     int can_print, can_print_in_colour;
     void (*print_size)(game_params *params, float *x, float *y);

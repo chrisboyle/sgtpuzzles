@@ -513,7 +513,6 @@ static int island_impossible(struct island *is, int strict)
 {
     int curr = island_countbridges(is), nspc = is->count - curr, nsurrspc;
     int i, poss;
-    grid_type v;
     struct island *is_orth;
 
     if (nspc < 0) {
@@ -533,7 +532,6 @@ static int island_impossible(struct island *is, int strict)
         int ifree, dx = is->adj.points[i].dx;
 
         if (!is->adj.points[i].off) continue;
-        v = GRID(is->state, is->adj.points[i].x, is->adj.points[i].y);
         poss = POSSIBLES(is->state, dx,
                          is->adj.points[i].x, is->adj.points[i].y);
         if (poss == 0) continue;
@@ -2727,6 +2725,11 @@ static float game_flash_length(game_state *oldstate, game_state *newstate,
     return 0.0F;
 }
 
+static int game_status(game_state *state)
+{
+    return state->completed ? +1 : 0;
+}
+
 static int game_timing_state(game_state *state, game_ui *ui)
 {
     return TRUE;
@@ -2748,7 +2751,7 @@ static void game_print(drawing *dr, game_state *state, int ts)
     int ink = print_mono_colour(dr, 0);
     int paper = print_mono_colour(dr, 1);
     int x, y, cx, cy, i, nl;
-    int loff = ts/8;
+    int loff;
     grid_type grid;
 
     /* Ick: fake up `ds->tilesize' for macro expansion purposes */
@@ -2758,6 +2761,7 @@ static void game_print(drawing *dr, game_state *state, int ts)
     /* I don't think this wants a border. */
 
     /* Bridges */
+    loff = ts / (8 * sqrt((state->params.maxb - 1)));
     print_line_width(dr, ts / 12);
     for (x = 0; x < state->w; x++) {
         for (y = 0; y < state->h; y++) {
@@ -2767,20 +2771,14 @@ static void game_print(drawing *dr, game_state *state, int ts)
 
             if (grid & G_ISLAND) continue;
             if (grid & G_LINEV) {
-                if (nl > 1) {
-                    draw_line(dr, cx+ts/2-loff, cy, cx+ts/2-loff, cy+ts, ink);
-                    draw_line(dr, cx+ts/2+loff, cy, cx+ts/2+loff, cy+ts, ink);
-                } else {
-                    draw_line(dr, cx+ts/2,      cy, cx+ts/2,      cy+ts, ink);
-                }
+                for (i = 0; i < nl; i++)
+                    draw_line(dr, cx+ts/2+(2*i-nl+1)*loff, cy,
+                              cx+ts/2+(2*i-nl+1)*loff, cy+ts, ink);
             }
             if (grid & G_LINEH) {
-                if (nl > 1) {
-                    draw_line(dr, cx, cy+ts/2-loff, cx+ts, cy+ts/2-loff, ink);
-                    draw_line(dr, cx, cy+ts/2+loff, cx+ts, cy+ts/2+loff, ink);
-                } else {
-                    draw_line(dr, cx, cy+ts/2,      cx+ts,      cy+ts/2, ink);
-                }
+                for (i = 0; i < nl; i++)
+                    draw_line(dr, cx, cy+ts/2+(2*i-nl+1)*loff,
+                              cx+ts, cy+ts/2+(2*i-nl+1)*loff, ink);
             }
         }
     }
@@ -2837,6 +2835,7 @@ const struct game thegame = {
     game_redraw,
     game_anim_length,
     game_flash_length,
+    game_status,
 #ifndef NO_PRINTING
     TRUE, FALSE, game_print_size, game_print,
 #endif

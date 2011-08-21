@@ -1739,6 +1739,11 @@ static float game_flash_length(game_state *oldstate, game_state *newstate,
     return 0.0F;
 }
 
+static int game_status(game_state *state)
+{
+    return state->completed ? +1 : 0;
+}
+
 static int game_timing_state(game_state *state, game_ui *ui)
 {
     return TRUE;
@@ -1827,6 +1832,7 @@ const struct game thegame = {
     game_redraw,
     game_anim_length,
     game_flash_length,
+    game_status,
 #ifndef NO_PRINTING
     TRUE, FALSE, game_print_size, game_print,
 #endif

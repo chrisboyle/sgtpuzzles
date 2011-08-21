@@ -49,7 +49,7 @@
 
 #define setmember(obj, field) ( (obj) . field = field )
 
-char *nfmtstr(int n, char *fmt, ...) {
+static char *nfmtstr(int n, char *fmt, ...) {
     va_list va;
     char *ret = snewn(n+1, char);
     va_start(va, fmt);
@@ -83,7 +83,7 @@ struct game_state {
 };
 
 #define DEFAULT_PRESET 0
-static struct game_params presets[] = {{9, 6}, {12, 8}, {13, 9}, {16, 11}};
+static struct game_params range_presets[] = {{9, 6}, {12, 8}, {13, 9}, {16, 11}};
 /* rationale: I want all four combinations of {odd/even, odd/even}, as
  * they play out differently with respect to two-way symmetry.  I also
  * want them to be generated relatively fast yet still be large enough
@@ -95,7 +95,7 @@ static struct game_params presets[] = {{9, 6}, {12, 8}, {13, 9}, {16, 11}};
 static game_params *default_params(void)
 {
     game_params *ret = snew(game_params);
-    *ret = presets[DEFAULT_PRESET]; /* structure copy */
+    *ret = range_presets[DEFAULT_PRESET]; /* structure copy */
     return ret;
 }
 
@@ -108,10 +108,15 @@ static game_params *dup_params(game_params *params)
 
 static int game_fetch_preset(int i, char **name, game_params **params)
 {
-    if (i < 0 || i >= lenof(presets)) return FALSE;
+    game_params *ret;
 
-    *name = nfmtstr(40, "%d x %d", presets[i].w, presets[i].h);
-    *params = dup_params(&presets[i]);
+    if (i < 0 || i >= lenof(range_presets)) return FALSE;
+
+    ret = default_params();
+    *ret = range_presets[i]; /* struct copy */
+    *params = ret;
+
+    *name = nfmtstr(40, "%d x %d", range_presets[i].w, range_presets[i].h);
 
     return TRUE;
 }
@@ -333,19 +338,19 @@ static move *solve_internal(game_state *state, move *base, int diff)
     return moves;
 }
 
+static reasoning *const reasonings[] = {
+    solver_reasoning_not_too_big,
+    solver_reasoning_adjacency,
+    solver_reasoning_connectedness,
+    solver_reasoning_recursion
+};
+
 static move *do_solve(game_state *state,
                       int nclues,
                       const square *clues,
                       move *move_buffer,
                       int difficulty)
 {
-    reasoning *reasonings[] = {
-	solver_reasoning_not_too_big,
-	solver_reasoning_adjacency,
-	solver_reasoning_connectedness,
-	solver_reasoning_recursion
-    };
-
     struct move *buf = move_buffer, *oldbuf;
     int i;
 
@@ -1480,6 +1485,11 @@ static float game_flash_length(game_state *from, game_state *to,
     return 0.0F;
 }
 
+static int game_status(game_state *state)
+{
+    return state->was_solved ? +1 : 0;
+}
+
 /* ----------------------------------------------------------------------
  * Drawing routines.
  */
@@ -1729,6 +1739,7 @@ struct game const thegame = {
     game_redraw,
     game_anim_length,
     game_flash_length,
+    game_status,
 #ifndef NO_PRINTING
     TRUE, FALSE, game_print_size, game_print,
 #endif

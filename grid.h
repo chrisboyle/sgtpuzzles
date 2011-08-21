@@ -9,6 +9,8 @@
 #ifndef PUZZLES_GRID_H
 #define PUZZLES_GRID_H
 
+#include "puzzles.h" /* for random_state */
+
 /* Useful macros */
 #define SQ(x) ( (x) * (x) )
 
@@ -34,6 +36,22 @@ struct grid_face {
   int order; /* Number of edges, also the number of dots */
   grid_edge **edges; /* edges around this face */
   grid_dot **dots; /* corners of this face */
+  /*
+   * For each face, we optionally compute and store its 'incentre'.
+   * The incentre of a triangle is the centre of a circle tangent to
+   * all three edges; I generalise the concept to arbitrary polygons
+   * by defining it to be the centre of the largest circle you can fit
+   * anywhere in the polygon. It's a useful thing to know because if
+   * you want to draw any symbol or text in the face (e.g. clue
+   * numbers in Loopy), that's the place it will most easily fit.
+   *
+   * When a grid is first generated, no face has this information
+   * computed, because it's fiddly to do. You can call
+   * grid_find_incentre() on a face, and it will fill in ix,iy below
+   * and set has_incentre to indicate that it's done so.
+   */
+  int has_incentre;
+  int ix, iy;      /* incentre (centre of largest inscribed circle) */
 };
 struct grid_edge {
   grid_dot *dot1, *dot2;
@@ -57,11 +75,6 @@ typedef struct grid {
   int num_edges; grid_edge *edges;
   int num_dots;  grid_dot *dots;
 
-  /* Should be a face roughly near the middle of the grid.
-   * Used to seed path-generation, and also for nearest-edge
-   * detection. */
-  grid_face *middle_face;
-
   /* Cache the bounding-box of the grid, so the drawing-code can quickly
    * figure out the proper scaling to draw onto a given area. */
   int lowest_x, lowest_y, highest_x, highest_y;
@@ -78,17 +91,41 @@ typedef struct grid {
   int refcount;
 } grid;
 
-grid *grid_new_square(int width, int height);
-grid *grid_new_honeycomb(int width, int height);
-grid *grid_new_triangular(int width, int height);
-grid *grid_new_snubsquare(int width, int height);
-grid *grid_new_cairo(int width, int height);
-grid *grid_new_greathexagonal(int width, int height);
-grid *grid_new_octagonal(int width, int height);
-grid *grid_new_kites(int width, int height);
+/* Grids are specified by type: GRID_SQUARE, GRID_KITE, etc. */
+
+#define GRIDGEN_LIST(A) \
+  A(SQUARE,square) \
+  A(HONEYCOMB,honeycomb) \
+  A(TRIANGULAR,triangular) \
+  A(SNUBSQUARE,snubsquare) \
+  A(CAIRO,cairo) \
+  A(GREATHEXAGONAL,greathexagonal) \
+  A(OCTAGONAL,octagonal) \
+  A(KITE,kites) \
+  A(FLORET,floret) \
+  A(DODECAGONAL,dodecagonal) \
+  A(GREATDODECAGONAL,greatdodecagonal) \
+  A(PENROSE_P2,penrose_p2_kite) \
+  A(PENROSE_P3,penrose_p3_thick)
+
+#define ENUM(upper,lower) GRID_ ## upper,
+typedef enum grid_type { GRIDGEN_LIST(ENUM) GRID_TYPE_MAX } grid_type;
+#undef ENUM
+
+/* Free directly after use if non-NULL. Will never contain an underscore
+ * (so clients can safely use that as a separator). */
+char *grid_new_desc(grid_type type, int width, int height, random_state *rs);
+char *grid_validate_desc(grid_type type, int width, int height, char *desc);
+
+grid *grid_new(grid_type type, int width, int height, char *desc);
 
 void grid_free(grid *g);
 
 grid_edge *grid_nearest_edge(grid *g, int x, int y);
+
+void grid_compute_size(grid_type type, int width, int height,
+                       int *tilesize, int *xextent, int *yextent);
+
+void grid_find_incentre(grid_face *f);
 
 #endif /* PUZZLES_GRID_H */

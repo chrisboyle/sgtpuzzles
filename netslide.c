@@ -1072,7 +1072,7 @@ static char *interpret_move(game_state *state, game_ui *ui,
 			    game_drawstate *ds, int x, int y, int button)
 {
     int cx, cy;
-    int n, dx, dy;
+    int dx, dy;
     char buf[80];
 
     button &= ~MOD_MASK;
@@ -1114,7 +1114,6 @@ static char *interpret_move(game_state *state, game_ui *ui,
         if (cx == -1) dx = +1;
         else if (cx == state->width) dx = -1;
         else return NULL;
-        n = state->width;
         dy = 0;
     }
     else if (cx >= 0 && cx < state->width && cx != state->cx)
@@ -1122,7 +1121,6 @@ static char *interpret_move(game_state *state, game_ui *ui,
         if (cy == -1) dy = +1;
         else if (cy == state->height) dy = -1;
         else return NULL;
-        n = state->height;
         dx = 0;
     }
     else
@@ -1598,7 +1596,7 @@ static void draw_arrow_for_cursor(drawing *dr, game_drawstate *ds,
 static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
                  game_state *state, int dir, game_ui *ui, float t, float ft)
 {
-    int x, y, tx, ty, frame;
+    int x, y, frame;
     unsigned char *active;
     float xshift = 0.0;
     float yshift = 0.0;
@@ -1690,7 +1688,6 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
         t = ANIM_TIME - t;
     }
 
-    tx = ty = -1;
     if (oldstate && (t < ANIM_TIME)) {
         /*
          * We're animating a slide, of row/column number
@@ -1849,6 +1846,11 @@ static float game_flash_length(game_state *oldstate,
     return 0.0F;
 }
 
+static int game_status(game_state *state)
+{
+    return state->completed ? +1 : 0;
+}
+
 static int game_timing_state(game_state *state, game_ui *ui)
 {
     return FALSE;
@@ -1899,6 +1901,7 @@ const struct game thegame = {
     game_redraw,
     game_anim_length,
     game_flash_length,
+    game_status,
 #ifndef NO_PRINTING
     FALSE, FALSE, game_print_size, game_print,
 #endif
