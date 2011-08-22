@@ -1427,14 +1427,14 @@ if (defined $makefiles{"android"}) {
     "# Version number\n".
     "VER ?= -DREVISION=\"`grep versionName android/AndroidManifest.xml |sed 's/.*\\\"\\(.*\\)\\\".*/\\1/'`\"\n".
     "# This path points at the Native Development Kit root directory\n".
-    "ANDROID_NDK ?= /opt/android-ndk-r4b\n".
+    "ANDROID_NDK ?= /opt/android-ndk-r6\n".
     "# This should be the Android SDK root directory\n".
     "ANDROID ?= /opt/android-sdk-linux\n".
     "# You can define this path to point at your tools if you need to\n".
-    "TOOLPATH = \$(ANDROID_NDK)/build/prebuilt/linux-x86/arm-eabi-4.4.0/bin\n".
-    "CC = \$(TOOLPATH)/arm-eabi-gcc\n".
+    "TOOLPATH = \$(ANDROID_NDK)/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin\n".
+    "CC = \$(TOOLPATH)/arm-linux-androideabi-gcc\n".
     &splitline("CFLAGS = -O2 -Wall -Werror -DSLOW_SYSTEM -DANDROID -DNO_PRINTING -g " .
-	       "-I\$(ANDROID_NDK)/build/platforms/android-3/arch-arm/usr/include " .
+	       "-I\$(ANDROID_NDK)/platforms/android-3/arch-arm/usr/include " .
 	       "-march=armv5te -mtune=xscale -msoft-float -fpic -mthumb-interwork " .
 	       "-ffunction-sections -funwind-tables -fstack-protector " .
 	       "-fno-short-enums -D__ARM_ARCH_5__ -D__ARM_ARCH_5T__ " .
@@ -1463,11 +1463,11 @@ if (defined $makefiles{"android"}) {
         "\tmkdir -p android/lib/armeabi/\n" .
         "\t\$(CC) -nostdlib -Wl,-soname,\$@ -Wl,-shared,-Bsymbolic " .
         "-Wl,--whole-archive  -Wl,--no-whole-archive -Wl,--no-undefined " .
-        "-Wl,-rpath-link=\$(ANDROID_NDK)/build/platforms/android-3/arch-arm/usr/lib " .
-        "-o \$@ \$^ \$(ANDROID_NDK)/build/platforms/android-3/arch-arm/usr/lib/libc.so " .
-        "\$(ANDROID_NDK)/build/platforms/android-3/arch-arm/usr/lib/libm.so\n";
+        "-Wl,-rpath-link=\$(ANDROID_NDK)/platforms/android-3/arch-arm/usr/lib " .
+        "-o \$@ \$^ \$(ANDROID_NDK)/platforms/android-3/arch-arm/usr/lib/libc.so " .
+        "\$(ANDROID_NDK)/platforms/android-3/arch-arm/usr/lib/libm.so\n";
       print "\tcp \$@ libpuzzles.so.unstripped\n";
-      print "\t\$(ANDROID_NDK)/build/prebuilt/linux-x86/arm-eabi-4.4.0/bin/arm-eabi-strip -v --strip-debug \$@\n\n";
+      print "\t\$(ANDROID_NDK)/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/bin/arm-linux-androideabi-strip -v --strip-debug \$@\n\n";
     }
     foreach $d (&deps("X.o", undef, $dirpfx, "/")) {
       $oobjs = $d->{obj};

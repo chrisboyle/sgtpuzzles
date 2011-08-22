@@ -380,6 +380,11 @@
   <string name="Great_Hexagonal">大六边形的</string> 
   <string name="Octagonal">八边形的</string> 
   <string name="Kites">风筝形</string> 
+  <string name="Floret">Floret</string>
+  <string name="Dodecagonal">Dodecagonal</string>
+  <string name="Great_Dodecagonal">Great-Dodecagonal</string>
+  <string name="Penrose_kite_dart">Penrose (kite/dart)</string>
+  <string name="Penrose_rhombs">Penrose (rhombs)</string>
   <string name="Illegal_grid_type">不和规定的网格型</string> 
   <string name="Width_and_height_for_this_grid_type_must_both_be_at_least_X">这个网格型的宽度和高度都必须至少为 %d</string> 
   <string name="At_least_one_of_width_and_height_for_this_grid_type_must_be_at_least_X">此网格型的宽度和高度中至少有一个必须至少为 %d</string> 

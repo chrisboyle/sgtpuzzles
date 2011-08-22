@@ -375,6 +375,11 @@ Revision: %s"</string>
     <string name="Great_Hexagonal">Groß-hexagonal</string>
     <string name="Octagonal">Oktagonal</string>
     <string name="Kites">Drachenviereckig</string>
+    <string name="Floret">Blümchen</string>
+    <string name="Dodecagonal">Dodekagonal</string>
+    <string name="Great_Dodecagonal">Groß-dodekagonal</string>
+    <string name="Penrose_kite_dart">Penrose (Drachen/Pfeil)</string>
+    <string name="Penrose_rhombs">Penrose (Rhombus)</string>
     <string name="Illegal_grid_type">Ungültige Gitterart</string>
     <string name="Width_and_height_for_this_grid_type_must_both_be_at_least_X">Breite und Höhe müssen für diese Gitterart mindestens %d sein</string>
     <string name="At_least_one_of_width_and_height_for_this_grid_type_must_be_at_least_X">Entweder Breite oder Höhe muss für diese Gitterart mindestens %d sein</string>

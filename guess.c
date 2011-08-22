@@ -333,7 +333,7 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
     sfree(bmp);
 
     memset(state->holds, 0, sizeof(int) * params->npegs);
-    state->next_go = state->solved = state->cheated = 0;
+    state->next_go = state->solved = 0;
 
     return state;
 }
@@ -508,7 +508,7 @@ static void game_changed_state(game_ui *ui, game_state *oldstate,
     if (!ui->markable && ui->peg_cur == newstate->solution->npegs)
 	ui->peg_cur--;
 #ifdef ANDROID
-    if (newstate->solved && ! newstate->cheated && oldstate && ! oldstate->solved && newstate->next_go < newstate->params.nguesses) android_completed();
+    if (newstate->solved > 0 && oldstate && ! oldstate->solved && newstate->next_go < newstate->params.nguesses) android_completed();
 #endif
 }
 

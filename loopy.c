@@ -825,11 +825,9 @@ struct game_ui {
 static game_ui *new_ui(game_state *state)
 {
     grid *g = state->game_grid;
-    grid_edge *e = g->middle_face->edges[0]; /* an edge on the middle face. */
-
     game_ui *ui = snew(game_ui);
-    ui->cur_x = (e->dot1->x + e->dot2->x)/2; /* cursor starts in the middle... */
-    ui->cur_y = (e->dot1->y + e->dot2->y)/2; /* ... of that edge. */
+    ui->cur_x = (g->lowest_x + g->highest_x)/2;
+    ui->cur_y = (g->lowest_y + g->highest_y)/2;
     ui->cur_visible = 0;
     return ui;
 }
@@ -2667,8 +2665,10 @@ static int trivial_deductions(solver_state *sstate)
             for (j = 0; j < f->order; j++) {
                 e = f->edges[j] - g->edges;
                 if (state->lines[e] == LINE_UNKNOWN && e != e1 && e != e2) {
+#ifndef NDEBUG
                     int r = solver_set_line(sstate, e, LINE_YES);
                     assert(r);
+#endif
                     diff = min(diff, DIFF_EASY);
                 }
             }
@@ -3822,6 +3822,13 @@ static void game_redraw_in_rect(drawing *dr, game_drawstate *ds,
     grid *g = state->game_grid;
     int i, phase;
     int bx, by, bw, bh;
+    int cur1, cur2;
+    if (ds->cur_edge) {
+	cur1 = ds->cur_edge->dot1 - g->dots;
+	cur2 = ds->cur_edge->dot2 - g->dots;
+    } else {
+	cur1 = cur2 = -1;
+    }
 
     clip(dr, x, y, w, h);
     draw_rect(dr, x, y, w, h, COL_BACKGROUND);
@@ -3843,7 +3850,7 @@ static void game_redraw_in_rect(drawing *dr, game_drawstate *ds,
     for (i = 0; i < g->num_dots; i++) {
         dot_bbox(ds, g, &g->dots[i], &bx, &by, &bw, &bh);
         if (boxes_intersect(x, y, w, h, bx, by, bw, bh))
-            game_redraw_dot(dr, ds, state, i);
+            game_redraw_dot(dr, ds, state, i, i == cur1 || i == cur2);
     }
 
     unclip(dr);
@@ -3862,6 +3869,10 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
     int flash_changed;
     int redraw_everything = FALSE;
     grid_edge *cur_edge;
+    int cur1, cur2;
+
+    int edges[REDRAW_OBJECTS_LIMIT], nedges = 0;
+    int faces[REDRAW_OBJECTS_LIMIT], nfaces = 0;
 
 #ifdef CURSOR_IS_VISIBLE
     if (ds->cur_visible) {
@@ -3876,9 +3887,6 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
     } else {
         cur_edge = NULL;
     }
-
-    int edges[REDRAW_OBJECTS_LIMIT], nedges = 0;
-    int faces[REDRAW_OBJECTS_LIMIT], nfaces = 0;
 
     /* Redrawing is somewhat involved.
      *
@@ -3964,7 +3972,6 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
     }
 
     /* Pass one is now done.  Now we do the actual drawing. */
-    int cur1, cur2;
     if (cur_edge) {
 	cur1 = cur_edge->dot1 - g->dots;
 	cur2 = cur_edge->dot2 - g->dots;
