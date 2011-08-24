@@ -898,7 +898,7 @@ static char *validate_params(game_params *params, int full)
     int const w = params->w, h = params->h;
     if (w < 1) return _("Width must be at least one");
     if (h < 1) return _("Height must be at least one");
-    // w * h >= 1
+    /* w * h >= 1 */
     if (w + h - 1 > SCHAR_MAX) return _("Error: w + h is too big");
     /* I might be unable to store clues in my puzzle_size *grid; */
     if (full) {

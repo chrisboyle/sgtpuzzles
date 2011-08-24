@@ -163,7 +163,7 @@ Revision: %s"</string>
     <string name="desc_untangle">Move points around until no lines cross.</string>
     <!-- Everything below here is from C -->
     <!-- Difficulties for most games, in order: -->
-    <string name="XxX_X">%dx%d %s</string>
+    <string name="XxX_X" formatted="false">%dx%d %s</string>
     <string name="Easy">Easy</string>
     <string name="Medium">Medium</string>
     <string name="Tricky">Tricky</string>
@@ -212,7 +212,7 @@ Revision: %s"</string>
     <string name="Save_file_contained_an_invalid_move">Save file contained an invalid move</string>
     <string name="Save_file_contained_an_invalid_restart_move">Save file contained an invalid restart move</string>
     <!-- Some more things common to multiple games -->
-    <string name="Active_X_X">Active: %d/%d</string>
+    <string name="Active_X_X" formatted="false">Active: %d/%d</string>
     <string name="Auto_solved">Auto-solved.</string>
     <string name="Auto_solver_used">Auto-solver used.</string>
     <string name="Barrier_probability">Barrier probability</string>
@@ -220,7 +220,7 @@ Revision: %s"</string>
     <string name="Barrier_probability_may_not_be_greater_than_1">Barrier probability may not be greater than 1</string>
     <string name="COMPLETED">COMPLETED!</string>
     <string name="DEAD">DEAD!</string>
-    <string name="Deaths_X">Deaths: %d</string>
+    <string name="Deaths_X" formatted="false">Deaths: %d</string>
     <string name="Difficulty">Difficulty</string>
     <string name="Ensure_solubility">Ensure solubility</string>
     <string name="Ensure_unique_solution">Ensure unique solution</string>
@@ -233,9 +233,9 @@ Revision: %s"</string>
     <string name="Game_description_shorter_than_expected">Game description shorter than expected</string>
     <string name="Grid_area_must_be_greater_than_one">Grid area must be greater than one</string>
     <string name="Height">Height</string>
-    <string name="Moves_since_auto_solve_X">Moves since auto-solve: %d</string>
-    <string name="Moves_X">Moves: %d</string>
-    <string name="_target_X">(target %d)</string>
+    <string name="Moves_since_auto_solve_X" formatted="false">Moves since auto-solve: %d</string>
+    <string name="Moves_X" formatted="false">Moves: %d</string>
+    <string name="_target_X" formatted="false">(target %d)</string>
     <string name="Not_enough_data_to_fill_grid">Not enough data to fill grid</string>
     <string name="Not_enough_numbers_in_string">Not enough numbers in string</string>
     <string name="Number_of_shuffling_moves">Number of shuffling moves</string>
@@ -255,21 +255,21 @@ Revision: %s"</string>
     <string name="Width_and_height_must_both_be_at_least_two">Width and height must both be at least two</string>
     <string name="Width_and_height_must_both_be_greater_than_zero">Width and height must both be greater than zero</string>
     <!-- Black Box -->
-    <string name="XxX_X_balls">%dx%d, %d balls</string>
-    <string name="XxX_X_X_balls">%dx%d, %d-%d balls</string>
+    <string name="XxX_X_balls" formatted="false">%dx%d, %d balls</string>
+    <string name="XxX_X_X_balls" formatted="false">%dx%d, %d-%d balls</string>
     <string name="No_of_balls">No. of balls</string>
     <string name="Widths_and_heights_greater_than_255_are_not_supported">Widths and heights greater than 255 are not supported</string>
     <string name="Minimum_number_of_balls_may_not_be_greater_than_maximum">Minimum number of balls may not be greater than maximum</string>
     <string name="Too_many_balls_to_fit_in_grid">Too many balls to fit in grid</string>
     <string name="CORRECT">CORRECT!</string>
-    <string name="X_wrong_and_X_missed_balls">%d wrong and %d missed balls.</string>
+    <string name="X_wrong_and_X_missed_balls" formatted="false">%d wrong and %d missed balls.</string>
     <string name="Wrong_Guess_again">Wrong! Guess again.</string>
-    <string name="X_too_many_balls_marked">%d too many balls marked.</string>
+    <string name="X_too_many_balls_marked" formatted="false">%d too many balls marked.</string>
     <string name="Click_button_to_verify_guesses">Click button to verify guesses.</string>
-    <string name="Balls_marked_X_X">Balls marked: %d / %d</string>
-    <string name="Balls_marked_X_X_X">Balls marked: %d / %d-%d.</string>
+    <string name="Balls_marked_X_X" formatted="false">Balls marked: %d / %d</string>
+    <string name="Balls_marked_X_X_X" formatted="false">Balls marked: %d / %d-%d.</string>
     <string name="_1_error"> (1 error)</string>
-    <string name="_X_errors"> (%d errors)</string>
+    <string name="_X_errors" formatted="false"> (%d errors)</string>
     <!-- Errors unlikely to be reached -->
     <string name="This_game_does_not_support_the_Solve_operation">This game does not support the Solve operation</string>
     <string name="No_game_set_up_to_solve">No game set up to solve</string>
@@ -277,11 +277,11 @@ Revision: %s"</string>
     <!-- Bridges -->
     <string name="Allow_loops">Allow loops</string>
     <string name="Max_bridges_per_direction">Max. bridges per direction</string>
-    <string name="percentage_of_island_squares">%age of island squares</string>
-    <string name="Expansion_factor_percentage">Expansion factor (%age)</string>
+    <string name="percentage_of_island_squares" formatted="false">%age of island squares</string>
+    <string name="Expansion_factor_percentage" formatted="false">Expansion factor (%age)</string>
     <string name="Width_and_height_must_be_at_least_3">Width and height must be at least 3</string>
     <string name="Too_many_bridges">Too many bridges.</string>
-    <string name="percentage_of_island_squares_must_be_between_1_and_30">%age of island squares must be between 1% and 30%</string>
+    <string name="percentage_of_island_squares_must_be_between_1_and_30" formatted="false">%age of island squares must be between 1% and 30%</string>
     <string name="Expansion_factor_must_be_between_0_and_100">Expansion factor must be between 0 and 100</string>
     <string name="Generated_aux_string_is_not_a_valid_move">Generated aux string is not a valid move (!).</string>
     <string name="Game_does_not_have_a_non_recursive_solution">Game does not have a (non-recursive) solution.</string>
@@ -302,7 +302,7 @@ Revision: %s"</string>
     <string name="Expected_comma_after_hex_digits">Expected \',\' after hex digits</string>
     <string name="Expected_decimal_integer_after_comma">Expected decimal integer after \',\'</string>
     <!-- Dominosa -->
-    <string name="Up_to_double_X">Up to double-%d</string>
+    <string name="Up_to_double_X" formatted="false">Up to double-%d</string>
     <string name="Maximum_number_on_dominoes">Maximum number on dominoes</string>
     <string name="Maximum_face_number_must_be_at_least_one">Maximum face number must be at least one</string>
     <string name="Missing_in_game_description">Missing \']\' in game description</string>
@@ -349,7 +349,7 @@ Revision: %s"</string>
     <string name="No_gems_specified">No gems specified</string>
     <string name="Game_is_already_solved">Game is already solved</string>
     <string name="Unable_to_find_a_solution_from_this_starting_point">Unable to find a solution from this starting point</string>
-    <string name="Gems_X">Gems: %d</string>
+    <string name="Gems_X" formatted="false">Gems: %d</string>
     <!-- Keen -->
     <string name="Too_much_data_in_block_structure_specification">Too much data in block structure specification</string>
     <string name="Too_few_clues_for_block_structure">Too few clues for block structure</string>
@@ -358,9 +358,9 @@ Revision: %s"</string>
     <string name="Expected_comma_after_block_structure_description">Expected comma after block structure description</string>
     <string name="Too_many_clues_for_block_structure">Too many clues for block structure</string>
     <!-- Light Up -->
-    <string name="percentage_of_black_squares">%age of black squares</string>
+    <string name="percentage_of_black_squares" formatted="false">%age of black squares</string>
     <string name="Width_and_height_must_be_at_least_2">Width and height must be at least 2</string>
-    <string name="Percentage_of_black_squares_must_be_between_5_and_100">Percentage of black squares must be between 5% and 100%</string>
+    <string name="Percentage_of_black_squares_must_be_between_5_and_100" formatted="false">Percentage of black squares must be between 5% and 100%</string>
     <string name="_4_fold_symmetry_is_only_available_with_square_grids">4-fold symmetry is only available with square grids</string>
     <string name="Unknown_symmetry_type">Unknown symmetry type</string>
     <string name="Unknown_difficulty_level">Unknown difficulty level</string>
@@ -381,13 +381,13 @@ Revision: %s"</string>
     <string name="Penrose_kite_dart">Penrose (kite/dart)</string>
     <string name="Penrose_rhombs">Penrose (rhombs)</string>
     <string name="Illegal_grid_type">Illegal grid type</string>
-    <string name="Width_and_height_for_this_grid_type_must_both_be_at_least_X">Width and height for this grid type must both be at least %d</string>
-    <string name="At_least_one_of_width_and_height_for_this_grid_type_must_be_at_least_X">At least one of width and height for this grid type must be at least %d</string>
+    <string name="Width_and_height_for_this_grid_type_must_both_be_at_least_X" formatted="false">Width and height for this grid type must both be at least %d</string>
+    <string name="At_least_one_of_width_and_height_for_this_grid_type_must_be_at_least_X" formatted="false">At least one of width and height for this grid type must be at least %d</string>
     <string name="Unknown_character_in_description">Unknown character in description</string>
     <string name="Description_too_short_for_board_size">Description too short for board size</string>
     <string name="Description_too_long_for_board_size">Description too long for board size</string>
     <!-- Magnets -->
-    <string name="XxX_X_strip_clues">%dx%d %s, strip clues</string>
+    <string name="XxX_X_strip_clues" formatted="false">%dx%d %s, strip clues</string>
     <string name="Strip_clues">Strip clues</string>
     <string name="Column_counts_inconsistent">Column counts inconsistent</string>
     <string name="Row_counts_inconsistent">Row counts inconsistent</string>
@@ -396,7 +396,7 @@ Revision: %s"</string>
     <string name="Unable_to_solve_puzzle">Unable to solve puzzle</string>
     <string name="Game_description_too_short">Game description too short</string>
     <!-- Map -->
-    <string name="XxX_X_regions_X">%dx%d, %d regions, %s</string>
+    <string name="XxX_X_regions_X" formatted="false">%dx%d, %d regions, %s</string>
     <string name="Regions">Regions</string>
     <string name="Width_and_height_must_be_at_least_two">Width and height must be at least two</string>
     <string name="Must_have_at_least_five_regions">Must have at least five regions</string>
@@ -411,7 +411,7 @@ Revision: %s"</string>
     <string name="Too_much_data_in_clue_list">Too much data in clue list</string>
     <string name="Puzzle_is_inconsistent">Puzzle is inconsistent</string>
     <!-- Mines -->
-    <string name="XxX_X_mines">%dx%d, %d mines</string>
+    <string name="XxX_X_mines" formatted="false">%dx%d, %d mines</string>
     <!-- This is the label for the choice of number of mines, not the name of the game -->
     <string name="Mines">Mines</string>
     <string name="Width_and_height_must_both_be_greater_than_two">Width and height must both be greater than two</string>
@@ -425,9 +425,9 @@ Revision: %s"</string>
     <string name="Initial_y_coordinate_was_out_of_range">Initial y-coordinate was out of range</string>
     <string name="No_comma_after_initial_y_coordinate_in_game_description">No \',\' after initial y-coordinate in game description</string>
     <string name="Game_has_not_been_started_yet">Game has not been started yet</string>
-    <string name="Marked_X_X">Marked: %d / %d</string>
+    <string name="Marked_X_X" formatted="false">Marked: %d / %d</string>
     <!-- Net -->
-    <string name="XxX_wrapping">%dx%d wrapping</string>
+    <string name="XxX_wrapping" formatted="false">%dx%d wrapping</string>
     <string name="At_least_one_of_width_and_height_must_be_greater_than_one">At least one of width and height must be greater than one</string>
     <string name="No_wrapping_puzzle_with_a_width_or_height_of_2_can_have_a_unique_solution">No wrapping puzzle with a width or height of 2 can have a unique solution</string>
     <!-- Netslide -->
@@ -451,7 +451,7 @@ Revision: %s"</string>
     <string name="Expansion_factor">Expansion factor</string>
     <string name="Expansion_factor_may_not_be_negative">Expansion factor may not be negative</string>
     <!-- Same Game -->
-    <string name="XxX_X_colours">%dx%d, %d colours</string>
+    <string name="XxX_X_colours" formatted="false">%dx%d, %d colours</string>
     <string name="No_of_colours">No. of colours</string>
     <string name="Scoring_system">Scoring system</string>
     <string name="_n_1_2">(n-1)^2</string>
@@ -461,11 +461,11 @@ Revision: %s"</string>
     <string name="Too_many_colours_makes_given_grid_size_impossible">Too many colours makes given grid size impossible</string>
     <string name="Scoring_system_not_recognised">Scoring system not recognised</string>
     <string name="Colour_out_of_range">Colour out of range</string>
-    <string name="Score_X">Score: %d</string>
+    <string name="Score_X" formatted="false">Score: %d</string>
     <string name="Cannot_move">Cannot move!</string>
-    <string name="Selected_X_X">Selected: %d (%d)</string>
+    <string name="Selected_X_X" formatted="false">Selected: %d (%d)</string>
     <!-- Signpost -->
-    <string name="XxX_free_ends">%dx%d, free ends</string>
+    <string name="XxX_free_ends" formatted="false">%dx%d, free ends</string>
     <string name="Start_and_end_in_corners">Start and end in corners</string>
     <string name="Width_and_height_cannot_both_be_two">Width and height cannot both be two</string>
     <!-- Singles -->
@@ -555,7 +555,7 @@ Revision: %s"</string>
     <string name="Flags_go_off_grid">Flags go off grid</string>
     <string name="Flags_contradicting_each_other">Flags contradicting each other</string>
     <!-- Untangle -->
-    <string name="X_points">%d points</string>
+    <string name="X_points" formatted="false">%d points</string>
     <string name="Number_of_points">Number of points</string>
     <string name="Number_of_points_must_be_at_least_four">Number of points must be at least four</string>
     <string name="Expected_after_number_in_game_description">Expected \'-\' after number in game description</string>
