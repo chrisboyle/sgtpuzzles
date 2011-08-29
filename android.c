@@ -477,23 +477,6 @@ const char* android_deserialise(jstring s)
 	return ret;
 }
 
-void JNICALL aboutEvent(JNIEnv *env, jobject _obj)
-{
-	char titlebuf[256];
-	char textbuf[1024];
-	pthread_setspecific(envKey, env);
-
-	sprintf(titlebuf, _("About %.200s"), thegame.name);
-	sprintf(textbuf,
-			_("From Simon Tatham's Portable Puzzle Collection\n\n"
-			"Revision: %s"), vernum);
-	jstring js = (*env)->NewStringUTF(env, titlebuf);
-	if( js == NULL ) return;
-	jstring js2 = (*env)->NewStringUTF(env, textbuf);
-	if( js2 == NULL ) return;
-	(*env)->CallVoidMethod(env, obj, messageBox, js, js2, 0);
-}
-
 jstring JNICALL htmlHelpTopic(JNIEnv *env, jobject _obj)
 {
 	//pthread_setspecific(envKey, env);
@@ -679,7 +662,6 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
 		{ "configOK", "()V", configOK },
 		{ "configCancel", "()V", configCancel },
 		{ "serialise", "()V", serialise },
-		{ "aboutEvent", "()V", aboutEvent },
 		{ "htmlHelpTopic", "()Ljava/lang/String;", htmlHelpTopic },
 		{ "cancel", "()V", cancel },
 		{ "crashMeHarder", "()V", crashMeHarder },

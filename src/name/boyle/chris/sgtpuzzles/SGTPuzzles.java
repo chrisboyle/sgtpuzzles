@@ -414,7 +414,7 @@ public class SGTPuzzles extends Activity
 		case R.id.custom:   configIsCustom = true; configEvent( CFG_SETTINGS ); break;
 		case R.id.specific: configIsCustom = false; configEvent( CFG_DESC ); break;
 		case R.id.seed:     configIsCustom = false; configEvent( CFG_SEED ); break;
-		case R.id.about:    aboutEvent(); break;
+		case R.id.about:    about(); break;
 		case R.id.contents: showHelp("index"); break;
 		case R.id.thisgame: showHelp(helpTopic); break;
 		case R.id.website:
@@ -447,6 +447,14 @@ public class SGTPuzzles extends Activity
 			break;
 		}
 		return true;
+	}
+
+	private void about()
+	{
+		String title = String.format(getString(R.string.About_X), getTitle());
+		String msg = String.format(getString(R.string.From_Simon_Tatham_s_Portable_Puzzle_Collection_Revision_X),
+				getVersion(this));
+		messageBox(title, msg, 0);
 	}
 
 	static boolean tryEmailAuthor(Context c, boolean isCrash, String body)
@@ -989,7 +997,6 @@ public class SGTPuzzles extends Activity
 	native void keyEvent(int x, int y, int k);
 	native void restartEvent();
 	native void solveEvent();
-	native void aboutEvent();
 	native void resizeEvent(int x, int y);
 	native void presetEvent(int id);
 	native void configEvent(int which);
