@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<array name="games">
+		<item>blackbox</item>
+		<item>bridges</item>
+		<item>cube</item>
+		<item>dominosa</item>
+		<item>fifteen</item>
+		<item>filling</item>
+		<item>flip</item>
+		<item>galaxies</item>
+		<item>guess</item>
+		<item>inertia</item>
+		<item>keen</item>
+		<item>lightup</item>
+		<item>loopy</item>
+		<item>magnets</item>
+		<item>map</item>
+		<item>mines</item>
+		<item>net</item>
+		<item>netslide</item>
+		<item>pattern</item>
+		<item>pegs</item>
+		<item>range</item>
+		<item>rect</item>
+		<item>samegame</item>
+		<item>signpost</item>
+		<item>singles</item>
+		<item>sixteen</item>
+		<item>slant</item>
+		<item>solo</item>
+		<item>tents</item>
+		<item>towers</item>
+		<item>twiddle</item>
+		<item>unequal</item>
+		<item>untangle</item>
+	</array>
+</resources>
