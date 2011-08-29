@@ -34,7 +34,8 @@ web: $(WEB)
 pngicons: $(P64D24) $(P48D24) $(P32D24) $(P16D24)
 winicons: $(ICONS) $(RC)
 gtkicons: $(CICONS)
-androidicons: $(ANDROIDICONS)
+androidicons: $(ANDROIDICONS) ../res/drawable/icon.png
+../res/drawable/icon.png: ../res/drawable/net.png
 	cp ../res/drawable/net.png ../res/drawable/icon.png
 all: base web pngicons winicons gtkicons
 
