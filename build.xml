@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project name="SGTPuzzles" default="help">
+<project name="SGTPuzzles" default="dummy-default">
+	<target name="dummy-default">
+		<!-- Eclipse's Ant handler can't cope with an imported default target -->
+		<echo>This is a dummy target to placate Eclipse. For help, run ant help.</echo>
+	</target>
 
 <!-- The local.properties file is created and updated by the 'android'
      tool.
@@ -44,7 +48,6 @@
         <exec executable="make" dir="../icons">
             <arg value="androidicons"/>
         </exec>
-        <copy file="res/drawable/net.png" tofile="res/drawable/icon.png"/>
     </target>
 <!--
     <target name="-pre-compile">

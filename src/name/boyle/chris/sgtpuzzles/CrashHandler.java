@@ -1,24 +1,18 @@
 package name.boyle.chris.sgtpuzzles;
 
+import java.io.IOException;
+import java.text.MessageFormat;
+
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
-import android.content.Intent;
 import android.content.SharedPreferences;
-import android.net.MailTo;
 import android.os.AsyncTask;
-import android.os.Build;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.Toast;
-import java.io.IOException;
-import java.text.MessageFormat;
-import java.util.ArrayList;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 public class CrashHandler extends Activity
 {
@@ -37,7 +31,7 @@ public class CrashHandler extends Activity
 			progress.setIndeterminate(true);
 			progress.setCancelable(false);
 			progress.show();
-			final AsyncTask task = new AsyncTask<Void,Void,Void>(){
+			final AsyncTask<Void, Void, Void> task = new AsyncTask<Void,Void,Void>(){
 				String log;
 				Process process;
 				@Override

@@ -24,7 +24,7 @@ P16D4 = $(patsubst %,%-16d4.png,$(PUZZLES))
 ICONS = $(patsubst %,%.ico,$(PUZZLES))
 CICONS = $(patsubst %,%-icon.c,$(PUZZLES))
 RC = $(patsubst %,%.rc,$(PUZZLES))
-ANDROIDICONS = $(patsubst %,../android/res/drawable/%.png,$(PUZZLES))
+ANDROIDICONS = $(patsubst %,../res/drawable/%.png,$(PUZZLES))
 
 BIN = ../
 PIC = ./
@@ -35,6 +35,7 @@ pngicons: $(P64D24) $(P48D24) $(P32D24) $(P16D24)
 winicons: $(ICONS) $(RC)
 gtkicons: $(CICONS)
 androidicons: $(ANDROIDICONS)
+	cp ../res/drawable/net.png ../res/drawable/icon.png
 all: base web pngicons winicons gtkicons
 
 # Make sure puzzle binaries are built with the right rules
@@ -109,7 +110,7 @@ $(P32D24): %-32d24.png: %-ibase.png
 	$(PIC)square.pl 32 2 $^ $@
 $(P16D24): %-16d24.png: %-ibase.png
 	$(PIC)square.pl 16 1 $^ $@
-$(ANDROIDICONS): ../android/res/drawable/%.png: %-64d24.png
+$(ANDROIDICONS): ../res/drawable/%.png: %-64d24.png
 	cp $^ $@
 
 # The 8-bit icon PNGs are just custom-paletted quantisations of the

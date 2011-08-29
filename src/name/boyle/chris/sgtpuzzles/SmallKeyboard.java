@@ -1,16 +1,14 @@
 package name.boyle.chris.sgtpuzzles;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import android.content.Context;
 import android.content.res.Configuration;
 import android.graphics.Color;
 import android.inputmethodservice.Keyboard;
 import android.inputmethodservice.KeyboardView;
 import android.util.AttributeSet;
-import android.util.DisplayMetrics;
-import android.util.Log;
-
-import java.util.ArrayList;
-import java.util.List;
 
 public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboardActionListener
 {
