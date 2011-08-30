@@ -37,9 +37,9 @@
 							</tool>
 							<tool id="org.eclipse.cdt.build.core.settings.holder.491089111" name="GNU C" superClass="org.eclipse.cdt.build.core.settings.holder">
 								<option id="org.eclipse.cdt.build.core.settings.holder.incpaths.611479608" name="Include Paths" superClass="org.eclipse.cdt.build.core.settings.holder.incpaths" valueType="includePath">
-									<listOptionValue builtIn="false" value="/opt/android-ndk-r6/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/lib/gcc/arm-linux-androideabi/4.4.3/include-fixed"/>
-									<listOptionValue builtIn="false" value="/opt/android-ndk-r6/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/lib/gcc/arm-linux-androideabi/4.4.3/include"/>
-									<listOptionValue builtIn="false" value="/opt/android-ndk-r6/platforms/android-8/arch-arm/usr/include"/>
+									<listOptionValue builtIn="false" value="/opt/android-ndk/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/lib/gcc/arm-linux-androideabi/4.4.3/include-fixed"/>
+									<listOptionValue builtIn="false" value="/opt/android-ndk/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86/lib/gcc/arm-linux-androideabi/4.4.3/include"/>
+									<listOptionValue builtIn="false" value="/opt/android-ndk/platforms/android-8/arch-arm/usr/include"/>
 								</option>
 								<option id="org.eclipse.cdt.build.core.settings.holder.symbols.728384466" name="Symbols" superClass="org.eclipse.cdt.build.core.settings.holder.symbols" valueType="definedSymbols">
 									<listOptionValue builtIn="false" value="COMBINED=1"/>
