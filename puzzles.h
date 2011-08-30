@@ -366,7 +366,7 @@ void domino_layout_prealloc(int w, int h, random_state *rs,
 /*
  * version.c
  */
-extern char ver[], vernum[];
+extern char ver[];
 
 /*
  * random.c

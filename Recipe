@@ -14,7 +14,6 @@
 !makefile cygwin Makefile.cyg
 !makefile osx Makefile.osx
 !makefile nestedvm Makefile.nestedvm
-!makefile android Makefile.android
 
 !srcdir icons/
 
@@ -22,7 +21,6 @@ WINDOWS_COMMON = printing
          + user32.lib gdi32.lib comctl32.lib comdlg32.lib winspool.lib
 WINDOWS  = windows WINDOWS_COMMON
 COMMON   = midend drawing misc malloc random version
-COMMON_COMBINED = midend[COMBINED] drawing misc malloc random version
 GTK      = gtk printing ps
 # Objects needed for auxiliary command-line programs.
 STANDALONE = nullfe random misc malloc
@@ -149,7 +147,6 @@ version2.def: FORCE
 .PHONY: FORCE
 !end
 !specialobj nestedvm version
-
 # For OS X, this is made more fiddly by the fact that we don't have
 # md5sum readily available. We do, however, have `md5 -r' which
 # generates _nearly_ the same output, but it has no check function.
@@ -193,89 +190,16 @@ install:
 
 org:
 	mkdir -p org/ibex/nestedvm/util
-	cp $(NESTEDVM)/build/org/ibex/nestedvm/Registers.class org/ibex/nestedvm
-	cp $(NESTEDVM)/build/org/ibex/nestedvm/UsermodeConstants.class org/ibex/nestedvm
-	cp $(NESTEDVM)/build/org/ibex/nestedvm/Runtime*.class org/ibex/nestedvm
-	cp $(NESTEDVM)/build/org/ibex/nestedvm/util/Platform*.class org/ibex/nestedvm/util
-	cp $(NESTEDVM)/build/org/ibex/nestedvm/util/Seekable*.class org/ibex/nestedvm/util
-
-applet.manifest:
+	cp $(NESTEDVM)/build/org/ibex/nestedvm/{Registers,UsermodeConstants,Runtime*}.class org/ibex/nestedvm
+	cp $(NESTEDVM)/build/org/ibex/nestedvm/util/{Platform*,Seekable*}.class org/ibex/nestedvm/util
 	echo "Main-Class: PuzzleApplet" >applet.manifest
 
 PuzzleApplet.class: PuzzleApplet.java org
 	javac -source 1.3 -target 1.3 PuzzleApplet.java
 
-%.jar: %.class PuzzleApplet.class org applet.manifest
+%.jar: %.class PuzzleApplet.class org
 	mv $< PuzzleEngine.class
 	jar cfm $@ applet.manifest PuzzleEngine.class PuzzleApplet*.class org
 	echo '<applet archive="'$@'" code="PuzzleApplet" width="700" height="500"></applet>' >$*.html
 	mv PuzzleEngine.class $<
 !end
-
-android/lib/armeabi/libpuzzles.so  : [GA] android[COMBINED] COMMON_COMBINED ALL
-!begin android
-all: SGTPuzzles.apk
-
-install: SGTPuzzles.apk
-	$(ANDROID)/platform-tools/adb install -r $<
-
-run: install
-	$(ANDROID)/platform-tools/adb shell am start -n name.boyle.chris.sgtpuzzles/.SGTPuzzles
-.PHONY: install run
-
-SGTPuzzles.apk: android/SGTPuzzles_unaligned.apk
-	rm -f $@
-	$(ANDROID)/tools/zipalign 4 $< $@
-
-android/SGTPuzzles_unaligned.apk: android/SGTPuzzles_unsigned.apk
-	@echo \# Trying to sign the package. If you are not Chris Boyle, this \
-	will fail and try to use the default Android debug key instead. \
-	\*\*\* The resulting apk will not be valid for release \*\*\*.
-	@stty -echo || true
-	jarsigner -signedjar $@ $< cmb || jarsigner -keystore ~/.android/debug.keystore -storepass android -signedjar $@ $< androiddebugkey
-	@stty echo && echo "" || true
-
-android/SGTPuzzles_unsigned.apk: android/classes.dex android/resources.apk android/lib/armeabi/libpuzzles.so
-	$(ANDROID)/tools/apkbuilder $@ -u -f $< -z android/resources.apk -rf android/src -nf `pwd`/android/lib
-
-# to raise the memory limit, add -JXmx512M
-android/classes.dex: android/bin-stamp
-	$(ANDROID)/platforms/android-8/tools/dx --dex --verbose --output=$@ android/bin
-
-android/resources.apk: android/res/drawable/icon.png android/res/values/arrays.xml \
-		android/res/layout/* android/AndroidManifest.xml android/res/values/* \
-		android/res/menu/* android/assets
-	$(ANDROID)/platforms/android-8/tools/aapt package -f -M android/AndroidManifest.xml \
-		-S android/res -A android/assets -I $(ANDROID)/platforms/android-8/android.jar -F $@
-
-android/assets: puzzles.but po/*.po
-	rm -rf android/assets
-	$(MAKE) -f Makefile.doc htmldocs
-	mkdir -p android/assets
-	cp -R doc/?? android/assets/
-
-android/src/name/boyle/chris/sgtpuzzles/R.java: android/res/drawable/icon.png \
-		android/AndroidManifest.xml android/res/values/arrays.xml \
-		android/res/values/* android/res/layout/* android/res/menu/*
-	$(ANDROID)/platforms/android-8/tools/aapt package -m -J android/src \
-		-M android/AndroidManifest.xml -S android/res \
-		-I $(ANDROID)/platforms/android-8/android.jar
-
-android/bin:
-	mkdir -p $@
-	mkdir -p android/lib/armeabi
-
-android/bin-stamp: android/bin android/lib/armeabi/libpuzzles.so \
-		android/src/name/boyle/chris/sgtpuzzles/*.java \
-		android/src/name/boyle/chris/sgtpuzzles/R.java
-	./android/i18ncheck.pl
-	javac -source 1.5 -target 1.5 -cp $(ANDROID)/platforms/android-8/android.jar \
-		-d $< android/src/name/boyle/chris/sgtpuzzles/*.java
-	touch $@
-
-android/tmp/version.o: FORCE;
-FORCE:
-	$(CC) $(COMPAT) $(CFLAGS) $(VER) -c version.c -o android/tmp/version.o
-!end
-!specialobj android version
-

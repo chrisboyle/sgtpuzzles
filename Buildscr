@@ -111,14 +111,6 @@ ifneq "$(JAVA_UNFINISHED)" "" in puzzles do perl mkfiles.pl
 # compiler and tools.
 in puzzles do make -f Makefile.nestedvm NESTEDVM=$(NESTEDVM) VER=-DREVISION=$(revision)
 
-# Build the Android application. This requires ANDROID pointing at
-# the Android SDK and ANDROID_NDK pointing at the Android Native
-# Development Kit. Also, the apk (Android package) file it produces
-# will be signed with the debug key and not accepted by real hardware.
-# (Release builds are signed by Chris Boyle.)
-# http://code.google.com/android/intro/develop-and-debug.html#signing
-in puzzles do make -f Makefile.android ANDROID=$(ANDROID) ANDROID_NDK=$(ANDROID_NDK) VER=-DREVISION=$(revision)
-
 # Set up .htaccess containing a redirect for the archive filename.
 in puzzles do echo "AddType application/octet-stream .chm" > .htaccess
 in puzzles do echo "AddType application/octet-stream .hlp" >> .htaccess
