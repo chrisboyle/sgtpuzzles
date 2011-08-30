@@ -2,8 +2,8 @@
 
 use strict;
 
-my @sources = <*.c android/AndroidManifest.xml android/res/menu/*.xml android/res/layout/*.xml android/src/name/boyle/chris/sgtpuzzles/*.java>;
-my @stringsfiles = <android/res/values*/strings.xml>;
+my @sources = <*.c AndroidManifest.xml res/menu/*.xml res/layout/*.xml src/name/boyle/chris/sgtpuzzles/*.java>;
+my @stringsfiles = <res/values*/strings.xml>;
 my %srcstrings;
 my %resstrings;
 
@@ -26,7 +26,7 @@ for my $lang ( @stringsfiles ) {
 	open(RES,$lang) or die "Can't open $lang: $!\n";
 	$_ = join('',<RES>);
 	close(RES);
-	while (/<string\s+name="([^"]+)">(.*?)<\/string>/gs) {
+	while (/<string\s+name="([^"]+)"(?: formatted="false")?>(.*?)<\/string>/gs) {
 		$resstrings{$lang}->{$1} = [ $2, "$lang:$." ];
 	}
 }
