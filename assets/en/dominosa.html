@@ -1,0 +1,55 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+"http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=US-ASCII">
+<title>Dominosa</title>
+<link rel="previous" href="pegs.html">
+<link rel="ToC" href="index.html">
+<link rel="up" href="index.html">
+<link rel="index" href="docindex.html">
+<link rel="next" href="untangle.html">
+</head>
+<body>
+<p><a href="pegs.html">Previous</a> | <a href="index.html">Contents</a> | <a href="docindex.html">Index</a> | <a href="untangle.html">Next</a></p>
+<h1><a name="C17"></a>Chapter 17: <a name="i0"></a>Dominosa</h1>
+<p>
+A normal set of dominoes &#8211; that is, one instance of every (unordered) pair of numbers from 0 to 6 &#8211; has been arranged irregularly into a rectangle; then the number in each square has been written down and the dominoes themselves removed. Your task is to reconstruct the pattern by arranging the set of dominoes to match the provided array of numbers.
+</p>
+<p>
+This puzzle is widely credited to O. S. Adler, and takes part of its name from those initials.
+</p>
+<h2><a name="S17.1"></a>17.1 <a name="i1"></a>Dominosa controls</h2>
+<p>
+Left-clicking between any two adjacent numbers places a domino covering them, or removes one if it is already present. Trying to place a domino which overlaps existing dominoes will remove the ones it overlaps.
+</p>
+<p>
+Right-clicking between two adjacent numbers draws a line between them, which you can use to remind yourself that you know those two numbers are <em>not</em> covered by a single domino. Right-clicking again removes the line.
+</p>
+<p>
+You can also use the cursor keys to move a cursor around the grid. When the cursor is half way between two adjacent numbers, pressing the return key will place a domino covering those numbers, or pressing the space bar will lay a line between the two squares. Repeating either action removes the domino or line.
+</p>
+<p>
+(All the actions described in <a href="common.html#S2.1">section 2.1</a> are also available.)
+</p>
+<h2><a name="S17.2"></a>17.2 <a name="i2"></a>Dominosa parameters</h2>
+<p>
+These parameters are available from the &#8216;Custom...&#8217; option on the &#8216;Type&#8217; menu.
+</p>
+<dl><dt>
+<em>Maximum number on dominoes</em>
+</dt>
+<dd>
+Controls the size of the puzzle, by controlling the size of the set of dominoes used to make it. Dominoes with numbers going up to N will give rise to an (N+2) &#215; (N+1) rectangle; so, in particular, the default value of 6 gives an 8&#215;7 grid.
+</dd>
+<dt>
+<em>Ensure unique solution</em>
+</dt>
+<dd>
+Normally, Dominosa will make sure that the puzzles it presents have only one solution. Puzzles with ambiguous sections can be more difficult and sometimes more subtle, so if you like you can turn off this feature. Also, finding <em>all</em> the possible solutions can be an additional challenge for an advanced player. Turning off this option can also speed up puzzle generation.
+</dd>
+</dl>
+
+<hr><address>
+[$Id$]</address></body>
+</html>

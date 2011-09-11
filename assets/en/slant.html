@@ -1,0 +1,65 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+"http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=US-ASCII">
+<title>Slant</title>
+<link rel="previous" href="blackbox.html">
+<link rel="ToC" href="index.html">
+<link rel="up" href="index.html">
+<link rel="index" href="docindex.html">
+<link rel="next" href="lightup.html">
+</head>
+<body>
+<p><a href="blackbox.html">Previous</a> | <a href="index.html">Contents</a> | <a href="docindex.html">Index</a> | <a href="lightup.html">Next</a></p>
+<h1><a name="C20"></a>Chapter 20: <a name="i0"></a>Slant</h1>
+<p>
+You have a grid of squares. Your aim is to draw a diagonal line through each square, and choose which way each line slants so that the following conditions are met:
+</p>
+<ul><li>
+The diagonal lines never form a loop.
+</li>
+<li>
+Any point with a circled number has precisely that many lines meeting at it. (Thus, a 4 is the centre of a cross shape, whereas a zero is the centre of a diamond shape &#8211; or rather, a partial diamond shape, because a zero can never appear in the middle of the grid because that would immediately cause a loop.)
+</li>
+</ul>
+<p>
+Credit for this puzzle goes to <a name="i1"></a>Nikoli <a href="#p0">[8]</a>.
+</p>
+<p><a name="p0"></a>
+[8] <a href="http://www.nikoli.co.jp/puzzles/39/index.htm"><code>http://www.nikoli.co.jp/puzzles/39/index.htm</code></a> (in Japanese)
+</p>
+<h2><a name="S20.1"></a>20.1 <a name="i2"></a>Slant controls</h2>
+<p>
+Left-clicking in a blank square will place a <code>\</code> in it (a line leaning to the left, i.e. running from the top left of the square to the bottom right). Right-clicking in a blank square will place a <code>/</code> in it (leaning to the right, running from top right to bottom left).
+</p>
+<p>
+Continuing to click either button will cycle between the three possible square contents. Thus, if you left-click repeatedly in a blank square it will change from blank to <code>\</code> to <code>/</code> back to blank, and if you right-click repeatedly the square will change from blank to <code>/</code> to <code>\</code> back to blank. (Therefore, you can play the game entirely with one button if you need to.)
+</p>
+<p>
+You can also use the cursor keys to move around the grid. Pressing the return or space keys will place a <code>\</code> or a <code>/</code>, respectively, and will then cycle them as above.
+</p>
+<p>
+(All the actions described in <a href="common.html#S2.1">section 2.1</a> are also available.)
+</p>
+<h2><a name="S20.2"></a>20.2 <a name="i3"></a>Slant parameters</h2>
+<p>
+These parameters are available from the &#8216;Custom...&#8217; option on the &#8216;Type&#8217; menu.
+</p>
+<dl><dt>
+<em>Width</em>, <em>Height</em>
+</dt>
+<dd>
+Size of grid in squares.
+</dd>
+<dt>
+<em>Difficulty</em>
+</dt>
+<dd>
+Controls the difficulty of the generated puzzle. At Hard level, you are required to do deductions based on knowledge of <em>relationships</em> between squares rather than always being able to deduce the exact contents of one square at a time. (For example, you might know that two squares slant in the same direction, even if you don't yet know what that direction is, and this might enable you to deduce something about still other squares.) Even at Hard level, guesswork and backtracking should never be necessary.
+</dd>
+</dl>
+
+<hr><address>
+[$Id$]</address></body>
+</html>

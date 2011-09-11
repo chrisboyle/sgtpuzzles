@@ -1,0 +1,68 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+"http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=US-ASCII">
+<title>Tents</title>
+<link rel="previous" href="inertia.html">
+<link rel="ToC" href="index.html">
+<link rel="up" href="index.html">
+<link rel="index" href="docindex.html">
+<link rel="next" href="bridges.html">
+</head>
+<body>
+<p><a href="inertia.html">Previous</a> | <a href="index.html">Contents</a> | <a href="docindex.html">Index</a> | <a href="bridges.html">Next</a></p>
+<h1><a name="C25"></a>Chapter 25: <a name="i0"></a>Tents</h1>
+<p>
+You have a grid of squares, some of which contain trees. Your aim is to place tents in some of the remaining squares, in such a way that the following conditions are met:
+</p>
+<ul><li>
+There are exactly as many tents as trees.
+</li>
+<li>
+The tents and trees can be matched up in such a way that each tent is directly adjacent (horizontally or vertically, but not diagonally) to its own tree. However, a tent may be adjacent to other trees as well as its own.
+</li>
+<li>
+No two tents are adjacent horizontally, vertically <em>or diagonally</em>.
+</li>
+<li>
+The number of tents in each row, and in each column, matches the numbers given round the sides of the grid.
+</li>
+</ul>
+<p>
+This puzzle can be found in several places on the Internet, and was brought to my attention by e-mail. I don't know who I should credit for inventing it.
+</p>
+<h2><a name="S25.1"></a>25.1 <a name="i1"></a>Tents controls</h2>
+<p>
+Left-clicking in a blank square will place a tent in it. Right-clicking in a blank square will colour it green, indicating that you are sure it <em>isn't</em> a tent. Clicking either button in an occupied square will clear it.
+</p>
+<p>
+If you <em>drag</em> with the right button along a row or column, every blank square in the region you cover will be turned green, and no other squares will be affected. (This is useful for clearing the remainder of a row once you have placed all its tents.)
+</p>
+<p>
+You can also use the cursor keys to move around the grid. Pressing the return key over an empty square will place a tent, and pressing the space bar over an empty square will colour it green; either key will clear an occupied square.
+</p>
+<p>
+(All the actions described in <a href="common.html#S2.1">section 2.1</a> are also available.)
+</p>
+<h2><a name="S25.2"></a>25.2 <a name="i2"></a>Tents parameters</h2>
+<p>
+These parameters are available from the &#8216;Custom...&#8217; option on the &#8216;Type&#8217; menu.
+</p>
+<dl><dt>
+<em>Width</em>, <em>Height</em>
+</dt>
+<dd>
+Size of grid in squares.
+</dd>
+<dt>
+<em>Difficulty</em>
+</dt>
+<dd>
+Controls the difficulty of the generated puzzle. More difficult puzzles require more complex deductions, but at present none of the available difficulty levels requires guesswork or backtracking.
+</dd>
+</dl>
+
+<hr><address>
+[$Id$]</address></body>
+</html>

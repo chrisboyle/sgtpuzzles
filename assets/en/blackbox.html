@@ -1,0 +1,126 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+"http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=US-ASCII">
+<title>Black Box</title>
+<link rel="previous" href="untangle.html">
+<link rel="ToC" href="index.html">
+<link rel="up" href="index.html">
+<link rel="index" href="docindex.html">
+<link rel="next" href="slant.html">
+</head>
+<body>
+<p><a href="untangle.html">Previous</a> | <a href="index.html">Contents</a> | <a href="docindex.html">Index</a> | <a href="slant.html">Next</a></p>
+<h1><a name="C19"></a>Chapter 19: <a name="i0"></a>Black Box</h1>
+<p>
+A number of balls are hidden in a rectangular arena. You have to deduce the positions of the balls by firing lasers positioned at the edges of the arena and observing how their beams are deflected.
+</p>
+<p>
+Beams will travel straight from their origin until they hit the opposite side of the arena (at which point they emerge), unless affected by balls in one of the following ways:
+</p>
+<ul><li>
+A beam that hits a ball head-on is absorbed and will never re-emerge. This includes beams that meet a ball on the first rank of the arena.
+</li>
+<li>
+A beam with a ball to its front-left square gets deflected 90 degrees to the right.
+</li>
+<li>
+A beam with a ball to its front-right square gets similarly deflected to the left.
+</li>
+<li>
+A beam that would re-emerge from its entry location is considered to be &#8216;reflected&#8217;.
+</li>
+<li>
+A beam which would get deflected before entering the arena by a ball to the front-left or front-right of its entry point is also considered to be &#8216;reflected&#8217;.
+</li>
+</ul>
+<p>
+Beams that are reflected appear as a &#8216;R&#8217;; beams that hit balls head-on appear as &#8216;H&#8217;. Otherwise, a number appears at the firing point and the location where the beam emerges (this number is unique to that shot).
+</p>
+<p>
+You can place guesses as to the location of the balls, based on the entry and exit patterns of the beams; once you have placed enough balls a button appears enabling you to have your guesses checked.
+</p>
+<p>
+Here is a diagram showing how the positions of balls can create each of the beam behaviours shown above:
+</p>
+<pre><code> 1RHR---- 
+|..O.O...|
+2........3
+|........|
+|........|
+3........|
+|......O.|
+H........|
+|.....O..|
+ 12-RH---
+</code></pre>
+<p>
+As shown, it is possible for a beam to receive multiple reflections before re-emerging (see turn 3). Similarly, a beam may be reflected (possibly more than once) before receiving a hit (the &#8216;H&#8217; on the left side of the example).
+</p>
+<p>
+Note that any layout with more than 4 balls may have a non-unique solution. The following diagram illustrates this; if you know the board contains 5 balls, it is impossible to determine where the fifth ball is (possible positions marked with an <code>x</code>):
+</p>
+<pre><code> -------- 
+|........|
+|........|
+|..O..O..|
+|...xx...|
+|...xx...|
+|..O..O..|
+|........|
+|........|
+ --------
+</code></pre>
+<p>
+For this reason, when you have your guesses checked, the game will check that your solution <em>produces the same results</em> as the computer's, rather than that your solution is identical to the computer's. So in the above example, you could put the fifth ball at <em>any</em> of the locations marked with an <code>x</code>, and you would still win.
+</p>
+<p>
+Black Box was contributed to this collection by James Harvey.
+</p>
+<h2><a name="S19.1"></a>19.1 <a name="i1"></a>Black Box controls</h2>
+<p>
+To fire a laser beam, left-click in a square around the edge of the arena. The results will be displayed immediately. Clicking or holding the left button on one of these squares will highlight the current go (or a previous go) to confirm the exit point for that laser, if applicable.
+</p>
+<p>
+To guess the location of a ball, left-click within the arena and a black circle will appear marking the guess; click again to remove the guessed ball.
+</p>
+<p>
+Locations in the arena may be locked against modification by right-clicking; whole rows and columns may be similarly locked by right-clicking in the laser square above/below that column, or to the left/right of that row.
+</p>
+<p>
+The cursor keys may also be used to move around the grid. Pressing the Enter key will fire a laser or add a new ball-location guess, and pressing Space will lock a cell, row, or column.
+</p>
+<p>
+When an appropriate number of balls have been guessed, a button will appear at the top-left corner of the grid; clicking that (with mouse or cursor) will check your guesses.
+</p>
+<p>
+If you click the &#8216;check&#8217; button and your guesses are not correct, the game will show you the minimum information necessary to demonstrate this to you, so you can try again. If your ball positions are not consistent with the beam paths you already know about, one beam path will be circled to indicate that it proves you wrong. If your positions match all the existing beam paths but are still wrong, one new beam path will be revealed (written in red) which is not consistent with your current guesses.
+</p>
+<p>
+If you decide to give up completely, you can select Solve to reveal the actual ball positions. At this point, correctly-placed balls will be displayed as filled black circles, incorrectly-placed balls as filled black circles with red crosses, and missing balls as filled red circles. In addition, a red circle marks any laser you had already fired which is not consistent with your ball layout (just as when you press the &#8216;check&#8217; button), and red text marks any laser you <em>could</em> have fired in order to distinguish your ball layout from the correct one.
+</p>
+<p>
+(All the actions described in <a href="common.html#S2.1">section 2.1</a> are also available.)
+</p>
+<h2><a name="S19.2"></a>19.2 <a name="i2"></a>Black Box parameters</h2>
+<p>
+These parameters are available from the &#8216;Custom...&#8217; option on the &#8216;Type&#8217; menu.
+</p>
+<dl><dt>
+<em>Width</em>, <em>Height</em>
+</dt>
+<dd>
+Size of grid in squares. There are 2 &#215; <em>Width</em> &#215; <em>Height</em> lasers per grid, two per row and two per column.
+</dd>
+<dt>
+<em>No. of balls</em>
+</dt>
+<dd>
+Number of balls to place in the grid. This can be a single number, or a range (separated with a hyphen, like &#8216;2-6&#8217;), and determines the number of balls to place on the grid. The &#8216;reveal&#8217; button is only enabled if you have guessed an appropriate number of balls; a guess using a different number to the original solution is still acceptable, if all the beam inputs and outputs match.
+</dd>
+</dl>
+
+<hr><address>
+[$Id$]</address></body>
+</html>

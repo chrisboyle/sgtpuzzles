@@ -1,0 +1,132 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+"http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=US-ASCII">
+<title>Bridges</title>
+<link rel="previous" href="tents.html">
+<link rel="ToC" href="index.html">
+<link rel="up" href="index.html">
+<link rel="index" href="docindex.html">
+<link rel="next" href="unequal.html">
+</head>
+<body>
+<p><a href="tents.html">Previous</a> | <a href="index.html">Contents</a> | <a href="docindex.html">Index</a> | <a href="unequal.html">Next</a></p>
+<h1><a name="C26"></a>Chapter 26: <a name="i0"></a>Bridges</h1>
+<p>
+You have a set of islands distributed across the playing area. Each island contains a number. Your aim is to connect the islands together with bridges, in such a way that:
+</p>
+<ul><li>
+Bridges run horizontally or vertically.
+</li>
+<li>
+The number of bridges terminating at any island is equal to the number written in that island.
+</li>
+<li>
+Two bridges may run in parallel between the same two islands, but no more than two may do so.
+</li>
+<li>
+No bridge crosses another bridge.
+</li>
+<li>
+All the islands are connected together.
+</li>
+</ul>
+<p>
+There are some configurable alternative modes, which involve changing the parallel-bridge limit to something other than 2, and introducing the additional constraint that no sequence of bridges may form a loop from one island back to the same island. The rules stated above are the default ones.
+</p>
+<p>
+Credit for this puzzle goes to <a name="i1"></a>Nikoli <a href="#p0">[12]</a>.
+</p>
+<p>
+Bridges was contributed to this collection by James Harvey.
+</p>
+<p><a name="p0"></a>
+[12] <a href="http://www.nikoli.co.jp/puzzles/14/index-e.htm"><code>http://www.nikoli.co.jp/puzzles/14/index-e.htm</code></a>
+</p>
+<h2><a name="S26.1"></a>26.1 <a name="i2"></a>Bridges controls</h2>
+<p>
+To place a bridge between two islands, click the mouse down on one island and drag it towards the other. You do not need to drag all the way to the other island; you only need to move the mouse far enough for the intended bridge direction to be unambiguous. (So you can keep the mouse near the starting island and conveniently throw bridges out from it in many directions.)
+</p>
+<p>
+Doing this again when a bridge is already present will add another parallel bridge. If there are already as many bridges between the two islands as permitted by the current game rules (i.e. two by default), the same dragging action will remove all of them.
+</p>
+<p>
+If you want to remind yourself that two islands definitely <em>do not</em> have a bridge between them, you can right-drag between them in the same way to draw a &#8216;non-bridge&#8217; marker.
+</p>
+<p>
+If you think you have finished with an island (i.e. you have placed all its bridges and are confident that they are in the right places), you can mark the island as finished by left-clicking on it. This will highlight it and all the bridges connected to it, and you will be prevented from accidentally modifying any of those bridges in future. Left-clicking again on a highlighted island will unmark it and restore your ability to modify it.
+</p>
+<p>
+You can also use the cursor keys to move around the grid: if possible the cursor will always move orthogonally, otherwise it will move towards the nearest island to the indicated direction. Pressing the return key followed by a cursor key will lay a bridge in that direction (if available); pressing the space bar followed by a cursor key will lay a &#8216;non-bridge&#8217; marker.
+</p>
+<p>
+You can mark an island as finished by pressing the return key twice.
+</p>
+<p>
+Violations of the puzzle rules will be marked in red:
+</p>
+<ul><li>
+An island with too many bridges will be highlighted in red.
+</li>
+<li>
+An island with too few bridges will be highlighted in red if it is definitely an error (as opposed to merely not being finished yet): if adding enough bridges would involve having to cross another bridge or remove a non-bridge marker, or if the island has been highlighted as complete.
+</li>
+<li>
+A group of islands and bridges may be highlighted in red if it is a closed subset of the puzzle with no way to connect it to the rest of the islands. For example, if you directly connect two 1s together with a bridge and they are not the only two islands on the grid, they will light up red to indicate that such a group cannot be contained in any valid solution.
+</li>
+<li>
+If you have selected the (non-default) option to disallow loops in the solution, a group of bridges which forms a loop will be highlighted.
+</li>
+</ul>
+<p>
+(All the actions described in <a href="common.html#S2.1">section 2.1</a> are also available.)
+</p>
+<h2><a name="S26.2"></a>26.2 <a name="i3"></a>Bridges parameters</h2>
+<p>
+These parameters are available from the &#8216;Custom...&#8217; option on the &#8216;Type&#8217; menu.
+</p>
+<dl><dt>
+<em>Width</em>, <em>Height</em>
+</dt>
+<dd>
+Size of grid in squares.
+</dd>
+<dt>
+<em>Difficulty</em>
+</dt>
+<dd>
+Difficulty level of puzzle.
+</dd>
+<dt>
+<em>Allow loops</em>
+</dt>
+<dd>
+This is set by default. If cleared, puzzles will be generated in such a way that they are always soluble without creating a loop, and solutions which do involve a loop will be disallowed.
+</dd>
+<dt>
+<em>Max. bridges per direction</em>
+</dt>
+<dd>
+Maximum number of bridges in any particular direction. The default is 2, but you can change it to 1, 3 or 4. In general, fewer is easier.
+</dd>
+<dt>
+<em>%age of island squares</em>
+</dt>
+<dd>
+Gives a rough percentage of islands the generator will try and lay before finishing the puzzle. Certain layouts will not manage to lay enough islands; this is an upper bound.
+</dd>
+<dt>
+<em>Expansion factor (%age)</em>
+</dt>
+<dd>
+The grid generator works by picking an existing island at random (after first creating an initial island somewhere). It then decides on a direction (at random), and then works out how far it could extend before creating another island. This parameter determines how likely it is to extend as far as it can, rather than choosing somewhere closer.
+</dd>
+</dl>
+<p>
+High expansion factors usually mean easier puzzles with fewer possible islands; low expansion factors can create lots of tightly-packed islands.
+</p>
+
+<hr><address>
+[$Id$]</address></body>
+</html>

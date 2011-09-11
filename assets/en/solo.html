@@ -1,0 +1,100 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+"http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=US-ASCII">
+<title>Solo</title>
+<link rel="previous" href="pattern.html">
+<link rel="ToC" href="index.html">
+<link rel="up" href="index.html">
+<link rel="index" href="docindex.html">
+<link rel="next" href="mines.html">
+</head>
+<body>
+<p><a href="pattern.html">Previous</a> | <a href="index.html">Contents</a> | <a href="docindex.html">Index</a> | <a href="mines.html">Next</a></p>
+<h1><a name="C11"></a>Chapter 11: <a name="i0"></a>Solo</h1>
+<p>
+You have a square grid, which is divided into as many equally sized sub-blocks as the grid has rows. Each square must be filled in with a digit from 1 to the size of the grid, in such a way that
+</p>
+<ul><li>
+every row contains only one occurrence of each digit
+</li>
+<li>
+every column contains only one occurrence of each digit
+</li>
+<li>
+every block contains only one occurrence of each digit.
+</li>
+<li>
+(optionally, by default off) each of the square's two main diagonals contains only one occurrence of each digit.
+</li>
+</ul>
+<p>
+You are given some of the numbers as clues; your aim is to place the rest of the numbers correctly.
+</p>
+<p>
+Under the default settings, the sub-blocks are square or rectangular. The default puzzle size is 3&#215;3 (a 9&#215;9 actual grid, divided into nine 3&#215;3 blocks). You can also select sizes with rectangular blocks instead of square ones, such as 2&#215;3 (a 6&#215;6 grid divided into six 3&#215;2 blocks). Alternatively, you can select &#8216;jigsaw&#8217; mode, in which the sub-blocks are arbitrary shapes which differ between individual puzzles.
+</p>
+<p>
+Another available mode is &#8216;killer&#8217;. In this mode, clues are not given in the form of filled-in squares; instead, the grid is divided into &#8216;cages&#8217; by coloured lines, and for each cage the game tells you what the sum of all the digits in that cage should be. Also, no digit may appear more than once within a cage, even if the cage crosses the boundaries of existing regions.
+</p>
+<p>
+If you select a puzzle size which requires more than 9 digits, the additional digits will be letters of the alphabet. For example, if you select 3&#215;4 then the digits which go in your grid will be 1 to 9, plus &#8216;<code>a</code>&#8217;, &#8216;<code>b</code>&#8217; and &#8216;<code>c</code>&#8217;. This cannot be selected for killer puzzles.
+</p>
+<p>
+I first saw this puzzle in <a name="i1"></a>Nikoli <a href="#p0">[5]</a>, although it's also been popularised by various newspapers under the name &#8216;Sudoku&#8217; or &#8216;Su Doku&#8217;. Howard Garns is considered the inventor of the modern form of the puzzle, and it was first published in <em>Dell Pencil Puzzles and Word Games</em>. A more elaborate treatment of the history of the puzzle can be found on Wikipedia <a href="#p1">[6]</a>.
+</p>
+<p><a name="p0"></a>
+[5] <a href="http://www.nikoli.co.jp/puzzles/1/index_text-e.htm"><code>http://www.nikoli.co.jp/puzzles/1/index_text-e.htm</code></a>
+</p>
+<p><a name="p1"></a>
+[6] <a href="http://en.wikipedia.org/wiki/Sudoku"><code>http://en.wikipedia.org/wiki/Sudoku</code></a>
+</p>
+<h2><a name="S11.1"></a>11.1 <a name="i2"></a>Solo controls</h2>
+<p>
+To play Solo, simply click the mouse in any empty square and then type a digit or letter on the keyboard to fill that square. If you make a mistake, click the mouse in the incorrect square and press Space to clear it again (or use the Undo feature).
+</p>
+<p>
+If you <em>right</em>-click in a square and then type a number, that number will be entered in the square as a &#8216;pencil mark&#8217;. You can have pencil marks for multiple numbers in the same square. Squares containing filled-in numbers cannot also contain pencil marks.
+</p>
+<p>
+The game pays no attention to pencil marks, so exactly what you use them for is up to you: you can use them as reminders that a particular square needs to be re-examined once you know more about a particular number, or you can use them as lists of the possible numbers in a given square, or anything else you feel like.
+</p>
+<p>
+To erase a single pencil mark, right-click in the square and type the same number again.
+</p>
+<p>
+All pencil marks in a square are erased when you left-click and type a number, or when you left-click and press space. Right-clicking and pressing space will also erase pencil marks.
+</p>
+<p>
+Alternatively, use the cursor keys to move the mark around the grid. Pressing the return key toggles the mark (from a normal mark to a pencil mark), and typing a number in is entered in the square in the appropriate way; typing in a 0 or using the space bar will clear a filled square.
+</p>
+<p>
+(All the actions described in <a href="common.html#S2.1">section 2.1</a> are also available.)
+</p>
+<h2><a name="S11.2"></a>11.2 <a name="i3"></a>Solo parameters</h2>
+<p>
+Solo allows you to configure two separate dimensions of the puzzle grid on the &#8216;Type&#8217; menu: the number of columns, and the number of rows, into which the main grid is divided. (The size of a block is the inverse of this: for example, if you select 2 columns and 3 rows, each actual block will have 3 columns and 2 rows.)
+</p>
+<p>
+If you tick the &#8216;X&#8217; checkbox, Solo will apply the optional extra constraint that the two main diagonals of the grid also contain one of every digit. (This is sometimes known as &#8216;Sudoku-X&#8217; in newspapers.) In this mode, the squares on the two main diagonals will be shaded slightly so that you know it's enabled.
+</p>
+<p>
+If you tick the &#8216;Jigsaw&#8217; checkbox, Solo will generate randomly shaped sub-blocks. In this mode, the actual grid size will be taken to be the product of the numbers entered in the &#8216;Columns&#8217; and &#8216;Rows&#8217; boxes. There is no reason why you have to enter a number greater than 1 in both boxes; Jigsaw mode has no constraint on the grid size, and it can even be a prime number if you feel like it.
+</p>
+<p>
+If you tick the &#8216;Killer&#8217; checkbox, Solo will generate a set of of cages, which are randomly shaped and drawn in an outline of a different colour. Each of these regions contains a smaller clue which shows the digit sum of all the squares in this region.
+</p>
+<p>
+You can also configure the type of symmetry shown in the generated puzzles. More symmetry makes the puzzles look prettier but may also make them easier, since the symmetry constraints can force more clues than necessary to be present. Completely asymmetric puzzles have the freedom to contain as few clues as possible.
+</p>
+<p>
+Finally, you can configure the difficulty of the generated puzzles. Difficulty levels are judged by the complexity of the techniques of deduction required to solve the puzzle: each level requires a mode of reasoning which was not necessary in the previous one. In particular, on difficulty levels &#8216;Trivial&#8217; and &#8216;Basic&#8217; there will be a square you can fill in with a single number at all times, whereas at &#8216;Intermediate&#8217; level and beyond you will have to make partial deductions about the <em>set</em> of squares a number could be in (or the set of numbers that could be in a square). At &#8216;Unreasonable&#8217; level, even this is not enough, and you will eventually have to make a guess, and then backtrack if it turns out to be wrong.
+</p>
+<p>
+Generating difficult puzzles is itself difficult: if you select one of the higher difficulty levels, Solo may have to make many attempts at generating a puzzle before it finds one hard enough for you. Be prepared to wait, especially if you have also configured a large puzzle size.
+</p>
+
+<hr><address>
+[$Id$]</address></body>
+</html>

@@ -1,0 +1,132 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+"http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=US-ASCII">
+<title>Bridges</title>
+<link rel="previous" href="tents.html">
+<link rel="ToC" href="index.html">
+<link rel="up" href="index.html">
+<link rel="index" href="docindex.html">
+<link rel="next" href="unequal.html">
+</head>
+<body>
+<p><a href="tents.html">Previous</a> | <a href="index.html">Contents</a> | <a href="docindex.html">Index</a> | <a href="unequal.html">Next</a></p>
+<h1><a name="C26"></a>Chapter 26: <a name="i0"></a>Bridges</h1>
+<p>
+Sie verf&#252;gen &#252;ber einen Satz von Inseln, die &#252;ber das Spielfeld verteilt sind. Jede Insel enth&#228;lt eine Nummer. Ihr Ziel besteht darin, die Inseln mit Br&#252;cken zu verbinden, so dass folgende Bedingungen erf&#252;llt sind:
+</p>
+<ul><li>
+Br&#252;cken laufen horizontal oder vertikal.
+</li>
+<li>
+Die Anzahl der auf einer Insel endenden Br&#252;cken stimmt mit der auf der Insel angegebenen Nummer &#252;berein.
+</li>
+<li>
+Zwei Br&#252;cken d&#252;rfen parallel zwischen den gleichen zwei Inseln laufen, aber nicht mehr als zwei.
+</li>
+<li>
+Keine Br&#252;cke kreuzt eine andere Br&#252;cke.
+</li>
+<li>
+Alle Inseln sind mit Br&#252;cken verbunden.
+</li>
+</ul>
+<p>
+Es gibt einige konfigurierbare andere Modi, die die Begrenzung auf zwei parallele Br&#252;cken auf etwas anderes als zwei setzen und die zus&#228;tzliche Randbedingung einf&#252;hren, dass keine Sequenz von Br&#252;cken eine Schleife von einer Insel zur&#252;ck zu der gleichen Insel bilden d&#252;rfen. Die oben angegebenen Regeln sind die Standardregeln.
+</p>
+<p>
+Dank f&#252;r dieses Puzzle geht an <a name="i1"></a>Nikoli <a href="#p0">[12]</a>.
+</p>
+<p>
+Bridges wurde von James Harvey zu dieser Sammlung beigesteuert.
+</p>
+<p><a name="p0"></a>
+[12] <a href="http://www.nikoli.co.jp/puzzles/14/index-e.htm"><code>http://www.nikoli.co.jp/puzzles/14/index-e.htm</code></a>
+</p>
+<h2><a name="S26.1"></a>26.1 <a name="i2"></a>Bridges-Steuerung</h2>
+<p>
+Um eine Br&#252;cke zwischen zwei Inseln zu positionieren, klicken Sie mit der Maus auf eine der Inseln und ziehen Sie sie dann auf die andere zu. Sie m&#252;ssen sie nicht den ganzen Weg zur anderen Insel ziehen; Sie m&#252;ssen die Maus nur weit genug ziehen, so dass die geplante Br&#252;ckenrichtung eindeutig ist. (Somit k&#246;nnen Sie die Maus in der N&#228;he der Startinsel belassen und bequem Br&#252;cken von dieser aus in viele Richtungen werfen.)
+</p>
+<p>
+Ist bereits eine Br&#252;cke vorhanden und Sie wiederholen dies, dann wird eine weitere, parallele Br&#252;cke hinzugef&#252;gt. Falls bereits so viele Br&#252;cken zwischen zwei Inseln vorhanden sind, wie von den aktuellen Spielregeln erlaubt sind (d.h. standardm&#228;&#223;ig zwei), wird die gleiche Zieh-Aktion alle Br&#252;cken wieder entfernen.
+</p>
+<p>
+Falls Sie sich daran erinnern wollen, dass sich zwischen zwei Inseln definitiv <em>keine</em> Br&#252;cke befindet, k&#246;nnen Sie in der gleichen Weise mit der rechten Maustaste eine &#8216;keine-Br&#252;cke&#8217;-Markierung hinziehen.
+</p>
+<p>
+Falls Sie glauben, Sie haben eine Insel abgeschlossen (d.h. Sie haben alle deren Br&#252;cken gesetzt und sind sich sicher, dass sie korrekt sind), k&#246;nnen Sie die Insel durch Anklicken mit der rechten Maustaste als abgeschlossen markieren. Dies wird sie und alle daran angeschlossenen Br&#252;cken hervorheben und Sie davon abhalten, versehentlich in der Zukunft eine dieser Br&#252;cken zu ver&#228;ndern. Durch erneutes Klicken mit der linken Maustaste entfernen Sie die Markierung wieder und stellen die M&#246;glichkeit wieder her, die Insel zu bearbeiten.
+</p>
+<p>
+Sie k&#246;nnen auch die Pfeiltasten zur Bewegung im Gitter verwenden: Falls m&#246;glich, wird sich der Cursor immer orthogonal bewegen, andernfalls wird er sich zur Insel bewegen, die der angezeigten Richtung am n&#228;chsten liegt. Durch Dr&#252;cken der Eingabetaste gefolgt von einer Pfeiltaste wird eine Br&#252;cke in diese Richtung gelegt (falls m&#246;glich). Durch Dr&#252;cken der Leertaste gefolgt von einer Pfeiltaste wird eine &#8216;keine-Br&#252;cke&#8217;-Markierung gesetzt.
+</p>
+<p>
+Durch zweifaches Dr&#252;cken der Eingabetaste k&#246;nnen Sie eine Insel als beendet markieren.
+</p>
+<p>
+Verletzungen der Puzzleregeln werden in rot markiert:
+</p>
+<ul><li>
+Eine Insel mit zu vielen Br&#252;cken wird in rot hervorgehoben.
+</li>
+<li>
+Eine Insel mit zu wenigen Br&#252;cken wird in rot hervorgehoben, wenn es definitiv ein Fehler ist (im Gegensatz zur Situation, wo Sie einfach noch nicht fertig sind): falls das Hinzuf&#252;gen einer ausreichenden Anzahl an Br&#252;cken dazu f&#252;hrte, dass eine andere Br&#252;cke gekreuzt oder eine nicht-Br&#252;cken-Markierung entfernt w&#252;rde, oder falls die Insel als komplett markiert wurde.
+</li>
+<li>
+Eine Gruppe von Inseln und Br&#252;cken kann in rot hervorgehoben werden, falls sie eine geschlossene Untermenge des Puzzles darstellen, die nicht mehr mit dem Rest der Inseln verbunden werden kann. Falls Sie beispielsweise zwei 1s-Inseln direkt mit einer Br&#252;cke verbinden und sie nicht die einzigen Inseln im Gitter sind, werden sie rot markiert, um anzuzeigen, dass eine solche Gruppe nicht in einer g&#252;ltigen L&#246;sung enthalten sein kann.
+</li>
+<li>
+Falls Sie die (standardm&#228;&#223;ig aktivierte) Option &#187;Allow Loops&#171; deaktiviert haben, wird eine Gruppe von Br&#252;cken, die eine Schleife darstellen, hervorgehoben.
+</li>
+</ul>
+<p>
+(Alle in <a href="common.html#S2.1">section 2.1</a> beschriebene Aktionen sind auch verf&#252;gbar.)
+</p>
+<h2><a name="S26.2"></a>26.2 <a name="i3"></a>Bridges-Parameter</h2>
+<p>
+Diese Parameter sind von der Option &#8216;Benutzerdefiniert...&#8217; im Men&#252; &#8216;Art&#8217; verf&#252;gbar.
+</p>
+<dl><dt>
+<em>Breite</em>, <em>H&#246;he</em>
+</dt>
+<dd>
+Gr&#246;&#223;e des Gitters in Quadraten
+</dd>
+<dt>
+<em>Schwierigkeit</em>
+</dt>
+<dd>
+Schwierigkeitsgrad des Puzzles.
+</dd>
+<dt>
+<em>Schleifen erlauben</em>
+</dt>
+<dd>
+Standardm&#228;&#223;ig aktiviert. Falls entfernt, werden die Puzzles derart erzeugt, dass sie immer ohne die Erstellung von Schleifen l&#246;sbar sind und L&#246;sungen, die eine Schleife enthalten, werden verboten.
+</dd>
+<dt>
+<em>Max. Br&#252;cken in jede Richtung</em>
+</dt>
+<dd>
+Maximale Anzahl an Br&#252;cken in jede Richtung. Die Vorgabe ist 2 aber Sie k&#246;nnen Sie auf 1, 3 oder 4 &#228;ndern. Im Allgemeinen sind weniger leichter.
+</dd>
+<dt>
+<em>%age of island squares</em>
+</dt>
+<dd>
+Gives a rough percentage of islands the generator will try and lay before finishing the puzzle. Certain layouts will not manage to lay enough islands; this is an upper bound.
+</dd>
+<dt>
+<em>Expansion factor (%age)</em>
+</dt>
+<dd>
+Der Gitter-Generator funktioniert folgenderma&#223;en: Zuerst wird irgendwo zuf&#228;llig eine Insel erzeugt (falls noch keine vorhanden ist) oder zuf&#228;llig ausgew&#228;hlt. Dann wird zuf&#228;llig eine Richtung ausgew&#228;hlt und ermittelt, wie weit in diese Richtung gegangen werden k&#246;nnte, bevor eine neue Insel erstellt werden muss. Dieser Parameter bestimmt, wie wahrscheinlich es ist, das der Generator soweit wie m&#246;glich in eine Richtung geht, statt einen n&#228;heren Ort auszuw&#228;hlen.
+</dd>
+</dl>
+<p>
+Hohe Expansionsfaktoren bedeuten f&#252;r gew&#246;hnlich leichtere Puzzle mit weniger m&#246;glichen Inseln; niedrige Expansionsfaktoren k&#246;nnen zu vielen, eng gepackten Inseln f&#252;hren.
+</p>
+
+<hr><address>
+[$Id$]</address></body>
+</html>

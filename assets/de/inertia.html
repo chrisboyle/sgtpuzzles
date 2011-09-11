@@ -1,0 +1,55 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+"http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=US-ASCII">
+<title>Inertia</title>
+<link rel="previous" href="loopy.html">
+<link rel="ToC" href="index.html">
+<link rel="up" href="index.html">
+<link rel="index" href="docindex.html">
+<link rel="next" href="tents.html">
+</head>
+<body>
+<p><a href="loopy.html">Previous</a> | <a href="index.html">Contents</a> | <a href="docindex.html">Index</a> | <a href="tents.html">Next</a></p>
+<h1><a name="C24"></a>Chapter 24: <a name="i0"></a>Inertia</h1>
+<p>
+Sie sind ein kleiner gr&#252;ner Ball, der sich in einem Gitter voller Hindernisse befindet. Ihr Ziel besteht darin, alle Edelsteine einzusammeln, ohne auf eine Mine zu treffen.
+</p>
+<p>
+Sie k&#246;nnen den Ball in jede orthogonale <em>oder diagonale</em> Richtung bewegen. Sobald der Ball sich einmal bewegt, f&#228;hrt er fort, bis er gestoppt wird. Eine Mauer direkt im Weg stoppt ihn (falls er sich aber diagonal bewegt, wird er durch einen diagonalen Spalt zwischen zwei anderen Mauern hindurchlaufen, ohne anzuhalten). Auch sind einige der Quadrate &#8216;Stoppquadrate&#8217;; wenn ein Ball auf diese l&#228;uft, h&#228;lt er an, unabh&#228;ngig davon, in welche Richtung er lief. Edelsteine stoppen den Ball <em>nicht</em>; er nimmt diese auf und l&#228;uft weiter.
+</p>
+<p>
+Das Treffen einer Mine ist fatal. Selbst wenn Sie den letzten Edelstein im gleichen Spielzug aufgenommen haben und dann auf eine Mine treffen, wird das Spiel Sie als Tod und nicht als Sieger registrieren.
+</p>
+<p>
+Dieses Spiel wurde urspr&#252;nglich von Ben Olmstead <a href="#p0">[11]</a> f&#252;r Windows implementiert, der nett genug war, auf Nachfrage seinen Quellcode zu ver&#246;ffentlichen, so dass das Spiel f&#252;r diese Sammlung neuimplementiert werden konnte.
+</p>
+<p><a name="p0"></a>
+[11] <a href="http://xn13.com/"><code>http://xn13.com/</code></a>
+</p>
+<h2><a name="S24.1"></a>24.1 <a name="i1"></a>Inertia-Steuerung</h2>
+<p>
+Sie k&#246;nnen den Ball in jede der acht Richtungen mit dem numerischen Tastaturfeld bewegen. Alternativ bewegt sich der Fall durch Klicken mit der linken Maustaste in das Gitter in die dadurch vorgegebene Richtung.
+</p>
+<p>
+Falls Sie die Funktion &#8216;L&#246;sen&#8217; in diesem Spiel verwenden, wird das Programm einen Pfad durch das Gitter berechnen, dass alle verbliebenen Edelsteine einsammelt und zu der aktuellen Position zur&#252;ckkehrt. Ein Hinweispfeil wird am Ball erscheinen, der die Richtung anzeigt, in die Sie ihn bewegen sollten, um den Pfad zu beginnen. Falls Sie ihn dann in diese Richtung bewegen, wird der Pfeil aktualisiert, um die n&#228;chste Richtung im Pfad anzuzeigen. Sie k&#246;nnen auch die Leertaste dr&#252;cken, um den Ball automatisch in die Richtung des Hinweispfeils zu bewegen. Falls Sie den Ball in eine andere Richtung als die vom Hinweispfeil angezeigte bewegen, dann wird der Hinweispfeil nicht mehr angezeigt, da Sie vom vorgegebenen Pfad abgewichen sind; Sie k&#246;nnen dann &#8216;L&#246;sen&#8217; erneut aufrufen, um einen neuen Pfad zu erzeugen, falls Sie dies m&#246;chten.
+</p>
+<p>
+Alle in <a href="common.html#S2.1">section 2.1</a> beschriebenen Aktionen sind auch verf&#252;gbar. Insbesondere k&#246;nnen Sie die Undo-Funktion benutzen, falls Sie in eine Mine laufen und sterben, und das Spiel vor dem fatalen Spielzug fortsetzen. Das Spiel verfolgt mit, wie h&#228;ufig Sie das gemacht haben.
+</p>
+<h2><a name="S24.2"></a>24.2 <a name="i2"></a>Inertia-Parameter</h2>
+<p>
+Diese Parameter sind von der Option &#8216;Benutzerdefiniert...&#8217; im Men&#252; &#8216;Art&#8217; verf&#252;gbar.
+</p>
+<dl><dt>
+<em>Breite</em>, <em>H&#246;he</em>
+</dt>
+<dd>
+Gr&#246;&#223;e des Gitters in Quadraten
+</dd>
+</dl>
+
+<hr><address>
+[$Id$]</address></body>
+</html>

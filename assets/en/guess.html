@@ -1,0 +1,92 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+"http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=US-ASCII">
+<title>Guess</title>
+<link rel="previous" href="flip.html">
+<link rel="ToC" href="index.html">
+<link rel="up" href="index.html">
+<link rel="index" href="docindex.html">
+<link rel="next" href="pegs.html">
+</head>
+<body>
+<p><a href="flip.html">Previous</a> | <a href="index.html">Contents</a> | <a href="docindex.html">Index</a> | <a href="pegs.html">Next</a></p>
+<h1><a name="C15"></a>Chapter 15: <a name="i0"></a>Guess</h1>
+<p>
+You have a set of coloured pegs, and have to reproduce a predetermined sequence of them (chosen by the computer) within a certain number of guesses.
+</p>
+<p>
+Each guess gets marked with the number of correctly-coloured pegs in the correct places (in black), and also the number of correctly-coloured pegs in the wrong places (in white).
+</p>
+<p>
+This game is also known (and marketed, by Hasbro, mainly) as a board game &#8216;<a name="i1"></a>Mastermind&#8217;, with 6 colours, 4 pegs per row, and 10 guesses. However, this version allows custom settings of number of colours (up to 10), number of pegs per row, and number of guesses.
+</p>
+<p>
+Guess was contributed to this collection by James Harvey.
+</p>
+<h2><a name="S15.1"></a>15.1 <a name="i2"></a>Guess controls</h2>
+<p>
+This game can be played with either the keyboard or the mouse.
+</p>
+<p>
+With the mouse, drag a coloured peg from the tray on the left-hand side to its required position in the current guess; pegs may also be dragged from current and past guesses to copy them elsewhere. To remove a peg, drag it off its current position to somewhere invalid.
+</p>
+<p>
+Right-clicking in the current guess adds a &#8216;hold&#8217; marker; pegs that have hold markers will be automatically added to the next guess after marking.
+</p>
+<p>
+Alternatively, with the keyboard, the up and down cursor keys can be used to select a peg colour, the left and right keys to select a peg position, and the space bar or Enter key to place a peg of the selected colour in the chosen position. &#8216;D&#8217; or Backspace removes a peg, and &#8216;H&#8217; adds a hold marker.
+</p>
+<p>
+When the guess is complete, the smaller feedback pegs will be highlighted; clicking on these (or moving the peg cursor to them with the arrow keys and pressing the space bar or Enter key) will mark the current guess, copy any held pegs to the next guess, and move the &#8216;current guess&#8217; marker.
+</p>
+<p>
+If you correctly position all the pegs the solution will be displayed below; if you run out of guesses (or select &#8216;Solve...&#8217;) the solution will also be revealed.
+</p>
+<p>
+(All the actions described in <a href="common.html#S2.1">section 2.1</a> are also available.)
+</p>
+<h2><a name="S15.2"></a>15.2 <a name="i3"></a>Guess parameters</h2>
+<p>
+These parameters are available from the &#8216;Custom...&#8217; option on the &#8216;Type&#8217; menu. The default game matches the parameters for the board game &#8216;Mastermind&#8217;.
+</p>
+<dl><dt>
+<em>Colours</em>
+</dt>
+<dd>
+Number of colours the solution is chosen from; from 2 to 10 (more is harder).
+</dd>
+<dt>
+<em>Pegs per guess</em>
+</dt>
+<dd>
+Number of pegs per guess (more is harder).
+</dd>
+<dt>
+<em>Guesses</em>
+</dt>
+<dd>
+Number of guesses you have to find the solution in (fewer is harder).
+</dd>
+<dt>
+<em>Allow blanks</em>
+</dt>
+<dd>
+Allows blank pegs to be given as part of a guess (makes it easier, because you know that those will never be counted as part of the solution). This is turned off by default.
+</dd>
+</dl>
+<p>
+Note that this doesn't allow blank pegs in the solution; if you really wanted that, use one extra colour.
+</p>
+<dl><dt>
+<em>Allow duplicates</em>
+</dt>
+<dd>
+Allows the solution (and the guesses) to contain colours more than once; this increases the search space (making things harder), and is turned on by default.
+</dd>
+</dl>
+
+<hr><address>
+[$Id$]</address></body>
+</html>

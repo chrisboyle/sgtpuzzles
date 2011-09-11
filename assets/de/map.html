@@ -1,0 +1,77 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+"http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=US-ASCII">
+<title>Map</title>
+<link rel="previous" href="lightup.html">
+<link rel="ToC" href="index.html">
+<link rel="up" href="index.html">
+<link rel="index" href="docindex.html">
+<link rel="next" href="loopy.html">
+</head>
+<body>
+<p><a href="lightup.html">Previous</a> | <a href="index.html">Contents</a> | <a href="docindex.html">Index</a> | <a href="loopy.html">Next</a></p>
+<h1><a name="C22"></a>Chapter 22: <a name="i0"></a>Map</h1>
+<p>
+Sie erhalten eine Karte bestehend aus einer Anzahl an Regionen. Ihre Aufgabe besteht darin, jede Region in einer der vier Farben einzuf&#228;rben und zwar derart, dass keine zwei Regionen mit gemeinsamer Grenze die gleiche Farbe haben. Sie erhalten bereits einige Regionen eingef&#228;rbt; ausreichend viele, um den Rest der L&#246;sung eindeutig zu gestalten.
+</p>
+<p>
+Nur Regionen, die ein St&#252;ck Grenze gemeinsam haben, m&#252;ssen in verschiedenen Farben vorliegen. Zwei Regionen, die sich nur an einem <em>Punkt</em> treffen (d.h. diagonal separiert sind) k&#246;nnen in der gleichen Farbe sein.
+</p>
+<p>
+Ich bin der Meinung, dieses Puzzle ist ein Original; ich habe niemals irgendwo anders eine Implementierung davon gesehen. Das Konzept eines <a name="i1"></a>vier-f&#228;rbe-Puzzles wurde von Owen Dunn vorgeschlagen; Dank muss auch an Nikoli und an Verity Allan f&#252;r die Anregung des Gedankengangs gehen, der mich dazu brachten, Owens Vorschlag als m&#246;gliches Puzzle zu begreifen. Dank auch an Gareth Taylor f&#252;r viele detaillierte Vorschl&#228;ge.
+</p>
+<h2><a name="S22.1"></a>22.1 <a name="i2"></a>Map-Steuerung</h2>
+<p>
+Um ein Gebiet einzuf&#228;rben, klicken Sie mit der linken Maustaste in ein existierendes Gebiet der gew&#252;nschten Farbe und ziehen Sie die Farbe in die neue Region.
+</p>
+<p>
+(Das Programm wird immer sicherstellen, dass das Startpuzzle mindestens eine Region in jeder Farbe hat, so dass dies immer m&#246;glich ist!)
+</p>
+<p>
+Falls Sie die Farbe in einer Region entfernen m&#246;chten, k&#246;nnen Sie von einer leeren Region hineinziehen oder vom Rand des Puzzles, falls keine leeren Regionen mehr &#252;brig sind.
+</p>
+<p>
+Ziehen einer Farbe mit der <em>rechten</em> Maustaste t&#252;pfelt die Region in der Farbe. Dies k&#246;nnen Sie als Hinweis f&#252;r sich selbst verwenden, dass Sie denken, die Region <em>k&#246;nnte</em> diese Farbe haben. Eine Region kann gleichzeitig in mehreren Farben get&#252;pfelt werden. (Dies ist bei h&#246;heren Schwierigkeitsgraden oft n&#252;tzlich.)
+</p>
+<p>
+Sie k&#246;nne auch die Pfeiltasten verwenden, um sich in der Karte zu bewegen; die Farbe des Cursors deutet die Position der Farbe, die sie ziehen w&#252;rden, an (die nicht offensichtlich ist, falls Sie auf der Grenze einer Region sind, da sie von der Richtung abh&#228;ngt, von der Sie die Grenze erreicht haben). Durch Dr&#252;cken der Eingabetaste beginnen Sie ein Ziehen dieser Farbe, wie oben, die Sie mit den Pfeiltasten steuern. Durch erneutes Dr&#252;cken der Eingabetaste beenden Sie das Ziehen. &#196;hnlich kann die Leertaste zum T&#252;pfeln einer Region verwandt werden. Doppelte Dr&#252;cken der Eingabetaste (ohne Bewegen des Cursors) bereinigt die Region, wie dies auch Ziehen von einer leeren Region aus tut. Dies ist im Cursor-Modus n&#252;tzlich, falls Sie die gesamte Karte ausgef&#252;llt haben aber die Verteilung korrigieren m&#252;ssen.
+</p>
+<p>
+Falls Sie w&#228;hrend des Spiels L dr&#252;cken, wird das Spiel eine Nummer in jeder Region der Karte ein- bzw. ausschalten. Dies ist n&#252;tzlich, falls Sie eine bestimmte Puzzleinstanz mit einem Freund diskutieren m&#246;chten &#8211; ein eindeutiger Name f&#252;r jede Region ist viel einfacher als der Versuch, sie mit Namen der Art &#8216;die Region unterhalb und rechts von der braunen oben an der Grenze&#8217; zu referenzieren.
+</p>
+<p>
+(Alle in <a href="common.html#S2.1">section 2.1</a> beschriebene Aktionen sind auch verf&#252;gbar.)
+</p>
+<h2><a name="S22.2"></a>22.2 <a name="i3"></a>Map-Parameter</h2>
+<p>
+Diese Parameter sind von der Option &#8216;Benutzerdefiniert...&#8217; im Men&#252; &#8216;Art&#8217; verf&#252;gbar.
+</p>
+<dl><dt>
+<em>Breite</em>, <em>H&#246;he</em>
+</dt>
+<dd>
+Gr&#246;&#223;e des Gitters in Quadraten
+</dd>
+<dt>
+<em>Bereiche</em>
+</dt>
+<dd>
+Anzahl der Regionen in der erzeugten Karte.
+</dd>
+<dt>
+<em>Schwierigkeit</em>
+</dt>
+<dd>
+Im Modus &#8216;Einfach&#8217; sollte es immer mindestens eine Region geben, dessen Farbe trivial ermittelt werden kann. In den Modi &#8216;Normal&#8217; und &#8216;Schwer&#8217; m&#252;ssen Sie zunehmend komplexe Logik verwenden, um die Farbe einiger Regionen zu bestimmen. Es wird allerdings immer ohne Raten oder R&#252;ckverfolgen m&#246;glich sein.
+<p>
+Im Modus &#8216;Unvern&#252;nftig&#8217; wird das Programm die Freiheit einsetzen, so schwer wie m&#246;glich l&#246;sbare Puzzle zu generieren. Die einzige Randbedingung ist, dass sie immer noch eine eindeutige L&#246;sung haben sollten. Das L&#246;sen von Puzzlen dieser Schwierigkeit kann Raten und R&#252;ckverfolgung verlangen.
+</p>
+
+</dd>
+</dl>
+
+<hr><address>
+[$Id$]</address></body>
+</html>

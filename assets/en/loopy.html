@@ -1,0 +1,70 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+"http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=US-ASCII">
+<title>Loopy</title>
+<link rel="previous" href="map.html">
+<link rel="ToC" href="index.html">
+<link rel="up" href="index.html">
+<link rel="index" href="docindex.html">
+<link rel="next" href="inertia.html">
+</head>
+<body>
+<p><a href="map.html">Previous</a> | <a href="index.html">Contents</a> | <a href="docindex.html">Index</a> | <a href="inertia.html">Next</a></p>
+<h1><a name="C23"></a>Chapter 23: <a name="i0"></a>Loopy</h1>
+<p>
+You are given a grid of dots, marked with yellow lines to indicate which dots you are allowed to connect directly together. Your aim is to use some subset of those yellow lines to draw a single unbroken loop from dot to dot within the grid.
+</p>
+<p>
+Some of the spaces between the lines contain numbers. These numbers indicate how many of the lines around that space form part of the loop. The loop you draw must correctly satisfy all of these clues to be considered a correct solution.
+</p>
+<p>
+In the default mode, the dots are arranged in a grid of squares; however, you can also play on triangular or hexagonal grids, or even more exotic ones.
+</p>
+<p>
+Credit for the basic puzzle idea goes to <a name="i1"></a>Nikoli <a href="#p0">[10]</a>.
+</p>
+<p>
+Loopy was originally contributed to this collection by Mike Pinna, and subsequently enhanced to handle various types of non-square grid by Lambros Lambrou.
+</p>
+<p><a name="p0"></a>
+[10] <a href="http://www.nikoli.co.jp/puzzles/3/index-e.htm"><code>http://www.nikoli.co.jp/puzzles/3/index-e.htm</code></a> (beware of Flash)
+</p>
+<h2><a name="S23.1"></a>23.1 <a name="i2"></a>Loopy controls</h2>
+<p>
+Click the left mouse button on a yellow line to turn it black, indicating that you think it is part of the loop. Click again to turn the line yellow again (meaning you aren't sure yet).
+</p>
+<p>
+If you are sure that a particular line segment is <em>not</em> part of the loop, you can click the right mouse button to remove it completely. Again, clicking a second time will turn the line back to yellow.
+</p>
+<p>
+(All the actions described in <a href="common.html#S2.1">section 2.1</a> are also available.)
+</p>
+<h2><a name="S23.2"></a>23.2 <a name="i3"></a>Loopy parameters</h2>
+<p>
+These parameters are available from the &#8216;Custom...&#8217; option on the &#8216;Type&#8217; menu.
+</p>
+<dl><dt>
+<em>Width</em>, <em>Height</em>
+</dt>
+<dd>
+Size of grid, measured in number of regions across and down. For square grids, it's clear how this is counted; for other types of grid you may have to think a bit to see how the dimensions are measured.
+</dd>
+<dt>
+<em>Grid type</em>
+</dt>
+<dd>
+Allows you to choose between a selection of types of tiling. Some have all the faces the same but may have multiple different types of vertex (e.g. the <em>Cairo</em> or <em>Kites</em> mode); others have all the vertices the same but may have different types of face (e.g. the <em>Great Hexagonal</em>). The square, triangular and honeycomb grids are fully regular, and have all their vertices <em>and</em> faces the same; this makes them the least confusing to play.
+</dd>
+<dt>
+<em>Difficulty</em>
+</dt>
+<dd>
+Controls the difficulty of the generated puzzle. 
+</dd>
+</dl>
+
+<hr><address>
+[$Id$]</address></body>
+</html>

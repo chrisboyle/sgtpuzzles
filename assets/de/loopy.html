@@ -1,0 +1,70 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+"http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=US-ASCII">
+<title>Loopy</title>
+<link rel="previous" href="map.html">
+<link rel="ToC" href="index.html">
+<link rel="up" href="index.html">
+<link rel="index" href="docindex.html">
+<link rel="next" href="inertia.html">
+</head>
+<body>
+<p><a href="map.html">Previous</a> | <a href="index.html">Contents</a> | <a href="docindex.html">Index</a> | <a href="inertia.html">Next</a></p>
+<h1><a name="C23"></a>Chapter 23: <a name="i0"></a>Loopy</h1>
+<p>
+Ihnen wird ein Netz an Punkten zur Verf&#252;gung gestellt, die mit gelben Linien markiert sind, um anzuzeigen, welche Punkte Sie direkt miteinander verbinden d&#252;rfen. Ihr Ziel besteht darin, eine Teilmenge der gelben Linien zu verwenden, um innerhalb des Netzes eine einzige, nicht-unterbrochene Schleife von Punkt zu Punkt zu zeichnen.
+</p>
+<p>
+Einige der Leerr&#228;ume zwischen den Zeilen enthalten Zahlen. Diese Zahlen geben an, wie viele der Zeilen um diesen Leerraum herum Teil der Schleife sind. Die von Ihnen gezeichnete Schleife muss alle diese Hinweise korrekt ber&#252;cksichtigen, um als korrekte L&#246;sung betrachtet zu werden.
+</p>
+<p>
+Im Standardmodus sind die Punkte als Quadratgitter angeordnet; Sie k&#246;nnen aber auch auf dreieckigen oder hexagonalen Gittern oder sogar noch exotischeren spielen.
+</p>
+<p>
+Die Danksagung f&#252;r die grundlegende Puzzle-Idee geht an <a name="i1"></a>Nikoli <a href="#p0">[10]</a>.
+</p>
+<p>
+Urspr&#252;nglich steuerte Mike Pinna Loopy zu dieser Sammlung bei und Lambros Lambrou erweiterte es im Folgenden um den Umgang mit verschiedenen, nicht-quadratischen Gittern.
+</p>
+<p><a name="p0"></a>
+[10] <a href="http://www.nikoli.co.jp/puzzles/3/index-e.htm"><code>http://www.nikoli.co.jp/puzzles/3/index-e.htm</code></a> (Achtung Flash)
+</p>
+<h2><a name="S23.1"></a>23.1 <a name="i2"></a>Loopy-Steuerung</h2>
+<p>
+Klicken Sie mit dem linken Mausknopf auf eine gelbe Linie, um sie zu schw&#228;rzen und damit anzuzeigen, dass Sie glauben, diese Linie sei Teil der Schleife. Klicken Sie erneut darauf, um sie wieder in Gelb umzuwandeln (was bedeutet, dass Sie sich noch nicht sicher sind).
+</p>
+<p>
+Falls Sie sich sicher sind, dass ein bestimmtes Liniensegment <em>nicht</em> Teil der Schleife ist, k&#246;nnen Sie mit der rechten Maustaste darauf klicken, um es komplett zu entfernen. Wieder wird ein zweiter Klick die Linie wieder Gelb einf&#228;rben.
+</p>
+<p>
+(Alle in <a href="common.html#S2.1">section 2.1</a> beschriebene Aktionen sind auch verf&#252;gbar.)
+</p>
+<h2><a name="S23.2"></a>23.2 <a name="i3"></a>Loopy-Parameter</h2>
+<p>
+Diese Parameter sind von der Option &#8216;Benutzerdefiniert...&#8217; im Men&#252; &#8216;Art&#8217; verf&#252;gbar.
+</p>
+<dl><dt>
+<em>Breite</em>, <em>H&#246;he</em>
+</dt>
+<dd>
+Gr&#246;&#223;e des Gitters, gemessen in der Anzahl der Regionen horizontal und vertikal. F&#252;r quadratische Gitter ist es klar, wie dies gez&#228;hlt wird; bei anderen Gittern m&#252;ssen Sie ein bisschen Nachdenken, um zu verstehen, wie diese Dimensionen gemessen werden.
+</dd>
+<dt>
+<em>Gitterart</em>
+</dt>
+<dd>
+Allows you to choose between a selection of types of tiling. Some have all the faces the same but may have multiple different types of vertex (e.g. the <em>Cairo</em> or <em>Kites</em> mode); others have all the vertices the same but may have different types of face (e.g. the <em>Great Hexagonal</em>). The square, triangular and honeycomb grids are fully regular, and have all their vertices <em>and</em> faces the same; this makes them the least confusing to play.
+</dd>
+<dt>
+<em>Schwierigkeit</em>
+</dt>
+<dd>
+Steuert die Schwierigkeit des erzeugten Puzzles. 
+</dd>
+</dl>
+
+<hr><address>
+[$Id$]</address></body>
+</html>

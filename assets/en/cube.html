@@ -1,0 +1,58 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+"http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=US-ASCII">
+<title>Cube</title>
+<link rel="previous" href="net.html">
+<link rel="ToC" href="index.html">
+<link rel="up" href="index.html">
+<link rel="index" href="docindex.html">
+<link rel="next" href="fifteen.html">
+</head>
+<body>
+<p><a href="net.html">Previous</a> | <a href="index.html">Contents</a> | <a href="docindex.html">Index</a> | <a href="fifteen.html">Next</a></p>
+<h1><a name="C4"></a>Chapter 4: <a name="i0"></a>Cube</h1>
+<p>
+This is another one I originally saw as a web game. This one was a Java game <a href="#p0">[2]</a>, by Paul Scott. You have a grid of 16 squares, six of which are blue; on one square rests a cube. Your move is to use the arrow keys to roll the cube through 90 degrees so that it moves to an adjacent square. If you roll the cube on to a blue square, the blue square is picked up on one face of the cube; if you roll a blue face of the cube on to a non-blue square, the blueness is put down again. (In general, whenever you roll the cube, the two faces that come into contact swap colours.) Your job is to get all six blue squares on to the six faces of the cube at the same time. Count your moves and try to do it in as few as possible.
+</p>
+<p>
+Unlike the original Java game, my version has an additional feature: once you've mastered the game with a cube rolling on a square grid, you can change to a triangular grid and roll any of a tetrahedron, an octahedron or an icosahedron.
+</p>
+<p><a name="p0"></a>
+[2] <a href="http://www3.sympatico.ca/paulscott/cube/cube.htm"><code>http://www3.sympatico.ca/paulscott/cube/cube.htm</code></a>
+</p>
+<h2><a name="S4.1"></a>4.1 <a name="i1"></a>Cube controls</h2>
+<p>
+This game can be played with either the keyboard or the mouse.
+</p>
+<p>
+Left-clicking anywhere on the window will move the cube (or other solid) towards the mouse pointer.
+</p>
+<p>
+The arrow keys can also used to roll the cube on its square grid in the four cardinal directions. On the triangular grids, the mapping of arrow keys to directions is more approximate. Vertical movement is disallowed where it doesn't make sense. The four keys surrounding the arrow keys on the numeric keypad (&#8216;7&#8217;, &#8216;9&#8217;, &#8216;1&#8217;, &#8216;3&#8217;) can be used for diagonal movement.
+</p>
+<p>
+(All the actions described in <a href="common.html#S2.1">section 2.1</a> are also available.)
+</p>
+<h2><a name="S4.2"></a>4.2 <a name="i2"></a>Cube parameters</h2>
+<p>
+These parameters are available from the &#8216;Custom...&#8217; option on the &#8216;Type&#8217; menu.
+</p>
+<dl><dt>
+<em>Type of solid</em>
+</dt>
+<dd>
+Selects the solid to roll (and hence the shape of the grid): tetrahedron, cube, octahedron, or icosahedron.
+</dd>
+<dt>
+<em>Width / top</em>, <em>Height / bottom</em>
+</dt>
+<dd>
+On a square grid, horizontal and vertical dimensions. On a triangular grid, the number of triangles on the top and bottom rows respectively.
+</dd>
+</dl>
+
+<hr><address>
+[$Id$]</address></body>
+</html>

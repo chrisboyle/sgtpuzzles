@@ -1,0 +1,100 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+"http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=US-ASCII">
+<title>Solo</title>
+<link rel="previous" href="pattern.html">
+<link rel="ToC" href="index.html">
+<link rel="up" href="index.html">
+<link rel="index" href="docindex.html">
+<link rel="next" href="mines.html">
+</head>
+<body>
+<p><a href="pattern.html">Previous</a> | <a href="index.html">Contents</a> | <a href="docindex.html">Index</a> | <a href="mines.html">Next</a></p>
+<h1><a name="C11"></a>Chapter 11: <a name="i0"></a>Solo</h1>
+<p>
+Sie erhalten ein Quadratgitter, das in so viele gleichgro&#223;e Unterbl&#246;cke zerteilt ist, wie das Gitter Spalten hat. Jedes Quadrat muss mit einer Ziffer von 1 bis zu der Gr&#246;&#223;e des Gitters bef&#252;llt werden, so dass
+</p>
+<ul><li>
+jede Zeile jede Ziffer nur einmal erh&#228;lt,
+</li>
+<li>
+jede Spalte jede Ziffer nur einmal erh&#228;lt und
+</li>
+<li>
+jeder Block jede Ziffer nur einmal erh&#228;lt.
+</li>
+<li>
+Optional (und standardm&#228;&#223;ig deaktiviert) jede der Hauptdiagonalen des Quadrats jede Ziffer nur einmal erh&#228;lt.
+</li>
+</ul>
+<p>
+Sie erhalten einige Zahlen als Hinweise; Ihr Ziel besteht darin, die restlichen Zahlen korrekt zu platzieren.
+</p>
+<p>
+Bei den Standardeinstellungen sind die Unterbl&#246;cke Quadrate oder Rechtecke. Die Standardpuzzlegr&#246;&#223;e ist 3&#215;3 (ein Gitter von tats&#228;chlich 9&#215;9, eingeteilt in neun 3by3 Bl&#246;cke). Sie k&#246;nnen auch Gr&#246;&#223;en mit rechteckigen statt quadratischen Bl&#246;cken ausw&#228;hlen, wie beispielsweise 2&#215;3 (ein 6&#215;6 Gitter unterteilt in sechs 3&#215;2 Bl&#246;cke). Alternativ k&#246;nnen Sie den &#8216;Zickzack&#8217;-Modus ausw&#228;hlen, bei dem die Unterbl&#246;cke beliebige Formen haben, die sich zwischen den einzelnen Puzzlen unterscheiden.
+</p>
+<p>
+Ein weiterer verf&#252;gbarer Modus ist &#8216;killer&#8217;. In diesem Modus werden die Hinweise nicht in der Form vorbef&#252;llter Quadrate gegeben, stattdessen ist das Gitter durch farbige Linien in &#8216;K&#228;fige&#8217; eingeteilt und f&#252;r jeden K&#228;fig informiert Sie das Spiel, was die Summe aller Ziffern in diesem K&#228;fig sein soll. Auch darf keine Ziffer mehr als einmal in einem K&#228;fig auftauchen, selbst wenn der K&#228;fig die Grenzen existierender Regionen &#252;berschreitet.
+</p>
+<p>
+Falls Sie eine Puzzlegr&#246;&#223;e w&#228;hlen, bei der mehr als 9 Ziffern ben&#246;tigt werden, sind die zus&#228;tzlichen Ziffern die Buchstaben des Alphabets. Falls Sie beispielsweise 3&#215;4 ausw&#228;hlen, werden die Ziffern im Gitter 1 bis 9 sowie &#8216;<code>a</code>&#8217;, &#8216;<code>b</code>&#8217; und &#8216;<code>c</code>&#8217; sein. Dies kann f&#252;r killer-Puzzle nicht ausgew&#228;hlt werden.
+</p>
+<p>
+Ich habe dieses Puzzle zuerst in <a name="i1"></a>Nikoli <a href="#p0">[5]</a> gesehen, obwohl es auch durch verschiedene Zeitungen unter dem Namen &#8216;Sudoku&#8217; oder &#8216;Su Doku&#8217; bekannt wurde. Howard Garns wird als Erfinder der modernen Form des Puzzles betrachtet und es wurde zuerst in <em>Dell Pencil Puzzles and Word Games</em> ver&#246;ffentlicht. Eine tiefergehende Behandlung der Geschichte des Puzzles kann in Wikipedia <a href="#p1">[6]</a> gefunden werden.
+</p>
+<p><a name="p0"></a>
+[5] <a href="http://www.nikoli.co.jp/puzzles/1/index_text-e.htm"><code>http://www.nikoli.co.jp/puzzles/1/index_text-e.htm</code></a>
+</p>
+<p><a name="p1"></a>
+[6] <a href="http://de.wikipedia.org/wiki/Sudoku"><code>http://de.wikipedia.org/wiki/Sudoku</code></a>
+</p>
+<h2><a name="S11.1"></a>11.1 <a name="i2"></a>Solo-Steuerung</h2>
+<p>
+Um Solo zu spielen, klicken Sie einfach mit der Maus in ein leeres Quadrat und tippen Sie dann eine Ziffer oder einen Buchstaben in die Tastatur, um dieses Quadrat zu f&#252;llen. Falls Sie einen Fehler gemacht haben, klicken Sie mit der Maus in das fehlerhafte Quadrat und dr&#252;cken Sie die Leertaste, um es wieder zu leeren (oder verwenden Sie die Undo-Funktion).
+</p>
+<p>
+Falls Sie in ein Quadrat <em>rechts-</em>klicken und dann eine Zahl tippen, wird diese Zahl im Quadrat als &#8216;Bleistiftmarkierung&#8217; eingetragen. Sie k&#246;nnen Bleistiftmarkierungen f&#252;r mehrere Zahlen im gleichen Quadrat vornehmen. Quadrate, in denen Zahlen eingef&#252;llt sind k&#246;nnen nicht auch gleichzeitig &#252;ber Bleistiftmarkierungen verf&#252;gen.
+</p>
+<p>
+Das Spiel ignoriert Bleistiftmarkierungen, daher k&#246;nnen Sie diese so einsetzen, wie Sie m&#246;chten: Sie k&#246;nnen Sie als Erinnerung verwenden, dass ein bestimmtes Quadrat noch mal untersucht werden muss, sobald Sie mehr &#252;ber eine bestimmte Zahl wissen, oder Sie k&#246;nnen sie als Liste m&#246;glicher Zahlen f&#252;r ein gegebenes Quadrat verwenden oder irgendetwas anderes, was Sie m&#246;gen.
+</p>
+<p>
+Um eine Bleistiftmarkierung zu entfernen, klicken Sie rechts in das Quadrat und tippen Sie die Zahl noch mal.
+</p>
+<p>
+Alle Bleistiftmarkierungen in einem Quadrat werden gel&#246;scht, wenn Sie linksklicken und eine Zahl eingeben oder wenn Sie linksklicken und die Leertaste dr&#252;cken. Auch rechtsklicken und dr&#252;cken der Leertaste wird die Bleistiftmarkierungen l&#246;schen.
+</p>
+<p>
+Verwenden Sie alternativ die Pfeiltasten um die Markierung im Gitter zu bewegen. Durch Dr&#252;cken der Eingabetaste schalten Sie die Markierung um (von normaler Markierung zur Bleistiftmarkierung). Geben Sie die Zahl ein, um diese geeignet in das Quadrat einzutragen. Die Eingabe von 0 oder die Verwendung der Leertaste wird ein gef&#252;lltes Quadrat leeren.
+</p>
+<p>
+(Alle in <a href="common.html#S2.1">section 2.1</a> beschriebene Aktionen sind auch verf&#252;gbar.)
+</p>
+<h2><a name="S11.2"></a>11.2 <a name="i3"></a>Solo-Parameter</h2>
+<p>
+Solo erlaubt Ihnen, zwei separate Dimensionen des Puzzlegitters im Men&#252; &#8216;Art&#8217; zu konfigurieren: die Anzahl der Spalten und die Anzahl der Zeilen, in die das Hauptgitter eingeteilt wird. (Die Gr&#246;&#223;e eines Blocks ist hierzu invers: Falls Sie beispielsweise 2 Spalten und 3 Zeilen w&#228;hlen, wird jeder Block tats&#228;chlich 3 Spalten und 2 Zeilen haben.)
+</p>
+<p>
+Falls Sie die Auswahl &#8216;X&#8217; ankreuzen, wird Solo die zus&#228;tzliche Randbedingung verwenden, dass die zwei Hauptdiagonalen auch jede Ziffer nur einmal verwenden. (In Zeitungen hei&#223;t dies manchmal &#8216;Sudoku-X&#8217;). In diesem Modus werden die Quadrate der Hauptdiagonalen leicht schattiert, so dass Sie sehen k&#246;nnen, dass der Modus aktiviert wurde.
+</p>
+<p>
+Falls Sie die Auswahl &#8216;Zickzack&#8217; ankreuzen, wird Solo zuf&#228;llig generierte Teilbl&#246;cke erstellen. In diesem Modus wird die tats&#228;chliche Gittergr&#246;&#223;e das Produkt der in die Felder &#8216;Spalten&#8217; und &#8216;Zeilen&#8217; eingetragenen Werte darstellen. Es gibt keinen Grund, warum Sie eine Zahl gr&#246;&#223;er als 1 in beide Felder eingeben m&#252;ssen; der Jigsaw-Modus kennt keine Grenzen in der Gitter-Gr&#246;&#223;e und es kann sogar eine Primzahl sein, wenn Sie dies m&#246;chten.
+</p>
+<p>
+Falls Sie die Auswahl &#8216;Killer&#8217; ankreuzen, wird Solo einen Satz K&#228;fige generieren, die eine zuf&#228;llige Form haben und als Umriss in einer anderen Farbe gezeichnet werden. Jeder dieser Regionen enth&#228;lt einen kleineren Hinweis, der die Summe der Ziffern aller Quadrate in dieser Region angibt.
+</p>
+<p>
+Sie k&#246;nnen auch die Art von Symmetrie im generierten Puzzle konfigurieren. Puzzle mit h&#246;herer Symmetrie sehen netter aus, allerdings k&#246;nnen sie dadurch auch einfacher werden, da die Symmetrie-Randbedingungen mehr angezeigte Hilfen als notwendig erzwingen k&#246;nnten. Bei komplett asymmetrische Puzzlen besteht die Freiheit, sowenige Hilfestellungen wie m&#246;glich zu enthalten.
+</p>
+<p>
+Schlie&#223;lich k&#246;nnen Sie den Schwierigkeitsgrad der generierten Puzzle konfigurieren. Schwierigkeitsstufen basieren auf der Komplexit&#228;t der Techniken, die zum L&#246;sen des Puzzles ben&#246;tigt werden: jede Stufe ben&#246;tigt einen Schlussfolgerungsmodus, der in der vorherigen Stufe nicht notwendig war. Insbesondere gibt es in den Schwierigkeitsstufen &#8216;Trivial&#8217; und &#8216;Basic&#8217; ein Quadrat, in dem Sie zu allen Zeiten eine einzelne Zahl eintragen k&#246;nnen, w&#228;hrend Sie in der Stufe &#8216;Mittle&#8217; und h&#246;her Teilschlussfolgerungen &#252;ber die <em>Menge</em> aller Quadrate machen m&#252;ssen, in denen eine Zahl sein k&#246;nnte (oder der Satz an Zahlen, der in einem Quadrat sein k&#246;nnte). In der Stufe &#8216;Unvern&#252;nftig&#8217; ist selbst dies nicht genug und Sie m&#252;ssen schlie&#223;lich raten und falls sich die geratene Zahl als falsch herausstellt wieder schrittweise zur&#252;ckgehen.
+</p>
+<p>
+Die Erstellung schwieriger Puzzle ist selbst schwierig: Falls Sie eine der h&#246;heren Schwierigkeitsgrade ausw&#228;hlen, k&#246;nnte Solo viele Versuche bei der Erstellung eines Puzzles machen, bevor es eines findet, das schwer genug f&#252;r Sie ist. Seien Sie daher auf Wartezeit vorbereitet, insbesondere wenn Sie auch eine gro&#223;e Puzzlegr&#246;&#223;e ausgew&#228;hlt haben.
+</p>
+
+<hr><address>
+[$Id$]</address></body>
+</html>

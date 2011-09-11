@@ -36,6 +36,10 @@ doc/%: doc/puzzles.but.%
 	mkdir -p $@
 	cd $@; halibut --html --input-charset=UTF-8 ../../$<
 htmldocs: $(addprefix doc/,$(LANGUAGES))
+assets/%: doc/%
+	mkdir -p assets
+	cp -Rv $< $@
+androiddocs: $(addprefix assets/,$(LANGUAGES))
 all: htmldocs
 .PHONY: htmldocs all
 

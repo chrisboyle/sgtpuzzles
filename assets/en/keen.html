@@ -1,0 +1,97 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+"http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=US-ASCII">
+<title>Keen</title>
+<link rel="previous" href="filling.html">
+<link rel="ToC" href="index.html">
+<link rel="up" href="index.html">
+<link rel="index" href="docindex.html">
+<link rel="next" href="towers.html">
+</head>
+<body>
+<p><a href="filling.html">Previous</a> | <a href="index.html">Contents</a> | <a href="docindex.html">Index</a> | <a href="towers.html">Next</a></p>
+<h1><a name="C30"></a>Chapter 30: <a name="i0"></a>Keen</h1>
+<p>
+You have a square grid; each square may contain a digit from 1 to the size of the grid. The grid is divided into blocks of varying shape and size, with arithmetic clues written in them. Your aim is to fully populate the grid with digits such that:
+</p>
+<ul><li>
+Each row contains only one occurrence of each digit
+</li>
+<li>
+Each column contains only one occurrence of each digit
+</li>
+<li>
+The digits in each block can be combined to form the number stated in the clue, using the arithmetic operation given in the clue. That is:
+<ul><li>
+An addition clue means that the sum of the digits in the block must be the given number. For example, &#8216;15+&#8217; means the contents of the block adds up to fifteen.
+</li>
+<li>
+A multiplication clue (e.g. &#8216;60&#215;&#8217;), similarly, means that the product of the digits in the block must be the given number.
+</li>
+<li>
+A subtraction clue will always be written in a block of size two, and it means that one of the digits in the block is greater than the other by the given amount. For example, &#8216;2&#8722;&#8217; means that one of the digits in the block is 2 more than the other, or equivalently that one digit minus the other one is 2. The two digits could be either way round, though.
+</li>
+<li>
+A division clue (e.g. &#8216;3&#247;&#8217;), similarly, is always in a block of size two and means that one digit divided by the other is equal to the given amount.
+</li>
+</ul>
+<p>
+Note that a block may contain the same digit more than once (provided the identical ones are not in the same row and column). This rule is precisely the opposite of the rule in Solo's &#8216;Killer&#8217; mode (see <a href="solo.html#C11">chapter 11</a>).
+</p>
+
+</li>
+</ul>
+<p>
+This puzzle appears in the Times under the name &#8216;<a name="i1"></a>KenKen&#8217;.
+</p>
+<h2><a name="S30.1"></a>30.1 <a name="i2"></a>Keen controls</h2>
+<p>
+Keen shares much of its control system with Solo (and Unequal).
+</p>
+<p>
+To play Keen, simply click the mouse in any empty square and then type a digit on the keyboard to fill that square. If you make a mistake, click the mouse in the incorrect square and press Space to clear it again (or use the Undo feature).
+</p>
+<p>
+If you <em>right</em>-click in a square and then type a number, that number will be entered in the square as a &#8216;pencil mark&#8217;. You can have pencil marks for multiple numbers in the same square. Squares containing filled-in numbers cannot also contain pencil marks.
+</p>
+<p>
+The game pays no attention to pencil marks, so exactly what you use them for is up to you: you can use them as reminders that a particular square needs to be re-examined once you know more about a particular number, or you can use them as lists of the possible numbers in a given square, or anything else you feel like.
+</p>
+<p>
+To erase a single pencil mark, right-click in the square and type the same number again.
+</p>
+<p>
+All pencil marks in a square are erased when you left-click and type a number, or when you left-click and press space. Right-clicking and pressing space will also erase pencil marks.
+</p>
+<p>
+As for Solo, the cursor keys can be used in conjunction with the digit keys to set numbers or pencil marks. Use the cursor keys to move a highlight around the grid, and type a digit to enter it in the highlighted square. Pressing return toggles the highlight into a mode in which you can enter or remove pencil marks.
+</p>
+<p>
+Pressing M will fill in a full set of pencil marks in every square that does not have a main digit in it.
+</p>
+<p>
+(All the actions described in <a href="common.html#S2.1">section 2.1</a> are also available.)
+</p>
+<h2><a name="S30.2"></a>30.2 <a name="i3"></a>Keen parameters</h2>
+<p>
+These parameters are available from the &#8216;Custom...&#8217; option on the &#8216;Type&#8217; menu.
+</p>
+<dl><dt>
+<em>Grid size</em>
+</dt>
+<dd>
+Specifies the size of the grid. Lower limit is 3; upper limit is 9 (because the user interface would become more difficult with &#8216;digits&#8217; bigger than 9!).
+</dd>
+<dt>
+<em>Difficulty</em>
+</dt>
+<dd>
+Controls the difficulty of the generated puzzle. At Unreasonable level, some backtracking will be required, but the solution should still be unique. The remaining levels require increasingly complex reasoning to avoid having to backtrack.
+</dd>
+</dl>
+
+<hr><address>
+[$Id$]</address></body>
+</html>

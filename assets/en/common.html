@@ -1,0 +1,286 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+"http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=US-ASCII">
+<title>Common features</title>
+<link rel="previous" href="intro.html">
+<link rel="ToC" href="index.html">
+<link rel="up" href="index.html">
+<link rel="index" href="docindex.html">
+<link rel="next" href="net.html">
+</head>
+<body>
+<p><a href="intro.html">Previous</a> | <a href="index.html">Contents</a> | <a href="docindex.html">Index</a> | <a href="net.html">Next</a></p>
+
+<ul>
+<li><a href="#C2">Chapter 2: Common features</a>
+<ul>
+<li><a href="#S2.1">2.1 Common actions</a></li>
+<li><a href="#S2.2">2.2 Specifying games with the game ID</a></li>
+<li><a href="#S2.3">2.3 The &#8216;Type&#8217; menu</a></li>
+<li><a href="#S2.4">2.4 Specifying game parameters on the command line</a></li>
+<li><a href="#S2.5">2.5 Unix command-line options</a></li>
+</ul></li>
+</ul>
+<h1><a name="C2"></a>Chapter 2: <a name="i0"></a>Common features</h1>
+<p>
+This chapter describes features that are common to all the games.
+</p>
+<h2><a name="S2.1"></a>2.1 <a name="i1"></a>Common actions</h2>
+<p>
+These actions are all available from the <a name="i2"></a>&#8216;Game&#8217; menu and via <a name="i3"></a>keyboard shortcuts, in addition to any game-specific actions.
+</p>
+<p>
+(On <a name="i4"></a>Mac OS X, to conform with local user interface standards, these actions are situated on the <a name="i5"></a>&#8216;File&#8217; and <a name="i6"></a>&#8216;Edit&#8217; menus instead.)
+</p>
+<dl><dt>
+<a name="i7"></a><em>New game</em> (&#8216;N&#8217;, Ctrl+&#8216;N&#8217;)
+</dt>
+<dd>
+Starts a new game, with a random initial state.
+</dd>
+<dt>
+<a name="i8"></a><em>Restart game</em>
+</dt>
+<dd>
+Resets the current game to its initial state. (This can be undone.)
+</dd>
+<dt>
+<a name="i9"></a><em>Load</em>
+</dt>
+<dd>
+Loads a saved game from a file on disk.
+</dd>
+<dt>
+<a name="i10"></a><em>Save</em>
+</dt>
+<dd>
+Saves the current state of your game to a file on disk.
+<p>
+The Load and Save operations preserve your entire game history (so you can save, reload, and still Undo and Redo things you had done before saving).
+</p>
+
+</dd>
+<dt>
+<a name="i11"></a><em>Print</em>
+</dt>
+<dd>
+Where supported (currently only on Windows), brings up a dialog allowing you to print an arbitrary number of puzzles randomly generated from the current parameters, optionally including the current puzzle. (Only for puzzles which make sense to print, of course &#8211; it's hard to think of a sensible printable representation of Fifteen!)
+</dd>
+<dt>
+<a name="i12"></a><em>Undo</em> (&#8216;U&#8217;, Ctrl+&#8216;Z&#8217;, Ctrl+&#8216;_&#8217;)
+</dt>
+<dd>
+Undoes a single move. (You can undo moves back to the start of the session.)
+</dd>
+<dt>
+<a name="i13"></a><em>Redo</em> (&#8216;R&#8217;, Ctrl+&#8216;R&#8217;)
+</dt>
+<dd>
+Redoes a previously undone move.
+</dd>
+<dt>
+<a name="i14"></a><em>Copy</em>
+</dt>
+<dd>
+Copies the current state of your game to the clipboard in text format, so that you can paste it into (say) an e-mail client or a web message board if you're discussing the game with someone else. (Not all games support this feature.)
+</dd>
+<dt>
+<a name="i15"></a><em>Solve</em>
+</dt>
+<dd>
+Transforms the puzzle instantly into its solved state. For some games (Cube) this feature is not supported at all because it is of no particular use. For other games (such as Pattern), the solved state can be used to give you information, if you can't see how a solution can exist at all or you want to know where you made a mistake. For still other games (such as Sixteen), automatic solution tells you nothing about how to <em>get</em> to the solution, but it does provide a useful way to get there quickly so that you can experiment with set-piece moves and transformations.
+<p>
+Some games (such as Solo) are capable of solving a game ID you have typed in from elsewhere. Other games (such as Rectangles) cannot solve a game ID they didn't invent themself, but when they did invent the game ID they know what the solution is already. Still other games (Pattern) can solve <em>some</em> external game IDs, but only if they aren't too difficult.
+</p>
+<p>
+The &#8216;Solve&#8217; command adds the solved state to the end of the undo chain for the puzzle. In other words, if you want to go back to solving it yourself after seeing the answer, you can just press Undo.
+</p>
+
+</dd>
+<dt>
+<a name="i16"></a><a name="i17"></a><em>Quit</em> (&#8216;Q&#8217;, Ctrl+&#8216;Q&#8217;)
+</dt>
+<dd>
+Closes the application entirely.
+</dd>
+</dl>
+<h2><a name="S2.2"></a>2.2 Specifying games with the <a name="i18"></a>game ID</h2>
+<p>
+There are two ways to save a game specification out of a puzzle and recreate it later, or recreate it in somebody else's copy of the same puzzle.
+</p>
+<p>
+The &#8216;<a name="i19"></a>Specific&#8217; and &#8216;<a name="i20"></a>Random Seed&#8217; options from the <a name="i21"></a>&#8216;Game&#8217; menu (or the &#8216;File&#8217; menu, on <a name="i22"></a>Mac OS X) each show a piece of text (a &#8216;game ID&#8217;) which is sufficient to reconstruct precisely the same game at a later date.
+</p>
+<p>
+You can enter either of these pieces of text back into the program (via the same &#8216;Specific&#8217; or &#8216;Random Seed&#8217; menu options) at a later point, and it will recreate the same game. You can also use either one as a <a name="i23"></a>command line argument (on Windows or Unix); see <a href="#S2.4">section 2.4</a> for more detail.
+</p>
+<p>
+The difference between the two forms is that a descriptive game ID is a literal <em>description</em> of the <a name="i24"></a>initial state of the game, whereas a random seed is just a piece of arbitrary text which was provided as input to the random number generator used to create the puzzle. This means that:
+</p>
+<ul><li>
+Descriptive game IDs tend to be longer in many puzzles (although some, such as Cube (<a href="cube.html#C4">chapter 4</a>), only need very short descriptions). So a random seed is often a <em>quicker</em> way to note down the puzzle you're currently playing, or to tell it to somebody else so they can play the same one as you.
+</li>
+<li>
+Any text at all is a valid random seed. The automatically generated ones are fifteen-digit numbers, but anything will do; you can type in your full name, or a word you just made up, and a valid puzzle will be generated from it. This provides a way for two or more people to race to complete the same puzzle: you think of a random seed, then everybody types it in at the same time, and nobody has an advantage due to having seen the generated puzzle before anybody else.
+</li>
+<li>
+It is often possible to convert puzzles from other sources (such as &#8216;nonograms&#8217; or &#8216;sudoku&#8217; from newspapers) into descriptive game IDs suitable for use with these programs.
+</li>
+<li>
+Random seeds are not guaranteed to produce the same result if you use them with a different <a name="i25"></a><em>version</em> of the puzzle program. This is because the generation algorithm might have been improved or modified in later versions of the code, and will therefore produce a different result when given the same sequence of random numbers. Use a descriptive game ID if you aren't sure that it will be used on the same version of the program as yours.
+<p>
+(Use the &#8216;About&#8217; menu option to find out the version number of the program. Programs with the same version number running on different platforms should still be random-seed compatible.)
+</p>
+
+</li>
+</ul>
+<p>
+<a name="i26"></a>A descriptive game ID starts with a piece of text which encodes the <a name="i27"></a><em>parameters</em> of the current game (such as grid size). Then there is a colon, and after that is the description of the game's initial state. A random seed starts with a similar string of parameters, but then it contains a hash sign followed by arbitrary data.
+</p>
+<p>
+If you enter a descriptive game ID, the program will not be able to show you the random seed which generated it, since it wasn't generated <em>from</em> a random seed. If you <em>enter</em> a random seed, however, the program will be able to show you the descriptive game ID derived from that random seed.
+</p>
+<p>
+Note that the game parameter strings are not always identical between the two forms. For some games, there will be parameter data provided with the random seed which is not included in the descriptive game ID. This is because that parameter information is only relevant when <em>generating</em> puzzle grids, and is not important when playing them. Thus, for example, the difficulty level in Solo (<a href="solo.html#C11">chapter 11</a>) is not mentioned in the descriptive game ID.
+</p>
+<p>
+These additional parameters are also not set permanently if you type in a game ID. For example, suppose you have Solo set to &#8216;Advanced&#8217; difficulty level, and then a friend wants your help with a &#8216;Trivial&#8217; puzzle; so the friend reads out a random seed specifying &#8216;Trivial&#8217; difficulty, and you type it in. The program will generate you the same &#8216;Trivial&#8217; grid which your friend was having trouble with, but once you have finished playing it, when you ask for a new game it will automatically go back to the &#8216;Advanced&#8217; difficulty which it was previously set on.
+</p>
+<h2><a name="S2.3"></a>2.3 The &#8216;Type&#8217; menu</h2>
+<p>
+The <a name="i28"></a>&#8216;Type&#8217; menu, if present, may contain a list of <a name="i29"></a>preset game settings. Selecting one of these will start a new random game with the parameters specified.
+</p>
+<p>
+The &#8216;Type&#8217; menu may also contain a &#8216;<a name="i30"></a>Custom&#8217; option which allows you to fine-tune game <a name="i31"></a>parameters. The parameters available are specific to each game and are described in the following sections.
+</p>
+<h2><a name="S2.4"></a>2.4 Specifying game parameters on the <a name="i32"></a>command line</h2>
+<p>
+(This section does not apply to the <a name="i33"></a>Android or <a name="i34"></a>Mac OS X versions.)
+</p>
+<p>
+The games in this collection deliberately do not ever save information on to the computer they run on: they have no high score tables and no saved preferences. (This is because I expect at least some people to play them at work, and those people will probably appreciate leaving as little evidence as possible!)
+</p>
+<p>
+However, if you do want to arrange for one of these games to <a name="i35"></a>default to a particular set of parameters, you can specify them on the command line.
+</p>
+<p>
+The easiest way to do this is to set up the parameters you want using the &#8216;Type&#8217; menu (see <a href="#S2.3">section 2.3</a>), and then to select &#8216;Random Seed&#8217; from the &#8216;Game&#8217; or &#8216;File&#8217; menu (see <a href="#S2.2">section 2.2</a>). The text in the &#8216;Game ID&#8217; box will be composed of two parts, separated by a hash. The first of these parts represents the game parameters (the size of the playing area, for example, and anything else you set using the &#8216;Type&#8217; menu).
+</p>
+<p>
+If you run the game with just that parameter text on the command line, it will start up with the settings you specified.
+</p>
+<p>
+For example: if you run Cube (see <a href="cube.html#C4">chapter 4</a>), select &#8216;Octahedron&#8217; from the &#8216;Type&#8217; menu, and then go to the game ID selection, you will see a string of the form &#8216;<code>o2x2#338686542711620</code>&#8217;. Take only the part before the hash (&#8216;<code>o2x2</code>&#8217;), and start Cube with that text on the command line: &#8216;<code>cube o2x2</code>&#8217;.
+</p>
+<p>
+If you copy the <em>entire</em> game ID on to the command line, the game will start up in the specific game that was described. This is occasionally a more convenient way to start a particular game ID than by pasting it into the game ID selection box.
+</p>
+<p>
+(You could also retrieve the encoded game parameters using the &#8216;Specific&#8217; menu option instead of &#8216;Random Seed&#8217;, but if you do then some options, such as the difficulty level in Solo, will be missing. See <a href="#S2.2">section 2.2</a> for more details on this.)
+</p>
+<h2><a name="S2.5"></a>2.5 <a name="i36"></a>Unix <a name="i37"></a>command-line options</h2>
+<p>
+(This section only applies to the Unix port.)
+</p>
+<p>
+In addition to being able to specify game parameters on the command line (see <a href="#S2.4">section 2.4</a>), there are various other options:
+</p>
+<dl><dt>
+<code>--game</code>
+</dt>
+<dt>
+<code>--load</code>
+</dt>
+<dd>
+These options respectively determine whether the command-line argument is treated as specifying game parameters or a <a name="i38"></a>save file to <a name="i39"></a>load. Only one should be specified. If neither of these options is specified, a guess is made based on the format of the argument.
+</dd>
+<dt>
+<code>--generate </code><em>n</em>
+</dt>
+<dd>
+If this option is specified, instead of a puzzle being displayed, a number of descriptive game IDs will be <a name="i40"></a>invented and printed on standard output. This is useful for gaining access to the game generation algorithms without necessarily using the frontend.
+<p>
+If game parameters are specified on the command-line, they will be used to generate the game IDs; otherwise a default set of parameters will be used.
+</p>
+<p>
+The most common use of this option is in conjunction with <code>--print</code>, in which case its behaviour is slightly different; see below.
+</p>
+
+</dd>
+<dt>
+<a name="i41"></a><code>--print </code><em>w</em><code>x</code><em>h</em>
+</dt>
+<dd>
+If this option is specified, instead of a puzzle being displayed, a printed representation of one or more unsolved puzzles is sent to standard output, in <a name="i42"></a>PostScript format.
+<p>
+On each page of puzzles, there will be <em>w</em> across and <em>h</em> down. If there are more puzzles than <em>w</em>&#215;<em>h</em>, more than one page will be printed.
+</p>
+<p>
+If <code>--generate</code> has also been specified, the invented game IDs will be used to generate the printed output. Otherwise, a list of game IDs is expected on standard input (which can be descriptive or random seeds; see <a href="#S2.2">section 2.2</a>), in the same format produced by <code>--generate</code>.
+</p>
+<p>
+For example:
+</p>
+<pre><code>net --generate 12 --print 2x3 7x7w | lpr
+</code></pre>
+<p>
+will generate two pages of printed Net puzzles (each of which will have a 7&#215;7 wrapping grid), and pipe the output to the <code>lpr</code> command, which on many systems will send them to an actual printer.
+</p>
+<p>
+There are various other options which affect printing; see below.
+</p>
+
+</dd>
+<dt>
+<code>--save </code><em>file-prefix</em> [ <code>--save-suffix </code><em>file-suffix</em> ]
+</dt>
+<dd>
+If this option is specified, instead of a puzzle being displayed, saved-game files for one or more unsolved puzzles are written to files constructed from the supplied prefix and/or suffix.
+<p>
+If <code>--generate</code> has also been specified, the invented game IDs will be used to generate the printed output. Otherwise, a list of game IDs is expected on standard input (which can be descriptive or random seeds; see <a href="#S2.2">section 2.2</a>), in the same format produced by <code>--generate</code>.
+</p>
+<p>
+For example:
+</p>
+<pre><code>net --generate 12 --save game --save-suffix .sav
+</code></pre>
+<p>
+will generate twelve Net saved-game files with the names <code>game0.sav</code> to <code>game11.sav</code>.
+</p>
+
+</dd>
+<dt>
+<code>--version</code>
+</dt>
+<dd>
+Prints version information about the game, and then quits.
+</dd>
+</dl>
+<p>
+The following options are only meaningful if <code>--print</code> is also specified:
+</p>
+<dl><dt>
+<code>--with-solutions</code>
+</dt>
+<dd>
+The set of pages filled with unsolved puzzles will be followed by the solutions to those puzzles.
+</dd>
+<dt>
+<code>--scale </code><em>n</em>
+</dt>
+<dd>
+Adjusts how big each puzzle is when printed. Larger numbers make puzzles bigger; the default is 1.0.
+</dd>
+<dt>
+<code>--colour</code>
+</dt>
+<dd>
+Puzzles will be printed in colour, rather than in black and white (if supported by the puzzle).
+</dd>
+</dl>
+
+<hr><address>
+[$Id$]</address></body>
+</html>

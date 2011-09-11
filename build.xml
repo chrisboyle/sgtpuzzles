@@ -45,10 +45,15 @@
      in between standard targets -->
     <target name="-pre-build">
         <exec executable="${ndk.dir}/ndk-build"/>
-        <exec executable="make" dir="icons">
+        <!--exec executable="make" dir="icons">
             <arg value="androidicons"/>
-        </exec>
+        </exec-->
         <exec executable="./i18ncheck.pl"/>
+        <!--exec executable="make" dir=".">
+            <arg value="-f"/>
+            <arg value="Makefile.doc"/>
+            <arg value="androiddocs"/>
+        </exec-->
     </target>
 <!--
     <target name="-pre-compile">

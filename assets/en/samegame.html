@@ -1,0 +1,83 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+"http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=US-ASCII">
+<title>Same Game</title>
+<link rel="previous" href="mines.html">
+<link rel="ToC" href="index.html">
+<link rel="up" href="index.html">
+<link rel="index" href="docindex.html">
+<link rel="next" href="flip.html">
+</head>
+<body>
+<p><a href="mines.html">Previous</a> | <a href="index.html">Contents</a> | <a href="docindex.html">Index</a> | <a href="flip.html">Next</a></p>
+<h1><a name="C13"></a>Chapter 13: <a name="i0"></a>Same Game</h1>
+<p>
+You have a grid of coloured squares, which you have to clear by highlighting contiguous regions of more than one coloured square; the larger the region you highlight, the more points you get (and the faster you clear the arena).
+</p>
+<p>
+If you clear the grid you win. If you end up with nothing but single squares (i.e., there are no more clickable regions left) you lose.
+</p>
+<p>
+Removing a region causes the rest of the grid to shuffle up: blocks that are suspended will fall down (first), and then empty columns are filled from the right.
+</p>
+<p>
+Same Game was contributed to this collection by James Harvey.
+</p>
+<h2><a name="S13.1"></a>13.1 <a name="i1"></a>Same Game controls</h2>
+<p>
+This game can be played with either the keyboard or the mouse.
+</p>
+<p>
+If you left-click an unselected region, it becomes selected (possibly clearing the current selection).
+</p>
+<p>
+If you left-click the selected region, it will be removed (and the rest of the grid shuffled immediately).
+</p>
+<p>
+If you right-click the selected region, it will be unselected.
+</p>
+<p>
+The cursor keys move a cursor around the grid. Pressing the Space or Enter keys while the cursor is in an unselected region selects it; pressing Space or Enter again removes it as above.
+</p>
+<p>
+(All the actions described in <a href="common.html#S2.1">section 2.1</a> are also available.)
+</p>
+<h2><a name="S13.2"></a>13.2 <a name="i2"></a>Same Game parameters</h2>
+<p>
+These parameters are available from the &#8216;Custom...&#8217; option on the &#8216;Type&#8217; menu.
+</p>
+<dl><dt>
+<em>Width</em>, <em>Height</em>
+</dt>
+<dd>
+Size of grid in squares.
+</dd>
+<dt>
+<em>No. of colours</em>
+</dt>
+<dd>
+Number of different colours used to fill the grid; the more colours, the fewer large regions of colour and thus the more difficult it is to successfully clear the grid.
+</dd>
+<dt>
+<em>Scoring system</em>
+</dt>
+<dd>
+Controls the precise mechanism used for scoring. With the default system, &#8216;(n-2)^2&#8217;, only regions of three squares or more will score any points at all. With the alternative &#8216;(n-1)^2&#8217; system, regions of two squares score a point each, and larger regions score relatively more points.
+</dd>
+<dt>
+<em>Ensure solubility</em>
+</dt>
+<dd>
+If this option is ticked (the default state), generated grids will be guaranteed to have at least one solution.
+<p>
+If you turn it off, the game generator will not try to guarantee soluble grids; it will, however, still ensure that there are at least 2 squares of each colour on the grid at the start (since a grid with exactly one square of a given colour is <em>definitely</em> insoluble). Grids generated with this option disabled may contain more large areas of contiguous colour, leading to opportunities for higher scores; they can also take less time to generate.
+</p>
+
+</dd>
+</dl>
+
+<hr><address>
+[$Id$]</address></body>
+</html>

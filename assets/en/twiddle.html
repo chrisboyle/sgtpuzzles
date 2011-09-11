@@ -1,0 +1,64 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+"http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=US-ASCII">
+<title>Twiddle</title>
+<link rel="previous" href="sixteen.html">
+<link rel="ToC" href="index.html">
+<link rel="up" href="index.html">
+<link rel="index" href="docindex.html">
+<link rel="next" href="rectangles.html">
+</head>
+<body>
+<p><a href="sixteen.html">Previous</a> | <a href="index.html">Contents</a> | <a href="docindex.html">Index</a> | <a href="rectangles.html">Next</a></p>
+<h1><a name="C7"></a>Chapter 7: <a name="i0"></a>Twiddle</h1>
+<p>
+Twiddle is a tile-rearrangement puzzle, visually similar to Sixteen (see <a href="sixteen.html#C6">chapter 6</a>): you are given a grid of square tiles, each containing a number, and your aim is to arrange the numbers into ascending order.
+</p>
+<p>
+In basic Twiddle, your move is to rotate a square group of four tiles about their common centre. (Orientation is not significant in the basic puzzle, although you can select it.) On more advanced settings, you can rotate a larger square group of tiles.
+</p>
+<p>
+I first saw this type of puzzle in the GameCube game &#8216;Metroid Prime 2&#8217;. In the Main Gyro Chamber in that game, there is a puzzle you solve to unlock a door, which is a special case of Twiddle. I developed this game as a generalisation of that puzzle.
+</p>
+<h2><a name="S7.1"></a>7.1 <a name="i1"></a>Twiddle controls</h2>
+<p>
+To play Twiddle, click the mouse in the centre of the square group you wish to rotate. In the basic mode, you rotate a 2&#215;2 square, which means you have to click at a corner point where four tiles meet.
+</p>
+<p>
+In more advanced modes you might be rotating 3&#215;3 or even more at a time; if the size of the square is odd then you simply click in the centre tile of the square you want to rotate.
+</p>
+<p>
+Clicking with the left mouse button rotates the group anticlockwise. Clicking with the right button rotates it clockwise.
+</p>
+<p>
+You can also move an outline square around the grid with the cursor keys; the square is the size above (2&#215;2 by default, or larger). Pressing the return key or space bar will rotate the current square anticlockwise or clockwise respectively.
+</p>
+<p>
+(All the actions described in <a href="common.html#S2.1">section 2.1</a> are also available.)
+</p>
+<h2><a name="S7.2"></a>7.2 <a name="i2"></a>Twiddle parameters</h2>
+<p>
+Twiddle provides several configuration options via the &#8216;Custom&#8217; option on the &#8216;Type&#8217; menu:
+</p>
+<ul><li>
+You can configure the width and height of the puzzle grid.
+</li>
+<li>
+You can configure the size of square block that rotates at a time.
+</li>
+<li>
+You can ask for every square in the grid to be distinguishable (the default), or you can ask for a simplified puzzle in which there are groups of identical numbers. In the simplified puzzle your aim is just to arrange all the 1s into the first row, all the 2s into the second row, and so on.
+</li>
+<li>
+You can configure whether the orientation of tiles matters. If you ask for an orientable puzzle, each tile will have a triangle drawn in it. All the triangles must be pointing upwards to complete the puzzle.
+</li>
+<li>
+You can ask for a limited shuffling operation to be performed on the grid. By default, Twiddle will shuffle the grid so much that any arrangement is about as probable as any other. You can override this by requesting a precise number of shuffling moves to be performed. Typically your aim is then to determine the precise set of shuffling moves and invert them exactly, so that you answer (say) a four-move shuffle with a four-move solution. Note that the more moves you ask for, the more likely it is that solutions shorter than the target length will turn out to be possible.
+</li>
+</ul>
+
+<hr><address>
+[$Id$]</address></body>
+</html>

@@ -1,0 +1,109 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+"http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=US-ASCII">
+<title>Net</title>
+<link rel="previous" href="common.html">
+<link rel="ToC" href="index.html">
+<link rel="up" href="index.html">
+<link rel="index" href="docindex.html">
+<link rel="next" href="cube.html">
+</head>
+<body>
+<p><a href="common.html">Previous</a> | <a href="index.html">Contents</a> | <a href="docindex.html">Index</a> | <a href="cube.html">Next</a></p>
+<h1><a name="C3"></a>Chapter 3: <a name="i0"></a>Net</h1>
+<p>
+(<em>Note:</em> the <a name="i1"></a>Windows version of this game is called <a name="i2"></a><code>NETGAME.EXE</code> to avoid clashing with Windows's own <code>NET.EXE</code>.)
+</p>
+<p>
+I originally saw this in the form of a Flash game called <a name="i3"></a>FreeNet <a href="#p0">[1]</a>, written by Pavils Jurjans; there are several other implementations under the name <a name="i4"></a>NetWalk. The computer prepares a network by connecting up the centres of squares in a grid, and then shuffles the network by rotating every tile randomly. Your job is to rotate it all back into place. The successful solution will be an entirely connected network, with no closed loops. As a visual aid, all tiles which are connected to the one in the middle are highlighted.
+</p>
+<p><a name="p0"></a>
+[1] <a href="http://www.jurjans.lv/stuff/net/FreeNet.htm"><code>http://www.jurjans.lv/stuff/net/FreeNet.htm</code></a>
+</p>
+<h2><a name="S3.1"></a>3.1 <a name="i5"></a>Net controls</h2>
+<p>
+This game can be played with either the keyboard or the mouse. The controls are:
+</p>
+<dl><dt>
+<em>Select tile</em>: mouse pointer, arrow keys
+</dt>
+<dt>
+<em>Rotate tile anticlockwise</em>: left mouse button, &#8216;A&#8217; key
+</dt>
+<dt>
+<em>Rotate tile clockwise</em>: right mouse button, &#8216;D&#8217; key
+</dt>
+<dt>
+<em>Rotate tile by 180 degrees</em>: &#8216;F&#8217; key
+</dt>
+<dt>
+<em>Lock (or unlock) tile</em>: middle mouse button, shift-click, &#8216;S&#8217; key
+</dt>
+<dd>
+You can lock a tile once you're sure of its orientation. You can also unlock it again, but while it's locked you can't accidentally turn it.
+</dd>
+</dl>
+<p>
+The following controls are not necessary to complete the game, but may be useful:
+</p>
+<dl><dt>
+<em>Shift grid</em>: Shift + arrow keys
+</dt>
+<dd>
+On grids that wrap, you can move the origin of the grid, so that tiles that were on opposite sides of the grid can be seen together.
+</dd>
+<dt>
+<em>Move centre</em>: Ctrl + arrow keys
+</dt>
+<dd>
+You can change which tile is used as the source of highlighting. (It doesn't ultimately matter which tile this is, as every tile will be connected to every other tile in a correct solution, but it may be helpful in the intermediate stages of solving the puzzle.)
+</dd>
+<dt>
+<em>Jumble tiles</em>: &#8216;J&#8217; key
+</dt>
+<dd>
+This key turns all tiles that are not locked to random orientations.
+</dd>
+</dl>
+<p>
+(All the actions described in <a href="common.html#S2.1">section 2.1</a> are also available.)
+</p>
+<h2><a name="S3.2"></a>3.2 <a name="i6"></a>Net parameters</h2>
+<p>
+These parameters are available from the &#8216;Custom...&#8217; option on the &#8216;Type&#8217; menu.
+</p>
+<dl><dt>
+<em>Width</em>, <em>Height</em>
+</dt>
+<dd>
+Size of grid in tiles.
+</dd>
+<dt>
+<em>Walls wrap around</em>
+</dt>
+<dd>
+If checked, flow can pass from the left edge to the right edge, and from top to bottom, and vice versa.
+</dd>
+<dt>
+<em>Barrier probability</em>
+</dt>
+<dd>
+A number between 0.0 and 1.0 controlling whether an immovable barrier is placed between two tiles to prevent flow between them (a higher number gives more barriers). Since barriers are immovable, they act as constraints on the solution (i.e., hints).
+<p>
+The grid generation in Net has been carefully arranged so that the barriers are independent of the rest of the grid. This means that if you note down the random seed used to generate the current puzzle (see <a href="common.html#S2.2">section 2.2</a>), change the <em>Barrier probability</em> parameter, and then re-enter the same random seed, you should see exactly the same starting grid, with the only change being the number of barriers. So if you're stuck on a particular grid and need a hint, you could start up another instance of Net, set up the same parameters but a higher barrier probability, and enter the game seed from the original Net window.
+</p>
+
+</dd>
+<dt>
+<em>Ensure unique solution</em>
+</dt>
+<dd>
+Normally, Net will make sure that the puzzles it presents have only one solution. Puzzles with ambiguous sections can be more difficult and more subtle, so if you like you can turn off this feature and risk having ambiguous puzzles. (Also, finding <em>all</em> the possible solutions can be an additional challenge for an advanced player.)
+</dd>
+</dl>
+
+<hr><address>
+[$Id$]</address></body>
+</html>

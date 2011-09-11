@@ -1,0 +1,109 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+"http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=US-ASCII">
+<title>Net</title>
+<link rel="previous" href="common.html">
+<link rel="ToC" href="index.html">
+<link rel="up" href="index.html">
+<link rel="index" href="docindex.html">
+<link rel="next" href="cube.html">
+</head>
+<body>
+<p><a href="common.html">Previous</a> | <a href="index.html">Contents</a> | <a href="docindex.html">Index</a> | <a href="cube.html">Next</a></p>
+<h1><a name="C3"></a>Chapter 3: <a name="i0"></a>Net</h1>
+<p>
+(<em>Hinweis:</em> die <a name="i1"></a>Windows-Version dieses Spieles hei&#223;t <a name="i2"></a><code>NETGAME.EXE</code>, um Konflikte mit Windows eigenem <code>NET.EXE</code> zu vermeiden.
+</p>
+<p>
+Urspr&#252;nglich habe ich dies in der Form eines von Pavils Jurjans geschriebenen Flash-Spiels Namens <a name="i3"></a>FreeNet <a href="#p0">[1]</a> gesehen. Es gibt mehrere weitere Implementationen unter dem Namen <a name="i4"></a>NetWalk. Der Computer bereitet ein Netz vor, indem er die Zentren von Quadraten zu einem Gitter anordnet und dann das Netz durcheinanderw&#252;rfelt, in dem er jede Kachel zuf&#228;llig dreht. Ihre Aufgabe besteht darin, sie alle wieder zur&#252;ckzudrehen. Die erfolgreiche L&#246;sung ergibt ein komplett verbundenes Netz ohne geschlossene Schleifen. Als optisches Hilfsmittel werden alle Kacheln, die mit der Kachel in der Mitte verbunden sind, hervorgehoben.
+</p>
+<p><a name="p0"></a>
+[1] <a href="http://www.jurjans.lv/stuff/net/FreeNet.htm"><code>http://www.jurjans.lv/stuff/net/FreeNet.htm</code></a>
+</p>
+<h2><a name="S3.1"></a>3.1 <a name="i5"></a>Net-Steuerung</h2>
+<p>
+Dieses Spiel kann entweder mit der Tastatur oder mit der Maus gespielt werden. Die Steuerungen sind:
+</p>
+<dl><dt>
+<em>Kachel ausw&#228;hlen</em>: Mauszeiger, Pfeiltasten
+</dt>
+<dt>
+<em>Kachel gegen den Uhrzeigersinn drehen</em>: linke Maustaste, Taste &#8216;A&#8217;
+</dt>
+<dt>
+<em>Kachel im Uhrzeigersinn drehen</em>: rechte Maustaste, Taste &#8216;D&#8217;
+</dt>
+<dt>
+<em>Kachel um 180 Grad drehen</em>: Taste &#8216;F&#8217;
+</dt>
+<dt>
+<em>Kachel sperren (oder entsperren)</em>: Mittlere Maustaste, Umschalt-Klick, Taste &#8216;S&#8217;
+</dt>
+<dd>
+Sie k&#246;nnen Kacheln sperren, sobald Sie sich &#252;ber deren Orientierung sicher sind. Sie k&#246;nnen sie auch wieder entsperren, aber im gesperrten Zustand k&#246;nnen Sie sie nicht versehentlich drehen.
+</dd>
+</dl>
+<p>
+Die folgenden Steuerungen sind f&#252;r das Beenden des Spiels nicht notwendig, k&#246;nnten aber hilfreich sein:
+</p>
+<dl><dt>
+<em>Gitter verschieben</em>: Umschalt + Pfeiltasten
+</dt>
+<dd>
+Bei umlaufenden Gittern k&#246;nnen Sie den Ursprung des Gitters verschieben, so dass Kacheln, die auf gegen&#252;berliegenden Seiten des Gitters waren, zusammen gesehen werden k&#246;nnen.
+</dd>
+<dt>
+<em>Zentrum bewegen</em>: Strg + Pfeiltasten
+</dt>
+<dd>
+Sie k&#246;nne die Kachel &#228;ndern, auf die sich die Hervorhebung bezieht. (Es macht letztendlich keinen Unterschied, welche Kachel dies ist, da in der korrekten L&#246;sung jede Kachel mit jeder anderen Kachel verbunden ist, es kann aber f&#252;r die Zwischenstufen beim L&#246;sen des Puzzles hilfreich sein.)
+</dd>
+<dt>
+<em>Kacheln durcheinanderw&#252;rfeln</em>: &#8216;J&#8217;-Taste
+</dt>
+<dd>
+Diese Taste dreht alle nicht-gesperrten Kacheln in eine zuf&#228;llige Richtung.
+</dd>
+</dl>
+<p>
+(Alle in <a href="common.html#S2.1">section 2.1</a> beschriebene Aktionen sind auch verf&#252;gbar.)
+</p>
+<h2><a name="S3.2"></a>3.2 <a name="i6"></a>Net-Parameter</h2>
+<p>
+Diese Parameter sind von der Option &#8216;Benutzerdefiniert...&#8217; im Men&#252; &#8216;Art&#8217; verf&#252;gbar.
+</p>
+<dl><dt>
+<em>Breite</em>, <em>H&#246;he</em>
+</dt>
+<dd>
+Gr&#246;&#223;e des Gitters in Kacheln.
+</dd>
+<dt>
+<em>Umlaufende Grenzen</em>
+</dt>
+<dd>
+Falls ausgew&#228;hlt kann der Fluss von der linken Ecke zu der rechten Ecke und von oben nach unten (und andersherum) passieren.
+</dd>
+<dt>
+<em>Barrierenwahrscheinlichkeit</em>
+</dt>
+<dd>
+Eine Zahl zwischen 0.0 und 1.0 die steuert, ob eine un&#252;berwindbare Barriere zwischen zwei Kacheln platziert wird, um den Fluss zwischen ihnen zu verhindern (eine h&#246;here Zahl ergibt mehr Barrieren). Da Barrieren nicht verschoben werden k&#246;nnen, dienen sie als Randbedingungen f&#252;r die L&#246;sung (d.h. Tipps).
+<p>
+Die Gitter-Erzeugung in Net wurde sorgf&#228;ltig so arrangiert, dass die Barrieren unabh&#228;ngig vom Rest des Gitters sind. Das bedeutet, dass Sie sich den Zufallsstartwert f&#252;r das aktuelle Puzzle aufschreiben k&#246;nnen (siehe <a href="common.html#S2.2">section 2.2</a>), den Parameter f&#252;r die <em>Barrierenwahrscheinlichkeit</em> &#228;ndern und dann den Zufallsstartwert erneut eingeben sollten Sie genau das gleiche Startgitter sehen, wobei die einzige &#196;nderung die Anzahl von Barrieren ist. Falls Sie daher bei einem bestimmten Gitter festh&#228;ngen und eine Hilfe ben&#246;tigen, k&#246;nnten Sie eine weitere Instanz von Net starten, die gleichen Spieleparameter aber mit einer h&#246;heren Barrierenwahrscheinlichkeit einrichten und den Zufallsstartwert von dem urspr&#252;nglichen Net-Fenster eingeben.
+</p>
+
+</dd>
+<dt>
+<em>Eindeutigl&#246;sbarkeit garantieren</em>
+</dt>
+<dd>
+Normalerweise wird Net sicherstellen, dass die vorgestellten Puzzle nur eine einzige L&#246;sung haben. Puzzle mit mehrdeutigen Abschnitte k&#246;nnen schwieriger und subtiler sein, falls Sie dies m&#246;gen, k&#246;nnen Sie daher diese Funktionalit&#228;t abschalten und mit dem Risiko leben, mehrdeutige Puzzle zu erhalten. (F&#252;r fortgeschrittene Spieler kann es auch eine zus&#228;tzliche Herausforderung sein, <em>alle</em> m&#246;glichen L&#246;sungen zu finden.)
+</dd>
+</dl>
+
+<hr><address>
+[$Id$]</address></body>
+</html>

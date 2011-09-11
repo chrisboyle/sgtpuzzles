@@ -1,0 +1,55 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+"http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=US-ASCII">
+<title>Inertia</title>
+<link rel="previous" href="loopy.html">
+<link rel="ToC" href="index.html">
+<link rel="up" href="index.html">
+<link rel="index" href="docindex.html">
+<link rel="next" href="tents.html">
+</head>
+<body>
+<p><a href="loopy.html">Previous</a> | <a href="index.html">Contents</a> | <a href="docindex.html">Index</a> | <a href="tents.html">Next</a></p>
+<h1><a name="C24"></a>Chapter 24: <a name="i0"></a>Inertia</h1>
+<p>
+You are a small green ball sitting in a grid full of obstacles. Your aim is to collect all the gems without running into any mines.
+</p>
+<p>
+You can move the ball in any orthogonal <em>or diagonal</em> direction. Once the ball starts moving, it will continue until something stops it. A wall directly in its path will stop it (but if it is moving diagonally, it will move through a diagonal gap between two other walls without stopping). Also, some of the squares are &#8216;stops&#8217;; when the ball moves on to a stop, it will stop moving no matter what direction it was going in. Gems do <em>not</em> stop the ball; it picks them up and keeps on going.
+</p>
+<p>
+Running into a mine is fatal. Even if you picked up the last gem in the same move which then hit a mine, the game will count you as dead rather than victorious.
+</p>
+<p>
+This game was originally implemented for Windows by Ben Olmstead <a href="#p0">[11]</a>, who was kind enough to release his source code on request so that it could be re-implemented for this collection.
+</p>
+<p><a name="p0"></a>
+[11] <a href="http://xn13.com/"><code>http://xn13.com/</code></a>
+</p>
+<h2><a name="S24.1"></a>24.1 <a name="i1"></a>Inertia controls</h2>
+<p>
+You can move the ball in any of the eight directions using the numeric keypad. Alternatively, if you click the left mouse button on the grid, the ball will begin a move in the general direction of where you clicked.
+</p>
+<p>
+If you use the &#8216;Solve&#8217; function on this game, the program will compute a path through the grid which collects all the remaining gems and returns to the current position. A hint arrow will appear on the ball indicating the direction in which you should move to begin on this path. If you then move in that direction, the arrow will update to indicate the next direction on the path. You can also press Space to automatically move in the direction of the hint arrow. If you move in a different direction from the one shown by the arrow, the hint arrows will stop appearing because you have strayed from the provided path; you can then use &#8216;Solve&#8217; again to generate a new path if you want to.
+</p>
+<p>
+All the actions described in <a href="common.html#S2.1">section 2.1</a> are also available. In particular, if you do run into a mine and die, you can use the Undo function and resume playing from before the fatal move. The game will keep track of the number of times you have done this.
+</p>
+<h2><a name="S24.2"></a>24.2 <a name="i2"></a>Inertia parameters</h2>
+<p>
+These parameters are available from the &#8216;Custom...&#8217; option on the &#8216;Type&#8217; menu.
+</p>
+<dl><dt>
+<em>Width</em>, <em>Height</em>
+</dt>
+<dd>
+Size of grid in squares.
+</dd>
+</dl>
+
+<hr><address>
+[$Id$]</address></body>
+</html>

@@ -1,0 +1,99 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+"http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=US-ASCII">
+<title>Light Up</title>
+<link rel="previous" href="slant.html">
+<link rel="ToC" href="index.html">
+<link rel="up" href="index.html">
+<link rel="index" href="docindex.html">
+<link rel="next" href="map.html">
+</head>
+<body>
+<p><a href="slant.html">Previous</a> | <a href="index.html">Contents</a> | <a href="docindex.html">Index</a> | <a href="map.html">Next</a></p>
+<h1><a name="C21"></a>Chapter 21: <a name="i0"></a>Light Up</h1>
+<p>
+You have a grid of squares. Some are filled in black; some of the black squares are numbered. Your aim is to &#8216;light up&#8217; all the empty squares by placing light bulbs in some of them.
+</p>
+<p>
+Each light bulb illuminates the square it is on, plus all squares in line with it horizontally or vertically unless a black square is blocking the way.
+</p>
+<p>
+To win the game, you must satisfy the following conditions:
+</p>
+<ul><li>
+All non-black squares are lit.
+</li>
+<li>
+No light is lit by another light.
+</li>
+<li>
+All numbered black squares have exactly that number of lights adjacent to them (in the four squares above, below, and to the side).
+</li>
+</ul>
+<p>
+Non-numbered black squares may have any number of lights adjacent to them.
+</p>
+<p>
+Credit for this puzzle goes to <a name="i1"></a>Nikoli <a href="#p0">[9]</a>.
+</p>
+<p>
+Light Up was contributed to this collection by James Harvey.
+</p>
+<p><a name="p0"></a>
+[9] <a href="http://www.nikoli.co.jp/puzzles/32/index-e.htm"><code>http://www.nikoli.co.jp/puzzles/32/index-e.htm</code></a> (beware of Flash)
+</p>
+<h2><a name="S21.1"></a>21.1 <a name="i2"></a>Light Up controls</h2>
+<p>
+Left-clicking in a non-black square will toggle the presence of a light in that square. Right-clicking in a non-black square toggles a mark there to aid solving; it can be used to highlight squares that cannot be lit, for example.
+</p>
+<p>
+You may not place a light in a marked square, nor place a mark in a lit square.
+</p>
+<p>
+The game will highlight obvious errors in red. Lights lit by other lights are highlighted in this way, as are numbered squares which do not (or cannot) have the right number of lights next to them.
+</p>
+<p>
+Thus, the grid is solved when all non-black squares have yellow highlights and there are no red lights.
+</p>
+<p>
+(All the actions described in <a href="common.html#S2.1">section 2.1</a> are also available.)
+</p>
+<h2><a name="S21.2"></a>21.2 <a name="i3"></a>Light Up parameters</h2>
+<p>
+These parameters are available from the &#8216;Custom...&#8217; option on the &#8216;Type&#8217; menu.
+</p>
+<dl><dt>
+<em>Width</em>, <em>Height</em>
+</dt>
+<dd>
+Size of grid in squares.
+</dd>
+<dt>
+<em>%age of black squares</em>
+</dt>
+<dd>
+Rough percentage of black squares in the grid.
+<p>
+This is a hint rather than an instruction. If the grid generator is unable to generate a puzzle to this precise specification, it will increase the proportion of black squares until it can.
+</p>
+
+</dd>
+<dt>
+<em>Symmetry</em>
+</dt>
+<dd>
+Allows you to specify the required symmetry of the black squares in the grid. (This does not affect the difficulty of the puzzles noticeably.)
+</dd>
+<dt>
+<em>Difficulty</em>
+</dt>
+<dd>
+&#8216;Easy&#8217; means that the puzzles should be soluble without backtracking or guessing, &#8216;Hard&#8217; means that some guesses will probably be necessary.
+</dd>
+</dl>
+
+<hr><address>
+[$Id$]</address></body>
+</html>

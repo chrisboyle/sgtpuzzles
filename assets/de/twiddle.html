@@ -1,0 +1,64 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+"http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=US-ASCII">
+<title>Twiddle</title>
+<link rel="previous" href="sixteen.html">
+<link rel="ToC" href="index.html">
+<link rel="up" href="index.html">
+<link rel="index" href="docindex.html">
+<link rel="next" href="rectangles.html">
+</head>
+<body>
+<p><a href="sixteen.html">Previous</a> | <a href="index.html">Contents</a> | <a href="docindex.html">Index</a> | <a href="rectangles.html">Next</a></p>
+<h1><a name="C7"></a>Chapter 7: <a name="i0"></a>Twiddle</h1>
+<p>
+Twiddle ist ein Platten-Neuanordnungspuzzle, visuell &#228;hnlich zu Sixteen (siehe <a href="sixteen.html#C6">chapter 6</a>). Sie erhalten ein Gitter von quadratischen Kacheln die jede eine Zahl enthalten und Ihr Ziel besteht darin, diese in aufsteigender Reihenfolge anzuordnen.
+</p>
+<p>
+In der grundlegenden Variante besteht Ihr Spielzug in Twiddle darin, eine Gruppe von vier Platten um ihr gemeinsames Zentrum zu rotieren. (In der grundlegenden Variante des Puzzles ist die Orientierung nicht wichtig; Sie k&#246;nnen dies aber ausw&#228;hlen). Bei fortgeschritteneren Einstellungen k&#246;nnen Sie auch gr&#246;&#223;ere Quadratgruppen von Platten rotieren.
+</p>
+<p>
+Ich habe diese Art von Puzzlen in dem GameCube-Spiel &#8216;Metroid Prime 2&#8217; gesehen. In der Haupt-Gyro-Kammer dieses Spiels gibt es ein Puzzle, das Sie l&#246;sen m&#252;ssen, um eine T&#252;r zu entsperren, was einen Spezialfall von Twiddle darstellt. Ich entwickelte dieses Spiel als Verallgemeinerung dieses Puzzles.
+</p>
+<h2><a name="S7.1"></a>7.1 <a name="i1"></a>Twiddle-Steuerung</h2>
+<p>
+Um Twiddle zu spielen, klicken Sie mit der Maus in das Zentrum der Quadratgruppe, die Sie rotieren m&#246;chten. Im grundlegenden Modus rotieren Sie ein 2&#215;2-Gitter, was bedeutet, dass Sie auf den Eckpunkt klicken m&#252;ssen, an dem sich die vier Platten treffen.
+</p>
+<p>
+In fortgeschritteneren Modi k&#246;nnten Sie 3&#215;3 oder sogar mehr auf einmal rotieren; falls die Anzahl der Quadrate ungerade ist, klicken Sie einfach in das Zentrum des Quadrates, das Sie rotieren m&#246;chten.
+</p>
+<p>
+Durch einen Klick mit der linken Maustaste rotieren Sie die Gruppe gegen den Uhrzeigersinn. Durch einen Klick mit der rechten Taste rotieren Sie sie im Uhrzeigersinn.
+</p>
+<p>
+Sie k&#246;nnen auch ein Umrissquadrat &#252;ber das Gitter mit den Pfeiltasten bewegen. Das Quadrat hat die oben genannte Gr&#246;&#223;e (standardm&#228;&#223;ig 2&#215;2 oder gr&#246;&#223;er). Durch die Eingabe- oder Leertaste wird das aktuelle Quadrat gegen oder respektive mit dem Uhrzeigersinn gedreht.
+</p>
+<p>
+(Alle in <a href="common.html#S2.1">section 2.1</a> beschriebene Aktionen sind auch verf&#252;gbar.)
+</p>
+<h2><a name="S7.2"></a>7.2 <a name="i2"></a>Twiddle-Parameter</h2>
+<p>
+Twiddle stellt mehrere Konfigurationsm&#246;glichkeiten &#252;ber die Option &#8216;Benutzerdefiniert&#8217; im Men&#252; &#8216;Art&#8217; bereit:
+</p>
+<ul><li>
+Sie k&#246;nnen die H&#246;he und die Breite des Puzzle-Gitters konfigurieren.
+</li>
+<li>
+Sie k&#246;nnen die Gr&#246;&#223;e des Quadratblocks, der auf einmal rotiert, konfigurieren.
+</li>
+<li>
+Sie k&#246;nnen einstellen, dass jedes Quadrat im Gitter unterscheidbar sein soll (dies ist die Voreinstellung) oder Sie k&#246;nnen ein vereinfachtes Puzzle einstellen, bei dem es Gruppen mit identischen Zahlen gibt. Im vereinfachten Puzzle besteht Ihr Ziel darin, alle 1en in die erste Zeile zu bringen, alle 2en in die zweite usw.
+</li>
+<li>
+Sie k&#246;nnen einstellen, ob die Orientierung der Platten relevant ist. Falls Sie ein orientierbares Puzzle einstellen, wird auf jede Platte ein Dreieck gezeichnet. Alle Dreiecke m&#252;ssen nach oben zeigen, um das Puzzle zu l&#246;sen.
+</li>
+<li>
+Sie k&#246;nnen um eine begrenzte Vermischungsoperation auf dem Gitter bitten. Standardm&#228;&#223;ig vermischt Twiddle das Gitter so, dass jede Anordnung gleichwahrscheinlich ist. Sie k&#246;nnen dies &#228;ndern, indem Sie um eine genaue Anzahl an auszuf&#252;hrenden Vermischungs-Spielz&#252;gen bitten. Typischerweise Typischerweise besteht dann Ihr Ziel darin, die genaue Menge an Vermischungsspielz&#252;gen zu bestimmen und diese dann genau zu invertieren, so dass Sie beispielsweise eine vierz&#252;gige Vermischung mit einer vierz&#252;gigen L&#246;sung beantworten. Beachten Sie, dass bei einer gr&#246;&#223;eren Anzahl an Spielz&#252;gen die Wahrscheinlichkeit steigt, dass L&#246;sungen k&#252;rzer als die Zielanzahl m&#246;glich werden.
+</li>
+</ul>
+
+<hr><address>
+[$Id$]</address></body>
+</html>

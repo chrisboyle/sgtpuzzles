@@ -1,0 +1,73 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+"http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=US-ASCII">
+<title>Signpost</title>
+<link rel="previous" href="magnets.html">
+<link rel="ToC" href="index.html">
+<link rel="up" href="index.html">
+<link rel="index" href="docindex.html">
+<link rel="next" href="range.html">
+</head>
+<body>
+<p><a href="magnets.html">Previous</a> | <a href="index.html">Contents</a> | <a href="docindex.html">Index</a> | <a href="range.html">Next</a></p>
+<h1><a name="C34"></a>Chapter 34: <a name="i0"></a>Signpost</h1>
+<p>
+You have a grid of squares; each square (except the last one) contains an arrow, and some squares also contain numbers. Your job is to connect the squares to form a continuous list of numbers starting at 1 and linked in the direction of the arrows &#8211; so the arrow inside the square with the number 1 will point to the square containing the number 2, which will point to the square containing the number 3, etc. Each square can be any distance away from the previous one, as long as it is somewhere in the direction of the arrow.
+</p>
+<p>
+By convention the first and last numbers are shown; one or more interim numbers may also appear at the beginning.
+</p>
+<p>
+Dank f&#252;r dieses Puzzle geht an <a name="i1"></a>Janko <a href="#p0">[17]</a>, wer es <a name="i2"></a>Pfeilpad genannt hat.
+</p>
+<p>
+Signpost wurde von James Harvey zu dieser Sammlung beigesteuert.
+</p>
+<p><a name="p0"></a>
+[17] <a href="http://janko.at/Raetsel/Pfeilpfad/index.htm"><code>http://janko.at/Raetsel/Pfeilpfad/index.htm</code></a>
+</p>
+<h2><a name="S34.1"></a>34.1 <a name="i3"></a>Signpost-Steuerung</h2>
+<p>
+To play Signpost, you connect squares together by dragging from one square to another, indicating that they are adjacent in the sequence. Drag with the left button from a square to its successor, or with the right button from a square to its predecessor.
+</p>
+<p>
+If you connect together two squares in this way and one of them has a number in it, the appropriate number will appear in the other square. If you connect two non-numbered squares, they will be assigned temporary algebraic labels: on the first occasion, they will be labelled &#8216;<code>a</code>&#8217; and &#8216;<code>a+1</code>&#8217;, and then &#8216;<code>b</code>&#8217; and &#8216;<code>b+1</code>&#8217;, and so on. Connecting more squares on to the ends of such a chain will cause them all to be labelled with the same letter.
+</p>
+<p>
+When you left-click or right-click in a square, the legal squares to connect it to will be shown.
+</p>
+<p>
+The arrow in each square starts off black, and goes grey once you connect the square to its successor. Also, each square which needs a predecessor has a small dot in the bottom left corner, which vanishes once you link a square to it. So your aim is always to connect a square with a black arrow to a square with a dot.
+</p>
+<p>
+To remove any links for a particular square (both incoming and outgoing), left-drag it off the grid. To remove a whole chain, right-drag any square in the chain off the grid.
+</p>
+<p>
+You can also use the cursor keys to move around the grid squares and lines. Pressing the return key when over a square starts a link operation, and pressing the return key again over a square will finish the link, if allowable. Pressing the space bar over a square will show the other squares pointing to it, and allow you to form a backward link, and pressing the space bar again cancels this.
+</p>
+<p>
+(Alle in <a href="common.html#S2.1">section 2.1</a> beschriebene Aktionen sind auch verf&#252;gbar.)
+</p>
+<h2><a name="S34.2"></a>34.2 <a name="i4"></a>Signpost-Parameter</h2>
+<p>
+Diese Parameter sind von der Option &#8216;Benutzerdefiniert...&#8217; im Men&#252; &#8216;Art&#8217; verf&#252;gbar.
+</p>
+<dl><dt>
+<em>Breite</em>, <em>H&#246;he</em>
+</dt>
+<dd>
+Gr&#246;&#223;e des Gitters in Quadraten
+</dd>
+<dt>
+<em>Start- und Endpunkte in Ecken</em>
+</dt>
+<dd>
+If true, the start and end squares are always placed in opposite corners (the start at the top left, and the end at the bottom right). If false the start and end squares are placed randomly (although always both shown).
+</dd>
+</dl>
+
+<hr><address>
+[$Id$]</address></body>
+</html>

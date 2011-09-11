@@ -1,0 +1,101 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+"http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=US-ASCII">
+<title>Unequal</title>
+<link rel="previous" href="bridges.html">
+<link rel="ToC" href="index.html">
+<link rel="up" href="index.html">
+<link rel="index" href="docindex.html">
+<link rel="next" href="galaxies.html">
+</head>
+<body>
+<p><a href="bridges.html">Previous</a> | <a href="index.html">Contents</a> | <a href="docindex.html">Index</a> | <a href="galaxies.html">Next</a></p>
+<h1><a name="C27"></a>Chapter 27: <a name="i0"></a>Unequal</h1>
+<p>
+You have a square grid; each square may contain a digit from 1 to the size of the grid, and some squares have clue signs between them. Your aim is to fully populate the grid with numbers such that:
+</p>
+<ul><li>
+Each row contains only one occurrence of each digit
+</li>
+<li>
+Each column contains only one occurrence of each digit
+</li>
+<li>
+All the clue signs are satisfied.
+</li>
+</ul>
+<p>
+There are two modes for this game, &#8216;Unequal&#8217; and &#8216;Adjacent&#8217;.
+</p>
+<p>
+In &#8216;Unequal&#8217; mode, the clue signs are greater-than symbols indicating one square's value is greater than its neighbour's. In this mode not all clues may be visible, particularly at higher difficulty levels.
+</p>
+<p>
+In &#8216;Adjacent&#8217; mode, the clue signs are bars indicating one square's value is numerically adjacent (i.e. one higher or one lower) than its neighbour. In this mode all clues are always visible: absence of a bar thus means that a square's value is definitely not numerically adjacent to that neighbour's.
+</p>
+<p>
+In &#8216;Trivial&#8217; difficulty level (available via the &#8216;Custom&#8217; game type selector), there are no greater-than signs in &#8216;Unequal&#8217; mode; the puzzle is to solve the <a name="i1"></a>Latin square only.
+</p>
+<p>
+At the time of writing, the &#8216;Unequal&#8217; mode of this puzzle is appearing in the Guardian weekly under the name &#8216;<a name="i2"></a>Futoshiki&#8217;.
+</p>
+<p>
+Unequal was contributed to this collection by James Harvey.
+</p>
+<h2><a name="S27.1"></a>27.1 <a name="i3"></a>Unequal controls</h2>
+<p>
+Unequal shares much of its control system with Solo.
+</p>
+<p>
+To play Unequal, simply click the mouse in any empty square and then type a digit or letter on the keyboard to fill that square. If you make a mistake, click the mouse in the incorrect square and press Space to clear it again (or use the Undo feature).
+</p>
+<p>
+If you <em>right</em>-click in a square and then type a number, that number will be entered in the square as a &#8216;pencil mark&#8217;. You can have pencil marks for multiple numbers in the same square. Squares containing filled-in numbers cannot also contain pencil marks.
+</p>
+<p>
+The game pays no attention to pencil marks, so exactly what you use them for is up to you: you can use them as reminders that a particular square needs to be re-examined once you know more about a particular number, or you can use them as lists of the possible numbers in a given square, or anything else you feel like.
+</p>
+<p>
+To erase a single pencil mark, right-click in the square and type the same number again.
+</p>
+<p>
+All pencil marks in a square are erased when you left-click and type a number, or when you left-click and press space. Right-clicking and pressing space will also erase pencil marks.
+</p>
+<p>
+As for Solo, the cursor keys can be used in conjunction with the digit keys to set numbers or pencil marks. You can also use the 'M' key to auto-fill every numeric hint, ready for removal as required, or the 'H' key to do the same but also to remove all obvious hints.
+</p>
+<p>
+Alternatively, use the cursor keys to move the mark around the grid. Pressing the return key toggles the mark (from a normal mark to a pencil mark), and typing a number in is entered in the square in the appropriate way; typing in a 0 or using the space bar will clear a filled square.
+</p>
+<p>
+(All the actions described in <a href="common.html#S2.1">section 2.1</a> are also available.)
+</p>
+<h2><a name="S27.2"></a>27.2 <a name="i4"></a>Unequal parameters</h2>
+<p>
+These parameters are available from the &#8216;Custom...&#8217; option on the &#8216;Type&#8217; menu.
+</p>
+<dl><dt>
+<em>Mode</em>
+</dt>
+<dd>
+Mode of the puzzle (&#8216;Unequal&#8217; or &#8216;Adjacent&#8217;)
+</dd>
+<dt>
+<em>Size (s*s)</em>
+</dt>
+<dd>
+Size of grid.
+</dd>
+<dt>
+<em>Difficulty</em>
+</dt>
+<dd>
+Controls the difficulty of the generated puzzle. At Trivial level, there are no greater-than signs; the puzzle is to solve the Latin square only. At Recursive level (only available via the &#8216;Custom&#8217; game type selector) backtracking will be required, but the solution should still be unique. The levels in between require increasingly complex reasoning to avoid having to backtrack.
+</dd>
+</dl>
+
+<hr><address>
+[$Id$]</address></body>
+</html>

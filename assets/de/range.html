@@ -1,0 +1,68 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+"http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=US-ASCII">
+<title>Range</title>
+<link rel="previous" href="signpost.html">
+<link rel="ToC" href="index.html">
+<link rel="up" href="index.html">
+<link rel="index" href="docindex.html">
+<link rel="next" href="licence.html">
+</head>
+<body>
+<p><a href="signpost.html">Previous</a> | <a href="index.html">Contents</a> | <a href="docindex.html">Index</a> | <a href="licence.html">Next</a></p>
+<h1><a name="C35"></a>Chapter 35: <a name="i0"></a>Range</h1>
+<p>
+You have a grid of squares; some squares contain numbers. Your job is to colour some of the squares black, such that several criteria are satisfied:
+</p>
+<ul><li>
+no square with a number is coloured black.
+</li>
+<li>
+no two black squares are adjacent (horizontally or vertically).
+</li>
+<li>
+for any two white squares, there is a path between them using only white squares.
+</li>
+<li>
+for each square with a number, that number denotes the number of squares reachable from that square going in each direction until hitting a wall or a black square.
+</li>
+</ul>
+<p>
+For instance, a square containing the number one must have four black squares as its neighbours by the last criterion; but then it's impossible for it to be connected to any outside white square, which violates the second to last criterion. So no square will contain the number one.
+</p>
+<p>
+Credit for this puzzle goes to <a name="i1"></a>Nikoli, who have variously called it &#8216;Kurodoko&#8217;, &#8216;Kuromasu&#8217; or &#8216;Where is Black Cells&#8217;. <a href="#p0">[18]</a>.
+</p>
+<p>
+Range wurde von Jonas K&#246;lker zu dieser Sammlung beigesteuert.
+</p>
+<p><a name="p0"></a>
+[18] <a href="http://www.nikoli.co.jp/en/puzzles/where_is_black_cells/"><code>http://www.nikoli.co.jp/en/puzzles/where_is_black_cells/</code></a>
+</p>
+<h2><a name="S35.1"></a>35.1 <a name="i2"></a>Range-Steuerung</h2>
+<p>
+Click with the left button to paint a square black, or with the right button to mark a square with a dot to indicate that you are sure it should <em>not</em> be painted black. Repeated clicking with either button will cycle the square through the three possible states (filled, dotted or empty) in opposite directions.
+</p>
+<p>
+You can also use the cursor keys to move around the grid squares. Pressing Return does the same as clicking with the left button, while pressing Space does the same as a right button click.
+</p>
+<p>
+(Alle in <a href="common.html#S2.1">section 2.1</a> beschriebene Aktionen sind auch verf&#252;gbar.)
+</p>
+<h2><a name="S35.2"></a>35.2 <a name="i3"></a>Range-Parameter</h2>
+<p>
+Diese Parameter sind von der Option &#8216;Benutzerdefiniert...&#8217; im Men&#252; &#8216;Art&#8217; verf&#252;gbar.
+</p>
+<dl><dt>
+<em>Breite</em>, <em>H&#246;he</em>
+</dt>
+<dd>
+Gr&#246;&#223;e des Gitters in Quadraten
+</dd>
+</dl>
+
+<hr><address>
+[$Id$]</address></body>
+</html>

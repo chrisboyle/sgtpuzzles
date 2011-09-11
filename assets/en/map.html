@@ -1,0 +1,77 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+"http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=US-ASCII">
+<title>Map</title>
+<link rel="previous" href="lightup.html">
+<link rel="ToC" href="index.html">
+<link rel="up" href="index.html">
+<link rel="index" href="docindex.html">
+<link rel="next" href="loopy.html">
+</head>
+<body>
+<p><a href="lightup.html">Previous</a> | <a href="index.html">Contents</a> | <a href="docindex.html">Index</a> | <a href="loopy.html">Next</a></p>
+<h1><a name="C22"></a>Chapter 22: <a name="i0"></a>Map</h1>
+<p>
+You are given a map consisting of a number of regions. Your task is to colour each region with one of four colours, in such a way that no two regions sharing a boundary have the same colour. You are provided with some regions already coloured, sufficient to make the remainder of the solution unique.
+</p>
+<p>
+Only regions which share a length of border are required to be different colours. Two regions which meet at only one <em>point</em> (i.e. are diagonally separated) may be the same colour.
+</p>
+<p>
+I believe this puzzle is original; I've never seen an implementation of it anywhere else. The concept of a <a name="i1"></a>four-colouring puzzle was suggested by Owen Dunn; credit must also go to Nikoli and to Verity Allan for inspiring the train of thought that led to me realising Owen's suggestion was a viable puzzle. Thanks also to Gareth Taylor for many detailed suggestions.
+</p>
+<h2><a name="S22.1"></a>22.1 <a name="i2"></a>Map controls</h2>
+<p>
+To colour a region, click the left mouse button on an existing region of the desired colour and drag that colour into the new region.
+</p>
+<p>
+(The program will always ensure the starting puzzle has at least one region of each colour, so that this is always possible!)
+</p>
+<p>
+If you need to clear a region, you can drag from an empty region, or from the puzzle boundary if there are no empty regions left.
+</p>
+<p>
+Dragging a colour using the <em>right</em> mouse button will stipple the region in that colour, which you can use as a note to yourself that you think the region <em>might</em> be that colour. A region can contain stipples in multiple colours at once. (This is often useful at the harder difficulty levels.)
+</p>
+<p>
+You can also use the cursor keys to move around the map: the colour of the cursor indicates the position of the colour you would drag (which is not obvious if you're on a region's boundary, since it depends on the direction from which you approached the boundary). Pressing the return key starts a drag of that colour, as above, which you control with the cursor keys; pressing the return key again finishes the drag. The space bar can be used similarly to create a stippled region. Double-pressing the return key (without moving the cursor) will clear the region, as a drag from an empty region does: this is useful with the cursor mode if you have filled the entire map in but need to correct the layout.
+</p>
+<p>
+If you press L during play, the game will toggle display of a number in each region of the map. This is useful if you want to discuss a particular puzzle instance with a friend &#8211; having an unambiguous name for each region is much easier than trying to refer to them all by names such as &#8216;the one down and right of the brown one on the top border&#8217;.
+</p>
+<p>
+(All the actions described in <a href="common.html#S2.1">section 2.1</a> are also available.)
+</p>
+<h2><a name="S22.2"></a>22.2 <a name="i3"></a>Map parameters</h2>
+<p>
+These parameters are available from the &#8216;Custom...&#8217; option on the &#8216;Type&#8217; menu.
+</p>
+<dl><dt>
+<em>Width</em>, <em>Height</em>
+</dt>
+<dd>
+Size of grid in squares.
+</dd>
+<dt>
+<em>Regions</em>
+</dt>
+<dd>
+Number of regions in the generated map.
+</dd>
+<dt>
+<em>Difficulty</em>
+</dt>
+<dd>
+In &#8216;Easy&#8217; mode, there should always be at least one region whose colour can be determined trivially. In &#8216;Normal&#8217; and &#8216;Hard&#8217; modes, you will have to use increasingly complex logic to deduce the colour of some regions. However, it will always be possible without having to guess or backtrack.
+<p>
+In &#8216;Unreasonable&#8217; mode, the program will feel free to generate puzzles which are as hard as it can possibly make them: the only constraint is that they should still have a unique solution. Solving Unreasonable puzzles may require guessing and backtracking.
+</p>
+
+</dd>
+</dl>
+
+<hr><address>
+[$Id$]</address></body>
+</html>

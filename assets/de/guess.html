@@ -1,0 +1,92 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+"http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=US-ASCII">
+<title>Guess</title>
+<link rel="previous" href="flip.html">
+<link rel="ToC" href="index.html">
+<link rel="up" href="index.html">
+<link rel="index" href="docindex.html">
+<link rel="next" href="pegs.html">
+</head>
+<body>
+<p><a href="flip.html">Previous</a> | <a href="index.html">Contents</a> | <a href="docindex.html">Index</a> | <a href="pegs.html">Next</a></p>
+<h1><a name="C15"></a>Chapter 15: <a name="i0"></a>Guess</h1>
+<p>
+Sie haben einen Satz an gef&#228;rbten Stiften und m&#252;ssen eine vorgegebene Sequenz (die vom Computer bestimmt wird) innerhalb einer bestimmten Anzahl von Rateversuchen reproduzieren.
+</p>
+<p>
+Jede Vermutung wird mit der Anzahl der korrekt gef&#228;rbten Stifte an den korrekten Pl&#228;tzen (in schwarz) und der Anzahl an korrekt gef&#228;rbten Stiften an den falschen Pl&#228;tzen (in wei&#223;) markiert.
+</p>
+<p>
+Dieses Spiel ist auch (als von haupts&#228;chlich Hasbro vertriebenes) Brettspiel &#8216;<a name="i1"></a>Mastermind&#8217; mit sechs Farben, vier Stiften pro Zeile und 10 Rateversuchen bekannt. Die Version in dieser Sammlung erlaubt allerdings die Anpassung der Farbanzahl (bis zu 10), der Anzahl der Stifte pro Zeile und der Anzahl der Rateversuche.
+</p>
+<p>
+Guess wurde von James Harvey zu dieser Sammlung beigesteuert.
+</p>
+<h2><a name="S15.1"></a>15.1 <a name="i2"></a>Guess-Steuerung</h2>
+<p>
+Dieses Spiel kann entweder mit der Tastatur oder der Maus gespielt werden.
+</p>
+<p>
+Ziehen Sie mit der Maus einen farbigen Stift von der Ablage auf der linken Seite an die ben&#246;tigte Position f&#252;r die aktuelle Vermutung; Stifte k&#246;nnen auch von aktuellen und vorherigen Vermutungen als Kopie gezogen werden. Um einen Stift zu entfernen, ziehen Sie ihn von seiner aktuellen Position an eine beliebige ung&#252;ltige Position.
+</p>
+<p>
+Rechtsklick auf eine aktuelle Vermutung f&#252;gt eine &#8216;Haltemarkierung&#8217; hinzu. Stifte, die &#252;ber eine Haltemarkierung verf&#252;gen werden nach der Markierung automatisch bei der n&#228;chsten Vermutungsrunde hinzugef&#252;gt.
+</p>
+<p>
+Alternativ kann auf der Tastatur mit den Hoch- und Runtertasten eine Stiftfarbe und mit den Rechts- und Linkstasten die Stiftposition ausgew&#228;hlt werden. Die Leer- oder Eingabetaste platziert den Stift der gew&#228;hlten Farbe an der gew&#228;hlten Position. &#8216;D&#8217; oder R&#252;ckschritt entfernt einen Stift und &#8216;H&#8217; f&#252;gt eine Haltemarkierung hinzu.
+</p>
+<p>
+Wenn die Vermutung komplett ist werden die kleineren R&#252;ckmelde-Stifte hervorgehoben; durch Draufklicken (oder Bewegen der Stifte-Markierung mit den Pfeiltasten zu ihnen und Dr&#252;cken der Leer- oder Eingabetaste) wird die die aktuelle Vermutung markiert, alle gehaltenen Stifte zur n&#228;chsten Vermutung kopiert und die &#8216;aktuelle Vermutungsmarkierung&#8217; verschoben.
+</p>
+<p>
+Falls Sie alle Stifte korrekt platzieren wird die L&#246;sung unten angezeigt; falls Ihnen die Vermutungsrunden ausgehen (oder Sie &#8216;L&#246;sen...&#8217; verwenden) wird die L&#246;sung auch offengelegt.
+</p>
+<p>
+(Alle in <a href="common.html#S2.1">section 2.1</a> beschriebene Aktionen sind auch verf&#252;gbar.)
+</p>
+<h2><a name="S15.2"></a>15.2 <a name="i3"></a>Guess-Parameter</h2>
+<p>
+Diese Parameter sind von der Option &#8216;Benutzerdefiniert...&#8217; im Men&#252; &#8216;Art&#8217; verf&#252;gbar. Das Standardspiel stimmt mit den Parametern f&#252;r das Brettspiel &#8216;Mastermind&#8217; &#252;berein.
+</p>
+<dl><dt>
+<em>Farben</em>
+</dt>
+<dd>
+Anzahl der Farben, aus der die L&#246;sung ausgew&#228;hlt wird, von 2 bis 10 (mehr sind schwieriger).
+</dd>
+<dt>
+<em>Stifte pro Vermutung</em>
+</dt>
+<dd>
+Anzahl der Stifte pro Vermutung (mehr ist schwerer)
+</dd>
+<dt>
+<em>Rateversuche</em>
+</dt>
+<dd>
+Anzahl der Vermutungsrunden, die Sie zum Finden der L&#246;sung haben (weniger ist schwerer)
+</dd>
+<dt>
+<em>Leere Stifte erlauben</em>
+</dt>
+<dd>
+Erlaubt Ihnen, leere Stifte als Teil einer Vermutungsrunde anzugeben (dies erleichtert es, da Sie wissen, dass diese niemals als Teil einer L&#246;sung gez&#228;hlt werden). Dies ist standardm&#228;&#223;ig abgeschaltet.
+</dd>
+</dl>
+<p>
+Beachten Sie, dass dies keine leeren Stifte in der L&#246;sung erlaubt; falls Sie das wirklich m&#246;chten, verwenden Sie eine zus&#228;tzliche Farbe.
+</p>
+<dl><dt>
+<em>Duplikate erlauben</em>
+</dt>
+<dd>
+Erlaubt, dass die L&#246;sung (und die Vermutungsrunden) Farben mehr als einmal enthalten. Dies vergr&#246;&#223;ert den Suchraum (und erschwert die L&#246;sung damit) und ist standardm&#228;&#223;ig aktiviert.
+</dd>
+</dl>
+
+<hr><address>
+[$Id$]</address></body>
+</html>
