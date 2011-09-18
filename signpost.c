@@ -1812,8 +1812,8 @@ static int num2col(game_drawstate *ds, int num)
 {
     int set = num / (ds->n+1);
 
-    if (num <= 0) return COL_B0;
-    return COL_B0 + (set % 16);
+    if (num <= 0 || set == 0) return COL_B0;
+    return COL_B0 + 1 + ((set-1) % 15);
 }
 
 #define ARROW_HALFSZ (7 * TILE_SIZE / 32)
