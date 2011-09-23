@@ -729,9 +729,6 @@ public class SGTPuzzles extends Activity
 			lp.gravity = Gravity.CENTER;
 			gameAndKeys.addView(keyboard, lp);
 		}
-		//keyboard.setKeys(lastKeys, landscape);
-		//keyboard.setVisibility( (c.hardKeyboardHidden == Configuration.HARDKEYBOARDHIDDEN_NO)
-		//		? View.GONE : View.VISIBLE );
 		keyboard.setKeys( (c.hardKeyboardHidden == Configuration.HARDKEYBOARDHIDDEN_NO)
 				? "ur" : lastKeys, landscape );
 		prevLandscape = landscape;

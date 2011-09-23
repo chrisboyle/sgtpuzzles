@@ -38,7 +38,8 @@ public class GameView extends View
 	public GameView(Context context, AttributeSet attrs)
 	{
 		super(context, attrs);
-		this.parent = (SGTPuzzles)context;
+		if (! isInEditMode())
+			this.parent = (SGTPuzzles)context;
 		setFocusableInTouchMode(true);
 		bitmap = Bitmap.createBitmap(100, 100, Bitmap.Config.RGB_565);  // for safety
 		canvas = new Canvas(bitmap);
@@ -161,7 +162,7 @@ public class GameView extends View
 		canvas.setBitmap(bitmap);
 		clear();
 		this.w = w; this.h = h;
-		parent.gameViewResized();
+		if (parent != null) parent.gameViewResized();
 	}
 
 	public void setBackgroundColor( int colour )
