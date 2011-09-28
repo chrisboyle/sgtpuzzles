@@ -71,7 +71,7 @@ Revision: %s"</string>
     <string name="bg_unreliable_warn">Game generation may be abandoned on low memory</string>
     <!-- Menu -->
     <string name="Game">Game</string>
-    <string name="Other_game">Other game</string>
+    <string name="Other_game">Other</string>
     <string name="Grid">Grid</string>
     <string name="Details">Details</string>
     <string name="New_game">New game</string>

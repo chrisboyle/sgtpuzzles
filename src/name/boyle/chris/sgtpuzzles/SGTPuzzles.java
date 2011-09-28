@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
+import java.lang.reflect.Method;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -39,7 +40,6 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.SubMenu;
 import android.view.View;
-import android.view.Window;
 import android.webkit.WebChromeClient;
 import android.webkit.WebView;
 import android.widget.ArrayAdapter;
@@ -92,6 +92,9 @@ public class SGTPuzzles extends Activity
 	// Ugly temporary hack: in custom game dialog, all text boxes are numeric, in the other two dialogs they aren't.
 	boolean configIsCustom = false;
 	String[] games;
+	Menu menu;
+	boolean hasActionBar = false;
+	String maybeUndoRedo = "ur";
 
 	enum MsgType { INIT, TIMER, DONE, ABORT };
 	Handler handler = new Handler() {
@@ -106,7 +109,12 @@ public class SGTPuzzles extends Activity
 					resizeEvent(gameView.w, gameView.h);
 					resizeOnDone = false;
 				}
+				// TODO: set ActionBar icon to the one for this puzzle?
+				/*if( msg.obj != null ) {
+					getResources().getIdentifier((String)msg.obj, "drawable", getPackageName());
+				}*/
 				dismissProgress();
+				if( menu != null ) onPrepareOptionsMenu(menu);
 				save();
 				break;
 			case ABORT:
@@ -115,6 +123,8 @@ public class SGTPuzzles extends Activity
 				startChooser();
 				if (msg.obj != null) {
 					messageBox(getString(R.string.Error), (String)msg.obj, 1);
+				} else {
+					finish();
 				}
 				break;
 			}
@@ -195,13 +205,25 @@ public class SGTPuzzles extends Activity
 		prefs = getSharedPreferences("state", MODE_PRIVATE);
 		games = getResources().getStringArray(R.array.games);
 		gameTypes = new LinkedHashMap<Integer,String>();
-		requestWindowFeature(Window.FEATURE_INDETERMINATE_PROGRESS);
 		setContentView(R.layout.main);
 		txtView = (TextView)findViewById(R.id.txtView);
 		gameAndKeys = (LinearLayout)findViewById(R.id.gameAndKeys);
 		gameView = (GameView)findViewById(R.id.game);
 		setDefaultKeyMode(DEFAULT_KEYS_SHORTCUT);
 		gameView.requestFocus();
+		try {
+			Method m = Activity.class.getMethod("getActionBar");
+			Object ab;
+			if (m != null && (ab = m.invoke(this)) != null) {
+				hasActionBar = true;
+				// TODO: need images for undo/redo in menu for this
+				//maybeUndoRedo = "";
+				Class.forName("android.app.ActionBar")
+						.getMethod("setDisplayShowHomeEnabled",
+								new Class<?>[] {Boolean.TYPE})
+						.invoke(ab, false);
+			}
+		} catch (Throwable t) {}
 		onNewIntent(getIntent());
 	}
 
@@ -235,7 +257,11 @@ public class SGTPuzzles extends Activity
 	public boolean onCreateOptionsMenu(Menu menu)
 	{
 		super.onCreateOptionsMenu(menu);
+		this.menu = menu;
 		getMenuInflater().inflate(R.menu.main, menu);
+		// TODO: need images for undo/redo in menu for this
+		//menu.findItem(R.id.undo).setVisible(hasActionBar);
+		//menu.findItem(R.id.redo).setVisible(hasActionBar);
 		return true;
 	}
 
@@ -244,12 +270,16 @@ public class SGTPuzzles extends Activity
 	{
 		super.onPrepareOptionsMenu(menu);
 		if( progress != null ) return false;  // not safe/useful until game is loaded
-		menu.findItem(R.id.solve).setEnabled(solveEnabled);
+		MenuItem item;
+		item = menu.findItem(R.id.solve);
+		item.setEnabled(solveEnabled);
+		if (hasActionBar) item.setVisible(solveEnabled);
 		menu.findItem(R.id.undo).setEnabled(undoEnabled);
 		menu.findItem(R.id.redo).setEnabled(redoEnabled);
-		MenuItem typeItem = menu.findItem(R.id.type);
-		typeItem.setEnabled(! gameTypes.isEmpty() || customVisible);
-		typeMenu = typeItem.getSubMenu();
+		item = menu.findItem(R.id.type);
+		item.setEnabled(! gameTypes.isEmpty() || customVisible);
+		if (hasActionBar) item.setVisible(item.isEnabled());
+		typeMenu = item.getSubMenu();
 		for( Integer i : gameTypes.keySet() ) {
 			if( menu.findItem(i) == null ) typeMenu.add(R.id.typeGroup, i, Menu.NONE, gameTypes.get(i) );
 		}
@@ -433,7 +463,7 @@ public class SGTPuzzles extends Activity
 			init(gameView, which, savedGame);
 			if( ! gameRunning ) return;  // stopNative or abort was called
 			helpTopic = htmlHelpTopic();
-			handler.sendEmptyMessage(MsgType.DONE.ordinal());
+			handler.obtainMessage(MsgType.DONE.ordinal()/*, games[which]*/).sendToTarget();
 		}}).start();
 	}
 
@@ -494,7 +524,7 @@ public class SGTPuzzles extends Activity
 			gameAndKeys.addView(keyboard, lp);
 		}
 		keyboard.setKeys( (c.hardKeyboardHidden == Configuration.HARDKEYBOARDHIDDEN_NO)
-				? "ur" : lastKeys, landscape );
+				? maybeUndoRedo : lastKeys, landscape );
 		prevLandscape = landscape;
 	}
 
@@ -535,6 +565,10 @@ public class SGTPuzzles extends Activity
 					.setIcon( (flag == 0)
 							? android.R.drawable.ic_dialog_info
 							: android.R.drawable.ic_dialog_alert )
+					.setOnCancelListener((flag == 0) ? null : new OnCancelListener() {
+						public void onCancel(DialogInterface dialog) {
+							finish();
+						}})
 					.show();
 		}});
 		// I don't think we need to wait before returning here (and we can't)
@@ -678,7 +712,7 @@ public class SGTPuzzles extends Activity
 	void setKeys(String keys)
 	{
 		if( keys == null ) return;
-		lastKeys = keys + "ur";
+		lastKeys = keys + maybeUndoRedo;
 		runOnUiThread(new Runnable(){public void run(){
 			setKeyboardVisibility(getResources().getConfiguration());
 		}});
@@ -713,9 +747,14 @@ public class SGTPuzzles extends Activity
 	{
 		undoEnabled = canUndo;
 		redoEnabled = canRedo;
-		if (keyboard == null) return;
-		keyboard.setUndoRedoEnabled(false, canUndo);
-		keyboard.setUndoRedoEnabled(true, canRedo);
+		if (keyboard != null) {
+			keyboard.setUndoRedoEnabled(false, canUndo);
+			keyboard.setUndoRedoEnabled(true, canRedo);
+		}
+		if (hasActionBar && menu != null) {
+			menu.findItem(R.id.undo).setEnabled(undoEnabled);
+			menu.findItem(R.id.redo).setEnabled(redoEnabled);
+		}
 	}
 
 	/** A signal handler in native code has been triggered. As our last gasp,

@@ -1,5 +1,7 @@
 package name.boyle.chris.sgtpuzzles;
 
+import java.lang.reflect.Method;
+
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
@@ -29,6 +31,8 @@ public class GameChooser extends Activity
 	boolean useGrid;
 	String[] games;
 	View[] views;
+	boolean hasActionBar = false;
+	Menu menu;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState)
@@ -41,6 +45,12 @@ public class GameChooser extends Activity
 		views = new View[games.length];
 		setContentView(R.layout.chooser);
 		table = (TableLayout) findViewById(R.id.table);
+		try {
+			Method m = Activity.class.getMethod("getActionBar");
+			if (m != null && m.invoke(this) != null) {
+				hasActionBar = true;
+			}
+		} catch (Throwable t) {}
 		rebuildViews();
 		if( ! prefs.contains("savedGame") || prefs.getString("savedGame","").length() <= 0 ) {
 			// first run
@@ -120,6 +130,7 @@ public class GameChooser extends Activity
 	{
 		super.onCreateOptionsMenu(menu);
 		getMenuInflater().inflate(R.menu.chooser, menu);
+		this.menu = menu;
 		return true;
 	}
 
@@ -128,7 +139,16 @@ public class GameChooser extends Activity
 	{
 		super.onPrepareOptionsMenu(menu);
 		menu.findItem(useGrid ? R.id.gridchooser : R.id.listchooser).setChecked(true);
+		updateStyleToggleVisibility();
 		return true;
+	}
+
+	void updateStyleToggleVisibility()
+	{
+		if( hasActionBar ) {
+			menu.findItem(useGrid ? R.id.gridchooser : R.id.listchooser).setVisible(false);
+			menu.findItem(useGrid ? R.id.listchooser : R.id.gridchooser).setVisible(true);
+		}
 	}
 
 	/** Possible android bug: onOptionsItemSelected(MenuItem item)
@@ -147,6 +167,7 @@ public class GameChooser extends Activity
 		}
 		if( useGrid == newGrid ) return true;
 		useGrid = newGrid;
+		updateStyleToggleVisibility();
 		rebuildViews();
 		SharedPreferences.Editor ed = prefs.edit();
 		ed.putString("chooserStyle", useGrid ? "grid" : "list");
