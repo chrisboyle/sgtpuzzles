@@ -3,19 +3,13 @@ package name.boyle.chris.sgtpuzzles;
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
-import java.io.RandomAccessFile;
 import java.text.MessageFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.StringTokenizer;
 
 import android.app.Activity;
@@ -29,20 +23,15 @@ import android.content.DialogInterface.OnCancelListener;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
-import android.graphics.Bitmap;
-import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Path;
-import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
-import android.text.Editable;
 import android.text.InputType;
-import android.text.TextWatcher;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.KeyEvent;
@@ -51,22 +40,13 @@ import android.view.MenuItem;
 import android.view.SubMenu;
 import android.view.View;
 import android.view.Window;
-import android.view.inputmethod.EditorInfo;
 import android.webkit.WebChromeClient;
 import android.webkit.WebView;
-import android.widget.AbsListView;
-import android.widget.AdapterView;
-import android.widget.AdapterView.OnItemClickListener;
 import android.widget.ArrayAdapter;
-import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
-import android.widget.GridView;
-import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.ListView;
 import android.widget.ScrollView;
-import android.widget.SimpleAdapter;
 import android.widget.Spinner;
 import android.widget.TableLayout;
 import android.widget.TableRow;
@@ -75,13 +55,12 @@ import android.widget.Toast;
 
 public class SGTPuzzles extends Activity
 {
-	private static final String TAG = "SGTPuzzles";
+	static final String TAG = "SGTPuzzles";
 	ProgressDialog progress;
 	TextView txtView;
 	SmallKeyboard keyboard;
 	LinearLayout gameAndKeys;
 	GameView gameView;
-	String[] games;
 	SubMenu typeMenu;
 	LinkedHashMap<Integer,String> gameTypes;
 	int currentType = 0;
@@ -112,6 +91,7 @@ public class SGTPuzzles extends Activity
 	static final File storageDir = Environment.getExternalStorageDirectory();
 	// Ugly temporary hack: in custom game dialog, all text boxes are numeric, in the other two dialogs they aren't.
 	boolean configIsCustom = false;
+	String[] games;
 
 	enum MsgType { INIT, TIMER, DONE, ABORT };
 	Handler handler = new Handler() {
@@ -132,7 +112,7 @@ public class SGTPuzzles extends Activity
 			case ABORT:
 				stopNative();
 				dismissProgress();
-				showDialog(0);
+				startChooser();
 				if (msg.obj != null) {
 					messageBox(getString(R.string.Error), (String)msg.obj, 1);
 				}
@@ -198,6 +178,7 @@ public class SGTPuzzles extends Activity
 			resizeOnDone = true;
 	}
 
+	@Override
 	protected void onCreate(Bundle savedInstanceState)
 	{
 		Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler(){
@@ -211,6 +192,7 @@ public class SGTPuzzles extends Activity
 			}
 		});
 		super.onCreate(savedInstanceState);
+		prefs = getSharedPreferences("state", MODE_PRIVATE);
 		games = getResources().getStringArray(R.array.games);
 		gameTypes = new LinkedHashMap<Integer,String>();
 		requestWindowFeature(Window.FEATURE_INDETERMINATE_PROGRESS);
@@ -220,139 +202,44 @@ public class SGTPuzzles extends Activity
 		gameView = (GameView)findViewById(R.id.game);
 		setDefaultKeyMode(DEFAULT_KEYS_SHORTCUT);
 		gameView.requestFocus();
+		onNewIntent(getIntent());
+	}
 
-		prefs = getSharedPreferences("state", MODE_PRIVATE);
+	@Override
+	protected void onNewIntent(Intent intent)
+	{
+		String s = intent.getStringExtra("game");
+		Uri u = intent.getData();
+		if (s != null && s.length() > 0) {
+			startGame(-1, s);
+			return;
+		} else if (u != null) {
+			String g = u.getSchemeSpecificPart();
+			for (int i=0; i<games.length; i++) {
+				if (games[i].equals(g)) {
+					startGame(i,null);
+					return;
+				}
+			}
+			// TODO!
+		}
 		if( prefs.contains("savedGame") && prefs.getString("savedGame","").length() > 0 ) {
 			startGame(-1, prefs.getString("savedGame",""));
 		} else {
-			new AlertDialog.Builder(this)
-				.setMessage(R.string.welcome)
-				.setOnCancelListener(quitListener)
-				.setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
-					public void onClick(DialogInterface d, int which) { showDialog(0); }})
-				.show();
+			startChooser();
+			finish();
 		}
 	}
 
-	class GameChooser extends Dialog
-	{
-		boolean useGrid = prefs.getString("chooserStyle","list").equals("grid");
-		AbsListView gv;
-		final String LABEL = "LABEL";
-		final String ICON = "ICON";
-		GameChooser()
-		{
-			super(SGTPuzzles.this, android.R.style.Theme);  // full screen
-			setTitle(R.string.chooser_title);
-			setCancelable(true);
-			rebuild();
-		}
-
-		public boolean onCreateOptionsMenu(Menu menu)
-		{
-			super.onCreateOptionsMenu(menu);
-			getMenuInflater().inflate(R.menu.chooser, menu);
-			return true;
-		}
-
-		public boolean onPrepareOptionsMenu(Menu menu)
-		{
-			super.onPrepareOptionsMenu(menu);
-			menu.findItem(useGrid ? R.id.gridchooser : R.id.listchooser).setChecked(true);
-			return true;
-		}
-
-		/** Possible android bug: onOptionsItemSelected(MenuItem item)
-		 *  wasn't being called? */
-		public boolean onMenuItemSelected(int f, MenuItem item)
-		{
-			boolean newGrid;
-			switch(item.getItemId()) {
-				case R.id.listchooser: newGrid = false; break;
-				case R.id.gridchooser: newGrid = true; break;
-				case R.id.load: SGTPuzzles.this.showLoadPrompt(); return true;
-				default: return super.onMenuItemSelected(f,item);
-			}
-			if( useGrid == newGrid ) return true;
-			useGrid = newGrid;
-			rebuild();
-			SharedPreferences.Editor ed = prefs.edit();
-			ed.putString("chooserStyle", useGrid ? "grid" : "list");
-			ed.commit();
-			return true;
-		}
-
-		void rebuild()
-		{
-			if( useGrid ) {
-				gv = new GridView(SGTPuzzles.this);
-				((GridView)gv).setNumColumns(GridView.AUTO_FIT);
-				((GridView)gv).setColumnWidth((int)Math.round(getResources().getDisplayMetrics().density * 64));
-			} else {
-				gv = new ListView(SGTPuzzles.this);
-			}
-			gv.setOnItemClickListener(new OnItemClickListener() {
-				public void onItemClick(AdapterView<?> arg0, View arg1, int which, long arg3) {
-					startGame(which, null);
-					SGTPuzzles.this.dismissDialog(0);
-				}
-			});
-			List<Map<String,Object>> gameDescs = new ArrayList<Map<String,Object> >( games.length );
-			for( int i = 0; i < games.length; i++ ) {
-				Map<String,Object> map = new HashMap<String,Object>();
-				int nameId = getResources().getIdentifier("name_"+games[i], "string", getPackageName());
-				int descId = getResources().getIdentifier("desc_"+games[i], "string", getPackageName());
-				String desc;
-				if( nameId > 0 ) desc = getString(nameId);
-				else desc = games[i].substring(0,1).toUpperCase() + games[i].substring(1);
-				desc += ": " + getString( descId > 0 ? descId : R.string.no_desc );
-				map.put( LABEL, desc );
-				Drawable d = getResources().getDrawable(getResources().getIdentifier(games[i], "drawable", getPackageName()));
-				Bitmap b = Bitmap.createBitmap(d.getIntrinsicWidth(),d.getIntrinsicHeight(), Bitmap.Config.RGB_565);
-				Canvas c = new Canvas(b);
-				d.setBounds(0,0,d.getIntrinsicWidth(),d.getIntrinsicHeight());
-				d.draw(c);
-				map.put( ICON, b );
-				gameDescs.add( map );
-			}
-			SimpleAdapter s = new SimpleAdapter(SGTPuzzles.this, gameDescs,
-						useGrid ? R.layout.grid_item : R.layout.list_item,
-						useGrid ? new String[]{ ICON } : new String[]{ LABEL, ICON },
-						useGrid ? new int[]{ android.R.id.icon } : new int[]{ android.R.id.text1, android.R.id.icon });
-			s.setViewBinder( new SimpleAdapter.ViewBinder() {
-				public boolean setViewValue(View v, Object o, String t) {
-					if( ! ( v instanceof ImageView ) ) return false;
-					((ImageView)v).setImageBitmap((Bitmap)o);
-					return true;
-				}
-			});
-			gv.setAdapter(s);
-			setContentView(gv);
-		}
-
-		void prepare()
-		{
-			setOnCancelListener(gameRunning ? null : quitListener);
-		}
-	}
-
-	public Dialog onCreateDialog(int id)
-	{
-		return new GameChooser();
-	}
-	
-	public void onPrepareDialog(int id, Dialog d)
-	{
-		((GameChooser)d).prepare();
-	}
-	
+	@Override
 	public boolean onCreateOptionsMenu(Menu menu)
 	{
 		super.onCreateOptionsMenu(menu);
 		getMenuInflater().inflate(R.menu.main, menu);
 		return true;
 	}
-	
+
+	@Override
 	public boolean onPrepareOptionsMenu(Menu menu)
 	{
 		super.onPrepareOptionsMenu(menu);
@@ -375,7 +262,7 @@ public class SGTPuzzles extends Activity
 					getString(R.string.help_on_game),new Object[]{this.getTitle()}));
 		return true;
 	}
-	
+
 	public void showHelp(String topic)
 	{
 		final Dialog d = new Dialog(this,android.R.style.Theme);
@@ -394,10 +281,18 @@ public class SGTPuzzles extends Activity
 		d.show();
 	}
 
+	void startChooser()
+	{
+		startActivity(new Intent(this, GameChooser.class));
+	}
+
+	@Override
 	public boolean onOptionsItemSelected(MenuItem item)
 	{
 		switch(item.getItemId()) {
-		case R.id.other:   showDialog(0); break;
+		case R.id.other:
+			startChooser();
+			break;
 		case R.id.newgame:
 			if(! gameRunning || progress != null) break;
 			showProgress( R.string.starting_new );
@@ -424,13 +319,11 @@ public class SGTPuzzles extends Activity
 		case R.id.email:
 			tryEmailAuthor(this, false, null);
 			break;
-		case R.id.load: showLoadPrompt(); break;
+		case R.id.load:
+			new FilePicker(this, storageDir, false).show();
+			break;
 		case R.id.save:
-			if (! Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)) {
-				Toast.makeText(SGTPuzzles.this, R.string.storage_not_ready, Toast.LENGTH_SHORT).show();
-				break;
-			}
-			new FilePicker(storageDir,true).show();
+			new FilePicker(this, storageDir, true).show();
 			break;
 		default:
 			final int id = item.getItemId();
@@ -489,143 +382,11 @@ public class SGTPuzzles extends Activity
 		}
 	}
 
-	void showLoadPrompt()
-	{
-		if (! Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)) {
-			Toast.makeText(SGTPuzzles.this, R.string.storage_not_ready, Toast.LENGTH_SHORT).show();
-			return;
-		}
-		new FilePicker(storageDir,false).show();
-	}
-
-	class FilePicker extends Dialog
-	{
-		String[] files;
-		ListView lv;
-		FilePicker parent;
-		void dismissAll()
-		{
-			try {
-				SGTPuzzles.this.dismissDialog(0);
-			} catch (Exception e) {}
-			dismiss();
-			FilePicker fp = this.parent;
-			while (fp != null) {
-				fp.dismiss();
-				fp = fp.parent;
-			}
-		}
-		void load(final File f) throws IOException
-		{
-			byte[] b = new byte[(int)f.length()];
-			new RandomAccessFile(f,"r").readFully(b);
-			String s = new String(b);
-			SGTPuzzles.this.startGame(-1,s);
-			dismissAll();
-		}
-		void save(final File f, Boolean force)
-		{
-			if (! force && f.exists()) {
-				AlertDialog.Builder b = new AlertDialog.Builder(SGTPuzzles.this)
-					.setMessage(R.string.file_exists)
-					.setCancelable(true)
-					.setIcon(android.R.drawable.ic_dialog_alert);
-				b.setPositiveButton(android.R.string.yes, new OnClickListener(){ public void onClick(DialogInterface d, int which) {
-					try {
-						f.delete();
-						save(f, true);
-					} catch (Exception e) {
-						Toast.makeText(SGTPuzzles.this, e.toString(), Toast.LENGTH_LONG).show();
-					}
-					d.dismiss();
-				}});
-				b.setNegativeButton(android.R.string.no, new OnClickListener(){ public void onClick(DialogInterface d, int which) {
-					d.cancel();
-				}});
-				b.show();
-				return;
-			}
-			try {
-				String s = saveToString();
-				FileWriter w = new FileWriter(f);
-				w.write(s,0,s.length());
-				w.close();
-				Toast.makeText(SGTPuzzles.this, MessageFormat.format(
-						getString(R.string.file_saved),new Object[]{f.getPath()}),
-						Toast.LENGTH_LONG).show();
-				dismissAll();
-			} catch (Exception e) {
-				Toast.makeText(SGTPuzzles.this, e.toString(), Toast.LENGTH_LONG).show();
-			}
-		}
-		FilePicker(final File path, final boolean isSave) { this(path, isSave, null); }
-		FilePicker(final File path, final boolean isSave, FilePicker parent)
-		{
-			super(SGTPuzzles.this, android.R.style.Theme);  // full screen
-			this.parent = parent;
-			this.files = path.list();
-			Arrays.sort(this.files);
-			setTitle(path.getName());
-			setCancelable(true);
-			setContentView(isSave ? R.layout.file_save : R.layout.file_load);
-			lv = (ListView)findViewById(R.id.filelist);
-			lv.setAdapter(new ArrayAdapter<String>(SGTPuzzles.this, android.R.layout.simple_list_item_1, files));
-			lv.setOnItemClickListener(new OnItemClickListener() {
-				public void onItemClick(AdapterView<?> arg0, View arg1, int which, long arg3) {
-					File f = new File(path,files[which]);
-					if (f.isDirectory()) {
-						new FilePicker(f,isSave,FilePicker.this).show();
-						return;
-					}
-					if (isSave) {
-						save(f, false);
-						return;
-					}
-					try {
-						if (f.length() > MAX_SAVE_SIZE) {
-							Toast.makeText(SGTPuzzles.this, R.string.file_too_big, Toast.LENGTH_LONG).show();
-							return;
-						}
-						load(f);
-					} catch (Exception e) {
-						Toast.makeText(SGTPuzzles.this, e.toString(), Toast.LENGTH_LONG).show();
-					}
-				}
-			});
-			if (!isSave) return;
-			final EditText et = (EditText)findViewById(R.id.savebox);
-			et.addTextChangedListener(new TextWatcher(){
-				public void onTextChanged(CharSequence s,int a,int b, int c){}
-				public void beforeTextChanged(CharSequence s,int a,int b, int c){}
-				public void afterTextChanged(Editable s) {
-					lv.setFilterText(s.toString());
-				}
-			});
-			et.setOnEditorActionListener(new TextView.OnEditorActionListener() { public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
-				Log.d(TAG,"actionId: "+actionId+", event: "+event);
-				if (actionId == EditorInfo.IME_ACTION_DONE) return false;
-				if ((event != null && event.getAction() != KeyEvent.ACTION_DOWN)
-						|| et.length() == 0) return true;
-				save(new File(path,et.getText().toString()), false);
-				return true;
-			}});
-			final Button saveButton = (Button)findViewById(R.id.savebutton);
-			saveButton.setOnClickListener(new View.OnClickListener(){public void onClick(View v){
-				save(new File(path,et.getText().toString()), false);
-			}});
-			et.requestFocus();
-		}
-	}
-
 	void quit(boolean fromDestroy)
 	{
 		stopNative();
 		if( ! fromDestroy ) finish();
 	}
-
-	OnCancelListener quitListener = new OnCancelListener() {
-		public void onCancel(DialogInterface dialog) { quit(false); }
-	};
 
 	void abort(String why)
 	{
@@ -688,6 +449,7 @@ public class SGTPuzzles extends Activity
 		}
 	}
 
+	@Override
 	protected void onPause()
 	{
 		if( gameRunning ) handler.removeMessages(MsgType.TIMER.ordinal());
@@ -695,12 +457,14 @@ public class SGTPuzzles extends Activity
 		super.onPause();
 	}
 
+	@Override
 	protected void onDestroy()
 	{
 		quit(true);
 		super.onDestroy();
 	}
 
+	@Override
 	public void onWindowFocusChanged( boolean f )
 	{
 		if( f && gameWantsTimer && gameRunning
@@ -708,7 +472,7 @@ public class SGTPuzzles extends Activity
 			handler.sendMessageDelayed(handler.obtainMessage(MsgType.TIMER.ordinal()),
 					timerInterval);
 	}
-	
+
 	void sendKey(int x, int y, int k)
 	{
 		if(! gameRunning || progress != null) return;
@@ -734,6 +498,7 @@ public class SGTPuzzles extends Activity
 		prevLandscape = landscape;
 	}
 
+	@Override
 	public void onConfigurationChanged(Configuration newConfig)
 	{
 		setKeyboardVisibility(newConfig);
