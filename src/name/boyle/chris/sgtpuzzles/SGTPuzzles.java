@@ -380,21 +380,24 @@ public class SGTPuzzles extends Activity
 		messageBox(title, msg, 0);
 	}
 
-	static boolean tryEmailAuthor(Context c, boolean isCrash, String body)
+	static String getEmailSubject(Context c, boolean isCrash)
 	{
-		String addr = c.getString(R.string.author_email);
-		Intent i = new Intent(Intent.ACTION_SEND);
 		String modVer = "";
 		try {
 			Process p = Runtime.getRuntime().exec(new String[]{"getprop","ro.modversion"});
 			modVer = readAllOf(p.getInputStream()).trim();
 		} catch (Exception e) {}
 		if (modVer.length() == 0) modVer = "original";
-		// second empty address because of http://code.google.com/p/k9mail/issues/detail?id=589
-		i.putExtra(Intent.EXTRA_EMAIL, new String[]{addr, ""});
-		i.putExtra(Intent.EXTRA_SUBJECT, MessageFormat.format(c.getString(
-					isCrash ? R.string.crash_subject : R.string.email_subject),
-					getVersion(c), Build.MODEL, modVer, Build.FINGERPRINT));
+		return MessageFormat.format(c.getString(
+				isCrash ? R.string.crash_subject : R.string.email_subject),
+				getVersion(c), Build.MODEL, modVer, Build.FINGERPRINT);
+	}
+
+	static boolean tryEmailAuthor(Context c, boolean isCrash, String body)
+	{
+		Intent i = new Intent(Intent.ACTION_SEND);
+		i.putExtra(Intent.EXTRA_EMAIL, new String[]{c.getString(R.string.author_email)});
+		i.putExtra(Intent.EXTRA_SUBJECT, getEmailSubject(c, isCrash));
 		i.setType("message/rfc822");
 		i.putExtra(Intent.EXTRA_TEXT, body!=null ? body : "");
 		try {
@@ -777,6 +780,7 @@ public class SGTPuzzles extends Activity
 		}
 		new RuntimeException("crashed here (native trace should follow after the Java trace)").printStackTrace();
 		startActivity(new Intent(this, CrashHandler.class));
+		finish();
 	}
 
 	static String readAllOf(InputStream s) throws IOException

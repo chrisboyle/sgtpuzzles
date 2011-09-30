@@ -41,6 +41,7 @@ Revision: %s"</string>
     <!-- {0} = version, {1} = device model number -->
     <string name="email_subject">Puzzles v{0} on {1} / {2} / {3}</string>
     <!-- Crash report dialog -->
+    <string name="prompt_install_log_collector">Install the free and open source Log Collector application to collect the device log and send it to the developer. I will launch it with appropriate options after you install.</string>
     <string name="crash_subject">Crash: Puzzles v{0} on {1} / {2} / {3}</string>
     <string name="crash_preamble">Please describe what you were doing just before the crash if possible, and then press Send:</string>
     <string name="crashtitle">Well, this is embarrassing...</string>

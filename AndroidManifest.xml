@@ -15,8 +15,6 @@
           android:anyDensity="true" />
     <!-- For saved games -->
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-    <!-- For crash reports -->
-    <uses-permission android:name="android.permission.READ_LOGS" />
     <application android:icon="@drawable/icon" android:label="@string/app_name" android:debuggable="true">
         <activity android:name=".SGTPuzzles" android:windowSoftInputMode="adjustPan"
                   android:label="@string/app_name" android:stateNotNeeded="true" android:launchMode="singleTask" android:configChanges="keyboard|keyboardHidden|orientation|screenSize">
