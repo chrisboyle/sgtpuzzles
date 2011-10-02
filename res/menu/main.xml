@@ -8,12 +8,12 @@
 	<item android:title="@string/Load_" android:id="@+id/load" android:alphabeticShortcut="y" android:icon="@android:drawable/ic_menu_upload"></item>
 	<item android:title="@string/Save_" android:id="@+id/save" android:alphabeticShortcut="w" android:icon="@android:drawable/ic_menu_save"></item>
 </menu></item>
-<item android:title="@string/Other_game" android:id="@+id/other" android:alphabeticShortcut="o" android:icon="@android:drawable/ic_menu_gallery" android:showAsAction="ifRoom|withText"/>
 <item android:title="@string/Type" android:id="@+id/type" android:enabled="false" android:icon="@android:drawable/ic_menu_edit" android:showAsAction="ifRoom|withText"><menu>
 	<group android:id="@+id/typeGroup" android:checkableBehavior="single">
 		<item android:title="@string/Custom_" android:id="@+id/custom" android:visible="false" android:checkable="true" android:menuCategory="secondary" android:alphabeticShortcut="z" android:icon="@android:drawable/ic_menu_edit"/>
 	</group>
 </menu></item>
+<item android:title="@string/Other_game" android:id="@+id/other" android:alphabeticShortcut="o" android:icon="@android:drawable/ic_menu_gallery" android:showAsAction="ifRoom|withText"/>
 <item android:title="@string/Solve" android:id="@+id/solve" android:enabled="false" android:alphabeticShortcut="v" android:icon="@android:drawable/ic_menu_directions" android:showAsAction="ifRoom|withText"/>
 <item android:title="@string/Undo" android:id="@+id/undo" android:alphabeticShortcut="u" android:icon="@drawable/ic_menu_undo" android:visible="false" android:showAsAction="always"/>
 <item android:title="@string/Redo" android:id="@+id/redo" android:alphabeticShortcut="r" android:icon="@drawable/ic_menu_redo" android:visible="false" android:showAsAction="always"/>
