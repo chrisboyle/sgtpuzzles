@@ -33,6 +33,7 @@ import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
 import android.text.InputType;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.KeyEvent;
@@ -542,7 +543,9 @@ public class SGTPuzzles extends Activity
 				Method setShowAsAction = MenuItem.class.getMethod("setShowAsAction", Integer.TYPE);
 				// Just cautiously fix the common case: if >850dip then force
 				// show everything, else let the platform decide
-				boolean reallyWide = newConfig.screenWidthDp > 850;
+				DisplayMetrics dm = getResources().getDisplayMetrics();
+				int screenWidthDIP = (int)Math.round(((double)dm.widthPixels) / dm.density);
+				boolean reallyWide = screenWidthDIP > 850;
 				int state =  // reallyWide ? 2 : 1, but let's be formally correct:
 						MenuItem.class.getField(reallyWide
 								? "SHOW_AS_ACTION_ALWAYS"
