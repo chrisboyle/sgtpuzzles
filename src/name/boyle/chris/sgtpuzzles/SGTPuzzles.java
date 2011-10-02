@@ -555,7 +555,7 @@ public class SGTPuzzles extends Activity
 						MenuItem.class.getField("SHOW_AS_ACTION_WITH_TEXT").getInt(null);
 				setShowAsAction.invoke(menu.findItem(R.id.solve), state);
 			} catch (Exception e) {
-				Log.d(TAG, "** invalidateOptionsMenu FAIL ** ");
+				Log.d(TAG, "** menu hackery FAIL ** ");
 				e.printStackTrace();
 			}
 		}

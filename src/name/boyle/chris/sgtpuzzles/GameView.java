@@ -10,6 +10,7 @@ import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.Region;
 import android.graphics.Typeface;
+import android.graphics.drawable.Drawable;
 import android.util.AttributeSet;
 import android.view.HapticFeedbackConstants;
 import android.view.KeyEvent;
@@ -163,6 +164,14 @@ public class GameView extends View
 		clear();
 		this.w = w; this.h = h;
 		if (parent != null) parent.gameViewResized();
+		if (isInEditMode()) {
+			// Draw a little placeholder to aid UI editing
+			Drawable d = getResources().getDrawable(R.drawable.icon);
+			int s = w<h ? w : h;
+			int mx = (w-s)/2, my = (h-s)/2;
+			d.setBounds(new Rect(mx,my,mx+s,my+s));
+			d.draw(canvas);
+		}
 	}
 
 	public void setBackgroundColor( int colour )
