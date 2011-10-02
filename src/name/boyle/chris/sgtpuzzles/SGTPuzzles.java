@@ -93,7 +93,7 @@ public class SGTPuzzles extends Activity
 	boolean configIsCustom = false;
 	String[] games;
 	Menu menu;
-	boolean hasActionBar = false;
+	Object actionBar = null;
 	String maybeUndoRedo = "ur";
 
 	enum MsgType { INIT, TIMER, DONE, ABORT };
@@ -213,15 +213,13 @@ public class SGTPuzzles extends Activity
 		gameView.requestFocus();
 		try {
 			Method m = Activity.class.getMethod("getActionBar");
-			Object ab;
-			if (m != null && (ab = m.invoke(this)) != null) {
-				hasActionBar = true;
+			if (m != null && (actionBar = m.invoke(this)) != null) {
 				// TODO: need images for undo/redo in menu for this
 				//maybeUndoRedo = "";
 				Class.forName("android.app.ActionBar")
 						.getMethod("setDisplayShowHomeEnabled",
 								new Class<?>[] {Boolean.TYPE})
-						.invoke(ab, false);
+						.invoke(actionBar, false);
 			}
 		} catch (Throwable t) {}
 		onNewIntent(getIntent());
@@ -273,12 +271,12 @@ public class SGTPuzzles extends Activity
 		MenuItem item;
 		item = menu.findItem(R.id.solve);
 		item.setEnabled(solveEnabled);
-		if (hasActionBar) item.setVisible(solveEnabled);
+		if (actionBar != null) item.setVisible(solveEnabled);
 		menu.findItem(R.id.undo).setEnabled(undoEnabled);
 		menu.findItem(R.id.redo).setEnabled(redoEnabled);
 		item = menu.findItem(R.id.type);
 		item.setEnabled(! gameTypes.isEmpty() || customVisible);
-		if (hasActionBar) item.setVisible(item.isEnabled());
+		if (actionBar != null) item.setVisible(item.isEnabled());
 		typeMenu = item.getSubMenu();
 		for( Integer i : gameTypes.keySet() ) {
 			if( menu.findItem(i) == null ) typeMenu.add(R.id.typeGroup, i, Menu.NONE, gameTypes.get(i) );
@@ -536,6 +534,28 @@ public class SGTPuzzles extends Activity
 	{
 		setKeyboardVisibility(newConfig);
 		super.onConfigurationChanged(newConfig);
+		if (actionBar != null) {
+			// ActionBar's capacity (width) has probably changed, so work around
+			// http://code.google.com/p/android/issues/detail?id=20493
+			// (invalidateOptionsMenu() does not help here)
+			try {
+				Method setShowAsAction = MenuItem.class.getMethod("setShowAsAction", Integer.TYPE);
+				// Just cautiously fix the common case: if >850dip then force
+				// show everything, else let the platform decide
+				boolean reallyWide = newConfig.screenWidthDp > 850;
+				int state =  // reallyWide ? 2 : 1, but let's be formally correct:
+						MenuItem.class.getField(reallyWide
+								? "SHOW_AS_ACTION_ALWAYS"
+								: "SHOW_AS_ACTION_IF_ROOM").getInt(null);
+				setShowAsAction.invoke(menu.findItem(R.id.help), state);
+				state = state |  // 4
+						MenuItem.class.getField("SHOW_AS_ACTION_WITH_TEXT").getInt(null);
+				setShowAsAction.invoke(menu.findItem(R.id.solve), state);
+			} catch (Exception e) {
+				Log.d(TAG, "** invalidateOptionsMenu FAIL ** ");
+				e.printStackTrace();
+			}
+		}
 	}
 
 	// Callbacks from native code:
@@ -754,7 +774,7 @@ public class SGTPuzzles extends Activity
 			keyboard.setUndoRedoEnabled(false, canUndo);
 			keyboard.setUndoRedoEnabled(true, canRedo);
 		}
-		if (hasActionBar && menu != null) {
+		if (actionBar != null && menu != null) {
 			menu.findItem(R.id.undo).setEnabled(undoEnabled);
 			menu.findItem(R.id.redo).setEnabled(redoEnabled);
 		}
