@@ -1203,14 +1203,13 @@ static char *game_text_format(game_state *state)
 struct game_ui {
     puzzle_size r, c; /* cursor position */
     unsigned int cursor_show: 1;
-    unsigned int cheated: 1;
 };
 
 static game_ui *new_ui(game_state *state)
 {
     struct game_ui *ui = snew(game_ui);
     ui->r = ui->c = 0;
-    ui->cursor_show = ui->cheated = FALSE;
+    ui->cursor_show = FALSE;
     return ui;
 }
 
@@ -1221,12 +1220,11 @@ static void free_ui(game_ui *ui)
 
 static char *encode_ui(game_ui *ui)
 {
-    return dupstr(ui->cheated ? "1" : "0");
+    return NULL;
 }
 
 static void decode_ui(game_ui *ui, char *encoding)
 {
-    ui->cheated = (*encoding == '1');
 }
 
 typedef struct drawcell {
@@ -1327,7 +1325,14 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
             ret = nfmtstr(40, "%c,%d,%d",
                           buf->colour == M_BLACK ? 'B' : 'W',
                           buf->square.r, buf->square.c);
-            ui->cheated = TRUE; /* you are being naughty ;-) */
+            /* We used to set a flag here in the game_ui indicating
+             * that the player had used the hint function. I (SGT)
+             * retired it, on grounds of consistency with other games
+             * (most of these games will still flash to indicate
+             * completion if you solved and undid it, so why not if
+             * you got a hint?) and because the flash is as much about
+             * checking you got it all right than about congratulating
+             * you on a job well done. */
         }
         sfree(buf);
         return ret;
@@ -1463,7 +1468,6 @@ failure:
 static void game_changed_state(game_ui *ui, game_state *oldstate,
                                game_state *newstate)
 {
-    if (newstate->has_cheated) ui->cheated = TRUE;
 #ifdef ANDROID
     if (newstate->was_solved && ! newstate->has_cheated && oldstate && ! oldstate->was_solved) android_completed();
 #endif
@@ -1480,7 +1484,7 @@ static float game_anim_length(game_state *oldstate, game_state *newstate,
 static float game_flash_length(game_state *from, game_state *to,
                                int dir, game_ui *ui)
 {
-    if (!from->was_solved && to->was_solved)
+    if (!from->was_solved && to->was_solved && !to->has_cheated)
         return FLASH_TIME;
     return 0.0F;
 }
