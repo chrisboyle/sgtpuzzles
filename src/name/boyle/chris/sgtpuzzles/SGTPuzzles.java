@@ -676,7 +676,8 @@ public class SGTPuzzles extends Activity
 			EditText et = new EditText(SGTPuzzles.this);
 			// TODO: C_INT, C_UINT, C_UDOUBLE, C_DOUBLE
 			// Ugly temporary hack: in custom game dialog, all text boxes are numeric, in the other two dialogs they aren't.
-			if (configIsCustom) et.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL | InputType.TYPE_NUMBER_FLAG_SIGNED);
+			// Uglier temporary-er hack: Black Box must accept a range for ball count.
+			if (configIsCustom && !helpTopic.equals("blackbox")) et.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL | InputType.TYPE_NUMBER_FLAG_SIGNED);
 			et.setId(id);
 			et.setText(value);
 			TextView tv = new TextView(SGTPuzzles.this);
