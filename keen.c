@@ -1884,7 +1884,7 @@ static void draw_tile(drawing *dr, game_drawstate *ds, struct clues *clues,
 	     * So now we work out what the grid size ought to be.
 	     */
 	    bestsize = 0.0;
-	    pbest = 0;
+	    pbest = 1;
 	    /* Minimum */
 	    for (pw = 3; pw < max(npencil,4); pw++) {
 		float fw, fh, fs;
@@ -1899,7 +1899,6 @@ static void draw_tile(drawing *dr, game_drawstate *ds, struct clues *clues,
 		    pbest = pw;
 		}
 	    }
-	    assert(pbest > 0);
 	    pw = pbest;
 	    ph = (npencil + pw - 1) / pw;
 	    ph = max(ph, minph);

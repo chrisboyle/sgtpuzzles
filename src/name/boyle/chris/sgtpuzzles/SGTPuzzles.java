@@ -183,7 +183,7 @@ public class SGTPuzzles extends Activity
 	void gameViewResized()
 	{
 		if( ! gameRunning ) return;
-		if( progress == null && gameView.w > 0 && gameView.h > 0 )
+		if( progress == null && gameView.w > 10 && gameView.h > 10 )
 			resizeEvent(gameView.w, gameView.h);
 		else
 			resizeOnDone = true;
