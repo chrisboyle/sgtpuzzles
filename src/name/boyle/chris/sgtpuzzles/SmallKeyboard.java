@@ -13,7 +13,7 @@ import android.util.AttributeSet;
 public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboardActionListener
 {
 	static final String TAG="SmallKeyboard";
-	static final int KEYSP = 44;
+	static final int KEYSP = 44;  // dip
 	SGTPuzzles parent;
 	boolean undoEnabled = false, redoEnabled = false;
 
@@ -35,7 +35,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 		{
 			super(context, R.layout.keyboard_template);
 			this.context = context;
-			mDefaultWidth = mDefaultHeight = (int)Math.round(context.getResources().getDisplayMetrics().density * KEYSP);
+			mDefaultWidth = mDefaultHeight = context.getResources().getDimensionPixelSize(R.dimen.keySize);
 			int minorPx = 0;
 			int majorPx = 0;
 			int minor = 0;
