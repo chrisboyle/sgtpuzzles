@@ -33,7 +33,7 @@ chris@boyle.name and I'll be happy to include it in future versions.
 Revision: %s"</string>
     <!-- Things used by the Android front-end only -->
     <string name="app_name">Puzzles</string>
-    <string name="welcome">Willkommen bei der Android-Version von Simon Tathams Puzzles. Den Trackball finden Sie in der Regel vermutlich einfacher als den Touchscreen. Um rechts zu klicken, halten Sie den Trackball oder den Touchscreen gedrückt. Hilfe gibt es unter Menü/Hilfe. Dieses Projekt ist unter der MIT-Lizenz veröffentlicht.</string>
+    <string name="welcome">Willkommen bei der Android-Version von Simon Tathams Puzzles. Um rechts zu klicken, halten Sie den Touchscreen oder den Trackball gedrückt. Hilfe gibt es unter Menü/Hilfe. Dieses Projekt ist unter der MIT-Lizenz veröffentlicht.</string>
     <string name="website_url">http://chris.boyle.name/projects/android-puzzles</string>
     <string name="docs_url">file:///android_asset/de/{0}.html</string>
     <string name="author_email">chris@boyle.name</string>

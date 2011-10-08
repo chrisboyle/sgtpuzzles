@@ -7,7 +7,7 @@
   <!--  Things used by the Android front-end only 
   --> 
   <string name="app_name">拼图</string> 
-  <string name="welcome">欢迎来到 Android 版的 Simon Tatham 智益游戏。注：多数情况下轨迹球比触屏要好用。要右击，半按相机键或者在屏幕上长按。可以通过菜单/帮助获取在线帮助。这个项目是麻省理工学院的许可下发布。</string> 
+  <string name="welcome">欢迎来到 Android 版的 Simon Tatham 智益游戏。要右击，半按相机键或者在屏幕上长按。可以通过菜单/帮助获取在线帮助。这个项目是麻省理工学院的许可下发布。</string> 
   <string name="website_url">http://chris.boyle.name/projects/android-puzzles</string> 
   <string name="docs_url">file:///android_asset/en/{0}.html</string> 
   <string name="author_email">chris@boyle.name</string> 
