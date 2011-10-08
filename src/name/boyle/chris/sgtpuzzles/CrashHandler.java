@@ -95,9 +95,9 @@ public class CrashHandler extends Activity
 			SGTPuzzles.TAG + ":V",
 			"DEBUG:I",
 			"System.err:V",
-			//"dalvikvm:D",
-			//"ActivityManager:I",
-			"WindowManager:I",
+			"dalvikvm:W",
+			"ActivityManager:W",
+			"WindowManager:W",
 			"*:S",
 		};
 		intent.putExtra(EXTRA_FILTER_SPECS, filterSpecs);
