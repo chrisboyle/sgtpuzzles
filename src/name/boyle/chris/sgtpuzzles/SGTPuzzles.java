@@ -156,7 +156,9 @@ public class SGTPuzzles extends Activity
 	void dismissProgress()
 	{
 		if( progress == null ) return;
-		progress.dismiss();
+		try {
+			progress.dismiss();
+		} catch (IllegalArgumentException e) {}  // race condition?
 		progress = null;
 	}
 
