@@ -49,6 +49,7 @@
 									<listOptionValue builtIn="false" value="__INT_MAX__=2147483647"/>
 									<listOptionValue builtIn="false" value="__INT_MIN__=-2147483648"/>
 									<listOptionValue builtIn="false" value="__SCHAR_MAX__=0x7f"/>
+									<listOptionValue builtIn="false" value="STYLUS_BASED=1"/>
 								</option>
 								<inputType id="org.eclipse.cdt.build.core.settings.holder.inType.125881833" languageId="org.eclipse.cdt.core.gcc" languageName="GNU C" sourceContentType="org.eclipse.cdt.core.cSource,org.eclipse.cdt.core.cHeader" superClass="org.eclipse.cdt.build.core.settings.holder.inType"/>
 							</tool>
