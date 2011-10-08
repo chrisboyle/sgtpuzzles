@@ -796,6 +796,7 @@ public class SGTPuzzles extends Activity
 				Log.d(TAG, "saved game was:\n"+prefs.getString("savedGame",""));
 			} catch(Exception e) {
 				Log.d(TAG, "couldn't report saved game because: "+e.toString());
+				e.printStackTrace();
 			}
 		}
 		try {
