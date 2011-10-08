@@ -33,6 +33,7 @@ public class GameChooser extends Activity
 	View[] views;
 	boolean hasActionBar = false;
 	Menu menu;
+	boolean isTablet;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState)
@@ -40,7 +41,16 @@ public class GameChooser extends Activity
 		super.onCreate(savedInstanceState);
 		setTitle(R.string.chooser_title);
 		prefs = getSharedPreferences("state", MODE_PRIVATE);
-		useGrid = prefs.getString("chooserStyle","list").equals("grid");
+		DisplayMetrics dm = getResources().getDisplayMetrics();
+		int screenWidthDIP = (int)Math.round(((double)dm.widthPixels) / dm.density);
+		int screenHeightDIP = (int)Math.round(((double)dm.heightPixels) / dm.density);
+		isTablet = ( screenWidthDIP >= 600 && screenHeightDIP >= 600 );
+		if (isTablet) {
+			// Grid is just going to look silly here
+			useGrid = false;
+		} else {
+			useGrid = prefs.getString("chooserStyle","list").equals("grid");
+		}
 		games = getResources().getStringArray(R.array.games);
 		views = new View[games.length];
 		setContentView(R.layout.chooser);
@@ -104,6 +114,7 @@ public class GameChooser extends Activity
 		final int colWidthDip = useGrid ? 68 : 230;
 		final int columns = Math.max(1, (int) Math.floor(
 				((double)dm.widthPixels / dm.density) / colWidthDip));
+		final int margin = (int) Math.round((double)6 * dm.density);
 		if (oldColumns != columns) {
 			table.removeAllViews();
 			TableRow tr = null;
@@ -114,11 +125,12 @@ public class GameChooser extends Activity
 					tr.setLayoutParams(new TableRow.LayoutParams(
 							TableRow.LayoutParams.WRAP_CONTENT,
 							TableRow.LayoutParams.WRAP_CONTENT));
-					tr.setPadding(0, 4, 0, 4);
 				}
 				if (views[i].getParent() != null) ((TableRow) views[i].getParent()).removeView(views[i]);
-				tr.addView(views[i], new TableRow.LayoutParams(
-						0, TableRow.LayoutParams.WRAP_CONTENT, 1));
+				TableRow.LayoutParams lp = new TableRow.LayoutParams(
+						0, TableRow.LayoutParams.WRAP_CONTENT, 1);
+				lp.setMargins(0, margin, 0, margin);
+				tr.addView(views[i], lp);
 			}
 			oldColumns = columns;
 		}
@@ -131,6 +143,10 @@ public class GameChooser extends Activity
 		super.onCreateOptionsMenu(menu);
 		getMenuInflater().inflate(R.menu.chooser, menu);
 		this.menu = menu;
+		if (isTablet) {
+			menu.removeItem(R.id.gridchooser);
+			menu.removeItem(R.id.listchooser);
+		}
 		return true;
 	}
 
@@ -138,14 +154,16 @@ public class GameChooser extends Activity
 	public boolean onPrepareOptionsMenu(Menu menu)
 	{
 		super.onPrepareOptionsMenu(menu);
-		menu.findItem(useGrid ? R.id.gridchooser : R.id.listchooser).setChecked(true);
+		if (! isTablet) {
+			menu.findItem(useGrid ? R.id.gridchooser : R.id.listchooser).setChecked(true);
+		}
 		updateStyleToggleVisibility();
 		return true;
 	}
 
 	void updateStyleToggleVisibility()
 	{
-		if( hasActionBar ) {
+		if( hasActionBar && ! isTablet ) {
 			menu.findItem(useGrid ? R.id.gridchooser : R.id.listchooser).setVisible(false);
 			menu.findItem(useGrid ? R.id.listchooser : R.id.gridchooser).setVisible(true);
 		}
@@ -156,7 +174,7 @@ public class GameChooser extends Activity
 	@Override
 	public boolean onMenuItemSelected(int f, MenuItem item)
 	{
-		boolean newGrid;
+		boolean newGrid = useGrid;
 		switch(item.getItemId()) {
 			case R.id.listchooser: newGrid = false; break;
 			case R.id.gridchooser: newGrid = true; break;

@@ -3,8 +3,6 @@
     android:id="@android:id/icon"
     android:layout_width="64dip"
     android:layout_height="64dip"
-    android:paddingTop="2dip"
-    android:paddingBottom="2dip"
     android:paddingLeft="4dip"
     android:paddingRight="4dip"/>
 
