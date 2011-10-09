@@ -37,7 +37,6 @@ public class CrashHandler extends Activity
 			   c = (Button)findViewById(R.id.close);
 		final CheckBox cl = (CheckBox)findViewById(R.id.forget);
 		b.setOnClickListener(new View.OnClickListener(){public void onClick(View v){
-			if (cl.isChecked()) clearState();
 			final PackageManager packageManager = getPackageManager();
 			final Intent intent = new Intent(ACTION_SEND_LOG);
 			List<ResolveInfo> list = packageManager.queryIntentActivities(intent,
@@ -65,11 +64,14 @@ public class CrashHandler extends Activity
 								Intent marketIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=" + LOG_COLLECTOR_PACKAGE_NAME));
 								marketIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 								startActivity(marketIntent);
+								if (cl.isChecked()) clearState();
+								finish();
 							}
 						})
 						.setNegativeButton(android.R.string.cancel, null)
 						.show();
 			} else {
+				if (cl.isChecked()) clearState();
 				sendLog();
 			}
 		}});
