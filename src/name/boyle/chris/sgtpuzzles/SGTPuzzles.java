@@ -35,7 +35,6 @@ import android.os.Message;
 import android.text.InputType;
 import android.util.DisplayMetrics;
 import android.util.Log;
-import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -46,7 +45,7 @@ import android.webkit.WebView;
 import android.widget.ArrayAdapter;
 import android.widget.CheckBox;
 import android.widget.EditText;
-import android.widget.LinearLayout;
+import android.widget.RelativeLayout;
 import android.widget.ScrollView;
 import android.widget.Spinner;
 import android.widget.TableLayout;
@@ -58,9 +57,9 @@ public class SGTPuzzles extends Activity
 {
 	static final String TAG = "SGTPuzzles";
 	ProgressDialog progress;
-	TextView txtView;
+	TextView statusBar;
 	SmallKeyboard keyboard;
-	LinearLayout gameAndKeys;
+	RelativeLayout mainLayout;
 	GameView gameView;
 	SubMenu typeMenu;
 	LinkedHashMap<Integer,String> gameTypes;
@@ -209,9 +208,10 @@ public class SGTPuzzles extends Activity
 		games = getResources().getStringArray(R.array.games);
 		gameTypes = new LinkedHashMap<Integer,String>();
 		setContentView(R.layout.main);
-		txtView = (TextView)findViewById(R.id.txtView);
-		gameAndKeys = (LinearLayout)findViewById(R.id.gameAndKeys);
+		mainLayout = (RelativeLayout)findViewById(R.id.mainLayout);
+		statusBar = (TextView)findViewById(R.id.statusBar);
 		gameView = (GameView)findViewById(R.id.game);
+		keyboard = (SmallKeyboard)findViewById(R.id.keyboard);
 		setDefaultKeyMode(DEFAULT_KEYS_SHORTCUT);
 		gameView.requestFocus();
 		try {
@@ -456,7 +456,7 @@ public class SGTPuzzles extends Activity
 			solveEnabled = false;
 			changedState(false, false);
 			customVisible = false;
-			txtView.setVisibility( View.GONE );
+			setStatusBarVisibility(false);
 		}
 		setKeys("");
 		if( typeMenu != null ) for( Integer i : gameTypes.keySet() ) typeMenu.removeItem(i);
@@ -517,19 +517,49 @@ public class SGTPuzzles extends Activity
 	void setKeyboardVisibility(Configuration c)
 	{
 		boolean landscape = (c.orientation == Configuration.ORIENTATION_LANDSCAPE);
-		gameAndKeys.setOrientation( landscape ? LinearLayout.HORIZONTAL : LinearLayout.VERTICAL );
 		if (landscape != prevLandscape || keyboard == null) {
-			// Must recreate KeyboardView on orientation change because it caches the x,y for its preview popups
+			// Must recreate KeyboardView on orientation change because it
+			// caches the x,y for its preview popups
 			// http://code.google.com/p/android/issues/detail?id=4559
-			if (keyboard != null) gameAndKeys.removeView(keyboard);
+			if (keyboard != null) mainLayout.removeView(keyboard);
 			keyboard = new SmallKeyboard(this, undoEnabled, redoEnabled);
-			LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT, 0);
-			lp.gravity = Gravity.CENTER;
-			gameAndKeys.addView(keyboard, lp);
+			keyboard.setId(R.id.keyboard);
+			RelativeLayout.LayoutParams lp = new RelativeLayout.LayoutParams(
+					RelativeLayout.LayoutParams.WRAP_CONTENT,
+					RelativeLayout.LayoutParams.WRAP_CONTENT);
+			RelativeLayout.LayoutParams glp = new RelativeLayout.LayoutParams(
+					RelativeLayout.LayoutParams.WRAP_CONTENT,
+					RelativeLayout.LayoutParams.WRAP_CONTENT);
+			if (landscape) {
+				lp.addRule(RelativeLayout.ALIGN_PARENT_RIGHT);
+				lp.addRule(RelativeLayout.ALIGN_PARENT_TOP);
+				lp.addRule(RelativeLayout.ABOVE, R.id.statusBar);
+				glp.addRule(RelativeLayout.ABOVE, R.id.statusBar);
+				glp.addRule(RelativeLayout.LEFT_OF, R.id.keyboard);
+			} else {
+				lp.addRule(RelativeLayout.ALIGN_PARENT_LEFT);
+				lp.addRule(RelativeLayout.ALIGN_PARENT_RIGHT);
+				lp.addRule(RelativeLayout.ABOVE, R.id.statusBar);
+				glp.addRule(RelativeLayout.ABOVE, R.id.keyboard);
+			}
+			mainLayout.updateViewLayout(gameView, glp);
+			mainLayout.addView(keyboard, lp);
 		}
 		keyboard.setKeys( (c.hardKeyboardHidden == Configuration.HARDKEYBOARDHIDDEN_NO)
-				? maybeUndoRedo : lastKeys, landscape );
+				? maybeUndoRedo : lastKeys);
 		prevLandscape = landscape;
+		mainLayout.requestLayout();
+	}
+
+	void setStatusBarVisibility(boolean visible)
+	{
+		if (!visible) statusBar.setText("");
+		RelativeLayout.LayoutParams lp = new RelativeLayout.LayoutParams(
+				RelativeLayout.LayoutParams.FILL_PARENT,
+				visible ? RelativeLayout.LayoutParams.WRAP_CONTENT : 0);
+		lp.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
+		lp.addRule(RelativeLayout.ALIGN_PARENT_LEFT);
+		mainLayout.updateViewLayout(statusBar, lp);
 	}
 
 	@Override
@@ -575,7 +605,7 @@ public class SGTPuzzles extends Activity
 		runOnUiThread(new Runnable(){public void run(){
 			if (gameView.colours.length > 0) gameView.setBackgroundColor(gameView.colours[0]);
 			setTitle(title);
-			txtView.setVisibility( hasStatus ? View.VISIBLE : View.GONE );
+			setStatusBarVisibility(hasStatus);
 		}});
 	}
 
@@ -611,7 +641,7 @@ public class SGTPuzzles extends Activity
 	void setStatus(final String status)
 	{
 		runOnUiThread(new Runnable(){public void run(){
-			txtView.setText(status.length() == 0 ? " " : status);
+			statusBar.setText(status.length() == 0 ? " " : status);
 		}});
 	}
 
