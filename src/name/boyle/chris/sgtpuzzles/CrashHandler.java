@@ -73,6 +73,7 @@ public class CrashHandler extends Activity
 			} else {
 				if (cl.isChecked()) clearState();
 				sendLog();
+				finish();
 			}
 		}});
 		c.setOnClickListener(new View.OnClickListener(){public void onClick(View v){
@@ -98,8 +99,8 @@ public class CrashHandler extends Activity
 			"DEBUG:I",
 			"System.err:V",
 			"dalvikvm:W",
-			"ActivityManager:W",
-			"WindowManager:W",
+			"ActivityManager:E",
+			"WindowManager:E",
 			"*:S",
 		};
 		intent.putExtra(EXTRA_FILTER_SPECS, filterSpecs);
