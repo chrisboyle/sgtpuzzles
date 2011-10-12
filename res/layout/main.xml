@@ -9,7 +9,7 @@
 	android:layout_alignParentBottom="true"
 	android:layout_alignParentLeft="true"
 	android:background="#000"
-	android:text="Status bar" />
+	android:text="" />
 <!-- keyboard is recreated programmatically on every orientation change,
 because of http://code.google.com/p/android/issues/detail?id=4559
 (we also put it in a different position in landscape) -->
