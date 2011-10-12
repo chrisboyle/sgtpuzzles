@@ -230,6 +230,10 @@ public class SGTPuzzles extends Activity
 	@Override
 	protected void onNewIntent(Intent intent)
 	{
+		if( progress != null ) {
+			// Sorry, cancelling is hard. :-p Require explicit user action.
+			return;
+		}
 		String s = intent.getStringExtra("game");
 		Uri u = intent.getData();
 		if (s != null && s.length() > 0) {
@@ -448,6 +452,10 @@ public class SGTPuzzles extends Activity
 	void startGame(final int which, final String savedGame)
 	{
 		Log.d(TAG, "startGame: "+which+", "+((savedGame==null)?"null":(savedGame.length()+" bytes")));
+		if (progress != null) {
+			Log.wtf(TAG, "startGame while already starting!");
+			return;
+		}
 		showProgress( (savedGame == null) ? R.string.starting : R.string.resuming );
 		if( gameRunning ) {
 			gameView.clear();
