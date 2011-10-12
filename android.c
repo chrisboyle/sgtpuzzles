@@ -496,10 +496,10 @@ inline int android_cancelled()
 	return cancelled;
 }
 
-void android_keys(const char *keys)
+void android_keys(const char *keys, int arrowMode)
 {
 	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
-	(*env)->CallVoidMethod(env, obj, setKeys, (*env)->NewStringUTF(env, keys));
+	(*env)->CallVoidMethod(env, obj, setKeys, (*env)->NewStringUTF(env, keys), arrowMode);
 }
 
 char * get_text(const char *s)
@@ -642,7 +642,7 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
 	requestResize  = (*env)->GetMethodID(env, cls,  "requestResize", "(II)V");
 	requestTimer   = (*env)->GetMethodID(env, cls,  "requestTimer", "(Z)V");
 	serialiseWrite = (*env)->GetMethodID(env, cls,  "serialiseWrite", "([B)V");
-	setKeys        = (*env)->GetMethodID(env, cls,  "setKeys", "(Ljava/lang/String;)V");
+	setKeys        = (*env)->GetMethodID(env, cls,  "setKeys", "(Ljava/lang/String;I)V");
 	setMargins     = (*env)->GetMethodID(env, vcls, "setMargins", "(II)V");
 	setStatus      = (*env)->GetMethodID(env, cls,  "setStatus", "(Ljava/lang/String;)V");
 	tickTypeItem   = (*env)->GetMethodID(env, cls,  "tickTypeItem", "(I)V");

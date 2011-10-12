@@ -1194,7 +1194,7 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
     keys[w] = '\b';
     keys[w+1] = 'M';
     keys[w+2] = '\0';
-    android_keys(keys);
+    android_keys(keys, ANDROID_ARROWS);
 #endif
 
     state->par = *params;	       /* structure copy */

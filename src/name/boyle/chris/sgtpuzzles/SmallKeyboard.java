@@ -10,6 +10,7 @@ import android.graphics.Color;
 import android.inputmethodservice.Keyboard;
 import android.inputmethodservice.KeyboardView;
 import android.util.AttributeSet;
+import android.util.Log;
 
 public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboardActionListener
 {
@@ -17,6 +18,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 	static final int KEYSP = 44;  // dip
 	SGTPuzzles parent;
 	boolean undoEnabled = false, redoEnabled = false;
+	int arrowMode = 1;
 
 	/** Key which can be disabled */
 	class DKey extends Keyboard.Key
@@ -34,8 +36,12 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 		List<Key> mKeys;
 		int undoKey = -1, redoKey = -1;
 		boolean initDone = false;
+		/** arrowMode:
+		 *  0 = no arrows (untangle)
+		 *  1 = arrows + left/right click, unless phone has a d-pad (most games)
+		 *  2 = arrows + left click + diagonals, always (inertia) */
 		public KeyboardModel(Context context, CharSequence characters,
-				boolean columnMajor, int maxPx,
+				int arrowMode, boolean columnMajor, int maxPx,
 				boolean undoEnabled, boolean redoEnabled)
 		{
 			super(context, R.layout.keyboard_template);
@@ -52,15 +58,35 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 			final int keyPlusPad = columnMajor
 					? mDefaultHeight + mDefaultVerticalGap
 					: mDefaultWidth + mDefaultHorizontalGap;
+			int maxPxMinusArrows = maxPx;
+			if (arrowMode == 1) {
+				Configuration c = getResources().getConfiguration();
+				boolean visibleDPad = (c.navigation == Configuration.NAVIGATION_DPAD
+						|| c.navigation == Configuration.NAVIGATION_TRACKBALL);
+				try {
+					int hidden = Configuration.class.getField("navigationHidden").getInt(c);
+					if (hidden == Configuration.class.getField("NAVIGATIONHIDDEN_YES").getInt(null)) {
+						visibleDPad = false;
+					}
+				} catch (Exception e) {}
+				if (visibleDPad) {
+					arrowMode = 0;
+				}
+			}
+			if (arrowMode > 0) {
+				maxPxMinusArrows -= 3 * keyPlusPad;
+			}
 			// How many rows do we need?
 			final int majors = (int)Math.ceil((double)
-					(characters.length() * keyPlusPad)/maxPx);
+					(characters.length() * keyPlusPad)/maxPxMinusArrows);
 			// Spread the keys as evenly as possible
 			final int minorsPerMajor = (int)Math.ceil((double)
 					characters.length() / majors);
-			int minorStartPx = (int)Math.round(((double)maxPx - (minorsPerMajor * keyPlusPad)) / 2);
+			int minorStartPx = (int)Math.round(((double)maxPxMinusArrows
+					- (minorsPerMajor * keyPlusPad)) / 2);
 			int minorPx = minorStartPx;
 			int majorPx = 0;
+			if (majors < 3 && arrowMode > 0) majorPx = (3 - majors) * keyPlusPad;
 			int minor = 0;
 			for (int i = 0; i < characters.length(); i++) {
 				char c = characters.charAt(i);
@@ -84,7 +110,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 					key.edgeFlags |= columnMajor ? EDGE_RIGHT  : EDGE_BOTTOM;
 				if (minor == 0)
 					key.edgeFlags |= columnMajor ? EDGE_TOP    : EDGE_LEFT;
-				if (minor == minorsPerMajor - 1)
+				if (minor == minorsPerMajor - 1 && arrowMode == 0)
 					key.edgeFlags |= columnMajor ? EDGE_BOTTOM : EDGE_RIGHT;
 				key.x = columnMajor ? majorPx : minorPx;
 				key.y = columnMajor ? minorPx : majorPx;
@@ -127,6 +153,99 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 				mTotalWidth = majorPx + mDefaultWidth;
 			} else {
 				mTotalHeight = majorPx + mDefaultHeight;
+			}
+			if (arrowMode > 0) {
+				int[] arrows;
+				if (arrowMode == 2) {
+					arrows = new int[] {
+							GameView.CURSOR_UP,
+							GameView.CURSOR_DOWN,
+							GameView.CURSOR_LEFT,
+							GameView.CURSOR_RIGHT,
+							'\n',
+							GameView.MOD_NUM_KEYPAD | '7',
+							GameView.MOD_NUM_KEYPAD | '1',
+							GameView.MOD_NUM_KEYPAD | '9',
+							GameView.MOD_NUM_KEYPAD | '3' };
+				} else {
+					arrows = new int[] {
+							GameView.CURSOR_UP,
+							GameView.CURSOR_DOWN,
+							GameView.CURSOR_LEFT,
+							GameView.CURSOR_RIGHT,
+							'\n',
+							' ' };
+				}
+				final int arrowsRightEdge = columnMajor ? mTotalWidth : maxPx,
+						arrowsBottomEdge = columnMajor ? maxPx : mTotalHeight;
+				for (int arrow : arrows) {
+					final DKey key = new DKey(row);
+					mKeys.add(key);
+					key.width = mDefaultWidth;
+					key.height = mDefaultHeight;
+					key.gap = mDefaultHorizontalGap;
+					key.repeatable = true;
+					key.enabled = true;
+					key.codes = new int[] { arrow };
+					//key.icon = context.getResources().getDrawable(
+					//		R.drawable.sym_keyboard_delete);
+					key.edgeFlags = 0;  // TODO EDGE_TOP etc
+					switch (arrow) {
+					case GameView.CURSOR_UP:
+						key.x = arrowsRightEdge  - 2*keyPlusPad;
+						key.y = arrowsBottomEdge - 3*keyPlusPad;
+						key.label = "up";
+						break;
+					case GameView.CURSOR_DOWN:
+						key.x = arrowsRightEdge  - 2*keyPlusPad;
+						key.y = arrowsBottomEdge -   keyPlusPad;
+						key.label = "dn";
+						break;
+					case GameView.CURSOR_LEFT:
+						key.x = arrowsRightEdge  - 3*keyPlusPad;
+						key.y = arrowsBottomEdge - 2*keyPlusPad;
+						key.label = "le";
+						break;
+					case GameView.CURSOR_RIGHT:
+						key.x = arrowsRightEdge  -   keyPlusPad;
+						key.y = arrowsBottomEdge - 2*keyPlusPad;
+						key.label = "rt";
+						break;
+					case '\n':
+						key.x = arrowsRightEdge  - 2*keyPlusPad;
+						key.y = arrowsBottomEdge - 2*keyPlusPad;
+						key.label = "ok";
+						break;
+					case ' ': // right click
+						key.x = arrowsRightEdge  -   keyPlusPad;
+						key.y = arrowsBottomEdge - 3*keyPlusPad;
+						key.label = "al";
+						break;
+					case GameView.MOD_NUM_KEYPAD | '7':
+						key.x = arrowsRightEdge  - 3*keyPlusPad;
+						key.y = arrowsBottomEdge - 3*keyPlusPad;
+						key.label = "\\";
+						break;
+					case GameView.MOD_NUM_KEYPAD | '1':
+						key.x = arrowsRightEdge  - 3*keyPlusPad;
+						key.y = arrowsBottomEdge -   keyPlusPad;
+						key.label = "/";
+						break;
+					case GameView.MOD_NUM_KEYPAD | '9':
+						key.x = arrowsRightEdge  -   keyPlusPad;
+						key.y = arrowsBottomEdge - 3*keyPlusPad;
+						key.label = "/";
+						break;
+					case GameView.MOD_NUM_KEYPAD | '3':
+						key.x = arrowsRightEdge  -   keyPlusPad;
+						key.y = arrowsBottomEdge -   keyPlusPad;
+						key.label = "\\";
+						break;
+					default:
+						Log.wtf(TAG, "unknown key in keyboard: "+arrow);
+						break;
+					}
+				}
 			}
 			initDone = true;
 		}
@@ -186,7 +305,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 		parent = isInEditMode() ? null : (SGTPuzzles)c;
 		setBackgroundColor( Color.BLACK );
 		setOnKeyboardActionListener(this);
-		if (isInEditMode()) setKeys("123456\bur");
+		if (isInEditMode()) setKeys("123456\bur", 1);
 	}
 
 	/** Horrible hack for edit mode... */
@@ -212,9 +331,10 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 	}
 
 	CharSequence lastKeys = "";
-	public void setKeys(CharSequence keys)
+	public void setKeys(CharSequence keys, int arrowMode)
 	{
 		lastKeys = keys;
+		this.arrowMode = arrowMode;
 		requestLayout();
 	}
 
@@ -226,8 +346,8 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 			 == Configuration.ORIENTATION_LANDSCAPE);
 		int maxPx = MeasureSpec.getSize(landscape ? hSpec : wSpec);
 		// Doing this here seems the only way to be sure of dimensions.
-		setKeyboard(new KeyboardModel(getContext(), lastKeys, landscape,
-				maxPx, undoEnabled, redoEnabled));
+		setKeyboard(new KeyboardModel(getContext(), lastKeys, arrowMode,
+				landscape, maxPx, undoEnabled, redoEnabled));
 		super.onMeasure(wSpec, hSpec);
 	}
 

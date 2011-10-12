@@ -805,6 +805,9 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
     int n = params->n;
     game_state *state = snew(game_state);
     int a, b;
+#ifdef ANDROID
+	android_keys("", ANDROID_NO_ARROWS);
+#endif
 
     state->params = *params;
     state->w = state->h = COORDLIMIT(n);

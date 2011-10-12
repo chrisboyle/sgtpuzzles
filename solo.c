@@ -4109,7 +4109,7 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
     }
     keys[cr] = '\b';
     keys[cr+1] = '\0';
-    android_keys(keys);
+    android_keys(keys, ANDROID_ARROWS);
 #endif
 
     precompute_sum_bits();

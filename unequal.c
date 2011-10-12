@@ -1321,7 +1321,7 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
     keys[order] = '\b';
     keys[order+1] = 'M';
     keys[order+2] = '\0';
-    android_keys(keys);
+    android_keys(keys, ANDROID_ARROWS);
 #endif
     return state;
 }

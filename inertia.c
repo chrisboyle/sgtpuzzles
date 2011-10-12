@@ -630,6 +630,9 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
     int w = params->w, h = params->h, wh = w*h;
     int i;
     game_state *state = snew(game_state);
+#ifdef ANDROID
+    android_keys("", ANDROID_ARROWS_DIAGONALS);
+#endif
 
     state->p = *params;		       /* structure copy */
 

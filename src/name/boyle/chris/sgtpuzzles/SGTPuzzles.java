@@ -71,8 +71,7 @@ public class SGTPuzzles extends Activity
 	static final int CFG_SETTINGS = 0, CFG_SEED = 1, CFG_DESC = 2,
 		LEFT_BUTTON = 0x0200, MIDDLE_BUTTON = 0x201, RIGHT_BUTTON = 0x202,
 		LEFT_DRAG = 0x203, //MIDDLE_DRAG = 0x204, RIGHT_DRAG = 0x205,
-		LEFT_RELEASE = 0x206, CURSOR_UP = 0x209, CURSOR_DOWN = 0x20a,
-		CURSOR_LEFT = 0x20b, CURSOR_RIGHT = 0x20c, MOD_CTRL = 0x1000,
+		LEFT_RELEASE = 0x206, MOD_CTRL = 0x1000,
 		MOD_SHFT = 0x2000, MOD_NUM_KEYPAD = 0x4000, ALIGN_VCENTRE = 0x100,
 		ALIGN_HCENTRE = 0x001, ALIGN_HRIGHT = 0x002, TEXT_MONO = 0x10,
 		C_STRING = 0, C_CHOICES = 1, C_BOOLEAN = 2;
@@ -458,7 +457,7 @@ public class SGTPuzzles extends Activity
 			customVisible = false;
 			setStatusBarVisibility(false);
 		}
-		setKeys("");
+		setKeys("", 0);
 		if( typeMenu != null ) for( Integer i : gameTypes.keySet() ) typeMenu.removeItem(i);
 		gameTypes.clear();
 		gameRunning = true;
@@ -546,7 +545,7 @@ public class SGTPuzzles extends Activity
 			mainLayout.addView(keyboard, lp);
 		}
 		keyboard.setKeys( (c.hardKeyboardHidden == Configuration.HARDKEYBOARDHIDDEN_NO)
-				? maybeUndoRedo : lastKeys);
+				? maybeUndoRedo : lastKeys, lastArrowMode);
 		prevLandscape = landscape;
 		mainLayout.requestLayout();
 	}
@@ -771,8 +770,10 @@ public class SGTPuzzles extends Activity
 		savingState.append(new String(buffer));
 	}
 
-	void setKeys(String keys)
+	int lastArrowMode = 0;
+	void setKeys(String keys, int arrowMode)
 	{
+		lastArrowMode = arrowMode;
 		if( keys == null ) return;
 		lastKeys = keys + maybeUndoRedo;
 		runOnUiThread(new Runnable(){public void run(){

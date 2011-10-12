@@ -1212,7 +1212,7 @@ static int check_completion(game_state *state, int mark_errors)
 static game_state *new_game(midend *me, game_params *params, char *desc)
 {
 #ifdef ANDROID
-    android_keys("\b");
+    android_keys("\b", ANDROID_ARROWS);
 #endif
     game_state *state = NULL;
 

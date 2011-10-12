@@ -33,6 +33,8 @@ public class GameView extends View
 	double startX, startY, maxDistSq;
 	static final int DRAG = SGTPuzzles.LEFT_DRAG - SGTPuzzles.LEFT_BUTTON,  // not bit fields, but there's a pattern
 			RELEASE = SGTPuzzles.LEFT_RELEASE - SGTPuzzles.LEFT_BUTTON;
+	static final int CURSOR_UP = 0x209, CURSOR_DOWN = 0x20a,
+			CURSOR_LEFT = 0x20b, CURSOR_RIGHT = 0x20c, MOD_NUM_KEYPAD = 0x4000;
 	static final String TAG = "GameView";
 	int keysHandled = 0;  // debug
 
@@ -109,10 +111,10 @@ public class GameView extends View
 	{
 		int key = 0, repeat = event.getRepeatCount();
 		switch( keyCode ) {
-		case KeyEvent.KEYCODE_DPAD_UP:    key = SGTPuzzles.CURSOR_UP;    break;
-		case KeyEvent.KEYCODE_DPAD_DOWN:  key = SGTPuzzles.CURSOR_DOWN;  break;
-		case KeyEvent.KEYCODE_DPAD_LEFT:  key = SGTPuzzles.CURSOR_LEFT;  break;
-		case KeyEvent.KEYCODE_DPAD_RIGHT: key = SGTPuzzles.CURSOR_RIGHT; break;
+		case KeyEvent.KEYCODE_DPAD_UP:    key = CURSOR_UP;    break;
+		case KeyEvent.KEYCODE_DPAD_DOWN:  key = CURSOR_DOWN;  break;
+		case KeyEvent.KEYCODE_DPAD_LEFT:  key = CURSOR_LEFT;  break;
+		case KeyEvent.KEYCODE_DPAD_RIGHT: key = CURSOR_RIGHT; break;
 		// dpad center auto-repeats on at least Tattoo, Hero
 		case KeyEvent.KEYCODE_DPAD_CENTER:
 			if (repeat > 0) return false;
