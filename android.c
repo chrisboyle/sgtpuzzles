@@ -485,8 +485,13 @@ jstring JNICALL htmlHelpTopic(JNIEnv *env, jobject _obj)
 
 void android_completed()
 {
+	android_toast(_("COMPLETED!"));
+}
+
+void android_toast(const char *msg)
+{
 	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
-	jstring js = (*env)->NewStringUTF(env, _("COMPLETED!"));
+	jstring js = (*env)->NewStringUTF(env, msg);
 	if( js == NULL ) return;
 	(*env)->CallVoidMethod(env, obj, messageBox, NULL, js, 0);
 }

@@ -961,6 +961,17 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
 
         if (move_needed) {
 	    char buf[80];
+#ifdef ANDROID
+	    /* TODO enable this when we have a settings screen to disable it */
+	    /*if (x2-x1+1 == 1) {
+		sprintf(buf, "%d", y2-y1+1);
+	    } else if(y2-y1+1 == 1) {
+		sprintf(buf, "%d", x2-x1+1);
+	    } else {
+		sprintf(buf, "%dx%d", x2-x1+1, y2-y1+1);
+	    }
+	    android_toast(buf);*/
+#endif
 	    sprintf(buf, "%c%d,%d,%d,%d",
 		    (char)(ui->state == GRID_FULL ? 'F' :
 		           ui->state == GRID_EMPTY ? 'E' : 'U'),
