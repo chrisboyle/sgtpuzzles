@@ -189,57 +189,68 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 					key.codes = new int[] { arrow };
 					//key.icon = context.getResources().getDrawable(
 					//		R.drawable.sym_keyboard_delete);
-					key.edgeFlags = 0;  // TODO EDGE_TOP etc
+					int maybeTop  = (!columnMajor && majors <= 3) ? EDGE_TOP : 0;
+					int maybeLeft = ( columnMajor && majors <= 3) ? EDGE_LEFT : 0;
 					switch (arrow) {
 					case GameView.CURSOR_UP:
 						key.x = arrowsRightEdge  - 2*keyPlusPad;
 						key.y = arrowsBottomEdge - 3*keyPlusPad;
 						key.label = "up";
+						key.edgeFlags = maybeTop;
 						break;
 					case GameView.CURSOR_DOWN:
 						key.x = arrowsRightEdge  - 2*keyPlusPad;
 						key.y = arrowsBottomEdge -   keyPlusPad;
 						key.label = "dn";
+						key.edgeFlags = EDGE_BOTTOM;
 						break;
 					case GameView.CURSOR_LEFT:
 						key.x = arrowsRightEdge  - 3*keyPlusPad;
 						key.y = arrowsBottomEdge - 2*keyPlusPad;
 						key.label = "le";
+						key.edgeFlags = maybeLeft;
 						break;
 					case GameView.CURSOR_RIGHT:
 						key.x = arrowsRightEdge  -   keyPlusPad;
 						key.y = arrowsBottomEdge - 2*keyPlusPad;
 						key.label = "rt";
+						key.edgeFlags = EDGE_RIGHT;
 						break;
 					case '\n':
 						key.x = arrowsRightEdge  - 2*keyPlusPad;
 						key.y = arrowsBottomEdge - 2*keyPlusPad;
 						key.label = "ok";
+						key.edgeFlags = 0;
 						break;
 					case ' ': // right click
 						key.x = arrowsRightEdge  -   keyPlusPad;
 						key.y = arrowsBottomEdge - 3*keyPlusPad;
 						key.label = "al";
+						key.edgeFlags = maybeTop | EDGE_RIGHT;
 						break;
 					case GameView.MOD_NUM_KEYPAD | '7':
 						key.x = arrowsRightEdge  - 3*keyPlusPad;
 						key.y = arrowsBottomEdge - 3*keyPlusPad;
 						key.label = "\\";
+						key.edgeFlags = maybeLeft;
 						break;
 					case GameView.MOD_NUM_KEYPAD | '1':
 						key.x = arrowsRightEdge  - 3*keyPlusPad;
 						key.y = arrowsBottomEdge -   keyPlusPad;
 						key.label = "/";
+						key.edgeFlags = EDGE_BOTTOM | maybeLeft;
 						break;
 					case GameView.MOD_NUM_KEYPAD | '9':
 						key.x = arrowsRightEdge  -   keyPlusPad;
 						key.y = arrowsBottomEdge - 3*keyPlusPad;
 						key.label = "/";
+						key.edgeFlags = maybeTop | EDGE_RIGHT;
 						break;
 					case GameView.MOD_NUM_KEYPAD | '3':
 						key.x = arrowsRightEdge  -   keyPlusPad;
 						key.y = arrowsBottomEdge -   keyPlusPad;
 						key.label = "\\";
+						key.edgeFlags = EDGE_BOTTOM | EDGE_RIGHT;
 						break;
 					default:
 						Log.wtf(TAG, "unknown key in keyboard: "+arrow);
