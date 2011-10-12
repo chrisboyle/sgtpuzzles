@@ -187,69 +187,77 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 					key.repeatable = true;
 					key.enabled = true;
 					key.codes = new int[] { arrow };
-					//key.icon = context.getResources().getDrawable(
-					//		R.drawable.sym_keyboard_delete);
 					int maybeTop  = (!columnMajor && majors <= 3) ? EDGE_TOP : 0;
 					int maybeLeft = ( columnMajor && majors <= 3) ? EDGE_LEFT : 0;
 					switch (arrow) {
 					case GameView.CURSOR_UP:
 						key.x = arrowsRightEdge  - 2*keyPlusPad;
 						key.y = arrowsBottomEdge - 3*keyPlusPad;
-						key.label = "up";
+						key.icon = context.getResources().getDrawable(
+								R.drawable.arrow_n);
 						key.edgeFlags = maybeTop;
 						break;
 					case GameView.CURSOR_DOWN:
 						key.x = arrowsRightEdge  - 2*keyPlusPad;
 						key.y = arrowsBottomEdge -   keyPlusPad;
-						key.label = "dn";
+						key.icon = context.getResources().getDrawable(
+								R.drawable.arrow_s);
 						key.edgeFlags = EDGE_BOTTOM;
 						break;
 					case GameView.CURSOR_LEFT:
 						key.x = arrowsRightEdge  - 3*keyPlusPad;
 						key.y = arrowsBottomEdge - 2*keyPlusPad;
-						key.label = "le";
+						key.icon = context.getResources().getDrawable(
+								R.drawable.arrow_w);
 						key.edgeFlags = maybeLeft;
 						break;
 					case GameView.CURSOR_RIGHT:
 						key.x = arrowsRightEdge  -   keyPlusPad;
 						key.y = arrowsBottomEdge - 2*keyPlusPad;
-						key.label = "rt";
+						key.icon = context.getResources().getDrawable(
+								R.drawable.arrow_e);
 						key.edgeFlags = EDGE_RIGHT;
 						break;
 					case '\n':
 						key.x = arrowsRightEdge  - 2*keyPlusPad;
 						key.y = arrowsBottomEdge - 2*keyPlusPad;
-						key.label = "ok";
+						key.icon = context.getResources().getDrawable(
+								R.drawable.mouse_left);
 						key.edgeFlags = 0;
 						break;
 					case ' ': // right click
 						key.x = arrowsRightEdge  -   keyPlusPad;
 						key.y = arrowsBottomEdge - 3*keyPlusPad;
-						key.label = "al";
+						key.icon = context.getResources().getDrawable(
+								R.drawable.mouse_right);
 						key.edgeFlags = maybeTop | EDGE_RIGHT;
 						break;
 					case GameView.MOD_NUM_KEYPAD | '7':
 						key.x = arrowsRightEdge  - 3*keyPlusPad;
 						key.y = arrowsBottomEdge - 3*keyPlusPad;
-						key.label = "\\";
+						key.icon = context.getResources().getDrawable(
+								R.drawable.arrow_nw);
 						key.edgeFlags = maybeLeft;
 						break;
 					case GameView.MOD_NUM_KEYPAD | '1':
 						key.x = arrowsRightEdge  - 3*keyPlusPad;
 						key.y = arrowsBottomEdge -   keyPlusPad;
-						key.label = "/";
+						key.icon = context.getResources().getDrawable(
+								R.drawable.arrow_sw);
 						key.edgeFlags = EDGE_BOTTOM | maybeLeft;
 						break;
 					case GameView.MOD_NUM_KEYPAD | '9':
 						key.x = arrowsRightEdge  -   keyPlusPad;
 						key.y = arrowsBottomEdge - 3*keyPlusPad;
-						key.label = "/";
+						key.icon = context.getResources().getDrawable(
+								R.drawable.arrow_ne);
 						key.edgeFlags = maybeTop | EDGE_RIGHT;
 						break;
 					case GameView.MOD_NUM_KEYPAD | '3':
 						key.x = arrowsRightEdge  -   keyPlusPad;
 						key.y = arrowsBottomEdge -   keyPlusPad;
-						key.label = "\\";
+						key.icon = context.getResources().getDrawable(
+								R.drawable.arrow_se);
 						key.edgeFlags = EDGE_BOTTOM | EDGE_RIGHT;
 						break;
 					default:

@@ -465,7 +465,7 @@ public class SGTPuzzles extends Activity
 			customVisible = false;
 			setStatusBarVisibility(false);
 		}
-		setKeys("", 0);
+		setKeys("", 1);
 		if( typeMenu != null ) for( Integer i : gameTypes.keySet() ) typeMenu.removeItem(i);
 		gameTypes.clear();
 		gameRunning = true;
