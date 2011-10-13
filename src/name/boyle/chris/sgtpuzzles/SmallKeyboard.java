@@ -86,7 +86,9 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 					- (minorsPerMajor * keyPlusPad)) / 2);
 			int minorPx = minorStartPx;
 			int majorPx = 0;
-			if (majors < 3 && arrowMode > 0) majorPx = (3 - majors) * keyPlusPad;
+			int arrowRows = (arrowMode == 2) ? 3 : 2;
+			int arrowMajors = columnMajor ? 3 : arrowRows;
+			if (majors < 3 && arrowMode > 0) majorPx = (arrowMajors - majors) * keyPlusPad;
 			int minor = 0;
 			for (int i = 0; i < characters.length(); i++) {
 				char c = characters.charAt(i);
@@ -178,6 +180,11 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 				}
 				final int arrowsRightEdge = columnMajor ? mTotalWidth : maxPx,
 						arrowsBottomEdge = columnMajor ? maxPx : mTotalHeight;
+				int maybeTop  = (!columnMajor && majors <= arrowRows) ? EDGE_TOP : 0;
+				int maybeLeft = ( columnMajor && majors <= arrowRows) ? EDGE_LEFT : 0;
+				int leftRightRow = (arrowMode == 2) ? 2 : 1;
+				int bottomIf2Row = (arrowMode == 2) ? 0 : EDGE_BOTTOM;
+				int maybeTopIf2Row = (arrowMode == 2) ? 0 : maybeTop;
 				for (int arrow : arrows) {
 					final DKey key = new DKey(row);
 					mKeys.add(key);
@@ -187,12 +194,6 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 					key.repeatable = true;
 					key.enabled = true;
 					key.codes = new int[] { arrow };
-					int arrowRows = (arrowMode == 2) ? 3 : 2;
-					int maybeTop  = (!columnMajor && majors <= arrowRows) ? EDGE_TOP : 0;
-					int maybeLeft = ( columnMajor && majors <= arrowRows) ? EDGE_LEFT : 0;
-					int leftRightRow = (arrowMode == 2) ? 2 : 1;
-					int bottomIf2Row = (arrowMode == 2) ? 0 : EDGE_BOTTOM;
-					int maybeTopIf2Row = (arrowMode == 2) ? 0 : maybeTop;
 					switch (arrow) {
 					case GameView.CURSOR_UP:
 						key.x = arrowsRightEdge  - 2*keyPlusPad;
