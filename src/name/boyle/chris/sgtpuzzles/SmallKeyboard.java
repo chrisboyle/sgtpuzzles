@@ -187,12 +187,16 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 					key.repeatable = true;
 					key.enabled = true;
 					key.codes = new int[] { arrow };
-					int maybeTop  = (!columnMajor && majors <= 3) ? EDGE_TOP : 0;
-					int maybeLeft = ( columnMajor && majors <= 3) ? EDGE_LEFT : 0;
+					int arrowRows = (arrowMode == 2) ? 3 : 2;
+					int maybeTop  = (!columnMajor && majors <= arrowRows) ? EDGE_TOP : 0;
+					int maybeLeft = ( columnMajor && majors <= arrowRows) ? EDGE_LEFT : 0;
+					int leftRightRow = (arrowMode == 2) ? 2 : 1;
+					int bottomIf2Row = (arrowMode == 2) ? 0 : EDGE_BOTTOM;
+					int maybeTopIf2Row = (arrowMode == 2) ? 0 : maybeTop;
 					switch (arrow) {
 					case GameView.CURSOR_UP:
 						key.x = arrowsRightEdge  - 2*keyPlusPad;
-						key.y = arrowsBottomEdge - 3*keyPlusPad;
+						key.y = arrowsBottomEdge - arrowRows*keyPlusPad;
 						key.icon = context.getResources().getDrawable(
 								R.drawable.arrow_n);
 						key.edgeFlags = maybeTop;
@@ -206,28 +210,28 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 						break;
 					case GameView.CURSOR_LEFT:
 						key.x = arrowsRightEdge  - 3*keyPlusPad;
-						key.y = arrowsBottomEdge - 2*keyPlusPad;
+						key.y = arrowsBottomEdge - leftRightRow*keyPlusPad;
 						key.icon = context.getResources().getDrawable(
 								R.drawable.arrow_w);
-						key.edgeFlags = maybeLeft;
+						key.edgeFlags = bottomIf2Row | maybeLeft;
 						break;
 					case GameView.CURSOR_RIGHT:
 						key.x = arrowsRightEdge  -   keyPlusPad;
-						key.y = arrowsBottomEdge - 2*keyPlusPad;
+						key.y = arrowsBottomEdge - leftRightRow*keyPlusPad;
 						key.icon = context.getResources().getDrawable(
 								R.drawable.arrow_e);
-						key.edgeFlags = EDGE_RIGHT;
+						key.edgeFlags = bottomIf2Row | EDGE_RIGHT;
 						break;
 					case '\n':
-						key.x = arrowsRightEdge  - 2*keyPlusPad;
+						key.x = arrowsRightEdge  - ((arrowMode==2)?2:3)*keyPlusPad;
 						key.y = arrowsBottomEdge - 2*keyPlusPad;
 						key.icon = context.getResources().getDrawable(
 								R.drawable.mouse_left);
-						key.edgeFlags = 0;
+						key.edgeFlags = maybeTopIf2Row;
 						break;
 					case ' ': // right click
 						key.x = arrowsRightEdge  -   keyPlusPad;
-						key.y = arrowsBottomEdge - 3*keyPlusPad;
+						key.y = arrowsBottomEdge - arrowRows*keyPlusPad;
 						key.icon = context.getResources().getDrawable(
 								R.drawable.mouse_right);
 						key.edgeFlags = maybeTop | EDGE_RIGHT;
