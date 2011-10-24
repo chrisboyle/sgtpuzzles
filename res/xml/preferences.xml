@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android" >
+
+	<PreferenceCategory android:title="@string/gameChooser" android:key="gameChooser">
+		<ListPreference android:title="@string/chooserStyle"
+			android:key="chooserStyle"
+			android:entryValues="@array/chooserStyles"
+			android:entries="@array/chooserStyleDescs"
+			android:defaultValue="list" />
+	</PreferenceCategory>
+
+	<PreferenceCategory android:title="@string/allGames">
+		<CheckBoxPreference android:title="@string/fullscreen"
+			android:summary="@string/fullscreenSummary"
+			android:key="fullscreen"
+			android:defaultValue="false" />
+		<ListPreference android:title="@string/arrowKeys"
+			android:key="arrowKeys"
+			android:entryValues="@array/arrowKeyModes"
+			android:entries="@array/arrowKeyModeDescs"
+			android:defaultValue="auto" />
+	</PreferenceCategory>
+
+	<PreferenceCategory android:title="@string/name_inertia">
+		<CheckBoxPreference android:title="@string/inertiaForceArrows"
+			android:key="inertiaForceArrows"
+			android:summary="@string/inertiaForceArrowsSummary"
+			android:defaultValue="true" />
+	</PreferenceCategory>
+
+	<!--PreferenceCategory android:title="@string/name_pattern">
+		<CheckBoxPreference android:title="@string/patternShowLengths"
+			android:key="patternToastLengths"
+			android:summary="@string/patternShowLengthsSummary"
+			android:defaultValue="false" />
+	</PreferenceCategory-->
+
+</PreferenceScreen>

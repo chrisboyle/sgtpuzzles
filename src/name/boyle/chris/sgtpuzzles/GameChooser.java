@@ -1,6 +1,7 @@
 package name.boyle.chris.sgtpuzzles;
 
-import java.lang.reflect.Method;
+import name.boyle.chris.sgtpuzzles.compat.ActionBarCompat;
+import name.boyle.chris.sgtpuzzles.compat.PrefsSaver;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -12,6 +13,7 @@ import android.content.res.Configuration;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
+import android.preference.PreferenceManager;
 import android.util.DisplayMetrics;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -23,24 +25,40 @@ import android.widget.TextView;
 
 public class GameChooser extends Activity
 {
+	static final String CHOOSER_STYLE_KEY = "chooserStyle";
+
 	/* This really ought to have been a GridView, but...
 	 * http://stackoverflow.com/q/7545915/6540  */
 	TableLayout table;
 
-	SharedPreferences prefs;
+	SharedPreferences prefs, state;
 	boolean useGrid;
 	String[] games;
 	View[] views;
 	boolean hasActionBar = false;
 	Menu menu;
 	boolean isTablet;
+	PrefsSaver prefsSaver;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState)
 	{
 		super.onCreate(savedInstanceState);
 		setTitle(R.string.chooser_title);
-		prefs = getSharedPreferences("state", MODE_PRIVATE);
+		prefs = PreferenceManager.getDefaultSharedPreferences(this);
+		state = getSharedPreferences(SGTPuzzles.STATE_PREFS_NAME, MODE_PRIVATE);
+		prefsSaver = PrefsSaver.get(this);
+
+		String oldCS = state.getString(CHOOSER_STYLE_KEY, null);
+		if (oldCS != null) {  // migrate to somewhere more sensible
+			SharedPreferences.Editor ed = prefs.edit();
+			ed.putString(CHOOSER_STYLE_KEY, oldCS);
+			prefsSaver.save(ed);
+			ed = state.edit();
+			ed.remove(CHOOSER_STYLE_KEY);
+			prefsSaver.save(ed);
+		}
+
 		DisplayMetrics dm = getResources().getDisplayMetrics();
 		int screenWidthDIP = (int)Math.round(((double)dm.widthPixels) / dm.density);
 		int screenHeightDIP = (int)Math.round(((double)dm.heightPixels) / dm.density);
@@ -49,20 +67,16 @@ public class GameChooser extends Activity
 			// Grid is just going to look silly here
 			useGrid = false;
 		} else {
-			useGrid = prefs.getString("chooserStyle","list").equals("grid");
+			String s = prefs.getString(CHOOSER_STYLE_KEY,"list");
+			useGrid = s.equals("grid");
 		}
 		games = getResources().getStringArray(R.array.games);
 		views = new View[games.length];
 		setContentView(R.layout.chooser);
 		table = (TableLayout) findViewById(R.id.table);
-		try {
-			Method m = Activity.class.getMethod("getActionBar");
-			if (m != null && m.invoke(this) != null) {
-				hasActionBar = true;
-			}
-		} catch (Throwable t) {}
+		hasActionBar = ActionBarCompat.get(this) != null;
 		rebuildViews();
-		if( ! prefs.contains("savedGame") || prefs.getString("savedGame","").length() <= 0 ) {
+		if( ! state.contains("savedGame") || state.getString("savedGame","").length() <= 0 ) {
 			// first run
 			new AlertDialog.Builder(this)
 					.setMessage(R.string.welcome)
@@ -188,8 +202,8 @@ public class GameChooser extends Activity
 		updateStyleToggleVisibility();
 		rebuildViews();
 		SharedPreferences.Editor ed = prefs.edit();
-		ed.putString("chooserStyle", useGrid ? "grid" : "list");
-		ed.commit();
+		ed.putString(CHOOSER_STYLE_KEY, useGrid ? "grid" : "list");
+		prefsSaver.save(ed);
 		return true;
 	}
 }

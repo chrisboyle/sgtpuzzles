@@ -91,7 +91,24 @@ Revision: %s"</string>
     <string name="About">About</string>
     <string name="Undo">Undo</string>
     <string name="Redo">Redo</string>
+    <string name="Settings">Settings</string>
     <string name="Solve">Solve</string>
+    <!--  Settings -->
+    <string name="gameChooser">Game chooser</string>
+    <string name="chooserStyle">Game chooser style</string>
+    <string name="chooserStyleList">List with details</string>
+    <string name="chooserStyleGrid">Grid (icons only)</string>
+    <string name="allGames">All games</string>
+    <string name="arrowKeys">Arrow keys</string>
+    <string name="arrowKeysAlways">Always</string>
+    <string name="arrowKeysAuto">When no trackball/D-pad</string>
+    <string name="arrowKeysNever">Never</string>
+    <string name="fullscreen">Full screen</string>
+    <string name="fullscreenSummary">Hide notifications (fails on Ice Cream Sandwich)</string>
+    <string name="inertiaForceArrows">Always show arrows</string>
+    <string name="inertiaForceArrowsSummary">This game has diagonal arrow keys</string>
+    <string name="patternShowLengths">Show drag lengths</string>
+    <string name="patternShowLengthsSummary">Show number of squares selected</string>
     <!-- Names default to their program names with the first letter uppercased -->
     <string name="name_blackbox">Black Box</string>
     <string name="name_bridges">Bridges</string>

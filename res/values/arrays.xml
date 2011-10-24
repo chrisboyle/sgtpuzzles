@@ -1,5 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+	<array name="arrowKeyModes">
+		<item>always</item>
+		<item>auto</item>
+		<item>never</item>
+	</array>
+	<array name="arrowKeyModeDescs">
+		<item>@string/arrowKeysAlways</item>
+		<item>@string/arrowKeysAuto</item>
+		<item>@string/arrowKeysNever</item>
+	</array>
+	<array name="chooserStyles">
+		<item>list</item>
+		<item>grid</item>
+	</array>
+	<array name="chooserStyleDescs">
+		<item>@string/chooserStyleList</item>
+		<item>@string/chooserStyleGrid</item>
+	</array>
 	<array name="games">
 		<item>blackbox</item>
 		<item>bridges</item>

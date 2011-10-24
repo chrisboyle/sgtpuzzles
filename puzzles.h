@@ -559,7 +559,7 @@ extern const game thegame;
 extern void android_completed();
 extern int android_cancelled();
 extern void android_keys(const char *keys, int arrowMode);
-extern void android_toast(const char *msg);
+extern void android_toast(const char *msg, int fromPattern);
 #define ANDROID_NO_ARROWS        0
 #define ANDROID_ARROWS           1
 #define ANDROID_ARROWS_DIAGONALS 2

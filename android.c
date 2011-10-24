@@ -485,15 +485,15 @@ jstring JNICALL htmlHelpTopic(JNIEnv *env, jobject _obj)
 
 void android_completed()
 {
-	android_toast(_("COMPLETED!"));
+	android_toast(_("COMPLETED!"), 0);
 }
 
-void android_toast(const char *msg)
+void android_toast(const char *msg, int fromPattern)
 {
 	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
 	jstring js = (*env)->NewStringUTF(env, msg);
 	if( js == NULL ) return;
-	(*env)->CallVoidMethod(env, obj, messageBox, NULL, js, 0);
+	(*env)->CallVoidMethod(env, obj, messageBox, NULL, js, 0, fromPattern);
 }
 
 inline int android_cancelled()
@@ -641,7 +641,7 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
 	fillRect       = (*env)->GetMethodID(env, vcls, "fillRect", "(IIIII)V");
 	gameStarted    = (*env)->GetMethodID(env, cls,  "gameStarted", "(Ljava/lang/String;ZZZ[F)V");
 	getText        = (*env)->GetMethodID(env, cls,  "gettext", "(Ljava/lang/String;)Ljava/lang/String;");
-	messageBox     = (*env)->GetMethodID(env, cls,  "messageBox", "(Ljava/lang/String;Ljava/lang/String;I)V");
+	messageBox     = (*env)->GetMethodID(env, cls,  "messageBox", "(Ljava/lang/String;Ljava/lang/String;IZ)V");
 	nativeCrashed  = (*env)->GetMethodID(env, cls,  "nativeCrashed", "()V");
 	postInvalidate = (*env)->GetMethodID(env, vcls, "postInvalidate", "()V");
 	requestResize  = (*env)->GetMethodID(env, cls,  "requestResize", "(II)V");

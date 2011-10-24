@@ -7,11 +7,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
-import java.lang.reflect.Method;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.StringTokenizer;
+
+import name.boyle.chris.sgtpuzzles.compat.ActionBarCompat;
+import name.boyle.chris.sgtpuzzles.compat.PrefsSaver;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -23,6 +25,7 @@ import android.content.DialogInterface;
 import android.content.DialogInterface.OnCancelListener;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
 import android.content.res.Configuration;
 import android.graphics.Color;
 import android.graphics.Path;
@@ -32,6 +35,7 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
+import android.preference.PreferenceManager;
 import android.text.InputType;
 import android.util.DisplayMetrics;
 import android.util.Log;
@@ -40,6 +44,8 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.SubMenu;
 import android.view.View;
+import android.view.Window;
+import android.view.WindowManager;
 import android.webkit.WebChromeClient;
 import android.webkit.WebView;
 import android.widget.ArrayAdapter;
@@ -53,9 +59,11 @@ import android.widget.TableRow;
 import android.widget.TextView;
 import android.widget.Toast;
 
-public class SGTPuzzles extends Activity
+public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeListener
 {
 	static final String TAG = "SGTPuzzles";
+	static final String STATE_PREFS_NAME = "state";
+	static final String ARROW_KEYS_KEY = "arrowKeys";
 	ProgressDialog progress;
 	TextView statusBar;
 	SmallKeyboard keyboard;
@@ -67,7 +75,7 @@ public class SGTPuzzles extends Activity
 	boolean gameRunning = false;
 	boolean solveEnabled = false, customVisible = false, fakeCrash = false,
 			undoEnabled = false, redoEnabled = false;
-	SharedPreferences prefs;
+	SharedPreferences prefs, state;
 	static final int CFG_SETTINGS = 0, CFG_SEED = 1, CFG_DESC = 2,
 		LEFT_BUTTON = 0x0200, MIDDLE_BUTTON = 0x201, RIGHT_BUTTON = 0x202,
 		LEFT_DRAG = 0x203, //MIDDLE_DRAG = 0x204, RIGHT_DRAG = 0x205,
@@ -92,8 +100,9 @@ public class SGTPuzzles extends Activity
 	boolean configIsCustom = false;
 	String[] games;
 	Menu menu;
-	Object actionBar = null;
+	ActionBarCompat actionBarCompat = null;
 	String maybeUndoRedo = "ur";
+	PrefsSaver prefsSaver;
 
 	enum MsgType { INIT, TIMER, DONE, ABORT };
 	Handler handler = new Handler() {
@@ -108,10 +117,11 @@ public class SGTPuzzles extends Activity
 					resizeEvent(gameView.w, gameView.h);
 					resizeOnDone = false;
 				}
-				// TODO: set ActionBar icon to the one for this puzzle?
-				/*if( msg.obj != null ) {
-					getResources().getIdentifier((String)msg.obj, "drawable", getPackageName());
-				}*/
+				// set ActionBar icon to the one for this puzzle
+				if( msg.obj != null && actionBarCompat != null ) {
+					actionBarCompat.setIcon(getResources().getIdentifier(
+							(String)msg.obj, "drawable", getPackageName()));
+				}
 				dismissProgress();
 				if( menu != null ) onPrepareOptionsMenu(menu);
 				save();
@@ -121,7 +131,7 @@ public class SGTPuzzles extends Activity
 				dismissProgress();
 				startChooser();
 				if (msg.obj != null) {
-					messageBox(getString(R.string.Error), (String)msg.obj, 1);
+					messageBox(getString(R.string.Error), (String)msg.obj, 1, false);
 				} else {
 					finish();
 				}
@@ -174,10 +184,10 @@ public class SGTPuzzles extends Activity
 	{
 		String s = saveToString();
 		if (s == null || s.length() == 0) return;
-		SharedPreferences.Editor ed = prefs.edit();
+		SharedPreferences.Editor ed = state.edit();
 		ed.remove("engineName");
 		ed.putString("savedGame", s);
-		ed.commit();
+		prefsSaver.save(ed);
 	}
 
 	void gameViewResized()
@@ -202,28 +212,24 @@ public class SGTPuzzles extends Activity
 				crashMeHarder();  // see you in nativeCrashed()
 			}
 		});
+
 		super.onCreate(savedInstanceState);
-		prefs = getSharedPreferences("state", MODE_PRIVATE);
+		prefs = PreferenceManager.getDefaultSharedPreferences(this);
+		prefs.registerOnSharedPreferenceChangeListener(this);
+		state = getSharedPreferences(STATE_PREFS_NAME, MODE_PRIVATE);
+		prefsSaver = PrefsSaver.get(this);
+
 		games = getResources().getStringArray(R.array.games);
 		gameTypes = new LinkedHashMap<Integer,String>();
+		setFullscreen();  // must precede setContentView
 		setContentView(R.layout.main);
 		mainLayout = (RelativeLayout)findViewById(R.id.mainLayout);
 		statusBar = (TextView)findViewById(R.id.statusBar);
 		gameView = (GameView)findViewById(R.id.game);
 		keyboard = (SmallKeyboard)findViewById(R.id.keyboard);
+		actionBarCompat = ActionBarCompat.get(this);
 		setDefaultKeyMode(DEFAULT_KEYS_SHORTCUT);
 		gameView.requestFocus();
-		try {
-			Method m = Activity.class.getMethod("getActionBar");
-			if (m != null && (actionBar = m.invoke(this)) != null) {
-				// TODO: need images for undo/redo in menu for this
-				//maybeUndoRedo = "";
-				Class.forName("android.app.ActionBar")
-						.getMethod("setDisplayShowHomeEnabled",
-								new Class<?>[] {Boolean.TYPE})
-						.invoke(actionBar, false);
-			}
-		} catch (Throwable t) {}
 		onNewIntent(getIntent());
 	}
 
@@ -247,10 +253,10 @@ public class SGTPuzzles extends Activity
 					return;
 				}
 			}
-			// TODO!
+			// TODO! Other URLs, including game states...
 		}
-		if( prefs.contains("savedGame") && prefs.getString("savedGame","").length() > 0 ) {
-			startGame(-1, prefs.getString("savedGame",""));
+		if( state.contains("savedGame") && state.getString("savedGame","").length() > 0 ) {
+			startGame(-1, state.getString("savedGame",""));
 		} else {
 			startChooser();
 			finish();
@@ -277,12 +283,12 @@ public class SGTPuzzles extends Activity
 		MenuItem item;
 		item = menu.findItem(R.id.solve);
 		item.setEnabled(solveEnabled);
-		if (actionBar != null) item.setVisible(solveEnabled);
+		if (actionBarCompat != null) item.setVisible(solveEnabled);
 		menu.findItem(R.id.undo).setEnabled(undoEnabled);
 		menu.findItem(R.id.redo).setEnabled(redoEnabled);
 		item = menu.findItem(R.id.type);
 		item.setEnabled(! gameTypes.isEmpty() || customVisible);
-		if (actionBar != null) item.setVisible(item.isEnabled());
+		if (actionBarCompat != null) item.setVisible(item.isEnabled());
 		typeMenu = item.getSubMenu();
 		for( Integer i : gameTypes.keySet() ) {
 			if( menu.findItem(i) == null ) typeMenu.add(R.id.typeGroup, i, Menu.NONE, gameTypes.get(i) );
@@ -326,6 +332,9 @@ public class SGTPuzzles extends Activity
 		switch(item.getItemId()) {
 		case R.id.other:
 			startChooser();
+			break;
+		case R.id.settings:
+			startActivity(new Intent(this, PrefsActivity.class));
 			break;
 		case R.id.newgame:
 			if(! gameRunning || progress != null) break;
@@ -381,7 +390,7 @@ public class SGTPuzzles extends Activity
 		String title = String.format(getString(R.string.About_X), getTitle());
 		String msg = String.format(getString(R.string.From_Simon_Tatham_s_Portable_Puzzle_Collection_Revision_X),
 				getVersion(this));
-		messageBox(title, msg, 0);
+		messageBox(title, msg, 0, false);
 	}
 
 	static String getEmailSubject(Context c, boolean isCrash)
@@ -453,7 +462,7 @@ public class SGTPuzzles extends Activity
 	{
 		Log.d(TAG, "startGame: "+which+", "+((savedGame==null)?"null":(savedGame.length()+" bytes")));
 		if (progress != null) {
-			Log.wtf(TAG, "startGame while already starting!");
+			Log.e(TAG, "startGame while already starting!");
 			return;
 		}
 		showProgress( (savedGame == null) ? R.string.starting : R.string.resuming );
@@ -474,7 +483,7 @@ public class SGTPuzzles extends Activity
 			init(gameView, which, savedGame);
 			if( ! gameRunning ) return;  // stopNative or abort was called
 			helpTopic = htmlHelpTopic();
-			handler.obtainMessage(MsgType.DONE.ordinal()/*, games[which]*/).sendToTarget();
+			handler.obtainMessage(MsgType.DONE.ordinal(), htmlHelpTopic()).sendToTarget();
 		}}).start();
 	}
 
@@ -496,6 +505,18 @@ public class SGTPuzzles extends Activity
 		if( gameRunning ) handler.removeMessages(MsgType.TIMER.ordinal());
 		save();
 		super.onPause();
+	}
+
+	boolean restartOnResume = false;
+
+	@Override
+	protected void onResume()
+	{
+		super.onResume();
+		if (restartOnResume) {
+			startActivity(new Intent(this, RestartActivity.class));
+			finish();
+		}
 	}
 
 	@Override
@@ -574,31 +595,25 @@ public class SGTPuzzles extends Activity
 	{
 		setKeyboardVisibility(newConfig);
 		super.onConfigurationChanged(newConfig);
-		if (actionBar != null) {
+		if (actionBarCompat != null) {
 			// ActionBar's capacity (width) has probably changed, so work around
 			// http://code.google.com/p/android/issues/detail?id=20493
 			// (invalidateOptionsMenu() does not help here)
-			try {
-				Method setShowAsAction = MenuItem.class.getMethod("setShowAsAction", Integer.TYPE);
+			if (actionBarCompat != null) {
 				// Just cautiously fix the common case: if >850dip then force
 				// show everything, else let the platform decide
 				DisplayMetrics dm = getResources().getDisplayMetrics();
 				int screenWidthDIP = (int)Math.round(((double)dm.widthPixels) / dm.density);
 				boolean reallyWide = screenWidthDIP > 850;
-				int state =  // reallyWide ? 2 : 1, but let's be formally correct:
-						MenuItem.class.getField(reallyWide
-								? "SHOW_AS_ACTION_ALWAYS"
-								: "SHOW_AS_ACTION_IF_ROOM").getInt(null);
-				setShowAsAction.invoke(menu.findItem(R.id.help), state);
-				state = state |  // 4
-						MenuItem.class.getField("SHOW_AS_ACTION_WITH_TEXT").getInt(null);
-				setShowAsAction.invoke(menu.findItem(R.id.game), state);
-				setShowAsAction.invoke(menu.findItem(R.id.type), state);
-				setShowAsAction.invoke(menu.findItem(R.id.other), state);
-				setShowAsAction.invoke(menu.findItem(R.id.solve), state);
-			} catch (Exception e) {
-				Log.d(TAG, "** menu hackery FAIL ** ");
-				e.printStackTrace();
+				int state =  reallyWide ? ActionBarCompat.SHOW_AS_ACTION_ALWAYS
+						: ActionBarCompat.SHOW_AS_ACTION_IF_ROOM;
+				actionBarCompat.menuItemSetShowAsAction(menu.findItem(R.id.settings), state);
+				actionBarCompat.menuItemSetShowAsAction(menu.findItem(R.id.solve), state);
+				actionBarCompat.menuItemSetShowAsAction(menu.findItem(R.id.help), state);
+				state |= ActionBarCompat.SHOW_AS_ACTION_WITH_TEXT;
+				actionBarCompat.menuItemSetShowAsAction(menu.findItem(R.id.game), state);
+				actionBarCompat.menuItemSetShowAsAction(menu.findItem(R.id.type), state);
+				actionBarCompat.menuItemSetShowAsAction(menu.findItem(R.id.other), state);
 			}
 		}
 	}
@@ -621,8 +636,12 @@ public class SGTPuzzles extends Activity
 
 	void addTypeItem(int id, String label) { gameTypes.put(id, label); }
 
-	void messageBox(final String title, final String msg, final int flag)
+	void messageBox(final String title, final String msg, final int flag, boolean fromPattern)
 	{
+		if (fromPattern &&
+				! prefs.getBoolean("patternShowLengths", false)) {
+			return;
+		}
 		runOnUiThread(new Runnable(){public void run(){
 			dismissProgress();
 			if( title == null )
@@ -789,6 +808,42 @@ public class SGTPuzzles extends Activity
 		}});
 	}
 
+	@Override
+	public void onSharedPreferenceChanged(SharedPreferences p, String key)
+	{
+		if (key.equals("arrowKeys") || key.equals("inertiaForceArrows")) {
+			setKeyboardVisibility(getResources().getConfiguration());
+		} else if (key.equals("fullscreen")) {
+			//setFullscreen();
+			// Unfortunately we can't hide/show the title bar at will
+			restartOnResume = true;
+		}
+	}
+
+	void setFullscreen() {
+		boolean hasActionBar = ActionBarCompat.earlyHasActionBar();
+		if (prefs.getBoolean("fullscreen", false)) {
+			if (hasActionBar) {
+				handler.post(new Runnable(){ public void run() {
+					actionBarCompat.lightsOut(gameView, true);
+				}});
+			} else {
+				requestWindowFeature(Window.FEATURE_NO_TITLE);
+				getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+				getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FORCE_NOT_FULLSCREEN);
+			}
+		} else {
+			if (hasActionBar) {
+				handler.post(new Runnable(){ public void run() {
+					actionBarCompat.lightsOut(gameView, false);
+				}});
+			} else {
+				getWindow().addFlags(WindowManager.LayoutParams.FLAG_FORCE_NOT_FULLSCREEN);
+				getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+			}
+		}
+	}
+
 	String gettext(String s)
 	{
 		if (s.startsWith(":")) {
@@ -822,9 +877,10 @@ public class SGTPuzzles extends Activity
 			keyboard.setUndoRedoEnabled(false, canUndo);
 			keyboard.setUndoRedoEnabled(true, canRedo);
 		}
-		if (actionBar != null && menu != null) {
-			menu.findItem(R.id.undo).setEnabled(undoEnabled);
-			menu.findItem(R.id.redo).setEnabled(redoEnabled);
+		if (actionBarCompat != null && menu != null) {
+			MenuItem mi;
+			mi = menu.findItem(R.id.undo); if (mi != null) mi.setEnabled(undoEnabled);
+			mi = menu.findItem(R.id.redo); if (mi != null) mi.setEnabled(redoEnabled);
 		}
 	}
 
@@ -833,9 +889,9 @@ public class SGTPuzzles extends Activity
 	 * from this function the process will soon exit. */
 	void nativeCrashed()
 	{
-		if (prefs != null) {
+		if (state != null) {
 			try {
-				Log.d(TAG, "saved game was:\n"+prefs.getString("savedGame",""));
+				Log.d(TAG, "saved game was:\n"+state.getString("savedGame",""));
 			} catch(Exception e) {
 				Log.d(TAG, "couldn't report saved game because: "+e.toString());
 				e.printStackTrace();

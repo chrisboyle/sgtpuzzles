@@ -108,9 +108,10 @@ public class CrashHandler extends Activity
 		startActivity(intent);
 	}
 
+	/** Forgets any current games. Does not touch other preferences. */
 	void clearState()
 	{
-		SharedPreferences.Editor ed = getSharedPreferences("state", MODE_PRIVATE).edit();
+		SharedPreferences.Editor ed = getSharedPreferences(SGTPuzzles.STATE_PREFS_NAME, MODE_PRIVATE).edit();
 		ed.clear();
 		ed.commit();
 	}

@@ -4,11 +4,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.graphics.Color;
 import android.inputmethodservice.Keyboard;
 import android.inputmethodservice.KeyboardView;
+import android.preference.PreferenceManager;
 import android.util.AttributeSet;
 import android.util.Log;
 
@@ -18,7 +20,10 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 	static final int KEYSP = 44;  // dip
 	SGTPuzzles parent;
 	boolean undoEnabled = false, redoEnabled = false;
-	int arrowMode = 1;
+	public static final int NO_ARROWS = 0,  // untangle
+			ARROWS_LEFT_RIGHT_CLICK = 1,  // unless phone has a d-pad (most games)
+			ARROWS_DIAGONALS = 2;  // Inertia
+	int arrowMode = ARROWS_LEFT_RIGHT_CLICK;
 
 	/** Key which can be disabled */
 	class DKey extends Keyboard.Key
@@ -36,10 +41,6 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 		List<Key> mKeys;
 		int undoKey = -1, redoKey = -1;
 		boolean initDone = false;
-		/** arrowMode:
-		 *  0 = no arrows (untangle)
-		 *  1 = arrows + left/right click, unless phone has a d-pad (most games)
-		 *  2 = arrows + left click + diagonals, always (inertia) */
 		public KeyboardModel(Context context, CharSequence characters,
 				int arrowMode, boolean columnMajor, int maxPx,
 				boolean undoEnabled, boolean redoEnabled)
@@ -49,7 +50,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 			mDefaultWidth = mDefaultHeight =
 					context.getResources().getDimensionPixelSize(R.dimen.keySize);
 			mKeys = new ArrayList<Key>();
-			
+
 			Row row = new Row(this);
 			row.defaultHeight = mDefaultHeight;
 			row.defaultWidth = mDefaultWidth;
@@ -58,8 +59,22 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 			final int keyPlusPad = columnMajor
 					? mDefaultHeight + mDefaultVerticalGap
 					: mDefaultWidth + mDefaultHorizontalGap;
-			int maxPxMinusArrows = maxPx;
-			if (arrowMode == 1) {
+
+			String arrowPref;
+			boolean inertiaForceArrows;
+			if (isInEditMode()) {
+				arrowPref = "always";
+				inertiaForceArrows = true;
+			} else {
+				SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getContext());
+				arrowPref = prefs.getString("arrowKeys", "auto");
+				inertiaForceArrows = prefs.getBoolean("inertiaForceArrows", true);
+			}
+			if (arrowMode == ARROWS_DIAGONALS && inertiaForceArrows) {
+				// Do nothing: allow arrows.
+			} else if (arrowPref.equals("never")) {
+				arrowMode = NO_ARROWS;
+			} else if (arrowPref.equals("auto")) {
 				Configuration c = getResources().getConfiguration();
 				boolean visibleDPad = (c.navigation == Configuration.NAVIGATION_DPAD
 						|| c.navigation == Configuration.NAVIGATION_TRACKBALL);
@@ -70,10 +85,12 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 					}
 				} catch (Exception e) {}
 				if (visibleDPad) {
-					arrowMode = 0;
+					arrowMode = NO_ARROWS;
 				}
-			}
-			if (arrowMode > 0) {
+			} // else we have "always": allow arrows.
+
+			int maxPxMinusArrows = maxPx;
+			if (arrowMode > NO_ARROWS) {
 				maxPxMinusArrows -= 3 * keyPlusPad;
 			}
 			// How many rows do we need?
@@ -86,9 +103,9 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 					- (minorsPerMajor * keyPlusPad)) / 2);
 			int minorPx = minorStartPx;
 			int majorPx = 0;
-			int arrowRows = (arrowMode == 2) ? 3 : 2;
+			int arrowRows = (arrowMode == ARROWS_DIAGONALS) ? 3 : 2;
 			int arrowMajors = columnMajor ? 3 : arrowRows;
-			if (majors < 3 && arrowMode > 0) majorPx = (arrowMajors - majors) * keyPlusPad;
+			if (majors < 3 && arrowMode > NO_ARROWS) majorPx = (arrowMajors - majors) * keyPlusPad;
 			int minor = 0;
 			for (int i = 0; i < characters.length(); i++) {
 				char c = characters.charAt(i);
@@ -112,7 +129,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 					key.edgeFlags |= columnMajor ? EDGE_RIGHT  : EDGE_BOTTOM;
 				if (minor == 0)
 					key.edgeFlags |= columnMajor ? EDGE_TOP    : EDGE_LEFT;
-				if (minor == minorsPerMajor - 1 && arrowMode == 0)
+				if (minor == minorsPerMajor - 1 && arrowMode == NO_ARROWS)
 					key.edgeFlags |= columnMajor ? EDGE_BOTTOM : EDGE_RIGHT;
 				key.x = columnMajor ? majorPx : minorPx;
 				key.y = columnMajor ? minorPx : majorPx;
@@ -156,9 +173,9 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 			} else {
 				mTotalHeight = majorPx + mDefaultHeight;
 			}
-			if (arrowMode > 0) {
+			if (arrowMode > NO_ARROWS) {
 				int[] arrows;
-				if (arrowMode == 2) {
+				if (arrowMode == ARROWS_DIAGONALS) {
 					arrows = new int[] {
 							GameView.CURSOR_UP,
 							GameView.CURSOR_DOWN,
@@ -182,9 +199,9 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 						arrowsBottomEdge = columnMajor ? maxPx : mTotalHeight;
 				int maybeTop  = (!columnMajor && majors <= arrowRows) ? EDGE_TOP : 0;
 				int maybeLeft = ( columnMajor && majors <= arrowRows) ? EDGE_LEFT : 0;
-				int leftRightRow = (arrowMode == 2) ? 2 : 1;
-				int bottomIf2Row = (arrowMode == 2) ? 0 : EDGE_BOTTOM;
-				int maybeTopIf2Row = (arrowMode == 2) ? 0 : maybeTop;
+				int leftRightRow = (arrowMode == ARROWS_DIAGONALS) ? 2 : 1;
+				int bottomIf2Row = (arrowMode == ARROWS_DIAGONALS) ? 0 : EDGE_BOTTOM;
+				int maybeTopIf2Row = (arrowMode == ARROWS_DIAGONALS) ? 0 : maybeTop;
 				for (int arrow : arrows) {
 					final DKey key = new DKey(row);
 					mKeys.add(key);
@@ -224,7 +241,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 						key.edgeFlags = bottomIf2Row | EDGE_RIGHT;
 						break;
 					case '\n':
-						key.x = arrowsRightEdge  - ((arrowMode==2)?2:3)*keyPlusPad;
+						key.x = arrowsRightEdge  - ((arrowMode==ARROWS_DIAGONALS)?2:3)*keyPlusPad;
 						key.y = arrowsBottomEdge - 2*keyPlusPad;
 						key.icon = context.getResources().getDrawable(
 								R.drawable.mouse_left);
@@ -266,7 +283,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 						key.edgeFlags = EDGE_BOTTOM | EDGE_RIGHT;
 						break;
 					default:
-						Log.wtf(TAG, "unknown key in keyboard: "+arrow);
+						Log.e(TAG, "unknown key in keyboard: "+arrow);
 						break;
 					}
 				}
@@ -342,6 +359,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 		return new Resources(r.getAssets(), r.getDisplayMetrics(), r.getConfiguration()) {
 			public boolean getBoolean(int id) {
 				// provide com.android.internal.R.bool.config_swipeDisambiguation
+				if (id == 0x111001e) return false; // 4.0 - but "Unsupported Service: audio" from KeyboardView()?!?
 				if (id == 0x1110015) return false; // 3.2
 				if (id == 0x1110018) return false; // 3.1
 				if (id == 0x1110019) return false; // 3.0

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<!--
+		See http://code.google.com/android/backup/signup.html
+		to get your own key to put here. The key is not checked
+		in (res/values-v8/api_keys.xml is git-ignored) because
+		of the terms of that agreement.
+	-->
+	<string name="backup_api_key"></string>
+</resources>

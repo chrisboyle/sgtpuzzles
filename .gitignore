@@ -64,3 +64,4 @@ puzzles.txt
 doc
 po/puzzles-doc.pot
 version2.def
+res/values-v8/api_keys.xml

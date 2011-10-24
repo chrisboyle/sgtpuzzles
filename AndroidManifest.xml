@@ -3,7 +3,7 @@
       package="name.boyle.chris.sgtpuzzles"
       android:installLocation="auto"
       android:versionCode="62" android:versionName="9306.5">
-    <uses-sdk android:minSdkVersion="3" android:targetSdkVersion="13"/>
+    <uses-sdk android:minSdkVersion="3" android:targetSdkVersion="14" />
     <!-- You must be able to navigate and enter numbers, so: { 5-way and keyboard } or touchscreen -->
     <uses-configuration android:reqFiveWayNav="true" android:reqKeyboardType="qwerty" />
     <uses-configuration android:reqFiveWayNav="true" android:reqKeyboardType="twelvekey" />
@@ -15,7 +15,9 @@
           android:anyDensity="true" />
     <!-- For saved games -->
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-    <application android:icon="@drawable/icon" android:label="@string/app_name" android:debuggable="true">
+    <application android:icon="@drawable/icon" android:label="@string/app_name"
+        android:backupAgent=".BackupAgent"
+        android:debuggable="true">
         <activity android:name=".SGTPuzzles" android:windowSoftInputMode="adjustPan"
                   android:label="@string/app_name" android:stateNotNeeded="true" android:launchMode="singleTask" android:configChanges="keyboard|keyboardHidden|orientation|screenSize">
             <intent-filter>
@@ -39,5 +41,10 @@
         </activity>
         <activity android:name=".CrashHandler" android:process=":CrashHandler" android:stateNotNeeded="true" android:exported="false" android:configChanges="keyboard|keyboardHidden|orientation">
         </activity>
+        <activity android:name=".PrefsActivity"
+                  android:label="@string/Settings" android:launchMode="singleTask" android:configChanges="keyboard|keyboardHidden|orientation">
+        </activity>
+        <activity android:name=".RestartActivity" android:stateNotNeeded="true" android:exported="false" />
+        <meta-data android:name="com.google.android.backup.api_key" android:value="@string/backup_api_key" />
     </application>
 </manifest>
