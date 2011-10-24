@@ -44,8 +44,6 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.SubMenu;
 import android.view.View;
-import android.view.Window;
-import android.view.WindowManager;
 import android.webkit.WebChromeClient;
 import android.webkit.WebView;
 import android.widget.ArrayAdapter;
@@ -64,6 +62,10 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 	static final String TAG = "SGTPuzzles";
 	static final String STATE_PREFS_NAME = "state";
 	static final String ARROW_KEYS_KEY = "arrowKeys";
+	static final String INERTIA_FORCE_ARROWS_KEY = "inertiaForceArrows";
+	static final String FULLSCREEN_KEY = "fullscreen";
+	static final String PATTERN_SHOW_LENGTHS_KEY = "patternShowLengths";
+
 	ProgressDialog progress;
 	TextView statusBar;
 	SmallKeyboard keyboard;
@@ -213,15 +215,15 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 			}
 		});
 
-		super.onCreate(savedInstanceState);
 		prefs = PreferenceManager.getDefaultSharedPreferences(this);
 		prefs.registerOnSharedPreferenceChangeListener(this);
 		state = getSharedPreferences(STATE_PREFS_NAME, MODE_PRIVATE);
 		prefsSaver = PrefsSaver.get(this);
-
 		games = getResources().getStringArray(R.array.games);
 		gameTypes = new LinkedHashMap<Integer,String>();
-		setFullscreen();  // must precede setContentView
+
+		applyFullscreen(false);  // must precede super.onCreate and setContentView
+		super.onCreate(savedInstanceState);
 		setContentView(R.layout.main);
 		mainLayout = (RelativeLayout)findViewById(R.id.mainLayout);
 		statusBar = (TextView)findViewById(R.id.statusBar);
@@ -639,7 +641,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 	void messageBox(final String title, final String msg, final int flag, boolean fromPattern)
 	{
 		if (fromPattern &&
-				! prefs.getBoolean("patternShowLengths", false)) {
+				! prefs.getBoolean(PATTERN_SHOW_LENGTHS_KEY, false)) {
 			return;
 		}
 		runOnUiThread(new Runnable(){public void run(){
@@ -813,34 +815,33 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 	{
 		if (key.equals("arrowKeys") || key.equals("inertiaForceArrows")) {
 			setKeyboardVisibility(getResources().getConfiguration());
-		} else if (key.equals("fullscreen")) {
-			//setFullscreen();
-			// Unfortunately we can't hide/show the title bar at will
-			restartOnResume = true;
+		} else if (key.equals(FULLSCREEN_KEY)) {
+			applyFullscreen(/*alreadyStarted = */ true);
 		}
 	}
 
-	void setFullscreen() {
+	void applyFullscreen(boolean alreadyStarted) {
 		boolean hasActionBar = ActionBarCompat.earlyHasActionBar();
-		if (prefs.getBoolean("fullscreen", false)) {
+		if (prefs.getBoolean(FULLSCREEN_KEY, false)) {
 			if (hasActionBar) {
 				handler.post(new Runnable(){ public void run() {
 					actionBarCompat.lightsOut(gameView, true);
 				}});
+			} else if (alreadyStarted) {
+				// This is the only way to change the theme
+				restartOnResume = true;
 			} else {
-				requestWindowFeature(Window.FEATURE_NO_TITLE);
-				getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
-				getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FORCE_NOT_FULLSCREEN);
+				setTheme(android.R.style.Theme_NoTitleBar_Fullscreen);
 			}
 		} else {
 			if (hasActionBar) {
 				handler.post(new Runnable(){ public void run() {
 					actionBarCompat.lightsOut(gameView, false);
 				}});
-			} else {
-				getWindow().addFlags(WindowManager.LayoutParams.FLAG_FORCE_NOT_FULLSCREEN);
-				getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
-			}
+			} else if (alreadyStarted) {
+				// This is the only way to change the theme
+				restartOnResume = true;
+			}  // else leave it as default non-fullscreen
 		}
 	}
 

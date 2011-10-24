@@ -67,8 +67,8 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 				inertiaForceArrows = true;
 			} else {
 				SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getContext());
-				arrowPref = prefs.getString("arrowKeys", "auto");
-				inertiaForceArrows = prefs.getBoolean("inertiaForceArrows", true);
+				arrowPref = prefs.getString(SGTPuzzles.ARROW_KEYS_KEY, "auto");
+				inertiaForceArrows = prefs.getBoolean(SGTPuzzles.INERTIA_FORCE_ARROWS_KEY, true);
 			}
 			if (arrowMode == ARROWS_DIAGONALS && inertiaForceArrows) {
 				// Do nothing: allow arrows.
