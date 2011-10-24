@@ -19,7 +19,9 @@
         android:backupAgent=".BackupAgent"
         android:debuggable="true">
         <activity android:name=".SGTPuzzles" android:windowSoftInputMode="adjustPan"
-                  android:label="@string/app_name" android:stateNotNeeded="true" android:launchMode="singleTask" android:configChanges="keyboard|keyboardHidden|orientation|screenSize">
+                  android:label="@string/app_name" android:stateNotNeeded="true"
+                  android:launchMode="singleTask"
+                  android:configChanges="keyboard|keyboardHidden|orientation|screenSize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -29,8 +31,9 @@
                 <data android:scheme="sgtpuzzles" />
             </intent-filter>
         </activity>
-        <activity android:name=".GameChooser"
-                  android:label="@string/chooser_title" android:stateNotNeeded="true" android:launchMode="singleTask" android:configChanges="keyboard|keyboardHidden|orientation">
+        <activity android:name=".GameChooser" android:launchMode="singleTask"
+                  android:label="@string/chooser_title" android:stateNotNeeded="true"
+                  android:configChanges="keyboard|keyboardHidden|orientation|screenSize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
             </intent-filter>
@@ -39,10 +42,13 @@
                 <data android:scheme="sgtpuzzles" />
             </intent-filter>
         </activity>
-        <activity android:name=".CrashHandler" android:process=":CrashHandler" android:stateNotNeeded="true" android:exported="false" android:configChanges="keyboard|keyboardHidden|orientation">
+        <activity android:name=".CrashHandler" android:process=":CrashHandler"
+                  android:stateNotNeeded="true" android:exported="false"
+                  android:configChanges="keyboard|keyboardHidden|orientation">
         </activity>
         <activity android:name=".PrefsActivity"
-                  android:label="@string/Settings" android:launchMode="singleTask" android:configChanges="keyboard|keyboardHidden|orientation">
+                  android:label="@string/Settings" android:launchMode="singleTask"
+                  android:configChanges="keyboard|keyboardHidden|orientation">
         </activity>
         <activity android:name=".RestartActivity" android:stateNotNeeded="true" android:exported="false" />
         <meta-data android:name="com.google.android.backup.api_key" android:value="@string/backup_api_key" />
