@@ -476,7 +476,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 			customVisible = false;
 			setStatusBarVisibility(false);
 		}
-		setKeys("", 1);
+		setKeys("", SmallKeyboard.NO_ARROWS);
 		if( typeMenu != null ) for( Integer i : gameTypes.keySet() ) typeMenu.removeItem(i);
 		gameTypes.clear();
 		gameRunning = true;
