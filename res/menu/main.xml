@@ -14,7 +14,7 @@
 	</group>
 </menu></item>
 <item android:title="@string/Other_game" android:id="@+id/other" android:alphabeticShortcut="o" android:icon="@android:drawable/ic_menu_gallery" android:showAsAction="ifRoom|withText"/>
-<item android:title="@string/Settings" android:id="@+id/settings" android:alphabeticShortcut="c" android:icon="@android:drawable/ic_menu_preferences" android:showAsAction="ifRoom"/>
+<item android:title="@string/Settings" android:id="@+id/settings" android:alphabeticShortcut="m" android:icon="@android:drawable/ic_menu_preferences" android:showAsAction="ifRoom"/>
 <item android:title="@string/Solve" android:id="@+id/solve" android:enabled="false" android:alphabeticShortcut="v" android:icon="@android:drawable/ic_menu_directions" android:showAsAction="ifRoom"/>
 <item android:title="@string/Undo" android:id="@+id/undo" android:alphabeticShortcut="u" android:icon="@drawable/ic_menu_undo" android:visible="false" android:showAsAction="always"/>
 <item android:title="@string/Redo" android:id="@+id/redo" android:alphabeticShortcut="r" android:icon="@drawable/ic_menu_redo" android:visible="false" android:showAsAction="always"/>

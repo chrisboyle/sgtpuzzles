@@ -37,13 +37,13 @@ public class GameView extends View
 			CURSOR_LEFT = 0x20b, CURSOR_RIGHT = 0x20c, MOD_NUM_KEYPAD = 0x4000;
 	static final String TAG = "GameView";
 	int keysHandled = 0;  // debug
+	static final char[] INTERESTING_CHARS = "0123456789abcdefghijklqrsux".toCharArray();
 
 	public GameView(Context context, AttributeSet attrs)
 	{
 		super(context, attrs);
 		if (! isInEditMode())
 			this.parent = (SGTPuzzles)context;
-		setFocusableInTouchMode(true);
 		bitmap = Bitmap.createBitmap(100, 100, Bitmap.Config.RGB_565);  // for safety
 		canvas = new Canvas(bitmap);
 		paint = new Paint();
@@ -60,6 +60,7 @@ public class GameView extends View
 		}
 	};
 
+	@Override
 	public boolean onTouchEvent(MotionEvent event)
 	{
 		if (! parent.gameRunning) return false;
@@ -107,6 +108,7 @@ public class GameView extends View
 		}
 	};
 
+	@Override
 	public boolean onKeyDown( int keyCode, KeyEvent event )
 	{
 		int key = 0, repeat = event.getRepeatCount();
@@ -133,7 +135,7 @@ public class GameView extends View
 		case KeyEvent.KEYCODE_DEL: key = '\b'; break;
 		}
 		// we probably don't want MOD_NUM_KEYPAD here (numbers are in a line on G1 at least)
-		if( key == 0 ) key = event.getMatch("0123456789abcdefghijklqrsux".toCharArray());
+		if( key == 0 ) key = event.getMatch(INTERESTING_CHARS);
 		if( key == 0 ) return super.onKeyDown(keyCode, event);  // handles Back etc.
 		if( event.isShiftPressed() ) key |= SGTPuzzles.MOD_SHFT;
 		if( event.isAltPressed() ) key |= SGTPuzzles.MOD_CTRL;
@@ -142,6 +144,7 @@ public class GameView extends View
 		return true;
 	}
 
+	@Override
 	public boolean onKeyUp( int keyCode, KeyEvent event )
 	{
 		if (keyCode != KeyEvent.KEYCODE_DPAD_CENTER || ! waitingSpace)
@@ -151,12 +154,14 @@ public class GameView extends View
 		return true;
 	}
 
+	@Override
 	protected void onDraw( Canvas c )
 	{
 		if( bitmap == null ) return;
 		c.drawBitmap(bitmap, 0, 0, null);
 	}
 
+	@Override
 	protected void onSizeChanged( int w, int h, int oldw, int oldh )
 	{
 		if( w <= 0 ) w = 1;
@@ -176,6 +181,7 @@ public class GameView extends View
 		}
 	}
 
+	@Override
 	public void setBackgroundColor( int colour )
 	{
 		super.setBackgroundColor(colour);

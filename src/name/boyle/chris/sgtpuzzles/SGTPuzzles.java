@@ -235,6 +235,22 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		onNewIntent(getIntent());
 	}
 
+	/** work around http://code.google.com/p/android/issues/detail?id=21181 */
+	@Override
+	public boolean onKeyDown(int keyCode, KeyEvent event) {
+		if (progress != null) return false;
+		if (gameView.onKeyDown(keyCode, event)) return true;
+		else return super.onKeyDown(keyCode, event);
+	}
+
+	/** work around http://code.google.com/p/android/issues/detail?id=21181 */
+	@Override
+	public boolean onKeyUp(int keyCode, KeyEvent event) {
+		if (progress != null) return false;
+		if (gameView.onKeyUp(keyCode, event)) return true;
+		else return super.onKeyUp(keyCode, event);
+	}
+
 	@Override
 	protected void onNewIntent(Intent intent)
 	{
@@ -816,7 +832,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		if (key.equals("arrowKeys") || key.equals("inertiaForceArrows")) {
 			setKeyboardVisibility(getResources().getConfiguration());
 		} else if (key.equals(FULLSCREEN_KEY)) {
-			applyFullscreen(/*alreadyStarted = */ true);
+			applyFullscreen(true);  // = already started
 		}
 	}
 
