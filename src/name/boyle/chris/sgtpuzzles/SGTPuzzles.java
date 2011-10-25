@@ -492,7 +492,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 			customVisible = false;
 			setStatusBarVisibility(false);
 		}
-		setKeys("", SmallKeyboard.NO_ARROWS);
+		setKeys("", SmallKeyboard.ARROWS_LEFT_RIGHT_CLICK);
 		if( typeMenu != null ) for( Integer i : gameTypes.keySet() ) typeMenu.removeItem(i);
 		gameTypes.clear();
 		gameRunning = true;
@@ -851,8 +851,11 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 			}
 		} else {
 			if (hasActionBar) {
+				final boolean fAlreadyStarted = alreadyStarted;
 				handler.post(new Runnable(){ public void run() {
 					actionBarCompat.lightsOut(gameView, false);
+					// This shouldn't be necessary but is on Galaxy Tab 10.1
+					if (fAlreadyStarted) restartOnResume = true;
 				}});
 			} else if (alreadyStarted) {
 				// This is the only way to change the theme

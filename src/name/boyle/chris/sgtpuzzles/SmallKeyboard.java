@@ -259,7 +259,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 						key.y = arrowsBottomEdge - 3*keyPlusPad;
 						key.icon = context.getResources().getDrawable(
 								R.drawable.arrow_nw);
-						key.edgeFlags = maybeLeft;
+						key.edgeFlags = maybeTop | maybeLeft;
 						break;
 					case GameView.MOD_NUM_KEYPAD | '1':
 						key.x = arrowsRightEdge  - 3*keyPlusPad;

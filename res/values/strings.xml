@@ -100,7 +100,7 @@ Revision: %s"</string>
     <string name="chooserStyleGrid">Grid (icons only)</string>
     <string name="allGames">All games</string>
     <string name="arrowKeys">Arrow keys</string>
-    <string name="arrowKeysAlways">Always</string>
+    <string name="arrowKeysAlways">Always, except Untangle</string>
     <string name="arrowKeysAuto">When no trackball/D-pad</string>
     <string name="arrowKeysNever">Never</string>
     <string name="fullscreen">Full screen</string>
