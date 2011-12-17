@@ -104,6 +104,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 	Menu menu;
 	ActionBarCompat actionBarCompat = null;
 	String maybeUndoRedo = "ur";
+	String maybeMenu = "";
 	PrefsSaver prefsSaver;
 
 	enum MsgType { INIT, TIMER, DONE, ABORT };
@@ -230,6 +231,14 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		gameView = (GameView)findViewById(R.id.game);
 		keyboard = (SmallKeyboard)findViewById(R.id.keyboard);
 		actionBarCompat = ActionBarCompat.get(this);
+		if (actionBarCompat != null) {
+			if (! actionBarCompat.hasMenuButton()) maybeMenu = "\f";
+			actionBarCompat.addOnMenuVisibilityListener(new ActionBarCompat.OnMenuVisibilityListener() {
+				@Override public void onMenuVisibilityChanged(boolean isVisible) {
+					maybeMenu = (actionBarCompat.hasMenuButton() || isVisible) ? "" : "\f";
+				}
+			});
+		}
 		setDefaultKeyMode(DEFAULT_KEYS_SHORTCUT);
 		gameView.requestFocus();
 		onNewIntent(getIntent());
@@ -556,6 +565,11 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 	void sendKey(int x, int y, int k)
 	{
 		if(! gameRunning || progress != null) return;
+		if (k == '\f') {
+			// menu button hack
+			openOptionsMenu();
+			return;
+		}
 		keyEvent(x, y, k);
 	}
 
@@ -592,7 +606,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 			mainLayout.addView(keyboard, lp);
 		}
 		keyboard.setKeys( (c.hardKeyboardHidden == Configuration.HARDKEYBOARDHIDDEN_NO)
-				? maybeUndoRedo : lastKeys, lastArrowMode);
+				? (maybeUndoRedo+maybeMenu) : lastKeys, lastArrowMode);
 		prevLandscape = landscape;
 		mainLayout.requestLayout();
 	}
@@ -820,7 +834,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 	{
 		lastArrowMode = arrowMode;
 		if( keys == null ) return;
-		lastKeys = keys + maybeUndoRedo;
+		lastKeys = keys + maybeUndoRedo + maybeMenu;
 		runOnUiThread(new Runnable(){public void run(){
 			setKeyboardVisibility(getResources().getConfiguration());
 		}});

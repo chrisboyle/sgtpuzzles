@@ -21,4 +21,7 @@ public class ActionBarICS extends ActionBarHoneycomb
 	public void setIcon(int resId) {
 		actionBar.setIcon(resId);
 	}
+
+	@Override
+	public boolean hasMenuButton() { return false; }
 }

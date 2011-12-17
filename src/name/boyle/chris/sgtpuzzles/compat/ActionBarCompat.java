@@ -22,6 +22,17 @@ public abstract class ActionBarCompat
 	public static final int
 			FEATURE_ACTION_BAR = 8;
 
+	public static interface OnMenuVisibilityListener
+	{
+		void onMenuVisibilityChanged(boolean isVisible);
+	}
+
+	public abstract void addOnMenuVisibilityListener(OnMenuVisibilityListener l);
+
+	public abstract boolean isShowing();
+
+	public boolean hasMenuButton() { return true; }
+
 	public static ActionBarCompat get(Activity a)
 	{
 		try {
