@@ -231,14 +231,6 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		gameView = (GameView)findViewById(R.id.game);
 		keyboard = (SmallKeyboard)findViewById(R.id.keyboard);
 		actionBarCompat = ActionBarCompat.get(this);
-		if (actionBarCompat != null) {
-			if (! actionBarCompat.hasMenuButton()) maybeMenu = "\f";
-			actionBarCompat.addOnMenuVisibilityListener(new ActionBarCompat.OnMenuVisibilityListener() {
-				@Override public void onMenuVisibilityChanged(boolean isVisible) {
-					maybeMenu = (actionBarCompat.hasMenuButton() || isVisible) ? "" : "\f";
-				}
-			});
-		}
 		setDefaultKeyMode(DEFAULT_KEYS_SHORTCUT);
 		gameView.requestFocus();
 		onNewIntent(getIntent());
@@ -296,9 +288,8 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		super.onCreateOptionsMenu(menu);
 		this.menu = menu;
 		getMenuInflater().inflate(R.menu.main, menu);
-		// TODO: need images for undo/redo in menu for this
-		//menu.findItem(R.id.undo).setVisible(hasActionBar);
-		//menu.findItem(R.id.redo).setVisible(hasActionBar);
+		menu.findItem(R.id.undo).setVisible(actionBarCompat != null);
+		menu.findItem(R.id.redo).setVisible(actionBarCompat != null);
 		return true;
 	}
 
@@ -306,13 +297,16 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 	public boolean onPrepareOptionsMenu(Menu menu)
 	{
 		super.onPrepareOptionsMenu(menu);
-		if( progress != null ) return false;  // not safe/useful until game is loaded
+		if( progress != null && (actionBarCompat == null || actionBarCompat.hasMenuButton()) ) return false;  // not safe/useful until game is loaded
 		MenuItem item;
 		item = menu.findItem(R.id.solve);
 		item.setEnabled(solveEnabled);
 		if (actionBarCompat != null) item.setVisible(solveEnabled);
-		menu.findItem(R.id.undo).setEnabled(undoEnabled);
-		menu.findItem(R.id.redo).setEnabled(redoEnabled);
+		MenuItem undoItem = menu.findItem(R.id.undo), redoItem = menu.findItem(R.id.redo);
+		undoItem.setEnabled(undoEnabled);
+		redoItem.setEnabled(redoEnabled);
+		undoItem.setIcon(undoEnabled ? R.drawable.sym_keyboard_undo : R.drawable.sym_keyboard_undo_disabled);
+		redoItem.setIcon(redoEnabled ? R.drawable.sym_keyboard_redo : R.drawable.sym_keyboard_redo_disabled);
 		item = menu.findItem(R.id.type);
 		item.setEnabled(! gameTypes.isEmpty() || customVisible);
 		if (actionBarCompat != null) item.setVisible(item.isEnabled());
@@ -500,6 +494,9 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 			changedState(false, false);
 			customVisible = false;
 			setStatusBarVisibility(false);
+		}
+		if (ActionBarCompat.earlyHasActionBar()) {
+			maybeUndoRedo = "";
 		}
 		setKeys("", SmallKeyboard.ARROWS_LEFT_RIGHT_CLICK);
 		if( typeMenu != null ) for( Integer i : gameTypes.keySet() ) typeMenu.removeItem(i);
@@ -913,8 +910,16 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		}
 		if (actionBarCompat != null && menu != null) {
 			MenuItem mi;
-			mi = menu.findItem(R.id.undo); if (mi != null) mi.setEnabled(undoEnabled);
-			mi = menu.findItem(R.id.redo); if (mi != null) mi.setEnabled(redoEnabled);
+			mi = menu.findItem(R.id.undo);
+			if (mi != null) {
+				mi.setEnabled(undoEnabled);
+				mi.setIcon(undoEnabled ? R.drawable.sym_keyboard_undo : R.drawable.sym_keyboard_undo_disabled);
+			}
+			mi = menu.findItem(R.id.redo);
+			if (mi != null) {
+				mi.setEnabled(redoEnabled);
+				mi.setIcon(redoEnabled ? R.drawable.sym_keyboard_redo : R.drawable.sym_keyboard_redo_disabled);
+			}
 		}
 	}
 

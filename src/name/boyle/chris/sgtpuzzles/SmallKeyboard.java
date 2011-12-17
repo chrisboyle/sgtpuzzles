@@ -153,12 +153,12 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 						key.repeatable = true;
 						key.enabled = true;
 						break;
-					case '\f':
+					/*case '\f':
 						key.icon = context.getResources().getDrawable(
 								R.drawable.sym_keyboard_menu);
 						key.repeatable = false;
 						key.enabled = true;
-						break;
+						break;*/
 					default:
 						key.label = String.valueOf(c);
 						key.enabled = true;
