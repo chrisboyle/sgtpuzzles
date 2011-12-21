@@ -70,6 +70,11 @@ Revision: %s"</string>
     <string name="changing_type">Changing game type (complex games may take a minute)</string>
     <string name="background">Background</string>
     <string name="bg_unreliable_warn">Game generation may be abandoned on low memory</string>
+    <!-- "Completed" dialog -->
+    <string name="completedPrompt">Menu on completion</string>
+    <string name="completedPromptSummary">When a game is completed, show shortcuts to start another</string>
+    <string name="Change_type">Change type</string>
+    <string name="Back_to_game">Back to game</string>
     <!-- Menu -->
     <string name="Game">Game</string>
     <string name="Other_game">Other game</string>

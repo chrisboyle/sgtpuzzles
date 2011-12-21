@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="#cc000000"
+    android:gravity="bottom"
+    android:orientation="vertical" >
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:text="@string/COMPLETED"
+        android:textAppearance="?android:attr/textAppearanceLarge" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="120dip"
+        android:layout_margin="3dp"
+        android:orientation="horizontal"
+        android:paddingTop="0dp" >
+
+        <Button
+            android:id="@+id/newgame"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_margin="3dp"
+            android:layout_weight="1"
+            android:drawablePadding="2dp"
+            android:drawableTop="@android:drawable/ic_menu_add"
+            android:text="@string/New_game" />
+
+        <Button
+            android:id="@+id/type"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_margin="3dp"
+            android:layout_weight="1"
+            android:drawablePadding="2dp"
+            android:drawableTop="@android:drawable/ic_menu_edit"
+            android:text="@string/Change_type" />
+
+        <Button
+            android:id="@+id/other"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_margin="3dp"
+            android:layout_weight="1"
+            android:drawablePadding="2dp"
+            android:drawableTop="@android:drawable/ic_menu_gallery"
+            android:text="@string/Other_game" />
+
+        <Button
+            android:id="@+id/close"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_margin="3dp"
+            android:layout_weight="1"
+            android:drawablePadding="2dp"
+            android:drawableTop="@android:drawable/ic_menu_close_clear_cancel"
+            android:text="@string/Back_to_game" />
+    </LinearLayout>
+
+</LinearLayout>

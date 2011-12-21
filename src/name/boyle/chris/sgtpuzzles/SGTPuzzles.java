@@ -39,11 +39,14 @@ import android.preference.PreferenceManager;
 import android.text.InputType;
 import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.SubMenu;
 import android.view.View;
+import android.view.WindowManager;
+import android.view.View.OnClickListener;
 import android.webkit.WebChromeClient;
 import android.webkit.WebView;
 import android.widget.ArrayAdapter;
@@ -65,6 +68,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 	static final String INERTIA_FORCE_ARROWS_KEY = "inertiaForceArrows";
 	static final String FULLSCREEN_KEY = "fullscreen";
 	static final String PATTERN_SHOW_LENGTHS_KEY = "patternShowLengths";
+	static final String COMPLETED_PROMPT_KEY = "completedPrompt";
 
 	ProgressDialog progress;
 	TextView statusBar;
@@ -293,10 +297,12 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		return true;
 	}
 
+	Menu hackForSubmenus;
 	@Override
 	public boolean onPrepareOptionsMenu(Menu menu)
 	{
 		super.onPrepareOptionsMenu(menu);
+		hackForSubmenus = menu;
 		if( progress != null && (actionBarCompat == null || actionBarCompat.hasMenuButton()) ) return false;  // not safe/useful until game is loaded
 		MenuItem item;
 		item = menu.findItem(R.id.solve);
@@ -347,6 +353,17 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		startActivity(new Intent(this, GameChooser.class));
 	}
 
+	void startNewGame()
+	{
+		if(! gameRunning || progress != null) return;
+		showProgress( R.string.starting_new );
+		changedState(false, false);
+		(worker = new Thread("newGame") { public void run() {
+			keyEvent(0, 0, 'n');
+			handler.sendEmptyMessage(MsgType.DONE.ordinal());
+		}}).start();
+	}
+
 	@Override
 	public boolean onOptionsItemSelected(MenuItem item)
 	{
@@ -358,13 +375,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 			startActivity(new Intent(this, PrefsActivity.class));
 			break;
 		case R.id.newgame:
-			if(! gameRunning || progress != null) break;
-			showProgress( R.string.starting_new );
-			changedState(false, false);
-			(worker = new Thread("newGame") { public void run() {
-				keyEvent(0, 0, 'n');
-				handler.sendEmptyMessage(MsgType.DONE.ordinal());
-			}}).start();
+			startNewGame();
 			break;
 		case R.id.restart:  restartEvent(); break;
 		case R.id.undo:     sendKey(0, 0, 'u'); break;
@@ -690,6 +701,45 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		// I don't think we need to wait before returning here (and we can't)
 	}
 
+	void completed()
+	{
+		if (! prefs.getBoolean(COMPLETED_PROMPT_KEY, true)) {
+			Toast.makeText(SGTPuzzles.this, getString(R.string.COMPLETED), Toast.LENGTH_SHORT).show();
+			return;
+		}
+		final Dialog d = new Dialog(this, android.R.style.Theme_Panel);
+		WindowManager.LayoutParams lp = d.getWindow().getAttributes();
+		lp.gravity = Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL;
+		d.getWindow().setAttributes(lp);
+		d.setContentView(R.layout.completed);
+		d.setCanceledOnTouchOutside(true);
+		d.findViewById(R.id.newgame).setOnClickListener(new OnClickListener() {
+			@Override public void onClick(View v) {
+				d.dismiss();
+				startNewGame();
+			}
+		});
+		d.findViewById(R.id.type).setOnClickListener(new OnClickListener() {
+			@Override public void onClick(View v) {
+				d.dismiss();
+				if (hackForSubmenus == null) openOptionsMenu();
+				hackForSubmenus.performIdentifierAction(R.id.type, 0);
+			}
+		});
+		d.findViewById(R.id.other).setOnClickListener(new OnClickListener() {
+			@Override public void onClick(View v) {
+				d.dismiss();
+				startChooser();
+			}
+		});
+		d.findViewById(R.id.close).setOnClickListener(new OnClickListener() {
+			@Override public void onClick(View v) {
+				d.dismiss();
+			}
+		});
+		d.show();
+	}
+
 	void requestResize(int x, int y)
 	{
 		gameView.clear();
@@ -909,17 +959,21 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 			keyboard.setUndoRedoEnabled(true, canRedo);
 		}
 		if (actionBarCompat != null && menu != null) {
-			MenuItem mi;
-			mi = menu.findItem(R.id.undo);
-			if (mi != null) {
-				mi.setEnabled(undoEnabled);
-				mi.setIcon(undoEnabled ? R.drawable.sym_keyboard_undo : R.drawable.sym_keyboard_undo_disabled);
-			}
-			mi = menu.findItem(R.id.redo);
-			if (mi != null) {
-				mi.setEnabled(redoEnabled);
-				mi.setIcon(redoEnabled ? R.drawable.sym_keyboard_redo : R.drawable.sym_keyboard_redo_disabled);
-			}
+			runOnUiThread(new Runnable() {
+				@Override public void run() {
+					MenuItem mi;
+					mi = menu.findItem(R.id.undo);
+					if (mi != null) {
+						mi.setEnabled(undoEnabled);
+						mi.setIcon(undoEnabled ? R.drawable.sym_keyboard_undo : R.drawable.sym_keyboard_undo_disabled);
+					}
+					mi = menu.findItem(R.id.redo);
+					if (mi != null) {
+						mi.setEnabled(redoEnabled);
+						mi.setIcon(redoEnabled ? R.drawable.sym_keyboard_redo : R.drawable.sym_keyboard_redo_disabled);
+					}
+				}
+			});
 		}
 	}
 

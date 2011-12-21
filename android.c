@@ -87,7 +87,8 @@ static jmethodID
 	setMargins,
 	setStatus,
 	tickTypeItem,
-	unClip;
+	unClip,
+	completed;
 
 void get_random_seed(void **randseed, int *randseedsize)
 {
@@ -485,7 +486,8 @@ jstring JNICALL htmlHelpTopic(JNIEnv *env, jobject _obj)
 
 void android_completed()
 {
-	android_toast(_("COMPLETED!"), 0);
+	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
+	(*env)->CallVoidMethod(env, obj, completed);
 }
 
 void android_toast(const char *msg, int fromPattern)
@@ -652,6 +654,7 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
 	setStatus      = (*env)->GetMethodID(env, cls,  "setStatus", "(Ljava/lang/String;)V");
 	tickTypeItem   = (*env)->GetMethodID(env, cls,  "tickTypeItem", "(I)V");
 	unClip         = (*env)->GetMethodID(env, vcls, "unClip", "(II)V");
+	completed      = (*env)->GetMethodID(env, cls,  "completed", "()V");
 
 	JNINativeMethod methods[] = {
 		{ "keyEvent", "(III)V", keyEvent },

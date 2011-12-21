@@ -2,7 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
       package="name.boyle.chris.sgtpuzzles"
       android:installLocation="auto"
-      android:versionCode="66" android:versionName="9306.9">
+      android:versionCode="67" android:versionName="9306.10">
     <uses-sdk android:minSdkVersion="3" android:targetSdkVersion="14" />
     <!-- You must be able to navigate and enter numbers, so: { 5-way and keyboard } or touchscreen -->
     <uses-configuration android:reqFiveWayNav="true" android:reqKeyboardType="qwerty" />

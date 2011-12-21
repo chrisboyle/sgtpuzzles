@@ -10,6 +10,10 @@
 	</PreferenceCategory>
 
 	<PreferenceCategory android:title="@string/allGames">
+		<CheckBoxPreference android:title="@string/completedPrompt"
+			android:summary="@string/completedPromptSummary"
+			android:key="completedPrompt"
+			android:defaultValue="true" />
 		<CheckBoxPreference android:title="@string/fullscreen"
 			android:summary="@string/fullscreenSummary"
 			android:key="fullscreen"
