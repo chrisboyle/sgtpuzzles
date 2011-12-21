@@ -49,16 +49,6 @@
             android:drawablePadding="2dp"
             android:drawableTop="@android:drawable/ic_menu_gallery"
             android:text="@string/Other_game" />
-
-        <Button
-            android:id="@+id/close"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_margin="3dp"
-            android:layout_weight="1"
-            android:drawablePadding="2dp"
-            android:drawableTop="@android:drawable/ic_menu_close_clear_cancel"
-            android:text="@string/Back_to_game" />
     </LinearLayout>
 
 </LinearLayout>

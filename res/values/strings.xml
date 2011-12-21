@@ -74,7 +74,6 @@ Revision: %s"</string>
     <string name="completedPrompt">Menu on completion</string>
     <string name="completedPromptSummary">When a game is completed, show shortcuts to start another</string>
     <string name="Change_type">Change type</string>
-    <string name="Back_to_game">Back to game</string>
     <!-- Menu -->
     <string name="Game">Game</string>
     <string name="Other_game">Other game</string>

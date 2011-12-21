@@ -732,11 +732,6 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 				startChooser();
 			}
 		});
-		d.findViewById(R.id.close).setOnClickListener(new OnClickListener() {
-			@Override public void onClick(View v) {
-				d.dismiss();
-			}
-		});
 		d.show();
 	}
 
