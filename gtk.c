@@ -2698,6 +2698,16 @@ int main(int argc, char **argv)
 		char *realname = snewn(40 + strlen(savefile) +
 				       strlen(savesuffix), char);
 		sprintf(realname, "%s%d%s", savefile, i, savesuffix);
+
+                if (soln) {
+                    char *err = midend_solve(me);
+                    if (err) {
+                        fprintf(stderr, "%s: unable to show solution: %s\n",
+                                realname, err);
+                        return 1;
+                    }
+                }
+
 		ctx.fp = fopen(realname, "w");
 		if (!ctx.fp) {
 		    fprintf(stderr, "%s: open: %s\n", realname,
