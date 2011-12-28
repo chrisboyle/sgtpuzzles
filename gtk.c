@@ -2704,7 +2704,6 @@ int main(int argc, char **argv)
 			    strerror(errno));
 		    return 1;
 		}
-		sfree(realname);
                 ctx.error = 0;
 		midend_serialise(me, savefile_write, &ctx);
 		if (ctx.error) {
@@ -2717,6 +2716,7 @@ int main(int argc, char **argv)
 			    strerror(errno));
 		    return 1;
 		}
+		sfree(realname);
 	    }
 	    if (!doc && !savefile) {
 		id = midend_get_game_id(me);
