@@ -2705,6 +2705,7 @@ int main(int argc, char **argv)
 		    return 1;
 		}
 		sfree(realname);
+                ctx.error = 0;
 		midend_serialise(me, savefile_write, &ctx);
 		if (ctx.error) {
 		    fprintf(stderr, "%s: write: %s\n", realname,
