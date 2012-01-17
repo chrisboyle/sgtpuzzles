@@ -1505,11 +1505,11 @@ static int solve_island_stage3(struct island *is, int *didsth_r)
             if (maxb == 0) {
                 debug(("...adding NOLINE.\n"));
                 solve_join(is, i, -1, 0); /* we can't have any bridges here. */
-                didsth = 1;
             } else {
                 debug(("...setting maximum\n"));
                 solve_join(is, i, maxb, 1);
             }
+            didsth = 1;
         }
         map_update_possibles(is->state);
     }
