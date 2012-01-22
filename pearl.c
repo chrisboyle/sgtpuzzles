@@ -1,0 +1,2567 @@
+/*
+ * pearl.c: Nikoli's `Masyu' puzzle. 
+ */
+
+/*
+ * TODO:
+ *
+ *  - Keyboard-control cursor. (Would probably have to address both
+ *    square centres, for laying multiple edges at a time in a
+ *    drag-like style, and grid edges for marking particular line
+ *    segments as no-go.)
+ *
+ *  - Generation is still pretty slow, due to difficulty coming up in
+ *    the first place with a loop that makes a soluble puzzle even
+ *    with all possible clues filled in.
+ *     + A possible alternative strategy to further tuning of the
+ * 	 existing loop generator would be to throw the entire
+ * 	 mechanism out and instead write a different generator from
+ * 	 scratch which evolves the solution along with the puzzle:
+ * 	 place a few clues, nail down a bit of the loop, place another
+ * 	 clue, nail down some more, etc. However, I don't have a
+ * 	 detailed plan for any such mechanism, so it may be a pipe
+ * 	 dream.
+ */
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <assert.h>
+#include <ctype.h>
+#include <math.h>
+
+#include "puzzles.h"
+#include "grid.h"
+#include "loopgen.h"
+
+#define SWAP(i,j) do { int swaptmp = (i); (i) = (j); (j) = swaptmp; } while (0)
+
+#define NOCLUE 0
+#define CORNER 1
+#define STRAIGHT 2
+
+#define R 1
+#define U 2
+#define L 4
+#define D 8
+
+#define DX(d) ( ((d)==R) - ((d)==L) )
+#define DY(d) ( ((d)==D) - ((d)==U) )
+
+#define F(d) (((d << 2) | (d >> 2)) & 0xF)
+#define C(d) (((d << 3) | (d >> 1)) & 0xF)
+#define A(d) (((d << 1) | (d >> 3)) & 0xF)
+
+#define LR (L | R)
+#define RL (R | L)
+#define UD (U | D)
+#define DU (D | U)
+#define LU (L | U)
+#define UL (U | L)
+#define LD (L | D)
+#define DL (D | L)
+#define RU (R | U)
+#define UR (U | R)
+#define RD (R | D)
+#define DR (D | R)
+#define BLANK 0
+#define UNKNOWN 15
+
+#define bLR (1 << LR)
+#define bRL (1 << RL)
+#define bUD (1 << UD)
+#define bDU (1 << DU)
+#define bLU (1 << LU)
+#define bUL (1 << UL)
+#define bLD (1 << LD)
+#define bDL (1 << DL)
+#define bRU (1 << RU)
+#define bUR (1 << UR)
+#define bRD (1 << RD)
+#define bDR (1 << DR)
+#define bBLANK (1 << BLANK)
+
+enum {
+    COL_BACKGROUND, COL_HIGHLIGHT, COL_LOWLIGHT,
+    COL_BLACK, COL_WHITE,
+    COL_ERROR, COL_GRID, COL_FLASH,
+    COL_DRAGON, COL_DRAGOFF,
+    NCOLOURS
+};
+
+/* Macro ickery copied from slant.c */
+#define DIFFLIST(A) \
+    A(EASY,Easy,e) \
+    A(TRICKY,Tricky,t)
+#define ENUM(upper,title,lower) DIFF_ ## upper,
+#define TITLE(upper,title,lower) #title,
+#define ENCODE(upper,title,lower) #lower
+#define CONFIG(upper,title,lower) ":" #title
+enum { DIFFLIST(ENUM) DIFFCOUNT };
+static char const *const pearl_diffnames[] = { DIFFLIST(TITLE) "(count)" };
+static char const pearl_diffchars[] = DIFFLIST(ENCODE);
+#define DIFFCONFIG DIFFLIST(CONFIG)
+
+struct game_params {
+    int w, h;
+    int difficulty;
+    int nosolve;        /* XXX remove me! */
+};
+
+struct shared_state {
+    int w, h, sz;
+    char *clues;         /* size w*h */
+    int refcnt;
+};
+
+#define INGRID(state, gx, gy) ((gx) >= 0 && (gx) < (state)->shared->w && \
+                               (gy) >= 0 && (gy) < (state)->shared->h)
+struct game_state {
+    struct shared_state *shared;
+    char *lines;        /* size w*h: lines placed */
+    char *errors;       /* size w*h: errors detected */
+    char *marks;        /* size w*h: 'no line here' marks placed. */
+    int completed, used_solve;
+    int loop_length;    /* filled in by check_completion when complete. */
+};
+
+#define DEFAULT_PRESET 3
+
+static const struct game_params pearl_presets[] = {
+    {6, 6,      DIFF_EASY},
+    {6, 6,      DIFF_TRICKY},
+    {8, 8,      DIFF_EASY},
+    {8, 8,      DIFF_TRICKY},
+    {10, 10,    DIFF_EASY},
+    {10, 10,    DIFF_TRICKY},
+    {12, 8,     DIFF_EASY},
+    {12, 8,     DIFF_TRICKY},
+};
+
+static game_params *default_params(void)
+{
+    game_params *ret = snew(game_params);
+
+    *ret = pearl_presets[DEFAULT_PRESET];
+    ret->nosolve = FALSE;
+
+    return ret;
+}
+
+static int game_fetch_preset(int i, char **name, game_params **params)
+{
+    game_params *ret;
+    char buf[64];
+
+    if (i < 0 || i >= lenof(pearl_presets)) return FALSE;
+
+    ret = default_params();
+    *ret = pearl_presets[i]; /* struct copy */
+    *params = ret;
+
+    sprintf(buf, "%dx%d %s",
+            pearl_presets[i].w, pearl_presets[i].h,
+            pearl_diffnames[pearl_presets[i].difficulty]);
+    *name = dupstr(buf);
+
+    return TRUE;
+}
+
+static void free_params(game_params *params)
+{
+    sfree(params);
+}
+
+static game_params *dup_params(game_params *params)
+{
+    game_params *ret = snew(game_params);
+    *ret = *params;		       /* structure copy */
+    return ret;
+}
+
+static void decode_params(game_params *ret, char const *string)
+{
+    ret->w = ret->h = atoi(string);
+    while (*string && isdigit((unsigned char) *string)) ++string;
+    if (*string == 'x') {
+        string++;
+        ret->h = atoi(string);
+        while (*string && isdigit((unsigned char)*string)) string++;
+    }
+
+    ret->difficulty = DIFF_EASY;
+    if (*string == 'd') {
+	int i;
+	string++;
+	for (i = 0; i < DIFFCOUNT; i++)
+	    if (*string == pearl_diffchars[i])
+		ret->difficulty = i;
+	if (*string) string++;
+    }
+
+    ret->nosolve = FALSE;
+    if (*string == 'n') {
+        ret->nosolve = TRUE;
+        string++;
+    }
+}
+
+static char *encode_params(game_params *params, int full)
+{
+    char buf[256];
+    sprintf(buf, "%dx%d", params->w, params->h);
+    if (full)
+        sprintf(buf + strlen(buf), "d%c%s",
+                pearl_diffchars[params->difficulty],
+                params->nosolve ? "n" : "");
+    return dupstr(buf);
+}
+
+static config_item *game_configure(game_params *params)
+{
+    config_item *ret;
+    char buf[64];
+
+    ret = snewn(5, config_item);
+
+    ret[0].name = "Width";
+    ret[0].type = C_STRING;
+    sprintf(buf, "%d", params->w);
+    ret[0].sval = dupstr(buf);
+    ret[0].ival = 0;
+
+    ret[1].name = "Height";
+    ret[1].type = C_STRING;
+    sprintf(buf, "%d", params->h);
+    ret[1].sval = dupstr(buf);
+    ret[1].ival = 0;
+
+    ret[2].name = "Difficulty";
+    ret[2].type = C_CHOICES;
+    ret[2].sval = DIFFCONFIG;
+    ret[2].ival = params->difficulty;
+
+    ret[3].name = "Allow unsoluble";
+    ret[3].type = C_BOOLEAN;
+    ret[3].sval = NULL;
+    ret[3].ival = params->nosolve;
+
+    ret[4].name = NULL;
+    ret[4].type = C_END;
+    ret[4].sval = NULL;
+    ret[4].ival = 0;
+
+    return ret;
+}
+
+static game_params *custom_params(config_item *cfg)
+{
+    game_params *ret = snew(game_params);
+
+    ret->w = atoi(cfg[0].sval);
+    ret->h = atoi(cfg[1].sval);
+    ret->difficulty = cfg[2].ival;
+    ret->nosolve = cfg[3].ival;
+
+    return ret;
+}
+
+static char *validate_params(game_params *params, int full)
+{
+    if (params->w < 5) return "Width must be at least five";
+    if (params->h < 5) return "Height must be at least five";
+    if (params->difficulty < 0 || params->difficulty >= DIFFCOUNT)
+        return "Unknown difficulty level";
+
+    return NULL;
+}
+
+/* ----------------------------------------------------------------------
+ * Solver.
+ */
+
+int pearl_solve(int w, int h, char *clues, char *result,
+                int difficulty, int partial)
+{
+    int W = 2*w+1, H = 2*h+1;
+    short *workspace;
+    int *dsf, *dsfsize;
+    int x, y, b, d;
+    int ret = -1;
+
+    /*
+     * workspace[(2*y+1)*W+(2*x+1)] indicates the possible nature
+     * of the square (x,y), as a logical OR of bitfields.
+     * 
+     * workspace[(2*y)*W+(2*x+1)], for x odd and y even, indicates
+     * whether the horizontal edge between (x,y) and (x+1,y) is
+     * connected (1), disconnected (2) or unknown (3).
+     * 
+     * workspace[(2*y+1)*W+(2*x)], indicates the same about the
+     * vertical edge between (x,y) and (x,y+1).
+     * 
+     * Initially, every square is considered capable of being in
+     * any of the seven possible states (two straights, four
+     * corners and empty), except those corresponding to clue
+     * squares which are more restricted.
+     * 
+     * Initially, all edges are unknown, except the ones around the
+     * grid border which are known to be disconnected.
+     */
+    workspace = snewn(W*H, short);
+    for (x = 0; x < W*H; x++)
+	workspace[x] = 0;
+    /* Square states */
+    for (y = 0; y < h; y++)
+	for (x = 0; x < w; x++)
+	    switch (clues[y*w+x]) {
+	      case CORNER:
+		workspace[(2*y+1)*W+(2*x+1)] = bLU|bLD|bRU|bRD;
+		break;
+	      case STRAIGHT:
+		workspace[(2*y+1)*W+(2*x+1)] = bLR|bUD;
+		break;
+	      default:
+		workspace[(2*y+1)*W+(2*x+1)] = bLR|bUD|bLU|bLD|bRU|bRD|bBLANK;
+		break;
+	    }
+    /* Horizontal edges */
+    for (y = 0; y <= h; y++)
+	for (x = 0; x < w; x++)
+	    workspace[(2*y)*W+(2*x+1)] = (y==0 || y==h ? 2 : 3);
+    /* Vertical edges */
+    for (y = 0; y < h; y++)
+	for (x = 0; x <= w; x++)
+	    workspace[(2*y+1)*W+(2*x)] = (x==0 || x==w ? 2 : 3);
+
+    /*
+     * We maintain a dsf of connected squares, together with a
+     * count of the size of each equivalence class.
+     */
+    dsf = snewn(w*h, int);
+    dsfsize = snewn(w*h, int);
+
+    /*
+     * Now repeatedly try to find something we can do.
+     */
+    while (1) {
+	int done_something = FALSE;
+
+#ifdef SOLVER_DIAGNOSTICS
+	for (y = 0; y < H; y++) {
+	    for (x = 0; x < W; x++)
+		printf("%*x", (x&1) ? 5 : 2, workspace[y*W+x]);
+	    printf("\n");
+	}
+#endif
+
+	/*
+	 * Go through the square state words, and discard any
+	 * square state which is inconsistent with known facts
+	 * about the edges around the square.
+	 */
+	for (y = 0; y < h; y++)
+	    for (x = 0; x < w; x++) {
+		for (b = 0; b < 0xD; b++)
+		    if (workspace[(2*y+1)*W+(2*x+1)] & (1<<b)) {
+			/*
+			 * If any edge of this square is known to
+			 * be connected when state b would require
+			 * it disconnected, or vice versa, discard
+			 * the state.
+			 */
+			for (d = 1; d <= 8; d += d) {
+			    int ex = 2*x+1 + DX(d), ey = 2*y+1 + DY(d);
+			    if (workspace[ey*W+ex] ==
+				((b & d) ? 2 : 1)) {
+				workspace[(2*y+1)*W+(2*x+1)] &= ~(1<<b);
+#ifdef SOLVER_DIAGNOSTICS
+				printf("edge (%d,%d)-(%d,%d) rules out state"
+				       " %d for square (%d,%d)\n",
+				       ex/2, ey/2, (ex+1)/2, (ey+1)/2,
+				       b, x, y);
+#endif
+				done_something = TRUE;
+				break;
+			    }
+			}
+		    }
+
+		/*
+		 * Consistency check: each square must have at
+		 * least one state left!
+		 */
+		if (!workspace[(2*y+1)*W+(2*x+1)]) {
+#ifdef SOLVER_DIAGNOSTICS
+		    printf("edge check at (%d,%d): inconsistency\n", x, y);
+#endif
+		    ret = 0;
+		    goto cleanup;
+		}
+	    }
+
+	/*
+	 * Now go through the states array again, and nail down any
+	 * unknown edge if one of its neighbouring squares makes it
+	 * known.
+	 */
+	for (y = 0; y < h; y++)
+	    for (x = 0; x < w; x++) {
+		int edgeor = 0, edgeand = 15;
+
+		for (b = 0; b < 0xD; b++)
+		    if (workspace[(2*y+1)*W+(2*x+1)] & (1<<b)) {
+			edgeor |= b;
+			edgeand &= b;
+		    }
+
+		/*
+		 * Now any bit clear in edgeor marks a disconnected
+		 * edge, and any bit set in edgeand marks a
+		 * connected edge.
+		 */
+
+		/* First check consistency: neither bit is both! */
+		if (edgeand & ~edgeor) {
+#ifdef SOLVER_DIAGNOSTICS
+		    printf("square check at (%d,%d): inconsistency\n", x, y);
+#endif
+		    ret = 0;
+		    goto cleanup;
+		}
+
+		for (d = 1; d <= 8; d += d) {
+		    int ex = 2*x+1 + DX(d), ey = 2*y+1 + DY(d);
+
+		    if (!(edgeor & d) && workspace[ey*W+ex] == 3) {
+			workspace[ey*W+ex] = 2;
+			done_something = TRUE;
+#ifdef SOLVER_DIAGNOSTICS
+			printf("possible states of square (%d,%d) force edge"
+			       " (%d,%d)-(%d,%d) to be disconnected\n",
+			       x, y, ex/2, ey/2, (ex+1)/2, (ey+1)/2);
+#endif
+		    } else if ((edgeand & d) && workspace[ey*W+ex] == 3) {
+			workspace[ey*W+ex] = 1;
+			done_something = TRUE;
+#ifdef SOLVER_DIAGNOSTICS
+			printf("possible states of square (%d,%d) force edge"
+			       " (%d,%d)-(%d,%d) to be connected\n",
+			       x, y, ex/2, ey/2, (ex+1)/2, (ey+1)/2);
+#endif
+		    }
+		}
+	    }
+
+	if (done_something)
+	    continue;
+
+	/*
+	 * Now for longer-range clue-based deductions (using the
+	 * rules that a corner clue must connect to two straight
+	 * squares, and a straight clue must connect to at least
+	 * one corner square).
+	 */
+	for (y = 0; y < h; y++)
+	    for (x = 0; x < w; x++)
+		switch (clues[y*w+x]) {
+		  case CORNER:
+		    for (d = 1; d <= 8; d += d) {
+			int ex = 2*x+1 + DX(d), ey = 2*y+1 + DY(d);
+			int fx = ex + DX(d), fy = ey + DY(d);
+			int type = d | F(d);
+
+			if (workspace[ey*W+ex] == 1) {
+			    /*
+			     * If a corner clue is connected on any
+			     * edge, then we can immediately nail
+			     * down the square beyond that edge as
+			     * being a straight in the appropriate
+			     * direction.
+			     */
+			    if (workspace[fy*W+fx] != (1<<type)) {
+				workspace[fy*W+fx] = (1<<type);
+				done_something = TRUE;
+#ifdef SOLVER_DIAGNOSTICS
+				printf("corner clue at (%d,%d) forces square "
+				       "(%d,%d) into state %d\n", x, y,
+				       fx/2, fy/2, type);
+#endif
+				
+			    }
+			} else if (workspace[ey*W+ex] == 3) {
+			    /*
+			     * Conversely, if a corner clue is
+			     * separated by an unknown edge from a
+			     * square which _cannot_ be a straight
+			     * in the appropriate direction, we can
+			     * mark that edge as disconnected.
+			     */
+			    if (!(workspace[fy*W+fx] & (1<<type))) {
+				workspace[ey*W+ex] = 2;
+				done_something = TRUE;
+#ifdef SOLVER_DIAGNOSTICS
+				printf("corner clue at (%d,%d), plus square "
+				       "(%d,%d) not being state %d, "
+				       "disconnects edge (%d,%d)-(%d,%d)\n",
+				       x, y, fx/2, fy/2, type,
+				       ex/2, ey/2, (ex+1)/2, (ey+1)/2);
+#endif
+
+			    }
+			}
+		    }
+
+		    break;
+		  case STRAIGHT:
+		    /*
+		     * If a straight clue is between two squares
+		     * neither of which is capable of being a
+		     * corner connected to it, then the straight
+		     * clue cannot point in that direction.
+		     */
+		    for (d = 1; d <= 2; d += d) {
+			int fx = 2*x+1 + 2*DX(d), fy = 2*y+1 + 2*DY(d);
+			int gx = 2*x+1 - 2*DX(d), gy = 2*y+1 - 2*DY(d);
+			int type = d | F(d);
+
+			if (!(workspace[(2*y+1)*W+(2*x+1)] & (1<<type)))
+			    continue;
+
+			if (!(workspace[fy*W+fx] & ((1<<(F(d)|A(d))) |
+						    (1<<(F(d)|C(d))))) &&
+			    !(workspace[gy*W+gx] & ((1<<(  d |A(d))) |
+						    (1<<(  d |C(d)))))) {
+			    workspace[(2*y+1)*W+(2*x+1)] &= ~(1<<type);
+			    done_something = TRUE;
+#ifdef SOLVER_DIAGNOSTICS
+			    printf("straight clue at (%d,%d) cannot corner at "
+				   "(%d,%d) or (%d,%d) so is not state %d\n",
+				   x, y, fx/2, fy/2, gx/2, gy/2, type);
+#endif
+			}
+						    
+		    }
+
+		    /*
+		     * If a straight clue with known direction is
+		     * connected on one side to a known straight,
+		     * then on the other side it must be a corner.
+		     */
+		    for (d = 1; d <= 8; d += d) {
+			int fx = 2*x+1 + 2*DX(d), fy = 2*y+1 + 2*DY(d);
+			int gx = 2*x+1 - 2*DX(d), gy = 2*y+1 - 2*DY(d);
+			int type = d | F(d);
+
+			if (workspace[(2*y+1)*W+(2*x+1)] != (1<<type))
+			    continue;
+
+			if (!(workspace[fy*W+fx] &~ (bLR|bUD)) &&
+			    (workspace[gy*W+gx] &~ (bLU|bLD|bRU|bRD))) {
+			    workspace[gy*W+gx] &= (bLU|bLD|bRU|bRD);
+			    done_something = TRUE;
+#ifdef SOLVER_DIAGNOSTICS
+			    printf("straight clue at (%d,%d) connecting to "
+				   "straight at (%d,%d) makes (%d,%d) a "
+				   "corner\n", x, y, fx/2, fy/2, gx/2, gy/2);
+#endif
+			}
+						    
+		    }
+		    break;
+		}
+
+	if (done_something)
+	    continue;
+
+	/*
+	 * Now detect shortcut loops.
+	 */
+
+	{
+	    int nonblanks, loopclass;
+
+	    dsf_init(dsf, w*h);
+	    for (x = 0; x < w*h; x++)
+		dsfsize[x] = 1;
+
+	    /*
+	     * First go through the edge entries and update the dsf
+	     * of which squares are connected to which others. We
+	     * also track the number of squares in each equivalence
+	     * class, and count the overall number of
+	     * known-non-blank squares.
+	     *
+	     * In the process of doing this, we must notice if a
+	     * loop has already been formed. If it has, we blank
+	     * out any square which isn't part of that loop
+	     * (failing a consistency check if any such square does
+	     * not have BLANK as one of its remaining options) and
+	     * exit the deduction loop with success.
+	     */
+	    nonblanks = 0;
+	    loopclass = -1;
+	    for (y = 1; y < H-1; y++)
+		for (x = 1; x < W-1; x++)
+		    if ((y ^ x) & 1) {
+			/*
+			 * (x,y) are the workspace coordinates of
+			 * an edge field. Compute the normal-space
+			 * coordinates of the squares it connects.
+			 */
+			int ax = (x-1)/2, ay = (y-1)/2, ac = ay*w+ax;
+			int bx = x/2, by = y/2, bc = by*w+bx;
+
+			/*
+			 * If the edge is connected, do the dsf
+			 * thing.
+			 */
+			if (workspace[y*W+x] == 1) {
+			    int ae, be;
+
+			    ae = dsf_canonify(dsf, ac);
+			    be = dsf_canonify(dsf, bc);
+
+			    if (ae == be) {
+				/*
+				 * We have a loop!
+				 */
+				if (loopclass != -1) {
+				    /*
+				     * In fact, we have two
+				     * separate loops, which is
+				     * doom.
+				     */
+#ifdef SOLVER_DIAGNOSTICS
+				    printf("two loops found in grid!\n");
+#endif
+				    ret = 0;
+				    goto cleanup;
+				}
+				loopclass = ae;
+			    } else {
+				/*
+				 * Merge the two equivalence
+				 * classes.
+				 */
+				int size = dsfsize[ae] + dsfsize[be];
+				dsf_merge(dsf, ac, bc);
+				ae = dsf_canonify(dsf, ac);
+				dsfsize[ae] = size;
+			    }
+			}
+		    } else if ((y & x) & 1) {
+			/*
+			 * (x,y) are the workspace coordinates of a
+			 * square field. If the square is
+			 * definitely not blank, count it.
+			 */
+			if (!(workspace[y*W+x] & bBLANK))
+			    nonblanks++;
+		    }
+
+	    /*
+	     * If we discovered an existing loop above, we must now
+	     * blank every square not part of it, and exit the main
+	     * deduction loop.
+	     */
+	    if (loopclass != -1) {
+#ifdef SOLVER_DIAGNOSTICS
+		printf("loop found in grid!\n");
+#endif
+		for (y = 0; y < h; y++)
+		    for (x = 0; x < w; x++)
+			if (dsf_canonify(dsf, y*w+x) != loopclass) {
+			    if (workspace[(y*2+1)*W+(x*2+1)] & bBLANK) {
+				workspace[(y*2+1)*W+(x*2+1)] = bBLANK;
+			    } else {
+				/*
+				 * This square is not part of the
+				 * loop, but is known non-blank. We
+				 * have goofed.
+				 */
+#ifdef SOLVER_DIAGNOSTICS
+				printf("non-blank square (%d,%d) found outside"
+				       " loop!\n", x, y);
+#endif
+				ret = 0;
+				goto cleanup;
+			    }
+			}
+		/*
+		 * And we're done.
+		 */
+		ret = 1;
+		break;
+	    }
+
+            /* Further deductions are considered 'tricky'. */
+            if (difficulty == DIFF_EASY) goto done_deductions;
+
+	    /*
+	     * Now go through the workspace again and mark any edge
+	     * which would cause a shortcut loop (i.e. would
+	     * connect together two squares in the same equivalence
+	     * class, and that equivalence class does not contain
+	     * _all_ the known-non-blank squares currently in the
+	     * grid) as disconnected. Also, mark any _square state_
+	     * which would cause a shortcut loop as disconnected.
+	     */
+	    for (y = 1; y < H-1; y++)
+		for (x = 1; x < W-1; x++)
+		    if ((y ^ x) & 1) {
+			/*
+			 * (x,y) are the workspace coordinates of
+			 * an edge field. Compute the normal-space
+			 * coordinates of the squares it connects.
+			 */
+			int ax = (x-1)/2, ay = (y-1)/2, ac = ay*w+ax;
+			int bx = x/2, by = y/2, bc = by*w+bx;
+
+			/*
+			 * If the edge is currently unknown, and
+			 * sits between two squares in the same
+			 * equivalence class, and the size of that
+			 * class is less than nonblanks, then
+			 * connecting this edge would be a shortcut
+			 * loop and so we must not do so.
+			 */
+			if (workspace[y*W+x] == 3) {
+			    int ae, be;
+
+			    ae = dsf_canonify(dsf, ac);
+			    be = dsf_canonify(dsf, bc);
+
+			    if (ae == be) {
+				/*
+				 * We have a loop. Is it a shortcut?
+				 */
+				if (dsfsize[ae] < nonblanks) {
+				    /*
+				     * Yes! Mark this edge disconnected.
+				     */
+				    workspace[y*W+x] = 2;
+				    done_something = TRUE;
+#ifdef SOLVER_DIAGNOSTICS
+				    printf("edge (%d,%d)-(%d,%d) would create"
+					   " a shortcut loop, hence must be"
+					   " disconnected\n", x/2, y/2,
+					   (x+1)/2, (y+1)/2);
+#endif
+				}
+			    }
+			}
+		    } else if ((y & x) & 1) {
+			/*
+			 * (x,y) are the workspace coordinates of a
+			 * square field. Go through its possible
+			 * (non-blank) states and see if any gives
+			 * rise to a shortcut loop.
+			 * 
+			 * This is slightly fiddly, because we have
+			 * to check whether this square is already
+			 * part of the same equivalence class as
+			 * the things it's joining.
+			 */
+			int ae = dsf_canonify(dsf, (y/2)*w+(x/2));
+
+			for (b = 2; b < 0xD; b++)
+			    if (workspace[y*W+x] & (1<<b)) {
+				/*
+				 * Find the equivalence classes of
+				 * the two squares this one would
+				 * connect if it were in this
+				 * state.
+				 */
+				int e = -1;
+
+				for (d = 1; d <= 8; d += d) if (b & d) {
+				    int xx = x/2 + DX(d), yy = y/2 + DY(d);
+				    int ee = dsf_canonify(dsf, yy*w+xx);
+
+				    if (e == -1)
+					ee = e;
+				    else if (e != ee)
+					e = -2;
+				}
+
+				if (e >= 0) {
+				    /*
+				     * This square state would form
+				     * a loop on equivalence class
+				     * e. Measure the size of that
+				     * loop, and see if it's a
+				     * shortcut.
+				     */
+				    int loopsize = dsfsize[e];
+				    if (e != ae)
+					loopsize++;/* add the square itself */
+				    if (loopsize < nonblanks) {
+					/*
+					 * It is! Mark this square
+					 * state invalid.
+					 */
+					workspace[y*W+x] &= ~(1<<b);
+					done_something = TRUE;
+#ifdef SOLVER_DIAGNOSTICS
+					printf("square (%d,%d) would create a "
+					       "shortcut loop in state %d, "
+					       "hence cannot be\n",
+					       x/2, y/2, b);
+#endif
+				    }
+				}
+			    }
+		    }
+	}
+
+done_deductions:
+
+	if (done_something)
+	    continue;
+
+	/*
+	 * If we reach here, there is nothing left we can do.
+	 * Return 2 for ambiguous puzzle.
+	 */
+	ret = 2;
+	break;
+    }
+
+cleanup:
+
+    /*
+     * If ret = 1 then we've successfully achieved a solution. This
+     * means that we expect every square to be nailed down to
+     * exactly one possibility. If this is the case, or if the caller
+     * asked for a partial solution anyway, transcribe those
+     * possibilities into the result array.
+     */
+    if (ret == 1 || partial) {
+        for (y = 0; y < h; y++) {
+            for (x = 0; x < w; x++) {
+                for (b = 0; b < 0xD; b++)
+                    if (workspace[(2*y+1)*W+(2*x+1)] == (1<<b)) {
+                        result[y*w+x] = b;
+                        break;
+                    }
+               if (ret == 1) assert(b < 0xD); /* we should have had a break by now */
+            }
+        }
+    }
+
+    sfree(dsfsize);
+    sfree(dsf);
+    sfree(workspace);
+    assert(ret >= 0);
+    return ret;
+}
+
+/* ----------------------------------------------------------------------
+ * Loop generator.
+ */
+
+/*
+ * We use the loop generator code from loopy, hard-coding to a square
+ * grid of the appropriate size. Knowing the grid layout and the tile
+ * size we can shrink that to our small grid and then make our line
+ * layout from the face colour info.
+ *
+ * We provide a bias function to the loop generator which tries to
+ * bias in favour of loops with more scope for Pearl black clues. This
+ * seems to improve the success rate of the puzzle generator, in that
+ * such loops have a better chance of being soluble with all valid
+ * clues put in.
+ */
+
+struct pearl_loopgen_bias_ctx {
+    /*
+     * Our bias function counts the number of 'black clue' corners
+     * (i.e. corners adjacent to two straights) in both the
+     * BLACK/nonBLACK and WHITE/nonWHITE boundaries. In order to do
+     * this, we must:
+     *
+     *  - track the edges that are part of each of those loops
+     *  - track the types of vertex in each loop (corner, straight,
+     *    none)
+     *  - track the current black-clue status of each vertex in each
+     *    loop.
+     *
+     * Each of these chunks of data is updated incrementally from the
+     * previous one, to avoid slowdown due to the bias function
+     * rescanning the whole grid every time it's called.
+     *
+     * So we need a lot of separate arrays, plus a tdq for each one,
+     * and we must repeat it all twice for the BLACK and WHITE
+     * boundaries.
+     */
+    struct pearl_loopgen_bias_ctx_boundary {
+        int colour;                    /* FACE_WHITE or FACE_BLACK */
+
+        char *edges;                   /* is each edge part of the loop? */
+        tdq *edges_todo;
+
+        char *vertextypes;             /* bits 0-3 == outgoing edge bitmap;
+                                        * bit 4 set iff corner clue.
+                                        * Hence, 0 means non-vertex;
+                                        * nonzero but bit 4 zero = straight. */
+        int *neighbour[2];          /* indices of neighbour vertices in loop */
+        tdq *vertextypes_todo;
+
+        char *blackclues;              /* is each vertex a black clue site? */
+        tdq *blackclues_todo;
+    } boundaries[2];                   /* boundaries[0]=WHITE, [1]=BLACK */
+
+    char *faces;          /* remember last-seen colour of each face */
+    tdq *faces_todo;
+
+    int score;
+
+    grid *g;
+};
+int pearl_loopgen_bias(void *vctx, char *board, int face)
+{
+    struct pearl_loopgen_bias_ctx *ctx = (struct pearl_loopgen_bias_ctx *)vctx;
+    grid *g = ctx->g;
+    int oldface, newface;
+    int i, j, k;
+
+    tdq_add(ctx->faces_todo, face);
+    while ((j = tdq_remove(ctx->faces_todo)) >= 0) {
+        oldface = ctx->faces[j];
+        ctx->faces[j] = newface = board[j];
+        for (i = 0; i < 2; i++) {
+            struct pearl_loopgen_bias_ctx_boundary *b = &ctx->boundaries[i];
+            int c = b->colour;
+
+            /*
+             * If the face has changed either from or to colour c, we need
+             * to reprocess the edges for this boundary.
+             */
+            if (oldface == c || newface == c) {
+                grid_face *f = &g->faces[face];
+                for (k = 0; k < f->order; k++)
+                    tdq_add(b->edges_todo, f->edges[k] - g->edges);
+            }
+        }
+    }
+
+    for (i = 0; i < 2; i++) {
+        struct pearl_loopgen_bias_ctx_boundary *b = &ctx->boundaries[i];
+        int c = b->colour;
+
+        /*
+         * Go through the to-do list of edges. For each edge, decide
+         * anew whether it's part of this boundary or not. Any edge
+         * that changes state has to have both its endpoints put on
+         * the vertextypes_todo list.
+         */
+        while ((j = tdq_remove(b->edges_todo)) >= 0) {
+            grid_edge *e = &g->edges[j];
+            int fc1 = e->face1 ? board[e->face1 - g->faces] : FACE_BLACK;
+            int fc2 = e->face2 ? board[e->face2 - g->faces] : FACE_BLACK;
+            int oldedge = b->edges[j];
+            int newedge = (fc1==c) ^ (fc2==c);
+            if (oldedge != newedge) {
+                b->edges[j] = newedge;
+                tdq_add(b->vertextypes_todo, e->dot1 - g->dots);
+                tdq_add(b->vertextypes_todo, e->dot2 - g->dots);
+            }
+        }
+
+        /*
+         * Go through the to-do list of vertices whose types need
+         * refreshing. For each one, decide whether it's a corner, a
+         * straight, or a vertex not in the loop, and in the former
+         * two cases also work out the indices of its neighbour
+         * vertices along the loop. Any vertex that changes state must
+         * be put back on the to-do list for deciding if it's a black
+         * clue site, and so must its two new neighbours _and_ its two
+         * old neighbours.
+         */
+        while ((j = tdq_remove(b->vertextypes_todo)) >= 0) {
+            grid_dot *d = &g->dots[j];
+            int neighbours[2], type = 0, n = 0;
+            
+            for (k = 0; k < d->order; k++) {
+                grid_edge *e = d->edges[k];
+                grid_dot *d2 = (e->dot1 == d ? e->dot2 : e->dot1);
+                /* dir == 0,1,2,3 for an edge going L,U,R,D */
+                int dir = (d->y == d2->y) + 2*(d->x+d->y > d2->x+d2->y);
+                int ei = e - g->edges;
+                if (b->edges[ei]) {
+                    type |= 1 << dir;
+                    neighbours[n] = d2 - g->dots; 
+                    n++;
+                }
+            }
+
+            /*
+             * Decide if it's a corner, and set the corner flag if so.
+             */
+            if (type != 0 && type != 0x5 && type != 0xA)
+                type |= 0x10;
+
+            if (type != b->vertextypes[j]) {
+                /*
+                 * Recompute old neighbours, if any.
+                 */
+                if (b->vertextypes[j]) {
+                    tdq_add(b->blackclues_todo, b->neighbour[0][j]);
+                    tdq_add(b->blackclues_todo, b->neighbour[1][j]);
+                }
+                /*
+                 * Recompute this vertex.
+                 */
+                tdq_add(b->blackclues_todo, j);
+                b->vertextypes[j] = type;
+                /*
+                 * Recompute new neighbours, if any.
+                 */
+                if (b->vertextypes[j]) {
+                    b->neighbour[0][j] = neighbours[0];
+                    b->neighbour[1][j] = neighbours[1];
+                    tdq_add(b->blackclues_todo, b->neighbour[0][j]);
+                    tdq_add(b->blackclues_todo, b->neighbour[1][j]);
+                }
+            }
+        }
+
+        /*
+         * Go through the list of vertices which we must check to see
+         * if they're black clue sites. Each one is a black clue site
+         * iff it is a corner and its loop neighbours are non-corners.
+         * Adjust the running total of black clues we've counted.
+         */
+        while ((j = tdq_remove(b->blackclues_todo)) >= 0) {
+            ctx->score -= b->blackclues[j];
+            b->blackclues[j] = ((b->vertextypes[j] & 0x10) &&
+                                !((b->vertextypes[b->neighbour[0][j]] |
+                                   b->vertextypes[b->neighbour[1][j]])
+                                  & 0x10));
+            ctx->score += b->blackclues[j];
+        }
+    }
+
+    return ctx->score;
+}
+
+void pearl_loopgen(int w, int h, char *lines, random_state *rs)
+{
+    grid *g = grid_new(GRID_SQUARE, w-1, h-1, NULL);
+    char *board = snewn(g->num_faces, char);
+    int i, s = g->tilesize;
+    struct pearl_loopgen_bias_ctx biasctx;
+
+    memset(lines, 0, w*h);
+
+    /*
+     * Initialise the context for the bias function. Initially we fill
+     * all the to-do lists, so that the first call will scan
+     * everything; thereafter the lists stay empty so we make
+     * incremental changes.
+     */
+    biasctx.g = g;
+    biasctx.faces = snewn(g->num_faces, char);
+    biasctx.faces_todo = tdq_new(g->num_faces);
+    tdq_fill(biasctx.faces_todo);
+    biasctx.score = 0;
+    memset(biasctx.faces, FACE_GREY, g->num_faces);
+    for (i = 0; i < 2; i++) {
+        biasctx.boundaries[i].edges = snewn(g->num_edges, char);
+        memset(biasctx.boundaries[i].edges, 0, g->num_edges);
+        biasctx.boundaries[i].edges_todo = tdq_new(g->num_edges);
+        tdq_fill(biasctx.boundaries[i].edges_todo);
+        biasctx.boundaries[i].vertextypes = snewn(g->num_dots, char);
+        memset(biasctx.boundaries[i].vertextypes, 0, g->num_dots);
+        biasctx.boundaries[i].neighbour[0] = snewn(g->num_dots, int);
+        biasctx.boundaries[i].neighbour[1] = snewn(g->num_dots, int);
+        biasctx.boundaries[i].vertextypes_todo = tdq_new(g->num_dots);
+        tdq_fill(biasctx.boundaries[i].vertextypes_todo);
+        biasctx.boundaries[i].blackclues = snewn(g->num_dots, char);
+        memset(biasctx.boundaries[i].blackclues, 0, g->num_dots);
+        biasctx.boundaries[i].blackclues_todo = tdq_new(g->num_dots);
+        tdq_fill(biasctx.boundaries[i].blackclues_todo);
+    }
+    biasctx.boundaries[0].colour = FACE_WHITE;
+    biasctx.boundaries[1].colour = FACE_BLACK;
+    generate_loop(g, board, rs, pearl_loopgen_bias, &biasctx);
+    sfree(biasctx.faces);
+    tdq_free(biasctx.faces_todo);
+    for (i = 0; i < 2; i++) {
+        sfree(biasctx.boundaries[i].edges);
+        tdq_free(biasctx.boundaries[i].edges_todo);
+        sfree(biasctx.boundaries[i].vertextypes);
+        sfree(biasctx.boundaries[i].neighbour[0]);
+        sfree(biasctx.boundaries[i].neighbour[1]);
+        tdq_free(biasctx.boundaries[i].vertextypes_todo);
+        sfree(biasctx.boundaries[i].blackclues);
+        tdq_free(biasctx.boundaries[i].blackclues_todo);
+    }
+
+    for (i = 0; i < g->num_edges; i++) {
+        grid_edge *e = g->edges + i;
+        enum face_colour c1 = FACE_COLOUR(e->face1);
+        enum face_colour c2 = FACE_COLOUR(e->face2);
+        assert(c1 != FACE_GREY);
+        assert(c2 != FACE_GREY);
+        if (c1 != c2) {
+            /* This grid edge is on the loop: lay line along it */
+            int x1 = e->dot1->x/s, y1 = e->dot1->y/s;
+            int x2 = e->dot2->x/s, y2 = e->dot2->y/s;
+
+            /* (x1,y1) and (x2,y2) are now in our grid coords (0-w,0-h). */
+            if (x1 == x2) {
+                if (y1 > y2) SWAP(y1,y2);
+
+                assert(y1+1 == y2);
+                lines[y1*w+x1] |= D;
+                lines[y2*w+x1] |= U;
+            } else if (y1 == y2) {
+                if (x1 > x2) SWAP(x1,x2);
+
+                assert(x1+1 == x2);
+                lines[y1*w+x1] |= R;
+                lines[y1*w+x2] |= L;
+            } else
+                assert(!"grid with diagonal coords?!");
+        }
+    }
+
+    grid_free(g);
+    sfree(board);
+
+#if defined LOOPGEN_DIAGNOSTICS && !defined GENERATION_DIAGNOSTICS
+    printf("as returned:\n");
+    for (y = 0; y < h; y++) {
+	for (x = 0; x < w; x++) {
+	    int type = lines[y*w+x];
+	    char s[5], *p = s;
+	    if (type & L) *p++ = 'L';
+	    if (type & R) *p++ = 'R';
+	    if (type & U) *p++ = 'U';
+	    if (type & D) *p++ = 'D';
+	    *p = '\0';
+	    printf("%3s", s);
+	}
+	printf("\n");
+    }
+    printf("\n");
+#endif
+}
+
+static int new_clues(game_params *params, random_state *rs,
+                     char *clues, char *grid)
+{
+    int w = params->w, h = params->h;
+    int ngen = 0, x, y, d, ret, i;
+
+    while (1) {
+        ngen++;
+	pearl_loopgen(w, h, grid, rs);
+
+#ifdef GENERATION_DIAGNOSTICS
+	printf("grid array:\n");
+	for (y = 0; y < h; y++) {
+	    for (x = 0; x < w; x++) {
+		int type = grid[y*w+x];
+		char s[5], *p = s;
+		if (type & L) *p++ = 'L';
+		if (type & R) *p++ = 'R';
+		if (type & U) *p++ = 'U';
+		if (type & D) *p++ = 'D';
+		*p = '\0';
+		printf("%2s ", s);
+	    }
+	    printf("\n");
+	}
+	printf("\n");
+#endif
+
+	/*
+	 * Set up the maximal clue array.
+	 */
+	for (y = 0; y < h; y++)
+	    for (x = 0; x < w; x++) {
+		int type = grid[y*w+x];
+
+		clues[y*w+x] = NOCLUE;
+
+		if ((bLR|bUD) & (1 << type)) {
+		    /*
+		     * This is a straight; see if it's a viable
+		     * candidate for a straight clue. It qualifies if
+		     * at least one of the squares it connects to is a
+		     * corner.
+		     */
+		    for (d = 1; d <= 8; d += d) if (type & d) {
+			int xx = x + DX(d), yy = y + DY(d);
+			assert(xx >= 0 && xx < w && yy >= 0 && yy < h);
+			if ((bLU|bLD|bRU|bRD) & (1 << grid[yy*w+xx]))
+			    break;
+		    }
+		    if (d <= 8)	       /* we found one */
+			clues[y*w+x] = STRAIGHT;
+		} else if ((bLU|bLD|bRU|bRD) & (1 << type)) {
+		    /*
+		     * This is a corner; see if it's a viable candidate
+		     * for a corner clue. It qualifies if all the
+		     * squares it connects to are straights.
+		     */
+		    for (d = 1; d <= 8; d += d) if (type & d) {
+			int xx = x + DX(d), yy = y + DY(d);
+			assert(xx >= 0 && xx < w && yy >= 0 && yy < h);
+			if (!((bLR|bUD) & (1 << grid[yy*w+xx])))
+			    break;
+		    }
+		    if (d > 8)	       /* we didn't find a counterexample */
+			clues[y*w+x] = CORNER;
+		}
+	    }
+
+#ifdef GENERATION_DIAGNOSTICS
+	printf("clue array:\n");
+	for (y = 0; y < h; y++) {
+	    for (x = 0; x < w; x++) {
+		printf("%c", " *O"[(unsigned char)clues[y*w+x]]);
+	    }
+	    printf("\n");
+	}
+	printf("\n");
+#endif
+
+        if (!params->nosolve) {
+            int *cluespace, *straights, *corners;
+            int nstraights, ncorners, nstraightpos, ncornerpos;
+
+            /*
+             * See if we can solve the puzzle just like this.
+             */
+            ret = pearl_solve(w, h, clues, grid, params->difficulty, FALSE);
+            assert(ret > 0);	       /* shouldn't be inconsistent! */
+            if (ret != 1)
+                continue;		       /* go round and try again */
+
+            /*
+             * Check this puzzle isn't too easy.
+             */
+            if (params->difficulty > DIFF_EASY) {
+                ret = pearl_solve(w, h, clues, grid, params->difficulty-1, FALSE);
+                assert(ret > 0);
+                if (ret == 1)
+                    continue; /* too easy: try again */
+            }
+
+            /*
+             * Now shuffle the grid points and gradually remove the
+             * clues to find a minimal set which still leaves the
+             * puzzle soluble.
+             *
+             * We preferentially attempt to remove whichever type of
+             * clue is currently most numerous, to combat a general
+             * tendency of plain random generation to bias in favour
+             * of many white clues and few black.
+             *
+             * 'nstraights' and 'ncorners' count the number of clues
+             * of each type currently remaining in the grid;
+             * 'nstraightpos' and 'ncornerpos' count the clues of each
+             * type we have left to try to remove. (Clues which we
+             * have tried and failed to remove are counted by the
+             * former but not the latter.)
+             */
+            cluespace = snewn(w*h, int);
+            straights = cluespace;
+            nstraightpos = 0;
+            for (i = 0; i < w*h; i++)
+                if (clues[i] == STRAIGHT)
+                    straights[nstraightpos++] = i;
+            corners = straights + nstraightpos;
+            ncornerpos = 0;
+            for (i = 0; i < w*h; i++)
+                if (clues[i] == STRAIGHT)
+                    corners[ncornerpos++] = i;
+            nstraights = nstraightpos;
+            ncorners = ncornerpos;
+
+            shuffle(straights, nstraightpos, sizeof(*straights), rs);
+            shuffle(corners, ncornerpos, sizeof(*corners), rs);
+            while (nstraightpos > 0 || ncornerpos > 0) {
+                int cluepos;
+                int clue;
+
+                /*
+                 * Decide which clue to try to remove next. If both
+                 * types are available, we choose whichever kind is
+                 * currently overrepresented; otherwise we take
+                 * whatever we can get.
+                 */
+                if (nstraightpos > 0 && ncornerpos > 0) {
+                    if (nstraights >= ncorners)
+                        cluepos = straights[--nstraightpos];
+                    else
+                        cluepos = straights[--ncornerpos];
+                } else {
+                    if (nstraightpos > 0)
+                        cluepos = straights[--nstraightpos];
+                    else
+                        cluepos = straights[--ncornerpos];
+                }
+
+                y = cluepos / w;
+                x = cluepos % w;
+
+                clue = clues[y*w+x];
+                clues[y*w+x] = 0;	       /* try removing this clue */
+
+                ret = pearl_solve(w, h, clues, grid, params->difficulty, FALSE);
+                assert(ret > 0);
+                if (ret != 1)
+                    clues[y*w+x] = clue;   /* oops, put it back again */
+            }
+            sfree(cluespace);
+        }
+
+#ifdef FINISHED_PUZZLE
+	printf("clue array:\n");
+	for (y = 0; y < h; y++) {
+	    for (x = 0; x < w; x++) {
+		printf("%c", " *O"[(unsigned char)clues[y*w+x]]);
+	    }
+	    printf("\n");
+	}
+	printf("\n");
+#endif
+
+	break;			       /* got it */
+    }
+
+    return ngen;
+}
+
+static char *new_game_desc(game_params *params, random_state *rs,
+			   char **aux, int interactive)
+{
+    char *grid, *clues;
+    char *desc;
+    int ngen, w = params->w, h = params->h, i, j;
+
+    grid = snewn(w*h, char);
+    clues = snewn(w*h, char);
+
+    ngen = new_clues(params, rs, clues, grid);
+
+    debug(("%d %dx%d loops before finished puzzle.\n", ngen, w, h));
+
+    desc = snewn(w * h + 1, char);
+    for (i = j = 0; i < w*h; i++) {
+        if (clues[i] == NOCLUE && j > 0 &&
+            desc[j-1] >= 'a' && desc[j-1] < 'z')
+            desc[j-1]++;
+        else if (clues[i] == NOCLUE)
+            desc[j++] = 'a';
+        else if (clues[i] == CORNER)
+            desc[j++] = 'B';
+        else if (clues[i] == STRAIGHT)
+            desc[j++] = 'W';
+    }
+    desc[j] = '\0';
+
+    *aux = snewn(w*h+1, char);
+    for (i = 0; i < w*h; i++)
+        (*aux)[i] = (grid[i] < 10) ? (grid[i] + '0') : (grid[i] + 'A' - 10);
+    (*aux)[w*h] = '\0';
+
+    sfree(grid);
+    sfree(clues);
+
+    return desc;
+}
+
+static char *validate_desc(game_params *params, char *desc)
+{
+    int i, sizesofar;
+    const int totalsize = params->w * params->h;
+
+    sizesofar = 0;
+    for (i = 0; desc[i]; i++) {
+        if (desc[i] >= 'a' && desc[i] <= 'z')
+            sizesofar += desc[i] - 'a' + 1;
+        else if (desc[i] == 'B' || desc[i] == 'W')
+            sizesofar++;
+        else
+            return "unrecognised character in string";
+    }
+
+    if (sizesofar > totalsize)
+        return "string too long";
+    else if (sizesofar < totalsize)
+        return "string too short";
+
+    return NULL;
+}
+
+static game_state *new_game(midend *me, game_params *params, char *desc)
+{
+    game_state *state = snew(game_state);
+    int i, j, sz = params->w*params->h;
+
+    state->completed = state->used_solve = FALSE;
+    state->shared = snew(struct shared_state);
+
+    state->shared->w = params->w;
+    state->shared->h = params->h;
+    state->shared->sz = sz;
+    state->shared->refcnt = 1;
+    state->shared->clues = snewn(sz, char);
+    for (i = j = 0; desc[i]; i++) {
+        assert(j < sz);
+        if (desc[i] >= 'a' && desc[i] <= 'z') {
+            int n = desc[i] - 'a' + 1;
+            assert(j + n <= sz);
+            while (n-- > 0)
+                state->shared->clues[j++] = NOCLUE;
+        } else if (desc[i] == 'B') {
+            state->shared->clues[j++] = CORNER;
+        } else if (desc[i] == 'W') {
+            state->shared->clues[j++] = STRAIGHT;
+        }
+    }
+
+    state->lines = snewn(sz, char);
+    state->errors = snewn(sz, char);
+    state->marks = snewn(sz, char);
+    for (i = 0; i < sz; i++)
+        state->lines[i] = state->errors[i] = state->marks[i] = BLANK;
+
+    return state;
+}
+
+static game_state *dup_game(game_state *state)
+{
+    game_state *ret = snew(game_state);
+    int sz = state->shared->sz, i;
+
+    ret->shared = state->shared;
+    ret->completed = state->completed;
+    ret->used_solve = state->used_solve;
+    ++ret->shared->refcnt;
+
+    ret->lines = snewn(sz, char);
+    ret->errors = snewn(sz, char);
+    ret->marks = snewn(sz, char);
+    for (i = 0; i < sz; i++) {
+        ret->lines[i] = state->lines[i];
+        ret->errors[i] = state->errors[i];
+        ret->marks[i] = state->marks[i];
+    }
+
+    return ret;
+}
+
+static void free_game(game_state *state)
+{
+    assert(state);
+    if (--state->shared->refcnt == 0) {
+        sfree(state->shared->clues);
+        sfree(state->shared);
+    }
+    sfree(state->lines);
+    sfree(state->errors);
+    sfree(state->marks);
+    sfree(state);
+}
+
+static char nbits[16] = { 0, 1, 1, 2,
+                          1, 2, 2, 3,
+                          1, 2, 2, 3,
+                          2, 3, 3, 4 };
+#define NBITS(l) ( ((l) < 0 || (l) > 15) ? 4 : nbits[l] )
+
+#define ERROR_CLUE 16
+
+static void dsf_update_completion(game_state *state, int *loopclass,
+                                 int ax, int ay, char dir,
+                                 int *dsf, int *dsfsize)
+{
+    int w = state->shared->w /*, h = state->shared->h */;
+    int ac = ay*w+ax, ae, bx, by, bc, be;
+
+    if (!(state->lines[ac] & dir)) return; /* no link */
+    bx = ax + DX(dir); by = ay + DY(dir);
+
+    assert(INGRID(state, bx, by)); /* should not have a link off grid */
+
+    bc = by*w+bx;
+#if 0
+    assert(state->lines[bc] & F(dir)); /* should have reciprocal link */
+#endif
+    /* TODO put above assertion back in once we stop generating partially
+     * soluble puzzles. */
+    if (!(state->lines[bc] & F(dir))) return;
+
+    ae = dsf_canonify(dsf, ac);
+    be = dsf_canonify(dsf, bc);
+
+    if (ae == be) { /* detected a loop! */
+        if (*loopclass != -1) /* this is the second loop, doom. */
+            return;
+        *loopclass = ae;
+    } else {
+        int size = dsfsize[ae] + dsfsize[be];
+        dsf_merge(dsf, ac, bc);
+        ae = dsf_canonify(dsf, ac);
+        dsfsize[ae] = size;
+    }
+    return;
+}
+
+static void check_completion(game_state *state, int mark)
+{
+    int w = state->shared->w, h = state->shared->h, x, y, i, d;
+    int had_error = FALSE /*, is_complete = FALSE */, loopclass;
+    int *dsf, *dsfsize;
+
+    if (mark) {
+        for (i = 0; i < w*h; i++) {
+            state->errors[i] = 0;
+        }
+    }
+
+#define ERROR(x,y,e) do { had_error = TRUE; if (mark) state->errors[(y)*w+(x)] |= (e); } while(0)
+
+    /*
+     * First of all: we should have one single closed loop, passing through all clues.
+     */
+    dsf = snewn(w*h, int);
+    dsfsize = snewn(w*h, int);
+    dsf_init(dsf, w*h);
+    for (i = 0; i < w*h; i++) dsfsize[i] = 1;
+    loopclass = -1;
+
+    for (x = 0; x < w; x++) {
+        for (y = 0; y < h; y++) {
+            dsf_update_completion(state, &loopclass, x, y, R, dsf, dsfsize);
+            dsf_update_completion(state, &loopclass, x, y, D, dsf, dsfsize);
+        }
+    }
+    if (loopclass != -1) {
+        /* We have a loop. Check all squares with lines on. */
+        for (x = 0; x < w; x++) {
+            for (y = 0; y < h; y++) {
+                if (state->lines[y*w+x] == BLANK) {
+                    if (state->shared->clues[y*w+x] != NOCLUE) {
+                        /* the loop doesn't include this clue square! */
+                        ERROR(x, y, ERROR_CLUE);
+                    }
+                } else {
+                    if (dsf_canonify(dsf, y*w+x) != loopclass) {
+                        /* these lines are not on the loop: mark them as error. */
+                        ERROR(x, y, state->lines[y*w+x]);
+                    }
+                }
+            }
+        }
+    }
+
+    /*
+     * Second: check no clues are contradicted.
+     */
+
+    for (x = 0; x < w; x++) {
+        for (y = 0; y < h; y++) {
+            int type = state->lines[y*w+x];
+            /*
+             * Check that no square has more than two line segments.
+             */
+            if (NBITS(type) > 2) {
+                ERROR(x,y,type);
+            }
+            /*
+             * Check that no clues are contradicted. This code is similar to
+             * the code that sets up the maximal clue array for any given
+             * loop.
+             */
+            if (state->shared->clues[y*w+x] == CORNER) {
+                /* Supposed to be a corner: will find a contradiction if
+                 * it actually contains a straight line, or if it touches any
+                 * corners. */
+                if ((bLR|bUD) & (1 << type)) {
+                    ERROR(x,y,ERROR_CLUE); /* actually straight */
+                }
+                for (d = 1; d <= 8; d += d) if (type & d) {
+                    int xx = x + DX(d), yy = y + DY(d);
+                    if (!INGRID(state, xx, yy)) {
+                        ERROR(x,y,d); /* leads off grid */
+                    } else {
+                        if ((bLU|bLD|bRU|bRD) & (1 << state->lines[yy*w+xx])) {
+                            ERROR(x,y,ERROR_CLUE); /* touches corner */
+                        }
+                    }
+                }
+            } else if (state->shared->clues[y*w+x] == STRAIGHT) {
+                /* Supposed to be straight: will find a contradiction if
+                 * it actually contains a corner, or if it only touches
+                 * straight lines. */
+                if ((bLU|bLD|bRU|bRD) & (1 << type)) {
+                    ERROR(x,y,ERROR_CLUE); /* actually a corner */
+                }
+                i = 0;
+                for (d = 1; d <= 8; d += d) if (type & d) {
+                    int xx = x + DX(d), yy = y + DY(d);
+                    if (!INGRID(state, xx, yy)) {
+                        ERROR(x,y,d); /* leads off grid */
+                    } else {
+                        if ((bLR|bUD) & (1 << state->lines[yy*w+xx]))
+                            i++; /* a straight */
+                    }
+                }
+                if (i >= 2 && NBITS(type) >= 2) {
+                    ERROR(x,y,ERROR_CLUE); /* everything touched is straight */
+                }
+            }
+        }
+    }
+    if (!had_error && loopclass != -1) {
+        state->completed = TRUE;
+        state->loop_length = dsfsize[loopclass];
+    } else {
+        state->completed = FALSE;
+    }
+
+    sfree(dsf);
+    sfree(dsfsize);
+
+    return;
+}
+
+/* completion check:
+ *
+ * - no clues must be contradicted (highlight clue itself in error if so)
+ * - if there is a closed loop it must include every line segment laid
+ *    - if there's a smaller closed loop then highlight whole loop as error
+ * - no square must have more than 3 lines radiating from centre point
+ *   (highlight all lines in that square as error if so)
+ */
+
+static char *solve_for_diff(game_state *state, char *old_lines, char *new_lines)
+{
+    int w = state->shared->w, h = state->shared->h, i;
+    char *move = snewn(w*h*40, char), *p = move;
+
+    *p++ = 'S';
+    for (i = 0; i < w*h; i++) {
+        if (old_lines[i] != new_lines[i]) {
+            p += sprintf(p, ";R%d,%d,%d", new_lines[i], i%w, i/w);
+        }
+    }
+    *p++ = '\0';
+    move = sresize(move, p - move, char);
+
+    return move;
+}
+
+static char *solve_game(game_state *state, game_state *currstate,
+			char *aux, char **error)
+{
+    game_state *solved = dup_game(state);
+    int i, ret, sz = state->shared->sz;
+    char *move;
+
+    if (aux) {
+        for (i = 0; i < sz; i++) {
+            if (aux[i] >= '0' && aux[i] <= '9')
+                solved->lines[i] = aux[i] - '0';
+            else if (aux[i] >= 'A' && aux[i] <= 'F')
+                solved->lines[i] = aux[i] - 'A' + 10;
+            else {
+                *error = "invalid char in aux";
+                move = NULL;
+                goto done;
+            }
+        }
+        ret = 1;
+    } else {
+        /* Try to solve with present (half-solved) state first: if there's no
+         * solution from there go back to original state. */
+        ret = pearl_solve(currstate->shared->w, currstate->shared->h,
+                          currstate->shared->clues, solved->lines,
+                          DIFFCOUNT, FALSE);
+        if (ret < 1)
+            ret = pearl_solve(state->shared->w, state->shared->h,
+                              state->shared->clues, solved->lines,
+                              DIFFCOUNT, FALSE);
+
+    }
+
+    if (ret < 1) {
+        *error = "Unable to find solution";
+        move = NULL;
+    } else {
+        move = solve_for_diff(solved, currstate->lines, solved->lines);
+    }
+
+done:
+    free_game(solved);
+    return move;
+}
+
+static int game_can_format_as_text_now(game_params *params)
+{
+    return FALSE;
+}
+
+static char *game_text_format(game_state *state)
+{
+    return NULL;
+}
+
+struct game_ui {
+    int *dragcoords;       /* list of (y*w+x) coords in drag so far */
+    int ndragcoords;       /* number of entries in dragcoords. 0 = no drag. */
+    int clickx, clicky;    /* pixel position of initial click */
+};
+
+static game_ui *new_ui(game_state *state)
+{
+    game_ui *ui = snew(game_ui);
+    int sz = state->shared->sz;
+
+    ui->ndragcoords = 0;
+    ui->dragcoords = snewn(sz, int);
+
+    return ui;
+}
+
+static void free_ui(game_ui *ui)
+{
+    sfree(ui->dragcoords);
+    sfree(ui);
+}
+
+static char *encode_ui(game_ui *ui)
+{
+    return NULL;
+}
+
+static void decode_ui(game_ui *ui, char *encoding)
+{
+}
+
+static void game_changed_state(game_ui *ui, game_state *oldstate,
+                               game_state *newstate)
+{
+}
+
+#define PREFERRED_TILE_SIZE 31
+#define HALFSZ (ds->halfsz)
+#define TILE_SIZE (ds->halfsz*2 + 1)
+
+#define BORDER ((get_gui_style() == GUI_LOOPY) ? (TILE_SIZE/8) : (TILE_SIZE/2))
+
+#define BORDER_WIDTH (max(TILE_SIZE / 32, 1))
+
+#define COORD(x) ( (x) * TILE_SIZE + BORDER )
+#define FROMCOORD(x) ( ((x) < BORDER) ? -1 : ( ((x) - BORDER) / TILE_SIZE) )
+
+#define DS_ESHIFT 4     /* R/U/L/D shift, for error flags */
+#define DS_DSHIFT 8     /* R/U/L/D shift, for drag-in-progress flags */
+#define DS_MSHIFT 12    /* shift for no-line mark */
+
+#define DS_ERROR_CLUE (1 << 20)
+#define DS_FLASH (1 << 21)
+
+enum { GUI_MASYU, GUI_LOOPY };
+
+static int get_gui_style(void)
+{
+    static int gui_style = -1;
+
+    if (gui_style == -1) {
+        char *env = getenv("PEARL_GUI_LOOPY");
+        if (env && (env[0] == 'y' || env[0] == 'Y'))
+            gui_style = GUI_LOOPY;
+        else
+            gui_style = GUI_MASYU;
+    }
+    return gui_style;
+}
+
+struct game_drawstate {
+    int halfsz;
+    int started;
+
+    int w, h, sz;
+    unsigned int *lflags;       /* size w*h */
+
+    char *draglines;            /* size w*h; lines flipped by current drag */
+};
+
+static void update_ui_drag(game_state *state, game_ui *ui, int gx, int gy)
+{
+    int /* sz = state->shared->sz, */ w = state->shared->w;
+    int i, ox, oy, pos;
+    int lastpos;
+
+    if (!INGRID(state, gx, gy))
+        return;                        /* square is outside grid */
+
+    pos = gy * w + gx;
+
+    lastpos = ui->dragcoords[ui->ndragcoords > 0 ? ui->ndragcoords-1 : 0];
+    if (pos == lastpos)
+        return;             /* same square as last visited one */
+
+    /* Drag confirmed, if it wasn't already. */
+    if (ui->ndragcoords == 0)
+        ui->ndragcoords = 1;
+
+    /*
+     * Dragging the mouse into a square that's already been visited by
+     * the drag path so far has the effect of truncating the path back
+     * to that square, so a player can back out part of an uncommitted
+     * drag without having to let go of the mouse.
+     */
+    for (i = 0; i < ui->ndragcoords; i++)
+        if (pos == ui->dragcoords[i]) {
+            ui->ndragcoords = i+1;
+            return;
+        }
+
+    /*
+     * Otherwise, dragging the mouse into a square that's a rook-move
+     * away from the last one on the path extends the path.
+     */
+    oy = ui->dragcoords[ui->ndragcoords-1] / w;
+    ox = ui->dragcoords[ui->ndragcoords-1] % w;
+    if (ox == gx || oy == gy) {
+        int dx = (gx < ox ? -1 : gx > ox ? +1 : 0);
+        int dy = (gy < oy ? -1 : gy > oy ? +1 : 0);
+        while (ox != gx || oy != gy) {
+            ox += dx;
+            oy += dy;
+            ui->dragcoords[ui->ndragcoords++] = oy * w + ox;
+        }
+    }
+
+    /*
+     * Failing that, we do nothing at all: if the user has dragged
+     * diagonally across the board, they'll just have to return the
+     * mouse to the last known position and do whatever they meant to
+     * do again, more slowly and clearly.
+     */
+}
+
+/*
+ * Routine shared between interpret_move and game_redraw to work out
+ * the intended effect of a drag path on the grid.
+ *
+ * Call it in a loop, like this:
+ *
+ *     int clearing = TRUE;
+ *     for (i = 0; i < ui->ndragcoords - 1; i++) {
+ *         int sx, sy, dx, dy, dir, oldstate, newstate;
+ *         interpret_ui_drag(state, ui, &clearing, i, &sx, &sy, &dx, &dy,
+ *                           &dir, &oldstate, &newstate);
+ *
+ *         [do whatever is needed to handle the fact that the drag
+ *         wants the edge from sx,sy to dx,dy (heading in direction
+ *         'dir' at the sx,sy end) to be changed from state oldstate
+ *         to state newstate, each of which equals either 0 or dir]
+ *     }
+ */
+static void interpret_ui_drag(game_state *state, game_ui *ui, int *clearing,
+                              int i, int *sx, int *sy, int *dx, int *dy,
+                              int *dir, int *oldstate, int *newstate)
+{
+    int w = state->shared->w;
+    int sp = ui->dragcoords[i], dp = ui->dragcoords[i+1];
+    *sy = sp/w;
+    *sx = sp%w;
+    *dy = dp/w;
+    *dx = dp%w;
+    *dir = (*dy>*sy ? D : *dy<*sy ? U : *dx>*sx ? R : L);
+    *oldstate = state->lines[sp] & *dir;
+    if (*oldstate) {
+        /*
+         * The edge we've dragged over was previously
+         * present. Set it to absent, unless we've already
+         * stopped doing that.
+         */
+        *newstate = *clearing ? 0 : *dir;
+    } else {
+        /*
+         * The edge we've dragged over was previously
+         * absent. Set it to present, and cancel the
+         * 'clearing' flag so that all subsequent edges in
+         * the drag are set rather than cleared.
+         */
+        *newstate = *dir;
+        *clearing = FALSE;
+    }
+}
+
+static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
+			    int x, int y, int button)
+{
+    int w = state->shared->w /*, h = state->shared->h, sz = state->shared->sz */;
+    int gx = FROMCOORD(x), gy = FROMCOORD(y), i;
+    char tmpbuf[80];
+
+    if (button == LEFT_BUTTON) {
+        if (!INGRID(state, gx, gy)) return NULL;
+
+        ui->clickx = x; ui->clicky = y;
+        ui->dragcoords[0] = gy * w + gx;
+        ui->ndragcoords = 0;           /* will be 1 once drag is confirmed */
+
+        return "";
+    }
+
+    if (IS_MOUSE_DRAG(button)) {
+        update_ui_drag(state, ui, gx, gy);
+        return "";
+    }
+
+    if (IS_MOUSE_RELEASE(button)) {
+        if (ui->ndragcoords) {
+            /* End of a drag: process the cached line data. */
+            int buflen = 0, bufsize = 256, tmplen;
+            char *buf = NULL;
+            const char *sep = "";
+            int clearing = TRUE;
+
+            for (i = 0; i < ui->ndragcoords - 1; i++) {
+                int sx, sy, dx, dy, dir, oldstate, newstate;
+                interpret_ui_drag(state, ui, &clearing, i, &sx, &sy, &dx, &dy,
+                                  &dir, &oldstate, &newstate);
+
+                if (oldstate != newstate) {
+                    if (!buf) buf = snewn(bufsize, char);
+                    tmplen = sprintf(tmpbuf, "%sF%d,%d,%d;F%d,%d,%d", sep,
+                                     dir, sx, sy, F(dir), dx, dy);
+                    if (buflen + tmplen >= bufsize) {
+                        bufsize = (buflen + tmplen) * 5 / 4 + 256;
+                        buf = sresize(buf, bufsize, char);
+                    }
+                    strcpy(buf + buflen, tmpbuf);
+                    buflen += tmplen;
+                    sep = ";";
+                }
+            }
+
+            ui->ndragcoords = 0;
+
+            return buf ? buf : "";
+        } else {
+            /* Click (or tiny drag). Work out which edge we were closest to. */
+            int cx = COORD(gx) + TILE_SIZE/2, cy = COORD(gy) + TILE_SIZE/2;
+            int gx2, gy2, l1, l2, ismark = (button == RIGHT_RELEASE);
+            char movec = ismark ? 'M' : 'F';
+
+            if (!INGRID(state, gx, gy)) return "";
+
+            if (max(abs(x-cx),abs(y-cy)) < TILE_SIZE/4) {
+                /* TODO closer to centre of grid: process as a cell click not an edge click. */
+
+                return "";
+            } else {
+                if (abs(x-cx) < abs(y-cy)) {
+                    /* Closest to top/bottom edge. */
+                    l1 = (y < cy) ? U : D;
+                } else {
+                    /* Closest to left/right edge. */
+                    l1 = (x < cx) ? L : R;
+                }
+                gx2 = gx + DX(l1); gy2 = gy + DY(l1);
+                l2 = F(l1);
+
+                if (!INGRID(state, gx, gy) || !INGRID(state, gx2, gy2)) return "";
+
+                /* disallow laying a mark over a line, or vice versa. */
+                if (ismark) {
+                    if ((state->lines[gy*w+gx] & l1) || (state->lines[gy2*w+gx2] & l2))
+                        return "";
+                } else {
+                    if ((state->marks[gy*w+gx] & l1) || (state->marks[gy2*w+gx2] & l2))
+                        return "";
+                }
+
+                sprintf(tmpbuf, "%c%d,%d,%d;%c%d,%d,%d",
+                        movec, l1, gx, gy, movec, l2, gx2, gy2);
+                return dupstr(tmpbuf);
+            }
+        }
+    }
+
+    if (button == 'H' || button == 'h')
+        return dupstr("H");
+
+    /* TODO cursor */
+
+    return NULL;
+}
+
+static game_state *execute_move(game_state *state, char *move)
+{
+    int w = state->shared->w, h = state->shared->h;
+    char c;
+    int x, y, l, n;
+    game_state *ret = dup_game(state);
+
+    debug(("move: %s\n", move));
+
+    while (*move) {
+        c = *move;
+        if (c == 'S') {
+            ret->used_solve = TRUE;
+            move++;
+        } else if (c == 'L' || c == 'N' || c == 'R' || c == 'F' || c == 'M') {
+            /* 'line' or 'noline' or 'replace' or 'flip' or 'mark' */
+            move++;
+            if (sscanf(move, "%d,%d,%d%n", &l, &x, &y, &n) != 3)
+                goto badmove;
+            if (!INGRID(state, x, y)) goto badmove;
+            if (l < 0 || l > 15) goto badmove;
+
+            /* TODO trying to set a line over a no-line mark should be
+             * a failed move? */
+
+            if (c == 'L')
+                ret->lines[y*w + x] |= (char)l;
+            else if (c == 'N')
+                ret->lines[y*w + x] &= ~((char)l);
+            else if (c == 'R') {
+                ret->lines[y*w + x] = (char)l;
+                ret->marks[y*w + x] &= ~((char)l); /* erase marks too */
+            } else if (c == 'F')
+                ret->lines[y*w + x] ^= (char)l;
+            else if (c == 'M')
+                ret->marks[y*w + x] ^= (char)l;
+
+            move += n;
+        } else if (strcmp(move, "H") == 0) {
+            pearl_solve(ret->shared->w, ret->shared->h,
+                        ret->shared->clues, ret->lines, DIFFCOUNT, TRUE);
+            for (n = 0; n < w*h; n++)
+                ret->marks[n] &= ~ret->lines[n]; /* erase marks too */
+            move++;
+        } else {
+            goto badmove;
+        }
+        if (*move == ';')
+            move++;
+        else if (*move)
+            goto badmove;
+    }
+
+    check_completion(ret, TRUE);
+
+    return ret;
+
+badmove:
+    free_game(ret);
+    return NULL;
+}
+
+/* ----------------------------------------------------------------------
+ * Drawing routines.
+ */
+
+#define FLASH_TIME 0.5F
+
+static void game_compute_size(game_params *params, int tilesize,
+			      int *x, int *y)
+{
+    /* Ick: fake up `ds->tilesize' for macro expansion purposes */
+    struct { int halfsz; } ads, *ds = &ads;
+    ads.halfsz = (tilesize-1)/2;
+
+    *x = (params->w) * TILE_SIZE + 2 * BORDER;
+    *y = (params->h) * TILE_SIZE + 2 * BORDER;
+}
+
+static void game_set_size(drawing *dr, game_drawstate *ds,
+			  game_params *params, int tilesize)
+{
+    ds->halfsz = (tilesize-1)/2;
+}
+
+static float *game_colours(frontend *fe, int *ncolours)
+{
+    float *ret = snewn(3 * NCOLOURS, float);
+    int i;
+
+    game_mkhighlight(fe, ret, COL_BACKGROUND, COL_HIGHLIGHT, COL_LOWLIGHT);
+
+    for (i = 0; i < 3; i++) {
+        ret[COL_BLACK * 3 + i] = 0.0F;
+        ret[COL_WHITE * 3 + i] = 1.0F;
+        ret[COL_GRID * 3 + i] = 0.4F;
+    }
+
+    ret[COL_ERROR * 3 + 0] = 1.0F;
+    ret[COL_ERROR * 3 + 1] = 0.0F;
+    ret[COL_ERROR * 3 + 2] = 0.0F;
+
+    ret[COL_DRAGON * 3 + 0] = 0.0F;
+    ret[COL_DRAGON * 3 + 1] = 0.0F;
+    ret[COL_DRAGON * 3 + 2] = 1.0F;
+
+    ret[COL_DRAGOFF * 3 + 0] = 0.8F;
+    ret[COL_DRAGOFF * 3 + 1] = 0.8F;
+    ret[COL_DRAGOFF * 3 + 2] = 1.0F;
+
+    ret[COL_FLASH * 3 + 0] = 1.0F;
+    ret[COL_FLASH * 3 + 1] = 1.0F;
+    ret[COL_FLASH * 3 + 2] = 1.0F;
+
+    *ncolours = NCOLOURS;
+
+    return ret;
+}
+
+static game_drawstate *game_new_drawstate(drawing *dr, game_state *state)
+{
+    struct game_drawstate *ds = snew(struct game_drawstate);
+    int i;
+
+    ds->halfsz = 0;
+    ds->started = FALSE;
+
+    ds->w = state->shared->w;
+    ds->h = state->shared->h;
+    ds->sz = state->shared->sz;
+    ds->lflags = snewn(ds->sz, unsigned int);
+    for (i = 0; i < ds->sz; i++)
+        ds->lflags[i] = 0;
+
+    ds->draglines = snewn(ds->sz, char);
+
+    return ds;
+}
+
+static void game_free_drawstate(drawing *dr, game_drawstate *ds)
+{
+    sfree(ds->draglines);
+    sfree(ds->lflags);
+    sfree(ds);
+}
+
+static void draw_lines_specific(drawing *dr, game_drawstate *ds,
+                                int x, int y, unsigned int lflags,
+                                unsigned int shift, int c)
+{
+    int ox = COORD(x), oy = COORD(y);
+    int t2 = HALFSZ, t16 = HALFSZ/4;
+    int cx = ox + t2, cy = oy + t2;
+    int d;
+
+    /* Draw each of the four directions, where laid (or error, or drag, etc.) */
+    for (d = 1; d < 16; d *= 2) {
+        int xoff = t2 * DX(d), yoff = t2 * DY(d);
+        int xnudge = abs(t16 * DX(C(d))), ynudge = abs(t16 * DY(C(d)));
+
+        if ((lflags >> shift) & d) {
+            int lx = cx + ((xoff < 0) ? xoff : 0) - xnudge;
+            int ly = cy + ((yoff < 0) ? yoff : 0) - ynudge;
+
+            if (c == COL_DRAGOFF && !(lflags & d))
+                continue;
+            if (c == COL_DRAGON && (lflags & d))
+                continue;
+
+            draw_rect(dr, lx, ly,
+                      abs(xoff)+2*xnudge+1,
+                      abs(yoff)+2*ynudge+1, c);
+            /* end cap */
+            draw_rect(dr, cx - t16, cy - t16, 2*t16+1, 2*t16+1, c);
+        }
+    }
+}
+
+static void draw_square(drawing *dr, game_drawstate *ds, game_ui *ui,
+                        int x, int y, unsigned int lflags, char clue)
+{
+    int ox = COORD(x), oy = COORD(y);
+    int t2 = HALFSZ, t16 = HALFSZ/4;
+    int cx = ox + t2, cy = oy + t2;
+    int d;
+
+    assert(dr);
+
+    /* Clip to the grid square. */
+    clip(dr, ox, oy, TILE_SIZE, TILE_SIZE);
+
+    /* Clear the square. */
+    draw_rect(dr, ox, oy, TILE_SIZE, TILE_SIZE, COL_BACKGROUND);
+
+    if (get_gui_style() == GUI_LOOPY) {
+        /* Draw small dot, underneath any lines. */
+        draw_circle(dr, cx, cy, t16, COL_GRID, COL_GRID);
+    } else {
+        /* Draw outline of grid square */
+        draw_line(dr, ox, oy, COORD(x+1), oy, COL_GRID);
+        draw_line(dr, ox, oy, ox, COORD(y+1), COL_GRID);
+    }
+
+    /* Draw grid: either thin gridlines, or no-line marks.
+     * We draw these first because the thick laid lines should be on top. */
+    for (d = 1; d < 16; d *= 2) {
+        int xoff = t2 * DX(d), yoff = t2 * DY(d);
+
+        if ((x == 0 && d == L) ||
+            (y == 0 && d == U) ||
+            (x == ds->w-1 && d == R) ||
+            (y == ds->h-1 && d == D))
+            continue; /* no gridlines out to the border. */
+
+        if ((lflags >> DS_MSHIFT) & d) {
+            /* either a no-line mark ... */
+            int mx = cx + xoff, my = cy + yoff, msz = t16;
+
+            draw_line(dr, mx-msz, my-msz, mx+msz, my+msz, COL_BLACK);
+            draw_line(dr, mx-msz, my+msz, mx+msz, my-msz, COL_BLACK);
+        } else {
+            if (get_gui_style() == GUI_LOOPY) {
+                /* draw grid lines connecting centre of cells */
+                draw_line(dr, cx, cy, cx+xoff, cy+yoff, COL_GRID);
+            }
+        }
+    }
+
+    /* Draw each of the four directions, where laid (or error, or drag, etc.)
+     * Order is important here, specifically for the eventual colours of the
+     * exposed end caps. */
+    draw_lines_specific(dr, ds, x, y, lflags, 0,
+                        (lflags & DS_FLASH ? COL_FLASH : COL_BLACK));
+    draw_lines_specific(dr, ds, x, y, lflags, DS_ESHIFT, COL_ERROR);
+    draw_lines_specific(dr, ds, x, y, lflags, DS_DSHIFT, COL_DRAGOFF);
+    draw_lines_specific(dr, ds, x, y, lflags, DS_DSHIFT, COL_DRAGON);
+
+    /* Draw a clue, if present */
+    if (clue != NOCLUE) {
+        int c = (lflags & DS_FLASH) ? COL_FLASH :
+                (clue == CORNER) ? COL_BLACK : COL_WHITE;
+
+        if (lflags & DS_ERROR_CLUE) /* draw a bigger 'error' clue circle. */
+            draw_circle(dr, cx, cy, TILE_SIZE*3/8, COL_ERROR, COL_ERROR);
+
+        draw_circle(dr, cx, cy, TILE_SIZE/4, c, COL_BLACK);
+    }
+
+    unclip(dr);
+    draw_update(dr, ox, oy, TILE_SIZE, TILE_SIZE);
+}
+
+static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
+			game_state *state, int dir, game_ui *ui,
+			float animtime, float flashtime)
+{
+    int w = state->shared->w, h = state->shared->h, sz = state->shared->sz;
+    int x, y, force = 0, flashing = 0;
+
+    if (!ds->started) {
+        /*
+         * The initial contents of the window are not guaranteed and
+         * can vary with front ends. To be on the safe side, all games
+         * should start by drawing a big background-colour rectangle
+         * covering the whole window.
+         */
+        draw_rect(dr, 0, 0, w*TILE_SIZE + 2*BORDER, h*TILE_SIZE + 2*BORDER,
+                  COL_BACKGROUND);
+
+        if (get_gui_style() == GUI_MASYU) {
+            /*
+             * Smaller black rectangle which is the main grid.
+             */
+            draw_rect(dr, BORDER - BORDER_WIDTH, BORDER - BORDER_WIDTH,
+                      w*TILE_SIZE + 2*BORDER_WIDTH + 1,
+                      h*TILE_SIZE + 2*BORDER_WIDTH + 1,
+                      COL_GRID);
+        }
+
+        draw_update(dr, 0, 0, w*TILE_SIZE + 2*BORDER, h*TILE_SIZE + 2*BORDER);
+
+        ds->started = TRUE;
+        force = 1;
+    }
+
+    if (flashtime > 0 &&
+        (flashtime <= FLASH_TIME/3 ||
+         flashtime >= FLASH_TIME*2/3))
+        flashing = DS_FLASH;
+
+    memset(ds->draglines, 0, sz);
+    if (ui->dragcoords) {
+        int i, clearing = TRUE;
+        for (i = 0; i < ui->ndragcoords - 1; i++) {
+            int sx, sy, dx, dy, dir, oldstate, newstate;
+            interpret_ui_drag(state, ui, &clearing, i, &sx, &sy, &dx, &dy,
+                              &dir, &oldstate, &newstate);
+            ds->draglines[sy*w+sx] ^= (oldstate ^ newstate);
+            ds->draglines[dy*w+dx] ^= (F(oldstate) ^ F(newstate));
+        }
+    }	
+
+    for (x = 0; x < w; x++) {
+        for (y = 0; y < h; y++) {
+            unsigned int f = (unsigned int)state->lines[y*w+x];
+            unsigned int eline = (unsigned int)(state->errors[y*w+x] & (R|U|L|D));
+
+            f |= eline << DS_ESHIFT;
+            f |= ((unsigned int)ds->draglines[y*w+x]) << DS_DSHIFT;
+            f |= ((unsigned int)state->marks[y*w+x]) << DS_MSHIFT;
+
+            if (state->errors[y*w+x] & ERROR_CLUE)
+                f |= DS_ERROR_CLUE;
+
+            f |= flashing;
+
+            if (f != ds->lflags[y*w+x] || force) {
+                ds->lflags[y*w+x] = f;
+                draw_square(dr, ds, ui, x, y, f, state->shared->clues[y*w+x]);
+            }
+        }
+    }
+}
+
+static float game_anim_length(game_state *oldstate, game_state *newstate,
+			      int dir, game_ui *ui)
+{
+    return 0.0F;
+}
+
+static float game_flash_length(game_state *oldstate, game_state *newstate,
+			       int dir, game_ui *ui)
+{
+    if (!oldstate->completed &&
+        newstate->completed && !newstate->used_solve)
+        return FLASH_TIME;
+    else
+        return 0.0F;
+}
+
+static int game_status(game_state *state)
+{
+    return state->completed ? +1 : 0;
+}
+
+static int game_timing_state(game_state *state, game_ui *ui)
+{
+    return TRUE;
+}
+
+static void game_print_size(game_params *params, float *x, float *y)
+{
+    int pw, ph;
+
+    /*
+     * I'll use 6mm squares by default.
+     */
+    game_compute_size(params, 600, &pw, &ph);
+    *x = pw / 100.0F;
+    *y = ph / 100.0F;
+}
+
+static void game_print(drawing *dr, game_state *state, int tilesize)
+{
+    int w = state->shared->w, h = state->shared->h, x, y;
+    int black = print_mono_colour(dr, 0);
+    int white = print_mono_colour(dr, 1);
+
+    /* No GUI_LOOPY here: only use the familiar masyu style. */
+
+    /* Ick: fake up `ds->tilesize' for macro expansion purposes */
+    game_drawstate *ds = game_new_drawstate(dr, state);
+    game_set_size(dr, ds, NULL, tilesize);
+
+    /* Draw grid outlines (black). */
+    for (x = 0; x <= w; x++)
+        draw_line(dr, COORD(x), COORD(0), COORD(x), COORD(h), black);
+    for (y = 0; y <= h; y++)
+        draw_line(dr, COORD(0), COORD(y), COORD(w), COORD(y), black);
+
+    for (x = 0; x < w; x++) {
+        for (y = 0; y < h; y++) {
+            int cx = COORD(x) + HALFSZ, cy = COORD(y) + HALFSZ;
+            int clue = state->shared->clues[y*w+x];
+
+            draw_lines_specific(dr, ds, x, y, state->lines[y*w+x], 0, black);
+
+            if (clue != NOCLUE) {
+                int c = (clue == CORNER) ? black : white;
+                draw_circle(dr, cx, cy, TILE_SIZE/4, c, black);
+            }
+        }
+    }
+
+    game_free_drawstate(dr, ds);
+}
+
+#ifdef COMBINED
+#define thegame pearl
+#endif
+
+const struct game thegame = {
+    "Pearl", "games.pearl", "pearl",
+    default_params,
+    game_fetch_preset,
+    decode_params,
+    encode_params,
+    free_params,
+    dup_params,
+    TRUE, game_configure, custom_params,
+    validate_params,
+    new_game_desc,
+    validate_desc,
+    new_game,
+    dup_game,
+    free_game,
+    TRUE, solve_game,
+    FALSE, game_can_format_as_text_now, game_text_format,
+    new_ui,
+    free_ui,
+    encode_ui,
+    decode_ui,
+    game_changed_state,
+    interpret_move,
+    execute_move,
+    PREFERRED_TILE_SIZE, game_compute_size, game_set_size,
+    game_colours,
+    game_new_drawstate,
+    game_free_drawstate,
+    game_redraw,
+    game_anim_length,
+    game_flash_length,
+    game_status,
+    TRUE, FALSE, game_print_size, game_print,
+    FALSE,			       /* wants_statusbar */
+    FALSE, game_timing_state,
+    0,				       /* flags */
+};
+
+#ifdef STANDALONE_SOLVER
+
+#include <time.h>
+#include <stdarg.h>
+
+const char *quis = NULL;
+
+static void usage(FILE *out) {
+    fprintf(out, "usage: %s <params>\n", quis);
+}
+
+static void pnum(int n, int ntot, const char *desc)
+{
+    printf("%2.1f%% (%d) %s", (double)n*100.0 / (double)ntot, n, desc);
+}
+
+static void start_soak(game_params *p, random_state *rs, int nsecs)
+{
+    time_t tt_start, tt_now, tt_last;
+    int n = 0, nsolved = 0, nimpossible = 0, ret;
+    char *grid, *clues;
+
+    tt_start = tt_last = time(NULL);
+
+    /* Currently this generates puzzles of any difficulty (trying to solve it
+     * on the maximum difficulty level and not checking it's not too easy). */
+    printf("Soak-testing a %dx%d grid (any difficulty)", p->w, p->h);
+    if (nsecs > 0) printf(" for %d seconds", nsecs);
+    printf(".\n");
+
+    p->nosolve = TRUE;
+
+    grid = snewn(p->w*p->h, char);
+    clues = snewn(p->w*p->h, char);
+
+    while (1) {
+        n += new_clues(p, rs, clues, grid); /* should be 1, with nosolve */
+
+        ret = pearl_solve(p->w, p->h, clues, grid, DIFF_TRICKY, FALSE);
+        if (ret <= 0) nimpossible++;
+        if (ret == 1) nsolved++;
+
+        tt_now = time(NULL);
+        if (tt_now > tt_last) {
+            tt_last = tt_now;
+
+            printf("%d total, %3.1f/s, ",
+                   n, (double)n / ((double)tt_now - tt_start));
+            pnum(nsolved, n, "solved"); printf(", ");
+            printf("%3.1f/s", (double)nsolved / ((double)tt_now - tt_start));
+            if (nimpossible > 0)
+                pnum(nimpossible, n, "impossible");
+            printf("\n");
+        }
+        if (nsecs > 0 && (tt_now - tt_start) > nsecs) {
+            printf("\n");
+            break;
+        }
+    }
+
+    sfree(grid);
+    sfree(clues);
+}
+
+int main(int argc, const char *argv[])
+{
+    game_params *p = NULL;
+    random_state *rs = NULL;
+    time_t seed = time(NULL);
+    char *id = NULL, *err;
+
+    setvbuf(stdout, NULL, _IONBF, 0);
+
+    quis = argv[0];
+
+    while (--argc > 0) {
+        char *p = (char*)(*++argv);
+        if (!strcmp(p, "-e") || !strcmp(p, "--seed")) {
+            seed = atoi(*++argv);
+            argc--;
+        } else if (*p == '-') {
+            fprintf(stderr, "%s: unrecognised option `%s'\n", argv[0], p);
+            usage(stderr);
+            exit(1);
+        } else {
+            id = p;
+        }
+    }
+
+    rs = random_new((void*)&seed, sizeof(time_t));
+    p = default_params();
+
+    if (id) {
+        if (strchr(id, ':')) {
+            fprintf(stderr, "soak takes params only.\n");
+            goto done;
+        }
+
+        decode_params(p, id);
+        err = validate_params(p, 1);
+        if (err) {
+            fprintf(stderr, "%s: %s", argv[0], err);
+            goto done;
+        }
+
+        start_soak(p, rs, 0); /* run forever */
+    } else {
+        int i;
+
+        for (i = 5; i <= 12; i++) {
+            p->w = p->h = i;
+            start_soak(p, rs, 5);
+        }
+    }
+
+done:
+    free_params(p);
+    random_free(rs);
+
+    return 0;
+}
+
+#endif
+
+/* vim: set shiftwidth=4 tabstop=8: */
