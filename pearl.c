@@ -1907,7 +1907,7 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
     int gx = FROMCOORD(x), gy = FROMCOORD(y), i;
     char tmpbuf[80];
 
-    if (button == LEFT_BUTTON) {
+    if (IS_MOUSE_DOWN(button)) {
         if (!INGRID(state, gx, gy)) return NULL;
 
         ui->clickx = x; ui->clicky = y;
@@ -1917,7 +1917,7 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
         return "";
     }
 
-    if (IS_MOUSE_DRAG(button)) {
+    if (button == LEFT_DRAG) {
         update_ui_drag(state, ui, gx, gy);
         return "";
     }
@@ -1953,10 +1953,24 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
 
             return buf ? buf : "";
         } else {
-            /* Click (or tiny drag). Work out which edge we were closest to. */
-            int cx = COORD(gx) + TILE_SIZE/2, cy = COORD(gy) + TILE_SIZE/2;
+            /* Click (or tiny drag). Work out which edge we were
+             * closest to. */
+            int cx, cy;
             int gx2, gy2, l1, l2, ismark = (button == RIGHT_RELEASE);
             char movec = ismark ? 'M' : 'F';
+
+            /*
+             * We process clicks based on the mouse-down location,
+             * because that's more natural for a user to carefully
+             * control than the mouse-up.
+             */
+            x = ui->clickx;
+            y = ui->clicky;
+
+            gx = FROMCOORD(x);
+            gy = FROMCOORD(y);
+            cx = COORD(gx) + TILE_SIZE/2;
+            cy = COORD(gy) + TILE_SIZE/2;
 
             if (!INGRID(state, gx, gy)) return "";
 
