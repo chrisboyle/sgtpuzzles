@@ -1677,7 +1677,7 @@ static char *solve_game(game_state *state, game_state *currstate,
     /* That didn't work; try solving from the clean puzzle. */
     solved = dup_game(state);
     if (dosolve(solved, sflags, NULL) > 0) goto solved;
-    *error = "Puzzle is not self-consistent.";
+    *error = "Unable to find a solution to this puzzle.";
     goto done;
 
 solved:
