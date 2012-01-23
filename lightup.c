@@ -215,6 +215,11 @@ static void decode_params(game_params *params, char const *string)
     if (*string == 's') {
         string++;
         EATNUM(params->symm);
+    } else {
+        /* cope with user input such as '18x10' by ensuring symmetry
+         * is not selected by default to be incompatible with dimensions */
+        if (params->symm == SYMM_ROT4 && params->w != params->h)
+            params->symm = SYMM_ROT2;
     }
     params->difficulty = 0;
     /* cope with old params */
