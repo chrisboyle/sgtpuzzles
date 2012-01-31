@@ -1335,6 +1335,8 @@ static int new_clues(game_params *params, random_state *rs,
 	break;			       /* got it */
     }
 
+    debug(("%d %dx%d loops before finished puzzle.\n", ngen, w, h));
+
     return ngen;
 }
 
@@ -1343,14 +1345,12 @@ static char *new_game_desc(game_params *params, random_state *rs,
 {
     char *grid, *clues;
     char *desc;
-    int ngen, w = params->w, h = params->h, i, j;
+    int w = params->w, h = params->h, i, j;
 
     grid = snewn(w*h, char);
     clues = snewn(w*h, char);
 
-    ngen = new_clues(params, rs, clues, grid);
-
-    debug(("%d %dx%d loops before finished puzzle.\n", ngen, w, h));
+    new_clues(params, rs, clues, grid);
 
     desc = snewn(w * h + 1, char);
     for (i = j = 0; i < w*h; i++) {
