@@ -2402,7 +2402,7 @@ static void solver(int cr, struct block_structure *blocks,
 		    scratch->indexlist[i*cr+n-1] = cubepos2(diag1(i), n);
             ret = solver_set(usage, scratch, scratch->indexlist
 #ifdef STANDALONE_SOLVER
-			     , "set elimination, \\-diagonal"
+			     , "set elimination, /-diagonal"
 #endif
 			     );
 	    if (ret < 0) {
@@ -5578,7 +5578,7 @@ int main(int argc, char **argv)
 	       dlev.diff==DIFF_IMPOSSIBLE ? "Impossible (no solution exists)":
 	       "INTERNAL ERROR: unrecognised difficulty code");
 	if (p->killer)
-	    printf("Killer diffculty: %s\n",
+	    printf("Killer difficulty: %s\n",
 		   dlev.kdiff==DIFF_KSINGLE ? "Trivial (single square cages only)":
 		   dlev.kdiff==DIFF_KMINMAX ? "Simple (maximum sum analysis required)":
 		   dlev.kdiff==DIFF_KSUMS ? "Intermediate (sum possibilities)":
