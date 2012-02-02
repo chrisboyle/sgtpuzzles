@@ -1473,7 +1473,7 @@ static int solver_killer_sums(struct solver_usage *usage, int b,
     }
     assert(nsquares > 0);
 
-    if (nsquares > 4)
+    if (nsquares < 2 || nsquares > 4)
 	return 0;
 
     if (!cage_is_region) {
