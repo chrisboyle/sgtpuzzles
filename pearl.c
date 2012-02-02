@@ -1836,7 +1836,15 @@ static void update_ui_drag(game_state *state, game_ui *ui, int gx, int gy)
     if (ox == gx || oy == gy) {
         int dx = (gx < ox ? -1 : gx > ox ? +1 : 0);
         int dy = (gy < oy ? -1 : gy > oy ? +1 : 0);
+        int dir = (dy>0 ? D : dy<0 ? U : dx>0 ? R : L);
         while (ox != gx || oy != gy) {
+            /*
+             * If the drag attempts to cross a 'no line here' mark,
+             * stop there. We physically don't allow the user to drag
+             * over those marks.
+             */
+            if (state->marks[oy*w+ox] & dir)
+                break;
             ox += dx;
             oy += dy;
             ui->dragcoords[ui->ndragcoords++] = oy * w + ox;
@@ -2037,9 +2045,6 @@ static game_state *execute_move(game_state *state, char *move)
             if (!INGRID(state, x, y)) goto badmove;
             if (l < 0 || l > 15) goto badmove;
 
-            /* TODO trying to set a line over a no-line mark should be
-             * a failed move? */
-
             if (c == 'L')
                 ret->lines[y*w + x] |= (char)l;
             else if (c == 'N')
@@ -2051,6 +2056,16 @@ static game_state *execute_move(game_state *state, char *move)
                 ret->lines[y*w + x] ^= (char)l;
             else if (c == 'M')
                 ret->marks[y*w + x] ^= (char)l;
+
+            /*
+             * If we ended up trying to lay a line _over_ a mark,
+             * that's a failed move: interpret_move() should have
+             * ensured we never received a move string like that in
+             * the first place.
+             */
+            if ((ret->lines[y*w + x] & (char)l) &&
+                (ret->marks[y*w + x] & (char)l))
+                goto badmove;
 
             move += n;
         } else if (strcmp(move, "H") == 0) {
