@@ -2041,7 +2041,7 @@ static void solver(int cr, struct block_structure *blocks,
 					     );
 		if (ret > 0) {
 		    changed = TRUE;
-		    kdiff = max(kdiff, DIFF_KINTERSECT);
+		    kdiff = max(kdiff, DIFF_KSUMS);
 		} else if (ret < 0) {
 		    diff = DIFF_IMPOSSIBLE;
 		    goto got_result;
