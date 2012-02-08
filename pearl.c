@@ -1717,7 +1717,8 @@ static char *game_text_format(game_state *state)
 
 struct game_ui {
     int *dragcoords;       /* list of (y*w+x) coords in drag so far */
-    int ndragcoords;       /* number of entries in dragcoords. 0 = no drag. */
+    int ndragcoords;       /* number of entries in dragcoords.
+                            * 0 = click but no drag yet. -1 = no drag at all */
     int clickx, clicky;    /* pixel position of initial click */
 };
 
@@ -1726,7 +1727,7 @@ static game_ui *new_ui(game_state *state)
     game_ui *ui = snew(game_ui);
     int sz = state->shared->sz;
 
-    ui->ndragcoords = 0;
+    ui->ndragcoords = -1;
     ui->dragcoords = snewn(sz, int);
 
     return ui;
@@ -1804,6 +1805,9 @@ static void update_ui_drag(game_state *state, game_ui *ui, int gx, int gy)
 
     if (!INGRID(state, gx, gy))
         return;                        /* square is outside grid */
+
+    if (ui->ndragcoords < 0)
+        return;                        /* drag not in progress anyway */
 
     pos = gy * w + gx;
 
@@ -1916,7 +1920,10 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
     char tmpbuf[80];
 
     if (IS_MOUSE_DOWN(button)) {
-        if (!INGRID(state, gx, gy)) return NULL;
+        if (!INGRID(state, gx, gy)) {
+            ui->ndragcoords = -1;
+            return NULL;
+        }
 
         ui->clickx = x; ui->clicky = y;
         ui->dragcoords[0] = gy * w + gx;
@@ -1925,13 +1932,13 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
         return "";
     }
 
-    if (button == LEFT_DRAG) {
+    if (button == LEFT_DRAG && ui->ndragcoords >= 0) {
         update_ui_drag(state, ui, gx, gy);
         return "";
     }
 
     if (IS_MOUSE_RELEASE(button)) {
-        if (ui->ndragcoords) {
+        if (ui->ndragcoords > 0) {
             /* End of a drag: process the cached line data. */
             int buflen = 0, bufsize = 256, tmplen;
             char *buf = NULL;
@@ -1957,15 +1964,17 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
                 }
             }
 
-            ui->ndragcoords = 0;
+            ui->ndragcoords = -1;
 
             return buf ? buf : "";
-        } else {
+        } else if (ui->dragcoords == 0) {
             /* Click (or tiny drag). Work out which edge we were
              * closest to. */
             int cx, cy;
             int gx2, gy2, l1, l2, ismark = (button == RIGHT_RELEASE);
             char movec = ismark ? 'M' : 'F';
+
+            ui->ndragcoords = -1;
 
             /*
              * We process clicks based on the mouse-down location,
@@ -2321,7 +2330,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
         flashing = DS_FLASH;
 
     memset(ds->draglines, 0, sz);
-    if (ui->dragcoords) {
+    if (ui->ndragcoords > 0) {
         int i, clearing = TRUE;
         for (i = 0; i < ui->ndragcoords - 1; i++) {
             int sx, sy, dx, dy, dir, oldstate, newstate;
