@@ -1967,7 +1967,7 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
             ui->ndragcoords = -1;
 
             return buf ? buf : "";
-        } else if (ui->dragcoords == 0) {
+        } else if (ui->ndragcoords == 0) {
             /* Click (or tiny drag). Work out which edge we were
              * closest to. */
             int cx, cy;
