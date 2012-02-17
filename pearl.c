@@ -2279,7 +2279,7 @@ static void draw_square(drawing *dr, game_drawstate *ds, game_ui *ui,
     /* Draw a clue, if present */
     if (clue != NOCLUE) {
         int c = (lflags & DS_FLASH) ? COL_FLASH :
-                (clue == CORNER) ? COL_BLACK : COL_WHITE;
+                (clue == STRAIGHT) ? COL_WHITE : COL_BLACK;
 
         if (lflags & DS_ERROR_CLUE) /* draw a bigger 'error' clue circle. */
             draw_circle(dr, cx, cy, TILE_SIZE*3/8, COL_ERROR, COL_ERROR);
