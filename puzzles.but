@@ -2958,6 +2958,12 @@ indicating that you are sure the loop does not go through that edge.
 white clue has to be a corner, but don't yet know which way the corner
 turns, you might mark the one way it \e{can't} go with a cross.)
 
+Alternatively, use the cursor keys to move the cursor.  Use the Enter
+key to begin and end keyboard `drag' operations.  Use the Space key to
+cancel the drag.  Use Ctrl-arrowkey and Shift-arrowkey to simulate a
+left or right click, respectively, on the edge in the given direction
+relative to the cursor, i.e. to draw a segment or a cross.
+
 (All the actions described in \k{common-actions} are also available.)
 
 \H{pearl-parameters} \I{parameters, for Pearl}Pearl parameters
