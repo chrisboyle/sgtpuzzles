@@ -44,13 +44,13 @@ Revision: %s"</string>
     <string name="prompt_install_log_collector">Install the free and open source Log Collector application to collect the device log and send it to the developer. I will launch it with appropriate options after you install.</string>
     <string name="crash_subject">Crash: Puzzles v{0} on {1} / {2} / {3}</string>
     <string name="crash_preamble">Please describe what you were doing just before the crash if possible, and then press Send:</string>
-    <string name="crashtitle">Well, this is embarrassing...</string>
+    <string name="crashtitle">Well, this is embarrassing…</string>
     <string name="crashed">Sorry, Puzzles encountered a problem and had to close. Would you like to send a crash report, which may help the author to fix the problem?</string>
     <string name="report">Report</string>
     <string name="close">Close</string>
     <string name="clear_state">Forget state</string>
-    <string name="getting_log">Getting log...</string>
-    <string name="starting_email">Starting email client...</string>
+    <string name="getting_log">Getting log…</string>
+    <string name="starting_email">Starting email client…</string>
     <string name="get_log_failed">Could not read the log. Perhaps you are on a T-Mobile Pulse (Huawei U8220) where logcat fails (complain to Huawei about it?) Meanwhile, send an ordinary bug report to {0}, describing what you did and what happened, and I may still be able to help you.</string>
     <!-- For saving and loading game state on the SD card -->
     <string name="filename">Filename</string>
@@ -81,12 +81,12 @@ Revision: %s"</string>
     <string name="Details">Details</string>
     <string name="New_game">New game</string>
     <string name="Restart">Restart</string>
-    <string name="Specific_">Specific...</string>
-    <string name="Random_seed_">Random seed...</string>
-    <string name="Load_">Load...</string>
-    <string name="Save_">Save...</string>
+    <string name="Specific_">Specific…</string>
+    <string name="Random_seed_">Random seed…</string>
+    <string name="Load_">Load…</string>
+    <string name="Save_">Save…</string>
     <string name="Type">Type</string>
-    <string name="Custom_">Custom...</string>
+    <string name="Custom_">Custom…</string>
     <string name="Help">Help</string>
     <string name="Contents">Contents</string>
     <string name="On_this_game">On this game</string>
@@ -109,6 +109,8 @@ Revision: %s"</string>
     <string name="arrowKeysNever">Never</string>
     <string name="fullscreen">Full screen</string>
     <string name="fullscreenSummary">Hide notifications (fails on Ice Cream Sandwich)</string>
+    <string name="stayAwake">Stay awake</string>
+    <string name="stayAwakeSummary">Make screen stay on while Puzzles is in the foreground</string>
     <string name="inertiaForceArrows">Always show arrows</string>
     <string name="inertiaForceArrowsSummary">This game has diagonal arrow keys</string>
     <string name="patternShowLengths">Show drag lengths</string>

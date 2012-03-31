@@ -18,6 +18,10 @@
 			android:summary="@string/fullscreenSummary"
 			android:key="fullscreen"
 			android:defaultValue="false" />
+		<CheckBoxPreference android:title="@string/stayAwake"
+			android:summary="@string/stayAwakeSummary"
+			android:key="stayAwake"
+			android:defaultValue="false" />
 		<ListPreference android:title="@string/arrowKeys"
 			android:key="arrowKeys"
 			android:entryValues="@array/arrowKeyModes"

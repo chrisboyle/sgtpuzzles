@@ -67,6 +67,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 	static final String ARROW_KEYS_KEY = "arrowKeys";
 	static final String INERTIA_FORCE_ARROWS_KEY = "inertiaForceArrows";
 	static final String FULLSCREEN_KEY = "fullscreen";
+	static final String STAY_AWAKE_KEY = "stayAwake";
 	static final String PATTERN_SHOW_LENGTHS_KEY = "patternShowLengths";
 	static final String COMPLETED_PROMPT_KEY = "completedPrompt";
 
@@ -229,6 +230,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		gameTypes = new LinkedHashMap<Integer,String>();
 
 		applyFullscreen(false);  // must precede super.onCreate and setContentView
+		applyStayAwake();
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.main);
 		mainLayout = (RelativeLayout)findViewById(R.id.mainLayout);
@@ -890,6 +892,8 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 			setKeyboardVisibility(getResources().getConfiguration());
 		} else if (key.equals(FULLSCREEN_KEY)) {
 			applyFullscreen(true);  // = already started
+		} else if (key.equals(STAY_AWAKE_KEY)) {
+			applyStayAwake();
 		}
 	}
 
@@ -918,6 +922,15 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 				// This is the only way to change the theme
 				restartOnResume = true;
 			}  // else leave it as default non-fullscreen
+		}
+	}
+
+	void applyStayAwake()
+	{
+		if (prefs.getBoolean(STAY_AWAKE_KEY, false)) {
+			getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+		} else {
+			getWindow().clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 		}
 	}
 
