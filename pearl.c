@@ -2469,6 +2469,7 @@ static int game_timing_state(game_state *state, game_ui *ui)
     return TRUE;
 }
 
+#ifndef NO_PRINTING
 static void game_print_size(game_params *params, float *x, float *y)
 {
     int pw, ph;
@@ -2515,6 +2516,7 @@ static void game_print(drawing *dr, game_state *state, int tilesize)
 
     game_free_drawstate(dr, ds);
 }
+#endif
 
 #ifdef COMBINED
 #define thegame pearl
