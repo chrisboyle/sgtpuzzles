@@ -7,10 +7,11 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sgt-puzzles\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2010-09-19 11:43+0200\n"
+"POT-Creation-Date: 2012-03-31 16:56+0200\n"
 "PO-Revision-Date: 2009-11-04 11:10-0800\n"
 "Last-Translator: Helge Kreutzmann <debian@helgefjell.de>\n"
 "Language-Team: de <debian-l10n-german@lists.debian.org>\n"
+"Language: \n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8-bit\n"
@@ -123,11 +124,11 @@ msgstr "Dies ist eine Sammlung kleiner Puzzlespiele für eine Person."
 #. type: Plain text
 #: puzzles.but:36
 msgid ""
-"This manual is copyright 2004-2010 Simon Tatham. All rights reserved. You "
+"This manual is copyright 2004-2012 Simon Tatham. All rights reserved. You "
 "may distribute this documentation under the MIT licence.  See \\k{licence} "
 "for the licence text in full."
 msgstr ""
-"Dieses Handbuch ist von Simon Tatham 2004-2010 urheberrechtlich geschützt. "
+"Dieses Handbuch ist von Simon Tatham 2004-2012 urheberrechtlich geschützt. "
 "Alle Rechte vorbehalten. Sie können dieses Dokument unter der MIT-Lizenz "
 "vertreiben. Lesen Sie \\k{licence} für den kompletten Lizenztext. Die "
 "Übersetzung wurde von Helge Kreutzmann 2009 angefertigt und steht unter der "
@@ -216,9 +217,9 @@ msgstr ""
 #. type: Plain text
 #: puzzles.but:71
 msgid ""
-"The most recent versions, and \\i{source code}, can be found at \\I{website}"
-"\\W{http://www.chiark.greenend.org.uk/~sgtatham/puzzles/}\\cw{http://www."
-"chiark.greenend.org.uk/~sgtatham/puzzles/}."
+"The most recent versions, and \\i{source code}, can be found at \\I"
+"{website}\\W{http://www.chiark.greenend.org.uk/~sgtatham/puzzles/}\\cw"
+"{http://www.chiark.greenend.org.uk/~sgtatham/puzzles/}."
 msgstr ""
 "Die neusten Versionen und der \\i{Quellcode} kann unter \\I{website}\\W"
 "{http://www.chiark.greenend.org.uk/~sgtatham/puzzles/}\\cw{http://www.chiark."
@@ -948,8 +949,8 @@ msgstr "net --generate 12 --print 2x3 7x7w | lpr"
 #. type: Plain text
 #: puzzles.but:376
 msgid ""
-"will generate two pages of printed Net puzzles (each of which will have a 7"
-"\\by\\.7 wrapping grid), and pipe the output to the \\c{lpr} command, which "
+"will generate two pages of printed Net puzzles (each of which will have a "
+"7\\by\\.7 wrapping grid), and pipe the output to the \\c{lpr} command, which "
 "on many systems will send them to an actual printer."
 msgstr ""
 "Erstellt zwei Seiten an gedruckten Net-Puzzlen (jedes wird ein 7\\by\\.7 "
@@ -1247,7 +1248,7 @@ msgstr ""
 #: puzzles.but:1779 puzzles.but:1875 puzzles.but:1950 puzzles.but:2089
 #: puzzles.but:2198 puzzles.but:2320 puzzles.but:2394 puzzles.but:2452
 #: puzzles.but:2545 puzzles.but:2635 puzzles.but:2693 puzzles.but:2752
-#: puzzles.but:2838 puzzles.but:2901
+#: puzzles.but:2838 puzzles.but:2901 puzzles.but:2968
 msgid "(All the actions described in \\k{common-actions} are also available.)"
 msgstr ""
 "(Alle in \\k{common-actions} beschriebene Aktionen sind auch verfügbar.)"
@@ -1263,7 +1264,7 @@ msgstr "\\I{Parameter, für Net}Net-Parameter"
 #: puzzles.but:1713 puzzles.but:1784 puzzles.but:1880 puzzles.but:1955
 #: puzzles.but:2038 puzzles.but:2094 puzzles.but:2203 puzzles.but:2325
 #: puzzles.but:2399 puzzles.but:2550 puzzles.but:2640 puzzles.but:2698
-#: puzzles.but:2757 puzzles.but:2843 puzzles.but:2906
+#: puzzles.but:2757 puzzles.but:2843 puzzles.but:2906 puzzles.but:2973
 msgid ""
 "These parameters are available from the \\q{Custom...} option on the \\q"
 "{Type} menu."
@@ -1276,7 +1277,7 @@ msgstr ""
 #: puzzles.but:1267 puzzles.but:1408 puzzles.but:1650 puzzles.but:1715
 #: puzzles.but:1786 puzzles.but:1882 puzzles.but:1957 puzzles.but:2040
 #: puzzles.but:2096 puzzles.but:2205 puzzles.but:2401 puzzles.but:2700
-#: puzzles.but:2759 puzzles.but:2845 puzzles.but:2908
+#: puzzles.but:2759 puzzles.but:2845 puzzles.but:2908 puzzles.but:2975
 msgid "\\e{Width}, \\e{Height}"
 msgstr "\\e{Breite}, \\e{Höhe}"
 
@@ -2792,7 +2793,7 @@ msgstr ""
 #: puzzles.but:1124 puzzles.but:1196 puzzles.but:1269 puzzles.but:1717
 #: puzzles.but:1788 puzzles.but:1884 puzzles.but:2042 puzzles.but:2098
 #: puzzles.but:2207 puzzles.but:2403 puzzles.but:2702 puzzles.but:2847
-#: puzzles.but:2910
+#: puzzles.but:2910 puzzles.but:2977
 msgid "Size of grid in squares."
 msgstr "Größe des Gitters in Quadraten"
 
@@ -4225,6 +4226,7 @@ msgstr "\\I{Parameter, für Slant}Slant-Parameter"
 #: puzzles.but:1719 puzzles.but:1808 puzzles.but:1890 puzzles.but:1974
 #: puzzles.but:2100 puzzles.but:2209 puzzles.but:2335 puzzles.but:2405
 #: puzzles.but:2558 puzzles.but:2648 puzzles.but:2704 puzzles.but:2766
+#: puzzles.but:2979
 msgid "Difficulty"
 msgstr "Schwierigkeit"
 
@@ -6204,7 +6206,7 @@ msgid "\\I{parameters, for Singles}Singles parameters"
 msgstr "\\I{Parameter, für Singles}Singles-Parameter"
 
 #. type: Plain text
-#: puzzles.but:2706
+#: puzzles.but:2706 puzzles.but:2981
 msgid "Controls the difficulty of the generated puzzle."
 msgstr "Steuert die Schwierigkeit des generierten Puzzles."
 
@@ -6572,16 +6574,135 @@ msgstr "\\I{Parameter, für Range}Range-Parameter"
 
 #. type: Plain text
 #: puzzles.but:2912
+msgid "\\i{Pearl}"
+msgstr "\\i{Pearl}"
+
+#. type: Plain text
+#: puzzles.but:2914
+msgid "\\cfg{winhelp-topic}{games.pearl}"
+msgstr "\\cfg{winhelp-topic}{games.pearl}"
+
+#. type: Plain text
+#: puzzles.but:2922
+msgid ""
+"You have a grid of squares. Your job is to draw lines between the centres of "
+"horizontally or vertically adjacent squares, so that the lines form a single "
+"closed loop. In the resulting grid, some of the squares that the loop passes "
+"through will contain corners, and some will be straight horizontal or "
+"vertical lines. (And some squares can be completely empty \\dash the loop "
+"doesn't have to pass through every square.)"
+msgstr ""
+
+#. type: Plain text
+#: puzzles.but:2925
+msgid ""
+"Some of the squares contain black and white circles, which are clues that "
+"the loop must satisfy."
+msgstr ""
+
+#. type: Plain text
+#: puzzles.but:2928
+msgid ""
+"A black circle in a square indicates that that square is a corner, but "
+"neither of the squares adjacent to it in the loop is also a corner."
+msgstr ""
+
+#. type: Plain text
+#: puzzles.but:2931
+msgid ""
+"A while circle indicates that the square is a straight edge, but \\e{at "
+"least one} of the squares adjacent to it in the loop is a corner."
+msgstr ""
+
+#. type: Plain text
+#: puzzles.but:2936
+msgid ""
+"(In both cases, the clue only constrains the two squares adjacent \\e{in the "
+"loop}, that is, the squares that the loop passes into after leaving the clue "
+"square. The squares that are only adjacent \\e{in the grid} are not "
+"constrained.)"
+msgstr ""
+
+#. type: Plain text
+#: puzzles.but:2939
+msgid ""
+"Credit for this puzzle goes to \\i{Nikoli}, who call it \\q{Masyu}.  \\k"
+"{nikoli-pearl}."
+msgstr "Dank für dieses Puzzle geht an \\i{Nikoli}, wer es \\q{Masyu} "
+"genannt hat. \\k{nikoli-pearl}"
+
+#. type: Plain text
+#: puzzles.but:2941
+msgid "Thanks to James Harvey for assistance with the implementation."
+msgstr ""
+
+#. type: Plain text
+#: puzzles.but:2944
+msgid ""
+"\\W{http://www.nikoli.co.jp/en/puzzles/masyu/}\\cw{http://www.nikoli.co.jp/"
+"en/puzzles/masyu/}"
+msgstr ""
+"\\W{http://www.nikoli.co.jp/en/puzzles/masyu/}\\cw{http://www.nikoli.co."
+"jp/en/puzzles/masyu/}"
+
+#. type: Plain text
+#: puzzles.but:2946
+msgid "\\I{controls, for Pearl}Pearl controls"
+msgstr "\\I{Steuerung, von Pearl}Pearl-Steuerung"
+
+#. type: Plain text
+#: puzzles.but:2949
+msgid ""
+"Click with the left button on a grid edge to draw a segment of the loop "
+"through that edge, or to remove a segment once it is drawn."
+msgstr ""
+
+#. type: Plain text
+#: puzzles.but:2954
+msgid ""
+"Drag with the left button through a series of squares to draw more than one "
+"segment of the loop in one go. Alternatively, drag over an existing part of "
+"the loop to undraw it, or to undraw part of it and then go in a different "
+"direction."
+msgstr ""
+
+#. type: Plain text
+#: puzzles.but:2960
+msgid ""
+"Click with the right button on a grid edge to mark it with a cross, "
+"indicating that you are sure the loop does not go through that edge.  (For "
+"instance, if you have decided which of the squares adjacent to a white clue "
+"has to be a corner, but don't yet know which way the corner turns, you might "
+"mark the one way it \\e{can't} go with a cross.)"
+msgstr ""
+
+#. type: Plain text
+#: puzzles.but:2966
+msgid ""
+"Alternatively, use the cursor keys to move the cursor.  Use the Enter key to "
+"begin and end keyboard `drag' operations.  Use the Space key to cancel the "
+"drag.  Use Ctrl-arrowkey and Shift-arrowkey to simulate a left or right "
+"click, respectively, on the edge in the given direction relative to the "
+"cursor, i.e. to draw a segment or a cross."
+msgstr ""
+
+#. type: Plain text
+#: puzzles.but:2970
+msgid "\\I{parameters, for Pearl}Pearl parameters"
+msgstr "\\I{Parameter, für Pearl}Pearl-Parameter"
+
+#. type: Plain text
+#: puzzles.but:2983
 msgid "\\I{MIT licence}\\ii{Licence}"
 msgstr "\\I{MIT-Lizenz}\\ii{Lizenz}"
 
 #. type: Plain text
-#: puzzles.but:2914
-msgid "This software is \\i{copyright} 2004-2010 Simon Tatham."
-msgstr "Diese Software ist \\i{copyright} 2004-2010 Simon Tatham."
+#: puzzles.but:2985
+msgid "This software is \\i{copyright} 2004-2012 Simon Tatham."
+msgstr "Diese Software ist \\i{copyright} 2004-2012 Simon Tatham."
 
 #. type: Plain text
-#: puzzles.but:2918
+#: puzzles.but:2989
 msgid ""
 "Portions copyright Richard Boulton, James Harvey, Mike Pinna, Jonas K\\u00F6"
 "{oe}lker, Dariusz Olszewski, Michael Schierl, Lambros Lambrou, Bernd Schmidt "
@@ -6592,7 +6713,7 @@ msgstr ""
 "Schmidt und Chris Boyle."
 
 #. type: Plain text
-#: puzzles.but:2926
+#: puzzles.but:2997
 msgid ""
 "Permission is hereby granted, free of charge, to any person obtaining a copy "
 "of this software and associated documentation files (the \\q{Software}), to "
@@ -6603,14 +6724,14 @@ msgid ""
 msgstr ""
 
 #. type: Plain text
-#: puzzles.but:2929
+#: puzzles.but:3000
 msgid ""
 "The above copyright notice and this permission notice shall be included in "
 "all copies or substantial portions of the Software."
 msgstr ""
 
 #. type: Plain text
-#: puzzles.but:2938
+#: puzzles.but:3009
 msgid ""
 "THE SOFTWARE IS PROVIDED \\q{AS IS}, WITHOUT WARRANTY OF ANY KIND, EXPRESS "
 "OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, "
@@ -6622,136 +6743,136 @@ msgid ""
 msgstr ""
 
 #. type: IM{#1}
-#: puzzles.but:2939
+#: puzzles.but:3010
 msgid "command-line"
 msgstr "Befehlszeile"
 
 #. type: IM
-#: puzzles.but:2939
+#: puzzles.but:3010
 #, no-wrap
 msgid "{command line} command line"
 msgstr "{Befehlszeile} Befehlszeile"
 
 #. type: IM{#1}
-#: puzzles.but:2941 puzzles.but:2942
+#: puzzles.but:3012 puzzles.but:3013
 #, no-wrap
 msgid "default parameters, specifying"
 msgstr "Standardparameter, angeben"
 
 #. type: IM
-#: puzzles.but:2942
+#: puzzles.but:3013
 #, no-wrap
 msgid "preferences, specifying default"
 msgstr "Voreinstellungen, Standard angeben"
 
 #. type: IM{#1}
-#: puzzles.but:2944 puzzles.but:2945
+#: puzzles.but:3015 puzzles.but:3016
 #, no-wrap
 msgid "Unix"
 msgstr "Unix"
 
 #. type: IM
-#: puzzles.but:2945
+#: puzzles.but:3016
 #, no-wrap
 msgid "Linux"
 msgstr "Linux"
 
 #. type: IM{#1}
-#: puzzles.but:2947 puzzles.but:2948
+#: puzzles.but:3018 puzzles.but:3019
 #, no-wrap
 msgid "generating game IDs"
 msgstr "Erzeugen von Spiele-IDs"
 
 #. type: IM
-#: puzzles.but:2948
+#: puzzles.but:3019
 #, no-wrap
 msgid "game ID, generating"
 msgstr "Spiele-ID, erzeugen"
 
 #. type: IM{#1}
-#: puzzles.but:2950
+#: puzzles.but:3021
 msgid "specific"
 msgstr "bestimmt"
 
 #. type: IM
-#: puzzles.but:2950
+#: puzzles.but:3021
 #, no-wrap
 msgid "\\q{Specific}, menu option"
 msgstr "\\q{Bestimmt}, Menüoption"
 
 #. type: IM{#1}
-#: puzzles.but:2951
+#: puzzles.but:3022
 msgid "custom"
 msgstr "benutzerdefiniert"
 
 #. type: IM
-#: puzzles.but:2951
+#: puzzles.but:3022
 #, no-wrap
 msgid "\\q{Custom}, menu option"
 msgstr "\\q{Benutzerdefiniert}, Menüoption"
 
 #. type: IM{#1}
-#: puzzles.but:2953 puzzles.but:2954
+#: puzzles.but:3024 puzzles.but:3025
 #, no-wrap
 msgid "game ID"
 msgstr "Spiele-ID"
 
 #. type: IM
-#: puzzles.but:2954
+#: puzzles.but:3025
 #, no-wrap
 msgid "ID, game"
 msgstr "ID, Spiel"
 
 #. type: IM{#1}
-#: puzzles.but:2955 puzzles.but:2956 puzzles.but:2957
+#: puzzles.but:3026 puzzles.but:3027 puzzles.but:3028
 #, no-wrap
 msgid "ID format"
 msgstr "ID-Format"
 
 #. type: IM
-#: puzzles.but:2956
+#: puzzles.but:3027
 #, no-wrap
 msgid "format, ID"
 msgstr "Format, ID"
 
 #. type: IM
-#: puzzles.but:2957
+#: puzzles.but:3028
 #, no-wrap
 msgid "game ID, format"
 msgstr "Spiele-ID, Format"
 
 #. type: IM{#1}
-#: puzzles.but:2959 puzzles.but:2960
+#: puzzles.but:3030 puzzles.but:3031
 #, no-wrap
 msgid "keys"
 msgstr "Tasten"
 
 #. type: IM
-#: puzzles.but:2960
+#: puzzles.but:3031
 #, no-wrap
 msgid "shortcuts (keyboard)"
 msgstr "Tastaturkürzel"
 
 #. type: IM{#1}
-#: puzzles.but:2962 puzzles.but:2963
+#: puzzles.but:3033 puzzles.but:3034
 #, no-wrap
 msgid "initial state"
 msgstr "Anfangszustand"
 
 #. type: IM
-#: puzzles.but:2963
+#: puzzles.but:3034
 #, no-wrap
 msgid "state, initial"
 msgstr "Zustand, anfänglicher"
 
 #. type: IM{#1}
-#: puzzles.but:2965 puzzles.but:2966
+#: puzzles.but:3036 puzzles.but:3037
 #, no-wrap
 msgid "MIT licence"
 msgstr "MIT-Lizenz"
 
 #. type: IM
-#: puzzles.but:2966
+#: puzzles.but:3037
 #, no-wrap
 msgid "licence, MIT"
 msgstr "Lizenz, MIT"
