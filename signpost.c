@@ -2107,11 +2107,33 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
             if (state->nums[i] != ds->nums[i] ||
                 f != ds->f[i] || dirp != ds->dirp[i] ||
                 force || !ds->started) {
+                int sign;
+                {
+                    /*
+                     * Trivial and foolish configurable option done on
+                     * purest whim. With this option enabled, the
+                     * victory flash is done by rotating each square
+                     * in the opposite direction from its immediate
+                     * neighbours, so that they behave like a field of
+                     * interlocking gears. With it disabled, they all
+                     * rotate in the same direction. Choose for
+                     * yourself which is more brain-twisting :-)
+                     */
+                    static int gear_mode = -1;
+                    if (gear_mode < 0) {
+                        char *env = getenv("SIGNPOST_GEARS");
+                        gear_mode = (env && (env[0] == 'y' || env[0] == 'Y'));
+                    }
+                    if (gear_mode)
+                        sign = 1 - 2 * ((x ^ y) & 1);
+                    else
+                        sign = 1;
+                }
                 tile_redraw(dr, ds,
                             BORDER + x * TILE_SIZE,
                             BORDER + y * TILE_SIZE,
                             state->dirs[i], dirp, state->nums[i], f,
-                            angle_offset, -1);
+                            sign * angle_offset, -1);
                 ds->nums[i] = state->nums[i];
                 ds->f[i] = f;
                 ds->dirp[i] = dirp;

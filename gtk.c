@@ -2699,13 +2699,23 @@ int main(int argc, char **argv)
 		char *realname = snewn(40 + strlen(savefile) +
 				       strlen(savesuffix), char);
 		sprintf(realname, "%s%d%s", savefile, i, savesuffix);
+
+                if (soln) {
+                    char *err = midend_solve(me);
+                    if (err) {
+                        fprintf(stderr, "%s: unable to show solution: %s\n",
+                                realname, err);
+                        return 1;
+                    }
+                }
+
 		ctx.fp = fopen(realname, "w");
 		if (!ctx.fp) {
 		    fprintf(stderr, "%s: open: %s\n", realname,
 			    strerror(errno));
 		    return 1;
 		}
-		sfree(realname);
+                ctx.error = 0;
 		midend_serialise(me, savefile_write, &ctx);
 		if (ctx.error) {
 		    fprintf(stderr, "%s: write: %s\n", realname,
@@ -2717,6 +2727,7 @@ int main(int argc, char **argv)
 			    strerror(errno));
 		    return 1;
 		}
+		sfree(realname);
 	    }
 	    if (!doc && !savefile) {
 		id = midend_get_game_id(me);

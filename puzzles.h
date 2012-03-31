@@ -358,6 +358,43 @@ void dsf_merge(int *dsf, int v1, int v2);
 void dsf_init(int *dsf, int len);
 
 /*
+ * tdq.c
+ */
+
+/*
+ * Data structure implementing a 'to-do queue', a simple
+ * de-duplicating to-do list mechanism.
+ *
+ * Specification: a tdq is a queue which can hold integers from 0 to
+ * n-1, where n was some constant specified at tdq creation time. No
+ * integer may appear in the queue's current contents more than once;
+ * an attempt to add an already-present integer again will do nothing,
+ * so that that integer is removed from the queue at the position
+ * where it was _first_ inserted. The add and remove operations take
+ * constant time.
+ *
+ * The idea is that you might use this in applications like solvers:
+ * keep a tdq listing the indices of grid squares that you currently
+ * need to process in some way. Whenever you modify a square in a way
+ * that will require you to re-scan its neighbours, add them to the
+ * list with tdq_add; meanwhile you're constantly taking elements off
+ * the list when you need another square to process. In solvers where
+ * deductions are mostly localised, this should prevent repeated
+ * O(N^2) loops over the whole grid looking for something to do. (But
+ * if only _most_ of the deductions are localised, then you should
+ * respond to an empty to-do list by re-adding everything using
+ * tdq_fill, so _then_ you rescan the whole grid looking for newly
+ * enabled non-local deductions. Only if you've done that and emptied
+ * the list again finding nothing new to do are you actually done.)
+ */
+typedef struct tdq tdq;
+tdq *tdq_new(int n);
+void tdq_free(tdq *tdq);
+void tdq_add(tdq *tdq, int k);
+int tdq_remove(tdq *tdq);        /* returns -1 if nothing available */
+void tdq_fill(tdq *tdq);         /* add everything to the tdq at once */
+
+/*
  * laydomino.c
  */
 int *domino_layout(int w, int h, random_state *rs);

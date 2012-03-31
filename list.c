@@ -27,6 +27,7 @@
     A(net) \
     A(netslide) \
     A(pattern) \
+    A(pearl) \
     A(pegs) \
     A(range) \
     A(rect) \

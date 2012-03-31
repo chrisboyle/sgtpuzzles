@@ -2452,13 +2452,31 @@ static char *interpret_move(game_state *from, game_ui *ui, game_drawstate *ds,
     coord_round(FROMCOORD((float)x), FROMCOORD((float)y), &xc, &yc);
 
     if (button == LEFT_BUTTON || button == RIGHT_BUTTON) {
+        if (ui->drag_start_x >= 0 && ui->cur_dragging) {
+            /*
+             * If a keyboard drag is in progress, unceremoniously
+             * cancel it.
+             */
+            ui->drag_start_x = -1;
+            ui->drag_start_y = -1;
+            ui->drag_end_x = -1;
+            ui->drag_end_y = -1;
+            ui->x1 = -1;
+            ui->y1 = -1;
+            ui->x2 = -1;
+            ui->y2 = -1;
+            ui->dragged = FALSE;
+        }
         startdrag = TRUE;
         ui->cur_visible = ui->cur_dragging = FALSE;
         active = TRUE;
         erasing = (button == RIGHT_BUTTON);
     } else if (button == LEFT_RELEASE || button == RIGHT_RELEASE) {
         /* We assert we should have had a LEFT_BUTTON first. */
-        assert(!ui->cur_visible);
+        if (ui->cur_visible) {
+            ui->cur_visible = FALSE;
+            active = TRUE;
+        }
         assert(!ui->cur_dragging);
         enddrag = TRUE;
         erasing = (button == RIGHT_RELEASE);
@@ -2469,6 +2487,13 @@ static char *interpret_move(game_state *from, game_ui *ui, game_drawstate *ds,
         if (!ui->cur_dragging) return "";
         coord_round((float)ui->cur_x + 0.5F, (float)ui->cur_y + 0.5F, &xc, &yc);
     } else if (IS_CURSOR_SELECT(button)) {
+        if (ui->drag_start_x >= 0 && !ui->cur_dragging) {
+            /*
+             * If a mouse drag is in progress, ignore attempts to
+             * start a keyboard one.
+             */
+            return NULL;
+        }
         if (!ui->cur_visible) {
             assert(!ui->cur_dragging);
             ui->cur_visible = TRUE;

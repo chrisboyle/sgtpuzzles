@@ -1,5 +1,45 @@
 /*
  * lightup.c: Implementation of the Nikoli game 'Light Up'.
+ *
+ * Possible future solver enhancements:
+ *
+ *  - In a situation where two clues are diagonally adjacent, you can
+ *    deduce bounds on the number of lights shared between them. For
+ *    instance, suppose a 3 clue is diagonally adjacent to a 1 clue:
+ *    of the two squares adjacent to both clues, at least one must be
+ *    a light (or the 3 would be unsatisfiable) and yet at most one
+ *    must be a light (or the 1 would be overcommitted), so in fact
+ *    _exactly_ one must be a light, and hence the other two squares
+ *    adjacent to the 3 must also be lights and the other two adjacent
+ *    to the 1 must not. Likewise if the 3 is replaced with a 2 but
+ *    one of its other two squares is known not to be a light, and so
+ *    on.
+ *
+ *  - In a situation where two clues are orthogonally separated (not
+ *    necessarily directly adjacent), you may be able to deduce
+ *    something about the squares that align with each other. For
+ *    instance, suppose two clues are vertically adjacent. Consider
+ *    the pair of squares A,B horizontally adjacent to the top clue,
+ *    and the pair C,D horizontally adjacent to the bottom clue.
+ *    Assuming no intervening obstacles, A and C align with each other
+ *    and hence at most one of them can be a light, and B and D
+ *    likewise, so we must have at most two lights between the four
+ *    squares. So if the clues indicate that there are at _least_ two
+ *    lights in those four squares because the top clue requires at
+ *    least one of AB to be a light and the bottom one requires at
+ *    least one of CD, then we can in fact deduce that there are
+ *    _exactly_ two lights between the four squares, and fill in the
+ *    other squares adjacent to each clue accordingly. For instance,
+ *    if both clues are 3s, then we instantly deduce that all four of
+ *    the squares _vertically_ adjacent to the two clues must be
+ *    lights. (For that to happen, of course, there'd also have to be
+ *    a black square in between the clues, so the two inner lights
+ *    don't light each other.)
+ *
+ *  - I haven't thought it through carefully, but there's always the
+ *    possibility that both of the above deductions are special cases
+ *    of some more general pattern which can be made computationally
+ *    feasible...
  */
 
 #include <stdio.h>
@@ -215,6 +255,11 @@ static void decode_params(game_params *params, char const *string)
     if (*string == 's') {
         string++;
         EATNUM(params->symm);
+    } else {
+        /* cope with user input such as '18x10' by ensuring symmetry
+         * is not selected by default to be incompatible with dimensions */
+        if (params->symm == SYMM_ROT4 && params->w != params->h)
+            params->symm = SYMM_ROT2;
     }
     params->difficulty = 0;
     /* cope with old params */
@@ -1683,7 +1728,7 @@ static char *solve_game(game_state *state, game_state *currstate,
     /* That didn't work; try solving from the clean puzzle. */
     solved = dup_game(state);
     if (dosolve(solved, sflags, NULL) > 0) goto solved;
-    *error = _("Puzzle is not self-consistent.");
+    *error = _("Unable to find a solution to this puzzle.");
     goto done;
 
 solved:

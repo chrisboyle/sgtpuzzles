@@ -1,6 +1,6 @@
 # -*- makefile -*-
 
-LOOPY_EXTRA = tree234 dsf grid penrose
+LOOPY_EXTRA = tree234 dsf grid penrose loopgen
 
 loopy     : [X] GTK COMMON loopy LOOPY_EXTRA loopy-icon|no-icon
 

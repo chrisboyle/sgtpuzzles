@@ -1473,7 +1473,7 @@ static int solver_killer_sums(struct solver_usage *usage, int b,
     }
     assert(nsquares > 0);
 
-    if (nsquares > 4)
+    if (nsquares < 2 || nsquares > 4)
 	return 0;
 
     if (!cage_is_region) {
@@ -2041,7 +2041,7 @@ static void solver(int cr, struct block_structure *blocks,
 					     );
 		if (ret > 0) {
 		    changed = TRUE;
-		    kdiff = max(kdiff, DIFF_KINTERSECT);
+		    kdiff = max(kdiff, DIFF_KSUMS);
 		} else if (ret < 0) {
 		    diff = DIFF_IMPOSSIBLE;
 		    goto got_result;
@@ -2402,7 +2402,7 @@ static void solver(int cr, struct block_structure *blocks,
 		    scratch->indexlist[i*cr+n-1] = cubepos2(diag1(i), n);
             ret = solver_set(usage, scratch, scratch->indexlist
 #ifdef STANDALONE_SOLVER
-			     , "set elimination, \\-diagonal"
+			     , "set elimination, /-diagonal"
 #endif
 			     );
 	    if (ret < 0) {
@@ -5676,7 +5676,7 @@ int main(int argc, char **argv)
 	       dlev.diff==DIFF_IMPOSSIBLE ? "Impossible (no solution exists)":
 	       "INTERNAL ERROR: unrecognised difficulty code");
 	if (p->killer)
-	    printf("Killer diffculty: %s\n",
+	    printf("Killer difficulty: %s\n",
 		   dlev.kdiff==DIFF_KSINGLE ? "Trivial (single square cages only)":
 		   dlev.kdiff==DIFF_KMINMAX ? "Simple (maximum sum analysis required)":
 		   dlev.kdiff==DIFF_KSUMS ? "Intermediate (sum possibilities)":

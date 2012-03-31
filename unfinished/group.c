@@ -1201,6 +1201,18 @@ static int check_errors(game_state *state, long *errors)
     return errs;
 }
 
+static int find_in_sequence(digit *seq, int len, digit n)
+{
+    int i;
+
+    for (i = 0; i < len; i++)
+        if (seq[i] == n)
+            return i;
+
+    assert(!"Should never get here");
+    return -1;
+}
+
 static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
 			    int x, int y, int button)
 {
@@ -1292,7 +1304,11 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
     }
 
     if (IS_CURSOR_MOVE(button)) {
-        move_cursor(button, &ui->hx, &ui->hy, w, w, 0);
+        int cx = find_in_sequence(state->sequence, w, ui->hx);
+        int cy = find_in_sequence(state->sequence, w, ui->hy);
+        move_cursor(button, &cx, &cy, w, w, 0);
+        ui->hx = state->sequence[cx];
+        ui->hy = state->sequence[cy];
         ui->hshow = ui->hcursor = 1;
         return "";
     }

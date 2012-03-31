@@ -30,7 +30,7 @@
 
 This is a collection of small one-player puzzle games.
 
-\copyright This manual is copyright 2004-2010 Simon Tatham. All rights
+\copyright This manual is copyright 2004-2012 Simon Tatham. All rights
 reserved. You may distribute this documentation under the MIT licence.
 See \k{licence} for the licence text in full.
 
@@ -2908,9 +2908,80 @@ These parameters are available from the \q{Custom...} option on the
 
 \dd Size of grid in squares.
 
+\C{pearl} \i{Pearl}
+
+\cfg{winhelp-topic}{games.pearl}
+
+You have a grid of squares. Your job is to draw lines between the
+centres of horizontally or vertically adjacent squares, so that the
+lines form a single closed loop. In the resulting grid, some of the
+squares that the loop passes through will contain corners, and some
+will be straight horizontal or vertical lines. (And some squares can
+be completely empty \dash the loop doesn't have to pass through every
+square.)
+
+Some of the squares contain black and white circles, which are clues
+that the loop must satisfy.
+
+A black circle in a square indicates that that square is a corner, but
+neither of the squares adjacent to it in the loop is also a corner.
+
+A while circle indicates that the square is a straight edge, but \e{at
+least one} of the squares adjacent to it in the loop is a corner.
+
+(In both cases, the clue only constrains the two squares adjacent
+\e{in the loop}, that is, the squares that the loop passes into after
+leaving the clue square. The squares that are only adjacent \e{in the
+grid} are not constrained.)
+
+Credit for this puzzle goes to \i{Nikoli}, who call it \q{Masyu}.
+\k{nikoli-pearl}.
+
+Thanks to James Harvey for assistance with the implementation.
+
+\B{nikoli-pearl}
+\W{http://www.nikoli.co.jp/en/puzzles/masyu/}\cw{http://www.nikoli.co.jp/en/puzzles/masyu/}
+
+\H{pearl-controls} \I{controls, for Pearl}Pearl controls
+
+Click with the left button on a grid edge to draw a segment of the
+loop through that edge, or to remove a segment once it is drawn.
+
+Drag with the left button through a series of squares to draw more
+than one segment of the loop in one go. Alternatively, drag over an
+existing part of the loop to undraw it, or to undraw part of it and
+then go in a different direction.
+
+Click with the right button on a grid edge to mark it with a cross,
+indicating that you are sure the loop does not go through that edge.
+(For instance, if you have decided which of the squares adjacent to a
+white clue has to be a corner, but don't yet know which way the corner
+turns, you might mark the one way it \e{can't} go with a cross.)
+
+Alternatively, use the cursor keys to move the cursor.  Use the Enter
+key to begin and end keyboard `drag' operations.  Use the Space key to
+cancel the drag.  Use Ctrl-arrowkey and Shift-arrowkey to simulate a
+left or right click, respectively, on the edge in the given direction
+relative to the cursor, i.e. to draw a segment or a cross.
+
+(All the actions described in \k{common-actions} are also available.)
+
+\H{pearl-parameters} \I{parameters, for Pearl}Pearl parameters
+
+These parameters are available from the \q{Custom...} option on the
+\q{Type} menu.
+
+\dt \e{Width}, \e{Height}
+
+\dd Size of grid in squares.
+
+\dt \e{Difficulty}
+
+\dd Controls the difficulty of the generated puzzle.
+
 \A{licence} \I{MIT licence}\ii{Licence}
 
-This software is \i{copyright} 2004-2010 Simon Tatham.
+This software is \i{copyright} 2004-2012 Simon Tatham.
 
 Portions copyright Richard Boulton, James Harvey, Mike Pinna, Jonas
 K\u00F6{oe}lker, Dariusz Olszewski, Michael Schierl, Lambros
