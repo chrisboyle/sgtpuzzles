@@ -126,8 +126,9 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 				}
 				// set ActionBar icon to the one for this puzzle
 				if( msg.obj != null && actionBarCompat != null ) {
-					actionBarCompat.setIcon(getResources().getIdentifier(
-							(String)msg.obj, "drawable", getPackageName()));
+					int iconId = getResources().getIdentifier(
+							(String)msg.obj, "drawable", getPackageName());
+					actionBarCompat.setIcon(iconId > 0 ? iconId : R.drawable.icon);
 				}
 				dismissProgress();
 				if( menu != null ) onPrepareOptionsMenu(menu);
