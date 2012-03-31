@@ -16,8 +16,7 @@
     <!-- For saved games -->
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <application android:icon="@drawable/icon" android:label="@string/app_name"
-        android:backupAgent=".BackupAgent"
-        android:debuggable="true">
+        android:backupAgent=".BackupAgent">
         <activity android:name=".SGTPuzzles" android:windowSoftInputMode="adjustPan"
                   android:label="@string/app_name" android:stateNotNeeded="true"
                   android:launchMode="singleTask"
