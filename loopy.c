@@ -1344,10 +1344,12 @@ static void add_full_clues(game_state *state, random_state *rs)
     int i;
 
     generate_loop(g, board, rs, NULL, NULL);
+#ifdef ANDROID
     if (android_cancelled()) {
         sfree(board);
         return;
     }
+#endif
 
     /* Fill out all the clues by initialising to 0, then iterating over
      * all edges and incrementing each clue as we find edges that border
@@ -3345,7 +3347,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
     int flash_changed;
     int redraw_everything = FALSE;
     grid_edge *cur_edge;
-    int cur1, cur2;
+    /*int cur1, cur2;*/
 
     int edges[REDRAW_OBJECTS_LIMIT], nedges = 0;
     int faces[REDRAW_OBJECTS_LIMIT], nfaces = 0;
@@ -3448,12 +3450,12 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
     }
 
     /* Pass one is now done.  Now we do the actual drawing. */
-    if (cur_edge) {
+    /*if (cur_edge) {
 	cur1 = cur_edge->dot1 - g->dots;
 	cur2 = cur_edge->dot2 - g->dots;
     } else {
 	cur1 = cur2 = -1;
-    }
+    }*/
 
     if (redraw_everything) {
         int grid_width = g->highest_x - g->lowest_x;
