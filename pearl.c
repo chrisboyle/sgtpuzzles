@@ -1359,6 +1359,13 @@ static char *new_game_desc(game_params *params, random_state *rs,
     clues = snewn(w*h, char);
 
     new_clues(params, rs, clues, grid);
+#ifdef ANDROID
+        if (android_cancelled()) {
+            sfree(grid);
+            sfree(clues);
+            return NULL;
+        }
+#endif
 
     desc = snewn(w * h + 1, char);
     for (i = j = 0; i < w*h; i++) {
@@ -1764,6 +1771,9 @@ static void decode_ui(game_ui *ui, char *encoding)
 static void game_changed_state(game_ui *ui, game_state *oldstate,
                                game_state *newstate)
 {
+#ifdef ANDROID
+    if (newstate->completed && ! newstate->used_solve && oldstate && ! oldstate->completed) android_completed();
+#endif
 }
 
 #define PREFERRED_TILE_SIZE 31
