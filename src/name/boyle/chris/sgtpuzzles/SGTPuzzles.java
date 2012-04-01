@@ -273,12 +273,14 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 			return;
 		} else if (u != null) {
 			String g = u.getSchemeSpecificPart();
+			if (games.length < 2) games = getResources().getStringArray(R.array.games);
 			for (int i=0; i<games.length; i++) {
 				if (games[i].equals(g)) {
 					startGame(i,null);
 					return;
 				}
 			}
+			Log.e(TAG, "Unhandled URL! \""+u+"\" -> g = \""+g+"\", games = "+games);
 			// TODO! Other URLs, including game states...
 		}
 		if( state.contains("savedGame") && state.getString("savedGame","").length() > 0 ) {
