@@ -22,6 +22,10 @@
 			android:summary="@string/stayAwakeSummary"
 			android:key="stayAwake"
 			android:defaultValue="false" />
+		<CheckBoxPreference android:title="@string/undoRedoKbd"
+			android:summary="@string/undoRedoKbdSummary"
+			android:key="undoRedoKbd"
+			android:defaultValue="false" />
 		<ListPreference android:title="@string/arrowKeys"
 			android:key="arrowKeys"
 			android:entryValues="@array/arrowKeyModes"

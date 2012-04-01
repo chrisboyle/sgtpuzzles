@@ -68,6 +68,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 	static final String INERTIA_FORCE_ARROWS_KEY = "inertiaForceArrows";
 	static final String FULLSCREEN_KEY = "fullscreen";
 	static final String STAY_AWAKE_KEY = "stayAwake";
+	static final String UNDO_REDO_KBD_KEY = "undoRedoKbd";
 	static final String PATTERN_SHOW_LENGTHS_KEY = "patternShowLengths";
 	static final String COMPLETED_PROMPT_KEY = "completedPrompt";
 
@@ -297,8 +298,9 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		super.onCreateOptionsMenu(menu);
 		this.menu = menu;
 		getMenuInflater().inflate(R.menu.main, menu);
-		menu.findItem(R.id.undo).setVisible(actionBarCompat != null);
-		menu.findItem(R.id.redo).setVisible(actionBarCompat != null);
+		boolean undoRedoKbd = prefs.getBoolean(UNDO_REDO_KBD_KEY, false);
+		menu.findItem(R.id.undo).setVisible(actionBarCompat != null && ! undoRedoKbd);
+		menu.findItem(R.id.redo).setVisible(actionBarCompat != null && ! undoRedoKbd);
 		return true;
 	}
 
@@ -511,7 +513,8 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 			customVisible = false;
 			setStatusBarVisibility(false);
 		}
-		if (ActionBarCompat.earlyHasActionBar()) {
+		if (ActionBarCompat.earlyHasActionBar()
+				&& ! prefs.getBoolean(UNDO_REDO_KBD_KEY, false)) {
 			maybeUndoRedo = "";
 		}
 		setKeys("", SmallKeyboard.ARROWS_LEFT_RIGHT_CLICK);

@@ -111,6 +111,8 @@ Revision: %s"</string>
     <string name="fullscreenSummary">Hide notifications (fails on Ice Cream Sandwich)</string>
     <string name="stayAwake">Stay awake</string>
     <string name="stayAwakeSummary">Make screen stay on while Puzzles is in the foreground</string>
+    <string name="undoRedoKbd">Undo/Redo on keyboard</string>
+    <string name="undoRedoKbdSummary">On Android 3.0 upwards, leave undo/redo in the keyboard instead of the action bar: allows auto-repeat, needs restart</string>
     <string name="inertiaForceArrows">Always show arrows</string>
     <string name="inertiaForceArrowsSummary">This game has diagonal arrow keys</string>
     <string name="patternShowLengths">Show drag lengths</string>
