@@ -13,7 +13,7 @@
 		<item android:title="@string/Custom_" android:id="@+id/custom" android:visible="false" android:checkable="true" android:menuCategory="secondary" android:alphabeticShortcut="z" android:icon="@android:drawable/ic_menu_edit"/>
 	</group>
 </menu></item>
-<item android:title="@string/Other_game" android:id="@+id/other" android:alphabeticShortcut="o" android:icon="@android:drawable/ic_menu_gallery" android:showAsAction="ifRoom|withText"/>
+<item android:title="@string/Other_game" android:id="@+id/other" android:alphabeticShortcut="o" android:icon="@android:drawable/ic_menu_gallery"/>
 <item android:title="@string/Settings" android:id="@+id/settings" android:icon="@android:drawable/ic_menu_preferences" android:showAsAction="ifRoom"/>
 <item android:title="@string/Solve" android:id="@+id/solve" android:enabled="false" android:alphabeticShortcut="v" android:icon="@android:drawable/ic_menu_directions" android:showAsAction="ifRoom"/>
 <item android:title="@string/Undo" android:id="@+id/undo" android:alphabeticShortcut="u" android:icon="@drawable/ic_menu_undo" android:visible="false" android:showAsAction="always"/>

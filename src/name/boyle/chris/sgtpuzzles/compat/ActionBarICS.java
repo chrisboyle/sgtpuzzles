@@ -18,8 +18,10 @@ public class ActionBarICS extends ActionBarHoneycomb
 	}
 
 	@Override
-	public void setIcon(int resId) {
+	public boolean setIconAsShortcut(int resId) {
+		actionBar.setDisplayHomeAsUpEnabled(true);
 		actionBar.setIcon(resId);
+		return true;  // shortcut is likely to be noticed, don't need menu item
 	}
 
 	@Override

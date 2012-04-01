@@ -24,10 +24,11 @@ public class ActionBarHoneycomb extends ActionBarCompat
 	}
 
 	@Override
-	public void setIcon(int resId)
+	public boolean setIconAsShortcut(int resId)
 	{
-		// We want a custom icon, but can't have one on Honeycomb, so have no icon
-		actionBar.setDisplayShowHomeEnabled(false);
+		// We want a custom icon, but can't have one on Honeycomb
+		actionBar.setDisplayHomeAsUpEnabled(true);
+		return false;  // shortcut is not very noticeable
 	}
 
 	@Override

@@ -109,6 +109,8 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 	String[] games;
 	Menu menu;
 	ActionBarCompat actionBarCompat = null;
+	int actionBarHomeId = -1;
+	boolean homeAsUpNoticeable = false;
 	String maybeUndoRedo = "ur";
 	String maybeMenu = "";
 	PrefsSaver prefsSaver;
@@ -130,7 +132,9 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 				if( msg.obj != null && actionBarCompat != null ) {
 					int iconId = getResources().getIdentifier(
 							(String)msg.obj, "drawable", getPackageName());
-					actionBarCompat.setIcon(iconId > 0 ? iconId : R.drawable.icon);
+					homeAsUpNoticeable = actionBarCompat.setIconAsShortcut(
+							iconId > 0 ? iconId : R.drawable.icon);
+					if (menu != null) menu.findItem(R.id.other).setVisible(! homeAsUpNoticeable);
 				}
 				dismissProgress();
 				if( menu != null ) onPrepareOptionsMenu(menu);
@@ -239,6 +243,9 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		gameView = (GameView)findViewById(R.id.game);
 		keyboard = (SmallKeyboard)findViewById(R.id.keyboard);
 		actionBarCompat = ActionBarCompat.get(this);
+		try {
+			actionBarHomeId = android.R.id.class.getField("home").getInt(null);
+		} catch (Exception e) {}
 		setDefaultKeyMode(DEFAULT_KEYS_SHORTCUT);
 		gameView.requestFocus();
 		onNewIntent(getIntent());
@@ -301,6 +308,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		boolean undoRedoKbd = prefs.getBoolean(UNDO_REDO_KBD_KEY, false);
 		menu.findItem(R.id.undo).setVisible(actionBarCompat != null && ! undoRedoKbd);
 		menu.findItem(R.id.redo).setVisible(actionBarCompat != null && ! undoRedoKbd);
+		menu.findItem(R.id.other).setVisible(! homeAsUpNoticeable);
 		return true;
 	}
 
@@ -374,7 +382,9 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 	@Override
 	public boolean onOptionsItemSelected(MenuItem item)
 	{
-		switch(item.getItemId()) {
+		int itemId = item.getItemId();
+		if (itemId == actionBarHomeId) itemId = R.id.other;
+		switch(itemId) {
 		case R.id.other:
 			startChooser();
 			break;

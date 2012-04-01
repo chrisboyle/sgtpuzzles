@@ -6,7 +6,7 @@ import android.view.View;
 
 public abstract class ActionBarCompat
 {
-	public abstract void setIcon(int resId);
+	public abstract boolean setIconAsShortcut(int resId);
 
 	public abstract void menuItemSetShowAsAction(MenuItem mi, int flags);
 
