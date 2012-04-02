@@ -2144,7 +2144,10 @@ static int trivial_deductions(solver_state *sstate)
                 e = f->edges[j] - g->edges;
                 if (state->lines[e] == LINE_UNKNOWN && e != e1 && e != e2) {
 #ifndef NDEBUG
-                    int r = solver_set_line(sstate, e, LINE_YES);
+                    int r =
+#endif
+                    solver_set_line(sstate, e, LINE_YES);
+#ifndef NDEBUG
                     assert(r);
 #endif
                     diff = min(diff, DIFF_EASY);
