@@ -19,6 +19,7 @@ enum {
     COL_UNKNOWN,
     COL_GRID,
     COL_CURSOR,
+    COL_ERROR,
     NCOLOURS
 };
 
@@ -828,7 +829,7 @@ struct game_drawstate {
     int started;
     int w, h;
     int tilesize;
-    unsigned char *visible;
+    unsigned char *visible, *numcolours;
     int cur_x, cur_y;
 };
 
@@ -1038,6 +1039,165 @@ static game_state *execute_move(game_state *from, char *move)
 }
 
 /* ----------------------------------------------------------------------
+ * Error-checking during gameplay.
+ */
+
+/*
+ * The difficulty in error-checking Pattern is to make the error check
+ * _weak_ enough. The most obvious way would be to check each row and
+ * column by calling (a modified form of) do_row() to recursively
+ * analyse the row contents against the clue set and see if the
+ * GRID_UNKNOWNs could be filled in in any way that would end up
+ * correct. However, this turns out to be such a strong error check as
+ * to constitute a spoiler in many situations: you make a typo while
+ * trying to fill in one row, and not only does the row light up to
+ * indicate an error, but several columns crossed by the move also
+ * light up and draw your attention to deductions you hadn't even
+ * noticed you could make.
+ *
+ * So instead I restrict error-checking to 'complete runs' within a
+ * row, by which I mean contiguous sequences of GRID_FULL bounded at
+ * both ends by either GRID_EMPTY or the ends of the row. We identify
+ * all the complete runs in a row, and verify that _those_ are
+ * consistent with the row's clue list. Sequences of complete runs
+ * separated by solid GRID_EMPTY are required to match contiguous
+ * sequences in the clue list, whereas if there's at least one
+ * GRID_UNKNOWN between any two complete runs then those two need not
+ * be contiguous in the clue list.
+ *
+ * To simplify the edge cases, I pretend that the clue list for the
+ * row is extended with a 0 at each end, and I also pretend that the
+ * grid data for the row is extended with a GRID_EMPTY and a
+ * zero-length run at each end. This permits the contiguity checker to
+ * handle the fiddly end effects (e.g. if the first contiguous
+ * sequence of complete runs in the grid matches _something_ in the
+ * clue list but not at the beginning, this is allowable iff there's a
+ * GRID_UNKNOWN before the first one) with minimal faff, since the end
+ * effects just drop out as special cases of the normal inter-run
+ * handling (in this code the above case is not 'at the end of the
+ * clue list' at all, but between the implicit initial zero run and
+ * the first nonzero one).
+ *
+ * We must also be a little careful about how we search for a
+ * contiguous sequence of runs. In the clue list (1 1 2 1 2 3),
+ * suppose we see a GRID_UNKNOWN and then a length-1 run. We search
+ * for 1 in the clue list and find it at the very beginning. But now
+ * suppose we find a length-2 run with no GRID_UNKNOWN before it. We
+ * can't naively look at the next clue from the 1 we found, because
+ * that'll be the second 1 and won't match. Instead, we must backtrack
+ * by observing that the 2 we've just found must be contiguous with
+ * the 1 we've already seen, so we search for the sequence (1 2) and
+ * find it starting at the second 1. Now if we see a 3, we must
+ * rethink again and search for (1 2 3).
+ */
+
+struct errcheck_state {
+    /*
+     * rowdata and rowlen point at the clue data for this row in the
+     * game state.
+     */
+    int *rowdata;
+    int rowlen;
+    /*
+     * rowpos indicates the lowest position where it would be valid to
+     * see our next run length. It might be equal to rowlen,
+     * indicating that the next run would have to be the terminating 0.
+     */
+    int rowpos;
+    /*
+     * ncontig indicates how many runs we've seen in a contiguous
+     * block. This is taken into account when searching for the next
+     * run we find, unless ncontig is zeroed out first by encountering
+     * a GRID_UNKNOWN.
+     */
+    int ncontig;
+};
+
+static int errcheck_found_run(struct errcheck_state *es, int r)
+{
+/* Macro to handle the pretence that rowdata has a 0 at each end */
+#define ROWDATA(k) ((k)<0 || (k)>=es->rowlen ? 0 : es->rowdata[(k)])
+
+    /*
+     * See if we can find this new run length at a position where it
+     * also matches the last 'ncontig' runs we've seen.
+     */
+    int i, newpos;
+    for (newpos = es->rowpos; newpos <= es->rowlen; newpos++) {
+
+        if (ROWDATA(newpos) != r)
+            goto notfound;
+
+        for (i = 1; i <= es->ncontig; i++)
+            if (ROWDATA(newpos - i) != ROWDATA(es->rowpos - i))
+                goto notfound;
+
+        es->rowpos = newpos+1;
+        es->ncontig++;
+        return TRUE;
+
+      notfound:;
+    }
+
+    return FALSE;
+
+#undef ROWDATA
+}
+
+static int check_errors(game_state *state, int i)
+{
+    int start, step, end, j;
+    int val, runlen;
+    struct errcheck_state aes, *es = &aes;
+
+    es->rowlen = state->rowlen[i];
+    es->rowdata = state->rowdata + state->rowsize * i;
+    /* Pretend that we've already encountered the initial zero run */
+    es->ncontig = 1;
+    es->rowpos = 0;
+
+    if (i < state->w) {
+        start = i;
+        step = state->w;
+        end = start + step * state->h;
+    } else {
+        start = (i - state->w) * state->w;
+        step = 1;
+        end = start + step * state->w;
+    }
+
+    runlen = -1;
+    for (j = start - step; j <= end; j += step) {
+        if (j < start || j == end)
+            val = GRID_EMPTY;
+        else
+            val = state->grid[j];
+
+        if (val == GRID_UNKNOWN) {
+            runlen = -1;
+            es->ncontig = 0;
+        } else if (val == GRID_FULL) {
+            if (runlen >= 0)
+                runlen++;
+        } else if (val == GRID_EMPTY) {
+            if (runlen > 0) {
+                if (!errcheck_found_run(es, runlen))
+                    return TRUE;       /* error! */
+            }
+            runlen = 0;
+        }
+    }
+
+    /* Signal end-of-row by sending errcheck_found_run the terminating
+     * zero run, which will be marked as contiguous with the previous
+     * run if and only if there hasn't been a GRID_UNKNOWN before. */
+    if (!errcheck_found_run(es, 0))
+        return TRUE;                   /* error at the last minute! */
+
+    return FALSE;                      /* no error */
+}
+
+/* ----------------------------------------------------------------------
  * Drawing routines.
  */
 
@@ -1075,6 +1235,9 @@ static float *game_colours(frontend *fe, int *ncolours)
     ret[COL_CURSOR * 3 + 0] = 1.0F;
     ret[COL_CURSOR * 3 + 1] = 0.25F;
     ret[COL_CURSOR * 3 + 2] = 0.25F;
+    ret[COL_ERROR * 3 + 0] = 1.0F;
+    ret[COL_ERROR * 3 + 1] = 0.0F;
+    ret[COL_ERROR * 3 + 2] = 0.0F;
 
     *ncolours = NCOLOURS;
     return ret;
@@ -1090,6 +1253,8 @@ static game_drawstate *game_new_drawstate(drawing *dr, game_state *state)
     ds->visible = snewn(ds->w * ds->h, unsigned char);
     ds->tilesize = 0;                  /* not decided yet */
     memset(ds->visible, 255, ds->w * ds->h);
+    ds->numcolours = snewn(ds->w + ds->h, unsigned char);
+    memset(ds->numcolours, 255, ds->w + ds->h);
     ds->cur_x = ds->cur_y = 0;
 
     return ds;
@@ -1131,46 +1296,62 @@ static void grid_square(drawing *dr, game_drawstate *ds,
                 TILE_SIZE, TILE_SIZE);
 }
 
+/*
+ * Draw the numbers for a single row or column.
+ */
 static void draw_numbers(drawing *dr, game_drawstate *ds, game_state *state,
-			 int colour)
+			 int i, int erase, int colour)
 {
-    int i, j;
+    int rowlen = state->rowlen[i];
+    int *rowdata = state->rowdata + state->rowsize * i;
+    int nfit;
+    int j;
+
+    if (erase) {
+        if (i < state->w) {
+            draw_rect(dr, TOCOORD(state->w, i), 0,
+                      TILE_SIZE, BORDER + TLBORDER(state->w) * TILE_SIZE,
+                      COL_BACKGROUND);
+        } else {
+            draw_rect(dr, 0, TOCOORD(state->h, i - state->w),
+                      BORDER + TLBORDER(state->h) * TILE_SIZE, TILE_SIZE,
+                      COL_BACKGROUND);
+        }
+    }
 
     /*
-     * Draw the numbers.
+     * Normally I space the numbers out by the same distance as the
+     * tile size. However, if there are more numbers than available
+     * spaces, I have to squash them up a bit.
      */
-    for (i = 0; i < state->w + state->h; i++) {
-	int rowlen = state->rowlen[i];
-	int *rowdata = state->rowdata + state->rowsize * i;
-	int nfit;
+    nfit = max(rowlen, TLBORDER(state->h))-1;
+    assert(nfit > 0);
 
-	/*
-	 * Normally I space the numbers out by the same
-	 * distance as the tile size. However, if there are
-	 * more numbers than available spaces, I have to squash
-	 * them up a bit.
-	 */
-	nfit = max(rowlen, TLBORDER(state->h))-1;
-	assert(nfit > 0);
+    for (j = 0; j < rowlen; j++) {
+        int x, y;
+        char str[80];
 
-	for (j = 0; j < rowlen; j++) {
-	    int x, y;
-	    char str[80];
+        if (i < state->w) {
+            x = TOCOORD(state->w, i);
+            y = BORDER + TILE_SIZE * (TLBORDER(state->h)-1);
+            y -= ((rowlen-j-1)*TILE_SIZE) * (TLBORDER(state->h)-1) / nfit;
+        } else {
+            y = TOCOORD(state->h, i - state->w);
+            x = BORDER + TILE_SIZE * (TLBORDER(state->w)-1);
+            x -= ((rowlen-j-1)*TILE_SIZE) * (TLBORDER(state->h)-1) / nfit;
+        }
 
-	    if (i < state->w) {
-		x = TOCOORD(state->w, i);
-		y = BORDER + TILE_SIZE * (TLBORDER(state->h)-1);
-		y -= ((rowlen-j-1)*TILE_SIZE) * (TLBORDER(state->h)-1) / nfit;
-	    } else {
-		y = TOCOORD(state->h, i - state->w);
-		x = BORDER + TILE_SIZE * (TLBORDER(state->w)-1);
-		x -= ((rowlen-j-1)*TILE_SIZE) * (TLBORDER(state->h)-1) / nfit;
-	    }
+        sprintf(str, "%d", rowdata[j]);
+        draw_text(dr, x+TILE_SIZE/2, y+TILE_SIZE/2, FONT_VARIABLE,
+                  TILE_SIZE/2, ALIGN_HCENTRE | ALIGN_VCENTRE, colour, str);
+    }
 
-	    sprintf(str, "%d", rowdata[j]);
-	    draw_text(dr, x+TILE_SIZE/2, y+TILE_SIZE/2, FONT_VARIABLE,
-		      TILE_SIZE/2, ALIGN_HCENTRE | ALIGN_VCENTRE, colour, str);
-	}
+    if (i < state->w) {
+        draw_update(dr, TOCOORD(state->w, i), 0,
+                    TILE_SIZE, BORDER + TLBORDER(state->w) * TILE_SIZE);
+    } else {
+        draw_update(dr, 0, TOCOORD(state->h, i - state->w),
+                    BORDER + TLBORDER(state->h) * TILE_SIZE, TILE_SIZE);
     }
 }
 
@@ -1190,11 +1371,6 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
          * colour rectangle covering the whole window.
          */
         draw_rect(dr, 0, 0, SIZE(ds->w), SIZE(ds->h), COL_BACKGROUND);
-
-	/*
-	 * Draw the numbers.
-	 */
-	draw_numbers(dr, ds, state, COL_TEXT);
 
         /*
          * Draw the grid outline.
@@ -1265,6 +1441,18 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
         }
     }
     ds->cur_x = cx; ds->cur_y = cy;
+
+    /*
+     * Redraw any numbers which have changed their colour due to error
+     * indication.
+     */
+    for (i = 0; i < state->w + state->h; i++) {
+        int colour = check_errors(state, i) ? COL_ERROR : COL_TEXT;
+        if (ds->numcolours[i] != colour) {
+            draw_numbers(dr, ds, state, i, TRUE, colour);
+            ds->numcolours[i] = colour;
+        }
+    }
 }
 
 static float game_anim_length(game_state *oldstate,
@@ -1308,7 +1496,7 @@ static void game_print(drawing *dr, game_state *state, int tilesize)
 {
     int w = state->w, h = state->h;
     int ink = print_mono_colour(dr, 0);
-    int x, y;
+    int x, y, i;
 
     /* Ick: fake up `ds->tilesize' for macro expansion purposes */
     game_drawstate ads, *ds = &ads;
@@ -1338,7 +1526,8 @@ static void game_print(drawing *dr, game_state *state, int tilesize)
     /*
      * Clues.
      */
-    draw_numbers(dr, ds, state, ink);
+    for (i = 0; i < state->w + state->h; i++)
+        draw_numbers(dr, ds, state, i, FALSE, ink);
 
     /*
      * Solution.
