@@ -1237,6 +1237,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
                 (bgcolour != ds->bgcolour || /* always redraw when flashing */
                  v != ds->grid[y*w+x])) {
 		draw_tile(dr, ds, COORD(x), COORD(y), v, bgcolour);
+                ds->grid[y*w+x] = v;
 	    }
 	}
 
