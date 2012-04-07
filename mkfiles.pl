@@ -528,7 +528,7 @@ if (defined $makefiles{'cygwin'}) {
       }
     }
     print "\n";
-    print $makefile_extra{'cygwin'};
+    print $makefile_extra{'cygwin'} || "";
     print "\nclean:\n".
     "\trm -f *.o *.exe *.res.o *.map\n".
     "\n";
@@ -628,7 +628,7 @@ if (defined $makefiles{'borland'}) {
       }
     }
     print "\n";
-    print $makefile_extra{'borland'};
+    print $makefile_extra{'borland'} || "";
     print "\nclean:\n".
     "\t-del *.obj\n".
     "\t-del *.exe\n".
@@ -704,7 +704,7 @@ if (defined $makefiles{'vc'}) {
 	}
     }
     print "\n";
-    print $makefile_extra{'vc'};
+    print $makefile_extra{'vc'} || "";
     print "\nclean: tidy\n".
       "\t-del *.exe\n\n".
       "tidy:\n".
@@ -812,7 +812,7 @@ if (defined $makefiles{'wce'}) {
 	}
     }
     print "\n";
-    print $makefile_extra{'wce'};
+    print $makefile_extra{'wce'} || "";
     print "\nclean: tidy\n".
       "\t-del *.exe\n\n".
       "tidy:\n".
@@ -1148,7 +1148,7 @@ if (defined $makefiles{'gtk'}) {
 	  " -c \$< -o \$\@\n";
     }
     print "\n";
-    print $makefile_extra{'gtk'};
+    print $makefile_extra{'gtk'} || "";
     print "\nclean:\n".
     "\trm -f *.o". (join "", map { " $_" } &progrealnames("X:U")) . "\n";
     select STDOUT; close OUT;
@@ -1346,7 +1346,7 @@ if (defined $makefiles{'lcc'}) {
       }
     }
     print "\n";
-    print $makefile_extra{'lcc'};
+    print $makefile_extra{'lcc'} || "";
     print "\nclean:\n".
     "\t-del *.obj\n".
     "\t-del *.exe\n".
@@ -1402,7 +1402,7 @@ if (defined $makefiles{'nestedvm'}) {
 	  " -c \$< -o \$\@\n";
     }
     print "\n";
-    print $makefile_extra{'nestedvm'};
+    print $makefile_extra{'nestedvm'} || "";
     print "\nclean:\n".
     "\trm -rf *.o *.mips *.class *.html *.jar org applet.manifest\n";
     select STDOUT; close OUT;
@@ -1430,9 +1430,9 @@ if (defined $makefiles{'osx'}) {
 	       (join " ", map {"-I$dirpfx$_"} @srcdirs))."\n".
     "LDFLAGS = -framework Cocoa\n".
     &splitline("all:" . join "", map { " $_" } &progrealnames("MX:U")) .
-    "\n" .
-    $makefile_extra{'osx'} .
-    "\n".
+    "\n";
+    print $makefile_extra{'osx'} || "";
+    print "\n".
     ".SUFFIXES: .o .c .m\n".
     "\n";
     print "\n\n";
