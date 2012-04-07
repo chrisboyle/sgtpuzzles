@@ -1118,8 +1118,8 @@ if (defined $makefiles{'gtk'}) {
     &splitline("CFLAGS := -O2 -Wall -Werror -ansi -pedantic -g " .
 	       (join " ", map {"-I$dirpfx$_"} @srcdirs) .
 	       " `\$(GTK_CONFIG) --cflags` \$(CFLAGS)")."\n".
-    "XLIBS = `\$(GTK_CONFIG) --libs`\n".
-    "ULIBS =#\n".
+    "XLIBS = `\$(GTK_CONFIG) --libs` -lm\n".
+    "ULIBS = -lm#\n".
     "INSTALL=install\n",
     "INSTALL_PROGRAM=\$(INSTALL)\n",
     "INSTALL_DATA=\$(INSTALL)\n",
