@@ -2977,10 +2977,10 @@ static float *game_colours(frontend *fe, int *ncolours)
     /* tinge the edit background to bluey */
     ret[COL_BACKGROUND * 3 + 0] = ret[COL_BACKGROUND * 3 + 0] * 0.8F;
     ret[COL_BACKGROUND * 3 + 1] = ret[COL_BACKGROUND * 3 + 0] * 0.8F;
-    ret[COL_BACKGROUND * 3 + 2] = max(ret[COL_BACKGROUND * 3 + 0] * 1.4F, 1.0F);
+    ret[COL_BACKGROUND * 3 + 2] = min(ret[COL_BACKGROUND * 3 + 0] * 1.4F, 1.0F);
 #endif
 
-    ret[COL_CURSOR * 3 + 0] = max(ret[COL_BACKGROUND * 3 + 0] * 1.4F, 1.0F);
+    ret[COL_CURSOR * 3 + 0] = min(ret[COL_BACKGROUND * 3 + 0] * 1.4F, 1.0F);
     ret[COL_CURSOR * 3 + 1] = ret[COL_BACKGROUND * 3 + 0] * 0.8F;
     ret[COL_CURSOR * 3 + 2] = ret[COL_BACKGROUND * 3 + 0] * 0.8F;
 
