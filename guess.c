@@ -897,7 +897,7 @@ static void game_set_size(drawing *dr, game_drawstate *ds,
 
     assert(ds->pegsz > 0);
     assert(!ds->blit_peg);             /* set_size is never called twice */
-    ds->blit_peg = blitter_new(dr, ds->pegsz, ds->pegsz);
+    ds->blit_peg = blitter_new(dr, ds->pegsz+2, ds->pegsz+2);
 }
 
 static float *game_colours(frontend *fe, int *ncolours)
@@ -1290,11 +1290,10 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
     if (ui->drag_col != 0) {
         int ox = ui->drag_x - (PEGSZ/2);
         int oy = ui->drag_y - (PEGSZ/2);
-        debug(("Saving to blitter at (%d,%d)", ox, oy));
-        blitter_save(dr, ds->blit_peg, ox, oy);
+        ds->blit_ox = ox - 1; ds->blit_oy = oy - 1;
+        debug(("Saving to blitter at (%d,%d)", ds->blit_ox, ds->blit_oy));
+        blitter_save(dr, ds->blit_peg, ds->blit_ox, ds->blit_oy);
         draw_peg(dr, ds, ox, oy, TRUE, ui->show_labels, ui->drag_col);
-
-        ds->blit_ox = ox; ds->blit_oy = oy;
     }
     ds->drag_col = ui->drag_col;
 
