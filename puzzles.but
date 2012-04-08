@@ -2926,7 +2926,7 @@ that the loop must satisfy.
 A black circle in a square indicates that that square is a corner, but
 neither of the squares adjacent to it in the loop is also a corner.
 
-A while circle indicates that the square is a straight edge, but \e{at
+A white circle indicates that the square is a straight edge, but \e{at
 least one} of the squares adjacent to it in the loop is a corner.
 
 (In both cases, the clue only constrains the two squares adjacent
