@@ -106,6 +106,22 @@ midend *midend_new(frontend *fe, const game *ourgame,
     me->nstates = me->statesize = me->statepos = 0;
     me->states = NULL;
     me->params = ourgame->default_params();
+    /*
+     * Allow environment-based changing of the default settings by
+     * defining a variable along the lines of `NET_DEFAULT=25x25w'
+     * in which the value is an encoded parameter string.
+     */
+    {
+        char buf[80], *e;
+        int j, k;
+        sprintf(buf, "%s_DEFAULT", me->ourgame->name);
+	for (j = k = 0; buf[j]; j++)
+	    if (!isspace((unsigned char)buf[j]))
+		buf[k++] = toupper((unsigned char)buf[j]);
+	buf[k] = '\0';
+        if ((e = getenv(buf)) != NULL)
+            me->ourgame->decode_params(me->params, e);
+    }
     me->curparams = NULL;
     me->desc = me->privdesc = NULL;
     me->seedstr = NULL;
