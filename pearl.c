@@ -1161,8 +1161,16 @@ void pearl_loopgen(int w, int h, char *lines, random_state *rs)
 static int new_clues(game_params *params, random_state *rs,
                      char *clues, char *grid)
 {
-    int w = params->w, h = params->h;
+    int w = params->w, h = params->h, diff = params->difficulty;
     int ngen = 0, x, y, d, ret, i;
+
+
+    /*
+     * Difficulty exception: 5x5 Tricky is not generable (the
+     * generator will spin forever trying) and so we fudge it to Easy.
+     */
+    if (w == 5 && h == 5 && diff > DIFF_EASY)
+        diff = DIFF_EASY;
 
     while (1) {
         ngen++;
@@ -1245,7 +1253,7 @@ static int new_clues(game_params *params, random_state *rs,
             /*
              * See if we can solve the puzzle just like this.
              */
-            ret = pearl_solve(w, h, clues, grid, params->difficulty, FALSE);
+            ret = pearl_solve(w, h, clues, grid, diff, FALSE);
             assert(ret > 0);	       /* shouldn't be inconsistent! */
             if (ret != 1)
                 continue;		       /* go round and try again */
@@ -1253,8 +1261,8 @@ static int new_clues(game_params *params, random_state *rs,
             /*
              * Check this puzzle isn't too easy.
              */
-            if (params->difficulty > DIFF_EASY) {
-                ret = pearl_solve(w, h, clues, grid, params->difficulty-1, FALSE);
+            if (diff > DIFF_EASY) {
+                ret = pearl_solve(w, h, clues, grid, diff-1, FALSE);
                 assert(ret > 0);
                 if (ret == 1)
                     continue; /* too easy: try again */
@@ -1321,7 +1329,7 @@ static int new_clues(game_params *params, random_state *rs,
                 clue = clues[y*w+x];
                 clues[y*w+x] = 0;	       /* try removing this clue */
 
-                ret = pearl_solve(w, h, clues, grid, params->difficulty, FALSE);
+                ret = pearl_solve(w, h, clues, grid, diff, FALSE);
                 assert(ret > 0);
                 if (ret != 1)
                     clues[y*w+x] = clue;   /* oops, put it back again */

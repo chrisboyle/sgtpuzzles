@@ -18,11 +18,12 @@ in puzzles do perl mkfiles.pl
 in puzzles do make clean
 
 # Build the OS X .dmg archive.
-delegate osx
-  in puzzles do make -f Makefile.osx clean
-  in puzzles do make -f Makefile.osx release VER=-DREVISION=$(revision)
-  return puzzles/Puzzles.dmg
-enddelegate
+# 2012-04-03: commented out because my Mac is dead.
+#delegate osx
+#  in puzzles do make -f Makefile.osx clean
+#  in puzzles do make -f Makefile.osx release VER=-DREVISION=$(revision)
+#  return puzzles/Puzzles.dmg
+#enddelegate
 
 # Build the Windows binaries and installer, and the CHM file.
 in puzzles do make -f Makefile.doc clean
@@ -124,7 +125,7 @@ deliver puzzles/winbin/*.exe $@
 deliver puzzles/.htaccess $@
 deliver puzzles/doc/*.html doc/$@
 deliver puzzles/devel/*.html devel/$@
-deliver puzzles/Puzzles.dmg $@
+#deliver puzzles/Puzzles.dmg $@ # 2012-04-03 commented out, see above
 deliver puzzles/puzzles.chm $@
 deliver puzzles/puzzles.hlp $@
 deliver puzzles/puzzles.cnt $@
