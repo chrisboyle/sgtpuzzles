@@ -712,7 +712,7 @@ struct frontend {
     [alert addButtonWithTitle:@"Bah"];
     [alert setInformativeText:[NSString stringWithUTF8String:message]];
     [alert beginSheetModalForWindow:self modalDelegate:nil
-     didEndSelector:nil contextInfo:nil];
+     didEndSelector:NULL contextInfo:nil];
 }
 
 - (void)newGame:(id)sender
@@ -1179,7 +1179,7 @@ struct frontend {
 	[[sheet contentView] addSubview:cfg_controls[k]];
 
     [NSApp beginSheet:sheet modalForWindow:self
-     modalDelegate:nil didEndSelector:nil contextInfo:nil];
+     modalDelegate:nil didEndSelector:NULL contextInfo:nil];
 }
 
 - (void)specificGame:(id)sender
@@ -1234,7 +1234,7 @@ struct frontend {
 	    [alert addButtonWithTitle:@"Bah"];
 	    [alert setInformativeText:[NSString stringWithUTF8String:error]];
 	    [alert beginSheetModalForWindow:self modalDelegate:nil
-	     didEndSelector:nil contextInfo:nil];
+	     didEndSelector:NULL contextInfo:nil];
 	} else {
 	    midend_new_game(me);
 	    [self resizeForNewGameParams];
