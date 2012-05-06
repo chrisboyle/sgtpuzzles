@@ -1562,7 +1562,6 @@ int main(int argc, char **argv)
 {
     NSAutoreleasePool *pool;
     NSMenu *menu;
-    NSMenuItem *item;
     AppController *controller;
     NSImage *icon;
 
@@ -1578,24 +1577,24 @@ int main(int argc, char **argv)
     [NSApp setMainMenu: newmenu("Main Menu")];
 
     menu = newsubmenu([NSApp mainMenu], "Apple Menu");
-    item = newitem(menu, "About Puzzles", "", NULL, @selector(about:));
+    newitem(menu, "About Puzzles", "", NULL, @selector(about:));
     [menu addItem:[NSMenuItem separatorItem]];
     [NSApp setServicesMenu:newsubmenu(menu, "Services")];
     [menu addItem:[NSMenuItem separatorItem]];
-    item = newitem(menu, "Hide Puzzles", "h", NSApp, @selector(hide:));
-    item = newitem(menu, "Hide Others", "o-h", NSApp, @selector(hideOtherApplications:));
-    item = newitem(menu, "Show All", "", NSApp, @selector(unhideAllApplications:));
+    newitem(menu, "Hide Puzzles", "h", NSApp, @selector(hide:));
+    newitem(menu, "Hide Others", "o-h", NSApp, @selector(hideOtherApplications:));
+    newitem(menu, "Show All", "", NSApp, @selector(unhideAllApplications:));
     [menu addItem:[NSMenuItem separatorItem]];
-    item = newitem(menu, "Quit", "q", NSApp, @selector(terminate:));
+    newitem(menu, "Quit", "q", NSApp, @selector(terminate:));
     [NSApp setAppleMenu: menu];
 
     menu = newsubmenu([NSApp mainMenu], "File");
-    item = newitem(menu, "Open", "o", NULL, @selector(loadSavedGame:));
-    item = newitem(menu, "Save As", "s", NULL, @selector(saveGame:));
-    item = newitem(menu, "New Game", "n", NULL, @selector(newGame:));
-    item = newitem(menu, "Restart Game", "r", NULL, @selector(restartGame:));
-    item = newitem(menu, "Specific Game", "", NULL, @selector(specificGame:));
-    item = newitem(menu, "Specific Random Seed", "", NULL,
+    newitem(menu, "Open", "o", NULL, @selector(loadSavedGame:));
+    newitem(menu, "Save As", "s", NULL, @selector(saveGame:));
+    newitem(menu, "New Game", "n", NULL, @selector(newGame:));
+    newitem(menu, "Restart Game", "r", NULL, @selector(restartGame:));
+    newitem(menu, "Specific Game", "", NULL, @selector(specificGame:));
+    newitem(menu, "Specific Random Seed", "", NULL,
                    @selector(specificRandomGame:));
     [menu addItem:[NSMenuItem separatorItem]];
     {
@@ -1611,28 +1610,28 @@ int main(int argc, char **argv)
 	}
     }
     [menu addItem:[NSMenuItem separatorItem]];
-    item = newitem(menu, "Close", "w", NULL, @selector(performClose:));
+    newitem(menu, "Close", "w", NULL, @selector(performClose:));
 
     menu = newsubmenu([NSApp mainMenu], "Edit");
-    item = newitem(menu, "Undo", "z", NULL, @selector(undoMove:));
-    item = newitem(menu, "Redo", "S-z", NULL, @selector(redoMove:));
+    newitem(menu, "Undo", "z", NULL, @selector(undoMove:));
+    newitem(menu, "Redo", "S-z", NULL, @selector(redoMove:));
     [menu addItem:[NSMenuItem separatorItem]];
-    item = newitem(menu, "Cut", "x", NULL, @selector(cut:));
-    item = newitem(menu, "Copy", "c", NULL, @selector(copy:));
-    item = newitem(menu, "Paste", "v", NULL, @selector(paste:));
+    newitem(menu, "Cut", "x", NULL, @selector(cut:));
+    newitem(menu, "Copy", "c", NULL, @selector(copy:));
+    newitem(menu, "Paste", "v", NULL, @selector(paste:));
     [menu addItem:[NSMenuItem separatorItem]];
-    item = newitem(menu, "Solve", "S-s", NULL, @selector(solveGame:));
+    newitem(menu, "Solve", "S-s", NULL, @selector(solveGame:));
 
     menu = newsubmenu([NSApp mainMenu], "Type");
     typemenu = menu;
-    item = newitem(menu, "Custom", "", NULL, @selector(customGameType:));
+    newitem(menu, "Custom", "", NULL, @selector(customGameType:));
 
     menu = newsubmenu([NSApp mainMenu], "Window");
     [NSApp setWindowsMenu: menu];
-    item = newitem(menu, "Minimise Window", "m", NULL, @selector(performMiniaturize:));
+    newitem(menu, "Minimise Window", "m", NULL, @selector(performMiniaturize:));
 
     menu = newsubmenu([NSApp mainMenu], "Help");
-    item = newitem(menu, "Puzzles Help", "?", NSApp, @selector(showHelp:));
+    newitem(menu, "Puzzles Help", "?", NSApp, @selector(showHelp:));
 
     [NSApp run];
     [pool release];
