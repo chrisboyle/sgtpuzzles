@@ -1421,11 +1421,42 @@ static void osx_blitter_free(void *handle, blitter *bl)
 static void osx_blitter_save(void *handle, blitter *bl, int x, int y)
 {
     frontend *fe = (frontend *)handle;
+    int sx, sy, sX, sY, dx, dy, dX, dY;
     [fe->image unlockFocus];
     [bl->img lockFocus];
-    [fe->image drawInRect:NSMakeRect(0, 0, bl->w, bl->h)
-	fromRect:NSMakeRect(x, fe->h - y - bl->h, bl->w, bl->h)
-	operation:NSCompositeCopy fraction:1.0];
+
+    /*
+     * Find the intersection of the source and destination rectangles,
+     * so as to avoid trying to copy from outside the source image,
+     * which GNUstep dislikes.
+     *
+     * Lower-case x,y coordinates are bottom left box corners;
+     * upper-case X,Y are the top right.
+     */
+    sx = x; sy = fe->h - y - bl->h;
+    sX = sx + bl->w; sY = sy + bl->h;
+    dx = dy = 0;
+    dX = bl->w; dY = bl->h;
+    if (sx < 0) {
+        dx += -sx;
+        sx = 0;
+    }
+    if (sy < 0) {
+        dy += -sy;
+        sy = 0;
+    }
+    if (sX > fe->w) {
+        dX -= (sX - fe->w);
+        sX = fe->w;
+    }
+    if (sY > fe->h) {
+        dY -= (sY - fe->h);
+        sY = fe->h;
+    }
+
+    [fe->image drawInRect:NSMakeRect(dx, dy, dX-dx, dY-dy)
+                 fromRect:NSMakeRect(sx, sy, sX-sx, sY-sy)
+                operation:NSCompositeCopy fraction:1.0];
     [bl->img unlockFocus];
     [fe->image lockFocus];
     bl->x = x;
