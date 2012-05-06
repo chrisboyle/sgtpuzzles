@@ -13,6 +13,7 @@
 !makefile wce Makefile.wce
 !makefile cygwin Makefile.cyg
 !makefile osx Makefile.osx
+!makefile gnustep Makefile.gnustep
 !makefile nestedvm Makefile.nestedvm
 
 !srcdir icons/
