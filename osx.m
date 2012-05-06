@@ -386,6 +386,7 @@ struct frontend {
     NSColor **colours;
     int ncolours;
     int clipped;
+    int w, h;
 };
 
 @interface MyImageView : NSImageView
@@ -393,7 +394,6 @@ struct frontend {
     GameWindow *ourwin;
 }
 - (void)setWindow:(GameWindow *)win;
-- (BOOL)isFlipped;
 - (void)mouseEvent:(NSEvent *)ev button:(int)b;
 - (void)mouseDown:(NSEvent *)ev;
 - (void)mouseDragged:(NSEvent *)ev;
@@ -423,6 +423,7 @@ struct frontend {
 - (id)initWithGame:(const game *)g;
 - (void)dealloc;
 - (void)processButton:(int)b x:(int)x y:(int)y;
+- (void)processKey:(int)b;
 - (void)keyDown:(NSEvent *)ev;
 - (void)activateTimer;
 - (void)deactivateTimer;
@@ -436,11 +437,6 @@ struct frontend {
 - (void)setWindow:(GameWindow *)win
 {
     ourwin = win;
-}
-
-- (BOOL)isFlipped
-{
-    return YES;
 }
 
 - (void)mouseEvent:(NSEvent *)ev button:(int)b
@@ -519,9 +515,10 @@ struct frontend {
     midend_size(me, &w, &h, FALSE);
     frame.size.width = w;
     frame.size.height = h;
+    fe.w = w;
+    fe.h = h;
 
     fe.image = [[NSImage alloc] initWithSize:frame.size];
-    [fe.image setFlipped:YES];
     fe.view = [[MyImageView alloc] initWithFrame:frame];
     [fe.view setImage:fe.image];
     [fe.view setWindow:self];
@@ -551,6 +548,8 @@ struct frontend {
     midend_size(me, &w, &h, FALSE);
     rect.size.width = w;
     rect.size.height = h;
+    fe.w = w;
+    fe.h = h;
 
     /*
      * Create the status bar, which will just be an NSTextField.
@@ -618,7 +617,13 @@ struct frontend {
 
 - (void)processButton:(int)b x:(int)x y:(int)y
 {
-    if (!midend_process_key(me, x, y, b))
+    if (!midend_process_key(me, x, fe.h - 1 - y, b))
+	[self close];
+}
+
+- (void)processKey:(int)b
+{
+    if (!midend_process_key(me, -1, -1, b))
 	[self close];
 }
 
@@ -669,7 +674,7 @@ struct frontend {
 	if (c >= '0' && c <= '9' && ([ev modifierFlags] & NSNumericPadKeyMask))
 	    c |= MOD_NUM_KEYPAD;
 
-	[self processButton:c x:-1 y:-1];
+	[self processKey:c];
     }
 }
 
@@ -717,7 +722,7 @@ struct frontend {
 
 - (void)newGame:(id)sender
 {
-    [self processButton:'n' x:-1 y:-1];
+    [self processKey:'n'];
 }
 - (void)restartGame:(id)sender
 {
@@ -774,11 +779,11 @@ struct frontend {
 }
 - (void)undoMove:(id)sender
 {
-    [self processButton:'u' x:-1 y:-1];
+    [self processKey:'u'];
 }
 - (void)redoMove:(id)sender
 {
-    [self processButton:'r'&0x1F x:-1 y:-1];
+    [self processKey:'r'&0x1F];
 }
 
 - (void)copy:(id)sender
@@ -892,6 +897,8 @@ struct frontend {
     midend_size(me, &w, &h, FALSE);
     size.width = w;
     size.height = h;
+    fe.w = w;
+    fe.h = h;
 
     if (status) {
 	NSRect frame = [status frame];
@@ -1277,7 +1284,7 @@ static void osx_draw_polygon(void *handle, int *coords, int npoints,
     [[NSGraphicsContext currentContext] setShouldAntialias:YES];
 
     for (i = 0; i < npoints; i++) {
-	NSPoint p = { coords[i*2] + 0.5, coords[i*2+1] + 0.5 };
+	NSPoint p = { coords[i*2] + 0.5, fe->h - coords[i*2+1] - 0.5 };
 	if (i == 0)
 	    [path moveToPoint:p];
 	else
@@ -1304,7 +1311,7 @@ static void osx_draw_circle(void *handle, int cx, int cy, int radius,
 
     [[NSGraphicsContext currentContext] setShouldAntialias:YES];
 
-    [path appendBezierPathWithArcWithCenter:NSMakePoint(cx + 0.5, cy + 0.5)
+    [path appendBezierPathWithArcWithCenter:NSMakePoint(cx+0.5, fe->h-cy-0.5)
         radius:radius startAngle:0.0 endAngle:360.0];
 
     [path closePath];
@@ -1323,7 +1330,8 @@ static void osx_draw_line(void *handle, int x1, int y1, int x2, int y2, int colo
 {
     frontend *fe = (frontend *)handle;
     NSBezierPath *path = [NSBezierPath bezierPath];
-    NSPoint p1 = { x1 + 0.5, y1 + 0.5 }, p2 = { x2 + 0.5, y2 + 0.5 };
+    NSPoint p1 = { x1 + 0.5, fe->h - y1 - 0.5 };
+    NSPoint p2 = { x2 + 0.5, fe->h - y2 - 0.5 };
 
     [[NSGraphicsContext currentContext] setShouldAntialias:NO];
 
@@ -1337,7 +1345,7 @@ static void osx_draw_line(void *handle, int x1, int y1, int x2, int y2, int colo
 static void osx_draw_rect(void *handle, int x, int y, int w, int h, int colour)
 {
     frontend *fe = (frontend *)handle;
-    NSRect r = { {x,y}, {w,h} };
+    NSRect r = { {x, fe->h - y - h}, {w,h} };
     
     [[NSGraphicsContext currentContext] setShouldAntialias:NO];
 
@@ -1370,7 +1378,7 @@ static void osx_draw_text(void *handle, int x, int y, int fonttype,
 	    font, NSFontAttributeName, nil];
 
     point.x = x;
-    point.y = y;
+    point.y = fe->h - y;
 
     size = [string sizeWithAttributes:attr];
     if (align & ALIGN_HRIGHT)
@@ -1378,9 +1386,7 @@ static void osx_draw_text(void *handle, int x, int y, int fonttype,
     else if (align & ALIGN_HCENTRE)
 	point.x -= size.width / 2;
     if (align & ALIGN_VCENTRE)
-	point.y -= size.height / 2;
-    else
-	point.y -= size.height;
+        point.y -= size.height / 2;
 
     [string drawAtPoint:point withAttributes:attr];
 }
@@ -1405,7 +1411,6 @@ static blitter *osx_blitter_new(void *handle, int w, int h)
     bl->w = w;
     bl->h = h;
     bl->img = [[NSImage alloc] initWithSize:NSMakeSize(w, h)];
-    [bl->img setFlipped:YES];
     return bl;
 }
 static void osx_blitter_free(void *handle, blitter *bl)
@@ -1419,7 +1424,7 @@ static void osx_blitter_save(void *handle, blitter *bl, int x, int y)
     [fe->image unlockFocus];
     [bl->img lockFocus];
     [fe->image drawInRect:NSMakeRect(0, 0, bl->w, bl->h)
-	fromRect:NSMakeRect(x, y, bl->w, bl->h)
+	fromRect:NSMakeRect(x, fe->h - y - bl->h, bl->w, bl->h)
 	operation:NSCompositeCopy fraction:1.0];
     [bl->img unlockFocus];
     [fe->image lockFocus];
@@ -1428,24 +1433,24 @@ static void osx_blitter_save(void *handle, blitter *bl, int x, int y)
 }
 static void osx_blitter_load(void *handle, blitter *bl, int x, int y)
 {
-    /* frontend *fe = (frontend *)handle; */
+    frontend *fe = (frontend *)handle;
     if (x == BLITTER_FROMSAVED && y == BLITTER_FROMSAVED) {
         x = bl->x;
         y = bl->y;
     }
-    [bl->img drawInRect:NSMakeRect(x, y, bl->w, bl->h)
+    [bl->img drawInRect:NSMakeRect(x, fe->h - y - bl->h, bl->w, bl->h)
 	fromRect:NSMakeRect(0, 0, bl->w, bl->h)
 	operation:NSCompositeCopy fraction:1.0];
 }
 static void osx_draw_update(void *handle, int x, int y, int w, int h)
 {
     frontend *fe = (frontend *)handle;
-    [fe->view setNeedsDisplayInRect:NSMakeRect(x,y,w,h)];
+    [fe->view setNeedsDisplayInRect:NSMakeRect(x, fe->h - y - h, w, h)];
 }
 static void osx_clip(void *handle, int x, int y, int w, int h)
 {
     frontend *fe = (frontend *)handle;
-    NSRect r = { {x,y}, {w,h} };
+    NSRect r = { {x, fe->h - y - h}, {w, h} };
     
     if (!fe->clipped)
 	[[NSGraphicsContext currentContext] saveGraphicsState];
