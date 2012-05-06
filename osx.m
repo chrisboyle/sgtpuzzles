@@ -125,7 +125,7 @@ void fatal(char *fmt, ...)
     } else {
 	alert = [[alert init] autorelease];
 	[alert addButtonWithTitle:@"Oh dear"];
-	[alert setInformativeText:[NSString stringWithCString:errorbuf]];
+	[alert setInformativeText:[NSString stringWithUTF8String:errorbuf]];
 	[alert runModal];
     }
     exit(1);
@@ -211,7 +211,7 @@ void document_add_puzzle(document *doc, const game *game, game_params *par,
 NSMenu *newmenu(const char *title)
 {
     return [[[NSMenu allocWithZone:[NSMenu menuZone]]
-	     initWithTitle:[NSString stringWithCString:title]]
+	     initWithTitle:[NSString stringWithUTF8String:title]]
 	    autorelease];
 }
 
@@ -221,7 +221,7 @@ NSMenu *newsubmenu(NSMenu *parent, const char *title)
     NSMenu *child;
 
     item = [[[NSMenuItem allocWithZone:[NSMenu menuZone]]
-	     initWithTitle:[NSString stringWithCString:title]
+	     initWithTitle:[NSString stringWithUTF8String:title]
 	     action:NULL
 	     keyEquivalent:@""]
 	    autorelease];
@@ -251,9 +251,9 @@ id initnewitem(NSMenuItem *item, NSMenu *parent, const char *title,
 	    key++;
     }
 
-    item = [[item initWithTitle:[NSString stringWithCString:title]
+    item = [[item initWithTitle:[NSString stringWithUTF8String:title]
 	     action:NULL
-	     keyEquivalent:[NSString stringWithCString:key]]
+	     keyEquivalent:[NSString stringWithUTF8String:key]]
 	    autorelease];
 
     if (*key)
@@ -327,7 +327,7 @@ NSMenuItem *newitem(NSMenu *parent, char *title, char *key,
     [tf setBordered:NO];
     [tf setDrawsBackground:NO];
     [tf setFont:font1];
-    [tf setStringValue:[NSString stringWithCString:ver]];
+    [tf setStringValue:[NSString stringWithUTF8String:ver]];
     [tf sizeToFit];
     views[nviews++] = tf;
 
@@ -578,7 +578,7 @@ struct frontend {
 		       NSClosableWindowMask)
 	    backing:NSBackingStoreBuffered
 	    defer:YES];
-    [self setTitle:[NSString stringWithCString:ourgame->name]];
+    [self setTitle:[NSString stringWithUTF8String:ourgame->name]];
 
     {
 	float *colours;
@@ -710,7 +710,7 @@ struct frontend {
 
     alert = [[[NSAlert alloc] init] autorelease];
     [alert addButtonWithTitle:@"Bah"];
-    [alert setInformativeText:[NSString stringWithCString:message]];
+    [alert setInformativeText:[NSString stringWithUTF8String:message]];
     [alert beginSheetModalForWindow:self modalDelegate:nil
      didEndSelector:nil contextInfo:nil];
 }
@@ -789,7 +789,7 @@ struct frontend {
 	NSPasteboard *pb = [NSPasteboard generalPasteboard];
 	NSArray *a = [NSArray arrayWithObject:NSStringPboardType];
 	[pb declareTypes:a owner:nil];
-	[pb setString:[NSString stringWithCString:text]
+	[pb setString:[NSString stringWithUTF8String:text]
 	 forType:NSStringPboardType];
     } else
 	NSBeep();
@@ -855,7 +855,7 @@ struct frontend {
 	    midend_fetch_preset(me, n, &name, &params);
 
 	    item = [[[DataMenuItem alloc]
-		     initWithTitle:[NSString stringWithCString:name]
+		     initWithTitle:[NSString stringWithUTF8String:name]
 		     action:NULL keyEquivalent:@""]
 		    autorelease];
 
@@ -1002,7 +1002,7 @@ struct frontend {
 	    [tf setSelectable:NO];
 	    [tf setBordered:NO];
 	    [tf setDrawsBackground:NO];
-	    [[tf cell] setTitle:[NSString stringWithCString:i->name]];
+	    [[tf cell] setTitle:[NSString stringWithUTF8String:i->name]];
 	    [tf sizeToFit];
 	    rect = [tf frame];
 	    if (thish < rect.size.height + 1) thish = rect.size.height + 1;
@@ -1013,7 +1013,7 @@ struct frontend {
 	    [tf setEditable:YES];
 	    [tf setSelectable:YES];
 	    [tf setBordered:YES];
-	    [[tf cell] setTitle:[NSString stringWithCString:i->sval]];
+	    [[tf cell] setTitle:[NSString stringWithUTF8String:i->sval]];
 	    [tf sizeToFit];
 	    rect = [tf frame];
 	    /*
@@ -1040,7 +1040,7 @@ struct frontend {
 	    b = [[NSButton alloc] initWithFrame:tmprect];
 	    [b setBezelStyle:NSRoundedBezelStyle];
 	    [b setButtonType:NSSwitchButton];
-	    [b setTitle:[NSString stringWithCString:i->name]];
+	    [b setTitle:[NSString stringWithUTF8String:i->name]];
 	    [b sizeToFit];
 	    [b setState:(i->ival ? NSOnState : NSOffState)];
 	    rect = [b frame];
@@ -1061,7 +1061,7 @@ struct frontend {
 	    [tf setSelectable:NO];
 	    [tf setBordered:NO];
 	    [tf setDrawsBackground:NO];
-	    [[tf cell] setTitle:[NSString stringWithCString:i->name]];
+	    [[tf cell] setTitle:[NSString stringWithUTF8String:i->name]];
 	    [tf sizeToFit];
 	    rect = [tf frame];
 	    if (thish < rect.size.height + 1) thish = rect.size.height + 1;
@@ -1076,13 +1076,15 @@ struct frontend {
 		p = i->sval;
 		c = *p++;
 		while (*p) {
-		    char *q;
+		    char cc, *q;
 
 		    q = p;
 		    while (*p && *p != c) p++;
 
-		    [pb addItemWithTitle:[NSString stringWithCString:q
-					  length:p-q]];
+		    cc = *p;
+		    *p = '\0';
+		    [pb addItemWithTitle:[NSString stringWithUTF8String:q]];
+		    *p = cc;
 
 		    if (*p) p++;
 		}
@@ -1230,7 +1232,7 @@ struct frontend {
 	if (error) {
 	    NSAlert *alert = [[[NSAlert alloc] init] autorelease];
 	    [alert addButtonWithTitle:@"Bah"];
-	    [alert setInformativeText:[NSString stringWithCString:error]];
+	    [alert setInformativeText:[NSString stringWithUTF8String:error]];
 	    [alert beginSheetModalForWindow:self modalDelegate:nil
 	     didEndSelector:nil contextInfo:nil];
 	} else {
@@ -1253,7 +1255,7 @@ struct frontend {
 
 - (void)setStatusLine:(char *)text
 {
-    [[status cell] setTitle:[NSString stringWithCString:text]];
+    [[status cell] setTitle:[NSString stringWithUTF8String:text]];
 }
 
 @end
@@ -1344,8 +1346,7 @@ static void osx_draw_text(void *handle, int x, int y, int fonttype,
 			  int fontsize, int align, int colour, char *text)
 {
     frontend *fe = (frontend *)handle;
-    NSString *string = [NSString stringWithCString:text
-			encoding:NSUTF8StringEncoding];
+    NSString *string = [NSString stringWithUTF8String:text];
     NSDictionary *attr;
     NSFont *font;
     NSSize size;
