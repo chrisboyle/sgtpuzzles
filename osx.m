@@ -1342,6 +1342,8 @@ static void osx_draw_line(void *handle, int x1, int y1, int x2, int y2, int colo
     [path moveToPoint:p1];
     [path lineToPoint:p2];
     [path stroke];
+    NSRectFill(NSMakeRect(x1, fe->h-y1-1, 1, 1));
+    NSRectFill(NSMakeRect(x2, fe->h-y2-1, 1, 1));
 }
 static void osx_draw_rect(void *handle, int x, int y, int w, int h, int colour)
 {
