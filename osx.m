@@ -900,10 +900,14 @@ struct frontend {
 	[status setFrame:frame];
     }
 
+#ifndef GNUSTEP
     NSDisableScreenUpdates();
+#endif
     [self setContentSize:size];
     [self setupContentView];
+#ifndef GNUSTEP
     NSEnableScreenUpdates();
+#endif
 }
 
 - (void)presetGame:(id)sender
