@@ -108,7 +108,7 @@ Revision: %s"</string>
     <string name="arrowKeysAuto">When no trackball/D-pad</string>
     <string name="arrowKeysNever">Never</string>
     <string name="fullscreen">Full screen</string>
-    <string name="fullscreenSummary">Hide notifications (fails on Ice Cream Sandwich)</string>
+    <string name="fullscreenSummary">Hide notifications</string>
     <string name="stayAwake">Stay awake</string>
     <string name="stayAwakeSummary">Make screen stay on while Puzzles is in the foreground</string>
     <string name="undoRedoKbd">Undo/Redo on keyboard</string>

@@ -4,6 +4,7 @@ import android.app.ActionBar;
 import android.app.Activity;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.Window;
 
 public class ActionBarHoneycomb extends ActionBarCompat
 {
@@ -37,7 +38,7 @@ public class ActionBarHoneycomb extends ActionBarCompat
 	}
 
 	@Override
-	public void lightsOut(View v, boolean dim) {
+	public void lightsOut(Window w, View v, boolean dim) {
 		v.setSystemUiVisibility(dim ? View.SYSTEM_UI_FLAG_LOW_PROFILE
 				: View.SYSTEM_UI_FLAG_VISIBLE);
 	}

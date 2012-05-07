@@ -3,6 +3,7 @@ package name.boyle.chris.sgtpuzzles.compat;
 import android.app.Activity;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.Window;
 
 public abstract class ActionBarCompat
 {
@@ -10,7 +11,7 @@ public abstract class ActionBarCompat
 
 	public abstract void menuItemSetShowAsAction(MenuItem mi, int flags);
 
-	public abstract void lightsOut(View v, boolean dim);
+	public abstract void lightsOut(Window w, View v, boolean dim);
 
 	// from MenuItem
 	public static final int

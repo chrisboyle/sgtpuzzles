@@ -114,6 +114,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 	String maybeUndoRedo = "ur";
 	String maybeMenu = "";
 	PrefsSaver prefsSaver;
+	boolean startedFullscreen = false, cachedFullscreen = false;
 
 	enum MsgType { INIT, TIMER, DONE, ABORT };
 	Handler handler = new Handler() {
@@ -235,6 +236,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		gameTypes = new LinkedHashMap<Integer,String>();
 
 		applyFullscreen(false);  // must precede super.onCreate and setContentView
+		cachedFullscreen = startedFullscreen = prefs.getBoolean(FULLSCREEN_KEY, false);
 		applyStayAwake();
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.main);
@@ -597,6 +599,9 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 			return;
 		}
 		keyEvent(x, y, k);
+		if (actionBarCompat != null && startedFullscreen) {
+			actionBarCompat.lightsOut(getWindow(), gameView, true);
+		}
 	}
 
 	boolean prevLandscape = false;
@@ -914,14 +919,15 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 
 	void applyFullscreen(boolean alreadyStarted) {
 		boolean hasActionBar = ActionBarCompat.earlyHasActionBar();
-		if (prefs.getBoolean(FULLSCREEN_KEY, false)) {
+		cachedFullscreen = prefs.getBoolean(FULLSCREEN_KEY, false);
+		if (cachedFullscreen) {
 			if (hasActionBar) {
 				handler.post(new Runnable(){ public void run() {
-					actionBarCompat.lightsOut(gameView, true);
+					actionBarCompat.lightsOut(getWindow(), gameView, true);
 				}});
 			} else if (alreadyStarted) {
 				// This is the only way to change the theme
-				restartOnResume = true;
+				if (! startedFullscreen) restartOnResume = true;
 			} else {
 				setTheme(android.R.style.Theme_NoTitleBar_Fullscreen);
 			}
@@ -929,11 +935,11 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 			if (hasActionBar) {
 				final boolean fAlreadyStarted = alreadyStarted;
 				handler.post(new Runnable(){ public void run() {
-					actionBarCompat.lightsOut(gameView, false);
+					actionBarCompat.lightsOut(getWindow(), gameView, false);
 					// This shouldn't be necessary but is on Galaxy Tab 10.1
-					if (fAlreadyStarted) restartOnResume = true;
+					if (fAlreadyStarted && startedFullscreen) restartOnResume = true;
 				}});
-			} else if (alreadyStarted) {
+			} else if (alreadyStarted && startedFullscreen) {
 				// This is the only way to change the theme
 				restartOnResume = true;
 			}  // else leave it as default non-fullscreen

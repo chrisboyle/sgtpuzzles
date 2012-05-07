@@ -1,6 +1,9 @@
 package name.boyle.chris.sgtpuzzles.compat;
 
 import android.app.Activity;
+import android.view.View;
+import android.view.Window;
+import android.view.WindowManager;
 
 public class ActionBarICS extends ActionBarHoneycomb
 {
@@ -26,4 +29,14 @@ public class ActionBarICS extends ActionBarHoneycomb
 
 	@Override
 	public boolean hasMenuButton() { return false; }
+
+	@Override
+	public void lightsOut(Window w, View v, boolean dim) {
+		super.lightsOut(w, v, dim);
+		if (dim) {
+			w.addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+		} else {
+			w.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+		}
+	}
 }
