@@ -279,9 +279,11 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		String s = intent.getStringExtra("game");
 		Uri u = intent.getData();
 		if (s != null && s.length() > 0) {
+			Log.d(TAG, "starting game from Intent, "+s.length()+" bytes");
 			startGame(-1, s);
 			return;
 		} else if (u != null) {
+			Log.d(TAG, "URI is: \""+u+"\"");
 			String g = u.getSchemeSpecificPart();
 			if (games.length < 2) games = getResources().getStringArray(R.array.games);
 			for (int i=0; i<games.length; i++) {
@@ -294,8 +296,10 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 			// TODO! Other URLs, including game states...
 		}
 		if( state.contains("savedGame") && state.getString("savedGame","").length() > 0 ) {
+			Log.d(TAG, "restoring last state");
 			startGame(-1, state.getString("savedGame",""));
 		} else {
+			Log.d(TAG, "no state, starting chooser");
 			startChooser();
 			finish();
 		}
