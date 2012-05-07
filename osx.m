@@ -80,6 +80,7 @@
 #define COMBINED /* we put all the puzzles in one binary in this port */
 
 #include <ctype.h>
+#include <time.h>
 #include <sys/time.h>
 #import <Cocoa/Cocoa.h>
 #include "puzzles.h"
@@ -125,7 +126,7 @@ void fatal(char *fmt, ...)
     } else {
 	alert = [[alert init] autorelease];
 	[alert addButtonWithTitle:@"Oh dear"];
-	[alert setInformativeText:[NSString stringWithCString:errorbuf]];
+	[alert setInformativeText:[NSString stringWithUTF8String:errorbuf]];
 	[alert runModal];
     }
     exit(1);
@@ -211,7 +212,7 @@ void document_add_puzzle(document *doc, const game *game, game_params *par,
 NSMenu *newmenu(const char *title)
 {
     return [[[NSMenu allocWithZone:[NSMenu menuZone]]
-	     initWithTitle:[NSString stringWithCString:title]]
+	     initWithTitle:[NSString stringWithUTF8String:title]]
 	    autorelease];
 }
 
@@ -221,7 +222,7 @@ NSMenu *newsubmenu(NSMenu *parent, const char *title)
     NSMenu *child;
 
     item = [[[NSMenuItem allocWithZone:[NSMenu menuZone]]
-	     initWithTitle:[NSString stringWithCString:title]
+	     initWithTitle:[NSString stringWithUTF8String:title]
 	     action:NULL
 	     keyEquivalent:@""]
 	    autorelease];
@@ -251,9 +252,9 @@ id initnewitem(NSMenuItem *item, NSMenu *parent, const char *title,
 	    key++;
     }
 
-    item = [[item initWithTitle:[NSString stringWithCString:title]
+    item = [[item initWithTitle:[NSString stringWithUTF8String:title]
 	     action:NULL
-	     keyEquivalent:[NSString stringWithCString:key]]
+	     keyEquivalent:[NSString stringWithUTF8String:key]]
 	    autorelease];
 
     if (*key)
@@ -327,7 +328,7 @@ NSMenuItem *newitem(NSMenu *parent, char *title, char *key,
     [tf setBordered:NO];
     [tf setDrawsBackground:NO];
     [tf setFont:font1];
-    [tf setStringValue:[NSString stringWithCString:ver]];
+    [tf setStringValue:[NSString stringWithUTF8String:ver]];
     [tf sizeToFit];
     views[nviews++] = tf;
 
@@ -386,6 +387,7 @@ struct frontend {
     NSColor **colours;
     int ncolours;
     int clipped;
+    int w, h;
 };
 
 @interface MyImageView : NSImageView
@@ -393,7 +395,6 @@ struct frontend {
     GameWindow *ourwin;
 }
 - (void)setWindow:(GameWindow *)win;
-- (BOOL)isFlipped;
 - (void)mouseEvent:(NSEvent *)ev button:(int)b;
 - (void)mouseDown:(NSEvent *)ev;
 - (void)mouseDragged:(NSEvent *)ev;
@@ -423,6 +424,7 @@ struct frontend {
 - (id)initWithGame:(const game *)g;
 - (void)dealloc;
 - (void)processButton:(int)b x:(int)x y:(int)y;
+- (void)processKey:(int)b;
 - (void)keyDown:(NSEvent *)ev;
 - (void)activateTimer;
 - (void)deactivateTimer;
@@ -436,11 +438,6 @@ struct frontend {
 - (void)setWindow:(GameWindow *)win
 {
     ourwin = win;
-}
-
-- (BOOL)isFlipped
-{
-    return YES;
 }
 
 - (void)mouseEvent:(NSEvent *)ev button:(int)b
@@ -519,9 +516,10 @@ struct frontend {
     midend_size(me, &w, &h, FALSE);
     frame.size.width = w;
     frame.size.height = h;
+    fe.w = w;
+    fe.h = h;
 
     fe.image = [[NSImage alloc] initWithSize:frame.size];
-    [fe.image setFlipped:YES];
     fe.view = [[MyImageView alloc] initWithFrame:frame];
     [fe.view setImage:fe.image];
     [fe.view setWindow:self];
@@ -551,6 +549,8 @@ struct frontend {
     midend_size(me, &w, &h, FALSE);
     rect.size.width = w;
     rect.size.height = h;
+    fe.w = w;
+    fe.h = h;
 
     /*
      * Create the status bar, which will just be an NSTextField.
@@ -578,7 +578,7 @@ struct frontend {
 		       NSClosableWindowMask)
 	    backing:NSBackingStoreBuffered
 	    defer:YES];
-    [self setTitle:[NSString stringWithCString:ourgame->name]];
+    [self setTitle:[NSString stringWithUTF8String:ourgame->name]];
 
     {
 	float *colours;
@@ -618,7 +618,13 @@ struct frontend {
 
 - (void)processButton:(int)b x:(int)x y:(int)y
 {
-    if (!midend_process_key(me, x, y, b))
+    if (!midend_process_key(me, x, fe.h - 1 - y, b))
+	[self close];
+}
+
+- (void)processKey:(int)b
+{
+    if (!midend_process_key(me, -1, -1, b))
 	[self close];
 }
 
@@ -669,7 +675,7 @@ struct frontend {
 	if (c >= '0' && c <= '9' && ([ev modifierFlags] & NSNumericPadKeyMask))
 	    c |= MOD_NUM_KEYPAD;
 
-	[self processButton:c x:-1 y:-1];
+	[self processKey:c];
     }
 }
 
@@ -710,14 +716,14 @@ struct frontend {
 
     alert = [[[NSAlert alloc] init] autorelease];
     [alert addButtonWithTitle:@"Bah"];
-    [alert setInformativeText:[NSString stringWithCString:message]];
+    [alert setInformativeText:[NSString stringWithUTF8String:message]];
     [alert beginSheetModalForWindow:self modalDelegate:nil
-     didEndSelector:nil contextInfo:nil];
+     didEndSelector:NULL contextInfo:nil];
 }
 
 - (void)newGame:(id)sender
 {
-    [self processButton:'n' x:-1 y:-1];
+    [self processKey:'n'];
 }
 - (void)restartGame:(id)sender
 {
@@ -774,11 +780,11 @@ struct frontend {
 }
 - (void)undoMove:(id)sender
 {
-    [self processButton:'u' x:-1 y:-1];
+    [self processKey:'u'];
 }
 - (void)redoMove:(id)sender
 {
-    [self processButton:'r'&0x1F x:-1 y:-1];
+    [self processKey:'r'&0x1F];
 }
 
 - (void)copy:(id)sender
@@ -789,7 +795,7 @@ struct frontend {
 	NSPasteboard *pb = [NSPasteboard generalPasteboard];
 	NSArray *a = [NSArray arrayWithObject:NSStringPboardType];
 	[pb declareTypes:a owner:nil];
-	[pb setString:[NSString stringWithCString:text]
+	[pb setString:[NSString stringWithUTF8String:text]
 	 forType:NSStringPboardType];
     } else
 	NSBeep();
@@ -855,7 +861,7 @@ struct frontend {
 	    midend_fetch_preset(me, n, &name, &params);
 
 	    item = [[[DataMenuItem alloc]
-		     initWithTitle:[NSString stringWithCString:name]
+		     initWithTitle:[NSString stringWithUTF8String:name]
 		     action:NULL keyEquivalent:@""]
 		    autorelease];
 
@@ -892,6 +898,8 @@ struct frontend {
     midend_size(me, &w, &h, FALSE);
     size.width = w;
     size.height = h;
+    fe.w = w;
+    fe.h = h;
 
     if (status) {
 	NSRect frame = [status frame];
@@ -900,10 +908,14 @@ struct frontend {
 	[status setFrame:frame];
     }
 
+#ifndef GNUSTEP
     NSDisableScreenUpdates();
+#endif
     [self setContentSize:size];
     [self setupContentView];
+#ifndef GNUSTEP
     NSEnableScreenUpdates();
+#endif
 }
 
 - (void)presetGame:(id)sender
@@ -1002,7 +1014,7 @@ struct frontend {
 	    [tf setSelectable:NO];
 	    [tf setBordered:NO];
 	    [tf setDrawsBackground:NO];
-	    [[tf cell] setTitle:[NSString stringWithCString:i->name]];
+	    [[tf cell] setTitle:[NSString stringWithUTF8String:i->name]];
 	    [tf sizeToFit];
 	    rect = [tf frame];
 	    if (thish < rect.size.height + 1) thish = rect.size.height + 1;
@@ -1013,7 +1025,7 @@ struct frontend {
 	    [tf setEditable:YES];
 	    [tf setSelectable:YES];
 	    [tf setBordered:YES];
-	    [[tf cell] setTitle:[NSString stringWithCString:i->sval]];
+	    [[tf cell] setTitle:[NSString stringWithUTF8String:i->sval]];
 	    [tf sizeToFit];
 	    rect = [tf frame];
 	    /*
@@ -1040,7 +1052,7 @@ struct frontend {
 	    b = [[NSButton alloc] initWithFrame:tmprect];
 	    [b setBezelStyle:NSRoundedBezelStyle];
 	    [b setButtonType:NSSwitchButton];
-	    [b setTitle:[NSString stringWithCString:i->name]];
+	    [b setTitle:[NSString stringWithUTF8String:i->name]];
 	    [b sizeToFit];
 	    [b setState:(i->ival ? NSOnState : NSOffState)];
 	    rect = [b frame];
@@ -1061,7 +1073,7 @@ struct frontend {
 	    [tf setSelectable:NO];
 	    [tf setBordered:NO];
 	    [tf setDrawsBackground:NO];
-	    [[tf cell] setTitle:[NSString stringWithCString:i->name]];
+	    [[tf cell] setTitle:[NSString stringWithUTF8String:i->name]];
 	    [tf sizeToFit];
 	    rect = [tf frame];
 	    if (thish < rect.size.height + 1) thish = rect.size.height + 1;
@@ -1076,13 +1088,15 @@ struct frontend {
 		p = i->sval;
 		c = *p++;
 		while (*p) {
-		    char *q;
+		    char cc, *q;
 
 		    q = p;
 		    while (*p && *p != c) p++;
 
-		    [pb addItemWithTitle:[NSString stringWithCString:q
-					  length:p-q]];
+		    cc = *p;
+		    *p = '\0';
+		    [pb addItemWithTitle:[NSString stringWithUTF8String:q]];
+		    *p = cc;
 
 		    if (*p) p++;
 		}
@@ -1177,7 +1191,7 @@ struct frontend {
 	[[sheet contentView] addSubview:cfg_controls[k]];
 
     [NSApp beginSheet:sheet modalForWindow:self
-     modalDelegate:nil didEndSelector:nil contextInfo:nil];
+     modalDelegate:nil didEndSelector:NULL contextInfo:nil];
 }
 
 - (void)specificGame:(id)sender
@@ -1230,9 +1244,9 @@ struct frontend {
 	if (error) {
 	    NSAlert *alert = [[[NSAlert alloc] init] autorelease];
 	    [alert addButtonWithTitle:@"Bah"];
-	    [alert setInformativeText:[NSString stringWithCString:error]];
+	    [alert setInformativeText:[NSString stringWithUTF8String:error]];
 	    [alert beginSheetModalForWindow:self modalDelegate:nil
-	     didEndSelector:nil contextInfo:nil];
+	     didEndSelector:NULL contextInfo:nil];
 	} else {
 	    midend_new_game(me);
 	    [self resizeForNewGameParams];
@@ -1253,7 +1267,7 @@ struct frontend {
 
 - (void)setStatusLine:(char *)text
 {
-    [[status cell] setTitle:[NSString stringWithCString:text]];
+    [[status cell] setTitle:[NSString stringWithUTF8String:text]];
 }
 
 @end
@@ -1271,7 +1285,7 @@ static void osx_draw_polygon(void *handle, int *coords, int npoints,
     [[NSGraphicsContext currentContext] setShouldAntialias:YES];
 
     for (i = 0; i < npoints; i++) {
-	NSPoint p = { coords[i*2] + 0.5, coords[i*2+1] + 0.5 };
+	NSPoint p = { coords[i*2] + 0.5, fe->h - coords[i*2+1] - 0.5 };
 	if (i == 0)
 	    [path moveToPoint:p];
 	else
@@ -1298,7 +1312,7 @@ static void osx_draw_circle(void *handle, int cx, int cy, int radius,
 
     [[NSGraphicsContext currentContext] setShouldAntialias:YES];
 
-    [path appendBezierPathWithArcWithCenter:NSMakePoint(cx + 0.5, cy + 0.5)
+    [path appendBezierPathWithArcWithCenter:NSMakePoint(cx+0.5, fe->h-cy-0.5)
         radius:radius startAngle:0.0 endAngle:360.0];
 
     [path closePath];
@@ -1317,7 +1331,8 @@ static void osx_draw_line(void *handle, int x1, int y1, int x2, int y2, int colo
 {
     frontend *fe = (frontend *)handle;
     NSBezierPath *path = [NSBezierPath bezierPath];
-    NSPoint p1 = { x1 + 0.5, y1 + 0.5 }, p2 = { x2 + 0.5, y2 + 0.5 };
+    NSPoint p1 = { x1 + 0.5, fe->h - y1 - 0.5 };
+    NSPoint p2 = { x2 + 0.5, fe->h - y2 - 0.5 };
 
     [[NSGraphicsContext currentContext] setShouldAntialias:NO];
 
@@ -1327,11 +1342,13 @@ static void osx_draw_line(void *handle, int x1, int y1, int x2, int y2, int colo
     [path moveToPoint:p1];
     [path lineToPoint:p2];
     [path stroke];
+    NSRectFill(NSMakeRect(x1, fe->h-y1-1, 1, 1));
+    NSRectFill(NSMakeRect(x2, fe->h-y2-1, 1, 1));
 }
 static void osx_draw_rect(void *handle, int x, int y, int w, int h, int colour)
 {
     frontend *fe = (frontend *)handle;
-    NSRect r = { {x,y}, {w,h} };
+    NSRect r = { {x, fe->h - y - h}, {w,h} };
     
     [[NSGraphicsContext currentContext] setShouldAntialias:NO];
 
@@ -1344,8 +1361,7 @@ static void osx_draw_text(void *handle, int x, int y, int fonttype,
 			  int fontsize, int align, int colour, char *text)
 {
     frontend *fe = (frontend *)handle;
-    NSString *string = [NSString stringWithCString:text
-			encoding:NSUTF8StringEncoding];
+    NSString *string = [NSString stringWithUTF8String:text];
     NSDictionary *attr;
     NSFont *font;
     NSSize size;
@@ -1365,7 +1381,7 @@ static void osx_draw_text(void *handle, int x, int y, int fonttype,
 	    font, NSFontAttributeName, nil];
 
     point.x = x;
-    point.y = y;
+    point.y = fe->h - y;
 
     size = [string sizeWithAttributes:attr];
     if (align & ALIGN_HRIGHT)
@@ -1373,9 +1389,7 @@ static void osx_draw_text(void *handle, int x, int y, int fonttype,
     else if (align & ALIGN_HCENTRE)
 	point.x -= size.width / 2;
     if (align & ALIGN_VCENTRE)
-	point.y -= size.height / 2;
-    else
-	point.y -= size.height;
+        point.y -= size.height / 2;
 
     [string drawAtPoint:point withAttributes:attr];
 }
@@ -1400,7 +1414,6 @@ static blitter *osx_blitter_new(void *handle, int w, int h)
     bl->w = w;
     bl->h = h;
     bl->img = [[NSImage alloc] initWithSize:NSMakeSize(w, h)];
-    [bl->img setFlipped:YES];
     return bl;
 }
 static void osx_blitter_free(void *handle, blitter *bl)
@@ -1411,11 +1424,42 @@ static void osx_blitter_free(void *handle, blitter *bl)
 static void osx_blitter_save(void *handle, blitter *bl, int x, int y)
 {
     frontend *fe = (frontend *)handle;
+    int sx, sy, sX, sY, dx, dy, dX, dY;
     [fe->image unlockFocus];
     [bl->img lockFocus];
-    [fe->image drawInRect:NSMakeRect(0, 0, bl->w, bl->h)
-	fromRect:NSMakeRect(x, y, bl->w, bl->h)
-	operation:NSCompositeCopy fraction:1.0];
+
+    /*
+     * Find the intersection of the source and destination rectangles,
+     * so as to avoid trying to copy from outside the source image,
+     * which GNUstep dislikes.
+     *
+     * Lower-case x,y coordinates are bottom left box corners;
+     * upper-case X,Y are the top right.
+     */
+    sx = x; sy = fe->h - y - bl->h;
+    sX = sx + bl->w; sY = sy + bl->h;
+    dx = dy = 0;
+    dX = bl->w; dY = bl->h;
+    if (sx < 0) {
+        dx += -sx;
+        sx = 0;
+    }
+    if (sy < 0) {
+        dy += -sy;
+        sy = 0;
+    }
+    if (sX > fe->w) {
+        dX -= (sX - fe->w);
+        sX = fe->w;
+    }
+    if (sY > fe->h) {
+        dY -= (sY - fe->h);
+        sY = fe->h;
+    }
+
+    [fe->image drawInRect:NSMakeRect(dx, dy, dX-dx, dY-dy)
+                 fromRect:NSMakeRect(sx, sy, sX-sx, sY-sy)
+                operation:NSCompositeCopy fraction:1.0];
     [bl->img unlockFocus];
     [fe->image lockFocus];
     bl->x = x;
@@ -1423,24 +1467,24 @@ static void osx_blitter_save(void *handle, blitter *bl, int x, int y)
 }
 static void osx_blitter_load(void *handle, blitter *bl, int x, int y)
 {
-    /* frontend *fe = (frontend *)handle; */
+    frontend *fe = (frontend *)handle;
     if (x == BLITTER_FROMSAVED && y == BLITTER_FROMSAVED) {
         x = bl->x;
         y = bl->y;
     }
-    [bl->img drawInRect:NSMakeRect(x, y, bl->w, bl->h)
+    [bl->img drawInRect:NSMakeRect(x, fe->h - y - bl->h, bl->w, bl->h)
 	fromRect:NSMakeRect(0, 0, bl->w, bl->h)
 	operation:NSCompositeCopy fraction:1.0];
 }
 static void osx_draw_update(void *handle, int x, int y, int w, int h)
 {
     frontend *fe = (frontend *)handle;
-    [fe->view setNeedsDisplayInRect:NSMakeRect(x,y,w,h)];
+    [fe->view setNeedsDisplayInRect:NSMakeRect(x, fe->h - y - h, w, h)];
 }
 static void osx_clip(void *handle, int x, int y, int w, int h)
 {
     frontend *fe = (frontend *)handle;
-    NSRect r = { {x,y}, {w,h} };
+    NSRect r = { {x, fe->h - y - h}, {w, h} };
     
     if (!fe->clipped)
 	[[NSGraphicsContext currentContext] saveGraphicsState];
@@ -1558,7 +1602,6 @@ int main(int argc, char **argv)
 {
     NSAutoreleasePool *pool;
     NSMenu *menu;
-    NSMenuItem *item;
     AppController *controller;
     NSImage *icon;
 
@@ -1574,24 +1617,24 @@ int main(int argc, char **argv)
     [NSApp setMainMenu: newmenu("Main Menu")];
 
     menu = newsubmenu([NSApp mainMenu], "Apple Menu");
-    item = newitem(menu, "About Puzzles", "", NULL, @selector(about:));
+    newitem(menu, "About Puzzles", "", NULL, @selector(about:));
     [menu addItem:[NSMenuItem separatorItem]];
     [NSApp setServicesMenu:newsubmenu(menu, "Services")];
     [menu addItem:[NSMenuItem separatorItem]];
-    item = newitem(menu, "Hide Puzzles", "h", NSApp, @selector(hide:));
-    item = newitem(menu, "Hide Others", "o-h", NSApp, @selector(hideOtherApplications:));
-    item = newitem(menu, "Show All", "", NSApp, @selector(unhideAllApplications:));
+    newitem(menu, "Hide Puzzles", "h", NSApp, @selector(hide:));
+    newitem(menu, "Hide Others", "o-h", NSApp, @selector(hideOtherApplications:));
+    newitem(menu, "Show All", "", NSApp, @selector(unhideAllApplications:));
     [menu addItem:[NSMenuItem separatorItem]];
-    item = newitem(menu, "Quit", "q", NSApp, @selector(terminate:));
+    newitem(menu, "Quit", "q", NSApp, @selector(terminate:));
     [NSApp setAppleMenu: menu];
 
     menu = newsubmenu([NSApp mainMenu], "File");
-    item = newitem(menu, "Open", "o", NULL, @selector(loadSavedGame:));
-    item = newitem(menu, "Save As", "s", NULL, @selector(saveGame:));
-    item = newitem(menu, "New Game", "n", NULL, @selector(newGame:));
-    item = newitem(menu, "Restart Game", "r", NULL, @selector(restartGame:));
-    item = newitem(menu, "Specific Game", "", NULL, @selector(specificGame:));
-    item = newitem(menu, "Specific Random Seed", "", NULL,
+    newitem(menu, "Open", "o", NULL, @selector(loadSavedGame:));
+    newitem(menu, "Save As", "s", NULL, @selector(saveGame:));
+    newitem(menu, "New Game", "n", NULL, @selector(newGame:));
+    newitem(menu, "Restart Game", "r", NULL, @selector(restartGame:));
+    newitem(menu, "Specific Game", "", NULL, @selector(specificGame:));
+    newitem(menu, "Specific Random Seed", "", NULL,
                    @selector(specificRandomGame:));
     [menu addItem:[NSMenuItem separatorItem]];
     {
@@ -1607,28 +1650,28 @@ int main(int argc, char **argv)
 	}
     }
     [menu addItem:[NSMenuItem separatorItem]];
-    item = newitem(menu, "Close", "w", NULL, @selector(performClose:));
+    newitem(menu, "Close", "w", NULL, @selector(performClose:));
 
     menu = newsubmenu([NSApp mainMenu], "Edit");
-    item = newitem(menu, "Undo", "z", NULL, @selector(undoMove:));
-    item = newitem(menu, "Redo", "S-z", NULL, @selector(redoMove:));
+    newitem(menu, "Undo", "z", NULL, @selector(undoMove:));
+    newitem(menu, "Redo", "S-z", NULL, @selector(redoMove:));
     [menu addItem:[NSMenuItem separatorItem]];
-    item = newitem(menu, "Cut", "x", NULL, @selector(cut:));
-    item = newitem(menu, "Copy", "c", NULL, @selector(copy:));
-    item = newitem(menu, "Paste", "v", NULL, @selector(paste:));
+    newitem(menu, "Cut", "x", NULL, @selector(cut:));
+    newitem(menu, "Copy", "c", NULL, @selector(copy:));
+    newitem(menu, "Paste", "v", NULL, @selector(paste:));
     [menu addItem:[NSMenuItem separatorItem]];
-    item = newitem(menu, "Solve", "S-s", NULL, @selector(solveGame:));
+    newitem(menu, "Solve", "S-s", NULL, @selector(solveGame:));
 
     menu = newsubmenu([NSApp mainMenu], "Type");
     typemenu = menu;
-    item = newitem(menu, "Custom", "", NULL, @selector(customGameType:));
+    newitem(menu, "Custom", "", NULL, @selector(customGameType:));
 
     menu = newsubmenu([NSApp mainMenu], "Window");
     [NSApp setWindowsMenu: menu];
-    item = newitem(menu, "Minimise Window", "m", NULL, @selector(performMiniaturize:));
+    newitem(menu, "Minimise Window", "m", NULL, @selector(performMiniaturize:));
 
     menu = newsubmenu([NSApp mainMenu], "Help");
-    item = newitem(menu, "Puzzles Help", "?", NSApp, @selector(showHelp:));
+    newitem(menu, "Puzzles Help", "?", NSApp, @selector(showHelp:));
 
     [NSApp run];
     [pool release];
