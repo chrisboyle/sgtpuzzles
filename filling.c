@@ -1494,19 +1494,35 @@ static void draw_grid(drawing *dr, game_drawstate *ds, game_state *state,
             /*
              * Determine what we need to draw in this square.
              */
-            int v = state->board[y*w+x];
+            int i = y*w+x, v = state->board[i];
             int flags = 0;
 
             if (flashy || !shading) {
                 /* clear all background flags */
-            } else if (ui && ui->sel && ui->sel[y*w+x]) {
+            } else if (ui && ui->sel && ui->sel[i]) {
                 flags |= HIGH_BG;
             } else if (v) {
-                int size = dsf_size(ds->dsf_scratch, y*w+x);
+                int size = dsf_size(ds->dsf_scratch, i);
                 if (size == v)
                     flags |= CORRECT_BG;
                 else if (size > v)
                     flags |= ERROR_BG;
+		else {
+		    int rt = dsf_canonify(ds->dsf_scratch, i), j;
+		    for (j = 0; j < w*h; ++j) {
+			int k;
+			if (dsf_canonify(ds->dsf_scratch, j) != rt) continue;
+			for (k = 0; k < 4; ++k) {
+			    const int xx = j % w + dx[k], yy = j / w + dy[k];
+			    if (xx >= 0 && xx < w && yy >= 0 && yy < h &&
+				state->board[yy*w + xx] == EMPTY)
+				goto noflag;
+			}
+		    }
+		    flags |= ERROR_BG;
+		  noflag:
+		    ;
+		}
             }
             if (ui && ui->cur_visible && x == ui->cur_x && y == ui->cur_y)
               flags |= CURSOR_SQ;
