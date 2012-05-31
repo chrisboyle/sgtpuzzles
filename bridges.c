@@ -3,7 +3,68 @@
  *
  * Things still to do:
  *
- * * write a recursive solver?
+ *  - The solver's algorithmic design is not really ideal. It makes
+ *    use of the same data representation as gameplay uses, which
+ *    often looks like a tempting reuse of code but isn't always a
+ *    good idea. In this case, it's unpleasant that each edge of the
+ *    graph ends up represented as multiple squares on a grid, with
+ *    flags indicating when edges and non-edges cross; that's useful
+ *    when the result can be directly translated into positions of
+ *    graphics on the display, but in purely internal work it makes
+ *    even simple manipulations during solving more painful than they
+ *    should be, and complex ones have no choice but to modify the
+ *    data structures temporarily, test things, and put them back. I
+ *    envisage a complete solver rewrite along the following lines:
+ *     + We have a collection of vertices (islands) and edges
+ *       (potential bridge locations, i.e. pairs of horizontal or
+ *       vertical islands with no other island in between).
+ *     + Each edge has an associated list of edges that cross it, and
+ *       hence with which it is mutually exclusive.
+ *     + For each edge, we track the min and max number of bridges we
+ *       currently think possible.
+ *     + For each vertex, we track the number of _liberties_ it has,
+ *       i.e. its clue number minus the min bridge count for each edge
+ *       out of it.
+ *     + We also maintain a dsf that identifies sets of vertices which
+ *       are connected components of the puzzle so far, and for each
+ *       equivalence class we track the total number of liberties for
+ *       that component. (The dsf mechanism will also already track
+ *       the size of each component, i.e. number of islands.)
+ *     + So incrementing the min for an edge requires processing along
+ *       the lines of:
+ *        - set the max for all edges crossing that one to zero
+ *        - decrement the liberty count for the vertex at each end,
+ *          and also for each vertex's equivalence class (NB they may
+ *          be the same class)
+ *        - unify the two equivalence classes if they're not already,
+ *          and if so, set the liberty count for the new class to be
+ *          the sum of the previous two.
+ *     + Decrementing the max is much easier, however.
+ *     + With this data structure the really fiddly stuff in stage3()
+ *       becomes more or less trivial, because it's now a quick job to
+ *       find out whether an island would form an isolated subgraph if
+ *       connected to a given subset of its neighbours:
+ *        - identify the connected components containing the test
+ *          vertex and its putative new neighbours (but be careful not
+ *          to count a component more than once if two or more of the
+ *          vertices involved are already in the same one)
+ *        - find the sum of those components' liberty counts, and also
+ *          the total number of islands involved
+ *        - if the total liberty count of the connected components is
+ *          exactly equal to twice the number of edges we'd be adding
+ *          (of course each edge destroys two liberties, one at each
+ *          end) then these components would become a subgraph with
+ *          zero liberties if connected together.
+ *        - therefore, if that subgraph also contains fewer than the
+ *          total number of islands, it's disallowed.
+ *        - As mentioned in stage3(), once we've identified such a
+ *          disallowed pattern, we have two choices for what to do
+ *          with it: if the candidate set of neighbours has size 1 we
+ *          can reduce the max for the edge to that one neighbour,
+ *          whereas if its complement has size 1 we can increase the
+ *          min for the edge to the _omitted_ neighbour.
+ *
+ *  - write a recursive solver?
  */
 
 #include <stdio.h>
