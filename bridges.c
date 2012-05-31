@@ -77,7 +77,8 @@ struct game_params {
 typedef unsigned int grid_type; /* change me later if we invent > 16 bits of flags. */
 
 struct solver_state {
-    int *dsf, *tmpdsf;
+    int *dsf, *comptspaces;
+    int *tmpdsf, *tmpcompspaces;
     int refcount;
 };
 
@@ -1414,15 +1415,18 @@ static int solve_island_subgroup(struct island *is, int direction, int n)
         return 0;
     }
 
-    is_join = INDEX(state, gridi,
-                    ISLAND_ORTHX(is, direction),
-                    ISLAND_ORTHY(is, direction));
-    assert(is_join);
+    if (direction >= 0) {
+        is_join = INDEX(state, gridi,
+                        ISLAND_ORTHX(is, direction),
+                        ISLAND_ORTHY(is, direction));
+        assert(is_join);
 
-    /* if is_join isn't full, return 0. */
-    if (island_countbridges(is_join) < is_join->count) {
-        debug(("...dest island (%d,%d) not full.\n", is_join->x, is_join->y));
-        return 0;
+        /* if is_join isn't full, return 0. */
+        if (island_countbridges(is_join) < is_join->count) {
+            debug(("...dest island (%d,%d) not full.\n",
+                   is_join->x, is_join->y));
+            return 0;
+        }
     }
 
     /* Check group membership for is->dsf; if it's full return 1. */
@@ -1521,6 +1525,88 @@ static int solve_island_stage3(struct island *is, int *didsth_r)
         }
         map_update_possibles(is->state);
     }
+
+    for (i = 0; i < is->adj.npoints; i++) {
+        /*
+         * Now check to see if any currently empty direction must have
+         * at least one bridge in order to avoid forming an isolated
+         * subgraph. This differs from the check above in that it
+         * considers multiple target islands. For example:
+         *
+         *   2   2    4
+         *                                  1     3     2
+         *       3
+         *                                        4
+         *
+         * The example on the left can be handled by the above loop:
+         * it will observe that connecting the central 2 twice to the
+         * left would form an isolated subgraph, and hence it will
+         * restrict that 2 to at most one bridge in that direction.
+         * But the example on the right won't be handled by that loop,
+         * because the deduction requires us to imagine connecting the
+         * 3 to _both_ the 1 and 2 at once to form an isolated
+         * subgraph.
+         *
+         * This pass is necessary _as well_ as the above one, because
+         * neither can do the other's job. In the left one,
+         * restricting the direction which _would_ cause trouble can
+         * be done even if it's not yet clear which of the remaining
+         * directions has to have a compensatory bridge; whereas the
+         * pass below that can handle the right-hand example does need
+         * to know what direction to point the necessary bridge in.
+         *
+         * Neither pass can handle the most general case, in which we
+         * observe that an arbitrary subset of an island's neighbours
+         * would form an isolated subgraph with it if it connected
+         * maximally to them, and hence that at least one bridge must
+         * point to some neighbour outside that subset but we don't
+         * know which neighbour. To handle that, we'd have to have a
+         * richer data format for the solver, which could cope with
+         * recording the idea that at least one of two edges must have
+         * a bridge.
+         */
+        int got = 0;
+        int before[4];
+        int j;
+
+        spc = island_adjspace(is, 1, missing, i);
+        if (spc == 0) continue;
+
+        for (j = 0; j < is->adj.npoints; j++)
+            before[j] = GRIDCOUNT(is->state,
+                                  is->adj.points[j].x,
+                                  is->adj.points[j].y,
+                                  is->adj.points[j].dx ? G_LINEH : G_LINEV);
+        if (before[i] != 0) continue;  /* this idea is pointless otherwise */
+
+        memcpy(ss->tmpdsf, ss->dsf, wh*sizeof(int));
+
+        for (j = 0; j < is->adj.npoints; j++) {
+            spc = island_adjspace(is, 1, missing, j);
+            if (spc == 0) continue;
+            if (j == i) continue;
+            solve_join(is, j, before[j] + spc, 0);
+        }
+        map_update_possibles(is->state);
+
+        if (solve_island_subgroup(is, -1, n))
+            got = 1;
+
+        for (j = 0; j < is->adj.npoints; j++)
+            solve_join(is, j, before[j], 0);
+        memcpy(ss->dsf, ss->tmpdsf, wh*sizeof(int));
+
+        if (got) {
+            debug(("island at (%d,%d) must connect in direction (%d,%d) to"
+                   " avoid full subgroup.\n",
+                   is->x, is->y, is->adj.points[i].dx, is->adj.points[i].dy));
+            solve_join(is, i, 1, 0);
+            didsth = 1;
+        }
+
+        map_update_possibles(is->state);
+    }
+
     if (didsth) *didsth_r = didsth;
     return 1;
 }
