@@ -881,17 +881,20 @@ static void map_update_possibles(game_state *state)
         /* Unset possible flags until we find an island. */
         for (y = 0; y < state->h; y++) {
             is_s = IDX(state, gridi, idx);
-            if (is_s) break;
+            if (is_s) {
+                maxb = is_s->count;
+                break;
+            }
 
             IDX(state, possv, idx) = 0;
             idx += w;
         }
         for (; y < state->h; y++) {
+            maxb = min(maxb, IDX(state, maxv, idx));
             is_f = IDX(state, gridi, idx);
             if (is_f) {
                 assert(is_s);
-                maxb = IDX(state, maxv, idx);
-                np = min(maxb, min(is_s->count, is_f->count));
+                np = min(maxb, is_f->count);
 
                 if (s != -1) {
                     for (i = s; i <= e; i++) {
@@ -901,6 +904,7 @@ static void map_update_possibles(game_state *state)
                 s = y+1;
                 bl = 0;
                 is_s = is_f;
+                maxb = is_s->count;
             } else {
                 e = y;
                 if (IDX(state,grid,idx) & (G_LINEH|G_NOLINEV)) bl = 1;
@@ -921,17 +925,20 @@ static void map_update_possibles(game_state *state)
         bl = 0;
         for (x = 0; x < state->w; x++) {
             is_s = IDX(state, gridi, idx);
-            if (is_s) break;
+            if (is_s) {
+                maxb = is_s->count;
+                break;
+            }
 
             IDX(state, possh, idx) = 0;
             idx += 1;
         }
         for (; x < state->w; x++) {
+            maxb = min(maxb, IDX(state, maxh, idx));
             is_f = IDX(state, gridi, idx);
             if (is_f) {
                 assert(is_s);
-                maxb = IDX(state, maxh, idx);
-                np = min(maxb, min(is_s->count, is_f->count));
+                np = min(maxb, is_f->count);
 
                 if (s != -1) {
                     for (i = s; i <= e; i++) {
@@ -941,6 +948,7 @@ static void map_update_possibles(game_state *state)
                 s = x+1;
                 bl = 0;
                 is_s = is_f;
+                maxb = is_s->count;
             } else {
                 e = x;
                 if (IDX(state,grid,idx) & (G_LINEV|G_NOLINEH)) bl = 1;
