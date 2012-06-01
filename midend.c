@@ -429,6 +429,55 @@ void midend_new_game(midend *me)
 	sfree(movestr);
     }
 
+    /*
+     * Soak test, enabled by setting <gamename>_TESTSOLVE in the
+     * environment. This causes an immediate attempt to re-solve the
+     * game without benefit of aux_info. The effect is that (at least
+     * on Unix) you can run 'FOO_TESTSOLVE=1 foo --generate 10000
+     * <params>#12345' and it will generate a lot of game ids and
+     * instantly pass each one back to the solver.
+     *
+     * (It's worth putting in an explicit seed in any such test, so
+     * you can repeat it to diagnose a problem if one comes up!)
+     */
+    {
+        char buf[80];
+        int j, k;
+        static int doing_test_solve = -1;
+        if (doing_test_solve < 0) {
+            sprintf(buf, "%s_TESTSOLVE", me->ourgame->name);
+            for (j = k = 0; buf[j]; j++)
+                if (!isspace((unsigned char)buf[j]))
+                    buf[k++] = toupper((unsigned char)buf[j]);
+            buf[k] = '\0';
+            if (getenv(buf)) {
+                /*
+                 * Since this is used for correctness testing, it's
+                 * helpful to have a visual acknowledgment that the
+                 * user hasn't mistyped the environment variable name.
+                 */
+                fprintf(stderr, "Running solver soak tests\n");
+                doing_test_solve = TRUE;
+            } else {
+                doing_test_solve = FALSE;
+            }
+        }
+        if (doing_test_solve) {
+            game_state *s;
+            char *msg, *movestr;
+
+            msg = NULL;
+            movestr = me->ourgame->solve(me->states[0].state,
+                                         me->states[0].state,
+                                         NULL, &msg);
+            assert(movestr && !msg);
+            s = me->ourgame->execute_move(me->states[0].state, movestr);
+            assert(s);
+            me->ourgame->free_game(s);
+            sfree(movestr);
+        }        
+    }
+
     me->states[me->nstates].movestr = NULL;
     me->states[me->nstates].movetype = NEWGAME;
     me->nstates++;
