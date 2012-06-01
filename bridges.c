@@ -1538,10 +1538,6 @@ static int solve_island_stage3(struct island *is, int *didsth_r)
     if (missing <= 0) return 1;
 
     for (i = 0; i < is->adj.npoints; i++) {
-        /* We only do right- or down-pointing bridges. */
-        if (is->adj.points[i].dx == -1 ||
-            is->adj.points[i].dy == -1) continue;
-
         x = is->adj.points[i].x;
         y = is->adj.points[i].y;
         spc = island_adjspace(is, 1, missing, i);
