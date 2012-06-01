@@ -940,6 +940,7 @@ static void map_update_possibles(game_state *state)
         idx = x;
         s = e = -1;
         bl = 0;
+        maxb = state->params.maxb;     /* placate optimiser */
         /* Unset possible flags until we find an island. */
         for (y = 0; y < state->h; y++) {
             is_s = IDX(state, gridi, idx);
@@ -985,6 +986,7 @@ static void map_update_possibles(game_state *state)
         idx = y*w;
         s = e = -1;
         bl = 0;
+        maxb = state->params.maxb;     /* placate optimiser */
         for (x = 0; x < state->w; x++) {
             is_s = IDX(state, gridi, idx);
             if (is_s) {
