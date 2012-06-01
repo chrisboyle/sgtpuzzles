@@ -1464,7 +1464,7 @@ static int solve_island_stage2(struct island *is, int *didsth_r)
     return 1;
 }
 
-static int solve_island_subgroup(struct island *is, int direction, int n)
+static int solve_island_subgroup(struct island *is, int direction)
 {
     struct island *is_join;
     int nislands, *dsf = is->state->solver->dsf;
@@ -1473,7 +1473,7 @@ static int solve_island_subgroup(struct island *is, int direction, int n)
     debug(("..checking subgroups.\n"));
 
     /* if is isn't full, return 0. */
-    if (n < is->count) {
+    if (island_countbridges(is) < is->count) {
         debug(("...orig island (%d,%d) not full.\n", is->x, is->y));
         return 0;
     }
@@ -1499,7 +1499,7 @@ static int solve_island_subgroup(struct island *is, int direction, int n)
             /* we have a full subgroup that isn't the whole set.
              * This isn't allowed. */
             debug(("island at (%d,%d) makes full subgroup, disallowing.\n",
-                   is->x, is->y, n));
+                   is->x, is->y));
             return 1;
         } else {
             debug(("...has finished puzzle.\n"));
@@ -1562,7 +1562,7 @@ static int solve_island_stage3(struct island *is, int *didsth_r)
             solve_join(is, i, n, 0);
             map_update_possibles(is->state);
 
-            if (solve_island_subgroup(is, i, n) ||
+            if (solve_island_subgroup(is, i) ||
                 solve_island_impossible(is->state)) {
                 maxb = n-1;
                 debug(("island at (%d,%d) d(%d,%d) new max of %d bridges:\n",
@@ -1652,7 +1652,7 @@ static int solve_island_stage3(struct island *is, int *didsth_r)
         }
         map_update_possibles(is->state);
 
-        if (solve_island_subgroup(is, -1, n))
+        if (solve_island_subgroup(is, -1))
             got = 1;
 
         for (j = 0; j < is->adj.npoints; j++)
