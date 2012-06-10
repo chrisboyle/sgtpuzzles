@@ -2596,35 +2596,58 @@ static game_state *execute_move(game_state *from, char *move)
     game_state *ret;
 
     if (!strcmp(move, "S")) {
-	/*
-	 * Simply expose the entire grid as if it were a completed
-	 * solution.
-	 */
 	int yy, xx;
 
 	ret = dup_game(from);
-	for (yy = 0; yy < ret->h; yy++)
-	    for (xx = 0; xx < ret->w; xx++) {
+        if (!ret->dead) {
+            /*
+             * If the player is still alive at the moment of pressing
+             * Solve, expose the entire grid as if it were a completed
+             * solution.
+             */
+            for (yy = 0; yy < ret->h; yy++)
+                for (xx = 0; xx < ret->w; xx++) {
 
-		if (ret->layout->mines[yy*ret->w+xx]) {
-		    ret->grid[yy*ret->w+xx] = -1;
-		} else {
-		    int dx, dy, v;
+                    if (ret->layout->mines[yy*ret->w+xx]) {
+                        ret->grid[yy*ret->w+xx] = -1;
+                    } else {
+                        int dx, dy, v;
 
-		    v = 0;
+                        v = 0;
 
-		    for (dx = -1; dx <= +1; dx++)
-			for (dy = -1; dy <= +1; dy++)
-			    if (xx+dx >= 0 && xx+dx < ret->w &&
-				yy+dy >= 0 && yy+dy < ret->h &&
-				ret->layout->mines[(yy+dy)*ret->w+(xx+dx)])
-				v++;
+                        for (dx = -1; dx <= +1; dx++)
+                            for (dy = -1; dy <= +1; dy++)
+                                if (xx+dx >= 0 && xx+dx < ret->w &&
+                                    yy+dy >= 0 && yy+dy < ret->h &&
+                                    ret->layout->mines[(yy+dy)*ret->w+(xx+dx)])
+                                    v++;
 
-		    ret->grid[yy*ret->w+xx] = v;
-		}
-	    }
-	ret->used_solve = TRUE;
-	ret->won = TRUE;
+                        ret->grid[yy*ret->w+xx] = v;
+                    }
+                }
+        } else {
+            /*
+             * If the player pressed Solve _after dying_, show a full
+             * corrections grid in the style of standard Minesweeper.
+             * Players who don't like Mines's behaviour on death of
+             * only showing the mine that killed you (so that in case
+             * of a typo you can undo and carry on without the rest of
+             * the grid being spoiled) can use this to get the display
+             * that ordinary Minesweeper would have given them.
+             */
+            for (yy = 0; yy < ret->h; yy++)
+                for (xx = 0; xx < ret->w; xx++) {
+                    int pos = yy*ret->w+xx;
+                    if ((ret->grid[pos] == -2 || ret->grid[pos] == -3) &&
+                        ret->layout->mines[pos]) {
+                        ret->grid[pos] = 64;
+                    } else if (ret->grid[pos] == -1 &&
+                               !ret->layout->mines[pos]) {
+                        ret->grid[pos] = 66;
+                    }
+                }
+        }
+        ret->used_solve = TRUE;
 
 	return ret;
     } else {
