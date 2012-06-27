@@ -1461,7 +1461,7 @@ them internally. (There are currently no puzzles which have a
 one-line ASCII representation, so there's no precedent yet for
 whether that should come with a newline or not.)
 
-\S{backend-wants-statusbar} \cw{wants_statusbar()}
+\S{backend-wants-statusbar} \cw{wants_statusbar}
 
 \c int wants_statusbar;
 
@@ -2714,14 +2714,12 @@ without closing the window...)
 
 Frees a mid-end structure and all its associated data.
 
-\H{midend-tilesize} 
+\H{midend-tilesize} \cw{midend_tilesize()}
 
 \c int midend_tilesize(midend *me);
 
 Returns the \cq{tilesize} parameter being used to display the
-current puzzle.
-
-\k{backend-preferred-tilesize}
+current puzzle (\k{backend-preferred-tilesize}).
 
 \H{midend-set-params} \cw{midend_set_params()}
 
@@ -2806,6 +2804,9 @@ to use scroll bars for large puzzles), you can pass dimensions of
 \cw{INT_MAX} as input to this function. You should probably not do
 that \e{and} set the \c{user_size} flag, though!
 
+The midend relies on the frontend calling \cw{midend_new_game()}
+(\k{midend-new-game}) before calling \cw{midend_size()}.
+
 \H{midend-new-game} \cw{midend_new_game()}
 
 \c void midend_new_game(midend *me);
@@ -2842,7 +2843,8 @@ undo list (so that an accidental restart can be undone).
 
 This function automatically causes a redraw, i.e. the front end can
 expect its drawing API to be called from \e{within} a call to this
-function.
+function. Some back ends require that \cw{midend_size()}
+(\k{midend-size}) is called before \cw{midend_restart_game()}.
 
 \H{midend-force-redraw} \cw{midend_force_redraw()}
 
@@ -2853,7 +2855,8 @@ discarding the current \c{game_drawstate} and creating a new one
 from scratch before calling the game's \cw{redraw()} function.
 
 The front end can expect its drawing API to be called from within a
-call to this function.
+call to this function. Some back ends require that \cw{midend_size()}
+(\k{midend-size}) is called before \cw{midend_force_redraw()}.
 
 \H{midend-redraw} \cw{midend_redraw()}
 
@@ -2864,7 +2867,8 @@ calling the game's \cw{redraw()} function. (That is, the only things
 redrawn will be things that have changed since the last redraw.)
 
 The front end can expect its drawing API to be called from within a
-call to this function.
+call to this function. Some back ends require that \cw{midend_size()}
+(\k{midend-size}) is called before \cw{midend_redraw()}.
 
 \H{midend-process-key} \cw{midend_process_key()}
 
@@ -3122,7 +3126,8 @@ user.
 
 The front end can expect its drawing API and/or
 \cw{activate_timer()} to be called from within a call to this
-function.
+function.  Some back ends require that \cw{midend_size()}
+(\k{midend-size}) is called before \cw{midend_solve()}.
 
 \H{midend-status} \cw{midend_status()}
 

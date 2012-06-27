@@ -1088,15 +1088,16 @@ struct frontend {
 		p = i->sval;
 		c = *p++;
 		while (*p) {
-		    char cc, *q;
+		    char *q, *copy;
 
 		    q = p;
 		    while (*p && *p != c) p++;
 
-		    cc = *p;
-		    *p = '\0';
-		    [pb addItemWithTitle:[NSString stringWithUTF8String:q]];
-		    *p = cc;
+                    copy = snewn((p-q) + 1, char);
+                    memcpy(copy, q, p-q);
+                    copy[p-q] = '\0';
+		    [pb addItemWithTitle:[NSString stringWithUTF8String:copy]];
+                    sfree(copy);
 
 		    if (*p) p++;
 		}

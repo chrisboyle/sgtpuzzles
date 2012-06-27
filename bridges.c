@@ -3,7 +3,68 @@
  *
  * Things still to do:
  *
- * * write a recursive solver?
+ *  - The solver's algorithmic design is not really ideal. It makes
+ *    use of the same data representation as gameplay uses, which
+ *    often looks like a tempting reuse of code but isn't always a
+ *    good idea. In this case, it's unpleasant that each edge of the
+ *    graph ends up represented as multiple squares on a grid, with
+ *    flags indicating when edges and non-edges cross; that's useful
+ *    when the result can be directly translated into positions of
+ *    graphics on the display, but in purely internal work it makes
+ *    even simple manipulations during solving more painful than they
+ *    should be, and complex ones have no choice but to modify the
+ *    data structures temporarily, test things, and put them back. I
+ *    envisage a complete solver rewrite along the following lines:
+ *     + We have a collection of vertices (islands) and edges
+ *       (potential bridge locations, i.e. pairs of horizontal or
+ *       vertical islands with no other island in between).
+ *     + Each edge has an associated list of edges that cross it, and
+ *       hence with which it is mutually exclusive.
+ *     + For each edge, we track the min and max number of bridges we
+ *       currently think possible.
+ *     + For each vertex, we track the number of _liberties_ it has,
+ *       i.e. its clue number minus the min bridge count for each edge
+ *       out of it.
+ *     + We also maintain a dsf that identifies sets of vertices which
+ *       are connected components of the puzzle so far, and for each
+ *       equivalence class we track the total number of liberties for
+ *       that component. (The dsf mechanism will also already track
+ *       the size of each component, i.e. number of islands.)
+ *     + So incrementing the min for an edge requires processing along
+ *       the lines of:
+ *        - set the max for all edges crossing that one to zero
+ *        - decrement the liberty count for the vertex at each end,
+ *          and also for each vertex's equivalence class (NB they may
+ *          be the same class)
+ *        - unify the two equivalence classes if they're not already,
+ *          and if so, set the liberty count for the new class to be
+ *          the sum of the previous two.
+ *     + Decrementing the max is much easier, however.
+ *     + With this data structure the really fiddly stuff in stage3()
+ *       becomes more or less trivial, because it's now a quick job to
+ *       find out whether an island would form an isolated subgraph if
+ *       connected to a given subset of its neighbours:
+ *        - identify the connected components containing the test
+ *          vertex and its putative new neighbours (but be careful not
+ *          to count a component more than once if two or more of the
+ *          vertices involved are already in the same one)
+ *        - find the sum of those components' liberty counts, and also
+ *          the total number of islands involved
+ *        - if the total liberty count of the connected components is
+ *          exactly equal to twice the number of edges we'd be adding
+ *          (of course each edge destroys two liberties, one at each
+ *          end) then these components would become a subgraph with
+ *          zero liberties if connected together.
+ *        - therefore, if that subgraph also contains fewer than the
+ *          total number of islands, it's disallowed.
+ *        - As mentioned in stage3(), once we've identified such a
+ *          disallowed pattern, we have two choices for what to do
+ *          with it: if the candidate set of neighbours has size 1 we
+ *          can reduce the max for the edge to that one neighbour,
+ *          whereas if its complement has size 1 we can increase the
+ *          min for the edge to the _omitted_ neighbour.
+ *
+ *  - write a recursive solver?
  */
 
 #include <stdio.h>
@@ -77,7 +138,8 @@ struct game_params {
 typedef unsigned int grid_type; /* change me later if we invent > 16 bits of flags. */
 
 struct solver_state {
-    int *dsf, *tmpdsf;
+    int *dsf, *comptspaces;
+    int *tmpdsf, *tmpcompspaces;
     int refcount;
 };
 
@@ -878,20 +940,24 @@ static void map_update_possibles(game_state *state)
         idx = x;
         s = e = -1;
         bl = 0;
+        maxb = state->params.maxb;     /* placate optimiser */
         /* Unset possible flags until we find an island. */
         for (y = 0; y < state->h; y++) {
             is_s = IDX(state, gridi, idx);
-            if (is_s) break;
+            if (is_s) {
+                maxb = is_s->count;
+                break;
+            }
 
             IDX(state, possv, idx) = 0;
             idx += w;
         }
         for (; y < state->h; y++) {
+            maxb = min(maxb, IDX(state, maxv, idx));
             is_f = IDX(state, gridi, idx);
             if (is_f) {
                 assert(is_s);
-                maxb = IDX(state, maxv, idx);
-                np = min(maxb, min(is_s->count, is_f->count));
+                np = min(maxb, is_f->count);
 
                 if (s != -1) {
                     for (i = s; i <= e; i++) {
@@ -901,6 +967,7 @@ static void map_update_possibles(game_state *state)
                 s = y+1;
                 bl = 0;
                 is_s = is_f;
+                maxb = is_s->count;
             } else {
                 e = y;
                 if (IDX(state,grid,idx) & (G_LINEH|G_NOLINEV)) bl = 1;
@@ -919,19 +986,23 @@ static void map_update_possibles(game_state *state)
         idx = y*w;
         s = e = -1;
         bl = 0;
+        maxb = state->params.maxb;     /* placate optimiser */
         for (x = 0; x < state->w; x++) {
             is_s = IDX(state, gridi, idx);
-            if (is_s) break;
+            if (is_s) {
+                maxb = is_s->count;
+                break;
+            }
 
             IDX(state, possh, idx) = 0;
             idx += 1;
         }
         for (; x < state->w; x++) {
+            maxb = min(maxb, IDX(state, maxh, idx));
             is_f = IDX(state, gridi, idx);
             if (is_f) {
                 assert(is_s);
-                maxb = IDX(state, maxh, idx);
-                np = min(maxb, min(is_s->count, is_f->count));
+                np = min(maxb, is_f->count);
 
                 if (s != -1) {
                     for (i = s; i <= e; i++) {
@@ -941,6 +1012,7 @@ static void map_update_possibles(game_state *state)
                 s = x+1;
                 bl = 0;
                 is_s = is_f;
+                maxb = is_s->count;
             } else {
                 e = x;
                 if (IDX(state,grid,idx) & (G_LINEV|G_NOLINEH)) bl = 1;
@@ -1392,7 +1464,7 @@ static int solve_island_stage2(struct island *is, int *didsth_r)
     return 1;
 }
 
-static int solve_island_subgroup(struct island *is, int direction, int n)
+static int solve_island_subgroup(struct island *is, int direction)
 {
     struct island *is_join;
     int nislands, *dsf = is->state->solver->dsf;
@@ -1401,20 +1473,23 @@ static int solve_island_subgroup(struct island *is, int direction, int n)
     debug(("..checking subgroups.\n"));
 
     /* if is isn't full, return 0. */
-    if (n < is->count) {
+    if (island_countbridges(is) < is->count) {
         debug(("...orig island (%d,%d) not full.\n", is->x, is->y));
         return 0;
     }
 
-    is_join = INDEX(state, gridi,
-                    ISLAND_ORTHX(is, direction),
-                    ISLAND_ORTHY(is, direction));
-    assert(is_join);
+    if (direction >= 0) {
+        is_join = INDEX(state, gridi,
+                        ISLAND_ORTHX(is, direction),
+                        ISLAND_ORTHY(is, direction));
+        assert(is_join);
 
-    /* if is_join isn't full, return 0. */
-    if (island_countbridges(is_join) < is_join->count) {
-        debug(("...dest island (%d,%d) not full.\n", is_join->x, is_join->y));
-        return 0;
+        /* if is_join isn't full, return 0. */
+        if (island_countbridges(is_join) < is_join->count) {
+            debug(("...dest island (%d,%d) not full.\n",
+                   is_join->x, is_join->y));
+            return 0;
+        }
     }
 
     /* Check group membership for is->dsf; if it's full return 1. */
@@ -1424,7 +1499,7 @@ static int solve_island_subgroup(struct island *is, int direction, int n)
             /* we have a full subgroup that isn't the whole set.
              * This isn't allowed. */
             debug(("island at (%d,%d) makes full subgroup, disallowing.\n",
-                   is->x, is->y, n));
+                   is->x, is->y));
             return 1;
         } else {
             debug(("...has finished puzzle.\n"));
@@ -1463,10 +1538,6 @@ static int solve_island_stage3(struct island *is, int *didsth_r)
     if (missing <= 0) return 1;
 
     for (i = 0; i < is->adj.npoints; i++) {
-        /* We only do right- or down-pointing bridges. */
-        if (is->adj.points[i].dx == -1 ||
-            is->adj.points[i].dy == -1) continue;
-
         x = is->adj.points[i].x;
         y = is->adj.points[i].y;
         spc = island_adjspace(is, 1, missing, i);
@@ -1487,7 +1558,7 @@ static int solve_island_stage3(struct island *is, int *didsth_r)
             solve_join(is, i, n, 0);
             map_update_possibles(is->state);
 
-            if (solve_island_subgroup(is, i, n) ||
+            if (solve_island_subgroup(is, i) ||
                 solve_island_impossible(is->state)) {
                 maxb = n-1;
                 debug(("island at (%d,%d) d(%d,%d) new max of %d bridges:\n",
@@ -1513,6 +1584,88 @@ static int solve_island_stage3(struct island *is, int *didsth_r)
         }
         map_update_possibles(is->state);
     }
+
+    for (i = 0; i < is->adj.npoints; i++) {
+        /*
+         * Now check to see if any currently empty direction must have
+         * at least one bridge in order to avoid forming an isolated
+         * subgraph. This differs from the check above in that it
+         * considers multiple target islands. For example:
+         *
+         *   2   2    4
+         *                                  1     3     2
+         *       3
+         *                                        4
+         *
+         * The example on the left can be handled by the above loop:
+         * it will observe that connecting the central 2 twice to the
+         * left would form an isolated subgraph, and hence it will
+         * restrict that 2 to at most one bridge in that direction.
+         * But the example on the right won't be handled by that loop,
+         * because the deduction requires us to imagine connecting the
+         * 3 to _both_ the 1 and 2 at once to form an isolated
+         * subgraph.
+         *
+         * This pass is necessary _as well_ as the above one, because
+         * neither can do the other's job. In the left one,
+         * restricting the direction which _would_ cause trouble can
+         * be done even if it's not yet clear which of the remaining
+         * directions has to have a compensatory bridge; whereas the
+         * pass below that can handle the right-hand example does need
+         * to know what direction to point the necessary bridge in.
+         *
+         * Neither pass can handle the most general case, in which we
+         * observe that an arbitrary subset of an island's neighbours
+         * would form an isolated subgraph with it if it connected
+         * maximally to them, and hence that at least one bridge must
+         * point to some neighbour outside that subset but we don't
+         * know which neighbour. To handle that, we'd have to have a
+         * richer data format for the solver, which could cope with
+         * recording the idea that at least one of two edges must have
+         * a bridge.
+         */
+        int got = 0;
+        int before[4];
+        int j;
+
+        spc = island_adjspace(is, 1, missing, i);
+        if (spc == 0) continue;
+
+        for (j = 0; j < is->adj.npoints; j++)
+            before[j] = GRIDCOUNT(is->state,
+                                  is->adj.points[j].x,
+                                  is->adj.points[j].y,
+                                  is->adj.points[j].dx ? G_LINEH : G_LINEV);
+        if (before[i] != 0) continue;  /* this idea is pointless otherwise */
+
+        memcpy(ss->tmpdsf, ss->dsf, wh*sizeof(int));
+
+        for (j = 0; j < is->adj.npoints; j++) {
+            spc = island_adjspace(is, 1, missing, j);
+            if (spc == 0) continue;
+            if (j == i) continue;
+            solve_join(is, j, before[j] + spc, 0);
+        }
+        map_update_possibles(is->state);
+
+        if (solve_island_subgroup(is, -1))
+            got = 1;
+
+        for (j = 0; j < is->adj.npoints; j++)
+            solve_join(is, j, before[j], 0);
+        memcpy(ss->dsf, ss->tmpdsf, wh*sizeof(int));
+
+        if (got) {
+            debug(("island at (%d,%d) must connect in direction (%d,%d) to"
+                   " avoid full subgroup.\n",
+                   is->x, is->y, is->adj.points[i].dx, is->adj.points[i].dy));
+            solve_join(is, i, 1, 0);
+            didsth = 1;
+        }
+
+        map_update_possibles(is->state);
+    }
+
     if (didsth) *didsth_r = didsth;
     return 1;
 }
