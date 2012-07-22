@@ -1307,6 +1307,7 @@ static char *new_game_desc(game_params *params, random_state *rs,
 
 generate:
     ss->n_ops = 0;
+    state->impossible = 0;
     debug(("Starting game generation, size %dx%d", w, h));
 
     memset(state->flags, 0, state->n*sizeof(unsigned int));
