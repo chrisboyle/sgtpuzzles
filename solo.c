@@ -1773,9 +1773,16 @@ static void solver(int cr, struct block_structure *blocks,
      * Place all the clue numbers we are given.
      */
     for (x = 0; x < cr; x++)
-	for (y = 0; y < cr; y++)
-	    if (grid[y*cr+x])
+	for (y = 0; y < cr; y++) {
+            int n = grid[y*cr+x];
+	    if (n) {
+                if (!cube(x,y,n)) {
+                    diff = DIFF_IMPOSSIBLE;
+                    goto got_result;
+                }
 		solver_place(usage, x, y, grid[y*cr+x]);
+            }
+        }
 
     /*
      * Now loop over the grid repeatedly trying all permitted modes
