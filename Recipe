@@ -177,7 +177,7 @@ version2.def: FORCE
 !begin gtk
 install:
 	for i in $(GAMES); do \
-		$(INSTALL_PROGRAM) -m 755 $$i $(DESTDIR)$(gamesdir)/$$i \
+		$(INSTALL_PROGRAM) -m 755 $(BINPREFIX)$$i $(DESTDIR)$(gamesdir)/$(BINPREFIX)$$i \
 		|| exit 1; \
 	done
 !end

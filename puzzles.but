@@ -298,7 +298,7 @@ For example: if you run Cube (see \k{cube}), select \q{Octahedron}
 from the \q{Type} menu, and then go to the game ID selection, you
 will see a string of the form \cq{o2x2#338686542711620}. Take only
 the part before the hash (\cq{o2x2}), and start Cube with that text
-on the command line: \cq{cube o2x2}.
+on the command line: \cq{PREFIX-cube o2x2}.
 
 If you copy the \e{entire} game ID on to the command line, the game
 will start up in the specific game that was described. This is
@@ -364,7 +364,7 @@ seeds; see \k{common-id}), in the same format produced by
 
 For example:
 
-\c net --generate 12 --print 2x3 7x7w | lpr
+\c PREFIX-net --generate 12 --print 2x3 7x7w | lpr
 
 will generate two pages of printed Net puzzles (each of which will
 have a 7\by\.7 wrapping grid), and pipe the output to the \c{lpr}
@@ -390,7 +390,7 @@ seeds; see \k{common-id}), in the same format produced by
 
 For example:
 
-\c net --generate 12 --save game --save-suffix .sav
+\c PREFIX-net --generate 12 --save game --save-suffix .sav
 
 will generate twelve Net saved-game files with the names
 \cw{game0.sav} to \cw{game11.sav}.

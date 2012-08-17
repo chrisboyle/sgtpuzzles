@@ -1,7 +1,10 @@
 all: puzzles.hlp puzzles.txt HACKING
 
-puzzles.hlp puzzles.txt: puzzles.but
-	halibut --winhelp=puzzles.hlp --text=puzzles.txt puzzles.but
+preprocessed.but: puzzles.but
+	sed 's/PREFIX-/$(BINPREFIX)/g' puzzles.but > preprocessed.but
+
+puzzles.hlp puzzles.txt: preprocessed.but
+	halibut --winhelp=puzzles.hlp --text=puzzles.txt preprocessed.but
 
 HACKING: devel.but
 	halibut --text=HACKING devel.but
@@ -11,4 +14,4 @@ puzzles.hhp: puzzles.but chm.but
 	halibut --html puzzles.but chm.but
 
 clean:
-	rm -f puzzles.hlp puzzles.txt HACKING *.html *.hh[pck]
+	rm -f puzzles.hlp puzzles.txt preprocessed.but HACKING *.html *.hh[pck]

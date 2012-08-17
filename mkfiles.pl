@@ -1130,12 +1130,13 @@ if (defined $makefiles{'gtk'}) {
     "mandir=\$(prefix)/man\n",
     "man1dir=\$(mandir)/man1\n",
     "\n";
-    print &splitline("all:" . join "", map { " $_" } &progrealnames("X:U"));
+    print &splitline("all:" . join "", map { " \$(BINPREFIX)$_" }
+                     &progrealnames("X:U"));
     print "\n\n";
     foreach $p (&prognames("X:U")) {
       ($prog, $type) = split ",", $p;
       $objstr = &objects($p, "X.o", undef, undef);
-      print &splitline($prog . ": " . $objstr), "\n";
+      print &splitline("\$(BINPREFIX)" . $prog . ": " . $objstr), "\n";
       $libstr = &objects($p, undef, undef, "-lX");
       print &splitline("\t\$(CC) -o \$@ $objstr $libstr \$(XLFLAGS) \$(${type}LIBS)", 69),
 	  "\n\n";
@@ -1150,7 +1151,7 @@ if (defined $makefiles{'gtk'}) {
     print "\n";
     print $makefile_extra{'gtk'} || "";
     print "\nclean:\n".
-    "\trm -f *.o". (join "", map { " $_" } &progrealnames("X:U")) . "\n";
+    "\trm -f *.o". (join "", map { " \$(BINPREFIX)$_" } &progrealnames("X:U")) . "\n";
     select STDOUT; close OUT;
 }
 

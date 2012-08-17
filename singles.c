@@ -630,7 +630,7 @@ static void solver_op_add(struct solver_state *ss, int x, int y, int op, const c
     }
     sop = &(ss->ops[ss->n_ops++]);
     sop->x = x; sop->y = y; sop->op = op; sop->desc = desc;
-    debug(("added solver op %s ('%s') at (%d,%d)",
+    debug(("added solver op %s ('%s') at (%d,%d)\n",
            op == BLACK ? "BLACK" : "CIRCLE", desc, x, y));
 }
 
@@ -641,7 +641,7 @@ static void solver_op_circle(game_state *state, struct solver_state *ss,
 
     if (!INGRID(state, x, y)) return;
     if (state->flags[i] & F_BLACK) {
-        debug(("... solver wants to add auto-circle on black (%d,%d)", x, y));
+        debug(("... solver wants to add auto-circle on black (%d,%d)\n", x, y));
         state->impossible = 1;
         return;
     }
@@ -659,7 +659,7 @@ static void solver_op_blacken(game_state *state, struct solver_state *ss,
     if (!INGRID(state, x, y)) return;
     if (state->nums[i] != num) return;
     if (state->flags[i] & F_CIRCLE) {
-        debug(("... solver wants to add auto-black on circled(%d,%d)", x, y));
+        debug(("... solver wants to add auto-black on circled(%d,%d)\n", x, y));
         state->impossible = 1;
         return;
     }
@@ -683,12 +683,12 @@ static int solver_ops_do(game_state *state, struct solver_state *ss)
 
         if (op.op == BLACK) {
             if (state->flags[i] & F_CIRCLE) {
-                debug(("Solver wants to blacken circled square (%d,%d)!", op.x, op.y));
+                debug(("Solver wants to blacken circled square (%d,%d)!\n", op.x, op.y));
                 state->impossible = 1;
                 return n_ops;
             }
             if (!(state->flags[i] & F_BLACK)) {
-                debug(("... solver adding black at (%d,%d): %s", op.x, op.y, op.desc));
+                debug(("... solver adding black at (%d,%d): %s\n", op.x, op.y, op.desc));
 #ifdef STANDALONE_SOLVER
                 if (verbose)
                     printf("Adding black at (%d,%d): %s\n", op.x, op.y, op.desc);
@@ -703,12 +703,12 @@ static int solver_ops_do(game_state *state, struct solver_state *ss)
                 }
         } else {
             if (state->flags[i] & F_BLACK) {
-                debug(("Solver wants to circle blackened square (%d,%d)!", op.x, op.y));
+                debug(("Solver wants to circle blackened square (%d,%d)!\n", op.x, op.y));
                 state->impossible = 1;
                 return n_ops;
             }
             if (!(state->flags[i] & F_CIRCLE)) {
-                debug(("... solver adding circle at (%d,%d): %s", op.x, op.y, op.desc));
+                debug(("... solver adding circle at (%d,%d): %s\n", op.x, op.y, op.desc));
 #ifdef STANDALONE_SOLVER
                 if (verbose)
                     printf("Adding circle at (%d,%d): %s\n", op.x, op.y, op.desc);
@@ -835,7 +835,7 @@ static int solve_allblackbutone(game_state *state, struct solver_state *ss)
                 solver_op_add(ss, ifree%state->w, ifree/state->w, CIRCLE,
                               "CC/CE/QM: white cell with single non-black around it");
             else {
-                debug(("White cell with no escape at (%d,%d)", x, y));
+                debug(("White cell with no escape at (%d,%d)\n", x, y));
                 state->impossible = 1;
                 return 0;
             }
@@ -941,9 +941,9 @@ static void solve_offsetpair_pair(game_state *state, struct solver_state *ss,
             if (an == dn) {
                 /* We have a match; so (WLOG) the 'A' marked above are at
                  * (x1,y1) and (x2,y2), and the 'B' are at (ax,ay) and (dx,dy). */
-                debug(("Found offset-pair: %d at (%d,%d) and (%d,%d)",
+                debug(("Found offset-pair: %d at (%d,%d) and (%d,%d)\n",
                        state->nums[y1*w + x1], x1, y1, x2, y2));
-                debug(("              and: %d at (%d,%d) and (%d,%d)",
+                debug(("              and: %d at (%d,%d) and (%d,%d)\n",
                        an, ax, ay, dx[d], dy[d]));
 
                 xd = dx[d] - x2; yd = dy[d] - y2;
@@ -997,7 +997,7 @@ static int solve_hassinglewhiteregion(game_state *state, struct solver_state *ss
         state->flags[i] &= ~F_SCRATCH;
     }
     if (lwhite == -1) {
-        debug(("solve_hassinglewhite: no white squares found!"));
+        debug(("solve_hassinglewhite: no white squares found!\n"));
         state->impossible = 1;
         return 0;
     }
@@ -1056,7 +1056,7 @@ static int solve_removesplits(game_state *state, struct solver_state *ss)
     int i, x, y, n_ops = ss->n_ops;
 
     if (!solve_hassinglewhiteregion(state, ss)) {
-        debug(("solve_removesplits: white region is not contiguous at start!"));
+        debug(("solve_removesplits: white region is not contiguous at start!\n"));
         state->impossible = 1;
         return 0;
     }
@@ -1242,7 +1242,7 @@ static int new_game_is_good(game_params *params,
     }
 
     if (sret <= 0 || sret_easy > 0) {
-        debug(("Generated puzzle %s at chosen difficulty %s",
+        debug(("Generated puzzle %s at chosen difficulty %s\n",
                sret <= 0 ? "insoluble" : "too easy",
                singles_diffnames[params->diff]));
         return 0;
@@ -1306,7 +1306,7 @@ static char *new_game_desc(game_params *params, random_state *rs,
 
 generate:
     ss->n_ops = 0;
-    debug(("Starting game generation, size %dx%d", w, h));
+    debug(("Starting game generation, size %dx%d\n", w, h));
 
     memset(state->flags, 0, state->n*sizeof(unsigned int));
 
@@ -1326,7 +1326,7 @@ generate:
     for (j = 0; j < state->n; j++) {
         i = scratch[j];
         if ((state->flags[i] & F_CIRCLE) || (state->flags[i] & F_BLACK)) {
-            debug(("generator skipping (%d,%d): %s", i%w, i/w,
+            debug(("generator skipping (%d,%d): %s\n", i%w, i/w,
                    (state->flags[i] & F_CIRCLE) ? "CIRCLE" : "BLACK"));
             continue; /* solver knows this must be one or the other already. */
         }
@@ -1343,7 +1343,7 @@ generate:
         solver_ops_do(state, ss);
 
         if (state->impossible) {
-            debug(("generator made impossible, restarting..."));
+            debug(("generator made impossible, restarting...\n"));
             goto generate;
         }
     }
@@ -1382,10 +1382,10 @@ randomise:
         !new_game_is_good(params, state, tosolve)) {
         ntries++;
         if (ntries > MAXTRIES) {
-            debug(("Ran out of randomisation attempts, re-generating."));
+            debug(("Ran out of randomisation attempts, re-generating.\n"));
             goto generate;
         }
-        debug(("Re-randomising numbers under black squares."));
+        debug(("Re-randomising numbers under black squares.\n"));
         goto randomise;
     }
 
@@ -1527,7 +1527,7 @@ static game_state *execute_move(game_state *state, char *move)
     game_state *ret = dup_game(state);
     int x, y, i, n;
 
-    debug(("move: %s", move));
+    debug(("move: %s\n", move));
 
     while (*move) {
         char c = *move;
