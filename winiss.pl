@@ -11,13 +11,15 @@
 # where `1234' is the revision number which will be encoded in the
 # installer's version indicators.
 
+use warnings;
+
 $rev = shift @ARGV;
 ($revclean=$rev) =~ s/M$//;
 $lst = shift @ARGV;
 open LST, "<", $lst;
 while (<LST>) {
     chomp;
-    split /:/;
+    @_ = split /:/;
     push @exes, $_[0];
     $names{$_[0]} = $_[1];
 }
