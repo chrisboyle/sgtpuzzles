@@ -2971,6 +2971,79 @@ relative to the cursor, i.e. to draw a segment or a cross.
 These parameters are available from the \q{Custom...} option on the
 \q{Type} menu.
 
+\C{undead} \i{Undead}
+
+\cfg{winhelp-topic}{games.undead}
+
+You are given a grid of squares, some of which contain diagonal
+mirrors. Every square which is not a mirror must be filled with one of
+three types of undead monster: a ghost, a vampire, or a zombie.
+
+Vampires can be seen directly, but are invisible when reflected in
+mirrors. Ghosts are the opposite way round: they can be seen in
+mirrors, but are invisible when looked at directly. Zombies are
+visible by any means.
+
+Around the edge of the grid are written numbers, which indicate how
+many monsters can be seen if you look into the grid along a row or
+column starting from that position. (The diagonal mirrors are
+reflective on both sides.) You are also told the total number of each
+type of monster in the grid.
+
+This puzzle type was invented by David Millar, under the name
+\q{Haunted Mirror Maze}. See \k{janko-undead} for more details.
+
+Undead was contributed to this collection by Steffen Bauer.
+
+\B{janko-undead}
+\W{http://www.janko.at/Raetsel/Spukschloss/index.htm}
+
+\H{undead-controls} \I{controls, for Undead}Undead controls
+
+Undead has a similar control system to Solo, Unequal and Keen.
+
+To play Undead, click the mouse in any empty square and then type a
+letter on the keyboard indicating the type of monster: \q{G} for a
+ghost, \q{V} for a vampire, or \q{Z} for a zombie. If you make a
+mistake, click the mouse in the incorrect square and press Space to
+clear it again (or use the Undo feature).
+
+If you \e{right}-click in a square and then type a letter, the
+corresponding monster will be shown in reduced size in that square, as
+a \q{pencil mark}. You can have pencil marks for multiple monsters in
+the same square. A square containing a full-size monster cannot also
+contain pencil marks.
+
+The game pays no attention to pencil marks, so exactly what you use
+them for is up to you: you can use them as reminders that a particular
+square needs to be re-examined once you know more about a particular
+monster, or you can use them as lists of the possible monster in a
+given square, or anything else you feel like.
+
+To erase a single pencil mark, right-click in the square and type
+the same letter again.
+
+All pencil marks in a square are erased when you left-click and type a
+monster letter, or when you left-click and press Space. Right-clicking
+and pressing space will also erase pencil marks.
+
+As for Solo, the cursor keys can be used in conjunction with the digit
+keys to place monsters or pencil marks. Use the cursor keys to move a
+highlight around the grid, and type a monster letter to enter it in
+the highlighted square. Pressing return toggles the highlight into a
+mode in which you can enter or remove pencil marks.
+
+If you prefer plain letters of the alphabet to cute monster pictures,
+you can press A to toggle between showing the monsters as monsters or
+showing them as letters.
+
+(All the actions described in \k{common-actions} are also available.)
+
+\H{undead-parameters} \I{parameters, for Undead}Undead parameters
+
+These parameters are available from the \q{Custom...} option on the
+\q{Type} menu.
+
 \dt \e{Width}, \e{Height}
 
 \dd Size of grid in squares.
@@ -2985,7 +3058,7 @@ This software is \i{copyright} 2004-2012 Simon Tatham.
 
 Portions copyright Richard Boulton, James Harvey, Mike Pinna, Jonas
 K\u00F6{oe}lker, Dariusz Olszewski, Michael Schierl, Lambros
-Lambrou and Bernd Schmidt.
+Lambrou, Bernd Schmidt and Steffen Bauer.
 
 Permission is hereby granted, free of charge, to any person
 obtaining a copy of this software and associated documentation files
