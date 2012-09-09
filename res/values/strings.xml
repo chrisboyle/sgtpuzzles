@@ -137,6 +137,7 @@ Revision: %s"</string>
     <string name="name_tents">Tents</string>
     <string name="name_towers">Towers</string>
     <string name="name_twiddle">Twiddle</string>
+    <string name="name_undead">Undead</string>
     <string name="name_unequal">Unequal</string>
     <string name="name_untangle">Untangle</string>
     <!-- These are for Menu/Game/Other (detail mode) -->
@@ -174,6 +175,7 @@ Revision: %s"</string>
     <string name="desc_tents">Place tents so each tree has a separate adjacent tent (not diagonally), no tents are next to each other (even diagonally) and the row and column counts are correct.</string>
     <string name="desc_towers">Place towers so each row/column contains one of each height and each clue matches the number of towers visible looking into the grid from that point.</string>
     <string name="desc_twiddle">Rotate groups of 4 to form a grid in numerical order.</string>
+    <string name="desc_undead">Fill the grid with monsters so the correct numbers of them can be seen from each point, taking mirrors into account.</string>
     <string name="desc_unequal">Enter digits so every row and column contains exactly one of each digit and the greater-than signs are satisfied.</string>
     <string name="desc_untangle">Move points around until no lines cross.</string>
     <!-- Everything below here is from C -->
