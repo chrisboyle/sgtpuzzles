@@ -814,7 +814,7 @@ struct game_drawstate {
     int bgcolour;
 };
 
-static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
+static char *interpret_move(game_state *state, game_ui *ui, const game_drawstate *ds,
 			    int x, int y, int button)
 {
     int w = state->w, h = state->h;

@@ -856,7 +856,7 @@ producing new \c{game_state}s.
 \S{backend-interpret-move} \cw{interpret_move()}
 
 \c char *(*interpret_move)(game_state *state, game_ui *ui,
-\c                         game_drawstate *ds,
+\c                         const game_drawstate *ds,
 \c                         int x, int y, int button);
 
 This function receives user input and processes it. Its input
@@ -867,6 +867,11 @@ indicating an arrow or function key or a mouse event; when
 \c{button} is a mouse event, \c{x} and \c{y} contain the pixel
 coordinates of the mouse pointer relative to the top left of the
 puzzle's drawing area.
+
+(The pointer to the \c{game_drawstate} is marked \c{const}, because
+\c{interpret_move} should not write to it. The normal use of that
+pointer will be to read the game's tile size parameter in order to
+divide mouse coordinates by it.)
 
 \cw{interpret_move()} may return in three different ways:
 

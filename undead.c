@@ -1646,8 +1646,9 @@ struct game_drawstate {
 #define TILESIZE (ds->tilesize)
 #define BORDER (TILESIZE/2)
 
-static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
-                            int x, int y, int button) {
+static char *interpret_move(game_state *state, game_ui *ui,
+                            const game_drawstate *ds, int x, int y, int button)
+{
     int gx,gy;
     int g,xi;
     char buf[80]; 
@@ -1656,7 +1657,7 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
     gy = ((y-BORDER-2) / TILESIZE ) - 1;
 
     if (button == 'a' || button == 'A') {
-        ds->ascii = ui->ascii ? FALSE : TRUE;
+        ui->ascii = !ui->ascii;
         return "";      
     }
     
@@ -2395,7 +2396,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
             game_state *state, int dir, game_ui *ui,
             float animtime, float flashtime) {
     int i,j,x,y,xy;
-    int stale, xi, c, hflash, hchanged;
+    int stale, xi, c, hflash, hchanged, changed_ascii;
 
     hflash = (int)(flashtime * 5 / FLASH_TIME) % 2;
 
@@ -2419,13 +2420,18 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
         ds->hshow != ui->hshow || ds->hpencil != ui->hpencil)
         hchanged = TRUE;
 
+    if (ds->ascii != ui->ascii) {
+        ds->ascii = ui->ascii;
+        changed_ascii = TRUE;
+    }
+
     /* Draw monster count hints */
 
     for (i=0;i<3;i++) {
         stale = FALSE;
         if (!ds->started) stale = TRUE;
         if (ds->hflash != hflash) stale = TRUE;
-        if (ds->ascii != ui->ascii) stale = TRUE;
+        if (changed_ascii) stale = TRUE;
         if (ds->count_errors[i] != state->count_errors[i]) {
             stale = TRUE;
             ds->count_errors[i] = state->count_errors[i];
@@ -2481,7 +2487,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
     
         if (!ds->started) stale = TRUE;
         if (ds->hflash != hflash) stale = TRUE;
-        if (ds->ascii != ui->ascii) stale = TRUE;
+        if (changed_ascii) stale = TRUE;
         
         if (hchanged) {
             if ((x == ui->hx && y == ui->hy) ||
@@ -2520,7 +2526,6 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
     ds->hshow = ui->hshow;
     ds->hpencil = ui->hpencil;
     ds->hflash = hflash;
-    ui->ascii = ds->ascii;
     ds->started = TRUE;
     return;
 }

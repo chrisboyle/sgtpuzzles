@@ -1100,7 +1100,7 @@ static int find_move_dest(game_state *from, int direction,
     return dest;
 }
 
-static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
+static char *interpret_move(game_state *state, game_ui *ui, const game_drawstate *ds,
 			    int x, int y, int button)
 {
     int direction, mask, i;

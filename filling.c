@@ -1036,7 +1036,7 @@ struct game_drawstate {
     int *dsf_scratch, *border_scratch;
 };
 
-static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
+static char *interpret_move(game_state *state, game_ui *ui, const game_drawstate *ds,
                             int x, int y, int button)
 {
     const int w = state->shared->params.w;

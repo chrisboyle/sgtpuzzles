@@ -2369,7 +2369,7 @@ static void coord_round_to_edge(float x, float y, int *xr, int *yr)
 #endif
 
 #ifdef EDITOR
-static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
+static char *interpret_move(game_state *state, game_ui *ui, const game_drawstate *ds,
 			    int x, int y, int button)
 {
     char buf[80];
@@ -2404,7 +2404,7 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
     return NULL;
 }
 #else
-static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
+static char *interpret_move(game_state *state, game_ui *ui, const game_drawstate *ds,
 			    int x, int y, int button)
 {
     /* UI operations (play mode):

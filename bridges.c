@@ -2157,8 +2157,8 @@ struct game_drawstate {
     int show_hints;
 };
 
-static char *update_drag_dst(game_state *state, game_ui *ui, game_drawstate *ds,
-                            int nx, int ny)
+static char *update_drag_dst(game_state *state, game_ui *ui,
+                             const game_drawstate *ds, int nx, int ny)
 {
     int ox, oy, dx, dy, i, currl, maxb;
     struct island *is;
@@ -2253,7 +2253,7 @@ static char *finish_drag(game_state *state, game_ui *ui)
     return dupstr(buf);
 }
 
-static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
+static char *interpret_move(game_state *state, game_ui *ui, const game_drawstate *ds,
 			    int x, int y, int button)
 {
     int gx = FROMCOORD(x), gy = FROMCOORD(y);

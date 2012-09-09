@@ -1962,7 +1962,7 @@ static char *mark_in_direction(game_state *state, int x, int y, int dir,
     (btn) == CURSOR_DOWN ? D : (btn) == CURSOR_UP ? U :\
     (btn) == CURSOR_LEFT ? L : R)
 
-static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
+static char *interpret_move(game_state *state, game_ui *ui, const game_drawstate *ds,
 			    int x, int y, int button)
 {
     int w = state->shared->w, h = state->shared->h /*, sz = state->shared->sz */;

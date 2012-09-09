@@ -1371,7 +1371,7 @@ struct game_drawstate {
     int hflash;
 };
 
-static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
+static char *interpret_move(game_state *state, game_ui *ui, const game_drawstate *ds,
 			    int ox, int oy, int button)
 {
     int x = FROMCOORD(ox), y = FROMCOORD(oy), n;

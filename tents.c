@@ -1520,7 +1520,7 @@ static int drag_xform(game_ui *ui, int x, int y, int v)
     return v;
 }
 
-static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
+static char *interpret_move(game_state *state, game_ui *ui, const game_drawstate *ds,
 			    int x, int y, int button)
 {
     int w = state->p.w, h = state->p.h;

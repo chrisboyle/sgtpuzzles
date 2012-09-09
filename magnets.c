@@ -1754,7 +1754,7 @@ struct game_drawstate {
 #define COORD(x) ( (x+1) * TILE_SIZE + BORDER )
 #define FROMCOORD(x) ( (x - BORDER) / TILE_SIZE - 1 )
 
-static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
+static char *interpret_move(game_state *state, game_ui *ui, const game_drawstate *ds,
 			    int x, int y, int button)
 {
     int gx = FROMCOORD(x), gy = FROMCOORD(y), idx, curr;

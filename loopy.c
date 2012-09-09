@@ -2813,7 +2813,7 @@ static char *solve_game(game_state *state, game_state *currstate,
  * Drawing and mouse-handling
  */
 
-static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
+static char *interpret_move(game_state *state, game_ui *ui, const game_drawstate *ds,
                             int x, int y, int button)
 {
     grid *g = state->game_grid;

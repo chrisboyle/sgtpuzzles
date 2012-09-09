@@ -499,8 +499,8 @@ struct game {
     void (*decode_ui)(game_ui *ui, char *encoding);
     void (*changed_state)(game_ui *ui, game_state *oldstate,
                           game_state *newstate);
-    char *(*interpret_move)(game_state *state, game_ui *ui, game_drawstate *ds,
-			    int x, int y, int button);
+    char *(*interpret_move)(game_state *state, game_ui *ui,
+                            const game_drawstate *ds, int x, int y, int button);
     game_state *(*execute_move)(game_state *state, char *move);
     int preferred_tilesize;
     void (*compute_size)(game_params *params, int tilesize, int *x, int *y);

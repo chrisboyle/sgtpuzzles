@@ -1471,7 +1471,7 @@ struct game_drawstate {
     unsigned int *flags;
 };
 
-static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
+static char *interpret_move(game_state *state, game_ui *ui, const game_drawstate *ds,
 			    int mx, int my, int button)
 {
     char buf[80], c;

@@ -2415,7 +2415,7 @@ struct game_drawstate {
     int cur_x, cur_y; /* -1, -1 for no cursor displayed. */
 };
 
-static char *interpret_move(game_state *from, game_ui *ui, game_drawstate *ds,
+static char *interpret_move(game_state *from, game_ui *ui, const game_drawstate *ds,
 			    int x, int y, int button)
 {
     int cx, cy;

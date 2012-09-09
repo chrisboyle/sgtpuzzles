@@ -1922,7 +1922,7 @@ struct game_drawstate {
  * Process a move.
  */
 static char *interpret_move(game_state *state, game_ui *ui,
-			    game_drawstate *ds, int x, int y, int button)
+			    const game_drawstate *ds, int x, int y, int button)
 {
     char *nullret;
     int tx = -1, ty = -1, dir = 0;

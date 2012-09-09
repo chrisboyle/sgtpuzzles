@@ -2342,7 +2342,7 @@ struct game_drawstate {
                            ((button) == CURSOR_UP)    ? -1 : 0)
 
 
-static int region_from_coords(game_state *state, game_drawstate *ds,
+static int region_from_coords(game_state *state, const game_drawstate *ds,
                               int x, int y)
 {
     int w = state->p.w, h = state->p.h, wh = w*h /*, n = state->p.n */;
@@ -2361,7 +2361,7 @@ static int region_from_coords(game_state *state, game_drawstate *ds,
     return state->map->map[quadrant * wh + ty*w+tx];
 }
 
-static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
+static char *interpret_move(game_state *state, game_ui *ui, const game_drawstate *ds,
 			    int x, int y, int button)
 {
     char *bufp, buf[256];

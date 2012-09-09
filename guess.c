@@ -632,7 +632,7 @@ static char *encode_move(game_state *from, game_ui *ui)
     return buf;
 }
 
-static char *interpret_move(game_state *from, game_ui *ui, game_drawstate *ds,
+static char *interpret_move(game_state *from, game_ui *ui, const game_drawstate *ds,
 			    int x, int y, int button)
 {
     int over_col = 0;           /* one-indexed */

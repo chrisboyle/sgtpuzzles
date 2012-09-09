@@ -1056,7 +1056,7 @@ struct game_drawstate {
 };
 
 static char *interpret_move(game_state *state, game_ui *ui,
-			    game_drawstate *ds, int x, int y, int button)
+			    const game_drawstate *ds, int x, int y, int button)
 {
     int cx, cy;
     int dx, dy;
