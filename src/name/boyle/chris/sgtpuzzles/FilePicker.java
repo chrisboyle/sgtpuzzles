@@ -51,9 +51,9 @@ class FilePicker extends Dialog
 	void load(final File f) throws IOException
 	{
 		byte[] b = new byte[(int)f.length()];
-		RandomAccessFile file = new RandomAccessFile(f,"r");
-		file.readFully(b);
-		file.close();
+		RandomAccessFile raf = new RandomAccessFile(f,"r");
+		raf.readFully(b);
+		raf.close();
 		Intent i = new Intent(getContext(), SGTPuzzles.class);
 		i.putExtra("game", new String(b));
 		getContext().startActivity(i);

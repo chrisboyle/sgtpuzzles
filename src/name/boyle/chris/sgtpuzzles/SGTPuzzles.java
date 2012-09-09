@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
+import java.lang.ref.WeakReference;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -116,43 +117,58 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 	boolean startedFullscreen = false, cachedFullscreen = false;
 
 	enum MsgType { TIMER, DONE, ABORT };
-	Handler handler = new Handler() {
+	static class PuzzlesHandler extends Handler
+	{
+		WeakReference<SGTPuzzles> ref;
+		public PuzzlesHandler(SGTPuzzles outer) {
+			ref = new WeakReference<SGTPuzzles>(outer);
+		}
 		public void handleMessage( Message msg ) {
-			switch( MsgType.values()[msg.what] ) {
-			case TIMER:
-				if( progress == null ) timerTick();
-				if( gameWantsTimer ) sendMessageDelayed(obtainMessage(MsgType.TIMER.ordinal()), timerInterval);
-				break;
-			case DONE:
-				if( resizeOnDone ) {
-					resizeEvent(gameView.w, gameView.h);
-					resizeOnDone = false;
-				}
-				// set ActionBar icon to the one for this puzzle
-				if( msg.obj != null && actionBarCompat != null ) {
-					int iconId = getResources().getIdentifier(
-							(String)msg.obj, "drawable", getPackageName());
-					homeAsUpNoticeable = actionBarCompat.setIconAsShortcut(
-							iconId > 0 ? iconId : R.drawable.icon);
-					if (menu != null) menu.findItem(R.id.other).setVisible(! homeAsUpNoticeable);
-				}
-				dismissProgress();
-				if( menu != null ) onPrepareOptionsMenu(menu);
-				save();
-				break;
-			case ABORT:
-				stopNative();
-				dismissProgress();
-				startChooser();
-				if (msg.obj != null) {
-					messageBox(getString(R.string.Error), (String)msg.obj, 1, false);
-				} else {
-					finish();
-				}
-				break;
-			}
+			SGTPuzzles outer = ref.get();
+			if (outer != null) outer.handleMessage(msg);
 		}
 	};
+	Handler handler = new PuzzlesHandler(this);
+
+	void handleMessage( Message msg ) {
+		switch( MsgType.values()[msg.what] ) {
+		case TIMER:
+			if( progress == null ) timerTick();
+			if( gameWantsTimer ) {
+				handler.sendMessageDelayed(
+						handler.obtainMessage(MsgType.TIMER.ordinal()),
+						timerInterval);
+			}
+			break;
+		case DONE:
+			if( resizeOnDone ) {
+				resizeEvent(gameView.w, gameView.h);
+				resizeOnDone = false;
+			}
+			// set ActionBar icon to the one for this puzzle
+			if( msg.obj != null && actionBarCompat != null ) {
+				int iconId = getResources().getIdentifier(
+						(String)msg.obj, "drawable", getPackageName());
+				homeAsUpNoticeable = actionBarCompat.setIconAsShortcut(
+						iconId > 0 ? iconId : R.drawable.icon);
+				if (menu != null) menu.findItem(R.id.other).setVisible(! homeAsUpNoticeable);
+			}
+			dismissProgress();
+			if( menu != null ) onPrepareOptionsMenu(menu);
+			save();
+			break;
+		case ABORT:
+			stopNative();
+			dismissProgress();
+			startChooser();
+			if (msg.obj != null) {
+				messageBox(getString(R.string.Error), (String)msg.obj, 1, false);
+			} else {
+				finish();
+			}
+			break;
+		}
+	}
 
 	void showProgress( int msgId )
 	{
@@ -638,7 +654,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 	{
 		if (!visible) statusBar.setText("");
 		RelativeLayout.LayoutParams lp = new RelativeLayout.LayoutParams(
-				RelativeLayout.LayoutParams.FILL_PARENT,
+				RelativeLayout.LayoutParams.MATCH_PARENT,
 				visible ? RelativeLayout.LayoutParams.WRAP_CONTENT : 0);
 		lp.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
 		lp.addRule(RelativeLayout.ALIGN_PARENT_LEFT);
