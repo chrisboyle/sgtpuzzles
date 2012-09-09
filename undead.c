@@ -2423,7 +2423,8 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
     if (ds->ascii != ui->ascii) {
         ds->ascii = ui->ascii;
         changed_ascii = TRUE;
-    }
+    } else
+        changed_ascii = FALSE;
 
     /* Draw monster count hints */
 
