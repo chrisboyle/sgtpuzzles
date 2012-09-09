@@ -2996,7 +2996,7 @@ This puzzle type was invented by David Millar, under the name
 Undead was contributed to this collection by Steffen Bauer.
 
 \B{janko-undead}
-\W{http://www.janko.at/Raetsel/Spukschloss/index.htm}
+\W{http://www.janko.at/Raetsel/Spukschloss/index.htm}\cw{http://www.janko.at/Raetsel/Spukschloss/index.htm}
 
 \H{undead-controls} \I{controls, for Undead}Undead controls
 
@@ -3027,14 +3027,14 @@ All pencil marks in a square are erased when you left-click and type a
 monster letter, or when you left-click and press Space. Right-clicking
 and pressing space will also erase pencil marks.
 
-As for Solo, the cursor keys can be used in conjunction with the digit
+As for Solo, the cursor keys can be used in conjunction with the letter
 keys to place monsters or pencil marks. Use the cursor keys to move a
 highlight around the grid, and type a monster letter to enter it in
 the highlighted square. Pressing return toggles the highlight into a
 mode in which you can enter or remove pencil marks.
 
 If you prefer plain letters of the alphabet to cute monster pictures,
-you can press A to toggle between showing the monsters as monsters or
+you can press \q{A} to toggle between showing the monsters as monsters or
 showing them as letters.
 
 (All the actions described in \k{common-actions} are also available.)
