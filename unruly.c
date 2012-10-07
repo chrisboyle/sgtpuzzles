@@ -1674,8 +1674,6 @@ static void game_print(drawing *dr, game_state *state, int tilesize)
     int x, y;
 
     int ink = print_mono_colour(dr, 0);
-    char buf[2];
-    buf[1] = '\0';
 
     for (y = 0; y < h2; y++)
         for (x = 0; x < w2; x++) {
