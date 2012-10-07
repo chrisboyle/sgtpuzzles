@@ -3052,13 +3052,60 @@ These parameters are available from the \q{Custom...} option on the
 
 \dd Controls the difficulty of the generated puzzle.
 
+\C{unruly} \i{Unruly}
+
+\cfg{winhelp-topic}{games.unruly}
+
+You are given a grid of squares, which you must colour either black or
+white. Some squares are provided as clues; the rest are left for you
+to fill in. Each row and column must contain the same number of black
+and white squares, and no row or column may contain three consecutive
+squares of the same colour.
+
+This puzzle type was invented by Adolfo Zanellati, under the name
+\q{Tohu wa Vohu}. See \k{janko-unruly} for more details.
+
+Unruly was contributed to this collection by Lennard Sprong.
+
+\B{janko-unruly}
+\W{http://www.janko.at/Raetsel/Tohu-Wa-Vohu/index.htm}\cw{http://www.janko.at/Raetsel/Tohu-Wa-Vohu/index.htm}
+
+\H{unruly-controls} \I{controls, for Unruly}Unruly controls
+
+To play Unruly, click the mouse in a square to change its colour.
+Left-clicking an empty square will turn it black, and right-clicking
+will turn it white. Keep clicking the same button to cycle through the
+three possible states for the square. If you middle-click in a square
+it will be reset to empty.
+
+You can also use the cursor keys to move around the grid. Pressing the
+return or space keys will turn an empty square black or white
+respectively (and then cycle the colours in the same way as the mouse
+buttons), and pressing Backspace will reset a square to empty.
+
+(All the actions described in \k{common-actions} are also available.)
+
+\H{unruly-parameters} \I{parameters, for Unruly}Unruly parameters
+
+These parameters are available from the \q{Custom...} option on the
+\q{Type} menu.
+
+\dt \e{Width}, \e{Height}
+
+\dd Size of grid in squares. (Note that the rules of the game require
+both the width and height to be even numbers.)
+
+\dt \e{Difficulty}
+
+\dd Controls the difficulty of the generated puzzle.
+
 \A{licence} \I{MIT licence}\ii{Licence}
 
 This software is \i{copyright} 2004-2012 Simon Tatham.
 
 Portions copyright Richard Boulton, James Harvey, Mike Pinna, Jonas
 K\u00F6{oe}lker, Dariusz Olszewski, Michael Schierl, Lambros
-Lambrou, Bernd Schmidt and Steffen Bauer.
+Lambrou, Bernd Schmidt, Steffen Bauer and Lennard Sprong.
 
 Permission is hereby granted, free of charge, to any person
 obtaining a copy of this software and associated documentation files
