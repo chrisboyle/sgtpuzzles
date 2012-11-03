@@ -2984,11 +2984,13 @@ mirrors. Ghosts are the opposite way round: they can be seen in
 mirrors, but are invisible when looked at directly. Zombies are
 visible by any means.
 
-Around the edge of the grid are written numbers, which indicate how
-many monsters can be seen if you look into the grid along a row or
-column starting from that position. (The diagonal mirrors are
-reflective on both sides.) You are also told the total number of each
-type of monster in the grid.
+You are also told the total number of each type of monster in the
+grid. Also around the edge of the grid are written numbers, which
+indicate how many monsters can be seen if you look into the grid along
+a row or column starting from that position. (The diagonal mirrors are
+reflective on both sides. If your reflected line of sight crosses the
+same monster more than once, the number will count it each time it is
+visible, not just once.)
 
 This puzzle type was invented by David Millar, under the name
 \q{Haunted Mirror Maze}. See \k{janko-undead} for more details.
