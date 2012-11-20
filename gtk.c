@@ -117,6 +117,7 @@ struct frontend {
     GtkAccelGroup *accelgroup;
     GtkWidget *area;
     GtkWidget *statusbar;
+    GtkWidget *menubar;
     guint statusctx;
     int w, h;
     midend *me;
@@ -149,6 +150,7 @@ struct frontend {
 #ifdef OLD_FILESEL
     char *filesel_name;
 #endif
+    int drawing_area_shrink_pending;
     GSList *preset_radio;
     int n_preset_menu_items;
     int preset_threaded;
@@ -1661,6 +1663,63 @@ static void changed_preset(frontend *fe)
     }
 }
 
+static gboolean not_size_allocated_yet(GtkWidget *w)
+{
+    /*
+     * This function tests whether a widget has not yet taken up space
+     * on the screen which it will occupy in future. (Therefore, it
+     * returns true only if the widget does exist but does not have a
+     * size allocation. A null widget is already taking up all the
+     * space it ever will.)
+     */
+    GtkAllocation a;
+
+    if (!w)
+        return FALSE;        /* nonexistent widgets aren't a problem */
+
+    gtk_widget_get_allocation(w, &a);
+    return a.height == 0 || a.width == 0;
+}
+
+static void try_shrink_drawing_area(frontend *fe)
+{
+    if (fe->drawing_area_shrink_pending &&
+        !not_size_allocated_yet(fe->menubar) &&
+        !not_size_allocated_yet(fe->statusbar)) {
+        /*
+         * In order to permit the user to resize the window smaller as
+         * well as bigger, we call this function after the window size
+         * has ended up where we want it. This shouldn't shrink the
+         * window immediately; it just arranges that the next time the
+         * user tries to shrink it, they can.
+         *
+         * However, at puzzle creation time, we defer the first of
+         * these operations until after the menu bar and status bar
+         * are actually visible. On Ubuntu 12.04 I've found that these
+         * can take a while to be displayed, and that it's a mistake
+         * to reduce the drawing area's size allocation before they've
+         * turned up or else the drawing area makes room for them by
+         * shrinking to less than the size we intended.
+         */
+        gtk_drawing_area_size(GTK_DRAWING_AREA(fe->area), 1, 1);
+        fe->drawing_area_shrink_pending = FALSE;
+    }
+}
+
+static gint configure_window(GtkWidget *widget,
+                             GdkEventConfigure *event, gpointer data)
+{
+    frontend *fe = (frontend *)data;
+    /*
+     * When the main puzzle window changes size, it might be because
+     * the menu bar or status bar has turned up after starting off
+     * absent, in which case we should have another go at enacting a
+     * pending shrink of the drawing area.
+     */
+    try_shrink_drawing_area(fe);
+    return FALSE;
+}
+
 static void resize_fe(frontend *fe)
 {
     int x, y;
@@ -1668,18 +1727,15 @@ static void resize_fe(frontend *fe)
     get_size(fe, &x, &y);
     fe->w = x;
     fe->h = y;
+    fe->drawing_area_shrink_pending = FALSE;
     gtk_drawing_area_size(GTK_DRAWING_AREA(fe->area), x, y);
     {
         GtkRequisition req;
         gtk_widget_size_request(GTK_WIDGET(fe->window), &req);
         gtk_window_resize(GTK_WINDOW(fe->window), req.width, req.height);
     }
-    /*
-     * Now that we've established the preferred size of the window,
-     * reduce the drawing area's size request so the user can shrink
-     * the window.
-     */
-    gtk_drawing_area_size(GTK_DRAWING_AREA(fe->area), 1, 1);
+    fe->drawing_area_shrink_pending = TRUE;
+    try_shrink_drawing_area(fe);
 }
 
 static void menu_preset_event(GtkMenuItem *menuitem, gpointer data)
@@ -2036,7 +2092,7 @@ static frontend *new_window(char *arg, int argtype, char **error)
 {
     frontend *fe;
     GtkBox *vbox, *hbox;
-    GtkWidget *menubar, *menu, *menuitem;
+    GtkWidget *menu, *menuitem;
     GdkPixmap *iconpm;
     GList *iconlist;
     int x, y, n;
@@ -2125,12 +2181,12 @@ static frontend *new_window(char *arg, int argtype, char **error)
     gtk_box_pack_start(vbox, GTK_WIDGET(hbox), FALSE, FALSE, 0);
     gtk_widget_show(GTK_WIDGET(hbox));
 
-    menubar = gtk_menu_bar_new();
-    gtk_box_pack_start(hbox, menubar, TRUE, TRUE, 0);
-    gtk_widget_show(menubar);
+    fe->menubar = gtk_menu_bar_new();
+    gtk_box_pack_start(hbox, fe->menubar, TRUE, TRUE, 0);
+    gtk_widget_show(fe->menubar);
 
     menuitem = gtk_menu_item_new_with_mnemonic("_Game");
-    gtk_container_add(GTK_CONTAINER(menubar), menuitem);
+    gtk_container_add(GTK_CONTAINER(fe->menubar), menuitem);
     gtk_widget_show(menuitem);
 
     menu = gtk_menu_new();
@@ -2169,7 +2225,7 @@ static frontend *new_window(char *arg, int argtype, char **error)
         int i;
 
         menuitem = gtk_menu_item_new_with_mnemonic("_Type");
-        gtk_container_add(GTK_CONTAINER(menubar), menuitem);
+        gtk_container_add(GTK_CONTAINER(fe->menubar), menuitem);
         gtk_widget_show(menuitem);
 
         submenu = gtk_menu_new();
@@ -2248,7 +2304,7 @@ static frontend *new_window(char *arg, int argtype, char **error)
     add_menu_item_with_key(fe, GTK_CONTAINER(menu), "Exit", 'q');
 
     menuitem = gtk_menu_item_new_with_mnemonic("_Help");
-    gtk_container_add(GTK_CONTAINER(menubar), menuitem);
+    gtk_container_add(GTK_CONTAINER(fe->menubar), menuitem);
     gtk_widget_show(menuitem);
 
     menu = gtk_menu_new();
@@ -2328,6 +2384,7 @@ static frontend *new_window(char *arg, int argtype, char **error)
     GTK_WIDGET_UNSET_FLAGS(fe->area, GTK_DOUBLE_BUFFERED);
 #endif
     get_size(fe, &x, &y);
+    fe->drawing_area_shrink_pending = FALSE;
     gtk_drawing_area_size(GTK_DRAWING_AREA(fe->area), x, y);
     fe->w = x;
     fe->h = y;
@@ -2361,6 +2418,8 @@ static frontend *new_window(char *arg, int argtype, char **error)
 		       GTK_SIGNAL_FUNC(map_window), fe);
     gtk_signal_connect(GTK_OBJECT(fe->area), "configure_event",
 		       GTK_SIGNAL_FUNC(configure_area), fe);
+    gtk_signal_connect(GTK_OBJECT(fe->window), "configure_event",
+		       GTK_SIGNAL_FUNC(configure_window), fe);
 
     gtk_widget_add_events(GTK_WIDGET(fe->area),
                           GDK_BUTTON_PRESS_MASK |
@@ -2386,12 +2445,8 @@ static frontend *new_window(char *arg, int argtype, char **error)
     gtk_widget_show(fe->area);
     gtk_widget_show(fe->window);
 
-    /*
-     * Now that we've established the preferred size of the window,
-     * reduce the drawing area's size request so the user can shrink
-     * the window.
-     */
-    gtk_drawing_area_size(GTK_DRAWING_AREA(fe->area), 1, 1);
+    fe->drawing_area_shrink_pending = TRUE;
+    try_shrink_drawing_area(fe);
     set_window_background(fe, 0);
 
     return fe;
