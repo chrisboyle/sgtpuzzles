@@ -1672,13 +1672,19 @@ static gboolean not_size_allocated_yet(GtkWidget *w)
      * size allocation. A null widget is already taking up all the
      * space it ever will.)
      */
-    GtkAllocation a;
-
     if (!w)
         return FALSE;        /* nonexistent widgets aren't a problem */
 
-    gtk_widget_get_allocation(w, &a);
-    return a.height == 0 || a.width == 0;
+#if GTK_CHECK_VERSION(2,18,0)  /* skip if no gtk_widget_get_allocation */
+    {
+        GtkAllocation a;
+        gtk_widget_get_allocation(w, &a);
+        if (a.height == 0 || a.width == 0)
+            return TRUE;       /* widget exists but has no size yet */
+    }
+#endif
+
+    return FALSE;
 }
 
 static void try_shrink_drawing_area(frontend *fe)
