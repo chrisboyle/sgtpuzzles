@@ -2655,11 +2655,6 @@ int main(int argc, char **argv)
 	}
     }
 
-    if (*errbuf) {
-	fputs(errbuf, stderr);
-	return 1;
-    }
-
     /*
      * Special standalone mode for generating puzzle IDs on the
      * command line. Useful for generating puzzles to be printed
@@ -2686,6 +2681,16 @@ int main(int argc, char **argv)
 	midend *me;
 	char *id;
 	document *doc = NULL;
+
+        /*
+         * If we're in this branch, we should display any pending
+         * error message from the command line, since GTK isn't going
+         * to take another crack at making sense of it.
+         */
+        if (*errbuf) {
+            fputs(errbuf, stderr);
+            return 1;
+        }
 
 	n = ngenerate;
 
