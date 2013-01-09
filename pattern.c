@@ -1310,11 +1310,11 @@ static void draw_numbers(drawing *dr, game_drawstate *ds, game_state *state,
     if (erase) {
         if (i < state->w) {
             draw_rect(dr, TOCOORD(state->w, i), 0,
-                      TILE_SIZE, BORDER + TLBORDER(state->w) * TILE_SIZE,
+                      TILE_SIZE, BORDER + TLBORDER(state->h) * TILE_SIZE,
                       COL_BACKGROUND);
         } else {
             draw_rect(dr, 0, TOCOORD(state->h, i - state->w),
-                      BORDER + TLBORDER(state->h) * TILE_SIZE, TILE_SIZE,
+                      BORDER + TLBORDER(state->w) * TILE_SIZE, TILE_SIZE,
                       COL_BACKGROUND);
         }
     }
@@ -1324,7 +1324,11 @@ static void draw_numbers(drawing *dr, game_drawstate *ds, game_state *state,
      * tile size. However, if there are more numbers than available
      * spaces, I have to squash them up a bit.
      */
-    nfit = max(rowlen, TLBORDER(state->h))-1;
+    if (i < state->w)
+        nfit = TLBORDER(state->h);
+    else
+        nfit = TLBORDER(state->w);
+    nfit = max(rowlen, nfit) - 1;
     assert(nfit > 0);
 
     for (j = 0; j < rowlen; j++) {
@@ -1338,7 +1342,7 @@ static void draw_numbers(drawing *dr, game_drawstate *ds, game_state *state,
         } else {
             y = TOCOORD(state->h, i - state->w);
             x = BORDER + TILE_SIZE * (TLBORDER(state->w)-1);
-            x -= ((rowlen-j-1)*TILE_SIZE) * (TLBORDER(state->h)-1) / nfit;
+            x -= ((rowlen-j-1)*TILE_SIZE) * (TLBORDER(state->w)-1) / nfit;
         }
 
         sprintf(str, "%d", rowdata[j]);
@@ -1348,10 +1352,10 @@ static void draw_numbers(drawing *dr, game_drawstate *ds, game_state *state,
 
     if (i < state->w) {
         draw_update(dr, TOCOORD(state->w, i), 0,
-                    TILE_SIZE, BORDER + TLBORDER(state->w) * TILE_SIZE);
+                    TILE_SIZE, BORDER + TLBORDER(state->h) * TILE_SIZE);
     } else {
         draw_update(dr, 0, TOCOORD(state->h, i - state->w),
-                    BORDER + TLBORDER(state->h) * TILE_SIZE, TILE_SIZE);
+                    BORDER + TLBORDER(state->w) * TILE_SIZE, TILE_SIZE);
     }
 }
 
