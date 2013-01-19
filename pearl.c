@@ -1640,8 +1640,6 @@ static void check_completion(game_state *state, int mark)
     if (!had_error && loopclass != -1) {
         state->completed = TRUE;
         state->loop_length = dsfsize[loopclass];
-    } else {
-        state->completed = FALSE;
     }
 
     sfree(dsf);
@@ -2450,8 +2448,8 @@ static float game_anim_length(game_state *oldstate, game_state *newstate,
 static float game_flash_length(game_state *oldstate, game_state *newstate,
 			       int dir, game_ui *ui)
 {
-    if (!oldstate->completed &&
-        newstate->completed && !newstate->used_solve)
+    if (!oldstate->completed && newstate->completed &&
+        !oldstate->used_solve && !newstate->used_solve)
         return FLASH_TIME;
     else
         return 0.0F;
