@@ -1545,32 +1545,135 @@ static frontend *frontend_new(HINSTANCE inst)
     return fe;
 }
 
+static void savefile_write(void *wctx, void *buf, int len)
+{
+    FILE *fp = (FILE *)wctx;
+    fwrite(buf, 1, len, fp);
+}
+
+static int savefile_read(void *wctx, void *buf, int len)
+{
+    FILE *fp = (FILE *)wctx;
+    int ret;
+
+    ret = fread(buf, 1, len, fp);
+    return (ret == len);
+}
+
 /*
- * Populate a frontend structure with a (new) game and midend structure, and
+ * Create an appropriate midend structure to go in a puzzle window,
+ * given a game type and/or a command-line argument.
+ *
+ * 'arg' can be either a game ID string (descriptive, random, or a
+ * plain set of parameters) or the filename of a save file. The two
+ * boolean flag arguments indicate which possibilities are
+ * permissible.
+ */
+static midend *midend_for_new_game(frontend *fe, const game *cgame,
+                                   char *arg, int maybe_game_id,
+                                   int maybe_save_file, char **error)
+{
+    midend *me = NULL;
+
+    if (!arg) {
+        if (me) midend_free(me);
+        me = midend_new(fe, cgame, &win_drawing, fe);
+        midend_new_game(me);
+    } else {
+        FILE *fp;
+        char *err_param, *err_load;
+
+        /*
+         * See if arg is a valid filename of a save game file.
+         */
+        err_load = NULL;
+        if (maybe_save_file && (fp = fopen(arg, "r")) != NULL) {
+            const game *loadgame;
+
+#ifdef COMBINED
+            /*
+             * Find out what kind of game is stored in the save
+             * file; if we're going to end up loading that, it
+             * will have to override our caller's judgment as to
+             * what game to initialise our midend with.
+             */
+            char *id_name;
+            err_load = identify_game(&id_name, savefile_read, fp);
+            if (!err_load) {
+                int i;
+                for (i = 0; i < gamecount; i++)
+                    if (!strcmp(id_name, gamelist[i]->name))
+                        break;
+                if (i == gamecount) {
+                    err_load = "Save file is for a game not supported by"
+                        " this program";
+                } else {
+                    loadgame = gamelist[i];
+                    rewind(fp); /* go back to the start for actual load */
+                }
+            }
+#else
+            loadgame = cgame;
+#endif
+            if (!err_load) {
+                if (me) midend_free(me);
+                me = midend_new(fe, loadgame, &win_drawing, fe);
+                err_load = midend_deserialise(me, savefile_read, fp);
+            }
+        } else {
+            err_load = "Unable to open file";
+        }
+
+        if (maybe_game_id && (!maybe_save_file || err_load)) {
+            /*
+             * See if arg is a game description.
+             */
+            if (me) midend_free(me);
+            me = midend_new(fe, cgame, &win_drawing, fe);
+            err_param = midend_game_id(me, arg);
+            if (!err_param) {
+                midend_new_game(me);
+            } else {
+                if (maybe_save_file) {
+                    *error = snewn(256 + strlen(arg) + strlen(err_param) +
+                                   strlen(err_load), char);
+                    sprintf(*error, "Supplied argument \"%s\" is neither a"
+                            " game ID (%s) nor a save file (%s)",
+                            arg, err_param, err_load);
+                } else {
+                    *error = dupstr(err_param);
+                }
+                midend_free(me);
+                sfree(fe);
+                return NULL;
+            }
+        } else if (err_load) {
+            *error = dupstr(err_load);
+            midend_free(me);
+            sfree(fe);
+            return NULL;
+        }
+    }
+
+    return me;
+}
+
+/*
+ * Populate a frontend structure with a new midend structure, and
  * create any window furniture that it needs.
  *
- * Previously-allocated memory and window furniture will be freed by this function.
+ * Previously-allocated memory and window furniture will be freed by
+ * this function.
+ *
  */
-static int new_game(frontend *fe, const game *game, char *game_id, char **error)
+static int fe_set_midend(frontend *fe, midend *me)
 {
     int x, y;
     RECT r;
 
-    fe->game = game;
-
     if (fe->me) midend_free(fe->me);
-    fe->me = midend_new(fe, fe->game, &win_drawing, fe);
-
-    if (game_id) {
-        *error = midend_game_id(fe->me, game_id);
-        if (*error) {
-            midend_free(fe->me);
-            sfree(fe);
-            return -1;
-        }
-    }
-
-    midend_new_game(fe->me);
+    fe->me = me;
+    fe->game = midend_which_game(fe->me);
 
     {
 	int i, ncolours;
@@ -2830,21 +2933,6 @@ static int is_alt_pressed(void)
     return FALSE;
 }
 
-static void savefile_write(void *wctx, void *buf, int len)
-{
-    FILE *fp = (FILE *)wctx;
-    fwrite(buf, 1, len, fp);
-}
-
-static int savefile_read(void *wctx, void *buf, int len)
-{
-    FILE *fp = (FILE *)wctx;
-    int ret;
-
-    ret = fread(buf, 1, len, fp);
-    return (ret == len);
-}
-
 static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
 				WPARAM wParam, LPARAM lParam)
 {
@@ -2984,7 +3072,11 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
 			fclose(fp);
 		    } else {
 			FILE *fp = fopen(filename, "r");
-			char *err;
+			char *err = NULL;
+                        midend *me = fe->me;
+#ifdef COMBINED
+                        char *id_name;
+#endif
 
 			if (!fp) {
 			    MessageBox(hwnd, "Unable to open saved game file",
@@ -2992,7 +3084,30 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
 			    break;
 			}
 
-			err = midend_deserialise(fe->me, savefile_read, fp);
+#ifdef COMBINED
+                        /*
+                         * This save file might be from a different
+                         * game.
+                         */
+                        err = identify_game(&id_name, savefile_read, fp);
+                        if (!err) {
+                            int i;
+                            for (i = 0; i < gamecount; i++)
+                                if (!strcmp(id_name, gamelist[i]->name))
+                                    break;
+                            if (i == gamecount) {
+                                err = "Save file is for a game not "
+                                    "supported by this program";
+                            } else {
+                                me = midend_for_new_game(fe, gamelist[i], NULL,
+                                                         FALSE, FALSE, &err);
+                                rewind(fp); /* for the actual load */
+                            }
+                            sfree(id_name);
+                        }
+#endif
+                        if (!err)
+                            err = midend_deserialise(me, savefile_read, fp);
 
 			fclose(fp);
 
@@ -3001,6 +3116,8 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
 			    break;
 			}
 
+                        if (fe->me != me)
+                            fe_set_midend(fe, me);
 			new_game_size(fe, 1.0);
 		    }
 		}
@@ -3021,9 +3138,10 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
 #ifdef COMBINED
             if (wParam >= IDM_GAMES && wParam < (IDM_GAMES + (WPARAM)gamecount)) {
                 int p = wParam - IDM_GAMES;
-                char *error;
-
-                new_game(fe, gamelist[p], NULL, &error);
+                char *error = NULL;
+                fe_set_midend(fe, midend_for_new_game(fe, gamelist[p], NULL,
+                                                      FALSE, FALSE, &error));
+                sfree(error);
             } else
 #endif
 	    {
@@ -3311,12 +3429,237 @@ static int FindPreviousInstance()
 }
 #endif
 
+/*
+ * Split a complete command line into argc/argv, attempting to do it
+ * exactly the same way the Visual Studio C library would do it (so
+ * that our console utilities, which receive argc and argv already
+ * broken apart by the C library, will have their command lines
+ * processed in the same way as the GUI utilities which get a whole
+ * command line and must call this function).
+ * 
+ * Does not modify the input command line.
+ * 
+ * The final parameter (argstart) is used to return a second array
+ * of char * pointers, the same length as argv, each one pointing
+ * at the start of the corresponding element of argv in the
+ * original command line. So if you get half way through processing
+ * your command line in argc/argv form and then decide you want to
+ * treat the rest as a raw string, you can. If you don't want to,
+ * `argstart' can be safely left NULL.
+ */
+void split_into_argv(char *cmdline, int *argc, char ***argv,
+		     char ***argstart)
+{
+    char *p;
+    char *outputline, *q;
+    char **outputargv, **outputargstart;
+    int outputargc;
+
+    /*
+     * These argument-breaking rules apply to Visual Studio 7, which
+     * is currently the compiler expected to be used for the Windows
+     * port of my puzzles. Visual Studio 10 has different rules,
+     * lacking the curious mod 3 behaviour of consecutive quotes
+     * described below; I presume they fixed a bug. As and when we
+     * migrate to a newer compiler, we'll have to adjust this to
+     * match; however, for the moment we faithfully imitate in our GUI
+     * utilities what our CLI utilities can't be prevented from doing.
+     *
+     * When I investigated this, at first glance the rules appeared to
+     * be:
+     *
+     *  - Single quotes are not special characters.
+     *
+     *  - Double quotes are removed, but within them spaces cease
+     *    to be special.
+     *
+     *  - Backslashes are _only_ special when a sequence of them
+     *    appear just before a double quote. In this situation,
+     *    they are treated like C backslashes: so \" just gives a
+     *    literal quote, \\" gives a literal backslash and then
+     *    opens or closes a double-quoted segment, \\\" gives a
+     *    literal backslash and then a literal quote, \\\\" gives
+     *    two literal backslashes and then opens/closes a
+     *    double-quoted segment, and so forth. Note that this
+     *    behaviour is identical inside and outside double quotes.
+     *
+     *  - Two successive double quotes become one literal double
+     *    quote, but only _inside_ a double-quoted segment.
+     *    Outside, they just form an empty double-quoted segment
+     *    (which may cause an empty argument word).
+     *
+     *  - That only leaves the interesting question of what happens
+     *    when one or more backslashes precedes two or more double
+     *    quotes, starting inside a double-quoted string. And the
+     *    answer to that appears somewhat bizarre. Here I tabulate
+     *    number of backslashes (across the top) against number of
+     *    quotes (down the left), and indicate how many backslashes
+     *    are output, how many quotes are output, and whether a
+     *    quoted segment is open at the end of the sequence:
+     * 
+     *                      backslashes
+     * 
+     *               0         1      2      3      4
+     * 
+     *         0   0,0,y  |  1,0,y  2,0,y  3,0,y  4,0,y
+     *            --------+-----------------------------
+     *         1   0,0,n  |  0,1,y  1,0,n  1,1,y  2,0,n
+     *    q    2   0,1,n  |  0,1,n  1,1,n  1,1,n  2,1,n
+     *    u    3   0,1,y  |  0,2,n  1,1,y  1,2,n  2,1,y
+     *    o    4   0,1,n  |  0,2,y  1,1,n  1,2,y  2,1,n
+     *    t    5   0,2,n  |  0,2,n  1,2,n  1,2,n  2,2,n
+     *    e    6   0,2,y  |  0,3,n  1,2,y  1,3,n  2,2,y
+     *    s    7   0,2,n  |  0,3,y  1,2,n  1,3,y  2,2,n
+     *         8   0,3,n  |  0,3,n  1,3,n  1,3,n  2,3,n
+     *         9   0,3,y  |  0,4,n  1,3,y  1,4,n  2,3,y
+     *        10   0,3,n  |  0,4,y  1,3,n  1,4,y  2,3,n
+     *        11   0,4,n  |  0,4,n  1,4,n  1,4,n  2,4,n
+     * 
+     * 
+     *      [Test fragment was of the form "a\\\"""b c" d.]
+     * 
+     * There is very weird mod-3 behaviour going on here in the
+     * number of quotes, and it even applies when there aren't any
+     * backslashes! How ghastly.
+     * 
+     * With a bit of thought, this extremely odd diagram suddenly
+     * coalesced itself into a coherent, if still ghastly, model of
+     * how things work:
+     * 
+     *  - As before, backslashes are only special when one or more
+     *    of them appear contiguously before at least one double
+     *    quote. In this situation the backslashes do exactly what
+     *    you'd expect: each one quotes the next thing in front of
+     *    it, so you end up with n/2 literal backslashes (if n is
+     *    even) or (n-1)/2 literal backslashes and a literal quote
+     *    (if n is odd). In the latter case the double quote
+     *    character right after the backslashes is used up.
+     * 
+     *  - After that, any remaining double quotes are processed. A
+     *    string of contiguous unescaped double quotes has a mod-3
+     *    behaviour:
+     * 
+     *     * inside a quoted segment, a quote ends the segment.
+     *     * _immediately_ after ending a quoted segment, a quote
+     *       simply produces a literal quote.
+     *     * otherwise, outside a quoted segment, a quote begins a
+     *       quoted segment.
+     * 
+     *    So, for example, if we started inside a quoted segment
+     *    then two contiguous quotes would close the segment and
+     *    produce a literal quote; three would close the segment,
+     *    produce a literal quote, and open a new segment. If we
+     *    started outside a quoted segment, then two contiguous
+     *    quotes would open and then close a segment, producing no
+     *    output (but potentially creating a zero-length argument);
+     *    but three quotes would open and close a segment and then
+     *    produce a literal quote.
+     */
+
+    /*
+     * First deal with the simplest of all special cases: if there
+     * aren't any arguments, return 0,NULL,NULL.
+     */
+    while (*cmdline && isspace(*cmdline)) cmdline++;
+    if (!*cmdline) {
+	if (argc) *argc = 0;
+	if (argv) *argv = NULL;
+	if (argstart) *argstart = NULL;
+	return;
+    }
+
+    /*
+     * This will guaranteeably be big enough; we can realloc it
+     * down later.
+     */
+    outputline = snewn(1+strlen(cmdline), char);
+    outputargv = snewn(strlen(cmdline)+1 / 2, char *);
+    outputargstart = snewn(strlen(cmdline)+1 / 2, char *);
+
+    p = cmdline; q = outputline; outputargc = 0;
+
+    while (*p) {
+	int quote;
+
+	/* Skip whitespace searching for start of argument. */
+	while (*p && isspace(*p)) p++;
+	if (!*p) break;
+
+	/* We have an argument; start it. */
+	outputargv[outputargc] = q;
+	outputargstart[outputargc] = p;
+	outputargc++;
+	quote = 0;
+
+	/* Copy data into the argument until it's finished. */
+	while (*p) {
+	    if (!quote && isspace(*p))
+		break;		       /* argument is finished */
+
+	    if (*p == '"' || *p == '\\') {
+		/*
+		 * We have a sequence of zero or more backslashes
+		 * followed by a sequence of zero or more quotes.
+		 * Count up how many of each, and then deal with
+		 * them as appropriate.
+		 */
+		int i, slashes = 0, quotes = 0;
+		while (*p == '\\') slashes++, p++;
+		while (*p == '"') quotes++, p++;
+
+		if (!quotes) {
+		    /*
+		     * Special case: if there are no quotes,
+		     * slashes are not special at all, so just copy
+		     * n slashes to the output string.
+		     */
+		    while (slashes--) *q++ = '\\';
+		} else {
+		    /* Slashes annihilate in pairs. */
+		    while (slashes >= 2) slashes -= 2, *q++ = '\\';
+
+		    /* One remaining slash takes out the first quote. */
+		    if (slashes) quotes--, *q++ = '"';
+
+		    if (quotes > 0) {
+			/* Outside a quote segment, a quote starts one. */
+			if (!quote) quotes--, quote = 1;
+
+			/* Now we produce (n+1)/3 literal quotes... */
+			for (i = 3; i <= quotes+1; i += 3) *q++ = '"';
+
+			/* ... and end in a quote segment iff 3 divides n. */
+			quote = (quotes % 3 == 0);
+		    }
+		}
+	    } else {
+		*q++ = *p++;
+	    }
+	}
+
+	/* At the end of an argument, just append a trailing NUL. */
+	*q++ = '\0';
+    }
+
+    outputargv = sresize(outputargv, outputargc, char *);
+    outputargstart = sresize(outputargstart, outputargc, char *);
+
+    if (argc) *argc = outputargc;
+    if (argv) *argv = outputargv; else sfree(outputargv);
+    if (argstart) *argstart = outputargstart; else sfree(outputargstart);
+}
+
 int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
 {
     MSG msg;
     char *error;
     const game *gg;
     frontend *fe;
+    midend *me;
+    int argc;
+    char **argv;
+
+    split_into_argv(cmdline, &argc, &argv, NULL);
 
 #ifdef _WIN32_WCE
     MultiByteToWideChar (CP_ACP, 0, CLASSNAME, -1, wClassName, 256);
@@ -3358,13 +3701,11 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
 
 #ifdef COMBINED
     gg = gamelist[0];
-    {
+    if (argc > 0) {
         int i;
         for (i = 0; i < gamecount; i++) {
 	    const char *p = gamelist[i]->name;
-	    char *q = cmdline;
-	    while (*q && isspace((unsigned char)*q))
-		q++;
+	    char *q = argv[0];
 	    while (*p && *q) {
 		if (isspace((unsigned char)*p)) {
 		    while (*q && isspace((unsigned char)*q))
@@ -3379,11 +3720,9 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
 	    }
 	    if (!*p) {
                 gg = gamelist[i];
-                cmdline = q;
-                if (*cmdline) {
-		    while (*cmdline && isspace((unsigned char)*cmdline))
-			cmdline++;
-                }
+                --argc;
+                ++argv;
+                break;
             }
         }
     }
@@ -3392,12 +3731,20 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
 #endif
 
     fe = frontend_new(inst);
-    if (new_game(fe, gg, *cmdline ? cmdline : NULL, &error)) {
+    me = midend_for_new_game(fe, gg, argc > 0 ? argv[0] : NULL,
+                             TRUE, TRUE, &error);
+    if (!me) {
 	char buf[128];
+#ifdef COMBINED
+	sprintf(buf, "Puzzles Error");
+#else
 	sprintf(buf, "%.100s Error", gg->name);
+#endif
 	MessageBox(NULL, error, buf, MB_OK|MB_ICONERROR);
+        sfree(error);
 	return 1;
     }
+    fe_set_midend(fe, me);
     show_window(fe);
 
     while (GetMessage(&msg, NULL, 0, 0)) {

@@ -228,6 +228,7 @@ void print_line_dotted(drawing *dr, int dotted);
 midend *midend_new(frontend *fe, const game *ourgame,
 		   const drawing_api *drapi, void *drhandle);
 void midend_free(midend *me);
+const game *midend_which_game(midend *me);
 void midend_set_params(midend *me, game_params *params);
 game_params *midend_get_params(midend *me);
 void midend_size(midend *me, int *x, int *y, int user_size);
@@ -264,6 +265,8 @@ void midend_serialise(midend *me,
 char *midend_deserialise(midend *me,
                          int (*read)(void *ctx, void *buf, int len),
                          void *rctx);
+char *identify_game(char **name, int (*read)(void *ctx, void *buf, int len),
+                    void *rctx);
 /* Printing functions supplied by the mid-end */
 char *midend_print_puzzle(midend *me, document *doc, int with_soln);
 int midend_tilesize(midend *me);
