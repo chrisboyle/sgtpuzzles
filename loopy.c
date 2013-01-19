@@ -3193,60 +3193,63 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
      * what needs doing, and the second actually does it.
      */
 
-    if (!ds->started)
+    if (!ds->started) {
 	redraw_everything = TRUE;
-    else {
+        /*
+         * But we must still go through the upcoming loops, so that we
+         * set up stuff in ds correctly for the initial redraw.
+         */
+    }
 
-	/* First, trundle through the faces. */
-	for (i = 0; i < g->num_faces; i++) {
-	    grid_face *f = g->faces + i;
-	    int sides = f->order;
-	    int clue_mistake;
-	    int clue_satisfied;
-	    int n = state->clues[i];
-	    if (n < 0)
-		continue;
+    /* First, trundle through the faces. */
+    for (i = 0; i < g->num_faces; i++) {
+        grid_face *f = g->faces + i;
+        int sides = f->order;
+        int clue_mistake;
+        int clue_satisfied;
+        int n = state->clues[i];
+        if (n < 0)
+            continue;
 
-	    clue_mistake = (face_order(state, i, LINE_YES) > n ||
-			    face_order(state, i, LINE_NO ) > (sides-n));
-	    clue_satisfied = (face_order(state, i, LINE_YES) == n &&
-			      face_order(state, i, LINE_NO ) == (sides-n));
+        clue_mistake = (face_order(state, i, LINE_YES) > n ||
+                        face_order(state, i, LINE_NO ) > (sides-n));
+        clue_satisfied = (face_order(state, i, LINE_YES) == n &&
+                          face_order(state, i, LINE_NO ) == (sides-n));
 
-	    if (clue_mistake != ds->clue_error[i] ||
-		clue_satisfied != ds->clue_satisfied[i]) {
-		ds->clue_error[i] = clue_mistake;
-		ds->clue_satisfied[i] = clue_satisfied;
-		if (nfaces == REDRAW_OBJECTS_LIMIT)
-		    redraw_everything = TRUE;
-		else
-		    faces[nfaces++] = i;
-	    }
-	}
+        if (clue_mistake != ds->clue_error[i] ||
+            clue_satisfied != ds->clue_satisfied[i]) {
+            ds->clue_error[i] = clue_mistake;
+            ds->clue_satisfied[i] = clue_satisfied;
+            if (nfaces == REDRAW_OBJECTS_LIMIT)
+                redraw_everything = TRUE;
+            else
+                faces[nfaces++] = i;
+        }
+    }
 
-	/* Work out what the flash state needs to be. */
-	if (flashtime > 0 &&
-	    (flashtime <= FLASH_TIME/3 ||
-	     flashtime >= FLASH_TIME*2/3)) {
-	    flash_changed = !ds->flashing;
-	    ds->flashing = TRUE;
-	} else {
-	    flash_changed = ds->flashing;
-	    ds->flashing = FALSE;
-	}
+    /* Work out what the flash state needs to be. */
+    if (flashtime > 0 &&
+        (flashtime <= FLASH_TIME/3 ||
+         flashtime >= FLASH_TIME*2/3)) {
+        flash_changed = !ds->flashing;
+        ds->flashing = TRUE;
+    } else {
+        flash_changed = ds->flashing;
+        ds->flashing = FALSE;
+    }
 
-	/* Now, trundle through the edges. */
-	for (i = 0; i < g->num_edges; i++) {
-	    char new_ds =
-		state->line_errors[i] ? DS_LINE_ERROR : state->lines[i];
-	    if (new_ds != ds->lines[i] ||
-		(flash_changed && state->lines[i] == LINE_YES)) {
-		ds->lines[i] = new_ds;
-		if (nedges == REDRAW_OBJECTS_LIMIT)
-		    redraw_everything = TRUE;
-		else
-		    edges[nedges++] = i;
-	    }
-	}
+    /* Now, trundle through the edges. */
+    for (i = 0; i < g->num_edges; i++) {
+        char new_ds =
+            state->line_errors[i] ? DS_LINE_ERROR : state->lines[i];
+        if (new_ds != ds->lines[i] ||
+            (flash_changed && state->lines[i] == LINE_YES)) {
+            ds->lines[i] = new_ds;
+            if (nedges == REDRAW_OBJECTS_LIMIT)
+                redraw_everything = TRUE;
+            else
+                edges[nedges++] = i;
+        }
     }
 
     /* Pass one is now done.  Now we do the actual drawing. */
