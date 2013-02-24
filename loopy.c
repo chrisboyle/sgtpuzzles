@@ -2997,14 +2997,9 @@ static void game_redraw_clue(drawing *dr, game_drawstate *ds,
     grid *g = state->game_grid;
     grid_face *f = g->faces + i;
     int x, y;
-    char c[3];
+    char c[20];
 
-    if (state->clues[i] < 10) {
-        c[0] = CLUE2CHAR(state->clues[i]);
-        c[1] = '\0';
-    } else {
-        sprintf(c, "%d", state->clues[i]);
-    }
+    sprintf(c, "%d", state->clues[i]);
 
     face_text_pos(ds, g, f, &x, &y);
     draw_text(dr, x, y,
@@ -3339,10 +3334,9 @@ static void game_print(drawing *dr, game_state *state, int tilesize)
         grid_face *f = g->faces + i;
         int clue = state->clues[i];
         if (clue >= 0) {
-            char c[2];
+            char c[20];
             int x, y;
-            c[0] = CLUE2CHAR(clue);
-            c[1] = '\0';
+            sprintf(c, "%d", state->clues[i]);
             face_text_pos(ds, g, f, &x, &y);
             draw_text(dr, x, y,
                       FONT_VARIABLE, ds->tilesize / 2,
