@@ -1362,9 +1362,9 @@ static char *interpret_move(game_state *state, game_ui *ui,
             c = '-';
 
         /* Cycle through options */
-        else if (button == CURSOR_SELECT || button == RIGHT_BUTTON)
+        else if (button == CURSOR_SELECT2 || button == RIGHT_BUTTON)
             c = (i == EMPTY ? '0' : i == N_ZERO ? '1' : '-');
-        else if (button == CURSOR_SELECT2 || button == LEFT_BUTTON)
+        else if (button == CURSOR_SELECT || button == LEFT_BUTTON)
             c = (i == EMPTY ? '1' : i == N_ONE ? '0' : '-');
 
         if (state->grid[hy * w2 + hx] ==
