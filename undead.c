@@ -1713,24 +1713,23 @@ static char *interpret_move(game_state *state, game_ui *ui,
         if (xi >= 0 && !state->common->fixed[xi]) {
             if (button == 'g' || button == 'G' || button == '1') {
                 sprintf(buf,"g%d",xi);
-                ui->hpencil = ui->hshow = 0;
+                if (!ui->hcursor) ui->hpencil = ui->hshow = 0;
                 return dupstr(buf);
             }
             if (button == 'v' || button == 'V' || button == '2') {
                 sprintf(buf,"v%d",xi);
-                ui->hpencil = ui->hshow = 0;
+                if (!ui->hcursor) ui->hpencil = ui->hshow = 0;
                 return dupstr(buf);
             }
             if (button == 'z' || button == 'Z' || button == '3') {
                 sprintf(buf,"z%d",xi);
-                ui->hpencil = ui->hshow = 0;
+                if (!ui->hcursor) ui->hpencil = ui->hshow = 0;
                 return dupstr(buf);
             }
             if (button == 'e' || button == 'E' || button == CURSOR_SELECT2 ||
                 button == '0' || button == '\b') {
-                if (!ui->hcursor) ui->hshow = 0;
                 sprintf(buf,"E%d",xi);
-                ui->hpencil = ui->hshow = 0;
+                if (!ui->hcursor) ui->hpencil = ui->hshow = 0;
                 return dupstr(buf);
             }
         }       
@@ -2597,4 +2596,3 @@ const struct game thegame = {
     FALSE, game_timing_state,
     0,                     /* flags */
 };
-
