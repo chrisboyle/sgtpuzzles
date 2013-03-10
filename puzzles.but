@@ -2866,9 +2866,11 @@ satisfied:
 \b for any two white squares, there is a path between them using only
 white squares.
 
-\b for each square with a number, that number denotes the number of
-squares reachable from that square going in each direction until
-hitting a wall or a black square.
+\b for each square with a number, that number denotes the total number
+of white squares reachable from that square going in a straight line
+in any horizontal or vertical direction until hitting a wall or a
+black square; the square with the number is included in the total
+(once).
 
 For instance, a square containing the number one must have four black
 squares as its neighbours by the last criterion; but then it's
