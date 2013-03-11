@@ -657,7 +657,6 @@ static void list_lights(game_state *state, int ox, int oy, int origin,
 {
     int x,y;
 
-    memset(lld, 0, sizeof(lld));
     lld->ox = lld->minx = lld->maxx = ox;
     lld->oy = lld->miny = lld->maxy = oy;
     lld->include_origin = origin;
