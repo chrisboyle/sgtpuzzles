@@ -132,6 +132,8 @@ deliver puzzles/puzzles.cnt $@
 deliver puzzles/puzzles.zip $@
 deliver puzzles/Output/setup.exe puzzles-r$(revision)-installer.exe
 deliver puzzles/*.jar java/$@
+deliver puzzles/html/*.html html/$@
+deliver puzzles/html/*.pl html/$@
 
 # deliver puzzles/puzzles.armv4.cab $@ # (not built at the moment)
 

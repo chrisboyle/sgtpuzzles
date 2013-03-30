@@ -41,6 +41,9 @@ appropriate.
 Add the new Unix binary name, and the names of any auxiliary solver
 binaries, to the svn:ignore property.
 
+Write an instructions fragment for the webified puzzle pages, as
+html/<puzzlename>.html .
+
 Make a screenshot:
  - create an appropriate save file in `icons'
  - add the puzzle name to icons/Makefile
@@ -49,25 +52,24 @@ Make a screenshot:
  - set up a CROP property in icons/Makefile if the icon wants to be
    a sub-rectangle of the whole screenshot
 
-Don't forget to `svn add' the new source file, the new .R file and
-the save file in `icons', and any other new files that might have
-been involved.
+Don't forget to `svn add' the new source file, the new .R file and the
+save file in `icons', the new .html file, and any other new files that
+might have been involved.
 
 Check in!
 
 Put the puzzle on the web:
  - run puzzlesnap first
- - make sure the screenshot and Windows binary have arrived in the
-   www directory, and the .jar file in the java subdirectory
+ - make sure the screenshot and Windows binary have arrived in the www
+   directory, and that the .jar file and its accompanying web page has
+   arrived in the java subdirectory
  - add an entry in the puzzles list in index.html
  - add the Windows executable name to the list further down
    index.html
- - add a web page in the java subdirectory
  - adjust the copyright in index.html if the puzzle is by a new
    author
  - test that the binary link and the docs link work
  - test that the Java version works
  - run webupdate
  - test again
- - `svn add' the new Java applet web page
- - check in the change to index.html and the new web page
+ - check in the change to index.html
