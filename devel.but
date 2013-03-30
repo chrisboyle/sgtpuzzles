@@ -3230,6 +3230,35 @@ would be pretty easy to write a function which would look at a save
 file and determine which game it was for; any front end implementor
 who needs such a function can probably be accommodated.)
 
+\H{identify-game} \cw{identify_game()}
+
+\c char *identify_game(char **name,
+\c                     int (*read)(void *ctx, void *buf, int len),
+\c                     void *rctx)
+
+This function examines a serialised midend stream, of the same kind
+used by \cw{midend_serialise()} and \cw{midendd_deserialise()}, and
+returns the \cw{name} field of the game back end from which it was
+saved.
+
+You might want this if your front end was a monolithic one containing
+all the puzzles, and you wanted to be able to load an arbitrary save
+file and automatically switch to the right game. Probably your next
+step would be to iterate through \cw{gamelist} (\k{frontend-backend})
+looking for a game structure whose \cw{name} field matched the
+returned string, and give an error if you didn't find one.
+
+On success, the return value of this function is \cw{NULL}, and the
+game name string is written into \cw{*name}. The caller should free
+that string after using it.
+
+On failure, \cw{*name} is \cw{NULL}, and the return value is an error
+message (which does not need freeing at all).
+
+(This isn't strictly speaking a midend function, since it doesn't
+accept or return a pointer to a midend. You'd probably call it just
+\e{before} deciding what kind of midend you wanted to instantiate.)
+
 \H{frontend-backend} Direct reference to the back end structure by
 the front end
 
