@@ -1,0 +1,772 @@
+/*
+ * emcc.c: the C component of an Emscripten-based web/Javascript front
+ * end for Puzzles.
+ *
+ * The Javascript parts of this system live in emcclib.js and
+ * emccpre.js.
+ */
+
+/*
+ * Further thoughts on possible enhancements:
+ *
+ *  - I think it might be feasible to have these JS puzzles permit
+ *    loading and saving games in disk files. Saving would be done by
+ *    constructing a data: URI encapsulating the save file, and then
+ *    telling the browser to visit that URI with the effect that it
+ *    would naturally pop up a 'where would you like to save this'
+ *    dialog box. Loading, more or less similarly, might be feasible
+ *    by using the DOM File API to ask the user to select a file and
+ *    permit us to see its contents.
+ *
+ *  - it ought to be possible to make the puzzle canvases resizable,
+ *    by superimposing some kind of draggable resize handle. Also I
+ *    quite like the idea of having a few buttons for standard sizes:
+ *    reset to default size, maximise to the browser window dimensions
+ *    (if we can find those out), and perhaps even go full-screen.
+ *
+ *  - I should think about whether these webified puzzles can support
+ *    touchscreen-based tablet browsers (assuming there are any that
+ *    can cope with the reasonably modern JS and run it fast enough to
+ *    be worthwhile).
+ *
+ *  - think about making use of localStorage. It might be useful to
+ *    let the user save games into there as an alternative to disk
+ *    files - disk files are all very well for getting the save right
+ *    out of your browser to (e.g.) email to me as a bug report, but
+ *    for just resuming a game you were in the middle of, you'd
+ *    probably rather have a nice simple 'quick save' and 'quick load'
+ *    button pair. Also, that might be a useful place to store
+ *    preferences, if I ever get round to writing a preferences UI.
+ *
+ *  - some CSS to make the button bar and configuration dialogs a
+ *    little less ugly would probably not go amiss.
+ *
+ *  - this is a downright silly idea, but it does occur to me that if
+ *    I were to write a PDF output driver for the Puzzles printing
+ *    API, then I might be able to implement a sort of 'printing'
+ *    feature in this front end, using data: URIs again. (Ask the user
+ *    exactly what they want printed, then construct an appropriate
+ *    PDF and embed it in a gigantic data: URI. Then they can print
+ *    that using whatever they normally use to print PDFs!)
+ */
+
+#include <string.h>
+
+#include "puzzles.h"
+
+/*
+ * Extern references to Javascript functions provided in emcclib.js.
+ */
+extern void js_debug(const char *);
+extern void js_error_box(const char *message);
+extern void js_remove_type_dropdown(void);
+extern void js_remove_solve_button(void);
+extern void js_add_preset(const char *name);
+extern int js_get_selected_preset(void);
+extern void js_select_preset(int n);
+extern void js_get_date_64(unsigned *p);
+extern void js_update_permalinks(const char *desc, const char *seed);
+extern void js_enable_undo_redo(int undo, int redo);
+extern void js_activate_timer();
+extern void js_deactivate_timer();
+extern void js_canvas_start_draw(void);
+extern void js_canvas_draw_update(int x, int y, int w, int h);
+extern void js_canvas_end_draw(void);
+extern void js_canvas_draw_rect(int x, int y, int w, int h,
+                                const char *colour);
+extern void js_canvas_clip_rect(int x, int y, int w, int h);
+extern void js_canvas_unclip(void);
+extern void js_canvas_draw_line(float x1, float y1, float x2, float y2,
+                                int width, const char *colour);
+extern void js_canvas_draw_poly(int *points, int npoints,
+                                const char *fillcolour,
+                                const char *outlinecolour);
+extern void js_canvas_draw_circle(int x, int y, int r,
+                                  const char *fillcolour,
+                                  const char *outlinecolour);
+extern int js_canvas_find_font_midpoint(int height, const char *fontptr);
+extern void js_canvas_draw_text(int x, int y, int halign,
+                                const char *colptr, const char *fontptr,
+                                const char *text);
+extern int js_canvas_new_blitter(int w, int h);
+extern void js_canvas_free_blitter(int id);
+extern void js_canvas_copy_to_blitter(int id, int x, int y, int w, int h);
+extern void js_canvas_copy_from_blitter(int id, int x, int y, int w, int h);
+extern void js_canvas_make_statusbar(void);
+extern void js_canvas_set_statusbar(const char *text);
+extern void js_canvas_set_size(int w, int h);
+
+extern void js_dialog_init(const char *title);
+extern void js_dialog_string(int i, const char *title, const char *initvalue);
+extern void js_dialog_choices(int i, const char *title, const char *choicelist,
+                              int initvalue);
+extern void js_dialog_boolean(int i, const char *title, int initvalue);
+extern void js_dialog_launch(void);
+extern void js_dialog_cleanup(void);
+extern void js_focus_canvas(void);
+
+/*
+ * Call JS to get the date, and use that to initialise our random
+ * number generator to invent the first game seed.
+ */
+void get_random_seed(void **randseed, int *randseedsize)
+{
+    unsigned *ret = snewn(2, unsigned);
+    js_get_date_64(ret);
+    *randseed = ret;
+    *randseedsize = 2*sizeof(unsigned);
+}
+
+/*
+ * Fatal error, called in cases of complete despair such as when
+ * malloc() has returned NULL.
+ */
+void fatal(char *fmt, ...)
+{
+    char buf[512];
+    va_list ap;
+
+    strcpy(buf, "puzzle fatal error: ");
+
+    va_start(ap, fmt);
+    vsnprintf(buf+strlen(buf), sizeof(buf)-strlen(buf), fmt, ap);
+    va_end(ap);
+
+    js_error_box(buf);
+}
+
+/*
+ * HTMLish names for the colours allocated by the puzzle.
+ */
+char **colour_strings;
+int ncolours;
+
+/*
+ * The global midend object.
+ */
+midend *me;
+
+/* ----------------------------------------------------------------------
+ * Timing functions.
+ */
+int timer_active = FALSE;
+void deactivate_timer(frontend *fe)
+{
+    js_deactivate_timer();
+    timer_active = FALSE;
+}
+void activate_timer(frontend *fe)
+{
+    if (!timer_active) {
+        js_activate_timer();
+        timer_active = TRUE;
+    }
+}
+void timer_callback(double tplus)
+{
+    if (timer_active)
+        midend_timer(me, tplus);
+}
+
+/* ----------------------------------------------------------------------
+ * Helper function to resize the canvas, and variables to remember its
+ * size for other functions (e.g. trimming blitter rectangles).
+ */
+static int canvas_w, canvas_h;
+static void resize(void)
+{
+    int w, h;
+    w = h = INT_MAX;
+    midend_size(me, &w, &h, FALSE);
+    js_canvas_set_size(w, h);
+    canvas_w = w;
+    canvas_h = h;
+}
+
+/*
+ * HTML doesn't give us a default frontend colour of its own, so we
+ * just make up a lightish grey ourselves.
+ */
+void frontend_default_colour(frontend *fe, float *output)
+{
+    output[0] = output[1] = output[2] = 0.9F;
+}
+
+/*
+ * Helper function called from all over the place to ensure the undo
+ * and redo buttons get properly enabled and disabled after every move
+ * or undo or new-game event.
+ */
+static void update_undo_redo(void)
+{
+    js_enable_undo_redo(midend_can_undo(me), midend_can_redo(me));
+}
+
+/*
+ * Mouse event handlers called from JS.
+ */
+void mousedown(int x, int y, int button)
+{
+    button = (button == 0 ? LEFT_BUTTON :
+              button == 1 ? MIDDLE_BUTTON : RIGHT_BUTTON);
+    midend_process_key(me, x, y, button);
+    update_undo_redo();
+}
+
+void mouseup(int x, int y, int button)
+{
+    button = (button == 0 ? LEFT_RELEASE :
+              button == 1 ? MIDDLE_RELEASE : RIGHT_RELEASE);
+    midend_process_key(me, x, y, button);
+    update_undo_redo();
+}
+
+void mousemove(int x, int y, int buttons)
+{
+    int button = (buttons & 2 ? MIDDLE_DRAG :
+                  buttons & 4 ? RIGHT_DRAG : LEFT_DRAG);
+    midend_process_key(me, x, y, button);
+    update_undo_redo();
+}
+
+/*
+ * Keyboard handler called from JS.
+ */
+void key(int keycode, int charcode, int shift, int ctrl)
+{
+    int keyevent = -1;
+    if (charcode != 0) {
+        keyevent = charcode & (ctrl ? 0x1F : 0xFF);
+    } else {
+        switch (keycode) {
+          case 8:
+            keyevent = '\177';         /* backspace */
+            break;
+          case 13:
+            keyevent = 13;             /* return */
+            break;
+          case 37:
+            keyevent = CURSOR_LEFT;
+            break;
+          case 38:
+            keyevent = CURSOR_UP;
+            break;
+          case 39:
+            keyevent = CURSOR_RIGHT;
+            break;
+          case 40:
+            keyevent = CURSOR_DOWN;
+            break;
+            /*
+             * We interpret Home, End, PgUp and PgDn as numeric keypad
+             * controls regardless of whether they're the ones on the
+             * numeric keypad (since we can't tell). The effect of
+             * this should only be that the non-numeric-pad versions
+             * of those keys generate directions in 8-way movement
+             * puzzles like Cube and Inertia.
+             */
+          case 35:                     /* End */
+            keyevent = MOD_NUM_KEYPAD | '1';
+            break;
+          case 34:                     /* PgDn */
+            keyevent = MOD_NUM_KEYPAD | '3';
+            break;
+          case 36:                     /* Home */
+            keyevent = MOD_NUM_KEYPAD | '7';
+            break;
+          case 33:                     /* PgUp */
+            keyevent = MOD_NUM_KEYPAD | '9';
+            break;
+          case 96: case 97: case 98: case 99: case 100:
+          case 101: case 102: case 103: case 104: case 105:
+            keyevent = MOD_NUM_KEYPAD | ('0' + keycode - 96);
+            break;
+          default:
+            /* not a key we care about */
+            return;
+        }
+    }
+    if (shift && keyevent >= 0x100)
+        keyevent |= MOD_SHFT;
+    if (ctrl && keyevent >= 0x100)
+        keyevent |= MOD_CTRL;
+
+    midend_process_key(me, 0, 0, keyevent);
+    update_undo_redo();
+}
+
+/*
+ * Helper function called from several places to update the permalinks
+ * whenever a new game is created.
+ */
+static void update_permalinks(void)
+{
+    char *desc, *seed;
+    desc = midend_get_game_id(me);
+    seed = midend_get_random_seed(me);
+    js_update_permalinks(desc, seed);
+    sfree(desc);
+    sfree(seed);
+}
+
+/* ----------------------------------------------------------------------
+ * Implementation of the drawing API by calling Javascript canvas
+ * drawing functions. (Well, half of it; the other half is on the JS
+ * side.)
+ */
+static void js_start_draw(void *handle)
+{
+    js_canvas_start_draw();
+}
+
+static void js_clip(void *handle, int x, int y, int w, int h)
+{
+    js_canvas_clip_rect(x, y, w, h);
+}
+
+static void js_unclip(void *handle)
+{
+    js_canvas_unclip();
+}
+
+static void js_draw_text(void *handle, int x, int y, int fonttype,
+                         int fontsize, int align, int colour, char *text)
+{
+    char fontstyle[80];
+    int halign;
+
+    sprintf(fontstyle, "%dpx %s", fontsize,
+            fonttype == FONT_FIXED ? "monospace" : "sans-serif");
+
+    if (align & ALIGN_VCENTRE)
+	y += js_canvas_find_font_midpoint(fontsize, fontstyle);
+
+    if (align & ALIGN_HCENTRE)
+	halign = 1;
+    else if (align & ALIGN_HRIGHT)
+        halign = 2;
+    else
+        halign = 0;
+
+    js_canvas_draw_text(x, y, halign, colour_strings[colour], fontstyle, text);
+}
+
+static void js_draw_rect(void *handle, int x, int y, int w, int h, int colour)
+{
+    js_canvas_draw_rect(x, y, w, h, colour_strings[colour]);
+}
+
+static void js_draw_line(void *handle, int x1, int y1, int x2, int y2,
+                         int colour)
+{
+    js_canvas_draw_line(x1, y1, x2, y2, 1, colour_strings[colour]);
+}
+
+static void js_draw_thick_line(void *handle, float thickness,
+                               float x1, float y1, float x2, float y2,
+                               int colour)
+{
+    js_canvas_draw_line(x1, y1, x2, y2, thickness, colour_strings[colour]);
+}
+
+static void js_draw_poly(void *handle, int *coords, int npoints,
+                         int fillcolour, int outlinecolour)
+{
+    js_canvas_draw_poly(coords, npoints,
+                        fillcolour >= 0 ? colour_strings[fillcolour] : NULL,
+                        colour_strings[outlinecolour]);
+}
+
+static void js_draw_circle(void *handle, int cx, int cy, int radius,
+                           int fillcolour, int outlinecolour)
+{
+    js_canvas_draw_circle(cx, cy, radius,
+                          fillcolour >= 0 ? colour_strings[fillcolour] : NULL,
+                          colour_strings[outlinecolour]);
+}
+
+struct blitter {
+    int id;                            /* allocated on the js side */
+    int w, h;                          /* easier to retain here */
+};
+
+static blitter *js_blitter_new(void *handle, int w, int h)
+{
+    blitter *bl = snew(blitter);
+    bl->w = w;
+    bl->h = h;
+    bl->id = js_canvas_new_blitter(w, h);
+    return bl;
+}
+
+static void js_blitter_free(void *handle, blitter *bl)
+{
+    js_canvas_free_blitter(bl->id);
+    sfree(bl);
+}
+
+static void trim_rect(int *x, int *y, int *w, int *h)
+{
+    /*
+     * Reduce the size of the copied rectangle to stop it going
+     * outside the bounds of the canvas.
+     */
+    if (*x < 0) {
+        *w += *x;
+        *x = 0;
+    }
+    if (*y < 0) {
+        *h += *y;
+        *y = 0;
+    }
+    if (*w > canvas_w - *x)
+        *w = canvas_w - *x;
+    if (*h > canvas_h - *y)
+        *h = canvas_h - *y;
+
+    if (*w < 0)
+        *w = 0;
+    if (*h < 0)
+        *h = 0;
+}
+
+static void js_blitter_save(void *handle, blitter *bl, int x, int y)
+{
+    int w = bl->w, h = bl->h;
+    trim_rect(&x, &y, &w, &h);
+    if (w > 0 && h > 0)
+        js_canvas_copy_to_blitter(bl->id, x, y, w, h);
+}
+
+static void js_blitter_load(void *handle, blitter *bl, int x, int y)
+{
+    int w = bl->w, h = bl->h;
+    trim_rect(&x, &y, &w, &h);
+    if (w > 0 && h > 0)
+        js_canvas_copy_from_blitter(bl->id, x, y, w, h);
+}
+
+static void js_draw_update(void *handle, int x, int y, int w, int h)
+{
+    trim_rect(&x, &y, &w, &h);
+    js_canvas_draw_update(x, y, w, h);
+}
+
+static void js_end_draw(void *handle)
+{
+    js_canvas_end_draw();
+}
+
+static void js_status_bar(void *handle, char *text)
+{
+    js_canvas_set_statusbar(text);
+}
+
+static char *js_text_fallback(void *handle, const char *const *strings,
+                              int nstrings)
+{
+    return dupstr(strings[0]); /* Emscripten has no trouble with UTF-8 */
+}
+
+const struct drawing_api js_drawing = {
+    js_draw_text,
+    js_draw_rect,
+    js_draw_line,
+    js_draw_poly,
+    js_draw_circle,
+    js_draw_update,
+    js_clip,
+    js_unclip,
+    js_start_draw,
+    js_end_draw,
+    js_status_bar,
+    js_blitter_new,
+    js_blitter_free,
+    js_blitter_save,
+    js_blitter_load,
+    NULL, NULL, NULL, NULL, NULL, NULL, /* {begin,end}_{doc,page,puzzle} */
+    NULL, NULL,			       /* line_width, line_dotted */
+    js_text_fallback,
+    js_draw_thick_line,
+};
+
+/* ----------------------------------------------------------------------
+ * Presets and game-configuration dialog support.
+ */
+static game_params **presets;
+static int custom_preset;
+
+static config_item *cfg = NULL;
+static int cfg_which;
+
+/*
+ * Set up a dialog box. This is pretty easy on the C side; most of the
+ * work is done in JS.
+ */
+static void cfg_start(int which)
+{
+    char *title;
+    int i;
+
+    cfg = midend_get_config(me, which, &title);
+    cfg_which = which;
+
+    js_dialog_init(title);
+    sfree(title);
+
+    for (i = 0; cfg[i].type != C_END; i++) {
+	switch (cfg[i].type) {
+	  case C_STRING:
+            js_dialog_string(i, cfg[i].name, cfg[i].sval);
+	    break;
+	  case C_BOOLEAN:
+            js_dialog_boolean(i, cfg[i].name, cfg[i].ival);
+	    break;
+	  case C_CHOICES:
+            js_dialog_choices(i, cfg[i].name, cfg[i].sval, cfg[i].ival);
+	    break;
+	}
+    }
+
+    js_dialog_launch();
+}
+
+/*
+ * Callbacks from JS when the OK button is clicked, to return the
+ * final state of each control.
+ */
+void dlg_return_sval(int index, const char *val)
+{
+    sfree(cfg[index].sval);
+    cfg[index].sval = dupstr(val);
+}
+void dlg_return_ival(int index, int val)
+{
+    cfg[index].ival = val;
+}
+
+/*
+ * Called when the user clicks OK or Cancel. use_results will be TRUE
+ * or FALSE respectively, in those cases. We terminate the dialog box,
+ * unless the user selected an invalid combination of parameters.
+ */
+static void cfg_end(int use_results)
+{
+    if (use_results) {
+        /*
+         * User hit OK.
+         */
+        char *err = midend_set_config(me, cfg_which, cfg);
+
+        if (err) {
+            /*
+             * The settings were unacceptable, so leave the config box
+             * open for the user to adjust them and try again.
+             */
+            js_error_box(err);
+        } else {
+            /*
+             * New settings are fine; start a new game and close the
+             * dialog.
+             */
+            int preset = midend_which_preset(me);
+            js_select_preset(preset < 0 ? custom_preset : preset);
+
+            midend_new_game(me);
+            resize();
+            midend_redraw(me);
+            update_permalinks();
+            free_cfg(cfg);
+            js_dialog_cleanup();
+        }
+    } else {
+        /*
+         * User hit Cancel. Just close the dialog.
+         */
+        free_cfg(cfg);
+        js_dialog_cleanup();
+    }
+}
+
+/* ----------------------------------------------------------------------
+ * Called from JS when a command is given to the puzzle by clicking a
+ * button or control of some sort.
+ */
+void command(int n)
+{
+    switch (n) {
+      case 0:                          /* specific game ID */
+        cfg_start(CFG_DESC);
+        break;
+      case 1:                          /* random game seed */
+        cfg_start(CFG_SEED);
+        break;
+      case 2:                          /* game parameter dropdown changed */
+        {
+            int i = js_get_selected_preset();
+            if (i == custom_preset) {
+                /*
+                 * The user selected 'Custom', so launch the config
+                 * box.
+                 */
+                if (thegame.can_configure) /* (double-check just in case) */
+                    cfg_start(CFG_SETTINGS);
+            } else {
+                /*
+                 * The user selected a preset, so just switch straight
+                 * to that.
+                 */
+                midend_set_params(me, presets[i]);
+                midend_new_game(me);
+                update_permalinks();
+                resize();
+                midend_redraw(me);
+                update_undo_redo();
+                js_focus_canvas();
+            }
+        }
+        break;
+      case 3:                          /* OK clicked in a config box */
+        cfg_end(TRUE);
+        update_undo_redo();
+        break;
+      case 4:                          /* Cancel clicked in a config box */
+        cfg_end(FALSE);
+        update_undo_redo();
+        break;
+      case 5:                          /* New Game */
+        midend_process_key(me, 0, 0, 'n');
+        update_undo_redo();
+        js_focus_canvas();
+        break;
+      case 6:                          /* Restart */
+        midend_restart_game(me);
+        update_undo_redo();
+        js_focus_canvas();
+        break;
+      case 7:                          /* Undo */
+        midend_process_key(me, 0, 0, 'u');
+        update_undo_redo();
+        js_focus_canvas();
+        break;
+      case 8:                          /* Redo */
+        midend_process_key(me, 0, 0, 'r');
+        update_undo_redo();
+        js_focus_canvas();
+        break;
+      case 9:                          /* Solve */
+        if (thegame.can_solve) {
+            char *msg = midend_solve(me);
+            if (msg)
+                js_error_box(msg);
+        }
+        update_undo_redo();
+        js_focus_canvas();
+        break;
+    }
+}
+
+/* ----------------------------------------------------------------------
+ * Setup function called at page load time. It's called main() because
+ * that's the most convenient thing in Emscripten, but it's not main()
+ * in the usual sense of bounding the program's entire execution.
+ * Instead, this function returns once the initial puzzle is set up
+ * and working, and everything thereafter happens by means of JS event
+ * handlers sending us callbacks.
+ */
+int main(int argc, char **argv)
+{
+    char *param_err;
+    float *colours;
+    int i;
+
+    /*
+     * Instantiate a midend.
+     */
+    me = midend_new(NULL, &thegame, &js_drawing, NULL);
+
+    /*
+     * Chuck in the HTML fragment ID if we have one (trimming the
+     * leading # off the front first). If that's invalid, we retain
+     * the error message and will display it at the end, after setting
+     * up a random puzzle as usual.
+     */
+    if (argc > 1 && argv[1][0] == '#' && argv[1][1] != '\0')
+        param_err = midend_game_id(me, argv[1] + 1);
+    else
+        param_err = NULL;
+
+    /*
+     * Create either a random game or the specified one, and set the
+     * canvas size appropriately.
+     */
+    midend_new_game(me);
+    resize();
+
+    /*
+     * Create a status bar, if needed.
+     */
+    if (midend_wants_statusbar(me))
+        js_canvas_make_statusbar();
+
+    /*
+     * Set up the game-type dropdown with presets and/or the Custom
+     * option. We remember the index of the Custom option (as
+     * custom_preset) so that we can easily treat it specially when
+     * it's selected.
+     */
+    custom_preset = midend_num_presets(me);
+    presets = snewn(custom_preset, game_params *);
+    for (i = 0; i < custom_preset; i++) {
+        char *name;
+        midend_fetch_preset(me, i, &name, &presets[i]);
+        js_add_preset(name);
+    }
+    if (thegame.can_configure)
+        js_add_preset("Custom");
+    else if (custom_preset == 0)
+        js_remove_type_dropdown();
+
+    /*
+     * Remove the Solve button if the game doesn't support it.
+     */
+    if (!thegame.can_solve)
+        js_remove_solve_button();
+
+    /*
+     * Retrieve the game's colours, and convert them into #abcdef type
+     * hex ID strings.
+     */
+    colours = midend_colours(me, &ncolours);
+    colour_strings = snewn(ncolours, char *);
+    for (i = 0; i < ncolours; i++) {
+        char col[40];
+        sprintf(col, "#%02x%02x%02x",
+                (unsigned)(0.5 + 255 * colours[i*3+0]),
+                (unsigned)(0.5 + 255 * colours[i*3+1]),
+                (unsigned)(0.5 + 255 * colours[i*3+2]));
+        colour_strings[i] = dupstr(col);
+    }
+
+    /*
+     * Draw the puzzle's initial state, and set up the permalinks and
+     * undo/redo greying out.
+     */
+    midend_redraw(me);
+    update_permalinks();
+    update_undo_redo();
+
+    /*
+     * If we were given an erroneous game ID in argv[1], now's the
+     * time to put up the error box about it, after we've fully set up
+     * a random puzzle. Then when the user clicks 'ok', we have a
+     * puzzle for them.
+     */
+    if (param_err)
+        js_error_box(param_err);
+
+    /*
+     * Done. Return to JS, and await callbacks!
+     */
+    return 0;
+}

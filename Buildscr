@@ -112,6 +112,16 @@ ifneq "$(JAVA_UNFINISHED)" "" in puzzles do perl mkfiles.pl
 # compiler and tools.
 in puzzles do make -f Makefile.nestedvm NESTEDVM=$(NESTEDVM) VER=-DREVISION=$(revision)
 
+# Build the Javascript applets. Since my master build machine doesn't
+# have the right dependencies installed for Emscripten, I do this by a
+# delegation.
+in puzzles do mkdir js # so we can tell output .js files from emcc*.js
+delegate emscripten
+  in puzzles do make -f Makefile.emcc OUTPREFIX=js/ clean
+  in puzzles do make -f Makefile.emcc OUTPREFIX=js/
+  return puzzles/js/*.js
+enddelegate
+
 # Set up .htaccess containing a redirect for the archive filename.
 in puzzles do echo "AddType application/octet-stream .chm" > .htaccess
 in puzzles do echo "AddType application/octet-stream .hlp" >> .htaccess
@@ -132,6 +142,7 @@ deliver puzzles/puzzles.cnt $@
 deliver puzzles/puzzles.zip $@
 deliver puzzles/Output/setup.exe puzzles-r$(revision)-installer.exe
 deliver puzzles/*.jar java/$@
+deliver puzzles/js/*.js js/$@
 deliver puzzles/html/*.html html/$@
 deliver puzzles/html/*.pl html/$@
 

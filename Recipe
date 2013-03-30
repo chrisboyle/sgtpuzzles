@@ -15,6 +15,7 @@
 !makefile osx Makefile.osx
 !makefile gnustep Makefile.gnustep
 !makefile nestedvm Makefile.nestedvm
+!makefile emcc Makefile.emcc
 
 !srcdir icons/
 
