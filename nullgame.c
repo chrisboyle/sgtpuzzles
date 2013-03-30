@@ -224,6 +224,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
      * covering the whole window.
      */
     draw_rect(dr, 0, 0, 10*ds->tilesize, 10*ds->tilesize, COL_BACKGROUND);
+    draw_update(dr, 0, 0, 10*ds->tilesize, 10*ds->tilesize);
 }
 
 static float game_anim_length(game_state *oldstate, game_state *newstate,
