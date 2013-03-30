@@ -1304,6 +1304,21 @@ char *midend_get_game_id(midend *me)
     return ret;
 }
 
+char *midend_get_random_seed(midend *me)
+{
+    char *parstr, *ret;
+
+    if (!me->seedstr)
+        return NULL;
+
+    parstr = me->ourgame->encode_params(me->curparams, TRUE);
+    assert(parstr);
+    ret = snewn(strlen(parstr) + strlen(me->seedstr) + 2, char);
+    sprintf(ret, "%s#%s", parstr, me->seedstr);
+    sfree(parstr);
+    return ret;
+}
+
 char *midend_set_config(midend *me, int which, config_item *cfg)
 {
     char *error;

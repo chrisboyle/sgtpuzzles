@@ -251,6 +251,7 @@ config_item *midend_get_config(midend *me, int which, char **wintitle);
 char *midend_set_config(midend *me, int which, config_item *cfg);
 char *midend_game_id(midend *me, char *id);
 char *midend_get_game_id(midend *me);
+char *midend_get_random_seed(midend *me);
 int midend_can_format_as_text_now(midend *me);
 char *midend_text_format(midend *me);
 char *midend_solve(midend *me);

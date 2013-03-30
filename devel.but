@@ -3091,6 +3091,17 @@ Returns a descriptive game ID (i.e. one in the form
 \cq{params:description}) describing the game currently active in the
 mid-end. The returned string is dynamically allocated.
 
+\H{midend-get-random-seed} \cw{midend_get_random_seed()}
+
+\c char *midend_get_random_seed(midend *me)
+
+Returns a random game ID (i.e. one in the form \cq{params#seedstring})
+describing the game currently active in the mid-end, if there is one.
+If the game was created by entering a description, no random seed will
+currently exist and this function will return \cw{NULL}.
+
+The returned string, if it is non-\cw{NULL}, is dynamically allocated.
+
 \H{midend-can-format-as-text-now} \cw{midend_can_format_as_text_now()}
 
 \c int midend_can_format_as_text_now(midend *me);
