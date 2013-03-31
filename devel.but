@@ -1609,6 +1609,10 @@ should use it if they're not Mines; if you think you need to use it,
 think again repeatedly in the hope of finding a better way to do
 whatever it was you needed to do.
 
+If a front end wants to be notified when this happens, it can ask the
+midend to do so by calling \cw{midend_request_desc_changes()}; see
+\k{midend-request-desc-changes}.
+
 \C{drawing} The drawing API
 
 The back end function \cw{redraw()} (\k{backend-redraw}) is required
@@ -3269,6 +3273,27 @@ message (which does not need freeing at all).
 (This isn't strictly speaking a midend function, since it doesn't
 accept or return a pointer to a midend. You'd probably call it just
 \e{before} deciding what kind of midend you wanted to instantiate.)
+
+\H{midend-request-desc-changes} \cw{midend_request_desc_changes()}
+
+\c void midend_request_desc_changes(midend *me,
+\c                                  void (*notify)(void *), void *ctx);
+
+This function is called by the front end to request notification by
+the mid-end when a puzzle supersedes its game description (see
+\k{backend-supersede}). After this function is called, any call to
+\cw{midend_supersede_game_desc()} by the back end will cause the
+mid-end to call \cw{notify(ctx)} after the game description is
+changed.
+
+This is for use by puzzles which want to present the game description
+to the user constantly (e.g. as an HTML hyperlink) instead of only
+showing it when the user explicitly requests it.
+
+This is a function I anticipate few front ends needing to implement,
+so I make it a callback rather than a static function in order to
+relieve most front ends of the need to provide an empty
+implementation.
 
 \H{frontend-backend} Direct reference to the back end structure by
 the front end

@@ -309,6 +309,15 @@ static void update_permalinks(void)
     sfree(seed);
 }
 
+/*
+ * Callback from the midend if Mines supersedes its game description,
+ * so we can update the permalinks.
+ */
+static void desc_changed(void *ignored)
+{
+    update_permalinks();
+}
+
 /* ----------------------------------------------------------------------
  * Implementation of the drawing API by calling Javascript canvas
  * drawing functions. (Well, half of it; the other half is on the JS
@@ -760,6 +769,13 @@ int main(int argc, char **argv)
                 (unsigned)(0.5 + 255 * colours[i*3+2]));
         colour_strings[i] = dupstr(col);
     }
+
+    /*
+     * Request notification if a puzzle (hopefully only ever Mines)
+     * supersedes its game description, so that we can proactively
+     * update the permalink.
+     */
+    midend_request_desc_changes(me, desc_changed, NULL);
 
     /*
      * Draw the puzzle's initial state, and set up the permalinks and
