@@ -67,7 +67,7 @@ mergeInto(LibraryManager.library, {
      * case we need to do something special - see below.
      */
     js_add_preset: function(ptr) {
-        var name = (ptr == 0 ? "Custom" : Pointer_stringify(ptr));
+        var name = (ptr == 0 ? "Custom..." : Pointer_stringify(ptr));
         var value = gametypeoptions.length;
 
         var option = document.createElement("option");
@@ -96,9 +96,17 @@ mergeInto(LibraryManager.library, {
             // we wouldn't get if the browser thought it was already
             // the selected one. But here, it's _not_ the selected
             // option already; its invisible evil twin is selected.
+            //
+            // (Actually, they're not _identical_ evil twins: we label
+            // the two slightly differently. The visible one that the
+            // user can select is labelled "Custom..." to hint that it
+            // opens a dialog box, whereas the invisible one that's
+            // left shown after the box closes is just "Custom",
+            // because that's telling you what you _have_ got
+            // selected.)
             option = document.createElement("option");
             option.value = value;
-            option.appendChild(document.createTextNode(name));
+            option.appendChild(document.createTextNode("Custom"));
             option.style.display = "none";
             gametypeselector.appendChild(option);
             gametypehiddencustom = option;
