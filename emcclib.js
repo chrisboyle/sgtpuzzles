@@ -463,6 +463,7 @@ mergeInto(LibraryManager.library, {
         blitters[id] = document.createElement("canvas");
         blitters[id].width = w;
         blitters[id].height = h;
+        return id;
     },
 
     /*
