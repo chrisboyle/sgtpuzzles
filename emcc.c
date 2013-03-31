@@ -723,7 +723,7 @@ int main(int argc, char **argv)
         js_add_preset(name);
     }
     if (thegame.can_configure)
-        js_add_preset("Custom");
+        js_add_preset(NULL);           /* the 'Custom' entry in the dropdown */
     else if (custom_preset == 0)
         js_remove_type_dropdown();
 

@@ -78,7 +78,14 @@ var dlg_return_sval, dlg_return_ival;
 // The <select> object implementing the game-type drop-down, and a
 // list of the <option> objects inside it. Used by js_add_preset(),
 // js_get_selected_preset() and js_select_preset().
+//
+// gametypehiddencustom is a second copy of the 'Custom' dropdown
+// element, set to display:none. This is used by a bodge in emcclib.js
+// (see comment in js_add_preset) to arrange that if the Custom
+// element is (apparently) already selected, we still find out if the
+// user selects it again.
 var gametypeselector = null, gametypeoptions = [];
+var gametypehiddencustom = null;
 
 // The two anchors used to give permalinks to the current puzzle. Used
 // by js_update_permalinks().

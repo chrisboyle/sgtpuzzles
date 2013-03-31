@@ -61,13 +61,48 @@ mergeInto(LibraryManager.library, {
      * the name of the preset. (The corresponding game_params stays on
      * the C side and never comes out this far; we just pass a numeric
      * index back to the C code when a selection is made.)
+     *
+     * The special 'Custom' preset is requested by passing NULL to
+     * this function, rather than the string "Custom", since in that
+     * case we need to do something special - see below.
      */
     js_add_preset: function(ptr) {
+        var name = (ptr == 0 ? "Custom" : Pointer_stringify(ptr));
+        var value = gametypeoptions.length;
+
         var option = document.createElement("option");
-        option.value = gametypeoptions.length;
-        option.appendChild(document.createTextNode(Pointer_stringify(ptr)));
+        option.value = value;
+        option.appendChild(document.createTextNode(name));
         gametypeselector.appendChild(option);
         gametypeoptions.push(option);
+
+        if (ptr == 0) {
+            // Create a _second_ element called 'Custom', which is
+            // hidden.
+            //
+            // Hiding this element (that is, setting it display:none)
+            // has the effect of making it not show up when the
+            // drop-down list is actually opened, but still show up
+            // when the item is selected.
+            //
+            // So what happens is that there's one element marked
+            // 'Custom' that the _user_ selects, but a second one to
+            // which we reset the dropdown after the config box
+            // returns (if we don't then turn out to select a
+            // different preset anyway). The point is that if the user
+            // has 'Custom' selected, but then wants to customise
+            // their settings a second time, we still get an onchange
+            // event when they select the Custom option again, which
+            // we wouldn't get if the browser thought it was already
+            // the selected one. But here, it's _not_ the selected
+            // option already; its invisible evil twin is selected.
+            option = document.createElement("option");
+            option.value = value;
+            option.appendChild(document.createTextNode(name));
+            option.style.display = "none";
+            gametypeselector.appendChild(option);
+            gametypehiddencustom = option;
+        }
     },
 
     /*
@@ -93,7 +128,14 @@ mergeInto(LibraryManager.library, {
      * which turn out to exactly match a preset).
      */
     js_select_preset: function(n) {
-        gametypeoptions[n].selected = true;
+        if (gametypeoptions[n].value == gametypehiddencustom.value) {
+            // If we're asked to select the visible Custom option,
+            // select the invisible one instead. See comment above in
+            // js_add_preset.
+            gametypehiddencustom.selected = true;
+        } else {
+            gametypeoptions[n].selected = true;
+        }
     },
 
     /*
