@@ -313,8 +313,8 @@ mergeInto(LibraryManager.library, {
         ctx.moveTo(x1 + 0.5, y1 + 0.5);
         ctx.lineTo(x2 + 0.5, y2 + 0.5);
         ctx.lineWidth = width;
-        ctx.lineCap = '1';
-        ctx.lineJoin = '1';
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
         ctx.strokeStyle = colour;
         ctx.stroke();
         ctx.fillStyle = colour;
@@ -342,8 +342,8 @@ mergeInto(LibraryManager.library, {
             ctx.fill();
         }
         ctx.lineWidth = '1';
-        ctx.lineCap = '1';
-        ctx.lineJoin = '1';
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
         ctx.strokeStyle = Pointer_stringify(outline);
         ctx.stroke();
     },
@@ -363,8 +363,8 @@ mergeInto(LibraryManager.library, {
             ctx.fill();
         }
         ctx.lineWidth = '1';
-        ctx.lineCap = '1';
-        ctx.lineJoin = '1';
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
         ctx.strokeStyle = Pointer_stringify(outline);
         ctx.stroke();
     },
