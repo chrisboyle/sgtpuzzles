@@ -64,8 +64,8 @@ mergeInto(LibraryManager.library, {
      */
     js_add_preset: function(ptr) {
         var option = document.createElement("option");
-        option.value = Pointer_stringify(ptr);
-        option.innerHTML = Pointer_stringify(ptr);
+        option.value = gametypeoptions.length;
+        option.appendChild(document.createTextNode(Pointer_stringify(ptr)));
         gametypeselector.appendChild(option);
         gametypeoptions.push(option);
     },
@@ -77,14 +77,12 @@ mergeInto(LibraryManager.library, {
      * dropdown.
      */
     js_get_selected_preset: function() {
-        var val = 0;
         for (var i in gametypeoptions) {
             if (gametypeoptions[i].selected) {
-                val = i;
-                break;
+                return gametypeoptions[i].value;
             }
         }
-        return val;
+        return 0;
     },
 
     /*
@@ -592,8 +590,8 @@ mergeInto(LibraryManager.library, {
         var options = [];
         for (var i in items) {
             var option = document.createElement("option");
-            option.value = items[i];
-            option.innerHTML = items[i];
+            option.value = i;
+            option.appendChild(document.createTextNode(items[i]));
             if (i == initvalue) option.selected = true;
             dropdown.appendChild(option);
             options.push(option);
@@ -605,7 +603,7 @@ mergeInto(LibraryManager.library, {
             var val = 0;
             for (var i in options) {
                 if (options[i].selected) {
-                    val = i;
+                    val = options[i].value;
                     break;
                 }
             }
