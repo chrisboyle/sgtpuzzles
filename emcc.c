@@ -581,8 +581,21 @@ static void cfg_end(int use_results)
         }
     } else {
         /*
-         * User hit Cancel. Just close the dialog.
+         * User hit Cancel. Close the dialog, but also we must still
+         * reselect the right element of the dropdown list.
+         *
+         * (Because: imagine you have a preset selected, and then you
+         * select Custom from the list, but change your mind and hit
+         * Esc. The Custom option will now still be selected in the
+         * list, whereas obviously it should show the preset you still
+         * _actually_ have selected. Worse still, it'll be the visible
+         * rather than invisible Custom option - see the comment in
+         * js_add_preset in emcclib.js - so you won't even be able to
+         * select Custom without a faffy workaround.)
          */
+        int preset = midend_which_preset(me);
+        js_select_preset(preset < 0 ? custom_preset : preset);
+
         free_cfg(cfg);
         js_dialog_cleanup();
     }
