@@ -504,6 +504,15 @@ const struct drawing_api js_drawing = {
  */
 static game_params **presets;
 static int custom_preset;
+int have_presets_dropdown;
+
+void select_appropriate_preset(void)
+{
+    if (have_presets_dropdown) {
+        int preset = midend_which_preset(me);
+        js_select_preset(preset < 0 ? custom_preset : preset);
+    }
+}
 
 static config_item *cfg = NULL;
 static int cfg_which;
@@ -578,9 +587,7 @@ static void cfg_end(int use_results)
              * New settings are fine; start a new game and close the
              * dialog.
              */
-            int preset = midend_which_preset(me);
-            js_select_preset(preset < 0 ? custom_preset : preset);
-
+            select_appropriate_preset();
             midend_new_game(me);
             resize();
             midend_redraw(me);
@@ -602,8 +609,7 @@ static void cfg_end(int use_results)
          * js_add_preset in emcclib.js - so you won't even be able to
          * select Custom without a faffy workaround.)
          */
-        int preset = midend_which_preset(me);
-        js_select_preset(preset < 0 ? custom_preset : preset);
+        select_appropriate_preset();
 
         free_cfg(cfg);
         js_dialog_cleanup();
@@ -738,16 +744,34 @@ int main(int argc, char **argv)
      * it's selected.
      */
     custom_preset = midend_num_presets(me);
-    presets = snewn(custom_preset, game_params *);
-    for (i = 0; i < custom_preset; i++) {
-        char *name;
-        midend_fetch_preset(me, i, &name, &presets[i]);
-        js_add_preset(name);
-    }
-    if (thegame.can_configure)
-        js_add_preset(NULL);           /* the 'Custom' entry in the dropdown */
-    else if (custom_preset == 0)
+    if (custom_preset == 0) {
+        /*
+         * This puzzle doesn't have selectable game types at all.
+         * Completely remove the drop-down list from the page.
+         */
         js_remove_type_dropdown();
+        have_presets_dropdown = FALSE;
+    } else {
+        int preset;
+
+        presets = snewn(custom_preset, game_params *);
+        for (i = 0; i < custom_preset; i++) {
+            char *name;
+            midend_fetch_preset(me, i, &name, &presets[i]);
+            js_add_preset(name);
+        }
+        if (thegame.can_configure)
+            js_add_preset(NULL);   /* the 'Custom' entry in the dropdown */
+
+        have_presets_dropdown = TRUE;
+
+        /*
+         * Now ensure the appropriate element of the presets menu
+         * starts off selected, in case it isn't the first one in the
+         * list (e.g. Slant).
+         */
+        select_appropriate_preset();
+    }
 
     /*
      * Remove the Solve button if the game doesn't support it.
