@@ -3245,7 +3245,7 @@ place.
 
 \c char *identify_game(char **name,
 \c                     int (*read)(void *ctx, void *buf, int len),
-\c                     void *rctx)
+\c                     void *rctx);
 
 This function examines a serialised midend stream, of the same kind
 used by \cw{midend_serialise()} and \cw{midendd_deserialise()}, and
