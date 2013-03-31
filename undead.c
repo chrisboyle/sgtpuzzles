@@ -1644,7 +1644,7 @@ struct game_drawstate {
 };
 
 #define TILESIZE (ds->tilesize)
-#define BORDER (TILESIZE/2)
+#define BORDER (TILESIZE/4)
 
 static char *interpret_move(game_state *state, game_ui *ui,
                             const game_drawstate *ds, int x, int y, int button)
@@ -1974,8 +1974,12 @@ static game_state *execute_move(game_state *state, char *move) {
 
 static void game_compute_size(game_params *params, int tilesize,
                               int *x, int *y) {
-    *x = tilesize + (2 + params->w) * tilesize;
-    *y = tilesize + (3 + params->h) * tilesize;
+    /* Ick: fake up `ds->tilesize' for macro expansion purposes */
+    struct { int tilesize; } ads, *ds = &ads;
+    ads.tilesize = tilesize;
+
+    *x = 2*BORDER+(params->w+2)*TILESIZE;
+    *y = 2*BORDER+(params->h+3)*TILESIZE;
     return;
 }
 
@@ -2410,8 +2414,8 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
                 draw_rect(dr, BORDER+(ds->tilesize*(i+1))+1,
                           BORDER+(ds->tilesize*(j+2))+1, ds->tilesize-1,
                           ds->tilesize-1, COL_BACKGROUND);
-        draw_update(dr,BORDER+TILESIZE-1,BORDER+2*TILESIZE-1,
-                    (ds->w)*TILESIZE+3, (ds->h)*TILESIZE+3);
+        draw_update(dr, 0, 0, 2*BORDER+(ds->w+2)*TILESIZE,
+                    2*BORDER+(ds->h+3)*TILESIZE);
     }
 
     hchanged = FALSE;
