@@ -2635,7 +2635,7 @@ static grid *grid_new_penrose(int width, int height, int which, char *desc)
         if (sscanf(desc, "G%d,%d,%d", &xoff, &yoff, &aoff) != 3)
             assert(!"Invalid grid description.");
     } else {
-        xoff = yoff = 0;
+        xoff = yoff = aoff = 0;
     }
 
     xsz = width * tilesize;
