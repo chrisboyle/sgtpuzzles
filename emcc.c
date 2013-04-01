@@ -416,27 +416,30 @@ static void js_blitter_free(void *handle, blitter *bl)
 
 static void trim_rect(int *x, int *y, int *w, int *h)
 {
+    int x0, x1, y0, y1;
+
     /*
      * Reduce the size of the copied rectangle to stop it going
      * outside the bounds of the canvas.
      */
-    if (*x < 0) {
-        *w += *x;
-        *x = 0;
-    }
-    if (*y < 0) {
-        *h += *y;
-        *y = 0;
-    }
-    if (*w > canvas_w - *x)
-        *w = canvas_w - *x;
-    if (*h > canvas_h - *y)
-        *h = canvas_h - *y;
 
-    if (*w < 0)
-        *w = 0;
-    if (*h < 0)
-        *h = 0;
+    /* Transform from x,y,w,h form into coordinates of all edges */
+    x0 = *x;
+    y0 = *y;
+    x1 = *x + *w;
+    y1 = *y + *h;
+
+    /* Clip each coordinate at both extremes of the canvas */
+    x0 = (x0 < 0 ? 0 : x0 > canvas_w ? canvas_w : x0);
+    x1 = (x1 < 0 ? 0 : x1 > canvas_w ? canvas_w : x1);
+    y0 = (y0 < 0 ? 0 : y0 > canvas_h ? canvas_h : y0);
+    y1 = (y1 < 0 ? 0 : y1 > canvas_h ? canvas_h : y1); 
+
+    /* Transform back into x,y,w,h to return */
+    *x = x0;
+    *y = y0;
+    *w = x1 - x0;
+    *h = y1 - y0;
 }
 
 static void js_blitter_save(void *handle, blitter *bl, int x, int y)
@@ -458,7 +461,8 @@ static void js_blitter_load(void *handle, blitter *bl, int x, int y)
 static void js_draw_update(void *handle, int x, int y, int w, int h)
 {
     trim_rect(&x, &y, &w, &h);
-    js_canvas_draw_update(x, y, w, h);
+    if (w > 0 && h > 0)
+        js_canvas_draw_update(x, y, w, h);
 }
 
 static void js_end_draw(void *handle)
