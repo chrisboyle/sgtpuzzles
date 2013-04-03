@@ -71,6 +71,7 @@ ${unfinishedheading}
 ${unfinishedpara}
 
 <hr>
+<div id="puzzle" style="display: none">
 <p align=center>
   <input type="button" id="new" value="New game">
   <input type="button" id="restart" value="Restart game">
@@ -98,6 +99,13 @@ ${unfinishedpara}
   <a id="permalink-desc">by game ID</a>
   <a id="permalink-seed">by random seed</a>
 </p>
+</div>
+<div id="apology">
+Sorry, this Javascript puzzle doesn't seem to work on your web
+browser. Perhaps you have Javascript disabled, or perhaps your browser
+doesn't provide a feature they depend on. These puzzles have been
+successfully run in Firefox 19 and Chrome 25.
+</div>
 <hr>
 
 ${instructions}
