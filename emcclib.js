@@ -71,7 +71,7 @@ mergeInto(LibraryManager.library, {
      * case we need to do something special - see below.
      */
     js_add_preset: function(ptr) {
-        var name = (ptr == 0 ? "Custom..." : Pointer_stringify(ptr));
+        var name = (ptr == 0 ? "Customise..." : Pointer_stringify(ptr));
         var value = gametypeoptions.length;
 
         var option = document.createElement("option");
@@ -81,39 +81,20 @@ mergeInto(LibraryManager.library, {
         gametypeoptions.push(option);
 
         if (ptr == 0) {
-            // Create a _second_ element called 'Custom', which is
-            // hidden.
-            //
-            // Hiding this element (that is, setting it display:none)
-            // has the effect of making it not show up when the
-            // drop-down list is actually opened, but still show up
-            // when the item is selected.
-            //
-            // So what happens is that there's one element marked
-            // 'Custom' that the _user_ selects, but a second one to
-            // which we reset the dropdown after the config box
-            // returns (if we don't then turn out to select a
-            // different preset anyway). The point is that if the user
-            // has 'Custom' selected, but then wants to customise
-            // their settings a second time, we still get an onchange
-            // event when they select the Custom option again, which
-            // we wouldn't get if the browser thought it was already
-            // the selected one. But here, it's _not_ the selected
-            // option already; its invisible evil twin is selected.
-            //
-            // (Actually, they're not _identical_ evil twins: we label
-            // the two slightly differently. The visible one that the
-            // user can select is labelled "Custom..." to hint that it
-            // opens a dialog box, whereas the invisible one that's
-            // left shown after the box closes is just "Custom",
-            // because that's telling you what you _have_ got
-            // selected.)
+            // The option we've just created is the one for inventing
+            // a new custom setup.
+            gametypenewcustom = option;
+            option.value = -1;
+
+            // Now create another element called 'Custom', which will
+            // be auto-selected by us to indicate the custom settings
+            // you've previously selected. However, we don't add it to
+            // the game type selector; it will only appear when the
+            // user actually has custom settings selected.
             option = document.createElement("option");
-            option.value = value;
+            option.value = -2;
             option.appendChild(document.createTextNode("Custom"));
-            option.style.display = "none";
-            gametypeselector.appendChild(option);
-            gametypehiddencustom = option;
+            gametypethiscustom = option;
         }
     },
 
@@ -140,11 +121,31 @@ mergeInto(LibraryManager.library, {
      * which turn out to exactly match a preset).
      */
     js_select_preset: function(n) {
-        if (gametypeoptions[n].value == gametypehiddencustom.value) {
-            // If we're asked to select the visible Custom option,
-            // select the invisible one instead. See comment above in
-            // js_add_preset.
-            gametypehiddencustom.selected = true;
+        if (gametypethiscustom !== null) {
+            // Fiddle with the Custom/Customise options. If we're
+            // about to select the Custom option, then it should be in
+            // the menu, and the other one should read "Re-customise";
+            // if we're about to select another one, then the static
+            // Custom option should disappear and the other one should
+            // read "Customise".
+
+            if (gametypethiscustom.parentNode == gametypeselector)
+                gametypeselector.removeChild(gametypethiscustom);
+            if (gametypenewcustom.parentNode == gametypeselector)
+                gametypeselector.removeChild(gametypenewcustom);
+
+            if (n < 0) {
+                gametypeselector.appendChild(gametypethiscustom);
+                gametypenewcustom.lastChild.data = "Re-customise...";
+            } else {
+                gametypenewcustom.lastChild.data = "Customise...";
+            }
+            gametypeselector.appendChild(gametypenewcustom);
+            gametypenewcustom.selected = false;
+        }
+
+        if (n < 0) {
+            gametypethiscustom.selected = true;
         } else {
             gametypeoptions[n].selected = true;
         }

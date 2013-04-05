@@ -53,6 +53,7 @@
  *    that using whatever they normally use to print PDFs!)
  */
 
+#include <assert.h>
 #include <string.h>
 
 #include "puzzles.h"
@@ -528,14 +529,14 @@ const struct drawing_api js_drawing = {
  * Presets and game-configuration dialog support.
  */
 static game_params **presets;
-static int custom_preset;
+static int npresets;
 int have_presets_dropdown;
 
 void select_appropriate_preset(void)
 {
     if (have_presets_dropdown) {
         int preset = midend_which_preset(me);
-        js_select_preset(preset < 0 ? custom_preset : preset);
+        js_select_preset(preset < 0 ? -1 : preset);
     }
 }
 
@@ -656,7 +657,7 @@ void command(int n)
       case 2:                          /* game parameter dropdown changed */
         {
             int i = js_get_selected_preset();
-            if (i == custom_preset) {
+            if (i < 0) {
                 /*
                  * The user selected 'Custom', so launch the config
                  * box.
@@ -668,12 +669,14 @@ void command(int n)
                  * The user selected a preset, so just switch straight
                  * to that.
                  */
+                assert(i < npresets);
                 midend_set_params(me, presets[i]);
                 midend_new_game(me);
                 resize();
                 midend_redraw(me);
                 update_undo_redo();
                 js_focus_canvas();
+                select_appropriate_preset(); /* sort out Custom/Customise */
             }
         }
         break;
@@ -762,12 +765,10 @@ int main(int argc, char **argv)
 
     /*
      * Set up the game-type dropdown with presets and/or the Custom
-     * option. We remember the index of the Custom option (as
-     * custom_preset) so that we can easily treat it specially when
-     * it's selected.
+     * option.
      */
-    custom_preset = midend_num_presets(me);
-    if (custom_preset == 0) {
+    npresets = midend_num_presets(me);
+    if (npresets == 0) {
         /*
          * This puzzle doesn't have selectable game types at all.
          * Completely remove the drop-down list from the page.
@@ -777,8 +778,8 @@ int main(int argc, char **argv)
     } else {
         int preset;
 
-        presets = snewn(custom_preset, game_params *);
-        for (i = 0; i < custom_preset; i++) {
+        presets = snewn(npresets, game_params *);
+        for (i = 0; i < npresets; i++) {
             char *name;
             midend_fetch_preset(me, i, &name, &presets[i]);
             js_add_preset(name);
