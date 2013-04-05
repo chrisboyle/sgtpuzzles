@@ -233,6 +233,12 @@ function initPuzzle() {
             command(2);
     };
 
+    // In IE, the canvas doesn't automatically gain focus on a mouse
+    // click, so make sure it does
+    onscreen_canvas.addEventListener("mousedown", function(event) {
+        onscreen_canvas.focus();
+    });
+
     // In our dialog boxes, Return and Escape should be like pressing
     // OK and Cancel respectively
     document.addEventListener("keydown", function(event) {
