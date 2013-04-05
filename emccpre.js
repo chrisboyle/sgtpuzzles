@@ -37,7 +37,7 @@ var update_xmin, update_xmax, update_ymin, update_ymax;
 // callbacks.
 var Module = {
     'noInitialRun': true,
-    'noExitRuntime': true,
+    'noExitRuntime': true
 };
 
 // Variables used by js_canvas_find_font_midpoint().

@@ -747,5 +747,5 @@ mergeInto(LibraryManager.library, {
      */
     js_focus_canvas: function() {
         onscreen_canvas.focus();
-    },
+    }
 });
