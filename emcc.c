@@ -138,6 +138,16 @@ void fatal(char *fmt, ...)
     js_error_box(buf);
 }
 
+void debug_printf(char *fmt, ...)
+{
+    char buf[512];
+    va_list ap;
+    va_start(ap, fmt);
+    vsnprintf(buf, sizeof(buf), fmt, ap);
+    va_end(ap);
+    js_debug(buf);
+}
+
 /*
  * HTMLish names for the colours allocated by the puzzle.
  */
