@@ -2,7 +2,11 @@
  * emccpre.js: one of the Javascript components of an Emscripten-based
  * web/Javascript front end for Puzzles.
  *
- * The other parts of this system live in emcc.c and emcclib.js.
+ * The other parts of this system live in emcc.c and emcclib.js. It
+ * also depends on being run in the context of a web page containing
+ * an appropriate collection of bits and pieces (a canvas, some
+ * buttons and links etc), which is generated for each puzzle by the
+ * script html/jspage.pl.
  *
  * This file contains the Javascript code which is prefixed unmodified
  * to Emscripten's output via the --pre-js option. It declares all our

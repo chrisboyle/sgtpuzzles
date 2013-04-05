@@ -3,7 +3,10 @@
  * end for Puzzles.
  *
  * The Javascript parts of this system live in emcclib.js and
- * emccpre.js.
+ * emccpre.js. It also depends on being run in the context of a web
+ * page containing an appropriate collection of bits and pieces (a
+ * canvas, some buttons and links etc), which is generated for each
+ * puzzle by the script html/jspage.pl.
  */
 
 /*
