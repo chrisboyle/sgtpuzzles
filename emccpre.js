@@ -135,9 +135,7 @@ function initPuzzle() {
     buttons_down = 0;
     onscreen_canvas.onmousedown = function(event) {
         var xy = relative_mouse_coords(event, onscreen_canvas);
-        mousedown(xy.x - onscreen_canvas.offsetLeft,
-                  xy.y - onscreen_canvas.offsetTop,
-                  event.button);
+        mousedown(xy.x, xy.y, event.button);
         buttons_down |= 1 << event.button;
         onscreen_canvas.setCapture(true);
     };
@@ -146,9 +144,7 @@ function initPuzzle() {
     onscreen_canvas.onmousemove = function(event) {
         if (buttons_down) {
             var xy = relative_mouse_coords(event, onscreen_canvas);
-            mousemove(xy.x - onscreen_canvas.offsetLeft,
-                      xy.y - onscreen_canvas.offsetTop,
-                      buttons_down);
+            mousemove(xy.x, xy.y, buttons_down);
         }
     };
     mouseup = Module.cwrap('mouseup', 'void',
@@ -157,9 +153,7 @@ function initPuzzle() {
         if (buttons_down & (1 << event.button)) {
             buttons_down ^= 1 << event.button;
             var xy = relative_mouse_coords(event, onscreen_canvas);
-            mouseup(xy.x - onscreen_canvas.offsetLeft,
-                    xy.y - onscreen_canvas.offsetTop,
-                    event.button);
+            mouseup(xy.x, xy.y, event.button);
         }
     };
 
