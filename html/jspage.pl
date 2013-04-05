@@ -98,7 +98,7 @@ ${unfinishedpara}
 Sorry, this Javascript puzzle doesn't seem to work on your web
 browser. Perhaps you have Javascript disabled, or perhaps your browser
 doesn't provide a feature they depend on. These puzzles have been
-successfully run in Firefox 19 and Chrome 25.
+successfully run in Firefox 19, Chrome 26, and Internet Explorer 10.
 </div>
 </div>
 <hr>
