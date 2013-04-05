@@ -525,18 +525,20 @@ mergeInto(LibraryManager.library, {
      * back end turns out to want one.
      */
     js_canvas_make_statusbar: function() {
-        var statustd = document.getElementById("statusbarholder");
+        var statusholder = document.getElementById("statusbarholder");
         statusbar = document.createElement("div");
         statusbar.style.overflow = "hidden";
-        statusbar.style.width = onscreen_canvas.width - 4;
+        statusbar.style.width = (onscreen_canvas.width - 4) + "px";
+        statusholder.style.width = onscreen_canvas.width + "px";
         statusbar.style.height = "1.2em";
+        statusbar.style.textAlign = "left";
         statusbar.style.background = "#d8d8d8";
         statusbar.style.borderLeft = '2px solid #c8c8c8';
         statusbar.style.borderTop = '2px solid #c8c8c8';
         statusbar.style.borderRight = '2px solid #e8e8e8';
         statusbar.style.borderBottom = '2px solid #e8e8e8';
         statusbar.appendChild(document.createTextNode(" "));
-        statustd.appendChild(statusbar);
+        statusholder.appendChild(statusbar);
     },
 
     /*
@@ -560,8 +562,10 @@ mergeInto(LibraryManager.library, {
     js_canvas_set_size: function(w, h) {
         onscreen_canvas.width = w;
         offscreen_canvas.width = w;
-        if (statusbar !== null)
-            statusbar.style.width = w - 4;
+        if (statusbar !== null) {
+            statusbar.style.width = (w - 4) + "px";
+            document.getElementById("statusbarholder").style.width = w + "px";
+        }
 
         onscreen_canvas.height = h;
         offscreen_canvas.height = h;
@@ -587,15 +591,15 @@ mergeInto(LibraryManager.library, {
 
         // Now create a form which sits on top of that in turn.
         dlg_form = document.createElement("form");
-        dlg_form.style.width =  window.innerWidth * 2 / 3;
+        dlg_form.style.width = (window.innerWidth * 2 / 3) + "px";
         dlg_form.style.opacity = 1;
         dlg_form.style.background = '#ffffff';
         dlg_form.style.color = '#000000';
         dlg_form.style.position = 'absolute';
         dlg_form.style.border = "2px solid black";
-        dlg_form.style.padding = 20;
-        dlg_form.style.top = window.innerHeight / 10;
-        dlg_form.style.left = window.innerWidth / 6;
+        dlg_form.style.padding = "20px";
+        dlg_form.style.top = (window.innerHeight / 10) + "px";
+        dlg_form.style.left = (window.innerWidth / 6) + "px";
         dlg_form.style["z-index"] = 100;
 
         var title = document.createElement("p");

@@ -57,6 +57,7 @@ EOF
     }
 
     print $outpage <<EOF;
+<!DOCTYPE html>
 <html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=ASCII" />
@@ -82,29 +83,23 @@ ${unfinishedpara}
   <input type="button" id="random" value="Enter random seed">
   <select id="gametype"></select>
 </p>
-<p align=center>
-  <table cellpadding="0" cellspacing="0">
-    <tr>
-      <td>
-        <canvas id="puzzlecanvas" width="1" height="1" tabindex="1">
-      </td>
-    <tr>
-      <td id="statusbarholder">
-      </td>
-    </tr>
-  </table>
-</p>
-<p align=center>
-  Link to this puzzle:
-  <a id="permalink-desc">by game ID</a>
-  <a id="permalink-seed">by random seed</a>
-</p>
+<div align=center>
+  <canvas style="display: block" id="puzzlecanvas" width="1px" height="1px" tabindex="1">
+  </canvas>
+  <div id="statusbarholder" style="display: block">
+  </div>
+  <p>
+    Link to this puzzle:
+    <a id="permalink-desc">by game ID</a>
+    <a id="permalink-seed">by random seed</a>
+  </p>
 </div>
 <div id="apology">
 Sorry, this Javascript puzzle doesn't seem to work on your web
 browser. Perhaps you have Javascript disabled, or perhaps your browser
 doesn't provide a feature they depend on. These puzzles have been
 successfully run in Firefox 19 and Chrome 25.
+</div>
 </div>
 <hr>
 
