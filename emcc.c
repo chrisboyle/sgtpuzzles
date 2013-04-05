@@ -313,10 +313,10 @@ static void update_permalinks(void)
 }
 
 /*
- * Callback from the midend if Mines supersedes its game description,
- * so we can update the permalinks.
+ * Callback from the midend when the game ids change, so we can update
+ * the permalinks.
  */
-static void desc_changed(void *ignored)
+static void ids_changed(void *ignored)
 {
     update_permalinks();
 }
@@ -598,7 +598,6 @@ static void cfg_end(int use_results)
             midend_new_game(me);
             resize();
             midend_redraw(me);
-            update_permalinks();
             free_cfg(cfg);
             js_dialog_cleanup();
         }
@@ -653,7 +652,6 @@ void command(int n)
                  */
                 midend_set_params(me, presets[i]);
                 midend_new_game(me);
-                update_permalinks();
                 resize();
                 midend_redraw(me);
                 update_undo_redo();
@@ -802,11 +800,11 @@ int main(int argc, char **argv)
     }
 
     /*
-     * Request notification if a puzzle (hopefully only ever Mines)
-     * supersedes its game description, so that we can proactively
-     * update the permalink.
+     * Request notification when the game ids change (e.g. if the user
+     * presses 'n', and also when Mines supersedes its game
+     * description), so that we can proactively update the permalink.
      */
-    midend_request_desc_changes(me, desc_changed, NULL);
+    midend_request_id_changes(me, ids_changed, NULL);
 
     /*
      * Draw the puzzle's initial state, and set up the permalinks and

@@ -268,8 +268,7 @@ char *midend_deserialise(midend *me,
                          void *rctx);
 char *identify_game(char **name, int (*read)(void *ctx, void *buf, int len),
                     void *rctx);
-void midend_request_desc_changes(midend *me, void (*notify)(void *),
-                                 void *ctx);
+void midend_request_id_changes(midend *me, void (*notify)(void *), void *ctx);
 /* Printing functions supplied by the mid-end */
 char *midend_print_puzzle(midend *me, document *doc, int with_soln);
 int midend_tilesize(midend *me);

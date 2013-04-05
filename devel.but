@@ -1609,10 +1609,6 @@ should use it if they're not Mines; if you think you need to use it,
 think again repeatedly in the hope of finding a better way to do
 whatever it was you needed to do.
 
-If a front end wants to be notified when this happens, it can ask the
-midend to do so by calling \cw{midend_request_desc_changes()}; see
-\k{midend-request-desc-changes}.
-
 \C{drawing} The drawing API
 
 The back end function \cw{redraw()} (\k{backend-redraw}) is required
@@ -3274,17 +3270,18 @@ message (which does not need freeing at all).
 accept or return a pointer to a midend. You'd probably call it just
 \e{before} deciding what kind of midend you wanted to instantiate.)
 
-\H{midend-request-desc-changes} \cw{midend_request_desc_changes()}
+\H{midend-request-id-changes} \cw{midend_request_id_changes()}
 
-\c void midend_request_desc_changes(midend *me,
-\c                                  void (*notify)(void *), void *ctx);
+\c void midend_request_id_changes(midend *me,
+\c                                void (*notify)(void *), void *ctx);
 
 This function is called by the front end to request notification by
-the mid-end when a puzzle supersedes its game description (see
-\k{backend-supersede}). After this function is called, any call to
-\cw{midend_supersede_game_desc()} by the back end will cause the
-mid-end to call \cw{notify(ctx)} after the game description is
-changed.
+the mid-end when the current game IDs (either descriptive or
+random-seed) change. This can occur as a result of keypresses ('n' for
+New Game, for example) or when a puzzle supersedes its game
+description (see \k{backend-supersede}). After this function is
+called, any change of the game ids will cause the mid-end to call
+\cw{notify(ctx)} after the change.
 
 This is for use by puzzles which want to present the game description
 to the user constantly (e.g. as an HTML hyperlink) instead of only

@@ -82,8 +82,8 @@ struct midend {
 
     int preferred_tilesize, tilesize, winwidth, winheight;
 
-    void (*game_desc_change_notify_function)(void *);
-    void *game_desc_change_notify_ctx;
+    void (*game_id_change_notify_function)(void *);
+    void *game_id_change_notify_ctx;
 };
 
 #define ensure(me) do { \
@@ -499,6 +499,9 @@ void midend_new_game(midend *me)
     me->ui = me->ourgame->new_ui(me->states[0].state);
     midend_set_timer(me);
     me->pressed_mouse_button = 0;
+
+    if (me->game_id_change_notify_function)
+        me->game_id_change_notify_function(me->game_id_change_notify_ctx);
 }
 
 int midend_can_undo(midend *me)
@@ -1082,10 +1085,10 @@ int midend_wants_statusbar(midend *me)
     return me->ourgame->wants_statusbar;
 }
 
-void midend_request_desc_changes(midend *me, void (*notify)(void *), void *ctx)
+void midend_request_id_changes(midend *me, void (*notify)(void *), void *ctx)
 {
-    me->game_desc_change_notify_function = notify;
-    me->game_desc_change_notify_ctx = ctx;
+    me->game_id_change_notify_function = notify;
+    me->game_id_change_notify_ctx = ctx;
 }
 
 void midend_supersede_game_desc(midend *me, char *desc, char *privdesc)
@@ -1094,8 +1097,8 @@ void midend_supersede_game_desc(midend *me, char *desc, char *privdesc)
     sfree(me->privdesc);
     me->desc = dupstr(desc);
     me->privdesc = privdesc ? dupstr(privdesc) : NULL;
-    if (me->game_desc_change_notify_function)
-        me->game_desc_change_notify_function(me->game_desc_change_notify_ctx);
+    if (me->game_id_change_notify_function)
+        me->game_id_change_notify_function(me->game_id_change_notify_ctx);
 }
 
 config_item *midend_get_config(midend *me, int which, char **wintitle)
