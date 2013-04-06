@@ -94,13 +94,14 @@ ${unfinishedpara}
     <a id="permalink-seed">by random seed</a>
   </p>
 </div>
-<div id="apology">
-Sorry, this Javascript puzzle doesn't seem to work on your web
-browser. Perhaps you have Javascript disabled, or perhaps your browser
-doesn't provide a feature they depend on. These puzzles have been
-successfully run in Firefox 19, Chrome 26, Internet Explorer 10 and
-Safari 6.
 </div>
+<div id="apology">
+Sorry, this Javascript puzzle doesn't seem to work in your web
+browser. Perhaps you have Javascript disabled, or perhaps your browser
+doesn't provide a feature that the puzzle code requires (such as
+<a href="https://developer.mozilla.org/en-US/docs/JavaScript/Typed_arrays">typed arrays</a>).
+These puzzles have been successfully run in Firefox 19, Chrome 26,
+Internet Explorer 10 and Safari 6.
 </div>
 <hr>
 
