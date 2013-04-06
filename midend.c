@@ -109,6 +109,9 @@ midend *midend_new(frontend *fe, const game *ourgame,
     me->nstates = me->statesize = me->statepos = 0;
     me->states = NULL;
     me->params = ourgame->default_params();
+    me->game_id_change_notify_function = NULL;
+    me->game_id_change_notify_ctx = NULL;
+
     /*
      * Allow environment-based changing of the default settings by
      * defining a variable along the lines of `NET_DEFAULT=25x25w'
