@@ -103,6 +103,10 @@ var permalink_seed, permalink_desc;
 // The undo and redo buttons. Used by js_enable_undo_redo().
 var undo_button, redo_button;
 
+// A div element enclosing both the puzzle and its status bar, used
+// for positioning the resize handle.
+var resizable_div;
+
 // Helper function to find the absolute position of a given DOM
 // element on a page, by iterating upwards through the DOM finding
 // each element's offset from its parent, and thus calculating the
@@ -267,6 +271,83 @@ function initPuzzle() {
 
     // Default to giving keyboard focus to the puzzle.
     onscreen_canvas.focus();
+
+    // Create the resize handle.
+    var resize_handle = document.createElement("canvas");
+    resize_handle.width = 10;
+    resize_handle.height = 10;
+    {
+        var ctx = resize_handle.getContext("2d");
+        ctx.beginPath();
+        for (var i = 1; i <= 7; i += 3) {
+            ctx.moveTo(8.5, i + 0.5);
+            ctx.lineTo(i + 0.5, 8.5);
+        }
+        ctx.lineWidth = '1px';
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.strokeStyle = '#000000';
+        ctx.stroke();
+    }
+    resizable_div = document.getElementById("resizable");
+    resizable_div.appendChild(resize_handle);
+    resize_handle.style.position = 'absolute';
+    resize_handle.style.zIndex = 98;
+    resize_handle.style.bottom = "0";
+    resize_handle.style.right = "0";
+    resize_handle.style.cursor = "se-resize";
+    resize_handle.title = "Drag to resize the puzzle. Right-click to restore the default size.";
+    var resize_xbase = null, resize_ybase = null, restore_pending = false;
+    var resize_xoffset = null, resize_yoffset = null;
+    var resize_puzzle = Module.cwrap('resize_puzzle',
+                                     'void', ['number', 'number']);
+    var restore_puzzle_size = Module.cwrap('restore_puzzle_size', 'void', []);
+    resize_handle.oncontextmenu = function(event) { return false; }
+    resize_handle.onmousedown = function(event) {
+        if (event.button == 0) {
+            var xy = element_coords(onscreen_canvas);
+            resize_xbase = xy.x + onscreen_canvas.width / 2;
+            resize_ybase = xy.y;
+            resize_xoffset = xy.x + onscreen_canvas.width - event.pageX;
+            resize_yoffset = xy.y + onscreen_canvas.height - event.pageY;
+        } else {
+            restore_pending = true;
+        }
+        resize_handle.setCapture(true);
+        event.preventDefault();
+    };
+    window.addEventListener("mousemove", function(event) {
+        if (resize_xbase !== null && resize_ybase !== null) {
+            resize_puzzle((event.pageX + resize_xoffset - resize_xbase) * 2,
+                          (event.pageY + resize_yoffset - resize_ybase));
+            event.preventDefault();
+            // Chrome insists on selecting text during a resize drag
+            // no matter what I do
+            if (window.getSelection)
+                window.getSelection().removeAllRanges();
+            else
+                document.selection.empty();        }
+    });
+    window.addEventListener("mouseup", function(event) {
+        if (resize_xbase !== null && resize_ybase !== null) {
+            resize_xbase = null;
+            resize_ybase = null;
+            onscreen_canvas.focus(); // return focus to the puzzle
+        } else if (restore_pending) {
+            // If you have the puzzle at larger than normal size and
+            // then right-click to restore, I haven't found any way to
+            // stop Chrome and IE popping up a context menu on the
+            // revealed piece of document when you release the button
+            // except by putting the actual restore into a setTimeout.
+            // Gah.
+            setTimeout(function() {
+                restore_pending = false;
+                restore_puzzle_size();
+                onscreen_canvas.focus();
+            }, 20);
+        }
+        event.preventDefault();
+    });
 
     // Run the C setup function, passing argv[1] as the fragment
     // identifier (so that permalinks of the form puzzle.html#game-id

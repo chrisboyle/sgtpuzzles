@@ -21,12 +21,6 @@
  *    by using the DOM File API to ask the user to select a file and
  *    permit us to see its contents.
  *
- *  - it ought to be possible to make the puzzle canvases resizable,
- *    by superimposing some kind of draggable resize handle. Also I
- *    quite like the idea of having a few buttons for standard sizes:
- *    reset to default size, maximise to the browser window dimensions
- *    (if we can find those out), and perhaps even go full-screen.
- *
  *  - I should think about whether these webified puzzles can support
  *    touchscreen-based tablet browsers (assuming there are any that
  *    can cope with the reasonably modern JS and run it fast enough to
@@ -194,10 +188,12 @@ void timer_callback(double tplus)
 }
 
 /* ----------------------------------------------------------------------
- * Helper function to resize the canvas, and variables to remember its
- * size for other functions (e.g. trimming blitter rectangles).
+ * Helper functions to resize the canvas, and variables to remember
+ * its size for other functions (e.g. trimming blitter rectangles).
  */
 static int canvas_w, canvas_h;
+
+/* Called when we resize as a result of changing puzzle settings */
 static void resize(void)
 {
     int w, h;
@@ -206,6 +202,26 @@ static void resize(void)
     js_canvas_set_size(w, h);
     canvas_w = w;
     canvas_h = h;
+}
+
+/* Called from JS when the user uses the resize handle */
+void resize_puzzle(int w, int h)
+{
+    midend_size(me, &w, &h, TRUE);
+    if (canvas_w != w || canvas_h != h) { 
+        js_canvas_set_size(w, h);
+        canvas_w = w;
+        canvas_h = h;
+        midend_force_redraw(me);
+    }
+}
+
+/* Called from JS when the user uses the restore button */
+void restore_puzzle_size(int w, int h)
+{
+    midend_reset_tilesize(me);
+    resize();
+    midend_force_redraw(me);
 }
 
 /*

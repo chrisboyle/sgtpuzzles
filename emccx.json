@@ -21,6 +21,9 @@
     // Callbacks to return values from dialog boxes
     '_dlg_return_sval',
     '_dlg_return_ival',
+    // Callbacks when the resizing controls are used
+    '_resize_puzzle',
+    '_restore_puzzle_size',
     // Main program, run at initialisation time
     '_main'
 ]

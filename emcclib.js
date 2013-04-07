@@ -567,6 +567,7 @@ mergeInto(LibraryManager.library, {
             statusbar.style.width = (w - 4) + "px";
             document.getElementById("statusbarholder").style.width = w + "px";
         }
+        resizable_div.style.width = w + "px";
 
         onscreen_canvas.height = h;
         offscreen_canvas.height = h;
