@@ -12,9 +12,15 @@
 
 /*
  * TODO:
- * 
- *  - Any way we can speed up redraws on GTK? Uck.
- * 
+ *
+ *  - This puzzle, perhaps uniquely among the collection, could use
+ *    support for non-aspect-ratio-preserving resizes. This would
+ *    require some sort of fairly large redesign, unfortunately (since
+ *    it would invalidate the basic assumption that puzzles' size
+ *    requirements are adequately expressed by a single scalar tile
+ *    size), and probably complicate the rest of the puzzles' API as a
+ *    result. So I'm not sure I really want to do it.
+ *
  *  - It would be nice if we could somehow auto-detect a real `long
  *    long' type on the host platform and use it in place of my
  *    hand-hacked int64s. It'd be faster and more reliable.
@@ -39,6 +45,7 @@
 #define SOLVEANIM_TIME 0.50F
 
 enum {
+    COL_SYSBACKGROUND,
     COL_BACKGROUND,
     COL_LINE,
 #ifdef SHOW_CROSSINGS
@@ -1200,7 +1207,15 @@ static float *game_colours(frontend *fe, int *ncolours)
 {
     float *ret = snewn(3 * NCOLOURS, float);
 
-    frontend_default_colour(fe, &ret[COL_BACKGROUND * 3]);
+    /*
+     * COL_BACKGROUND is what we use as the normal background colour.
+     * Unusually, though, it isn't colour #0: COL_SYSBACKGROUND, a bit
+     * darker, takes that place. This means that if the user resizes
+     * an Untangle window so as to change its aspect ratio, the
+     * still-square playable area will be distinguished from the dead
+     * space around it.
+     */
+    game_mkhighlight(fe, ret, COL_BACKGROUND, -1, COL_SYSBACKGROUND);
 
     ret[COL_LINE * 3 + 0] = 0.0F;
     ret[COL_LINE * 3 + 1] = 0.0F;
