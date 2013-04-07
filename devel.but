@@ -2812,6 +2812,22 @@ that \e{and} set the \c{user_size} flag, though!
 The midend relies on the frontend calling \cw{midend_new_game()}
 (\k{midend-new-game}) before calling \cw{midend_size()}.
 
+\H{midend-reset-tilesize} \cw{midend_reset_tilesize()}
+
+\c void midend_reset_tilesize(midend *me);
+
+This function resets the midend's preferred tile size to that of the
+standard puzzle.
+
+As discussed in \k{midend-size}, puzzle resizes are typically
+'sticky', in that once the user has dragged the puzzle to a different
+window size, the resulting tile size will be remembered and used when
+the puzzle configuration changes. If you \e{don't} want that, e.g. if
+you want to provide a command to explicitly reset the puzzle size back
+to its default, then you can call this just before calling
+\cw{midend_size()} (which, in turn, you would probably call with
+\c{user_size} set to \cw{FALSE}).
+
 \H{midend-new-game} \cw{midend_new_game()}
 
 \c void midend_new_game(midend *me);
