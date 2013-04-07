@@ -103,21 +103,28 @@ var permalink_seed, permalink_desc;
 // The undo and redo buttons. Used by js_enable_undo_redo().
 var undo_button, redo_button;
 
-// Helper function which is passed a mouse event object and a DOM
-// element, and returns the coordinates of the mouse event relative to
-// the top left corner of the element by iterating upwards through the
-// DOM finding each element's offset from its parent, and thus
-// calculating the page-relative position of the target element so
-// that we can subtract that from event.page{X,Y}.
-function relative_mouse_coords(event, element) {
+// Helper function to find the absolute position of a given DOM
+// element on a page, by iterating upwards through the DOM finding
+// each element's offset from its parent, and thus calculating the
+// page-relative position of the target element.
+function element_coords(element) {
     var ex = 0, ey = 0;
     while (element.offsetParent) {
         ex += element.offsetLeft;
         ey += element.offsetTop;
         element = element.offsetParent;
     }
-    return {x: event.pageX - ex,
-            y: event.pageY - ey};
+    return {x: ex, y:ey};
+}
+
+// Helper function which is passed a mouse event object and a DOM
+// element, and returns the coordinates of the mouse event relative to
+// the top left corner of the element by subtracting element_coords
+// from event.page{X,Y}.
+function relative_mouse_coords(event, element) {
+    var ecoords = element_coords(element);
+    return {x: event.pageX - ecoords.x,
+            y: event.pageY - ecoords.y};
 }
 
 // Init function called from body.onload.
