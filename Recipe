@@ -205,3 +205,19 @@ PuzzleApplet.class: PuzzleApplet.java org
 	echo '<applet archive="'$@'" code="PuzzleApplet" width="700" height="500"></applet>' >$*.html
 	mv PuzzleEngine.class $<
 !end
+
+# A benchmarking and testing target for the GTK puzzles.
+!begin gtk
+test: benchmark.html benchmark.txt
+
+benchmark.html: benchmark.txt benchmark.pl
+	./benchmark.pl benchmark.txt > $@
+
+benchmark.txt: $(GAMES)
+	for i in $(GAMES); do \
+		for params in $$(env -i ./$(BINPREFIX)$$i --list-presets | cut -f1 -d' '); do \
+			env -i ./$(BINPREFIX)$$i --test-solve --time-generation --generate 100 $$params \
+			|| exit 1; \
+		done; \
+	done > $@
+!end

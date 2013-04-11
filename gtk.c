@@ -12,6 +12,7 @@
 #include <math.h>
 
 #include <sys/time.h>
+#include <sys/resource.h>
 
 #include <gtk/gtk.h>
 #include <gdk/gdkkeysyms.h>
@@ -2482,6 +2483,7 @@ int main(int argc, char **argv)
     char *pname = argv[0];
     char *error;
     int ngenerate = 0, print = FALSE, px = 1, py = 1;
+    int time_generation = FALSE, test_solve = FALSE, list_presets = FALSE;
     int soln = FALSE, colour = FALSE;
     float scale = 1.0F;
     float redo_proportion = 0.0F;
@@ -2534,6 +2536,12 @@ int main(int argc, char **argv)
 		}
 	    } else
 		ngenerate = 1;
+	} else if (doing_opts && !strcmp(p, "--time-generation")) {
+            time_generation = TRUE;
+	} else if (doing_opts && !strcmp(p, "--test-solve")) {
+            test_solve = TRUE;
+	} else if (doing_opts && !strcmp(p, "--list-presets")) {
+            list_presets = TRUE;
 	} else if (doing_opts && !strcmp(p, "--save")) {
 	    if (--ac > 0) {
 		savefile = *++av;
@@ -2722,7 +2730,8 @@ int main(int argc, char **argv)
 	 * generated descriptive game IDs.)
 	 */
 	while (ngenerate == 0 || i < n) {
-	    char *pstr, *err;
+	    char *pstr, *err, *seed;
+            struct rusage before, after;
 
 	    if (ngenerate == 0) {
 		pstr = fgetline(stdin);
@@ -2748,9 +2757,63 @@ int main(int argc, char **argv)
 		    return 1;
 		}
 	    }
-	    sfree(pstr);
 
-	    midend_new_game(me);
+            if (time_generation)
+                getrusage(RUSAGE_SELF, &before);
+
+            midend_new_game(me);
+
+            seed = midend_get_random_seed(me);
+
+            if (time_generation) {
+                double elapsed;
+
+                getrusage(RUSAGE_SELF, &after);
+
+                elapsed = (after.ru_utime.tv_sec -
+                           before.ru_utime.tv_sec);
+                elapsed += (after.ru_utime.tv_usec -
+                            before.ru_utime.tv_usec) / 1000000.0;
+
+                printf("%s %s: %.6f\n", thegame.name, seed, elapsed);
+            }
+
+            if (test_solve && thegame.can_solve) {
+                /*
+                 * Now destroy the aux_info in the midend, by means of
+                 * re-entering the same game id, and then try to solve
+                 * it.
+                 */
+                char *game_id, *err;
+
+                game_id = midend_get_game_id(me);
+                err = midend_game_id(me, game_id);
+                if (err) {
+                    fprintf(stderr, "%s %s: game id re-entry error: %s\n",
+                            thegame.name, seed, err);
+                    return 1;
+                }
+                midend_new_game(me);
+                sfree(game_id);
+
+                err = midend_solve(me);
+                /*
+                 * If the solve operation returned the error "Solution
+                 * not known for this puzzle", that's OK, because that
+                 * just means it's a puzzle for which we don't have an
+                 * algorithmic solver and hence can't solve it without
+                 * the aux_info, e.g. Netslide. Any other error is a
+                 * problem, though.
+                 */
+                if (err && strcmp(err, "Solution not known for this puzzle")) {
+                    fprintf(stderr, "%s %s: solve error: %s\n",
+                            thegame.name, seed, err);
+                    return 1;
+                }
+            }
+
+	    sfree(pstr);
+            sfree(seed);
 
 	    if (doc) {
 		err = midend_print_puzzle(me, doc, soln);
@@ -2794,7 +2857,7 @@ int main(int argc, char **argv)
 		}
 		sfree(realname);
 	    }
-	    if (!doc && !savefile) {
+	    if (!doc && !savefile && !time_generation) {
 		id = midend_get_game_id(me);
 		puts(id);
 		sfree(id);
@@ -2813,6 +2876,30 @@ int main(int argc, char **argv)
 	midend_free(me);
 
 	return 0;
+    } else if (list_presets) {
+        /*
+         * Another specialist mode which causes the puzzle to list the
+         * game_params strings for all its preset configurations.
+         */
+        int i, npresets;
+        midend *me;
+
+	me = midend_new(NULL, &thegame, NULL, NULL);
+        npresets = midend_num_presets(me);
+
+        for (i = 0; i < npresets; i++) {
+            game_params *params;
+            char *name, *paramstr;
+
+            midend_fetch_preset(me, i, &name, &params);
+            paramstr = thegame.encode_params(params, TRUE);
+
+            printf("%s %s\n", paramstr, name);
+            sfree(paramstr);
+        }
+
+	midend_free(me);
+        return 0;
     } else {
 	frontend *fe;
 
