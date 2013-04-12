@@ -3063,7 +3063,8 @@ static int check_valid(int cr, struct block_structure *blocks,
     return TRUE;
 }
 
-static int symmetries(game_params *params, int x, int y, int *output, int s)
+static int symmetries(const game_params *params, int x, int y,
+                      int *output, int s)
 {
     int c = params->c, r = params->r, cr = c*r;
     int i = 0;
@@ -3305,7 +3306,7 @@ static int blocks_encode_space(struct block_structure *blocks)
     return grid_encode_space(area);
 }
 
-static char *encode_puzzle_desc(game_params *params, digit *grid,
+static char *encode_puzzle_desc(const game_params *params, digit *grid,
 				struct block_structure *blocks,
 				digit *kgrid,
 				struct block_structure *kblocks)
@@ -3548,7 +3549,7 @@ static struct block_structure *gen_killer_cages(int cr, random_state *rs,
     return b;
 }
 
-static char *new_game_desc(game_params *params, random_state *rs,
+static char *new_game_desc(const game_params *params, random_state *rs,
 			   char **aux, int interactive)
 {
     int c = params->c, r = params->r, cr = c*r;
@@ -3989,7 +3990,7 @@ static char *validate_block_desc(char **pdesc, int cr, int area,
     return NULL;
 }
 
-static char *validate_desc(game_params *params, char *desc)
+static char *validate_desc(const game_params *params, char *desc)
 {
     int cr = params->c * params->r, area = cr*cr;
     char *err;

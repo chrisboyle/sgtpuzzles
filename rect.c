@@ -1146,9 +1146,11 @@ static void display_grid(game_params *params, int *grid, int *numbers, int all)
 }
 #endif
 
-static char *new_game_desc(game_params *params, random_state *rs,
+static char *new_game_desc(const game_params *params_in, random_state *rs,
 			   char **aux, int interactive)
 {
+    game_params params_copy = *params_in; /* structure copy */
+    game_params *params = &params_copy;
     int *grid, *numbers = NULL;
     int x, y, y2, y2last, yx, run, i, nsquares;
     char *desc, *p;
@@ -1776,7 +1778,7 @@ static char *new_game_desc(game_params *params, random_state *rs,
     return desc;
 }
 
-static char *validate_desc(game_params *params, char *desc)
+static char *validate_desc(const game_params *params, char *desc)
 {
     int area = params->w * params->h;
     int squares = 0;

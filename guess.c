@@ -264,7 +264,7 @@ static void free_pegrow(pegrow pegs)
     sfree(pegs);
 }
 
-static char *new_game_desc(game_params *params, random_state *rs,
+static char *new_game_desc(const game_params *params, random_state *rs,
 			   char **aux, int interactive)
 {
     unsigned char *bmp = snewn(params->npegs, unsigned char);
@@ -287,7 +287,7 @@ newcol:
     return ret;
 }
 
-static char *validate_desc(game_params *params, char *desc)
+static char *validate_desc(const game_params *params, char *desc)
 {
     unsigned char *bmp;
     int i;

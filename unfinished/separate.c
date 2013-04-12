@@ -626,7 +626,7 @@ unsigned char *generate(int w, int h, int k, random_state *rs)
  * End of solver/generator code.
  */
 
-static char *new_game_desc(game_params *params, random_state *rs,
+static char *new_game_desc(const game_params *params, random_state *rs,
 			   char **aux, int interactive)
 {
     int w = params->w, h = params->h, wh = w*h, k = params->k;
@@ -646,7 +646,7 @@ static char *new_game_desc(game_params *params, random_state *rs,
     return desc;
 }
 
-static char *validate_desc(game_params *params, char *desc)
+static char *validate_desc(const game_params *params, char *desc)
 {
     return NULL;
 }

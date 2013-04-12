@@ -867,7 +867,7 @@ static void minimize_clue_set(int *board, int w, int h, int *randomize) {
     sfree(board_cp);
 }
 
-static char *new_game_desc(game_params *params, random_state *rs,
+static char *new_game_desc(const game_params *params, random_state *rs,
                            char **aux, int interactive)
 {
     const int w = params->w;
@@ -906,7 +906,7 @@ static char *new_game_desc(game_params *params, random_state *rs,
     return game_description;
 }
 
-static char *validate_desc(game_params *params, char *desc)
+static char *validate_desc(const game_params *params, char *desc)
 {
     int i;
     const int sz = params->w * params->h;

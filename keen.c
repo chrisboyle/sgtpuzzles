@@ -740,7 +740,7 @@ static char *parse_block_structure(const char **p, int w, int *dsf)
     return NULL;
 }
 
-static char *new_game_desc(game_params *params, random_state *rs,
+static char *new_game_desc(const game_params *params, random_state *rs,
 			   char **aux, int interactive)
 {
     int w = params->w, a = w*w;
@@ -1145,7 +1145,7 @@ done
  * Gameplay.
  */
 
-static char *validate_desc(game_params *params, char *desc)
+static char *validate_desc(const game_params *params, char *desc)
 {
     int w = params->w, a = w*w;
     int *dsf;

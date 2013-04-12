@@ -503,7 +503,7 @@ static void pegs_generate(unsigned char *grid, int w, int h, random_state *rs)
  * it as part of the puzzle.
  */
 
-static char *new_game_desc(game_params *params, random_state *rs,
+static char *new_game_desc(const game_params *params, random_state *rs,
 			   char **aux, int interactive)
 {
     int w = params->w, h = params->h;
@@ -660,7 +660,7 @@ static char *new_game_desc(game_params *params, random_state *rs,
     return ret;
 }
 
-static char *validate_desc(game_params *params, char *desc)
+static char *validate_desc(const game_params *params, char *desc)
 {
     int len = params->w * params->h;
 

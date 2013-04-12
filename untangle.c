@@ -491,7 +491,7 @@ static void make_circle(point *pts, int n, int w)
     }
 }
 
-static char *new_game_desc(game_params *params, random_state *rs,
+static char *new_game_desc(const game_params *params, random_state *rs,
 			   char **aux, int interactive)
 {
     int n = params->n, i;
@@ -734,7 +734,7 @@ static char *new_game_desc(game_params *params, random_state *rs,
     return ret;
 }
 
-static char *validate_desc(game_params *params, char *desc)
+static char *validate_desc(const game_params *params, char *desc)
 {
     int a, b;
 

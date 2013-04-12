@@ -1094,9 +1094,11 @@ static void add_adjacent_flags(game_state *state, digit *latin)
     }
 }
 
-static char *new_game_desc(game_params *params, random_state *rs,
+static char *new_game_desc(const game_params *params_in, random_state *rs,
 			   char **aux, int interactive)
 {
+    game_params params_copy = *params_in; /* structure copy */
+    game_params *params = &params_copy;
     digit *sq = NULL;
     int i, x, y, retlen, k, nsol;
     int o2 = params->order * params->order, ntries = 1;
@@ -1188,7 +1190,7 @@ generate:
     return ret;
 }
 
-static game_state *load_game(game_params *params, char *desc,
+static game_state *load_game(const game_params *params, char *desc,
                              char **why_r)
 {
     game_state *state = blank_game(params->order, params->adjacent);
@@ -1284,7 +1286,7 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
     return state;
 }
 
-static char *validate_desc(game_params *params, char *desc)
+static char *validate_desc(const game_params *params, char *desc)
 {
     char *why = NULL;
     game_state *dummy = load_game(params, desc, &why);

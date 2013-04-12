@@ -155,7 +155,7 @@ static int perm_parity(int *perm, int n)
     return ret;
 }
 
-static char *new_game_desc(game_params *params, random_state *rs,
+static char *new_game_desc(const game_params *params, random_state *rs,
 			   char **aux, int interactive)
 {
     int gap, n, i, x;
@@ -271,7 +271,7 @@ static char *new_game_desc(game_params *params, random_state *rs,
     return ret;
 }
 
-static char *validate_desc(game_params *params, char *desc)
+static char *validate_desc(const game_params *params, char *desc)
 {
     char *p, *err;
     int i, area;

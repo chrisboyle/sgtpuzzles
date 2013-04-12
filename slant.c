@@ -1063,7 +1063,7 @@ static void slant_generate(int w, int h, signed char *soln, random_state *rs)
     sfree(connected);
 }
 
-static char *new_game_desc(game_params *params, random_state *rs,
+static char *new_game_desc(const game_params *params, random_state *rs,
 			   char **aux, int interactive)
 {
     int w = params->w, h = params->h, W = w+1, H = h+1;
@@ -1216,7 +1216,7 @@ static char *new_game_desc(game_params *params, random_state *rs,
     return desc;
 }
 
-static char *validate_desc(game_params *params, char *desc)
+static char *validate_desc(const game_params *params, char *desc)
 {
     int w = params->w, h = params->h, W = w+1, H = h+1;
     int area = W*H;

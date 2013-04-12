@@ -1393,7 +1393,7 @@ static int map_solver(struct solver_scratch *sc,
  * Game generation main function.
  */
 
-static char *new_game_desc(game_params *params, random_state *rs,
+static char *new_game_desc(const game_params *params, random_state *rs,
 			   char **aux, int interactive)
 {
     struct solver_scratch *sc = NULL;
@@ -1704,7 +1704,7 @@ static char *new_game_desc(game_params *params, random_state *rs,
     return ret;
 }
 
-static char *parse_edge_list(game_params *params, char **desc, int *map)
+static char *parse_edge_list(const game_params *params, char **desc, int *map)
 {
     int w = params->w, h = params->h, wh = w*h, n = params->n;
     int i, k, pos, state;
@@ -1780,7 +1780,7 @@ static char *parse_edge_list(game_params *params, char **desc, int *map)
     return NULL;
 }
 
-static char *validate_desc(game_params *params, char *desc)
+static char *validate_desc(const game_params *params, char *desc)
 {
     int w = params->w, h = params->h, wh = w*h, n = params->n;
     int area;

@@ -545,7 +545,7 @@ static int solver(int w, int h, int n, int *grid, int *output)
  * End of solver code.
  */
 
-static char *new_game_desc(game_params *params, random_state *rs,
+static char *new_game_desc(const game_params *params, random_state *rs,
 			   char **aux, int interactive)
 {
     int n = params->n, w = n+2, h = n+1, wh = w*h;
@@ -746,7 +746,7 @@ static char *new_game_desc(game_params *params, random_state *rs,
     return ret;
 }
 
-static char *validate_desc(game_params *params, char *desc)
+static char *validate_desc(const game_params *params, char *desc)
 {
     int n = params->n, w = n+2, h = n+1, wh = w*h;
     int *occurrences;

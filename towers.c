@@ -608,7 +608,7 @@ static int solver(int w, int *clues, digit *soln, int maxdiff)
  * Grid generation.
  */
 
-static char *new_game_desc(game_params *params, random_state *rs,
+static char *new_game_desc(const game_params *params, random_state *rs,
 			   char **aux, int interactive)
 {
     int w = params->w, a = w*w;
@@ -803,7 +803,7 @@ done
  * Gameplay.
  */
 
-static char *validate_desc(game_params *params, char *desc)
+static char *validate_desc(const game_params *params, char *desc)
 {
     int w = params->w, a = w*w;
     const char *p = desc;

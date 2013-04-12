@@ -367,7 +367,7 @@ static char *validate_params(game_params *params, int full)
 
 /* --- Game state construction/freeing helper functions --- */
 
-static game_state *new_state(game_params *params)
+static game_state *new_state(const game_params *params)
 {
     game_state *ret = snew(game_state);
 
@@ -568,7 +568,8 @@ static void clean_board(game_state *state, int leave_blacks)
     state->nlights = 0;
 }
 
-static void set_blacks(game_state *state, game_params *params, random_state *rs)
+static void set_blacks(game_state *state, const game_params *params,
+                       random_state *rs)
 {
     int x, y, degree = 0, rotate = 0, nblack;
     int rh, rw, i;
@@ -1516,9 +1517,11 @@ static int puzzle_is_good(game_state *state, int difficulty)
 
 #define MAX_GRIDGEN_TRIES 20
 
-static char *new_game_desc(game_params *params, random_state *rs,
+static char *new_game_desc(const game_params *params_in, random_state *rs,
 			   char **aux, int interactive)
 {
+    game_params params_copy = *params_in; /* structure copy */
+    game_params *params = &params_copy;
     game_state *news = new_state(params), *copys;
     int i, j, run, x, y, wh = params->w*params->h, num;
     char *ret, *p;
@@ -1625,7 +1628,7 @@ goodpuzzle:
     return ret;
 }
 
-static char *validate_desc(game_params *params, char *desc)
+static char *validate_desc(const game_params *params, char *desc)
 {
     int i;
     for (i = 0; i < params->w*params->h; i++) {

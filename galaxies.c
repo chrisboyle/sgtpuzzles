@@ -1233,7 +1233,7 @@ static void generate_pass(game_state *state, random_state *rs, int *scratch,
 static int check_complete(game_state *state, int *dsf, int *colours);
 static int solver_state(game_state *state, int maxdiff);
 
-static char *new_game_desc(game_params *params, random_state *rs,
+static char *new_game_desc(const game_params *params, random_state *rs,
 			   char **aux, int interactive)
 {
     game_state *state = blank_game(params->w, params->h), *copy;
@@ -1480,7 +1480,7 @@ static int dots_too_close(game_state *state)
     return (ret == -1) ? 1 : 0;
 }
 
-static game_state *load_game(game_params *params, char *desc,
+static game_state *load_game(const game_params *params, char *desc,
                              char **why_r)
 {
     game_state *state = blank_game(params->w, params->h);
@@ -1528,7 +1528,7 @@ fail:
     return NULL;
 }
 
-static char *validate_desc(game_params *params, char *desc)
+static char *validate_desc(const game_params *params, char *desc)
 {
     char *why = NULL;
     game_state *dummy = load_game(params, desc, &why);

@@ -900,9 +900,11 @@ static int tents_solve(int w, int h, const char *grid, int *numbers,
     return 1;
 }
 
-static char *new_game_desc(game_params *params, random_state *rs,
+static char *new_game_desc(const game_params *params_in, random_state *rs,
 			   char **aux, int interactive)
 {
+    game_params params_copy = *params_in; /* structure copy */
+    game_params *params = &params_copy;
     int w = params->w, h = params->h;
     int ntrees = w * h / 5;
     char *grid = snewn(w*h, char);
@@ -1188,7 +1190,7 @@ static char *new_game_desc(game_params *params, random_state *rs,
     return ret;
 }
 
-static char *validate_desc(game_params *params, char *desc)
+static char *validate_desc(const game_params *params, char *desc)
 {
     int w = params->w, h = params->h;
     int area, i;

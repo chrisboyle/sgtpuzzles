@@ -662,7 +662,7 @@ static unsigned char *generate_soluble(random_state *rs, int w, int h)
     return grid;
 }
 
-static char *new_game_desc(game_params *params, random_state *rs,
+static char *new_game_desc(const game_params *params, random_state *rs,
 			   char **aux, int interactive)
 {
     unsigned char *grid;
@@ -749,7 +749,7 @@ static char *new_game_desc(game_params *params, random_state *rs,
     return desc;
 }
 
-static char *validate_desc(game_params *params, char *desc)
+static char *validate_desc(const game_params *params, char *desc)
 {
     int i, n, rowspace;
     char *p;

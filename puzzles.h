@@ -487,9 +487,9 @@ struct game {
     config_item *(*configure)(game_params *params);
     game_params *(*custom_params)(config_item *cfg);
     char *(*validate_params)(game_params *params, int full);
-    char *(*new_desc)(game_params *params, random_state *rs,
+    char *(*new_desc)(const game_params *params, random_state *rs,
 		      char **aux, int interactive);
-    char *(*validate_desc)(game_params *params, char *desc);
+    char *(*validate_desc)(const game_params *params, char *desc);
     game_state *(*new_game)(midend *me, game_params *params, char *desc);
     game_state *(*dup_game)(game_state *state);
     void (*free_game)(game_state *state);

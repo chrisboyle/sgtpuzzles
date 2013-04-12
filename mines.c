@@ -1955,7 +1955,7 @@ static char *new_mine_layout(int w, int h, int n, int x, int y, int unique,
     return grid;
 }
 
-static char *new_game_desc(game_params *params, random_state *rs,
+static char *new_game_desc(const game_params *params, random_state *rs,
 			   char **aux, int interactive)
 {
     /*
@@ -1994,7 +1994,7 @@ static char *new_game_desc(game_params *params, random_state *rs,
     }
 }
 
-static char *validate_desc(game_params *params, char *desc)
+static char *validate_desc(const game_params *params, char *desc)
 {
     int wh = params->w * params->h;
     int x, y;

@@ -1735,7 +1735,7 @@ static int solve_from_scratch(game_state *state, int difficulty)
 
 /* --- New game functions --- */
 
-static game_state *new_state(game_params *params)
+static game_state *new_state(const game_params *params)
 {
     game_state *ret = snew(game_state);
     int wh = params->w * params->h, i;
@@ -1845,7 +1845,7 @@ static void free_game(game_state *state)
 
 #define ORDER(a,b) do { if (a < b) { int tmp=a; int a=b; int b=tmp; } } while(0)
 
-static char *new_game_desc(game_params *params, random_state *rs,
+static char *new_game_desc(const game_params *params, random_state *rs,
 			   char **aux, int interactive)
 {
     game_state *tobuild  = NULL;
@@ -2015,7 +2015,7 @@ generated:
     return ret;
 }
 
-static char *validate_desc(game_params *params, char *desc)
+static char *validate_desc(const game_params *params, char *desc)
 {
     int i, wh = params->w * params->h;
 

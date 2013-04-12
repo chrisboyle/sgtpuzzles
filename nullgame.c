@@ -83,13 +83,13 @@ static char *validate_params(game_params *params, int full)
     return NULL;
 }
 
-static char *new_game_desc(game_params *params, random_state *rs,
+static char *new_game_desc(const game_params *params, random_state *rs,
 			   char **aux, int interactive)
 {
     return dupstr("FIXME");
 }
 
-static char *validate_desc(game_params *params, char *desc)
+static char *validate_desc(const game_params *params, char *desc)
 {
     return NULL;
 }

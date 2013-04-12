@@ -347,7 +347,7 @@ static void addneighbours(tree234 *t, int w, int h, int cx, int cy,
     addsq(t, w, h, cx, cy, x, y+1, matrix);
 }
 
-static char *new_game_desc(game_params *params, random_state *rs,
+static char *new_game_desc(const game_params *params, random_state *rs,
 			   char **aux, int interactive)
 {
     int w = params->w, h = params->h, wh = w * h;
@@ -596,7 +596,7 @@ static char *new_game_desc(game_params *params, random_state *rs,
     return ret;
 }
 
-static char *validate_desc(game_params *params, char *desc)
+static char *validate_desc(const game_params *params, char *desc)
 {
     int w = params->w, h = params->h, wh = w * h;
     int mlen = (wh*wh+3)/4, glen = (wh+3)/4;

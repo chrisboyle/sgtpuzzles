@@ -499,7 +499,7 @@ static void free_game(game_state *state)
     sfree(state);
 }
 
-static void unpick_desc(game_params *params, char *desc,
+static void unpick_desc(const game_params *params, char *desc,
                         game_state **sout, char **mout)
 {
     game_state *state = blank_game(params->w, params->h);
@@ -793,7 +793,7 @@ done:
     return ret;
 }
 
-static char *new_game_desc(game_params *params, random_state *rs,
+static char *new_game_desc(const game_params *params, random_state *rs,
 			   char **aux, int interactive)
 {
     game_state *state = blank_game(params->w, params->h);
@@ -840,7 +840,7 @@ generate:
     return ret;
 }
 
-static char *validate_desc(game_params *params, char *desc)
+static char *validate_desc(const game_params *params, char *desc)
 {
     char *ret = NULL;
 

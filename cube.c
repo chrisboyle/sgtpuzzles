@@ -315,7 +315,8 @@ static char *encode_params(game_params *params, int full)
 }
 typedef void (*egc_callback)(void *, struct grid_square *);
 
-static void enum_grid_squares(game_params *params, egc_callback callback, void *ctx)
+static void enum_grid_squares(const game_params *params, egc_callback callback,
+                              void *ctx)
 {
     const struct solid *solid = solids[params->solid];
 
@@ -597,7 +598,7 @@ static void classify_grid_square_callback(void *ctx, struct grid_square *sq)
 	data->squareindex++;
 }
 
-static char *new_game_desc(game_params *params, random_state *rs,
+static char *new_game_desc(const game_params *params, random_state *rs,
 			   char **aux, int interactive)
 {
     struct grid_data data;
@@ -845,7 +846,7 @@ static struct solid *transform_poly(const struct solid *solid, int flip,
     return ret;
 }
 
-static char *validate_desc(game_params *params, char *desc)
+static char *validate_desc(const game_params *params, char *desc)
 {
     int area = grid_area(params->d1, params->d2, solids[params->solid]->order);
     int i, j;

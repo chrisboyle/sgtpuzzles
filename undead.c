@@ -237,7 +237,7 @@ struct game_state {
     int cheated;
 };
 
-static game_state *new_state(game_params *params) {
+static game_state *new_state(const game_params *params) {
     int i;
     game_state *state = snew(game_state);
     state->common = snew(struct game_common);
@@ -956,7 +956,7 @@ int path_cmp(const void *a, const void *b) {
     return pa->num_monsters - pb->num_monsters;
 }
 
-static char *new_game_desc(game_params *params, random_state *rs,
+static char *new_game_desc(const game_params *params, random_state *rs,
                            char **aux, int interactive) {
     int i,count,c,w,h,r,p,g;
     game_state *new;
@@ -1419,7 +1419,7 @@ static game_state *new_game(midend *me, game_params *params, char *desc) {
     return state;
 }
 
-static char *validate_desc(game_params *params, char *desc) {
+static char *validate_desc(const game_params *params, char *desc) {
     int i;
     int w = params->w, h = params->h;
     int wh = w*h;

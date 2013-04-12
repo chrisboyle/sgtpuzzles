@@ -1158,7 +1158,7 @@ void pearl_loopgen(int w, int h, char *lines, random_state *rs)
 #endif
 }
 
-static int new_clues(game_params *params, random_state *rs,
+static int new_clues(const game_params *params, random_state *rs,
                      char *clues, char *grid)
 {
     int w = params->w, h = params->h, diff = params->difficulty;
@@ -1356,7 +1356,7 @@ static int new_clues(game_params *params, random_state *rs,
     return ngen;
 }
 
-static char *new_game_desc(game_params *params, random_state *rs,
+static char *new_game_desc(const game_params *params, random_state *rs,
 			   char **aux, int interactive)
 {
     char *grid, *clues;
@@ -1393,7 +1393,7 @@ static char *new_game_desc(game_params *params, random_state *rs,
     return desc;
 }
 
-static char *validate_desc(game_params *params, char *desc)
+static char *validate_desc(const game_params *params, char *desc)
 {
     int i, sizesofar;
     const int totalsize = params->w * params->h;

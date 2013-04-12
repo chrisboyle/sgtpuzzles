@@ -231,7 +231,7 @@ struct game_drawstate {
     char *clue_satisfied;
 };
 
-static char *validate_desc(game_params *params, char *desc);
+static char *validate_desc(const game_params *params, char *desc);
 static int dot_order(const game_state* state, int i, char line_type);
 static int face_order(const game_state* state, int i, char line_type);
 static solver_state *solve_game_rec(const solver_state *sstate);
@@ -277,7 +277,7 @@ static const struct {
 /* Generates a (dynamically allocated) new grid, according to the
  * type and size requested in params.  Does nothing if the grid is already
  * generated. */
-static grid *loopy_generate_grid(game_params *params, char *grid_desc)
+static grid *loopy_generate_grid(const game_params *params, char *grid_desc)
 {
     return grid_new(grid_types[params->type], params->w, params->h, grid_desc);
 }
@@ -713,7 +713,7 @@ static char *extract_grid_desc(char **desc)
 
 /* We require that the params pass the test in validate_params and that the
  * description fills the entire game area */
-static char *validate_desc(game_params *params, char *desc)
+static char *validate_desc(const game_params *params, char *desc)
 {
     int count = 0;
     grid *g;
@@ -1364,7 +1364,7 @@ static game_state *remove_clues(game_state *state, random_state *rs,
 }
 
 
-static char *new_game_desc(game_params *params, random_state *rs,
+static char *new_game_desc(const game_params *params, random_state *rs,
                            char **aux, int interactive)
 {
     /* solution and description both use run-length encoding in obvious ways */

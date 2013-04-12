@@ -422,7 +422,8 @@ badchar:
     return NULL;
 }
 
-static game_state *new_game_int(game_params *params, char *desc, const char **prob)
+static game_state *new_game_int(const game_params *params, char *desc,
+                                const char **prob)
 {
     game_state *state = new_state(params->w, params->h);
     int x, y, idx, *count;
@@ -529,7 +530,7 @@ done:
     return state;
 }
 
-static char *validate_desc(game_params *params, char *desc)
+static char *validate_desc(const game_params *params, char *desc)
 {
     const char *prob;
     game_state *st = new_game_int(params, desc, &prob);
@@ -1603,7 +1604,7 @@ static void generate_aux(game_state *new, char *aux)
     aux[new->wh] = '\0';
 }
 
-static int check_difficulty(game_params *params, game_state *new,
+static int check_difficulty(const game_params *params, game_state *new,
                             random_state *rs)
 {
     int *scratch, *grid_correct, slen, i;
@@ -1675,7 +1676,7 @@ static int check_difficulty(game_params *params, game_state *new,
     return 0;
 }
 
-static char *new_game_desc(game_params *params, random_state *rs,
+static char *new_game_desc(const game_params *params, random_state *rs,
 			   char **aux_r, int interactive)
 {
     game_state *new = new_state(params->w, params->h);

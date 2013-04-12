@@ -672,7 +672,7 @@ static void newdesc_compute_clues(game_state *state);
 static int newdesc_strip_clues(game_state *state, int *shuffle_1toN);
 static char *newdesc_encode_game_description(int n, puzzle_size *grid);
 
-static char *new_game_desc(game_params *params, random_state *rs,
+static char *new_game_desc(const game_params *params, random_state *rs,
                            char **aux, int interactive)
 {
     int const w = params->w, h = params->h, n = w * h;
@@ -1060,7 +1060,7 @@ static char *newdesc_encode_game_description(int area, puzzle_size *grid)
     return desc;
 }
 
-static char *validate_desc(game_params *params, char *desc)
+static char *validate_desc(const game_params *params, char *desc)
 {
     int const n = params->w * params->h;
     int squares = 0;

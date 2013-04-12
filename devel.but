@@ -655,7 +655,7 @@ a descriptive-format game ID.
 
 \S{backend-new-desc} \cw{new_desc()}
 
-\c char *(*new_desc)(game_params *params, random_state *rs,
+\c char *(*new_desc)(const game_params *params, random_state *rs,
 \c                   char **aux, int interactive);
 
 This function is where all the really hard work gets done. This is
@@ -696,7 +696,7 @@ again in the game description.
 
 \S{backend-validate-desc} \cw{validate_desc()}
 
-\c char *(*validate_desc)(game_params *params, char *desc);
+\c char *(*validate_desc)(const game_params *params, char *desc);
 
 This function is given a game description, and its job is to
 validate that it describes a puzzle which makes sense.

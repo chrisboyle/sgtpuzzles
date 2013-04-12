@@ -837,7 +837,7 @@ static void generate_board(int w, int h, int *rtx, int *rty, int *minmoves,
  * End of solver/generator code.
  */
 
-static char *new_game_desc(game_params *params, random_state *rs,
+static char *new_game_desc(const game_params *params, random_state *rs,
 			   char **aux, int interactive)
 {
     int w = params->w, h = params->h, wh = w*h;
@@ -891,7 +891,7 @@ static char *new_game_desc(game_params *params, random_state *rs,
     return ret;
 }
 
-static char *validate_desc(game_params *params, char *desc)
+static char *validate_desc(const game_params *params, char *desc)
 {
     int w = params->w, h = params->h, wh = w*h;
     int *active, *link;
