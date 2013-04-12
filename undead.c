@@ -576,8 +576,9 @@ int next_list(struct guess *g, int pos) {
 
 void get_unique(game_state *state, int counter, random_state *rs) {
 
-    int p,i,c,count_uniques;
+    int p,i,c,pathlimit,count_uniques;
     struct guess path_guess;
+    int *view_count;
     
     struct entry {
         struct entry *link;
@@ -589,10 +590,10 @@ void get_unique(game_state *state, int counter, random_state *rs) {
     struct {
         struct entry *head;
         struct entry *node;
-    } views, single_views, loop_views, test_views;
+    } views, single_views, test_views;
 
     struct entry test_entry;
-    
+
     path_guess.length = state->common->paths[counter].num_monsters;
     path_guess.guess = snewn(path_guess.length,int);
     path_guess.possible = snewn(path_guess.length,int);
@@ -615,20 +616,17 @@ void get_unique(game_state *state, int counter, random_state *rs) {
 
     views.head = NULL;
     views.node = NULL;
+
+    pathlimit = state->common->paths[counter].length + 1;
+    view_count = snewn(pathlimit*pathlimit, int);
+    for (i = 0; i < pathlimit*pathlimit; i++)
+        view_count[i] = 0;
     
     do {
-        int mirror;
+        int mirror, start_view, end_view;
         
-        views.node = snewn(1,struct entry);
-        views.node->link = views.head;
-        views.node->guess = snewn(path_guess.length,int);
-        views.head = views.node;
-        views.node->start_view = 0;
-        views.node->end_view = 0;
-        memcpy(views.node->guess, path_guess.guess,
-               path_guess.length*sizeof(int));
-
         mirror = FALSE;
+        start_view = 0;
         for (p=0;p<state->common->paths[counter].length;p++) {
             if (state->common->paths[counter].p[p] == -1) mirror = TRUE;
             else {
@@ -636,17 +634,18 @@ void get_unique(game_state *state, int counter, random_state *rs) {
                     if (state->common->paths[counter].p[p] ==
                         state->common->paths[counter].mapping[i]) {
                         if (path_guess.guess[i] == 1 && mirror == TRUE)
-                            views.node->start_view++;
+                            start_view++;
                         if (path_guess.guess[i] == 2 && mirror == FALSE)
-                            views.node->start_view++;
+                            start_view++;
                         if (path_guess.guess[i] == 4)
-                            views.node->start_view++;
+                            start_view++;
                         break;
                     }
                 }
             }
         }
         mirror = FALSE;
+        end_view = 0;
         for (p=state->common->paths[counter].length-1;p>=0;p--) {
             if (state->common->paths[counter].p[p] == -1) mirror = TRUE;
             else {
@@ -654,15 +653,30 @@ void get_unique(game_state *state, int counter, random_state *rs) {
                     if (state->common->paths[counter].p[p] ==
                         state->common->paths[counter].mapping[i]) {
                         if (path_guess.guess[i] == 1 && mirror == TRUE)
-                            views.node->end_view++;
+                            end_view++;
                         if (path_guess.guess[i] == 2 && mirror == FALSE)
-                            views.node->end_view++;
+                            end_view++;
                         if (path_guess.guess[i] == 4)
-                            views.node->end_view++;
+                            end_view++;
                         break;
                     }
                 }
             }
+        }
+
+        assert(start_view >= 0 && start_view < pathlimit);
+        assert(end_view >= 0 && end_view < pathlimit);
+        i = start_view * pathlimit + end_view;
+        view_count[i]++;
+        if (view_count[i] == 1) {
+            views.node = snewn(1,struct entry);
+            views.node->link = views.head;
+            views.node->guess = snewn(path_guess.length,int);
+            views.head = views.node;
+            views.node->start_view = start_view;
+            views.node->end_view = end_view;
+            memcpy(views.node->guess, path_guess.guess,
+                   path_guess.length*sizeof(int));
         }
     } while (next_list(&path_guess, path_guess.length-1));
 
@@ -680,17 +694,8 @@ void get_unique(game_state *state, int counter, random_state *rs) {
     while (test_views.head != NULL) {
         test_views.node = test_views.head;
         test_views.head = test_views.head->link;
-        c = 0;
-        loop_views.head = views.head;
-        loop_views.node = views.node;
-        while (loop_views.head != NULL) {
-            loop_views.node = loop_views.head;
-            loop_views.head = loop_views.head->link;
-            if (test_views.node->start_view == loop_views.node->start_view &&
-                test_views.node->end_view == loop_views.node->end_view)
-                c++;
-        }
-        if (c == 1) {
+        i = test_views.node->start_view * pathlimit + test_views.node->end_view;
+        if (view_count[i] == 1) {
             single_views.node = snewn(1,struct entry);
             single_views.node->link = single_views.head;
             single_views.node->guess = snewn(path_guess.length,int);
@@ -702,6 +707,8 @@ void get_unique(game_state *state, int counter, random_state *rs) {
             count_uniques++;
         }
     }
+
+    sfree(view_count);
 
     if (count_uniques > 0) {
         test_entry.start_view = 0;
