@@ -1020,9 +1020,11 @@ it may return \cw{NULL}. If it does this, it must also set
 \q{Solution not known for this puzzle}); that error message is not
 expected to be dynamically allocated.
 
-If this function \e{does} produce a solution, it returns a move
-string suitable for feeding to \cw{execute_move()}
-(\k{backend-execute-move}).
+If this function \e{does} produce a solution, it returns a move string
+suitable for feeding to \cw{execute_move()}
+(\k{backend-execute-move}). Like a (non-empty) string returned from
+\cw{interpret_move()}, the returned string should be dynamically
+allocated.
 
 \H{backend-drawing} Drawing the game graphics
 

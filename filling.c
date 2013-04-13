@@ -975,7 +975,7 @@ static char *solve_game(game_state *state, game_state *currstate,
         if (!solver(state->board, w, h, &aux))
             *error = "Sorry, I couldn't find a solution";
     }
-    return aux;
+    return dupstr(aux);
 }
 
 /*****************************************************************************
