@@ -99,7 +99,7 @@ static game_params *default_params(void)
     return ret;
 }
 
-static game_params *dup_params(game_params *params)
+static game_params *dup_params(const game_params *params)
 {
     game_params *ret = snew(game_params);
     *ret = *params; /* structure copy */
@@ -138,14 +138,14 @@ static void decode_params(game_params *params, char const *string)
     }
 }
 
-static char *encode_params(game_params *params, int full)
+static char *encode_params(const game_params *params, int full)
 {
     char str[80];
     sprintf(str, "%dx%d", params->w, params->h);
     return dupstr(str);
 }
 
-static config_item *game_configure(game_params *params)
+static config_item *game_configure(const game_params *params)
 {
     config_item *ret;
 
@@ -169,7 +169,7 @@ static config_item *game_configure(game_params *params)
     return ret;
 }
 
-static game_params *custom_params(config_item *configuration)
+static game_params *custom_params(const config_item *configuration)
 {
     game_params *ret = snew(game_params);
     ret->w = atoi(configuration[0].sval);
@@ -182,7 +182,7 @@ static game_params *custom_params(config_item *configuration)
     memcpy(dst, src, n * sizeof (type)); \
 } while (0)
 
-static game_state *dup_game(game_state *state)
+static game_state *dup_game(const game_state *state)
 {
     game_state *ret = snew(game_state);
     int const n = state->params.w * state->params.h;
@@ -292,10 +292,10 @@ enum {
     DIFF_RECURSION
 };
 
-static move *solve_internal(game_state *state, move *base, int diff);
+static move *solve_internal(const game_state *state, move *base, int diff);
 
-static char *solve_game(game_state *orig, game_state *curpos,
-                        char *aux, char **error)
+static char *solve_game(const game_state *orig, const game_state *curpos,
+                        const char *aux, char **error)
 {
     int const n = orig->params.w * orig->params.h;
     move *const base = snewn(n, move);
@@ -319,7 +319,7 @@ static char *solve_game(game_state *orig, game_state *curpos,
     return ret;
 }
 
-static square *find_clues(game_state *state, int *ret_nclues);
+static square *find_clues(const game_state *state, int *ret_nclues);
 static move *do_solve(game_state *state,
                       int nclues,
                       const square *clues,
@@ -327,7 +327,7 @@ static move *do_solve(game_state *state,
                       int difficulty);
 
 /* new_game_desc entry point in the solver subsystem */
-static move *solve_internal(game_state *state, move *base, int diff)
+static move *solve_internal(const game_state *state, move *base, int diff)
 {
     int nclues;
     square *const clues = find_clues(state, &nclues);
@@ -371,7 +371,7 @@ static move *do_solve(game_state *state,
 
 static int runlength(puzzle_size r, puzzle_size c,
                      puzzle_size dr, puzzle_size dc,
-                     game_state *state, int colourmask)
+                     const game_state *state, int colourmask)
 {
     int const w = state->params.w, h = state->params.h;
     int sz = 0;
@@ -615,7 +615,7 @@ static move *solver_reasoning_recursion(game_state *state,
     return buf;
 }
 
-static square *find_clues(game_state *state, int *ret_nclues)
+static square *find_clues(const game_state *state, int *ret_nclues)
 {
     int r, c, i, nclues = 0;
     square *ret = snewn(state->params.w * state->params.h, struct square);
@@ -893,7 +893,7 @@ static int dfs_count_white(game_state *state, int cell)
     return k;
 }
 
-static char *validate_params(game_params *params, int full)
+static char *validate_params(const game_params *params, int full)
 {
     int const w = params->w, h = params->h;
     if (w < 1) return "Error: width is less than 1";
@@ -1060,7 +1060,7 @@ static char *newdesc_encode_game_description(int area, puzzle_size *grid)
     return desc;
 }
 
-static char *validate_desc(const game_params *params, char *desc)
+static char *validate_desc(const game_params *params, const char *desc)
 {
     int const n = params->w * params->h;
     int squares = 0;
@@ -1092,10 +1092,11 @@ static char *validate_desc(const game_params *params, char *desc)
     return NULL;
 }
 
-static game_state *new_game(midend *me, game_params *params, char *desc)
+static game_state *new_game(midend *me, const game_params *params,
+                            const char *desc)
 {
     int i;
-    char *p;
+    const char *p;
 
     int const n = params->w * params->h;
     game_state *state = snew(game_state);
@@ -1134,12 +1135,12 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
  * User interface: ascii
  */
 
-static int game_can_format_as_text_now(game_params *params)
+static int game_can_format_as_text_now(const game_params *params)
 {
     return TRUE;
 }
 
-static char *game_text_format(game_state *state)
+static char *game_text_format(const game_state *state)
 {
     int cellsize, r, c, i, w_string, h_string, n_string;
     char *ret, *buf, *gridline;
@@ -1208,7 +1209,7 @@ struct game_ui {
     unsigned int cursor_show: 1;
 };
 
-static game_ui *new_ui(game_state *state)
+static game_ui *new_ui(const game_state *state)
 {
     struct game_ui *ui = snew(game_ui);
     ui->r = ui->c = 0;
@@ -1221,12 +1222,12 @@ static void free_ui(game_ui *ui)
     sfree(ui);
 }
 
-static char *encode_ui(game_ui *ui)
+static char *encode_ui(const game_ui *ui)
 {
     return NULL;
 }
 
-static void decode_ui(game_ui *ui, char *encoding)
+static void decode_ui(game_ui *ui, const char *encoding)
 {
 }
 
@@ -1248,7 +1249,8 @@ struct game_drawstate {
 #define COORD(x) ((x) * TILESIZE + BORDER)
 #define FROMCOORD(x) (((x) - BORDER) / TILESIZE)
 
-static char *interpret_move(game_state *state, game_ui *ui, const game_drawstate *ds,
+static char *interpret_move(const game_state *state, game_ui *ui,
+                            const game_drawstate *ds,
                             int x, int y, int button)
 {
     enum {none, forwards, backwards, hint};
@@ -1359,7 +1361,7 @@ static char *interpret_move(game_state *state, game_ui *ui, const game_drawstate
     return NULL;
 }
 
-static int find_errors(game_state *state, int *report)
+static int find_errors(const game_state *state, int *report)
 {
     int const w = state->params.w, h = state->params.h, n = w * h;
 
@@ -1430,7 +1432,7 @@ found_error:
     return TRUE;
 }
 
-static game_state *execute_move(game_state *state, char *move)
+static game_state *execute_move(const game_state *state, const char *move)
 {
     signed int r, c, value, nchars, ntok;
     signed char what_to_do;
@@ -1468,28 +1470,28 @@ failure:
     return NULL;
 }
 
-static void game_changed_state(game_ui *ui, game_state *oldstate,
-                               game_state *newstate)
+static void game_changed_state(game_ui *ui, const game_state *oldstate,
+                               const game_state *newstate)
 {
 }
 
-static float game_anim_length(game_state *oldstate, game_state *newstate,
-                              int dir, game_ui *ui)
+static float game_anim_length(const game_state *oldstate,
+                              const game_state *newstate, int dir, game_ui *ui)
 {
     return 0.0F;
 }
 
 #define FLASH_TIME 0.7F
 
-static float game_flash_length(game_state *from, game_state *to,
-                               int dir, game_ui *ui)
+static float game_flash_length(const game_state *from,
+                               const game_state *to, int dir, game_ui *ui)
 {
     if (!from->was_solved && to->was_solved && !to->has_cheated)
         return FLASH_TIME;
     return 0.0F;
 }
 
-static int game_status(game_state *state)
+static int game_status(const game_state *state)
 {
     return state->was_solved ? +1 : 0;
 }
@@ -1513,7 +1515,7 @@ enum {
     NCOLOURS
 };
 
-static void game_compute_size(game_params *params, int tilesize,
+static void game_compute_size(const game_params *params, int tilesize,
                               int *x, int *y)
 {
     *x = (1 + params->w) * tilesize;
@@ -1521,7 +1523,7 @@ static void game_compute_size(game_params *params, int tilesize,
 }
 
 static void game_set_size(drawing *dr, game_drawstate *ds,
-                          game_params *params, int tilesize)
+                          const game_params *params, int tilesize)
 {
     ds->tilesize = tilesize;
 }
@@ -1551,7 +1553,7 @@ static drawcell makecell(puzzle_size value, int error, int cursor, int flash)
     return ret;
 }
 
-static game_drawstate *game_new_drawstate(drawing *dr, game_state *state)
+static game_drawstate *game_new_drawstate(drawing *dr, const game_state *state)
 {
     int const w = state->params.w, h = state->params.h, n = w * h;
     struct game_drawstate *ds = snew(struct game_drawstate);
@@ -1587,8 +1589,9 @@ static int cell_eq(drawcell a, drawcell b)
 static void draw_cell(drawing *dr, game_drawstate *ds, int r, int c,
                       drawcell cell);
 
-static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
-                        game_state *state, int dir, game_ui *ui,
+static void game_redraw(drawing *dr, game_drawstate *ds,
+                        const game_state *oldstate, const game_state *state,
+                        int dir, const game_ui *ui,
                         float animtime, float flashtime)
 {
     int const w = state->params.w, h = state->params.h, n = w * h;
@@ -1663,7 +1666,7 @@ static void draw_cell(drawing *draw, game_drawstate *ds, int r, int c,
     draw_update(draw, x, y, ts, ts);
 }
 
-static int game_timing_state(game_state *state, game_ui *ui)
+static int game_timing_state(const game_state *state, game_ui *ui)
 {
     puts("warning: game_timing_state was called (this shouldn't happen)");
     return FALSE; /* the (non-existing) timer should not be running */
@@ -1673,7 +1676,7 @@ static int game_timing_state(game_state *state, game_ui *ui)
  * User interface: print
  */
 
-static void game_print_size(game_params *params, float *x, float *y)
+static void game_print_size(const game_params *params, float *x, float *y)
 {
     int print_width, print_height;
     game_compute_size(params, 800, &print_width, &print_height);
@@ -1681,7 +1684,7 @@ static void game_print_size(game_params *params, float *x, float *y)
     *y = print_height / 100.0F;
 }
 
-static void game_print(drawing *dr, game_state *state, int tilesize)
+static void game_print(drawing *dr, const game_state *state, int tilesize)
 {
     int const w = state->params.w, h = state->params.h;
     game_drawstate ds_obj, *ds = &ds_obj;

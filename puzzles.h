@@ -404,13 +404,13 @@ extern char ver[];
 /*
  * random.c
  */
-random_state *random_new(char *seed, int len);
+random_state *random_new(const char *seed, int len);
 random_state *random_copy(random_state *tocopy);
 unsigned long random_bits(random_state *state, int bits);
 unsigned long random_upto(random_state *state, unsigned long limit);
 void random_free(random_state *state);
 char *random_state_encode(random_state *state);
-random_state *random_state_decode(char *input);
+random_state *random_state_decode(const char *input);
 /* random.c also exports SHA, which occasionally comes in useful. */
 #if __STDC_VERSION__ >= 199901L
 #include <stdint.h>
@@ -427,9 +427,9 @@ typedef struct {
     uint32 lenhi, lenlo;
 } SHA_State;
 void SHA_Init(SHA_State *s);
-void SHA_Bytes(SHA_State *s, void *p, int len);
+void SHA_Bytes(SHA_State *s, const void *p, int len);
 void SHA_Final(SHA_State *s, unsigned char *output);
-void SHA_Simple(void *p, int len, unsigned char *output);
+void SHA_Simple(const void *p, int len, unsigned char *output);
 
 /*
  * printing.c
@@ -480,55 +480,57 @@ struct game {
     game_params *(*default_params)(void);
     int (*fetch_preset)(int i, char **name, game_params **params);
     void (*decode_params)(game_params *, char const *string);
-    char *(*encode_params)(game_params *, int full);
+    char *(*encode_params)(const game_params *, int full);
     void (*free_params)(game_params *params);
-    game_params *(*dup_params)(game_params *params);
+    game_params *(*dup_params)(const game_params *params);
     int can_configure;
-    config_item *(*configure)(game_params *params);
-    game_params *(*custom_params)(config_item *cfg);
-    char *(*validate_params)(game_params *params, int full);
+    config_item *(*configure)(const game_params *params);
+    game_params *(*custom_params)(const config_item *cfg);
+    char *(*validate_params)(const game_params *params, int full);
     char *(*new_desc)(const game_params *params, random_state *rs,
 		      char **aux, int interactive);
-    char *(*validate_desc)(const game_params *params, char *desc);
-    game_state *(*new_game)(midend *me, game_params *params, char *desc);
-    game_state *(*dup_game)(game_state *state);
+    char *(*validate_desc)(const game_params *params, const char *desc);
+    game_state *(*new_game)(midend *me, const game_params *params,
+                            const char *desc);
+    game_state *(*dup_game)(const game_state *state);
     void (*free_game)(game_state *state);
     int can_solve;
-    char *(*solve)(game_state *orig, game_state *curr,
-                   char *aux, char **error);
+    char *(*solve)(const game_state *orig, const game_state *curr,
+                   const char *aux, char **error);
     int can_format_as_text_ever;
-    int (*can_format_as_text_now)(game_params *params);
-    char *(*text_format)(game_state *state);
-    game_ui *(*new_ui)(game_state *state);
+    int (*can_format_as_text_now)(const game_params *params);
+    char *(*text_format)(const game_state *state);
+    game_ui *(*new_ui)(const game_state *state);
     void (*free_ui)(game_ui *ui);
-    char *(*encode_ui)(game_ui *ui);
-    void (*decode_ui)(game_ui *ui, char *encoding);
-    void (*changed_state)(game_ui *ui, game_state *oldstate,
-                          game_state *newstate);
-    char *(*interpret_move)(game_state *state, game_ui *ui,
+    char *(*encode_ui)(const game_ui *ui);
+    void (*decode_ui)(game_ui *ui, const char *encoding);
+    void (*changed_state)(game_ui *ui, const game_state *oldstate,
+                          const game_state *newstate);
+    char *(*interpret_move)(const game_state *state, game_ui *ui,
                             const game_drawstate *ds, int x, int y, int button);
-    game_state *(*execute_move)(game_state *state, char *move);
+    game_state *(*execute_move)(const game_state *state, const char *move);
     int preferred_tilesize;
-    void (*compute_size)(game_params *params, int tilesize, int *x, int *y);
+    void (*compute_size)(const game_params *params, int tilesize,
+                         int *x, int *y);
     void (*set_size)(drawing *dr, game_drawstate *ds,
-		     game_params *params, int tilesize);
+		     const game_params *params, int tilesize);
     float *(*colours)(frontend *fe, int *ncolours);
-    game_drawstate *(*new_drawstate)(drawing *dr, game_state *state);
+    game_drawstate *(*new_drawstate)(drawing *dr, const game_state *state);
     void (*free_drawstate)(drawing *dr, game_drawstate *ds);
-    void (*redraw)(drawing *dr, game_drawstate *ds, game_state *oldstate,
-		   game_state *newstate, int dir, game_ui *ui, float anim_time,
-		   float flash_time);
-    float (*anim_length)(game_state *oldstate, game_state *newstate, int dir,
-			 game_ui *ui);
-    float (*flash_length)(game_state *oldstate, game_state *newstate, int dir,
-			  game_ui *ui);
-    int (*status)(game_state *state);
+    void (*redraw)(drawing *dr, game_drawstate *ds, const game_state *oldstate,
+		   const game_state *newstate, int dir, const game_ui *ui,
+                   float anim_time, float flash_time);
+    float (*anim_length)(const game_state *oldstate,
+                         const game_state *newstate, int dir, game_ui *ui);
+    float (*flash_length)(const game_state *oldstate,
+                          const game_state *newstate, int dir, game_ui *ui);
+    int (*status)(const game_state *state);
     int can_print, can_print_in_colour;
-    void (*print_size)(game_params *params, float *x, float *y);
-    void (*print)(drawing *dr, game_state *state, int tilesize);
+    void (*print_size)(const game_params *params, float *x, float *y);
+    void (*print)(drawing *dr, const game_state *state, int tilesize);
     int wants_statusbar;
     int is_timed;
-    int (*timing_state)(game_state *state, game_ui *ui);
+    int (*timing_state)(const game_state *state, game_ui *ui);
     int flags;
 };
 

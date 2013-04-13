@@ -194,7 +194,7 @@ static void free_params(game_params *params)
     sfree(params);
 }
 
-static game_params *dup_params(game_params *params)
+static game_params *dup_params(const game_params *params)
 {
     game_params *ret = snew(game_params);
     *ret = *params;		       /* structure copy */
@@ -221,7 +221,7 @@ static void decode_params(game_params *params, char const *string)
     }
 }
 
-static char *encode_params(game_params *params, int full)
+static char *encode_params(const game_params *params, int full)
 {
     char str[80];
     sprintf(str, "%dx%d", params->w, params->h);
@@ -230,7 +230,7 @@ static char *encode_params(game_params *params, int full)
     return dupstr(str);
 }
 
-static config_item *game_configure(game_params *params)
+static config_item *game_configure(const game_params *params)
 {
     config_item *ret;
     char buf[80];
@@ -262,7 +262,7 @@ static config_item *game_configure(game_params *params)
     return ret;
 }
 
-static game_params *custom_params(config_item *cfg)
+static game_params *custom_params(const config_item *cfg)
 {
     game_params *ret = snew(game_params);
 
@@ -273,7 +273,7 @@ static game_params *custom_params(config_item *cfg)
     return ret;
 }
 
-static char *validate_params(game_params *params, int full)
+static char *validate_params(const game_params *params, int full)
 {
     if (params->w < 3 || params->h < 3)
         return "Width and height must both be at least 3";
@@ -302,7 +302,7 @@ static void remove_dot(space *space) {
     space->flags &= ~F_DOT;
 }
 
-static void remove_assoc(game_state *state, space *tile) {
+static void remove_assoc(const game_state *state, space *tile) {
     if (tile->flags & F_TILE_ASSOC) {
         SPACE(state, tile->dotx, tile->doty).nassoc--;
         tile->flags &= ~F_TILE_ASSOC;
@@ -311,7 +311,7 @@ static void remove_assoc(game_state *state, space *tile) {
     }
 }
 
-static void add_assoc(game_state *state, space *tile, space *dot) {
+static void add_assoc(const game_state *state, space *tile, space *dot) {
     remove_assoc(state, tile);
 
 #ifdef STANDALONE_PICTURE_GENERATOR
@@ -327,7 +327,7 @@ static void add_assoc(game_state *state, space *tile, space *dot) {
            tile->x, tile->y, dot->x, dot->y, dot->nassoc));*/
 }
 
-static struct space *sp2dot(game_state *state, int x, int y)
+static struct space *sp2dot(const game_state *state, int x, int y)
 {
     struct space *sp = &SPACE(state, x, y);
     if (!(sp->flags & F_TILE_ASSOC)) return NULL;
@@ -336,12 +336,12 @@ static struct space *sp2dot(game_state *state, int x, int y)
 
 #define IS_VERTICAL_EDGE(x) ((x % 2) == 0)
 
-static int game_can_format_as_text_now(game_params *params)
+static int game_can_format_as_text_now(const game_params *params)
 {
     return TRUE;
 }
 
-static char *game_text_format(game_state *state)
+static char *game_text_format(const game_state *state)
 {
     int maxlen = (state->sx+1)*state->sy, x, y;
     char *ret, *p;
@@ -398,7 +398,7 @@ static char *game_text_format(game_state *state)
     return ret;
 }
 
-static void dbg_state(game_state *state)
+static void dbg_state(const game_state *state)
 {
 #ifdef DEBUGGING
     char *temp = game_text_format(state);
@@ -617,7 +617,8 @@ static void tiles_from_edge(struct game_state *state,
 
 /* Returns a move string for use by 'solve', including the initial
  * 'S' if issolve is true. */
-static char *diff_game(game_state *src, game_state *dest, int issolve)
+static char *diff_game(const game_state *src, const game_state *dest,
+                       int issolve)
 {
     int movelen = 0, movesize = 256, x, y, len;
     char *move = snewn(movesize, char), buf[80], *sep = "";
@@ -819,7 +820,7 @@ static void clear_game(game_state *state, int cleardots)
     if (cleardots) game_update_dots(state);
 }
 
-static game_state *dup_game(game_state *state)
+static game_state *dup_game(const game_state *state)
 {
     game_state *ret = blank_game(state->w, state->h);
 
@@ -1230,7 +1231,7 @@ static void generate_pass(game_state *state, random_state *rs, int *scratch,
     dbg_state(state);
 }
 
-static int check_complete(game_state *state, int *dsf, int *colours);
+static int check_complete(const game_state *state, int *dsf, int *colours);
 static int solver_state(game_state *state, int maxdiff);
 
 static char *new_game_desc(const game_params *params, random_state *rs,
@@ -1480,7 +1481,7 @@ static int dots_too_close(game_state *state)
     return (ret == -1) ? 1 : 0;
 }
 
-static game_state *load_game(const game_params *params, char *desc,
+static game_state *load_game(const game_params *params, const char *desc,
                              char **why_r)
 {
     game_state *state = blank_game(params->w, params->h);
@@ -1528,7 +1529,7 @@ fail:
     return NULL;
 }
 
-static char *validate_desc(const game_params *params, char *desc)
+static char *validate_desc(const game_params *params, const char *desc)
 {
     char *why = NULL;
     game_state *dummy = load_game(params, desc, &why);
@@ -1540,7 +1541,8 @@ static char *validate_desc(const game_params *params, char *desc)
     return why;
 }
 
-static game_state *new_game(midend *me, game_params *params, char *desc)
+static game_state *new_game(midend *me, const game_params *params,
+                            const char *desc)
 {
     game_state *state = load_game(params, desc, NULL);
     if (!state) {
@@ -2212,8 +2214,8 @@ got_result:
 }
 
 #ifndef EDITOR
-static char *solve_game(game_state *state, game_state *currstate,
-			char *aux, char **error)
+static char *solve_game(const game_state *state, const game_state *currstate,
+                        const char *aux, char **error)
 {
     game_state *tosolve;
     char *ret;
@@ -2263,7 +2265,7 @@ struct game_ui {
     int cur_x, cur_y, cur_visible;
 };
 
-static game_ui *new_ui(game_state *state)
+static game_ui *new_ui(const game_state *state)
 {
     game_ui *ui = snew(game_ui);
     ui->dragging = FALSE;
@@ -2277,17 +2279,17 @@ static void free_ui(game_ui *ui)
     sfree(ui);
 }
 
-static char *encode_ui(game_ui *ui)
+static char *encode_ui(const game_ui *ui)
 {
     return NULL;
 }
 
-static void decode_ui(game_ui *ui, char *encoding)
+static void decode_ui(game_ui *ui, const char *encoding)
 {
 }
 
-static void game_changed_state(game_ui *ui, game_state *oldstate,
-                               game_state *newstate)
+static void game_changed_state(game_ui *ui, const game_state *oldstate,
+                               const game_state *newstate)
 {
 }
 
@@ -2369,8 +2371,9 @@ static void coord_round_to_edge(float x, float y, int *xr, int *yr)
 #endif
 
 #ifdef EDITOR
-static char *interpret_move(game_state *state, game_ui *ui, const game_drawstate *ds,
-			    int x, int y, int button)
+static char *interpret_move(const game_state *state, game_ui *ui,
+                            const game_drawstate *ds,
+                            int x, int y, int button)
 {
     char buf[80];
     int px, py;
@@ -2404,8 +2407,9 @@ static char *interpret_move(game_state *state, game_ui *ui, const game_drawstate
     return NULL;
 }
 #else
-static char *interpret_move(game_state *state, game_ui *ui, const game_drawstate *ds,
-			    int x, int y, int button)
+static char *interpret_move(const game_state *state, game_ui *ui,
+                            const game_drawstate *ds,
+                            int x, int y, int button)
 {
     /* UI operations (play mode):
      *
@@ -2610,7 +2614,7 @@ static char *interpret_move(game_state *state, game_ui *ui, const game_drawstate
 }
 #endif
 
-static int check_complete(game_state *state, int *dsf, int *colours)
+static int check_complete(const game_state *state, int *dsf, int *colours)
 {
     int w = state->w, h = state->h;
     int x, y, i, ret;
@@ -2787,7 +2791,7 @@ static int check_complete(game_state *state, int *dsf, int *colours)
     return ret;
 }
 
-static game_state *execute_move(game_state *state, char *move)
+static game_state *execute_move(const game_state *state, const char *move)
 {
     int x, y, ax, ay, n, dx, dy;
     game_state *ret = dup_game(state);
@@ -2907,8 +2911,8 @@ badmove:
  * we may want to drag from them, for example.
  */
 
-static void game_compute_size(game_params *params, int sz,
-			      int *x, int *y)
+static void game_compute_size(const game_params *params, int sz,
+                              int *x, int *y)
 {
     struct { int tilesize, w, h; } ads, *ds = &ads;
 
@@ -2921,7 +2925,7 @@ static void game_compute_size(game_params *params, int sz,
 }
 
 static void game_set_size(drawing *dr, game_drawstate *ds,
-			  game_params *params, int sz)
+                          const game_params *params, int sz)
 {
     ds->tilesize = sz;
 
@@ -2988,7 +2992,7 @@ static float *game_colours(frontend *fe, int *ncolours)
     return ret;
 }
 
-static game_drawstate *game_new_drawstate(drawing *dr, game_state *state)
+static game_drawstate *game_new_drawstate(drawing *dr, const game_state *state)
 {
     struct game_drawstate *ds = snew(struct game_drawstate);
     int i;
@@ -3145,9 +3149,10 @@ static void draw_square(drawing *dr, game_drawstate *ds, int x, int y,
     draw_update(dr, lx, ly, TILE_SIZE, TILE_SIZE);
 }
 
-static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
-			game_state *state, int dir, game_ui *ui,
-			float animtime, float flashtime)
+static void game_redraw(drawing *dr, game_drawstate *ds,
+                        const game_state *oldstate, const game_state *state,
+                        int dir, const game_ui *ui,
+                        float animtime, float flashtime)
 {
     int w = ds->w, h = ds->h;
     int x, y, flashing = FALSE;
@@ -3332,14 +3337,14 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 #endif
 }
 
-static float game_anim_length(game_state *oldstate, game_state *newstate,
-			      int dir, game_ui *ui)
+static float game_anim_length(const game_state *oldstate,
+                              const game_state *newstate, int dir, game_ui *ui)
 {
     return 0.0F;
 }
 
-static float game_flash_length(game_state *oldstate, game_state *newstate,
-			       int dir, game_ui *ui)
+static float game_flash_length(const game_state *oldstate,
+                               const game_state *newstate, int dir, game_ui *ui)
 {
     if ((!oldstate->completed && newstate->completed) &&
         !(newstate->used_solve))
@@ -3348,18 +3353,18 @@ static float game_flash_length(game_state *oldstate, game_state *newstate,
         return 0.0F;
 }
 
-static int game_status(game_state *state)
+static int game_status(const game_state *state)
 {
     return state->completed ? +1 : 0;
 }
 
-static int game_timing_state(game_state *state, game_ui *ui)
+static int game_timing_state(const game_state *state, game_ui *ui)
 {
     return TRUE;
 }
 
 #ifndef EDITOR
-static void game_print_size(game_params *params, float *x, float *y)
+static void game_print_size(const game_params *params, float *x, float *y)
 {
    int pw, ph;
 
@@ -3372,7 +3377,7 @@ static void game_print_size(game_params *params, float *x, float *y)
    *y = ph / 100.0F;
 }
 
-static void game_print(drawing *dr, game_state *state, int sz)
+static void game_print(drawing *dr, const game_state *state, int sz)
 {
     int w = state->w, h = state->h;
     int white, black, blackish;

@@ -115,9 +115,10 @@ typedef enum grid_type { GRIDGEN_LIST(ENUM) GRID_TYPE_MAX } grid_type;
 /* Free directly after use if non-NULL. Will never contain an underscore
  * (so clients can safely use that as a separator). */
 char *grid_new_desc(grid_type type, int width, int height, random_state *rs);
-char *grid_validate_desc(grid_type type, int width, int height, char *desc);
+char *grid_validate_desc(grid_type type, int width, int height,
+                         const char *desc);
 
-grid *grid_new(grid_type type, int width, int height, char *desc);
+grid *grid_new(grid_type type, int width, int height, const char *desc);
 
 void grid_free(grid *g);
 

@@ -92,7 +92,8 @@ static int whichdiri(game_state *state, int fromi, int toi)
     return whichdir(fromi%w, fromi/w, toi%w, toi/w);
 }
 
-static int ispointing(game_state *state, int fromx, int fromy, int tox, int toy)
+static int ispointing(const game_state *state, int fromx, int fromy,
+                      int tox, int toy)
 {
     int w = state->w, dir = state->dirs[fromy*w+fromx];
 
@@ -119,7 +120,7 @@ static int ispointingi(game_state *state, int fromi, int toi)
 /* Taking the number 'num', work out the gap between it and the next
  * available number up or down (depending on d). Return 1 if the region
  * at (x,y) will fit in that gap, or 0 otherwise. */
-static int move_couldfit(game_state *state, int num, int d, int x, int y)
+static int move_couldfit(const game_state *state, int num, int d, int x, int y)
 {
     int n, gap, i = y*state->w+x, sz;
 
@@ -144,7 +145,7 @@ static int move_couldfit(game_state *state, int num, int d, int x, int y)
     return (sz > gap) ? 0 : 1;
 }
 
-static int isvalidmove(game_state *state, int clever,
+static int isvalidmove(const game_state *state, int clever,
                        int fromx, int fromy, int tox, int toy)
 {
     int w = state->w, from = fromy*w+fromx, to = toy*w+tox;
@@ -196,13 +197,13 @@ static void makelink(game_state *state, int from, int to)
     state->prev[to] = from;
 }
 
-static int game_can_format_as_text_now(game_params *params)
+static int game_can_format_as_text_now(const game_params *params)
 {
     if (params->w * params->h >= 100) return 0;
     return 1;
 }
 
-static char *game_text_format(game_state *state)
+static char *game_text_format(const game_state *state)
 {
     int len = state->h * 2 * (4*state->w + 1) + state->h + 2;
     int x, y, i, num, n, set;
@@ -339,7 +340,7 @@ static void free_params(game_params *params)
     sfree(params);
 }
 
-static game_params *dup_params(game_params *params)
+static game_params *dup_params(const game_params *params)
 {
     game_params *ret = snew(game_params);
     *ret = *params;		       /* structure copy */
@@ -363,7 +364,7 @@ static void decode_params(game_params *ret, char const *string)
 
 }
 
-static char *encode_params(game_params *params, int full)
+static char *encode_params(const game_params *params, int full)
 {
     char data[256];
 
@@ -376,7 +377,7 @@ static char *encode_params(game_params *params, int full)
     return dupstr(data);
 }
 
-static config_item *game_configure(game_params *params)
+static config_item *game_configure(const game_params *params)
 {
     config_item *ret;
     char buf[80];
@@ -408,7 +409,7 @@ static config_item *game_configure(game_params *params)
     return ret;
 }
 
-static game_params *custom_params(config_item *cfg)
+static game_params *custom_params(const config_item *cfg)
 {
     game_params *ret = snew(game_params);
 
@@ -419,7 +420,7 @@ static game_params *custom_params(config_item *cfg)
     return ret;
 }
 
-static char *validate_params(game_params *params, int full)
+static char *validate_params(const game_params *params, int full)
 {
     if (params->w < 2 || params->h < 2)
 	return "Width and height must both be at least two";
@@ -463,7 +464,7 @@ static game_state *blank_game(int w, int h)
     return state;
 }
 
-static void dup_game_to(game_state *to, game_state *from)
+static void dup_game_to(game_state *to, const game_state *from)
 {
     to->completed = from->completed;
     to->used_solve = from->used_solve;
@@ -480,7 +481,7 @@ static void dup_game_to(game_state *to, game_state *from)
     memcpy(to->numsi, from->numsi, (to->n+1)*sizeof(int));
 }
 
-static game_state *dup_game(game_state *state)
+static game_state *dup_game(const game_state *state)
 {
     game_state *ret = blank_game(state->w, state->h);
     dup_game_to(ret, state);
@@ -499,7 +500,7 @@ static void free_game(game_state *state)
     sfree(state);
 }
 
-static void unpick_desc(const game_params *params, char *desc,
+static void unpick_desc(const game_params *params, const char *desc,
                         game_state **sout, char **mout)
 {
     game_state *state = blank_game(params->w, params->h);
@@ -840,7 +841,7 @@ generate:
     return ret;
 }
 
-static char *validate_desc(const game_params *params, char *desc)
+static char *validate_desc(const game_params *params, const char *desc)
 {
     char *ret = NULL;
 
@@ -1202,7 +1203,8 @@ static int check_completion(game_state *state, int mark_errors)
     if (error) return 0;
     return complete;
 }
-static game_state *new_game(midend *me, game_params *params, char *desc)
+static game_state *new_game(midend *me, const game_params *params,
+                            const char *desc)
 {
     game_state *state = NULL;
 
@@ -1332,8 +1334,8 @@ static int solve_state(game_state *state)
     return ret;
 }
 
-static char *solve_game(game_state *state, game_state *currstate,
-			char *aux, char **error)
+static char *solve_game(const game_state *state, const game_state *currstate,
+                        const char *aux, char **error)
 {
     game_state *tosolve;
     char *ret = NULL;
@@ -1371,7 +1373,7 @@ struct game_ui {
     int dx, dy;         /* pixel coords of drag posn */
 };
 
-static game_ui *new_ui(game_state *state)
+static game_ui *new_ui(const game_state *state)
 {
     game_ui *ui = snew(game_ui);
 
@@ -1391,17 +1393,17 @@ static void free_ui(game_ui *ui)
     sfree(ui);
 }
 
-static char *encode_ui(game_ui *ui)
+static char *encode_ui(const game_ui *ui)
 {
     return NULL;
 }
 
-static void decode_ui(game_ui *ui, char *encoding)
+static void decode_ui(game_ui *ui, const char *encoding)
 {
 }
 
-static void game_changed_state(game_ui *ui, game_state *oldstate,
-                               game_state *newstate)
+static void game_changed_state(game_ui *ui, const game_state *oldstate,
+                               const game_state *newstate)
 {
     if (!oldstate->completed && newstate->completed)
         ui->cshow = ui->dragging = 0;
@@ -1418,8 +1420,9 @@ struct game_drawstate {
     blitter *dragb;
 };
 
-static char *interpret_move(game_state *state, game_ui *ui, const game_drawstate *ds,
-			    int mx, int my, int button)
+static char *interpret_move(const game_state *state, game_ui *ui,
+                            const game_drawstate *ds,
+                            int mx, int my, int button)
 {
     int x = FROMCOORD(mx), y = FROMCOORD(my), w = state->w;
     char buf[80];
@@ -1539,7 +1542,7 @@ static void unlink_cell(game_state *state, int si)
     }
 }
 
-static game_state *execute_move(game_state *state, char *move)
+static game_state *execute_move(const game_state *state, const char *move)
 {
     game_state *ret = NULL;
     int sx, sy, ex, ey, si, ei, w = state->w;
@@ -1615,8 +1618,8 @@ static game_state *execute_move(game_state *state, char *move)
  * Drawing routines.
  */
 
-static void game_compute_size(game_params *params, int tilesize,
-			      int *x, int *y)
+static void game_compute_size(const game_params *params, int tilesize,
+                              int *x, int *y)
 {
     /* Ick: fake up `ds->tilesize' for macro expansion purposes */
     struct { int tilesize, order; } ads, *ds = &ads;
@@ -1627,7 +1630,7 @@ static void game_compute_size(game_params *params, int tilesize,
 }
 
 static void game_set_size(drawing *dr, game_drawstate *ds,
-			  game_params *params, int tilesize)
+                          const game_params *params, int tilesize)
 {
     ds->tilesize = tilesize;
     assert(TILE_SIZE > 0);
@@ -1706,7 +1709,7 @@ static float *game_colours(frontend *fe, int *ncolours)
     return ret;
 }
 
-static game_drawstate *game_new_drawstate(drawing *dr, game_state *state)
+static game_drawstate *game_new_drawstate(drawing *dr, const game_state *state)
 {
     struct game_drawstate *ds = snew(struct game_drawstate);
     int i;
@@ -1963,7 +1966,8 @@ static void tile_redraw(drawing *dr, game_drawstate *ds, int tx, int ty,
 }
 
 static void draw_drag_indicator(drawing *dr, game_drawstate *ds,
-                                game_state *state, game_ui *ui, int validdrag)
+                                const game_state *state, const game_ui *ui,
+                                int validdrag)
 {
     int dir, w = ds->w, acol = COL_ARROW;
     int fx = FROMCOORD(ui->dx), fy = FROMCOORD(ui->dy);
@@ -2007,9 +2011,10 @@ static void draw_drag_indicator(drawing *dr, game_drawstate *ds,
     draw_arrow(dr, ui->dx, ui->dy, ARROW_HALFSZ, ang, acol, acol);
 }
 
-static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
-			game_state *state, int dir, game_ui *ui,
-			float animtime, float flashtime)
+static void game_redraw(drawing *dr, game_drawstate *ds,
+                        const game_state *oldstate, const game_state *state,
+                        int dir, const game_ui *ui,
+                        float animtime, float flashtime)
 {
     int x, y, i, w = ds->w, dirp, force = 0;
     unsigned int f;
@@ -2139,14 +2144,14 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
     if (!ds->started) ds->started = TRUE;
 }
 
-static float game_anim_length(game_state *oldstate, game_state *newstate,
-			      int dir, game_ui *ui)
+static float game_anim_length(const game_state *oldstate,
+                              const game_state *newstate, int dir, game_ui *ui)
 {
     return 0.0F;
 }
 
-static float game_flash_length(game_state *oldstate, game_state *newstate,
-			       int dir, game_ui *ui)
+static float game_flash_length(const game_state *oldstate,
+                               const game_state *newstate, int dir, game_ui *ui)
 {
     if (!oldstate->completed &&
         newstate->completed && !newstate->used_solve)
@@ -2155,17 +2160,17 @@ static float game_flash_length(game_state *oldstate, game_state *newstate,
         return 0.0F;
 }
 
-static int game_status(game_state *state)
+static int game_status(const game_state *state)
 {
     return state->completed ? +1 : 0;
 }
 
-static int game_timing_state(game_state *state, game_ui *ui)
+static int game_timing_state(const game_state *state, game_ui *ui)
 {
     return TRUE;
 }
 
-static void game_print_size(game_params *params, float *x, float *y)
+static void game_print_size(const game_params *params, float *x, float *y)
 {
     int pw, ph;
 
@@ -2174,7 +2179,7 @@ static void game_print_size(game_params *params, float *x, float *y)
     *y = ph / 100.0F;
 }
 
-static void game_print(drawing *dr, game_state *state, int tilesize)
+static void game_print(drawing *dr, const game_state *state, int tilesize)
 {
     int ink = print_mono_colour(dr, 0);
     int x, y;

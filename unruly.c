@@ -168,7 +168,7 @@ static void free_params(game_params *params)
     sfree(params);
 }
 
-static game_params *dup_params(game_params *params)
+static game_params *dup_params(const game_params *params)
 {
     game_params *ret = snew(game_params);
     *ret = *params;             /* structure copy */
@@ -203,7 +203,7 @@ static void decode_params(game_params *params, char const *string)
     }
 }
 
-static char *encode_params(game_params *params, int full)
+static char *encode_params(const game_params *params, int full)
 {
     char buf[80];
 
@@ -214,7 +214,7 @@ static char *encode_params(game_params *params, int full)
     return dupstr(buf);
 }
 
-static config_item *game_configure(game_params *params)
+static config_item *game_configure(const game_params *params)
 {
     config_item *ret;
     char buf[80];
@@ -246,7 +246,7 @@ static config_item *game_configure(game_params *params)
     return ret;
 }
 
-static game_params *custom_params(config_item *cfg)
+static game_params *custom_params(const config_item *cfg)
 {
     game_params *ret = snew(game_params);
 
@@ -257,7 +257,7 @@ static game_params *custom_params(config_item *cfg)
     return ret;
 }
 
-static char *validate_params(game_params *params, int full)
+static char *validate_params(const game_params *params, int full)
 {
     if ((params->w2 & 1) || (params->h2 & 1))
         return "Width and height must both be even";
@@ -269,12 +269,12 @@ static char *validate_params(game_params *params, int full)
     return NULL;
 }
 
-static char *validate_desc(const game_params *params, char *desc)
+static char *validate_desc(const game_params *params, const char *desc)
 {
     int w2 = params->w2, h2 = params->h2;
     int s = w2 * h2;
 
-    char *p = desc;
+    const char *p = desc;
     int pos = 0;
 
     while (*p) {
@@ -316,14 +316,15 @@ static game_state *blank_state(int w2, int h2)
     return state;
 }
 
-static game_state *new_game(midend *me, game_params *params, char *desc)
+static game_state *new_game(midend *me, const game_params *params,
+                            const char *desc)
 {
     int w2 = params->w2, h2 = params->h2;
     int s = w2 * h2;
 
     game_state *state = blank_state(w2, h2);
 
-    char *p = desc;
+    const char *p = desc;
     int pos = 0;
 
     while (*p) {
@@ -353,7 +354,7 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
     return state;
 }
 
-static game_state *dup_game(game_state *state)
+static game_state *dup_game(const game_state *state)
 {
     int w2 = state->w2, h2 = state->h2;
     int s = w2 * h2;
@@ -377,12 +378,12 @@ static void free_game(game_state *state)
     sfree(state);
 }
 
-static int game_can_format_as_text_now(game_params *params)
+static int game_can_format_as_text_now(const game_params *params)
 {
     return TRUE;
 }
 
-static char *game_text_format(game_state *state)
+static char *game_text_format(const game_state *state)
 {
     int w2 = state->w2, h2 = state->h2;
     int lr = w2*2 + 1;
@@ -418,7 +419,7 @@ struct unruly_scratch {
     int *zeros_cols;
 };
 
-static void unruly_solver_update_remaining(game_state *state,
+static void unruly_solver_update_remaining(const game_state *state,
                                            struct unruly_scratch *scratch)
 {
     int w2 = state->w2, h2 = state->h2;
@@ -442,7 +443,7 @@ static void unruly_solver_update_remaining(game_state *state,
         }
 }
 
-static struct unruly_scratch *unruly_new_scratch(game_state *state)
+static struct unruly_scratch *unruly_new_scratch(const game_state *state)
 {
     int w2 = state->w2, h2 = state->h2;
 
@@ -817,7 +818,7 @@ static int unruly_solver_check_all_near_complete(game_state *state,
     return ret;
 }
 
-static int unruly_validate_rows(game_state *state, int horizontal,
+static int unruly_validate_rows(const game_state *state, int horizontal,
                                 char check, int *errors)
 {
     int w2 = state->w2, h2 = state->h2;
@@ -857,7 +858,7 @@ static int unruly_validate_rows(game_state *state, int horizontal,
     return ret;
 }
 
-static int unruly_validate_all_rows(game_state *state, int *errors)
+static int unruly_validate_all_rows(const game_state *state, int *errors)
 {
     int errcount = 0;
 
@@ -871,7 +872,7 @@ static int unruly_validate_all_rows(game_state *state, int *errors)
     return 0;
 }
 
-static int unruly_validate_counts(game_state *state,
+static int unruly_validate_counts(const game_state *state,
                                   struct unruly_scratch *scratch, int *errors)
 {
     int w2 = state->w2, h2 = state->h2;
@@ -982,8 +983,8 @@ static int unruly_solve_game(game_state *state,
     return maxdiff;
 }
 
-static char *solve_game(game_state *state, game_state *currstate,
-                        char *aux, char **error)
+static char *solve_game(const game_state *state, const game_state *currstate,
+                        const char *aux, char **error)
 {
     game_state *solved = dup_game(state);
     struct unruly_scratch *scratch = unruly_new_scratch(solved);
@@ -1232,7 +1233,7 @@ struct game_ui {
     char cursor;
 };
 
-static game_ui *new_ui(game_state *state)
+static game_ui *new_ui(const game_state *state)
 {
     game_ui *ret = snew(game_ui);
 
@@ -1247,17 +1248,17 @@ static void free_ui(game_ui *ui)
     sfree(ui);
 }
 
-static char *encode_ui(game_ui *ui)
+static char *encode_ui(const game_ui *ui)
 {
     return NULL;
 }
 
-static void decode_ui(game_ui *ui, char *encoding)
+static void decode_ui(game_ui *ui, const char *encoding)
 {
 }
 
-static void game_changed_state(game_ui *ui, game_state *oldstate,
-                               game_state *newstate)
+static void game_changed_state(game_ui *ui, const game_state *oldstate,
+                               const game_state *newstate)
 {
 }
 
@@ -1272,7 +1273,7 @@ struct game_drawstate {
     int *grid;
 };
 
-static game_drawstate *game_new_drawstate(drawing *dr, game_state *state)
+static game_drawstate *game_new_drawstate(drawing *dr, const game_state *state)
 {
     struct game_drawstate *ds = snew(struct game_drawstate);
 
@@ -1306,9 +1307,9 @@ static void game_free_drawstate(drawing *dr, game_drawstate *ds)
 #define COORD(x)     ( (x) * ds->tilesize + ds->tilesize/2 )
 #define FROMCOORD(x) ( ((x)-(ds->tilesize/2)) / ds->tilesize )
 
-static char *interpret_move(game_state *state, game_ui *ui,
-                            const game_drawstate *ds, int ox, int oy,
-                            int button)
+static char *interpret_move(const game_state *state, game_ui *ui,
+                            const game_drawstate *ds,
+                            int ox, int oy, int button)
 {
     int hx = ui->cx;
     int hy = ui->cy;
@@ -1378,7 +1379,7 @@ static char *interpret_move(game_state *state, game_ui *ui,
     return NULL;
 }
 
-static game_state *execute_move(game_state *state, char *move)
+static game_state *execute_move(const game_state *state, const char *move)
 {
     int w2 = state->w2, h2 = state->h2;
     int s = w2 * h2;
@@ -1388,7 +1389,7 @@ static game_state *execute_move(game_state *state, char *move)
     game_state *ret;
 
     if (move[0] == 'S') {
-        char *p;
+        const char *p;
 
         ret = dup_game(state);
         p = move + 1;
@@ -1434,7 +1435,7 @@ static game_state *execute_move(game_state *state, char *move)
  * Drawing routines.
  */
 
-static void game_compute_size(game_params *params, int tilesize,
+static void game_compute_size(const game_params *params, int tilesize,
                               int *x, int *y)
 {
     *x = tilesize * (params->w2 + 1);
@@ -1442,7 +1443,7 @@ static void game_compute_size(game_params *params, int tilesize,
 }
 
 static void game_set_size(drawing *dr, game_drawstate *ds,
-                          game_params *params, int tilesize)
+                          const game_params *params, int tilesize)
 {
     ds->tilesize = tilesize;
 }
@@ -1566,8 +1567,9 @@ static void unruly_draw_tile(drawing *dr, int x, int y, int tilesize, int tile)
 #define FLASH_TIME (FLASH_FRAME * 3)
 
 static void game_redraw(drawing *dr, game_drawstate *ds,
-                        game_state *oldstate, game_state *state, int dir,
-                        game_ui *ui, float animtime, float flashtime)
+                        const game_state *oldstate, const game_state *state,
+                        int dir, const game_ui *ui,
+                        float animtime, float flashtime)
 {
     int w2 = state->w2, h2 = state->h2;
     int s = w2 * h2;
@@ -1632,15 +1634,14 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
     }
 }
 
-static float game_anim_length(game_state *oldstate, game_state *newstate,
-                              int dir, game_ui *ui)
+static float game_anim_length(const game_state *oldstate,
+                              const game_state *newstate, int dir, game_ui *ui)
 {
     return 0.0F;
 }
 
-static float game_flash_length(game_state *oldstate,
-                               game_state *newstate, int dir,
-                               game_ui *ui)
+static float game_flash_length(const game_state *oldstate,
+                               const game_state *newstate, int dir, game_ui *ui)
 {
     if (!oldstate->completed && newstate->completed &&
         !oldstate->cheated && !newstate->cheated)
@@ -1648,17 +1649,17 @@ static float game_flash_length(game_state *oldstate,
     return 0.0F;
 }
 
-static int game_status(game_state *state)
+static int game_status(const game_state *state)
 {
     return state->completed ? +1 : 0;
 }
 
-static int game_timing_state(game_state *state, game_ui *ui)
+static int game_timing_state(const game_state *state, game_ui *ui)
 {
     return TRUE;
 }
 
-static void game_print_size(game_params *params, float *x, float *y)
+static void game_print_size(const game_params *params, float *x, float *y)
 {
     int pw, ph;
 
@@ -1668,7 +1669,7 @@ static void game_print_size(game_params *params, float *x, float *y)
     *y = ph / 100.0F;
 }
 
-static void game_print(drawing *dr, game_state *state, int tilesize)
+static void game_print(drawing *dr, const game_state *state, int tilesize)
 {
     int w2 = state->w2, h2 = state->h2;
     int x, y;

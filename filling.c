@@ -135,7 +135,7 @@ static void free_params(game_params *params)
     sfree(params);
 }
 
-static game_params *dup_params(game_params *params)
+static game_params *dup_params(const game_params *params)
 {
     game_params *ret = snew(game_params);
     *ret = *params; /* struct copy */
@@ -149,14 +149,14 @@ static void decode_params(game_params *ret, char const *string)
     if (*string == 'x') ret->h = atoi(++string);
 }
 
-static char *encode_params(game_params *params, int full)
+static char *encode_params(const game_params *params, int full)
 {
     char buf[64];
     sprintf(buf, "%dx%d", params->w, params->h);
     return dupstr(buf);
 }
 
-static config_item *game_configure(game_params *params)
+static config_item *game_configure(const game_params *params)
 {
     config_item *ret;
     char buf[64];
@@ -183,7 +183,7 @@ static config_item *game_configure(game_params *params)
     return ret;
 }
 
-static game_params *custom_params(config_item *cfg)
+static game_params *custom_params(const config_item *cfg)
 {
     game_params *ret = snew(game_params);
 
@@ -193,7 +193,7 @@ static game_params *custom_params(config_item *cfg)
     return ret;
 }
 
-static char *validate_params(game_params *params, int full)
+static char *validate_params(const game_params *params, int full)
 {
     if (params->w < 1) return "Width must be at least one";
     if (params->h < 1) return "Height must be at least one";
@@ -277,12 +277,12 @@ static char *board_to_string(int *board, int w, int h) {
     return repr;
 }
 
-static int game_can_format_as_text_now(game_params *params)
+static int game_can_format_as_text_now(const game_params *params)
 {
     return TRUE;
 }
 
-static char *game_text_format(game_state *state)
+static char *game_text_format(const game_state *state)
 {
     const int w = state->shared->params.w;
     const int h = state->shared->params.h;
@@ -312,7 +312,7 @@ static void print_board(int *board, int w, int h) {
     }
 }
 
-static game_state *new_game(midend *, game_params *, char *);
+static game_state *new_game(midend *, const game_params *, const char *);
 static void free_game(game_state *);
 
 #define SENTINEL sz
@@ -786,7 +786,6 @@ static int solver(const int *orig, int w, int h, char **solution) {
 
     if (solution) {
         int i;
-        assert(*solution == NULL);
         *solution = snewn(sz + 2, char);
         **solution = 's';
         for (i = 0; i < sz; ++i) (*solution)[i + 1] = ss.board[i] + '0';
@@ -906,7 +905,7 @@ static char *new_game_desc(const game_params *params, random_state *rs,
     return game_description;
 }
 
-static char *validate_desc(const game_params *params, char *desc)
+static char *validate_desc(const game_params *params, const char *desc)
 {
     int i;
     const int sz = params->w * params->h;
@@ -924,7 +923,8 @@ static char *validate_desc(const game_params *params, char *desc)
     return NULL;
 }
 
-static game_state *new_game(midend *me, game_params *params, char *desc)
+static game_state *new_game(midend *me, const game_params *params,
+                            const char *desc)
 {
     game_state *state = snew(game_state);
     int sz = params->w * params->h;
@@ -941,7 +941,7 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
     return state;
 }
 
-static game_state *dup_game(game_state *state)
+static game_state *dup_game(const game_state *state)
 {
     const int sz = state->shared->params.w * state->shared->params.h;
     game_state *ret = snew(game_state);
@@ -966,14 +966,16 @@ static void free_game(game_state *state)
     sfree(state);
 }
 
-static char *solve_game(game_state *state, game_state *currstate,
-                        char *aux, char **error)
+static char *solve_game(const game_state *state, const game_state *currstate,
+                        const char *aux, char **error)
 {
     if (aux == NULL) {
         const int w = state->shared->params.w;
         const int h = state->shared->params.h;
-        if (!solver(state->board, w, h, &aux))
+	char *new_aux;
+        if (!solver(state->board, w, h, &new_aux))
             *error = "Sorry, I couldn't find a solution";
+	return new_aux;
     }
     return dupstr(aux);
 }
@@ -987,7 +989,7 @@ struct game_ui {
     int cur_x, cur_y, cur_visible;
 };
 
-static game_ui *new_ui(game_state *state)
+static game_ui *new_ui(const game_state *state)
 {
     game_ui *ui = snew(game_ui);
 
@@ -1004,17 +1006,17 @@ static void free_ui(game_ui *ui)
     sfree(ui);
 }
 
-static char *encode_ui(game_ui *ui)
+static char *encode_ui(const game_ui *ui)
 {
     return NULL;
 }
 
-static void decode_ui(game_ui *ui, char *encoding)
+static void decode_ui(game_ui *ui, const char *encoding)
 {
 }
 
-static void game_changed_state(game_ui *ui, game_state *oldstate,
-                               game_state *newstate)
+static void game_changed_state(game_ui *ui, const game_state *oldstate,
+                               const game_state *newstate)
 {
     /* Clear any selection */
     if (ui->sel) {
@@ -1036,7 +1038,8 @@ struct game_drawstate {
     int *dsf_scratch, *border_scratch;
 };
 
-static char *interpret_move(game_state *state, game_ui *ui, const game_drawstate *ds,
+static char *interpret_move(const game_state *state, game_ui *ui,
+                            const game_drawstate *ds,
                             int x, int y, int button)
 {
     const int w = state->shared->params.w;
@@ -1135,7 +1138,7 @@ static char *interpret_move(game_state *state, game_ui *ui, const game_drawstate
     return move ? move : "";
 }
 
-static game_state *execute_move(game_state *state, char *move)
+static game_state *execute_move(const game_state *state, const char *move)
 {
     game_state *new_state = NULL;
     const int sz = state->shared->params.w * state->shared->params.h;
@@ -1204,7 +1207,7 @@ enum {
     NCOLOURS
 };
 
-static void game_compute_size(game_params *params, int tilesize,
+static void game_compute_size(const game_params *params, int tilesize,
                               int *x, int *y)
 {
     *x = (params->w + 1) * tilesize;
@@ -1212,7 +1215,7 @@ static void game_compute_size(game_params *params, int tilesize,
 }
 
 static void game_set_size(drawing *dr, game_drawstate *ds,
-                          game_params *params, int tilesize)
+                          const game_params *params, int tilesize)
 {
     ds->tilesize = tilesize;
 }
@@ -1251,7 +1254,7 @@ static float *game_colours(frontend *fe, int *ncolours)
     return ret;
 }
 
-static game_drawstate *game_new_drawstate(drawing *dr, game_state *state)
+static game_drawstate *game_new_drawstate(drawing *dr, const game_state *state)
 {
     struct game_drawstate *ds = snew(struct game_drawstate);
     int i;
@@ -1420,8 +1423,8 @@ static void draw_square(drawing *dr, game_drawstate *ds, int x, int y,
 		TILE_SIZE);
 }
 
-static void draw_grid(drawing *dr, game_drawstate *ds, game_state *state,
-                      game_ui *ui, int flashy, int borders, int shading)
+static void draw_grid(drawing *dr, game_drawstate *ds, const game_state *state,
+                      const game_ui *ui, int flashy, int borders, int shading)
 {
     const int w = state->shared->params.w;
     const int h = state->shared->params.h;
@@ -1577,8 +1580,9 @@ static void draw_grid(drawing *dr, game_drawstate *ds, game_state *state,
         }
 }
 
-static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
-                        game_state *state, int dir, game_ui *ui,
+static void game_redraw(drawing *dr, game_drawstate *ds,
+                        const game_state *oldstate, const game_state *state,
+                        int dir, const game_ui *ui,
                         float animtime, float flashtime)
 {
     const int w = state->shared->params.w;
@@ -1614,14 +1618,14 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
     draw_grid(dr, ds, state, ui, flashy, TRUE, TRUE);
 }
 
-static float game_anim_length(game_state *oldstate, game_state *newstate,
-                              int dir, game_ui *ui)
+static float game_anim_length(const game_state *oldstate,
+                              const game_state *newstate, int dir, game_ui *ui)
 {
     return 0.0F;
 }
 
-static float game_flash_length(game_state *oldstate, game_state *newstate,
-                               int dir, game_ui *ui)
+static float game_flash_length(const game_state *oldstate,
+                               const game_state *newstate, int dir, game_ui *ui)
 {
     assert(oldstate);
     assert(newstate);
@@ -1633,17 +1637,17 @@ static float game_flash_length(game_state *oldstate, game_state *newstate,
     return 0.0F;
 }
 
-static int game_status(game_state *state)
+static int game_status(const game_state *state)
 {
     return state->completed ? +1 : 0;
 }
 
-static int game_timing_state(game_state *state, game_ui *ui)
+static int game_timing_state(const game_state *state, game_ui *ui)
 {
     return TRUE;
 }
 
-static void game_print_size(game_params *params, float *x, float *y)
+static void game_print_size(const game_params *params, float *x, float *y)
 {
     int pw, ph;
 
@@ -1655,7 +1659,7 @@ static void game_print_size(game_params *params, float *x, float *y)
     *y = ph / 100.0F;
 }
 
-static void game_print(drawing *dr, game_state *state, int tilesize)
+static void game_print(drawing *dr, const game_state *state, int tilesize)
 {
     const int w = state->shared->params.w;
     const int h = state->shared->params.h;

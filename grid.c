@@ -1397,7 +1397,7 @@ static void grid_size_square(int width, int height,
     *yextent = height * a;
 }
 
-static grid *grid_new_square(int width, int height, char *desc)
+static grid *grid_new_square(int width, int height, const char *desc)
 {
     int x, y;
     /* Side length */
@@ -1460,7 +1460,7 @@ static void grid_size_honeycomb(int width, int height,
     *yextent = (2 * b * (height-1)) + 3*b;
 }
 
-static grid *grid_new_honeycomb(int width, int height, char *desc)
+static grid *grid_new_honeycomb(int width, int height, const char *desc)
 {
     int x, y;
     int a = HONEY_A;
@@ -1530,7 +1530,7 @@ static void grid_size_triangular(int width, int height,
 }
 
 static char *grid_validate_desc_triangular(grid_type type, int width,
-                                           int height, char *desc)
+                                           int height, const char *desc)
 {
     /*
      * Triangular grids: an absent description is valid (indicating
@@ -1549,7 +1549,7 @@ static char *grid_validate_desc_triangular(grid_type type, int width,
 
 /* Doesn't use the previous method of generation, it pre-dates it!
  * A triangular grid is just about simple enough to do by "brute force" */
-static grid *grid_new_triangular(int width, int height, char *desc)
+static grid *grid_new_triangular(int width, int height, const char *desc)
 {
     int x,y;
     int version = (desc == NULL ? -1 : atoi(desc));
@@ -1726,7 +1726,7 @@ static void grid_size_snubsquare(int width, int height,
     *yextent = (a+b) * (height-1) + a + b;
 }
 
-static grid *grid_new_snubsquare(int width, int height, char *desc)
+static grid *grid_new_snubsquare(int width, int height, const char *desc)
 {
     int x, y;
     int a = SNUBSQUARE_A;
@@ -1839,7 +1839,7 @@ static void grid_size_cairo(int width, int height,
     *yextent = 2*b*(height-1) + 2*b;
 }
 
-static grid *grid_new_cairo(int width, int height, char *desc)
+static grid *grid_new_cairo(int width, int height, const char *desc)
 {
     int x, y;
     int a = CAIRO_A;
@@ -1946,7 +1946,7 @@ static void grid_size_greathexagonal(int width, int height,
     *yextent = (2*a + 2*b) * (height-1) + 3*b + a;
 }
 
-static grid *grid_new_greathexagonal(int width, int height, char *desc)
+static grid *grid_new_greathexagonal(int width, int height, const char *desc)
 {
     int x, y;
     int a = GREATHEX_A;
@@ -2076,7 +2076,7 @@ static void grid_size_octagonal(int width, int height,
     *yextent = (2*a + b) * height;
 }
 
-static grid *grid_new_octagonal(int width, int height, char *desc)
+static grid *grid_new_octagonal(int width, int height, const char *desc)
 {
     int x, y;
     int a = OCTAGONAL_A;
@@ -2159,7 +2159,7 @@ static void grid_size_kites(int width, int height,
     *yextent = 6*a * (height-1) + 8*a;
 }
 
-static grid *grid_new_kites(int width, int height, char *desc)
+static grid *grid_new_kites(int width, int height, const char *desc)
 {
     int x, y;
     int a = KITE_A;
@@ -2283,7 +2283,7 @@ static void grid_size_floret(int width, int height,
     *yextent = (5*qy-4*py) * (height-1) + 4*qy + 2*ry;
 }
 
-static grid *grid_new_floret(int width, int height, char *desc)
+static grid *grid_new_floret(int width, int height, const char *desc)
 {
     int x, y;
     /* Vectors for sides; weird numbers needed to keep puzzle aligned with window
@@ -2388,7 +2388,7 @@ static void grid_size_dodecagonal(int width, int height,
     *yextent = (3*a + 2*b) * (height-1) + 2*(2*a + b);
 }
 
-static grid *grid_new_dodecagonal(int width, int height, char *desc)
+static grid *grid_new_dodecagonal(int width, int height, const char *desc)
 {
     int x, y;
     int a = DODEC_A;
@@ -2468,7 +2468,7 @@ static void grid_size_greatdodecagonal(int width, int height,
     *yextent = (3*a + 3*b) * (height-1) + 2*(2*a + b);
 }
 
-static grid *grid_new_greatdodecagonal(int width, int height, char *desc)
+static grid *grid_new_greatdodecagonal(int width, int height, const char *desc)
 {
     int x, y;
     /* Vector for side of triangle - ratio is close to sqrt(3) */
@@ -2668,7 +2668,8 @@ static char *grid_new_desc_penrose(grid_type type, int width, int height, random
     return dupstr(gd);
 }
 
-static char *grid_validate_desc_penrose(grid_type type, int width, int height, char *desc)
+static char *grid_validate_desc_penrose(grid_type type, int width, int height,
+                                        const char *desc)
 {
     int tilesize = PENROSE_TILESIZE, startsz, depth, xoff, yoff, aoff, inner_radius;
     double outer_radius;
@@ -2698,7 +2699,7 @@ static char *grid_validate_desc_penrose(grid_type type, int width, int height, c
  * to pick.
  */
 
-static grid *grid_new_penrose(int width, int height, int which, char *desc)
+static grid *grid_new_penrose(int width, int height, int which, const char *desc)
 {
     int max_faces, max_dots, tilesize = PENROSE_TILESIZE;
     int xsz, ysz, xoff, yoff, aoff;
@@ -2790,12 +2791,12 @@ static void grid_size_penrose_p3_thick(int width, int height,
     grid_size_penrose(width, height, tilesize, xextent, yextent);
 }
 
-static grid *grid_new_penrose_p2_kite(int width, int height, char *desc)
+static grid *grid_new_penrose_p2_kite(int width, int height, const char *desc)
 {
     return grid_new_penrose(width, height, PENROSE_P2, desc);
 }
 
-static grid *grid_new_penrose_p3_thick(int width, int height, char *desc)
+static grid *grid_new_penrose_p3_thick(int width, int height, const char *desc)
 {
     return grid_new_penrose(width, height, PENROSE_P3, desc);
 }
@@ -2805,7 +2806,7 @@ static grid *grid_new_penrose_p3_thick(int width, int height, char *desc)
 #define FNNEW(upper,lower) &grid_new_ ## lower,
 #define FNSZ(upper,lower) &grid_size_ ## lower,
 
-static grid *(*(grid_news[]))(int, int, char*) = { GRIDGEN_LIST(FNNEW) };
+static grid *(*(grid_news[]))(int, int, const char*) = { GRIDGEN_LIST(FNNEW) };
 static void(*(grid_sizes[]))(int, int, int*, int*, int*) = { GRIDGEN_LIST(FNSZ) };
 
 char *grid_new_desc(grid_type type, int width, int height, random_state *rs)
@@ -2819,7 +2820,8 @@ char *grid_new_desc(grid_type type, int width, int height, random_state *rs)
     }
 }
 
-char *grid_validate_desc(grid_type type, int width, int height, char *desc)
+char *grid_validate_desc(grid_type type, int width, int height,
+                         const char *desc)
 {
     if (type == GRID_PENROSE_P2 || type == GRID_PENROSE_P3) {
         return grid_validate_desc_penrose(type, width, height, desc);
@@ -2832,7 +2834,7 @@ char *grid_validate_desc(grid_type type, int width, int height, char *desc)
     }
 }
 
-grid *grid_new(grid_type type, int width, int height, char *desc)
+grid *grid_new(grid_type type, int width, int height, const char *desc)
 {
     char *err = grid_validate_desc(type, width, height, desc);
     if (err) assert(!"Invalid grid description.");

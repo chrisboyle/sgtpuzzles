@@ -280,7 +280,7 @@ static void free_params(game_params *params)
     sfree(params);
 }
 
-static game_params *dup_params(game_params *params)
+static game_params *dup_params(const game_params *params)
 {
     game_params *ret = snew(game_params);
     *ret = *params;		       /* structure copy */
@@ -304,7 +304,7 @@ static void decode_params(game_params *ret, char const *string)
     }
 }
 
-static char *encode_params(game_params *params, int full)
+static char *encode_params(const game_params *params, int full)
 {
     char data[256];
 
@@ -482,7 +482,7 @@ static int grid_area(int d1, int d2, int order)
         return d1*d1 + d2*d2 + 4*d1*d2;
 }
 
-static config_item *game_configure(game_params *params)
+static config_item *game_configure(const game_params *params)
 {
     config_item *ret = snewn(4, config_item);
     char buf[80];
@@ -512,7 +512,7 @@ static config_item *game_configure(game_params *params)
     return ret;
 }
 
-static game_params *custom_params(config_item *cfg)
+static game_params *custom_params(const config_item *cfg)
 {
     game_params *ret = snew(game_params);
 
@@ -538,7 +538,7 @@ static void count_grid_square_callback(void *ctx, struct grid_square *sq)
     classes[thisclass]++;
 }
 
-static char *validate_params(game_params *params, int full)
+static char *validate_params(const game_params *params, int full)
 {
     int classes[5];
     int i;
@@ -846,7 +846,7 @@ static struct solid *transform_poly(const struct solid *solid, int flip,
     return ret;
 }
 
-static char *validate_desc(const game_params *params, char *desc)
+static char *validate_desc(const game_params *params, const char *desc)
 {
     int area = grid_area(params->d1, params->d2, solids[params->solid]->order);
     int i, j;
@@ -874,7 +874,8 @@ static char *validate_desc(const game_params *params, char *desc)
     return NULL;
 }
 
-static game_state *new_game(midend *me, game_params *params, char *desc)
+static game_state *new_game(midend *me, const game_params *params,
+                            const char *desc)
 {
     game_grid *grid = snew(game_grid);
     game_state *state = snew(game_state);
@@ -903,7 +904,7 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
      * the game description.
      */
     {
-	char *p = desc;
+	const char *p = desc;
 	int i, j, v;
 
 	j = 8;
@@ -960,7 +961,7 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
     return state;
 }
 
-static game_state *dup_game(game_state *state)
+static game_state *dup_game(const game_state *state)
 {
     game_state *ret = snew(game_state);
 
@@ -1002,23 +1003,23 @@ static void free_game(game_state *state)
     sfree(state);
 }
 
-static char *solve_game(game_state *state, game_state *currstate,
-			char *aux, char **error)
+static char *solve_game(const game_state *state, const game_state *currstate,
+                        const char *aux, char **error)
 {
     return NULL;
 }
 
-static int game_can_format_as_text_now(game_params *params)
+static int game_can_format_as_text_now(const game_params *params)
 {
     return TRUE;
 }
 
-static char *game_text_format(game_state *state)
+static char *game_text_format(const game_state *state)
 {
     return NULL;
 }
 
-static game_ui *new_ui(game_state *state)
+static game_ui *new_ui(const game_state *state)
 {
     return NULL;
 }
@@ -1027,17 +1028,17 @@ static void free_ui(game_ui *ui)
 {
 }
 
-static char *encode_ui(game_ui *ui)
+static char *encode_ui(const game_ui *ui)
 {
     return NULL;
 }
 
-static void decode_ui(game_ui *ui, char *encoding)
+static void decode_ui(game_ui *ui, const char *encoding)
 {
 }
 
-static void game_changed_state(game_ui *ui, game_state *oldstate,
-                               game_state *newstate)
+static void game_changed_state(game_ui *ui, const game_state *oldstate,
+                               const game_state *newstate)
 {
 }
 
@@ -1049,7 +1050,7 @@ struct game_drawstate {
 /*
  * Code shared between interpret_move() and execute_move().
  */
-static int find_move_dest(game_state *from, int direction,
+static int find_move_dest(const game_state *from, int direction,
 			  int *skey, int *dkey)
 {
     int mask, dest, i, j;
@@ -1101,8 +1102,9 @@ static int find_move_dest(game_state *from, int direction,
     return dest;
 }
 
-static char *interpret_move(game_state *state, game_ui *ui, const game_drawstate *ds,
-			    int x, int y, int button)
+static char *interpret_move(const game_state *state, game_ui *ui,
+                            const game_drawstate *ds,
+                            int x, int y, int button)
 {
     int direction, mask, i;
     int skey[2], dkey[2];
@@ -1222,7 +1224,7 @@ static char *interpret_move(game_state *state, game_ui *ui, const game_drawstate
     return NULL;		       /* should never happen */
 }
 
-static game_state *execute_move(game_state *from, char *move)
+static game_state *execute_move(const game_state *from, const char *move)
 {
     game_state *ret;
     float angle;
@@ -1463,7 +1465,7 @@ static void find_bbox_callback(void *ctx, struct grid_square *sq)
     }
 }
 
-static struct bbox find_bbox(game_params *params)
+static struct bbox find_bbox(const game_params *params)
 {
     struct bbox bb;
 
@@ -1485,8 +1487,8 @@ static struct bbox find_bbox(game_params *params)
 #define YSIZE(gs, bb, solid) \
     ((int)(((bb).d - (bb).u + 2*(solid)->border) * gs))
 
-static void game_compute_size(game_params *params, int tilesize,
-			      int *x, int *y)
+static void game_compute_size(const game_params *params, int tilesize,
+                              int *x, int *y)
 {
     struct bbox bb = find_bbox(params);
 
@@ -1495,7 +1497,7 @@ static void game_compute_size(game_params *params, int tilesize,
 }
 
 static void game_set_size(drawing *dr, game_drawstate *ds,
-			  game_params *params, int tilesize)
+                          const game_params *params, int tilesize)
 {
     struct bbox bb = find_bbox(params);
 
@@ -1522,7 +1524,7 @@ static float *game_colours(frontend *fe, int *ncolours)
     return ret;
 }
 
-static game_drawstate *game_new_drawstate(drawing *dr, game_state *state)
+static game_drawstate *game_new_drawstate(drawing *dr, const game_state *state)
 {
     struct game_drawstate *ds = snew(struct game_drawstate);
 
@@ -1537,14 +1539,15 @@ static void game_free_drawstate(drawing *dr, game_drawstate *ds)
     sfree(ds);
 }
 
-static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
-                        game_state *state, int dir, game_ui *ui,
+static void game_redraw(drawing *dr, game_drawstate *ds,
+                        const game_state *oldstate, const game_state *state,
+                        int dir, const game_ui *ui,
                         float animtime, float flashtime)
 {
     int i, j;
     struct bbox bb = find_bbox(&state->params);
     struct solid *poly;
-    int *pkey, *gkey;
+    const int *pkey, *gkey;
     float t[3];
     float angle;
     int square;
@@ -1553,7 +1556,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
 	      YSIZE(GRID_SCALE, bb, state->solid), COL_BACKGROUND);
 
     if (dir < 0) {
-        game_state *t;
+        const game_state *t;
 
         /*
          * This is an Undo. So reverse the order of the states, and
@@ -1697,33 +1700,33 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
     }
 }
 
-static float game_anim_length(game_state *oldstate,
-			      game_state *newstate, int dir, game_ui *ui)
+static float game_anim_length(const game_state *oldstate,
+                              const game_state *newstate, int dir, game_ui *ui)
 {
     return ROLLTIME;
 }
 
-static float game_flash_length(game_state *oldstate,
-			       game_state *newstate, int dir, game_ui *ui)
+static float game_flash_length(const game_state *oldstate,
+                               const game_state *newstate, int dir, game_ui *ui)
 {
     return 0.0F;
 }
 
-static int game_status(game_state *state)
+static int game_status(const game_state *state)
 {
     return state->completed ? +1 : 0;
 }
 
-static int game_timing_state(game_state *state, game_ui *ui)
+static int game_timing_state(const game_state *state, game_ui *ui)
 {
     return TRUE;
 }
 
-static void game_print_size(game_params *params, float *x, float *y)
+static void game_print_size(const game_params *params, float *x, float *y)
 {
 }
 
-static void game_print(drawing *dr, game_state *state, int tilesize)
+static void game_print(drawing *dr, const game_state *state, int tilesize)
 {
 }
 

@@ -113,7 +113,8 @@ static void free_params(game_params *params) {
     sfree(params);
 }
 
-static game_params *dup_params(game_params *params) {
+static game_params *dup_params(const game_params *params)
+{
     game_params *ret = snew(game_params);
     *ret = *params;            /* structure copy */
     return ret;
@@ -142,7 +143,8 @@ static void decode_params(game_params *params, char const *string) {
     return;
 }
 
-static char *encode_params(game_params *params, int full) {
+static char *encode_params(const game_params *params, int full)
+{
     char buf[256];
     sprintf(buf, "%dx%d", params->w, params->h);
     if (full)
@@ -150,7 +152,8 @@ static char *encode_params(game_params *params, int full) {
     return dupstr(buf);
 }
 
-static config_item *game_configure(game_params *params) {
+static config_item *game_configure(const game_params *params)
+{
     config_item *ret;
     char buf[64];
 
@@ -181,7 +184,8 @@ static config_item *game_configure(game_params *params) {
     return ret;
 }
 
-static game_params *custom_params(config_item *cfg) {
+static game_params *custom_params(const config_item *cfg)
+{
     game_params *ret = snew(game_params);
 
     ret->w = atoi(cfg[0].sval);
@@ -190,7 +194,8 @@ static game_params *custom_params(config_item *cfg) {
     return ret;
 }
 
-static char *validate_params(game_params *params, int full) {
+static char *validate_params(const game_params *params, int full)
+{
     if ((params->w * params->h ) > 54)  return "Grid is too big";
     if (params->w < 3)                  return "Width must be at least 3";
     if (params->h < 3)                  return "Height must be at least 3";
@@ -293,7 +298,8 @@ static game_state *new_state(const game_params *params) {
     return state;
 }
 
-static game_state *dup_game(game_state *state) {
+static game_state *dup_game(const game_state *state)
+{
     game_state *ret = snew(game_state);
 
     ret->common = state->common;
@@ -1299,7 +1305,9 @@ void num2grid(int num, int width, int height, int *x, int *y) {
     return;
 }
 
-static game_state *new_game(midend *me, game_params *params, char *desc) {
+static game_state *new_game(midend *me, const game_params *params,
+                            const char *desc)
+{
     int i;
     int n;
     int count;
@@ -1419,14 +1427,15 @@ static game_state *new_game(midend *me, game_params *params, char *desc) {
     return state;
 }
 
-static char *validate_desc(const game_params *params, char *desc) {
+static char *validate_desc(const game_params *params, const char *desc)
+{
     int i;
     int w = params->w, h = params->h;
     int wh = w*h;
     int area;
     int monsters;
     int monster_count;
-    char *desc_s = desc;
+    const char *desc_s = desc;
         
     for (i=0;i<3;i++) {
         if (!*desc) return "Faulty game description";
@@ -1470,7 +1479,9 @@ static char *validate_desc(const game_params *params, char *desc) {
     return NULL;
 }
 
-static char *solve_game(game_state *state_start, game_state *currstate, char *aux, char **error) {
+static char *solve_game(const game_state *state_start, const game_state *currstate,
+                        const char *aux, char **error)
+{
     int p;
     int *old_guess;
     int iterative_depth;
@@ -1553,11 +1564,13 @@ static char *solve_game(game_state *state_start, game_state *currstate, char *au
     return move;
 }
 
-static int game_can_format_as_text_now(game_params *params) {
+static int game_can_format_as_text_now(const game_params *params)
+{
     return TRUE;
 }
 
-static char *game_text_format(game_state *state) {
+static char *game_text_format(const game_state *state)
+{
     int w,h,c,r,xi,g;
     char *ret;
     char buf[120];
@@ -1602,7 +1615,8 @@ struct game_ui {
     int ascii;
 };
 
-static game_ui *new_ui(game_state *state) {
+static game_ui *new_ui(const game_state *state)
+{
     game_ui *ui = snew(game_ui);
     ui->hx = ui->hy = 0;
     ui->hpencil = ui->hshow = ui->hcursor = 0;
@@ -1615,15 +1629,19 @@ static void free_ui(game_ui *ui) {
     return;
 }
 
-static char *encode_ui(game_ui *ui) {
+static char *encode_ui(const game_ui *ui)
+{
     return NULL;
 }
 
-static void decode_ui(game_ui *ui, char *encoding) {
+static void decode_ui(game_ui *ui, const char *encoding)
+{
     return;
 }
 
-static void game_changed_state(game_ui *ui, game_state *oldstate, game_state *newstate) {
+static void game_changed_state(game_ui *ui, const game_state *oldstate,
+                               const game_state *newstate)
+{
     /* See solo.c; if we were pencil-mode highlighting and
      * somehow a square has just been properly filled, cancel
      * pencil mode. */
@@ -1653,8 +1671,9 @@ struct game_drawstate {
 #define TILESIZE (ds->tilesize)
 #define BORDER (TILESIZE/4)
 
-static char *interpret_move(game_state *state, game_ui *ui,
-                            const game_drawstate *ds, int x, int y, int button)
+static char *interpret_move(const game_state *state, game_ui *ui,
+                            const game_drawstate *ds,
+                            int x, int y, int button)
 {
     int gx,gy;
     int g,xi;
@@ -1921,7 +1940,8 @@ int check_path_solution(game_state *state, int p) {
     return correct;
 }
 
-static game_state *execute_move(game_state *state, char *move) {
+static game_state *execute_move(const game_state *state, const char *move)
+{
     int x,n,p,i;
     char c;
     int correct; 
@@ -1979,8 +1999,9 @@ static game_state *execute_move(game_state *state, char *move) {
 
 #define PREFERRED_TILE_SIZE 64
 
-static void game_compute_size(game_params *params, int tilesize,
-                              int *x, int *y) {
+static void game_compute_size(const game_params *params, int tilesize,
+                              int *x, int *y)
+{
     /* Ick: fake up `ds->tilesize' for macro expansion purposes */
     struct { int tilesize; } ads, *ds = &ads;
     ads.tilesize = tilesize;
@@ -1991,14 +2012,16 @@ static void game_compute_size(game_params *params, int tilesize,
 }
 
 static void game_set_size(drawing *dr, game_drawstate *ds,
-                          game_params *params, int tilesize) {
+                          const game_params *params, int tilesize)
+{
     ds->tilesize = tilesize;
     return;
 }
 
 #define COLOUR(ret, i, r, g, b)     ((ret[3*(i)+0] = (r)), (ret[3*(i)+1] = (g)), (ret[3*(i)+2] = (b)))
 
-static float *game_colours(frontend *fe, int *ncolours) {
+static float *game_colours(frontend *fe, int *ncolours)
+{
     float *ret = snewn(3 * NCOLOURS, float);
 
     frontend_default_colour(fe, &ret[COL_BACKGROUND * 3]);
@@ -2039,7 +2062,8 @@ static float *game_colours(frontend *fe, int *ncolours) {
     return ret;
 }
 
-static game_drawstate *game_new_drawstate(drawing *dr, game_state *state) {
+static game_drawstate *game_new_drawstate(drawing *dr, const game_state *state)
+{
     int i;
     struct game_drawstate *ds = snew(struct game_drawstate);
 
@@ -2082,7 +2106,8 @@ static void game_free_drawstate(drawing *dr, game_drawstate *ds) {
 }
 
 static void draw_cell_background(drawing *dr, game_drawstate *ds,
-                                 game_state *state, game_ui *ui, int x, int y) {
+                                 const game_state *state, const game_ui *ui,
+                                 int x, int y) {
 
     int hon;
     int dx,dy;
@@ -2247,7 +2272,7 @@ static void draw_monster(drawing *dr, game_drawstate *ds, int x, int y,
 }
 
 static void draw_monster_count(drawing *dr, game_drawstate *ds,
-                               game_state *state, int c, int hflash) {
+                               const game_state *state, int c, int hflash) {
     int dx,dy,dh;
     char buf[8];
     char bufm[8];
@@ -2292,7 +2317,8 @@ static void draw_monster_count(drawing *dr, game_drawstate *ds,
     return;
 }
 
-static void draw_path_hint(drawing *dr, game_drawstate *ds, game_state *state,
+static void draw_path_hint(drawing *dr, game_drawstate *ds,
+                           const game_state *state,
                            int i, int hflash, int start) {
     int dx,dy,x,y;
     int p,error;
@@ -2312,8 +2338,9 @@ static void draw_path_hint(drawing *dr, game_drawstate *ds, game_state *state,
     return;
 }
 
-static void draw_mirror(drawing *dr, game_drawstate *ds, game_state *state,
-                        int x, int y, int hflash, int mirror) {
+static void draw_mirror(drawing *dr, game_drawstate *ds,
+                        const game_state *state, int x, int y,
+                        int hflash, int mirror) {
     int dx,dy,mx1,my1,mx2,my2;
     dx = BORDER+(x* ds->tilesize)+(TILESIZE/2);
     dy = BORDER+(y* ds->tilesize)+(TILESIZE/2)+TILESIZE;
@@ -2337,8 +2364,9 @@ static void draw_mirror(drawing *dr, game_drawstate *ds, game_state *state,
     return;
 }
 
-static void draw_big_monster(drawing *dr, game_drawstate *ds, game_state *state,
-                             int x, int y, int hflash, int monster)
+static void draw_big_monster(drawing *dr, game_drawstate *ds,
+                             const game_state *state, int x, int y,
+                             int hflash, int monster)
 {
     int dx,dy;
     char buf[10];
@@ -2360,8 +2388,9 @@ static void draw_big_monster(drawing *dr, game_drawstate *ds, game_state *state,
     return;
 }
 
-static void draw_pencils(drawing *dr, game_drawstate *ds, game_state *state,
-                         int x, int y, int pencil) {
+static void draw_pencils(drawing *dr, game_drawstate *ds,
+                         const game_state *state, int x, int y, int pencil)
+{
     int dx, dy;
     int monsters[4];
     int i, j, px, py;
@@ -2402,9 +2431,11 @@ static void draw_pencils(drawing *dr, game_drawstate *ds, game_state *state,
 
 #define FLASH_TIME 0.7F
 
-static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
-                        game_state *state, int dir, game_ui *ui,
-                        float animtime, float flashtime) {
+static void game_redraw(drawing *dr, game_drawstate *ds,
+                        const game_state *oldstate, const game_state *state,
+                        int dir, const game_ui *ui,
+                        float animtime, float flashtime)
+{
     int i,j,x,y,xy;
     int stale, xi, c, hflash, hchanged, changed_ascii;
 
@@ -2541,29 +2572,35 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
     return;
 }
 
-static float game_anim_length(game_state *oldstate, game_state *newstate,
-                              int dir, game_ui *ui) {
+static float game_anim_length(const game_state *oldstate,
+                              const game_state *newstate, int dir, game_ui *ui)
+{
     return 0.0F;
 }
 
-static float game_flash_length(game_state *oldstate, game_state *newstate,
-                               int dir, game_ui *ui) {
+static float game_flash_length(const game_state *oldstate,
+                               const game_state *newstate, int dir, game_ui *ui)
+{
     return (!oldstate->solved && newstate->solved && !oldstate->cheated &&
             !newstate->cheated) ? FLASH_TIME : 0.0F;
 }
 
-static int game_status(game_state *state) {
+static int game_status(const game_state *state)
+{
     return state->solved;
 }
 
-static int game_timing_state(game_state *state, game_ui *ui) {
+static int game_timing_state(const game_state *state, game_ui *ui)
+{
     return TRUE;
 }
 
-static void game_print_size(game_params *params, float *x, float *y) {
+static void game_print_size(const game_params *params, float *x, float *y)
+{
 }
 
-static void game_print(drawing *dr, game_state *state, int tilesize) {
+static void game_print(drawing *dr, const game_state *state, int tilesize)
+{
 }
 
 #ifdef COMBINED

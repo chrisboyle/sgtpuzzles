@@ -87,7 +87,7 @@ static void free_params(game_params *params)
     sfree(params);
 }
 
-static game_params *dup_params(game_params *params)
+static game_params *dup_params(const game_params *params)
 {
     game_params *ret = snew(game_params);
     *ret = *params;		       /* structure copy */
@@ -129,7 +129,7 @@ static void decode_params(game_params *params, char const *string)
     }
 }
 
-static char *encode_params(game_params *params, int full)
+static char *encode_params(const game_params *params, int full)
 {
     char str[256];
 
@@ -138,7 +138,7 @@ static char *encode_params(game_params *params, int full)
     return dupstr(str);
 }
 
-static config_item *game_configure(game_params *params)
+static config_item *game_configure(const game_params *params)
 {
     config_item *ret;
     char buf[80];
@@ -174,7 +174,7 @@ static config_item *game_configure(game_params *params)
     return ret;
 }
 
-static game_params *custom_params(config_item *cfg)
+static game_params *custom_params(const config_item *cfg)
 {
     game_params *ret = snew(game_params);
 
@@ -188,7 +188,7 @@ static game_params *custom_params(config_item *cfg)
     return ret;
 }
 
-static char *validate_params(game_params *params, int full)
+static char *validate_params(const game_params *params, int full)
 {
     if (params->w < 2 || params->h < 2)
         return "Width and height must both be at least two";
@@ -251,7 +251,7 @@ static char *new_game_desc(const game_params *params, random_state *rs,
     return ret;
 }
 
-static char *validate_desc(const game_params *params, char *desc)
+static char *validate_desc(const game_params *params, const char *desc)
 {
     int nballs, dlen = strlen(desc), i;
     unsigned char *bmp;
@@ -328,7 +328,8 @@ static const char *dirstrs[] = {
 };
 #endif
 
-static int range2grid(game_state *state, int rangeno, int *x, int *y, int *direction)
+static int range2grid(const game_state *state, int rangeno, int *x, int *y,
+                      int *direction)
 {
     if (rangeno < 0)
         return 0;
@@ -367,7 +368,7 @@ static int range2grid(game_state *state, int rangeno, int *x, int *y, int *direc
     return 0;
 }
 
-static int grid2range(game_state *state, int x, int y, int *rangeno)
+static int grid2range(const game_state *state, int x, int y, int *rangeno)
 {
     int ret, x1 = state->w+1, y1 = state->h+1;
 
@@ -391,7 +392,8 @@ static int grid2range(game_state *state, int x, int y, int *rangeno)
     return 1;
 }
 
-static game_state *new_game(midend *me, game_params *params, char *desc)
+static game_state *new_game(midend *me, const game_params *params,
+                            const char *desc)
 {
     game_state *state = snew(game_state);
     int dlen = strlen(desc), i;
@@ -427,7 +429,7 @@ static game_state *new_game(midend *me, game_params *params, char *desc)
 
 #define XFER(x) ret->x = state->x
 
-static game_state *dup_game(game_state *state)
+static game_state *dup_game(const game_state *state)
 {
     game_state *ret = snew(game_state);
 
@@ -459,18 +461,18 @@ static void free_game(game_state *state)
     sfree(state);
 }
 
-static char *solve_game(game_state *state, game_state *currstate,
-			char *aux, char **error)
+static char *solve_game(const game_state *state, const game_state *currstate,
+                        const char *aux, char **error)
 {
     return dupstr("S");
 }
 
-static int game_can_format_as_text_now(game_params *params)
+static int game_can_format_as_text_now(const game_params *params)
 {
     return TRUE;
 }
 
-static char *game_text_format(game_state *state)
+static char *game_text_format(const game_state *state)
 {
     return NULL;
 }
@@ -482,7 +484,7 @@ struct game_ui {
     int flash_laser; /* 0 = never, 1 = always, 2 = if anim. */
 };
 
-static game_ui *new_ui(game_state *state)
+static game_ui *new_ui(const game_state *state)
 {
     game_ui *ui = snew(game_ui);
     ui->flash_laserno = LASER_EMPTY;
@@ -502,7 +504,7 @@ static void free_ui(game_ui *ui)
     sfree(ui);
 }
 
-static char *encode_ui(game_ui *ui)
+static char *encode_ui(const game_ui *ui)
 {
     char buf[80];
     /*
@@ -512,13 +514,13 @@ static char *encode_ui(game_ui *ui)
     return dupstr(buf);
 }
 
-static void decode_ui(game_ui *ui, char *encoding)
+static void decode_ui(game_ui *ui, const char *encoding)
 {
     sscanf(encoding, "E%d", &ui->errors);
 }
 
-static void game_changed_state(game_ui *ui, game_state *oldstate,
-                               game_state *newstate)
+static void game_changed_state(game_ui *ui, const game_state *oldstate,
+                               const game_state *newstate)
 {
     /*
      * If we've encountered a `justwrong' state as a result of
@@ -879,8 +881,9 @@ struct game_drawstate {
     int flash_laserno, isflash;
 };
 
-static char *interpret_move(game_state *state, game_ui *ui, const game_drawstate *ds,
-			    int x, int y, int button)
+static char *interpret_move(const game_state *state, game_ui *ui,
+                            const game_drawstate *ds,
+                            int x, int y, int button)
 {
     int gx = -1, gy = -1, rangeno = -1, wouldflash = 0;
     enum { NONE, TOGGLE_BALL, TOGGLE_LOCK, FIRE, REVEAL,
@@ -987,7 +990,7 @@ static char *interpret_move(game_state *state, game_ui *ui, const game_drawstate
     return dupstr(buf);
 }
 
-static game_state *execute_move(game_state *from, char *move)
+static game_state *execute_move(const game_state *from, const char *move)
 {
     game_state *ret = dup_game(from);
     int gx = -1, gy = -1, rangeno = -1;
@@ -1094,8 +1097,8 @@ badmove:
  * Drawing routines.
  */
 
-static void game_compute_size(game_params *params, int tilesize,
-			      int *x, int *y)
+static void game_compute_size(const game_params *params, int tilesize,
+                              int *x, int *y)
 {
     /* Border is ts/2, to make things easier.
      * Thus we have (width) + 2 (firing range*2) + 1 (border*2) tiles
@@ -1105,7 +1108,7 @@ static void game_compute_size(game_params *params, int tilesize,
 }
 
 static void game_set_size(drawing *dr, game_drawstate *ds,
-			  game_params *params, int tilesize)
+                          const game_params *params, int tilesize)
 {
     ds->tilesize = tilesize;
     ds->crad = (tilesize-1)/2;
@@ -1150,7 +1153,7 @@ static float *game_colours(frontend *fe, int *ncolours)
     return ret;
 }
 
-static game_drawstate *game_new_drawstate(drawing *dr, game_state *state)
+static game_drawstate *game_new_drawstate(drawing *dr, const game_state *state)
 {
     struct game_drawstate *ds = snew(struct game_drawstate);
 
@@ -1181,8 +1184,9 @@ static void draw_square_cursor(drawing *dr, game_drawstate *ds, int dx, int dy)
 }
 
 
-static void draw_arena_tile(drawing *dr, game_state *gs, game_drawstate *ds,
-                            game_ui *ui, int ax, int ay, int force, int isflash)
+static void draw_arena_tile(drawing *dr, const game_state *gs,
+                            game_drawstate *ds, const game_ui *ui,
+                            int ax, int ay, int force, int isflash)
 {
     int gx = ax+1, gy = ay+1;
     int gs_tile = GRID(gs, gx, gy), ds_tile = GRID(ds, gx, gy);
@@ -1262,8 +1266,9 @@ static void draw_arena_tile(drawing *dr, game_state *gs, game_drawstate *ds,
     GRID(ds,gx,gy) = gs_tile;
 }
 
-static void draw_laser_tile(drawing *dr, game_state *gs, game_drawstate *ds,
-                            game_ui *ui, int lno, int force)
+static void draw_laser_tile(drawing *dr, const game_state *gs,
+                            game_drawstate *ds, const game_ui *ui,
+                            int lno, int force)
 {
     int gx, gy, dx, dy, unused;
     int wrong, omitted, reflect, hit, laserval, flash = 0, tmp;
@@ -1333,9 +1338,10 @@ static void draw_laser_tile(drawing *dr, game_state *gs, game_drawstate *ds,
 
 #define CUR_ANIM 0.2F
 
-static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
-			game_state *state, int dir, game_ui *ui,
-			float animtime, float flashtime)
+static void game_redraw(drawing *dr, game_drawstate *ds,
+                        const game_state *oldstate, const game_state *state,
+                        int dir, const game_ui *ui,
+                        float animtime, float flashtime)
 {
     int i, x, y, ts = TILE_SIZE, isflash = 0, force = 0;
 
@@ -1447,14 +1453,14 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
     }
 }
 
-static float game_anim_length(game_state *oldstate, game_state *newstate,
-			      int dir, game_ui *ui)
+static float game_anim_length(const game_state *oldstate,
+                              const game_state *newstate, int dir, game_ui *ui)
 {
     return (ui->flash_laser == 2) ? CUR_ANIM : 0.0F;
 }
 
-static float game_flash_length(game_state *oldstate, game_state *newstate,
-			       int dir, game_ui *ui)
+static float game_flash_length(const game_state *oldstate,
+                               const game_state *newstate, int dir, game_ui *ui)
 {
     if (!oldstate->reveal && newstate->reveal)
         return 4.0F * FLASH_FRAME;
@@ -1462,7 +1468,7 @@ static float game_flash_length(game_state *oldstate, game_state *newstate,
         return 0.0F;
 }
 
-static int game_status(game_state *state)
+static int game_status(const game_state *state)
 {
     if (state->reveal) {
         /*
@@ -1479,16 +1485,16 @@ static int game_status(game_state *state)
     return 0;
 }
 
-static int game_timing_state(game_state *state, game_ui *ui)
+static int game_timing_state(const game_state *state, game_ui *ui)
 {
     return TRUE;
 }
 
-static void game_print_size(game_params *params, float *x, float *y)
+static void game_print_size(const game_params *params, float *x, float *y)
 {
 }
 
-static void game_print(drawing *dr, game_state *state, int tilesize)
+static void game_print(drawing *dr, const game_state *state, int tilesize)
 {
 }
 
