@@ -14,7 +14,8 @@
  *
  * Some variants include an extra constraint, stating that no two rows or two
  * columns may contain the same exact sequence of zeros and ones.
- * This rule is rarely used, so it has been discarded for this implementation.
+ * This rule is rarely used, so it is not enabled in the default presets
+ * (but it can be selected via the Custom configurer).
  *
  * More information:
  * http://www.janko.at/Raetsel/Tohu-Wa-Vohu/index.htm
