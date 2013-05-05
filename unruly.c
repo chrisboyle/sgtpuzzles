@@ -76,6 +76,7 @@ enum {
 
 struct game_params {
     int w2, h2;        /* full grid width and height respectively */
+    int unique;        /* should row and column patterns be unique? */
     int diff;
 };
 #define DIFFLIST(A)                             \
@@ -93,12 +94,12 @@ static char const unruly_diffchars[] = DIFFLIST(ENCODE);
 #define DIFFCONFIG DIFFLIST(CONFIG)
 
 const static struct game_params unruly_presets[] = {
-    { 8,  8, DIFF_EASY},
-    { 8,  8, DIFF_NORMAL},
-    {10, 10, DIFF_EASY},
-    {10, 10, DIFF_NORMAL},
-    {14, 14, DIFF_EASY},
-    {14, 14, DIFF_NORMAL}
+    { 8,  8, FALSE, DIFF_EASY},
+    { 8,  8, FALSE, DIFF_NORMAL},
+    {10, 10, FALSE, DIFF_EASY},
+    {10, 10, FALSE, DIFF_NORMAL},
+    {14, 14, FALSE, DIFF_EASY},
+    {14, 14, FALSE, DIFF_NORMAL}
 };
 
 #define DEFAULT_PRESET 0
@@ -110,26 +111,30 @@ enum {
     BOGUS
 };
 
-#define FE_HOR_ROW_LEFT   0x001
-#define FE_HOR_ROW_MID    0x003
-#define FE_HOR_ROW_RIGHT  0x002
+#define FE_HOR_ROW_LEFT   0x0001
+#define FE_HOR_ROW_MID    0x0003
+#define FE_HOR_ROW_RIGHT  0x0002
 
-#define FE_VER_ROW_TOP    0x004
-#define FE_VER_ROW_MID    0x00C
-#define FE_VER_ROW_BOTTOM 0x008
+#define FE_VER_ROW_TOP    0x0004
+#define FE_VER_ROW_MID    0x000C
+#define FE_VER_ROW_BOTTOM 0x0008
 
-#define FE_COUNT          0x010
+#define FE_COUNT          0x0010
 
-#define FF_ONE            0x020
-#define FF_ZERO           0x040
-#define FF_CURSOR         0x080
+#define FE_ROW_MATCH      0x0020
+#define FE_COL_MATCH      0x0040
 
-#define FF_FLASH1         0x100
-#define FF_FLASH2         0x200
-#define FF_IMMUTABLE      0x400
+#define FF_ONE            0x0080
+#define FF_ZERO           0x0100
+#define FF_CURSOR         0x0200
+
+#define FF_FLASH1         0x0400
+#define FF_FLASH2         0x0800
+#define FF_IMMUTABLE      0x1000
 
 struct game_state {
     int w2, h2;
+    int unique;
     char *grid;
     unsigned char *immutable;
 
@@ -179,6 +184,8 @@ static void decode_params(game_params *params, char const *string)
 {
     char const *p = string;
 
+    params->unique = FALSE;
+
     params->w2 = atoi(p);
     while (*p && isdigit((unsigned char)*p)) p++;
     if (*p == 'x') {
@@ -187,6 +194,11 @@ static void decode_params(game_params *params, char const *string)
         while (*p && isdigit((unsigned char)*p)) p++;
     } else {
         params->h2 = params->w2;
+    }
+
+    if (*p == 'u') {
+        p++;
+        params->unique = TRUE;
     }
 
     if (*p == 'd') {
@@ -208,6 +220,8 @@ static char *encode_params(const game_params *params, int full)
     char buf[80];
 
     sprintf(buf, "%dx%d", params->w2, params->h2);
+    if (params->unique)
+        strcat(buf, "u");
     if (full)
         sprintf(buf + strlen(buf), "d%c", unruly_diffchars[params->diff]);
 
@@ -219,7 +233,7 @@ static config_item *game_configure(const game_params *params)
     config_item *ret;
     char buf[80];
 
-    ret = snewn(4, config_item);
+    ret = snewn(5, config_item);
 
     ret[0].name = "Width";
     ret[0].type = C_STRING;
@@ -233,15 +247,19 @@ static config_item *game_configure(const game_params *params)
     ret[1].sval = dupstr(buf);
     ret[1].ival = 0;
 
-    ret[2].name = "Difficulty";
-    ret[2].type = C_CHOICES;
-    ret[2].sval = DIFFCONFIG;
-    ret[2].ival = params->diff;
+    ret[2].name = "Unique rows and columns";
+    ret[2].type = C_BOOLEAN;
+    ret[2].ival = params->unique;
 
-    ret[3].name = NULL;
-    ret[3].type = C_END;
-    ret[3].sval = NULL;
-    ret[3].ival = 0;
+    ret[3].name = "Difficulty";
+    ret[3].type = C_CHOICES;
+    ret[3].sval = DIFFCONFIG;
+    ret[3].ival = params->diff;
+
+    ret[4].name = NULL;
+    ret[4].type = C_END;
+    ret[4].sval = NULL;
+    ret[4].ival = 0;
 
     return ret;
 }
@@ -252,7 +270,8 @@ static game_params *custom_params(const config_item *cfg)
 
     ret->w2 = atoi(cfg[0].sval);
     ret->h2 = atoi(cfg[1].sval);
-    ret->diff = cfg[2].ival;
+    ret->unique = cfg[2].ival;
+    ret->diff = cfg[3].ival;
 
     return ret;
 }
@@ -263,6 +282,36 @@ static char *validate_params(const game_params *params, int full)
         return "Width and height must both be even";
     if (params->w2 < 6 || params->h2 < 6)
         return "Width and height must be at least 6";
+    if (params->unique) {
+        static const long A177790[] = {
+            /*
+             * The nth element of this array gives the number of
+             * distinct possible Unruly rows of length 2n (that is,
+             * containing exactly n 1s and n 0s and not containing
+             * three consecutive elements the same) for as long as
+             * those numbers fit in a 32-bit signed int.
+             *
+             * So in unique-rows mode, if the puzzle width is 2n, then
+             * the height must be at most (this array)[n], and vice
+             * versa.
+             *
+             * This is sequence A177790 in the Online Encyclopedia of
+             * Integer Sequences: http://oeis.org/A177790
+             */
+            1L, 2L, 6L, 14L, 34L, 84L, 208L, 518L, 1296L, 3254L,
+            8196L, 20700L, 52404L, 132942L, 337878L, 860142L,
+            2192902L, 5598144L, 14308378L, 36610970L, 93770358L,
+            240390602L, 616787116L, 1583765724L
+        };
+        if (params->w2 < 2*lenof(A177790) &&
+            params->h2 > A177790[params->w2/2]) {
+            return "Puzzle is too tall for unique-rows mode";
+        }
+        if (params->h2 < 2*lenof(A177790) &&
+            params->w2 > A177790[params->h2/2]) {
+            return "Puzzle is too long for unique-rows mode";
+        }
+    }
     if (params->diff >= DIFFCOUNT)
         return "Unknown difficulty rating";
 
@@ -298,13 +347,14 @@ static char *validate_desc(const game_params *params, const char *desc)
     return NULL;
 }
 
-static game_state *blank_state(int w2, int h2)
+static game_state *blank_state(int w2, int h2, int unique)
 {
     game_state *state = snew(game_state);
     int s = w2 * h2;
 
     state->w2 = w2;
     state->h2 = h2;
+    state->unique = unique;
     state->grid = snewn(s, char);
     state->immutable = snewn(s, unsigned char);
 
@@ -322,7 +372,7 @@ static game_state *new_game(midend *me, const game_params *params,
     int w2 = params->w2, h2 = params->h2;
     int s = w2 * h2;
 
-    game_state *state = blank_state(w2, h2);
+    game_state *state = blank_state(w2, h2, params->unique);
 
     const char *p = desc;
     int pos = 0;
@@ -359,7 +409,7 @@ static game_state *dup_game(const game_state *state)
     int w2 = state->w2, h2 = state->h2;
     int s = w2 * h2;
 
-    game_state *ret = blank_state(w2, h2);
+    game_state *ret = blank_state(w2, h2, state->unique);
 
     memcpy(ret->grid, state->grid, s);
     memcpy(ret->immutable, state->immutable, s);
@@ -558,6 +608,88 @@ static int unruly_solver_check_all_threes(game_state *state,
     ret +=
         unruly_solver_check_threes(state, scratch->ones_rows,
                                    scratch->ones_cols, FALSE, N_ZERO, N_ONE);
+
+    return ret;
+}
+
+static int unruly_solver_check_uniques(game_state *state, int *rowcount,
+                                       int horizontal, char check, char block,
+                                       struct unruly_scratch *scratch)
+{
+    int w2 = state->w2, h2 = state->h2;
+
+    int rmult = (horizontal ? w2 : 1);
+    int cmult = (horizontal ? 1 : w2);
+    int nr = (horizontal ? h2 : w2);
+    int nc = (horizontal ? w2 : h2);
+    int max = nc / 2;
+
+    int r, r2, c;
+    int ret = 0;
+
+    /*
+     * Find each row that has max entries of type 'check', and see if
+     * all those entries match those in any row with max-1 entries. If
+     * so, set the last non-matching entry of the latter row to ensure
+     * that it's different.
+     */
+    for (r = 0; r < nr; r++) {
+        if (rowcount[r] != max)
+            continue;
+        for (r2 = 0; r2 < nr; r2++) {
+            int nmatch = 0, nonmatch = -1;
+            if (rowcount[r2] != max-1)
+                continue;
+            for (c = 0; c < nc; c++) {
+                if (state->grid[r*rmult + c*cmult] == check) {
+                    if (state->grid[r2*rmult + c*cmult] == check)
+                        nmatch++;
+                    else
+                        nonmatch = c;
+                }
+            }
+            if (nmatch == max-1) {
+                int i1 = r2 * rmult + nonmatch * cmult;
+                assert(nonmatch != -1);
+                if (state->grid[i1] == block)
+                    continue;
+                assert(state->grid[i1] == EMPTY);
+#ifdef STANDALONE_SOLVER
+                if (solver_verbose) {
+                    printf("Solver: matching %s %i, %i gives %c at %i,%i\n",
+                           horizontal ? "rows" : "cols",
+                           r, r2, (block == N_ONE ? '1' : '0'), i1 % w2,
+                           i1 / w2);
+                }
+#endif
+                state->grid[i1] = block;
+                if (block == N_ONE) {
+                    scratch->ones_rows[i1 / w2]++;
+                    scratch->ones_cols[i1 % w2]++;
+                } else {
+                    scratch->zeros_rows[i1 / w2]++;
+                    scratch->zeros_cols[i1 % w2]++;
+                }
+                ret++;
+            }
+        }
+    }
+    return ret;
+}
+
+static int unruly_solver_check_all_uniques(game_state *state,
+                                           struct unruly_scratch *scratch)
+{
+    int ret = 0;
+
+    ret += unruly_solver_check_uniques(state, scratch->ones_rows,
+                                       TRUE, N_ONE, N_ZERO, scratch);
+    ret += unruly_solver_check_uniques(state, scratch->zeros_rows,
+                                       TRUE, N_ZERO, N_ONE, scratch);
+    ret += unruly_solver_check_uniques(state, scratch->ones_cols,
+                                       FALSE, N_ONE, N_ZERO, scratch);
+    ret += unruly_solver_check_uniques(state, scratch->zeros_cols,
+                                       FALSE, N_ZERO, N_ONE, scratch);
 
     return ret;
 }
@@ -858,6 +990,50 @@ static int unruly_validate_rows(const game_state *state, int horizontal,
     return ret;
 }
 
+static int unruly_validate_unique(const game_state *state, int horizontal,
+                                  int *errors)
+{
+    int w2 = state->w2, h2 = state->h2;
+
+    int rmult = (horizontal ? w2 : 1);
+    int cmult = (horizontal ? 1 : w2);
+    int nr = (horizontal ? h2 : w2);
+    int nc = (horizontal ? w2 : h2);
+    int err = (horizontal ? FE_ROW_MATCH : FE_COL_MATCH);
+
+    int r, r2, c;
+    int ret = 0;
+
+    /* Check for any two full rows matching exactly, and mark errors
+     * accordingly (if required) */
+    for (r = 0; r < nr; r++) {
+        int nfull = 0;
+        for (c = 0; c < nc; c++)
+            if (state->grid[r*rmult + c*cmult] != EMPTY)
+                nfull++;
+        if (nfull != nr)
+            continue;
+        for (r2 = r+1; r2 < nr; r2++) {
+            int match = TRUE;
+            for (c = 0; c < nc; c++)
+                if (state->grid[r*rmult + c*cmult] !=
+                    state->grid[r2*rmult + c*cmult])
+                    match = FALSE;
+            if (match) {
+                if (errors) {
+                    for (c = 0; c < nc; c++) {
+                        errors[r*rmult + c*cmult] |= err;
+                        errors[r2*rmult + c*cmult] |= err;
+                    }
+                }
+                ret++;
+            }
+        }
+    }
+
+    return ret;
+}
+
 static int unruly_validate_all_rows(const game_state *state, int *errors)
 {
     int errcount = 0;
@@ -866,6 +1042,11 @@ static int unruly_validate_all_rows(const game_state *state, int *errors)
     errcount += unruly_validate_rows(state, FALSE, N_ONE, errors);
     errcount += unruly_validate_rows(state, TRUE, N_ZERO, errors);
     errcount += unruly_validate_rows(state, FALSE, N_ZERO, errors);
+
+    if (state->unique) {
+        errcount += unruly_validate_unique(state, TRUE, errors);
+        errcount += unruly_validate_unique(state, FALSE, errors);
+    }
 
     if (errcount)
         return -1;
@@ -963,6 +1144,18 @@ static int unruly_solve_game(game_state *state,
             if (maxdiff < DIFF_EASY)
                 maxdiff = DIFF_EASY;
             continue;
+        }
+
+        /* Check for impending failures of row/column uniqueness, if
+         * it's enabled in this game mode */
+        if (state->unique) {
+            done += unruly_solver_check_all_uniques(state, scratch);
+
+            if (done) {
+                if (maxdiff < DIFF_EASY)
+                    maxdiff = DIFF_EASY;
+                continue;
+            }
         }
 
         /* Normal techniques */
@@ -1101,7 +1294,7 @@ static char *new_game_desc(const game_params *params, random_state *rs,
 
         while (TRUE) {
             attempts++;
-            state = blank_state(w2, h2);
+            state = blank_state(w2, h2, params->unique);
             scratch = unruly_new_scratch(state);
             if (unruly_fill_game(state, scratch, rs))
                 break;
@@ -1545,6 +1738,16 @@ static void unruly_draw_tile(drawing *dr, int x, int y, int tilesize, int tile)
     if (tile & FE_COUNT) {
         draw_text(dr, x + tilesize/2, y + tilesize/2, FONT_VARIABLE,
                   tilesize/2, ALIGN_HCENTRE | ALIGN_VCENTRE, COL_ERROR, "!");
+    }
+
+    /* Row-match errors */
+    if (tile & FE_ROW_MATCH) {
+        draw_rect(dr, x, y+tilesize/2-tilesize/12,
+                  tilesize, 2*(tilesize/12), COL_ERROR);
+    }
+    if (tile & FE_COL_MATCH) {
+        draw_rect(dr, x+tilesize/2-tilesize/12, y,
+                  2*(tilesize/12), tilesize, COL_ERROR);
     }
 
     /* Cursor rectangle */
