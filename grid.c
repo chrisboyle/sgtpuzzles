@@ -2631,6 +2631,8 @@ static void grid_size_penrose(int width, int height,
     *yextent = l * height;
 }
 
+static grid *grid_new_penrose(int width, int height, int which, const char *desc); /* forward reference */
+
 static char *grid_new_desc_penrose(grid_type type, int width, int height, random_state *rs)
 {
     int tilesize = PENROSE_TILESIZE, startsz, depth, xoff, yoff, aoff;
@@ -2638,32 +2640,48 @@ static char *grid_new_desc_penrose(grid_type type, int width, int height, random
     int inner_radius;
     char gd[255];
     int which = (type == GRID_PENROSE_P2 ? PENROSE_P2 : PENROSE_P3);
+    grid *g;
 
-    /* We want to produce a random bit of penrose tiling, so we calculate
-     * a random offset (within the patch that penrose.c calculates for us)
-     * and an angle (multiple of 36) to rotate the patch. */
+    while (1) {
+        /* We want to produce a random bit of penrose tiling, so we
+         * calculate a random offset (within the patch that penrose.c
+         * calculates for us) and an angle (multiple of 36) to rotate
+         * the patch. */
 
-    penrose_calculate_size(which, tilesize, width, height,
-                           &outer_radius, &startsz, &depth);
+        penrose_calculate_size(which, tilesize, width, height,
+                               &outer_radius, &startsz, &depth);
 
-    /* Calculate radius of (circumcircle of) patch, subtract from
-     * radius calculated. */
-    inner_radius = (int)(outer_radius - sqrt(width*width + height*height));
+        /* Calculate radius of (circumcircle of) patch, subtract from
+         * radius calculated. */
+        inner_radius = (int)(outer_radius - sqrt(width*width + height*height));
 
-    /* Pick a random offset (the easy way: choose within outer square,
-     * discarding while it's outside the circle) */
-    do {
-        xoff = random_upto(rs, 2*inner_radius) - inner_radius;
-        yoff = random_upto(rs, 2*inner_radius) - inner_radius;
-    } while (sqrt(xoff*xoff+yoff*yoff) > inner_radius);
+        /* Pick a random offset (the easy way: choose within outer
+         * square, discarding while it's outside the circle) */
+        do {
+            xoff = random_upto(rs, 2*inner_radius) - inner_radius;
+            yoff = random_upto(rs, 2*inner_radius) - inner_radius;
+        } while (sqrt(xoff*xoff+yoff*yoff) > inner_radius);
 
-    aoff = random_upto(rs, 360/36) * 36;
+        aoff = random_upto(rs, 360/36) * 36;
 
-    debug(("grid_desc: ts %d, %dx%d patch, orad %2.2f irad %d",
-           tilesize, width, height, outer_radius, inner_radius));
-    debug(("    -> xoff %d yoff %d aoff %d", xoff, yoff, aoff));
+        debug(("grid_desc: ts %d, %dx%d patch, orad %2.2f irad %d",
+               tilesize, width, height, outer_radius, inner_radius));
+        debug(("    -> xoff %d yoff %d aoff %d", xoff, yoff, aoff));
 
-    sprintf(gd, "G%d,%d,%d", xoff, yoff, aoff);
+        sprintf(gd, "G%d,%d,%d", xoff, yoff, aoff);
+
+        /*
+         * Now test-generate our grid, to make sure it actually
+         * produces something.
+         */
+        g = grid_new_penrose(width, height, which, gd);
+        if (g) {
+            grid_free(g);
+            break;
+        }
+        /* If not, go back to the top of this while loop and try again
+         * with a different random offset. */
+    }
 
     return dupstr(gd);
 }
@@ -2674,6 +2692,7 @@ static char *grid_validate_desc_penrose(grid_type type, int width, int height,
     int tilesize = PENROSE_TILESIZE, startsz, depth, xoff, yoff, aoff, inner_radius;
     double outer_radius;
     int which = (type == GRID_PENROSE_P2 ? PENROSE_P2 : PENROSE_P3);
+    grid *g;
 
     if (!desc)
         return "Missing grid description string.";
@@ -2689,6 +2708,15 @@ static char *grid_validate_desc_penrose(grid_type type, int width, int height,
         return "Patch offset out of bounds.";
     if ((aoff % 36) != 0 || aoff < 0 || aoff >= 360)
         return "Angle offset out of bounds.";
+
+    /*
+     * Test-generate to ensure these parameters don't end us up with
+     * no grid at all.
+     */
+    g = grid_new_penrose(width, height, which, desc);
+    if (!g)
+        return "Patch coordinates do not identify a usable grid fragment";
+    grid_free(g);
 
     return NULL;
 }
@@ -2763,7 +2791,22 @@ static grid *grid_new_penrose(int width, int height, int which, const char *desc
     debug(("penrose: %d faces total (equivalent to %d wide by %d high)",
            g->num_faces, g->num_faces/height, g->num_faces/width));
 
+    /*
+     * Return NULL if we ended up with an empty grid, either because
+     * the initial generation was over too small a rectangle to
+     * encompass any face or because grid_trim_vigorously ended up
+     * removing absolutely everything.
+     */
+    if (g->num_faces == 0 || g->num_dots == 0) {
+        grid_free(g);
+        return NULL;
+    }
     grid_trim_vigorously(g);
+    if (g->num_faces == 0 || g->num_dots == 0) {
+        grid_free(g);
+        return NULL;
+    }
+
     grid_make_consistent(g);
 
     /*
