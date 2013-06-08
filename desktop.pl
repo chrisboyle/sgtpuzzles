@@ -6,7 +6,8 @@
 # working on the puzzles and want to play your bleeding-edge locally
 # modified and compiled versions, run this script and it will create a
 # collection of desktop files in ~/.local/share/applications where
-# XFCE can pick them up and add them to its main menu.
+# XFCE can pick them up and add them to its main menu. (Be sure to run
+# 'xfdesktop --reload' after running this.)
 #
 # (If you don't use XFCE, patches to support other desktop
 # environments are welcome :-)
