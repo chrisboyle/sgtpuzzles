@@ -17,5 +17,5 @@ GAMES += separate
 !end
 
 !begin >gamedesc.txt
-unfinished/separate:separate.exe:Separate:Rectangle-dividing puzzle
+separate:separate.exe:Separate:Rectangle-dividing puzzle
 !end

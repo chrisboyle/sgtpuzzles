@@ -20,5 +20,5 @@ GAMES += slide
 !end
 
 !begin >gamedesc.txt
-unfinished/slide:slide.exe:Slide:Sliding block puzzle
+slide:slide.exe:Slide:Sliding block puzzle
 !end

@@ -15,5 +15,5 @@ GAMES += sokoban
 !end
 
 !begin >gamedesc.txt
-unfinished/sokoban:sokoban.exe:Sokoban:Barrel-pushing puzzle
+sokoban:sokoban.exe:Sokoban:Barrel-pushing puzzle
 !end

@@ -21,5 +21,5 @@ GAMES += group
 !end
 
 !begin >gamedesc.txt
-unfinished/group:group.exe:Group:Group theory puzzle
+group:group.exe:Group:Group theory puzzle
 !end
