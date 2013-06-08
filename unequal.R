@@ -22,6 +22,6 @@ GAMES += unequal
     A(unequal) \
 !end
 
-!begin >wingames.lst
-unequal.exe:Unequal
+!begin >gamedesc.txt
+unequal:unequal.exe:Unequal:Latin square puzzle
 !end

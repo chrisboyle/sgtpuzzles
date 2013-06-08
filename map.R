@@ -19,6 +19,6 @@ GAMES += map
     A(map) \
 !end
 
-!begin >wingames.lst
-map.exe:Map
+!begin >gamedesc.txt
+map:map.exe:Map:Map-colouring puzzle
 !end

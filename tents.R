@@ -19,6 +19,6 @@ GAMES += tents
     A(tents) \
 !end
 
-!begin >wingames.lst
-tents.exe:Tents
+!begin >gamedesc.txt
+tents:tents.exe:Tents:Tent-placing puzzle
 !end

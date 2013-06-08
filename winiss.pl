@@ -1,12 +1,12 @@
 #!/usr/bin/perl
 
 # Perl script to generate an Inno Setup installer script for
-# Puzzles. This has to be scripted so that it can read wingames.lst
+# Puzzles. This has to be scripted so that it can read gamedesc.txt
 # and automatically adjust to the current available set of puzzles.
 
 # Usage:
 #
-#   $ ./winiss.pl 1234 wingames.lst > puzzles.iss
+#   $ ./winiss.pl 1234 gamedesc.txt > puzzles.iss
 #
 # where `1234' is the revision number which will be encoded in the
 # installer's version indicators.
@@ -15,15 +15,15 @@ use warnings;
 
 $rev = shift @ARGV;
 ($revclean=$rev) =~ s/M$//;
-$lst = shift @ARGV;
-open LST, "<", $lst;
-while (<LST>) {
+$desc = shift @ARGV;
+open DESC, "<", $desc;
+while (<DESC>) {
     chomp;
     @_ = split /:/;
-    push @exes, $_[0];
-    $names{$_[0]} = $_[1];
+    push @exes, $_[1];
+    $names{$_[1]} = $_[2];
 }
-close LST;
+close DESC;
 
 print '; -*- no -*-'."\n";
 print ';'."\n";

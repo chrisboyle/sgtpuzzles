@@ -16,6 +16,6 @@ GAMES += untangle
     A(untangle) \
 !end
 
-!begin >wingames.lst
-untangle.exe:Untangle
+!begin >gamedesc.txt
+untangle:untangle.exe:Untangle:Planar graph layout puzzle
 !end

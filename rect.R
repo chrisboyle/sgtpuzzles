@@ -14,6 +14,6 @@ GAMES += rect
     A(rect) \
 !end
 
-!begin >wingames.lst
-rect.exe:Rectangles
+!begin >gamedesc.txt
+rect:rect.exe:Rectangles:Rectangles puzzle
 !end

@@ -20,6 +20,6 @@ GAMES += group
     A(group) \
 !end
 
-!begin >wingames.lst
-group.exe:Group
+!begin >gamedesc.txt
+unfinished/group:group.exe:Group:Group theory puzzle
 !end

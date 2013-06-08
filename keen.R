@@ -20,6 +20,6 @@ GAMES += keen
     A(keen) \
 !end
 
-!begin >wingames.lst
-keen.exe:Keen
+!begin >gamedesc.txt
+keen:keen.exe:Keen:Arithmetic Latin square puzzle
 !end

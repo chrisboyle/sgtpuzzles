@@ -18,6 +18,6 @@ GAMES += net
     A(net) \
 !end
 
-!begin >wingames.lst
-netgame.exe:Net
+!begin >gamedesc.txt
+net:netgame.exe:Net:Network jigsaw puzzle
 !end

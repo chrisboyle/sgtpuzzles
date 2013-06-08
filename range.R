@@ -14,6 +14,6 @@ GAMES += range
     A(range) \
 !end
 
-!begin >wingames.lst
-range.exe:Range
+!begin >gamedesc.txt
+range:range.exe:Range:Visible-distance puzzle
 !end

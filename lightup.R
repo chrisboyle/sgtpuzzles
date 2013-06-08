@@ -19,6 +19,6 @@ GAMES += lightup
     A(lightup) \
 !end
 
-!begin >wingames.lst
-lightup.exe:Light Up
+!begin >gamedesc.txt
+lightup:lightup.exe:Light Up:Light-bulb placing puzzle
 !end

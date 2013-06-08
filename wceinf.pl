@@ -2,22 +2,22 @@
 
 # Perl script to generate a .INF file for building a Pocket PC .CAB
 # archive of Puzzles. This has to be scripted so that it can read
-# wingames.lst and automatically adjust to the current available
+# gamedesc.txt and automatically adjust to the current available
 # set of puzzles.
 
 # Usage:
 #
-#   $ ./wceinf.pl wingames.lst > puzzles.inf
+#   $ ./wceinf.pl gamedesc.txt > puzzles.inf
 
-$lst = shift @ARGV;
-open LST, "<", $lst;
-while (<LST>) {
+$desc = shift @ARGV;
+open DESC, "<", $desc;
+while (<DESC>) {
     chomp;
-    split /:/;
-    push @exes, $_[0];
-    $names{$_[0]} = $_[1];
+    @_ = split /:/;
+    push @exes, $_[1];
+    $names{$_[1]} = $_[2];
 }
-close LST;
+close DESC;
 
 print '[Version]'."\n";
 print 'Signature   = "$Windows NT$"    ; required as-is'."\n";

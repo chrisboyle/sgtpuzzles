@@ -14,6 +14,6 @@ GAMES += sixteen
     A(sixteen) \
 !end
 
-!begin >wingames.lst
-sixteen.exe:Sixteen
+!begin >gamedesc.txt
+sixteen:sixteen.exe:Sixteen:Toroidal sliding block puzzle
 !end

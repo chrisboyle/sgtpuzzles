@@ -19,6 +19,6 @@ GAMES += solo
     A(solo) \
 !end
 
-!begin >wingames.lst
-solo.exe:Solo
+!begin >gamedesc.txt
+solo:solo.exe:Solo:Number placement puzzle
 !end

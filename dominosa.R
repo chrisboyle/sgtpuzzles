@@ -16,6 +16,6 @@ GAMES += dominosa
     A(dominosa) \
 !end
 
-!begin >wingames.lst
-dominosa.exe:Dominosa
+!begin >gamedesc.txt
+dominosa:dominosa.exe:Dominosa:Domino tiling puzzle
 !end

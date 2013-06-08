@@ -18,6 +18,6 @@ GAMES += signpost
     A(signpost) \
 !end
 
-!begin >wingames.lst
-signpost.exe:Signpost
+!begin >gamedesc.txt
+signpost:signpost.exe:Signpost:Square-connecting puzzle
 !end

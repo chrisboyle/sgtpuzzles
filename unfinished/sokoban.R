@@ -14,6 +14,6 @@ GAMES += sokoban
     A(sokoban) \
 !end
 
-!begin >wingames.lst
-sokoban.exe:Sokoban
+!begin >gamedesc.txt
+unfinished/sokoban:sokoban.exe:Sokoban:Barrel-pushing puzzle
 !end

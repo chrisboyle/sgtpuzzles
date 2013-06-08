@@ -13,6 +13,6 @@ GAMES += undead
     A(undead) \
 !end
 
-!begin >wingames.lst
-undead.exe:Undead
+!begin >gamedesc.txt
+undead:undead.exe:Undead:Monster-placing puzzle
 !end

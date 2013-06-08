@@ -16,6 +16,6 @@ GAMES += separate
     A(separate) \
 !end
 
-!begin >wingames.lst
-separate.exe:Separate
+!begin >gamedesc.txt
+unfinished/separate:separate.exe:Separate:Rectangle-dividing puzzle
 !end

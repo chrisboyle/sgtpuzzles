@@ -14,6 +14,6 @@ GAMES += cube
     A(cube) \
 !end
 
-!begin >wingames.lst
-cube.exe:Cube
+!begin >gamedesc.txt
+cube:cube.exe:Cube:Rolling cube puzzle
 !end

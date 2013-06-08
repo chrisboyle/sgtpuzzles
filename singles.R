@@ -18,6 +18,6 @@ GAMES += singles
     A(singles) \
 !end
 
-!begin >wingames.lst
-singles.exe:Singles
+!begin >gamedesc.txt
+singles:singles.exe:Singles:Number-removing puzzle
 !end

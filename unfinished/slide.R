@@ -19,6 +19,6 @@ GAMES += slide
     A(slide) \
 !end
 
-!begin >wingames.lst
-slide.exe:Slide
+!begin >gamedesc.txt
+unfinished/slide:slide.exe:Slide:Sliding block puzzle
 !end

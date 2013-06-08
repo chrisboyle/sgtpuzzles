@@ -19,6 +19,6 @@ GAMES += filling
     A(filling) \
 !end
 
-!begin >wingames.lst
-filling.exe:Filling
+!begin >gamedesc.txt
+filling:filling.exe:Filling:Polyomino puzzle
 !end

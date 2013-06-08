@@ -16,6 +16,6 @@ GAMES += bridges
     A(bridges) \
 !end
 
-!begin >wingames.lst
-bridges.exe:Bridges
+!begin >gamedesc.txt
+bridges:bridges.exe:Bridges:Bridge-placing puzzle
 !end

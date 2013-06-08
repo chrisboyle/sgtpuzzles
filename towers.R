@@ -20,6 +20,6 @@ GAMES += towers
     A(towers) \
 !end
 
-!begin >wingames.lst
-towers.exe:Towers
+!begin >gamedesc.txt
+towers:towers.exe:Towers:Tower-placing Latin square puzzle
 !end

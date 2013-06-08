@@ -14,6 +14,6 @@ GAMES += twiddle
     A(twiddle) \
 !end
 
-!begin >wingames.lst
-twiddle.exe:Twiddle
+!begin >gamedesc.txt
+twiddle:twiddle.exe:Twiddle:Rotational sliding block puzzle
 !end

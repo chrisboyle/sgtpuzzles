@@ -19,6 +19,6 @@ GAMES += slant
     A(slant) \
 !end
 
-!begin >wingames.lst
-slant.exe:Slant
+!begin >gamedesc.txt
+slant:slant.exe:Slant:Maze-drawing puzzle
 !end

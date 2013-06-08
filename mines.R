@@ -19,6 +19,6 @@ GAMES += mines
     A(mines) \
 !end
 
-!begin >wingames.lst
-mines.exe:Mines
+!begin >gamedesc.txt
+mines:mines.exe:Mines:Mine-finding puzzle
 !end

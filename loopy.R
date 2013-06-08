@@ -26,6 +26,6 @@ GAMES += loopy
     A(loopy) \
 !end
 
-!begin >wingames.lst
-loopy.exe:Loopy
+!begin >gamedesc.txt
+loopy:loopy.exe:Loopy:Loop-drawing puzzle
 !end

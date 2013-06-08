@@ -16,6 +16,6 @@ GAMES += flip
     A(flip) \
 !end
 
-!begin >wingames.lst
-flip.exe:Flip
+!begin >gamedesc.txt
+flip:flip.exe:Flip:Tile inversion puzzle
 !end

@@ -14,6 +14,6 @@ GAMES += samegame
     A(samegame) \
 !end
 
-!begin >wingames.lst
-samegame.exe:Same Game
+!begin >gamedesc.txt
+samegame:samegame.exe:Same Game:Block-clearing puzzle
 !end

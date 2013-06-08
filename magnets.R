@@ -19,6 +19,6 @@ GAMES += magnets
     A(magnets) \
 !end
 
-!begin >wingames.lst
-magnets.exe:Magnets
+!begin >gamedesc.txt
+magnets:magnets.exe:Magnets:Magnet-placing puzzle
 !end

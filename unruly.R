@@ -16,6 +16,6 @@ GAMES += unruly
     A(unruly) \
 !end
 
-!begin >wingames.lst
-unruly.exe:Unruly
+!begin >gamedesc.txt
+unruly:unruly.exe:Unruly:Black and white grid puzzle
 !end

@@ -16,6 +16,6 @@ GAMES += netslide
     A(netslide) \
 !end
 
-!begin >wingames.lst
-netslide.exe:Netslide
+!begin >gamedesc.txt
+netslide:netslide.exe:Netslide:Toroidal sliding network puzzle
 !end

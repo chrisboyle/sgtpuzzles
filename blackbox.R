@@ -14,6 +14,6 @@ GAMES += blackbox
     A(blackbox) \
 !end
 
-!begin >wingames.lst
-blackbox.exe:Black Box
+!begin >gamedesc.txt
+blackbox:blackbox.exe:Black Box:Ball-finding puzzle
 !end

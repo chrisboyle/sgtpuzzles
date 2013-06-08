@@ -23,6 +23,6 @@ GAMES += galaxies
     A(galaxies) \
 !end
 
-!begin >wingames.lst
-galaxies.exe:Galaxies
+!begin >gamedesc.txt
+galaxies:galaxies.exe:Galaxies:Symmetric polyomino puzzle
 !end

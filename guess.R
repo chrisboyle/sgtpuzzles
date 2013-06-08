@@ -14,6 +14,6 @@ GAMES += guess
     A(guess) \
 !end
 
-!begin >wingames.lst
-guess.exe:Guess
+!begin >gamedesc.txt
+guess:guess.exe:Guess:Combination-guessing puzzle
 !end

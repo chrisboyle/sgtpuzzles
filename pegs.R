@@ -16,6 +16,6 @@ GAMES += pegs
     A(pegs) \
 !end
 
-!begin >wingames.lst
-pegs.exe:Pegs
+!begin >gamedesc.txt
+pegs:pegs.exe:Pegs:Peg solitaire puzzle
 !end

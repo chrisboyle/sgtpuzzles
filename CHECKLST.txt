@@ -17,8 +17,8 @@ Create a .R file for it which:
  - adds auxiliary solver binaries if any
  - adds it to $(GAMES) in the GTK makefile, for `make install'
  - adds it to list.c for the OS X binary
- - adds it to wingames.lst along with a textual name, for the build
-   system and Windows installer.
+ - adds it to gamedesc.txt, with its Windows executable name, display
+   name, and slightly longer description.
 
 If the puzzle is by a new author, modify the copyright notice in
 LICENCE and in puzzles.but. (Also in index.html, but that's listed
