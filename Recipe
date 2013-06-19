@@ -192,8 +192,11 @@ install:
 
 org:
 	mkdir -p org/ibex/nestedvm/util
-	cp $(NESTEDVM)/build/org/ibex/nestedvm/{Registers,UsermodeConstants,Runtime*}.class org/ibex/nestedvm
-	cp $(NESTEDVM)/build/org/ibex/nestedvm/util/{Platform*,Seekable*}.class org/ibex/nestedvm/util
+	cp $(NESTEDVM)/build/org/ibex/nestedvm/Registers.class org/ibex/nestedvm
+	cp $(NESTEDVM)/build/org/ibex/nestedvm/UsermodeConstants.class org/ibex/nestedvm
+	cp $(NESTEDVM)/build/org/ibex/nestedvm/Runtime*.class org/ibex/nestedvm
+	cp $(NESTEDVM)/build/org/ibex/nestedvm/util/Platform*.class org/ibex/nestedvm/util
+	cp $(NESTEDVM)/build/org/ibex/nestedvm/util/Seekable*.class org/ibex/nestedvm/util
 	echo "Main-Class: PuzzleApplet" >applet.manifest
 
 PuzzleApplet.class: PuzzleApplet.java org
