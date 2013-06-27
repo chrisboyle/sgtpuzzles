@@ -106,11 +106,11 @@ ifneq "$(JAVA_UNFINISHED)" "" in puzzles do perl -i~ -pe 'print "!srcdir unfinis
 ifneq "$(JAVA_UNFINISHED)" "" in puzzles do ln -s unfinished/group.R .
 ifneq "$(JAVA_UNFINISHED)" "" in puzzles do perl mkfiles.pl
 
-# Build the Java applets. This requires .bob.conf on the master
-# build machine to have defined the variable NESTEDVM pointing at
-# the top-level directory of an installation of the NestedVM
-# compiler and tools.
-in puzzles do make -f Makefile.nestedvm NESTEDVM=$(NESTEDVM) VER=-DREVISION=$(revision)
+# Build the Java applets.
+delegate nestedvm
+  in puzzles do make -f Makefile.nestedvm NESTEDVM="$$NESTEDVM" VER=-DREVISION=$(revision)
+  return puzzles/*.jar
+enddelegate
 
 # Build the Javascript applets. Since my master build machine doesn't
 # have the right dependencies installed for Emscripten, I do this by a
