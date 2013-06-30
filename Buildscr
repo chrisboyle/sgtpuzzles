@@ -3,19 +3,27 @@
 
 module puzzles
 
+# Start by substituting the right version number in configure.ac.
+in puzzles do perl -i~ -pe 's/rNNNN/r$(revision)/' configure.ac
+in puzzles do rm configure.ac~
+
 # First build some local binaries, to run the icon build.
-in puzzles do perl mkfiles.pl
+in puzzles do perl mkfiles.pl -U
 in puzzles do make
 
 # Now build the screenshots and icons.
 in puzzles/icons do xvfb-run -s "-screen 0 1024x768x24" make web winicons gtkicons
 
+# Destroy the local binaries and autoconf detritus, mostly to avoid
+# wasting network bandwidth by transferring them to the delegate
+# servers.
+in puzzles do make distclean
+
 # Re-run mkfiles.pl now that it knows the icons are there.
 in puzzles do perl mkfiles.pl
 
-# Destroy the local binaries, mostly to avoid wasting network
-# bandwidth by transferring them to the delegate servers.
-in puzzles do make clean
+# Rebuild the configure script.
+in puzzles do ./mkauto.sh
 
 # Build the OS X .dmg archive.
 # 2012-04-03: commented out because my Mac is dead.

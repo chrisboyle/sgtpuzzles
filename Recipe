@@ -8,7 +8,8 @@
 
 !name puzzles
 
-!makefile gtk Makefile
+!makefile gtk Makefile.gtk
+!makefile am Makefile.am
 !makefile vc Makefile.vc
 !makefile wce Makefile.wce
 !makefile cygwin Makefile.cyg
@@ -130,6 +131,22 @@ version2.def: FORCE
 .PHONY: FORCE
 !end
 !specialobj gtk version
+# In the automake build, we have to do the whole job by supplying
+# extra CFLAGS, so we have to put the if statement inside one big
+# backtick expression. We also force rebuilding via a -D option that
+# makes version.o include empty.h, which we construct ourselves and
+# touch whenever any source file is updated.
+!cflags am version $(VER) -DINCLUDE_EMPTY_H `if test -z "$(VER)" && (cd $(srcdir)/..; md5sum -c manifest >/dev/null 2>&1); then cat $(srcdir)/../version.def; else echo "$(VER)"; fi`
+!begin am
+BUILT_SOURCES = empty.h
+CLEANFILES = empty.h
+empty.h: $(allsources)
+	echo '/* Empty file touched by automake makefile to force rebuild of version.o */' >$@
+
+!end
+!begin >empty.h
+/* Empty file touched by automake makefile to force rebuild of version.o */
+!end
 !begin nestedvm
 version.o: version.c version2.def
 	$(CC) $(COMPAT) $(XFLAGS) $(CFLAGS) `cat version2.def` -c version.c
