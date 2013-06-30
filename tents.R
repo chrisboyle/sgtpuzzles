@@ -11,7 +11,7 @@ ALL += tents[COMBINED] TENTS_EXTRA
 tentssolver :   [U] tents[STANDALONE_SOLVER] TENTS_EXTRA STANDALONE
 tentssolver :   [C] tents[STANDALONE_SOLVER] TENTS_EXTRA STANDALONE
 
-!begin gtk
+!begin am gtk
 GAMES += tents
 !end
 

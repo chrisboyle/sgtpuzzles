@@ -11,7 +11,7 @@ mineobfusc :    [C] mines[STANDALONE_OBFUSCATOR] MINES_EXTRA STANDALONE
 
 ALL += mines[COMBINED] MINES_EXTRA
 
-!begin gtk
+!begin am gtk
 GAMES += mines
 !end
 

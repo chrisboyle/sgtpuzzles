@@ -6,7 +6,7 @@ blackbox : [G] WINDOWS COMMON blackbox blackbox.res|noicon.res
 
 ALL += blackbox[COMBINED]
 
-!begin gtk
+!begin am gtk
 GAMES += blackbox
 !end
 

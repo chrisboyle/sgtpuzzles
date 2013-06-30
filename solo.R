@@ -11,7 +11,7 @@ solosolver :    [C] solo[STANDALONE_SOLVER] SOLO_EXTRA STANDALONE
 
 ALL += solo[COMBINED] SOLO_EXTRA
 
-!begin gtk
+!begin am gtk
 GAMES += solo
 !end
 

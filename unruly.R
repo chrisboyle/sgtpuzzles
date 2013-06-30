@@ -8,7 +8,7 @@ unrulysolver : [C] unruly[STANDALONE_SOLVER] STANDALONE
 
 ALL += unruly[COMBINED]
 
-!begin gtk
+!begin am gtk
 GAMES += unruly
 !end
 

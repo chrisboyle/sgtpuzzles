@@ -6,7 +6,7 @@ rect     : [G] WINDOWS COMMON rect rect.res|noicon.res
 
 ALL += rect[COMBINED]
 
-!begin gtk
+!begin am gtk
 GAMES += rect
 !end
 

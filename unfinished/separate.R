@@ -8,7 +8,7 @@ separate       : [G] WINDOWS COMMON separate SEPARATE_EXTRA separate.res|noicon.
 
 ALL += separate[COMBINED] SEPARATE_EXTRA
 
-!begin gtk
+!begin am gtk
 GAMES += separate
 !end
 

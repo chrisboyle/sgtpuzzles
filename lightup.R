@@ -11,7 +11,7 @@ lightupsolver : [C] lightup[STANDALONE_SOLVER] LIGHTUP_EXTRA STANDALONE
 
 ALL += lightup[COMBINED] LIGHTUP_EXTRA
 
-!begin gtk
+!begin am gtk
 GAMES += lightup
 !end
 

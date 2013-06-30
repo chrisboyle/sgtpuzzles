@@ -11,7 +11,7 @@ mapsolver :     [C] map[STANDALONE_SOLVER] MAP_EXTRA STANDALONE
 
 ALL += map[COMBINED] MAP_EXTRA
 
-!begin gtk
+!begin am gtk
 GAMES += map
 !end
 

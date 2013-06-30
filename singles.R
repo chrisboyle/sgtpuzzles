@@ -10,7 +10,7 @@ ALL += singles[COMBINED] SINGLES_EXTRA
 singlessolver : [U] singles[STANDALONE_SOLVER] SINGLES_EXTRA STANDALONE
 singlessolver : [C] singles[STANDALONE_SOLVER] SINGLES_EXTRA STANDALONE
 
-!begin gtk
+!begin am gtk
 GAMES += singles
 !end
 

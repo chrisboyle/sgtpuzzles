@@ -10,7 +10,7 @@ signpostsolver : [C] signpost[STANDALONE_SOLVER] SIGNPOST_EXTRA STANDALONE
 
 ALL += signpost[COMBINED] SIGNPOST_EXTRA
 
-!begin gtk
+!begin am gtk
 GAMES += signpost
 !end
 

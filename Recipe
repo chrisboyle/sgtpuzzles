@@ -142,7 +142,10 @@ BUILT_SOURCES = empty.h
 CLEANFILES = empty.h
 empty.h: $(allsources)
 	echo '/* Empty file touched by automake makefile to force rebuild of version.o */' >$@
-
+bin_PROGRAMS = $(GAMES)
+!end
+!begin am_begin
+GAMES =
 !end
 !begin >empty.h
 /* Empty file touched by automake makefile to force rebuild of version.o */

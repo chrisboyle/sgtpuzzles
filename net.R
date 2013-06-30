@@ -10,7 +10,7 @@ netgame  : [G] WINDOWS COMMON net NET_EXTRA net.res|noicon.res
 
 ALL += net[COMBINED] NET_EXTRA
 
-!begin gtk
+!begin am gtk
 GAMES += net
 !end
 

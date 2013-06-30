@@ -12,7 +12,7 @@ groupsolver : [C] group[STANDALONE_SOLVER] latin[STANDALONE_SOLVER] GROUP_LATIN_
 
 ALL += group[COMBINED] GROUP_EXTRA
 
-!begin gtk
+!begin am gtk
 GAMES += group
 !end
 

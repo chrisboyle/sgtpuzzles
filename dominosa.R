@@ -8,7 +8,7 @@ dominosa : [G] WINDOWS COMMON dominosa DOMINOSA_EXTRA dominosa.res|noicon.res
 
 ALL += dominosa[COMBINED] DOMINOSA_EXTRA
 
-!begin gtk
+!begin am gtk
 GAMES += dominosa
 !end
 

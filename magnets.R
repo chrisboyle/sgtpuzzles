@@ -11,7 +11,7 @@ magnetssolver :     [C] magnets[STANDALONE_SOLVER] MAGNETS_EXTRA STANDALONE
 
 ALL += magnets[COMBINED] MAGNETS_EXTRA
 
-!begin gtk
+!begin am gtk
 GAMES += magnets
 !end
 

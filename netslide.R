@@ -8,7 +8,7 @@ netslide : [G] WINDOWS COMMON netslide NETSLIDE_EXTRA netslide.res|noicon.res
 
 ALL += netslide[COMBINED] NETSLIDE_EXTRA
 
-!begin gtk
+!begin am gtk
 GAMES += netslide
 !end
 

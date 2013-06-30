@@ -8,7 +8,7 @@ untangle : [G] WINDOWS COMMON untangle UNTANGLE_EXTRA untangle.res|noicon.res
 
 ALL += untangle[COMBINED] UNTANGLE_EXTRA
 
-!begin gtk
+!begin am gtk
 GAMES += untangle
 !end
 

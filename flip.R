@@ -8,7 +8,7 @@ flip     : [G] WINDOWS COMMON flip FLIP_EXTRA flip.res|noicon.res
 
 ALL += flip[COMBINED] FLIP_EXTRA
 
-!begin gtk
+!begin am gtk
 GAMES += flip
 !end
 

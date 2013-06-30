@@ -14,7 +14,7 @@ latincheck : [C] latin[STANDALONE_LATIN_TEST] tree234 maxflow STANDALONE
 
 ALL += unequal[COMBINED] UNEQUAL_EXTRA
 
-!begin gtk
+!begin am gtk
 GAMES += unequal
 !end
 

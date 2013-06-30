@@ -6,7 +6,7 @@ twiddle  : [G] WINDOWS COMMON twiddle twiddle.res|noicon.res
 
 ALL += twiddle[COMBINED]
 
-!begin gtk
+!begin am gtk
 GAMES += twiddle
 !end
 

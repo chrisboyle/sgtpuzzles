@@ -6,7 +6,7 @@ range    : [G] WINDOWS COMMON range range.res|noicon.res
 
 ALL += range[COMBINED]
 
-!begin gtk
+!begin am gtk
 GAMES += range
 !end
 

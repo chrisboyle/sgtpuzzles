@@ -6,7 +6,7 @@ fifteen  : [G] WINDOWS COMMON fifteen fifteen.res|noicon.res
 
 ALL += fifteen[COMBINED]
 
-!begin gtk
+!begin am gtk
 GAMES += fifteen
 !end
 

@@ -12,7 +12,7 @@ keensolver : [C] keen[STANDALONE_SOLVER] latin[STANDALONE_SOLVER] KEEN_LATIN_EXT
 
 ALL += keen[COMBINED] KEEN_EXTRA
 
-!begin gtk
+!begin am gtk
 GAMES += keen
 !end
 

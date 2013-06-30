@@ -6,7 +6,7 @@ cube     : [G] WINDOWS COMMON cube cube.res|noicon.res
 
 ALL += cube[COMBINED]
 
-!begin gtk
+!begin am gtk
 GAMES += cube
 !end
 

@@ -8,7 +8,7 @@ bridges  : [G] WINDOWS COMMON bridges BRIDGES_EXTRA bridges.res|noicon.res
 
 ALL += bridges[COMBINED] BRIDGES_EXTRA
 
-!begin gtk
+!begin am gtk
 GAMES += bridges
 !end
 

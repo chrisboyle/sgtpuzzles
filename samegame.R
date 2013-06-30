@@ -6,7 +6,7 @@ samegame : [G] WINDOWS COMMON samegame samegame.res|noicon.res
 
 ALL += samegame[COMBINED]
 
-!begin gtk
+!begin am gtk
 GAMES += samegame
 !end
 

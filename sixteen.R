@@ -6,7 +6,7 @@ sixteen  : [G] WINDOWS COMMON sixteen sixteen.res|noicon.res
 
 ALL += sixteen[COMBINED]
 
-!begin gtk
+!begin am gtk
 GAMES += sixteen
 !end
 

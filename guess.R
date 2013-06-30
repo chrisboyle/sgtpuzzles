@@ -6,7 +6,7 @@ guess    : [G] WINDOWS COMMON guess guess.res|noicon.res
 
 ALL += guess[COMBINED]
 
-!begin gtk
+!begin am gtk
 GAMES += guess
 !end
 

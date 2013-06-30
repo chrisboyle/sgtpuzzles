@@ -11,7 +11,7 @@ slantsolver :   [C] slant[STANDALONE_SOLVER] SLANT_EXTRA STANDALONE
 
 ALL += slant[COMBINED] SLANT_EXTRA
 
-!begin gtk
+!begin am gtk
 GAMES += slant
 !end
 

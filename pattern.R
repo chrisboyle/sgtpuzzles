@@ -9,7 +9,7 @@ patternsolver : [C] pattern[STANDALONE_SOLVER] STANDALONE
 
 ALL += pattern[COMBINED]
 
-!begin gtk
+!begin am gtk
 GAMES += pattern
 !end
 

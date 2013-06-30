@@ -15,7 +15,7 @@ galaxiespicture : [C] galaxies[STANDALONE_PICTURE_GENERATOR] GALAXIES_EXTRA STAN
 
 ALL += galaxies[COMBINED] GALAXIES_EXTRA
 
-!begin gtk
+!begin am gtk
 GAMES += galaxies
 !end
 

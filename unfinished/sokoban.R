@@ -6,7 +6,7 @@ sokoban  : [G] WINDOWS COMMON sokoban sokoban.res?
 
 ALL += sokoban[COMBINED]
 
-!begin gtk
+!begin am gtk
 GAMES += sokoban
 !end
 

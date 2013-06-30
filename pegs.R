@@ -8,7 +8,7 @@ pegs     : [G] WINDOWS COMMON pegs PEGS_EXTRA pegs.res|noicon.res
 
 ALL += pegs[COMBINED] PEGS_EXTRA
 
-!begin gtk
+!begin am gtk
 GAMES += pegs
 !end
 

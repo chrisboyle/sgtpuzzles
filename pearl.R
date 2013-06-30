@@ -10,7 +10,7 @@ pearlbench     : [C] pearl[STANDALONE_SOLVER] PEARL_EXTRA STANDALONE
 
 ALL += pearl[COMBINED] PEARL_EXTRA
 
-!begin gtk
+!begin am gtk
 GAMES += pearl
 !end
 

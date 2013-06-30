@@ -11,7 +11,7 @@ slidesolver :   [C] slide[STANDALONE_SOLVER] SLIDE_EXTRA STANDALONE
 
 ALL += slide[COMBINED] SLIDE_EXTRA
 
-!begin gtk
+!begin am gtk
 GAMES += slide
 !end
 

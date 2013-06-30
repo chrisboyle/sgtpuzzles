@@ -12,7 +12,7 @@ towerssolver : [C] towers[STANDALONE_SOLVER] latin[STANDALONE_SOLVER] TOWERS_LAT
 
 ALL += towers[COMBINED] TOWERS_EXTRA
 
-!begin gtk
+!begin am gtk
 GAMES += towers
 !end
 
