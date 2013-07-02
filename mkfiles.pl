@@ -1229,6 +1229,7 @@ if (defined $makefiles{'am'}) {
         if (defined $cflags{'am'} && $cflags{'am'}->{$obj}) {
             # This file needs to go in an archive, so that we can
             # change the compile flags as specified in Recipe
+            $use_archive = 1;
             $archivecflags{$obj} = [$cflags{'am'}->{$obj}];
         }
         if ($use_archive) {

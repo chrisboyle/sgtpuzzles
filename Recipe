@@ -136,7 +136,7 @@ version2.def: FORCE
 # backtick expression. We also force rebuilding via a -D option that
 # makes version.o include empty.h, which we construct ourselves and
 # touch whenever any source file is updated.
-!cflags am version $(VER) -DINCLUDE_EMPTY_H `if test -z "$(VER)" && (cd $(srcdir)/..; md5sum -c manifest >/dev/null 2>&1); then cat $(srcdir)/../version.def; else echo "$(VER)"; fi`
+!cflags am version $(VER) -DINCLUDE_EMPTY_H `if test -z "$(VER)" && (cd $(srcdir) && test -f manifest && md5sum -c manifest >/dev/null 2>&1); then cat $(srcdir)/version.def; elif test -z "$(VER)" && test -d .svn && svnversion . >/dev/null 2>&1; then echo "-DREVISION=\`svnversion .\`"; else echo "$(VER)"; fi`
 !begin am
 BUILT_SOURCES = empty.h
 CLEANFILES = empty.h
