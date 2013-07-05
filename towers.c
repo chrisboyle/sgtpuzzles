@@ -741,7 +741,10 @@ done
     desc = snewn(40*a, char);
     p = desc;
     for (i = 0; i < 4*w; i++) {
-	p += sprintf(p, "%s%.0d", i?"/":"", clues[i]);
+        if (i)
+            *p++ = '/';
+        if (clues[i])
+            p += sprintf(p, "%d", clues[i]);
     }
     for (i = 0; i < a; i++)
 	if (grid[i])
