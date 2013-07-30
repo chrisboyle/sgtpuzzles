@@ -1012,7 +1012,7 @@ static int unruly_validate_unique(const game_state *state, int horizontal,
         for (c = 0; c < nc; c++)
             if (state->grid[r*rmult + c*cmult] != EMPTY)
                 nfull++;
-        if (nfull != nr)
+        if (nfull != nc)
             continue;
         for (r2 = r+1; r2 < nr; r2++) {
             int match = TRUE;
