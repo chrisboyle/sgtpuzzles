@@ -1356,8 +1356,12 @@ board game \q{Mastermind}.
 you know that those will never be counted as part of the solution). This
 is turned off by default. 
 
+\lcont{
+
 Note that this doesn't allow blank pegs in the solution; if you really wanted
 that, use one extra colour.
+
+}
 
 \dt \e{Allow duplicates}
 
@@ -2236,9 +2240,13 @@ extend before creating another island. This parameter determines how
 likely it is to extend as far as it can, rather than choosing
 somewhere closer.
 
+\lcont{
+
 High expansion factors usually mean easier puzzles with fewer
 possible islands; low expansion factors can create lots of
 tightly-packed islands.
+
+}
 
 
 \C{unequal} \i{Unequal}
@@ -2760,7 +2768,11 @@ These parameters are available from the \q{Custom...} option on the
 \dd Size of grid in squares. There will be half \e{Width} \by \e{Height}
 dominoes in the grid: if this number is odd then one square will be blank.
 
+\lcont{
+
 (Grids with at least one odd dimension tend to be easier to solve.)
+
+}
 
 \dt \e{Difficulty}
 
@@ -2937,7 +2949,7 @@ leaving the clue square. The squares that are only adjacent \e{in the
 grid} are not constrained.)
 
 Credit for this puzzle goes to \i{Nikoli}, who call it \q{Masyu}.
-\k{nikoli-pearl}.
+\k{nikoli-pearl}
 
 Thanks to James Harvey for assistance with the implementation.
 
@@ -2972,6 +2984,7 @@ relative to the cursor, i.e. to draw a segment or a cross.
 
 These parameters are available from the \q{Custom...} option on the
 \q{Type} menu.
+
 
 \C{undead} \i{Undead}
 
@@ -3102,6 +3115,11 @@ both the width and height to be even numbers.)
 \dt \e{Difficulty}
 
 \dd Controls the difficulty of the generated puzzle.
+
+\dt \e{Unique rows and columns}
+
+\dd If enabled, no two rows are permitted to have exactly the same
+pattern, and likewise columns. (A row and a column can match, though.)
 
 \A{licence} \I{MIT licence}\ii{Licence}
 
