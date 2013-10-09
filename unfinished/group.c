@@ -1430,8 +1430,9 @@ static game_state *execute_move(const game_state *from, const char *move)
         /*
          * Eliminate any obsoleted dividers.
          */
-        for (x = 0; x+1 < w; x++) {
-            int i = ret->sequence[x], j = ret->sequence[x+1];
+        for (x = 0; x < w; x++) {
+            int i = ret->sequence[x];
+            int j = (x+1 < w ? ret->sequence[x+1] : -1);
             if (ret->dividers[i] != j)
                 ret->dividers[i] = -1;
         }
