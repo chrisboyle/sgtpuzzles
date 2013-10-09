@@ -62,6 +62,7 @@ enum {
     COL_HIGHLIGHT,
     COL_ERROR,
     COL_PENCIL,
+    COL_DIAGONAL,
     NCOLOURS
 };
 
@@ -1495,6 +1496,10 @@ static float *game_colours(frontend *fe, int *ncolours)
     ret[COL_PENCIL * 3 + 1] = 0.5F * ret[COL_BACKGROUND * 3 + 1];
     ret[COL_PENCIL * 3 + 2] = ret[COL_BACKGROUND * 3 + 2];
 
+    ret[COL_DIAGONAL * 3 + 0] = 0.95F * ret[COL_BACKGROUND * 3 + 0];
+    ret[COL_DIAGONAL * 3 + 1] = 0.95F * ret[COL_BACKGROUND * 3 + 1];
+    ret[COL_DIAGONAL * 3 + 2] = 0.95F * ret[COL_BACKGROUND * 3 + 2];
+
     *ncolours = NCOLOURS;
     return ret;
 }
@@ -1561,7 +1566,8 @@ static void draw_tile(drawing *dr, game_drawstate *ds, int x, int y, long tile,
 
     /* background needs erasing */
     draw_rect(dr, cx, cy, cw, ch,
-	      (tile & DF_HIGHLIGHT) ? COL_HIGHLIGHT : COL_BACKGROUND);
+	      (tile & DF_HIGHLIGHT) ? COL_HIGHLIGHT :
+              (x == y) ? COL_DIAGONAL : COL_BACKGROUND);
 
     /* dividers */
     if (tile & DF_DIVIDER_TOP)
