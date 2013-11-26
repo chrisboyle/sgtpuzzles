@@ -258,6 +258,7 @@ public class GameView extends View
 	void drawText(int x, int y, int flags, int size, int colour, String text)
 	{
 		paint.setColor(colours[colour]);
+		paint.setStyle(Paint.Style.FILL);
 		paint.setTypeface( (flags & SGTPuzzles.TEXT_MONO) != 0 ? Typeface.MONOSPACE : Typeface.DEFAULT );
 		paint.setTextSize(size);
 		Paint.FontMetrics fm = paint.getFontMetrics();
