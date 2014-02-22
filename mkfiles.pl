@@ -1189,7 +1189,8 @@ if (defined $makefiles{'gtk'}) {
 
 if (defined $makefiles{'am'}) {
     $mftyp = 'am';
-    $dirpfx = "\$(srcdir)/" . &dirpfx($makefiles{'am'}, "/");
+    die "Makefile.am in a subdirectory is not supported\n"
+        if &dirpfx($makefiles{'am'}, "/") ne "";
 
     ##-- Unix/autoconf Makefile.am
     open OUT, ">$makefiles{'am'}"; select OUT;
@@ -1216,7 +1217,7 @@ if (defined $makefiles{'am'}) {
     %amspeciallibs = ();
     %amlibobjname = ();
     %allsources = ();
-    foreach $d (&deps("X", undef, $dirpfx, "/", "am")) {
+    foreach $d (&deps("X", undef, "", "/", "am")) {
         my $obj = $d->{obj};
         my $use_archive = 0;
         
@@ -1242,6 +1243,10 @@ if (defined $makefiles{'am'}) {
         map { $allsources{$_} = 1 } @{$d->{deps}};
     }
 
+    # 2014-02-22: as of automake-1.14 we begin to get complained at if
+    # we don't use this option
+    print "AUTOMAKE_OPTIONS = subdir-objects\n\n";
+
     # Complete list of source and header files. Not used by the
     # auto-generated parts of this makefile, but Recipe might like to
     # have it available as a variable so that mandatory-rebuild things
@@ -1249,7 +1254,7 @@ if (defined $makefiles{'am'}) {
     print &splitline(join " ", "allsources", "=",
                      sort {$a cmp $b} keys %allsources), "\n\n";
 
-    @amcppflags = map {"-I$dirpfx$_"} @srcdirs;
+    @amcppflags = map {"-I\$(srcdir)/$_"} @srcdirs;
     print &splitline(join " ", "AM_CPPFLAGS", "=", @amcppflags, "\n");
 
     @amcflags = ("\$(GTK_CFLAGS)", "\$(WARNINGOPTS)");
