@@ -36,19 +36,18 @@
          application and should be checked into Version Control Systems. -->
     <property file="default.properties" />
 
-
     <!-- Required pre-setup import -->
-    <import file="${sdk.dir}/tools/ant/pre_setup.xml" />
+    <import file="${sdk.dir}/tools/ant/build.xml" />
 
 
 <!-- extension targets. Uncomment the ones where you want to do custom work
      in between standard targets -->
     <target name="-pre-build">
-        <exec executable="${ndk.dir}/ndk-build"/>
+        <exec executable="${ndk.dir}/ndk-build.cmd"/>
         <!--exec executable="make" dir="icons">
             <arg value="androidicons"/>
         </exec-->
-        <exec executable="./i18ncheck.pl"/>
+        <!-- exec executable="./i18ncheck.pl"/-->
         <!--exec executable="make" dir=".">
             <arg value="-f"/>
             <arg value="Makefile.doc"/>
@@ -94,6 +93,6 @@
         <delete dir="${native.libs.dir}" verbose="${verbose}" />
         <delete dir="obj" verbose="${verbose}" />
     </target>
-    <setup />
+    <!--setup /-->
 
 </project>
