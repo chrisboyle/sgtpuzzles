@@ -11,10 +11,9 @@ import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.StringTokenizer;
-
 import name.boyle.chris.sgtpuzzles.compat.ActionBarCompat;
 import name.boyle.chris.sgtpuzzles.compat.PrefsSaver;
-
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
@@ -116,7 +115,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 	PrefsSaver prefsSaver;
 	boolean startedFullscreen = false, cachedFullscreen = false;
 
-	enum MsgType { INIT, TIMER, DONE, ABORT };
+	enum MsgType { TIMER, DONE, ABORT };
 	Handler handler = new Handler() {
 		public void handleMessage( Message msg ) {
 			switch( MsgType.values()[msg.what] ) {
@@ -195,6 +194,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		return s;
 	}
 
+	@SuppressLint("CommitPrefEdits")
 	void save()
 	{
 		String s = saveToString();
