@@ -78,7 +78,6 @@ static jmethodID
 	gameStarted,
 	getText,
 	messageBox,
-	nativeCrashed,
 	postInvalidate,
 	requestResize,
 	requestTimer,
@@ -524,26 +523,10 @@ char * get_text(const char *s)
 	return ret;
 }
 
-static struct sigaction old_sa[NSIG];
-
-void android_sigaction(int signal, siginfo_t *info, void *reserved)
-{
-	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
-	(*env)->CallVoidMethod(env, obj, nativeCrashed);
-	old_sa[signal].sa_handler(signal);
-}
-
 void cancel(JNIEnv *env, jobject _obj)
 {
 	//pthread_setspecific(envKey, env);
 	cancelled = TRUE;
-}
-
-void crashMeHarder(JNIEnv *env, jobject _obj)
-{
-	//pthread_setspecific(envKey, env);
-	// Dear debuggerd, please give me a native stack trace in logcat. And a pony.
-	abort();
 }
 
 void init(JNIEnv *env, jobject _obj, jobject _gameView, jint whichGame, jstring gameState)
@@ -644,7 +627,6 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
 	gameStarted    = (*env)->GetMethodID(env, cls,  "gameStarted", "(Ljava/lang/String;ZZZ[F)V");
 	getText        = (*env)->GetMethodID(env, cls,  "gettext", "(Ljava/lang/String;)Ljava/lang/String;");
 	messageBox     = (*env)->GetMethodID(env, cls,  "messageBox", "(Ljava/lang/String;Ljava/lang/String;IZ)V");
-	nativeCrashed  = (*env)->GetMethodID(env, cls,  "nativeCrashed", "()V");
 	postInvalidate = (*env)->GetMethodID(env, vcls, "postInvalidate", "()V");
 	requestResize  = (*env)->GetMethodID(env, cls,  "requestResize", "(II)V");
 	requestTimer   = (*env)->GetMethodID(env, cls,  "requestTimer", "(Z)V");
@@ -672,24 +654,9 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
 		{ "serialise", "()V", serialise },
 		{ "htmlHelpTopic", "()Ljava/lang/String;", htmlHelpTopic },
 		{ "cancel", "()V", cancel },
-		{ "crashMeHarder", "()V", crashMeHarder },
 		{ "init", "(Lname/boyle/chris/sgtpuzzles/GameView;ILjava/lang/String;)V", init },
 	};
 	(*env)->RegisterNatives(env, cls, methods, sizeof(methods)/sizeof(JNINativeMethod));
-
-	// Try to catch crashes...
-	struct sigaction handler;
-	memset(&handler, 0, sizeof(sigaction));
-	handler.sa_sigaction = android_sigaction;
-	handler.sa_flags = SA_RESETHAND;
-#define CATCHSIG(X) sigaction(X, &handler, &old_sa[X])
-	CATCHSIG(SIGILL);
-	CATCHSIG(SIGABRT);
-	CATCHSIG(SIGBUS);
-	CATCHSIG(SIGFPE);
-	CATCHSIG(SIGSEGV);
-	CATCHSIG(SIGSTKFLT);
-	CATCHSIG(SIGPIPE);
 
 	return JNI_VERSION_1_2;
 }

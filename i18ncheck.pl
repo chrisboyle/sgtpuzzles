@@ -2,7 +2,7 @@
 
 use strict;
 
-my @sources = <*.c AndroidManifest.xml res/menu/*.xml res/layout/*.xml src/name/boyle/chris/sgtpuzzles/*.java>;
+my @sources = <jni/*.c AndroidManifest.xml res/menu/*.xml res/layout/*.xml res/values/arrays.xml src/name/boyle/chris/sgtpuzzles/*.java>;
 my @stringsfiles = <res/values*/strings.xml>;
 my %srcstrings;
 my %resstrings;
@@ -37,7 +37,7 @@ for my $source (@sources) {
 	$_ = join('',<SRC>);
 	close(SRC);
 	s/\\"/''/g;
-	$isgame = 1 if /^#define\s+thegame\s+/m && $source ne 'nullgame.c';
+	$isgame = 1 if /^#define\s+thegame\s+/m && $source ne 'jni/nullgame.c';
 	while (/_\(\s*"(.*?)"\s*\)/gs) {
 		my $quoted = $1;
 		for my $str ( $quoted =~ /^:/ ? split(/:/,substr($quoted,1)) : ( $quoted ) ) {
@@ -51,7 +51,7 @@ for my $source (@sources) {
 	}
 	if ($isgame) {
 		my $name = $source;
-		$name =~ s/\.c$//;
+		$name =~ s/jni\/(.*)\.c$/$1/;
 		$srcstrings{"name_$name"} = [ undef, "(filename)" ];
 		$srcstrings{"desc_$name"} = [ undef, "(filename)" ];
 	}

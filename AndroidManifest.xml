@@ -41,10 +41,6 @@
                 <data android:scheme="sgtpuzzles" />
             </intent-filter>
         </activity>
-        <activity android:name=".CrashHandler" android:process=":CrashHandler"
-                  android:stateNotNeeded="true" android:exported="false"
-                  android:configChanges="keyboard|keyboardHidden|orientation">
-        </activity>
         <activity android:name=".PrefsActivity"
                   android:label="@string/Settings" android:launchMode="singleTask"
                   android:configChanges="keyboard|keyboardHidden|orientation">

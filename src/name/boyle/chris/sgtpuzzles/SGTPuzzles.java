@@ -81,7 +81,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 	LinkedHashMap<Integer,String> gameTypes;
 	int currentType = 0;
 	boolean gameRunning = false;
-	boolean solveEnabled = false, customVisible = false, fakeCrash = false,
+	boolean solveEnabled = false, customVisible = false,
 			undoEnabled = false, redoEnabled = false;
 	SharedPreferences prefs, state;
 	static final int CFG_SETTINGS = 0, CFG_SEED = 1, CFG_DESC = 2,
@@ -217,17 +217,6 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 	@Override
 	protected void onCreate(Bundle savedInstanceState)
 	{
-		Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler(){
-			/** Somewhat controversially, make life much worse: crash in native code.
-			 *  This is so that "debuggerd" will get us a native trace, which we may
-			 *  need, because we're quite often in Java-in-native-in-Java (e.g. drawing).
-			 *  It also leads to an exit(1) (all threads) which we want. */
-			public void uncaughtException(Thread t, Throwable e) {
-				e.printStackTrace();
-				crashMeHarder();  // see you in nativeCrashed()
-			}
-		});
-
 		prefs = PreferenceManager.getDefaultSharedPreferences(this);
 		prefs.registerOnSharedPreferenceChangeListener(this);
 		state = getSharedPreferences(STATE_PREFS_NAME, MODE_PRIVATE);
@@ -415,7 +404,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 							getString(R.string.website_url))));
 			break;
 		case R.id.email:
-			tryEmailAuthor(this, false, null);
+			tryEmailAuthor(this, null);
 			break;
 		case R.id.load:
 			new FilePicker(this, storageDir, false).show();
@@ -448,7 +437,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		messageBox(title, msg, 0, false);
 	}
 
-	static String getEmailSubject(Context c, boolean isCrash)
+	static String getEmailSubject(Context c)
 	{
 		String modVer = "";
 		try {
@@ -456,16 +445,15 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 			modVer = readAllOf(p.getInputStream()).trim();
 		} catch (Exception e) {}
 		if (modVer.length() == 0) modVer = "original";
-		return MessageFormat.format(c.getString(
-				isCrash ? R.string.crash_subject : R.string.email_subject),
+		return MessageFormat.format(c.getString(R.string.email_subject),
 				getVersion(c), Build.MODEL, modVer, Build.FINGERPRINT);
 	}
 
-	static boolean tryEmailAuthor(Context c, boolean isCrash, String body)
+	static boolean tryEmailAuthor(Context c, String body)
 	{
 		Intent i = new Intent(Intent.ACTION_SEND);
 		i.putExtra(Intent.EXTRA_EMAIL, new String[]{c.getString(R.string.author_email)});
-		i.putExtra(Intent.EXTRA_SUBJECT, getEmailSubject(c, isCrash));
+		i.putExtra(Intent.EXTRA_SUBJECT, getEmailSubject(c));
 		i.setType("message/rfc822");
 		i.putExtra(Intent.EXTRA_TEXT, body!=null ? body : "");
 		try {
@@ -1011,30 +999,6 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		}
 	}
 
-	/** A signal handler in native code has been triggered. As our last gasp,
-	 * launch the crash handler (in its own process), because when we return
-	 * from this function the process will soon exit. */
-	void nativeCrashed()
-	{
-		if (state != null) {
-			try {
-				Log.d(TAG, "saved game was:\n"+state.getString("savedGame",""));
-			} catch(Exception e) {
-				Log.d(TAG, "couldn't report saved game because: "+e.toString());
-				e.printStackTrace();
-			}
-		}
-		try {
-			if (gameView == null) Log.d(TAG, "GameView is null");
-			else Log.d(TAG, "GameView has seen "+gameView.keysHandled+" keys since init");
-		} catch(Exception e) {
-			Log.d(TAG, "couldn't report key count because: "+e.toString());
-		}
-		new RuntimeException("crashed here (native trace should follow after the Java trace)").printStackTrace();
-		startActivity(new Intent(this, CrashHandler.class));
-		finish();
-	}
-
 	static String readAllOf(InputStream s) throws IOException
 	{
 		BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(s),8096);
@@ -1063,7 +1027,6 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 	native void configSetBool(int item_ptr, int selected);
 	native void configSetChoice(int item_ptr, int selected);
 	native void serialise();
-	native void crashMeHarder();
 
 	static {
 		System.loadLibrary("puzzles");
