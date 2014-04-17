@@ -20,6 +20,24 @@
 use warnings;
 use IO::Handle;
 use Cwd;
+use File::Basename;
+
+while ($#ARGV >= 0) {
+    if ($ARGV[0] eq "-U") {
+        # Convenience for Unix users: -U means that after we finish what
+        # we're doing here, we also run mkauto.sh and then 'configure'. So
+        # it's a one-stop shop for regenerating the actual end-product
+        # Unix makefile.
+        #
+        # Arguments supplied after -U go to configure.
+        $do_unix = 1;
+        shift @ARGV;
+        @confargs = @ARGV;
+        @ARGV = ();
+    } else {
+        die "unrecognised command-line argument '$ARGV[0]'\n";
+    }
+}
 
 @filestack = ();
 $in = new IO::Handle;
@@ -39,7 +57,8 @@ eval 'chdir "charset"; require "sbcsgen.pl"; chdir ".."';
 
 @srcdirs = ("./");
 
-$divert = undef; # ref to scalar in which text is currently being put
+$divert = undef; # ref to array of refs of scalars in which text is
+                 # currently being put
 $help = ""; # list of newline-free lines of help text
 $project_name = "project"; # this is a good enough default
 %makefiles = (); # maps makefile types to output makefile pathnames
@@ -65,23 +84,36 @@ readinput: while (1) {
       if ((defined $_[0]) && $_[0] eq "!end") {
 	  $divert = undef;
       } else {
-	  ${$divert} .= "$_\n";
+          for my $ref (@$divert) {
+              ${$ref} .= "$_\n";
+          }
       }
       next;
   }
   # Skip comments and blank lines.
   next if /^\s*#/ or scalar @_ == 0;
 
-  if ($_[0] eq "!begin" and $_[1] eq "help") { $divert = \$help; next; }
+  if ($_[0] eq "!begin" and $_[1] eq "help") { $divert = [\$help]; next; }
   if ($_[0] eq "!name") { $project_name = $_[1]; next; }
   if ($_[0] eq "!srcdir") { push @srcdirs, $_[1]; next; }
   if ($_[0] eq "!makefile" and &mfval($_[1])) { $makefiles{$_[1]}=$_[2]; next;}
   if ($_[0] eq "!specialobj" and &mfval($_[1])) { $specialobj{$_[1]}->{$_[2]} = 1; next;}
+  if ($_[0] eq "!cflags" and &mfval($_[1])) {
+      ($rest = $_) =~ s/^\s*\S+\s+\S+\s+\S+\s*//; # find rest of input line
+      $rest = 1 if $rest eq "";
+      $cflags{$_[1]}->{$_[2]} = $rest;
+      next;
+  }
   if ($_[0] eq "!begin") {
-      if ($_[1] =~ /^>(.*)/) {
-	  $divert = \$auxfiles{$1};
-      } elsif (&mfval($_[1])) {
-	  $divert = \$makefile_extra{$_[1]};
+      my @args = @_;
+      shift @args;
+      $divert = [];
+      for my $component (@args) {
+          if ($component =~ /^>(.*)/) {
+              push @$divert, \$auxfiles{$1};
+          } elsif ($component =~ /^([^_]*)(_.*)?$/ and &mfval($1)) {
+              push @$divert, \$makefile_extra{$component};
+          }
       }
       next;
   }
@@ -287,7 +319,7 @@ sub mfval($) {
     # Returns true if the argument is a known makefile type. Otherwise,
     # prints a warning and returns false;
     if (grep { $type eq $_ }
-	("vc","vcproj","cygwin","borland","lcc","gtk","mpw","nestedvm","osx","wce","gnustep")) {
+	("vc","vcproj","cygwin","borland","lcc","gtk","am","mpw","nestedvm","osx","wce","gnustep","emcc")) {
 	    return 1;
 	}
     warn "$.:unknown makefile type '$type'\n";
@@ -466,6 +498,8 @@ sub manpages {
   }
   return ();
 }
+
+$orig_dir = cwd;
 
 # Now we're ready to output the actual Makefiles.
 
@@ -837,8 +871,6 @@ if (defined $makefiles{'wce'}) {
 if (defined $makefiles{'vcproj'}) {
     $mftyp = 'vcproj';
 
-    $orig_dir = cwd;
-
     ##-- MSVC 6 Workspace and projects
     #
     # Note: All files created in this section are written in binary
@@ -1130,12 +1162,13 @@ if (defined $makefiles{'gtk'}) {
     "mandir=\$(prefix)/man\n",
     "man1dir=\$(mandir)/man1\n",
     "\n";
-    print &splitline("all:" . join "", map { " $_" } &progrealnames("X:U"));
+    print &splitline("all:" . join "", map { " \$(BINPREFIX)$_" }
+                     &progrealnames("X:U"));
     print "\n\n";
     foreach $p (&prognames("X:U")) {
       ($prog, $type) = split ",", $p;
       $objstr = &objects($p, "X.o", undef, undef);
-      print &splitline($prog . ": " . $objstr), "\n";
+      print &splitline("\$(BINPREFIX)" . $prog . ": " . $objstr), "\n";
       $libstr = &objects($p, undef, undef, "-lX");
       print &splitline("\t\$(CC) -o \$@ $objstr $libstr \$(XLFLAGS) \$(${type}LIBS)", 69),
 	  "\n\n";
@@ -1150,7 +1183,125 @@ if (defined $makefiles{'gtk'}) {
     print "\n";
     print $makefile_extra{'gtk'} || "";
     print "\nclean:\n".
-    "\trm -f *.o". (join "", map { " $_" } &progrealnames("X:U")) . "\n";
+    "\trm -f *.o". (join "", map { " \$(BINPREFIX)$_" } &progrealnames("X:U")) . "\n";
+    select STDOUT; close OUT;
+}
+
+if (defined $makefiles{'am'}) {
+    $mftyp = 'am';
+    die "Makefile.am in a subdirectory is not supported\n"
+        if &dirpfx($makefiles{'am'}, "/") ne "";
+
+    ##-- Unix/autoconf Makefile.am
+    open OUT, ">$makefiles{'am'}"; select OUT;
+    print
+    "# Makefile.am for $project_name under Unix with Autoconf/Automake.\n".
+    "#\n# This file was created by `mkfiles.pl' from the `Recipe' file.\n".
+    "# DO NOT EDIT THIS FILE DIRECTLY; edit Recipe or mkfiles.pl instead.\n\n";
+
+    print $makefile_extra{'am_begin'} || "";
+
+    # All programs go in noinstprogs by default. If you want them
+    # installed anywhere else, you have to also add them to
+    # bin_PROGRAMS using '!begin am'. (Automake doesn't seem to mind
+    # having a program name in _both_ of bin_PROGRAMS and
+    # noinst_PROGRAMS.)
+    @noinstprogs = ();
+    foreach $p (&prognames("X:U")) {
+        ($prog, $type) = split ",", $p;
+        push @noinstprogs, $prog;
+    }
+    print &splitline(join " ", "noinst_PROGRAMS", "=", @noinstprogs), "\n";
+
+    %objtosrc = ();
+    %amspeciallibs = ();
+    %amlibobjname = ();
+    %allsources = ();
+    foreach $d (&deps("X", undef, "", "/", "am")) {
+        my $obj = $d->{obj};
+        my $use_archive = 0;
+        
+        if (defined $d->{defs}) {
+            # This file needs to go in an archive, so that we can
+            # change the preprocess flags to include some -Ds
+            $use_archive = 1;
+            $archivecppflags{$obj} = [map { " -D$_" } @{$d->{defs}}];
+        }
+        if (defined $cflags{'am'} && $cflags{'am'}->{$obj}) {
+            # This file needs to go in an archive, so that we can
+            # change the compile flags as specified in Recipe
+            $use_archive = 1;
+            $archivecflags{$obj} = [$cflags{'am'}->{$obj}];
+        }
+        if ($use_archive) {
+            $amspeciallibs{$obj} = "lib${obj}.a";
+            $amlibobjname{$obj} = "lib${obj}_a-" .
+                basename($d->{deps}->[0], ".c", ".m") .
+                ".\$(OBJEXT)";
+        }
+        $objtosrc{$obj} = $d->{deps};
+        map { $allsources{$_} = 1 } @{$d->{deps}};
+    }
+
+    # 2014-02-22: as of automake-1.14 we begin to get complained at if
+    # we don't use this option
+    print "AUTOMAKE_OPTIONS = subdir-objects\n\n";
+
+    # Complete list of source and header files. Not used by the
+    # auto-generated parts of this makefile, but Recipe might like to
+    # have it available as a variable so that mandatory-rebuild things
+    # (version.o) can conveniently be made to depend on it.
+    print &splitline(join " ", "allsources", "=",
+                     sort {$a cmp $b} keys %allsources), "\n\n";
+
+    @amcppflags = map {"-I\$(srcdir)/$_"} @srcdirs;
+    print &splitline(join " ", "AM_CPPFLAGS", "=", @amcppflags, "\n");
+
+    @amcflags = ("\$(GTK_CFLAGS)", "\$(WARNINGOPTS)");
+    print &splitline(join " ", "AM_CFLAGS", "=", @amcflags), "\n";
+
+    %amlibsused = ();
+    foreach $p (&prognames("X:U")) {
+        ($prog, $type) = split ",", $p;
+        @progsources = ("${prog}_SOURCES", "=");
+        %sourcefiles = ();
+        @ldadd = ();
+        $objstr = &objects($p, "X", undef, undef);
+        foreach $obj (split / /,$objstr) {
+            if ($amspeciallibs{$obj}) {
+                $amlibsused{$obj} = 1;
+                push @ldadd, $amlibobjname{$obj};
+            } else {
+                map { $sourcefiles{$_} = 1 } @{$objtosrc{$obj}};
+            }
+        }
+        push @progsources, sort { $a cmp $b } keys %sourcefiles;
+        print &splitline(join " ", @progsources), "\n";
+        if ($type eq "X") {
+            push @ldadd, "\$(GTK_LIBS)";
+        }
+        push @ldadd, "-lm";
+        print &splitline(join " ", "${prog}_LDADD", "=", @ldadd), "\n";
+        print "\n";
+    }
+
+    foreach $obj (sort { $a cmp $b } keys %amlibsused) {
+        print &splitline(join " ", "lib${obj}_a_SOURCES", "=",
+                         @{$objtosrc{$obj}}), "\n";
+        print &splitline(join " ", "lib${obj}_a_CPPFLAGS", "=",
+                         @amcflags, @{$archivecppflags{$obj}}), "\n"
+                             if $archivecppflags{$obj};
+        print &splitline(join " ", "lib${obj}_a_CFLAGS", "=",
+                         @amcflags, @{$archivecflags{$obj}}), "\n"
+                             if $archivecflags{$obj};
+    }
+    print &splitline(join " ", "noinst_LIBRARIES", "=",
+                     sort { $a cmp $b }
+                      map { $amspeciallibs{$_} }
+                     keys %amlibsused),
+                     "\n\n";
+
+    print $makefile_extra{'am'} || "";
     select STDOUT; close OUT;
 }
 
@@ -1587,4 +1738,70 @@ if (defined $makefiles{'gnustep'}) {
     "\trm -f *.o ". (join " ", &progrealnames("U")) . "\n".
     "\trm -rf *.app\n";
     select STDOUT; close OUT;
+}
+
+if (defined $makefiles{'emcc'}) {
+    $mftyp = 'emcc';
+    $dirpfx = &dirpfx($makefiles{'emcc'}, "/");
+
+    ##-- Makefile for building Javascript puzzles via Emscripten
+
+    open OUT, ">$makefiles{'emcc'}"; select OUT;
+    print
+    "# Makefile for $project_name using Emscripten. Requires GNU make.\n".
+    "#\n# This file was created by `mkfiles.pl' from the `Recipe' file.\n".
+    "# DO NOT EDIT THIS FILE DIRECTLY; edit Recipe or mkfiles.pl instead.\n";
+    # emcc command line option is -D not /D
+    ($_ = $help) =~ s/=\/D/=-D/gs;
+    print $_;
+    print
+    "\n".
+    "# This can be set on the command line to point at the emcc command,\n".
+    "# if it is not on your PATH.\n".
+    "EMCC = emcc\n".
+    "\n".
+    &splitline("CFLAGS = -DSLOW_SYSTEM " .
+	       (join " ", map {"-I$dirpfx$_"} @srcdirs))."\n".
+    "\n";
+    $output_js_files = join "", map { " \$(OUTPREFIX)$_.js" } &progrealnames("X");
+    print &splitline("all:" . $output_js_files);
+    print "\n\n";
+    foreach $p (&prognames("X")) {
+      ($prog, $type) = split ",", $p;
+      $objstr = &objects($p, "X.o", undef, undef);
+      $objstr =~ s/gtk\.o/emcc\.o/g;
+      print &splitline("\$(OUTPREFIX)" . $prog . ".js: " . $objstr . " emccpre.js emcclib.js emccx.json"), "\n";
+      print "\t\$(EMCC) -o \$(OUTPREFIX)".$prog.".js ".
+          "-O2 ".
+          "-s ASM_JS=1 ".
+          "--pre-js emccpre.js ".
+          "--js-library emcclib.js ".
+          "-s EXPORTED_FUNCTIONS=\"`sed 's://.*::' emccx.json | tr -d ' \\n'`\" " . $objstr . "\n\n";
+    }
+    foreach $d (&deps("X.o", undef, $dirpfx, "/")) {
+      $oobjs = $d->{obj};
+      $ddeps= join " ", @{$d->{deps}};
+      $oobjs =~ s/gtk/emcc/g;
+      $ddeps =~ s/gtk/emcc/g;
+      print &splitline(sprintf("%s: %s", $oobjs, $ddeps)),
+          "\n";
+      $deflist = join "", map { " -D$_" } @{$d->{defs}};
+      print "\t\$(EMCC) \$(CFLAGS) \$(XFLAGS)$deflist" .
+	  " -c \$< -o \$\@\n";
+    }
+    print "\n";
+    print $makefile_extra{'emcc'} || "";
+    print "\nclean:\n".
+    "\trm -rf *.o $output_js_files\n";
+    select STDOUT; close OUT;
+}
+
+# All done, so do the Unix postprocessing if asked to.
+
+if ($do_unix) {
+    chdir $orig_dir;
+    system "./mkauto.sh";
+    die "mkfiles.pl: mkauto.sh returned $?\n" if $? > 0;
+    system "./configure", @confargs;
+    die "mkfiles.pl: configure returned $?\n" if $? > 0;
 }

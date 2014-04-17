@@ -11,7 +11,7 @@ mapsolver :     [C] map[STANDALONE_SOLVER] MAP_EXTRA STANDALONE
 
 ALL += map[COMBINED] MAP_EXTRA
 
-!begin gtk
+!begin am gtk
 GAMES += map
 !end
 
@@ -19,6 +19,6 @@ GAMES += map
     A(map) \
 !end
 
-!begin >wingames.lst
-map.exe:Map
+!begin >gamedesc.txt
+map:map.exe:Map:Map-colouring puzzle
 !end

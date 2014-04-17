@@ -11,7 +11,7 @@ mineobfusc :    [C] mines[STANDALONE_OBFUSCATOR] MINES_EXTRA STANDALONE
 
 ALL += mines[COMBINED] MINES_EXTRA
 
-!begin gtk
+!begin am gtk
 GAMES += mines
 !end
 
@@ -19,6 +19,6 @@ GAMES += mines
     A(mines) \
 !end
 
-!begin >wingames.lst
-mines.exe:Mines
+!begin >gamedesc.txt
+mines:mines.exe:Mines:Mine-finding puzzle
 !end

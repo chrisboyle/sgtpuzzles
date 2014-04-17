@@ -171,7 +171,7 @@ static void free_params(game_params *params)
     sfree(params);
 }
 
-static game_params *dup_params(game_params *params)
+static game_params *dup_params(const game_params *params)
 {
     game_params *ret = snew(game_params);
     *ret = *params;		       /* structure copy */
@@ -201,7 +201,7 @@ static void decode_params(game_params *ret, char const *string)
     }
 }
 
-static char *encode_params(game_params *params, int full)
+static char *encode_params(const game_params *params, int full)
 {
     char data[256];
 
@@ -213,7 +213,7 @@ static char *encode_params(game_params *params, int full)
     return dupstr(data);
 }
 
-static config_item *game_configure(game_params *params)
+static config_item *game_configure(const game_params *params)
 {
     config_item *ret;
     char buf[80];
@@ -245,7 +245,7 @@ static config_item *game_configure(game_params *params)
     return ret;
 }
 
-static game_params *custom_params(config_item *cfg)
+static game_params *custom_params(const config_item *cfg)
 {
     game_params *ret = snew(game_params);
 
@@ -256,7 +256,7 @@ static game_params *custom_params(config_item *cfg)
     return ret;
 }
 
-static char *validate_params(game_params *params, int full)
+static char *validate_params(const game_params *params, int full)
 {
     if (params->w < 2 || params->h < 2)
 	return _("Width and height must be at least two");
@@ -293,7 +293,7 @@ static game_state *blank_game(int w, int h)
     return state;
 }
 
-static game_state *dup_game(game_state *state)
+static game_state *dup_game(const game_state *state)
 {
     game_state *ret = blank_game(state->w, state->h);
 
@@ -334,7 +334,7 @@ static int c2n(char c) {
     return -1;
 }
 
-static void unpick_desc(game_params *params, char *desc,
+static void unpick_desc(const game_params *params, const char *desc,
                         game_state **sout, char **mout)
 {
     game_state *state = blank_game(params->w, params->h);
@@ -379,12 +379,12 @@ static char *generate_desc(game_state *state, int issolve)
 
 /* --- Useful game functions (completion, etc.) --- */
 
-static int game_can_format_as_text_now(game_params *params)
+static int game_can_format_as_text_now(const game_params *params)
 {
     return TRUE;
 }
 
-static char *game_text_format(game_state *state)
+static char *game_text_format(const game_state *state)
 {
     int len, x, y, i;
     char *ret, *p;
@@ -553,7 +553,8 @@ static int check_complete(game_state *state, unsigned flags)
     return (error > 0) ? 0 : 1;
 }
 
-static char *game_state_diff(game_state *src, game_state *dst, int issolve)
+static char *game_state_diff(const game_state *src, const game_state *dst,
+                             int issolve)
 {
     char *ret = NULL, buf[80], c;
     int retlen = 0, x, y, i, k;
@@ -631,7 +632,7 @@ static void solver_op_add(struct solver_state *ss, int x, int y, int op, const c
     }
     sop = &(ss->ops[ss->n_ops++]);
     sop->x = x; sop->y = y; sop->op = op; sop->desc = desc;
-    debug(("added solver op %s ('%s') at (%d,%d)",
+    debug(("added solver op %s ('%s') at (%d,%d)\n",
            op == BLACK ? "BLACK" : "CIRCLE", desc, x, y));
 }
 
@@ -642,7 +643,7 @@ static void solver_op_circle(game_state *state, struct solver_state *ss,
 
     if (!INGRID(state, x, y)) return;
     if (state->flags[i] & F_BLACK) {
-        debug(("... solver wants to add auto-circle on black (%d,%d)", x, y));
+        debug(("... solver wants to add auto-circle on black (%d,%d)\n", x, y));
         state->impossible = 1;
         return;
     }
@@ -660,7 +661,7 @@ static void solver_op_blacken(game_state *state, struct solver_state *ss,
     if (!INGRID(state, x, y)) return;
     if (state->nums[i] != num) return;
     if (state->flags[i] & F_CIRCLE) {
-        debug(("... solver wants to add auto-black on circled(%d,%d)", x, y));
+        debug(("... solver wants to add auto-black on circled(%d,%d)\n", x, y));
         state->impossible = 1;
         return;
     }
@@ -684,12 +685,12 @@ static int solver_ops_do(game_state *state, struct solver_state *ss)
 
         if (op.op == BLACK) {
             if (state->flags[i] & F_CIRCLE) {
-                debug(("Solver wants to blacken circled square (%d,%d)!", op.x, op.y));
+                debug(("Solver wants to blacken circled square (%d,%d)!\n", op.x, op.y));
                 state->impossible = 1;
                 return n_ops;
             }
             if (!(state->flags[i] & F_BLACK)) {
-                debug(("... solver adding black at (%d,%d): %s", op.x, op.y, op.desc));
+                debug(("... solver adding black at (%d,%d): %s\n", op.x, op.y, op.desc));
 #ifdef STANDALONE_SOLVER
                 if (verbose)
                     printf("Adding black at (%d,%d): %s\n", op.x, op.y, op.desc);
@@ -704,12 +705,12 @@ static int solver_ops_do(game_state *state, struct solver_state *ss)
                 }
         } else {
             if (state->flags[i] & F_BLACK) {
-                debug(("Solver wants to circle blackened square (%d,%d)!", op.x, op.y));
+                debug(("Solver wants to circle blackened square (%d,%d)!\n", op.x, op.y));
                 state->impossible = 1;
                 return n_ops;
             }
             if (!(state->flags[i] & F_CIRCLE)) {
-                debug(("... solver adding circle at (%d,%d): %s", op.x, op.y, op.desc));
+                debug(("... solver adding circle at (%d,%d): %s\n", op.x, op.y, op.desc));
 #ifdef STANDALONE_SOLVER
                 if (verbose)
                     printf("Adding circle at (%d,%d): %s\n", op.x, op.y, op.desc);
@@ -836,7 +837,7 @@ static int solve_allblackbutone(game_state *state, struct solver_state *ss)
                 solver_op_add(ss, ifree%state->w, ifree/state->w, CIRCLE,
                               "CC/CE/QM: white cell with single non-black around it");
             else {
-                debug(("White cell with no escape at (%d,%d)", x, y));
+                debug(("White cell with no escape at (%d,%d)\n", x, y));
                 state->impossible = 1;
                 return 0;
             }
@@ -942,9 +943,9 @@ static void solve_offsetpair_pair(game_state *state, struct solver_state *ss,
             if (an == dn) {
                 /* We have a match; so (WLOG) the 'A' marked above are at
                  * (x1,y1) and (x2,y2), and the 'B' are at (ax,ay) and (dx,dy). */
-                debug(("Found offset-pair: %d at (%d,%d) and (%d,%d)",
+                debug(("Found offset-pair: %d at (%d,%d) and (%d,%d)\n",
                        state->nums[y1*w + x1], x1, y1, x2, y2));
-                debug(("              and: %d at (%d,%d) and (%d,%d)",
+                debug(("              and: %d at (%d,%d) and (%d,%d)\n",
                        an, ax, ay, dx[d], dy[d]));
 
                 xd = dx[d] - x2; yd = dy[d] - y2;
@@ -998,7 +999,7 @@ static int solve_hassinglewhiteregion(game_state *state, struct solver_state *ss
         state->flags[i] &= ~F_SCRATCH;
     }
     if (lwhite == -1) {
-        debug(("solve_hassinglewhite: no white squares found!"));
+        debug(("solve_hassinglewhite: no white squares found!\n"));
         state->impossible = 1;
         return 0;
     }
@@ -1057,7 +1058,7 @@ static int solve_removesplits(game_state *state, struct solver_state *ss)
     int i, x, y, n_ops = ss->n_ops;
 
     if (!solve_hassinglewhiteregion(state, ss)) {
-        debug(("solve_removesplits: white region is not contiguous at start!"));
+        debug(("solve_removesplits: white region is not contiguous at start!\n"));
         state->impossible = 1;
         return 0;
     }
@@ -1172,8 +1173,8 @@ static int solve_specific(game_state *state, int diff, int sneaky)
     return state->impossible ? -1 : check_complete(state, CC_MUST_FILL);
 }
 
-static char *solve_game(game_state *state, game_state *currstate,
-			char *aux, char **error)
+static char *solve_game(const game_state *state, const game_state *currstate,
+                        const char *aux, char **error)
 {
     game_state *solved = dup_game(currstate);
     char *move = NULL;
@@ -1208,7 +1209,7 @@ solved:
       the solver gets a headstart working out where they are.
  */
 
-static int new_game_is_good(game_params *params,
+static int new_game_is_good(const game_params *params,
                             game_state *state, game_state *tosolve)
 {
     int sret, sret_easy = 0;
@@ -1243,7 +1244,7 @@ static int new_game_is_good(game_params *params,
     }
 
     if (sret <= 0 || sret_easy > 0) {
-        debug(("Generated puzzle %s at chosen difficulty %s",
+        debug(("Generated puzzle %s at chosen difficulty %s\n",
                sret <= 0 ? "insoluble" : "too easy",
                singles_diffnames[params->diff]));
         return 0;
@@ -1290,7 +1291,7 @@ found:
     return j;
 }
 
-static char *new_game_desc(game_params *params, random_state *rs,
+static char *new_game_desc(const game_params *params, random_state *rs,
 			   char **aux, int interactive)
 {
     game_state *state = blank_game(params->w, params->h);
@@ -1308,7 +1309,7 @@ static char *new_game_desc(game_params *params, random_state *rs,
 generate:
     ss->n_ops = 0;
     state->impossible = 0;
-    debug(("Starting game generation, size %dx%d", w, h));
+    debug(("Starting game generation, size %dx%d\n", w, h));
 
     memset(state->flags, 0, state->n*sizeof(unsigned int));
 
@@ -1328,7 +1329,7 @@ generate:
     for (j = 0; j < state->n; j++) {
         i = scratch[j];
         if ((state->flags[i] & F_CIRCLE) || (state->flags[i] & F_BLACK)) {
-            debug(("generator skipping (%d,%d): %s", i%w, i/w,
+            debug(("generator skipping (%d,%d): %s\n", i%w, i/w,
                    (state->flags[i] & F_CIRCLE) ? "CIRCLE" : "BLACK"));
             continue; /* solver knows this must be one or the other already. */
         }
@@ -1345,7 +1346,7 @@ generate:
         solver_ops_do(state, ss);
 
         if (state->impossible) {
-            debug(("generator made impossible, restarting..."));
+            debug(("generator made impossible, restarting...\n"));
             goto generate;
         }
     }
@@ -1384,10 +1385,10 @@ randomise:
         !new_game_is_good(params, state, tosolve)) {
         ntries++;
         if (ntries > MAXTRIES) {
-            debug(("Ran out of randomisation attempts, re-generating."));
+            debug(("Ran out of randomisation attempts, re-generating.\n"));
             goto generate;
         }
-        debug(("Re-randomising numbers under black squares."));
+        debug(("Re-randomising numbers under black squares.\n"));
         goto randomise;
     }
 
@@ -1403,7 +1404,7 @@ randomise:
     return ret;
 }
 
-static char *validate_desc(game_params *params, char *desc)
+static char *validate_desc(const game_params *params, const char *desc)
 {
     char *ret = NULL;
 
@@ -1411,7 +1412,8 @@ static char *validate_desc(game_params *params, char *desc)
     return ret;
 }
 
-static game_state *new_game(midend *me, game_params *params, char *desc)
+static game_state *new_game(midend *me, const game_params *params,
+                            const char *desc)
 {
     game_state *state = NULL;
 
@@ -1427,7 +1429,7 @@ struct game_ui {
     int show_black_nums;
 };
 
-static game_ui *new_ui(game_state *state)
+static game_ui *new_ui(const game_state *state)
 {
     game_ui *ui = snew(game_ui);
 
@@ -1442,17 +1444,17 @@ static void free_ui(game_ui *ui)
     sfree(ui);
 }
 
-static char *encode_ui(game_ui *ui)
+static char *encode_ui(const game_ui *ui)
 {
     return NULL;
 }
 
-static void decode_ui(game_ui *ui, char *encoding)
+static void decode_ui(game_ui *ui, const char *encoding)
 {
 }
 
-static void game_changed_state(game_ui *ui, game_state *oldstate,
-                               game_state *newstate)
+static void game_changed_state(game_ui *ui, const game_state *oldstate,
+                               const game_state *newstate)
 {
     if (!oldstate->completed && newstate->completed)
         ui->cshow = 0;
@@ -1476,8 +1478,9 @@ struct game_drawstate {
     unsigned int *flags;
 };
 
-static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
-			    int mx, int my, int button)
+static char *interpret_move(const game_state *state, game_ui *ui,
+                            const game_drawstate *ds,
+                            int mx, int my, int button)
 {
     char buf[80], c;
     int i, x = FROMCOORD(mx), y = FROMCOORD(my);
@@ -1527,12 +1530,12 @@ static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
     return NULL;
 }
 
-static game_state *execute_move(game_state *state, char *move)
+static game_state *execute_move(const game_state *state, const char *move)
 {
     game_state *ret = dup_game(state);
     int x, y, i, n;
 
-    debug(("move: %s", move));
+    debug(("move: %s\n", move));
 
     while (*move) {
         char c = *move;
@@ -1572,8 +1575,8 @@ badmove:
  * Drawing routines.
  */
 
-static void game_compute_size(game_params *params, int tilesize,
-			      int *x, int *y)
+static void game_compute_size(const game_params *params, int tilesize,
+                              int *x, int *y)
 {
     /* Ick: fake up `ds->tilesize' for macro expansion purposes */
     struct { int tilesize; } ads, *ds = &ads;
@@ -1584,7 +1587,7 @@ static void game_compute_size(game_params *params, int tilesize,
 }
 
 static void game_set_size(drawing *dr, game_drawstate *ds,
-			  game_params *params, int tilesize)
+                          const game_params *params, int tilesize)
 {
     ds->tilesize = tilesize;
 }
@@ -1613,7 +1616,7 @@ static float *game_colours(frontend *fe, int *ncolours)
     return ret;
 }
 
-static game_drawstate *game_new_drawstate(drawing *dr, game_state *state)
+static game_drawstate *game_new_drawstate(drawing *dr, const game_state *state)
 {
     struct game_drawstate *ds = snew(struct game_drawstate);
 
@@ -1678,9 +1681,10 @@ static void tile_redraw(drawing *dr, game_drawstate *ds, int x, int y,
     draw_update(dr, x, y, TILE_SIZE, TILE_SIZE);
 }
 
-static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
-			game_state *state, int dir, game_ui *ui,
-			float animtime, float flashtime)
+static void game_redraw(drawing *dr, game_drawstate *ds,
+                        const game_state *oldstate, const game_state *state,
+                        int dir, const game_ui *ui,
+                        float animtime, float flashtime)
 {
     int x, y, i, flash;
     unsigned int f;
@@ -1725,14 +1729,14 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
     ds->started = 1;
 }
 
-static float game_anim_length(game_state *oldstate, game_state *newstate,
-			      int dir, game_ui *ui)
+static float game_anim_length(const game_state *oldstate,
+                              const game_state *newstate, int dir, game_ui *ui)
 {
     return 0.0F;
 }
 
-static float game_flash_length(game_state *oldstate, game_state *newstate,
-			       int dir, game_ui *ui)
+static float game_flash_length(const game_state *oldstate,
+                               const game_state *newstate, int dir, game_ui *ui)
 {
     if (!oldstate->completed &&
         newstate->completed && !newstate->used_solve)
@@ -1740,18 +1744,18 @@ static float game_flash_length(game_state *oldstate, game_state *newstate,
     return 0.0F;
 }
 
-static int game_status(game_state *state)
+static int game_status(const game_state *state)
 {
     return state->completed ? +1 : 0;
 }
 
-static int game_timing_state(game_state *state, game_ui *ui)
+static int game_timing_state(const game_state *state, game_ui *ui)
 {
     return TRUE;
 }
 
 #ifndef NO_PRINTING
-static void game_print_size(game_params *params, float *x, float *y)
+static void game_print_size(const game_params *params, float *x, float *y)
 {
     int pw, ph;
 
@@ -1761,7 +1765,7 @@ static void game_print_size(game_params *params, float *x, float *y)
     *y = ph / 100.0F;
 }
 
-static void game_print(drawing *dr, game_state *state, int tilesize)
+static void game_print(drawing *dr, const game_state *state, int tilesize)
 {
     int ink = print_mono_colour(dr, 0);
     int paper = print_mono_colour(dr, 1);

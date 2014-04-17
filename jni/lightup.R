@@ -11,7 +11,7 @@ lightupsolver : [C] lightup[STANDALONE_SOLVER] LIGHTUP_EXTRA STANDALONE
 
 ALL += lightup[COMBINED] LIGHTUP_EXTRA
 
-!begin gtk
+!begin am gtk
 GAMES += lightup
 !end
 
@@ -19,6 +19,6 @@ GAMES += lightup
     A(lightup) \
 !end
 
-!begin >wingames.lst
-lightup.exe:Light Up
+!begin >gamedesc.txt
+lightup:lightup.exe:Light Up:Light-bulb placing puzzle
 !end

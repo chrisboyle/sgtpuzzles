@@ -243,7 +243,7 @@ struct game_drawstate {
     grid_edge *cur_edge;
 };
 
-static char *validate_desc(game_params *params, char *desc);
+static char *validate_desc(const game_params *params, const char *desc);
 static int dot_order(const game_state* state, int i, char line_type);
 static int face_order(const game_state* state, int i, char line_type);
 static solver_state *solve_game_rec(const solver_state *sstate);
@@ -287,7 +287,8 @@ static const struct {
 /* Generates a (dynamically allocated) new grid, according to the
  * type and size requested in params.  Does nothing if the grid is already
  * generated. */
-static grid *loopy_generate_grid(game_params *params, char *grid_desc)
+static grid *loopy_generate_grid(const game_params *params,
+                                 const char *grid_desc)
 {
     return grid_new(grid_types[params->type], params->w, params->h, grid_desc);
 }
@@ -316,7 +317,7 @@ static grid *loopy_generate_grid(game_params *params, char *grid_desc)
  * General struct manipulation and other straightforward code
  */
 
-static game_state *dup_game(game_state *state)
+static game_state *dup_game(const game_state *state)
 {
     game_state *ret = snew(game_state);
 
@@ -350,7 +351,7 @@ static void free_game(game_state *state)
     }
 }
 
-static solver_state *new_solver_state(game_state *state, int diff) {
+static solver_state *new_solver_state(const game_state *state, int diff) {
     int i;
     int num_dots = state->game_grid->num_dots;
     int num_faces = state->game_grid->num_faces;
@@ -489,7 +490,7 @@ static game_params *default_params(void)
     return ret;
 }
 
-static game_params *dup_params(game_params *params)
+static game_params *dup_params(const game_params *params)
 {
     game_params *ret = snew(game_params);
 
@@ -584,7 +585,7 @@ static void decode_params(game_params *params, char const *string)
     }
 }
 
-static char *encode_params(game_params *params, int full)
+static char *encode_params(const game_params *params, int full)
 {
     char str[80];
     sprintf(str, "%dx%dt%d", params->w, params->h, params->type);
@@ -593,7 +594,7 @@ static char *encode_params(game_params *params, int full)
     return dupstr(str);
 }
 
-static config_item *game_configure(game_params *params)
+static config_item *game_configure(const game_params *params)
 {
     config_item *ret;
     char buf[80];
@@ -630,7 +631,7 @@ static config_item *game_configure(game_params *params)
     return ret;
 }
 
-static game_params *custom_params(config_item *cfg)
+static game_params *custom_params(const config_item *cfg)
 {
     game_params *ret = snew(game_params);
 
@@ -642,7 +643,7 @@ static game_params *custom_params(config_item *cfg)
     return ret;
 }
 
-static char *validate_params(game_params *params, int full)
+static char *validate_params(const game_params *params, int full)
 {
     static char err[128];
     int l = grid_size_limits[params->type].amin;
@@ -709,7 +710,7 @@ static char *state_to_text(const game_state *state)
 /* Splits up a (optional) grid_desc from the game desc. Returns the
  * grid_desc (which needs freeing) and updates the desc pointer to
  * start of real desc, or returns NULL if no desc. */
-static char *extract_grid_desc(char **desc)
+static char *extract_grid_desc(const char **desc)
 {
     char *sep = strchr(*desc, GRID_DESC_SEP), *gd;
     int gd_len;
@@ -728,7 +729,7 @@ static char *extract_grid_desc(char **desc)
 
 /* We require that the params pass the test in validate_params and that the
  * description fills the entire game area */
-static char *validate_desc(game_params *params, char *desc)
+static char *validate_desc(const game_params *params, const char *desc)
 {
     int count = 0;
     grid *g;
@@ -823,7 +824,7 @@ struct game_ui {
 };
 
 
-static game_ui *new_ui(game_state *state)
+static game_ui *new_ui(const game_state *state)
 {
     grid *g = state->game_grid;
     game_ui *ui = snew(game_ui);
@@ -838,24 +839,24 @@ static void free_ui(game_ui *ui)
     sfree(ui);
 }
 
-static char *encode_ui(game_ui *ui)
+static char *encode_ui(const game_ui *ui)
 {
     return NULL;
 }
 
-static void decode_ui(game_ui *ui, char *encoding)
+static void decode_ui(game_ui *ui, const char *encoding)
 {
 }
 
-static void game_changed_state(game_ui *ui, game_state *oldstate,
-                               game_state *newstate)
+static void game_changed_state(game_ui *ui, const game_state *oldstate,
+                               const game_state *newstate)
 {
 #ifdef ANDROID
     if (newstate->solved && ! newstate->cheated && oldstate && ! oldstate->solved) android_completed();
 #endif
 }
 
-static void game_compute_size(game_params *params, int tilesize,
+static void game_compute_size(const game_params *params, int tilesize,
                               int *x, int *y)
 {
     int grid_width, grid_height, rendered_width, rendered_height;
@@ -880,7 +881,7 @@ static void game_compute_size(game_params *params, int tilesize,
 #endif
 
 static void game_set_size(drawing *dr, game_drawstate *ds,
-			  game_params *params, int tilesize)
+                          const game_params *params, int tilesize)
 {
     ds->tilesize = tilesize;
 
@@ -938,7 +939,7 @@ static float *game_colours(frontend *fe, int *ncolours)
     return ret;
 }
 
-static game_drawstate *game_new_drawstate(drawing *dr, game_state *state)
+static game_drawstate *game_new_drawstate(drawing *dr, const game_state *state)
 {
     struct game_drawstate *ds = snew(struct game_drawstate);
     int num_faces = state->game_grid->num_faces;
@@ -984,25 +985,25 @@ static void game_free_drawstate(drawing *dr, game_drawstate *ds)
     sfree(ds);
 }
 
-static int game_timing_state(game_state *state, game_ui *ui)
+static int game_timing_state(const game_state *state, game_ui *ui)
 {
     return TRUE;
 }
 
-static float game_anim_length(game_state *oldstate, game_state *newstate,
-                              int dir, game_ui *ui)
+static float game_anim_length(const game_state *oldstate,
+                              const game_state *newstate, int dir, game_ui *ui)
 {
     return 0.0F;
 }
 
-static int game_can_format_as_text_now(game_params *params)
+static int game_can_format_as_text_now(const game_params *params)
 {
     if (params->type != 0)
         return FALSE;
     return TRUE;
 }
 
-static char *game_text_format(game_state *state)
+static char *game_text_format(const game_state *state)
 {
     int w, h, W, H;
     int x, y, i;
@@ -1431,7 +1432,7 @@ static game_state *remove_clues(game_state *state, random_state *rs,
 }
 
 
-static char *new_game_desc(game_params *params, random_state *rs,
+static char *new_game_desc(const game_params *params, random_state *rs,
                            char **aux, int interactive)
 {
     /* solution and description both use run-length encoding in obvious ways */
@@ -1511,7 +1512,8 @@ static char *new_game_desc(game_params *params, random_state *rs,
     return retval;
 }
 
-static game_state *new_game(midend *me, game_params *params, char *desc)
+static game_state *new_game(midend *me, const game_params *params,
+                            const char *desc)
 {
     int i;
     game_state *state = snew(game_state);
@@ -2904,8 +2906,8 @@ static solver_state *solve_game_rec(const solver_state *sstate_start)
     return sstate;
 }
 
-static char *solve_game(game_state *state, game_state *currstate,
-                        char *aux, char **error)
+static char *solve_game(const game_state *state, const game_state *currstate,
+                        const char *aux, char **error)
 {
     char *soln = NULL;
     solver_state *sstate, *new_sstate;
@@ -2940,7 +2942,8 @@ static char *solve_game(game_state *state, game_state *currstate,
  * Drawing and mouse-handling
  */
 
-static char *interpret_move(game_state *state, game_ui *ui, game_drawstate *ds,
+static char *interpret_move(const game_state *state, game_ui *ui,
+                            const game_drawstate *ds,
                             int x, int y, int button)
 {
     grid *g = state->game_grid;
@@ -3065,7 +3068,7 @@ makemove:
     return ret;
 }
 
-static game_state *execute_move(game_state *state, char *move)
+static game_state *execute_move(const game_state *state, const char *move)
 {
     int i;
     game_state *newstate = dup_game(state);
@@ -3169,19 +3172,14 @@ static void face_text_bbox(game_drawstate *ds, grid *g, grid_face *f,
 }
 
 static void game_redraw_clue(drawing *dr, game_drawstate *ds,
-			     game_state *state, int i)
+			     const game_state *state, int i)
 {
     grid *g = state->game_grid;
     grid_face *f = g->faces + i;
     int x, y;
-    char c[3];
+    char c[20];
 
-    if (state->clues[i] < 10) {
-        c[0] = CLUE2CHAR(state->clues[i]);
-        c[1] = '\0';
-    } else {
-        sprintf(c, "%d", state->clues[i]);
-    }
+    sprintf(c, "%d", state->clues[i]);
 
     face_text_pos(ds, g, f, &x, &y);
     draw_text(dr, x, y,
@@ -3233,7 +3231,7 @@ static const int loopy_line_redraw_phases[] = {
 #define NPHASES lenof(loopy_line_redraw_phases)
 
 static void game_redraw_line(drawing *dr, game_drawstate *ds,
-			     game_state *state, int i, int phase)
+			     const game_state *state, int i, int phase)
 {
     grid *g = state->game_grid;
     grid_edge *e = g->edges + i;
@@ -3275,7 +3273,7 @@ static void game_redraw_line(drawing *dr, game_drawstate *ds,
 }
 
 static void game_redraw_dot(drawing *dr, game_drawstate *ds,
-			    game_state *state, int i, int current)
+			    const game_state *state, int i, int current)
 {
     grid *g = state->game_grid;
     grid_dot *d = g->dots + i;
@@ -3298,7 +3296,8 @@ static int boxes_intersect(int x0, int y0, int w0, int h0,
 }
 
 static void game_redraw_in_rect(drawing *dr, game_drawstate *ds,
-                                game_state *state, int x, int y, int w, int h)
+                                const game_state *state,
+                                int x, int y, int w, int h)
 {
     grid *g = state->game_grid;
     int i, phase;
@@ -3338,8 +3337,9 @@ static void game_redraw_in_rect(drawing *dr, game_drawstate *ds,
     draw_update(dr, x, y, w, h);
 }
 
-static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
-                        game_state *state, int dir, game_ui *ui,
+static void game_redraw(drawing *dr, game_drawstate *ds,
+                        const game_state *oldstate, const game_state *state,
+                        int dir, const game_ui *ui,
                         float animtime, float flashtime)
 {
 #define REDRAW_OBJECTS_LIMIT 16		/* Somewhat arbitrary tradeoff */
@@ -3394,62 +3394,63 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
      * what needs doing, and the second actually does it.
      */
 
-    if (!ds->started)
+    if (!ds->started) {
 	redraw_everything = TRUE;
-    else {
+        /*
+         * But we must still go through the upcoming loops, so that we
+         * set up stuff in ds correctly for the initial redraw.
+         */
+    }
 
-	/* First, trundle through the faces. */
-	for (i = 0; i < g->num_faces; i++) {
-	    grid_face *f = g->faces + i;
-	    int sides = f->order;
-	    int clue_mistake;
-	    int clue_satisfied;
-	    int n = state->clues[i];
-	    if (n < 0)
-		continue;
+    /* First, trundle through the faces. */
+    for (i = 0; i < g->num_faces; i++) {
+        grid_face *f = g->faces + i;
+        int sides = f->order;
+        int clue_mistake;
+        int clue_satisfied;
+        int n = state->clues[i];
+        if (n < 0)
+            continue;
 
-	    clue_mistake = (face_order(state, i, LINE_YES) > n ||
-			    face_order(state, i, LINE_NO ) > (sides-n));
-	    clue_satisfied = (face_order(state, i, LINE_YES) == n &&
-			      face_order(state, i, LINE_NO ) == (sides-n));
+        clue_mistake = (face_order(state, i, LINE_YES) > n ||
+                        face_order(state, i, LINE_NO ) > (sides-n));
+        clue_satisfied = (face_order(state, i, LINE_YES) == n &&
+                          face_order(state, i, LINE_NO ) == (sides-n));
 
-	    if (clue_mistake != ds->clue_error[i] ||
-		clue_satisfied != ds->clue_satisfied[i]) {
-		ds->clue_error[i] = clue_mistake;
-		ds->clue_satisfied[i] = clue_satisfied;
-		if (nfaces == REDRAW_OBJECTS_LIMIT)
-		    redraw_everything = TRUE;
-		else
-		    faces[nfaces++] = i;
-	    }
-	}
+        if (clue_mistake != ds->clue_error[i] ||
+            clue_satisfied != ds->clue_satisfied[i]) {
+            ds->clue_error[i] = clue_mistake;
+            ds->clue_satisfied[i] = clue_satisfied;
+            if (nfaces == REDRAW_OBJECTS_LIMIT)
+                redraw_everything = TRUE;
+            else
+                faces[nfaces++] = i;
+        }
+    }
 
-	/* Work out what the flash state needs to be. */
-	if (flashtime > 0 &&
-	    (flashtime <= FLASH_TIME/3 ||
-	     flashtime >= FLASH_TIME*2/3)) {
-	    flash_changed = !ds->flashing;
-	    ds->flashing = TRUE;
-	} else {
-	    flash_changed = ds->flashing;
-	    ds->flashing = FALSE;
-	}
+    /* Work out what the flash state needs to be. */
+    if (flashtime > 0 &&
+        (flashtime <= FLASH_TIME/3 ||
+         flashtime >= FLASH_TIME*2/3)) {
+        flash_changed = !ds->flashing;
+        ds->flashing = TRUE;
+    } else {
+        flash_changed = ds->flashing;
+        ds->flashing = FALSE;
+    }
 
-	/* Now, trundle through the edges. */
-	for (i = 0; i < g->num_edges; i++) {
-	    char new_ds =
-		state->line_errors[i] ? DS_LINE_ERROR : state->lines[i];
-	    grid_edge *e = g->edges + i;
-	    if (new_ds != ds->lines[i] ||
-		(e == cur_edge || e == ds->cur_edge) ||
-		(flash_changed && state->lines[i] == LINE_YES)) {
-		ds->lines[i] = new_ds;
-		if (nedges == REDRAW_OBJECTS_LIMIT)
-		    redraw_everything = TRUE;
-		else
-		    edges[nedges++] = i;
-	    }
-	}
+    /* Now, trundle through the edges. */
+    for (i = 0; i < g->num_edges; i++) {
+        char new_ds =
+            state->line_errors[i] ? DS_LINE_ERROR : state->lines[i];
+        if (new_ds != ds->lines[i] ||
+            (flash_changed && state->lines[i] == LINE_YES)) {
+            ds->lines[i] = new_ds;
+            if (nedges == REDRAW_OBJECTS_LIMIT)
+                redraw_everything = TRUE;
+            else
+                edges[nedges++] = i;
+        }
     }
 
     /* Pass one is now done.  Now we do the actual drawing. */
@@ -3512,8 +3513,8 @@ static void game_redraw(drawing *dr, game_drawstate *ds, game_state *oldstate,
     ds->cur_visible = ui->cur_visible;
 }
 
-static float game_flash_length(game_state *oldstate, game_state *newstate,
-                               int dir, game_ui *ui)
+static float game_flash_length(const game_state *oldstate,
+                               const game_state *newstate, int dir, game_ui *ui)
 {
     if (!oldstate->solved  &&  newstate->solved &&
         !oldstate->cheated && !newstate->cheated) {
@@ -3523,13 +3524,13 @@ static float game_flash_length(game_state *oldstate, game_state *newstate,
     return 0.0F;
 }
 
-static int game_status(game_state *state)
+static int game_status(const game_state *state)
 {
     return state->solved ? +1 : 0;
 }
 
 #ifndef NO_PRINTING
-static void game_print_size(game_params *params, float *x, float *y)
+static void game_print_size(const game_params *params, float *x, float *y)
 {
     int pw, ph;
 
@@ -3541,7 +3542,7 @@ static void game_print_size(game_params *params, float *x, float *y)
     *y = ph / 100.0F;
 }
 
-static void game_print(drawing *dr, game_state *state, int tilesize)
+static void game_print(drawing *dr, const game_state *state, int tilesize)
 {
     int ink = print_mono_colour(dr, 0);
     int i;
@@ -3567,10 +3568,9 @@ static void game_print(drawing *dr, game_state *state, int tilesize)
         grid_face *f = g->faces + i;
         int clue = state->clues[i];
         if (clue >= 0) {
-            char c[2];
+            char c[20];
             int x, y;
-            c[0] = CLUE2CHAR(clue);
-            c[1] = '\0';
+            sprintf(c, "%d", state->clues[i]);
             face_text_pos(ds, g, f, &x, &y);
             draw_text(dr, x, y,
                       FONT_VARIABLE, ds->tilesize / 2,

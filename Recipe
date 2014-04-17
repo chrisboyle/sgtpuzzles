@@ -8,13 +8,15 @@
 
 !name puzzles
 
-!makefile gtk Makefile
+!makefile gtk Makefile.gtk
+!makefile am Makefile.am
 !makefile vc Makefile.vc
 !makefile wce Makefile.wce
 !makefile cygwin Makefile.cyg
 !makefile osx Makefile.osx
 !makefile gnustep Makefile.gnustep
 !makefile nestedvm Makefile.nestedvm
+!makefile emcc Makefile.emcc
 
 !srcdir icons/
 
@@ -129,6 +131,25 @@ version2.def: FORCE
 .PHONY: FORCE
 !end
 !specialobj gtk version
+# In the automake build, we have to do the whole job by supplying
+# extra CFLAGS, so we have to put the if statement inside one big
+# backtick expression. We also force rebuilding via a -D option that
+# makes version.o include empty.h, which we construct ourselves and
+# touch whenever any source file is updated.
+!cflags am version $(VER) -DINCLUDE_EMPTY_H `if test -z "$(VER)" && (cd $(srcdir) && test -f manifest && md5sum -c manifest >/dev/null 2>&1); then cat $(srcdir)/version.def; elif test -z "$(VER)" && test -d $(srcdir)/.svn && svnversion $(srcdir) >/dev/null 2>&1; then echo "-DREVISION=\`svnversion $(srcdir)\`"; else echo "$(VER)"; fi`
+!begin am
+BUILT_SOURCES = empty.h
+CLEANFILES = empty.h
+empty.h: $(allsources)
+	echo '/* Empty file touched by automake makefile to force rebuild of version.o */' >$@
+bin_PROGRAMS = $(GAMES)
+!end
+!begin am_begin
+GAMES =
+!end
+!begin >empty.h
+/* Empty file touched by automake makefile to force rebuild of version.o */
+!end
 !begin nestedvm
 version.o: version.c version2.def
 	$(CC) $(COMPAT) $(XFLAGS) $(CFLAGS) `cat version2.def` -c version.c
@@ -177,7 +198,7 @@ version2.def: FORCE
 !begin gtk
 install:
 	for i in $(GAMES); do \
-		$(INSTALL_PROGRAM) -m 755 $$i $(DESTDIR)$(gamesdir)/$$i \
+		$(INSTALL_PROGRAM) -m 755 $(BINPREFIX)$$i $(DESTDIR)$(gamesdir)/$(BINPREFIX)$$i \
 		|| exit 1; \
 	done
 !end
@@ -191,8 +212,11 @@ install:
 
 org:
 	mkdir -p org/ibex/nestedvm/util
-	cp $(NESTEDVM)/build/org/ibex/nestedvm/{Registers,UsermodeConstants,Runtime*}.class org/ibex/nestedvm
-	cp $(NESTEDVM)/build/org/ibex/nestedvm/util/{Platform*,Seekable*}.class org/ibex/nestedvm/util
+	cp $(NESTEDVM)/build/org/ibex/nestedvm/Registers.class org/ibex/nestedvm
+	cp $(NESTEDVM)/build/org/ibex/nestedvm/UsermodeConstants.class org/ibex/nestedvm
+	cp $(NESTEDVM)/build/org/ibex/nestedvm/Runtime*.class org/ibex/nestedvm
+	cp $(NESTEDVM)/build/org/ibex/nestedvm/util/Platform*.class org/ibex/nestedvm/util
+	cp $(NESTEDVM)/build/org/ibex/nestedvm/util/Seekable*.class org/ibex/nestedvm/util
 	echo "Main-Class: PuzzleApplet" >applet.manifest
 
 PuzzleApplet.class: PuzzleApplet.java org
@@ -203,4 +227,20 @@ PuzzleApplet.class: PuzzleApplet.java org
 	jar cfm $@ applet.manifest PuzzleEngine.class PuzzleApplet*.class org
 	echo '<applet archive="'$@'" code="PuzzleApplet" width="700" height="500"></applet>' >$*.html
 	mv PuzzleEngine.class $<
+!end
+
+# A benchmarking and testing target for the GTK puzzles.
+!begin gtk
+test: benchmark.html benchmark.txt
+
+benchmark.html: benchmark.txt benchmark.pl
+	./benchmark.pl benchmark.txt > $@
+
+benchmark.txt: $(GAMES)
+	for i in $(GAMES); do \
+		for params in $$(env -i ./$(BINPREFIX)$$i --list-presets | cut -f1 -d' '); do \
+			env -i ./$(BINPREFIX)$$i --test-solve --time-generation --generate 100 $$params \
+			|| exit 1; \
+		done; \
+	done > $@
 !end

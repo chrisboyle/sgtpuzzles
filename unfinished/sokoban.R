@@ -6,7 +6,7 @@ sokoban  : [G] WINDOWS COMMON sokoban sokoban.res?
 
 ALL += sokoban[COMBINED]
 
-!begin gtk
+!begin am gtk
 GAMES += sokoban
 !end
 
@@ -14,6 +14,6 @@ GAMES += sokoban
     A(sokoban) \
 !end
 
-!begin >wingames.lst
-sokoban.exe:Sokoban
+!begin >gamedesc.txt
+sokoban:sokoban.exe:Sokoban:Barrel-pushing puzzle
 !end

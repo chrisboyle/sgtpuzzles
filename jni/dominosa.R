@@ -8,7 +8,7 @@ dominosa : [G] WINDOWS COMMON dominosa DOMINOSA_EXTRA dominosa.res|noicon.res
 
 ALL += dominosa[COMBINED] DOMINOSA_EXTRA
 
-!begin gtk
+!begin am gtk
 GAMES += dominosa
 !end
 
@@ -16,6 +16,6 @@ GAMES += dominosa
     A(dominosa) \
 !end
 
-!begin >wingames.lst
-dominosa.exe:Dominosa
+!begin >gamedesc.txt
+dominosa:dominosa.exe:Dominosa:Domino tiling puzzle
 !end

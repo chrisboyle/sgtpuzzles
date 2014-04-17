@@ -1193,7 +1193,7 @@ int main(int argc, char **argv)
 	} else {
 	    if (nnumbers >= lenof(numbers)) {
 		fprintf(stderr, "%s: internal limit of %d numbers exceeded\n",
-			pname, lenof(numbers));
+			pname, (int)lenof(numbers));
 		return 1;
 	    } else {
 		numbers[nnumbers++] = atoi(p);

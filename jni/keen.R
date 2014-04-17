@@ -12,7 +12,7 @@ keensolver : [C] keen[STANDALONE_SOLVER] latin[STANDALONE_SOLVER] KEEN_LATIN_EXT
 
 ALL += keen[COMBINED] KEEN_EXTRA
 
-!begin gtk
+!begin am gtk
 GAMES += keen
 !end
 
@@ -20,6 +20,6 @@ GAMES += keen
     A(keen) \
 !end
 
-!begin >wingames.lst
-keen.exe:Keen
+!begin >gamedesc.txt
+keen:keen.exe:Keen:Arithmetic Latin square puzzle
 !end

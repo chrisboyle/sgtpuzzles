@@ -11,7 +11,7 @@ slidesolver :   [C] slide[STANDALONE_SOLVER] SLIDE_EXTRA STANDALONE
 
 ALL += slide[COMBINED] SLIDE_EXTRA
 
-!begin gtk
+!begin am gtk
 GAMES += slide
 !end
 
@@ -19,6 +19,6 @@ GAMES += slide
     A(slide) \
 !end
 
-!begin >wingames.lst
-slide.exe:Slide
+!begin >gamedesc.txt
+slide:slide.exe:Slide:Sliding block puzzle
 !end

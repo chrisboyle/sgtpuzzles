@@ -8,7 +8,7 @@ bridges  : [G] WINDOWS COMMON bridges BRIDGES_EXTRA bridges.res|noicon.res
 
 ALL += bridges[COMBINED] BRIDGES_EXTRA
 
-!begin gtk
+!begin am gtk
 GAMES += bridges
 !end
 
@@ -16,6 +16,6 @@ GAMES += bridges
     A(bridges) \
 !end
 
-!begin >wingames.lst
-bridges.exe:Bridges
+!begin >gamedesc.txt
+bridges:bridges.exe:Bridges:Bridge-placing puzzle
 !end

@@ -9,7 +9,7 @@ patternsolver : [C] pattern[STANDALONE_SOLVER] STANDALONE
 
 ALL += pattern[COMBINED]
 
-!begin gtk
+!begin am gtk
 GAMES += pattern
 !end
 
@@ -17,6 +17,6 @@ GAMES += pattern
     A(pattern) \
 !end
 
-!begin >wingames.lst
-pattern.exe:Pattern
+!begin >gamedesc.txt
+pattern:pattern.exe:Pattern:Pattern puzzle
 !end

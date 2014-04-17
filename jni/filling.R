@@ -11,7 +11,7 @@ filling : [G] WINDOWS COMMON filling FILLING_EXTRA filling.res|noicon.res
 
 ALL += filling[COMBINED] FILLING_EXTRA
 
-!begin gtk
+!begin am gtk
 GAMES += filling
 !end
 
@@ -19,6 +19,6 @@ GAMES += filling
     A(filling) \
 !end
 
-!begin >wingames.lst
-filling.exe:Filling
+!begin >gamedesc.txt
+filling:filling.exe:Filling:Polyomino puzzle
 !end

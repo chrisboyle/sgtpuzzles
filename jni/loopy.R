@@ -18,7 +18,7 @@ loopysolver :   [C] loopy[STANDALONE_SOLVER] LOOPY_EXTRA STANDALONE
 
 ALL += loopy[COMBINED] LOOPY_EXTRA
 
-!begin gtk
+!begin am gtk
 GAMES += loopy
 !end
 
@@ -26,6 +26,6 @@ GAMES += loopy
     A(loopy) \
 !end
 
-!begin >wingames.lst
-loopy.exe:Loopy
+!begin >gamedesc.txt
+loopy:loopy.exe:Loopy:Loop-drawing puzzle
 !end

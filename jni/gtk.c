@@ -12,6 +12,7 @@
 #include <math.h>
 
 #include <sys/time.h>
+#include <sys/resource.h>
 
 #include <gtk/gtk.h>
 #include <gdk/gdkkeysyms.h>
@@ -117,6 +118,7 @@ struct frontend {
     GtkAccelGroup *accelgroup;
     GtkWidget *area;
     GtkWidget *statusbar;
+    GtkWidget *menubar;
     guint statusctx;
     int w, h;
     midend *me;
@@ -149,6 +151,7 @@ struct frontend {
 #ifdef OLD_FILESEL
     char *filesel_name;
 #endif
+    int drawing_area_shrink_pending;
     GSList *preset_radio;
     int n_preset_menu_items;
     int preset_threaded;
@@ -1662,6 +1665,69 @@ static void changed_preset(frontend *fe)
     }
 }
 
+static gboolean not_size_allocated_yet(GtkWidget *w)
+{
+    /*
+     * This function tests whether a widget has not yet taken up space
+     * on the screen which it will occupy in future. (Therefore, it
+     * returns true only if the widget does exist but does not have a
+     * size allocation. A null widget is already taking up all the
+     * space it ever will.)
+     */
+    if (!w)
+        return FALSE;        /* nonexistent widgets aren't a problem */
+
+#if GTK_CHECK_VERSION(2,18,0)  /* skip if no gtk_widget_get_allocation */
+    {
+        GtkAllocation a;
+        gtk_widget_get_allocation(w, &a);
+        if (a.height == 0 || a.width == 0)
+            return TRUE;       /* widget exists but has no size yet */
+    }
+#endif
+
+    return FALSE;
+}
+
+static void try_shrink_drawing_area(frontend *fe)
+{
+    if (fe->drawing_area_shrink_pending &&
+        !not_size_allocated_yet(fe->menubar) &&
+        !not_size_allocated_yet(fe->statusbar)) {
+        /*
+         * In order to permit the user to resize the window smaller as
+         * well as bigger, we call this function after the window size
+         * has ended up where we want it. This shouldn't shrink the
+         * window immediately; it just arranges that the next time the
+         * user tries to shrink it, they can.
+         *
+         * However, at puzzle creation time, we defer the first of
+         * these operations until after the menu bar and status bar
+         * are actually visible. On Ubuntu 12.04 I've found that these
+         * can take a while to be displayed, and that it's a mistake
+         * to reduce the drawing area's size allocation before they've
+         * turned up or else the drawing area makes room for them by
+         * shrinking to less than the size we intended.
+         */
+        gtk_drawing_area_size(GTK_DRAWING_AREA(fe->area), 1, 1);
+        fe->drawing_area_shrink_pending = FALSE;
+    }
+}
+
+static gint configure_window(GtkWidget *widget,
+                             GdkEventConfigure *event, gpointer data)
+{
+    frontend *fe = (frontend *)data;
+    /*
+     * When the main puzzle window changes size, it might be because
+     * the menu bar or status bar has turned up after starting off
+     * absent, in which case we should have another go at enacting a
+     * pending shrink of the drawing area.
+     */
+    try_shrink_drawing_area(fe);
+    return FALSE;
+}
+
 static void resize_fe(frontend *fe)
 {
     int x, y;
@@ -1669,18 +1735,15 @@ static void resize_fe(frontend *fe)
     get_size(fe, &x, &y);
     fe->w = x;
     fe->h = y;
+    fe->drawing_area_shrink_pending = FALSE;
     gtk_drawing_area_size(GTK_DRAWING_AREA(fe->area), x, y);
     {
         GtkRequisition req;
         gtk_widget_size_request(GTK_WIDGET(fe->window), &req);
         gtk_window_resize(GTK_WINDOW(fe->window), req.width, req.height);
     }
-    /*
-     * Now that we've established the preferred size of the window,
-     * reduce the drawing area's size request so the user can shrink
-     * the window.
-     */
-    gtk_drawing_area_size(GTK_DRAWING_AREA(fe->area), 1, 1);
+    fe->drawing_area_shrink_pending = TRUE;
+    try_shrink_drawing_area(fe);
 }
 
 static void menu_preset_event(GtkMenuItem *menuitem, gpointer data)
@@ -2037,7 +2100,7 @@ static frontend *new_window(char *arg, int argtype, char **error)
 {
     frontend *fe;
     GtkBox *vbox, *hbox;
-    GtkWidget *menubar, *menu, *menuitem;
+    GtkWidget *menu, *menuitem;
     GdkPixmap *iconpm;
     GList *iconlist;
     int x, y, n;
@@ -2126,12 +2189,12 @@ static frontend *new_window(char *arg, int argtype, char **error)
     gtk_box_pack_start(vbox, GTK_WIDGET(hbox), FALSE, FALSE, 0);
     gtk_widget_show(GTK_WIDGET(hbox));
 
-    menubar = gtk_menu_bar_new();
-    gtk_box_pack_start(hbox, menubar, TRUE, TRUE, 0);
-    gtk_widget_show(menubar);
+    fe->menubar = gtk_menu_bar_new();
+    gtk_box_pack_start(hbox, fe->menubar, TRUE, TRUE, 0);
+    gtk_widget_show(fe->menubar);
 
     menuitem = gtk_menu_item_new_with_mnemonic("_Game");
-    gtk_container_add(GTK_CONTAINER(menubar), menuitem);
+    gtk_container_add(GTK_CONTAINER(fe->menubar), menuitem);
     gtk_widget_show(menuitem);
 
     menu = gtk_menu_new();
@@ -2170,7 +2233,7 @@ static frontend *new_window(char *arg, int argtype, char **error)
         int i;
 
         menuitem = gtk_menu_item_new_with_mnemonic("_Type");
-        gtk_container_add(GTK_CONTAINER(menubar), menuitem);
+        gtk_container_add(GTK_CONTAINER(fe->menubar), menuitem);
         gtk_widget_show(menuitem);
 
         submenu = gtk_menu_new();
@@ -2249,7 +2312,7 @@ static frontend *new_window(char *arg, int argtype, char **error)
     add_menu_item_with_key(fe, GTK_CONTAINER(menu), "Exit", 'q');
 
     menuitem = gtk_menu_item_new_with_mnemonic("_Help");
-    gtk_container_add(GTK_CONTAINER(menubar), menuitem);
+    gtk_container_add(GTK_CONTAINER(fe->menubar), menuitem);
     gtk_widget_show(menuitem);
 
     menu = gtk_menu_new();
@@ -2329,6 +2392,7 @@ static frontend *new_window(char *arg, int argtype, char **error)
     GTK_WIDGET_UNSET_FLAGS(fe->area, GTK_DOUBLE_BUFFERED);
 #endif
     get_size(fe, &x, &y);
+    fe->drawing_area_shrink_pending = FALSE;
     gtk_drawing_area_size(GTK_DRAWING_AREA(fe->area), x, y);
     fe->w = x;
     fe->h = y;
@@ -2362,6 +2426,8 @@ static frontend *new_window(char *arg, int argtype, char **error)
 		       GTK_SIGNAL_FUNC(map_window), fe);
     gtk_signal_connect(GTK_OBJECT(fe->area), "configure_event",
 		       GTK_SIGNAL_FUNC(configure_area), fe);
+    gtk_signal_connect(GTK_OBJECT(fe->window), "configure_event",
+		       GTK_SIGNAL_FUNC(configure_window), fe);
 
     gtk_widget_add_events(GTK_WIDGET(fe->area),
                           GDK_BUTTON_PRESS_MASK |
@@ -2387,12 +2453,8 @@ static frontend *new_window(char *arg, int argtype, char **error)
     gtk_widget_show(fe->area);
     gtk_widget_show(fe->window);
 
-    /*
-     * Now that we've established the preferred size of the window,
-     * reduce the drawing area's size request so the user can shrink
-     * the window.
-     */
-    gtk_drawing_area_size(GTK_DRAWING_AREA(fe->area), 1, 1);
+    fe->drawing_area_shrink_pending = TRUE;
+    try_shrink_drawing_area(fe);
     set_window_background(fe, 0);
 
     return fe;
@@ -2422,6 +2484,7 @@ int main(int argc, char **argv)
     char *pname = argv[0];
     char *error;
     int ngenerate = 0, print = FALSE, px = 1, py = 1;
+    int time_generation = FALSE, test_solve = FALSE, list_presets = FALSE;
     int soln = FALSE, colour = FALSE;
     float scale = 1.0F;
     float redo_proportion = 0.0F;
@@ -2474,6 +2537,12 @@ int main(int argc, char **argv)
 		}
 	    } else
 		ngenerate = 1;
+	} else if (doing_opts && !strcmp(p, "--time-generation")) {
+            time_generation = TRUE;
+	} else if (doing_opts && !strcmp(p, "--test-solve")) {
+            test_solve = TRUE;
+	} else if (doing_opts && !strcmp(p, "--list-presets")) {
+            list_presets = TRUE;
 	} else if (doing_opts && !strcmp(p, "--save")) {
 	    if (--ac > 0) {
 		savefile = *++av;
@@ -2595,11 +2664,6 @@ int main(int argc, char **argv)
 	}
     }
 
-    if (*errbuf) {
-	fputs(errbuf, stderr);
-	return 1;
-    }
-
     /*
      * Special standalone mode for generating puzzle IDs on the
      * command line. Useful for generating puzzles to be printed
@@ -2626,6 +2690,16 @@ int main(int argc, char **argv)
 	midend *me;
 	char *id;
 	document *doc = NULL;
+
+        /*
+         * If we're in this branch, we should display any pending
+         * error message from the command line, since GTK isn't going
+         * to take another crack at making sense of it.
+         */
+        if (*errbuf) {
+            fputs(errbuf, stderr);
+            return 1;
+        }
 
 	n = ngenerate;
 
@@ -2657,7 +2731,8 @@ int main(int argc, char **argv)
 	 * generated descriptive game IDs.)
 	 */
 	while (ngenerate == 0 || i < n) {
-	    char *pstr, *err;
+	    char *pstr, *err, *seed;
+            struct rusage before, after;
 
 	    if (ngenerate == 0) {
 		pstr = fgetline(stdin);
@@ -2683,9 +2758,63 @@ int main(int argc, char **argv)
 		    return 1;
 		}
 	    }
-	    sfree(pstr);
 
-	    midend_new_game(me);
+            if (time_generation)
+                getrusage(RUSAGE_SELF, &before);
+
+            midend_new_game(me);
+
+            seed = midend_get_random_seed(me);
+
+            if (time_generation) {
+                double elapsed;
+
+                getrusage(RUSAGE_SELF, &after);
+
+                elapsed = (after.ru_utime.tv_sec -
+                           before.ru_utime.tv_sec);
+                elapsed += (after.ru_utime.tv_usec -
+                            before.ru_utime.tv_usec) / 1000000.0;
+
+                printf("%s %s: %.6f\n", thegame.name, seed, elapsed);
+            }
+
+            if (test_solve && thegame.can_solve) {
+                /*
+                 * Now destroy the aux_info in the midend, by means of
+                 * re-entering the same game id, and then try to solve
+                 * it.
+                 */
+                char *game_id, *err;
+
+                game_id = midend_get_game_id(me);
+                err = midend_game_id(me, game_id);
+                if (err) {
+                    fprintf(stderr, "%s %s: game id re-entry error: %s\n",
+                            thegame.name, seed, err);
+                    return 1;
+                }
+                midend_new_game(me);
+                sfree(game_id);
+
+                err = midend_solve(me);
+                /*
+                 * If the solve operation returned the error "Solution
+                 * not known for this puzzle", that's OK, because that
+                 * just means it's a puzzle for which we don't have an
+                 * algorithmic solver and hence can't solve it without
+                 * the aux_info, e.g. Netslide. Any other error is a
+                 * problem, though.
+                 */
+                if (err && strcmp(err, "Solution not known for this puzzle")) {
+                    fprintf(stderr, "%s %s: solve error: %s\n",
+                            thegame.name, seed, err);
+                    return 1;
+                }
+            }
+
+	    sfree(pstr);
+            sfree(seed);
 
 	    if (doc) {
 		err = midend_print_puzzle(me, doc, soln);
@@ -2729,7 +2858,7 @@ int main(int argc, char **argv)
 		}
 		sfree(realname);
 	    }
-	    if (!doc && !savefile) {
+	    if (!doc && !savefile && !time_generation) {
 		id = midend_get_game_id(me);
 		puts(id);
 		sfree(id);
@@ -2748,6 +2877,30 @@ int main(int argc, char **argv)
 	midend_free(me);
 
 	return 0;
+    } else if (list_presets) {
+        /*
+         * Another specialist mode which causes the puzzle to list the
+         * game_params strings for all its preset configurations.
+         */
+        int i, npresets;
+        midend *me;
+
+	me = midend_new(NULL, &thegame, NULL, NULL);
+        npresets = midend_num_presets(me);
+
+        for (i = 0; i < npresets; i++) {
+            game_params *params;
+            char *name, *paramstr;
+
+            midend_fetch_preset(me, i, &name, &params);
+            paramstr = thegame.encode_params(params, TRUE);
+
+            printf("%s %s\n", paramstr, name);
+            sfree(paramstr);
+        }
+
+	midend_free(me);
+        return 0;
     } else {
 	frontend *fe;
 

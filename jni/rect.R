@@ -6,7 +6,7 @@ rect     : [G] WINDOWS COMMON rect rect.res|noicon.res
 
 ALL += rect[COMBINED]
 
-!begin gtk
+!begin am gtk
 GAMES += rect
 !end
 
@@ -14,6 +14,6 @@ GAMES += rect
     A(rect) \
 !end
 
-!begin >wingames.lst
-rect.exe:Rectangles
+!begin >gamedesc.txt
+rect:rect.exe:Rectangles:Rectangles puzzle
 !end

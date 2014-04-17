@@ -8,7 +8,7 @@ pegs     : [G] WINDOWS COMMON pegs PEGS_EXTRA pegs.res|noicon.res
 
 ALL += pegs[COMBINED] PEGS_EXTRA
 
-!begin gtk
+!begin am gtk
 GAMES += pegs
 !end
 
@@ -16,6 +16,6 @@ GAMES += pegs
     A(pegs) \
 !end
 
-!begin >wingames.lst
-pegs.exe:Pegs
+!begin >gamedesc.txt
+pegs:pegs.exe:Pegs:Peg solitaire puzzle
 !end

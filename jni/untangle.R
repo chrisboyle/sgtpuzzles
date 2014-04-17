@@ -8,7 +8,7 @@ untangle : [G] WINDOWS COMMON untangle UNTANGLE_EXTRA untangle.res|noicon.res
 
 ALL += untangle[COMBINED] UNTANGLE_EXTRA
 
-!begin gtk
+!begin am gtk
 GAMES += untangle
 !end
 
@@ -16,6 +16,6 @@ GAMES += untangle
     A(untangle) \
 !end
 
-!begin >wingames.lst
-untangle.exe:Untangle
+!begin >gamedesc.txt
+untangle:untangle.exe:Untangle:Planar graph layout puzzle
 !end

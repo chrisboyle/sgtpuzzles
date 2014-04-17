@@ -8,7 +8,7 @@ netslide : [G] WINDOWS COMMON netslide NETSLIDE_EXTRA netslide.res|noicon.res
 
 ALL += netslide[COMBINED] NETSLIDE_EXTRA
 
-!begin gtk
+!begin am gtk
 GAMES += netslide
 !end
 
@@ -16,6 +16,6 @@ GAMES += netslide
     A(netslide) \
 !end
 
-!begin >wingames.lst
-netslide.exe:Netslide
+!begin >gamedesc.txt
+netslide:netslide.exe:Netslide:Toroidal sliding network puzzle
 !end

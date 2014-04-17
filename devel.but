@@ -408,7 +408,7 @@ function is permitted to return \cw{FALSE} always.
 
 \S{backend-encode-params} \cw{encode_params()}
 
-\c char *(*encode_params)(game_params *params, int full);
+\c char *(*encode_params)(const game_params *params, int full);
 
 The job of this function is to take a \c{game_params}, and encode it
 in a string form for use in game IDs. The return value must be a
@@ -493,7 +493,7 @@ allocations contained within it.
 
 \S{backend-dup-params} \cw{dup_params()}
 
-\c game_params *(*dup_params)(game_params *params);
+\c game_params *(*dup_params)(const game_params *params);
 
 This function allocates a new \c{game_params} structure and
 initialises it with an exact copy of the information in the one
@@ -511,7 +511,7 @@ and \k{backend-custom-params} for more details.
 
 \S{backend-configure} \cw{configure()}
 
-\c config_item *(*configure)(game_params *params);
+\c config_item *(*configure)(const game_params *params);
 
 This function is called when the user requests a dialog box for
 custom parameter configuration. It returns a newly allocated array
@@ -586,7 +586,7 @@ function is never called and need not do anything at all.
 
 \S{backend-custom-params} \cw{custom_params()}
 
-\c game_params *(*custom_params)(config_item *cfg);
+\c game_params *(*custom_params)(const config_item *cfg);
 
 This function is the counterpart to \cw{configure()}
 (\k{backend-configure}). It receives as input an array of
@@ -611,7 +611,7 @@ function is never called and need not do anything at all.
 
 \S{backend-validate-params} \cw{validate_params()}
 
-\c char *(*validate_params)(game_params *params, int full);
+\c char *(*validate_params)(const game_params *params, int full);
 
 This function takes a \c{game_params} structure as input, and checks
 that the parameters described in it fall within sensible limits. (At
@@ -655,7 +655,7 @@ a descriptive-format game ID.
 
 \S{backend-new-desc} \cw{new_desc()}
 
-\c char *(*new_desc)(game_params *params, random_state *rs,
+\c char *(*new_desc)(const game_params *params, random_state *rs,
 \c                   char **aux, int interactive);
 
 This function is where all the really hard work gets done. This is
@@ -696,7 +696,7 @@ again in the game description.
 
 \S{backend-validate-desc} \cw{validate_desc()}
 
-\c char *(*validate_desc)(game_params *params, char *desc);
+\c char *(*validate_desc)(const game_params *params, const char *desc);
 
 This function is given a game description, and its job is to
 validate that it describes a puzzle which makes sense.
@@ -720,8 +720,8 @@ non-dynamically-allocated C string containing an error message.
 
 \S{backend-new-game} \cw{new_game()}
 
-\c game_state *(*new_game)(midend *me, game_params *params,
-\c                         char *desc);
+\c game_state *(*new_game)(midend *me, const game_params *params,
+\c                         const char *desc);
 
 This function takes a game description as input, together with its
 accompanying \c{game_params}, and constructs a \c{game_state}
@@ -749,7 +749,7 @@ game states and it had to go in one section or the other.)
 
 \S{backend-dup-game} \cw{dup_game()}
 
-\c game_state *(*dup_game)(game_state *state);
+\c game_state *(*dup_game)(const game_state *state);
 
 This function allocates a new \c{game_state} structure and
 initialises it with an exact copy of the information in the one
@@ -766,7 +766,7 @@ allocations contained within it.
 
 \S{backend-new-ui} \cw{new_ui()}
 
-\c game_ui *(*new_ui)(game_state *state);
+\c game_ui *(*new_ui)(const game_state *state);
 
 This function allocates and returns a new \c{game_ui} structure for
 playing a particular puzzle. It is passed a pointer to the initial
@@ -782,7 +782,7 @@ allocations contained within it.
 
 \S{backend-encode-ui} \cw{encode_ui()}
 
-\c char *(*encode_ui)(game_ui *ui);
+\c char *(*encode_ui)(const game_ui *ui);
 
 This function encodes any \e{important} data in a \c{game_ui}
 structure in string form. It is only called when saving a
@@ -806,7 +806,7 @@ source.)
 
 \S{backend-decode-ui} \cw{decode_ui()}
 
-\c void (*decode_ui)(game_ui *ui, char *encoding);
+\c void (*decode_ui)(game_ui *ui, const char *encoding);
 
 This function parses a string previously output by \cw{encode_ui()},
 and writes the decoded data back into the provided \c{game_ui}
@@ -814,8 +814,8 @@ structure.
 
 \S{backend-changed-state} \cw{changed_state()}
 
-\c void (*changed_state)(game_ui *ui, game_state *oldstate,
-\c                       game_state *newstate);
+\c void (*changed_state)(game_ui *ui, const game_state *oldstate,
+\c                       const game_state *newstate);
 
 This function is called by the mid-end whenever the current game
 state changes, for any reason. Those reasons include:
@@ -855,8 +855,8 @@ producing new \c{game_state}s.
 
 \S{backend-interpret-move} \cw{interpret_move()}
 
-\c char *(*interpret_move)(game_state *state, game_ui *ui,
-\c                         game_drawstate *ds,
+\c char *(*interpret_move)(const game_state *state, game_ui *ui,
+\c                         const game_drawstate *ds,
 \c                         int x, int y, int button);
 
 This function receives user input and processes it. Its input
@@ -867,6 +867,11 @@ indicating an arrow or function key or a mouse event; when
 \c{button} is a mouse event, \c{x} and \c{y} contain the pixel
 coordinates of the mouse pointer relative to the top left of the
 puzzle's drawing area.
+
+(The pointer to the \c{game_drawstate} is marked \c{const}, because
+\c{interpret_move} should not write to it. The normal use of that
+pointer will be to read the game's tile size parameter in order to
+divide mouse coordinates by it.)
 
 \cw{interpret_move()} may return in three different ways:
 
@@ -970,7 +975,7 @@ any input value.
 
 \S{backend-execute-move} \cw{execute_move()}
 
-\c game_state *(*execute_move)(game_state *state, char *move);
+\c game_state *(*execute_move)(const game_state *state, char *move);
 
 This function takes an input \c{game_state} and a move string as
 output from \cw{interpret_move()}. It returns a newly allocated
@@ -994,8 +999,8 @@ not even offer the \q{Solve} menu option.
 
 \S{backend-solve} \cw{solve()}
 
-\c char *(*solve)(game_state *orig, game_state *curr,
-\c                char *aux, char **error);
+\c char *(*solve)(const game_state *orig, const game_state *curr,
+\c                const char *aux, char **error);
 
 This function is called when the user selects the \q{Solve} option
 from the menu.
@@ -1015,9 +1020,11 @@ it may return \cw{NULL}. If it does this, it must also set
 \q{Solution not known for this puzzle}); that error message is not
 expected to be dynamically allocated.
 
-If this function \e{does} produce a solution, it returns a move
-string suitable for feeding to \cw{execute_move()}
-(\k{backend-execute-move}).
+If this function \e{does} produce a solution, it returns a move string
+suitable for feeding to \cw{execute_move()}
+(\k{backend-execute-move}). Like a (non-empty) string returned from
+\cw{interpret_move()}, the returned string should be dynamically
+allocated.
 
 \H{backend-drawing} Drawing the game graphics
 
@@ -1026,7 +1033,8 @@ drawing.
 
 \S{backend-new-drawstate} \cw{new_drawstate()}
 
-\c game_drawstate *(*new_drawstate)(drawing *dr, game_state *state);
+\c game_drawstate *(*new_drawstate)(drawing *dr,
+\c                                  const game_state *state);
 
 This function allocates and returns a new \c{game_drawstate}
 structure for drawing a particular puzzle. It is passed a pointer to
@@ -1076,7 +1084,7 @@ requesting a resize if that ever gets implemented).
 
 \S{backend-compute-size} \cw{compute_size()}
 
-\c void (*compute_size)(game_params *params, int tilesize,
+\c void (*compute_size)(const game_params *params, int tilesize,
 \c                      int *x, int *y);
 
 This function is passed a \c{game_params} structure and a tile size.
@@ -1087,7 +1095,7 @@ at that tile size.
 \S{backend-set-size} \cw{set_size()}
 
 \c void (*set_size)(drawing *dr, game_drawstate *ds,
-\c                  game_params *params, int tilesize);
+\c                  const game_params *params, int tilesize);
 
 This function is responsible for setting up a \c{game_drawstate} to
 draw at a given tile size. Typically this will simply involve
@@ -1136,7 +1144,8 @@ colour allocation policy.
 
 \S{backend-anim-length} \cw{anim_length()}
 
-\c float (*anim_length)(game_state *oldstate, game_state *newstate,
+\c float (*anim_length)(const game_state *oldstate,
+\c                      const game_state *newstate,
 \c                      int dir, game_ui *ui);
 
 This function is called when a move is made, undone or redone. It is
@@ -1180,7 +1189,8 @@ state.
 
 \S{backend-flash-length} \cw{flash_length()}
 
-\c float (*flash_length)(game_state *oldstate, game_state *newstate,
+\c float (*flash_length)(const game_state *oldstate,
+\c                       const game_state *newstate,
 \c                       int dir, game_ui *ui);
 
 This function is called when a move is completed. (\q{Completed}
@@ -1226,7 +1236,7 @@ flag in the \c{game_ui} to indicate which flash type is required.)
 
 \S{backend-status} \cw{status()}
 
-\c int (*status)(game_state *state);
+\c int (*status)(const game_state *state);
 
 This function returns a status value indicating whether the current
 game is still in play, or has been won, or has been conclusively lost.
@@ -1255,8 +1265,10 @@ quite likely press Undo and carry on playing.)
 \S{backend-redraw} \cw{redraw()}
 
 \c void (*redraw)(drawing *dr, game_drawstate *ds,
-\c                game_state *oldstate, game_state *newstate, int dir,
-\c                game_ui *ui, float anim_time, float flash_time);
+\c                const game_state *oldstate,
+\c                const game_state *newstate,
+\c                int dir, const game_ui *ui,
+\c                float anim_time, float flash_time);
 
 This function is responsible for actually drawing the contents of
 the game window, and for redrawing every time the game state or the
@@ -1328,7 +1340,7 @@ ignored.
 
 \S{backend-print-size} \cw{print_size()}
 
-\c void (*print_size)(game_params *params, float *x, float *y);
+\c void (*print_size)(const game_params *params, float *x, float *y);
 
 This function is passed a \c{game_params} structure and a tile size.
 It returns, in \c{*x} and \c{*y}, the preferred size in
@@ -1339,7 +1351,7 @@ called.
 
 \S{backend-print} \cw{print()}
 
-\c void (*print)(drawing *dr, game_state *state, int tilesize);
+\c void (*print)(drawing *dr, const game_state *state, int tilesize);
 
 This function is called when a puzzle is to be printed out on paper.
 It should use the drawing API functions (see \k{drawing}) to print
@@ -1414,7 +1426,7 @@ and \cw{text_format()} (\k{backend-text-format}) are never called.
 
 \S{backend-can-format-as-text-now} \c{can_format_as_text_now()}
 
-\c int (*can_format_as_text_now)(game_params *params);
+\c int (*can_format_as_text_now)(const game_params *params);
 
 This function is passed a \c{game_params} and returns a boolean,
 which is \cw{TRUE} if the game can support ASCII text output for
@@ -1440,7 +1452,7 @@ the game can be copied to the clipboard. Only the actual visible
 
 \S{backend-text-format} \cw{text_format()}
 
-\c char *(*text_format)(game_state *state);
+\c char *(*text_format)(const game_state *state);
 
 This function is passed a \c{game_state}, and returns a newly
 allocated C string containing an ASCII representation of that game
@@ -1481,7 +1493,7 @@ called and need not do anything.
 
 \S{backend-timing-state} \cw{timing_state()}
 
-\c int (*timing_state)(game_state *state, game_ui *ui);
+\c int (*timing_state)(const game_state *state, game_ui *ui);
 
 This function is passed the current \c{game_state} and the local
 \c{game_ui}; it returns \cw{TRUE} if the game timer should currently
@@ -2807,6 +2819,22 @@ that \e{and} set the \c{user_size} flag, though!
 The midend relies on the frontend calling \cw{midend_new_game()}
 (\k{midend-new-game}) before calling \cw{midend_size()}.
 
+\H{midend-reset-tilesize} \cw{midend_reset_tilesize()}
+
+\c void midend_reset_tilesize(midend *me);
+
+This function resets the midend's preferred tile size to that of the
+standard puzzle.
+
+As discussed in \k{midend-size}, puzzle resizes are typically
+'sticky', in that once the user has dragged the puzzle to a different
+window size, the resulting tile size will be remembered and used when
+the puzzle configuration changes. If you \e{don't} want that, e.g. if
+you want to provide a command to explicitly reset the puzzle size back
+to its default, then you can call this just before calling
+\cw{midend_size()} (which, in turn, you would probably call with
+\c{user_size} set to \cw{FALSE}).
+
 \H{midend-new-game} \cw{midend_new_game()}
 
 \c void midend_new_game(midend *me);
@@ -3086,6 +3114,17 @@ Returns a descriptive game ID (i.e. one in the form
 \cq{params:description}) describing the game currently active in the
 mid-end. The returned string is dynamically allocated.
 
+\H{midend-get-random-seed} \cw{midend_get_random_seed()}
+
+\c char *midend_get_random_seed(midend *me)
+
+Returns a random game ID (i.e. one in the form \cq{params#seedstring})
+describing the game currently active in the mid-end, if there is one.
+If the game was created by entering a description, no random seed will
+currently exist and this function will return \cw{NULL}.
+
+The returned string, if it is non-\cw{NULL}, is dynamically allocated.
+
 \H{midend-can-format-as-text-now} \cw{midend_can_format_as_text_now()}
 
 \c int midend_can_format_as_text_now(midend *me);
@@ -3218,12 +3257,63 @@ re-think the window size using \cw{midend_size()}, and probably
 cause a refresh using \cw{midend_redraw()}.
 
 Because each mid-end is tied to a specific game back end, this
-function will fail if you attempt to read in a save file generated
-by a different game from the one configured in this mid-end, even if
-your application is a monolithic one containing all the puzzles. (It
-would be pretty easy to write a function which would look at a save
-file and determine which game it was for; any front end implementor
-who needs such a function can probably be accommodated.)
+function will fail if you attempt to read in a save file generated by
+a different game from the one configured in this mid-end, even if your
+application is a monolithic one containing all the puzzles. See
+\k{identify-game} for a helper function which will allow you to
+identify a save file before you instantiate your mid-end in the first
+place.
+
+\H{identify-game} \cw{identify_game()}
+
+\c char *identify_game(char **name,
+\c                     int (*read)(void *ctx, void *buf, int len),
+\c                     void *rctx);
+
+This function examines a serialised midend stream, of the same kind
+used by \cw{midend_serialise()} and \cw{midend_deserialise()}, and
+returns the \cw{name} field of the game back end from which it was
+saved.
+
+You might want this if your front end was a monolithic one containing
+all the puzzles, and you wanted to be able to load an arbitrary save
+file and automatically switch to the right game. Probably your next
+step would be to iterate through \cw{gamelist} (\k{frontend-backend})
+looking for a game structure whose \cw{name} field matched the
+returned string, and give an error if you didn't find one.
+
+On success, the return value of this function is \cw{NULL}, and the
+game name string is written into \cw{*name}. The caller should free
+that string after using it.
+
+On failure, \cw{*name} is \cw{NULL}, and the return value is an error
+message (which does not need freeing at all).
+
+(This isn't strictly speaking a midend function, since it doesn't
+accept or return a pointer to a midend. You'd probably call it just
+\e{before} deciding what kind of midend you wanted to instantiate.)
+
+\H{midend-request-id-changes} \cw{midend_request_id_changes()}
+
+\c void midend_request_id_changes(midend *me,
+\c                                void (*notify)(void *), void *ctx);
+
+This function is called by the front end to request notification by
+the mid-end when the current game IDs (either descriptive or
+random-seed) change. This can occur as a result of keypresses ('n' for
+New Game, for example) or when a puzzle supersedes its game
+description (see \k{backend-supersede}). After this function is
+called, any change of the game ids will cause the mid-end to call
+\cw{notify(ctx)} after the change.
+
+This is for use by puzzles which want to present the game description
+to the user constantly (e.g. as an HTML hyperlink) instead of only
+showing it when the user explicitly requests it.
+
+This is a function I anticipate few front ends needing to implement,
+so I make it a callback rather than a static function in order to
+relieve most front ends of the need to provide an empty
+implementation.
 
 \H{frontend-backend} Direct reference to the back end structure by
 the front end

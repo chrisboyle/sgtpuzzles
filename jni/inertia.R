@@ -6,7 +6,7 @@ inertia  : [G] WINDOWS COMMON inertia inertia.res|noicon.res
 
 ALL += inertia[COMBINED]
 
-!begin gtk
+!begin am gtk
 GAMES += inertia
 !end
 
@@ -14,6 +14,6 @@ GAMES += inertia
     A(inertia) \
 !end
 
-!begin >wingames.lst
-inertia.exe:Inertia
+!begin >gamedesc.txt
+inertia:inertia.exe:Inertia:Gem-collecting puzzle
 !end

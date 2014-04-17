@@ -1,9 +1,10 @@
 # Makefile for Puzzles icons.
 
-PUZZLES = blackbox bridges cube dominosa fifteen filling flip galaxies guess \
-	  inertia keen lightup loopy magnets map mines net netslide pattern \
-	  pearl pegs range rect samegame signpost singles sixteen slant solo \
-	  tents towers twiddle unequal untangle
+PUZZLES = blackbox bridges cube dominosa fifteen filling flip galaxies	\
+	  guess inertia keen lightup loopy magnets map mines net	\
+	  netslide pattern pearl pegs range rect samegame signpost	\
+	  singles sixteen slant solo tents towers twiddle undead	\
+	  unequal unruly untangle
 
 BINARIES = $(patsubst %,../%,$(PUZZLES))
 BASE = $(patsubst %,%-base.png,$(PUZZLES))
@@ -92,6 +93,7 @@ solo-ibase.png : override CROP=481x481 145x145+24+24
 tents-ibase.png : override CROP=320x320 165x165+142+0
 towers-ibase.png : override CROP=300x300 102x102+151+6
 twiddle-ibase.png : override CROP=192x192 102x102+69+21
+undead-ibase.png : override CROP=416x480 192x192+16+80
 unequal-ibase.png : override CROP=208x208 104x104+104+104
 untangle-ibase.png : override CROP=320x320 164x164+3+116
 $(IBASE): %-ibase.png: %-base.png

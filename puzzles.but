@@ -30,7 +30,7 @@
 
 This is a collection of small one-player puzzle games.
 
-\copyright This manual is copyright 2004-2012 Simon Tatham. All rights
+\copyright This manual is copyright 2004-2014 Simon Tatham. All rights
 reserved. You may distribute this documentation under the MIT licence.
 See \k{licence} for the licence text in full.
 
@@ -298,7 +298,7 @@ For example: if you run Cube (see \k{cube}), select \q{Octahedron}
 from the \q{Type} menu, and then go to the game ID selection, you
 will see a string of the form \cq{o2x2#338686542711620}. Take only
 the part before the hash (\cq{o2x2}), and start Cube with that text
-on the command line: \cq{cube o2x2}.
+on the command line: \cq{PREFIX-cube o2x2}.
 
 If you copy the \e{entire} game ID on to the command line, the game
 will start up in the specific game that was described. This is
@@ -364,7 +364,7 @@ seeds; see \k{common-id}), in the same format produced by
 
 For example:
 
-\c net --generate 12 --print 2x3 7x7w | lpr
+\c PREFIX-net --generate 12 --print 2x3 7x7w | lpr
 
 will generate two pages of printed Net puzzles (each of which will
 have a 7\by\.7 wrapping grid), and pipe the output to the \c{lpr}
@@ -390,7 +390,7 @@ seeds; see \k{common-id}), in the same format produced by
 
 For example:
 
-\c net --generate 12 --save game --save-suffix .sav
+\c PREFIX-net --generate 12 --save game --save-suffix .sav
 
 will generate twelve Net saved-game files with the names
 \cw{game0.sav} to \cw{game11.sav}.
@@ -1356,8 +1356,12 @@ board game \q{Mastermind}.
 you know that those will never be counted as part of the solution). This
 is turned off by default. 
 
+\lcont{
+
 Note that this doesn't allow blank pegs in the solution; if you really wanted
 that, use one extra colour.
+
+}
 
 \dt \e{Allow duplicates}
 
@@ -2236,9 +2240,13 @@ extend before creating another island. This parameter determines how
 likely it is to extend as far as it can, rather than choosing
 somewhere closer.
 
+\lcont{
+
 High expansion factors usually mean easier puzzles with fewer
 possible islands; low expansion factors can create lots of
 tightly-packed islands.
+
+}
 
 
 \C{unequal} \i{Unequal}
@@ -2760,7 +2768,11 @@ These parameters are available from the \q{Custom...} option on the
 \dd Size of grid in squares. There will be half \e{Width} \by \e{Height}
 dominoes in the grid: if this number is odd then one square will be blank.
 
+\lcont{
+
 (Grids with at least one odd dimension tend to be easier to solve.)
+
+}
 
 \dt \e{Difficulty}
 
@@ -2866,9 +2878,11 @@ satisfied:
 \b for any two white squares, there is a path between them using only
 white squares.
 
-\b for each square with a number, that number denotes the number of
-squares reachable from that square going in each direction until
-hitting a wall or a black square.
+\b for each square with a number, that number denotes the total number
+of white squares reachable from that square going in a straight line
+in any horizontal or vertical direction until hitting a wall or a
+black square; the square with the number is included in the total
+(once).
 
 For instance, a square containing the number one must have four black
 squares as its neighbours by the last criterion; but then it's
@@ -2935,7 +2949,7 @@ leaving the clue square. The squares that are only adjacent \e{in the
 grid} are not constrained.)
 
 Credit for this puzzle goes to \i{Nikoli}, who call it \q{Masyu}.
-\k{nikoli-pearl}.
+\k{nikoli-pearl}
 
 Thanks to James Harvey for assistance with the implementation.
 
@@ -2971,6 +2985,81 @@ relative to the cursor, i.e. to draw a segment or a cross.
 These parameters are available from the \q{Custom...} option on the
 \q{Type} menu.
 
+\C{undead} \i{Undead}
+
+\cfg{winhelp-topic}{games.undead}
+
+You are given a grid of squares, some of which contain diagonal
+mirrors. Every square which is not a mirror must be filled with one of
+three types of undead monster: a ghost, a vampire, or a zombie.
+
+Vampires can be seen directly, but are invisible when reflected in
+mirrors. Ghosts are the opposite way round: they can be seen in
+mirrors, but are invisible when looked at directly. Zombies are
+visible by any means.
+
+You are also told the total number of each type of monster in the
+grid. Also around the edge of the grid are written numbers, which
+indicate how many monsters can be seen if you look into the grid along
+a row or column starting from that position. (The diagonal mirrors are
+reflective on both sides. If your reflected line of sight crosses the
+same monster more than once, the number will count it each time it is
+visible, not just once.)
+
+This puzzle type was invented by David Millar, under the name
+\q{Haunted Mirror Maze}. See \k{janko-undead} for more details.
+
+Undead was contributed to this collection by Steffen Bauer.
+
+\B{janko-undead}
+\W{http://www.janko.at/Raetsel/Spukschloss/index.htm}\cw{http://www.janko.at/Raetsel/Spukschloss/index.htm}
+
+\H{undead-controls} \I{controls, for Undead}Undead controls
+
+Undead has a similar control system to Solo, Unequal and Keen.
+
+To play Undead, click the mouse in any empty square and then type a
+letter on the keyboard indicating the type of monster: \q{G} for a
+ghost, \q{V} for a vampire, or \q{Z} for a zombie. If you make a
+mistake, click the mouse in the incorrect square and press Space to
+clear it again (or use the Undo feature).
+
+If you \e{right}-click in a square and then type a letter, the
+corresponding monster will be shown in reduced size in that square, as
+a \q{pencil mark}. You can have pencil marks for multiple monsters in
+the same square. A square containing a full-size monster cannot also
+contain pencil marks.
+
+The game pays no attention to pencil marks, so exactly what you use
+them for is up to you: you can use them as reminders that a particular
+square needs to be re-examined once you know more about a particular
+monster, or you can use them as lists of the possible monster in a
+given square, or anything else you feel like.
+
+To erase a single pencil mark, right-click in the square and type
+the same letter again.
+
+All pencil marks in a square are erased when you left-click and type a
+monster letter, or when you left-click and press Space. Right-clicking
+and pressing space will also erase pencil marks.
+
+As for Solo, the cursor keys can be used in conjunction with the letter
+keys to place monsters or pencil marks. Use the cursor keys to move a
+highlight around the grid, and type a monster letter to enter it in
+the highlighted square. Pressing return toggles the highlight into a
+mode in which you can enter or remove pencil marks.
+
+If you prefer plain letters of the alphabet to cute monster pictures,
+you can press \q{A} to toggle between showing the monsters as monsters or
+showing them as letters.
+
+(All the actions described in \k{common-actions} are also available.)
+
+\H{undead-parameters} \I{parameters, for Undead}Undead parameters
+
+These parameters are available from the \q{Custom...} option on the
+\q{Type} menu.
+
 \dt \e{Width}, \e{Height}
 
 \dd Size of grid in squares.
@@ -2979,13 +3068,66 @@ These parameters are available from the \q{Custom...} option on the
 
 \dd Controls the difficulty of the generated puzzle.
 
+\C{unruly} \i{Unruly}
+
+\cfg{winhelp-topic}{games.unruly}
+
+You are given a grid of squares, which you must colour either black or
+white. Some squares are provided as clues; the rest are left for you
+to fill in. Each row and column must contain the same number of black
+and white squares, and no row or column may contain three consecutive
+squares of the same colour.
+
+This puzzle type was invented by Adolfo Zanellati, under the name
+\q{Tohu wa Vohu}. See \k{janko-unruly} for more details.
+
+Unruly was contributed to this collection by Lennard Sprong.
+
+\B{janko-unruly}
+\W{http://www.janko.at/Raetsel/Tohu-Wa-Vohu/index.htm}\cw{http://www.janko.at/Raetsel/Tohu-Wa-Vohu/index.htm}
+
+\H{unruly-controls} \I{controls, for Unruly}Unruly controls
+
+To play Unruly, click the mouse in a square to change its colour.
+Left-clicking an empty square will turn it black, and right-clicking
+will turn it white. Keep clicking the same button to cycle through the
+three possible states for the square. If you middle-click in a square
+it will be reset to empty.
+
+You can also use the cursor keys to move around the grid. Pressing the
+return or space keys will turn an empty square black or white
+respectively (and then cycle the colours in the same way as the mouse
+buttons), and pressing Backspace will reset a square to empty.
+
+(All the actions described in \k{common-actions} are also available.)
+
+\H{unruly-parameters} \I{parameters, for Unruly}Unruly parameters
+
+These parameters are available from the \q{Custom...} option on the
+\q{Type} menu.
+
+\dt \e{Width}, \e{Height}
+
+\dd Size of grid in squares. (Note that the rules of the game require
+both the width and height to be even numbers.)
+
+\dt \e{Difficulty}
+
+\dd Controls the difficulty of the generated puzzle.
+
+\dt \e{Unique rows and columns}
+
+\dd If enabled, no two rows are permitted to have exactly the same
+pattern, and likewise columns. (A row and a column can match, though.)
+
 \A{licence} \I{MIT licence}\ii{Licence}
 
-This software is \i{copyright} 2004-2012 Simon Tatham.
+This software is \i{copyright} 2004-2014 Simon Tatham.
 
 Portions copyright Richard Boulton, James Harvey, Mike Pinna, Jonas
-K\u00F6{oe}lker, Dariusz Olszewski, Michael Schierl, Lambros
-Lambrou, Bernd Schmidt and Chris Boyle.
+K\u00F6{oe}lker, Dariusz Olszewski, Michael Schierl, Lambros Lambrou,
+Bernd Schmidt, Steffen Bauer, Lennard Sprong, Rogier Goossens and
+Chris Boyle.
 
 Permission is hereby granted, free of charge, to any person
 obtaining a copy of this software and associated documentation files

@@ -6,7 +6,7 @@ samegame : [G] WINDOWS COMMON samegame samegame.res|noicon.res
 
 ALL += samegame[COMBINED]
 
-!begin gtk
+!begin am gtk
 GAMES += samegame
 !end
 
@@ -14,6 +14,6 @@ GAMES += samegame
     A(samegame) \
 !end
 
-!begin >wingames.lst
-samegame.exe:Same Game
+!begin >gamedesc.txt
+samegame:samegame.exe:Same Game:Block-clearing puzzle
 !end

@@ -10,7 +10,7 @@ pearlbench     : [C] pearl[STANDALONE_SOLVER] PEARL_EXTRA STANDALONE
 
 ALL += pearl[COMBINED] PEARL_EXTRA
 
-!begin gtk
+!begin am gtk
 GAMES += pearl
 !end
 
@@ -18,6 +18,6 @@ GAMES += pearl
     A(pearl) \
 !end
 
-!begin >wingames.lst
-pearl.exe:Pearl
+!begin >gamedesc.txt
+pearl:pearl.exe:Pearl:Loop-drawing puzzle
 !end

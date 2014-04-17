@@ -1,0 +1,14 @@
+SAVEFILE:41:Simon Tatham's Portable Puzzle Collection
+VERSION :1:1
+GAME    :6:Undead
+PARAMS  :6:4x4de2
+CPARAMS :6:4x4de2
+DESC    :48:5,2,2,aRLgLLaLRL,2,0,1,2,1,1,2,5,0,0,0,2,1,3,1,1
+NSTATES :1:7
+STATEPOS:1:7
+MOVE    :2:G0
+MOVE    :2:V0
+MOVE    :2:G2
+MOVE    :2:G3
+MOVE    :2:V3
+MOVE    :2:Z3

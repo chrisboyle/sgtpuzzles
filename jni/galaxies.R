@@ -15,7 +15,7 @@ galaxiespicture : [C] galaxies[STANDALONE_PICTURE_GENERATOR] GALAXIES_EXTRA STAN
 
 ALL += galaxies[COMBINED] GALAXIES_EXTRA
 
-!begin gtk
+!begin am gtk
 GAMES += galaxies
 !end
 
@@ -23,6 +23,6 @@ GAMES += galaxies
     A(galaxies) \
 !end
 
-!begin >wingames.lst
-galaxies.exe:Galaxies
+!begin >gamedesc.txt
+galaxies:galaxies.exe:Galaxies:Symmetric polyomino puzzle
 !end

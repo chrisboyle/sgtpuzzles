@@ -6,7 +6,7 @@ range    : [G] WINDOWS COMMON range range.res|noicon.res
 
 ALL += range[COMBINED]
 
-!begin gtk
+!begin am gtk
 GAMES += range
 !end
 
@@ -14,6 +14,6 @@ GAMES += range
     A(range) \
 !end
 
-!begin >wingames.lst
-range.exe:Range
+!begin >gamedesc.txt
+range:range.exe:Range:Visible-distance puzzle
 !end

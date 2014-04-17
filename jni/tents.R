@@ -11,7 +11,7 @@ ALL += tents[COMBINED] TENTS_EXTRA
 tentssolver :   [U] tents[STANDALONE_SOLVER] TENTS_EXTRA STANDALONE
 tentssolver :   [C] tents[STANDALONE_SOLVER] TENTS_EXTRA STANDALONE
 
-!begin gtk
+!begin am gtk
 GAMES += tents
 !end
 
@@ -19,6 +19,6 @@ GAMES += tents
     A(tents) \
 !end
 
-!begin >wingames.lst
-tents.exe:Tents
+!begin >gamedesc.txt
+tents:tents.exe:Tents:Tent-placing puzzle
 !end

@@ -14,7 +14,7 @@ latincheck : [C] latin[STANDALONE_LATIN_TEST] tree234 maxflow STANDALONE
 
 ALL += unequal[COMBINED] UNEQUAL_EXTRA
 
-!begin gtk
+!begin am gtk
 GAMES += unequal
 !end
 
@@ -22,6 +22,6 @@ GAMES += unequal
     A(unequal) \
 !end
 
-!begin >wingames.lst
-unequal.exe:Unequal
+!begin >gamedesc.txt
+unequal:unequal.exe:Unequal:Latin square puzzle
 !end

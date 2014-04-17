@@ -11,7 +11,7 @@ slantsolver :   [C] slant[STANDALONE_SOLVER] SLANT_EXTRA STANDALONE
 
 ALL += slant[COMBINED] SLANT_EXTRA
 
-!begin gtk
+!begin am gtk
 GAMES += slant
 !end
 
@@ -19,6 +19,6 @@ GAMES += slant
     A(slant) \
 !end
 
-!begin >wingames.lst
-slant.exe:Slant
+!begin >gamedesc.txt
+slant:slant.exe:Slant:Maze-drawing puzzle
 !end

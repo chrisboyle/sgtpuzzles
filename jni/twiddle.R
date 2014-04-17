@@ -6,7 +6,7 @@ twiddle  : [G] WINDOWS COMMON twiddle twiddle.res|noicon.res
 
 ALL += twiddle[COMBINED]
 
-!begin gtk
+!begin am gtk
 GAMES += twiddle
 !end
 
@@ -14,6 +14,6 @@ GAMES += twiddle
     A(twiddle) \
 !end
 
-!begin >wingames.lst
-twiddle.exe:Twiddle
+!begin >gamedesc.txt
+twiddle:twiddle.exe:Twiddle:Rotational sliding block puzzle
 !end

@@ -1,0 +1,22 @@
+SAVEFILE:41:Simon Tatham's Portable Puzzle Collection
+VERSION :1:1
+GAME    :6:Unruly
+PARAMS  :5:6x6de
+CPARAMS :5:6x6de
+DESC    :10:faCADAJeBd
+NSTATES :2:15
+STATEPOS:2:15
+MOVE    :6:P0,1,2
+MOVE    :6:P0,4,2
+MOVE    :6:P0,3,3
+MOVE    :6:P0,3,0
+MOVE    :6:P0,5,1
+MOVE    :6:P0,2,1
+MOVE    :6:P1,4,0
+MOVE    :6:P1,1,1
+MOVE    :6:P1,5,2
+MOVE    :6:P0,0,2
+MOVE    :6:P1,0,3
+MOVE    :6:P1,0,0
+MOVE    :6:P1,0,4
+MOVE    :6:P0,2,4

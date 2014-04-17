@@ -12,7 +12,7 @@ towerssolver : [C] towers[STANDALONE_SOLVER] latin[STANDALONE_SOLVER] TOWERS_LAT
 
 ALL += towers[COMBINED] TOWERS_EXTRA
 
-!begin gtk
+!begin am gtk
 GAMES += towers
 !end
 
@@ -20,6 +20,6 @@ GAMES += towers
     A(towers) \
 !end
 
-!begin >wingames.lst
-towers.exe:Towers
+!begin >gamedesc.txt
+towers:towers.exe:Towers:Tower-placing Latin square puzzle
 !end

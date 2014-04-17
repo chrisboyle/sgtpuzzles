@@ -6,7 +6,7 @@ fifteen  : [G] WINDOWS COMMON fifteen fifteen.res|noicon.res
 
 ALL += fifteen[COMBINED]
 
-!begin gtk
+!begin am gtk
 GAMES += fifteen
 !end
 
@@ -14,6 +14,6 @@ GAMES += fifteen
     A(fifteen) \
 !end
 
-!begin >wingames.lst
-fifteen.exe:Fifteen
+!begin >gamedesc.txt
+fifteen:fifteen.exe:Fifteen:Sliding block puzzle
 !end

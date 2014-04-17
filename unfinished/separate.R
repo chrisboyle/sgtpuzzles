@@ -8,7 +8,7 @@ separate       : [G] WINDOWS COMMON separate SEPARATE_EXTRA separate.res|noicon.
 
 ALL += separate[COMBINED] SEPARATE_EXTRA
 
-!begin gtk
+!begin am gtk
 GAMES += separate
 !end
 
@@ -16,6 +16,6 @@ GAMES += separate
     A(separate) \
 !end
 
-!begin >wingames.lst
-separate.exe:Separate
+!begin >gamedesc.txt
+separate:separate.exe:Separate:Rectangle-dividing puzzle
 !end
