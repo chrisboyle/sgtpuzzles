@@ -1454,6 +1454,9 @@ static void decode_ui(game_ui *ui, const char *encoding)
 static void game_changed_state(game_ui *ui, const game_state *oldstate,
                                const game_state *newstate)
 {
+#ifdef ANDROID
+    if (newstate->completed && ! newstate->cheated && oldstate && ! oldstate->completed) android_completed();
+#endif
 }
 
 struct game_drawstate {
@@ -1863,6 +1866,7 @@ static int game_timing_state(const game_state *state, game_ui *ui)
     return TRUE;
 }
 
+#ifndef NO_PRINTING
 static void game_print_size(const game_params *params, float *x, float *y)
 {
     int pw, ph;
@@ -1904,6 +1908,7 @@ static void game_print(drawing *dr, const game_state *state, int tilesize)
                             tilesize/12, ink, ink);
         }
 }
+#endif
 
 #ifdef COMBINED
 #define thegame unruly
@@ -1941,7 +1946,9 @@ const struct game thegame = {
     game_anim_length,
     game_flash_length,
     game_status,
+#ifndef NO_PRINTING
     TRUE, FALSE, game_print_size, game_print,
+#endif
     FALSE,                      /* wants_statusbar */
     FALSE, game_timing_state,
     0,                          /* flags */

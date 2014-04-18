@@ -42,6 +42,7 @@
     A(twiddle) \
     A(undead) \
     A(unequal) \
+    A(unruly) \
     A(untangle) \
 
 #define DECL(x) extern const game x;

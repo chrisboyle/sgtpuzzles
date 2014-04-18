@@ -139,6 +139,7 @@ Revision: %s"</string>
     <string name="name_twiddle">Twiddle</string>
     <string name="name_undead">Undead</string>
     <string name="name_unequal">Unequal</string>
+    <string name="name_unruly">Unruly</string>
     <string name="name_untangle">Untangle</string>
     <!-- These are for Menu/Game/Other (detail mode) -->
     <string name="chooser_title">Which game?</string>
@@ -177,6 +178,7 @@ Revision: %s"</string>
     <string name="desc_twiddle">Rotate groups of 4 to form a grid in numerical order.</string>
     <string name="desc_undead">Fill the grid with monsters so the correct numbers of them can be seen from each point, taking mirrors into account.</string>
     <string name="desc_unequal">Enter digits so every row and column contains exactly one of each digit and the greater-than signs are satisfied.</string>
+    <string name="desc_unruly">Colour every square either black or white such that no three consecutive squares, horizontally or vertically, are the same colour, and each row and column contains the same number of black and white squares.</string>
     <string name="desc_untangle">Move points around until no lines cross.</string>
     <!-- Everything below here is from C -->
     <!-- Difficulties for most games, in order: -->
