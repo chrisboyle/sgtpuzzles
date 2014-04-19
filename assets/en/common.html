@@ -172,7 +172,7 @@ The easiest way to do this is to set up the parameters you want using the &#8216
 If you run the game with just that parameter text on the command line, it will start up with the settings you specified.
 </p>
 <p>
-For example: if you run Cube (see <a href="cube.html#C4">chapter 4</a>), select &#8216;Octahedron&#8217; from the &#8216;Type&#8217; menu, and then go to the game ID selection, you will see a string of the form &#8216;<code>o2x2#338686542711620</code>&#8217;. Take only the part before the hash (&#8216;<code>o2x2</code>&#8217;), and start Cube with that text on the command line: &#8216;<code>cube o2x2</code>&#8217;.
+For example: if you run Cube (see <a href="cube.html#C4">chapter 4</a>), select &#8216;Octahedron&#8217; from the &#8216;Type&#8217; menu, and then go to the game ID selection, you will see a string of the form &#8216;<code>o2x2#338686542711620</code>&#8217;. Take only the part before the hash (&#8216;<code>o2x2</code>&#8217;), and start Cube with that text on the command line: &#8216;<code>PREFIX-cube o2x2</code>&#8217;.
 </p>
 <p>
 If you copy the <em>entire</em> game ID on to the command line, the game will start up in the specific game that was described. This is occasionally a more convenient way to start a particular game ID than by pasting it into the game ID selection box.
@@ -223,7 +223,7 @@ If <code>--generate</code> has also been specified, the invented game IDs will b
 <p>
 For example:
 </p>
-<pre><code>net --generate 12 --print 2x3 7x7w | lpr
+<pre><code>PREFIX-net --generate 12 --print 2x3 7x7w | lpr
 </code></pre>
 <p>
 will generate two pages of printed Net puzzles (each of which will have a 7&#215;7 wrapping grid), and pipe the output to the <code>lpr</code> command, which on many systems will send them to an actual printer.
@@ -244,7 +244,7 @@ If <code>--generate</code> has also been specified, the invented game IDs will b
 <p>
 For example:
 </p>
-<pre><code>net --generate 12 --save game --save-suffix .sav
+<pre><code>PREFIX-net --generate 12 --save game --save-suffix .sav
 </code></pre>
 <p>
 will generate twelve Net saved-game files with the names <code>game0.sav</code> to <code>game11.sav</code>.

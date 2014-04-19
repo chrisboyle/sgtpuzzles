@@ -172,7 +172,7 @@ Am einfachsten erfolgt dies, indem Sie die gew&#252;nschten Parameter mit dem Me
 Falls Sie das Spiel mit genau diesem Parametertext auf der Befehlszeile ausf&#252;hren wird es mit den von Ihnen angegebenen Einstellungen gestartet.
 </p>
 <p>
-Beispiel: Sie f&#252;hren Cube aus (siehe <a href="cube.html#C4">chapter 4</a>), w&#228;hlen &#8216;Octaeder&#8217; aus dem Men&#252; &#8216;Art&#8217; aus und gehen dann zu der Auswahl der Spiele-ID. Dort sehen Sie eine Zeichenkette der Form &#8216;<code>o2x2#338686542711620</code>&#8217;. Verwenden Sie nur den Teil vor der Raute (&#8216;<code>o2x2</code>&#8217;) und starten Sie Cube mit diesem Text auf der Befehlszeile: &#8216;<code>cube o2x2</code>&#8217;.
+For example: if you run Cube (see <a href="cube.html#C4">chapter 4</a>), select &#8216;Octahedron&#8217; from the &#8216;Type&#8217; menu, and then go to the game ID selection, you will see a string of the form &#8216;<code>o2x2#338686542711620</code>&#8217;. Take only the part before the hash (&#8216;<code>o2x2</code>&#8217;), and start Cube with that text on the command line: &#8216;<code>PREFIX-cube o2x2</code>&#8217;.
 </p>
 <p>
 Falls Sie die <em>gesamte</em> Spiele-ID auf der Befehlszeile angeben wird das Spiel mit dem speziellen beschriebenen Spiel gestartet. Dies ist manchmal der bequemere Weg eine bestimmte Spiele-ID zu starten, statt diese in den Auswahlkasten f&#252;r die Spiele-ID einzuf&#252;gen.
@@ -223,7 +223,7 @@ Falls auch <code>--generate</code> angegeben wurde, werden die ausgedachten Spie
 <p>
 Zum Beispiel:
 </p>
-<pre><code>net --generate 12 --print 2x3 7x7w | lpr
+<pre><code>PREFIX-net --generate 12 --print 2x3 7x7w | lpr
 </code></pre>
 <p>
 Erstellt zwei Seiten an gedruckten Net-Puzzlen (jedes wird ein 7&#215;7 Umlauf-Gitter enthalten) erstellen und diese &#252;ber eine Pipe an den <code>lpr</code>-Befehl senden, der die Ausgabe auf vielen Systemen auf den eigentlichen Drucker schicken wird.
@@ -244,7 +244,7 @@ Falls auch <code>--generate</code> angegeben wurde, werden die ausgedachten Spie
 <p>
 Zum Beispiel:
 </p>
-<pre><code>net --generate 12 --save game --save-suffix .sav
+<pre><code>PREFIX-net --generate 12 --save game --save-suffix .sav
 </code></pre>
 <p>
 wird zw&#246;lf gespeicherte Spieledateien f&#252;r Net mit den Namen <code>game0.sav</code> bis <code>game11.sav</code> erstellen.

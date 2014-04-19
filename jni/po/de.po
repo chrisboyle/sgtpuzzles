@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sgt-puzzles\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2012-03-31 16:56+0200\n"
+"POT-Creation-Date: 2014-04-19 13:08+0200\n"
 "PO-Revision-Date: 2009-11-04 11:10-0800\n"
 "Last-Translator: Helge Kreutzmann <debian@helgefjell.de>\n"
 "Language-Team: de <debian-l10n-german@lists.debian.org>\n"
@@ -123,8 +123,9 @@ msgstr "Dies ist eine Sammlung kleiner Puzzlespiele für eine Person."
 
 #. type: Plain text
 #: puzzles.but:36
+#, fuzzy
 msgid ""
-"This manual is copyright 2004-2012 Simon Tatham. All rights reserved. You "
+"This manual is copyright 2004-2014 Simon Tatham. All rights reserved. You "
 "may distribute this documentation under the MIT licence.  See \\k{licence} "
 "for the licence text in full."
 msgstr ""
@@ -773,12 +774,13 @@ msgstr ""
 
 #. type: Plain text
 #: puzzles.but:302
+#, fuzzy
 msgid ""
 "For example: if you run Cube (see \\k{cube}), select \\q{Octahedron} from "
 "the \\q{Type} menu, and then go to the game ID selection, you will see a "
 "string of the form \\cq{o2x2#338686542711620}. Take only the part before the "
 "hash (\\cq{o2x2}), and start Cube with that text on the command line: \\cq"
-"{cube o2x2}."
+"{PREFIX-cube o2x2}."
 msgstr ""
 "Beispiel: Sie führen Cube aus (siehe \\k{cube}), wählen \\q{Octaeder} aus "
 "dem Menü \\q{Art} aus und gehen dann zu der Auswahl der Spiele-ID. Dort "
@@ -942,8 +944,8 @@ msgstr "Zum Beispiel:"
 
 #. type: c
 #: puzzles.but:376
-#, no-wrap
-msgid "net --generate 12 --print 2x3 7x7w | lpr"
+#, fuzzy, no-wrap
+msgid "PREFIX-net --generate 12 --print 2x3 7x7w | lpr"
 msgstr "net --generate 12 --print 2x3 7x7w | lpr"
 
 #. type: Plain text
@@ -984,8 +986,8 @@ msgstr ""
 
 #. type: c
 #: puzzles.but:399
-#, no-wrap
-msgid "net --generate 12 --save game --save-suffix .sav"
+#, fuzzy, no-wrap
+msgid "PREFIX-net --generate 12 --save game --save-suffix .sav"
 msgstr "net --generate 12 --save game --save-suffix .sav"
 
 #. type: Plain text
@@ -1243,12 +1245,13 @@ msgstr ""
 #. type: Plain text
 #: puzzles.but:488 puzzles.but:577 puzzles.but:623 puzzles.but:664
 #: puzzles.but:722 puzzles.but:796 puzzles.but:903 puzzles.but:995
-#: puzzles.but:1187 puzzles.but:1260 puzzles.but:1333 puzzles.but:1401
-#: puzzles.but:1456 puzzles.but:1500 puzzles.but:1643 puzzles.but:1708
-#: puzzles.but:1779 puzzles.but:1875 puzzles.but:1950 puzzles.but:2089
-#: puzzles.but:2198 puzzles.but:2320 puzzles.but:2394 puzzles.but:2452
-#: puzzles.but:2545 puzzles.but:2635 puzzles.but:2693 puzzles.but:2752
-#: puzzles.but:2838 puzzles.but:2901 puzzles.but:2968
+#: puzzles.but:1187 puzzles.but:1260 puzzles.but:1333 puzzles.but:1405
+#: puzzles.but:1460 puzzles.but:1504 puzzles.but:1647 puzzles.but:1712
+#: puzzles.but:1783 puzzles.but:1879 puzzles.but:1954 puzzles.but:2093
+#: puzzles.but:2202 puzzles.but:2328 puzzles.but:2402 puzzles.but:2460
+#: puzzles.but:2553 puzzles.but:2643 puzzles.but:2701 puzzles.but:2760
+#: puzzles.but:2850 puzzles.but:2915 puzzles.but:2982 puzzles.but:3057
+#: puzzles.but:3103
 msgid "(All the actions described in \\k{common-actions} are also available.)"
 msgstr ""
 "(Alle in \\k{common-actions} beschriebene Aktionen sind auch verfügbar.)"
@@ -1260,11 +1263,12 @@ msgstr "\\I{Parameter, für Net}Net-Parameter"
 
 #. type: Plain text
 #: puzzles.but:493 puzzles.but:582 puzzles.but:801 puzzles.but:1192
-#: puzzles.but:1265 puzzles.but:1406 puzzles.but:1461 puzzles.but:1648
-#: puzzles.but:1713 puzzles.but:1784 puzzles.but:1880 puzzles.but:1955
-#: puzzles.but:2038 puzzles.but:2094 puzzles.but:2203 puzzles.but:2325
-#: puzzles.but:2399 puzzles.but:2550 puzzles.but:2640 puzzles.but:2698
-#: puzzles.but:2757 puzzles.but:2843 puzzles.but:2906 puzzles.but:2973
+#: puzzles.but:1265 puzzles.but:1410 puzzles.but:1465 puzzles.but:1652
+#: puzzles.but:1717 puzzles.but:1788 puzzles.but:1884 puzzles.but:1959
+#: puzzles.but:2042 puzzles.but:2098 puzzles.but:2207 puzzles.but:2333
+#: puzzles.but:2407 puzzles.but:2558 puzzles.but:2648 puzzles.but:2706
+#: puzzles.but:2765 puzzles.but:2855 puzzles.but:2920 puzzles.but:2987
+#: puzzles.but:3062 puzzles.but:3108
 msgid ""
 "These parameters are available from the \\q{Custom...} option on the \\q"
 "{Type} menu."
@@ -1274,10 +1278,11 @@ msgstr ""
 
 #. type: Plain text
 #: puzzles.but:495 puzzles.but:803 puzzles.but:1122 puzzles.but:1194
-#: puzzles.but:1267 puzzles.but:1408 puzzles.but:1650 puzzles.but:1715
-#: puzzles.but:1786 puzzles.but:1882 puzzles.but:1957 puzzles.but:2040
-#: puzzles.but:2096 puzzles.but:2205 puzzles.but:2401 puzzles.but:2700
-#: puzzles.but:2759 puzzles.but:2845 puzzles.but:2908 puzzles.but:2975
+#: puzzles.but:1267 puzzles.but:1412 puzzles.but:1654 puzzles.but:1719
+#: puzzles.but:1790 puzzles.but:1886 puzzles.but:1961 puzzles.but:2044
+#: puzzles.but:2100 puzzles.but:2209 puzzles.but:2409 puzzles.but:2708
+#: puzzles.but:2767 puzzles.but:2857 puzzles.but:2922 puzzles.but:3064
+#: puzzles.but:3110
 msgid "\\e{Width}, \\e{Height}"
 msgstr "\\e{Breite}, \\e{Höhe}"
 
@@ -1345,7 +1350,7 @@ msgstr ""
 "eingeben."
 
 #. type: e{#1}
-#: puzzles.but:526 puzzles.but:833 puzzles.but:1470
+#: puzzles.but:526 puzzles.but:833 puzzles.but:1474
 msgid "Ensure unique solution"
 msgstr "Eindeutiglösbarkeit garantieren"
 
@@ -2430,7 +2435,7 @@ msgstr ""
 "wieder zu leeren (oder verwenden Sie die Undo-Funktion)."
 
 #. type: Plain text
-#: puzzles.but:974 puzzles.but:2294 puzzles.but:2521
+#: puzzles.but:974 puzzles.but:2302 puzzles.but:2529
 msgid ""
 "If you \\e{right}-click in a square and then type a number, that number will "
 "be entered in the square as a \\q{pencil mark}. You can have pencil marks "
@@ -2444,7 +2449,7 @@ msgstr ""
 "über Bleistiftmarkierungen verfügen."
 
 #. type: Plain text
-#: puzzles.but:980 puzzles.but:2300 puzzles.but:2527 puzzles.but:2617
+#: puzzles.but:980 puzzles.but:2308 puzzles.but:2535 puzzles.but:2625
 msgid ""
 "The game pays no attention to pencil marks, so exactly what you use them for "
 "is up to you: you can use them as reminders that a particular square needs "
@@ -2459,7 +2464,7 @@ msgstr ""
 "für ein gegebenes Quadrat verwenden oder irgendetwas anderes, was Sie mögen."
 
 #. type: Plain text
-#: puzzles.but:983 puzzles.but:2303 puzzles.but:2530 puzzles.but:2620
+#: puzzles.but:983 puzzles.but:2311 puzzles.but:2538 puzzles.but:2628
 msgid ""
 "To erase a single pencil mark, right-click in the square and type the same "
 "number again."
@@ -2468,7 +2473,7 @@ msgstr ""
 "und tippen Sie die Zahl noch mal."
 
 #. type: Plain text
-#: puzzles.but:987 puzzles.but:2307 puzzles.but:2534 puzzles.but:2624
+#: puzzles.but:987 puzzles.but:2315 puzzles.but:2542 puzzles.but:2632
 msgid ""
 "All pencil marks in a square are erased when you left-click and type a "
 "number, or when you left-click and press space. Right-clicking and pressing "
@@ -2480,7 +2485,7 @@ msgstr ""
 "Bleistiftmarkierungen löschen."
 
 #. type: Plain text
-#: puzzles.but:993 puzzles.but:2318
+#: puzzles.but:993 puzzles.but:2326
 msgid ""
 "Alternatively, use the cursor keys to move the mark around the grid.  "
 "Pressing the return key toggles the mark (from a normal mark to a pencil "
@@ -2790,10 +2795,10 @@ msgstr ""
 "Die unter \\q{Benutzerdefiniert} im Menü \\q{Art} verfügbaren Optionen sind:"
 
 #. type: Plain text
-#: puzzles.but:1124 puzzles.but:1196 puzzles.but:1269 puzzles.but:1717
-#: puzzles.but:1788 puzzles.but:1884 puzzles.but:2042 puzzles.but:2098
-#: puzzles.but:2207 puzzles.but:2403 puzzles.but:2702 puzzles.but:2847
-#: puzzles.but:2910 puzzles.but:2977
+#: puzzles.but:1124 puzzles.but:1196 puzzles.but:1269 puzzles.but:1721
+#: puzzles.but:1792 puzzles.but:1888 puzzles.but:2046 puzzles.but:2102
+#: puzzles.but:2211 puzzles.but:2411 puzzles.but:2710 puzzles.but:2859
+#: puzzles.but:2924 puzzles.but:3066
 msgid "Size of grid in squares."
 msgstr "Größe des Gitters in Quadraten"
 
@@ -3344,7 +3349,7 @@ msgstr ""
 "gezählt werden). Dies ist standardmäßig abgeschaltet."
 
 #. type: Plain text
-#: puzzles.but:1361
+#: puzzles.but:1365
 msgid ""
 "Note that this doesn't allow blank pegs in the solution; if you really "
 "wanted that, use one extra colour."
@@ -3353,12 +3358,12 @@ msgstr ""
 "das wirklich möchten, verwenden Sie eine zusätzliche Farbe."
 
 #. type: e{#1}
-#: puzzles.but:1363
+#: puzzles.but:1367
 msgid "Allow duplicates"
 msgstr "Duplikate erlauben"
 
 #. type: Plain text
-#: puzzles.but:1367
+#: puzzles.but:1371
 msgid ""
 "Allows the solution (and the guesses) to contain colours more than once; "
 "this increases the search space (making things harder), and is turned on by "
@@ -3369,17 +3374,17 @@ msgstr ""
 "ist standardmäßig aktiviert."
 
 #. type: Plain text
-#: puzzles.but:1370
+#: puzzles.but:1374
 msgid "\\i{Pegs}"
 msgstr "\\i{Pegs}"
 
 #. type: Plain text
-#: puzzles.but:1372
+#: puzzles.but:1376
 msgid "\\cfg{winhelp-topic}{games.pegs}"
 msgstr "\\cfg{winhelp-topic}{games.pegs}"
 
 #. type: Plain text
-#: puzzles.but:1377
+#: puzzles.but:1381
 msgid ""
 "A number of pegs are placed in holes on a board. You can remove a peg by "
 "jumping an adjacent peg over it (horizontally or vertically)  to a vacant "
@@ -3393,7 +3398,7 @@ msgstr ""
 "zu entfernen."
 
 #. type: Plain text
-#: puzzles.but:1380
+#: puzzles.but:1384
 msgid ""
 "This game, best known as \\I{Solitaire, Peg}\\q{Peg Solitaire}, is possibly "
 "one of the oldest puzzle games still commonly known."
@@ -3402,23 +3407,23 @@ msgstr ""
 "bekannt, ist möglicherweise eines der ältesten noch bekannten Puzzlespiele."
 
 #. type: Plain text
-#: puzzles.but:1382
+#: puzzles.but:1386
 msgid "\\i{Pegs controls}"
 msgstr "\\i{Pegs-Steuerung}"
 
 #. type: IM{#1}
-#: puzzles.but:1383
+#: puzzles.but:1387
 msgid "Pegs controls"
 msgstr "Pegs-Steuerung"
 
 #. type: IM
-#: puzzles.but:1383
+#: puzzles.but:1387
 #, no-wrap
 msgid "controls, for Pegs"
 msgstr "Steuerung, von Pegs"
 
 #. type: Plain text
-#: puzzles.but:1390
+#: puzzles.but:1394
 msgid ""
 "To move a peg, drag it with the mouse from its current position to its final "
 "position. If the final position is exactly two holes away from the initial "
@@ -3433,7 +3438,7 @@ msgstr ""
 "dazwischenliegende Stift entfernt."
 
 #. type: Plain text
-#: puzzles.but:1394
+#: puzzles.but:1398
 msgid ""
 "Vacant spaces which you can move a peg into are marked with holes. A space "
 "with no peg and no hole is not available for moving at all: it is an "
@@ -3444,7 +3449,7 @@ msgstr ""
 "verfügbar: es ist ein Hindernis, um dass Sie sich herumarbeiten müssen."
 
 #. type: Plain text
-#: puzzles.but:1399
+#: puzzles.but:1403
 msgid ""
 "You can also use the cursor keys to move a position indicator around the "
 "board. Pressing the return key while over a peg, followed by a cursor key, "
@@ -3456,22 +3461,22 @@ msgstr ""
 "angegebene Richtung springen (falls das ein gültiger Spielzug ist)."
 
 #. type: Plain text
-#: puzzles.but:1403
+#: puzzles.but:1407
 msgid "\\I{parameters, for Pegs}Pegs parameters"
 msgstr "\\I{Parameter, für Pegs}Pegs-Parameter"
 
 #. type: Plain text
-#: puzzles.but:1410
+#: puzzles.but:1414
 msgid "Size of grid in holes."
 msgstr "Größe des Gitters in Löchern."
 
 #. type: e{#1}
-#: puzzles.but:1412
+#: puzzles.but:1416
 msgid "Board type"
 msgstr "Brettart"
 
 #. type: Plain text
-#: puzzles.but:1419
+#: puzzles.but:1423
 msgid ""
 "Controls whether you are given a board of a standard shape or a randomly "
 "generated shape. The two standard shapes currently supported are \\q{Cross} "
@@ -3487,17 +3492,17 @@ msgstr ""
 "andere Brettform (aber immer eine, von der eine Lösung bekannt ist)."
 
 #. type: Plain text
-#: puzzles.but:1422
+#: puzzles.but:1426
 msgid "\\i{Dominosa}"
 msgstr "\\i{Dominosa}"
 
 #. type: Plain text
-#: puzzles.but:1424
+#: puzzles.but:1428
 msgid "\\cfg{winhelp-topic}{games.dominosa}"
 msgstr "\\cfg{winhelp-topic}{games.dominosa}"
 
 #. type: Plain text
-#: puzzles.but:1431
+#: puzzles.but:1435
 msgid ""
 "A normal set of dominoes \\dash that is, one instance of every (unordered) "
 "pair of numbers from 0 to 6 \\dash has been arranged irregularly into a "
@@ -3513,7 +3518,7 @@ msgstr ""
 "dem vorgegebenen Zahlenraster passen."
 
 #. type: Plain text
-#: puzzles.but:1434
+#: puzzles.but:1438
 msgid ""
 "This puzzle is widely credited to O. S. Adler, and takes part of its name "
 "from those initials."
@@ -3522,23 +3527,23 @@ msgstr ""
 "Namens aus diesen Initialen."
 
 #. type: Plain text
-#: puzzles.but:1436
+#: puzzles.but:1440
 msgid "\\i{Dominosa controls}"
 msgstr "\\i{Dominosa-Steuerung}"
 
 #. type: IM{#1}
-#: puzzles.but:1437
+#: puzzles.but:1441
 msgid "Dominosa controls"
 msgstr "Dominosa-Steuerung"
 
 #. type: IM
-#: puzzles.but:1437
+#: puzzles.but:1441
 #, no-wrap
 msgid "controls, for Dominosa"
 msgstr "Steuerung, von Dominosa"
 
 #. type: Plain text
-#: puzzles.but:1443
+#: puzzles.but:1447
 msgid ""
 "Left-clicking between any two adjacent numbers places a domino covering "
 "them, or removes one if it is already present. Trying to place a domino "
@@ -3550,7 +3555,7 @@ msgstr ""
 "existierende Dominos überlappt, so werden die überlappten Dominos entfernt."
 
 #. type: Plain text
-#: puzzles.but:1448
+#: puzzles.but:1452
 msgid ""
 "Right-clicking between two adjacent numbers draws a line between them, which "
 "you can use to remind yourself that you know those two numbers are \\e{not} "
@@ -3563,7 +3568,7 @@ msgstr ""
 "wird die Linie wieder entfernt."
 
 #. type: Plain text
-#: puzzles.but:1454
+#: puzzles.but:1458
 msgid ""
 "You can also use the cursor keys to move a cursor around the grid.  When the "
 "cursor is half way between two adjacent numbers, pressing the return key "
@@ -3573,17 +3578,17 @@ msgid ""
 msgstr ""
 
 #. type: Plain text
-#: puzzles.but:1458
+#: puzzles.but:1462
 msgid "\\I{parameters, for Dominosa}Dominosa parameters"
 msgstr "\\I{Parameter, für Dominosa}Dominosa-Parameter"
 
 #. type: e{#1}
-#: puzzles.but:1463
+#: puzzles.but:1467
 msgid "Maximum number on dominoes"
 msgstr "Maximale Zahl auf Dominos"
 
 #. type: Plain text
-#: puzzles.but:1468
+#: puzzles.but:1472
 msgid ""
 "Controls the size of the puzzle, by controlling the size of the set of "
 "dominoes used to make it. Dominoes with numbers going up to N will give rise "
@@ -3595,7 +3600,7 @@ msgstr ""
 "(N+1)-Rechteck, damit ergibt der Vorgabewert von 6 ein 8\\by\\.7-Gitter."
 
 #. type: Plain text
-#: puzzles.but:1477
+#: puzzles.but:1481
 msgid ""
 "Normally, Dominosa will make sure that the puzzles it presents have only one "
 "solution. Puzzles with ambiguous sections can be more difficult and "
@@ -3612,17 +3617,17 @@ msgstr ""
 "Abschalten dieser Option kann auch die Puzzleerstellung beschleunigen."
 
 #. type: Plain text
-#: puzzles.but:1480
+#: puzzles.but:1484
 msgid "\\i{Untangle}"
 msgstr "\\i{Untangle}"
 
 #. type: Plain text
-#: puzzles.but:1482
+#: puzzles.but:1486
 msgid "\\cfg{winhelp-topic}{games.untangle}"
 msgstr "\\cfg{winhelp-topic}{games.untangle}"
 
 #. type: Plain text
-#: puzzles.but:1486
+#: puzzles.but:1490
 msgid ""
 "You are given a number of points, some of which have lines drawn between "
 "them. You can move the points about arbitrarily; your aim is to position the "
@@ -3633,7 +3638,7 @@ msgstr ""
 "die Punkte so zu positionieren, dass keine Linie eine andere Linie kreuzt."
 
 #. type: Plain text
-#: puzzles.but:1489
+#: puzzles.but:1493
 msgid ""
 "I originally saw this in the form of a Flash game called \\i{Planarity} \\k"
 "{Planarity}, written by John Tantalo."
@@ -3642,7 +3647,7 @@ msgstr ""
 "\\k{Planarity}, geschrieben von John Tantalo, gesehen."
 
 #. type: Plain text
-#: puzzles.but:1491
+#: puzzles.but:1495
 msgid ""
 "\\W{http://home.cwru.edu/~jnt5/Planarity}\\cw{http://home.cwru.edu/~jnt5/"
 "Planarity}"
@@ -3651,23 +3656,23 @@ msgstr ""
 "Planarity}"
 
 #. type: Plain text
-#: puzzles.but:1493
+#: puzzles.but:1497
 msgid "\\i{Untangle controls}"
 msgstr "\\i{Untangle-Steuerung}"
 
 #. type: IM{#1}
-#: puzzles.but:1494
+#: puzzles.but:1498
 msgid "Untangle controls"
 msgstr "Untangle-Steuerung"
 
 #. type: IM
-#: puzzles.but:1494
+#: puzzles.but:1498
 #, no-wrap
 msgid "controls, for Untangle"
 msgstr "Steuerung, von Untangle"
 
 #. type: Plain text
-#: puzzles.but:1498
+#: puzzles.but:1502
 msgid ""
 "To move a point, click on it with the left mouse button and drag it into a "
 "new position."
@@ -3676,12 +3681,12 @@ msgstr ""
 "ziehen Sie ihn an seine neue Position."
 
 #. type: Plain text
-#: puzzles.but:1502
+#: puzzles.but:1506
 msgid "\\I{parameters, for Untangle}Untangle parameters"
 msgstr "\\I{Parameter, für Untangle}Untangle-Parameter"
 
 #. type: Plain text
-#: puzzles.but:1505
+#: puzzles.but:1509
 msgid ""
 "There is only one parameter available from the \\q{Custom...} option on the "
 "\\q{Type} menu:"
@@ -3690,12 +3695,12 @@ msgstr ""
 "verfügbare Parameter:"
 
 #. type: e{#1}
-#: puzzles.but:1507
+#: puzzles.but:1511
 msgid "Number of points"
 msgstr "Anzahl von Punkte"
 
 #. type: Plain text
-#: puzzles.but:1510
+#: puzzles.but:1514
 msgid ""
 "Controls the size of the puzzle, by specifying the number of points in the "
 "generated graph."
@@ -3704,17 +3709,17 @@ msgstr ""
 "Graphen angegeben wird."
 
 #. type: Plain text
-#: puzzles.but:1513
+#: puzzles.but:1517
 msgid "\\i{Black Box}"
 msgstr "\\i{Black Box}"
 
 #. type: Plain text
-#: puzzles.but:1515
+#: puzzles.but:1519
 msgid "\\cfg{winhelp-topic}{games.blackbox}"
 msgstr "\\cfg{winhelp-topic}{games.blackbox}"
 
 #. type: Plain text
-#: puzzles.but:1519
+#: puzzles.but:1523
 msgid ""
 "A number of balls are hidden in a rectangular arena. You have to deduce the "
 "positions of the balls by firing lasers positioned at the edges of the arena "
@@ -3726,7 +3731,7 @@ msgstr ""
 "werden. "
 
 #. type: Plain text
-#: puzzles.but:1523
+#: puzzles.but:1527
 msgid ""
 "Beams will travel straight from their origin until they hit the opposite "
 "side of the arena (at which point they emerge), unless affected by balls in "
@@ -3737,7 +3742,7 @@ msgstr ""
 "Arten von Bällen betroffen sind:"
 
 #. type: Plain text
-#: puzzles.but:1527
+#: puzzles.but:1531
 msgid ""
 "A beam that hits a ball head-on is absorbed and will never re-emerge. This "
 "includes beams that meet a ball on the first rank of the arena."
@@ -3747,7 +3752,7 @@ msgstr ""
 "Arena treffen."
 
 #. type: Plain text
-#: puzzles.but:1530
+#: puzzles.but:1534
 msgid ""
 "A beam with a ball to its front-left square gets deflected 90 degrees to the "
 "right."
@@ -3756,7 +3761,7 @@ msgstr ""
 "reflektiert."
 
 #. type: Plain text
-#: puzzles.but:1533
+#: puzzles.but:1537
 msgid ""
 "A beam with a ball to its front-right square gets similarly deflected to the "
 "left."
@@ -3765,7 +3770,7 @@ msgstr ""
 "links reflektiert."
 
 #. type: Plain text
-#: puzzles.but:1536
+#: puzzles.but:1540
 msgid ""
 "A beam that would re-emerge from its entry location is considered to be \\q"
 "{reflected}."
@@ -3774,7 +3779,7 @@ msgstr ""
 "\\q{reflektiert}."
 
 #. type: Plain text
-#: puzzles.but:1540
+#: puzzles.but:1544
 msgid ""
 "A beam which would get deflected before entering the arena by a ball to the "
 "front-left or front-right of its entry point is also considered to be \\q"
@@ -3785,7 +3790,7 @@ msgstr ""
 "{Feuerstrahls}), wird auch als \\q{reflektiert} betrachtet."
 
 #. type: Plain text
-#: puzzles.but:1545
+#: puzzles.but:1549
 msgid ""
 "Beams that are reflected appear as a \\q{R}; beams that hit balls head-on "
 "appear as \\q{H}. Otherwise, a number appears at the firing point and the "
@@ -3797,7 +3802,7 @@ msgstr ""
 "diesem Schuss zugeordnet)."
 
 #. type: Plain text
-#: puzzles.but:1549
+#: puzzles.but:1553
 msgid ""
 "You can place guesses as to the location of the balls, based on the entry "
 "and exit patterns of the beams; once you have placed enough balls a button "
@@ -3809,7 +3814,7 @@ msgstr ""
 "erlaubt."
 
 #. type: Plain text
-#: puzzles.but:1552
+#: puzzles.but:1556
 msgid ""
 "Here is a diagram showing how the positions of balls can create each of the "
 "beam behaviours shown above:"
@@ -3818,62 +3823,62 @@ msgstr ""
 "der oben beschriebenen Verhalten erzeugen kann."
 
 #. type: c
-#: puzzles.but:1553
+#: puzzles.but:1557
 #, no-wrap
 msgid "1RHR----"
 msgstr "1RHR----"
 
 #. type: c
-#: puzzles.but:1554
+#: puzzles.but:1558
 #, no-wrap
 msgid "|..O.O...|"
 msgstr "|..O.O...|"
 
 #. type: c
-#: puzzles.but:1555
+#: puzzles.but:1559
 #, no-wrap
 msgid "2........3"
 msgstr "2........3"
 
 #. type: c
-#: puzzles.but:1556 puzzles.but:1557 puzzles.but:1575 puzzles.but:1576
-#: puzzles.but:1581 puzzles.but:1582
+#: puzzles.but:1560 puzzles.but:1561 puzzles.but:1579 puzzles.but:1580
+#: puzzles.but:1585 puzzles.but:1586
 #, no-wrap
 msgid "|........|"
 msgstr "|........|"
 
 #. type: c
-#: puzzles.but:1558
+#: puzzles.but:1562
 #, no-wrap
 msgid "3........|"
 msgstr "3........|"
 
 #. type: c
-#: puzzles.but:1559
+#: puzzles.but:1563
 #, no-wrap
 msgid "|......O.|"
 msgstr "|......O.|"
 
 #. type: c
-#: puzzles.but:1560
+#: puzzles.but:1564
 #, no-wrap
 msgid "H........|"
 msgstr "H........|"
 
 #. type: c
-#: puzzles.but:1561
+#: puzzles.but:1565
 #, no-wrap
 msgid "|.....O..|"
 msgstr "|.....O..|"
 
 #. type: c
-#: puzzles.but:1562
+#: puzzles.but:1566
 #, no-wrap
 msgid "12-RH---"
 msgstr "12-RH---"
 
 #. type: Plain text
-#: puzzles.but:1568
+#: puzzles.but:1572
 msgid ""
 "As shown, it is possible for a beam to receive multiple reflections before "
 "re-emerging (see turn 3). Similarly, a beam may be reflected (possibly more "
@@ -3886,7 +3891,7 @@ msgstr ""
 "erhält (das \\q{H} auf der linken Seite im Beispiel)."
 
 #. type: Plain text
-#: puzzles.but:1573
+#: puzzles.but:1577
 msgid ""
 "Note that any layout with more than 4 balls may have a non-unique solution.  "
 "The following diagram illustrates this; if you know the board contains 5 "
@@ -3899,25 +3904,25 @@ msgstr ""
 "wo der fünfte Ball ist (mögliche Lösungen sind durch \\cw{x} gekennzeichnet):"
 
 #. type: c
-#: puzzles.but:1574 puzzles.but:1583
+#: puzzles.but:1578 puzzles.but:1587
 #, no-wrap
 msgid "--------"
 msgstr "--------"
 
 #. type: c
-#: puzzles.but:1577 puzzles.but:1580
+#: puzzles.but:1581 puzzles.but:1584
 #, no-wrap
 msgid "|..O..O..|"
 msgstr "|..O..O..|"
 
 #. type: c
-#: puzzles.but:1578 puzzles.but:1579
+#: puzzles.but:1582 puzzles.but:1583
 #, no-wrap
 msgid "|...xx...|"
 msgstr "|...xx...|"
 
 #. type: Plain text
-#: puzzles.but:1591
+#: puzzles.but:1595
 msgid ""
 "For this reason, when you have your guesses checked, the game will check "
 "that your solution \\e{produces the same results} as the computer's, rather "
@@ -3933,40 +3938,40 @@ msgstr ""
 "noch gewinnen."
 
 #. type: Plain text
-#: puzzles.but:1593
+#: puzzles.but:1597
 msgid "Black Box was contributed to this collection by James Harvey."
 msgstr "Black Box wurde von James Harvey zu dieser Sammlung beigesteuert."
 
 #. type: Plain text
-#: puzzles.but:1595
+#: puzzles.but:1599
 msgid "\\i{Black Box controls}"
 msgstr "\\i{Black Box-Steuerung}"
 
 #. type: IM{#1}
-#: puzzles.but:1596 puzzles.but:1597 puzzles.but:1598
+#: puzzles.but:1600 puzzles.but:1601 puzzles.but:1602
 msgid "Black Box controls"
 msgstr "Black Box-Steuerung"
 
 #. type: IM
-#: puzzles.but:1596
+#: puzzles.but:1600
 #, no-wrap
 msgid "controls, for Black Box"
 msgstr "Steuerung, von Black Box"
 
 #. type: IM
-#: puzzles.but:1597
+#: puzzles.but:1601
 #, no-wrap
 msgid "keys, for Black Box"
 msgstr "Steuerung, von Black Box"
 
 #. type: IM
-#: puzzles.but:1598
+#: puzzles.but:1602
 #, no-wrap
 msgid "shortcuts (keyboard), for Black Box"
 msgstr "Tastaturkürzel, für Flip"
 
 #. type: Plain text
-#: puzzles.but:1605
+#: puzzles.but:1609
 msgid ""
 "To fire a laser beam, left-click in a square around the edge of the arena. "
 "The results will be displayed immediately. Clicking or holding the left "
@@ -3980,7 +3985,7 @@ msgstr ""
 "Austrittspunkt für den Laser, falls zutreffend, zu bestätigen."
 
 #. type: Plain text
-#: puzzles.but:1609
+#: puzzles.but:1613
 msgid ""
 "To guess the location of a ball, left-click within the arena and a black "
 "circle will appear marking the guess; click again to remove the guessed ball."
@@ -3990,7 +3995,7 @@ msgstr ""
 "klicken Sie einfach erneut."
 
 #. type: Plain text
-#: puzzles.but:1614
+#: puzzles.but:1618
 msgid ""
 "Locations in the arena may be locked against modification by right-clicking; "
 "whole rows and columns may be similarly locked by right-clicking in the "
@@ -4002,7 +4007,7 @@ msgstr ""
 "der Zeile gesperrt werden."
 
 #. type: Plain text
-#: puzzles.but:1618
+#: puzzles.but:1622
 msgid ""
 "The cursor keys may also be used to move around the grid. Pressing the Enter "
 "key will fire a laser or add a new ball-location guess, and pressing Space "
@@ -4013,7 +4018,7 @@ msgstr ""
 "durch Drücken der Leertaste wird eine Zelle oder eine Zeile/Spalte gesperrt."
 
 #. type: Plain text
-#: puzzles.but:1622
+#: puzzles.but:1626
 msgid ""
 "When an appropriate number of balls have been guessed, a button will appear "
 "at the top-left corner of the grid; clicking that (with mouse or cursor) "
@@ -4024,7 +4029,7 @@ msgstr ""
 "Cursor) wird Ihre Vermutung markiert."
 
 #. type: Plain text
-#: puzzles.but:1631
+#: puzzles.but:1635
 msgid ""
 "If you click the \\q{check} button and your guesses are not correct, the "
 "game will show you the minimum information necessary to demonstrate this to "
@@ -4044,7 +4049,7 @@ msgstr ""
 "(angezeigt in rot) aufgedeckt, der nicht zu Ihrer aktuellen Vermutung passt."
 
 #. type: Plain text
-#: puzzles.but:1641
+#: puzzles.but:1645
 msgid ""
 "If you decide to give up completely, you can select Solve to reveal the "
 "actual ball positions. At this point, correctly-placed balls will be "
@@ -4067,12 +4072,12 @@ msgstr ""
 "unterscheiden."
 
 #. type: Plain text
-#: puzzles.but:1645
+#: puzzles.but:1649
 msgid "\\I{parameters, for Black Box}Black Box parameters"
 msgstr "\\I{Parameter, für Black Box}Black Box-Parameter"
 
 #. type: Plain text
-#: puzzles.but:1653
+#: puzzles.but:1657
 msgid ""
 "Size of grid in squares. There are 2 \\by \\e{Width} \\by \\e{Height} lasers "
 "per grid, two per row and two per column."
@@ -4081,12 +4086,12 @@ msgstr ""
 "Laser pro Gitter, zwei pro Zeile und zwei pro Spalte."
 
 #. type: e{#1}
-#: puzzles.but:1655
+#: puzzles.but:1659
 msgid "No. of balls"
 msgstr "Zahl von Bällen"
 
 #. type: Plain text
-#: puzzles.but:1662
+#: puzzles.but:1666
 msgid ""
 "Number of balls to place in the grid. This can be a single number, or a "
 "range (separated with a hyphen, like \\q{2-6}), and determines the number of "
@@ -4103,17 +4108,17 @@ msgstr ""
 "Lösung ist nur akzeptabel falls alle Laser-Eingänge und -Ausgänge passen."
 
 #. type: Plain text
-#: puzzles.but:1665
+#: puzzles.but:1669
 msgid "\\i{Slant}"
 msgstr "\\i{Slant}"
 
 #. type: Plain text
-#: puzzles.but:1667
+#: puzzles.but:1671
 msgid "\\cfg{winhelp-topic}{games.slant}"
 msgstr "\\cfg{winhelp-topic}{games.slant}"
 
 #. type: Plain text
-#: puzzles.but:1671
+#: puzzles.but:1675
 msgid ""
 "You have a grid of squares. Your aim is to draw a diagonal line through each "
 "square, and choose which way each line slants so that the following "
@@ -4125,12 +4130,12 @@ msgstr ""
 "sind:"
 
 #. type: Plain text
-#: puzzles.but:1673
+#: puzzles.but:1677
 msgid "The diagonal lines never form a loop."
 msgstr "Die diagonalen Linien bilden niemals eine Schleife."
 
 #. type: Plain text
-#: puzzles.but:1679
+#: puzzles.but:1683
 msgid ""
 "Any point with a circled number has precisely that many lines meeting at it. "
 "(Thus, a 4 is the centre of a cross shape, whereas a zero is the centre of a "
@@ -4145,12 +4150,12 @@ msgstr ""
 "auftauchen darf, da sie sofort zu einer Schleife führen würde.)"
 
 #. type: Plain text
-#: puzzles.but:1681
+#: puzzles.but:1685
 msgid "Credit for this puzzle goes to \\i{Nikoli} \\k{nikoli-slant}."
 msgstr "Dank für dieses Puzzle geht an \\i{Nikoli} \\k{nikoli-slant}."
 
 #. type: Plain text
-#: puzzles.but:1685
+#: puzzles.but:1689
 msgid ""
 "\\W{http://www.nikoli.co.jp/puzzles/39/index.htm}\\cw{http://www.nikoli.co."
 "jp/puzzles/39/index.htm} (in Japanese)"
@@ -4159,23 +4164,23 @@ msgstr ""
 "jp/puzzles/39/index.htm} (auf Japanisch)"
 
 #. type: Plain text
-#: puzzles.but:1687
+#: puzzles.but:1691
 msgid "\\i{Slant controls}"
 msgstr "\\i{Slant-Steuerung}"
 
 #. type: IM{#1}
-#: puzzles.but:1688
+#: puzzles.but:1692
 msgid "Slant controls"
 msgstr "Slant-Steuerung"
 
 #. type: IM
-#: puzzles.but:1688
+#: puzzles.but:1692
 #, no-wrap
 msgid "controls, for Slant"
 msgstr "Steuerung, von Slant"
 
 #. type: Plain text
-#: puzzles.but:1695
+#: puzzles.but:1699
 msgid ""
 "Left-clicking in a blank square will place a \\cw{\\\\} in it (a line "
 "leaning to the left, i.e. running from the top left of the square to the "
@@ -4189,7 +4194,7 @@ msgstr ""
 "linke untere Ecke) platziert."
 
 #. type: Plain text
-#: puzzles.but:1702
+#: puzzles.but:1706
 msgid ""
 "Continuing to click either button will cycle between the three possible "
 "square contents. Thus, if you left-click repeatedly in a blank square it "
@@ -4207,7 +4212,7 @@ msgstr ""
 "Taste spielen)."
 
 #. type: Plain text
-#: puzzles.but:1706
+#: puzzles.but:1710
 msgid ""
 "You can also use the cursor keys to move around the grid. Pressing the "
 "return or space keys will place a \\cw{\\\\} or a \\cw{/}, respectively, and "
@@ -4218,20 +4223,20 @@ msgstr ""
 "ein \\cw{/} platziert und diese dann zyklisch wie oben durchlaufen."
 
 #. type: Plain text
-#: puzzles.but:1710
+#: puzzles.but:1714
 msgid "\\I{parameters, for Slant}Slant parameters"
 msgstr "\\I{Parameter, für Slant}Slant-Parameter"
 
 #. type: e{#1}
-#: puzzles.but:1719 puzzles.but:1808 puzzles.but:1890 puzzles.but:1974
-#: puzzles.but:2100 puzzles.but:2209 puzzles.but:2335 puzzles.but:2405
-#: puzzles.but:2558 puzzles.but:2648 puzzles.but:2704 puzzles.but:2766
-#: puzzles.but:2979
+#: puzzles.but:1723 puzzles.but:1812 puzzles.but:1894 puzzles.but:1978
+#: puzzles.but:2104 puzzles.but:2213 puzzles.but:2343 puzzles.but:2413
+#: puzzles.but:2566 puzzles.but:2656 puzzles.but:2712 puzzles.but:2778
+#: puzzles.but:3068 puzzles.but:3115
 msgid "Difficulty"
 msgstr "Schwierigkeit"
 
 #. type: Plain text
-#: puzzles.but:1728
+#: puzzles.but:1732
 msgid ""
 "Controls the difficulty of the generated puzzle. At Hard level, you are "
 "required to do deductions based on knowledge of \\e{relationships} between "
@@ -4251,17 +4256,17 @@ msgstr ""
 "Raten und Rückverfolgung niemals notwendig sein."
 
 #. type: Plain text
-#: puzzles.but:1731
+#: puzzles.but:1735
 msgid "\\i{Light Up}"
 msgstr "\\i{Light Up}"
 
 #. type: Plain text
-#: puzzles.but:1733
+#: puzzles.but:1737
 msgid "\\cfg{winhelp-topic}{games.lightup}"
 msgstr "\\cfg{winhelp-topic}{games.lightup}"
 
 #. type: Plain text
-#: puzzles.but:1737
+#: puzzles.but:1741
 msgid ""
 "You have a grid of squares. Some are filled in black; some of the black "
 "squares are numbered. Your aim is to \\q{light up} all the empty squares by "
@@ -4272,7 +4277,7 @@ msgstr ""
 "Quadrate zu \\q{erleuchten}, indem Sie in einige davon Glühbirnen platzieren."
 
 #. type: Plain text
-#: puzzles.but:1741
+#: puzzles.but:1745
 msgid ""
 "Each light bulb illuminates the square it is on, plus all squares in line "
 "with it horizontally or vertically unless a black square is blocking the way."
@@ -4282,22 +4287,22 @@ msgstr ""
 "schwarzes Quadrat den Weg blockiert."
 
 #. type: Plain text
-#: puzzles.but:1743
+#: puzzles.but:1747
 msgid "To win the game, you must satisfy the following conditions:"
 msgstr "Um das Spiel zu gewinnen, müssen folgende Bedingungen erfüllt sein:"
 
 #. type: Plain text
-#: puzzles.but:1745
+#: puzzles.but:1749
 msgid "All non-black squares are lit."
 msgstr "Alle nicht-schwarzen Quadrate müssen erleuchtet sein."
 
 #. type: Plain text
-#: puzzles.but:1747
+#: puzzles.but:1751
 msgid "No light is lit by another light."
 msgstr "Kein Licht wird von einem anderen Licht erleuchtet."
 
 #. type: Plain text
-#: puzzles.but:1750
+#: puzzles.but:1754
 msgid ""
 "All numbered black squares have exactly that number of lights adjacent to "
 "them (in the four squares above, below, and to the side)."
@@ -4307,7 +4312,7 @@ msgstr ""
 "den Seiten)."
 
 #. type: Plain text
-#: puzzles.but:1752
+#: puzzles.but:1756
 msgid ""
 "Non-numbered black squares may have any number of lights adjacent to them."
 msgstr ""
@@ -4315,17 +4320,17 @@ msgstr ""
 "Lichtern in der direkten Nachbarschaft sein."
 
 #. type: Plain text
-#: puzzles.but:1754
+#: puzzles.but:1758
 msgid "Credit for this puzzle goes to \\i{Nikoli} \\k{nikoli-lightup}."
 msgstr "Dank für dieses Puzzle geht an \\i{Nikoli} \\k{nikoli-lightup}."
 
 #. type: Plain text
-#: puzzles.but:1756
+#: puzzles.but:1760
 msgid "Light Up was contributed to this collection by James Harvey."
 msgstr "Light Up wurde von James Harvey zu dieser Sammlung beigesteuert."
 
 #. type: Plain text
-#: puzzles.but:1760
+#: puzzles.but:1764
 msgid ""
 "\\W{http://www.nikoli.co.jp/puzzles/32/index-e.htm}\\cw{http://www.nikoli.co."
 "jp/puzzles/32/index-e.htm} (beware of Flash)"
@@ -4334,23 +4339,23 @@ msgstr ""
 "jp/puzzles/32/index-e.htm} (Achtung Flash)"
 
 #. type: Plain text
-#: puzzles.but:1762
+#: puzzles.but:1766
 msgid "\\i{Light Up controls}"
 msgstr "\\i{Light Up-Steuerung}"
 
 #. type: IM{#1}
-#: puzzles.but:1763
+#: puzzles.but:1767
 msgid "Light Up controls"
 msgstr "Light Up-Steuerung"
 
 #. type: IM
-#: puzzles.but:1763
+#: puzzles.but:1767
 #, no-wrap
 msgid "controls, for Light Up"
 msgstr "Steuerung, von Light Up"
 
 #. type: Plain text
-#: puzzles.but:1768
+#: puzzles.but:1772
 msgid ""
 "Left-clicking in a non-black square will toggle the presence of a light in "
 "that square. Right-clicking in a non-black square toggles a mark there to "
@@ -4364,7 +4369,7 @@ msgstr ""
 "beleuchtet werden können."
 
 #. type: Plain text
-#: puzzles.but:1770
+#: puzzles.but:1774
 msgid ""
 "You may not place a light in a marked square, nor place a mark in a lit "
 "square."
@@ -4373,7 +4378,7 @@ msgstr ""
 "beleuchtetes Quadrat setzten."
 
 #. type: Plain text
-#: puzzles.but:1774
+#: puzzles.but:1778
 msgid ""
 "The game will highlight obvious errors in red. Lights lit by other lights "
 "are highlighted in this way, as are numbered squares which do not (or "
@@ -4385,7 +4390,7 @@ msgstr ""
 "direkten Nachbarschaft haben (oder haben können)."
 
 #. type: Plain text
-#: puzzles.but:1777
+#: puzzles.but:1781
 msgid ""
 "Thus, the grid is solved when all non-black squares have yellow highlights "
 "and there are no red lights."
@@ -4394,22 +4399,22 @@ msgstr ""
 "hervorgehoben sind und es keine roten Lichter gibt."
 
 #. type: Plain text
-#: puzzles.but:1781
+#: puzzles.but:1785
 msgid "\\I{parameters, for Light Up}Light Up parameters"
 msgstr "\\I{Parameter, für Light Up}Light Up-Parameter"
 
 #. type: e{#1}
-#: puzzles.but:1790
+#: puzzles.but:1794
 msgid "%age of black squares"
 msgstr "Prozentanzahl von schwarzen Quadraten"
 
 #. type: Plain text
-#: puzzles.but:1792
+#: puzzles.but:1796
 msgid "Rough percentage of black squares in the grid."
 msgstr "Grobe Prozentzahl an schwarzen Quadraten im Gitter."
 
 #. type: Plain text
-#: puzzles.but:1800
+#: puzzles.but:1804
 msgid ""
 "This is a hint rather than an instruction. If the grid generator is unable "
 "to generate a puzzle to this precise specification, it will increase the "
@@ -4421,12 +4426,12 @@ msgstr ""
 "gelingt."
 
 #. type: e{#1}
-#: puzzles.but:1802
+#: puzzles.but:1806
 msgid "Symmetry"
 msgstr "Symmetrie"
 
 #. type: Plain text
-#: puzzles.but:1806
+#: puzzles.but:1810
 msgid ""
 "Allows you to specify the required symmetry of the black squares in the "
 "grid. (This does not affect the difficulty of the puzzles noticeably.)"
@@ -4435,7 +4440,7 @@ msgstr ""
 "anzugeben. (Dies beeinflusst die Schwierigkeit des Puzzles nicht merklich.)"
 
 #. type: Plain text
-#: puzzles.but:1812
+#: puzzles.but:1816
 msgid ""
 "\\q{Easy} means that the puzzles should be soluble without backtracking or "
 "guessing, \\q{Hard} means that some guesses will probably be necessary."
@@ -4445,17 +4450,17 @@ msgstr ""
 "notwendig sein wird."
 
 #. type: Plain text
-#: puzzles.but:1815
+#: puzzles.but:1819
 msgid "\\i{Map}"
 msgstr "\\i{Map}"
 
 #. type: Plain text
-#: puzzles.but:1817
+#: puzzles.but:1821
 msgid "\\cfg{winhelp-topic}{games.map}"
 msgstr "\\cfg{winhelp-topic}{games.map}"
 
 #. type: Plain text
-#: puzzles.but:1823
+#: puzzles.but:1827
 msgid ""
 "You are given a map consisting of a number of regions. Your task is to "
 "colour each region with one of four colours, in such a way that no two "
@@ -4470,7 +4475,7 @@ msgstr ""
 "um den Rest der Lösung eindeutig zu gestalten."
 
 #. type: Plain text
-#: puzzles.but:1827
+#: puzzles.but:1831
 msgid ""
 "Only regions which share a length of border are required to be different "
 "colours. Two regions which meet at only one \\e{point} (i.e. are diagonally "
@@ -4481,7 +4486,7 @@ msgstr ""
 "h. diagonal separiert sind) können in der gleichen Farbe sein."
 
 #. type: Plain text
-#: puzzles.but:1834
+#: puzzles.but:1838
 msgid ""
 "I believe this puzzle is original; I've never seen an implementation of it "
 "anywhere else. The concept of a \\i{four-colouring} puzzle was suggested by "
@@ -4497,23 +4502,23 @@ msgstr ""
 "auch an Gareth Taylor für viele detaillierte Vorschläge."
 
 #. type: Plain text
-#: puzzles.but:1836
+#: puzzles.but:1840
 msgid "\\i{Map controls}"
 msgstr "\\i{Map-Steuerung}"
 
 #. type: IM{#1}
-#: puzzles.but:1837
+#: puzzles.but:1841
 msgid "Map controls"
 msgstr "Map-Steuerung"
 
 #. type: IM
-#: puzzles.but:1837
+#: puzzles.but:1841
 #, no-wrap
 msgid "controls, for Map"
 msgstr "Steuerung, von Map"
 
 #. type: Plain text
-#: puzzles.but:1842
+#: puzzles.but:1846
 msgid ""
 "To colour a region, click the left mouse button on an existing region of the "
 "desired colour and drag that colour into the new region."
@@ -4523,7 +4528,7 @@ msgstr ""
 "neue Region."
 
 #. type: Plain text
-#: puzzles.but:1845
+#: puzzles.but:1849
 msgid ""
 "(The program will always ensure the starting puzzle has at least one region "
 "of each colour, so that this is always possible!)"
@@ -4532,7 +4537,7 @@ msgstr ""
 "Region in jeder Farbe hat, so dass dies immer möglich ist!)"
 
 #. type: Plain text
-#: puzzles.but:1848
+#: puzzles.but:1852
 msgid ""
 "If you need to clear a region, you can drag from an empty region, or from "
 "the puzzle boundary if there are no empty regions left."
@@ -4542,7 +4547,7 @@ msgstr ""
 "Regionen mehr übrig sind."
 
 #. type: Plain text
-#: puzzles.but:1854
+#: puzzles.but:1858
 msgid ""
 "Dragging a colour using the \\e{right} mouse button will stipple the region "
 "in that colour, which you can use as a note to yourself that you think the "
@@ -4556,7 +4561,7 @@ msgstr ""
 "Schwierigkeitsgraden oft nützlich.)"
 
 #. type: Plain text
-#: puzzles.but:1866
+#: puzzles.but:1870
 msgid ""
 "You can also use the cursor keys to move around the map: the colour of the "
 "cursor indicates the position of the colour you would drag (which is not "
@@ -4582,7 +4587,7 @@ msgstr ""
 "gesamte Karte ausgefüllt haben aber die Verteilung korrigieren müssen."
 
 #. type: Plain text
-#: puzzles.but:1873
+#: puzzles.but:1877
 msgid ""
 "If you press L during play, the game will toggle display of a number in each "
 "region of the map. This is useful if you want to discuss a particular puzzle "
@@ -4598,22 +4603,22 @@ msgstr ""
 "der Grenze} zu referenzieren."
 
 #. type: Plain text
-#: puzzles.but:1877
+#: puzzles.but:1881
 msgid "\\I{parameters, for Map}Map parameters"
 msgstr "\\I{Parameter, für Map}Map-Parameter"
 
 #. type: e{#1}
-#: puzzles.but:1886
+#: puzzles.but:1890
 msgid "Regions"
 msgstr "Bereiche"
 
 #. type: Plain text
-#: puzzles.but:1888
+#: puzzles.but:1892
 msgid "Number of regions in the generated map."
 msgstr "Anzahl der Regionen in der erzeugten Karte."
 
 #. type: Plain text
-#: puzzles.but:1896
+#: puzzles.but:1900
 msgid ""
 "In \\q{Easy} mode, there should always be at least one region whose colour "
 "can be determined trivially. In \\q{Normal} and \\q{Hard} modes, you will "
@@ -4627,7 +4632,7 @@ msgstr ""
 "sein."
 
 #. type: Plain text
-#: puzzles.but:1905
+#: puzzles.but:1909
 msgid ""
 "In \\q{Unreasonable} mode, the program will feel free to generate puzzles "
 "which are as hard as it can possibly make them: the only constraint is that "
@@ -4640,17 +4645,17 @@ msgstr ""
 "Puzzlen dieser Schwierigkeit kann Raten und Rückverfolgung verlangen."
 
 #. type: Plain text
-#: puzzles.but:1908
+#: puzzles.but:1912
 msgid "\\i{Loopy}"
 msgstr "\\i{Loopy}"
 
 #. type: Plain text
-#: puzzles.but:1910
+#: puzzles.but:1914
 msgid "\\cfg{winhelp-topic}{games.loopy}"
 msgstr "\\cfg{winhelp-topic}{games.loopy}"
 
 #. type: Plain text
-#: puzzles.but:1915
+#: puzzles.but:1919
 msgid ""
 "You are given a grid of dots, marked with yellow lines to indicate which "
 "dots you are allowed to connect directly together. Your aim is to use some "
@@ -4664,7 +4669,7 @@ msgstr ""
 "Schleife von Punkt zu Punkt zu zeichnen."
 
 #. type: Plain text
-#: puzzles.but:1920
+#: puzzles.but:1924
 msgid ""
 "Some of the spaces between the lines contain numbers. These numbers indicate "
 "how many of the lines around that space form part of the loop. The loop you "
@@ -4677,7 +4682,7 @@ msgstr ""
 "berücksichtigen, um als korrekte Lösung betrachtet zu werden."
 
 #. type: Plain text
-#: puzzles.but:1924
+#: puzzles.but:1928
 msgid ""
 "In the default mode, the dots are arranged in a grid of squares; however, "
 "you can also play on triangular or hexagonal grids, or even more exotic ones."
@@ -4687,14 +4692,14 @@ msgstr ""
 "exotischeren spielen."
 
 #. type: Plain text
-#: puzzles.but:1927
+#: puzzles.but:1931
 msgid "Credit for the basic puzzle idea goes to \\i{Nikoli} \\k{nikoli-loopy}."
 msgstr ""
 "Die Danksagung für die grundlegende Puzzle-Idee geht an \\i{Nikoli} \\k"
 "{nikoli-loopy}."
 
 #. type: Plain text
-#: puzzles.but:1931
+#: puzzles.but:1935
 msgid ""
 "Loopy was originally contributed to this collection by Mike Pinna, and "
 "subsequently enhanced to handle various types of non-square grid by Lambros "
@@ -4705,7 +4710,7 @@ msgstr ""
 "quadratischen Gittern."
 
 #. type: Plain text
-#: puzzles.but:1935
+#: puzzles.but:1939
 msgid ""
 "\\W{http://www.nikoli.co.jp/puzzles/3/index-e.htm}\\cw{http://www.nikoli.co."
 "jp/puzzles/3/index-e.htm} (beware of Flash)"
@@ -4714,23 +4719,23 @@ msgstr ""
 "jp/puzzles/3/index-e.htm} (Achtung Flash)"
 
 #. type: Plain text
-#: puzzles.but:1937
+#: puzzles.but:1941
 msgid "\\i{Loopy controls}"
 msgstr "\\i{Loopy-Steuerung}"
 
 #. type: IM{#1}
-#: puzzles.but:1938
+#: puzzles.but:1942
 msgid "Loopy controls"
 msgstr "Loopy-Steuerung"
 
 #. type: IM
-#: puzzles.but:1938
+#: puzzles.but:1942
 #, no-wrap
 msgid "controls, for Loopy"
 msgstr "Steuerung, von Loopy"
 
 #. type: Plain text
-#: puzzles.but:1943
+#: puzzles.but:1947
 msgid ""
 "Click the left mouse button on a yellow line to turn it black, indicating "
 "that you think it is part of the loop. Click again to turn the line yellow "
@@ -4742,7 +4747,7 @@ msgstr ""
 "bedeutet, dass Sie sich noch nicht sicher sind)."
 
 #. type: Plain text
-#: puzzles.but:1948
+#: puzzles.but:1952
 msgid ""
 "If you are sure that a particular line segment is \\e{not} part of the loop, "
 "you can click the right mouse button to remove it completely. Again, "
@@ -4754,12 +4759,12 @@ msgstr ""
 "Gelb einfärben."
 
 #. type: Plain text
-#: puzzles.but:1952
+#: puzzles.but:1956
 msgid "\\I{parameters, for Loopy}Loopy parameters"
 msgstr "\\I{Parameter, für Loopy}Loopy-Parameter"
 
 #. type: Plain text
-#: puzzles.but:1962
+#: puzzles.but:1966
 msgid ""
 "Size of grid, measured in number of regions across and down. For square "
 "grids, it's clear how this is counted; for other types of grid you may have "
@@ -4771,12 +4776,12 @@ msgstr ""
 "diese Dimensionen gemessen werden."
 
 #. type: e{#1}
-#: puzzles.but:1964
+#: puzzles.but:1968
 msgid "Grid type"
 msgstr "Gitterart"
 
 #. type: Plain text
-#: puzzles.but:1972
+#: puzzles.but:1976
 msgid ""
 "Allows you to choose between a selection of types of tiling.  Some have all "
 "the faces the same but may have multiple different types of vertex (e.g. the "
@@ -4788,7 +4793,7 @@ msgid ""
 msgstr ""
 
 #. type: Plain text
-#: puzzles.but:1978
+#: puzzles.but:1982
 msgid ""
 "Controls the difficulty of the generated puzzle.  \\#{FIXME: what "
 "distinguishes Easy, Medium, and Hard? In particular, when are backtracking/"
@@ -4799,17 +4804,17 @@ msgstr ""
 "guessword, falls überhaupt, benötigt?}"
 
 #. type: Plain text
-#: puzzles.but:1981
+#: puzzles.but:1985
 msgid "\\i{Inertia}"
 msgstr "\\i{Inertia}"
 
 #. type: Plain text
-#: puzzles.but:1983
+#: puzzles.but:1987
 msgid "\\cfg{winhelp-topic}{games.inertia}"
 msgstr "\\cfg{winhelp-topic}{games.inertia}"
 
 #. type: Plain text
-#: puzzles.but:1986
+#: puzzles.but:1990
 msgid ""
 "You are a small green ball sitting in a grid full of obstacles. Your aim is "
 "to collect all the gems without running into any mines."
@@ -4819,7 +4824,7 @@ msgstr ""
 "ohne auf eine Mine zu treffen."
 
 #. type: Plain text
-#: puzzles.but:1995
+#: puzzles.but:1999
 msgid ""
 "You can move the ball in any orthogonal \\e{or diagonal} direction.  Once "
 "the ball starts moving, it will continue until something stops it. A wall "
@@ -4839,7 +4844,7 @@ msgstr ""
 "er nimmt diese auf und läuft weiter."
 
 #. type: Plain text
-#: puzzles.but:1999
+#: puzzles.but:2003
 msgid ""
 "Running into a mine is fatal. Even if you picked up the last gem in the same "
 "move which then hit a mine, the game will count you as dead rather than "
@@ -4850,7 +4855,7 @@ msgstr ""
 "Spiel Sie als Tod und nicht als Sieger registrieren."
 
 #. type: Plain text
-#: puzzles.but:2003
+#: puzzles.but:2007
 msgid ""
 "This game was originally implemented for Windows by Ben Olmstead \\k{bem}, "
 "who was kind enough to release his source code on request so that it could "
@@ -4862,40 +4867,40 @@ msgstr ""
 "werden konnte."
 
 #. type: Plain text
-#: puzzles.but:2005
+#: puzzles.but:2009
 msgid "\\W{http://xn13.com/}\\cw{http://xn13.com/}"
 msgstr "\\W{http://xn13.com/}\\cw{http://xn13.com/}"
 
 #. type: Plain text
-#: puzzles.but:2007
+#: puzzles.but:2011
 msgid "\\i{Inertia controls}"
 msgstr "\\i{Inertia-Steuerung}"
 
 #. type: IM{#1}
-#: puzzles.but:2008 puzzles.but:2009 puzzles.but:2010
+#: puzzles.but:2012 puzzles.but:2013 puzzles.but:2014
 msgid "Inertia controls"
 msgstr "Inertia-Steuerung"
 
 #. type: IM
-#: puzzles.but:2008
+#: puzzles.but:2012
 #, no-wrap
 msgid "controls, for Inertia"
 msgstr "Steuerung, von Inertia"
 
 #. type: IM
-#: puzzles.but:2009
+#: puzzles.but:2013
 #, no-wrap
 msgid "keys, for Inertia"
 msgstr "Tasten, für Inertia"
 
 #. type: IM
-#: puzzles.but:2010
+#: puzzles.but:2014
 #, no-wrap
 msgid "shortcuts (keyboard), for Inertia"
 msgstr "Tastaturkürzel, für Inertia"
 
 #. type: Plain text
-#: puzzles.but:2016
+#: puzzles.but:2020
 msgid ""
 "You can move the ball in any of the eight directions using the numeric "
 "keypad. Alternatively, if you click the left mouse button on the grid, the "
@@ -4906,7 +4911,7 @@ msgstr ""
 "linken Maustaste in das Gitter in die dadurch vorgegebene Richtung."
 
 #. type: Plain text
-#: puzzles.but:2028
+#: puzzles.but:2032
 msgid ""
 "If you use the \\q{Solve} function on this game, the program will compute a "
 "path through the grid which collects all the remaining gems and returns to "
@@ -4933,7 +4938,7 @@ msgstr ""
 "Pfad zu erzeugen, falls Sie dies möchten."
 
 #. type: Plain text
-#: puzzles.but:2033
+#: puzzles.but:2037
 msgid ""
 "All the actions described in \\k{common-actions} are also available.  In "
 "particular, if you do run into a mine and die, you can use the Undo function "
@@ -4946,22 +4951,22 @@ msgstr ""
 "Spiel verfolgt mit, wie häufig Sie das gemacht haben."
 
 #. type: Plain text
-#: puzzles.but:2035
+#: puzzles.but:2039
 msgid "\\I{parameters, for Inertia}Inertia parameters"
 msgstr "\\I{Parameter, für Inertia}Inertia-Parameter"
 
 #. type: Plain text
-#: puzzles.but:2045
+#: puzzles.but:2049
 msgid "\\i{Tents}"
 msgstr "\\i{Tents}"
 
 #. type: Plain text
-#: puzzles.but:2047
+#: puzzles.but:2051
 msgid "\\cfg{winhelp-topic}{games.tents}"
 msgstr "\\cfg{winhelp-topic}{games.tents}"
 
 #. type: Plain text
-#: puzzles.but:2051
+#: puzzles.but:2055
 msgid ""
 "You have a grid of squares, some of which contain trees. Your aim is to "
 "place tents in some of the remaining squares, in such a way that the "
@@ -4972,12 +4977,12 @@ msgstr ""
 "aufzustellen, so dass die folgenden Bedingungen erfüllt sind:"
 
 #. type: Plain text
-#: puzzles.but:2053
+#: puzzles.but:2057
 msgid "There are exactly as many tents as trees."
 msgstr "Es gibt genausoviele Zelte wie Bäume."
 
 #. type: Plain text
-#: puzzles.but:2058
+#: puzzles.but:2062
 msgid ""
 "The tents and trees can be matched up in such a way that each tent is "
 "directly adjacent (horizontally or vertically, but not diagonally) to its "
@@ -4988,14 +4993,14 @@ msgstr ""
 "Ein Zelt darf sich aber auch neben anderen als dem eigenen Baum befinden."
 
 #. type: Plain text
-#: puzzles.but:2061
+#: puzzles.but:2065
 msgid "No two tents are adjacent horizontally, vertically \\e{or diagonally}."
 msgstr ""
 "Keine zwei Zelte befinden sich horizontal, vertikal \\e{oder diagonal} "
 "nebeneinander."
 
 #. type: Plain text
-#: puzzles.but:2064
+#: puzzles.but:2068
 msgid ""
 "The number of tents in each row, and in each column, matches the numbers "
 "given round the sides of the grid."
@@ -5004,7 +5009,7 @@ msgstr ""
 "die am Rande des Gitters angegeben ist."
 
 #. type: Plain text
-#: puzzles.but:2068
+#: puzzles.but:2072
 msgid ""
 "This puzzle can be found in several places on the Internet, and was brought "
 "to my attention by e-mail. I don't know who I should credit for inventing it."
@@ -5014,23 +5019,23 @@ msgstr ""
 "die Erfindung meinen Dank aussprechen soll."
 
 #. type: Plain text
-#: puzzles.but:2070
+#: puzzles.but:2074
 msgid "\\i{Tents controls}"
 msgstr "\\i{Tents-Steuerung}"
 
 #. type: IM{#1}
-#: puzzles.but:2071
+#: puzzles.but:2075
 msgid "Tents controls"
 msgstr "Tents-Steuerung"
 
 #. type: IM
-#: puzzles.but:2071
+#: puzzles.but:2075
 #, no-wrap
 msgid "controls, for Tents"
 msgstr "Steuerung, von Tents"
 
 #. type: Plain text
-#: puzzles.but:2077
+#: puzzles.but:2081
 msgid ""
 "Left-clicking in a blank square will place a tent in it.  Right-clicking in "
 "a blank square will colour it green, indicating that you are sure it \\e"
@@ -5043,7 +5048,7 @@ msgstr ""
 "bereinigt."
 
 #. type: Plain text
-#: puzzles.but:2082
+#: puzzles.but:2086
 msgid ""
 "If you \\e{drag} with the right button along a row or column, every blank "
 "square in the region you cover will be turned green, and no other squares "
@@ -5056,7 +5061,7 @@ msgstr ""
 "einer Zeile bereinigen wollen, nachdem Sie alle Zelte gesetzt haben.)"
 
 #. type: Plain text
-#: puzzles.but:2087
+#: puzzles.but:2091
 msgid ""
 "You can also use the cursor keys to move around the grid. Pressing the "
 "return key over an empty square will place a tent, and pressing the space "
@@ -5070,12 +5075,12 @@ msgstr ""
 "bereinigen."
 
 #. type: Plain text
-#: puzzles.but:2091
+#: puzzles.but:2095
 msgid "\\I{parameters, for Tents}Tents parameters"
 msgstr "\\I{Parameter, für Tents}Tents-Parameter"
 
 #. type: Plain text
-#: puzzles.but:2104
+#: puzzles.but:2108
 msgid ""
 "Controls the difficulty of the generated puzzle. More difficult puzzles "
 "require more complex deductions, but at present none of the available "
@@ -5086,17 +5091,17 @@ msgstr ""
 "Schwierigkeitsstufen Raten und Rückverfolgung benötigen."
 
 #. type: Plain text
-#: puzzles.but:2107
+#: puzzles.but:2111
 msgid "\\i{Bridges}"
 msgstr "\\i{Bridges}"
 
 #. type: Plain text
-#: puzzles.but:2109
+#: puzzles.but:2113
 msgid "\\cfg{winhelp-topic}{games.bridges}"
 msgstr "\\cfg{winhelp-topic}{games.bridges}"
 
 #. type: Plain text
-#: puzzles.but:2113
+#: puzzles.but:2117
 msgid ""
 "You have a set of islands distributed across the playing area. Each island "
 "contains a number. Your aim is to connect the islands together with bridges, "
@@ -5107,12 +5112,12 @@ msgstr ""
 "Brücken zu verbinden, so dass folgende Bedingungen erfüllt sind:"
 
 #. type: Plain text
-#: puzzles.but:2115
+#: puzzles.but:2119
 msgid "Bridges run horizontally or vertically."
 msgstr "Brücken laufen horizontal oder vertikal."
 
 #. type: Plain text
-#: puzzles.but:2118
+#: puzzles.but:2122
 msgid ""
 "The number of bridges terminating at any island is equal to the number "
 "written in that island."
@@ -5121,7 +5126,7 @@ msgstr ""
 "angegebenen Nummer überein."
 
 #. type: Plain text
-#: puzzles.but:2121
+#: puzzles.but:2125
 msgid ""
 "Two bridges may run in parallel between the same two islands, but no more "
 "than two may do so."
@@ -5130,17 +5135,17 @@ msgstr ""
 "nicht mehr als zwei."
 
 #. type: Plain text
-#: puzzles.but:2123
+#: puzzles.but:2127
 msgid "No bridge crosses another bridge."
 msgstr "Keine Brücke kreuzt eine andere Brücke."
 
 #. type: Plain text
-#: puzzles.but:2125
+#: puzzles.but:2129
 msgid "All the islands are connected together."
 msgstr "Alle Inseln sind mit Brücken verbunden."
 
 #. type: Plain text
-#: puzzles.but:2131
+#: puzzles.but:2135
 msgid ""
 "There are some configurable alternative modes, which involve changing the "
 "parallel-bridge limit to something other than 2, and introducing the "
@@ -5154,17 +5159,17 @@ msgstr ""
 "Regeln sind die Standardregeln."
 
 #. type: Plain text
-#: puzzles.but:2133
+#: puzzles.but:2137
 msgid "Credit for this puzzle goes to \\i{Nikoli} \\k{nikoli-bridges}."
 msgstr "Dank für dieses Puzzle geht an \\i{Nikoli} \\k{nikoli-bridges}."
 
 #. type: Plain text
-#: puzzles.but:2135
+#: puzzles.but:2139
 msgid "Bridges was contributed to this collection by James Harvey."
 msgstr "Bridges wurde von James Harvey zu dieser Sammlung beigesteuert."
 
 #. type: Plain text
-#: puzzles.but:2138
+#: puzzles.but:2142
 msgid ""
 "\\W{http://www.nikoli.co.jp/puzzles/14/index-e.htm}\\cw{http://www.nikoli.co."
 "jp/puzzles/14/index-e.htm}"
@@ -5173,23 +5178,23 @@ msgstr ""
 "jp/puzzles/14/index-e.htm}"
 
 #. type: Plain text
-#: puzzles.but:2140
+#: puzzles.but:2144
 msgid "\\i{Bridges controls}"
 msgstr "\\i{Bridges-Steuerung}"
 
 #. type: IM{#1}
-#: puzzles.but:2141
+#: puzzles.but:2145
 msgid "Bridges controls"
 msgstr "Bridges-Steuerung"
 
 #. type: IM
-#: puzzles.but:2141
+#: puzzles.but:2145
 #, no-wrap
 msgid "controls, for Bridges"
 msgstr "Steuerung, von Bridges"
 
 #. type: Plain text
-#: puzzles.but:2149
+#: puzzles.but:2153
 msgid ""
 "To place a bridge between two islands, click the mouse down on one island "
 "and drag it towards the other. You do not need to drag all the way to the "
@@ -5206,7 +5211,7 @@ msgstr ""
 "bequem Brücken von dieser aus in viele Richtungen werfen.)"
 
 #. type: Plain text
-#: puzzles.but:2154
+#: puzzles.but:2158
 msgid ""
 "Doing this again when a bridge is already present will add another parallel "
 "bridge. If there are already as many bridges between the two islands as "
@@ -5220,7 +5225,7 @@ msgstr ""
 "Brücken wieder entfernen."
 
 #. type: Plain text
-#: puzzles.but:2158
+#: puzzles.but:2162
 msgid ""
 "If you want to remind yourself that two islands definitely \\e{do not} have "
 "a bridge between them, you can right-drag between them in the same way to "
@@ -5231,7 +5236,7 @@ msgstr ""
 "der rechten Maustaste eine \\q{keine-Brücke}-Markierung hinziehen."
 
 #. type: Plain text
-#: puzzles.but:2166
+#: puzzles.but:2170
 msgid ""
 "If you think you have finished with an island (i.e. you have placed all its "
 "bridges and are confident that they are in the right places), you can mark "
@@ -5250,7 +5255,7 @@ msgstr ""
 "bearbeiten."
 
 #. type: Plain text
-#: puzzles.but:2173
+#: puzzles.but:2177
 msgid ""
 "You can also use the cursor keys to move around the grid: if possible the "
 "cursor will always move orthogonally, otherwise it will move towards the "
@@ -5266,24 +5271,24 @@ msgstr ""
 "gefolgt von einer Pfeiltaste wird eine \\q{keine-Brücke}-Markierung gesetzt."
 
 #. type: Plain text
-#: puzzles.but:2175
+#: puzzles.but:2179
 msgid "You can mark an island as finished by pressing the return key twice."
 msgstr ""
 "Durch zweifaches Drücken der Eingabetaste können Sie eine Insel als beendet "
 "markieren."
 
 #. type: Plain text
-#: puzzles.but:2177
+#: puzzles.but:2181
 msgid "Violations of the puzzle rules will be marked in red:"
 msgstr "Verletzungen der Puzzleregeln werden in rot markiert:"
 
 #. type: Plain text
-#: puzzles.but:2179
+#: puzzles.but:2183
 msgid "An island with too many bridges will be highlighted in red."
 msgstr "Eine Insel mit zu vielen Brücken wird in rot hervorgehoben."
 
 #. type: Plain text
-#: puzzles.but:2185
+#: puzzles.but:2189
 msgid ""
 "An island with too few bridges will be highlighted in red if it is "
 "definitely an error (as opposed to merely not being finished yet): if adding "
@@ -5298,7 +5303,7 @@ msgstr ""
 "markiert wurde."
 
 #. type: Plain text
-#: puzzles.but:2192
+#: puzzles.but:2196
 msgid ""
 "A group of islands and bridges may be highlighted in red if it is a closed "
 "subset of the puzzle with no way to connect it to the rest of the islands. "
@@ -5314,7 +5319,7 @@ msgstr ""
 "Gruppe nicht in einer gültigen Lösung enthalten sein kann."
 
 #. type: Plain text
-#: puzzles.but:2196
+#: puzzles.but:2200
 msgid ""
 "If you have selected the (non-default) option to disallow loops in the "
 "solution, a group of bridges which forms a loop will be highlighted."
@@ -5324,22 +5329,22 @@ msgstr ""
 "hervorgehoben. "
 
 #. type: Plain text
-#: puzzles.but:2200
+#: puzzles.but:2204
 msgid "\\I{parameters, for Bridges}Bridges parameters"
 msgstr "\\I{Parameter, für Bridges}Bridges-Parameter"
 
 #. type: Plain text
-#: puzzles.but:2211
+#: puzzles.but:2215
 msgid "Difficulty level of puzzle."
 msgstr "Schwierigkeitsgrad des Puzzles."
 
 #. type: e{#1}
-#: puzzles.but:2213
+#: puzzles.but:2217
 msgid "Allow loops"
 msgstr "Schleifen erlauben"
 
 #. type: Plain text
-#: puzzles.but:2217
+#: puzzles.but:2221
 msgid ""
 "This is set by default. If cleared, puzzles will be generated in such a way "
 "that they are always soluble without creating a loop, and solutions which do "
@@ -5350,12 +5355,12 @@ msgstr ""
 "die eine Schleife enthalten, werden verboten."
 
 #. type: e{#1}
-#: puzzles.but:2219
+#: puzzles.but:2223
 msgid "Max. bridges per direction"
 msgstr "Max. Brücken in jede Richtung"
 
 #. type: Plain text
-#: puzzles.but:2223
+#: puzzles.but:2227
 msgid ""
 "Maximum number of bridges in any particular direction. The default is 2, but "
 "you can change it to 1, 3 or 4. In general, fewer is easier."
@@ -5364,12 +5369,12 @@ msgstr ""
 "können Sie auf 1, 3 oder 4 ändern. Im Allgemeinen sind weniger leichter."
 
 #. type: e{#1}
-#: puzzles.but:2225
+#: puzzles.but:2229
 msgid "%age of island squares"
 msgstr "%age of island squares"
 
 #. type: Plain text
-#: puzzles.but:2229
+#: puzzles.but:2233
 msgid ""
 "Gives a rough percentage of islands the generator will try and lay before "
 "finishing the puzzle. Certain layouts will not manage to lay enough islands; "
@@ -5377,12 +5382,12 @@ msgid ""
 msgstr ""
 
 #. type: e{#1}
-#: puzzles.but:2231
+#: puzzles.but:2235
 msgid "Expansion factor (%age)"
 msgstr "Expansion factor (%age)"
 
 #. type: Plain text
-#: puzzles.but:2238
+#: puzzles.but:2242
 msgid ""
 "The grid generator works by picking an existing island at random (after "
 "first creating an initial island somewhere). It then decides on a direction "
@@ -5399,7 +5404,7 @@ msgstr ""
 "näheren Ort auszuwählen."
 
 #. type: Plain text
-#: puzzles.but:2242
+#: puzzles.but:2250
 msgid ""
 "High expansion factors usually mean easier puzzles with fewer possible "
 "islands; low expansion factors can create lots of tightly-packed islands."
@@ -5409,17 +5414,17 @@ msgstr ""
 "gepackten Inseln führen."
 
 #. type: Plain text
-#: puzzles.but:2245
+#: puzzles.but:2253
 msgid "\\i{Unequal}"
 msgstr "\\i{Unequal}"
 
 #. type: Plain text
-#: puzzles.but:2247
+#: puzzles.but:2255
 msgid "\\cfg{winhelp-topic}{games.unequal}"
 msgstr "\\cfg{winhelp-topic}{games.unequal}"
 
 #. type: Plain text
-#: puzzles.but:2251
+#: puzzles.but:2259
 msgid ""
 "You have a square grid; each square may contain a digit from 1 to the size "
 "of the grid, and some squares have clue signs between them. Your aim is to "
@@ -5431,27 +5436,27 @@ msgstr ""
 "Zahlen zu befüllen, so dass:"
 
 #. type: Plain text
-#: puzzles.but:2253 puzzles.but:2469
+#: puzzles.but:2261 puzzles.but:2477
 msgid "Each row contains only one occurrence of each digit"
 msgstr "Jede Zeile enthält jede Ziffer nur einmal"
 
 #. type: Plain text
-#: puzzles.but:2255 puzzles.but:2471
+#: puzzles.but:2263 puzzles.but:2479
 msgid "Each column contains only one occurrence of each digit"
 msgstr "Jede Spalte enthält jede Ziffer nur einmal"
 
 #. type: Plain text
-#: puzzles.but:2257
+#: puzzles.but:2265
 msgid "All the clue signs are satisfied."
 msgstr "Alle Hinweis-Zeichen sind erfüllt."
 
 #. type: Plain text
-#: puzzles.but:2259
+#: puzzles.but:2267
 msgid "There are two modes for this game, \\q{Unequal} and \\q{Adjacent}."
 msgstr ""
 
 #. type: Plain text
-#: puzzles.but:2263
+#: puzzles.but:2271
 msgid ""
 "In \\q{Unequal} mode, the clue signs are greater-than symbols indicating one "
 "square's value is greater than its neighbour's. In this mode not all clues "
@@ -5459,7 +5464,7 @@ msgid ""
 msgstr ""
 
 #. type: Plain text
-#: puzzles.but:2269
+#: puzzles.but:2277
 msgid ""
 "In \\q{Adjacent} mode, the clue signs are bars indicating one square's value "
 "is numerically adjacent (i.e. one higher or one lower)  than its neighbour. "
@@ -5468,7 +5473,7 @@ msgid ""
 msgstr ""
 
 #. type: Plain text
-#: puzzles.but:2273
+#: puzzles.but:2281
 msgid ""
 "In \\q{Trivial} difficulty level (available via the \\q{Custom} game type "
 "selector), there are no greater-than signs in \\q{Unequal} mode; the puzzle "
@@ -5479,7 +5484,7 @@ msgstr ""
 "darin, dass \\i{Lateinische Quadrat} zu lösen."
 
 #. type: Plain text
-#: puzzles.but:2276
+#: puzzles.but:2284
 msgid ""
 "At the time of writing, the \\q{Unequal} mode of this puzzle is appearing in "
 "the Guardian weekly under the name \\q{\\i{Futoshiki}}."
@@ -5488,33 +5493,33 @@ msgstr ""
 "in der »Guardian weekly« unter dem Namen \\q{\\i{Futoshiki}}."
 
 #. type: Plain text
-#: puzzles.but:2278
+#: puzzles.but:2286
 msgid "Unequal was contributed to this collection by James Harvey."
 msgstr "Unequal wurde von James Harvey zu dieser Sammlung beigesteuert."
 
 #. type: Plain text
-#: puzzles.but:2280
+#: puzzles.but:2288
 msgid "\\i{Unequal controls}"
 msgstr "\\i{Unequal-Steuerung}"
 
 #. type: IM{#1}
-#: puzzles.but:2281
+#: puzzles.but:2289
 msgid "Unequal controls"
 msgstr "Unequal-Steuerung"
 
 #. type: IM
-#: puzzles.but:2281
+#: puzzles.but:2289
 #, no-wrap
 msgid "controls, for Unequal"
 msgstr "Steuerung, von Unequal"
 
 #. type: Plain text
-#: puzzles.but:2284
+#: puzzles.but:2292
 msgid "Unequal shares much of its control system with Solo."
 msgstr "Unequal hat viel mit dem Steuersystem von Solo gemeinsam."
 
 #. type: Plain text
-#: puzzles.but:2289
+#: puzzles.but:2297
 msgid ""
 "To play Unequal, simply click the mouse in any empty square and then type a "
 "digit or letter on the keyboard to fill that square. If you make a mistake, "
@@ -5528,7 +5533,7 @@ msgstr ""
 "zu leeren (oder verwenden Sie die Undo-Funktionalität)."
 
 #. type: Plain text
-#: puzzles.but:2312
+#: puzzles.but:2320
 msgid ""
 "As for Solo, the cursor keys can be used in conjunction with the digit keys "
 "to set numbers or pencil marks. You can also use the 'M' key to auto-fill "
@@ -5543,32 +5548,32 @@ msgstr ""
 "entfernen."
 
 #. type: Plain text
-#: puzzles.but:2322
+#: puzzles.but:2330
 msgid "\\I{parameters, for Unequal}Unequal parameters"
 msgstr "\\I{Parameter, für Unequal}Unequal-Parameter"
 
 #. type: e{#1}
-#: puzzles.but:2327
+#: puzzles.but:2335
 msgid "Mode"
 msgstr "Modus"
 
 #. type: Plain text
-#: puzzles.but:2329
+#: puzzles.but:2337
 msgid "Mode of the puzzle (\\q{Unequal} or \\q{Adjacent})"
 msgstr ""
 
 #. type: e{#1}
-#: puzzles.but:2331
+#: puzzles.but:2339
 msgid "Size (s*s)"
 msgstr "Größe (g*g)"
 
 #. type: Plain text
-#: puzzles.but:2333
+#: puzzles.but:2341
 msgid "Size of grid."
 msgstr "Größe des Gitters."
 
 #. type: Plain text
-#: puzzles.but:2342
+#: puzzles.but:2350
 msgid ""
 "Controls the difficulty of the generated puzzle. At Trivial level, there are "
 "no greater-than signs; the puzzle is to solve the Latin square only. At "
@@ -5585,17 +5590,17 @@ msgstr ""
 "Argumentation um Rückverfolgung zu vermeiden."
 
 #. type: Plain text
-#: puzzles.but:2346
+#: puzzles.but:2354
 msgid "\\i{Galaxies}"
 msgstr "\\i{Galaxies}"
 
 #. type: Plain text
-#: puzzles.but:2348
+#: puzzles.but:2356
 msgid "\\cfg{winhelp-topic}{games.galaxies}"
 msgstr "\\cfg{winhelp-topic}{games.galaxies}"
 
 #. type: Plain text
-#: puzzles.but:2354
+#: puzzles.but:2362
 msgid ""
 "You have a rectangular grid containing a number of dots. Your aim is to draw "
 "edges along the grid lines which divide the rectangle into regions in such a "
@@ -5609,7 +5614,7 @@ msgstr ""
 "enthalten."
 
 #. type: Plain text
-#: puzzles.but:2358
+#: puzzles.but:2366
 msgid ""
 "This puzzle was invented by \\i{Nikoli} \\k{nikoli-galaxies}, under the name "
 "\\q{Tentai Show}; its name is commonly translated into English as \\q{Spiral "
@@ -5620,12 +5625,12 @@ msgstr ""
 "ins Englische übersetzt."
 
 #. type: Plain text
-#: puzzles.but:2360
+#: puzzles.but:2368
 msgid "Galaxies was contributed to this collection by James Harvey."
 msgstr "Galaxies wurde von James Harvey zu dieser Sammlung beigesteuert."
 
 #. type: Plain text
-#: puzzles.but:2362
+#: puzzles.but:2370
 msgid ""
 "\\W{http://www.nikoli.co.jp/en/puzzles/astronomical_show/}\\cw{http://www."
 "nikoli.co.jp/en/puzzles/astronomical_show/}"
@@ -5634,23 +5639,23 @@ msgstr ""
 "nikoli.co.jp/en/puzzles/astronomical_show/}"
 
 #. type: Plain text
-#: puzzles.but:2364
+#: puzzles.but:2372
 msgid "\\i{Galaxies controls}"
 msgstr "\\i{Galaxies-Steuerung}"
 
 #. type: IM{#1}
-#: puzzles.but:2365
+#: puzzles.but:2373
 msgid "Galaxies controls"
 msgstr "Galaxies-Steuerung"
 
 #. type: IM
-#: puzzles.but:2365
+#: puzzles.but:2373
 #, no-wrap
 msgid "controls, for Galaxies"
 msgstr "Steuerung, von Galaxies"
 
 #. type: Plain text
-#: puzzles.but:2373
+#: puzzles.but:2381
 msgid ""
 "Left-click on any grid line to draw an edge if there isn't one already, or "
 "to remove one if there is. When you create a valid region (one which is "
@@ -5666,7 +5671,7 @@ msgstr ""
 "darin, das gesamte Gitter auf diese Weise hervorgehoben zu bekommen."
 
 #. type: Plain text
-#: puzzles.but:2385
+#: puzzles.but:2393
 msgid ""
 "During solving, you might know that a particular grid square belongs to a "
 "specific dot, but not be sure of where the edges go and which other squares "
@@ -5694,7 +5699,7 @@ msgstr ""
 "auf den Elternpunkt zu zeigen."
 
 #. type: Plain text
-#: puzzles.but:2392
+#: puzzles.but:2400
 msgid ""
 "You can also use the cursor keys to move around the grid squares and lines.  "
 "Pressing the return key when over a grid line will draw or clear its edge, "
@@ -5712,12 +5717,12 @@ msgstr ""
 "einen Punkt oder einen anderen Pfeil zu entfernen."
 
 #. type: Plain text
-#: puzzles.but:2396
+#: puzzles.but:2404
 msgid "\\I{parameters, for Galaxies}Galaxies parameters"
 msgstr "\\I{Parameter, für Galaxies}Galaxies-Parameter"
 
 #. type: Plain text
-#: puzzles.but:2409
+#: puzzles.but:2417
 msgid ""
 "Controls the difficulty of the generated puzzle. More difficult puzzles "
 "require more complex deductions, and the \\q{Unreasonable} difficulty level "
@@ -5728,17 +5733,17 @@ msgstr ""
 "{Unvernünftig} könnte Rückverfolgung notwendig sein."
 
 #. type: Plain text
-#: puzzles.but:2413
+#: puzzles.but:2421
 msgid "\\i{Filling}"
 msgstr "\\i{Filling}"
 
 #. type: Plain text
-#: puzzles.but:2415
+#: puzzles.but:2423
 msgid "\\cfg{winhelp-topic}{games.filling}"
 msgstr "\\cfg{winhelp-topic}{games.filling}"
 
 #. type: Plain text
-#: puzzles.but:2420
+#: puzzles.but:2428
 msgid ""
 "You have a grid of squares, some of which contain digits, and the rest of "
 "which are empty. Your job is to fill in digits in the empty squares, in such "
@@ -5752,7 +5757,7 @@ msgstr ""
 "Ziffer entspricht."
 
 #. type: Plain text
-#: puzzles.but:2423
+#: puzzles.but:2431
 msgid ""
 "(\\q{Connected region}, for the purposes of this game, does not count "
 "diagonally separated squares as adjacent.)"
@@ -5761,7 +5766,7 @@ msgstr ""
 "{verbundenen Regionen} nicht als benachbart.)"
 
 #. type: Plain text
-#: puzzles.but:2428
+#: puzzles.but:2436
 msgid ""
 "For example, it follows that no square can contain a zero, and that two "
 "adjacent squares can not both contain a one.  No region has an area greater "
@@ -5772,18 +5777,18 @@ msgstr ""
 "9 (da dann sein Gebiet nicht eine einzelne Ziffer wäre)."
 
 #. type: Plain text
-#: puzzles.but:2430
+#: puzzles.but:2438
 msgid "Credit for this puzzle goes to \\i{Nikoli} \\k{nikoli-fillomino}."
 msgstr "Dank für dieses Puzzle geht an \\i{Nikoli} \\k{nikoli-fillomino}."
 
 #. type: Plain text
-#: puzzles.but:2432
+#: puzzles.but:2440
 msgid "Filling was contributed to this collection by Jonas K\\u00F6{oe}lker."
 msgstr ""
 "Filling wurde von Jonas K\\u00F6{oe}lker zu dieser Sammlung beigesteuert."
 
 #. type: Plain text
-#: puzzles.but:2435
+#: puzzles.but:2443
 msgid ""
 "\\W{http://www.nikoli.co.jp/en/puzzles/fillomino/}\\cw{http://www.nikoli.co."
 "jp/en/puzzles/fillomino/}"
@@ -5792,12 +5797,12 @@ msgstr ""
 "jp/en/puzzles/fillomino/}"
 
 #. type: Plain text
-#: puzzles.but:2437
+#: puzzles.but:2445
 msgid "\\I{controls, for Filling}Filling controls"
 msgstr "\\I{Steuerung, von Filling}Filling-Steuerung"
 
 #. type: Plain text
-#: puzzles.but:2444
+#: puzzles.but:2452
 msgid ""
 "To play Filling, simply click the mouse in any empty square and then type a "
 "digit on the keyboard to fill that square. By dragging the mouse, you can "
@@ -5814,7 +5819,7 @@ msgstr ""
 "verwenden Sie die Undo-Funktion)."
 
 #. type: Plain text
-#: puzzles.but:2450
+#: puzzles.but:2458
 msgid ""
 "You can also move around the grid with the cursor keys; typing a digit will "
 "fill the square containing the cursor with that number, or typing 0, Space, "
@@ -5830,12 +5835,12 @@ msgstr ""
 "hervorgehobenes Quadrat die Eingabetaste drücken (wie oben)."
 
 #. type: Plain text
-#: puzzles.but:2454
+#: puzzles.but:2462
 msgid "\\I{parameters, for Filling}Filling parameters"
 msgstr "\\I{Parameter, für Filling}Filling-Parameter"
 
 #. type: Plain text
-#: puzzles.but:2457
+#: puzzles.but:2465
 msgid ""
 "Filling allows you to configure the number of rows and columns of the grid, "
 "through the \\q{Type} menu."
@@ -5844,17 +5849,17 @@ msgstr ""
 "des \\q{Art}-Menüs einzustellen."
 
 #. type: Plain text
-#: puzzles.but:2460
+#: puzzles.but:2468
 msgid "\\i{Keen}"
 msgstr "\\i{Keen}"
 
 #. type: Plain text
-#: puzzles.but:2462
+#: puzzles.but:2470
 msgid "\\cfg{winhelp-topic}{games.keen}"
 msgstr "\\cfg{winhelp-topic}{games.keen}"
 
 #. type: Plain text
-#: puzzles.but:2467
+#: puzzles.but:2475
 msgid ""
 "You have a square grid; each square may contain a digit from 1 to the size "
 "of the grid. The grid is divided into blocks of varying shape and size, with "
@@ -5863,14 +5868,14 @@ msgid ""
 msgstr ""
 
 #. type: Plain text
-#: puzzles.but:2475
+#: puzzles.but:2483
 msgid ""
 "The digits in each block can be combined to form the number stated in the "
 "clue, using the arithmetic operation given in the clue. That is:"
 msgstr ""
 
 #. type: Plain text
-#: puzzles.but:2502
+#: puzzles.but:2510
 msgid ""
 "An addition clue means that the sum of the digits in the block must be the "
 "given number. For example, \\q{15+} means the contents of the block adds up "
@@ -5878,14 +5883,14 @@ msgid ""
 msgstr ""
 
 #. type: Plain text
-#: puzzles.but:2502
+#: puzzles.but:2510
 msgid ""
 "A multiplication clue (e.g. \\q{60\\times}), similarly, means that the "
 "product of the digits in the block must be the given number."
 msgstr ""
 
 #. type: Plain text
-#: puzzles.but:2502
+#: puzzles.but:2510
 msgid ""
 "A subtraction clue will always be written in a block of size two, and it "
 "means that one of the digits in the block is greater than the other by the "
@@ -5895,7 +5900,7 @@ msgid ""
 msgstr ""
 
 #. type: Plain text
-#: puzzles.but:2502
+#: puzzles.but:2510
 msgid ""
 "A division clue (e.g. \\q{3\\divide}), similarly, is always in a block of "
 "size two and means that one digit divided by the other is equal to the given "
@@ -5903,7 +5908,7 @@ msgid ""
 msgstr ""
 
 #. type: Plain text
-#: puzzles.but:2502
+#: puzzles.but:2510
 msgid ""
 "Note that a block may contain the same digit more than once (provided the "
 "identical ones are not in the same row and column).  This rule is precisely "
@@ -5911,33 +5916,33 @@ msgid ""
 msgstr ""
 
 #. type: Plain text
-#: puzzles.but:2504
+#: puzzles.but:2512
 msgid "This puzzle appears in the Times under the name \\q{\\i{KenKen}}."
 msgstr ""
 
 #. type: Plain text
-#: puzzles.but:2507
+#: puzzles.but:2515
 msgid "\\i{Keen controls}"
 msgstr "\\i{Keen-Steuerung}"
 
 #. type: IM{#1}
-#: puzzles.but:2508
+#: puzzles.but:2516
 msgid "Keen controls"
 msgstr "Keen-Steuerung"
 
 #. type: IM
-#: puzzles.but:2508
+#: puzzles.but:2516
 #, no-wrap
 msgid "controls, for Keen"
 msgstr "Steuerung, von Keen"
 
 #. type: Plain text
-#: puzzles.but:2511
+#: puzzles.but:2519
 msgid "Keen shares much of its control system with Solo (and Unequal)."
 msgstr "Keen hat viel mit dem Steuersystem von Solo (und Unequal) gemeinsam."
 
 #. type: Plain text
-#: puzzles.but:2516
+#: puzzles.but:2524
 msgid ""
 "To play Keen, simply click the mouse in any empty square and then type a "
 "digit on the keyboard to fill that square. If you make a mistake, click the "
@@ -5951,7 +5956,7 @@ msgstr ""
 "wieder zu leeren (oder verwenden Sie die Undo-Funktion)."
 
 #. type: Plain text
-#: puzzles.but:2540 puzzles.but:2630
+#: puzzles.but:2548 puzzles.but:2638
 msgid ""
 "As for Solo, the cursor keys can be used in conjunction with the digit keys "
 "to set numbers or pencil marks. Use the cursor keys to move a highlight "
@@ -5961,24 +5966,24 @@ msgid ""
 msgstr ""
 
 #. type: Plain text
-#: puzzles.but:2543 puzzles.but:2633
+#: puzzles.but:2551 puzzles.but:2641
 msgid ""
 "Pressing M will fill in a full set of pencil marks in every square that does "
 "not have a main digit in it."
 msgstr ""
 
 #. type: Plain text
-#: puzzles.but:2547
+#: puzzles.but:2555
 msgid "\\I{parameters, for Keen}Keen parameters"
 msgstr "\\I{Parameter, für Keen}Keen-Parameter"
 
 #. type: e{#1}
-#: puzzles.but:2552 puzzles.but:2642
+#: puzzles.but:2560 puzzles.but:2650
 msgid "Grid size"
 msgstr "Gittergröße"
 
 #. type: Plain text
-#: puzzles.but:2556 puzzles.but:2646
+#: puzzles.but:2564 puzzles.but:2654
 msgid ""
 "Specifies the size of the grid. Lower limit is 3; upper limit is 9 (because "
 "the user interface would become more difficult with \\q{digits} bigger than "
@@ -5986,7 +5991,7 @@ msgid ""
 msgstr ""
 
 #. type: Plain text
-#: puzzles.but:2563 puzzles.but:2653
+#: puzzles.but:2571 puzzles.but:2661
 msgid ""
 "Controls the difficulty of the generated puzzle. At Unreasonable level, some "
 "backtracking will be required, but the solution should still be unique. The "
@@ -5995,17 +6000,17 @@ msgid ""
 msgstr ""
 
 #. type: Plain text
-#: puzzles.but:2566
+#: puzzles.but:2574
 msgid "\\i{Towers}"
 msgstr "\\i{Towers}"
 
 #. type: Plain text
-#: puzzles.but:2568
+#: puzzles.but:2576
 msgid "\\cfg{winhelp-topic}{games.towers}"
 msgstr "\\cfg{winhelp-topic}{games.towers}"
 
 #. type: Plain text
-#: puzzles.but:2572
+#: puzzles.but:2580
 msgid ""
 "You have a square grid. On each square of the grid you can build a tower, "
 "with its height ranging from 1 to the size of the grid.  Around the edge of "
@@ -6013,22 +6018,22 @@ msgid ""
 msgstr ""
 
 #. type: Plain text
-#: puzzles.but:2574
+#: puzzles.but:2582
 msgid "Your task is to build a tower on every square, in such a way that:"
 msgstr ""
 
 #. type: Plain text
-#: puzzles.but:2576
+#: puzzles.but:2584
 msgid "Each row contains every possible height of tower once"
 msgstr ""
 
 #. type: Plain text
-#: puzzles.but:2578
+#: puzzles.but:2586
 msgid "Each column contains every possible height of tower once"
 msgstr ""
 
 #. type: Plain text
-#: puzzles.but:2586
+#: puzzles.but:2594
 msgid ""
 "Each numeric clue describes the number of towers that can be seen if you "
 "look into the square from that direction, assuming that shorter towers are "
@@ -6040,43 +6045,43 @@ msgid ""
 msgstr ""
 
 #. type: Plain text
-#: puzzles.but:2590
+#: puzzles.but:2598
 msgid ""
 "In harder or larger puzzles, some towers will be specified for you as well "
 "as the clues round the edge, and some edge clues may be missing."
 msgstr ""
 
 #. type: Plain text
-#: puzzles.but:2593
+#: puzzles.but:2601
 msgid ""
 "This puzzle appears on the web under various names, particularly \\q{\\i"
 "{Skyscrapers}}, but I don't know who first invented it."
 msgstr ""
 
 #. type: Plain text
-#: puzzles.but:2596
+#: puzzles.but:2604
 msgid "\\i{Towers controls}"
 msgstr "\\i{Towers-Steuerung}"
 
 #. type: IM{#1}
-#: puzzles.but:2597
+#: puzzles.but:2605
 msgid "Towers controls"
 msgstr "Towers-Steuerung"
 
 #. type: IM
-#: puzzles.but:2597
+#: puzzles.but:2605
 #, no-wrap
 msgid "controls, for Towers"
 msgstr "Steuerung, von Towers"
 
 #. type: Plain text
-#: puzzles.but:2600
+#: puzzles.but:2608
 msgid "Towers shares much of its control system with Solo, Unequal and Keen."
 msgstr ""
 "Towers hat viel mit dem Steuersystem von Solo, Unequal und Keen gemeinsam."
 
 #. type: Plain text
-#: puzzles.but:2606
+#: puzzles.but:2614
 msgid ""
 "To play Towers, simply click the mouse in any empty square and then type a "
 "digit on the keyboard to fill that square with a tower of the given height. "
@@ -6090,7 +6095,7 @@ msgstr ""
 "wieder zu leeren (oder verwenden Sie die Undo-Funktion)."
 
 #. type: Plain text
-#: puzzles.but:2611
+#: puzzles.but:2619
 msgid ""
 "If you \\e{right}-click in a square and then type a number, that number will "
 "be entered in the square as a \\q{pencil mark}. You can have pencil marks "
@@ -6104,22 +6109,22 @@ msgstr ""
 "über Bleistiftmarkierungen verfügen."
 
 #. type: Plain text
-#: puzzles.but:2637
+#: puzzles.but:2645
 msgid "\\I{parameters, for Towers}Towers parameters"
 msgstr "\\I{Parameter, für Towers}Towers-Parameter"
 
 #. type: Plain text
-#: puzzles.but:2656
+#: puzzles.but:2664
 msgid "\\i{Singles}"
 msgstr "\\i{Singles}"
 
 #. type: Plain text
-#: puzzles.but:2658
+#: puzzles.but:2666
 msgid "\\cfg{winhelp-topic}{games.singles}"
 msgstr "\\cfg{winhelp-topic}{games.singles}"
 
 #. type: Plain text
-#: puzzles.but:2662
+#: puzzles.but:2670
 msgid ""
 "You have a grid of white squares, all of which contain numbers. Your task is "
 "to colour some of the squares black (removing the number) so as to satisfy "
@@ -6127,26 +6132,26 @@ msgid ""
 msgstr ""
 
 #. type: Plain text
-#: puzzles.but:2664
+#: puzzles.but:2672
 msgid "No number occurs more than once in any row or column."
 msgstr ""
 
 #. type: Plain text
-#: puzzles.but:2667
+#: puzzles.but:2675
 msgid ""
 "No black square is horizontally or vertically adjacent to any other black "
 "square."
 msgstr ""
 
 #. type: Plain text
-#: puzzles.but:2670
+#: puzzles.but:2678
 msgid ""
 "The remaining white squares must all form one contiguous region (connected "
 "by edges, not just touching at corners)."
 msgstr ""
 
 #. type: Plain text
-#: puzzles.but:2673
+#: puzzles.but:2681
 msgid ""
 "Credit for this puzzle goes to \\i{Nikoli} \\k{nikoli-hitori} who call it \\i"
 "{Hitori}."
@@ -6155,12 +6160,12 @@ msgstr ""
 "{Hitori} genannt hat."
 
 #. type: Plain text
-#: puzzles.but:2675
+#: puzzles.but:2683
 msgid "Singles was contributed to this collection by James Harvey."
 msgstr "Singles wurde von James Harvey zu dieser Sammlung beigesteuert."
 
 #. type: Plain text
-#: puzzles.but:2679
+#: puzzles.but:2687
 msgid ""
 "\\W{http://www.nikoli.com/en/puzzles/hitori/index.html}\\cw{http://www."
 "nikoli.com/en/puzzles/hitori/index.html} (beware of Flash)"
@@ -6169,23 +6174,23 @@ msgstr ""
 "nikoli.com/en/puzzles/hitori/index.html} (Achtung Flash)"
 
 #. type: Plain text
-#: puzzles.but:2681
+#: puzzles.but:2689
 msgid "\\i{Singles controls}"
 msgstr "\\i{Singles-Steuerung}"
 
 #. type: IM{#1}
-#: puzzles.but:2682
+#: puzzles.but:2690
 msgid "Singles controls"
 msgstr "Singles-Steuerung"
 
 #. type: IM
-#: puzzles.but:2682
+#: puzzles.but:2690
 #, no-wrap
 msgid "controls, for Singles"
 msgstr "Steuerung, von Singles"
 
 #. type: Plain text
-#: puzzles.but:2687
+#: puzzles.but:2695
 msgid ""
 "Left-clicking on an empty square will colour it black; left-clicking again "
 "will restore the number. Right-clicking will add a circle (useful for "
@@ -6193,7 +6198,7 @@ msgid ""
 msgstr ""
 
 #. type: Plain text
-#: puzzles.but:2691
+#: puzzles.but:2699
 msgid ""
 "You can also use the cursor keys to move around the grid. Pressing the "
 "return or space keys will turn a square black or add a circle respectively, "
@@ -6201,27 +6206,27 @@ msgid ""
 msgstr ""
 
 #. type: Plain text
-#: puzzles.but:2695
+#: puzzles.but:2703
 msgid "\\I{parameters, for Singles}Singles parameters"
 msgstr "\\I{Parameter, für Singles}Singles-Parameter"
 
 #. type: Plain text
-#: puzzles.but:2706 puzzles.but:2981
+#: puzzles.but:2714 puzzles.but:3070 puzzles.but:3117
 msgid "Controls the difficulty of the generated puzzle."
 msgstr "Steuert die Schwierigkeit des generierten Puzzles."
 
 #. type: Plain text
-#: puzzles.but:2709
+#: puzzles.but:2717
 msgid "\\i{Magnets}"
 msgstr "\\i{Magnets}"
 
 #. type: Plain text
-#: puzzles.but:2711
+#: puzzles.but:2719
 msgid "\\cfg{winhelp-topic}{games.magnets}"
 msgstr "\\cfg{winhelp-topic}{games.magnets}"
 
 #. type: Plain text
-#: puzzles.but:2718
+#: puzzles.but:2726
 msgid ""
 "A rectangular grid has been filled with a mixture of magnets (that is, "
 "dominoes with one positive end and one negative end) and blank dominoes "
@@ -6232,7 +6237,7 @@ msgid ""
 msgstr ""
 
 #. type: Plain text
-#: puzzles.but:2723
+#: puzzles.but:2731
 msgid ""
 "Your aim is to correctly place the magnets and blank dominoes such that all "
 "the clues are satisfied, with the additional constraint that no two similar "
@@ -6241,17 +6246,17 @@ msgid ""
 msgstr ""
 
 #. type: Plain text
-#: puzzles.but:2725
+#: puzzles.but:2733
 msgid "Credit for this puzzle goes to \\i{Janko} \\k{janko-magnets}."
 msgstr "Dank für dieses Puzzle geht an \\i{Janko} \\k{janko-magnets}."
 
 #. type: Plain text
-#: puzzles.but:2727
+#: puzzles.but:2735
 msgid "Magnets was contributed to this collection by James Harvey."
 msgstr "Magnets wurde von James Harvey zu dieser Sammlung beigesteuert."
 
 #. type: Plain text
-#: puzzles.but:2730
+#: puzzles.but:2738
 msgid ""
 "\\W{http://www.janko.at/Raetsel/Magnete/index.htm}\\cw{http://www.janko.at/"
 "Raetsel/Magnete/index.htm}"
@@ -6260,23 +6265,23 @@ msgstr ""
 "Raetsel/Magnete/index.htm}"
 
 #. type: Plain text
-#: puzzles.but:2732
+#: puzzles.but:2740
 msgid "\\i{Magnets controls}"
 msgstr "\\i{Magnets-Steuerung}"
 
 #. type: IM{#1}
-#: puzzles.but:2733
+#: puzzles.but:2741
 msgid "Magnets controls"
 msgstr "Magnets-Steuerung"
 
 #. type: IM
-#: puzzles.but:2733
+#: puzzles.but:2741
 #, no-wrap
 msgid "controls, for Magnets"
 msgstr "Steuerung, von Magnets"
 
 #. type: Plain text
-#: puzzles.but:2739
+#: puzzles.but:2747
 msgid ""
 "Left-clicking on an empty square places a magnet at that position with the "
 "positive pole on the square and the negative pole on the other half of the "
@@ -6285,7 +6290,7 @@ msgid ""
 msgstr ""
 
 #. type: Plain text
-#: puzzles.but:2744
+#: puzzles.but:2752
 msgid ""
 "Right-clicking on an empty square places a blank domino there.  Right-"
 "clicking again places two question marks on the domino, signifying \\q{this "
@@ -6294,7 +6299,7 @@ msgid ""
 msgstr ""
 
 #. type: Plain text
-#: puzzles.but:2750
+#: puzzles.but:2758
 msgid ""
 "You can also use the cursor keys to move a cursor around the grid.  Pressing "
 "the return key will lay a domino with a positive pole at that position; "
@@ -6304,53 +6309,53 @@ msgid ""
 msgstr ""
 
 #. type: Plain text
-#: puzzles.but:2754
+#: puzzles.but:2762
 msgid "\\I{parameters, for Magnets}Magnets parameters"
 msgstr "\\I{Parameter, für Magnets}Magnets-Parameter"
 
 #. type: Plain text
-#: puzzles.but:2762
+#: puzzles.but:2770
 msgid ""
 "Size of grid in squares. There will be half \\e{Width} \\by \\e{Height} "
 "dominoes in the grid: if this number is odd then one square will be blank."
 msgstr ""
 
 #. type: Plain text
-#: puzzles.but:2764
+#: puzzles.but:2776
 msgid "(Grids with at least one odd dimension tend to be easier to solve.)"
 msgstr ""
 
 #. type: Plain text
-#: puzzles.but:2770
+#: puzzles.but:2782
 msgid ""
 "Controls the difficulty of the generated puzzle. At Tricky level, you are "
 "required to make more deductions about empty dominoes and row/column counts."
 msgstr ""
 
 #. type: e{#1}
-#: puzzles.but:2772
+#: puzzles.but:2784
 msgid "Strip clues"
 msgstr "Hinweise entfernen"
 
 #. type: Plain text
-#: puzzles.but:2775
+#: puzzles.but:2787
 msgid ""
 "If true, some of the clues around the grid are removed at generation time, "
 "making the puzzle more difficult."
 msgstr ""
 
 #. type: Plain text
-#: puzzles.but:2778
+#: puzzles.but:2790
 msgid "\\i{Signpost}"
 msgstr "\\i{Signpost}"
 
 #. type: Plain text
-#: puzzles.but:2780
+#: puzzles.but:2792
 msgid "\\cfg{winhelp-topic}{games.signpost}"
 msgstr "\\cfg{winhelp-topic}{games.signpost}"
 
 #. type: Plain text
-#: puzzles.but:2790
+#: puzzles.but:2802
 msgid ""
 "You have a grid of squares; each square (except the last one)  contains an "
 "arrow, and some squares also contain numbers. Your job is to connect the "
@@ -6363,14 +6368,14 @@ msgid ""
 msgstr ""
 
 #. type: Plain text
-#: puzzles.but:2793
+#: puzzles.but:2805
 msgid ""
 "By convention the first and last numbers are shown; one or more interim "
 "numbers may also appear at the beginning."
 msgstr ""
 
 #. type: Plain text
-#: puzzles.but:2796
+#: puzzles.but:2808
 msgid ""
 "Credit for this puzzle goes to \\i{Janko} \\k{janko-arrowpath}, who call it "
 "\\q{Pfeilpfad} (\\q{arrow path})."
@@ -6379,12 +6384,12 @@ msgstr ""
 "{Pfeilpad} genannt hat."
 
 #. type: Plain text
-#: puzzles.but:2798
+#: puzzles.but:2810
 msgid "Signpost was contributed to this collection by James Harvey."
 msgstr "Signpost wurde von James Harvey zu dieser Sammlung beigesteuert."
 
 #. type: Plain text
-#: puzzles.but:2801
+#: puzzles.but:2813
 msgid ""
 "\\W{http://janko.at/Raetsel/Pfeilpfad/index.htm}\\cw{http://janko.at/Raetsel/"
 "Pfeilpfad/index.htm}"
@@ -6393,12 +6398,12 @@ msgstr ""
 "Pfeilpfad/index.htm}"
 
 #. type: Plain text
-#: puzzles.but:2803
+#: puzzles.but:2815
 msgid "\\I{controls, for Signpost}Signpost controls"
 msgstr "\\I{Steuerung, von Signpost}Signpost-Steuerung"
 
 #. type: Plain text
-#: puzzles.but:2808
+#: puzzles.but:2820
 msgid ""
 "To play Signpost, you connect squares together by dragging from one square "
 "to another, indicating that they are adjacent in the sequence. Drag with the "
@@ -6407,7 +6412,7 @@ msgid ""
 msgstr ""
 
 #. type: Plain text
-#: puzzles.but:2816
+#: puzzles.but:2828
 msgid ""
 "If you connect together two squares in this way and one of them has a number "
 "in it, the appropriate number will appear in the other square. If you "
@@ -6418,14 +6423,14 @@ msgid ""
 msgstr ""
 
 #. type: Plain text
-#: puzzles.but:2819
+#: puzzles.but:2831
 msgid ""
 "When you left-click or right-click in a square, the legal squares to connect "
 "it to will be shown."
 msgstr ""
 
 #. type: Plain text
-#: puzzles.but:2825
+#: puzzles.but:2837
 msgid ""
 "The arrow in each square starts off black, and goes grey once you connect "
 "the square to its successor. Also, each square which needs a predecessor has "
@@ -6435,7 +6440,7 @@ msgid ""
 msgstr ""
 
 #. type: Plain text
-#: puzzles.but:2829
+#: puzzles.but:2841
 msgid ""
 "To remove any links for a particular square (both incoming and outgoing), "
 "left-drag it off the grid. To remove a whole chain, right-drag any square in "
@@ -6443,7 +6448,7 @@ msgid ""
 msgstr ""
 
 #. type: Plain text
-#: puzzles.but:2836
+#: puzzles.but:2848
 msgid ""
 "You can also use the cursor keys to move around the grid squares and lines. "
 "Pressing the return key when over a square starts a link operation, and "
@@ -6454,17 +6459,17 @@ msgid ""
 msgstr ""
 
 #. type: Plain text
-#: puzzles.but:2840
+#: puzzles.but:2852
 msgid "\\I{parameters, for Signpost}Signpost parameters"
 msgstr "\\I{Parameter, für Signpost}Signpost-Parameter"
 
 #. type: e{#1}
-#: puzzles.but:2849
+#: puzzles.but:2861
 msgid "Force start/end to corners"
 msgstr "Start- und Endpunkte in Ecken"
 
 #. type: Plain text
-#: puzzles.but:2853
+#: puzzles.but:2865
 msgid ""
 "If true, the start and end squares are always placed in opposite corners "
 "(the start at the top left, and the end at the bottom right). If false the "
@@ -6472,49 +6477,50 @@ msgid ""
 msgstr ""
 
 #. type: Plain text
-#: puzzles.but:2855
+#: puzzles.but:2867
 msgid "\\i{Range}"
 msgstr "\\i{Range}"
 
 #. type: Plain text
-#: puzzles.but:2857
+#: puzzles.but:2869
 msgid "\\cfg{winhelp-topic}{games.range}"
 msgstr "\\cfg{winhelp-topic}{games.range}"
 
 #. type: Plain text
-#: puzzles.but:2861
+#: puzzles.but:2873
 msgid ""
 "You have a grid of squares; some squares contain numbers.  Your job is to "
 "colour some of the squares black, such that several criteria are satisfied:"
 msgstr ""
 
 #. type: Plain text
-#: puzzles.but:2863
+#: puzzles.but:2875
 msgid "no square with a number is coloured black."
 msgstr ""
 
 #. type: Plain text
-#: puzzles.but:2865
+#: puzzles.but:2877
 msgid "no two black squares are adjacent (horizontally or vertically)."
 msgstr ""
 
 #. type: Plain text
-#: puzzles.but:2868
+#: puzzles.but:2880
 msgid ""
 "for any two white squares, there is a path between them using only white "
 "squares."
 msgstr ""
 
 #. type: Plain text
-#: puzzles.but:2872
+#: puzzles.but:2886
 msgid ""
-"for each square with a number, that number denotes the number of squares "
-"reachable from that square going in each direction until hitting a wall or a "
-"black square."
+"for each square with a number, that number denotes the total number of white "
+"squares reachable from that square going in a straight line in any "
+"horizontal or vertical direction until hitting a wall or a black square; the "
+"square with the number is included in the total (once)."
 msgstr ""
 
 #. type: Plain text
-#: puzzles.but:2878
+#: puzzles.but:2892
 msgid ""
 "For instance, a square containing the number one must have four black "
 "squares as its neighbours by the last criterion; but then it's impossible "
@@ -6523,20 +6529,20 @@ msgid ""
 msgstr ""
 
 #. type: Plain text
-#: puzzles.but:2882
+#: puzzles.but:2896
 msgid ""
 "Credit for this puzzle goes to \\i{Nikoli}, who have variously called it \\q"
 "{Kurodoko}, \\q{Kuromasu} or \\q{Where is Black Cells}.  \\k{nikoli-range}."
 msgstr ""
 
 #. type: Plain text
-#: puzzles.but:2884
+#: puzzles.but:2898
 msgid "Range was contributed to this collection by Jonas K\\u00F6{oe}lker."
 msgstr ""
 "Range wurde von Jonas K\\u00F6{oe}lker zu dieser Sammlung beigesteuert."
 
 #. type: Plain text
-#: puzzles.but:2887
+#: puzzles.but:2901
 msgid ""
 "\\W{http://www.nikoli.co.jp/en/puzzles/where_is_black_cells/}\\cw{http://www."
 "nikoli.co.jp/en/puzzles/where_is_black_cells/}"
@@ -6545,12 +6551,12 @@ msgstr ""
 "nikoli.co.jp/en/puzzles/where_is_black_cells/}"
 
 #. type: Plain text
-#: puzzles.but:2889
+#: puzzles.but:2903
 msgid "\\I{controls, for Range}Range controls"
 msgstr "\\I{Steuerung, von Range}Range-Steuerung"
 
 #. type: Plain text
-#: puzzles.but:2895
+#: puzzles.but:2909
 msgid ""
 "Click with the left button to paint a square black, or with the right button "
 "to mark a square with a dot to indicate that you are sure it should \\e{not} "
@@ -6560,7 +6566,7 @@ msgid ""
 msgstr ""
 
 #. type: Plain text
-#: puzzles.but:2899
+#: puzzles.but:2913
 msgid ""
 "You can also use the cursor keys to move around the grid squares.  Pressing "
 "Return does the same as clicking with the left button, while pressing Space "
@@ -6568,22 +6574,22 @@ msgid ""
 msgstr ""
 
 #. type: Plain text
-#: puzzles.but:2903
+#: puzzles.but:2917
 msgid "\\I{parameters, for Range}Range parameters"
 msgstr "\\I{Parameter, für Range}Range-Parameter"
 
 #. type: Plain text
-#: puzzles.but:2912
+#: puzzles.but:2926
 msgid "\\i{Pearl}"
 msgstr "\\i{Pearl}"
 
 #. type: Plain text
-#: puzzles.but:2914
+#: puzzles.but:2928
 msgid "\\cfg{winhelp-topic}{games.pearl}"
 msgstr "\\cfg{winhelp-topic}{games.pearl}"
 
 #. type: Plain text
-#: puzzles.but:2922
+#: puzzles.but:2936
 msgid ""
 "You have a grid of squares. Your job is to draw lines between the centres of "
 "horizontally or vertically adjacent squares, so that the lines form a single "
@@ -6594,28 +6600,28 @@ msgid ""
 msgstr ""
 
 #. type: Plain text
-#: puzzles.but:2925
+#: puzzles.but:2939
 msgid ""
 "Some of the squares contain black and white circles, which are clues that "
 "the loop must satisfy."
 msgstr ""
 
 #. type: Plain text
-#: puzzles.but:2928
+#: puzzles.but:2942
 msgid ""
 "A black circle in a square indicates that that square is a corner, but "
 "neither of the squares adjacent to it in the loop is also a corner."
 msgstr ""
 
 #. type: Plain text
-#: puzzles.but:2931
+#: puzzles.but:2945
 msgid ""
-"A while circle indicates that the square is a straight edge, but \\e{at "
+"A white circle indicates that the square is a straight edge, but \\e{at "
 "least one} of the squares adjacent to it in the loop is a corner."
 msgstr ""
 
 #. type: Plain text
-#: puzzles.but:2936
+#: puzzles.but:2950
 msgid ""
 "(In both cases, the clue only constrains the two squares adjacent \\e{in the "
 "loop}, that is, the squares that the loop passes into after leaving the clue "
@@ -6624,41 +6630,43 @@ msgid ""
 msgstr ""
 
 #. type: Plain text
-#: puzzles.but:2939
+#: puzzles.but:2953
+#, fuzzy
 msgid ""
 "Credit for this puzzle goes to \\i{Nikoli}, who call it \\q{Masyu}.  \\k"
-"{nikoli-pearl}."
-msgstr "Dank für dieses Puzzle geht an \\i{Nikoli}, wer es \\q{Masyu} "
-"genannt hat. \\k{nikoli-pearl}"
+"{nikoli-pearl}"
+msgstr ""
+"Dank für dieses Puzzle geht an \\i{Nikoli}, wer es \\q{Masyu} genannt hat. "
+"\\k{nikoli-pearl}"
 
 #. type: Plain text
-#: puzzles.but:2941
+#: puzzles.but:2955
 msgid "Thanks to James Harvey for assistance with the implementation."
 msgstr ""
 
 #. type: Plain text
-#: puzzles.but:2944
+#: puzzles.but:2958
 msgid ""
 "\\W{http://www.nikoli.co.jp/en/puzzles/masyu/}\\cw{http://www.nikoli.co.jp/"
 "en/puzzles/masyu/}"
 msgstr ""
-"\\W{http://www.nikoli.co.jp/en/puzzles/masyu/}\\cw{http://www.nikoli.co."
-"jp/en/puzzles/masyu/}"
+"\\W{http://www.nikoli.co.jp/en/puzzles/masyu/}\\cw{http://www.nikoli.co.jp/"
+"en/puzzles/masyu/}"
 
 #. type: Plain text
-#: puzzles.but:2946
+#: puzzles.but:2960
 msgid "\\I{controls, for Pearl}Pearl controls"
 msgstr "\\I{Steuerung, von Pearl}Pearl-Steuerung"
 
 #. type: Plain text
-#: puzzles.but:2949
+#: puzzles.but:2963
 msgid ""
 "Click with the left button on a grid edge to draw a segment of the loop "
 "through that edge, or to remove a segment once it is drawn."
 msgstr ""
 
 #. type: Plain text
-#: puzzles.but:2954
+#: puzzles.but:2968
 msgid ""
 "Drag with the left button through a series of squares to draw more than one "
 "segment of the loop in one go. Alternatively, drag over an existing part of "
@@ -6667,7 +6675,7 @@ msgid ""
 msgstr ""
 
 #. type: Plain text
-#: puzzles.but:2960
+#: puzzles.but:2974
 msgid ""
 "Click with the right button on a grid edge to mark it with a cross, "
 "indicating that you are sure the loop does not go through that edge.  (For "
@@ -6677,7 +6685,7 @@ msgid ""
 msgstr ""
 
 #. type: Plain text
-#: puzzles.but:2966
+#: puzzles.but:2980
 msgid ""
 "Alternatively, use the cursor keys to move the cursor.  Use the Enter key to "
 "begin and end keyboard `drag' operations.  Use the Space key to cancel the "
@@ -6687,33 +6695,304 @@ msgid ""
 msgstr ""
 
 #. type: Plain text
-#: puzzles.but:2970
+#: puzzles.but:2984
 msgid "\\I{parameters, for Pearl}Pearl parameters"
 msgstr "\\I{Parameter, für Pearl}Pearl-Parameter"
 
 #. type: Plain text
-#: puzzles.but:2983
+#: puzzles.but:2989
+#, fuzzy
+msgid "\\i{Undead}"
+msgstr "\\i{Unequal}"
+
+#. type: Plain text
+#: puzzles.but:2991
+#, fuzzy
+msgid "\\cfg{winhelp-topic}{games.undead}"
+msgstr "\\cfg{winhelp-topic}{games.unequal}"
+
+#. type: Plain text
+#: puzzles.but:2995
+msgid ""
+"You are given a grid of squares, some of which contain diagonal mirrors. "
+"Every square which is not a mirror must be filled with one of three types of "
+"undead monster: a ghost, a vampire, or a zombie."
+msgstr ""
+
+#. type: Plain text
+#: puzzles.but:3000
+msgid ""
+"Vampires can be seen directly, but are invisible when reflected in mirrors. "
+"Ghosts are the opposite way round: they can be seen in mirrors, but are "
+"invisible when looked at directly. Zombies are visible by any means."
+msgstr ""
+
+#. type: Plain text
+#: puzzles.but:3008
+msgid ""
+"You are also told the total number of each type of monster in the grid. Also "
+"around the edge of the grid are written numbers, which indicate how many "
+"monsters can be seen if you look into the grid along a row or column "
+"starting from that position. (The diagonal mirrors are reflective on both "
+"sides. If your reflected line of sight crosses the same monster more than "
+"once, the number will count it each time it is visible, not just once.)"
+msgstr ""
+
+#. type: Plain text
+#: puzzles.but:3011
+msgid ""
+"This puzzle type was invented by David Millar, under the name \\q{Haunted "
+"Mirror Maze}. See \\k{janko-undead} for more details."
+msgstr ""
+
+#. type: Plain text
+#: puzzles.but:3013
+#, fuzzy
+msgid "Undead was contributed to this collection by Steffen Bauer."
+msgstr "Unequal wurde von James Harvey zu dieser Sammlung beigesteuert."
+
+#. type: Plain text
+#: puzzles.but:3016
+#, fuzzy
+msgid ""
+"\\W{http://www.janko.at/Raetsel/Spukschloss/index.htm}\\cw{http://www.janko."
+"at/Raetsel/Spukschloss/index.htm}"
+msgstr ""
+"\\W{http://www.janko.at/Raetsel/Magnete/index.htm}\\cw{http://www.janko.at/"
+"Raetsel/Magnete/index.htm}"
+
+#. type: Plain text
+#: puzzles.but:3018
+#, fuzzy
+msgid "\\I{controls, for Undead}Undead controls"
+msgstr "\\I{Steuerung, von Mines}Mines-Steuerung"
+
+#. type: Plain text
+#: puzzles.but:3020
+#, fuzzy
+msgid "Undead has a similar control system to Solo, Unequal and Keen."
+msgstr ""
+"Towers hat viel mit dem Steuersystem von Solo, Unequal und Keen gemeinsam."
+
+#. type: Plain text
+#: puzzles.but:3026
+#, fuzzy
+msgid ""
+"To play Undead, click the mouse in any empty square and then type a letter "
+"on the keyboard indicating the type of monster: \\q{G} for a ghost, \\q{V} "
+"for a vampire, or \\q{Z} for a zombie. If you make a mistake, click the "
+"mouse in the incorrect square and press Space to clear it again (or use the "
+"Undo feature)."
+msgstr ""
+"Um Unequal zu spielen, klicken Sie mit der Maus einfach in ein leeres "
+"Quadrat und geben mit der Tastatur eine Ziffer oder einen Buchstaben ein, um "
+"das Quadrat zu füllen. Falls Sie einen Fehler machen, klicken Sie mit der "
+"Maus in das inkorrekte Quadrat und drücken Sie die Leertaste, um es wieder "
+"zu leeren (oder verwenden Sie die Undo-Funktionalität)."
+
+#. type: Plain text
+#: puzzles.but:3032
+#, fuzzy
+msgid ""
+"If you \\e{right}-click in a square and then type a letter, the "
+"corresponding monster will be shown in reduced size in that square, as a \\q"
+"{pencil mark}. You can have pencil marks for multiple monsters in the same "
+"square. A square containing a full-size monster cannot also contain pencil "
+"marks."
+msgstr ""
+"Falls Sie in ein Quadrat \\e{rechts-}klicken und dann eine Zahl tippen, wird "
+"diese Zahl im Quadrat als \\q{Bleistiftmarkierung} eingetragen. Sie können "
+"Bleistiftmarkierungen für mehrere Zahlen im gleichen Quadrat vornehmen. "
+"Quadrate, in denen Zahlen eingefüllt sind können nicht auch gleichzeitig "
+"über Bleistiftmarkierungen verfügen."
+
+#. type: Plain text
+#: puzzles.but:3038
+#, fuzzy
+msgid ""
+"The game pays no attention to pencil marks, so exactly what you use them for "
+"is up to you: you can use them as reminders that a particular square needs "
+"to be re-examined once you know more about a particular monster, or you can "
+"use them as lists of the possible monster in a given square, or anything "
+"else you feel like."
+msgstr ""
+"Das Spiel ignoriert Bleistiftmarkierungen, daher können Sie diese so "
+"einsetzen, wie Sie möchten: Sie können Sie als Erinnerung verwenden, dass "
+"ein bestimmtes Quadrat noch mal untersucht werden muss, sobald Sie mehr über "
+"eine bestimmte Zahl wissen, oder Sie können sie als Liste möglicher Zahlen "
+"für ein gegebenes Quadrat verwenden oder irgendetwas anderes, was Sie mögen."
+
+#. type: Plain text
+#: puzzles.but:3041
+#, fuzzy
+msgid ""
+"To erase a single pencil mark, right-click in the square and type the same "
+"letter again."
+msgstr ""
+"Um eine Bleistiftmarkierung zu entfernen, klicken Sie rechts in das Quadrat "
+"und tippen Sie die Zahl noch mal."
+
+#. type: Plain text
+#: puzzles.but:3045
+#, fuzzy
+msgid ""
+"All pencil marks in a square are erased when you left-click and type a "
+"monster letter, or when you left-click and press Space. Right-clicking and "
+"pressing space will also erase pencil marks."
+msgstr ""
+"Alle Bleistiftmarkierungen in einem Quadrat werden gelöscht, wenn Sie "
+"linksklicken und eine Zahl eingeben oder wenn Sie linksklicken und die "
+"Leertaste drücken. Auch rechtsklicken und drücken der Leertaste wird die "
+"Bleistiftmarkierungen löschen."
+
+#. type: Plain text
+#: puzzles.but:3051
+msgid ""
+"As for Solo, the cursor keys can be used in conjunction with the letter keys "
+"to place monsters or pencil marks. Use the cursor keys to move a highlight "
+"around the grid, and type a monster letter to enter it in the highlighted "
+"square. Pressing return toggles the highlight into a mode in which you can "
+"enter or remove pencil marks."
+msgstr ""
+
+#. type: Plain text
+#: puzzles.but:3055
+msgid ""
+"If you prefer plain letters of the alphabet to cute monster pictures, you "
+"can press \\q{A} to toggle between showing the monsters as monsters or "
+"showing them as letters."
+msgstr ""
+
+#. type: Plain text
+#: puzzles.but:3059
+#, fuzzy
+msgid "\\I{parameters, for Undead}Undead parameters"
+msgstr "\\I{Parameter, für Unequal}Unequal-Parameter"
+
+#. type: Plain text
+#: puzzles.but:3072
+#, fuzzy
+msgid "\\i{Unruly}"
+msgstr "\\i{Unequal}"
+
+#. type: Plain text
+#: puzzles.but:3074
+#, fuzzy
+msgid "\\cfg{winhelp-topic}{games.unruly}"
+msgstr "\\cfg{winhelp-topic}{games.unequal}"
+
+#. type: Plain text
+#: puzzles.but:3080
+msgid ""
+"You are given a grid of squares, which you must colour either black or "
+"white. Some squares are provided as clues; the rest are left for you to fill "
+"in. Each row and column must contain the same number of black and white "
+"squares, and no row or column may contain three consecutive squares of the "
+"same colour."
+msgstr ""
+
+#. type: Plain text
+#: puzzles.but:3083
+msgid ""
+"This puzzle type was invented by Adolfo Zanellati, under the name \\q{Tohu "
+"wa Vohu}. See \\k{janko-unruly} for more details."
+msgstr ""
+
+#. type: Plain text
+#: puzzles.but:3085
+#, fuzzy
+msgid "Unruly was contributed to this collection by Lennard Sprong."
+msgstr "Unequal wurde von James Harvey zu dieser Sammlung beigesteuert."
+
+#. type: Plain text
+#: puzzles.but:3088
+#, fuzzy
+msgid ""
+"\\W{http://www.janko.at/Raetsel/Tohu-Wa-Vohu/index.htm}\\cw{http://www.janko."
+"at/Raetsel/Tohu-Wa-Vohu/index.htm}"
+msgstr ""
+"\\W{http://www.janko.at/Raetsel/Magnete/index.htm}\\cw{http://www.janko.at/"
+"Raetsel/Magnete/index.htm}"
+
+#. type: Plain text
+#: puzzles.but:3090
+#, fuzzy
+msgid "\\I{controls, for Unruly}Unruly controls"
+msgstr "\\I{Steuerung, von Pearl}Pearl-Steuerung"
+
+#. type: Plain text
+#: puzzles.but:3096
+msgid ""
+"To play Unruly, click the mouse in a square to change its colour.  Left-"
+"clicking an empty square will turn it black, and right-clicking will turn it "
+"white. Keep clicking the same button to cycle through the three possible "
+"states for the square. If you middle-click in a square it will be reset to "
+"empty."
+msgstr ""
+
+#. type: Plain text
+#: puzzles.but:3101
+#, fuzzy
+msgid ""
+"You can also use the cursor keys to move around the grid. Pressing the "
+"return or space keys will turn an empty square black or white respectively "
+"(and then cycle the colours in the same way as the mouse buttons), and "
+"pressing Backspace will reset a square to empty."
+msgstr ""
+"Sie können auch die Pfeiltasten verwenden, um sich auf dem Gitter zu "
+"bewegen. Durch Drücken der Eingabe oder Leertaste wird ein \\cw{\\\\} bzw. "
+"ein \\cw{/} platziert und diese dann zyklisch wie oben durchlaufen."
+
+#. type: Plain text
+#: puzzles.but:3105
+#, fuzzy
+msgid "\\I{parameters, for Unruly}Unruly parameters"
+msgstr "\\I{Parameter, für Unequal}Unequal-Parameter"
+
+#. type: Plain text
+#: puzzles.but:3113
+msgid ""
+"Size of grid in squares. (Note that the rules of the game require both the "
+"width and height to be even numbers.)"
+msgstr ""
+
+#. type: e{#1}
+#: puzzles.but:3119
+msgid "Unique rows and columns"
+msgstr ""
+
+#. type: Plain text
+#: puzzles.but:3122
+msgid ""
+"If enabled, no two rows are permitted to have exactly the same pattern, and "
+"likewise columns. (A row and a column can match, though.)"
+msgstr ""
+
+#. type: Plain text
+#: puzzles.but:3124
 msgid "\\I{MIT licence}\\ii{Licence}"
 msgstr "\\I{MIT-Lizenz}\\ii{Lizenz}"
 
 #. type: Plain text
-#: puzzles.but:2985
-msgid "This software is \\i{copyright} 2004-2012 Simon Tatham."
+#: puzzles.but:3126
+#, fuzzy
+msgid "This software is \\i{copyright} 2004-2014 Simon Tatham."
 msgstr "Diese Software ist \\i{copyright} 2004-2012 Simon Tatham."
 
 #. type: Plain text
-#: puzzles.but:2989
+#: puzzles.but:3131
+#, fuzzy
 msgid ""
 "Portions copyright Richard Boulton, James Harvey, Mike Pinna, Jonas K\\u00F6"
-"{oe}lker, Dariusz Olszewski, Michael Schierl, Lambros Lambrou, Bernd Schmidt "
-"and Chris Boyle."
+"{oe}lker, Dariusz Olszewski, Michael Schierl, Lambros Lambrou, Bernd "
+"Schmidt, Steffen Bauer, Lennard Sprong, Rogier Goossens and Chris Boyle."
 msgstr ""
 "Urheberrechte in Teilen bei Richard Boulton, James Harvey, Mike Pinna, Jonas "
 "K\\u00F6{oe}lker, Dariusz Olszewski, Michael Schierl, Lambros Lambrou, Bernd "
 "Schmidt und Chris Boyle."
 
 #. type: Plain text
-#: puzzles.but:2997
+#: puzzles.but:3139
 msgid ""
 "Permission is hereby granted, free of charge, to any person obtaining a copy "
 "of this software and associated documentation files (the \\q{Software}), to "
@@ -6724,14 +7003,14 @@ msgid ""
 msgstr ""
 
 #. type: Plain text
-#: puzzles.but:3000
+#: puzzles.but:3142
 msgid ""
 "The above copyright notice and this permission notice shall be included in "
 "all copies or substantial portions of the Software."
 msgstr ""
 
 #. type: Plain text
-#: puzzles.but:3009
+#: puzzles.but:3151
 msgid ""
 "THE SOFTWARE IS PROVIDED \\q{AS IS}, WITHOUT WARRANTY OF ANY KIND, EXPRESS "
 "OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, "
@@ -6743,136 +7022,136 @@ msgid ""
 msgstr ""
 
 #. type: IM{#1}
-#: puzzles.but:3010
+#: puzzles.but:3152
 msgid "command-line"
 msgstr "Befehlszeile"
 
 #. type: IM
-#: puzzles.but:3010
+#: puzzles.but:3152
 #, no-wrap
 msgid "{command line} command line"
 msgstr "{Befehlszeile} Befehlszeile"
 
 #. type: IM{#1}
-#: puzzles.but:3012 puzzles.but:3013
+#: puzzles.but:3154 puzzles.but:3155
 #, no-wrap
 msgid "default parameters, specifying"
 msgstr "Standardparameter, angeben"
 
 #. type: IM
-#: puzzles.but:3013
+#: puzzles.but:3155
 #, no-wrap
 msgid "preferences, specifying default"
 msgstr "Voreinstellungen, Standard angeben"
 
 #. type: IM{#1}
-#: puzzles.but:3015 puzzles.but:3016
+#: puzzles.but:3157 puzzles.but:3158
 #, no-wrap
 msgid "Unix"
 msgstr "Unix"
 
 #. type: IM
-#: puzzles.but:3016
+#: puzzles.but:3158
 #, no-wrap
 msgid "Linux"
 msgstr "Linux"
 
 #. type: IM{#1}
-#: puzzles.but:3018 puzzles.but:3019
+#: puzzles.but:3160 puzzles.but:3161
 #, no-wrap
 msgid "generating game IDs"
 msgstr "Erzeugen von Spiele-IDs"
 
 #. type: IM
-#: puzzles.but:3019
+#: puzzles.but:3161
 #, no-wrap
 msgid "game ID, generating"
 msgstr "Spiele-ID, erzeugen"
 
 #. type: IM{#1}
-#: puzzles.but:3021
+#: puzzles.but:3163
 msgid "specific"
 msgstr "bestimmt"
 
 #. type: IM
-#: puzzles.but:3021
+#: puzzles.but:3163
 #, no-wrap
 msgid "\\q{Specific}, menu option"
 msgstr "\\q{Bestimmt}, Menüoption"
 
 #. type: IM{#1}
-#: puzzles.but:3022
+#: puzzles.but:3164
 msgid "custom"
 msgstr "benutzerdefiniert"
 
 #. type: IM
-#: puzzles.but:3022
+#: puzzles.but:3164
 #, no-wrap
 msgid "\\q{Custom}, menu option"
 msgstr "\\q{Benutzerdefiniert}, Menüoption"
 
 #. type: IM{#1}
-#: puzzles.but:3024 puzzles.but:3025
+#: puzzles.but:3166 puzzles.but:3167
 #, no-wrap
 msgid "game ID"
 msgstr "Spiele-ID"
 
 #. type: IM
-#: puzzles.but:3025
+#: puzzles.but:3167
 #, no-wrap
 msgid "ID, game"
 msgstr "ID, Spiel"
 
 #. type: IM{#1}
-#: puzzles.but:3026 puzzles.but:3027 puzzles.but:3028
+#: puzzles.but:3168 puzzles.but:3169 puzzles.but:3170
 #, no-wrap
 msgid "ID format"
 msgstr "ID-Format"
 
 #. type: IM
-#: puzzles.but:3027
+#: puzzles.but:3169
 #, no-wrap
 msgid "format, ID"
 msgstr "Format, ID"
 
 #. type: IM
-#: puzzles.but:3028
+#: puzzles.but:3170
 #, no-wrap
 msgid "game ID, format"
 msgstr "Spiele-ID, Format"
 
 #. type: IM{#1}
-#: puzzles.but:3030 puzzles.but:3031
+#: puzzles.but:3172 puzzles.but:3173
 #, no-wrap
 msgid "keys"
 msgstr "Tasten"
 
 #. type: IM
-#: puzzles.but:3031
+#: puzzles.but:3173
 #, no-wrap
 msgid "shortcuts (keyboard)"
 msgstr "Tastaturkürzel"
 
 #. type: IM{#1}
-#: puzzles.but:3033 puzzles.but:3034
+#: puzzles.but:3175 puzzles.but:3176
 #, no-wrap
 msgid "initial state"
 msgstr "Anfangszustand"
 
 #. type: IM
-#: puzzles.but:3034
+#: puzzles.but:3176
 #, no-wrap
 msgid "state, initial"
 msgstr "Zustand, anfänglicher"
 
 #. type: IM{#1}
-#: puzzles.but:3036 puzzles.but:3037
+#: puzzles.but:3178 puzzles.but:3179
 #, no-wrap
 msgid "MIT licence"
 msgstr "MIT-Lizenz"
 
 #. type: IM
-#: puzzles.but:3037
+#: puzzles.but:3179
 #, no-wrap
 msgid "licence, MIT"
 msgstr "Lizenz, MIT"
