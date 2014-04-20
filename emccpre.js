@@ -352,8 +352,7 @@ function initPuzzle() {
     // Run the C setup function, passing argv[1] as the fragment
     // identifier (so that permalinks of the form puzzle.html#game-id
     // can launch the specified id).
-    Module.arguments = [location.hash];
-    Module.run();
+    Module.callMain([location.hash]);
 
     // And if we get here with everything having gone smoothly, i.e.
     // we haven't crashed for one reason or another during setup, then
