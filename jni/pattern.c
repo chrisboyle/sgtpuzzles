@@ -356,7 +356,7 @@ static int do_recurse(unsigned char *known, unsigned char *deduced,
 {
     int i, j, k;
 #ifdef ANDROID
-    if (android_cancelled()) return;
+    if (android_cancelled()) return 0;
 #endif
 
 
