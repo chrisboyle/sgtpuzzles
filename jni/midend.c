@@ -475,6 +475,7 @@ void midend_new_game(midend *me)
 
     if (me->game_id_change_notify_function)
         me->game_id_change_notify_function(me->game_id_change_notify_ctx);
+    changed_state(me->drawing, 0, 0);
 }
 
 int midend_can_undo(midend *me)
