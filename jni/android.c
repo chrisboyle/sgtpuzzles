@@ -379,7 +379,7 @@ void JNICALL solveEvent(JNIEnv *env, jobject _obj)
 	if( js == NULL ) return;
 	jstring js2 = (*env)->NewStringUTF(env, _("Error"));
 	if( js2 == NULL ) return;
-	(*env)->CallVoidMethod(env, obj, messageBox, js2, js, 1);
+	(*env)->CallVoidMethod(env, obj, messageBox, js2, js, 1, FALSE);
 }
 
 void JNICALL restartEvent(JNIEnv *env, jobject _obj)
@@ -423,7 +423,7 @@ void JNICALL configOK(JNIEnv *env, jobject _obj)
 		if( js == NULL ) return;
 		jstring js2 = (*env)->NewStringUTF(env, _("Error"));
 		if( js2 == NULL ) return;
-		(*env)->CallVoidMethod(env, obj, messageBox, js2, js, 1);
+		(*env)->CallVoidMethod(env, obj, messageBox, js2, js, 1, FALSE);
 		return;
 	}
 	midend_new_game(fe->me);

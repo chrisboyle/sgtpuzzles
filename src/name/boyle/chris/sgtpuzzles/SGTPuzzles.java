@@ -162,7 +162,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 			dismissProgress();
 			startChooser();
 			if (msg.obj != null) {
-				messageBox(getString(R.string.Error), (String)msg.obj, 1, false);
+				messageBox(getString(R.string.Error), (String)msg.obj, 2, false);
 			} else {
 				finish();
 			}
@@ -723,9 +723,9 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 					.setIcon( (flag == 0)
 							? android.R.drawable.ic_dialog_info
 							: android.R.drawable.ic_dialog_alert )
-					.setOnCancelListener((flag == 0) ? null : new OnCancelListener() {
+					.setOnCancelListener(new OnCancelListener() {
 						public void onCancel(DialogInterface dialog) {
-							finish();
+							if (flag < 2) gameViewResized(); else finish();
 						}})
 					.show();
 		}});
