@@ -14,10 +14,10 @@
 <p><a href="net.html">Previous</a> | <a href="index.html">Contents</a> | <a href="docindex.html">Index</a> | <a href="fifteen.html">Next</a></p>
 <h1><a name="C4"></a>Chapter 4: <a name="i0"></a>Cube</h1>
 <p>
-Dies ist ein weiteres Spiel, das ich urspr&#252;nglich als Web-Spiel sah. Dies war ein Java-Spiel <a href="#p0">[2]</a> von Paul Scott. Sie haben ein Gitter von 16 Quadraten von denen sechs blau sind. Auf einem Quadrat ruht ein W&#252;rfel. Ihre Bewegung besteht darin, den W&#252;rfel mit den Pfeiltasten um 90 Grad zu rollen, so dass er sich auf ein benachbartes Quadrat bewegt. Falls Sie den W&#252;rfel auf ein blaues Quadrat rollen, wird das blaue Quadrat auf der einen Seite des W&#252;rfels aufgenommen; falls Sie eine blaue Seite des W&#252;rfels auf ein nicht-blaues Quadrat rollen, wird die blaue Farbe wieder auf das Quadrat abgelegt. (Allgemeiner gesagt, tauschen die W&#252;rfelseite und das Quadrat, auf dem der W&#252;rfel nach dem Rollen liegt, ihre Farben). Ihre Aufgabe besteht darin, alle sechs blaue Quadrate gleichzeitig auf die sechs Seiten des W&#252;rfels zu bekommen. Z&#228;hlen Sie Ihre Spielz&#252;ge und versuchen Sie, die L&#246;sung mit so wenig Spielz&#252;gen wie m&#246;glich zu erreichen.
+Dies ist ein weiteres Spiel, das ich urspr&#252;nglich als Web-Spiel sah. Dies war ein Java-Spiel <a href="#p0">[2]</a> von Paul Scott. Sie haben ein Gitter von 16 Quadraten von denen sechs blau sind. Auf einem Quadrat ruht ein W&#252;rfel. Ihr Spielzug besteht darin, den W&#252;rfel mit den Pfeiltasten um 90 Grad zu rollen, so dass er sich auf ein benachbartes Quadrat bewegt. Falls Sie den W&#252;rfel auf ein blaues Quadrat rollen, wird das blaue Quadrat auf der einen Seite des W&#252;rfels aufgenommen; falls Sie eine blaue Seite des W&#252;rfels auf ein nicht blaues Quadrat rollen, wird die blaue Farbe wieder auf das Quadrat abgelegt. (Allgemeiner gesagt, tauschen die W&#252;rfelseite und das Quadrat, auf dem der W&#252;rfel nach dem Rollen liegt, ihre Farben). Ihre Aufgabe besteht darin, alle sechs blauen Quadrate gleichzeitig auf die sechs Seiten des W&#252;rfels zu bekommen. Z&#228;hlen Sie Ihre Spielz&#252;ge und versuchen Sie, die L&#246;sung mit so wenig Spielz&#252;gen wie m&#246;glich zu erreichen.
 </p>
 <p>
-Anders als das urspr&#252;ngliche Spiel hat meine Version eine zus&#228;tzliche Funktionalit&#228;t: Sobald Sie das Spiel mit einem W&#252;rfel, der auf einem Quadratgitter rollt, geschafft haben, k&#246;nnen Sie das auf ein dreieckiges Gitter umschalten und entweder ein Tetrahedron, ein Oktahedron oder ein Icosahedron rollen.
+Anders als das urspr&#252;ngliche Java-Spiel hat meine Version eine zus&#228;tzliche Funktionalit&#228;t: Sobald Sie das Spiel mit einem W&#252;rfel, der auf einem Quadratgitter rollt, geschafft haben, k&#246;nnen Sie das auf ein dreieckiges Gitter umschalten und entweder einen Tetraeder, einen Oktaeder oder einen Ikosaeder rollen.
 </p>
 <p><a name="p0"></a>
 [2] <a href="http://www3.sympatico.ca/paulscott/cube/cube.htm"><code>http://www3.sympatico.ca/paulscott/cube/cube.htm</code></a>
@@ -30,20 +30,20 @@ Dieses Spiel kann entweder mit der Tastatur oder der Maus gespielt werden.
 Durch Linksklick an einer beliebigen Stelle im Fenster wird der W&#252;rfel (oder anderer K&#246;rper) zum Mauszeiger hin bewegt.
 </p>
 <p>
-Die Pfeiltasten k&#246;nnen auch dazu verwandt werden, den W&#252;rfel auf seinem Quadratgitter in die vier Hauptrichtungen zu rollen. Auf dem dreieckigen Gittern ist die Abbildung der Pfeiltasten auf die Richtungen eher ungef&#228;hr. Vertikale Bewegungen sind nicht erlaubt, falls sie keinen Sinn ergeben. Die vier Tasten, die sich um die Pfeiltasten im numerischen Zahlenblock befinden (&#8216;7&#8217;, &#8216;9&#8217;, &#8216;1&#8217;, &#8216;3&#8217;) k&#246;nnen f&#252;r diagonale Bewegungen verwandt werden.
+Die Pfeiltasten k&#246;nnen auch dazu verwandt werden, den W&#252;rfel auf seinem Quadratgitter in die vier Hauptrichtungen zu rollen. Auf den dreieckigen Gittern ist die Abbildung der Pfeiltasten auf die Richtungen eher ungef&#228;hr. Vertikale Bewegungen sind nicht erlaubt, falls sie keinen Sinn ergeben. Die vier Tasten, die sich um die Pfeiltasten im numerischen Zahlenblock befinden (&#8216;7&#8217;, &#8216;9&#8217;, &#8216;1&#8217;, &#8216;3&#8217;) k&#246;nnen f&#252;r diagonale Bewegungen verwandt werden.
 </p>
 <p>
 (Alle in <a href="common.html#S2.1">section 2.1</a> beschriebene Aktionen sind auch verf&#252;gbar.)
 </p>
 <h2><a name="S4.2"></a>4.2 <a name="i2"></a>Cube-Parameter</h2>
 <p>
-Diese Parameter sind von der Option &#8216;Benutzerdefiniert...&#8217; im Men&#252; &#8216;Art&#8217; verf&#252;gbar.
+Diese Parameter sind von der Option &#8216;Custom...&#8217; im Men&#252; &#8216;Type&#8217; verf&#252;gbar.
 </p>
 <dl><dt>
 <em>Art des K&#246;rpers</em>
 </dt>
 <dd>
-W&#228;hlt die Art des zu rollenden K&#246;rpers (und damit die Form des Gitters) aus: Tetrahedron, W&#252;rfel, Oktahedron oder Ikosahedron.
+W&#228;hlt die Art des zu rollenden K&#246;rpers (und damit die Form des Gitters) aus: Tetraeder, W&#252;rfel, Oktaeder oder Ikosaeder.
 </dd>
 <dt>
 <em>Breite / oben</em>, <em>H&#246;he / unten</em>

@@ -14,26 +14,26 @@
 <p><a href="signpost.html">Previous</a> | <a href="index.html">Contents</a> | <a href="docindex.html">Index</a> | <a href="pearl.html">Next</a></p>
 <h1><a name="C35"></a>Chapter 35: <a name="i0"></a>Range</h1>
 <p>
-You have a grid of squares; some squares contain numbers. Your job is to colour some of the squares black, such that several criteria are satisfied:
+Sie bekommen ein Gitter aus Quadraten, davon enthalten einige Zahlen. Ihre Aufgabe besteht darin, einige davon schwarz zu f&#228;rben, so dass mehrere Bedingungen erf&#252;llt sind:
 </p>
 <ul><li>
-no square with a number is coloured black.
+Kein Quadrat mit einer Zahl ist schwarz gef&#228;rbt.
 </li>
 <li>
-no two black squares are adjacent (horizontally or vertically).
+Keine zwei schwarzen Quadrate befinden sich (horizontal oder vertikal) nebeneinander.
 </li>
 <li>
-for any two white squares, there is a path between them using only white squares.
+F&#252;r jeweils zwei wei&#223;e Quadrate befindet sich ein Pfad zwischen ihnen, der nur wei&#223;e Quadrate verwendet.
 </li>
 <li>
-for each square with a number, that number denotes the total number of white squares reachable from that square going in a straight line in any horizontal or vertical direction until hitting a wall or a black square; the square with the number is included in the total (once).
+In jedem Quadrat mit einer Zahl gibt diese die Anzahl an wei&#223;en Quadraten, die von diesem Quadrat in jeder geraden (horizontalen oder vertikalen) Richtung erreicht werden k&#246;nnen, an, nach der entweder eine Mauer oder ein schwarzes Quadrat erreicht wird. Das Quadrat mit der Nummer ist in der Summe (einmal) enthalten.
 </li>
 </ul>
 <p>
-For instance, a square containing the number one must have four black squares as its neighbours by the last criterion; but then it's impossible for it to be connected to any outside white square, which violates the second to last criterion. So no square will contain the number one.
+Beispielsweise muss ein Quadrat mit der Zahl eins gem&#228;&#223; dem letzten Kriterium vier schwarze Bl&#246;cke als Nachbar haben, allerdings ist es dann unm&#246;glich, dieses Quadrat mit einem au&#223;enstehenden wei&#223;en Quadrat zu verbinden, womit das zweitletzte Kriterium verletzt wird. Daher wird in keinem Quadrat die Zahl eins auftauchen.
 </p>
 <p>
-Credit for this puzzle goes to <a name="i1"></a>Nikoli, who have variously called it &#8216;Kurodoko&#8217;, &#8216;Kuromasu&#8217; or &#8216;Where is Black Cells&#8217;. <a href="#p0">[18]</a>.
+Dank f&#252;r dieses Puzzle geht an <a name="i1"></a>Nikoli <a href="slant.html#p0">[8]</a>, die es verschieden benannt haben: &#8216;Kurodoko&#8217;, &#8216;Kuromasu&#8217; oder &#8216;Where is Black Cells&#8217;. <a href="#p0">[18]</a>.
 </p>
 <p>
 Range wurde von Jonas K&#246;lker zu dieser Sammlung beigesteuert.
@@ -43,20 +43,20 @@ Range wurde von Jonas K&#246;lker zu dieser Sammlung beigesteuert.
 </p>
 <h2><a name="S35.1"></a>35.1 <a name="i2"></a>Range-Steuerung</h2>
 <p>
-Click with the left button to paint a square black, or with the right button to mark a square with a dot to indicate that you are sure it should <em>not</em> be painted black. Repeated clicking with either button will cycle the square through the three possible states (filled, dotted or empty) in opposite directions.
+Durch einen Klick mit der linken Taste f&#228;rben Sie ein Quadrat schwarz, oder mit der rechten Taste markieren Sie das Quadrat mit einem Punkt, um anzuzeigen, dass Sie sich sicher sind, dass es <em>nicht</em> schwarz gef&#228;rbt werden soll. Erneutes Klicken mit einem der beiden Tasten wird das Quadrat zyklisch durch die drei m&#246;glichen Zust&#228;nde (gef&#252;llt, mit Punkt oder leer) in gegenl&#228;ufigen Richtungen bringen.
 </p>
 <p>
-You can also use the cursor keys to move around the grid squares. Pressing Return does the same as clicking with the left button, while pressing Space does the same as a right button click.
+Sie k&#246;nnen auch die Pfeiltasten verwenden, um sich auf dem Gitter zu bewegen. Dr&#252;cken der Eingabetaste bewirkt das gleiche wie die linke Taste, w&#228;hrend die Leertaste das gleiche wie die rechte Taste durchf&#252;hrt.
 </p>
 <p>
 (Alle in <a href="common.html#S2.1">section 2.1</a> beschriebene Aktionen sind auch verf&#252;gbar.)
 </p>
 <h2><a name="S35.2"></a>35.2 <a name="i3"></a>Range-Parameter</h2>
 <p>
-Diese Parameter sind von der Option &#8216;Benutzerdefiniert...&#8217; im Men&#252; &#8216;Art&#8217; verf&#252;gbar.
+Diese Parameter sind von der Option &#8216;Custom...&#8217; im Men&#252; &#8216;Type&#8217; verf&#252;gbar.
 </p>
 <dl><dt>
-<em>Breite</em>, <em>H&#246;he</em>
+<em>Width</em> (Breite), <em>Height</em> (H&#246;he)
 </dt>
 <dd>
 Gr&#246;&#223;e des Gitters in Quadraten

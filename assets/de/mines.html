@@ -14,54 +14,54 @@
 <p><a href="solo.html">Previous</a> | <a href="index.html">Contents</a> | <a href="docindex.html">Index</a> | <a href="samegame.html">Next</a></p>
 <h1><a name="C12"></a>Chapter 12: <a name="i0"></a>Mines</h1>
 <p>
-Sie erhalten ein Gitter mit abgedeckten Quadraten, von denen einige Minen enthalten, Sie aber nicht wissen, welche. Ihr Aufgabe besteht darin, jedes Quadrat aufzudecken, das <em>keine</em> Mine enth&#228;lt. Falls Sie ein Quadrat aufdecken, das eine Mine enth&#228;lt, dann verlieren Sie. Falls Sie Sie ein Quadrat aufdecken, das keine Mine enth&#228;lt, erfahren Sie, wieviele Minen sich in den benachbarten acht Quadraten befinden.
+Sie bekommen ein Gitter mit abgedeckten Quadraten, von denen einige Minen enthalten, Sie aber nicht wissen, welche. Ihr Aufgabe besteht darin, jedes Quadrat aufzudecken, das <em>keine</em> Mine enth&#228;lt. Falls Sie ein Quadrat aufdecken, das eine Mine enth&#228;lt, dann verlieren Sie. Falls Sie ein Quadrat aufdecken, das keine Mine enth&#228;lt, erfahren Sie, wieviele Minen sich in den benachbarten acht Quadraten befinden.
 </p>
 <p>
 Dieses Spiel muss nicht vorgestellt werden. Es wurde mit Windows popul&#228;r, es ist vielleicht das bekannteste Desktop-Puzzle &#252;berhaupt.
 </p>
 <p>
-Diese Version verf&#252;gt &#252;ber eine ungew&#246;hnliche Eigenschaft. Standardm&#228;&#223;ig generiert es die Minen in Positionen, bei denen sichergestellt ist, dass Sie nie <em>raten</em> m&#252;ssen, wo eine Mine sich befindet, sie k&#246;nne dies immer logisch schlussfolgern. Daher werden Sie niemals, wie das in anderen Versionen passieren kann, zu den letzten vier Quadraten kommen und entdecken, dass zwei Minen verblieben sind Sie aber keine M&#246;glichkeit haben zu wissen, wo diese sind.
+Diese Version verf&#252;gt &#252;ber eine ungew&#246;hnliche Eigenschaft. Standardm&#228;&#223;ig generiert es die Minen in Positionen, bei denen sichergestellt ist, dass Sie nie <em>raten</em> m&#252;ssen, wo sich eine Mine befindet, sie k&#246;nnen dies immer logisch schlussfolgern. Daher werden Sie niemals, wie das in anderen Versionen passieren kann, zu den letzten vier Quadraten kommen und entdecken, dass zwei Minen verblieben sind Sie aber keine M&#246;glichkeit haben zu wissen, wo diese sind.
 </p>
 <h2><a name="S12.1"></a>12.1 <a name="i1"></a>Mines-Steuerung</h2>
 <p>
 Dieses Spiel wird mit der Maus gespielt.
 </p>
 <p>
-Falls Sie auf ein bedecktes Quadrat linksklicken wird es aufgedeckt.
+Falls Sie auf ein bedecktes Quadrat linksklicken, wird es aufgedeckt.
 </p>
 <p>
 Falls Sie auf ein bedecktes Quadrat rechtsklicken, wird eine Flagge platziert, die anzeigt, dass darunter eine Mine vermutet wird. Aus Sicherheitsgr&#252;nden werden markierte Quadrate beim Linksklicken nicht aufgedeckt. Durch Rechtsklick k&#246;nnen Sie aber fehlerhafte Markierungen wieder entfernen.
 </p>
 <p>
-Falls Sie in ein aufgedecktes Quadrat linksklicken wird die Umgebung des Quadrats &#8216;bereinigt&#8217;. Dies bedeutet: Falls um das Quadrat genausoviele Flaggen markiert wurden wie Minen vorhanden sein sollten, dann werden alle benachbarten abgedeckten Quadrate <em>ohne</em> Flagge aufgedeckt. Sie k&#246;nnen diese Funktion daher benutzen, wenn Sie glauben, dass Sie den Ort aller Minen rund um das Quadrat kennen, um nicht alle verbliebenen Quadrate einzeln durch Klicken aufdecken zu m&#252;ssen.
+Falls Sie in ein aufgedecktes Quadrat linksklicken, wird die Umgebung des Quadrats &#8216;bereinigt&#8217;. Dies bedeutet: Falls um das Quadrat genausoviele Flaggen markiert wurden wie Minen vorhanden sein sollten, dann werden alle benachbarten abgedeckten Quadrate <em>ohne</em> Flagge aufgedeckt. Sie k&#246;nnen diese Funktion daher benutzen, wenn Sie glauben, dass Sie den Ort aller Minen rund um das Quadrat kennen, um nicht alle verbliebenen Quadrate einzeln durch Klicken aufdecken zu m&#252;ssen.
 </p>
 <p>
 Falls Sie ein Quadrat aufdecken, bei dem sich <em>keine</em> Minen in den benachbarten acht Quadraten befinden, ist es offensichtlich sicher, diese Quadrate ebenfalls aufzudecken. Dies wird f&#252;r Sie automatisch vorgenommen. Daher kann manchmal das Aufdecken eines einzelnen Quadrates eine ganz neues Gebiet zur Erforschung &#246;ffnen.
 </p>
 <p>
-Sie k&#246;nnen auch die Pfeiltasten zur Bewegung im Minenfeld verwenden. Ein verdecktes Quadrat wird mit der Eingabetaste aufgedeckt und bei einem aufgedeckten Quadrat wird darum bereinigt (d.h. dies funktioniert wie bei der linken Maustaste). Durch Dr&#252;cken der Leertaste auf einem verdeckten Quadrat wird eine Flagge angebracht (entsprechend verh&#228;lt sich dies wie die rechte Taste).
+Sie k&#246;nnen auch die Pfeiltasten zur Bewegung im Minenfeld verwenden. Ein verdecktes Quadrat wird mit der Eingabetaste aufgedeckt und um ein aufgedecktes Quadrat herum wird bereinigt (d.h. dies funktioniert wie bei der linken Maustaste). Durch Dr&#252;cken der Leertaste auf einem verdeckten Quadrat wird eine Flagge angebracht (entsprechend verh&#228;lt sie sich wie die rechten Taste).
 </p>
 <p>
 Alle in <a href="common.html#S2.1">section 2.1</a> beschriebenen Aktionen sind auch verf&#252;gbar.
 </p>
 <p>
-Sogar Undo ist verf&#252;gbar; allerdings sollten Sie dies als Schummeln betrachten. Falls Sie auf eine Mine treten, wird das Programm nur diese Mine anzeigen (anders als die meisten anderen Implementierungen, die dann alle Minen zeigen). Sie k&#246;nnen Ihren fatalen Spielzug r&#252;ckg&#228;ngig machen und wenn Sie m&#246;chten weiterspielen. Das Programm merkt sich, wie h&#228;ufig Sie gestorben sind (und Undo reduziert diese Anzahl nicht), daher wissen Sie beim Spielende ob Sie es ohne Fehler geschafft haben.
+Sogar Undo ist verf&#252;gbar; allerdings sollten Sie dies als Schummeln betrachten. Falls Sie auf eine Mine treten, wird das Programm nur diese Mine anzeigen (anders als die meisten anderen Implementierungen, die dann alle Minen zeigen). Sie k&#246;nnen Ihren fatalen Spielzug r&#252;ckg&#228;ngig machen und wenn Sie m&#246;chten weiterspielen. Das Programm merkt sich, wie h&#228;ufig Sie gestorben sind (und Undo reduziert diese Anzahl nicht), daher wissen Sie beim Spielende, ob Sie es ohne Fehler geschafft haben.
 </p>
 <p>
 (Falls Sie wirklich das gesamte Layout des Gitters wissen wollen, das Ihnen andere Implementierungen nach Ihrem Tod zeigen, k&#246;nnen Sie stets die Men&#252;option Solve verwenden.)
 </p>
 <h2><a name="S12.2"></a>12.2 <a name="i2"></a>Mines-Parameter</h2>
 <p>
-Die unter &#8216;Benutzerdefiniert&#8217; im Men&#252; &#8216;Art&#8217; verf&#252;gbaren Optionen sind:
+Die unter &#8216;Custom&#8217; im Men&#252; &#8216;Type&#8217; verf&#252;gbaren Optionen sind:
 </p>
 <dl><dt>
-<em>Breite</em>, <em>H&#246;he</em>
+<em>Width</em> (Breite), <em>Height</em> (H&#246;he)
 </dt>
 <dd>
 Gr&#246;&#223;e des Gitters in Quadraten
 </dd>
 <dt>
-<em>Minen</em>
+<em>Mines</em>
 </dt>
 <dd>
 Anzahl der Minen im Gitter. Sie k&#246;nnen diese als absolute Minenzahl angeben oder alternativ k&#246;nnen Sie ein <code>%</code>-Zeichen ans Ende setzen, wodurch das Spiel f&#252;r den gew&#252;nschten Anteil an Minen auf Quadraten im Spiel sorgen wird.
@@ -71,10 +71,10 @@ Setzen Sie die Minenzahl nicht zu hoch. Bei sehr hohen Dichten kann das Programm
 
 </dd>
 <dt>
-<em>L&#246;sbarkeit garantieren</em>
+<em>Ensure solubility</em>
 </dt>
 <dd>
-Wenn diese Option aktiviert ist (sie ist es standardm&#228;&#223;ig) wird Mines sicherstellen, dass das gesamte Gitter komplett vom anf&#228;nglichen offenen Platz aus hergeleitet werden kann. Falls Sie die riskanteren Gitter, wie sie von anderen Implementierungen generiert werden, bevorzugen, k&#246;nnen Sie diese Option abschalten.
+Wenn diese Option aktiviert ist (sie ist es standardm&#228;&#223;ig) wird Mines sicherstellen, dass das gesamte Gitter komplett vom anf&#228;nglich offenen Platz aus hergeleitet werden kann. Falls Sie die riskanteren Gitter, wie sie von anderen Implementierungen generiert werden, bevorzugen, k&#246;nnen Sie diese Option abschalten.
 </dd>
 </dl>
 

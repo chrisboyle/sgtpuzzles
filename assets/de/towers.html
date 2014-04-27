@@ -14,70 +14,70 @@
 <p><a href="keen.html">Previous</a> | <a href="index.html">Contents</a> | <a href="docindex.html">Index</a> | <a href="singles.html">Next</a></p>
 <h1><a name="C31"></a>Chapter 31: <a name="i0"></a>Towers</h1>
 <p>
-You have a square grid. On each square of the grid you can build a tower, with its height ranging from 1 to the size of the grid. Around the edge of the grid are some numeric clues.
+Sie bekommen ein Quadratgitter. In jedem Quadrat des Gitters k&#246;nnen Sie einen Turm bauen, wobei die H&#246;he von 1 bis zu der Gittergr&#246;&#223;e variiert. Um den Rand des Gitters herum befinden sich ein paar nummerische Hinweise.
 </p>
 <p>
-Your task is to build a tower on every square, in such a way that:
+Ihre Aufgabe besteht darin, in jedem Quadrat einen Turm zu bauen, so dass
 </p>
 <ul><li>
-Each row contains every possible height of tower once
+jede Zeile jede m&#246;gliche H&#246;he eines Turms einmal enth&#228;lt
 </li>
 <li>
-Each column contains every possible height of tower once
+jede Spalte jede m&#246;gliche H&#246;he eines Turms einmal enth&#228;lt
 </li>
 <li>
-Each numeric clue describes the number of towers that can be seen if you look into the square from that direction, assuming that shorter towers are hidden behind taller ones. For example, in a 5&#215;5 grid, a clue marked &#8216;5&#8217; indicates that the five tower heights must appear in increasing order (otherwise you would not be able to see all five towers), whereas a clue marked &#8216;1&#8217; indicates that the tallest tower (the one marked 5) must come first.
+jeder numerische Hinweis die Anzahl der T&#252;rme beschreibt, die gesehen werden, wenn das Quadrat von dieser Seite aus betrachtet wird, wobei angenommen wird, dass niedriegere T&#252;rme hinter gr&#246;&#223;eren T&#252;rmen versteckt sind. In einem 5&#215;5-Gitter bedeutet ein Hinweis &#8216;5&#8217;, dass die f&#252;nf T&#252;rme in ansteigender Gr&#246;&#223;e auftauchen m&#252;ssen (andernfalls k&#246;nnten nicht alle f&#252;nf T&#252;rme gesehen werden), w&#228;hrend ein Hinweis &#8216;1&#8217; anzeigt, dass der h&#246;chste Turm (der mit 5 markiert ist) als erstes kommen muss.
 </li>
 </ul>
 <p>
-In harder or larger puzzles, some towers will be specified for you as well as the clues round the edge, and some edge clues may be missing.
+In schwierigeren oder gr&#246;&#223;eren Puzzlen werden neben den Hinweisen an den Seiten auch einige T&#252;rme spezifiziert und einige Hinweise an den R&#228;ndern k&#246;nnten fehlen.
 </p>
 <p>
-This puzzle appears on the web under various names, particularly &#8216;<a name="i1"></a>Skyscrapers&#8217;, but I don't know who first invented it.
+Das Puzzle erscheint im Web unter verschiedenen Namen, insbesondere &#8216;<a name="i1"></a>Skyscrapers&#8217;, aber ich wei&#223; nicht, wer es erfunden hat.
 </p>
 <h2><a name="S31.1"></a>31.1 <a name="i2"></a>Towers-Steuerung</h2>
 <p>
 Towers hat viel mit dem Steuersystem von Solo, Unequal und Keen gemeinsam.
 </p>
 <p>
-Um Towers zu spielen, klicken Sie einfach mit der Maus in ein leeres Quadrat und tippen Sie dann eine Ziffer oder einen Buchstaben in die Tastatur, um dieses Quadrat zu f&#252;llen. Falls Sie einen Fehler gemacht haben, klicken Sie mit der Maus in das fehlerhafte Quadrat und dr&#252;cken Sie die Leertaste, um es wieder zu leeren (oder verwenden Sie die Undo-Funktion).
+Um Towers zu spielen, klicken Sie einfach mit der Maus in ein leeres Quadrat und tippen Sie dann eine Ziffer auf der Tastatur, um dieses Quadrat mit einem Turm dieser H&#246;he zu f&#252;llen. Falls Sie einen Fehler gemacht haben, klicken Sie mit der Maus in das fehlerhafte Quadrat und dr&#252;cken Sie die Leertaste, um es wieder zu leeren (oder verwenden Sie die Undo-Funktion).
 </p>
 <p>
-Falls Sie in ein Quadrat <em>rechts-</em>klicken und dann eine Zahl tippen, wird diese Zahl im Quadrat als &#8216;Bleistiftmarkierung&#8217; eingetragen. Sie k&#246;nnen Bleistiftmarkierungen f&#252;r mehrere Zahlen im gleichen Quadrat vornehmen. Quadrate, in denen Zahlen eingef&#252;llt sind k&#246;nnen nicht auch gleichzeitig &#252;ber Bleistiftmarkierungen verf&#252;gen.
+Falls Sie in ein Quadrat <em>rechts-</em>klicken und dann eine Zahl tippen, wird diese Zahl im Quadrat als &#8216;Bleistiftmarkierung&#8217; eingetragen. Sie k&#246;nnen Bleistiftmarkierungen f&#252;r mehrere Zahlen im gleichen Quadrat vornehmen. Quadrate, in denen sich ein Turm befindet k&#246;nnen nicht auch gleichzeitig &#252;ber Bleistiftmarkierungen verf&#252;gen.
 </p>
 <p>
 Das Spiel ignoriert Bleistiftmarkierungen, daher k&#246;nnen Sie diese so einsetzen, wie Sie m&#246;chten: Sie k&#246;nnen Sie als Erinnerung verwenden, dass ein bestimmtes Quadrat noch mal untersucht werden muss, sobald Sie mehr &#252;ber eine bestimmte Zahl wissen, oder Sie k&#246;nnen sie als Liste m&#246;glicher Zahlen f&#252;r ein gegebenes Quadrat verwenden oder irgendetwas anderes, was Sie m&#246;gen.
 </p>
 <p>
-Um eine Bleistiftmarkierung zu entfernen, klicken Sie rechts in das Quadrat und tippen Sie die Zahl noch mal.
+Um eine einzelne Bleistiftmarkierung zu entfernen, klicken Sie rechts in das Quadrat und tippen Sie die Zahl noch mal.
 </p>
 <p>
 Alle Bleistiftmarkierungen in einem Quadrat werden gel&#246;scht, wenn Sie linksklicken und eine Zahl eingeben oder wenn Sie linksklicken und die Leertaste dr&#252;cken. Auch rechtsklicken und dr&#252;cken der Leertaste wird die Bleistiftmarkierungen l&#246;schen.
 </p>
 <p>
-As for Solo, the cursor keys can be used in conjunction with the digit keys to set numbers or pencil marks. Use the cursor keys to move a highlight around the grid, and type a digit to enter it in the highlighted square. Pressing return toggles the highlight into a mode in which you can enter or remove pencil marks.
+Wie bei Solo k&#246;nnen die Pfeiltasten zusammen mit den Zifferntasten verwendet werden, um Nummern oder Bleistiftmarkierungen zu setzen. Verwenden Sie die Pfeiltasten, um eine Hervorhebung &#252;ber das Gitter zu bewegen und geben Sie eine Ziffer in das hervorgehobene Quadrat ein. Durch Dr&#252;cken der Eingabetaste schalten Sie in einen Modus um, in dem Sie statt der Hervorhebung Bleistiftmarkierungen eingeben oder entfernen k&#246;nnen.
 </p>
 <p>
-Pressing M will fill in a full set of pencil marks in every square that does not have a main digit in it.
+Durch Dr&#252;cken von &#187;M&#171; wird ein kompletter Satz an Bleistiftmarkierungen in jedes Quadrat, das noch keine Hauptziffer enth&#228;lt, eingef&#252;gt.
 </p>
 <p>
 (Alle in <a href="common.html#S2.1">section 2.1</a> beschriebene Aktionen sind auch verf&#252;gbar.)
 </p>
 <h2><a name="S31.2"></a>31.2 <a name="i3"></a>Towers-Parameter</h2>
 <p>
-Diese Parameter sind von der Option &#8216;Benutzerdefiniert...&#8217; im Men&#252; &#8216;Art&#8217; verf&#252;gbar.
+Diese Parameter sind von der Option &#8216;Custom...&#8217; im Men&#252; &#8216;Type&#8217; verf&#252;gbar.
 </p>
 <dl><dt>
-<em>Gittergr&#246;&#223;e</em>
+<em>Grid size</em>
 </dt>
 <dd>
-Specifies the size of the grid. Lower limit is 3; upper limit is 9 (because the user interface would become more difficult with &#8216;digits&#8217; bigger than 9!).
+Legt die Gr&#246;&#223;e des Gitters fest. Die untere Grenze ist 3; die obere Grenze ist 9 (da die Benutzerschnittstelle mit &#8216;Ziffern&#8217; gr&#246;&#223;er als 9 schwerer w&#252;rde!).
 </dd>
 <dt>
-<em>Schwierigkeit</em>
+<em>Difficulty</em>
 </dt>
 <dd>
-Controls the difficulty of the generated puzzle. At Unreasonable level, some backtracking will be required, but the solution should still be unique. The remaining levels require increasingly complex reasoning to avoid having to backtrack.
+Steuert die Schwierigkeit des erstellten Puzzles. In der Stufe &#187;Unreasonable&#171; wird R&#252;ckverfolgung ben&#246;tigt, die L&#246;sung sollte aber immer noch eindeutig sein. Die Stufen dazwischen ben&#246;tigen zunehmend komplexe Schlussfolgerungen, um R&#252;ckverfolgung zu vermeiden.
 </dd>
 </dl>
 

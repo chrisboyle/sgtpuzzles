@@ -14,10 +14,10 @@
 <p><a href="singles.html">Previous</a> | <a href="index.html">Contents</a> | <a href="docindex.html">Index</a> | <a href="signpost.html">Next</a></p>
 <h1><a name="C33"></a>Chapter 33: <a name="i0"></a>Magnets</h1>
 <p>
-A rectangular grid has been filled with a mixture of magnets (that is, dominoes with one positive end and one negative end) and blank dominoes (that is, dominoes with two neutral poles). These dominoes are initially only seen in silhouette. Around the grid are placed a number of clues indicating the number of positive and negative poles contained in certain columns and rows.
+Ein rechteckiges Gitter wurde mit einer Mischung von Magneten (d.h. Dominos mit einem positiven und einem negativen Ende) und leeren Dominos (d.h. Dominos mit zwei neutralen Polen) gef&#252;llt. Diese Dominos sind anfangs nur als Silhouette sichtbar. Um das Gitter herum werden eine Reihe von Hinweisen platziert, die die Anzahl an positiven und negativen Polen in bestimmten Zeilen und Spalten angeben.
 </p>
 <p>
-Your aim is to correctly place the magnets and blank dominoes such that all the clues are satisfied, with the additional constraint that no two similar magnetic poles may be orthogonally adjacent (since they repel). Neutral poles do not repel, and can be adjacent to any other pole.
+Ihr Ziel besteht darin, unter Beachtung aller Hinweise die Magnete und leeren Dominos korrekt zu setzen. Weitere Randbedingung ist, dass zwei gleiche Magnetpole nicht gegen&#252;berliegend benachbart sein d&#252;rfen (da sie sich absto&#223;en). Neutrale Pole sto&#223;en sich nicht ab und k&#246;nnen neben jedem anderen Pol liegen.
 </p>
 <p>
 Dank f&#252;r dieses Puzzle geht an <a name="i1"></a>Janko <a href="#p0">[16]</a>.
@@ -30,42 +30,42 @@ Magnets wurde von James Harvey zu dieser Sammlung beigesteuert.
 </p>
 <h2><a name="S33.1"></a>33.1 <a name="i2"></a>Magnets-Steuerung</h2>
 <p>
-Left-clicking on an empty square places a magnet at that position with the positive pole on the square and the negative pole on the other half of the magnet; left-clicking again reverses the polarity, and a third click removes the magnet.
+Durch Linksklick auf ein leeres Quadrat wird ein Magnet auf dieser Position platziert, wobei der positive Pol auf dem Quadrat liegt und der negative auf der anderen H&#228;lfte des Magneten; durch erneuten Linksklick wird die Polarit&#228;t vertauscht. Ein dritter Linksklick entfernt den Magnet.
 </p>
 <p>
-Right-clicking on an empty square places a blank domino there. Right-clicking again places two question marks on the domino, signifying &#8216;this cannot be blank&#8217; (which can be useful to note deductions while solving), and right-clicking again empties the domino.
+Rechtsklick auf ein leeres Quadrat platziert dort einen Domino. Ein erneuter Rechtsklick platziert dort zwei Fragezeichen, die signalisieren, dass &#8216;dies nicht leer sein kann&#8217; (das kann ein hilfreicher Hinweis w&#228;hrend des L&#246;sens sein) und ein weiterer Rechtsklick leert das Domino wieder.
 </p>
 <p>
-You can also use the cursor keys to move a cursor around the grid. Pressing the return key will lay a domino with a positive pole at that position; pressing again reverses the polarity and then removes the domino, as with left-clicking. Using the space bar allows placement of blank dominoes and cannot-be-blank hints, as for right-clicking.
+Sie k&#246;nnen auch die Pfeiltasten verwenden, um den Cursor &#252;ber das Gitter zu bewegen. Durch Dr&#252;cken der Eingabetaste wird ein Domino mit einem positiven Pol an dieser Position abgelegt; durch erneutes Dr&#252;cken wird die Polarit&#228;t umgedreht und entfernt dann das Domino, wie beim Linksklick. Durch Dr&#252;cken der Eingabetaste wird, wie beim Rechtklick, ein leeres Domino platziert und das Feld als nicht leer/sicher belegt markiert.
 </p>
 <p>
 (Alle in <a href="common.html#S2.1">section 2.1</a> beschriebene Aktionen sind auch verf&#252;gbar.)
 </p>
 <h2><a name="S33.2"></a>33.2 <a name="i3"></a>Magnets-Parameter</h2>
 <p>
-Diese Parameter sind von der Option &#8216;Benutzerdefiniert...&#8217; im Men&#252; &#8216;Art&#8217; verf&#252;gbar.
+Diese Parameter sind von der Option &#8216;Custom...&#8217; im Men&#252; &#8216;Type&#8217; verf&#252;gbar.
 </p>
 <dl><dt>
-<em>Breite</em>, <em>H&#246;he</em>
+<em>Width</em> (Breite), <em>Height</em> (H&#246;he)
 </dt>
 <dd>
-Size of grid in squares. There will be half <em>Width</em> &#215; <em>Height</em> dominoes in the grid: if this number is odd then one square will be blank.
+Gr&#246;&#223;e des Gitters in Quadraten. Es gibt 0.5 &#215; <em>Width</em> &#215; <em>Height</em> Dominos pro Gitter: Falls diese Zahl ungerade ist, bleibt ein Quadrat leer.
 <p>
-(Grids with at least one odd dimension tend to be easier to solve.)
+(Gitter mit mindestens einer ungeraden Dimension sind tendenziell leichter zu l&#246;sen.)
 </p>
 
 </dd>
 <dt>
-<em>Schwierigkeit</em>
+<em>Difficulty</em>
 </dt>
 <dd>
-Controls the difficulty of the generated puzzle. At Tricky level, you are required to make more deductions about empty dominoes and row/column counts.
+Steuert die Schwierigkeit des erstellten Puzzles. Auf der Stufe &#187;Tricky&#171; m&#252;ssen Sie schwierigere Schlussfolgerungen &#252;ber leere Dominos und Anzahl von Spalten/Zeilen machen.
 </dd>
 <dt>
-<em>Hinweise entfernen</em>
+<em>Strip clues</em>
 </dt>
 <dd>
-If true, some of the clues around the grid are removed at generation time, making the puzzle more difficult.
+Falls wahr, werden zum Erstellzeitpunkt einige der Hinweise im Gitter entfernt, wodurch das Puzzle schwieriger wird.
 </dd>
 </dl>
 

@@ -14,10 +14,10 @@
 <p><a href="twiddle.html">Previous</a> | <a href="index.html">Contents</a> | <a href="docindex.html">Index</a> | <a href="netslide.html">Next</a></p>
 <h1><a name="C8"></a>Chapter 8: <a name="i0"></a>Rectangles</h1>
 <p>
-Sie verf&#252;gen &#252;ber ein Gitter von Quadraten, bei denen auf einigen (aber nicht allen) Quadraten Nummern aufgebracht sind. Ihre Aufgabe besteht darin, das Gitter in Rechtecke verschiedener Gr&#246;&#223;e zu unterteilen, so dass (a) jedes Rechteck genau ein nummeriertes Quadrat enth&#228;lt und (b) die Gr&#246;&#223;e des Rechtecks mit der Zahl auf der nummerierten Platte &#252;bereinstimmt.
+Sie verf&#252;gen &#252;ber ein Gitter von Quadraten, bei denen auf einigen (aber nicht allen) Quadraten Nummern aufgebracht sind. Ihre Aufgabe besteht darin, das Gitter in Rechtecke verschiedener Gr&#246;&#223;e zu unterteilen, so dass (a) jedes Rechteck genau ein nummeriertes Quadrat enth&#228;lt und (b) die Gr&#246;&#223;e des Rechtecks mit der Zahl auf dem nummerierten Quadrat &#252;bereinstimmt.
 </p>
 <p>
-Die Danksagung f&#252;r dieses Spiel geht an das japanische Puzzlemagazin <a name="i1"></a>Nikoli <a href="#p0">[3]</a>; ich habe auch eine Palm-Implementierung im <a name="i2"></a>Puzzle Palace <a href="#p1">[4]</a> gesehen. Anders als bei der Implementierung von Puzzle Palace generiert meine Version automatisch Gitter in jeder Gr&#246;&#223;e die Sie w&#252;nschen. Die Qualit&#228;t des Puzzle-Designs ist daher nicht ganz so gut wie es handerstellte Puzzles w&#228;ren, aber auf der Haben-Seite erhalten Sie einen nicht-endenden Vorrat von Puzzles angepasst an Ihre eigenen Spezifikationen.
+Die Danksagung f&#252;r dieses Spiel geht an das japanische Puzzlemagazin <a name="i1"></a>Nikoli <a href="#p0">[3]</a>; ich habe auch eine Palm-Implementierung im <a name="i2"></a>Puzzle Palace <a href="#p1">[4]</a> gesehen. Anders als bei der Implementierung von Puzzle Palace generiert meine Version automatisch Gitter in jeder Gr&#246;&#223;e, die Sie w&#252;nschen. Die Qualit&#228;t des Puzzle-Designs ist daher nicht ganz so gut wie bei handerstellten Puzzlen, aber auf der Haben-Seite erhalten Sie einen nicht endenden Vorrat von Puzzles, angepasst an Ihre eigenen Spezifikationen.
 </p>
 <p><a name="p0"></a>
 [3] <a href="http://www.nikoli.co.jp/puzzles/7/index_text-e.htm"><code>http://www.nikoli.co.jp/puzzles/7/index_text-e.htm</code></a>
@@ -30,7 +30,7 @@ Die Danksagung f&#252;r dieses Spiel geht an das japanische Puzzlemagazin <a nam
 Dieses Spiel wird mit der Maus oder den Pfeiltasten gespielt.
 </p>
 <p>
-Klicken Sie links auf eine Ecke, um Sie ein- oder auszuschalten oder klicken Sie links und ziehen Sie, um das gesamte Rechteck (oder eine Linie) auf dem Gitter in einem Durchlauf zu zeichnen (und dabei alle existierenden Ecken innerhalb des Rechtecks zu entfernen). Durch Rechtsklick und ziehen k&#246;nnen Sie den Inhalt eines Rechtecks l&#246;schen, ohne seine Ecken zu beeinflussen.
+Klicken Sie links auf eine Ecke, um Sie ein- oder auszuschalten oder klicken Sie links und ziehen Sie, um das gesamte Rechteck (oder eine Linie) auf dem Gitter in einem Durchlauf zu zeichnen (und dabei alle existierenden Ecken innerhalb des Rechtecks zu entfernen). Durch Rechtsklick und Ziehen k&#246;nnen Sie den Inhalt eines Rechtecks l&#246;schen, ohne seine Ecken zu beeinflussen.
 </p>
 <p>
 Alternativ verwenden Sie die Pfeiltasten, um den Positionsanzeiger &#252;ber das Brett zu bewegen. Durch Dr&#252;cken der Eingabetaste k&#246;nnen Sie dann mit den Pfeiltasten ein Rechteck von dieser Position aus ziehen und durch erneutes Dr&#252;cken der Eingabetaste das Rechteck abschlie&#223;en. Verwenden Sie die Leertaste statt der Eingabetaste, um den Inhalt eines Rechtecks zu l&#246;schen, ohne dessen Ecken zu beeinflussen, wie oben.
@@ -43,32 +43,32 @@ Wenn ein Rechteck der korrekten Gr&#246;&#223;e fertiggestellt ist, wir es schat
 </p>
 <h2><a name="S8.2"></a>8.2 <a name="i4"></a>Rectangles-Parameter</h2>
 <p>
-Diese Parameter sind von der Option &#8216;Benutzerdefiniert...&#8217; im Men&#252; &#8216;Art&#8217; verf&#252;gbar.
+Diese Parameter sind von der Option &#8216;Custom...&#8217; im Men&#252; &#8216;Type&#8217; verf&#252;gbar.
 </p>
 <dl><dt>
-<em>Breite</em>, <em>H&#246;he</em>
+<em>Width</em> (Breite), <em>Height</em> (H&#246;he)
 </dt>
 <dd>
 Gr&#246;&#223;e des Gitters, in Quadraten.
 </dd>
 <dt>
-<em>Expansionsfaktor</em>
+<em>Expansion factor</em>
 </dt>
 <dd>
 Dies ist ein Mechanismus, um die Art der vom Programm erzeugten Gitter zu &#228;ndern. Einige Leute bevorzugen ein Gitter, das wenige gro&#223;e Rechtecke enth&#228;lt, gegen&#252;ber Gittern mit vielen kleinen. Daher k&#246;nnen Sie Rectangles auffordern, ein <em>kleineres</em> Gitter als die angegebene Gr&#246;&#223;e zu erstellen und es dann durch Hinzunahme von Spalten und Zeilen zu vergr&#246;&#223;ern.
 <p>
-Der standardm&#228;&#223;ige Expansionsfaktor von Null bedeutet, dass Rectangles einfach ein Gitter in der von Ihnen angeforderten Gr&#246;&#223;e erstellt und nichts weiter unternimmt. Falls Sie ein Expansionsfaktor von beispielsweise 0.5 setzen, bedeutet dies, dass jede Dimension des Gitters nach der Erstellung um die H&#228;lfte vergr&#246;&#223;ert wird. Mit anderen Worten, das urspr&#252;ngliche Gitter wird 2/3 der Gr&#246;&#223;e in jeder Dimension sein und wir dann auf seine komplette Gr&#246;&#223;e expandiert, ohne dass weitere Rechtecke hinzugef&#252;gt werden.
+Der standardm&#228;&#223;ige Ausdehnungsfaktor von Null bedeutet, dass Rectangles einfach ein Gitter in der von Ihnen angeforderten Gr&#246;&#223;e erstellt und nichts weiter unternimmt. Falls Sie einen Ausdehnungsfaktor von beispielsweise 0.5 setzen, bedeutet dies, dass jede Dimension des Gitters nach der Erstellung um die H&#228;lfte vergr&#246;&#223;ert wird. Mit anderen Worten, das urspr&#252;ngliche Gitter wird 2/3 der Gr&#246;&#223;e in jeder Dimension haben und wird dann auf seine komplette Gr&#246;&#223;e ausgedehnt, ohne dass weitere Rechtecke hinzugef&#252;gt werden.
 </p>
 <p>
-Das Setzen eines Expansionsfaktors von ungef&#228;hr 0.5 erschwert das Spiel typischerweise und belohnt (in meiner Erfahrung) mit einem weniger erschlie&#223;baren und mehr intuitiven Spielstil. Falls Sie ihn allerdings <em>zu</em> hoch setzen, kann das Spiel nicht mehr als ein paar Rechtecke zum Abdecken des gesamten Gitters erstellen und das Spiel wird trivial l&#246;sbar.
+Das Setzen eines Ausdehnungsfaktors von ungef&#228;hr 0.5 erschwert das Spiel typischerweise und belohnt (in meiner Erfahrung) mit einem weniger erschlie&#223;baren und mehr intuitiven Spielstil. Falls Sie ihn allerdings <em>zu</em> hoch setzen, kann das Spiel nicht mehr als ein paar Rechtecke zum Abdecken des gesamten Gitters erstellen und das Spiel wird trivial l&#246;sbar.
 </p>
 
 </dd>
 <dt>
-<em>Eindeutigl&#246;sbarkeit garantieren</em>
+<em>Ensure unique solution</em>
 </dt>
 <dd>
-Normalerweise sorgt Rectangles daf&#252;r, dass die angebotenen Puzzle nicht mehr als eine L&#246;sung haben. Puzzles mit mehrdeutigen Abschnitten k&#246;nnen schwieriger und subtiler sein, falls Sie dies m&#246;gen k&#246;nnen Sie daher diese Funktion ausschalten und riskieren, dass die Puzzle mehrdeutig sind. Auch kann das Finden <em>aller</em> m&#246;glichen L&#246;sungen eine zus&#228;tzliche Herausforderung f&#252;r fortgeschrittene Spieler darstellen. Das Abschalten dieser Option beschleunigt auch die Erstellung von Puzzles.
+Normalerweise sorgt Rectangles daf&#252;r, dass die angebotenen Puzzles nicht mehr als eine L&#246;sung haben. Puzzles mit mehrdeutigen Abschnitten k&#246;nnen schwieriger und subtiler sein, falls Sie dies m&#246;gen k&#246;nnen Sie daher diese Funktion ausschalten und riskieren, dass die Puzzles mehrdeutig sind. Auch kann das Finden <em>aller</em> m&#246;glichen L&#246;sungen eine zus&#228;tzliche Herausforderung f&#252;r fortgeschrittene Spieler darstellen. Das Abschalten dieser Option beschleunigt auch die Erstellung von Puzzles.
 </dd>
 </dl>
 

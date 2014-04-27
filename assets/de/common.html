@@ -17,8 +17,8 @@
 <li><a href="#C2">Chapter 2: Gemeinsame Funktionalit&#228;ten</a>
 <ul>
 <li><a href="#S2.1">2.1 Gemeinsame Aktionen</a></li>
-<li><a href="#S2.2">2.2 Spiele &#252;ber die Spiele-ID ausw&#228;hlen</a></li>
-<li><a href="#S2.3">2.3 Das Men&#252; &#8216;Art&#8217;</a></li>
+<li><a href="#S2.2">2.2 Spiele &#252;ber die Spiele-ID angeben</a></li>
+<li><a href="#S2.3">2.3 Das Men&#252; &#8216;Type&#8217;</a></li>
 <li><a href="#S2.4">2.4 Spieleparameter auf der Befehlszeile eingeben</a></li>
 <li><a href="#S2.5">2.5 Unix Befehlszeilenoptionen</a></li>
 </ul></li>
@@ -29,31 +29,31 @@ Dieses Kapitel beschreibt Funktionalit&#228;ten, die allen Spielen gemein sind.
 </p>
 <h2><a name="S2.1"></a>2.1 <a name="i1"></a>Gemeinsame Aktionen</h2>
 <p>
-Diese Aktionen sind vom Men&#252;punkt <a name="i2"></a>&#8216;Spiel&#8217; und &#252;ber <a name="i3"></a>Tastaturk&#252;rzel verf&#252;gbar, zus&#228;tzlich zu allen spielspezifischen Aktionen.
+Diese Aktionen sind vom Men&#252;punkt <a name="i2"></a>&#8216;Game&#8217; und &#252;ber <a name="i3"></a>Tastaturk&#252;rzel verf&#252;gbar, zus&#228;tzlich zu allen spielspezifischen Aktionen.
 </p>
 <p>
 (Unter <a name="i4"></a>Mac OS X befinden sich diese Aktionen unter den Men&#252;s <a name="i5"></a>&#8216;File&#8217; und <a name="i6"></a>&#8216;Edit&#8217;, um den lokalen Benutzerschnittstellenstandards zu gen&#252;gen.)
 </p>
 <dl><dt>
-<a name="i7"></a><em>Neues Spiel</em> (&#8216;N&#8217;, Ctrl+&#8216;N&#8217;)
+<a name="i7"></a><em>New game</em> (&#8216;N&#8217;, Ctrl+&#8216;N&#8217;)
 </dt>
 <dd>
 Beginnt ein neues Spiel, mit einem zuf&#228;lligen Startzustand.
 </dd>
 <dt>
-<a name="i8"></a><em>Wieder beginnen</em>
+<a name="i8"></a><em>Restart game</em>
 </dt>
 <dd>
 Setzt das aktuelle Spiel auf seinen Startzustand zur&#252;ck. (Dies kann r&#252;ckg&#228;ngig gemacht werden.)
 </dd>
 <dt>
-<a name="i9"></a><em>Laden</em>
+<a name="i9"></a><em>Load</em>
 </dt>
 <dd>
 L&#228;dt ein gespeichertes Spiel aus einer Datei auf der Platte.
 </dd>
 <dt>
-<a name="i10"></a><em>Speichern</em>
+<a name="i10"></a><em>Save</em>
 </dt>
 <dd>
 Speichert den aktuellen Zustand Ihres Spiels in einer Datei auf der Platte.
@@ -63,64 +63,64 @@ Die Operationen Load und Save erhalten Ihren gesamten Spielverlauf (daher k&#246
 
 </dd>
 <dt>
-<a name="i11"></a><em>Dr&#252;cken</em>
+<a name="i11"></a><em>Print</em>
 </dt>
 <dd>
 Wo unterst&#252;tzt (derzeit nur unter Windows) wird ein Dialog gezeigt, der es Ihnen erlaubt, eine beliebige Anzahl von Puzzlen zu drucken, die aus den aktuellen Parametern generiert werden, darunter optional auch das aktuelle Puzzle. (Nat&#252;rlich nur f&#252;r Puzzles, die sinnvoll gedruckt werden k&#246;nnen &#8211; f&#252;r Fifteen ist es schwer, eine vern&#252;nftige druckbare Darstellung zu ersinnen.)
 </dd>
 <dt>
-<a name="i12"></a><em>R&#252;ckg&#228;ngig</em> (&#8216;U&#8217;, Ctrl+&#8216;Z&#8217;, Ctrl+&#8216;_&#8217;)
+<a name="i12"></a><em>Undo</em> (&#8216;U&#8217;, Ctrl+&#8216;Z&#8217;, Ctrl+&#8216;_&#8217;)
 </dt>
 <dd>
 Setzt einen einzelnen Spielzug zur&#252;ck. (Sie k&#246;nnen Spielz&#252;ge bis zum Beginn der Sitzung zur&#252;cksetzen.)
 </dd>
 <dt>
-<a name="i13"></a><em>Nochmals</em> (&#8216;R&#8217;, Ctrl+&#8216;R&#8217;)
+<a name="i13"></a><em>Redo</em> (&#8216;R&#8217;, Ctrl+&#8216;R&#8217;)
 </dt>
 <dd>
 Nimmt einen vorher zur&#252;ckgesetzten Spielzug wieder vor.
 </dd>
 <dt>
-<a name="i14"></a><em>Kopieren</em>
+<a name="i14"></a><em>Copy</em>
 </dt>
 <dd>
-Kopiert den aktuellen Zustand Ihres Spiels im Textformat in die Zwischenablage, so dass Sie ihn in sagen wir Ihren E-Mail-Client oder ein Web-Diskussionsforum einf&#252;gen k&#246;nnen, falls Sie das Spiel mit jemanden diskutieren. (Nicht alle Spiele unterst&#252;tzen diese Funktion.)
+Kopiert den aktuellen Zustand Ihres Spiels im Textformat in die Zwischenablage, so dass Sie ihn in, sagen wir, Ihren E-Mail-Client oder ein Web-Diskussionsforum einf&#252;gen k&#246;nnen, falls Sie das Spiel mit jemanden diskutieren. (Nicht alle Spiele unterst&#252;tzen diese Funktion.)
 </dd>
 <dt>
-<a name="i15"></a><em>L&#246;sen</em>
+<a name="i15"></a><em>Solve</em>
 </dt>
 <dd>
-&#220;berf&#252;hrt das Puzzle sofort in seinen gel&#246;sten Zustand. Bei einigen Spielen (Cube) wird diese Funktion &#252;berhaupt nicht unterst&#252;tzt, da sie keinen besonderen Zweck erf&#252;llt. Bei anderen Spielen (wie Pattern) kann der gel&#246;ste Zustand Ihnen Informationen geben, falls Sie nicht erkennen k&#246;nnen, ob &#252;berhaupt eine L&#246;sung existiert oder wo Sie einen Fehler gemacht haben. F&#252;r wieder andere Spiele (wie Sixteen) teilt Ihnen die automatische L&#246;sung nicht dar&#252;ber mit, wie Sie zu der L&#246;sung <em>kommen</em>, aber sie stellt eine n&#252;tzliche Methode dar, schnell dorthin zu gelangen, so dass Sie mit den Stein-Setz-Spielz&#252;gen und Transformationen experimentieren k&#246;nnen.
+&#220;berf&#252;hrt das Puzzle sofort in seinen gel&#246;sten Zustand. Bei einigen Spielen (Cube) wird diese Funktion &#252;berhaupt nicht unterst&#252;tzt, da sie keinen besonderen Zweck erf&#252;llt. Bei anderen Spielen (wie Pattern) kann der gel&#246;ste Zustand Ihnen Informationen geben, falls Sie nicht erkennen k&#246;nnen, ob &#252;berhaupt eine L&#246;sung existiert oder wo Sie einen Fehler gemacht haben. F&#252;r wieder andere Spiele (wie Sixteen) teilt Ihnen die automatische L&#246;sung nichts dar&#252;ber mit, wie Sie zu der L&#246;sung <em>kommen</em>, aber sie stellt eine n&#252;tzliche Methode dar, schnell dorthin zu gelangen, so dass Sie mit den Stein-Setz-Spielz&#252;gen und Transformationen experimentieren k&#246;nnen.
 <p>
 Einige Spiele (wie Solo) sind in der Lage, eine Spiele-ID zu l&#246;sen, die Sie aus anderer Quelle erhalten haben. Andere Spiele (wie Rectangles) k&#246;nnen keine Spiele-ID l&#246;sen, die sie nicht selbst erfunden haben, aber wenn sie die Spiel-ID selbst erfunden haben, kennen sie die L&#246;sung bereits. Wieder andere Spiele (Pattern) k&#246;nnen <em>einige</em> externe Spiele-IDs l&#246;sen, aber nur falls diese nicht zu schwer sind.
 </p>
 <p>
-Der &#8216;L&#246;sen&#8217;-Befehl f&#252;gt den gel&#246;sten Zustand an das Ende der Undo-Kette f&#252;r das Puzzle hinzu. Mit anderen Worten, falls Sie zum eigenst&#228;ndigen L&#246;sen zur&#252;ckkehren wollen, nachdem Sie die Antwort gesehen habe, w&#228;hlen Sie einfach Undo aus.
+Der &#8216;Solve&#8217;-Befehl f&#252;gt den gel&#246;sten Zustand an das Ende der Undo-Kette f&#252;r das Puzzle hinzu. Mit anderen Worten, falls Sie zum eigenst&#228;ndigen L&#246;sen zur&#252;ckkehren wollen, nachdem Sie die Antwort gesehen habe, w&#228;hlen Sie einfach Undo aus.
 </p>
 
 </dd>
 <dt>
-<a name="i16"></a><a name="i17"></a><em>Beenden</em> (&#8216;Q&#8217;, Ctrl+&#8216;Q&#8217;)
+<a name="i16"></a><a name="i17"></a><em>Quit</em> (&#8216;Q&#8217;, Ctrl+&#8216;Q&#8217;)
 </dt>
 <dd>
 Schlie&#223;t die Anwendung komplett.
 </dd>
 </dl>
-<h2><a name="S2.2"></a>2.2 Spiele &#252;ber die <a name="i18"></a>Spiele-ID ausw&#228;hlen</h2>
+<h2><a name="S2.2"></a>2.2 Spiele &#252;ber die <a name="i18"></a>Spiele-ID angeben</h2>
 <p>
 Es gibt zwei verschiedene Arten eine Spielspezifikation in einem Puzzle zu speichern und dieses sp&#228;ter wieder herzustellen, entweder in Ihrer Umgebung oder in der Ausgabe des gleichen Puzzles bei einer anderen Person.
 </p>
 <p>
-Die Optionen &#8216;<a name="i19"></a>Bestimmt&#8217; und &#8216;<a name="i20"></a>Anfangswert&#8217; aus dem Men&#252; <a name="i21"></a>&#8216;Spiel&#8217; (oder &#8216;File&#8217; unter <a name="i22"></a>Mac OS X) zeigen jeweils ein St&#252;ck Text (eine &#8216;Spiele-ID&#8217;), der ausreicht, um genau dieses Spiel zu einem sp&#228;teren Zeitpunkt zu rekonstruieren.
+Die Optionen &#8216;<a name="i19"></a>Specific&#8217; und &#8216;<a name="i20"></a>Random Seed&#8217; aus dem Men&#252; <a name="i21"></a>&#8216;Game&#8217; (oder &#8216;File&#8217; unter <a name="i22"></a>Mac OS X) zeigen jeweils ein St&#252;ck Text (eine &#8216;Spiele-ID&#8217;), der ausreicht, um genau dieses Spiel zu einem sp&#228;teren Zeitpunkt zu rekonstruieren.
 </p>
 <p>
-Sie k&#246;nnen eines dieser Textst&#252;cke sp&#228;ter wieder im Programm eingeben (&#252;ber die gleiche Men&#252;option &#8216;Bestimmt&#8217; oder &#8216;Anfangswert&#8217;) und es wird das gleiche Spiel wieder erzeugt. Sie k&#246;nnen auch eines davon (unter Windows oder Unix) als <a name="i23"></a>Befehlszeilen-Argument verwenden; lesen Sie <a href="#S2.4">section 2.4</a> f&#252;r weitere Details.
+Sie k&#246;nnen eines dieser Textst&#252;cke sp&#228;ter wieder im Programm eingeben (&#252;ber die gleiche Men&#252;option &#8216;Specific&#8217; oder &#8216;Random Seed&#8217;) und es wird das gleiche Spiel wieder erzeugt. Sie k&#246;nnen auch eines davon (unter Windows oder Unix) als <a name="i23"></a>Befehlszeilen-Argument verwenden; lesen Sie <a href="#S2.4">section 2.4</a> f&#252;r weitere Details.
 </p>
 <p>
 Der Unterschied in der zwei Formen besteht darin, dass die beschreibende Spiele-ID eine <em>Beschreibung</em> des <a name="i24"></a>Anfangszustands des Spieles ist, w&#228;hrend der Zufallsstartwert lediglich ein St&#252;ck beliebiger Text ist, der als Eingabe f&#252;r den Zufallszahlengenerator zur Erzeugung des Puzzles verwandt wurde. Dies bedeutet:
 </p>
 <ul><li>
-Beschreibende Spiele-IDs sind typischerweise f&#252;r viele Puzzle l&#228;nger (wobei einige, wie Cube (<a href="cube.html#C4">chapter 4</a>) nur eine sehr kurze Beschreibung ben&#246;tigen). Daher ist der Zufallsstartwert oft ein <em>schnellerer</em> Weg um das gerade gespielte Puzzle aufzuschreiben oder es jemanden anderen mitzuteilen, so dass er das gleiche wie Sie spielen kann.
+Beschreibende Spiele-IDs sind typischerweise f&#252;r viele Puzzle l&#228;nger (wobei einige, wie Cube (<a href="cube.html#C4">chapter 4</a>) nur eine sehr kurze Beschreibung ben&#246;tigen). Daher ist der Zufallsstartwert oft ein <em>schnellerer</em> Weg, um das gerade gespielte Puzzle aufzuschreiben oder es jemanden anderen mitzuteilen, so dass er das gleiche wie Sie spielen kann.
 </li>
 <li>
 Jeder beliebige Text ist ein g&#252;ltiger Zufallsstartwert. Bei den automatisch generierten handelt es sich um f&#252;nfzehnstellige Zahlen, es funktioniert aber alles, Sie k&#246;nnen Ihren vollst&#228;ndigen Namen oder ein erfundenes Wort eingeben und ein g&#252;ltiges Puzzle wird daraus erstellt. Dies gibt zwei oder mehr Leuten die M&#246;glichkeit, das gleiche Puzzle um die Wette zu l&#246;sen: Sie denken sich einen Zufallsstartwert aus und jeder tippt ihn zur gleichen Zeit ein. Damit hat keiner einen Vorteil dadurch, dass er das erstellte Puzzle vor jemanden anderen gesehen hat.
@@ -131,13 +131,13 @@ Oft ist es m&#246;glich, Puzzle aus anderen Quellen (wie &#8216;Nonograms&#8217;
 <li>
 Zufallsstartwerte erzeugen nicht notwendigerweise die gleichen Ergebnisse, wenn sie mit einer anderen <a name="i25"></a><em>Version</em> des Puzzle-Programms verwandt werden. Dies beruht darauf, dass der Erzeugungsalgorithmus in neueren Versionen des Codes verbessert oder ver&#228;ndert worden sein k&#246;nnte und daher ein anderes Ergebnis erzeugen wird, wenn die gleiche Sequenz an Ziffern als Zufallszahl angegeben wird. Verwenden Sie eine beschreibende Spiele-ID, falls Sie sich nicht sicher sind, dass sie auf der gleichen Version des Programms wie der Ihren verwandt wird.
 <p>
-(Verwenden Sie die Men&#252;option &#8216;&#220;ber&#8217; um die Versionsnummer des Programms herauszufinden. Programme mit der gleichen Versionsnummer auf verschiedenen Plattformen sollten im Hinblick auf die Zufallsstartwerte kompatibel sein.) 
+(Verwenden Sie die Men&#252;option &#8216;About&#8217; um die Versionsnummer des Programms herauszufinden. Programme mit der gleichen Versionsnummer auf verschiedenen Plattformen sollten im Hinblick auf die Zufallsstartwerte kompatibel sein.) 
 </p>
 
 </li>
 </ul>
 <p>
-<a name="i26"></a>Ein beschreibende Spiele-ID beginnt mit einem St&#252;ck Text, der die <a name="i27"></a><em>Parameter</em> des aktuellen Spiels kodiert (wie beispielsweise die Gittergr&#246;&#223;e). Dann folgt ein Doppelpunkt und danach eine Beschreibung des Anfangszustandes des Spieles. Ein Zufallsstartwert beginnt mit einer &#228;hnlichen Zeichenkette, enth&#228;lt dann aber ein Rautezeichen gefolgt von beliebigen Daten.
+<a name="i26"></a>Eine beschreibende Spiele-ID beginnt mit einem St&#252;ck Text, der die <a name="i27"></a><em>Parameter</em> des aktuellen Spiels kodiert (wie beispielsweise die Gittergr&#246;&#223;e). Dann folgt ein Doppelpunkt und danach eine Beschreibung des Anfangszustandes des Spieles. Ein Zufallsstartwert beginnt mit einer &#228;hnlichen Zeichenkette, enth&#228;lt dann aber ein Rautezeichen gefolgt von beliebigen Daten.
 </p>
 <p>
 Falls Sie eine beschreibende Spiele-ID eingeben wird das Programm nicht in der Lage sein, Ihnen den erzeugenden Zufallsstartwert anzuzeigen, da es nicht <em>aus</em> einem Zufallsstartwert erzeugt wurde. Falls Sie allerdings einen Zufallsstartwert <em>eingeben</em>, wird das Programm in der Lage sein, Ihnen den daraus abgeleiteten Zufallsstartwert anzuzeigen.
@@ -146,39 +146,39 @@ Falls Sie eine beschreibende Spiele-ID eingeben wird das Programm nicht in der L
 Beachten Sie, dass die Spieleparameterzeichenketten sich in den zwei Formen unterscheiden k&#246;nnen. Bei einigen Spielen werden beim Zufallsstartwert zus&#228;tzliche Parameterdaten angegeben werden, die bei der beschreibenden Spiele-ID entfallen. Dies kommt daher, dass diese Parameterinformationen nur zur <em>Erstellung</em> von Gittern, aber nicht beim Spielen relevant sind. So wird beispielsweise der Schwierigkeitsgrad von Solo (<a href="solo.html#C11">chapter 11</a>) in der beschreibenden Spiele-ID nicht erw&#228;hnt.
 </p>
 <p>
-Diese zus&#228;tzlichen Parameter werden auch nicht permanent gesetzt, falls Sie eine Spiele-ID eingeben. Nehmen wir beispielsweise an, Sie haben den Schwierigkeitsgrad &#8216;Fortgeschritten&#8217; in Solo eingestellt und ein Freund bittet Sie um Unterst&#252;tzung bei einem Spiel der Schwierigkeit &#8216;Trivial&#8217;. Er liest daher einen einen Zufallsstartwert unter Benutzung der Schwierigkeit &#8216;Trivial&#8217; aus und Sie geben diesen ein. Das Programm wird Ihnen das gleiche Gitter mit der Schwierigkeit &#8216;Trivial&#8217; erstellen, mit dem Ihr Freund Probleme hatte, aber sobald Sie es zuende gespielt haben und um ein neues Spiel bitten, wird wieder automatisch auf die Schwierigkeit &#8216;Fortgeschritten&#8217; zur&#252;ckgeschaltet, die vorher eingestellt worden war.
+Diese zus&#228;tzlichen Parameter werden auch nicht permanent gesetzt, falls Sie eine Spiele-ID eingeben. Nehmen wir beispielsweise an, Sie haben den Schwierigkeitsgrad &#8216;Advanced&#8217; in Solo eingestellt und ein Freund bittet Sie um Unterst&#252;tzung bei einem Spiel der Schwierigkeit &#8216;Trivial&#8217;. Er liest daher einen einen Zufallsstartwert unter Benutzung der Schwierigkeit &#8216;Trivial&#8217; aus und Sie geben diesen ein. Das Programm wird Ihnen das gleiche Gitter mit der Schwierigkeit &#8216;Trivial&#8217; erstellen, mit dem Ihr Freund Probleme hatte, aber sobald Sie es zuende gespielt haben und ein neues Spiel beginnen, wird wieder automatisch auf die Schwierigkeit &#8216;Advanced&#8217; zur&#252;ckgeschaltet, die vorher eingestellt worden war.
 </p>
-<h2><a name="S2.3"></a>2.3 Das Men&#252; &#8216;Art&#8217;</h2>
+<h2><a name="S2.3"></a>2.3 Das Men&#252; &#8216;Type&#8217;</h2>
 <p>
-Das Men&#252; <a name="i28"></a>&#8216;Art&#8217; kann, falls vorhanden, eine Liste der <a name="i29"></a>voreingestellten Spieleeinstellungen enthalten. Wird eines dieser Eintr&#228;ge ausgew&#228;hlt, wird ein neues Spiel mit den angegebenen Parametern gestartet.
+Das Men&#252; <a name="i28"></a>&#8216;Type&#8217; kann, falls vorhanden, eine Liste der <a name="i29"></a>voreingestellten Spieleeinstellungen enthalten. Wird eines dieser Eintr&#228;ge ausgew&#228;hlt, wird ein neues Spiel mit den angegebenen Parametern gestartet.
 </p>
 <p>
-Das Men&#252; &#8216;Art&#8217; kann auch eine Option &#8216;<a name="i30"></a>Benutzerdefiniert&#8217; enthalten, die es Ihnen erlaubt, die <a name="i31"></a>Parameter des Spiels im Detail einzustellen. Die Parameter sind spielspezifisch und werden in den folgenden Abschnitten beschrieben.
+Das Men&#252; &#8216;Type&#8217; kann auch eine Option &#8216;<a name="i30"></a>Custom&#8217; enthalten, die es Ihnen erlaubt, die <a name="i31"></a>Parameter des Spiels im Detail einzustellen. Die Parameter sind spielspezifisch und werden in den folgenden Abschnitten beschrieben.
 </p>
 <h2><a name="S2.4"></a>2.4 Spieleparameter auf der <a name="i32"></a>Befehlszeile eingeben</h2>
 <p>
-(Dieser Abschnitt betrifft nicht die <a name="i33"></a>Android- und <a name="i34"></a>Mac OS X-Versions.)
+(This section does not apply to the <a name="i33"></a>Android or <a name="i34"></a>Mac OS X versions.)
 </p>
 <p>
-Die Spiele in dieser Sammlung speichern absichtlich niemals Informationen auf dem Computer, auf dem sie ausgef&#252;hrt werden: sie haben keine Bestenliste und keine abgespeicherten Voreinstellungen. (Dies kommt daher, dass ich annehme, das einige Personen sie auf der Arbeit spielen werden und diese Personen m&#246;chten wahrscheinlich so wenige Nachweise wie m&#246;glich hinterlassen!)
+Die Spiele in dieser Sammlung speichern absichtlich niemals Informationen auf dem Computer, auf dem sie ausgef&#252;hrt werden: sie haben keine Bestenliste und keine abgespeicherten Voreinstellungen. (Dies kommt daher, dass ich annehme, dass einige Personen sie auf der Arbeit spielen werden und diese Personen m&#246;chten wahrscheinlich so wenige Nachweise wie m&#246;glich hinterlassen!)
 </p>
 <p>
-Falls Sie allerdings erreichen wollen, dass diese Spiele mit mit einem <a name="i35"></a>vorgegebenen Satz an bestimmten Parametern gestartet werden, k&#246;nnen Sie diese auf der Befehlszeile angeben.
+Falls Sie allerdings eines dieser Spiele mit einem <a name="i35"></a>vorgegebenen Satz an bestimmten Parametern starten m&#246;chten, k&#246;nnen Sie diese auf der Befehlszeile angeben.
 </p>
 <p>
-Am einfachsten erfolgt dies, indem Sie die gew&#252;nschten Parameter mit dem Men&#252; &#8216;Art&#8217; einrichten (siehe <a href="#S2.3">section 2.3</a>) und dann &#8216;Anfangswert&#8217; aus dem Men&#252; &#8216;Spiel&#8217; oder &#8216;File&#8217; (siehe <a href="#S2.2">section 2.2</a>) ausw&#228;hlen. Der Text in dem Kasten &#8216;Spiel-ID&#8217; wird dann aus zwei Teilen bestehen, getrennt durch eine Raute. Der erste dieser Teile stellt die Spieleparameter das (beispielsweise die Gr&#246;&#223;e des Spielbereichs, und alles was Sie &#252;ber das Men&#252; &#8216;Art&#8217; eingestellt haben).
+Am einfachsten erfolgt dies, indem Sie die gew&#252;nschten Parameter mit dem Men&#252; &#8216;Type&#8217; einrichten (siehe <a href="#S2.3">section 2.3</a>) und dann &#8216;Random Seed&#8217; aus dem Men&#252; &#8216;Game&#8217; oder &#8216;File&#8217; (siehe <a href="#S2.2">section 2.2</a>) ausw&#228;hlen. Der Text in dem Kasten &#8216;Game ID&#8217; wird dann aus zwei Teilen bestehen, getrennt durch eine Raute. Der erste dieser Teile stellt die Spieleparameter dar (beispielsweise die Gr&#246;&#223;e des Spielbereichs, und alles was Sie &#252;ber das Men&#252; &#8216;Type&#8217; eingestellt haben).
 </p>
 <p>
-Falls Sie das Spiel mit genau diesem Parametertext auf der Befehlszeile ausf&#252;hren wird es mit den von Ihnen angegebenen Einstellungen gestartet.
+Falls Sie das Spiel mit genau diesem Parametertext auf der Befehlszeile ausf&#252;hren, wird es mit den von Ihnen angegebenen Einstellungen gestartet.
 </p>
 <p>
-For example: if you run Cube (see <a href="cube.html#C4">chapter 4</a>), select &#8216;Octahedron&#8217; from the &#8216;Type&#8217; menu, and then go to the game ID selection, you will see a string of the form &#8216;<code>o2x2#338686542711620</code>&#8217;. Take only the part before the hash (&#8216;<code>o2x2</code>&#8217;), and start Cube with that text on the command line: &#8216;<code>PREFIX-cube o2x2</code>&#8217;.
+Beispiel: Sie f&#252;hren Cube aus (siehe <a href="cube.html#C4">chapter 4</a>), w&#228;hlen &#8216;Octahedron&#8217; aus dem Men&#252; &#8216;Type&#8217; aus und gehen dann zu der Auswahl der Spiele-ID. Dort sehen Sie eine Zeichenkette der Form &#8216;<code>o2x2#338686542711620</code>&#8217;. Verwenden Sie nur den Teil vor der Raute (&#8216;<code>o2x2</code>&#8217;) und starten Sie Cube mit diesem Text auf der Befehlszeile: &#8216;<code>PREFIX-cube o2x2</code>&#8217;.
 </p>
 <p>
 Falls Sie die <em>gesamte</em> Spiele-ID auf der Befehlszeile angeben wird das Spiel mit dem speziellen beschriebenen Spiel gestartet. Dies ist manchmal der bequemere Weg eine bestimmte Spiele-ID zu starten, statt diese in den Auswahlkasten f&#252;r die Spiele-ID einzuf&#252;gen.
 </p>
 <p>
-(Sie k&#246;nnen die kodierten Spieleparameter auch aus der Men&#252;option &#8216;Bestimmt&#8217; statt &#8216;Anfangswert&#8217; auslesen, allerdings werden dann einige Parameter wie der Schwierigkeitsgrad in Sole fehlen. Lesen Sie <a href="#S2.2">section 2.2</a> f&#252;r weitere Details dar&#252;ber.)
+(Sie k&#246;nnen die kodierten Spieleparameter auch aus der Men&#252;option &#8216;Specific&#8217; statt &#8216;Random Seed&#8217; auslesen, allerdings werden dann einige Parameter, wie der Schwierigkeitsgrad in Solo, fehlen. Lesen Sie <a href="#S2.2">section 2.2</a> f&#252;r weitere Details dar&#252;ber.)
 </p>
 <h2><a name="S2.5"></a>2.5 <a name="i36"></a>Unix <a name="i37"></a>Befehlszeilenoptionen</h2>
 <p>
@@ -194,7 +194,7 @@ Zus&#228;tzlich zu der M&#246;glichkeit, die Spieleparameter auf der Befehlszeil
 <code>--load</code>
 </dt>
 <dd>
-Diese Optionen bestimmen ob das angegebene Befehlszeilenargument als spezieller Spieleparameter oder als eine zuvor <a name="i38"></a>gespeicherte und jetzt zu <a name="i39"></a>ladende (&#8216;--load&#8217;) Datei betrachtet wird. Nur eine der beiden Parameter sollte angegeben werden. Falls keine der Optionen angegeben ist, wird basierend auf dem Format des Arguments der zutreffende Fall erraten.
+Diese Optionen bestimmen, ob das angegebene Befehlszeilenargument als spezieller Spieleparameter oder als eine zuvor <a name="i38"></a>gespeicherte und jetzt zu <a name="i39"></a>ladende (&#8216;--load&#8217;) Datei betrachtet wird. Nur eine der beiden Parameter sollte angegeben werden. Falls keine der Optionen angegeben ist, wird basierend auf dem Format des Arguments der zutreffende Fall erraten.
 </dd>
 <dt>
 <code>--generate </code><em>n</em>
@@ -202,7 +202,7 @@ Diese Optionen bestimmen ob das angegebene Befehlszeilenargument als spezieller 
 <dd>
 Falls diese Option angegeben wird, dann werden eine Reihe von beschreibenden Spiele-IDs <a name="i40"></a>ausgedacht und auf der Standardausgabe ausgegeben. Dies ist hilfreich, um Zugriff auf die Spieleerzeugungsalgorithmen zu erhalten, ohne notwendigerweise die Oberfl&#228;che zu verwenden.
 <p>
-Falls auf der Befehlszeile Spieleparameter angegeben sind, werden diese zur Erzeugung von Spiele-IDs verwandt; andernfalls wird eine voreingestellter Satz an Parametern verwandt.
+Falls auf der Befehlszeile Spieleparameter angegeben sind, werden diese zur Erzeugung von Spiele-IDs verwandt; andernfalls wird ein voreingestellter Satz an Parametern verwandt.
 </p>
 <p>
 Der h&#228;ufigste Einsatzfall dieser Option besteht im Zusammenhang mit der Option <code>--print</code>. Dabei unterscheidet sich das Verhalten etwas, siehe unten.
@@ -218,7 +218,7 @@ Falls diese Option angegeben wird, wird eine gedruckte Darstellung eines oder me
 Auf jeder Seite mit Puzzlen wird es <em>w</em> quer und <em>h</em> nach unten geben. Falls es mehr Puzzle als <em>w</em>&#215;<em>h</em> gibt wird mehr als eine Seite gedruckt.
 </p>
 <p>
-Falls auch <code>--generate</code> angegeben wurde, werden die ausgedachten Spiele-IDs zur Erzeugung der gedruckten Ausgabe verwandt. Andernfalls wird eine Liste von Spiele-IDs im gleichen Format wie diese von <code>--generate</code> erzeugt werden auf der Standardeingabe erwartet (diese k&#246;nnen beschreibend oder mit Zufallsstartwert sein).
+Falls auch <code>--generate</code> angegeben wurde, werden die ausgedachten Spiele-IDs zur Erzeugung der gedruckten Ausgabe verwandt. Andernfalls wird auf der Standardeingabe eine Liste von Spiele-IDs im gleichen Format, wie das von <code>--generate</code> erzeugte, erwartet (diese k&#246;nnen beschreibend oder mit Zufallsstartwert sein, siehe <a href="#S2.2">section 2.2</a>).
 </p>
 <p>
 Zum Beispiel:
@@ -226,7 +226,7 @@ Zum Beispiel:
 <pre><code>PREFIX-net --generate 12 --print 2x3 7x7w | lpr
 </code></pre>
 <p>
-Erstellt zwei Seiten an gedruckten Net-Puzzlen (jedes wird ein 7&#215;7 Umlauf-Gitter enthalten) erstellen und diese &#252;ber eine Pipe an den <code>lpr</code>-Befehl senden, der die Ausgabe auf vielen Systemen auf den eigentlichen Drucker schicken wird.
+Wird zwei Seiten an gedruckten Net-Puzzlen (jedes wird ein 7&#215;7 Umlauf-Gitter enthalten) erstellen und diese &#252;ber eine Pipe an den <code>lpr</code>-Befehl senden, der die Ausgabe auf vielen Systemen auf den eigentlichen Drucker schicken wird.
 </p>
 <p>
 Es gibt verschiedene weitere Optionen mit Auswirkungen auf das Drucken, siehe unten.
@@ -237,9 +237,9 @@ Es gibt verschiedene weitere Optionen mit Auswirkungen auf das Drucken, siehe un
 <code>--save </code><em>file-prefix</em> [ <code>--save-suffix </code><em>file-suffix</em> ]
 </dt>
 <dd>
-Falls diese Option angegeben wird, wird statt der Anzeige eines Puzzles die gespeicherten Spieledateien f&#252;r ein oder mehrere Puzzles in Dateien geschrieben, die aus den angegebenen Pr&#228;- und/oder Suffixen konstruiert werden.
+Falls diese Option angegeben wird, werden statt der Anzeige eines Puzzles die gespeicherten Spieledateien f&#252;r ein oder mehrere Puzzles in Dateien geschrieben, die aus den angegebenen Pr&#228;- und/oder Suffixen konstruiert werden.
 <p>
-Falls auch <code>--generate</code> angegeben wurde, werden die ausgedachten Spiele-IDs zur Erzeugung der gedruckten Ausgabe verwandt. Andernfalls wird eine Liste von Spiele-IDs im gleichen Format wie diese von <code>--generate</code> erzeugt werden auf der Standardeingabe erwartet (diese k&#246;nnen beschreibend oder mit Zufallsstartwert sein).
+Falls auch <code>--generate</code> angegeben wurde, werden die ausgedachten Spiele-IDs zur Erzeugung der gedruckten Ausgabe verwandt. Andernfalls wird auf der Standardeingabe eine Liste von Spiele-IDs im gleichen Format, wie das von <code>--generate</code> erzeugte, erwartet (diese k&#246;nnen beschreibend oder mit Zufallsstartwert sein, siehe <a href="#S2.2">section 2.2</a>).
 </p>
 <p>
 Zum Beispiel:
@@ -255,7 +255,7 @@ wird zw&#246;lf gespeicherte Spieledateien f&#252;r Net mit den Namen <code>game
 <code>--version</code>
 </dt>
 <dd>
-Gibt nur die Versionsinformationen &#252;ber das Spiel aus.
+Gibt nur die Versionsinformationen &#252;ber das Spiel aus und wird dann beendet.
 </dd>
 </dl>
 <p>

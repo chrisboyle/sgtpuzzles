@@ -14,35 +14,35 @@
 <p><a href="untangle.html">Previous</a> | <a href="index.html">Contents</a> | <a href="docindex.html">Index</a> | <a href="slant.html">Next</a></p>
 <h1><a name="C19"></a>Chapter 19: <a name="i0"></a>Black Box</h1>
 <p>
-Eine Reihe von B&#228;llen sind in einem rechteckigen Gebiet versteckt. Sie m&#252;ssen die Position der B&#228;lle erschlie&#223;en, indem Sie Laser aus Positionen an den R&#228;ndern der Arena abfeuern und beobachten, wie die Strahlen reflektiert werden.
+Eine Reihe von B&#228;llen sind in einem rechteckigen Gebiet versteckt. Sie m&#252;ssen die Position der B&#228;lle erschlie&#223;en, indem Sie Laser aus Positionen an den R&#228;ndern der Arena abfeuern und beobachten, wie ihre Strahlen reflektiert werden.
 </p>
 <p>
-Laser feuern gradlinig, bis sie die gegen&#252;berliegende Seite der Arena erreichen (wo sie wieder auftauchen), falls sie nicht in einer der folgenden Arten von B&#228;llen betroffen sind:
+Strahlen laufen gradlinig von ihrem Ursprung bis sie die gegen&#252;berliegende Seite der Arena treffen (wo sie wieder auftauchen), falls sie nicht in einer der folgenden Arten von B&#228;llen betroffen sind:
 </p>
 <ul><li>
-Ein Laser, der eine Ball frontal trifft, wird absorbiert und nicht wieder auftauchen. Dies betrifft auch Laser, die einen Ball in der ersten Linie der Arena treffen.
+Ein Strahl, der einen Ball frontal trifft, wird absorbiert und nicht wieder auftauchen. Dies betrifft auch Strahlen, die einen Ball in der ersten Linie der Arena treffen.
 </li>
 <li>
-Ein Laser mit einem Ball im Quadrat links vorne wird um 90 Grad nach rechts reflektiert.
+Ein Strahl mit einem Ball im Quadrat vorne links wird um 90 Grad nach rechts reflektiert.
 </li>
 <li>
-Ein Laser mit einem Ball im Quadrat vorne rechts wird entsprechend nach links reflektiert.
+Ein Strahl mit einem Ball im Quadrat vorne rechts wird entsprechend nach links reflektiert.
 </li>
 <li>
-Ein Laser, der an seiner Ursprungsposition wieder auftauchen w&#252;rde, gilt als &#8216;reflektiert&#8217;.
+Ein Strahl, der an seiner Ursprungsposition wieder auftauchen w&#252;rde, gilt als &#8216;reflektiert&#8217;.
 </li>
 <li>
-Ein Laser, der von einem Ball links oder rechts vor seinem Eintrittspunkt abgelenkt w&#252;rde, bevor er in die Arena eintritt (entlang des &#8216;Feuerstrahls&#8217;), wird auch als &#8216;reflektiert&#8217; betrachtet.
+Ein Strahl, der von einem Ball links oder rechts vor dem Eintrittspunkt abgelenkt w&#252;rde, bevor er in die Arena eintritt, wird auch als &#8216;reflektiert&#8217; betrachtet.
 </li>
 </ul>
 <p>
-Reflektierte Laser tauchen als &#8216;R&#8217; auf; Laser, die B&#228;lle frontal treffen, tauchen als &#8216;H&#8217; auf. Andernfalls erscheint eine Nummer an Feuerpunkt und dem Ort, an dem der Laser wieder auftaucht (diese Nummer ist eindeutig diesem Schuss zugeordnet).
+Reflektierte Strahlen tauchen als &#8216;R&#8217; auf; Strahlen, die B&#228;lle frontal treffen, tauchen als &#8216;H&#8217; auf. Andernfalls erscheint eine Nummer am Feuerpunkt und dem Ort, an dem der Strahl wieder auftaucht (diese Nummer ist eindeutig diesem Schuss zugeordnet).
 </p>
 <p>
-Sie k&#246;nnen Vermutungen &#252;ber den Ort der B&#228;lle, basierend auf die Eintritts- und Austrittsmuster der Laser platzieren; sobald Sie genug B&#228;lle platziert haben, erscheint ein Knopf, der Ihnen die &#220;berpr&#252;fung Ihrer Vermutungen erlaubt.
+Sie k&#246;nnen Vermutungen &#252;ber den Ort der B&#228;lle, basierend auf den Eintritts- und Austrittsmuster der Strahlen, platzieren; sobald Sie genug B&#228;lle platziert haben, erscheint ein Knopf, der Ihnen die &#220;berpr&#252;fung Ihrer Vermutungen erlaubt.
 </p>
 <p>
-Hier ist ein Diagramm, das Ihnen zeigt, wie die Positionen der B&#228;lle jedes der oben beschriebenen Verhalten erzeugen kann.
+Hier ist ein Diagramm, das Ihnen zeigt, wie die Positionen der B&#228;lle jedes der oben beschriebenen Strahlverhalten erzeugen k&#246;nnen:
 </p>
 <pre><code> 1RHR----
 |..O.O...|
@@ -56,10 +56,10 @@ H........|
  12-RH---
 </code></pre>
 <p>
-Wie gezeigt ist es m&#246;glich, dass ein Ball mehrere Reflektionen erh&#228;lt, bevor er wieder auftaucht (siehe Spielschritt 3). &#196;hnlich kann ein Ball (m&#246;glicherweise mehr als einmal) reflektiert werden, bevor er einen Treffer erh&#228;lt (das &#8216;H&#8217; auf der linken Seite im Beispiel).
+Wie gezeigt ist es m&#246;glich, dass ein Strahl mehrfach reflektiert wird, bevor er wieder auftaucht (siehe Spielschritt 3). &#196;hnlich kann ein Strahl (m&#246;glicherweise mehr als einmal) reflektiert werden, bevor er einen Treffer erh&#228;lt (das &#8216;H&#8217; auf der linken Seite im Beispiel).
 </p>
 <p>
-Beachten Sie, dass jede Anordnung mit mehr als vier B&#228;llen nicht-eindeutige L&#246;sungen haben k&#246;nnte. Das folgende Diagramm illustriert dies; falls Sie wissen, dass das Brett f&#252;nf B&#228;lle enth&#228;lt, ist es unm&#246;glich, zu bestimmen, wo der f&#252;nfte Ball ist (m&#246;gliche L&#246;sungen sind durch <code>x</code> gekennzeichnet):
+Beachten Sie, dass jede Anordnung mit mehr als vier B&#228;llen nicht eindeutige L&#246;sungen haben k&#246;nnte. Das folgende Diagramm illustriert dies; falls Sie wissen, dass das Brett f&#252;nf B&#228;lle enth&#228;lt, ist es unm&#246;glich, zu bestimmen, wo der f&#252;nfte Ball ist (m&#246;gliche L&#246;sungen sind durch <code>x</code> gekennzeichnet):
 </p>
 <pre><code> --------
 |........|
@@ -73,51 +73,51 @@ Beachten Sie, dass jede Anordnung mit mehr als vier B&#228;llen nicht-eindeutige
  --------
 </code></pre>
 <p>
-Aus diesem Grund &#252;berpr&#252;ft das Spiel, wenn Sie Ihre Vermutung &#252;berpr&#252;ft haben wollen, dass Ihre L&#246;sung <em>das gleiche Ergebnis</em> wie die des Computers produziert, statt zu pr&#252;fen, ob Ihre L&#246;sung mit der des Computers &#252;bereinstimmt. Daher k&#246;nnen Sie im obigen Beispiel den f&#252;nften Ball auf <em>einen beliebigen</em> der mit x markierten Pl&#228;tze setzen und Sie w&#252;rden immer noch gewinnen.
+Aus diesem Grund testet das Spiel, wenn Sie Ihre Vermutung &#252;berpr&#252;ft haben wollen, dass Ihre L&#246;sung <em>das gleiche Ergebnis</em> wie die des Computers produziert, statt zu pr&#252;fen, ob Ihre L&#246;sung mit der des Computers &#252;bereinstimmt. Daher k&#246;nnen Sie im obigen Beispiel den f&#252;nften Ball auf <em>einen beliebigen</em> der mit <code>x</code> markierten Pl&#228;tze setzen und Sie w&#252;rden immer noch gewinnen.
 </p>
 <p>
 Black Box wurde von James Harvey zu dieser Sammlung beigesteuert.
 </p>
 <h2><a name="S19.1"></a>19.1 <a name="i1"></a>Black Box-Steuerung</h2>
 <p>
-Um einen Laser abzufeuern, klicken Sie in ein Quadrat am Rande der Arena. Das Ergebnis wird sofort angezeigt. Lasers d&#252;rfen nicht zweimal gefeuert werden (da sich die Ergebnisse niemals &#228;ndern). Der aktuelle (oder alte) Durchlauf kann durch Dr&#252;cken der linken Taste hervorgehoben werden, um den Austrittspunkt f&#252;r den Laser, falls zutreffend, zu best&#228;tigen.
+Um einen Laserstrahl abzufeuern, klicken Sie links in ein Quadrat am Rande der Arena. Das Ergebnis wird sofort angezeigt. Der aktuelle (oder alte) Durchlauf kann durch Dr&#252;cken oder Halten der linken Taste hervorgehoben werden, um den Austrittspunkt f&#252;r den Laser, falls zutreffend, zu best&#228;tigen.
 </p>
 <p>
-Um den Ort eines Balles zu raten, klicken Sie links in die Arena und ein schwarzer Kreis markiert dort die vermutete Position; um diese zu entfernen, klicken Sie einfach erneut.
+Um den Ort eines Balles zu raten, klicken Sie links in die Arena und ein schwarzer Kreis markiert dort die vermutete Position; klicken Sie erneut, um den vermuteten Ball zu entfernen.
 </p>
 <p>
-Durch Rechtsklick k&#246;nnen Stellen in der Arena gegen Ver&#228;nderungen gesperrt werden; ganze Zeilen und Spalten k&#246;nnen entsprechend durch Rechtsklick im Laserfeuerbereich oberhalb oder unterhalb der Spalte bzw. rechts oder links der Zeile gesperrt werden.
+Durch Rechtsklick k&#246;nnen Stellen in der Arena gegen Ver&#228;nderungen gesperrt werden; ganze Zeilen und Spalten k&#246;nnen entsprechend durch Rechtsklick im Laserquadrat oberhalb oder unterhalb der Spalte bzw. rechts oder links der Zeile gesperrt werden.
 </p>
 <p>
-Die Pfeiltasten k&#246;nne auch zu Bewegung im Gitter verwandt werden. Durch Dr&#252;cken der Eingabetaste wird eine neu Ballort-Vermutung hinzugef&#252;gt und durch Dr&#252;cken der Leertaste wird eine Zelle oder eine Zeile/Spalte gesperrt.
+Die Pfeiltasten k&#246;nnen auch zu Bewegung im Gitter verwandt werden. Durch Dr&#252;cken der Eingabetaste wird ein Laser gefeuert oder eine neue Ballort-Vermutung hinzugef&#252;gt und durch Dr&#252;cken der Leertaste wird eine Zelle, Zeile oder Spalte gesperrt.
 </p>
 <p>
-Wenn eine geeignete Zahl an B&#228;llen geraten wurde erscheint ein Knopf in der oberen linken Ecke des Gitters; durch Anklicken (mit der Maus oder dem Cursor) wird Ihre Vermutung markiert.
+Wenn eine geeignete Zahl an B&#228;llen geraten wurde erscheint ein Knopf in der oberen linken Ecke des Gitters; durch Anklicken (mit der Maus oder dem Cursor) wird Ihre Vermutung &#252;berpr&#252;ft.
 </p>
 <p>
-Falls Sie den &#8216;Markierung&#8217;-Knopf anklicken und Ihre Vermutungen nicht korrekt sind, wir das Spiel Ihnen so wenige Informationen wie m&#246;glich zeigen, um Ihnen dies vorzuf&#252;hren, damit Sie es erneut versuchen k&#246;nnen. Falls Ihre Ballpositionen nicht mit den Ihnen bereits bekannten Laserpfaden konsistent sind wird ein Laserpfad eingekreist, um Ihnen anzudeuten, dass Sie falsch liegen. Falls die Positionen zu allen existierenden Laserpfaden passt, Sie aber immer noch falsch liegen, wird ein neuer Laserpfad (angezeigt in rot) aufgedeckt, der nicht zu Ihrer aktuellen Vermutung passt.
+Falls Sie den &#8216;Check&#8217;-Knopf anklicken und Ihre Vermutungen nicht korrekt sind, wird das Spiel Ihnen das Minimum an Informationen zeigen, um Ihnen dies vorzuf&#252;hren, damit Sie es erneut versuchen k&#246;nnen. Falls Ihre Ballpositionen nicht mit den Ihnen bereits bekannten Strahlen konsistent sind, wird ein Strahl eingekreist, um Ihnen anzudeuten, dass Sie falsch liegen. Falls die Positionen zu allen existierenden Strahlen passt, Sie aber immer noch falsch liegen, wird ein neuer Strahl (angezeigt in rot) aufgedeckt, der nicht zu Ihrer aktuellen Vermutung passt.
 </p>
 <p>
-Falls Sie sich entscheiden, komplett aufzugeben, k&#246;nnen Sie Solve anw&#228;hlen, um die tats&#228;chlichen Ballpositionen aufzudecken. Zu diesem Zeitpunkt werden korrekt positionierte B&#228;lle als ausgef&#252;llte Kreise dargestellt; inkorrekt positionierte B&#228;lle werden als ausgef&#252;llte Kreise mit roten Kreuzen dargestellt und fehlende B&#228;lle als rote Kreise. Zus&#228;tzlich markieren rote Kreise alle Laser, die Sie bereits abgefeuert haben und die nicht mit Ihrer Ballverteilung konsistent waren (genauso wie beim Dr&#252;cken des Markierungsknopfes), und roter Text markiert alle Laser, die Sie abgefeuert h&#228;tten <em>k&#246;nnen</em>, um Ihre Ballverteilung von der richtigen zu unterscheiden.
+Falls Sie sich entscheiden, komplett aufzugeben, k&#246;nnen Sie Solve anw&#228;hlen, um die tats&#228;chlichen Ballpositionen aufzudecken. Zu diesem Zeitpunkt werden korrekt positionierte B&#228;lle als ausgef&#252;llte schwarze Kreise dargestellt, inkorrekt positionierte B&#228;lle als ausgef&#252;llte schwarze Kreise mit roten Kreuzen und fehlende B&#228;lle als ausgef&#252;llte rote Kreise. Zus&#228;tzlich markieren rote Kreise alle Laser, die Sie bereits abgefeuert haben und die nicht mit Ihrer Ballverteilung konsistent waren (genauso wie beim Dr&#252;cken des &#8216;Check&#8217;-Knopfes), und roter Text markiert alle Laser, die Sie abgefeuert h&#228;tten <em>k&#246;nnen</em>, um Ihre Ballverteilung von der richtigen zu unterscheiden.
 </p>
 <p>
 (Alle in <a href="common.html#S2.1">section 2.1</a> beschriebene Aktionen sind auch verf&#252;gbar.)
 </p>
 <h2><a name="S19.2"></a>19.2 <a name="i2"></a>Black Box-Parameter</h2>
 <p>
-Diese Parameter sind von der Option &#8216;Benutzerdefiniert...&#8217; im Men&#252; &#8216;Art&#8217; verf&#252;gbar.
+Diese Parameter sind von der Option &#8216;Custom...&#8217; im Men&#252; &#8216;Type&#8217; verf&#252;gbar.
 </p>
 <dl><dt>
-<em>Breite</em>, <em>H&#246;he</em>
+<em>Width</em> (Breite), <em>Height</em> (H&#246;he)
 </dt>
 <dd>
-Gr&#246;&#223;e des Gitters in Quadraten. Es gibt 2 &#215; <em>Breite</em> &#215; <em>H&#246;he</em> Laser pro Gitter, zwei pro Zeile und zwei pro Spalte.
+Gr&#246;&#223;e des Gitters in Quadraten. Es gibt 2 &#215; <em>Width</em> &#215; <em>Height</em> Laser pro Gitter, zwei pro Zeile und zwei pro Spalte.
 </dd>
 <dt>
-<em>Zahl von B&#228;llen</em>
+<em>No. of balls</em>
 </dt>
 <dd>
-Anzahl der im Gitter zu positionierenden B&#228;lle. Dies kann eine einzelne Zahl oder ein Bereich (getrennt durch einen Bindestrich wie &#8216;2-6&#8217; sein) und bestimmt die Anzahl der im Gitter zu positionierenden B&#228;lle. Der &#8216;reveal&#8217;-Knopf wird nur aktiviert, falls die die entsprechende Anzahl von B&#228;llen geraten haben; eine Vermutung mit einer anderen Anzahl als die urspr&#252;ngliche L&#246;sung ist nur akzeptabel falls alle Laser-Eing&#228;nge und -Ausg&#228;nge passen.
+Anzahl der im Gitter zu positionierenden B&#228;lle. Dies kann eine einzelne Zahl oder ein Bereich (getrennt durch einen Bindestrich wie &#8216;2-6&#8217; sein) und bestimmt die Anzahl der im Gitter zu positionierenden B&#228;lle. Der &#8216;reveal&#8217;-Knopf wird nur aktiviert, falls Sie die entsprechende Anzahl von B&#228;llen geraten haben; eine Vermutung mit einer anderen Anzahl als die urspr&#252;ngliche L&#246;sung ist nur akzeptabel, falls alle Strahleing&#228;nge und -ausg&#228;nge passen.
 </dd>
 </dl>
 

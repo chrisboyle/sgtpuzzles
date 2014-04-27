@@ -14,13 +14,13 @@
 <p><a href="blackbox.html">Previous</a> | <a href="index.html">Contents</a> | <a href="docindex.html">Index</a> | <a href="lightup.html">Next</a></p>
 <h1><a name="C20"></a>Chapter 20: <a name="i0"></a>Slant</h1>
 <p>
-Sie erhalten ein Gitter von Quadraten. Ihr Ziel besteht darin, eine diagonale Linie durch jedes Quadrat zu zeichnen und auszuw&#228;hlen, in welche Richtung sich jede Linie neigt, so dass die folgenden Bedingungen erf&#252;llt sind:
+Sie bekommen ein Gitter von Quadraten. Ihr Ziel besteht darin, eine diagonale Linie durch jedes Quadrat zu zeichnen und auszuw&#228;hlen, in welche Richtung sich jede Linie neigt, so dass die folgenden Bedingungen erf&#252;llt sind:
 </p>
 <ul><li>
 Die diagonalen Linien bilden niemals eine Schleife.
 </li>
 <li>
-An jedem Punkt mit einer eingekreisten Zahl treffen sich genau diese Anzahl an Linien. (Daher befindet sich die 4 ein einem Zentrum von Kreuzform, w&#228;hrend eine Null im Zentrum einer Diamantform &#8211; oder besser, einer teilweisen Diamantform, da eine Null niemals in der Mitte des Gitters auftauchen darf, da sie sofort zu einer Schleife f&#252;hren w&#252;rde.)
+An jedem Punkt mit einer eingekreisten Zahl treffen sich genau diese Anzahl an Linien. (Daher ist die 4 das Zentrum einer Kreuzform, w&#228;hrend eine Null das Zentrum einer Diamantform ist &#8211; oder besser, einer teilweisen Diamantform, da eine Null niemals in der Mitte des Gitters auftauchen darf, da sie sofort zu einer Schleife f&#252;hren w&#252;rde.)
 </li>
 </ul>
 <p>
@@ -34,26 +34,26 @@ Dank f&#252;r dieses Puzzle geht an <a name="i1"></a>Nikoli <a href="#p0">[8]</a
 Durch Linksklick in ein leeres Quadrat wird dort ein <code>\</code> (eine Linie, die sich nach links neigt, d.h. von der linken oberen in die rechte untere Ecke des Quadrats l&#228;uft) platziert. Durch Rechtsklick in ein leeres Quadrat wird dort ein <code>/</code> (Neigung nach rechts, von der rechten oberen in die linke untere Ecke) platziert.
 </p>
 <p>
-Durch fortlaufendes Dr&#252;cken eines der Kn&#246;pfe wird zyklisch zwischen den drei m&#246;glichen Quadratinhalten umgeschaltet. Falls Sie daher wiederholt in ein leeres Quadrat linksklicken wird es von leer zu <code>\</code> zu <code>/</code> und wieder zur&#252;ck zu leer umschalten und falls Sie wiederholt linksklicken wird das Quadrat von Leer zu <code>/</code> zu <code>\</code> und wieder zur&#252;ck zu leer umschalten. (Daher k&#246;nnen Sie falls notwendig das Spiel komplett mit einer Taste spielen).
+Durch fortlaufendes Dr&#252;cken eines der Kn&#246;pfe wird zyklisch zwischen den drei m&#246;glichen Quadratinhalten umgeschaltet. Falls Sie daher wiederholt in ein leeres Quadrat linksklicken wird es von leer zu <code>\</code> zu <code>/</code> und wieder zur&#252;ck zu leer umschalten und falls Sie wiederholt linksklicken wird das Quadrat von leer zu <code>/</code> zu <code>\</code> und wieder zur&#252;ck zu leer umschalten. (Daher k&#246;nnen Sie falls notwendig das Spiel komplett mit einer Taste spielen).
 </p>
 <p>
-Sie k&#246;nnen auch die Pfeiltasten verwenden, um sich auf dem Gitter zu bewegen. Durch Dr&#252;cken der Eingabe oder Leertaste wird ein <code>\</code> bzw. ein <code>/</code> platziert und diese dann zyklisch wie oben durchlaufen.
+Sie k&#246;nnen auch die Pfeiltasten verwenden, um sich auf dem Gitter zu bewegen. Durch Dr&#252;cken der Eingabe- oder Leertaste wird ein <code>\</code> bzw. ein <code>/</code> platziert und diese dann zyklisch wie oben durchlaufen.
 </p>
 <p>
 (Alle in <a href="common.html#S2.1">section 2.1</a> beschriebene Aktionen sind auch verf&#252;gbar.)
 </p>
 <h2><a name="S20.2"></a>20.2 <a name="i3"></a>Slant-Parameter</h2>
 <p>
-Diese Parameter sind von der Option &#8216;Benutzerdefiniert...&#8217; im Men&#252; &#8216;Art&#8217; verf&#252;gbar.
+Diese Parameter sind von der Option &#8216;Custom...&#8217; im Men&#252; &#8216;Type&#8217; verf&#252;gbar.
 </p>
 <dl><dt>
-<em>Breite</em>, <em>H&#246;he</em>
+<em>Width</em> (Breite), <em>Height</em> (H&#246;he)
 </dt>
 <dd>
 Gr&#246;&#223;e des Gitters in Quadraten
 </dd>
 <dt>
-<em>Schwierigkeit</em>
+<em>Difficulty</em>
 </dt>
 <dd>
 Steuert die Schwierigkeit des generierten Puzzles. In der Stufe Hard wird von Ihnen verlangt, Herleitungen basierend auf Wissen &#252;ber <em>Beziehungen</em> zwischen Quadraten zu verwenden, statt immer den Inhalt eines Quadrates auf einmal zu erschlie&#223;en. (Beispielsweise k&#246;nnten Sie wissen, dass sich zwei Quadrate immer in die gleiche Richtung neigen, ohne schon zu wissen, in welche Richtung sie es tun und dies k&#246;nnte Ihnen erlauben, bereits etwas anderes &#252;ber andere Quadrate herzuleiten.) Selbst auf der Stufe Hard sollte Raten und R&#252;ckverfolgung niemals notwendig sein.

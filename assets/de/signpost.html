@@ -14,13 +14,13 @@
 <p><a href="magnets.html">Previous</a> | <a href="index.html">Contents</a> | <a href="docindex.html">Index</a> | <a href="range.html">Next</a></p>
 <h1><a name="C34"></a>Chapter 34: <a name="i0"></a>Signpost</h1>
 <p>
-You have a grid of squares; each square (except the last one) contains an arrow, and some squares also contain numbers. Your job is to connect the squares to form a continuous list of numbers starting at 1 and linked in the direction of the arrows &#8211; so the arrow inside the square with the number 1 will point to the square containing the number 2, which will point to the square containing the number 3, etc. Each square can be any distance away from the previous one, as long as it is somewhere in the direction of the arrow.
+Sie haben ein Gitter von Quadraten. Jedes Quadrat (au&#223;er dem letzten) enth&#228;lt einen Pfeil und einige Quadrate enthalten Zahlen. Ihre Aufgabe besteht darin, die Quadrate zu verbinden, um eine fortlaufende Liste von Zahlen, beginnend mit 1 und verbunden in der Richtung der Pfeile, zu erstellen, so dass der Pfeil innerhalb des Quadrats mit der Zahl 1 auf das Quadrat mit der Nummer 2 zeigt, das wiederum auf das Quadrat mit der Zahl 3 zeigt usw. Jedes Quadrat kann eine beliebige Distanz vom vorherigen entfernt sein, solange es irgendwo in der Richtung des Pfeils liegt.
 </p>
 <p>
-By convention the first and last numbers are shown; one or more interim numbers may also appear at the beginning.
+Konventionsgem&#228;&#223; werden die erste und die letzte Zahl angezeigt. Anfangs mag auch eine oder mehrere Zahlen in der Mitte erscheinen.
 </p>
 <p>
-Dank f&#252;r dieses Puzzle geht an <a name="i1"></a>Janko <a href="#p0">[17]</a>, wer es <a name="i2"></a>Pfeilpad genannt hat.
+Dank f&#252;r dieses Puzzle geht an <a name="i1"></a>Janko <a href="#p0">[17]</a>, der es <a name="i2"></a>Pfeilpfad nannte.
 </p>
 <p>
 Signpost wurde von James Harvey zu dieser Sammlung beigesteuert.
@@ -30,41 +30,41 @@ Signpost wurde von James Harvey zu dieser Sammlung beigesteuert.
 </p>
 <h2><a name="S34.1"></a>34.1 <a name="i3"></a>Signpost-Steuerung</h2>
 <p>
-To play Signpost, you connect squares together by dragging from one square to another, indicating that they are adjacent in the sequence. Drag with the left button from a square to its successor, or with the right button from a square to its predecessor.
+Um Signpost zu spielen, verbinden Sie Quadrate, indem Sie von einem Quadrat zu einem anderen ziehen und damit anzeigen, dass sie aufeinander folgen. Ziehen Sie mit dem linken Knopf von einem Quadrat zu seinem Nachfolger oder mit dem rechten Knopf von einem Quadrat zu seinem Vorg&#228;nger.
 </p>
 <p>
-If you connect together two squares in this way and one of them has a number in it, the appropriate number will appear in the other square. If you connect two non-numbered squares, they will be assigned temporary algebraic labels: on the first occasion, they will be labelled &#8216;<code>a</code>&#8217; and &#8216;<code>a+1</code>&#8217;, and then &#8216;<code>b</code>&#8217; and &#8216;<code>b+1</code>&#8217;, and so on. Connecting more squares on to the ends of such a chain will cause them all to be labelled with the same letter.
+Falls Sie zwei Quadrate auf diese Art verbinden und eines eine Zahl enth&#228;lt, wird die entsprechende Zahl im anderen Quadrat auftauchen. Falls Sie zwei Quadrate ohne Zahl verbinden, erhalten Sie tempor&#228;re algebraische Bezeichnungen: Beim ersten Auftreten werden sie mit &#8216;<code>a</code>&#8217; und &#8216;<code>a+1</code>&#8217; und dann mit &#8216;<code>b</code>&#8217; und &#8216;<code>b+1</code>&#8217; und so weiter benannt. Werden weitere Quadrate am Ende solch einer Kette verbunden, so werden sie alle mit dem gleichen Buchstaben bezeichnet.
 </p>
 <p>
-When you left-click or right-click in a square, the legal squares to connect it to will be shown.
+Wenn Sie auf ein Quadrat links oder rechts klicken, werden die Quadrate, zu denen eine g&#252;ltige Verbindung m&#246;glich ist, angezeigt.
 </p>
 <p>
-The arrow in each square starts off black, and goes grey once you connect the square to its successor. Also, each square which needs a predecessor has a small dot in the bottom left corner, which vanishes once you link a square to it. So your aim is always to connect a square with a black arrow to a square with a dot.
+Der Pfeil in jedem Quadrat ist anf&#228;nglich schwarz und f&#228;rbt sich in grau um, wenn Sie das Quadrat mit seinem Nachfolger verbinden. Auch hat jedes Quadrat, das einen Vorg&#228;nger ben&#246;tigt, einen kleinen Punkt in der linken unteren Ecke, der beim Verbinden eines Quadrats damit verschwindet. Daher besteht Ihr Ziel darin, immer ein Quadrat mit einem schwarzen Pfeil mit einem Quadrat mit einem Punkt zu verbinden.
 </p>
 <p>
-To remove any links for a particular square (both incoming and outgoing), left-drag it off the grid. To remove a whole chain, right-drag any square in the chain off the grid.
+Um irgend eine Verbindung f&#252;r ein bestimmtes Quadrat zu entfernen (sowohl eingehende als auch ausgehende), ziehen Sie es mit der linken Maustaste vom Gitter. Um eine ganze Kette zu entfernen, ziehen Sie ein beliebiges Quadrat aus der Kette mit der rechten Maustaste vom Gitter.
 </p>
 <p>
-You can also use the cursor keys to move around the grid squares and lines. Pressing the return key when over a square starts a link operation, and pressing the return key again over a square will finish the link, if allowable. Pressing the space bar over a square will show the other squares pointing to it, and allow you to form a backward link, and pressing the space bar again cancels this.
+Sie k&#246;nnen auch die Pfeiltasten verwenden, um sich auf den Gitterquadraten und -linen zu bewegen. Durch Dr&#252;cken der Eingabetaste &#252;ber einem Quadrat wird eine Verbindungsoperation begonnen und durch Dr&#252;cken der Eingabe &#252;ber einem Quadrat wird die Verbindung beendet, falls erlaubt. Durch Dr&#252;cken der Leertaste &#252;ber einem Quadrat werden die anderen Quadrate, die darauf zeigen, anzeigen und es Ihnen erlauben, eine R&#252;ckw&#228;rtsverbindung auszul&#246;sen. Erneutes Dr&#252;cken der Leertaste bricht dies ab.
 </p>
 <p>
 (Alle in <a href="common.html#S2.1">section 2.1</a> beschriebene Aktionen sind auch verf&#252;gbar.)
 </p>
 <h2><a name="S34.2"></a>34.2 <a name="i4"></a>Signpost-Parameter</h2>
 <p>
-Diese Parameter sind von der Option &#8216;Benutzerdefiniert...&#8217; im Men&#252; &#8216;Art&#8217; verf&#252;gbar.
+Diese Parameter sind von der Option &#8216;Custom...&#8217; im Men&#252; &#8216;Type&#8217; verf&#252;gbar.
 </p>
 <dl><dt>
-<em>Breite</em>, <em>H&#246;he</em>
+<em>Width</em> (Breite), <em>Height</em> (H&#246;he)
 </dt>
 <dd>
 Gr&#246;&#223;e des Gitters in Quadraten
 </dd>
 <dt>
-<em>Start- und Endpunkte in Ecken</em>
+<em>Force start/end to corners</em>
 </dt>
 <dd>
-If true, the start and end squares are always placed in opposite corners (the start at the top left, and the end at the bottom right). If false the start and end squares are placed randomly (although always both shown).
+Falls wahr, wird das Anfangs- und das Endquadrat immer in gegen&#252;berliegenden Ecken platziert (der Anfang links oben und das Ende rechts unten). Falls falsch, werden das Anfangs- und Endquadrat zuf&#228;llig platziert (allerdings werden beide immer angezeigt).
 </dd>
 </dl>
 

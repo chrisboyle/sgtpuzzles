@@ -14,48 +14,48 @@
 <p><a href="range.html">Previous</a> | <a href="index.html">Contents</a> | <a href="docindex.html">Index</a> | <a href="undead.html">Next</a></p>
 <h1><a name="C36"></a>Chapter 36: <a name="i0"></a>Pearl</h1>
 <p>
-You have a grid of squares. Your job is to draw lines between the centres of horizontally or vertically adjacent squares, so that the lines form a single closed loop. In the resulting grid, some of the squares that the loop passes through will contain corners, and some will be straight horizontal or vertical lines. (And some squares can be completely empty &#8211; the loop doesn't have to pass through every square.)
+Sie haben ein Gitter von Quadraten. Ihre Aufgabe besteht darin, Linien zwischen den Zentren von horizontal oder vertkal benachbarten Quadraten zu zeichnen, so dass die Linien eine einzige, geschlossene Schleife bilden. In dem entstehenden Gitter werden einige Quadrate, durch die die Schleife l&#228;uft, Ecken enthalten und andere werden durchgehende horizontale oder vertikale Linien enthalten. (Und einige Quadrate werden komplett leer sein &#8211; die Schleife muss nicht durch jedes Quadrat laufen.)
 </p>
 <p>
-Some of the squares contain black and white circles, which are clues that the loop must satisfy.
+Einige der Quadrate enthalten schwarze oder wei&#223;e Kreise. Dies sind Hinweise, die die Schleife ber&#252;cksichtigen muss.
 </p>
 <p>
-A black circle in a square indicates that that square is a corner, but neither of the squares adjacent to it in the loop is also a corner.
+Ein schwarzer Kreis in einem Quadrat zeigt an, dass dieses Quadrat eine Ecke darstellt, dass aber keiner der benachbarten Quadrate in der Schleife auch eine Ecke ist.
 </p>
 <p>
-A white circle indicates that the square is a straight edge, but <em>at least one</em> of the squares adjacent to it in the loop is a corner.
+Ein wei&#223;er Kreis zeigt an, dass das Quadrat eine gerade Kante darstellt, aber <em>mindestens eins</em> der benachbarten Quadrate in der Schleife eine Ecke ist.
 </p>
 <p>
-(In both cases, the clue only constrains the two squares adjacent <em>in the loop</em>, that is, the squares that the loop passes into after leaving the clue square. The squares that are only adjacent <em>in the grid</em> are not constrained.)
+(In beiden F&#228;llen beschr&#228;nkt der Hinweis nur die zwei Quadrate, die <em>in der Schleife</em> benachbart sind, d.h. die Quadrate, durch die die Schleife l&#228;uft, nachdem sie das Hinweisquadrat verl&#228;sst. Die Quadrate, die nur <em>im Gitter</em> benachbart sind, sind nicht eingeschr&#228;nkt.)
 </p>
 <p>
 Credit for this puzzle goes to <a name="i1"></a>Nikoli, who call it &#8216;Masyu&#8217;. <a href="#p0">[19]</a>
 </p>
 <p>
-Thanks to James Harvey for assistance with the implementation.
+Dank an James Harvey f&#252;r Hilfe bei der Implementierung.
 </p>
 <p><a name="p0"></a>
 [19] <a href="http://www.nikoli.co.jp/en/puzzles/masyu/"><code>http://www.nikoli.co.jp/en/puzzles/masyu/</code></a>
 </p>
 <h2><a name="S36.1"></a>36.1 <a name="i2"></a>Pearl-Steuerung</h2>
 <p>
-Click with the left button on a grid edge to draw a segment of the loop through that edge, or to remove a segment once it is drawn.
+Klicken Sie mit der linke Maustaste auf eine Gitterkante, um einen Abschnitt der Schleife durch diese Kante zu zeichnen oder ein Segment zu entfernen, sobald es gezeichnet wurde.
 </p>
 <p>
-Drag with the left button through a series of squares to draw more than one segment of the loop in one go. Alternatively, drag over an existing part of the loop to undraw it, or to undraw part of it and then go in a different direction.
+Ziehen Sie mit der linken Maustaste durch eine Reihe von Quadraten, um mehr als einen Abschnitt der Schleife auf einmal zu zeichnen. Alternativ ziehen Sie &#252;ber einen bestehenden Teil der Schleife, um die Zeichnung zu entfernen oder einen Teil zu entfernen und in eine neue Richtung zu zeichnen.
 </p>
 <p>
-Click with the right button on a grid edge to mark it with a cross, indicating that you are sure the loop does not go through that edge. (For instance, if you have decided which of the squares adjacent to a white clue has to be a corner, but don't yet know which way the corner turns, you might mark the one way it <em>can't</em> go with a cross.)
+Klicken Sie mit der rechten Maustaste auf eine Gitterkante, um sie mit einem Kreuz zu markieren, womit Sie anzeigen, dass Sie sich sicher sind, dass die Schleife nicht durch diese Kante geht. (Falls Sie sich beispielsweise entschieden haben, welches der benachbarten Quadrate von einem wei&#223;en Hinweis eine Ecke sein muss, Sie aber noch nicht wissen, in welche Richtung die Ecke orientiert ist, k&#246;nnen Sie die Richtung, in die sie <em>nicht</em> gehen kann, mit einem Kreuz markieren.)
 </p>
 <p>
-Alternatively, use the cursor keys to move the cursor. Use the Enter key to begin and end keyboard `drag' operations. Use the Space key to cancel the drag. Use Ctrl-arrowkey and Shift-arrowkey to simulate a left or right click, respectively, on the edge in the given direction relative to the cursor, i.e. to draw a segment or a cross.
+Sie k&#246;nnen alternativ die Pfeiltasten zur Bewegung des Cursors benutzen. Um &#187;Ziehen&#171;-Aktionen per Tastatur zu beginnen oder zu beenden, dr&#252;cken Sie auf die Eingabetaste. Mit der Leertaste brechen Sie das Ziehen ab. Verwenden Sie auf der Kante in der angegeben Richtung relativ zum Cursor Strg-Pfeiltaste und Umschalt-Pfeiltaste, um einen Klick mit der linken oder rechten Maustaste zu simulieren, d.h. einen Abschnitt oder ein Kreuz zu zeichnen.
 </p>
 <p>
 (Alle in <a href="common.html#S2.1">section 2.1</a> beschriebene Aktionen sind auch verf&#252;gbar.)
 </p>
 <h2><a name="S36.2"></a>36.2 <a name="i3"></a>Pearl-Parameter</h2>
 <p>
-Diese Parameter sind von der Option &#8216;Benutzerdefiniert...&#8217; im Men&#252; &#8216;Art&#8217; verf&#252;gbar.
+Diese Parameter sind von der Option &#8216;Custom...&#8217; im Men&#252; &#8216;Type&#8217; verf&#252;gbar.
 </p>
 
 <hr><address>
