@@ -368,6 +368,8 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		d.setContentView(wv);
 		wv.setWebChromeClient(new WebChromeClient(){
 			public void onReceivedTitle(WebView w, String title) { d.setTitle(title); }
+			// onReceivedTitle doesn't happen on back button :-(
+			public void onProgressChanged(WebView w, int progress) { if (progress == 100) d.setTitle(w.getTitle()); }
 		});
 		wv.getSettings().setBuiltInZoomControls(true);
 		wv.loadUrl(MessageFormat.format(getString(R.string.docs_url), new Object[]{topic}));
