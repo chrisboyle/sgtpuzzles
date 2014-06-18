@@ -1367,13 +1367,6 @@ static char *new_game_desc(const game_params *params, random_state *rs,
     clues = snewn(w*h, char);
 
     new_clues(params, rs, clues, grid);
-#ifdef ANDROID
-        if (android_cancelled()) {
-            sfree(grid);
-            sfree(clues);
-            return NULL;
-        }
-#endif
 
     desc = snewn(w * h + 1, char);
     for (i = j = 0; i < w*h; i++) {

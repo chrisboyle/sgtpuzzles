@@ -314,12 +314,6 @@ void generate_loop(grid *g, char *board, random_state *rs,
     /* Create and initialise the list of face_scores */
     face_scores = snewn(num_faces, struct face_score);
     for (i = 0; i < num_faces; i++) {
-#ifdef ANDROID
-        if (android_cancelled()) {
-            sfree(face_scores);
-            return;
-        }
-#endif
         face_scores[i].random = random_bits(rs, 31);
         face_scores[i].black_score = face_scores[i].white_score = 0;
     }
@@ -350,14 +344,6 @@ void generate_loop(grid *g, char *board, random_state *rs,
      * to check every face of the board (the grid structure does not keep a
      * list of the infinite face's neighbours). */
     for (i = 0; i < num_faces; i++) {
-#ifdef ANDROID
-        if (android_cancelled()) {
-            sfree(face_scores);
-            freetree234(lightable_faces_sorted);
-            freetree234(darkable_faces_sorted);
-            return;
-        }
-#endif
         grid_face *f = g->faces + i;
         struct face_score *fs = face_scores + i;
         if (board[i] != FACE_GREY) continue;
@@ -381,14 +367,6 @@ void generate_loop(grid *g, char *board, random_state *rs,
         tree234 *faces_to_pick;
         int c_lightable = count234(lightable_faces_sorted);
         int c_darkable = count234(darkable_faces_sorted);
-#ifdef ANDROID
-        if (android_cancelled()) {
-            sfree(face_scores);
-            freetree234(lightable_faces_sorted);
-            freetree234(darkable_faces_sorted);
-            return;
-        }
-#endif
         if (c_lightable == 0 && c_darkable == 0) {
             /* No more faces we can use at all. */
             break;
@@ -460,14 +438,6 @@ void generate_loop(grid *g, char *board, random_state *rs,
         for (i = 0; i < cur_face->order; i++) {
             grid_dot *d = cur_face->dots[i];
             for (j = 0; j < d->order; j++) {
-#ifdef ANDROID
-                if (android_cancelled()) {
-                    sfree(face_scores);
-                    freetree234(lightable_faces_sorted);
-                    freetree234(darkable_faces_sorted);
-                    return;
-                }
-#endif
                 grid_face *f = d->faces[j];
                 int fi; /* face index of f */
 
@@ -542,12 +512,6 @@ void generate_loop(grid *g, char *board, random_state *rs,
             int j = face_list[i];
             enum face_colour opp =
                 (board[j] == FACE_WHITE) ? FACE_BLACK : FACE_WHITE;
-#ifdef ANDROID
-            if (android_cancelled()) {
-                sfree(face_list);
-                return;
-            }
-#endif
             if (can_colour_face(g, board, j, opp)) {
                 grid_face *face = g->faces +j;
                 if (do_random_pass) {

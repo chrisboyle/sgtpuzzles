@@ -979,21 +979,6 @@ static char *new_game_desc(const game_params *params_in, random_state *rs,
 	params->diff = DIFF_EASY;      /* downgrade to prevent tight loop */
 
     while (1) {
-#ifdef ANDROID
-        if (android_cancelled()) {
-	    free_scratch(sc);
-	    sfree(flow);
-	    sfree(capacity);
-	    sfree(edges);
-	    sfree(temp);
-	    sfree(soln);
-	    sfree(numbers);
-	    sfree(puzzle);
-	    sfree(grid);
-            return NULL;
-        }
-#endif
-
 	/*
 	 * Arrange the grid squares into a random order.
 	 */

@@ -1345,12 +1345,6 @@ static void add_full_clues(game_state *state, random_state *rs)
     int i;
 
     generate_loop(g, board, rs, NULL, NULL);
-#ifdef ANDROID
-    if (android_cancelled()) {
-        sfree(board);
-        return;
-    }
-#endif
 
     /* Fill out all the clues by initialising to 0, then iterating over
      * all edges and incrementing each clue as we find edges that border
@@ -1422,9 +1416,6 @@ static game_state *remove_clues(game_state *state, random_state *rs,
             free_game(ret);
             ret = saved_ret;
         }
-#ifdef ANDROID
-        if (android_cancelled()) break;
-#endif
     }
     sfree(face_list);
 
@@ -1461,20 +1452,8 @@ static char *new_game_desc(const game_params *params, random_state *rs,
      * can loop for ever if the params are suitably unfavourable, but
      * preventing games smaller than 4x4 seems to stop this happening */
     do {
-#ifdef ANDROID
-        if (android_cancelled()) {
-            free_game(state);
-            return NULL;
-        }
-#endif
         add_full_clues(state, rs);
     } while (!game_has_unique_soln(state, params->diff));
-#ifdef ANDROID
-    if (android_cancelled()) {
-        free_game(state);
-        return NULL;
-    }
-#endif
 
     state_new = remove_clues(state, rs, params->diff);
     free_game(state);
@@ -1487,12 +1466,6 @@ static char *new_game_desc(const game_params *params, random_state *rs,
 #endif
         goto newboard_please;
     }
-#ifdef ANDROID
-    if (android_cancelled()) {
-        free_game(state);
-        return NULL;
-    }
-#endif
 
     game_desc = state_to_text(state);
 
@@ -2053,9 +2026,6 @@ static int trivial_deductions(solver_state *sstate)
 
     /* Per-face deductions */
     for (i = 0; i < g->num_faces; i++) {
-#ifdef ANDROID
-        if (android_cancelled()) return DIFF_MAX;
-#endif
         grid_face *f = g->faces + i;
 
         if (sstate->face_solved[i])
@@ -2162,9 +2132,6 @@ static int trivial_deductions(solver_state *sstate)
 
     /* Per-dot deductions */
     for (i = 0; i < g->num_dots; i++) {
-#ifdef ANDROID
-        if (android_cancelled()) return DIFF_MAX;
-#endif
         grid_dot *d = g->dots + i;
         int yes, no, unknown;
 
@@ -2260,9 +2227,6 @@ static int dline_deductions(solver_state *sstate)
 #define MAX_FACE_SIZE 12
 
     for (i = 0; i < g->num_faces; i++) {
-#ifdef ANDROID
-        if (android_cancelled()) return DIFF_MAX;
-#endif
         int maxs[MAX_FACE_SIZE][MAX_FACE_SIZE];
         int mins[MAX_FACE_SIZE][MAX_FACE_SIZE];
         grid_face *f = g->faces + i;
@@ -2557,9 +2521,6 @@ static int linedsf_deductions(solver_state *sstate)
      * the clue, set them to NO (or YES). */
 
     for (i = 0; i < g->num_faces; i++) {
-#ifdef ANDROID
-        if (android_cancelled()) return DIFF_MAX;
-#endif
         int N, yes, no, unknown;
         int clue;
 
@@ -2594,9 +2555,6 @@ static int linedsf_deductions(solver_state *sstate)
 
     /* ------ Dot deductions ------ */
     for (i = 0; i < g->num_dots; i++) {
-#ifdef ANDROID
-        if (android_cancelled()) return DIFF_MAX;
-#endif
         grid_dot *d = g->dots + i;
         int N = d->order;
         int j;
@@ -2651,9 +2609,6 @@ static int linedsf_deductions(solver_state *sstate)
     /* If the state of a line is known, deduce the state of its canonical line
      * too, and vice versa. */
     for (i = 0; i < g->num_edges; i++) {
-#ifdef ANDROID
-        if (android_cancelled()) return DIFF_MAX;
-#endif
         int can, inv;
         enum line_state s;
         can = edsf_canonify(sstate->linedsf, i, &inv);
@@ -2704,9 +2659,6 @@ static int loop_deductions(solver_state *sstate)
      * satisfied-minus-one clues.
      */
     for (i = 0; i < g->num_faces; i++) {
-#ifdef ANDROID
-        if (android_cancelled()) return DIFF_MAX;
-#endif
         int c = state->clues[i];
         if (c >= 0) {
             int o = sstate->face_yes_count[i];
@@ -2742,9 +2694,6 @@ static int loop_deductions(solver_state *sstate)
      * loop it would create is a solution.
      */
     for (i = 0; i < g->num_edges; i++) {
-#ifdef ANDROID
-        if (android_cancelled()) return DIFF_MAX;
-#endif
         grid_edge *e = g->edges + i;
         int d1 = e->dot1 - g->dots;
         int d2 = e->dot2 - g->dots;
@@ -2863,9 +2812,6 @@ static solver_state *solve_game_rec(const solver_state *sstate_start)
     check_caches(sstate);
 
     while (i < NUM_SOLVERS) {
-#ifdef ANDROID
-        if (android_cancelled()) return sstate;
-#endif
         if (sstate->solver_status == SOLVER_MISTAKE)
             return sstate;
         if (sstate->solver_status == SOLVER_SOLVED ||
@@ -2878,9 +2824,6 @@ static solver_state *solve_game_rec(const solver_state *sstate_start)
             && solver_diffs[i] <= sstate->diff) {
             /* current_solver is eligible, so use it */
             int next_diff = solver_fns[i](sstate);
-#ifdef ANDROID
-            if (android_cancelled()) return sstate;
-#endif
             if (next_diff != DIFF_MAX) {
                 /* solver made progress, so use new thresholds and
                 * start again at top of list. */
@@ -2914,13 +2857,6 @@ static char *solve_game(const game_state *state, const game_state *currstate,
 
     sstate = new_solver_state(state, DIFF_MAX);
     new_sstate = solve_game_rec(sstate);
-#ifdef ANDROID
-    if (android_cancelled()) {
-        free_solver_state(new_sstate);
-        free_solver_state(sstate);
-        return NULL;
-    }
-#endif
 
     if (new_sstate->solver_status == SOLVER_SOLVED) {
         soln = encode_solve_move(new_sstate->state);

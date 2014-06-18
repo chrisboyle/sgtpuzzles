@@ -46,7 +46,6 @@ struct frontend {
 static frontend *fe = NULL;
 static pthread_key_t envKey;
 static jobject obj = NULL;
-static int cancelled;
 
 // TODO get rid of this horrible hack
 /* This is so that the numerous callers of _() don't have to free strings.
@@ -306,6 +305,7 @@ void JNICALL timerTick(JNIEnv *env, jobject _obj)
 
 void deactivate_timer(frontend *_fe)
 {
+	if (!obj) return;
 	if (fe->timer_active) {
 		JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
 		(*env)->CallVoidMethod(env, obj, requestTimer, FALSE);
@@ -315,6 +315,7 @@ void deactivate_timer(frontend *_fe)
 
 void activate_timer(frontend *_fe)
 {
+	if (!obj) return;
 	if (!fe->timer_active) {
 		JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
 		(*env)->CallVoidMethod(env, obj, requestTimer, TRUE);
@@ -365,7 +366,6 @@ void JNICALL presetEvent(JNIEnv *env, jobject _obj, jint ptr_game_params)
 
 	midend_set_params(fe->me, params);
 	midend_new_game(fe->me);
-	if (cancelled) return;
 	resize_fe();
 	(*env)->CallVoidMethod(env, obj, tickTypeItem, midend_which_preset(fe->me));
 }
@@ -427,7 +427,6 @@ void JNICALL configOK(JNIEnv *env, jobject _obj)
 		return;
 	}
 	midend_new_game(fe->me);
-	if (cancelled) return;
 	resize_fe();
 	(*env)->CallVoidMethod(env, obj, tickTypeItem, midend_which_preset(fe->me));
 }
@@ -497,20 +496,16 @@ void android_toast(const char *msg, int fromPattern)
 	(*env)->CallVoidMethod(env, obj, messageBox, NULL, js, 0, fromPattern);
 }
 
-inline int android_cancelled()
-{
-	return cancelled;
-}
-
 void android_keys(const char *keys, int arrowMode)
 {
+	if (!obj) return;
 	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
 	(*env)->CallVoidMethod(env, obj, setKeys, (*env)->NewStringUTF(env, keys), arrowMode);
 }
 
 char * get_text(const char *s)
 {
-	if (!s || ! s[0]) return (char*)s;  // slightly naughty cast...
+	if (!s || ! s[0] || !obj) return (char*)s;  // slightly naughty cast...
 	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
 	jstring j = (jstring)(*env)->CallObjectMethod(env, obj, getText, (*env)->NewStringUTF(env, s));
 	const char * c = (*env)->GetStringUTFChars(env, j, NULL);
@@ -523,26 +518,18 @@ char * get_text(const char *s)
 	return ret;
 }
 
-void cancel(JNIEnv *env, jobject _obj)
-{
-	//pthread_setspecific(envKey, env);
-	cancelled = TRUE;
-}
-
 void init(JNIEnv *env, jobject _obj, jobject _gameView, jint whichGame, jstring gameState)
 {
 	int n;
 	float* colours;
 	pthread_setspecific(envKey, env);
 
-	cancelled = FALSE;
 	if (fe) {
 		if (fe->me) midend_free(fe->me);  // might use gameView (e.g. blitters)
 		sfree(fe);
 	}
 	fe = snew(frontend);
 	memset(fe, 0, sizeof(frontend));
-	fe->timer_active = FALSE;
 	if (obj) (*env)->DeleteGlobalRef(env, obj);
 	obj = (*env)->NewGlobalRef(env, _obj);
 	if (gameView) (*env)->DeleteGlobalRef(env, gameView);
@@ -551,6 +538,9 @@ void init(JNIEnv *env, jobject _obj, jobject _gameView, jint whichGame, jstring 
 	// Android special
 	if (whichGame >= 0) {
 		thegame = *(gamelist[whichGame]);
+		fe->me = midend_new(fe, &thegame, &android_drawing, fe);
+		midend_game_id(fe->me, gameState);
+		midend_new_game(fe->me);
 	} else {
 		// Find out which game the savefile is from
 		fe->me = NULL;  // magic in midend_deserialise
@@ -560,12 +550,8 @@ void init(JNIEnv *env, jobject _obj, jobject _gameView, jint whichGame, jstring 
 			return;
 		}
 		// thegame is now set
-	}
-	fe->me = midend_new(fe, &thegame, &android_drawing, fe);
-	if( whichGame >= 0 ) {
-		midend_new_game(fe->me);
-	} else {
-		const char *reason = android_deserialise(gameState);
+		fe->me = midend_new(fe, &thegame, &android_drawing, fe);
+		reason = android_deserialise(gameState);
 		if (reason) {
 			(*env)->CallVoidMethod(env, obj, abortMethod, (*env)->NewStringUTF(env, reason));
 			midend_free(fe->me);
@@ -573,7 +559,6 @@ void init(JNIEnv *env, jobject _obj, jobject _gameView, jint whichGame, jstring 
 			return;
 		}
 	}
-	if (cancelled) return;
 
 	if ((n = midend_num_presets(fe->me)) > 0) {
 		int i;
@@ -653,7 +638,6 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
 		{ "configCancel", "()V", configCancel },
 		{ "serialise", "()V", serialise },
 		{ "htmlHelpTopic", "()Ljava/lang/String;", htmlHelpTopic },
-		{ "cancel", "()V", cancel },
 		{ "init", "(Lname/boyle/chris/sgtpuzzles/GameView;ILjava/lang/String;)V", init },
 	};
 	(*env)->RegisterNatives(env, cls, methods, sizeof(methods)/sizeof(JNINativeMethod));

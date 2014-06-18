@@ -402,15 +402,6 @@ static char *new_game_desc(const game_params *params, random_state *rs,
 	struct xyd *xyd;
 	int x1, y1, d1, x2, y2, d2, d;
 
-#ifdef ANDROID
-	if (android_cancelled()) {
-	    sfree(tiles);
-	    sfree(barriers);
-	    freetree234(possibilities);
-	    return NULL;
-	}
-#endif
-
 	/*
 	 * Extract a randomly chosen possibility from the list.
 	 */

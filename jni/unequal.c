@@ -807,9 +807,6 @@ static int solver_state(game_state *state, int maxdiff)
     struct solver_ctx *ctx = new_ctx(state);
     struct latin_solver solver;
     int diff;
-#ifdef ANDROID
-    if (android_cancelled()) return 1;
-#endif
 
     latin_solver_alloc(&solver, state->nums, state->order);
 
@@ -1055,9 +1052,6 @@ static void game_strip(game_state *new, int *scratch, digit *latin,
         memcpy(copy->nums,  new->nums,  o2 * sizeof(digit));
         memcpy(copy->flags, new->flags, o2 * sizeof(unsigned int));
         gg_solved++;
-#ifdef ANDROID
-        if (android_cancelled()) return;
-#endif
         if (solver_state(copy, difficulty) != 1) {
             /* put clue back, we can't solve without it. */
 #ifndef NDEBUG
@@ -1123,14 +1117,6 @@ static char *new_game_desc(const game_params *params_in, random_state *rs,
     for (i = 0; i < lscratch; i++) scratch[i] = (i%o2)*5 + 4 - (i/o2);
 
 generate:
-#ifdef ANDROID
-    if (android_cancelled()) {
-        free_game(state);
-        sfree(sq);
-        sfree(scratch);
-        return NULL;
-    }
-#endif
 #ifdef STANDALONE_SOLVER
     if (solver_show_working)
         printf("new_game_desc: generating %s puzzle, ntries so far %d\n",
@@ -1155,14 +1141,6 @@ generate:
     if (game_assemble(state, scratch, sq, params->diff) < 0)
         goto generate;
     game_strip(state, scratch, sq, params->diff);
-#ifdef ANDROID
-    if (android_cancelled()) {
-        free_game(state);
-        sfree(sq);
-        sfree(scratch);
-        return NULL;
-    }
-#endif
 
     if (params->diff > 0) {
         game_state *copy = dup_game(state);

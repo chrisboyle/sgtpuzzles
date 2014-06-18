@@ -101,7 +101,7 @@
 	</natures>
 	<filteredResources>
 		<filter>
-			<id>1316987170864</id>
+			<id>1398294445669</id>
 			<name></name>
 			<type>6</type>
 			<matcher>
@@ -110,7 +110,7 @@
 			</matcher>
 		</filter>
 		<filter>
-			<id>1316987170870</id>
+			<id>1398294445673</id>
 			<name></name>
 			<type>6</type>
 			<matcher>
@@ -119,12 +119,30 @@
 			</matcher>
 		</filter>
 		<filter>
-			<id>1316987170875</id>
+			<id>1398294445676</id>
 			<name></name>
 			<type>6</type>
 			<matcher>
 				<id>org.eclipse.ui.ide.multiFilter</id>
 				<arguments>1.0-name-matches-false-false-*.R</arguments>
+			</matcher>
+		</filter>
+		<filter>
+			<id>1398294445679</id>
+			<name></name>
+			<type>6</type>
+			<matcher>
+				<id>org.eclipse.ui.ide.multiFilter</id>
+				<arguments>1.0-name-matches-false-false-gtk.c</arguments>
+			</matcher>
+		</filter>
+		<filter>
+			<id>1398294445683</id>
+			<name></name>
+			<type>6</type>
+			<matcher>
+				<id>org.eclipse.ui.ide.multiFilter</id>
+				<arguments>1.0-name-matches-false-false-bin/classes/*.c</arguments>
 			</matcher>
 		</filter>
 	</filteredResources>

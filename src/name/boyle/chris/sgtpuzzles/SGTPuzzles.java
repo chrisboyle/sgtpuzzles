@@ -11,7 +11,9 @@ import java.lang.ref.WeakReference;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.StringTokenizer;
+
 import name.boyle.chris.sgtpuzzles.compat.ActionBarCompat;
 import name.boyle.chris.sgtpuzzles.compat.PrefsSaver;
 import android.annotation.SuppressLint;
@@ -26,6 +28,7 @@ import android.content.DialogInterface.OnCancelListener;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
+import android.content.pm.PackageManager.NameNotFoundException;
 import android.content.res.Configuration;
 import android.graphics.Color;
 import android.graphics.Path;
@@ -81,6 +84,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 	LinkedHashMap<Integer,String> gameTypes;
 	int currentType = 0;
 	boolean gameRunning = false;
+	Process gameGenProcess = null;
 	boolean solveEnabled = false, customVisible = false,
 			undoEnabled = false, redoEnabled = false;
 	SharedPreferences prefs, state;
@@ -387,6 +391,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		showProgress( R.string.starting_new );
 		changedState(false, false);
 		(worker = new Thread("newGame") { public void run() {
+			// TODO push save file out to new process and generate there
 			keyEvent(0, 0, 'n');
 			handler.sendEmptyMessage(MsgType.DONE.ordinal());
 		}}).start();
@@ -515,7 +520,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 	static String getVersion(Context c)
 	{
 		try {
-			return c.getPackageManager().getPackageInfo(c.getPackageName(),0).versionName;
+			return c.getPackageManager().getPackageInfo(c.getPackageName(), 0).versionName;
 		} catch(Exception e) { return c.getString(R.string.unknown_version); }
 	}
 
@@ -545,7 +550,52 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		gameRunning = true;
 		gameView.keysHandled = 0;
 		(worker = new Thread("startGame") { public void run() {
-			init(gameView, which, savedGame);
+			String savedOrGenerated = savedGame;
+			if (savedGame == null || savedGame.equals("")) {
+				String libDir;
+				try {
+					libDir = getPackageManager().getApplicationInfo(getPackageName(), 0).dataDir+"/lib";
+				} catch (NameNotFoundException e) {
+					throw new RuntimeException(e);
+				}
+				String params = "";  // TODO params!
+				ProcessBuilder builder = new ProcessBuilder(libDir+"/puzzlesgen", games[which], params);
+				builder.redirectErrorStream(true);
+				Map<String, String> env = builder.environment();
+				env.put("LD_LIBRARY_PATH", libDir+":"+env.get("LD_LIBRARY_PATH"));
+				String error = "";
+				try {
+					gameGenProcess = builder.start();
+					savedOrGenerated = readAllOf(gameGenProcess.getInputStream());
+					while (true) {
+						try {
+							int exitStatus = gameGenProcess.waitFor();
+							if (exitStatus != 0) {
+								error = savedOrGenerated;
+								if (error.equals("") && gameRunning) {
+									error = "process exited with status "+exitStatus;
+								}
+								Log.e(TAG, "died: "+error);
+							}
+							break;
+						} catch (InterruptedException e) {}
+					}
+				} catch (IOException e) {
+					error = e.toString();
+					Log.e(TAG, "IOE: "+error);
+				} finally {
+					killGenProcess();
+				}
+				if( ! gameRunning ) return;  // stopNative or abort was called
+				if (!error.equals("")) {
+					Log.e(TAG, "error: "+error);
+					abort(error);
+					return;
+				}
+				init(gameView, -1, savedOrGenerated);
+			} else {
+				init(gameView, which, savedGame);
+			}
 			if( ! gameRunning ) return;  // stopNative or abort was called
 			helpTopic = htmlHelpTopic();
 			handler.obtainMessage(MsgType.DONE.ordinal(), htmlHelpTopic()).sendToTarget();
@@ -555,12 +605,19 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 	public void stopNative()
 	{
 		gameRunning = false;
-		cancel();  // set flag in native code
+		killGenProcess();
 		if (worker != null) {
 			while(true) { try {
 				worker.join();  // we may ANR if native code is spinning - safer than leaving a runaway native thread
 				break;
 			} catch (InterruptedException i) {} }
+		}
+	}
+
+	private void killGenProcess() {
+		if (gameGenProcess != null) {
+			gameGenProcess.destroy();
+			gameGenProcess = null;
 		}
 	}
 
@@ -1030,7 +1087,6 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 	}
 
 	native void init(GameView _gameView, int whichGame, String gameState);
-	native void cancel();
 	native void timerTick();
 	native String htmlHelpTopic();
 	native void keyEvent(int x, int y, int k);

@@ -1435,17 +1435,6 @@ static char *new_game_desc(const game_params *params, random_state *rs,
 
     while (1) {
 
-#ifdef ANDROID
-        if (android_cancelled()) {
-            sfree(map);
-            sfree(graph);
-            sfree(colouring);
-            sfree(colouring2);
-            sfree(regions);
-            return NULL;
-        }
-#endif
-
         /*
          * Create the map.
          */

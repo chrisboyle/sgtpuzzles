@@ -241,13 +241,6 @@ static char *new_game_desc(const game_params *params, random_state *rs,
 
         bmp[(i+1)*2 + 0] = x;
         bmp[(i+1)*2 + 1] = y;
-#ifdef ANDROID
-        if (android_cancelled()) {
-            sfree(grid);
-            sfree(bmp);
-            return NULL;
-        }
-#endif
     }
     sfree(grid);
 

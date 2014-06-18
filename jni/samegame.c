@@ -340,13 +340,6 @@ static void gen_grid(int w, int h, int nc, int *grid, random_state *rs)
     grid2 = snewn(wh, int);
 
     do {
-#ifdef ANDROID
-        if (android_cancelled()) {
-            sfree(grid2);
-            sfree(list);
-            return;
-        }
-#endif
         /*
          * Start with two or three squares - depending on parity of w*h
          * - of a random colour.
@@ -369,13 +362,6 @@ static void gen_grid(int w, int h, int nc, int *grid, random_state *rs)
          * whatever colour will go at the position we chose.
          */
         while (1) {
-#ifdef ANDROID
-            if (android_cancelled()) {
-                sfree(grid2);
-                sfree(list);
-                return;
-            }
-#endif
             n = 0;
 
             /*
@@ -439,13 +425,6 @@ static void gen_grid(int w, int h, int nc, int *grid, random_state *rs)
              */
             while (n-- > 0) {
                 int dirs[4], ndirs, dir;
-#ifdef ANDROID
-                if (android_cancelled()) {
-                    sfree(grid2);
-                    sfree(list);
-                    return;
-                }
-#endif
 
                 i = random_upto(rs, n+1);
                 pos = list[i];
@@ -719,13 +698,6 @@ static void gen_grid(int w, int h, int nc, int *grid, random_state *rs)
 
                     for (x1 = x2 = 0; x2 < w; x2++) {
                         int usedcol = FALSE;
-#ifdef ANDROID
-                        if (android_cancelled()) {
-                            sfree(grid2);
-                            sfree(list);
-                            return;
-                        }
-#endif
 
                         for (y1 = y2 = h-1; y2 >= 0; y2--) {
                             if (grid2[y2*w+x2] == tc) {
@@ -958,12 +930,6 @@ static char *new_game_desc(const game_params *params, random_state *rs,
 	gen_grid(params->w, params->h, params->ncols, tiles, rs);
     else
 	gen_grid_random(params->w, params->h, params->ncols, tiles, rs);
-#ifdef ANDROID
-    if (android_cancelled()) {
-	sfree(tiles);
-	return NULL;
-    }
-#endif
 
     ret = NULL;
     retlen = 0;

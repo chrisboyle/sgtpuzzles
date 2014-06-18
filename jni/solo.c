@@ -2747,9 +2747,6 @@ static int gridgen_real(struct gridgen_usage *usage, digit *grid, int *steps)
     int *digits;
     unsigned int used;
 
-#ifdef ANDROID
-    if (android_cancelled()) return TRUE;
-#endif
     /*
      * Firstly, check for completion! If there are no spaces left
      * in the grid, we have a solution.
@@ -3598,19 +3595,6 @@ static char *new_game_desc(const game_params *params, random_state *rs,
      * difficult grids otherwise.
      */
     while (1) {
-#ifdef ANDROID
-        if (android_cancelled()) {
-	    sfree(grid2);
-	    sfree(locs);
-	    sfree(grid);
-	    free_block_structure(blocks);
-	    if (params->killer) {
-		free_block_structure(kblocks);
-		sfree(kgrid);
-	    }
-            return NULL;
-        }
-#endif
 
         /*
          * Generate a random solved state, starting by
@@ -3636,19 +3620,6 @@ static char *new_game_desc(const game_params *params, random_state *rs,
 
         if (!gridgen(cr, blocks, kblocks, params->xtype, grid, rs, area*area))
 	    continue;
-#ifdef ANDROID
-        if (android_cancelled()) {
-	    sfree(grid2);
-	    sfree(locs);
-	    sfree(grid);
-	    free_block_structure(blocks);
-	    if (params->killer) {
-		free_block_structure(kblocks);
-		sfree(kgrid);
-	    }
-            return NULL;
-        }
-#endif
 
         assert(check_valid(cr, blocks, kblocks, params->xtype, grid));
 
@@ -3683,17 +3654,6 @@ static char *new_game_desc(const game_params *params, random_state *rs,
             memcpy(grid2, grid, area);
 
 	    for (;;) {
-#ifdef ANDROID
-		if (android_cancelled()) {
-		    sfree(grid2);
-		    sfree(locs);
-		    sfree(grid);
-		    free_block_structure(blocks);
-		    free_block_structure(kblocks);
-		    sfree(kgrid);
-		    return NULL;
-		}
-#endif
 		compute_kclues(kblocks, kgrid, grid2, area);
 
 		memset(grid, 0, area * sizeof *grid);
@@ -3766,20 +3726,6 @@ static char *new_game_desc(const game_params *params, random_state *rs,
                 int i = y*cr+x;
                 int j;
 
-#ifdef ANDROID
-		if (android_cancelled()) {
-		    sfree(grid2);
-		    sfree(locs);
-		    sfree(grid);
-		    free_block_structure(blocks);
-		    if (params->killer) {
-			free_block_structure(kblocks);
-			sfree(kgrid);
-		    }
-		    return NULL;
-		}
-#endif
-
                 ncoords = symmetries(params, x, y, coords, params->symm);
                 for (j = 0; j < ncoords; j++)
                     if (coords[2*j+1]*cr+coords[2*j] < i)
@@ -3802,19 +3748,6 @@ static char *new_game_desc(const game_params *params, random_state *rs,
          * from the grid will still leave the grid soluble.
          */
         for (i = 0; i < nlocs; i++) {
-#ifdef ANDROID
-	    if (android_cancelled()) {
-		sfree(grid2);
-		sfree(locs);
-		sfree(grid);
-		free_block_structure(blocks);
-		if (params->killer) {
-		    free_block_structure(kblocks);
-		    sfree(kgrid);
-		}
-		return NULL;
-	    }
-#endif
             x = locs[i].x;
             y = locs[i].y;
 

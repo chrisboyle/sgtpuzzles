@@ -320,9 +320,6 @@ static int compute_rowdata(int *ret, unsigned char *start, int len, int step)
     n = 0;
 
     for (i = 0; i < len; i++) {
-#ifdef ANDROID
-        if (android_cancelled()) return 0;
-#endif
         if (start[i*step] == GRID_FULL) {
             int runlen = 1;
             while (i+runlen < len && start[(i+runlen)*step] == GRID_FULL)
@@ -355,10 +352,6 @@ static int do_recurse(unsigned char *known, unsigned char *deduced,
                        int freespace, int ndone, int lowest)
 {
     int i, j, k;
-#ifdef ANDROID
-    if (android_cancelled()) return 0;
-#endif
-
 
     /* This algorithm basically tries all possible ways the given rows of
      * black blocks can be laid out in the row/column being examined.
@@ -443,9 +436,6 @@ static int do_row(unsigned char *known, unsigned char *deduced,
 
     do_recurse(known, deduced, row, minpos_done, maxpos_done, minpos_ok, maxpos_ok, data, len, freespace, 0, 0);
 
-#ifdef ANDROID
-    if (android_cancelled()) return 0;
-#endif
     done_any = FALSE;
     for (i=0; i<len; i++)
 	if (deduced[i] && deduced[i] != STILL_UNKNOWN && !known[i]) {
@@ -628,17 +618,6 @@ static unsigned char *generate_soluble(random_state *rs, int w, int h)
     ntries = 0;
 
     do {
-#ifdef ANDROID
-        if (android_cancelled()) {
-            sfree(grid);
-            sfree(matrix);
-            sfree(workspace);
-            sfree(changed_h);
-            sfree(changed_w);
-            sfree(rowdata);
-            return NULL;
-        }
-#endif
         ntries++;
 
         generate(rs, w, h, grid);
@@ -671,17 +650,6 @@ static unsigned char *generate_soluble(random_state *rs, int w, int h)
         if (!ok)
             continue;
 
-#ifdef ANDROID
-        if (android_cancelled()) {
-            sfree(grid);
-            sfree(matrix);
-            sfree(workspace);
-            sfree(changed_h);
-            sfree(changed_w);
-            sfree(rowdata);
-            return NULL;
-        }
-#endif
 	ok = solve_puzzle(NULL, grid, w, h, matrix, workspace,
 			  changed_h, changed_w, rowdata, 0);
     } while (!ok);
@@ -703,9 +671,6 @@ static char *new_game_desc(const game_params *params, random_state *rs,
     int desclen, descpos;
 
     grid = generate_soluble(rs, params->w, params->h);
-#ifdef ANDROID
-    if (android_cancelled()) return NULL;
-#endif
     max = max(params->w, params->h);
     rowdata = snewn(max, int);
 
@@ -781,9 +746,6 @@ static char *new_game_desc(const game_params *params, random_state *rs,
     desc[desclen-1] = '\0';
     sfree(rowdata);
     sfree(grid);
-#ifdef ANDROID
-    if (android_cancelled()) return NULL;
-#endif
     return desc;
 }
 

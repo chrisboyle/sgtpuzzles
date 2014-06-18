@@ -1270,9 +1270,6 @@ static int solve_sub(game_state *state,
     if (solve_flags & F_SOLVE_ALLOWRECURSE) maxrecurse = MAXRECURSE;
 
     while (1) {
-#ifdef ANDROID
-        if (android_cancelled()) return -1;
-#endif
         if (grid_overlap(state)) {
             /* Our own solver, from scratch, should never cause this to happen
              * (assuming a soluble grid). However, if we're trying to solve
@@ -1470,9 +1467,6 @@ static int puzzle_is_good(game_state *state, int difficulty)
 {
     int nsol, mdepth = 0;
     unsigned int sflags = flags_from_difficulty(difficulty);
-#ifdef ANDROID
-    if (android_cancelled()) return 0;
-#endif
 
     unplace_lights(state);
 
@@ -1541,13 +1535,6 @@ static char *new_game_desc(const game_params *params_in, random_state *rs,
 
     while (1) {
         for (i = 0; i < MAX_GRIDGEN_TRIES; i++) {
-#ifdef ANDROID
-            if (android_cancelled()) {
-                free_game(news);
-                sfree(numindices);
-                return NULL;
-            }
-#endif
             set_blacks(news, params, rs); /* also cleans board. */
 
             /* set up lights and then the numbers, and remove the lights */
