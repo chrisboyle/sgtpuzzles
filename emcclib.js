@@ -412,7 +412,7 @@ mergeInto(LibraryManager.library, {
         // Find the width of the string
         var ctx1 = onscreen_canvas.getContext('2d');
         ctx1.font = font;
-        var width = ctx1.measureText(midpoint_test_str).width;
+        var width = (ctx1.measureText(midpoint_test_str).width + 1) | 0;
 
         // Construct a test canvas of appropriate size, initialise it to
         // black, and draw the string on it in white
