@@ -1,11 +1,14 @@
 package name.boyle.chris.sgtpuzzles.compat;
 
+import android.annotation.TargetApi;
 import android.app.ActionBar;
 import android.app.Activity;
+import android.os.Build;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.Window;
 
+@TargetApi(Build.VERSION_CODES.HONEYCOMB)
 public class ActionBarHoneycomb extends ActionBarCompat
 {
 	protected ActionBar actionBar;
@@ -41,16 +44,6 @@ public class ActionBarHoneycomb extends ActionBarCompat
 	public void lightsOut(Window w, View v, boolean dim) {
 		v.setSystemUiVisibility(dim ? View.SYSTEM_UI_FLAG_LOW_PROFILE
 				: View.SYSTEM_UI_FLAG_VISIBLE);
-	}
-
-	@Override
-	public void addOnMenuVisibilityListener(final OnMenuVisibilityListener l)
-	{
-		actionBar.addOnMenuVisibilityListener(new ActionBar.OnMenuVisibilityListener() {
-			@Override public void onMenuVisibilityChanged(boolean isVisible) {
-				l.onMenuVisibilityChanged(isVisible);
-			}
-		});
 	}
 
 	@Override

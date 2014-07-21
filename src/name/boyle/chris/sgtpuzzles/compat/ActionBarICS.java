@@ -1,10 +1,13 @@
 package name.boyle.chris.sgtpuzzles.compat;
 
+import android.annotation.TargetApi;
 import android.app.Activity;
+import android.os.Build;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 
+@TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
 public class ActionBarICS extends ActionBarHoneycomb
 {
 	static {

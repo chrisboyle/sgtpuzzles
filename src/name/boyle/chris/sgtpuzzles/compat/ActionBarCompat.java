@@ -28,8 +28,6 @@ public abstract class ActionBarCompat
 		void onMenuVisibilityChanged(boolean isVisible);
 	}
 
-	public abstract void addOnMenuVisibilityListener(OnMenuVisibilityListener l);
-
 	public abstract boolean isShowing();
 
 	public boolean hasMenuButton() { return true; }
