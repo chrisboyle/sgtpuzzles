@@ -2,10 +2,13 @@ package name.boyle.chris.sgtpuzzles;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
+import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.io.PrintStream;
 import java.lang.ref.WeakReference;
 import java.text.MessageFormat;
@@ -165,7 +168,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 			stopNative();
 			dismissProgress();
 			startChooser();
-			if (msg.obj != null) {
+			if (msg.obj != null && !((String)msg.obj).equals("")) {
 				messageBox(getString(R.string.Error), (String)msg.obj, 2, false);
 			} else {
 				finish();
@@ -183,7 +186,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		progress.setOnCancelListener( abortListener );
 		final int msgId2 = msgId;
 		progress.setButton( DialogInterface.BUTTON_POSITIVE, getString(R.string.background), new DialogInterface.OnClickListener() {
-			public void onClick( DialogInterface d, int which ) {
+			public void onClick( DialogInterface d, int whichButton ) {
 				// Cheat slightly: just launch home screen
 				startActivity(new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME));
 				// Argh, can't prevent a dismiss at this point, so re-show it
@@ -222,6 +225,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		SharedPreferences.Editor ed = state.edit();
 		ed.remove("engineName");
 		ed.putString("savedGame", s);
+		ed.putString("last_params_"+games[identifyBackend(s)], getCurrentParams());
 		prefsSaver.save(ed);
 	}
 
@@ -289,7 +293,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		Uri u = intent.getData();
 		if (s != null && s.length() > 0) {
 			Log.d(TAG, "starting game from Intent, "+s.length()+" bytes");
-			startGame(-1, s);
+			startGame(identifyBackend(s), s, false);
 			return;
 		} else if (u != null) {
 			Log.d(TAG, "URI is: \""+u+"\"");
@@ -297,7 +301,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 			if (games.length < 2) games = getResources().getStringArray(R.array.games);
 			for (int i=0; i<games.length; i++) {
 				if (games[i].equals(g)) {
-					startGame(i,null);
+					startGame(i, null, true);
 					return;
 				}
 			}
@@ -306,7 +310,8 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		}
 		if( state.contains("savedGame") && state.getString("savedGame","").length() > 0 ) {
 			Log.d(TAG, "restoring last state");
-			startGame(-1, state.getString("savedGame",""));
+			String savedGame = state.getString("savedGame","");
+			startGame(identifyBackend(savedGame), savedGame, false);
 		} else {
 			Log.d(TAG, "no state, starting chooser");
 			startChooser();
@@ -388,11 +393,18 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 	void startNewGame()
 	{
 		if(! gameRunning || progress != null) return;
+		final String currentSave = saveToString();
 		showProgress( R.string.starting_new );
 		changedState(false, false);
 		(worker = new Thread("newGame") { public void run() {
-			// TODO push save file out to new process and generate there
-			keyEvent(0, 0, 'n');
+			int whichBackend = identifyBackend(currentSave);  // TODO earlier?
+			try {
+				startPlaying(gameView, whichBackend, generateGame(whichBackend, currentSave, getLastParams(whichBackend)));
+			} catch (IllegalArgumentException e) {
+				abort(e.getMessage());  // probably bogus params
+			} catch (IOException e) {
+				abort(e.getMessage());  // internal error :-(
+			}
 			handler.sendEmptyMessage(MsgType.DONE.ordinal());
 		}}).start();
 	}
@@ -524,9 +536,65 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		} catch(Exception e) { return c.getString(R.string.unknown_version); }
 	}
 
-	void startGame(final int which, final String savedGame)
+	private String generateGame(final int whichBackend, String previousSave, String params) throws IllegalArgumentException, IOException {
+		String game;
+		String libDir;
+		try {
+			libDir = getPackageManager().getApplicationInfo(getPackageName(), 0).dataDir+"/lib";
+		} catch (NameNotFoundException e) {
+			throw new RuntimeException(e);
+		}
+		ProcessBuilder builder = new ProcessBuilder(libDir+"/puzzlesgen", games[whichBackend], stringOrEmpty(params));
+		builder.redirectErrorStream(true);
+		Map<String, String> env = builder.environment();
+		env.put("LD_LIBRARY_PATH", libDir+":"+env.get("LD_LIBRARY_PATH"));
+		try {
+			gameGenProcess = builder.start();
+			OutputStream stdin = gameGenProcess.getOutputStream();
+			if (previousSave != null) {
+				writeTo(stdin, previousSave);
+			} else {
+				stdin.close();
+			}
+			game = readAllOf(gameGenProcess.getInputStream());
+			if (game.length() == 0) game = null;
+			while (true) {
+				try {
+					int exitStatus = gameGenProcess.waitFor();
+					if (exitStatus != 0) {
+						String error = game;
+						if (error.length() > 0) {  // probably bogus params
+							throw new IllegalArgumentException(error);
+						} else if (gameRunning) {
+							error = "Game generation exited with status "+exitStatus;
+							Log.e(TAG, error);
+							throw new IOException(error);
+						}
+						// else cancelled
+					}
+					break;
+				} catch (InterruptedException e) {}
+			}
+		} finally {
+			killGenProcess();
+		}
+		if( ! gameRunning ) return null;  // cancelled
+		return game;
+	}
+
+	private String stringOrEmpty(String s) {
+		return (s == null) ? "" : s;
+	}
+
+	private void writeTo(OutputStream stream, String s) throws IOException {
+		OutputStreamWriter writer = new OutputStreamWriter(stream);
+		writer.write(s);
+		writer.close();
+	}
+
+	void startGame(final int whichBackend, final String savedGame, final boolean shouldGenerate)
 	{
-		Log.d(TAG, "startGame: "+which+", "+((savedGame==null)?"null":(savedGame.length()+" bytes")));
+		Log.d(TAG, "startGame: "+whichBackend+", "+((savedGame==null)?"null":(savedGame.length()+" bytes")));
 		if (progress != null) {
 			Log.e(TAG, "startGame while already starting!");
 			return;
@@ -550,56 +618,25 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		gameRunning = true;
 		gameView.keysHandled = 0;
 		(worker = new Thread("startGame") { public void run() {
-			String savedOrGenerated = savedGame;
-			if (savedGame == null || savedGame.equals("")) {
-				String libDir;
+			if (shouldGenerate || savedGame == null || savedGame.equals("")) {
 				try {
-					libDir = getPackageManager().getApplicationInfo(getPackageName(), 0).dataDir+"/lib";
-				} catch (NameNotFoundException e) {
-					throw new RuntimeException(e);
-				}
-				String params = "";  // TODO params!
-				ProcessBuilder builder = new ProcessBuilder(libDir+"/puzzlesgen", games[which], params);
-				builder.redirectErrorStream(true);
-				Map<String, String> env = builder.environment();
-				env.put("LD_LIBRARY_PATH", libDir+":"+env.get("LD_LIBRARY_PATH"));
-				String error = "";
-				try {
-					gameGenProcess = builder.start();
-					savedOrGenerated = readAllOf(gameGenProcess.getInputStream());
-					while (true) {
-						try {
-							int exitStatus = gameGenProcess.waitFor();
-							if (exitStatus != 0) {
-								error = savedOrGenerated;
-								if (error.equals("") && gameRunning) {
-									error = "process exited with status "+exitStatus;
-								}
-								Log.e(TAG, "died: "+error);
-							}
-							break;
-						} catch (InterruptedException e) {}
-					}
+					startPlaying(gameView, whichBackend, generateGame(whichBackend, savedGame, getLastParams(whichBackend)));
+				} catch (IllegalArgumentException e) {
+					abort(e.getMessage());  // probably bogus params
 				} catch (IOException e) {
-					error = e.toString();
-					Log.e(TAG, "IOE: "+error);
-				} finally {
-					killGenProcess();
+					abort(e.getMessage());  // internal error :-(
 				}
-				if( ! gameRunning ) return;  // stopNative or abort was called
-				if (!error.equals("")) {
-					Log.e(TAG, "error: "+error);
-					abort(error);
-					return;
-				}
-				init(gameView, -1, savedOrGenerated);
 			} else {
-				init(gameView, which, savedGame);
+				startPlaying(gameView, whichBackend, savedGame);
 			}
 			if( ! gameRunning ) return;  // stopNative or abort was called
 			helpTopic = htmlHelpTopic();
 			handler.obtainMessage(MsgType.DONE.ordinal(), htmlHelpTopic()).sendToTarget();
 		}}).start();
+	}
+
+	private String getLastParams(int whichBackend) {
+		return state.getString("last_params_"+games[whichBackend], null);
 	}
 
 	public void stopNative()
@@ -870,7 +907,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 			}
 		});
 		dialog.setButton(DialogInterface.BUTTON_POSITIVE, getString(android.R.string.ok), new DialogInterface.OnClickListener() {
-			public void onClick(DialogInterface d, int which) {
+			public void onClick(DialogInterface d, int whichButton) {
 				for( Integer i : dialogIds ) {
 					View v = dialogLayout.findViewById(i);
 					if( v instanceof EditText ) {
@@ -951,9 +988,9 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		dialog.show();
 	}
 
-	void tickTypeItem(int which)
+	void tickTypeItem(int whichType)
 	{
-		currentType = which;
+		currentType = whichType;
 	}
 
 	void serialiseWrite(byte[] buffer)
@@ -1086,7 +1123,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		return log.toString();
 	}
 
-	native void init(GameView _gameView, int whichGame, String gameState);
+	native void startPlaying(GameView _gameView, int whichGame, String savedGame);
 	native void timerTick();
 	native String htmlHelpTopic();
 	native void keyEvent(int x, int y, int k);
@@ -1094,13 +1131,15 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 	native void solveEvent();
 	native void resizeEvent(int x, int y);
 	native void presetEvent(int id);
-	native void configEvent(int which);
+	native void configEvent(int whichEvent);
 	native void configOK();
 	native void configCancel();
 	native void configSetString(int item_ptr, String s);
 	native void configSetBool(int item_ptr, int selected);
 	native void configSetChoice(int item_ptr, int selected);
 	native void serialise();
+	native int identifyBackend(String savedGame);
+	native String getCurrentParams();
 
 	static {
 		System.loadLibrary("puzzles");

@@ -35,7 +35,6 @@ int main(int argc, const char *argv[]) {
 		fprintf(stderr, "Game name not recognised\n");
 		exit(1);
 	}
-	sleep(30);
 
 	frontend *fe = snew(frontend);
 	fe->me = midend_new(fe, thegame, &null_drawing, fe);

@@ -39,8 +39,6 @@ struct frontend {
 	config_item *cfg;
 	int cfg_which;
 	int ox, oy;
-	const char *readptr;
-	int readlen;
 };
 
 static frontend *fe = NULL;
@@ -58,7 +56,6 @@ static int next_gettexted = 0;
 
 static jobject gameView = NULL;
 static jmethodID
-	abortMethod,
 	addTypeItem,
 	blitterAlloc,
 	blitterFree,
@@ -388,14 +385,14 @@ void JNICALL restartEvent(JNIEnv *env, jobject _obj)
 	midend_restart_game(fe->me);
 }
 
-void JNICALL configEvent(JNIEnv *env, jobject _obj, jint which)
+void JNICALL configEvent(JNIEnv *env, jobject _obj, jint whichEvent)
 {
 	pthread_setspecific(envKey, env);
 	char *title;
 	config_item *i;
 	(*env)->CallVoidMethod(env, obj, tickTypeItem, midend_which_preset(fe->me));
-	fe->cfg = midend_get_config(fe->me, which, &title);
-	fe->cfg_which = which;
+	fe->cfg = midend_get_config(fe->me, whichEvent, &title);
+	fe->cfg_which = whichEvent;
 	jstring js = (*env)->NewStringUTF(env, title);
 	if( js == NULL ) return;
 	(*env)->CallVoidMethod(env, obj, dialogInit, js);
@@ -455,25 +452,66 @@ void JNICALL serialise(JNIEnv *env, jobject _obj)
 	midend_serialise(fe->me, android_serialise_write, (void*)0);
 }
 
+static const char* deserialise_readptr = NULL;
+static int deserialise_readlen = 0;
+
 int android_deserialise_read(void *ctx, void *buf, int len)
 {
-	int l = min(len, fe->readlen);
+	int l = min(len, deserialise_readlen);
 	if (l <= 0) return FALSE;
-	memcpy( buf, fe->readptr, l );
-	fe->readptr += l;
-	fe->readlen -= l;
+	memcpy( buf, deserialise_readptr, l );
+	deserialise_readptr += l;
+	deserialise_readlen -= l;
 	return l == len;
 }
 
-const char* android_deserialise(jstring s)
-{
+void throwIllegalArgumentException(JNIEnv *env, const char* reason) {
+	jclass exCls = (*env)->FindClass(env, "java/lang/IllegalArgumentException");
+	(*env)->ThrowNew(env, exCls, reason);
+	(*env)->DeleteLocalRef(env, exCls);
+}
+
+jint deserialiseOrIdentify(jstring s, jboolean identifyOnly) {
 	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
 	const char * c = (*env)->GetStringUTFChars(env, s, NULL);
-	fe->readptr = c;
-	fe->readlen = strlen(fe->readptr);
-	const char * ret = midend_deserialise(fe->me, android_deserialise_read, NULL);
+	deserialise_readptr = c;
+	deserialise_readlen = strlen(deserialise_readptr);
+	const char *reason;
+	char *name;
+	if (identifyOnly) {
+		reason = identify_game(&name, android_deserialise_read, NULL);
+	} else {
+		reason = midend_deserialise(fe->me, android_deserialise_read, NULL);
+	}
 	(*env)->ReleaseStringUTFChars(env, s, c);
-	return ret;
+	if (reason) {
+		throwIllegalArgumentException(env, reason);
+	} else if (identifyOnly) {
+		int i;
+        for (i = 0; i < gamecount; i++) {
+            if (!strcmp(gamelist[i]->name, name)) {
+                return i;
+            }
+        }
+        throwIllegalArgumentException(env, "Internal error identifying game");
+	}
+	return -1;
+}
+
+void android_deserialise(jstring s)
+{
+	deserialiseOrIdentify(s, FALSE);
+}
+
+jint JNICALL identifyBackend(JNIEnv *env, jobject _obj, jstring savedGame)
+{
+	pthread_setspecific(envKey, env);
+	return deserialiseOrIdentify(savedGame, TRUE);
+}
+
+jstring JNICALL getCurrentParams(JNIEnv *env, jobject _obj)
+{
+	return (*env)->NewStringUTF(env, midend_get_game_id(fe->me));  // TODO leak!
 }
 
 jstring JNICALL htmlHelpTopic(JNIEnv *env, jobject _obj)
@@ -518,7 +556,7 @@ char * get_text(const char *s)
 	return ret;
 }
 
-void init(JNIEnv *env, jobject _obj, jobject _gameView, jint whichGame, jstring gameState)
+void startPlaying(JNIEnv *env, jobject _obj, jobject _gameView, jint whichBackend, jstring savedGame)
 {
 	int n;
 	float* colours;
@@ -535,29 +573,13 @@ void init(JNIEnv *env, jobject _obj, jobject _gameView, jint whichGame, jstring 
 	if (gameView) (*env)->DeleteGlobalRef(env, gameView);
 	gameView = (*env)->NewGlobalRef(env, _gameView);
 
-	// Android special
-	if (whichGame >= 0) {
-		thegame = *(gamelist[whichGame]);
-		fe->me = midend_new(fe, &thegame, &android_drawing, fe);
-		midend_game_id(fe->me, gameState);
-		midend_new_game(fe->me);
-	} else {
-		// Find out which game the savefile is from
-		fe->me = NULL;  // magic in midend_deserialise
-		const char *reason = android_deserialise(gameState);
-		if (reason) {
-			(*env)->CallVoidMethod(env, obj, abortMethod, (*env)->NewStringUTF(env, reason));
-			return;
-		}
-		// thegame is now set
-		fe->me = midend_new(fe, &thegame, &android_drawing, fe);
-		reason = android_deserialise(gameState);
-		if (reason) {
-			(*env)->CallVoidMethod(env, obj, abortMethod, (*env)->NewStringUTF(env, reason));
-			midend_free(fe->me);
-			fe->me = NULL;
-			return;
-		}
+	thegame = *(gamelist[whichBackend]);
+	fe->me = midend_new(fe, &thegame, &android_drawing, fe);
+	android_deserialise(savedGame);
+	if ((*env)->ExceptionCheck(env)) {
+		midend_free(fe->me);
+		fe->me = NULL;
+		return;
 	}
 
 	if ((n = midend_num_presets(fe->me)) > 0) {
@@ -593,7 +615,6 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
 	pthread_setspecific(envKey, env);
 	cls = (*env)->FindClass(env, "name/boyle/chris/sgtpuzzles/SGTPuzzles");
 	vcls = (*env)->FindClass(env, "name/boyle/chris/sgtpuzzles/GameView");
-	abortMethod    = (*env)->GetMethodID(env, cls,  "abort", "(Ljava/lang/String;)V");
 	addTypeItem    = (*env)->GetMethodID(env, cls,  "addTypeItem", "(ILjava/lang/String;)V");
 	blitterAlloc   = (*env)->GetMethodID(env, vcls, "blitterAlloc", "(II)I");
 	blitterFree    = (*env)->GetMethodID(env, vcls, "blitterFree", "(I)V");
@@ -638,7 +659,9 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
 		{ "configCancel", "()V", configCancel },
 		{ "serialise", "()V", serialise },
 		{ "htmlHelpTopic", "()Ljava/lang/String;", htmlHelpTopic },
-		{ "init", "(Lname/boyle/chris/sgtpuzzles/GameView;ILjava/lang/String;)V", init },
+		{ "startPlaying", "(Lname/boyle/chris/sgtpuzzles/GameView;ILjava/lang/String;)V", startPlaying },
+		{ "identifyBackend", "(Ljava/lang/String;)I", identifyBackend },
+		{ "getCurrentParams", "()Ljava/lang/String;", getCurrentParams },
 	};
 	(*env)->RegisterNatives(env, cls, methods, sizeof(methods)/sizeof(JNINativeMethod));
 
