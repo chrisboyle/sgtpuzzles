@@ -3,7 +3,7 @@
       package="name.boyle.chris.sgtpuzzles"
       android:installLocation="auto" tools:ignore="UnusedAttribute"
       android:versionCode="74" android:versionName="10167.1" xmlns:tools="http://schemas.android.com/tools">
-    <uses-sdk android:minSdkVersion="3" android:targetSdkVersion="20"/>
+    <uses-sdk android:minSdkVersion="7" android:targetSdkVersion="20"/>
     <!-- You must be able to navigate and enter numbers, so: { 5-way and keyboard } or touchscreen -->
     <uses-configuration android:reqFiveWayNav="true" android:reqKeyboardType="qwerty" />
     <uses-configuration android:reqFiveWayNav="true" android:reqKeyboardType="twelvekey" />

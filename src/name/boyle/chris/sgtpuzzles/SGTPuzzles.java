@@ -3,6 +3,9 @@ package name.boyle.chris.sgtpuzzles;
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -13,7 +16,6 @@ import java.lang.ref.WeakReference;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.Map;
 import java.util.StringTokenizer;
 
 import name.boyle.chris.sgtpuzzles.compat.ActionBarCompat;
@@ -521,48 +523,76 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 
 	private String generateGame(final int whichBackend, String previousSave, String params) throws IllegalArgumentException, IOException {
 		String game;
-		String libDir;
-		try {
-			libDir = getPackageManager().getApplicationInfo(getPackageName(), 0).dataDir+"/lib";
-		} catch (NameNotFoundException e) {
-			throw new RuntimeException(e);
+		startGameGenProcess(whichBackend, params);
+		OutputStream stdin = gameGenProcess.getOutputStream();
+		if (previousSave != null) {
+			writeTo(stdin, previousSave);
+		} else {
+			stdin.close();
 		}
-		ProcessBuilder builder = new ProcessBuilder(libDir+"/libpuzzlesgen.so", games[whichBackend], stringOrEmpty(params));
-		builder.redirectErrorStream(true);
-		Map<String, String> env = builder.environment();
-		env.put("LD_LIBRARY_PATH", libDir+":"+env.get("LD_LIBRARY_PATH"));
-		try {
-			gameGenProcess = builder.start();
-			OutputStream stdin = gameGenProcess.getOutputStream();
-			if (previousSave != null) {
-				writeTo(stdin, previousSave);
-			} else {
-				stdin.close();
+		game = readAllOf(gameGenProcess.getInputStream());
+		if (game.length() == 0) game = null;
+		int exitStatus = waitForProcess(gameGenProcess);
+		if (exitStatus != 0) {
+			String error = game;
+			if (error != null && error.length() > 0) {  // probably bogus params
+				throw new IllegalArgumentException(error);
+			} else if (gameRunning) {
+				error = "Game generation exited with status "+exitStatus;
+				Log.e(TAG, error);
+				throw new IOException(error);
 			}
-			game = readAllOf(gameGenProcess.getInputStream());
-			if (game.length() == 0) game = null;
-			while (true) {
-				try {
-					int exitStatus = gameGenProcess.waitFor();
-					if (exitStatus != 0) {
-						String error = game;
-						if (error != null && error.length() > 0) {  // probably bogus params
-							throw new IllegalArgumentException(error);
-						} else if (gameRunning) {
-							error = "Game generation exited with status "+exitStatus;
-							Log.e(TAG, error);
-							throw new IOException(error);
-						}
-						// else cancelled
-					}
-					break;
-				} catch (InterruptedException e) {}
-			}
-		} finally {
-			killGenProcess();
+			// else cancelled
 		}
 		if( ! gameRunning ) return null;  // cancelled
 		return game;
+	}
+
+	private void startGameGenProcess(final int whichBackend, String params) throws IOException {
+		String dataDir;
+		try {
+			dataDir = getPackageManager().getApplicationInfo(getPackageName(), 0).dataDir;
+		} catch (NameNotFoundException e) {
+			throw new RuntimeException(e);
+		}
+		String libDir = dataDir + "/lib";
+		String chmodablePath = dataDir + "/puzzlesgen";
+		if (!new File(chmodablePath).exists()) {
+			String installablePath = libDir + "/libpuzzlesgen.so";
+			copyFile(installablePath, chmodablePath);
+			int chmodExit = waitForProcess(Runtime.getRuntime().exec(new String[] {"/system/bin/chmod", "755", chmodablePath}));
+			if (chmodExit > 0) {
+				throw new IOException("Can't make game binary executable.");
+			}
+		}
+		gameGenProcess = Runtime.getRuntime().exec(new String[]{
+				chmodablePath, games[whichBackend], stringOrEmpty(params)},
+				new String[]{"LD_LIBRARY_PATH="+libDir}, new File(libDir));
+	}
+
+	private void copyFile(String src, String dst) throws IOException {
+	    InputStream in = new FileInputStream(src);
+	    OutputStream out = new FileOutputStream(dst);
+	    byte[] buf = new byte[8192];
+	    int len;
+	    while ((len = in.read(buf)) > 0) {
+	        out.write(buf, 0, len);
+	    }
+	    in.close();
+	    out.close();
+	}
+
+	private int waitForProcess(Process process) {
+		try {
+			while (true) {
+				try {
+					return process.waitFor();
+				} catch (InterruptedException e) {
+				}
+			}
+		} finally {
+			process.destroy();
+		}
 	}
 
 	private String stringOrEmpty(String s) {
@@ -746,6 +776,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		mainLayout.requestLayout();
 	}
 
+	@SuppressLint("InlinedApi")
 	void setStatusBarVisibility(boolean visible)
 	{
 		if (!visible) statusBar.setText("");
