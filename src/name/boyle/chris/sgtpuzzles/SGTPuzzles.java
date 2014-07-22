@@ -151,13 +151,16 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 				resizeEvent(gameView.w, gameView.h);
 				resizeOnDone = false;
 			}
-			// set ActionBar icon to the one for this puzzle
-			if( msg.obj != null && actionBarCompat != null ) {
-				int iconId = getResources().getIdentifier(
-						(String)msg.obj, "drawable", getPackageName());
-				homeAsUpNoticeable = actionBarCompat.setIconAsShortcut(
-						iconId > 0 ? iconId : R.drawable.icon);
-				if (menu != null) menu.findItem(R.id.other).setVisible(! homeAsUpNoticeable);
+			if (msg.obj != null) {
+				helpTopic = (String)msg.obj;
+				if (actionBarCompat != null) {
+					// set ActionBar icon to the one for this puzzle
+					int iconId = getResources().getIdentifier(
+							helpTopic, "drawable", getPackageName());
+					homeAsUpNoticeable = actionBarCompat.setIconAsShortcut(
+							iconId > 0 ? iconId : R.drawable.icon);
+					if (menu != null) menu.findItem(R.id.other).setVisible(! homeAsUpNoticeable);
+				}
 			}
 			dismissProgress();
 			if( menu != null ) onPrepareOptionsMenu(menu);
@@ -389,25 +392,6 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		startActivity(new Intent(this, GameChooser.class));
 	}
 
-	void startNewGame()
-	{
-		if(! gameRunning || progress != null) return;
-		final String currentSave = saveToString();
-		showProgress( R.string.starting_new );
-		changedState(false, false);
-		(worker = new Thread("newGame") { public void run() {
-			int whichBackend = identifyBackend(currentSave);  // TODO earlier?
-			try {
-				startPlaying(gameView, whichBackend, generateGame(whichBackend, currentSave, getLastParams(whichBackend)));
-			} catch (IllegalArgumentException e) {
-				abort(e.getMessage());  // probably bogus params
-			} catch (IOException e) {
-				abort(e.getMessage());  // internal error :-(
-			}
-			handler.sendEmptyMessage(MsgType.DONE.ordinal());
-		}}).start();
-	}
-
 	@Override
 	public boolean onOptionsItemSelected(MenuItem item)
 	{
@@ -453,7 +437,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 				gameView.clear();
 				Log.d(TAG, "preset: "+id+": "+gameTypes.get(id));
 				(worker = new Thread("presetGame") { public void run() {
-					presetEvent(id);
+					presetEvent(id);  // TODO use puzzlesgen
 					handler.sendEmptyMessage(MsgType.DONE.ordinal());
 				}}).start();
 			}
@@ -562,7 +546,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 					int exitStatus = gameGenProcess.waitFor();
 					if (exitStatus != 0) {
 						String error = game;
-						if (error.length() > 0) {  // probably bogus params
+						if (error != null && error.length() > 0) {  // probably bogus params
 							throw new IllegalArgumentException(error);
 						} else if (gameRunning) {
 							error = "Game generation exited with status "+exitStatus;
@@ -616,10 +600,17 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		gameTypes.clear();
 		gameRunning = true;
 		gameView.keysHandled = 0;
-		(worker = new Thread("startGame") { public void run() {
+		startGameThread("startGame", whichBackend, savedGame, shouldGenerate);
+	}
+
+	private void startGameThread(final String threadName, final int whichBackend, final String savedGame, final boolean shouldGenerate) {
+		(worker = new Thread(threadName) { public void run() {
 			if (shouldGenerate || savedGame == null || savedGame.equals("")) {
 				try {
-					startPlaying(gameView, whichBackend, generateGame(whichBackend, savedGame, getLastParams(whichBackend)));
+					String generated = generateGame(whichBackend, savedGame, getLastParams(whichBackend));
+					if (generated != null) {
+						startPlaying(gameView, whichBackend, generated);
+					}
 				} catch (IllegalArgumentException e) {
 					abort(e.getMessage());  // probably bogus params
 				} catch (IOException e) {
@@ -632,6 +623,16 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 			helpTopic = htmlHelpTopic();
 			handler.obtainMessage(MsgType.DONE.ordinal(), htmlHelpTopic()).sendToTarget();
 		}}).start();
+	}
+
+	void startNewGame()
+	{
+		if(! gameRunning || progress != null) return;
+		final String currentSave = saveToString();
+		int whichBackend = identifyBackend(currentSave);  // TODO earlier?
+		showProgress( R.string.starting_new );
+		changedState(false, false);
+		startGameThread("newGame", whichBackend, currentSave, true);
 	}
 
 	private String getLastParams(int whichBackend) {
@@ -921,7 +922,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 				showProgress( R.string.starting_custom );
 				gameView.clear();
 				(worker = new Thread("startCustomGame") { public void run() {
-					configOK();
+					configOK();  // TODO use puzzlesgen
 					handler.sendEmptyMessage(MsgType.DONE.ordinal());
 				}}).start();
 			}
