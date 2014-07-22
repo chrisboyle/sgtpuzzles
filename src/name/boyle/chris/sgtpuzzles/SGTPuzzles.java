@@ -543,7 +543,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		} catch (NameNotFoundException e) {
 			throw new RuntimeException(e);
 		}
-		ProcessBuilder builder = new ProcessBuilder(libDir+"/puzzlesgen", games[whichBackend], stringOrEmpty(params));
+		ProcessBuilder builder = new ProcessBuilder(libDir+"/libpuzzlesgen.so", games[whichBackend], stringOrEmpty(params));
 		builder.redirectErrorStream(true);
 		Map<String, String> env = builder.environment();
 		env.put("LD_LIBRARY_PATH", libDir+":"+env.get("LD_LIBRARY_PATH"));
