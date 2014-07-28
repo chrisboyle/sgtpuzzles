@@ -254,7 +254,7 @@ void midend_freeze_timer(midend *me, float tprop);
 void midend_timer(midend *me, float tplus);
 int midend_num_presets(midend *me);
 void midend_fetch_preset(midend *me, int n,
-                         char **name, game_params **params);
+                         char **name, game_params **params, char **encoded);
 int midend_which_preset(midend *me);
 int midend_wants_statusbar(midend *me);
 enum { CFG_SETTINGS, CFG_SEED, CFG_DESC, CFG_FRONTEND_SPECIFIC };
@@ -262,6 +262,7 @@ config_item *midend_get_config(midend *me, int which, char **wintitle);
 char *midend_set_config(midend *me, int which, config_item *cfg);
 char *midend_game_id(midend *me, char *id);
 char *midend_get_game_id(midend *me);
+char *midend_config_to_encoded_params(midend *me, config_item *cfg, char **encoded);
 char *midend_get_random_seed(midend *me);
 int midend_can_format_as_text_now(midend *me);
 char *midend_text_format(midend *me);

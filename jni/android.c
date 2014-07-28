@@ -356,17 +356,6 @@ static void resize_fe()
 	(*env)->CallVoidMethod(env, obj, requestResize, x, y);
 }
 
-void JNICALL presetEvent(JNIEnv *env, jobject _obj, jint ptr_game_params)
-{
-	pthread_setspecific(envKey, env);
-	game_params *params = (game_params *)ptr_game_params;
-
-	midend_set_params(fe->me, params);
-	midend_new_game(fe->me);
-	resize_fe();
-	(*env)->CallVoidMethod(env, obj, tickTypeItem, midend_which_preset(fe->me));
-}
-
 void JNICALL solveEvent(JNIEnv *env, jobject _obj)
 {
 	pthread_setspecific(envKey, env);
@@ -408,24 +397,26 @@ void JNICALL configEvent(JNIEnv *env, jobject _obj, jint whichEvent)
 	(*env)->CallVoidMethod(env, obj, dialogShow);
 }
 
-void JNICALL configOK(JNIEnv *env, jobject _obj)
+jstring JNICALL configOK(JNIEnv *env, jobject _obj)
 {
 	pthread_setspecific(envKey, env);
-	char *err = midend_set_config(fe->me, fe->cfg_which, fe->cfg);
+	char *encoded;
+	char *err = midend_config_to_encoded_params(fe->me, fe->cfg, &encoded);
 	free_cfg(fe->cfg);
 	fe->cfg = NULL;
 
 	if (err) {
 		jstring js = (*env)->NewStringUTF(env, err);
-		if( js == NULL ) return;
+		if( js == NULL ) return NULL;
 		jstring js2 = (*env)->NewStringUTF(env, _("Error"));
-		if( js2 == NULL ) return;
+		if( js2 == NULL ) return NULL;
 		(*env)->CallVoidMethod(env, obj, messageBox, js2, js, 1, FALSE);
-		return;
+		return NULL;
 	}
-	midend_new_game(fe->me);
-	resize_fe();
-	(*env)->CallVoidMethod(env, obj, tickTypeItem, midend_which_preset(fe->me));
+
+	jstring ret = (*env)->NewStringUTF(env, encoded);
+	sfree(encoded);
+	return ret;
 }
 
 void JNICALL configCancel(JNIEnv *env, jobject _obj)
@@ -471,36 +462,35 @@ void throwIllegalArgumentException(JNIEnv *env, const char* reason) {
 	(*env)->DeleteLocalRef(env, exCls);
 }
 
-jint deserialiseOrIdentify(jstring s, jboolean identifyOnly) {
+int deserialiseOrIdentify(jstring s, jboolean identifyOnly) {
 	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
 	const char * c = (*env)->GetStringUTFChars(env, s, NULL);
 	deserialise_readptr = c;
 	deserialise_readlen = strlen(deserialise_readptr);
-	const char *reason;
 	char *name;
-	if (identifyOnly) {
-		reason = identify_game(&name, android_deserialise_read, NULL);
-	} else {
-		reason = midend_deserialise(fe->me, android_deserialise_read, NULL);
+	const char *error = identify_game(&name, android_deserialise_read, NULL);
+	int whichBackend = -1;
+	if (! error) {
+		int i;
+		for (i = 0; i < gamecount; i++) {
+			if (!strcmp(gamelist[i]->name, name)) {
+				whichBackend = i;
+			}
+		}
+		if (whichBackend < 0) error = "Internal error identifying game";
+	}
+	if (! error && ! identifyOnly) {
+		thegame = *(gamelist[whichBackend]);
+		fe->me = midend_new(fe, &thegame, &android_drawing, fe);
+		deserialise_readptr = c;
+		deserialise_readlen = strlen(deserialise_readptr);
+		error = midend_deserialise(fe->me, android_deserialise_read, NULL);
 	}
 	(*env)->ReleaseStringUTFChars(env, s, c);
-	if (reason) {
-		throwIllegalArgumentException(env, reason);
-	} else if (identifyOnly) {
-		int i;
-        for (i = 0; i < gamecount; i++) {
-            if (!strcmp(gamelist[i]->name, name)) {
-                return i;
-            }
-        }
-        throwIllegalArgumentException(env, "Internal error identifying game");
+	if (error) {
+		throwIllegalArgumentException(env, error);
 	}
-	return -1;
-}
-
-void android_deserialise(jstring s)
-{
-	deserialiseOrIdentify(s, FALSE);
+	return whichBackend;
 }
 
 jint JNICALL identifyBackend(JNIEnv *env, jobject _obj, jstring savedGame)
@@ -511,7 +501,10 @@ jint JNICALL identifyBackend(JNIEnv *env, jobject _obj, jstring savedGame)
 
 jstring JNICALL getCurrentParams(JNIEnv *env, jobject _obj)
 {
-	return (*env)->NewStringUTF(env, midend_get_game_id(fe->me));  // TODO leak!
+	char *game_id = midend_get_game_id(fe->me);
+	jstring ret = (*env)->NewStringUTF(env, game_id);
+	sfree(game_id);
+	return ret;
 }
 
 jstring JNICALL htmlHelpTopic(JNIEnv *env, jobject _obj)
@@ -556,7 +549,7 @@ char * get_text(const char *s)
 	return ret;
 }
 
-void startPlaying(JNIEnv *env, jobject _obj, jobject _gameView, jint whichBackend, jstring savedGame)
+void startPlaying(JNIEnv *env, jobject _obj, jobject _gameView, jstring savedGame)
 {
 	int n;
 	float* colours;
@@ -573,9 +566,7 @@ void startPlaying(JNIEnv *env, jobject _obj, jobject _gameView, jint whichBacken
 	if (gameView) (*env)->DeleteGlobalRef(env, gameView);
 	gameView = (*env)->NewGlobalRef(env, _gameView);
 
-	thegame = *(gamelist[whichBackend]);
-	fe->me = midend_new(fe, &thegame, &android_drawing, fe);
-	android_deserialise(savedGame);
+	int whichBackend = deserialiseOrIdentify(savedGame, FALSE);
 	if ((*env)->ExceptionCheck(env)) {
 		midend_free(fe->me);
 		fe->me = NULL;
@@ -587,8 +578,9 @@ void startPlaying(JNIEnv *env, jobject _obj, jobject _gameView, jint whichBacken
 		for (i = 0; i < n; i++) {
 			char *name;
 			game_params *params;
-			midend_fetch_preset(fe->me, i, &name, &params);
-			(*env)->CallVoidMethod(env, obj, addTypeItem, params, (*env)->NewStringUTF(env, name));
+			char *encoded;
+			midend_fetch_preset(fe->me, i, &name, &params, &encoded);
+			(*env)->CallVoidMethod(env, obj, addTypeItem, (*env)->NewStringUTF(env, encoded), (*env)->NewStringUTF(env, name));
 		}
 	}
 
@@ -599,6 +591,7 @@ void startPlaying(JNIEnv *env, jobject _obj, jobject _gameView, jint whichBacken
 	if (colsj == NULL) return;
 	(*env)->SetFloatArrayRegion(env, colsj, 0, n*3, colours);
 	(*env)->CallVoidMethod(env, obj, gameStarted,
+			(*env)->NewStringUTF(env, thegame.htmlhelp_topic),
 			(*env)->NewStringUTF(env, thegame.name), thegame.can_configure,
 			midend_wants_statusbar(fe->me), thegame.can_solve, colsj);
 	resize_fe();
@@ -615,7 +608,7 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
 	pthread_setspecific(envKey, env);
 	cls = (*env)->FindClass(env, "name/boyle/chris/sgtpuzzles/SGTPuzzles");
 	vcls = (*env)->FindClass(env, "name/boyle/chris/sgtpuzzles/GameView");
-	addTypeItem    = (*env)->GetMethodID(env, cls,  "addTypeItem", "(ILjava/lang/String;)V");
+	addTypeItem    = (*env)->GetMethodID(env, cls,  "addTypeItem", "(Ljava/lang/String;Ljava/lang/String;)V");
 	blitterAlloc   = (*env)->GetMethodID(env, vcls, "blitterAlloc", "(II)I");
 	blitterFree    = (*env)->GetMethodID(env, vcls, "blitterFree", "(I)V");
 	blitterLoad    = (*env)->GetMethodID(env, vcls, "blitterLoad", "(III)V");
@@ -630,7 +623,7 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
 	drawPoly       = (*env)->GetMethodID(env, cls,  "drawPoly", "([IIIII)V");
 	drawText       = (*env)->GetMethodID(env, vcls, "drawText", "(IIIIILjava/lang/String;)V");
 	fillRect       = (*env)->GetMethodID(env, vcls, "fillRect", "(IIIII)V");
-	gameStarted    = (*env)->GetMethodID(env, cls,  "gameStarted", "(Ljava/lang/String;ZZZ[F)V");
+	gameStarted    = (*env)->GetMethodID(env, cls,  "gameStarted", "(Ljava/lang/String;Ljava/lang/String;ZZZ[F)V");
 	getText        = (*env)->GetMethodID(env, cls,  "gettext", "(Ljava/lang/String;)Ljava/lang/String;");
 	messageBox     = (*env)->GetMethodID(env, cls,  "messageBox", "(Ljava/lang/String;Ljava/lang/String;IZ)V");
 	postInvalidate = (*env)->GetMethodID(env, vcls, "postInvalidate", "()V");
@@ -651,15 +644,14 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
 		{ "configSetString", "(ILjava/lang/String;)V", configSetString },
 		{ "configSetBool", "(II)V", configSetBool },
 		{ "configSetChoice", "(II)V", configSetChoice },
-		{ "presetEvent", "(I)V", presetEvent },
 		{ "solveEvent", "()V", solveEvent },
 		{ "restartEvent", "()V", restartEvent },
 		{ "configEvent", "(I)V", configEvent },
-		{ "configOK", "()V", configOK },
+		{ "configOK", "()Ljava/lang/String;", configOK },
 		{ "configCancel", "()V", configCancel },
 		{ "serialise", "()V", serialise },
 		{ "htmlHelpTopic", "()Ljava/lang/String;", htmlHelpTopic },
-		{ "startPlaying", "(Lname/boyle/chris/sgtpuzzles/GameView;ILjava/lang/String;)V", startPlaying },
+		{ "startPlaying", "(Lname/boyle/chris/sgtpuzzles/GameView;Ljava/lang/String;)V", startPlaying },
 		{ "identifyBackend", "(Ljava/lang/String;)I", identifyBackend },
 		{ "getCurrentParams", "()Ljava/lang/String;", getCurrentParams },
 	};

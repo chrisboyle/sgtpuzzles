@@ -1030,11 +1030,12 @@ int midend_num_presets(midend *me)
 }
 
 void midend_fetch_preset(midend *me, int n,
-                         char **name, game_params **params)
+                         char **name, game_params **params, char **encoded)
 {
     assert(n >= 0 && n < me->npresets);
     *name = me->preset_names[n];
     *params = me->presets[n];
+    *encoded = me->preset_encodings[n];
 }
 
 int midend_which_preset(midend *me)
@@ -1304,6 +1305,19 @@ char *midend_get_random_seed(midend *me)
     sprintf(ret, "%s#%s", parstr, me->seedstr);
     sfree(parstr);
     return ret;
+}
+
+char *midend_config_to_encoded_params(midend *me, config_item *cfg, char **encoded) {
+	game_params *params = me->ourgame->custom_params(cfg);
+	char *error = me->ourgame->validate_params(params, TRUE);
+
+	if (error) {
+		me->ourgame->free_params(params);
+		return error;
+	}
+
+	*encoded = me->ourgame->encode_params(params, TRUE);
+	return NULL;
 }
 
 char *midend_set_config(midend *me, int which, config_item *cfg)
