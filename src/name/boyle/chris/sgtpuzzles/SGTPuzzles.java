@@ -170,10 +170,10 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		case ABORT:
 			stopNative();
 			dismissProgress();
-			startChooser();
 			if (msg.obj != null && !((String)msg.obj).equals("")) {
 				messageBox(getString(R.string.Error), (String)msg.obj, 2, false);
 			} else {
+				startChooser();
 				finish();
 			}
 			break;
@@ -632,8 +632,8 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 
 	private void startGameThread(final GameLaunch launch) {
 		(worker = new Thread(launch.needsGenerating() ? "generateAndLoadGame" : "loadGame") { public void run() {
-			if (launch.needsGenerating()) {
-				try {
+			try {
+				if (launch.needsGenerating()) {
 					String whichBackend = launch.getWhichBackend();
 					String params = launch.getParams();
 					if (params == null) params = getLastParams(whichBackend);
@@ -641,13 +641,13 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 					if (generated != null) {
 						launch.finishedGenerating(generated);
 					}
-				} catch (IllegalArgumentException e) {
-					abort(e.getMessage());  // probably bogus params
-				} catch (IOException e) {
-					abort(e.getMessage());  // internal error :-(
 				}
+				startPlaying(gameView, launch.getSaved());
+			} catch (IllegalArgumentException e) {
+				abort(e.getMessage());  // probably bogus params
+			} catch (IOException e) {
+				abort(e.getMessage());  // internal error :-(
 			}
-			startPlaying(gameView, launch.getSaved());
 			if( ! gameRunning ) return;  // stopNative or abort was called
 			handler.sendEmptyMessage(MsgType.DONE.ordinal());
 		}}).start();
@@ -853,7 +853,12 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 							: android.R.drawable.ic_dialog_alert )
 					.setOnCancelListener(new OnCancelListener() {
 						public void onCancel(DialogInterface dialog) {
-							if (flag < 2) gameViewResized(); else finish();
+							if (flag < 2) {
+								gameViewResized();
+							} else {
+								startChooser();
+								finish();
+							}
 						}})
 					.show();
 		}});

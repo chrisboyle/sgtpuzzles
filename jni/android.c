@@ -85,6 +85,12 @@ static jmethodID
 	unClip,
 	completed;
 
+void throwIllegalArgumentException(JNIEnv *env, const char* reason) {
+	jclass exCls = (*env)->FindClass(env, "java/lang/IllegalArgumentException");
+	(*env)->ThrowNew(env, exCls, reason);
+	(*env)->DeleteLocalRef(env, exCls);
+}
+
 void get_random_seed(void **randseed, int *randseedsize)
 {
 	struct timeval *tvp = snew(struct timeval);
@@ -406,11 +412,7 @@ jstring JNICALL configOK(JNIEnv *env, jobject _obj)
 	fe->cfg = NULL;
 
 	if (err) {
-		jstring js = (*env)->NewStringUTF(env, err);
-		if( js == NULL ) return NULL;
-		jstring js2 = (*env)->NewStringUTF(env, _("Error"));
-		if( js2 == NULL ) return NULL;
-		(*env)->CallVoidMethod(env, obj, messageBox, js2, js, 1, FALSE);
+		throwIllegalArgumentException(env, err);
 		return NULL;
 	}
 
@@ -456,12 +458,6 @@ int android_deserialise_read(void *ctx, void *buf, int len)
 	return l == len;
 }
 
-void throwIllegalArgumentException(JNIEnv *env, const char* reason) {
-	jclass exCls = (*env)->FindClass(env, "java/lang/IllegalArgumentException");
-	(*env)->ThrowNew(env, exCls, reason);
-	(*env)->DeleteLocalRef(env, exCls);
-}
-
 int deserialiseOrIdentify(jstring s, jboolean identifyOnly) {
 	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
 	const char * c = (*env)->GetStringUTFChars(env, s, NULL);
@@ -489,6 +485,10 @@ int deserialiseOrIdentify(jstring s, jboolean identifyOnly) {
 	(*env)->ReleaseStringUTFChars(env, s, c);
 	if (error) {
 		throwIllegalArgumentException(env, error);
+		if (fe->me) {
+			midend_free(fe->me);
+			fe->me = NULL;
+		}
 	}
 	return whichBackend;
 }
@@ -568,8 +568,6 @@ void startPlaying(JNIEnv *env, jobject _obj, jobject _gameView, jstring savedGam
 
 	int whichBackend = deserialiseOrIdentify(savedGame, FALSE);
 	if ((*env)->ExceptionCheck(env)) {
-		midend_free(fe->me);
-		fe->me = NULL;
 		return;
 	}
 
