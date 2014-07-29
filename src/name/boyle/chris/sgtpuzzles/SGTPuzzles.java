@@ -568,6 +568,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 	}
 
 	private int waitForProcess(Process process) {
+		if (process == null) return -1;
 		try {
 			while (true) {
 				try {
