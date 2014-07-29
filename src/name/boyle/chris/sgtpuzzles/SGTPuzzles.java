@@ -187,16 +187,6 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		progress.setIndeterminate( true );
 		progress.setCancelable( true );
 		progress.setOnCancelListener( abortListener );
-		final int msgId2 = msgId;
-		progress.setButton( DialogInterface.BUTTON_POSITIVE, getString(R.string.background), new DialogInterface.OnClickListener() {
-			public void onClick( DialogInterface d, int whichButton ) {
-				// Cheat slightly: just launch home screen
-				startActivity(new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME));
-				// Argh, can't prevent a dismiss at this point, so re-show it
-				showProgress(msgId2);
-				Toast.makeText(SGTPuzzles.this, R.string.bg_unreliable_warn, Toast.LENGTH_LONG).show();
-			}
-		});
 		progress.setButton( DialogInterface.BUTTON_NEGATIVE, getString(android.R.string.cancel), handler.obtainMessage(MsgType.ABORT.ordinal()));
 		progress.show();
 	}
