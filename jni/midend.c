@@ -1292,6 +1292,17 @@ char *midend_get_game_id(midend *me)
     return ret;
 }
 
+char *midend_get_current_params(midend *me)
+{
+    char *parstr, *ret;
+
+    parstr = me->ourgame->encode_params(me->curparams, TRUE);
+    assert(parstr);
+    ret = dupstr(parstr);
+    sfree(parstr);
+    return ret;
+}
+
 char *midend_get_random_seed(midend *me)
 {
     char *parstr, *ret;
