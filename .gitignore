@@ -1,12 +1,11 @@
-# These files should not be tracked (they are auto-generated)
-*~
-bin
+**/build
+**/app*.apk
 local.properties
-libs
-obj
-*.apk
-*.dex
-R.java
-lib
-po/puzzles-doc.pot
-res/values-v8/api_keys.xml
+/app/src/main/res/values-v8/api_keys.xml
+.gradle/
+.idea/workspace.xml
+.idea/tasks.xml
+.idea/datasources.xml
+.idea/datasources.ids
+*~
+*.swp

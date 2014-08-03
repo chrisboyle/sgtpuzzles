@@ -11,10 +11,6 @@ http://github.com/chrisboyle/sgtpuzzles/issues
 Simon has an excellent page on how to write a good bug report:
 http://www.chiark.greenend.org.uk/~sgtatham/bugs.html
 
-Translation efforts are in progress at:
-http://www.getlocalization.com/android_puzzles/
-(I did *not* choose their country names...)
-
 Coders should read on...
 
 Prerequisites
@@ -28,24 +24,13 @@ API bridge between the two.
 If you have the option, a Linux-based development machine, as I haven't
 tried to build on Windows or OSX, and it will need some tweaks.
 
-Android SDK
-http://developer.android.com/sdk/
-...and its dependencies: http://developer.android.com/sdk/installing.html
+Android Studio
+https://developer.android.com/sdk/installing/studio.html
 
 Android NDK (Native Development Kit)
 http://developer.android.com/sdk/ndk/
 
-Your life will be easiest if the above two are at (or are symlinked at)
-/opt/android-sdk and /opt/android-ndk , otherwise edit the paths later.
-
-Either Eclipse...
-http://eclipse.org/downloads/ ("Java Developers" or "Classic" recommended)
-+ http://developer.android.com/sdk/eclipse-adt.html (Android Dev Tools)
-+ http://www.eclipse.org/cdt/  (C/C++ Dev Tools)
-+ http://www.eclipse.org/egit/ (optional: use Eclipse as a git client)
-
-...or Ant:
-http://ant.apache.org/ (or "apt-get install ant")
+Create local.properties with ndk.dir=/your_path_here
 
 ...and I probably missed a few things. File a bug when you find them. :-)
 
@@ -61,16 +46,9 @@ all within github.
 You'll also find a branch called "upstream", which is Simon's code whenever
 I last synced. Handy for diffs, to see what I broke on Android. :-)
 
-If your SDK/NDK aren't in my suggested locations, add a file local.properties
-to override the locations in build.properties. If using Eclipse, also edit
-the paths in:
-
-Project / Properties / Builders / NDK builder
-Project / Properties / C/C++ General / Paths and Symbols / Includes / GNU C
-
 You should now be able to edit, build and launch the app like any other Android
 project (except a lot of it is in C). Don't forget that you'll be signing with
-a dev key, so to test on a device that already has the Market version,
+a dev key, so to test on a device that already has the Google Play version,
 uninstall that first.
 
 Architecture / where to find stuff
@@ -83,22 +61,18 @@ Go and read those, at least the Introduction.
 
 The Android front-end (android.c) is basically just glue, passing everything to
 Java. The Java classes providing the UI layer, game chooser, crash handler,
-etc. are in "src".  The main class SGTPuzzles has the native methods that
-android.c implements. The game area on screen is a GameView, which basically
-just has a bitmap for the puzzle to draw on. Note that almost no native code is
-run until the user has chosen a game (unless there's a previous game to
-resume).
+etc. are in app/src/main/java.  The main class SGTPuzzles has the native
+methods that android.c implements. The game area on screen is a GameView, which
+basically just has a bitmap for the puzzle to draw on. Note that almost no
+native code is run until the user has chosen a game (unless there's a previous
+game to resume).
 
-The original build system for all the other platforms, before I recently
-"simplified" (broke/ignored) it for Android, uses "mkfiles.pl" and "Recipe" to
-produce Makefiles (e.g.  Makefile.osx for OSX) among other things. "Makefile"
-(no extension) is for Linux/GTK. So to check you haven't broken a game on
-another platform, run ./mkfiles.pl (once) and make (or make -f Makfile.foo) to
-build the other platform's binaries.
+Files for other platforms etc. that are not currently usable in this fork are
+in the not-in-use directory.
 
 If your change is relevant to other platforms, you should definitely ping Simon
-about it as well as me, but test on at least one other platform first (see
-above).
+about it as well as me, but test on at least one other platform first in a
+separate checkout (see above).
 
 Major changes e.g. adding a game
 --------------------------------
@@ -108,16 +82,11 @@ One of the best features of this collection is its relative consistency across
 different environments, and the Android port should continue that.
 
 If adding a game, definitely read the relevant chaper (6) of Simon's
-development docs, and also re-run mkfiles.pl, and add the new game to the
-places I've gone and duplicated the list just for Android...
+development docs, and add the new game to the places I've gone and duplicated
+the list just for Android...
 
-jni/Android.mk
-res/values/arrays.xml
-res/values*/strings.xml
-Eclipse: Project / Properties / Builders / NDK builder / Build Options / Specify Resources
-.gitignore
-icons/Makefile (actually that one was Simon)
-...then add icons/foo.sav, cd icons && make (on a Linux box with GTK)
+[ TODO re-create the list of such places here, following the migration to
+Android Studio ]
 
 
 Happy hacking! :-)

@@ -1,0 +1,76 @@
+import org.apache.tools.ant.taskdefs.condition.Os
+
+apply plugin: 'com.android.application'
+
+android {
+    compileSdkVersion 19
+    buildToolsVersion "20.0.0"
+
+    defaultConfig {
+        applicationId "name.boyle.chris.sgtpuzzles"
+        minSdkVersion 7
+        targetSdkVersion 20
+
+        ndk {
+            moduleName "puzzles"
+            cFlags "-DSLOW_SYSTEM -DANDROID -DSTYLUS_BASED -DNO_PRINTING -DCOMBINED"
+        }
+    }
+
+    buildTypes {
+        release {
+            //runProguard false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.txt'
+        }
+    }
+}
+
+android.applicationVariants.all{ variant ->
+
+    variant.ndkCompile << {
+        // library is built, now build the executables
+        copy {
+            from(variant.ndkCompile.soFolder) {
+                include '**/libpuzzles.so'
+            }
+            into variant.ndkCompile.soFolder.absolutePath+'/../prebuilt'
+        }
+        println 'debuggable: '+variant.ndkCompile.debuggable
+        exec {
+            commandLine Os.isFamily(Os.FAMILY_WINDOWS) ? 'ndk-build.cmd' : 'ndk-build',
+                    'NDK_PROJECT_PATH=null',
+                    'APP_BUILD_SCRIPT=' + file('src/main/executable.mk').absolutePath,
+                    'NDK_OUT=' + variant.ndkCompile.objFolder.absolutePath,
+                    'NDK_LIBS_OUT=' + variant.ndkCompile.soFolder.absolutePath,
+                    'APP_ABI=all',
+                    'APP_PLATFORM=android-5',  // earliest for x86 + mips
+                    'PUZZLESGEN_SUFFIX=-no-pie',
+                    'NDK_LOG=1',
+                    'NDK_DEBUG=' + (variant.ndkCompile.debuggable ? '1' : '0')
+        }
+        exec {
+            commandLine Os.isFamily(Os.FAMILY_WINDOWS) ? 'ndk-build.cmd' : 'ndk-build',
+                    'NDK_PROJECT_PATH=null',
+                    'APP_BUILD_SCRIPT=' + file('src/main/executable.mk').absolutePath,
+                    'NDK_OUT=' + variant.ndkCompile.objFolder.absolutePath,
+                    'NDK_LIBS_OUT=' + variant.ndkCompile.soFolder.absolutePath,
+                    'APP_ABI=all',
+                    'APP_PLATFORM=android-16',  // earliest for PIE
+                    'PUZZLESGEN_SUFFIX=-with-pie',
+                    'APP_PIE=true',
+                    'NDK_LOG=1',
+                    'NDK_DEBUG=' + (variant.ndkCompile.debuggable ? '1' : '0')
+        }
+        copy {
+            from(variant.ndkCompile.soFolder) {
+                include '**/puzzlesgen-*'
+                rename 'puzzlesgen-(.*)', 'libpuzzlesgen-$1.so'
+            }
+            into variant.ndkCompile.soFolder
+        }
+    }
+}
+
+//dependencies {
+//    compile 'com.android.support:support-v4:20.0.0'
+//}
