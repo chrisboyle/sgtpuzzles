@@ -1,21 +1,23 @@
 package name.boyle.chris.sgtpuzzles;
 
+import android.annotation.TargetApi;
 import android.app.backup.BackupAgentHelper;
 import android.app.backup.SharedPreferencesBackupHelper;
+import android.os.Build;
 
+@TargetApi(Build.VERSION_CODES.FROYO)
 public class BackupAgent extends BackupAgentHelper {
-	private final String KEY = "preferences";
 
-	/** For some reason PreferenceManager.getDefaultSharedPreferencesName()
-	 * is private - but the knowledge of its contents is now used widely
-	 * enough that I'm reasonably sure Google wouldn't break it. :-) */
-	private final String DEFAULT_PREFS = "name.boyle.chris.sgtpuzzles_preferences";
-
-	@Override
+    @Override
 	public void onCreate()
 	{
-		SharedPreferencesBackupHelper spbh =
+        /* For some reason PreferenceManager.getDefaultSharedPreferencesName()
+	       is private - but the knowledge of its contents is now used widely
+	       enough that I'm reasonably sure Google wouldn't break it. :-) */
+        String DEFAULT_PREFS = "name.boyle.chris.sgtpuzzles_preferences";
+        SharedPreferencesBackupHelper helper =
 				new SharedPreferencesBackupHelper(this, DEFAULT_PREFS);
-		addHelper(KEY, spbh);
+        String KEY = "preferences";
+        addHelper(KEY, helper);
 	}
 }

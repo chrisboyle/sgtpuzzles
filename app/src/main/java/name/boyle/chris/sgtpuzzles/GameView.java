@@ -20,24 +20,26 @@ import android.view.ViewConfiguration;
 
 public class GameView extends View
 {
-	SGTPuzzles parent;
-	Bitmap bitmap;
-	Canvas canvas;
-	Paint paint;
-	Bitmap[] blitters;
+	private SGTPuzzles parent;
+	private Bitmap bitmap;
+	private final Canvas canvas;
+	private final Paint paint;
+	private final Bitmap[] blitters;
 	int[] colours;
 	int w, h;
-	int longTimeout = ViewConfiguration.getLongPressTimeout();
-	int button;
-	boolean waiting = false, waitingSpace = false;
-	double startX, startY, maxDistSq;
+	private final int longTimeout = ViewConfiguration.getLongPressTimeout();
+	private int button;
+	private boolean waiting = false;
+    private boolean waitingSpace = false;
+	private double startX, startY;
+    private final double maxDistSq;
 	static final int DRAG = SGTPuzzles.LEFT_DRAG - SGTPuzzles.LEFT_BUTTON,  // not bit fields, but there's a pattern
 			RELEASE = SGTPuzzles.LEFT_RELEASE - SGTPuzzles.LEFT_BUTTON;
 	static final int CURSOR_UP = 0x209, CURSOR_DOWN = 0x20a,
 			CURSOR_LEFT = 0x20b, CURSOR_RIGHT = 0x20c, MOD_NUM_KEYPAD = 0x4000;
 	static final String TAG = "GameView";
 	int keysHandled = 0;  // debug
-	static final char[] INTERESTING_CHARS = "0123456789abcdefghijklqrsux".toCharArray();
+	private static final char[] INTERESTING_CHARS = "0123456789abcdefghijklqrsux".toCharArray();
 
 	public GameView(Context context, AttributeSet attrs)
 	{
@@ -51,7 +53,7 @@ public class GameView extends View
 		maxDistSq = Math.pow(getResources().getDisplayMetrics().density * 8.0f, 2);
 	}
 
-	Runnable sendRightClick = new Runnable() {
+	private final Runnable sendRightClick = new Runnable() {
 		public void run() {
 			button = SGTPuzzles.RIGHT_BUTTON;
 			waiting = false;
@@ -101,7 +103,7 @@ public class GameView extends View
 		}
 	}
 
-	Runnable sendSpace = new Runnable() {
+	private final Runnable sendSpace = new Runnable() {
 		public void run() {
 			waitingSpace = false;
 			parent.sendKey(0, 0, ' ');
@@ -181,16 +183,9 @@ public class GameView extends View
 		}
 	}
 
-	@Override
-	public void setBackgroundColor( int colour )
-	{
-		super.setBackgroundColor(colour);
-		//if( canvas != null ) canvas.drawColor( colour );
-	}
-
 	public void clear()
 	{
-		if( canvas != null ) canvas.drawColor( Color.BLACK );
+        canvas.drawColor( Color.BLACK );
 	}
 
 	void setMargins( int x, int y )

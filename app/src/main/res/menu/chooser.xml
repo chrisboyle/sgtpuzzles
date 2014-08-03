@@ -4,5 +4,5 @@
 		<item android:title="@string/Grid" android:id="@+id/gridchooser" android:icon="@android:drawable/ic_menu_gallery" android:checkable="true" android:showAsAction="ifRoom|withText"/>
 		<item android:title="@string/Details" android:id="@+id/listchooser" android:icon="@android:drawable/ic_menu_info_details" android:checkable="true" android:showAsAction="ifRoom|withText"/>
 	</group>
-	<item android:title="@string/Load_" android:id="@+id/load" android:alphabeticShortcut="y" android:icon="@android:drawable/ic_menu_upload" android:showAsAction="ifRoom|withText"></item>
+	<item android:title="@string/Load_" android:id="@+id/load" android:alphabeticShortcut="y" android:icon="@android:drawable/ic_menu_upload" android:showAsAction="ifRoom|withText"/>
 </menu>

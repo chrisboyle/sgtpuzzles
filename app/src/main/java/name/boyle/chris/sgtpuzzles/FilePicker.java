@@ -30,16 +30,16 @@ import android.widget.AdapterView.OnItemClickListener;
 
 class FilePicker extends Dialog
 {
-	String[] files;
-	ListView lv;
-	FilePicker parent;
-	final Activity activity;
+	private String[] files;
+	private ListView lv;
+	private FilePicker parent;
+	private final Activity activity;
 
 	void dismissAll()
 	{
 		try {
 			activity.dismissDialog(0);
-		} catch (Exception e) {}
+		} catch (Exception ignored) {}
 		dismiss();
 		FilePicker fp = this.parent;
 		while (fp != null) {

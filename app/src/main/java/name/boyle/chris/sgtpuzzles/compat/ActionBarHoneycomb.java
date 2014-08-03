@@ -11,7 +11,7 @@ import android.view.Window;
 @TargetApi(Build.VERSION_CODES.HONEYCOMB)
 public class ActionBarHoneycomb extends ActionBarCompat
 {
-	protected ActionBar actionBar;
+	final ActionBar actionBar;
 
 	static {
 		try {
@@ -40,7 +40,7 @@ public class ActionBarHoneycomb extends ActionBarCompat
 		mi.setShowAsAction(flags);
 	}
 
-	@Override
+    @Override
 	public void lightsOut(Window w, View v, boolean dim) {
 		v.setSystemUiVisibility(dim ? View.SYSTEM_UI_FLAG_LOW_PROFILE
 				: View.SYSTEM_UI_FLAG_VISIBLE);

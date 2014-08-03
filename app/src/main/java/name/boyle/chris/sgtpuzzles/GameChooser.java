@@ -3,6 +3,7 @@ package name.boyle.chris.sgtpuzzles;
 import name.boyle.chris.sgtpuzzles.compat.ActionBarCompat;
 import name.boyle.chris.sgtpuzzles.compat.PrefsSaver;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
@@ -29,24 +30,25 @@ public class GameChooser extends Activity
 
 	/* This really ought to have been a GridView, but...
 	 * http://stackoverflow.com/q/7545915/6540  */
-	TableLayout table;
+    private TableLayout table;
 
-	SharedPreferences prefs, state;
-	boolean useGrid;
-	String[] games;
-	View[] views;
-	boolean hasActionBar = false;
-	Menu menu;
-	boolean isTablet;
-	PrefsSaver prefsSaver;
+	private SharedPreferences prefs;
+    private boolean useGrid;
+	private String[] games;
+	private View[] views;
+	private boolean hasActionBar = false;
+	private Menu menu;
+	private boolean isTablet;
+	private PrefsSaver prefsSaver;
 
 	@Override
-	protected void onCreate(Bundle savedInstanceState)
+    @SuppressLint("CommitPrefEdits")
+    protected void onCreate(Bundle savedInstanceState)
 	{
 		super.onCreate(savedInstanceState);
 		setTitle(R.string.chooser_title);
 		prefs = PreferenceManager.getDefaultSharedPreferences(this);
-		state = getSharedPreferences(SGTPuzzles.STATE_PREFS_NAME, MODE_PRIVATE);
+        SharedPreferences state = getSharedPreferences(SGTPuzzles.STATE_PREFS_NAME, MODE_PRIVATE);
 		prefsSaver = PrefsSaver.get(this);
 
 		String oldCS = state.getString(CHOOSER_STYLE_KEY, null);
@@ -76,7 +78,7 @@ public class GameChooser extends Activity
 		table = (TableLayout) findViewById(R.id.table);
 		hasActionBar = ActionBarCompat.get(this) != null;
 		rebuildViews();
-		if( ! state.contains("savedGame") || state.getString("savedGame","").length() <= 0 ) {
+		if( ! state.contains("savedGame") || state.getString("savedGame", "").length() <= 0 ) {
 			// first run
 			new AlertDialog.Builder(this)
 					.setMessage(R.string.welcome)
@@ -120,7 +122,7 @@ public class GameChooser extends Activity
 		onConfigurationChanged(getResources().getConfiguration());
 	}
 
-	int oldColumns = 0;
+	private int oldColumns = 0;
 	@Override
 	public void onConfigurationChanged(Configuration newConfig)
 	{
@@ -144,7 +146,8 @@ public class GameChooser extends Activity
 				TableRow.LayoutParams lp = new TableRow.LayoutParams(
 						0, TableRow.LayoutParams.WRAP_CONTENT, 1);
 				lp.setMargins(0, margin, 0, margin);
-				tr.addView(views[i], lp);
+                assert tr != null;
+                tr.addView(views[i], lp);
 			}
 			oldColumns = columns;
 		}
@@ -188,7 +191,7 @@ public class GameChooser extends Activity
 	@Override
 	public boolean onMenuItemSelected(int f, MenuItem item)
 	{
-		boolean newGrid = useGrid;
+		boolean newGrid;
 		switch(item.getItemId()) {
 			case R.id.listchooser: newGrid = false; break;
 			case R.id.gridchooser: newGrid = true; break;
@@ -201,7 +204,7 @@ public class GameChooser extends Activity
 		useGrid = newGrid;
 		updateStyleToggleVisibility();
 		rebuildViews();
-		SharedPreferences.Editor ed = prefs.edit();
+        @SuppressLint("CommitPrefEdits") SharedPreferences.Editor ed = prefs.edit();
 		ed.putString(CHOOSER_STYLE_KEY, useGrid ? "grid" : "list");
 		prefsSaver.save(ed);
 		return true;

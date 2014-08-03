@@ -11,7 +11,7 @@ import android.preference.PreferenceActivity;
 
 public class PrefsActivity extends PreferenceActivity implements OnSharedPreferenceChangeListener
 {
-	PrefsSaver prefsSaver;
+	private PrefsSaver prefsSaver;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState)

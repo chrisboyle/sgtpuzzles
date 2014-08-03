@@ -1,12 +1,15 @@
 package name.boyle.chris.sgtpuzzles.compat;
 
+import android.annotation.TargetApi;
 import android.app.backup.BackupManager;
 import android.content.Context;
 import android.content.SharedPreferences.Editor;
+import android.os.Build;
 
+@TargetApi(Build.VERSION_CODES.FROYO)
 public class PrefsSaverFroyo extends PrefsSaver
 {
-	private BackupManager backupMgr;
+	private final BackupManager backupMgr;
 
 	static {
 		try {
@@ -16,7 +19,7 @@ public class PrefsSaverFroyo extends PrefsSaver
 		}
 	}
 
-	public PrefsSaverFroyo(Context c)
+    public PrefsSaverFroyo(Context c)
 	{
 		backupMgr = new BackupManager(c);
 	}

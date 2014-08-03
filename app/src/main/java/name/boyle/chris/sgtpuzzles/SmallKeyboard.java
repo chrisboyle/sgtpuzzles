@@ -6,7 +6,6 @@ import java.util.List;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
-import android.content.res.Resources;
 import android.graphics.Color;
 import android.inputmethodservice.Keyboard;
 import android.inputmethodservice.KeyboardView;
@@ -16,13 +15,13 @@ import android.util.Log;
 
 public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboardActionListener
 {
-	static final String TAG="SmallKeyboard";
-	static final int KEYSP = 44;  // dip
-	SGTPuzzles parent;
-	boolean undoEnabled = false, redoEnabled = false;
-	public static final int NO_ARROWS = 0,  // untangle
-			ARROWS_LEFT_RIGHT_CLICK = 1,  // unless phone has a d-pad (most games)
-			ARROWS_DIAGONALS = 2;  // Inertia
+	private static final String TAG = "SmallKeyboard";
+	private static final int KEYSP = 44;  // dip
+	private final SGTPuzzles parent;
+	private boolean undoEnabled = false, redoEnabled = false;
+	private static final int NO_ARROWS = 0;  // untangle
+			static final int ARROWS_LEFT_RIGHT_CLICK = 1;  // unless phone has a d-pad (most games)
+			private static final int ARROWS_DIAGONALS = 2;  // Inertia
 	int arrowMode = ARROWS_LEFT_RIGHT_CLICK;
 
 	/** Key which can be disabled */
@@ -83,7 +82,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 					if (hidden == Configuration.class.getField("NAVIGATIONHIDDEN_YES").getInt(null)) {
 						visibleDPad = false;
 					}
-				} catch (Exception e) {}
+				} catch (Exception ignored) {}
 				if (visibleDPad) {
 					arrowMode = NO_ARROWS;
 				}
@@ -153,12 +152,6 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 						key.repeatable = true;
 						key.enabled = true;
 						break;
-					/*case '\f':
-						key.icon = context.getResources().getDrawable(
-								R.drawable.sym_keyboard_menu);
-						key.repeatable = false;
-						key.enabled = true;
-						break;*/
 					default:
 						key.label = String.valueOf(c);
 						key.enabled = true;
@@ -341,11 +334,12 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 
 	public SmallKeyboard(Context c, boolean undoEnabled, boolean redoEnabled)
 	{
-		this(c,null);
+		this(c, null);
 		this.undoEnabled = undoEnabled;
 		this.redoEnabled = redoEnabled;
 	}
 
+    @SuppressWarnings("SameParameterValue")
 	public SmallKeyboard(Context c, AttributeSet a)
 	{
 		super(c, a);
@@ -355,30 +349,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 		if (isInEditMode()) setKeys("123456\bur", 1);
 	}
 
-	/** Horrible hack for edit mode... */
-	@Override
-	public Resources getResources()
-	{
-		Resources r = super.getResources();
-		if (!isInEditMode()) return r;
-
-		return new Resources(r.getAssets(), r.getDisplayMetrics(), r.getConfiguration()) {
-			public boolean getBoolean(int id) {
-				// provide com.android.internal.R.bool.config_swipeDisambiguation
-				if (id == 0x111001e) return false; // 4.0 - but "Unsupported Service: audio" from KeyboardView()?!?
-				if (id == 0x1110015) return false; // 3.2
-				if (id == 0x1110018) return false; // 3.1
-				if (id == 0x1110019) return false; // 3.0
-				if (id == 0x10d000e) return false; // 2.3.3
-				if (id == 0x10d000b) return false; // 2.2
-				if (id == 0x10d0009) return false; // 2.1-update1
-				// Other versions explode with NPE in PopupWindow(Context) :-(
-				return super.getBoolean(id);
-			}
-		};
-	}
-
-	CharSequence lastKeys = "";
+	private CharSequence lastKeys = "";
 	public void setKeys(CharSequence keys, int arrowMode)
 	{
 		lastKeys = keys;

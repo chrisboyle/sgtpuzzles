@@ -14,6 +14,7 @@ import java.io.PrintStream;
 import java.lang.ref.WeakReference;
 import java.text.MessageFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map.Entry;
 import java.util.StringTokenizer;
@@ -32,7 +33,6 @@ import android.content.DialogInterface.OnCancelListener;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
-import android.content.pm.PackageManager.NameNotFoundException;
 import android.content.res.Configuration;
 import android.graphics.Color;
 import android.graphics.Path;
@@ -73,61 +73,60 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 	static final String STATE_PREFS_NAME = "state";
 	static final String ARROW_KEYS_KEY = "arrowKeys";
 	static final String INERTIA_FORCE_ARROWS_KEY = "inertiaForceArrows";
-	static final String FULLSCREEN_KEY = "fullscreen";
-	static final String STAY_AWAKE_KEY = "stayAwake";
-	static final String UNDO_REDO_KBD_KEY = "undoRedoKbd";
-	static final String PATTERN_SHOW_LENGTHS_KEY = "patternShowLengths";
-	static final String COMPLETED_PROMPT_KEY = "completedPrompt";
+	private static final String FULLSCREEN_KEY = "fullscreen";
+    private static final String STAY_AWAKE_KEY = "stayAwake";
+    private static final String UNDO_REDO_KBD_KEY = "undoRedoKbd";
+    private static final String PATTERN_SHOW_LENGTHS_KEY = "patternShowLengths";
+    private static final String COMPLETED_PROMPT_KEY = "completedPrompt";
 
-	ProgressDialog progress;
-	TextView statusBar;
-	SmallKeyboard keyboard;
-	RelativeLayout mainLayout;
-	GameView gameView;
-	SubMenu typeMenu;
-	LinkedHashMap<String, String> gameTypes;
-	int currentType = 0;
+	private ProgressDialog progress;
+	private TextView statusBar;
+	private SmallKeyboard keyboard;
+	private RelativeLayout mainLayout;
+	private GameView gameView;
+	private SubMenu typeMenu;
+	private LinkedHashMap<String, String> gameTypes;
+	private int currentType = 0;
 	boolean gameRunning = false;
-	Process gameGenProcess = null;
-	boolean solveEnabled = false, customVisible = false,
+	private Process gameGenProcess = null;
+	private boolean solveEnabled = false, customVisible = false,
 			undoEnabled = false, redoEnabled = false;
-	SharedPreferences prefs, state;
-	static final int CFG_SETTINGS = 0, CFG_SEED = 1, CFG_DESC = 2,
+	private SharedPreferences prefs, state;
+	private static final int CFG_SETTINGS = 0, CFG_SEED = 1, CFG_DESC = 2,
+        C_STRING = 0, C_CHOICES = 1, C_BOOLEAN = 2;
+    static final int
 		LEFT_BUTTON = 0x0200, MIDDLE_BUTTON = 0x201, RIGHT_BUTTON = 0x202,
 		LEFT_DRAG = 0x203, //MIDDLE_DRAG = 0x204, RIGHT_DRAG = 0x205,
 		LEFT_RELEASE = 0x206, MOD_CTRL = 0x1000,
 		MOD_SHFT = 0x2000, MOD_NUM_KEYPAD = 0x4000, ALIGN_VCENTRE = 0x100,
-		ALIGN_HCENTRE = 0x001, ALIGN_HRIGHT = 0x002, TEXT_MONO = 0x10,
-		C_STRING = 0, C_CHOICES = 1, C_BOOLEAN = 2;
+		ALIGN_HCENTRE = 0x001, ALIGN_HRIGHT = 0x002, TEXT_MONO = 0x10;
 	static final long MAX_SAVE_SIZE = 1000000; // 1MB; we only have 16MB of heap
-	boolean gameWantsTimer = false, resizeOnDone = false;
-	int timerInterval = 20;
-	int xarg1, xarg2, xarg3;
-	Path path;
-	StringBuffer savingState;
-	AlertDialog dialog;
-	ArrayList<Integer> dialogIds;
-	TableLayout dialogLayout;
-	String currentBackend = "";
-	Thread worker;
-	String lastKeys = "";
-	static final File storageDir = Environment.getExternalStorageDirectory();
+	private boolean gameWantsTimer = false, resizeOnDone = false;
+	private static final int TIMER_INTERVAL = 20;
+	private int xarg1, xarg2, xarg3;
+    private StringBuffer savingState;
+	private AlertDialog dialog;
+	private ArrayList<Integer> dialogIds;
+    private TableLayout dialogLayout;
+    private String currentBackend = "";
+    private Thread worker;
+    private String lastKeys = "";
+    private static final File storageDir = Environment.getExternalStorageDirectory();
 	// Ugly temporary hack: in custom game dialog, all text boxes are numeric, in the other two dialogs they aren't.
-	boolean configIsCustom = false;
-	String[] games;
-	Menu menu;
-	ActionBarCompat actionBarCompat = null;
-	int actionBarHomeId = -1;
-	boolean homeAsUpNoticeable = false;
-	String maybeUndoRedo = "ur";
-	String maybeMenu = "";
-	PrefsSaver prefsSaver;
-	boolean startedFullscreen = false, cachedFullscreen = false;
+    private boolean configIsCustom = false;
+    private String[] games;
+    private Menu menu;
+    private ActionBarCompat actionBarCompat = null;
+    private int actionBarHomeId = -1;
+    private boolean homeAsUpNoticeable = false;
+    private String maybeUndoRedo = "ur";
+    private PrefsSaver prefsSaver;
+    private boolean startedFullscreen = false, cachedFullscreen = false;
 
-	enum MsgType { TIMER, DONE, ABORT };
+	enum MsgType { TIMER, DONE, ABORT }
 	static class PuzzlesHandler extends Handler
 	{
-		WeakReference<SGTPuzzles> ref;
+		final WeakReference<SGTPuzzles> ref;
 		public PuzzlesHandler(SGTPuzzles outer) {
 			ref = new WeakReference<SGTPuzzles>(outer);
 		}
@@ -135,8 +134,8 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 			SGTPuzzles outer = ref.get();
 			if (outer != null) outer.handleMessage(msg);
 		}
-	};
-	Handler handler = new PuzzlesHandler(this);
+	}
+	final Handler handler = new PuzzlesHandler(this);
 
 	void handleMessage( Message msg ) {
 		switch( MsgType.values()[msg.what] ) {
@@ -145,7 +144,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 			if( gameWantsTimer ) {
 				handler.sendMessageDelayed(
 						handler.obtainMessage(MsgType.TIMER.ordinal()),
-						timerInterval);
+                        TIMER_INTERVAL);
 			}
 			break;
 		case DONE:
@@ -170,7 +169,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		case ABORT:
 			stopNative();
 			dismissProgress();
-			if (msg.obj != null && !((String)msg.obj).equals("")) {
+			if (msg.obj != null && !msg.obj.equals("")) {
 				messageBox(getString(R.string.Error), (String)msg.obj, 2, false);
 			} else {
 				startChooser();
@@ -196,7 +195,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		if( progress == null ) return;
 		try {
 			progress.dismiss();
-		} catch (IllegalArgumentException e) {}  // race condition?
+		} catch (IllegalArgumentException ignored) {}  // race condition?
 		progress = null;
 	}
 
@@ -253,7 +252,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		actionBarCompat = ActionBarCompat.get(this);
 		try {
 			actionBarHomeId = android.R.id.class.getField("home").getInt(null);
-		} catch (Exception e) {}
+		} catch (Exception ignored) {}
 		setDefaultKeyMode(DEFAULT_KEYS_SHORTCUT);
 		gameView.requestFocus();
 		onNewIntent(getIntent());
@@ -263,16 +262,14 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 	@Override
 	public boolean onKeyDown(int keyCode, KeyEvent event) {
 		if (progress != null) return false;
-		if (gameView.onKeyDown(keyCode, event)) return true;
-		else return super.onKeyDown(keyCode, event);
+        return gameView.onKeyDown(keyCode, event) || super.onKeyDown(keyCode, event);
 	}
 
 	/** work around http://code.google.com/p/android/issues/detail?id=21181 */
 	@Override
 	public boolean onKeyUp(int keyCode, KeyEvent event) {
 		if (progress != null) return false;
-		if (gameView.onKeyUp(keyCode, event)) return true;
-		else return super.onKeyUp(keyCode, event);
+        return gameView.onKeyUp(keyCode, event) || super.onKeyUp(keyCode, event);
 	}
 
 	@Override
@@ -292,13 +289,13 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 			Log.d(TAG, "URI is: \""+u+"\"");
 			String g = u.getSchemeSpecificPart();
 			if (games.length < 2) games = getResources().getStringArray(R.array.games);
-			for (int i=0; i<games.length; i++) {
-				if (games[i].equals(g)) {
-					startGame(GameLaunch.toGenerate(g, null));
-					return;
-				}
-			}
-			Log.e(TAG, "Unhandled URL! \""+u+"\" -> g = \""+g+"\", games = "+games);
+            for (String game : games) {
+                if (game.equals(g)) {
+                    startGame(GameLaunch.toGenerate(g, null));
+                    return;
+                }
+            }
+			Log.e(TAG, "Unhandled URL! \""+u+"\" -> g = \""+g+"\", games = "+ Arrays.toString(games));
 			// TODO! Other URLs, including game states...
 		}
 		if( state.contains("savedGame") && state.getString("savedGame","").length() > 0 ) {
@@ -325,7 +322,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		return true;
 	}
 
-	Menu hackForSubmenus;
+    private Menu hackForSubmenus;
 	@Override
 	public boolean onPrepareOptionsMenu(Menu menu)
 	{
@@ -362,7 +359,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		return true;
 	}
 
-	public void showHelp(String topic)
+	void showHelp(String topic)
 	{
 		final Dialog d = new Dialog(this,android.R.style.Theme);
 		final WebView wv = new WebView(this);
@@ -378,7 +375,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 			public void onProgressChanged(WebView w, int progress) { if (progress == 100) d.setTitle(w.getTitle()); }
 		});
 		wv.getSettings().setBuiltInZoomControls(true);
-		wv.loadUrl(MessageFormat.format(getString(R.string.docs_url), new Object[]{topic}));
+		wv.loadUrl(MessageFormat.format(getString(R.string.docs_url), topic));
 		d.show();
 	}
 
@@ -417,7 +414,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 							getString(R.string.website_url))));
 			break;
 		case R.id.email:
-			tryEmailAuthor(this, null);
+			tryEmailAuthor(this);
 			break;
 		case R.id.load:
 			new FilePicker(this, storageDir, false).show();
@@ -446,32 +443,31 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		messageBox(title, msg, 0, false);
 	}
 
-	static String getEmailSubject(Context c)
+	private static String getEmailSubject(Context c)
 	{
 		String modVer = "";
 		try {
 			Process p = Runtime.getRuntime().exec(new String[]{"getprop","ro.modversion"});
 			modVer = readAllOf(p.getInputStream()).trim();
-		} catch (Exception e) {}
+		} catch (Exception ignored) {}
 		if (modVer.length() == 0) modVer = "original";
 		return MessageFormat.format(c.getString(R.string.email_subject),
 				getVersion(c), Build.MODEL, modVer, Build.FINGERPRINT);
 	}
 
-	static boolean tryEmailAuthor(Context c, String body)
+	private static boolean tryEmailAuthor(Context c)
 	{
 		Intent i = new Intent(Intent.ACTION_SEND);
 		i.putExtra(Intent.EXTRA_EMAIL, new String[]{c.getString(R.string.author_email)});
 		i.putExtra(Intent.EXTRA_SUBJECT, getEmailSubject(c));
 		i.setType("message/rfc822");
-		i.putExtra(Intent.EXTRA_TEXT, body!=null ? body : "");
 		try {
 			c.startActivity(i);
 			return true;
 		} catch (ActivityNotFoundException e) {
 			try {
 				// Get the OS to present a nicely formatted, translated error
-				c.startActivity(Intent.createChooser(i,null));
+				c.startActivity(Intent.createChooser(i, null));
 			} catch (Exception e2) {
 				e2.printStackTrace();
 				Toast.makeText(c, e2.toString(), Toast.LENGTH_LONG).show();
@@ -480,19 +476,13 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		}
 	}
 
-	void quit(boolean fromDestroy)
-	{
-		stopNative();
-		if( ! fromDestroy ) finish();
-	}
-
-	void abort(String why)
+    void abort(String why)
 	{
 		gameRunning = false;
 		handler.obtainMessage(MsgType.ABORT.ordinal(), why).sendToTarget();
 	}
 
-	OnCancelListener abortListener = new OnCancelListener() {
+	private final OnCancelListener abortListener = new OnCancelListener() {
 		public void onCancel(DialogInterface dialog) { abort(null); }
 	};
 
@@ -503,7 +493,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		return b.toString();
 	}
 
-	static String getVersion(Context c)
+	private static String getVersion(Context c)
 	{
 		try {
 			return c.getPackageManager().getPackageInfo(c.getPackageName(), 0).versionName;
@@ -572,8 +562,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 			while (true) {
 				try {
 					return process.waitFor();
-				} catch (InterruptedException e) {
-				}
+				} catch (InterruptedException ignored) {}
 			}
 		} finally {
 			process.destroy();
@@ -660,7 +649,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		return state.getString("last_params_" + whichBackend, null);
 	}
 
-	public void stopNative()
+	void stopNative()
 	{
 		gameRunning = false;
 		killGenProcess();
@@ -668,7 +657,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 			while(true) { try {
 				worker.join();  // we may ANR if native code is spinning - safer than leaving a runaway native thread
 				break;
-			} catch (InterruptedException i) {} }
+			} catch (InterruptedException ignored) {} }
 		}
 	}
 
@@ -687,7 +676,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		super.onPause();
 	}
 
-	boolean restartOnResume = false;
+	private boolean restartOnResume = false;
 
 	@Override
 	protected void onResume()
@@ -702,8 +691,8 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 	@Override
 	protected void onDestroy()
 	{
-		quit(true);
-		super.onDestroy();
+        stopNative();
+        super.onDestroy();
 	}
 
 	@Override
@@ -712,7 +701,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		if( f && gameWantsTimer && gameRunning
 				&& ! handler.hasMessages(MsgType.TIMER.ordinal()) )
 			handler.sendMessageDelayed(handler.obtainMessage(MsgType.TIMER.ordinal()),
-					timerInterval);
+                    TIMER_INTERVAL);
 	}
 
 	void sendKey(int x, int y, int k)
@@ -729,7 +718,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		}
 	}
 
-	boolean prevLandscape = false;
+	private boolean prevLandscape = false;
 	void setKeyboardVisibility(Configuration c)
 	{
 		boolean landscape = (c.orientation == Configuration.ORIENTATION_LANDSCAPE);
@@ -762,7 +751,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 			mainLayout.addView(keyboard, lp);
 		}
 		keyboard.setKeys( (c.hardKeyboardHidden == Configuration.HARDKEYBOARDHIDDEN_NO)
-				? (maybeUndoRedo+maybeMenu) : lastKeys, lastArrowMode);
+				? maybeUndoRedo : lastKeys, lastArrowMode);
 		prevLandscape = landscape;
 		mainLayout.requestLayout();
 	}
@@ -788,23 +777,21 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 			// ActionBar's capacity (width) has probably changed, so work around
 			// http://code.google.com/p/android/issues/detail?id=20493
 			// (invalidateOptionsMenu() does not help here)
-			if (actionBarCompat != null) {
-				// Just cautiously fix the common case: if >850dip then force
-				// show everything, else let the platform decide
-				DisplayMetrics dm = getResources().getDisplayMetrics();
-				int screenWidthDIP = (int)Math.round(((double)dm.widthPixels) / dm.density);
-				boolean reallyWide = screenWidthDIP > 850;
-				int state =  reallyWide ? ActionBarCompat.SHOW_AS_ACTION_ALWAYS
-						: ActionBarCompat.SHOW_AS_ACTION_IF_ROOM;
-				actionBarCompat.menuItemSetShowAsAction(menu.findItem(R.id.settings), state);
-				actionBarCompat.menuItemSetShowAsAction(menu.findItem(R.id.solve), state);
-				actionBarCompat.menuItemSetShowAsAction(menu.findItem(R.id.help), state);
-				state |= ActionBarCompat.SHOW_AS_ACTION_WITH_TEXT;
-				actionBarCompat.menuItemSetShowAsAction(menu.findItem(R.id.game), state);
-				actionBarCompat.menuItemSetShowAsAction(menu.findItem(R.id.type), state);
-				actionBarCompat.menuItemSetShowAsAction(menu.findItem(R.id.other), state);
-			}
-		}
+            // Just cautiously fix the common case: if >850dip then force
+            // show everything, else let the platform decide
+            DisplayMetrics dm = getResources().getDisplayMetrics();
+            int screenWidthDIP = (int)Math.round(((double)dm.widthPixels) / dm.density);
+            boolean reallyWide = screenWidthDIP > 850;
+            int state =  reallyWide ? ActionBarCompat.SHOW_AS_ACTION_ALWAYS
+                    : ActionBarCompat.SHOW_AS_ACTION_IF_ROOM;
+            actionBarCompat.menuItemSetShowAsAction(menu.findItem(R.id.settings), state);
+            actionBarCompat.menuItemSetShowAsAction(menu.findItem(R.id.solve), state);
+            actionBarCompat.menuItemSetShowAsAction(menu.findItem(R.id.help), state);
+            state |= ActionBarCompat.SHOW_AS_ACTION_WITH_TEXT;
+            actionBarCompat.menuItemSetShowAsAction(menu.findItem(R.id.game), state);
+            actionBarCompat.menuItemSetShowAsAction(menu.findItem(R.id.type), state);
+            actionBarCompat.menuItemSetShowAsAction(menu.findItem(R.id.other), state);
+        }
 	}
 
 	// Callbacks from native code:
@@ -830,7 +817,8 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		gameTypes.put(encoded, label);
 	}
 
-	void messageBox(final String title, final String msg, final int flag, boolean fromPattern)
+	void messageBox(final String title, final String msg, final int flag,
+                    @SuppressWarnings("SameParameterValue") boolean fromPattern)
 	{
 		if (fromPattern &&
 				! prefs.getBoolean(PATTERN_SHOW_LENGTHS_KEY, false)) {
@@ -911,16 +899,16 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 	{
 		if( gameWantsTimer && on ) return;
 		gameWantsTimer = on;
-		if( on ) handler.sendMessageDelayed(handler.obtainMessage(MsgType.TIMER.ordinal()), timerInterval);
+		if( on ) handler.sendMessageDelayed(handler.obtainMessage(MsgType.TIMER.ordinal()), TIMER_INTERVAL);
 		else handler.removeMessages(MsgType.TIMER.ordinal());
 	}
 
 	void drawPoly(int[] points, int ox, int oy, int line, int fill)
 	{
-		path = new Path();
-		path.moveTo(points[0]+ox, points[1]+oy);
+        Path path = new Path();
+		path.moveTo(points[0] + ox, points[1] + oy);
 		for( int i=1; i < points.length/2; i++ )
-			path.lineTo(points[2*i]+ox, points[2*i+1]+oy);
+			path.lineTo(points[2 * i] + ox, points[2 * i + 1] + oy);
 		path.close();
 		gameView.drawPoly(path, line, fill);
 	}
@@ -997,7 +985,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 			Spinner s = new Spinner(SGTPuzzles.this);
 			s.setId(id);
 			ArrayAdapter<String> a = new ArrayAdapter<String>(SGTPuzzles.this,
-					android.R.layout.simple_spinner_item, choices.toArray(new String[0]));
+					android.R.layout.simple_spinner_item, choices.toArray(new String[choices.size()]));
 			a.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
 			s.setAdapter(a);
 			s.setSelection(selection);
@@ -1029,12 +1017,13 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		savingState.append(new String(buffer));
 	}
 
-	int lastArrowMode = 0;
+	private int lastArrowMode = 0;
+    @SuppressWarnings("SameParameterValue")  // JNI varies
 	void setKeys(String keys, int arrowMode)
 	{
 		lastArrowMode = arrowMode;
 		if( keys == null ) return;
-		lastKeys = keys + maybeUndoRedo + maybeMenu;
+		lastKeys = keys + maybeUndoRedo;
 		runOnUiThread(new Runnable(){public void run(){
 			setKeyboardVisibility(getResources().getConfiguration());
 		}});
@@ -1107,15 +1096,14 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		if( id.endsWith("_") ) id = id.substring(0,id.length()-1);
 		int resId = getResources().getIdentifier(id, "string", getPackageName());
 		if( resId > 0 ) {
-			String ret = getString(resId);
-			//Log.d(TAG,"gettext: "+s+" -> "+id+" -> "+ret);
-			return ret;
+            return getString(resId);
 		}
 		Log.i(TAG,"gettext: NO TRANSLATION: "+s+" -> "+id+" -> ???");
 		return s;
 	}
 
-	void changedState(boolean canUndo, boolean canRedo)
+	@SuppressWarnings("SameParameterValue")  // JNI varies
+    void changedState(boolean canUndo, boolean canRedo)
 	{
 		undoEnabled = canUndo;
 		redoEnabled = canRedo;
@@ -1142,7 +1130,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		}
 	}
 
-	static String readAllOf(InputStream s) throws IOException
+	private static String readAllOf(InputStream s) throws IOException
 	{
 		BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(s),8096);
 		String line;

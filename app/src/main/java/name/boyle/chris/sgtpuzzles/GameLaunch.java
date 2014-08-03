@@ -6,8 +6,8 @@ package name.boyle.chris.sgtpuzzles;
  */
 public class GameLaunch {
 	private String saved;
-	private String whichBackend;
-	private String params;
+	private final String whichBackend;
+	private final String params;
 
 	private GameLaunch(String whichBackend, String params, String saved) {
 		this.whichBackend = whichBackend;

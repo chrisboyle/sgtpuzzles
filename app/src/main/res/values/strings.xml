@@ -53,11 +53,7 @@ Revision: %s"</string>
     <!-- Progress dialog when generating/resuming a game -->
     <string name="starting">Starting game (complex games may take a minute)</string>
     <string name="starting_new">Starting new game (complex games may take a minute)</string>
-    <string name="starting_custom">Starting custom game (complex games may take a minute)</string>
     <string name="resuming">Resuming game (complex games may take a minute)</string>
-    <string name="changing_type">Changing game type (complex games may take a minute)</string>
-    <string name="background">Background</string>
-    <string name="bg_unreliable_warn">Game generation may be abandoned on low memory</string>
     <!-- "Completed" dialog -->
     <string name="completedPrompt">Menu on completion</string>
     <string name="completedPromptSummary">When a game is completed, show shortcuts to start another</string>
