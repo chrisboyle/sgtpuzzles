@@ -1425,19 +1425,19 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
             if (state->nwrong == 0 &&
                 state->nmissed == 0 &&
                 state->nright >= state->minballs)
-                sprintf(buf, _("CORRECT!"));
+                strcpy(buf, _("CORRECT!"));
             else
                 sprintf(buf, _("%d wrong and %d missed balls."),
                         state->nwrong, state->nmissed);
         } else if (state->justwrong) {
-	    sprintf(buf, _("Wrong! Guess again."));
+	    strcpy(buf, _("Wrong! Guess again."));
 	} else {
             if (state->nguesses > state->maxballs)
                 sprintf(buf, _("%d too many balls marked."),
                         state->nguesses - state->maxballs);
             else if (state->nguesses <= state->maxballs &&
                      state->nguesses >= state->minballs)
-                sprintf(buf, _("Click button to verify guesses."));
+                strcpy(buf, _("Click button to verify guesses."));
             else if (state->maxballs == state->minballs)
                 sprintf(buf, _("Balls marked: %d / %d"),
                         state->nguesses, state->minballs);

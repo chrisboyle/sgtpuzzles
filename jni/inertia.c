@@ -2069,7 +2069,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
      * completion of the move animation that did it.)
      */
     if (state->dead && (!oldstate || oldstate->dead)) {
-	sprintf(status, _("DEAD!"));
+	strcpy(status, _("DEAD!"));
     } else if (state->gems || (oldstate && oldstate->gems)) {
 	if (state->cheated) {
 	    strcpy(status, _("Auto-solver used."));
@@ -2078,9 +2078,9 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
 	    *status = '\0';
 	sprintf(status + strlen(status), _("Gems: %d"), gems);
     } else if (state->cheated) {
-	sprintf(status, _("Auto-solved."));
+	strcpy(status, _("Auto-solved."));
     } else {
-	sprintf(status, _("COMPLETED!"));
+	strcpy(status, _("COMPLETED!"));
     }
     /* We subtract one from the visible death counter if we're still
      * animating the move at the end of which the death took place. */

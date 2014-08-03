@@ -3072,12 +3072,12 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
     {
 	char statusbar[512];
 	if (state->dead) {
-	    sprintf(statusbar, _("DEAD!"));
+	    strcpy(statusbar, _("DEAD!"));
 	} else if (state->won) {
             if (state->used_solve)
-                sprintf(statusbar, _("Auto-solved."));
+                strcpy(statusbar, _("Auto-solved."));
             else
-                sprintf(statusbar, _("COMPLETED!"));
+                strcpy(statusbar, _("COMPLETED!"));
 	} else {
 	    sprintf(statusbar, _("Marked: %d / %d"), markers, mines);
 	}
