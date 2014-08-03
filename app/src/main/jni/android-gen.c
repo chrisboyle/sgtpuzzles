@@ -1,3 +1,4 @@
+#ifdef EXECUTABLE
 #include <stdio.h>
 #include "puzzles.h"
 
@@ -56,3 +57,4 @@ int main(int argc, const char *argv[]) {
 	midend_serialise(fe->me, serialise_write, NULL);
 	exit(0);
 }
+#endif

@@ -534,28 +534,27 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 	}
 
 	private void startGameGenProcess(final String whichBackend, String params) throws IOException {
-		String dataDir;
-		try {
-			dataDir = getPackageManager().getApplicationInfo(getPackageName(), 0).dataDir;
-		} catch (NameNotFoundException e) {
-			throw new RuntimeException(e);
-		}
-		String libDir = dataDir + "/lib";
-		String chmodablePath = dataDir + "/puzzlesgen";
-		if (!new File(chmodablePath).exists()) {
-			String installablePath = libDir + "/libpuzzlesgen.so";
-			copyFile(installablePath, chmodablePath);
-			int chmodExit = waitForProcess(Runtime.getRuntime().exec(new String[] {"/system/bin/chmod", "755", chmodablePath}));
-			if (chmodExit > 0) {
+		final File dataDir = new File(getApplicationInfo().dataDir);
+		final File libDir = new File(dataDir, "lib");
+        final boolean canRunPIE = Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN;
+        final String suffix = canRunPIE ? "-with-pie" : "-no-pie";
+        File installablePath = new File(libDir, "libpuzzlesgen" + suffix + ".so");
+		File executablePath = new File(dataDir, "puzzlesgen" + suffix);
+		if (!executablePath.exists() ||
+                executablePath.lastModified() < installablePath.lastModified()) {
+			copyFile(installablePath, executablePath);
+            int chmodExit = waitForProcess(Runtime.getRuntime().exec(new String[] {
+                    "/system/bin/chmod", "755", executablePath.getAbsolutePath()}));
+            if (chmodExit > 0) {
 				throw new IOException("Can't make game binary executable.");
 			}
 		}
 		gameGenProcess = Runtime.getRuntime().exec(new String[]{
-				chmodablePath, whichBackend, stringOrEmpty(params)},
-				new String[]{"LD_LIBRARY_PATH="+libDir}, new File(libDir));
+				executablePath.getAbsolutePath(), whichBackend, stringOrEmpty(params)},
+				new String[]{"LD_LIBRARY_PATH="+libDir}, libDir);
 	}
 
-	private void copyFile(String src, String dst) throws IOException {
+	private void copyFile(File src, File dst) throws IOException {
 	    InputStream in = new FileInputStream(src);
 	    OutputStream out = new FileOutputStream(dst);
 	    byte[] buf = new byte[8192];
@@ -627,7 +626,12 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 				if (launch.needsGenerating()) {
 					String whichBackend = launch.getWhichBackend();
 					String params = launch.getParams();
-					if (params == null) params = getLastParams(whichBackend);
+					if (params == null) {
+                        params = getLastParams(whichBackend);
+                        Log.d(TAG, "Using last params: "+params);
+                    } else {
+                        Log.d(TAG, "Using specified params: "+params);
+                    }
 					String generated = generateGame(whichBackend, params);
 					if (generated != null) {
 						launch.finishedGenerating(generated);
