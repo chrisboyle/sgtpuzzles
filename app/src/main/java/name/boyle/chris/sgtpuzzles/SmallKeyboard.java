@@ -25,28 +25,30 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 	int arrowMode = ARROWS_LEFT_RIGHT_CLICK;
 
 	/** Key which can be disabled */
-	class DKey extends Keyboard.Key
+	static class DKey extends Keyboard.Key
 	{
 		boolean enabled;
 		DKey(Keyboard.Row r) { super(r); }
 	}
 
-	class KeyboardModel extends Keyboard
+	static class KeyboardModel extends Keyboard
 	{
 		int mDefaultWidth = KEYSP, mDefaultHeight = KEYSP,
-				mDefaultHorizontalGap = 0, mDefaultVerticalGap = 0,
+                mDefaultHorizontalGap = 0, mDefaultVerticalGap = 0,
 				mTotalWidth = 0, mTotalHeight = 0;
 		Context context;
-		List<Key> mKeys;
+        private final KeyboardView keyboardView;  // for invalidateKey()
+        List<Key> mKeys;
 		int undoKey = -1, redoKey = -1;
 		boolean initDone = false;
-		public KeyboardModel(Context context, CharSequence characters,
-				int arrowMode, boolean columnMajor, int maxPx,
+		public KeyboardModel(Context context, KeyboardView keyboardView, boolean isInEditMode,
+                CharSequence characters, int arrowMode, boolean columnMajor, int maxPx,
 				boolean undoEnabled, boolean redoEnabled)
 		{
 			super(context, R.layout.keyboard_template);
 			this.context = context;
-			mDefaultWidth = mDefaultHeight =
+            this.keyboardView = keyboardView;
+            mDefaultWidth = mDefaultHeight =
 					context.getResources().getDimensionPixelSize(R.dimen.keySize);
 			mKeys = new ArrayList<Key>();
 
@@ -61,11 +63,11 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 
 			String arrowPref;
 			boolean inertiaForceArrows;
-			if (isInEditMode()) {
+			if (isInEditMode) {
 				arrowPref = "always";
 				inertiaForceArrows = true;
 			} else {
-				SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getContext());
+				SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
 				arrowPref = prefs.getString(SGTPuzzles.ARROW_KEYS_KEY, "auto");
 				inertiaForceArrows = prefs.getBoolean(SGTPuzzles.INERTIA_FORCE_ARROWS_KEY, true);
 			}
@@ -74,16 +76,10 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 			} else if (arrowPref.equals("never")) {
 				arrowMode = NO_ARROWS;
 			} else if (arrowPref.equals("auto")) {
-				Configuration c = getResources().getConfiguration();
-				boolean visibleDPad = (c.navigation == Configuration.NAVIGATION_DPAD
-						|| c.navigation == Configuration.NAVIGATION_TRACKBALL);
-				try {
-					int hidden = Configuration.class.getField("navigationHidden").getInt(c);
-					if (hidden == Configuration.class.getField("NAVIGATIONHIDDEN_YES").getInt(null)) {
-						visibleDPad = false;
-					}
-				} catch (Exception ignored) {}
-				if (visibleDPad) {
+				Configuration c = context.getResources().getConfiguration();
+				if ((c.navigation == Configuration.NAVIGATION_DPAD
+						|| c.navigation == Configuration.NAVIGATION_TRACKBALL)
+                        && (c.navigationHidden != Configuration.NAVIGATIONHIDDEN_YES)) {
 					arrowMode = NO_ARROWS;
 				}
 			} // else we have "always": allow arrows.
@@ -300,15 +296,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 					enabled ? R.drawable.sym_keyboard_undo
 							: R.drawable.sym_keyboard_undo_disabled);
 			k.enabled = enabled;
-			// Ugly hack for 1.5 compatibility: invalidateKey() is 1.6 and
-			// invalidate() doesn't work on KeyboardView, so try to change
-			// shift state (and claim, when asked below, that everything
-			// needs a redraw).
-			if (initDone) {
-				SmallKeyboard.this.parent.runOnUiThread(new Runnable(){public void run(){
-					SmallKeyboard.this.setShifted(false);
-				}});
-			}
+            if (initDone) keyboardView.invalidateKey(i);
 		}
 		@Override
 		public List<Key> getKeys() { return mKeys; }
@@ -325,11 +313,6 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 		public int getHeight() { return mTotalHeight; }
 		@Override
 		public int getMinWidth() { return mTotalWidth; }
-		/** Ugly hack for 1.5 compatibility: invalidate() doesn't work on
-		 *  KeyboardView, so pretend we've changed shift state so everything
-		 *  needs redrawing on that basis. */
-		@Override
-		public boolean setShifted(boolean shifted) { return true; }
 	}
 
 	public SmallKeyboard(Context c, boolean undoEnabled, boolean redoEnabled)
@@ -365,7 +348,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 			 == Configuration.ORIENTATION_LANDSCAPE);
 		int maxPx = MeasureSpec.getSize(landscape ? hSpec : wSpec);
 		// Doing this here seems the only way to be sure of dimensions.
-		setKeyboard(new KeyboardModel(getContext(), lastKeys, arrowMode,
+		setKeyboard(new KeyboardModel(getContext(), this, isInEditMode(), lastKeys, arrowMode,
 				landscape, maxPx, undoEnabled, redoEnabled));
 		super.onMeasure(wSpec, hSpec);
 	}

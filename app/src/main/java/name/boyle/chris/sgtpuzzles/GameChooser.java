@@ -189,6 +189,7 @@ public class GameChooser extends Activity
 	/** Possible android bug: onOptionsItemSelected(MenuItem item)
 	 *  wasn't being called? */
 	@Override
+    @SuppressLint("CommitPrefEdits")
 	public boolean onMenuItemSelected(int f, MenuItem item)
 	{
 		boolean newGrid;
@@ -204,7 +205,7 @@ public class GameChooser extends Activity
 		useGrid = newGrid;
 		updateStyleToggleVisibility();
 		rebuildViews();
-        @SuppressLint("CommitPrefEdits") SharedPreferences.Editor ed = prefs.edit();
+        SharedPreferences.Editor ed = prefs.edit();
 		ed.putString(CHOOSER_STYLE_KEY, useGrid ? "grid" : "list");
 		prefsSaver.save(ed);
 		return true;

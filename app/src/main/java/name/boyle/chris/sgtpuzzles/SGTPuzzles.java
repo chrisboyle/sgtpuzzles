@@ -1,7 +1,6 @@
 package name.boyle.chris.sgtpuzzles;
 
 import java.io.BufferedReader;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -9,8 +8,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.io.PrintStream;
 import java.lang.ref.WeakReference;
 import java.text.MessageFormat;
 import java.util.ArrayList;
@@ -98,12 +95,11 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		LEFT_BUTTON = 0x0200, MIDDLE_BUTTON = 0x201, RIGHT_BUTTON = 0x202,
 		LEFT_DRAG = 0x203, //MIDDLE_DRAG = 0x204, RIGHT_DRAG = 0x205,
 		LEFT_RELEASE = 0x206, MOD_CTRL = 0x1000,
-		MOD_SHFT = 0x2000, MOD_NUM_KEYPAD = 0x4000, ALIGN_VCENTRE = 0x100,
+		MOD_SHFT = 0x2000, ALIGN_VCENTRE = 0x100,
 		ALIGN_HCENTRE = 0x001, ALIGN_HRIGHT = 0x002, TEXT_MONO = 0x10;
 	static final long MAX_SAVE_SIZE = 1000000; // 1MB; we only have 16MB of heap
 	private boolean gameWantsTimer = false, resizeOnDone = false;
 	private static final int TIMER_INTERVAL = 20;
-	private int xarg1, xarg2, xarg3;
     private StringBuffer savingState;
 	private AlertDialog dialog;
 	private ArrayList<Integer> dialogIds;
@@ -261,16 +257,14 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 	/** work around http://code.google.com/p/android/issues/detail?id=21181 */
 	@Override
 	public boolean onKeyDown(int keyCode, KeyEvent event) {
-		if (progress != null) return false;
-        return gameView.onKeyDown(keyCode, event) || super.onKeyDown(keyCode, event);
-	}
+        return progress == null && (gameView.onKeyDown(keyCode, event) || super.onKeyDown(keyCode, event));
+    }
 
 	/** work around http://code.google.com/p/android/issues/detail?id=21181 */
 	@Override
 	public boolean onKeyUp(int keyCode, KeyEvent event) {
-		if (progress != null) return false;
-        return gameView.onKeyUp(keyCode, event) || super.onKeyUp(keyCode, event);
-	}
+        return progress == null && (gameView.onKeyUp(keyCode, event) || super.onKeyUp(keyCode, event));
+    }
 
 	@Override
 	protected void onNewIntent(Intent intent)
@@ -455,7 +449,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 				getVersion(c), Build.MODEL, modVer, Build.FINGERPRINT);
 	}
 
-	private static boolean tryEmailAuthor(Context c)
+	private static void tryEmailAuthor(Context c)
 	{
 		Intent i = new Intent(Intent.ACTION_SEND);
 		i.putExtra(Intent.EXTRA_EMAIL, new String[]{c.getString(R.string.author_email)});
@@ -463,7 +457,6 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		i.setType("message/rfc822");
 		try {
 			c.startActivity(i);
-			return true;
 		} catch (ActivityNotFoundException e) {
 			try {
 				// Get the OS to present a nicely formatted, translated error
@@ -472,7 +465,6 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 				e2.printStackTrace();
 				Toast.makeText(c, e2.toString(), Toast.LENGTH_LONG).show();
 			}
-			return false;
 		}
 	}
 
@@ -485,13 +477,6 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 	private final OnCancelListener abortListener = new OnCancelListener() {
 		public void onCancel(DialogInterface dialog) { abort(null); }
 	};
-
-	String getStackTrace( Throwable t )
-	{
-		ByteArrayOutputStream b = new ByteArrayOutputStream();
-		t.printStackTrace(new PrintStream(b,true));
-		return b.toString();
-	}
 
 	private static String getVersion(Context c)
 	{
@@ -571,12 +556,6 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 
 	private String stringOrEmpty(String s) {
 		return (s == null) ? "" : s;
-	}
-
-	private void writeTo(OutputStream stream, String s) throws IOException {
-		OutputStreamWriter writer = new OutputStreamWriter(stream);
-		writer.write(s);
-		writer.close();
 	}
 
 	void startGame(final GameLaunch launch)
@@ -817,8 +796,8 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		gameTypes.put(encoded, label);
 	}
 
-	void messageBox(final String title, final String msg, final int flag,
-                    @SuppressWarnings("SameParameterValue") boolean fromPattern)
+    @SuppressWarnings("SameParameterValue")  // JNI
+	void messageBox(final String title, final String msg, final int flag, boolean fromPattern)
 	{
 		if (fromPattern &&
 				! prefs.getBoolean(PATTERN_SHOW_LENGTHS_KEY, false)) {
@@ -882,7 +861,8 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		d.show();
 	}
 
-	void requestResize(int x, int y)
+	@SuppressWarnings("UnusedParameters")  // JNI
+    void requestResize(int x, int y)
 	{
 		gameView.clear();
 		gameViewResized();

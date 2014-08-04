@@ -1,19 +1,32 @@
 <component name="ProjectDictionaryState">
   <dictionary name="cmb">
     <words>
+      <w>autom</w>
+      <w>autoreconf</w>
       <w>blackbox</w>
       <w>blitter</w>
+      <w>cayley</w>
       <w>compat</w>
+      <w>cparams</w>
       <w>ctype</w>
       <w>dists</w>
       <w>docindex</w>
+      <w>doctype</w>
       <w>dominosa</w>
       <w>edmonds</w>
+      <w>emcc</w>
+      <w>emcclib</w>
+      <w>emccpre</w>
+      <w>emscripten</w>
       <w>fillomino</w>
       <w>footerfile</w>
       <w>fulkerson</w>
+      <w>greenend</w>
+      <w>hitori</w>
+      <w>isgame</w>
       <w>janko</w>
       <w>karp</w>
+      <w>klotski</w>
       <w>kurodoko</w>
       <w>kuromasu</w>
       <w>lambros</w>
@@ -22,21 +35,38 @@
       <w>lightup</w>
       <w>loopgen</w>
       <w>malloc</w>
+      <w>masyu</w>
+      <w>menubar</w>
       <w>midend</w>
+      <w>nestedvm</w>
       <w>netslide</w>
       <w>nikoli</w>
       <w>nikoli's</w>
+      <w>nnnn</w>
       <w>nonograms</w>
+      <w>nstates</w>
+      <w>nullfe</w>
+      <w>nullgame</w>
       <w>penrose</w>
       <w>planarity</w>
       <w>realloc</w>
+      <w>resstrings</w>
       <w>samegame</w>
+      <w>savefile</w>
+      <w>sgtatham</w>
       <w>sgtpuzzles</w>
+      <w>sokoban</w>
+      <w>srcstrings</w>
+      <w>statepos</w>
       <w>strdup</w>
+      <w>stringsfiles</w>
+      <w>substr</w>
       <w>sudoku</w>
       <w>tatham's</w>
       <w>tentai</w>
+      <w>thegame</w>
       <w>times's</w>
+      <w>undef</w>
     </words>
   </dictionary>
 </component>
