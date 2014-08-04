@@ -19,17 +19,6 @@ public abstract class ActionBarCompat
 			SHOW_AS_ACTION_ALWAYS    = 2,
 			SHOW_AS_ACTION_WITH_TEXT = 4;
 
-	// from Window
-	public static final int
-			FEATURE_ACTION_BAR = 8;
-
-	public static interface OnMenuVisibilityListener
-	{
-		void onMenuVisibilityChanged(boolean isVisible);
-	}
-
-	public abstract boolean isShowing();
-
 	public boolean hasMenuButton() { return true; }
 
 	public static ActionBarCompat get(Activity a)

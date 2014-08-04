@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<menu xmlns:android="http://schemas.android.com/apk/res/android">
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools" tools:ignore="UnusedAttribute">
 <item android:title="@string/Game" android:id="@+id/game" android:icon="@android:drawable/ic_menu_manage" android:showAsAction="ifRoom|withText"><menu>
 	<item android:title="@string/New_game" android:id="@+id/newgame" android:alphabeticShortcut="n" android:icon="@android:drawable/ic_menu_add"/>
 	<item android:title="@string/Restart" android:id="@+id/restart" android:alphabeticShortcut="t" android:icon="@android:drawable/ic_menu_delete"/>

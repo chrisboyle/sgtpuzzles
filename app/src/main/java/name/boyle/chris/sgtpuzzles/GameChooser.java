@@ -24,6 +24,7 @@ import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
 
+@SuppressWarnings("WeakerAccess")  // used by manifest
 public class GameChooser extends Activity
 {
 	static final String CHOOSER_STYLE_KEY = "chooserStyle";

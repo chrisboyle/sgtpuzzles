@@ -98,7 +98,7 @@ class FilePicker extends Dialog
 	}
 
 	FilePicker(Activity activity, final File path, final boolean isSave) { this(activity, path, isSave, null); }
-	FilePicker(Activity activity, final File path, final boolean isSave, FilePicker parent)
+	private FilePicker(Activity activity, final File path, final boolean isSave, FilePicker parent)
 	{
 		super(activity, android.R.style.Theme);  // full screen
 		this.activity = activity;

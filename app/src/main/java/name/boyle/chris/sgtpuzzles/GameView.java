@@ -18,7 +18,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
 
-public class GameView extends View
+class GameView extends View
 {
 	private SGTPuzzles parent;
 	private Bitmap bitmap;
@@ -33,11 +33,10 @@ public class GameView extends View
     private boolean waitingSpace = false;
 	private double startX, startY;
     private final double maxDistSq;
-	static final int DRAG = SGTPuzzles.LEFT_DRAG - SGTPuzzles.LEFT_BUTTON,  // not bit fields, but there's a pattern
-			RELEASE = SGTPuzzles.LEFT_RELEASE - SGTPuzzles.LEFT_BUTTON;
+	private static final int DRAG = SGTPuzzles.LEFT_DRAG - SGTPuzzles.LEFT_BUTTON;  // not bit fields, but there's a pattern
+    private static final int RELEASE = SGTPuzzles.LEFT_RELEASE - SGTPuzzles.LEFT_BUTTON;
 	static final int CURSOR_UP = 0x209, CURSOR_DOWN = 0x20a,
 			CURSOR_LEFT = 0x20b, CURSOR_RIGHT = 0x20c, MOD_NUM_KEYPAD = 0x4000;
-	static final String TAG = "GameView";
 	int keysHandled = 0;  // debug
 	private static final char[] INTERESTING_CHARS = "0123456789abcdefghijklqrsux".toCharArray();
 
@@ -175,7 +174,7 @@ public class GameView extends View
 		if (parent != null) parent.gameViewResized();
 		if (isInEditMode()) {
 			// Draw a little placeholder to aid UI editing
-			Drawable d = getResources().getDrawable(R.drawable.icon);
+			Drawable d = getResources().getDrawable(R.drawable.net);
 			int s = w<h ? w : h;
 			int mx = (w-s)/2, my = (h-s)/2;
 			d.setBounds(new Rect(mx,my,mx+s,my+s));

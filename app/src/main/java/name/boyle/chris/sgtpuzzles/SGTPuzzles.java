@@ -133,7 +133,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 	}
 	final Handler handler = new PuzzlesHandler(this);
 
-	void handleMessage( Message msg ) {
+	private void handleMessage(Message msg) {
 		switch( MsgType.values()[msg.what] ) {
 		case TIMER:
 			if( progress == null ) timerTick();
@@ -154,7 +154,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 					int iconId = getResources().getIdentifier(
 							currentBackend, "drawable", getPackageName());
 					homeAsUpNoticeable = actionBarCompat.setIconAsShortcut(
-							iconId > 0 ? iconId : R.drawable.icon);
+							iconId > 0 ? iconId : R.drawable.net);
 					if (menu != null) menu.findItem(R.id.other).setVisible(! homeAsUpNoticeable);
 				}
 			}
@@ -175,7 +175,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		}
 	}
 
-	void showProgress( int msgId )
+	private void showProgress(int msgId)
 	{
 		progress = new ProgressDialog(this);
 		progress.setMessage( getString(msgId) );
@@ -186,7 +186,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		progress.show();
 	}
 
-	void dismissProgress()
+	private void dismissProgress()
 	{
 		if( progress == null ) return;
 		try {
@@ -206,7 +206,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 	}
 
 	@SuppressLint("CommitPrefEdits")
-	void save()
+    private void save()
 	{
 		String s = saveToString();
 		if (s == null || s.length() == 0) return;
@@ -353,7 +353,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		return true;
 	}
 
-	void showHelp(String topic)
+	private void showHelp(String topic)
 	{
 		final Dialog d = new Dialog(this,android.R.style.Theme);
 		final WebView wv = new WebView(this);
@@ -373,7 +373,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		d.show();
 	}
 
-	void startChooser()
+	private void startChooser()
 	{
 		startActivity(new Intent(this, GameChooser.class));
 	}
@@ -468,7 +468,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		}
 	}
 
-    void abort(String why)
+    private void abort(String why)
 	{
 		gameRunning = false;
 		handler.obtainMessage(MsgType.ABORT.ordinal(), why).sendToTarget();
@@ -558,7 +558,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		return (s == null) ? "" : s;
 	}
 
-	void startGame(final GameLaunch launch)
+	private void startGame(final GameLaunch launch)
 	{
 		Log.d(TAG, "startGame: " + launch);
 		if (progress != null) {
@@ -616,7 +616,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		}}).start();
 	}
 
-	void startNewGame()
+	private void startNewGame()
 	{
 		if(! gameRunning || progress != null) return;
 		showProgress( R.string.starting_new );
@@ -628,22 +628,18 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		return state.getString("last_params_" + whichBackend, null);
 	}
 
-	void stopNative()
+	private void stopNative()
 	{
 		gameRunning = false;
-		killGenProcess();
+        if (gameGenProcess != null) {
+            gameGenProcess.destroy();
+            gameGenProcess = null;
+        }
 		if (worker != null) {
 			while(true) { try {
 				worker.join();  // we may ANR if native code is spinning - safer than leaving a runaway native thread
 				break;
 			} catch (InterruptedException ignored) {} }
-		}
-	}
-
-	private void killGenProcess() {
-		if (gameGenProcess != null) {
-			gameGenProcess.destroy();
-			gameGenProcess = null;
 		}
 	}
 
@@ -698,7 +694,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 	}
 
 	private boolean prevLandscape = false;
-	void setKeyboardVisibility(Configuration c)
+	private void setKeyboardVisibility(Configuration c)
 	{
 		boolean landscape = (c.orientation == Configuration.ORIENTATION_LANDSCAPE);
 		if (landscape != prevLandscape || keyboard == null) {
@@ -736,7 +732,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 	}
 
 	@SuppressLint("InlinedApi")
-	void setStatusBarVisibility(boolean visible)
+    private void setStatusBarVisibility(boolean visible)
 	{
 		if (!visible) statusBar.setText("");
 		RelativeLayout.LayoutParams lp = new RelativeLayout.LayoutParams(
@@ -773,8 +769,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
         }
 	}
 
-	// Callbacks from native code:
-
+    @UsedByJNI
 	void gameStarted(final String whichBackend, final String title, final boolean hasCustom, final boolean hasStatus, final boolean canSolve, float[] colours)
 	{
 		currentBackend = whichBackend;
@@ -790,14 +785,15 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		}});
 	}
 
+    @UsedByJNI
 	void addTypeItem(String encoded, String label)
 	{
 //		Log.d(TAG, "addTypeItem(" + encoded + ", " + label + ")");
 		gameTypes.put(encoded, label);
 	}
 
-    @SuppressWarnings("SameParameterValue")  // JNI
-	void messageBox(final String title, final String msg, final int flag, boolean fromPattern)
+	@UsedByJNI
+    void messageBox(final String title, final String msg, final int flag, boolean fromPattern)
 	{
 		if (fromPattern &&
 				! prefs.getBoolean(PATTERN_SHOW_LENGTHS_KEY, false)) {
@@ -827,6 +823,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		// I don't think we need to wait before returning here (and we can't)
 	}
 
+    @UsedByJNI
 	void completed()
 	{
 		if (! prefs.getBoolean(COMPLETED_PROMPT_KEY, true)) {
@@ -861,13 +858,14 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		d.show();
 	}
 
-	@SuppressWarnings("UnusedParameters")  // JNI
+    @UsedByJNI
     void requestResize(int x, int y)
 	{
 		gameView.clear();
 		gameViewResized();
 	}
 
+    @UsedByJNI
 	void setStatus(final String status)
 	{
 		runOnUiThread(new Runnable(){public void run(){
@@ -875,6 +873,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		}});
 	}
 
+    @UsedByJNI
 	void requestTimer(boolean on)
 	{
 		if( gameWantsTimer && on ) return;
@@ -883,6 +882,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		else handler.removeMessages(MsgType.TIMER.ordinal());
 	}
 
+    @UsedByJNI
 	void drawPoly(int[] points, int ox, int oy, int line, int fill)
 	{
         Path path = new Path();
@@ -893,6 +893,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		gameView.drawPoly(path, line, fill);
 	}
 
+    @UsedByJNI
 	void dialogInit(String title)
 	{
 		ScrollView sv = new ScrollView(SGTPuzzles.this);
@@ -929,6 +930,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		dialogIds = new ArrayList<Integer>();
 	}
 
+    @UsedByJNI
 	void dialogAdd(int id, int type, String name, String value, int selection)
 	{
 		switch(type) {
@@ -979,6 +981,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		}
 	}
 
+    @UsedByJNI
 	void dialogShow()
 	{
 		dialogLayout.setColumnShrinkable(0, true);
@@ -987,18 +990,21 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		dialog.show();
 	}
 
+    @UsedByJNI
 	void tickTypeItem(int whichType)
 	{
 		currentType = whichType;
 	}
 
+    @UsedByJNI
 	void serialiseWrite(byte[] buffer)
 	{
 		savingState.append(new String(buffer));
 	}
 
 	private int lastArrowMode = 0;
-    @SuppressWarnings("SameParameterValue")  // JNI varies
+
+    @UsedByJNI
 	void setKeys(String keys, int arrowMode)
 	{
 		lastArrowMode = arrowMode;
@@ -1021,7 +1027,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		}
 	}
 
-	void applyFullscreen(boolean alreadyStarted) {
+	private void applyFullscreen(boolean alreadyStarted) {
 		boolean hasActionBar = ActionBarCompat.earlyHasActionBar();
 		cachedFullscreen = prefs.getBoolean(FULLSCREEN_KEY, false);
 		if (cachedFullscreen) {
@@ -1050,7 +1056,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		}
 	}
 
-	void applyStayAwake()
+	private void applyStayAwake()
 	{
 		if (prefs.getBoolean(STAY_AWAKE_KEY, false)) {
 			getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
@@ -1059,7 +1065,8 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		}
 	}
 
-	String gettext(String s)
+    @UsedByJNI
+    String gettext(String s)
 	{
 		if (s.startsWith(":")) {
 			String[] choices = s.substring(1).split(":");
@@ -1082,32 +1089,32 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		return s;
 	}
 
-	@SuppressWarnings("SameParameterValue")  // JNI varies
-    void changedState(boolean canUndo, boolean canRedo)
+    @UsedByJNI
+    void changedState(final boolean canUndo, final boolean canRedo)
 	{
 		undoEnabled = canUndo;
 		redoEnabled = canRedo;
-		if (keyboard != null) {
-			keyboard.setUndoRedoEnabled(false, canUndo);
-			keyboard.setUndoRedoEnabled(true, canRedo);
-		}
-		if (actionBarCompat != null && menu != null) {
-			runOnUiThread(new Runnable() {
-				@Override public void run() {
-					MenuItem mi;
-					mi = menu.findItem(R.id.undo);
-					if (mi != null) {
-						mi.setEnabled(undoEnabled);
-						mi.setIcon(undoEnabled ? R.drawable.sym_keyboard_undo : R.drawable.sym_keyboard_undo_disabled);
-					}
-					mi = menu.findItem(R.id.redo);
-					if (mi != null) {
-						mi.setEnabled(redoEnabled);
-						mi.setIcon(redoEnabled ? R.drawable.sym_keyboard_redo : R.drawable.sym_keyboard_redo_disabled);
-					}
-				}
-			});
-		}
+        runOnUiThread(new Runnable() {
+            @Override public void run() {
+                if (keyboard != null) {
+                    keyboard.setUndoRedoEnabled(false, canUndo);
+                    keyboard.setUndoRedoEnabled(true, canRedo);
+                }
+                if (actionBarCompat != null && menu != null) {
+                    MenuItem mi;
+                    mi = menu.findItem(R.id.undo);
+                    if (mi != null) {
+                        mi.setEnabled(undoEnabled);
+                        mi.setIcon(undoEnabled ? R.drawable.sym_keyboard_undo : R.drawable.sym_keyboard_undo_disabled);
+                    }
+                    mi = menu.findItem(R.id.redo);
+                    if (mi != null) {
+                        mi.setEnabled(redoEnabled);
+                        mi.setIcon(redoEnabled ? R.drawable.sym_keyboard_redo : R.drawable.sym_keyboard_redo_disabled);
+                    }
+                }
+            }
+        });
 	}
 
 	private static String readAllOf(InputStream s) throws IOException

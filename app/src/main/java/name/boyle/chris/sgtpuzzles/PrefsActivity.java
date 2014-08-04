@@ -9,6 +9,7 @@ import android.preference.ListPreference;
 import android.preference.Preference;
 import android.preference.PreferenceActivity;
 
+@SuppressWarnings("WeakerAccess")
 public class PrefsActivity extends PreferenceActivity implements OnSharedPreferenceChangeListener
 {
 	private PrefsSaver prefsSaver;

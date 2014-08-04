@@ -13,7 +13,7 @@ import android.preference.PreferenceManager;
 import android.util.AttributeSet;
 import android.util.Log;
 
-public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboardActionListener
+class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboardActionListener
 {
 	private static final String TAG = "SmallKeyboard";
 	private static final int KEYSP = 44;  // dip
@@ -22,7 +22,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 	private static final int NO_ARROWS = 0;  // untangle
 			static final int ARROWS_LEFT_RIGHT_CLICK = 1;  // unless phone has a d-pad (most games)
 			private static final int ARROWS_DIAGONALS = 2;  // Inertia
-	int arrowMode = ARROWS_LEFT_RIGHT_CLICK;
+	private int arrowMode = ARROWS_LEFT_RIGHT_CLICK;
 
 	/** Key which can be disabled */
 	static class DKey extends Keyboard.Key
@@ -33,12 +33,15 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 
 	static class KeyboardModel extends Keyboard
 	{
-		int mDefaultWidth = KEYSP, mDefaultHeight = KEYSP,
-                mDefaultHorizontalGap = 0, mDefaultVerticalGap = 0,
-				mTotalWidth = 0, mTotalHeight = 0;
-		Context context;
+		int mDefaultWidth = KEYSP;
+        int mDefaultHeight = KEYSP;
+        final int mDefaultHorizontalGap = 0;
+        final int mDefaultVerticalGap = 0;
+        int mTotalWidth = 0;
+        int mTotalHeight = 0;
+		final Context context;
         private final KeyboardView keyboardView;  // for invalidateKey()
-        List<Key> mKeys;
+        final List<Key> mKeys;
 		int undoKey = -1, redoKey = -1;
 		boolean initDone = false;
 		public KeyboardModel(Context context, KeyboardView keyboardView, boolean isInEditMode,
@@ -71,18 +74,19 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 				arrowPref = prefs.getString(SGTPuzzles.ARROW_KEYS_KEY, "auto");
 				inertiaForceArrows = prefs.getBoolean(SGTPuzzles.INERTIA_FORCE_ARROWS_KEY, true);
 			}
-			if (arrowMode == ARROWS_DIAGONALS && inertiaForceArrows) {
-				// Do nothing: allow arrows.
-			} else if (arrowPref.equals("never")) {
-				arrowMode = NO_ARROWS;
-			} else if (arrowPref.equals("auto")) {
-				Configuration c = context.getResources().getConfiguration();
-				if ((c.navigation == Configuration.NAVIGATION_DPAD
-						|| c.navigation == Configuration.NAVIGATION_TRACKBALL)
-                        && (c.navigationHidden != Configuration.NAVIGATIONHIDDEN_YES)) {
-					arrowMode = NO_ARROWS;
-				}
-			} // else we have "always": allow arrows.
+			if (arrowMode != ARROWS_DIAGONALS || !inertiaForceArrows) {
+                if (arrowPref.equals("never")) {
+                    arrowMode = NO_ARROWS;
+                } else if (arrowPref.equals("auto")) {
+                    Configuration c = context.getResources().getConfiguration();
+                    if ((c.navigation == Configuration.NAVIGATION_DPAD
+                            || c.navigation == Configuration.NAVIGATION_TRACKBALL)
+                            && (c.navigationHidden != Configuration.NAVIGATIONHIDDEN_YES)) {
+                        arrowMode = NO_ARROWS;
+                    }
+                }
+            }
+            // else allow arrows.
 
 			int maxPxMinusArrows = maxPx;
 			if (arrowMode > NO_ARROWS) {
@@ -322,8 +326,8 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 		this.redoEnabled = redoEnabled;
 	}
 
-    @SuppressWarnings("SameParameterValue")
-	public SmallKeyboard(Context c, AttributeSet a)
+    @SuppressWarnings({"SameParameterValue", "WeakerAccess"})  // used by layout
+    public SmallKeyboard(Context c, AttributeSet a)
 	{
 		super(c, a);
 		parent = isInEditMode() ? null : (SGTPuzzles)c;
