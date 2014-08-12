@@ -1788,7 +1788,7 @@ char *midend_deserialise(midend *me,
                 uistr = val;
                 val = NULL;
             } else if (!strcmp(key, "TIME")) {
-                elapsed = (float)atof(val);
+                elapsed = (float)strtod(val, NULL);
             } else if (!strcmp(key, "NSTATES")) {
                 nstates = atoi(val);
                 if (nstates <= 0) {

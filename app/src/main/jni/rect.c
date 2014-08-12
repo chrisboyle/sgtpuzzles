@@ -147,7 +147,7 @@ static void decode_params(game_params *ret, char const *string)
     }
     if (*string == 'e') {
 	string++;
-	ret->expandfactor = (float)atof(string);
+	ret->expandfactor = (float)strtod(string, NULL);
 	while (*string &&
 	       (*string == '.' || isdigit((unsigned char)*string))) string++;
     }
@@ -214,7 +214,7 @@ static game_params *custom_params(const config_item *cfg)
 
     ret->w = atoi(cfg[0].sval);
     ret->h = atoi(cfg[1].sval);
-    ret->expandfactor = (float)atof(cfg[2].sval);
+    ret->expandfactor = (float)strtod(cfg[2].sval, NULL);
     ret->unique = cfg[3].ival;
 
     return ret;

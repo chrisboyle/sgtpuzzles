@@ -232,7 +232,7 @@ static void decode_params(game_params *ret, char const *string)
 	    ret->wrapping = TRUE;
 	} else if (*p == 'b') {
 	    p++;
-            ret->barrier_probability = (float)atof(p);
+            ret->barrier_probability = (float)strtod(p, NULL);
 	    while (*p && (*p == '.' || isdigit((unsigned char)*p))) p++;
 	} else if (*p == 'a') {
             p++;
@@ -310,7 +310,7 @@ static game_params *custom_params(const config_item *cfg)
     ret->width = atoi(cfg[0].sval);
     ret->height = atoi(cfg[1].sval);
     ret->wrapping = cfg[2].ival;
-    ret->barrier_probability = (float)atof(cfg[3].sval);
+    ret->barrier_probability = (float)strtod(cfg[3].sval, NULL);
     ret->unique = cfg[4].ival;
 
     return ret;

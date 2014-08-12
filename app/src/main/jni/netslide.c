@@ -222,7 +222,7 @@ static void decode_params(game_params *ret, char const *string)
         if ( (ret->wrapping = (*p == 'w')) != 0 )
             p++;
         if (*p == 'b') {
-            ret->barrier_probability = (float)atof(++p);
+            ret->barrier_probability = (float)strtod(++p, NULL);
             while (*p && (isdigit((unsigned char)*p) || *p == '.')) p++;
         }
         if (*p == 'm') {
@@ -304,7 +304,7 @@ static game_params *custom_params(const config_item *cfg)
     ret->width = atoi(cfg[0].sval);
     ret->height = atoi(cfg[1].sval);
     ret->wrapping = cfg[2].ival;
-    ret->barrier_probability = (float)atof(cfg[3].sval);
+    ret->barrier_probability = (float)strtod(cfg[3].sval, NULL);
     ret->movetarget = atoi(cfg[4].sval);
 
     return ret;
