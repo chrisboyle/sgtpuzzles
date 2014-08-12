@@ -3,7 +3,7 @@ LOCAL_PATH := $(call my-dir)
 # Built earlier by Gradle's generated Android.mk
 include $(CLEAR_VARS)
 LOCAL_MODULE    := libpuzzles-prebuilt
-LOCAL_SRC_FILES := $(NDK_LIBS_OUT)/../prebuilt/$(TARGET_ARCH_ABI)/libpuzzles.so
+LOCAL_SRC_FILES := $(PUZZLES_PREBUILT_DIR)/$(TARGET_ARCH_ABI)/libpuzzles.so
 include $(PREBUILT_SHARED_LIBRARY)
 
 include $(CLEAR_VARS)

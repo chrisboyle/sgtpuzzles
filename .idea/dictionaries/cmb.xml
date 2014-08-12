@@ -18,6 +18,8 @@
       <w>emcclib</w>
       <w>emccpre</w>
       <w>emscripten</w>
+      <w>errno</w>
+      <w>executables</w>
       <w>fillomino</w>
       <w>footerfile</w>
       <w>fulkerson</w>
@@ -34,6 +36,7 @@
       <w>lambros</w>
       <w>lambrou</w>
       <w>laydomino</w>
+      <w>libpuzzlesgen</w>
       <w>lightup</w>
       <w>loopgen</w>
       <w>malloc</w>
@@ -51,6 +54,7 @@
       <w>nullgame</w>
       <w>penrose</w>
       <w>planarity</w>
+      <w>pthread</w>
       <w>realloc</w>
       <w>resstrings</w>
       <w>samegame</w>
@@ -69,6 +73,7 @@
       <w>thegame</w>
       <w>times's</w>
       <w>undef</w>
+      <w>vfprintf</w>
     </words>
   </dictionary>
 </component>

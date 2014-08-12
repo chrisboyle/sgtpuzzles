@@ -1,4 +1,5 @@
 import org.apache.tools.ant.taskdefs.condition.Os
+import com.google.common.base.Joiner
 
 apply plugin: 'com.android.application'
 
@@ -8,12 +9,27 @@ android {
 
     defaultConfig {
         applicationId "name.boyle.chris.sgtpuzzles"
-        minSdkVersion 7
+
+        Properties properties = new Properties()
+        properties.load(project.rootProject.file('local.properties').newDataInputStream())
+        def ndkDir = properties.getProperty('ndk.dir')
+        if (file(new File(ndkDir, 'platforms/android-15')).exists()) {  // the last without PIE
+            minSdkVersion 7
+        } else {
+            project.logger.log(LogLevel.WARN,
+                    "Your NDK can only support Android 4.1 and up because it forces PIE on. " +
+                    "Install one with platforms other than android-L for broader support.")
+            // Specifically, add-application.mk:149 ends up "Switching to android-L", so
+            // setup-abi.mk:55 ends up setting TARGET_PIE := true, so build-binary.mk:210
+            // will enable PIE regardless of APP_PIE.
+            minSdkVersion 16
+        }
         targetSdkVersion 20
 
         ndk {
             moduleName "puzzles"
             cFlags "-DSLOW_SYSTEM -DANDROID -DSTYLUS_BASED -DNO_PRINTING -DCOMBINED"
+            // WARNING abiFilters "all" here can end up omitting lib dir; I don't know why
         }
     }
 
@@ -28,23 +44,40 @@ android {
 android.applicationVariants.all{ variant ->
 
     variant.ndkCompile << {
-        // library is built, now build the executables
+        // library is built, now build the executables: copy libpuzzles aside...
+        def prebuiltDir = file(variant.ndkCompile.soFolder.parent + '/prebuilt')
         copy {
             from(variant.ndkCompile.soFolder) {
                 include '**/libpuzzles.so'
             }
-            into variant.ndkCompile.soFolder.absolutePath+'/../prebuilt'
+            into prebuiltDir
         }
-        println 'debuggable: '+variant.ndkCompile.debuggable
+
+        // use the same APP_ABI that NdkCompile.groovy does
+        String abiParam
+        Set<String> abiFilters = variant.ndkCompile.abiFilters
+        if (abiFilters != null && !abiFilters.isEmpty()) {
+            if (abiFilters.size() == 1) {
+                abiParam = "APP_ABI=" + abiFilters.iterator().next()
+            } else {
+                abiParam = "APP_ABI=" + Joiner.on(',').skipNulls().join(abiFilters.iterator())
+            }
+        } else {
+            abiParam = "APP_ABI=all"
+        }
+
+        // build the executables, with and without PIE
         exec {
             commandLine Os.isFamily(Os.FAMILY_WINDOWS) ? 'ndk-build.cmd' : 'ndk-build',
                     'NDK_PROJECT_PATH=null',
                     'APP_BUILD_SCRIPT=' + file('src/main/executable.mk').absolutePath,
                     'NDK_OUT=' + variant.ndkCompile.objFolder.absolutePath,
                     'NDK_LIBS_OUT=' + variant.ndkCompile.soFolder.absolutePath,
-                    'APP_ABI=all',
+                    'PUZZLES_PREBUILT_DIR=' + prebuiltDir.absolutePath,
+                    abiParam,
                     'APP_PLATFORM=android-5',  // earliest for x86 + mips
                     'PUZZLESGEN_SUFFIX=-no-pie',
+                    'APP_PIE=false',
                     'NDK_LOG=1',
                     'NDK_DEBUG=' + (variant.ndkCompile.debuggable ? '1' : '0')
         }
@@ -54,13 +87,16 @@ android.applicationVariants.all{ variant ->
                     'APP_BUILD_SCRIPT=' + file('src/main/executable.mk').absolutePath,
                     'NDK_OUT=' + variant.ndkCompile.objFolder.absolutePath,
                     'NDK_LIBS_OUT=' + variant.ndkCompile.soFolder.absolutePath,
-                    'APP_ABI=all',
+                    'PUZZLES_PREBUILT_DIR=' + prebuiltDir.absolutePath,
+                    abiParam,
                     'APP_PLATFORM=android-16',  // earliest for PIE
                     'PUZZLESGEN_SUFFIX=-with-pie',
                     'APP_PIE=true',
                     'NDK_LOG=1',
                     'NDK_DEBUG=' + (variant.ndkCompile.debuggable ? '1' : '0')
         }
+
+        // rename to look like libraries, to get them installed
         copy {
             from(variant.ndkCompile.soFolder) {
                 include '**/puzzlesgen-*'
@@ -73,4 +109,5 @@ android.applicationVariants.all{ variant ->
 
 //dependencies {
 //    compile 'com.android.support:support-v4:20.0.0'
+//    compile 'com.android.support:appcompat-v7:20.0.+'
 //}
