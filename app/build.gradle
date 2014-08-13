@@ -3,6 +3,8 @@ import com.google.common.base.Joiner
 
 apply plugin: 'com.android.application'
 
+def ndkDir = project.plugins.findPlugin('android').getNdkFolder()
+
 android {
     compileSdkVersion 20
     buildToolsVersion "20.0.0"
@@ -10,10 +12,7 @@ android {
     defaultConfig {
         applicationId "name.boyle.chris.sgtpuzzles"
 
-        Properties properties = new Properties()
-        properties.load(project.rootProject.file('local.properties').newDataInputStream())
-        def ndkDir = properties.getProperty('ndk.dir')
-        if (file(new File(ndkDir, 'platforms/android-15')).exists()) {  // the last without PIE
+        if (file(ndkDir.absolutePath + '/platforms/android-15').exists()) {  // the last without PIE
             minSdkVersion 7
         } else {
             project.logger.log(LogLevel.WARN,
@@ -54,46 +53,40 @@ android.applicationVariants.all{ variant ->
         }
 
         // use the same APP_ABI that NdkCompile.groovy does
-        String abiParam
+        String abiParam = 'APP_ABI='
         Set<String> abiFilters = variant.ndkCompile.abiFilters
         if (abiFilters != null && !abiFilters.isEmpty()) {
             if (abiFilters.size() == 1) {
-                abiParam = "APP_ABI=" + abiFilters.iterator().next()
+                abiParam += abiFilters.iterator().next()
             } else {
-                abiParam = "APP_ABI=" + Joiner.on(',').skipNulls().join(abiFilters.iterator())
+                abiParam += Joiner.on((char)',').skipNulls().join(abiFilters.iterator())
             }
         } else {
-            abiParam = "APP_ABI=all"
+            abiParam += 'all'
         }
 
         // build the executables, with and without PIE
+        def common = [
+            ndkDir.absolutePath + (Os.isFamily(Os.FAMILY_WINDOWS) ? '/ndk-build.cmd' : '/ndk-build'),
+            'NDK_PROJECT_PATH=null',
+            'APP_BUILD_SCRIPT=' + file('src/main/executable.mk').absolutePath,
+            'NDK_OUT=' + variant.ndkCompile.objFolder.absolutePath,
+            'NDK_LIBS_OUT=' + variant.ndkCompile.soFolder.absolutePath,
+            'PUZZLES_PREBUILT_DIR=' + prebuiltDir.absolutePath,
+            abiParam,
+            'NDK_LOG=1',
+            'NDK_DEBUG=1']  // TODO variant.ndkCompile.debuggable is always 0?
         exec {
-            commandLine Os.isFamily(Os.FAMILY_WINDOWS) ? 'ndk-build.cmd' : 'ndk-build',
-                    'NDK_PROJECT_PATH=null',
-                    'APP_BUILD_SCRIPT=' + file('src/main/executable.mk').absolutePath,
-                    'NDK_OUT=' + variant.ndkCompile.objFolder.absolutePath,
-                    'NDK_LIBS_OUT=' + variant.ndkCompile.soFolder.absolutePath,
-                    'PUZZLES_PREBUILT_DIR=' + prebuiltDir.absolutePath,
-                    abiParam,
+            commandLine common + [
                     'APP_PLATFORM=android-5',  // earliest for x86 + mips
                     'PUZZLESGEN_SUFFIX=-no-pie',
-                    'APP_PIE=false',
-                    'NDK_LOG=1',
-                    'NDK_DEBUG=' + (variant.ndkCompile.debuggable ? '1' : '0')
+                    'APP_PIE=false']
         }
         exec {
-            commandLine Os.isFamily(Os.FAMILY_WINDOWS) ? 'ndk-build.cmd' : 'ndk-build',
-                    'NDK_PROJECT_PATH=null',
-                    'APP_BUILD_SCRIPT=' + file('src/main/executable.mk').absolutePath,
-                    'NDK_OUT=' + variant.ndkCompile.objFolder.absolutePath,
-                    'NDK_LIBS_OUT=' + variant.ndkCompile.soFolder.absolutePath,
-                    'PUZZLES_PREBUILT_DIR=' + prebuiltDir.absolutePath,
-                    abiParam,
+            commandLine common + [
                     'APP_PLATFORM=android-16',  // earliest for PIE
                     'PUZZLESGEN_SUFFIX=-with-pie',
-                    'APP_PIE=true',
-                    'NDK_LOG=1',
-                    'NDK_DEBUG=' + (variant.ndkCompile.debuggable ? '1' : '0')
+                    'APP_PIE=true']
         }
 
         // rename to look like libraries, to get them installed
