@@ -100,7 +100,7 @@ android.applicationVariants.all{ variant ->
     }
 }
 
-//dependencies {
-//    compile 'com.android.support:support-v4:20.0.0'
-//    compile 'com.android.support:appcompat-v7:20.0.+'
-//}
+dependencies {
+    compile 'com.android.support:support-v4:20.0.0'
+    compile 'com.android.support:appcompat-v7:20.0.0'
+}

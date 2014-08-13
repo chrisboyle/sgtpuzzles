@@ -1,6 +1,5 @@
 package name.boyle.chris.sgtpuzzles;
 
-import name.boyle.chris.sgtpuzzles.compat.ActionBarCompat;
 import name.boyle.chris.sgtpuzzles.compat.PrefsSaver;
 
 import android.annotation.SuppressLint;
@@ -15,6 +14,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.preference.PreferenceManager;
+import android.support.v7.app.ActionBarActivity;
 import android.util.DisplayMetrics;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -25,7 +25,7 @@ import android.widget.TableRow;
 import android.widget.TextView;
 
 @SuppressWarnings("WeakerAccess")  // used by manifest
-public class GameChooser extends Activity
+public class GameChooser extends ActionBarActivity
 {
 	static final String CHOOSER_STYLE_KEY = "chooserStyle";
 
@@ -37,7 +37,6 @@ public class GameChooser extends Activity
     private boolean useGrid;
 	private String[] games;
 	private View[] views;
-	private boolean hasActionBar = false;
 	private Menu menu;
 	private boolean isTablet;
 	private PrefsSaver prefsSaver;
@@ -77,7 +76,6 @@ public class GameChooser extends Activity
 		views = new View[games.length];
 		setContentView(R.layout.chooser);
 		table = (TableLayout) findViewById(R.id.table);
-		hasActionBar = ActionBarCompat.get(this) != null;
 		rebuildViews();
 		if( ! state.contains("savedGame") || state.getString("savedGame", "").length() <= 0 ) {
 			// first run
@@ -181,7 +179,7 @@ public class GameChooser extends Activity
 
 	void updateStyleToggleVisibility()
 	{
-		if( hasActionBar && ! isTablet ) {
+		if(! isTablet) {
 			menu.findItem(useGrid ? R.id.gridchooser : R.id.listchooser).setVisible(false);
 			menu.findItem(useGrid ? R.id.listchooser : R.id.gridchooser).setVisible(true);
 		}
@@ -191,7 +189,7 @@ public class GameChooser extends Activity
 	 *  wasn't being called? */
 	@Override
     @SuppressLint("CommitPrefEdits")
-	public boolean onMenuItemSelected(int f, MenuItem item)
+	public boolean onOptionsItemSelected(MenuItem item)
 	{
 		boolean newGrid;
 		switch(item.getItemId()) {
@@ -200,7 +198,7 @@ public class GameChooser extends Activity
 			case R.id.load:
 				new FilePicker(this, Environment.getExternalStorageDirectory(),false).show();
 				return true;
-			default: return super.onMenuItemSelected(f,item);
+			default: return super.onOptionsItemSelected(item);
 		}
 		if( useGrid == newGrid ) return true;
 		useGrid = newGrid;

@@ -16,10 +16,8 @@ import java.util.LinkedHashMap;
 import java.util.Map.Entry;
 import java.util.StringTokenizer;
 
-import name.boyle.chris.sgtpuzzles.compat.ActionBarCompat;
 import name.boyle.chris.sgtpuzzles.compat.PrefsSaver;
 import android.annotation.SuppressLint;
-import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.ProgressDialog;
@@ -40,6 +38,9 @@ import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
 import android.preference.PreferenceManager;
+import android.support.v4.view.MenuItemCompat;
+import android.support.v7.app.ActionBar;
+import android.support.v7.app.ActionBarActivity;
 import android.text.InputType;
 import android.util.DisplayMetrics;
 import android.util.Log;
@@ -64,7 +65,7 @@ import android.widget.TableRow;
 import android.widget.TextView;
 import android.widget.Toast;
 
-public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeListener
+public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceChangeListener
 {
 	static final String TAG = "SGTPuzzles";
 	static final String STATE_PREFS_NAME = "state";
@@ -112,9 +113,6 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
     private boolean configIsCustom = false;
     private String[] games;
     private Menu menu;
-    private ActionBarCompat actionBarCompat = null;
-    private int actionBarHomeId = -1;
-    private boolean homeAsUpNoticeable = false;
     private String maybeUndoRedo = "ur";
     private PrefsSaver prefsSaver;
     private boolean startedFullscreen = false, cachedFullscreen = false;
@@ -149,14 +147,10 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 				resizeOnDone = false;
 			}
 			if (currentBackend != null) {
-				if (actionBarCompat != null) {
-					// set ActionBar icon to the one for this puzzle
-					int iconId = getResources().getIdentifier(
-							currentBackend, "drawable", getPackageName());
-					homeAsUpNoticeable = actionBarCompat.setIconAsShortcut(
-							iconId > 0 ? iconId : R.drawable.net);
-					if (menu != null) menu.findItem(R.id.other).setVisible(! homeAsUpNoticeable);
-				}
+				// set ActionBar icon to the one for this puzzle
+				int iconId = getResources().getIdentifier(
+						currentBackend, "drawable", getPackageName());
+				getSupportActionBar().setIcon(iconId > 0 ? iconId : R.drawable.net);
 			}
 			dismissProgress();
 			if( menu != null ) onPrepareOptionsMenu(menu);
@@ -241,14 +235,11 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		applyStayAwake();
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.main);
+		getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 		mainLayout = (RelativeLayout)findViewById(R.id.mainLayout);
 		statusBar = (TextView)findViewById(R.id.statusBar);
 		gameView = (GameView)findViewById(R.id.game);
 		keyboard = (SmallKeyboard)findViewById(R.id.keyboard);
-		actionBarCompat = ActionBarCompat.get(this);
-		try {
-			actionBarHomeId = android.R.id.class.getField("home").getInt(null);
-		} catch (Exception ignored) {}
 		setDefaultKeyMode(DEFAULT_KEYS_SHORTCUT);
 		gameView.requestFocus();
 		onNewIntent(getIntent());
@@ -310,9 +301,8 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		this.menu = menu;
 		getMenuInflater().inflate(R.menu.main, menu);
 		boolean undoRedoKbd = prefs.getBoolean(UNDO_REDO_KBD_KEY, false);
-		menu.findItem(R.id.undo).setVisible(actionBarCompat != null && ! undoRedoKbd);
-		menu.findItem(R.id.redo).setVisible(actionBarCompat != null && ! undoRedoKbd);
-		menu.findItem(R.id.other).setVisible(! homeAsUpNoticeable);
+		menu.findItem(R.id.undo).setVisible(! undoRedoKbd);
+		menu.findItem(R.id.redo).setVisible(! undoRedoKbd);
 		return true;
 	}
 
@@ -322,11 +312,10 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 	{
 		super.onPrepareOptionsMenu(menu);
 		hackForSubmenus = menu;
-		if( progress != null && (actionBarCompat == null || actionBarCompat.hasMenuButton()) ) return false;  // not safe/useful until game is loaded
 		MenuItem item;
 		item = menu.findItem(R.id.solve);
 		item.setEnabled(solveEnabled);
-		if (actionBarCompat != null) item.setVisible(solveEnabled);
+		item.setVisible(solveEnabled);
 		MenuItem undoItem = menu.findItem(R.id.undo), redoItem = menu.findItem(R.id.redo);
 		undoItem.setEnabled(undoEnabled);
 		redoItem.setEnabled(redoEnabled);
@@ -334,7 +323,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		redoItem.setIcon(redoEnabled ? R.drawable.sym_keyboard_redo : R.drawable.sym_keyboard_redo_disabled);
 		item = menu.findItem(R.id.type);
 		item.setEnabled(! gameTypes.isEmpty() || customVisible);
-		if (actionBarCompat != null) item.setVisible(item.isEnabled());
+		item.setVisible(item.isEnabled());
 		typeMenu = item.getSubMenu();
 		int i = 0;
 		for(Entry<String, String> entry : gameTypes.entrySet()) {
@@ -382,7 +371,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 	public boolean onOptionsItemSelected(MenuItem item)
 	{
 		int itemId = item.getItemId();
-		if (itemId == actionBarHomeId) itemId = R.id.other;
+		if (itemId == android.R.id.home) itemId = R.id.other;
 		switch(itemId) {
 		case R.id.other:
 			startChooser();
@@ -574,8 +563,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 			customVisible = false;
 			setStatusBarVisibility(false);
 		}
-		if (ActionBarCompat.earlyHasActionBar()
-				&& ! prefs.getBoolean(UNDO_REDO_KBD_KEY, false)) {
+		if (! prefs.getBoolean(UNDO_REDO_KBD_KEY, false)) {
 			maybeUndoRedo = "";
 		}
 		setKeys("", SmallKeyboard.ARROWS_LEFT_RIGHT_CLICK);
@@ -603,7 +591,9 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 					String generated = generateGame(whichBackend, params);
 					if (generated != null) {
 						launch.finishedGenerating(generated);
-					}
+					} else if (gameRunning) {
+                        throw new IOException("Internal error generating game: result is blank");
+                    }
 				}
 				startPlaying(gameView, launch.getSaved());
 			} catch (IllegalArgumentException e) {
@@ -688,8 +678,8 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 			return;
 		}
 		keyEvent(x, y, k);
-		if (actionBarCompat != null && startedFullscreen) {
-			actionBarCompat.lightsOut(getWindow(), gameView, true);
+		if (startedFullscreen) {
+			lightsOut(true);
 		}
 	}
 
@@ -748,25 +738,22 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 	{
 		setKeyboardVisibility(newConfig);
 		super.onConfigurationChanged(newConfig);
-		if (actionBarCompat != null) {
-			// ActionBar's capacity (width) has probably changed, so work around
-			// http://code.google.com/p/android/issues/detail?id=20493
-			// (invalidateOptionsMenu() does not help here)
-            // Just cautiously fix the common case: if >850dip then force
-            // show everything, else let the platform decide
-            DisplayMetrics dm = getResources().getDisplayMetrics();
-            int screenWidthDIP = (int)Math.round(((double)dm.widthPixels) / dm.density);
-            boolean reallyWide = screenWidthDIP > 850;
-            int state =  reallyWide ? ActionBarCompat.SHOW_AS_ACTION_ALWAYS
-                    : ActionBarCompat.SHOW_AS_ACTION_IF_ROOM;
-            actionBarCompat.menuItemSetShowAsAction(menu.findItem(R.id.settings), state);
-            actionBarCompat.menuItemSetShowAsAction(menu.findItem(R.id.solve), state);
-            actionBarCompat.menuItemSetShowAsAction(menu.findItem(R.id.help), state);
-            state |= ActionBarCompat.SHOW_AS_ACTION_WITH_TEXT;
-            actionBarCompat.menuItemSetShowAsAction(menu.findItem(R.id.game), state);
-            actionBarCompat.menuItemSetShowAsAction(menu.findItem(R.id.type), state);
-            actionBarCompat.menuItemSetShowAsAction(menu.findItem(R.id.other), state);
-        }
+		// ActionBar's capacity (width) has probably changed, so work around
+		// http://code.google.com/p/android/issues/detail?id=20493
+		// (invalidateOptionsMenu() does not help here)
+		// Just cautiously fix the common case: if >850dip then force
+		// show everything, else let the platform decide
+		DisplayMetrics dm = getResources().getDisplayMetrics();
+		int screenWidthDIP = (int)Math.round(((double)dm.widthPixels) / dm.density);
+		boolean reallyWide = screenWidthDIP > 850;
+		int state =  reallyWide ? MenuItemCompat.SHOW_AS_ACTION_ALWAYS
+				: MenuItemCompat.SHOW_AS_ACTION_IF_ROOM;
+		MenuItemCompat.setShowAsAction(menu.findItem(R.id.settings), state);
+		MenuItemCompat.setShowAsAction(menu.findItem(R.id.solve), state);
+		MenuItemCompat.setShowAsAction(menu.findItem(R.id.help), state);
+		state |= MenuItemCompat.SHOW_AS_ACTION_WITH_TEXT;
+		MenuItemCompat.setShowAsAction(menu.findItem(R.id.game), state);
+		MenuItemCompat.setShowAsAction(menu.findItem(R.id.type), state);
 	}
 
     @UsedByJNI
@@ -781,6 +768,7 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		runOnUiThread(new Runnable(){public void run(){
 			if (gameView.colours.length > 0) gameView.setBackgroundColor(gameView.colours[0]);
 			setTitle(title);
+			getSupportActionBar().setTitle(title);
 			setStatusBarVisibility(hasStatus);
 		}});
 	}
@@ -799,27 +787,30 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 				! prefs.getBoolean(PATTERN_SHOW_LENGTHS_KEY, false)) {
 			return;
 		}
-		runOnUiThread(new Runnable(){public void run(){
-			dismissProgress();
-			if( title == null )
-				Toast.makeText(SGTPuzzles.this, msg, Toast.LENGTH_SHORT).show();
-			else new AlertDialog.Builder(SGTPuzzles.this)
-					.setTitle(title)
-					.setMessage(msg)
-					.setIcon( (flag == 0)
-							? android.R.drawable.ic_dialog_info
-							: android.R.drawable.ic_dialog_alert )
-					.setOnCancelListener(new OnCancelListener() {
-						public void onCancel(DialogInterface dialog) {
-							if (flag < 2) {
-								gameViewResized();
-							} else {
-								startChooser();
-								finish();
+		runOnUiThread(new Runnable() {
+			public void run() {
+				dismissProgress();
+				if (title == null)
+					Toast.makeText(SGTPuzzles.this, msg, Toast.LENGTH_SHORT).show();
+				else new AlertDialog.Builder(SGTPuzzles.this)
+						.setTitle(title)
+						.setMessage(msg)
+						.setIcon((flag == 0)
+								? android.R.drawable.ic_dialog_info
+								: android.R.drawable.ic_dialog_alert)
+						.setOnCancelListener(new OnCancelListener() {
+							public void onCancel(DialogInterface dialog) {
+								if (flag < 2) {
+									gameViewResized();
+								} else {
+									startChooser();
+									finish();
+								}
 							}
-						}})
-					.show();
-		}});
+						})
+						.show();
+			}
+		});
 		// I don't think we need to wait before returning here (and we can't)
 	}
 
@@ -868,9 +859,11 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
     @UsedByJNI
 	void setStatus(final String status)
 	{
-		runOnUiThread(new Runnable(){public void run(){
-			statusBar.setText(status.length() == 0 ? " " : status);
-		}});
+		runOnUiThread(new Runnable() {
+			public void run() {
+				statusBar.setText(status.length() == 0 ? " " : status);
+			}
+		});
 	}
 
     @UsedByJNI
@@ -909,14 +902,14 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 		});
 		dialog.setButton(DialogInterface.BUTTON_POSITIVE, getString(android.R.string.ok), new DialogInterface.OnClickListener() {
 			public void onClick(DialogInterface d, int whichButton) {
-				for( Integer i : dialogIds ) {
+				for (Integer i : dialogIds) {
 					View v = dialogLayout.findViewById(i);
-					if( v instanceof EditText ) {
-						configSetString(i, ((EditText)v).getText().toString());
-					} else if( v instanceof CheckBox ) {
-						configSetBool(i, ((CheckBox)v).isChecked() ? 1 : 0);
-					} else if( v instanceof Spinner ) {
-						configSetChoice(i, ((Spinner)v).getSelectedItemPosition());
+					if (v instanceof EditText) {
+						configSetString(i, ((EditText) v).getText().toString());
+					} else if (v instanceof CheckBox) {
+						configSetBool(i, ((CheckBox) v).isChecked() ? 1 : 0);
+					} else if (v instanceof Spinner) {
+						configSetChoice(i, ((Spinner) v).getSelectedItemPosition());
 					}
 				}
 				dialog.dismiss();
@@ -1028,24 +1021,24 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 	}
 
 	private void applyFullscreen(boolean alreadyStarted) {
-		boolean hasActionBar = ActionBarCompat.earlyHasActionBar();
 		cachedFullscreen = prefs.getBoolean(FULLSCREEN_KEY, false);
+		final boolean hasLightsOut = (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB);
 		if (cachedFullscreen) {
-			if (hasActionBar) {
+			if (hasLightsOut) {
 				handler.post(new Runnable(){ public void run() {
-					actionBarCompat.lightsOut(getWindow(), gameView, true);
+					lightsOut(true);
 				}});
 			} else if (alreadyStarted) {
 				// This is the only way to change the theme
 				if (! startedFullscreen) restartOnResume = true;
 			} else {
-				setTheme(android.R.style.Theme_NoTitleBar_Fullscreen);
+				setTheme(R.style.Theme_AppCompat_FullScreen);
 			}
 		} else {
-			if (hasActionBar) {
+			if (hasLightsOut) {
 				final boolean fAlreadyStarted = alreadyStarted;
 				handler.post(new Runnable(){ public void run() {
-					actionBarCompat.lightsOut(getWindow(), gameView, false);
+					lightsOut(false);
 					// This shouldn't be necessary but is on Galaxy Tab 10.1
 					if (fAlreadyStarted && startedFullscreen) restartOnResume = true;
 				}});
@@ -1053,6 +1046,20 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 				// This is the only way to change the theme
 				restartOnResume = true;
 			}  // else leave it as default non-fullscreen
+		}
+	}
+
+	private void lightsOut(final boolean fullScreen) {
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH) {
+			if (fullScreen) {
+				getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+			} else {
+				getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+			}
+		} else if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
+			gameView.setSystemUiVisibility(fullScreen
+					? View.SYSTEM_UI_FLAG_LOW_PROFILE
+					: View.SYSTEM_UI_FLAG_VISIBLE);
 		}
 	}
 
@@ -1094,27 +1101,28 @@ public class SGTPuzzles extends Activity implements OnSharedPreferenceChangeList
 	{
 		undoEnabled = canUndo;
 		redoEnabled = canRedo;
-        runOnUiThread(new Runnable() {
-            @Override public void run() {
-                if (keyboard != null) {
-                    keyboard.setUndoRedoEnabled(false, canUndo);
-                    keyboard.setUndoRedoEnabled(true, canRedo);
-                }
-                if (actionBarCompat != null && menu != null) {
-                    MenuItem mi;
-                    mi = menu.findItem(R.id.undo);
-                    if (mi != null) {
-                        mi.setEnabled(undoEnabled);
-                        mi.setIcon(undoEnabled ? R.drawable.sym_keyboard_undo : R.drawable.sym_keyboard_undo_disabled);
-                    }
-                    mi = menu.findItem(R.id.redo);
-                    if (mi != null) {
-                        mi.setEnabled(redoEnabled);
-                        mi.setIcon(redoEnabled ? R.drawable.sym_keyboard_redo : R.drawable.sym_keyboard_redo_disabled);
-                    }
-                }
-            }
-        });
+		runOnUiThread(new Runnable() {
+			@Override
+			public void run() {
+				if (keyboard != null) {
+					keyboard.setUndoRedoEnabled(false, canUndo);
+					keyboard.setUndoRedoEnabled(true, canRedo);
+				}
+				if (menu != null) {
+					MenuItem mi;
+					mi = menu.findItem(R.id.undo);
+					if (mi != null) {
+						mi.setEnabled(undoEnabled);
+						mi.setIcon(undoEnabled ? R.drawable.sym_keyboard_undo : R.drawable.sym_keyboard_undo_disabled);
+					}
+					mi = menu.findItem(R.id.redo);
+					if (mi != null) {
+						mi.setEnabled(redoEnabled);
+						mi.setIcon(redoEnabled ? R.drawable.sym_keyboard_redo : R.drawable.sym_keyboard_redo_disabled);
+					}
+				}
+			}
+		});
 	}
 
 	private static String readAllOf(InputStream s) throws IOException

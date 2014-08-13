@@ -1,6 +1,5 @@
 package name.boyle.chris.sgtpuzzles;
 
-import name.boyle.chris.sgtpuzzles.compat.ActionBarCompat;
 import name.boyle.chris.sgtpuzzles.compat.PrefsSaver;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
@@ -21,11 +20,6 @@ public class PrefsActivity extends PreferenceActivity implements OnSharedPrefere
 		prefsSaver = PrefsSaver.get(this);
 		addPreferencesFromResource(R.xml.preferences);
 		updateSummary((ListPreference)findPreference(SGTPuzzles.ARROW_KEYS_KEY));
-		if (ActionBarCompat.get(this) != null) {
-			getPreferenceScreen().removePreference(findPreference("gameChooser"));
-		} else {
-			updateSummary((ListPreference)findPreference(GameChooser.CHOOSER_STYLE_KEY));
-		}
 	}
 
 	@Override

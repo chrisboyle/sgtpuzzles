@@ -1,14 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android" >
 
-	<PreferenceCategory android:title="@string/gameChooser" android:key="gameChooser">
-		<ListPreference android:title="@string/chooserStyle"
-			android:key="chooserStyle"
-			android:entryValues="@array/chooserStyles"
-			android:entries="@array/chooserStyleDescs"
-			android:defaultValue="list" />
-	</PreferenceCategory>
-
 	<PreferenceCategory android:title="@string/allGames">
 		<CheckBoxPreference android:title="@string/completedPrompt"
 			android:summary="@string/completedPromptSummary"
