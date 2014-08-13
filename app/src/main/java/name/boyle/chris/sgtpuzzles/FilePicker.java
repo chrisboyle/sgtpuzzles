@@ -69,7 +69,9 @@ class FilePicker extends Dialog
 				.setIcon(android.R.drawable.ic_dialog_alert);
 			b.setPositiveButton(android.R.string.yes, new OnClickListener(){ public void onClick(DialogInterface d, int which) {
 				try {
-					f.delete();
+					if (!f.delete()) {
+						throw new RuntimeException("delete failed");
+					}
 					save(f, true);
 				} catch (Exception e) {
 					Toast.makeText(getContext(), e.toString(), Toast.LENGTH_LONG).show();

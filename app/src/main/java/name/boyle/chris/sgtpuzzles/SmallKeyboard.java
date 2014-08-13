@@ -3,6 +3,7 @@ package name.boyle.chris.sgtpuzzles;
 import java.util.ArrayList;
 import java.util.List;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
@@ -344,6 +345,7 @@ class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboardActio
 		requestLayout();
 	}
 
+	@SuppressLint("DrawAllocation")  // layout not often repeated
 	@Override
 	public void onMeasure(int wSpec, int hSpec)
 	{

@@ -11,6 +11,7 @@ import android.graphics.RectF;
 import android.graphics.Region;
 import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
+import android.support.annotation.NonNull;
 import android.util.AttributeSet;
 import android.view.HapticFeedbackConstants;
 import android.view.KeyEvent;
@@ -62,7 +63,7 @@ class GameView extends View
 	};
 
 	@Override
-	public boolean onTouchEvent(MotionEvent event)
+	public boolean onTouchEvent(@NonNull MotionEvent event)
 	{
 		if (! parent.gameRunning) return false;
 		switch( event.getAction() ) {
@@ -110,7 +111,7 @@ class GameView extends View
 	};
 
 	@Override
-	public boolean onKeyDown( int keyCode, KeyEvent event )
+	public boolean onKeyDown(int keyCode, @NonNull KeyEvent event)
 	{
 		int key = 0, repeat = event.getRepeatCount();
 		switch( keyCode ) {
