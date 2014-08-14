@@ -566,7 +566,7 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 		if (! prefs.getBoolean(UNDO_REDO_KBD_KEY, false)) {
 			maybeUndoRedo = "";
 		}
-		setKeys("", SmallKeyboard.ARROWS_LEFT_RIGHT_CLICK);
+		setKeys("", SmallKeyboard.ArrowMode.ARROWS_LEFT_RIGHT_CLICK);
 		if( typeMenu != null ) {
 			while (typeMenu.size() > 1) typeMenu.removeItem(typeMenu.getItem(0).getItemId());
 		}
@@ -995,10 +995,10 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 		savingState.append(new String(buffer));
 	}
 
-	private int lastArrowMode = 0;
+	private SmallKeyboard.ArrowMode lastArrowMode = SmallKeyboard.ArrowMode.NO_ARROWS;
 
 	@UsedByJNI
-	void setKeys(String keys, int arrowMode)
+	void setKeys(String keys, SmallKeyboard.ArrowMode arrowMode)
 	{
 		lastArrowMode = arrowMode;
 		if( keys == null ) return;

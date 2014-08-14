@@ -55,6 +55,9 @@ static char gettexted[GETTEXTED_COUNT][GETTEXTED_SIZE];
 static int next_gettexted = 0;
 
 static jobject gameView = NULL;
+static jobject ARROWMODE_NONE = NULL,
+	ARROWMODE_ARROWS_LEFT_RIGHT_CLICK = NULL,
+	ARROWMODE_DIAGONALS = NULL;
 static jmethodID
 	addTypeItem,
 	blitterAlloc,
@@ -531,7 +534,10 @@ void android_keys(const char *keys, int arrowMode)
 {
 	if (!obj) return;
 	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
-	(*env)->CallVoidMethod(env, obj, setKeys, (*env)->NewStringUTF(env, keys), arrowMode);
+	(*env)->CallVoidMethod(env, obj, setKeys, (*env)->NewStringUTF(env, keys),
+			(arrowMode == ANDROID_ARROWS_DIAGONALS) ? ARROWMODE_DIAGONALS :
+			(arrowMode == ANDROID_ARROWS) ? ARROWMODE_ARROWS_LEFT_RIGHT_CLICK :
+			ARROWMODE_NONE);
 }
 
 char * get_text(const char *s)
@@ -599,13 +605,20 @@ void startPlaying(JNIEnv *env, jobject _obj, jobject _gameView, jstring savedGam
 
 JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
 {
-	jclass cls, vcls;
+	jclass cls, vcls, arrowModeCls;
 	JNIEnv *env;
 	if ((*jvm)->GetEnv(jvm, (void **)&env, JNI_VERSION_1_2)) return JNI_ERR;
 	pthread_key_create(&envKey, NULL);
 	pthread_setspecific(envKey, env);
 	cls = (*env)->FindClass(env, "name/boyle/chris/sgtpuzzles/SGTPuzzles");
 	vcls = (*env)->FindClass(env, "name/boyle/chris/sgtpuzzles/GameView");
+	arrowModeCls = (*env)->FindClass(env, "name/boyle/chris/sgtpuzzles/SmallKeyboard$ArrowMode");
+	ARROWMODE_NONE = (*env)->GetStaticObjectField(env, arrowModeCls,
+			(*env)->GetStaticFieldID(env, arrowModeCls, "NO_ARROWS", "Lname/boyle/chris/sgtpuzzles/SmallKeyboard$ArrowMode;"));
+	ARROWMODE_ARROWS_LEFT_RIGHT_CLICK = (*env)->GetStaticObjectField(env, arrowModeCls,
+			(*env)->GetStaticFieldID(env, arrowModeCls, "ARROWS_LEFT_RIGHT_CLICK", "Lname/boyle/chris/sgtpuzzles/SmallKeyboard$ArrowMode;"));
+	ARROWMODE_DIAGONALS = (*env)->GetStaticObjectField(env, arrowModeCls,
+			(*env)->GetStaticFieldID(env, arrowModeCls, "ARROWS_DIAGONALS", "Lname/boyle/chris/sgtpuzzles/SmallKeyboard$ArrowMode;"));
 	addTypeItem    = (*env)->GetMethodID(env, cls,  "addTypeItem", "(Ljava/lang/String;Ljava/lang/String;)V");
 	blitterAlloc   = (*env)->GetMethodID(env, vcls, "blitterAlloc", "(II)I");
 	blitterFree    = (*env)->GetMethodID(env, vcls, "blitterFree", "(I)V");
@@ -628,7 +641,7 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
 	requestResize  = (*env)->GetMethodID(env, cls,  "requestResize", "(II)V");
 	requestTimer   = (*env)->GetMethodID(env, cls,  "requestTimer", "(Z)V");
 	serialiseWrite = (*env)->GetMethodID(env, cls,  "serialiseWrite", "([B)V");
-	setKeys        = (*env)->GetMethodID(env, cls,  "setKeys", "(Ljava/lang/String;I)V");
+	setKeys        = (*env)->GetMethodID(env, cls,  "setKeys", "(Ljava/lang/String;Lname/boyle/chris/sgtpuzzles/SmallKeyboard$ArrowMode;)V");
 	setMargins     = (*env)->GetMethodID(env, vcls, "setMargins", "(II)V");
 	setStatus      = (*env)->GetMethodID(env, cls,  "setStatus", "(Ljava/lang/String;)V");
 	tickTypeItem   = (*env)->GetMethodID(env, cls,  "tickTypeItem", "(I)V");

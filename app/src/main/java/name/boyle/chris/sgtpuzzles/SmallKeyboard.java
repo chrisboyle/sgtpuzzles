@@ -20,10 +20,14 @@ class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboardActio
 	private static final int KEYSP = 44;  // dip
 	private final SGTPuzzles parent;
 	private boolean undoEnabled = false, redoEnabled = false;
-	private static final int NO_ARROWS = 0;  // untangle
-			static final int ARROWS_LEFT_RIGHT_CLICK = 1;  // unless phone has a d-pad (most games)
-			private static final int ARROWS_DIAGONALS = 2;  // Inertia
-	private int arrowMode = ARROWS_LEFT_RIGHT_CLICK;
+	static enum ArrowMode {
+		NO_ARROWS,  // untangle
+		ARROWS_LEFT_RIGHT_CLICK,  // unless phone has a d-pad (most games)
+		ARROWS_DIAGONALS;  // Inertia
+
+		boolean hasArrows() { return this != NO_ARROWS; }
+	}
+	private ArrowMode arrowMode = ArrowMode.ARROWS_LEFT_RIGHT_CLICK;
 
 	/** Key which can be disabled */
 	static class DKey extends Keyboard.Key
@@ -46,7 +50,7 @@ class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboardActio
 		int undoKey = -1, redoKey = -1;
 		boolean initDone = false;
 		public KeyboardModel(Context context, KeyboardView keyboardView, boolean isInEditMode,
-                CharSequence characters, int arrowMode, boolean columnMajor, int maxPx,
+                CharSequence characters, ArrowMode arrowMode, boolean columnMajor, int maxPx,
 				boolean undoEnabled, boolean redoEnabled)
 		{
 			super(context, R.layout.keyboard_template);
@@ -75,27 +79,27 @@ class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboardActio
 				arrowPref = prefs.getString(SGTPuzzles.ARROW_KEYS_KEY, "auto");
 				inertiaForceArrows = prefs.getBoolean(SGTPuzzles.INERTIA_FORCE_ARROWS_KEY, true);
 			}
-			if (arrowMode != ARROWS_DIAGONALS || !inertiaForceArrows) {
+			if (arrowMode != ArrowMode.ARROWS_DIAGONALS || !inertiaForceArrows) {
                 if (arrowPref.equals("never")) {
-                    arrowMode = NO_ARROWS;
+                    arrowMode = ArrowMode.NO_ARROWS;
                 } else if (arrowPref.equals("auto")) {
                     Configuration c = context.getResources().getConfiguration();
                     if ((c.navigation == Configuration.NAVIGATION_DPAD
                             || c.navigation == Configuration.NAVIGATION_TRACKBALL)
                             && (c.navigationHidden != Configuration.NAVIGATIONHIDDEN_YES)) {
-                        arrowMode = NO_ARROWS;
+                        arrowMode = ArrowMode.NO_ARROWS;
                     }
                 }
             }
             // else allow arrows.
 
 			int maxPxMinusArrows = maxPx;
-			if (arrowMode > NO_ARROWS) {
+			if (arrowMode.hasArrows()) {
 				maxPxMinusArrows -= 3 * keyPlusPad;
 			}
 			// How many rows do we need?
-			final int majors = (int)Math.ceil((double)
-					(characters.length() * keyPlusPad)/maxPxMinusArrows);
+			final int majors = Math.max(1, (int)Math.ceil((double)
+					(characters.length() * keyPlusPad)/maxPxMinusArrows));
 			// Spread the keys as evenly as possible
 			final int minorsPerMajor = (int)Math.ceil((double)
 					characters.length() / majors);
@@ -103,9 +107,9 @@ class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboardActio
 					- (minorsPerMajor * keyPlusPad)) / 2);
 			int minorPx = minorStartPx;
 			int majorPx = 0;
-			int arrowRows = (arrowMode == ARROWS_DIAGONALS) ? 3 : 2;
+			int arrowRows = (arrowMode == ArrowMode.ARROWS_DIAGONALS) ? 3 : 2;
 			int arrowMajors = columnMajor ? 3 : arrowRows;
-			if (majors < 3 && arrowMode > NO_ARROWS) majorPx = (arrowMajors - majors) * keyPlusPad;
+			if (majors < 3 && arrowMode.hasArrows()) majorPx = (arrowMajors - majors) * keyPlusPad;
 			int minor = 0;
 			for (int i = 0; i < characters.length(); i++) {
 				char c = characters.charAt(i);
@@ -129,7 +133,7 @@ class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboardActio
 					key.edgeFlags |= columnMajor ? EDGE_RIGHT  : EDGE_BOTTOM;
 				if (minor == 0)
 					key.edgeFlags |= columnMajor ? EDGE_TOP    : EDGE_LEFT;
-				if (minor == minorsPerMajor - 1 && arrowMode == NO_ARROWS)
+				if (minor == minorsPerMajor - 1 && arrowMode == ArrowMode.NO_ARROWS)
 					key.edgeFlags |= columnMajor ? EDGE_BOTTOM : EDGE_RIGHT;
 				key.x = columnMajor ? majorPx : minorPx;
 				key.y = columnMajor ? minorPx : majorPx;
@@ -161,21 +165,15 @@ class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboardActio
 				key.codes = new int[] { c };
 				minor++;
 				minorPx += keyPlusPad;
-				int minorPxSoFar = minorPx - minorStartPx;
-				if (columnMajor) {
-					if (minorPxSoFar > mTotalHeight) mTotalHeight = minorPxSoFar;
-				} else {
-					if (minorPxSoFar > mTotalWidth) mTotalWidth = minorPxSoFar;
-				}
 			}
 			if (columnMajor) {
 				mTotalWidth = majorPx + mDefaultWidth;
 			} else {
 				mTotalHeight = majorPx + mDefaultHeight;
 			}
-			if (arrowMode > NO_ARROWS) {
+			if (arrowMode.hasArrows()) {
 				int[] arrows;
-				if (arrowMode == ARROWS_DIAGONALS) {
+				if (arrowMode == ArrowMode.ARROWS_DIAGONALS) {
 					arrows = new int[] {
 							GameView.CURSOR_UP,
 							GameView.CURSOR_DOWN,
@@ -199,9 +197,9 @@ class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboardActio
 						arrowsBottomEdge = columnMajor ? maxPx : mTotalHeight;
 				int maybeTop  = (!columnMajor && majors <= arrowRows) ? EDGE_TOP : 0;
 				int maybeLeft = ( columnMajor && majors <= arrowRows) ? EDGE_LEFT : 0;
-				int leftRightRow = (arrowMode == ARROWS_DIAGONALS) ? 2 : 1;
-				int bottomIf2Row = (arrowMode == ARROWS_DIAGONALS) ? 0 : EDGE_BOTTOM;
-				int maybeTopIf2Row = (arrowMode == ARROWS_DIAGONALS) ? 0 : maybeTop;
+				int leftRightRow = (arrowMode == ArrowMode.ARROWS_DIAGONALS) ? 2 : 1;
+				int bottomIf2Row = (arrowMode == ArrowMode.ARROWS_DIAGONALS) ? 0 : EDGE_BOTTOM;
+				int maybeTopIf2Row = (arrowMode == ArrowMode.ARROWS_DIAGONALS) ? 0 : maybeTop;
 				for (int arrow : arrows) {
 					final DKey key = new DKey(row);
 					mKeys.add(key);
@@ -241,7 +239,7 @@ class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboardActio
 						key.edgeFlags = bottomIf2Row | EDGE_RIGHT;
 						break;
 					case '\n':
-						key.x = arrowsRightEdge  - ((arrowMode==ARROWS_DIAGONALS)?2:3)*keyPlusPad;
+						key.x = arrowsRightEdge  - ((arrowMode==ArrowMode.ARROWS_DIAGONALS)?2:3)*keyPlusPad;
 						key.y = arrowsBottomEdge - 2*keyPlusPad;
 						key.icon = context.getResources().getDrawable(
 								R.drawable.mouse_left);
@@ -334,11 +332,11 @@ class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboardActio
 		parent = isInEditMode() ? null : (SGTPuzzles)c;
 		setBackgroundColor( Color.BLACK );
 		setOnKeyboardActionListener(this);
-		if (isInEditMode()) setKeys("123456\bur", 1);
+		if (isInEditMode()) setKeys("123456\bur", ArrowMode.ARROWS_LEFT_RIGHT_CLICK);
 	}
 
 	private CharSequence lastKeys = "";
-	public void setKeys(CharSequence keys, int arrowMode)
+	public void setKeys(CharSequence keys, ArrowMode arrowMode)
 	{
 		lastKeys = keys;
 		this.arrowMode = arrowMode;
