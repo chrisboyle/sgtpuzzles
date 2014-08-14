@@ -50,3 +50,5 @@
 GAMELIST(DECL)
 const game *gamelist[] = { GAMELIST(REF) };
 const int gamecount = lenof(gamelist);
+#define NAME(x) #x,
+const char* gamenames[] = { GAMELIST(NAME) };

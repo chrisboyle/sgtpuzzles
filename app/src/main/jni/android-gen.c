@@ -26,7 +26,7 @@ int main(int argc, const char *argv[]) {
 	const game *thegame = NULL;
 	int i;
 	for (i = 0; i<gamecount; i++) {
-		if (!strcmp(argv[1], gamelist[i]->htmlhelp_topic)) {
+		if (!strcmp(argv[1], gamenames[i])) {
 			thegame = gamelist[i];
 			break;
 		}

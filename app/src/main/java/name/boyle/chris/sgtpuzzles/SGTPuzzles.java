@@ -391,7 +391,7 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 		case R.id.seed:     configIsCustom = false; configEvent( CFG_SEED ); break;
 		case R.id.about:    about(); break;
 		case R.id.contents: showHelp("index"); break;
-		case R.id.thisgame: showHelp(currentBackend); break;
+		case R.id.thisgame: showHelp(htmlHelpTopic()); break;
 		case R.id.website:
 			startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(
 							getString(R.string.website_url))));

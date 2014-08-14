@@ -589,7 +589,7 @@ void startPlaying(JNIEnv *env, jobject _obj, jobject _gameView, jstring savedGam
 	if (colsj == NULL) return;
 	(*env)->SetFloatArrayRegion(env, colsj, 0, n*3, colours);
 	(*env)->CallVoidMethod(env, obj, gameStarted,
-			(*env)->NewStringUTF(env, thegame.htmlhelp_topic),
+			(*env)->NewStringUTF(env, gamenames[whichBackend]),
 			(*env)->NewStringUTF(env, thegame.name), thegame.can_configure,
 			midend_wants_statusbar(fe->me), thegame.can_solve, colsj);
 	resize_fe();
