@@ -17,6 +17,8 @@ import java.util.Map.Entry;
 import java.util.StringTokenizer;
 
 import name.boyle.chris.sgtpuzzles.compat.PrefsSaver;
+import name.boyle.chris.sgtpuzzles.compat.SysUIVisSetter;
+
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.app.Dialog;
@@ -1057,9 +1059,7 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 				getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
 			}
 		} else if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
-			gameView.setSystemUiVisibility(fullScreen
-					? View.SYSTEM_UI_FLAG_LOW_PROFILE
-					: View.SYSTEM_UI_FLAG_VISIBLE);
+			SysUIVisSetter.set(gameView, fullScreen);
 		}
 	}
 

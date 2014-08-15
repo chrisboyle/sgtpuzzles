@@ -613,12 +613,12 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
 	cls = (*env)->FindClass(env, "name/boyle/chris/sgtpuzzles/SGTPuzzles");
 	vcls = (*env)->FindClass(env, "name/boyle/chris/sgtpuzzles/GameView");
 	arrowModeCls = (*env)->FindClass(env, "name/boyle/chris/sgtpuzzles/SmallKeyboard$ArrowMode");
-	ARROWMODE_NONE = (*env)->GetStaticObjectField(env, arrowModeCls,
-			(*env)->GetStaticFieldID(env, arrowModeCls, "NO_ARROWS", "Lname/boyle/chris/sgtpuzzles/SmallKeyboard$ArrowMode;"));
-	ARROWMODE_ARROWS_LEFT_RIGHT_CLICK = (*env)->GetStaticObjectField(env, arrowModeCls,
-			(*env)->GetStaticFieldID(env, arrowModeCls, "ARROWS_LEFT_RIGHT_CLICK", "Lname/boyle/chris/sgtpuzzles/SmallKeyboard$ArrowMode;"));
-	ARROWMODE_DIAGONALS = (*env)->GetStaticObjectField(env, arrowModeCls,
-			(*env)->GetStaticFieldID(env, arrowModeCls, "ARROWS_DIAGONALS", "Lname/boyle/chris/sgtpuzzles/SmallKeyboard$ArrowMode;"));
+	ARROWMODE_NONE = (*env)->NewGlobalRef(env, (*env)->GetStaticObjectField(env, arrowModeCls,
+			(*env)->GetStaticFieldID(env, arrowModeCls, "NO_ARROWS", "Lname/boyle/chris/sgtpuzzles/SmallKeyboard$ArrowMode;")));
+	ARROWMODE_ARROWS_LEFT_RIGHT_CLICK = (*env)->NewGlobalRef(env, (*env)->GetStaticObjectField(env, arrowModeCls,
+			(*env)->GetStaticFieldID(env, arrowModeCls, "ARROWS_LEFT_RIGHT_CLICK", "Lname/boyle/chris/sgtpuzzles/SmallKeyboard$ArrowMode;")));
+	ARROWMODE_DIAGONALS = (*env)->NewGlobalRef(env, (*env)->GetStaticObjectField(env, arrowModeCls,
+			(*env)->GetStaticFieldID(env, arrowModeCls, "ARROWS_DIAGONALS", "Lname/boyle/chris/sgtpuzzles/SmallKeyboard$ArrowMode;")));
 	addTypeItem    = (*env)->GetMethodID(env, cls,  "addTypeItem", "(Ljava/lang/String;Ljava/lang/String;)V");
 	blitterAlloc   = (*env)->GetMethodID(env, vcls, "blitterAlloc", "(II)I");
 	blitterFree    = (*env)->GetMethodID(env, vcls, "blitterFree", "(I)V");
