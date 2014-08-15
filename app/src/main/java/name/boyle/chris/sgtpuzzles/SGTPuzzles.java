@@ -680,6 +680,7 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 			return;
 		}
 		keyEvent(x, y, k);
+		gameView.requestFocus();
 		if (startedFullscreen) {
 			lightsOut(true);
 		}

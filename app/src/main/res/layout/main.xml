@@ -26,5 +26,6 @@ because of http://code.google.com/p/android/issues/detail?id=4559
 	android:layout_width="wrap_content"
 	android:layout_height="wrap_content"
 	android:layout_above="@+id/keyboard"
+	android:focusable="true"
 	android:background="#000" />
 </RelativeLayout>
