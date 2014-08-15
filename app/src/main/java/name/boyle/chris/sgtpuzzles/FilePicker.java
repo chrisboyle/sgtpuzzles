@@ -55,7 +55,11 @@ class FilePicker extends Dialog
 		raf.readFully(b);
 		raf.close();
 		Intent i = new Intent(getContext(), SGTPuzzles.class);
-		i.putExtra("game", new String(b));
+		String savedGame = new String(b);
+		if (savedGame.length() == 0) {
+			throw new IOException("File is empty");
+		}
+		i.putExtra("game", savedGame);
 		getContext().startActivity(i);
 		dismissAll();
 	}
