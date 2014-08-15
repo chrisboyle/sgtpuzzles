@@ -177,7 +177,9 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 		progress.setMessage( getString(msgId) );
 		progress.setIndeterminate( true );
 		progress.setCancelable( true );
-		progress.setOnCancelListener( abortListener );
+		progress.setOnCancelListener(new OnCancelListener() {
+			public void onCancel(DialogInterface dialog) { abort(null); }
+		});
 		progress.setButton( DialogInterface.BUTTON_NEGATIVE, getString(android.R.string.cancel), handler.obtainMessage(MsgType.ABORT.ordinal()));
 		progress.show();
 	}
@@ -263,8 +265,8 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 	protected void onNewIntent(Intent intent)
 	{
 		if( progress != null ) {
-			// Sorry, cancelling is hard. :-p Require explicit user action.
-			return;
+			stopNative();
+			dismissProgress();
 		}
 		String s = intent.getStringExtra("game");
 		Uri u = intent.getData();
@@ -465,10 +467,6 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 		handler.obtainMessage(MsgType.ABORT.ordinal(), why).sendToTarget();
 	}
 
-	private final OnCancelListener abortListener = new OnCancelListener() {
-		public void onCancel(DialogInterface dialog) { abort(null); }
-	};
-
 	private static String getVersion(Context c)
 	{
 		try {
@@ -597,7 +595,12 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 						throw new IOException("Internal error generating game: result is blank");
 					}
 				}
-				startPlaying(gameView, launch.getSaved());
+				String toPlay = launch.getSaved();
+				if (toPlay == null) {
+					Log.d(TAG, "startGameThread: null game, presumably cancelled");
+				} else {
+					startPlaying(gameView, toPlay);
+				}
 			} catch (IllegalArgumentException e) {
 				abort(e.getMessage());  // probably bogus params
 			} catch (IOException e) {
