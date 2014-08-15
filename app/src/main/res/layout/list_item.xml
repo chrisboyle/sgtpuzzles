@@ -6,7 +6,8 @@
     android:paddingTop="3dip"
     android:paddingBottom="3dip"
     android:paddingLeft="6dip"
-    android:paddingRight="6dip">
+    android:paddingRight="6dip"
+    style="@style/GameChooserItem">
 
     <ImageView android:id="@android:id/icon"
         android:layout_width="64dip"

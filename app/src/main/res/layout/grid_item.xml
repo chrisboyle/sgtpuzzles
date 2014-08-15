@@ -4,5 +4,6 @@
     android:layout_width="64dip"
     android:layout_height="64dip"
     android:paddingLeft="4dip"
-    android:paddingRight="4dip"/>
+    android:paddingRight="4dip"
+    style="@style/GameChooserItem"/>
 

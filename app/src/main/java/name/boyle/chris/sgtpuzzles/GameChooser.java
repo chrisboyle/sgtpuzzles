@@ -106,7 +106,6 @@ public class GameChooser extends ActionBarActivity
 				desc += ": " + getString( descId > 0 ? descId : R.string.no_desc );
 				((TextView)views[i].findViewById(android.R.id.text1)).setText(desc);
 			}
-			views[i].setBackgroundResource(android.R.drawable.list_selector_background);
 			views[i].setOnClickListener(new View.OnClickListener() {
 				public void onClick(View arg1) {
 					Intent i = new Intent(GameChooser.this, SGTPuzzles.class);
