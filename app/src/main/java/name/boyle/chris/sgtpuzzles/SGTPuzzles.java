@@ -30,6 +30,7 @@ import android.content.DialogInterface.OnCancelListener;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
+import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
 import android.graphics.Color;
 import android.net.Uri;
@@ -70,6 +71,7 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 {
 	static final String TAG = "SGTPuzzles";
 	static final String STATE_PREFS_NAME = "state";
+	static final String ORIENTATION_KEY = "orientation";
 	static final String ARROW_KEYS_KEY = "arrowKeys";
 	static final String INERTIA_FORCE_ARROWS_KEY = "inertiaForceArrows";
 	private static final String FULLSCREEN_KEY = "fullscreen";
@@ -231,6 +233,7 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 		applyFullscreen(false);  // must precede super.onCreate and setContentView
 		cachedFullscreen = startedFullscreen = prefs.getBoolean(FULLSCREEN_KEY, false);
 		applyStayAwake();
+		applyOrientation();
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.main);
 		getSupportActionBar().setDisplayHomeAsUpEnabled(true);
@@ -770,17 +773,19 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 		// (invalidateOptionsMenu() does not help here)
 		// Just cautiously fix the common case: if >850dip then force
 		// show everything, else let the platform decide
-		DisplayMetrics dm = getResources().getDisplayMetrics();
-		int screenWidthDIP = (int)Math.round(((double)dm.widthPixels) / dm.density);
-		boolean reallyWide = screenWidthDIP > 850;
-		int state =  reallyWide ? MenuItemCompat.SHOW_AS_ACTION_ALWAYS
-				: MenuItemCompat.SHOW_AS_ACTION_IF_ROOM;
-		MenuItemCompat.setShowAsAction(menu.findItem(R.id.settings), state);
-		MenuItemCompat.setShowAsAction(menu.findItem(R.id.solve), state);
-		MenuItemCompat.setShowAsAction(menu.findItem(R.id.help), state);
-		state |= MenuItemCompat.SHOW_AS_ACTION_WITH_TEXT;
-		MenuItemCompat.setShowAsAction(menu.findItem(R.id.game), state);
-		MenuItemCompat.setShowAsAction(menu.findItem(R.id.type), state);
+		if (menu != null) {
+			DisplayMetrics dm = getResources().getDisplayMetrics();
+			int screenWidthDIP = (int) Math.round(((double) dm.widthPixels) / dm.density);
+			boolean reallyWide = screenWidthDIP > 850;
+			int state = reallyWide ? MenuItemCompat.SHOW_AS_ACTION_ALWAYS
+					: MenuItemCompat.SHOW_AS_ACTION_IF_ROOM;
+			MenuItemCompat.setShowAsAction(menu.findItem(R.id.settings), state);
+			MenuItemCompat.setShowAsAction(menu.findItem(R.id.solve), state);
+			MenuItemCompat.setShowAsAction(menu.findItem(R.id.help), state);
+			state |= MenuItemCompat.SHOW_AS_ACTION_WITH_TEXT;
+			MenuItemCompat.setShowAsAction(menu.findItem(R.id.game), state);
+			MenuItemCompat.setShowAsAction(menu.findItem(R.id.type), state);
+		}
 	}
 
 	@UsedByJNI
@@ -1029,6 +1034,8 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 			applyFullscreen(true);  // = already started
 		} else if (key.equals(STAY_AWAKE_KEY)) {
 			applyStayAwake();
+		} else if (key.equals(ORIENTATION_KEY)) {
+			applyOrientation();
 		}
 	}
 
@@ -1079,6 +1086,17 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 			getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 		} else {
 			getWindow().clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+		}
+	}
+
+	private void applyOrientation() {
+		final String orientationPref = prefs.getString(ORIENTATION_KEY, "sensor");
+		if (orientationPref.equals("landscape")) {
+			setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
+		} else if (orientationPref.equals("portrait")) {
+			setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT);
+		} else {
+			setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR);
 		}
 	}
 

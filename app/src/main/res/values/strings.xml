@@ -91,6 +91,10 @@ Revision: %s"</string>
     <string name="fullscreenSummary">Hide notifications</string>
     <string name="stayAwake">Stay awake</string>
     <string name="stayAwakeSummary">Make screen stay on while Puzzles is in the foreground</string>
+    <string name="orientation">Screen orientation</string>
+    <string name="orientationSensor">Unlocked</string>
+    <string name="orientationPortrait">Portrait</string>
+    <string name="orientationLandscape">Landscape</string>
     <string name="undoRedoKbd">Undo/Redo on keyboard</string>
     <string name="undoRedoKbdSummary">Show undo/redo in the keyboard instead of the action bar: allows auto-repeat, needs restart</string>
     <string name="inertiaForceArrows">Always show arrows</string>

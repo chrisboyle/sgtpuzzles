@@ -14,6 +14,11 @@
 			android:summary="@string/stayAwakeSummary"
 			android:key="stayAwake"
 			android:defaultValue="false" />
+		<ListPreference android:title="@string/orientation"
+			android:key="orientation"
+			android:entryValues="@array/orientationModes"
+			android:entries="@array/orientationModeDescs"
+			android:defaultValue="sensor" />
 		<CheckBoxPreference android:title="@string/undoRedoKbd"
 			android:summary="@string/undoRedoKbdSummary"
 			android:key="undoRedoKbd"
