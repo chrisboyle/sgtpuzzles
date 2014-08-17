@@ -49,6 +49,7 @@
 
 #include <assert.h>
 #include <string.h>
+#include <stdarg.h>
 
 #include "puzzles.h"
 
