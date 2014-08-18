@@ -269,24 +269,27 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 			stopNative();
 			dismissProgress();
 		}
-		String s = intent.getStringExtra("game");
-		Uri u = intent.getData();
-		if (s != null && s.length() > 0) {
-			Log.d(TAG, "starting game from Intent, "+s.length()+" bytes");
-			startGame(GameLaunch.ofSavedGame(s));
-			return;
-		} else if (u != null) {
-			Log.d(TAG, "URI is: \""+u+"\"");
-			String g = u.getSchemeSpecificPart();
-			if (games.length < 2) games = getResources().getStringArray(R.array.games);
-			for (String game : games) {
-				if (game.equals(g)) {
-					startGame(GameLaunch.toGenerate(g, null));
-					return;
+		// Don't regenerate on resurrecting a URL-bound activity from the recent list
+		if ((intent.getFlags() & Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY) == 0) {
+			String s = intent.getStringExtra("game");
+			Uri u = intent.getData();
+			if (s != null && s.length() > 0) {
+				Log.d(TAG, "starting game from Intent, " + s.length() + " bytes");
+				startGame(GameLaunch.ofSavedGame(s));
+				return;
+			} else if (u != null) {
+				Log.d(TAG, "URI is: \"" + u + "\"");
+				String g = u.getSchemeSpecificPart();
+				if (games.length < 2) games = getResources().getStringArray(R.array.games);
+				for (String game : games) {
+					if (game.equals(g)) {
+						startGame(GameLaunch.toGenerate(g, null));
+						return;
+					}
 				}
+				Log.e(TAG, "Unhandled URL! \"" + u + "\" -> g = \"" + g + "\", games = " + Arrays.toString(games));
+				// TODO! Other URLs, including game states...
 			}
-			Log.e(TAG, "Unhandled URL! \""+u+"\" -> g = \""+g+"\", games = "+ Arrays.toString(games));
-			// TODO! Other URLs, including game states...
 		}
 		if( state.contains("savedGame") && state.getString("savedGame","").length() > 0 ) {
 			Log.d(TAG, "restoring last state");
