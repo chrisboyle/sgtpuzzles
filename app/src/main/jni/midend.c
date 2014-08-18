@@ -1969,7 +1969,6 @@ char *midend_deserialise(midend *me,
     midend_size_new_drawstate(me);
 
     ret = NULL;                        /* success! */
-    changed_state(me->drawing, me->statepos > 1, me->statepos < me->nstates);
 
     cleanup:
     sfree(val);

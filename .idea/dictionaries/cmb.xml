@@ -9,6 +9,7 @@
       <w>compat</w>
       <w>cparams</w>
       <w>ctype</w>
+      <w>deserialise</w>
       <w>dists</w>
       <w>docindex</w>
       <w>doctype</w>
@@ -23,12 +24,21 @@
       <w>fillomino</w>
       <w>footerfile</w>
       <w>fulkerson</w>
+      <w>getspecific</w>
       <w>gettext</w>
       <w>greenend</w>
       <w>hitori</w>
       <w>inlined</w>
       <w>isgame</w>
       <w>janko</w>
+      <w>jboolean</w>
+      <w>jclass</w>
+      <w>jfloat</w>
+      <w>jint</w>
+      <w>jnicall</w>
+      <w>jniexport</w>
+      <w>jobject</w>
+      <w>jstring</w>
       <w>karp</w>
       <w>klotski</w>
       <w>kurodoko</w>
@@ -41,6 +51,7 @@
       <w>loopgen</w>
       <w>malloc</w>
       <w>masyu</w>
+      <w>memset</w>
       <w>menubar</w>
       <w>midend</w>
       <w>nestedvm</w>
@@ -56,18 +67,24 @@
       <w>planarity</w>
       <w>pthread</w>
       <w>realloc</w>
+      <w>resized</w>
       <w>resstrings</w>
       <w>samegame</w>
       <w>savefile</w>
+      <w>setspecific</w>
       <w>sgtatham</w>
       <w>sgtpuzzles</w>
+      <w>sizeof</w>
+      <w>snew</w>
       <w>sokoban</w>
       <w>srcstrings</w>
       <w>statepos</w>
+      <w>strcmp</w>
       <w>strdup</w>
       <w>stringsfiles</w>
       <w>substr</w>
       <w>sudoku</w>
+      <w>sval</w>
       <w>tatham's</w>
       <w>tentai</w>
       <w>thegame</w>

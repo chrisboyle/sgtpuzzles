@@ -87,7 +87,7 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 	private SubMenu typeMenu;
 	private LinkedHashMap<String, String> gameTypes;
 	private int currentType = 0;
-	boolean gameRunning = false;
+	boolean workerRunning = false;
 	private Process gameGenProcess = null;
 	private boolean solveEnabled = false, customVisible = false,
 			undoEnabled = false, redoEnabled = false;
@@ -107,7 +107,7 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 	private AlertDialog dialog;
 	private ArrayList<Integer> dialogIds;
 	private TableLayout dialogLayout;
-	private String currentBackend = "";
+	String currentBackend = null;
 	private Thread worker;
 	private String lastKeys = "";
 	private static final File storageDir = Environment.getExternalStorageDirectory();
@@ -162,7 +162,7 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 			stopNative();
 			dismissProgress();
 			if (msg.obj != null && !msg.obj.equals("")) {
-				messageBox(getString(R.string.Error), (String)msg.obj, 2, false);
+				messageBox(MessageBoxType.ERROR, getString(R.string.Error), (String)msg.obj);
 			} else {
 				startChooser();
 				finish();
@@ -195,7 +195,7 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 
 	String saveToString()
 	{
-		if( ! gameRunning || progress != null ) return null;
+		if (currentBackend == null || progress != null) return null;
 		savingState = new StringBuffer();
 		serialise();  // serialiseWrite() callbacks will happen in here
 		String s = savingState.toString();
@@ -217,8 +217,7 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 
 	void gameViewResized()
 	{
-		if( ! gameRunning ) return;
-		if( progress == null && gameView.w > 10 && gameView.h > 10 )
+		if (progress == null && gameView.w > 10 && gameView.h > 10)
 			resizeEvent(gameView.w, gameView.h);
 		else
 			resizeOnDone = true;
@@ -389,7 +388,13 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 		case R.id.restart:  restartEvent(); break;
 		case R.id.undo:     sendKey(0, 0, 'u'); break;
 		case R.id.redo:     sendKey(0, 0, 'r'); break;
-		case R.id.solve:    solveEvent(); break;
+		case R.id.solve:
+			try {
+				solveEvent();
+			} catch (IllegalArgumentException e) {
+				messageBox(MessageBoxType.ERROR, getString(R.string.Error), e.getMessage());
+			}
+			break;
 		case R.id.custom:   configIsCustom = true; configEvent( CFG_SETTINGS ); break;
 		case R.id.specific: configIsCustom = false; configEvent( CFG_DESC ); break;
 		case R.id.seed:     configIsCustom = false; configEvent( CFG_SEED ); break;
@@ -427,7 +432,7 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 		String title = String.format(getString(R.string.About_X), getTitle());
 		String msg = String.format(getString(R.string.From_Simon_Tatham_s_Portable_Puzzle_Collection_Revision_X),
 				getVersion(this));
-		messageBox(title, msg, 0, false);
+		messageBox(MessageBoxType.ABOUT, title, msg);
 	}
 
 	private static String getEmailSubject(Context c)
@@ -463,7 +468,7 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 
 	private void abort(String why)
 	{
-		gameRunning = false;
+		workerRunning = false;
 		handler.obtainMessage(MsgType.ABORT.ordinal(), why).sendToTarget();
 	}
 
@@ -486,14 +491,14 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 			String error = game;
 			if (error != null && error.length() > 0) {  // probably bogus params
 				throw new IllegalArgumentException(error);
-			} else if (gameRunning) {
+			} else if (workerRunning) {
 				error = "Game generation exited with status "+exitStatus;
 				Log.e(TAG, error);
 				throw new IOException(error);
 			}
 			// else cancelled
 		}
-		if( ! gameRunning ) return null;  // cancelled
+		if( !workerRunning) return null;  // cancelled
 		return game;
 	}
 
@@ -554,29 +559,33 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 			Log.e(TAG, "startGame while already starting!");
 			return;
 		}
-		showProgress( launch.needsGenerating() ? R.string.starting : R.string.resuming );
-		if( gameRunning ) {
+		showProgress(launch.needsGenerating() ? R.string.starting : R.string.resuming);
+		stopNative();
+		startGameThread(launch);
+	}
+
+	@UsedByJNI
+	private void clearForNewGame() {
+		runOnUiThread(new Runnable(){public void run() {
 			gameView.clear();
-			stopNative();
 			solveEnabled = false;
 			changedState(false, false);
 			customVisible = false;
 			setStatusBarVisibility(false);
-		}
-		if (! prefs.getBoolean(UNDO_REDO_KBD_KEY, false)) {
-			maybeUndoRedo = "";
-		}
-		setKeys("", SmallKeyboard.ArrowMode.ARROWS_LEFT_RIGHT_CLICK);
-		if( typeMenu != null ) {
-			while (typeMenu.size() > 1) typeMenu.removeItem(typeMenu.getItem(0).getItemId());
-		}
-		gameTypes.clear();
-		gameRunning = true;
-		gameView.keysHandled = 0;
-		startGameThread(launch);
+			if (!prefs.getBoolean(UNDO_REDO_KBD_KEY, false)) {
+				maybeUndoRedo = "";
+			}
+			setKeys("", SmallKeyboard.ArrowMode.ARROWS_LEFT_RIGHT_CLICK);
+			if (typeMenu != null) {
+				while (typeMenu.size() > 1) typeMenu.removeItem(typeMenu.getItem(0).getItemId());
+			}
+			gameTypes.clear();
+			gameView.keysHandled = 0;
+		}});
 	}
 
 	private void startGameThread(final GameLaunch launch) {
+		workerRunning = true;
 		(worker = new Thread(launch.needsGenerating() ? "generateAndLoadGame" : "loadGame") { public void run() {
 			try {
 				if (launch.needsGenerating()) {
@@ -591,7 +600,7 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 					String generated = generateGame(whichBackend, params);
 					if (generated != null) {
 						launch.finishedGenerating(generated);
-					} else if (gameRunning) {
+					} else if (workerRunning) {
 						throw new IOException("Internal error generating game: result is blank");
 					}
 				}
@@ -606,14 +615,14 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 			} catch (IOException e) {
 				abort(e.getMessage());  // internal error :-(
 			}
-			if( ! gameRunning ) return;  // stopNative or abort was called
+			if (! workerRunning) return;  // stopNative or abort was called
 			handler.sendEmptyMessage(MsgType.DONE.ordinal());
 		}}).start();
 	}
 
 	private void startNewGame()
 	{
-		if(! gameRunning || progress != null) return;
+		if (progress != null) return;
 		showProgress( R.string.starting_new );
 		changedState(false, false);
 		startGameThread(GameLaunch.toGenerate(currentBackend, getCurrentParams()));
@@ -625,7 +634,7 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 
 	private void stopNative()
 	{
-		gameRunning = false;
+		workerRunning = false;
 		if (gameGenProcess != null) {
 			gameGenProcess.destroy();
 			gameGenProcess = null;
@@ -641,7 +650,7 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 	@Override
 	protected void onPause()
 	{
-		if( gameRunning ) handler.removeMessages(MsgType.TIMER.ordinal());
+		handler.removeMessages(MsgType.TIMER.ordinal());
 		save();
 		super.onPause();
 	}
@@ -668,7 +677,7 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 	@Override
 	public void onWindowFocusChanged( boolean f )
 	{
-		if( f && gameWantsTimer && gameRunning
+		if( f && gameWantsTimer && currentBackend != null
 				&& ! handler.hasMessages(MsgType.TIMER.ordinal()) )
 			handler.sendMessageDelayed(handler.obtainMessage(MsgType.TIMER.ordinal()),
 					TIMER_INTERVAL);
@@ -676,7 +685,7 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 
 	void sendKey(int x, int y, int k)
 	{
-		if(! gameRunning || progress != null) return;
+		if (progress != null || currentBackend == null) return;
 		if (k == '\f') {
 			// menu button hack
 			openOptionsMenu();
@@ -763,15 +772,15 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 	}
 
 	@UsedByJNI
-	void gameStarted(final String whichBackend, final String title, final boolean hasCustom, final boolean hasStatus, final boolean canSolve, float[] colours)
+	void gameStarted(final String whichBackend, final String title, final boolean hasCustom, final boolean hasStatus, final boolean canSolve, final float[] colours)
 	{
-		currentBackend = whichBackend;
-		gameView.colours = new int[colours.length/3];
-		for (int i=0; i<colours.length/3; i++)
-			gameView.colours[i] = Color.rgb((int)(colours[i*3]*255),(int)(colours[i*3+1]*255),(int)(colours[i*3+2]*255));
-		customVisible = hasCustom;
-		solveEnabled = canSolve;
 		runOnUiThread(new Runnable(){public void run(){
+			currentBackend = whichBackend;
+			gameView.colours = new int[colours.length/3];
+			for (int i=0; i<colours.length/3; i++)
+				gameView.colours[i] = Color.rgb((int)(colours[i*3]*255),(int)(colours[i*3+1]*255),(int)(colours[i*3+2]*255));
+			customVisible = hasCustom;
+			solveEnabled = canSolve;
 			if (gameView.colours.length > 0) gameView.setBackgroundColor(gameView.colours[0]);
 			setTitle(title);
 			getSupportActionBar().setTitle(title);
@@ -780,44 +789,40 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 	}
 
 	@UsedByJNI
-	void addTypeItem(String encoded, String label)
+	void addTypeItem(final String encoded, final String label)
 	{
-//		Log.d(TAG, "addTypeItem(" + encoded + ", " + label + ")");
-		gameTypes.put(encoded, label);
+		runOnUiThread(new Runnable(){public void run(){
+//			Log.d(TAG, "addTypeItem(" + encoded + ", " + label + ")");
+			gameTypes.put(encoded, label);
+		}});
 	}
 
-	@UsedByJNI
-	void messageBox(final String title, final String msg, final int flag, boolean fromPattern)
+	enum MessageBoxType { ABOUT, TRY_AGAIN, ERROR }
+
+	void messageBox(final MessageBoxType messageBoxType, final String title, final String msg)
 	{
-		if (fromPattern &&
-				! prefs.getBoolean(PATTERN_SHOW_LENGTHS_KEY, false)) {
-			return;
-		}
 		runOnUiThread(new Runnable() {
 			public void run() {
 				dismissProgress();
-				if (title == null)
-					Toast.makeText(SGTPuzzles.this, msg, Toast.LENGTH_SHORT).show();
-				else new AlertDialog.Builder(SGTPuzzles.this)
+				new AlertDialog.Builder(SGTPuzzles.this)
 						.setTitle(title)
 						.setMessage(msg)
-						.setIcon((flag == 0)
+						.setIcon((messageBoxType == MessageBoxType.ABOUT)
 								? android.R.drawable.ic_dialog_info
 								: android.R.drawable.ic_dialog_alert)
-						.setOnCancelListener(new OnCancelListener() {
-							public void onCancel(DialogInterface dialog) {
-								if (flag < 2) {
-									gameViewResized();
-								} else {
-									startChooser();
-									finish();
-								}
-							}
-						})
 						.show();
 			}
 		});
-		// I don't think we need to wait before returning here (and we can't)
+	}
+
+	@UsedByJNI
+	void showToast(final String msg) {
+		runOnUiThread(new Runnable() {
+			public void run() {
+				Log.e(TAG, msg);
+				Toast.makeText(SGTPuzzles.this, msg, Toast.LENGTH_SHORT).show();
+			}
+		});
 	}
 
 	@UsedByJNI
@@ -922,7 +927,7 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 				try {
 					startGame(GameLaunch.toGenerate(currentBackend, configOK()));
 				} catch (IllegalArgumentException e) {
-					messageBox(getString(R.string.Error), e.getMessage(), 1, false);
+					messageBox(MessageBoxType.TRY_AGAIN, getString(R.string.Error), e.getMessage());
 				}
 			}
 		});

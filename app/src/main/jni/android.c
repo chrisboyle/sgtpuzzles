@@ -19,7 +19,7 @@
 
 #include "puzzles.h"
 
-struct game thegame;
+struct game* thegame;
 
 void fatal(char *fmt, ...)
 {
@@ -65,6 +65,7 @@ static jmethodID
 	blitterLoad,
 	blitterSave,
 	changedState,
+	clearForNewGame,
 	clipRect,
 	dialogAdd,
 	dialogInit,
@@ -76,7 +77,6 @@ static jmethodID
 	fillRect,
 	gameStarted,
 	getText,
-	messageBox,
 	postInvalidate,
 	requestResize,
 	requestTimer,
@@ -84,6 +84,7 @@ static jmethodID
 	setKeys,
 	setMargins,
 	setStatus,
+	showToast,
 	tickTypeItem,
 	unClip,
 	completed;
@@ -372,9 +373,7 @@ void JNICALL solveEvent(JNIEnv *env, jobject _obj)
 	if (! msg) return;
 	jstring js = (*env)->NewStringUTF(env, msg);
 	if( js == NULL ) return;
-	jstring js2 = (*env)->NewStringUTF(env, _("Error"));
-	if( js2 == NULL ) return;
-	(*env)->CallVoidMethod(env, obj, messageBox, js2, js, 1, FALSE);
+	throwIllegalArgumentException(env, msg);
 }
 
 void JNICALL restartEvent(JNIEnv *env, jobject _obj)
@@ -461,7 +460,7 @@ int android_deserialise_read(void *ctx, void *buf, int len)
 	return l == len;
 }
 
-int deserialiseOrIdentify(jstring s, jboolean identifyOnly) {
+int deserialiseOrIdentify(frontend *new_fe, jstring s, jboolean identifyOnly) {
 	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
 	const char * c = (*env)->GetStringUTFChars(env, s, NULL);
 	deserialise_readptr = c;
@@ -479,18 +478,18 @@ int deserialiseOrIdentify(jstring s, jboolean identifyOnly) {
 		if (whichBackend < 0) error = "Internal error identifying game";
 	}
 	if (! error && ! identifyOnly) {
-		thegame = *(gamelist[whichBackend]);
-		fe->me = midend_new(fe, &thegame, &android_drawing, fe);
+		thegame = gamelist[whichBackend];
+		new_fe->me = midend_new(new_fe, gamelist[whichBackend], &android_drawing, new_fe);
 		deserialise_readptr = c;
 		deserialise_readlen = strlen(deserialise_readptr);
-		error = midend_deserialise(fe->me, android_deserialise_read, NULL);
+		error = midend_deserialise(new_fe->me, android_deserialise_read, NULL);
 	}
 	(*env)->ReleaseStringUTFChars(env, s, c);
 	if (error) {
 		throwIllegalArgumentException(env, error);
-		if (fe->me) {
-			midend_free(fe->me);
-			fe->me = NULL;
+		if (!identifyOnly && new_fe->me) {
+			midend_free(new_fe->me);
+			new_fe->me = NULL;
 		}
 	}
 	return whichBackend;
@@ -499,7 +498,7 @@ int deserialiseOrIdentify(jstring s, jboolean identifyOnly) {
 jint JNICALL identifyBackend(JNIEnv *env, jobject _obj, jstring savedGame)
 {
 	pthread_setspecific(envKey, env);
-	return deserialiseOrIdentify(savedGame, TRUE);
+	return deserialiseOrIdentify(NULL, savedGame, TRUE);
 }
 
 jstring JNICALL getCurrentParams(JNIEnv *env, jobject _obj)
@@ -513,7 +512,7 @@ jstring JNICALL getCurrentParams(JNIEnv *env, jobject _obj)
 jstring JNICALL htmlHelpTopic(JNIEnv *env, jobject _obj)
 {
 	//pthread_setspecific(envKey, env);
-	return (*env)->NewStringUTF(env, thegame.htmlhelp_topic);
+	return (*env)->NewStringUTF(env, thegame->htmlhelp_topic);
 }
 
 void android_completed()
@@ -522,12 +521,13 @@ void android_completed()
 	(*env)->CallVoidMethod(env, obj, completed);
 }
 
-void android_toast(const char *msg, int fromPattern)
+void android_toast(const char *msg)
 {
+	if (!obj) return;
 	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
 	jstring js = (*env)->NewStringUTF(env, msg);
 	if( js == NULL ) return;
-	(*env)->CallVoidMethod(env, obj, messageBox, NULL, js, 0, fromPattern);
+	(*env)->CallVoidMethod(env, obj, showToast, js);
 }
 
 void android_keys(const char *keys, int arrowMode)
@@ -561,21 +561,24 @@ void startPlaying(JNIEnv *env, jobject _obj, jobject _gameView, jstring savedGam
 	float* colours;
 	pthread_setspecific(envKey, env);
 
+	frontend *new_fe = snew(frontend);
+	memset(new_fe, 0, sizeof(frontend));
+	int whichBackend = deserialiseOrIdentify(new_fe, savedGame, FALSE);
+	if ((*env)->ExceptionCheck(env)) {
+		return;
+	}
+
 	if (fe) {
 		if (fe->me) midend_free(fe->me);  // might use gameView (e.g. blitters)
 		sfree(fe);
 	}
-	fe = snew(frontend);
-	memset(fe, 0, sizeof(frontend));
+	fe = new_fe;
 	if (obj) (*env)->DeleteGlobalRef(env, obj);
 	obj = (*env)->NewGlobalRef(env, _obj);
 	if (gameView) (*env)->DeleteGlobalRef(env, gameView);
 	gameView = (*env)->NewGlobalRef(env, _gameView);
 
-	int whichBackend = deserialiseOrIdentify(savedGame, FALSE);
-	if ((*env)->ExceptionCheck(env)) {
-		return;
-	}
+	(*env)->CallVoidMethod(env, obj, clearForNewGame);
 
 	if ((n = midend_num_presets(fe->me)) > 0) {
 		int i;
@@ -596,8 +599,8 @@ void startPlaying(JNIEnv *env, jobject _obj, jobject _gameView, jstring savedGam
 	(*env)->SetFloatArrayRegion(env, colsj, 0, n*3, colours);
 	(*env)->CallVoidMethod(env, obj, gameStarted,
 			(*env)->NewStringUTF(env, gamenames[whichBackend]),
-			(*env)->NewStringUTF(env, thegame.name), thegame.can_configure,
-			midend_wants_statusbar(fe->me), thegame.can_solve, colsj);
+			(*env)->NewStringUTF(env, thegame->name), thegame->can_configure,
+			midend_wants_statusbar(fe->me), thegame->can_solve, colsj);
 	resize_fe();
 
 	(*env)->CallVoidMethod(env, obj, tickTypeItem, midend_which_preset(fe->me));
@@ -625,6 +628,7 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
 	blitterLoad    = (*env)->GetMethodID(env, vcls, "blitterLoad", "(III)V");
 	blitterSave    = (*env)->GetMethodID(env, vcls, "blitterSave", "(III)V");
 	changedState   = (*env)->GetMethodID(env, cls,  "changedState", "(ZZ)V");
+	clearForNewGame = (*env)->GetMethodID(env, cls,  "clearForNewGame", "()V");
 	clipRect       = (*env)->GetMethodID(env, vcls, "clipRect", "(IIII)V");
 	dialogAdd      = (*env)->GetMethodID(env, cls,  "dialogAdd", "(IILjava/lang/String;Ljava/lang/String;I)V");
 	dialogInit     = (*env)->GetMethodID(env, cls,  "dialogInit", "(Ljava/lang/String;)V");
@@ -636,7 +640,6 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
 	fillRect       = (*env)->GetMethodID(env, vcls, "fillRect", "(IIIII)V");
 	gameStarted    = (*env)->GetMethodID(env, cls,  "gameStarted", "(Ljava/lang/String;Ljava/lang/String;ZZZ[F)V");
 	getText        = (*env)->GetMethodID(env, cls,  "gettext", "(Ljava/lang/String;)Ljava/lang/String;");
-	messageBox     = (*env)->GetMethodID(env, cls,  "messageBox", "(Ljava/lang/String;Ljava/lang/String;IZ)V");
 	postInvalidate = (*env)->GetMethodID(env, vcls, "postInvalidate", "()V");
 	requestResize  = (*env)->GetMethodID(env, cls,  "requestResize", "(II)V");
 	requestTimer   = (*env)->GetMethodID(env, cls,  "requestTimer", "(Z)V");
@@ -644,6 +647,7 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
 	setKeys        = (*env)->GetMethodID(env, cls,  "setKeys", "(Ljava/lang/String;Lname/boyle/chris/sgtpuzzles/SmallKeyboard$ArrowMode;)V");
 	setMargins     = (*env)->GetMethodID(env, vcls, "setMargins", "(II)V");
 	setStatus      = (*env)->GetMethodID(env, cls,  "setStatus", "(Ljava/lang/String;)V");
+	showToast      = (*env)->GetMethodID(env, cls,  "showToast", "(Ljava/lang/String;)V");
 	tickTypeItem   = (*env)->GetMethodID(env, cls,  "tickTypeItem", "(I)V");
 	unClip         = (*env)->GetMethodID(env, vcls, "unClip", "(II)V");
 	completed      = (*env)->GetMethodID(env, cls,  "completed", "()V");

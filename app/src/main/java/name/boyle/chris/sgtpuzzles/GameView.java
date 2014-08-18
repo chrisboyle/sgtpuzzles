@@ -65,7 +65,7 @@ class GameView extends View
 	@Override
 	public boolean onTouchEvent(@NonNull MotionEvent event)
 	{
-		if (! parent.gameRunning) return false;
+		if (parent.currentBackend == null) return false;
 		switch( event.getAction() ) {
 		case MotionEvent.ACTION_DOWN:
 			int meta = event.getMetaState();
@@ -188,6 +188,7 @@ class GameView extends View
         canvas.drawColor( Color.BLACK );
 	}
 
+	@UsedByJNI
 	void setMargins( int x, int y )
 	{
 		if (x == 0 && y == 0) return;
@@ -200,10 +201,14 @@ class GameView extends View
 		canvas.drawRect(0, h - y, w, y, paint);*/
 		canvas.clipRect(new Rect(x, y, w - x, h - y), Region.Op.REPLACE);
 	}
+
+	@UsedByJNI
 	void clipRect(int x, int y, int w, int h)
 	{
 		canvas.clipRect(new Rect(x,y,x+w,y+h), Region.Op.REPLACE);
 	}
+
+	@UsedByJNI
 	void unClip(int x, int y)
 	{
 		int w = getWidth(), h = getHeight();
@@ -215,12 +220,16 @@ class GameView extends View
 			canvas.clipRect(new Rect(x, y, w - x, h - y), Region.Op.REPLACE);
 		}
 	}
+
+	@UsedByJNI
 	void fillRect(int x, int y, int w, int h, int colour)
 	{
 		paint.setColor(colours[colour]);
 		paint.setStyle(Paint.Style.FILL);
 		canvas.drawRect(x, y, x+w, y+h, paint);
 	}
+
+	@UsedByJNI
 	void drawLine(int x1, int y1, int x2, int y2, int colour)
 	{
 		paint.setColor(colours[colour]);
@@ -228,6 +237,8 @@ class GameView extends View
 		canvas.drawLine(x1, y1, x2, y2, paint);
 		paint.setAntiAlias( false );
 	}
+
+	@UsedByJNI
 	void drawPoly(Path p, int lineColour, int fillColour)
 	{
 		if (fillColour != -1) {
@@ -239,6 +250,8 @@ class GameView extends View
 		paint.setStyle(Paint.Style.STROKE);
 		canvas.drawPath(p, paint);
 	}
+
+	@UsedByJNI
 	void drawCircle(int x, int y, int r, int lineColour, int fillColour)
 	{
 		if (fillColour != -1) {
@@ -250,6 +263,8 @@ class GameView extends View
 		paint.setStyle(Paint.Style.STROKE);
 		canvas.drawOval(new RectF(x-r, y-r, x+r, y+r), paint);
 	}
+
+	@UsedByJNI
 	void drawText(int x, int y, int flags, int size, int colour, String text)
 	{
 		paint.setColor(colours[colour]);
@@ -266,6 +281,8 @@ class GameView extends View
 		canvas.drawText( text, x, y, paint );
 		paint.setAntiAlias( false );
 	}
+
+	@UsedByJNI
 	int blitterAlloc(int w, int h)
 	{
 		for(int i=0; i<blitters.length; i++) {
@@ -276,18 +293,24 @@ class GameView extends View
 		}
 		throw new RuntimeException("No free blitter found!");
 	}
+
+	@UsedByJNI
 	void blitterFree(int i)
 	{
 		if( blitters[i] == null ) return;
 		blitters[i].recycle();
 		blitters[i] = null;
 	}
+
+	@UsedByJNI
 	void blitterSave(int i, int x, int y)
 	{
 		if( blitters[i] == null ) return;
 		Canvas c = new Canvas(blitters[i]);
 		c.drawBitmap(bitmap, -x, -y, null);
 	}
+
+	@UsedByJNI
 	void blitterLoad(int i, int x, int y)
 	{
 		if( blitters[i] == null ) return;
