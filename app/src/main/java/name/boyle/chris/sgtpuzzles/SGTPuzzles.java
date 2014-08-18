@@ -177,6 +177,7 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 		progress.setMessage( getString(msgId) );
 		progress.setIndeterminate( true );
 		progress.setCancelable( true );
+		progress.setCanceledOnTouchOutside(false);
 		progress.setOnCancelListener(new OnCancelListener() {
 			public void onCancel(DialogInterface dialog) { abort(null); }
 		});
