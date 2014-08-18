@@ -19,7 +19,7 @@
 
 #include "puzzles.h"
 
-struct game* thegame;
+const struct game* thegame;
 
 void fatal(char *fmt, ...)
 {
@@ -331,27 +331,42 @@ void activate_timer(frontend *_fe)
 	fe->timer_active = TRUE;
 }
 
-void JNICALL configSetString(JNIEnv *env, jobject _obj, jint item_ptr, jstring s)
+config_item* configItemWithName(JNIEnv *env, jstring js)
+{
+	const char* name = (*env)->GetStringUTFChars(env, js, NULL);
+	config_item* i;
+	config_item* ret = NULL;
+	for (i = fe->cfg; i->type != C_END; i++) {
+		if (!strcmp(name, i->name)) {
+			ret = i;
+			break;
+		}
+	}
+	(*env)->ReleaseStringUTFChars(env, js, name);
+	return ret;
+}
+
+void JNICALL configSetString(JNIEnv *env, jobject _obj, jstring name, jstring s)
 {
 	pthread_setspecific(envKey, env);
-	config_item *i = (config_item *)item_ptr;
+	config_item *i = configItemWithName(env, name);
 	const char* newval = (*env)->GetStringUTFChars(env, s, NULL);
 	sfree(i->sval);
 	i->sval = dupstr(newval);
 	(*env)->ReleaseStringUTFChars(env, s, newval);
 }
 
-void JNICALL configSetBool(JNIEnv *env, jobject _obj, jint item_ptr, jint selected)
+void JNICALL configSetBool(JNIEnv *env, jobject _obj, jstring name, jint selected)
 {
 	pthread_setspecific(envKey, env);
-	config_item *i = (config_item *)item_ptr;
+	config_item *i = configItemWithName(env, name);
 	i->ival = selected != 0 ? TRUE : FALSE;
 }
 
-void JNICALL configSetChoice(JNIEnv *env, jobject _obj, jint item_ptr, jint selected)
+void JNICALL configSetChoice(JNIEnv *env, jobject _obj, jstring name, jint selected)
 {
 	pthread_setspecific(envKey, env);
-	config_item *i = (config_item *)item_ptr;
+	config_item *i = configItemWithName(env, name);
 	i->ival = selected;
 }
 
@@ -398,7 +413,7 @@ void JNICALL configEvent(JNIEnv *env, jobject _obj, jint whichEvent)
 		if( i->name && js2 == NULL ) return;
 		jstring js3 = i->sval ? (*env)->NewStringUTF(env, i->sval) : NULL;
 		if( i->sval && js3 == NULL ) return;
-		(*env)->CallVoidMethod(env, obj, dialogAdd, (int)i, i->type, js2, js3, i->ival);
+		(*env)->CallVoidMethod(env, obj, dialogAdd, i->type, js2, js3, i->ival);
 		if( i->name ) (*env)->DeleteLocalRef(env, js2);
 		if( i->sval ) (*env)->DeleteLocalRef(env, js3);
 	}
@@ -630,7 +645,7 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
 	changedState   = (*env)->GetMethodID(env, cls,  "changedState", "(ZZ)V");
 	clearForNewGame = (*env)->GetMethodID(env, cls,  "clearForNewGame", "()V");
 	clipRect       = (*env)->GetMethodID(env, vcls, "clipRect", "(IIII)V");
-	dialogAdd      = (*env)->GetMethodID(env, cls,  "dialogAdd", "(IILjava/lang/String;Ljava/lang/String;I)V");
+	dialogAdd      = (*env)->GetMethodID(env, cls,  "dialogAdd", "(ILjava/lang/String;Ljava/lang/String;I)V");
 	dialogInit     = (*env)->GetMethodID(env, cls,  "dialogInit", "(Ljava/lang/String;)V");
 	dialogShow     = (*env)->GetMethodID(env, cls,  "dialogShow", "()V");
 	drawCircle     = (*env)->GetMethodID(env, vcls, "drawCircle", "(IIIII)V");
@@ -656,9 +671,9 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
 		{ "keyEvent", "(III)V", keyEvent },
 		{ "resizeEvent", "(II)V", resizeEvent },
 		{ "timerTick", "()V", timerTick },
-		{ "configSetString", "(ILjava/lang/String;)V", configSetString },
-		{ "configSetBool", "(II)V", configSetBool },
-		{ "configSetChoice", "(II)V", configSetChoice },
+		{ "configSetString", "(Ljava/lang/String;Ljava/lang/String;)V", configSetString },
+		{ "configSetBool", "(Ljava/lang/String;I)V", configSetBool },
+		{ "configSetChoice", "(Ljava/lang/String;I)V", configSetChoice },
 		{ "solveEvent", "()V", solveEvent },
 		{ "restartEvent", "()V", restartEvent },
 		{ "configEvent", "(I)V", configEvent },

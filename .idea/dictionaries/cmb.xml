@@ -1,6 +1,7 @@
 <component name="ProjectDictionaryState">
   <dictionary name="cmb">
     <words>
+      <w>addr</w>
       <w>autom</w>
       <w>autoreconf</w>
       <w>blackbox</w>
@@ -14,6 +15,7 @@
       <w>docindex</w>
       <w>doctype</w>
       <w>dominosa</w>
+      <w>dupstr</w>
       <w>edmonds</w>
       <w>emcc</w>
       <w>emcclib</w>
@@ -26,6 +28,7 @@
       <w>fulkerson</w>
       <w>getspecific</w>
       <w>gettext</w>
+      <w>gettimeofday</w>
       <w>greenend</w>
       <w>hitori</w>
       <w>inlined</w>
@@ -78,6 +81,7 @@
       <w>snew</w>
       <w>sokoban</w>
       <w>srcstrings</w>
+      <w>sscanf</w>
       <w>statepos</w>
       <w>strcmp</w>
       <w>strdup</w>

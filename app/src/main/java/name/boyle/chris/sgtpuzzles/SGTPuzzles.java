@@ -105,7 +105,7 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 	private static final int TIMER_INTERVAL = 20;
 	private StringBuffer savingState;
 	private AlertDialog dialog;
-	private ArrayList<Integer> dialogIds;
+	private ArrayList<String> dialogIds;
 	private TableLayout dialogLayout;
 	String currentBackend = null;
 	private Thread worker;
@@ -244,6 +244,7 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 		statusBar = (TextView)findViewById(R.id.statusBar);
 		gameView = (GameView)findViewById(R.id.game);
 		keyboard = (SmallKeyboard)findViewById(R.id.keyboard);
+		dialogIds = new ArrayList<String>();
 		setDefaultKeyMode(DEFAULT_KEYS_SHORTCUT);
 		gameView.requestFocus();
 		onNewIntent(getIntent());
@@ -915,8 +916,8 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 		});
 		dialog.setButton(DialogInterface.BUTTON_POSITIVE, getString(android.R.string.ok), new DialogInterface.OnClickListener() {
 			public void onClick(DialogInterface d, int whichButton) {
-				for (Integer i : dialogIds) {
-					View v = dialogLayout.findViewById(i);
+				for (String i : dialogIds) {
+					View v = dialogLayout.findViewWithTag(i);
 					if (v instanceof EditText) {
 						configSetString(i, ((EditText) v).getText().toString());
 					} else if (v instanceof CheckBox) {
@@ -933,12 +934,13 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 				}
 			}
 		});
-		dialogIds = new ArrayList<Integer>();
+		dialogIds.clear();
 	}
 
 	@UsedByJNI
-	void dialogAdd(int id, int type, String name, String value, int selection)
+	void dialogAdd(int type, String name, String value, int selection)
 	{
+		final String id = name;
 		switch(type) {
 		case C_STRING: {
 			dialogIds.add(id);
@@ -947,7 +949,7 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 			// Ugly temporary hack: in custom game dialog, all text boxes are numeric, in the other two dialogs they aren't.
 			// Uglier temporary-er hack: Black Box must accept a range for ball count.
 			if (configIsCustom && !currentBackend.equals("blackbox")) et.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL | InputType.TYPE_NUMBER_FLAG_SIGNED);
-			et.setId(id);
+			et.setTag(id);
 			et.setText(value);
 			TextView tv = new TextView(SGTPuzzles.this);
 			tv.setText(name);
@@ -960,7 +962,7 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 		case C_BOOLEAN: {
 			dialogIds.add(id);
 			CheckBox c = new CheckBox(SGTPuzzles.this);
-			c.setId(id);
+			c.setTag(id);
 			c.setText(name);
 			c.setChecked(selection != 0);
 			dialogLayout.addView(c);
@@ -971,7 +973,7 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 			while(st.hasMoreTokens()) choices.add(st.nextToken());
 			dialogIds.add(id);
 			Spinner s = new Spinner(SGTPuzzles.this);
-			s.setId(id);
+			s.setTag(id);
 			ArrayAdapter<String> a = new ArrayAdapter<String>(SGTPuzzles.this,
 					android.R.layout.simple_spinner_item, choices.toArray(new String[choices.size()]));
 			a.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
@@ -1158,9 +1160,9 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 	native void configEvent(int whichEvent);
 	native String configOK();
 	native void configCancel();
-	native void configSetString(int item_ptr, String s);
-	native void configSetBool(int item_ptr, int selected);
-	native void configSetChoice(int item_ptr, int selected);
+	native void configSetString(String item_ptr, String s);
+	native void configSetBool(String item_ptr, int selected);
+	native void configSetChoice(String item_ptr, int selected);
 	native void serialise();
 	native int identifyBackend(String savedGame);
 	native String getCurrentParams();
