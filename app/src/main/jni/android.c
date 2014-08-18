@@ -521,13 +521,13 @@ void android_completed()
 	(*env)->CallVoidMethod(env, obj, completed);
 }
 
-void android_toast(const char *msg)
+void android_toast(const char *msg, int fromPattern)
 {
 	if (!obj) return;
 	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
 	jstring js = (*env)->NewStringUTF(env, msg);
 	if( js == NULL ) return;
-	(*env)->CallVoidMethod(env, obj, showToast, js);
+	(*env)->CallVoidMethod(env, obj, showToast, js, fromPattern);
 }
 
 void android_keys(const char *keys, int arrowMode)
@@ -647,7 +647,7 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
 	setKeys        = (*env)->GetMethodID(env, cls,  "setKeys", "(Ljava/lang/String;Lname/boyle/chris/sgtpuzzles/SmallKeyboard$ArrowMode;)V");
 	setMargins     = (*env)->GetMethodID(env, vcls, "setMargins", "(II)V");
 	setStatus      = (*env)->GetMethodID(env, cls,  "setStatus", "(Ljava/lang/String;)V");
-	showToast      = (*env)->GetMethodID(env, cls,  "showToast", "(Ljava/lang/String;)V");
+	showToast      = (*env)->GetMethodID(env, cls,  "showToast", "(Ljava/lang/String;Z)V");
 	tickTypeItem   = (*env)->GetMethodID(env, cls,  "tickTypeItem", "(I)V");
 	unClip         = (*env)->GetMethodID(env, vcls, "unClip", "(II)V");
 	completed      = (*env)->GetMethodID(env, cls,  "completed", "()V");

@@ -817,7 +817,8 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 	}
 
 	@UsedByJNI
-	void showToast(final String msg) {
+	void showToast(final String msg, final boolean fromPattern) {
+		if (fromPattern && ! prefs.getBoolean(PATTERN_SHOW_LENGTHS_KEY, false)) return;
 		runOnUiThread(new Runnable() {
 			public void run() {
 				Log.e(TAG, msg);

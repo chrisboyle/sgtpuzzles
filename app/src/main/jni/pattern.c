@@ -1074,7 +1074,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 	    } else {
 		sprintf(buf, "%dx%d", x2-x1+1, y2-y1+1);
 	    }
-	    android_toast(buf);
+	    android_toast(buf, TRUE);
 #endif
 	    sprintf(buf, "%c%d,%d,%d,%d",
 		    (char)(ui->state == GRID_FULL ? 'F' :
