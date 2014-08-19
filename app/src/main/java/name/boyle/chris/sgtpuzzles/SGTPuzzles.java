@@ -896,6 +896,9 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 				.setView(sv)
 				.create();
 		sv.addView(dialogLayout = new TableLayout(SGTPuzzles.this));
+		final int xPadding = getResources().getDimensionPixelSize(R.dimen.dialog_padding_horizontal);
+		final int yPadding = getResources().getDimensionPixelSize(R.dimen.dialog_padding_vertical);
+		dialogLayout.setPadding(xPadding, yPadding, xPadding, yPadding);
 		dialog.setOnCancelListener(new OnCancelListener() {
 			public void onCancel(DialogInterface dialog) {
 				configCancel();
@@ -937,12 +940,15 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 			if (configIsCustom && !currentBackend.equals("blackbox")) et.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL | InputType.TYPE_NUMBER_FLAG_SIGNED);
 			et.setTag(name);
 			et.setText(value);
+			et.setWidth(getResources().getDimensionPixelSize(R.dimen.dialog_edit_text_width));
 			TextView tv = new TextView(SGTPuzzles.this);
 			tv.setText(name);
-			tv.setPadding(2,2,2,2);
+			tv.setPadding(0, 0, getResources().getDimensionPixelSize(R.dimen.dialog_padding_horizontal), 0);
+			tv.setGravity(Gravity.END);
 			TableRow tr = new TableRow(SGTPuzzles.this);
 			tr.addView(tv);
 			tr.addView(et);
+			tr.setGravity(Gravity.CENTER_VERTICAL);
 			dialogLayout.addView(tr);
 			break; }
 		case C_BOOLEAN: {
@@ -965,11 +971,17 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 			a.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
 			s.setAdapter(a);
 			s.setSelection(selection);
+			s.setLayoutParams(new TableRow.LayoutParams(
+					getResources().getDimensionPixelSize(R.dimen.dialog_spinner_width),
+					TableRow.LayoutParams.WRAP_CONTENT));
 			TextView tv = new TextView(SGTPuzzles.this);
 			tv.setText(name);
+			tv.setPadding(0, 0, getResources().getDimensionPixelSize(R.dimen.dialog_padding_horizontal), 0);
+			tv.setGravity(Gravity.END);
 			TableRow tr = new TableRow(SGTPuzzles.this);
 			tr.addView(tv);
 			tr.addView(s);
+			tr.setGravity(Gravity.CENTER_VERTICAL);
 			dialogLayout.addView(tr);
 			break; }
 		}
@@ -980,6 +992,7 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 	{
 		dialogLayout.setColumnShrinkable(0, true);
 		dialogLayout.setColumnShrinkable(1, true);
+		dialogLayout.setColumnStretchable(0, true);
 		dialogLayout.setColumnStretchable(1, true);
 		dialog.show();
 	}
