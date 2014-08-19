@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- untangle.c will darken this outside the square playable area, to distinguish that area -->
+    <color name="game_background">#ffcccccc</color>
+    <color name="keyboard_background">#ff212421</color>
+</resources>

@@ -79,6 +79,7 @@ static jmethodID
 	drawText,
 	fillRect,
 	gameStarted,
+	getBackgroundColour,
 	getText,
 	postInvalidate,
 	requestResize,
@@ -107,7 +108,11 @@ void get_random_seed(void **randseed, int *randseedsize)
 
 void frontend_default_colour(frontend *fe, float *output)
 {
-	output[0] = output[1]= output[2] = 0.8f;
+	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
+	jint argb = (*env)->CallIntMethod(env, gameView, getBackgroundColour);
+	output[0] = ((argb & 0x00ff0000) >> 16) / 255.0f;
+	output[1] = ((argb & 0x0000ff00) >> 8) / 255.0f;
+	output[2] = (argb & 0x000000ff) / 255.0f;
 }
 
 void android_status_bar(void *handle, char *text)
@@ -597,7 +602,11 @@ void startPlaying(JNIEnv *env, jobject _obj, jobject _gameView, jstring savedGam
 	gameView = (*env)->NewGlobalRef(env, _gameView);
 
 	jobject keys = (lastKeys == NULL) ? NULL : (*env)->NewStringUTF(env, lastKeys);
-	(*env)->CallVoidMethod(env, obj, clearForNewGame, keys, lastArrowMode);
+	colours = midend_colours(fe->me, &n);
+	jfloatArray jColours = (*env)->NewFloatArray(env, n*3);
+	if (jColours == NULL) return;
+	(*env)->SetFloatArrayRegion(env, jColours, 0, n*3, colours);
+	(*env)->CallVoidMethod(env, obj, clearForNewGame, keys, lastArrowMode, jColours);
 	(*env)->DeleteLocalRef(env, keys);
 
 	if ((n = midend_num_presets(fe->me)) > 0) {
@@ -611,16 +620,12 @@ void startPlaying(JNIEnv *env, jobject _obj, jobject _gameView, jstring savedGam
 		}
 	}
 
-	colours = midend_colours(fe->me, &n);
 	fe->ox = -1;
 
-	jfloatArray colsj = (*env)->NewFloatArray(env, n*3);
-	if (colsj == NULL) return;
-	(*env)->SetFloatArrayRegion(env, colsj, 0, n*3, colours);
 	(*env)->CallVoidMethod(env, obj, gameStarted,
 			(*env)->NewStringUTF(env, gamenames[whichBackend]),
 			(*env)->NewStringUTF(env, thegame->name), thegame->can_configure,
-			midend_wants_statusbar(fe->me), thegame->can_solve, colsj);
+			midend_wants_statusbar(fe->me), thegame->can_solve);
 	resize_fe();
 
 	(*env)->CallVoidMethod(env, obj, tickTypeItem, midend_which_preset(fe->me));
@@ -648,7 +653,7 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
 	blitterLoad    = (*env)->GetMethodID(env, vcls, "blitterLoad", "(III)V");
 	blitterSave    = (*env)->GetMethodID(env, vcls, "blitterSave", "(III)V");
 	changedState   = (*env)->GetMethodID(env, cls,  "changedState", "(ZZ)V");
-	clearForNewGame = (*env)->GetMethodID(env, cls,  "clearForNewGame", "(Ljava/lang/String;Lname/boyle/chris/sgtpuzzles/SmallKeyboard$ArrowMode;)V");
+	clearForNewGame = (*env)->GetMethodID(env, cls,  "clearForNewGame", "(Ljava/lang/String;Lname/boyle/chris/sgtpuzzles/SmallKeyboard$ArrowMode;[F)V");
 	clipRect       = (*env)->GetMethodID(env, vcls, "clipRect", "(IIII)V");
 	dialogAdd      = (*env)->GetMethodID(env, cls,  "dialogAdd", "(ILjava/lang/String;Ljava/lang/String;I)V");
 	dialogInit     = (*env)->GetMethodID(env, cls,  "dialogInit", "(Ljava/lang/String;)V");
@@ -658,7 +663,8 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
 	drawPoly       = (*env)->GetMethodID(env, cls,  "drawPoly", "([IIIII)V");
 	drawText       = (*env)->GetMethodID(env, vcls, "drawText", "(IIIIILjava/lang/String;)V");
 	fillRect       = (*env)->GetMethodID(env, vcls, "fillRect", "(IIIII)V");
-	gameStarted    = (*env)->GetMethodID(env, cls,  "gameStarted", "(Ljava/lang/String;Ljava/lang/String;ZZZ[F)V");
+	gameStarted    = (*env)->GetMethodID(env, cls,  "gameStarted", "(Ljava/lang/String;Ljava/lang/String;ZZZ)V");
+	getBackgroundColour = (*env)->GetMethodID(env, vcls, "getDefaultBackgroundColour", "()I");
 	getText        = (*env)->GetMethodID(env, cls,  "gettext", "(Ljava/lang/String;)Ljava/lang/String;");
 	postInvalidate = (*env)->GetMethodID(env, vcls, "postInvalidate", "()V");
 	requestResize  = (*env)->GetMethodID(env, cls,  "requestResize", "(II)V");

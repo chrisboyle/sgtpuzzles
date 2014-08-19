@@ -3,7 +3,6 @@ package name.boyle.chris.sgtpuzzles;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
-import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.Rect;
@@ -185,7 +184,17 @@ class GameView extends View
 
 	public void clear()
 	{
-        canvas.drawColor( Color.BLACK );
+		getBackground().draw(canvas);
+	}
+
+	@Override
+	public void setBackgroundColor(int color) {
+		super.setBackgroundColor(color);
+	}
+
+	@UsedByJNI
+	int getDefaultBackgroundColour() {
+		return getResources().getColor(R.color.game_background);
 	}
 
 	@UsedByJNI
@@ -193,12 +202,6 @@ class GameView extends View
 	{
 		if (x == 0 && y == 0) return;
 		int w = getWidth(), h = getHeight();
-		/*paint.setColor(Color.BLACK);
-		paint.setStyle(Paint.Style.FILL);
-		canvas.drawRect(0, 0, x, h, paint);
-		canvas.drawRect(0, 0, w, y, paint);
-		canvas.drawRect(w - x, 0, x, h, paint);
-		canvas.drawRect(0, h - y, w, y, paint);*/
 		canvas.clipRect(new Rect(x, y, w - x, h - y), Region.Op.REPLACE);
 	}
 

@@ -7,7 +7,6 @@ import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
-import android.graphics.Color;
 import android.inputmethodservice.Keyboard;
 import android.inputmethodservice.KeyboardView;
 import android.preference.PreferenceManager;
@@ -330,7 +329,7 @@ class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboardActio
 	{
 		super(c, a);
 		parent = isInEditMode() ? null : (SGTPuzzles)c;
-		setBackgroundColor( Color.BLACK );
+		setBackgroundColor(getResources().getColor(R.color.keyboard_background));
 		setOnKeyboardActionListener(this);
 		if (isInEditMode()) setKeys("123456\bur", ArrowMode.ARROWS_LEFT_RIGHT_CLICK);
 	}

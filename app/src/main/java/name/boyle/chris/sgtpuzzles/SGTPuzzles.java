@@ -570,8 +570,21 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 	}
 
 	@UsedByJNI
-	private void clearForNewGame(final String keys, final SmallKeyboard.ArrowMode arrowMode) {
+	private void clearForNewGame(final String keys, final SmallKeyboard.ArrowMode arrowMode, final float[] colours) {
 		runOnUiThread(new Runnable(){public void run() {
+			gameView.colours = new int[colours.length/3];
+			for (int i=0; i<colours.length/3; i++) {
+				final int colour = Color.rgb(
+						(int) (colours[i * 3    ] * 255),
+						(int) (colours[i * 3 + 1] * 255),
+						(int) (colours[i * 3 + 2] * 255));
+				gameView.colours[i] = colour;
+			}
+			if (gameView.colours.length > 0) {
+				gameView.setBackgroundColor(gameView.colours[0]);
+			} else {
+				gameView.setBackgroundColor(gameView.getDefaultBackgroundColour());
+			}
 			gameView.clear();
 			solveEnabled = false;
 			changedState(false, false);
@@ -777,16 +790,12 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 	}
 
 	@UsedByJNI
-	void gameStarted(final String whichBackend, final String title, final boolean hasCustom, final boolean hasStatus, final boolean canSolve, final float[] colours)
+	void gameStarted(final String whichBackend, final String title, final boolean hasCustom, final boolean hasStatus, final boolean canSolve)
 	{
 		runOnUiThread(new Runnable(){public void run(){
 			currentBackend = whichBackend;
-			gameView.colours = new int[colours.length/3];
-			for (int i=0; i<colours.length/3; i++)
-				gameView.colours[i] = Color.rgb((int)(colours[i*3]*255),(int)(colours[i*3+1]*255),(int)(colours[i*3+2]*255));
 			customVisible = hasCustom;
 			solveEnabled = canSolve;
-			if (gameView.colours.length > 0) gameView.setBackgroundColor(gameView.colours[0]);
 			setTitle(title);
 			getSupportActionBar().setTitle(title);
 			setStatusBarVisibility(hasStatus);
@@ -825,7 +834,6 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 		if (fromPattern && ! prefs.getBoolean(PATTERN_SHOW_LENGTHS_KEY, false)) return;
 		runOnUiThread(new Runnable() {
 			public void run() {
-				Log.e(TAG, msg);
 				Toast.makeText(SGTPuzzles.this, msg, Toast.LENGTH_SHORT).show();
 			}
 		});
