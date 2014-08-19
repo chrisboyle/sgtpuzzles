@@ -242,6 +242,16 @@ class GameView extends View
 	}
 
 	@UsedByJNI
+	void drawPoly(int[] points, int ox, int oy, int line, int fill)
+	{
+		Path path = new Path();
+		path.moveTo(points[0] + ox, points[1] + oy);
+		for( int i=1; i < points.length/2; i++ )
+			path.lineTo(points[2 * i] + ox, points[2 * i + 1] + oy);
+		path.close();
+		drawPoly(path, line, fill);
+	}
+
 	void drawPoly(Path p, int lineColour, int fillColour)
 	{
 		if (fillColour != -1) {

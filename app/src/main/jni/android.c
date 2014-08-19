@@ -183,7 +183,7 @@ void android_draw_poly(void *handle, int *coords, int npoints,
 	jintArray coordsj = (*env)->NewIntArray(env, npoints*2);
 	if (coordsj == NULL) return;
 	(*env)->SetIntArrayRegion(env, coordsj, 0, npoints*2, coords);
-	(*env)->CallVoidMethod(env, obj, drawPoly, coordsj, fe->ox, fe->oy, outlinecolour, fillcolour);
+	(*env)->CallVoidMethod(env, gameView, drawPoly, coordsj, fe->ox, fe->oy, outlinecolour, fillcolour);
 	(*env)->DeleteLocalRef(env, coordsj);  // prevent ref table exhaustion on e.g. large Mines grids...
 }
 
@@ -660,7 +660,7 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
 	dialogShow     = (*env)->GetMethodID(env, cls,  "dialogShow", "()V");
 	drawCircle     = (*env)->GetMethodID(env, vcls, "drawCircle", "(IIIII)V");
 	drawLine       = (*env)->GetMethodID(env, vcls, "drawLine", "(IIIII)V");
-	drawPoly       = (*env)->GetMethodID(env, cls,  "drawPoly", "([IIIII)V");
+	drawPoly       = (*env)->GetMethodID(env, vcls,  "drawPoly", "([IIIII)V");
 	drawText       = (*env)->GetMethodID(env, vcls, "drawText", "(IIIIILjava/lang/String;)V");
 	fillRect       = (*env)->GetMethodID(env, vcls, "fillRect", "(IIIII)V");
 	gameStarted    = (*env)->GetMethodID(env, cls,  "gameStarted", "(Ljava/lang/String;Ljava/lang/String;ZZZ)V");

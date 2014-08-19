@@ -32,7 +32,6 @@ import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
 import android.content.res.Configuration;
 import android.graphics.Color;
-import android.graphics.Path;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -898,17 +897,6 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 		gameWantsTimer = on;
 		if( on ) handler.sendMessageDelayed(handler.obtainMessage(MsgType.TIMER.ordinal()), TIMER_INTERVAL);
 		else handler.removeMessages(MsgType.TIMER.ordinal());
-	}
-
-	@UsedByJNI
-	void drawPoly(int[] points, int ox, int oy, int line, int fill)
-	{
-		Path path = new Path();
-		path.moveTo(points[0] + ox, points[1] + oy);
-		for( int i=1; i < points.length/2; i++ )
-			path.lineTo(points[2 * i] + ox, points[2 * i + 1] + oy);
-		path.close();
-		gameView.drawPoly(path, line, fill);
 	}
 
 	@UsedByJNI
