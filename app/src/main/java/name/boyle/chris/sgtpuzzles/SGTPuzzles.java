@@ -570,7 +570,7 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 	}
 
 	@UsedByJNI
-	private void clearForNewGame() {
+	private void clearForNewGame(final String keys, final SmallKeyboard.ArrowMode arrowMode) {
 		runOnUiThread(new Runnable(){public void run() {
 			gameView.clear();
 			solveEnabled = false;
@@ -580,7 +580,7 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 			if (!prefs.getBoolean(UNDO_REDO_KBD_KEY, false)) {
 				maybeUndoRedo = "";
 			}
-			setKeys("", SmallKeyboard.ArrowMode.ARROWS_LEFT_RIGHT_CLICK);
+			setKeys(keys, arrowMode);
 			if (typeMenu != null) {
 				while (typeMenu.size() > 1) typeMenu.removeItem(typeMenu.getItem(0).getItemId());
 			}
@@ -943,16 +943,15 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 	@UsedByJNI
 	void dialogAdd(int type, String name, String value, int selection)
 	{
-		final String id = name;
 		switch(type) {
 		case C_STRING: {
-			dialogIds.add(id);
+			dialogIds.add(name);
 			EditText et = new EditText(SGTPuzzles.this);
 			// TODO: C_INT, C_UINT, C_UDOUBLE, C_DOUBLE
 			// Ugly temporary hack: in custom game dialog, all text boxes are numeric, in the other two dialogs they aren't.
 			// Uglier temporary-er hack: Black Box must accept a range for ball count.
 			if (configIsCustom && !currentBackend.equals("blackbox")) et.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL | InputType.TYPE_NUMBER_FLAG_SIGNED);
-			et.setTag(id);
+			et.setTag(name);
 			et.setText(value);
 			TextView tv = new TextView(SGTPuzzles.this);
 			tv.setText(name);
@@ -963,9 +962,9 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 			dialogLayout.addView(tr);
 			break; }
 		case C_BOOLEAN: {
-			dialogIds.add(id);
+			dialogIds.add(name);
 			CheckBox c = new CheckBox(SGTPuzzles.this);
-			c.setTag(id);
+			c.setTag(name);
 			c.setText(name);
 			c.setChecked(selection != 0);
 			dialogLayout.addView(c);
@@ -974,9 +973,9 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 			StringTokenizer st = new StringTokenizer(value.substring(1),value.substring(0,1));
 			ArrayList<String> choices = new ArrayList<String>();
 			while(st.hasMoreTokens()) choices.add(st.nextToken());
-			dialogIds.add(id);
+			dialogIds.add(name);
 			Spinner s = new Spinner(SGTPuzzles.this);
-			s.setTag(id);
+			s.setTag(name);
 			ArrayAdapter<String> a = new ArrayAdapter<String>(SGTPuzzles.this,
 					android.R.layout.simple_spinner_item, choices.toArray(new String[choices.size()]));
 			a.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
@@ -1015,15 +1014,13 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 
 	private SmallKeyboard.ArrowMode lastArrowMode = SmallKeyboard.ArrowMode.NO_ARROWS;
 
-	@UsedByJNI
 	void setKeys(String keys, SmallKeyboard.ArrowMode arrowMode)
 	{
+		if (keys == null) keys = "";
+		if (arrowMode == null) arrowMode = SmallKeyboard.ArrowMode.ARROWS_LEFT_RIGHT_CLICK;
 		lastArrowMode = arrowMode;
-		if( keys == null ) return;
 		lastKeys = keys + maybeUndoRedo;
-		runOnUiThread(new Runnable(){public void run(){
-			setKeyboardVisibility(getResources().getConfiguration());
-		}});
+		setKeyboardVisibility(getResources().getConfiguration());
 	}
 
 	@Override

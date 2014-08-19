@@ -28,6 +28,7 @@
       <w>fulkerson</w>
       <w>getspecific</w>
       <w>gettext</w>
+      <w>gettexted</w>
       <w>gettimeofday</w>
       <w>greenend</w>
       <w>hitori</w>
@@ -38,6 +39,7 @@
       <w>jclass</w>
       <w>jfloat</w>
       <w>jint</w>
+      <w>jmethod</w>
       <w>jnicall</w>
       <w>jniexport</w>
       <w>jobject</w>
