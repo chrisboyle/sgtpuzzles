@@ -1050,7 +1050,7 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 				// This is the only way to change the theme
 				if (! startedFullscreen) restartOnResume = true;
 			} else {
-				setTheme(R.style.Theme_AppCompat_FullScreen);
+				setTheme(R.style.Theme_AppCompat_SolidActionBar_FullScreen);
 			}
 		} else {
 			if (hasLightsOut) {

@@ -1,6 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.AppCompat.FullScreen" parent="@style/Theme.AppCompat">
+    <style name="Theme.AppCompat.SolidActionBar" parent="@style/Theme.AppCompat">
+        <item name="android:actionBarStyle">@style/Widget.AppCompat.ActionBar.Solid</item>
+
+        <!-- Support library compatibility -->
+        <item name="actionBarStyle">@style/Widget.AppCompat.ActionBar.Solid</item>
+    </style>
+    <style name="Theme.AppCompat.SolidActionBar.FullScreen" parent="@style/Theme.AppCompat.SolidActionBar">
         <item name="android:windowNoTitle">true</item>
         <item name="android:windowFullscreen">true</item>
     </style>
