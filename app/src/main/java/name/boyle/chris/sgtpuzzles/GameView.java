@@ -184,12 +184,15 @@ class GameView extends View
 
 	public void clear()
 	{
-		getBackground().draw(canvas);
+		bitmap.eraseColor(backgroundColour);
 	}
 
+	private int backgroundColour;
+
 	@Override
-	public void setBackgroundColor(int color) {
-		super.setBackgroundColor(color);
+	public void setBackgroundColor(int colour) {
+		super.setBackgroundColor(colour);
+		backgroundColour = colour;
 	}
 
 	@UsedByJNI
