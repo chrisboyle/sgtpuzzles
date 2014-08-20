@@ -100,7 +100,7 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 		MOD_SHFT = 0x2000, ALIGN_VCENTRE = 0x100,
 		ALIGN_HCENTRE = 0x001, ALIGN_HRIGHT = 0x002, TEXT_MONO = 0x10;
 	static final long MAX_SAVE_SIZE = 1000000; // 1MB; we only have 16MB of heap
-	private boolean gameWantsTimer = false, resizeOnDone = false;
+	private boolean gameWantsTimer = false;
 	private static final int TIMER_INTERVAL = 20;
 	private StringBuffer savingState;
 	private AlertDialog dialog;
@@ -143,10 +143,7 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 			}
 			break;
 		case DONE:
-			if( resizeOnDone ) {
-				resizeEvent(gameView.w, gameView.h);
-				resizeOnDone = false;
-			}
+			resizeEvent(gameView.w, gameView.h);
 			if (currentBackend != null) {
 				// set ActionBar icon to the one for this puzzle
 				int iconId = getResources().getIdentifier(
@@ -219,8 +216,6 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 	{
 		if (progress == null && gameView.w > 10 && gameView.h > 10)
 			resizeEvent(gameView.w, gameView.h);
-		else
-			resizeOnDone = true;
 	}
 
 	@Override
@@ -871,13 +866,6 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 			}
 		});
 		d.show();
-	}
-
-	@UsedByJNI
-	void requestResize(int x, int y)
-	{
-		gameView.clear();
-		gameViewResized();
 	}
 
 	@UsedByJNI

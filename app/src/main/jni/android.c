@@ -82,7 +82,6 @@ static jmethodID
 	getBackgroundColour,
 	getText,
 	postInvalidate,
-	requestResize,
 	requestTimer,
 	serialiseWrite,
 	setMargins,
@@ -377,17 +376,6 @@ void JNICALL configSetChoice(JNIEnv *env, jobject _obj, jstring name, jint selec
 	i->ival = selected;
 }
 
-static void resize_fe()
-{
-	int x, y;
-	if (!fe || !fe->me) return;
-	x = INT_MAX;
-	y = INT_MAX;
-	midend_size(fe->me, &x, &y, FALSE);
-	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
-	(*env)->CallVoidMethod(env, obj, requestResize, x, y);
-}
-
 void JNICALL solveEvent(JNIEnv *env, jobject _obj)
 {
 	pthread_setspecific(envKey, env);
@@ -600,6 +588,10 @@ void startPlaying(JNIEnv *env, jobject _obj, jobject _gameView, jstring savedGam
 	obj = (*env)->NewGlobalRef(env, _obj);
 	if (gameView) (*env)->DeleteGlobalRef(env, gameView);
 	gameView = (*env)->NewGlobalRef(env, _gameView);
+	int x, y;
+	x = INT_MAX;
+	y = INT_MAX;
+	midend_size(fe->me, &x, &y, FALSE);
 
 	jobject keys = (lastKeys == NULL) ? NULL : (*env)->NewStringUTF(env, lastKeys);
 	colours = midend_colours(fe->me, &n);
@@ -626,7 +618,6 @@ void startPlaying(JNIEnv *env, jobject _obj, jobject _gameView, jstring savedGam
 			(*env)->NewStringUTF(env, gamenames[whichBackend]),
 			(*env)->NewStringUTF(env, thegame->name), thegame->can_configure,
 			midend_wants_statusbar(fe->me), thegame->can_solve);
-	resize_fe();
 
 	(*env)->CallVoidMethod(env, obj, tickTypeItem, midend_which_preset(fe->me));
 }
@@ -667,7 +658,6 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
 	getBackgroundColour = (*env)->GetMethodID(env, vcls, "getDefaultBackgroundColour", "()I");
 	getText        = (*env)->GetMethodID(env, cls,  "gettext", "(Ljava/lang/String;)Ljava/lang/String;");
 	postInvalidate = (*env)->GetMethodID(env, vcls, "postInvalidate", "()V");
-	requestResize  = (*env)->GetMethodID(env, cls,  "requestResize", "(II)V");
 	requestTimer   = (*env)->GetMethodID(env, cls,  "requestTimer", "(Z)V");
 	serialiseWrite = (*env)->GetMethodID(env, cls,  "serialiseWrite", "([B)V");
 	setMargins     = (*env)->GetMethodID(env, vcls, "setMargins", "(II)V");
