@@ -205,7 +205,7 @@ class GameView extends View
 	{
 		if (x == 0 && y == 0) return;
 		int w = getWidth(), h = getHeight();
-		canvas.clipRect(new Rect(x, y, w - x, h - y), Region.Op.REPLACE);
+		canvas.clipRect(new Rect(x, y, w - x - 1, h - y - 1), Region.Op.REPLACE);
 	}
 
 	@UsedByJNI
@@ -223,7 +223,7 @@ class GameView extends View
 			paint.setColor(colours[0]);
 			canvas.drawRect(0, 0, w, h, paint);
 		} else {
-			canvas.clipRect(new Rect(x, y, w - x, h - y), Region.Op.REPLACE);
+			canvas.clipRect(new Rect(x, y, w - x - 1, h - y - 1), Region.Op.REPLACE);
 		}
 	}
 
