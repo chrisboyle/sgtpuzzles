@@ -119,6 +119,7 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 	private String maybeUndoRedo = "ur";
 	private PrefsSaver prefsSaver;
 	private boolean startedFullscreen = false, cachedFullscreen = false;
+	private boolean keysAlreadySet = false;
 
 	enum MsgType { TIMER, DONE, ABORT }
 	static class PuzzlesHandler extends Handler
@@ -766,7 +767,7 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 	@Override
 	public void onConfigurationChanged(Configuration newConfig)
 	{
-		setKeyboardVisibility(newConfig);
+		if (keysAlreadySet) setKeyboardVisibility(newConfig);
 		super.onConfigurationChanged(newConfig);
 		// ActionBar's capacity (width) has probably changed, so work around
 		// http://code.google.com/p/android/issues/detail?id=20493
@@ -1023,6 +1024,7 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 		lastArrowMode = arrowMode;
 		lastKeys = keys + maybeUndoRedo;
 		setKeyboardVisibility(getResources().getConfiguration());
+		keysAlreadySet = true;
 	}
 
 	@Override
