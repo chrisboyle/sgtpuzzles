@@ -968,6 +968,7 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 			et.setText(value);
 			et.setWidth(getResources().getDimensionPixelSize((whichEvent == CFG_SETTINGS)
 					? R.dimen.dialog_edit_text_width : R.dimen.dialog_long_edit_text_width));
+			et.setSelectAllOnFocus(true);
 			TextView tv = new TextView(SGTPuzzles.this);
 			tv.setText(name);
 			tv.setPadding(0, 0, getResources().getDimensionPixelSize(R.dimen.dialog_padding_horizontal), 0);
@@ -1021,6 +1022,11 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 		dialogLayout.setColumnShrinkable(1, true);
 		dialogLayout.setColumnStretchable(0, true);
 		dialogLayout.setColumnStretchable(1, true);
+		if (getResources().getConfiguration().hardKeyboardHidden == Configuration.HARDKEYBOARDHIDDEN_YES) {
+			// Hack to prevent the first EditText from receiving focus when the dialog is shown
+			dialogLayout.setFocusableInTouchMode(true);
+			dialogLayout.requestFocus();
+		}
 		dialog.show();
 	}
 
