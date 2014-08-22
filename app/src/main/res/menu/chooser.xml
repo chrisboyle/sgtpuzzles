@@ -4,8 +4,8 @@
     xmlns:tools="http://schemas.android.com/tools" tools:ignore="UnusedAttribute"
     tools:context=".GameChooser">
 	<group android:id="@+id/chooserStyle" android:checkableBehavior="single">
-		<item android:title="@string/Grid" android:id="@+id/gridchooser" android:icon="@android:drawable/ic_menu_gallery" android:checkable="true" supportLib:showAsAction="ifRoom|withText"/>
-		<item android:title="@string/Details" android:id="@+id/listchooser" android:icon="@android:drawable/ic_menu_info_details" android:checkable="true" supportLib:showAsAction="ifRoom|withText"/>
+		<item android:title="@string/View_as_grid" android:id="@+id/gridchooser" android:icon="@drawable/ic_action_view_as_grid" android:checkable="true" supportLib:showAsAction="ifRoom|withText"/>
+		<item android:title="@string/View_as_list" android:id="@+id/listchooser" android:icon="@drawable/ic_action_view_as_list" android:checkable="true" supportLib:showAsAction="ifRoom|withText"/>
 	</group>
-	<item android:title="@string/Load_" android:id="@+id/load" android:alphabeticShortcut="y" android:icon="@android:drawable/ic_menu_upload" supportLib:showAsAction="ifRoom|withText"/>
+	<item android:title="@string/Load_" android:id="@+id/load" android:alphabeticShortcut="y" android:icon="@drawable/ic_action_load" supportLib:showAsAction="ifRoom|withText"/>
 </menu>

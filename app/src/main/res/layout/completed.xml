@@ -2,9 +2,9 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="#cc000000"
+    android:background="@color/completed_panel_background"
     android:gravity="bottom"
-    android:orientation="vertical" >
+    android:orientation="vertical">
 
     <TextView
         android:layout_width="match_parent"
@@ -27,7 +27,7 @@
             android:layout_margin="3dp"
             android:layout_weight="1"
             android:drawablePadding="2dp"
-            android:drawableTop="@android:drawable/ic_menu_add"
+            android:drawableTop="@drawable/ic_action_new"
             android:text="@string/New_game" />
 
         <Button
@@ -37,7 +37,7 @@
             android:layout_margin="3dp"
             android:layout_weight="1"
             android:drawablePadding="2dp"
-            android:drawableTop="@android:drawable/ic_menu_edit"
+            android:drawableTop="@drawable/ic_action_type"
             android:text="@string/Change_type" />
 
         <Button
@@ -47,7 +47,7 @@
             android:layout_margin="3dp"
             android:layout_weight="1"
             android:drawablePadding="2dp"
-            android:drawableTop="@android:drawable/ic_menu_gallery"
+            android:drawableTop="@drawable/ic_action_view_as_list"
             android:text="@string/Other_game" />
     </LinearLayout>
 

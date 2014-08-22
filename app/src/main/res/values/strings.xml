@@ -28,8 +28,6 @@ chris@boyle.name and I'll be happy to include it in future versions.
     <string name="About_X">About %.200s</string>
     <string name="From_Simon_Tatham_s_Portable_Puzzle_Collection_Revision_X">"From Simon Tatham's Portable Puzzle Collection
 
-Translated by: nobody, this is the original English
-
 Revision: %s"</string>
     <!-- Things used by the Android front-end only -->
     <string name="app_name">Puzzles</string>
@@ -49,7 +47,7 @@ Revision: %s"</string>
     <string name="file_saved">Saved the game in {0}</string>
     <!-- Help menu -->
     <!-- {0} is a game name -->
-    <string name="help_on_game">Help on {0}</string>
+    <string name="how_to_play_game">How to play {0}</string>
     <!-- Progress dialog when generating/resuming a game -->
     <string name="starting">Starting game (complex games may take a minute)</string>
     <string name="starting_new">Starting new game (complex games may take a minute)</string>
@@ -61,8 +59,8 @@ Revision: %s"</string>
     <!-- Menu -->
     <string name="Game">Game</string>
     <string name="Other_game">Other game</string>
-    <string name="Grid">Grid</string>
-    <string name="Details">Details</string>
+    <string name="View_as_grid">View as grid</string>
+    <string name="View_as_list">View as list</string>
     <string name="New_game">New game</string>
     <string name="Restart">Restart</string>
     <string name="Specific_">Specific…</string>
@@ -72,11 +70,11 @@ Revision: %s"</string>
     <string name="Type">Type</string>
     <string name="Custom_">Custom…</string>
     <string name="Help">Help</string>
-    <string name="Contents">Contents</string>
-    <string name="On_this_game">On this game</string>
+    <string name="About_these_games">About these games</string>
+    <string name="How_to_play_this_game">How to play this game</string>
     <string name="Project_website">Project website</string>
     <string name="Email_developer">Email developer</string>
-    <string name="About">About</string>
+    <string name="About_this_app">About this app</string>
     <string name="Undo">Undo</string>
     <string name="Redo">Redo</string>
     <string name="Settings">Settings</string>

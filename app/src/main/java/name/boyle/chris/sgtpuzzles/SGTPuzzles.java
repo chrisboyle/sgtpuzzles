@@ -56,6 +56,7 @@ import android.view.WindowManager;
 import android.webkit.WebChromeClient;
 import android.webkit.WebView;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.RelativeLayout;
@@ -75,6 +76,7 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 	private static final String FULLSCREEN_KEY = "fullscreen";
 	private static final String STAY_AWAKE_KEY = "stayAwake";
 	private static final String UNDO_REDO_KBD_KEY = "undoRedoKbd";
+	public static final boolean UNDO_REDO_KBD_DEFAULT = true;
 	private static final String PATTERN_SHOW_LENGTHS_KEY = "patternShowLengths";
 	private static final String COMPLETED_PROMPT_KEY = "completedPrompt";
 
@@ -144,12 +146,6 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 			break;
 		case DONE:
 			resizeEvent(gameView.w, gameView.h);
-			if (currentBackend != null) {
-				// set ActionBar icon to the one for this puzzle
-				int iconId = getResources().getIdentifier(
-						currentBackend, "drawable", getPackageName());
-				getSupportActionBar().setIcon(iconId > 0 ? iconId : R.drawable.net);
-			}
 			dismissProgress();
 			if( menu != null ) onPrepareOptionsMenu(menu);
 			save();
@@ -302,7 +298,7 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 		super.onCreateOptionsMenu(menu);
 		this.menu = menu;
 		getMenuInflater().inflate(R.menu.main, menu);
-		boolean undoRedoKbd = prefs.getBoolean(UNDO_REDO_KBD_KEY, false);
+		boolean undoRedoKbd = prefs.getBoolean(UNDO_REDO_KBD_KEY, UNDO_REDO_KBD_DEFAULT);
 		menu.findItem(R.id.undo).setVisible(! undoRedoKbd);
 		menu.findItem(R.id.redo).setVisible(! undoRedoKbd);
 		return true;
@@ -321,8 +317,8 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 		MenuItem undoItem = menu.findItem(R.id.undo), redoItem = menu.findItem(R.id.redo);
 		undoItem.setEnabled(undoEnabled);
 		redoItem.setEnabled(redoEnabled);
-		undoItem.setIcon(undoEnabled ? R.drawable.sym_keyboard_undo : R.drawable.sym_keyboard_undo_disabled);
-		redoItem.setIcon(redoEnabled ? R.drawable.sym_keyboard_redo : R.drawable.sym_keyboard_redo_disabled);
+		undoItem.setIcon(undoEnabled ? R.drawable.ic_action_undo : R.drawable.ic_action_undo_disabled);
+		redoItem.setIcon(redoEnabled ? R.drawable.ic_action_redo : R.drawable.ic_action_redo_disabled);
 		item = menu.findItem(R.id.type);
 		item.setEnabled(! gameTypes.isEmpty() || customVisible);
 		item.setVisible(item.isEnabled());
@@ -340,7 +336,7 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 		if( currentType < 0 ) customItem.setChecked(true);
 		else if( currentType < gameTypes.size() ) menu.findItem(currentType).setChecked(true);
 		menu.findItem(R.id.thisgame).setTitle(MessageFormat.format(
-					getString(R.string.help_on_game),new Object[]{this.getTitle()}));
+					getString(R.string.how_to_play_game),new Object[]{this.getTitle()}));
 		return true;
 	}
 
@@ -584,7 +580,7 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 			changedState(false, false);
 			customVisible = false;
 			setStatusBarVisibility(false);
-			if (!prefs.getBoolean(UNDO_REDO_KBD_KEY, false)) {
+			if (!prefs.getBoolean(UNDO_REDO_KBD_KEY, UNDO_REDO_KBD_DEFAULT)) {
 				maybeUndoRedo = "";
 			}
 			setKeys(keys, arrowMode);
@@ -859,8 +855,15 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 				hackForSubmenus.performIdentifierAction(R.id.type, 0);
 			}
 		});
-		d.findViewById(R.id.other).setOnClickListener(new OnClickListener() {
-			@Override public void onClick(View v) {
+		final String style = prefs.getString(GameChooser.CHOOSER_STYLE_KEY, "list");
+		final boolean useGrid = (style != null) && style.equals("grid");
+		final Button button = (Button) d.findViewById(R.id.other);
+		button.setCompoundDrawablesWithIntrinsicBounds(0, useGrid
+				? R.drawable.ic_action_view_as_grid
+				: R.drawable.ic_action_view_as_list, 0, 0);
+		button.setOnClickListener(new OnClickListener() {
+			@Override
+			public void onClick(View v) {
 				d.dismiss();
 				startChooser();
 			}
@@ -1123,12 +1126,12 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 					mi = menu.findItem(R.id.undo);
 					if (mi != null) {
 						mi.setEnabled(undoEnabled);
-						mi.setIcon(undoEnabled ? R.drawable.sym_keyboard_undo : R.drawable.sym_keyboard_undo_disabled);
+						mi.setIcon(undoEnabled ? R.drawable.ic_action_undo : R.drawable.ic_action_undo_disabled);
 					}
 					mi = menu.findItem(R.id.redo);
 					if (mi != null) {
 						mi.setEnabled(redoEnabled);
-						mi.setIcon(redoEnabled ? R.drawable.sym_keyboard_redo : R.drawable.sym_keyboard_redo_disabled);
+						mi.setIcon(redoEnabled ? R.drawable.ic_action_redo : R.drawable.ic_action_redo_disabled);
 					}
 				}
 			}
