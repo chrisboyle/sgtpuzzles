@@ -152,7 +152,7 @@ class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboardActio
 						break;
 					case '\b':
 						key.icon = context.getResources().getDrawable(
-								R.drawable.sym_keyboard_delete);
+								R.drawable.sym_key_backspace);
 						key.repeatable = true;
 						key.enabled = true;
 						break;
@@ -213,70 +213,70 @@ class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboardActio
 						key.x = arrowsRightEdge  - 2*keyPlusPad;
 						key.y = arrowsBottomEdge - arrowRows*keyPlusPad;
 						key.icon = context.getResources().getDrawable(
-								R.drawable.arrow_n);
+								R.drawable.sym_key_north);
 						key.edgeFlags = maybeTop;
 						break;
 					case GameView.CURSOR_DOWN:
 						key.x = arrowsRightEdge  - 2*keyPlusPad;
 						key.y = arrowsBottomEdge -   keyPlusPad;
 						key.icon = context.getResources().getDrawable(
-								R.drawable.arrow_s);
+								R.drawable.sym_key_south);
 						key.edgeFlags = EDGE_BOTTOM;
 						break;
 					case GameView.CURSOR_LEFT:
 						key.x = arrowsRightEdge  - 3*keyPlusPad;
 						key.y = arrowsBottomEdge - leftRightRow*keyPlusPad;
 						key.icon = context.getResources().getDrawable(
-								R.drawable.arrow_w);
+								R.drawable.sym_key_west);
 						key.edgeFlags = bottomIf2Row | maybeLeft;
 						break;
 					case GameView.CURSOR_RIGHT:
 						key.x = arrowsRightEdge  -   keyPlusPad;
 						key.y = arrowsBottomEdge - leftRightRow*keyPlusPad;
 						key.icon = context.getResources().getDrawable(
-								R.drawable.arrow_e);
+								R.drawable.sym_key_east);
 						key.edgeFlags = bottomIf2Row | EDGE_RIGHT;
 						break;
 					case '\n':
 						key.x = arrowsRightEdge  - ((arrowMode==ArrowMode.ARROWS_DIAGONALS)?2:3)*keyPlusPad;
 						key.y = arrowsBottomEdge - 2*keyPlusPad;
 						key.icon = context.getResources().getDrawable(
-								R.drawable.mouse_left);
+								R.drawable.sym_key_mouse_left);
 						key.edgeFlags = maybeTopIf2Row;
 						break;
 					case ' ': // right click
 						key.x = arrowsRightEdge  -   keyPlusPad;
 						key.y = arrowsBottomEdge - arrowRows*keyPlusPad;
 						key.icon = context.getResources().getDrawable(
-								R.drawable.mouse_right);
+								R.drawable.sym_key_mouse_right);
 						key.edgeFlags = maybeTop | EDGE_RIGHT;
 						break;
 					case GameView.MOD_NUM_KEYPAD | '7':
 						key.x = arrowsRightEdge  - 3*keyPlusPad;
 						key.y = arrowsBottomEdge - 3*keyPlusPad;
 						key.icon = context.getResources().getDrawable(
-								R.drawable.arrow_nw);
+								R.drawable.sym_key_north_west);
 						key.edgeFlags = maybeTop | maybeLeft;
 						break;
 					case GameView.MOD_NUM_KEYPAD | '1':
 						key.x = arrowsRightEdge  - 3*keyPlusPad;
 						key.y = arrowsBottomEdge -   keyPlusPad;
 						key.icon = context.getResources().getDrawable(
-								R.drawable.arrow_sw);
+								R.drawable.sym_key_south_west);
 						key.edgeFlags = EDGE_BOTTOM | maybeLeft;
 						break;
 					case GameView.MOD_NUM_KEYPAD | '9':
 						key.x = arrowsRightEdge  -   keyPlusPad;
 						key.y = arrowsBottomEdge - 3*keyPlusPad;
 						key.icon = context.getResources().getDrawable(
-								R.drawable.arrow_ne);
+								R.drawable.sym_key_north_east);
 						key.edgeFlags = maybeTop | EDGE_RIGHT;
 						break;
 					case GameView.MOD_NUM_KEYPAD | '3':
 						key.x = arrowsRightEdge  -   keyPlusPad;
 						key.y = arrowsBottomEdge -   keyPlusPad;
 						key.icon = context.getResources().getDrawable(
-								R.drawable.arrow_se);
+								R.drawable.sym_key_south_east);
 						key.edgeFlags = EDGE_BOTTOM | EDGE_RIGHT;
 						break;
 					default:
@@ -293,10 +293,10 @@ class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboardActio
 			if (i < 0) return;
 			DKey k = (DKey)mKeys.get(i);
 			k.icon = context.getResources().getDrawable(redo ?
-					enabled ? R.drawable.sym_keyboard_redo
-							: R.drawable.sym_keyboard_redo_disabled :
-					enabled ? R.drawable.sym_keyboard_undo
-							: R.drawable.sym_keyboard_undo_disabled);
+					enabled ? R.drawable.ic_action_redo
+							: R.drawable.ic_action_redo_disabled :
+					enabled ? R.drawable.ic_action_undo
+							: R.drawable.ic_action_undo_disabled);
 			k.enabled = enabled;
             if (initDone) keyboardView.invalidateKey(i);
 		}
