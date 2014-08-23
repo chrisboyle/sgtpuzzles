@@ -25,10 +25,8 @@ chris@boyle.name and I'll be happy to include it in future versions.
 
 <resources>
     <!-- About box -->
-    <string name="About_X">About %.200s</string>
-    <string name="From_Simon_Tatham_s_Portable_Puzzle_Collection_Revision_X">"From Simon Tatham's Portable Puzzle Collection
-
-Revision: %s"</string>
+    <string name="about_content">"Simon Tatham's Portable Puzzle Collection
+Version %s"</string>
     <!-- Things used by the Android front-end only -->
     <string name="app_name">Puzzles</string>
     <string name="welcome">Welcome to the Android version of Simon Tatham\'s Puzzles. To right-click in these games, do a long press. Help is available under Menu/Help. This project is released under the MIT license.</string>
@@ -70,10 +68,9 @@ Revision: %s"</string>
     <string name="Type">Type</string>
     <string name="Custom_">Custom…</string>
     <string name="Help">Help</string>
-    <string name="About_these_games">About these games</string>
     <string name="How_to_play_this_game">How to play this game</string>
     <string name="Project_website">Project website</string>
-    <string name="Email_developer">Email developer</string>
+    <string name="Send_feedback">Send feedback</string>
     <string name="About_this_app">About this app</string>
     <string name="Undo">Undo</string>
     <string name="Redo">Redo</string>

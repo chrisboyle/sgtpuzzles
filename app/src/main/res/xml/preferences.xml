@@ -39,4 +39,11 @@
 			android:defaultValue="false" />
 	</PreferenceCategory-->
 
+	<PreferenceCategory android:title="@string/About_this_app">
+		<Preference android:key="about_content"
+				android:summary="@string/about_content" android:selectable="false"/>
+		<Preference android:key="show_website" android:title="@string/Project_website"/>
+		<Preference android:key="send_feedback" android:title="@string/Send_feedback"/>
+	</PreferenceCategory>
+
 </PreferenceScreen>

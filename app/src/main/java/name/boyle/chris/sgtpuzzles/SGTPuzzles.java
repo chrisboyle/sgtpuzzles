@@ -154,7 +154,7 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 			stopNative();
 			dismissProgress();
 			if (msg.obj != null && !msg.obj.equals("")) {
-				messageBox(MessageBoxType.ERROR, getString(R.string.Error), (String)msg.obj);
+				messageBox(getString(R.string.Error), (String)msg.obj);
 			} else {
 				startChooser();
 				finish();
@@ -340,10 +340,10 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 		return true;
 	}
 
-	private void showHelp(String topic)
+	static void showHelp(Context context, String topic)
 	{
-		final Dialog d = new Dialog(this,android.R.style.Theme);
-		final WebView wv = new WebView(this);
+		final Dialog d = new Dialog(context,android.R.style.Theme);
+		final WebView wv = new WebView(context);
 		d.setOnKeyListener(new DialogInterface.OnKeyListener(){ public boolean onKey(DialogInterface di, int key, KeyEvent evt) {
 			if (evt.getAction() != KeyEvent.ACTION_DOWN || key != KeyEvent.KEYCODE_BACK) return false;
 			if (wv.canGoBack()) wv.goBack(); else d.cancel();
@@ -356,7 +356,7 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 			public void onProgressChanged(WebView w, int progress) { if (progress == 100) d.setTitle(w.getTitle()); }
 		});
 		wv.getSettings().setBuiltInZoomControls(true);
-		wv.loadUrl(MessageFormat.format(getString(R.string.docs_url), topic));
+		wv.loadUrl(MessageFormat.format(context.getString(R.string.docs_url), topic));
 		d.show();
 	}
 
@@ -387,19 +387,14 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 			try {
 				solveEvent();
 			} catch (IllegalArgumentException e) {
-				messageBox(MessageBoxType.ERROR, getString(R.string.Error), e.getMessage());
+				messageBox(getString(R.string.Error), e.getMessage());
 			}
 			break;
 		case R.id.custom:   configIsCustom = true; configEvent( CFG_SETTINGS ); break;
 		case R.id.specific: configIsCustom = false; configEvent( CFG_DESC ); break;
 		case R.id.seed:     configIsCustom = false; configEvent( CFG_SEED ); break;
-		case R.id.about:    about(); break;
-		case R.id.contents: showHelp("index"); break;
-		case R.id.thisgame: showHelp(htmlHelpTopic()); break;
-		case R.id.website:
-			startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(
-							getString(R.string.website_url))));
-			break;
+		case R.id.contents: showHelp(this, "index"); break;
+		case R.id.thisgame: showHelp(this, htmlHelpTopic()); break;
 		case R.id.email:
 			tryEmailAuthor(this);
 			break;
@@ -422,14 +417,6 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 		return true;
 	}
 
-	private void about()
-	{
-		String title = String.format(getString(R.string.About_X), getTitle());
-		String msg = String.format(getString(R.string.From_Simon_Tatham_s_Portable_Puzzle_Collection_Revision_X),
-				getVersion(this));
-		messageBox(MessageBoxType.ABOUT, title, msg);
-	}
-
 	private static String getEmailSubject(Context c)
 	{
 		String modVer = "";
@@ -442,7 +429,7 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 				getVersion(c), Build.MODEL, modVer, Build.FINGERPRINT);
 	}
 
-	private static void tryEmailAuthor(Context c)
+	static void tryEmailAuthor(Context c)
 	{
 		Intent i = new Intent(Intent.ACTION_SEND);
 		i.putExtra(Intent.EXTRA_EMAIL, new String[]{c.getString(R.string.author_email)});
@@ -467,7 +454,7 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 		handler.obtainMessage(MsgType.ABORT.ordinal(), why).sendToTarget();
 	}
 
-	private static String getVersion(Context c)
+	static String getVersion(Context c)
 	{
 		try {
 			return c.getPackageManager().getPackageInfo(c.getPackageName(), 0).versionName;
@@ -801,9 +788,7 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 		}});
 	}
 
-	enum MessageBoxType { ABOUT, TRY_AGAIN, ERROR }
-
-	void messageBox(final MessageBoxType messageBoxType, final String title, final String msg)
+	void messageBox(final String title, final String msg)
 	{
 		runOnUiThread(new Runnable() {
 			public void run() {
@@ -811,9 +796,7 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 				new AlertDialog.Builder(SGTPuzzles.this)
 						.setTitle(title)
 						.setMessage(msg)
-						.setIcon((messageBoxType == MessageBoxType.ABOUT)
-								? android.R.drawable.ic_dialog_info
-								: android.R.drawable.ic_dialog_alert)
+						.setIcon(android.R.drawable.ic_dialog_alert)
 						.show();
 			}
 		});
@@ -923,7 +906,7 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 				try {
 					startGame(GameLaunch.toGenerate(currentBackend, configOK()));
 				} catch (IllegalArgumentException e) {
-					messageBox(MessageBoxType.TRY_AGAIN, getString(R.string.Error), e.getMessage());
+					messageBox(getString(R.string.Error), e.getMessage());
 				}
 			}
 		});

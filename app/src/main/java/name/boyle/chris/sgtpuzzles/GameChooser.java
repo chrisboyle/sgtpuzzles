@@ -196,6 +196,8 @@ public class GameChooser extends ActionBarActivity
 			case R.id.load:
 				new FilePicker(this, Environment.getExternalStorageDirectory(),false).show();
 				return true;
+			case R.id.contents: SGTPuzzles.showHelp(this, "index"); return true;
+			case R.id.email: SGTPuzzles.tryEmailAuthor(this); return true;
 			default: return super.onOptionsItemSelected(item);
 		}
 		if( useGrid == newGrid ) return true;

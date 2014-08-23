@@ -11,7 +11,6 @@
     <item android:title="@string/Solve" android:id="@+id/solve" android:enabled="false" android:icon="@drawable/ic_action_solve" supportLib:showAsAction="ifRoom"/>
 	<item android:title="@string/Specific_" android:id="@+id/specific" android:alphabeticShortcut="p" android:icon="@drawable/ic_action_keyboard"/>
 	<item android:title="@string/Random_seed_" android:id="@+id/seed" android:alphabeticShortcut="x" android:icon="@drawable/ic_action_keyboard"/>
-	<item android:title="@string/Load_" android:id="@+id/load" android:alphabeticShortcut="y" android:icon="@drawable/ic_action_load"/>
 	<item android:title="@string/Save_" android:id="@+id/save" android:alphabeticShortcut="w" android:icon="@drawable/ic_action_save"/>
     <item android:title="@string/Settings" android:id="@+id/settings" android:icon="@drawable/ic_action_settings"/>
 </menu></item>
@@ -22,9 +21,7 @@
 </menu></item>
 <item android:title="@string/Help" android:id="@+id/help" android:icon="@drawable/ic_action_help" supportLib:showAsAction="always|withText"><menu>
 	<item android:title="@string/How_to_play_this_game" android:id="@+id/thisgame" android:icon="@drawable/ic_action_help"/>
-	<item android:title="@string/About_these_games" android:id="@+id/contents" android:icon="@drawable/ic_action_help"/>
-	<item android:title="@string/Project_website" android:id="@+id/website" android:icon="@drawable/ic_action_website"/>
-	<item android:title="@string/Email_developer" android:id="@+id/email" android:icon="@drawable/ic_action_email"/>
-	<item android:title="@string/About_this_app" android:id="@+id/about" android:icon="@drawable/ic_action_about"/>
+	<item android:title="@string/Send_feedback" android:id="@+id/email" android:icon="@drawable/ic_action_email"/>
+	<!--<item android:title="@string/About_this_app" android:id="@+id/about" android:icon="@drawable/ic_action_about"/>-->
 </menu></item>
 </menu>
