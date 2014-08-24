@@ -301,9 +301,7 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 		super.onCreateOptionsMenu(menu);
 		this.menu = menu;
 		getMenuInflater().inflate(R.menu.main, menu);
-		boolean undoRedoKbd = prefs.getBoolean(UNDO_REDO_KBD_KEY, UNDO_REDO_KBD_DEFAULT);
-		menu.findItem(R.id.undo).setVisible(! undoRedoKbd);
-		menu.findItem(R.id.redo).setVisible(! undoRedoKbd);
+		applyUndoRedoKbd();
 		return true;
 	}
 
@@ -569,9 +567,7 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 			changedState(false, false);
 			customVisible = false;
 			setStatusBarVisibility(false);
-			if (!prefs.getBoolean(UNDO_REDO_KBD_KEY, UNDO_REDO_KBD_DEFAULT)) {
-				maybeUndoRedo = "";
-			}
+			applyUndoRedoKbd();
 			setKeys(keys, arrowMode);
 			if (typeMenu != null) {
 				while (typeMenu.size() > 1) typeMenu.removeItem(typeMenu.getItem(0).getItemId());
@@ -728,9 +724,13 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 			mainLayout.addView(keyboard, lp);
 		}
 		keyboard.setKeys( (c.hardKeyboardHidden == Configuration.HARDKEYBOARDHIDDEN_NO)
-				? maybeUndoRedo : lastKeys, lastArrowMode);
+				? maybeUndoRedo : filterKeys() + maybeUndoRedo, lastArrowMode);
 		prevLandscape = landscape;
 		mainLayout.requestLayout();
+	}
+
+	private String filterKeys() {
+		return lastKeys.replace("h", prefs.getBoolean(BRIDGES_SHOW_H_KEY, false) ? "H" : "");
 	}
 
 	@SuppressLint("InlinedApi")
@@ -750,24 +750,30 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 	{
 		if (keysAlreadySet) setKeyboardVisibility(newConfig);
 		super.onConfigurationChanged(newConfig);
-		// ActionBar's capacity (width) has probably changed, so work around
-		// http://code.google.com/p/android/issues/detail?id=20493
-		// (invalidateOptionsMenu() does not help here)
-		// Just cautiously fix the common case: if >850dip then force
-		// show everything, else let the platform decide
-		if (menu != null) {
-			DisplayMetrics dm = getResources().getDisplayMetrics();
-			int screenWidthDIP = (int) Math.round(((double) dm.widthPixels) / dm.density);
-			boolean reallyWide = screenWidthDIP > 850;
-			int state = reallyWide ? MenuItemCompat.SHOW_AS_ACTION_ALWAYS
-					: MenuItemCompat.SHOW_AS_ACTION_IF_ROOM;
-			MenuItemCompat.setShowAsAction(menu.findItem(R.id.settings), state);
-			MenuItemCompat.setShowAsAction(menu.findItem(R.id.solve), state);
-			MenuItemCompat.setShowAsAction(menu.findItem(R.id.help), state);
+		rethinkActionBarCapacity();
+	}
+
+	/** ActionBar's capacity (width) has probably changed, so work around
+	 *  http://code.google.com/p/android/issues/detail?id=20493
+	 * (invalidateOptionsMenu() does not help here) */
+	private void rethinkActionBarCapacity() {
+		if (menu == null) return;
+		DisplayMetrics dm = getResources().getDisplayMetrics();
+		final int screenWidthDIP = (int) Math.round(((double) dm.widthPixels) / dm.density);
+		int state = MenuItemCompat.SHOW_AS_ACTION_ALWAYS;
+		if (screenWidthDIP > 500) {
 			state |= MenuItemCompat.SHOW_AS_ACTION_WITH_TEXT;
-			MenuItemCompat.setShowAsAction(menu.findItem(R.id.game), state);
-			MenuItemCompat.setShowAsAction(menu.findItem(R.id.type), state);
 		}
+		MenuItemCompat.setShowAsAction(menu.findItem(R.id.game), state);
+		MenuItemCompat.setShowAsAction(menu.findItem(R.id.type), state);
+		MenuItemCompat.setShowAsAction(menu.findItem(R.id.help), state);
+		final boolean undoRedoKbd = prefs.getBoolean(UNDO_REDO_KBD_KEY, UNDO_REDO_KBD_DEFAULT);
+		if (!undoRedoKbd) {
+			MenuItemCompat.setShowAsAction(menu.findItem(R.id.undo), state);
+			MenuItemCompat.setShowAsAction(menu.findItem(R.id.redo), state);
+		}
+		// emulator at 598 dip looks bad with title+undo; GT-N7100 at 640dip looks good
+		getSupportActionBar().setDisplayShowTitleEnabled(screenWidthDIP > 620 || undoRedoKbd);
 	}
 
 	@UsedByJNI
@@ -1016,10 +1022,9 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 	void setKeys(String keys, SmallKeyboard.ArrowMode arrowMode)
 	{
 		if (keys == null) keys = "";
-		keys = keys.replace("h", prefs.getBoolean(BRIDGES_SHOW_H_KEY, false) ? "H" : "");
 		if (arrowMode == null) arrowMode = SmallKeyboard.ArrowMode.ARROWS_LEFT_RIGHT_CLICK;
 		lastArrowMode = arrowMode;
-		lastKeys = keys + maybeUndoRedo;
+		lastKeys = keys;
 		setKeyboardVisibility(getResources().getConfiguration());
 		keysAlreadySet = true;
 	}
@@ -1035,6 +1040,10 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 			applyStayAwake();
 		} else if (key.equals(ORIENTATION_KEY)) {
 			applyOrientation();
+		} else if (key.equals(UNDO_REDO_KBD_KEY)) {
+			applyUndoRedoKbd();
+		} else if (key.equals(BRIDGES_SHOW_H_KEY)) {
+			applyBridgesShowH();
 		}
 	}
 
@@ -1043,9 +1052,11 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 		final boolean hasLightsOut = (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB);
 		if (cachedFullscreen) {
 			if (hasLightsOut) {
-				handler.post(new Runnable(){ public void run() {
-					lightsOut(true);
-				}});
+				handler.post(new Runnable() {
+					public void run() {
+						lightsOut(true);
+					}
+				});
 			} else if (alreadyStarted) {
 				// This is the only way to change the theme
 				if (! startedFullscreen) restartOnResume = true;
@@ -1088,6 +1099,7 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 		}
 	}
 
+	@SuppressLint("InlinedApi")
 	private void applyOrientation() {
 		final String orientationPref = prefs.getString(ORIENTATION_KEY, "sensor");
 		if (orientationPref.equals("landscape")) {
@@ -1097,6 +1109,22 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 		} else {
 			setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR);
 		}
+	}
+
+	private void applyUndoRedoKbd() {
+		if (menu == null) return;
+		boolean undoRedoKbd = prefs.getBoolean(UNDO_REDO_KBD_KEY, UNDO_REDO_KBD_DEFAULT);
+		final String wantKbd = undoRedoKbd ? "ur" : "";
+		if (wantKbd.equals(maybeUndoRedo)) return;
+		maybeUndoRedo = wantKbd;
+		setKeyboardVisibility(getResources().getConfiguration());
+		menu.findItem(R.id.undo).setVisible(! undoRedoKbd);
+		menu.findItem(R.id.redo).setVisible(! undoRedoKbd);
+		rethinkActionBarCapacity();
+	}
+
+	private void applyBridgesShowH() {
+		setKeyboardVisibility(getResources().getConfiguration());
 	}
 
 	@UsedByJNI
@@ -1113,13 +1141,13 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 				.replaceAll("%age","percentage")
 				.replaceAll("','","comma")
 				.replaceAll("%[.0-9]*u?[sd]","X")
-				.replaceAll("[^A-Za-z0-9_]+","_");
+				.replaceAll("[^A-Za-z0-9_]+", "_");
 		if( id.endsWith("_") ) id = id.substring(0,id.length()-1);
 		int resId = getResources().getIdentifier(id, "string", getPackageName());
 		if( resId > 0 ) {
 			return getString(resId);
 		}
-		Log.i(TAG,"gettext: NO TRANSLATION: "+s+" -> "+id+" -> ???");
+		Log.i(TAG, "gettext: NO TRANSLATION: " + s + " -> " + id + " -> ???");
 		return s;
 	}
 
