@@ -165,7 +165,9 @@ class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboardActio
 				minor++;
 				minorPx += keyPlusPad;
 			}
-			if (columnMajor) {
+			if (characters.length() == 0 && ! arrowMode.hasArrows()) {
+				mTotalWidth = mTotalHeight = 0;
+			} else if (columnMajor) {
 				mTotalWidth = majorPx + mDefaultWidth;
 			} else {
 				mTotalHeight = majorPx + mDefaultHeight;
