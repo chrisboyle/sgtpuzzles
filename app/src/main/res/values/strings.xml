@@ -36,6 +36,10 @@ Version %s"</string>
     <string name="unknown_version">UNKNOWN</string>
     <!-- {0} = version, {1} = device model number -->
     <string name="email_subject">Puzzles v{0} on {1} / {2} / {3}</string>
+    <string name="no_email_app">No email app?</string>
+    <string name="email_manually">"Please send your feedback to {0} and include the following information:
+
+{1}"</string>
     <!-- For saving and loading game state on the SD card -->
     <string name="filename">Filename</string>
     <string name="save">Save</string>

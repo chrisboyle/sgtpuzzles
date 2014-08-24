@@ -9,8 +9,7 @@
 	</group>
 	<item android:title="@string/Load_" android:id="@+id/load" android:alphabeticShortcut="y" android:icon="@drawable/ic_action_load" supportLib:showAsAction="ifRoom|withText"/>
 	<item android:title="@string/Help" android:id="@+id/help" android:icon="@drawable/ic_action_help" supportLib:showAsAction="always|withText"><menu>
-        <item android:title="@string/Help" android:id="@+id/contents" android:icon="@drawable/ic_action_help"/>
-        <item android:title="@string/Send_feedback" android:id="@+id/email" android:icon="@drawable/ic_action_email"/>
-        <!--<item android:title="@string/About_this_app" android:id="@+id/about" android:icon="@drawable/ic_action_about"/>-->
+        <item android:title="@string/Help" android:id="@+id/contents"/>
+        <item android:title="@string/Send_feedback" android:id="@+id/email"/>
 	</menu></item>
 </menu>

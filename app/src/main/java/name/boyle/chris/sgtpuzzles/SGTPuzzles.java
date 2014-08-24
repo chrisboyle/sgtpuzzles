@@ -154,7 +154,7 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 			stopNative();
 			dismissProgress();
 			if (msg.obj != null && !msg.obj.equals("")) {
-				messageBox(getString(R.string.Error), (String)msg.obj);
+				messageBox(this, getString(R.string.Error), (String)msg.obj);
 			} else {
 				startChooser();
 				finish();
@@ -335,7 +335,7 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 		typeMenu.setGroupCheckable(R.id.typeGroup, true, true);
 		if( currentType < 0 ) customItem.setChecked(true);
 		else if( currentType < gameTypes.size() ) menu.findItem(currentType).setChecked(true);
-		menu.findItem(R.id.thisgame).setTitle(MessageFormat.format(
+		menu.findItem(R.id.this_game).setTitle(MessageFormat.format(
 					getString(R.string.how_to_play_game),new Object[]{this.getTitle()}));
 		return true;
 	}
@@ -387,14 +387,14 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 			try {
 				solveEvent();
 			} catch (IllegalArgumentException e) {
-				messageBox(getString(R.string.Error), e.getMessage());
+				messageBox(this, getString(R.string.Error), e.getMessage());
 			}
 			break;
 		case R.id.custom:   configIsCustom = true; configEvent( CFG_SETTINGS ); break;
 		case R.id.specific: configIsCustom = false; configEvent( CFG_DESC ); break;
 		case R.id.seed:     configIsCustom = false; configEvent( CFG_SEED ); break;
 		case R.id.contents: showHelp(this, "index"); break;
-		case R.id.thisgame: showHelp(this, htmlHelpTopic()); break;
+		case R.id.this_game: showHelp(this, htmlHelpTopic()); break;
 		case R.id.email:
 			tryEmailAuthor(this);
 			break;
@@ -433,18 +433,16 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 	{
 		Intent i = new Intent(Intent.ACTION_SEND);
 		i.putExtra(Intent.EXTRA_EMAIL, new String[]{c.getString(R.string.author_email)});
-		i.putExtra(Intent.EXTRA_SUBJECT, getEmailSubject(c));
+		final String emailSubject = getEmailSubject(c);
+		i.putExtra(Intent.EXTRA_SUBJECT, emailSubject);
 		i.setType("message/rfc822");
 		try {
 			c.startActivity(i);
 		} catch (ActivityNotFoundException e) {
-			try {
-				// Get the OS to present a nicely formatted, translated error
-				c.startActivity(Intent.createChooser(i, null));
-			} catch (Exception e2) {
-				e2.printStackTrace();
-				Toast.makeText(c, e2.toString(), Toast.LENGTH_LONG).show();
-			}
+			messageBox(c, c.getString(R.string.no_email_app),
+					MessageFormat.format(c.getString(R.string.email_manually),
+							c.getString(R.string.author_email),
+							emailSubject));
 		}
 	}
 
@@ -788,18 +786,13 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 		}});
 	}
 
-	void messageBox(final String title, final String msg)
+	static void messageBox(final Context context, final String title, final String msg)
 	{
-		runOnUiThread(new Runnable() {
-			public void run() {
-				dismissProgress();
-				new AlertDialog.Builder(SGTPuzzles.this)
-						.setTitle(title)
-						.setMessage(msg)
-						.setIcon(android.R.drawable.ic_dialog_alert)
-						.show();
-			}
-		});
+		new AlertDialog.Builder(context)
+				.setTitle(title)
+				.setMessage(msg)
+				.setIcon(android.R.drawable.ic_dialog_alert)
+				.show();
 	}
 
 	@UsedByJNI
@@ -906,7 +899,8 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 				try {
 					startGame(GameLaunch.toGenerate(currentBackend, configOK()));
 				} catch (IllegalArgumentException e) {
-					messageBox(getString(R.string.Error), e.getMessage());
+					dismissProgress();
+					messageBox(SGTPuzzles.this, getString(R.string.Error), e.getMessage());
 				}
 			}
 		});
