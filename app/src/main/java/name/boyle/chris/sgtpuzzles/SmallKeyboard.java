@@ -7,6 +7,7 @@ import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
+import android.graphics.Canvas;
 import android.inputmethodservice.Keyboard;
 import android.inputmethodservice.KeyboardView;
 import android.preference.PreferenceManager;
@@ -43,6 +44,7 @@ class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboardActio
         final int mDefaultVerticalGap = 0;
         int mTotalWidth = 0;
         int mTotalHeight = 0;
+		boolean mEmpty = false;
 		final Context context;
         private final KeyboardView keyboardView;  // for invalidateKey()
         final List<Key> mKeys;
@@ -165,9 +167,8 @@ class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboardActio
 				minor++;
 				minorPx += keyPlusPad;
 			}
-			if (characters.length() == 0 && ! arrowMode.hasArrows()) {
-				mTotalWidth = mTotalHeight = 0;
-			} else if (columnMajor) {
+			mEmpty = characters.length() == 0 && ! arrowMode.hasArrows();
+			if (columnMajor) {
 				mTotalWidth = majorPx + mDefaultWidth;
 			} else {
 				mTotalHeight = majorPx + mDefaultHeight;
@@ -317,6 +318,10 @@ class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboardActio
 		public int getHeight() { return mTotalHeight; }
 		@Override
 		public int getMinWidth() { return mTotalWidth; }
+
+		public boolean isEmpty() {
+			return mEmpty;
+		}
 	}
 
 	public SmallKeyboard(Context c, boolean undoEnabled, boolean redoEnabled)
@@ -353,9 +358,21 @@ class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboardActio
 			 == Configuration.ORIENTATION_LANDSCAPE);
 		int maxPx = MeasureSpec.getSize(landscape ? hSpec : wSpec);
 		// Doing this here seems the only way to be sure of dimensions.
-		setKeyboard(new KeyboardModel(getContext(), this, isInEditMode(), lastKeys, arrowMode,
-				landscape, maxPx, undoEnabled, redoEnabled));
-		super.onMeasure(wSpec, hSpec);
+		final KeyboardModel model = new KeyboardModel(getContext(), this, isInEditMode(), lastKeys, arrowMode,
+				landscape, maxPx, undoEnabled, redoEnabled);
+		setKeyboard(model);
+		if (model.isEmpty()) {
+			setMeasuredDimension(0, 0);
+		} else {
+			super.onMeasure(wSpec, hSpec);
+		}
+	}
+
+	@Override
+	public void onDraw(Canvas canvas) {
+		if (!((KeyboardModel)getKeyboard()).isEmpty()) {
+			super.onDraw(canvas);
+		}
 	}
 
 	void setUndoRedoEnabled(boolean redo, boolean enabled)
