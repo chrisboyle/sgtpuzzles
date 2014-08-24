@@ -10,6 +10,16 @@
 		<item>@string/arrowKeysAuto</item>
 		<item>@string/arrowKeysNever</item>
 	</array>
+	<array name="orientationModes">
+		<item>sensor</item>
+		<item>portrait</item>
+		<item>landscape</item>
+	</array>
+	<array name="orientationModeDescs">
+		<item>@string/orientationSensor</item>
+		<item>@string/orientationPortrait</item>
+		<item>@string/orientationLandscape</item>
+	</array>
 	<array name="games">
 		<item>blackbox</item>
 		<item>bridges</item>

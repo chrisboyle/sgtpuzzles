@@ -24,6 +24,7 @@ public class PrefsActivity extends PreferenceActivity implements OnSharedPrefere
 		prefsSaver = PrefsSaver.get(this);
 		addPreferencesFromResource(R.xml.preferences);
 		updateSummary((ListPreference)findPreference(SGTPuzzles.ARROW_KEYS_KEY));
+		updateSummary((ListPreference)findPreference(SGTPuzzles.ORIENTATION_KEY));
 		findPreference("about_content").setSummary(
 				String.format(getString(R.string.about_content),
 						SGTPuzzles.getVersion(this)));
