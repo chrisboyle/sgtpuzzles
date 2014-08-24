@@ -394,7 +394,11 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 				messageBox(this, getString(R.string.Error), e.getMessage());
 			}
 			break;
-		case R.id.custom:   configIsCustom = true; configEvent( CFG_SETTINGS ); break;
+		case R.id.custom:
+			configIsCustom = true;
+			configEvent( CFG_SETTINGS );
+			supportInvalidateOptionsMenu();
+			break;
 		case R.id.specific: configIsCustom = false; configEvent( CFG_DESC ); break;
 		case R.id.seed:     configIsCustom = false; configEvent( CFG_SEED ); break;
 		case R.id.contents: showHelp(this, "index"); break;
