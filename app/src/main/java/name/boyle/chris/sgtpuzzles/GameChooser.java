@@ -233,6 +233,9 @@ public class GameChooser extends ActionBarActivity
 				break;
 			case R.id.contents: SGTPuzzles.showHelp(this, "index"); break;
 			case R.id.email: SGTPuzzles.tryEmailAuthor(this); break;
+			case R.id.settings:
+				startActivity(new Intent(this, PrefsActivity.class));
+				break;
 			default: ret = super.onOptionsItemSelected(item);
 		}
 		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {

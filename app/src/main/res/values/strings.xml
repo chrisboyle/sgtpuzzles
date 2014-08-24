@@ -80,7 +80,7 @@ Version %s"</string>
     <string name="Undo">Undo</string>
     <string name="Redo">Redo</string>
     <string name="Settings">Settings</string>
-    <string name="Solve">Solve</string>
+    <string name="Show_solution">Show solution</string>
     <!--  Settings -->
     <string name="allGames">All games</string>
     <string name="arrowKeys">Arrow keys</string>
