@@ -65,8 +65,9 @@ Version %s"</string>
     <string name="View_as_list">View as list</string>
     <string name="New_game">New game</string>
     <string name="Restart">Restart</string>
-    <string name="Specific_">Specific…</string>
-    <string name="Random_seed_">Random seed…</string>
+    <string name="Game_ID_">Game ID…</string>
+    <string name="Seed">Seed</string>
+    <string name="Seed_">Seed…</string>
     <string name="Load_">Load…</string>
     <string name="Save_">Save…</string>
     <string name="Type">Type</string>

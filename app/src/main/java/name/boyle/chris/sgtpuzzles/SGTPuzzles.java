@@ -114,8 +114,6 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 	private Thread worker;
 	private String lastKeys = "";
 	private static final File storageDir = Environment.getExternalStorageDirectory();
-	// Ugly temporary hack: in custom game dialog, all text boxes are numeric, in the other two dialogs they aren't.
-	private boolean configIsCustom = false;
 	private String[] games;
 	private Menu menu;
 	private String maybeUndoRedo = "ur";
@@ -395,12 +393,9 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 			}
 			break;
 		case R.id.custom:
-			configIsCustom = true;
-			configEvent( CFG_SETTINGS );
+			configEvent(CFG_SETTINGS);
 			supportInvalidateOptionsMenu();
 			break;
-		case R.id.specific: configIsCustom = false; configEvent( CFG_DESC ); break;
-		case R.id.seed:     configIsCustom = false; configEvent( CFG_SEED ); break;
 		case R.id.contents: showHelp(this, "index"); break;
 		case R.id.this_game: showHelp(this, htmlHelpTopic()); break;
 		case R.id.email:
@@ -877,48 +872,63 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 	}
 
 	@UsedByJNI
-	void dialogInit(String title)
+	void dialogInit(int whichEvent, String title)
 	{
 		ScrollView sv = new ScrollView(SGTPuzzles.this);
-		dialog = new AlertDialog.Builder(SGTPuzzles.this)
+		AlertDialog.Builder builder = new AlertDialog.Builder(SGTPuzzles.this)
 				.setTitle(title)
 				.setView(sv)
-				.create();
+				.setOnCancelListener(new OnCancelListener() {
+					public void onCancel(DialogInterface dialog) {
+						configCancel();
+					}
+				})
+				.setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+					public void onClick(DialogInterface d, int whichButton) {
+						for (String i : dialogIds) {
+							View v = dialogLayout.findViewWithTag(i);
+							if (v instanceof EditText) {
+								configSetString(i, ((EditText) v).getText().toString());
+							} else if (v instanceof CheckBox) {
+								configSetBool(i, ((CheckBox) v).isChecked() ? 1 : 0);
+							} else if (v instanceof Spinner) {
+								configSetChoice(i, ((Spinner) v).getSelectedItemPosition());
+							}
+						}
+						dialog.dismiss();
+						try {
+							startGame(GameLaunch.toGenerate(currentBackend, configOK()));
+						} catch (IllegalArgumentException e) {
+							dismissProgress();
+							messageBox(SGTPuzzles.this, getString(R.string.Error), e.getMessage());
+						}
+					}
+				});
+		if (whichEvent == CFG_SETTINGS) {
+			builder.setNegativeButton(R.string.Game_ID_, new DialogInterface.OnClickListener() {
+				@Override
+				public void onClick(DialogInterface dialog, int which) {
+					configEvent(CFG_DESC);
+				}
+			})
+			.setNeutralButton(R.string.Seed_, new DialogInterface.OnClickListener() {
+				@Override
+				public void onClick(DialogInterface dialog, int which) {
+					configEvent(CFG_SEED);
+				}
+			});
+		}
+		dialog = builder.create();
 		sv.addView(dialogLayout = new TableLayout(SGTPuzzles.this));
 		final int xPadding = getResources().getDimensionPixelSize(R.dimen.dialog_padding_horizontal);
 		final int yPadding = getResources().getDimensionPixelSize(R.dimen.dialog_padding_vertical);
 		dialogLayout.setPadding(xPadding, yPadding, xPadding, yPadding);
-		dialog.setOnCancelListener(new OnCancelListener() {
-			public void onCancel(DialogInterface dialog) {
-				configCancel();
-			}
-		});
-		dialog.setButton(DialogInterface.BUTTON_POSITIVE, getString(android.R.string.ok), new DialogInterface.OnClickListener() {
-			public void onClick(DialogInterface d, int whichButton) {
-				for (String i : dialogIds) {
-					View v = dialogLayout.findViewWithTag(i);
-					if (v instanceof EditText) {
-						configSetString(i, ((EditText) v).getText().toString());
-					} else if (v instanceof CheckBox) {
-						configSetBool(i, ((CheckBox) v).isChecked() ? 1 : 0);
-					} else if (v instanceof Spinner) {
-						configSetChoice(i, ((Spinner) v).getSelectedItemPosition());
-					}
-				}
-				dialog.dismiss();
-				try {
-					startGame(GameLaunch.toGenerate(currentBackend, configOK()));
-				} catch (IllegalArgumentException e) {
-					dismissProgress();
-					messageBox(SGTPuzzles.this, getString(R.string.Error), e.getMessage());
-				}
-			}
-		});
 		dialogIds.clear();
 	}
 
+	@SuppressLint("InlinedApi")
 	@UsedByJNI
-	void dialogAdd(int type, String name, String value, int selection)
+	void dialogAdd(int whichEvent, int type, String name, String value, int selection)
 	{
 		switch(type) {
 		case C_STRING: {
@@ -927,10 +937,11 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 			// TODO: C_INT, C_UINT, C_UDOUBLE, C_DOUBLE
 			// Ugly temporary hack: in custom game dialog, all text boxes are numeric, in the other two dialogs they aren't.
 			// Uglier temporary-er hack: Black Box must accept a range for ball count.
-			if (configIsCustom && !currentBackend.equals("blackbox")) et.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL | InputType.TYPE_NUMBER_FLAG_SIGNED);
+			if (whichEvent == CFG_SETTINGS && !currentBackend.equals("blackbox")) et.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL | InputType.TYPE_NUMBER_FLAG_SIGNED);
 			et.setTag(name);
 			et.setText(value);
-			et.setWidth(getResources().getDimensionPixelSize(R.dimen.dialog_edit_text_width));
+			et.setWidth(getResources().getDimensionPixelSize((whichEvent == CFG_SETTINGS)
+					? R.dimen.dialog_edit_text_width : R.dimen.dialog_long_edit_text_width));
 			TextView tv = new TextView(SGTPuzzles.this);
 			tv.setText(name);
 			tv.setPadding(0, 0, getResources().getDimensionPixelSize(R.dimen.dialog_padding_horizontal), 0);

@@ -4,5 +4,6 @@
 	<dimen name="dialog_padding_horizontal">16dip</dimen>
 	<dimen name="dialog_padding_vertical">8dip</dimen>
 	<dimen name="dialog_edit_text_width">64dip</dimen>
+    <dimen name="dialog_long_edit_text_width">192dip</dimen>
 	<dimen name="dialog_spinner_width">128dip</dimen>
 </resources>

@@ -402,13 +402,13 @@ void JNICALL configEvent(JNIEnv *env, jobject _obj, jint whichEvent)
 	fe->cfg_which = whichEvent;
 	jstring js = (*env)->NewStringUTF(env, title);
 	if( js == NULL ) return;
-	(*env)->CallVoidMethod(env, obj, dialogInit, js);
+	(*env)->CallVoidMethod(env, obj, dialogInit, whichEvent, js);
 	for (i = fe->cfg; i->type != C_END; i++) {
 		jstring js2 = i->name ? (*env)->NewStringUTF(env, i->name) : NULL;
 		if( i->name && js2 == NULL ) return;
 		jstring js3 = i->sval ? (*env)->NewStringUTF(env, i->sval) : NULL;
 		if( i->sval && js3 == NULL ) return;
-		(*env)->CallVoidMethod(env, obj, dialogAdd, i->type, js2, js3, i->ival);
+		(*env)->CallVoidMethod(env, obj, dialogAdd, whichEvent, i->type, js2, js3, i->ival);
 		if( i->name ) (*env)->DeleteLocalRef(env, js2);
 		if( i->sval ) (*env)->DeleteLocalRef(env, js3);
 	}
@@ -646,8 +646,8 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
 	changedState   = (*env)->GetMethodID(env, cls,  "changedState", "(ZZ)V");
 	clearForNewGame = (*env)->GetMethodID(env, cls,  "clearForNewGame", "(Ljava/lang/String;Lname/boyle/chris/sgtpuzzles/SmallKeyboard$ArrowMode;[F)V");
 	clipRect       = (*env)->GetMethodID(env, vcls, "clipRect", "(IIII)V");
-	dialogAdd      = (*env)->GetMethodID(env, cls,  "dialogAdd", "(ILjava/lang/String;Ljava/lang/String;I)V");
-	dialogInit     = (*env)->GetMethodID(env, cls,  "dialogInit", "(Ljava/lang/String;)V");
+	dialogAdd      = (*env)->GetMethodID(env, cls,  "dialogAdd", "(IILjava/lang/String;Ljava/lang/String;I)V");
+	dialogInit     = (*env)->GetMethodID(env, cls,  "dialogInit", "(ILjava/lang/String;)V");
 	dialogShow     = (*env)->GetMethodID(env, cls,  "dialogShow", "()V");
 	drawCircle     = (*env)->GetMethodID(env, vcls, "drawCircle", "(IIIII)V");
 	drawLine       = (*env)->GetMethodID(env, vcls, "drawLine", "(IIIII)V");

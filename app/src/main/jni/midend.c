@@ -1103,7 +1103,7 @@ config_item *midend_get_config(midend *me, int which, char **wintitle)
 
 	ret[0].type = C_STRING;
         if (which == CFG_SEED)
-            ret[0].name = _("Game random seed");
+            ret[0].name = _("Seed");
         else
             ret[0].name = _("Game ID");
 	ret[0].ival = 0;
