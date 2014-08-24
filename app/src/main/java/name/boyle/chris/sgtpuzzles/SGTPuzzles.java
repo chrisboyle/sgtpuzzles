@@ -33,6 +33,7 @@ import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
 import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
 import android.graphics.Color;
+import android.graphics.PorterDuff;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -841,14 +842,19 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 		d.getWindow().setAttributes(lp);
 		d.setContentView(R.layout.completed);
 		d.setCanceledOnTouchOutside(true);
-		d.findViewById(R.id.newgame).setOnClickListener(new OnClickListener() {
+		final Button newButton = (Button) d.findViewById(R.id.newgame);
+		darkenTopDrawable(newButton);
+		newButton.setOnClickListener(new OnClickListener() {
 			@Override public void onClick(View v) {
 				d.dismiss();
 				startNewGame();
 			}
 		});
-		d.findViewById(R.id.type).setOnClickListener(new OnClickListener() {
-			@Override public void onClick(View v) {
+		final Button typeButton = (Button) d.findViewById(R.id.type);
+		darkenTopDrawable(typeButton);
+		typeButton.setOnClickListener(new OnClickListener() {
+			@Override
+			public void onClick(View v) {
 				d.dismiss();
 				if (hackForSubmenus == null) openOptionsMenu();
 				hackForSubmenus.performIdentifierAction(R.id.type, 0);
@@ -856,11 +862,12 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 		});
 		final String style = prefs.getString(GameChooser.CHOOSER_STYLE_KEY, "list");
 		final boolean useGrid = (style != null) && style.equals("grid");
-		final Button button = (Button) d.findViewById(R.id.other);
-		button.setCompoundDrawablesWithIntrinsicBounds(0, useGrid
+		final Button chooserButton = (Button) d.findViewById(R.id.other);
+		chooserButton.setCompoundDrawablesWithIntrinsicBounds(0, useGrid
 				? R.drawable.ic_action_view_as_grid
 				: R.drawable.ic_action_view_as_list, 0, 0);
-		button.setOnClickListener(new OnClickListener() {
+		darkenTopDrawable(chooserButton);
+		chooserButton.setOnClickListener(new OnClickListener() {
 			@Override
 			public void onClick(View v) {
 				d.dismiss();
@@ -868,6 +875,10 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 			}
 		});
 		d.show();
+	}
+
+	private void darkenTopDrawable(Button b) {
+		b.getCompoundDrawables()[1].setColorFilter(Color.BLACK, PorterDuff.Mode.SRC_ATOP);
 	}
 
 	@UsedByJNI
