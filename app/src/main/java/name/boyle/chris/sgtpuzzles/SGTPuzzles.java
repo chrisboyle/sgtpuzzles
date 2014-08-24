@@ -774,6 +774,7 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 		}
 		// emulator at 598 dip looks bad with title+undo; GT-N7100 at 640dip looks good
 		getSupportActionBar().setDisplayShowTitleEnabled(screenWidthDIP > 620 || undoRedoKbd);
+		supportInvalidateOptionsMenu();
 	}
 
 	@UsedByJNI

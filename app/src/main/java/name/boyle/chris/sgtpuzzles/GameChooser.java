@@ -13,6 +13,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.preference.PreferenceManager;
+import android.support.v4.view.MenuItemCompat;
 import android.support.v7.app.ActionBarActivity;
 import android.util.DisplayMetrics;
 import android.view.Menu;
@@ -61,8 +62,8 @@ public class GameChooser extends ActionBarActivity
 		}
 
 		DisplayMetrics dm = getResources().getDisplayMetrics();
-		int screenWidthDIP = (int)Math.round(((double)dm.widthPixels) / dm.density);
-		int screenHeightDIP = (int)Math.round(((double)dm.heightPixels) / dm.density);
+		final int screenWidthDIP = (int)Math.round(((double)dm.widthPixels) / dm.density);
+		final int screenHeightDIP = (int)Math.round(((double)dm.heightPixels) / dm.density);
 		isTablet = ( screenWidthDIP >= 600 && screenHeightDIP >= 600 );
 		if (isTablet) {
 			// Grid is just going to look silly here
@@ -76,6 +77,12 @@ public class GameChooser extends ActionBarActivity
 		setContentView(R.layout.chooser);
 		table = (TableLayout) findViewById(R.id.table);
 		rebuildViews();
+		if (screenWidthDIP < 360 || screenHeightDIP < 360) {
+			// slightly shorter title
+			setTitle(R.string.app_name);
+			getSupportActionBar().setTitle(R.string.app_name);
+		}
+		rethinkActionBarCapacity();
 		if( ! state.contains("savedGame") || state.getString("savedGame", "").length() <= 0 ) {
 			// first run
 			new AlertDialog.Builder(this)
@@ -149,6 +156,22 @@ public class GameChooser extends ActionBarActivity
 			oldColumns = columns;
 		}
 		super.onConfigurationChanged(newConfig);
+		rethinkActionBarCapacity();
+	}
+
+	private void rethinkActionBarCapacity() {
+		if (menu == null) return;
+		DisplayMetrics dm = getResources().getDisplayMetrics();
+		final int screenWidthDIP = (int) Math.round(((double) dm.widthPixels) / dm.density);
+		int state = MenuItemCompat.SHOW_AS_ACTION_ALWAYS;
+		if (screenWidthDIP > 500) {
+			state |= MenuItemCompat.SHOW_AS_ACTION_WITH_TEXT;
+		}
+		MenuItemCompat.setShowAsAction(menu.findItem(R.id.gridchooser), state);
+		MenuItemCompat.setShowAsAction(menu.findItem(R.id.listchooser), state);
+		MenuItemCompat.setShowAsAction(menu.findItem(R.id.load), state);
+		MenuItemCompat.setShowAsAction(menu.findItem(R.id.help), state);
+		supportInvalidateOptionsMenu();
 	}
 
 	@Override
@@ -156,10 +179,13 @@ public class GameChooser extends ActionBarActivity
 	{
 		super.onCreateOptionsMenu(menu);
 		getMenuInflater().inflate(R.menu.chooser, menu);
-		this.menu = menu;
 		if (isTablet) {
 			menu.removeItem(R.id.gridchooser);
 			menu.removeItem(R.id.listchooser);
+		}
+		if (this.menu == null) {  // first time
+			this.menu = menu;
+			rethinkActionBarCapacity();
 		}
 		return true;
 	}
