@@ -10,10 +10,12 @@ import android.content.SharedPreferences;
 import android.content.DialogInterface.OnCancelListener;
 import android.content.res.Configuration;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.preference.PreferenceManager;
 import android.support.v4.view.MenuItemCompat;
+import android.support.v7.app.ActionBar;
 import android.support.v7.app.ActionBarActivity;
 import android.util.DisplayMetrics;
 import android.view.Menu;
@@ -83,6 +85,16 @@ public class GameChooser extends ActionBarActivity
 			getSupportActionBar().setTitle(R.string.app_name);
 		}
 		rethinkActionBarCapacity();
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+			getSupportActionBar().addOnMenuVisibilityListener(new ActionBar.OnMenuVisibilityListener() {
+				@Override
+				public void onMenuVisibilityChanged(boolean visible) {
+					// https://code.google.com/p/android/issues/detail?id=69205
+					if (!visible) supportInvalidateOptionsMenu();
+				}
+			});
+		}
+
 		if( ! state.contains("savedGame") || state.getString("savedGame", "").length() <= 0 ) {
 			// first run
 			new AlertDialog.Builder(this)
@@ -167,8 +179,7 @@ public class GameChooser extends ActionBarActivity
 		if (screenWidthDIP > 500) {
 			state |= MenuItemCompat.SHOW_AS_ACTION_WITH_TEXT;
 		}
-		MenuItemCompat.setShowAsAction(menu.findItem(R.id.gridchooser), state);
-		MenuItemCompat.setShowAsAction(menu.findItem(R.id.listchooser), state);
+		MenuItemCompat.setShowAsAction(menu.findItem(useGrid ? R.id.listchooser : R.id.gridchooser), state);
 		MenuItemCompat.setShowAsAction(menu.findItem(R.id.load), state);
 		MenuItemCompat.setShowAsAction(menu.findItem(R.id.help), state);
 		supportInvalidateOptionsMenu();
@@ -185,6 +196,7 @@ public class GameChooser extends ActionBarActivity
 		}
 		if (this.menu == null) {  // first time
 			this.menu = menu;
+			updateStyleToggleVisibility();
 			rethinkActionBarCapacity();
 		}
 		return true;
@@ -209,30 +221,35 @@ public class GameChooser extends ActionBarActivity
 		}
 	}
 
-	/** Possible android bug: onOptionsItemSelected(MenuItem item)
-	 *  wasn't being called? */
 	@Override
-    @SuppressLint("CommitPrefEdits")
 	public boolean onOptionsItemSelected(MenuItem item)
 	{
-		boolean newGrid;
+		boolean ret = true;
 		switch(item.getItemId()) {
-			case R.id.listchooser: newGrid = false; break;
-			case R.id.gridchooser: newGrid = true; break;
+			case R.id.listchooser: updateUseGrid(false); break;
+			case R.id.gridchooser: updateUseGrid(true); break;
 			case R.id.load:
 				new FilePicker(this, Environment.getExternalStorageDirectory(),false).show();
-				return true;
-			case R.id.contents: SGTPuzzles.showHelp(this, "index"); return true;
-			case R.id.email: SGTPuzzles.tryEmailAuthor(this); return true;
-			default: return super.onOptionsItemSelected(item);
+				break;
+			case R.id.contents: SGTPuzzles.showHelp(this, "index"); break;
+			case R.id.email: SGTPuzzles.tryEmailAuthor(this); break;
+			default: ret = super.onOptionsItemSelected(item);
 		}
-		if( useGrid == newGrid ) return true;
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+			// https://code.google.com/p/android/issues/detail?id=69205
+			supportInvalidateOptionsMenu();
+		}
+		return ret;
+	}
+
+	@SuppressLint("CommitPrefEdits")
+	private void updateUseGrid(boolean newGrid) {
+		if( useGrid == newGrid ) return;
 		useGrid = newGrid;
 		updateStyleToggleVisibility();
 		rebuildViews();
-        SharedPreferences.Editor ed = prefs.edit();
+		SharedPreferences.Editor ed = prefs.edit();
 		ed.putString(CHOOSER_STYLE_KEY, useGrid ? "grid" : "list");
 		prefsSaver.save(ed);
-		return true;
 	}
 }

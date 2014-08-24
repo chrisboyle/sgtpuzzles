@@ -42,6 +42,7 @@ import android.os.Message;
 import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
 import android.support.v4.view.MenuItemCompat;
+import android.support.v7.app.ActionBar;
 import android.support.v7.app.ActionBarActivity;
 import android.text.InputType;
 import android.util.DisplayMetrics;
@@ -233,6 +234,15 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.main);
 		getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+			getSupportActionBar().addOnMenuVisibilityListener(new ActionBar.OnMenuVisibilityListener() {
+				@Override
+				public void onMenuVisibilityChanged(boolean visible) {
+					// https://code.google.com/p/android/issues/detail?id=69205
+					if (!visible) supportInvalidateOptionsMenu();
+				}
+			});
+		}
 		mainLayout = (RelativeLayout)findViewById(R.id.mainLayout);
 		statusBar = (TextView)findViewById(R.id.statusBar);
 		gameView = (GameView)findViewById(R.id.game);
@@ -370,9 +380,9 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 	public boolean onOptionsItemSelected(MenuItem item)
 	{
 		int itemId = item.getItemId();
-		if (itemId == android.R.id.home) itemId = R.id.other;
+		boolean ret = true;
 		switch(itemId) {
-		case R.id.other:
+		case android.R.id.home:
 			startChooser();
 			break;
 		case R.id.settings:
@@ -393,15 +403,10 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 			break;
 		case R.id.custom:
 			configEvent(CFG_SETTINGS);
-			supportInvalidateOptionsMenu();
 			break;
-		case R.id.contents: showHelp(this, "index"); break;
 		case R.id.this_game: showHelp(this, htmlHelpTopic()); break;
 		case R.id.email:
 			tryEmailAuthor(this);
-			break;
-		case R.id.load:
-			new FilePicker(this, storageDir, false).show();
 			break;
 		case R.id.save:
 			new FilePicker(this, storageDir, true).show();
@@ -412,11 +417,16 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 				String presetParams = (String)gameTypes.keySet().toArray()[pos];
 				Log.d(TAG, "preset: " + pos + ": " + presetParams);
 				startGame(GameLaunch.toGenerate(currentBackend, presetParams));
+			} else {
+				ret = super.onOptionsItemSelected(item);
 			}
-			else super.onOptionsItemSelected(item);
 			break;
 		}
-		return true;
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+			// https://code.google.com/p/android/issues/detail?id=69205
+			supportInvalidateOptionsMenu();
+		}
+		return ret;
 	}
 
 	private static String getEmailSubject(Context c)
