@@ -97,6 +97,8 @@ Version %s"</string>
     <string name="orientationLandscape">Landscape</string>
     <string name="undoRedoKbd">Undo/Redo on keyboard</string>
     <string name="undoRedoKbdSummary">Show undo/redo in the keyboard instead of the action bar: allows auto-repeat, needs restart</string>
+    <string name="bridgesShowH">Show H key</string>
+    <string name="bridgesShowHSummary">"Undocumented \"solve from here\" function, needs restart"</string>
     <string name="inertiaForceArrows">Always show arrows</string>
     <string name="inertiaForceArrowsSummary">This game has diagonal arrow keys</string>
     <string name="patternShowLengths">Show drag lengths</string>

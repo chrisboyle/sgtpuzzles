@@ -2099,7 +2099,7 @@ static game_state *new_game(midend *me, const game_params *params,
                             const char *desc)
 {
 #ifdef ANDROID
-    android_keys("GH", ANDROID_ARROWS);
+    android_keys("Gh", ANDROID_ARROWS);
 #endif
     return new_game_sub(params, desc);
 }

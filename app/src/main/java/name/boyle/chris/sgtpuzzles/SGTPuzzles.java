@@ -75,6 +75,7 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 	static final String ORIENTATION_KEY = "orientation";
 	static final String ARROW_KEYS_KEY = "arrowKeys";
 	static final String INERTIA_FORCE_ARROWS_KEY = "inertiaForceArrows";
+	static final String BRIDGES_SHOW_H_KEY = "bridgesShowH";
 	private static final String FULLSCREEN_KEY = "fullscreen";
 	private static final String STAY_AWAKE_KEY = "stayAwake";
 	private static final String UNDO_REDO_KBD_KEY = "undoRedoKbd";
@@ -1015,6 +1016,7 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 	void setKeys(String keys, SmallKeyboard.ArrowMode arrowMode)
 	{
 		if (keys == null) keys = "";
+		keys = keys.replace("h", prefs.getBoolean(BRIDGES_SHOW_H_KEY, false) ? "H" : "");
 		if (arrowMode == null) arrowMode = SmallKeyboard.ArrowMode.ARROWS_LEFT_RIGHT_CLICK;
 		lastArrowMode = arrowMode;
 		lastKeys = keys + maybeUndoRedo;

@@ -30,6 +30,13 @@
 			android:defaultValue="auto" />
 	</PreferenceCategory>
 
+	<PreferenceCategory android:title="@string/name_bridges">
+		<CheckBoxPreference android:title="@string/bridgesShowH"
+							android:key="bridgesShowH"
+							android:summary="@string/bridgesShowHSummary"
+							android:defaultValue="false" />
+	</PreferenceCategory>
+
 	<PreferenceCategory android:title="@string/name_inertia">
 		<CheckBoxPreference android:title="@string/inertiaForceArrows"
 			android:key="inertiaForceArrows"
