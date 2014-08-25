@@ -376,6 +376,7 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 	private void startChooser()
 	{
 		startActivity(new Intent(this, GameChooser.class));
+		overridePendingTransition(0, 0);
 	}
 
 	@Override
