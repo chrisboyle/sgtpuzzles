@@ -1,6 +1,6 @@
 /* -*- tab-width: 8; indent-tabs-mode: t -*-
  * filling.c: An implementation of the Nikoli game fillomino.
- * Copyright (C) 2007 Jonas Kölker.  See LICENSE for the license.
+ * Copyright (C) 2007 Jonas Kï¿½lker.  See LICENSE for the license.
  */
 
 /* TODO:
@@ -1080,7 +1080,10 @@ static char *interpret_move(const game_state *state, game_ui *ui,
             if (!state->shared->clues[w*ty+tx])
                 ui->sel[w*ty+tx] = 1;
         }
-#ifndef ANDROID
+#ifdef ANDROID
+        ui->cur_x = tx;
+        ui->cur_y = ty;
+#else
         ui->cur_visible = 0;
 #endif
         return ""; /* redraw */
