@@ -48,7 +48,6 @@ public class GameChooser extends ActionBarActivity
     protected void onCreate(Bundle savedInstanceState)
 	{
 		super.onCreate(savedInstanceState);
-		setTitle(R.string.chooser_title);
 		prefs = PreferenceManager.getDefaultSharedPreferences(this);
         SharedPreferences state = getSharedPreferences(SGTPuzzles.STATE_PREFS_NAME, MODE_PRIVATE);
 		prefsSaver = PrefsSaver.get(this);
@@ -79,11 +78,6 @@ public class GameChooser extends ActionBarActivity
 		setContentView(R.layout.chooser);
 		table = (TableLayout) findViewById(R.id.table);
 		rebuildViews();
-		if (screenWidthDIP < 360 || screenHeightDIP < 360) {
-			// slightly shorter title
-			setTitle(R.string.app_name);
-			getSupportActionBar().setTitle(R.string.app_name);
-		}
 		rethinkActionBarCapacity();
 		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
 			getSupportActionBar().addOnMenuVisibilityListener(new ActionBar.OnMenuVisibilityListener() {

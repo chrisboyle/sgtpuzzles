@@ -140,7 +140,6 @@ Version %s"</string>
     <string name="name_unruly">Unruly</string>
     <string name="name_untangle">Untangle</string>
     <!-- These are for Menu/Game/Other (detail mode) -->
-    <string name="chooser_title">Which game?</string>
     <string name="no_desc">(no summary available)</string>
     <string name="desc_blackbox">Locate the balls inside the box by firing lasers and observing how they are deflected or absorbed.</string>
     <string name="desc_bridges">Connect the islands with the given bridge counts so no bridges are crossing.</string>
