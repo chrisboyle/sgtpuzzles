@@ -34,6 +34,7 @@ import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
+import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -878,7 +879,9 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 	}
 
 	private void darkenTopDrawable(Button b) {
-		b.getCompoundDrawables()[1].setColorFilter(Color.BLACK, PorterDuff.Mode.SRC_ATOP);
+		final Drawable drawable = b.getCompoundDrawables()[1].mutate();
+		drawable.setColorFilter(Color.BLACK, PorterDuff.Mode.SRC_ATOP);
+		b.setCompoundDrawables(null, drawable, null, null);
 	}
 
 	@UsedByJNI
