@@ -145,12 +145,12 @@ class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboardActio
 					case 'u':
 						undoKey = mKeys.size() - 1;
 						key.repeatable = true;
-						setUndoRedoEnabled(false, undoEnabled);
+						setUndoRedoEnabled(ExtraKey.UNDO, undoEnabled);
 						break;
 					case 'r':
 						redoKey = mKeys.size() - 1;
 						key.repeatable = true;
-						setUndoRedoEnabled(true, redoEnabled);
+						setUndoRedoEnabled(ExtraKey.REDO, redoEnabled);
 						break;
 					case '\b':
 						key.icon = context.getResources().getDrawable(
@@ -290,8 +290,12 @@ class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboardActio
 			}
 			initDone = true;
 		}
-		void setUndoRedoEnabled( boolean redo, boolean enabled )
+
+		enum ExtraKey { UNDO, REDO }
+
+		void setUndoRedoEnabled(ExtraKey which, boolean enabled)
 		{
+			final boolean redo = (which == ExtraKey.REDO);
 			int i = redo ? redoKey : undoKey;
 			if (i < 0) return;
 			DKey k = (DKey)mKeys.get(i);
@@ -301,8 +305,9 @@ class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboardActio
 					enabled ? R.drawable.ic_action_undo
 							: R.drawable.ic_action_undo_disabled);
 			k.enabled = enabled;
-            if (initDone) keyboardView.invalidateKey(i);
+			if (initDone) keyboardView.invalidateKey(i);
 		}
+
 		@Override
 		public List<Key> getKeys() { return mKeys; }
 		@Override
@@ -375,12 +380,14 @@ class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboardActio
 		}
 	}
 
-	void setUndoRedoEnabled(boolean redo, boolean enabled)
+	void setUndoRedoEnabled(boolean canUndo, boolean canRedo)
 	{
-		if (redo) redoEnabled = enabled; else undoEnabled = enabled;
+		undoEnabled = canUndo;
+		redoEnabled = canRedo;
 		KeyboardModel m = (KeyboardModel)getKeyboard();
 		if (m == null) return;
-		m.setUndoRedoEnabled(redo,enabled);
+		m.setUndoRedoEnabled(KeyboardModel.ExtraKey.UNDO, canUndo);
+		m.setUndoRedoEnabled(KeyboardModel.ExtraKey.REDO, canRedo);
 	}
 
 	public void swipeUp() {}

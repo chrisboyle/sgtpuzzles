@@ -629,7 +629,6 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 	{
 		if (progress != null) return;
 		showProgress( R.string.starting_new );
-		changedState(false, false);
 		startGameThread(GameLaunch.toGenerate(currentBackend, getCurrentParams()));
 	}
 
@@ -1185,8 +1184,7 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 			@Override
 			public void run() {
 				if (keyboard != null) {
-					keyboard.setUndoRedoEnabled(false, canUndo);
-					keyboard.setUndoRedoEnabled(true, canRedo);
+					keyboard.setUndoRedoEnabled(canUndo, canRedo);
 				}
 				if (menu != null) {
 					MenuItem mi;

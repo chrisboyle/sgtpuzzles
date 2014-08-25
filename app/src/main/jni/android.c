@@ -600,6 +600,7 @@ void startPlaying(JNIEnv *env, jobject _obj, jobject _gameView, jstring savedGam
 	(*env)->SetFloatArrayRegion(env, jColours, 0, n*3, colours);
 	(*env)->CallVoidMethod(env, obj, clearForNewGame, keys, lastArrowMode, jColours);
 	(*env)->DeleteLocalRef(env, keys);
+	android_changed_state(NULL, midend_can_undo(fe->me), midend_can_redo(fe->me));
 
 	if ((n = midend_num_presets(fe->me)) > 0) {
 		int i;
