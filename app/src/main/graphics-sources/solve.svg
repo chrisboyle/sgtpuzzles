@@ -9,12 +9,14 @@
    xmlns="http://www.w3.org/2000/svg"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   inkscape:version="0.48.4 r9939"
-   version="1.1"
+   width="576"
+   height="736"
    id="svg2"
-   height="800"
-   width="800"
-   sodipodi:docname="solve.svg">
+   version="1.1"
+   inkscape:version="0.48.4 r9939"
+   sodipodi:docname="New document 1">
+  <defs
+     id="defs4" />
   <sodipodi:namedview
      id="base"
      pagecolor="#ffffff"
@@ -22,27 +24,34 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="0.98994949"
-     inkscape:cx="70.621887"
-     inkscape:cy="554.19103"
+     inkscape:zoom="0.35"
+     inkscape:cx="466.81533"
+     inkscape:cy="292.82538"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="true"
-     inkscape:window-width="1920"
-     inkscape:window-height="1023"
-     inkscape:window-x="0"
-     inkscape:window-y="33"
+     inkscape:snap-bbox="true"
+     fit-margin-top="0"
+     fit-margin-left="0"
+     fit-margin-right="0"
+     fit-margin-bottom="0"
+     inkscape:window-width="1855"
+     inkscape:window-height="1056"
+     inkscape:window-x="65"
+     inkscape:window-y="24"
      inkscape:window-maximized="1">
     <inkscape:grid
-       snapvisiblegridlinesonly="true"
-       enabled="true"
+       type="xygrid"
+       id="grid2985"
+       empspacing="4"
        visible="true"
-       empspacing="5"
-       id="grid4152"
-       type="xygrid" />
+       enabled="true"
+       snapvisiblegridlinesonly="true"
+       spacingx="32px"
+       spacingy="32px"
+       originx="-448px"
+       originy="-320px" />
   </sodipodi:namedview>
-  <defs
-     id="defs4" />
   <metadata
      id="metadata7">
     <rdf:RDF>
@@ -51,41 +60,25 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title />
+        <dc:title></dc:title>
       </cc:Work>
     </rdf:RDF>
   </metadata>
   <g
-     transform="translate(0,-252.36218)"
-     id="layer1"
+     inkscape:label="Layer 1"
      inkscape:groupmode="layer"
-     inkscape:label="Layer 1">
-    <g
-       id="g3814"
-       transform="matrix(-1,0,0,1,603.46871,0)">
-      <path
-         inkscape:transform-center-x="-67.172049"
-         transform="matrix(-1.0334163,0.81999604,-1.7899296,-0.47342494,522.66253,406.99078)"
-         d="M 230,100 132.5,156.29166 35,212.5833 34.999992,99.999997 35,-12.583302 132.50001,43.708344 z"
-         inkscape:randomized="0"
-         inkscape:rounded="0"
-         inkscape:flatsided="false"
-         sodipodi:arg2="1.0471976"
-         sodipodi:arg1="0"
-         sodipodi:r2="65.000008"
-         sodipodi:r1="130"
-         sodipodi:cy="100"
-         sodipodi:cx="100"
-         sodipodi:sides="3"
-         id="path3035"
-         style="fill:#000000;stroke:#000000;stroke-width:30;stroke-linecap:square;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:0"
-         sodipodi:type="star" />
-      <path
-         sodipodi:nodetypes="cc"
-         inkscape:connector-curvature="0"
-         id="path3037"
-         d="m 94.898474,329.42098 0,591.26492"
-         style="fill:none;stroke:#000000;stroke-width:42.85953522;stroke-linecap:square;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none" />
-    </g>
+     id="layer1"
+     transform="translate(-214.2245,-148.3345)">
+    <path
+       id="path2989-3"
+       style="fill:#000000;fill-opacity:1;stroke:none"
+       d="m 463.58263,844.47905 c 4.6531,16.88673 -5.65243,34.24419 -23.01806,38.76898 -17.36564,4.52478 -35.21535,-5.49656 -39.86846,-22.38328 l 31.44326,-8.19285 z M 215.34178,188.18994 c -4.65311,-16.88672 5.65243,-34.24419 23.01807,-38.76898 17.36563,-4.52478 35.21534,5.49656 39.86845,22.38328 l -31.44325,8.19285 z m 0,0 62.88652,-16.3857 185.35433,672.67479 -62.88652,16.3857 z"
+       inkscape:connector-curvature="0" />
+    <path
+       style="fill:#000000;fill-opacity:1;stroke:none"
+       d="m 309.67157,163.61139 448.00047,16.37784 32.55246,221.58315 -404.72617,37.22415 z"
+       id="rect3022"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="ccccc" />
   </g>
 </svg>
