@@ -369,6 +369,7 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 			public void onProgressChanged(WebView w, int progress) { if (progress == 100) d.setTitle(w.getTitle()); }
 		});
 		wv.getSettings().setBuiltInZoomControls(true);
+		wv.getSettings().setDisplayZoomControls(false);
 		wv.loadUrl(MessageFormat.format(context.getString(R.string.docs_url), topic));
 		d.show();
 	}
