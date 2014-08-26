@@ -11,6 +11,5 @@
 	<item android:title="@string/Help" android:id="@+id/help" android:icon="@drawable/ic_action_help" supportLib:showAsAction="always|withText"><menu>
         <item android:title="@string/Help" android:id="@+id/contents"/>
         <item android:title="@string/Send_feedback" android:id="@+id/email"/>
-		<item android:title="@string/Settings" android:id="@+id/settings"/>
 	</menu></item>
 </menu>
