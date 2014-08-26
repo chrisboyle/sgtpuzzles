@@ -125,6 +125,7 @@ public class GameChooser extends ActionBarActivity
 					i.setData(Uri.fromParts("sgtpuzzles", gameId, null));
 					startActivity(i);
 					finish();
+					overridePendingTransition(0, 0);
 				}
 			});
 			views[i].setFocusable(true);
