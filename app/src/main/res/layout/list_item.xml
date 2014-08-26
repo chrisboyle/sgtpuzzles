@@ -3,22 +3,21 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="fill_parent"
     android:layout_height="wrap_content"
-    android:paddingTop="3dip"
-    android:paddingBottom="3dip"
-    android:paddingLeft="6dip"
-    android:paddingRight="6dip"
+    android:paddingTop="2dip"
+    android:paddingBottom="2dip"
+    android:paddingLeft="8dip"
+    android:paddingRight="8dip"
     style="@style/GameChooserItem">
 
-    <ImageView android:id="@android:id/icon"
+    <ImageView android:id="@+id/icon"
         android:layout_width="64dip"
-        android:layout_height="64dip"
-        android:paddingTop="2dip"/>
+        android:layout_height="64dip" />
 
-    <TextView android:id="@android:id/text1"
+    <TextView android:id="@+id/text"
         android:bufferType="spannable"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center_horizontal"
-        android:paddingLeft="6dip" />
+        android:paddingLeft="8dip" />
 </LinearLayout>
 

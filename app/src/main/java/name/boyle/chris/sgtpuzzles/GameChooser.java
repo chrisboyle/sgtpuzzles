@@ -17,6 +17,9 @@ import android.preference.PreferenceManager;
 import android.support.v4.view.MenuItemCompat;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.ActionBarActivity;
+import android.text.Spannable;
+import android.text.SpannableStringBuilder;
+import android.text.style.TextAppearanceSpan;
 import android.util.DisplayMetrics;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -106,18 +109,19 @@ public class GameChooser extends ActionBarActivity
 		TableRow dummy = new TableRow(this);
 		for( int i = 0; i < games.length; i++ ) {
 			final String gameId = games[i];
-			int nameId = getResources().getIdentifier("name_"+gameId, "string", getPackageName());
 			views[i] = getLayoutInflater().inflate(
 					useGrid ? R.layout.grid_item : R.layout.list_item, dummy, false);
-			((ImageView)views[i].findViewById(android.R.id.icon)).setImageResource(
+			((ImageView)views[i].findViewById(R.id.icon)).setImageResource(
 					getResources().getIdentifier(gameId, "drawable", getPackageName()));
 			if (! useGrid) {
-				int descId = getResources().getIdentifier("desc_"+gameId, "string", getPackageName());
-				String desc;
-				if( nameId > 0 ) desc = getString(nameId);
-				else desc = gameId.substring(0,1).toUpperCase() + gameId.substring(1);
-				desc += ": " + getString( descId > 0 ? descId : R.string.no_desc );
-				((TextView)views[i].findViewById(android.R.id.text1)).setText(desc);
+				final int nameId = getResources().getIdentifier("name_"+gameId, "string", getPackageName());
+				final int descId = getResources().getIdentifier("desc_"+gameId, "string", getPackageName());
+				SpannableStringBuilder desc = new SpannableStringBuilder(nameId > 0 ?
+						getString(nameId) : gameId.substring(0,1).toUpperCase() + gameId.substring(1));
+				desc.setSpan(new TextAppearanceSpan(this, R.style.ChooserItemName),
+						0, desc.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+				desc.append(": " + getString(descId > 0 ? descId : R.string.no_desc));
+				((TextView)views[i].findViewById(R.id.text)).setText(desc);
 			}
 			views[i].setOnClickListener(new View.OnClickListener() {
 				public void onClick(View arg1) {
