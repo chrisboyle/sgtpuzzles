@@ -13,4 +13,6 @@
     <style name="GameChooserItem">
         <item name="android:background">@android:drawable/list_selector_background</item>
     </style>
+    <style name="ChooserItemName" parent="@android:style/TextAppearance.Medium">
+    </style>
 </resources>
