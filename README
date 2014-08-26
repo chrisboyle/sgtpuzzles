@@ -11,6 +11,10 @@ http://github.com/chrisboyle/sgtpuzzles/issues
 Simon has an excellent page on how to write a good bug report:
 http://www.chiark.greenend.org.uk/~sgtatham/bugs.html
 
+Need to add/change some graphics? The sources live in
+app/src/main/graphics-sources and were converted to icons with
+http://romannurik.github.io/AndroidAssetStudio/
+
 Coders should read on...
 
 Prerequisites
