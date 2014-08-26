@@ -241,7 +241,10 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 				@Override
 				public void onMenuVisibilityChanged(boolean visible) {
 					// https://code.google.com/p/android/issues/detail?id=69205
-					if (!visible) supportInvalidateOptionsMenu();
+					if (!visible) {
+						supportInvalidateOptionsMenu();
+						rethinkActionBarCapacity();
+					}
 				}
 			});
 		}
@@ -323,19 +326,14 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 	{
 		super.onPrepareOptionsMenu(menu);
 		hackForSubmenus = menu;
-		MenuItem item;
-		item = menu.findItem(R.id.solve);
-		item.setEnabled(solveEnabled);
-		item.setVisible(solveEnabled);
-		MenuItem undoItem = menu.findItem(R.id.undo), redoItem = menu.findItem(R.id.redo);
-		undoItem.setEnabled(undoEnabled);
-		redoItem.setEnabled(redoEnabled);
-		undoItem.setIcon(undoEnabled ? R.drawable.ic_action_undo : R.drawable.ic_action_undo_disabled);
-		redoItem.setIcon(redoEnabled ? R.drawable.ic_action_redo : R.drawable.ic_action_redo_disabled);
-		item = menu.findItem(R.id.type);
-		item.setEnabled(! gameTypes.isEmpty() || customVisible);
-		item.setVisible(item.isEnabled());
-		typeMenu = item.getSubMenu();
+		final MenuItem solveItem = menu.findItem(R.id.solve);
+		solveItem.setEnabled(solveEnabled);
+		solveItem.setVisible(solveEnabled);
+		updateUndoRedoEnabled();
+		final MenuItem typeItem = menu.findItem(R.id.type);
+		typeItem.setEnabled(! gameTypes.isEmpty() || customVisible);
+		typeItem.setVisible(typeItem.isEnabled());
+		typeMenu = typeItem.getSubMenu();
 		int i = 0;
 		for(Entry<String, String> entry : gameTypes.entrySet()) {
 			if( menu.findItem(i) == null ) {
@@ -343,7 +341,7 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 			}
 			i++;
 		}
-		MenuItem customItem = menu.findItem(R.id.custom);
+		final MenuItem customItem = menu.findItem(R.id.custom);
 		customItem.setVisible(customVisible);
 		typeMenu.setGroupCheckable(R.id.typeGroup, true, true);
 		if( currentType < 0 ) customItem.setChecked(true);
@@ -351,6 +349,15 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 		menu.findItem(R.id.this_game).setTitle(MessageFormat.format(
 					getString(R.string.how_to_play_game),new Object[]{this.getTitle()}));
 		return true;
+	}
+
+	private void updateUndoRedoEnabled() {
+		final MenuItem undoItem = menu.findItem(R.id.undo);
+		final MenuItem redoItem = menu.findItem(R.id.redo);
+		undoItem.setEnabled(undoEnabled);
+		redoItem.setEnabled(redoEnabled);
+		undoItem.setIcon(undoEnabled ? R.drawable.ic_action_undo : R.drawable.ic_action_undo_disabled);
+		redoItem.setIcon(redoEnabled ? R.drawable.ic_action_redo : R.drawable.ic_action_redo_disabled);
 	}
 
 	static void showHelp(Context context, String topic)
@@ -428,6 +435,7 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
 			// https://code.google.com/p/android/issues/detail?id=69205
 			supportInvalidateOptionsMenu();
+			rethinkActionBarCapacity();
 		}
 		return ret;
 	}
@@ -780,13 +788,17 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 		MenuItemCompat.setShowAsAction(menu.findItem(R.id.type), state);
 		MenuItemCompat.setShowAsAction(menu.findItem(R.id.help), state);
 		final boolean undoRedoKbd = prefs.getBoolean(UNDO_REDO_KBD_KEY, UNDO_REDO_KBD_DEFAULT);
+		final MenuItem undoItem = menu.findItem(R.id.undo);
+		undoItem.setVisible(!undoRedoKbd);
+		final MenuItem redoItem = menu.findItem(R.id.redo);
+		redoItem.setVisible(!undoRedoKbd);
 		if (!undoRedoKbd) {
-			MenuItemCompat.setShowAsAction(menu.findItem(R.id.undo), state);
-			MenuItemCompat.setShowAsAction(menu.findItem(R.id.redo), state);
+			MenuItemCompat.setShowAsAction(undoItem, state);
+			MenuItemCompat.setShowAsAction(redoItem, state);
+			updateUndoRedoEnabled();
 		}
 		// emulator at 598 dip looks bad with title+undo; GT-N7100 at 640dip looks good
 		getSupportActionBar().setDisplayShowTitleEnabled(screenWidthDIP > 620 || undoRedoKbd);
-		supportInvalidateOptionsMenu();
 	}
 
 	@UsedByJNI
@@ -1137,14 +1149,12 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 	}
 
 	private void applyUndoRedoKbd() {
-		if (menu == null) return;
 		boolean undoRedoKbd = prefs.getBoolean(UNDO_REDO_KBD_KEY, UNDO_REDO_KBD_DEFAULT);
 		final String wantKbd = undoRedoKbd ? "ur" : "";
-		if (wantKbd.equals(maybeUndoRedo)) return;
-		maybeUndoRedo = wantKbd;
-		setKeyboardVisibility(getResources().getConfiguration());
-		menu.findItem(R.id.undo).setVisible(! undoRedoKbd);
-		menu.findItem(R.id.redo).setVisible(! undoRedoKbd);
+		if (!wantKbd.equals(maybeUndoRedo)) {
+			maybeUndoRedo = wantKbd;
+			setKeyboardVisibility(getResources().getConfiguration());
+		}
 		rethinkActionBarCapacity();
 	}
 
@@ -1179,11 +1189,11 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 	@UsedByJNI
 	void changedState(final boolean canUndo, final boolean canRedo)
 	{
-		undoEnabled = canUndo;
-		redoEnabled = canRedo;
 		runOnUiThread(new Runnable() {
 			@Override
 			public void run() {
+				undoEnabled = canUndo;
+				redoEnabled = canRedo;
 				if (keyboard != null) {
 					keyboard.setUndoRedoEnabled(canUndo, canRedo);
 				}
