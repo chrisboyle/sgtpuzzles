@@ -1525,7 +1525,12 @@ static char *interpret_move(const game_state *state, game_ui *ui,
             && oy >= (ds->tilesize / 2) && gy < h2) {
             hx = gx;
             hy = gy;
+#ifdef ANDROID
+            ui->cx = gx;
+            ui->cy = gy;
+#else
             ui->cursor = FALSE;
+#endif
         } else
             return NULL;
     }
