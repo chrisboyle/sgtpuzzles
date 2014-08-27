@@ -18,6 +18,9 @@
 \cfg{ps-filename}{puzzles.ps}
 \cfg{pdf-filename}{puzzles.pdf}
 
+\define{androidmouse} \e{On Android, throughout this manual, please read
+\q{touch} for left-click, and \q{long press} for right-click.}
+
 \define{by} \u00D7{x}
 
 \define{dash} \u2013{-}
@@ -84,6 +87,8 @@ You might find it helpful to read this article before reporting a bug:
 This chapter describes features that are common to all the games.
 
 \H{common-actions} \I{controls}Common actions
+
+\androidmouse
 
 These actions are all available from the \I{Game menu}\q{Game} menu
 and via \I{keys}keyboard shortcuts, in addition to any game-specific
@@ -447,6 +452,8 @@ highlighted.
 \IM{Net controls} keys, for Net
 \IM{Net controls} shortcuts (keyboard), for Net
 
+\androidmouse
+
 This game can be played with either the keyboard or the mouse. The
 controls are:
 
@@ -561,6 +568,8 @@ octahedron or an icosahedron.
 \IM{Cube controls} keys, for Cube
 \IM{Cube controls} shortcuts (keyboard), for Cube
 
+\androidmouse
+
 This game can be played with either the keyboard or the mouse.
 
 Left-clicking anywhere on the window will move the cube (or other
@@ -610,6 +619,8 @@ bottom row reads 13,14,15,\e{space}).
 \IM{Fifteen controls} keys, for Fifteen
 \IM{Fifteen controls} shortcuts (keyboard), for Fifteen
 
+\androidmouse
+
 This game can be controlled with the mouse or the keyboard.
 
 A left-click with the mouse in the row or column containing the empty
@@ -651,6 +662,8 @@ thing in my puzzle collection which represents creativity on my part
 rather than just engineering.
 
 \H{sixteen-controls} \I{controls, for Sixteen}Sixteen controls
+
+\androidmouse
 
 Left-clicking on an arrow will move the appropriate row or column in
 the direction indicated.  Right-clicking will move it in the opposite
@@ -700,6 +713,8 @@ you solve to unlock a door, which is a special case of Twiddle. I
 developed this game as a generalisation of that puzzle.
 
 \H{twiddle-controls} \I{controls, for Twiddle}Twiddle controls
+
+\androidmouse
 
 To play Twiddle, click the mouse in the centre of the square group
 you wish to rotate. In the basic mode, you rotate a 2\by\.2 square,
@@ -776,6 +791,8 @@ specification.
 
 \H{rectangles-controls} \I{controls, for Rectangles}Rectangles controls
 
+\androidmouse
+
 This game is played with the mouse or cursor keys.
 
 Left-click any edge to toggle it on or off, or left-click and drag to draw
@@ -851,6 +868,8 @@ into place by moving a whole row at a time.
 As in Sixteen, \I{controls, for Netslide}control is with the mouse or
 cursor keys. See \k{sixteen-controls}.
 
+\androidmouse
+
 \I{parameters, for Netslide}The available game parameters have similar
 meanings to those in Net (see \k{net-params}) and Sixteen (see
 \k{sixteen-params}).
@@ -881,6 +900,8 @@ squares based on the picture, and forces you to use logic instead.)
 The advantage, though, is that you never run out of them.
 
 \H{pattern-controls} \I{controls, for Pattern}Pattern controls
+
+\androidmouse
 
 This game is played with the mouse.
 
@@ -961,6 +982,8 @@ of the history of the puzzle can be found on Wikipedia
 \B{wikipedia-solo} \W{http://en.wikipedia.org/wiki/Sudoku}\cw{http://en.wikipedia.org/wiki/Sudoku}
 
 \H{solo-controls} \I{controls, for Solo}Solo controls
+
+\androidmouse
 
 To play Solo, simply click the mouse in any empty square and then
 type a digit or letter on the keyboard to fill that square. If you
@@ -1070,6 +1093,8 @@ are.
 
 \H{mines-controls} \I{controls, for Mines}Mines controls
 
+\androidmouse
+
 This game is played with the mouse.
 
 If you left-click in a covered square, it will be uncovered.
@@ -1169,6 +1194,8 @@ Same Game was contributed to this collection by James Harvey.
 \IM{Same Game controls} keys, for Same Game
 \IM{Same Game controls} shortcuts (keyboard), for Same Game
 
+\androidmouse
+
 This game can be played with either the keyboard or the mouse.
 
 If you left-click an unselected region, it becomes selected (possibly
@@ -1244,6 +1271,8 @@ change when you flip it.
 \IM{Flip controls} keys, for Flip
 \IM{Flip controls} shortcuts (keyboard), for Flip
 
+\androidmouse
+
 This game can be played with either the keyboard or the mouse.
 
 Left-click in a square to flip it and its associated squares, or
@@ -1301,6 +1330,8 @@ Guess was contributed to this collection by James Harvey.
 \IM{Guess controls} controls, for Guess
 \IM{Guess controls} keys, for Guess
 \IM{Guess controls} shortcuts (keyboard), for Guess
+
+\androidmouse
 
 This game can be played with either the keyboard or the mouse.
 
@@ -1386,6 +1417,8 @@ possibly one of the oldest puzzle games still commonly known.
 
 \IM{Pegs controls} controls, for Pegs
 
+\androidmouse
+
 To move a peg, drag it with the mouse from its current position to
 its final position. If the final position is exactly two holes away
 from the initial position, is currently unoccupied by a peg, and
@@ -1439,6 +1472,8 @@ name from those initials.
 \H{dominosa-controls} \i{Dominosa controls}
 
 \IM{Dominosa controls} controls, for Dominosa
+
+\androidmouse
 
 Left-clicking between any two adjacent numbers places a domino
 covering them, or removes one if it is already present. Trying to
@@ -1496,6 +1531,8 @@ I originally saw this in the form of a Flash game called \i{Planarity}
 \H{untangle-controls} \i{Untangle controls}
 
 \IM{Untangle controls} controls, for Untangle
+
+\androidmouse
 
 To move a point, click on it with the left mouse button and drag it
 into a new position.
@@ -1601,6 +1638,8 @@ Black Box was contributed to this collection by James Harvey.
 \IM{Black Box controls} keys, for Black Box
 \IM{Black Box controls} shortcuts (keyboard), for Black Box
 
+\androidmouse
+
 To fire a laser beam, left-click in a square around the edge of the
 arena. The results will be displayed immediately. Clicking or holding
 the left button on one of these squares will highlight the current go
@@ -1691,6 +1730,8 @@ Credit for this puzzle goes to \i{Nikoli} \k{nikoli-slant}.
 
 \IM{Slant controls} controls, for Slant
 
+\androidmouse
+
 Left-clicking in a blank square will place a \cw{\\} in it (a line
 leaning to the left, i.e. running from the top left of the square to
 the bottom right). Right-clicking in a blank square will place a
@@ -1766,6 +1807,8 @@ Light Up was contributed to this collection by James Harvey.
 
 \IM{Light Up controls} controls, for Light Up
 
+\androidmouse
+
 Left-clicking in a non-black square will toggle the presence of a light
 in that square. Right-clicking in a non-black square toggles a mark there to aid
 solving; it can be used to highlight squares that cannot be lit, for example. 
@@ -1839,6 +1882,8 @@ for many detailed suggestions.
 \H{map-controls} \i{Map controls}
 
 \IM{Map controls} controls, for Map
+
+\androidmouse
 
 To colour a region, click the left mouse button on an existing
 region of the desired colour and drag that colour into the new
@@ -1941,6 +1986,8 @@ by Lambros Lambrou.
 
 \IM{Loopy controls} controls, for Loopy
 
+\androidmouse
+
 Click the left mouse button on a yellow line to turn it black,
 indicating that you think it is part of the loop. Click again to
 turn the line yellow again (meaning you aren't sure yet).
@@ -2013,6 +2060,8 @@ so that it could be re-implemented for this collection.
 \IM{Inertia controls} keys, for Inertia
 \IM{Inertia controls} shortcuts (keyboard), for Inertia
 
+\androidmouse
+
 You can move the ball in any of the eight directions using the
 numeric keypad. Alternatively, if you click the left mouse button on
 the grid, the ball will begin a move in the general direction of
@@ -2073,6 +2122,8 @@ for inventing it.
 \H{tents-controls} \i{Tents controls}
 
 \IM{Tents controls} controls, for Tents
+
+\androidmouse
 
 Left-clicking in a blank square will place a tent in it.
 Right-clicking in a blank square will colour it green, indicating
@@ -2143,6 +2194,8 @@ Bridges was contributed to this collection by James Harvey.
 \H{bridges-controls} \i{Bridges controls}
 
 \IM{Bridges controls} controls, for Bridges
+
+\androidmouse
 
 To place a bridge between two islands, click the mouse down on one
 island and drag it towards the other. You do not need to drag all
@@ -2288,6 +2341,8 @@ Unequal was contributed to this collection by James Harvey.
 
 \IM{Unequal controls} controls, for Unequal
 
+\androidmouse
+
 Unequal shares much of its control system with Solo.
 
 To play Unequal, simply click the mouse in any empty square and then
@@ -2372,6 +2427,8 @@ Galaxies was contributed to this collection by James Harvey.
 
 \IM{Galaxies controls} controls, for Galaxies
 
+\androidmouse
+
 Left-click on any grid line to draw an edge if there isn't one
 already, or to remove one if there is. When you create a valid
 region (one which is closed, contains exactly one dot, is
@@ -2442,6 +2499,8 @@ Filling was contributed to this collection by Jonas K\u00F6{oe}lker.
 \W{http://www.nikoli.co.jp/en/puzzles/fillomino/}\cw{http://www.nikoli.co.jp/en/puzzles/fillomino/}
 
 \H{filling-controls} \I{controls, for Filling}Filling controls
+
+\androidmouse
 
 To play Filling, simply click the mouse in any empty square and then
 type a digit on the keyboard to fill that square. By dragging the
@@ -2514,6 +2573,8 @@ This puzzle appears in the Times under the name \q{\i{KenKen}}.
 \H{keen-controls} \i{Keen controls}
 
 \IM{Keen controls} controls, for Keen
+
+\androidmouse
 
 Keen shares much of its control system with Solo (and Unequal).
 
@@ -2604,6 +2665,8 @@ This puzzle appears on the web under various names, particularly
 
 \IM{Towers controls} controls, for Towers
 
+\androidmouse
+
 Towers shares much of its control system with Solo, Unequal and Keen.
 
 To play Towers, simply click the mouse in any empty square and then
@@ -2689,6 +2752,8 @@ Singles was contributed to this collection by James Harvey.
 
 \IM{Singles controls} controls, for Singles
 
+\androidmouse
+
 Left-clicking on an empty square will colour it black; left-clicking again 
 will restore the number. Right-clicking will add a circle (useful for 
 indicating that a cell is definitely not black). 
@@ -2739,6 +2804,8 @@ Magnets was contributed to this collection by James Harvey.
 \H{magnets-controls} \i{Magnets controls}
 
 \IM{Magnets controls} controls, for Magnets
+
+\androidmouse
 
 Left-clicking on an empty square places a magnet at that position with
 the positive pole on the square and the negative pole on the other half
@@ -2812,6 +2879,8 @@ Signpost was contributed to this collection by James Harvey.
 \W{http://janko.at/Raetsel/Pfeilpfad/index.htm}\cw{http://janko.at/Raetsel/Pfeilpfad/index.htm}
 
 \H{signpost-controls} \I{controls, for Signpost}Signpost controls
+
+\androidmouse
 
 To play Signpost, you connect squares together by dragging from one
 square to another, indicating that they are adjacent in the
@@ -2901,6 +2970,8 @@ Range was contributed to this collection by Jonas K\u00F6{oe}lker.
 
 \H{range-controls} \I{controls, for Range}Range controls
 
+\androidmouse
+
 Click with the left button to paint a square black, or with the right
 button to mark a square with a dot to indicate that you are sure it
 should \e{not} be painted black. Repeated clicking with either button
@@ -2957,6 +3028,8 @@ Thanks to James Harvey for assistance with the implementation.
 \W{http://www.nikoli.co.jp/en/puzzles/masyu/}\cw{http://www.nikoli.co.jp/en/puzzles/masyu/}
 
 \H{pearl-controls} \I{controls, for Pearl}Pearl controls
+
+\androidmouse
 
 Click with the left button on a grid edge to draw a segment of the
 loop through that edge, or to remove a segment once it is drawn.
@@ -3015,6 +3088,8 @@ Undead was contributed to this collection by Steffen Bauer.
 \W{http://www.janko.at/Raetsel/Spukschloss/index.htm}\cw{http://www.janko.at/Raetsel/Spukschloss/index.htm}
 
 \H{undead-controls} \I{controls, for Undead}Undead controls
+
+\androidmouse
 
 Undead has a similar control system to Solo, Unequal and Keen.
 
@@ -3087,6 +3162,8 @@ Unruly was contributed to this collection by Lennard Sprong.
 \W{http://www.janko.at/Raetsel/Tohu-Wa-Vohu/index.htm}\cw{http://www.janko.at/Raetsel/Tohu-Wa-Vohu/index.htm}
 
 \H{unruly-controls} \I{controls, for Unruly}Unruly controls
+
+\androidmouse
 
 To play Unruly, click the mouse in a square to change its colour.
 Left-clicking an empty square will turn it black, and right-clicking
