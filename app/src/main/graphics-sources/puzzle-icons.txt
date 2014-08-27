@@ -1,0 +1,7 @@
+* Install Roboto font (e.g. into ~/.fonts) from
+  http://www.google.com/design/spec/style/typography.html
+
+* Apply puzzle-icons.patch to an upstream checkout of Puzzles (eg. the
+  "upstream" tag).
+
+* ./mkfiles.pl && make -f Makefile.gtk && make -C icons

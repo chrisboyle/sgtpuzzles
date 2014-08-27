@@ -1,0 +1,134 @@
+diff --git a/gtk.c b/gtk.c
+index a2eba2c..86533bf 100644
+--- a/gtk.c
++++ b/gtk.c
+@@ -716,7 +716,7 @@ static void add_font(frontend *fe, int index, int fonttype, int fontsize)
+     fd = pango_font_description_new();
+     /* `Monospace' and `Sans' are meta-families guaranteed to exist */
+     pango_font_description_set_family(fd, fonttype == FONT_FIXED ?
+-				      "Monospace" : "Sans");
++				      "Monospace" : "Roboto");
+     pango_font_description_set_weight(fd, PANGO_WEIGHT_BOLD);
+     /*
+      * I found some online Pango documentation which
+@@ -1614,6 +1614,9 @@ static void get_size(frontend *fe, int *px, int *py)
+     x = INT_MAX;
+     y = INT_MAX;
+     midend_size(fe->me, &x, &y, FALSE);
++    x *= 2;
++    y *= 2;
++    midend_size(fe->me, &x, &y, TRUE);
+     *px = x;
+     *py = y;
+ }
+diff --git a/icons/Makefile b/icons/Makefile
+index 3f3dbf6..1e9d0fa 100644
+--- a/icons/Makefile
++++ b/icons/Makefile
+@@ -11,6 +11,10 @@ WEB = $(patsubst %,%-web.png,$(PUZZLES))
+ 
+ IBASE = $(patsubst %,%-ibase.png,$(PUZZLES))
+ IBASE4 = $(patsubst %,%-ibase4.png,$(PUZZLES))
++P192D24 = $(patsubst %,%-192d24.png,$(PUZZLES))
++P128D24 = $(patsubst %,%-128d24.png,$(PUZZLES))
++P96D24 = $(patsubst %,%-96d24.png,$(PUZZLES))
++P64D24 = $(patsubst %,%-64d24.png,$(PUZZLES))
+ P48D24 = $(patsubst %,%-48d24.png,$(PUZZLES))
+ P48D8 = $(patsubst %,%-48d8.png,$(PUZZLES))
+ P48D4 = $(patsubst %,%-48d4.png,$(PUZZLES))
+@@ -29,7 +33,8 @@ PIC = ./
+ 
+ base: $(BASE)
+ web: $(WEB)
+-pngicons: $(P48D24) $(P32D24) $(P16D24)
++pngicons: $(P192D24) $(P128D24) $(P96D24) $(P64D24)
++#pngicons: $(P48D24) $(P32D24) $(P16D24)
+ winicons: $(ICONS) $(RC)
+ gtkicons: $(CICONS)
+ all: base web pngicons winicons gtkicons
+@@ -53,38 +58,38 @@ $(WEB): %-web.png: %-base.png
+ # Build the base _icon_ images, by careful cropping of the base
+ # images: icons are very small so it's often necessary to zoom in
+ # on a smaller portion of the screenshot.
+-blackbox-ibase.png : override CROP=352x352 144x144+0+208
+-bridges-ibase.png : override CROP=264x264 107x107+157+157
+-dominosa-ibase.png : override CROP=304x272 152x152+152+0
+-fifteen-ibase.png : override CROP=240x240 120x120+0+120
+-filling-ibase.png : override CROP=256x256 133x133+14+78
+-flip-ibase.png : override CROP=288x288 145x145+120+72
+-galaxies-ibase.png : override CROP=288x288 165x165+0+0
+-guess-ibase.png : override CROP=263x420 178x178+75+17
+-inertia-ibase.png : override CROP=321x321 128x128+193+0
+-keen-ibase.png : override CROP=288x288 96x96+24+120
+-lightup-ibase.png : override CROP=256x256 112x112+144+0
+-loopy-ibase.png : override CROP=257x257 113x113+0+0
+-magnets-ibase.png : override CROP=264x232 96x96+36+100
+-mines-ibase.png : override CROP=240x240 110x110+130+130
+-net-ibase.png : override CROP=193x193 113x113+0+80
+-netslide-ibase.png : override CROP=289x289 144x144+0+0
+-pattern-ibase.png : override CROP=384x384 223x223+0+0
+-pearl-ibase.png : override CROP=216x216 94x94+108+15
+-pegs-ibase.png : override CROP=263x263 147x147+116+0
+-range-ibase.png : override CROP=256x256 98x98+111+15
+-rect-ibase.png : override CROP=205x205 115x115+90+0
+-signpost-ibase.png : override CROP=240x240 98x98+23+23
+-singles-ibase.png : override CROP=224x224 98x98+15+15
+-sixteen-ibase.png : override CROP=288x288 144x144+144+144
+-slant-ibase.png : override CROP=321x321 160x160+160+160
+-solo-ibase.png : override CROP=481x481 145x145+24+24
+-tents-ibase.png : override CROP=320x320 165x165+142+0
+-towers-ibase.png : override CROP=300x300 102x102+151+6
+-twiddle-ibase.png : override CROP=192x192 102x102+69+21
+-undead-ibase.png : override CROP=416x480 192x192+16+80
+-unequal-ibase.png : override CROP=208x208 104x104+104+104
+-untangle-ibase.png : override CROP=320x320 164x164+3+116
++blackbox-ibase.png : override CROP=704x704 288x288+0+416
++bridges-ibase.png : override CROP=528x528 214x214+314+314
++dominosa-ibase.png : override CROP=608x544 304x304+304+0
++fifteen-ibase.png : override CROP=480x480 240x240+0+240
++filling-ibase.png : override CROP=512x512 266x266+28+156
++flip-ibase.png : override CROP=576x576 290x290+240+144
++galaxies-ibase.png : override CROP=576x576 330x330+0+0
++guess-ibase.png : override CROP=525x839 356x356+150+34
++inertia-ibase.png : override CROP=641x641 256x256+386+0
++keen-ibase.png : override CROP=576x576 192x192+48+240
++lightup-ibase.png : override CROP=512x512 224x224+288+0
++loopy-ibase.png : override CROP=513x513 226x226+0+0
++magnets-ibase.png : override CROP=528x464 192x192+72+200
++mines-ibase.png : override CROP=480x480 220x220+260+260
++net-ibase.png : override CROP=383x383 226x226+0+160
++netslide-ibase.png : override CROP=577x577 288x288+0+0
++pattern-ibase.png : override CROP=768x768 446x446+0+0
++pearl-ibase.png : override CROP=426x426 188x188+216+30
++pegs-ibase.png : override CROP=519x519 294x294+232+0
++range-ibase.png : override CROP=512x512 196x196+222+30
++rect-ibase.png : override CROP=409x409 230x230+180+0
++signpost-ibase.png : override CROP=480x480 196x196+46+46
++singles-ibase.png : override CROP=448x448 196x196+30+30
++sixteen-ibase.png : override CROP=576x576 288x288+288+288
++slant-ibase.png : override CROP=641x641 320x320+320+320
++solo-ibase.png : override CROP=961x961 290x290+48+48
++tents-ibase.png : override CROP=640x640 330x330+284+0
++towers-ibase.png : override CROP=600x600 204x204+302+12
++twiddle-ibase.png : override CROP=384x384 204x204+138+42
++undead-ibase.png : override CROP=832x960 384x384+32+160
++unequal-ibase.png : override CROP=416x416 208x208+208+208
++untangle-ibase.png : override CROP=640x640 328x328+6+232
+ $(IBASE): %-ibase.png: %-base.png
+ 	$(PIC)crop.sh $^ $@ $(CROP)
+ 
+@@ -95,6 +100,14 @@ $(IBASE4): %-ibase4.png: %-ibase.png
+ 	convert -colors 16 +dither -map $(PIC)win16pal.xpm $^ $@
+ 
+ # Build the 24-bit PNGs for the icons, at three sizes.
++$(P192D24): %-192d24.png: %-ibase.png
++	$(PIC)square.pl 192 4 $^ $@
++$(P128D24): %-128d24.png: %-ibase.png
++	$(PIC)square.pl 128 4 $^ $@
++$(P96D24): %-96d24.png: %-ibase.png
++	$(PIC)square.pl 96 4 $^ $@
++$(P64D24): %-64d24.png: %-ibase.png
++	$(PIC)square.pl 64 4 $^ $@
+ $(P48D24): %-48d24.png: %-ibase.png
+ 	$(PIC)square.pl 48 4 $^ $@
+ $(P32D24): %-32d24.png: %-ibase.png
