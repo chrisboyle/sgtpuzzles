@@ -41,7 +41,7 @@ doc/%: doc/puzzles.but.%
 htmldocs: $(addprefix doc/,$(LANGUAGES))
 ../assets/%: doc/%
 	mkdir -p ../assets
-	cp -Rv $< $@
+	cp -v $</* $@
 androiddocs: $(addprefix ../assets/,$(LANGUAGES))
 all: htmldocs
 .PHONY: htmldocs all
