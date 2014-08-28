@@ -3,12 +3,13 @@
     xmlns:supportLib="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools" tools:ignore="UnusedAttribute"
     tools:context=".GameChooser">
+<!-- showAsAction will be reset by rethinkActionBarCapacity() -->
 	<group android:id="@+id/chooserStyle" android:checkableBehavior="single">
-		<item android:title="@string/View_as_grid" android:id="@+id/gridchooser" android:icon="@drawable/ic_action_view_as_grid" android:checkable="true" supportLib:showAsAction="always|withText"/>
-		<item android:title="@string/View_as_list" android:id="@+id/listchooser" android:icon="@drawable/ic_action_view_as_list" android:checkable="true" supportLib:showAsAction="always|withText"/>
+		<item android:title="@string/View_as_grid" android:id="@+id/gridchooser" android:icon="@drawable/ic_action_view_as_grid" android:checkable="true" supportLib:showAsAction="ifRoom|withText"/>
+		<item android:title="@string/View_as_list" android:id="@+id/listchooser" android:icon="@drawable/ic_action_view_as_list" android:checkable="true" supportLib:showAsAction="ifRoom|withText"/>
 	</group>
-	<item android:title="@string/Load_" android:id="@+id/load" android:alphabeticShortcut="y" android:icon="@drawable/ic_action_load" supportLib:showAsAction="always|withText"/>
-	<item android:title="@string/Help" android:id="@+id/help" android:icon="@drawable/ic_action_help" supportLib:showAsAction="always|withText"><menu>
+	<item android:title="@string/Load_" android:id="@+id/load" android:alphabeticShortcut="y" android:icon="@drawable/ic_action_load" supportLib:showAsAction="ifRoom|withText"/>
+	<item android:title="@string/Help" android:id="@+id/help" android:icon="@drawable/ic_action_help" supportLib:showAsAction="ifRoom|withText"><menu>
         <item android:title="@string/Help" android:id="@+id/contents"/>
         <item android:title="@string/Send_feedback" android:id="@+id/email"/>
 	</menu></item>

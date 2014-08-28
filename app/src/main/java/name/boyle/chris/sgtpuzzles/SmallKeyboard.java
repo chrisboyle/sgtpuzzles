@@ -11,6 +11,7 @@ import android.graphics.Canvas;
 import android.inputmethodservice.Keyboard;
 import android.inputmethodservice.KeyboardView;
 import android.preference.PreferenceManager;
+import android.support.annotation.NonNull;
 import android.util.AttributeSet;
 import android.util.Log;
 
@@ -375,7 +376,7 @@ class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboardActio
 	}
 
 	@Override
-	public void onDraw(Canvas canvas) {
+	public void onDraw(@NonNull Canvas canvas) {
 		if (!((KeyboardModel)getKeyboard()).isEmpty()) {
 			super.onDraw(canvas);
 		}
