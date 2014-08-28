@@ -57,17 +57,4 @@ public class PrefsActivity extends PreferenceActivity implements OnSharedPrefere
 		lp.setSummary(lp.getEntry());
 		getListView().postInvalidate();
 	}
-
-	@Override
-	public boolean onPreferenceTreeClick(PreferenceScreen preferenceScreen, Preference preference) {
-		if (preference.getKey().equals("show_website")) {
-			startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(
-					getString(R.string.website_url))));
-			return true;
-		} else if (preference.getKey().equals("send_feedback")) {
-			SGTPuzzles.tryEmailAuthor(this);
-			return true;
-		}
-		return super.onPreferenceTreeClick(preferenceScreen, preference);
-	}
 }

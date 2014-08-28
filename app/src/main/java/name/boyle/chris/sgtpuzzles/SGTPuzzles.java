@@ -23,7 +23,6 @@ import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.ProgressDialog;
-import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.DialogInterface.OnCancelListener;
@@ -78,11 +77,11 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 	static final String ORIENTATION_KEY = "orientation";
 	static final String ARROW_KEYS_KEY = "arrowKeys";
 	static final String INERTIA_FORCE_ARROWS_KEY = "inertiaForceArrows";
-	static final String BRIDGES_SHOW_H_KEY = "bridgesShowH";
+	private static final String BRIDGES_SHOW_H_KEY = "bridgesShowH";
 	private static final String FULLSCREEN_KEY = "fullscreen";
 	private static final String STAY_AWAKE_KEY = "stayAwake";
 	private static final String UNDO_REDO_KBD_KEY = "undoRedoKbd";
-	public static final boolean UNDO_REDO_KBD_DEFAULT = true;
+	private static final boolean UNDO_REDO_KBD_DEFAULT = true;
 	private static final String PATTERN_SHOW_LENGTHS_KEY = "patternShowLengths";
 	private static final String COMPLETED_PROMPT_KEY = "completedPrompt";
 
@@ -94,19 +93,13 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 	private SubMenu typeMenu;
 	private LinkedHashMap<String, String> gameTypes;
 	private int currentType = 0;
-	boolean workerRunning = false;
+	private boolean workerRunning = false;
 	private Process gameGenProcess = null;
 	private boolean solveEnabled = false, customVisible = false,
 			undoEnabled = false, redoEnabled = false;
 	private SharedPreferences prefs, state;
 	private static final int CFG_SETTINGS = 0, CFG_SEED = 1, CFG_DESC = 2,
 		C_STRING = 0, C_CHOICES = 1, C_BOOLEAN = 2;
-	static final int
-		LEFT_BUTTON = 0x0200, MIDDLE_BUTTON = 0x201, RIGHT_BUTTON = 0x202,
-		LEFT_DRAG = 0x203, //MIDDLE_DRAG = 0x204, RIGHT_DRAG = 0x205,
-		LEFT_RELEASE = 0x206, MOD_CTRL = 0x1000,
-		MOD_SHFT = 0x2000, ALIGN_VCENTRE = 0x100,
-		ALIGN_HCENTRE = 0x001, ALIGN_HRIGHT = 0x002, TEXT_MONO = 0x10;
 	static final long MAX_SAVE_SIZE = 1000000; // 1MB; we only have 16MB of heap
 	private boolean gameWantsTimer = false;
 	private static final int TIMER_INTERVAL = 20;
@@ -416,7 +409,7 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 			break;
 		case R.id.this_game: showHelp(this, htmlHelpTopic()); break;
 		case R.id.email:
-			tryEmailAuthor(this);
+			startActivity(new Intent(this, SendFeedbackActivity.class));
 			break;
 		case R.id.save:
 			new FilePicker(this, storageDir, true).show();
@@ -440,7 +433,7 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 		return ret;
 	}
 
-	private static String getEmailSubject(Context c)
+	static String getEmailSubject(Context c)
 	{
 		String modVer = "";
 		try {
@@ -450,23 +443,6 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 		if (modVer.length() == 0) modVer = "original";
 		return MessageFormat.format(c.getString(R.string.email_subject),
 				getVersion(c), Build.MODEL, modVer, Build.FINGERPRINT);
-	}
-
-	static void tryEmailAuthor(Context c)
-	{
-		Intent i = new Intent(Intent.ACTION_SEND);
-		i.putExtra(Intent.EXTRA_EMAIL, new String[]{c.getString(R.string.author_email)});
-		final String emailSubject = getEmailSubject(c);
-		i.putExtra(Intent.EXTRA_SUBJECT, emailSubject);
-		i.setType("message/rfc822");
-		try {
-			c.startActivity(i);
-		} catch (ActivityNotFoundException e) {
-			messageBox(c, c.getString(R.string.no_email_app),
-					MessageFormat.format(c.getString(R.string.email_manually),
-							c.getString(R.string.author_email),
-							emailSubject));
-		}
 	}
 
 	private void abort(String why)
@@ -823,7 +799,7 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 		}});
 	}
 
-	static void messageBox(final Context context, final String title, final String msg)
+	private static void messageBox(final Context context, final String title, final String msg)
 	{
 		new AlertDialog.Builder(context)
 				.setTitle(title)
@@ -1056,7 +1032,7 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 
 	private SmallKeyboard.ArrowMode lastArrowMode = SmallKeyboard.ArrowMode.NO_ARROWS;
 
-	void setKeys(String keys, SmallKeyboard.ArrowMode arrowMode)
+	private void setKeys(String keys, SmallKeyboard.ArrowMode arrowMode)
 	{
 		if (keys == null) keys = "";
 		if (arrowMode == null) arrowMode = SmallKeyboard.ArrowMode.ARROWS_LEFT_RIGHT_CLICK;

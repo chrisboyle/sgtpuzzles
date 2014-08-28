@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <style name="Theme.AppCompat.SolidActionBar" parent="@style/Theme.AppCompat">
-        <item name="android:actionBarStyle">@style/Widget.AppCompat.ActionBar.Solid</item>
+        <item name="android:actionBarStyle" tools:ignore="NewApi">@style/Widget.AppCompat.ActionBar.Solid</item>
 
         <!-- Support library compatibility -->
         <item name="actionBarStyle">@style/Widget.AppCompat.ActionBar.Solid</item>

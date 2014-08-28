@@ -30,11 +30,17 @@ class GameView extends View
 	private final int longTimeout = ViewConfiguration.getLongPressTimeout();
 	private int button;
 	private boolean waiting = false;
-    private boolean waitingSpace = false;
+	private boolean waitingSpace = false;
 	private double startX, startY;
-    private final double maxDistSq;
-	private static final int DRAG = SGTPuzzles.LEFT_DRAG - SGTPuzzles.LEFT_BUTTON;  // not bit fields, but there's a pattern
-    private static final int RELEASE = SGTPuzzles.LEFT_RELEASE - SGTPuzzles.LEFT_BUTTON;
+	private final double maxDistSq;
+	static final int
+			LEFT_BUTTON = 0x0200, MIDDLE_BUTTON = 0x201, RIGHT_BUTTON = 0x202,
+			LEFT_DRAG = 0x203, //MIDDLE_DRAG = 0x204, RIGHT_DRAG = 0x205,
+			LEFT_RELEASE = 0x206, MOD_CTRL = 0x1000,
+			MOD_SHIFT = 0x2000, ALIGN_V_CENTRE = 0x100,
+			ALIGN_H_CENTRE = 0x001, ALIGN_H_RIGHT = 0x002, TEXT_MONO = 0x10;
+	private static final int DRAG = LEFT_DRAG - LEFT_BUTTON;  // not bit fields, but there's a pattern
+    private static final int RELEASE = LEFT_RELEASE - LEFT_BUTTON;
 	static final int CURSOR_UP = 0x209, CURSOR_DOWN = 0x20a,
 			CURSOR_LEFT = 0x20b, CURSOR_RIGHT = 0x20c, MOD_NUM_KEYPAD = 0x4000;
 	int keysHandled = 0;  // debug
@@ -54,7 +60,7 @@ class GameView extends View
 
 	private final Runnable sendRightClick = new Runnable() {
 		public void run() {
-			button = SGTPuzzles.RIGHT_BUTTON;
+			button = RIGHT_BUTTON;
 			waiting = false;
 			performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
 			parent.sendKey((int)startX, (int)startY, button);
@@ -68,9 +74,9 @@ class GameView extends View
 		switch( event.getAction() ) {
 		case MotionEvent.ACTION_DOWN:
 			int meta = event.getMetaState();
-			button = ( meta & KeyEvent.META_ALT_ON ) > 0 ? SGTPuzzles.MIDDLE_BUTTON :
-				( meta & KeyEvent.META_SHIFT_ON ) > 0  ? SGTPuzzles.RIGHT_BUTTON :
-				SGTPuzzles.LEFT_BUTTON;
+			button = ( meta & KeyEvent.META_ALT_ON ) > 0 ? MIDDLE_BUTTON :
+				( meta & KeyEvent.META_SHIFT_ON ) > 0  ? RIGHT_BUTTON :
+				LEFT_BUTTON;
 			startX = event.getX();
 			startY = event.getY();
 			waiting = true;
@@ -138,8 +144,8 @@ class GameView extends View
 		// we probably don't want MOD_NUM_KEYPAD here (numbers are in a line on G1 at least)
 		if( key == 0 ) key = event.getMatch(INTERESTING_CHARS);
 		if( key == 0 ) return super.onKeyDown(keyCode, event);  // handles Back etc.
-		if( event.isShiftPressed() ) key |= SGTPuzzles.MOD_SHFT;
-		if( event.isAltPressed() ) key |= SGTPuzzles.MOD_CTRL;
+		if( event.isShiftPressed() ) key |= MOD_SHIFT;
+		if( event.isAltPressed() ) key |= MOD_CTRL;
 		parent.sendKey( 0, 0, key );
 		keysHandled++;
 		return true;
@@ -163,7 +169,7 @@ class GameView extends View
 	}
 
 	@Override
-	protected void onSizeChanged( int w, int h, int oldw, int oldh )
+	protected void onSizeChanged(int w, int h, int oldW, int oldH)
 	{
 		if( w <= 0 ) w = 1;
 		if( h <= 0 ) h = 1;
@@ -255,7 +261,7 @@ class GameView extends View
 		drawPoly(path, line, fill);
 	}
 
-	void drawPoly(Path p, int lineColour, int fillColour)
+	private void drawPoly(Path p, int lineColour, int fillColour)
 	{
 		if (fillColour != -1) {
 			paint.setColor(colours[fillColour]);
@@ -285,13 +291,13 @@ class GameView extends View
 	{
 		paint.setColor(colours[colour]);
 		paint.setStyle(Paint.Style.FILL);
-		paint.setTypeface( (flags & SGTPuzzles.TEXT_MONO) != 0 ? Typeface.MONOSPACE : Typeface.DEFAULT );
+		paint.setTypeface( (flags & TEXT_MONO) != 0 ? Typeface.MONOSPACE : Typeface.DEFAULT );
 		paint.setTextSize(size);
 		Paint.FontMetrics fm = paint.getFontMetrics();
 		float asc = Math.abs(fm.ascent), desc = Math.abs(fm.descent);
-		if ((flags & SGTPuzzles.ALIGN_VCENTRE) != 0) y += asc - (asc+desc)/2;
-		if ((flags & SGTPuzzles.ALIGN_HCENTRE) != 0) paint.setTextAlign( Paint.Align.CENTER );
-		else if ((flags & SGTPuzzles.ALIGN_HRIGHT) != 0) paint.setTextAlign( Paint.Align.RIGHT );
+		if ((flags & ALIGN_V_CENTRE) != 0) y += asc - (asc+desc)/2;
+		if ((flags & ALIGN_H_CENTRE) != 0) paint.setTextAlign( Paint.Align.CENTER );
+		else if ((flags & ALIGN_H_RIGHT) != 0) paint.setTextAlign( Paint.Align.RIGHT );
 		else paint.setTextAlign( Paint.Align.LEFT );
 		paint.setAntiAlias( true );
 		canvas.drawText( text, x, y, paint );

@@ -4,6 +4,7 @@
       <w>&amp;env</w>
       <w>addr</w>
       <w>argb</w>
+      <w>argc</w>
       <w>autom</w>
       <w>autoreconf</w>
       <w>blackbox</w>
@@ -13,27 +14,35 @@
       <w>cparams</w>
       <w>ctype</w>
       <w>deserialise</w>
+      <w>devel</w>
       <w>dists</w>
       <w>docindex</w>
       <w>doctype</w>
       <w>dominosa</w>
+      <w>dpad</w>
       <w>dupstr</w>
       <w>edmonds</w>
       <w>emcc</w>
       <w>emcclib</w>
       <w>emccpre</w>
       <w>emscripten</w>
+      <w>endif</w>
       <w>errno</w>
       <w>executables</w>
       <w>fillomino</w>
       <w>footerfile</w>
+      <w>froyo</w>
       <w>fulkerson</w>
+      <w>gamedesc</w>
+      <w>getprop</w>
       <w>getspecific</w>
       <w>gettext</w>
       <w>gettexted</w>
       <w>gettimeofday</w>
+      <w>github</w>
       <w>greenend</w>
       <w>hitori</w>
+      <w>inkscape</w>
       <w>inlined</w>
       <w>isgame</w>
       <w>janko</w>
@@ -56,28 +65,36 @@
       <w>libpuzzlesgen</w>
       <w>lightup</w>
       <w>loopgen</w>
+      <w>makefiles</w>
       <w>malloc</w>
       <w>masyu</w>
       <w>memset</w>
       <w>menubar</w>
       <w>midend</w>
+      <w>mkdir</w>
+      <w>modversion</w>
       <w>nestedvm</w>
       <w>netslide</w>
       <w>nikoli</w>
       <w>nikoli's</w>
       <w>nnnn</w>
+      <w>noicon</w>
       <w>nonograms</w>
       <w>nstates</w>
       <w>nullfe</w>
       <w>nullgame</w>
+      <w>obfusc</w>
       <w>penrose</w>
       <w>planarity</w>
       <w>pthread</w>
+      <w>puzzle's</w>
       <w>realloc</w>
       <w>resized</w>
       <w>resstrings</w>
+      <w>roboto</w>
       <w>samegame</w>
       <w>savefile</w>
+      <w>screenshot</w>
       <w>setspecific</w>
       <w>sgtatham</w>
       <w>sgtpuzzles</w>
@@ -88,9 +105,12 @@
       <w>sscanf</w>
       <w>statepos</w>
       <w>statusbar</w>
+      <w>stdin</w>
+      <w>stdout</w>
       <w>strcmp</w>
       <w>strdup</w>
       <w>stringsfiles</w>
+      <w>submenus</w>
       <w>substr</w>
       <w>sudoku</w>
       <w>sval</w>
@@ -98,9 +118,11 @@
       <w>tentai</w>
       <w>thegame</w>
       <w>times's</w>
+      <w>udouble</w>
       <w>undef</w>
       <w>vcls</w>
       <w>vfprintf</w>
+      <w>xmlns</w>
     </words>
   </dictionary>
 </component>

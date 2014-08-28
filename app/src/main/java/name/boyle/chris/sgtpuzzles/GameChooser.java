@@ -120,7 +120,7 @@ public class GameChooser extends ActionBarActivity
 						getString(nameId) : gameId.substring(0,1).toUpperCase() + gameId.substring(1));
 				desc.setSpan(new TextAppearanceSpan(this, R.style.ChooserItemName),
 						0, desc.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-				desc.append(": " + getString(descId > 0 ? descId : R.string.no_desc));
+				desc.append(": ").append(getString(descId > 0 ? descId : R.string.no_desc));
 				((TextView)views[i].findViewById(R.id.text)).setText(desc);
 			}
 			views[i].setOnClickListener(new View.OnClickListener() {
@@ -231,7 +231,9 @@ public class GameChooser extends ActionBarActivity
 				new FilePicker(this, Environment.getExternalStorageDirectory(),false).show();
 				break;
 			case R.id.contents: SGTPuzzles.showHelp(this, "index"); break;
-			case R.id.email: SGTPuzzles.tryEmailAuthor(this); break;
+			case R.id.email:
+				startActivity(new Intent(this, SendFeedbackActivity.class));
+				break;
 			case R.id.settings:
 				startActivity(new Intent(this, PrefsActivity.class));
 				break;

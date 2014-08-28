@@ -17,7 +17,7 @@ import android.util.Log;
 class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboardActionListener
 {
 	private static final String TAG = "SmallKeyboard";
-	private static final int KEYSP = 44;  // dip
+	private static final int KEY_SP = 44;  // dip
 	private final SGTPuzzles parent;
 	private boolean undoEnabled = false, redoEnabled = false;
 	static enum ArrowMode {
@@ -38,8 +38,8 @@ class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboardActio
 
 	static class KeyboardModel extends Keyboard
 	{
-		int mDefaultWidth = KEYSP;
-        int mDefaultHeight = KEYSP;
+		int mDefaultWidth = KEY_SP;
+        int mDefaultHeight = KEY_SP;
         final int mDefaultHorizontalGap = 0;
         final int mDefaultVerticalGap = 0;
         int mTotalWidth = 0;

@@ -85,7 +85,7 @@ At this level you especially need to think carefully about other platforms.
 One of the best features of this collection is its relative consistency across
 different environments, and the Android port should continue that.
 
-If adding a game, definitely read the relevant chaper (6) of Simon's
+If adding a game, definitely read the relevant chapter (6) of Simon's
 development docs, and add the new game to the places I've gone and duplicated
 the list just for Android...
 

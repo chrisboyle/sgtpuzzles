@@ -46,7 +46,8 @@
                   android:label="@string/Settings" android:launchMode="singleTask"
                   android:configChanges="keyboard|keyboardHidden|orientation">
         </activity>
-        <activity android:name=".RestartActivity" android:stateNotNeeded="true" android:exported="false" />
+        <activity android:name=".RestartActivity" android:stateNotNeeded="true" android:exported="false" android:theme="@android:style/Theme.NoDisplay" />
+        <activity android:name=".SendFeedbackActivity" android:stateNotNeeded="true" android:exported="false" android:theme="@android:style/Theme.NoDisplay" />
         <meta-data android:name="com.google.android.backup.api_key" android:value="@string/backup_api_key" />
     </application>
 </manifest>
