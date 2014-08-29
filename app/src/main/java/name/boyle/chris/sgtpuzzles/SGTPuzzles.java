@@ -251,6 +251,7 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 		setDefaultKeyMode(DEFAULT_KEYS_SHORTCUT);
 		gameView.requestFocus();
 		onNewIntent(getIntent());
+		getWindow().setBackgroundDrawable(null);
 		isAlive = true;
 	}
 
