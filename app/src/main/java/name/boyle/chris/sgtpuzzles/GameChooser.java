@@ -315,6 +315,14 @@ public class GameChooser extends ActionBarActivity
 		return ret;
 	}
 
+	@Override
+	public void onBackPressed() {
+		super.onBackPressed();
+		if (SGTPuzzles.isAlive) {
+			overridePendingTransition(0, 0);
+		}
+	}
+
 	@SuppressLint("CommitPrefEdits")
 	private void updateUseGrid(boolean newGrid) {
 		if( useGrid == newGrid ) return;

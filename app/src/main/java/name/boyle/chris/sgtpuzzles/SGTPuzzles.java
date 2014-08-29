@@ -118,6 +118,8 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 	private boolean startedFullscreen = false, cachedFullscreen = false;
 	private boolean keysAlreadySet = false;
 
+	static boolean isAlive;
+
 	enum MsgType { TIMER, DONE, ABORT }
 	static class PuzzlesHandler extends Handler
 	{
@@ -249,6 +251,7 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 		setDefaultKeyMode(DEFAULT_KEYS_SHORTCUT);
 		gameView.requestFocus();
 		onNewIntent(getIntent());
+		isAlive = true;
 	}
 
 	/** work around http://code.google.com/p/android/issues/detail?id=21181 */
@@ -660,6 +663,7 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 	@Override
 	protected void onDestroy()
 	{
+		isAlive = false;
 		stopNative();
 		super.onDestroy();
 	}
