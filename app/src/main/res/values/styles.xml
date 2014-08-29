@@ -1,12 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <style name="Theme.AppCompat.SolidActionBar" parent="@style/Theme.AppCompat">
+    <style name="SolidActionBar" parent="@style/Theme.AppCompat">
         <item name="android:actionBarStyle" tools:ignore="NewApi">@style/Widget.AppCompat.ActionBar.Solid</item>
 
         <!-- Support library compatibility -->
         <item name="actionBarStyle">@style/Widget.AppCompat.ActionBar.Solid</item>
     </style>
-    <style name="Theme.AppCompat.SolidActionBar.FullScreen" parent="@style/Theme.AppCompat.SolidActionBar">
+    <style name="SolidActionBar.Gameplay" parent="SolidActionBar">
+        <item name="android:windowBackground">@color/game_background</item>
+    </style>
+    <style name="SolidActionBar.Gameplay.FullScreen" parent="SolidActionBar.Gameplay">
         <item name="android:windowNoTitle">true</item>
         <item name="android:windowFullscreen">true</item>
     </style>

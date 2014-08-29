@@ -1,11 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.AppCompat.SolidActionBar" parent="@style/Theme.AppCompat">
-        <item name="android:actionBarStyle">@style/Widget.AppCompat.ActionBar.Solid</item>
+    <style name="SolidActionBar.Gameplay" parent="SolidActionBar">
+        <item name="android:windowBackground">@color/game_background</item>
         <item name="android:windowContentOverlay">@drawable/ab_shadow</item>
-
-        <!-- Support library compatibility -->
-        <item name="actionBarStyle">@style/Widget.AppCompat.ActionBar.Solid</item>
     </style>
     <style name="GameChooserItem">
         <item name="android:background">?android:attr/selectableItemBackground</item>

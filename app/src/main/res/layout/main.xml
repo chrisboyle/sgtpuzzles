@@ -20,12 +20,12 @@ because of http://code.google.com/p/android/issues/detail?id=4559
 	android:layout_alignParentLeft="true"
 	android:layout_alignParentRight="true"
 	android:layout_above="@id/statusBar"
-	android:background="#000" />
+	android:background="@color/keyboard_background" />
 <name.boyle.chris.sgtpuzzles.GameView
 	android:id="@+id/game"
 	android:layout_width="wrap_content"
 	android:layout_height="wrap_content"
 	android:layout_above="@+id/keyboard"
 	android:focusable="true"
-	android:background="#000" />
+	android:background="@color/game_background" />
 </RelativeLayout>

@@ -16,7 +16,7 @@
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <application android:icon="@drawable/net" android:label="@string/app_name"
         android:backupAgent=".BackupAgent" android:allowBackup="true" tools:ignore="UnusedAttribute">
-        <activity android:name=".SGTPuzzles" android:theme="@style/Theme.AppCompat.SolidActionBar"
+        <activity android:name=".SGTPuzzles" android:theme="@style/SolidActionBar.Gameplay"
                   android:windowSoftInputMode="adjustPan"
                   android:label="@string/app_name" android:stateNotNeeded="true"
                   android:launchMode="singleTask"
@@ -30,7 +30,7 @@
                 <data android:scheme="sgtpuzzles" />
             </intent-filter>
         </activity>
-        <activity android:name=".GameChooser" android:theme="@style/Theme.AppCompat.SolidActionBar"
+        <activity android:name=".GameChooser" android:theme="@style/SolidActionBar"
                   android:launchMode="singleTask"
                   android:label="@string/app_name" android:stateNotNeeded="true"
                   android:configChanges="keyboard|keyboardHidden|orientation|screenSize">
@@ -42,7 +42,7 @@
                 <data android:scheme="sgtpuzzles" />
             </intent-filter>
         </activity>
-        <activity android:name=".PrefsActivity" android:theme="@style/Theme.AppCompat.SolidActionBar"
+        <activity android:name=".PrefsActivity" android:theme="@style/SolidActionBar"
                   android:label="@string/Settings" android:launchMode="singleTask"
                   android:configChanges="keyboard|keyboardHidden|orientation"
                   android:parentActivityName=".SGTPuzzles">
