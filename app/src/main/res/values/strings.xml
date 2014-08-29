@@ -58,7 +58,11 @@ Version %s"</string>
     <string name="completedPrompt">Menu on completion</string>
     <string name="completedPromptSummary">When a game is completed, show shortcuts to start another</string>
     <string name="Change_type">Change type</string>
-    <!-- Menu -->
+	<!-- Chooser -->
+	<string name="games_starred">Starred (long press to toggle)</string>
+	<string name="games_others">Others</string>
+	<string name="games_others_none_starred">Long press to star a game</string>
+    <!-- Menus -->
     <string name="Game">Game</string>
     <string name="Other_game">Other game</string>
     <string name="View_as_grid">View as grid</string>

@@ -29,14 +29,32 @@ import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
 
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
+
 @SuppressWarnings("WeakerAccess")  // used by manifest
 public class GameChooser extends ActionBarActivity
 {
 	static final String CHOOSER_STYLE_KEY = "chooserStyle";
+	private static final Set<String> DEFAULT_STARRED = new LinkedHashSet<String>();
+	static {
+		DEFAULT_STARRED.add("guess");
+		DEFAULT_STARRED.add("keen");
+		DEFAULT_STARRED.add("lightup");
+		DEFAULT_STARRED.add("net");
+		DEFAULT_STARRED.add("signpost");
+		DEFAULT_STARRED.add("solo");
+		DEFAULT_STARRED.add("towers");
+	}
 
 	/* This really ought to have been a GridView, but...
 	 * http://stackoverflow.com/q/7545915/6540  */
     private TableLayout table;
+
+	private TextView games_starred;
+	private TextView games_others;
 
 	private SharedPreferences prefs;
     private boolean useGrid;
@@ -80,6 +98,8 @@ public class GameChooser extends ActionBarActivity
 		views = new View[games.length];
 		setContentView(R.layout.chooser);
 		table = (TableLayout) findViewById(R.id.table);
+		games_starred = (TextView) findViewById(R.id.games_starred);
+		games_others = (TextView) findViewById(R.id.games_others);
 		rebuildViews();
 		rethinkActionBarCapacity();
 		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
@@ -132,42 +152,91 @@ public class GameChooser extends ActionBarActivity
 					overridePendingTransition(0, 0);
 				}
 			});
+			views[i].setOnLongClickListener(new View.OnLongClickListener() {
+				@Override
+				public boolean onLongClick(View v) {
+					toggleStarred(gameId);
+					return true;
+				}
+			});
 			views[i].setFocusable(true);
 		}
-		onConfigurationChanged(getResources().getConfiguration());
+		rethinkColumns(true);
 	}
 
 	private int oldColumns = 0;
 	@Override
 	public void onConfigurationChanged(Configuration newConfig)
 	{
+		super.onConfigurationChanged(newConfig);
+		rethinkColumns(false);
+		rethinkActionBarCapacity();
+	}
+
+	private void rethinkColumns(boolean force) {
 		DisplayMetrics dm = getResources().getDisplayMetrics();
 		final int colWidthDip = useGrid ? 68 : 230;
 		final int columns = Math.max(1, (int) Math.floor(
 				((double)dm.widthPixels / dm.density) / colWidthDip));
 		final int margin = (int) Math.round((double)6 * dm.density);
-		if (oldColumns != columns) {
-			table.removeAllViews();
-			TableRow tr = null;
+		if (force || oldColumns != columns) {
+			List<View> starred = new ArrayList<View>();
+			List<View> others = new ArrayList<View>();
 			for (int i=0; i < games.length; i++) {
-				if (i % columns == 0) {
-					tr = new TableRow(this);
-					table.addView(tr);
-					tr.setLayoutParams(new TableRow.LayoutParams(
-							TableRow.LayoutParams.WRAP_CONTENT,
-							TableRow.LayoutParams.WRAP_CONTENT));
-				}
-				if (views[i].getParent() != null) ((TableRow) views[i].getParent()).removeView(views[i]);
-				TableRow.LayoutParams lp = new TableRow.LayoutParams(
-						0, TableRow.LayoutParams.WRAP_CONTENT, 1);
-				lp.setMargins(0, margin, 0, margin);
-                assert tr != null;
-                tr.addView(views[i], lp);
+				(isStarred(games[i]) ? starred : others).add(views[i]);
 			}
+			table.removeAllViews();
+			final boolean anyStarred = !starred.isEmpty();
+			if (anyStarred) {
+				table.addView(games_starred);
+			}
+			addViews(columns, margin, starred, true);
+			table.addView(games_others);
+			games_others.setText(anyStarred ? R.string.games_others : R.string.games_others_none_starred);
+			addViews(columns, margin, others, false);
 			oldColumns = columns;
 		}
-		super.onConfigurationChanged(newConfig);
-		rethinkActionBarCapacity();
+	}
+
+	private TableRow mkTableRow() {
+		TableRow tr;
+		tr = new TableRow(this);
+		table.addView(tr);
+		tr.setLayoutParams(new TableRow.LayoutParams(
+				TableRow.LayoutParams.WRAP_CONTENT,
+				TableRow.LayoutParams.WRAP_CONTENT));
+		return tr;
+	}
+
+	private void addViews(final int columns, final int margin, final List<View> views, final boolean starred) {
+		TableRow tr = null;
+		int i = 0;
+		for (View v : views) {
+			// TODO add/remove star (N.B. v might be icon+text or just icon)
+			if (i % columns == 0) {
+				tr = mkTableRow();
+			}
+			if (v.getParent() != null) ((TableRow) v.getParent()).removeView(v);
+			TableRow.LayoutParams lp = new TableRow.LayoutParams(
+					0, TableRow.LayoutParams.WRAP_CONTENT, 1);
+			lp.setMargins(0, margin, 0, margin);
+			assert tr != null;
+			tr.addView(v, lp);
+			i++;
+		}
+	}
+
+	private boolean isStarred(String game) {
+		return prefs.getBoolean("starred_" + game, DEFAULT_STARRED.contains(game));
+	}
+
+	@SuppressLint("CommitPrefEdits")
+	private void toggleStarred(String game) {
+		SharedPreferences.Editor ed = prefs.edit();
+		ed.putBoolean("starred_" + game, !isStarred(game));
+		prefsSaver.save(ed);
+		// TODO just move the one affected view & enable animateLayoutChanges on table in layout xml
+		rethinkColumns(true);
 	}
 
 	private void rethinkActionBarCapacity() {

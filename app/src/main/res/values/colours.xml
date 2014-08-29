@@ -3,5 +3,6 @@
     <!-- untangle.c will darken this outside the square playable area, to distinguish that area -->
     <color name="game_background">#ffcccccc</color>
     <color name="keyboard_background">#ff272727</color>
+	<color name="chooser_section_background">#ff272727</color>
     <color name="completed_panel_background">#cc000000</color>
 </resources>
