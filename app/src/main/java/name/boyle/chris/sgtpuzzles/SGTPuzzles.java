@@ -118,6 +118,8 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 	private boolean startedFullscreen = false, cachedFullscreen = false;
 	private boolean keysAlreadySet = false;
 
+	static boolean isAlive;
+
 	enum MsgType { TIMER, DONE, ABORT }
 	static class PuzzlesHandler extends Handler
 	{
@@ -249,6 +251,8 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 		setDefaultKeyMode(DEFAULT_KEYS_SHORTCUT);
 		gameView.requestFocus();
 		onNewIntent(getIntent());
+		getWindow().setBackgroundDrawable(null);
+		isAlive = true;
 	}
 
 	/** work around http://code.google.com/p/android/issues/detail?id=21181 */
@@ -369,6 +373,7 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 			public void onProgressChanged(WebView w, int progress) { if (progress == 100) d.setTitle(w.getTitle()); }
 		});
 		wv.getSettings().setBuiltInZoomControls(true);
+		wv.getSettings().setDisplayZoomControls(false);
 		wv.loadUrl(MessageFormat.format(context.getString(R.string.docs_url), topic));
 		d.show();
 	}
@@ -659,6 +664,7 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 	@Override
 	protected void onDestroy()
 	{
+		isAlive = false;
 		stopNative();
 		super.onDestroy();
 	}
@@ -962,6 +968,7 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 			et.setText(value);
 			et.setWidth(getResources().getDimensionPixelSize((whichEvent == CFG_SETTINGS)
 					? R.dimen.dialog_edit_text_width : R.dimen.dialog_long_edit_text_width));
+			et.setSelectAllOnFocus(true);
 			TextView tv = new TextView(SGTPuzzles.this);
 			tv.setText(name);
 			tv.setPadding(0, 0, getResources().getDimensionPixelSize(R.dimen.dialog_padding_horizontal), 0);
@@ -1015,6 +1022,11 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 		dialogLayout.setColumnShrinkable(1, true);
 		dialogLayout.setColumnStretchable(0, true);
 		dialogLayout.setColumnStretchable(1, true);
+		if (getResources().getConfiguration().hardKeyboardHidden == Configuration.HARDKEYBOARDHIDDEN_YES) {
+			// Hack to prevent the first EditText from receiving focus when the dialog is shown
+			dialogLayout.setFocusableInTouchMode(true);
+			dialogLayout.requestFocus();
+		}
 		dialog.show();
 	}
 
@@ -1074,7 +1086,7 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 				// This is the only way to change the theme
 				if (! startedFullscreen) restartOnResume = true;
 			} else {
-				setTheme(R.style.Theme_AppCompat_SolidActionBar_FullScreen);
+				setTheme(R.style.SolidActionBar_Gameplay_FullScreen);
 			}
 		} else {
 			if (hasLightsOut) {

@@ -4,10 +4,13 @@ import name.boyle.chris.sgtpuzzles.compat.PrefsSaver;
 
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
+import android.os.Build;
 import android.os.Bundle;
 import android.preference.ListPreference;
 import android.preference.Preference;
 import android.preference.PreferenceActivity;
+import android.support.v4.app.NavUtils;
+import android.view.MenuItem;
 
 @SuppressWarnings("WeakerAccess")
 public class PrefsActivity extends PreferenceActivity implements OnSharedPreferenceChangeListener
@@ -25,6 +28,10 @@ public class PrefsActivity extends PreferenceActivity implements OnSharedPrefere
 		findPreference("about_content").setSummary(
 				String.format(getString(R.string.about_content),
 						SGTPuzzles.getVersion(this)));
+		// getSupportActionBar() not available from PreferenceActivity
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
+			getActionBar().setDisplayHomeAsUpEnabled(true);
+		}
 	}
 
 	@Override
@@ -40,6 +47,16 @@ public class PrefsActivity extends PreferenceActivity implements OnSharedPrefere
 		super.onPause();
 		getPreferenceScreen().getSharedPreferences().unregisterOnSharedPreferenceChangeListener(this);
 		prefsSaver.backup();
+	}
+
+	@Override
+	public boolean onOptionsItemSelected(MenuItem item) {
+		switch (item.getItemId()) {
+			case android.R.id.home:
+				NavUtils.navigateUpFromSameTask(this);
+				return true;
+		}
+		return super.onOptionsItemSelected(item);
 	}
 
 	@Override
