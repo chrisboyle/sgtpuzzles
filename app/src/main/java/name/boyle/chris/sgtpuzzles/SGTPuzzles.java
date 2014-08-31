@@ -833,7 +833,7 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 			Toast.makeText(SGTPuzzles.this, getString(R.string.COMPLETED), Toast.LENGTH_SHORT).show();
 			return;
 		}
-		final Dialog d = new Dialog(this, android.R.style.Theme_Panel);
+		final Dialog d = new Dialog(this, R.style.Dialog_Completed);
 		WindowManager.LayoutParams lp = d.getWindow().getAttributes();
 		lp.gravity = Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL;
 		d.getWindow().setAttributes(lp);
