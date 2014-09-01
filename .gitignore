@@ -9,3 +9,6 @@ local.properties
 .idea/datasources.ids
 *~
 *.swp
+/app/src/main/res/drawable-v7/*
+app/src/main/res/drawable-*/logo_launcher.png
+app/src/main/res/drawable-*/logo_ab.png

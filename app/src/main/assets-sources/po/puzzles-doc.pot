@@ -7,7 +7,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2014-08-27 21:35+0100\n"
+"POT-Creation-Date: 2014-09-01 20:37+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -88,9 +88,7 @@ msgstr ""
 
 #. type: e{#1}
 #: puzzles.but:23
-msgid ""
-"On Android, throughout this manual, please read \\q{touch} for left-click, "
-"and \\q{long press} for right-click."
+msgid "On Android, please touch for left click and long press for right click."
 msgstr ""
 
 #. type: define
@@ -5514,7 +5512,15 @@ msgid ""
 msgstr ""
 
 #. type: Plain text
-#: puzzles.but:3216
+#: puzzles.but:3213
+msgid ""
+"The notice below applies to the software as distributed at "
+"https://github.com/chrisboyle/sgtpuzzles and does not apply to the "
+"additional graphics distributed in the Google Play Store version."
+msgstr ""
+
+#. type: Plain text
+#: puzzles.but:3221
 msgid ""
 "Permission is hereby granted, free of charge, to any person obtaining a copy "
 "of this software and associated documentation files (the \\q{Software}), to "
@@ -5525,14 +5531,14 @@ msgid ""
 msgstr ""
 
 #. type: Plain text
-#: puzzles.but:3219
+#: puzzles.but:3224
 msgid ""
 "The above copyright notice and this permission notice shall be included in "
 "all copies or substantial portions of the Software."
 msgstr ""
 
 #. type: Plain text
-#: puzzles.but:3228
+#: puzzles.but:3233
 msgid ""
 "THE SOFTWARE IS PROVIDED \\q{AS IS}, WITHOUT WARRANTY OF ANY KIND, EXPRESS "
 "OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, "
@@ -5544,136 +5550,136 @@ msgid ""
 msgstr ""
 
 #. type: IM{#1}
-#: puzzles.but:3229
+#: puzzles.but:3234
 msgid "command-line"
 msgstr ""
 
 #. type: IM
-#: puzzles.but:3229
+#: puzzles.but:3234
 #, no-wrap
 msgid "{command line} command line"
 msgstr ""
 
 #. type: IM{#1}
-#: puzzles.but:3231 puzzles.but:3231 puzzles.but:3232
+#: puzzles.but:3236 puzzles.but:3236 puzzles.but:3237
 #, no-wrap
 msgid "default parameters, specifying"
 msgstr ""
 
 #. type: IM
-#: puzzles.but:3232
+#: puzzles.but:3237
 #, no-wrap
 msgid "preferences, specifying default"
 msgstr ""
 
 #. type: IM{#1}
-#: puzzles.but:3234 puzzles.but:3234 puzzles.but:3235
+#: puzzles.but:3239 puzzles.but:3239 puzzles.but:3240
 #, no-wrap
 msgid "Unix"
 msgstr ""
 
 #. type: IM
-#: puzzles.but:3235
+#: puzzles.but:3240
 #, no-wrap
 msgid "Linux"
 msgstr ""
 
 #. type: IM{#1}
-#: puzzles.but:3237 puzzles.but:3237 puzzles.but:3238
+#: puzzles.but:3242 puzzles.but:3242 puzzles.but:3243
 #, no-wrap
 msgid "generating game IDs"
 msgstr ""
 
 #. type: IM
-#: puzzles.but:3238
+#: puzzles.but:3243
 #, no-wrap
 msgid "game ID, generating"
 msgstr ""
 
 #. type: IM{#1}
-#: puzzles.but:3240
+#: puzzles.but:3245
 msgid "specific"
 msgstr ""
 
 #. type: IM
-#: puzzles.but:3240
+#: puzzles.but:3245
 #, no-wrap
 msgid "\\q{Specific}, menu option"
 msgstr ""
 
 #. type: IM{#1}
-#: puzzles.but:3241
+#: puzzles.but:3246
 msgid "custom"
-msgstr ""
-
-#. type: IM
-#: puzzles.but:3241
-#, no-wrap
-msgid "\\q{Custom}, menu option"
-msgstr ""
-
-#. type: IM{#1}
-#: puzzles.but:3243 puzzles.but:3243 puzzles.but:3244
-#, no-wrap
-msgid "game ID"
-msgstr ""
-
-#. type: IM
-#: puzzles.but:3244
-#, no-wrap
-msgid "ID, game"
-msgstr ""
-
-#. type: IM{#1}
-#: puzzles.but:3245 puzzles.but:3245 puzzles.but:3246 puzzles.but:3247
-#, no-wrap
-msgid "ID format"
 msgstr ""
 
 #. type: IM
 #: puzzles.but:3246
 #, no-wrap
+msgid "\\q{Custom}, menu option"
+msgstr ""
+
+#. type: IM{#1}
+#: puzzles.but:3248 puzzles.but:3248 puzzles.but:3249
+#, no-wrap
+msgid "game ID"
+msgstr ""
+
+#. type: IM
+#: puzzles.but:3249
+#, no-wrap
+msgid "ID, game"
+msgstr ""
+
+#. type: IM{#1}
+#: puzzles.but:3250 puzzles.but:3250 puzzles.but:3251 puzzles.but:3252
+#, no-wrap
+msgid "ID format"
+msgstr ""
+
+#. type: IM
+#: puzzles.but:3251
+#, no-wrap
 msgid "format, ID"
 msgstr ""
 
 #. type: IM
-#: puzzles.but:3247
+#: puzzles.but:3252
 #, no-wrap
 msgid "game ID, format"
 msgstr ""
 
 #. type: IM{#1}
-#: puzzles.but:3249 puzzles.but:3249 puzzles.but:3250
+#: puzzles.but:3254 puzzles.but:3254 puzzles.but:3255
 #, no-wrap
 msgid "keys"
 msgstr ""
 
 #. type: IM
-#: puzzles.but:3250
+#: puzzles.but:3255
 #, no-wrap
 msgid "shortcuts (keyboard)"
 msgstr ""
 
 #. type: IM{#1}
-#: puzzles.but:3252 puzzles.but:3252 puzzles.but:3253
+#: puzzles.but:3257 puzzles.but:3257 puzzles.but:3258
 #, no-wrap
 msgid "initial state"
 msgstr ""
 
 #. type: IM
-#: puzzles.but:3253
+#: puzzles.but:3258
 #, no-wrap
 msgid "state, initial"
 msgstr ""
 
 #. type: IM{#1}
-#: puzzles.but:3255 puzzles.but:3255 puzzles.but:3256
+#: puzzles.but:3260 puzzles.but:3260 puzzles.but:3261
 #, no-wrap
 msgid "MIT licence"
 msgstr ""
 
 #. type: IM
-#: puzzles.but:3256
+#: puzzles.but:3261
 #, no-wrap
 msgid "licence, MIT"
 msgstr ""

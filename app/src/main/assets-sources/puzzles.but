@@ -18,8 +18,8 @@
 \cfg{ps-filename}{puzzles.ps}
 \cfg{pdf-filename}{puzzles.pdf}
 
-\define{androidmouse} \e{On Android, throughout this manual, please read
-\q{touch} for left-click, and \q{long press} for right-click.}
+\define{androidmouse} \e{On Android, please touch for left click and
+long press for right click.}
 
 \define{by} \u00D7{x}
 
@@ -3205,6 +3205,11 @@ Portions copyright Richard Boulton, James Harvey, Mike Pinna, Jonas
 K\u00F6{oe}lker, Dariusz Olszewski, Michael Schierl, Lambros Lambrou,
 Bernd Schmidt, Steffen Bauer, Lennard Sprong, Rogier Goossens,
 Chris Boyle and Phil Tunstall.
+
+The notice below applies to the software as distributed at
+https://github.com/chrisboyle/sgtpuzzles and does not apply to
+the additional graphics distributed in the Google Play Store
+version.
 
 Permission is hereby granted, free of charge, to any person
 obtaining a copy of this software and associated documentation files

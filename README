@@ -64,12 +64,11 @@ http://www.chiark.greenend.org.uk/~sgtatham/puzzles/devel/
 Go and read those, at least the Introduction.
 
 The Android front-end (android.c) is basically just glue, passing everything to
-Java. The Java classes providing the UI layer, game chooser, crash handler,
-etc. are in app/src/main/java.  The main class SGTPuzzles has the native
-methods that android.c implements. The game area on screen is a GameView, which
-basically just has a bitmap for the puzzle to draw on. Note that almost no
-native code is run until the user has chosen a game (unless there's a previous
-game to resume).
+Java. The Java classes providing the UI layer, game chooser, etc. are in
+app/src/main/java.  The main class SGTPuzzles has the native methods that
+android.c implements. The game area on screen is a GameView, which basically
+just has a bitmap for the puzzle to draw on. Note that almost no native code is
+run until the user has chosen a game (unless there's a previous game to resume).
 
 Files for other platforms etc. that are not currently usable in this fork are
 in the not-in-use directory.
@@ -89,9 +88,10 @@ If adding a game, definitely read the relevant chapter (6) of Simon's
 development docs, and add the new game to the places I've gone and duplicated
 the list just for Android...
 
-[ TODO re-create the list of such places here, following the migration to
-Android Studio ]
-
+app/src/main/res/values/strings.xml
+app/src/main/res/values/arrays.xml
+app/src/main/jni/list.c
+...and possibly others.
 
 Happy hacking! :-)
 

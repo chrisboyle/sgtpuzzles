@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sgt-puzzles\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2014-08-27 21:35+0100\n"
+"POT-Creation-Date: 2014-09-01 20:37+0100\n"
 "PO-Revision-Date: 2013-06-26 20:41+0200\n"
 "Last-Translator: Helge Kreutzmann <debian@helgefjell.de>\n"
 "Language-Team: de <debian-l10n-german@lists.debian.org>\n"
@@ -90,12 +90,10 @@ msgstr "\\cfg{pdf-filename}{puzzles.pdf}"
 
 #. type: e{#1}
 #: puzzles.but:23
-msgid ""
-"On Android, throughout this manual, please read \\q{touch} for left-click, "
-"and \\q{long press} for right-click."
+msgid "On Android, please touch for left click and long press for right click."
 msgstr ""
-"Lesen sie bitte unter Android \\q{drücken} für links klicken und "
-"\\q{langes drücken} für rechts klicken."
+"Unter Android muss man drücken statt links klicken und langes drücken statt "
+"rechts klicken."
 
 #. type: define
 #: puzzles.but:24
@@ -7292,7 +7290,18 @@ msgstr ""
 "Phil Tunstall."
 
 #. type: Plain text
-#: puzzles.but:3216
+#: puzzles.but:3213
+msgid ""
+"The notice below applies to the software as distributed at https://github."
+"com/chrisboyle/sgtpuzzles and does not apply to the additional graphics "
+"distributed in the Google Play Store version."
+msgstr ""
+"Diese Erlaubniserteilung betrifft die Software so wie es bei https://github."
+"com/chrisboyle/sgtpuzzles verteilt ist. Es betrifft nicht die zusätzliche "
+"Grafik, die im Google-Play-Store-Version verteilt sind."
+
+#. type: Plain text
+#: puzzles.but:3221
 msgid ""
 "Permission is hereby granted, free of charge, to any person obtaining a copy "
 "of this software and associated documentation files (the \\q{Software}), to "
@@ -7311,7 +7320,7 @@ msgstr ""
 "Bedingungen erfüllt werden:"
 
 #. type: Plain text
-#: puzzles.but:3219
+#: puzzles.but:3224
 msgid ""
 "The above copyright notice and this permission notice shall be included in "
 "all copies or substantial portions of the Software."
@@ -7320,7 +7329,7 @@ msgstr ""
 "oder wesentlichen Teilen dieser Software enthalten sein."
 
 #. type: Plain text
-#: puzzles.but:3228
+#: puzzles.but:3233
 msgid ""
 "THE SOFTWARE IS PROVIDED \\q{AS IS}, WITHOUT WARRANTY OF ANY KIND, EXPRESS "
 "OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, "
@@ -7340,136 +7349,136 @@ msgstr ""
 "SOFTWARE ODER DEREN VERWENDUNG ODER ANDEREN UMGANG IN DER SOFTWARE HERRÜHREN."
 
 #. type: IM{#1}
-#: puzzles.but:3229
+#: puzzles.but:3234
 msgid "command-line"
 msgstr "Befehlszeile"
 
 #. type: IM
-#: puzzles.but:3229
+#: puzzles.but:3234
 #, no-wrap
 msgid "{command line} command line"
 msgstr "{Befehlszeile} Befehlszeile"
 
 #. type: IM{#1}
-#: puzzles.but:3231 puzzles.but:3232
+#: puzzles.but:3236 puzzles.but:3237
 #, no-wrap
 msgid "default parameters, specifying"
 msgstr "Standardparameter, angeben"
 
 #. type: IM
-#: puzzles.but:3232
+#: puzzles.but:3237
 #, no-wrap
 msgid "preferences, specifying default"
 msgstr "Voreinstellungen, Standard angeben"
 
 #. type: IM{#1}
-#: puzzles.but:3234 puzzles.but:3235
+#: puzzles.but:3239 puzzles.but:3240
 #, no-wrap
 msgid "Unix"
 msgstr "Unix"
 
 #. type: IM
-#: puzzles.but:3235
+#: puzzles.but:3240
 #, no-wrap
 msgid "Linux"
 msgstr "Linux"
 
 #. type: IM{#1}
-#: puzzles.but:3237 puzzles.but:3238
+#: puzzles.but:3242 puzzles.but:3243
 #, no-wrap
 msgid "generating game IDs"
 msgstr "Erzeugen von Spiele-IDs"
 
 #. type: IM
-#: puzzles.but:3238
+#: puzzles.but:3243
 #, no-wrap
 msgid "game ID, generating"
 msgstr "Spiele-ID, erzeugen"
 
 #. type: IM{#1}
-#: puzzles.but:3240
+#: puzzles.but:3245
 msgid "specific"
 msgstr "specific"
 
 #. type: IM
-#: puzzles.but:3240
+#: puzzles.but:3245
 #, no-wrap
 msgid "\\q{Specific}, menu option"
 msgstr "\\q{Specific}, Menüoption"
 
 #. type: IM{#1}
-#: puzzles.but:3241
+#: puzzles.but:3246
 msgid "custom"
 msgstr "custom"
 
 #. type: IM
-#: puzzles.but:3241
+#: puzzles.but:3246
 #, no-wrap
 msgid "\\q{Custom}, menu option"
 msgstr "\\q{Custom}, Menüoption"
 
 #. type: IM{#1}
-#: puzzles.but:3243 puzzles.but:3244
+#: puzzles.but:3248 puzzles.but:3249
 #, no-wrap
 msgid "game ID"
 msgstr "Spiele-ID"
 
 #. type: IM
-#: puzzles.but:3244
+#: puzzles.but:3249
 #, no-wrap
 msgid "ID, game"
 msgstr "ID, Spiel"
 
 #. type: IM{#1}
-#: puzzles.but:3245 puzzles.but:3246 puzzles.but:3247
+#: puzzles.but:3250 puzzles.but:3251 puzzles.but:3252
 #, no-wrap
 msgid "ID format"
 msgstr "ID-Format"
 
 #. type: IM
-#: puzzles.but:3246
+#: puzzles.but:3251
 #, no-wrap
 msgid "format, ID"
 msgstr "Format, ID"
 
 #. type: IM
-#: puzzles.but:3247
+#: puzzles.but:3252
 #, no-wrap
 msgid "game ID, format"
 msgstr "Spiele-ID, Format"
 
 #. type: IM{#1}
-#: puzzles.but:3249 puzzles.but:3250
+#: puzzles.but:3254 puzzles.but:3255
 #, no-wrap
 msgid "keys"
 msgstr "Tasten"
 
 #. type: IM
-#: puzzles.but:3250
+#: puzzles.but:3255
 #, no-wrap
 msgid "shortcuts (keyboard)"
 msgstr "Tastaturkürzel"
 
 #. type: IM{#1}
-#: puzzles.but:3252 puzzles.but:3253
+#: puzzles.but:3257 puzzles.but:3258
 #, no-wrap
 msgid "initial state"
 msgstr "Anfangszustand"
 
 #. type: IM
-#: puzzles.but:3253
+#: puzzles.but:3258
 #, no-wrap
 msgid "state, initial"
 msgstr "Zustand, anfänglicher"
 
 #. type: IM{#1}
-#: puzzles.but:3255 puzzles.but:3256
+#: puzzles.but:3260 puzzles.but:3261
 #, no-wrap
 msgid "MIT licence"
 msgstr "MIT-Lizenz"
 
 #. type: IM
-#: puzzles.but:3256
+#: puzzles.but:3261
 #, no-wrap
 msgid "licence, MIT"
 msgstr "Lizenz, MIT"
