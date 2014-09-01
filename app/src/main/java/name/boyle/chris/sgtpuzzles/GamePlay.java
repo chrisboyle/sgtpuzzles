@@ -31,7 +31,6 @@ import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
 import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
-import android.content.res.Resources;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
 import android.graphics.drawable.Drawable;
@@ -58,8 +57,6 @@ import android.view.SubMenu;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.WindowManager;
-import android.webkit.WebChromeClient;
-import android.webkit.WebView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.CheckBox;
@@ -387,48 +384,6 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 		redoItem.setIcon(redoEnabled ? R.drawable.ic_action_redo : R.drawable.ic_action_redo_disabled);
 	}
 
-	static void showHelp(Context context, String topic)
-	{
-		final Dialog d = new Dialog(context,android.R.style.Theme);
-		final WebView wv = new WebView(context);
-		d.setOnKeyListener(new DialogInterface.OnKeyListener(){ public boolean onKey(DialogInterface di, int key, KeyEvent evt) {
-			if (evt.getAction() != KeyEvent.ACTION_DOWN || key != KeyEvent.KEYCODE_BACK) return false;
-			if (wv.canGoBack()) wv.goBack(); else d.cancel();
-			return true;
-		}});
-		d.setContentView(wv);
-		wv.setWebChromeClient(new WebChromeClient(){
-			public void onReceivedTitle(WebView w, String title) { d.setTitle(title); }
-			// onReceivedTitle doesn't happen on back button :-(
-			public void onProgressChanged(WebView w, int progress) { if (progress == 100) d.setTitle(w.getTitle()); }
-		});
-		wv.getSettings().setBuiltInZoomControls(true);
-		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
-			wv.getSettings().setDisplayZoomControls(false);
-		}
-		final Resources resources = context.getResources();
-		final String lang = resources.getConfiguration().locale.getLanguage();
-		String assetPath = helpPath(lang, topic);
-		boolean haveLocalised = false;
-		try {
-			final String[] list = resources.getAssets().list(lang);
-			for (String s : list) {
-				if (s.equals(topic + ".html")) {
-					haveLocalised = true;
-				}
-			}
-		} catch (IOException ignored) {}
-		if (!haveLocalised) {
-			assetPath = helpPath("en", topic);
-		}
-		wv.loadUrl("file:///android_asset/" + assetPath);
-		d.show();
-	}
-
-	private static String helpPath(String lang, String topic) {
-		return MessageFormat.format("{0}/{1}.html", lang, topic);
-	}
-
 	private void startChooserAndFinish()
 	{
 		NavUtils.navigateUpFromSameTask(this);
@@ -463,7 +418,11 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 		case R.id.custom:
 			configEvent(CFG_SETTINGS);
 			break;
-		case R.id.this_game: showHelp(this, htmlHelpTopic()); break;
+		case R.id.this_game:
+			Intent intent = new Intent(this, HelpActivity.class);
+			intent.putExtra(HelpActivity.TOPIC, htmlHelpTopic());
+			startActivity(intent);
+			break;
 		case R.id.email:
 			startActivity(new Intent(this, SendFeedbackActivity.class));
 			break;
