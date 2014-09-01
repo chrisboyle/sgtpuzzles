@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+			xmlns:supportLib="http://schemas.android.com/apk/res-auto"
+			xmlns:tools="http://schemas.android.com/tools"
 			android:layout_width="fill_parent"
 	android:layout_height="fill_parent">
-	<TableLayout
+	<android.support.v7.widget.GridLayout
 		android:id="@+id/table"
 		android:layout_width="fill_parent"
 		android:layout_height="wrap_content"
@@ -10,18 +12,24 @@
 		android:paddingBottom="2dip"
 		android:stretchColumns="*"
 		android:shrinkColumns="*"
-		android:layout_gravity="center_horizontal">
+		android:layout_gravity="center_horizontal"
+		android:animateLayoutChanges="true"
+		tools:ignore="UnusedAttribute">
 		<TextView android:id="@+id/games_starred"
 			android:text="@string/games_starred"
 			android:layout_width="fill_parent"
 			android:layout_height="wrap_content"
 			android:textAppearance="?android:attr/textAppearanceMedium"
-			android:background="@color/chooser_section_background"/>
+			android:background="@color/chooser_section_background"
+			supportLib:layout_column="0"
+			supportLib:layout_row="0"/>
 		<TextView android:id="@+id/games_others"
 			android:text="@string/games_others"
 			android:layout_width="fill_parent"
 			android:layout_height="wrap_content"
 			android:textAppearance="?android:attr/textAppearanceMedium"
-			android:background="@color/chooser_section_background"/>
-	</TableLayout>
+			android:background="@color/chooser_section_background"
+			supportLib:layout_column="0"
+			supportLib:layout_row="1"/>
+	</android.support.v7.widget.GridLayout>
 </ScrollView>

@@ -17,16 +17,16 @@ import android.preference.PreferenceManager;
 import android.support.v4.view.MenuItemCompat;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.ActionBarActivity;
+import android.support.v7.widget.GridLayout;
 import android.text.Spannable;
 import android.text.SpannableStringBuilder;
 import android.text.style.TextAppearanceSpan;
 import android.util.DisplayMetrics;
+import android.view.Gravity;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.ImageView;
-import android.widget.TableLayout;
-import android.widget.TableRow;
 import android.widget.TextView;
 
 import java.util.ArrayList;
@@ -49,12 +49,10 @@ public class GameChooser extends ActionBarActivity
 		DEFAULT_STARRED.add("towers");
 	}
 
-	/* This really ought to have been a GridView, but...
-	 * http://stackoverflow.com/q/7545915/6540  */
-    private TableLayout table;
+    private GridLayout table;
 
-	private TextView games_starred;
-	private TextView games_others;
+	private TextView starredHeader;
+	private TextView otherHeader;
 
 	private SharedPreferences prefs;
     private boolean useGrid;
@@ -97,10 +95,10 @@ public class GameChooser extends ActionBarActivity
 		games = getResources().getStringArray(R.array.games);
 		views = new View[games.length];
 		setContentView(R.layout.chooser);
-		table = (TableLayout) findViewById(R.id.table);
-		games_starred = (TextView) findViewById(R.id.games_starred);
-		games_others = (TextView) findViewById(R.id.games_others);
-		rebuildViews();
+		table = (GridLayout) findViewById(R.id.table);
+		starredHeader = (TextView) findViewById(R.id.games_starred);
+		otherHeader = (TextView) findViewById(R.id.games_others);
+		buildViews();
 		rethinkActionBarCapacity();
 		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
 			getSupportActionBar().addOnMenuVisibilityListener(new ActionBar.OnMenuVisibilityListener() {
@@ -124,25 +122,24 @@ public class GameChooser extends ActionBarActivity
 		}
 	}
 
-	void rebuildViews()
+	void buildViews()
 	{
-		TableRow dummy = new TableRow(this);
 		for( int i = 0; i < games.length; i++ ) {
 			final String gameId = games[i];
 			views[i] = getLayoutInflater().inflate(
-					useGrid ? R.layout.grid_item : R.layout.list_item, dummy, false);
+					R.layout.list_item, table, false);
 			((ImageView)views[i].findViewById(R.id.icon)).setImageResource(
 					getResources().getIdentifier(gameId, "drawable", getPackageName()));
-			if (! useGrid) {
-				final int nameId = getResources().getIdentifier("name_"+gameId, "string", getPackageName());
-				final int descId = getResources().getIdentifier("desc_"+gameId, "string", getPackageName());
-				SpannableStringBuilder desc = new SpannableStringBuilder(nameId > 0 ?
-						getString(nameId) : gameId.substring(0,1).toUpperCase() + gameId.substring(1));
-				desc.setSpan(new TextAppearanceSpan(this, R.style.ChooserItemName),
-						0, desc.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-				desc.append(": ").append(getString(descId > 0 ? descId : R.string.no_desc));
-				((TextView)views[i].findViewById(R.id.text)).setText(desc);
-			}
+			final int nameId = getResources().getIdentifier("name_"+gameId, "string", getPackageName());
+			final int descId = getResources().getIdentifier("desc_"+gameId, "string", getPackageName());
+			SpannableStringBuilder desc = new SpannableStringBuilder(nameId > 0 ?
+					getString(nameId) : gameId.substring(0,1).toUpperCase() + gameId.substring(1));
+			desc.setSpan(new TextAppearanceSpan(this, R.style.ChooserItemName),
+					0, desc.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+			desc.append(": ").append(getString(descId > 0 ? descId : R.string.no_desc));
+			final TextView textView = (TextView) views[i].findViewById(R.id.text);
+			textView.setText(desc);
+			textView.setVisibility(useGrid ? View.GONE : View.VISIBLE);
 			views[i].setOnClickListener(new View.OnClickListener() {
 				public void onClick(View arg1) {
 					Intent i = new Intent(GameChooser.this, SGTPuzzles.class);
@@ -160,11 +157,20 @@ public class GameChooser extends ActionBarActivity
 				}
 			});
 			views[i].setFocusable(true);
+			views[i].setLayoutParams(mkLayoutParams());
+			table.addView(views[i]);
 		}
 		rethinkColumns(true);
 	}
 
-	private int oldColumns = 0;
+	private GridLayout.LayoutParams mkLayoutParams() {
+		final GridLayout.LayoutParams params = new GridLayout.LayoutParams();
+		params.setGravity(Gravity.CENTER_HORIZONTAL);
+		return params;
+	}
+
+
+	private int mColumns = 0;
 	@Override
 	public void onConfigurationChanged(Configuration newConfig)
 	{
@@ -179,51 +185,47 @@ public class GameChooser extends ActionBarActivity
 		final int columns = Math.max(1, (int) Math.floor(
 				((double)dm.widthPixels / dm.density) / colWidthDip));
 		final int margin = (int) Math.round((double)6 * dm.density);
-		if (force || oldColumns != columns) {
+		if (force || mColumns != columns) {
+			mColumns = columns;
 			List<View> starred = new ArrayList<View>();
 			List<View> others = new ArrayList<View>();
 			for (int i=0; i < games.length; i++) {
 				(isStarred(games[i]) ? starred : others).add(views[i]);
 			}
-			table.removeAllViews();
 			final boolean anyStarred = !starred.isEmpty();
+			starredHeader.setVisibility(anyStarred ? View.VISIBLE : View.GONE);
+			int row = 0;
 			if (anyStarred) {
-				table.addView(games_starred);
+				setGridCells(starredHeader, 0, row++, mColumns, 1, 0);
+				row = setViewsGridCells(row, margin, starred, true);
 			}
-			addViews(columns, margin, starred, true);
-			table.addView(games_others);
-			games_others.setText(anyStarred ? R.string.games_others : R.string.games_others_none_starred);
-			addViews(columns, margin, others, false);
-			oldColumns = columns;
+			otherHeader.setText(anyStarred ? R.string.games_others : R.string.games_others_none_starred);
+			setGridCells(otherHeader, 0, row++, mColumns, 1, 0);
+			setViewsGridCells(row, margin, others, false);
 		}
 	}
 
-	private TableRow mkTableRow() {
-		TableRow tr;
-		tr = new TableRow(this);
-		table.addView(tr);
-		tr.setLayoutParams(new TableRow.LayoutParams(
-				TableRow.LayoutParams.WRAP_CONTENT,
-				TableRow.LayoutParams.WRAP_CONTENT));
-		return tr;
+	private void setGridCells(View v, int x, int y, int w, int h, int margin) {
+		final GridLayout.LayoutParams layoutParams = (GridLayout.LayoutParams) v.getLayoutParams();
+		layoutParams.columnSpec = GridLayout.spec(x, w, GridLayout.START);
+		layoutParams.rowSpec = GridLayout.spec(y, h, GridLayout.START);
+		layoutParams.setMargins(margin, margin, margin, margin);
+		v.setLayoutParams(layoutParams);
 	}
 
-	private void addViews(final int columns, final int margin, final List<View> views, final boolean starred) {
-		TableRow tr = null;
-		int i = 0;
+	private int setViewsGridCells(final int startRow, final int margin, final List<View> views, final boolean starred) {
+		int col = 0;
+		int row = startRow;
 		for (View v : views) {
 			// TODO add/remove star (N.B. v might be icon+text or just icon)
-			if (i % columns == 0) {
-				tr = mkTableRow();
+			if (col >= mColumns) {
+				col = 0;
+				row++;
 			}
-			if (v.getParent() != null) ((TableRow) v.getParent()).removeView(v);
-			TableRow.LayoutParams lp = new TableRow.LayoutParams(
-					0, TableRow.LayoutParams.WRAP_CONTENT, 1);
-			lp.setMargins(0, margin, 0, margin);
-			assert tr != null;
-			tr.addView(v, lp);
-			i++;
+			setGridCells(v, col++, row, 1, 1, margin);
 		}
+		row++;
+		return row;
 	}
 
 	private boolean isStarred(String game) {
@@ -328,7 +330,11 @@ public class GameChooser extends ActionBarActivity
 		if( useGrid == newGrid ) return;
 		useGrid = newGrid;
 		updateStyleToggleVisibility();
-		rebuildViews();
+		for (View v : views) {
+			v.findViewById(R.id.text).setVisibility(useGrid ? View.GONE : View.VISIBLE);
+			v.setLayoutParams(v.getLayoutParams());
+		}
+		rethinkColumns(true);
 		SharedPreferences.Editor ed = prefs.edit();
 		ed.putString(CHOOSER_STYLE_KEY, useGrid ? "grid" : "list");
 		prefsSaver.save(ed);
