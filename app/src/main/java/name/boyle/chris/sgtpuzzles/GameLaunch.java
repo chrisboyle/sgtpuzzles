@@ -9,12 +9,15 @@ public class GameLaunch {
 	private final String whichBackend;
 	private final String params;
 	private final boolean knownCompleted;
+	private final boolean fromChooser;
 
-	private GameLaunch(final String whichBackend, final String params, final String saved, final boolean knownCompleted) {
+	private GameLaunch(final String whichBackend, final String params, final String saved,
+				final boolean knownCompleted, final boolean fromChooser) {
 		this.whichBackend = whichBackend;
 		this.params = params;
 		this.saved = saved;
 		this.knownCompleted = knownCompleted;
+		this.fromChooser = fromChooser;
 	}
 	
 	@Override
@@ -23,11 +26,15 @@ public class GameLaunch {
 	}
 
 	public static GameLaunch ofSavedGame(final String saved, final boolean knownCompleted) {
-		return new GameLaunch(null, null, saved, knownCompleted);
+		return new GameLaunch(null, null, saved, knownCompleted, false);
 	}
 
 	public static GameLaunch toGenerate(String whichBackend, String params) {
-		return new GameLaunch(whichBackend, params, null, false);
+		return new GameLaunch(whichBackend, params, null, false, false);
+	}
+
+	public static GameLaunch toGenerateFromChooser(String whichBackend) {
+		return new GameLaunch(whichBackend, null, null, false, true);
 	}
 
 	public boolean needsGenerating() {
@@ -55,5 +62,9 @@ public class GameLaunch {
 
 	public boolean isKnownCompleted() {
 		return knownCompleted;
+	}
+
+	public boolean isFromChooser() {
+		return fromChooser;
 	}
 }

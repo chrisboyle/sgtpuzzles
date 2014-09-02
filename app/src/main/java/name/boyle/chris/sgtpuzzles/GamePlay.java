@@ -160,26 +160,28 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 			dismissProgress();
 			if (msg.obj != null && !msg.obj.equals("")) {
 				messageBox(this, getString(R.string.Error), (String)msg.obj);
-			} else {
+			} else if (msg.arg1 == 1) {  // see showProgress
 				startChooserAndFinish();
 			}
 			break;
 		}
 	}
 
-	private void showProgress(int msgId)
+	private void showProgress(int msgId, final boolean returnToChooser)
 	{
 		progress = new ProgressDialog(this);
 		progress.setMessage( getString(msgId) );
 		progress.setIndeterminate(true);
 		progress.setCancelable(true);
 		progress.setCanceledOnTouchOutside(false);
+		// returnToChooser sets msg.arg1 to 1
+		final Message cancelMessage = handler.obtainMessage(MsgType.ABORT.ordinal(), returnToChooser ? 1 : 0, 0);
 		progress.setOnCancelListener(new OnCancelListener() {
 			public void onCancel(DialogInterface dialog) {
-				abort(null);
+				cancelMessage.sendToTarget();
 			}
 		});
-		progress.setButton( DialogInterface.BUTTON_NEGATIVE, getString(android.R.string.cancel), handler.obtainMessage(MsgType.ABORT.ordinal()));
+		progress.setButton( DialogInterface.BUTTON_NEGATIVE, getString(android.R.string.cancel), cancelMessage);
 		progress.show();
 	}
 
@@ -315,7 +317,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 			if (launchIfDifferent != null) {
 				if (wasCompleted || !launchIfDifferent.equals(games[identifyBackend(savedGame)])) {
 					Log.d(TAG, "generating as requested");
-					startGame(GameLaunch.toGenerate(launchIfDifferent, null));
+					startGame(GameLaunch.toGenerateFromChooser(launchIfDifferent));
 					return;
 				} else {
 					Log.d(TAG, "state matches Intent, will keep it");
@@ -477,7 +479,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 	private void abort(String why)
 	{
 		workerRunning = false;
-		handler.obtainMessage(MsgType.ABORT.ordinal(), why).sendToTarget();
+		handler.obtainMessage(MsgType.ABORT.ordinal(), 0, 0, why).sendToTarget();
 	}
 
 	static String getVersion(Context c)
@@ -560,6 +562,11 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 		return (s == null) ? "" : s;
 	}
 
+	private void startNewGame()
+	{
+		startGame(GameLaunch.toGenerate(currentBackend, getCurrentParams()));
+	}
+
 	private void startGame(final GameLaunch launch)
 	{
 		Log.d(TAG, "startGame: " + launch);
@@ -567,7 +574,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 			Log.e(TAG, "startGame while already starting!");
 			return;
 		}
-		showProgress(launch.needsGenerating() ? R.string.starting : R.string.resuming);
+		showProgress(launch.needsGenerating() ? R.string.starting : R.string.resuming, launch.isFromChooser());
 		stopNative();
 		startGameThread(launch);
 	}
@@ -646,13 +653,6 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 			if (! workerRunning) return;  // stopNative or abort was called
 			handler.sendEmptyMessage(MsgType.DONE.ordinal());
 		}}).start();
-	}
-
-	private void startNewGame()
-	{
-		if (progress != null) return;
-		showProgress( R.string.starting_new );
-		startGameThread(GameLaunch.toGenerate(currentBackend, getCurrentParams()));
 	}
 
 	private String getLastParams(final String whichBackend) {

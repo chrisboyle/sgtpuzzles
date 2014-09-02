@@ -52,7 +52,6 @@ Version %s"</string>
     <string name="how_to_play_game">How to play {0}</string>
     <!-- Progress dialog when generating/resuming a game -->
     <string name="starting">Starting game (complex games may take a minute)</string>
-    <string name="starting_new">Starting new game (complex games may take a minute)</string>
     <string name="resuming">Resuming game (complex games may take a minute)</string>
     <!-- "Completed" dialog -->
     <string name="completedPrompt">Menu on completion</string>
