@@ -85,6 +85,9 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 	private static final boolean UNDO_REDO_KBD_DEFAULT = true;
 	private static final String PATTERN_SHOW_LENGTHS_KEY = "patternShowLengths";
 	private static final String COMPLETED_PROMPT_KEY = "completedPrompt";
+	public static final String SAVED_COMPLETED = "savedCompleted";
+	public static final String SAVED_GAME = "savedGame";
+	public static final String LAST_PARAMS_PREFIX = "last_params_";
 
 	private ProgressDialog progress;
 	private TextView statusBar;
@@ -118,6 +121,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 	private PrefsSaver prefsSaver;
 	private boolean startedFullscreen = false, cachedFullscreen = false;
 	private boolean keysAlreadySet = false;
+	private boolean everCompleted = false;
 
 	static boolean isAlive;
 
@@ -167,11 +171,13 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 	{
 		progress = new ProgressDialog(this);
 		progress.setMessage( getString(msgId) );
-		progress.setIndeterminate( true );
-		progress.setCancelable( true );
+		progress.setIndeterminate(true);
+		progress.setCancelable(true);
 		progress.setCanceledOnTouchOutside(false);
 		progress.setOnCancelListener(new OnCancelListener() {
-			public void onCancel(DialogInterface dialog) { abort(null); }
+			public void onCancel(DialogInterface dialog) {
+				abort(null);
+			}
 		});
 		progress.setButton( DialogInterface.BUTTON_NEGATIVE, getString(android.R.string.cancel), handler.obtainMessage(MsgType.ABORT.ordinal()));
 		progress.show();
@@ -203,8 +209,9 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 		if (s == null || s.length() == 0) return;
 		SharedPreferences.Editor ed = state.edit();
 		ed.remove("engineName");
-		ed.putString("savedGame", s);
-		ed.putString("last_params_"+games[identifyBackend(s)], getCurrentParams());
+		ed.putString(SAVED_GAME, s);
+		ed.putBoolean(SAVED_COMPLETED, everCompleted);
+		ed.putString(LAST_PARAMS_PREFIX + games[identifyBackend(s)], getCurrentParams());
 		prefsSaver.save(ed);
 	}
 
@@ -275,13 +282,14 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 			stopNative();
 			dismissProgress();
 		}
+		String launchIfDifferent = null;
 		// Don't regenerate on resurrecting a URL-bound activity from the recent list
 		if ((intent.getFlags() & Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY) == 0) {
 			String s = intent.getStringExtra("game");
 			Uri u = intent.getData();
 			if (s != null && s.length() > 0) {
 				Log.d(TAG, "starting game from Intent, " + s.length() + " bytes");
-				startGame(GameLaunch.ofSavedGame(s));
+				startGame(GameLaunch.ofSavedGame(s, false));
 				return;
 			} else if (u != null) {
 				Log.d(TAG, "URI is: \"" + u + "\"");
@@ -289,18 +297,32 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 				if (games.length < 2) games = getResources().getStringArray(R.array.games);
 				for (String game : games) {
 					if (game.equals(g)) {
-						startGame(GameLaunch.toGenerate(g, null));
-						return;
+						if (game.equals(currentBackend) && !everCompleted) {
+							// already alive & playing incomplete game of that kind; keep it.
+							return;
+						}
+						launchIfDifferent = game;
+						break;
 					}
 				}
 				Log.e(TAG, "Unhandled URL! \"" + u + "\" -> g = \"" + g + "\", games = " + Arrays.toString(games));
 				// TODO! Other URLs, including game states...
 			}
 		}
-		if( state.contains("savedGame") && state.getString("savedGame","").length() > 0 ) {
+		if( state.contains(SAVED_GAME) && state.getString(SAVED_GAME, "").length() > 0 ) {
+			String savedGame = state.getString(SAVED_GAME, "");
+			final boolean wasCompleted = state.getBoolean(SAVED_COMPLETED, false);
+			if (launchIfDifferent != null) {
+				if (wasCompleted || !launchIfDifferent.equals(games[identifyBackend(savedGame)])) {
+					Log.d(TAG, "generating as requested");
+					startGame(GameLaunch.toGenerate(launchIfDifferent, null));
+					return;
+				} else {
+					Log.d(TAG, "state matches Intent, will keep it");
+				}
+			}
 			Log.d(TAG, "restoring last state");
-			String savedGame = state.getString("savedGame","");
-			startGame(GameLaunch.ofSavedGame(savedGame));
+			startGame(GameLaunch.ofSavedGame(savedGame, wasCompleted));
 		} else {
 			Log.d(TAG, "no state, starting chooser");
 			startChooserAndFinish();
@@ -578,6 +600,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 			}
 			gameTypes.clear();
 			gameView.keysHandled = 0;
+			everCompleted = false;
 		}});
 	}
 
@@ -606,6 +629,14 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 					Log.d(TAG, "startGameThread: null game, presumably cancelled");
 				} else {
 					startPlaying(gameView, toPlay);
+					if (launch.isKnownCompleted()) {
+						runOnUiThread(new Runnable() {
+							@Override
+							public void run() {
+								completed();
+							}
+						});
+					}
 				}
 			} catch (IllegalArgumentException e) {
 				abort(e.getMessage());  // probably bogus params
@@ -625,7 +656,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 	}
 
 	private String getLastParams(final String whichBackend) {
-		return state.getString("last_params_" + whichBackend, null);
+		return state.getString(LAST_PARAMS_PREFIX + whichBackend, null);
 	}
 
 	private void stopNative()
@@ -829,6 +860,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 	@UsedByJNI
 	void completed()
 	{
+		everCompleted = true;
 		if (! prefs.getBoolean(COMPLETED_PROMPT_KEY, true)) {
 			Toast.makeText(GamePlay.this, getString(R.string.COMPLETED), Toast.LENGTH_SHORT).show();
 			return;
