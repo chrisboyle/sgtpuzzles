@@ -282,13 +282,12 @@ public class GameChooser extends ActionBarActivity
 		DisplayMetrics dm = getResources().getDisplayMetrics();
 		final int screenWidthDIP = (int) Math.round(((double) dm.widthPixels) / dm.density);
 		int state = MenuItemCompat.SHOW_AS_ACTION_ALWAYS;
-		if (screenWidthDIP > 500) {
+		if (screenWidthDIP >= 480) {
 			state |= MenuItemCompat.SHOW_AS_ACTION_WITH_TEXT;
 		}
 		MenuItemCompat.setShowAsAction(menu.findItem(useGrid ? R.id.listchooser : R.id.gridchooser), state);
 		MenuItemCompat.setShowAsAction(menu.findItem(R.id.load), state);
 		MenuItemCompat.setShowAsAction(menu.findItem(R.id.help), state);
-		supportInvalidateOptionsMenu();
 	}
 
 	@Override
@@ -366,6 +365,7 @@ public class GameChooser extends ActionBarActivity
 		if( useGrid == newGrid ) return;
 		useGrid = newGrid;
 		updateStyleToggleVisibility();
+		rethinkActionBarCapacity();
 		for (View v : views) {
 			v.findViewById(R.id.text).setVisibility(useGrid ? View.GONE : View.VISIBLE);
 			v.setLayoutParams(v.getLayoutParams());

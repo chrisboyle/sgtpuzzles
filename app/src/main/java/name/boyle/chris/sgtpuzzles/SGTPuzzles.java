@@ -765,7 +765,7 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 		DisplayMetrics dm = getResources().getDisplayMetrics();
 		final int screenWidthDIP = (int) Math.round(((double) dm.widthPixels) / dm.density);
 		int state = MenuItemCompat.SHOW_AS_ACTION_ALWAYS;
-		if (screenWidthDIP > 500) {
+		if (screenWidthDIP >= 480) {
 			state |= MenuItemCompat.SHOW_AS_ACTION_WITH_TEXT;
 		}
 		MenuItemCompat.setShowAsAction(menu.findItem(R.id.game), state);
