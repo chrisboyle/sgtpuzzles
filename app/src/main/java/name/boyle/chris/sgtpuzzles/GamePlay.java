@@ -308,8 +308,10 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 						break;
 					}
 				}
-				Log.e(TAG, "Unhandled URL! \"" + u + "\" -> g = \"" + g + "\", games = " + Arrays.toString(games));
-				// TODO! Other URLs, including game states...
+				if (launchIfDifferent == null) {
+					Log.e(TAG, "Unhandled URL! \"" + u + "\" -> g = \"" + g + "\", games = " + Arrays.toString(games));
+					// TODO! Other URLs, including game states...
+				}
 			}
 		}
 		if( state.contains(SAVED_GAME) && state.getString(SAVED_GAME, "").length() > 0 ) {
@@ -326,6 +328,9 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 			}
 			Log.d(TAG, "restoring last state");
 			startGame(GameLaunch.ofSavedGame(savedGame, wasCompleted));
+		} else if (launchIfDifferent != null) {
+			// first ever click from chooser
+			startGame(GameLaunch.toGenerateFromChooser(launchIfDifferent));
 		} else {
 			Log.d(TAG, "no state, starting chooser");
 			startChooserAndFinish();
