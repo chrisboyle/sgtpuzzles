@@ -18,7 +18,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
 
-class GameView extends View
+public class GameView extends View
 {
 	private GamePlay parent;
 	private Bitmap bitmap;

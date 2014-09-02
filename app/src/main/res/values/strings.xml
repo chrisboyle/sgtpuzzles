@@ -31,7 +31,6 @@ Version %s"</string>
     <string name="app_name">Puzzles</string>
     <string name="welcome">Welcome to the Android version of Simon Tatham\'s Puzzles. To right-click in these games, do a long press.</string>
     <string name="website_url">http://chris.boyle.name/projects/android-puzzles</string>
-    <string name="docs_url">file:///android_asset/en/{0}.html</string>
     <string name="author_email">chris@boyle.name</string>
     <string name="unknown_version">UNKNOWN</string>
     <!-- {0} = version, {1} = device model number -->

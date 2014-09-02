@@ -15,7 +15,7 @@ import android.support.annotation.NonNull;
 import android.util.AttributeSet;
 import android.util.Log;
 
-class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboardActionListener
+public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboardActionListener
 {
 	private static final String TAG = "SmallKeyboard";
 	private static final int KEY_SP = 44;  // dip

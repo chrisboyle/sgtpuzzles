@@ -6,5 +6,5 @@
 		in (res/values-v8/api_keys.xml is git-ignored) because
 		of the terms of that agreement.
 	-->
-	<string name="backup_api_key"/>
+	<string name="backup_api_key" translatable="false"/>
 </resources>

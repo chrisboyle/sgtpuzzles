@@ -31,6 +31,7 @@ import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
 import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
+import android.content.res.Resources;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
 import android.graphics.drawable.Drawable;
@@ -400,8 +401,22 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
 			wv.getSettings().setDisplayZoomControls(false);
 		}
-		wv.loadUrl(MessageFormat.format(context.getString(R.string.docs_url), topic));
+		final Resources resources = context.getResources();
+		String lang = resources.getConfiguration().locale.getLanguage();
+		String assetPath = helpPath(lang, topic);
+		try {
+			if (resources.getAssets().list(assetPath).length == 0) {
+				assetPath = helpPath("en", topic);
+			}
+		} catch (IOException e) {
+			assetPath = helpPath("en", topic);
+		}
+		wv.loadUrl("file:///android_asset/" + assetPath);
 		d.show();
+	}
+
+	private static String helpPath(String lang, String topic) {
+		return MessageFormat.format("{0}/{1}.html", lang, topic);
 	}
 
 	private void startChooserAndFinish()
