@@ -407,13 +407,18 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 			wv.getSettings().setDisplayZoomControls(false);
 		}
 		final Resources resources = context.getResources();
-		String lang = resources.getConfiguration().locale.getLanguage();
+		final String lang = resources.getConfiguration().locale.getLanguage();
 		String assetPath = helpPath(lang, topic);
+		boolean haveLocalised = false;
 		try {
-			if (resources.getAssets().list(assetPath).length == 0) {
-				assetPath = helpPath("en", topic);
+			final String[] list = resources.getAssets().list(lang);
+			for (String s : list) {
+				if (s.equals(topic + ".html")) {
+					haveLocalised = true;
+				}
 			}
-		} catch (IOException e) {
+		} catch (IOException ignored) {}
+		if (!haveLocalised) {
 			assetPath = helpPath("en", topic);
 		}
 		wv.loadUrl("file:///android_asset/" + assetPath);
@@ -839,23 +844,27 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 	@UsedByJNI
 	void gameStarted(final String whichBackend, final String title, final boolean hasCustom, final boolean hasStatus, final boolean canSolve)
 	{
-		runOnUiThread(new Runnable(){public void run(){
-			currentBackend = whichBackend;
-			customVisible = hasCustom;
-			solveEnabled = canSolve;
-			setTitle(title);
-			getSupportActionBar().setTitle(title);
-			setStatusBarVisibility(hasStatus);
-		}});
+		runOnUiThread(new Runnable() {
+			public void run() {
+				currentBackend = whichBackend;
+				customVisible = hasCustom;
+				solveEnabled = canSolve;
+				setTitle(title);
+				getSupportActionBar().setTitle(title);
+				setStatusBarVisibility(hasStatus);
+			}
+		});
 	}
 
 	@UsedByJNI
 	void addTypeItem(final String encoded, final String label)
 	{
-		runOnUiThread(new Runnable(){public void run(){
+		runOnUiThread(new Runnable() {
+			public void run() {
 //			Log.d(TAG, "addTypeItem(" + encoded + ", " + label + ")");
-			gameTypes.put(encoded, label);
-		}});
+				gameTypes.put(encoded, label);
+			}
+		});
 	}
 
 	private static void messageBox(final Context context, final String title, final String msg)
