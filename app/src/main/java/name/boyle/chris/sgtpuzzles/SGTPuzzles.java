@@ -231,6 +231,7 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.main);
 		getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+		applyChooserIcon();
 		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
 			getSupportActionBar().addOnMenuVisibilityListener(new ActionBar.OnMenuVisibilityListener() {
 				@Override
@@ -1059,7 +1060,7 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 	@Override
 	public void onSharedPreferenceChanged(SharedPreferences p, String key)
 	{
-		if (key.equals("arrowKeys") || key.equals("inertiaForceArrows")) {
+		if (key.equals(ARROW_KEYS_KEY) || key.equals(INERTIA_FORCE_ARROWS_KEY)) {
 			setKeyboardVisibility(getResources().getConfiguration());
 		} else if (key.equals(FULLSCREEN_KEY)) {
 			applyFullscreen(true);  // = already started
@@ -1071,7 +1072,18 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 			applyUndoRedoKbd();
 		} else if (key.equals(BRIDGES_SHOW_H_KEY)) {
 			applyBridgesShowH();
+		} else if (key.equals(GameChooser.CHOOSER_STYLE_KEY)) {
+			applyChooserIcon();
 		}
+	}
+
+	private void applyChooserIcon() {
+		final String style = prefs.getString(GameChooser.CHOOSER_STYLE_KEY, "list");
+		final boolean useGrid = (style != null) && style.equals("grid");
+		getSupportActionBar().setDisplayUseLogoEnabled(false);
+		getSupportActionBar().setIcon(useGrid
+				? R.drawable.ic_action_view_as_grid
+				: R.drawable.ic_action_view_as_list);
 	}
 
 	private void applyFullscreen(boolean alreadyStarted) {
