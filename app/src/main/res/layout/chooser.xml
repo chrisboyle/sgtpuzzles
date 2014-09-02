@@ -21,6 +21,10 @@
 			android:layout_height="wrap_content"
 			android:textAppearance="?android:attr/textAppearanceMedium"
 			android:background="@color/chooser_section_background"
+			android:paddingLeft="4dip"
+			android:paddingRight="4dip"
+			android:paddingStart="4dip"
+			android:paddingEnd="4dip"
 			supportLib:layout_column="0"
 			supportLib:layout_row="0"/>
 		<TextView android:id="@+id/games_others"
@@ -29,6 +33,10 @@
 			android:layout_height="wrap_content"
 			android:textAppearance="?android:attr/textAppearanceMedium"
 			android:background="@color/chooser_section_background"
+			android:paddingLeft="4dip"
+			android:paddingRight="4dip"
+			android:paddingStart="4dip"
+			android:paddingEnd="4dip"
 			supportLib:layout_column="0"
 			supportLib:layout_row="1"/>
 	</android.support.v7.widget.GridLayout>

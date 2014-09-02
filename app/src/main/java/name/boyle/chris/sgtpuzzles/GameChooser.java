@@ -6,10 +6,8 @@ import android.animation.LayoutTransition;
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.app.AlertDialog;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.content.DialogInterface.OnCancelListener;
 import android.content.res.Configuration;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.LayerDrawable;
@@ -182,7 +180,7 @@ public class GameChooser extends ActionBarActivity
 		final LayerDrawable starredIcon = new LayerDrawable(new Drawable[]{
 				icon, getResources().getDrawable(R.drawable.ic_star) });
 		final float density = getResources().getDisplayMetrics().density;
-		starredIcon.setLayerInset(1, (int)(48*density), (int)(48*density), 0, 0);
+		starredIcon.setLayerInset(1, (int)(42*density), (int)(42*density), 0, 0);
 		stateListDrawable.addState(new int[]{android.R.attr.state_checked}, starredIcon);
 		stateListDrawable.addState(new int[0], icon);
 		return stateListDrawable;
