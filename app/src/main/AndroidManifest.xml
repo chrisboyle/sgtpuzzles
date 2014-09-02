@@ -20,8 +20,9 @@
         <activity android:name=".SGTPuzzles" android:theme="@style/SolidActionBar.Gameplay"
                   android:windowSoftInputMode="adjustPan"
                   android:label="@string/app_name" android:stateNotNeeded="true"
-                  android:launchMode="singleTask"
+                  android:launchMode="singleTask" android:parentActivityName=".GameChooser"
                   android:configChanges="keyboard|keyboardHidden|orientation|screenSize">
+            <meta-data android:name="android.support.PARENT_ACTIVITY" android:value=".GameChooser" />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

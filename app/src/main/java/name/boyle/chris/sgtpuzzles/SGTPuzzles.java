@@ -42,6 +42,7 @@ import android.os.Handler;
 import android.os.Message;
 import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
+import android.support.v4.app.NavUtils;
 import android.support.v4.view.MenuItemCompat;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.ActionBarActivity;
@@ -156,8 +157,7 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 			if (msg.obj != null && !msg.obj.equals("")) {
 				messageBox(this, getString(R.string.Error), (String)msg.obj);
 			} else {
-				startChooser();
-				finish();
+				startChooserAndFinish();
 			}
 			break;
 		}
@@ -303,8 +303,7 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 			startGame(GameLaunch.ofSavedGame(savedGame));
 		} else {
 			Log.d(TAG, "no state, starting chooser");
-			startChooser();
-			finish();
+			startChooserAndFinish();
 		}
 	}
 
@@ -381,9 +380,9 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 		d.show();
 	}
 
-	private void startChooser()
+	private void startChooserAndFinish()
 	{
-		startActivity(new Intent(this, GameChooser.class));
+		NavUtils.navigateUpFromSameTask(this);
 		overridePendingTransition(0, 0);
 	}
 
@@ -394,7 +393,7 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 		boolean ret = true;
 		switch(itemId) {
 		case android.R.id.home:
-			startChooser();
+			startChooserAndFinish();
 			break;
 		case R.id.settings:
 			startActivity(new Intent(this, PrefsActivity.class));
@@ -869,7 +868,7 @@ public class SGTPuzzles extends ActionBarActivity implements OnSharedPreferenceC
 			@Override
 			public void onClick(View v) {
 				d.dismiss();
-				startChooser();
+				startChooserAndFinish();
 			}
 		});
 		d.show();

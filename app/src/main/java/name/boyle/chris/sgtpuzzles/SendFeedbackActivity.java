@@ -21,6 +21,7 @@ public class SendFeedbackActivity extends Activity
 		final String emailSubject = SGTPuzzles.getEmailSubject(this);
 		i.putExtra(Intent.EXTRA_SUBJECT, emailSubject);
 		i.setType("message/rfc822");
+		i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_WHEN_TASK_RESET);
 		try {
 			startActivity(i);
 			finish();
