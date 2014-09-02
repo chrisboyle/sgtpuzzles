@@ -2,13 +2,18 @@ package name.boyle.chris.sgtpuzzles;
 
 import name.boyle.chris.sgtpuzzles.compat.PrefsSaver;
 
+import android.animation.LayoutTransition;
 import android.annotation.SuppressLint;
+import android.annotation.TargetApi;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.DialogInterface.OnCancelListener;
 import android.content.res.Configuration;
+import android.graphics.drawable.Drawable;
+import android.graphics.drawable.LayerDrawable;
+import android.graphics.drawable.StateListDrawable;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -120,6 +125,17 @@ public class GameChooser extends ActionBarActivity
 					.setPositiveButton(android.R.string.yes, null)
 					.show();
 		}
+
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
+			enableTableAnimations();
+		}
+	}
+
+	@TargetApi(Build.VERSION_CODES.JELLY_BEAN)
+	private void enableTableAnimations() {
+		final LayoutTransition transition = new LayoutTransition();
+		transition.enableTransitionType(LayoutTransition.CHANGING);
+		table.setLayoutTransition(transition);
 	}
 
 	void buildViews()
@@ -128,8 +144,8 @@ public class GameChooser extends ActionBarActivity
 			final String gameId = games[i];
 			views[i] = getLayoutInflater().inflate(
 					R.layout.list_item, table, false);
-			((ImageView)views[i].findViewById(R.id.icon)).setImageResource(
-					getResources().getIdentifier(gameId, "drawable", getPackageName()));
+			final StateListDrawable stateListDrawable = mkStarryIcon(gameId);
+			((ImageView)views[i].findViewById(R.id.icon)).setImageDrawable(stateListDrawable);
 			final int nameId = getResources().getIdentifier("name_"+gameId, "string", getPackageName());
 			final int descId = getResources().getIdentifier("desc_"+gameId, "string", getPackageName());
 			SpannableStringBuilder desc = new SpannableStringBuilder(nameId > 0 ?
@@ -163,6 +179,19 @@ public class GameChooser extends ActionBarActivity
 		rethinkColumns(true);
 	}
 
+	private StateListDrawable mkStarryIcon(String gameId) {
+		final StateListDrawable stateListDrawable = new StateListDrawable();
+		final Drawable icon = getResources().getDrawable(
+				getResources().getIdentifier(gameId, "drawable", getPackageName()));
+		final LayerDrawable starredIcon = new LayerDrawable(new Drawable[]{
+				icon, getResources().getDrawable(R.drawable.ic_star) });
+		final float density = getResources().getDisplayMetrics().density;
+		starredIcon.setLayerInset(1, (int)(48*density), (int)(48*density), 0, 0);
+		stateListDrawable.addState(new int[]{android.R.attr.state_checked}, starredIcon);
+		stateListDrawable.addState(new int[0], icon);
+		return stateListDrawable;
+	}
+
 	private GridLayout.LayoutParams mkLayoutParams() {
 		final GridLayout.LayoutParams params = new GridLayout.LayoutParams();
 		params.setGravity(Gravity.CENTER_HORIZONTAL);
@@ -170,7 +199,6 @@ public class GameChooser extends ActionBarActivity
 	}
 
 
-	private int mColumns = 0;
 	@Override
 	public void onConfigurationChanged(Configuration newConfig)
 	{
@@ -179,14 +207,19 @@ public class GameChooser extends ActionBarActivity
 		rethinkActionBarCapacity();
 	}
 
+	private int mColumns = 0;
+	private int mColWidthPx = 0;
+
 	private void rethinkColumns(boolean force) {
 		DisplayMetrics dm = getResources().getDisplayMetrics();
-		final int colWidthDip = useGrid ? 68 : 230;
+		final int colWidthDipNeeded = useGrid ? 72 : 318;
+		final double screenWidthDip = (double) dm.widthPixels / dm.density;
 		final int columns = Math.max(1, (int) Math.floor(
-				((double)dm.widthPixels / dm.density) / colWidthDip));
-		final int margin = (int) Math.round((double)6 * dm.density);
-		if (force || mColumns != columns) {
+				screenWidthDip / colWidthDipNeeded));
+		final int colWidthActualPx = (int) Math.floor(dm.widthPixels / columns);
+		if (force || mColumns != columns || mColWidthPx != colWidthActualPx) {
 			mColumns = columns;
+			mColWidthPx = colWidthActualPx;
 			List<View> starred = new ArrayList<View>();
 			List<View> others = new ArrayList<View>();
 			for (int i=0; i < games.length; i++) {
@@ -196,33 +229,36 @@ public class GameChooser extends ActionBarActivity
 			starredHeader.setVisibility(anyStarred ? View.VISIBLE : View.GONE);
 			int row = 0;
 			if (anyStarred) {
-				setGridCells(starredHeader, 0, row++, mColumns, 1, 0);
-				row = setViewsGridCells(row, margin, starred, true);
+				setGridCells(starredHeader, 0, row++, mColumns, 1);
+				row = setViewsGridCells(row, starred, true);
 			}
 			otherHeader.setText(anyStarred ? R.string.games_others : R.string.games_others_none_starred);
-			setGridCells(otherHeader, 0, row++, mColumns, 1, 0);
-			setViewsGridCells(row, margin, others, false);
+			setGridCells(otherHeader, 0, row++, mColumns, 1);
+			setViewsGridCells(row, others, false);
 		}
 	}
 
-	private void setGridCells(View v, int x, int y, int w, int h, int margin) {
+	@SuppressLint("InlinedApi")
+	private void setGridCells(View v, int x, int y, int w, int h) {
 		final GridLayout.LayoutParams layoutParams = (GridLayout.LayoutParams) v.getLayoutParams();
+		layoutParams.width = mColWidthPx * w;
 		layoutParams.columnSpec = GridLayout.spec(x, w, GridLayout.START);
 		layoutParams.rowSpec = GridLayout.spec(y, h, GridLayout.START);
-		layoutParams.setMargins(margin, margin, margin, margin);
+		layoutParams.setGravity((useGrid && w==1) ? Gravity.CENTER_HORIZONTAL : Gravity.START);
 		v.setLayoutParams(layoutParams);
 	}
 
-	private int setViewsGridCells(final int startRow, final int margin, final List<View> views, final boolean starred) {
+	private int setViewsGridCells(final int startRow, final List<View> views, final boolean starred) {
 		int col = 0;
 		int row = startRow;
 		for (View v : views) {
-			// TODO add/remove star (N.B. v might be icon+text or just icon)
+			((ImageView) v.findViewById(R.id.icon)).setImageState(
+					starred ? new int[]{android.R.attr.state_checked} : new int[0], false);
 			if (col >= mColumns) {
 				col = 0;
 				row++;
 			}
-			setGridCells(v, col++, row, 1, 1, margin);
+			setGridCells(v, col++, row, 1, 1);
 		}
 		row++;
 		return row;

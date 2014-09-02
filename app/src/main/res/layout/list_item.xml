@@ -1,24 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- based on android.R.layout.activity_list_item -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="wrap_content"
-    android:layout_height="wrap_content"
-    android:paddingTop="2dip"
-    android:paddingBottom="2dip"
-    android:paddingLeft="8dip"
-    android:paddingRight="8dip"
-    style="@style/GameChooserItem">
-
-    <ImageView android:id="@+id/icon"
-        android:layout_width="64dip"
-        android:layout_height="64dip" />
-
-    <TextView android:id="@+id/text"
-        android:bufferType="spannable"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center_horizontal"
-        android:paddingLeft="8dip"
-        android:paddingRight="8dip"/>
+	xmlns:tools="http://schemas.android.com/tools"
+	android:layout_width="wrap_content"
+	android:layout_height="wrap_content"
+	android:paddingTop="4dip"
+	android:paddingBottom="4dip"
+	android:paddingLeft="4dip"
+	android:paddingRight="4dip"
+	style="@style/GameChooserItem"
+	tools:ignore="UseCompoundDrawables"><!-- compound drawables can't top-align -->
+	<ImageView android:id="@+id/icon"
+		android:layout_width="64dip"
+		android:layout_height="64dip"
+		android:contentDescription=""
+		tools:ignore="ContentDescription"/><!-- TextView is description -->
+	<TextView android:id="@+id/text"
+		android:bufferType="spannable"
+		android:layout_width="0dp"
+		android:layout_weight="1"
+		android:layout_height="wrap_content"
+		android:layout_gravity="center_horizontal"
+		android:paddingLeft="8dip"
+		android:paddingRight="8dip"/>
 </LinearLayout>
 
