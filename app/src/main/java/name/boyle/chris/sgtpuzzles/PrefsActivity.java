@@ -23,11 +23,11 @@ public class PrefsActivity extends PreferenceActivity implements OnSharedPrefere
 		super.onCreate(savedInstanceState);
 		prefsSaver = PrefsSaver.get(this);
 		addPreferencesFromResource(R.xml.preferences);
-		updateSummary((ListPreference)findPreference(SGTPuzzles.ARROW_KEYS_KEY));
-		updateSummary((ListPreference)findPreference(SGTPuzzles.ORIENTATION_KEY));
+		updateSummary((ListPreference)findPreference(GamePlay.ARROW_KEYS_KEY));
+		updateSummary((ListPreference)findPreference(GamePlay.ORIENTATION_KEY));
 		findPreference("about_content").setSummary(
 				String.format(getString(R.string.about_content),
-						SGTPuzzles.getVersion(this)));
+						GamePlay.getVersion(this)));
 		// getSupportActionBar() not available from PreferenceActivity
 		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
 			getActionBar().setDisplayHomeAsUpEnabled(true);

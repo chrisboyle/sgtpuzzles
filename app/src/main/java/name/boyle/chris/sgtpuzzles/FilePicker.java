@@ -54,7 +54,7 @@ class FilePicker extends Dialog
 		RandomAccessFile raf = new RandomAccessFile(f,"r");
 		raf.readFully(b);
 		raf.close();
-		Intent i = new Intent(getContext(), SGTPuzzles.class);
+		Intent i = new Intent(getContext(), GamePlay.class);
 		String savedGame = new String(b);
 		if (savedGame.length() == 0) {
 			throw new IOException("File is empty");
@@ -89,8 +89,8 @@ class FilePicker extends Dialog
 			return;
 		}
 		try {
-			// FIXME return a result and move this into SGTPuzzles
-			String s = ((SGTPuzzles)activity).saveToString();
+			// FIXME return a result and move this into GamePlay
+			String s = ((GamePlay)activity).saveToString();
 			FileWriter w = new FileWriter(f);
 			w.write(s,0,s.length());
 			w.close();
@@ -134,7 +134,7 @@ class FilePicker extends Dialog
 					return;
 				}
 				try {
-					if (f.length() > SGTPuzzles.MAX_SAVE_SIZE) {
+					if (f.length() > GamePlay.MAX_SAVE_SIZE) {
 						Toast.makeText(getContext(), R.string.file_too_big, Toast.LENGTH_LONG).show();
 						return;
 					}
@@ -154,7 +154,7 @@ class FilePicker extends Dialog
 			}
 		});
 		et.setOnEditorActionListener(new TextView.OnEditorActionListener() { public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
-			Log.d(SGTPuzzles.TAG,"actionId: "+actionId+", event: "+event);
+			Log.d(GamePlay.TAG,"actionId: "+actionId+", event: "+event);
 			if (actionId == EditorInfo.IME_ACTION_DONE) return false;
 			if ((event != null && event.getAction() != KeyEvent.ACTION_DOWN)
 					|| et.length() == 0) return true;

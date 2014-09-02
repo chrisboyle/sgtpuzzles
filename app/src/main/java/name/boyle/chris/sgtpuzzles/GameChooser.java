@@ -73,7 +73,7 @@ public class GameChooser extends ActionBarActivity
 	{
 		super.onCreate(savedInstanceState);
 		prefs = PreferenceManager.getDefaultSharedPreferences(this);
-        SharedPreferences state = getSharedPreferences(SGTPuzzles.STATE_PREFS_NAME, MODE_PRIVATE);
+        SharedPreferences state = getSharedPreferences(GamePlay.STATE_PREFS_NAME, MODE_PRIVATE);
 		prefsSaver = PrefsSaver.get(this);
 
 		String oldCS = state.getString(CHOOSER_STYLE_KEY, null);
@@ -119,10 +119,7 @@ public class GameChooser extends ActionBarActivity
 			// first run
 			new AlertDialog.Builder(this)
 					.setMessage(R.string.welcome)
-					.setOnCancelListener(new OnCancelListener() {
-						public void onCancel(DialogInterface dialog) { finish(); }
-					})
-					.setPositiveButton(android.R.string.yes, null)
+					.setPositiveButton(android.R.string.ok, null)
 					.show();
 		}
 
@@ -158,10 +155,9 @@ public class GameChooser extends ActionBarActivity
 			textView.setVisibility(useGrid ? View.GONE : View.VISIBLE);
 			views[i].setOnClickListener(new View.OnClickListener() {
 				public void onClick(View arg1) {
-					Intent i = new Intent(GameChooser.this, SGTPuzzles.class);
+					Intent i = new Intent(GameChooser.this, GamePlay.class);
 					i.setData(Uri.fromParts("sgtpuzzles", gameId, null));
 					startActivity(i);
-					finish();
 					overridePendingTransition(0, 0);
 				}
 			});
@@ -336,7 +332,7 @@ public class GameChooser extends ActionBarActivity
 			case R.id.load:
 				new FilePicker(this, Environment.getExternalStorageDirectory(),false).show();
 				break;
-			case R.id.contents: SGTPuzzles.showHelp(this, "index"); break;
+			case R.id.contents: GamePlay.showHelp(this, "index"); break;
 			case R.id.email:
 				startActivity(new Intent(this, SendFeedbackActivity.class));
 				break;
@@ -355,7 +351,7 @@ public class GameChooser extends ActionBarActivity
 	@Override
 	public void onBackPressed() {
 		super.onBackPressed();
-		if (SGTPuzzles.isAlive) {
+		if (GamePlay.isAlive) {
 			overridePendingTransition(0, 0);
 		}
 	}

@@ -11,7 +11,7 @@ public class RestartActivity extends Activity
 	protected void onCreate(Bundle savedInstanceState)
 	{
 		super.onCreate(savedInstanceState);
-		startActivity(new Intent(this, SGTPuzzles.class));
+		startActivity(new Intent(this, GamePlay.class));
 		finish();
 	}
 }

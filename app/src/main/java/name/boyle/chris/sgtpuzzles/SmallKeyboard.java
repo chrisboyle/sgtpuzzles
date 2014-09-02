@@ -19,7 +19,7 @@ class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboardActio
 {
 	private static final String TAG = "SmallKeyboard";
 	private static final int KEY_SP = 44;  // dip
-	private final SGTPuzzles parent;
+	private final GamePlay parent;
 	private boolean undoEnabled = false, redoEnabled = false;
 	static enum ArrowMode {
 		NO_ARROWS,  // untangle
@@ -78,8 +78,8 @@ class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboardActio
 				inertiaForceArrows = true;
 			} else {
 				SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
-				arrowPref = prefs.getString(SGTPuzzles.ARROW_KEYS_KEY, "auto");
-				inertiaForceArrows = prefs.getBoolean(SGTPuzzles.INERTIA_FORCE_ARROWS_KEY, true);
+				arrowPref = prefs.getString(GamePlay.ARROW_KEYS_KEY, "auto");
+				inertiaForceArrows = prefs.getBoolean(GamePlay.INERTIA_FORCE_ARROWS_KEY, true);
 			}
 			if (arrowMode != ArrowMode.ARROWS_DIAGONALS || !inertiaForceArrows) {
                 if (arrowPref.equals("never")) {
@@ -341,7 +341,7 @@ class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboardActio
     public SmallKeyboard(Context c, AttributeSet a)
 	{
 		super(c, a);
-		parent = isInEditMode() ? null : (SGTPuzzles)c;
+		parent = isInEditMode() ? null : (GamePlay)c;
 		setBackgroundColor(getResources().getColor(R.color.keyboard_background));
 		setOnKeyboardActionListener(this);
 		if (isInEditMode()) setKeys("123456\bur", ArrowMode.ARROWS_LEFT_RIGHT_CLICK);

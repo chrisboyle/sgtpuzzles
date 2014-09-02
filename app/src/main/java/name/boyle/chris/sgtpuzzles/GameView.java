@@ -20,7 +20,7 @@ import android.view.ViewConfiguration;
 
 class GameView extends View
 {
-	private SGTPuzzles parent;
+	private GamePlay parent;
 	private Bitmap bitmap;
 	private final Canvas canvas;
 	private final Paint paint;
@@ -50,7 +50,7 @@ class GameView extends View
 	{
 		super(context, attrs);
 		if (! isInEditMode())
-			this.parent = (SGTPuzzles)context;
+			this.parent = (GamePlay)context;
 		bitmap = Bitmap.createBitmap(100, 100, Bitmap.Config.RGB_565);  // for safety
 		canvas = new Canvas(bitmap);
 		paint = new Paint();

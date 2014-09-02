@@ -630,7 +630,7 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
 	if ((*jvm)->GetEnv(jvm, (void **)&env, JNI_VERSION_1_2)) return JNI_ERR;
 	pthread_key_create(&envKey, NULL);
 	pthread_setspecific(envKey, env);
-	cls = (*env)->FindClass(env, "name/boyle/chris/sgtpuzzles/SGTPuzzles");
+	cls = (*env)->FindClass(env, "name/boyle/chris/sgtpuzzles/GamePlay");
 	vcls = (*env)->FindClass(env, "name/boyle/chris/sgtpuzzles/GameView");
 	arrowModeCls = (*env)->FindClass(env, "name/boyle/chris/sgtpuzzles/SmallKeyboard$ArrowMode");
 	ARROW_MODE_NONE = (*env)->NewGlobalRef(env, (*env)->GetStaticObjectField(env, arrowModeCls,

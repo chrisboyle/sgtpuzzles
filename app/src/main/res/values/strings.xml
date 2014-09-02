@@ -29,7 +29,7 @@ chris@boyle.name and I'll be happy to include it in future versions.
 Version %s"</string>
     <!-- Things used by the Android front-end only -->
     <string name="app_name">Puzzles</string>
-    <string name="welcome">Welcome to the Android version of Simon Tatham\'s Puzzles. To right-click in these games, do a long press. Help is available under Menu/Help. This project is released under the MIT license.</string>
+    <string name="welcome">Welcome to the Android version of Simon Tatham\'s Puzzles. To right-click in these games, do a long press.</string>
     <string name="website_url">http://chris.boyle.name/projects/android-puzzles</string>
     <string name="docs_url">file:///android_asset/en/{0}.html</string>
     <string name="author_email">chris@boyle.name</string>

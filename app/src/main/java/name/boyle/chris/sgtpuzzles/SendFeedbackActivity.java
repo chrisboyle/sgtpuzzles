@@ -18,7 +18,7 @@ public class SendFeedbackActivity extends Activity
 		super.onCreate(savedInstanceState);
 		Intent i = new Intent(Intent.ACTION_SEND);
 		i.putExtra(Intent.EXTRA_EMAIL, new String[]{getString(R.string.author_email)});
-		final String emailSubject = SGTPuzzles.getEmailSubject(this);
+		final String emailSubject = GamePlay.getEmailSubject(this);
 		i.putExtra(Intent.EXTRA_SUBJECT, emailSubject);
 		i.setType("message/rfc822");
 		i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_WHEN_TASK_RESET);
