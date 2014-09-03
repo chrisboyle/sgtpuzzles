@@ -330,7 +330,11 @@ public class GameChooser extends ActionBarActivity
 			case R.id.load:
 				new FilePicker(this, Environment.getExternalStorageDirectory(),false).show();
 				break;
-			case R.id.contents: GamePlay.showHelp(this, "index"); break;
+			case R.id.contents:
+				Intent intent = new Intent(this, HelpActivity.class);
+				intent.putExtra(HelpActivity.TOPIC, "index");
+				startActivity(intent);
+				break;
 			case R.id.email:
 				startActivity(new Intent(this, SendFeedbackActivity.class));
 				break;
@@ -344,14 +348,6 @@ public class GameChooser extends ActionBarActivity
 			supportInvalidateOptionsMenu();
 		}
 		return ret;
-	}
-
-	@Override
-	public void onBackPressed() {
-		super.onBackPressed();
-		if (GamePlay.isAlive) {
-			overridePendingTransition(0, 0);
-		}
 	}
 
 	@SuppressLint("CommitPrefEdits")
