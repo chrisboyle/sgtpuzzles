@@ -121,8 +121,6 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 	private boolean keysAlreadySet = false;
 	private boolean everCompleted = false;
 
-	static boolean isAlive;
-
 	enum MsgType { TIMER, DONE, ABORT }
 	static class PuzzlesHandler extends Handler
 	{
@@ -260,7 +258,6 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 		gameView.requestFocus();
 		onNewIntent(getIntent());
 		getWindow().setBackgroundDrawable(null);
-		isAlive = true;
 	}
 
 	/** work around http://code.google.com/p/android/issues/detail?id=21181 */
@@ -273,6 +270,12 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 	@Override
 	public boolean onKeyUp(int keyCode, @NonNull KeyEvent event) {
 		return progress == null && (gameView.onKeyUp(keyCode, event) || super.onKeyUp(keyCode, event));
+	}
+
+	@Override
+	public void onBackPressed() {
+		super.onBackPressed();
+		overridePendingTransition(0, 0);
 	}
 
 	@Override
@@ -681,7 +684,6 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 	@Override
 	protected void onDestroy()
 	{
-		isAlive = false;
 		stopNative();
 		super.onDestroy();
 	}
