@@ -358,8 +358,9 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 		solveItem.setVisible(solveEnabled);
 		updateUndoRedoEnabled();
 		final MenuItem typeItem = menu.findItem(R.id.type);
-		typeItem.setEnabled(! gameTypes.isEmpty() || customVisible);
-		typeItem.setVisible(typeItem.isEnabled());
+		final boolean enableType = workerRunning || !gameTypes.isEmpty() || customVisible;
+		typeItem.setEnabled(enableType);
+		typeItem.setVisible(enableType);
 		typeMenu = typeItem.getSubMenu();
 		int i = 0;
 		for(Entry<String, String> entry : gameTypes.entrySet()) {
@@ -433,10 +434,9 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 			new FilePicker(this, storageDir, true).show();
 			break;
 		default:
-			final int pos = item.getItemId();
-			if (pos < gameTypes.size()) {
-				String presetParams = (String)gameTypes.keySet().toArray()[pos];
-				Log.d(TAG, "preset: " + pos + ": " + presetParams);
+			if (itemId < gameTypes.size()) {
+				String presetParams = (String)gameTypes.keySet().toArray()[itemId];
+				Log.d(TAG, "preset: " + itemId + ": " + presetParams);
 				startGame(GameLaunch.toGenerate(currentBackend, presetParams));
 			} else {
 				ret = super.onOptionsItemSelected(item);

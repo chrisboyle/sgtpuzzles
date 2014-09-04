@@ -13,7 +13,7 @@
 	<item android:title="@string/Save_" android:id="@+id/save" android:alphabeticShortcut="w" android:icon="@drawable/ic_action_save"/>
 	<item android:title="@string/Settings" android:id="@+id/settings" android:icon="@drawable/ic_action_settings"/>
 </menu></item>
-<item android:title="@string/Type" android:id="@+id/type" android:enabled="false" android:icon="@drawable/ic_action_type" supportLib:showAsAction="ifRoom|withText"><menu>
+<item android:title="@string/Type" android:id="@+id/type" android:icon="@drawable/ic_action_type" supportLib:showAsAction="ifRoom|withText"><menu>
 	<group android:id="@+id/typeGroup" android:checkableBehavior="single">
 		<item android:title="@string/Custom_" android:id="@+id/custom" android:visible="false" android:checkable="true" android:menuCategory="secondary"/>
 	</group>
