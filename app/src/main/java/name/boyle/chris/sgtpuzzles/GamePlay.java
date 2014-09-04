@@ -723,26 +723,33 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 			if (keyboard != null) mainLayout.removeView(keyboard);
 			keyboard = new SmallKeyboard(this, undoEnabled, redoEnabled);
 			keyboard.setId(R.id.keyboard);
-			RelativeLayout.LayoutParams lp = new RelativeLayout.LayoutParams(
+			RelativeLayout.LayoutParams klp = new RelativeLayout.LayoutParams(
 					RelativeLayout.LayoutParams.WRAP_CONTENT,
 					RelativeLayout.LayoutParams.WRAP_CONTENT);
+			RelativeLayout.LayoutParams slp = new RelativeLayout.LayoutParams(
+					RelativeLayout.LayoutParams.MATCH_PARENT,
+					statusBar.getLayoutParams().height);
 			RelativeLayout.LayoutParams glp = new RelativeLayout.LayoutParams(
 					RelativeLayout.LayoutParams.WRAP_CONTENT,
 					RelativeLayout.LayoutParams.WRAP_CONTENT);
 			if (landscape) {
-				lp.addRule(RelativeLayout.ALIGN_PARENT_RIGHT);
-				lp.addRule(RelativeLayout.ALIGN_PARENT_TOP);
-				lp.addRule(RelativeLayout.ABOVE, R.id.statusBar);
+				klp.addRule(RelativeLayout.ALIGN_PARENT_RIGHT);
+				klp.addRule(RelativeLayout.ALIGN_PARENT_TOP);
+				klp.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
+				slp.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
+				slp.addRule(RelativeLayout.LEFT_OF, R.id.keyboard);
 				glp.addRule(RelativeLayout.ABOVE, R.id.statusBar);
 				glp.addRule(RelativeLayout.LEFT_OF, R.id.keyboard);
 			} else {
-				lp.addRule(RelativeLayout.ALIGN_PARENT_LEFT);
-				lp.addRule(RelativeLayout.ALIGN_PARENT_RIGHT);
-				lp.addRule(RelativeLayout.ABOVE, R.id.statusBar);
-				glp.addRule(RelativeLayout.ABOVE, R.id.keyboard);
+				klp.addRule(RelativeLayout.ALIGN_PARENT_LEFT);
+				klp.addRule(RelativeLayout.ALIGN_PARENT_RIGHT);
+				klp.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
+				slp.addRule(RelativeLayout.ABOVE, R.id.keyboard);
+				glp.addRule(RelativeLayout.ABOVE, R.id.statusBar);
 			}
+			mainLayout.addView(keyboard, klp);
+			mainLayout.updateViewLayout(statusBar, slp);
 			mainLayout.updateViewLayout(gameView, glp);
-			mainLayout.addView(keyboard, lp);
 		}
 		keyboard.setKeys( (c.hardKeyboardHidden == Configuration.HARDKEYBOARDHIDDEN_NO)
 				? maybeUndoRedo : filterKeys() + maybeUndoRedo, lastArrowMode);
@@ -758,11 +765,8 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 	private void setStatusBarVisibility(boolean visible)
 	{
 		if (!visible) statusBar.setText("");
-		RelativeLayout.LayoutParams lp = new RelativeLayout.LayoutParams(
-				RelativeLayout.LayoutParams.MATCH_PARENT,
-				visible ? RelativeLayout.LayoutParams.WRAP_CONTENT : 0);
-		lp.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
-		lp.addRule(RelativeLayout.ALIGN_PARENT_LEFT);
+		RelativeLayout.LayoutParams lp = (RelativeLayout.LayoutParams)statusBar.getLayoutParams();
+		lp.height = visible ? RelativeLayout.LayoutParams.WRAP_CONTENT : 0;
 		mainLayout.updateViewLayout(statusBar, lp);
 	}
 
