@@ -279,7 +279,10 @@ public class GameChooser extends ActionBarActivity
 		if (screenWidthDIP >= 480) {
 			state |= MenuItemCompat.SHOW_AS_ACTION_WITH_TEXT;
 		}
-		MenuItemCompat.setShowAsAction(menu.findItem(useGrid ? R.id.listchooser : R.id.gridchooser), state);
+		if (!isTablet) {
+			MenuItemCompat.setShowAsAction(menu.findItem(
+					useGrid ? R.id.listchooser : R.id.gridchooser), state);
+		}
 		MenuItemCompat.setShowAsAction(menu.findItem(R.id.load), state);
 		MenuItemCompat.setShowAsAction(menu.findItem(R.id.help), state);
 	}
