@@ -1,31 +1,38 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-	android:layout_width="fill_parent" android:layout_height="fill_parent"
-	android:id="@+id/mainLayout">
-<TextView
-	android:id="@+id/statusBar"
-	android:layout_width="fill_parent"
-	android:layout_height="wrap_content"
-	android:layout_alignParentBottom="true"
-	android:layout_alignParentLeft="true"
-	android:background="#000"
-	android:text="" />
-<!-- keyboard is recreated programmatically on every orientation change,
-because of http://code.google.com/p/android/issues/detail?id=4559
-(we also put it in a different position in landscape) -->
-<name.boyle.chris.sgtpuzzles.SmallKeyboard
-	android:id="@+id/keyboard"
-	android:layout_width="wrap_content"
-	android:layout_height="wrap_content"
-	android:layout_alignParentLeft="true"
-	android:layout_alignParentRight="true"
-	android:layout_above="@id/statusBar"
-	android:background="@color/keyboard_background" />
-<name.boyle.chris.sgtpuzzles.GameView
-	android:id="@+id/game"
-	android:layout_width="wrap_content"
-	android:layout_height="wrap_content"
-	android:layout_above="@+id/keyboard"
-	android:focusable="true"
-	android:background="@color/game_background" />
+                android:layout_width="fill_parent" android:layout_height="fill_parent"
+                android:id="@+id/mainLayout">
+
+    <!-- keyboard is recreated programmatically on every orientation change,
+    because of http://code.google.com/p/android/issues/detail?id=4559
+    (we also put it in a different position in landscape) -->
+    <name.boyle.chris.sgtpuzzles.SmallKeyboard
+        android:id="@+id/keyboard"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentRight="true"
+        android:background="@color/keyboard_background" />
+
+    <TextView
+        android:id="@+id/statusBar"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_above="@id/keyboard"
+        android:paddingBottom="4dp"
+        android:paddingLeft="8dp"
+        android:paddingRight="8dp"
+        android:background="@color/game_background"
+        android:textColor="@color/status_bar_text"
+        android:text="" />
+
+    <name.boyle.chris.sgtpuzzles.GameView
+        android:id="@+id/game"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/statusBar"
+        android:focusable="true"
+        android:background="@color/game_background" />
+
 </RelativeLayout>

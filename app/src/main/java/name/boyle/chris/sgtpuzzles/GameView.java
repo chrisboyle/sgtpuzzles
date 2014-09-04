@@ -29,6 +29,7 @@ public class GameView extends View
 	int w, h;
 	private final int longTimeout = ViewConfiguration.getLongPressTimeout();
 	private int button;
+	private int backgroundColour;
 	private boolean waiting = false;
 	private boolean waitingSpace = false;
 	private double startX, startY;
@@ -56,6 +57,7 @@ public class GameView extends View
 		paint = new Paint();
 		blitters = new Bitmap[512];
 		maxDistSq = Math.pow(getResources().getDisplayMetrics().density * 8.0f, 2);
+		backgroundColour = getDefaultBackgroundColour();
 	}
 
 	private final Runnable sendRightClick = new Runnable() {
@@ -174,8 +176,8 @@ public class GameView extends View
 		if( w <= 0 ) w = 1;
 		if( h <= 0 ) h = 1;
 		bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.RGB_565);
-		canvas.setBitmap(bitmap);
 		clear();
+		canvas.setBitmap(bitmap);
 		this.w = w; this.h = h;
 		if (parent != null) parent.gameViewResized();
 		if (isInEditMode()) {
@@ -192,8 +194,6 @@ public class GameView extends View
 	{
 		bitmap.eraseColor(backgroundColour);
 	}
-
-	private int backgroundColour;
 
 	@Override
 	public void setBackgroundColor(int colour) {
