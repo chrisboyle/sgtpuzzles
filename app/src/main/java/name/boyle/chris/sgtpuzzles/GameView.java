@@ -1,5 +1,6 @@
 package name.boyle.chris.sgtpuzzles;
 
+import android.annotation.TargetApi;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
@@ -10,11 +11,16 @@ import android.graphics.RectF;
 import android.graphics.Region;
 import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
+import android.os.Build;
 import android.support.annotation.NonNull;
+import android.support.v4.view.GestureDetectorCompat;
 import android.util.AttributeSet;
+import android.util.Log;
+import android.view.GestureDetector;
 import android.view.HapticFeedbackConstants;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
+import android.view.ScaleGestureDetector;
 import android.view.View;
 import android.view.ViewConfiguration;
 
@@ -27,10 +33,12 @@ public class GameView extends View
 	private final Bitmap[] blitters;
 	int[] colours;
 	int w, h;
-	private final int longTimeout = ViewConfiguration.getLongPressTimeout();
+	private final int tapTimeout = ViewConfiguration.getTapTimeout(),
+			longPressTimeout = ViewConfiguration.getLongPressTimeout();
+	private enum TouchState { IDLE, WAITING_TAP, WAITING_LONG_PRESS, DRAGGING, SCALING_PINCH, SCALING_DOUBLE_TAP }
+	private TouchState touchState = TouchState.IDLE;
 	private int button;
 	private int backgroundColour;
-	private boolean waiting = false;
 	private boolean waitingSpace = false;
 	private double startX, startY;
 	private final double maxDistSq;
@@ -46,6 +54,9 @@ public class GameView extends View
 			CURSOR_LEFT = 0x20b, CURSOR_RIGHT = 0x20c, MOD_NUM_KEYPAD = 0x4000;
 	int keysHandled = 0;  // debug
 	private static final char[] INTERESTING_CHARS = "0123456789abcdefghijklqrsux".toCharArray();
+	final boolean hasPinchZoom;
+	ScaleGestureDetector scaleDetector = null;
+	GestureDetectorCompat gestureDetector;
 
 	public GameView(Context context, AttributeSet attrs)
 	{
@@ -58,12 +69,121 @@ public class GameView extends View
 		blitters = new Bitmap[512];
 		maxDistSq = Math.pow(getResources().getDisplayMetrics().density * 8.0f, 2);
 		backgroundColour = getDefaultBackgroundColour();
+		gestureDetector = new GestureDetectorCompat(getContext(), new GestureDetector.SimpleOnGestureListener() {
+			@Override
+			public boolean onDown(MotionEvent event) {
+				Log.d(GamePlay.TAG, "onDown");
+				touchState = TouchState.WAITING_TAP;
+				int meta = event.getMetaState();
+				button = ( meta & KeyEvent.META_ALT_ON ) > 0 ? MIDDLE_BUTTON :
+						( meta & KeyEvent.META_SHIFT_ON ) > 0  ? RIGHT_BUTTON :
+								LEFT_BUTTON;
+				startX = event.getX();
+				startY = event.getY();
+				parent.handler.removeCallbacks(setPressed);
+				parent.handler.postDelayed(setPressed, tapTimeout);
+				return true;
+			}
+
+			@Override
+			public boolean onDoubleTapEvent(MotionEvent e) {
+				Log.d(GamePlay.TAG, "onDoubleTapEvent");
+				parent.handler.removeCallbacks(setPressed);
+				parent.handler.removeCallbacks(sendLongPress);
+				touchState = TouchState.SCALING_DOUBLE_TAP;
+				return true;
+			}
+
+			@Override
+			public boolean onSingleTapConfirmed(MotionEvent event) {
+				Log.d(GamePlay.TAG, "onSingleTapConfirmed");
+				parent.sendKey((int) startX, (int) startY, button);
+				parent.sendKey((int) event.getX(), (int) event.getY(), button + RELEASE);
+				return true;
+			}
+
+			@Override
+			public boolean onScroll(MotionEvent downEvent, MotionEvent event, float distanceX, float distanceY) {
+				if (hasPinchZoom && isScaleInProgress()) {
+					if (touchState == TouchState.SCALING_DOUBLE_TAP) {
+						return false;
+					} else if (touchState == TouchState.DRAGGING) {
+						// try to drag back to start
+						parent.sendKey((int)startX, (int)startY, button + DRAG);
+						parent.sendKey((int)startX, (int)startY, button + RELEASE);
+						Log.d(GamePlay.TAG, "scale started");
+					} else if (touchState == TouchState.WAITING_TAP || touchState == TouchState.WAITING_LONG_PRESS) {
+						parent.handler.removeCallbacks(setPressed);
+						parent.handler.removeCallbacks(sendLongPress);
+						Log.d(GamePlay.TAG, "scale started");
+					}
+					touchState = TouchState.SCALING_PINCH;
+					Log.d(GamePlay.TAG, "scroll");
+					return true;
+				}
+				float x = event.getX(), y = event.getY();
+				if (touchState == TouchState.WAITING_LONG_PRESS &&
+					Math.pow(Math.abs(x-startX),2) + Math.pow(Math.abs(y-startY),2) > maxDistSq) {
+					Log.d(GamePlay.TAG, "drag start");
+					parent.sendKey((int)startX, (int)startY, button);
+					parent.handler.removeCallbacks(sendLongPress);
+					touchState = TouchState.DRAGGING;
+				}
+				if (touchState == TouchState.DRAGGING) {
+					Log.d(GamePlay.TAG, "drag");
+					parent.sendKey((int) x, (int) y, button + DRAG);
+					return true;
+				}
+				return false;
+			}
+
+			// TODO add fling detection; onFling doesn't happen with two fingers
+		});
+		// We do our own long-press detection to capture movement afterwards
+		gestureDetector.setIsLongpressEnabled(false);
+		hasPinchZoom = (Build.VERSION.SDK_INT >= Build.VERSION_CODES.FROYO);
+		if (hasPinchZoom) {
+			enablePinchZoom();
+		}
 	}
 
-	private final Runnable sendRightClick = new Runnable() {
+	@TargetApi(Build.VERSION_CODES.FROYO)
+	private boolean isScaleInProgress() {
+		return scaleDetector.isInProgress();
+	}
+
+	@TargetApi(Build.VERSION_CODES.FROYO)
+	private void enablePinchZoom() {
+		scaleDetector = new ScaleGestureDetector(getContext(), new ScaleGestureDetector.SimpleOnScaleGestureListener() {
+			@Override
+			public boolean onScale(ScaleGestureDetector detector) {
+				Log.d(GamePlay.TAG, "scale! " + detector.getScaleFactor());
+				return true;
+			}
+		});
+	}
+
+	@TargetApi(Build.VERSION_CODES.FROYO)
+	private boolean checkPinchZoom(MotionEvent event) {
+		return scaleDetector.onTouchEvent(event);
+	}
+
+	private final Runnable setPressed = new Runnable() {
 		public void run() {
+			Log.d(GamePlay.TAG, "setPressed");
+			if (isScaleInProgress()) return;
+			touchState = TouchState.WAITING_LONG_PRESS;
+			parent.handler.removeCallbacks(sendLongPress);
+			parent.handler.postDelayed(sendLongPress, longPressTimeout);
+		}
+	};
+
+	private final Runnable sendLongPress = new Runnable() {
+		public void run() {
+			Log.d(GamePlay.TAG, "sendLongPress");
+			if (isScaleInProgress()) return;
 			button = RIGHT_BUTTON;
-			waiting = false;
+			touchState = TouchState.DRAGGING;
 			performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
 			parent.sendKey((int)startX, (int)startY, button);
 		}
@@ -73,40 +193,22 @@ public class GameView extends View
 	public boolean onTouchEvent(@NonNull MotionEvent event)
 	{
 		if (parent.currentBackend == null) return false;
-		switch( event.getAction() ) {
-		case MotionEvent.ACTION_DOWN:
-			int meta = event.getMetaState();
-			button = ( meta & KeyEvent.META_ALT_ON ) > 0 ? MIDDLE_BUTTON :
-				( meta & KeyEvent.META_SHIFT_ON ) > 0  ? RIGHT_BUTTON :
-				LEFT_BUTTON;
-			startX = event.getX();
-			startY = event.getY();
-			waiting = true;
-			parent.handler.removeCallbacks( sendRightClick );
-			parent.handler.postDelayed( sendRightClick, longTimeout );
-			return true;
-		case MotionEvent.ACTION_MOVE:
-			float x = event.getX(), y = event.getY();
-			if( waiting ) {
-				if( Math.pow(Math.abs(x-startX),2) + Math.pow(Math.abs(y-startY),2) <= maxDistSq ) {
-					return true;
-				} else {
-					parent.sendKey((int)startX, (int)startY, button);
-					waiting = false;
-					parent.handler.removeCallbacks( sendRightClick );
-				}
+		boolean sdRet = hasPinchZoom && checkPinchZoom(event);
+		boolean gdRet = gestureDetector.onTouchEvent(event);
+		if (event.getAction() == MotionEvent.ACTION_UP) {
+			Log.d(GamePlay.TAG, "onUp");
+			parent.handler.removeCallbacks(setPressed);
+			parent.handler.removeCallbacks(sendLongPress);
+			if (touchState == TouchState.WAITING_TAP) {
+				parent.sendKey((int) startX, (int) startY, button);
 			}
-			parent.sendKey((int)x, (int)y, button + DRAG);
-			return true;
-		case MotionEvent.ACTION_UP:
-			if( waiting ) {
-				parent.handler.removeCallbacks( sendRightClick );
-				parent.sendKey((int)startX, (int)startY, button);
+			if (touchState == TouchState.WAITING_TAP || touchState == TouchState.DRAGGING) {
+				parent.sendKey((int) event.getX(), (int) event.getY(), button + RELEASE);
 			}
-			parent.sendKey((int)event.getX(), (int)event.getY(), button + RELEASE);
+			touchState = TouchState.IDLE;
 			return true;
-		default:
-			return false;
+		} else {
+			return sdRet || gdRet;
 		}
 	}
 
@@ -136,7 +238,7 @@ public class GameView extends View
 			startX = startY = 0;
 			waitingSpace = true;
 			parent.handler.removeCallbacks( sendSpace );
-			parent.handler.postDelayed( sendSpace, longTimeout );
+			parent.handler.postDelayed( sendSpace, longPressTimeout);
 			keysHandled++;
 			return true;
 		case KeyEvent.KEYCODE_ENTER: key = '\n'; break;
