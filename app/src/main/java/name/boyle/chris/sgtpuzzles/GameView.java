@@ -67,7 +67,7 @@ public class GameView extends View
 		canvas = new Canvas(bitmap);
 		paint = new Paint();
 		blitters = new Bitmap[512];
-		maxDistSq = Math.pow(getResources().getDisplayMetrics().density * 8.0f, 2);
+		maxDistSq = Math.pow(ViewConfiguration.get(context).getScaledTouchSlop(), 2);
 		backgroundColour = getDefaultBackgroundColour();
 		gestureDetector = new GestureDetectorCompat(getContext(), new GestureDetector.SimpleOnGestureListener() {
 			@Override
@@ -122,8 +122,7 @@ public class GameView extends View
 					return true;
 				}
 				float x = event.getX(), y = event.getY();
-				if (touchState == TouchState.WAITING_LONG_PRESS &&
-					Math.pow(Math.abs(x-startX),2) + Math.pow(Math.abs(y-startY),2) > maxDistSq) {
+				if (touchState == TouchState.WAITING_LONG_PRESS && movedPastTouchSlop(x, y)) {
 					Log.d(GamePlay.TAG, "drag start");
 					parent.sendKey((int)startX, (int)startY, button);
 					parent.handler.removeCallbacks(sendLongPress);
@@ -145,6 +144,10 @@ public class GameView extends View
 		if (hasPinchZoom) {
 			enablePinchZoom();
 		}
+	}
+
+	private boolean movedPastTouchSlop(float x, float y) {
+		return Math.pow(Math.abs(x-startX),2) + Math.pow(Math.abs(y-startY),2) > maxDistSq;
 	}
 
 	@TargetApi(Build.VERSION_CODES.FROYO)
@@ -199,7 +202,7 @@ public class GameView extends View
 			Log.d(GamePlay.TAG, "onUp");
 			parent.handler.removeCallbacks(setPressed);
 			parent.handler.removeCallbacks(sendLongPress);
-			if (touchState == TouchState.WAITING_TAP) {
+			if (touchState == TouchState.WAITING_TAP && movedPastTouchSlop(event.getX(), event.getY())) {
 				parent.sendKey((int) startX, (int) startY, button);
 			}
 			if (touchState == TouchState.WAITING_TAP || touchState == TouchState.DRAGGING) {
