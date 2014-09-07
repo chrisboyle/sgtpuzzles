@@ -1203,7 +1203,6 @@ static game_state *new_game(midend *me, const game_params *params,
     int i;
 #ifdef ANDROID
     char keys[w+3];
-    keys[0] = '\b';
     for (i = 0; i < w; i++) {
 	if (i<9) keys[i] = '1' + i;
 	else keys[i] = 'A' + i - 9;

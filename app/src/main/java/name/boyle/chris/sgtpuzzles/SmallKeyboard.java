@@ -96,8 +96,8 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 			}
 			// else allow arrows.
 			final boolean isDiagonals = arrowMode == ArrowMode.ARROWS_DIAGONALS;
-			final int arrowRows = isDiagonals ? 3 : 2;
-			final int arrowCols = 3;
+			final int arrowRows = arrowMode.hasArrows() ? isDiagonals ? 3 : 2 : 0;
+			final int arrowCols = arrowMode.hasArrows() ? 3 : 0;
 			final int arrowMajors = columnMajor ? arrowCols : arrowRows;
 			final int arrowMinors = columnMajor ? arrowRows : arrowCols;
 
