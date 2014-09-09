@@ -1,10 +1,12 @@
 # -*- makefile -*-
 
-range    : [X] GTK COMMON range range-icon|no-icon
+RANGE_EXTRA = dsf
 
-range    : [G] WINDOWS COMMON range range.res|noicon.res
+range    : [X] GTK COMMON range RANGE_EXTRA range-icon|no-icon
 
-ALL += range[COMBINED]
+range    : [G] WINDOWS COMMON range RANGE_EXTRA range.res|noicon.res
+
+ALL += range[COMBINED] RANGE_EXTRA
 
 !begin am gtk
 GAMES += range

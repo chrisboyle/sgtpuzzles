@@ -1364,6 +1364,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 static int find_errors(const game_state *state, int *report)
 {
     int const w = state->params.w, h = state->params.h, n = w * h;
+    int *dsf;
 
     int r, c, i;
 
@@ -1415,14 +1416,50 @@ static int find_errors(const game_state *state, int *report)
             }
         }
 
-    for (i = 0; i < n; ++i) if (dup->grid[i] != BLACK) dup->grid[i] = WHITE;
-    if (nblack + dfs_count_white(dup, any_white_cell) < n) {
+    /*
+     * Check that all the white cells form a single connected component.
+     */
+    dsf = snew_dsf(n);
+    for (r = 0; r < h-1; ++r)
+        for (c = 0; c < w; ++c)
+            if (state->grid[r*w+c] != BLACK &&
+                state->grid[(r+1)*w+c] != BLACK)
+                dsf_merge(dsf, r*w+c, (r+1)*w+c);
+    for (r = 0; r < h; ++r)
+        for (c = 0; c < w-1; ++c)
+            if (state->grid[r*w+c] != BLACK &&
+                state->grid[r*w+(c+1)] != BLACK)
+                dsf_merge(dsf, r*w+c, r*w+(c+1));
+    if (nblack + dsf_size(dsf, any_white_cell) < n) {
+        int biggest, canonical;
+
         if (!report) {
             printf("dfs fail at %d\n", any_white_cell);
             goto found_error;
         }
-        for (i = 0; i < n; ++i) if (state->grid[i] != BLACK) report[i] = TRUE;
+
+        /*
+         * Report this error by choosing one component to be the
+         * canonical one (we pick the largest, arbitrarily
+         * tie-breaking towards lower array indices) and highlighting
+         * as an error any square in a different component.
+         */
+        canonical = -1;
+        biggest = 0;
+        for (i = 0; i < n; ++i)
+            if (state->grid[i] != BLACK) {
+                int size = dsf_size(dsf, i);
+                if (size > biggest) {
+                    biggest = size;
+                    canonical = dsf_canonify(dsf, i);
+                }
+            }
+
+        for (i = 0; i < n; ++i)
+            if (state->grid[i] != BLACK && dsf_canonify(dsf, i) != canonical)
+                report[i] = TRUE;
     }
+    sfree(dsf);
 
     free_game(dup);
     return FALSE; /* if report != NULL, this is ignored */
