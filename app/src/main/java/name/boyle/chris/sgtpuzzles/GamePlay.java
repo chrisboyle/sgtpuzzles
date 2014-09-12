@@ -32,6 +32,7 @@ import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
 import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
 import android.graphics.Color;
+import android.graphics.Point;
 import android.graphics.PorterDuff;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
@@ -697,6 +698,11 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 					TIMER_INTERVAL);
 	}
 
+	void sendKey(Point p, int k)
+	{
+		sendKey(p.x, p.y, k);
+	}
+
 	void sendKey(int x, int y, int k)
 	{
 		if (progress != null || currentBackend == null) return;
@@ -1269,6 +1275,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 	native void serialise();
 	native int identifyBackend(String savedGame);
 	native String getCurrentParams();
+	native void forceRedraw();
 
 	static {
 		System.loadLibrary("puzzles");
