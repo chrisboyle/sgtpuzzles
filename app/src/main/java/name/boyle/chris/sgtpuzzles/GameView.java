@@ -16,6 +16,7 @@ import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.support.annotation.NonNull;
 import android.support.v4.view.GestureDetectorCompat;
+import android.support.v4.view.ScaleGestureDetectorCompat;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.GestureDetector;
@@ -35,9 +36,8 @@ public class GameView extends View
 	private final Bitmap[] blitters;
 	int[] colours;
 	int w, h;
-	private final int tapTimeout = ViewConfiguration.getTapTimeout(),
-			longPressTimeout = ViewConfiguration.getLongPressTimeout();
-	private enum TouchState { IDLE, WAITING_TAP, WAITING_LONG_PRESS, DRAGGING, SCALING_PINCH, SCALING_DOUBLE_TAP }
+	private final int longPressTimeout = ViewConfiguration.getLongPressTimeout();
+	private enum TouchState { IDLE, WAITING_LONG_PRESS, DRAGGING, PINCH }
 	private TouchState touchState = TouchState.IDLE;
 	private int button;
 	private int backgroundColour;
@@ -74,59 +74,39 @@ public class GameView extends View
 		blitters = new Bitmap[512];
 		maxDistSq = Math.pow(ViewConfiguration.get(context).getScaledTouchSlop(), 2);
 		backgroundColour = getDefaultBackgroundColour();
-		gestureDetector = new GestureDetectorCompat(getContext(), new GestureDetector.SimpleOnGestureListener() {
+		gestureDetector = new GestureDetectorCompat(getContext(), new GestureDetector.OnGestureListener() {
 			@Override
 			public boolean onDown(MotionEvent event) {
 				Log.d(GamePlay.TAG, "onDown");
-				touchState = TouchState.WAITING_TAP;
 				int meta = event.getMetaState();
 				button = ( meta & KeyEvent.META_ALT_ON ) > 0 ? MIDDLE_BUTTON :
 						( meta & KeyEvent.META_SHIFT_ON ) > 0  ? RIGHT_BUTTON :
 								LEFT_BUTTON;
 				touchStart = pointFromEvent(event);
-				parent.handler.removeCallbacks(setPressed);
-				parent.handler.postDelayed(setPressed, tapTimeout);
-				return true;
-			}
-
-			@Override
-			public boolean onDoubleTapEvent(MotionEvent e) {
-				Log.d(GamePlay.TAG, "onDoubleTapEvent");
-				parent.handler.removeCallbacks(setPressed);
+				touchState = TouchState.WAITING_LONG_PRESS;
 				parent.handler.removeCallbacks(sendLongPress);
-				touchState = TouchState.SCALING_DOUBLE_TAP;
+				parent.handler.postDelayed(sendLongPress, longPressTimeout);
 				return true;
 			}
 
 			@Override
-			public boolean onSingleTapConfirmed(MotionEvent event) {
-				Log.d(GamePlay.TAG, "onSingleTapConfirmed");
+			public boolean onSingleTapUp(MotionEvent event) {
+				Log.d(GamePlay.TAG, "onSingleTapUp");
 				parent.sendKey(viewToGame(touchStart), button);
 				parent.sendKey(viewToGame(pointFromEvent(event)), button + RELEASE);
+				touchState = TouchState.IDLE;
 				return true;
 			}
 
 			@Override
 			public boolean onScroll(MotionEvent downEvent, MotionEvent event, float distanceX, float distanceY) {
-				if (hasPinchZoom && isScaleInProgress()) {
-					if (touchState == TouchState.SCALING_DOUBLE_TAP) {
-						return false;
-					} else if (touchState == TouchState.DRAGGING) {
-						// try to drag back to start
-						Point p = viewToGame(touchStart);
-						parent.sendKey(p, button + DRAG);
-						parent.sendKey(p, button + RELEASE);
-						Log.d(GamePlay.TAG, "scale started");
-					} else if (touchState == TouchState.WAITING_TAP || touchState == TouchState.WAITING_LONG_PRESS) {
-						parent.handler.removeCallbacks(setPressed);
+				// 2nd clause is 2 fingers a constant distance apart
+				if ((hasPinchZoom && isScaleInProgress()) || event.getPointerCount() > 1) {
+					revertDragInProgress();
+					if (touchState == TouchState.WAITING_LONG_PRESS) {
 						parent.handler.removeCallbacks(sendLongPress);
-						Log.d(GamePlay.TAG, "scale started");
 					}
-					touchState = TouchState.SCALING_PINCH;
-					scrollBy(distanceX, distanceY);
-					return true;
-				} else if (event.getPointerCount() > 1) {  // 2 fingers but not moved together/apart
-					Log.d(GamePlay.TAG, "scroll only");
+					touchState = TouchState.PINCH;
 					scrollBy(distanceX, distanceY);
 					return true;
 				}
@@ -145,6 +125,15 @@ public class GameView extends View
 				return false;
 			}
 
+			@Override public void onShowPress(MotionEvent e) {}
+			@Override public void onLongPress(MotionEvent e) {}
+
+			@Override
+			public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+				Log.d(GamePlay.TAG, "onFling");
+				return false;
+			}
+
 			// TODO add fling detection; onFling doesn't happen with two fingers
 		});
 		// We do our own long-press detection to capture movement afterwards
@@ -153,6 +142,19 @@ public class GameView extends View
 		if (hasPinchZoom) {
 			enablePinchZoom();
 		}
+	}
+
+	private void revertDragInProgress() {
+		if (touchState == TouchState.DRAGGING) {
+			Point p = viewToGame(touchStart);
+			parent.sendKey(p, button + DRAG);
+			parent.sendKey(p, button + RELEASE);
+		}
+	}
+
+	@Override
+	public void scrollBy(int x, int y) {
+		scrollBy((float)x, (float)y);
 	}
 
 	private void scrollBy(float distanceX, float distanceY) {
@@ -195,7 +197,7 @@ public class GameView extends View
 
 	@TargetApi(Build.VERSION_CODES.FROYO)
 	private void enablePinchZoom() {
-		scaleDetector = new ScaleGestureDetector(getContext(), new ScaleGestureDetector.SimpleOnScaleGestureListener() {
+		scaleDetector = new ScaleGestureDetector(getContext(), new ScaleGestureDetector.OnScaleGestureListener() {
 			@Override
 			public boolean onScale(ScaleGestureDetector detector) {
 				float factor = detector.getScaleFactor();
@@ -213,7 +215,19 @@ public class GameView extends View
 				forceRedraw();
 				return true;
 			}
+
+			@Override
+			public boolean onScaleBegin(ScaleGestureDetector detector) {
+				// TODO start using bitmap to draw the in-progress scale
+				return true;
+			}
+
+			@Override
+			public void onScaleEnd(ScaleGestureDetector detector) {
+				// TODO stop using bitmap; redraw properly
+			}
 		});
+		ScaleGestureDetectorCompat.setQuickScaleEnabled(scaleDetector, false);
 	}
 
 	private void invertZoomMatrix() {
@@ -252,16 +266,6 @@ public class GameView extends View
 		return scaleDetector.onTouchEvent(event);
 	}
 
-	private final Runnable setPressed = new Runnable() {
-		public void run() {
-			Log.d(GamePlay.TAG, "setPressed");
-			if (hasPinchZoom && isScaleInProgress()) return;
-			touchState = TouchState.WAITING_LONG_PRESS;
-			parent.handler.removeCallbacks(sendLongPress);
-			parent.handler.postDelayed(sendLongPress, longPressTimeout);
-		}
-	};
-
 	private final Runnable sendLongPress = new Runnable() {
 		public void run() {
 			Log.d(GamePlay.TAG, "sendLongPress");
@@ -281,12 +285,12 @@ public class GameView extends View
 		boolean gdRet = gestureDetector.onTouchEvent(event);
 		if (event.getAction() == MotionEvent.ACTION_UP) {
 			Log.d(GamePlay.TAG, "onUp");
-			parent.handler.removeCallbacks(setPressed);
 			parent.handler.removeCallbacks(sendLongPress);
-			if (touchState == TouchState.WAITING_TAP && movedPastTouchSlop(event.getX(), event.getY())) {
+			if (touchState == TouchState.WAITING_LONG_PRESS) {
 				parent.sendKey(viewToGame(touchStart), button);
+				touchState = TouchState.DRAGGING;
 			}
-			if (touchState == TouchState.WAITING_TAP || touchState == TouchState.DRAGGING) {
+			if (touchState == TouchState.DRAGGING) {
 				parent.sendKey(viewToGame(pointFromEvent(event)), button + RELEASE);
 			}
 			touchState = TouchState.IDLE;
