@@ -5,12 +5,10 @@ import java.util.List;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.graphics.Canvas;
 import android.inputmethodservice.Keyboard;
 import android.inputmethodservice.KeyboardView;
-import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
 import android.util.AttributeSet;
 import android.util.Log;
@@ -27,7 +25,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 
 		boolean hasArrows() { return this != NO_ARROWS; }
 	}
-	private ArrowMode arrowModeFromGame = ArrowMode.ARROWS_LEFT_RIGHT_CLICK;
+	private ArrowMode arrowMode = ArrowMode.ARROWS_LEFT_RIGHT_CLICK;
 
 	/** Key which can be disabled */
 	static class DKey extends Keyboard.Key
@@ -52,7 +50,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 		boolean initDone = false;
 		public KeyboardModel(final Context context, final KeyboardView keyboardView,
 				final boolean isInEditMode, final CharSequence characters,
-				final ArrowMode arrowModeFromGame, final boolean columnMajor, final int maxPx,
+				final ArrowMode requestedArrowMode, final boolean columnMajor, final int maxPx,
 				final boolean undoEnabled, final boolean redoEnabled)
 		{
 			super(context, R.layout.keyboard_template);
@@ -71,30 +69,8 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 					? mDefaultHeight + mDefaultVerticalGap
 					: mDefaultWidth + mDefaultHorizontalGap;
 
-			String arrowPref;
-			boolean inertiaForceArrows;
-			if (isInEditMode) {
-				arrowPref = "always";
-				inertiaForceArrows = true;
-			} else {
-				SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
-				arrowPref = prefs.getString(GamePlay.ARROW_KEYS_KEY, "auto");
-				inertiaForceArrows = prefs.getBoolean(GamePlay.INERTIA_FORCE_ARROWS_KEY, true);
-			}
-			ArrowMode arrowMode = arrowModeFromGame;
-			if (arrowMode != ArrowMode.ARROWS_DIAGONALS || !inertiaForceArrows) {
-				if (arrowPref.equals("never")) {
-					arrowMode = ArrowMode.NO_ARROWS;
-				} else if (arrowPref.equals("auto")) {
-					Configuration c = context.getResources().getConfiguration();
-					if ((c.navigation == Configuration.NAVIGATION_DPAD
-							|| c.navigation == Configuration.NAVIGATION_TRACKBALL)
-							&& (c.navigationHidden != Configuration.NAVIGATIONHIDDEN_YES)) {
-						arrowMode = ArrowMode.NO_ARROWS;
-					}
-				}
-			}
-			// else allow arrows.
+			final ArrowMode arrowMode = isInEditMode ? ArrowMode.ARROWS_LEFT_RIGHT_CLICK : requestedArrowMode;
+
 			final boolean isDiagonals = arrowMode == ArrowMode.ARROWS_DIAGONALS;
 			final int arrowRows = arrowMode.hasArrows() ? isDiagonals ? 3 : 2 : 0;
 			final int arrowCols = arrowMode.hasArrows() ? 3 : 0;
@@ -400,10 +376,10 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 	}
 
 	private CharSequence lastKeys = "";
-	public void setKeys(CharSequence keys, ArrowMode arrowModeFromGame)
+	public void setKeys(final CharSequence keys, final ArrowMode arrowMode)
 	{
 		lastKeys = keys;
-		this.arrowModeFromGame = arrowModeFromGame;
+		this.arrowMode = arrowMode;
 		requestLayout();
 	}
 
@@ -417,7 +393,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 		int maxPx = MeasureSpec.getSize(landscape ? hSpec : wSpec);
 		// Doing this here seems the only way to be sure of dimensions.
 		final KeyboardModel model = new KeyboardModel(getContext(), this, isInEditMode(), lastKeys,
-				arrowModeFromGame, landscape, maxPx, undoEnabled, redoEnabled);
+				arrowMode, landscape, maxPx, undoEnabled, redoEnabled);
 		setKeyboard(model);
 		if (model.isEmpty()) {
 			setMeasuredDimension(0, 0);

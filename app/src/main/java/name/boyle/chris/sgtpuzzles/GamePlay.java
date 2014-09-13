@@ -757,14 +757,36 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 			mainLayout.updateViewLayout(statusBar, slp);
 			mainLayout.updateViewLayout(gameView, glp);
 		}
+		final SmallKeyboard.ArrowMode arrowMode = computeArrowMode();
 		keyboard.setKeys( (c.hardKeyboardHidden == Configuration.HARDKEYBOARDHIDDEN_NO)
-				? maybeUndoRedo : filterKeys() + maybeUndoRedo, lastArrowMode);
+				? maybeUndoRedo : filterKeys(arrowMode) + maybeUndoRedo, arrowMode);
 		prevLandscape = landscape;
 		mainLayout.requestLayout();
 	}
 
-	private String filterKeys() {
-		return lastKeys.replace("h", prefs.getBoolean(BRIDGES_SHOW_H_KEY, false) ? "H" : "");
+	private SmallKeyboard.ArrowMode computeArrowMode() {
+		final String arrowPref = prefs.getString(GamePlay.ARROW_KEYS_KEY, "auto");
+		final boolean inertiaForceArrows = prefs.getBoolean(GamePlay.INERTIA_FORCE_ARROWS_KEY, true);
+		SmallKeyboard.ArrowMode arrowMode = lastArrowMode;
+		if (arrowMode != SmallKeyboard.ArrowMode.ARROWS_DIAGONALS || !inertiaForceArrows) {
+			if (arrowPref.equals("never")) {
+				arrowMode = SmallKeyboard.ArrowMode.NO_ARROWS;
+			} else if (arrowPref.equals("auto")) {
+				Configuration c = getResources().getConfiguration();
+				if ((c.navigation == Configuration.NAVIGATION_DPAD
+						|| c.navigation == Configuration.NAVIGATION_TRACKBALL)
+						&& (c.navigationHidden != Configuration.NAVIGATIONHIDDEN_YES)) {
+					arrowMode = SmallKeyboard.ArrowMode.NO_ARROWS;
+				}
+			}
+		}
+		// else allow arrows.
+		return arrowMode;
+	}
+
+	private String filterKeys(final SmallKeyboard.ArrowMode arrowMode) {
+		return lastKeys.replace("h", prefs.getBoolean(BRIDGES_SHOW_H_KEY, false) ? "H" : "")
+				.replace("\b", (lastKeys.length() > 1 || arrowMode.hasArrows()) ? "\b" : "");
 	}
 
 	@SuppressLint("InlinedApi")
