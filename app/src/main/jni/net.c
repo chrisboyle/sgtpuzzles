@@ -1583,7 +1583,7 @@ static game_state *new_game(midend *me, const game_params *params,
     assert(params->width > 0 && params->height > 0);
     assert(params->width > 1 || params->height > 1);
 #ifdef ANDROID
-    android_keys2("J", "ASDF", ANDROID_ARROWS);
+    android_keys2("J", "ASDF", ANDROID_ARROWS_LEFT_RIGHT);
 #endif
 
     /*

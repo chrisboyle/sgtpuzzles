@@ -608,9 +608,10 @@ extern void android_completed();
 extern void android_keys(const char *keys, int arrowMode);
 extern void android_keys2(const char *keys, const char *extraKeysIfArrows, int arrowMode);
 extern void android_toast(const char *msg, int fromPattern);
-#define ANDROID_NO_ARROWS        0
-#define ANDROID_ARROWS           1
-#define ANDROID_ARROWS_DIAGONALS 2
+#define ANDROID_NO_ARROWS         0
+#define ANDROID_ARROWS_LEFT       1
+#define ANDROID_ARROWS_LEFT_RIGHT 2
+#define ANDROID_ARROWS_DIAGONALS  3
 #endif
 
 #endif /* PUZZLES_PUZZLES_H */

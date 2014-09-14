@@ -1825,7 +1825,7 @@ static game_state *new_game(midend *me, const game_params *params,
     const char *p;
     game_state *state = snew(game_state);
 #ifdef ANDROID
-    android_keys("L", ANDROID_ARROWS);
+    android_keys("L", ANDROID_ARROWS_LEFT_RIGHT);
 #endif
 
     state->p = *params;

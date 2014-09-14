@@ -20,6 +20,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 	private boolean undoEnabled = false, redoEnabled = false;
 	static enum ArrowMode {
 		NO_ARROWS,  // untangle
+		ARROWS_LEFT_CLICK,  // flip, filling, guess
 		ARROWS_LEFT_RIGHT_CLICK,  // unless phone has a d-pad (most games)
 		ARROWS_DIAGONALS;  // Inertia
 
@@ -113,7 +114,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 						arrowsBottomEdge = columnMajor ? maxPx : maxHeight;
 				int maybeTop  = (!columnMajor && majors <= arrowRows) ? EDGE_TOP : 0;
 				int maybeLeft = ( columnMajor && majors <= arrowRows) ? EDGE_LEFT : 0;
-				addArrows(context, row, keyPlusPad, isDiagonals, arrowRows,
+				addArrows(context, row, keyPlusPad, arrowMode, arrowRows,
 						arrowsRightEdge, arrowsBottomEdge, maybeTop, maybeLeft);
 			}
 			initDone = true;
@@ -207,27 +208,42 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 			key.codes = new int[] { c };
 		}
 
-		private void addArrows(Context context, Row row, int keyPlusPad, boolean isDiagonals, int arrowRows, int arrowsRightEdge, int arrowsBottomEdge, int maybeTop, int maybeLeft) {
+		private void addArrows(Context context, Row row, int keyPlusPad, final ArrowMode arrowMode,
+				int arrowRows, int arrowsRightEdge, int arrowsBottomEdge, int maybeTop, int maybeLeft) {
 			int[] arrows;
-			if (isDiagonals) {
-				arrows = new int[] {
-						GameView.CURSOR_UP,
-						GameView.CURSOR_DOWN,
-						GameView.CURSOR_LEFT,
-						GameView.CURSOR_RIGHT,
-						'\n',
-						GameView.MOD_NUM_KEYPAD | '7',
-						GameView.MOD_NUM_KEYPAD | '1',
-						GameView.MOD_NUM_KEYPAD | '9',
-						GameView.MOD_NUM_KEYPAD | '3' };
-			} else {
-				arrows = new int[] {
-						GameView.CURSOR_UP,
-						GameView.CURSOR_DOWN,
-						GameView.CURSOR_LEFT,
-						GameView.CURSOR_RIGHT,
-						'\n',
-						' ' };
+			final boolean isDiagonals = (arrowMode == ArrowMode.ARROWS_DIAGONALS);
+			switch (arrowMode) {
+				case ARROWS_DIAGONALS:
+					arrows = new int[] {
+							GameView.CURSOR_UP,
+							GameView.CURSOR_DOWN,
+							GameView.CURSOR_LEFT,
+							GameView.CURSOR_RIGHT,
+							'\n',
+							GameView.MOD_NUM_KEYPAD | '7',
+							GameView.MOD_NUM_KEYPAD | '1',
+							GameView.MOD_NUM_KEYPAD | '9',
+							GameView.MOD_NUM_KEYPAD | '3' };
+					break;
+				case ARROWS_LEFT_CLICK:
+					arrows = new int[] {
+							GameView.CURSOR_UP,
+							GameView.CURSOR_DOWN,
+							GameView.CURSOR_LEFT,
+							GameView.CURSOR_RIGHT,
+							'\n'};
+					break;
+				case ARROWS_LEFT_RIGHT_CLICK:
+					arrows = new int[] {
+							GameView.CURSOR_UP,
+							GameView.CURSOR_DOWN,
+							GameView.CURSOR_LEFT,
+							GameView.CURSOR_RIGHT,
+							'\n',
+							' ' };
+					break;
+				default:
+					throw new RuntimeException("bogus arrow mode!");
 			}
 			int leftRightRow = isDiagonals ? 2 : 1;
 			int bottomIf2Row = isDiagonals ? 0 : EDGE_BOTTOM;
