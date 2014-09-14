@@ -61,6 +61,8 @@ public class GameView extends View
 	GestureDetectorCompat gestureDetector;
 	private float maxZoom = 30.f;  // blitter size must be scaled by this to prevent jaggies
 	private Matrix zoomMatrix = new Matrix(), inverseZoomMatrix = new Matrix();
+	enum DragMode { UNMODIFIED, REVERT_OFF_SCREEN, REVERT_TO_START, PREVENT }
+	private DragMode dragMode = DragMode.UNMODIFIED;
 
 	public GameView(Context context, AttributeSet attrs)
 	{
@@ -93,7 +95,7 @@ public class GameView extends View
 			public boolean onScroll(MotionEvent downEvent, MotionEvent event, float distanceX, float distanceY) {
 				// 2nd clause is 2 fingers a constant distance apart
 				if ((hasPinchZoom && isScaleInProgress()) || event.getPointerCount() > 1) {
-					revertDragInProgress();
+					revertDragInProgress(pointFromEvent(event));
 					if (touchState == TouchState.WAITING_LONG_PRESS) {
 						parent.handler.removeCallbacks(sendLongPress);
 					}
@@ -104,9 +106,13 @@ public class GameView extends View
 				float x = event.getX(), y = event.getY();
 				if (touchState == TouchState.WAITING_LONG_PRESS && movedPastTouchSlop(x, y)) {
 					Log.d(GamePlay.TAG, "drag start");
-					parent.sendKey(viewToGame(touchStart), button);
 					parent.handler.removeCallbacks(sendLongPress);
-					touchState = TouchState.DRAGGING;
+					if (dragMode == DragMode.PREVENT) {
+						touchState = TouchState.IDLE;
+					} else {
+						parent.sendKey(viewToGame(touchStart), button);
+						touchState = TouchState.DRAGGING;
+					}
 				}
 				if (touchState == TouchState.DRAGGING) {
 					Log.d(GamePlay.TAG, "drag");
@@ -136,11 +142,29 @@ public class GameView extends View
 		}
 	}
 
-	private void revertDragInProgress() {
+	public void setDragModeFor(final String whichBackend) {
+		final int modeId = getResources().getIdentifier(whichBackend + "_drag_mode", "string", getContext().getPackageName());
+		final String mode;
+		if (modeId <= 0 || ((mode = getResources().getString(modeId)) == null)) {
+			dragMode = DragMode.UNMODIFIED;
+			return;
+		}
+		if (mode.equals("off_screen")) dragMode = DragMode.REVERT_OFF_SCREEN;
+		else if (mode.equals("start")) dragMode = DragMode.REVERT_TO_START;
+		else if (mode.equals("prevent")) dragMode = DragMode.PREVENT;
+		else dragMode = DragMode.UNMODIFIED;
+	}
+
+	private void revertDragInProgress(final Point here) {
 		if (touchState == TouchState.DRAGGING) {
-			Point p = viewToGame(touchStart);
-			parent.sendKey(p, button + DRAG);
-			parent.sendKey(p, button + RELEASE);
+			final Point dragTo;
+			switch (dragMode) {
+				case REVERT_OFF_SCREEN: dragTo = new Point(-1, -1); break;
+				case REVERT_TO_START: dragTo = viewToGame(touchStart); break;
+				default: dragTo = viewToGame(here); break;
+			}
+			parent.sendKey(dragTo, button + DRAG);
+			parent.sendKey(dragTo, button + RELEASE);
 		}
 	}
 

@@ -47,4 +47,51 @@
 	<bool name="inertia_arrows_default">true</bool>
 	<bool name="mines_arrows_default">true</bool>
 	<bool name="pattern_arrows_default">true</bool>
+	<!-- How to handle drag and revert for each game: -->
+	<!-- By default, and for games where a touch means move in that direction, allow a swipe
+	to do the same and don't try to revert anything: if the user tries to swipe in the
+	direction they want to move, it's better to have a move happen towards where they started,
+	so they learn, than to have nothing happen. -->
+	<string translatable="false" name="cube_drag_mode">unmodified</string>
+	<string translatable="false" name="fifteen_drag_mode">unmodified</string>
+	<string translatable="false" name="filling_drag_mode">unmodified</string>
+	<string translatable="false" name="inertia_drag_mode">unmodified</string>
+	<string translatable="false" name="net_drag_mode">unmodified</string>
+	<string translatable="false" name="twiddle_drag_mode">unmodified</string>
+	<!-- For games where a drag can be canceled by going off-screen, do that. -->
+	<string translatable="false" name="bridges_drag_mode">off_screen</string>
+	<string translatable="false" name="galaxies_drag_mode">off_screen</string>
+	<string translatable="false" name="map_drag_mode">off_screen</string>
+	<string translatable="false" name="mines_drag_mode">off_screen</string>
+	<string translatable="false" name="pattern_drag_mode">off_screen</string>
+	<string translatable="false" name="pegs_drag_mode">off_screen</string>
+	<string translatable="false" name="rectangles_drag_mode">off_screen</string>
+	<string translatable="false" name="tents_drag_mode">off_screen</string>
+	<string translatable="false" name="untangle_drag_mode">off_screen</string>
+	<!-- For games where dragging something off the board would be harmful, revert by
+	dragging back to the start of the drag instead. -->
+	<string translatable="false" name="guess_drag_mode">start</string>
+	<string translatable="false" name="pearl_drag_mode">start</string>
+	<string translatable="false" name="signpost_drag_mode">start</string>
+	<!-- For many games with a cursor and no drag facilities, just ignore drags completely.
+	The reason we don't just enable one-finger pan in these games is it would be an inconsistent
+	UI since all the other games can't. -->
+	<string translatable="false" name="blackbox_drag_mode">prevent</string>
+	<string translatable="false" name="dominosa_drag_mode">prevent</string>
+	<string translatable="false" name="flip_drag_mode">prevent</string>
+	<string translatable="false" name="keen_drag_mode">prevent</string>
+	<string translatable="false" name="lightup_drag_mode">prevent</string>
+	<string translatable="false" name="loopy_drag_mode">prevent</string>
+	<string translatable="false" name="magnets_drag_mode">prevent</string>
+	<string translatable="false" name="netslide_drag_mode">prevent</string>
+	<string translatable="false" name="range_drag_mode">prevent</string>
+	<string translatable="false" name="samegame_drag_mode">prevent</string>
+	<string translatable="false" name="singles_drag_mode">prevent</string>
+	<string translatable="false" name="sixteen_drag_mode">prevent</string>
+	<string translatable="false" name="slant_drag_mode">prevent</string>
+	<string translatable="false" name="solo_drag_mode">prevent</string>
+	<string translatable="false" name="towers_drag_mode">prevent</string>
+	<string translatable="false" name="undead_drag_mode">prevent</string>
+	<string translatable="false" name="unequal_drag_mode">prevent</string>
+	<string translatable="false" name="unruly_drag_mode">prevent</string>
 </resources>

@@ -848,6 +848,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 		runOnUiThread(new Runnable() {
 			public void run() {
 				currentBackend = whichBackend;
+				gameView.setDragModeFor(currentBackend);
 				customVisible = hasCustom;
 				solveEnabled = canSolve;
 				setTitle(title);
