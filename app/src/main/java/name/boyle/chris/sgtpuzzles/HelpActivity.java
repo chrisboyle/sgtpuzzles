@@ -9,6 +9,7 @@ import android.view.KeyEvent;
 import android.view.MenuItem;
 import android.webkit.WebChromeClient;
 import android.webkit.WebView;
+import android.webkit.WebViewClient;
 
 import java.io.IOException;
 import java.text.MessageFormat;
@@ -38,6 +39,13 @@ public class HelpActivity extends ActionBarActivity {
 					getSupportActionBar().setTitle(getString(R.string.title_activity_help) + ": " + w.getTitle());
 			}
 		});
+		webView.setWebViewClient(new WebViewClient() {
+			@Override
+			public void onPageFinished(WebView view, String url) {
+				view.loadUrl("javascript:void(document.body.style.wordWrap = 'break-word');");
+			}
+		});
+		webView.getSettings().setJavaScriptEnabled(true);
 		webView.getSettings().setBuiltInZoomControls(true);
 		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
 			webView.getSettings().setDisplayZoomControls(false);
