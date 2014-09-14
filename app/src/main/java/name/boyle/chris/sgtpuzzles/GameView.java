@@ -90,15 +90,6 @@ public class GameView extends View
 			}
 
 			@Override
-			public boolean onSingleTapUp(MotionEvent event) {
-				Log.d(GamePlay.TAG, "onSingleTapUp");
-				parent.sendKey(viewToGame(touchStart), button);
-				parent.sendKey(viewToGame(pointFromEvent(event)), button + RELEASE);
-				touchState = TouchState.IDLE;
-				return true;
-			}
-
-			@Override
 			public boolean onScroll(MotionEvent downEvent, MotionEvent event, float distanceX, float distanceY) {
 				// 2nd clause is 2 fingers a constant distance apart
 				if ((hasPinchZoom && isScaleInProgress()) || event.getPointerCount() > 1) {
@@ -125,6 +116,7 @@ public class GameView extends View
 				return false;
 			}
 
+			@Override public boolean onSingleTapUp(MotionEvent event) { return true; }
 			@Override public void onShowPress(MotionEvent e) {}
 			@Override public void onLongPress(MotionEvent e) {}
 
