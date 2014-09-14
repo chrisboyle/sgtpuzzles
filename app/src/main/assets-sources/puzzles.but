@@ -37,6 +37,7 @@ This is a collection of small one-player puzzle games.
 reserved. You may distribute this documentation under the MIT licence.
 See \k{licence} for the licence text in full.
 
+\cfg{html-head-end}{<style type="text/css">body \{ word-wrap: break-word; \}</style>}
 \cfg{html-local-head}{<meta name="AppleTitle" content="Puzzles Help">}
 
 \versionid $Id$
