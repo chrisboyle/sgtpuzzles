@@ -53,6 +53,7 @@
             <meta-data android:name="android.support.PARENT_ACTIVITY" android:value=".SGTPuzzles" />
         </activity>
         <activity android:name=".HelpActivity" android:theme="@style/Theme.AppCompat.Light.DarkActionBar"
+                  android:configChanges="keyboard|keyboardHidden|orientation|screenSize"
                   android:label="@string/title_activity_help" android:launchMode="singleTask" >
         </activity>
         <activity android:name=".RestartActivity" android:stateNotNeeded="true" android:exported="false" android:theme="@android:style/Theme.NoDisplay" />
