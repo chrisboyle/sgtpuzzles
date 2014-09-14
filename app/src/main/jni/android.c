@@ -58,6 +58,7 @@ static jobject ARROW_MODE_NONE = NULL,
 	ARROW_MODE_ARROWS_LEFT_RIGHT_CLICK = NULL,
 	ARROW_MODE_DIAGONALS = NULL;
 static char * lastKeys = NULL;
+static char * lastKeysIfArrows = NULL;
 static jobject lastArrowMode = NULL;
 
 static jobject gameView = NULL;
@@ -547,8 +548,15 @@ void android_toast(const char *msg, int fromPattern)
 
 void android_keys(const char *keys, int arrowMode)
 {
+    android_keys2(keys, NULL, arrowMode);
+}
+
+void android_keys2(const char *keys, const char *extraKeysIfArrows, int arrowMode)
+{
 	if (lastKeys) sfree(lastKeys);
 	lastKeys = keys ? dupstr(keys) : NULL;
+	if (lastKeysIfArrows) sfree(lastKeysIfArrows);
+	lastKeysIfArrows = extraKeysIfArrows ? dupstr(extraKeysIfArrows) : NULL;
 	lastArrowMode = (arrowMode == ANDROID_ARROWS_DIAGONALS) ? ARROW_MODE_DIAGONALS :
 			(arrowMode == ANDROID_ARROWS) ? ARROW_MODE_ARROWS_LEFT_RIGHT_CLICK :
 			ARROW_MODE_NONE;
@@ -578,6 +586,7 @@ void startPlaying(JNIEnv *env, jobject _obj, jobject _gameView, jstring savedGam
 	frontend *new_fe = snew(frontend);
 	memset(new_fe, 0, sizeof(frontend));
 	lastKeys = NULL;
+	lastKeysIfArrows = NULL;
 	lastArrowMode = NULL;
 	int whichBackend = deserialiseOrIdentify(new_fe, savedGame, FALSE);
 	if ((*env)->ExceptionCheck(env)) {
@@ -599,11 +608,12 @@ void startPlaying(JNIEnv *env, jobject _obj, jobject _gameView, jstring savedGam
 	midend_size(fe->me, &x, &y, FALSE);
 
 	jobject keys = (lastKeys == NULL) ? NULL : (*env)->NewStringUTF(env, lastKeys);
+	jobject keysIfArrows = (lastKeysIfArrows == NULL) ? NULL : (*env)->NewStringUTF(env, lastKeysIfArrows);
 	colours = midend_colours(fe->me, &n);
 	jfloatArray jColours = (*env)->NewFloatArray(env, n*3);
 	if (jColours == NULL) return;
 	(*env)->SetFloatArrayRegion(env, jColours, 0, n*3, colours);
-	(*env)->CallVoidMethod(env, obj, clearForNewGame, (*env)->NewStringUTF(env, gamenames[whichBackend]), keys, lastArrowMode, jColours);
+	(*env)->CallVoidMethod(env, obj, clearForNewGame, (*env)->NewStringUTF(env, gamenames[whichBackend]), keys, keysIfArrows, lastArrowMode, jColours);
 	(*env)->DeleteLocalRef(env, keys);
 	android_changed_state(NULL, midend_can_undo(fe->me), midend_can_redo(fe->me));
 
@@ -650,7 +660,8 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
 	blitterLoad    = (*env)->GetMethodID(env, vcls, "blitterLoad", "(III)V");
 	blitterSave    = (*env)->GetMethodID(env, vcls, "blitterSave", "(III)V");
 	changedState   = (*env)->GetMethodID(env, cls,  "changedState", "(ZZ)V");
-	clearForNewGame = (*env)->GetMethodID(env, cls, "clearForNewGame", "(Ljava/lang/String;Ljava/lang/String;Lname/boyle/chris/sgtpuzzles/SmallKeyboard$ArrowMode;[F)V");
+	clearForNewGame = (*env)->GetMethodID(env, cls, "clearForNewGame",
+			"(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lname/boyle/chris/sgtpuzzles/SmallKeyboard$ArrowMode;[F)V");
 	clipRect       = (*env)->GetMethodID(env, vcls, "clipRect", "(IIII)V");
 	dialogAdd      = (*env)->GetMethodID(env, cls,  "dialogAdd", "(IILjava/lang/String;Ljava/lang/String;I)V");
 	dialogInit     = (*env)->GetMethodID(env, cls,  "dialogInit", "(ILjava/lang/String;)V");

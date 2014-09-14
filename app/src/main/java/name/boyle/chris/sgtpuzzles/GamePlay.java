@@ -112,7 +112,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 	private TableLayout dialogLayout;
 	String currentBackend = null;
 	private Thread worker;
-	private String lastKeys = "";
+	private String lastKeys = "", lastKeysIfArrows = "";
 	private static final File storageDir = Environment.getExternalStorageDirectory();
 	private String[] games;
 	private Menu menu;
@@ -570,7 +570,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 	}
 
 	@UsedByJNI
-	private void clearForNewGame(final String startingBackend, final String keys, final SmallKeyboard.ArrowMode arrowMode, final float[] colours) {
+	private void clearForNewGame(final String startingBackend, final String keys, final String keysIfArrows, final SmallKeyboard.ArrowMode arrowMode, final float[] colours) {
 		runOnUiThread(new Runnable(){public void run() {
 			gameView.colours = new int[colours.length/3];
 			for (int i=0; i<colours.length/3; i++) {
@@ -591,7 +591,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 			customVisible = false;
 			setStatusBarVisibility(false);
 			applyUndoRedoKbd();
-			setKeys(startingBackend, keys, arrowMode);
+			setKeys(startingBackend, keys, keysIfArrows, arrowMode);
 			if (typeMenu != null) {
 				while (typeMenu.size() > 1) typeMenu.removeItem(typeMenu.getItem(0).getItemId());
 			}
@@ -792,7 +792,8 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 	}
 
 	private String filterKeys(final SmallKeyboard.ArrowMode arrowMode) {
-		return lastKeys.replace("h", prefs.getBoolean(BRIDGES_SHOW_H_KEY, false) ? "H" : "")
+		final String keysIfArrows = arrowMode.hasArrows() ? lastKeysIfArrows : "";
+		return keysIfArrows + lastKeys.replace("h", prefs.getBoolean(BRIDGES_SHOW_H_KEY, false) ? "H" : "")
 				.replace("\b", (lastKeys.length() > 1 || arrowMode.hasArrows()) ? "\b" : "");
 	}
 
@@ -1108,12 +1109,12 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 
 	private SmallKeyboard.ArrowMode lastArrowMode = SmallKeyboard.ArrowMode.NO_ARROWS;
 
-	private void setKeys(final String whichBackend, String keys, SmallKeyboard.ArrowMode arrowMode)
+	private void setKeys(final String whichBackend, final String keys, final String keysIfArrows, SmallKeyboard.ArrowMode arrowMode)
 	{
-		if (keys == null) keys = "";
 		if (arrowMode == null) arrowMode = SmallKeyboard.ArrowMode.ARROWS_LEFT_RIGHT_CLICK;
 		lastArrowMode = arrowMode;
-		lastKeys = keys;
+		lastKeys = (keys == null) ? "" : keys;
+		lastKeysIfArrows = (keysIfArrows == null) ? "" : keysIfArrows;
 		setKeyboardVisibility(whichBackend, getResources().getConfiguration());
 		keysAlreadySet = true;
 	}
