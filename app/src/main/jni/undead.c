@@ -1679,6 +1679,11 @@ struct game_drawstate {
     int hx, hy, hshow, hpencil; /* as for game_ui. */
     int hflash;
     int ascii;
+
+    int counts_y1, counts_y2,
+        counts_ghost_x1, counts_ghost_x2,
+        counts_vampire_x1, counts_vampire_x2,
+        counts_zombie_x1, counts_zombie_x2;
 };
 
 #define TILESIZE (ds->tilesize)
@@ -1699,21 +1704,26 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         ui->ascii = !ui->ascii;
         return "";      
     }
-    
+
+    int in_row = y > ds->counts_y1 && y < ds->counts_y2;
+    int on_ghost = in_row && x > ds->counts_ghost_x1 && x < ds->counts_ghost_x2;
+    int on_vampire = in_row && x > ds->counts_vampire_x1 && x < ds->counts_vampire_x2;
+    int on_zombie = in_row && x > ds->counts_zombie_x1 && x < ds->counts_zombie_x2;
+
     if (ui->hshow == 1 && ui->hpencil == 0) {
         xi = state->common->xinfo[ui->hx + ui->hy*(state->common->params.w+2)];
         if (xi >= 0 && !state->common->fixed[xi]) {
-            if (button == 'g' || button == 'G' || button == '1') {
+            if (button == 'g' || button == 'G' || button == '1' || (button == LEFT_RELEASE && on_ghost)) {
                 if (!ui->hcursor) ui->hshow = 0;
                 sprintf(buf,"G%d",xi);
                 return dupstr(buf);
             }
-            if (button == 'v' || button == 'V' || button == '2') {
+            if (button == 'v' || button == 'V' || button == '2' || (button == LEFT_RELEASE && on_vampire)) {
                 if (!ui->hcursor) ui->hshow = 0;
                 sprintf(buf,"V%d",xi);
                 return dupstr(buf);
             }
-            if (button == 'z' || button == 'Z' || button == '3') {
+            if (button == 'z' || button == 'Z' || button == '3' || (button == LEFT_RELEASE && on_zombie)) {
                 if (!ui->hcursor) ui->hshow = 0;
                 sprintf(buf,"Z%d",xi);
                 return dupstr(buf);
@@ -2324,6 +2334,17 @@ static void draw_monster_count(drawing *dr, game_drawstate *ds,
     
     dy = TILESIZE/4;
     dx = BORDER+(ds->w+2)*TILESIZE/2+TILESIZE/4;
+
+    ds->counts_y1 = (3*TILESIZE/4) - (2*TILESIZE/5);
+    ds->counts_y2 = (3*TILESIZE/4) + (2*TILESIZE/5);
+    int counts_mid = BORDER+(ds->w+2)*TILESIZE/2+TILESIZE/4;
+    ds->counts_ghost_x1 = counts_mid - 3*TILESIZE/2 - TILESIZE/3 - (2*TILESIZE/5);
+    ds->counts_ghost_x2 = ds->counts_ghost_x1 + (4*TILESIZE/5);
+    ds->counts_vampire_x1 = counts_mid - (4*TILESIZE/5);
+    ds->counts_vampire_x2 = counts_mid;
+    ds->counts_zombie_x1 = counts_mid + 3*TILESIZE/2 - TILESIZE/3 - (2*TILESIZE/5);
+    ds->counts_zombie_x2 = ds->counts_zombie_x1 + (4*TILESIZE/5);
+
     switch (c) {
       case 0: 
         sprintf(buf,"%d",state->common->num_ghosts);
