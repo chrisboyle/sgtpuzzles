@@ -1713,17 +1713,17 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     if (ui->hshow == 1 && ui->hpencil == 0) {
         xi = state->common->xinfo[ui->hx + ui->hy*(state->common->params.w+2)];
         if (xi >= 0 && !state->common->fixed[xi]) {
-            if (button == 'g' || button == 'G' || button == '1' || (button == LEFT_RELEASE && on_ghost)) {
+            if (button == 'g' || button == 'G' || button == '1' || (button == LEFT_BUTTON && on_ghost)) {
                 if (!ui->hcursor) ui->hshow = 0;
                 sprintf(buf,"G%d",xi);
                 return dupstr(buf);
             }
-            if (button == 'v' || button == 'V' || button == '2' || (button == LEFT_RELEASE && on_vampire)) {
+            if (button == 'v' || button == 'V' || button == '2' || (button == LEFT_BUTTON && on_vampire)) {
                 if (!ui->hcursor) ui->hshow = 0;
                 sprintf(buf,"V%d",xi);
                 return dupstr(buf);
             }
-            if (button == 'z' || button == 'Z' || button == '3' || (button == LEFT_RELEASE && on_zombie)) {
+            if (button == 'z' || button == 'Z' || button == '3' || (button == LEFT_BUTTON && on_zombie)) {
                 if (!ui->hcursor) ui->hshow = 0;
                 sprintf(buf,"Z%d",xi);
                 return dupstr(buf);

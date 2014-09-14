@@ -1057,10 +1057,11 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         y1 = min(ui->drag_start_y, ui->drag_end_y);
         y2 = max(ui->drag_start_y, ui->drag_end_y);
 
-        for (yy = y1; yy <= y2; yy++)
-            for (xx = x1; xx <= x2; xx++)
-                if (state->grid[yy * state->w + xx] != ui->state)
-                    move_needed = TRUE;
+        if (x >= 0 && x < state->w && y >= 0 && y < state->h)
+            for (yy = y1; yy <= y2; yy++)
+                for (xx = x1; xx <= x2; xx++)
+                    if (state->grid[yy * state->w + xx] != ui->state)
+                        move_needed = TRUE;
 
         ui->dragging = FALSE;
 
