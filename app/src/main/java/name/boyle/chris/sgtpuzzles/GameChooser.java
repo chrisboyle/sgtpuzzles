@@ -341,9 +341,6 @@ public class GameChooser extends ActionBarActivity
 			case R.id.email:
 				startActivity(new Intent(this, SendFeedbackActivity.class));
 				break;
-			case R.id.settings:
-				startActivity(new Intent(this, PrefsActivity.class));
-				break;
 			default: ret = super.onOptionsItemSelected(item);
 		}
 		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {

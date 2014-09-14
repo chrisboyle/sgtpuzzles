@@ -603,7 +603,7 @@ void startPlaying(JNIEnv *env, jobject _obj, jobject _gameView, jstring savedGam
 	jfloatArray jColours = (*env)->NewFloatArray(env, n*3);
 	if (jColours == NULL) return;
 	(*env)->SetFloatArrayRegion(env, jColours, 0, n*3, colours);
-	(*env)->CallVoidMethod(env, obj, clearForNewGame, keys, lastArrowMode, jColours);
+	(*env)->CallVoidMethod(env, obj, clearForNewGame, (*env)->NewStringUTF(env, gamenames[whichBackend]), keys, lastArrowMode, jColours);
 	(*env)->DeleteLocalRef(env, keys);
 	android_changed_state(NULL, midend_can_undo(fe->me), midend_can_redo(fe->me));
 
@@ -650,7 +650,7 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
 	blitterLoad    = (*env)->GetMethodID(env, vcls, "blitterLoad", "(III)V");
 	blitterSave    = (*env)->GetMethodID(env, vcls, "blitterSave", "(III)V");
 	changedState   = (*env)->GetMethodID(env, cls,  "changedState", "(ZZ)V");
-	clearForNewGame = (*env)->GetMethodID(env, cls,  "clearForNewGame", "(Ljava/lang/String;Lname/boyle/chris/sgtpuzzles/SmallKeyboard$ArrowMode;[F)V");
+	clearForNewGame = (*env)->GetMethodID(env, cls, "clearForNewGame", "(Ljava/lang/String;Ljava/lang/String;Lname/boyle/chris/sgtpuzzles/SmallKeyboard$ArrowMode;[F)V");
 	clipRect       = (*env)->GetMethodID(env, vcls, "clipRect", "(IIII)V");
 	dialogAdd      = (*env)->GetMethodID(env, cls,  "dialogAdd", "(IILjava/lang/String;Ljava/lang/String;I)V");
 	dialogInit     = (*env)->GetMethodID(env, cls,  "dialogInit", "(ILjava/lang/String;)V");

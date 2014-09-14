@@ -31,6 +31,7 @@ import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
 import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
+import android.content.res.Resources;
 import android.graphics.Color;
 import android.graphics.Point;
 import android.graphics.PorterDuff;
@@ -75,8 +76,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 	static final String TAG = "GamePlay";
 	static final String STATE_PREFS_NAME = "state";
 	static final String ORIENTATION_KEY = "orientation";
-	static final String ARROW_KEYS_KEY = "arrowKeys";
-	static final String INERTIA_FORCE_ARROWS_KEY = "inertiaForceArrows";
+	static final String ARROW_KEYS_KEY_SUFFIX = "ArrowKeys";
 	private static final String BRIDGES_SHOW_H_KEY = "bridgesShowH";
 	private static final String FULLSCREEN_KEY = "fullscreen";
 	private static final String STAY_AWAKE_KEY = "stayAwake";
@@ -405,7 +405,9 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 			startChooserAndFinish();
 			break;
 		case R.id.settings:
-			startActivity(new Intent(this, PrefsActivity.class));
+			final Intent prefsIntent = new Intent(this, PrefsActivity.class);
+			prefsIntent.putExtra(PrefsActivity.BACKEND_EXTRA, currentBackend);
+			startActivity(prefsIntent);
 			break;
 		case R.id.newgame:
 			startNewGame();
@@ -568,7 +570,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 	}
 
 	@UsedByJNI
-	private void clearForNewGame(final String keys, final SmallKeyboard.ArrowMode arrowMode, final float[] colours) {
+	private void clearForNewGame(final String startingBackend, final String keys, final SmallKeyboard.ArrowMode arrowMode, final float[] colours) {
 		runOnUiThread(new Runnable(){public void run() {
 			gameView.colours = new int[colours.length/3];
 			for (int i=0; i<colours.length/3; i++) {
@@ -589,7 +591,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 			customVisible = false;
 			setStatusBarVisibility(false);
 			applyUndoRedoKbd();
-			setKeys(keys, arrowMode);
+			setKeys(startingBackend, keys, arrowMode);
 			if (typeMenu != null) {
 				while (typeMenu.size() > 1) typeMenu.removeItem(typeMenu.getItem(0).getItemId());
 			}
@@ -719,7 +721,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 	}
 
 	private boolean prevLandscape = false;
-	private void setKeyboardVisibility(Configuration c)
+	private void setKeyboardVisibility(final String whichBackend, final Configuration c)
 	{
 		boolean landscape = (c.orientation == Configuration.ORIENTATION_LANDSCAPE);
 		if (landscape != prevLandscape || keyboard == null) {
@@ -757,31 +759,36 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 			mainLayout.updateViewLayout(statusBar, slp);
 			mainLayout.updateViewLayout(gameView, glp);
 		}
-		final SmallKeyboard.ArrowMode arrowMode = computeArrowMode();
+		final SmallKeyboard.ArrowMode arrowMode = computeArrowMode(whichBackend);
 		keyboard.setKeys( (c.hardKeyboardHidden == Configuration.HARDKEYBOARDHIDDEN_NO)
 				? maybeUndoRedo : filterKeys(arrowMode) + maybeUndoRedo, arrowMode);
 		prevLandscape = landscape;
 		mainLayout.requestLayout();
 	}
 
-	private SmallKeyboard.ArrowMode computeArrowMode() {
-		final String arrowPref = prefs.getString(GamePlay.ARROW_KEYS_KEY, "auto");
-		final boolean inertiaForceArrows = prefs.getBoolean(GamePlay.INERTIA_FORCE_ARROWS_KEY, true);
-		SmallKeyboard.ArrowMode arrowMode = lastArrowMode;
-		if (arrowMode != SmallKeyboard.ArrowMode.ARROWS_DIAGONALS || !inertiaForceArrows) {
-			if (arrowPref.equals("never")) {
-				arrowMode = SmallKeyboard.ArrowMode.NO_ARROWS;
-			} else if (arrowPref.equals("auto")) {
-				Configuration c = getResources().getConfiguration();
-				if ((c.navigation == Configuration.NAVIGATION_DPAD
-						|| c.navigation == Configuration.NAVIGATION_TRACKBALL)
-						&& (c.navigationHidden != Configuration.NAVIGATIONHIDDEN_YES)) {
-					arrowMode = SmallKeyboard.ArrowMode.NO_ARROWS;
-				}
-			}
-		}
-		// else allow arrows.
-		return arrowMode;
+	static String getArrowKeysPrefName(final String whichBackend, final Configuration c) {
+		return whichBackend + GamePlay.ARROW_KEYS_KEY_SUFFIX
+				+ (hasDpadOrTrackball(c) ? "WithDpad" : "");
+	}
+
+	static boolean getArrowKeysDefault(final String whichBackend, final Resources resources, final String packageName) {
+		if (hasDpadOrTrackball(resources.getConfiguration())) return false;
+		final int defaultId = resources.getIdentifier(
+				whichBackend + "_arrows_default", "bool", packageName);
+		return defaultId > 0 && resources.getBoolean(defaultId);
+	}
+
+	private SmallKeyboard.ArrowMode computeArrowMode(final String whichBackend) {
+		final boolean arrowPref = prefs.getBoolean(
+				getArrowKeysPrefName(whichBackend, getResources().getConfiguration()),
+				getArrowKeysDefault(whichBackend, getResources(), getPackageName()));
+		return arrowPref ? lastArrowMode : SmallKeyboard.ArrowMode.NO_ARROWS;
+	}
+
+	static boolean hasDpadOrTrackball(Configuration c) {
+		return (c.navigation == Configuration.NAVIGATION_DPAD
+				|| c.navigation == Configuration.NAVIGATION_TRACKBALL)
+				&& (c.navigationHidden != Configuration.NAVIGATIONHIDDEN_YES);
 	}
 
 	private String filterKeys(final SmallKeyboard.ArrowMode arrowMode) {
@@ -801,7 +808,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 	@Override
 	public void onConfigurationChanged(Configuration newConfig)
 	{
-		if (keysAlreadySet) setKeyboardVisibility(newConfig);
+		if (keysAlreadySet) setKeyboardVisibility(currentBackend, newConfig);
 		super.onConfigurationChanged(newConfig);
 		rethinkActionBarCapacity();
 	}
@@ -896,7 +903,8 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 		final Button newButton = (Button) d.findViewById(R.id.newgame);
 		darkenTopDrawable(newButton);
 		newButton.setOnClickListener(new OnClickListener() {
-			@Override public void onClick(View v) {
+			@Override
+			public void onClick(View v) {
 				d.dismiss();
 				startNewGame();
 			}
@@ -1100,21 +1108,22 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 
 	private SmallKeyboard.ArrowMode lastArrowMode = SmallKeyboard.ArrowMode.NO_ARROWS;
 
-	private void setKeys(String keys, SmallKeyboard.ArrowMode arrowMode)
+	private void setKeys(final String whichBackend, String keys, SmallKeyboard.ArrowMode arrowMode)
 	{
 		if (keys == null) keys = "";
 		if (arrowMode == null) arrowMode = SmallKeyboard.ArrowMode.ARROWS_LEFT_RIGHT_CLICK;
 		lastArrowMode = arrowMode;
 		lastKeys = keys;
-		setKeyboardVisibility(getResources().getConfiguration());
+		setKeyboardVisibility(whichBackend, getResources().getConfiguration());
 		keysAlreadySet = true;
 	}
 
 	@Override
 	public void onSharedPreferenceChanged(SharedPreferences p, String key)
 	{
-		if (key.equals(ARROW_KEYS_KEY) || key.equals(INERTIA_FORCE_ARROWS_KEY)) {
-			setKeyboardVisibility(getResources().getConfiguration());
+		final Configuration configuration = getResources().getConfiguration();
+		if (key.equals(getArrowKeysPrefName(currentBackend, configuration))) {
+			setKeyboardVisibility(currentBackend, configuration);
 		} else if (key.equals(FULLSCREEN_KEY)) {
 			applyFullscreen(true);  // = already started
 		} else if (key.equals(STAY_AWAKE_KEY)) {
@@ -1208,13 +1217,13 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 		final String wantKbd = undoRedoKbd ? "ur" : "";
 		if (!wantKbd.equals(maybeUndoRedo)) {
 			maybeUndoRedo = wantKbd;
-			setKeyboardVisibility(getResources().getConfiguration());
+			setKeyboardVisibility(currentBackend, getResources().getConfiguration());
 		}
 		rethinkActionBarCapacity();
 	}
 
 	private void applyBridgesShowH() {
-		setKeyboardVisibility(getResources().getConfiguration());
+		setKeyboardVisibility(currentBackend, getResources().getConfiguration());
 	}
 
 	@UsedByJNI

@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<array name="games">
+		<item>blackbox</item>
+		<item>bridges</item>
+		<item>cube</item>
+		<item>dominosa</item>
+		<item>fifteen</item>
+		<item>filling</item>
+		<item>flip</item>
+		<item>galaxies</item>
+		<item>guess</item>
+		<item>inertia</item>
+		<item>keen</item>
+		<item>lightup</item>
+		<item>loopy</item>
+		<item>magnets</item>
+		<item>map</item>
+		<item>mines</item>
+		<item>net</item>
+		<item>netslide</item>
+		<item>pattern</item>
+		<item>pearl</item>
+		<item>pegs</item>
+		<item>range</item>
+		<item>rect</item>
+		<item>samegame</item>
+		<item>signpost</item>
+		<item>singles</item>
+		<item>sixteen</item>
+		<item>slant</item>
+		<item>solo</item>
+		<item>tents</item>
+		<item>towers</item>
+		<item>twiddle</item>
+		<item>undead</item>
+		<item>unequal</item>
+		<item>unruly</item>
+		<item>untangle</item>
+	</array>
+	<!-- Is the game capable of arrows? Default true. -->
+	<bool name="untangle_arrows_capable">false</bool>
+	<!-- Should the game have arrows by default? Default false.
+	This is for puzzles where the default preset has small squares, or diagonals are needed.
+	Note that if a hardware D-pad or trackball is present, these are ignored. -->
+	<bool name="blackbox_arrows_default">true</bool>
+	<bool name="inertia_arrows_default">true</bool>
+	<bool name="mines_arrows_default">true</bool>
+	<bool name="pattern_arrows_default">true</bool>
+</resources>

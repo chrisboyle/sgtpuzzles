@@ -1,7 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android" >
 
+	<PreferenceCategory android:title="@string/thisGame" android:key="thisGame">
+		<Preference android:key="arrowKeysUnavailable"
+					android:summary="@string/arrowKeysUnavailable" android:selectable="false"/>
+		<CheckBoxPreference android:title="@string/bridgesShowH"
+							android:key="bridgesShowH"
+							android:summary="@string/bridgesShowHSummary"
+							android:defaultValue="false" />
+		<!--CheckBoxPreference android:title="@string/patternShowLengths"
+							android:key="patternToastLengths"
+							android:summary="@string/patternShowLengthsSummary"
+							android:defaultValue="false" /-->
+	</PreferenceCategory>
+
 	<PreferenceCategory android:title="@string/allGames">
+		<CheckBoxPreference android:title="@string/undoRedoKbd"
+							android:summary="@string/undoRedoKbdSummary"
+							android:key="undoRedoKbd"
+							android:defaultValue="true" />
 		<CheckBoxPreference android:title="@string/completedPrompt"
 			android:summary="@string/completedPromptSummary"
 			android:key="completedPrompt"
@@ -19,37 +36,7 @@
 			android:entryValues="@array/orientationModes"
 			android:entries="@array/orientationModeDescs"
 			android:defaultValue="sensor" />
-		<CheckBoxPreference android:title="@string/undoRedoKbd"
-			android:summary="@string/undoRedoKbdSummary"
-			android:key="undoRedoKbd"
-			android:defaultValue="true" />
-		<ListPreference android:title="@string/arrowKeys"
-			android:key="arrowKeys"
-			android:entryValues="@array/arrowKeyModes"
-			android:entries="@array/arrowKeyModeDescs"
-			android:defaultValue="auto" />
 	</PreferenceCategory>
-
-	<PreferenceCategory android:title="@string/name_bridges">
-		<CheckBoxPreference android:title="@string/bridgesShowH"
-							android:key="bridgesShowH"
-							android:summary="@string/bridgesShowHSummary"
-							android:defaultValue="false" />
-	</PreferenceCategory>
-
-	<PreferenceCategory android:title="@string/name_inertia">
-		<CheckBoxPreference android:title="@string/inertiaForceArrows"
-			android:key="inertiaForceArrows"
-			android:summary="@string/inertiaForceArrowsSummary"
-			android:defaultValue="true" />
-	</PreferenceCategory>
-
-	<!--PreferenceCategory android:title="@string/name_pattern">
-		<CheckBoxPreference android:title="@string/patternShowLengths"
-			android:key="patternToastLengths"
-			android:summary="@string/patternShowLengthsSummary"
-			android:defaultValue="false" />
-	</PreferenceCategory-->
 
 	<PreferenceCategory android:title="@string/About_this_app">
 		<Preference android:key="about_content"

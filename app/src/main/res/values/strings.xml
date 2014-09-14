@@ -86,11 +86,12 @@ Version %s"</string>
     <string name="Settings">Settings</string>
     <string name="Show_solution">Show solution</string>
     <!--  Settings -->
+    <string name="thisGame">This game</string>
     <string name="allGames">All games</string>
     <string name="arrowKeys">Arrow keys</string>
-    <string name="arrowKeysAlways">Always, except Untangle</string>
-    <string name="arrowKeysAuto">When no trackball/D-pad</string>
-    <string name="arrowKeysNever">Never</string>
+    <string name="arrowKeysIn">Arrow keys in {0}</string>
+	<string name="arrowKeysUnavailable">Arrow keys unavailable</string>
+	<string name="arrowKeysUnavailableIn">Arrow keys unavailable in {0}</string>
     <string name="fullscreen">Full screen</string>
     <string name="fullscreenSummary">Hide notifications</string>
     <string name="stayAwake">Stay awake</string>
@@ -100,8 +101,8 @@ Version %s"</string>
     <string name="orientationPortrait">Portrait</string>
     <string name="orientationLandscape">Landscape</string>
     <string name="undoRedoKbd">Undo/Redo on keyboard</string>
-    <string name="undoRedoKbdSummary">Moves undo/redo out of the action bar, allows auto-repeat</string>
-    <string name="bridgesShowH">Show H key</string>
+    <string name="undoRedoKbdSummary">Allows auto repeat (otherwise shown in action bar)</string>
+    <string name="bridgesShowH">"Show \"H\" in Bridges"</string>
     <string name="bridgesShowHSummary">"Undocumented \"solve from here\" action"</string>
     <string name="inertiaForceArrows">Always show arrows</string>
     <string name="inertiaForceArrowsSummary">This game has diagonal arrow keys</string>
