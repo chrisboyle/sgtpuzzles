@@ -761,7 +761,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 		}
 		final SmallKeyboard.ArrowMode arrowMode = computeArrowMode(whichBackend);
 		keyboard.setKeys( (c.hardKeyboardHidden == Configuration.HARDKEYBOARDHIDDEN_NO)
-				? maybeUndoRedo : filterKeys(arrowMode) + maybeUndoRedo, arrowMode);
+				? maybeUndoRedo : filterKeys(arrowMode) + maybeUndoRedo, arrowMode, whichBackend);
 		prevLandscape = landscape;
 		mainLayout.requestLayout();
 	}

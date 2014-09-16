@@ -47,6 +47,7 @@
 	<bool name="inertia_arrows_default">true</bool>
 	<bool name="mines_arrows_default">true</bool>
 	<bool name="pattern_arrows_default">true</bool>
+	<bool name="slant_arrows_default">true</bool>
 	<!-- How to handle drag and revert for each game: -->
 	<!-- By default, and for games where a touch means move in that direction, allow a swipe
 	to do the same and don't try to revert anything: if the user tries to swipe in the

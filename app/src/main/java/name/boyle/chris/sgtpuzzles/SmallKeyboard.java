@@ -6,6 +6,7 @@ import java.util.List;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.res.Configuration;
+import android.content.res.Resources;
 import android.graphics.Canvas;
 import android.inputmethodservice.Keyboard;
 import android.inputmethodservice.KeyboardView;
@@ -18,6 +19,8 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 	private static final String TAG = "SmallKeyboard";
 	private final GamePlay parent;
 	private boolean undoEnabled = false, redoEnabled = false;
+	private String backendForIcons;
+
 	static enum ArrowMode {
 		NO_ARROWS,  // untangle
 		ARROWS_LEFT_CLICK,  // flip, filling, guess
@@ -49,10 +52,11 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
         final List<Key> mKeys;
 		int undoKey = -1, redoKey = -1;
 		boolean initDone = false;
+		final String backendForIcons;
 		public KeyboardModel(final Context context, final KeyboardView keyboardView,
 				final boolean isInEditMode, final CharSequence characters,
 				final ArrowMode requestedArrowMode, final boolean columnMajor, final int maxPx,
-				final boolean undoEnabled, final boolean redoEnabled)
+				final boolean undoEnabled, final boolean redoEnabled, final String backendForIcons)
 		{
 			super(context, R.layout.keyboard_template);
 			this.context = context;
@@ -60,6 +64,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 			mDefaultWidth = mDefaultHeight =
 					context.getResources().getDimensionPixelSize(R.dimen.keySize);
 			mKeys = new ArrayList<Key>();
+			this.backendForIcons = backendForIcons;
 
 			Row row = new Row(this);
 			row.defaultHeight = mDefaultHeight;
@@ -290,14 +295,14 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 					key.x = arrowsRightEdge  - (isDiagonals ? 2 : 3) * keyPlusPad;
 					key.y = arrowsBottomEdge - 2*keyPlusPad;
 					key.icon = context.getResources().getDrawable(
-							R.drawable.sym_key_mouse_left);
+							trySpecificIcon(R.drawable.sym_key_mouse_left));
 					key.edgeFlags = maybeTopIf2Row;
 					break;
 				case ' ': // right click
 					key.x = arrowsRightEdge  -   keyPlusPad;
 					key.y = arrowsBottomEdge - arrowRows*keyPlusPad;
 					key.icon = context.getResources().getDrawable(
-							R.drawable.sym_key_mouse_right);
+							trySpecificIcon(R.drawable.sym_key_mouse_right));
 					key.edgeFlags = maybeTop | EDGE_RIGHT;
 					break;
 				case GameView.MOD_NUM_KEYPAD | '7':
@@ -333,6 +338,13 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 					break;
 				}
 			}
+		}
+
+		private int trySpecificIcon(int orig) {
+			final Resources resources = context.getResources();
+			final String name = resources.getResourceEntryName(orig);
+			final int specific = resources.getIdentifier(backendForIcons + "_" + name, "drawable", context.getPackageName());
+			return (specific == 0) ? orig : specific;
 		}
 
 		enum ExtraKey { UNDO, REDO }
@@ -387,15 +399,16 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 		parent = isInEditMode() ? null : (GamePlay)c;
 		setBackgroundColor(getResources().getColor(R.color.keyboard_background));
 		setOnKeyboardActionListener(this);
-		if (isInEditMode()) setKeys("123456\bur", ArrowMode.ARROWS_LEFT_RIGHT_CLICK);
+		if (isInEditMode()) setKeys("123456\bur", ArrowMode.ARROWS_LEFT_RIGHT_CLICK, "");
 		setPreviewEnabled(false);  // can't get icon buttons to darken properly and there are positioning bugs anyway
 	}
 
 	private CharSequence lastKeys = "";
-	public void setKeys(final CharSequence keys, final ArrowMode arrowMode)
+	public void setKeys(final CharSequence keys, final ArrowMode arrowMode, final String backendForIcons)
 	{
 		lastKeys = keys;
 		this.arrowMode = arrowMode;
+		this.backendForIcons = backendForIcons;
 		requestLayout();
 	}
 
@@ -409,7 +422,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 		int maxPx = MeasureSpec.getSize(landscape ? hSpec : wSpec);
 		// Doing this here seems the only way to be sure of dimensions.
 		final KeyboardModel model = new KeyboardModel(getContext(), this, isInEditMode(), lastKeys,
-				arrowMode, landscape, maxPx, undoEnabled, redoEnabled);
+				arrowMode, landscape, maxPx, undoEnabled, redoEnabled, backendForIcons);
 		setKeyboard(model);
 		if (model.isEmpty()) {
 			setMeasuredDimension(0, 0);
