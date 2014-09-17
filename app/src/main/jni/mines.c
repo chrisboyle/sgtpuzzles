@@ -2826,6 +2826,7 @@ static void game_free_drawstate(drawing *dr, game_drawstate *ds)
 static void draw_tile(drawing *dr, game_drawstate *ds,
                       int x, int y, int v, int bg)
 {
+    clip(dr, x, y, TILE_SIZE, TILE_SIZE);
     if (v < 0) {
         int coords[12];
 	int hl = 0;
@@ -2955,6 +2956,7 @@ static void draw_tile(drawing *dr, game_drawstate *ds,
 	}
     }
 
+    unclip(dr);
     draw_update(dr, x, y, TILE_SIZE, TILE_SIZE);
 }
 

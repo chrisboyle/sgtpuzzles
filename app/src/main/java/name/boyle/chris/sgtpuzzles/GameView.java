@@ -72,6 +72,8 @@ public class GameView extends View
 		bitmap = Bitmap.createBitmap(100, 100, Bitmap.Config.RGB_565);  // for safety
 		canvas = new Canvas(bitmap);
 		paint = new Paint();
+		paint.setAntiAlias(true);
+		paint.setStrokeCap(Paint.Cap.SQUARE);
 		paint.setStrokeWidth(1.f);  // will be scaled with everything else as long as it's non-zero
 		blitters = new Bitmap[512];
 		maxDistSq = Math.pow(ViewConfiguration.get(context).getScaledTouchSlop(), 2);
@@ -115,7 +117,6 @@ public class GameView extends View
 					}
 				}
 				if (touchState == TouchState.DRAGGING) {
-					Log.d(GamePlay.TAG, "drag");
 					parent.sendKey(viewToGame(pointFromEvent(event)), button + DRAG);
 					return true;
 				}
@@ -174,7 +175,6 @@ public class GameView extends View
 	}
 
 	private void scrollBy(float distanceX, float distanceY) {
-		Log.d(GamePlay.TAG, "scroll");
 		zoomMatrix.postTranslate(-distanceX, -distanceY);
 		zoomMatrixUpdated();
 		forceRedraw();
@@ -217,8 +217,6 @@ public class GameView extends View
 			@Override
 			public boolean onScale(ScaleGestureDetector detector) {
 				float factor = detector.getScaleFactor();
-				Log.d(GamePlay.TAG, "scale! " + factor
-						+ " @" + detector.getFocusX() + "," + detector.getFocusY());
 				final float scale = getXScale(zoomMatrix);
 				final float nextScale = scale * factor;
 				if (nextScale < 1.0f) {
@@ -418,13 +416,13 @@ public class GameView extends View
 	{
 		if (x == 0 && y == 0) return;
 		int w = getWidth(), h = getHeight();
-		canvas.clipRect(new Rect(x, y, w - x - 1, h - y - 1), Region.Op.REPLACE);
+		canvas.clipRect(new RectF(x - 0.5f, y - 0.5f, w - x - 0.5f, h - y - 0.5f), Region.Op.REPLACE);
 	}
 
 	@UsedByJNI
 	void clipRect(int x, int y, int w, int h)
 	{
-		canvas.clipRect(new Rect(x,y,x+w,y+h), Region.Op.REPLACE);
+		canvas.clipRect(new RectF(x - 0.5f, y - 0.5f, x + w - 0.5f, y + h - 0.5f), Region.Op.REPLACE);
 	}
 
 	@UsedByJNI
@@ -436,25 +434,31 @@ public class GameView extends View
 			paint.setColor(colours[0]);
 			canvas.drawRect(0, 0, w, h, paint);
 		} else {
-			canvas.clipRect(new Rect(x, y, w - x - 1, h - y - 1), Region.Op.REPLACE);
+			canvas.clipRect(new RectF(x - 0.5f, y - 0.5f, w - x - 0.5f, h - y - 0.5f), Region.Op.REPLACE);
 		}
 	}
 
 	@UsedByJNI
-	void fillRect(int x, int y, int w, int h, int colour)
+	void fillRect(final int x, final int y, final int w, final int h, final int colour)
 	{
 		paint.setColor(colours[colour]);
 		paint.setStyle(Paint.Style.FILL);
-		canvas.drawRect(x, y, x+w, y+h, paint);
+		paint.setAntiAlias(false);  // required for regions in Map to look continuous (and by API)
+		if (w == 1 && h == 1) {
+			canvas.drawPoint(x, y, paint);
+		} else if ((w == 1) ^ (h == 1)) {
+			canvas.drawLine(x, y, x + w - 1, y + h - 1, paint);
+		} else {
+			canvas.drawRect(x - 0.5f, y - 0.5f, x + w - 0.5f, y + h - 0.5f, paint);
+		}
+		paint.setAntiAlias(true);
 	}
 
 	@UsedByJNI
 	void drawLine(int x1, int y1, int x2, int y2, int colour)
 	{
 		paint.setColor(colours[colour]);
-		paint.setAntiAlias( true );
 		canvas.drawLine(x1, y1, x2, y2, paint);
-		paint.setAntiAlias( false );
 	}
 
 	@UsedByJNI
@@ -462,10 +466,16 @@ public class GameView extends View
 	{
 		Path path = new Path();
 		path.moveTo(points[0] + ox, points[1] + oy);
-		for( int i=1; i < points.length/2; i++ )
+		for(int i=1; i < points.length/2; i++) {
 			path.lineTo(points[2 * i] + ox, points[2 * i + 1] + oy);
+		}
 		path.close();
+		// cheat slightly: polygons up to square look prettier without (and adjacent squares want to
+		// look continuous in lightup)
+		boolean disableAntiAlias = points.length <= 8;  // 2 per point
+		if (disableAntiAlias) paint.setAntiAlias(false);
 		drawPoly(path, line, fill);
+		paint.setAntiAlias(true);
 	}
 
 	private void drawPoly(Path p, int lineColour, int fillColour)
@@ -506,9 +516,7 @@ public class GameView extends View
 		if ((flags & ALIGN_H_CENTRE) != 0) paint.setTextAlign( Paint.Align.CENTER );
 		else if ((flags & ALIGN_H_RIGHT) != 0) paint.setTextAlign( Paint.Align.RIGHT );
 		else paint.setTextAlign( Paint.Align.LEFT );
-		paint.setAntiAlias( true );
-		canvas.drawText( text, x, y, paint );
-		paint.setAntiAlias( false );
+		canvas.drawText(text, x, y, paint);
 	}
 
 	@UsedByJNI

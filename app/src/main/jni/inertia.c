@@ -1885,12 +1885,12 @@ static void draw_tile(drawing *dr, game_drawstate *ds, int x, int y, int v)
     if (v == WALL) {
 	int coords[6];
 
-        coords[0] = tx + TILESIZE;
-        coords[1] = ty + TILESIZE;
-        coords[2] = tx + TILESIZE;
+        coords[0] = tx + TILESIZE - 1;
+        coords[1] = ty + TILESIZE - 1;
+        coords[2] = tx + TILESIZE - 1;
         coords[3] = ty + 1;
         coords[4] = tx + 1;
-        coords[5] = ty + TILESIZE;
+        coords[5] = ty + TILESIZE - 1;
         draw_polygon(dr, coords, 3, COL_LOWLIGHT, COL_LOWLIGHT);
 
         coords[0] = tx + 1;
