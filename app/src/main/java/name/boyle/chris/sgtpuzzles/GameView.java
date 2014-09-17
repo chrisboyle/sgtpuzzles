@@ -7,7 +7,7 @@ import android.graphics.Canvas;
 import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Path;
-import android.graphics.Point;
+import android.graphics.PointF;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.Region;
@@ -42,7 +42,7 @@ public class GameView extends View
 	private int button;
 	private int backgroundColour;
 	private boolean waitingSpace = false;
-	private Point touchStart;
+	private PointF touchStart;
 	private final double maxDistSq;
 	static final int
 			LEFT_BUTTON = 0x0200, MIDDLE_BUTTON = 0x201, RIGHT_BUTTON = 0x202,
@@ -156,11 +156,11 @@ public class GameView extends View
 		else dragMode = DragMode.UNMODIFIED;
 	}
 
-	private void revertDragInProgress(final Point here) {
+	private void revertDragInProgress(final PointF here) {
 		if (touchState == TouchState.DRAGGING) {
-			final Point dragTo;
+			final PointF dragTo;
 			switch (dragMode) {
-				case REVERT_OFF_SCREEN: dragTo = new Point(-1, -1); break;
+				case REVERT_OFF_SCREEN: dragTo = new PointF(-1, -1); break;
 				case REVERT_TO_START: dragTo = viewToGame(touchStart); break;
 				default: dragTo = viewToGame(here); break;
 			}
@@ -183,8 +183,8 @@ public class GameView extends View
 	private void zoomMatrixUpdated() {
 		// Constrain scrolling to game bounds
 		invertZoomMatrix();  // needed for viewToGame
-		final Point topLeft = viewToGame(new Point(0, 0));
-		final Point bottomRight = viewToGame(new Point(w, h));
+		final PointF topLeft = viewToGame(new PointF(0, 0));
+		final PointF bottomRight = viewToGame(new PointF(w, h));
 		// TODO trigger EdgeEffectCompat animation on appropriate edge(s)
 		if (topLeft.x < 0) {
 			zoomMatrix.postTranslate(topLeft.x, 0);
@@ -219,12 +219,14 @@ public class GameView extends View
 				float factor = detector.getScaleFactor();
 				final float scale = getXScale(zoomMatrix);
 				final float nextScale = scale * factor;
-				if (nextScale < 1.0f) {
-					factor /= nextScale;
-				} else if (nextScale > maxZoom) {
-					factor *= maxZoom/nextScale;
+				if (nextScale < 1.01f) {
+					zoomMatrix.reset();
+				} else {
+					if (nextScale > maxZoom) {
+						factor = maxZoom / scale;
+					}
+					zoomMatrix.postScale(factor, factor, detector.getFocusX(), detector.getFocusY());
 				}
-				zoomMatrix.postScale(factor, factor, detector.getFocusX(), detector.getFocusY());
 				zoomMatrixUpdated();
 				forceRedraw();
 				return true;
@@ -265,14 +267,14 @@ public class GameView extends View
 		return values[Matrix.MSCALE_X];
 	}
 
-	Point pointFromEvent(MotionEvent event) {
-		return new Point(Math.round(event.getX()), Math.round(event.getY()));
+	PointF pointFromEvent(MotionEvent event) {
+		return new PointF(event.getX(), event.getY());
 	}
 
-	Point viewToGame(Point point) {
+	PointF viewToGame(PointF point) {
 		float[] f = { point.x, point.y };
 		inverseZoomMatrix.mapPoints(f);
-		return new Point(Math.round(f[0]), Math.round(f[1]));
+		return new PointF(f[0], f[1]);
 	}
 
 	@TargetApi(Build.VERSION_CODES.FROYO)
@@ -337,7 +339,7 @@ public class GameView extends View
 				key = ' ';
 				break;
 			}
-			touchStart = new Point(0, 0);
+			touchStart = new PointF(0, 0);
 			waitingSpace = true;
 			parent.handler.removeCallbacks( sendSpace );
 			parent.handler.postDelayed( sendSpace, longPressTimeout);

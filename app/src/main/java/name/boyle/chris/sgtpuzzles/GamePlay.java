@@ -33,7 +33,7 @@ import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.graphics.Color;
-import android.graphics.Point;
+import android.graphics.PointF;
 import android.graphics.PorterDuff;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
@@ -700,9 +700,9 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 					TIMER_INTERVAL);
 	}
 
-	void sendKey(Point p, int k)
+	void sendKey(PointF p, int k)
 	{
-		sendKey(p.x, p.y, k);
+		sendKey(Math.round(p.x), Math.round(p.y), k);
 	}
 
 	void sendKey(int x, int y, int k)
