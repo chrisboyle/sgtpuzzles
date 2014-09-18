@@ -13,8 +13,10 @@ import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
-import java.util.Map.Entry;
+import java.util.Map;
 import java.util.StringTokenizer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import name.boyle.chris.sgtpuzzles.compat.PrefsSaver;
 import name.boyle.chris.sgtpuzzles.compat.SysUIVisSetter;
@@ -94,7 +96,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 	private RelativeLayout mainLayout;
 	private GameView gameView;
 	private SubMenu typeMenu;
-	private LinkedHashMap<String, String> gameTypes;
+	private Map<String, String> gameTypes;
 	private int currentType = 0;
 	private boolean workerRunning = false;
 	private Process gameGenProcess = null;
@@ -121,6 +123,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 	private boolean startedFullscreen = false, cachedFullscreen = false;
 	private boolean keysAlreadySet = false;
 	private boolean everCompleted = false;
+	private final Pattern DIMENSIONS = Pattern.compile("(\\d+)( ?)x\\2(\\d+)(.*)");
 
 	enum MsgType { TIMER, DONE, ABORT }
 	static class PuzzlesHandler extends Handler
@@ -335,7 +338,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 			Log.d(TAG, "restoring last state");
 			startGame(GameLaunch.ofSavedGame(savedGame, wasCompleted));
 		} else if (launchIfDifferent != null) {
-			// first ever click from chooser
+			// first ever click (of any game) from chooser
 			startGame(GameLaunch.toGenerateFromChooser(launchIfDifferent));
 		} else {
 			Log.d(TAG, "no state, starting chooser");
@@ -369,9 +372,9 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 		typeItem.setVisible(enableType);
 		typeMenu = typeItem.getSubMenu();
 		int i = 0;
-		for(Entry<String, String> entry : gameTypes.entrySet()) {
+		for(String title : gameTypes.values()) {
 			if( menu.findItem(i) == null ) {
-				typeMenu.add(R.id.typeGroup, i, Menu.NONE, entry.getValue());
+				typeMenu.add(R.id.typeGroup, i, Menu.NONE, orientGameType(title));
 			}
 			i++;
 		}
@@ -383,6 +386,23 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 		menu.findItem(R.id.this_game).setTitle(MessageFormat.format(
 					getString(R.string.how_to_play_game),new Object[]{this.getTitle()}));
 		return true;
+	}
+
+	private String orientGameType(String type) {
+		if (type == null) return null;
+		boolean screenLandscape = (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE);
+		final Matcher matcher = DIMENSIONS.matcher(type);
+		if (matcher.matches()) {
+			int w = Integer.parseInt(matcher.group(1));
+			int h = Integer.parseInt(matcher.group(3));
+			boolean typeLandscape = (w > h);
+			if (typeLandscape != screenLandscape) {
+				String ret = matcher.group(3) + matcher.group(2) + "x" + matcher.group(2) + matcher.group(1) + matcher.group(4);
+				Log.d(TAG, "orientGameType: " + type + " -> " + ret);
+				return ret;
+			}
+		}
+		return type;
 	}
 
 	private void updateUndoRedoEnabled() {
@@ -443,7 +463,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 			break;
 		default:
 			if (itemId < gameTypes.size()) {
-				String presetParams = (String)gameTypes.keySet().toArray()[itemId];
+				String presetParams = orientGameType((String)gameTypes.keySet().toArray()[itemId]);
 				Log.d(TAG, "preset: " + itemId + ": " + presetParams);
 				startGame(GameLaunch.toGenerate(currentBackend, presetParams));
 			} else {
@@ -559,7 +579,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 
 	private void startNewGame()
 	{
-		startGame(GameLaunch.toGenerate(currentBackend, getCurrentParams()));
+		startGame(GameLaunch.toGenerate(currentBackend, orientGameType(getCurrentParams())));
 	}
 
 	private void startGame(final GameLaunch launch)
@@ -576,34 +596,37 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 
 	@UsedByJNI
 	private void clearForNewGame(final String startingBackend, final String keys, final String keysIfArrows, final SmallKeyboard.ArrowMode arrowMode, final float[] colours) {
-		runOnUiThread(new Runnable(){public void run() {
-			gameView.colours = new int[colours.length/3];
-			for (int i=0; i<colours.length/3; i++) {
-				final int colour = Color.rgb(
-						(int) (colours[i * 3    ] * 255),
-						(int) (colours[i * 3 + 1] * 255),
-						(int) (colours[i * 3 + 2] * 255));
-				gameView.colours[i] = colour;
+		runOnUiThread(new Runnable() {
+			public void run() {
+				gameView.colours = new int[colours.length / 3];
+				for (int i = 0; i < colours.length / 3; i++) {
+					final int colour = Color.rgb(
+							(int) (colours[i * 3] * 255),
+							(int) (colours[i * 3 + 1] * 255),
+							(int) (colours[i * 3 + 2] * 255));
+					gameView.colours[i] = colour;
+				}
+				if (gameView.colours.length > 0) {
+					gameView.setBackgroundColor(gameView.colours[0]);
+				} else {
+					gameView.setBackgroundColor(gameView.getDefaultBackgroundColour());
+				}
+				gameView.clear();
+				solveEnabled = false;
+				changedState(false, false);
+				customVisible = false;
+				setStatusBarVisibility(false);
+				applyUndoRedoKbd();
+				setKeys(startingBackend, keys, keysIfArrows, arrowMode);
+				if (typeMenu != null) {
+					while (typeMenu.size() > 1)
+						typeMenu.removeItem(typeMenu.getItem(0).getItemId());
+				}
+				gameTypes.clear();
+				gameView.keysHandled = 0;
+				everCompleted = false;
 			}
-			if (gameView.colours.length > 0) {
-				gameView.setBackgroundColor(gameView.colours[0]);
-			} else {
-				gameView.setBackgroundColor(gameView.getDefaultBackgroundColour());
-			}
-			gameView.clear();
-			solveEnabled = false;
-			changedState(false, false);
-			customVisible = false;
-			setStatusBarVisibility(false);
-			applyUndoRedoKbd();
-			setKeys(startingBackend, keys, keysIfArrows, arrowMode);
-			if (typeMenu != null) {
-				while (typeMenu.size() > 1) typeMenu.removeItem(typeMenu.getItem(0).getItemId());
-			}
-			gameTypes.clear();
-			gameView.keysHandled = 0;
-			everCompleted = false;
-		}});
+		});
 	}
 
 	private void startGameThread(final GameLaunch launch) {
@@ -615,7 +638,13 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 					String params = launch.getParams();
 					if (params == null) {
 						params = getLastParams(whichBackend);
-						Log.d(TAG, "Using last params: "+params);
+						if (params == null) {
+							params = (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE)
+								? "--landscape" : "--portrait";
+							Log.d(TAG, "Using default params with orientation: " + params);
+						} else {
+							Log.d(TAG, "Using last params: " + params);
+						}
 					} else {
 						Log.d(TAG, "Using specified params: "+params);
 					}
@@ -651,7 +680,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 	}
 
 	private String getLastParams(final String whichBackend) {
-		return state.getString(LAST_PARAMS_PREFIX + whichBackend, null);
+		return orientGameType(state.getString(LAST_PARAMS_PREFIX + whichBackend, null));
 	}
 
 	private void stopNative()
@@ -817,6 +846,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 		if (keysAlreadySet) setKeyboardVisibility(currentBackend, newConfig);
 		super.onConfigurationChanged(newConfig);
 		rethinkActionBarCapacity();
+		supportInvalidateOptionsMenu();  // for orientation of presets in type menu
 	}
 
 	/** ActionBar's capacity (width) has probably changed, so work around
@@ -859,6 +889,16 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 				setTitle(title);
 				getSupportActionBar().setTitle(title);
 				setStatusBarVisibility(hasStatus);
+				final String currentParams = orientGameType(getCurrentParams());
+				currentType = -1;
+				int i = 0;
+				for (String preset : gameTypes.keySet()) {
+					if (currentParams.equals(orientGameType(preset))) {
+						currentType = i;
+						// TODO if it's only equal modulo orientation; should we put a star by it or something?
+					}
+					i++;
+				}
 			}
 		});
 	}
@@ -1099,12 +1139,6 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 			dialogLayout.requestFocus();
 		}
 		dialog.show();
-	}
-
-	@UsedByJNI
-	void tickTypeItem(int whichType)
-	{
-		currentType = whichType;
 	}
 
 	@UsedByJNI

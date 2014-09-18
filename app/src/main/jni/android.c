@@ -90,7 +90,6 @@ static jmethodID
 	setMargins,
 	setStatus,
 	showToast,
-	tickTypeItem,
 	unClip,
 	completed;
 
@@ -405,7 +404,6 @@ void JNICALL configEvent(JNIEnv *env, jobject _obj, jint whichEvent)
 	pthread_setspecific(envKey, env);
 	char *title;
 	config_item *i;
-	(*env)->CallVoidMethod(env, obj, tickTypeItem, midend_which_preset(fe->me));
 	fe->cfg = midend_get_config(fe->me, whichEvent, &title);
 	fe->cfg_which = whichEvent;
 	jstring js = (*env)->NewStringUTF(env, title);
@@ -638,8 +636,6 @@ void startPlaying(JNIEnv *env, jobject _obj, jobject _gameView, jstring savedGam
 			(*env)->NewStringUTF(env, gamenames[whichBackend]),
 			(*env)->NewStringUTF(env, thegame->name), thegame->can_configure,
 			midend_wants_statusbar(fe->me), thegame->can_solve);
-
-	(*env)->CallVoidMethod(env, obj, tickTypeItem, midend_which_preset(fe->me));
 }
 
 JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
@@ -688,7 +684,6 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
 	setMargins     = (*env)->GetMethodID(env, vcls, "setMargins", "(II)V");
 	setStatus      = (*env)->GetMethodID(env, cls,  "setStatus", "(Ljava/lang/String;)V");
 	showToast      = (*env)->GetMethodID(env, cls,  "showToast", "(Ljava/lang/String;Z)V");
-	tickTypeItem   = (*env)->GetMethodID(env, cls,  "tickTypeItem", "(I)V");
 	unClip         = (*env)->GetMethodID(env, vcls, "unClip", "(II)V");
 	completed      = (*env)->GetMethodID(env, cls,  "completed", "()V");
 

@@ -2,6 +2,7 @@
   <dictionary name="cmb">
     <words>
       <w>&amp;env</w>
+      <w>&amp;pos</w>
       <w>addr</w>
       <w>argb</w>
       <w>argc</w>

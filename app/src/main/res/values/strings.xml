@@ -49,8 +49,8 @@ Version %s"</string>
     <!-- {0} is a game name -->
     <string name="how_to_play_game">How to play {0}</string>
     <!-- Progress dialog when generating/resuming a game -->
-    <string name="starting">Starting game (complex games may take a minute)</string>
-    <string name="resuming">Resuming game (complex games may take a minute)</string>
+    <string name="starting">Generating game…</string>
+    <string name="resuming">Resuming game…</string>
     <!-- "Completed" dialog -->
     <string name="completedPrompt">Menu on completion</string>
     <string name="completedPromptSummary">When a game is completed, show shortcuts to start another</string>

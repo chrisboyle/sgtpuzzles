@@ -42,7 +42,20 @@ int main(int argc, const char *argv[]) {
 
 	game_params *params = thegame->default_params();
 	if (argc >= 3 && strlen(argv[2]) > 0) {
-		thegame->decode_params(params, argv[2]);
+		if (!strcmp(argv[2], "--portrait") || !strcmp(argv[2], "--landscape")) {
+			unsigned int w, h;
+			int pos;
+			char * encoded = thegame->encode_params(params, TRUE);
+			if (sscanf(encoded, "%ux%u%n", &w, &h, &pos) >= 2) {
+				if ((w > h) != (argv[2][2] == 'l')) {
+					sprintf(encoded, "%ux%u%s", h, w, encoded + pos);
+					thegame->decode_params(params, encoded);
+				}
+			}
+			sfree(encoded);
+		} else {
+			thegame->decode_params(params, argv[2]);
+		}
 		char *error = thegame->validate_params(params, TRUE);
 		if (error) {
 			thegame->free_params(params);
