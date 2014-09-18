@@ -267,9 +267,14 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 		return progress == null && (gameView.onKeyDown(keyCode, event) || super.onKeyDown(keyCode, event));
 	}
 
-	/** work around http://code.google.com/p/android/issues/detail?id=21181 */
 	@Override
 	public boolean onKeyUp(int keyCode, @NonNull KeyEvent event) {
+		if (keyCode == KeyEvent.KEYCODE_MENU) {
+			if (hackForSubmenus == null) openOptionsMenu();
+			hackForSubmenus.performIdentifierAction(R.id.game, 0);
+			return true;
+		}
+		// work around http://code.google.com/p/android/issues/detail?id=21181
 		return progress == null && (gameView.onKeyUp(keyCode, event) || super.onKeyUp(keyCode, event));
 	}
 
