@@ -124,6 +124,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 	private boolean keysAlreadySet = false;
 	private boolean everCompleted = false;
 	private final Pattern DIMENSIONS = Pattern.compile("(\\d+)( ?)x\\2(\\d+)(.*)");
+	private long lastKeySent = 0;
 
 	enum MsgType { TIMER, DONE, ABORT }
 	static class PuzzlesHandler extends Handler
@@ -283,6 +284,8 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 
 	@Override
 	public void onBackPressed() {
+		// ignore if game key or touch processed in last 600ms - likely accidental
+		if (System.nanoTime() - lastKeySent < 600000000) return;
 		super.onBackPressed();
 		overridePendingTransition(0, 0);
 	}
@@ -752,6 +755,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 		if (startedFullscreen) {
 			lightsOut(true);
 		}
+		lastKeySent = System.nanoTime();
 	}
 
 	private boolean prevLandscape = false;
