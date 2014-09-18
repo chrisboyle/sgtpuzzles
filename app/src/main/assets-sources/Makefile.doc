@@ -38,6 +38,8 @@ doc/puzzles.but.en: puzzles.but
 doc/%: doc/puzzles.but.%
 	mkdir -p $@
 	cd $@; halibut --html --input-charset=UTF-8 ../../$<
+	sed -i 's#<title>.*</title>#<title>Contents</title>#' $@/index.html
+	sed -i 's#<title>.*</title>#<title>Index</title>#' $@/docindex.html
 htmldocs: $(addprefix doc/,$(LANGUAGES))
 ../assets/%: doc/%
 	mkdir -p ../assets
