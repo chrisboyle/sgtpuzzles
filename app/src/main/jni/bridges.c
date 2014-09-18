@@ -2176,11 +2176,6 @@ static char *update_drag_dst(const game_state *state, game_ui *ui,
     ui->dragx_dst = -1;
     ui->dragy_dst = -1;
 
-    /** A drag out of the game area is to nowhere. */
-    if (nx < 0 || nx > ds->w || ny < 0 || ny > ds->h) {
-        return "";
-    }
-
     /* work out which of the four directions we're closest to... */
     ox = COORD(ui->dragx_src) + TILE_SIZE/2;
     oy = COORD(ui->dragy_src) + TILE_SIZE/2;

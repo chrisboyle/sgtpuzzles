@@ -60,7 +60,6 @@
 	<string translatable="false" name="net_drag_mode">unmodified</string>
 	<string translatable="false" name="twiddle_drag_mode">unmodified</string>
 	<!-- For games where a drag can be canceled by going off-screen, do that. -->
-	<string translatable="false" name="bridges_drag_mode">off_screen</string>
 	<string translatable="false" name="galaxies_drag_mode">off_screen</string>
 	<string translatable="false" name="map_drag_mode">off_screen</string>
 	<string translatable="false" name="mines_drag_mode">off_screen</string>
@@ -71,6 +70,7 @@
 	<string translatable="false" name="untangle_drag_mode">off_screen</string>
 	<!-- For games where dragging something off the board would be harmful, revert by
 	dragging back to the start of the drag instead. -->
+	<string translatable="false" name="bridges_drag_mode">start</string>
 	<string translatable="false" name="guess_drag_mode">start</string>
 	<string translatable="false" name="pearl_drag_mode">start</string>
 	<string translatable="false" name="signpost_drag_mode">start</string>
