@@ -105,21 +105,6 @@ public class GameView extends View
 					scrollBy(distanceX, distanceY);
 					return true;
 				}
-				float x = event.getX(), y = event.getY();
-				if (touchState == TouchState.WAITING_LONG_PRESS && movedPastTouchSlop(x, y)) {
-					Log.d(GamePlay.TAG, "drag start");
-					parent.handler.removeCallbacks(sendLongPress);
-					if (dragMode == DragMode.PREVENT) {
-						touchState = TouchState.IDLE;
-					} else {
-						parent.sendKey(viewToGame(touchStart), button);
-						touchState = TouchState.DRAGGING;
-					}
-				}
-				if (touchState == TouchState.DRAGGING) {
-					parent.sendKey(viewToGame(pointFromEvent(event)), button + DRAG);
-					return true;
-				}
 				return false;
 			}
 
@@ -311,6 +296,27 @@ public class GameView extends View
 			}
 			touchState = TouchState.IDLE;
 			return true;
+		} else if (event.getAction() == MotionEvent.ACTION_MOVE) {
+			// 2nd clause is 2 fingers a constant distance apart
+			if ((hasPinchZoom && isScaleInProgress()) || event.getPointerCount() > 1) {
+				return sdRet || gdRet;
+			}
+			float x = event.getX(), y = event.getY();
+			if (touchState == TouchState.WAITING_LONG_PRESS && movedPastTouchSlop(x, y)) {
+				Log.d(GamePlay.TAG, "drag start");
+				parent.handler.removeCallbacks(sendLongPress);
+				if (dragMode == DragMode.PREVENT) {
+					touchState = TouchState.IDLE;
+				} else {
+					parent.sendKey(viewToGame(touchStart), button);
+					touchState = TouchState.DRAGGING;
+				}
+			}
+			if (touchState == TouchState.DRAGGING) {
+				parent.sendKey(viewToGame(pointFromEvent(event)), button + DRAG);
+				return true;
+			}
+			return false;
 		} else {
 			return sdRet || gdRet;
 		}
