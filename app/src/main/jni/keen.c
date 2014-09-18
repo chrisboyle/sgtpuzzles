@@ -1210,7 +1210,7 @@ static game_state *new_game(midend *me, const game_params *params,
     keys[w] = '\b';
     keys[w+1] = 'M';
     keys[w+2] = '\0';
-    android_keys(keys, ANDROID_ARROWS_LEFT_RIGHT);
+    android_keys(keys, ANDROID_ARROWS_LEFT);  // right == \b
 #endif
 
     state->par = *params;	       /* structure copy */

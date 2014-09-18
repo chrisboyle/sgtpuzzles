@@ -1120,7 +1120,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         return NULL;
 
     /* reverse direction if right hand button is pressed */
-    if (button == RIGHT_BUTTON)
+    if (button == RIGHT_BUTTON || button == CURSOR_SELECT2)
     {
         dx = -dx;
         dy = -dy;

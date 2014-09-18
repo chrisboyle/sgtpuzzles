@@ -1,13 +1,16 @@
 package name.boyle.chris.sgtpuzzles;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.graphics.Canvas;
+import android.graphics.drawable.Drawable;
 import android.inputmethodservice.Keyboard;
 import android.inputmethodservice.KeyboardView;
 import android.support.annotation.NonNull;
@@ -23,7 +26,8 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 
 	static enum ArrowMode {
 		NO_ARROWS,  // untangle
-		ARROWS_LEFT_CLICK,  // flip, filling, guess
+		ARROWS_ONLY,  // cube
+		ARROWS_LEFT_CLICK,  // flip, filling, guess, keen, solo, towers, unequal
 		ARROWS_LEFT_RIGHT_CLICK,  // unless phone has a d-pad (most games)
 		ARROWS_DIAGONALS;  // Inertia
 
@@ -53,6 +57,19 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 		int undoKey = -1, redoKey = -1;
 		boolean initDone = false;
 		final String backendForIcons;
+		private static final Map<String, String> SHARED_ICONS = new LinkedHashMap<String, String>();
+		static {
+			SHARED_ICONS.put("blackbox_sym_key_mouse_right", "square_empty");
+			SHARED_ICONS.put("inertia_sym_key_mouse_left", "ic_action_solve");
+			SHARED_ICONS.put("keen_sym_key_mouse_left", "square_corner");
+			SHARED_ICONS.put("mines_sym_key_mouse_left", "square_empty");  // TODO draw a spade?
+			SHARED_ICONS.put("pattern_sym_key_mouse_left", "square_empty");  // black & white, really
+			SHARED_ICONS.put("pattern_sym_key_mouse_right", "square_filled");
+			SHARED_ICONS.put("solo_sym_key_mouse_left", "square_corner");
+			SHARED_ICONS.put("towers_sym_key_mouse_left", "square_corner");
+			SHARED_ICONS.put("unequal_sym_key_mouse_left", "square_corner");
+		}
+
 		public KeyboardModel(final Context context, final KeyboardView keyboardView,
 				final boolean isInEditMode, final CharSequence characters,
 				final ArrowMode requestedArrowMode, final boolean columnMajor, final int maxPx,
@@ -230,6 +247,13 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 							GameView.MOD_NUM_KEYPAD | '9',
 							GameView.MOD_NUM_KEYPAD | '3' };
 					break;
+				case ARROWS_ONLY:
+					arrows = new int[] {
+							GameView.CURSOR_UP,
+							GameView.CURSOR_DOWN,
+							GameView.CURSOR_LEFT,
+							GameView.CURSOR_RIGHT};
+					break;
 				case ARROWS_LEFT_CLICK:
 					arrows = new int[] {
 							GameView.CURSOR_UP,
@@ -294,15 +318,13 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 				case '\n':
 					key.x = arrowsRightEdge  - (isDiagonals ? 2 : 3) * keyPlusPad;
 					key.y = arrowsBottomEdge - 2*keyPlusPad;
-					key.icon = context.getResources().getDrawable(
-							trySpecificIcon(R.drawable.sym_key_mouse_left));
+					key.icon = trySpecificIcon(context.getResources(), R.drawable.sym_key_mouse_left);
 					key.edgeFlags = maybeTopIf2Row;
 					break;
 				case ' ': // right click
 					key.x = arrowsRightEdge  -   keyPlusPad;
 					key.y = arrowsBottomEdge - arrowRows*keyPlusPad;
-					key.icon = context.getResources().getDrawable(
-							trySpecificIcon(R.drawable.sym_key_mouse_right));
+					key.icon = trySpecificIcon(context.getResources(), R.drawable.sym_key_mouse_right);
 					key.edgeFlags = maybeTop | EDGE_RIGHT;
 					break;
 				case GameView.MOD_NUM_KEYPAD | '7':
@@ -340,11 +362,14 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 			}
 		}
 
-		private int trySpecificIcon(int orig) {
-			final Resources resources = context.getResources();
+		private Drawable trySpecificIcon(final Resources resources, final int orig) {
 			final String name = resources.getResourceEntryName(orig);
-			final int specific = resources.getIdentifier(backendForIcons + "_" + name, "drawable", context.getPackageName());
-			return (specific == 0) ? orig : specific;
+			final String specificName = backendForIcons + "_" + name;
+			final String sharedIcon = SHARED_ICONS.get(specificName);
+			final int specific = resources.getIdentifier(
+					(sharedIcon != null) ? sharedIcon : specificName,
+					"drawable", context.getPackageName());
+			return resources.getDrawable((specific == 0) ? orig : specific);
 		}
 
 		enum ExtraKey { UNDO, REDO }

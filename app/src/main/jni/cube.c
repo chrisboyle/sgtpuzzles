@@ -881,6 +881,9 @@ static game_state *new_game(midend *me, const game_params *params,
     game_state *state = snew(game_state);
     int area;
 
+#ifdef ANDROID
+    android_keys("", ANDROID_ARROWS_ONLY);
+#endif
     state->params = *params;           /* structure copy */
     state->solid = solids[params->solid];
 

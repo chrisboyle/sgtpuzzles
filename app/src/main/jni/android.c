@@ -55,6 +55,7 @@ static char gettexted[GETTEXTED_COUNT][GETTEXTED_SIZE];
 static int next_gettexted = 0;
 
 static jobject ARROW_MODE_NONE = NULL,
+	ARROW_MODE_ARROWS_ONLY = NULL,
 	ARROW_MODE_ARROWS_LEFT_CLICK = NULL,
 	ARROW_MODE_ARROWS_LEFT_RIGHT_CLICK = NULL,
 	ARROW_MODE_DIAGONALS = NULL;
@@ -561,6 +562,7 @@ void android_keys2(const char *keys, const char *extraKeysIfArrows, int arrowMod
 	lastArrowMode = (arrowMode == ANDROID_ARROWS_DIAGONALS) ? ARROW_MODE_DIAGONALS :
 			(arrowMode == ANDROID_ARROWS_LEFT_RIGHT) ? ARROW_MODE_ARROWS_LEFT_RIGHT_CLICK :
 			(arrowMode == ANDROID_ARROWS_LEFT) ? ARROW_MODE_ARROWS_LEFT_CLICK :
+			(arrowMode == ANDROID_ARROWS_ONLY) ? ARROW_MODE_ARROWS_ONLY :
 			ARROW_MODE_NONE;
 }
 
@@ -652,6 +654,8 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
 	arrowModeCls = (*env)->FindClass(env, "name/boyle/chris/sgtpuzzles/SmallKeyboard$ArrowMode");
 	ARROW_MODE_NONE = (*env)->NewGlobalRef(env, (*env)->GetStaticObjectField(env, arrowModeCls,
 			(*env)->GetStaticFieldID(env, arrowModeCls, "NO_ARROWS", "Lname/boyle/chris/sgtpuzzles/SmallKeyboard$ArrowMode;")));
+	ARROW_MODE_ARROWS_ONLY = (*env)->NewGlobalRef(env, (*env)->GetStaticObjectField(env, arrowModeCls,
+			(*env)->GetStaticFieldID(env, arrowModeCls, "ARROWS_ONLY", "Lname/boyle/chris/sgtpuzzles/SmallKeyboard$ArrowMode;")));
 	ARROW_MODE_ARROWS_LEFT_CLICK = (*env)->NewGlobalRef(env, (*env)->GetStaticObjectField(env, arrowModeCls,
 			(*env)->GetStaticFieldID(env, arrowModeCls, "ARROWS_LEFT_CLICK", "Lname/boyle/chris/sgtpuzzles/SmallKeyboard$ArrowMode;")));
 	ARROW_MODE_ARROWS_LEFT_RIGHT_CLICK = (*env)->NewGlobalRef(env, (*env)->GetStaticObjectField(env, arrowModeCls,

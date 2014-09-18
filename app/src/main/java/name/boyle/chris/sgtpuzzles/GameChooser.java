@@ -5,7 +5,6 @@ import name.boyle.chris.sgtpuzzles.compat.PrefsSaver;
 import android.animation.LayoutTransition;
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
-import android.app.AlertDialog;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
@@ -113,13 +112,13 @@ public class GameChooser extends ActionBarActivity
 			});
 		}
 
-		if( ! state.contains("savedGame") || state.getString("savedGame", "").length() <= 0 ) {
-			// first run
-			new AlertDialog.Builder(this)
-					.setMessage(R.string.welcome)
-					.setPositiveButton(android.R.string.ok, null)
-					.show();
-		}
+//		if( ! state.contains("savedGame") || state.getString("savedGame", "").length() <= 0 ) {
+//			// first run
+//			new AlertDialog.Builder(this)
+//					.setMessage(R.string.welcome)
+//					.setPositiveButton(android.R.string.ok, null)
+//					.show();
+//		}
 
 		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
 			enableTableAnimations();
