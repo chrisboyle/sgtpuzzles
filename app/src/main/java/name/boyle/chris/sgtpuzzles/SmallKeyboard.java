@@ -60,14 +60,23 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 		private static final Map<String, String> SHARED_ICONS = new LinkedHashMap<String, String>();
 		static {
 			SHARED_ICONS.put("blackbox_sym_key_mouse_right", "square_empty");
+			SHARED_ICONS.put("guess_sym_key_h", "lock");
 			SHARED_ICONS.put("inertia_sym_key_mouse_left", "ic_action_solve");
 			SHARED_ICONS.put("keen_sym_key_mouse_left", "square_corner");
+			SHARED_ICONS.put("keen_sym_key_m", "square_corner_asterisk");
 			SHARED_ICONS.put("mines_sym_key_mouse_left", "square_empty");  // TODO draw a spade?
+			SHARED_ICONS.put("net_sym_key_a", "rotate_left_90");
+			SHARED_ICONS.put("net_sym_key_s", "lock");
+			SHARED_ICONS.put("net_sym_key_d", "rotate_right_90");
+			SHARED_ICONS.put("net_sym_key_f", "rotate_left_180");
 			SHARED_ICONS.put("pattern_sym_key_mouse_left", "square_empty");  // black & white, really
 			SHARED_ICONS.put("pattern_sym_key_mouse_right", "square_filled");
 			SHARED_ICONS.put("solo_sym_key_mouse_left", "square_corner");
+			SHARED_ICONS.put("solo_sym_key_m", "square_corner_asterisk");  // not used yet, hopefully will be
 			SHARED_ICONS.put("towers_sym_key_mouse_left", "square_corner");
+			SHARED_ICONS.put("towers_sym_key_m", "square_corner_asterisk");
 			SHARED_ICONS.put("unequal_sym_key_mouse_left", "square_corner");
+			SHARED_ICONS.put("unequal_sym_key_m", "square_corner_asterisk");
 		}
 
 		public KeyboardModel(final Context context, final KeyboardView keyboardView,
@@ -223,7 +232,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 					key.enabled = true;
 					break;
 				default:
-					key.label = String.valueOf(c);
+					trySpecificCharacterIcon(context.getResources(), key, c);
 					key.enabled = true;
 					break;
 			}
@@ -370,6 +379,19 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 					(sharedIcon != null) ? sharedIcon : specificName,
 					"drawable", context.getPackageName());
 			return resources.getDrawable((specific == 0) ? orig : specific);
+		}
+
+		private void trySpecificCharacterIcon(final Resources resources, final Key key, final char c) {
+			final String specificName = backendForIcons + "_sym_key_" + Character.toLowerCase(c);
+			final String sharedIcon = SHARED_ICONS.get(specificName);
+			final int icon = resources.getIdentifier(
+					(sharedIcon != null) ? sharedIcon : specificName,
+					"drawable", context.getPackageName());
+			if (icon == 0) {
+				key.label = String.valueOf(Character.toUpperCase(c));
+			} else {
+				key.icon = resources.getDrawable(icon);
+			}
 		}
 
 		enum ExtraKey { UNDO, REDO }
