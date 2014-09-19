@@ -60,12 +60,18 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 		private static final Map<String, String> SHARED_ICONS = new LinkedHashMap<String, String>();
 		static {
 			SHARED_ICONS.put("blackbox_sym_key_mouse_right", "square_empty");
+			SHARED_ICONS.put("bridges_sym_key_mouse_left", "line");
 			SHARED_ICONS.put("filling_sym_key_mouse_left", "square_filled");
+			SHARED_ICONS.put("galaxies_sym_key_mouse_left", "line");
+			// TODO galaxies arrow
 			SHARED_ICONS.put("guess_sym_key_h", "lock");
 			SHARED_ICONS.put("inertia_sym_key_mouse_left", "ic_action_solve");
 			SHARED_ICONS.put("keen_sym_key_mouse_left", "square_corner");
 			SHARED_ICONS.put("keen_sym_key_m", "square_corner_asterisk");
+			SHARED_ICONS.put("lightup_sym_key_mouse_left", "square_circle");
 			SHARED_ICONS.put("lightup_sym_key_mouse_right", "square_dot");
+			SHARED_ICONS.put("loopy_sym_key_mouse_left", "line");
+			SHARED_ICONS.put("loopy_sym_key_mouse_right", "no_line");
 			SHARED_ICONS.put("mines_sym_key_mouse_left", "square_empty");
 			SHARED_ICONS.put("net_sym_key_a", "rotate_left_90");
 			SHARED_ICONS.put("net_sym_key_s", "lock");
@@ -73,10 +79,14 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 			SHARED_ICONS.put("net_sym_key_f", "rotate_left_180");
 			SHARED_ICONS.put("pattern_sym_key_mouse_left", "square_empty");  // black & white, really
 			SHARED_ICONS.put("pattern_sym_key_mouse_right", "square_filled");
+			SHARED_ICONS.put("pearl_sym_key_mouse_left", "line");
+			SHARED_ICONS.put("pearl_sym_key_mouse_right", "no_line");
 			SHARED_ICONS.put("range_sym_key_mouse_left", "square_filled");
 			SHARED_ICONS.put("range_sym_key_mouse_right", "square_dot");
 			SHARED_ICONS.put("samegame_sym_key_mouse_left", "square_dot");
 			SHARED_ICONS.put("samegame_sym_key_mouse_right", "square_empty");
+			SHARED_ICONS.put("singles_sym_key_mouse_left", "square_filled");
+			SHARED_ICONS.put("singles_sym_key_mouse_right", "square_circle");
 			SHARED_ICONS.put("solo_sym_key_mouse_left", "square_corner");
 			SHARED_ICONS.put("solo_sym_key_m", "square_corner_asterisk");  // not used yet, hopefully will be
 			SHARED_ICONS.put("tents_sym_key_mouse_right", "square_filled");
