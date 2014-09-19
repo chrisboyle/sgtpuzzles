@@ -79,11 +79,16 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 			SHARED_ICONS.put("samegame_sym_key_mouse_right", "square_empty");
 			SHARED_ICONS.put("solo_sym_key_mouse_left", "square_corner");
 			SHARED_ICONS.put("solo_sym_key_m", "square_corner_asterisk");  // not used yet, hopefully will be
+			SHARED_ICONS.put("tents_sym_key_mouse_right", "square_filled");
 			SHARED_ICONS.put("towers_sym_key_mouse_left", "square_corner");
 			SHARED_ICONS.put("towers_sym_key_m", "square_corner_asterisk");
+			SHARED_ICONS.put("twiddle_sym_key_mouse_left", "rotate_left_90");
+			SHARED_ICONS.put("twiddle_sym_key_mouse_right", "rotate_right_90");
 			SHARED_ICONS.put("undead_sym_key_mouse_left", "square_corner");
 			SHARED_ICONS.put("unequal_sym_key_mouse_left", "square_corner");
 			SHARED_ICONS.put("unequal_sym_key_m", "square_corner_asterisk");
+			SHARED_ICONS.put("unruly_sym_key_mouse_left", "square_empty");
+			SHARED_ICONS.put("unruly_sym_key_mouse_right", "square_filled");
 		}
 
 		public KeyboardModel(final Context context, final KeyboardView keyboardView,
