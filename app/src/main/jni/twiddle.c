@@ -916,28 +916,28 @@ static void draw_tile(drawing *dr, game_drawstate *ds, const game_state *state,
     coords[2] = x + TILE_SIZE - 1;
     coords[3] = y;
     rotate(coords+2, rot);
-    draw_polygon(dr, coords, 3, rot ? rot->rc : COL_LOWLIGHT,
+    draw_polygon(dr, coords, 3, rot ? rot->rc : (cedges & CUR_RIGHT) ? COL_LOWCURSOR : COL_LOWLIGHT,
 		 rot ? rot->rc : (cedges & CUR_RIGHT) ? COL_LOWCURSOR : COL_LOWLIGHT);
 
     /* Bottom side. */
     coords[2] = x;
     coords[3] = y + TILE_SIZE - 1;
     rotate(coords+2, rot);
-    draw_polygon(dr, coords, 3, rot ? rot->bc : COL_LOWLIGHT,
+    draw_polygon(dr, coords, 3, rot ? rot->bc : (cedges & CUR_BOTTOM) ? COL_LOWCURSOR : COL_LOWLIGHT,
 		 rot ? rot->bc : (cedges & CUR_BOTTOM) ? COL_LOWCURSOR : COL_LOWLIGHT);
 
     /* Left side. */
     coords[0] = x;
     coords[1] = y;
     rotate(coords+0, rot);
-    draw_polygon(dr, coords, 3, rot ? rot->lc : COL_HIGHLIGHT,
+    draw_polygon(dr, coords, 3, rot ? rot->lc : (cedges & CUR_LEFT) ? COL_HIGHCURSOR : COL_HIGHLIGHT,
 		 rot ? rot->lc : (cedges & CUR_LEFT) ? COL_HIGHCURSOR : COL_HIGHLIGHT);
 
     /* Top side. */
     coords[2] = x + TILE_SIZE - 1;
     coords[3] = y;
     rotate(coords+2, rot);
-    draw_polygon(dr, coords, 3, rot ? rot->tc : COL_HIGHLIGHT,
+    draw_polygon(dr, coords, 3, rot ? rot->tc : (cedges & CUR_TOP) ? COL_HIGHCURSOR : COL_HIGHLIGHT,
 		 rot ? rot->tc : (cedges & CUR_TOP) ? COL_HIGHCURSOR : COL_HIGHLIGHT);
 
     /*
