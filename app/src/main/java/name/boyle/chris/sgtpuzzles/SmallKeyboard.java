@@ -64,13 +64,18 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 			SHARED_ICONS.put("inertia_sym_key_mouse_left", "ic_action_solve");
 			SHARED_ICONS.put("keen_sym_key_mouse_left", "square_corner");
 			SHARED_ICONS.put("keen_sym_key_m", "square_corner_asterisk");
-			SHARED_ICONS.put("mines_sym_key_mouse_left", "square_empty");  // TODO draw a spade?
+			SHARED_ICONS.put("lightup_sym_key_mouse_right", "square_dot");
+			SHARED_ICONS.put("mines_sym_key_mouse_left", "square_empty");
 			SHARED_ICONS.put("net_sym_key_a", "rotate_left_90");
 			SHARED_ICONS.put("net_sym_key_s", "lock");
 			SHARED_ICONS.put("net_sym_key_d", "rotate_right_90");
 			SHARED_ICONS.put("net_sym_key_f", "rotate_left_180");
 			SHARED_ICONS.put("pattern_sym_key_mouse_left", "square_empty");  // black & white, really
 			SHARED_ICONS.put("pattern_sym_key_mouse_right", "square_filled");
+			SHARED_ICONS.put("range_sym_key_mouse_left", "square_filled");
+			SHARED_ICONS.put("range_sym_key_mouse_right", "square_dot");
+			SHARED_ICONS.put("samegame_sym_key_mouse_left", "square_dot");
+			SHARED_ICONS.put("samegame_sym_key_mouse_right", "square_empty");
 			SHARED_ICONS.put("solo_sym_key_mouse_left", "square_corner");
 			SHARED_ICONS.put("solo_sym_key_m", "square_corner_asterisk");  // not used yet, hopefully will be
 			SHARED_ICONS.put("towers_sym_key_mouse_left", "square_corner");
