@@ -60,6 +60,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 		private static final Map<String, String> SHARED_ICONS = new LinkedHashMap<String, String>();
 		static {
 			SHARED_ICONS.put("blackbox_sym_key_mouse_right", "square_empty");
+			SHARED_ICONS.put("filling_sym_key_mouse_left", "square_filled");
 			SHARED_ICONS.put("guess_sym_key_h", "lock");
 			SHARED_ICONS.put("inertia_sym_key_mouse_left", "ic_action_solve");
 			SHARED_ICONS.put("keen_sym_key_mouse_left", "square_corner");
