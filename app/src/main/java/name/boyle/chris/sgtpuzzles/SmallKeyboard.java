@@ -82,8 +82,8 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 			SHARED_ICONS.put("pearl_sym_key_mouse_right", "no_line");
 			SHARED_ICONS.put("range_sym_key_mouse_left", "square_filled");
 			SHARED_ICONS.put("range_sym_key_mouse_right", "square_dot");
-			SHARED_ICONS.put("rectangles_sym_key_mouse_left", "square_empty");
-			SHARED_ICONS.put("rectangles_sym_key_mouse_right", "no_line");
+			SHARED_ICONS.put("rect_sym_key_mouse_left", "square_empty");
+			SHARED_ICONS.put("rect_sym_key_mouse_right", "no_line");
 			SHARED_ICONS.put("samegame_sym_key_mouse_left", "square_dot");
 			SHARED_ICONS.put("samegame_sym_key_mouse_right", "square_empty");
 			SHARED_ICONS.put("singles_sym_key_mouse_left", "square_filled");
