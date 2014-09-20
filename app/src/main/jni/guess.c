@@ -318,7 +318,7 @@ static game_state *new_game(midend *me, const game_params *params,
     int i;
 
 #ifdef ANDROID
-    android_keys2("L\b", "H", ANDROID_ARROWS_LEFT);
+    android_keys2("L\b", "", ANDROID_ARROWS_LEFT_RIGHT);
 #endif
     state->params = *params;
     state->guesses = snewn(params->nguesses, pegrow);
@@ -770,7 +770,7 @@ static char *interpret_move(const game_state *from, game_ui *ui,
         if (button == CURSOR_LEFT && ui->peg_cur > 0)
             ui->peg_cur--;
         ret = "";
-    } else if (IS_CURSOR_SELECT(button)) {
+    } else if (button == CURSOR_SELECT) {
         ui->display_cur = 1;
         if (ui->peg_cur == from->params.npegs) {
             ret = encode_move(from, ui);
@@ -782,7 +782,7 @@ static char *interpret_move(const game_state *from, game_ui *ui,
         ui->display_cur = 1;
         set_peg(&from->params, ui, ui->peg_cur, 0);
         ret = "";
-    } else if (button == 'H' || button == 'h') {
+    } else if (button == 'H' || button == 'h' || button == CURSOR_SELECT2) {
         ui->display_cur = 1;
         ui->holds[ui->peg_cur] = 1 - ui->holds[ui->peg_cur];
         ret = "";

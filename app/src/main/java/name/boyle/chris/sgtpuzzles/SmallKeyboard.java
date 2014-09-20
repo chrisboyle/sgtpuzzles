@@ -63,7 +63,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 			SHARED_ICONS.put("bridges_sym_key_mouse_left", "line");
 			SHARED_ICONS.put("filling_sym_key_mouse_left", "square_filled");
 			SHARED_ICONS.put("galaxies_sym_key_mouse_left", "line");
-			SHARED_ICONS.put("guess_sym_key_h", "lock");
+			SHARED_ICONS.put("guess_sym_key_mouse_right", "lock");
 			SHARED_ICONS.put("inertia_sym_key_mouse_left", "ic_action_solve");
 			SHARED_ICONS.put("keen_sym_key_mouse_left", "square_corner");
 			SHARED_ICONS.put("keen_sym_key_m", "square_corner_asterisk");
