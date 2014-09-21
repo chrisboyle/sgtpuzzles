@@ -83,9 +83,19 @@ public class GameView extends View
 			public boolean onDown(MotionEvent event) {
 				Log.d(GamePlay.TAG, "onDown");
 				int meta = event.getMetaState();
-				button = ( meta & KeyEvent.META_ALT_ON ) > 0 ? MIDDLE_BUTTON :
-						( meta & KeyEvent.META_SHIFT_ON ) > 0  ? RIGHT_BUTTON :
-								LEFT_BUTTON;
+				int buttonState = 1; // MotionEvent.BUTTON_PRIMARY
+				if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH) {
+					buttonState = event.getButtonState();
+				}
+				if ((meta & KeyEvent.META_ALT_ON) > 0  ||
+						buttonState == 4 /* MotionEvent.BUTTON_TERTIARY */)  {
+					button = MIDDLE_BUTTON;
+				} else if ((meta & KeyEvent.META_SHIFT_ON) > 0  ||
+						buttonState == 2 /* MotionEvent.BUTTON_SECONDARY */) {
+					button = RIGHT_BUTTON;
+				} else {
+					button = LEFT_BUTTON;
+				}
 				touchStart = pointFromEvent(event);
 				touchState = TouchState.WAITING_LONG_PRESS;
 				parent.handler.removeCallbacks(sendLongPress);
