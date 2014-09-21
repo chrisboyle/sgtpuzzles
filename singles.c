@@ -535,16 +535,28 @@ static int check_complete(game_state *state, unsigned flags)
     for (y = 0; y < h; y++) /* check rows from (0,y) */
         error += check_rowcol(state, y*w, 1, w, flags);
 
-    /* mark (all) white regions as an error if there is more than one.
-     * may want to make this less in-your-face (by only marking
-     * the smallest region as an error, for example -- but what if we
-     * have two regions of identical size?) */
-    for (i = 0; i < state->n; i++) {
-        if (!(state->flags[i] & F_BLACK) &&
-            dsf_size(dsf, i) < nwhite) {
-            error += 1;
-            if (flags & CC_MARK_ERRORS)
-                state->flags[i] |= F_ERROR;
+    /* If there's more than one white region, pick the largest one to
+     * be the canonical one (arbitrarily tie-breaking towards lower
+     * array indices), and mark all the others as erroneous. */
+    {
+        int largest = 0, canonical = -1;
+        for (i = 0; i < state->n; i++)
+            if (!(state->flags[i] & F_BLACK)) {
+                int size = dsf_size(dsf, i);
+                if (largest < size) {
+                    largest = size;
+                    canonical = i;
+                }
+            }
+
+        if (largest < nwhite) {
+            for (i = 0; i < state->n; i++)
+                if (!(state->flags[i] & F_BLACK) &&
+                    dsf_canonify(dsf, i) != canonical) {
+                    error += 1;
+                    if (flags & CC_MARK_ERRORS)
+                        state->flags[i] |= F_ERROR;
+                }
         }
     }
 
