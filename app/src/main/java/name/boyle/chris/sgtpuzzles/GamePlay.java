@@ -637,14 +637,11 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 		String backend = launch.getWhichBackend();
 		if (backend == null) backend = games[identifyBackend(launch.getSaved())];
 		startingBackend = backend;
-		final boolean paramsKnownInAdvance = (launch.getParams() != null);
-		if (paramsKnownInAdvance) {
-			requestKeys(startingBackend, launch.getParams());
-		}
 		workerRunning = true;
 		(worker = new Thread(launch.needsGenerating() ? "generateAndLoadGame" : "loadGame") { public void run() {
 			try {
-				if (launch.needsGenerating()) {
+				final boolean generating = launch.needsGenerating();
+				if (generating) {
 					String whichBackend = launch.getWhichBackend();
 					String params = launch.getParams();
 					if (params == null) {
@@ -659,6 +656,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 					} else {
 						Log.d(TAG, "Using specified params: "+params);
 					}
+					requestKeys(startingBackend, params);
 					String generated = generateGame(whichBackend, params);
 					if (generated != null) {
 						launch.finishedGenerating(generated);
@@ -671,7 +669,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 					Log.d(TAG, "startGameThread: null game, presumably cancelled");
 				} else {
 					startPlaying(gameView, toPlay);
-					if (!paramsKnownInAdvance) {
+					if (!generating) {  // we didn't know params until we loaded the gae
 						runOnUiThread(new Runnable() {
 							@Override
 							public void run() {
