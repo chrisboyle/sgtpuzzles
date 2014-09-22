@@ -310,6 +310,13 @@ static char *validate_desc(const game_params *params, const char *desc)
     return NULL;
 }
 
+#ifdef ANDROID
+static void android_request_keys(const game_params *params)
+{
+    android_keys2("L\b", "", ANDROID_ARROWS_LEFT_RIGHT);
+}
+#endif
+
 static game_state *new_game(midend *me, const game_params *params,
                             const char *desc)
 {
@@ -317,9 +324,6 @@ static game_state *new_game(midend *me, const game_params *params,
     unsigned char *bmp;
     int i;
 
-#ifdef ANDROID
-    android_keys2("L\b", "", ANDROID_ARROWS_LEFT_RIGHT);
-#endif
     state->params = *params;
     state->guesses = snewn(params->nguesses, pegrow);
     for (i = 0; i < params->nguesses; i++)
@@ -1372,6 +1376,7 @@ const struct game thegame = {
     free_ui,
     encode_ui,
     decode_ui,
+    android_request_keys,
     game_changed_state,
     interpret_move,
     execute_move,

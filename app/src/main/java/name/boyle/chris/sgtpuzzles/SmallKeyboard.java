@@ -33,7 +33,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 
 		boolean hasArrows() { return this != NO_ARROWS; }
 	}
-	private ArrowMode arrowMode = ArrowMode.ARROWS_LEFT_RIGHT_CLICK;
+	private ArrowMode arrowMode = ArrowMode.NO_ARROWS;
 
 	/** Key which can be disabled */
 	static class DKey extends Keyboard.Key

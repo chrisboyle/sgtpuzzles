@@ -1281,21 +1281,13 @@ fail:
     return NULL;
 }
 
-static game_state *new_game(midend *me, const game_params *params,
-                            const char *desc)
-{
-    game_state *state = load_game(params, desc, NULL);
 #ifdef ANDROID
-    int order = state ? state->order : 0;
+static void android_request_keys(const game_params *params)
+{
+    int order = params->order;
     char off = (order > 9) ? '0' : '1';
     char keys[order + 3];
     int i;
-#endif
-    if (!state) {
-        assert("Unable to load ?validated game.");
-        return NULL;
-    }
-#ifdef ANDROID
     for(i = 0; i < order; i++) {
 	if (i==10) off = 'A'-10;
 	keys[i] = i + off;
@@ -1304,7 +1296,17 @@ static game_state *new_game(midend *me, const game_params *params,
     keys[order+1] = 'M';
     keys[order+2] = '\0';
     android_keys(keys, ANDROID_ARROWS_LEFT);  // right == left
+}
 #endif
+
+static game_state *new_game(midend *me, const game_params *params,
+                            const char *desc)
+{
+    game_state *state = load_game(params, desc, NULL);
+    if (!state) {
+        assert("Unable to load ?validated game.");
+        return NULL;
+    }
     return state;
 }
 
@@ -1996,6 +1998,7 @@ const struct game thegame = {
     free_ui,
     encode_ui,
     decode_ui,
+    android_request_keys,
     game_changed_state,
     interpret_move,
     execute_move,

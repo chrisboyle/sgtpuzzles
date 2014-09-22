@@ -872,14 +872,11 @@ static char *validate_desc(const game_params *params, const char *desc)
     return NULL;
 }
 
-static game_state *new_game(midend *me, const game_params *params,
-                            const char *desc)
-{
-    int w = params->w, a = w*w;
-    game_state *state = snew(game_state);
-    const char *p = desc;
-    int i;
 #ifdef ANDROID
+static void android_request_keys(const game_params *params)
+{
+    int i;
+    int w = params->w;
     char keys[w+3];
     keys[0] = '\b';
     for (i = 0; i < w; i++) {
@@ -890,7 +887,16 @@ static game_state *new_game(midend *me, const game_params *params,
     keys[w+1] = 'M';
     keys[w+2] = '\0';
     android_keys(keys, ANDROID_ARROWS_LEFT);  // right == \b
+}
 #endif
+
+static game_state *new_game(midend *me, const game_params *params,
+                            const char *desc)
+{
+    int w = params->w, a = w*w;
+    game_state *state = snew(game_state);
+    const char *p = desc;
+    int i;
 
     state->par = *params;	       /* structure copy */
     state->clues = snew(struct clues);
@@ -1958,6 +1964,7 @@ const struct game thegame = {
     free_ui,
     encode_ui,
     decode_ui,
+    android_request_keys,
     game_changed_state,
     interpret_move,
     execute_move,

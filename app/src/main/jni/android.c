@@ -59,9 +59,6 @@ static jobject ARROW_MODE_NONE = NULL,
 	ARROW_MODE_ARROWS_LEFT_CLICK = NULL,
 	ARROW_MODE_ARROWS_LEFT_RIGHT_CLICK = NULL,
 	ARROW_MODE_DIAGONALS = NULL;
-static char * lastKeys = NULL;
-static char * lastKeysIfArrows = NULL;
-static jobject lastArrowMode = NULL;
 
 static jobject gameView = NULL;
 static jmethodID
@@ -91,7 +88,8 @@ static jmethodID
 	setStatus,
 	showToast,
 	unClip,
-	completed;
+	completed,
+	setKeys;
 
 void throwIllegalArgumentException(JNIEnv *env, const char* reason) {
 	jclass exCls = (*env)->FindClass(env, "java/lang/IllegalArgumentException");
@@ -325,7 +323,7 @@ void JNICALL timerTick(JNIEnv *env, jobject _obj)
 
 void deactivate_timer(frontend *_fe)
 {
-	if (!obj) return;
+	if (!fe) return;
 	if (fe->timer_active) {
 		JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
 		(*env)->CallVoidMethod(env, obj, requestTimer, FALSE);
@@ -335,7 +333,7 @@ void deactivate_timer(frontend *_fe)
 
 void activate_timer(frontend *_fe)
 {
-	if (!obj) return;
+	if (!fe) return;
 	if (!fe->timer_active) {
 		JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
 		(*env)->CallVoidMethod(env, obj, requestTimer, TRUE);
@@ -546,6 +544,67 @@ void android_toast(const char *msg, int fromPattern)
 	(*env)->CallVoidMethod(env, obj, showToast, js, fromPattern);
 }
 
+const game* game_by_name(const char* name) {
+	int i;
+	for (i = 0; i<gamecount; i++) {
+		if (!strcmp(name, gamenames[i])) {
+			return gamelist[i];
+		}
+	}
+	return NULL;
+}
+
+game_params* oriented_params_from_str(const game* my_game, const char* params_str, char** error) {
+	game_params *params = my_game->default_params();
+	if (params_str != NULL) {
+		if (!strcmp(params_str, "--portrait") || !strcmp(params_str, "--landscape")) {
+			unsigned int w, h;
+			int pos;
+			char * encoded = my_game->encode_params(params, TRUE);
+			if (sscanf(encoded, "%ux%u%n", &w, &h, &pos) >= 2) {
+				if ((w > h) != (params_str[2] == 'l')) {
+					sprintf(encoded, "%ux%u%s", h, w, encoded + pos);
+					my_game->decode_params(params, encoded);
+				}
+			}
+			sfree(encoded);
+		} else {
+			my_game->decode_params(params, params_str);
+		}
+	}
+	char *our_error = my_game->validate_params(params, TRUE);
+	if (our_error) {
+		my_game->free_params(params);
+		if (error) {
+			(*error) = our_error;
+		}
+		return NULL;
+	}
+	return params;
+}
+
+void JNICALL requestKeys(JNIEnv *env, jobject _obj, jstring jBackend, jstring jParams)
+{
+	pthread_setspecific(envKey, env);
+	if (obj) (*env)->DeleteGlobalRef(env, obj);  // this is called before startPlaying
+	obj = (*env)->NewGlobalRef(env, _obj);
+	const char *backend = (*env)->GetStringUTFChars(env, jBackend, NULL);
+	const game *my_game = game_by_name(backend);
+	assert(my_game != NULL);
+	if (my_game->android_request_keys == NULL) {
+		android_keys("", ANDROID_ARROWS_LEFT_RIGHT);
+	} else {
+		const char *paramsStr = jParams ? (*env)->GetStringUTFChars(env, jParams, NULL) : NULL;
+		game_params *params = oriented_params_from_str(my_game, paramsStr, NULL);
+		if (jParams) (*env)->ReleaseStringUTFChars(env, jParams, paramsStr);
+		if (params) {
+			my_game->android_request_keys(params);
+			sfree(params);
+		}
+	}
+	(*env)->ReleaseStringUTFChars(env, jBackend, backend);
+}
+
 void android_keys(const char *keys, int arrowMode)
 {
     android_keys2(keys, NULL, arrowMode);
@@ -553,20 +612,22 @@ void android_keys(const char *keys, int arrowMode)
 
 void android_keys2(const char *keys, const char *extraKeysIfArrows, int arrowMode)
 {
-	if (lastKeys) sfree(lastKeys);
-	lastKeys = keys ? dupstr(keys) : NULL;
-	if (lastKeysIfArrows) sfree(lastKeysIfArrows);
-	lastKeysIfArrows = extraKeysIfArrows ? dupstr(extraKeysIfArrows) : NULL;
-	lastArrowMode = (arrowMode == ANDROID_ARROWS_DIAGONALS) ? ARROW_MODE_DIAGONALS :
+	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
+	jobject jArrowMode = (arrowMode == ANDROID_ARROWS_DIAGONALS) ? ARROW_MODE_DIAGONALS :
 			(arrowMode == ANDROID_ARROWS_LEFT_RIGHT) ? ARROW_MODE_ARROWS_LEFT_RIGHT_CLICK :
 			(arrowMode == ANDROID_ARROWS_LEFT) ? ARROW_MODE_ARROWS_LEFT_CLICK :
 			(arrowMode == ANDROID_ARROWS_ONLY) ? ARROW_MODE_ARROWS_ONLY :
 			ARROW_MODE_NONE;
+	jstring jKeys = (*env)->NewStringUTF(env, keys ? keys : "");
+	jstring jKeysIfArrows = (*env)->NewStringUTF(env, extraKeysIfArrows ? extraKeysIfArrows : "");
+	(*env)->CallVoidMethod(env, obj, setKeys, jKeys, jKeysIfArrows, jArrowMode);
+	(*env)->DeleteLocalRef(env, jKeys);
+	(*env)->DeleteLocalRef(env, jKeysIfArrows);
 }
 
 char * get_text(const char *s)
 {
-	if (!s || ! s[0] || !obj) return (char*)s;  // slightly naughty cast...
+	if (!s || ! s[0] || !fe) return (char*)s;  // slightly naughty cast...
 	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
 	jstring j = (jstring)(*env)->CallObjectMethod(env, obj, getText, (*env)->NewStringUTF(env, s));
 	const char * c = (*env)->GetStringUTFChars(env, j, NULL);
@@ -587,9 +648,6 @@ void startPlaying(JNIEnv *env, jobject _obj, jobject _gameView, jstring savedGam
 
 	frontend *new_fe = snew(frontend);
 	memset(new_fe, 0, sizeof(frontend));
-	lastKeys = NULL;
-	lastKeysIfArrows = NULL;
-	lastArrowMode = NULL;
 	int whichBackend = deserialiseOrIdentify(new_fe, savedGame, FALSE);
 	if ((*env)->ExceptionCheck(env)) {
 		return;
@@ -609,14 +667,11 @@ void startPlaying(JNIEnv *env, jobject _obj, jobject _gameView, jstring savedGam
 	y = INT_MAX;
 	midend_size(fe->me, &x, &y, FALSE);
 
-	jobject keys = (lastKeys == NULL) ? NULL : (*env)->NewStringUTF(env, lastKeys);
-	jobject keysIfArrows = (lastKeysIfArrows == NULL) ? NULL : (*env)->NewStringUTF(env, lastKeysIfArrows);
 	colours = midend_colours(fe->me, &n);
 	jfloatArray jColours = (*env)->NewFloatArray(env, n*3);
 	if (jColours == NULL) return;
 	(*env)->SetFloatArrayRegion(env, jColours, 0, n*3, colours);
-	(*env)->CallVoidMethod(env, obj, clearForNewGame, (*env)->NewStringUTF(env, gamenames[whichBackend]), keys, keysIfArrows, lastArrowMode, jColours);
-	(*env)->DeleteLocalRef(env, keys);
+	(*env)->CallVoidMethod(env, obj, clearForNewGame, (*env)->NewStringUTF(env, gamenames[whichBackend]), jColours);
 	android_changed_state(NULL, midend_can_undo(fe->me), midend_can_redo(fe->me));
 
 	if ((n = midend_num_presets(fe->me)) > 0) {
@@ -664,8 +719,7 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
 	blitterLoad    = (*env)->GetMethodID(env, vcls, "blitterLoad", "(III)V");
 	blitterSave    = (*env)->GetMethodID(env, vcls, "blitterSave", "(III)V");
 	changedState   = (*env)->GetMethodID(env, cls,  "changedState", "(ZZ)V");
-	clearForNewGame = (*env)->GetMethodID(env, cls, "clearForNewGame",
-			"(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lname/boyle/chris/sgtpuzzles/SmallKeyboard$ArrowMode;[F)V");
+	clearForNewGame = (*env)->GetMethodID(env, cls, "clearForNewGame", "(Ljava/lang/String;[F)V");
 	clipRect       = (*env)->GetMethodID(env, vcls, "clipRect", "(IIII)V");
 	dialogAdd      = (*env)->GetMethodID(env, cls,  "dialogAdd", "(IILjava/lang/String;Ljava/lang/String;I)V");
 	dialogInit     = (*env)->GetMethodID(env, cls,  "dialogInit", "(ILjava/lang/String;)V");
@@ -686,6 +740,8 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
 	showToast      = (*env)->GetMethodID(env, cls,  "showToast", "(Ljava/lang/String;Z)V");
 	unClip         = (*env)->GetMethodID(env, vcls, "unClip", "(II)V");
 	completed      = (*env)->GetMethodID(env, cls,  "completed", "()V");
+	setKeys        = (*env)->GetMethodID(env, cls,  "setKeys",
+			"(Ljava/lang/String;Ljava/lang/String;Lname/boyle/chris/sgtpuzzles/SmallKeyboard$ArrowMode;)V");
 
 	JNINativeMethod methods[] = {
 		{ "keyEvent", "(III)V", keyEvent },
@@ -705,6 +761,7 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
 		{ "identifyBackend", "(Ljava/lang/String;)I", identifyBackend },
 		{ "getCurrentParams", "()Ljava/lang/String;", getCurrentParams },
 		{ "forceRedraw", "()V", forceRedraw },
+		{ "requestKeys", "(Ljava/lang/String;Ljava/lang/String;)V", requestKeys },
 	};
 	(*env)->RegisterNatives(env, cls, methods, sizeof(methods)/sizeof(JNINativeMethod));
 

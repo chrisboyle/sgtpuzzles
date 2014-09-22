@@ -1940,6 +1940,7 @@ const struct game thegame = {
     free_ui,
     encode_ui,
     decode_ui,
+    NULL,  /* android_request_keys */
     game_changed_state,
     interpret_move,
     execute_move,

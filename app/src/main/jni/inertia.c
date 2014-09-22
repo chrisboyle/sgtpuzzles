@@ -617,15 +617,19 @@ static char *validate_desc(const game_params *params, const char *desc)
     return NULL;
 }
 
+#ifdef ANDROID
+static void android_request_keys(const game_params *params)
+{
+    android_keys("", ANDROID_ARROWS_DIAGONALS);
+}
+#endif
+
 static game_state *new_game(midend *me, const game_params *params,
                             const char *desc)
 {
     int w = params->w, h = params->h, wh = w*h;
     int i;
     game_state *state = snew(game_state);
-#ifdef ANDROID
-    android_keys("", ANDROID_ARROWS_DIAGONALS);
-#endif
 
     state->p = *params;		       /* structure copy */
 
@@ -2197,6 +2201,7 @@ const struct game thegame = {
     free_ui,
     encode_ui,
     decode_ui,
+    android_request_keys,
     game_changed_state,
     interpret_move,
     execute_move,

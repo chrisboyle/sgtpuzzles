@@ -1305,16 +1305,19 @@ void num2grid(int num, int width, int height, int *x, int *y) {
     return;
 }
 
+#ifdef ANDROID
+static void android_request_keys(const game_params *params)
+{
+    android_keys("GVZ\b", ANDROID_ARROWS_LEFT);
+}
+#endif
+
 static game_state *new_game(midend *me, const game_params *params,
                             const char *desc)
 {
     int i;
     int n;
     int count;
-
-#ifdef ANDROID
-    android_keys("GVZ\b", ANDROID_ARROWS_LEFT);
-#endif
 
     game_state *state = new_state(params);
 
@@ -2694,6 +2697,7 @@ const struct game thegame = {
     free_ui,
     encode_ui,
     decode_ui,
+    android_request_keys,
     game_changed_state,
     interpret_move,
     execute_move,

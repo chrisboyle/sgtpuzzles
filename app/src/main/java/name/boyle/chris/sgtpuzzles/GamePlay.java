@@ -112,7 +112,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 	private AlertDialog dialog;
 	private ArrayList<String> dialogIds;
 	private TableLayout dialogLayout;
-	String currentBackend = null;
+	String currentBackend = null, startingBackend = null;
 	private Thread worker;
 	private String lastKeys = "", lastKeysIfArrows = "";
 	private static final File storageDir = Environment.getExternalStorageDirectory();
@@ -160,6 +160,8 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 			stopNative();
 			dismissProgress();
 			if (msg.obj != null && !msg.obj.equals("")) {
+				startingBackend = currentBackend;
+				requestKeys(startingBackend, getCurrentParams());
 				messageBox(this, getString(R.string.Error), (String)msg.obj);
 			} else if (msg.arg1 == 1) {  // see showProgress
 				startChooserAndFinish();
@@ -598,7 +600,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 	}
 
 	@UsedByJNI
-	private void clearForNewGame(final String startingBackend, final String keys, final String keysIfArrows, final SmallKeyboard.ArrowMode arrowMode, final float[] colours) {
+	private void clearForNewGame(final String startingBackend, final float[] colours) {
 		runOnUiThread(new Runnable() {
 			public void run() {
 				gameView.colours = new int[colours.length / 3];
@@ -620,7 +622,6 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 				customVisible = false;
 				setStatusBarVisibility(false);
 				applyUndoRedoKbd();
-				setKeys(startingBackend, keys, keysIfArrows, arrowMode);
 				if (typeMenu != null) {
 					while (typeMenu.size() > 1)
 						typeMenu.removeItem(typeMenu.getItem(0).getItemId());
@@ -633,6 +634,13 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 	}
 
 	private void startGameThread(final GameLaunch launch) {
+		String backend = launch.getWhichBackend();
+		if (backend == null) backend = games[identifyBackend(launch.getSaved())];
+		startingBackend = backend;
+		final boolean paramsKnownInAdvance = (launch.getParams() != null);
+		if (paramsKnownInAdvance) {
+			requestKeys(startingBackend, launch.getParams());
+		}
 		workerRunning = true;
 		(worker = new Thread(launch.needsGenerating() ? "generateAndLoadGame" : "loadGame") { public void run() {
 			try {
@@ -663,6 +671,14 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 					Log.d(TAG, "startGameThread: null game, presumably cancelled");
 				} else {
 					startPlaying(gameView, toPlay);
+					if (!paramsKnownInAdvance) {
+						runOnUiThread(new Runnable() {
+							@Override
+							public void run() {
+								requestKeys(startingBackend, getCurrentParams());
+							}
+						});
+					}
 					if (launch.isKnownCompleted()) {
 						runOnUiThread(new Runnable() {
 							@Override
@@ -1153,13 +1169,14 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 
 	private SmallKeyboard.ArrowMode lastArrowMode = SmallKeyboard.ArrowMode.NO_ARROWS;
 
-	private void setKeys(final String whichBackend, final String keys, final String keysIfArrows, SmallKeyboard.ArrowMode arrowMode)
+	@UsedByJNI
+	void setKeys(final String keys, final String keysIfArrows, SmallKeyboard.ArrowMode arrowMode)
 	{
 		if (arrowMode == null) arrowMode = SmallKeyboard.ArrowMode.ARROWS_LEFT_RIGHT_CLICK;
 		lastArrowMode = arrowMode;
 		lastKeys = (keys == null) ? "" : keys;
 		lastKeysIfArrows = (keysIfArrows == null) ? "" : keysIfArrows;
-		setKeyboardVisibility(whichBackend, getResources().getConfiguration());
+		setKeyboardVisibility(startingBackend, getResources().getConfiguration());
 		keysAlreadySet = true;
 	}
 
@@ -1352,6 +1369,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 	native int identifyBackend(String savedGame);
 	native String getCurrentParams();
 	native void forceRedraw();
+	native void requestKeys(String backend, String params);
 
 	static {
 		System.loadLibrary("puzzles");

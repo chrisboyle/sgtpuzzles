@@ -1570,6 +1570,13 @@ static char *validate_desc(const game_params *params, const char *desc)
     return NULL;
 }
 
+#ifdef ANDROID
+static void android_request_keys(const game_params *params)
+{
+    android_keys2("J", "ASDF", ANDROID_ARROWS_ONLY);  // left/right == a/s
+}
+#endif
+
 /* ----------------------------------------------------------------------
  * Construct an initial game state, given a description and parameters.
  */
@@ -1582,9 +1589,6 @@ static game_state *new_game(midend *me, const game_params *params,
 
     assert(params->width > 0 && params->height > 0);
     assert(params->width > 1 || params->height > 1);
-#ifdef ANDROID
-    android_keys2("J", "ASDF", ANDROID_ARROWS_ONLY);  // left/right == a/s
-#endif
 
     /*
      * Create a blank game state.
@@ -3050,6 +3054,7 @@ const struct game thegame = {
     free_ui,
     encode_ui,
     decode_ui,
+    android_request_keys,
     game_changed_state,
     interpret_move,
     execute_move,

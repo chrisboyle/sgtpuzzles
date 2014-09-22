@@ -23,14 +23,7 @@ int main(int argc, const char *argv[]) {
 		exit(1);
 	}
 
-	const game *thegame = NULL;
-	int i;
-	for (i = 0; i<gamecount; i++) {
-		if (!strcmp(argv[1], gamenames[i])) {
-			thegame = gamelist[i];
-			break;
-		}
-	}
+	const game *thegame = game_by_name(argv[1]);
 
 	if (!thegame) {
 		fprintf(stderr, "Game name not recognised\n");
@@ -40,28 +33,11 @@ int main(int argc, const char *argv[]) {
 	frontend *fe = snew(frontend);
 	fe->me = midend_new(fe, thegame, &null_drawing, fe);
 
-	game_params *params = thegame->default_params();
-	if (argc >= 3 && strlen(argv[2]) > 0) {
-		if (!strcmp(argv[2], "--portrait") || !strcmp(argv[2], "--landscape")) {
-			unsigned int w, h;
-			int pos;
-			char * encoded = thegame->encode_params(params, TRUE);
-			if (sscanf(encoded, "%ux%u%n", &w, &h, &pos) >= 2) {
-				if ((w > h) != (argv[2][2] == 'l')) {
-					sprintf(encoded, "%ux%u%s", h, w, encoded + pos);
-					thegame->decode_params(params, encoded);
-				}
-			}
-			sfree(encoded);
-		} else {
-			thegame->decode_params(params, argv[2]);
-		}
-		char *error = thegame->validate_params(params, TRUE);
-		if (error) {
-			thegame->free_params(params);
-			fprintf(stderr, "%s\n", error);
-			exit(1);
-		}
+	char* error = NULL;
+	game_params *params = oriented_params_from_str(thegame, (argc >= 3 && strlen(argv[2]) > 0) ? argv[2] : NULL, error);
+	if (error) {
+		fprintf(stderr, "%s\n", error);
+		exit(1);
 	}
 	midend_set_params(fe->me, params);
 	midend_new_game(fe->me);

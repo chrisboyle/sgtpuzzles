@@ -1817,6 +1817,13 @@ static char *validate_desc(const game_params *params, const char *desc)
     return NULL;
 }
 
+#ifdef ANDROID
+static void android_request_keys(const game_params *params)
+{
+    android_keys("L", ANDROID_ARROWS_LEFT_RIGHT);
+}
+#endif
+
 static game_state *new_game(midend *me, const game_params *params,
                             const char *desc)
 {
@@ -1824,9 +1831,6 @@ static game_state *new_game(midend *me, const game_params *params,
     int i, pos;
     const char *p;
     game_state *state = snew(game_state);
-#ifdef ANDROID
-    android_keys("L", ANDROID_ARROWS_LEFT_RIGHT);
-#endif
 
     state->p = *params;
     state->colouring = snewn(n, int);
@@ -3226,6 +3230,7 @@ const struct game thegame = {
     free_ui,
     encode_ui,
     decode_ui,
+    android_request_keys,
     game_changed_state,
     interpret_move,
     execute_move,

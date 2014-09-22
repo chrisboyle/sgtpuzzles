@@ -4036,15 +4036,12 @@ static char *validate_desc(const game_params *params, const char *desc)
     return NULL;
 }
 
-static game_state *new_game(midend *me, const game_params *params,
-                            const char *desc)
-{
-    game_state *state = snew(game_state);
-    int c = params->c, r = params->r, cr = c*r, area = cr * cr;
-    int i;
 #ifdef ANDROID
+static void android_request_keys(const game_params *params)
+{
+    int i;
+    int cr = params->c * params->r;
     char keys[cr+2];
-    keys[0] = '\b';
     for (i = 0; i < cr; i++) {
 	if (i<9) keys[i] = '1' + i;
 	else keys[i] = 'A' + i - 9;
@@ -4052,7 +4049,15 @@ static game_state *new_game(midend *me, const game_params *params,
     keys[cr] = '\b';
     keys[cr+1] = '\0';
     android_keys(keys, ANDROID_ARROWS_LEFT);  // right == \b
+}
 #endif
+
+static game_state *new_game(midend *me, const game_params *params,
+                            const char *desc)
+{
+    game_state *state = snew(game_state);
+    int c = params->c, r = params->r, cr = c*r, area = cr * cr;
+    int i;
 
     precompute_sum_bits();
 
@@ -5541,6 +5546,7 @@ const struct game thegame = {
     free_ui,
     encode_ui,
     decode_ui,
+    android_request_keys,
     game_changed_state,
     interpret_move,
     execute_move,

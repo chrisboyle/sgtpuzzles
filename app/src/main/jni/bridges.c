@@ -2095,12 +2095,16 @@ static game_state *new_game_sub(const game_params *params, const char *desc)
     return state;
 }
 
+#ifdef ANDROID
+static void android_request_keys(const game_params *params)
+{
+    android_keys("Gh", ANDROID_ARROWS_LEFT_RIGHT);
+}
+#endif
+
 static game_state *new_game(midend *me, const game_params *params,
                             const char *desc)
 {
-#ifdef ANDROID
-    android_keys("Gh", ANDROID_ARROWS_LEFT_RIGHT);
-#endif
     return new_game_sub(params, desc);
 }
 
@@ -2976,6 +2980,7 @@ const struct game thegame = {
     free_ui,
     encode_ui,
     decode_ui,
+    android_request_keys,
     game_changed_state,
     interpret_move,
     execute_move,

@@ -1210,12 +1210,17 @@ static int check_completion(game_state *state, int mark_errors)
     if (error) return 0;
     return complete;
 }
+
+#ifdef ANDROID
+static void android_request_keys(const game_params *params)
+{
+    android_keys("\b", ANDROID_ARROWS_LEFT_RIGHT);
+}
+#endif
+
 static game_state *new_game(midend *me, const game_params *params,
                             const char *desc)
 {
-#ifdef ANDROID
-    android_keys("\b", ANDROID_ARROWS_LEFT_RIGHT);
-#endif
     game_state *state = NULL;
 
     unpick_desc(params, desc, &state, NULL);
@@ -2251,6 +2256,7 @@ const struct game thegame = {
     free_ui,
     encode_ui,
     decode_ui,
+    android_request_keys,
     game_changed_state,
     interpret_move,
     execute_move,

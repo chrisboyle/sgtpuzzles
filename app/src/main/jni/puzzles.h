@@ -516,6 +516,7 @@ struct game {
     void (*free_ui)(game_ui *ui);
     char *(*encode_ui)(const game_ui *ui);
     void (*decode_ui)(game_ui *ui, const char *encoding);
+    void (*android_request_keys)(const game_params *params);
     void (*changed_state)(game_ui *ui, const game_state *oldstate,
                           const game_state *newstate);
     char *(*interpret_move)(const game_state *state, game_ui *ui,
@@ -604,6 +605,8 @@ extern const game thegame;
 #endif
 
 #ifdef ANDROID
+extern const game* game_by_name(const char *name);
+extern game_params* oriented_params_from_str(const game* game, const char* params, char** error);
 extern void android_completed();
 extern void android_keys(const char *keys, int arrowMode);
 extern void android_keys2(const char *keys, const char *extraKeysIfArrows, int arrowMode);

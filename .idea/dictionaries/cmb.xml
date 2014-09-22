@@ -35,6 +35,7 @@
       <w>froyo</w>
       <w>fulkerson</w>
       <w>gamedesc</w>
+      <w>gamename</w>
       <w>getprop</w>
       <w>getspecific</w>
       <w>gettext</w>
@@ -112,6 +113,7 @@
       <w>strcmp</w>
       <w>strdup</w>
       <w>stringsfiles</w>
+      <w>strlen</w>
       <w>submenus</w>
       <w>substr</w>
       <w>sudoku</w>
