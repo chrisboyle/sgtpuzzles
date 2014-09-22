@@ -656,7 +656,13 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 					} else {
 						Log.d(TAG, "Using specified params: "+params);
 					}
-					requestKeys(startingBackend, params);
+					final String finalParams = params;
+					runOnUiThread(new Runnable() {
+						@Override
+						public void run() {
+							requestKeys(startingBackend, finalParams);
+						}
+					});
 					String generated = generateGame(whichBackend, params);
 					if (generated != null) {
 						launch.finishedGenerating(generated);
