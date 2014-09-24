@@ -207,12 +207,8 @@ public class GameView extends View
 
 	private void scrollBy(float distanceX, float distanceY) {
 		zoomInProgressMatrix.postTranslate(-distanceX, -distanceY);
-		zoomMatrixUpdated();
-		ViewCompat.postInvalidateOnAnimation(GameView.this);
-	}
-
-	private void zoomMatrixUpdated() {
 		zoomMatrixUpdated(true);
+		ViewCompat.postInvalidateOnAnimation(GameView.this);
 	}
 
 	private void zoomMatrixUpdated(final boolean userAction) {
@@ -286,7 +282,7 @@ public class GameView extends View
 					}
 					zoomInProgressMatrix.postScale(factor, factor, w + detector.getFocusX(), h + detector.getFocusY());
 				}
-				zoomMatrixUpdated();
+				zoomMatrixUpdated(true);
 				ViewCompat.postInvalidateOnAnimation(GameView.this);
 				return true;
 			}
