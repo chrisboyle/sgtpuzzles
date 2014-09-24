@@ -3,9 +3,16 @@
 
 module puzzles
 
+set Version $(!builddate).$(vcsid)
+
 # Start by substituting the right version number in configure.ac.
-in puzzles do perl -i~ -pe 's/rNNNN/r$(revision)/' configure.ac
+in puzzles do perl -i~ -pe 's/6.66/$(Version)/' configure.ac
 in puzzles do rm configure.ac~
+
+# And put it into the documentation as a versionid.
+# use perl to avoid inconsistent behaviour of echo '\v'
+in puzzles do perl -e 'print "\n\\versionid Simon Tatham'\''s Portable Puzzle Collection, version $$ARGV[0]\n"' $(Version) >> puzzles.but
+in puzzles do perl -e 'print "\n\\versionid Simon Tatham'\''s Portable Puzzle Collection, version $$ARGV[0]\n"' $(Version) >> devel.but
 
 # First build some local binaries, to run the icon build.
 in puzzles do perl mkfiles.pl -U
@@ -28,7 +35,7 @@ in puzzles do ./mkauto.sh
 # Build the OS X .dmg archive.
 delegate osx
   in puzzles do make -f Makefile.osx clean
-  in puzzles do make -f Makefile.osx release VER=-DREVISION=$(revision)
+  in puzzles do make -f Makefile.osx release VER=-DVER=$(Version)
   return puzzles/Puzzles.dmg
 enddelegate
 
@@ -36,14 +43,14 @@ enddelegate
 in puzzles do make -f Makefile.doc clean
 in puzzles do make -f Makefile.doc chm
 in puzzles do make -f Makefile.doc # build help file for installer
-in puzzles do perl winiss.pl $(revision) gamedesc.txt > puzzles.iss
+in puzzles do perl winiss.pl $(Version) gamedesc.txt > puzzles.iss
 delegate windows
   # Ignore the poorly controlled return value from HHC, and instead
   # just test that the output file was generated.
   in puzzles do hhc puzzles.hhp; test -f puzzles.chm
   # FIXME: Cygwin alternative?
   in puzzles do cmd /c 'vcvars32 & nmake -f Makefile.vc clean'
-  in puzzles do cmd /c 'vcvars32 & nmake -f Makefile.vc VER=-DREVISION=$(revision)'
+  in puzzles do cmd /c 'vcvars32 & nmake -f Makefile.vc VER=-DVER=$(Version)'
   # Build installer.
   in puzzles do iscc puzzles.iss
   return puzzles/puzzles.chm
@@ -76,7 +83,7 @@ in puzzles do chmod +x *.exe
 #in puzzles do perl wceinf.pl gamedesc.txt > puzzles.inf
 #delegate windows
 #  in puzzles do cmd /c 'wcearmv4 & nmake -f Makefile.wce clean'
-#  in puzzles do cmd /c 'wcearmv4 & nmake -f Makefile.wce VER=-DREVISION=$(revision)'
+#  in puzzles do cmd /c 'wcearmv4 & nmake -f Makefile.wce VER=-DVER=$(Version)'
 #  # Nasty piece of sh here which saves the return code from cabwiz,
 #  # outputs its errors and/or warnings, and then propagates the
 #  # return code back to bob. If only cabwiz could output to
@@ -107,7 +114,7 @@ in puzzles do zip -j puzzles.zip winbin/*.exe puzzles.chm puzzles.hlp puzzles.cn
 
 # Create the source archive. (That writes the archive into the
 # _parent_ directory, so be careful when we deliver it.)
-in puzzles do ./makedist.sh $(revision)
+in puzzles do ./makedist.sh $(Version)
 
 ifneq "$(JAVA_UNFINISHED)" "" in puzzles do perl -i~ -pe 'print "!srcdir unfinished/\n" if /!srcdir icons/' Recipe
 ifneq "$(JAVA_UNFINISHED)" "" in puzzles do ln -s unfinished/group.R .
@@ -115,7 +122,7 @@ ifneq "$(JAVA_UNFINISHED)" "" in puzzles do perl mkfiles.pl
 
 # Build the Java applets.
 delegate nestedvm
-  in puzzles do make -f Makefile.nestedvm NESTEDVM="$$NESTEDVM" VER=-DREVISION=$(revision)
+  in puzzles do make -f Makefile.nestedvm NESTEDVM="$$NESTEDVM" VER=-DVER=$(Version)
   return puzzles/*.jar
 enddelegate
 
@@ -134,7 +141,7 @@ in puzzles do echo "AddType application/octet-stream .chm" > .htaccess
 in puzzles do echo "AddType application/octet-stream .hlp" >> .htaccess
 in puzzles do echo "AddType application/octet-stream .cnt" >> .htaccess
 in . do set -- puzzles*.tar.gz; echo RedirectMatch temp '(.*/)'puzzles.tar.gz '$$1'"$$1" >> puzzles/.htaccess
-in puzzles do echo RedirectMatch temp '(.*/)'puzzles-installer.exe '$$1'puzzles-r$(revision)-installer.exe >> .htaccess
+in puzzles do echo RedirectMatch temp '(.*/)'puzzles-installer.exe '$$1'puzzles-$(Version)-installer.exe >> .htaccess
 
 # Phew, we're done. Deliver everything!
 deliver puzzles/icons/*-web.png $@
@@ -147,7 +154,7 @@ deliver puzzles/puzzles.chm $@
 deliver puzzles/puzzles.hlp $@
 deliver puzzles/puzzles.cnt $@
 deliver puzzles/puzzles.zip $@
-deliver puzzles/Output/setup.exe puzzles-r$(revision)-installer.exe
+deliver puzzles/Output/setup.exe puzzles-$(Version)-installer.exe
 deliver puzzles/*.jar java/$@
 deliver puzzles/js/*.js js/$@
 deliver puzzles/html/*.html html/$@

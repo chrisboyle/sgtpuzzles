@@ -21,9 +21,9 @@
 # include "empty.h"
 #endif
 
-#if defined REVISION
+#if defined VER
 
-char ver[] = "Revision: r" STR(REVISION);
+char ver[] = "Version: " STR(VER);
 
 #else
 

@@ -36,8 +36,6 @@ See \k{licence} for the licence text in full.
 
 \cfg{html-local-head}{<meta name="AppleTitle" content="Puzzles Help">}
 
-\versionid $Id$
-
 \C{intro} Introduction
 
 I wrote this collection because I thought there should be more small

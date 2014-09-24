@@ -19,5 +19,3 @@
 \cfg{html-body-end}{}
 
 \cfg{html-head-end}{<link rel="stylesheet" type="text/css" href="chm.css">}
-
-\versionid $Id$

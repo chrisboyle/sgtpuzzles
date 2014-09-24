@@ -2,27 +2,15 @@
 
 # Build a Unix source distribution from the Puzzles SVN area.
 #
-# Pass a numeric argument to have the archive tagged as that SVN
-# revision. Otherwise, the script will work it out itself by
-# calling `svnversion', or failing that it will not version-tag the
+# Pass a version number argument to have the archive tagged with that
+# version number. Otherwise, the script will not version-tag the
 # archive at all.
 
-case "$#" in
-  0)
-    # Ignore errors; if we can't get a version, we'll have a blank
-    # string.
-    rev=`svnversion . 2>/dev/null`
-    if test "x$rev" = "xexported"; then rev=; fi
-    ;;
-  *)
-    case "$1" in *[!0-9M]*) echo "Malformed revision number '$1'">&2;exit 1;;esac
-    rev="$1"
-    ;;
-esac
+version="$1"
 
-if test "x$rev" != "x"; then
-  arcsuffix="-r$rev"
-  ver="-DREVISION=$rev"
+if test "x$version" != "x"; then
+  arcsuffix="-$version"
+  ver="-DVER=$version"
 else
   arcsuffix=
   ver=
@@ -45,7 +33,8 @@ for i in *.c *.m *.h *.R *.rc *.but *.plist *.icns LICENCE README Recipe \
   HACKING puzzles.txt puzzles.hlp puzzles.cnt puzzles.chm \
   icons/Makefile icons/*.{sav,pl,sh} icons/win16pal.xpm \
   icons/*.png icons/*.ico icons/*.rc icons/*.c \
-  configure.ac mkauto.sh aclocal.m4 configure depcomp install-sh missing; do
+  configure.ac mkauto.sh aclocal.m4 \
+  configure depcomp install-sh missing compile; do
   case $i in
     */*) ln -s ../../../$i tmp.$$/puzzles$arcsuffix/$i;;
     *)   ln -s ../../$i tmp.$$/puzzles$arcsuffix/$i;;

@@ -1,6 +1,6 @@
 dnl Configure script for the Unix GTK build of puzzles.
 
-AC_INIT([puzzles], rNNNN, [anakin@pobox.com])
+AC_INIT([puzzles], [6.66], [anakin@pobox.com])
 AC_CONFIG_SRCDIR([midend.c])
 AM_INIT_AUTOMAKE([foreign])
 AC_PROG_CC
