@@ -17,6 +17,8 @@ import android.os.Build;
 import android.support.annotation.NonNull;
 import android.support.v4.view.GestureDetectorCompat;
 import android.support.v4.view.ScaleGestureDetectorCompat;
+import android.support.v4.view.ViewCompat;
+import android.support.v4.widget.EdgeEffectCompat;
 import android.support.v4.widget.ScrollerCompat;
 import android.util.AttributeSet;
 import android.util.Log;
@@ -65,6 +67,7 @@ public class GameView extends View
 	enum DragMode { UNMODIFIED, REVERT_OFF_SCREEN, REVERT_TO_START, PREVENT }
 	private DragMode dragMode = DragMode.UNMODIFIED;
 	private ScrollerCompat mScroller;
+	private EdgeEffectCompat[] edges = new EdgeEffectCompat[4];
 
 	public GameView(Context context, AttributeSet attrs)
 	{
@@ -81,10 +84,12 @@ public class GameView extends View
 		maxDistSq = Math.pow(ViewConfiguration.get(context).getScaledTouchSlop(), 2);
 		backgroundColour = getDefaultBackgroundColour();
 		mScroller = ScrollerCompat.create(context);
+		for (int i = 0; i < 4; i++) {
+			edges[i] = new EdgeEffectCompat(context);
+		}
 		gestureDetector = new GestureDetectorCompat(getContext(), new GestureDetector.OnGestureListener() {
 			@Override
 			public boolean onDown(MotionEvent event) {
-				Log.d(GamePlay.TAG, "onDown");
 				int meta = event.getMetaState();
 				int buttonState = 1; // MotionEvent.BUTTON_PRIMARY
 				if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH) {
@@ -207,19 +212,41 @@ public class GameView extends View
 		invertZoomMatrix();  // needed for viewToGame
 		final PointF topLeft = viewToGame(new PointF(0, 0));
 		final PointF bottomRight = viewToGame(new PointF(w, h));
-		// TODO trigger EdgeEffectCompat animation on appropriate edge(s)
 		if (topLeft.x < 0) {
-			zoomMatrix.postTranslate(topLeft.x, 0);
-		} else if (bottomRight.x > w) {
-			zoomMatrix.postTranslate(bottomRight.x - w, 0);
+			zoomMatrix.preTranslate(topLeft.x, 0);
+			hitEdge(3, -topLeft.x);
+		} else {
+			edges[3].onRelease();
+		}
+		if (bottomRight.x > w) {
+			zoomMatrix.preTranslate(bottomRight.x - w, 0);
+			hitEdge(1, bottomRight.x - w);
+		} else {
+			edges[1].onRelease();
 		}
 		if (topLeft.y < 0) {
-			zoomMatrix.postTranslate(0, topLeft.y);
-		} else if (bottomRight.y > h) {
-			zoomMatrix.postTranslate(0, bottomRight.y - h);
+			zoomMatrix.preTranslate(0, topLeft.y);
+			hitEdge(0, -topLeft.y);
+		} else {
+			edges[0].onRelease();
+		}
+		if (bottomRight.y > h) {
+			zoomMatrix.preTranslate(0, bottomRight.y - h);
+			hitEdge(2, bottomRight.y - h);
+		} else {
+			edges[2].onRelease();
 		}
 		canvas.setMatrix(zoomMatrix);
 		invertZoomMatrix();  // now with our changes
+	}
+
+	private void hitEdge(int edge, float delta) {
+		if (!mScroller.isFinished()) {
+			edges[edge].onAbsorb(Math.round(mScroller.getCurrVelocity()));
+			mScroller.abortAnimation();
+		} else {
+			edges[edge].onPull(delta);
+		}
 	}
 
 	private boolean movedPastTouchSlop(float x, float y) {
@@ -242,6 +269,7 @@ public class GameView extends View
 				final float scale = getXScale(zoomMatrix);
 				final float nextScale = scale * factor;
 				if (nextScale < 1.01f) {
+					for (EdgeEffectCompat edge : edges) edge.onRelease();
 					zoomMatrix.reset();
 				} else {
 					if (nextScale > maxZoom) {
@@ -280,7 +308,7 @@ public class GameView extends View
 			clear();
 			parent.forceRedraw();
 		}
-		invalidate();
+		ViewCompat.postInvalidateOnAnimation(GameView.this);
 	}
 
 	private float getXScale(Matrix m) {
@@ -322,7 +350,6 @@ public class GameView extends View
 		boolean sdRet = hasPinchZoom && checkPinchZoom(event);
 		boolean gdRet = gestureDetector.onTouchEvent(event);
 		if (event.getAction() == MotionEvent.ACTION_UP) {
-			Log.d(GamePlay.TAG, "onUp");
 			parent.handler.removeCallbacks(sendLongPress);
 			if (touchState == TouchState.WAITING_LONG_PRESS) {
 				parent.sendKey(viewToGame(touchStart), button);
@@ -417,6 +444,28 @@ public class GameView extends View
 	{
 		if( bitmap == null ) return;
 		c.drawBitmap(bitmap, 0, 0, null);
+		boolean keepAnimating = false;
+		for (int i = 0; i < 4; i++) {
+			if (!edges[i].isFinished()) {
+				keepAnimating = true;
+				final int restoreTo = c.save();
+				c.rotate(i * 90);
+				if (i == 1) {
+					c.translate(0, -w);
+				} else if (i == 2) {
+					c.translate(-w, -h);
+				} else if (i == 3) {
+					c.translate(-h, 0);
+				}
+				final boolean flip = (i % 2) > 0;
+				edges[i].setSize(flip ? h : w, flip ? w : h);
+				edges[i].draw(c);
+				c.restoreToCount(restoreTo);
+			}
+		}
+		if (keepAnimating) {
+			ViewCompat.postInvalidateOnAnimation(this);
+		}
 	}
 
 	@Override
