@@ -63,18 +63,20 @@ public class GameView extends View
 	ScaleGestureDetector scaleDetector = null;
 	GestureDetectorCompat gestureDetector;
 	private float maxZoom = 30.f;  // blitter size must be scaled by this to prevent jaggies
-	private Matrix zoomMatrix = new Matrix(), inverseZoomMatrix = new Matrix();
+	private Matrix zoomMatrix = new Matrix(), zoomInProgressMatrix = new Matrix(),
+			inverseZoomMatrix = new Matrix(), tempDrawMatrix = new Matrix();
 	enum DragMode { UNMODIFIED, REVERT_OFF_SCREEN, REVERT_TO_START, PREVENT }
 	private DragMode dragMode = DragMode.UNMODIFIED;
 	private ScrollerCompat mScroller;
 	private EdgeEffectCompat[] edges = new EdgeEffectCompat[4];
+	private static final Bitmap.Config BITMAP_CONFIG = Bitmap.Config.RGB_565;
 
 	public GameView(Context context, AttributeSet attrs)
 	{
 		super(context, attrs);
 		if (! isInEditMode())
 			this.parent = (GamePlay)context;
-		bitmap = Bitmap.createBitmap(100, 100, Bitmap.Config.RGB_565);  // for safety
+		bitmap = Bitmap.createBitmap(100, 100, BITMAP_CONFIG);  // for safety
 		canvas = new Canvas(bitmap);
 		paint = new Paint();
 		paint.setAntiAlias(true);
@@ -135,7 +137,7 @@ public class GameView extends View
 				if (touchState != TouchState.PINCH) {  // require 2 fingers
 					return false;
 				}
-				final float scale = getXScale(zoomMatrix);
+				final float scale = getXScale(zoomMatrix) * getXScale(zoomInProgressMatrix);
 				final PointF currentScroll = getCurrentScroll();
 				final int xMax = Math.round(scale * w);
 				final int yMax = Math.round(scale * h);
@@ -164,8 +166,10 @@ public class GameView extends View
 			mScroller.computeScrollOffset();
 			final PointF currentScroll = getCurrentScroll();
 			scrollBy(mScroller.getCurrX() - currentScroll.x, mScroller.getCurrY() - currentScroll.y);
-			if (!mScroller.isFinished()) {
-				postDelayed(animateScroll, GamePlay.TIMER_INTERVAL);
+			if (mScroller.isFinished()) {
+				forceRedraw();
+			} else {
+				ViewCompat.postOnAnimation(GameView.this, animateScroll);
 			}
 		}
 	};
@@ -202,9 +206,9 @@ public class GameView extends View
 	}
 
 	private void scrollBy(float distanceX, float distanceY) {
-		zoomMatrix.postTranslate(-distanceX, -distanceY);
+		zoomInProgressMatrix.postTranslate(-distanceX, -distanceY);
 		zoomMatrixUpdated();
-		forceRedraw();
+		ViewCompat.postInvalidateOnAnimation(GameView.this);
 	}
 
 	private void zoomMatrixUpdated() {
@@ -217,25 +221,25 @@ public class GameView extends View
 		final PointF topLeft = viewToGame(new PointF(0, 0));
 		final PointF bottomRight = viewToGame(new PointF(w, h));
 		if (topLeft.x < 0) {
-			zoomMatrix.preTranslate(topLeft.x, 0);
+			zoomInProgressMatrix.preTranslate(topLeft.x, 0);
 			if (userAction) hitEdge(3, -topLeft.x);
 		} else {
 			edges[3].onRelease();
 		}
 		if (bottomRight.x > w) {
-			zoomMatrix.preTranslate(bottomRight.x - w, 0);
+			zoomInProgressMatrix.preTranslate(bottomRight.x - w, 0);
 			if (userAction) hitEdge(1, bottomRight.x - w);
 		} else {
 			edges[1].onRelease();
 		}
 		if (topLeft.y < 0) {
-			zoomMatrix.preTranslate(0, topLeft.y);
+			zoomInProgressMatrix.preTranslate(0, topLeft.y);
 			if (userAction) hitEdge(0, -topLeft.y);
 		} else {
 			edges[0].onRelease();
 		}
 		if (bottomRight.y > h) {
-			zoomMatrix.preTranslate(0, bottomRight.y - h);
+			zoomInProgressMatrix.preTranslate(0, bottomRight.y - h);
 			if (userAction) hitEdge(2, bottomRight.y - h);
 		} else {
 			edges[2].onRelease();
@@ -266,47 +270,49 @@ public class GameView extends View
 
 	@TargetApi(Build.VERSION_CODES.FROYO)
 	private void enablePinchZoom() {
-		scaleDetector = new ScaleGestureDetector(getContext(), new ScaleGestureDetector.OnScaleGestureListener() {
+		scaleDetector = new ScaleGestureDetector(getContext(), new ScaleGestureDetector.SimpleOnScaleGestureListener() {
 			@Override
 			public boolean onScale(ScaleGestureDetector detector) {
 				float factor = detector.getScaleFactor();
-				final float scale = getXScale(zoomMatrix);
+				final float scale = getXScale(zoomMatrix) * getXScale(zoomInProgressMatrix);
 				final float nextScale = scale * factor;
 				if (nextScale < 1.01f) {
 					for (EdgeEffectCompat edge : edges) edge.onRelease();
-					zoomMatrix.reset();
+					resetZoomMatrix();
+					forceRedraw();
 				} else {
 					if (nextScale > maxZoom) {
 						factor = maxZoom / scale;
 					}
-					zoomMatrix.postScale(factor, factor, detector.getFocusX(), detector.getFocusY());
+					zoomInProgressMatrix.postScale(factor, factor, w + detector.getFocusX(), h + detector.getFocusY());
 				}
 				zoomMatrixUpdated();
-				forceRedraw();
+				ViewCompat.postInvalidateOnAnimation(GameView.this);
 				return true;
-			}
-
-			@Override
-			public boolean onScaleBegin(ScaleGestureDetector detector) {
-				// TODO start using bitmap to draw the in-progress scale
-				return true;
-			}
-
-			@Override
-			public void onScaleEnd(ScaleGestureDetector detector) {
-				// TODO stop using bitmap; redraw properly
 			}
 		});
 		ScaleGestureDetectorCompat.setQuickScaleEnabled(scaleDetector, false);
 	}
 
+	private void resetZoomMatrix() {
+		zoomMatrix.reset();
+		zoomMatrix.preTranslate(w, h);
+		zoomInProgressMatrix.reset();
+	}
+
 	private void invertZoomMatrix() {
-		if (!zoomMatrix.invert(inverseZoomMatrix)) {
+		final Matrix copy = new Matrix(zoomMatrix);
+		copy.postConcat(zoomInProgressMatrix);
+		copy.postTranslate(-w, -h);
+		if (!copy.invert(inverseZoomMatrix)) {
 			throw new RuntimeException("zoom not invertible");
 		}
 	}
 
 	private void forceRedraw() {
+		zoomMatrix.postConcat(zoomInProgressMatrix);
+		zoomInProgressMatrix.reset();
+		zoomMatrixUpdated(false);
 		canvas.setMatrix(zoomMatrix);
 		if (parent != null) {
 			clear();
@@ -355,7 +361,9 @@ public class GameView extends View
 		boolean gdRet = gestureDetector.onTouchEvent(event);
 		if (event.getAction() == MotionEvent.ACTION_UP) {
 			parent.handler.removeCallbacks(sendLongPress);
-			if (touchState == TouchState.WAITING_LONG_PRESS) {
+			if (touchState == TouchState.PINCH && mScroller.isFinished()) {
+				forceRedraw();
+			} else if (touchState == TouchState.WAITING_LONG_PRESS) {
 				parent.sendKey(viewToGame(touchStart), button);
 				touchState = TouchState.DRAGGING;
 			}
@@ -447,7 +455,13 @@ public class GameView extends View
 	protected void onDraw( Canvas c )
 	{
 		if( bitmap == null ) return;
+		tempDrawMatrix.reset();
+		tempDrawMatrix.preTranslate(-w, -h);
+		tempDrawMatrix.preConcat(zoomInProgressMatrix);
+		final int restore = c.save();
+		c.concat(tempDrawMatrix);
 		c.drawBitmap(bitmap, 0, 0, null);
+		c.restoreToCount(restore);
 		boolean keepAnimating = false;
 		for (int i = 0; i < 4; i++) {
 			if (!edges[i].isFinished()) {
@@ -477,10 +491,13 @@ public class GameView extends View
 	{
 		if( w <= 0 ) w = 1;
 		if( h <= 0 ) h = 1;
-		bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.RGB_565);
+		if (bitmap != null) bitmap.recycle();
+		// a screen-full to spare in each direction
+		bitmap = Bitmap.createBitmap(3 * w, 3 * h, BITMAP_CONFIG);
 		clear();
 		canvas.setBitmap(bitmap);
 		this.w = w; this.h = h;
+		zoomMatrix.preTranslate(w - oldW, h - oldH);
 		zoomMatrixUpdated(false);
 		if (parent != null) parent.gameViewResized();
 		if (isInEditMode()) {
@@ -622,7 +639,7 @@ public class GameView extends View
 	{
 		for(int i=0; i<blitters.length; i++) {
 			if (blitters[i] == null) {
-				blitters[i] = Bitmap.createBitmap(Math.round(maxZoom * w), Math.round(maxZoom * h), Bitmap.Config.RGB_565);
+				blitters[i] = Bitmap.createBitmap(Math.round(maxZoom * w), Math.round(maxZoom * h), BITMAP_CONFIG);
 				return i;
 			}
 		}
