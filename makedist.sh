@@ -39,14 +39,7 @@ for i in *.c *.m *.h *.R *.rc *.but *.plist *.icns LICENCE README Recipe \
     */*) ln -s ../../../$i tmp.$$/puzzles$arcsuffix/$i;;
     *)   ln -s ../../$i tmp.$$/puzzles$arcsuffix/$i;;
   esac
-  if test "x$ver" != "x"; then
-    md5sum $i >> tmp.$$/puzzles$arcsuffix/manifest
-  fi
 done
-
-if test "x$ver" != "x"; then
-  echo "$ver" >> tmp.$$/puzzles$arcsuffix/version.def
-fi
 
 tar -C tmp.$$ -chzf - puzzles$arcsuffix > ../puzzles$arcsuffix.tar.gz
 
