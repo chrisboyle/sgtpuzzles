@@ -127,6 +127,9 @@ public class GameView extends View
 
 			@Override
 			public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+				if (touchState != TouchState.PINCH) {  // require 2 fingers
+					return false;
+				}
 				final float scale = getXScale(zoomMatrix);
 				final PointF currentScroll = getCurrentScroll();
 				final int xMax = Math.round(scale * w);
