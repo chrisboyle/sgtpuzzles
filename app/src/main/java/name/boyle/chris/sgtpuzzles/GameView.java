@@ -37,7 +37,7 @@ public class GameView extends View
 	private final Canvas canvas;
 	private final Paint paint;
 	private final Bitmap[] blitters;
-	int[] colours;
+	int[] colours = new int[0];
 	int w, h;
 	private final int longPressTimeout = ViewConfiguration.getLongPressTimeout();
 	private enum TouchState { IDLE, WAITING_LONG_PRESS, DRAGGING, PINCH }
