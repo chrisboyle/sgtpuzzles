@@ -158,10 +158,11 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 					charsWidth  = keyPlusPad * ((majors > 1) ? minorsPerMajor : characters.length());
 				}
 			}
+			final int spaceAfterKeys = Math.round((columnMajor ? mDefaultWidth : mDefaultHeight)/12.f);
 			final int maxWidth = Math.max(charsWidth, arrowCols * keyPlusPad);
-			mTotalWidth  = columnMajor ? maxWidth : charsWidth + (arrowCols * keyPlusPad);
+			mTotalWidth  = columnMajor ? maxWidth + spaceAfterKeys : charsWidth + (arrowCols * keyPlusPad);
 			final int maxHeight = Math.max(charsHeight, arrowRows * keyPlusPad);
-			mTotalHeight = columnMajor ? charsHeight + arrowRows * keyPlusPad : maxHeight;
+			mTotalHeight = columnMajor ? charsHeight + arrowRows * keyPlusPad : maxHeight + spaceAfterKeys;
 
 			if (arrowMode.hasArrows()) {
 				final int arrowsRightEdge = columnMajor ? maxWidth : maxPx,
