@@ -93,100 +93,12 @@ Puzzles.dmg: Puzzles
 	rm -f raw.dmg devicename
 !end
 
-# Version management.
-!begin vc
-version.obj: *.c *.h
-	cl $(VER) $(CFLAGS) /c version.c
-!end
-!specialobj vc version
-!begin wce
-version.obj: *.c *.h
-	$(CC) $(VER) $(CFLAGS) /c version.c
-!end
-!specialobj wce version
-!begin cygwin
-version.o: FORCE;
-FORCE:
-	$(CC) $(COMPAT) $(XFLAGS) $(CFLAGS) $(VER) -c version.c
-!end
-!specialobj cygwin version
-# For Unix, we also need the gross MD5 hack that causes automatic
-# version number selection in release source archives.
-!begin gtk
-version.o: version.c version2.def
-	$(CC) $(COMPAT) $(XFLAGS) $(CFLAGS) `cat version2.def` -c version.c
-version2.def: FORCE
-	if test -z "$(VER)" && test -f manifest && md5sum -c manifest; then \
-		cat version.def > version2.def.new; \
-	else \
-		echo "$(VER)" >version2.def.new; \
-	fi && \
-	if diff -q version2.def.new version2.def; then \
-		rm version2.def.new; \
-	else \
-		mv version2.def.new version2.def; \
-	fi
-.PHONY: FORCE
-!end
-!specialobj gtk version
-# In the automake build, we have to do the whole job by supplying
-# extra CFLAGS, so we have to put the if statement inside one big
-# backtick expression. We also force rebuilding via a -D option that
-# makes version.o include empty.h, which we construct ourselves and
-# touch whenever any source file is updated.
-!cflags am version -DINCLUDE_EMPTY_H `if test -z "$(VER)" && (cd $(srcdir) && test -f manifest && md5sum -c manifest >/dev/null 2>&1); then cat $(srcdir)/version.def; else echo "$(VER)"; fi`
 !begin am
-BUILT_SOURCES = empty.h
-CLEANFILES = empty.h
-empty.h: $(allsources)
-	echo '/* Empty file touched by automake makefile to force rebuild of version.o */' >$@
 bin_PROGRAMS = $(GAMES)
 !end
 !begin am_begin
 GAMES =
 !end
-!begin >empty.h
-/* Empty file touched by automake makefile to force rebuild of version.o */
-!end
-!begin nestedvm
-version.o: version.c version2.def
-	$(CC) $(COMPAT) $(XFLAGS) $(CFLAGS) `cat version2.def` -c version.c
-version2.def: FORCE
-	if test -z "$(VER)" && test -f manifest && md5sum -c manifest; then \
-		cat version.def > version2.def.new; \
-	else \
-		echo "$(VER)" >version2.def.new; \
-	fi && \
-	if diff -q version2.def.new version2.def; then \
-		rm version2.def.new; \
-	else \
-		mv version2.def.new version2.def; \
-	fi
-.PHONY: FORCE
-!end
-!specialobj nestedvm version
-# For OS X, this is made more fiddly by the fact that we don't have
-# md5sum readily available. We do, however, have `md5 -r' which
-# generates _nearly_ the same output, but it has no check function.
-!begin osx
-version.ppc.o: version.c version2.def
-	$(CC) -arch ppc $(COMPAT) $(XFLAGS) $(CFLAGS) `cat version2.def` -c version.c -o $@
-version.i386.o: version.c version2.def
-	$(CC) -arch i386 $(COMPAT) $(XFLAGS) $(CFLAGS) `cat version2.def` -c version.c -o $@
-version2.def: FORCE
-	if test -z "$(VER)" && test -f manifest && (md5 -r `awk '{print $$2}' manifest` | diff -w manifest -); then \
-		cat version.def > version2.def.new; \
-	else \
-		echo "$(VER)" >version2.def.new; \
-	fi && \
-	if diff -q version2.def.new version2.def; then \
-		rm version2.def.new; \
-	else \
-		mv version2.def.new version2.def; \
-	fi
-.PHONY: FORCE
-!end
-!specialobj osx version
 
 # make install for Unix.
 !begin gtk
