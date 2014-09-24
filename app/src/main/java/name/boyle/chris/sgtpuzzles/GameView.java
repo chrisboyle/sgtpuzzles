@@ -17,6 +17,7 @@ import android.os.Build;
 import android.support.annotation.NonNull;
 import android.support.v4.view.GestureDetectorCompat;
 import android.support.v4.view.ScaleGestureDetectorCompat;
+import android.support.v4.widget.ScrollerCompat;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.GestureDetector;
@@ -63,6 +64,7 @@ public class GameView extends View
 	private Matrix zoomMatrix = new Matrix(), inverseZoomMatrix = new Matrix();
 	enum DragMode { UNMODIFIED, REVERT_OFF_SCREEN, REVERT_TO_START, PREVENT }
 	private DragMode dragMode = DragMode.UNMODIFIED;
+	private ScrollerCompat mScroller;
 
 	public GameView(Context context, AttributeSet attrs)
 	{
@@ -78,6 +80,7 @@ public class GameView extends View
 		blitters = new Bitmap[512];
 		maxDistSq = Math.pow(ViewConfiguration.get(context).getScaledTouchSlop(), 2);
 		backgroundColour = getDefaultBackgroundColour();
+		mScroller = ScrollerCompat.create(context);
 		gestureDetector = new GestureDetectorCompat(getContext(), new GestureDetector.OnGestureListener() {
 			@Override
 			public boolean onDown(MotionEvent event) {
@@ -124,11 +127,16 @@ public class GameView extends View
 
 			@Override
 			public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-				Log.d(GamePlay.TAG, "onFling");
-				return false;
+				final float scale = getXScale(zoomMatrix);
+				final PointF currentScroll = getCurrentScroll();
+				final int xMax = Math.round(scale * w);
+				final int yMax = Math.round(scale * h);
+				final double rootScale = Math.sqrt(scale);  // seems about right, not really sure why
+				mScroller.fling(Math.round(currentScroll.x), Math.round(currentScroll.y),
+						(int)-Math.round(velocityX / rootScale), (int)-Math.round(velocityY / rootScale), 0, xMax, 0, yMax);
+				animateScroll.run();
+				return true;
 			}
-
-			// TODO add fling detection; onFling doesn't happen with two fingers
 		});
 		// We do our own long-press detection to capture movement afterwards
 		gestureDetector.setIsLongpressEnabled(false);
@@ -137,6 +145,22 @@ public class GameView extends View
 			enablePinchZoom();
 		}
 	}
+
+	private PointF getCurrentScroll() {
+		return viewToGame(new PointF(w/2, h/2));
+	}
+
+	private Runnable animateScroll = new Runnable() {
+		@Override
+		public void run() {
+			mScroller.computeScrollOffset();
+			final PointF currentScroll = getCurrentScroll();
+			scrollBy(mScroller.getCurrX() - currentScroll.x, mScroller.getCurrY() - currentScroll.y);
+			if (!mScroller.isFinished()) {
+				postDelayed(animateScroll, GamePlay.TIMER_INTERVAL);
+			}
+		}
+	};
 
 	public void setDragModeFor(final String whichBackend) {
 		final int modeId = getResources().getIdentifier(whichBackend + "_drag_mode", "string", getContext().getPackageName());

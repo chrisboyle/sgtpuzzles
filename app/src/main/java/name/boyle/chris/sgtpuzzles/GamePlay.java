@@ -107,7 +107,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 		C_STRING = 0, C_CHOICES = 1, C_BOOLEAN = 2;
 	static final long MAX_SAVE_SIZE = 1000000; // 1MB; we only have 16MB of heap
 	private boolean gameWantsTimer = false;
-	private static final int TIMER_INTERVAL = 20;
+	static final int TIMER_INTERVAL = 20;
 	private StringBuffer savingState;
 	private AlertDialog dialog;
 	private ArrayList<String> dialogIds;
