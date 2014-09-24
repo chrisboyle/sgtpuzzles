@@ -3,6 +3,7 @@ package name.boyle.chris.sgtpuzzles;
 import android.annotation.TargetApi;
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.graphics.BitmapShader;
 import android.graphics.Canvas;
 import android.graphics.Matrix;
 import android.graphics.Paint;
@@ -11,7 +12,9 @@ import android.graphics.PointF;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.Region;
+import android.graphics.Shader;
 import android.graphics.Typeface;
+import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.support.annotation.NonNull;
@@ -36,6 +39,7 @@ public class GameView extends View
 	private Bitmap bitmap;
 	private final Canvas canvas;
 	private final Paint paint;
+	private Paint checkerboardPaint;
 	private final Bitmap[] blitters;
 	int[] colours = new int[0];
 	int w, h;
@@ -82,6 +86,9 @@ public class GameView extends View
 		paint.setAntiAlias(true);
 		paint.setStrokeCap(Paint.Cap.SQUARE);
 		paint.setStrokeWidth(1.f);  // will be scaled with everything else as long as it's non-zero
+		checkerboardPaint = new Paint();
+		final Bitmap checkerboard = ((BitmapDrawable) getResources().getDrawable(R.drawable.checkerboard)).getBitmap();
+		checkerboardPaint.setShader(new BitmapShader(checkerboard, Shader.TileMode.REPEAT, Shader.TileMode.REPEAT));
 		blitters = new Bitmap[512];
 		maxDistSq = Math.pow(ViewConfiguration.get(context).getScaledTouchSlop(), 2);
 		backgroundColour = getDefaultBackgroundColour();
@@ -167,7 +174,12 @@ public class GameView extends View
 			final PointF currentScroll = getCurrentScroll();
 			scrollBy(mScroller.getCurrX() - currentScroll.x, mScroller.getCurrY() - currentScroll.y);
 			if (mScroller.isFinished()) {
-				forceRedraw();
+				ViewCompat.postOnAnimation(GameView.this, new Runnable() {
+					@Override
+					public void run() {
+						forceRedraw();
+					}
+				});
 			} else {
 				ViewCompat.postOnAnimation(GameView.this, animateScroll);
 			}
@@ -456,6 +468,11 @@ public class GameView extends View
 		tempDrawMatrix.preConcat(zoomInProgressMatrix);
 		final int restore = c.save();
 		c.concat(tempDrawMatrix);
+		float[] f = { 0, 0, bitmap.getWidth(), bitmap.getHeight() };
+		tempDrawMatrix.mapPoints(f);
+		if (f[0] > 0 || f[1] < w || f[2] < 0 || f[3] > h) {
+			c.drawPaint(checkerboardPaint);
+		}
 		c.drawBitmap(bitmap, 0, 0, null);
 		c.restoreToCount(restore);
 		boolean keepAnimating = false;
