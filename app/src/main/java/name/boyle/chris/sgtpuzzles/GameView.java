@@ -208,31 +208,35 @@ public class GameView extends View
 	}
 
 	private void zoomMatrixUpdated() {
+		zoomMatrixUpdated(true);
+	}
+
+	private void zoomMatrixUpdated(final boolean userAction) {
 		// Constrain scrolling to game bounds
 		invertZoomMatrix();  // needed for viewToGame
 		final PointF topLeft = viewToGame(new PointF(0, 0));
 		final PointF bottomRight = viewToGame(new PointF(w, h));
 		if (topLeft.x < 0) {
 			zoomMatrix.preTranslate(topLeft.x, 0);
-			hitEdge(3, -topLeft.x);
+			if (userAction) hitEdge(3, -topLeft.x);
 		} else {
 			edges[3].onRelease();
 		}
 		if (bottomRight.x > w) {
 			zoomMatrix.preTranslate(bottomRight.x - w, 0);
-			hitEdge(1, bottomRight.x - w);
+			if (userAction) hitEdge(1, bottomRight.x - w);
 		} else {
 			edges[1].onRelease();
 		}
 		if (topLeft.y < 0) {
 			zoomMatrix.preTranslate(0, topLeft.y);
-			hitEdge(0, -topLeft.y);
+			if (userAction) hitEdge(0, -topLeft.y);
 		} else {
 			edges[0].onRelease();
 		}
 		if (bottomRight.y > h) {
 			zoomMatrix.preTranslate(0, bottomRight.y - h);
-			hitEdge(2, bottomRight.y - h);
+			if (userAction) hitEdge(2, bottomRight.y - h);
 		} else {
 			edges[2].onRelease();
 		}
@@ -477,7 +481,7 @@ public class GameView extends View
 		clear();
 		canvas.setBitmap(bitmap);
 		this.w = w; this.h = h;
-		zoomMatrixUpdated();
+		zoomMatrixUpdated(false);
 		if (parent != null) parent.gameViewResized();
 		if (isInEditMode()) {
 			// Draw a little placeholder to aid UI editing
