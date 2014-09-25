@@ -178,6 +178,7 @@ public class GameView extends View
 					@Override
 					public void run() {
 						forceRedraw();
+						for (EdgeEffectCompat edge : edges) edge.onRelease();
 					}
 				});
 			} else {
@@ -231,25 +232,25 @@ public class GameView extends View
 		if (topLeft.x < 0) {
 			zoomInProgressMatrix.preTranslate(topLeft.x, 0);
 			if (userAction) hitEdge(3, -topLeft.x);
-		} else {
+		} else if (exceedsTouchSlop(topLeft.x)) {
 			edges[3].onRelease();
 		}
 		if (bottomRight.x > w) {
 			zoomInProgressMatrix.preTranslate(bottomRight.x - w, 0);
 			if (userAction) hitEdge(1, bottomRight.x - w);
-		} else {
+		} else if (exceedsTouchSlop(w - bottomRight.x)) {
 			edges[1].onRelease();
 		}
 		if (topLeft.y < 0) {
 			zoomInProgressMatrix.preTranslate(0, topLeft.y);
 			if (userAction) hitEdge(0, -topLeft.y);
-		} else {
+		} else if (exceedsTouchSlop(topLeft.y)) {
 			edges[0].onRelease();
 		}
 		if (bottomRight.y > h) {
 			zoomInProgressMatrix.preTranslate(0, bottomRight.y - h);
 			if (userAction) hitEdge(2, bottomRight.y - h);
-		} else {
+		} else if (exceedsTouchSlop(h - bottomRight.y)) {
 			edges[2].onRelease();
 		}
 		canvas.setMatrix(zoomMatrix);
@@ -263,6 +264,10 @@ public class GameView extends View
 		} else {
 			edges[edge].onPull(delta);
 		}
+	}
+
+	private boolean exceedsTouchSlop(float dist) {
+		return Math.pow(dist, 2) > maxDistSq;
 	}
 
 	private boolean movedPastTouchSlop(float x, float y) {
@@ -284,10 +289,12 @@ public class GameView extends View
 				float factor = detector.getScaleFactor();
 				final float scale = getXScale(zoomMatrix) * getXScale(zoomInProgressMatrix);
 				final float nextScale = scale * factor;
+				final boolean wasIdentity = zoomMatrix.isIdentity() && zoomInProgressMatrix.isIdentity();
 				if (nextScale < 1.01f) {
-					for (EdgeEffectCompat edge : edges) edge.onRelease();
-					resetZoomMatrix();
-					forceRedraw();
+					if (! wasIdentity) {
+						resetZoomMatrix();
+						forceRedraw();
+					}
 				} else {
 					if (nextScale > maxZoom) {
 						factor = maxZoom / scale;
@@ -371,6 +378,7 @@ public class GameView extends View
 			parent.handler.removeCallbacks(sendLongPress);
 			if (touchState == TouchState.PINCH && mScroller.isFinished()) {
 				forceRedraw();
+				for (EdgeEffectCompat edge : edges) edge.onRelease();
 			} else if (touchState == TouchState.WAITING_LONG_PRESS) {
 				parent.sendKey(viewToGame(touchStart), button);
 				touchState = TouchState.DRAGGING;
