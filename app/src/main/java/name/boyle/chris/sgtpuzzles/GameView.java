@@ -518,7 +518,6 @@ public class GameView extends View
 		clear();
 		canvas.setBitmap(bitmap);
 		this.w = w; this.h = h;
-		zoomMatrix.preTranslate(w - oldW, h - oldH);
 		zoomMatrixUpdated(false);
 		if (parent != null) parent.gameViewResized();
 		if (isInEditMode()) {
