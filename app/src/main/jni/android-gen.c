@@ -34,7 +34,7 @@ int main(int argc, const char *argv[]) {
 	fe->me = midend_new(fe, thegame, &null_drawing, fe);
 
 	char* error = NULL;
-	game_params *params = oriented_params_from_str(thegame, (argc >= 3 && strlen(argv[2]) > 0) ? argv[2] : NULL, error);
+	game_params *params = oriented_params_from_str(thegame, (argc >= 3 && strlen(argv[2]) > 0) ? argv[2] : NULL, &error);
 	if (error) {
 		fprintf(stderr, "%s\n", error);
 		exit(1);
