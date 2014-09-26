@@ -614,6 +614,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 				} else {
 					gameView.setBackgroundColor(gameView.getDefaultBackgroundColour());
 				}
+				gameView.resetZoomForClear();
 				gameView.clear();
 				solveEnabled = false;
 				changedState(false, false);

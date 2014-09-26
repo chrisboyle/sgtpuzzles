@@ -313,6 +313,12 @@ public class GameView extends View
 		ScaleGestureDetectorCompat.setQuickScaleEnabled(scaleDetector, false);
 	}
 
+	void resetZoomForClear() {
+		resetZoomMatrix();
+		canvas.setMatrix(zoomMatrix);
+		invertZoomMatrix();
+	}
+
 	private void resetZoomMatrix() {
 		zoomMatrix.reset();
 		zoomMatrix.preTranslate(ZOOM_OVERDRAW_PROPORTION * w, ZOOM_OVERDRAW_PROPORTION * h);
