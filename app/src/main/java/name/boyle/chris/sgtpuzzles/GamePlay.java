@@ -402,9 +402,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 			int h = Integer.parseInt(matcher.group(3));
 			boolean typeLandscape = (w > h);
 			if (typeLandscape != screenLandscape) {
-				String ret = matcher.group(3) + matcher.group(2) + "x" + matcher.group(2) + matcher.group(1) + matcher.group(4);
-				Log.d(TAG, "orientGameType: " + type + " -> " + ret);
-				return ret;
+				return matcher.group(3) + matcher.group(2) + "x" + matcher.group(2) + matcher.group(1) + matcher.group(4);
 			}
 		}
 		return type;
