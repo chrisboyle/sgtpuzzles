@@ -82,7 +82,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 	private static final String BRIDGES_SHOW_H_KEY = "bridgesShowH";
 	private static final String FULLSCREEN_KEY = "fullscreen";
 	private static final String STAY_AWAKE_KEY = "stayAwake";
-	private static final String UNDO_REDO_KBD_KEY = "undoRedoKbd";
+	private static final String UNDO_REDO_KBD_KEY = "undoRedoOnKeyboard";
 	private static final boolean UNDO_REDO_KBD_DEFAULT = true;
 	private static final String PATTERN_SHOW_LENGTHS_KEY = "patternShowLengths";
 	private static final String COMPLETED_PROMPT_KEY = "completedPrompt";
@@ -1370,7 +1370,6 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 	native void serialise();
 	native int identifyBackend(String savedGame);
 	native String getCurrentParams();
-	native void forceRedraw();
 	native void requestKeys(String backend, String params);
 
 	static {

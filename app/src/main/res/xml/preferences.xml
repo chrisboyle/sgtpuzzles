@@ -15,9 +15,9 @@
 	</PreferenceCategory>
 
 	<PreferenceCategory android:title="@string/allGames">
-		<CheckBoxPreference android:title="@string/undoRedoKbd"
-							android:summary="@string/undoRedoKbdSummary"
-							android:key="undoRedoKbd"
+		<CheckBoxPreference android:title="@string/undoRedoOnKeyboard"
+							android:summary="@string/undoRedoOnKeyboardSummary"
+							android:key="undoRedoOnKeyboard"
 							android:defaultValue="true" />
 		<CheckBoxPreference android:title="@string/completedPrompt"
 			android:summary="@string/completedPromptSummary"

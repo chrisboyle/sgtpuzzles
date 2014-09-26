@@ -303,11 +303,6 @@ void JNICALL resizeEvent(JNIEnv *env, jobject _obj, jint width, jint height)
 	midend_force_redraw(fe->me);
 }
 
-void JNICALL forceRedraw(JNIEnv *env, jobject _obj)
-{
-	midend_force_redraw(fe->me);
-}
-
 void JNICALL timerTick(JNIEnv *env, jobject _obj)
 {
 	if (! fe->timer_active) return;
@@ -760,7 +755,6 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
 		{ "startPlaying", "(Lname/boyle/chris/sgtpuzzles/GameView;Ljava/lang/String;)V", startPlaying },
 		{ "identifyBackend", "(Ljava/lang/String;)I", identifyBackend },
 		{ "getCurrentParams", "()Ljava/lang/String;", getCurrentParams },
-		{ "forceRedraw", "()V", forceRedraw },
 		{ "requestKeys", "(Ljava/lang/String;Ljava/lang/String;)V", requestKeys },
 	};
 	(*env)->RegisterNatives(env, cls, methods, sizeof(methods)/sizeof(JNINativeMethod));
