@@ -66,13 +66,15 @@ public class GameView extends View
 	final boolean hasPinchZoom;
 	ScaleGestureDetector scaleDetector = null;
 	GestureDetectorCompat gestureDetector;
-	private float maxZoom = 30.f;  // blitter size must be scaled by this to prevent jaggies
+	private float MAX_ZOOM = 30.f;
+	private float ZOOM_OVERDRAW_PROPORTION = 0.5f;  // of a screen-full, in each direction, that you can see before checkerboard
 	private Matrix zoomMatrix = new Matrix(), zoomInProgressMatrix = new Matrix(),
 			inverseZoomMatrix = new Matrix(), tempDrawMatrix = new Matrix();
 	enum DragMode { UNMODIFIED, REVERT_OFF_SCREEN, REVERT_TO_START, PREVENT }
 	private DragMode dragMode = DragMode.UNMODIFIED;
 	private ScrollerCompat mScroller;
 	private EdgeEffectCompat[] edges = new EdgeEffectCompat[4];
+	// ARGB_8888 is viewable in Android Studio debugger but very memory-hungry
 	private static final Bitmap.Config BITMAP_CONFIG = Bitmap.Config.RGB_565;
 
 	public GameView(Context context, AttributeSet attrs)
@@ -177,7 +179,7 @@ public class GameView extends View
 				ViewCompat.postOnAnimation(GameView.this, new Runnable() {
 					@Override
 					public void run() {
-						forceRedraw();
+						redrawForZoomChange();
 						for (EdgeEffectCompat edge : edges) edge.onRelease();
 					}
 				});
@@ -293,13 +295,15 @@ public class GameView extends View
 				if (nextScale < 1.01f) {
 					if (! wasIdentity) {
 						resetZoomMatrix();
-						forceRedraw();
+						redrawForZoomChange();
 					}
 				} else {
-					if (nextScale > maxZoom) {
-						factor = maxZoom / scale;
+					if (nextScale > MAX_ZOOM) {
+						factor = MAX_ZOOM / scale;
 					}
-					zoomInProgressMatrix.postScale(factor, factor, w + detector.getFocusX(), h + detector.getFocusY());
+					zoomInProgressMatrix.postScale(factor, factor,
+							(ZOOM_OVERDRAW_PROPORTION * w) + detector.getFocusX(),
+							(ZOOM_OVERDRAW_PROPORTION * h) + detector.getFocusY());
 				}
 				zoomMatrixUpdated(true);
 				ViewCompat.postInvalidateOnAnimation(GameView.this);
@@ -311,27 +315,28 @@ public class GameView extends View
 
 	private void resetZoomMatrix() {
 		zoomMatrix.reset();
-		zoomMatrix.preTranslate(w, h);
+		zoomMatrix.preTranslate(ZOOM_OVERDRAW_PROPORTION * w, ZOOM_OVERDRAW_PROPORTION * h);
 		zoomInProgressMatrix.reset();
 	}
 
 	private void invertZoomMatrix() {
 		final Matrix copy = new Matrix(zoomMatrix);
 		copy.postConcat(zoomInProgressMatrix);
-		copy.postTranslate(-w, -h);
+		copy.postTranslate(-ZOOM_OVERDRAW_PROPORTION * w, -ZOOM_OVERDRAW_PROPORTION * h);
 		if (!copy.invert(inverseZoomMatrix)) {
 			throw new RuntimeException("zoom not invertible");
 		}
 	}
 
-	private void forceRedraw() {
+	private void redrawForZoomChange() {
+		zoomMatrixUpdated(false);  // constrains zoomInProgressMatrix
 		zoomMatrix.postConcat(zoomInProgressMatrix);
 		zoomInProgressMatrix.reset();
-		zoomMatrixUpdated(false);
 		canvas.setMatrix(zoomMatrix);
+		invertZoomMatrix();
 		if (parent != null) {
 			clear();
-			parent.forceRedraw();
+			parent.gameViewResized();  // not just forceRedraw() - need to reallocate blitters
 		}
 		ViewCompat.postInvalidateOnAnimation(GameView.this);
 	}
@@ -377,7 +382,7 @@ public class GameView extends View
 		if (event.getAction() == MotionEvent.ACTION_UP) {
 			parent.handler.removeCallbacks(sendLongPress);
 			if (touchState == TouchState.PINCH && mScroller.isFinished()) {
-				forceRedraw();
+				redrawForZoomChange();
 				for (EdgeEffectCompat edge : edges) edge.onRelease();
 			} else if (touchState == TouchState.WAITING_LONG_PRESS) {
 				parent.sendKey(viewToGame(touchStart), button);
@@ -472,7 +477,7 @@ public class GameView extends View
 	{
 		if( bitmap == null ) return;
 		tempDrawMatrix.reset();
-		tempDrawMatrix.preTranslate(-w, -h);
+		tempDrawMatrix.preTranslate(-ZOOM_OVERDRAW_PROPORTION * w, -ZOOM_OVERDRAW_PROPORTION * h);
 		tempDrawMatrix.preConcat(zoomInProgressMatrix);
 		final int restore = c.save();
 		c.concat(tempDrawMatrix);
@@ -514,11 +519,13 @@ public class GameView extends View
 		if( h <= 0 ) h = 1;
 		if (bitmap != null) bitmap.recycle();
 		// a screen-full to spare in each direction
-		bitmap = Bitmap.createBitmap(3 * w, 3 * h, BITMAP_CONFIG);
+		bitmap = Bitmap.createBitmap(
+				Math.round((2 * ZOOM_OVERDRAW_PROPORTION + 1) * w),
+				Math.round((2 * ZOOM_OVERDRAW_PROPORTION + 1) * h), BITMAP_CONFIG);
 		clear();
 		canvas.setBitmap(bitmap);
 		this.w = w; this.h = h;
-		zoomMatrixUpdated(false);
+		redrawForZoomChange();
 		if (parent != null) parent.gameViewResized();
 		if (isInEditMode()) {
 			// Draw a little placeholder to aid UI editing
@@ -659,7 +666,8 @@ public class GameView extends View
 	{
 		for(int i=0; i<blitters.length; i++) {
 			if (blitters[i] == null) {
-				blitters[i] = Bitmap.createBitmap(Math.round(maxZoom * w), Math.round(maxZoom * h), BITMAP_CONFIG);
+				float zoom = getXScale(zoomMatrix);
+				blitters[i] = Bitmap.createBitmap(Math.round(zoom * w), Math.round(zoom * h), BITMAP_CONFIG);
 				return i;
 			}
 		}
@@ -681,7 +689,9 @@ public class GameView extends View
 		Canvas c = new Canvas(blitters[i]);
 		Matrix m = new Matrix(inverseZoomMatrix);
 		m.postTranslate(-x, -y);
-		m.postScale(maxZoom, maxZoom);
+		float zoom = getXScale(zoomMatrix);
+		m.postScale(zoom, zoom);
+		m.postTranslate(-ZOOM_OVERDRAW_PROPORTION * w, -ZOOM_OVERDRAW_PROPORTION * h);
 		c.drawBitmap(bitmap, m, null);
 	}
 
@@ -690,7 +700,8 @@ public class GameView extends View
 	{
 		if( blitters[i] == null ) return;
 		Matrix m = new Matrix();
-		m.postScale(1/maxZoom, 1/maxZoom);
+		float zoom = getXScale(zoomMatrix);
+		m.postScale(1 / zoom, 1 / zoom);
 		m.postTranslate(x, y);
 		canvas.drawBitmap(blitters[i], m, null);
 	}
