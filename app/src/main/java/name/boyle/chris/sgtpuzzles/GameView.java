@@ -697,7 +697,7 @@ public class GameView extends View
 		m.postTranslate(-x, -y);
 		float zoom = getXScale(zoomMatrix);
 		m.postScale(zoom, zoom);
-		m.postTranslate(-ZOOM_OVERDRAW_PROPORTION * w, -ZOOM_OVERDRAW_PROPORTION * h);
+		m.postTranslate((float)Math.floor(-ZOOM_OVERDRAW_PROPORTION * w), (float)Math.floor(-ZOOM_OVERDRAW_PROPORTION * h));
 		c.drawBitmap(bitmap, m, null);
 	}
 
