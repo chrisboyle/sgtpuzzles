@@ -135,8 +135,20 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 			// How many keys can we fit on a row?
 			final int maxPxMinusArrows = arrowMode.hasArrows() ? maxPx - arrowMinors * keyPlusPad : maxPx;
 			final int minorsPerMajor = (int)Math.floor(((double)maxPxMinusArrows) / keyPlusPad);
+			final int minorsPerMajorWithoutArrows = (int)Math.floor(((double)maxPx) / keyPlusPad);
 			// How many rows do we need?
-			final int majors = (int)Math.ceil(((double)characters.length())/minorsPerMajor);
+			int majors = (int)Math.ceil(((double)characters.length())/minorsPerMajor);
+			int overlappingMajors = majors;
+			if (majors > arrowMajors) {
+				overlappingMajors = arrowMajors + (int)Math.ceil(((double)characters.length() - (arrowMajors * minorsPerMajor))/minorsPerMajorWithoutArrows);
+			}
+			final int majorWhereArrowsStart;
+			if (overlappingMajors < majors) {  // i.e. extending over arrows saves us anything
+				majors = overlappingMajors;
+				majorWhereArrowsStart = Math.max(0, majors - arrowMajors);
+			} else {
+				majorWhereArrowsStart = -1;
+			}
 			mEmpty = (majors == 0) && ! arrowMode.hasArrows();
 
 			if (majors > 0) {
@@ -144,7 +156,8 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 						- (minorsPerMajor * keyPlusPad)) / 2);
 				final int majorStartPx = (majors < 3 && arrowMode.hasArrows()) ? (arrowMajors - majors) * keyPlusPad : 0;
 				addCharacters(context, characters, columnMajor, undoEnabled, redoEnabled,
-						row, keyPlusPad, arrowMode, minorsPerMajor, majors, minorStartPx, majorStartPx);
+						row, keyPlusPad, arrowMode, minorsPerMajor, minorsPerMajorWithoutArrows,
+						majorWhereArrowsStart, majors, minorStartPx, majorStartPx);
 			}
 
 			int charsWidth = 0;
@@ -178,25 +191,26 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 		private void addCharacters(final Context context, final CharSequence characters,
 					final boolean columnMajor, final boolean undoEnabled, final boolean redoEnabled,
 					final Row row, final int keyPlusPad, final ArrowMode arrowMode,
-					final int minorsPerMajor, final int majors, final int minorStartPx,
-					final int majorStartPx) {
+					final int minorsPerMajor, final int minorsPerMajorWithoutArrows, final int majorWhereArrowsStart,
+					final int majors, final int minorStartPx, final int majorStartPx) {
 			final int length = characters.length();
 			int minorPx = minorStartPx;
 			int majorPx = majorStartPx;
 			int minor = 0;
 			int major = -1;
 			// avoid having a last major with a single character
-			final boolean willPreventSingleton = (length % minorsPerMajor == 1);
 			for (int i = 0; i < length; i++) {
+				final int charsThisMajor = (major < majorWhereArrowsStart) ? minorsPerMajorWithoutArrows : minorsPerMajor;
 				final char c = characters.charAt(i);
 				final boolean preventingSingleton = (major == majors - 2) && i == length - 2;
-				if (i == 0 || minor >= minorsPerMajor || preventingSingleton) {
+				if (i == 0 || minor >= charsThisMajor || preventingSingleton) {
 					major++;
 					minor = 0;
-					final int charsOnThisMajor = (major == majors - 1) ? (length - i)
+					final boolean willPreventSingleton = ((length - i) % minorsPerMajor == 1);
+					final int charsNextMajor = (major == majors - 1) ? (length - i)
 							: (major == majors - 2 && willPreventSingleton) ? (minorsPerMajor - 1)
 							: minorsPerMajor;
-					minorPx = minorStartPx + (int)Math.round((((double)minorsPerMajor - charsOnThisMajor)/2) * keyPlusPad);
+					minorPx = minorStartPx + (int)Math.round((((double)minorsPerMajor - charsNextMajor)/2) * keyPlusPad);
 					if (i > 0) {
 						majorPx += columnMajor
 								? mDefaultHorizontalGap + mDefaultWidth
@@ -504,7 +518,8 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 
 	@Override
 	public void onDraw(@NonNull Canvas canvas) {
-		if (!((KeyboardModel)getKeyboard()).isEmpty()) {
+		final Keyboard keyboard = getKeyboard();
+		if (keyboard != null && !((KeyboardModel) keyboard).isEmpty()) {
 			super.onDraw(canvas);
 		}
 	}
