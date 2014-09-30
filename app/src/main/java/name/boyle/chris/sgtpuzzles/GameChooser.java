@@ -8,6 +8,7 @@ import android.annotation.TargetApi;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
+import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.LayerDrawable;
 import android.graphics.drawable.StateListDrawable;
@@ -28,7 +29,9 @@ import android.view.Gravity;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.ViewTreeObserver;
 import android.widget.ImageView;
+import android.widget.ScrollView;
 import android.widget.TextView;
 
 import java.util.ArrayList;
@@ -63,6 +66,8 @@ public class GameChooser extends ActionBarActivity
 	private Menu menu;
 	private boolean chooserHideGrid;
 	private PrefsSaver prefsSaver;
+	private ScrollView scrollView;
+	private int scrollToOnNextLayout = -1;
 
 	@Override
     @SuppressLint("CommitPrefEdits")
@@ -117,8 +122,44 @@ public class GameChooser extends ActionBarActivity
 //					.show();
 //		}
 
+		scrollView = (ScrollView) findViewById(R.id.scrollView);
+		scrollView.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+			@Override
+			public void onGlobalLayout() {
+				if (scrollToOnNextLayout >= 0) {
+					final View v = views[scrollToOnNextLayout];
+					scrollView.requestChildRectangleOnScreen(v, new Rect(0, 0, v.getWidth(), v.getHeight()), true);
+					scrollToOnNextLayout = -1;
+				}
+			}
+		});
+
 		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
 			enableTableAnimations();
+		}
+	}
+
+	@Override
+	protected void onResume() {
+		super.onResume();
+		int currentBackend = -1;
+		SharedPreferences state = getSharedPreferences(GamePlay.STATE_PREFS_NAME, MODE_PRIVATE);
+		if (state.contains(GamePlay.SAVED_GAME)) {
+			String savedGame = state.getString(GamePlay.SAVED_GAME, "");
+			currentBackend = GamePlay.identifyBackend(savedGame);
+		}
+
+		for (int i = 0; i < games.length; i++) {
+			final View v = views[i];
+			final View highlight = v.findViewById(R.id.currentGameHighlight);
+			// Ideally this would instead key off the new "activated" state, but it's too new.
+			if (i == currentBackend) {
+				highlight.setBackgroundColor(getResources().getColor(R.color.chooser_current_background));
+				// wait until we know the size
+				scrollToOnNextLayout = currentBackend;
+			} else {
+				highlight.setBackgroundResource(0);  // setBackground too new, setBackgroundDrawable deprecated, sigh...
+			}
 		}
 	}
 
@@ -202,7 +243,7 @@ public class GameChooser extends ActionBarActivity
 
 	private void rethinkColumns(boolean force) {
 		DisplayMetrics dm = getResources().getDisplayMetrics();
-		final int colWidthDipNeeded = useGrid ? 72 : 318;
+		final int colWidthDipNeeded = useGrid ? 72 : 298;
 		final double screenWidthDip = (double) dm.widthPixels / dm.density;
 		final int columns = Math.max(1, (int) Math.floor(
 				screenWidthDip / colWidthDipNeeded));

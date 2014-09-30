@@ -1,15 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- based on android.R.layout.activity_list_item -->
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
 	xmlns:tools="http://schemas.android.com/tools"
 	android:layout_width="wrap_content"
 	android:layout_height="wrap_content"
-	android:paddingTop="4dip"
-	android:paddingBottom="4dip"
-	android:paddingLeft="4dip"
-	android:paddingRight="4dip"
-	style="@style/GameChooserItem"
-	tools:ignore="UseCompoundDrawables"><!-- compound drawables can't top-align -->
+	android:paddingTop="2dip"
+	android:paddingBottom="2dip"
+	android:paddingLeft="2dip"
+	android:paddingRight="2dip"
+	style="@style/GameChooserItem">
+<LinearLayout
+	android:id="@+id/currentGameHighlight"
+	android:layout_width="wrap_content"
+	android:layout_height="wrap_content"
+	android:paddingTop="2dip"
+	android:paddingBottom="2dip"
+	android:paddingLeft="2dip"
+	android:paddingRight="2dip"
+	tools:ignore="UseCompoundDrawables,UselessParent">
+	<!-- compound drawables can't top-align; this layout's use is to have a background if current -->
 	<ImageView android:id="@+id/icon"
 		android:layout_width="64dip"
 		android:layout_height="64dip"
@@ -24,4 +33,4 @@
 		android:paddingLeft="8dip"
 		android:paddingRight="8dip"/>
 </LinearLayout>
-
+</FrameLayout>

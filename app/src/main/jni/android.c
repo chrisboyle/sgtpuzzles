@@ -504,7 +504,7 @@ int deserialiseOrIdentify(frontend *new_fe, jstring s, jboolean identifyOnly) {
 	return whichBackend;
 }
 
-jint JNICALL identifyBackend(JNIEnv *env, jobject _obj, jstring savedGame)
+jint JNICALL identifyBackend(JNIEnv *env, jclass c, jstring savedGame)
 {
 	pthread_setspecific(envKey, env);
 	return deserialiseOrIdentify(NULL, savedGame, TRUE);

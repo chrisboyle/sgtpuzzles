@@ -2,6 +2,7 @@
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
 			xmlns:supportLib="http://schemas.android.com/apk/res-auto"
 			xmlns:tools="http://schemas.android.com/tools"
+			android:id="@+id/scrollView"
 			android:layout_width="fill_parent"
 	android:layout_height="fill_parent">
 	<android.support.v7.widget.GridLayout

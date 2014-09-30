@@ -1369,7 +1369,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 	native void configSetBool(String item_ptr, int selected);
 	native void configSetChoice(String item_ptr, int selected);
 	native void serialise();
-	native int identifyBackend(String savedGame);
+	native static int identifyBackend(String savedGame);
 	native String getCurrentParams();
 	native void requestKeys(String backend, String params);
 
