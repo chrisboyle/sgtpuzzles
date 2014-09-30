@@ -8,15 +8,18 @@ import android.os.Bundle;
 import android.view.KeyEvent;
 import android.view.MenuItem;
 import android.webkit.WebChromeClient;
+import android.webkit.WebSettings;
 import android.webkit.WebView;
 
 import java.io.IOException;
 import java.text.MessageFormat;
+import java.util.regex.Pattern;
 
 
 public class HelpActivity extends ActionBarActivity {
 
 	static final String TOPIC = "name.boyle.chris.sgtpuzzles.TOPIC";
+	private static final Pattern ALLOWED_TOPICS = Pattern.compile("^[a-z]+$");
 	private WebView webView;
 
 	@Override
@@ -24,6 +27,10 @@ public class HelpActivity extends ActionBarActivity {
 		super.onCreate(savedInstanceState);
 		Intent intent = getIntent();
 		String topic = intent.getStringExtra(TOPIC);
+		if (!ALLOWED_TOPICS.matcher(topic).matches()) {
+			finish();
+			return;
+		}
 		getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 		setContentView(R.layout.activity_help);
 		webView = (WebView) findViewById(R.id.webview);
@@ -38,9 +45,17 @@ public class HelpActivity extends ActionBarActivity {
 					getSupportActionBar().setTitle(getString(R.string.title_activity_help) + ": " + w.getTitle());
 			}
 		});
-		webView.getSettings().setBuiltInZoomControls(true);
-		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
-			webView.getSettings().setDisplayZoomControls(false);
+		final WebSettings settings = webView.getSettings();
+		settings.setJavaScriptEnabled(false);  // default, but just to be sure
+		settings.setAllowFileAccess(false);  // android_asset still works
+		settings.setBlockNetworkImage(true);
+		settings.setBuiltInZoomControls(true);
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.FROYO) {
+			settings.setBlockNetworkLoads(true);
+			if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
+				settings.setDisplayZoomControls(false);
+				settings.setAllowContentAccess(false);
+			}
 		}
 		final Resources resources = getResources();
 		final String lang = resources.getConfiguration().locale.getLanguage();
