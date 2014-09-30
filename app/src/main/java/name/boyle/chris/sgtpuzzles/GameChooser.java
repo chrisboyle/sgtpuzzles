@@ -61,7 +61,7 @@ public class GameChooser extends ActionBarActivity
 	private String[] games;
 	private View[] views;
 	private Menu menu;
-	private boolean isTablet;
+	private boolean chooserHideGrid;
 	private PrefsSaver prefsSaver;
 
 	@Override
@@ -83,12 +83,9 @@ public class GameChooser extends ActionBarActivity
 			prefsSaver.save(ed);
 		}
 
-		DisplayMetrics dm = getResources().getDisplayMetrics();
-		final int screenWidthDIP = (int)Math.round(((double)dm.widthPixels) / dm.density);
-		final int screenHeightDIP = (int)Math.round(((double)dm.heightPixels) / dm.density);
-		isTablet = ( screenWidthDIP >= 600 && screenHeightDIP >= 600 );
-		if (isTablet) {
-			// Grid is just going to look silly here
+		chooserHideGrid = getResources().getBoolean(R.bool.chooserHideGrid);
+		if (chooserHideGrid) {
+			// Tablets - grid is just going to look silly here
 			useGrid = false;
 		} else {
 			String s = prefs.getString(CHOOSER_STYLE_KEY,"list");
@@ -278,7 +275,7 @@ public class GameChooser extends ActionBarActivity
 		if (screenWidthDIP >= 480) {
 			state |= MenuItemCompat.SHOW_AS_ACTION_WITH_TEXT;
 		}
-		if (!isTablet) {
+		if (!chooserHideGrid) {
 			MenuItemCompat.setShowAsAction(menu.findItem(
 					useGrid ? R.id.listchooser : R.id.gridchooser), state);
 		}
@@ -291,7 +288,7 @@ public class GameChooser extends ActionBarActivity
 	{
 		super.onCreateOptionsMenu(menu);
 		getMenuInflater().inflate(R.menu.chooser, menu);
-		if (isTablet) {
+		if (chooserHideGrid) {
 			menu.removeItem(R.id.gridchooser);
 			menu.removeItem(R.id.listchooser);
 		}
@@ -307,7 +304,7 @@ public class GameChooser extends ActionBarActivity
 	public boolean onPrepareOptionsMenu(Menu menu)
 	{
 		super.onPrepareOptionsMenu(menu);
-		if (! isTablet) {
+		if (!chooserHideGrid) {
 			menu.findItem(useGrid ? R.id.gridchooser : R.id.listchooser).setChecked(true);
 		}
 		updateStyleToggleVisibility();
@@ -316,7 +313,7 @@ public class GameChooser extends ActionBarActivity
 
 	void updateStyleToggleVisibility()
 	{
-		if(! isTablet) {
+		if(!chooserHideGrid) {
 			menu.findItem(useGrid ? R.id.gridchooser : R.id.listchooser).setVisible(false);
 			menu.findItem(useGrid ? R.id.listchooser : R.id.gridchooser).setVisible(true);
 		}
