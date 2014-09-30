@@ -2098,7 +2098,7 @@ static game_state *new_game_sub(const game_params *params, const char *desc)
 #ifdef ANDROID
 static void android_request_keys(const game_params *params)
 {
-    android_keys("Gh", ANDROID_ARROWS_LEFT_RIGHT);
+    android_keys2("Gh", "l", ANDROID_ARROWS_LEFT_RIGHT);
 }
 #endif
 
@@ -2395,6 +2395,15 @@ found:
                 return "";
             }
         }
+    } else if (button == 'l' || button == 'l') {
+        if (!ui->cur_visible) {
+            ui->cur_visible = 1;
+        }
+        if (ui->dragging) {
+            ui_cancel_drag(ui);
+        }
+        sprintf(buf, "M%d,%d", ui->cur_x, ui->cur_y);
+        return dupstr(buf);
     } else if (button == 'g' || button == 'G') {
         ui->show_hints = 1 - ui->show_hints;
         return "";
