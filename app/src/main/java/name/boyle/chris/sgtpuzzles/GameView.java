@@ -457,6 +457,8 @@ public class GameView extends View
 		case KeyEvent.KEYCODE_ENTER: key = '\n'; break;
 		case KeyEvent.KEYCODE_FOCUS: case KeyEvent.KEYCODE_SPACE: case KeyEvent.KEYCODE_BUTTON_X:
 			key = ' '; break;
+		case KeyEvent.KEYCODE_BUTTON_L1: key = 'u'; break;
+		case KeyEvent.KEYCODE_BUTTON_R1: key = 'r'; break;
 		case KeyEvent.KEYCODE_DEL: key = '\b'; break;
 		}
 		// we probably don't want MOD_NUM_KEYPAD here (numbers are in a line on G1 at least)
