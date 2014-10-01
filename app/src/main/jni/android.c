@@ -84,7 +84,6 @@ static jmethodID
 	postInvalidate,
 	requestTimer,
 	serialiseWrite,
-	setMargins,
 	setStatus,
 	showToast,
 	unClip,
@@ -128,8 +127,7 @@ void android_status_bar(void *handle, char *text)
 void android_start_draw(void *handle)
 {
 	CHECK_DR_HANDLE
-	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
-	(*env)->CallVoidMethod(env, gameView, setMargins, fe->ox, fe->oy);
+//	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
 }
 
 void android_clip(void *handle, int x, int y, int w, int h)
@@ -143,7 +141,7 @@ void android_unclip(void *handle)
 {
 	CHECK_DR_HANDLE
 	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
-	(*env)->CallVoidMethod(env, gameView, unClip, fe->ox, fe->oy);
+	(*env)->CallVoidMethod(env, gameView, unClip);
 }
 
 void android_draw_text(void *handle, int x, int y, int fonttype, int fontsize,
@@ -730,10 +728,9 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
 	postInvalidate = (*env)->GetMethodID(env, vcls, "postInvalidate", "()V");
 	requestTimer   = (*env)->GetMethodID(env, cls,  "requestTimer", "(Z)V");
 	serialiseWrite = (*env)->GetMethodID(env, cls,  "serialiseWrite", "([B)V");
-	setMargins     = (*env)->GetMethodID(env, vcls, "setMargins", "(II)V");
 	setStatus      = (*env)->GetMethodID(env, cls,  "setStatus", "(Ljava/lang/String;)V");
 	showToast      = (*env)->GetMethodID(env, cls,  "showToast", "(Ljava/lang/String;Z)V");
-	unClip         = (*env)->GetMethodID(env, vcls, "unClip", "(II)V");
+	unClip         = (*env)->GetMethodID(env, vcls, "unClip", "()V");
 	completed      = (*env)->GetMethodID(env, cls,  "completed", "()V");
 	setKeys        = (*env)->GetMethodID(env, cls,  "setKeys",
 			"(Ljava/lang/String;Ljava/lang/String;Lname/boyle/chris/sgtpuzzles/SmallKeyboard$ArrowMode;)V");

@@ -466,7 +466,7 @@ public class GameView extends View
 		if( key == 0 ) return super.onKeyDown(keyCode, event);  // handles Back etc.
 		if( event.isShiftPressed() ) key |= MOD_SHIFT;
 		if( event.isAltPressed() ) key |= MOD_CTRL;
-		parent.sendKey( 0, 0, key );
+		parent.sendKey(0, 0, key);
 		keysHandled++;
 		return true;
 	}
@@ -476,7 +476,7 @@ public class GameView extends View
 	{
 		if (keyCode != KeyEvent.KEYCODE_DPAD_CENTER || ! waitingSpace)
 			return super.onKeyUp(keyCode, event);
-		parent.handler.removeCallbacks( sendSpace );
+		parent.handler.removeCallbacks(sendSpace);
 		parent.sendKey(0, 0, '\n');
 		return true;
 	}
@@ -533,6 +533,7 @@ public class GameView extends View
 				Math.round((2 * ZOOM_OVERDRAW_PROPORTION + 1) * h), BITMAP_CONFIG);
 		clear();
 		canvas.setBitmap(bitmap);
+		unClip();
 		this.w = w; this.h = h;
 		redrawForZoomChange();
 		if (parent != null) parent.gameViewResized();
@@ -563,30 +564,20 @@ public class GameView extends View
 	}
 
 	@UsedByJNI
-	void setMargins( int x, int y )
-	{
-		if (x == 0 && y == 0) return;
-		int w = getWidth(), h = getHeight();
-		canvas.clipRect(new RectF(x - 0.5f, y - 0.5f, w - x - 0.5f, h - y - 0.5f), Region.Op.REPLACE);
-	}
-
-	@UsedByJNI
 	void clipRect(int x, int y, int w, int h)
 	{
 		canvas.clipRect(new RectF(x - 0.5f, y - 0.5f, x + w - 0.5f, y + h - 0.5f), Region.Op.REPLACE);
 	}
 
 	@UsedByJNI
-	void unClip(int x, int y)
+	void unClip()
 	{
-		int w = getWidth(), h = getHeight();
-		if (x == 0 && y == 0) {
-			paint.setStyle(Paint.Style.FILL);
-			paint.setColor(colours[0]);
-			canvas.drawRect(0, 0, w, h, paint);
-		} else {
-			canvas.clipRect(new RectF(x - 0.5f, y - 0.5f, w - x - 0.5f, h - y - 0.5f), Region.Op.REPLACE);
-		}
+		canvas.clipRect(
+				(float) Math.floor(-ZOOM_OVERDRAW_PROPORTION * w),
+				(float) Math.floor(-ZOOM_OVERDRAW_PROPORTION * h),
+				bitmap.getWidth() - ZOOM_OVERDRAW_PROPORTION * w,
+				bitmap.getHeight() - ZOOM_OVERDRAW_PROPORTION * w,
+				Region.Op.REPLACE);
 	}
 
 	@UsedByJNI
