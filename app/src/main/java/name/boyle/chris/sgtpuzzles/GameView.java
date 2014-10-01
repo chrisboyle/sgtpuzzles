@@ -68,6 +68,7 @@ public class GameView extends View
 	GestureDetectorCompat gestureDetector;
 	private float MAX_ZOOM = 30.f;
 	private float ZOOM_OVERDRAW_PROPORTION = 0.5f;  // of a screen-full, in each direction, that you can see before checkerboard
+	private int overdrawX, overdrawY;
 	private Matrix zoomMatrix = new Matrix(), zoomInProgressMatrix = new Matrix(),
 			inverseZoomMatrix = new Matrix(), tempDrawMatrix = new Matrix();
 	enum DragMode { UNMODIFIED, REVERT_OFF_SCREEN, REVERT_TO_START, PREVENT }
@@ -302,8 +303,8 @@ public class GameView extends View
 						factor = MAX_ZOOM / scale;
 					}
 					zoomInProgressMatrix.postScale(factor, factor,
-							(ZOOM_OVERDRAW_PROPORTION * w) + detector.getFocusX(),
-							(ZOOM_OVERDRAW_PROPORTION * h) + detector.getFocusY());
+							overdrawX + detector.getFocusX(),
+							overdrawY + detector.getFocusY());
 				}
 				zoomMatrixUpdated(true);
 				ViewCompat.postInvalidateOnAnimation(GameView.this);
@@ -321,14 +322,14 @@ public class GameView extends View
 
 	private void resetZoomMatrix() {
 		zoomMatrix.reset();
-		zoomMatrix.preTranslate(ZOOM_OVERDRAW_PROPORTION * w, ZOOM_OVERDRAW_PROPORTION * h);
+		zoomMatrix.preTranslate(overdrawX, overdrawY);
 		zoomInProgressMatrix.reset();
 	}
 
 	private void invertZoomMatrix() {
 		final Matrix copy = new Matrix(zoomMatrix);
 		copy.postConcat(zoomInProgressMatrix);
-		copy.postTranslate(-ZOOM_OVERDRAW_PROPORTION * w, -ZOOM_OVERDRAW_PROPORTION * h);
+		copy.postTranslate(-overdrawX, -overdrawY);
 		if (!copy.invert(inverseZoomMatrix)) {
 			throw new RuntimeException("zoom not invertible");
 		}
@@ -486,7 +487,7 @@ public class GameView extends View
 	{
 		if( bitmap == null ) return;
 		tempDrawMatrix.reset();
-		tempDrawMatrix.preTranslate(-ZOOM_OVERDRAW_PROPORTION * w, -ZOOM_OVERDRAW_PROPORTION * h);
+		tempDrawMatrix.preTranslate(-overdrawX, -overdrawY);
 		tempDrawMatrix.preConcat(zoomInProgressMatrix);
 		final int restore = c.save();
 		c.concat(tempDrawMatrix);
@@ -527,10 +528,9 @@ public class GameView extends View
 		if( w <= 0 ) w = 1;
 		if( h <= 0 ) h = 1;
 		if (bitmap != null) bitmap.recycle();
-		// a screen-full to spare in each direction
-		bitmap = Bitmap.createBitmap(
-				Math.round((2 * ZOOM_OVERDRAW_PROPORTION + 1) * w),
-				Math.round((2 * ZOOM_OVERDRAW_PROPORTION + 1) * h), BITMAP_CONFIG);
+		overdrawX = Math.round(ZOOM_OVERDRAW_PROPORTION * w);
+		overdrawY = Math.round(ZOOM_OVERDRAW_PROPORTION * h);
+		bitmap = Bitmap.createBitmap(w + 2 * overdrawX, h + 2 * overdrawY, BITMAP_CONFIG);
 		clear();
 		canvas.setBitmap(bitmap);
 		unClip();
@@ -572,11 +572,8 @@ public class GameView extends View
 	@UsedByJNI
 	void unClip()
 	{
-		canvas.clipRect(
-				(float) Math.floor(-ZOOM_OVERDRAW_PROPORTION * w),
-				(float) Math.floor(-ZOOM_OVERDRAW_PROPORTION * h),
-				bitmap.getWidth() - ZOOM_OVERDRAW_PROPORTION * w,
-				bitmap.getHeight() - ZOOM_OVERDRAW_PROPORTION * w,
+		canvas.clipRect(-overdrawX, -overdrawY,
+				bitmap.getWidth() - overdrawX, bitmap.getHeight() - overdrawY,
 				Region.Op.REPLACE);
 	}
 
@@ -691,7 +688,7 @@ public class GameView extends View
 		m.postTranslate(-x, -y);
 		float zoom = getXScale(zoomMatrix);
 		m.postScale(zoom, zoom);
-		m.postTranslate((float)Math.floor(-ZOOM_OVERDRAW_PROPORTION * w), (float)Math.floor(-ZOOM_OVERDRAW_PROPORTION * h));
+		m.postTranslate(-overdrawX, -overdrawY);
 		c.drawBitmap(bitmap, m, null);
 	}
 
