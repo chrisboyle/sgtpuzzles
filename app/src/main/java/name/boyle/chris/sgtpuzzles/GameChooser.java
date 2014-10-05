@@ -28,6 +28,7 @@ import android.util.DisplayMetrics;
 import android.view.Gravity;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewTreeObserver;
 import android.widget.ImageView;
@@ -68,6 +69,7 @@ public class GameChooser extends ActionBarActivity
 	private PrefsSaver prefsSaver;
 	private ScrollView scrollView;
 	private int scrollToOnNextLayout = -1;
+	private long resumeTime = 0;
 
 	@Override
     @SuppressLint("CommitPrefEdits")
@@ -142,6 +144,7 @@ public class GameChooser extends ActionBarActivity
 	@Override
 	protected void onResume() {
 		super.onResume();
+		resumeTime = System.nanoTime();
 		int currentBackend = -1;
 		SharedPreferences state = getSharedPreferences(GamePlay.STATE_PREFS_NAME, MODE_PRIVATE);
 		if (state.contains(GamePlay.SAVED_GAME)) {
@@ -188,6 +191,13 @@ public class GameChooser extends ActionBarActivity
 			final TextView textView = (TextView) views[i].findViewById(R.id.text);
 			textView.setText(desc);
 			textView.setVisibility(useGrid ? View.GONE : View.VISIBLE);
+			views[i].setOnTouchListener(new View.OnTouchListener() {
+				@Override
+				public boolean onTouch(View v, MotionEvent event) {
+					// Ignore touch within 300ms of resume
+					return System.nanoTime() - resumeTime < 300000000;
+				}
+			});
 			views[i].setOnClickListener(new View.OnClickListener() {
 				public void onClick(View arg1) {
 					Intent i = new Intent(GameChooser.this, GamePlay.class);
