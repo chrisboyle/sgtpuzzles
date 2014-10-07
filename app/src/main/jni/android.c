@@ -141,7 +141,7 @@ void android_unclip(void *handle)
 {
 	CHECK_DR_HANDLE
 	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
-	(*env)->CallVoidMethod(env, gameView, unClip);
+	(*env)->CallVoidMethod(env, gameView, unClip, fe->ox, fe->oy);
 }
 
 void android_draw_text(void *handle, int x, int y, int fonttype, int fontsize,
@@ -298,6 +298,7 @@ void JNICALL resizeEvent(JNIEnv *env, jobject _obj, jint width, jint height)
 	midend_size(fe->me, &x, &y, TRUE);
 	fe->ox = (width - x) / 2;
 	fe->oy = (height - y) / 2;
+	if (gameView) (*env)->CallVoidMethod(env, gameView, unClip, fe->ox, fe->oy);
 	midend_force_redraw(fe->me);
 }
 
@@ -730,7 +731,7 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
 	serialiseWrite = (*env)->GetMethodID(env, cls,  "serialiseWrite", "([B)V");
 	setStatus      = (*env)->GetMethodID(env, cls,  "setStatus", "(Ljava/lang/String;)V");
 	showToast      = (*env)->GetMethodID(env, cls,  "showToast", "(Ljava/lang/String;Z)V");
-	unClip         = (*env)->GetMethodID(env, vcls, "unClip", "()V");
+	unClip         = (*env)->GetMethodID(env, vcls, "unClip", "(II)V");
 	completed      = (*env)->GetMethodID(env, cls,  "completed", "()V");
 	setKeys        = (*env)->GetMethodID(env, cls,  "setKeys",
 			"(Ljava/lang/String;Ljava/lang/String;Lname/boyle/chris/sgtpuzzles/SmallKeyboard$ArrowMode;)V");

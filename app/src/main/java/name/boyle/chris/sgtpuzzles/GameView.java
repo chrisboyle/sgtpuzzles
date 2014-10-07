@@ -536,7 +536,6 @@ public class GameView extends View
 		bitmap = Bitmap.createBitmap(w + 2 * overdrawX, h + 2 * overdrawY, BITMAP_CONFIG);
 		clear();
 		canvas.setBitmap(bitmap);
-		unClip();
 		this.w = w; this.h = h;
 		redrawForZoomChange();
 		if (parent != null) parent.gameViewResized();
@@ -573,11 +572,9 @@ public class GameView extends View
 	}
 
 	@UsedByJNI
-	void unClip()
+	void unClip(int marginX, int marginY)
 	{
-		canvas.clipRect(-overdrawX, -overdrawY,
-				bitmap.getWidth() - overdrawX, bitmap.getHeight() - overdrawY,
-				Region.Op.REPLACE);
+		canvas.clipRect(marginX - 0.5f, marginY - 0.5f, w - marginX - 1.5f, h - marginY - 1.5f, Region.Op.REPLACE);
 	}
 
 	@UsedByJNI
