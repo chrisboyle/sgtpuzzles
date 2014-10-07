@@ -78,7 +78,6 @@
 
 /* Turn this on for hints about which lines are considered possibilities. */
 #undef DRAW_GRID
-#undef DRAW_DSF
 
 /* --- structures for params, state, etc. --- */
 
@@ -122,12 +121,8 @@ struct game_params {
 #define G_NOLINEH       0x0040
 #define G_NOLINE        (G_NOLINEV|G_NOLINEH)
 
-/* flags used by the drawstate */
-#define G_ISSEL         0x0080
-#define G_REDRAW        0x0100
-#define G_FLASH         0x0200
-#define G_WARN          0x0400
-#define G_CURSOR        0x0800
+/* flags used by the error checker */
+#define G_WARN          0x0080
 
 /* flags used by the solver etc. */
 #define G_SWEEP         0x1000
@@ -2162,11 +2157,88 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
 struct game_drawstate {
     int tilesize;
     int w, h;
-    grid_type *grid;
+    unsigned long *grid, *newgrid;
     int *lv, *lh;
     int started, dragging;
-    int show_hints;
 };
+
+/*
+ * The contents of ds->grid are complicated, because of the circular
+ * islands which overlap their own grid square into neighbouring
+ * squares. An island square can contain pieces of the bridges in all
+ * directions, and conversely a bridge square can be intruded on by
+ * islands from any direction.
+ *
+ * So we define one group of flags describing what's important about
+ * an island, and another describing a bridge. Island squares' entries
+ * in ds->grid contain one of the former and four of the latter; bridge
+ * squares, four of the former and _two_ of the latter - because a
+ * horizontal and vertical 'bridge' can cross, when one of them is a
+ * 'no bridge here' pencil mark.
+ *
+ * Bridge flags need to indicate 0-4 actual bridges (3 bits), a 'no
+ * bridge' row of crosses, or a grey hint line; that's 7
+ * possibilities, so 3 bits suffice. But then we also need to vary the
+ * colours: the bridges can turn COL_WARNING if they're part of a loop
+ * in no-loops mode, COL_HIGHLIGHT during a victory flash, or
+ * COL_SELECTED if they're the bridge the user is currently dragging,
+ * so that's 2 more bits for foreground colour. Also bridges can be
+ * backed by COL_MARK if they're locked by the user, so that's one
+ * more bit, making 6 bits per bridge direction.
+ *
+ * Island flags omit the actual island clue (it never changes during
+ * the game, so doesn't have to be stored in ds->grid to check against
+ * the previous version), so they just need to include 2 bits for
+ * foreground colour (an island can be normal, COL_HIGHLIGHT during
+ * victory, COL_WARNING if its clue is unsatisfiable, or COL_SELECTED
+ * if it's part of the user's drag) and 2 bits for background (normal,
+ * COL_MARK for a locked island, COL_CURSOR for the keyboard cursor).
+ * That's 4 bits per island direction. We must also indicate whether
+ * no island is present at all (in the case where the island is
+ * potentially intruding into the side of a line square), which we do
+ * using the unused 4th value of the background field.
+ *
+ * So an island square needs 4 + 4*6 = 28 bits, while a bridge square
+ * needs 4*4 + 2*6 = 28 bits too. Both only just fit in 32 bits, which
+ * is handy, because otherwise we'd have to faff around forever with
+ * little structs!
+ */
+/* Flags for line data */
+#define DL_COUNTMASK    0x07
+#define DL_COUNT_CROSS  0x06
+#define DL_COUNT_HINT   0x07
+#define DL_COLMASK      0x18
+#define DL_COL_NORMAL   0x00
+#define DL_COL_WARNING  0x08
+#define DL_COL_FLASH    0x10
+#define DL_COL_SELECTED 0x18
+#define DL_LOCK         0x20
+#define DL_MASK         0x3F
+/* Flags for island data */
+#define DI_COLMASK      0x03
+#define DI_COL_NORMAL   0x00
+#define DI_COL_FLASH    0x01
+#define DI_COL_WARNING  0x02
+#define DI_COL_SELECTED 0x03
+#define DI_BGMASK       0x0C
+#define DI_BG_NO_ISLAND 0x00
+#define DI_BG_NORMAL    0x04
+#define DI_BG_MARK      0x08
+#define DI_BG_CURSOR    0x0C
+#define DI_MASK         0x0F
+/* Shift counts for the format of a 32-bit word in an island square */
+#define D_I_ISLAND_SHIFT 0
+#define D_I_LINE_SHIFT_L 4
+#define D_I_LINE_SHIFT_R 10
+#define D_I_LINE_SHIFT_U 16
+#define D_I_LINE_SHIFT_D 24
+/* Shift counts for the format of a 32-bit word in a line square */
+#define D_L_ISLAND_SHIFT_L 0
+#define D_L_ISLAND_SHIFT_R 4
+#define D_L_ISLAND_SHIFT_U 8
+#define D_L_ISLAND_SHIFT_D 12
+#define D_L_LINE_SHIFT_H 16
+#define D_L_LINE_SHIFT_V 22
 
 static char *update_drag_dst(const game_state *state, game_ui *ui,
                              const game_drawstate *ds, int nx, int ny)
@@ -2562,18 +2634,21 @@ static game_drawstate *game_new_drawstate(drawing *dr, const game_state *state)
 {
     struct game_drawstate *ds = snew(struct game_drawstate);
     int wh = state->w*state->h;
+    int i;
 
     ds->tilesize = 0;
     ds->w = state->w;
     ds->h = state->h;
     ds->started = 0;
-    ds->grid = snewn(wh, grid_type);
-    memset(ds->grid, -1, wh*sizeof(grid_type));
+    ds->dragging = 0;
+    ds->grid = snewn(wh, unsigned long);
+    for (i = 0; i < wh; i++)
+        ds->grid[i] = ~0UL;
+    ds->newgrid = snewn(wh, unsigned long);
     ds->lv = snewn(wh, int);
     ds->lh = snewn(wh, int);
     memset(ds->lv, 0, wh*sizeof(int));
     memset(ds->lh, 0, wh*sizeof(int));
-    ds->show_hints = 0;
 
     return ds;
 }
@@ -2582,6 +2657,7 @@ static void game_free_drawstate(drawing *dr, game_drawstate *ds)
 {
     sfree(ds->lv);
     sfree(ds->lh);
+    sfree(ds->newgrid);
     sfree(ds->grid);
     sfree(ds);
 }
@@ -2590,40 +2666,6 @@ static void game_free_drawstate(drawing *dr, game_drawstate *ds)
 #define TS8(x) (((x)*TILE_SIZE)/8)
 
 #define OFFSET(thing) ((TILE_SIZE/2) - ((thing)/2))
-
-static void lines_vert(drawing *dr, game_drawstate *ds,
-                       int ox, int oy, int lv, int col, grid_type v)
-{
-    int lw = LINE_WIDTH, gw = LINE_WIDTH, bw, i, loff;
-    while ((bw = lw * lv + gw * (lv+1)) > TILE_SIZE)
-        gw--;
-    loff = OFFSET(bw);
-    if (v & G_MARKV)
-        draw_rect(dr, ox + loff, oy, bw, TILE_SIZE, COL_MARK);
-    for (i = 0; i < lv; i++, loff += lw + gw)
-        draw_rect(dr, ox + loff + gw, oy, lw, TILE_SIZE, col);
-}
-
-static void lines_horiz(drawing *dr, game_drawstate *ds,
-                        int ox, int oy, int lh, int col, grid_type v)
-{
-    int lw = LINE_WIDTH, gw = LINE_WIDTH, bw, i, loff;
-    while ((bw = lw * lh + gw * (lh+1)) > TILE_SIZE)
-        gw--;
-    loff = OFFSET(bw);
-    if (v & G_MARKH)
-        draw_rect(dr, ox, oy + loff, TILE_SIZE, bw, COL_MARK);
-    for (i = 0; i < lh; i++, loff += lw + gw)
-        draw_rect(dr, ox, oy + loff + gw, TILE_SIZE, lw, col);
-}
-
-static void line_cross(drawing *dr, game_drawstate *ds,
-                      int ox, int oy, int col, grid_type v)
-{
-    int off = TS8(2);
-    draw_line(dr, ox,     oy, ox+off, oy+off, col);
-    draw_line(dr, ox+off, oy, ox,     oy+off, col);
-}
 
 static int between_island(const game_state *state, int sx, int sy,
                           int dx, int dy)
@@ -2660,107 +2702,220 @@ static void lines_lvlh(const game_state *state, const game_ui *ui,
     *lv_r = lv; *lh_r = lh;
 }
 
-static void dsf_debug_draw(drawing *dr,
-                           const game_state *state, game_drawstate *ds,
-                           int x, int y)
+static void draw_cross(drawing *dr, game_drawstate *ds,
+                       int ox, int oy, int col)
 {
-#ifdef DRAW_DSF
-    int ts = TILE_SIZE/2;
-    int ox = COORD(x) + ts/2, oy = COORD(y) + ts/2;
-    char str[32];
-
-    sprintf(str, "%d", dsf_canonify(state->solver->dsf, DINDEX(x,y)));
-    draw_text(dr, ox, oy, FONT_VARIABLE, ts,
-              ALIGN_VCENTRE | ALIGN_HCENTRE, COL_WARNING, str);
-#endif
+    int off = TS8(2);
+    draw_line(dr, ox,     oy, ox+off, oy+off, col);
+    draw_line(dr, ox+off, oy, ox,     oy+off, col);
 }
 
-static void lines_redraw(drawing *dr, const game_state *state,
-                         game_drawstate *ds, const game_ui *ui,
-                         int x, int y, grid_type v, int lv, int lh)
+static void draw_general_line(drawing *dr, game_drawstate *ds,
+                              int ox, int oy, int fx, int fy, int ax, int ay,
+                              int len, unsigned long ldata, int which)
 {
-    int ox = COORD(x), oy = COORD(y);
-    int vcol = (v & G_FLASH) ? COL_HIGHLIGHT :
-        (v & G_WARN) ? COL_WARNING : COL_FOREGROUND, hcol = vcol;
-    grid_type todraw = v & G_NOLINE;
+    /*
+     * Draw one direction of lines in a square. To permit the same
+     * code to handle horizontal and vertical lines, fx,fy are the
+     * 'forward' direction (along the lines) and ax,ay are the
+     * 'across' direction.
+     *
+     * We draw the white background for a locked bridge if (which &
+     * 1), and draw the bridges themselves if (which & 2). This
+     * permits us to get two overlapping locked bridges right without
+     * one of them erasing part of the other.
+     */
+    int fg;
 
-    if (v & G_ISSEL) {
-        if (ui->todraw & G_FLAGSH) hcol = COL_SELECTED;
-        if (ui->todraw & G_FLAGSV) vcol = COL_SELECTED;
-        todraw |= ui->todraw;
+    fg = ((ldata & DL_COUNTMASK) == DL_COUNT_HINT ? COL_HINT :
+          (ldata & DL_COLMASK) == DL_COL_SELECTED ? COL_SELECTED :
+          (ldata & DL_COLMASK) == DL_COL_FLASH ? COL_HIGHLIGHT :
+          (ldata & DL_COLMASK) == DL_COL_WARNING ? COL_WARNING :
+          COL_FOREGROUND);
+
+    if ((ldata & DL_COUNTMASK) == DL_COUNT_CROSS) {
+        draw_cross(dr, ds,
+                   ox + TS8(1)*fx + TS8(3)*ax,
+                   oy + TS8(1)*fy + TS8(3)*ay, fg);
+        draw_cross(dr, ds,
+                   ox + TS8(5)*fx + TS8(3)*ax,
+                   oy + TS8(5)*fy + TS8(3)*ay, fg);
+    } else if ((ldata & DL_COUNTMASK) != 0) {
+        int lh, lw, gw, bw, i, loff;
+
+        lh = (ldata & DL_COUNTMASK);
+        if (lh == DL_COUNT_HINT)
+            lh = 1;
+
+        lw = gw = LINE_WIDTH;
+        while ((bw = lw * lh + gw * (lh+1)) > TILE_SIZE)
+            gw--;
+
+        loff = OFFSET(bw);
+
+        if (which & 1) {
+            if ((ldata & DL_LOCK) && fg != COL_HINT)
+                draw_rect(dr, ox + loff*ax, oy + loff*ay,
+                          len*fx+bw*ax, len*fy+bw*ay, COL_MARK);
+        }
+        if (which & 2) {
+            for (i = 0; i < lh; i++, loff += lw + gw)
+                draw_rect(dr, ox + (loff+gw)*ax, oy + (loff+gw)*ay,
+                          len*fx+lw*ax, len*fy+lw*ay, fg);
+        }
     }
+}
 
-    draw_rect(dr, ox, oy, TILE_SIZE, TILE_SIZE, COL_BACKGROUND);
-    /*if (v & G_CURSOR)
-        draw_rect(dr, ox+TILE_SIZE/4, oy+TILE_SIZE/4,
-                  TILE_SIZE/2, TILE_SIZE/2, COL_CURSOR);*/
+static void draw_hline(drawing *dr, game_drawstate *ds,
+                       int ox, int oy, int w, unsigned long vdata, int which)
+{
+    draw_general_line(dr, ds, ox, oy, 1, 0, 0, 1, w, vdata, which);
+}
 
-
-    if (ui->show_hints) {
-        if (between_island(state, x, y, 0, 1) && !(v & G_LINEV))
-            vcol = COL_HINT;
-        if (between_island(state, x, y, 1, 0) && !(v & G_LINEH))
-            hcol = COL_HINT;
-    }
-#ifdef DRAW_GRID
-    draw_rect_outline(dr, ox, oy, TILE_SIZE, TILE_SIZE, COL_GRID);
-#endif
-
-    if (todraw & G_NOLINEV) {
-        line_cross(dr, ds, ox + TS8(3), oy + TS8(1), vcol, todraw);
-        line_cross(dr, ds, ox + TS8(3), oy + TS8(5), vcol, todraw);
-    }
-    if (todraw & G_NOLINEH) {
-        line_cross(dr, ds, ox + TS8(1), oy + TS8(3), hcol, todraw);
-        line_cross(dr, ds, ox + TS8(5), oy + TS8(3), hcol, todraw);
-    }
-    /* if we're drawing a real line and a hint, make sure we draw the real
-     * line on top. */
-    if (lv && vcol == COL_HINT) lines_vert(dr, ds, ox, oy, lv, vcol, v);
-    if (lh) lines_horiz(dr, ds, ox, oy, lh, hcol, v);
-    if (lv && vcol != COL_HINT) lines_vert(dr, ds, ox, oy, lv, vcol, v);
-
-    dsf_debug_draw(dr, state, ds, x, y);
-    draw_update(dr, ox, oy, TILE_SIZE, TILE_SIZE);
+static void draw_vline(drawing *dr, game_drawstate *ds,
+                       int ox, int oy, int h, unsigned long vdata, int which)
+{
+    draw_general_line(dr, ds, ox, oy, 0, 1, 1, 0, h, vdata, which);
 }
 
 #define ISLAND_RADIUS ((TILE_SIZE*12)/20)
-#define ISLAND_NUMSIZE(is) \
-    (((is)->count < 10) ? (TILE_SIZE*7)/10 : (TILE_SIZE*5)/10)
+#define ISLAND_NUMSIZE(clue) \
+    (((clue) < 10) ? (TILE_SIZE*7)/10 : (TILE_SIZE*5)/10)
 
-static void island_redraw(drawing *dr,
-                          const game_state *state, game_drawstate *ds,
-                          struct island *is, grid_type v)
+static void draw_island(drawing *dr, game_drawstate *ds,
+                        int ox, int oy, int clue, unsigned long idata)
 {
-    /* These overlap the edges of their squares, which is why they're drawn later.
-     * We know they can't overlap each other because they're not allowed within 2
-     * squares of each other. */
-    int half = TILE_SIZE/2;
-    int ox = COORD(is->x) + half, oy = COORD(is->y) + half;
-    int orad = ISLAND_RADIUS, irad = orad - LINE_WIDTH;
-    int updatesz = orad*2+1;
-    int tcol = (v & G_FLASH) ? COL_HIGHLIGHT :
-              (v & G_WARN)  ? COL_WARNING : COL_FOREGROUND;
-    int col = (v & G_ISSEL) ? COL_SELECTED : tcol;
-    int bg = (v & G_CURSOR) ? COL_CURSOR :
-        (v & G_MARK) ? COL_MARK : COL_BACKGROUND;
-    char str[32];
+    int half, orad, irad, fg, bg;
 
-#ifdef DRAW_GRID
-    draw_rect_outline(dr, COORD(is->x), COORD(is->y),
-                      TILE_SIZE, TILE_SIZE, COL_GRID);
-#endif
+    if ((idata & DI_BGMASK) == DI_BG_NO_ISLAND)
+        return;
+
+    half = TILE_SIZE/2;
+    orad = ISLAND_RADIUS;
+    irad = orad - LINE_WIDTH;
+    fg = ((idata & DI_COLMASK) == DI_COL_SELECTED ? COL_SELECTED :
+          (idata & DI_COLMASK) == DI_COL_WARNING ? COL_WARNING :
+          (idata & DI_COLMASK) == DI_COL_FLASH ? COL_HIGHLIGHT :
+          COL_FOREGROUND);
+    bg = ((idata & DI_BGMASK) == DI_BG_CURSOR ? COL_CURSOR :
+          (idata & DI_BGMASK) == DI_BG_MARK ? COL_MARK :
+          COL_BACKGROUND);
 
     /* draw a thick circle */
-    draw_circle(dr, ox, oy, orad, col, col);
-    draw_circle(dr, ox, oy, irad, bg, bg);
+    draw_circle(dr, ox+half, oy+half, orad, fg, fg);
+    draw_circle(dr, ox+half, oy+half, irad, bg, bg);
 
-    sprintf(str, "%d", is->count);
-    draw_text(dr, ox, oy, FONT_VARIABLE, ISLAND_NUMSIZE(is),
-              ALIGN_VCENTRE | ALIGN_HCENTRE, tcol, str);
+    if (clue > 0) {
+        char str[32];
+        int textcolour = (fg == COL_SELECTED ? COL_FOREGROUND : fg);
+        sprintf(str, "%d", clue);
+        draw_text(dr, ox+half, oy+half, FONT_VARIABLE, ISLAND_NUMSIZE(clue),
+                  ALIGN_VCENTRE | ALIGN_HCENTRE, textcolour, str);
+    }
+}
 
-    dsf_debug_draw(dr, state, ds, is->x, is->y);
-    draw_update(dr, ox - orad, oy - orad, updatesz, updatesz);
+static void draw_island_tile(drawing *dr, game_drawstate *ds,
+                             int x, int y, int clue, unsigned long data)
+{
+    int ox = COORD(x), oy = COORD(y);
+    int which;
+
+    clip(dr, ox, oy, TILE_SIZE, TILE_SIZE);
+    draw_rect(dr, ox, oy, TILE_SIZE, TILE_SIZE, COL_BACKGROUND);
+
+    /*
+     * Because of the possibility of incoming bridges just about
+     * meeting at one corner, we must split the line-drawing into
+     * background and foreground segments.
+     */
+    for (which = 1; which <= 2; which <<= 1) {
+        draw_hline(dr, ds, ox, oy, TILE_SIZE/2,
+                   (data >> D_I_LINE_SHIFT_L) & DL_MASK, which);
+        draw_hline(dr, ds, ox + TILE_SIZE - TILE_SIZE/2, oy, TILE_SIZE/2,
+                   (data >> D_I_LINE_SHIFT_R) & DL_MASK, which);
+        draw_vline(dr, ds, ox, oy, TILE_SIZE/2,
+                   (data >> D_I_LINE_SHIFT_U) & DL_MASK, which);
+        draw_vline(dr, ds, ox, oy + TILE_SIZE - TILE_SIZE/2, TILE_SIZE/2,
+                   (data >> D_I_LINE_SHIFT_D) & DL_MASK, which);
+    }
+    draw_island(dr, ds, ox, oy, clue, (data >> D_I_ISLAND_SHIFT) & DI_MASK);
+
+    unclip(dr);
+    draw_update(dr, ox, oy, TILE_SIZE, TILE_SIZE);
+}
+
+static void draw_line_tile(drawing *dr, game_drawstate *ds,
+                           int x, int y, unsigned long data)
+{
+    int ox = COORD(x), oy = COORD(y);
+    unsigned long hdata, vdata;
+
+    clip(dr, ox, oy, TILE_SIZE, TILE_SIZE);
+    draw_rect(dr, ox, oy, TILE_SIZE, TILE_SIZE, COL_BACKGROUND);
+
+    /*
+     * We have to think about which of the horizontal and vertical
+     * line to draw first, if both exist.
+     *
+     * The rule is that hint lines are drawn at the bottom, then
+     * NOLINE crosses, then actual bridges. The enumeration in the
+     * DL_COUNTMASK field is set up so that this drops out of a
+     * straight comparison between the two.
+     *
+     * Since lines crossing in this type of square cannot both be
+     * actual bridges, there's no need to pass a nontrivial 'which'
+     * parameter to draw_[hv]line.
+     */
+    hdata = (data >> D_L_LINE_SHIFT_H) & DL_MASK;
+    vdata = (data >> D_L_LINE_SHIFT_V) & DL_MASK;
+    if ((hdata & DL_COUNTMASK) > (vdata & DL_COUNTMASK)) {
+        draw_hline(dr, ds, ox, oy, TILE_SIZE, hdata, 3);
+        draw_vline(dr, ds, ox, oy, TILE_SIZE, vdata, 3);
+    } else {
+        draw_vline(dr, ds, ox, oy, TILE_SIZE, vdata, 3);
+        draw_hline(dr, ds, ox, oy, TILE_SIZE, hdata, 3);
+    }
+
+    /*
+     * The islands drawn at the edges of a line tile don't need clue
+     * numbers.
+     */
+    draw_island(dr, ds, ox - TILE_SIZE, oy, -1,
+                (data >> D_L_ISLAND_SHIFT_L) & DI_MASK);
+    draw_island(dr, ds, ox + TILE_SIZE, oy, -1,
+                (data >> D_L_ISLAND_SHIFT_R) & DI_MASK);
+    draw_island(dr, ds, ox, oy - TILE_SIZE, -1,
+                (data >> D_L_ISLAND_SHIFT_U) & DI_MASK);
+    draw_island(dr, ds, ox, oy + TILE_SIZE, -1,
+                (data >> D_L_ISLAND_SHIFT_D) & DI_MASK);
+
+    unclip(dr);
+    draw_update(dr, ox, oy, TILE_SIZE, TILE_SIZE);
+}
+
+static void draw_edge_tile(drawing *dr, game_drawstate *ds,
+                           int x, int y, int dx, int dy, unsigned long data)
+{
+    int ox = COORD(x), oy = COORD(y);
+    int cx = ox, cy = oy, cw = TILE_SIZE, ch = TILE_SIZE;
+
+    if (dy) {
+        if (dy > 0)
+            cy += TILE_SIZE/2;
+        ch -= TILE_SIZE/2;
+    } else {
+        if (dx > 0)
+            cx += TILE_SIZE/2;
+        cw -= TILE_SIZE/2;
+    }
+    clip(dr, cx, cy, cw, ch);
+    draw_rect(dr, cx, cy, cw, ch, COL_BACKGROUND);
+
+    draw_island(dr, ds, ox + TILE_SIZE*dx, oy + TILE_SIZE*dy, -1,
+                (data >> D_I_ISLAND_SHIFT) & DI_MASK);
+
+    unclip(dr);
+    draw_update(dr, cx, cy, cw, ch);
 }
 
 static void game_redraw(drawing *dr, game_drawstate *ds,
@@ -2768,13 +2923,13 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
                         int dir, const game_ui *ui,
                         float animtime, float flashtime)
 {
-    int x, y, force = 0, i, j, redraw, lv, lh;
-    grid_type v, dsv, flash = 0;
+    int x, y, lv, lh;
+    grid_type v, flash = 0;
     struct island *is, *is_drag_src = NULL, *is_drag_dst = NULL;
 
     if (flashtime) {
         int f = (int)(flashtime * 5 / FLASH_TIME);
-        if (f == 1 || f == 3) flash = G_FLASH;
+        if (f == 1 || f == 3) flash = TRUE;
     }
 
     /* Clear screen, if required. */
@@ -2792,7 +2947,6 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
                     TILE_SIZE * ds->w + 2 * BORDER,
                     TILE_SIZE * ds->h + 2 * BORDER);
         ds->started = 1;
-        force = 1;
     }
 
     if (ui->dragx_src != -1 && ui->dragy_src != -1) {
@@ -2806,69 +2960,145 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
     } else
         ds->dragging = 0;
 
-    if (ui->show_hints != ds->show_hints) {
-        force = 1;
-        ds->show_hints = ui->show_hints;
-    }
+    /*
+     * Set up ds->newgrid with the current grid contents.
+     */
+    for (x = 0; x < ds->w; x++)
+        for (y = 0; y < ds->h; y++)
+            INDEX(ds,newgrid,x,y) = 0;
 
-    /* Draw all lines (and hints, if we want), but *not* islands. */
     for (x = 0; x < ds->w; x++) {
         for (y = 0; y < ds->h; y++) {
-            v = GRID(state, x, y) | flash;
-            dsv = GRID(ds,x,y) & ~G_REDRAW;
+            v = GRID(state, x, y);
 
-            if (v & G_ISLAND) continue;
+            if (v & G_ISLAND) {
+                /*
+                 * An island square. Compute the drawing data for the
+                 * island, and put it in this square and surrounding
+                 * squares.
+                 */
+                unsigned long idata = 0;
 
-            if (is_drag_dst) {
-                if (WITHIN(x,is_drag_src->x, is_drag_dst->x) &&
-                    WITHIN(y,is_drag_src->y, is_drag_dst->y))
-                    v |= G_ISSEL;
+                is = INDEX(state, gridi, x, y);
+
+                if (flash)
+                    idata |= DI_COL_FLASH;
+                if (is_drag_src && (is == is_drag_src ||
+                                    (is_drag_dst && is == is_drag_dst)))
+                    idata |= DI_COL_SELECTED;
+                else if (island_impossible(is, v & G_MARK))
+                    idata |= DI_COL_WARNING;
+                else
+                    idata |= DI_COL_NORMAL;
+
+                if (ui->cur_visible &&
+                    ui->cur_x == is->x && ui->cur_y == is->y)
+                    idata |= DI_BG_CURSOR;
+                else if (v & G_MARK)
+                    idata |= DI_BG_MARK;
+                else
+                    idata |= DI_BG_NORMAL;
+
+                INDEX(ds,newgrid,x,y) |= idata << D_I_ISLAND_SHIFT;
+                if (x > 0 && !(GRID(state,x-1,y) & G_ISLAND))
+                    INDEX(ds,newgrid,x-1,y) |= idata << D_L_ISLAND_SHIFT_R;
+                if (x+1 < state->w && !(GRID(state,x+1,y) & G_ISLAND))
+                    INDEX(ds,newgrid,x+1,y) |= idata << D_L_ISLAND_SHIFT_L;
+                if (y > 0 && !(GRID(state,x,y-1) & G_ISLAND))
+                    INDEX(ds,newgrid,x,y-1) |= idata << D_L_ISLAND_SHIFT_D;
+                if (y+1 < state->h && !(GRID(state,x,y+1) & G_ISLAND))
+                    INDEX(ds,newgrid,x,y+1) |= idata << D_L_ISLAND_SHIFT_U;
+            } else {
+                unsigned long hdata, vdata;
+                int selh = FALSE, selv = FALSE;
+
+                /*
+                 * A line (non-island) square. Compute the drawing
+                 * data for any horizontal and vertical lines in the
+                 * square, and put them in this square's entry and
+                 * optionally those for neighbouring islands too.
+                 */
+
+                if (is_drag_dst &&
+                    WITHIN(x,is_drag_src->x, is_drag_dst->x) &&
+                    WITHIN(y,is_drag_src->y, is_drag_dst->y)) {
+                    if (is_drag_src->x != is_drag_dst->x)
+                        selh = TRUE;
+                    else
+                        selv = TRUE;
+                }
+                lines_lvlh(state, ui, x, y, v, &lv, &lh);
+
+                hdata = (v & G_NOLINEH ? DL_COUNT_CROSS :
+                         v & G_LINEH ? lh :
+                         (ui->show_hints &&
+                          between_island(state,x,y,1,0)) ? DL_COUNT_HINT : 0);
+                vdata = (v & G_NOLINEV ? DL_COUNT_CROSS :
+                         v & G_LINEV ? lv :
+                         (ui->show_hints &&
+                          between_island(state,x,y,0,1)) ? DL_COUNT_HINT : 0);
+
+                hdata |= (flash ? DL_COL_FLASH :
+                          v & G_WARN ? DL_COL_WARNING :
+                          selh ? DL_COL_SELECTED :
+                          DL_COL_NORMAL);
+                vdata |= (flash ? DL_COL_FLASH :
+                          v & G_WARN ? DL_COL_WARNING :
+                          selv ? DL_COL_SELECTED :
+                          DL_COL_NORMAL);
+
+                if (v & G_MARKH)
+                    hdata |= DL_LOCK;
+                if (v & G_MARKV)
+                    vdata |= DL_LOCK;
+
+                INDEX(ds,newgrid,x,y) |= hdata << D_L_LINE_SHIFT_H;
+                INDEX(ds,newgrid,x,y) |= vdata << D_L_LINE_SHIFT_V;
+                if (x > 0 && (GRID(state,x-1,y) & G_ISLAND))
+                    INDEX(ds,newgrid,x-1,y) |= hdata << D_I_LINE_SHIFT_R;
+                if (x+1 < state->w && (GRID(state,x+1,y) & G_ISLAND))
+                    INDEX(ds,newgrid,x+1,y) |= hdata << D_I_LINE_SHIFT_L;
+                if (y > 0 && (GRID(state,x,y-1) & G_ISLAND))
+                    INDEX(ds,newgrid,x,y-1) |= vdata << D_I_LINE_SHIFT_D;
+                if (y+1 < state->h && (GRID(state,x,y+1) & G_ISLAND))
+                    INDEX(ds,newgrid,x,y+1) |= vdata << D_I_LINE_SHIFT_U;
             }
-            lines_lvlh(state, ui, x, y, v, &lv, &lh);
-
-            /*if (ui->cur_visible && ui->cur_x == x && ui->cur_y == y)
-                v |= G_CURSOR;*/
-
-            if (v != dsv ||
-                lv != INDEX(ds,lv,x,y) ||
-                lh != INDEX(ds,lh,x,y) ||
-                force) {
-                GRID(ds, x, y) = v | G_REDRAW;
-                INDEX(ds,lv,x,y) = lv;
-                INDEX(ds,lh,x,y) = lh;
-                lines_redraw(dr, state, ds, ui, x, y, v, lv, lh);
-            } else
-                GRID(ds,x,y) &= ~G_REDRAW;
         }
     }
 
-    /* Draw islands. */
-    for (i = 0; i < state->n_islands; i++) {
-        is = &state->islands[i];
-        v = GRID(state, is->x, is->y) | flash;
+    /*
+     * Now go through and draw any changed grid square.
+     */
+    for (x = 0; x < ds->w; x++) {
+        for (y = 0; y < ds->h; y++) {
+            unsigned long newval = INDEX(ds,newgrid,x,y);
+            if (INDEX(ds,grid,x,y) != newval) {
+                v = GRID(state, x, y);
+                if (v & G_ISLAND) {
+                    is = INDEX(state, gridi, x, y);
+                    draw_island_tile(dr, ds, x, y, is->count, newval);
 
-        redraw = 0;
-        for (j = 0; j < is->adj.npoints; j++) {
-            if (GRID(ds,is->adj.points[j].x,is->adj.points[j].y) & G_REDRAW) {
-                redraw = 1;
+                    /*
+                     * If this tile is right at the edge of the grid,
+                     * we must also draw the part of the island that
+                     * goes completely out of bounds. We don't bother
+                     * keeping separate entries in ds->newgrid for
+                     * these tiles; it's easier just to redraw them
+                     * iff we redraw their parent island tile.
+                     */
+                    if (x == 0)
+                        draw_edge_tile(dr, ds, x-1, y, +1, 0, newval);
+                    if (y == 0)
+                        draw_edge_tile(dr, ds, x, y-1, 0, +1, newval);
+                    if (x == state->w-1)
+                        draw_edge_tile(dr, ds, x+1, y, -1, 0, newval);
+                    if (y == state->h-1)
+                        draw_edge_tile(dr, ds, x, y+1, 0, -1, newval);
+                } else {
+                    draw_line_tile(dr, ds, x, y, newval);
+                }
+                INDEX(ds,grid,x,y) = newval;
             }
-        }
-
-        if (is_drag_src) {
-            if (is == is_drag_src)
-                v |= G_ISSEL;
-            else if (is_drag_dst && is == is_drag_dst)
-                v |= G_ISSEL;
-        }
-
-        if (island_impossible(is, v & G_MARK)) v |= G_WARN;
-
-        if (ui->cur_visible && ui->cur_x == is->x && ui->cur_y == is->y)
-            v |= G_CURSOR;
-
-        if ((v != GRID(ds, is->x, is->y)) || force || redraw) {
-            GRID(ds,is->x,is->y) = v;
-            island_redraw(dr, state, ds, is, v);
         }
     }
 }
@@ -2958,7 +3188,7 @@ static void game_print(drawing *dr, const game_state *state, int ts)
         draw_circle(dr, cx, cy, ISLAND_RADIUS, paper, ink);
 
         sprintf(str, "%d", is->count);
-        draw_text(dr, cx, cy, FONT_VARIABLE, ISLAND_NUMSIZE(is),
+        draw_text(dr, cx, cy, FONT_VARIABLE, ISLAND_NUMSIZE(is->count),
                   ALIGN_VCENTRE | ALIGN_HCENTRE, ink, str);
     }
 }
