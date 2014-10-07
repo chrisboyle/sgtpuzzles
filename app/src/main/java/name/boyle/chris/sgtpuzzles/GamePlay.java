@@ -956,6 +956,11 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 		});
 	}
 
+	public void zoomedIn() {
+		// GameView was at 1x zoom and is now zoomed in
+		Toast.makeText(this, R.string.how_to_scroll, Toast.LENGTH_SHORT).show();
+	}
+
 	@UsedByJNI
 	void completed()
 	{

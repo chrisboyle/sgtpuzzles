@@ -66,8 +66,8 @@ public class GameView extends View
 	final boolean hasPinchZoom;
 	ScaleGestureDetector scaleDetector = null;
 	GestureDetectorCompat gestureDetector;
-	private float MAX_ZOOM = 30.f;
-	private float ZOOM_OVERDRAW_PROPORTION = 0.5f;  // of a screen-full, in each direction, that you can see before checkerboard
+	private static final float MAX_ZOOM = 30.f;
+	private static final float ZOOM_OVERDRAW_PROPORTION = 0.5f;  // of a screen-full, in each direction, that you can see before checkerboard
 	private int overdrawX, overdrawY;
 	private Matrix zoomMatrix = new Matrix(), zoomInProgressMatrix = new Matrix(),
 			inverseZoomMatrix = new Matrix(), tempDrawMatrix = new Matrix();
@@ -292,9 +292,9 @@ public class GameView extends View
 				float factor = detector.getScaleFactor();
 				final float scale = getXScale(zoomMatrix) * getXScale(zoomInProgressMatrix);
 				final float nextScale = scale * factor;
-				final boolean wasIdentity = zoomMatrix.isIdentity() && zoomInProgressMatrix.isIdentity();
+				final boolean wasZoomedOut = (scale == 1.f);
 				if (nextScale < 1.01f) {
-					if (! wasIdentity) {
+					if (! wasZoomedOut) {
 						resetZoomMatrix();
 						redrawForZoomChange();
 					}
@@ -336,6 +336,9 @@ public class GameView extends View
 	}
 
 	private void redrawForZoomChange() {
+		if (getXScale(zoomMatrix) < 1.01f && getXScale(zoomInProgressMatrix) > 1.01f) {
+			parent.zoomedIn();
+		}
 		zoomMatrixUpdated(false);  // constrains zoomInProgressMatrix
 		zoomMatrix.postConcat(zoomInProgressMatrix);
 		zoomInProgressMatrix.reset();

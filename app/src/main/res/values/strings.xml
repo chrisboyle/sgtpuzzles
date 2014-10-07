@@ -32,6 +32,7 @@ Version %s"</string>
     <string name="website_url">http://chris.boyle.name/projects/android-puzzles</string>
     <string name="author_email">chris@boyle.name</string>
     <string name="unknown_version">UNKNOWN</string>
+    <string name="how_to_scroll">Scroll with two fingers apart</string>
     <!-- {0} = version, {1} = device model number -->
     <string name="email_subject">Puzzles v{0} on {1} / {2} / {3}</string>
     <string name="no_email_app">No email app?</string>
@@ -159,7 +160,7 @@ Version %s"</string>
     <string name="desc_keen">Enter digits so every row and column contains exactly one of each digit and the arithmetic clues are satisfied.</string>
     <string name="desc_lightup">Place lamps so all squares are lit, no lamp lights another and numbered squares have the given number of adjacent lamps.</string>
     <string name="desc_loopy">Draw a single unbroken and uncrossing line such that numbered squares have the given number of edges filled.</string>
-    <string name="desc_magnets">Place magnets and neutrals to satisfy the +/- counts and avoid magnets repelling.</string>
+    <string name="desc_magnets">Place magnets and blanks to satisfy the +/- counts and avoid magnets repelling.</string>
     <string name="desc_map">Copy the 4 colours to colour the map with no regions of the same colour touching.</string>
     <string name="desc_mines">Uncover all squares except the mines using the given counts of adjacent mines. *N.B.* Game is generated after first move; you may see \"not responding\" warnings.</string>
     <string name="desc_net">Rotate tiles to connect all tiles to the centre tile.</string>
