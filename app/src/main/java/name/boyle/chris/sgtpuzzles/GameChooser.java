@@ -145,21 +145,20 @@ public class GameChooser extends ActionBarActivity
 	protected void onResume() {
 		super.onResume();
 		resumeTime = System.nanoTime();
-		int currentBackend = -1;
+		String currentBackend = null;
 		SharedPreferences state = getSharedPreferences(GamePlay.STATE_PREFS_NAME, MODE_PRIVATE);
-		if (state.contains(GamePlay.SAVED_GAME)) {
-			String savedGame = state.getString(GamePlay.SAVED_GAME, "");
-			currentBackend = GamePlay.identifyBackend(savedGame);
+		if (state.contains(GamePlay.SAVED_BACKEND)) {
+			currentBackend = state.getString(GamePlay.SAVED_BACKEND, null);
 		}
 
 		for (int i = 0; i < games.length; i++) {
 			final View v = views[i];
 			final View highlight = v.findViewById(R.id.currentGameHighlight);
 			// Ideally this would instead key off the new "activated" state, but it's too new.
-			if (i == currentBackend) {
+			if (games[i].equals(currentBackend)) {
 				highlight.setBackgroundColor(getResources().getColor(R.color.chooser_current_background));
 				// wait until we know the size
-				scrollToOnNextLayout = currentBackend;
+				scrollToOnNextLayout = i;
 			} else {
 				highlight.setBackgroundResource(0);  // setBackground too new, setBackgroundDrawable deprecated, sigh...
 			}

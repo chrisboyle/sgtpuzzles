@@ -87,8 +87,11 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 	private static final String PATTERN_SHOW_LENGTHS_KEY = "patternShowLengths";
 	private static final String COMPLETED_PROMPT_KEY = "completedPrompt";
 	private static final String CONTROLS_REMINDERS_KEY = "controlsReminders";
-	public static final String SAVED_COMPLETED = "savedCompleted";
-	public static final String SAVED_GAME = "savedGame";
+	public static final String OLD_SAVED_COMPLETED = "savedCompleted";
+	public static final String OLD_SAVED_GAME = "savedGame";
+	public static final String SAVED_BACKEND = "savedBackend";
+	public static final String SAVED_COMPLETED_PREFIX = "savedCompleted_";
+	public static final String SAVED_GAME_PREFIX = "savedGame_";
 	public static final String LAST_PARAMS_PREFIX = "last_params_";
 
 	private ProgressDialog progress;
@@ -215,9 +218,10 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 		if (s == null || s.length() == 0) return;
 		SharedPreferences.Editor ed = state.edit();
 		ed.remove("engineName");
-		ed.putString(SAVED_GAME, s);
-		ed.putBoolean(SAVED_COMPLETED, everCompleted);
-		ed.putString(LAST_PARAMS_PREFIX + games[identifyBackend(s)], getCurrentParams());
+		ed.putString(SAVED_BACKEND, currentBackend);
+		ed.putString(SAVED_GAME_PREFIX + currentBackend, s);
+		ed.putBoolean(SAVED_COMPLETED_PREFIX + currentBackend, everCompleted);
+		ed.putString(LAST_PARAMS_PREFIX + currentBackend, getCurrentParams());
 		prefsSaver.save(ed);
 	}
 
@@ -300,7 +304,8 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 			stopNative();
 			dismissProgress();
 		}
-		String launchIfDifferent = null;
+		migrateToPerPuzzleSave();
+		String backendFromChooser = null;
 		// Don't regenerate on resurrecting a URL-bound activity from the recent list
 		if ((intent.getFlags() & Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY) == 0) {
 			String s = intent.getStringExtra("game");
@@ -319,36 +324,52 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 							// already alive & playing incomplete game of that kind; keep it.
 							return;
 						}
-						launchIfDifferent = game;
+						backendFromChooser = game;
 						break;
 					}
 				}
-				if (launchIfDifferent == null) {
+				if (backendFromChooser == null) {
 					Log.e(TAG, "Unhandled URL! \"" + u + "\" -> g = \"" + g + "\", games = " + Arrays.toString(games));
 					// TODO! Other URLs, including game states...
 				}
 			}
 		}
-		if( state.contains(SAVED_GAME) && state.getString(SAVED_GAME, "").length() > 0 ) {
-			final String savedGame = state.getString(SAVED_GAME, "");
-			final boolean wasCompleted = state.getBoolean(SAVED_COMPLETED, false);
-			if (launchIfDifferent != null) {
-				if (wasCompleted || !launchIfDifferent.equals(games[identifyBackend(savedGame)])) {
-					Log.d(TAG, "generating as requested");
-					startGame(GameLaunch.toGenerateFromChooser(launchIfDifferent));
-					return;
-				} else {
-					Log.d(TAG, "state matches Intent, will keep it");
-				}
+
+		if (backendFromChooser != null) {
+			final String savedGame = state.getString(SAVED_GAME_PREFIX + backendFromChooser, null);
+			final boolean wasCompleted = state.getBoolean(SAVED_COMPLETED_PREFIX + backendFromChooser, false);
+			if (savedGame == null || wasCompleted) {
+				Log.d(TAG, "generating as requested");
+				startGame(GameLaunch.toGenerateFromChooser(backendFromChooser));
+				return;
 			}
-			Log.d(TAG, "restoring last state");
-			startGame(GameLaunch.ofSavedGame(savedGame, wasCompleted, launchIfDifferent != null));
-		} else if (launchIfDifferent != null) {
-			// first ever click (of any game) from chooser
-			startGame(GameLaunch.toGenerateFromChooser(launchIfDifferent));
+			Log.d(TAG, "restoring last state of " + backendFromChooser);
+			startGame(GameLaunch.ofSavedGame(savedGame, false, true));
 		} else {
-			Log.d(TAG, "no state, starting chooser");
-			startChooserAndFinish();
+			final String savedBackend = state.getString(SAVED_BACKEND, null);
+			if (savedBackend != null) {
+				final String savedGame = state.getString(SAVED_GAME_PREFIX + savedBackend, null);
+				final boolean wasCompleted = state.getBoolean(SAVED_COMPLETED_PREFIX + savedBackend, false);
+				startGame(GameLaunch.ofSavedGame(savedGame, wasCompleted, false));
+			} else {
+				Log.d(TAG, "no state, starting chooser");
+				startChooserAndFinish();
+			}
+		}
+	}
+
+	@SuppressLint("CommitPrefEdits")
+	private void migrateToPerPuzzleSave() {
+		final String oldSave = state.getString(OLD_SAVED_GAME, null);
+		if (oldSave != null) {
+			SharedPreferences.Editor ed = state.edit();
+			final String oldBackend = games[identifyBackend(oldSave)];
+			ed.putString(SAVED_BACKEND, oldBackend);
+			ed.putString(SAVED_GAME_PREFIX + oldBackend, oldSave);
+			ed.putBoolean(SAVED_COMPLETED_PREFIX + oldBackend, state.getBoolean(OLD_SAVED_COMPLETED, false));
+			ed.remove(OLD_SAVED_GAME);
+			ed.remove(OLD_SAVED_COMPLETED);
+			prefsSaver.save(ed);
 		}
 	}
 
@@ -677,9 +698,8 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 					final boolean changingGame;
 					if (currentBackend == null) {
 						if (launch.isFromChooser()) {
-							// FIXME/TODO this will be replaced under #191 (we'll have to remember which backend to use anyway)
-							final String savedGame = state.getString(SAVED_GAME, null);
-							changingGame = savedGame == null || !games[identifyBackend(savedGame)].equals(startingBackend);
+							final String savedBackend = state.getString(SAVED_BACKEND, null);
+							changingGame = savedBackend == null || !savedBackend.equals(startingBackend);
 						} else {
 							changingGame = true;  // launching app
 						}
