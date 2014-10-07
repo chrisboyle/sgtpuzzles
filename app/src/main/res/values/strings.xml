@@ -108,6 +108,8 @@ Version %s"</string>
     <string name="inertiaForceArrowsSummary">This game has diagonal arrow keys</string>
     <string name="patternShowLengths">Show drag lengths</string>
     <string name="patternShowLengthsSummary">Show number of squares selected</string>
+    <string name="controlsReminders">Reminders of controls</string>
+    <string name="controlsRemindersSummary">Show reminders of scroll / long-press controls</string>
     <!-- Names default to their program names with the first letter uppercased -->
     <string name="name_blackbox">Black Box</string>
     <string name="name_bridges">Bridges</string>
@@ -183,6 +185,26 @@ Version %s"</string>
     <string name="desc_unequal">Enter digits so every row and column contains exactly one of each digit and the greater-than signs are satisfied.</string>
     <string name="desc_unruly">Colour every square either black or white such that no three consecutive squares, horizontally or vertically, are the same colour, and each row and column contains the same number of black and white squares.</string>
     <string name="desc_untangle">Move points around until no lines cross.</string>
+	<!-- Non-obvious aspects of controls when arrow keys disabled (specifically because left/right mouse buttons hidden), shown in a toast -->
+	<string name="toast_no_arrows_dominosa">Long press to mark a divider</string>
+	<string name="toast_no_arrows_galaxies">Long press and drag to place an arrow marker</string>
+	<string name="toast_no_arrows_guess">Long press to lock a peg</string>
+	<string name="toast_no_arrows_keen">Long press to make a pencil mark</string>
+	<string name="toast_no_arrows_magnets">Long press to place a blank</string>
+	<string name="toast_no_arrows_map">Long press and drag to make a pencil mark</string>
+	<string name="toast_no_arrows_mines">Long press to place a flag</string>
+	<string name="toast_no_arrows_net">Long press to lock a square</string>
+	<string name="toast_no_arrows_pattern">Long press to mark white squares</string>
+	<string name="toast_no_arrows_pearl">Long press to mark a cross</string>
+	<string name="toast_no_arrows_signpost">Long press and drag to connect inbound rather than outbound</string>
+	<string name="toast_no_arrows_singles">Long press to circle a number</string>
+	<string name="toast_no_arrows_slant">Long press to place /</string>
+	<string name="toast_no_arrows_solo">Long press to make a pencil mark</string>
+	<string name="toast_no_arrows_tents">Long press to mark a blank square</string>
+	<string name="toast_no_arrows_towers">Long press to make a pencil mark</string>
+	<string name="toast_no_arrows_undead">Long press to make a pencil mark</string>
+	<string name="toast_no_arrows_unequal">Long press to make a pencil mark</string>
+	<string name="toast_no_arrows_unruly">Long press to mark a white square</string>
     <!-- Everything below here is from C -->
     <!-- Difficulties for most games, in order: -->
     <string name="XxX_X" formatted="false">%dx%d %s</string>

@@ -15,6 +15,10 @@
 	</PreferenceCategory>
 
 	<PreferenceCategory android:title="@string/allGames">
+		<CheckBoxPreference android:title="@string/controlsReminders"
+							android:summary="@string/controlsRemindersSummary"
+							android:key="controlsReminders"
+							android:defaultValue="true" />
 		<CheckBoxPreference android:title="@string/undoRedoOnKeyboard"
 							android:summary="@string/undoRedoOnKeyboardSummary"
 							android:key="undoRedoOnKeyboard"

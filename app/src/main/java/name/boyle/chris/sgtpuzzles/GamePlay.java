@@ -86,6 +86,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 	private static final boolean UNDO_REDO_KBD_DEFAULT = true;
 	private static final String PATTERN_SHOW_LENGTHS_KEY = "patternShowLengths";
 	private static final String COMPLETED_PROMPT_KEY = "completedPrompt";
+	private static final String CONTROLS_REMINDERS_KEY = "controlsReminders";
 	public static final String SAVED_COMPLETED = "savedCompleted";
 	public static final String SAVED_GAME = "savedGame";
 	public static final String LAST_PARAMS_PREFIX = "last_params_";
@@ -306,7 +307,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 			Uri u = intent.getData();
 			if (s != null && s.length() > 0) {
 				Log.d(TAG, "starting game from Intent, " + s.length() + " bytes");
-				startGame(GameLaunch.ofSavedGame(s, false));
+				startGame(GameLaunch.ofSavedGame(s, false, false));
 				return;
 			} else if (u != null) {
 				Log.d(TAG, "URI is: \"" + u + "\"");
@@ -329,7 +330,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 			}
 		}
 		if( state.contains(SAVED_GAME) && state.getString(SAVED_GAME, "").length() > 0 ) {
-			String savedGame = state.getString(SAVED_GAME, "");
+			final String savedGame = state.getString(SAVED_GAME, "");
 			final boolean wasCompleted = state.getBoolean(SAVED_COMPLETED, false);
 			if (launchIfDifferent != null) {
 				if (wasCompleted || !launchIfDifferent.equals(games[identifyBackend(savedGame)])) {
@@ -341,7 +342,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 				}
 			}
 			Log.d(TAG, "restoring last state");
-			startGame(GameLaunch.ofSavedGame(savedGame, wasCompleted));
+			startGame(GameLaunch.ofSavedGame(savedGame, wasCompleted, launchIfDifferent != null));
 		} else if (launchIfDifferent != null) {
 			// first ever click (of any game) from chooser
 			startGame(GameLaunch.toGenerateFromChooser(launchIfDifferent));
@@ -673,23 +674,42 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 				if (toPlay == null) {
 					Log.d(TAG, "startGameThread: null game, presumably cancelled");
 				} else {
+					final boolean changingGame;
+					if (currentBackend == null) {
+						if (launch.isFromChooser()) {
+							// FIXME/TODO this will be replaced under #191 (we'll have to remember which backend to use anyway)
+							final String savedGame = state.getString(SAVED_GAME, null);
+							changingGame = savedGame == null || !games[identifyBackend(savedGame)].equals(startingBackend);
+						} else {
+							changingGame = true;  // launching app
+						}
+					} else {
+						changingGame = ! currentBackend.equals(startingBackend);
+					}
+
 					startPlaying(gameView, toPlay);
-					if (!generating) {  // we didn't know params until we loaded the gae
-						runOnUiThread(new Runnable() {
-							@Override
-							public void run() {
+
+					runOnUiThread(new Runnable() {
+						@Override
+						public void run() {
+							if (!generating) {  // we didn't know params until we loaded the gae
 								requestKeys(startingBackend, getCurrentParams());
 							}
-						});
-					}
-					if (launch.isKnownCompleted()) {
-						runOnUiThread(new Runnable() {
-							@Override
-							public void run() {
+							if (launch.isKnownCompleted()) {
 								completed();
 							}
-						});
-					}
+							if (changingGame) {
+								if (prefs.getBoolean(CONTROLS_REMINDERS_KEY, true)
+										&& ! computeArrowMode(startingBackend).hasArrows()) {
+									final int reminderId = getResources().getIdentifier(
+											"toast_no_arrows_" + startingBackend, "string", getPackageName());
+									if (reminderId > 0) {
+										Toast.makeText(GamePlay.this, reminderId, Toast.LENGTH_LONG).show();
+									}
+								}
+							}
+						}
+					});
 				}
 			} catch (IllegalArgumentException e) {
 				abort(e.getMessage());  // probably bogus params
@@ -817,7 +837,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 			mainLayout.updateViewLayout(gameView, glp);
 		}
 		final SmallKeyboard.ArrowMode arrowMode = computeArrowMode(whichBackend);
-		keyboard.setKeys( (c.hardKeyboardHidden == Configuration.HARDKEYBOARDHIDDEN_NO)
+		keyboard.setKeys((c.hardKeyboardHidden == Configuration.HARDKEYBOARDHIDDEN_NO)
 				? maybeUndoRedo : filterKeys(arrowMode) + maybeUndoRedo, arrowMode, whichBackend);
 		prevLandscape = landscape;
 		mainLayout.requestLayout();
@@ -958,7 +978,9 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 
 	public void zoomedIn() {
 		// GameView was at 1x zoom and is now zoomed in
-		Toast.makeText(this, R.string.how_to_scroll, Toast.LENGTH_SHORT).show();
+		if (prefs.getBoolean(CONTROLS_REMINDERS_KEY, true)) {
+			Toast.makeText(this, R.string.how_to_scroll, Toast.LENGTH_SHORT).show();
+		}
 	}
 
 	@UsedByJNI

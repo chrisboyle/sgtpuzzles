@@ -25,8 +25,8 @@ public class GameLaunch {
 		return "GameLaunch(" + whichBackend + ", " + params + ", " + saved + ")";
 	}
 
-	public static GameLaunch ofSavedGame(final String saved, final boolean knownCompleted) {
-		return new GameLaunch(null, null, saved, knownCompleted, false);
+	public static GameLaunch ofSavedGame(final String saved, final boolean knownCompleted, final boolean fromChooser) {
+		return new GameLaunch(null, null, saved, knownCompleted, fromChooser);
 	}
 
 	public static GameLaunch toGenerate(String whichBackend, String params) {
