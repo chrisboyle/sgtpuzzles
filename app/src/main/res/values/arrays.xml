@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 	<array name="orientationModes">
-		<item>sensor</item>
+		<item>unspecified</item>
 		<item>portrait</item>
 		<item>landscape</item>
 	</array>
 	<array name="orientationModeDescs">
-		<item>@string/orientationSensor</item>
+		<item>@string/orientationUnspecified</item>
 		<item>@string/orientationPortrait</item>
 		<item>@string/orientationLandscape</item>
 	</array>

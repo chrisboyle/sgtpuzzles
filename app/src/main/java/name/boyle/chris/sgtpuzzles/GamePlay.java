@@ -1314,13 +1314,13 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 
 	@SuppressLint("InlinedApi")
 	private void applyOrientation() {
-		final String orientationPref = prefs.getString(ORIENTATION_KEY, "sensor");
+		final String orientationPref = prefs.getString(ORIENTATION_KEY, "unspecified");
 		if (orientationPref.equals("landscape")) {
 			setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
 		} else if (orientationPref.equals("portrait")) {
 			setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT);
 		} else {
-			setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR);
+			setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
 		}
 	}
 
