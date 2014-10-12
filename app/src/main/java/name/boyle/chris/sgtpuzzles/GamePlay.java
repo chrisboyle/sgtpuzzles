@@ -906,7 +906,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 	@Override
 	public void onConfigurationChanged(Configuration newConfig)
 	{
-		if (keysAlreadySet) setKeyboardVisibility(currentBackend, newConfig);
+		if (keysAlreadySet) setKeyboardVisibility(startingBackend, newConfig);
 		super.onConfigurationChanged(newConfig);
 		rethinkActionBarCapacity();
 		supportInvalidateOptionsMenu();  // for orientation of presets in type menu
@@ -1235,7 +1235,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 	{
 		final Configuration configuration = getResources().getConfiguration();
 		if (key.equals(getArrowKeysPrefName(currentBackend, configuration))) {
-			setKeyboardVisibility(currentBackend, configuration);
+			setKeyboardVisibility(startingBackend, configuration);
 		} else if (key.equals(FULLSCREEN_KEY)) {
 			applyFullscreen(true);  // = already started
 		} else if (key.equals(STAY_AWAKE_KEY)) {
@@ -1329,13 +1329,13 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 		final String wantKbd = undoRedoKbd ? "ur" : "";
 		if (!wantKbd.equals(maybeUndoRedo)) {
 			maybeUndoRedo = wantKbd;
-			setKeyboardVisibility(currentBackend, getResources().getConfiguration());
+			setKeyboardVisibility(startingBackend, getResources().getConfiguration());
 		}
 		rethinkActionBarCapacity();
 	}
 
 	private void applyBridgesShowH() {
-		setKeyboardVisibility(currentBackend, getResources().getConfiguration());
+		setKeyboardVisibility(startingBackend, getResources().getConfiguration());
 	}
 
 	@UsedByJNI
