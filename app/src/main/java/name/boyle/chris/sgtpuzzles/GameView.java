@@ -8,6 +8,7 @@ import android.graphics.Canvas;
 import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Path;
+import android.graphics.Point;
 import android.graphics.PointF;
 import android.graphics.Rect;
 import android.graphics.RectF;
@@ -68,6 +69,7 @@ public class GameView extends View
 	GestureDetectorCompat gestureDetector;
 	private static final float MAX_ZOOM = 30.f;
 	private static final float ZOOM_OVERDRAW_PROPORTION = 0.5f;  // of a screen-full, in each direction, that you can see before checkerboard
+	final Point TEXTURE_SIZE_BEFORE_ICS = new Point(2048, 2048);
 	private int overdrawX, overdrawY;
 	private Matrix zoomMatrix = new Matrix(), zoomInProgressMatrix = new Matrix(),
 			inverseZoomMatrix = new Matrix(), tempDrawMatrix = new Matrix();
@@ -533,6 +535,14 @@ public class GameView extends View
 		if (bitmap != null) bitmap.recycle();
 		overdrawX = Math.round(ZOOM_OVERDRAW_PROPORTION * w);
 		overdrawY = Math.round(ZOOM_OVERDRAW_PROPORTION * h);
+		// texture size limit, see http://stackoverflow.com/a/7523221/6540
+		final Point maxTextureSize =
+				(Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH)
+						? getMaxTextureSize() : TEXTURE_SIZE_BEFORE_ICS;
+		// Assumes maxTextureSize >= (w,h) otherwise you get checkerboard edges
+		// https://github.com/chrisboyle/sgtpuzzles/issues/199
+		overdrawX = Math.min(overdrawX, (maxTextureSize.x - w) / 2);
+		overdrawY = Math.min(overdrawY, (maxTextureSize.y - h) / 2);
 		bitmap = Bitmap.createBitmap(w + 2 * overdrawX, h + 2 * overdrawY, BITMAP_CONFIG);
 		clear();
 		canvas.setBitmap(bitmap);
@@ -547,6 +557,11 @@ public class GameView extends View
 			d.setBounds(new Rect(mx,my,mx+s,my+s));
 			d.draw(canvas);
 		}
+	}
+
+	@TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
+	private Point getMaxTextureSize() {
+		return new Point(canvas.getMaximumBitmapWidth(), canvas.getMaximumBitmapHeight());
 	}
 
 	public void clear()
