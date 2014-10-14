@@ -1419,6 +1419,9 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
     if (ui->hshow && ui->hpencil && !ui->hcursor &&
         newstate->grid[ui->hy * w + ui->hx] != 0) {
         ui->hshow = 0;
+#ifdef ANDROID
+        ui->hpencil = 0;
+#endif
     }
 #ifdef ANDROID
     if (newstate->completed && ! newstate->cheated && oldstate && ! oldstate->completed) android_completed();
@@ -1572,13 +1575,24 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     if (tx >= 0 && tx < w && ty >= 0 && ty < w) {
         if (button == LEFT_BUTTON) {
 	    if (tx == ui->hx && ty == ui->hy &&
-		ui->hshow && ui->hpencil == 0) {
+                       ui->hshow
+#ifndef ANDROID
+                       && ui->hpencil == 0
+#endif
+                       ) {
+#ifdef ANDROID
+                ui->hpencil = 1 - ui->hpencil;
+                ui->hshow = 1;
+#else
                 ui->hshow = 0;
+#endif
             } else {
                 ui->hx = tx;
                 ui->hy = ty;
                 ui->hshow = 1;
+#ifndef ANDROID
                 ui->hpencil = 0;
+#endif
             }
 #ifndef ANDROID
             /* Android is always in cursor mode */
@@ -1594,6 +1608,9 @@ static char *interpret_move(const game_state *state, game_ui *ui,
                 if (tx == ui->hx && ty == ui->hy &&
                     ui->hshow && ui->hpencil) {
                     ui->hshow = 0;
+#ifdef ANDROID
+                ui->hpencil = 0;
+#endif
                 } else {
                     ui->hpencil = 1;
                     ui->hx = tx;
@@ -1602,6 +1619,9 @@ static char *interpret_move(const game_state *state, game_ui *ui,
                 }
             } else {
                 ui->hshow = 0;
+#ifdef ANDROID
+                ui->hpencil = 0;
+#endif
             }
 #ifndef ANDROID
             /* Android is always in cursor mode */
@@ -1609,6 +1629,10 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 #endif
             return "";		       /* UI activity occurred */
         }
+    } else {
+        ui->hshow = 0;
+        ui->hpencil = 0;
+        return "";
     }
     if (IS_CURSOR_MOVE(button)) {
         move_cursor(button, &ui->hx, &ui->hy, w, w, 0);

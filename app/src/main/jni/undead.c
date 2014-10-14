@@ -1763,17 +1763,17 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     if (ui->hshow == 1 && ui->hpencil == 1) {
         xi = state->common->xinfo[ui->hx + ui->hy*(state->common->params.w+2)];
         if (xi >= 0 && !state->common->fixed[xi]) {
-            if (button == 'g' || button == 'G' || button == '1') {
+            if (button == 'g' || button == 'G' || button == '1' || (button == LEFT_BUTTON && on_ghost)) {
                 sprintf(buf,"g%d",xi);
                 if (!ui->hcursor) ui->hpencil = ui->hshow = 0;
                 return dupstr(buf);
             }
-            if (button == 'v' || button == 'V' || button == '2') {
+            if (button == 'v' || button == 'V' || button == '2' || (button == LEFT_BUTTON && on_vampire)) {
                 sprintf(buf,"v%d",xi);
                 if (!ui->hcursor) ui->hpencil = ui->hshow = 0;
                 return dupstr(buf);
             }
-            if (button == 'z' || button == 'Z' || button == '3') {
+            if (button == 'z' || button == 'Z' || button == '3' || (button == LEFT_BUTTON && on_zombie)) {
                 sprintf(buf,"z%d",xi);
                 if (!ui->hcursor) ui->hpencil = ui->hshow = 0;
                 return dupstr(buf);
@@ -1815,29 +1815,35 @@ static char *interpret_move(const game_state *state, game_ui *ui,
                 if (button == LEFT_BUTTON) {
                     if (ui->hpencil == 0) {
                         if (gx == ui->hx && gy == ui->hy) {
+#ifdef ANDROID
+                            ui->hpencil = 1;
+#else
                             ui->hshow = 0; ui->hpencil = 0;
-#ifndef ANDROID
-                    /* Android is always in cursor mode */
-                    ui->hcursor = 0;
-#endif
+                            /* Android is always in cursor mode */
+                            ui->hcursor = 0;
                             ui->hx = 0; ui->hy = 0;
+#endif
                             return "";
                         }
                         else {
-                            ui->hshow = 1; ui->hpencil = 0;
+                            ui->hshow = 1;
 #ifndef ANDROID
-                    /* Android is always in cursor mode */
-                    ui->hcursor = 0;
+                            ui->hpencil = 0;
+                            /* Android is always in cursor mode */
+                            ui->hcursor = 0;
 #endif
                             ui->hx = gx; ui->hy = gy;
                             return "";
                         }
                     }
                     else {
-                        ui->hshow = 1; ui->hpencil = 0;
-#ifndef ANDROID
-                    /* Android is always in cursor mode */
-                    ui->hcursor = 0;
+                        ui->hshow = 1;
+#ifdef ANDROID
+                        if (gx == ui->hx && gy == ui->hy) ui->hpencil = 0;
+#else
+                        ui->hpencil = 0;
+                        /* Android is always in cursor mode */
+                        ui->hcursor = 0;
 #endif
                         ui->hx = gx; ui->hy = gy;
                         return "";
@@ -1876,6 +1882,10 @@ static char *interpret_move(const game_state *state, game_ui *ui,
                 }
             }
         }
+    } else {
+        ui->hshow = 0;
+        ui->hpencil = 0;
+        return "";
     }
 
     return NULL;

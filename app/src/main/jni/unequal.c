@@ -1390,6 +1390,9 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
     if (ui->hshow && ui->hpencil && !ui->hcursor &&
         GRID(newstate, nums, ui->hx, ui->hy) != 0) {
         ui->hshow = 0;
+#ifdef ANDROID
+        ui->hpencil = 0;
+#endif
     }
 #ifdef ANDROID
     if (newstate->completed && ! newstate->cheated && oldstate && ! oldstate->completed) android_completed();
@@ -1419,13 +1422,29 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         y >= 0 && y < ds->order && ((oy - COORD(y)) <= TILE_SIZE)) {
         if (button == LEFT_BUTTON) {
             /* normal highlighting for non-immutable squares */
-            if (GRID(state, flags, x, y) & F_IMMUTABLE)
+            if (GRID(state, flags, x, y) & F_IMMUTABLE) {
                 ui->hshow = 0;
+#ifdef ANDROID
+                ui->hpencil = 0;
+#endif
+            }
             else if (x == ui->hx && y == ui->hy &&
-                     ui->hshow && ui->hpencil == 0)
+                     ui->hshow
+#ifndef ANDROID
+                     && ui->hpencil == 0
+#endif
+                     ) {
+#ifdef ANDROID
+                ui->hpencil = 1 - ui->hpencil;
+#else
                 ui->hshow = 0;
+#endif
+            }
             else {
-                ui->hx = x; ui->hy = y; ui->hpencil = 0;
+                ui->hx = x; ui->hy = y;
+#ifndef ANDROID
+                ui->hpencil = 0;
+#endif
                 ui->hshow = 1;
             }
 #ifndef ANDROID
@@ -1436,11 +1455,19 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         }
         if (button == RIGHT_BUTTON) {
             /* pencil highlighting for non-filled squares */
-            if (GRID(state, nums, x, y) != 0)
+            if (GRID(state, nums, x, y) != 0) {
                 ui->hshow = 0;
+#ifdef ANDROID
+                ui->hpencil = 0;
+#endif
+            }
             else if (x == ui->hx && y == ui->hy &&
-                     ui->hshow && ui->hpencil)
+                     ui->hshow && ui->hpencil) {
                 ui->hshow = 0;
+#ifdef ANDROID
+                ui->hpencil = 0;
+#endif
+            }
             else {
                 ui->hx = x; ui->hy = y; ui->hpencil = 1;
                 ui->hshow = 1;
@@ -1451,6 +1478,10 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 #endif
             return "";
         }
+    } else {
+        ui->hshow = 0;
+        ui->hpencil = 0;
+        return "";
     }
     if (button == 'H' || button == 'h')
         return dupstr("H");
