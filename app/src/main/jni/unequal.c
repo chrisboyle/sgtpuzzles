@@ -1478,7 +1478,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 #endif
             return "";
         }
-    } else {
+    } else if (button == LEFT_BUTTON || button == RIGHT_BUTTON) {
         ui->hshow = 0;
         ui->hpencil = 0;
         return "";
