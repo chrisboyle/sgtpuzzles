@@ -163,12 +163,14 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 		case ABORT:
 			stopNative();
 			dismissProgress();
-			if (msg.obj != null && !msg.obj.equals("")) {
+			if (msg.arg1 == 1) {  // see showProgress
+				startChooserAndFinish();
+			} else {
 				startingBackend = currentBackend;
 				requestKeys(startingBackend, getCurrentParams());
-				messageBox(this, getString(R.string.Error), (String)msg.obj);
-			} else if (msg.arg1 == 1) {  // see showProgress
-				startChooserAndFinish();
+				if (msg.obj != null && !msg.obj.equals("")) {
+					messageBox(this, getString(R.string.Error), (String) msg.obj);
+				}
 			}
 			break;
 		}
