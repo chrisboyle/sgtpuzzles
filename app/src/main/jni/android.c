@@ -511,6 +511,7 @@ jint JNICALL identifyBackend(JNIEnv *env, jclass c, jstring savedGame)
 
 jstring JNICALL getCurrentParams(JNIEnv *env, jobject _obj)
 {
+	if (! fe || ! fe->me) return NULL;
 	char *params = midend_get_current_params(fe->me);
 	jstring ret = (*env)->NewStringUTF(env, params);
 	sfree(params);

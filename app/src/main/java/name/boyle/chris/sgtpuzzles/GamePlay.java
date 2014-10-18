@@ -167,7 +167,9 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 				startChooserAndFinish();
 			} else {
 				startingBackend = currentBackend;
-				requestKeys(startingBackend, getCurrentParams());
+				if (currentBackend != null) {
+					requestKeys(currentBackend, getCurrentParams());
+				}
 				if (msg.obj != null && !msg.obj.equals("")) {
 					messageBox(this, getString(R.string.Error), (String) msg.obj);
 				}
