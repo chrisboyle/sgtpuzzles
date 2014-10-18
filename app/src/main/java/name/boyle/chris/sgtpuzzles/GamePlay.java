@@ -32,6 +32,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
 import android.content.pm.ActivityInfo;
+import android.content.pm.ApplicationInfo;
 import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.graphics.Color;
@@ -557,8 +558,14 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 	}
 
 	private void startGameGenProcess(final String whichBackend, String params) throws IOException {
-		final File dataDir = new File(getApplicationInfo().dataDir);
-		final File libDir = new File(dataDir, "lib");
+		final ApplicationInfo applicationInfo = getApplicationInfo();
+		final File dataDir = new File(applicationInfo.dataDir);
+		final File libDir;
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.GINGERBREAD) {
+			libDir = new File(applicationInfo.nativeLibraryDir);
+		} else {
+			libDir = new File(dataDir, "lib");
+		}
 		final boolean canRunPIE = Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN;
 		final String suffix = canRunPIE ? "-with-pie" : "-no-pie";
 		File installablePath = new File(libDir, "libpuzzlesgen" + suffix + ".so");
