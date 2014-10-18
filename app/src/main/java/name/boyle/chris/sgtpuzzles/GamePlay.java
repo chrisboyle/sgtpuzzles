@@ -900,9 +900,17 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 	}
 
 	private String filterKeys(final SmallKeyboard.ArrowMode arrowMode) {
-		final String keysIfArrows = arrowMode.hasArrows() ? lastKeysIfArrows : "";
-		return keysIfArrows + lastKeys.replace("h", prefs.getBoolean(BRIDGES_SHOW_H_KEY, false) ? "H" : "")
-				.replace("\b", (lastKeys.length() > 1 || arrowMode.hasArrows()) ? "\b" : "");
+		String filtered = lastKeys;
+		if (startingBackend != null && startingBackend.equals("bridges")
+				&& !prefs.getBoolean(BRIDGES_SHOW_H_KEY, false)) {
+			filtered = filtered.replace("H", "");
+		}
+		if (arrowMode.hasArrows()) {
+			filtered = lastKeysIfArrows + filtered;
+		} else if (filtered.length() == 1 && filtered.charAt(0) == '\b') {
+			filtered = "";
+		}
+		return filtered;
 	}
 
 	@SuppressLint("InlinedApi")

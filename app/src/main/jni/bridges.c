@@ -2093,7 +2093,7 @@ static game_state *new_game_sub(const game_params *params, const char *desc)
 #ifdef ANDROID
 static void android_request_keys(const game_params *params)
 {
-    android_keys2("Gh", "l", ANDROID_ARROWS_LEFT_RIGHT);
+    android_keys2("GH", "L", ANDROID_ARROWS_LEFT_RIGHT);
 }
 #endif
 
@@ -2467,7 +2467,7 @@ found:
                 return "";
             }
         }
-    } else if (button == 'l' || button == 'l') {
+    } else if (button == 'l' || button == 'L') {
         if (!ui->cur_visible) {
             ui->cur_visible = 1;
         }

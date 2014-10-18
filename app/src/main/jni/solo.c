@@ -4044,7 +4044,7 @@ static void android_request_keys(const game_params *params)
     char keys[cr+2];
     for (i = 0; i < cr; i++) {
 	if (i<9) keys[i] = '1' + i;
-	else keys[i] = 'A' + i - 9;
+	else keys[i] = 'a' + i - 9;
     }
     keys[cr] = '\b';
     keys[cr+1] = '\0';

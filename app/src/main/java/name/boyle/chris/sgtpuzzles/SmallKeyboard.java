@@ -426,7 +426,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 					(sharedIcon != null) ? sharedIcon : specificName,
 					"drawable", context.getPackageName());
 			if (icon == 0) {
-				key.label = String.valueOf(Character.toUpperCase(c));
+				key.label = String.valueOf(c);
 			} else {
 				key.icon = resources.getDrawable(icon);
 			}
