@@ -2,6 +2,8 @@ package name.boyle.chris.sgtpuzzles;
 
 import name.boyle.chris.sgtpuzzles.compat.PrefsSaver;
 
+import android.annotation.SuppressLint;
+import android.app.ActionBar;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
 import android.content.res.Configuration;
@@ -56,7 +58,10 @@ public class PrefsActivity extends PreferenceActivity implements OnSharedPrefere
 						GamePlay.getVersion(this)));
 		// getSupportActionBar() not available from PreferenceActivity
 		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
-			getActionBar().setDisplayHomeAsUpEnabled(true);
+			@SuppressLint("AppCompatMethod") final ActionBar actionBar = getActionBar();
+			if (actionBar != null) {
+				actionBar.setDisplayHomeAsUpEnabled(true);
+			}
 		}
 	}
 
