@@ -254,12 +254,12 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 			key.height = mDefaultHeight;
 			key.gap = mDefaultHorizontalGap;
 			switch(c) {
-				case 'u':
+				case 'U':
 					undoKey = mKeys.size() - 1;
 					key.repeatable = true;
 					setUndoRedoEnabled(ExtraKey.UNDO, undoEnabled);
 					break;
-				case 'r':
+				case 'R':
 					redoKey = mKeys.size() - 1;
 					key.repeatable = true;
 					setUndoRedoEnabled(ExtraKey.REDO, redoEnabled);
@@ -420,13 +420,22 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 		}
 
 		private void trySpecificCharacterIcon(final Resources resources, final Key key, final char c) {
-			final String specificName = backendForIcons + "_sym_key_" + Character.toLowerCase(c);
-			final String sharedIcon = SHARED_ICONS.get(specificName);
-			final int icon = resources.getIdentifier(
-					(sharedIcon != null) ? sharedIcon : specificName,
-					"drawable", context.getPackageName());
+			final int icon;
+			if (Character.isUpperCase(c)) {
+				final String specificName = backendForIcons + "_sym_key_" + Character.toLowerCase(c);
+				final String sharedIcon = SHARED_ICONS.get(specificName);
+				icon = resources.getIdentifier(
+						(sharedIcon != null) ? sharedIcon : specificName,
+						"drawable", context.getPackageName());
+			} else {
+				icon = 0;  // data entry letter never gets an icon
+			}
 			if (icon == 0) {
-				key.label = String.valueOf(c);
+				// Not proud of this, but: I'm using uppercase letters to mean it's a command as
+				// opposed to data entry (Mark all squares versus enter 'm'). But I still want the
+				// keys for data entry to be uppercase in unequal because that matches the board.
+				final boolean drawUppercaseForLowercase = (backendForIcons != null && backendForIcons.equals("unequal"));
+				key.label = String.valueOf(drawUppercaseForLowercase ? Character.toUpperCase(c) : c);
 			} else {
 				key.icon = resources.getDrawable(icon);
 			}

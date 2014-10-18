@@ -1289,7 +1289,7 @@ static void android_request_keys(const game_params *params)
     char keys[order + 3];
     int i;
     for(i = 0; i < order; i++) {
-	if (i==10) off = 'A'-10;
+	if (i==10) off = 'a'-10;
 	keys[i] = i + off;
     }
     keys[order] = '\b';

@@ -123,7 +123,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 	private static final File storageDir = Environment.getExternalStorageDirectory();
 	private String[] games;
 	private Menu menu;
-	private String maybeUndoRedo = "ur";
+	private String maybeUndoRedo = "UR";
 	private PrefsSaver prefsSaver;
 	private boolean startedFullscreen = false, cachedFullscreen = false;
 	private boolean keysAlreadySet = false;
@@ -468,8 +468,8 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 			startNewGame();
 			break;
 		case R.id.restart:  restartEvent(); break;
-		case R.id.undo:     sendKey(0, 0, 'u'); break;
-		case R.id.redo:     sendKey(0, 0, 'r'); break;
+		case R.id.undo:     sendKey(0, 0, 'U'); break;
+		case R.id.redo:     sendKey(0, 0, 'R'); break;
 		case R.id.solve:
 			try {
 				solveEvent();
@@ -1345,7 +1345,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 
 	private void applyUndoRedoKbd() {
 		boolean undoRedoKbd = prefs.getBoolean(UNDO_REDO_KBD_KEY, UNDO_REDO_KBD_DEFAULT);
-		final String wantKbd = undoRedoKbd ? "ur" : "";
+		final String wantKbd = undoRedoKbd ? "UR" : "";
 		if (!wantKbd.equals(maybeUndoRedo)) {
 			maybeUndoRedo = wantKbd;
 			setKeyboardVisibility(startingBackend, getResources().getConfiguration());
