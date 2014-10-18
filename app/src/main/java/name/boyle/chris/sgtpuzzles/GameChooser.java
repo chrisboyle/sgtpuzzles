@@ -8,6 +8,7 @@ import android.annotation.TargetApi;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
+import android.graphics.PorterDuff;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.LayerDrawable;
@@ -154,13 +155,17 @@ public class GameChooser extends ActionBarActivity
 		for (int i = 0; i < games.length; i++) {
 			final View v = views[i];
 			final View highlight = v.findViewById(R.id.currentGameHighlight);
+			final ImageView icon = (ImageView) v.findViewById(R.id.icon);
 			// Ideally this would instead key off the new "activated" state, but it's too new.
 			if (games[i].equals(currentBackend)) {
-				highlight.setBackgroundColor(getResources().getColor(R.color.chooser_current_background));
+				final int highlightColour = getResources().getColor(R.color.chooser_current_background);
+				highlight.setBackgroundColor(highlightColour);
+				icon.setColorFilter(highlightColour, PorterDuff.Mode.SRC_OVER);
 				// wait until we know the size
 				scrollToOnNextLayout = i;
 			} else {
 				highlight.setBackgroundResource(0);  // setBackground too new, setBackgroundDrawable deprecated, sigh...
+				icon.setColorFilter(null);
 			}
 		}
 	}
