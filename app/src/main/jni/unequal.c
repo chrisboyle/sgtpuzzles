@@ -1483,9 +1483,10 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         ui->hpencil = 0;
         return "";
     }
-    if (button == 'H' || button == 'h')
+    /* N.B. only uppercase trumps data entry */
+    if (button == 'H')
         return dupstr("H");
-    if (button == 'M' || button == 'm')
+    if (button == 'M')
         return dupstr("M");
 
     if (IS_CURSOR_MOVE(button)) {
@@ -1499,8 +1500,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         return "";
     }
 
-
-    if (ui->hshow) {
+    do if (ui->hshow) {
         debug(("button %d, cbutton %d", button, (int)((char)button)));
         n = c2n(button, state->order);
 
@@ -1510,7 +1510,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
                GRID(state, nums, ui->hx, ui->hy)));
 
         if (n < 0 || n > ds->order)
-            return NULL;        /* out of range */
+            break;        /* out of range */
         if (GRID(state, flags, ui->hx, ui->hy) & F_IMMUTABLE)
             return NULL;        /* can't edit immutable square (!) */
         if (ui->hpencil && GRID(state, nums, ui->hx, ui->hy) > 0)
@@ -1523,11 +1523,11 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         if (!ui->hcursor) ui->hshow = 0;
 
         return dupstr(buf);
-    }
+    } while(0);
 
-    if (button == 'H' || button == 'h')
+    if (button == 'h')
         return dupstr("H");
-    if (button == 'M' || button == 'm')
+    if (button == 'm')
         return dupstr("M");
 
     return NULL;

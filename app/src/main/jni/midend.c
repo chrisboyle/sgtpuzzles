@@ -600,11 +600,27 @@ static int midend_really_process_key(midend *me, int x, int y, int button)
     int type = MOVE, gottype = FALSE, ret = 1;
     float anim_time;
     game_state *s;
-    char *movestr;
-	
-    movestr =
-	me->ourgame->interpret_move(me->states[me->statepos-1].state,
-				    me->ui, me->drawstate, x, y, button);
+    char *movestr = NULL;
+
+    if (button == 'U' ||
+	       button == '\x1A' || button == '\x1F') {
+	midend_stop_anim(me);
+	type = me->states[me->statepos-1].movetype;
+	gottype = TRUE;
+	if (!midend_undo(me))
+	    goto done;
+	midend_redraw(me);
+    } else if (button == 'R' ||
+	       button == '\x12' || button == '\x19') {
+	midend_stop_anim(me);
+	if (!midend_redo(me))
+	    goto done;
+	midend_redraw(me);
+    } else {
+	movestr =
+	    me->ourgame->interpret_move(me->states[me->statepos-1].state,
+					me->ui, me->drawstate, x, y, button);
+    }
 
     if (!movestr) {
 	if (button == 'n' || button == 'N' || button == '\x0E') {
@@ -612,15 +628,13 @@ static int midend_really_process_key(midend *me, int x, int y, int button)
 	    midend_new_game(me);
 	    midend_redraw(me);
 	    goto done;		       /* never animate */
-	} else if (button == 'u' || button == 'u' ||
-		   button == '\x1A' || button == '\x1F') {
+	} else if (button == 'u') {
 	    midend_stop_anim(me);
 	    type = me->states[me->statepos-1].movetype;
 	    gottype = TRUE;
 	    if (!midend_undo(me))
 		goto done;
-	} else if (button == 'r' || button == 'R' ||
-		   button == '\x12' || button == '\x19') {
+	} else if (button == 'r') {
 	    midend_stop_anim(me);
 	    if (!midend_redo(me))
 		goto done;
