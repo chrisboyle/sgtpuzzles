@@ -1195,8 +1195,8 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 			Spinner s = new Spinner(GamePlay.this);
 			s.setTag(name);
 			ArrayAdapter<String> a = new ArrayAdapter<String>(GamePlay.this,
-					android.R.layout.simple_spinner_item, choices.toArray(new String[choices.size()]));
-			a.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+					R.layout.simple_spinner_item, choices.toArray(new String[choices.size()]));
+			a.setDropDownViewResource(R.layout.simple_spinner_dropdown_item);
 			s.setAdapter(a);
 			s.setSelection(selection);
 			s.setLayoutParams(new TableRow.LayoutParams(
