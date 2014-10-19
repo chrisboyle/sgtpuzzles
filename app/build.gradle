@@ -6,7 +6,7 @@ apply plugin: 'com.android.application'
 def ndkDir = project.plugins.findPlugin('android').getNdkFolder()
 
 android {
-    compileSdkVersion 21
+    compileSdkVersion 20
     buildToolsVersion "20.0.0"
 
     defaultConfig {
@@ -23,7 +23,7 @@ android {
             // will enable PIE regardless of APP_PIE.
             minSdkVersion 16
         }
-        targetSdkVersion 21
+        targetSdkVersion 20
 
         ndk {
             moduleName "puzzles"
@@ -104,7 +104,7 @@ android.applicationVariants.all{ variant ->
 }
 
 dependencies {
-    compile 'com.android.support:support-v4:21.0.0'
-    compile 'com.android.support:appcompat-v7:21.0.0'
-    compile 'com.android.support:gridlayout-v7:21.0.0'
+    compile 'com.android.support:support-v4:20.0.0'
+    compile 'com.android.support:appcompat-v7:20.0.0'
+    compile 'com.android.support:gridlayout-v7:20.0.0'
 }

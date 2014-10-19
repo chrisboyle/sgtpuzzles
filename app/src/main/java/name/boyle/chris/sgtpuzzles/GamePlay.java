@@ -1100,8 +1100,9 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 	@UsedByJNI
 	void dialogInit(int whichEvent, String title)
 	{
-		ScrollView sv = new ScrollView(GamePlay.this);
-		AlertDialog.Builder builder = new AlertDialog.Builder(GamePlay.this)
+		final Context context = GamePlay.this;
+		ScrollView sv = new ScrollView(context);
+		AlertDialog.Builder builder = new AlertDialog.Builder(context)
 				.setTitle(title)
 				.setView(sv)
 				.setOnCancelListener(new OnCancelListener() {
@@ -1156,10 +1157,11 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 	@UsedByJNI
 	void dialogAdd(int whichEvent, int type, String name, String value, int selection)
 	{
+		final Context context = GamePlay.this;
 		switch(type) {
 		case C_STRING: {
 			dialogIds.add(name);
-			EditText et = new EditText(GamePlay.this);
+			EditText et = new EditText(context);
 			// TODO: C_INT, C_UINT, C_UDOUBLE, C_DOUBLE
 			// Ugly temporary hack: in custom game dialog, all text boxes are numeric, in the other two dialogs they aren't.
 			// Uglier temporary-er hack: Black Box must accept a range for ball count.
@@ -1169,11 +1171,11 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 			et.setWidth(getResources().getDimensionPixelSize((whichEvent == CFG_SETTINGS)
 					? R.dimen.dialog_edit_text_width : R.dimen.dialog_long_edit_text_width));
 			et.setSelectAllOnFocus(true);
-			TextView tv = new TextView(GamePlay.this);
+			TextView tv = new TextView(context);
 			tv.setText(name);
 			tv.setPadding(0, 0, getResources().getDimensionPixelSize(R.dimen.dialog_padding_horizontal), 0);
 			tv.setGravity(Gravity.END);
-			TableRow tr = new TableRow(GamePlay.this);
+			TableRow tr = new TableRow(context);
 			tr.addView(tv);
 			tr.addView(et);
 			tr.setGravity(Gravity.CENTER_VERTICAL);
@@ -1181,7 +1183,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 			break; }
 		case C_BOOLEAN: {
 			dialogIds.add(name);
-			CheckBox c = new CheckBox(GamePlay.this);
+			CheckBox c = new CheckBox(context);
 			c.setTag(name);
 			c.setText(name);
 			c.setChecked(selection != 0);
@@ -1192,21 +1194,21 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 			ArrayList<String> choices = new ArrayList<String>();
 			while(st.hasMoreTokens()) choices.add(st.nextToken());
 			dialogIds.add(name);
-			Spinner s = new Spinner(GamePlay.this);
+			Spinner s = new Spinner(context);
 			s.setTag(name);
-			ArrayAdapter<String> a = new ArrayAdapter<String>(GamePlay.this,
-					R.layout.simple_spinner_item, choices.toArray(new String[choices.size()]));
-			a.setDropDownViewResource(R.layout.simple_spinner_dropdown_item);
+			ArrayAdapter<String> a = new ArrayAdapter<String>(context,
+					android.R.layout.simple_spinner_item, choices.toArray(new String[choices.size()]));
+			a.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
 			s.setAdapter(a);
 			s.setSelection(selection);
 			s.setLayoutParams(new TableRow.LayoutParams(
 					getResources().getDimensionPixelSize(R.dimen.dialog_spinner_width),
 					TableRow.LayoutParams.WRAP_CONTENT));
-			TextView tv = new TextView(GamePlay.this);
+			TextView tv = new TextView(context);
 			tv.setText(name);
 			tv.setPadding(0, 0, getResources().getDimensionPixelSize(R.dimen.dialog_padding_horizontal), 0);
 			tv.setGravity(Gravity.END);
-			TableRow tr = new TableRow(GamePlay.this);
+			TableRow tr = new TableRow(context);
 			tr.addView(tv);
 			tr.addView(s);
 			tr.setGravity(Gravity.CENTER_VERTICAL);
