@@ -1228,6 +1228,11 @@ static void decode_ui(game_ui *ui, const char *encoding)
 {
 }
 
+static void android_cursor_visibility(game_ui *ui, int visible)
+{
+    ui->cursor_show = visible;
+}
+
 typedef struct drawcell {
     puzzle_size value;
     unsigned int error: 1;
@@ -1774,6 +1779,7 @@ struct game const thegame = {
     encode_ui,
     decode_ui,
     NULL,  /* android_request_keys */
+    android_cursor_visibility,
     game_changed_state,
     interpret_move,
     execute_move,

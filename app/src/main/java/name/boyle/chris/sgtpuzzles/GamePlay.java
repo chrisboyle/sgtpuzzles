@@ -723,15 +723,16 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 					runOnUiThread(new Runnable() {
 						@Override
 						public void run() {
-							if (!generating) {  // we didn't know params until we loaded the gae
+							if (!generating) {  // we didn't know params until we loaded the game
 								requestKeys(startingBackend, getCurrentParams());
 							}
 							if (launch.isKnownCompleted()) {
 								completed();
 							}
+							final boolean hasArrows = computeArrowMode(startingBackend).hasArrows();
+							setCursorVisibility(hasArrows);
 							if (changingGame) {
-								if (prefs.getBoolean(CONTROLS_REMINDERS_KEY, true)
-										&& ! computeArrowMode(startingBackend).hasArrows()) {
+								if (prefs.getBoolean(CONTROLS_REMINDERS_KEY, true) && ! hasArrows) {
 									final int reminderId = getResources().getIdentifier(
 											"toast_no_arrows_" + startingBackend, "string", getPackageName());
 									if (reminderId > 0) {
@@ -1257,6 +1258,8 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 		final Configuration configuration = getResources().getConfiguration();
 		if (key.equals(getArrowKeysPrefName(currentBackend, configuration))) {
 			setKeyboardVisibility(startingBackend, configuration);
+			setCursorVisibility(computeArrowMode(startingBackend).hasArrows());
+			gameViewResized();  // cheat - we just want a redraw in case size unchanged
 		} else if (key.equals(FULLSCREEN_KEY)) {
 			applyFullscreen(true);  // = already started
 		} else if (key.equals(STAY_AWAKE_KEY)) {
@@ -1440,6 +1443,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 	native static int identifyBackend(String savedGame);
 	native String getCurrentParams();
 	native void requestKeys(String backend, String params);
+	native void setCursorVisibility(boolean visible);
 
 	static {
 		System.loadLibrary("puzzles");

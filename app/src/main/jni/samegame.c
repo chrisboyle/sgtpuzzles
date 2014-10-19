@@ -1087,6 +1087,11 @@ static void decode_ui(game_ui *ui, const char *encoding)
 {
 }
 
+static void android_cursor_visibility(game_ui *ui, int visible)
+{
+    ui->displaysel = visible;
+}
+
 static void sel_clear(game_ui *ui, const game_state *state)
 {
     int i;
@@ -1674,6 +1679,7 @@ const struct game thegame = {
     encode_ui,
     decode_ui,
     NULL,  /* android_request_keys */
+    android_cursor_visibility,
     game_changed_state,
     interpret_move,
     execute_move,

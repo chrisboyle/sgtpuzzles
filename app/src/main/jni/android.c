@@ -620,6 +620,13 @@ void android_keys2(const char *keys, const char *extraKeysIfArrows, int arrowMod
 	(*env)->DeleteLocalRef(env, jKeysIfArrows);
 }
 
+void JNICALL setCursorVisibility(JNIEnv *env, jobject _obj, jboolean visible)
+{
+	if (!fe || !fe->me) return;
+	pthread_setspecific(envKey, env);
+	midend_android_cursor_visibility(fe->me, visible);
+}
+
 char * get_text(const char *s)
 {
 	if (!s || ! s[0] || !fe) return (char*)s;  // slightly naughty cast...
@@ -755,6 +762,7 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
 		{ "identifyBackend", "(Ljava/lang/String;)I", identifyBackend },
 		{ "getCurrentParams", "()Ljava/lang/String;", getCurrentParams },
 		{ "requestKeys", "(Ljava/lang/String;Ljava/lang/String;)V", requestKeys },
+		{ "setCursorVisibility", "(Z)V", setCursorVisibility },
 	};
 	(*env)->RegisterNatives(env, cls, methods, sizeof(methods)/sizeof(JNINativeMethod));
 

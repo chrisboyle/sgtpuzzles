@@ -1490,6 +1490,7 @@ const struct game thegame = {
     encode_ui,
     decode_ui,
     android_request_keys,
+    NULL,  /* android_cursor_visibility */
     game_changed_state,
     interpret_move,
     execute_move,

@@ -285,6 +285,7 @@ void midend_request_id_changes(midend *me, void (*notify)(void *), void *ctx);
 /* Printing functions supplied by the mid-end */
 char *midend_print_puzzle(midend *me, document *doc, int with_soln);
 int midend_tilesize(midend *me);
+void midend_android_cursor_visibility(midend *me, int visible);
 
 /*
  * malloc.c
@@ -517,6 +518,7 @@ struct game {
     char *(*encode_ui)(const game_ui *ui);
     void (*decode_ui)(game_ui *ui, const char *encoding);
     void (*android_request_keys)(const game_params *params);
+    void (*android_cursor_visibility)(game_ui *ui, int visible);
     void (*changed_state)(game_ui *ui, const game_state *oldstate,
                           const game_state *newstate);
     char *(*interpret_move)(const game_state *state, game_ui *ui,

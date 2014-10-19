@@ -2220,6 +2220,11 @@ static void decode_ui(game_ui *ui, const char *encoding)
 {
 }
 
+static void android_cursor_visibility(game_ui *ui, int visible)
+{
+    ui->cur_visible = visible;
+}
+
 static void coord_round(float x, float y, int *xr, int *yr)
 {
     float xs, ys, xv, yv, dx, dy, dist;
@@ -2994,6 +2999,7 @@ const struct game thegame = {
     encode_ui,
     decode_ui,
     NULL,  /* android_request_keys */
+    android_cursor_visibility,
     game_changed_state,
     interpret_move,
     execute_move,

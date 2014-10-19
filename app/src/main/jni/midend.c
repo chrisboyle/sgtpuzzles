@@ -2118,6 +2118,12 @@ char *identify_game(char **name, int (*read)(void *ctx, void *buf, int len),
     return ret;
 }
 
+void midend_android_cursor_visibility(midend *me, int visible)
+{
+    if (!me->ourgame->android_cursor_visibility) return;
+    me->ourgame->android_cursor_visibility(me->ui, visible);
+}
+
 #ifndef NO_PRINTING
 char *midend_print_puzzle(midend *me, document *doc, int with_soln)
 {
