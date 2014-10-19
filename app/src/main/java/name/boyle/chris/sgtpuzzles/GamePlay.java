@@ -164,16 +164,15 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 		case ABORT:
 			stopNative();
 			dismissProgress();
-			if (msg.arg1 == 1) {  // see showProgress
+			if (msg.obj != null && !msg.obj.equals("")) {
+				messageBox(getString(R.string.Error), (String) msg.obj, msg.arg1 == 1);
+			} else if (msg.arg1 == 1) {  // see showProgress
 				startChooserAndFinish();
-			} else {
-				startingBackend = currentBackend;
-				if (currentBackend != null) {
-					requestKeys(currentBackend, getCurrentParams());
-				}
-				if (msg.obj != null && !msg.obj.equals("")) {
-					messageBox(this, getString(R.string.Error), (String) msg.obj);
-				}
+				return;
+			}
+			startingBackend = currentBackend;
+			if (currentBackend != null) {
+				requestKeys(currentBackend, getCurrentParams());
 			}
 			break;
 		}
@@ -317,7 +316,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 			Uri u = intent.getData();
 			if (s != null && s.length() > 0) {
 				Log.d(TAG, "starting game from Intent, " + s.length() + " bytes");
-				startGame(GameLaunch.ofSavedGame(s, false, false));
+				startGame(GameLaunch.ofSavedGame(s, false, true));
 				return;
 			} else if (u != null) {
 				Log.d(TAG, "URI is: \"" + u + "\"");
@@ -367,13 +366,16 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 	private void migrateToPerPuzzleSave() {
 		final String oldSave = state.getString(OLD_SAVED_GAME, null);
 		if (oldSave != null) {
+			final boolean oldCompleted = state.getBoolean(OLD_SAVED_COMPLETED, false);
 			SharedPreferences.Editor ed = state.edit();
-			final String oldBackend = games[identifyBackend(oldSave)];
-			ed.putString(SAVED_BACKEND, oldBackend);
-			ed.putString(SAVED_GAME_PREFIX + oldBackend, oldSave);
-			ed.putBoolean(SAVED_COMPLETED_PREFIX + oldBackend, state.getBoolean(OLD_SAVED_COMPLETED, false));
 			ed.remove(OLD_SAVED_GAME);
 			ed.remove(OLD_SAVED_COMPLETED);
+			try {
+				final String oldBackend = games[identifyBackend(oldSave)];
+				ed.putString(SAVED_BACKEND, oldBackend);
+				ed.putString(SAVED_GAME_PREFIX + oldBackend, oldSave);
+				ed.putBoolean(SAVED_COMPLETED_PREFIX + oldBackend, oldCompleted);
+			} catch (IllegalArgumentException ignored) {}
 			prefsSaver.save(ed);
 		}
 	}
@@ -474,7 +476,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 			try {
 				solveEvent();
 			} catch (IllegalArgumentException e) {
-				messageBox(this, getString(R.string.Error), e.getMessage());
+				messageBox(getString(R.string.Error), e.getMessage(), false);
 			}
 			break;
 		case R.id.custom:
@@ -521,10 +523,10 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 				getVersion(c), Build.MODEL, modVer, Build.FINGERPRINT);
 	}
 
-	private void abort(String why)
+	private void abort(final String why, final boolean returnToChooser)
 	{
 		workerRunning = false;
-		handler.obtainMessage(MsgType.ABORT.ordinal(), 0, 0, why).sendToTarget();
+		handler.obtainMessage(MsgType.ABORT.ordinal(), returnToChooser ? 1 : 0, 0, why).sendToTarget();
 	}
 
 	static String getVersion(Context c)
@@ -667,7 +669,14 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 
 	private void startGameThread(final GameLaunch launch) {
 		String backend = launch.getWhichBackend();
-		if (backend == null) backend = games[identifyBackend(launch.getSaved())];
+		if (backend == null) {
+			try {
+				backend = games[identifyBackend(launch.getSaved())];
+			} catch (IllegalArgumentException e) {
+				abort(e.getMessage(), launch.isFromChooser());  // invalid file
+				return;
+			}
+		}
 		startingBackend = backend;
 		workerRunning = true;
 		(worker = new Thread(launch.needsGenerating() ? "generateAndLoadGame" : "loadGame") { public void run() {
@@ -744,9 +753,9 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 					});
 				}
 			} catch (IllegalArgumentException e) {
-				abort(e.getMessage());  // probably bogus params
+				abort(e.getMessage(), launch.isFromChooser());  // probably bogus params
 			} catch (IOException e) {
-				abort(e.getMessage());  // internal error :-(
+				abort(e.getMessage(), launch.isFromChooser());  // internal error :-(
 			}
 			if (! workerRunning) return;  // stopNative or abort was called
 			handler.sendEmptyMessage(MsgType.DONE.ordinal());
@@ -997,12 +1006,18 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 		});
 	}
 
-	private static void messageBox(final Context context, final String title, final String msg)
+	private void messageBox(final String title, final String msg, final boolean returnToChooser)
 	{
-		new AlertDialog.Builder(context)
+		new AlertDialog.Builder(this)
 				.setTitle(title)
 				.setMessage(msg)
 				.setIcon(android.R.drawable.ic_dialog_alert)
+				.setOnCancelListener(returnToChooser ? new DialogInterface.OnCancelListener() {
+					@Override
+					public void onCancel(DialogInterface dialog) {
+						startChooserAndFinish();
+					}
+				} : null)
 				.show();
 	}
 
@@ -1128,7 +1143,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 							startGame(GameLaunch.toGenerate(currentBackend, configOK()));
 						} catch (IllegalArgumentException e) {
 							dismissProgress();
-							messageBox(GamePlay.this, getString(R.string.Error), e.getMessage());
+							messageBox(getString(R.string.Error), e.getMessage(), false);
 						}
 					}
 				});
