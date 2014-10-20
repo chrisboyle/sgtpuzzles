@@ -1655,6 +1655,7 @@ static void decode_ui(game_ui *ui, const char *encoding)
 static void android_cursor_visibility(game_ui *ui, int visible)
 {
     ui->hshow = visible;
+    if (visible && ui->hx == 0 && ui->hy == 0) ui->hx = ui->hy = 1;
 }
 
 static void game_changed_state(game_ui *ui, const game_state *oldstate,
