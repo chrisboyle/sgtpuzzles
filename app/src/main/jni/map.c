@@ -2280,6 +2280,7 @@ struct game_ui {
     int drag_colour;
     int drag_pencil;
     int dragx, dragy;
+    int last_tilesize;
     int show_numbers;
 
     int cur_x, cur_y, cur_visible, cur_moved, cur_lastmove;
@@ -2289,6 +2290,7 @@ static game_ui *new_ui(const game_state *state)
 {
     game_ui *ui = snew(game_ui);
     ui->dragx = ui->dragy = -1;
+    ui->last_tilesize = -1;
     ui->drag_colour = -2;
     ui->drag_pencil = 0;
     ui->show_numbers = FALSE;
@@ -2401,12 +2403,16 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         ui->cur_lastmove = button;
         ui->dragx = COORD(ui->cur_x) + TILESIZE/2 + EPSILON_X(button);
         ui->dragy = COORD(ui->cur_y) + TILESIZE/2 + EPSILON_Y(button);
+        ui->last_tilesize = TILESIZE;
         return "";
     }
     if (IS_CURSOR_SELECT(button)) {
-        if (!ui->cur_visible) {
+        if (!ui->cur_visible || ui->dragx < 0 || ui->last_tilesize != TILESIZE) {
             ui->dragx = COORD(ui->cur_x) + TILESIZE/2 + EPSILON_X(ui->cur_lastmove);
             ui->dragy = COORD(ui->cur_y) + TILESIZE/2 + EPSILON_Y(ui->cur_lastmove);
+            ui->last_tilesize = TILESIZE;
+        }
+        if (!ui->cur_visible) {
             ui->cur_visible = 1;
             return "";
         }
@@ -2445,6 +2451,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 	}
         ui->dragx = x;
         ui->dragy = y;
+        ui->last_tilesize = TILESIZE;
         ui->cur_visible = 0;
         return "";
     }
@@ -2453,6 +2460,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         ui->drag_colour > -2) {
         ui->dragx = x;
         ui->dragy = y;
+        ui->last_tilesize = TILESIZE;
         return "";
     }
 
@@ -2992,13 +3000,18 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
      * Draw the dragged colour blob if any.
      */
     if ((ui->drag_colour > -2) || ui->cur_visible) {
+        int ui_dragx = ui->dragx, ui_dragy = ui->dragy;
+        if (ui_dragx < 0 || ui->last_tilesize != TILESIZE) {
+            ui_dragx = COORD(ui->cur_x) + TILESIZE/2 + EPSILON_X(ui->cur_lastmove);
+            ui_dragy = COORD(ui->cur_y) + TILESIZE/2 + EPSILON_Y(ui->cur_lastmove);
+        }
         int bg, iscur = 0;
         if (ui->drag_colour >= 0)
             bg = COL_0 + ui->drag_colour;
         else if (ui->drag_colour == -1) {
             bg = COL_BACKGROUND;
         } else {
-            int r = region_from_coords(state, ds, ui->dragx, ui->dragy);
+            int r = region_from_coords(state, ds, ui_dragx, ui_dragy);
             int c = (r < 0) ? -1 : state->colouring[r];
             assert(ui->cur_visible);
             /*bg = COL_GRID;*/
@@ -3006,15 +3019,15 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
             iscur = 1;
         }
 
-        ds->dragx = ui->dragx - TILESIZE/2 - 2;
-        ds->dragy = ui->dragy - TILESIZE/2 - 2;
+        ds->dragx = ui_dragx - TILESIZE/2 - 2;
+        ds->dragy = ui_dragy - TILESIZE/2 - 2;
         blitter_save(dr, ds->bl, ds->dragx, ds->dragy);
-        draw_circle(dr, ui->dragx, ui->dragy,
+        draw_circle(dr, ui_dragx, ui_dragy,
                     iscur ? TILESIZE/4 : TILESIZE/2, bg, COL_GRID);
 	for (i = 0; i < FOUR; i++)
 	    if (ui->drag_pencil & (1 << i))
-		draw_circle(dr, ui->dragx + ((i*4+2)%10-3) * TILESIZE/10,
-			    ui->dragy + (i*2-3) * TILESIZE/10,
+		draw_circle(dr, ui_dragx + ((i*4+2)%10-3) * TILESIZE/10,
+			    ui_dragy + (i*2-3) * TILESIZE/10,
 			    TILESIZE/8, COL_0 + i, COL_0 + i);
         draw_update(dr, ds->dragx, ds->dragy, TILESIZE + 3, TILESIZE + 3);
         ds->drag_visible = TRUE;
