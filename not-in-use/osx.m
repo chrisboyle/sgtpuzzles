@@ -100,6 +100,12 @@ NSMenu *typemenu;
  */
 extern const struct drawing_api osx_drawing;
 
+/*
+ * The NSApplication shared instance, which I'll want to refer to from
+ * a few places here and there.
+ */
+NSApplication *app;
+
 /* ----------------------------------------------------------------------
  * Miscellaneous support routines that aren't part of any object or
  * clearly defined subsystem.
@@ -1191,7 +1197,7 @@ struct frontend {
     for (k = 0; k < cfg_ncontrols; k++)
 	[[sheet contentView] addSubview:cfg_controls[k]];
 
-    [NSApp beginSheet:sheet modalForWindow:self
+    [app beginSheet:sheet modalForWindow:self
      modalDelegate:nil didEndSelector:NULL contextInfo:nil];
 }
 
@@ -1213,7 +1219,7 @@ struct frontend {
 - (void)sheetEndWithStatus:(BOOL)update
 {
     assert(sheet != NULL);
-    [NSApp endSheet:sheet];
+    [app endSheet:sheet];
     [sheet orderOut:self];
     sheet = NULL;
     if (update) {
@@ -1551,7 +1557,7 @@ void activate_timer(frontend *fe)
  * AppController: the object which receives the messages from all
  * menu selections that aren't standard OS X functions.
  */
-@interface AppController : NSObject
+@interface AppController : NSObject <NSApplicationDelegate>
 {
 }
 - (void)newGameWindow:(id)sender;
@@ -1609,27 +1615,27 @@ int main(int argc, char **argv)
     pool = [[NSAutoreleasePool alloc] init];
 
     icon = [NSImage imageNamed:@"NSApplicationIcon"];
-    [NSApplication sharedApplication];
-    [NSApp setApplicationIconImage:icon];
+    app = [NSApplication sharedApplication];
+    [app setApplicationIconImage:icon];
 
     controller = [[[AppController alloc] init] autorelease];
-    [NSApp setDelegate:controller];
+    [app setDelegate:controller];
 
-    [NSApp setMainMenu: newmenu("Main Menu")];
+    [app setMainMenu: newmenu("Main Menu")];
 
-    menu = newsubmenu([NSApp mainMenu], "Apple Menu");
+    menu = newsubmenu([app mainMenu], "Apple Menu");
     newitem(menu, "About Puzzles", "", NULL, @selector(about:));
     [menu addItem:[NSMenuItem separatorItem]];
-    [NSApp setServicesMenu:newsubmenu(menu, "Services")];
+    [app setServicesMenu:newsubmenu(menu, "Services")];
     [menu addItem:[NSMenuItem separatorItem]];
-    newitem(menu, "Hide Puzzles", "h", NSApp, @selector(hide:));
-    newitem(menu, "Hide Others", "o-h", NSApp, @selector(hideOtherApplications:));
-    newitem(menu, "Show All", "", NSApp, @selector(unhideAllApplications:));
+    newitem(menu, "Hide Puzzles", "h", app, @selector(hide:));
+    newitem(menu, "Hide Others", "o-h", app, @selector(hideOtherApplications:));
+    newitem(menu, "Show All", "", app, @selector(unhideAllApplications:));
     [menu addItem:[NSMenuItem separatorItem]];
-    newitem(menu, "Quit", "q", NSApp, @selector(terminate:));
-    [NSApp setAppleMenu: menu];
+    newitem(menu, "Quit", "q", app, @selector(terminate:));
+    [app setAppleMenu: menu];
 
-    menu = newsubmenu([NSApp mainMenu], "File");
+    menu = newsubmenu([app mainMenu], "File");
     newitem(menu, "Open", "o", NULL, @selector(loadSavedGame:));
     newitem(menu, "Save As", "s", NULL, @selector(saveGame:));
     newitem(menu, "New Game", "n", NULL, @selector(newGame:));
@@ -1653,7 +1659,7 @@ int main(int argc, char **argv)
     [menu addItem:[NSMenuItem separatorItem]];
     newitem(menu, "Close", "w", NULL, @selector(performClose:));
 
-    menu = newsubmenu([NSApp mainMenu], "Edit");
+    menu = newsubmenu([app mainMenu], "Edit");
     newitem(menu, "Undo", "z", NULL, @selector(undoMove:));
     newitem(menu, "Redo", "S-z", NULL, @selector(redoMove:));
     [menu addItem:[NSMenuItem separatorItem]];
@@ -1663,18 +1669,18 @@ int main(int argc, char **argv)
     [menu addItem:[NSMenuItem separatorItem]];
     newitem(menu, "Solve", "S-s", NULL, @selector(solveGame:));
 
-    menu = newsubmenu([NSApp mainMenu], "Type");
+    menu = newsubmenu([app mainMenu], "Type");
     typemenu = menu;
     newitem(menu, "Custom", "", NULL, @selector(customGameType:));
 
-    menu = newsubmenu([NSApp mainMenu], "Window");
-    [NSApp setWindowsMenu: menu];
+    menu = newsubmenu([app mainMenu], "Window");
+    [app setWindowsMenu: menu];
     newitem(menu, "Minimise Window", "m", NULL, @selector(performMiniaturize:));
 
-    menu = newsubmenu([NSApp mainMenu], "Help");
-    newitem(menu, "Puzzles Help", "?", NSApp, @selector(showHelp:));
+    menu = newsubmenu([app mainMenu], "Help");
+    newitem(menu, "Puzzles Help", "?", app, @selector(showHelp:));
 
-    [NSApp run];
+    [app run];
     [pool release];
 
     return 0;
