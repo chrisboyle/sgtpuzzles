@@ -561,7 +561,14 @@ public class GameView extends View
 
 	@TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
 	private Point getMaxTextureSize() {
-		return new Point(canvas.getMaximumBitmapWidth(), canvas.getMaximumBitmapHeight());
+		final int maxW = canvas.getMaximumBitmapWidth();
+		final int maxH = canvas.getMaximumBitmapHeight();
+		if (maxW > 32000 || maxH > 32000) {
+			// yeah, right. https://github.com/chrisboyle/sgtpuzzles/issues/195
+			return new Point(4096, 4096);
+		} else {
+			return new Point(maxW, maxH);
+		}
 	}
 
 	public void clear()
