@@ -477,7 +477,7 @@ static game_params *default_params(void)
 {
     game_params *ret = snew(game_params);
 
-#ifdef SLOW_SYSTEM
+#if defined SLOW_SYSTEM || defined SMALL_SCREEN
     ret->h = 7;
     ret->w = 7;
 #else
