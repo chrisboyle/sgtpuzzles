@@ -12,8 +12,11 @@ import java.lang.ref.WeakReference;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -575,10 +578,35 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 		if (!executablePath.exists() ||
 				executablePath.lastModified() < installablePath.lastModified()) {
 			copyFile(installablePath, executablePath);
-			int chmodExit = waitForProcess(Runtime.getRuntime().exec(new String[] {
-					"/system/bin/chmod", "755", executablePath.getAbsolutePath()}));
-			if (chmodExit > 0) {
-				throw new IOException("Can't make game binary executable.");
+		}
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.GINGERBREAD) {
+			if (!executablePath.setExecutable(true)) {
+				throw new IOException("Can't make game binary executable: File.setExecutable failed");
+			}
+		} else {
+			Set<String> dirs = new LinkedHashSet<String>();
+			dirs.add("/system/bin");
+			dirs.add("/system/xbin");
+			final String path = System.getenv("PATH");
+			if (path != null) {
+				Collections.addAll(dirs, path.split(":"));
+			}
+			Set<File> tried = new LinkedHashSet<File>();
+			boolean ok = false;
+			for (String dir : dirs) {
+				final File chmod = new File(dir, "chmod");
+				if (chmod.exists()) {
+					final int chmodExit = waitForProcess(Runtime.getRuntime().exec(new String[]{
+							chmod.getAbsolutePath(), "755", executablePath.getAbsolutePath()}));
+					if (chmodExit == 0) {
+						ok = true;
+						break;
+					}
+					tried.add(chmod);
+				}
+			}
+			if (! ok) {
+				throw new IOException("Can't make game binary executable, tried " + tried);
 			}
 		}
 		gameGenProcess = Runtime.getRuntime().exec(new String[]{
@@ -755,6 +783,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 			} catch (IllegalArgumentException e) {
 				abort(e.getMessage(), launch.isFromChooser());  // probably bogus params
 			} catch (IOException e) {
+				e.printStackTrace();
 				abort(e.getMessage(), launch.isFromChooser());  // internal error :-(
 			}
 			if (! workerRunning) return;  // stopNative or abort was called
