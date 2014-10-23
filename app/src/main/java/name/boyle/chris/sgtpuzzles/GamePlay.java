@@ -1147,7 +1147,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 						}
 					}
 				});
-		if (whichEvent == CFG_SETTINGS) {
+		/*if (whichEvent == CFG_SETTINGS) {
 			builder.setNegativeButton(R.string.Game_ID_, new DialogInterface.OnClickListener() {
 				@Override
 				public void onClick(DialogInterface dialog, int which) {
@@ -1160,7 +1160,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 					configEvent(CFG_SEED);
 				}
 			});
-		}
+		}*/
 		dialog = builder.create();
 		sv.addView(dialogLayout = new TableLayout(GamePlay.this));
 		final int xPadding = getResources().getDimensionPixelSize(R.dimen.dialog_padding_horizontal);
