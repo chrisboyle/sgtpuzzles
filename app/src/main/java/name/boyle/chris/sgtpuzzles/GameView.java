@@ -25,6 +25,7 @@ import android.support.v4.view.ViewCompat;
 import android.support.v4.widget.EdgeEffectCompat;
 import android.support.v4.widget.ScrollerCompat;
 import android.util.AttributeSet;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.GestureDetector;
 import android.view.HapticFeedbackConstants;
@@ -563,12 +564,14 @@ public class GameView extends View
 	private Point getMaxTextureSize() {
 		final int maxW = canvas.getMaximumBitmapWidth();
 		final int maxH = canvas.getMaximumBitmapHeight();
-		if (maxW > 32000 || maxH > 32000) {
-			// yeah, right. https://github.com/chrisboyle/sgtpuzzles/issues/195
-			return new Point(4096, 4096);
-		} else {
+		if (maxW < 2048 || maxH < 2048) {
 			return new Point(maxW, maxH);
 		}
+		// maxW/maxH are otherwise likely a lie, and we should be careful of OOM risk anyway
+		// https://github.com/chrisboyle/sgtpuzzles/issues/195
+		final DisplayMetrics metrics = getResources().getDisplayMetrics();
+		final int largestDimension = Math.max(metrics.widthPixels, metrics.heightPixels);
+		return (largestDimension > 2048) ? new Point(4096, 4096) : new Point(2048, 2048);
 	}
 
 	public void clear()
