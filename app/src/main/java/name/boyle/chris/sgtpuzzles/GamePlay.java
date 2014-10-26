@@ -15,6 +15,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.StringTokenizer;
@@ -539,9 +540,9 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 		} catch(Exception e) { return c.getString(R.string.unknown_version); }
 	}
 
-	private String generateGame(final String whichBackend, String params) throws IllegalArgumentException, IOException {
+	private String generateGame(final List<String> args) throws IllegalArgumentException, IOException {
 		String game;
-		startGameGenProcess(whichBackend, params);
+		startGameGenProcess(args);
 		OutputStream stdin = gameGenProcess.getOutputStream();
 		stdin.close();
 		game = readAllOf(gameGenProcess.getInputStream());
@@ -562,7 +563,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 		return game;
 	}
 
-	private void startGameGenProcess(final String whichBackend, String params) throws IOException {
+	private void startGameGenProcess(final List<String> args) throws IOException {
 		final ApplicationInfo applicationInfo = getApplicationInfo();
 		final File dataDir = new File(applicationInfo.dataDir);
 		final File libDir;
@@ -596,8 +597,10 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 			for (String dir : dirs) {
 				final File chmod = new File(dir, "chmod");
 				if (chmod.exists()) {
-					final int chmodExit = waitForProcess(Runtime.getRuntime().exec(new String[]{
-							chmod.getAbsolutePath(), "755", executablePath.getAbsolutePath()}));
+					final String[] chmodArgs = {
+							chmod.getAbsolutePath(), "755", executablePath.getAbsolutePath()};
+					Log.d(TAG, "exec: " + Arrays.toString(chmodArgs));
+					final int chmodExit = waitForProcess(Runtime.getRuntime().exec(chmodArgs));
 					if (chmodExit == 0) {
 						ok = true;
 						break;
@@ -609,8 +612,12 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 				throw new IOException("Can't make game binary executable, tried " + tried);
 			}
 		}
-		gameGenProcess = Runtime.getRuntime().exec(new String[]{
-				executablePath.getAbsolutePath(), whichBackend, stringOrEmpty(params)},
+		final String[] cmdLine = new String[args.size() + 1];
+		cmdLine[0] = executablePath.getAbsolutePath();
+		int i = 1;
+		for (String arg : args) cmdLine[i++] = arg;
+		Log.d(TAG, "exec: " + Arrays.toString(cmdLine));
+		gameGenProcess = Runtime.getRuntime().exec(cmdLine,
 				new String[]{"LD_LIBRARY_PATH="+libDir}, libDir);
 	}
 
@@ -637,10 +644,6 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 		} finally {
 			process.destroy();
 		}
-	}
-
-	private String stringOrEmpty(String s) {
-		return (s == null) ? "" : s;
 	}
 
 	private void startNewGame()
@@ -713,17 +716,25 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 				if (generating) {
 					String whichBackend = launch.getWhichBackend();
 					String params = launch.getParams();
-					if (params == null) {
-						params = getLastParams(whichBackend);
-						if (params == null) {
-							params = (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE)
-								? "--landscape" : "--portrait";
-							Log.d(TAG, "Using default params with orientation: " + params);
-						} else {
-							Log.d(TAG, "Using last params: " + params);
-						}
+					final List<String> args = new ArrayList<String>();
+					args.add(whichBackend);
+					if (launch.getSeed() != null) {
+						args.add("--seed");
+						args.add(launch.getSeed());
 					} else {
-						Log.d(TAG, "Using specified params: "+params);
+						if (params == null) {
+							params = getLastParams(whichBackend);
+							if (params == null) {
+								params = (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE)
+										? "--landscape" : "--portrait";
+								Log.d(TAG, "Using default params with orientation: " + params);
+							} else {
+								Log.d(TAG, "Using last params: " + params);
+							}
+						} else {
+							Log.d(TAG, "Using specified params: " + params);
+						}
+						args.add(params);
 					}
 					final String finalParams = params;
 					runOnUiThread(new Runnable() {
@@ -732,15 +743,16 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 							requestKeys(startingBackend, finalParams);
 						}
 					});
-					String generated = generateGame(whichBackend, params);
+					String generated = generateGame(args);
 					if (generated != null) {
 						launch.finishedGenerating(generated);
 					} else if (workerRunning) {
 						throw new IOException("Internal error generating game: result is blank");
 					}
 				}
-				String toPlay = launch.getSaved();
-				if (toPlay == null) {
+				final String toPlay = launch.getSaved();
+				final String gameID = launch.getGameID();
+				if (toPlay == null && gameID == null) {
 					Log.d(TAG, "startGameThread: null game, presumably cancelled");
 				} else {
 					final boolean changingGame;
@@ -755,7 +767,11 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 						changingGame = ! currentBackend.equals(startingBackend);
 					}
 
-					startPlaying(gameView, toPlay);
+					if (toPlay != null) {
+						startPlaying(gameView, toPlay);
+					} else {
+						startPlayingGameID(gameView, startingBackend, gameID);
+					}
 
 					runOnUiThread(new Runnable() {
 						@Override
@@ -1143,7 +1159,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 	}
 
 	@UsedByJNI
-	void dialogInit(int whichEvent, String title)
+	void dialogInit(final int whichEvent, String title)
 	{
 		final Context context = GamePlay.this;
 		ScrollView sv = new ScrollView(context);
@@ -1167,29 +1183,38 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 								configSetChoice(i, ((Spinner) v).getSelectedItemPosition());
 							}
 						}
-						dialog.dismiss();
 						try {
-							startGame(GameLaunch.toGenerate(currentBackend, configOK()));
+							final GameLaunch launch;
+							if (whichEvent == CFG_DESC) {
+								launch = GameLaunch.ofGameID(currentBackend, getFullGameIDFromDialog());
+							} else if (whichEvent == CFG_SEED) {
+								launch = GameLaunch.fromSeed(currentBackend, getFullSeedFromDialog());
+							} else {
+								launch = GameLaunch.toGenerate(currentBackend, configOK());
+							}
+							startGame(launch);
 						} catch (IllegalArgumentException e) {
 							dismissProgress();
 							messageBox(getString(R.string.Error), e.getMessage(), false);
 						}
 					}
 				});
-		/*if (whichEvent == CFG_SETTINGS) {
+		if (whichEvent == CFG_SETTINGS) {
 			builder.setNegativeButton(R.string.Game_ID_, new DialogInterface.OnClickListener() {
 				@Override
 				public void onClick(DialogInterface dialog, int which) {
+					configCancel();
 					configEvent(CFG_DESC);
 				}
 			})
 			.setNeutralButton(R.string.Seed_, new DialogInterface.OnClickListener() {
 				@Override
 				public void onClick(DialogInterface dialog, int which) {
+					configCancel();
 					configEvent(CFG_SEED);
 				}
 			});
-		}*/
+		}
 		dialog = builder.create();
 		sv.addView(dialogLayout = new TableLayout(GamePlay.this));
 		final int xPadding = getResources().getDimensionPixelSize(R.dimen.dialog_padding_horizontal);
@@ -1471,6 +1496,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 	}
 
 	native void startPlaying(GameView _gameView, String savedGame);
+	native void startPlayingGameID(GameView _gameView, String whichBackend, String gameID);
 	native void timerTick();
 	native String htmlHelpTopic();
 	native void keyEvent(int x, int y, int k);
@@ -1479,6 +1505,8 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 	native void resizeEvent(int x, int y);
 	native void configEvent(int whichEvent);
 	native String configOK();
+	native String getFullGameIDFromDialog();
+	native String getFullSeedFromDialog();
 	native void configCancel();
 	native void configSetString(String item_ptr, String s);
 	native void configSetBool(String item_ptr, int selected);

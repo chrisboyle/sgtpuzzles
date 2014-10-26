@@ -18,8 +18,6 @@
 extern struct game thegame;
 #endif
 
-enum { DEF_PARAMS, DEF_SEED, DEF_DESC };   /* for midend_game_id_int */
-
 enum { NEWGAME, MOVE, SOLVE, RESTART };/* for midend_state_entry.movetype */
 
 #define special(type) ( (type) != MOVE )
@@ -1154,7 +1152,7 @@ config_item *midend_get_config(midend *me, int which, char **wintitle)
     return NULL;
 }
 
-static char *midend_game_id_int(midend *me, char *id, int defmode)
+char *midend_game_id_int(midend *me, char *id, int defmode, int validate_only)
 {
     char *error, *par, *desc, *seed;
     game_params *newcurparams, *newparams, *oldparams1, *oldparams2;
@@ -1256,6 +1254,16 @@ static char *midend_game_id_int(midend *me, char *id, int defmode)
         }
     }
 
+    if (validate_only) {
+        if (free_params) {
+            if (newcurparams)
+                me->ourgame->free_params(newcurparams);
+            if (newparams)
+                me->ourgame->free_params(newparams);
+        }
+        return NULL;
+    }
+
     /*
      * Now we've got past all possible error points. Update the
      * midend itself.
@@ -1290,7 +1298,7 @@ static char *midend_game_id_int(midend *me, char *id, int defmode)
 
 char *midend_game_id(midend *me, char *id)
 {
-    return midend_game_id_int(me, id, DEF_PARAMS);
+    return midend_game_id_int(me, id, DEF_PARAMS, FALSE);
 }
 
 char *midend_get_game_id(midend *me)
@@ -1306,11 +1314,11 @@ char *midend_get_game_id(midend *me)
     return ret;
 }
 
-char *midend_get_current_params(midend *me)
+char *midend_get_current_params(midend *me, int full)
 {
     char *parstr, *ret;
 
-    parstr = me->ourgame->encode_params(me->curparams, TRUE);
+    parstr = me->ourgame->encode_params(me->curparams, full);
     assert(parstr);
     ret = dupstr(parstr);
     sfree(parstr);
@@ -1367,7 +1375,7 @@ char *midend_set_config(midend *me, int which, config_item *cfg)
       case CFG_SEED:
       case CFG_DESC:
         error = midend_game_id_int(me, cfg[0].sval,
-                                   (which == CFG_SEED ? DEF_SEED : DEF_DESC));
+                                   (which == CFG_SEED ? DEF_SEED : DEF_DESC), FALSE);
 	if (error)
 	    return error;
 	break;
@@ -2028,7 +2036,7 @@ char *identify_game(char **name, int (*read)(void *ctx, void *buf, int len),
 
     char *val = NULL;
     /* Initially all errors give the same report */
-    char *ret = "Data does not appear to be a saved game file";
+    char *ret = _("Data does not appear to be a saved game file");
 
     *name = NULL;
 
@@ -2054,7 +2062,7 @@ char *identify_game(char **name, int (*read)(void *ctx, void *buf, int len),
 
         if (key[8] != ':') {
             if (started)
-                ret = "Data was incorrectly formatted for a saved game file";
+                ret = _("Data was incorrectly formatted for a saved game file");
 	    goto cleanup;
         }
         len = strcspn(key, ": ");
@@ -2074,8 +2082,8 @@ char *identify_game(char **name, int (*read)(void *ctx, void *buf, int len),
                 len = (len * 10) + (c - '0');
             } else {
                 if (started)
-                    ret = "Data was incorrectly formatted for a"
-                    " saved game file";
+                    ret = _("Data was incorrectly formatted for a"
+                    " saved game file");
                 goto cleanup;
             }
         }
@@ -2093,13 +2101,13 @@ char *identify_game(char **name, int (*read)(void *ctx, void *buf, int len),
                 goto cleanup;
             }
             /* Now most errors are this one, unless otherwise specified */
-            ret = "Saved data ended unexpectedly";
+            ret = _("Saved data ended unexpectedly");
             started = TRUE;
         } else {
             if (!strcmp(key, "VERSION")) {
                 if (strcmp(val, SERIALISE_VERSION)) {
-                    ret = "Cannot handle this version of the saved game"
-                        " file format";
+                    ret = _("Cannot handle this version of the saved game"
+                        " file format");
                     goto cleanup;
                 }
             } else if (!strcmp(key, "GAME")) {

@@ -121,6 +121,8 @@ typedef struct psdata psdata;
 #define HATCH_PLUS      5
 #define HATCH_X         6
 
+enum { DEF_PARAMS, DEF_SEED, DEF_DESC };   /* for midend_game_id_int */
+
 /*
  * Structure used to pass configuration data between frontend and
  * game
@@ -261,8 +263,9 @@ enum { CFG_SETTINGS, CFG_SEED, CFG_DESC, CFG_FRONTEND_SPECIFIC };
 config_item *midend_get_config(midend *me, int which, char **wintitle);
 char *midend_set_config(midend *me, int which, config_item *cfg);
 char *midend_game_id(midend *me, char *id);
+char *midend_game_id_int(midend *me, char *id, int defmode, int validate_only);
 char *midend_get_game_id(midend *me);
-char *midend_get_current_params(midend *me);
+char *midend_get_current_params(midend *me, int full);
 char *midend_config_to_encoded_params(midend *me, config_item *cfg, char **encoded);
 char *midend_get_random_seed(midend *me);
 int midend_can_format_as_text_now(midend *me);

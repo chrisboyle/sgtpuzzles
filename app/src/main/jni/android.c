@@ -431,6 +431,48 @@ jstring JNICALL configOK(JNIEnv *env, jobject _obj)
 	return ret;
 }
 
+jstring getDescOrSeedFromDialog(JNIEnv *env, jobject _obj, int mode)
+{
+	/* we must build a fully-specified string (with params) so GameLaunch knows params,
+	   and in the case of seed, so the game gen process generates with correct params */
+	pthread_setspecific(envKey, env);
+	char sep = (mode == CFG_SEED) ? '#' : ':';
+	char *buf;
+	int free_buf = FALSE;
+	jstring ret = NULL;
+	if (!strchr(fe->cfg[0].sval, sep)) {
+		char *params = midend_get_current_params(fe->me, mode == CFG_SEED);
+		size_t plen = strlen(params);
+		buf = snewn(plen + strlen(fe->cfg[0].sval) + 2, char);
+		sprintf(buf, "%s%c%s", params, sep, fe->cfg[0].sval);
+		sfree(params);
+		free_buf = TRUE;
+	} else {
+		buf = fe->cfg[0].sval;
+	}
+	char *willBeMangled = dupstr(buf);
+	char *error = midend_game_id_int(fe->me, willBeMangled, mode, TRUE);
+	sfree(willBeMangled);
+	if (!error) ret = (*env)->NewStringUTF(env, buf);
+	if (free_buf) sfree(buf);
+	if (error) {
+		throwIllegalArgumentException(env, error);
+	}
+	free_cfg(fe->cfg);
+	fe->cfg = NULL;
+	return ret;
+}
+
+jstring JNICALL getFullGameIDFromDialog(JNIEnv *env, jobject _obj)
+{
+	return getDescOrSeedFromDialog(env, _obj, CFG_DESC);
+}
+
+jstring JNICALL getFullSeedFromDialog(JNIEnv *env, jobject _obj)
+{
+	return getDescOrSeedFromDialog(env, _obj, CFG_SEED);
+}
+
 void JNICALL configCancel(JNIEnv *env, jobject _obj)
 {
 	pthread_setspecific(envKey, env);
@@ -461,7 +503,8 @@ static int deserialise_readlen = 0;
 int android_deserialise_read(void *ctx, void *buf, int len)
 {
 	int l = min(len, deserialise_readlen);
-	if (l <= 0) return FALSE;
+	if (l < 0) return FALSE;
+	else if (l == 0) return TRUE;
 	memcpy( buf, deserialise_readptr, l );
 	deserialise_readptr += l;
 	deserialise_readlen -= l;
@@ -512,7 +555,7 @@ jint JNICALL identifyBackend(JNIEnv *env, jclass c, jstring savedGame)
 jstring JNICALL getCurrentParams(JNIEnv *env, jobject _obj)
 {
 	if (! fe || ! fe->me) return NULL;
-	char *params = midend_get_current_params(fe->me);
+	char *params = midend_get_current_params(fe->me, TRUE);
 	jstring ret = (*env)->NewStringUTF(env, params);
 	sfree(params);
 	return ret;
@@ -642,7 +685,7 @@ char * get_text(const char *s)
 	return ret;
 }
 
-void startPlaying(JNIEnv *env, jobject _obj, jobject _gameView, jstring savedGame)
+void startPlayingInt(JNIEnv *env, jobject _obj, jobject _gameView, jstring backend, jstring saveOrGameID, int isGameID)
 {
 	int n;
 	float* colours;
@@ -650,9 +693,32 @@ void startPlaying(JNIEnv *env, jobject _obj, jobject _gameView, jstring savedGam
 
 	frontend *new_fe = snew(frontend);
 	memset(new_fe, 0, sizeof(frontend));
-	int whichBackend = deserialiseOrIdentify(new_fe, savedGame, FALSE);
-	if ((*env)->ExceptionCheck(env)) {
-		return;
+	jstring whichBackend;
+	if (isGameID) {
+		whichBackend = backend;
+		int i;
+		const char * backendChars = (*env)->GetStringUTFChars(env, backend, NULL);
+		const game * g = game_by_name(backendChars);
+		(*env)->ReleaseStringUTFChars(env, backend, backendChars);
+		if (!g) {
+			throwIllegalArgumentException(env, "Internal error identifying game");
+			return;
+		}
+		new_fe->me = midend_new(new_fe, g, &android_drawing, new_fe);
+		const char * gameIDjs = (*env)->GetStringUTFChars(env, saveOrGameID, NULL);
+		char * gameID = dupstr(gameIDjs);
+		(*env)->ReleaseStringUTFChars(env, saveOrGameID, gameIDjs);
+		const char * error = midend_game_id(new_fe->me, gameID);
+		sfree(gameID);
+		if (error) {
+			throwIllegalArgumentException(env, error);
+			return;
+		}
+		midend_new_game(new_fe->me);
+	} else {
+		int backendNum = deserialiseOrIdentify(new_fe, saveOrGameID, FALSE);
+		if ((*env)->ExceptionCheck(env)) return;
+		whichBackend = (*env)->NewStringUTF(env, gamenames[backendNum]);
 	}
 
 	if (fe) {
@@ -673,7 +739,7 @@ void startPlaying(JNIEnv *env, jobject _obj, jobject _gameView, jstring savedGam
 	jfloatArray jColours = (*env)->NewFloatArray(env, n*3);
 	if (jColours == NULL) return;
 	(*env)->SetFloatArrayRegion(env, jColours, 0, n*3, colours);
-	(*env)->CallVoidMethod(env, obj, clearForNewGame, (*env)->NewStringUTF(env, gamenames[whichBackend]), jColours);
+	(*env)->CallVoidMethod(env, obj, clearForNewGame, whichBackend, jColours);
 	android_changed_state(NULL, midend_can_undo(fe->me), midend_can_redo(fe->me));
 
 	if ((n = midend_num_presets(fe->me)) > 0) {
@@ -689,10 +755,19 @@ void startPlaying(JNIEnv *env, jobject _obj, jobject _gameView, jstring savedGam
 
 	fe->ox = -1;
 
-	(*env)->CallVoidMethod(env, obj, gameStarted,
-			(*env)->NewStringUTF(env, gamenames[whichBackend]),
+	(*env)->CallVoidMethod(env, obj, gameStarted, whichBackend,
 			(*env)->NewStringUTF(env, thegame->name), thegame->can_configure,
 			midend_wants_statusbar(fe->me), thegame->can_solve);
+}
+
+void JNICALL startPlaying(JNIEnv *env, jobject _obj, jobject _gameView, jstring savedGame)
+{
+	startPlayingInt(env, _obj, _gameView, NULL, savedGame, FALSE);
+}
+
+void JNICALL startPlayingGameID(JNIEnv *env, jobject _obj, jobject _gameView, jstring backend, jstring gameID)
+{
+	startPlayingInt(env, _obj, _gameView, backend, gameID, TRUE);
 }
 
 JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
@@ -755,10 +830,13 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
 		{ "restartEvent", "()V", restartEvent },
 		{ "configEvent", "(I)V", configEvent },
 		{ "configOK", "()Ljava/lang/String;", configOK },
+		{ "getFullGameIDFromDialog", "()Ljava/lang/String;", getFullGameIDFromDialog },
+		{ "getFullSeedFromDialog", "()Ljava/lang/String;", getFullSeedFromDialog },
 		{ "configCancel", "()V", configCancel },
 		{ "serialise", "()V", serialise },
 		{ "htmlHelpTopic", "()Ljava/lang/String;", htmlHelpTopic },
 		{ "startPlaying", "(Lname/boyle/chris/sgtpuzzles/GameView;Ljava/lang/String;)V", startPlaying },
+		{ "startPlayingGameID", "(Lname/boyle/chris/sgtpuzzles/GameView;Ljava/lang/String;Ljava/lang/String;)V", startPlayingGameID },
 		{ "identifyBackend", "(Ljava/lang/String;)I", identifyBackend },
 		{ "getCurrentParams", "()Ljava/lang/String;", getCurrentParams },
 		{ "requestKeys", "(Ljava/lang/String;Ljava/lang/String;)V", requestKeys },
