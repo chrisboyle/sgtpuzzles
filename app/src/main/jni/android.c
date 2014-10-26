@@ -418,13 +418,14 @@ jstring JNICALL configOK(JNIEnv *env, jobject _obj)
 	pthread_setspecific(envKey, env);
 	char *encoded;
 	char *err = midend_config_to_encoded_params(fe->me, fe->cfg, &encoded);
-	free_cfg(fe->cfg);
-	fe->cfg = NULL;
 
 	if (err) {
 		throwIllegalArgumentException(env, err);
 		return NULL;
 	}
+
+	free_cfg(fe->cfg);
+	fe->cfg = NULL;
 
 	jstring ret = (*env)->NewStringUTF(env, encoded);
 	sfree(encoded);
@@ -457,9 +458,10 @@ jstring getDescOrSeedFromDialog(JNIEnv *env, jobject _obj, int mode)
 	if (free_buf) sfree(buf);
 	if (error) {
 		throwIllegalArgumentException(env, error);
+	} else {
+		free_cfg(fe->cfg);
+		fe->cfg = NULL;
 	}
-	free_cfg(fe->cfg);
-	fe->cfg = NULL;
 	return ret;
 }
 

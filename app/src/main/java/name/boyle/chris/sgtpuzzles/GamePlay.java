@@ -119,6 +119,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 	static final int TIMER_INTERVAL = 20;
 	private StringBuffer savingState;
 	private AlertDialog dialog;
+	private int dialogEvent;
 	private ArrayList<String> dialogIds;
 	private TableLayout dialogLayout;
 	String currentBackend = null, startingBackend = null;
@@ -1173,30 +1174,8 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 				})
 				.setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
 					public void onClick(DialogInterface d, int whichButton) {
-						for (String i : dialogIds) {
-							View v = dialogLayout.findViewWithTag(i);
-							if (v instanceof EditText) {
-								configSetString(i, ((EditText) v).getText().toString());
-							} else if (v instanceof CheckBox) {
-								configSetBool(i, ((CheckBox) v).isChecked() ? 1 : 0);
-							} else if (v instanceof Spinner) {
-								configSetChoice(i, ((Spinner) v).getSelectedItemPosition());
-							}
-						}
-						try {
-							final GameLaunch launch;
-							if (whichEvent == CFG_DESC) {
-								launch = GameLaunch.ofGameID(currentBackend, getFullGameIDFromDialog());
-							} else if (whichEvent == CFG_SEED) {
-								launch = GameLaunch.fromSeed(currentBackend, getFullSeedFromDialog());
-							} else {
-								launch = GameLaunch.toGenerate(currentBackend, configOK());
-							}
-							startGame(launch);
-						} catch (IllegalArgumentException e) {
-							dismissProgress();
-							messageBox(getString(R.string.Error), e.getMessage(), false);
-						}
+						// do nothing - but must have listener to ensure button is shown
+						// (listener is overridden in dialogShow to prevent dismiss)
 					}
 				});
 		if (whichEvent == CFG_SETTINGS) {
@@ -1216,6 +1195,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 			});
 		}
 		dialog = builder.create();
+		dialogEvent = whichEvent;
 		sv.addView(dialogLayout = new TableLayout(GamePlay.this));
 		final int xPadding = getResources().getDimensionPixelSize(R.dimen.dialog_padding_horizontal);
 		final int yPadding = getResources().getDimensionPixelSize(R.dimen.dialog_padding_vertical);
@@ -1300,6 +1280,36 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 			dialogLayout.requestFocus();
 		}
 		dialog.show();
+		dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(new View.OnClickListener() {
+			@Override
+			public void onClick(View button) {
+				for (String i : dialogIds) {
+					View v = dialogLayout.findViewWithTag(i);
+					if (v instanceof EditText) {
+						configSetString(i, ((EditText) v).getText().toString());
+					} else if (v instanceof CheckBox) {
+						configSetBool(i, ((CheckBox) v).isChecked() ? 1 : 0);
+					} else if (v instanceof Spinner) {
+						configSetChoice(i, ((Spinner) v).getSelectedItemPosition());
+					}
+				}
+				try {
+					final GameLaunch launch;
+					if (dialogEvent == CFG_DESC) {
+						launch = GameLaunch.ofGameID(currentBackend, getFullGameIDFromDialog());
+					} else if (dialogEvent == CFG_SEED) {
+						launch = GameLaunch.fromSeed(currentBackend, getFullSeedFromDialog());
+					} else {
+						launch = GameLaunch.toGenerate(currentBackend, configOK());
+					}
+					startGame(launch);
+					dialog.dismiss();
+				} catch (IllegalArgumentException e) {
+					dismissProgress();
+					messageBox(getString(R.string.Error), e.getMessage(), false);
+				}
+			}
+		});
 	}
 
 	@UsedByJNI
