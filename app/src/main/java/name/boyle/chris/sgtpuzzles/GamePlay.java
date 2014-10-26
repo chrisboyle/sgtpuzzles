@@ -37,6 +37,7 @@ import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
 import android.content.pm.ActivityInfo;
 import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.graphics.Color;
@@ -98,6 +99,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 	public static final String SAVED_COMPLETED_PREFIX = "savedCompleted_";
 	public static final String SAVED_GAME_PREFIX = "savedGame_";
 	public static final String LAST_PARAMS_PREFIX = "last_params_";
+	private static final String PUZZLESGEN_LAST_UPDATE = "puzzlesgen_last_update";
 
 	private ProgressDialog progress;
 	private TextView statusBar;
@@ -564,6 +566,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 		return game;
 	}
 
+	@SuppressLint("CommitPrefEdits")
 	private void startGameGenProcess(final List<String> args) throws IOException {
 		final ApplicationInfo applicationInfo = getApplicationInfo();
 		final File dataDir = new File(applicationInfo.dataDir);
@@ -577,8 +580,13 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 		final String suffix = canRunPIE ? "-with-pie" : "-no-pie";
 		File installablePath = new File(libDir, "libpuzzlesgen" + suffix + ".so");
 		File executablePath = new File(dataDir, "puzzlesgen" + suffix);
-		if (!executablePath.exists() ||
-				executablePath.lastModified() < installablePath.lastModified()) {
+		boolean needCopy = true;
+		try {
+			final int currentVersion = getPackageManager().getPackageInfo(getPackageName(), 0).versionCode;
+			needCopy = !executablePath.exists() || (prefs.getInt(PUZZLESGEN_LAST_UPDATE, 0) < currentVersion);
+			prefsSaver.save(prefs.edit().putInt(PUZZLESGEN_LAST_UPDATE, currentVersion));
+		} catch (PackageManager.NameNotFoundException ignored) {}
+		if (needCopy) {
 			copyFile(installablePath, executablePath);
 		}
 		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.GINGERBREAD) {

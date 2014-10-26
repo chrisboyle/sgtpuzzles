@@ -11,8 +11,8 @@ android {
 
     defaultConfig {
         applicationId "name.boyle.chris.sgtpuzzles"
-        versionCode 88
-        versionName "10286.4"
+        versionCode 89
+        versionName "10286.5"
 
         if (file(ndkDir.absolutePath + '/platforms/android-15').exists()) {  // the last without PIE
             minSdkVersion 7
