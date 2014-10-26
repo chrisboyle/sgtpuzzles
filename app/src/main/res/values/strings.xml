@@ -16,8 +16,6 @@ French, falling back on res/values/strings.xml otherwise.
 
 N.B. This will be migrated to po4a when I have the time (generating this file).
 
-Please credit yourself in the about box, see the second string below.
-
 Thank you for volunteering. When you've finished, send this file to
 chris@boyle.name and I'll be happy to include it in future versions.
 
@@ -70,7 +68,6 @@ Version %s"</string>
     <string name="New_game">New game</string>
     <string name="Restart">Restart</string>
     <string name="Game_ID_">Game ID…</string>
-    <string name="Seed">Seed</string>
     <string name="Seed_">Seed…</string>
     <string name="Load_">Load…</string>
     <string name="Save_">Save…</string>
@@ -88,10 +85,9 @@ Version %s"</string>
     <!--  Settings -->
     <string name="thisGame">This game</string>
     <string name="allGames">All games</string>
-    <string name="arrowKeys">Arrow keys</string>
     <string name="arrowKeysIn">Arrow keys in {0}</string>
-	<string name="arrowKeysUnavailable">Arrow keys unavailable</string>
-	<string name="arrowKeysUnavailableIn">Arrow keys unavailable in {0}</string>
+    <string name="arrowKeysUnavailable">Arrow keys unavailable</string>
+    <string name="arrowKeysUnavailableIn">Arrow keys unavailable in {0}</string>
     <string name="fullscreen">Full screen</string>
     <string name="fullscreenSummary">Hide notifications</string>
     <string name="stayAwake">Stay awake</string>
@@ -104,8 +100,6 @@ Version %s"</string>
     <string name="undoRedoOnKeyboardSummary">Allows auto repeat (otherwise shown in action bar)</string>
     <string name="bridgesShowH">"Show \"H\" in Bridges"</string>
     <string name="bridgesShowHSummary">"Undocumented \"solve from here\" action"</string>
-    <string name="inertiaForceArrows">Always show arrows</string>
-    <string name="inertiaForceArrowsSummary">This game has diagonal arrow keys</string>
     <string name="patternShowLengths">Show drag lengths</string>
     <string name="patternShowLengthsSummary">Show number of squares selected</string>
     <string name="controlsReminders">Reminders of controls</string>
@@ -185,26 +179,26 @@ Version %s"</string>
     <string name="desc_unequal">Enter digits so every row and column contains exactly one of each digit and the greater-than signs are satisfied.</string>
     <string name="desc_unruly">Colour every square either black or white such that no three consecutive squares, horizontally or vertically, are the same colour, and each row and column contains the same number of black and white squares.</string>
     <string name="desc_untangle">Move points around until no lines cross.</string>
-	<!-- Non-obvious aspects of controls when arrow keys disabled (specifically because left/right mouse buttons hidden), shown in a toast -->
-	<string name="toast_no_arrows_dominosa">Long press to mark a divider</string>
-	<string name="toast_no_arrows_galaxies">Long press and drag to place an arrow marker</string>
-	<string name="toast_no_arrows_guess">Long press to lock a peg</string>
-	<string name="toast_no_arrows_keen">Long press to make a pencil mark</string>
-	<string name="toast_no_arrows_magnets">Long press to place a blank</string>
-	<string name="toast_no_arrows_map">Long press and drag to make a pencil mark</string>
-	<string name="toast_no_arrows_mines">Long press to place a flag</string>
-	<string name="toast_no_arrows_net">Long press to lock a square</string>
-	<string name="toast_no_arrows_pattern">Long press to mark white squares</string>
-	<string name="toast_no_arrows_pearl">Long press to mark a cross</string>
-	<string name="toast_no_arrows_signpost">Long press and drag to connect inbound rather than outbound</string>
-	<string name="toast_no_arrows_singles">Long press to circle a number</string>
-	<string name="toast_no_arrows_slant">Long press to place /</string>
-	<string name="toast_no_arrows_solo">Long press to make a pencil mark</string>
-	<string name="toast_no_arrows_tents">Long press to mark a blank square</string>
-	<string name="toast_no_arrows_towers">Long press to make a pencil mark</string>
-	<string name="toast_no_arrows_undead">Long press to make a pencil mark</string>
-	<string name="toast_no_arrows_unequal">Long press to make a pencil mark</string>
-	<string name="toast_no_arrows_unruly">Long press to mark a white square</string>
+    <!-- Non-obvious aspects of controls when arrow keys disabled (specifically because left/right mouse buttons hidden), shown in a toast -->
+    <string name="toast_no_arrows_dominosa">Long press to mark a divider</string>
+    <string name="toast_no_arrows_galaxies">Long press and drag to place an arrow marker</string>
+    <string name="toast_no_arrows_guess">Long press to lock a peg</string>
+    <string name="toast_no_arrows_keen">Long press to make a pencil mark</string>
+    <string name="toast_no_arrows_magnets">Long press to place a blank</string>
+    <string name="toast_no_arrows_map">Long press and drag to make a pencil mark</string>
+    <string name="toast_no_arrows_mines">Long press to place a flag</string>
+    <string name="toast_no_arrows_net">Long press to lock a square</string>
+    <string name="toast_no_arrows_pattern">Long press to mark white squares</string>
+    <string name="toast_no_arrows_pearl">Long press to mark a cross</string>
+    <string name="toast_no_arrows_signpost">Long press and drag to connect inbound rather than outbound</string>
+    <string name="toast_no_arrows_singles">Long press to circle a number</string>
+    <string name="toast_no_arrows_slant">Long press to place /</string>
+    <string name="toast_no_arrows_solo">Long press to make a pencil mark</string>
+    <string name="toast_no_arrows_tents">Long press to mark a blank square</string>
+    <string name="toast_no_arrows_towers">Long press to make a pencil mark</string>
+    <string name="toast_no_arrows_undead">Long press to make a pencil mark</string>
+    <string name="toast_no_arrows_unequal">Long press to make a pencil mark</string>
+    <string name="toast_no_arrows_unruly">Long press to mark a white square</string>
     <!-- Everything below here is from C -->
     <!-- Difficulties for most games, in order: -->
     <string name="XxX_X" formatted="false">%dx%d %s</string>
@@ -221,13 +215,13 @@ Version %s"</string>
     <string name="Unreasonable">Unreasonable</string>
     <!-- "Map" is different again and uses Easy, Normal, Hard, Unreasonable -->
     <string name="Normal">Normal</string>
-    <!-- Dialog titles: %s is a game name here -->
+    <!-- Dialog titles and labels: %s is a game name here -->
     <string name="X_configuration">%s configuration</string>
     <string name="X_random_selection">%s random selection</string>
     <string name="X_game_selection">%s game selection</string>
     <string name="Error">Error</string>
-    <string name="Game_random_seed">Game random seed</string>
     <string name="Game_ID">Game ID</string>
+    <string name="Seed">Seed</string>
     <!-- Types of symmetry -->
     <string name="Symmetry">Symmetry</string>
     <string name="None">None</string>
@@ -408,7 +402,7 @@ Version %s"</string>
     <string name="_4_fold_symmetry_is_only_available_with_square_grids">4-fold symmetry is only available with square grids</string>
     <string name="Unknown_symmetry_type">Unknown symmetry type</string>
     <string name="Unknown_difficulty_level">Unknown difficulty level</string>
-    <string name="Puzzle_is_not_self_consistent">Puzzle is not self-consistent.</string>
+    <string name="Unable_to_find_a_solution_to_this_puzzle">Unable to find a solution to this puzzle.</string>
     <!-- Loopy -->
     <string name="Grid_type">Grid type</string>
     <string name="Squares">Squares</string>

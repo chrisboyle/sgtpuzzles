@@ -120,7 +120,7 @@ public class GameChooser extends ActionBarActivity
 //		if( ! state.contains("savedGame") || state.getString("savedGame", "").length() <= 0 ) {
 //			// first run
 //			new AlertDialog.Builder(this)
-//					.setMessage(R.string.welcome)
+//					.setMessage(R.string....)
 //					.setPositiveButton(android.R.string.ok, null)
 //					.show();
 //		}
