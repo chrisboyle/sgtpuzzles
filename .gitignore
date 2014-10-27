@@ -1,3 +1,4 @@
+*.o
 /Makefile*
 /blackbox
 /bridges
@@ -65,7 +66,6 @@
 /untangle
 /*.exe
 /*.obj
-/*.o
 /*.map
 /*.rsp
 /*notes
@@ -112,6 +112,8 @@
 /icons/*.ico
 /icons/*.rc
 /icons/*-icon.c
+/icons/.deps
+/icons/.dirstamp
 /unfinished/divvy
 /unfinished/group
 /unfinished/numgame
