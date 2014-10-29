@@ -75,6 +75,8 @@ enum {
     NCOLOURS
 };
 
+enum { NO_LABELS, REGION_LABELS, COLOUR_LABELS };
+
 struct game_params {
     int w, h, n, diff;
 };
@@ -1820,7 +1822,7 @@ static char *validate_desc(const game_params *params, const char *desc)
 #ifdef ANDROID
 static void android_request_keys(const game_params *params)
 {
-    android_keys("L", ANDROID_ARROWS_LEFT_RIGHT);
+    android_keys("LC", ANDROID_ARROWS_LEFT_RIGHT);
 }
 #endif
 
@@ -2281,7 +2283,7 @@ struct game_ui {
     int drag_pencil;
     int dragx, dragy;
     int last_tilesize;
-    int show_numbers;
+    int show_labels;
 
     int cur_x, cur_y, cur_visible, cur_moved, cur_lastmove;
 };
@@ -2293,7 +2295,7 @@ static game_ui *new_ui(const game_state *state)
     ui->last_tilesize = -1;
     ui->drag_colour = -2;
     ui->drag_pencil = 0;
-    ui->show_numbers = FALSE;
+    ui->show_labels = NO_LABELS;
     ui->cur_x = ui->cur_y = ui->cur_visible = ui->cur_moved = 0;
     ui->cur_lastmove = 0;
     return ui;
@@ -2342,7 +2344,9 @@ struct game_drawstate {
 #define PENCIL_B_BASE 0x00008000L
 #define PENCIL_B_MASK 0x00078000L
 #define PENCIL_MASK   0x007F8000L
-#define SHOW_NUMBERS  0x00004000L
+#define SHOW_REG_LAB  0x00004000L
+#define SHOW_COL_LAB  0x00002000L
+#define SHOW_LAB_MASK 0x00006000L
 
 #define TILESIZE (ds->tilesize)
 #define BORDER (TILESIZE)
@@ -2392,7 +2396,12 @@ static char *interpret_move(const game_state *state, game_ui *ui,
      * Enable or disable numeric labels on regions.
      */
     if (button == 'l' || button == 'L') {
-        ui->show_numbers = !ui->show_numbers;
+        ui->show_labels = (ui->show_labels == REGION_LABELS) ? NO_LABELS : REGION_LABELS;
+        return "";
+    }
+
+    if (button == 'c' || button == 'C') {
+        ui->show_labels = (ui->show_labels == COLOUR_LABELS) ? NO_LABELS : COLOUR_LABELS;
         return "";
     }
 
@@ -2734,14 +2743,14 @@ static void draw_square(drawing *dr, game_drawstate *ds,
 {
     int w = params->w, h = params->h, wh = w*h;
     int tv, bv, xo, yo, i, j, oldj;
-    unsigned long errs, pencil, show_numbers;
+    unsigned long errs, pencil, show_labels;
 
     errs = v & ERR_MASK;
     v &= ~ERR_MASK;
     pencil = v & PENCIL_MASK;
     v &= ~PENCIL_MASK;
-    show_numbers = v & SHOW_NUMBERS;
-    v &= ~SHOW_NUMBERS;
+    show_labels = v & SHOW_LAB_MASK;
+    v &= ~SHOW_LAB_MASK;
     tv = v / FIVE;
     bv = v % FIVE;
 
@@ -2831,7 +2840,7 @@ static void draw_square(drawing *dr, game_drawstate *ds,
     /*
      * Draw region numbers, if desired.
      */
-    if (show_numbers) {
+    if (show_labels) {
         oldj = -1;
         for (i = 0; i < 2; i++) {
             j = map->map[(i?BE:TE)*wh+y*w+x];
@@ -2843,10 +2852,25 @@ static void draw_square(drawing *dr, game_drawstate *ds,
             yo = map->regiony[j] - 2*y;
             if (xo >= 0 && xo <= 2 && yo >= 0 && yo <= 2) {
                 char buf[80];
-                sprintf(buf, "%d", j);
+                int sz, len;
+                if (show_labels == SHOW_COL_LAB) {
+                    int pos = 0;
+                    int c;
+                    int mc = i ? bv : tv;
+                    for (c = 0; c < FOUR; c++) {
+                        if (mc == c) buf[pos++] = 'A' + c;
+                        else if (pencil & ((i ? PENCIL_B_BASE : PENCIL_T_BASE) << c)) buf[pos++] = 'a' + c;
+                    }
+                    buf[pos] = '\0';
+                } else if (show_labels == SHOW_REG_LAB) {
+                    sprintf(buf, "%d", j);
+                }
+                sz = 3*TILESIZE/5;
+                len = strlen(buf);
+                if (len > 2) sz = floor(sz * 2.0/len);
                 draw_text(dr, (COORD(x)*2+TILESIZE*xo)/2,
                           (COORD(y)*2+TILESIZE*yo)/2,
-                          FONT_VARIABLE, 3*TILESIZE/5,
+                          FONT_VARIABLE, sz,
                           ALIGN_HCENTRE|ALIGN_VCENTRE,
                           COL_GRID, buf);
             }
@@ -2944,8 +2968,11 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
 		    v |= PENCIL_B_BASE << i;
 	    }
 
-            if (ui->show_numbers)
-                v |= SHOW_NUMBERS;
+            if (ui->show_labels == REGION_LABELS) {
+                v |= SHOW_REG_LAB;
+            } else if (ui->show_labels == COLOUR_LABELS) {
+                v |= SHOW_COL_LAB;
+            }
 
 	    ds->todraw[y*w+x] = v;
 	}
