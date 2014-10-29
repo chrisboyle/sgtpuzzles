@@ -174,7 +174,8 @@ void activate_timer(frontend *fe);
 void get_random_seed(void **randseed, int *randseedsize);
 char *get_text(const char *text);
 #ifdef ANDROID
-#define _(x) get_text(x)
+/* TODO reinstate get_text(x) when occasional crash diagnosed... */
+#define _(x) (x)
 #else
 /* No i18n on other platforms yet */
 #define _(x) (x)
