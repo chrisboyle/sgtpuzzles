@@ -79,7 +79,10 @@ public class GameView extends View
 	private ScrollerCompat mScroller;
 	private EdgeEffectCompat[] edges = new EdgeEffectCompat[4];
 	// ARGB_8888 is viewable in Android Studio debugger but very memory-hungry
-	private static final Bitmap.Config BITMAP_CONFIG = Bitmap.Config.RGB_565;
+	// It's also necessary to work around a 4.1 bug https://github.com/chrisboyle/sgtpuzzles/issues/63
+	private static final Bitmap.Config BITMAP_CONFIG =
+			(Build.VERSION.SDK_INT == Build.VERSION_CODES.JELLY_BEAN)  // bug only seen on 4.1.x
+					? Bitmap.Config.ARGB_4444 : Bitmap.Config.RGB_565;
 
 	public GameView(Context context, AttributeSet attrs)
 	{
