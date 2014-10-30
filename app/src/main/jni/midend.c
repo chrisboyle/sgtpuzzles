@@ -602,18 +602,10 @@ static int midend_really_process_key(midend *me, int x, int y, int button)
 
     if (button == 'U' ||
 	       button == '\x1A' || button == '\x1F') {
-	midend_stop_anim(me);
-	type = me->states[me->statepos-1].movetype;
-	gottype = TRUE;
-	if (!midend_undo(me))
-	    goto done;
-	midend_redraw(me);
+	button = 'u';
     } else if (button == 'R' ||
 	       button == '\x12' || button == '\x19') {
-	midend_stop_anim(me);
-	if (!midend_redo(me))
-	    goto done;
-	midend_redraw(me);
+	button = 'r';
     } else {
 	movestr =
 	    me->ourgame->interpret_move(me->states[me->statepos-1].state,

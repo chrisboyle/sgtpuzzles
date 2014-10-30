@@ -454,7 +454,7 @@ public class GameView extends View
 		// dpad center auto-repeats on at least Tattoo, Hero
 		case KeyEvent.KEYCODE_DPAD_CENTER:
 			if (repeat > 0) return false;
-			if ((event.getMetaState() & KeyEvent.META_SHIFT_ON) > 0) {
+			if (event.isShiftPressed()) {
 				key = ' ';
 				break;
 			}
@@ -467,15 +467,19 @@ public class GameView extends View
 		case KeyEvent.KEYCODE_ENTER: key = '\n'; break;
 		case KeyEvent.KEYCODE_FOCUS: case KeyEvent.KEYCODE_SPACE: case KeyEvent.KEYCODE_BUTTON_X:
 			key = ' '; break;
-		case KeyEvent.KEYCODE_BUTTON_L1: key = 'u'; break;
-		case KeyEvent.KEYCODE_BUTTON_R1: key = 'r'; break;
+		case KeyEvent.KEYCODE_BUTTON_L1: key = 'U'; break;
+		case KeyEvent.KEYCODE_BUTTON_R1: key = 'R'; break;
 		case KeyEvent.KEYCODE_DEL: key = '\b'; break;
 		}
+		if (key == CURSOR_UP || key == CURSOR_DOWN || key == CURSOR_LEFT || key == CURSOR_RIGHT) {
+			// "only apply to cursor keys"
+			// http://www.chiark.greenend.org.uk/~sgtatham/puzzles/devel/backend.html#backend-interpret-move
+			if( event.isShiftPressed() ) key |= MOD_SHIFT;
+			if( event.isAltPressed() ) key |= MOD_CTRL;
+		}
 		// we probably don't want MOD_NUM_KEYPAD here (numbers are in a line on G1 at least)
-		if( key == 0 ) key = event.getMatch(INTERESTING_CHARS);
+		if(key == 0 && event.getMatch(INTERESTING_CHARS) > 0) key = event.getUnicodeChar();
 		if( key == 0 ) return super.onKeyDown(keyCode, event);  // handles Back etc.
-		if( event.isShiftPressed() ) key |= MOD_SHIFT;
-		if( event.isAltPressed() ) key |= MOD_CTRL;
 		parent.sendKey(0, 0, key);
 		keysHandled++;
 		return true;
