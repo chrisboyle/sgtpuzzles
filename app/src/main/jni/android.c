@@ -699,10 +699,68 @@ char * get_text(const char *s)
 	return ret;
 }
 
-void startPlayingInt(JNIEnv *env, jobject _obj, jobject _gameView, jstring backend, jstring saveOrGameID, int isGameID)
+int startPlayingIntGameID(frontend* new_fe, jstring jsGameID, jstring backend)
 {
+	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
+	const char * backendChars = (*env)->GetStringUTFChars(env, backend, NULL);
+	const game * g = game_by_name(backendChars);
+	(*env)->ReleaseStringUTFChars(env, backend, backendChars);
+	if (!g) {
+		throwIllegalArgumentException(env, "Internal error identifying game");
+		return;
+	}
+	new_fe->me = midend_new(new_fe, g, &android_drawing, new_fe);
+	const char * gameIDjs = (*env)->GetStringUTFChars(env, jsGameID, NULL);
+	char * gameID = dupstr(gameIDjs);
+	(*env)->ReleaseStringUTFChars(env, jsGameID, gameIDjs);
+	const char * error = midend_game_id(new_fe->me, gameID);
+	sfree(gameID);
+	if (error) {
+		throwIllegalArgumentException(env, error);
+		return;
+	}
+	midend_new_game(new_fe->me);
+}
+
+void notifyClearForNewGame(jstring whichBackend)
+{
+	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
 	int n;
 	float* colours;
+	colours = midend_colours(fe->me, &n);
+	jfloatArray jColours = (*env)->NewFloatArray(env, n*3);
+	if (jColours == NULL) return;
+	(*env)->SetFloatArrayRegion(env, jColours, 0, n*3, colours);
+	(*env)->CallVoidMethod(env, obj, clearForNewGame, whichBackend, jColours);
+	android_changed_state(NULL, midend_can_undo(fe->me), midend_can_redo(fe->me));
+}
+
+void populatePresets()
+{
+	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
+	int n;
+	if ((n = midend_num_presets(fe->me)) > 0) {
+		int i;
+		for (i = 0; i < n; i++) {
+			char *name;
+			game_params *params;
+			char *encoded;
+			midend_fetch_preset(fe->me, i, &name, &params, &encoded);
+			(*env)->CallVoidMethod(env, obj, addTypeItem, (*env)->NewStringUTF(env, encoded), (*env)->NewStringUTF(env, name));
+		}
+	}
+}
+
+void notifyGameStarted(jstring whichBackend)
+{
+	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
+	(*env)->CallVoidMethod(env, obj, gameStarted, whichBackend,
+			(*env)->NewStringUTF(env, thegame->name), thegame->can_configure,
+			midend_wants_statusbar(fe->me), thegame->can_solve);
+}
+
+void startPlayingInt(JNIEnv *env, jobject _obj, jobject _gameView, jstring backend, jstring saveOrGameID, int isGameID)
+{
 	pthread_setspecific(envKey, env);
 
 	frontend *new_fe = snew(frontend);
@@ -710,25 +768,7 @@ void startPlayingInt(JNIEnv *env, jobject _obj, jobject _gameView, jstring backe
 	jstring whichBackend;
 	if (isGameID) {
 		whichBackend = backend;
-		int i;
-		const char * backendChars = (*env)->GetStringUTFChars(env, backend, NULL);
-		const game * g = game_by_name(backendChars);
-		(*env)->ReleaseStringUTFChars(env, backend, backendChars);
-		if (!g) {
-			throwIllegalArgumentException(env, "Internal error identifying game");
-			return;
-		}
-		new_fe->me = midend_new(new_fe, g, &android_drawing, new_fe);
-		const char * gameIDjs = (*env)->GetStringUTFChars(env, saveOrGameID, NULL);
-		char * gameID = dupstr(gameIDjs);
-		(*env)->ReleaseStringUTFChars(env, saveOrGameID, gameIDjs);
-		const char * error = midend_game_id(new_fe->me, gameID);
-		sfree(gameID);
-		if (error) {
-			throwIllegalArgumentException(env, error);
-			return;
-		}
-		midend_new_game(new_fe->me);
+		startPlayingIntGameID(new_fe, saveOrGameID, backend);
 	} else {
 		int backendNum = deserialiseOrIdentify(new_fe, saveOrGameID, FALSE);
 		if ((*env)->ExceptionCheck(env)) return;
@@ -749,29 +789,13 @@ void startPlayingInt(JNIEnv *env, jobject _obj, jobject _gameView, jstring backe
 	y = INT_MAX;
 	midend_size(fe->me, &x, &y, FALSE);
 
-	colours = midend_colours(fe->me, &n);
-	jfloatArray jColours = (*env)->NewFloatArray(env, n*3);
-	if (jColours == NULL) return;
-	(*env)->SetFloatArrayRegion(env, jColours, 0, n*3, colours);
-	(*env)->CallVoidMethod(env, obj, clearForNewGame, whichBackend, jColours);
-	android_changed_state(NULL, midend_can_undo(fe->me), midend_can_redo(fe->me));
+	notifyClearForNewGame(whichBackend);
 
-	if ((n = midend_num_presets(fe->me)) > 0) {
-		int i;
-		for (i = 0; i < n; i++) {
-			char *name;
-			game_params *params;
-			char *encoded;
-			midend_fetch_preset(fe->me, i, &name, &params, &encoded);
-			(*env)->CallVoidMethod(env, obj, addTypeItem, (*env)->NewStringUTF(env, encoded), (*env)->NewStringUTF(env, name));
-		}
-	}
+	populatePresets();
 
 	fe->ox = -1;
 
-	(*env)->CallVoidMethod(env, obj, gameStarted, whichBackend,
-			(*env)->NewStringUTF(env, thegame->name), thegame->can_configure,
-			midend_wants_statusbar(fe->me), thegame->can_solve);
+	notifyGameStarted(whichBackend);
 }
 
 void JNICALL startPlaying(JNIEnv *env, jobject _obj, jobject _gameView, jstring savedGame)
