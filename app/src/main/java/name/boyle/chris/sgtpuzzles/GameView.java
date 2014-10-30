@@ -39,7 +39,7 @@ public class GameView extends View
 {
 	private GamePlay parent;
 	private Bitmap bitmap;
-	private final Canvas canvas;
+	private Canvas canvas;
 	private final Paint paint;
 	private Paint checkerboardPaint;
 	private final Bitmap[] blitters;
@@ -546,7 +546,7 @@ public class GameView extends View
 		overdrawY = Math.min(overdrawY, (maxTextureSize.y - h) / 2);
 		bitmap = Bitmap.createBitmap(w + 2 * overdrawX, h + 2 * overdrawY, BITMAP_CONFIG);
 		clear();
-		canvas.setBitmap(bitmap);
+		canvas = new Canvas(bitmap);
 		this.w = w; this.h = h;
 		redrawForZoomChange();
 		if (parent != null) parent.gameViewResized();
