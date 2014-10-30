@@ -402,13 +402,25 @@ void JNICALL configEvent(JNIEnv *env, jobject _obj, jint whichEvent)
 	if( js == NULL ) return;
 	(*env)->CallVoidMethod(env, obj, dialogInit, whichEvent, js);
 	for (i = fe->cfg; i->type != C_END; i++) {
-		jstring js2 = i->name ? (*env)->NewStringUTF(env, i->name) : NULL;
-		if( i->name && js2 == NULL ) return;
-		jstring js3 = i->sval ? (*env)->NewStringUTF(env, i->sval) : NULL;
-		if( i->sval && js3 == NULL ) return;
-		(*env)->CallVoidMethod(env, obj, dialogAdd, whichEvent, i->type, js2, js3, i->ival);
-		if( i->name ) (*env)->DeleteLocalRef(env, js2);
-		if( i->sval ) (*env)->DeleteLocalRef(env, js3);
+		jstring name = NULL;
+		if (i->name) {
+			name = (*env)->NewStringUTF(env, i->name);
+			if (!name) return;
+		}
+		jstring sval = NULL;
+		switch (i->type) {
+			case C_STRING: case C_CHOICES:
+				if (i->sval) {
+					sval = (*env)->NewStringUTF(env, i->sval);
+					if (!sval) return;
+				}
+				break;
+			case C_BOOLEAN: case C_END:
+				break;
+		}
+		(*env)->CallVoidMethod(env, obj, dialogAdd, whichEvent, i->type, name, sval, i->ival);
+		if (name) (*env)->DeleteLocalRef(env, name);
+		if (sval) (*env)->DeleteLocalRef(env, sval);
 	}
 	(*env)->CallVoidMethod(env, obj, dialogShow);
 }
