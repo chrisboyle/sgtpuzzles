@@ -55,7 +55,7 @@ public class PrefsActivity extends PreferenceActivity implements OnSharedPrefere
 		updateSummary((ListPreference) findPreference(GamePlay.ORIENTATION_KEY));
 		findPreference("about_content").setSummary(
 				String.format(getString(R.string.about_content),
-						GamePlay.getVersion(this)));
+						Utils.getVersion(this)));
 		// getSupportActionBar() not available from PreferenceActivity
 		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
 			@SuppressLint("AppCompatMethod") final ActionBar actionBar = getActionBar();

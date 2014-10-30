@@ -1,12 +1,10 @@
 package name.boyle.chris.sgtpuzzles;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.lang.ref.WeakReference;
 import java.text.MessageFormat;
@@ -518,29 +516,10 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 		return ret;
 	}
 
-	static String getEmailSubject(Context c)
-	{
-		String modVer = "";
-		try {
-			Process p = Runtime.getRuntime().exec(new String[]{"getprop","ro.modversion"});
-			modVer = readAllOf(p.getInputStream()).trim();
-		} catch (Exception ignored) {}
-		if (modVer.length() == 0) modVer = "original";
-		return MessageFormat.format(c.getString(R.string.email_subject),
-				getVersion(c), Build.MODEL, modVer, Build.FINGERPRINT);
-	}
-
 	private void abort(final String why, final boolean returnToChooser)
 	{
 		workerRunning = false;
 		handler.obtainMessage(MsgType.ABORT.ordinal(), returnToChooser ? 1 : 0, 0, why).sendToTarget();
-	}
-
-	static String getVersion(Context c)
-	{
-		try {
-			return c.getPackageManager().getPackageInfo(c.getPackageName(), 0).versionName;
-		} catch(Exception e) { return c.getString(R.string.unknown_version); }
 	}
 
 	private String generateGame(final List<String> args) throws IllegalArgumentException, IOException {
@@ -548,7 +527,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 		startGameGenProcess(args);
 		OutputStream stdin = gameGenProcess.getOutputStream();
 		stdin.close();
-		game = readAllOf(gameGenProcess.getInputStream());
+		game = Utils.readAllOf(gameGenProcess.getInputStream());
 		if (game.length() == 0) game = null;
 		int exitStatus = waitForProcess(gameGenProcess);
 		if (exitStatus != 0) {
@@ -1499,18 +1478,6 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 				}
 			}
 		});
-	}
-
-	private static String readAllOf(InputStream s) throws IOException
-	{
-		BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(s),8096);
-		String line;
-		StringBuilder log = new StringBuilder();
-		while ((line = bufferedReader.readLine()) != null) {
-			log.append(line);
-			log.append("\n");
-		}
-		return log.toString();
 	}
 
 	native void startPlaying(GameView _gameView, String savedGame);
