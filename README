@@ -1,3 +1,15 @@
+Going to clone this? Consider including replace refs
+====================================================
+
+This repository includes old git-svn commits that predate upstream's move
+to git. History will look slightly nicer if, after cloning, you do:
+
+    git fetch origin 'refs/replace/*:refs/replace/*'
+
+Sadly github itself does not appear to support replacement so you will still
+see duplicates there.
+
+
 How to work on the Android port of Simon Tatham's Portable Puzzle Collection
 ============================================================================
 
