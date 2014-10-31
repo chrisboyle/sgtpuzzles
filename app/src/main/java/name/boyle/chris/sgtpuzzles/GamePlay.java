@@ -559,14 +559,9 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 		final String suffix = canRunPIE ? "-with-pie" : "-no-pie";
 		File installablePath = new File(libDir, "libpuzzlesgen" + suffix + ".so");
 		File executablePath = new File(dataDir, "puzzlesgen" + suffix);
-		boolean needCopy = true;
-		try {
-			final int currentVersion = getPackageManager().getPackageInfo(getPackageName(), 0).versionCode;
-			needCopy = !executablePath.exists() || (prefs.getInt(PUZZLESGEN_LAST_UPDATE, 0) < currentVersion);
-			prefsSaver.save(prefs.edit().putInt(PUZZLESGEN_LAST_UPDATE, currentVersion));
-		} catch (PackageManager.NameNotFoundException ignored) {}
-		if (needCopy) {
+		if (!executablePath.exists() || (prefs.getInt(PUZZLESGEN_LAST_UPDATE, 0) < BuildConfig.VERSION_CODE)) {
 			copyFile(installablePath, executablePath);
+			prefsSaver.save(prefs.edit().putInt(PUZZLESGEN_LAST_UPDATE, BuildConfig.VERSION_CODE));
 		}
 		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.GINGERBREAD) {
 			if (!executablePath.setExecutable(true)) {

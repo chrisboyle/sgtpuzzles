@@ -62,6 +62,6 @@ public class SendFeedbackActivity extends Activity
 			}
 		} catch (Exception ignored) {}
 		return MessageFormat.format(c.getString(R.string.email_subject),
-				Utils.getVersion(c), currentGame, Build.MODEL, modVer, Build.FINGERPRINT);
+				BuildConfig.VERSION_NAME, currentGame, Build.MODEL, modVer, Build.FINGERPRINT);
 	}
 }

@@ -20,11 +20,4 @@ public abstract class Utils {
 		}
 		return log.toString();
 	}
-
-	static String getVersion(Context c)
-	{
-		try {
-			return c.getPackageManager().getPackageInfo(c.getPackageName(), 0).versionName;
-		} catch(Exception e) { return c.getString(R.string.unknown_version); }
-	}
 }
