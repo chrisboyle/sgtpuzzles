@@ -2991,7 +2991,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
                 if (is_drag_src && (is == is_drag_src ||
                                     (is_drag_dst && is == is_drag_dst)))
                     idata |= DI_COL_SELECTED;
-                else if (island_impossible(is, v & G_MARK))
+                else if (island_impossible(is, v & G_MARK) || (v & G_WARN))
                     idata |= DI_COL_WARNING;
                 else
                     idata |= DI_COL_NORMAL;
