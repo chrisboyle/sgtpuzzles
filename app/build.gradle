@@ -1,9 +1,36 @@
 import org.apache.tools.ant.taskdefs.condition.Os
 import com.google.common.base.Joiner
 
+import java.text.SimpleDateFormat
+
 apply plugin: 'com.android.application'
 
 def ndkDir = project.plugins.findPlugin('android').getNdkFolder()
+
+def timestamp() {
+    def dateFormat = new SimpleDateFormat("yyyy-MM-dd-HHmm")
+    dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"))
+    return dateFormat.format(new Date())
+}
+
+def idForSimon() {
+    try {
+        def commit = new ByteArrayOutputStream()
+        exec {
+            // Require remote called simon because someone downstream might call my branch "upstream"
+            commandLine 'git', 'merge-base', 'simon/master', 'master'
+            standardOutput = commit
+        }
+        def shortUnique = new ByteArrayOutputStream()
+        exec {
+            commandLine 'git', 'rev-parse', '--short', commit.toString().trim()
+            standardOutput = shortUnique
+        }
+        return shortUnique.toString().trim()
+    } catch (ignored) {
+        return "UNOFFICIAL"
+    }
+}
 
 android {
     compileSdkVersion 20
@@ -12,7 +39,7 @@ android {
     defaultConfig {
         applicationId "name.boyle.chris.sgtpuzzles"
         versionCode 94
-        versionName "10286.7"
+        versionName "${timestamp()}-${idForSimon()}"
 
         if (file(ndkDir.absolutePath + '/platforms/android-15').exists()) {  // the last without PIE
             minSdkVersion 7
