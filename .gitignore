@@ -7,6 +7,7 @@ local.properties
 .idea/tasks.xml
 .idea/datasources.xml
 .idea/datasources.ids
+.idea/libraries
 *~
 *.swp
 /app/src/main/res/drawable-*v7/*
