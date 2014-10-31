@@ -11,8 +11,8 @@ android {
 
     defaultConfig {
         applicationId "name.boyle.chris.sgtpuzzles"
-        versionCode 91
-        versionName "10286.6"
+        versionCode 94
+        versionName "10286.7"
 
         if (file(ndkDir.absolutePath + '/platforms/android-15').exists()) {  // the last without PIE
             minSdkVersion 7
@@ -39,7 +39,8 @@ android {
             jniDebugBuild true
         }
         release {
-            //runProguard false
+            runProguard true  // about to be renamed to minifyEnabled
+            jniDebugBuild false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.txt'
         }
     }
@@ -80,10 +81,10 @@ android.applicationVariants.all{ variant ->
             'PUZZLES_PREBUILT_DIR=' + prebuiltDir.absolutePath,
             abiParam,
             'NDK_LOG=1',
-            'NDK_DEBUG=1']  // TODO variant.ndkCompile.debuggable is always 0?
+            'NDK_DEBUG=' + (variant.ndkCompile.debuggable ? '1' : '0')]
         exec {
             commandLine common + [
-                    'APP_PLATFORM=android-5',  // earliest for x86 + mips
+                    'APP_PLATFORM=android-7',  // 5 is earliest for x86 + mips
                     'PUZZLESGEN_SUFFIX=-no-pie',
                     'APP_PIE=false']
         }
