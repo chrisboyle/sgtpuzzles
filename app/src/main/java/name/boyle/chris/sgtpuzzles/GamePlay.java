@@ -35,7 +35,6 @@ import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
 import android.content.pm.ActivityInfo;
 import android.content.pm.ApplicationInfo;
-import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.graphics.Color;
@@ -1309,6 +1308,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 		lastArrowMode = arrowMode;
 		lastKeys = (keys == null) ? "" : keys;
 		lastKeysIfArrows = (keysIfArrows == null) ? "" : keysIfArrows;
+		gameView.setHardwareKeys(lastKeys + lastKeysIfArrows);
 		setKeyboardVisibility(startingBackend, getResources().getConfiguration());
 		keysAlreadySet = true;
 	}

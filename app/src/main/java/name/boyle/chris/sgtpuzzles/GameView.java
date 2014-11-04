@@ -46,6 +46,7 @@ public class GameView extends View
 	int[] colours = new int[0];
 	int w, h;
 	private final int longPressTimeout = ViewConfiguration.getLongPressTimeout();
+	private String hardwareKeys;
 	private enum TouchState { IDLE, WAITING_LONG_PRESS, DRAGGING, PINCH }
 	private TouchState touchState = TouchState.IDLE;
 	private int button;
@@ -64,7 +65,6 @@ public class GameView extends View
 	static final int CURSOR_UP = 0x209, CURSOR_DOWN = 0x20a,
 			CURSOR_LEFT = 0x20b, CURSOR_RIGHT = 0x20c, MOD_NUM_KEYPAD = 0x4000;
 	int keysHandled = 0;  // debug
-	private static final char[] INTERESTING_CHARS = "0123456789abcdefghijklqrsux".toCharArray();
 	final boolean hasPinchZoom;
 	ScaleGestureDetector scaleDetector = null;
 	GestureDetectorCompat gestureDetector;
@@ -478,11 +478,23 @@ public class GameView extends View
 			if( event.isAltPressed() ) key |= MOD_CTRL;
 		}
 		// we probably don't want MOD_NUM_KEYPAD here (numbers are in a line on G1 at least)
-		if(key == 0 && event.getMatch(INTERESTING_CHARS) > 0) key = event.getUnicodeChar();
+		if (key == 0) {
+			int exactKey = event.getUnicodeChar();
+			if ((exactKey >= 'A' && exactKey <= 'Z') || hardwareKeys.indexOf(exactKey) >= 0) {
+				key = exactKey;
+			} else {
+				key = event.getMatch(hardwareKeys.toCharArray());
+				if (key == 0 && (exactKey == 'u' || exactKey == 'r')) key = exactKey;
+			}
+		}
 		if( key == 0 ) return super.onKeyDown(keyCode, event);  // handles Back etc.
 		parent.sendKey(0, 0, key);
 		keysHandled++;
 		return true;
+	}
+
+	public void setHardwareKeys(String hardwareKeys) {
+		this.hardwareKeys = hardwareKeys;
 	}
 
 	@Override
