@@ -253,6 +253,11 @@ public class GameChooser extends ActionBarActivity
 	{
 		super.onConfigurationChanged(newConfig);
 		rethinkColumns(false);
+		if (menu != null) {
+			// https://github.com/chrisboyle/sgtpuzzles/issues/227
+			menu.clear();
+			onCreateOptionsMenu(menu);
+		}
 		rethinkActionBarCapacity();
 	}
 
@@ -345,16 +350,14 @@ public class GameChooser extends ActionBarActivity
 	public boolean onCreateOptionsMenu(Menu menu)
 	{
 		super.onCreateOptionsMenu(menu);
+		this.menu = menu;
 		getMenuInflater().inflate(R.menu.chooser, menu);
 		if (chooserHideGrid) {
 			menu.removeItem(R.id.gridchooser);
 			menu.removeItem(R.id.listchooser);
 		}
-		if (this.menu == null) {  // first time
-			this.menu = menu;
-			updateStyleToggleVisibility();
-			rethinkActionBarCapacity();
-		}
+		updateStyleToggleVisibility();
+		rethinkActionBarCapacity();
 		return true;
 	}
 
@@ -362,9 +365,6 @@ public class GameChooser extends ActionBarActivity
 	public boolean onPrepareOptionsMenu(Menu menu)
 	{
 		super.onPrepareOptionsMenu(menu);
-		if (!chooserHideGrid) {
-			menu.findItem(useGrid ? R.id.gridchooser : R.id.listchooser).setChecked(true);
-		}
 		updateStyleToggleVisibility();
 		return true;
 	}
