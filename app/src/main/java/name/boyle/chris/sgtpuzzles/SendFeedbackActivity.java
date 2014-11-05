@@ -7,6 +7,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 
@@ -15,15 +16,20 @@ import java.text.MessageFormat;
 @SuppressWarnings("WeakerAccess")  // used by manifest
 public class SendFeedbackActivity extends Activity
 {
+	public static final String REASON = SendFeedbackActivity.class.getName() + ".REASON";
+
 	@Override
 	protected void onCreate(Bundle savedInstanceState)
 	{
 		super.onCreate(savedInstanceState);
-		Intent i = new Intent(Intent.ACTION_SEND);
-		i.putExtra(Intent.EXTRA_EMAIL, new String[]{getString(R.string.author_email)});
+		Intent i = new Intent(Intent.ACTION_SENDTO);
 		final String emailSubject = getEmailSubject(this);
-		i.putExtra(Intent.EXTRA_SUBJECT, emailSubject);
-		i.setType("message/rfc822");
+		String uri = "mailto:" + getString(R.string.author_email) + "?subject=" + Uri.encode(emailSubject);
+		final String reason = getIntent().getStringExtra(REASON);
+		if (reason != null) {
+			uri += "&body=" + Uri.encode("Reason: " + reason + "\n\n");
+		}
+		i.setData(Uri.parse(uri));
 		i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_WHEN_TASK_RESET);
 		try {
 			startActivity(i);
@@ -63,5 +69,20 @@ public class SendFeedbackActivity extends Activity
 		} catch (Exception ignored) {}
 		return MessageFormat.format(c.getString(R.string.email_subject),
 				BuildConfig.VERSION_NAME, currentGame, Build.MODEL, modVer, Build.FINGERPRINT);
+	}
+
+	public static void promptToReport(final Context context, final int descId, final int shortId) {
+		new AlertDialog.Builder(context)
+				.setTitle(R.string.Error)
+				.setIcon(android.R.drawable.ic_dialog_alert)
+				.setMessage(descId)
+				.setPositiveButton(R.string.report_it, new DialogInterface.OnClickListener() {
+					@Override
+					public void onClick(DialogInterface dialog, int which) {
+						final Intent intent = new Intent(context, SendFeedbackActivity.class);
+						intent.putExtra(SendFeedbackActivity.REASON, context.getString(shortId));
+						context.startActivity(intent);
+					}
+				}).show();
 	}
 }

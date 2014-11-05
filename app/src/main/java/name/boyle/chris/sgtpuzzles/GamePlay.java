@@ -24,9 +24,12 @@ import name.boyle.chris.sgtpuzzles.compat.PrefsSaver;
 import name.boyle.chris.sgtpuzzles.compat.SysUIVisSetter;
 
 import android.annotation.SuppressLint;
+import android.annotation.TargetApi;
+import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.ProgressDialog;
+import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.DialogInterface.OnCancelListener;
@@ -37,6 +40,7 @@ import android.content.pm.ActivityInfo;
 import android.content.pm.ApplicationInfo;
 import android.content.res.Configuration;
 import android.content.res.Resources;
+import android.database.Cursor;
 import android.graphics.Color;
 import android.graphics.PointF;
 import android.graphics.PorterDuff;
@@ -47,7 +51,9 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
+import android.os.ParcelFileDescriptor;
 import android.preference.PreferenceManager;
+import android.provider.OpenableColumns;
 import android.support.annotation.NonNull;
 import android.support.v4.app.NavUtils;
 import android.support.v4.view.MenuItemCompat;
@@ -97,6 +103,9 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 	public static final String SAVED_GAME_PREFIX = "savedGame_";
 	public static final String LAST_PARAMS_PREFIX = "last_params_";
 	private static final String PUZZLESGEN_LAST_UPDATE = "puzzlesgen_last_update";
+
+	private static final int REQ_CODE_CREATE_DOC = Activity.RESULT_FIRST_USER;
+	private static final String MIME_TYPE = "text/x-sgtpuzzles";
 
 	private ProgressDialog progress;
 	private TextView statusBar;
@@ -337,8 +346,9 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 					}
 				}
 				if (backendFromChooser == null) {
-					Log.e(TAG, "Unhandled URL! \"" + u + "\" -> g = \"" + g + "\", games = " + Arrays.toString(games));
-					// TODO! Other URLs, including game states...
+					final GameLaunch launch = GameLaunch.ofUri(u);
+					startGame(launch);
+					return;
 				}
 			}
 		}
@@ -495,7 +505,18 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 			startActivity(new Intent(this, SendFeedbackActivity.class));
 			break;
 		case R.id.save:
-			new FilePicker(this, storageDir, true).show();
+			if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+				Intent saver = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+				saver.addCategory(Intent.CATEGORY_OPENABLE);
+				saver.setType(MIME_TYPE);
+				try {
+					startActivityForResult(saver, REQ_CODE_CREATE_DOC);
+				} catch (ActivityNotFoundException ignored) {
+					SendFeedbackActivity.promptToReport(GamePlay.this, R.string.saf_missing_desc, R.string.saf_missing_short);
+				}
+			} else {
+				new FilePicker(this, storageDir, true).show();
+			}
 			break;
 		default:
 			if (itemId < gameTypes.size()) {
@@ -513,6 +534,24 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 			rethinkActionBarCapacity();
 		}
 		return ret;
+	}
+
+	@Override
+	protected void onActivityResult(int requestCode, int resultCode, Intent dataIntent) {
+		if (requestCode != REQ_CODE_CREATE_DOC || resultCode != Activity.RESULT_OK || dataIntent == null) return;
+		FileOutputStream fileOutputStream = null;
+		ParcelFileDescriptor pfd = null;
+		try {
+			final String s = saveToString();
+			pfd = getContentResolver().openFileDescriptor(dataIntent.getData(), "w");
+			fileOutputStream = new FileOutputStream(pfd.getFileDescriptor());
+			fileOutputStream.write(s.getBytes());
+		} catch (IOException e) {
+			messageBox(getString(R.string.Error), getString(R.string.save_failed_prefix) + e.getMessage(), false);
+		} finally {
+			Utils.closeQuietly(fileOutputStream);
+			Utils.closeQuietly(pfd);
+		}
 	}
 
 	private void abort(final String why, final boolean returnToChooser)
@@ -637,8 +676,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 	{
 		Log.d(TAG, "startGame: " + launch);
 		if (progress != null) {
-			Log.e(TAG, "startGame while already starting!");
-			return;
+			throw new RuntimeException("startGame while already starting!");
 		}
 		showProgress(launch.needsGenerating() ? R.string.starting : R.string.resuming, launch.isFromChooser());
 		stopNative();
@@ -681,19 +719,26 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 	}
 
 	private void startGameThread(final GameLaunch launch) {
-		String backend = launch.getWhichBackend();
-		if (backend == null) {
-			try {
-				backend = games[identifyBackend(launch.getSaved())];
-			} catch (IllegalArgumentException e) {
-				abort(e.getMessage(), launch.isFromChooser());  // invalid file
-				return;
-			}
-		}
-		startingBackend = backend;
 		workerRunning = true;
 		(worker = new Thread(launch.needsGenerating() ? "generateAndLoadGame" : "loadGame") { public void run() {
 			try {
+				Uri uri = launch.getUri();
+				if (uri != null) {
+					if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
+						checkSize(uri);
+					}  // else just wish really hard that it isn't too big :-p
+					launch.finishedGenerating(Utils.readAllOf(getContentResolver().openInputStream(uri)));
+				}
+				String backend = launch.getWhichBackend();
+				if (backend == null) {
+					try {
+						backend = games[identifyBackend(launch.getSaved())];
+					} catch (IllegalArgumentException e) {
+						abort(e.getMessage(), launch.isFromChooser());  // invalid file
+						return;
+					}
+				}
+				startingBackend = backend;
 				final boolean generating = launch.needsGenerating();
 				if (generating) {
 					String whichBackend = launch.getWhichBackend();
@@ -787,6 +832,18 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 			if (! workerRunning) return;  // stopNative or abort was called
 			handler.sendEmptyMessage(MsgType.DONE.ordinal());
 		}}).start();
+	}
+
+	@TargetApi(Build.VERSION_CODES.JELLY_BEAN)
+	private void checkSize(Uri uri) {
+		Cursor cursor = getContentResolver().query(uri, new String[]{OpenableColumns.SIZE}, null, null, null, null);
+		if (cursor != null && cursor.moveToFirst()) {
+			int sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE);
+			if (cursor.isNull(sizeIndex)) return;
+			if (cursor.getInt(sizeIndex) > MAX_SAVE_SIZE) {
+				throw new IllegalArgumentException(getString(R.string.file_too_big));
+			}
+		}
 	}
 
 	private String getLastParams(final String whichBackend) {

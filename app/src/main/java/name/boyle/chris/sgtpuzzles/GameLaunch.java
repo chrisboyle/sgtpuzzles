@@ -1,11 +1,14 @@
 package name.boyle.chris.sgtpuzzles;
 
+import android.net.Uri;
+
 /**
  * A game the user wants to launch, whether saved, or identified by backend and
  * optional parameters.
  */
 public class GameLaunch {
 	private String saved;
+	private Uri uri;
 	private final String whichBackend;
 	private final String params;
 	private final String gameID;
@@ -14,12 +17,13 @@ public class GameLaunch {
 	private final boolean fromChooser;
 
 	private GameLaunch(final String whichBackend, final String params, final String gameID,
-				final String seed, final String saved,
+				final String seed, final Uri uri, final String saved,
 				final boolean knownCompleted, final boolean fromChooser) {
 		this.whichBackend = whichBackend;
 		this.params = params;
 		this.gameID = gameID;
 		this.seed = seed;
+		this.uri = uri;
 		this.saved = saved;
 		this.knownCompleted = knownCompleted;
 		this.fromChooser = fromChooser;
@@ -27,35 +31,40 @@ public class GameLaunch {
 	
 	@Override
 	public String toString() {
-		return "GameLaunch(" + whichBackend + ", " + params + ", " + saved + ")";
+		if (uri != null) return "GameLaunch.ofUri(" + uri + ")";
+		return "GameLaunch(" + whichBackend + ", " + params + ", " + gameID + ", " + seed + ", " + saved + ")";
 	}
 
 	public static GameLaunch ofSavedGame(final String saved, final boolean knownCompleted, final boolean fromChooser) {
-		return new GameLaunch(null, null, null, null, saved, knownCompleted, fromChooser);
+		return new GameLaunch(null, null, null, null, null, saved, knownCompleted, fromChooser);
 	}
 
 	public static GameLaunch toGenerate(String whichBackend, String params) {
-		return new GameLaunch(whichBackend, params, null, null, null, false, false);
+		return new GameLaunch(whichBackend, params, null, null, null, null, false, false);
 	}
 
 	public static GameLaunch toGenerateFromChooser(String whichBackend) {
-		return new GameLaunch(whichBackend, null, null, null, null, false, true);
+		return new GameLaunch(whichBackend, null, null, null, null, null, false, true);
 	}
 
 	public static GameLaunch ofGameID(String whichBackend, String gameID) {
 		final int pos = gameID.indexOf(':');
 		if (pos < 0) throw new IllegalArgumentException("Game ID invalid: " + gameID);
-		return new GameLaunch(whichBackend, gameID.substring(0, pos), gameID, null, null, false, false);
+		return new GameLaunch(whichBackend, gameID.substring(0, pos), gameID, null, null, null, false, false);
 	}
 
 	public static GameLaunch fromSeed(String whichBackend, String seed) {
 		final int pos = seed.indexOf('#');
 		if (pos < 0) throw new IllegalArgumentException("Seed invalid: " + seed);
-		return new GameLaunch(whichBackend, seed.substring(0, pos), null, seed, null, false, false);
+		return new GameLaunch(whichBackend, seed.substring(0, pos), null, seed, null, null, false, false);
+	}
+
+	public static GameLaunch ofUri(final Uri uri) {
+		return new GameLaunch(null, null, null, null, uri, null, false, true);
 	}
 
 	public boolean needsGenerating() {
-		return saved == null && gameID == null;
+		return saved == null && gameID == null && uri == null;
 	}
 
 	public String getWhichBackend() {
@@ -72,6 +81,10 @@ public class GameLaunch {
 
 	public String getSeed() {
 		return seed;
+	}
+
+	public Uri getUri() {
+		return uri;
 	}
 
 	public void finishedGenerating(String saved) {

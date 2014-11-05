@@ -5,6 +5,8 @@ import name.boyle.chris.sgtpuzzles.compat.PrefsSaver;
 import android.animation.LayoutTransition;
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
+import android.app.Activity;
+import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
@@ -55,6 +57,8 @@ public class GameChooser extends ActionBarActivity
 		DEFAULT_STARRED.add("solo");
 		DEFAULT_STARRED.add("towers");
 	}
+
+	private static final int REQ_CODE_PICKER = Activity.RESULT_FIRST_USER;
 
     private GridLayout table;
 
@@ -318,7 +322,6 @@ public class GameChooser extends ActionBarActivity
 		SharedPreferences.Editor ed = prefs.edit();
 		ed.putBoolean("starred_" + game, !isStarred(game));
 		prefsSaver.save(ed);
-		// TODO just move the one affected view & enable animateLayoutChanges on table in layout xml
 		rethinkColumns(true);
 	}
 
@@ -382,7 +385,20 @@ public class GameChooser extends ActionBarActivity
 			case R.id.listchooser: updateUseGrid(false); break;
 			case R.id.gridchooser: updateUseGrid(true); break;
 			case R.id.load:
-				new FilePicker(this, Environment.getExternalStorageDirectory(),false).show();
+				if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+					// GET_CONTENT would include dropbox, but it returns file:// URLs that need SD permission :-(
+					Intent picker = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+					picker.addCategory(Intent.CATEGORY_OPENABLE);
+					picker.setType("*/*");
+					picker.putExtra(Intent.EXTRA_MIME_TYPES, new String[] {"text/*", "application/octet-stream"});
+					try {
+						startActivityForResult(picker, REQ_CODE_PICKER);
+					} catch (ActivityNotFoundException ignored) {
+						SendFeedbackActivity.promptToReport(this, R.string.saf_missing_desc, R.string.saf_missing_short);
+					}
+				} else {
+					new FilePicker(this, Environment.getExternalStorageDirectory(), false).show();
+				}
 				break;
 			case R.id.contents:
 				Intent intent = new Intent(this, HelpActivity.class);
@@ -399,6 +415,14 @@ public class GameChooser extends ActionBarActivity
 			supportInvalidateOptionsMenu();
 		}
 		return ret;
+	}
+
+	@Override
+	protected void onActivityResult(int requestCode, int resultCode, Intent dataIntent) {
+		if (requestCode != REQ_CODE_PICKER || resultCode != Activity.RESULT_OK || dataIntent == null) return;
+		final Uri uri = dataIntent.getData();
+		startActivity(new Intent(Intent.ACTION_VIEW, uri, this, GamePlay.class));
+		overridePendingTransition(0, 0);
 	}
 
 	@SuppressLint("CommitPrefEdits")
