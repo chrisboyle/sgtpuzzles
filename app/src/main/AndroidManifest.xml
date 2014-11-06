@@ -33,12 +33,12 @@
 				<action android:name="android.intent.action.VIEW" />
 				<action android:name="android.intent.action.EDIT" />
 				<category android:name="android.intent.category.DEFAULT" />
-				<data android:mimeType="text/x-sgtpuzzles" />
+				<data android:mimeType="text/prs.sgtatham.puzzles" />
 			</intent-filter>
 			<intent-filter>
 				<action android:name="android.nfc.action.NDEF_DISCOVERED" />
 				<category android:name="android.intent.category.DEFAULT" />
-				<data android:mimeType="text/x-sgtpuzzles" />
+				<data android:mimeType="text/prs.sgtatham.puzzles" />
 			</intent-filter>
 		</activity>
         <activity android:name=".GamePlay" android:exported="false" android:theme="@style/SolidActionBar.Gameplay"

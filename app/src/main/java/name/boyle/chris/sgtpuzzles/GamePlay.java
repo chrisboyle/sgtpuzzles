@@ -108,7 +108,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 	private static final String PUZZLESGEN_LAST_UPDATE = "puzzlesgen_last_update";
 
 	private static final int REQ_CODE_CREATE_DOC = Activity.RESULT_FIRST_USER;
-	private static final String MIME_TYPE = "text/x-sgtpuzzles";
+	private static final String MIME_TYPE = "text/prs.sgtatham.puzzles";
 
 	private ProgressDialog progress;
 	private TextView statusBar;
