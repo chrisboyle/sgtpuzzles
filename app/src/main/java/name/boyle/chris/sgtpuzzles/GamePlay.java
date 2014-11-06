@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.ref.WeakReference;
+import java.nio.charset.Charset;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -43,12 +44,17 @@ import android.graphics.PointF;
 import android.graphics.PorterDuff;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
+import android.nfc.NdefMessage;
+import android.nfc.NdefRecord;
+import android.nfc.NfcAdapter;
+import android.nfc.NfcEvent;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
 import android.os.ParcelFileDescriptor;
+import android.os.Parcelable;
 import android.preference.PreferenceManager;
 import android.provider.OpenableColumns;
 import android.support.annotation.NonNull;
@@ -284,6 +290,33 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 		gameView.requestFocus();
 		onNewIntent(getIntent());
 		getWindow().setBackgroundDrawable(null);
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH) {
+			setUpBeam();
+		}
+	}
+
+	@TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
+	private void setUpBeam() {
+		NfcAdapter nfcAdapter = NfcAdapter.getDefaultAdapter(this);
+		if (nfcAdapter == null) return;  // NFC not available on this device
+		nfcAdapter.setNdefPushMessageCallback(new NfcAdapter.CreateNdefMessageCallback() {
+			@Override
+			public NdefMessage createNdefMessage(NfcEvent event) {
+				String saved = saveToString();
+				return new NdefMessage(
+						new NdefRecord[] {
+								createMime(MIME_TYPE, saved),
+								NdefRecord.createApplicationRecord(getPackageName())
+						});
+			}
+		}, this);
+	}
+
+	@TargetApi(Build.VERSION_CODES.GINGERBREAD)
+	private static NdefRecord createMime(final String mimeType, final String content) {
+		return new NdefRecord(NdefRecord.TNF_MIME_MEDIA,
+				mimeType.getBytes(Charset.forName("US-ASCII")),
+				new byte[0], content.getBytes(Charset.forName("US-ASCII")));
 	}
 
 	/** work around http://code.google.com/p/android/issues/detail?id=21181 */
@@ -347,6 +380,8 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 					startGame(launch);
 					return;
 				}
+			} else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.GINGERBREAD && handleNFC(intent)) {
+				return;
 			}
 		}
 
@@ -371,6 +406,17 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 				startChooserAndFinish();
 			}
 		}
+	}
+
+	@TargetApi(Build.VERSION_CODES.GINGERBREAD)
+	private boolean handleNFC(Intent intent) {
+		if (!intent.getAction().equals(NfcAdapter.ACTION_NDEF_DISCOVERED)) return false;
+		Parcelable[] rawMsgs = intent.getParcelableArrayExtra(NfcAdapter.EXTRA_NDEF_MESSAGES);
+		if (rawMsgs.length == 0) return false;
+		NdefMessage msg = (NdefMessage) rawMsgs[0];
+		if (msg.getRecords().length == 0) return false;
+		startGame(GameLaunch.ofSavedGame(new String(msg.getRecords()[0].getPayload()), false, true));
+		return true;
 	}
 
 	@SuppressLint("CommitPrefEdits")
