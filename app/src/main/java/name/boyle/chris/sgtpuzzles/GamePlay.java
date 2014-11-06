@@ -11,6 +11,7 @@ import java.nio.charset.Charset;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,6 +37,7 @@ import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
 import android.content.pm.ActivityInfo;
 import android.content.pm.ApplicationInfo;
+import android.content.pm.ResolveInfo;
 import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.database.Cursor;
@@ -59,6 +61,8 @@ import android.preference.PreferenceManager;
 import android.provider.OpenableColumns;
 import android.support.annotation.NonNull;
 import android.support.v4.app.NavUtils;
+import android.support.v4.app.ShareCompat;
+import android.support.v4.content.FileProvider;
 import android.support.v4.view.MenuItemCompat;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.ActionBarActivity;
@@ -108,7 +112,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 	private static final String PUZZLESGEN_LAST_UPDATE = "puzzlesgen_last_update";
 
 	private static final int REQ_CODE_CREATE_DOC = Activity.RESULT_FIRST_USER;
-	private static final String MIME_TYPE = "text/prs.sgtatham.puzzles";
+	static final String MIME_TYPE = "text/prs.sgtatham.puzzles";
 
 	private ProgressDialog progress;
 	private TextView statusBar;
@@ -561,6 +565,44 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 				new FilePicker(this, storageDir, true).show();
 			}
 			break;
+		case R.id.share:
+			final Uri uriWithMimeType, bluetoothUri;
+			final String saved = saveToString();
+			try {
+				uriWithMimeType = writeCacheFile("puzzle.sav", saved);
+				bluetoothUri = writeCacheFile("bluetooth-puzzle.sav", saved);  // gets text/plain in FixedTypeFileProvider
+			} catch (IOException e) {
+				SendFeedbackActivity.promptToReport(this, R.string.cache_fail_desc, R.string.cache_fail_short);
+				break;
+			}
+			Intent template = ShareCompat.IntentBuilder.from(this)
+					.setStream(uriWithMimeType)
+					.setType(GamePlay.MIME_TYPE)
+					.getIntent();
+			List<Intent> targets = new ArrayList<Intent>();
+			List<ResolveInfo> candidates = this.getPackageManager().
+					queryIntentActivities(template, 0);
+			Collections.sort(candidates, new ResolveInfo.DisplayNameComparator(getPackageManager()));
+
+			// Fix Bluetooth sharing: the closest type it will accept is text/plain, so
+			// give it that (see FixedTypeFileProvider) and rely on handling *.sav
+			for (ResolveInfo candidate : candidates) {
+				String packageName = candidate.activityInfo.packageName;
+				final boolean isBluetooth = packageName.equals("com.android.bluetooth");
+				final Uri uri = isBluetooth ? bluetoothUri : uriWithMimeType;
+				Intent target = ShareCompat.IntentBuilder.from(this)
+						.setStream(uri)
+						.setType(isBluetooth ? "text/plain" : GamePlay.MIME_TYPE)
+						.getIntent()
+						.setPackage(packageName)
+						.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+				grantUriPermission(packageName, uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
+				targets.add(target);
+			}
+			Intent chooser = Intent.createChooser(targets.remove(targets.size() - 1), getString(R.string.share_title));
+			chooser.putExtra(Intent.EXTRA_INITIAL_INTENTS, targets.toArray(new Parcelable[targets.size()]));
+			startActivity(chooser);
+			break;
 		default:
 			if (itemId < gameTypes.size()) {
 				String presetParams = orientGameType((String)gameTypes.keySet().toArray()[itemId]);
@@ -577,6 +619,16 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 			rethinkActionBarCapacity();
 		}
 		return ret;
+	}
+
+	private Uri writeCacheFile(final String cacheFile, final String content) throws IOException {
+		Uri uri;
+		final File file = new File(getCacheDir(), cacheFile);
+		FileOutputStream out = new FileOutputStream(file);
+		out.write(content.getBytes());
+		out.close();
+		uri = FileProvider.getUriForFile(this, getPackageName() + ".fileprovider", file);
+		return uri;
 	}
 
 	@Override

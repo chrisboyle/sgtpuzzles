@@ -43,6 +43,8 @@ Version %s"</string>
     <string name="save_failed_prefix">Failed to save: </string>
     <string name="saf_missing_desc">Your device is missing the Storage Access Framework, please report this so I can investigate.</string>
     <string name="saf_missing_short">missing Storage Access Framework</string>
+    <string name="cache_fail_desc">Failed to write a temporary file to share, please report this so I can investigate.</string>
+    <string name="cache_fail_short">failed to write to cache directory</string>
     <string name="report_it">Report it</string>
     <string name="storage_not_ready">Storage device is not ready</string>
     <string name="file_too_big">This looks much too big to be a saved game</string>
@@ -75,6 +77,8 @@ Version %s"</string>
     <string name="Seed_">Seed…</string>
     <string name="Load_">Load…</string>
     <string name="Save_">Save…</string>
+    <string name="Share_">Share…</string>
+    <string name="share_title">Share puzzle with</string>
     <string name="Type">Type</string>
     <string name="Custom_">Custom…</string>
     <string name="Help">Help</string>
