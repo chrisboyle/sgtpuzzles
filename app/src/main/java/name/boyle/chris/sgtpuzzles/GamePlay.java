@@ -10,12 +10,9 @@ import java.lang.ref.WeakReference;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -567,7 +564,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 		stdin.close();
 		game = Utils.readAllOf(gameGenProcess.getInputStream());
 		if (game.length() == 0) game = null;
-		int exitStatus = waitForProcess(gameGenProcess);
+		int exitStatus = Utils.waitForProcess(gameGenProcess);
 		if (exitStatus != 0) {
 			String error = game;
 			if (error != null && error.length() > 0) {  // probably bogus params
@@ -595,51 +592,27 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 		}
 		final boolean canRunPIE = Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN;
 		final String suffix = canRunPIE ? "-with-pie" : "-no-pie";
-		File installablePath = new File(libDir, "libpuzzlesgen" + suffix + ".so");
+		final String baseName = "libpuzzlesgen" + suffix + ".so";
+		File installablePath = new File(libDir, baseName);
+		final File SYS_LIB = new File("/system/lib");
+		final File altPath = new File(SYS_LIB, baseName);
+		if (!installablePath.exists() && altPath.exists()) installablePath = altPath;
 		File executablePath = new File(dataDir, "puzzlesgen" + suffix);
 		if (!executablePath.exists() || (prefs.getInt(PUZZLESGEN_LAST_UPDATE, 0) < BuildConfig.VERSION_CODE)) {
 			copyFile(installablePath, executablePath);
 			prefsSaver.save(prefs.edit().putInt(PUZZLESGEN_LAST_UPDATE, BuildConfig.VERSION_CODE));
 		}
-		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.GINGERBREAD) {
-			if (!executablePath.setExecutable(true)) {
-				throw new IOException("Can't make game binary executable: File.setExecutable failed");
-			}
-		} else {
-			Set<String> dirs = new LinkedHashSet<String>();
-			dirs.add("/system/bin");
-			dirs.add("/system/xbin");
-			final String path = System.getenv("PATH");
-			if (path != null) {
-				Collections.addAll(dirs, path.split(":"));
-			}
-			Set<File> tried = new LinkedHashSet<File>();
-			boolean ok = false;
-			for (String dir : dirs) {
-				final File chmod = new File(dir, "chmod");
-				if (chmod.exists()) {
-					final String[] chmodArgs = {
-							chmod.getAbsolutePath(), "755", executablePath.getAbsolutePath()};
-					Log.d(TAG, "exec: " + Arrays.toString(chmodArgs));
-					final int chmodExit = waitForProcess(Runtime.getRuntime().exec(chmodArgs));
-					if (chmodExit == 0) {
-						ok = true;
-						break;
-					}
-					tried.add(chmod);
-				}
-			}
-			if (! ok) {
-				throw new IOException("Can't make game binary executable, tried " + tried);
-			}
-		}
+		Utils.setExecutable(executablePath);
 		final String[] cmdLine = new String[args.size() + 1];
 		cmdLine[0] = executablePath.getAbsolutePath();
 		int i = 1;
 		for (String arg : args) cmdLine[i++] = arg;
 		Log.d(TAG, "exec: " + Arrays.toString(cmdLine));
+		File libPuzDir = libDir;
+		final String SO = "libpuzzles.so";
+		if (! new File(libPuzDir, SO).exists() && new File(SYS_LIB, SO).exists()) libPuzDir = SYS_LIB;
 		gameGenProcess = Runtime.getRuntime().exec(cmdLine,
-				new String[]{"LD_LIBRARY_PATH="+libDir}, libDir);
+				new String[]{"LD_LIBRARY_PATH="+libPuzDir}, libPuzDir);
 	}
 
 	private void copyFile(File src, File dst) throws IOException {
@@ -652,19 +625,6 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 		}
 		in.close();
 		out.close();
-	}
-
-	private int waitForProcess(Process process) {
-		if (process == null) return -1;
-		try {
-			while (true) {
-				try {
-					return process.waitFor();
-				} catch (InterruptedException ignored) {}
-			}
-		} finally {
-			process.destroy();
-		}
 	}
 
 	private void startNewGame()
