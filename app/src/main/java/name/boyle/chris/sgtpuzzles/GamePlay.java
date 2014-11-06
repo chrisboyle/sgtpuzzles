@@ -588,7 +588,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 			// give it that (see FixedTypeFileProvider) and rely on handling *.sav
 			for (ResolveInfo candidate : candidates) {
 				String packageName = candidate.activityInfo.packageName;
-				final boolean isBluetooth = packageName.equals("com.android.bluetooth");
+				final boolean isBluetooth = packageName.startsWith("com.android.bluetooth");
 				final Uri uri = isBluetooth ? bluetoothUri : uriWithMimeType;
 				Intent target = ShareCompat.IntentBuilder.from(this)
 						.setStream(uri)
