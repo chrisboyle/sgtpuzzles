@@ -518,7 +518,7 @@ int android_deserialise_read(void *ctx, void *buf, int len)
 {
 	int l = min(len, deserialise_readlen);
 	if (l < 0) return FALSE;
-	else if (l == 0) return TRUE;
+	else if (l == 0) return len == 0;
 	memcpy( buf, deserialise_readptr, l );
 	deserialise_readptr += l;
 	deserialise_readlen -= l;
