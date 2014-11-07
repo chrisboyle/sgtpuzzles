@@ -3,10 +3,6 @@
       package="name.boyle.chris.sgtpuzzles"
       android:installLocation="auto" tools:ignore="UnusedAttribute"
       xmlns:tools="http://schemas.android.com/tools">
-    <!-- You must be able to navigate and enter numbers, so: { 5-way and keyboard } or touchscreen -->
-    <uses-configuration android:reqFiveWayNav="true" android:reqKeyboardType="qwerty" />
-    <uses-configuration android:reqFiveWayNav="true" android:reqKeyboardType="twelvekey" />
-    <uses-configuration android:reqTouchScreen="finger" />
     <supports-screens tools:ignore="UnusedAttribute"
           android:xlargeScreens="true"
           android:largeScreens="true"
@@ -18,6 +14,9 @@
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" /><!-- needed even after 18 for received Bluetooth files :-( -->
     <uses-permission android:name="android.permission.NFC" />
     <uses-feature android:name="android.hardware.nfc" android:required="false" />
+    <!-- Require something mouse-like, at least for Untangle - and for number-entry games this means you'll have a usable keyboard either on-screen or physically -->
+    <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
+    <uses-feature android:name="android.hardware.faketouch" android:required="true" />
     <application android:icon="@drawable/icon" android:logo="@drawable/ic_action_bar"
         android:label="@string/app_name"
         android:backupAgent=".BackupAgent" android:allowBackup="true" tools:ignore="UnusedAttribute">
