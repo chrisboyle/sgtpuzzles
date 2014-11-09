@@ -414,7 +414,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 
 	@TargetApi(Build.VERSION_CODES.GINGERBREAD)
 	private boolean handleNFC(Intent intent) {
-		if (!intent.getAction().equals(NfcAdapter.ACTION_NDEF_DISCOVERED)) return false;
+		if (intent == null || !NfcAdapter.ACTION_NDEF_DISCOVERED.equals(intent.getAction())) return false;
 		Parcelable[] rawMsgs = intent.getParcelableArrayExtra(NfcAdapter.EXTRA_NDEF_MESSAGES);
 		if (rawMsgs.length == 0) return false;
 		NdefMessage msg = (NdefMessage) rawMsgs[0];
@@ -742,7 +742,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 	}
 
 	@UsedByJNI
-	private void clearForNewGame(final String startingBackend, final float[] colours) {
+	private void clearForNewGame(final String startingBackend, final float[] colours, final boolean canUndo, final boolean canRedo) {
 		runOnUiThread(new Runnable() {
 			public void run() {
 				gameView.colours = new int[colours.length / 3];
@@ -772,6 +772,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 				gameTypes.clear();
 				gameView.keysHandled = 0;
 				everCompleted = false;
+				changedState(canUndo, canRedo);
 			}
 		});
 	}

@@ -731,8 +731,7 @@ void notifyClearForNewGame(jstring whichBackend)
 	jfloatArray jColours = (*env)->NewFloatArray(env, n*3);
 	if (jColours == NULL) return;
 	(*env)->SetFloatArrayRegion(env, jColours, 0, n*3, colours);
-	(*env)->CallVoidMethod(env, obj, clearForNewGame, whichBackend, jColours);
-	android_changed_state(NULL, midend_can_undo(fe->me), midend_can_redo(fe->me));
+	(*env)->CallVoidMethod(env, obj, clearForNewGame, whichBackend, jColours, midend_can_undo(fe->me), midend_can_redo(fe->me));
 }
 
 void populatePresets()
@@ -790,8 +789,10 @@ void startPlayingInt(JNIEnv *env, jobject _obj, jobject _gameView, jstring backe
 	midend_size(fe->me, &x, &y, FALSE);
 
 	notifyClearForNewGame(whichBackend);
+	if ((*env)->ExceptionCheck(env)) return;
 
 	populatePresets();
+	if ((*env)->ExceptionCheck(env)) return;
 
 	fe->ox = -1;
 
@@ -834,7 +835,7 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
 	blitterLoad    = (*env)->GetMethodID(env, vcls, "blitterLoad", "(III)V");
 	blitterSave    = (*env)->GetMethodID(env, vcls, "blitterSave", "(III)V");
 	changedState   = (*env)->GetMethodID(env, cls,  "changedState", "(ZZ)V");
-	clearForNewGame = (*env)->GetMethodID(env, cls, "clearForNewGame", "(Ljava/lang/String;[F)V");
+	clearForNewGame = (*env)->GetMethodID(env, cls, "clearForNewGame", "(Ljava/lang/String;[FZZ)V");
 	clipRect       = (*env)->GetMethodID(env, vcls, "clipRect", "(IIII)V");
 	dialogAdd      = (*env)->GetMethodID(env, cls,  "dialogAdd", "(IILjava/lang/String;Ljava/lang/String;I)V");
 	dialogInit     = (*env)->GetMethodID(env, cls,  "dialogInit", "(ILjava/lang/String;)V");
