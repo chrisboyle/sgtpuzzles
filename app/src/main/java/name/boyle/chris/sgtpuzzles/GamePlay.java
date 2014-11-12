@@ -110,6 +110,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 	public static final String SAVED_GAME_PREFIX = "savedGame_";
 	public static final String LAST_PARAMS_PREFIX = "last_params_";
 	private static final String PUZZLESGEN_LAST_UPDATE = "puzzlesgen_last_update";
+	private static final String BLUETOOTH_PACKAGE_PREFIX = "com.android.bluetooth";
 
 	private static final int REQ_CODE_CREATE_DOC = Activity.RESULT_FIRST_USER;
 	static final String MIME_TYPE = "text/prs.sgtatham.puzzles";
@@ -566,42 +567,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 			}
 			break;
 		case R.id.share:
-			final Uri uriWithMimeType, bluetoothUri;
-			final String saved = saveToString();
-			try {
-				uriWithMimeType = writeCacheFile("puzzle.sav", saved);
-				bluetoothUri = writeCacheFile("bluetooth-puzzle.sav", saved);  // gets text/plain in FixedTypeFileProvider
-			} catch (IOException e) {
-				SendFeedbackActivity.promptToReport(this, R.string.cache_fail_desc, R.string.cache_fail_short);
-				break;
-			}
-			Intent template = ShareCompat.IntentBuilder.from(this)
-					.setStream(uriWithMimeType)
-					.setType(GamePlay.MIME_TYPE)
-					.getIntent();
-			List<Intent> targets = new ArrayList<Intent>();
-			List<ResolveInfo> candidates = this.getPackageManager().
-					queryIntentActivities(template, 0);
-			Collections.sort(candidates, new ResolveInfo.DisplayNameComparator(getPackageManager()));
-
-			// Fix Bluetooth sharing: the closest type it will accept is text/plain, so
-			// give it that (see FixedTypeFileProvider) and rely on handling *.sav
-			for (ResolveInfo candidate : candidates) {
-				String packageName = candidate.activityInfo.packageName;
-				final boolean isBluetooth = packageName.startsWith("com.android.bluetooth");
-				final Uri uri = isBluetooth ? bluetoothUri : uriWithMimeType;
-				Intent target = ShareCompat.IntentBuilder.from(this)
-						.setStream(uri)
-						.setType(isBluetooth ? "text/plain" : GamePlay.MIME_TYPE)
-						.getIntent()
-						.setPackage(packageName)
-						.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-				grantUriPermission(packageName, uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
-				targets.add(target);
-			}
-			Intent chooser = Intent.createChooser(targets.remove(targets.size() - 1), getString(R.string.share_title));
-			chooser.putExtra(Intent.EXTRA_INITIAL_INTENTS, targets.toArray(new Parcelable[targets.size()]));
-			startActivity(chooser);
+			share();
 			break;
 		default:
 			if (itemId < gameTypes.size()) {
@@ -619,6 +585,57 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 			rethinkActionBarCapacity();
 		}
 		return ret;
+	}
+
+	private void share() {
+		final Uri uriWithMimeType, bluetoothUri;
+		final String saved = saveToString();
+		try {
+			uriWithMimeType = writeCacheFile("puzzle.sav", saved);
+			bluetoothUri = writeCacheFile("bluetooth-puzzle.sav", saved);  // gets text/plain in FixedTypeFileProvider
+		} catch (IOException e) {
+			SendFeedbackActivity.promptToReport(this, R.string.cache_fail_desc, R.string.cache_fail_short);
+			return;
+		}
+		final ShareCompat.IntentBuilder intentBuilder = ShareCompat.IntentBuilder.from(this)
+				.setStream(uriWithMimeType)
+				.setType(GamePlay.MIME_TYPE);
+		final Intent template = intentBuilder.getIntent();
+		List<ResolveInfo> candidates = this.getPackageManager().queryIntentActivities(template, 0);
+
+		// If Bluetooth isn't around, just do the standard chooser
+		boolean needBluetoothHack = false;
+		for (ResolveInfo candidate : candidates) {
+			if (candidate.activityInfo.packageName.startsWith(BLUETOOTH_PACKAGE_PREFIX)) {
+				needBluetoothHack = true;
+				break;
+			}
+		}
+		if (!needBluetoothHack) {
+			startActivity(intentBuilder.createChooserIntent());
+			return;
+		}
+
+		// Fix Bluetooth sharing: the closest type it will accept is text/plain, so
+		// give it that (see FixedTypeFileProvider) and rely on handling *.sav
+		Collections.sort(candidates, new ResolveInfo.DisplayNameComparator(getPackageManager()));
+		List<Intent> targets = new ArrayList<Intent>();
+		for (ResolveInfo candidate : candidates) {
+			String packageName = candidate.activityInfo.packageName;
+			final boolean isBluetooth = packageName.startsWith(BLUETOOTH_PACKAGE_PREFIX);
+			final Uri uri = isBluetooth ? bluetoothUri : uriWithMimeType;
+			Intent target = ShareCompat.IntentBuilder.from(this)
+					.setStream(uri)
+					.setType(isBluetooth ? "text/plain" : GamePlay.MIME_TYPE)
+					.getIntent()
+					.setPackage(packageName)
+					.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+			grantUriPermission(packageName, uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
+			targets.add(target);
+		}
+		Intent chooser = Intent.createChooser(targets.remove(targets.size() - 1), getString(R.string.share_title));
+		chooser.putExtra(Intent.EXTRA_INITIAL_INTENTS, targets.toArray(new Parcelable[targets.size()]));
+		startActivity(chooser);
 	}
 
 	private Uri writeCacheFile(final String cacheFile, final String content) throws IOException {
