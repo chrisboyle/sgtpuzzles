@@ -534,6 +534,10 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
     if (newstate->justwrong && ui->newmove)
 	ui->errors++;
     ui->newmove = FALSE;
+    #ifdef ANDROID
+        if (newstate->reveal && oldstate && ! oldstate->reveal && newstate->nwrong == 0
+            && newstate->nmissed == 0 && newstate->nright >= newstate->minballs) android_completed();
+    #endif
 }
 
 #define OFFSET(gx,gy,o) do {                                    \
