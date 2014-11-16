@@ -308,6 +308,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 			@Override
 			public NdefMessage createNdefMessage(NfcEvent event) {
 				String saved = saveToString();
+				if (saved == null) return null;
 				return new NdefMessage(
 						new NdefRecord[] {
 								createMime(MIME_TYPE, saved),
