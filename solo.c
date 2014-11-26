@@ -3840,7 +3840,7 @@ static char *spec_to_dsf(const char **pdesc, int **pdsf, int cr, int area)
 	}
 	desc++;
 
-	adv = (c != 25);	       /* 'z' is a special case */
+	adv = (c != 26);	       /* 'z' is a special case */
 
 	while (c-- > 0) {
 	    int p0, p1;
