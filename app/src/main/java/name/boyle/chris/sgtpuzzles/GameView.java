@@ -26,7 +26,6 @@ import android.support.v4.widget.EdgeEffectCompat;
 import android.support.v4.widget.ScrollerCompat;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
-import android.util.Log;
 import android.view.GestureDetector;
 import android.view.HapticFeedbackConstants;
 import android.view.KeyEvent;
@@ -380,7 +379,6 @@ public class GameView extends View
 
 	private final Runnable sendLongPress = new Runnable() {
 		public void run() {
-			Log.d(GamePlay.TAG, "sendLongPress");
 			if (hasPinchZoom && isScaleInProgress()) return;
 			button = RIGHT_BUTTON;
 			touchState = TouchState.DRAGGING;
@@ -416,7 +414,6 @@ public class GameView extends View
 			}
 			float x = event.getX(), y = event.getY();
 			if (touchState == TouchState.WAITING_LONG_PRESS && movedPastTouchSlop(x, y)) {
-				Log.d(GamePlay.TAG, "drag start");
 				parent.handler.removeCallbacks(sendLongPress);
 				if (dragMode == DragMode.PREVENT) {
 					touchState = TouchState.IDLE;
