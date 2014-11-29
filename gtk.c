@@ -2264,7 +2264,7 @@ static frontend *new_window(char *arg, int argtype, char **error)
 		gtk_radio_menu_item_group(GTK_RADIO_MENU_ITEM(menuitem));
             gtk_container_add(GTK_CONTAINER(submenu), menuitem);
             gtk_object_set_data(GTK_OBJECT(menuitem), "user-data",
-				GPOINTER_TO_INT(CFG_SETTINGS));
+				GINT_TO_POINTER(CFG_SETTINGS));
             gtk_signal_connect(GTK_OBJECT(menuitem), "activate",
                                GTK_SIGNAL_FUNC(menu_config_event), fe);
             gtk_widget_show(menuitem);
