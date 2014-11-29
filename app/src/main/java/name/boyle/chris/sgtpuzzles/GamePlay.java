@@ -151,8 +151,14 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 	private boolean everCompleted = false;
 	private final Pattern DIMENSIONS = Pattern.compile("(\\d+)( ?)x\\2(\\d+)(.*)");
 	private long lastKeySent = 0;
+	enum UIVisibility {
+		UNDO(1), REDO(2), CUSTOM(4), SOLVE(8), STATUS(16);
+		private final int _flag;
+		UIVisibility(final int flag) { _flag = flag; }
+		public int getValue() { return _flag; }
+	}
 
-	enum MsgType { TIMER, DONE, ABORT }
+	enum MsgType { TIMER }
 	static class PuzzlesHandler extends Handler
 	{
 		final WeakReference<GamePlay> ref;
@@ -176,26 +182,6 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 						TIMER_INTERVAL);
 			}
 			break;
-		case DONE:
-			resizeEvent(gameView.w, gameView.h);
-			dismissProgress();
-			if( menu != null ) onPrepareOptionsMenu(menu);
-			save();
-			break;
-		case ABORT:
-			stopNative();
-			dismissProgress();
-			if (msg.obj != null && !msg.obj.equals("")) {
-				messageBox(getString(R.string.Error), (String) msg.obj, msg.arg1 == 1);
-			} else if (msg.arg1 == 1) {  // see showProgress
-				startChooserAndFinish();
-				return;
-			}
-			startingBackend = currentBackend;
-			if (currentBackend != null) {
-				requestKeys(currentBackend, getCurrentParams());
-			}
-			break;
 		}
 	}
 
@@ -206,14 +192,17 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 		progress.setIndeterminate(true);
 		progress.setCancelable(true);
 		progress.setCanceledOnTouchOutside(false);
-		// returnToChooser sets msg.arg1 to 1
-		final Message cancelMessage = handler.obtainMessage(MsgType.ABORT.ordinal(), returnToChooser ? 1 : 0, 0);
 		progress.setOnCancelListener(new OnCancelListener() {
 			public void onCancel(DialogInterface dialog) {
-				cancelMessage.sendToTarget();
+				abort(null, returnToChooser);
 			}
 		});
-		progress.setButton( DialogInterface.BUTTON_NEGATIVE, getString(android.R.string.cancel), cancelMessage);
+		progress.setButton(DialogInterface.BUTTON_NEGATIVE, getString(android.R.string.cancel), new DialogInterface.OnClickListener() {
+			@Override
+			public void onClick(DialogInterface dialog, int which) {
+				abort(null, returnToChooser);
+			}
+		});
 		progress.show();
 	}
 
@@ -670,7 +659,24 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 	private void abort(final String why, final boolean returnToChooser)
 	{
 		workerRunning = false;
-		handler.obtainMessage(MsgType.ABORT.ordinal(), returnToChooser ? 1 : 0, 0, why).sendToTarget();
+		runOnUiThread(new Runnable() {
+			@Override
+			public void run() {
+				stopNative();
+				dismissProgress();
+				if (why != null && !why.equals("")) {
+					messageBox(getString(R.string.Error), why, returnToChooser);
+				} else if (returnToChooser) {
+					startChooserAndFinish();
+					return;
+				}
+				startingBackend = currentBackend;
+				if (currentBackend != null) {
+					requestKeys(currentBackend, getCurrentParams());
+				}
+			}
+		});
+
 	}
 
 	private String generateGame(final List<String> args) throws IllegalArgumentException, IOException {
@@ -759,42 +765,6 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 		startGameThread(launch);
 	}
 
-	@UsedByJNI
-	private void clearForNewGame(final String startingBackend, final float[] colours, final boolean canUndo, final boolean canRedo) {
-		runOnUiThread(new Runnable() {
-			public void run() {
-				gameView.colours = new int[colours.length / 3];
-				for (int i = 0; i < colours.length / 3; i++) {
-					final int colour = Color.rgb(
-							(int) (colours[i * 3] * 255),
-							(int) (colours[i * 3 + 1] * 255),
-							(int) (colours[i * 3 + 2] * 255));
-					gameView.colours[i] = colour;
-				}
-				if (gameView.colours.length > 0) {
-					gameView.setBackgroundColor(gameView.colours[0]);
-				} else {
-					gameView.setBackgroundColor(gameView.getDefaultBackgroundColour());
-				}
-				gameView.resetZoomForClear();
-				gameView.clear();
-				solveEnabled = false;
-				changedState(false, false);
-				customVisible = false;
-				setStatusBarVisibility(false);
-				applyUndoRedoKbd();
-				if (typeMenu != null) {
-					while (typeMenu.size() > 1)
-						typeMenu.removeItem(typeMenu.getItem(0).getItemId());
-				}
-				gameTypes.clear();
-				gameView.keysHandled = 0;
-				everCompleted = false;
-				changedState(canUndo, canRedo);
-			}
-		});
-	}
-
 	private void startGameThread(final GameLaunch launch) {
 		workerRunning = true;
 		(worker = new Thread(launch.needsGenerating() ? "generateAndLoadGame" : "loadGame") { public void run() {
@@ -858,57 +828,115 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 				final String gameID = launch.getGameID();
 				if (toPlay == null && gameID == null) {
 					Log.d(TAG, "startGameThread: null game, presumably cancelled");
+					return;
+				}
+				final boolean changingGame;
+				if (currentBackend == null) {
+					if (launch.isFromChooser()) {
+						final String savedBackend = state.getString(SAVED_BACKEND, null);
+						changingGame = savedBackend == null || !savedBackend.equals(startingBackend);
+					} else {
+						changingGame = true;  // launching app
+					}
 				} else {
-					final boolean changingGame;
-					if (currentBackend == null) {
-						if (launch.isFromChooser()) {
-							final String savedBackend = state.getString(SAVED_BACKEND, null);
-							changingGame = savedBackend == null || !savedBackend.equals(startingBackend);
-						} else {
-							changingGame = true;  // launching app
+					changingGame = ! currentBackend.equals(startingBackend);
+				}
+
+				if (toPlay != null) {
+					startPlaying(gameView, toPlay);
+				} else {
+					startPlayingGameID(gameView, startingBackend, gameID);
+				}
+				if (! workerRunning) return;  // stopNative or abort was called
+				runOnUiThread(new Runnable() {
+					@Override
+					public void run() {
+						currentBackend = startingBackend;
+						refreshColours();
+						gameView.resetZoomForClear();
+						gameView.clear();
+						applyUndoRedoKbd();
+						gameView.keysHandled = 0;
+						everCompleted = false;
+
+						final String currentParams = orientGameType(getCurrentParams());
+						refreshPresets(currentParams);
+						gameView.setDragModeFor(currentBackend);
+						final String title = getGameTitle();
+						setTitle(title);
+						getSupportActionBar().setTitle(title);
+						final int flags = getUIVisibility();
+						changedState((flags & UIVisibility.UNDO.getValue()) > 0, (flags & UIVisibility.REDO.getValue()) > 0);
+						customVisible = (flags & UIVisibility.CUSTOM.getValue()) > 0;
+						solveEnabled = (flags & UIVisibility.SOLVE.getValue()) > 0;
+						setStatusBarVisibility((flags & UIVisibility.STATUS.getValue()) > 0);
+
+						if (!generating) {  // we didn't know params until we loaded the game
+							requestKeys(currentBackend, currentParams);
 						}
-					} else {
-						changingGame = ! currentBackend.equals(startingBackend);
-					}
-
-					if (toPlay != null) {
-						startPlaying(gameView, toPlay);
-					} else {
-						startPlayingGameID(gameView, startingBackend, gameID);
-					}
-
-					runOnUiThread(new Runnable() {
-						@Override
-						public void run() {
-							if (!generating) {  // we didn't know params until we loaded the game
-								requestKeys(startingBackend, getCurrentParams());
-							}
-							if (launch.isKnownCompleted()) {
-								completed();
-							}
-							final boolean hasArrows = computeArrowMode(startingBackend).hasArrows();
-							setCursorVisibility(hasArrows);
-							if (changingGame) {
-								if (prefs.getBoolean(CONTROLS_REMINDERS_KEY, true) && ! hasArrows) {
-									final int reminderId = getResources().getIdentifier(
-											"toast_no_arrows_" + startingBackend, "string", getPackageName());
-									if (reminderId > 0) {
-										Toast.makeText(GamePlay.this, reminderId, Toast.LENGTH_LONG).show();
-									}
+						if (launch.isKnownCompleted()) {
+							completed();
+						}
+						final boolean hasArrows = computeArrowMode(currentBackend).hasArrows();
+						setCursorVisibility(hasArrows);
+						if (changingGame) {
+							if (prefs.getBoolean(CONTROLS_REMINDERS_KEY, true) && ! hasArrows) {
+								final int reminderId = getResources().getIdentifier(
+										"toast_no_arrows_" + currentBackend, "string", getPackageName());
+								if (reminderId > 0) {
+									Toast.makeText(GamePlay.this, reminderId, Toast.LENGTH_LONG).show();
 								}
 							}
 						}
-					});
-				}
+						resizeEvent(gameView.w, gameView.h);
+						dismissProgress();
+						if( menu != null ) onPrepareOptionsMenu(menu);
+						save();
+					}
+				});
 			} catch (IllegalArgumentException e) {
 				abort(e.getMessage(), launch.isFromChooser());  // probably bogus params
 			} catch (IOException e) {
 				e.printStackTrace();
 				abort(e.getMessage(), launch.isFromChooser());  // internal error :-(
 			}
-			if (! workerRunning) return;  // stopNative or abort was called
-			handler.sendEmptyMessage(MsgType.DONE.ordinal());
 		}}).start();
+	}
+
+	private void refreshColours() {
+		final float[] colours = getColours();
+		gameView.colours = new int[colours.length / 3];
+		for (int i = 0; i < colours.length / 3; i++) {
+			final int colour = Color.rgb(
+					(int) (colours[i * 3] * 255),
+					(int) (colours[i * 3 + 1] * 255),
+					(int) (colours[i * 3 + 2] * 255));
+			gameView.colours[i] = colour;
+		}
+		if (gameView.colours.length > 0) {
+			gameView.setBackgroundColor(gameView.colours[0]);
+		} else {
+			gameView.setBackgroundColor(gameView.getDefaultBackgroundColour());
+		}
+	}
+
+	private void refreshPresets(String currentParams) {
+		if (typeMenu != null) {
+			while (typeMenu.size() > 1)
+				typeMenu.removeItem(typeMenu.getItem(0).getItemId());
+		}
+		gameTypes.clear();
+		currentType = -1;
+		final String[] presets = getPresets();
+		for (int i = 0; i < presets.length/2; i++) {
+			final String encoded = presets[2 * i];
+			final String name = presets[(2 * i) + 1];
+			gameTypes.put(encoded, name);
+			if (currentParams.equals(orientGameType(encoded))) {
+				currentType = i;
+				// TODO if it's only equal modulo orientation; should we put a star by it or something?
+			}
+		}
 	}
 
 	@TargetApi(Build.VERSION_CODES.JELLY_BEAN)
@@ -1128,43 +1156,6 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 		}
 		// emulator at 598 dip looks bad with title+undo; GT-N7100 at 640dip looks good
 		getSupportActionBar().setDisplayShowTitleEnabled(screenWidthDIP > 620 || undoRedoKbd);
-	}
-
-	@UsedByJNI
-	void gameStarted(final String whichBackend, final String title, final boolean hasCustom, final boolean hasStatus, final boolean canSolve)
-	{
-		runOnUiThread(new Runnable() {
-			public void run() {
-				currentBackend = whichBackend;
-				gameView.setDragModeFor(currentBackend);
-				customVisible = hasCustom;
-				solveEnabled = canSolve;
-				setTitle(title);
-				getSupportActionBar().setTitle(title);
-				setStatusBarVisibility(hasStatus);
-				final String currentParams = orientGameType(getCurrentParams());
-				currentType = -1;
-				int i = 0;
-				for (String preset : gameTypes.keySet()) {
-					if (currentParams.equals(orientGameType(preset))) {
-						currentType = i;
-						// TODO if it's only equal modulo orientation; should we put a star by it or something?
-					}
-					i++;
-				}
-			}
-		});
-	}
-
-	@UsedByJNI
-	void addTypeItem(final String encoded, final String label)
-	{
-		runOnUiThread(new Runnable() {
-			public void run() {
-//			Log.d(TAG, "addTypeItem(" + encoded + ", " + label + ")");
-				gameTypes.put(encoded, label);
-			}
-		});
 	}
 
 	private void messageBox(final String title, final String msg, final boolean returnToChooser)
@@ -1484,7 +1475,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 		final boolean hasLightsOut = (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB);
 		if (cachedFullscreen) {
 			if (hasLightsOut) {
-				handler.post(new Runnable() {
+				runOnUiThread(new Runnable() {
 					public void run() {
 						lightsOut(true);
 					}
@@ -1498,11 +1489,13 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 		} else {
 			if (hasLightsOut) {
 				final boolean fAlreadyStarted = alreadyStarted;
-				handler.post(new Runnable(){ public void run() {
-					lightsOut(false);
-					// This shouldn't be necessary but is on Galaxy Tab 10.1
-					if (fAlreadyStarted && startedFullscreen) restartOnResume = true;
-				}});
+				runOnUiThread(new Runnable() {
+					public void run() {
+						lightsOut(false);
+						// This shouldn't be necessary but is on Galaxy Tab 10.1
+						if (fAlreadyStarted && startedFullscreen) restartOnResume = true;
+					}
+				});
 			} else if (alreadyStarted && startedFullscreen) {
 				// This is the only way to change the theme
 				restartOnResume = true;
@@ -1630,6 +1623,10 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 	native String getCurrentParams();
 	native void requestKeys(String backend, String params);
 	native void setCursorVisibility(boolean visible);
+	native float[] getColours();
+	native String[] getPresets();
+	native String getGameTitle();
+	native int getUIVisibility();
 
 	static {
 		System.loadLibrary("puzzles");

@@ -62,13 +62,11 @@ static jobject ARROW_MODE_NONE = NULL,
 
 static jobject gameView = NULL;
 static jmethodID
-	addTypeItem,
 	blitterAlloc,
 	blitterFree,
 	blitterLoad,
 	blitterSave,
 	changedState,
-	clearForNewGame,
 	clipRect,
 	dialogAdd,
 	dialogInit,
@@ -78,7 +76,6 @@ static jmethodID
 	drawPoly,
 	drawText,
 	fillRect,
-	gameStarted,
 	getBackgroundColour,
 	getText,
 	postInvalidate,
@@ -722,40 +719,44 @@ int startPlayingIntGameID(frontend* new_fe, jstring jsGameID, jstring backend)
 	midend_new_game(new_fe->me);
 }
 
-void notifyClearForNewGame(jstring whichBackend)
+jfloatArray JNICALL getColours(JNIEnv *env, jobject _obj)
 {
-	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
 	int n;
 	float* colours;
 	colours = midend_colours(fe->me, &n);
 	jfloatArray jColours = (*env)->NewFloatArray(env, n*3);
-	if (jColours == NULL) return;
+	if (jColours == NULL) return NULL;
 	(*env)->SetFloatArrayRegion(env, jColours, 0, n*3, colours);
-	(*env)->CallVoidMethod(env, obj, clearForNewGame, whichBackend, jColours, midend_can_undo(fe->me), midend_can_redo(fe->me));
+	return jColours;
 }
 
-void populatePresets()
+jobjectArray JNICALL getPresets(JNIEnv *env, jobject _obj)
 {
-	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
-	int n;
-	if ((n = midend_num_presets(fe->me)) > 0) {
-		int i;
-		for (i = 0; i < n; i++) {
-			char *name;
-			game_params *params;
-			char *encoded;
-			midend_fetch_preset(fe->me, i, &name, &params, &encoded);
-			(*env)->CallVoidMethod(env, obj, addTypeItem, (*env)->NewStringUTF(env, encoded), (*env)->NewStringUTF(env, name));
-		}
+	int n = midend_num_presets(fe->me);
+	int i;
+	jclass String = (*env)->FindClass(env, "java/lang/String");
+	jobjectArray ret = (*env)->NewObjectArray(env, n * 2, String, NULL);
+	for (i = 0; i < n; i++) {
+		char *name;
+		game_params *params;
+		char *encoded;
+		midend_fetch_preset(fe->me, i, &name, &params, &encoded);
+		(*env)->SetObjectArrayElement(env, ret, 2 * i, (*env)->NewStringUTF(env, encoded));
+		(*env)->SetObjectArrayElement(env, ret, (2 * i) + 1, (*env)->NewStringUTF(env, name));
 	}
+	return ret;
 }
 
-void notifyGameStarted(jstring whichBackend)
-{
-	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
-	(*env)->CallVoidMethod(env, obj, gameStarted, whichBackend,
-			(*env)->NewStringUTF(env, thegame->name), thegame->can_configure,
-			midend_wants_statusbar(fe->me), thegame->can_solve);
+jstring JNICALL getGameTitle(JNIEnv *env, jobject _obj) {
+	return (*env)->NewStringUTF(env, thegame->name);
+}
+
+jint JNICALL getUIVisibility(JNIEnv *env, jobject _obj) {
+	return (midend_can_undo(fe->me))
+			+ (midend_can_redo(fe->me) << 1)
+			+ (thegame->can_configure << 2)
+			+ (thegame->can_solve << 3)
+			+ (midend_wants_statusbar(fe->me) << 4);
 }
 
 void startPlayingInt(JNIEnv *env, jobject _obj, jobject _gameView, jstring backend, jstring saveOrGameID, int isGameID)
@@ -764,6 +765,7 @@ void startPlayingInt(JNIEnv *env, jobject _obj, jobject _gameView, jstring backe
 
 	frontend *new_fe = snew(frontend);
 	memset(new_fe, 0, sizeof(frontend));
+	new_fe->ox = -1;
 	jstring whichBackend;
 	if (isGameID) {
 		whichBackend = backend;
@@ -787,16 +789,6 @@ void startPlayingInt(JNIEnv *env, jobject _obj, jobject _gameView, jstring backe
 	x = INT_MAX;
 	y = INT_MAX;
 	midend_size(fe->me, &x, &y, FALSE);
-
-	notifyClearForNewGame(whichBackend);
-	if ((*env)->ExceptionCheck(env)) return;
-
-	populatePresets();
-	if ((*env)->ExceptionCheck(env)) return;
-
-	fe->ox = -1;
-
-	notifyGameStarted(whichBackend);
 }
 
 void JNICALL startPlaying(JNIEnv *env, jobject _obj, jobject _gameView, jstring savedGame)
@@ -829,13 +821,11 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
 			(*env)->GetStaticFieldID(env, arrowModeCls, "ARROWS_LEFT_RIGHT_CLICK", "Lname/boyle/chris/sgtpuzzles/SmallKeyboard$ArrowMode;")));
 	ARROW_MODE_DIAGONALS = (*env)->NewGlobalRef(env, (*env)->GetStaticObjectField(env, arrowModeCls,
 			(*env)->GetStaticFieldID(env, arrowModeCls, "ARROWS_DIAGONALS", "Lname/boyle/chris/sgtpuzzles/SmallKeyboard$ArrowMode;")));
-	addTypeItem    = (*env)->GetMethodID(env, cls,  "addTypeItem", "(Ljava/lang/String;Ljava/lang/String;)V");
 	blitterAlloc   = (*env)->GetMethodID(env, vcls, "blitterAlloc", "(II)I");
 	blitterFree    = (*env)->GetMethodID(env, vcls, "blitterFree", "(I)V");
 	blitterLoad    = (*env)->GetMethodID(env, vcls, "blitterLoad", "(III)V");
 	blitterSave    = (*env)->GetMethodID(env, vcls, "blitterSave", "(III)V");
 	changedState   = (*env)->GetMethodID(env, cls,  "changedState", "(ZZ)V");
-	clearForNewGame = (*env)->GetMethodID(env, cls, "clearForNewGame", "(Ljava/lang/String;[FZZ)V");
 	clipRect       = (*env)->GetMethodID(env, vcls, "clipRect", "(IIII)V");
 	dialogAdd      = (*env)->GetMethodID(env, cls,  "dialogAdd", "(IILjava/lang/String;Ljava/lang/String;I)V");
 	dialogInit     = (*env)->GetMethodID(env, cls,  "dialogInit", "(ILjava/lang/String;)V");
@@ -845,7 +835,6 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
 	drawPoly       = (*env)->GetMethodID(env, vcls,  "drawPoly", "([IIIII)V");
 	drawText       = (*env)->GetMethodID(env, vcls, "drawText", "(IIIIILjava/lang/String;)V");
 	fillRect       = (*env)->GetMethodID(env, vcls, "fillRect", "(IIIII)V");
-	gameStarted    = (*env)->GetMethodID(env, cls,  "gameStarted", "(Ljava/lang/String;Ljava/lang/String;ZZZ)V");
 	getBackgroundColour = (*env)->GetMethodID(env, vcls, "getDefaultBackgroundColour", "()I");
 	getText        = (*env)->GetMethodID(env, cls,  "gettext", "(Ljava/lang/String;)Ljava/lang/String;");
 	postInvalidate = (*env)->GetMethodID(env, vcls, "postInvalidate", "()V");
@@ -880,6 +869,10 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
 		{ "getCurrentParams", "()Ljava/lang/String;", getCurrentParams },
 		{ "requestKeys", "(Ljava/lang/String;Ljava/lang/String;)V", requestKeys },
 		{ "setCursorVisibility", "(Z)V", setCursorVisibility },
+		{ "getColours", "()[F", getColours },
+		{ "getPresets", "()[Ljava/lang/String;", getPresets },
+		{ "getGameTitle", "()Ljava/lang/String;", getGameTitle },
+		{ "getUIVisibility", "()I", getUIVisibility },
 	};
 	(*env)->RegisterNatives(env, cls, methods, sizeof(methods)/sizeof(JNINativeMethod));
 

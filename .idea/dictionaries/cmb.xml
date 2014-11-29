@@ -45,6 +45,7 @@
       <w>github</w>
       <w>greenend</w>
       <w>hitori</w>
+      <w>htmlhelp</w>
       <w>incalza's</w>
       <w>inkscape</w>
       <w>inlined</w>
@@ -113,6 +114,7 @@
       <w>statusbar</w>
       <w>stdin</w>
       <w>stdout</w>
+      <w>strchr</w>
       <w>strcmp</w>
       <w>strdup</w>
       <w>stringsfiles</w>
@@ -125,6 +127,7 @@
       <w>tentai</w>
       <w>thegame</w>
       <w>times's</w>
+      <w>timeval</w>
       <w>udouble</w>
       <w>unclip</w>
       <w>undef</w>
