@@ -1336,8 +1336,7 @@ int message_box(GtkWidget *parent, char *title, char *msg, int centre,
 	titles += strlen(titles)+1;
 	i++;
     }
-    gtk_object_set_data(GTK_OBJECT(window), "user-data",
-			GINT_TO_POINTER(&i));
+    gtk_object_set_data(GTK_OBJECT(window), "user-data", &i);
     gtk_signal_connect(GTK_OBJECT(window), "destroy",
                        GTK_SIGNAL_FUNC(window_destroy), NULL);
     gtk_window_set_modal(GTK_WINDOW(window), TRUE);
