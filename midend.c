@@ -1179,7 +1179,45 @@ static char *midend_game_id_int(midend *me, char *id, int defmode)
     newcurparams = newparams = oldparams1 = oldparams2 = NULL;
 
     if (par) {
-        newcurparams = me->ourgame->dup_params(me->params);
+        /*
+         * The params string may underspecify the game parameters, so
+         * we must first initialise newcurparams with a full set of
+         * params from somewhere else before we decode_params the
+         * input string over the top.
+         *
+         * But which set? It depends on what other data we have.
+         *
+         * If we've been given a _descriptive_ game id, then that may
+         * well underspecify by design, e.g. Solo game descriptions
+         * often start just '3x3:' without specifying one of Solo's
+         * difficulty settings, because it isn't necessary once a game
+         * has been generated (and you might not even know it, if
+         * you're manually transcribing a game description). In that
+         * situation, I've always felt that the best thing to set the
+         * difficulty to (for use if the user hits 'New Game' after
+         * pasting in that game id) is whatever it was previously set
+         * to. That is, we use whatever is already in me->params as
+         * the basis for our decoding of this input string.
+         *
+         * A random-seed based game id, however, should use the real,
+         * built-in default params, and not even check the
+         * <game>_DEFAULT environment setting, because when people
+         * paste each other random seeds - whether it's two users
+         * arranging to generate the same game at the same time to
+         * race solving them, or a user sending a bug report upstream
+         * - the whole point is for the random game id to always be
+         * interpreted the same way, even if it does underspecify.
+         *
+         * A parameter string typed in on its own, with no seed _or_
+         * description, gets treated the same way as a random seed,
+         * because again I think the most likely reason for doing that
+         * is to have a portable representation of a set of params.
+         */
+        if (desc) {
+            newcurparams = me->ourgame->dup_params(me->params);
+        } else {
+            newcurparams = me->ourgame->default_params();
+        }
         me->ourgame->decode_params(newcurparams, par);
         error = me->ourgame->validate_params(newcurparams, desc == NULL);
         if (error) {
