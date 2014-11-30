@@ -48,6 +48,7 @@
  */
 
 #include <assert.h>
+#include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
 
@@ -793,8 +794,6 @@ int main(int argc, char **argv)
         js_remove_type_dropdown();
         have_presets_dropdown = FALSE;
     } else {
-        int preset;
-
         presets = snewn(npresets, game_params *);
         for (i = 0; i < npresets; i++) {
             char *name;
