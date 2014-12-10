@@ -63,11 +63,11 @@ android {
 
     buildTypes {
         debug {
-            jniDebugBuild true
+            jniDebuggable true
         }
         release {
-            runProguard true  // about to be renamed to minifyEnabled
-            jniDebugBuild false
+            minifyEnabled true  // about to be renamed to minifyEnabled
+            jniDebuggable false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.txt'
         }
     }
