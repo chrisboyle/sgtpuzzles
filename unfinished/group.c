@@ -984,10 +984,23 @@ static char *game_text_format(const game_state *state)
 
 struct game_ui {
     /*
-     * These are the coordinates of the currently highlighted
-     * square on the grid, if hshow = 1.
+     * These are the coordinates of the primary highlighted square on
+     * the grid, if hshow = 1.
      */
     int hx, hy;
+    /*
+     * These are the coordinates hx,hy _before_ they go through
+     * state->sequence.
+     */
+    int ohx, ohy;
+    /*
+     * These variables give the length and displacement of a diagonal
+     * sequence of highlighted squares starting at ohx,ohy (still if
+     * hshow = 1). To find the squares' real coordinates, for 0<=i<dn,
+     * compute ohx+i*odx and ohy+i*ody and then map through
+     * state->sequence.
+     */
+    int odx, ody, odn;
     /*
      * This indicates whether the current highlight is a
      * pencil-mark one or a real one.
@@ -1055,6 +1068,40 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
     if (ui->hshow && ui->hpencil && !ui->hcursor &&
         newstate->grid[ui->hy * w + ui->hx] != 0) {
         ui->hshow = 0;
+    }
+    if (ui->hshow && ui->odn > 1) {
+        /*
+         * Reordering of rows or columns within the range of a
+         * multifill selection cancels the multifill and deselects
+         * everything.
+         */
+        int i;
+        for (i = 0; i < ui->odn; i++) {
+            if (oldstate->sequence[ui->ohx + i*ui->odx] !=
+                newstate->sequence[ui->ohx + i*ui->odx]) {
+                ui->hshow = 0;
+                break;
+            }
+            if (oldstate->sequence[ui->ohy + i*ui->ody] !=
+                newstate->sequence[ui->ohy + i*ui->ody]) {
+                ui->hshow = 0;
+                break;
+            }
+        }
+    } else if (ui->hshow &&
+               (newstate->sequence[ui->ohx] != ui->hx ||
+                newstate->sequence[ui->ohy] != ui->hy)) {
+        /*
+         * Otherwise, reordering of the row or column containing the
+         * selection causes the selection to move with it.
+         */
+        int i;
+        for (i = 0; i < w; i++) {
+            if (newstate->sequence[i] == ui->hx)
+                ui->ohx = i;
+            if (newstate->sequence[i] == ui->hy)
+                ui->ohy = i;
+        }
     }
 }
 
@@ -1256,6 +1303,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         }
     } else if (IS_MOUSE_DOWN(button)) {
         if (tx >= 0 && tx < w && ty >= 0 && ty < w) {
+            int otx = tx, oty = ty;
             tx = state->sequence[tx];
             ty = state->sequence[ty];
             if (button == LEFT_BUTTON) {
@@ -1265,6 +1313,10 @@ static char *interpret_move(const game_state *state, game_ui *ui,
                 } else {
                     ui->hx = tx;
                     ui->hy = ty;
+                    ui->ohx = otx;
+                    ui->ohy = oty;
+                    ui->odx = ui->ody = 0;
+                    ui->odn = 1;
                     ui->hshow = !state->immutable[ty*w+tx];
                     ui->hpencil = 0;
                 }
@@ -1283,6 +1335,10 @@ static char *interpret_move(const game_state *state, game_ui *ui,
                         ui->hpencil = 1;
                         ui->hx = tx;
                         ui->hy = ty;
+                        ui->ohx = otx;
+                        ui->ohy = oty;
+                        ui->odx = ui->ody = 0;
+                        ui->odn = 1;
                         ui->hshow = 1;
                     }
                 } else {
@@ -1304,6 +1360,18 @@ static char *interpret_move(const game_state *state, game_ui *ui,
             ui->edgepos = FROMCOORD(y + TILESIZE/2);
             return "";
         }
+    } else if (IS_MOUSE_DRAG(button)) {
+        if (!ui->hpencil &&
+            tx >= 0 && tx < w && ty >= 0 && ty < w &&
+            abs(tx - ui->ohx) == abs(ty - ui->ohy)) {
+            ui->odn = abs(tx - ui->ohx) + 1;
+            ui->odx = (tx < ui->ohx ? -1 : +1);
+            ui->ody = (ty < ui->ohy ? -1 : +1);
+        } else {
+            ui->odx = ui->ody = 0;
+            ui->odn = 1;
+        }
+        return "";
     }
 
     if (IS_CURSOR_MOVE(button)) {
@@ -1326,28 +1394,52 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 	((ISCHAR(button) && FROMCHAR(button, state->par.id) <= w) ||
 	 button == CURSOR_SELECT2 || button == '\b')) {
 	int n = FROMCHAR(button, state->par.id);
+	int i, buflen;
+        char *movebuf;
+
 	if (button == CURSOR_SELECT2 || button == '\b')
 	    n = 0;
 
-        /*
-         * Can't make pencil marks in a filled square. This can only
-         * become highlighted if we're using cursor keys.
-         */
-        if (ui->hpencil && state->grid[ui->hy*w+ui->hx])
-            return NULL;
+        for (i = 0; i < ui->odn; i++) {
+            int x = state->sequence[ui->ohx + i*ui->odx];
+            int y = state->sequence[ui->ohy + i*ui->ody];
+            int index = y*w+x;
 
-	/*
-	 * Can't do anything to an immutable square.
-	 */
-        if (state->immutable[ui->hy*w+ui->hx])
-            return NULL;
+            /*
+             * Can't make pencil marks in a filled square. This can only
+             * become highlighted if we're using cursor keys.
+             */
+            if (ui->hpencil && state->grid[index])
+                return NULL;
 
-	sprintf(buf, "%c%d,%d,%d",
-		(char)(ui->hpencil && n > 0 ? 'P' : 'R'), ui->hx, ui->hy, n);
+            /*
+             * Can't do anything to an immutable square. Exception:
+             * trying to set it to what it already was is OK (so that
+             * multifilling can set a whole diagonal to a without
+             * having to detour round the one immutable square in the
+             * middle that already said a).
+             */
+            if (!ui->hpencil && state->grid[index] == n)
+                /* OK even if it is immutable */;
+            else if (state->immutable[index])
+                return NULL;
+        }
+
+        movebuf = snewn(80 * ui->odn, char);
+        buflen = sprintf(movebuf, "%c%d,%d,%d",
+                         (char)(ui->hpencil && n > 0 ? 'P' : 'R'),
+                         ui->hx, ui->hy, n);
+        for (i = 1; i < ui->odn; i++) {
+            assert(buflen < i*80);
+            buflen += sprintf(movebuf + buflen, "+%d,%d",
+                              state->sequence[ui->ohx + i*ui->odx],
+                              state->sequence[ui->ohy + i*ui->ody]);
+        }
+        movebuf = sresize(movebuf, buflen+1, char);
 
         if (!ui->hcursor) ui->hshow = 0;
 
-	return dupstr(buf);
+	return movebuf;
     }
 
     if (button == 'M' || button == 'm')
@@ -1360,7 +1452,7 @@ static game_state *execute_move(const game_state *from, const char *move)
 {
     int w = from->par.w, a = w*w;
     game_state *ret;
-    int x, y, i, j, n;
+    int x, y, i, j, n, pos;
 
     if (move[0] == 'S') {
 	ret = dup_game(from);
@@ -1382,21 +1474,40 @@ static game_state *execute_move(const game_state *from, const char *move)
 
 	return ret;
     } else if ((move[0] == 'P' || move[0] == 'R') &&
-	sscanf(move+1, "%d,%d,%d", &x, &y, &n) == 3 &&
-	x >= 0 && x < w && y >= 0 && y < w && n >= 0 && n <= w) {
-	if (from->immutable[y*w+x])
-	    return NULL;
+               sscanf(move+1, "%d,%d,%d%n", &x, &y, &n, &pos) == 3 &&
+               n >= 0 && n <= w) {
+        const char *mp = move + 1 + pos;
+        int pencil = (move[0] == 'P');
+        ret = dup_game(from);
 
-	ret = dup_game(from);
-        if (move[0] == 'P' && n > 0) {
-            ret->pencil[y*w+x] ^= 1 << n;
-        } else {
-            ret->grid[y*w+x] = n;
-            ret->pencil[y*w+x] = 0;
+        while (1) {
+            if (x < 0 || x >= w || y < 0 || y >= w) {
+                free_game(ret);
+                return NULL;
+            }
+            if (from->immutable[y*w+x] && !(!pencil && from->grid[y*w+x] == n))
+                return NULL;
 
-            if (!ret->completed && !check_errors(ret, NULL))
-                ret->completed = TRUE;
+            if (move[0] == 'P' && n > 0) {
+                ret->pencil[y*w+x] ^= 1 << n;
+            } else {
+                ret->grid[y*w+x] = n;
+                ret->pencil[y*w+x] = 0;
+            }
+
+            if (!*mp)
+                break;
+
+            if (*mp != '+')
+                return NULL;
+            if (sscanf(mp, "+%d,%d%n", &x, &y, &pos) < 2)
+                return NULL;
+            mp += pos;
         }
+
+        if (!ret->completed && !check_errors(ret, NULL))
+            ret->completed = TRUE;
+
 	return ret;
     } else if (move[0] == 'M') {
 	/*
@@ -1791,10 +1902,32 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
 		tile |= DF_IMMUTABLE;
 
             if ((ui->drag == 5 && ui->dragnum == sy) ||
-                (ui->drag == 6 && ui->dragnum == sx))
+                (ui->drag == 6 && ui->dragnum == sx)) {
                 tile |= DF_HIGHLIGHT;
-	    else if (ui->hshow && ui->hx == sx && ui->hy == sy)
-		tile |= (ui->hpencil ? DF_HIGHLIGHT_PENCIL : DF_HIGHLIGHT);
+            } else if (ui->hshow) {
+                int i = abs(x - ui->ohx);
+                int highlight = 0;
+                if (ui->odn > 1) {
+                    /*
+                     * When a diagonal multifill selection is shown,
+                     * we show it in its original grid position
+                     * regardless of in-progress row/col drags. Moving
+                     * every square about would be horrible.
+                     */
+                    if (i >= 0 && i < ui->odn &&
+                        x == ui->ohx + i*ui->odx &&
+                        y == ui->ohy + i*ui->ody)
+                        highlight = 1;
+                } else {
+                    /*
+                     * For a single square, we move its highlight
+                     * around with the drag.
+                     */
+                    highlight = (ui->hx == sx && ui->hy == sy);
+                }
+                if (highlight)
+                    tile |= (ui->hpencil ? DF_HIGHLIGHT_PENCIL : DF_HIGHLIGHT);
+            }
 
             if (flashtime > 0 &&
                 (flashtime <= FLASH_TIME/3 ||
