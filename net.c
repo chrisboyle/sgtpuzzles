@@ -41,6 +41,11 @@
 #define D 0x08
 #define LOCKED 0x10
 #define ACTIVE 0x20
+#define RLOOP (R << 6)
+#define ULOOP (U << 6)
+#define LLOOP (L << 6)
+#define DLOOP (D << 6)
+#define LOOP(dir) ((dir) << 6)
 
 /* Rotations: Anticlockwise, Clockwise, Flip, general rotate */
 #define A(x) ( (((x) & 0x07) << 1) | (((x) & 0x08) >> 3) )
@@ -85,6 +90,7 @@ enum {
     COL_ENDPOINT,
     COL_POWERED,
     COL_BARRIER,
+    COL_LOOP,
     NCOLOURS
 };
 
@@ -1126,6 +1132,10 @@ static void perturb(int w, int h, unsigned char *tiles, int wrapping,
     sfree(perimeter);
 }
 
+static int *compute_loops_inner(int w, int h, int wrapping,
+                                const unsigned char *tiles,
+                                const unsigned char *barriers);
+
 static char *new_game_desc(const game_params *params, random_state *rs,
 			   char **aux, int interactive)
 {
@@ -1424,16 +1434,56 @@ static char *new_game_desc(const game_params *params, random_state *rs,
      * connectedness. However, that would take more effort, and
      * it's easier to simply make sure every grid is _obviously_
      * not solved.)
+     *
+     * We also require that our shuffle produces no loops in the
+     * initial grid state, because it's a bit rude to light up a 'HEY,
+     * YOU DID SOMETHING WRONG!' indicator when the user hasn't even
+     * had a chance to do _anything_ yet. This also is possible just
+     * by retrying the whole shuffle on failure, because it's clear
+     * that at least one non-solved shuffle with no loops must exist.
+     * (Proof: take the _solved_ state of the puzzle, and rotate one
+     * endpoint.)
      */
     while (1) {
-        int mismatches;
+        int mismatches, prev_loopsquares, this_loopsquares, i;
+        int *loops;
 
+      shuffle:
         for (y = 0; y < h; y++) {
             for (x = 0; x < w; x++) {
                 int orig = index(params, tiles, x, y);
                 int rot = random_upto(rs, 4);
                 index(params, tiles, x, y) = ROT(orig, rot);
             }
+        }
+
+        /*
+         * Check for loops, and try to fix them by reshuffling just
+         * the squares involved.
+         */
+        prev_loopsquares = w*h+1;
+        while (1) {
+            loops = compute_loops_inner(w, h, params->wrapping, tiles, NULL);
+            this_loopsquares = 0;
+            for (i = 0; i < w*h; i++) {
+                if (loops[i]) {
+                    int orig = tiles[i];
+                    int rot = random_upto(rs, 4);
+                    tiles[i] = ROT(orig, rot);
+                    this_loopsquares++;
+                }
+            }
+            sfree(loops);
+            if (this_loopsquares > prev_loopsquares) {
+                /*
+                 * We're increasing rather than reducing the number of
+                 * loops. Give up and go back to the full shuffle.
+                 */
+                goto shuffle;
+            }
+            if (this_loopsquares == 0)
+                break;
+            prev_loopsquares = this_loopsquares;
         }
 
         mismatches = 0;
@@ -1452,8 +1502,11 @@ static char *new_game_desc(const game_params *params, random_state *rs,
                 mismatches++;
         }
 
-        if (mismatches > 0)
-            break;
+        if (mismatches == 0)
+            continue;
+
+        /* OK. */
+        break;
     }
 
     /*
@@ -1856,6 +1909,94 @@ static unsigned char *compute_active(const game_state *state, int cx, int cy)
     return active;
 }
 
+static int *compute_loops_inner(int w, int h, int wrapping,
+                                const unsigned char *tiles,
+                                const unsigned char *barriers)
+{
+    int W = w + 1, H = h + 1;
+    int *loops, *dsf;
+    int x, y;
+
+    /*
+     * Construct a dsf covering _vertices_ of the grid, so we have one
+     * more in each direction than we do squares.
+     */
+    dsf = snew_dsf(W*H);
+
+    /*
+     * For each grid square, unify adjacent vertices of that square
+     * unless there's a connection separating them. (We only need to
+     * check the connection in _this_ square, without bothering to
+     * look for one on the other side of the grid line, because the
+     * loop will do that anyway when it gets to the other square.)
+     *
+     * Barriers break loops, so we disallow any connection which
+     * terminates in a barrier.
+     */
+    for (y = 0; y < h; y++) {
+        for (x = 0; x < w; x++) {
+            int t = tiles[y*w+x];
+            if (barriers)
+                t &= ~barriers[y*w+x];
+            if (!(t & L))
+                dsf_merge(dsf, y*W+x, (y+1)*W+x);
+            if (!(t & R))
+                dsf_merge(dsf, y*W+(x+1), (y+1)*W+(x+1));
+            if (!(t & U))
+                dsf_merge(dsf, y*W+x, y*W+(x+1));
+            if (!(t & D))
+                dsf_merge(dsf, (y+1)*W+x, (y+1)*W+(x+1));
+        }
+    }
+
+    /*
+     * If the game is in wrapping mode, unify each edge vertex with
+     * its opposite.
+     */
+    if (wrapping) {
+        for (y = 0; y < H; y++)
+            dsf_merge(dsf, y*W+0, y*W+w);
+        for (x = 0; x < W; x++)
+            dsf_merge(dsf, 0*W+x, h*W+x);
+    }
+
+    loops = snewn(w*h, int);
+
+    /*
+     * Now we've done the loop detection and can read off the output
+     * flags trivially: any piece of connection whose two sides are
+     * not in the same dsf class is part of a loop.
+     */
+    for (y = 0; y < h; y++) {
+        for (x = 0; x < w; x++) {
+            int t = tiles[y*w+x];
+            int flags = 0;
+            if ((t & L) && (dsf_canonify(dsf, y*W+x) !=
+                            dsf_canonify(dsf, (y+1)*W+x)))
+                flags |= LLOOP;
+            if ((t & R) && (dsf_canonify(dsf, y*W+(x+1)) !=
+                            dsf_canonify(dsf, (y+1)*W+(x+1))))
+                flags |= RLOOP;
+            if ((t & U) && (dsf_canonify(dsf, y*W+x) !=
+                            dsf_canonify(dsf, y*W+(x+1))))
+                flags |= ULOOP;
+            if ((t & D) && (dsf_canonify(dsf, (y+1)*W+x) !=
+                            dsf_canonify(dsf, (y+1)*W+(x+1))))
+                flags |= DLOOP;
+            loops[y*w+x] = flags;
+        }
+    }
+
+    sfree(dsf);
+    return loops;
+}
+
+static int *compute_loops(const game_state *state)
+{
+    return compute_loops_inner(state->width, state->height, state->wrapping,
+                               state->tiles, state->barriers);
+}
+
 struct game_ui {
     int org_x, org_y; /* origin */
     int cx, cy;       /* source tile (game coordinates) */
@@ -1916,7 +2057,7 @@ struct game_drawstate {
     int width, height;
     int org_x, org_y;
     int tilesize;
-    unsigned char *visible;
+    int *visible;
 };
 
 /* ----------------------------------------------------------------------
@@ -2290,14 +2431,16 @@ static game_state *execute_move(const game_state *from, const char *move)
 static game_drawstate *game_new_drawstate(drawing *dr, const game_state *state)
 {
     game_drawstate *ds = snew(game_drawstate);
+    int i;
 
     ds->started = FALSE;
     ds->width = state->width;
     ds->height = state->height;
     ds->org_x = ds->org_y = -1;
-    ds->visible = snewn(state->width * state->height, unsigned char);
+    ds->visible = snewn(state->width * state->height, int);
     ds->tilesize = 0;                  /* undecided yet */
-    memset(ds->visible, 0xFF, state->width * state->height);
+    for (i = 0; i < state->width * state->height; i++)
+        ds->visible[i] = -1;
 
     return ds;
 }
@@ -2354,6 +2497,13 @@ static float *game_colours(frontend *fe, int *ncolours)
     ret[COL_BARRIER * 3 + 0] = 1.0F;
     ret[COL_BARRIER * 3 + 1] = 0.0F;
     ret[COL_BARRIER * 3 + 2] = 0.0F;
+
+    /*
+     * Highlighted loops are red as well.
+     */
+    ret[COL_LOOP * 3 + 0] = 1.0F;
+    ret[COL_LOOP * 3 + 1] = 0.0F;
+    ret[COL_LOOP * 3 + 2] = 0.0F;
 
     /*
      * Unpowered endpoints are blue.
@@ -2527,9 +2677,14 @@ static void draw_tile(drawing *dr, const game_state *state, game_drawstate *ds,
             ey = (TILE_SIZE - TILE_BORDER - 1.0F) / 2.0F * Y(dir);
             MATMUL(tx, ty, matrix, ex, ey);
             draw_line(dr, bx+(int)cx, by+(int)cy,
-		      bx+(int)(cx+tx), by+(int)(cy+ty), col);
+		      bx+(int)(cx+tx), by+(int)(cy+ty),
+                      (tile & LOOP(dir)) ? COL_LOOP : col);
         }
     }
+    /* If we've drawn any loop-highlighted arms, make sure the centre
+     * point is loop-coloured rather than a later arm overwriting it. */
+    if (tile & (RLOOP | ULOOP | LLOOP | DLOOP))
+        draw_rect(dr, bx+(int)cx, by+(int)cy, 1, 1, COL_LOOP);
 
     /*
      * Draw the box in the middle. We do this in blue if the tile
@@ -2598,7 +2753,9 @@ static void draw_tile(drawing *dr, const game_state *state, game_drawstate *ds,
              */
             draw_rect_coords(dr, px-vx, py-vy, px+lx+vx, py+ly+vy, COL_WIRE);
             draw_rect_coords(dr, px, py, px+lx, py+ly,
-                             (tile & ACTIVE) ? COL_POWERED : COL_WIRE);
+                             ((tile & LOOP(dir)) ? COL_LOOP :
+                              (tile & ACTIVE) ? COL_POWERED :
+                              COL_WIRE));
         } else {
             /*
              * The other tile extends into our border, but isn't
@@ -2672,6 +2829,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
 {
     int x, y, tx, ty, frame, last_rotate_dir, moved_origin = FALSE;
     unsigned char *active;
+    int *loops;
     float angle = 0.0;
 
     /*
@@ -2765,11 +2923,13 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
      * Draw any tile which differs from the way it was last drawn.
      */
     active = compute_active(state, ui->cx, ui->cy);
+    loops = compute_loops(state);
 
     for (x = 0; x < ds->width; x++)
         for (y = 0; y < ds->height; y++) {
-            unsigned char c = tile(state, GX(x), GY(y)) |
-                              index(state, active, GX(x), GY(y));
+            int c = tile(state, GX(x), GY(y)) |
+                index(state, active, GX(x), GY(y)) |
+                index(state, loops, GX(x), GY(y));
             int is_src = GX(x) == ui->cx && GY(y) == ui->cy;
             int is_anim = GX(x) == tx && GY(y) == ty;
             int is_cursor = ui->cur_visible &&
@@ -2796,12 +2956,12 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
 
             if (moved_origin ||
                 index(state, ds->visible, x, y) != c ||
-                index(state, ds->visible, x, y) == 0xFF ||
+                index(state, ds->visible, x, y) == -1 ||
                 is_src || is_anim || is_cursor) {
                 draw_tile(dr, state, ds, x, y, c,
                           is_src, (is_anim ? angle : 0.0F), is_cursor);
                 if (is_src || is_anim || is_cursor)
-                    index(state, ds->visible, x, y) = 0xFF;
+                    index(state, ds->visible, x, y) = -1;
                 else
                     index(state, ds->visible, x, y) = c;
             }
@@ -2830,6 +2990,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
     }
 
     sfree(active);
+    sfree(loops);
 }
 
 static float game_anim_length(const game_state *oldstate,
