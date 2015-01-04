@@ -157,6 +157,7 @@ struct frontend {
     int preset_threaded;
     GtkWidget *preset_custom;
     GtkWidget *copy_menu_item;
+    int menubar_is_local;
 };
 
 struct blitter {
@@ -1690,7 +1691,7 @@ static gboolean not_size_allocated_yet(GtkWidget *w)
 static void try_shrink_drawing_area(frontend *fe)
 {
     if (fe->drawing_area_shrink_pending &&
-        !not_size_allocated_yet(fe->menubar) &&
+        (!fe->menubar_is_local || !not_size_allocated_yet(fe->menubar)) &&
         !not_size_allocated_yet(fe->statusbar)) {
         /*
          * In order to permit the user to resize the window smaller as
@@ -2171,6 +2172,33 @@ static frontend *new_window(char *arg, int argtype, char **error)
 
     } else {
 	midend_new_game(fe->me);
+    }
+
+    {
+        /*
+         * try_shrink_drawing_area() will do some fiddling with the
+         * window size request (see comment in that function) after
+         * all the bits and pieces such as the menu bar and status bar
+         * have appeared in the puzzle window.
+         *
+         * However, on Unity systems, the menu bar _doesn't_ appear in
+         * the puzzle window, because the Unity shell hijacks it into
+         * the menu bar at the very top of the screen. We therefore
+         * try to detect that situation here, so that we don't sit
+         * here forever waiting for a menu bar.
+         */
+        const char prop[] = "gtk-shell-shows-menubar";
+        GtkSettings *settings = gtk_settings_get_default();
+        if (!g_object_class_find_property(G_OBJECT_GET_CLASS(settings),
+                                          prop)) {
+            fe->menubar_is_local = TRUE;
+        } else {
+            int unity_mode;
+            g_object_get(gtk_settings_get_default(),
+                         prop, &unity_mode,
+                         (const gchar *)NULL);
+            fe->menubar_is_local = !unity_mode;
+        }
     }
 
     fe->window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
