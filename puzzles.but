@@ -3118,6 +3118,71 @@ both the width and height to be even numbers.)
 \dd If enabled, no two rows are permitted to have exactly the same
 pattern, and likewise columns. (A row and a column can match, though.)
 
+\C{flood} \i{Flood}
+
+\cfg{winhelp-topic}{games.flood}
+
+You are given a grid of squares, coloured at random in multiple
+colours. In each move, you can flood-fill the top left square in a
+colour of your choice (i.e. every square reachable from the starting
+square by an orthogonally connected path of squares all the same
+colour will be filled in the new colour). As you do this, more and
+more of the grid becomes connected to the starting square.
+
+Your aim is to make the whole grid the same colour, in as few moves as
+possible. The game will set a limit on the number of moves, based on
+running its own internal solver. You win if you can make the whole
+grid the same colour in that many moves or fewer.
+
+I saw this game (with a fixed grid size, fixed number of colours, and
+fixed move limit) at \W{http://floodit.appspot.com}\cw{floodit.appspot.com}.
+
+\H{flood-controls} \I{controls, for Flood}Flood controls
+
+To play Flood, click the mouse in a square. The top left corner and
+everything connected to it will be flood-filled with the colour of the
+square you clicked. Clicking a square the same colour as the top left
+corner has no effect, and therefore does not count as a move.
+
+You can also use the cursor keys to move a cursor (outline black
+square) around the grid. Pressing the return key will fill the top
+left corner in the colour of the square under the cursor.
+
+(All the actions described in \k{common-actions} are also available.)
+
+\H{flood-parameters} \I{parameters, for Flood}Flood parameters
+
+These parameters are available from the \q{Custom...} option on the
+\q{Type} menu.
+
+\dt \e{Width}, \e{Height}
+
+\dd Size of the grid, in squares.
+
+\dt \e{Colours}
+
+\dd Number of colours used to fill the grid. Must be at least 3 (with
+two colours there would only be one legal move at any stage, hence no
+choice to make at all), and at most 10.
+
+\dt \e{Extra moves permitted}
+
+\dd Controls the difficulty of the puzzle, by increasing the move
+limit. In each new grid, Flood will run an internal solver to generate
+its own solution, and then the value in this field will be added to
+the length of Flood's solution to generate the game's move limit. So a
+value of 0 requires you to be just as efficient as Flood's automated
+solver, and a larger value makes it easier.
+
+\lcont{
+
+(Note that Flood's internal solver will not necessarily find the
+shortest possible solution, though I believe it's pretty close. For a
+real challenge, set this value to 0 and then try to solve a grid in
+\e{strictly fewer} moves than the limit you're given!)
+
+}
+
 \A{licence} \I{MIT licence}\ii{Licence}
 
 This software is \i{copyright} 2004-2014 Simon Tatham.
