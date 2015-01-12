@@ -39,7 +39,7 @@ Check that REQUIRE_RBUTTON and/or REQUIRE_NUMPAD are set as
 appropriate.
 
 Add the new Unix binary name, and the names of any auxiliary solver
-binaries, to the svn:ignore property.
+binaries, to .gitignore.
 
 Write an instructions fragment for the webified puzzle pages, as
 html/<puzzlename>.html .
@@ -52,7 +52,7 @@ Make a screenshot:
  - set up a CROP property in icons/Makefile if the icon wants to be
    a sub-rectangle of the whole screenshot
 
-Don't forget to `svn add' the new source file, the new .R file and the
+Don't forget to `git add' the new source file, the new .R file and the
 save file in `icons', the new .html file, and any other new files that
 might have been involved.
 
