@@ -80,30 +80,36 @@ static game_params *default_params(void)
     return ret;
 }
 
-static const struct game_params flood_presets[] = {
-    {12, 12, 6, 5},
-    {12, 12, 6, 2},
-    {12, 12, 6, 0},
-    {16, 16, 6, 5},
-    {16, 16, 6, 2},
-    {16, 16, 6, 0},
+static const struct {
+    struct game_params preset;
+    const char *name;
+} flood_presets[] = {
+    /* Default 12x12 size, three difficulty levels. */
+    {{12, 12, 6, 5}, "12x12 Easy"},
+    {{12, 12, 6, 2}, "12x12 Medium"},
+    {{12, 12, 6, 0}, "12x12 Hard"},
+    /* Larger puzzles, leaving off Easy in the expectation that people
+     * wanting a bigger grid will have played it enough to find Easy
+     * easy. */
+    {{16, 16, 6, 2}, "16x16 Medium"},
+    {{16, 16, 6, 0}, "16x16 Hard"},
+    /* A couple of different colour counts. It seems generally not too
+     * hard with fewer colours (probably because fewer choices), so no
+     * extra moves for these modes. */
+    {{12, 12, 3, 0}, "12x12, 3 colours"},
+    {{12, 12, 4, 0}, "12x12, 4 colours"},
 };
 
 static int game_fetch_preset(int i, char **name, game_params **params)
 {
     game_params *ret;
-    char str[80];
 
     if (i < 0 || i >= lenof(flood_presets))
         return FALSE;
 
     ret = snew(game_params);
-    *ret = flood_presets[i];
-
-    sprintf(str, "%dx%d, %d colours, %d extra moves",
-            ret->w, ret->h, ret->colours, ret->leniency);
-
-    *name = dupstr(str);
+    *ret = flood_presets[i].preset;
+    *name = dupstr(flood_presets[i].name);
     *params = ret;
     return TRUE;
 }
