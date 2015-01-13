@@ -17,5 +17,5 @@ GAMES += unruly
 !end
 
 !begin >gamedesc.txt
-unruly:unruly.exe:Unruly:Black and white grid puzzle
+unruly:unruly.exe:Unruly:Black and white grid puzzle:Fill in the black and white grid to avoid runs of three.
 !end

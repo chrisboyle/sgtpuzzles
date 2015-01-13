@@ -18,5 +18,5 @@ GAMES += pattern
 !end
 
 !begin >gamedesc.txt
-pattern:pattern.exe:Pattern:Pattern puzzle
+pattern:pattern.exe:Pattern:Pattern puzzle:Fill in the pattern in the grid, given only the lengths of runs of black squares.
 !end

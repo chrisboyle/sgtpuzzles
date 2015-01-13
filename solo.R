@@ -20,5 +20,5 @@ GAMES += solo
 !end
 
 !begin >gamedesc.txt
-solo:solo.exe:Solo:Number placement puzzle
+solo:solo.exe:Solo:Number placement puzzle:Fill in the grid so that each row, column and square block contains one of every digit.
 !end

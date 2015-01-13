@@ -15,5 +15,5 @@ GAMES += inertia
 !end
 
 !begin >gamedesc.txt
-inertia:inertia.exe:Inertia:Gem-collecting puzzle
+inertia:inertia.exe:Inertia:Gem-collecting puzzle:Collect all the gems without running into any of the mines.
 !end

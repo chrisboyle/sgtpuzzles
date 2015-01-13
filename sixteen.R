@@ -15,5 +15,5 @@ GAMES += sixteen
 !end
 
 !begin >gamedesc.txt
-sixteen:sixteen.exe:Sixteen:Toroidal sliding block puzzle
+sixteen:sixteen.exe:Sixteen:Toroidal sliding block puzzle:Slide a row at a time to arrange the tiles into order.
 !end

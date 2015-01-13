@@ -17,5 +17,5 @@ GAMES += flip
 !end
 
 !begin >gamedesc.txt
-flip:flip.exe:Flip:Tile inversion puzzle
+flip:flip.exe:Flip:Tile inversion puzzle:Flip groups of squares to light them all up at once.
 !end

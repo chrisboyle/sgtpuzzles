@@ -17,5 +17,5 @@ GAMES += bridges
 !end
 
 !begin >gamedesc.txt
-bridges:bridges.exe:Bridges:Bridge-placing puzzle
+bridges:bridges.exe:Bridges:Bridge-placing puzzle:Connect all the islands with a network of bridges.
 !end

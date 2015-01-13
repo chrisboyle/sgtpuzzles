@@ -23,5 +23,5 @@ GAMES += unequal
 !end
 
 !begin >gamedesc.txt
-unequal:unequal.exe:Unequal:Latin square puzzle
+unequal:unequal.exe:Unequal:Latin square puzzle:Complete the latin square in accordance with the <code>&gt;</code> signs.
 !end

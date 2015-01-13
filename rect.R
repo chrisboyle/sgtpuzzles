@@ -15,5 +15,5 @@ GAMES += rect
 !end
 
 !begin >gamedesc.txt
-rect:rect.exe:Rectangles:Rectangles puzzle
+rect:rect.exe:Rectangles:Rectangles puzzle:Divide the grid into rectangles with areas equal to the numbers.
 !end

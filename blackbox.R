@@ -15,5 +15,5 @@ GAMES += blackbox
 !end
 
 !begin >gamedesc.txt
-blackbox:blackbox.exe:Black Box:Ball-finding puzzle
+blackbox:blackbox.exe:Black Box:Ball-finding puzzle:Find the hidden balls in the box by bouncing laser beams off them.
 !end

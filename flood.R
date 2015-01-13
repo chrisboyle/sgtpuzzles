@@ -15,5 +15,5 @@ GAMES += flood
 !end
 
 !begin >gamedesc.txt
-flood:flood.exe:Flood:Flood-filling puzzle
+flood:flood.exe:Flood:Flood-filling puzzle:Turn the grid the same colour in as few flood fills as possible.
 !end

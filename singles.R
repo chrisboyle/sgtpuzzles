@@ -19,5 +19,5 @@ GAMES += singles
 !end
 
 !begin >gamedesc.txt
-singles:singles.exe:Singles:Number-removing puzzle
+singles:singles.exe:Singles:Number-removing puzzle:Black out the right set of duplicate numbers.
 !end

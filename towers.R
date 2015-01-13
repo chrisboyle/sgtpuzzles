@@ -21,5 +21,5 @@ GAMES += towers
 !end
 
 !begin >gamedesc.txt
-towers:towers.exe:Towers:Tower-placing Latin square puzzle
+towers:towers.exe:Towers:Tower-placing Latin square puzzle:Complete the latin square of towers in accordance with the clues.
 !end

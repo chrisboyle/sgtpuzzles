@@ -17,5 +17,5 @@ GAMES += range
 !end
 
 !begin >gamedesc.txt
-range:range.exe:Range:Visible-distance puzzle
+range:range.exe:Range:Visible-distance puzzle:Place black squares to limit the visible distance from each numbered cell.
 !end

@@ -17,5 +17,5 @@ GAMES += separate
 !end
 
 !begin >gamedesc.txt
-separate:separate.exe:Separate:Rectangle-dividing puzzle
+separate:separate.exe:Separate:Rectangle-dividing puzzle:Partition the grid into regions containing one of each letter.
 !end

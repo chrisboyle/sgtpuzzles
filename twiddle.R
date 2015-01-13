@@ -15,5 +15,5 @@ GAMES += twiddle
 !end
 
 !begin >gamedesc.txt
-twiddle:twiddle.exe:Twiddle:Rotational sliding block puzzle
+twiddle:twiddle.exe:Twiddle:Rotational sliding block puzzle:Rotate the tiles around themselves to arrange them into order.
 !end

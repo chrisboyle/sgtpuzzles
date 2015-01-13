@@ -20,5 +20,5 @@ GAMES += magnets
 !end
 
 !begin >gamedesc.txt
-magnets:magnets.exe:Magnets:Magnet-placing puzzle
+magnets:magnets.exe:Magnets:Magnet-placing puzzle:Place magnets to satisfy the clues and avoid like poles touching.
 !end

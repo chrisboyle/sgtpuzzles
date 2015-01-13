@@ -20,5 +20,5 @@ GAMES += map
 !end
 
 !begin >gamedesc.txt
-map:map.exe:Map:Map-colouring puzzle
+map:map.exe:Map:Map-colouring puzzle:Colour the map so that adjacent regions are never the same colour.
 !end

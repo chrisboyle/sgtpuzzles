@@ -27,5 +27,5 @@ GAMES += loopy
 !end
 
 !begin >gamedesc.txt
-loopy:loopy.exe:Loopy:Loop-drawing puzzle
+loopy:loopy.exe:Loopy:Loop-drawing puzzle:Draw a single closed loop, given clues about number of adjacent edges.
 !end

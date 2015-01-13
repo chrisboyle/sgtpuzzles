@@ -15,5 +15,5 @@ GAMES += sokoban
 !end
 
 !begin >gamedesc.txt
-sokoban:sokoban.exe:Sokoban:Barrel-pushing puzzle
+sokoban:sokoban.exe:Sokoban:Barrel-pushing puzzle:Push all the barrels into the target squares.
 !end

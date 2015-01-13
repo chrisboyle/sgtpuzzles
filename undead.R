@@ -14,5 +14,5 @@ GAMES += undead
 !end
 
 !begin >gamedesc.txt
-undead:undead.exe:Undead:Monster-placing puzzle
+undead:undead.exe:Undead:Monster-placing puzzle:Place ghosts, vampires and zombies so that the right numbers of them can be seen in mirrors.
 !end

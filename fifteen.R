@@ -15,5 +15,5 @@ GAMES += fifteen
 !end
 
 !begin >gamedesc.txt
-fifteen:fifteen.exe:Fifteen:Sliding block puzzle
+fifteen:fifteen.exe:Fifteen:Sliding block puzzle:Slide the tiles around to arrange them into order.
 !end

@@ -19,5 +19,5 @@ GAMES += signpost
 !end
 
 !begin >gamedesc.txt
-signpost:signpost.exe:Signpost:Square-connecting puzzle
+signpost:signpost.exe:Signpost:Square-connecting puzzle:Connect the squares into a path following the arrows.
 !end

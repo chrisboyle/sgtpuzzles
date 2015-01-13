@@ -21,5 +21,5 @@ GAMES += keen
 !end
 
 !begin >gamedesc.txt
-keen:keen.exe:Keen:Arithmetic Latin square puzzle
+keen:keen.exe:Keen:Arithmetic Latin square puzzle:Complete the latin square in accordance with the arithmetic clues.
 !end
