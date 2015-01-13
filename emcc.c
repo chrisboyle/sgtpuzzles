@@ -317,6 +317,8 @@ void key(int keycode, int charcode, const char *key, const char *chr,
         keyevent = keycode + (shift ? 0 : 32);
     } else if (keycode >= 48 && keycode <= 57) {
         keyevent = keycode;
+    } else if (keycode == 32) {        /* space / CURSOR_SELECT2 */
+        keyevent = keycode;
     }
 
     if (keyevent >= 0) {
