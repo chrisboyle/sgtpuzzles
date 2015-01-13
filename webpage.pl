@@ -30,11 +30,11 @@ while (<$desc>) {
         '<image style="margin: 0.5em" alt="" title="%s" width=150 height=150 border=0 src="%s-web.png" />'.
         '</td></tr>'.
         '<tr><td align="center" style="font-size: 70%%"><code>[</code>'.
-        '<a href="java/%s.html">java</a>'.
+        ' <a href="java/%s.html">java</a> '.
         '|'.
-        '<a href="js/%s.html">js</a>'.
+        ' <a href="js/%s.html">js</a> '.
         '|'.
-        '<a href="doc/%s.html#%s">manual</a>'.
+        ' <a href="doc/%s.html#%s">manual</a> '.
         '<code>]</code><br><code>[</code>'.
         '<a href="%s"><code>%s</code></a>'.
         '<code>]</code></td></tr>'.
