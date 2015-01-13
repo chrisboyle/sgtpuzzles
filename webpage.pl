@@ -36,7 +36,7 @@ while (<$desc>) {
         '|'.
         ' <a href="doc/%s.html#%s">manual</a> '.
         '<code>]</code><br><code>[</code>'.
-        '<a href="%s"><code>%s</code></a>'.
+        ' <a href="%s"><code>%s</code></a> '.
         '<code>]</code></td></tr>'.
         '<tr><td align="center">%s</td></tr></table></span>'.
         "\n",
