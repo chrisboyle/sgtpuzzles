@@ -27,6 +27,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdarg.h>
 #include <string.h>
 #include <assert.h>
 #include <ctype.h>
@@ -221,21 +222,54 @@ static char *validate_params(const game_params *params, int full)
     return NULL;
 }
 
+#if 0
+/*
+ * Bodge to permit varying the recursion depth for testing purposes.
+
+To test two Floods against each other:
+
+paste <(./flood.1 --generate 100 12x12c6m0#12345 | cut -f2 -d,) <(./flood.2 --generate 100 12x12c6m0#12345 | cut -f2 -d,) | awk '{print $2-$1}' | sort -n | uniq -c | awk '{print $2,$1}' | tee z
+
+and then run gnuplot and plot "z".
+
+ */
+static int rdepth = 0;
+#define RECURSION_DEPTH (rdepth)
+void check_recursion_depth(void)
+{
+    if (!rdepth) {
+        const char *depthstr = getenv("FLOOD_DEPTH");
+        rdepth = depthstr ? atoi(depthstr) : 1;
+        rdepth = rdepth > 0 ? rdepth : 1;
+    }
+}
+#else
+/*
+ * Last time I empirically checked this, depth 3 was a noticeable
+ * improvement on 2, but 4 only negligibly better than 3.
+ */
+#define RECURSION_DEPTH 3
+#define check_recursion_depth() (void)0
+#endif
+
 struct solver_scratch {
     int *queue[2];
     int *dist;
-    char *grid, *grid2, *sparegrid;
+    char *grid, *grid2;
+    char *rgrids;
 };
 
 static struct solver_scratch *new_scratch(int w, int h)
 {
+    int wh = w*h;
     struct solver_scratch *scratch = snew(struct solver_scratch);
-    scratch->queue[0] = snewn(w*h, int);
-    scratch->queue[1] = snewn(w*h, int);
-    scratch->dist = snewn(w*h, int);
-    scratch->grid = snewn(w*h, char);
-    scratch->grid2 = snewn(w*h, char);
-    scratch->sparegrid = snewn(w*h, char);
+    check_recursion_depth();
+    scratch->queue[0] = snewn(wh, int);
+    scratch->queue[1] = snewn(wh, int);
+    scratch->dist = snewn(wh, int);
+    scratch->grid = snewn(wh, char);
+    scratch->grid2 = snewn(wh, char);
+    scratch->rgrids = snewn(wh * RECURSION_DEPTH, char);
     return scratch;
 }
 
@@ -246,16 +280,24 @@ static void free_scratch(struct solver_scratch *scratch)
     sfree(scratch->dist);
     sfree(scratch->grid);
     sfree(scratch->grid2);
-    sfree(scratch->sparegrid);
+    sfree(scratch->rgrids);
     sfree(scratch);
 }
 
 #if 0
 /* Diagnostic routines you can uncomment if you need them */
-void dump_grid(int w, int h, const char *grid, const char *title)
+void dump_grid(int w, int h, const char *grid, const char *titlefmt, ...)
 {
     int x, y;
-    printf("%s:\n", title ? title : "Grid");
+    if (titlefmt) {
+        va_list ap;
+        va_start(ap, titlefmt);
+        vprintf(titlefmt, ap);
+        va_end(ap);
+        printf(":\n");
+    } else {
+        printf("Grid:\n");
+    }
     for (y = 0; y < h; y++) {
         printf("  ");
         for (x = 0; x < w; x++) {
@@ -265,10 +307,18 @@ void dump_grid(int w, int h, const char *grid, const char *title)
     }
 }
 
-void dump_dist(int w, int h, const int *dists, const char *title)
+void dump_dist(int w, int h, const int *dists, const char *titlefmt, ...)
 {
     int x, y;
-    printf("%s:\n", title ? title : "Distances");
+    if (titlefmt) {
+        va_list ap;
+        va_start(ap, titlefmt);
+        vprintf(titlefmt, ap);
+        va_end(ap);
+        printf(":\n");
+    } else {
+        printf("Distances:\n");
+    }
     for (y = 0; y < h; y++) {
         printf("  ");
         for (x = 0; x < w; x++) {
@@ -281,10 +331,12 @@ void dump_dist(int w, int h, const int *dists, const char *title)
 
 /*
  * Search a grid to find the most distant square(s). Return their
- * distance and the number of them.
+ * distance and the number of them, and also the number of squares in
+ * the current controlled set (i.e. at distance zero).
  */
 static void search(int w, int h, char *grid, int x0, int y0,
-                   struct solver_scratch *scratch, int *rdist, int *rnumber)
+                   struct solver_scratch *scratch,
+                   int *rdist, int *rnumber, int *rcontrol)
 {
     int wh = w*h;
     int i, qcurr, qhead, qtail, qnext, currdist, remaining;
@@ -304,6 +356,8 @@ static void search(int w, int h, char *grid, int x0, int y0,
     while (1) {
         if (qtail == qhead) {
             /* Switch queues. */
+            if (currdist == 0)
+                *rcontrol = qhead;
             currdist++;
             qcurr ^= 1;                    /* switch queues */
             qhead = qnext;
@@ -351,6 +405,8 @@ static void search(int w, int h, char *grid, int x0, int y0,
 
     *rdist = currdist;
     *rnumber = qhead;
+    if (currdist == 0)
+        *rcontrol = qhead;
 }
 
 /*
@@ -389,52 +445,6 @@ static void fill(int w, int h, char *grid, int x0, int y0, char newcolour,
 }
 
 /*
- * Try out every possible move on a grid, and choose whichever one
- * reduced the result of search() by the most.
- */
-static char choosemove(int w, int h, char *grid, int x0, int y0,
-                       int maxmove, struct solver_scratch *scratch)
-{
-    int wh = w*h;
-    char move, bestmove;
-    int dist, number, bestdist, bestnumber;
-
-    bestdist = wh + 1;
-    bestnumber = 0;
-    bestmove = -1;
-
-#if 0
-    dump_grid(w, h, grid, "before choosemove");
-#endif
-    for (move = 0; move < maxmove; move++) {
-        char buf[256];
-        sprintf(buf, "after move %d", move);
-        if (grid[y0*w+x0] == move)
-            continue;
-        memcpy(scratch->sparegrid, grid, wh * sizeof(*grid));
-        fill(w, h, scratch->sparegrid, x0, y0, move, scratch->queue[0]);
-#if 0
-        dump_grid(w, h, scratch->sparegrid, buf);
-#endif
-        search(w, h, scratch->sparegrid, x0, y0, scratch, &dist, &number);
-#if 0
-        dump_dist(w, h, scratch->dist, buf);
-        printf("move %d: %d at %d\n", move, number, dist);
-#endif
-        if (dist < bestdist || (dist == bestdist && number < bestnumber)) {
-            bestdist = dist;
-            bestnumber = number;
-            bestmove = move;
-        }
-    }
-#if 0
-    printf("best was %d\n", bestmove);
-#endif
-
-    return bestmove;
-}
-
-/*
  * Detect a completed grid.
  */
 static int completed(int w, int h, char *grid)
@@ -447,6 +457,92 @@ static int completed(int w, int h, char *grid)
             return FALSE;
 
     return TRUE;
+}
+
+/*
+ * Try out every possible move on a grid, and choose whichever one
+ * reduced the result of search() by the most.
+ */
+static char choosemove_recurse(int w, int h, char *grid, int x0, int y0,
+                               int maxmove, struct solver_scratch *scratch,
+                               int depth, int *rbestdist, int *rbestnumber, int *rbestcontrol)
+{
+    int wh = w*h;
+    char move, bestmove;
+    int dist, number, control, bestdist, bestnumber, bestcontrol;
+    char *tmpgrid;
+
+    assert(0 <= depth && depth < RECURSION_DEPTH);
+    tmpgrid = scratch->rgrids + depth*wh;
+
+    bestdist = wh + 1;
+    bestnumber = 0;
+    bestcontrol = 0;
+    bestmove = -1;
+
+#if 0
+    dump_grid(w, h, grid, "before choosemove_recurse %d", depth);
+#endif
+    for (move = 0; move < maxmove; move++) {
+        if (grid[y0*w+x0] == move)
+            continue;
+        memcpy(tmpgrid, grid, wh * sizeof(*grid));
+        fill(w, h, tmpgrid, x0, y0, move, scratch->queue[0]);
+        if (completed(w, h, tmpgrid)) {
+            /*
+             * A move that wins is immediately the best, so stop
+             * searching. Record what depth of recursion that happened
+             * at, so that higher levels will choose a move that gets
+             * to a winning position sooner.
+             */
+            *rbestdist = -1;
+            *rbestnumber = depth;
+            *rbestcontrol = wh;
+            return move;
+        }
+        if (depth < RECURSION_DEPTH-1) {
+            choosemove_recurse(w, h, tmpgrid, x0, y0, maxmove, scratch,
+                               depth+1, &dist, &number, &control);
+        } else {
+#if 0
+            dump_grid(w, h, tmpgrid, "after move %d at depth %d",
+                      move, depth);
+#endif
+            search(w, h, tmpgrid, x0, y0, scratch, &dist, &number, &control);
+#if 0
+            dump_dist(w, h, scratch->dist, "after move %d at depth %d",
+                      move, depth);
+            printf("move %d at depth %d: %d at %d\n",
+                   depth, move, number, dist);
+#endif
+        }
+        if (dist < bestdist ||
+            (dist == bestdist &&
+             (number < bestnumber ||
+              (number == bestnumber &&
+               (control > bestcontrol))))) {
+            bestdist = dist;
+            bestnumber = number;
+            bestcontrol = control;
+            bestmove = move;
+        }
+    }
+#if 0
+    printf("best at depth %d was %d (%d at %d, %d controlled)\n",
+           depth, bestmove, bestnumber, bestdist, bestcontrol);
+#endif
+
+    *rbestdist = bestdist;
+    *rbestnumber = bestnumber;
+    *rbestcontrol = bestcontrol;
+    return bestmove;
+}
+static char choosemove(int w, int h, char *grid, int x0, int y0,
+                       int maxmove, struct solver_scratch *scratch)
+{
+    int tmp0, tmp1, tmp2;
+    return choosemove_recurse(w, h, grid, x0, y0, maxmove, scratch,
+                              0, &tmp0, &tmp1, &tmp2);
 }
 
 static char *new_game_desc(const game_params *params, random_state *rs,
@@ -470,6 +566,7 @@ static char *new_game_desc(const game_params *params, random_state *rs,
      */
     memcpy(scratch->grid2, scratch->grid, wh * sizeof(*scratch->grid2));
     moves = 0;
+    check_recursion_depth();
     while (!completed(w, h, scratch->grid2)) {
         char move = choosemove(w, h, scratch->grid2, FILLX, FILLY,
                                params->colours, scratch);
@@ -610,6 +707,7 @@ static char *solve_game(const game_state *state, const game_state *currstate,
     nmoves = 0;
     scratch = new_scratch(w, h);
     memcpy(scratch->grid2, currstate->grid, wh * sizeof(*scratch->grid2));
+    check_recursion_depth();
     while (!completed(w, h, scratch->grid2)) {
         char move = choosemove(w, h, scratch->grid2, FILLX, FILLY,
                                currstate->colours, scratch);
