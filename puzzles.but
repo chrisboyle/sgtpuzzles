@@ -3183,6 +3183,62 @@ real challenge, set this value to 0 and then try to solve a grid in
 
 }
 
+\C{tracks} \i{Tracks}
+
+\cfg{winhelp-topic}{games.tracks}
+
+You are given a grid of squares, some of which are filled with train
+tracks. You need to complete the track from A to B so that the rows and
+columns contain the same number of track segments as are indicated in the
+clues to the top and right of the grid.
+
+There are only straight and 90 degree curved rails, and the track may not
+cross itself.
+
+Tracks was contributed to this collection by James Harvey.
+
+\H{tracks-controls} \I{controls, for Tracks}Tracks controls
+
+Left-clicking on an edge between two squares adds a track segment between
+the two squares. Right-clicking on an edge adds a cross on the edge,
+indicating no track is possible there.
+
+Left-clicking in a square adds a colour indicator showing that you know the
+square must contain a track, even if you don't know which edges it crosses
+yet. Right-clicking in a square adds a cross indicating it contains no
+track segment.
+
+Left- or right-dragging between squares allows you to lay a straight line
+of is-track or is-not-track indicators, useful for filling in rows or
+columns to match the clue.
+
+(All the actions described in \k{common-actions} are also available.)
+
+\H{tracks-parameters} \I{parameters, for Tracks}Tracks parameters
+
+These parameters are available from the \q{Custom...} option on the
+\q{Type} menu.
+
+\dt \e{Width}, \e{Height}
+
+\dd Size of the grid, in squares.
+
+\dt \e{Difficulty}
+
+\dd Controls the difficulty of the generated puzzle: at Tricky level,
+you are required to make more deductions regarding disregarding moves
+that would lead to impossible crossings later.
+
+\dt \e{Disallow consecutive 1 clues}
+
+\dd Controls whether the Tracks game generation permits two adjacent
+rows or columns to have a 1 clue, or permits the row or column of the
+track's endpoint to have a 1 clue. By default this is not permitted,
+to avoid long straight boring segments of track and make the games
+more twiddly and interesting. If you want to restore the possibility,
+turn this option off.
+
+
 \A{licence} \I{MIT licence}\ii{Licence}
 
 This software is \i{copyright} 2004-2014 Simon Tatham.
