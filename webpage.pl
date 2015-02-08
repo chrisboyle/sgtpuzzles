@@ -27,7 +27,7 @@ while (<$desc>) {
         '<span class="puzzle"><table>'.
         '<tr><th align="center">%s</th></tr>'.
         '<tr><td align="center">'.
-        '<image style="margin: 0.5em" alt="" title="%s" width=150 height=150 border=0 src="%s-web.png" />'.
+        '<img style="margin: 0.5em" alt="" title="%s" width=150 height=150 border=0 src="%s-web.png" />'.
         '</td></tr>'.
         '<tr><td align="center" style="font-size: 70%%"><code>[</code>'.
         ' <a href="java/%s.html">java</a> '.
