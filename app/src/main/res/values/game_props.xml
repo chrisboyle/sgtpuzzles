@@ -8,6 +8,7 @@
 		<item>fifteen</item>
 		<item>filling</item>
 		<item>flip</item>
+        <item>flood</item>
 		<item>galaxies</item>
 		<item>guess</item>
 		<item>inertia</item>
@@ -80,6 +81,7 @@
 	<string translatable="false" name="blackbox_drag_mode">prevent</string>
 	<string translatable="false" name="dominosa_drag_mode">prevent</string>
 	<string translatable="false" name="flip_drag_mode">prevent</string>
+    <string translatable="false" name="flood_drag_mode">prevent</string>
 	<string translatable="false" name="keen_drag_mode">prevent</string>
 	<string translatable="false" name="lightup_drag_mode">prevent</string>
 	<string translatable="false" name="loopy_drag_mode">prevent</string>

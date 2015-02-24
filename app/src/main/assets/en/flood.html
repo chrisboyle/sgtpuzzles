@@ -1,0 +1,86 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html><head>
+<meta http-equiv="content-type" content="text/html; charset=windows-1252">
+<title>Flood</title>
+<link rel="previous" href="http://www.chiark.greenend.org.uk/%7Esgtatham/puzzles/doc/unruly.html">
+<link rel="ToC" href="http://www.chiark.greenend.org.uk/%7Esgtatham/puzzles/doc/index.html">
+<link rel="up" href="http://www.chiark.greenend.org.uk/%7Esgtatham/puzzles/doc/index.html">
+<link rel="index" href="http://www.chiark.greenend.org.uk/%7Esgtatham/puzzles/doc/indexpage.html">
+<link rel="next" href="http://www.chiark.greenend.org.uk/%7Esgtatham/puzzles/doc/tracks.html">
+</head>
+<body>
+<p><a href="http://www.chiark.greenend.org.uk/%7Esgtatham/puzzles/doc/unruly.html">Previous</a> | <a href="http://www.chiark.greenend.org.uk/%7Esgtatham/puzzles/doc/index.html">Contents</a> | <a href="http://www.chiark.greenend.org.uk/%7Esgtatham/puzzles/doc/indexpage.html">Index</a> | <a href="http://www.chiark.greenend.org.uk/%7Esgtatham/puzzles/doc/tracks.html">Next</a></p>
+<h1><a name="flood"></a>Chapter 39: <a name="i0"></a>Flood</h1>
+<p>
+You are given a grid of squares, coloured at random in multiple colours.
+ In each move, you can flood-fill the top left square in a colour of 
+your choice (i.e. every square reachable from the starting square by an 
+orthogonally connected path of squares all the same colour will be 
+filled in the new colour). As you do this, more and more of the grid 
+becomes connected to the starting square.
+</p>
+<p>
+Your aim is to make the whole grid the same colour, in as few moves as 
+possible. The game will set a limit on the number of moves, based on 
+running its own internal solver. You win if you can make the whole grid 
+the same colour in that many moves or fewer.
+</p>
+<p>
+I saw this game (with a fixed grid size, fixed number of colours, and fixed move limit) at <a href="http://floodit.appspot.com/"><code>floodit.appspot.com</code></a>.
+</p>
+<h2><a name="flood-controls"></a>39.1 <a name="i1"></a>Flood controls</h2>
+<p>
+To play Flood, click the mouse in a square. The top left corner and 
+everything connected to it will be flood-filled with the colour of the 
+square you clicked. Clicking a square the same colour as the top left 
+corner has no effect, and therefore does not count as a move.
+</p>
+<p>
+You can also use the cursor keys to move a cursor (outline black square)
+ around the grid. Pressing the return key will fill the top left corner 
+in the colour of the square under the cursor.
+</p>
+<p>
+(All the actions described in <a href="http://www.chiark.greenend.org.uk/%7Esgtatham/puzzles/doc/common.html#common-actions">section 2.1</a> are also available.)
+</p>
+<h2><a name="flood-parameters"></a>39.2 <a name="i2"></a>Flood parameters</h2>
+<p>
+These parameters are available from the ‘Custom...’ option on the ‘Type’ menu.
+</p>
+<dl><dt>
+<em>Width</em>, <em>Height</em>
+</dt>
+<dd>
+Size of the grid, in squares.
+</dd>
+<dt>
+<em>Colours</em>
+</dt>
+<dd>
+Number of colours used to fill the grid. Must be at least 3 (with two 
+colours there would only be one legal move at any stage, hence no choice
+ to make at all), and at most 10.
+</dd>
+<dt>
+<em>Extra moves permitted</em>
+</dt>
+<dd>
+Controls the difficulty of the puzzle, by increasing the move limit. In 
+each new grid, Flood will run an internal solver to generate its own 
+solution, and then the value in this field will be added to the length 
+of Flood's solution to generate the game's move limit. So a value of 0 
+requires you to be just as efficient as Flood's automated solver, and a 
+larger value makes it easier.
+<p>
+(Note that Flood's internal solver will not necessarily find the 
+shortest possible solution, though I believe it's pretty close. For a 
+real challenge, set this value to 0 and then try to solve a grid in <em>strictly fewer</em> moves than the limit you're given!)
+</p>
+
+</dd>
+</dl>
+
+<hr><address>
+[Simon Tatham's Portable Puzzle Collection, version 20150209.f1e68fb]</address>
+
+</body></html>
