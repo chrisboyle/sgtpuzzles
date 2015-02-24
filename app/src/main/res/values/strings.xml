@@ -120,6 +120,7 @@ Version %s"</string>
     <string name="name_fifteen">Fifteen</string>
     <string name="name_filling">Filling</string>
     <string name="name_flip">Flip</string>
+    <string name="name_flood">Flood</string>
     <string name="name_galaxies">Galaxies</string>
     <string name="name_guess">Guess</string>
     <string name="name_inertia">Inertia</string>
@@ -158,6 +159,7 @@ Version %s"</string>
     <string name="desc_fifteen">Slide tiles around to form a grid in numerical order.</string>
     <string name="desc_filling">Number the squares to form regions with the same number, which is also the size of the region.</string>
     <string name="desc_flip">Turn over squares until all are light side up, but flipping one flips its neighbours.</string>
+    <string name="desc_flood">Touch squares to join color regions until all are the same color.</string>
     <string name="desc_galaxies">Divide the grid into 180-degree rotationally symmetric regions each centred on a dot.</string>
     <string name="desc_guess">Guess the hidden colour sequence: black is correct, white is the correct colour in the wrong place.</string>
     <string name="desc_inertia">Move the ball around to collect all the gems without hitting a mine.</string>
