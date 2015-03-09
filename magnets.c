@@ -2562,7 +2562,7 @@ int main(int argc, const char *argv[])
         goto done;
     }
     s = new_game(NULL, p, desc);
-    printf("%s:%s (seed %ld)\n", id, desc, seed);
+    printf("%s:%s (seed %ld)\n", id, desc, (long)seed);
     if (aux) {
         /* We just generated this ourself. */
         if (verbose || print) {
