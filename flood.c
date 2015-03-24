@@ -609,7 +609,7 @@ static char *validate_desc(const game_params *params, const char *desc)
             c = 10 + (c - 'A');
         else
             return "Bad character in grid description";
-        if (c < 0 || c >= params->colours)
+        if ((unsigned)c >= params->colours)
             return "Colour out of range in grid description";
     }
     if (*desc != ',')
