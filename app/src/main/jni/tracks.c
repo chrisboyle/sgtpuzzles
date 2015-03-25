@@ -2112,7 +2112,7 @@ static float *game_colours(frontend *fe, int *ncolours)
         ret[COL_TRACK_CLUE * 3 + i] = 0.0F;
         ret[COL_TRACK * 3 + i] = 0.5F;
         ret[COL_CLUE * 3 + i] = 0.0F;
-        ret[COL_GRID * 3 + i] = 0.75F;
+        ret[COL_GRID * 3 + i] = 0.0F;
         ret[COL_CURSOR * 3 + i] = 0.6F;
     }
 
