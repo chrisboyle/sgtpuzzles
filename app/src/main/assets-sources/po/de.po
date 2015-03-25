@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sgt-puzzles\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2014-09-25 19:17+0100\n"
+"POT-Creation-Date: 2015-03-25 23:06+0000\n"
 "PO-Revision-Date: 2013-06-26 20:41+0200\n"
 "Last-Translator: Helge Kreutzmann <debian@helgefjell.de>\n"
 "Language-Team: de <debian-l10n-german@lists.debian.org>\n"
@@ -296,7 +296,7 @@ msgstr "\\I{controls}Gemeinsame Aktionen"
 #: puzzles.but:2200 puzzles.but:2346 puzzles.but:2432 puzzles.but:2505
 #: puzzles.but:2579 puzzles.but:2670 puzzles.but:2757 puzzles.but:2810
 #: puzzles.but:2885 puzzles.but:2975 puzzles.but:3034 puzzles.but:3094
-#: puzzles.but:3168
+#: puzzles.but:3168 puzzles.but:3223 puzzles.but:3285
 msgid "\\androidmouse"
 msgstr "\\androidmouse"
 
@@ -1278,7 +1278,7 @@ msgstr ""
 #: puzzles.but:2256 puzzles.but:2384 puzzles.but:2460 puzzles.but:2520
 #: puzzles.but:2615 puzzles.but:2707 puzzles.but:2767 puzzles.but:2828
 #: puzzles.but:2920 puzzles.but:2987 puzzles.but:3056 puzzles.but:3133
-#: puzzles.but:3181
+#: puzzles.but:3181 puzzles.but:3234 puzzles.but:3300
 msgid "(All the actions described in \\k{common-actions} are also available.)"
 msgstr ""
 "(Alle in \\k{common-actions} beschriebene Aktionen sind auch verfügbar.)"
@@ -1295,7 +1295,7 @@ msgstr "\\I{Parameter, für Net}Net-Parameter"
 #: puzzles.but:2092 puzzles.but:2150 puzzles.but:2261 puzzles.but:2389
 #: puzzles.but:2465 puzzles.but:2620 puzzles.but:2712 puzzles.but:2772
 #: puzzles.but:2833 puzzles.but:2925 puzzles.but:2992 puzzles.but:3061
-#: puzzles.but:3138 puzzles.but:3186
+#: puzzles.but:3138 puzzles.but:3186 puzzles.but:3239 puzzles.but:3305
 msgid ""
 "These parameters are available from the \\q{Custom...} option on the "
 "\\q{Type} menu."
@@ -1309,7 +1309,7 @@ msgstr ""
 #: puzzles.but:1834 puzzles.but:1932 puzzles.but:2009 puzzles.but:2094
 #: puzzles.but:2152 puzzles.but:2263 puzzles.but:2467 puzzles.but:2774
 #: puzzles.but:2835 puzzles.but:2927 puzzles.but:2994 puzzles.but:3140
-#: puzzles.but:3188
+#: puzzles.but:3188 puzzles.but:3241 puzzles.but:3307
 msgid "\\e{Width}, \\e{Height}"
 msgstr "\\e{Width} (Breite), \\e{Height} (Höhe)"
 
@@ -3325,7 +3325,7 @@ msgstr ""
 "\\q{Mastermind} überein."
 
 #. type: e{#1}
-#: puzzles.but:1373
+#: puzzles.but:1373 puzzles.but:3245
 msgid "Colours"
 msgstr "Colours"
 
@@ -4265,7 +4265,7 @@ msgstr "\\I{Parameter, für Slant}Slant-Parameter"
 #: puzzles.but:1765 puzzles.but:1856 puzzles.but:1940 puzzles.but:2026
 #: puzzles.but:2156 puzzles.but:2267 puzzles.but:2399 puzzles.but:2471
 #: puzzles.but:2628 puzzles.but:2720 puzzles.but:2778 puzzles.but:2846
-#: puzzles.but:3144 puzzles.but:3193
+#: puzzles.but:3144 puzzles.but:3193 puzzles.but:3311
 msgid "Difficulty"
 msgstr "Difficulty"
 
@@ -6885,7 +6885,6 @@ msgstr ""
 
 #. type: Plain text
 #: puzzles.but:3025
-#, fuzzy
 msgid ""
 "Credit for this puzzle goes to \\i{Nikoli}, who call it \\q{Masyu}.  "
 "\\k{nikoli-pearl}"
@@ -7271,11 +7270,202 @@ msgstr ""
 
 #. type: Plain text
 #: puzzles.but:3202
+msgid "\\i{Flood}"
+msgstr "\\i{Flood}"
+
+#. type: Plain text
+#: puzzles.but:3204
+msgid "\\cfg{winhelp-topic}{games.flood}"
+msgstr "\\cfg{winhelp-topic}{games.flood}"
+
+#. type: Plain text
+#: puzzles.but:3211
+msgid ""
+"You are given a grid of squares, coloured at random in multiple colours. In "
+"each move, you can flood-fill the top left square in a colour of your choice "
+"(i.e. every square reachable from the starting square by an orthogonally "
+"connected path of squares all the same colour will be filled in the new "
+"colour). As you do this, more and more of the grid becomes connected to the "
+"starting square."
+msgstr ""
+
+#. type: Plain text
+#: puzzles.but:3216
+msgid ""
+"Your aim is to make the whole grid the same colour, in as few moves as "
+"possible. The game will set a limit on the number of moves, based on running "
+"its own internal solver. You win if you can make the whole grid the same "
+"colour in that many moves or fewer."
+msgstr ""
+
+#. type: Plain text
+#: puzzles.but:3219
+msgid ""
+"I saw this game (with a fixed grid size, fixed number of colours, and fixed "
+"move limit) at \\W{http://floodit.appspot.com}\\cw{floodit.appspot.com}."
+msgstr ""
+
+#. type: Plain text
+#: puzzles.but:3221
+msgid "\\I{controls, for Flood}Flood controls"
+msgstr "\\I{Steuerung, von Flood}Flood-Steuerung"
+
+#. type: Plain text
+#: puzzles.but:3228
+msgid ""
+"To play Flood, click the mouse in a square. The top left corner and "
+"everything connected to it will be flood-filled with the colour of the "
+"square you clicked. Clicking a square the same colour as the top left corner "
+"has no effect, and therefore does not count as a move."
+msgstr ""
+
+#. type: Plain text
+#: puzzles.but:3232
+msgid ""
+"You can also use the cursor keys to move a cursor (outline black square) "
+"around the grid. Pressing the return key will fill the top left corner in "
+"the colour of the square under the cursor."
+msgstr ""
+
+#. type: Plain text
+#: puzzles.but:3236
+msgid "\\I{parameters, for Flood}Flood parameters"
+msgstr "\\I{Parameter, für Flood}Flood-Parameter"
+
+#. type: Plain text
+#: puzzles.but:3243 puzzles.but:3309
+msgid "Size of the grid, in squares."
+msgstr "Größe des Gitters, in Quadraten."
+
+#. type: Plain text
+#: puzzles.but:3249
+msgid ""
+"Number of colours used to fill the grid. Must be at least 3 (with two "
+"colours there would only be one legal move at any stage, hence no choice to "
+"make at all), and at most 10."
+msgstr ""
+
+#. type: e{#1}
+#: puzzles.but:3251
+msgid "Extra moves permitted"
+msgstr ""
+
+#. type: Plain text
+#: puzzles.but:3258
+msgid ""
+"Controls the difficulty of the puzzle, by increasing the move limit. In each "
+"new grid, Flood will run an internal solver to generate its own solution, "
+"and then the value in this field will be added to the length of Flood's "
+"solution to generate the game's move limit. So a value of 0 requires you to "
+"be just as efficient as Flood's automated solver, and a larger value makes "
+"it easier."
+msgstr ""
+
+#. type: Plain text
+#: puzzles.but:3267
+msgid ""
+"(Note that Flood's internal solver will not necessarily find the shortest "
+"possible solution, though I believe it's pretty close. For a real challenge, "
+"set this value to 0 and then try to solve a grid in \\e{strictly fewer} "
+"moves than the limit you're given!)"
+msgstr ""
+
+#. type: Plain text
+#: puzzles.but:3269
+msgid "\\i{Tracks}"
+msgstr "\\i{Tracks}"
+
+#. type: Plain text
+#: puzzles.but:3271
+msgid "\\cfg{winhelp-topic}{games.tracks}"
+msgstr "\\cfg{winhelp-topic}{games.tracks}"
+
+#. type: Plain text
+#: puzzles.but:3276
+msgid ""
+"You are given a grid of squares, some of which are filled with train tracks. "
+"You need to complete the track from A to B so that the rows and columns "
+"contain the same number of track segments as are indicated in the clues to "
+"the top and right of the grid."
+msgstr ""
+
+#. type: Plain text
+#: puzzles.but:3279
+msgid ""
+"There are only straight and 90 degree curved rails, and the track may not "
+"cross itself."
+msgstr ""
+
+#. type: Plain text
+#: puzzles.but:3281
+msgid "Tracks was contributed to this collection by James Harvey."
+msgstr "Tracks wurde von James Harvey zu dieser Sammlung beigesteuert."
+
+#. type: Plain text
+#: puzzles.but:3283
+msgid "\\I{controls, for Tracks}Tracks controls"
+msgstr "\\I{Steuerung, von Tracks}Tracks-Steuerung"
+
+#. type: Plain text
+#: puzzles.but:3289
+msgid ""
+"Left-clicking on an edge between two squares adds a track segment between "
+"the two squares. Right-clicking on an edge adds a cross on the edge, "
+"indicating no track is possible there."
+msgstr ""
+
+#. type: Plain text
+#: puzzles.but:3294
+msgid ""
+"Left-clicking in a square adds a colour indicator showing that you know the "
+"square must contain a track, even if you don't know which edges it crosses "
+"yet. Right-clicking in a square adds a cross indicating it contains no track "
+"segment."
+msgstr ""
+
+#. type: Plain text
+#: puzzles.but:3298
+msgid ""
+"Left- or right-dragging between squares allows you to lay a straight line of "
+"is-track or is-not-track indicators, useful for filling in rows or columns "
+"to match the clue."
+msgstr ""
+
+#. type: Plain text
+#: puzzles.but:3302
+msgid "\\I{parameters, for Tracks}Tracks parameters"
+msgstr "\\I{Parameter, für Tracks}Tracks-Parameter"
+
+#. type: Plain text
+#: puzzles.but:3315
+msgid ""
+"Controls the difficulty of the generated puzzle: at Tricky level, you are "
+"required to make more deductions regarding disregarding moves that would "
+"lead to impossible crossings later."
+msgstr ""
+
+#. type: e{#1}
+#: puzzles.but:3317
+msgid "Disallow consecutive 1 clues"
+msgstr ""
+
+#. type: Plain text
+#: puzzles.but:3324
+msgid ""
+"Controls whether the Tracks game generation permits two adjacent rows or "
+"columns to have a 1 clue, or permits the row or column of the track's "
+"endpoint to have a 1 clue. By default this is not permitted, to avoid long "
+"straight boring segments of track and make the games more twiddly and "
+"interesting. If you want to restore the possibility, turn this option off."
+msgstr ""
+
+#. type: Plain text
+#: puzzles.but:3327
 msgid "\\I{MIT licence}\\ii{Licence}"
 msgstr "\\I{MIT-Lizenz}\\ii{Lizenz}"
 
 #. type: Plain text
-#: puzzles.but:3204
+#: puzzles.but:3329
 msgid "This software is \\i{copyright} 2004-2014 Simon Tatham."
 msgstr ""
 "Diese Software ist \\i{copyright} 2004-2014 Simon Tatham. Im Zweifelsfall "
@@ -7283,7 +7473,7 @@ msgstr ""
 "nach bestem Wissen und Gewissen erstellt wurde."
 
 #. type: Plain text
-#: puzzles.but:3209
+#: puzzles.but:3334
 msgid ""
 "Portions copyright Richard Boulton, James Harvey, Mike Pinna, Jonas K"
 "\\u00F6{oe}lker, Dariusz Olszewski, Michael Schierl, Lambros Lambrou, Bernd "
@@ -7296,7 +7486,7 @@ msgstr ""
 "Phil Tunstall."
 
 #. type: Plain text
-#: puzzles.but:3214
+#: puzzles.but:3339
 msgid ""
 "The notice below applies to the software as distributed at https://github."
 "com/chrisboyle/sgtpuzzles and does not apply to the additional graphics "
@@ -7307,7 +7497,7 @@ msgstr ""
 "Grafik, die im Google-Play-Store-Version verteilt sind."
 
 #. type: Plain text
-#: puzzles.but:3222
+#: puzzles.but:3347
 msgid ""
 "Permission is hereby granted, free of charge, to any person obtaining a copy "
 "of this software and associated documentation files (the \\q{Software}), to "
@@ -7326,7 +7516,7 @@ msgstr ""
 "Bedingungen erfüllt werden:"
 
 #. type: Plain text
-#: puzzles.but:3225
+#: puzzles.but:3350
 msgid ""
 "The above copyright notice and this permission notice shall be included in "
 "all copies or substantial portions of the Software."
@@ -7335,7 +7525,7 @@ msgstr ""
 "oder wesentlichen Teilen dieser Software enthalten sein."
 
 #. type: Plain text
-#: puzzles.but:3234
+#: puzzles.but:3359
 msgid ""
 "THE SOFTWARE IS PROVIDED \\q{AS IS}, WITHOUT WARRANTY OF ANY KIND, EXPRESS "
 "OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, "
@@ -7355,136 +7545,136 @@ msgstr ""
 "SOFTWARE ODER DEREN VERWENDUNG ODER ANDEREN UMGANG IN DER SOFTWARE HERRÜHREN."
 
 #. type: IM{#1}
-#: puzzles.but:3235
+#: puzzles.but:3360
 msgid "command-line"
 msgstr "Befehlszeile"
 
 #. type: IM
-#: puzzles.but:3235
+#: puzzles.but:3360
 #, no-wrap
 msgid "{command line} command line"
 msgstr "{Befehlszeile} Befehlszeile"
 
 #. type: IM{#1}
-#: puzzles.but:3237 puzzles.but:3238
+#: puzzles.but:3362 puzzles.but:3363
 #, no-wrap
 msgid "default parameters, specifying"
 msgstr "Standardparameter, angeben"
 
 #. type: IM
-#: puzzles.but:3238
+#: puzzles.but:3363
 #, no-wrap
 msgid "preferences, specifying default"
 msgstr "Voreinstellungen, Standard angeben"
 
 #. type: IM{#1}
-#: puzzles.but:3240 puzzles.but:3241
+#: puzzles.but:3365 puzzles.but:3366
 #, no-wrap
 msgid "Unix"
 msgstr "Unix"
 
 #. type: IM
-#: puzzles.but:3241
+#: puzzles.but:3366
 #, no-wrap
 msgid "Linux"
 msgstr "Linux"
 
 #. type: IM{#1}
-#: puzzles.but:3243 puzzles.but:3244
+#: puzzles.but:3368 puzzles.but:3369
 #, no-wrap
 msgid "generating game IDs"
 msgstr "Erzeugen von Spiele-IDs"
 
 #. type: IM
-#: puzzles.but:3244
+#: puzzles.but:3369
 #, no-wrap
 msgid "game ID, generating"
 msgstr "Spiele-ID, erzeugen"
 
 #. type: IM{#1}
-#: puzzles.but:3246
+#: puzzles.but:3371
 msgid "specific"
 msgstr "specific"
 
 #. type: IM
-#: puzzles.but:3246
+#: puzzles.but:3371
 #, no-wrap
 msgid "\\q{Specific}, menu option"
 msgstr "\\q{Specific}, Menüoption"
 
 #. type: IM{#1}
-#: puzzles.but:3247
+#: puzzles.but:3372
 msgid "custom"
 msgstr "custom"
 
 #. type: IM
-#: puzzles.but:3247
+#: puzzles.but:3372
 #, no-wrap
 msgid "\\q{Custom}, menu option"
 msgstr "\\q{Custom}, Menüoption"
 
 #. type: IM{#1}
-#: puzzles.but:3249 puzzles.but:3250
+#: puzzles.but:3374 puzzles.but:3375
 #, no-wrap
 msgid "game ID"
 msgstr "Spiele-ID"
 
 #. type: IM
-#: puzzles.but:3250
+#: puzzles.but:3375
 #, no-wrap
 msgid "ID, game"
 msgstr "ID, Spiel"
 
 #. type: IM{#1}
-#: puzzles.but:3251 puzzles.but:3252 puzzles.but:3253
+#: puzzles.but:3376 puzzles.but:3377 puzzles.but:3378
 #, no-wrap
 msgid "ID format"
 msgstr "ID-Format"
 
 #. type: IM
-#: puzzles.but:3252
+#: puzzles.but:3377
 #, no-wrap
 msgid "format, ID"
 msgstr "Format, ID"
 
 #. type: IM
-#: puzzles.but:3253
+#: puzzles.but:3378
 #, no-wrap
 msgid "game ID, format"
 msgstr "Spiele-ID, Format"
 
 #. type: IM{#1}
-#: puzzles.but:3255 puzzles.but:3256
+#: puzzles.but:3380 puzzles.but:3381
 #, no-wrap
 msgid "keys"
 msgstr "Tasten"
 
 #. type: IM
-#: puzzles.but:3256
+#: puzzles.but:3381
 #, no-wrap
 msgid "shortcuts (keyboard)"
 msgstr "Tastaturkürzel"
 
 #. type: IM{#1}
-#: puzzles.but:3258 puzzles.but:3259
+#: puzzles.but:3383 puzzles.but:3384
 #, no-wrap
 msgid "initial state"
 msgstr "Anfangszustand"
 
 #. type: IM
-#: puzzles.but:3259
+#: puzzles.but:3384
 #, no-wrap
 msgid "state, initial"
 msgstr "Zustand, anfänglicher"
 
 #. type: IM{#1}
-#: puzzles.but:3261 puzzles.but:3262
+#: puzzles.but:3386 puzzles.but:3387
 #, no-wrap
 msgid "MIT licence"
 msgstr "MIT-Lizenz"
 
 #. type: IM
-#: puzzles.but:3262
+#: puzzles.but:3387
 #, no-wrap
 msgid "licence, MIT"
 msgstr "Lizenz, MIT"

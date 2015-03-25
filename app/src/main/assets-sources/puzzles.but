@@ -3219,6 +3219,8 @@ fixed move limit) at \W{http://floodit.appspot.com}\cw{floodit.appspot.com}.
 
 \H{flood-controls} \I{controls, for Flood}Flood controls
 
+\androidmouse
+
 To play Flood, click the mouse in a square. The top left corner and
 everything connected to it will be flood-filled with the colour of the
 square you clicked. Clicking a square the same colour as the top left
@@ -3278,6 +3280,8 @@ cross itself.
 Tracks was contributed to this collection by James Harvey.
 
 \H{tracks-controls} \I{controls, for Tracks}Tracks controls
+
+\androidmouse
 
 Left-clicking on an edge between two squares adds a track segment between
 the two squares. Right-clicking on an edge adds a cross on the edge,

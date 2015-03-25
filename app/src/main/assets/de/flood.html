@@ -1,0 +1,67 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+"http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=US-ASCII">
+<title>Flood</title>
+<link rel="previous" href="unruly.html">
+<link rel="ToC" href="index.html">
+<link rel="up" href="index.html">
+<link rel="index" href="docindex.html">
+<link rel="next" href="tracks.html">
+<style type="text/css">body { word-wrap: break-word; }</style></head>
+<body>
+<p><a href="unruly.html">Previous</a> | <a href="index.html">Contents</a> | <a href="docindex.html">Index</a> | <a href="tracks.html">Next</a></p>
+<h1><a name="C39"></a>Chapter 39: <a name="i0"></a>Flood</h1>
+<p>
+You are given a grid of squares, coloured at random in multiple colours. In each move, you can flood-fill the top left square in a colour of your choice (i.e. every square reachable from the starting square by an orthogonally connected path of squares all the same colour will be filled in the new colour). As you do this, more and more of the grid becomes connected to the starting square.
+</p>
+<p>
+Your aim is to make the whole grid the same colour, in as few moves as possible. The game will set a limit on the number of moves, based on running its own internal solver. You win if you can make the whole grid the same colour in that many moves or fewer.
+</p>
+<p>
+I saw this game (with a fixed grid size, fixed number of colours, and fixed move limit) at <a href="http://floodit.appspot.com"><code>floodit.appspot.com</code></a>.
+</p>
+<h2><a name="S39.1"></a>39.1 <a name="i1"></a>Flood-Steuerung</h2>
+<p>
+<em>Unter Android muss man dr&#252;cken statt links klicken und langes dr&#252;cken statt rechts klicken. Wo dieses Handbuch Buchstaben auf der Tastatur erw&#228;hnt, k&#246;nnen diese als Bildzeichen am Fu&#223; des Bildschirms gefunden werden.</em>
+</p>
+<p>
+To play Flood, click the mouse in a square. The top left corner and everything connected to it will be flood-filled with the colour of the square you clicked. Clicking a square the same colour as the top left corner has no effect, and therefore does not count as a move.
+</p>
+<p>
+You can also use the cursor keys to move a cursor (outline black square) around the grid. Pressing the return key will fill the top left corner in the colour of the square under the cursor.
+</p>
+<p>
+(Alle in <a href="common.html#S2.1">section 2.1</a> beschriebene Aktionen sind auch verf&#252;gbar.)
+</p>
+<h2><a name="S39.2"></a>39.2 <a name="i2"></a>Flood-Parameter</h2>
+<p>
+Diese Parameter sind von der Option &#8216;Custom...&#8217; im Men&#252; &#8216;Type&#8217; verf&#252;gbar.
+</p>
+<dl><dt>
+<em>Width</em> (Breite), <em>Height</em> (H&#246;he)
+</dt>
+<dd>
+Gr&#246;&#223;e des Gitters, in Quadraten.
+</dd>
+<dt>
+<em>Colours</em>
+</dt>
+<dd>
+Number of colours used to fill the grid. Must be at least 3 (with two colours there would only be one legal move at any stage, hence no choice to make at all), and at most 10.
+</dd>
+<dt>
+<em>Extra moves permitted</em>
+</dt>
+<dd>
+Controls the difficulty of the puzzle, by increasing the move limit. In each new grid, Flood will run an internal solver to generate its own solution, and then the value in this field will be added to the length of Flood's solution to generate the game's move limit. So a value of 0 requires you to be just as efficient as Flood's automated solver, and a larger value makes it easier.
+<p>
+(Note that Flood's internal solver will not necessarily find the shortest possible solution, though I believe it's pretty close. For a real challenge, set this value to 0 and then try to solve a grid in <em>strictly fewer</em> moves than the limit you're given!)
+</p>
+
+</dd>
+</dl>
+
+<hr><address></address></body>
+</html>
