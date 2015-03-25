@@ -21,5 +21,5 @@ GAMES += group
 !end
 
 !begin >gamedesc.txt
-group:group.exe:Group:Group theory puzzle
+group:group.exe:Group:Group theory puzzle:Complete the unfinished Cayley table of a group.
 !end

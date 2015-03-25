@@ -20,5 +20,5 @@ GAMES += tents
 !end
 
 !begin >gamedesc.txt
-tents:tents.exe:Tents:Tent-placing puzzle
+tents:tents.exe:Tents:Tent-placing puzzle:Place a tent next to each tree.
 !end

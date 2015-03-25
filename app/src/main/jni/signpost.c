@@ -2422,7 +2422,7 @@ int main(int argc, const char *argv[])
         }
     }
 
-    sprintf(newseed, "%lu", time(NULL));
+    sprintf(newseed, "%lu", (unsigned long) time(NULL));
     seedstr = dupstr(newseed);
 
     if (id || !stdin_desc) {

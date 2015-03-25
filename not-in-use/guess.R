@@ -15,5 +15,5 @@ GAMES += guess
 !end
 
 !begin >gamedesc.txt
-guess:guess.exe:Guess:Combination-guessing puzzle
+guess:guess.exe:Guess:Combination-guessing puzzle:Guess the hidden combination of colours.
 !end

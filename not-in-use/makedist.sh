@@ -31,7 +31,7 @@ halibut --text=HACKING devel.but
 for i in *.c *.m *.h *.R *.rc *.but *.plist *.icns LICENCE README Recipe \
   *.rc2 mkfiles.pl Makefile Makefile.* \
   HACKING puzzles.txt puzzles.hlp puzzles.cnt puzzles.chm \
-  icons/Makefile icons/*.{sav,pl,sh} icons/win16pal.xpm \
+  icons/Makefile icons/*.sav icons/*.pl icons/*.sh icons/win16pal.xpm \
   icons/*.png icons/*.ico icons/*.rc icons/*.c \
   configure.ac mkauto.sh aclocal.m4 \
   configure depcomp install-sh missing compile; do

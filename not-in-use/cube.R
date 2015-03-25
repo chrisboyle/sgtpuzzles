@@ -15,5 +15,5 @@ GAMES += cube
 !end
 
 !begin >gamedesc.txt
-cube:cube.exe:Cube:Rolling cube puzzle
+cube:cube.exe:Cube:Rolling cube puzzle:Pick up all the blue squares by rolling the cube over them.
 !end

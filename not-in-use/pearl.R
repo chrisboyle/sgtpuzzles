@@ -19,5 +19,5 @@ GAMES += pearl
 !end
 
 !begin >gamedesc.txt
-pearl:pearl.exe:Pearl:Loop-drawing puzzle
+pearl:pearl.exe:Pearl:Loop-drawing puzzle:Draw a single closed loop, given clues about corner and straight squares.
 !end

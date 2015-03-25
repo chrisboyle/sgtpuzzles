@@ -15,5 +15,5 @@ GAMES += samegame
 !end
 
 !begin >gamedesc.txt
-samegame:samegame.exe:Same Game:Block-clearing puzzle
+samegame:samegame.exe:Same Game:Block-clearing puzzle:Clear the grid by removing touching groups of the same colour squares.
 !end

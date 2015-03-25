@@ -157,6 +157,7 @@ struct frontend {
     int preset_threaded;
     GtkWidget *preset_custom;
     GtkWidget *copy_menu_item;
+    int menubar_is_local;
 };
 
 struct blitter {
@@ -1337,8 +1338,7 @@ int message_box(GtkWidget *parent, char *title, char *msg, int centre,
 	titles += strlen(titles)+1;
 	i++;
     }
-    gtk_object_set_data(GTK_OBJECT(window), "user-data",
-			GINT_TO_POINTER(&i));
+    gtk_object_set_data(GTK_OBJECT(window), "user-data", &i);
     gtk_signal_connect(GTK_OBJECT(window), "destroy",
                        GTK_SIGNAL_FUNC(window_destroy), NULL);
     gtk_window_set_modal(GTK_WINDOW(window), TRUE);
@@ -1692,7 +1692,7 @@ static gboolean not_size_allocated_yet(GtkWidget *w)
 static void try_shrink_drawing_area(frontend *fe)
 {
     if (fe->drawing_area_shrink_pending &&
-        !not_size_allocated_yet(fe->menubar) &&
+        (!fe->menubar_is_local || !not_size_allocated_yet(fe->menubar)) &&
         !not_size_allocated_yet(fe->statusbar)) {
         /*
          * In order to permit the user to resize the window smaller as
@@ -2175,6 +2175,33 @@ static frontend *new_window(char *arg, int argtype, char **error)
 	midend_new_game(fe->me);
     }
 
+    {
+        /*
+         * try_shrink_drawing_area() will do some fiddling with the
+         * window size request (see comment in that function) after
+         * all the bits and pieces such as the menu bar and status bar
+         * have appeared in the puzzle window.
+         *
+         * However, on Unity systems, the menu bar _doesn't_ appear in
+         * the puzzle window, because the Unity shell hijacks it into
+         * the menu bar at the very top of the screen. We therefore
+         * try to detect that situation here, so that we don't sit
+         * here forever waiting for a menu bar.
+         */
+        const char prop[] = "gtk-shell-shows-menubar";
+        GtkSettings *settings = gtk_settings_get_default();
+        if (!g_object_class_find_property(G_OBJECT_GET_CLASS(settings),
+                                          prop)) {
+            fe->menubar_is_local = TRUE;
+        } else {
+            int unity_mode;
+            g_object_get(gtk_settings_get_default(),
+                         prop, &unity_mode,
+                         (const gchar *)NULL);
+            fe->menubar_is_local = !unity_mode;
+        }
+    }
+
     fe->window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     gtk_window_set_title(GTK_WINDOW(fe->window), thegame.name);
 
@@ -2265,7 +2292,7 @@ static frontend *new_window(char *arg, int argtype, char **error)
 		gtk_radio_menu_item_group(GTK_RADIO_MENU_ITEM(menuitem));
             gtk_container_add(GTK_CONTAINER(submenu), menuitem);
             gtk_object_set_data(GTK_OBJECT(menuitem), "user-data",
-				GPOINTER_TO_INT(CFG_SETTINGS));
+				GINT_TO_POINTER(CFG_SETTINGS));
             gtk_signal_connect(GTK_OBJECT(menuitem), "activate",
                                GTK_SIGNAL_FUNC(menu_config_event), fe);
             gtk_widget_show(menuitem);

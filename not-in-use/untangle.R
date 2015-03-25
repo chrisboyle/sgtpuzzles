@@ -17,5 +17,5 @@ GAMES += untangle
 !end
 
 !begin >gamedesc.txt
-untangle:untangle.exe:Untangle:Planar graph layout puzzle
+untangle:untangle.exe:Untangle:Planar graph layout puzzle:Reposition the points so that the lines do not cross.
 !end

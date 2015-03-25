@@ -31,7 +31,7 @@ open my $desc, "<", "gamedesc.txt"
 
 while (<$desc>) {
     chomp;
-    my ($id, $win, $displayname, $description) = split /:/, $_;
+    my ($id, $win, $displayname, $description, $summary) = split /:/, $_;
 
     open my $desktop, ">", "$outdir/$id.desktop"
         or die "$outdir/$id.desktop: open: $!\n";

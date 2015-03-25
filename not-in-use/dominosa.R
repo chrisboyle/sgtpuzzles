@@ -17,5 +17,5 @@ GAMES += dominosa
 !end
 
 !begin >gamedesc.txt
-dominosa:dominosa.exe:Dominosa:Domino tiling puzzle
+dominosa:dominosa.exe:Dominosa:Domino tiling puzzle:Tile the rectangle with a full set of dominoes.
 !end

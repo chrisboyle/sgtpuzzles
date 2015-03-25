@@ -17,5 +17,5 @@ GAMES += pegs
 !end
 
 !begin >gamedesc.txt
-pegs:pegs.exe:Pegs:Peg solitaire puzzle
+pegs:pegs.exe:Pegs:Peg solitaire puzzle:Jump pegs over each other to remove all but one.
 !end

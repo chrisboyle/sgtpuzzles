@@ -120,6 +120,7 @@ Version %s"</string>
     <string name="name_fifteen">Fifteen</string>
     <string name="name_filling">Filling</string>
     <string name="name_flip">Flip</string>
+    <string name="name_flood">Flood</string>
     <string name="name_galaxies">Galaxies</string>
     <string name="name_guess">Guess</string>
     <string name="name_inertia">Inertia</string>
@@ -144,6 +145,7 @@ Version %s"</string>
     <string name="name_solo">Solo</string>
     <string name="name_tents">Tents</string>
     <string name="name_towers">Towers</string>
+    <string name="name_tracks">Tracks</string>
     <string name="name_twiddle">Twiddle</string>
     <string name="name_undead">Undead</string>
     <string name="name_unequal">Unequal</string>
@@ -158,6 +160,7 @@ Version %s"</string>
     <string name="desc_fifteen">Slide tiles around to form a grid in numerical order.</string>
     <string name="desc_filling">Number the squares to form regions with the same number, which is also the size of the region.</string>
     <string name="desc_flip">Turn over squares until all are light side up, but flipping one flips its neighbours.</string>
+    <string name="desc_flood">Try to get the whole grid to be the same colour within the given number of moves, by repeatedly flood-filling the top left corner in different colours.</string>
     <string name="desc_galaxies">Divide the grid into 180-degree rotationally symmetric regions each centred on a dot.</string>
     <string name="desc_guess">Guess the hidden colour sequence: black is correct, white is the correct colour in the wrong place.</string>
     <string name="desc_inertia">Move the ball around to collect all the gems without hitting a mine.</string>
@@ -182,6 +185,7 @@ Version %s"</string>
     <string name="desc_solo">Fill the grid so each block, row and column contains exactly one of each digit.</string>
     <string name="desc_tents">Place tents so each tree has a separate adjacent tent (not diagonally), no tents are next to each other (even diagonally) and the row and column counts are correct.</string>
     <string name="desc_towers">Place towers so each row/column contains one of each height and each clue matches the number of towers visible looking into the grid from that point.</string>
+    <string name="desc_tracks">Complete the track from A to B so that the rows and columns contain the numbers of track segments indicated. The track may not cross itself.</string>
     <string name="desc_twiddle">Rotate groups of 4 to form a grid in numerical order.</string>
     <string name="desc_undead">Fill the grid with monsters so the correct numbers of them can be seen from each point, taking mirrors into account.</string>
     <string name="desc_unequal">Enter digits so every row and column contains exactly one of each digit and the greater-than signs are satisfied.</string>

@@ -20,5 +20,5 @@ GAMES += mines
 !end
 
 !begin >gamedesc.txt
-mines:mines.exe:Mines:Mine-finding puzzle
+mines:mines.exe:Mines:Mine-finding puzzle:Find all the mines without treading on any of them.
 !end

@@ -15,6 +15,7 @@
     A(fifteen) \
     A(filling) \
     A(flip) \
+    A(flood) \
     A(galaxies) \
     A(guess) \
     A(inertia) \
@@ -39,6 +40,7 @@
     A(solo) \
     A(tents) \
     A(towers) \
+    A(tracks) \
     A(twiddle) \
     A(undead) \
     A(unequal) \

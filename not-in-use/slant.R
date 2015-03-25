@@ -20,5 +20,5 @@ GAMES += slant
 !end
 
 !begin >gamedesc.txt
-slant:slant.exe:Slant:Maze-drawing puzzle
+slant:slant.exe:Slant:Maze-drawing puzzle:Draw a maze of slanting lines that matches the clues.
 !end

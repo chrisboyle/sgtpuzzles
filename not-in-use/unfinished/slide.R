@@ -20,5 +20,5 @@ GAMES += slide
 !end
 
 !begin >gamedesc.txt
-slide:slide.exe:Slide:Sliding block puzzle
+slide:slide.exe:Slide:Sliding block puzzle:Slide the blocks to let the key block out.
 !end

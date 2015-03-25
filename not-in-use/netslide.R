@@ -17,5 +17,5 @@ GAMES += netslide
 !end
 
 !begin >gamedesc.txt
-netslide:netslide.exe:Netslide:Toroidal sliding network puzzle
+netslide:netslide.exe:Netslide:Toroidal sliding network puzzle:Slide a row at a time to reassemble the network.
 !end

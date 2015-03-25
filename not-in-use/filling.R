@@ -20,5 +20,5 @@ GAMES += filling
 !end
 
 !begin >gamedesc.txt
-filling:filling.exe:Filling:Polyomino puzzle
+filling:filling.exe:Filling:Polyomino puzzle:Mark every square with the area of its containing region.
 !end

@@ -24,5 +24,5 @@ GAMES += galaxies
 !end
 
 !begin >gamedesc.txt
-galaxies:galaxies.exe:Galaxies:Symmetric polyomino puzzle
+galaxies:galaxies.exe:Galaxies:Symmetric polyomino puzzle:Divide the grid into rotationally symmetric regions each centred on a dot.
 !end

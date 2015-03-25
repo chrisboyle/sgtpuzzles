@@ -19,5 +19,5 @@ GAMES += net
 !end
 
 !begin >gamedesc.txt
-net:netgame.exe:Net:Network jigsaw puzzle
+net:netgame.exe:Net:Network jigsaw puzzle:Rotate each tile to reassemble the network.
 !end

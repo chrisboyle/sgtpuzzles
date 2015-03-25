@@ -41,6 +41,11 @@
 #define D 0x08
 #define LOCKED 0x10
 #define ACTIVE 0x20
+#define RLOOP (R << 6)
+#define ULOOP (U << 6)
+#define LLOOP (L << 6)
+#define DLOOP (D << 6)
+#define LOOP(dir) ((dir) << 6)
 
 /* Rotations: Anticlockwise, Clockwise, Flip, general rotate */
 #define A(x) ( (((x) & 0x07) << 1) | (((x) & 0x08) >> 3) )
@@ -85,6 +90,7 @@ enum {
     COL_ENDPOINT,
     COL_POWERED,
     COL_BARRIER,
+    COL_LOOP,
     NCOLOURS
 };
 
@@ -1125,6 +1131,10 @@ static void perturb(int w, int h, unsigned char *tiles, int wrapping,
     sfree(perimeter);
 }
 
+static int *compute_loops_inner(int w, int h, int wrapping,
+                                const unsigned char *tiles,
+                                const unsigned char *barriers);
+
 static char *new_game_desc(const game_params *params, random_state *rs,
 			   char **aux, int interactive)
 {
@@ -1423,16 +1433,56 @@ static char *new_game_desc(const game_params *params, random_state *rs,
      * connectedness. However, that would take more effort, and
      * it's easier to simply make sure every grid is _obviously_
      * not solved.)
+     *
+     * We also require that our shuffle produces no loops in the
+     * initial grid state, because it's a bit rude to light up a 'HEY,
+     * YOU DID SOMETHING WRONG!' indicator when the user hasn't even
+     * had a chance to do _anything_ yet. This also is possible just
+     * by retrying the whole shuffle on failure, because it's clear
+     * that at least one non-solved shuffle with no loops must exist.
+     * (Proof: take the _solved_ state of the puzzle, and rotate one
+     * endpoint.)
      */
     while (1) {
-        int mismatches;
+        int mismatches, prev_loopsquares, this_loopsquares, i;
+        int *loops;
 
+      shuffle:
         for (y = 0; y < h; y++) {
             for (x = 0; x < w; x++) {
                 int orig = index(params, tiles, x, y);
                 int rot = random_upto(rs, 4);
                 index(params, tiles, x, y) = ROT(orig, rot);
             }
+        }
+
+        /*
+         * Check for loops, and try to fix them by reshuffling just
+         * the squares involved.
+         */
+        prev_loopsquares = w*h+1;
+        while (1) {
+            loops = compute_loops_inner(w, h, params->wrapping, tiles, NULL);
+            this_loopsquares = 0;
+            for (i = 0; i < w*h; i++) {
+                if (loops[i]) {
+                    int orig = tiles[i];
+                    int rot = random_upto(rs, 4);
+                    tiles[i] = ROT(orig, rot);
+                    this_loopsquares++;
+                }
+            }
+            sfree(loops);
+            if (this_loopsquares > prev_loopsquares) {
+                /*
+                 * We're increasing rather than reducing the number of
+                 * loops. Give up and go back to the full shuffle.
+                 */
+                goto shuffle;
+            }
+            if (this_loopsquares == 0)
+                break;
+            prev_loopsquares = this_loopsquares;
         }
 
         mismatches = 0;
@@ -1451,8 +1501,11 @@ static char *new_game_desc(const game_params *params, random_state *rs,
                 mismatches++;
         }
 
-        if (mismatches > 0)
-            break;
+        if (mismatches == 0)
+            continue;
+
+        /* OK. */
+        break;
     }
 
     /*
@@ -1862,6 +1915,220 @@ static unsigned char *compute_active(const game_state *state, int cx, int cy)
     return active;
 }
 
+static int *compute_loops_inner(int w, int h, int wrapping,
+                                const unsigned char *tiles,
+                                const unsigned char *barriers)
+{
+    int *loops, *dsf;
+    int x, y;
+
+    /*
+     * The loop-detecting algorithm I use here is not quite the same
+     * one as I've used in Slant and Loopy. Those two puzzles use a
+     * very similar algorithm which works by finding connected
+     * components, not of the graph _vertices_, but of the pieces of
+     * space in between them. You divide the plane into maximal areas
+     * that can't be intersected by a grid edge (faces in Loopy,
+     * diamond shapes centred on a grid edge in Slant); you form a dsf
+     * over those areas, and unify any pair _not_ separated by a graph
+     * edge; then you've identified the connected components of the
+     * space, and can now immediately tell whether an edge is part of
+     * a loop or not by checking whether the pieces of space on either
+     * side of it are in the same component.
+     *
+     * In Net, this doesn't work reliably, because of the toroidal
+     * wrapping mode. A torus has non-trivial homology, which is to
+     * say, there can exist a closed loop on its surface which is not
+     * the boundary of any proper subset of the torus's area. For
+     * example, consider the 'loop' consisting of a straight vertical
+     * line going off the top of the grid and coming back on the
+     * bottom to join up with itself. This certainly wants to be
+     * marked as a loop, but it won't be detected as one by the above
+     * algorithm, because all the area of the grid is still connected
+     * via the left- and right-hand edges, so the two sides of the
+     * loop _are_ in the same equivalence class.
+     *
+     * The replacement algorithm I use here is also dsf-based, but the
+     * dsf is now over _sides of edges_. That is to say, on a general
+     * graph, you would have two dsf elements per edge of the graph.
+     * The unification rule is: for each vertex, iterate round the
+     * edges leaving that vertex in cyclic order, and dsf-unify the
+     * _near sides_ of each pair of adjacent edges. The effect of this
+     * is to trace round the outside edge of each connected component
+     * of the graph (this time of the actual graph, not the space
+     * between), so that the outline of each component becomes its own
+     * equivalence class. And now, just as before, an edge is part of
+     * a loop iff its two sides are not in the same component.
+     *
+     * This correctly detects even homologically nontrivial loops on a
+     * torus, because a torus is still _orientable_ - there's no way
+     * that a loop can join back up with itself with the two sides
+     * swapped. It would stop working, however, on a Mobius strip or a
+     * Klein bottle - so if I ever implement either of those modes for
+     * Net, I'll have to revisit this algorithm yet again and probably
+     * replace it with a completely general and much more fiddly
+     * approach such as Tarjan's bridge-finding algorithm (which is
+     * linear-time, but looks to me as if it's going to take more
+     * effort to get it working, especially when the graph is
+     * represented so unlike an ordinary graph).
+     *
+     * In Net, the algorithm as I describe it above has to be fiddled
+     * with just a little, to deal with the fact that there are two
+     * kinds of 'vertex' in the graph - one set at face-centres, and
+     * another set at edge-midpoints where two wires either do or do
+     * not join. Since those two vertex classes have very different
+     * representations in the Net data structure, separate code is
+     * needed for them.
+     */
+
+    /* Four potential edges per grid cell; one dsf node for each side
+     * of each one makes 8 per cell. */
+    dsf = snew_dsf(w*h*8);
+
+    /* Encode the dsf nodes. We imagine going round anticlockwise, so
+     * BEFORE(dir) indicates the clockwise side of an edge, e.g. the
+     * underside of R or the right-hand side of U. AFTER is the other
+     * side. */
+#define BEFORE(dir) ((dir)==R?7:(dir)==U?1:(dir)==L?3:5)
+#define AFTER(dir) ((dir)==R?0:(dir)==U?2:(dir)==L?4:6)
+
+#if 0
+    printf("--- begin\n");
+#endif
+    for (y = 0; y < h; y++) {
+        for (x = 0; x < w; x++) {
+            int tile = tiles[y*w+x]; 
+            int dir;
+            for (dir = 1; dir < 0x10; dir <<= 1) {
+                /*
+                 * To unify dsf nodes around a face-centre vertex,
+                 * it's easiest to do it _unconditionally_ - e.g. just
+                 * unify the top side of R with the right side of U
+                 * regardless of whether there's an edge in either
+                 * place. Later we'll also unify the top and bottom
+                 * sides of any nonexistent edge, which will e.g.
+                 * complete a connection BEFORE(U) - AFTER(R) -
+                 * BEFORE(R) - AFTER(D) in the absence of an R edge.
+                 *
+                 * This is a safe optimisation because these extra dsf
+                 * nodes unified into our equivalence class can't get
+                 * out of control - they are never unified with
+                 * anything _else_ elsewhere in the algorithm.
+                 */
+#if 0
+                printf("tile centre %d,%d: merge %d,%d\n",
+                       x, y,
+                       (y*w+x)*8+AFTER(C(dir)),
+                       (y*w+x)*8+BEFORE(dir));
+#endif
+                dsf_merge(dsf,
+                          (y*w+x)*8+AFTER(C(dir)),
+                          (y*w+x)*8+BEFORE(dir));
+
+                if (tile & dir) {
+                    int x1, y1;
+
+                    OFFSETWH(x1, y1, x, y, dir, w, h);
+
+                    /*
+                     * If the tile does have an edge going out in this
+                     * direction, we must check whether it joins up
+                     * (without being blocked by a barrier) to an edge
+                     * in the next cell along. If so, we unify around
+                     * the edge-centre vertex by joining each side of
+                     * this edge to the appropriate side of the next
+                     * cell's edge; otherwise, the edge is a stub (the
+                     * only one reaching the edge-centre vertex) and
+                     * so we join its own two sides together.
+                     */
+                    if ((barriers && barriers[y*w+x] & dir) ||
+                        !(tiles[y1*w+x1] & F(dir))) {
+#if 0
+                        printf("tile edge stub %d,%d -> %c: merge %d,%d\n",
+                               x, y, (dir==L?'L':dir==U?'U':dir==R?'R':'D'),
+                               (y*w+x)*8+BEFORE(dir),
+                               (y*w+x)*8+AFTER(dir));
+#endif
+                        dsf_merge(dsf,
+                                  (y*w+x)*8+BEFORE(dir),
+                                  (y*w+x)*8+AFTER(dir));
+                    } else {
+#if 0
+                        printf("tile edge conn %d,%d -> %c: merge %d,%d\n",
+                               x, y, (dir==L?'L':dir==U?'U':dir==R?'R':'D'),
+                               (y*w+x)*8+BEFORE(dir),
+                               (y*w+x)*8+AFTER(F(dir)));
+#endif
+                        dsf_merge(dsf,
+                                  (y*w+x)*8+BEFORE(dir),
+                                  (y1*w+x1)*8+AFTER(F(dir)));
+#if 0
+                        printf("tile edge conn %d,%d -> %c: merge %d,%d\n",
+                               x, y, (dir==L?'L':dir==U?'U':dir==R?'R':'D'),
+                               (y*w+x)*8+AFTER(dir),
+                               (y*w+x)*8+BEFORE(F(dir)));
+#endif
+                        dsf_merge(dsf,
+                                  (y*w+x)*8+AFTER(dir),
+                                  (y1*w+x1)*8+BEFORE(F(dir)));
+                    }
+                } else {
+                    /*
+                     * As discussed above, if this edge doesn't even
+                     * exist, we unify its two sides anyway to
+                     * complete the unification of whatever edges do
+                     * exist in this cell.
+                     */
+#if 0
+                    printf("tile edge missing %d,%d -> %c: merge %d,%d\n",
+                           x, y, (dir==L?'L':dir==U?'U':dir==R?'R':'D'),
+                           (y*w+x)*8+BEFORE(dir),
+                           (y*w+x)*8+AFTER(dir));
+#endif
+                    dsf_merge(dsf,
+                              (y*w+x)*8+BEFORE(dir),
+                              (y*w+x)*8+AFTER(dir));
+                }
+            }
+        }
+    }
+
+#if 0
+    printf("--- end\n");
+#endif
+    loops = snewn(w*h, int);
+
+    /*
+     * Now we've done the loop detection and can read off the output
+     * flags trivially: any piece of connection whose two sides are
+     * not in the same dsf class is part of a loop.
+     */
+    for (y = 0; y < h; y++) {
+        for (x = 0; x < w; x++) {
+            int dir;
+            int tile = tiles[y*w+x];
+            int flags = 0;
+            for (dir = 1; dir < 0x10; dir <<= 1) {
+                if ((tile & dir) &&
+                    (dsf_canonify(dsf, (y*w+x)*8+BEFORE(dir)) !=
+                     dsf_canonify(dsf, (y*w+x)*8+AFTER(dir)))) {
+                    flags |= LOOP(dir);
+                }
+            }
+            loops[y*w+x] = flags;
+        }
+    }
+
+    sfree(dsf);
+    return loops;
+}
+
+static int *compute_loops(const game_state *state)
+{
+    return compute_loops_inner(state->width, state->height, state->wrapping,
+                               state->tiles, state->barriers);
+}
+
 struct game_ui {
     int org_x, org_y; /* origin */
     int cx, cy;       /* source tile (game coordinates) */
@@ -1930,7 +2197,7 @@ struct game_drawstate {
     int width, height;
     int org_x, org_y;
     int tilesize;
-    unsigned char *visible;
+    int *visible;
 };
 
 /* ----------------------------------------------------------------------
@@ -2304,14 +2571,16 @@ static game_state *execute_move(const game_state *from, const char *move)
 static game_drawstate *game_new_drawstate(drawing *dr, const game_state *state)
 {
     game_drawstate *ds = snew(game_drawstate);
+    int i;
 
     ds->started = FALSE;
     ds->width = state->width;
     ds->height = state->height;
     ds->org_x = ds->org_y = -1;
-    ds->visible = snewn(state->width * state->height, unsigned char);
+    ds->visible = snewn(state->width * state->height, int);
     ds->tilesize = 0;                  /* undecided yet */
-    memset(ds->visible, 0xFF, state->width * state->height);
+    for (i = 0; i < state->width * state->height; i++)
+        ds->visible[i] = -1;
 
     return ds;
 }
@@ -2368,6 +2637,13 @@ static float *game_colours(frontend *fe, int *ncolours)
     ret[COL_BARRIER * 3 + 0] = 1.0F;
     ret[COL_BARRIER * 3 + 1] = 0.0F;
     ret[COL_BARRIER * 3 + 2] = 0.0F;
+
+    /*
+     * Highlighted loops are red as well.
+     */
+    ret[COL_LOOP * 3 + 0] = 1.0F;
+    ret[COL_LOOP * 3 + 1] = 0.0F;
+    ret[COL_LOOP * 3 + 2] = 0.0F;
 
     /*
      * Unpowered endpoints are blue.
@@ -2539,9 +2815,14 @@ static void draw_tile(drawing *dr, const game_state *state, game_drawstate *ds,
             ey = (TILE_SIZE - TILE_BORDER - 1.0F) / 2.0F * Y(dir);
             MATMUL(tx, ty, matrix, ex, ey);
             draw_line(dr, bx+(int)cx, by+(int)cy,
-		      bx+(int)(cx+tx), by+(int)(cy+ty), col);
+		      bx+(int)(cx+tx), by+(int)(cy+ty),
+                      (tile & LOOP(dir)) ? COL_LOOP : col);
         }
     }
+    /* If we've drawn any loop-highlighted arms, make sure the centre
+     * point is loop-coloured rather than a later arm overwriting it. */
+    if (tile & (RLOOP | ULOOP | LLOOP | DLOOP))
+        draw_rect(dr, bx+(int)cx, by+(int)cy, 1, 1, COL_LOOP);
 
     /*
      * Draw the box in the middle. We do this in blue if the tile
@@ -2610,7 +2891,9 @@ static void draw_tile(drawing *dr, const game_state *state, game_drawstate *ds,
              */
             draw_rect_coords(dr, px-vx, py-vy, px+lx+vx, py+ly+vy, COL_WIRE);
             draw_rect_coords(dr, px, py, px+lx, py+ly,
-                             (tile & ACTIVE) ? COL_POWERED : COL_WIRE);
+                             ((tile & LOOP(dir)) ? COL_LOOP :
+                              (tile & ACTIVE) ? COL_POWERED :
+                              COL_WIRE));
         } else {
             /*
              * The other tile extends into our border, but isn't
@@ -2684,6 +2967,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
 {
     int x, y, tx, ty, frame, last_rotate_dir, moved_origin = FALSE;
     unsigned char *active;
+    int *loops;
     float angle = 0.0;
 
     /*
@@ -2777,11 +3061,13 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
      * Draw any tile which differs from the way it was last drawn.
      */
     active = compute_active(state, ui->cx, ui->cy);
+    loops = compute_loops(state);
 
     for (x = 0; x < ds->width; x++)
         for (y = 0; y < ds->height; y++) {
-            unsigned char c = tile(state, GX(x), GY(y)) |
-                              index(state, active, GX(x), GY(y));
+            int c = tile(state, GX(x), GY(y)) |
+                index(state, active, GX(x), GY(y)) |
+                index(state, loops, GX(x), GY(y));
             int is_src = GX(x) == ui->cx && GY(y) == ui->cy;
             int is_anim = GX(x) == tx && GY(y) == ty;
             int is_cursor = ui->cur_visible &&
@@ -2808,12 +3094,12 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
 
             if (moved_origin ||
                 index(state, ds->visible, x, y) != c ||
-                index(state, ds->visible, x, y) == 0xFF ||
+                index(state, ds->visible, x, y) == -1 ||
                 is_src || is_anim || is_cursor) {
                 draw_tile(dr, state, ds, x, y, c,
                           is_src, (is_anim ? angle : 0.0F), is_cursor);
                 if (is_src || is_anim || is_cursor)
-                    index(state, ds->visible, x, y) = 0xFF;
+                    index(state, ds->visible, x, y) = -1;
                 else
                     index(state, ds->visible, x, y) = c;
             }
@@ -2849,6 +3135,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
     }
 
     sfree(active);
+    sfree(loops);
 }
 
 static float game_anim_length(const game_state *oldstate,

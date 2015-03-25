@@ -3842,7 +3842,7 @@ static char *spec_to_dsf(const char **pdesc, int **pdsf, int cr, int area)
 	}
 	desc++;
 
-	adv = (c != 25);	       /* 'z' is a special case */
+	adv = (c != 26);	       /* 'z' is a special case */
 
 	while (c-- > 0) {
 	    int p0, p1;
@@ -3851,7 +3851,11 @@ static char *spec_to_dsf(const char **pdesc, int **pdsf, int cr, int area)
 	     * Non-edge; merge the two dsf classes on either
 	     * side of it.
 	     */
-	    assert(pos < 2*cr*(cr-1));
+	    if (pos >= 2*cr*(cr-1)) {
+                sfree(dsf);
+                return "Too much data in block structure specification";
+            }
+
 	    if (pos < cr*(cr-1)) {
 		int y = pos/(cr-1);
 		int x = pos%(cr-1);

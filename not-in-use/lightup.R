@@ -20,5 +20,5 @@ GAMES += lightup
 !end
 
 !begin >gamedesc.txt
-lightup:lightup.exe:Light Up:Light-bulb placing puzzle
+lightup:lightup.exe:Light Up:Light-bulb placing puzzle:Place bulbs to light up all the squares.
 !end

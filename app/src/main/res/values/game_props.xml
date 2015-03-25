@@ -8,6 +8,7 @@
 		<item>fifteen</item>
 		<item>filling</item>
 		<item>flip</item>
+		<item>flood</item>
 		<item>galaxies</item>
 		<item>guess</item>
 		<item>inertia</item>
@@ -32,6 +33,7 @@
 		<item>solo</item>
 		<item>tents</item>
 		<item>towers</item>
+		<item>tracks</item>
 		<item>twiddle</item>
 		<item>undead</item>
 		<item>unequal</item>
@@ -44,10 +46,12 @@
 	This is for puzzles where the default preset has small squares, or diagonals are needed.
 	Note that if a hardware D-pad or trackball is present, these are ignored. -->
 	<bool name="blackbox_arrows_default">true</bool>
+	<bool name="flood_arrows_default">true</bool>
 	<bool name="inertia_arrows_default">true</bool>
 	<bool name="mines_arrows_default">true</bool>
 	<bool name="pattern_arrows_default">true</bool>
 	<bool name="slant_arrows_default">true</bool>
+	<bool name="tracks_arrows_default">true</bool>
 	<!-- How to handle drag and revert for each game: -->
 	<!-- By default, and for games where a touch means move in that direction, allow a swipe
 	to do the same and don't try to revert anything: if the user tries to swipe in the
@@ -67,6 +71,7 @@
 	<string translatable="false" name="pegs_drag_mode">off_screen</string>
 	<string translatable="false" name="rectangles_drag_mode">off_screen</string>
 	<string translatable="false" name="tents_drag_mode">off_screen</string>
+	<string translatable="false" name="tracks_drag_mode">off_screen</string>
 	<string translatable="false" name="untangle_drag_mode">off_screen</string>
 	<!-- For games where dragging something off the board would be harmful, revert by
 	dragging back to the start of the drag instead. -->
@@ -80,6 +85,7 @@
 	<string translatable="false" name="blackbox_drag_mode">prevent</string>
 	<string translatable="false" name="dominosa_drag_mode">prevent</string>
 	<string translatable="false" name="flip_drag_mode">prevent</string>
+	<string translatable="false" name="flood_drag_mode">prevent</string>
 	<string translatable="false" name="keen_drag_mode">prevent</string>
 	<string translatable="false" name="lightup_drag_mode">prevent</string>
 	<string translatable="false" name="loopy_drag_mode">prevent</string>
