@@ -101,7 +101,7 @@ development docs, and add the new game to the places I've gone and duplicated
 the list just for Android...
 
 app/src/main/res/values/strings.xml
-app/src/main/res/values/arrays.xml
+app/src/main/res/values/game_props.xml
 app/src/main/jni/list.c
 ...and possibly others.
 
