@@ -15,7 +15,8 @@ Create a .R file for it which:
  - adds it as a Windows build target, with the optional resource
    file
  - adds auxiliary solver binaries if any
- - adds it to $(GAMES) in the GTK makefile, for `make install'
+ - adds it to $(GAMES) in both the automake and GTK makefiles, for
+   `make install'
  - adds it to list.c for the OS X binary
  - adds it to gamedesc.txt, with its Windows executable name, display
    name, and slightly longer description.

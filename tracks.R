@@ -8,7 +8,7 @@ tracks  : [G] WINDOWS COMMON tracks TRACKS_EXTRA tracks.res|noicon.res
 
 ALL += tracks[COMBINED] TRACKS_EXTRA
 
-!begin gtk
+!begin am gtk
 GAMES += tracks
 !end
 
