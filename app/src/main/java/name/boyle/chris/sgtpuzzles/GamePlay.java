@@ -862,7 +862,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 						final String currentParams = orientGameType(getCurrentParams());
 						refreshPresets(currentParams);
 						gameView.setDragModeFor(currentBackend);
-						final String title = getGameTitle();
+						final String title = getString(getResources().getIdentifier("name_"+currentBackend, "string", getPackageName()));
 						setTitle(title);
 						getSupportActionBar().setTitle(title);
 						final int flags = getUIVisibility();
@@ -1625,7 +1625,6 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 	native void setCursorVisibility(boolean visible);
 	native float[] getColours();
 	native String[] getPresets();
-	native String getGameTitle();
 	native int getUIVisibility();
 
 	static {

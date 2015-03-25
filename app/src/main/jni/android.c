@@ -747,10 +747,6 @@ jobjectArray JNICALL getPresets(JNIEnv *env, jobject _obj)
 	return ret;
 }
 
-jstring JNICALL getGameTitle(JNIEnv *env, jobject _obj) {
-	return (*env)->NewStringUTF(env, thegame->name);
-}
-
 jint JNICALL getUIVisibility(JNIEnv *env, jobject _obj) {
 	return (midend_can_undo(fe->me))
 			+ (midend_can_redo(fe->me) << 1)
@@ -871,7 +867,6 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
 		{ "setCursorVisibility", "(Z)V", setCursorVisibility },
 		{ "getColours", "()[F", getColours },
 		{ "getPresets", "()[Ljava/lang/String;", getPresets },
-		{ "getGameTitle", "()Ljava/lang/String;", getGameTitle },
 		{ "getUIVisibility", "()I", getUIVisibility },
 	};
 	(*env)->RegisterNatives(env, cls, methods, sizeof(methods)/sizeof(JNINativeMethod));
