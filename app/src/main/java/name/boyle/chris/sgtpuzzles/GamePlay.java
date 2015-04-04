@@ -880,11 +880,9 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 						final boolean hasArrows = computeArrowMode(currentBackend).hasArrows();
 						setCursorVisibility(hasArrows);
 						if (changingGame) {
-							if (prefs.getBoolean(CONTROLS_REMINDERS_KEY, true) && ! hasArrows) {
-								final int reminderId = getResources().getIdentifier(
-										"toast_no_arrows_" + currentBackend, "string", getPackageName());
-								if (reminderId > 0) {
-									Toast.makeText(GamePlay.this, reminderId, Toast.LENGTH_LONG).show();
+							if (prefs.getBoolean(CONTROLS_REMINDERS_KEY, true)) {
+								if (hasArrows || ! showToastIfExists("toast_no_arrows_" + currentBackend)) {
+									showToastIfExists("toast_" + currentBackend);
 								}
 							}
 						}
@@ -901,6 +899,15 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 				abort(e.getMessage(), launch.isFromChooser());  // internal error :-(
 			}
 		}}).start();
+	}
+
+	private boolean showToastIfExists(final String name) {
+		final int reminderId = getResources().getIdentifier(name, "string", getPackageName());
+		if (reminderId <= 0) {
+			return false;
+		}
+		Toast.makeText(GamePlay.this, reminderId, Toast.LENGTH_LONG).show();
+		return true;
 	}
 
 	private void refreshColours() {

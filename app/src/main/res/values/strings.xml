@@ -191,6 +191,9 @@ Version %s"</string>
     <string name="desc_unequal">Enter digits so every row and column contains exactly one of each digit and the greater-than signs are satisfied.</string>
     <string name="desc_unruly">Colour every square either black or white such that no three consecutive squares, horizontally or vertically, are the same colour, and each row and column contains the same number of black and white squares.</string>
     <string name="desc_untangle">Move points around until no lines cross.</string>
+    <!-- Non-obvious controls generally -->
+    <string name="toast_flood">Click a colour to flood fill from the top left</string>
+    <string name="toast_tracks">Click two edges of a square to place track</string>
     <!-- Non-obvious aspects of controls when arrow keys disabled (specifically because left/right mouse buttons hidden), shown in a toast -->
     <string name="toast_no_arrows_dominosa">Long press to mark a divider</string>
     <string name="toast_no_arrows_galaxies">Long press and drag to place an arrow marker</string>
