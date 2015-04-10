@@ -1982,7 +1982,7 @@ static void draw_drag_indicator(drawing *dr, game_drawstate *ds,
         /* Draw an arrow pointing away from/towards the origin cell. */
         int ox = COORD(ui->sx) + TILE_SIZE/2, oy = COORD(ui->sy) + TILE_SIZE/2;
         double tana, offset;
-        double xdiff = fabs(ox - ui->dx), ydiff = fabs(oy - ui->dy);
+        double xdiff = abs(ox - ui->dx), ydiff = abs(oy - ui->dy);
 
         if (xdiff == 0) {
             ang = (oy > ui->dy) ? 0.0F : PI;
