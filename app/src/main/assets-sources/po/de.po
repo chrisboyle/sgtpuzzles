@@ -7288,6 +7288,12 @@ msgid ""
 "colour). As you do this, more and more of the grid becomes connected to the "
 "starting square."
 msgstr ""
+"Sie bekommen ein Gitter von Quadraten, zufällig in mehreren Farben gefärbt. "
+"In jedem Spielzug können Sie in einer Farbe Ihrer Wahl von der oberen linken "
+"Quadrat aus füllen. Jeder Quadrat erreichbar vom Startplatz durch einen "
+"orthogonal verbunden Pfad der Quadrate alle die gleiche Farbe wird in der "
+"neuen Farbe gefüllt werden. Auf diese Weise wird mehr und mehr von dem Gitter "
+"auf das Startfeld verbunden."
 
 #. type: Plain text
 #: puzzles.but:3216
@@ -7297,6 +7303,10 @@ msgid ""
 "its own internal solver. You win if you can make the whole grid the same "
 "colour in that many moves or fewer."
 msgstr ""
+"Ihr Ziel ist es, das gesamte Netz der gleichen Farbe in so wenig Spielzügen "
+"wie möglich zu machen. Das Spiel wird eine Obergrenze für die Anzahl der Züge "
+"setzen, basierend auf seiner eigenen internen Löser. Sie gewinnen, wenn Sie "
+"das gesamte Netz in der gleichen Farbe in so viele Züge oder weniger machen."
 
 #. type: Plain text
 #: puzzles.but:3219
@@ -7304,6 +7314,9 @@ msgid ""
 "I saw this game (with a fixed grid size, fixed number of colours, and fixed "
 "move limit) at \\W{http://floodit.appspot.com}\\cw{floodit.appspot.com}."
 msgstr ""
+"Ich sah das Spiel (mit einem festen Gittergröße, feste Anzahl von Farben und "
+"festen Bewegungsweite) bei "
+"\\W{http://floodit.appspot.com}\\cw{floodit.appspot.com}."
 
 #. type: Plain text
 #: puzzles.but:3221
@@ -7318,6 +7331,11 @@ msgid ""
 "square you clicked. Clicking a square the same colour as the top left corner "
 "has no effect, and therefore does not count as a move."
 msgstr ""
+"Um Flood zu spielen, klicken Sie in ein Quadrat. Die linke obere Ecke und "
+"alles, was damit verbunden ist, wird mit Flut gefüllt mit der Farbe des "
+"Quadrats, den Sie angeklickt haben. Ein Klick auf einen Quadrat der gleichen "
+"Farbe wie der linken oberen Ecke hat keine Wirkung, und daher zählt nicht als "
+"Spielzug."
 
 #. type: Plain text
 #: puzzles.but:3232
@@ -7326,6 +7344,9 @@ msgid ""
 "around the grid. Pressing the return key will fill the top left corner in "
 "the colour of the square under the cursor."
 msgstr ""
+"Sie können auch die Pfeiltasten verwenden, um einen Positionsanzeiger über "
+"das Gitter zu bewegen. Drücken der Eingabetaste wird die linke obere Ecke mit "
+"Flut mit der Farbe der aktuellen Position füllen."
 
 #. type: Plain text
 #: puzzles.but:3236
@@ -7344,11 +7365,14 @@ msgid ""
 "colours there would only be one legal move at any stage, hence no choice to "
 "make at all), and at most 10."
 msgstr ""
+"Anzahl an verschiedenen Farben, die zum Auffüllen des Gitters verwandt "
+"werden. Muss mindestens 3 and höchstens 10 sein. Bei 2 Farben gäbe es immer "
+"nür einen gültigen Spielzug, und deswegen nie eine Wahl zu machen."
 
 #. type: e{#1}
 #: puzzles.but:3251
 msgid "Extra moves permitted"
-msgstr ""
+msgstr "Zusätzliche Spielzüge erlaubt."
 
 #. type: Plain text
 #: puzzles.but:3258
@@ -7360,6 +7384,13 @@ msgid ""
 "be just as efficient as Flood's automated solver, and a larger value makes "
 "it easier."
 msgstr ""
+"Steuert die Schwierigkeit des erstellten Puzzles, indem die Grenze für die "
+"Anzahl der Spielzüge erhöht wird. In jedem neuen Gitter wird Flood eine "
+"interne Löser ausführen, um eine eigene Lösung zu erzeugen. Dann wird "
+"auf die Länge des Lösung um Spielzugsgrenze des Spiels zu erzeugen der Wert "
+"in diesem Feld hinzugefügt. So ein Wert von 0 erfordert, dass Sie genauso "
+"effizient sein wie die automatische Löser und ein größerer Wert macht es "
+"einfacher."
 
 #. type: Plain text
 #: puzzles.but:3267
@@ -7369,6 +7400,11 @@ msgid ""
 "set this value to 0 and then try to solve a grid in \\e{strictly fewer} "
 "moves than the limit you're given!)"
 msgstr ""
+"(Beachten Sie, dass der interne Solver nicht unbedingt den kürzesten "
+"mögliche Lösung findet, aber ich glaube, es ist ziemlich nah dran. "
+"Für eine echte Herausforderung, setzen Sie diesen Wert auf 0 und dann "
+"versuchen, ein Gitter in streng weniger Spielzüge als der Grenzwert zu "
+"lösen!)"
 
 #. type: Plain text
 #: puzzles.but:3269
@@ -7388,6 +7424,10 @@ msgid ""
 "contain the same number of track segments as are indicated in the clues to "
 "the top and right of the grid."
 msgstr ""
+"Sie bekommen ein Gitter von Quadraten, von denen einige Schienen enthalten. "
+"Sie müssen die Bahnstrecke von A bis B ausfüllen. Die Anzahl der "
+"Bahnabschnitte in jeder Zeile und in jeder Spalte muss zu der Zahl, die am "
+"Rande des Gitters angegeben ist passen."
 
 #. type: Plain text
 #: puzzles.but:3279
@@ -7395,6 +7435,8 @@ msgid ""
 "There are only straight and 90 degree curved rails, and the track may not "
 "cross itself."
 msgstr ""
+"Es gibt nur gerade und 90 Grad gebogene Schienen, und die Strecke kann sich "
+"nicht kreuzen."
 
 #. type: Plain text
 #: puzzles.but:3281
@@ -7413,6 +7455,9 @@ msgid ""
 "the two squares. Right-clicking on an edge adds a cross on the edge, "
 "indicating no track is possible there."
 msgstr ""
+"Durch Linksklick auf eine Gitterkante wird ein Bahnabschnitt zwischen die "
+"zwei Quadraten gezeichnet. Durch Rechtsklick auf eine Gitterkante wird ein "
+"Kreuz dort gezeichnet, was markiert, dass kein Bahnabschnitt dort möglich ist."
 
 #. type: Plain text
 #: puzzles.but:3294
@@ -7422,6 +7467,10 @@ msgid ""
 "yet. Right-clicking in a square adds a cross indicating it contains no track "
 "segment."
 msgstr ""
+"Ein Linksklick in ein Quadrat färbt es um dass der Quadrat ein Bahnabschnitt "
+"enthält zu markieren, selbst wenn Sie wissen noch nicht, welche Gitterkanten "
+"es kreuzt. Ein Rechtsklick in ein Quadrat zeichnet ein Kreuz, um zu "
+"markieren, dass der Quadrat kein Bahnabschnitt enthält."
 
 #. type: Plain text
 #: puzzles.but:3298
@@ -7430,6 +7479,9 @@ msgid ""
 "is-track or is-not-track indicators, useful for filling in rows or columns "
 "to match the clue."
 msgstr ""
+"Durch links- oder rechtsklicken und ziehen wird eine Reihe von Quadraten als "
+"Bahnabschnitte enthalten oder nicht enthalten markiert, was bei Zeilen oder "
+"Spalten um den Hinweis passen auszufüllen hilft."
 
 #. type: Plain text
 #: puzzles.but:3302
@@ -7443,11 +7495,14 @@ msgid ""
 "required to make more deductions regarding disregarding moves that would "
 "lead to impossible crossings later."
 msgstr ""
+"Steuert die Schwierigkeit des erstellten Puzzles. Auf der Stufe »Tricky« "
+"müssen Sie schwierigere Schlussfolgerungen über Spielzüge, die später zu "
+"unmögliche Kreuzungen führen würden machen."
 
 #. type: e{#1}
 #: puzzles.but:3317
 msgid "Disallow consecutive 1 clues"
-msgstr ""
+msgstr "Aufeinanderfolgenden 1-Hinweise verbieten"
 
 #. type: Plain text
 #: puzzles.but:3324
@@ -7458,6 +7513,12 @@ msgid ""
 "straight boring segments of track and make the games more twiddly and "
 "interesting. If you want to restore the possibility, turn this option off."
 msgstr ""
+"Steuert ob der Erzeugungsalgorithmus 1-Hinweise auf zwei benachbarten "
+"Zeilen oder Spalten, oder auf der Zeile oder Spalte von dem Ende der Spur"
+"erlaubt. Standardmäßig wird dies nicht erlaubt, um lange gerade langweilige "
+"Streckenabschnitte zu vermeiden und die Spiele schlängelnder und "
+"interessanter zu machen. Um die Möglichkeit wiederherzustellen, deaktivieren "
+"Sie diese Option."
 
 #. type: Plain text
 #: puzzles.but:3327
