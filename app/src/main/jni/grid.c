@@ -1069,7 +1069,7 @@ void grid_find_incentre(grid_face *f)
                     eq[2] = eqs[0][3]*eqs[1][2] - eqs[1][3]*eqs[0][2];
 
                     /* Parametrise x and y in terms of some t. */
-                    if (abs(eq[0]) < abs(eq[1])) {
+                    if (fabs(eq[0]) < fabs(eq[1])) {
                         /* Parameter is x. */
                         xt[0] = 1; xt[1] = 0;
                         yt[0] = -eq[0]/eq[1]; yt[1] = eq[2]/eq[1];
