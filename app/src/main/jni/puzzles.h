@@ -194,6 +194,8 @@ void draw_polygon(drawing *dr, int *coords, int npoints,
                   int fillcolour, int outlinecolour);
 void draw_circle(drawing *dr, int cx, int cy, int radius,
                  int fillcolour, int outlinecolour);
+void draw_thick_circle(drawing *dr, int cx, int cy, int radius,
+                 int fillcolour, int outlinecolour, int strokeWidth);
 void draw_thick_line(drawing *dr, float thickness,
 		     float x1, float y1, float x2, float y2, int colour);
 void clip(drawing *dr, int x, int y, int w, int h);
@@ -570,6 +572,8 @@ struct drawing_api {
 			 int fillcolour, int outlinecolour);
     void (*draw_circle)(void *handle, int cx, int cy, int radius,
 			int fillcolour, int outlinecolour);
+    void (*draw_thick_circle)(void *handle, int cx, int cy, int radius,
+			int fillcolour, int outlinecolour, int strokeWidth);
     void (*draw_update)(void *handle, int x, int y, int w, int h);
     void (*clip)(void *handle, int x, int y, int w, int h);
     void (*unclip)(void *handle);

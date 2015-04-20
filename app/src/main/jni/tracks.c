@@ -2188,27 +2188,6 @@ static void draw_circle_sleepers(drawing *dr, game_drawstate *ds,
     }
 }
 
-static void draw_thick_circle_outline(drawing *dr, float thickness,
-                                      float cx, float cy, float r,
-                                      int colour)
-{
-    float circ4 = 0.5F * (float)PI * r, ang, x1, y1, x2, y2;
-    int i, nseg;
-
-    nseg = (int)(circ4 / 4.0F)*4; /* ensure a quarter-circle has a whole #segs */
-    ang = 2.0F*(float)PI / nseg;
-
-    for (i = 0; i < nseg; i++) {
-        float th = ang * i, th2 = ang * (i+1);
-        x1 = cx + r*(float)cos(th);
-        x2 = cx + r*(float)cos(th2);
-        y1 = cy + r*(float)sin(th);
-        y2 = cy + r*(float)sin(th2);
-        debug(("circ outline: x=%.2f -> %.2f, thick=%.2f", x1, x2, thickness));
-        draw_thick_line(dr, thickness, x1, y1, x2, y2, colour);
-    }
-}
-
 static void draw_tracks_specific(drawing *dr, game_drawstate *ds,
                                  int x, int y, unsigned int flags,
                                  int ctrack, int csleeper)
@@ -2245,10 +2224,10 @@ static void draw_tracks_specific(drawing *dr, game_drawstate *ds,
 
         draw_circle_sleepers(dr, ds, cx, cy, (float)(5*t6), thick_sleeper, csleeper);
 
-        draw_thick_circle_outline(dr, thick_track, (float)cx, (float)cy,
-                                  2*t3, ctrack);
-        draw_thick_circle_outline(dr, thick_track, (float)cx, (float)cy,
-                                  t3, ctrack);
+        draw_thick_circle(dr, (float)cx, (float)cy,
+                                  2*t3, -1, ctrack, thick_track);
+        draw_thick_circle(dr, (float)cx, (float)cy,
+                                  t3, -1, ctrack, thick_track);
 
         return;
     }

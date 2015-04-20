@@ -671,16 +671,29 @@ public class GameView extends View
 	}
 
 	@UsedByJNI
-	void drawCircle(int x, int y, int r, int lineColour, int fillColour)
+	void drawCircle(int x, int y, int r, int lineColour, int fillColour, int strokeWidth)
 	{
+		float xf = x, yf = y;
+		if (strokeWidth > 1) {
+			// Horrible hack to get things to line up for now (in Tracks).
+			// Really this should always apply, and polygons should be similarly adjusted
+			// (this is all for pixel-centred coordinates) but that has other effects,
+			// so check e.g. Map, Light Up, Undead carefully on high zoom.
+			xf -= 0.5f;
+			yf -= 0.5f;
+		}
 		if (fillColour != -1) {
 			paint.setColor(colours[fillColour]);
 			paint.setStyle(Paint.Style.FILL);
-			canvas.drawOval(new RectF(x-r, y-r, x+r, y+r), paint);
+			canvas.drawOval(new RectF(xf-r, yf-r, xf+r, yf+r), paint);
 		}
 		paint.setColor(colours[lineColour]);
 		paint.setStyle(Paint.Style.STROKE);
-		canvas.drawOval(new RectF(x-r, y-r, x+r, y+r), paint);
+		if (strokeWidth > 1) {
+			paint.setStrokeWidth(strokeWidth + 1);
+		}
+		canvas.drawOval(new RectF(xf-r, yf-r, xf+r, yf+r), paint);
+		paint.setStrokeWidth(1.f);
 	}
 
 	@UsedByJNI

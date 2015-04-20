@@ -129,6 +129,13 @@ void draw_circle(drawing *dr, int cx, int cy, int radius,
 			 outlinecolour);
 }
 
+void draw_thick_circle(drawing *dr, int cx, int cy, int radius,
+                 int fillcolour, int outlinecolour, int strokeWidth)
+{
+    dr->api->draw_thick_circle(dr->handle, cx, cy, radius, fillcolour,
+			 outlinecolour, strokeWidth);
+}
+
 void draw_update(drawing *dr, int x, int y, int w, int h)
 {
     if (dr->api->draw_update)

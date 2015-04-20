@@ -186,7 +186,15 @@ void android_draw_circle(void *handle, int cx, int cy, int radius,
 {
 	CHECK_DR_HANDLE
 	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
-	(*env)->CallVoidMethod(env, gameView, drawCircle, cx+fe->ox, cy+fe->oy, radius, outlinecolour, fillcolour);
+	(*env)->CallVoidMethod(env, gameView, drawCircle, cx+fe->ox, cy+fe->oy, radius, outlinecolour, fillcolour, 1);
+}
+
+void android_draw_thick_circle(void *handle, int cx, int cy, int radius,
+		 int fillcolour, int outlinecolour, int strokeWidth)
+{
+	CHECK_DR_HANDLE
+	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
+	(*env)->CallVoidMethod(env, gameView, drawCircle, cx+fe->ox, cy+fe->oy, radius, outlinecolour, fillcolour, strokeWidth);
 }
 
 struct blitter {
@@ -262,6 +270,7 @@ const struct drawing_api android_drawing = {
 	android_draw_line,
 	android_draw_poly,
 	android_draw_circle,
+	android_draw_thick_circle,
 	NULL, // draw_update,
 	android_clip,
 	android_unclip,
@@ -826,7 +835,7 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
 	dialogAdd      = (*env)->GetMethodID(env, cls,  "dialogAdd", "(IILjava/lang/String;Ljava/lang/String;I)V");
 	dialogInit     = (*env)->GetMethodID(env, cls,  "dialogInit", "(ILjava/lang/String;)V");
 	dialogShow     = (*env)->GetMethodID(env, cls,  "dialogShow", "()V");
-	drawCircle     = (*env)->GetMethodID(env, vcls, "drawCircle", "(IIIII)V");
+	drawCircle     = (*env)->GetMethodID(env, vcls, "drawCircle", "(IIIIII)V");
 	drawLine       = (*env)->GetMethodID(env, vcls, "drawLine", "(IIIII)V");
 	drawPoly       = (*env)->GetMethodID(env, vcls,  "drawPoly", "([IIIII)V");
 	drawText       = (*env)->GetMethodID(env, vcls, "drawText", "(IIIIILjava/lang/String;)V");
