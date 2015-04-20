@@ -68,7 +68,7 @@ public class GameView extends View
 	ScaleGestureDetector scaleDetector = null;
 	GestureDetectorCompat gestureDetector;
 	private static final float MAX_ZOOM = 30.f;
-	private static final float ZOOM_OVERDRAW_PROPORTION = 0.5f;  // of a screen-full, in each direction, that you can see before checkerboard
+	private static final float ZOOM_OVERDRAW_PROPORTION = 0.25f;  // of a screen-full, in each direction, that you can see before checkerboard
 	final Point TEXTURE_SIZE_BEFORE_ICS = new Point(2048, 2048);
 	private int overdrawX, overdrawY;
 	private Matrix zoomMatrix = new Matrix(), zoomInProgressMatrix = new Matrix(),
