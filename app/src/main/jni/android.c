@@ -161,12 +161,16 @@ void android_draw_rect(void *handle, int x, int y, int w, int h, int colour)
 	(*env)->CallVoidMethod(env, gameView, fillRect, x + fe->ox, y + fe->oy, w, h, colour);
 }
 
-void android_draw_line(void *handle, int x1, int y1, int x2, int y2, 
-		int colour)
+void android_draw_thick_line(void *handle, float thickness, float x1, float y1, float x2, float y2, int colour)
 {
 	CHECK_DR_HANDLE
 	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
-	(*env)->CallVoidMethod(env, gameView, drawLine, x1 + fe->ox, y1 + fe->oy, x2 + fe->ox, y2 + fe->oy, colour);
+	(*env)->CallVoidMethod(env, gameView, drawLine, thickness, x1 + fe->ox, y1 + fe->oy, x2 + fe->ox, y2 + fe->oy, colour);
+}
+
+void android_draw_line(void *handle, int x1, int y1, int x2, int y2, int colour)
+{
+	android_draw_thick_line(handle, 1.f, x1, y1, x2, y2, colour);
 }
 
 void android_draw_poly(void *handle, int *coords, int npoints,
@@ -181,20 +185,16 @@ void android_draw_poly(void *handle, int *coords, int npoints,
 	(*env)->DeleteLocalRef(env, coordsj);  // prevent ref table exhaustion on e.g. large Mines grids...
 }
 
-void android_draw_circle(void *handle, int cx, int cy, int radius,
-		 int fillcolour, int outlinecolour)
+void android_draw_thick_circle(void *handle, float thickness, float cx, float cy, float radius, int fillcolour, int outlinecolour)
 {
 	CHECK_DR_HANDLE
 	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
-	(*env)->CallVoidMethod(env, gameView, drawCircle, cx+fe->ox, cy+fe->oy, radius, outlinecolour, fillcolour, 1);
+	(*env)->CallVoidMethod(env, gameView, drawCircle, thickness, cx+fe->ox, cy+fe->oy, radius, outlinecolour, fillcolour);
 }
 
-void android_draw_thick_circle(void *handle, int cx, int cy, int radius,
-		 int fillcolour, int outlinecolour, int strokeWidth)
+void android_draw_circle(void *handle, int cx, int cy, int radius, int fillcolour, int outlinecolour)
 {
-	CHECK_DR_HANDLE
-	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
-	(*env)->CallVoidMethod(env, gameView, drawCircle, cx+fe->ox, cy+fe->oy, radius, outlinecolour, fillcolour, strokeWidth);
+	android_draw_thick_circle(handle, 1.f, cx, cy, radius, fillcolour, outlinecolour);
 }
 
 struct blitter {
@@ -285,6 +285,7 @@ const struct drawing_api android_drawing = {
 	NULL, NULL,				   /* line_width, line_dotted */
 	android_text_fallback,
 	android_changed_state,
+	android_draw_thick_line,
 };
 
 void JNICALL keyEvent(JNIEnv *env, jobject _obj, jint x, jint y, jint keyval)
@@ -835,8 +836,8 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
 	dialogAdd      = (*env)->GetMethodID(env, cls,  "dialogAdd", "(IILjava/lang/String;Ljava/lang/String;I)V");
 	dialogInit     = (*env)->GetMethodID(env, cls,  "dialogInit", "(ILjava/lang/String;)V");
 	dialogShow     = (*env)->GetMethodID(env, cls,  "dialogShow", "()V");
-	drawCircle     = (*env)->GetMethodID(env, vcls, "drawCircle", "(IIIIII)V");
-	drawLine       = (*env)->GetMethodID(env, vcls, "drawLine", "(IIIII)V");
+	drawCircle     = (*env)->GetMethodID(env, vcls, "drawCircle", "(FFFFII)V");
+	drawLine       = (*env)->GetMethodID(env, vcls, "drawLine", "(FFFFFI)V");
 	drawPoly       = (*env)->GetMethodID(env, vcls,  "drawPoly", "([IIIII)V");
 	drawText       = (*env)->GetMethodID(env, vcls, "drawText", "(IIIIILjava/lang/String;)V");
 	fillRect       = (*env)->GetMethodID(env, vcls, "fillRect", "(IIIII)V");

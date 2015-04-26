@@ -43,7 +43,8 @@ public class GameView extends View
 	private Paint checkerboardPaint;
 	private final Bitmap[] blitters;
 	int[] colours = new int[0];
-	int w, h;
+	float density;
+	int w, h, wDip, hDip;
 	private final int longPressTimeout = ViewConfiguration.getLongPressTimeout();
 	private String hardwareKeys;
 	private enum TouchState { IDLE, WAITING_LONG_PRESS, DRAGGING, PINCH }
@@ -88,6 +89,7 @@ public class GameView extends View
 		super(context, attrs);
 		if (! isInEditMode())
 			this.parent = (GamePlay)context;
+		density = getResources().getDisplayMetrics().density;
 		bitmap = Bitmap.createBitmap(100, 100, BITMAP_CONFIG);  // for safety
 		canvas = new Canvas(bitmap);
 		paint = new Paint();
@@ -243,10 +245,10 @@ public class GameView extends View
 		} else if (exceedsTouchSlop(topLeft.x)) {
 			edges[3].onRelease();
 		}
-		if (bottomRight.x > w) {
-			zoomInProgressMatrix.preTranslate(bottomRight.x - w, 0);
-			if (userAction) hitEdge(1, bottomRight.x - w);
-		} else if (exceedsTouchSlop(w - bottomRight.x)) {
+		if (bottomRight.x > wDip) {
+			zoomInProgressMatrix.preTranslate(bottomRight.x - wDip, 0);
+			if (userAction) hitEdge(1, bottomRight.x - wDip);
+		} else if (exceedsTouchSlop(wDip - bottomRight.x)) {
 			edges[1].onRelease();
 		}
 		if (topLeft.y < 0) {
@@ -255,10 +257,10 @@ public class GameView extends View
 		} else if (exceedsTouchSlop(topLeft.y)) {
 			edges[0].onRelease();
 		}
-		if (bottomRight.y > h) {
-			zoomInProgressMatrix.preTranslate(0, bottomRight.y - h);
-			if (userAction) hitEdge(2, bottomRight.y - h);
-		} else if (exceedsTouchSlop(h - bottomRight.y)) {
+		if (bottomRight.y > hDip) {
+			zoomInProgressMatrix.preTranslate(0, bottomRight.y - hDip);
+			if (userAction) hitEdge(2, bottomRight.y - hDip);
+		} else if (exceedsTouchSlop(hDip - bottomRight.y)) {
 			edges[2].onRelease();
 		}
 		canvas.setMatrix(zoomMatrix);
@@ -297,8 +299,8 @@ public class GameView extends View
 				float factor = detector.getScaleFactor();
 				final float scale = getXScale(zoomMatrix) * getXScale(zoomInProgressMatrix);
 				final float nextScale = scale * factor;
-				final boolean wasZoomedOut = (scale == 1.f);
-				if (nextScale < 1.01f) {
+				final boolean wasZoomedOut = (scale == density);
+				if (nextScale < density + 0.01f) {
 					if (! wasZoomedOut) {
 						resetZoomMatrix();
 						redrawForZoomChange();
@@ -327,7 +329,9 @@ public class GameView extends View
 
 	private void resetZoomMatrix() {
 		zoomMatrix.reset();
-		zoomMatrix.preTranslate(overdrawX, overdrawY);
+		zoomMatrix.postTranslate(overdrawX, overdrawY);
+		zoomMatrix.postScale(density, density,
+				overdrawX, overdrawY);
 		zoomInProgressMatrix.reset();
 	}
 
@@ -549,6 +553,9 @@ public class GameView extends View
 	{
 		if( w <= 0 ) w = 1;
 		if( h <= 0 ) h = 1;
+		wDip = Math.round((float)w/density); hDip = Math.round((float)h/density);
+		if( w <= 0 ) wDip = 1;
+		if( h <= 0 ) hDip = 1;
 		if (bitmap != null) bitmap.recycle();
 		overdrawX = Math.round(ZOOM_OVERDRAW_PROPORTION * w);
 		overdrawY = Math.round(ZOOM_OVERDRAW_PROPORTION * h);
@@ -635,10 +642,12 @@ public class GameView extends View
 	}
 
 	@UsedByJNI
-	void drawLine(int x1, int y1, int x2, int y2, int colour)
+	void drawLine(float thickness, float x1, float y1, float x2, float y2, int colour)
 	{
 		paint.setColor(colours[colour]);
+		paint.setStrokeWidth(Math.max(thickness, 1.f));
 		canvas.drawLine(x1, y1, x2, y2, paint);
+		paint.setStrokeWidth(1.f);
 	}
 
 	@UsedByJNI
@@ -671,28 +680,21 @@ public class GameView extends View
 	}
 
 	@UsedByJNI
-	void drawCircle(int x, int y, int r, int lineColour, int fillColour, int strokeWidth)
+	void drawCircle(float thickness, float x, float y, float r, int lineColour, int fillColour)
 	{
-		float xf = x, yf = y;
-		if (strokeWidth > 1) {
-			// Horrible hack to get things to line up for now (in Tracks).
-			// Really this should always apply, and polygons should be similarly adjusted
-			// (this is all for pixel-centred coordinates) but that has other effects,
-			// so check e.g. Map, Light Up, Undead carefully on high zoom.
-			xf -= 0.5f;
-			yf -= 0.5f;
-		}
+		if (r <= 0.5f) fillColour = lineColour;
+		r = Math.max(r, 0.4f);
 		if (fillColour != -1) {
 			paint.setColor(colours[fillColour]);
 			paint.setStyle(Paint.Style.FILL);
-			canvas.drawOval(new RectF(xf-r, yf-r, xf+r, yf+r), paint);
+			canvas.drawCircle(x, y, r, paint);
 		}
 		paint.setColor(colours[lineColour]);
 		paint.setStyle(Paint.Style.STROKE);
-		if (strokeWidth > 1) {
-			paint.setStrokeWidth(strokeWidth + 1);
+		if (thickness > 1.f) {
+			paint.setStrokeWidth(thickness);
 		}
-		canvas.drawOval(new RectF(xf-r, yf-r, xf+r, yf+r), paint);
+		canvas.drawCircle(x, y, r, paint);
 		paint.setStrokeWidth(1.f);
 	}
 

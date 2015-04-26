@@ -2210,10 +2210,10 @@ static void draw_cell_background(drawing *dr, game_drawstate *ds,
 static void draw_circle_or_point(drawing *dr, int cx, int cy, int radius,
                                  int colour)
 {
-    if (radius > 0)
+    /*if (radius > 0)*/
         draw_circle(dr, cx, cy, radius, colour, colour);
-    else
-        draw_rect(dr, cx, cy, 1, 1, colour);
+    /*else
+        draw_rect(dr, cx, cy, 1, 1, colour);*/
 }
 
 static void draw_monster(drawing *dr, game_drawstate *ds, int x, int y,

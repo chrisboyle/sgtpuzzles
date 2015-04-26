@@ -2224,10 +2224,10 @@ static void draw_tracks_specific(drawing *dr, game_drawstate *ds,
 
         draw_circle_sleepers(dr, ds, cx, cy, (float)(5*t6), thick_sleeper, csleeper);
 
-        draw_thick_circle(dr, (float)cx, (float)cy,
-                                  2*t3, -1, ctrack, thick_track);
-        draw_thick_circle(dr, (float)cx, (float)cy,
-                                  t3, -1, ctrack, thick_track);
+        draw_thick_circle(dr, thick_track, (float)cx, (float)cy,
+                                  2*t3, -1, ctrack);
+        draw_thick_circle(dr, thick_track, (float)cx, (float)cy,
+                                  t3, -1, ctrack);
 
         return;
     }

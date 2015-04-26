@@ -242,7 +242,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 	void gameViewResized()
 	{
 		if (progress == null && gameView.w > 10 && gameView.h > 10)
-			resizeEvent(gameView.w, gameView.h);
+			resizeEvent(gameView.wDip, gameView.hDip);
 	}
 
 	@Override
@@ -886,7 +886,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 								}
 							}
 						}
-						resizeEvent(gameView.w, gameView.h);
+						resizeEvent(gameView.wDip, gameView.hDip);
 						dismissProgress();
 						if( menu != null ) onPrepareOptionsMenu(menu);
 						save();

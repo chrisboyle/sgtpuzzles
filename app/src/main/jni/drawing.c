@@ -129,11 +129,11 @@ void draw_circle(drawing *dr, int cx, int cy, int radius,
 			 outlinecolour);
 }
 
-void draw_thick_circle(drawing *dr, int cx, int cy, int radius,
-                 int fillcolour, int outlinecolour, int strokeWidth)
+void draw_thick_circle(drawing *dr, float thickness, float cx, float cy, float radius,
+                 int fillcolour, int outlinecolour)
 {
-    dr->api->draw_thick_circle(dr->handle, cx, cy, radius, fillcolour,
-			 outlinecolour, strokeWidth);
+    dr->api->draw_thick_circle(dr->handle, thickness, cx, cy, radius, fillcolour,
+			 outlinecolour);
 }
 
 void draw_update(drawing *dr, int x, int y, int w, int h)
