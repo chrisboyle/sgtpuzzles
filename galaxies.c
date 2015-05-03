@@ -152,6 +152,8 @@ static int check_complete(const game_state *state, int *dsf, int *colours);
 static int solver_state(game_state *state, int maxdiff);
 static int solver_obvious(game_state *state);
 static int solver_obvious_dot(game_state *state, space *dot);
+static space *space_opposite_dot(game_state *state, space *sp, space *dot);
+static space *tile_opposite(game_state *state, space *sp);
 
 /* ----------------------------------------------------------
  * Game parameters and presets
@@ -316,6 +318,21 @@ static void remove_assoc(const game_state *state, space *tile) {
     }
 }
 
+static void remove_assoc_with_opposite(game_state *state, space *tile) {
+    space *opposite;
+
+    if (!(tile->flags & F_TILE_ASSOC)) {
+        return;
+    }
+
+    opposite = tile_opposite(state, tile);
+    remove_assoc(state, tile);
+
+    if (opposite != NULL && opposite != tile) {
+        remove_assoc(state, opposite);
+    }
+}
+
 static void add_assoc(const game_state *state, space *tile, space *dot) {
     remove_assoc(state, tile);
 
@@ -330,6 +347,20 @@ static void add_assoc(const game_state *state, space *tile, space *dot) {
     dot->nassoc++;
     /*debug(("add_assoc sp %d %d --> dot %d,%d, new nassoc %d.\n",
            tile->x, tile->y, dot->x, dot->y, dot->nassoc));*/
+}
+
+static void add_assoc_with_opposite(game_state *state, space *tile, space *dot) {
+    space *opposite = space_opposite_dot(state, tile, dot);
+
+    if (opposite == NULL) {
+        return;
+    }
+    if (opposite->flags & F_DOT) {
+        return;
+    }
+
+    add_assoc(state, tile, dot);
+    add_assoc(state, opposite, dot);
 }
 
 static space *sp2dot(const game_state *state, int x, int y)
@@ -2790,6 +2821,7 @@ static game_state *execute_move(const game_state *state, const char *move)
     int x, y, ax, ay, n, dx, dy;
     game_state *ret = dup_game(state);
     space *sp, *dot;
+    int currently_solving = FALSE;
 
     debug(("%s\n", move));
 
@@ -2836,7 +2868,11 @@ static game_state *execute_move(const game_state *state, const char *move)
             } else if (c == 'U') {
                 if (sp->type != s_tile || !(sp->flags & F_TILE_ASSOC))
                     goto badmove;
-                remove_assoc(ret, sp);
+                /* The solver doesn't assume we'll mirror things */
+                if (currently_solving)
+                    remove_assoc(ret, sp);
+                else
+                    remove_assoc_with_opposite(ret, sp);
             } else if (c == 'M') {
                 if (!(sp->flags & F_DOT)) goto badmove;
                 sp->flags ^= F_DOT_HOLD;
@@ -2861,7 +2897,11 @@ static game_state *execute_move(const game_state *state, const char *move)
                         space *dot = &SPACE(ret, sp->dotx, sp->doty);
                         if (dot->flags & F_DOT_HOLD) continue;
                     }
-                    add_assoc(ret, sp, dot);
+                    /* The solver doesn't assume we'll mirror things */
+                    if (currently_solving)
+                        add_assoc(ret, sp, dot);
+                    else
+                        add_assoc_with_opposite(ret, sp, dot);
                 }
             }
             move += n;
@@ -2873,6 +2913,7 @@ static game_state *execute_move(const game_state *state, const char *move)
         } else if (c == 'S') {
             move++;
 	    ret->used_solve = 1;
+            currently_solving = TRUE;
         } else
             goto badmove;
 
