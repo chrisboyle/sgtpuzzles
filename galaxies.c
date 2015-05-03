@@ -2808,7 +2808,7 @@ static game_state *execute_move(const game_state *state, const char *move)
             ) {
             move++;
             if (sscanf(move, "%d,%d%n", &x, &y, &n) != 2 ||
-                !INUI(state, x, y))
+                !INUI(ret, x, y))
                 goto badmove;
 
             sp = &SPACE(ret, x, y);
@@ -2816,7 +2816,7 @@ static game_state *execute_move(const game_state *state, const char *move)
             if (c == 'D' || c == 'd') {
                 unsigned int currf, newf, maskf;
 
-                if (!dot_is_possible(state, sp, 1)) goto badmove;
+                if (!dot_is_possible(ret, sp, 1)) goto badmove;
 
                 newf = F_DOT | (c == 'd' ? F_DOT_BLACK : 0);
                 currf = GRID(ret, grid, x, y).flags;
@@ -2851,8 +2851,8 @@ static game_state *execute_move(const game_state *state, const char *move)
         } else if (c == 'A' || c == 'a') {
             move++;
             if (sscanf(move, "%d,%d,%d,%d%n", &x, &y, &ax, &ay, &n) != 4 ||
-                x < 1 || y < 1 || x >= (state->sx-1) || y >= (state->sy-1) ||
-                ax < 1 || ay < 1 || ax >= (state->sx-1) || ay >= (state->sy-1))
+                x < 1 || y < 1 || x >= (ret->sx-1) || y >= (ret->sy-1) ||
+                ax < 1 || ay < 1 || ax >= (ret->sx-1) || ay >= (ret->sy-1))
                 goto badmove;
 
             dot = &GRID(ret, grid, ax, ay);
@@ -2864,10 +2864,10 @@ static game_state *execute_move(const game_state *state, const char *move)
                     sp = &GRID(ret, grid, x+dx, y+dy);
                     if (sp->type != s_tile) continue;
                     if (sp->flags & F_TILE_ASSOC) {
-                        space *dot = &SPACE(state, sp->dotx, sp->doty);
+                        space *dot = &SPACE(ret, sp->dotx, sp->doty);
                         if (dot->flags & F_DOT_HOLD) continue;
                     }
-                    add_assoc(state, sp, dot);
+                    add_assoc(ret, sp, dot);
                 }
             }
             move += n;
