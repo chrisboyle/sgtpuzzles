@@ -2310,6 +2310,7 @@ struct game_drawstate {
     unsigned long *grid;
     int *dx, *dy;
     blitter *bl;
+    blitter *blmirror;
 
     int dragging, dragx, dragy;
 
@@ -2927,6 +2928,9 @@ static void game_set_size(drawing *dr, game_drawstate *ds,
     assert(!ds->bl);
     ds->bl = blitter_new(dr, TILE_SIZE, TILE_SIZE);
 
+    assert(!ds->blmirror);
+    ds->blmirror = blitter_new(dr, TILE_SIZE, TILE_SIZE);
+
     assert(!ds->cur_bl);
     ds->cur_bl = blitter_new(dr, TILE_SIZE, TILE_SIZE);
 }
@@ -3001,6 +3005,7 @@ static game_drawstate *game_new_drawstate(drawing *dr, const game_state *state)
     ds->dy = snewn(ds->w*ds->h, int);
 
     ds->bl = NULL;
+    ds->blmirror = NULL;
     ds->dragging = FALSE;
     ds->dragx = ds->dragy = 0;
 
@@ -3017,6 +3022,7 @@ static void game_free_drawstate(drawing *dr, game_drawstate *ds)
 {
     if (ds->cur_bl) blitter_free(dr, ds->cur_bl);
     sfree(ds->colour_scratch);
+    if (ds->blmirror) blitter_free(dr, ds->blmirror);
     if (ds->bl) blitter_free(dr, ds->bl);
     sfree(ds->dx);
     sfree(ds->dy);
@@ -3142,6 +3148,16 @@ static void draw_square(drawing *dr, game_drawstate *ds, int x, int y,
     draw_update(dr, lx, ly, TILE_SIZE, TILE_SIZE);
 }
 
+static void calculate_opposite_point(const game_ui *ui,
+                                     const game_drawstate *ds, const int x,
+                                     const int y, int *oppositex,
+                                     int *oppositey)
+{
+    /* oppositex - dotx = dotx - x <=> oppositex = 2 * dotx - x */
+    *oppositex = 2 * SCOORD(ui->dotx) - x;
+    *oppositey = 2 * SCOORD(ui->doty) - y;
+}
+
 static void game_redraw(drawing *dr, game_drawstate *ds,
                         const game_state *oldstate, const game_state *state,
                         int dir, const game_ui *ui,
@@ -3149,6 +3165,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
 {
     int w = ds->w, h = ds->h;
     int x, y, flashing = FALSE;
+    int oppx, oppy;
 
     if (flashtime > 0) {
         int frame = (int)(flashtime / FLASH_TIME);
@@ -3157,8 +3174,15 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
 
     if (ds->dragging) {
         assert(ds->bl);
+        assert(ds->blmirror);
+        calculate_opposite_point(ui, ds, ds->dragx + TILE_SIZE/2,
+                                 ds->dragy + TILE_SIZE/2, &oppx, &oppy);
+        oppx -= TILE_SIZE/2;
+        oppy -= TILE_SIZE/2;
         blitter_load(dr, ds->bl, ds->dragx, ds->dragy);
         draw_update(dr, ds->dragx, ds->dragy, TILE_SIZE, TILE_SIZE);
+        blitter_load(dr, ds->blmirror, oppx, oppy);
+        draw_update(dr, oppx, oppy, TILE_SIZE, TILE_SIZE);
         ds->dragging = FALSE;
     }
     if (ds->cur_visible) {
@@ -3313,10 +3337,13 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
         ds->dragging = TRUE;
         ds->dragx = ui->dx - TILE_SIZE/2;
         ds->dragy = ui->dy - TILE_SIZE/2;
+        calculate_opposite_point(ui, ds, ui->dx, ui->dy, &oppx, &oppy);
         blitter_save(dr, ds->bl, ds->dragx, ds->dragy);
-        draw_arrow(dr, ds, ui->dx, ui->dy,
-                   SCOORD(ui->dotx) - ui->dx,
+        blitter_save(dr, ds->blmirror, oppx - TILE_SIZE/2, oppy - TILE_SIZE/2);
+        draw_arrow(dr, ds, ui->dx, ui->dy, SCOORD(ui->dotx) - ui->dx,
                    SCOORD(ui->doty) - ui->dy, COL_ARROW);
+        draw_arrow(dr, ds, oppx, oppy, SCOORD(ui->dotx) - oppx,
+                   SCOORD(ui->doty) - oppy, COL_ARROW);
     }
 #ifdef EDITOR
     {
