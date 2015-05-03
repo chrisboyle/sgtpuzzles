@@ -2823,7 +2823,7 @@ static game_state *execute_move(const game_state *state, const char *move)
                 maskf = F_DOT | F_DOT_BLACK;
                 /* if we clicked 'white dot':
                  *   white --> empty, empty --> white, black --> white.
-                 * if we clicker 'black dot':
+                 * if we clicked 'black dot':
                  *   black --> empty, empty --> black, white --> black.
                  */
                 if (currf & maskf) {
