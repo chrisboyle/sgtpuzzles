@@ -7291,7 +7291,7 @@ msgstr ""
 "Sie bekommen ein Gitter von Quadraten, zufällig in mehreren Farben gefärbt. "
 "In jedem Spielzug können Sie in einer Farbe Ihrer Wahl von der oberen linken "
 "Quadrat aus farben. Jeder Quadrat erreichbar vom Startplatz über einen "
-"orthogonal verbunden Pfad der gleichfrabigen Quadrate wird in der "
+"orthogonal verbunden Pfad der gleichfarbigen Quadrate wird in der "
 "neuen Farbe gefüllt werden. Auf diese Weise wird mehr und mehr von dem Gitter "
 "auf das Startfeld verbunden."
 
