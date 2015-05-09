@@ -5,6 +5,7 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapShader;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Path;
@@ -26,6 +27,7 @@ import android.support.v4.widget.EdgeEffectCompat;
 import android.support.v4.widget.ScrollerCompat;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.view.GestureDetector;
 import android.view.HapticFeedbackConstants;
 import android.view.KeyEvent;
@@ -47,6 +49,8 @@ public class GameView extends View
 	int w, h, wDip, hDip;
 	private final int longPressTimeout = ViewConfiguration.getLongPressTimeout();
 	private String hardwareKeys;
+	private boolean night = false;
+
 	private enum TouchState { IDLE, WAITING_LONG_PRESS, DRAGGING, PINCH }
 	private TouchState touchState = TouchState.IDLE;
 	private int button;
@@ -83,12 +87,15 @@ public class GameView extends View
 	private static final Bitmap.Config BITMAP_CONFIG =
 			(Build.VERSION.SDK_INT == Build.VERSION_CODES.JELLY_BEAN)  // bug only seen on 4.1.x
 					? Bitmap.Config.ARGB_4444 : Bitmap.Config.RGB_565;
+	native float[] getColours();
 
 	public GameView(Context context, AttributeSet attrs)
 	{
 		super(context, attrs);
-		if (! isInEditMode())
-			this.parent = (GamePlay)context;
+		if (! isInEditMode()) {
+			this.parent = (GamePlay) context;
+			night = parent.isNight();
+		}
 		density = getResources().getDisplayMetrics().density;
 		bitmap = Bitmap.createBitmap(100, 100, BITMAP_CONFIG);  // for safety
 		canvas = new Canvas(bitmap);
@@ -602,6 +609,34 @@ public class GameView extends View
 		bitmap.eraseColor(backgroundColour);
 	}
 
+	void refreshColours() {
+		final float[] newColours = getColours();
+		colours = new int[newColours.length / 3];
+		for (int i = 0; i < newColours.length / 3; i++) {
+			final int colour = Color.rgb(
+					(int) (newColours[i * 3] * 255),
+					(int) (newColours[i * 3 + 1] * 255),
+					(int) (newColours[i * 3 + 2] * 255));
+			colours[i] = colour;
+		}
+		if (night) {
+			float[] hsv = new float[3];
+			colours[0] = getResources().getColor(R.color.night_game_background);
+			for (int i = 1; i < colours.length; i++) {
+				Log.d("GameView", "old: " + String.format("#%06X", (0xFFFFFF & colours[i])));
+				Color.colorToHSV(colours[i], hsv);
+				if (hsv[1] < 0.3f) hsv[2] = 1.f - hsv[2];
+				colours[i] = Color.HSVToColor(hsv);
+				Log.d("GameView", "new:         " + String.format("#%06X", (0xFFFFFF & colours[i])));
+			}
+		}
+		if (colours.length > 0) {
+			setBackgroundColor(colours[0]);
+		} else {
+			setBackgroundColor(getDefaultBackgroundColour());
+		}
+	}
+
 	@Override
 	public void setBackgroundColor(int colour) {
 		super.setBackgroundColor(colour);
@@ -609,6 +644,9 @@ public class GameView extends View
 	}
 
 	@UsedByJNI
+	/** Unfortunately backends do things like setting other colours as fractions of this, so
+	 *  e.g. black (night mode) would make all of Undead's monsters white - but we replace all
+	 *  the colours in night mode anyway. */
 	int getDefaultBackgroundColour() {
 		return getResources().getColor(R.color.game_background);
 	}

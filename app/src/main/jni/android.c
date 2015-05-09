@@ -875,11 +875,14 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
 		{ "getCurrentParams", "()Ljava/lang/String;", getCurrentParams },
 		{ "requestKeys", "(Ljava/lang/String;Ljava/lang/String;)V", requestKeys },
 		{ "setCursorVisibility", "(Z)V", setCursorVisibility },
-		{ "getColours", "()[F", getColours },
 		{ "getPresets", "()[Ljava/lang/String;", getPresets },
 		{ "getUIVisibility", "()I", getUIVisibility },
 	};
 	(*env)->RegisterNatives(env, cls, methods, sizeof(methods)/sizeof(JNINativeMethod));
+	JNINativeMethod vmethods[] = {
+		{ "getColours", "()[F", getColours },
+	};
+	(*env)->RegisterNatives(env, vcls, vmethods, sizeof(vmethods)/sizeof(JNINativeMethod));
 
 	return JNI_VERSION_1_2;
 }

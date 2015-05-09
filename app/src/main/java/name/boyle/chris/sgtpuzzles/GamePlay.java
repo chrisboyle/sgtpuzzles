@@ -277,6 +277,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 		}
 		mainLayout = (RelativeLayout)findViewById(R.id.mainLayout);
 		statusBar = (TextView)findViewById(R.id.statusBar);
+		refreshStatusBarColours();
 		gameView = (GameView)findViewById(R.id.game);
 		keyboard = (SmallKeyboard)findViewById(R.id.keyboard);
 		dialogIds = new ArrayList<String>();
@@ -287,6 +288,14 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH) {
 			setUpBeam();
 		}
+	}
+
+	private void refreshStatusBarColours() {
+		final boolean night = isNight();
+		final int foreground = getResources().getColor(night ? R.color.night_status_bar_text : R.color.status_bar_text);
+		final int background = getResources().getColor(night ? R.color.night_game_background : R.color.game_background);
+		statusBar.setTextColor(foreground);
+		statusBar.setBackgroundColor(background);
 	}
 
 	@TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
@@ -537,6 +546,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 		case R.id.this_game:
 			Intent intent = new Intent(this, HelpActivity.class);
 			intent.putExtra(HelpActivity.TOPIC, htmlHelpTopic());
+			intent.putExtra(HelpActivity.NIGHT, isNight());
 			startActivity(intent);
 			break;
 		case R.id.email:
@@ -852,7 +862,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 					@Override
 					public void run() {
 						currentBackend = startingBackend;
-						refreshColours();
+						gameView.refreshColours();
 						gameView.resetZoomForClear();
 						gameView.clear();
 						applyUndoRedoKbd();
@@ -908,23 +918,6 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 		}
 		Toast.makeText(GamePlay.this, reminderId, Toast.LENGTH_LONG).show();
 		return true;
-	}
-
-	private void refreshColours() {
-		final float[] colours = getColours();
-		gameView.colours = new int[colours.length / 3];
-		for (int i = 0; i < colours.length / 3; i++) {
-			final int colour = Color.rgb(
-					(int) (colours[i * 3] * 255),
-					(int) (colours[i * 3 + 1] * 255),
-					(int) (colours[i * 3 + 2] * 255));
-			gameView.colours[i] = colour;
-		}
-		if (gameView.colours.length > 0) {
-			gameView.setBackgroundColor(gameView.colours[0]);
-		} else {
-			gameView.setBackgroundColor(gameView.getDefaultBackgroundColour());
-		}
 	}
 
 	private void refreshPresets(String currentParams) {
@@ -1609,6 +1602,10 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 		});
 	}
 
+	public boolean isNight() {
+		return false;
+	}
+
 	native void startPlaying(GameView _gameView, String savedGame);
 	native void startPlayingGameID(GameView _gameView, String whichBackend, String gameID);
 	native void timerTick();
@@ -1630,7 +1627,6 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 	native String getCurrentParams();
 	native void requestKeys(String backend, String params);
 	native void setCursorVisibility(boolean visible);
-	native float[] getColours();
 	native String[] getPresets();
 	native int getUIVisibility();
 
