@@ -350,6 +350,7 @@ static void add_assoc(const game_state *state, space *tile, space *dot) {
 }
 
 static void add_assoc_with_opposite(game_state *state, space *tile, space *dot) {
+    int *colors;
     space *opposite = space_opposite_dot(state, tile, dot);
 
     if (opposite == NULL) {
@@ -359,6 +360,18 @@ static void add_assoc_with_opposite(game_state *state, space *tile, space *dot) 
         return;
     }
 
+    colors = snewn(state->w * state->h, int);
+    check_complete(state, NULL, colors);
+    if (colors[(tile->y - 1)/2 * state->w + (tile->x - 1)/2]) {
+        sfree(colors);
+        return;
+    }
+    if (colors[(opposite->y - 1)/2 * state->w + (opposite->x - 1)/2]) {
+        sfree(colors);
+        return;
+    }
+
+    sfree(colors);
     add_assoc(state, tile, dot);
     add_assoc(state, opposite, dot);
 }
