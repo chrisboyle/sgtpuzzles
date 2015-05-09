@@ -64,13 +64,13 @@ android {
             def text = f.text
             def match = text =~ /enum\s+\{\s*COL_[^,]+,\s*(COL_[^\}]+)\}/
             if (match) {
-                def colours = match.group(1).replaceAll(/(?s)\/\*.*\*\//, "").replaceAll(/#[^\n]*\n/, "")
+                def colours = match.group(1).replaceAll(/(?s)\/\*.*?\*\//, "").replaceAll(/#[^\n]*\n/, "")
                         .trim().split(",")*.trim()*.replaceFirst(/^COL_/, "")*.toLowerCase()
                         .findAll { it =~ /^[^=]+$/ } - ["ncolours", "crossedline", "b0"]
                 if (colours.any { it =~ /[^a-z0-9_]/ }) {
                     throw new GradleException("Couldn't parse colours for " + game + ": " + match.group(1) + " -> " + colours)
                 }
-                resValue "array", game + "_colours", colours.join(',')
+                resValue "string", game + "_colours", colours.join(',')
             }
         }
     }
