@@ -1578,6 +1578,8 @@ static game_state *execute_move(const game_state *state, const char *move)
         si = sy*w+sx; ei = ey*w+ex;
         makelink(ret, si, ei);
     } else if (sscanf(move, "%c%d,%d", &c, &sx, &sy) == 3) {
+        int sset;
+
         if (c != 'C' && c != 'X') return NULL;
         if (!INGRID(state, sx, sy)) return NULL;
         si = sy*w+sx;
@@ -1586,11 +1588,12 @@ static game_state *execute_move(const game_state *state, const char *move)
 
         ret = dup_game(state);
 
-        if (c == 'C') {
+        sset = state->nums[si] / (state->n+1);
+        if (c == 'C' || (c == 'X' && sset == 0)) {
             /* Unlink the single cell we dragged from the board. */
             unlink_cell(ret, si);
         } else {
-            int i, set, sset = state->nums[si] / (state->n+1);
+            int i, set;
             for (i = 0; i < state->n; i++) {
                 /* Unlink all cells in the same set as the one we dragged
                  * from the board. */
