@@ -62,11 +62,11 @@ android {
         fileTree(dir: 'src/main/jni', include: '*.c').each {File f ->
             def game = f.name.replace(".c", "")
             def text = f.text
-            def match = text =~ /enum\s+\{\s*COL_[^,]+,\s*(COL_[^\}]+),\s*NCOLOURS\s*\}/
+            def match = text =~ /enum\s+\{\s*COL_[^,]+,\s*(COL_[^\}]+)\}/
             if (match) {
                 def colours = match.group(1).replaceAll(/(?s)\/\*.*\*\//, "").replaceAll(/#[^\n]*\n/, "")
                         .trim().split(",")*.trim()*.replaceFirst(/^COL_/, "")*.toLowerCase()
-                        .findAll { it =~ /^[^=]+$/ }.findAll { it != "crossedline" }
+                        .findAll { it =~ /^[^=]+$/ } - ["ncolours", "crossedline", "b0"]
                 if (colours.any { it =~ /[^a-z0-9_]/ }) {
                     throw new GradleException("Couldn't parse colours for " + game + ": " + match.group(1) + " -> " + colours)
                 }
