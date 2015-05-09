@@ -148,6 +148,11 @@ struct game_state {
                            or -1 if stale. */
 };
 
+static int check_complete(const game_state *state, int *dsf, int *colours);
+static int solver_state(game_state *state, int maxdiff);
+static int solver_obvious(game_state *state);
+static int solver_obvious_dot(game_state *state, space *dot);
+
 /* ----------------------------------------------------------
  * Game parameters and presets
  */
@@ -1164,8 +1169,6 @@ int maxtries;
 #define MAXTRIES 50
 #endif
 
-static int solver_obvious_dot(game_state *state,space *dot);
-
 #define GP_DOTS   1
 
 static void generate_pass(game_state *state, random_state *rs, int *scratch,
@@ -1227,9 +1230,6 @@ static void generate_pass(game_state *state, random_state *rs, int *scratch,
     }
     dbg_state(state);
 }
-
-static int check_complete(const game_state *state, int *dsf, int *colours);
-static int solver_state(game_state *state, int maxdiff);
 
 static char *new_game_desc(const game_params *params, random_state *rs,
 			   char **aux, int interactive)
@@ -1463,8 +1463,6 @@ generate:
 
     return desc;
 }
-
-static int solver_obvious(game_state *state);
 
 static int dots_too_close(game_state *state)
 {
@@ -2054,8 +2052,6 @@ static int solver_recurse_cb(game_state *state, space *tile, void *ctx)
     }
     return 0;
 }
-
-static int solver_state(game_state *state, int maxdiff);
 
 #define MAXRECURSE 5
 
