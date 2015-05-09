@@ -59,6 +59,20 @@ android {
             cFlags "-DANDROID -DSMALL_SCREEN -DSTYLUS_BASED -DNO_PRINTING -DCOMBINED"
             // WARNING abiFilters "all" here can end up omitting lib dir; I don't know why
         }
+        fileTree(dir: 'src/main/jni', include: '*.c').each {File f ->
+            def game = f.name.replace(".c", "")
+            def text = f.text
+            def match = text =~ /enum\s+\{\s*COL_[^,]+,\s*(COL_[^\}]+),\s*NCOLOURS\s*\}/
+            if (match) {
+                def colours = match.group(1).replaceAll(/(?s)\/\*.*\*\//, "").replaceAll(/#[^\n]*\n/, "")
+                        .trim().split(",")*.trim()*.replaceFirst(/^COL_/, "")*.toLowerCase()
+                        .findAll { it =~ /^[^=]+$/ }.findAll { it != "crossedline" }
+                if (colours.any { it =~ /[^a-z0-9_]/ }) {
+                    throw new GradleException("Couldn't parse colours for " + game + ": " + match.group(1) + " -> " + colours)
+                }
+                resValue "array", game + "_colours", colours.join(',')
+            }
+        }
     }
 
     buildTypes {
