@@ -3263,7 +3263,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
         for (x = 0; x < w; x++) {
             unsigned long flags = 0;
             int ddx = 0, ddy = 0;
-            space *sp;
+            space *sp, *opp;
             int dx, dy;
 
             /*
@@ -3301,6 +3301,11 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
              * everything goes briefly back to background colour.
              */
             sp = &SPACE(state, x*2+1, y*2+1);
+            if (sp->flags & F_TILE_ASSOC) {
+                opp = tile_opposite(state, sp);
+            } else {
+                opp = NULL;
+            }
             if (ds->colour_scratch[y*w+x] && !flashing) {
                 flags |= (ds->colour_scratch[y*w+x] == 2 ?
                           DRAW_BLACK : DRAW_WHITE);
@@ -3316,7 +3321,9 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
              */
             if ((sp->flags & F_TILE_ASSOC) && !ds->colour_scratch[y*w+x]) {
 		if (ui->dragging && ui->srcx == x*2+1 && ui->srcy == y*2+1) {
-		    /* don't do it */
+                    /* tile is the source, don't do it */
+                } else if (ui->dragging && opp && ui->srcx == opp->x && ui->srcy == opp->y) {
+                    /* opposite tile is the source, don't do it */
 		} else if (sp->doty != y*2+1 || sp->dotx != x*2+1) {
                     flags |= DRAW_ARROW;
                     ddy = sp->doty - (y*2+1);
