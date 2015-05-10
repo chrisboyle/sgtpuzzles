@@ -34,7 +34,6 @@ public class HelpActivity extends ActionBarActivity {
 		Intent intent = getIntent();
 		String topic = intent.getStringExtra(TOPIC);
 		isNight = intent.getBooleanExtra(NIGHT, false);
-		if (isNight) webView.setBackgroundColor(Color.BLACK);
 		if (!ALLOWED_TOPICS.matcher(topic).matches()) {
 			finish();
 			return;
@@ -42,6 +41,7 @@ public class HelpActivity extends ActionBarActivity {
 		getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 		setContentView(R.layout.activity_help);
 		webView = (WebView) findViewById(R.id.webview);
+		if (isNight) webView.setBackgroundColor(Color.BLACK);
 		webView.setWebChromeClient(new WebChromeClient() {
 			public void onReceivedTitle(WebView w, String title) {
 				getSupportActionBar().setTitle(getString(R.string.title_activity_help) + ": " + title);
