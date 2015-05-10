@@ -152,8 +152,9 @@ static int check_complete(const game_state *state, int *dsf, int *colours);
 static int solver_state(game_state *state, int maxdiff);
 static int solver_obvious(game_state *state);
 static int solver_obvious_dot(game_state *state, space *dot);
-static space *space_opposite_dot(game_state *state, space *sp, space *dot);
-static space *tile_opposite(game_state *state, space *sp);
+static space *space_opposite_dot(const game_state *state, const space *sp,
+                                 const space *dot);
+static space *tile_opposite(const game_state *state, const space *sp);
 
 /* ----------------------------------------------------------
  * Game parameters and presets
@@ -552,7 +553,8 @@ static int edges_into_vertex(game_state *state,
 }
 #endif
 
-static space *space_opposite_dot(game_state *state, space *sp, space *dot)
+static space *space_opposite_dot(const game_state *state, const space *sp,
+                                 const space *dot)
 {
     int dx, dy, tx, ty;
     space *sp2;
@@ -568,7 +570,7 @@ static space *space_opposite_dot(game_state *state, space *sp, space *dot)
     return sp2;
 }
 
-static space *tile_opposite(game_state *state, space *sp)
+static space *tile_opposite(const game_state *state, const space *sp)
 {
     space *dot;
 
