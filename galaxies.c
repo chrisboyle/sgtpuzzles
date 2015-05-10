@@ -373,7 +373,9 @@ static void add_assoc_with_opposite(game_state *state, space *tile, space *dot) 
     }
 
     sfree(colors);
+    remove_assoc_with_opposite(state, tile);
     add_assoc(state, tile, dot);
+    remove_assoc_with_opposite(state, opposite);
     add_assoc(state, opposite, dot);
 }
 
@@ -2589,7 +2591,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         if (INUI(state, px, py)) {
             sp = &SPACE(state, px, py);
 
-            if (!(sp->flags & F_DOT) && !(sp->flags & F_TILE_ASSOC))
+            if (!(sp->flags & F_DOT))
 		sprintf(buf + strlen(buf), "%sA%d,%d,%d,%d",
 			sep, px, py, ui->dotx, ui->doty);
 	}
