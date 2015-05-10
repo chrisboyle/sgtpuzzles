@@ -862,7 +862,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 					@Override
 					public void run() {
 						currentBackend = startingBackend;
-						gameView.refreshColours();
+						gameView.refreshColours(currentBackend);
 						gameView.resetZoomForClear();
 						gameView.clear();
 						applyUndoRedoKbd();

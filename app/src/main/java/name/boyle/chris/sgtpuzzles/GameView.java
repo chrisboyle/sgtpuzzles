@@ -612,7 +612,7 @@ public class GameView extends View
 		bitmap.eraseColor(backgroundColour);
 	}
 
-	void refreshColours() {
+	void refreshColours(final String whichBackend) {
 		final float[] newColours = getColours();
 		colours = new int[newColours.length / 3];
 		for (int i = 0; i < newColours.length / 3; i++) {
@@ -623,14 +623,16 @@ public class GameView extends View
 			colours[i] = colour;
 		}
 		if (night) {
-			float[] hsv = new float[3];
 			colours[0] = getResources().getColor(R.color.night_game_background);
+			final String colourNamesJoined = getResources().getString(getResources().getIdentifier(whichBackend + "_colours", "string", parent.getPackageName()));
+			final String[] colourNames = colourNamesJoined.split(",");
 			for (int i = 1; i < colours.length; i++) {
-				Log.d("GameView", "old: " + String.format("#%06X", (0xFFFFFF & colours[i])));
-				Color.colorToHSV(colours[i], hsv);
-				if (hsv[1] < 0.3f) hsv[2] = 1.f - hsv[2];
-				colours[i] = Color.HSVToColor(hsv);
-				Log.d("GameView", "new:         " + String.format("#%06X", (0xFFFFFF & colours[i])));
+				final boolean noName = i - 1 >= colourNames.length;
+				final String resourceName = whichBackend + "_night_colour_" + (noName ?  "unnamed_" + (i - 1) : colourNames[i - 1]);
+				final int nightColourId = getResources().getIdentifier(resourceName, "color", parent.getPackageName());
+				if (nightColourId > 0) {
+					colours[i] = getResources().getColor(nightColourId);
+				}
 			}
 		}
 		if (colours.length > 0) {
