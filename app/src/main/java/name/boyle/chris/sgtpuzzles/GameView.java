@@ -104,7 +104,9 @@ public class GameView extends View
 		paint.setStrokeCap(Paint.Cap.SQUARE);
 		paint.setStrokeWidth(1.f);  // will be scaled with everything else as long as it's non-zero
 		checkerboardPaint = new Paint();
-		final Bitmap checkerboard = ((BitmapDrawable) getResources().getDrawable(R.drawable.checkerboard)).getBitmap();
+		final Drawable checkerboardDrawable = getResources().getDrawable(R.drawable.checkerboard);
+		if (checkerboardDrawable == null) throw new RuntimeException("Missing R.drawable.checkerboard");
+		final Bitmap checkerboard = ((BitmapDrawable) checkerboardDrawable).getBitmap();
 		checkerboardPaint.setShader(new BitmapShader(checkerboard, Shader.TileMode.REPEAT, Shader.TileMode.REPEAT));
 		blitters = new Bitmap[512];
 		maxDistSq = Math.pow(ViewConfiguration.get(context).getScaledTouchSlop(), 2);
@@ -232,7 +234,7 @@ public class GameView extends View
 
 	@Override
 	public void scrollBy(int x, int y) {
-		scrollBy((float)x, (float)y);
+		scrollBy((float) x, (float) y);
 	}
 
 	private void scrollBy(float distanceX, float distanceY) {
@@ -582,7 +584,8 @@ public class GameView extends View
 		if (parent != null) parent.gameViewResized();
 		if (isInEditMode()) {
 			// Draw a little placeholder to aid UI editing
-			Drawable d = getResources().getDrawable(R.drawable.net);
+			final Drawable d = getResources().getDrawable(R.drawable.net);
+			if (d == null) throw new RuntimeException("Missing R.drawable.net");
 			int s = w<h ? w : h;
 			int mx = (w-s)/2, my = (h-s)/2;
 			d.setBounds(new Rect(mx,my,mx+s,my+s));
