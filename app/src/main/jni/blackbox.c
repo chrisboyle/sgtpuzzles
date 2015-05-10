@@ -31,7 +31,7 @@ enum {
     COL_BACKGROUND, COL_COVER, COL_LOCK,
     COL_TEXT, COL_FLASHTEXT,
     COL_HIGHLIGHT, COL_LOWLIGHT, COL_GRID,
-    COL_BALL, COL_WRONG, COL_BUTTON,
+    COL_BALL, COL_BALL_REVEALED, COL_WRONG, COL_BUTTON,
     COL_CURSOR,
     NCOLOURS
 };
@@ -1135,6 +1135,10 @@ static float *game_colours(frontend *fe, int *ncolours)
     ret[COL_BALL * 3 + 1] = 0.0F;
     ret[COL_BALL * 3 + 2] = 0.0F;
 
+    ret[COL_BALL_REVEALED * 3 + 0] = 0.0F;
+    ret[COL_BALL_REVEALED * 3 + 1] = 0.0F;
+    ret[COL_BALL_REVEALED * 3 + 2] = 0.0F;
+
     ret[COL_WRONG * 3 + 0] = 1.0F;
     ret[COL_WRONG * 3 + 1] = 0.0F;
     ret[COL_WRONG * 3 + 2] = 0.0F;
@@ -1218,7 +1222,7 @@ static void draw_arena_tile(drawing *dr, const game_state *gs,
              * have a red cross added later.
              * Missing balls are red. */
             if (gs_tile & BALL_GUESS) {
-                bcol = isflash ? bg : COL_BALL;
+                bcol = isflash ? bg : COL_BALL_REVEALED;
             } else if (gs_tile & BALL_CORRECT) {
                 bcol = isflash ? bg : COL_WRONG;
             } else {
