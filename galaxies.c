@@ -327,9 +327,9 @@ static void add_assoc(const game_state *state, space *tile, space *dot) {
            tile->x, tile->y, dot->x, dot->y, dot->nassoc));*/
 }
 
-static struct space *sp2dot(const game_state *state, int x, int y)
+static space *sp2dot(const game_state *state, int x, int y)
 {
-    struct space *sp = &SPACE(state, x, y);
+    space *sp = &SPACE(state, x, y);
     if (!(sp->flags & F_TILE_ASSOC)) return NULL;
     return &SPACE(state, sp->dotx, sp->doty);
 }
@@ -465,7 +465,7 @@ static int foreach_vertex(game_state *state, space_cb cb, unsigned int f,
 static int is_same_assoc(game_state *state,
                          int x1, int y1, int x2, int y2)
 {
-    struct space *s1, *s2;
+    space *s1, *s2;
 
     if (!INGRID(state, x1, y1) || !INGRID(state, x2, y2))
         return 0;
@@ -503,8 +503,7 @@ static int edges_into_vertex(game_state *state,
 }
 #endif
 
-static struct space *space_opposite_dot(struct game_state *state,
-                                        struct space *sp, struct space *dot)
+static space *space_opposite_dot(game_state *state, space *sp, space *dot)
 {
     int dx, dy, tx, ty;
     space *sp2;
@@ -520,9 +519,9 @@ static struct space *space_opposite_dot(struct game_state *state,
     return sp2;
 }
 
-static struct space *tile_opposite(struct game_state *state, struct space *sp)
+static space *tile_opposite(game_state *state, space *sp)
 {
-    struct space *dot;
+    space *dot;
 
     assert(sp->flags & F_TILE_ASSOC);
     dot = &SPACE(state, sp->dotx, sp->doty);
@@ -540,8 +539,7 @@ static int dotfortile(game_state *state, space *tile, space *dot)
     return 1;
 }
 
-static void adjacencies(struct game_state *state, struct space *sp,
-                        struct space **a1s, struct space **a2s)
+static void adjacencies(game_state *state, space *sp, space **a1s, space **a2s)
 {
     int dxs[4] = {-1, 1, 0, 0}, dys[4] = {0, 0, -1, 1};
     int n, x, y;
@@ -569,7 +567,7 @@ static void adjacencies(struct game_state *state, struct space *sp,
 
 static int outline_tile_fordot(game_state *state, space *tile, int mark)
 {
-    struct space *tadj[4], *eadj[4];
+    space *tadj[4], *eadj[4];
     int i, didsth = 0, edge, same;
 
     assert(tile->type == s_tile);
@@ -599,8 +597,7 @@ static int outline_tile_fordot(game_state *state, space *tile, int mark)
     return didsth;
 }
 
-static void tiles_from_edge(struct game_state *state,
-                            struct space *sp, struct space **ts)
+static void tiles_from_edge(game_state *state, space *sp, space **ts)
 {
     int xs[2], ys[2];
 
@@ -757,13 +754,13 @@ static game_state *blank_game(int w, int h)
 
     state->sx = (w*2)+1;
     state->sy = (h*2)+1;
-    state->grid = snewn(state->sx * state->sy, struct space);
+    state->grid = snewn(state->sx * state->sy, space);
     state->completed = state->used_solve = 0;
 
     for (x = 0; x < state->sx; x++) {
         for (y = 0; y < state->sy; y++) {
-            struct space *sp = &SPACE(state, x, y);
-            memset(sp, 0, sizeof(struct space));
+            space *sp = &SPACE(state, x, y);
+            memset(sp, 0, sizeof(space));
             sp->x = x;
             sp->y = y;
             if ((x % 2) == 0 && (y % 2) == 0)
@@ -828,7 +825,7 @@ static game_state *dup_game(const game_state *state)
     ret->used_solve = state->used_solve;
 
     memcpy(ret->grid, state->grid,
-           ret->sx*ret->sy*sizeof(struct space));
+           ret->sx*ret->sy*sizeof(space));
 
     game_update_dots(ret);
 
@@ -1751,7 +1748,7 @@ static int solver_lines_opposite_cb(game_state *state, space *edge, void *ctx)
 static int solver_spaces_oneposs_cb(game_state *state, space *tile, void *ctx)
 {
     int n, eset, ret;
-    struct space *edgeadj[4], *tileadj[4];
+    space *edgeadj[4], *tileadj[4];
     int dotx, doty;
 
     assert(tile->type == s_tile);
@@ -2091,11 +2088,11 @@ static int solver_recurse(game_state *state, int maxdiff)
     solver_recurse_depth++;
 #endif
 
-    ingrid = snewn(gsz, struct space);
-    memcpy(ingrid, state->grid, gsz * sizeof(struct space));
+    ingrid = snewn(gsz, space);
+    memcpy(ingrid, state->grid, gsz * sizeof(space));
 
     for (n = 0; n < state->ndots; n++) {
-        memcpy(state->grid, ingrid, gsz * sizeof(struct space));
+        memcpy(state->grid, ingrid, gsz * sizeof(space));
 
         if (!dotfortile(state, rctx.best, state->dots[n])) continue;
 
@@ -2109,8 +2106,8 @@ static int solver_recurse(game_state *state, int maxdiff)
         if (diff == DIFF_IMPOSSIBLE && ret != DIFF_IMPOSSIBLE) {
             /* we found our first solved grid; copy it away. */
             assert(!outgrid);
-            outgrid = snewn(gsz, struct space);
-            memcpy(outgrid, state->grid, gsz * sizeof(struct space));
+            outgrid = snewn(gsz, space);
+            memcpy(outgrid, state->grid, gsz * sizeof(space));
         }
         /* reset cell back to unassociated. */
         bestopp = tile_opposite(state, rctx.best);
@@ -2142,7 +2139,7 @@ static int solver_recurse(game_state *state, int maxdiff)
 
     if (outgrid) {
         /* we found (at least one) soln; copy it back to state */
-        memcpy(state->grid, outgrid, gsz * sizeof(struct space));
+        memcpy(state->grid, outgrid, gsz * sizeof(space));
         sfree(outgrid);
     }
     sfree(ingrid);
@@ -2377,7 +2374,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 {
     char buf[80];
     int px, py;
-    struct space *sp;
+    space *sp;
 
     px = 2*FROMCOORD((float)x) + 0.5;
     py = 2*FROMCOORD((float)y) + 0.5;
@@ -2425,7 +2422,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     char buf[80];
     const char *sep = "";
     int px, py;
-    struct space *sp, *dot;
+    space *sp, *dot;
 
     buf[0] = '\0';
 
@@ -2795,7 +2792,7 @@ static game_state *execute_move(const game_state *state, const char *move)
 {
     int x, y, ax, ay, n, dx, dy;
     game_state *ret = dup_game(state);
-    struct space *sp, *dot;
+    space *sp, *dot;
 
     debug(("%s\n", move));
 
