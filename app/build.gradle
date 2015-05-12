@@ -66,7 +66,7 @@ android {
             if (match) {
                 def colours = match.group(1).replaceAll(/(?s)\/\*.*?\*\//, "").replaceAll(/#[^\n]*\n/, "")
                         .trim().split(",")*.trim()*.replaceFirst(/^COL_/, "")*.toLowerCase()
-                        .findAll { it =~ /^[^=]+$/ } - ["ncolours", "crossedline", "b0"]
+                        .findAll { it =~ /^[^=]+$/ } - ["ncolours", "crossedline"]
                 if (colours.any { it =~ /[^a-z0-9_]/ }) {
                     throw new GradleException("Couldn't parse colours for " + game + ": " + match.group(1) + " -> " + colours)
                 }
