@@ -105,6 +105,10 @@ Version %s"</string>
     <string name="orientationUnspecified">Unlocked</string>
     <string name="orientationPortrait">Portrait</string>
     <string name="orientationLandscape">Landscape</string>
+    <string name="nightMode">Night mode</string>
+    <string name="nightModeOn">On</string>
+    <string name="nightModeAuto">In low light</string>
+    <string name="nightModeOff">Off</string>
     <string name="undoRedoOnKeyboard">Undo/Redo on keyboard</string>
     <string name="undoRedoOnKeyboardSummary">Allows auto repeat (otherwise shown in action bar)</string>
     <string name="bridgesShowH">"Show \"H\" in Bridges"</string>

@@ -10,4 +10,14 @@
 		<item>@string/orientationPortrait</item>
 		<item>@string/orientationLandscape</item>
 	</array>
+`	<array name="nightModes">
+		<item>on</item>
+		<item>auto</item>
+		<item>off</item>
+	</array>
+	<array name="nightModeDescs">
+		<item>@string/nightModeOn</item>
+		<item>@string/nightModeAuto</item>
+		<item>@string/nightModeOff</item>
+	</array>
 </resources>

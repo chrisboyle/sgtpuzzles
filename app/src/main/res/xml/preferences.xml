@@ -35,6 +35,11 @@
 			android:summary="@string/stayAwakeSummary"
 			android:key="stayAwake"
 			android:defaultValue="false" />
+		<ListPreference android:title="@string/nightMode"
+						android:key="nightMode"
+						android:entryValues="@array/nightModes"
+						android:entries="@array/nightModeDescs"
+						android:defaultValue="auto" />
 		<ListPreference android:title="@string/orientation"
 			android:key="orientation"
 			android:entryValues="@array/orientationModes"

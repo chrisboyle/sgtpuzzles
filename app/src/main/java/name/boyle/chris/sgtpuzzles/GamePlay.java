@@ -45,6 +45,10 @@ import android.graphics.Color;
 import android.graphics.PointF;
 import android.graphics.PorterDuff;
 import android.graphics.drawable.Drawable;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.net.Uri;
 import android.nfc.NdefMessage;
 import android.nfc.NdefRecord;
@@ -89,12 +93,13 @@ import android.widget.TableRow;
 import android.widget.TextView;
 import android.widget.Toast;
 
-public class GamePlay extends ActionBarActivity implements OnSharedPreferenceChangeListener
+public class GamePlay extends ActionBarActivity implements OnSharedPreferenceChangeListener, SensorEventListener
 {
 	static final String TAG = "GamePlay";
 	static final String STATE_PREFS_NAME = "state";
 	static final String ORIENTATION_KEY = "orientation";
 	static final String ARROW_KEYS_KEY_SUFFIX = "ArrowKeys";
+	static final String NIGHT_MODE_KEY = "nightMode";
 	private static final String BRIDGES_SHOW_H_KEY = "bridgesShowH";
 	private static final String FULLSCREEN_KEY = "fullscreen";
 	private static final String STAY_AWAKE_KEY = "stayAwake";
@@ -114,6 +119,8 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 
 	private static final int REQ_CODE_CREATE_DOC = Activity.RESULT_FIRST_USER;
 	static final String MIME_TYPE = "text/prs.sgtatham.puzzles";
+	public static final float MAX_LUX_NIGHT = 3.4f;
+	public static final float MIN_LUX_DAY = 15.0f;
 
 	private ProgressDialog progress;
 	private TextView statusBar;
@@ -151,6 +158,12 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 	private boolean everCompleted = false;
 	private final Pattern DIMENSIONS = Pattern.compile("(\\d+)( ?)x\\2(\\d+)(.*)");
 	private long lastKeySent = 0;
+	private SensorManager sensorManager;
+	private Sensor lightSensor;
+	enum NightMode { ON, AUTO, OFF }
+	private NightMode nightMode = NightMode.OFF;
+	private boolean darkNowSmoothed = false;
+
 	enum UIVisibility {
 		UNDO(1), REDO(2), CUSTOM(4), SOLVE(8), STATUS(16);
 		private final int _flag;
@@ -277,12 +290,15 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 		}
 		mainLayout = (RelativeLayout)findViewById(R.id.mainLayout);
 		statusBar = (TextView)findViewById(R.id.statusBar);
-		refreshStatusBarColours();
 		gameView = (GameView)findViewById(R.id.game);
 		keyboard = (SmallKeyboard)findViewById(R.id.keyboard);
 		dialogIds = new ArrayList<String>();
 		setDefaultKeyMode(DEFAULT_KEYS_SHORTCUT);
 		gameView.requestFocus();
+		sensorManager = (SensorManager)getSystemService(SENSOR_SERVICE);
+		lightSensor = sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT);
+		applyNightMode(false);
+		refreshStatusBarColours();
 		onNewIntent(getIntent());
 		getWindow().setBackgroundDrawable(null);
 		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH) {
@@ -974,6 +990,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 	protected void onPause()
 	{
 		handler.removeMessages(MsgType.TIMER.ordinal());
+		if (nightMode == NightMode.AUTO) sensorManager.unregisterListener(this);
 		save();
 		super.onPause();
 	}
@@ -987,6 +1004,9 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 		if (restartOnResume) {
 			startActivity(new Intent(this, RestartActivity.class));
 			finish();
+		}
+		else if (nightMode == NightMode.AUTO) {
+			sensorManager.registerListener(this, lightSensor, SensorManager.SENSOR_DELAY_NORMAL);
 		}
 	}
 
@@ -1450,6 +1470,8 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 			applyFullscreen(true);  // = already started
 		} else if (key.equals(STAY_AWAKE_KEY)) {
 			applyStayAwake();
+		} else if (key.equals(NIGHT_MODE_KEY)) {
+			applyNightMode(true);
 		} else if (key.equals(ORIENTATION_KEY)) {
 			applyOrientation();
 		} else if (key.equals(UNDO_REDO_KBD_KEY)) {
@@ -1536,7 +1558,51 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 		}
 	}
 
-	private void applyUndoRedoKbd() {
+	private void applyNightMode(final boolean alreadyStarted) {
+		final boolean wasAuto = (nightMode == NightMode.AUTO);
+		final String pref = prefs.getString(NIGHT_MODE_KEY, "auto");
+		if ("on".equals(pref)) {
+			nightMode = NightMode.ON;
+			if (wasAuto) sensorManager.unregisterListener(this);
+		}
+		else if ("off".equals(pref) || lightSensor == null) {
+			nightMode = NightMode.OFF;
+			darkNowSmoothed = false;
+			if (wasAuto) sensorManager.unregisterListener(this);
+		}
+		else if (!wasAuto) {
+			nightMode = NightMode.AUTO;
+			if (alreadyStarted) sensorManager.registerListener(this, lightSensor, SensorManager.SENSOR_DELAY_NORMAL);
+		}
+		gameView.night = isNight();
+		if (alreadyStarted) refreshNightNow();
+	}
+
+	private void refreshNightNow() {
+		gameView.night = isNight();
+		if (currentBackend != null) {
+			gameView.refreshColours(currentBackend);
+			gameView.clear();
+			gameViewResized();  // cheat - we just want a redraw
+		}
+		refreshStatusBarColours();
+	}
+
+	public boolean isNight() {
+		return nightMode == NightMode.ON || (nightMode == NightMode.AUTO && darkNowSmoothed);
+	}
+
+	public void onSensorChanged(SensorEvent event) {
+		final boolean wasDark = darkNowSmoothed;
+		if (event.values[0] <= MAX_LUX_NIGHT) darkNowSmoothed = true;
+		else if (event.values[0] >= MIN_LUX_DAY) darkNowSmoothed = false;
+		if (wasDark != darkNowSmoothed) refreshNightNow();
+	}
+
+	public void onAccuracyChanged(Sensor sensor, int accuracy) {  // don't care
+	}
+
+		private void applyUndoRedoKbd() {
 		boolean undoRedoKbd = prefs.getBoolean(UNDO_REDO_KBD_KEY, UNDO_REDO_KBD_DEFAULT);
 		final String wantKbd = undoRedoKbd ? "UR" : "";
 		if (!wantKbd.equals(maybeUndoRedo)) {
@@ -1600,10 +1666,6 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 				}
 			}
 		});
-	}
-
-	public boolean isNight() {
-		return false;
 	}
 
 	native void startPlaying(GameView _gameView, String savedGame);

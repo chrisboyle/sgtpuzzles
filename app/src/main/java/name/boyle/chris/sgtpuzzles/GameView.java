@@ -49,7 +49,7 @@ public class GameView extends View
 	int w, h, wDip, hDip;
 	private final int longPressTimeout = ViewConfiguration.getLongPressTimeout();
 	private String hardwareKeys;
-	private boolean night = false;
+	boolean night = false;
 
 	private enum TouchState { IDLE, WAITING_LONG_PRESS, DRAGGING, PINCH }
 	private TouchState touchState = TouchState.IDLE;
