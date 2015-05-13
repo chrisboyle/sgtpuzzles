@@ -2637,6 +2637,9 @@ mode in which you can enter or remove pencil marks.
 Pressing M will fill in a full set of pencil marks in every square
 that does not have a main digit in it.
 
+Left-clicking a clue will mark it as done (grey it out), or unmark it
+if it is already marked.
+
 (All the actions described in \k{common-actions} are also available.)
 
 \H{towers-parameters} \I{parameters, for Towers}Towers parameters
