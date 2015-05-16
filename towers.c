@@ -1391,35 +1391,29 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 static game_state *execute_move(const game_state *from, const char *move)
 {
     int w = from->par.w, a = w*w;
-    game_state *ret;
+    game_state *ret = dup_game(from);
     int x, y, i, n;
 
     if (move[0] == 'S') {
-	ret = dup_game(from);
 	ret->completed = ret->cheated = TRUE;
 
 	for (i = 0; i < a; i++) {
-	    if (move[i+1] < '1' || move[i+1] > '0'+w) {
-		free_game(ret);
-		return NULL;
-	    }
+            if (move[i+1] < '1' || move[i+1] > '0'+w)
+                goto badmove;
 	    ret->grid[i] = move[i+1] - '0';
 	    ret->pencil[i] = 0;
 	}
 
-	if (move[a+1] != '\0') {
-	    free_game(ret);
-	    return NULL;
-	}
+        if (move[a+1] != '\0')
+            goto badmove;
 
 	return ret;
     } else if ((move[0] == 'P' || move[0] == 'R') &&
 	sscanf(move+1, "%d,%d,%d", &x, &y, &n) == 3 &&
 	x >= 0 && x < w && y >= 0 && y < w && n >= 0 && n <= w) {
 	if (from->clues->immutable[y*w+x])
-	    return NULL;
+            goto badmove;
 
-	ret = dup_game(from);
         if (move[0] == 'P' && n > 0) {
             ret->pencil[y*w+x] ^= 1L << n;
         } else {
@@ -1437,14 +1431,17 @@ static game_state *execute_move(const game_state *from, const char *move)
 	 * starting point when following through a set of
 	 * diagnostics output by the standalone solver.)
 	 */
-	ret = dup_game(from);
 	for (i = 0; i < a; i++) {
 	    if (!ret->grid[i])
 		ret->pencil[i] = (1L << (w+1)) - (1L << 1);
 	}
 	return ret;
-    } else
-	return NULL;		       /* couldn't parse move string */
+    }
+
+  badmove:
+    /* couldn't parse move string */
+    free_game(ret);
+    return NULL;
 }
 
 /* ----------------------------------------------------------------------
