@@ -1598,14 +1598,23 @@ static void draw_tile(drawing *dr, game_drawstate *ds, struct clues *clues,
 
     /* new number needs drawing? */
     if (tile & DF_DIGIT_MASK) {
+        int color;
+
 	str[1] = '\0';
 	str[0] = (tile & DF_DIGIT_MASK) + '0';
+
+        if (tile & DF_ERROR)
+            color = COL_ERROR;
+        else if (x < 0 || y < 0 || x >= w || y >= w)
+            color = COL_GRID;
+        else if (tile & DF_IMMUTABLE)
+            color = COL_GRID;
+        else
+            color = COL_USER;
+
 	draw_text(dr, tx + TILESIZE/2, ty + TILESIZE/2, FONT_VARIABLE,
 		  (tile & DF_PLAYAREA ? TILESIZE/2 : TILESIZE*2/5),
-		  ALIGN_VCENTRE | ALIGN_HCENTRE,
-		  (tile & DF_ERROR) ? COL_ERROR :
-		  (x < 0 || y < 0 || x >= w || y >= w) ? COL_GRID :
-		  (tile & DF_IMMUTABLE) ? COL_GRID : COL_USER, str);
+                  ALIGN_VCENTRE | ALIGN_HCENTRE, color, str);
     } else {
         int i, j, npencil;
 	int pl, pr, pt, pb;
