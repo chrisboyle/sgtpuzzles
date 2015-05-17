@@ -52,6 +52,7 @@ public class GameView extends View
 	boolean night = false;
 
 	private enum TouchState { IDLE, WAITING_LONG_PRESS, DRAGGING, PINCH }
+	private PointF lastDrag = null;
 	private TouchState touchState = TouchState.IDLE;
 	private int button;
 	private int backgroundColour;
@@ -436,7 +437,8 @@ public class GameView extends View
 				}
 			}
 			if (touchState == TouchState.DRAGGING) {
-				parent.sendKey(viewToGame(pointFromEvent(event)), button + DRAG);
+				lastDrag = pointFromEvent(event);
+				parent.sendKey(viewToGame(lastDrag), button + DRAG);
 				return true;
 			}
 			return false;
@@ -560,6 +562,7 @@ public class GameView extends View
 	@Override
 	protected void onSizeChanged(int w, int h, int oldW, int oldH)
 	{
+		if (lastDrag != null) revertDragInProgress(lastDrag);
 		if( w <= 0 ) w = 1;
 		if( h <= 0 ) h = 1;
 		wDip = Math.round((float)w/density); hDip = Math.round((float)h/density);
