@@ -146,3 +146,12 @@ benchmark.txt: benchmark.sh $(GAMES)
 	./benchmark.sh > $@
 
 !end
+!begin am
+test: benchmark.html benchmark.txt
+
+benchmark.html: benchmark.txt benchmark.pl
+	./benchmark.pl benchmark.txt > $@
+
+benchmark.txt: benchmark.sh $(GAMES)
+	./benchmark.sh > $@
+!end
