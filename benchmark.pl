@@ -1,5 +1,7 @@
 #!/usr/bin/perl
 
+# Process the raw output from benchmark.sh into Javascript-ified HTML.
+
 use strict;
 use warnings;
 
