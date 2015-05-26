@@ -114,7 +114,7 @@ static const char *const cluepos[] = {
 struct game_state {
     game_params par;
     struct clues *clues;
-    int *cluesdone;
+    unsigned char *clues_done;
     digit *grid;
     int *pencil;		       /* bitmaps using bits 1<<1..1<<n */
     int completed, cheated;
@@ -882,7 +882,7 @@ static game_state *new_game(midend *me, const game_params *params,
     state->clues->clues = snewn(4*w, int);
     state->clues->immutable = snewn(a, digit);
     state->grid = snewn(a, digit);
-    state->cluesdone = snewn(4*w, int);
+    state->clues_done = snewn(4*w, unsigned char);
     state->pencil = snewn(a, int);
 
     for (i = 0; i < a; i++) {
@@ -891,7 +891,7 @@ static game_state *new_game(midend *me, const game_params *params,
     }
 
     memset(state->clues->immutable, 0, a);
-    memset(state->cluesdone, 0, 4*w*sizeof(int));
+    memset(state->clues_done, 0, 4*w*sizeof(unsigned char));
 
     for (i = 0; i < 4*w; i++) {
 	if (i > 0) {
@@ -945,10 +945,10 @@ static game_state *dup_game(const game_state *state)
 
     ret->grid = snewn(a, digit);
     ret->pencil = snewn(a, int);
-    ret->cluesdone = snewn(4*w, int);
+    ret->clues_done = snewn(4*w, unsigned char);
     memcpy(ret->grid, state->grid, a*sizeof(digit));
     memcpy(ret->pencil, state->pencil, a*sizeof(int));
-    memcpy(ret->cluesdone, state->cluesdone, 4*w*sizeof(int));
+    memcpy(ret->clues_done, state->clues_done, 4*w*sizeof(unsigned char));
 
     ret->completed = state->completed;
     ret->cheated = state->cheated;
@@ -960,7 +960,7 @@ static void free_game(game_state *state)
 {
     sfree(state->grid);
     sfree(state->pencil);
-    sfree(state->cluesdone);
+    sfree(state->clues_done);
     if (--state->clues->refcount <= 0) {
 	sfree(state->clues->immutable);
 	sfree(state->clues->clues);
@@ -1472,7 +1472,7 @@ static game_state *execute_move(const game_state *from, const char *move)
     } else if (move[0] == 'D' && sscanf(move+1, "%d,%d", &x, &y) == 2 &&
                is_clue(from, x, y)) {
         int index = clue_index(from, x, y);
-        ret->cluesdone[index] = !ret->cluesdone[index];
+        ret->clues_done[index] = !ret->clues_done[index];
         return ret;
     }
 
@@ -1781,7 +1781,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
 
 	if (ds->errtmp[(y+1)*(w+2)+(x+1)])
 	    tile |= DF_ERROR;
-        else if (state->cluesdone[i])
+        else if (state->clues_done[i])
             tile |= DF_CLUE_DONE;
 
 	ds->tiles[(y+1)*(w+2)+(x+1)] = tile;
