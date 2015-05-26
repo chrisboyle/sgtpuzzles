@@ -2316,22 +2316,35 @@ static void draw_monster_count(drawing *dr, game_drawstate *ds,
 }
 
 static void draw_path_hint(drawing *dr, game_drawstate *ds,
-                           const game_state *state,
-                           int i, int hflash, int start) {
-    int dx,dy,x,y;
-    int p,error;
-    char buf[80];
+                           const struct game_params *params,
+                           int hint_index, int hflash, int hint) {
+    int x, y, color, dx, dy, text_dx, text_dy, text_size;
+    char buf[4];
 
-    p = start ? state->common->paths[i].grid_start : state->common->paths[i].grid_end;
-    range2grid(p,state->common->params.w,state->common->params.h,&x,&y);
-    error = ds->hint_errors[p];
+    if (ds->hint_errors[hint_index])
+        color = COL_ERROR;
+    else if (hflash)
+        color = COL_FLASH;
+    else
+        color = COL_TEXT;
 
-    dx = BORDER+(x* ds->tilesize)+(TILESIZE/2);
-    dy = BORDER+(y* ds->tilesize)+(TILESIZE/2)+TILESIZE;
-    sprintf(buf,"%d", start ? state->common->paths[i].sightings_start : state->common->paths[i].sightings_end);
-    draw_rect(dr,dx-(TILESIZE/2)+2,dy-(TILESIZE/2)+2,TILESIZE-3,TILESIZE-3,COL_BACKGROUND);
-    draw_text(dr,dx,dy,FONT_FIXED,TILESIZE/2,ALIGN_HCENTRE|ALIGN_VCENTRE, error ? COL_ERROR : hflash ? COL_FLASH : COL_TEXT,buf);
-    draw_update(dr,dx-(TILESIZE/2)+2,dy-(TILESIZE/2)+2,TILESIZE-3,TILESIZE-3);
+    range2grid(hint_index, params->w, params->h, &x, &y);
+    /* Upper-left corner of the "tile" */
+    dx = BORDER + x * TILESIZE;
+    dy = BORDER + y * TILESIZE + TILESIZE;
+    /* Center of the "tile" */
+    text_dx = dx + TILESIZE / 2;
+    text_dy = dy +  TILESIZE / 2;
+    /* Avoid wiping out the borders of the puzzle */
+    dx += 2;
+    dy += 2;
+    text_size = TILESIZE - 3;
+
+    sprintf(buf,"%d", hint);
+    draw_rect(dr, dx, dy, text_size, text_size, COL_BACKGROUND);
+    draw_text(dr, text_dx, text_dy, FONT_FIXED, TILESIZE / 2,
+              ALIGN_HCENTRE | ALIGN_VCENTRE, color, buf);
+    draw_update(dr, dx, dy, text_size, text_size);
 
     return;
 }
@@ -2501,11 +2514,13 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
         struct path *path = &state->common->paths[i];
         
         if (is_hint_stale(ds, hflash, state, path->grid_start)) {
-            draw_path_hint(dr, ds, state, i, hflash, TRUE);
+            draw_path_hint(dr, ds, &state->common->params, path->grid_start,
+                           hflash, path->sightings_start);
         }
 
         if (is_hint_stale(ds, hflash, state, path->grid_end)) {
-            draw_path_hint(dr, ds, state, i, hflash, FALSE);
+            draw_path_hint(dr, ds, &state->common->params, path->grid_end,
+                           hflash, path->sightings_end);
         }
     }
 
