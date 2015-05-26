@@ -2429,6 +2429,20 @@ static void draw_pencils(drawing *dr, game_drawstate *ds,
 
 #define FLASH_TIME 0.7F
 
+static int is_hint_stale(const game_drawstate *ds, int hflash,
+                         const game_state *state, int index)
+{
+    if (!ds->started) return TRUE;
+    if (ds->hflash != hflash) return TRUE;
+
+    if (ds->hint_errors[index] != state->hint_errors[index]) {
+        ds->hint_errors[index] = state->hint_errors[index];
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
 static void game_redraw(drawing *dr, game_drawstate *ds,
                         const game_state *oldstate, const game_state *state,
                         int dir, const game_ui *ui,
@@ -2484,37 +2498,15 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
 
     /* Draw path count hints */
     for (i=0;i<state->common->num_paths;i++) {
-        int p;
-        stale = FALSE;
-
-        if (!ds->started) stale = TRUE;
-        if (ds->hflash != hflash) stale = TRUE;
+        struct path *path = &state->common->paths[i];
         
-        p = state->common->paths[i].grid_start;
-        if (ds->hint_errors[p] != state->hint_errors[p]) {
-            stale = TRUE;
-            ds->hint_errors[p] = state->hint_errors[p];
-        }
-
-        if (stale) {
+        if (is_hint_stale(ds, hflash, state, path->grid_start)) {
             draw_path_hint(dr, ds, state, i, hflash, TRUE);
         }
 
-        stale = FALSE;
-
-        if (!ds->started) stale = TRUE;
-        if (ds->hflash != hflash) stale = TRUE;
-
-        p = state->common->paths[i].grid_end;
-        if (ds->hint_errors[p] != state->hint_errors[p]) {
-            stale = TRUE;
-            ds->hint_errors[p] = state->hint_errors[p];
-        }
-
-        if (stale) {
+        if (is_hint_stale(ds, hflash, state, path->grid_end)) {
             draw_path_hint(dr, ds, state, i, hflash, FALSE);
         }
-
     }
 
     /* Draw puzzle grid contents */
