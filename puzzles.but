@@ -3054,6 +3054,9 @@ If you prefer plain letters of the alphabet to cute monster pictures,
 you can press \q{A} to toggle between showing the monsters as monsters or
 showing them as letters.
 
+Left-clicking a clue will mark it as done (grey it out), or unmark it
+if it is already marked.
+
 (All the actions described in \k{common-actions} are also available.)
 
 \H{undead-parameters} \I{parameters, for Undead}Undead parameters
