@@ -152,9 +152,10 @@
 	<color name="range_night_colour_error">#e62e2e</color>
 	<color name="rect_night_colour_line">#ffffff</color>
 	<color name="rect_night_colour_text">#ffffff</color>
-	<color name="signpost_night_colour_arrow">#555555</color>
+	<color name="signpost_night_colour_arrow">#666666</color>
+	<color name="signpost_night_colour_arrow_bg_dim">#333333</color>
 	<color name="signpost_night_colour_number">#555555</color>
-	<color name="signpost_night_colour_b0">#cccccc</color>
+	<color name="signpost_night_colour_b0">#dddddd</color>
 	<color name="singles_night_colour_black">#ffffff</color>
 	<color name="singles_night_colour_blacknum">#cccccc</color>
 	<color name="singles_night_colour_white">#000000</color>
