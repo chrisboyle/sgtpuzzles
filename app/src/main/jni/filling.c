@@ -1252,9 +1252,9 @@ static float *game_colours(frontend *fe, int *ncolours)
     ret[COL_GRID * 3 + 1] = 0.0F;
     ret[COL_GRID * 3 + 2] = 0.0F;
 
-    ret[COL_HIGHLIGHT * 3 + 0] = 0.85F * ret[COL_BACKGROUND * 3 + 0];
-    ret[COL_HIGHLIGHT * 3 + 1] = 0.85F * ret[COL_BACKGROUND * 3 + 1];
-    ret[COL_HIGHLIGHT * 3 + 2] = 0.85F * ret[COL_BACKGROUND * 3 + 2];
+    ret[COL_HIGHLIGHT * 3 + 0] = 0.7F * ret[COL_BACKGROUND * 3 + 0];
+    ret[COL_HIGHLIGHT * 3 + 1] = 0.7F * ret[COL_BACKGROUND * 3 + 1];
+    ret[COL_HIGHLIGHT * 3 + 2] = 0.7F * ret[COL_BACKGROUND * 3 + 2];
 
     ret[COL_CORRECT * 3 + 0] = 0.9F * ret[COL_BACKGROUND * 3 + 0];
     ret[COL_CORRECT * 3 + 1] = 0.9F * ret[COL_BACKGROUND * 3 + 1];
