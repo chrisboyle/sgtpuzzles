@@ -250,25 +250,25 @@ public class GameView extends View
 		final PointF topLeft = viewToGame(new PointF(0, 0));
 		final PointF bottomRight = viewToGame(new PointF(w, h));
 		if (topLeft.x < 0) {
-			zoomInProgressMatrix.preTranslate(topLeft.x, 0);
+			zoomInProgressMatrix.preTranslate(topLeft.x * density, 0);
 			if (userAction) hitEdge(3, -topLeft.x);
 		} else if (exceedsTouchSlop(topLeft.x)) {
 			edges[3].onRelease();
 		}
 		if (bottomRight.x > wDip) {
-			zoomInProgressMatrix.preTranslate(bottomRight.x - wDip, 0);
+			zoomInProgressMatrix.preTranslate((bottomRight.x - wDip) * density, 0);
 			if (userAction) hitEdge(1, bottomRight.x - wDip);
 		} else if (exceedsTouchSlop(wDip - bottomRight.x)) {
 			edges[1].onRelease();
 		}
 		if (topLeft.y < 0) {
-			zoomInProgressMatrix.preTranslate(0, topLeft.y);
+			zoomInProgressMatrix.preTranslate(0, topLeft.y * density);
 			if (userAction) hitEdge(0, -topLeft.y);
 		} else if (exceedsTouchSlop(topLeft.y)) {
 			edges[0].onRelease();
 		}
 		if (bottomRight.y > hDip) {
-			zoomInProgressMatrix.preTranslate(0, bottomRight.y - hDip);
+			zoomInProgressMatrix.preTranslate(0, (bottomRight.y - hDip) * density);
 			if (userAction) hitEdge(2, bottomRight.y - hDip);
 		} else if (exceedsTouchSlop(hDip - bottomRight.y)) {
 			edges[2].onRelease();
