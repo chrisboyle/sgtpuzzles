@@ -51,6 +51,7 @@ enum {
     COL_GHOST,
     COL_ZOMBIE,
     COL_VAMPIRE,
+    COL_DONE,
     NCOLOURS
 };
 
@@ -239,6 +240,7 @@ struct game_state {
     unsigned char *pencils;
     unsigned char *cell_errors;
     unsigned char *hint_errors;
+    unsigned char *hints_done;
     unsigned char count_errors[3];
     int solved;
     int cheated;
@@ -291,6 +293,9 @@ static game_state *new_state(const game_params *params) {
     state->hint_errors = snewn(2*state->common->num_paths, unsigned char);
     for (i=0;i<2*state->common->num_paths;i++)
         state->hint_errors[i] = FALSE;
+    state->hints_done = snewn(2 * state->common->num_paths, unsigned char);
+    memset(state->hints_done, 0,
+           2 * state->common->num_paths * sizeof(unsigned char));
     for (i=0;i<3;i++)
         state->count_errors[i] = FALSE;
 
@@ -334,6 +339,13 @@ static game_state *dup_game(const game_state *state)
     }
     else ret->hint_errors = NULL;
 
+    if (state->hints_done != NULL) {
+        ret->hints_done = snewn(2 * state->common->num_paths, unsigned char);
+        memcpy(ret->hints_done, state->hints_done,
+               2 * state->common->num_paths * sizeof(unsigned char));
+    }
+    else ret->hints_done = NULL;
+
     ret->count_errors[0] = state->count_errors[0];
     ret->count_errors[1] = state->count_errors[1];
     ret->count_errors[2] = state->count_errors[2];
@@ -360,6 +372,7 @@ static void free_game(game_state *state) {
         if (state->common->fixed != NULL) sfree(state->common->fixed);
         sfree(state->common);
     }
+    if (state->hints_done != NULL) sfree(state->hints_done);
     if (state->hint_errors != NULL) sfree(state->hint_errors);
     if (state->cell_errors != NULL) sfree(state->cell_errors);
     if (state->pencils != NULL) sfree(state->pencils);
@@ -1686,6 +1699,7 @@ struct game_drawstate {
     unsigned char count_errors[3];
     unsigned char *cell_errors;
     unsigned char *hint_errors;
+    unsigned char *hints_done;
 
     int hx, hy, hshow, hpencil; /* as for game_ui. */
     int hflash;
@@ -1696,6 +1710,33 @@ struct game_drawstate {
         counts_vampire_x1, counts_vampire_x2,
         counts_zombie_x1, counts_zombie_x2;
 };
+
+static int is_clue(const game_state *state, int x, int y)
+{
+    int h = state->common->params.h, w = state->common->params.w;
+
+    if (((x == 0 || x == w + 1) && y > 0 && y <= h) ||
+        ((y == 0 || y == h + 1) && x > 0 && x <= w))
+        return TRUE;
+
+    return FALSE;
+}
+
+static int clue_index(const game_state *state, int x, int y)
+{
+    int h = state->common->params.h, w = state->common->params.w;
+
+    if (y == 0)
+        return x - 1;
+    else if (x == w + 1)
+        return w + y - 1;
+    else if (y == h + 1)
+        return 2 * w + h - x;
+    else if (x == 0)
+        return 2 * (w + h) - y;
+
+    return -1;
+}
 
 #define TILESIZE (ds->tilesize)
 #define BORDER (TILESIZE/4)
@@ -1890,10 +1931,11 @@ static char *interpret_move(const game_state *state, game_ui *ui,
                 }
             }
         }
-    } else if (button == LEFT_BUTTON || button == RIGHT_BUTTON) {
-        ui->hshow = 0;
-        ui->hpencil = 0;
-        return "";
+    } else if (button == LEFT_BUTTON) {
+        if (is_clue(state, gx, gy)) {
+            sprintf(buf, "D%d,%d", gx, gy);
+            return dupstr(buf);
+        }
     }
 
     return NULL;
@@ -2018,7 +2060,7 @@ int check_path_solution(game_state *state, int p) {
 
 static game_state *execute_move(const game_state *state, const char *move)
 {
-    int x,n,p,i;
+    int x,y,n,p,i;
     char c;
     int correct; 
     int solver; 
@@ -2044,6 +2086,11 @@ static game_state *execute_move(const game_state *state, const char *move)
             if (c == 'v') ret->pencils[x] ^= 2;
             if (c == 'z') ret->pencils[x] ^= 4;
             move += n;
+        }
+        if (c == 'D' && sscanf(move + 1, "%d,%d%n", &x, &y, &n) == 2 &&
+            is_clue(ret, x, y)) {
+            ret->hints_done[clue_index(ret, x, y)] ^= 1;
+            move += n + 1;
         }
         if (*move == ';') move++;
     }
@@ -2142,6 +2189,10 @@ static float *game_colours(frontend *fe, int *ncolours)
     ret[COL_VAMPIRE * 3 + 1] = ret[COL_BACKGROUND * 3 + 0] * 0.9F;
     ret[COL_VAMPIRE * 3 + 2] = ret[COL_BACKGROUND * 3 + 0] * 0.9F;
 
+    ret[COL_DONE * 3 + 0] = ret[COL_BACKGROUND * 3 + 0] / 1.5F;
+    ret[COL_DONE * 3 + 1] = ret[COL_BACKGROUND * 3 + 1] / 1.5F;
+    ret[COL_DONE * 3 + 2] = ret[COL_BACKGROUND * 3 + 2] / 1.5F;
+
     *ncolours = NCOLOURS;
     return ret;
 }
@@ -2174,6 +2225,9 @@ static game_drawstate *game_new_drawstate(drawing *dr, const game_state *state)
     ds->hint_errors = snewn(2*state->common->num_paths,unsigned char);
     for (i=0;i<2*state->common->num_paths;i++)
         ds->hint_errors[i] = FALSE;
+    ds->hints_done = snewn(2 * state->common->num_paths, unsigned char);
+    memset(ds->hints_done, 0,
+           2 * state->common->num_paths * sizeof(unsigned char));
 
     ds->hshow = ds->hpencil = ds->hflash = 0;
     ds->hx = ds->hy = 0;
@@ -2181,6 +2235,7 @@ static game_drawstate *game_new_drawstate(drawing *dr, const game_state *state)
 }
 
 static void game_free_drawstate(drawing *dr, game_drawstate *ds) {
+    sfree(ds->hints_done);
     sfree(ds->hint_errors);
     sfree(ds->cell_errors);
     sfree(ds->pencils);
@@ -2411,22 +2466,37 @@ static void draw_monster_count(drawing *dr, game_drawstate *ds,
 }
 
 static void draw_path_hint(drawing *dr, game_drawstate *ds,
-                           const game_state *state,
-                           int i, int hflash, int start) {
-    int dx,dy,x,y;
-    int p,error;
-    char buf[80];
+                           const struct game_params *params,
+                           int hint_index, int hflash, int hint) {
+    int x, y, color, dx, dy, text_dx, text_dy, text_size;
+    char buf[4];
 
-    p = start ? state->common->paths[i].grid_start : state->common->paths[i].grid_end;
-    range2grid(p,state->common->params.w,state->common->params.h,&x,&y);
-    error = ds->hint_errors[p];
+    if (ds->hint_errors[hint_index])
+        color = COL_ERROR;
+    else if (hflash)
+        color = COL_FLASH;
+    else if (ds->hints_done[hint_index])
+        color = COL_DONE;
+    else
+        color = COL_TEXT;
 
-    dx = BORDER+(x* ds->tilesize)+(TILESIZE/2);
-    dy = BORDER+(y* ds->tilesize)+(TILESIZE/2)+TILESIZE;
-    sprintf(buf,"%d", start ? state->common->paths[i].sightings_start : state->common->paths[i].sightings_end);
-    draw_rect(dr,dx-(TILESIZE/2)+2,dy-(TILESIZE/2)+2,TILESIZE-3,TILESIZE-3,COL_BACKGROUND);
-    draw_text(dr,dx,dy,FONT_FIXED,TILESIZE/2,ALIGN_HCENTRE|ALIGN_VCENTRE, error ? COL_ERROR : hflash ? COL_FLASH : COL_TEXT,buf);
-    draw_update(dr,dx-(TILESIZE/2)+2,dy-(TILESIZE/2)+2,TILESIZE-3,TILESIZE-3);
+    range2grid(hint_index, params->w, params->h, &x, &y);
+    /* Upper-left corner of the "tile" */
+    dx = BORDER + x * TILESIZE;
+    dy = BORDER + y * TILESIZE + TILESIZE;
+    /* Center of the "tile" */
+    text_dx = dx + TILESIZE / 2;
+    text_dy = dy +  TILESIZE / 2;
+    /* Avoid wiping out the borders of the puzzle */
+    dx += 2;
+    dy += 2;
+    text_size = TILESIZE - 3;
+
+    sprintf(buf,"%d", hint);
+    draw_rect(dr, dx, dy, text_size, text_size, COL_BACKGROUND);
+    draw_text(dr, text_dx, text_dy, FONT_FIXED, TILESIZE / 2,
+              ALIGN_HCENTRE | ALIGN_VCENTRE, color, buf);
+    draw_update(dr, dx, dy, text_size, text_size);
 
     return;
 }
@@ -2524,6 +2594,25 @@ static void draw_pencils(drawing *dr, game_drawstate *ds,
 
 #define FLASH_TIME 0.7F
 
+static int is_hint_stale(const game_drawstate *ds, int hflash,
+                         const game_state *state, int index)
+{
+    if (!ds->started) return TRUE;
+    if (ds->hflash != hflash) return TRUE;
+
+    if (ds->hint_errors[index] != state->hint_errors[index]) {
+        ds->hint_errors[index] = state->hint_errors[index];
+        return TRUE;
+    }
+
+    if (ds->hints_done[index] != state->hints_done[index]) {
+        ds->hints_done[index] = state->hints_done[index];
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
 static void game_redraw(drawing *dr, game_drawstate *ds,
                         const game_state *oldstate, const game_state *state,
                         int dir, const game_ui *ui,
@@ -2579,37 +2668,17 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
 
     /* Draw path count hints */
     for (i=0;i<state->common->num_paths;i++) {
-        int p;
-        stale = FALSE;
-
-        if (!ds->started) stale = TRUE;
-        if (ds->hflash != hflash) stale = TRUE;
+        struct path *path = &state->common->paths[i];
         
-        p = state->common->paths[i].grid_start;
-        if (ds->hint_errors[p] != state->hint_errors[p]) {
-            stale = TRUE;
-            ds->hint_errors[p] = state->hint_errors[p];
+        if (is_hint_stale(ds, hflash, state, path->grid_start)) {
+            draw_path_hint(dr, ds, &state->common->params, path->grid_start,
+                           hflash, path->sightings_start);
         }
 
-        if (stale) {
-            draw_path_hint(dr, ds, state, i, hflash, TRUE);
+        if (is_hint_stale(ds, hflash, state, path->grid_end)) {
+            draw_path_hint(dr, ds, &state->common->params, path->grid_end,
+                           hflash, path->sightings_end);
         }
-
-        stale = FALSE;
-
-        if (!ds->started) stale = TRUE;
-        if (ds->hflash != hflash) stale = TRUE;
-
-        p = state->common->paths[i].grid_end;
-        if (ds->hint_errors[p] != state->hint_errors[p]) {
-            stale = TRUE;
-            ds->hint_errors[p] = state->hint_errors[p];
-        }
-
-        if (stale) {
-            draw_path_hint(dr, ds, state, i, hflash, FALSE);
-        }
-
     }
 
     /* Draw puzzle grid contents */

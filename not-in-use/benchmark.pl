@@ -1,5 +1,7 @@
 #!/usr/bin/perl
 
+# Process the raw output from benchmark.sh into Javascript-ified HTML.
+
 use strict;
 use warnings;
 
@@ -123,20 +125,62 @@ function initPlots() {
             ctx.stroke();
         }
     }
+    document.getElementById('sort_orig').onclick = function() {
+        sort(function(e) {
+            return parseFloat(e.getAttribute("data-index"));
+        });
+    };
+    document.getElementById('sort_median').onclick = function() {
+        sort(function(e) {
+            return -parseFloat(e.getAttribute("data-median"));
+        });
+    };
+    document.getElementById('sort_mean').onclick = function() {
+        sort(function(e) {
+            return -parseFloat(e.getAttribute("data-mean"));
+        });
+    };
+}
+function sort(keyfn) {
+    var rows = document.getElementsByTagName("tr");
+    var trs = [];
+    for (var i = 0; i < rows.length; i++)
+        trs.push(rows[i]);
+    trs.sort(function(a,b) {
+        var akey = keyfn(a);
+        var bkey = keyfn(b);
+        return akey < bkey ? -1 : akey > bkey ? +1 : 0;
+    });
+    var parent = trs[0].parentElement;
+    for (var i = 0; i < trs.length; i++)
+        parent.removeChild(trs[i]);
+    for (var i = 0; i < trs.length; i++)
+        parent.appendChild(trs[i]);
 }
 //]]>
 </script>
 </head>
 <body onLoad="initPlots();">
 <h1 align=center>Puzzle generation-time benchmarks</h1>
+<p>Sort order:
+<button id="sort_orig">Original</button>
+<button id="sort_median">Median</button>
+<button id="sort_mean">Mean</button>
 <table>
 <tr><th>Preset</th><td><canvas width=700 height=30 data-points='"scale"' data-scale="$maxval"></td></tr>
 EOF
 
+my $index = 0;
 for my $preset (@presets) {
-    print "<tr><td>", &escape($preset), "</td><td><canvas width=700 height=15 data-points=\"[";
-    print join ",", sort { $a <=> $b } @{$presets{$preset}};
+    my @data = sort { $a <=> $b } @{$presets{$preset}};
+    my $median = ($#data % 2 ?
+                  ($data[($#data-1)/2]+$data[($#data+1)/2])/2 :
+                  $data[$#data/2]);
+    my $mean = 0; map { $mean += $_ } @data; $mean /= @data;
+    print "<tr data-index=\"$index\" data-mean=\"$mean\" data-median=\"$median\"><td>", &escape($preset), "</td><td><canvas width=700 height=15 data-points=\"[";
+    print join ",", @data;
     print "]\" data-scale=\"$maxval\"></td></tr>\n";
+    $index++;
 }
 
 print <<EOF;

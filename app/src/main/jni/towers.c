@@ -16,12 +16,6 @@
  * 	 factorial-time enumeration at a sensible rate. Easy puzzles
  * 	 higher than that would be possible, but more latin-squarey
  * 	 than skyscrapery, as it were.
- *
- *  - UI work?
- *     + Allow the user to mark a clue as 'spent' in some way once
- * 	 it's no longer interesting (typically because no
- * 	 arrangement of the remaining possibilities _can_ violate
- * 	 it)?
  */
 
 #include <stdio.h>
@@ -60,6 +54,7 @@ enum {
     COL_HIGHLIGHT,
     COL_ERROR,
     COL_PENCIL,
+    COL_DONE,
     NCOLOURS
 };
 
@@ -120,6 +115,7 @@ static const char *const cluepos[] = {
 struct game_state {
     game_params par;
     struct clues *clues;
+    unsigned char *clues_done;
     digit *grid;
     int *pencil;		       /* bitmaps using bits 1<<1..1<<n */
     int completed, cheated;
@@ -905,6 +901,7 @@ static game_state *new_game(midend *me, const game_params *params,
     state->clues->clues = snewn(4*w, int);
     state->clues->immutable = snewn(a, digit);
     state->grid = snewn(a, digit);
+    state->clues_done = snewn(4*w, unsigned char);
     state->pencil = snewn(a, int);
 
     for (i = 0; i < a; i++) {
@@ -913,6 +910,7 @@ static game_state *new_game(midend *me, const game_params *params,
     }
 
     memset(state->clues->immutable, 0, a);
+    memset(state->clues_done, 0, 4*w*sizeof(unsigned char));
 
     for (i = 0; i < 4*w; i++) {
 	if (i > 0) {
@@ -966,8 +964,10 @@ static game_state *dup_game(const game_state *state)
 
     ret->grid = snewn(a, digit);
     ret->pencil = snewn(a, int);
+    ret->clues_done = snewn(4*w, unsigned char);
     memcpy(ret->grid, state->grid, a*sizeof(digit));
     memcpy(ret->pencil, state->pencil, a*sizeof(int));
+    memcpy(ret->clues_done, state->clues_done, 4*w*sizeof(unsigned char));
 
     ret->completed = state->completed;
     ret->cheated = state->cheated;
@@ -979,6 +979,7 @@ static void free_game(game_state *state)
 {
     sfree(state->grid);
     sfree(state->pencil);
+    sfree(state->clues_done);
     if (--state->clues->refcount <= 0) {
 	sfree(state->clues->immutable);
 	sfree(state->clues->clues);
@@ -1195,6 +1196,7 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
 #define FLASH_TIME 0.4F
 
 #define DF_PENCIL_SHIFT 16
+#define DF_CLUE_DONE 0x10000
 #define DF_ERROR 0x8000
 #define DF_HIGHLIGHT 0x4000
 #define DF_HIGHLIGHT_PENCIL 0x2000
@@ -1295,6 +1297,32 @@ static int check_errors(const game_state *state, int *errors)
     }
 
     return errs;
+}
+
+static int clue_index(const game_state *state, int x, int y)
+{
+    int w = state->par.w;
+
+    if (x == -1 || x == w)
+        return w * (x == -1 ? 2 : 3) + y;
+    else if (y == -1 || y == w)
+        return (y == -1 ? 0 : w) + x;
+
+    return -1;
+}
+
+static int is_clue(const game_state *state, int x, int y)
+{
+    int w = state->par.w;
+
+    if (((x == -1 || x == w) && y >= 0 && y < w) ||
+        ((y == -1 || y == w) && x >= 0 && x < w))
+    {
+        if (state->clues->clues[clue_index(state, x, y)] & DF_DIGIT_MASK)
+            return TRUE;
+    }
+
+    return FALSE;
 }
 
 static char *interpret_move(const game_state *state, game_ui *ui,
@@ -1400,10 +1428,11 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 #endif
             return "";		       /* UI activity occurred */
         }
-    } else if (button == LEFT_BUTTON || button == RIGHT_BUTTON) {
-        ui->hshow = 0;
-        ui->hpencil = 0;
-        return "";
+    } else if (button == LEFT_BUTTON) {
+        if (is_clue(state, tx, ty)) {
+            sprintf(buf, "%c%d,%d", 'D', tx, ty);
+            return dupstr(buf);
+        }
     }
     if (IS_CURSOR_MOVE(button)) {
         move_cursor(button, &ui->hx, &ui->hy, w, w, 0);
@@ -1454,35 +1483,29 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 static game_state *execute_move(const game_state *from, const char *move)
 {
     int w = from->par.w, a = w*w;
-    game_state *ret;
+    game_state *ret = dup_game(from);
     int x, y, i, n;
 
     if (move[0] == 'S') {
-	ret = dup_game(from);
 	ret->completed = ret->cheated = TRUE;
 
 	for (i = 0; i < a; i++) {
-	    if (move[i+1] < '1' || move[i+1] > '0'+w) {
-		free_game(ret);
-		return NULL;
-	    }
+            if (move[i+1] < '1' || move[i+1] > '0'+w)
+                goto badmove;
 	    ret->grid[i] = move[i+1] - '0';
 	    ret->pencil[i] = 0;
 	}
 
-	if (move[a+1] != '\0') {
-	    free_game(ret);
-	    return NULL;
-	}
+        if (move[a+1] != '\0')
+            goto badmove;
 
 	return ret;
     } else if ((move[0] == 'P' || move[0] == 'R') &&
 	sscanf(move+1, "%d,%d,%d", &x, &y, &n) == 3 &&
 	x >= 0 && x < w && y >= 0 && y < w && n >= 0 && n <= w) {
 	if (from->clues->immutable[y*w+x])
-	    return NULL;
+            goto badmove;
 
-	ret = dup_game(from);
         if (move[0] == 'P' && n > 0) {
             ret->pencil[y*w+x] ^= 1L << n;
         } else {
@@ -1500,14 +1523,22 @@ static game_state *execute_move(const game_state *from, const char *move)
 	 * starting point when following through a set of
 	 * diagnostics output by the standalone solver.)
 	 */
-	ret = dup_game(from);
 	for (i = 0; i < a; i++) {
 	    if (!ret->grid[i])
 		ret->pencil[i] = (1L << (w+1)) - (1L << 1);
 	}
 	return ret;
-    } else
-	return NULL;		       /* couldn't parse move string */
+    } else if (move[0] == 'D' && sscanf(move+1, "%d,%d", &x, &y) == 2 &&
+               is_clue(from, x, y)) {
+        int index = clue_index(from, x, y);
+        ret->clues_done[index] = !ret->clues_done[index];
+        return ret;
+    }
+
+  badmove:
+    /* couldn't parse move string */
+    free_game(ret);
+    return NULL;
 }
 
 /* ----------------------------------------------------------------------
@@ -1557,6 +1588,10 @@ static float *game_colours(frontend *fe, int *ncolours)
     ret[COL_PENCIL * 3 + 0] = 0.5F * ret[COL_BACKGROUND * 3 + 0];
     ret[COL_PENCIL * 3 + 1] = 0.5F * ret[COL_BACKGROUND * 3 + 1];
     ret[COL_PENCIL * 3 + 2] = ret[COL_BACKGROUND * 3 + 2];
+
+    ret[COL_DONE * 3 + 0] = ret[COL_BACKGROUND * 3 + 0] / 1.5F;
+    ret[COL_DONE * 3 + 1] = ret[COL_BACKGROUND * 3 + 1] / 1.5F;
+    ret[COL_DONE * 3 + 2] = ret[COL_BACKGROUND * 3 + 2] / 1.5F;
 
     *ncolours = NCOLOURS;
     return ret;
@@ -1664,14 +1699,25 @@ static void draw_tile(drawing *dr, game_drawstate *ds, struct clues *clues,
 
     /* new number needs drawing? */
     if (tile & DF_DIGIT_MASK) {
+        int color;
+
 	str[1] = '\0';
 	str[0] = (tile & DF_DIGIT_MASK) + '0';
+
+        if (tile & DF_ERROR)
+            color = COL_ERROR;
+        else if (tile & DF_CLUE_DONE)
+            color = COL_DONE;
+        else if (x < 0 || y < 0 || x >= w || y >= w)
+            color = COL_GRID;
+        else if (tile & DF_IMMUTABLE)
+            color = COL_GRID;
+        else
+            color = COL_USER;
+
 	draw_text(dr, tx + TILESIZE/2, ty + TILESIZE/2, FONT_VARIABLE,
 		  (tile & DF_PLAYAREA ? TILESIZE/2 : TILESIZE*2/5),
-		  ALIGN_VCENTRE | ALIGN_HCENTRE,
-		  (tile & DF_ERROR) ? COL_ERROR :
-		  (x < 0 || y < 0 || x >= w || y >= w) ? COL_GRID :
-		  (tile & DF_IMMUTABLE) ? COL_GRID : COL_USER, str);
+                  ALIGN_VCENTRE | ALIGN_HCENTRE, color, str);
     } else {
         int i, j, npencil;
 	int pl, pr, pt, pb;
@@ -1794,6 +1840,8 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
 
 	if (ds->errtmp[(y+1)*(w+2)+(x+1)])
 	    tile |= DF_ERROR;
+        else if (state->clues_done[i])
+            tile |= DF_CLUE_DONE;
 
 	ds->tiles[(y+1)*(w+2)+(x+1)] = tile;
     }
