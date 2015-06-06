@@ -607,8 +607,8 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 		final Uri uriWithMimeType, bluetoothUri;
 		final String saved = saveToString();
 		try {
-			uriWithMimeType = writeCacheFile("puzzle.sav", saved);
-			bluetoothUri = writeCacheFile("bluetooth-puzzle.sav", saved);  // gets text/plain in FixedTypeFileProvider
+			uriWithMimeType = writeCacheFile("puzzle.sgtp", saved);
+			bluetoothUri = writeCacheFile("bluetooth-puzzle.sgtp", saved);  // gets text/plain in FixedTypeFileProvider
 		} catch (IOException e) {
 			SendFeedbackActivity.promptToReport(this, R.string.cache_fail_desc, R.string.cache_fail_short);
 			return;
@@ -633,7 +633,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 		}
 
 		// Fix Bluetooth sharing: the closest type it will accept is text/plain, so
-		// give it that (see FixedTypeFileProvider) and rely on handling *.sav
+		// give it that (see FixedTypeFileProvider) and rely on handling *.sgtp
 		Collections.sort(candidates, new ResolveInfo.DisplayNameComparator(getPackageManager()));
 		List<Intent> targets = new ArrayList<Intent>();
 		for (ResolveInfo candidate : candidates) {

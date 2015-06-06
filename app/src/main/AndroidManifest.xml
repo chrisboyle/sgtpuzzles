@@ -45,6 +45,17 @@
 				<data android:scheme="file" />
 				<!-- File managers' fault; some don't even fall back to application/octet-stream; they just leave it blank -->
 				<data android:mimeType="*/*" />
+				<data android:pathPattern=".*\\.sgtp" />
+				<data android:host="*" />
+			</intent-filter>
+			<intent-filter>
+				<action android:name="android.intent.action.VIEW" />
+				<action android:name="android.intent.action.EDIT" />
+				<category android:name="android.intent.category.DEFAULT" />
+				<category android:name="android.intent.category.BROWSABLE" />
+				<data android:scheme="file" />
+				<!-- File managers' fault; some don't even fall back to application/octet-stream; they just leave it blank -->
+				<data android:mimeType="*/*" />
 				<data android:pathPattern=".*\\.sav" />
 				<data android:host="*" />
 			</intent-filter>
