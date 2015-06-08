@@ -46,7 +46,7 @@ int verbose = 0;
 
 enum {
     COL_BACKGROUND, COL_HIGHLIGHT, COL_LOWLIGHT,
-    COL_TEXT, COL_ERROR, COL_CURSOR,
+    COL_TEXT, COL_ERROR, COL_CURSOR, COL_DONE,
     COL_NEUTRAL, COL_NEGATIVE, COL_POSITIVE, COL_NOT,
     NCOLOURS
 };
@@ -273,6 +273,7 @@ struct game_state {
     int *grid;                  /* size w*h, for cell state (pos/neg) */
     unsigned int *flags;        /* size w*h */
     int solved, completed, numbered;
+    unsigned char *counts_done;
 
     struct game_common *common; /* domino layout never changes. */
 };
@@ -285,6 +286,7 @@ static void clear_state(game_state *ret)
 
     memset(ret->common->rowcount, 0, ret->h*3*sizeof(int));
     memset(ret->common->colcount, 0, ret->w*3*sizeof(int));
+    memset(ret->counts_done, 0, (ret->h + ret->w) * 2 * sizeof(unsigned char));
 
     for (i = 0; i < ret->wh; i++) {
         ret->grid[i] = EMPTY;
@@ -304,6 +306,7 @@ static game_state *new_state(int w, int h)
 
     ret->grid = snewn(ret->wh, int);
     ret->flags = snewn(ret->wh, unsigned int);
+    ret->counts_done = snewn((ret->h + ret->w) * 2, unsigned char);
 
     ret->common = snew(struct game_common);
     ret->common->refcount = 1;
@@ -335,6 +338,10 @@ static game_state *dup_game(const game_state *src)
     dest->grid = snewn(dest->wh, int);
     memcpy(dest->grid, src->grid, dest->wh*sizeof(int));
 
+    dest->counts_done = snewn((dest->h + dest->w) * 2, unsigned char);
+    memcpy(dest->counts_done, src->counts_done,
+           (dest->h + dest->w) * 2 * sizeof(unsigned char));
+
     dest->flags = snewn(dest->wh, unsigned int);
     memcpy(dest->flags, src->flags, dest->wh*sizeof(unsigned int));
 
@@ -350,6 +357,7 @@ static void free_game(game_state *state)
         sfree(state->common->colcount);
         sfree(state->common);
     }
+    sfree(state->counts_done);
     sfree(state->flags);
     sfree(state->grid);
     sfree(state);
@@ -1758,6 +1766,33 @@ struct game_drawstate {
 #define COORD(x) ( (x+1) * TILE_SIZE + BORDER )
 #define FROMCOORD(x) ( (x - BORDER) / TILE_SIZE - 1 )
 
+static int is_clue(const game_state *state, int x, int y)
+{
+    int h = state->h, w = state->w;
+
+    if (((x == -1 || x == w) && y >= 0 && y < h) ||
+        ((y == -1 || y == h) && x >= 0 && x < w))
+        return TRUE;
+
+    return FALSE;
+}
+
+static int clue_index(const game_state *state, int x, int y)
+{
+    int h = state->h, w = state->w;
+
+    if (y == -1)
+        return x;
+    else if (x == w)
+        return w + y;
+    else if (y == h)
+        return 2 * w + h - x - 1;
+    else if (x == -1)
+        return 2 * (w + h) - y - 1;
+
+    return -1;
+}
+
 static char *interpret_move(const game_state *state, game_ui *ui,
                             const game_drawstate *ds,
                             int x, int y, int button)
@@ -1785,6 +1820,9 @@ static char *interpret_move(const game_state *state, game_ui *ui,
             nullret = "";
         }
         action = (button == LEFT_BUTTON) ? CYCLE_MAGNET : CYCLE_NEUTRAL;
+    } else if (button == LEFT_BUTTON && is_clue(state, gx, gy)) {
+        sprintf(buf, "D%d,%d", gx, gy);
+        return dupstr(buf);
     } else
         return NULL;
 
@@ -1861,6 +1899,9 @@ static game_state *execute_move(const game_state *state, const char *move)
                 ret->flags[idx] |= GS_SET;
                 ret->flags[idx2] |= GS_SET;
             }
+        } else if (c == 'D' && sscanf(move, "%d,%d%n", &x, &y, &n) == 2 &&
+                   is_clue(ret, x, y)) {
+            ret->counts_done[clue_index(ret, x, y)] ^= 1;
         } else
             goto badmove;
 
@@ -1910,6 +1951,7 @@ static float *game_colours(frontend *fe, int *ncolours)
         ret[COL_TEXT * 3 + i] = 0.0F;
         ret[COL_NEGATIVE * 3 + i] = 0.0F;
         ret[COL_CURSOR * 3 + i] = 0.9F;
+        ret[COL_DONE * 3 + i] = ret[COL_BACKGROUND * 3 + i] / 1.5F;
     }
 
     ret[COL_POSITIVE * 3 + 0] = 0.8F;
@@ -2127,11 +2169,20 @@ static void draw_tile(drawing *dr, game_drawstate *ds, int *dominoes,
 static int get_count_color(const game_state *state, int rowcol, int which,
                            int index, int target)
 {
+    int idx;
     int count = count_rowcol(state, index, rowcol, which);
 
     if ((count > target) ||
         (count < target && !count_rowcol(state, index, rowcol, -1))) {
         return COL_ERROR;
+    } else if (rowcol == COLUMN) {
+        idx = clue_index(state, index, which == POSITIVE ? -1 : state->h);
+    } else {
+        idx = clue_index(state, which == POSITIVE ? -1 : state->w, index);
+    }
+
+    if (state->counts_done[idx]) {
+        return COL_DONE;
     }
 
     return COL_TEXT;

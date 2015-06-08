@@ -2751,6 +2751,9 @@ Right-clicking again places two question marks on the domino, signifying
 \q{this cannot be blank} (which can be useful to note deductions while
 solving), and right-clicking again empties the domino. 
 
+Left-clicking a clue will mark it as done (grey it out), or unmark it if
+it is already marked.
+
 You can also use the cursor keys to move a cursor around the grid. 
 Pressing the return key will lay a domino with a positive pole at that
 position; pressing again reverses the polarity and then removes the
