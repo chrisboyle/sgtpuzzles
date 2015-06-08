@@ -1959,7 +1959,7 @@ static void game_free_drawstate(drawing *dr, game_drawstate *ds)
     sfree(ds);
 }
 
-static void draw_num_col(drawing *dr, game_drawstate *ds, int rowcol, int which,
+static void draw_num(drawing *dr, game_drawstate *ds, int rowcol, int which,
                          int idx, int colbg, int col, int num)
 {
     char buf[32];
@@ -1985,13 +1985,6 @@ static void draw_num_col(drawing *dr, game_drawstate *ds, int rowcol, int which,
               ALIGN_VCENTRE | ALIGN_HCENTRE, col, buf);
 
     draw_update(dr, cx, cy, TILE_SIZE, TILE_SIZE);
-}
-
-static void draw_num(drawing *dr, game_drawstate *ds, int rowcol, int which,
-                     int idx, unsigned long c, int num)
-{
-    draw_num_col(dr, ds, rowcol, which, idx, COL_BACKGROUND,
-                 (c & DS_ERROR) ? COL_ERROR : COL_TEXT, num);
 }
 
 static void draw_sym(drawing *dr, game_drawstate *ds, int x, int y, int which, int col)
@@ -2131,17 +2124,17 @@ static void draw_tile(drawing *dr, game_drawstate *ds, int *dominoes,
     draw_update(dr, cx, cy, TILE_SIZE, TILE_SIZE);
 }
 
-static unsigned long get_count_color(const game_state *state, int rowcol,
-                                     int which, int index, int target)
+static int get_count_color(const game_state *state, int rowcol, int which,
+                           int index, int target)
 {
     int count = count_rowcol(state, index, rowcol, which);
 
     if ((count > target) ||
         (count < target && !count_rowcol(state, index, rowcol, -1))) {
-        return DS_ERROR;
+        return COL_ERROR;
     }
 
-    return 0;
+    return COL_TEXT;
 }
 
 static void game_redraw(drawing *dr, game_drawstate *ds,
@@ -2206,7 +2199,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
             int color = get_count_color(state, COLUMN, which, i, target);
 
             if (color != ds->colwhat[index] || !ds->started) {
-                draw_num(dr, ds, COLUMN, which, i, color, target);
+                draw_num(dr, ds, COLUMN, which, i, COL_BACKGROUND, color, target);
                 ds->colwhat[index] = color;
             }
         }
@@ -2216,7 +2209,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
             int color = get_count_color(state, ROW, which, i, target);
 
             if (color != ds->rowwhat[index] || !ds->started) {
-                draw_num(dr, ds, ROW, which, i, color, target);
+                draw_num(dr, ds, ROW, which, i, COL_BACKGROUND, color, target);
                 ds->rowwhat[index] = color;
             }
         }
@@ -2282,11 +2275,11 @@ static void game_print(drawing *dr, const game_state *state, int tilesize)
     draw_sym(dr, ds, state->w, state->h, NEGATIVE, ink);
     for (which = POSITIVE, j = 0; j < 2; which = OPPOSITE(which), j++) {
         for (i = 0; i < w; i++) {
-            draw_num_col(dr, ds, COLUMN, which, i, paper, ink,
+            draw_num(dr, ds, COLUMN, which, i, paper, ink,
                          state->common->colcount[i*3+which]);
         }
         for (i = 0; i < h; i++) {
-            draw_num_col(dr, ds, ROW, which, i, paper, ink,
+            draw_num(dr, ds, ROW, which, i, paper, ink,
                          state->common->rowcount[i*3+which]);
         }
     }
