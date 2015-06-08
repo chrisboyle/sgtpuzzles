@@ -2131,6 +2131,18 @@ static void draw_tile(drawing *dr, game_drawstate *ds, int *dominoes,
     draw_update(dr, cx, cy, TILE_SIZE, TILE_SIZE);
 }
 
+static unsigned long get_count_color(const game_state *state, int rowcol,
+                                     int which, int index, int target)
+{
+    int count = count_rowcol(state, index, rowcol, which);
+
+    if ((count > target) ||
+        (count < target && !count_rowcol(state, index, rowcol, -1))) {
+        return DS_ERROR;
+    }
+
+    return 0;
+}
 
 static void game_redraw(drawing *dr, game_drawstate *ds,
                         const game_state *oldstate, const game_state *state,
@@ -2138,7 +2150,6 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
                         float animtime, float flashtime)
 {
     int x, y, w = state->w, h = state->h, which, i, j, flash;
-    unsigned long c = 0;
 
     flash = (int)(flashtime * 5 / FLASH_TIME) % 2;
 
@@ -2161,8 +2172,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
     for (y = 0; y < h; y++) {
         for (x = 0; x < w; x++) {
             int idx = y*w+x;
-
-            c = state->grid[idx];
+            unsigned long c = state->grid[idx];
 
             if (state->flags[idx] & GS_ERROR)
                 c |= DS_ERROR;
@@ -2190,31 +2200,24 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
     }
     /* Draw counts around side */
     for (which = POSITIVE, j = 0; j < 2; which = OPPOSITE(which), j++) {
-        int target, count;
         for (i = 0; i < w; i++) {
-            target = state->common->colcount[i*3+which];
-            count = count_rowcol(state, i, COLUMN, which);
-            c = 0;
-            if ((count > target) ||
-                (count < target && !count_rowcol(state, i, COLUMN, -1)))
-                c |= DS_ERROR;
-            if (c != ds->colwhat[i*3+which] || !ds->started) {
-                draw_num(dr, ds, COLUMN, which, i, c,
-                         state->common->colcount[i*3+which]);
-                ds->colwhat[i*3+which] = c;
+            int index = i * 3 + which;
+            int target = state->common->colcount[index];
+            int color = get_count_color(state, COLUMN, which, i, target);
+
+            if (color != ds->colwhat[index] || !ds->started) {
+                draw_num(dr, ds, COLUMN, which, i, color, target);
+                ds->colwhat[index] = color;
             }
         }
         for (i = 0; i < h; i++) {
-            target = state->common->rowcount[i*3+which];
-            count = count_rowcol(state, i, ROW, which);
-            c = 0;
-            if ((count > target) ||
-                (count < target && !count_rowcol(state, i, ROW, -1)))
-                c |= DS_ERROR;
-            if (c != ds->rowwhat[i*3+which] || !ds->started) {
-                draw_num(dr, ds, ROW, which, i, c,
-                         state->common->rowcount[i*3+which]);
-                ds->rowwhat[i*3+which] = c;
+            int index = i * 3 + which;
+            int target = state->common->rowcount[index];
+            int color = get_count_color(state, ROW, which, i, target);
+
+            if (color != ds->rowwhat[index] || !ds->started) {
+                draw_num(dr, ds, ROW, which, i, color, target);
+                ds->rowwhat[index] = color;
             }
         }
     }
