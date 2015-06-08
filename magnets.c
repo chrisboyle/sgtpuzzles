@@ -1746,11 +1746,10 @@ struct game_drawstate {
 #define DS_ERROR    0x10
 #define DS_CURSOR   0x20
 #define DS_SET      0x40
-#define DS_FULL     0x80
-#define DS_NOTPOS   0x100
-#define DS_NOTNEG   0x200
-#define DS_NOTNEU   0x400
-#define DS_FLASH    0x800
+#define DS_NOTPOS   0x80
+#define DS_NOTNEG   0x100
+#define DS_NOTNEU   0x200
+#define DS_FLASH    0x400
 
 #define PREFERRED_TILE_SIZE 32
 #define TILE_SIZE (ds->tilesize)
@@ -2199,7 +2198,6 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
             if ((count > target) ||
                 (count < target && !count_rowcol(state, i, COLUMN, -1)))
                 c |= DS_ERROR;
-            if (count == target) c |= DS_FULL;
             if (c != ds->colwhat[i*3+which] || !ds->started) {
                 draw_num(dr, ds, COLUMN, which, i, c,
                          state->common->colcount[i*3+which]);
@@ -2213,7 +2211,6 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
             if ((count > target) ||
                 (count < target && !count_rowcol(state, i, ROW, -1)))
                 c |= DS_ERROR;
-            if (count == target) c |= DS_FULL;
             if (c != ds->rowwhat[i*3+which] || !ds->started) {
                 draw_num(dr, ds, ROW, which, i, c,
                          state->common->rowcount[i*3+which]);
