@@ -668,7 +668,7 @@ public class GameView extends View
 	@UsedByJNI
 	void unClip(int marginX, int marginY)
 	{
-		canvas.clipRect(marginX - 0.5f, marginY - 0.5f, w - marginX - 1.5f, h - marginY - 1.5f, Region.Op.REPLACE);
+		canvas.clipRect(marginX - 0.5f, marginY - 0.5f, wDip - marginX - 1.5f, hDip - marginY - 1.5f, Region.Op.REPLACE);
 	}
 
 	@UsedByJNI
