@@ -34,7 +34,7 @@ def idForSimon() {
 
 android {
     compileSdkVersion 22
-    buildToolsVersion "20.0.0"
+    buildToolsVersion "22.0.1"
 
     defaultConfig {
         applicationId "name.boyle.chris.sgtpuzzles"
