@@ -25,7 +25,6 @@ import name.boyle.chris.sgtpuzzles.compat.SysUIVisSetter;
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.ProgressDialog;
 import android.content.ActivityNotFoundException;
@@ -70,6 +69,11 @@ import android.support.v4.content.FileProvider;
 import android.support.v4.view.MenuItemCompat;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.ActionBarActivity;
+import android.support.v7.app.AlertDialog;
+import android.support.v7.widget.AppCompatCheckBox;
+import android.support.v7.widget.AppCompatEditText;
+import android.support.v7.widget.AppCompatSpinner;
+import android.support.v7.widget.AppCompatTextView;
 import android.text.InputType;
 import android.util.DisplayMetrics;
 import android.util.Log;
@@ -1337,7 +1341,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 		switch(type) {
 		case C_STRING: {
 			dialogIds.add(name);
-			EditText et = new EditText(context);
+			AppCompatEditText et = new AppCompatEditText(context);
 			// TODO: C_INT, C_UINT, C_UDOUBLE, C_DOUBLE
 			// Ugly temporary hack: in custom game dialog, all text boxes are numeric, in the other two dialogs they aren't.
 			// Uglier temporary-er hack: Black Box must accept a range for ball count.
@@ -1347,7 +1351,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 			et.setWidth(getResources().getDimensionPixelSize((whichEvent == CFG_SETTINGS)
 					? R.dimen.dialog_edit_text_width : R.dimen.dialog_long_edit_text_width));
 			et.setSelectAllOnFocus(true);
-			TextView tv = new TextView(context);
+			AppCompatTextView tv = new AppCompatTextView(context);
 			tv.setText(name);
 			tv.setPadding(0, 0, getResources().getDimensionPixelSize(R.dimen.dialog_padding_horizontal), 0);
 			tv.setGravity(Gravity.END);
@@ -1359,7 +1363,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 			break; }
 		case C_BOOLEAN: {
 			dialogIds.add(name);
-			CheckBox c = new CheckBox(context);
+			AppCompatCheckBox c = new AppCompatCheckBox(context);
 			c.setTag(name);
 			c.setText(name);
 			c.setChecked(selection != 0);
@@ -1370,7 +1374,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 			ArrayList<String> choices = new ArrayList<String>();
 			while(st.hasMoreTokens()) choices.add(st.nextToken());
 			dialogIds.add(name);
-			Spinner s = new Spinner(context);
+			AppCompatSpinner s = new AppCompatSpinner(context);
 			s.setTag(name);
 			ArrayAdapter<String> a = new ArrayAdapter<String>(context,
 					android.R.layout.simple_spinner_item, choices.toArray(new String[choices.size()]));
