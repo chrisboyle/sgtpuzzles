@@ -20,4 +20,12 @@
 		<item>@string/nightModeAuto</item>
 		<item>@string/nightModeOff</item>
 	</array>
+	<array name="chooserStyles">
+		<item>list</item>
+		<item>grid</item>
+	</array>
+	<array name="chooserStyleDescs">
+		<item>@string/chooserStyleList</item>
+		<item>@string/chooserStyleGrid</item>
+	</array>
 </resources>

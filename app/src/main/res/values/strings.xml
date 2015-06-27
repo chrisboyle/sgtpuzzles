@@ -92,6 +92,10 @@ Version %s"</string>
     <string name="Settings">Settings</string>
     <string name="Show_solution">Show solution</string>
     <!--  Settings -->
+    <string name="gameChooser">Game chooser</string>
+    <string name="chooserStyle">Game chooser style</string>
+    <string name="chooserStyleList">Show descriptions</string>
+    <string name="chooserStyleGrid">Icons only (compact)</string>
     <string name="thisGame">This game</string>
     <string name="allGames">All games</string>
     <string name="arrowKeysIn">Arrow keys in {0}</string>

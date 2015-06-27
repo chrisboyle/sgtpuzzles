@@ -44,10 +44,11 @@ import java.util.List;
 import java.util.Set;
 
 @SuppressWarnings("WeakerAccess")  // used by manifest
-public class GameChooser extends ActionBarActivity
+public class GameChooser extends ActionBarActivity implements SharedPreferences.OnSharedPreferenceChangeListener
 {
 	static final String CHOOSER_STYLE_KEY = "chooserStyle";
 	private static final Set<String> DEFAULT_STARRED = new LinkedHashSet<String>();
+
 	static {
 		DEFAULT_STARRED.add("guess");
 		DEFAULT_STARRED.add("keen");
@@ -70,7 +71,6 @@ public class GameChooser extends ActionBarActivity
 	private String[] games;
 	private View[] views;
 	private Menu menu;
-	private boolean chooserHideGrid;
 	private PrefsSaver prefsSaver;
 	private ScrollView scrollView;
 	private int scrollToOnNextLayout = -1;
@@ -82,6 +82,7 @@ public class GameChooser extends ActionBarActivity
 	{
 		super.onCreate(savedInstanceState);
 		prefs = PreferenceManager.getDefaultSharedPreferences(this);
+		prefs.registerOnSharedPreferenceChangeListener(this);
         SharedPreferences state = getSharedPreferences(GamePlay.STATE_PREFS_NAME, MODE_PRIVATE);
 		prefsSaver = PrefsSaver.get(this);
 
@@ -95,14 +96,8 @@ public class GameChooser extends ActionBarActivity
 			prefsSaver.save(ed);
 		}
 
-		chooserHideGrid = getResources().getBoolean(R.bool.chooserHideGrid);
-		if (chooserHideGrid) {
-			// Tablets - grid is just going to look silly here
-			useGrid = false;
-		} else {
-			String s = prefs.getString(CHOOSER_STYLE_KEY,"list");
-			useGrid = s.equals("grid");
-		}
+		String s = prefs.getString(CHOOSER_STYLE_KEY, "list");
+		useGrid = s.equals("grid");
 		games = getResources().getStringArray(R.array.games);
 		views = new View[games.length];
 		setContentView(R.layout.chooser);
@@ -338,10 +333,7 @@ public class GameChooser extends ActionBarActivity
 		if (screenWidthDIP >= 480) {
 			state |= MenuItemCompat.SHOW_AS_ACTION_WITH_TEXT;
 		}
-		if (!chooserHideGrid) {
-			MenuItemCompat.setShowAsAction(menu.findItem(
-					useGrid ? R.id.listchooser : R.id.gridchooser), state);
-		}
+		MenuItemCompat.setShowAsAction(menu.findItem(R.id.settings), state);
 		MenuItemCompat.setShowAsAction(menu.findItem(R.id.load), state);
 		MenuItemCompat.setShowAsAction(menu.findItem(R.id.help), state);
 	}
@@ -352,11 +344,6 @@ public class GameChooser extends ActionBarActivity
 		super.onCreateOptionsMenu(menu);
 		this.menu = menu;
 		getMenuInflater().inflate(R.menu.chooser, menu);
-		if (chooserHideGrid) {
-			menu.removeItem(R.id.gridchooser);
-			menu.removeItem(R.id.listchooser);
-		}
-		updateStyleToggleVisibility();
 		rethinkActionBarCapacity();
 		return true;
 	}
@@ -365,16 +352,7 @@ public class GameChooser extends ActionBarActivity
 	public boolean onPrepareOptionsMenu(Menu menu)
 	{
 		super.onPrepareOptionsMenu(menu);
-		updateStyleToggleVisibility();
 		return true;
-	}
-
-	void updateStyleToggleVisibility()
-	{
-		if(!chooserHideGrid) {
-			menu.findItem(useGrid ? R.id.gridchooser : R.id.listchooser).setVisible(false);
-			menu.findItem(useGrid ? R.id.listchooser : R.id.gridchooser).setVisible(true);
-		}
 	}
 
 	@Override
@@ -382,8 +360,9 @@ public class GameChooser extends ActionBarActivity
 	{
 		boolean ret = true;
 		switch(item.getItemId()) {
-			case R.id.listchooser: updateUseGrid(false); break;
-			case R.id.gridchooser: updateUseGrid(true); break;
+			case R.id.settings:
+				startActivity(new Intent(this, PrefsActivity.class));
+				break;
 			case R.id.load:
 				if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
 					// GET_CONTENT would include dropbox, but it returns file:// URLs that need SD permission :-(
@@ -425,19 +404,17 @@ public class GameChooser extends ActionBarActivity
 		overridePendingTransition(0, 0);
 	}
 
-	@SuppressLint("CommitPrefEdits")
-	private void updateUseGrid(boolean newGrid) {
-		if( useGrid == newGrid ) return;
+	@Override
+	public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+		if (!key.equals(CHOOSER_STYLE_KEY)) return;
+		final boolean newGrid = "grid".equals(prefs.getString(GameChooser.CHOOSER_STYLE_KEY, "list"));
+		if(useGrid == newGrid) return;
 		useGrid = newGrid;
-		updateStyleToggleVisibility();
 		rethinkActionBarCapacity();
 		for (View v : views) {
 			v.findViewById(R.id.text).setVisibility(useGrid ? View.GONE : View.VISIBLE);
 			v.setLayoutParams(v.getLayoutParams());
 		}
 		rethinkColumns(true);
-		SharedPreferences.Editor ed = prefs.edit();
-		ed.putString(CHOOSER_STYLE_KEY, useGrid ? "grid" : "list");
-		prefsSaver.save(ed);
 	}
 }

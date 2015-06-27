@@ -1491,9 +1491,6 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 		final String style = prefs.getString(GameChooser.CHOOSER_STYLE_KEY, "list");
 		final boolean useGrid = (style != null) && style.equals("grid");
 		getSupportActionBar().setDisplayUseLogoEnabled(false);
-		getSupportActionBar().setIcon(useGrid
-				? R.drawable.ic_action_view_as_grid
-				: R.drawable.ic_action_view_as_list);
 	}
 
 	private void applyFullscreen(boolean alreadyStarted) {

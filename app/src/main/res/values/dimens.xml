@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-	<bool name="chooserHideGrid">false</bool>
 	<dimen name="keySize">48dip</dimen>
 	<dimen name="dialog_padding_horizontal">16dip</dimen>
 	<dimen name="dialog_padding_vertical">8dip</dimen>

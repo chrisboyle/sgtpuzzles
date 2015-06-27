@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-	<bool name="chooserHideGrid">true</bool>
 	<dimen name="keySize">75dip</dimen>
 </resources>
