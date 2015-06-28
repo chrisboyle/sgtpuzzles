@@ -15,7 +15,7 @@ import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
-public abstract class Utils {
+abstract class Utils {
 
 	static String readAllOf(InputStream s) throws IOException
 	{
@@ -43,14 +43,14 @@ public abstract class Utils {
 				throw new IOException("Can't make game binary executable: File.setExecutable failed");
 			}
 		} else {
-			Set<String> dirs = new LinkedHashSet<String>();
+			Set<String> dirs = new LinkedHashSet<>();
 			dirs.add("/system/bin");
 			dirs.add("/system/xbin");
 			final String path = System.getenv("PATH");
 			if (path != null) {
 				Collections.addAll(dirs, path.split(":"));
 			}
-			Set<File> tried = new LinkedHashSet<File>();
+			Set<File> tried = new LinkedHashSet<>();
 			boolean ok = false;
 			for (String dir : dirs) {
 				final File chmod = new File(dir, "chmod");

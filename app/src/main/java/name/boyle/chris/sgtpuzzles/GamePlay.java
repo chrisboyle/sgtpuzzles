@@ -68,8 +68,8 @@ import android.support.v4.app.ShareCompat;
 import android.support.v4.content.FileProvider;
 import android.support.v4.view.MenuItemCompat;
 import android.support.v7.app.ActionBar;
-import android.support.v7.app.ActionBarActivity;
 import android.support.v7.app.AlertDialog;
+import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.AppCompatCheckBox;
 import android.support.v7.widget.AppCompatEditText;
 import android.support.v7.widget.AppCompatSpinner;
@@ -97,13 +97,13 @@ import android.widget.TableRow;
 import android.widget.TextView;
 import android.widget.Toast;
 
-public class GamePlay extends ActionBarActivity implements OnSharedPreferenceChangeListener, SensorEventListener
+public class GamePlay extends AppCompatActivity implements OnSharedPreferenceChangeListener, SensorEventListener
 {
 	static final String TAG = "GamePlay";
 	static final String STATE_PREFS_NAME = "state";
 	static final String ORIENTATION_KEY = "orientation";
-	static final String ARROW_KEYS_KEY_SUFFIX = "ArrowKeys";
-	static final String NIGHT_MODE_KEY = "nightMode";
+	private static final String ARROW_KEYS_KEY_SUFFIX = "ArrowKeys";
+	private static final String NIGHT_MODE_KEY = "nightMode";
 	private static final String BRIDGES_SHOW_H_KEY = "bridgesShowH";
 	private static final String FULLSCREEN_KEY = "fullscreen";
 	private static final String STAY_AWAKE_KEY = "stayAwake";
@@ -112,19 +112,19 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 	private static final String PATTERN_SHOW_LENGTHS_KEY = "patternShowLengths";
 	private static final String COMPLETED_PROMPT_KEY = "completedPrompt";
 	private static final String CONTROLS_REMINDERS_KEY = "controlsReminders";
-	public static final String OLD_SAVED_COMPLETED = "savedCompleted";
-	public static final String OLD_SAVED_GAME = "savedGame";
+	private static final String OLD_SAVED_COMPLETED = "savedCompleted";
+	private static final String OLD_SAVED_GAME = "savedGame";
 	public static final String SAVED_BACKEND = "savedBackend";
-	public static final String SAVED_COMPLETED_PREFIX = "savedCompleted_";
-	public static final String SAVED_GAME_PREFIX = "savedGame_";
+	private static final String SAVED_COMPLETED_PREFIX = "savedCompleted_";
+	private static final String SAVED_GAME_PREFIX = "savedGame_";
 	public static final String LAST_PARAMS_PREFIX = "last_params_";
 	private static final String PUZZLESGEN_LAST_UPDATE = "puzzlesgen_last_update";
 	private static final String BLUETOOTH_PACKAGE_PREFIX = "com.android.bluetooth";
 
 	private static final int REQ_CODE_CREATE_DOC = Activity.RESULT_FIRST_USER;
 	static final String MIME_TYPE = "text/prs.sgtatham.puzzles";
-	public static final float MAX_LUX_NIGHT = 3.4f;
-	public static final float MIN_LUX_DAY = 15.0f;
+	private static final float MAX_LUX_NIGHT = 3.4f;
+	private static final float MIN_LUX_DAY = 15.0f;
 
 	private ProgressDialog progress;
 	private TextView statusBar;
@@ -143,13 +143,14 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 		C_STRING = 0, C_CHOICES = 1, C_BOOLEAN = 2;
 	static final long MAX_SAVE_SIZE = 1000000; // 1MB; we only have 16MB of heap
 	private boolean gameWantsTimer = false;
-	static final int TIMER_INTERVAL = 20;
+	private static final int TIMER_INTERVAL = 20;
 	private StringBuffer savingState;
 	private AlertDialog dialog;
 	private int dialogEvent;
 	private ArrayList<String> dialogIds;
 	private TableLayout dialogLayout;
-	String currentBackend = null, startingBackend = null;
+	String currentBackend = null;
+	private String startingBackend = null;
 	private Thread worker;
 	private String lastKeys = "", lastKeysIfArrows = "";
 	private static final File storageDir = Environment.getExternalStorageDirectory();
@@ -180,7 +181,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 	{
 		final WeakReference<GamePlay> ref;
 		public PuzzlesHandler(GamePlay outer) {
-			ref = new WeakReference<GamePlay>(outer);
+			ref = new WeakReference<>(outer);
 		}
 		public void handleMessage( Message msg ) {
 			GamePlay outer = ref.get();
@@ -270,7 +271,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 		state = getSharedPreferences(STATE_PREFS_NAME, MODE_PRIVATE);
 		prefsSaver = PrefsSaver.get(this);
 		games = getResources().getStringArray(R.array.games);
-		gameTypes = new LinkedHashMap<String, String>();
+		gameTypes = new LinkedHashMap<>();
 
 		applyFullscreen(false);  // must precede super.onCreate and setContentView
 		cachedFullscreen = startedFullscreen = prefs.getBoolean(FULLSCREEN_KEY, false);
@@ -279,7 +280,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.main);
 		getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-		applyChooserIcon();
+		getSupportActionBar().setDisplayUseLogoEnabled(false);
 		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
 			getSupportActionBar().addOnMenuVisibilityListener(new ActionBar.OnMenuVisibilityListener() {
 				@Override
@@ -296,7 +297,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 		statusBar = (TextView)findViewById(R.id.statusBar);
 		gameView = (GameView)findViewById(R.id.game);
 		keyboard = (SmallKeyboard)findViewById(R.id.keyboard);
-		dialogIds = new ArrayList<String>();
+		dialogIds = new ArrayList<>();
 		setDefaultKeyMode(DEFAULT_KEYS_SHORTCUT);
 		gameView.requestFocus();
 		sensorManager = (SensorManager)getSystemService(SENSOR_SERVICE);
@@ -329,7 +330,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 				if (saved == null) return null;
 				return new NdefMessage(
 						new NdefRecord[] {
-								createMime(MIME_TYPE, saved),
+								createMime(saved),
 								NdefRecord.createApplicationRecord(getPackageName())
 						});
 			}
@@ -337,9 +338,9 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 	}
 
 	@TargetApi(Build.VERSION_CODES.GINGERBREAD)
-	private static NdefRecord createMime(final String mimeType, final String content) {
+	private static NdefRecord createMime(final String content) {
 		return new NdefRecord(NdefRecord.TNF_MIME_MEDIA,
-				mimeType.getBytes(Charset.forName("US-ASCII")),
+				GamePlay.MIME_TYPE.getBytes(Charset.forName("US-ASCII")),
 				new byte[0], content.getBytes(Charset.forName("US-ASCII")));
 	}
 
@@ -639,7 +640,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 		// Fix Bluetooth sharing: the closest type it will accept is text/plain, so
 		// give it that (see FixedTypeFileProvider) and rely on handling *.sgtp
 		Collections.sort(candidates, new ResolveInfo.DisplayNameComparator(getPackageManager()));
-		List<Intent> targets = new ArrayList<Intent>();
+		List<Intent> targets = new ArrayList<>();
 		for (ResolveInfo candidate : candidates) {
 			String packageName = candidate.activityInfo.packageName;
 			final boolean isBluetooth = packageName.startsWith(BLUETOOTH_PACKAGE_PREFIX);
@@ -820,7 +821,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 				if (generating) {
 					String whichBackend = launch.getWhichBackend();
 					String params = launch.getParams();
-					final List<String> args = new ArrayList<String>();
+					final List<String> args = new ArrayList<>();
 					args.add(whichBackend);
 					if (launch.getSeed() != null) {
 						args.add("--seed");
@@ -962,12 +963,16 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 	@TargetApi(Build.VERSION_CODES.JELLY_BEAN)
 	private void checkSize(Uri uri) {
 		Cursor cursor = getContentResolver().query(uri, new String[]{OpenableColumns.SIZE}, null, null, null, null);
-		if (cursor != null && cursor.moveToFirst()) {
-			int sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE);
-			if (cursor.isNull(sizeIndex)) return;
-			if (cursor.getInt(sizeIndex) > MAX_SAVE_SIZE) {
-				throw new IllegalArgumentException(getString(R.string.file_too_big));
+		try {
+			if (cursor != null && cursor.moveToFirst()) {
+				int sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE);
+				if (cursor.isNull(sizeIndex)) return;
+				if (cursor.getInt(sizeIndex) > MAX_SAVE_SIZE) {
+					throw new IllegalArgumentException(getString(R.string.file_too_big));
+				}
 			}
+		} finally {
+			Utils.closeQuietly(cursor);
 		}
 	}
 
@@ -1116,7 +1121,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 		return arrowPref ? lastArrowMode : SmallKeyboard.ArrowMode.NO_ARROWS;
 	}
 
-	static boolean hasDpadOrTrackball(Configuration c) {
+	private static boolean hasDpadOrTrackball(Configuration c) {
 		return (c.navigation == Configuration.NAVIGATION_DPAD
 				|| c.navigation == Configuration.NAVIGATION_TRACKBALL)
 				&& (c.navigationHidden != Configuration.NAVIGATIONHIDDEN_YES);
@@ -1371,12 +1376,12 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 			break; }
 		case C_CHOICES: {
 			StringTokenizer st = new StringTokenizer(value.substring(1),value.substring(0,1));
-			ArrayList<String> choices = new ArrayList<String>();
+			ArrayList<String> choices = new ArrayList<>();
 			while(st.hasMoreTokens()) choices.add(st.nextToken());
 			dialogIds.add(name);
 			AppCompatSpinner s = new AppCompatSpinner(context);
 			s.setTag(name);
-			ArrayAdapter<String> a = new ArrayAdapter<String>(context,
+			ArrayAdapter<String> a = new ArrayAdapter<>(context,
 					android.R.layout.simple_spinner_item, choices.toArray(new String[choices.size()]));
 			a.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
 			s.setAdapter(a);
@@ -1482,15 +1487,7 @@ public class GamePlay extends ActionBarActivity implements OnSharedPreferenceCha
 			applyUndoRedoKbd();
 		} else if (key.equals(BRIDGES_SHOW_H_KEY)) {
 			applyBridgesShowH();
-		} else if (key.equals(GameChooser.CHOOSER_STYLE_KEY)) {
-			applyChooserIcon();
 		}
-	}
-
-	private void applyChooserIcon() {
-		final String style = prefs.getString(GameChooser.CHOOSER_STYLE_KEY, "list");
-		final boolean useGrid = (style != null) && style.equals("grid");
-		getSupportActionBar().setDisplayUseLogoEnabled(false);
 	}
 
 	private void applyFullscreen(boolean alreadyStarted) {

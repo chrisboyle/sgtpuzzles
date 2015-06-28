@@ -7,6 +7,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
+import android.support.v7.app.AppCompatActivity;
 import android.view.KeyEvent;
 import android.view.MenuItem;
 import android.webkit.WebChromeClient;
@@ -19,7 +20,7 @@ import java.text.MessageFormat;
 import java.util.regex.Pattern;
 
 
-public class HelpActivity extends ActionBarActivity {
+public class HelpActivity extends AppCompatActivity {
 
 	static final String TOPIC = "name.boyle.chris.sgtpuzzles.TOPIC";
 	static final String NIGHT = "name.boyle.chris.sgtpuzzles.NIGHT";

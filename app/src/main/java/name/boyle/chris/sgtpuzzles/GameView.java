@@ -27,7 +27,6 @@ import android.support.v4.widget.EdgeEffectCompat;
 import android.support.v4.widget.ScrollerCompat;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
-import android.util.Log;
 import android.view.GestureDetector;
 import android.view.HapticFeedbackConstants;
 import android.view.KeyEvent;
@@ -45,7 +44,7 @@ public class GameView extends View
 	private Paint checkerboardPaint;
 	private final Bitmap[] blitters;
 	int[] colours = new int[0];
-	float density;
+	private float density;
 	int w, h, wDip, hDip;
 	private final int longPressTimeout = ViewConfiguration.getLongPressTimeout();
 	private String hardwareKeys;
@@ -70,12 +69,12 @@ public class GameView extends View
 	static final int CURSOR_UP = 0x209, CURSOR_DOWN = 0x20a,
 			CURSOR_LEFT = 0x20b, CURSOR_RIGHT = 0x20c, MOD_NUM_KEYPAD = 0x4000;
 	int keysHandled = 0;  // debug
-	final boolean hasPinchZoom;
-	ScaleGestureDetector scaleDetector = null;
-	GestureDetectorCompat gestureDetector;
+	private final boolean hasPinchZoom;
+	private ScaleGestureDetector scaleDetector = null;
+	private GestureDetectorCompat gestureDetector;
 	private static final float MAX_ZOOM = 30.f;
 	private static final float ZOOM_OVERDRAW_PROPORTION = 0.25f;  // of a screen-full, in each direction, that you can see before checkerboard
-	final Point TEXTURE_SIZE_BEFORE_ICS = new Point(2048, 2048);
+	private final Point TEXTURE_SIZE_BEFORE_ICS = new Point(2048, 2048);
 	private int overdrawX, overdrawY;
 	private Matrix zoomMatrix = new Matrix(), zoomInProgressMatrix = new Matrix(),
 			inverseZoomMatrix = new Matrix(), tempDrawMatrix = new Matrix();
@@ -214,10 +213,20 @@ public class GameView extends View
 			dragMode = DragMode.UNMODIFIED;
 			return;
 		}
-		if (mode.equals("off_screen")) dragMode = DragMode.REVERT_OFF_SCREEN;
-		else if (mode.equals("start")) dragMode = DragMode.REVERT_TO_START;
-		else if (mode.equals("prevent")) dragMode = DragMode.PREVENT;
-		else dragMode = DragMode.UNMODIFIED;
+		switch (mode) {
+			case "off_screen":
+				dragMode = DragMode.REVERT_OFF_SCREEN;
+				break;
+			case "start":
+				dragMode = DragMode.REVERT_TO_START;
+				break;
+			case "prevent":
+				dragMode = DragMode.PREVENT;
+				break;
+			default:
+				dragMode = DragMode.UNMODIFIED;
+				break;
+		}
 	}
 
 	private void revertDragInProgress(final PointF here) {
@@ -376,11 +385,11 @@ public class GameView extends View
 		return values[Matrix.MSCALE_X];
 	}
 
-	PointF pointFromEvent(MotionEvent event) {
+	private PointF pointFromEvent(MotionEvent event) {
 		return new PointF(event.getX(), event.getY());
 	}
 
-	PointF viewToGame(PointF point) {
+	private PointF viewToGame(PointF point) {
 		float[] f = { point.x, point.y };
 		inverseZoomMatrix.mapPoints(f);
 		return new PointF(f[0], f[1]);

@@ -24,7 +24,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 	private boolean undoEnabled = false, redoEnabled = false;
 	private String backendForIcons;
 
-	static enum ArrowMode {
+	enum ArrowMode {
 		NO_ARROWS,  // untangle
 		ARROWS_ONLY,  // cube
 		ARROWS_LEFT_CLICK,  // flip, filling, guess, keen, solo, towers, unequal
@@ -57,7 +57,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 		int undoKey = -1, redoKey = -1;
 		boolean initDone = false;
 		final String backendForIcons;
-		private static final Map<String, String> SHARED_ICONS = new LinkedHashMap<String, String>();
+		private static final Map<String, String> SHARED_ICONS = new LinkedHashMap<>();
 		static {
 			SHARED_ICONS.put("blackbox_sym_key_mouse_right", "square_empty");
 			SHARED_ICONS.put("bridges_sym_key_mouse_left", "line");
@@ -112,7 +112,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 			this.keyboardView = keyboardView;
 			mDefaultWidth = mDefaultHeight =
 					context.getResources().getDimensionPixelSize(R.dimen.keySize);
-			mKeys = new ArrayList<Key>();
+			mKeys = new ArrayList<>();
 			this.backendForIcons = backendForIcons;
 
 			Row row = new Row(this);

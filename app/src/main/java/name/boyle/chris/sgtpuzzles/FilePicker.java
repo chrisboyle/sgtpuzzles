@@ -35,7 +35,7 @@ class FilePicker extends Dialog
 	private FilePicker parent;
 	private final Activity activity;
 
-	void dismissAll()
+	private void dismissAll()
 	{
 		try {
 			activity.dismissDialog(0);
@@ -48,7 +48,7 @@ class FilePicker extends Dialog
 		}
 	}
 
-	void load(final File f) throws IOException
+	private void load(final File f) throws IOException
 	{
 		byte[] b = new byte[(int)f.length()];
 		RandomAccessFile raf = new RandomAccessFile(f,"r");
@@ -64,7 +64,7 @@ class FilePicker extends Dialog
 		dismissAll();
 	}
 
-	void save(final File f, Boolean force)
+	private void save(final File f, Boolean force)
 	{
 		if (! force && f.exists()) {
 			AlertDialog.Builder b = new AlertDialog.Builder(getContext())
@@ -121,7 +121,7 @@ class FilePicker extends Dialog
 		setCancelable(true);
 		setContentView(isSave ? R.layout.file_save : R.layout.file_load);
 		lv = (ListView)findViewById(R.id.filelist);
-		lv.setAdapter(new ArrayAdapter<String>(getContext(), android.R.layout.simple_list_item_1, files));
+		lv.setAdapter(new ArrayAdapter<>(getContext(), android.R.layout.simple_list_item_1, files));
 		lv.setOnItemClickListener(new OnItemClickListener() {
 			public void onItemClick(AdapterView<?> arg0, View arg1, int which, long arg3) {
 				File f = new File(path,files[which]);

@@ -30,7 +30,7 @@ public class SendFeedbackActivity extends Activity
 			uri += "&body=" + Uri.encode("Reason: " + reason + "\n\n");
 		}
 		i.setData(Uri.parse(uri));
-		i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_WHEN_TASK_RESET);
+		i.addFlags(Intent.FLAG_ACTIVITY_NEW_DOCUMENT);
 		try {
 			startActivity(i);
 			finish();

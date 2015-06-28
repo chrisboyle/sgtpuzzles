@@ -23,6 +23,7 @@ import android.preference.PreferenceManager;
 import android.support.v4.view.MenuItemCompat;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.ActionBarActivity;
+import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.GridLayout;
 import android.text.Spannable;
 import android.text.SpannableStringBuilder;
@@ -44,10 +45,10 @@ import java.util.List;
 import java.util.Set;
 
 @SuppressWarnings("WeakerAccess")  // used by manifest
-public class GameChooser extends ActionBarActivity implements SharedPreferences.OnSharedPreferenceChangeListener
+public class GameChooser extends AppCompatActivity implements SharedPreferences.OnSharedPreferenceChangeListener
 {
 	static final String CHOOSER_STYLE_KEY = "chooserStyle";
-	private static final Set<String> DEFAULT_STARRED = new LinkedHashSet<String>();
+	private static final Set<String> DEFAULT_STARRED = new LinkedHashSet<>();
 
 	static {
 		DEFAULT_STARRED.add("guess");
@@ -269,8 +270,8 @@ public class GameChooser extends ActionBarActivity implements SharedPreferences.
 		if (force || mColumns != columns || mColWidthPx != colWidthActualPx) {
 			mColumns = columns;
 			mColWidthPx = colWidthActualPx;
-			List<View> starred = new ArrayList<View>();
-			List<View> others = new ArrayList<View>();
+			List<View> starred = new ArrayList<>();
+			List<View> others = new ArrayList<>();
 			for (int i=0; i < games.length; i++) {
 				(isStarred(games[i]) ? starred : others).add(views[i]);
 			}

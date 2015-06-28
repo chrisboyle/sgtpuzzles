@@ -8,7 +8,7 @@ import android.net.Uri;
  */
 public class GameLaunch {
 	private String saved;
-	private Uri uri;
+	private final Uri uri;
 	private final String whichBackend;
 	private final String params;
 	private final String gameID;
