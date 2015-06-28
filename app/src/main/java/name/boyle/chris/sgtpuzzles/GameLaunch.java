@@ -15,10 +15,11 @@ public class GameLaunch {
 	private final String seed;
 	private final boolean knownCompleted;
 	private final boolean fromChooser;
+	private final boolean ofLocalState;
 
 	private GameLaunch(final String whichBackend, final String params, final String gameID,
 				final String seed, final Uri uri, final String saved,
-				final boolean knownCompleted, final boolean fromChooser) {
+				final boolean knownCompleted, final boolean fromChooser, final boolean ofLocalState) {
 		this.whichBackend = whichBackend;
 		this.params = params;
 		this.gameID = gameID;
@@ -27,6 +28,7 @@ public class GameLaunch {
 		this.saved = saved;
 		this.knownCompleted = knownCompleted;
 		this.fromChooser = fromChooser;
+		this.ofLocalState = ofLocalState;
 	}
 	
 	@Override
@@ -36,31 +38,35 @@ public class GameLaunch {
 	}
 
 	public static GameLaunch ofSavedGame(final String saved, final boolean knownCompleted, final boolean fromChooser) {
-		return new GameLaunch(null, null, null, null, null, saved, knownCompleted, fromChooser);
+		return new GameLaunch(null, null, null, null, null, saved, knownCompleted, fromChooser, false);
+	}
+
+	public static GameLaunch ofLocalState(final String saved, final boolean knownCompleted, final boolean fromChooser) {
+		return new GameLaunch(null, null, null, null, null, saved, knownCompleted, fromChooser, true);
 	}
 
 	public static GameLaunch toGenerate(String whichBackend, String params) {
-		return new GameLaunch(whichBackend, params, null, null, null, null, false, false);
+		return new GameLaunch(whichBackend, params, null, null, null, null, false, false, false);
 	}
 
 	public static GameLaunch toGenerateFromChooser(String whichBackend) {
-		return new GameLaunch(whichBackend, null, null, null, null, null, false, true);
+		return new GameLaunch(whichBackend, null, null, null, null, null, false, true, false);
 	}
 
 	public static GameLaunch ofGameID(String whichBackend, String gameID) {
 		final int pos = gameID.indexOf(':');
 		if (pos < 0) throw new IllegalArgumentException("Game ID invalid: " + gameID);
-		return new GameLaunch(whichBackend, gameID.substring(0, pos), gameID, null, null, null, false, false);
+		return new GameLaunch(whichBackend, gameID.substring(0, pos), gameID, null, null, null, false, false, false);
 	}
 
 	public static GameLaunch fromSeed(String whichBackend, String seed) {
 		final int pos = seed.indexOf('#');
 		if (pos < 0) throw new IllegalArgumentException("Seed invalid: " + seed);
-		return new GameLaunch(whichBackend, seed.substring(0, pos), null, seed, null, null, false, false);
+		return new GameLaunch(whichBackend, seed.substring(0, pos), null, seed, null, null, false, false, false);
 	}
 
 	public static GameLaunch ofUri(final Uri uri) {
-		return new GameLaunch(null, null, null, null, uri, null, false, true);
+		return new GameLaunch(null, null, null, null, uri, null, false, true, false);
 	}
 
 	public boolean needsGenerating() {
@@ -104,5 +110,9 @@ public class GameLaunch {
 
 	public boolean isFromChooser() {
 		return fromChooser;
+	}
+
+	public boolean isOfLocalState() {
+		return ofLocalState;
 	}
 }

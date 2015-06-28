@@ -419,13 +419,13 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 				return;
 			}
 			Log.d(TAG, "restoring last state of " + backendFromChooser);
-			startGame(GameLaunch.ofSavedGame(savedGame, false, true));
+			startGame(GameLaunch.ofLocalState(savedGame, false, true));
 		} else {
 			final String savedBackend = state.getString(SAVED_BACKEND, null);
 			if (savedBackend != null) {
 				final String savedGame = state.getString(SAVED_GAME_PREFIX + savedBackend, null);
 				final boolean wasCompleted = state.getBoolean(SAVED_COMPLETED_PREFIX + savedBackend, false);
-				startGame(GameLaunch.ofSavedGame(savedGame, wasCompleted, false));
+				startGame(GameLaunch.ofLocalState(savedGame, wasCompleted, false));
 			} else {
 				Log.d(TAG, "no state, starting chooser");
 				startChooserAndFinish();
@@ -442,6 +442,48 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 		if (msg.getRecords().length == 0) return false;
 		startGame(GameLaunch.ofSavedGame(new String(msg.getRecords()[0].getPayload()), false, true));
 		return true;
+	}
+
+	private void warnOfStateLoss(String newGame, final Runnable continueLoading, final boolean returnToChooser) {
+		final String backend;
+		try {
+			backend = games[identifyBackend(newGame)];
+		} catch (IllegalArgumentException ignored) {
+			// It won't replace an existing game if it's invalid (we'll handle this later during load).
+			continueLoading.run();
+			return;
+		}
+		boolean careAboutOldGame = !state.getBoolean(SAVED_COMPLETED_PREFIX + backend, true);
+		if (careAboutOldGame) {
+			final String savedGame = state.getString(SAVED_GAME_PREFIX + backend, null);
+			if (savedGame == null || savedGame.contains("NSTATES :1:1")) {
+				careAboutOldGame = false;
+			}
+		}
+		if (careAboutOldGame) {
+			final String title = getString(getResources().getIdentifier("name_" + backend, "string", getPackageName()));
+			runOnUiThread(new Runnable() {
+				@Override
+				public void run() {
+					new AlertDialog.Builder(GamePlay.this)
+							.setMessage(MessageFormat.format(getString(R.string.replaceGame), title))
+							.setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
+								@Override
+								public void onClick(DialogInterface dialog, int which) {
+									continueLoading.run();
+								}
+							})
+							.setNegativeButton(android.R.string.no, new DialogInterface.OnClickListener() {
+								@Override
+								public void onClick(DialogInterface dialog, int which) {
+									abort(null, returnToChooser);
+								}
+							}).create().show();
+				}
+			});
+		} else {
+			continueLoading.run();
+		}
 	}
 
 	@SuppressLint("CommitPrefEdits")
@@ -854,75 +896,17 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 					} else if (workerRunning) {
 						throw new IOException("Internal error generating game: result is blank");
 					}
-				}
-				final String toPlay = launch.getSaved();
-				final String gameID = launch.getGameID();
-				if (toPlay == null && gameID == null) {
-					Log.d(TAG, "startGameThread: null game, presumably cancelled");
-					return;
-				}
-				final boolean changingGame;
-				if (currentBackend == null) {
-					if (launch.isFromChooser()) {
-						final String savedBackend = state.getString(SAVED_BACKEND, null);
-						changingGame = savedBackend == null || !savedBackend.equals(startingBackend);
-					} else {
-						changingGame = true;  // launching app
-					}
+					startGameConfirmed(true, launch);
+				} else if (!launch.isOfLocalState()) {
+					warnOfStateLoss(launch.getSaved(), new Runnable() {
+						@Override
+						public void run() {
+							startGameConfirmed(false, launch);
+						}
+					}, launch.isFromChooser());
 				} else {
-					changingGame = ! currentBackend.equals(startingBackend);
+					startGameConfirmed(false, launch);
 				}
-
-				if (toPlay != null) {
-					startPlaying(gameView, toPlay);
-				} else {
-					startPlayingGameID(gameView, startingBackend, gameID);
-				}
-				if (! workerRunning) return;  // stopNative or abort was called
-				runOnUiThread(new Runnable() {
-					@Override
-					public void run() {
-						currentBackend = startingBackend;
-						gameView.refreshColours(currentBackend);
-						gameView.resetZoomForClear();
-						gameView.clear();
-						applyUndoRedoKbd();
-						gameView.keysHandled = 0;
-						everCompleted = false;
-
-						final String currentParams = orientGameType(getCurrentParams());
-						refreshPresets(currentParams);
-						gameView.setDragModeFor(currentBackend);
-						final String title = getString(getResources().getIdentifier("name_"+currentBackend, "string", getPackageName()));
-						setTitle(title);
-						getSupportActionBar().setTitle(title);
-						final int flags = getUIVisibility();
-						changedState((flags & UIVisibility.UNDO.getValue()) > 0, (flags & UIVisibility.REDO.getValue()) > 0);
-						customVisible = (flags & UIVisibility.CUSTOM.getValue()) > 0;
-						solveEnabled = (flags & UIVisibility.SOLVE.getValue()) > 0;
-						setStatusBarVisibility((flags & UIVisibility.STATUS.getValue()) > 0);
-
-						if (!generating) {  // we didn't know params until we loaded the game
-							requestKeys(currentBackend, currentParams);
-						}
-						if (launch.isKnownCompleted()) {
-							completed();
-						}
-						final boolean hasArrows = computeArrowMode(currentBackend).hasArrows();
-						setCursorVisibility(hasArrows);
-						if (changingGame) {
-							if (prefs.getBoolean(CONTROLS_REMINDERS_KEY, true)) {
-								if (hasArrows || ! showToastIfExists("toast_no_arrows_" + currentBackend)) {
-									showToastIfExists("toast_" + currentBackend);
-								}
-							}
-						}
-						resizeEvent(gameView.wDip, gameView.hDip);
-						dismissProgress();
-						if( menu != null ) onPrepareOptionsMenu(menu);
-						save();
-					}
-				});
 			} catch (IllegalArgumentException e) {
 				abort(e.getMessage(), launch.isFromChooser());  // probably bogus params
 			} catch (IOException e) {
@@ -930,6 +914,83 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 				abort(e.getMessage(), launch.isFromChooser());  // internal error :-(
 			}
 		}}).start();
+	}
+
+	private void startGameConfirmed(final boolean generating, final GameLaunch launch) {
+		final String toPlay = launch.getSaved();
+		final String gameID = launch.getGameID();
+		if (toPlay == null && gameID == null) {
+			Log.d(TAG, "startGameThread: null game, presumably cancelled");
+			return;
+		}
+		final boolean changingGame;
+		if (currentBackend == null) {
+			if (launch.isFromChooser()) {
+				final String savedBackend = state.getString(SAVED_BACKEND, null);
+				changingGame = savedBackend == null || !savedBackend.equals(startingBackend);
+			} else {
+				changingGame = true;  // launching app
+			}
+		} else {
+			changingGame = ! currentBackend.equals(startingBackend);
+		}
+
+		try {
+			if (toPlay != null) {
+				startPlaying(gameView, toPlay);
+			} else {
+				startPlayingGameID(gameView, startingBackend, gameID);
+			}
+		} catch (IllegalArgumentException e) {
+			abort(e.getMessage(), launch.isFromChooser());  // probably bogus params
+			return;
+		}
+
+		if (! workerRunning) return;
+		runOnUiThread(new Runnable() {
+			@Override
+			public void run() {
+				currentBackend = startingBackend;
+				gameView.refreshColours(currentBackend);
+				gameView.resetZoomForClear();
+				gameView.clear();
+				applyUndoRedoKbd();
+				gameView.keysHandled = 0;
+				everCompleted = false;
+
+				final String currentParams = orientGameType(getCurrentParams());
+				refreshPresets(currentParams);
+				gameView.setDragModeFor(currentBackend);
+				final String title = getString(getResources().getIdentifier("name_"+currentBackend, "string", getPackageName()));
+				setTitle(title);
+				getSupportActionBar().setTitle(title);
+				final int flags = getUIVisibility();
+				changedState((flags & UIVisibility.UNDO.getValue()) > 0, (flags & UIVisibility.REDO.getValue()) > 0);
+				customVisible = (flags & UIVisibility.CUSTOM.getValue()) > 0;
+				solveEnabled = (flags & UIVisibility.SOLVE.getValue()) > 0;
+				setStatusBarVisibility((flags & UIVisibility.STATUS.getValue()) > 0);
+
+				if (!generating) {  // we didn't know params until we loaded the game
+					requestKeys(currentBackend, currentParams);
+				}
+				if (launch.isKnownCompleted()) {
+					completed();
+				}
+				final boolean hasArrows = computeArrowMode(currentBackend).hasArrows();
+				setCursorVisibility(hasArrows);
+				if (changingGame) {
+					if (prefs.getBoolean(CONTROLS_REMINDERS_KEY, true)) {
+						if (hasArrows || ! showToastIfExists("toast_no_arrows_" + currentBackend)) {
+							showToastIfExists("toast_" + currentBackend);
+						}
+					}
+				}
+				resizeEvent(gameView.wDip, gameView.hDip);
+				dismissProgress();
+				if( menu != null ) onPrepareOptionsMenu(menu);
+				save();
+			}
+		});
 	}
 
 	private boolean showToastIfExists(final String name) {
