@@ -96,7 +96,7 @@ public class GameView extends View
 			this.parent = (GamePlay) context;
 			night = parent.isNight();
 		}
-		density = getResources().getDisplayMetrics().density;
+		density = Math.round(getResources().getDisplayMetrics().density);
 		bitmap = Bitmap.createBitmap(100, 100, BITMAP_CONFIG);  // for safety
 		canvas = new Canvas(bitmap);
 		paint = new Paint();
@@ -578,8 +578,8 @@ public class GameView extends View
 		if( w <= 0 ) wDip = 1;
 		if( h <= 0 ) hDip = 1;
 		if (bitmap != null) bitmap.recycle();
-		overdrawX = Math.round(ZOOM_OVERDRAW_PROPORTION * w);
-		overdrawY = Math.round(ZOOM_OVERDRAW_PROPORTION * h);
+		overdrawX = Math.round(Math.round(ZOOM_OVERDRAW_PROPORTION * wDip) * density);
+		overdrawY = Math.round(Math.round(ZOOM_OVERDRAW_PROPORTION * hDip) * density);
 		// texture size limit, see http://stackoverflow.com/a/7523221/6540
 		final Point maxTextureSize =
 				(Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH)
