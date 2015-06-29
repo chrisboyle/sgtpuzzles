@@ -168,7 +168,8 @@
 	<color name="slant_night_colour_filledsquare">#444444</color>
 	<color name="slant_night_colour_cursor">#999999</color>
 	<color name="solo_night_colour_xdiagonals">#666666</color>
-	<color name="solo_night_colour_grid">#ffffff</color>
+	<color name="solo_night_colour_grid">#bbbbbb</color>
+	<color name="solo_night_colour_grid_block">#ffffff</color>
 	<color name="solo_night_colour_clue">#ffffff</color>
 	<color name="solo_night_colour_user">#00bb00</color>
 	<color name="tents_night_colour_grid">#ffffff</color>

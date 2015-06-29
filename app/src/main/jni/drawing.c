@@ -122,6 +122,13 @@ void draw_polygon(drawing *dr, int *coords, int npoints,
 			  outlinecolour);
 }
 
+void draw_thick_polygon(drawing *dr, float thickness, int *coords, int npoints,
+                  int fillcolour, int outlinecolour)
+{
+    dr->api->draw_thick_polygon(dr->handle, thickness, coords, npoints, fillcolour,
+			  outlinecolour);
+}
+
 void draw_circle(drawing *dr, int cx, int cy, int radius,
                  int fillcolour, int outlinecolour)
 {

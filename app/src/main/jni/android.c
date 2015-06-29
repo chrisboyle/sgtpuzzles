@@ -173,7 +173,7 @@ void android_draw_line(void *handle, int x1, int y1, int x2, int y2, int colour)
 	android_draw_thick_line(handle, 1.f, x1, y1, x2, y2, colour);
 }
 
-void android_draw_poly(void *handle, int *coords, int npoints,
+void android_draw_thick_poly(void *handle, float thickness, int *coords, int npoints,
 		int fillcolour, int outlinecolour)
 {
 	CHECK_DR_HANDLE
@@ -181,8 +181,14 @@ void android_draw_poly(void *handle, int *coords, int npoints,
 	jintArray coordsj = (*env)->NewIntArray(env, npoints*2);
 	if (coordsj == NULL) return;
 	(*env)->SetIntArrayRegion(env, coordsj, 0, npoints*2, coords);
-	(*env)->CallVoidMethod(env, gameView, drawPoly, coordsj, fe->ox, fe->oy, outlinecolour, fillcolour);
+	(*env)->CallVoidMethod(env, gameView, drawPoly, thickness, coordsj, fe->ox, fe->oy, outlinecolour, fillcolour);
 	(*env)->DeleteLocalRef(env, coordsj);  // prevent ref table exhaustion on e.g. large Mines grids...
+}
+
+void android_draw_poly(void *handle, int *coords, int npoints,
+		int fillcolour, int outlinecolour)
+{
+	android_draw_thick_poly(handle, 1.f, coords, npoints, fillcolour, outlinecolour);
 }
 
 void android_draw_thick_circle(void *handle, float thickness, float cx, float cy, float radius, int fillcolour, int outlinecolour)
@@ -269,6 +275,7 @@ const struct drawing_api android_drawing = {
 	android_draw_rect,
 	android_draw_line,
 	android_draw_poly,
+	android_draw_thick_poly,
 	android_draw_circle,
 	android_draw_thick_circle,
 	NULL, // draw_update,
@@ -838,7 +845,7 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
 	dialogShow     = (*env)->GetMethodID(env, cls,  "dialogShow", "()V");
 	drawCircle     = (*env)->GetMethodID(env, vcls, "drawCircle", "(FFFFII)V");
 	drawLine       = (*env)->GetMethodID(env, vcls, "drawLine", "(FFFFFI)V");
-	drawPoly       = (*env)->GetMethodID(env, vcls,  "drawPoly", "([IIIII)V");
+	drawPoly       = (*env)->GetMethodID(env, vcls,  "drawPoly", "(F[IIIII)V");
 	drawText       = (*env)->GetMethodID(env, vcls, "drawText", "(IIIIILjava/lang/String;)V");
 	fillRect       = (*env)->GetMethodID(env, vcls, "fillRect", "(IIIII)V");
 	getBackgroundColour = (*env)->GetMethodID(env, vcls, "getDefaultBackgroundColour", "()I");

@@ -192,6 +192,8 @@ void draw_rect(drawing *dr, int x, int y, int w, int h, int colour);
 void draw_line(drawing *dr, int x1, int y1, int x2, int y2, int colour);
 void draw_polygon(drawing *dr, int *coords, int npoints,
                   int fillcolour, int outlinecolour);
+void draw_thick_polygon(drawing *dr, float thickness, int *coords, int npoints,
+                  int fillcolour, int outlinecolour);
 void draw_circle(drawing *dr, int cx, int cy, int radius,
                  int fillcolour, int outlinecolour);
 void draw_thick_circle(drawing *dr, float thickness, float cx, float cy, float radius,
@@ -569,6 +571,8 @@ struct drawing_api {
     void (*draw_line)(void *handle, int x1, int y1, int x2, int y2,
 		      int colour);
     void (*draw_polygon)(void *handle, int *coords, int npoints,
+			 int fillcolour, int outlinecolour);
+    void (*draw_thick_polygon)(void *handle, float thickness, int *coords, int npoints,
 			 int fillcolour, int outlinecolour);
     void (*draw_circle)(void *handle, int cx, int cy, int radius,
 			int fillcolour, int outlinecolour);

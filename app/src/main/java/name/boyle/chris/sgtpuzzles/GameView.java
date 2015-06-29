@@ -706,7 +706,7 @@ public class GameView extends View
 	}
 
 	@UsedByJNI
-	void drawPoly(int[] points, int ox, int oy, int line, int fill)
+	void drawPoly(float thickness, int[] points, int ox, int oy, int line, int fill)
 	{
 		Path path = new Path();
 		path.moveTo(points[0] + ox, points[1] + oy);
@@ -718,11 +718,11 @@ public class GameView extends View
 		// look continuous in lightup)
 		boolean disableAntiAlias = points.length <= 8;  // 2 per point
 		if (disableAntiAlias) paint.setAntiAlias(false);
-		drawPoly(path, line, fill);
+		drawPoly(thickness, path, line, fill);
 		paint.setAntiAlias(true);
 	}
 
-	private void drawPoly(Path p, int lineColour, int fillColour)
+	private void drawPoly(float thickness, Path p, int lineColour, int fillColour)
 	{
 		if (fillColour != -1) {
 			paint.setColor(colours[fillColour]);
@@ -731,7 +731,9 @@ public class GameView extends View
 		}
 		paint.setColor(colours[lineColour]);
 		paint.setStyle(Paint.Style.STROKE);
+		paint.setStrokeWidth(Math.max(thickness, 1.f));
 		canvas.drawPath(p, paint);
+		paint.setStrokeWidth(1.f);
 	}
 
 	@UsedByJNI

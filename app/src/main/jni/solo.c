@@ -127,6 +127,7 @@ enum {
     COL_BACKGROUND,
     COL_XDIAGONALS,
     COL_GRID,
+    COL_GRID_BLOCK,
     COL_CLUE,
     COL_USER,
     COL_HIGHLIGHT,
@@ -4769,6 +4770,10 @@ static float *game_colours(frontend *fe, int *ncolours)
     ret[COL_GRID * 3 + 1] = 0.0F;
     ret[COL_GRID * 3 + 2] = 0.0F;
 
+    ret[COL_GRID_BLOCK * 3 + 0] = 0.0F;
+    ret[COL_GRID_BLOCK * 3 + 1] = 0.0F;
+    ret[COL_GRID_BLOCK * 3 + 2] = 0.0F;
+
     ret[COL_CLUE * 3 + 0] = 0.0F;
     ret[COL_CLUE * 3 + 1] = 0.0F;
     ret[COL_CLUE * 3 + 2] = 0.0F;
@@ -4877,13 +4882,13 @@ static void draw_number(drawing *dr, game_drawstate *ds,
      * which jut into this square by one pixel.
      */
     if (x > 0 && y > 0 && state->blocks->whichblock[y*cr+x] != state->blocks->whichblock[(y-1)*cr+x-1])
-	draw_rect(dr, tx-GRIDEXTRA, ty-GRIDEXTRA, GRIDEXTRA, GRIDEXTRA, COL_GRID);
+	draw_rect(dr, tx-GRIDEXTRA, ty-GRIDEXTRA, GRIDEXTRA, GRIDEXTRA, COL_GRID_BLOCK);
     if (x+1 < cr && y > 0 && state->blocks->whichblock[y*cr+x] != state->blocks->whichblock[(y-1)*cr+x+1])
-	draw_rect(dr, tx+TILE_SIZE-1-2*GRIDEXTRA, ty-GRIDEXTRA, GRIDEXTRA, GRIDEXTRA, COL_GRID);
+	draw_rect(dr, tx+TILE_SIZE-1-2*GRIDEXTRA, ty-GRIDEXTRA, GRIDEXTRA, GRIDEXTRA, COL_GRID_BLOCK);
     if (x > 0 && y+1 < cr && state->blocks->whichblock[y*cr+x] != state->blocks->whichblock[(y+1)*cr+x-1])
-	draw_rect(dr, tx-GRIDEXTRA, ty+TILE_SIZE-1-2*GRIDEXTRA, GRIDEXTRA, GRIDEXTRA, COL_GRID);
+	draw_rect(dr, tx-GRIDEXTRA, ty+TILE_SIZE-1-2*GRIDEXTRA, GRIDEXTRA, GRIDEXTRA, COL_GRID_BLOCK);
     if (x+1 < cr && y+1 < cr && state->blocks->whichblock[y*cr+x] != state->blocks->whichblock[(y+1)*cr+x+1])
-	draw_rect(dr, tx+TILE_SIZE-1-2*GRIDEXTRA, ty+TILE_SIZE-1-2*GRIDEXTRA, GRIDEXTRA, GRIDEXTRA, COL_GRID);
+	draw_rect(dr, tx+TILE_SIZE-1-2*GRIDEXTRA, ty+TILE_SIZE-1-2*GRIDEXTRA, GRIDEXTRA, GRIDEXTRA, COL_GRID_BLOCK);
 
     /* pencil-mode highlight */
     if ((hl & 15) == 2) {
@@ -5115,6 +5120,11 @@ static void draw_number(drawing *dr, game_drawstate *ds,
     ds->hl[y*cr+x] = hl;
 }
 
+static void outline_block_structure(drawing *dr, game_drawstate *ds,
+				    const game_state *state,
+				    struct block_structure *blocks,
+				    int ink, int inset);
+
 static void game_redraw(drawing *dr, game_drawstate *ds,
                         const game_state *oldstate, const game_state *state,
                         int dir, const game_ui *ui,
@@ -5141,6 +5151,11 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
 		  cr*TILE_SIZE+1+2*GRIDEXTRA, cr*TILE_SIZE+1+2*GRIDEXTRA,
 		  COL_GRID);
     }
+
+#ifdef ANDROID
+    // On Android, Jigsaw boundaries are a different colour
+    outline_block_structure(dr, ds, state, state->blocks, COL_GRID_BLOCK, 0);
+#endif
 
     /*
      * This array is used to keep track of rows, columns and boxes
@@ -5289,6 +5304,7 @@ static void game_print_size(const game_params *params, float *x, float *y)
     *x = pw / 100.0F;
     *y = ph / 100.0F;
 }
+#endif
 
 /*
  * Subfunction to draw the thick lines between cells. In order to do
@@ -5453,12 +5469,17 @@ static void outline_block_structure(drawing *dr, game_drawstate *ds,
 	/*
 	 * That's our polygon; now draw it.
 	 */
-	draw_polygon(dr, coords, n, -1, ink);
+#ifdef ANDROID
+	draw_thick_polygon(dr, 3.f, coords, n, -1, ink);
+#else
+	draw_thick_polygon(dr, 1.f, coords, n, -1, ink);
+#endif
     }
 
     sfree(coords);
 }
 
+#ifndef NO_PRINTING
 static void game_print(drawing *dr, const game_state *state, int tilesize)
 {
     int cr = state->cr;
