@@ -3,7 +3,9 @@
     <!-- untangle.c will darken this outside the square playable area, to distinguish that area -->
     <color name="game_background">#ffcccccc</color>
     <color name="night_game_background">#ff000000</color>
-    <color name="keyboard_background">#ff272727</color>
+    <color name="keyboard_background">#ff272d30</color>
+    <color name="key_background">#ff272d30</color>
+    <color name="key_background_pressed">#ff515b5f</color>
     <color name="spinner_background">#ff272727</color>
     <color name="status_bar_text">#ff000000</color>
     <color name="night_status_bar_text">#ffffffff</color>

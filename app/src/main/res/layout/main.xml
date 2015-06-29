@@ -13,6 +13,7 @@
         android:layout_alignParentBottom="true"
         android:layout_alignParentLeft="true"
         android:layout_alignParentRight="true"
+        android:keyBackground="@drawable/key_background"
         android:background="@color/keyboard_background" />
 
     <TextView
