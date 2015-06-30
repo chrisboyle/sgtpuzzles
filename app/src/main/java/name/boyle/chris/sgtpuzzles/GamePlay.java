@@ -125,6 +125,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 	static final String MIME_TYPE = "text/prs.sgtatham.puzzles";
 	private static final float MAX_LUX_NIGHT = 3.4f;
 	private static final float MIN_LUX_DAY = 15.0f;
+	private static final long NIGHT_MODE_AUTO_DELAY = 2100;
 
 	private ProgressDialog progress;
 	private TextView statusBar;
@@ -168,6 +169,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 	enum NightMode { ON, AUTO, OFF }
 	private NightMode nightMode = NightMode.OFF;
 	private boolean darkNowSmoothed = false;
+	private Float previousLux = null;
 
 	enum UIVisibility {
 		UNDO(1), REDO(2), CUSTOM(4), SOLVE(8), STATUS(16);
@@ -1060,7 +1062,12 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 	protected void onPause()
 	{
 		handler.removeMessages(MsgType.TIMER.ordinal());
-		if (nightMode == NightMode.AUTO) sensorManager.unregisterListener(this);
+		if (nightMode == NightMode.AUTO) {
+			sensorManager.unregisterListener(this);
+			handler.removeCallbacks(stayedLight);
+			handler.removeCallbacks(stayedDark);
+			previousLux = null;
+		}
 		save();
 		super.onPause();
 	}
@@ -1622,11 +1629,18 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 		final String pref = prefs.getString(NIGHT_MODE_KEY, "auto");
 		if ("on".equals(pref)) {
 			nightMode = NightMode.ON;
+			darkNowSmoothed = true;
+			handler.removeCallbacks(stayedLight);
+			handler.removeCallbacks(stayedDark);
+			previousLux = null;
 			if (wasAuto) sensorManager.unregisterListener(this);
 		}
 		else if ("off".equals(pref) || lightSensor == null) {
 			nightMode = NightMode.OFF;
 			darkNowSmoothed = false;
+			handler.removeCallbacks(stayedLight);
+			handler.removeCallbacks(stayedDark);
+			previousLux = null;
 			if (wasAuto) sensorManager.unregisterListener(this);
 		}
 		else if (!wasAuto) {
@@ -1651,11 +1665,44 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 		return nightMode == NightMode.ON || (nightMode == NightMode.AUTO && darkNowSmoothed);
 	}
 
+	private final Runnable stayedDark = new Runnable() {
+		@Override
+		public void run() {
+			if (darkNowSmoothed) return;
+			darkNowSmoothed = true;
+			refreshNightNow();
+		}
+	};
+
+	private final Runnable stayedLight = new Runnable() {
+		@Override
+		public void run() {
+			if (!darkNowSmoothed) return;
+			darkNowSmoothed = false;
+			refreshNightNow();
+		}
+	};
+
 	public void onSensorChanged(SensorEvent event) {
-		final boolean wasDark = darkNowSmoothed;
-		if (event.values[0] <= MAX_LUX_NIGHT) darkNowSmoothed = true;
-		else if (event.values[0] >= MIN_LUX_DAY) darkNowSmoothed = false;
-		if (wasDark != darkNowSmoothed) refreshNightNow();
+		if (event.values[0] <= MAX_LUX_NIGHT) {
+			handler.removeCallbacks(stayedLight);
+			if (previousLux == null) {
+				stayedDark.run();
+			} else if (previousLux > MAX_LUX_NIGHT) {
+				handler.postDelayed(stayedDark, NIGHT_MODE_AUTO_DELAY);
+			}
+		} else if (event.values[0] >= MIN_LUX_DAY) {
+			handler.removeCallbacks(stayedDark);
+			if (previousLux == null) {
+				stayedLight.run();
+			} else if (previousLux < MIN_LUX_DAY) {
+				handler.postDelayed(stayedLight, NIGHT_MODE_AUTO_DELAY);
+			}
+		} else {
+			handler.removeCallbacks(stayedLight);
+			handler.removeCallbacks(stayedDark);
+		}
+		previousLux = event.values[0];
 	}
 
 	public void onAccuracyChanged(Sensor sensor, int accuracy) {  // don't care
