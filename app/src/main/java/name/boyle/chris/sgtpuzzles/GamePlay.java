@@ -120,6 +120,8 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 	public static final String LAST_PARAMS_PREFIX = "last_params_";
 	private static final String PUZZLESGEN_LAST_UPDATE = "puzzlesgen_last_update";
 	private static final String BLUETOOTH_PACKAGE_PREFIX = "com.android.bluetooth";
+	private static final String SEEN_NIGHT_MODE = "seenNightMode";
+	private static final String SEEN_NIGHT_MODE_SETTING = "seenNightModeSetting";
 
 	private static final int REQ_CODE_CREATE_DOC = Activity.RESULT_FIRST_USER;
 	static final String MIME_TYPE = "text/prs.sgtatham.puzzles";
@@ -1535,6 +1537,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 		keysAlreadySet = true;
 	}
 
+	@SuppressLint("CommitPrefEdits")
 	@Override
 	public void onSharedPreferenceChanged(SharedPreferences p, String key)
 	{
@@ -1549,6 +1552,11 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 			applyStayAwake();
 		} else if (key.equals(NIGHT_MODE_KEY)) {
 			applyNightMode(true);
+			long changed = state.getLong(SEEN_NIGHT_MODE_SETTING, 0);
+			changed++;
+			SharedPreferences.Editor ed = state.edit();
+			ed.putLong(SEEN_NIGHT_MODE_SETTING, changed);
+			prefsSaver.save(ed);
 		} else if (key.equals(ORIENTATION_KEY)) {
 			applyOrientation();
 		} else if (key.equals(UNDO_REDO_KBD_KEY)) {
@@ -1665,12 +1673,21 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 		return nightMode == NightMode.ON || (nightMode == NightMode.AUTO && darkNowSmoothed);
 	}
 
+	@SuppressLint("CommitPrefEdits")
 	private final Runnable stayedDark = new Runnable() {
 		@Override
 		public void run() {
 			if (darkNowSmoothed) return;
 			darkNowSmoothed = true;
 			refreshNightNow();
+			long seen = state.getLong(SEEN_NIGHT_MODE, 0);
+			if (seen < 3 && state.getLong(SEEN_NIGHT_MODE_SETTING, 0) < 1) {
+				Toast.makeText(GamePlay.this, R.string.night_mode_hint, Toast.LENGTH_SHORT).show();
+			}
+			seen++;
+			SharedPreferences.Editor ed = state.edit();
+			ed.putLong(SEEN_NIGHT_MODE, seen);
+			prefsSaver.save(ed);
 		}
 	};
 
