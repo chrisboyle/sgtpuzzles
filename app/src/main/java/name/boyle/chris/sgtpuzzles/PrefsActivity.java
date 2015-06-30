@@ -42,6 +42,7 @@ public class PrefsActivity extends PreferenceActivity implements OnSharedPrefere
 		final PreferenceCategory thisGameCategory = (PreferenceCategory) findPreference("thisGame");
 		if (whichBackend == null) {
 			getPreferenceScreen().removePreference(thisGameCategory);
+			updateSummary((ListPreference) findPreference(GameChooser.CHOOSER_STYLE_KEY));
 		} else {
 			getPreferenceScreen().removePreference(chooserCategory);
 			final int nameId = getResources().getIdentifier("name_" + whichBackend, "string", getPackageName());
@@ -63,7 +64,6 @@ public class PrefsActivity extends PreferenceActivity implements OnSharedPrefere
 				unavailablePref.setSummary(MessageFormat.format(getString(R.string.arrowKeysUnavailableIn), getString(nameId)));
 			}
 		}
-		updateSummary((ListPreference) findPreference(GameChooser.CHOOSER_STYLE_KEY));
 		updateSummary((ListPreference) findPreference(GamePlay.ORIENTATION_KEY));
 		findPreference("about_content").setSummary(
 				String.format(getString(R.string.about_content), BuildConfig.VERSION_NAME));
