@@ -1135,8 +1135,8 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 			// caches the x,y for its preview popups
 			// http://code.google.com/p/android/issues/detail?id=4559
 			if (keyboard != null) mainLayout.removeView(keyboard);
-			keyboard = new SmallKeyboard(this, undoEnabled, redoEnabled);
-			keyboard.setId(R.id.keyboard);
+			keyboard = (SmallKeyboard) getLayoutInflater().inflate(R.layout.keyboard, mainLayout, false);
+			keyboard.setUndoRedoEnabled(undoEnabled, redoEnabled);
 			RelativeLayout.LayoutParams klp = new RelativeLayout.LayoutParams(
 					RelativeLayout.LayoutParams.WRAP_CONTENT,
 					RelativeLayout.LayoutParams.WRAP_CONTENT);

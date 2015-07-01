@@ -491,7 +491,6 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 	{
 		super(c, a);
 		parent = isInEditMode() ? null : (GamePlay)c;
-		setBackgroundColor(getResources().getColor(R.color.keyboard_background));
 		setOnKeyboardActionListener(this);
 		if (isInEditMode()) setKeys("123456\bur", ArrowMode.ARROWS_LEFT_RIGHT_CLICK, "");
 		setPreviewEnabled(false);  // can't get icon buttons to darken properly and there are positioning bugs anyway
