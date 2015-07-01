@@ -96,7 +96,7 @@ public class GameView extends View
 			this.parent = (GamePlay) context;
 			night = parent.isNight();
 		}
-		density = Math.round(getResources().getDisplayMetrics().density);
+		density = getResources().getDisplayMetrics().density;
 		bitmap = Bitmap.createBitmap(100, 100, BITMAP_CONFIG);  // for safety
 		canvas = new Canvas(bitmap);
 		paint = new Paint();
@@ -792,27 +792,31 @@ public class GameView extends View
 		blitters[i] = null;
 	}
 
+	PointF blitterPosition(int x, int y, boolean save) {
+		float[] f = { x, y };
+		zoomMatrix.mapPoints(f);
+		f[0] = (float) Math.floor(f[0]);
+		f[1] = (float) Math.floor(f[1]);
+		if (save) {
+			f[0] *= -1f;
+			f[1] *= -1f;
+		}
+		return new PointF(f[0], f[1]);
+	}
+
 	@UsedByJNI
 	void blitterSave(int i, int x, int y)
 	{
 		if( blitters[i] == null ) return;
-		Canvas c = new Canvas(blitters[i]);
-		Matrix m = new Matrix(inverseZoomMatrix);
-		m.postTranslate(-x, -y);
-		float zoom = getXScale(zoomMatrix);
-		m.postScale(zoom, zoom);
-		m.postTranslate(-overdrawX, -overdrawY);
-		c.drawBitmap(bitmap, m, null);
+		final PointF blitterPosition = blitterPosition(x, y, true);
+		new Canvas(blitters[i]).drawBitmap(bitmap, blitterPosition.x, blitterPosition.y, null);
 	}
 
 	@UsedByJNI
 	void blitterLoad(int i, int x, int y)
 	{
 		if( blitters[i] == null ) return;
-		Matrix m = new Matrix();
-		float zoom = getXScale(zoomMatrix);
-		m.postScale(1 / zoom, 1 / zoom);
-		m.postTranslate(x, y);
-		canvas.drawBitmap(blitters[i], m, null);
+		final PointF blitterPosition = blitterPosition(x, y, false);
+		new Canvas(bitmap).drawBitmap(blitters[i], blitterPosition.x, blitterPosition.y, null);
 	}
 }
