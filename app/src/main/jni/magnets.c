@@ -46,7 +46,7 @@ int verbose = 0;
 
 enum {
     COL_BACKGROUND, COL_HIGHLIGHT, COL_LOWLIGHT,
-    COL_TEXT, COL_ERROR, COL_CURSOR,
+    COL_TEXT, COL_ERROR, COL_CURSOR, COL_DONE,
     COL_NEUTRAL, COL_NEGATIVE, COL_POSITIVE, COL_NOT,
     NCOLOURS
 };
@@ -274,6 +274,7 @@ struct game_state {
     int *grid;                  /* size w*h, for cell state (pos/neg) */
     unsigned int *flags;        /* size w*h */
     int solved, completed, numbered;
+    unsigned char *counts_done;
 
     struct game_common *common; /* domino layout never changes. */
 };
@@ -286,6 +287,7 @@ static void clear_state(game_state *ret)
 
     memset(ret->common->rowcount, 0, ret->h*3*sizeof(int));
     memset(ret->common->colcount, 0, ret->w*3*sizeof(int));
+    memset(ret->counts_done, 0, (ret->h + ret->w) * 2 * sizeof(unsigned char));
 
     for (i = 0; i < ret->wh; i++) {
         ret->grid[i] = EMPTY;
@@ -305,6 +307,7 @@ static game_state *new_state(int w, int h)
 
     ret->grid = snewn(ret->wh, int);
     ret->flags = snewn(ret->wh, unsigned int);
+    ret->counts_done = snewn((ret->h + ret->w) * 2, unsigned char);
 
     ret->common = snew(struct game_common);
     ret->common->refcount = 1;
@@ -336,6 +339,10 @@ static game_state *dup_game(const game_state *src)
     dest->grid = snewn(dest->wh, int);
     memcpy(dest->grid, src->grid, dest->wh*sizeof(int));
 
+    dest->counts_done = snewn((dest->h + dest->w) * 2, unsigned char);
+    memcpy(dest->counts_done, src->counts_done,
+           (dest->h + dest->w) * 2 * sizeof(unsigned char));
+
     dest->flags = snewn(dest->wh, unsigned int);
     memcpy(dest->flags, src->flags, dest->wh*sizeof(unsigned int));
 
@@ -351,6 +358,7 @@ static void free_game(game_state *state)
         sfree(state->common->colcount);
         sfree(state->common);
     }
+    sfree(state->counts_done);
     sfree(state->flags);
     sfree(state->grid);
     sfree(state);
@@ -1756,11 +1764,10 @@ struct game_drawstate {
 #define DS_ERROR    0x10
 #define DS_CURSOR   0x20
 #define DS_SET      0x40
-#define DS_FULL     0x80
-#define DS_NOTPOS   0x100
-#define DS_NOTNEG   0x200
-#define DS_NOTNEU   0x400
-#define DS_FLASH    0x800
+#define DS_NOTPOS   0x80
+#define DS_NOTNEG   0x100
+#define DS_NOTNEU   0x200
+#define DS_FLASH    0x400
 
 #define PREFERRED_TILE_SIZE 32
 #define TILE_SIZE (ds->tilesize)
@@ -1768,6 +1775,33 @@ struct game_drawstate {
 
 #define COORD(x) ( (x+1) * TILE_SIZE + BORDER )
 #define FROMCOORD(x) ( (x - BORDER) / TILE_SIZE - 1 )
+
+static int is_clue(const game_state *state, int x, int y)
+{
+    int h = state->h, w = state->w;
+
+    if (((x == -1 || x == w) && y >= 0 && y < h) ||
+        ((y == -1 || y == h) && x >= 0 && x < w))
+        return TRUE;
+
+    return FALSE;
+}
+
+static int clue_index(const game_state *state, int x, int y)
+{
+    int h = state->h, w = state->w;
+
+    if (y == -1)
+        return x;
+    else if (x == w)
+        return w + y;
+    else if (y == h)
+        return 2 * w + h - x - 1;
+    else if (x == -1)
+        return 2 * (w + h) - y - 1;
+
+    return -1;
+}
 
 static char *interpret_move(const game_state *state, game_ui *ui,
                             const game_drawstate *ds,
@@ -1796,6 +1830,9 @@ static char *interpret_move(const game_state *state, game_ui *ui,
             nullret = "";
         }
         action = (button == LEFT_BUTTON) ? CYCLE_MAGNET : CYCLE_NEUTRAL;
+    } else if (button == LEFT_BUTTON && is_clue(state, gx, gy)) {
+        sprintf(buf, "D%d,%d", gx, gy);
+        return dupstr(buf);
     } else
         return NULL;
 
@@ -1872,6 +1909,9 @@ static game_state *execute_move(const game_state *state, const char *move)
                 ret->flags[idx] |= GS_SET;
                 ret->flags[idx2] |= GS_SET;
             }
+        } else if (c == 'D' && sscanf(move, "%d,%d%n", &x, &y, &n) == 2 &&
+                   is_clue(ret, x, y)) {
+            ret->counts_done[clue_index(ret, x, y)] ^= 1;
         } else
             goto badmove;
 
@@ -1921,6 +1961,7 @@ static float *game_colours(frontend *fe, int *ncolours)
         ret[COL_TEXT * 3 + i] = 0.0F;
         ret[COL_NEGATIVE * 3 + i] = 0.0F;
         ret[COL_CURSOR * 3 + i] = 0.9F;
+        ret[COL_DONE * 3 + i] = ret[COL_BACKGROUND * 3 + i] / 1.5F;
     }
 
     ret[COL_POSITIVE * 3 + 0] = 0.8F;
@@ -1970,7 +2011,7 @@ static void game_free_drawstate(drawing *dr, game_drawstate *ds)
     sfree(ds);
 }
 
-static void draw_num_col(drawing *dr, game_drawstate *ds, int rowcol, int which,
+static void draw_num(drawing *dr, game_drawstate *ds, int rowcol, int which,
                          int idx, int colbg, int col, int num)
 {
     char buf[32];
@@ -1996,13 +2037,6 @@ static void draw_num_col(drawing *dr, game_drawstate *ds, int rowcol, int which,
               ALIGN_VCENTRE | ALIGN_HCENTRE, col, buf);
 
     draw_update(dr, cx, cy, TILE_SIZE, TILE_SIZE);
-}
-
-static void draw_num(drawing *dr, game_drawstate *ds, int rowcol, int which,
-                     int idx, unsigned long c, int num)
-{
-    draw_num_col(dr, ds, rowcol, which, idx, COL_BACKGROUND,
-                 (c & DS_ERROR) ? COL_ERROR : COL_TEXT, num);
 }
 
 static void draw_sym(drawing *dr, game_drawstate *ds, int x, int y, int which, int col)
@@ -2142,6 +2176,27 @@ static void draw_tile(drawing *dr, game_drawstate *ds, int *dominoes,
     draw_update(dr, cx, cy, TILE_SIZE, TILE_SIZE);
 }
 
+static int get_count_color(const game_state *state, int rowcol, int which,
+                           int index, int target)
+{
+    int idx;
+    int count = count_rowcol(state, index, rowcol, which);
+
+    if ((count > target) ||
+        (count < target && !count_rowcol(state, index, rowcol, -1))) {
+        return COL_ERROR;
+    } else if (rowcol == COLUMN) {
+        idx = clue_index(state, index, which == POSITIVE ? -1 : state->h);
+    } else {
+        idx = clue_index(state, which == POSITIVE ? -1 : state->w, index);
+    }
+
+    if (state->counts_done[idx]) {
+        return COL_DONE;
+    }
+
+    return COL_TEXT;
+}
 
 static void game_redraw(drawing *dr, game_drawstate *ds,
                         const game_state *oldstate, const game_state *state,
@@ -2149,7 +2204,6 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
                         float animtime, float flashtime)
 {
     int x, y, w = state->w, h = state->h, which, i, j, flash;
-    unsigned long c = 0;
 
     flash = (int)(flashtime * 5 / FLASH_TIME) % 2;
 
@@ -2172,8 +2226,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
     for (y = 0; y < h; y++) {
         for (x = 0; x < w; x++) {
             int idx = y*w+x;
-
-            c = state->grid[idx];
+            unsigned long c = state->grid[idx];
 
             if (state->flags[idx] & GS_ERROR)
                 c |= DS_ERROR;
@@ -2201,33 +2254,24 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
     }
     /* Draw counts around side */
     for (which = POSITIVE, j = 0; j < 2; which = OPPOSITE(which), j++) {
-        int target, count;
         for (i = 0; i < w; i++) {
-            target = state->common->colcount[i*3+which];
-            count = count_rowcol(state, i, COLUMN, which);
-            c = 0;
-            if ((count > target) ||
-                (count < target && !count_rowcol(state, i, COLUMN, -1)))
-                c |= DS_ERROR;
-            if (count == target) c |= DS_FULL;
-            if (c != ds->colwhat[i*3+which] || !ds->started) {
-                draw_num(dr, ds, COLUMN, which, i, c,
-                         state->common->colcount[i*3+which]);
-                ds->colwhat[i*3+which] = c;
+            int index = i * 3 + which;
+            int target = state->common->colcount[index];
+            int color = get_count_color(state, COLUMN, which, i, target);
+
+            if (color != ds->colwhat[index] || !ds->started) {
+                draw_num(dr, ds, COLUMN, which, i, COL_BACKGROUND, color, target);
+                ds->colwhat[index] = color;
             }
         }
         for (i = 0; i < h; i++) {
-            target = state->common->rowcount[i*3+which];
-            count = count_rowcol(state, i, ROW, which);
-            c = 0;
-            if ((count > target) ||
-                (count < target && !count_rowcol(state, i, ROW, -1)))
-                c |= DS_ERROR;
-            if (count == target) c |= DS_FULL;
-            if (c != ds->rowwhat[i*3+which] || !ds->started) {
-                draw_num(dr, ds, ROW, which, i, c,
-                         state->common->rowcount[i*3+which]);
-                ds->rowwhat[i*3+which] = c;
+            int index = i * 3 + which;
+            int target = state->common->rowcount[index];
+            int color = get_count_color(state, ROW, which, i, target);
+
+            if (color != ds->rowwhat[index] || !ds->started) {
+                draw_num(dr, ds, ROW, which, i, COL_BACKGROUND, color, target);
+                ds->rowwhat[index] = color;
             }
         }
     }
@@ -2293,11 +2337,11 @@ static void game_print(drawing *dr, const game_state *state, int tilesize)
     draw_sym(dr, ds, state->w, state->h, NEGATIVE, ink);
     for (which = POSITIVE, j = 0; j < 2; which = OPPOSITE(which), j++) {
         for (i = 0; i < w; i++) {
-            draw_num_col(dr, ds, COLUMN, which, i, paper, ink,
+            draw_num(dr, ds, COLUMN, which, i, paper, ink,
                          state->common->colcount[i*3+which]);
         }
         for (i = 0; i < h; i++) {
-            draw_num_col(dr, ds, ROW, which, i, paper, ink,
+            draw_num(dr, ds, ROW, which, i, paper, ink,
                          state->common->rowcount[i*3+which]);
         }
     }
