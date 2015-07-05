@@ -2506,20 +2506,21 @@ static void draw_pencils(drawing *dr, game_drawstate *ds,
 static int is_hint_stale(const game_drawstate *ds, int hflash,
                          const game_state *state, int index)
 {
-    if (!ds->started) return TRUE;
-    if (ds->hflash != hflash) return TRUE;
+    int ret = FALSE;
+    if (!ds->started) ret = TRUE;
+    if (ds->hflash != hflash) ret = TRUE;
 
     if (ds->hint_errors[index] != state->hint_errors[index]) {
         ds->hint_errors[index] = state->hint_errors[index];
-        return TRUE;
+        ret = TRUE;
     }
 
     if (ds->hints_done[index] != state->hints_done[index]) {
         ds->hints_done[index] = state->hints_done[index];
-        return TRUE;
+        ret = TRUE;
     }
 
-    return FALSE;
+    return ret;
 }
 
 static void game_redraw(drawing *dr, game_drawstate *ds,
