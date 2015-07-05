@@ -1521,7 +1521,7 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
     }
     ui->just_made_move = FALSE;
 #ifdef ANDROID
-    if (!newstate->gems && ! newstate->cheated && oldstate && oldstate->gems) android_completed();
+    if (!newstate->gems && ! newstate->cheated && ! newstate->dead && oldstate && oldstate->gems) android_completed();
 #endif
 }
 
