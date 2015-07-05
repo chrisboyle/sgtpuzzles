@@ -1290,8 +1290,16 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 	}
 
 	@UsedByJNI
-	void completed()
-	{
+	void completed() {
+		handler.postDelayed(new Runnable() {
+			@Override
+			public void run() {
+				completedInternal();
+			}
+		}, 0);
+	}
+
+	private void completedInternal() {
 		everCompleted = true;
 		if (! prefs.getBoolean(COMPLETED_PROMPT_KEY, true)) {
 			Toast.makeText(GamePlay.this, getString(R.string.COMPLETED), Toast.LENGTH_SHORT).show();
@@ -1302,6 +1310,8 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 		lp.gravity = Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL;
 		d.getWindow().setAttributes(lp);
 		d.setContentView(R.layout.completed);
+		final TextView title = (TextView) d.findViewById(R.id.completedTitle);
+		title.setText("mines".equals(currentBackend) ? statusBar.getText() : getString(R.string.COMPLETED));
 		d.setCanceledOnTouchOutside(true);
 		final Button newButton = (Button) d.findViewById(R.id.newgame);
 		darkenTopDrawable(newButton);

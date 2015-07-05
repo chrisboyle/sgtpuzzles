@@ -10,6 +10,7 @@
         android:paddingTop="8dp"
         android:gravity="center_horizontal"
         android:textAppearance="@style/TextAppearance.Completed.Title"
+        android:id="@+id/completedTitle"
         android:text="@string/COMPLETED" />
 
     <LinearLayout
