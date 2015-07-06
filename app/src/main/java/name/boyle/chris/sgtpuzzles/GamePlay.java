@@ -901,7 +901,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 						throw new IOException("Internal error generating game: result is blank");
 					}
 					startGameConfirmed(true, launch);
-				} else if (!launch.isOfLocalState()) {
+				} else if (!launch.isOfLocalState() && launch.getSaved() != null) {
 					warnOfStateLoss(launch.getSaved(), new Runnable() {
 						@Override
 						public void run() {
