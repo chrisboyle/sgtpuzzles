@@ -149,6 +149,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 	private static final int TIMER_INTERVAL = 20;
 	private StringBuffer savingState;
 	private AlertDialog dialog;
+	private AlertDialog.Builder dialogBuilder;
 	private int dialogEvent;
 	private ArrayList<String> dialogIds;
 	private TableLayout dialogLayout;
@@ -1377,11 +1378,8 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 	@UsedByJNI
 	void dialogInit(final int whichEvent, String title)
 	{
-		final Context context = GamePlay.this;
-		ScrollView sv = new ScrollView(context);
-		AlertDialog.Builder builder = new AlertDialog.Builder(context)
+		dialogBuilder = new AlertDialog.Builder(GamePlay.this)
 				.setTitle(title)
-				.setView(sv)
 				.setOnCancelListener(new OnCancelListener() {
 					public void onCancel(DialogInterface dialog) {
 						configCancel();
@@ -1393,8 +1391,10 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 						// (listener is overridden in dialogShow to prevent dismiss)
 					}
 				});
+		ScrollView sv = new ScrollView(dialogBuilder.getContext());
+		dialogBuilder.setView(sv);
 		if (whichEvent == CFG_SETTINGS) {
-			builder.setNegativeButton(R.string.Game_ID_, new DialogInterface.OnClickListener() {
+			dialogBuilder.setNegativeButton(R.string.Game_ID_, new DialogInterface.OnClickListener() {
 				@Override
 				public void onClick(DialogInterface dialog, int which) {
 					configCancel();
@@ -1409,9 +1409,9 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 				}
 			});
 		}
-		dialog = builder.create();
+		sv.addView(dialogLayout = new TableLayout(dialogBuilder.getContext()));
+		dialog = dialogBuilder.create();
 		dialogEvent = whichEvent;
-		sv.addView(dialogLayout = new TableLayout(GamePlay.this));
 		final int xPadding = getResources().getDimensionPixelSize(R.dimen.dialog_padding_horizontal);
 		final int yPadding = getResources().getDimensionPixelSize(R.dimen.dialog_padding_vertical);
 		dialogLayout.setPadding(xPadding, yPadding, xPadding, yPadding);
@@ -1422,7 +1422,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 	@UsedByJNI
 	void dialogAdd(int whichEvent, int type, String name, String value, int selection)
 	{
-		final Context context = GamePlay.this;
+		final Context context = dialogBuilder.getContext();
 		switch(type) {
 		case C_STRING: {
 			dialogIds.add(name);
@@ -1489,6 +1489,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 		dialogLayout.setColumnShrinkable(1, true);
 		dialogLayout.setColumnStretchable(0, true);
 		dialogLayout.setColumnStretchable(1, true);
+		dialog = dialogBuilder.create();
 		if (getResources().getConfiguration().hardKeyboardHidden == Configuration.HARDKEYBOARDHIDDEN_YES) {
 			// Hack to prevent the first EditText from receiving focus when the dialog is shown
 			dialogLayout.setFocusableInTouchMode(true);
