@@ -105,6 +105,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 	private static final String ARROW_KEYS_KEY_SUFFIX = "ArrowKeys";
 	static final String NIGHT_MODE_KEY = "nightMode";
 	static final String LIMIT_DPI_KEY = "limitDpi";
+	private static final String KEYBOARD_BORDERS_KEY = "keyboardBorders";
 	private static final String BRIDGES_SHOW_H_KEY = "bridgesShowH";
 	private static final String FULLSCREEN_KEY = "fullscreen";
 	private static final String STAY_AWAKE_KEY = "stayAwake";
@@ -310,6 +311,9 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 		lightSensor = sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT);
 		applyNightMode(false);
 		applyLimitDPI(false);
+		if (prefs.getBoolean(KEYBOARD_BORDERS_KEY, false)) {
+			applyKeyboardBorders();
+		}
 		refreshStatusBarColours();
 		onNewIntent(getIntent());
 		getWindow().setBackgroundDrawable(null);
@@ -1138,7 +1142,9 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 			// caches the x,y for its preview popups
 			// http://code.google.com/p/android/issues/detail?id=4559
 			if (keyboard != null) mainLayout.removeView(keyboard);
-			keyboard = (SmallKeyboard) getLayoutInflater().inflate(R.layout.keyboard, mainLayout, false);
+			final boolean showBorders = prefs.getBoolean(KEYBOARD_BORDERS_KEY, false);
+			final int layout = showBorders ? R.layout.keyboard_bordered : R.layout.keyboard_borderless;
+			keyboard = (SmallKeyboard) getLayoutInflater().inflate(layout, mainLayout, false);
 			keyboard.setUndoRedoEnabled(undoEnabled, redoEnabled);
 			RelativeLayout.LayoutParams klp = new RelativeLayout.LayoutParams(
 					RelativeLayout.LayoutParams.WRAP_CONTENT,
@@ -1576,9 +1582,17 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 			applyOrientation();
 		} else if (key.equals(UNDO_REDO_KBD_KEY)) {
 			applyUndoRedoKbd();
+		} else if (key.equals(KEYBOARD_BORDERS_KEY)) {
+			applyKeyboardBorders();
 		} else if (key.equals(BRIDGES_SHOW_H_KEY)) {
 			applyBridgesShowH();
 		}
+	}
+
+	private void applyKeyboardBorders() {
+		keyboard = null;
+		mainLayout.removeView(keyboard);
+		setKeyboardVisibility(startingBackend, getResources().getConfiguration());
 	}
 
 	private void applyLimitDPI(final boolean alreadyStarted) {
@@ -1781,7 +1795,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 				.replaceAll("[^A-Za-z0-9_]+", "_");
 		if( id.endsWith("_") ) id = id.substring(0,id.length()-1);
 		int resId = getResources().getIdentifier(id, "string", getPackageName());
-		if( resId > 0 ) {
+		if (resId > 0) {
 			return getString(resId);
 		}
 		Log.i(TAG, "gettext: NO TRANSLATION: " + s + " -> " + id + " -> ???");
@@ -1789,8 +1803,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 	}
 
 	@UsedByJNI
-	void changedState(final boolean canUndo, final boolean canRedo)
-	{
+	void changedState(final boolean canUndo, final boolean canRedo) {
 		runOnUiThread(new Runnable() {
 			@Override
 			public void run() {

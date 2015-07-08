@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- keyboard is recreated programmatically on every orientation change,
+    because of http://code.google.com/p/android/issues/detail?id=4559
+    (we also put it in a different position in landscape) -->
+<name.boyle.chris.sgtpuzzles.SmallKeyboard
+	xmlns:android="http://schemas.android.com/apk/res/android"
+	xmlns:tools="http://schemas.android.com/tools"
+	android:id="@+id/keyboard"
+	android:layout_width="wrap_content"
+	android:layout_height="wrap_content"
+	android:layout_alignParentBottom="true"
+	android:layout_alignParentLeft="true"
+	android:layout_alignParentRight="true"
+	android:keyBackground="@drawable/key_background_bordered"
+	android:background="@color/keyboard_background"
+	tools:showIn="@layout/main"/>

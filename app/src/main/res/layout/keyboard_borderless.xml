@@ -11,6 +11,6 @@
 	android:layout_alignParentBottom="true"
 	android:layout_alignParentLeft="true"
 	android:layout_alignParentRight="true"
-	android:keyBackground="@drawable/key_background"
+	android:keyBackground="@drawable/key_background_borderless"
 	android:background="@color/keyboard_background"
 	tools:showIn="@layout/main"/>
