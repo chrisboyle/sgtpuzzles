@@ -1935,6 +1935,10 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         if (is_clue(state, gx, gy)) {
             sprintf(buf, "D%d,%d", gx, gy);
             return dupstr(buf);
+        } else {
+            ui->hshow = 0;
+            ui->hpencil = 0;
+            return "";
         }
     }
 
