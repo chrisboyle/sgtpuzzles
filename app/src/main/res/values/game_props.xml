@@ -115,7 +115,8 @@
 	<color name="galaxies_night_colour_edge">#ffffff</color>
 	<color name="galaxies_night_colour_arrow">#ffffff</color>
 	<color name="galaxies_night_colour_whitebg">#bbbbbb</color>
-	<color name="guess_night_colour_frame">#666666</color>
+	<color name="guess_night_colour_empty">#666666</color>
+	<color name="guess_night_colour_frame">#888888</color>
 	<color name="guess_night_colour_cursor">#ffffff</color>
 	<color name="inertia_night_colour_outline">#888888</color>
 	<color name="inertia_night_colour_mine">#666666</color>
@@ -154,7 +155,7 @@
 	<color name="rect_night_colour_text">#ffffff</color>
 	<color name="signpost_night_colour_arrow">#666666</color>
 	<color name="signpost_night_colour_arrow_bg_dim">#333333</color>
-	<color name="signpost_night_colour_number">#555555</color>
+	<color name="signpost_night_colour_number">#000000</color>
 	<color name="signpost_night_colour_b0">#dddddd</color>
 	<color name="singles_night_colour_black">#ffffff</color>
 	<color name="singles_night_colour_blacknum">#cccccc</color>
@@ -171,7 +172,8 @@
 	<color name="solo_night_colour_grid">#bbbbbb</color>
 	<color name="solo_night_colour_grid_block">#ffffff</color>
 	<color name="solo_night_colour_clue">#ffffff</color>
-	<color name="solo_night_colour_user">#00bb00</color>
+	<color name="solo_night_colour_user">#00ff00</color>
+	<color name="solo_night_colour_pencil">#8888ff</color>
 	<color name="tents_night_colour_grid">#ffffff</color>
 	<color name="towers_night_colour_grid">#ffffff</color>
 	<color name="towers_night_colour_user">#00bb00</color>
