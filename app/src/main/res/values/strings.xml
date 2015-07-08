@@ -58,8 +58,8 @@ Version %s"</string>
     <string name="starting">Generating game…</string>
     <string name="resuming">Resuming game…</string>
     <!-- "Completed" dialog -->
-    <string name="completedPrompt">Menu on completion</string>
-    <string name="completedPromptSummary">When a game is completed, show shortcuts to start another</string>
+    <string name="completedPrompt">Buttons when a game is completed</string>
+    <string name="completedPromptSummary">Shortcuts to start a new or different game</string>
     <string name="Change_type">Change type</string>
     <!-- Chooser -->
     <string name="games_starred">Starred (long press to toggle)</string>
@@ -99,13 +99,17 @@ Version %s"</string>
     <string name="chooserStyleGrid">Icons only (compact)</string>
     <string name="thisGame">This game</string>
     <string name="allGames">All games</string>
+    <string name="advancedSettings">Display and keyboard</string>
+    <string name="advancedSettingsSummary">Less frequently changed settings</string>
+    <string name="displaySettings">Display</string>
+    <string name="keyboardSettings">Keyboard</string>
     <string name="arrowKeysIn">Arrow keys in {0}</string>
     <string name="arrowKeysUnavailable">Arrow keys unavailable</string>
     <string name="arrowKeysUnavailableIn">Arrow keys unavailable in {0}</string>
     <string name="fullscreen">Full screen</string>
     <string name="fullscreenSummary">Hide notifications</string>
     <string name="stayAwake">Stay awake</string>
-    <string name="stayAwakeSummary">Make screen stay on while Puzzles is in the foreground</string>
+    <string name="stayAwakeSummary">Keep screen on while in the foreground</string>
     <string name="orientation">Screen orientation</string>
     <string name="orientationUnspecified">Unlocked</string>
     <string name="orientationPortrait">Portrait</string>
@@ -115,20 +119,20 @@ Version %s"</string>
     <string name="nightModeAuto">In low light</string>
     <string name="nightModeOff">Off</string>
     <string name="night_mode_hint">Night mode can be disabled in Settings</string>
-    <string name="limitDpi">Limit DPI for readability</string>
+    <string name="limitDpi">Thicker lines for readability</string>
     <string name="limitDpiModeOff">Never (1 pixel = 1 pixel)</string>
-    <string name="limitDpiModeAuto">DPI increases with puzzle size (recommended)</string>
+    <string name="limitDpiModeAuto">Thinner as puzzle size increases (recommended)</string>
     <string name="limitDpiModeOn">Always 160dpi (not recommended)</string>
-    <string name="undoRedoOnKeyboard">Undo/Redo on keyboard</string>
-    <string name="undoRedoOnKeyboardSummary">Allows auto repeat (otherwise shown in action bar)</string>
-    <string name="keyboardBorders">Borders on keyboard keys</string>
-    <string name="keyboardBordersSummary">Alternative keyboard appearance</string>
+    <string name="undoRedoOnKeyboard">Include Undo/Redo</string>
+    <string name="undoRedoOnKeyboardSummary">Allows auto repeat (otherwise in action bar)</string>
+    <string name="keyboardBorders">Show edges of keys</string>
+    <string name="keyboardBordersSummary">Otherwise only symbols are shown</string>
     <string name="bridgesShowH">"Show \"H\" in Bridges"</string>
     <string name="bridgesShowHSummary">"Undocumented \"solve from here\" action"</string>
     <string name="patternShowLengths">Show drag lengths</string>
     <string name="patternShowLengthsSummary">Show number of squares selected</string>
-    <string name="controlsReminders">Reminders of controls</string>
-    <string name="controlsRemindersSummary">Show reminders of scroll / long-press controls</string>
+    <string name="controlsReminders">Show reminders of controls</string>
+    <string name="controlsRemindersSummary">E.g. explain long-press when starting a game</string>
     <!-- Names default to their program names with the first letter uppercased -->
     <string name="name_blackbox">Black Box</string>
     <string name="name_bridges">Bridges</string>
