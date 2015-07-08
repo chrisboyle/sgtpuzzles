@@ -103,7 +103,8 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 	static final String STATE_PREFS_NAME = "state";
 	static final String ORIENTATION_KEY = "orientation";
 	private static final String ARROW_KEYS_KEY_SUFFIX = "ArrowKeys";
-	private static final String NIGHT_MODE_KEY = "nightMode";
+	static final String NIGHT_MODE_KEY = "nightMode";
+	static final String LIMIT_DPI_KEY = "limitDpi";
 	private static final String BRIDGES_SHOW_H_KEY = "bridgesShowH";
 	private static final String FULLSCREEN_KEY = "fullscreen";
 	private static final String STAY_AWAKE_KEY = "stayAwake";
@@ -308,6 +309,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 		sensorManager = (SensorManager)getSystemService(SENSOR_SERVICE);
 		lightSensor = sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT);
 		applyNightMode(false);
+		applyLimitDPI(false);
 		refreshStatusBarColours();
 		onNewIntent(getIntent());
 		getWindow().setBackgroundDrawable(null);
@@ -990,8 +992,8 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 						}
 					}
 				}
-				resizeEvent(gameView.wDip, gameView.hDip);
 				dismissProgress();
+				gameView.rebuildBitmap();
 				if( menu != null ) onPrepareOptionsMenu(menu);
 				save();
 			}
@@ -1568,12 +1570,24 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 			SharedPreferences.Editor ed = state.edit();
 			ed.putLong(SEEN_NIGHT_MODE_SETTING, changed);
 			prefsSaver.save(ed);
+		} else if (key.equals(LIMIT_DPI_KEY)) {
+			applyLimitDPI(true);
 		} else if (key.equals(ORIENTATION_KEY)) {
 			applyOrientation();
 		} else if (key.equals(UNDO_REDO_KBD_KEY)) {
 			applyUndoRedoKbd();
 		} else if (key.equals(BRIDGES_SHOW_H_KEY)) {
 			applyBridgesShowH();
+		}
+	}
+
+	private void applyLimitDPI(final boolean alreadyStarted) {
+		final String pref = prefs.getString(LIMIT_DPI_KEY, "auto");
+		gameView.limitDpi = "auto".equals(pref) ? GameView.LimitDPIMode.LIMIT_AUTO :
+				"off".equals(pref) ? GameView.LimitDPIMode.LIMIT_OFF :
+						GameView.LimitDPIMode.LIMIT_ON;
+		if (alreadyStarted) {
+			gameView.rebuildBitmap();
 		}
 	}
 

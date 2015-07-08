@@ -20,6 +20,16 @@
 		<item>@string/nightModeAuto</item>
 		<item>@string/nightModeOff</item>
 	</array>
+	<array name="limitDpiModes">
+		<item>off</item>
+		<item>auto</item>
+		<item>on</item>
+	</array>
+	<array name="limitDpiModeDescs">
+		<item>@string/limitDpiModeOff</item>
+		<item>@string/limitDpiModeAuto</item>
+		<item>@string/limitDpiModeOn</item>
+	</array>
 	<array name="chooserStyles">
 		<item>list</item>
 		<item>grid</item>

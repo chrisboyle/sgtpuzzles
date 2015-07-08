@@ -115,6 +115,10 @@ Version %s"</string>
     <string name="nightModeAuto">In low light</string>
     <string name="nightModeOff">Off</string>
     <string name="night_mode_hint">Night mode can be disabled in Settings</string>
+    <string name="limitDpi">Limit DPI for readability</string>
+    <string name="limitDpiModeOff">Never (1 pixel = 1 pixel)</string>
+    <string name="limitDpiModeAuto">DPI increases with puzzle size (recommended)</string>
+    <string name="limitDpiModeOn">Always 160dpi (not recommended)</string>
     <string name="undoRedoOnKeyboard">Undo/Redo on keyboard</string>
     <string name="undoRedoOnKeyboardSummary">Allows auto repeat (otherwise shown in action bar)</string>
     <string name="bridgesShowH">"Show \"H\" in Bridges"</string>

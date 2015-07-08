@@ -302,16 +302,23 @@ void JNICALL keyEvent(JNIEnv *env, jobject _obj, jint x, jint y, jint keyval)
 	midend_process_key(fe->me, x - fe->ox, y - fe->oy, keyval);
 }
 
-void JNICALL resizeEvent(JNIEnv *env, jobject _obj, jint width, jint height)
+jfloat JNICALL suggestDensity(JNIEnv *env, jobject _view, jint viewWidth, jint viewHeight)
 {
 	pthread_setspecific(envKey, env);
-	int x, y;
+	int defaultW = INT_MAX, defaultH = INT_MAX;
+	midend_reset_tilesize(fe->me);
+	midend_size(fe->me, &defaultW, &defaultH, FALSE);
+	return max(1.f, min(floor(((float)viewWidth) / defaultW), floor(((float)viewHeight) / defaultH)));
+}
+
+void JNICALL resizeEvent(JNIEnv *env, jobject _obj, jint viewWidth, jint viewHeight)
+{
+	pthread_setspecific(envKey, env);
 	if (!fe || !fe->me) return;
-	x = width;
-	y = height;
-	midend_size(fe->me, &x, &y, TRUE);
-	fe->ox = (width - x) / 2;
-	fe->oy = (height - y) / 2;
+	int w = viewWidth, h = viewHeight;
+	midend_size(fe->me, &w, &h, TRUE);
+	fe->ox = (viewWidth - w) / 2;
+	fe->oy = (viewHeight - h) / 2;
 	if (gameView) (*env)->CallVoidMethod(env, gameView, unClip, fe->ox, fe->oy);
 	midend_force_redraw(fe->me);
 }
@@ -888,6 +895,7 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
 	(*env)->RegisterNatives(env, cls, methods, sizeof(methods)/sizeof(JNINativeMethod));
 	JNINativeMethod vmethods[] = {
 		{ "getColours", "()[F", getColours },
+		{ "suggestDensity", "(II)F", suggestDensity },
 	};
 	(*env)->RegisterNatives(env, vcls, vmethods, sizeof(vmethods)/sizeof(JNINativeMethod));
 

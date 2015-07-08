@@ -27,6 +27,7 @@ import android.support.v4.widget.EdgeEffectCompat;
 import android.support.v4.widget.ScrollerCompat;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.view.GestureDetector;
 import android.view.HapticFeedbackConstants;
 import android.view.KeyEvent;
@@ -44,7 +45,9 @@ public class GameView extends View
 	private Paint checkerboardPaint;
 	private final Bitmap[] blitters;
 	int[] colours = new int[0];
-	private float density;
+	private float density = 1.f;
+	enum LimitDPIMode { LIMIT_OFF, LIMIT_AUTO, LIMIT_ON };
+	LimitDPIMode limitDpi = LimitDPIMode.LIMIT_AUTO;
 	int w, h, wDip, hDip;
 	private final int longPressTimeout = ViewConfiguration.getLongPressTimeout();
 	private String hardwareKeys;
@@ -74,7 +77,7 @@ public class GameView extends View
 	private GestureDetectorCompat gestureDetector;
 	private static final float MAX_ZOOM = 30.f;
 	private static final float ZOOM_OVERDRAW_PROPORTION = 0.25f;  // of a screen-full, in each direction, that you can see before checkerboard
-	private final Point TEXTURE_SIZE_BEFORE_ICS = new Point(2048, 2048);
+	private static final Point TEXTURE_SIZE_BEFORE_ICS = new Point(2048, 2048);
 	private int overdrawX, overdrawY;
 	private Matrix zoomMatrix = new Matrix(), zoomInProgressMatrix = new Matrix(),
 			inverseZoomMatrix = new Matrix(), tempDrawMatrix = new Matrix();
@@ -88,6 +91,7 @@ public class GameView extends View
 			(Build.VERSION.SDK_INT == Build.VERSION_CODES.JELLY_BEAN)  // bug only seen on 4.1.x
 					? Bitmap.Config.ARGB_4444 : Bitmap.Config.RGB_565;
 	native float[] getColours();
+	native float suggestDensity(int x, int y);
 
 	public GameView(Context context, AttributeSet attrs)
 	{
@@ -96,7 +100,6 @@ public class GameView extends View
 			this.parent = (GamePlay) context;
 			night = parent.isNight();
 		}
-		density = getResources().getDisplayMetrics().density;
 		bitmap = Bitmap.createBitmap(100, 100, BITMAP_CONFIG);  // for safety
 		canvas = new Canvas(bitmap);
 		paint = new Paint();
@@ -364,7 +367,7 @@ public class GameView extends View
 	}
 
 	private void redrawForZoomChange() {
-		if (getXScale(zoomMatrix) < 1.01f && getXScale(zoomInProgressMatrix) > 1.01f) {
+		if (getXScale(zoomMatrix) < density * 1.01f && getXScale(zoomInProgressMatrix) > density * 1.01f) {
 			parent.zoomedIn();
 		}
 		zoomMatrixUpdated(false);  // constrains zoomInProgressMatrix
@@ -574,7 +577,35 @@ public class GameView extends View
 		if (lastDrag != null) revertDragInProgress(lastDrag);
 		if( w <= 0 ) w = 1;
 		if( h <= 0 ) h = 1;
-		wDip = Math.round((float)w/density); hDip = Math.round((float)h/density);
+		this.w = w; this.h = h;
+		Log.d("GameView", "onSizeChanged: " + w + ", " + h);
+		rebuildBitmap();
+		if (isInEditMode()) {
+			// Draw a little placeholder to aid UI editing
+			final Drawable d = getResources().getDrawable(R.drawable.net);
+			if (d == null) throw new RuntimeException("Missing R.drawable.net");
+			int s = w<h ? w : h;
+			int mx = (w-s)/2, my = (h-s)/2;
+			d.setBounds(new Rect(mx,my,mx+s,my+s));
+			d.draw(canvas);
+		}
+	}
+
+	protected void rebuildBitmap() {
+		switch (limitDpi) {
+			case LIMIT_OFF:
+				density = 1.f;
+				break;
+			case LIMIT_AUTO:
+				density = Math.min(suggestDensity(w, h), getResources().getDisplayMetrics().density);
+				break;
+			case LIMIT_ON:
+				density = getResources().getDisplayMetrics().density;
+				break;
+		}
+		Log.d("GameView", "density: " + density);
+		wDip = Math.round((float)w/density);
+		hDip = Math.round((float)h/density);
 		if( w <= 0 ) wDip = 1;
 		if( h <= 0 ) hDip = 1;
 		if (bitmap != null) bitmap.recycle();
@@ -591,18 +622,8 @@ public class GameView extends View
 		bitmap = Bitmap.createBitmap(w + 2 * overdrawX, h + 2 * overdrawY, BITMAP_CONFIG);
 		clear();
 		canvas = new Canvas(bitmap);
-		this.w = w; this.h = h;
+		resetZoomForClear();
 		redrawForZoomChange();
-		if (parent != null) parent.gameViewResized();
-		if (isInEditMode()) {
-			// Draw a little placeholder to aid UI editing
-			final Drawable d = getResources().getDrawable(R.drawable.net);
-			if (d == null) throw new RuntimeException("Missing R.drawable.net");
-			int s = w<h ? w : h;
-			int mx = (w-s)/2, my = (h-s)/2;
-			d.setBounds(new Rect(mx,my,mx+s,my+s));
-			d.draw(canvas);
-		}
 	}
 
 	@TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
