@@ -304,6 +304,7 @@ void JNICALL keyEvent(JNIEnv *env, jobject _obj, jint x, jint y, jint keyval)
 
 jfloat JNICALL suggestDensity(JNIEnv *env, jobject _view, jint viewWidth, jint viewHeight)
 {
+	if (!fe || !fe->me) return 1.f;
 	pthread_setspecific(envKey, env);
 	int defaultW = INT_MAX, defaultH = INT_MAX;
 	midend_reset_tilesize(fe->me);

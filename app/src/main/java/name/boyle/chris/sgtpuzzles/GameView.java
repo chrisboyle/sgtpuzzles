@@ -46,7 +46,7 @@ public class GameView extends View
 	private final Bitmap[] blitters;
 	int[] colours = new int[0];
 	private float density = 1.f;
-	enum LimitDPIMode { LIMIT_OFF, LIMIT_AUTO, LIMIT_ON };
+	enum LimitDPIMode { LIMIT_OFF, LIMIT_AUTO, LIMIT_ON }
 	LimitDPIMode limitDpi = LimitDPIMode.LIMIT_AUTO;
 	int w, h, wDip, hDip;
 	private final int longPressTimeout = ViewConfiguration.getLongPressTimeout();
@@ -572,12 +572,10 @@ public class GameView extends View
 	}
 
 	@Override
-	protected void onSizeChanged(int w, int h, int oldW, int oldH)
+	protected void onSizeChanged(int viewW, int viewH, int oldW, int oldH)
 	{
 		if (lastDrag != null) revertDragInProgress(lastDrag);
-		if( w <= 0 ) w = 1;
-		if( h <= 0 ) h = 1;
-		this.w = w; this.h = h;
+		w = Math.max(1, viewW); h = Math.max(1, viewH);
 		Log.d("GameView", "onSizeChanged: " + w + ", " + h);
 		rebuildBitmap();
 		if (isInEditMode()) {
@@ -604,10 +602,8 @@ public class GameView extends View
 				break;
 		}
 		Log.d("GameView", "density: " + density);
-		wDip = Math.round((float)w/density);
-		hDip = Math.round((float)h/density);
-		if( w <= 0 ) wDip = 1;
-		if( h <= 0 ) hDip = 1;
+		wDip = Math.max(1, Math.round((float)w/density));
+		hDip = Math.max(1, Math.round((float)h/density));
 		if (bitmap != null) bitmap.recycle();
 		overdrawX = Math.round(Math.round(ZOOM_OVERDRAW_PROPORTION * wDip) * density);
 		overdrawY = Math.round(Math.round(ZOOM_OVERDRAW_PROPORTION * hDip) * density);
@@ -619,7 +615,7 @@ public class GameView extends View
 		// https://github.com/chrisboyle/sgtpuzzles/issues/199
 		overdrawX = Math.min(overdrawX, (maxTextureSize.x - w) / 2);
 		overdrawY = Math.min(overdrawY, (maxTextureSize.y - h) / 2);
-		bitmap = Bitmap.createBitmap(w + 2 * overdrawX, h + 2 * overdrawY, BITMAP_CONFIG);
+		bitmap = Bitmap.createBitmap(Math.max(1, w + 2 * overdrawX), Math.max(1, h + 2 * overdrawY), BITMAP_CONFIG);
 		clear();
 		canvas = new Canvas(bitmap);
 		resetZoomForClear();
