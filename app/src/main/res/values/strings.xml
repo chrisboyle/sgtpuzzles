@@ -77,6 +77,7 @@ Version %s"</string>
     <string name="Restart">Restart</string>
     <string name="Game_ID_">Game ID…</string>
     <string name="Seed_">Seed…</string>
+    <string name="seedWarning">The current game has no seed because it was generated from a Game ID. The value above is an empty seed.</string>
     <string name="Load_">Load…</string>
     <string name="Save_">Save…</string>
     <string name="Share_">Share…</string>

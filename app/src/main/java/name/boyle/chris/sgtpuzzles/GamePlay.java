@@ -1459,6 +1459,11 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 			tr.addView(et);
 			tr.setGravity(Gravity.CENTER_VERTICAL);
 			dialogLayout.addView(tr);
+			if (whichEvent == CFG_SEED && value.indexOf('#') == value.length() - 1) {
+				final AppCompatTextView seedWarning = new AppCompatTextView(context);
+				seedWarning.setText(R.string.seedWarning);
+				dialogLayout.addView(seedWarning);
+			}
 			break; }
 		case C_BOOLEAN: {
 			dialogIds.add(name);
