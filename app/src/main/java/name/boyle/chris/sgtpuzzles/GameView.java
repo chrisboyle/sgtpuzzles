@@ -54,7 +54,7 @@ public class GameView extends View
 	boolean night = false;
 
 	private enum TouchState { IDLE, WAITING_LONG_PRESS, DRAGGING, PINCH }
-	private PointF lastDrag = null;
+	private PointF lastDrag = null, lastTouch = new PointF(0.f, 0.f);
 	private TouchState touchState = TouchState.IDLE;
 	private int button;
 	private int backgroundColour;
@@ -263,25 +263,25 @@ public class GameView extends View
 		final PointF bottomRight = viewToGame(new PointF(w, h));
 		if (topLeft.x < 0) {
 			zoomInProgressMatrix.preTranslate(topLeft.x * density, 0);
-			if (userAction) hitEdge(3, -topLeft.x);
+			if (userAction) hitEdge(3, -topLeft.x / wDip, 1 - (lastTouch.y / h));
 		} else if (exceedsTouchSlop(topLeft.x)) {
 			edges[3].onRelease();
 		}
 		if (bottomRight.x > wDip) {
 			zoomInProgressMatrix.preTranslate((bottomRight.x - wDip) * density, 0);
-			if (userAction) hitEdge(1, bottomRight.x - wDip);
+			if (userAction) hitEdge(1, (bottomRight.x - wDip) / wDip, lastTouch.y / h);
 		} else if (exceedsTouchSlop(wDip - bottomRight.x)) {
 			edges[1].onRelease();
 		}
 		if (topLeft.y < 0) {
 			zoomInProgressMatrix.preTranslate(0, topLeft.y * density);
-			if (userAction) hitEdge(0, -topLeft.y);
+			if (userAction) hitEdge(0, -topLeft.y / hDip, lastTouch.x / w);
 		} else if (exceedsTouchSlop(topLeft.y)) {
 			edges[0].onRelease();
 		}
 		if (bottomRight.y > hDip) {
 			zoomInProgressMatrix.preTranslate(0, (bottomRight.y - hDip) * density);
-			if (userAction) hitEdge(2, bottomRight.y - hDip);
+			if (userAction) hitEdge(2, (bottomRight.y - hDip) / hDip, 1 - (lastTouch.x / w));
 		} else if (exceedsTouchSlop(hDip - bottomRight.y)) {
 			edges[2].onRelease();
 		}
@@ -289,12 +289,12 @@ public class GameView extends View
 		invertZoomMatrix();  // now with our changes
 	}
 
-	private void hitEdge(int edge, float delta) {
+	private void hitEdge(int edge, float delta, float displacement) {
 		if (!mScroller.isFinished()) {
 			edges[edge].onAbsorb(Math.round(mScroller.getCurrVelocity()));
 			mScroller.abortAnimation();
 		} else {
-			edges[edge].onPull(delta);
+			edges[edge].onPull(Math.min(1.f, delta * 1.5f), displacement);
 		}
 	}
 
@@ -419,6 +419,7 @@ public class GameView extends View
 		if (parent.currentBackend == null) return false;
 		boolean sdRet = hasPinchZoom && checkPinchZoom(event);
 		boolean gdRet = gestureDetector.onTouchEvent(event);
+		lastTouch = pointFromEvent(event);
 		if (event.getAction() == MotionEvent.ACTION_UP) {
 			parent.handler.removeCallbacks(sendLongPress);
 			if (touchState == TouchState.PINCH && mScroller.isFinished()) {
@@ -602,8 +603,8 @@ public class GameView extends View
 				break;
 		}
 		Log.d("GameView", "density: " + density);
-		wDip = Math.max(1, Math.round((float)w/density));
-		hDip = Math.max(1, Math.round((float)h/density));
+		wDip = Math.max(1, Math.round((float) w / density));
+		hDip = Math.max(1, Math.round((float) h / density));
 		if (bitmap != null) bitmap.recycle();
 		overdrawX = Math.round(Math.round(ZOOM_OVERDRAW_PROPORTION * wDip) * density);
 		overdrawY = Math.round(Math.round(ZOOM_OVERDRAW_PROPORTION * hDip) * density);
