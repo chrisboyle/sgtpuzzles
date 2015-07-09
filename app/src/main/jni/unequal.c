@@ -1286,7 +1286,7 @@ static void android_request_keys(const game_params *params)
 {
     int order = params->order;
     char off = (order > 9) ? '0' : '1';
-    char keys[order + 3];
+    char keys[order + 4];
     int i;
     for(i = 0; i < order; i++) {
 	if (i==10) off = 'a'-10;
@@ -1294,7 +1294,8 @@ static void android_request_keys(const game_params *params)
     }
     keys[order] = '\b';
     keys[order+1] = 'M';
-    keys[order+2] = '\0';
+    keys[order+2] = 'H';
+    keys[order+3] = '\0';
     android_keys(keys, ANDROID_ARROWS_LEFT);  // right == left
 }
 #endif
