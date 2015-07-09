@@ -30,7 +30,9 @@ public class SendFeedbackActivity extends Activity
 			uri += "&body=" + Uri.encode("Reason: " + reason + "\n\n");
 		}
 		i.setData(Uri.parse(uri));
-		i.addFlags(Intent.FLAG_ACTIVITY_NEW_DOCUMENT);
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+			i.addFlags(Intent.FLAG_ACTIVITY_NEW_DOCUMENT);
+		}
 		try {
 			startActivity(i);
 			finish();

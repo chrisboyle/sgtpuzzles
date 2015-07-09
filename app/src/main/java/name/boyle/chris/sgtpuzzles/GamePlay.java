@@ -286,8 +286,10 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 		applyOrientation();
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.main);
-		getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-		getSupportActionBar().setDisplayUseLogoEnabled(false);
+		if (getSupportActionBar() != null) {
+			getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+			getSupportActionBar().setDisplayUseLogoEnabled(false);
+		}
 		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
 			getSupportActionBar().addOnMenuVisibilityListener(new ActionBar.OnMenuVisibilityListener() {
 				@Override
@@ -395,7 +397,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 			Uri u = intent.getData();
 			if (s != null && s.length() > 0) {
 				Log.d(TAG, "starting game from Intent, " + s.length() + " bytes");
-				startGame(GameLaunch.ofSavedGame(s, false, true));
+				startGame(GameLaunch.ofSavedGame(s));
 				return;
 			} else if (u != null) {
 				Log.d(TAG, "URI is: \"" + u + "\"");
@@ -447,11 +449,11 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 	@TargetApi(Build.VERSION_CODES.GINGERBREAD)
 	private boolean handleNFC(Intent intent) {
 		if (intent == null || !NfcAdapter.ACTION_NDEF_DISCOVERED.equals(intent.getAction())) return false;
-		Parcelable[] rawMsgs = intent.getParcelableArrayExtra(NfcAdapter.EXTRA_NDEF_MESSAGES);
-		if (rawMsgs.length == 0) return false;
-		NdefMessage msg = (NdefMessage) rawMsgs[0];
+		Parcelable[] rawMessages = intent.getParcelableArrayExtra(NfcAdapter.EXTRA_NDEF_MESSAGES);
+		if (rawMessages.length == 0) return false;
+		NdefMessage msg = (NdefMessage) rawMessages[0];
 		if (msg.getRecords().length == 0) return false;
-		startGame(GameLaunch.ofSavedGame(new String(msg.getRecords()[0].getPayload()), false, true));
+		startGame(GameLaunch.ofSavedGame(new String(msg.getRecords()[0].getPayload())));
 		return true;
 	}
 
@@ -908,7 +910,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 						throw new IOException("Internal error generating game: result is blank");
 					}
 					startGameConfirmed(true, launch);
-				} else if (!launch.isOfLocalState() && launch.getSaved() != null) {
+				} else if (launch.isOfNonLocalState() && launch.getSaved() != null) {
 					warnOfStateLoss(launch.getSaved(), new Runnable() {
 						@Override
 						public void run() {
@@ -974,7 +976,9 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 				gameView.setDragModeFor(currentBackend);
 				final String title = getString(getResources().getIdentifier("name_"+currentBackend, "string", getPackageName()));
 				setTitle(title);
-				getSupportActionBar().setTitle(title);
+				if (getSupportActionBar() != null) {
+					getSupportActionBar().setTitle(title);
+				}
 				final int flags = getUIVisibility();
 				changedState((flags & UIVisibility.UNDO.getValue()) > 0, (flags & UIVisibility.REDO.getValue()) > 0);
 				customVisible = (flags & UIVisibility.CUSTOM.getValue()) > 0;
@@ -1263,7 +1267,9 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 			updateUndoRedoEnabled();
 		}
 		// emulator at 598 dip looks bad with title+undo; GT-N7100 at 640dip looks good
-		getSupportActionBar().setDisplayShowTitleEnabled(screenWidthDIP > 620 || undoRedoKbd);
+		if (getSupportActionBar() != null) {
+			getSupportActionBar().setDisplayShowTitleEnabled(screenWidthDIP > 620 || undoRedoKbd);
+		}
 	}
 
 	private void messageBox(final String title, final String msg, final boolean returnToChooser)
@@ -1342,7 +1348,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 			}
 		});
 		final String style = prefs.getString(GameChooser.CHOOSER_STYLE_KEY, "list");
-		final boolean useGrid = (style != null) && style.equals("grid");
+		final boolean useGrid = style.equals("grid");
 		final Button chooserButton = (Button) d.findViewById(R.id.other);
 		chooserButton.setCompoundDrawablesWithIntrinsicBounds(0, useGrid
 				? R.drawable.ic_action_view_as_grid
@@ -1590,8 +1596,10 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 	}
 
 	private void applyKeyboardBorders() {
+		if (keyboard != null) {
+			mainLayout.removeView(keyboard);
+		}
 		keyboard = null;
-		mainLayout.removeView(keyboard);
 		setKeyboardVisibility(startingBackend, getResources().getConfiguration());
 	}
 

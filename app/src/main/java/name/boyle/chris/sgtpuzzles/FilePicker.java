@@ -161,7 +161,7 @@ class FilePicker extends Dialog
 			save(new File(path,et.getText().toString()), false);
 			return true;
 		}});
-		final Button saveButton = (Button)findViewById(R.id.savebutton);
+		final Button saveButton = (Button)findViewById(R.id.saveButton);
 		saveButton.setOnClickListener(new View.OnClickListener(){public void onClick(View v){
 			save(new File(path,et.getText().toString()), false);
 		}});

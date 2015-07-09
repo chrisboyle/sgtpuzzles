@@ -20,9 +20,9 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.preference.PreferenceManager;
+import android.support.v4.content.ContextCompat;
 import android.support.v4.view.MenuItemCompat;
 import android.support.v7.app.ActionBar;
-import android.support.v7.app.ActionBarActivity;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.GridLayout;
 import android.text.Spannable;
@@ -107,7 +107,7 @@ public class GameChooser extends AppCompatActivity implements SharedPreferences.
 		otherHeader = (TextView) findViewById(R.id.games_others);
 		buildViews();
 		rethinkActionBarCapacity();
-		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT && getSupportActionBar() != null) {
 			getSupportActionBar().addOnMenuVisibilityListener(new ActionBar.OnMenuVisibilityListener() {
 				@Override
 				public void onMenuVisibilityChanged(boolean visible) {
@@ -226,10 +226,10 @@ public class GameChooser extends AppCompatActivity implements SharedPreferences.
 
 	private StateListDrawable mkStarryIcon(String gameId) {
 		final StateListDrawable stateListDrawable = new StateListDrawable();
-		final Drawable icon = getResources().getDrawable(
+		final Drawable icon = ContextCompat.getDrawable(this,
 				getResources().getIdentifier(gameId, "drawable", getPackageName()));
 		final LayerDrawable starredIcon = new LayerDrawable(new Drawable[]{
-				icon, getResources().getDrawable(R.drawable.ic_star) });
+				icon, ContextCompat.getDrawable(this, R.drawable.ic_star) });
 		final float density = getResources().getDisplayMetrics().density;
 		starredIcon.setLayerInset(1, (int)(42*density), (int)(42*density), 0, 0);
 		stateListDrawable.addState(new int[]{android.R.attr.state_checked}, starredIcon);
@@ -279,21 +279,21 @@ public class GameChooser extends AppCompatActivity implements SharedPreferences.
 			starredHeader.setVisibility(anyStarred ? View.VISIBLE : View.GONE);
 			int row = 0;
 			if (anyStarred) {
-				setGridCells(starredHeader, 0, row++, mColumns, 1);
+				setGridCells(starredHeader, 0, row++, mColumns);
 				row = setViewsGridCells(row, starred, true);
 			}
 			otherHeader.setText(anyStarred ? R.string.games_others : R.string.games_others_none_starred);
-			setGridCells(otherHeader, 0, row++, mColumns, 1);
+			setGridCells(otherHeader, 0, row++, mColumns);
 			setViewsGridCells(row, others, false);
 		}
 	}
 
 	@SuppressLint("InlinedApi")
-	private void setGridCells(View v, int x, int y, int w, int h) {
+	private void setGridCells(View v, int x, int y, int w) {
 		final GridLayout.LayoutParams layoutParams = (GridLayout.LayoutParams) v.getLayoutParams();
 		layoutParams.width = mColWidthPx * w;
 		layoutParams.columnSpec = GridLayout.spec(x, w, GridLayout.START);
-		layoutParams.rowSpec = GridLayout.spec(y, h, GridLayout.START);
+		layoutParams.rowSpec = GridLayout.spec(y, 1, GridLayout.START);
 		layoutParams.setGravity((useGrid && w==1) ? Gravity.CENTER_HORIZONTAL : Gravity.START);
 		v.setLayoutParams(layoutParams);
 	}
@@ -308,7 +308,7 @@ public class GameChooser extends AppCompatActivity implements SharedPreferences.
 				col = 0;
 				row++;
 			}
-			setGridCells(v, col++, row, 1, 1);
+			setGridCells(v, col++, row, 1);
 		}
 		row++;
 		return row;
@@ -366,7 +366,7 @@ public class GameChooser extends AppCompatActivity implements SharedPreferences.
 				break;
 			case R.id.load:
 				if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-					// GET_CONTENT would include dropbox, but it returns file:// URLs that need SD permission :-(
+					// GET_CONTENT would include Dropbox, but it returns file:// URLs that need SD permission :-(
 					Intent picker = new Intent(Intent.ACTION_OPEN_DOCUMENT);
 					picker.addCategory(Intent.CATEGORY_OPENABLE);
 					picker.setType("*/*");

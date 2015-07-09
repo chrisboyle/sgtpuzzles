@@ -14,6 +14,7 @@ import android.graphics.drawable.Drawable;
 import android.inputmethodservice.Keyboard;
 import android.inputmethodservice.KeyboardView;
 import android.support.annotation.NonNull;
+import android.support.v4.content.ContextCompat;
 import android.util.AttributeSet;
 import android.util.Log;
 
@@ -265,7 +266,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 					setUndoRedoEnabled(ExtraKey.REDO, redoEnabled);
 					break;
 				case '\b':
-					key.icon = context.getResources().getDrawable(R.drawable.sym_key_backspace);
+					key.icon = ContextCompat.getDrawable(context, R.drawable.sym_key_backspace);
 					key.repeatable = true;
 					key.enabled = true;
 					break;
@@ -337,28 +338,28 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 				case GameView.CURSOR_UP:
 					key.x = arrowsRightEdge  - 2*keyPlusPad;
 					key.y = arrowsBottomEdge - arrowRows*keyPlusPad;
-					key.icon = context.getResources().getDrawable(
+					key.icon = ContextCompat.getDrawable(context,
 							R.drawable.sym_key_north);
 					key.edgeFlags = maybeTop;
 					break;
 				case GameView.CURSOR_DOWN:
 					key.x = arrowsRightEdge  - 2*keyPlusPad;
 					key.y = arrowsBottomEdge -   keyPlusPad;
-					key.icon = context.getResources().getDrawable(
+					key.icon = ContextCompat.getDrawable(context,
 							R.drawable.sym_key_south);
 					key.edgeFlags = EDGE_BOTTOM;
 					break;
 				case GameView.CURSOR_LEFT:
 					key.x = arrowsRightEdge  - 3*keyPlusPad;
 					key.y = arrowsBottomEdge - leftRightRow*keyPlusPad;
-					key.icon = context.getResources().getDrawable(
+					key.icon = ContextCompat.getDrawable(context,
 							R.drawable.sym_key_west);
 					key.edgeFlags = bottomIf2Row | maybeLeft;
 					break;
 				case GameView.CURSOR_RIGHT:
 					key.x = arrowsRightEdge  -   keyPlusPad;
 					key.y = arrowsBottomEdge - leftRightRow*keyPlusPad;
-					key.icon = context.getResources().getDrawable(
+					key.icon = ContextCompat.getDrawable(context,
 							R.drawable.sym_key_east);
 					key.edgeFlags = bottomIf2Row | EDGE_RIGHT;
 					break;
@@ -377,28 +378,28 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 				case GameView.MOD_NUM_KEYPAD | '7':
 					key.x = arrowsRightEdge  - 3*keyPlusPad;
 					key.y = arrowsBottomEdge - 3*keyPlusPad;
-					key.icon = context.getResources().getDrawable(
+					key.icon = ContextCompat.getDrawable(context,
 							R.drawable.sym_key_north_west);
 					key.edgeFlags = maybeTop | maybeLeft;
 					break;
 				case GameView.MOD_NUM_KEYPAD | '1':
 					key.x = arrowsRightEdge  - 3*keyPlusPad;
 					key.y = arrowsBottomEdge -   keyPlusPad;
-					key.icon = context.getResources().getDrawable(
+					key.icon = ContextCompat.getDrawable(context,
 							R.drawable.sym_key_south_west);
 					key.edgeFlags = EDGE_BOTTOM | maybeLeft;
 					break;
 				case GameView.MOD_NUM_KEYPAD | '9':
 					key.x = arrowsRightEdge  -   keyPlusPad;
 					key.y = arrowsBottomEdge - 3*keyPlusPad;
-					key.icon = context.getResources().getDrawable(
+					key.icon = ContextCompat.getDrawable(context,
 							R.drawable.sym_key_north_east);
 					key.edgeFlags = maybeTop | EDGE_RIGHT;
 					break;
 				case GameView.MOD_NUM_KEYPAD | '3':
 					key.x = arrowsRightEdge  -   keyPlusPad;
 					key.y = arrowsBottomEdge -   keyPlusPad;
-					key.icon = context.getResources().getDrawable(
+					key.icon = ContextCompat.getDrawable(context,
 							R.drawable.sym_key_south_east);
 					key.edgeFlags = EDGE_BOTTOM | EDGE_RIGHT;
 					break;
@@ -416,7 +417,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 			final int specific = resources.getIdentifier(
 					(sharedIcon != null) ? sharedIcon : specificName,
 					"drawable", context.getPackageName());
-			return resources.getDrawable((specific == 0) ? orig : specific);
+			return ContextCompat.getDrawable(context, (specific == 0) ? orig : specific);
 		}
 
 		private void trySpecificCharacterIcon(final Resources resources, final Key key, final char c) {
@@ -437,7 +438,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 				final boolean drawUppercaseForLowercase = (backendForIcons != null && backendForIcons.equals("unequal"));
 				key.label = String.valueOf(drawUppercaseForLowercase ? Character.toUpperCase(c) : c);
 			} else {
-				key.icon = resources.getDrawable(icon);
+				key.icon = ContextCompat.getDrawable(context, icon);
 			}
 		}
 
@@ -449,7 +450,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 			int i = redo ? redoKey : undoKey;
 			if (i < 0) return;
 			DKey k = (DKey)mKeys.get(i);
-			k.icon = context.getResources().getDrawable(redo ?
+			k.icon = ContextCompat.getDrawable(context, redo ?
 					enabled ? R.drawable.ic_action_redo
 							: R.drawable.ic_action_redo_disabled :
 					enabled ? R.drawable.ic_action_undo

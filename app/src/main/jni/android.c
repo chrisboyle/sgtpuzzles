@@ -178,11 +178,11 @@ void android_draw_thick_poly(void *handle, float thickness, int *coords, int npo
 {
 	CHECK_DR_HANDLE
 	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
-	jintArray coordsj = (*env)->NewIntArray(env, npoints*2);
-	if (coordsj == NULL) return;
-	(*env)->SetIntArrayRegion(env, coordsj, 0, npoints*2, coords);
-	(*env)->CallVoidMethod(env, gameView, drawPoly, thickness, coordsj, fe->ox, fe->oy, outlinecolour, fillcolour);
-	(*env)->DeleteLocalRef(env, coordsj);  // prevent ref table exhaustion on e.g. large Mines grids...
+	jintArray coordsJava = (*env)->NewIntArray(env, npoints*2);
+	if (coordsJava == NULL) return;
+	(*env)->SetIntArrayRegion(env, coordsJava, 0, npoints*2, coords);
+	(*env)->CallVoidMethod(env, gameView, drawPoly, thickness, coordsJava, fe->ox, fe->oy, outlinecolour, fillcolour);
+	(*env)->DeleteLocalRef(env, coordsJava);  // prevent ref table exhaustion on e.g. large Mines grids...
 }
 
 void android_draw_poly(void *handle, int *coords, int npoints,
@@ -519,11 +519,11 @@ void JNICALL configCancel(JNIEnv *env, jobject _obj)
 void android_serialise_write(void *ctx, void *buf, int len)
 {
 	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
-	jbyteArray bytesj = (*env)->NewByteArray(env, len);
-	if (bytesj == NULL) return;
-	(*env)->SetByteArrayRegion(env, bytesj, 0, len, buf);
-	(*env)->CallVoidMethod(env, obj, serialiseWrite, bytesj);
-	(*env)->DeleteLocalRef(env, bytesj);
+	jbyteArray bytesJava = (*env)->NewByteArray(env, len);
+	if (bytesJava == NULL) return;
+	(*env)->SetByteArrayRegion(env, bytesJava, 0, len, buf);
+	(*env)->CallVoidMethod(env, obj, serialiseWrite, bytesJava);
+	(*env)->DeleteLocalRef(env, bytesJava);
 }
 
 void JNICALL serialise(JNIEnv *env, jobject _obj)
@@ -894,11 +894,11 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
 		{ "getUIVisibility", "()I", getUIVisibility },
 	};
 	(*env)->RegisterNatives(env, cls, methods, sizeof(methods)/sizeof(JNINativeMethod));
-	JNINativeMethod vmethods[] = {
+	JNINativeMethod vMethods[] = {
 		{ "getColours", "()[F", getColours },
 		{ "suggestDensity", "(II)F", suggestDensity },
 	};
-	(*env)->RegisterNatives(env, vcls, vmethods, sizeof(vmethods)/sizeof(JNINativeMethod));
+	(*env)->RegisterNatives(env, vcls, vMethods, sizeof(vMethods)/sizeof(JNINativeMethod));
 
 	return JNI_VERSION_1_2;
 }

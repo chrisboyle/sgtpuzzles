@@ -20,6 +20,7 @@ import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.support.annotation.NonNull;
+import android.support.v4.content.ContextCompat;
 import android.support.v4.view.GestureDetectorCompat;
 import android.support.v4.view.ScaleGestureDetectorCompat;
 import android.support.v4.view.ViewCompat;
@@ -42,9 +43,9 @@ public class GameView extends View
 	private Bitmap bitmap;
 	private Canvas canvas;
 	private final Paint paint;
-	private Paint checkerboardPaint;
+	private final Paint checkerboardPaint;
 	private final Bitmap[] blitters;
-	int[] colours = new int[0];
+	private int[] colours = new int[0];
 	private float density = 1.f;
 	enum LimitDPIMode { LIMIT_OFF, LIMIT_AUTO, LIMIT_ON }
 	LimitDPIMode limitDpi = LimitDPIMode.LIMIT_AUTO;
@@ -61,14 +62,14 @@ public class GameView extends View
 	private boolean waitingSpace = false;
 	private PointF touchStart;
 	private final double maxDistSq;
-	static final int
+	private static final int
 			LEFT_BUTTON = 0x0200, MIDDLE_BUTTON = 0x201, RIGHT_BUTTON = 0x202,
 			LEFT_DRAG = 0x203, //MIDDLE_DRAG = 0x204, RIGHT_DRAG = 0x205,
 			LEFT_RELEASE = 0x206, MOD_CTRL = 0x1000,
 			MOD_SHIFT = 0x2000, ALIGN_V_CENTRE = 0x100,
-			ALIGN_H_CENTRE = 0x001, ALIGN_H_RIGHT = 0x002, TEXT_MONO = 0x10;
-	private static final int DRAG = LEFT_DRAG - LEFT_BUTTON;  // not bit fields, but there's a pattern
-    private static final int RELEASE = LEFT_RELEASE - LEFT_BUTTON;
+			ALIGN_H_CENTRE = 0x001, ALIGN_H_RIGHT = 0x002, TEXT_MONO = 0x10,
+			DRAG = LEFT_DRAG - LEFT_BUTTON,  // not bit fields, but there's a pattern
+			RELEASE = LEFT_RELEASE - LEFT_BUTTON;
 	static final int CURSOR_UP = 0x209, CURSOR_DOWN = 0x20a,
 			CURSOR_LEFT = 0x20b, CURSOR_RIGHT = 0x20c, MOD_NUM_KEYPAD = 0x4000;
 	int keysHandled = 0;  // debug
@@ -79,12 +80,14 @@ public class GameView extends View
 	private static final float ZOOM_OVERDRAW_PROPORTION = 0.25f;  // of a screen-full, in each direction, that you can see before checkerboard
 	private static final Point TEXTURE_SIZE_BEFORE_ICS = new Point(2048, 2048);
 	private int overdrawX, overdrawY;
-	private Matrix zoomMatrix = new Matrix(), zoomInProgressMatrix = new Matrix(),
-			inverseZoomMatrix = new Matrix(), tempDrawMatrix = new Matrix();
+	private final Matrix zoomMatrix = new Matrix();
+	private final Matrix zoomInProgressMatrix = new Matrix();
+	private final Matrix inverseZoomMatrix = new Matrix();
+	private final Matrix tempDrawMatrix = new Matrix();
 	enum DragMode { UNMODIFIED, REVERT_OFF_SCREEN, REVERT_TO_START, PREVENT }
 	private DragMode dragMode = DragMode.UNMODIFIED;
 	private ScrollerCompat mScroller;
-	private EdgeEffectCompat[] edges = new EdgeEffectCompat[4];
+	private final EdgeEffectCompat[] edges = new EdgeEffectCompat[4];
 	// ARGB_8888 is viewable in Android Studio debugger but very memory-hungry
 	// It's also necessary to work around a 4.1 bug https://github.com/chrisboyle/sgtpuzzles/issues/63
 	private static final Bitmap.Config BITMAP_CONFIG =
@@ -107,7 +110,7 @@ public class GameView extends View
 		paint.setStrokeCap(Paint.Cap.SQUARE);
 		paint.setStrokeWidth(1.f);  // will be scaled with everything else as long as it's non-zero
 		checkerboardPaint = new Paint();
-		final Drawable checkerboardDrawable = getResources().getDrawable(R.drawable.checkerboard);
+		final Drawable checkerboardDrawable = ContextCompat.getDrawable(getContext(), R.drawable.checkerboard);
 		if (checkerboardDrawable == null) throw new RuntimeException("Missing R.drawable.checkerboard");
 		final Bitmap checkerboard = ((BitmapDrawable) checkerboardDrawable).getBitmap();
 		checkerboardPaint.setShader(new BitmapShader(checkerboard, Shader.TileMode.REPEAT, Shader.TileMode.REPEAT));
@@ -189,7 +192,7 @@ public class GameView extends View
 		return viewToGame(new PointF(w/2, h/2));
 	}
 
-	private Runnable animateScroll = new Runnable() {
+	private final Runnable animateScroll = new Runnable() {
 		@Override
 		public void run() {
 			mScroller.computeScrollOffset();
@@ -581,7 +584,7 @@ public class GameView extends View
 		rebuildBitmap();
 		if (isInEditMode()) {
 			// Draw a little placeholder to aid UI editing
-			final Drawable d = getResources().getDrawable(R.drawable.net);
+			final Drawable d = ContextCompat.getDrawable(getContext(), R.drawable.net);
 			if (d == null) throw new RuntimeException("Missing R.drawable.net");
 			int s = w<h ? w : h;
 			int mx = (w-s)/2, my = (h-s)/2;
@@ -590,7 +593,7 @@ public class GameView extends View
 		}
 	}
 
-	protected void rebuildBitmap() {
+	void rebuildBitmap() {
 		switch (limitDpi) {
 			case LIMIT_OFF:
 				density = 1.f;
@@ -810,7 +813,7 @@ public class GameView extends View
 		blitters[i] = null;
 	}
 
-	PointF blitterPosition(int x, int y, boolean save) {
+	private PointF blitterPosition(int x, int y, boolean save) {
 		float[] f = { x, y };
 		zoomMatrix.mapPoints(f);
 		f[0] = (float) Math.floor(f[0]);

@@ -13,4 +13,5 @@
 	android:layout_alignParentRight="true"
 	android:keyBackground="@drawable/key_background_borderless"
 	android:background="@color/keyboard_background"
-	tools:showIn="@layout/main"/>
+	tools:showIn="@layout/main"
+	tools:ignore="Overdraw"/>

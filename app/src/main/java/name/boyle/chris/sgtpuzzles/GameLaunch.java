@@ -37,8 +37,8 @@ public class GameLaunch {
 		return "GameLaunch(" + whichBackend + ", " + params + ", " + gameID + ", " + seed + ", " + saved + ")";
 	}
 
-	public static GameLaunch ofSavedGame(final String saved, final boolean knownCompleted, final boolean fromChooser) {
-		return new GameLaunch(null, null, null, null, null, saved, knownCompleted, fromChooser, false);
+	public static GameLaunch ofSavedGame(final String saved) {
+		return new GameLaunch(null, null, null, null, null, saved, false, true, false);
 	}
 
 	public static GameLaunch ofLocalState(final String saved, final boolean knownCompleted, final boolean fromChooser) {
@@ -112,7 +112,7 @@ public class GameLaunch {
 		return fromChooser;
 	}
 
-	public boolean isOfLocalState() {
-		return ofLocalState;
+	public boolean isOfNonLocalState() {
+		return !ofLocalState;
 	}
 }

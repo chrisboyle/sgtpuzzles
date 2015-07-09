@@ -45,7 +45,7 @@
 				<data android:scheme="file" />
 				<!-- File managers' fault; some don't even fall back to application/octet-stream; they just leave it blank -->
 				<data android:mimeType="*/*" />
-				<data android:pathPattern=".*\\.sgtp" />
+				<data android:pathPattern="/.*\\.sgtp" />
 				<data android:host="*" />
 			</intent-filter>
 			<intent-filter>
@@ -56,7 +56,7 @@
 				<data android:scheme="file" />
 				<!-- File managers' fault; some don't even fall back to application/octet-stream; they just leave it blank -->
 				<data android:mimeType="*/*" />
-				<data android:pathPattern=".*\\.sav" />
+				<data android:pathPattern="/.*\\.sav" />
 				<data android:host="*" />
 			</intent-filter>
 		</activity>

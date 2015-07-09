@@ -16,14 +16,14 @@
 		android:layout_height="wrap_content"
 		android:layout_alignParentBottom="true"
 		android:layout_alignParentLeft="true"
-		android:layout_toLeftOf="@+id/savebutton"
+		android:layout_toLeftOf="@+id/saveButton"
 		android:hint="@string/filename"
 		android:imeOptions="flagNoAccessoryAction"
 		android:inputType="text"
 		android:lines="1" />
 
 	<Button
-		android:id="@+id/savebutton"
+		android:id="@+id/saveButton"
 		android:layout_width="wrap_content"
 		android:layout_height="wrap_content"
 		android:layout_alignParentBottom="true"
