@@ -1315,7 +1315,11 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 		handler.postDelayed(new Runnable() {
 			@Override
 			public void run() {
-				completedInternal();
+				try {
+					completedInternal();
+				} catch (WindowManager.BadTokenException activityWentAway) {
+					// fine, nothing we can do here
+				}
 			}
 		}, 0);
 	}
