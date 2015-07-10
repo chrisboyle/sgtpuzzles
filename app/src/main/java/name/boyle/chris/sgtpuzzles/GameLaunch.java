@@ -1,6 +1,7 @@
 package name.boyle.chris.sgtpuzzles;
 
 import android.net.Uri;
+import android.support.annotation.NonNull;
 
 /**
  * A game the user wants to launch, whether saved, or identified by backend and
@@ -37,35 +38,35 @@ public class GameLaunch {
 		return "GameLaunch(" + whichBackend + ", " + params + ", " + gameID + ", " + seed + ", " + saved + ")";
 	}
 
-	public static GameLaunch ofSavedGame(final String saved) {
+	public static GameLaunch ofSavedGame(@NonNull final String saved) {
 		return new GameLaunch(null, null, null, null, null, saved, false, true, false);
 	}
 
-	public static GameLaunch ofLocalState(final String saved, final boolean knownCompleted, final boolean fromChooser) {
-		return new GameLaunch(null, null, null, null, null, saved, knownCompleted, fromChooser, true);
+	public static GameLaunch ofLocalState(@NonNull final String backend, @NonNull final String saved, final boolean knownCompleted, final boolean fromChooser) {
+		return new GameLaunch(backend, null, null, null, null, saved, knownCompleted, fromChooser, true);
 	}
 
-	public static GameLaunch toGenerate(String whichBackend, String params) {
+	public static GameLaunch toGenerate(@NonNull String whichBackend, @NonNull String params) {
 		return new GameLaunch(whichBackend, params, null, null, null, null, false, false, false);
 	}
 
-	public static GameLaunch toGenerateFromChooser(String whichBackend) {
+	public static GameLaunch toGenerateFromChooser(@NonNull String whichBackend) {
 		return new GameLaunch(whichBackend, null, null, null, null, null, false, true, false);
 	}
 
-	public static GameLaunch ofGameID(String whichBackend, String gameID) {
+	public static GameLaunch ofGameID(@NonNull String whichBackend, @NonNull String gameID) {
 		final int pos = gameID.indexOf(':');
 		if (pos < 0) throw new IllegalArgumentException("Game ID invalid: " + gameID);
 		return new GameLaunch(whichBackend, gameID.substring(0, pos), gameID, null, null, null, false, false, false);
 	}
 
-	public static GameLaunch fromSeed(String whichBackend, String seed) {
+	public static GameLaunch fromSeed(@NonNull String whichBackend, @NonNull String seed) {
 		final int pos = seed.indexOf('#');
 		if (pos < 0) throw new IllegalArgumentException("Seed invalid: " + seed);
 		return new GameLaunch(whichBackend, seed.substring(0, pos), null, seed, null, null, false, false, false);
 	}
 
-	public static GameLaunch ofUri(final Uri uri) {
+	public static GameLaunch ofUri(@NonNull final Uri uri) {
 		return new GameLaunch(null, null, null, null, uri, null, false, true, false);
 	}
 
@@ -93,7 +94,7 @@ public class GameLaunch {
 		return uri;
 	}
 
-	public void finishedGenerating(String saved) {
+	public void finishedGenerating(@NonNull String saved) {
 		if (this.saved != null) {
 			throw new RuntimeException("finishedGenerating called twice");
 		}

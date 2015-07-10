@@ -432,13 +432,19 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 				return;
 			}
 			Log.d(TAG, "restoring last state of " + backendFromChooser);
-			startGame(GameLaunch.ofLocalState(savedGame, false, true));
+			startGame(GameLaunch.ofLocalState(backendFromChooser, savedGame, false, true));
 		} else {
 			final String savedBackend = state.getString(SAVED_BACKEND, null);
 			if (savedBackend != null) {
 				final String savedGame = state.getString(SAVED_GAME_PREFIX + savedBackend, null);
-				final boolean wasCompleted = state.getBoolean(SAVED_COMPLETED_PREFIX + savedBackend, false);
-				startGame(GameLaunch.ofLocalState(savedGame, wasCompleted, false));
+				if (savedGame == null) {
+					Log.e(TAG, "missing state for " + savedBackend);
+					startGame(GameLaunch.toGenerateFromChooser(savedBackend));
+				} else {
+					Log.d(TAG, "normal launch; resuming game of " + savedBackend);
+					final boolean wasCompleted = state.getBoolean(SAVED_COMPLETED_PREFIX + savedBackend, false);
+					startGame(GameLaunch.ofLocalState(savedBackend, savedGame, wasCompleted, false));
+				}
 			} else {
 				Log.d(TAG, "no state, starting chooser");
 				startChooserAndFinish();
