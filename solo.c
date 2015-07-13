@@ -4614,6 +4614,9 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 	return dupstr(buf);
     }
 
+    if (button == 'M' || button == 'm')
+        return dupstr("M");
+
     return NULL;
 }
 
@@ -4662,6 +4665,21 @@ static game_state *execute_move(const game_state *from, const char *move)
             if (!ret->completed && check_valid(cr, ret->blocks, ret->kblocks,
 					       ret->xtype, ret->grid)) {
                 ret->completed = TRUE;
+            }
+        }
+	return ret;
+    } else if (move[0] == 'M') {
+	/*
+	 * Fill in absolutely all pencil marks in unfilled squares,
+	 * for those who like to play by the rigorous approach of
+	 * starting off in that state and eliminating things.
+	 */
+	ret = dup_game(from);
+        for (y = 0; y < cr; y++) {
+            for (x = 0; x < cr; x++) {
+                if (!ret->grid[y*cr+x]) {
+                    memset(ret->pencil + (y*cr+x)*cr, 1, cr);
+                }
             }
         }
 	return ret;
