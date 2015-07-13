@@ -1757,6 +1757,10 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         return "";      
     }
 
+    if (button == 'm' || button == 'M') {
+        return dupstr("M");
+    }
+    
     int in_row = y > ds->counts_y1 && y < ds->counts_y2;
     int on_ghost = in_row && x > ds->counts_ghost_x1 && x < ds->counts_ghost_x2;
     int on_vampire = in_row && x > ds->counts_vampire_x1 && x < ds->counts_vampire_x2;
@@ -2095,6 +2099,18 @@ static game_state *execute_move(const game_state *state, const char *move)
             is_clue(ret, x, y)) {
             ret->hints_done[clue_index(ret, x, y)] ^= 1;
             move += n + 1;
+        }
+        if (c == 'M') {
+            /*
+             * Fill in absolutely all pencil marks in unfilled
+             * squares, for those who like to play by the rigorous
+             * approach of starting off in that state and eliminating
+             * things.
+             */
+            for (i = 0; i < ret->common->wh; i++)
+                if (ret->guess[i] == 7)
+                    ret->pencils[i] = 7;
+            move++;
         }
         if (*move == ';') move++;
     }
