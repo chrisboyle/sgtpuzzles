@@ -313,7 +313,7 @@ static char *validate_desc(const game_params *params, const char *desc)
 #ifdef ANDROID
 static void android_request_keys(const game_params *params)
 {
-    android_keys2("L\b", "", ANDROID_ARROWS_LEFT_RIGHT);
+    android_keys2("L", "\b", ANDROID_ARROWS_LEFT_RIGHT);
 }
 #endif
 
