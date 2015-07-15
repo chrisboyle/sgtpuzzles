@@ -1323,7 +1323,7 @@ void num2grid(int num, int width, int height, int *x, int *y) {
 #ifdef ANDROID
 static void android_request_keys(const game_params *params)
 {
-    android_keys("GVZ\b", ANDROID_ARROWS_LEFT);
+    android_keys("GVZ\bM", ANDROID_ARROWS_LEFT);
 }
 #endif
 
