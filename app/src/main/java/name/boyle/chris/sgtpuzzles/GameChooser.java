@@ -14,7 +14,6 @@ import android.graphics.PorterDuff;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.LayerDrawable;
-import android.graphics.drawable.StateListDrawable;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -155,7 +154,7 @@ public class GameChooser extends AppCompatActivity implements SharedPreferences.
 		for (int i = 0; i < games.length; i++) {
 			final View v = views[i];
 			final View highlight = v.findViewById(R.id.currentGameHighlight);
-			final ImageView icon = (ImageView) v.findViewById(R.id.icon);
+			final Drawable icon = ((LayerDrawable) ((ImageView) v.findViewById(R.id.icon)).getDrawable()).getDrawable(0);
 			// Ideally this would instead key off the new "activated" state, but it's too new.
 			if (games[i].equals(currentBackend)) {
 				final int highlightColour = getResources().getColor(R.color.chooser_current_background);
@@ -183,8 +182,8 @@ public class GameChooser extends AppCompatActivity implements SharedPreferences.
 			final String gameId = games[i];
 			views[i] = getLayoutInflater().inflate(
 					R.layout.list_item, table, false);
-			final StateListDrawable stateListDrawable = mkStarryIcon(gameId);
-			((ImageView)views[i].findViewById(R.id.icon)).setImageDrawable(stateListDrawable);
+			final LayerDrawable starredIcon = mkStarryIcon(gameId);
+			((ImageView)views[i].findViewById(R.id.icon)).setImageDrawable(starredIcon);
 			final int nameId = getResources().getIdentifier("name_"+gameId, "string", getPackageName());
 			final int descId = getResources().getIdentifier("desc_"+gameId, "string", getPackageName());
 			SpannableStringBuilder desc = new SpannableStringBuilder(nameId > 0 ?
@@ -224,17 +223,14 @@ public class GameChooser extends AppCompatActivity implements SharedPreferences.
 		rethinkColumns(true);
 	}
 
-	private StateListDrawable mkStarryIcon(String gameId) {
-		final StateListDrawable stateListDrawable = new StateListDrawable();
+	private LayerDrawable mkStarryIcon(String gameId) {
 		final Drawable icon = ContextCompat.getDrawable(this,
 				getResources().getIdentifier(gameId, "drawable", getPackageName()));
 		final LayerDrawable starredIcon = new LayerDrawable(new Drawable[]{
-				icon, ContextCompat.getDrawable(this, R.drawable.ic_star) });
+				icon, ContextCompat.getDrawable(this, R.drawable.ic_star).mutate() });
 		final float density = getResources().getDisplayMetrics().density;
 		starredIcon.setLayerInset(1, (int)(42*density), (int)(42*density), 0, 0);
-		stateListDrawable.addState(new int[]{android.R.attr.state_checked}, starredIcon);
-		stateListDrawable.addState(new int[0], icon);
-		return stateListDrawable;
+		return starredIcon;
 	}
 
 	private GridLayout.LayoutParams mkLayoutParams() {
@@ -302,8 +298,8 @@ public class GameChooser extends AppCompatActivity implements SharedPreferences.
 		int col = 0;
 		int row = startRow;
 		for (View v : views) {
-			((ImageView) v.findViewById(R.id.icon)).setImageState(
-					starred ? new int[]{android.R.attr.state_checked} : new int[0], false);
+			final Drawable star = ((LayerDrawable) ((ImageView) v.findViewById(R.id.icon)).getDrawable()).getDrawable(1);
+			star.setAlpha(starred ? 255 : 0);
 			if (col >= mColumns) {
 				col = 0;
 				row++;
