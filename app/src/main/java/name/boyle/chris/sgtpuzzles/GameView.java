@@ -101,7 +101,6 @@ public class GameView extends View
 		super(context, attrs);
 		if (! isInEditMode()) {
 			this.parent = (GamePlay) context;
-			night = parent.isNight();
 		}
 		bitmap = Bitmap.createBitmap(100, 100, BITMAP_CONFIG);  // for safety
 		canvas = new Canvas(bitmap);

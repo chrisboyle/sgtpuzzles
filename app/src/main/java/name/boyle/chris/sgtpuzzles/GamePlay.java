@@ -1,27 +1,5 @@
 package name.boyle.chris.sgtpuzzles;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.lang.ref.WeakReference;
-import java.nio.charset.Charset;
-import java.text.MessageFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.StringTokenizer;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import name.boyle.chris.sgtpuzzles.compat.PrefsSaver;
-import name.boyle.chris.sgtpuzzles.compat.SysUIVisSetter;
-
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.app.Activity;
@@ -44,10 +22,6 @@ import android.graphics.Color;
 import android.graphics.PointF;
 import android.graphics.PorterDuff;
 import android.graphics.drawable.Drawable;
-import android.hardware.Sensor;
-import android.hardware.SensorEvent;
-import android.hardware.SensorEventListener;
-import android.hardware.SensorManager;
 import android.net.Uri;
 import android.nfc.NdefMessage;
 import android.nfc.NdefRecord;
@@ -97,13 +71,34 @@ import android.widget.TableRow;
 import android.widget.TextView;
 import android.widget.Toast;
 
-public class GamePlay extends AppCompatActivity implements OnSharedPreferenceChangeListener, SensorEventListener
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.lang.ref.WeakReference;
+import java.nio.charset.Charset;
+import java.text.MessageFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.StringTokenizer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import name.boyle.chris.sgtpuzzles.compat.PrefsSaver;
+import name.boyle.chris.sgtpuzzles.compat.SysUIVisSetter;
+
+public class GamePlay extends AppCompatActivity implements OnSharedPreferenceChangeListener, NightModeHelper.Parent
 {
 	static final String TAG = "GamePlay";
 	static final String STATE_PREFS_NAME = "state";
 	static final String ORIENTATION_KEY = "orientation";
 	private static final String ARROW_KEYS_KEY_SUFFIX = "ArrowKeys";
-	static final String NIGHT_MODE_KEY = "nightMode";
 	static final String LIMIT_DPI_KEY = "limitDpi";
 	private static final String KEYBOARD_BORDERS_KEY = "keyboardBorders";
 	private static final String BRIDGES_SHOW_H_KEY = "bridgesShowH";
@@ -122,14 +117,8 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 	public static final String LAST_PARAMS_PREFIX = "last_params_";
 	private static final String PUZZLESGEN_LAST_UPDATE = "puzzlesgen_last_update";
 	private static final String BLUETOOTH_PACKAGE_PREFIX = "com.android.bluetooth";
-	private static final String SEEN_NIGHT_MODE = "seenNightMode";
-	private static final String SEEN_NIGHT_MODE_SETTING = "seenNightModeSetting";
-
 	private static final int REQ_CODE_CREATE_DOC = Activity.RESULT_FIRST_USER;
 	static final String MIME_TYPE = "text/prs.sgtatham.puzzles";
-	private static final float MAX_LUX_NIGHT = 3.4f;
-	private static final float MIN_LUX_DAY = 15.0f;
-	private static final long NIGHT_MODE_AUTO_DELAY = 2100;
 
 	private ProgressDialog progress;
 	private TextView statusBar;
@@ -169,12 +158,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 	private boolean everCompleted = false;
 	private final Pattern DIMENSIONS = Pattern.compile("(\\d+)( ?)x\\2(\\d+)(.*)");
 	private long lastKeySent = 0;
-	private SensorManager sensorManager;
-	private Sensor lightSensor;
-	enum NightMode { ON, AUTO, OFF }
-	private NightMode nightMode = NightMode.OFF;
-	private boolean darkNowSmoothed = false;
-	private Float previousLux = null;
+	NightModeHelper nightModeHelper;
 
 	enum UIVisibility {
 		UNDO(1), REDO(2), CUSTOM(4), SOLVE(8), STATUS(16);
@@ -309,9 +293,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 		dialogIds = new ArrayList<>();
 		setDefaultKeyMode(DEFAULT_KEYS_SHORTCUT);
 		gameView.requestFocus();
-		sensorManager = (SensorManager)getSystemService(SENSOR_SERVICE);
-		lightSensor = sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT);
-		applyNightMode(false);
+		nightModeHelper = new NightModeHelper(this, this);
 		applyLimitDPI(false);
 		if (prefs.getBoolean(KEYBOARD_BORDERS_KEY, false)) {
 			applyKeyboardBorders();
@@ -325,7 +307,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 	}
 
 	private void refreshStatusBarColours() {
-		final boolean night = isNight();
+		final boolean night = nightModeHelper.isNight();
 		final int foreground = getResources().getColor(night ? R.color.night_status_bar_text : R.color.status_bar_text);
 		final int background = getResources().getColor(night ? R.color.night_game_background : R.color.game_background);
 		statusBar.setTextColor(foreground);
@@ -342,7 +324,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 				String saved = saveToString();
 				if (saved == null) return null;
 				return new NdefMessage(
-						new NdefRecord[] {
+						new NdefRecord[]{
 								createMime(saved),
 								NdefRecord.createApplicationRecord(getPackageName())
 						});
@@ -628,7 +610,6 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 		case R.id.this_game:
 			Intent intent = new Intent(this, HelpActivity.class);
 			intent.putExtra(HelpActivity.TOPIC, htmlHelpTopic());
-			intent.putExtra(HelpActivity.NIGHT, isNight());
 			startActivity(intent);
 			break;
 		case R.id.email:
@@ -980,7 +961,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 				final String currentParams = orientGameType(getCurrentParams());
 				refreshPresets(currentParams);
 				gameView.setDragModeFor(currentBackend);
-				final String title = getString(getResources().getIdentifier("name_"+currentBackend, "string", getPackageName()));
+				final String title = getString(getResources().getIdentifier("name_" + currentBackend, "string", getPackageName()));
 				setTitle(title);
 				if (getSupportActionBar() != null) {
 					getSupportActionBar().setTitle(title);
@@ -1001,14 +982,14 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 				setCursorVisibility(hasArrows);
 				if (changingGame) {
 					if (prefs.getBoolean(CONTROLS_REMINDERS_KEY, true)) {
-						if (hasArrows || ! showToastIfExists("toast_no_arrows_" + currentBackend)) {
+						if (hasArrows || !showToastIfExists("toast_no_arrows_" + currentBackend)) {
 							showToastIfExists("toast_" + currentBackend);
 						}
 					}
 				}
 				dismissProgress();
 				gameView.rebuildBitmap();
-				if( menu != null ) onPrepareOptionsMenu(menu);
+				if (menu != null) onPrepareOptionsMenu(menu);
 				save();
 			}
 		});
@@ -1081,12 +1062,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 	protected void onPause()
 	{
 		handler.removeMessages(MsgType.TIMER.ordinal());
-		if (nightMode == NightMode.AUTO) {
-			sensorManager.unregisterListener(this);
-			handler.removeCallbacks(stayedLight);
-			handler.removeCallbacks(stayedDark);
-			previousLux = null;
-		}
+		nightModeHelper.onPause();
 		save();
 		super.onPause();
 	}
@@ -1101,8 +1077,8 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 			startActivity(new Intent(this, RestartActivity.class));
 			finish();
 		}
-		else if (nightMode == NightMode.AUTO) {
-			sensorManager.registerListener(this, lightSensor, SensorManager.SENSOR_DELAY_NORMAL);
+		else {
+			nightModeHelper.onResume();
 		}
 	}
 
@@ -1454,7 +1430,11 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 			// TODO: C_INT, C_UINT, C_UDOUBLE, C_DOUBLE
 			// Ugly temporary hack: in custom game dialog, all text boxes are numeric, in the other two dialogs they aren't.
 			// Uglier temporary-er hack: Black Box must accept a range for ball count.
-			if (whichEvent == CFG_SETTINGS && !currentBackend.equals("blackbox")) et.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL | InputType.TYPE_NUMBER_FLAG_SIGNED);
+			if (whichEvent == CFG_SETTINGS && !currentBackend.equals("blackbox")) {
+				et.setInputType(InputType.TYPE_CLASS_NUMBER
+								| InputType.TYPE_NUMBER_FLAG_DECIMAL
+								| InputType.TYPE_NUMBER_FLAG_SIGNED);
+			}
 			et.setTag(name);
 			et.setText(value);
 			et.setWidth(getResources().getDimensionPixelSize((whichEvent == CFG_SETTINGS)
@@ -1590,13 +1570,6 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 			applyFullscreen(true);  // = already started
 		} else if (key.equals(STAY_AWAKE_KEY)) {
 			applyStayAwake();
-		} else if (key.equals(NIGHT_MODE_KEY)) {
-			applyNightMode(true);
-			long changed = state.getLong(SEEN_NIGHT_MODE_SETTING, 0);
-			changed++;
-			SharedPreferences.Editor ed = state.edit();
-			ed.putLong(SEEN_NIGHT_MODE_SETTING, changed);
-			prefsSaver.save(ed);
 		} else if (key.equals(LIMIT_DPI_KEY)) {
 			applyLimitDPI(true);
 		} else if (key.equals(ORIENTATION_KEY)) {
@@ -1694,97 +1667,17 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 		}
 	}
 
-	private void applyNightMode(final boolean alreadyStarted) {
-		final boolean wasAuto = (nightMode == NightMode.AUTO);
-		final String pref = prefs.getString(NIGHT_MODE_KEY, "auto");
-		if ("on".equals(pref)) {
-			nightMode = NightMode.ON;
-			darkNowSmoothed = true;
-			handler.removeCallbacks(stayedLight);
-			handler.removeCallbacks(stayedDark);
-			previousLux = null;
-			if (wasAuto) sensorManager.unregisterListener(this);
-		}
-		else if ("off".equals(pref) || lightSensor == null) {
-			nightMode = NightMode.OFF;
-			darkNowSmoothed = false;
-			handler.removeCallbacks(stayedLight);
-			handler.removeCallbacks(stayedDark);
-			previousLux = null;
-			if (wasAuto) sensorManager.unregisterListener(this);
-		}
-		else if (!wasAuto) {
-			nightMode = NightMode.AUTO;
-			if (alreadyStarted) sensorManager.registerListener(this, lightSensor, SensorManager.SENSOR_DELAY_NORMAL);
-		}
-		gameView.night = isNight();
-		if (alreadyStarted) refreshNightNow();
-	}
-
-	private void refreshNightNow() {
-		gameView.night = isNight();
-		if (currentBackend != null) {
-			gameView.refreshColours(currentBackend);
-			gameView.clear();
-			gameViewResized();  // cheat - we just want a redraw
-		}
-		refreshStatusBarColours();
-	}
-
-	public boolean isNight() {
-		return nightMode == NightMode.ON || (nightMode == NightMode.AUTO && darkNowSmoothed);
-	}
-
-	@SuppressLint("CommitPrefEdits")
-	private final Runnable stayedDark = new Runnable() {
-		@Override
-		public void run() {
-			if (darkNowSmoothed) return;
-			darkNowSmoothed = true;
-			refreshNightNow();
-			long seen = state.getLong(SEEN_NIGHT_MODE, 0);
-			if (seen < 3 && state.getLong(SEEN_NIGHT_MODE_SETTING, 0) < 1) {
-				Toast.makeText(GamePlay.this, R.string.night_mode_hint, Toast.LENGTH_SHORT).show();
+	@Override
+	public void refreshNightNow(final boolean isNight, final boolean alreadyStarted) {
+		gameView.night = isNight;
+		if (alreadyStarted) {
+			if (currentBackend != null) {
+				gameView.refreshColours(currentBackend);
+				gameView.clear();
+				gameViewResized();  // cheat - we just want a redraw
 			}
-			seen++;
-			SharedPreferences.Editor ed = state.edit();
-			ed.putLong(SEEN_NIGHT_MODE, seen);
-			prefsSaver.save(ed);
+			refreshStatusBarColours();
 		}
-	};
-
-	private final Runnable stayedLight = new Runnable() {
-		@Override
-		public void run() {
-			if (!darkNowSmoothed) return;
-			darkNowSmoothed = false;
-			refreshNightNow();
-		}
-	};
-
-	public void onSensorChanged(SensorEvent event) {
-		if (event.values[0] <= MAX_LUX_NIGHT) {
-			handler.removeCallbacks(stayedLight);
-			if (previousLux == null) {
-				stayedDark.run();
-			} else if (previousLux > MAX_LUX_NIGHT) {
-				handler.postDelayed(stayedDark, NIGHT_MODE_AUTO_DELAY);
-			}
-		} else if (event.values[0] >= MIN_LUX_DAY) {
-			handler.removeCallbacks(stayedDark);
-			if (previousLux == null) {
-				stayedLight.run();
-			} else if (previousLux < MIN_LUX_DAY) {
-				handler.postDelayed(stayedLight, NIGHT_MODE_AUTO_DELAY);
-			}
-		} else {
-			handler.removeCallbacks(stayedLight);
-			handler.removeCallbacks(stayedDark);
-		}
-		previousLux = event.values[0];
-	}
-
-	public void onAccuracyChanged(Sensor sensor, int accuracy) {  // don't care
 	}
 
 		private void applyUndoRedoKbd() {

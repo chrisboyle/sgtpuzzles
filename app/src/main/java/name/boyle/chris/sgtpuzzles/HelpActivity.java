@@ -1,5 +1,6 @@
 package name.boyle.chris.sgtpuzzles;
 
+import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.content.res.Resources;
 import android.graphics.Color;
@@ -19,21 +20,20 @@ import java.text.MessageFormat;
 import java.util.regex.Pattern;
 
 
-public class HelpActivity extends AppCompatActivity {
+public class HelpActivity extends AppCompatActivity implements NightModeHelper.Parent {
 
 	static final String TOPIC = "name.boyle.chris.sgtpuzzles.TOPIC";
-	static final String NIGHT = "name.boyle.chris.sgtpuzzles.NIGHT";
 	private static final Pattern ALLOWED_TOPICS = Pattern.compile("^[a-z]+$");
 	private static final Pattern URL_SCHEME = Pattern.compile("^[a-z0-9]+:");
 	private WebView webView;
-	private boolean isNight = false;
+	private NightModeHelper nightModeHelper;
 
 	@Override
+	@SuppressLint("SetJavaScriptEnabled")
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		Intent intent = getIntent();
 		String topic = intent.getStringExtra(TOPIC);
-		isNight = intent.getBooleanExtra(NIGHT, false);
 		if (!ALLOWED_TOPICS.matcher(topic).matches()) {
 			finish();
 			return;
@@ -43,7 +43,8 @@ public class HelpActivity extends AppCompatActivity {
 		}
 		setContentView(R.layout.activity_help);
 		webView = (WebView) findViewById(R.id.webView);
-		if (isNight) webView.setBackgroundColor(Color.BLACK);
+		nightModeHelper = new NightModeHelper(this, this);
+		if (nightModeHelper.isNight()) webView.setBackgroundColor(Color.BLACK);
 		webView.setWebChromeClient(new WebChromeClient() {
 			public void onReceivedTitle(WebView w, String title) {
 				getSupportActionBar().setTitle(getString(R.string.title_activity_help) + ": " + title);
@@ -56,13 +57,13 @@ public class HelpActivity extends AppCompatActivity {
 			}
 		});
 		webView.setWebViewClient(new WebViewClient() {
-			private String lastStyledUrl = "";
-
 			@Override
 			public boolean shouldOverrideUrlLoading(WebView view, String url) {
+				if (url.startsWith("javascript:")) {
+					return false;
+				}
 				if (url.startsWith("file:") || !URL_SCHEME.matcher(url).find()) {
-					lastStyledUrl = url;
-					loadWithStyle(view, url);
+					webView.loadUrl(url);
 					return true;
 				}
 				// spawn other app
@@ -70,17 +71,13 @@ public class HelpActivity extends AppCompatActivity {
 				return true;
 			}
 
-			// goBack() doesn't call shouldOverrideUrlLoading() :-(
 			@Override
 			public void onPageFinished(WebView view, String url) {
-				if (!lastStyledUrl.equals(url)) {
-					lastStyledUrl = url;
-					loadWithStyle(view, url);
-				}
+				refreshNightNow(nightModeHelper.isNight(), true);
 			}
 		});
 		final WebSettings settings = webView.getSettings();
-		settings.setJavaScriptEnabled(false);  // default, but just to be sure
+		settings.setJavaScriptEnabled(true);
 		settings.setAllowFileAccess(false);  // android_asset still works
 		settings.setBlockNetworkImage(true);
 		settings.setBuiltInZoomControls(true);
@@ -106,19 +103,7 @@ public class HelpActivity extends AppCompatActivity {
 		if (!haveLocalised) {
 			assetPath = helpPath("en", topic);
 		}
-		loadWithStyle(webView, "file:///android_asset/" + assetPath);
-	}
-
-	private void loadWithStyle(WebView view, String url) {
-		try {
-			String data = Utils.readAllOf(getAssets().open(url.replace("file:///android_asset/", "").replaceFirst("#.*", "")));
-			if (isNight) {
-				data = data.replace("</head>", "<style type=\"text/css\">" + getResources().getString(R.string.css_night) + "</style></head>");
-			}
-			view.loadDataWithBaseURL(url, data, "text/html", "UTF-8", url);
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
+		webView.loadUrl("file:///android_asset/" + assetPath);
 	}
 
 	private static String helpPath(String lang, String topic) {
@@ -147,5 +132,26 @@ public class HelpActivity extends AppCompatActivity {
 			return true;
 		}
 		return super.onOptionsItemSelected(item);
+	}
+
+	@Override
+	public void refreshNightNow(final boolean isNight, final boolean alreadyStarted) {
+		webView.setBackgroundColor(isNight ? Color.BLACK : Color.WHITE);
+		webView.loadUrl(isNight
+				? "javascript:document.body.className += ' night';null;"
+				: "javascript:document.body.className = " +
+				"document.body.className.replace(/(?:^|\\s)night(?!\\S)/g, '');null;");
+	}
+
+	@Override
+	protected void onPause() {
+		nightModeHelper.onPause();
+		super.onPause();
+	}
+
+	@Override
+	protected void onResume() {
+		super.onResume();
+		nightModeHelper.onResume();
 	}
 }

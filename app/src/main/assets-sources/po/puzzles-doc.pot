@@ -7,7 +7,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2015-07-02 08:01+0100\n"
+"POT-Creation-Date: 2015-07-18 22:31+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -141,7 +141,9 @@ msgstr ""
 #: puzzles.but:44
 msgid ""
 "\\cfg{html-head-end}{<style type=\"text/css\">body \\{ word-wrap: "
-"break-word; \\}</style>}"
+"break-word; \\} body.night \\{ color: #dddddd; background: #000000; \\} "
+"body.night a:link \\{ color: #8888ff; \\} body.night a:visited \\{ color: "
+"#cc88ff; \\}</style>}"
 msgstr ""
 
 #. type: Plain text
