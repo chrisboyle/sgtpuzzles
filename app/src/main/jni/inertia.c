@@ -2086,6 +2086,9 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
     } else {
 	strcpy(status, _("COMPLETED!"));
     }
+#ifdef ANDROID
+    android_inertia_follow(state->cheated && state->soln && state->solnpos < state->soln->len);
+#endif
     /* We subtract one from the visible death counter if we're still
      * animating the move at the end of which the death took place. */
     deaths = ui->deaths;

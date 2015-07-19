@@ -22,7 +22,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 {
 	private static final String TAG = "SmallKeyboard";
 	private final GamePlay parent;
-	private boolean undoEnabled = false, redoEnabled = false;
+	private boolean undoEnabled = false, redoEnabled = false, followEnabled = true;
 	private String backendForIcons;
 
 	enum ArrowMode {
@@ -55,7 +55,8 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 		final Context context;
         private final KeyboardView keyboardView;  // for invalidateKey()
         final List<Key> mKeys;
-		int undoKey = -1, redoKey = -1;
+		int undoKey = -1, redoKey = -1, followKey = -1;
+		boolean followEnabled = true;
 		boolean initDone = false;
 		final String backendForIcons;
 		private static final Map<String, String> SHARED_ICONS = new LinkedHashMap<>();
@@ -107,11 +108,13 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 		public KeyboardModel(final Context context, final KeyboardView keyboardView,
 				final boolean isInEditMode, final CharSequence characters,
 				final ArrowMode requestedArrowMode, final boolean columnMajor, final int maxPx,
-				final boolean undoEnabled, final boolean redoEnabled, final String backendForIcons)
+				final boolean undoEnabled, final boolean redoEnabled, final boolean followEnabled,
+				final String backendForIcons)
 		{
 			super(context, R.layout.keyboard_template);
 			this.context = context;
 			this.keyboardView = keyboardView;
+			this.followEnabled = followEnabled;
 			mDefaultWidth = mDefaultHeight =
 					context.getResources().getDimensionPixelSize(R.dimen.keySize);
 			mKeys = new ArrayList<>();
@@ -365,9 +368,11 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 					key.edgeFlags = bottomIf2Row | EDGE_RIGHT;
 					break;
 				case '\n':
+					followKey = mKeys.size() - 1;
 					key.x = arrowsRightEdge  - (isDiagonals ? 2 : 3) * keyPlusPad;
 					key.y = arrowsBottomEdge - 2*keyPlusPad;
-					key.icon = trySpecificIcon(context.getResources(), R.drawable.sym_key_mouse_left);
+					key.icon = followEnabled ? trySpecificIcon(context.getResources(), R.drawable.sym_key_mouse_left) : null;
+					key.enabled = followEnabled;
 					key.edgeFlags = maybeTopIf2Row;
 					break;
 				case ' ': // right click
@@ -460,6 +465,15 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 			if (initDone) keyboardView.invalidateKey(i);
 		}
 
+		void setInertiaFollowEnabled(final boolean enabled) {
+			followEnabled = enabled;
+			if (followKey == -1) return;
+			final DKey k = (DKey)mKeys.get(followKey);
+			k.enabled = enabled;
+			k.icon = enabled ? trySpecificIcon(context.getResources(), R.drawable.sym_key_mouse_left) : null;
+			if (initDone) keyboardView.invalidateKey(followKey);
+		}
+
 		@Override
 		public List<Key> getKeys() { return mKeys; }
 		@Override
@@ -517,7 +531,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 		int maxPx = MeasureSpec.getSize(landscape ? hSpec : wSpec);
 		// Doing this here seems the only way to be sure of dimensions.
 		final KeyboardModel model = new KeyboardModel(getContext(), this, isInEditMode(), lastKeys,
-				arrowMode, landscape, maxPx, undoEnabled, redoEnabled, backendForIcons);
+				arrowMode, landscape, maxPx, undoEnabled, redoEnabled, followEnabled, backendForIcons);
 		setKeyboard(model);
 		if (model.isEmpty()) {
 			setMeasuredDimension(0, 0);
@@ -542,6 +556,13 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 		if (m == null) return;
 		m.setUndoRedoEnabled(KeyboardModel.ExtraKey.UNDO, canUndo);
 		m.setUndoRedoEnabled(KeyboardModel.ExtraKey.REDO, canRedo);
+	}
+
+	void setInertiaFollowEnabled(final boolean enabled) {
+		followEnabled = enabled;
+		KeyboardModel m = (KeyboardModel)getKeyboard();
+		if (m == null) return;
+		m.setInertiaFollowEnabled(enabled);
 	}
 
 	public void swipeUp() {}

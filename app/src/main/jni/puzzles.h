@@ -622,6 +622,7 @@ extern const game thegame;
 extern const game* game_by_name(const char *name);
 extern game_params* oriented_params_from_str(const game* game, const char* params, char** error);
 extern void android_completed();
+extern void android_inertia_follow(int is_solved);
 extern void android_keys(const char *keys, int arrowMode);
 extern void android_keys2(const char *keys, const char *extraKeysIfArrows, int arrowMode);
 extern void android_toast(const char *msg, int fromPattern);

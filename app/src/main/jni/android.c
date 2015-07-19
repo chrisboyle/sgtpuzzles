@@ -85,6 +85,7 @@ static jmethodID
 	showToast,
 	unClip,
 	completed,
+	inertiaFollow,
 	setKeys;
 
 void throwIllegalArgumentException(JNIEnv *env, const char* reason) {
@@ -609,6 +610,13 @@ void android_completed()
 	(*env)->CallVoidMethod(env, obj, completed);
 }
 
+void android_inertia_follow(int is_solved)
+{
+	if (!obj) return;
+	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
+	(*env)->CallVoidMethod(env, obj, inertiaFollow, is_solved);
+}
+
 void android_toast(const char *msg, int fromPattern)
 {
 	if (!obj) return;
@@ -865,6 +873,7 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
 	showToast      = (*env)->GetMethodID(env, cls,  "showToast", "(Ljava/lang/String;Z)V");
 	unClip         = (*env)->GetMethodID(env, vcls, "unClip", "(II)V");
 	completed      = (*env)->GetMethodID(env, cls,  "completed", "()V");
+	inertiaFollow  = (*env)->GetMethodID(env, cls,  "inertiaFollow", "(Z)V");
 	setKeys        = (*env)->GetMethodID(env, cls,  "setKeys",
 			"(Ljava/lang/String;Ljava/lang/String;Lname/boyle/chris/sgtpuzzles/SmallKeyboard$ArrowMode;)V");
 

@@ -975,6 +975,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 				if (!generating) {  // we didn't know params until we loaded the game
 					requestKeys(currentBackend, currentParams);
 				}
+				inertiaFollow(false);
 				if (launch.isKnownCompleted()) {
 					completed();
 				}
@@ -1298,6 +1299,11 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 				}
 			}
 		}, 0);
+	}
+
+	@UsedByJNI
+	void inertiaFollow(final boolean isSolved) {
+		keyboard.setInertiaFollowEnabled(isSolved || !"inertia".equals(currentBackend));
 	}
 
 	private void completedInternal() {
