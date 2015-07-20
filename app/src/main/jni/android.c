@@ -19,6 +19,13 @@
 
 #include "puzzles.h"
 
+#ifndef JNICALL
+#define JNICALL
+#endif
+#ifndef JNIEXPORT
+#define JNIEXPORT
+#endif
+
 const struct game* thegame;
 
 void fatal(char *fmt, ...)
@@ -296,14 +303,14 @@ const struct drawing_api android_drawing = {
 	android_draw_thick_line,
 };
 
-void JNICALL keyEvent(JNIEnv *env, jobject _obj, jint x, jint y, jint keyval)
+void JNICALL Java_name_boyle_chris_sgtpuzzles_GamePlay_keyEvent(JNIEnv *env, jobject _obj, jint x, jint y, jint keyval)
 {
 	pthread_setspecific(envKey, env);
 	if (fe->ox == -1 || keyval < 0) return;
 	midend_process_key(fe->me, x - fe->ox, y - fe->oy, keyval);
 }
 
-jfloat JNICALL suggestDensity(JNIEnv *env, jobject _view, jint viewWidth, jint viewHeight)
+jfloat JNICALL Java_name_boyle_chris_sgtpuzzles_GameView_suggestDensity(JNIEnv *env, jobject _view, jint viewWidth, jint viewHeight)
 {
 	if (!fe || !fe->me) return 1.f;
 	pthread_setspecific(envKey, env);
@@ -313,7 +320,7 @@ jfloat JNICALL suggestDensity(JNIEnv *env, jobject _view, jint viewWidth, jint v
 	return max(1.f, min(floor(((float)viewWidth) / defaultW), floor(((float)viewHeight) / defaultH)));
 }
 
-void JNICALL resizeEvent(JNIEnv *env, jobject _obj, jint viewWidth, jint viewHeight)
+void JNICALL Java_name_boyle_chris_sgtpuzzles_GamePlay_resizeEvent(JNIEnv *env, jobject _obj, jint viewWidth, jint viewHeight)
 {
 	pthread_setspecific(envKey, env);
 	if (!fe || !fe->me) return;
@@ -325,7 +332,7 @@ void JNICALL resizeEvent(JNIEnv *env, jobject _obj, jint viewWidth, jint viewHei
 	midend_force_redraw(fe->me);
 }
 
-void JNICALL timerTick(JNIEnv *env, jobject _obj)
+void JNICALL Java_name_boyle_chris_sgtpuzzles_GamePlay_timerTick(JNIEnv *env, jobject _obj)
 {
 	if (! fe->timer_active) return;
 	pthread_setspecific(envKey, env);
@@ -374,7 +381,7 @@ config_item* configItemWithName(JNIEnv *env, jstring js)
 	return ret;
 }
 
-void JNICALL configSetString(JNIEnv *env, jobject _obj, jstring name, jstring s)
+void JNICALL Java_name_boyle_chris_sgtpuzzles_GamePlay_configSetString(JNIEnv *env, jobject _obj, jstring name, jstring s)
 {
 	pthread_setspecific(envKey, env);
 	config_item *i = configItemWithName(env, name);
@@ -384,21 +391,21 @@ void JNICALL configSetString(JNIEnv *env, jobject _obj, jstring name, jstring s)
 	(*env)->ReleaseStringUTFChars(env, s, newval);
 }
 
-void JNICALL configSetBool(JNIEnv *env, jobject _obj, jstring name, jint selected)
+void JNICALL Java_name_boyle_chris_sgtpuzzles_GamePlay_configSetBool(JNIEnv *env, jobject _obj, jstring name, jint selected)
 {
 	pthread_setspecific(envKey, env);
 	config_item *i = configItemWithName(env, name);
 	i->ival = selected != 0 ? TRUE : FALSE;
 }
 
-void JNICALL configSetChoice(JNIEnv *env, jobject _obj, jstring name, jint selected)
+void JNICALL Java_name_boyle_chris_sgtpuzzles_GamePlay_configSetChoice(JNIEnv *env, jobject _obj, jstring name, jint selected)
 {
 	pthread_setspecific(envKey, env);
 	config_item *i = configItemWithName(env, name);
 	i->ival = selected;
 }
 
-void JNICALL solveEvent(JNIEnv *env, jobject _obj)
+void JNICALL Java_name_boyle_chris_sgtpuzzles_GamePlay_solveEvent(JNIEnv *env, jobject _obj)
 {
 	pthread_setspecific(envKey, env);
 	char *msg = midend_solve(fe->me);
@@ -408,13 +415,13 @@ void JNICALL solveEvent(JNIEnv *env, jobject _obj)
 	throwIllegalArgumentException(env, msg);
 }
 
-void JNICALL restartEvent(JNIEnv *env, jobject _obj)
+void JNICALL Java_name_boyle_chris_sgtpuzzles_GamePlay_restartEvent(JNIEnv *env, jobject _obj)
 {
 	pthread_setspecific(envKey, env);
 	midend_restart_game(fe->me);
 }
 
-void JNICALL configEvent(JNIEnv *env, jobject _obj, jint whichEvent)
+void JNICALL Java_name_boyle_chris_sgtpuzzles_GamePlay_configEvent(JNIEnv *env, jobject _obj, jint whichEvent)
 {
 	pthread_setspecific(envKey, env);
 	char *title;
@@ -448,7 +455,7 @@ void JNICALL configEvent(JNIEnv *env, jobject _obj, jint whichEvent)
 	(*env)->CallVoidMethod(env, obj, dialogShow);
 }
 
-jstring JNICALL configOK(JNIEnv *env, jobject _obj)
+jstring JNICALL Java_name_boyle_chris_sgtpuzzles_GamePlay_configOK(JNIEnv *env, jobject _obj)
 {
 	pthread_setspecific(envKey, env);
 	char *encoded;
@@ -500,17 +507,17 @@ jstring getDescOrSeedFromDialog(JNIEnv *env, jobject _obj, int mode)
 	return ret;
 }
 
-jstring JNICALL getFullGameIDFromDialog(JNIEnv *env, jobject _obj)
+jstring JNICALL Java_name_boyle_chris_sgtpuzzles_GamePlay_getFullGameIDFromDialog(JNIEnv *env, jobject _obj)
 {
 	return getDescOrSeedFromDialog(env, _obj, CFG_DESC);
 }
 
-jstring JNICALL getFullSeedFromDialog(JNIEnv *env, jobject _obj)
+jstring JNICALL Java_name_boyle_chris_sgtpuzzles_GamePlay_getFullSeedFromDialog(JNIEnv *env, jobject _obj)
 {
 	return getDescOrSeedFromDialog(env, _obj, CFG_SEED);
 }
 
-void JNICALL configCancel(JNIEnv *env, jobject _obj)
+void JNICALL Java_name_boyle_chris_sgtpuzzles_GamePlay_configCancel(JNIEnv *env, jobject _obj)
 {
 	pthread_setspecific(envKey, env);
 	free_cfg(fe->cfg);
@@ -527,7 +534,7 @@ void android_serialise_write(void *ctx, void *buf, int len)
 	(*env)->DeleteLocalRef(env, bytesJava);
 }
 
-void JNICALL serialise(JNIEnv *env, jobject _obj)
+void JNICALL Java_name_boyle_chris_sgtpuzzles_GamePlay_serialise(JNIEnv *env, jobject _obj)
 {
 	if (!fe) return;
 	pthread_setspecific(envKey, env);
@@ -535,11 +542,11 @@ void JNICALL serialise(JNIEnv *env, jobject _obj)
 }
 
 static const char* deserialise_readptr = NULL;
-static int deserialise_readlen = 0;
+static size_t deserialise_readlen = 0;
 
 int android_deserialise_read(void *ctx, void *buf, int len)
 {
-	int l = min(len, deserialise_readlen);
+	size_t l = min((size_t)len, deserialise_readlen);
 	if (l < 0) return FALSE;
 	else if (l == 0) return len == 0;
 	memcpy( buf, deserialise_readptr, l );
@@ -583,13 +590,13 @@ int deserialiseOrIdentify(frontend *new_fe, jstring s, jboolean identifyOnly) {
 	return whichBackend;
 }
 
-jint JNICALL identifyBackend(JNIEnv *env, jclass c, jstring savedGame)
+jint JNICALL Java_name_boyle_chris_sgtpuzzles_GamePlay_identifyBackend(JNIEnv *env, jclass c, jstring savedGame)
 {
 	pthread_setspecific(envKey, env);
 	return deserialiseOrIdentify(NULL, savedGame, TRUE);
 }
 
-jstring JNICALL getCurrentParams(JNIEnv *env, jobject _obj)
+jstring JNICALL Java_name_boyle_chris_sgtpuzzles_GamePlay_getCurrentParams(JNIEnv *env, jobject _obj)
 {
 	if (! fe || ! fe->me) return NULL;
 	char *params = midend_get_current_params(fe->me, TRUE);
@@ -598,7 +605,7 @@ jstring JNICALL getCurrentParams(JNIEnv *env, jobject _obj)
 	return ret;
 }
 
-jstring JNICALL htmlHelpTopic(JNIEnv *env, jobject _obj)
+jstring JNICALL Java_name_boyle_chris_sgtpuzzles_GamePlay_htmlHelpTopic(JNIEnv *env, jobject _obj)
 {
 	//pthread_setspecific(envKey, env);
 	return (*env)->NewStringUTF(env, thegame->htmlhelp_topic);
@@ -665,7 +672,7 @@ game_params* oriented_params_from_str(const game* my_game, const char* params_st
 	return params;
 }
 
-void JNICALL requestKeys(JNIEnv *env, jobject _obj, jstring jBackend, jstring jParams)
+void JNICALL Java_name_boyle_chris_sgtpuzzles_GamePlay_requestKeys(JNIEnv *env, jobject _obj, jstring jBackend, jstring jParams)
 {
 	pthread_setspecific(envKey, env);
 	if (obj) (*env)->DeleteGlobalRef(env, obj);  // this is called before startPlaying
@@ -707,7 +714,7 @@ void android_keys2(const char *keys, const char *extraKeysIfArrows, int arrowMod
 	(*env)->DeleteLocalRef(env, jKeysIfArrows);
 }
 
-void JNICALL setCursorVisibility(JNIEnv *env, jobject _obj, jboolean visible)
+void JNICALL Java_name_boyle_chris_sgtpuzzles_GamePlay_setCursorVisibility(JNIEnv *env, jobject _obj, jboolean visible)
 {
 	if (!fe || !fe->me) return;
 	pthread_setspecific(envKey, env);
@@ -729,7 +736,7 @@ char * get_text(const char *s)
 	return ret;
 }
 
-int startPlayingIntGameID(frontend* new_fe, jstring jsGameID, jstring backend)
+void startPlayingIntGameID(frontend* new_fe, jstring jsGameID, jstring backend)
 {
 	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
 	const char * backendChars = (*env)->GetStringUTFChars(env, backend, NULL);
@@ -752,7 +759,7 @@ int startPlayingIntGameID(frontend* new_fe, jstring jsGameID, jstring backend)
 	midend_new_game(new_fe->me);
 }
 
-jfloatArray JNICALL getColours(JNIEnv *env, jobject _obj)
+jfloatArray JNICALL Java_name_boyle_chris_sgtpuzzles_GameView_getColours(JNIEnv *env, jobject _obj)
 {
 	int n;
 	float* colours;
@@ -763,7 +770,7 @@ jfloatArray JNICALL getColours(JNIEnv *env, jobject _obj)
 	return jColours;
 }
 
-jobjectArray JNICALL getPresets(JNIEnv *env, jobject _obj)
+jobjectArray JNICALL Java_name_boyle_chris_sgtpuzzles_GamePlay_getPresets(JNIEnv *env, jobject _obj)
 {
 	int n = midend_num_presets(fe->me);
 	int i;
@@ -780,7 +787,7 @@ jobjectArray JNICALL getPresets(JNIEnv *env, jobject _obj)
 	return ret;
 }
 
-jint JNICALL getUIVisibility(JNIEnv *env, jobject _obj) {
+jint JNICALL Java_name_boyle_chris_sgtpuzzles_GamePlay_getUIVisibility(JNIEnv *env, jobject _obj) {
 	return (midend_can_undo(fe->me))
 			+ (midend_can_redo(fe->me) << 1)
 			+ (thegame->can_configure << 2)
@@ -795,14 +802,11 @@ void startPlayingInt(JNIEnv *env, jobject _obj, jobject _gameView, jstring backe
 	frontend *new_fe = snew(frontend);
 	memset(new_fe, 0, sizeof(frontend));
 	new_fe->ox = -1;
-	jstring whichBackend;
 	if (isGameID) {
-		whichBackend = backend;
 		startPlayingIntGameID(new_fe, saveOrGameID, backend);
 	} else {
-		int backendNum = deserialiseOrIdentify(new_fe, saveOrGameID, FALSE);
+		deserialiseOrIdentify(new_fe, saveOrGameID, FALSE);
 		if ((*env)->ExceptionCheck(env)) return;
-		whichBackend = (*env)->NewStringUTF(env, gamenames[backendNum]);
 	}
 
 	if (fe) {
@@ -820,12 +824,12 @@ void startPlayingInt(JNIEnv *env, jobject _obj, jobject _gameView, jstring backe
 	midend_size(fe->me, &x, &y, FALSE);
 }
 
-void JNICALL startPlaying(JNIEnv *env, jobject _obj, jobject _gameView, jstring savedGame)
+void JNICALL Java_name_boyle_chris_sgtpuzzles_GamePlay_startPlaying(JNIEnv *env, jobject _obj, jobject _gameView, jstring savedGame)
 {
 	startPlayingInt(env, _obj, _gameView, NULL, savedGame, FALSE);
 }
 
-void JNICALL startPlayingGameID(JNIEnv *env, jobject _obj, jobject _gameView, jstring backend, jstring gameID)
+void JNICALL Java_name_boyle_chris_sgtpuzzles_GamePlay_startPlayingGameID(JNIEnv *env, jobject _obj, jobject _gameView, jstring backend, jstring gameID)
 {
 	startPlayingInt(env, _obj, _gameView, backend, gameID, TRUE);
 }
@@ -877,37 +881,5 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
 	setKeys        = (*env)->GetMethodID(env, cls,  "setKeys",
 			"(Ljava/lang/String;Ljava/lang/String;Lname/boyle/chris/sgtpuzzles/SmallKeyboard$ArrowMode;)V");
 
-	JNINativeMethod methods[] = {
-		{ "keyEvent", "(III)V", keyEvent },
-		{ "resizeEvent", "(II)V", resizeEvent },
-		{ "timerTick", "()V", timerTick },
-		{ "configSetString", "(Ljava/lang/String;Ljava/lang/String;)V", configSetString },
-		{ "configSetBool", "(Ljava/lang/String;I)V", configSetBool },
-		{ "configSetChoice", "(Ljava/lang/String;I)V", configSetChoice },
-		{ "solveEvent", "()V", solveEvent },
-		{ "restartEvent", "()V", restartEvent },
-		{ "configEvent", "(I)V", configEvent },
-		{ "configOK", "()Ljava/lang/String;", configOK },
-		{ "getFullGameIDFromDialog", "()Ljava/lang/String;", getFullGameIDFromDialog },
-		{ "getFullSeedFromDialog", "()Ljava/lang/String;", getFullSeedFromDialog },
-		{ "configCancel", "()V", configCancel },
-		{ "serialise", "()V", serialise },
-		{ "htmlHelpTopic", "()Ljava/lang/String;", htmlHelpTopic },
-		{ "startPlaying", "(Lname/boyle/chris/sgtpuzzles/GameView;Ljava/lang/String;)V", startPlaying },
-		{ "startPlayingGameID", "(Lname/boyle/chris/sgtpuzzles/GameView;Ljava/lang/String;Ljava/lang/String;)V", startPlayingGameID },
-		{ "identifyBackend", "(Ljava/lang/String;)I", identifyBackend },
-		{ "getCurrentParams", "()Ljava/lang/String;", getCurrentParams },
-		{ "requestKeys", "(Ljava/lang/String;Ljava/lang/String;)V", requestKeys },
-		{ "setCursorVisibility", "(Z)V", setCursorVisibility },
-		{ "getPresets", "()[Ljava/lang/String;", getPresets },
-		{ "getUIVisibility", "()I", getUIVisibility },
-	};
-	(*env)->RegisterNatives(env, cls, methods, sizeof(methods)/sizeof(JNINativeMethod));
-	JNINativeMethod vMethods[] = {
-		{ "getColours", "()[F", getColours },
-		{ "suggestDensity", "(II)F", suggestDensity },
-	};
-	(*env)->RegisterNatives(env, vcls, vMethods, sizeof(vMethods)/sizeof(JNINativeMethod));
-
-	return JNI_VERSION_1_2;
+	return JNI_VERSION_1_6;
 }

@@ -5,6 +5,13 @@
 #ifndef PUZZLES_PUZZLES_H
 #define PUZZLES_PUZZLES_H
 
+/* Android gradle plugin is a little slow on the uptake here */
+#define ANDROID
+#define SMALL_SCREEN
+#define STYLUS_BASED
+#define NO_PRINTING
+#define COMBINED
+
 #include <stdio.h>  /* for FILE */
 #include <stdlib.h> /* for size_t */
 #include <limits.h> /* for UINT_MAX */
