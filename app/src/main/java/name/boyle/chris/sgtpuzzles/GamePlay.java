@@ -160,6 +160,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 	private final Pattern DIMENSIONS = Pattern.compile("(\\d+)( ?)x\\2(\\d+)(.*)");
 	private long lastKeySent = 0;
 	NightModeHelper nightModeHelper;
+	private Intent appStartIntentOnResume = null;
 
 	enum UIVisibility {
 		UNDO(1), REDO(2), CUSTOM(4), SOLVE(8), STATUS(16);
@@ -300,11 +301,11 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 			applyKeyboardBorders();
 		}
 		refreshStatusBarColours();
-		onNewIntent(getIntent());
 		getWindow().setBackgroundDrawable(null);
 		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH) {
 			setUpBeam();
 		}
+		appStartIntentOnResume = getIntent();
 	}
 
 	private void refreshStatusBarColours() {
@@ -1081,6 +1082,10 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 		}
 		else {
 			nightModeHelper.onResume();
+		}
+		if (appStartIntentOnResume != null) {
+			onNewIntent(appStartIntentOnResume);
+			appStartIntentOnResume = null;
 		}
 	}
 
