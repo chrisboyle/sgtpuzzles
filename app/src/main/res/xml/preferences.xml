@@ -16,6 +16,10 @@
 							android:key="bridgesShowH"
 							android:summary="@string/bridgesShowHSummary"
 							android:defaultValue="false" />
+		<CheckBoxPreference android:title="@string/unequalShowH"
+							android:key="unequalShowH"
+							android:summary="@string/unequalShowHSummary"
+							android:defaultValue="false" />
 		<!--CheckBoxPreference android:title="@string/patternShowLengths"
 							android:key="patternToastLengths"
 							android:summary="@string/patternShowLengthsSummary"

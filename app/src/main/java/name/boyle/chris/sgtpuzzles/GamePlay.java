@@ -102,6 +102,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 	static final String LIMIT_DPI_KEY = "limitDpi";
 	private static final String KEYBOARD_BORDERS_KEY = "keyboardBorders";
 	private static final String BRIDGES_SHOW_H_KEY = "bridgesShowH";
+	private static final String UNEQUAL_SHOW_H_KEY = "unequalShowH";
 	private static final String FULLSCREEN_KEY = "fullscreen";
 	private static final String STAY_AWAKE_KEY = "stayAwake";
 	private static final String UNDO_REDO_KBD_KEY = "undoRedoOnKeyboard";
@@ -1195,8 +1196,9 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 
 	private String filterKeys(final SmallKeyboard.ArrowMode arrowMode) {
 		String filtered = lastKeys;
-		if (startingBackend != null && startingBackend.equals("bridges")
-				&& !prefs.getBoolean(BRIDGES_SHOW_H_KEY, false)) {
+		if (startingBackend != null &&
+				((startingBackend.equals("bridges") && !prefs.getBoolean(BRIDGES_SHOW_H_KEY, false))
+				|| (startingBackend.equals("unequal") && !prefs.getBoolean(UNEQUAL_SHOW_H_KEY, false)))) {
 			filtered = filtered.replace("H", "");
 		}
 		if (arrowMode.hasArrows()) {
@@ -1584,8 +1586,8 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 			applyUndoRedoKbd();
 		} else if (key.equals(KEYBOARD_BORDERS_KEY)) {
 			applyKeyboardBorders();
-		} else if (key.equals(BRIDGES_SHOW_H_KEY)) {
-			applyBridgesShowH();
+		} else if (key.equals(BRIDGES_SHOW_H_KEY) || key.equals(UNEQUAL_SHOW_H_KEY)) {
+			applyShowH();
 		}
 	}
 
@@ -1696,7 +1698,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 		rethinkActionBarCapacity();
 	}
 
-	private void applyBridgesShowH() {
+	private void applyShowH() {
 		setKeyboardVisibility(startingBackend, getResources().getConfiguration());
 	}
 

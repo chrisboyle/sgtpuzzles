@@ -48,6 +48,7 @@ public class PrefsActivity extends PreferenceActivity implements OnSharedPrefere
 			final int nameId = getResources().getIdentifier("name_" + whichBackend, "string", getPackageName());
 			thisGameCategory.setTitle(nameId);
 			if (!"bridges".equals(whichBackend)) thisGameCategory.removePreference(findPreference("bridgesShowH"));
+			if (!"unequal".equals(whichBackend)) thisGameCategory.removePreference(findPreference("unequalShowH"));
 			final Preference unavailablePref = findPreference("arrowKeysUnavailable");
 			final int capabilityId = getResources().getIdentifier(
 					whichBackend + "_arrows_capable", "bool", getPackageName());
