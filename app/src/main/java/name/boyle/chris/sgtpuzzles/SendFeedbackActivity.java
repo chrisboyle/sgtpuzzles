@@ -22,13 +22,25 @@ public class SendFeedbackActivity extends Activity
 	protected void onCreate(Bundle savedInstanceState)
 	{
 		super.onCreate(savedInstanceState);
+		String reason = getIntent().getStringExtra(REASON);
 		Intent i = new Intent(Intent.ACTION_SENDTO);
-		final String emailSubject = getEmailSubject(this);
+		final SharedPreferences state = getSharedPreferences(GamePlay.STATE_PREFS_NAME, MODE_PRIVATE);
+		final String currentBackend = state.getString(GamePlay.SAVED_BACKEND, null);
+		String currentGame = "-";
+		String body = "";
+		try {
+			if (currentBackend != null) {
+				final String savedGame = state.getString(GamePlay.SAVED_GAME_PREFIX + currentBackend, null);
+				body = MessageFormat.format(getString(R.string.feedback_body), savedGame);
+				currentGame = currentBackend + " " + state.getString(GamePlay.LAST_PARAMS_PREFIX + currentGame, "-");
+			}
+		} catch (Exception ignored) {}
+		final String emailSubject = getEmailSubject(this, currentGame);
 		String uri = "mailto:" + getString(R.string.author_email) + "?subject=" + Uri.encode(emailSubject);
-		final String reason = getIntent().getStringExtra(REASON);
 		if (reason != null) {
-			uri += "&body=" + Uri.encode("Reason: " + reason + "\n\n");
+			body = "Reason: " + reason + "\n" + body;
 		}
+		i.putExtra(Intent.EXTRA_TEXT, body);
 		i.setData(Uri.parse(uri));
 		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
 			i.addFlags(Intent.FLAG_ACTIVITY_NEW_DOCUMENT);
@@ -53,21 +65,13 @@ public class SendFeedbackActivity extends Activity
 		}
 	}
 
-	static String getEmailSubject(Context c)
+	static String getEmailSubject(Context c, String currentGame)
 	{
 		String modVer = "unknown";
 		try {
 			Process p = Runtime.getRuntime().exec(new String[]{"getprop","ro.modversion"});
 			modVer = Utils.readAllOf(p.getInputStream()).trim();
 			if (modVer.length() == 0) modVer = "original";
-		} catch (Exception ignored) {}
-		String currentGame = "-";
-		try {
-			final SharedPreferences state = c.getSharedPreferences(GamePlay.STATE_PREFS_NAME, MODE_PRIVATE);
-			currentGame = state.getString(GamePlay.SAVED_BACKEND, "-");
-			if (!currentGame.equals("-")) {
-				currentGame += " " + state.getString(GamePlay.LAST_PARAMS_PREFIX + currentGame, "-");
-			}
 		} catch (Exception ignored) {}
 		return MessageFormat.format(c.getString(R.string.email_subject),
 				BuildConfig.VERSION_NAME, currentGame, Build.MODEL, modVer, Build.FINGERPRINT);

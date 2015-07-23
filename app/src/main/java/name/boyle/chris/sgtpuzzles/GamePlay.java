@@ -114,7 +114,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 	private static final String OLD_SAVED_GAME = "savedGame";
 	public static final String SAVED_BACKEND = "savedBackend";
 	private static final String SAVED_COMPLETED_PREFIX = "savedCompleted_";
-	private static final String SAVED_GAME_PREFIX = "savedGame_";
+	static final String SAVED_GAME_PREFIX = "savedGame_";
 	public static final String LAST_PARAMS_PREFIX = "last_params_";
 	private static final String PUZZLESGEN_LAST_UPDATE = "puzzlesgen_last_update";
 	private static final String BLUETOOTH_PACKAGE_PREFIX = "com.android.bluetooth";
