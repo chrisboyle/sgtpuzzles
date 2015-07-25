@@ -6,6 +6,7 @@
     <color name="keyboard_background">#ff272d30</color>
     <color name="key_background_bordered">#ff3c474c</color>
     <color name="key_background_pressed">#ff515b5f</color>
+    <color name="key_background_checked">#ff5d6f76</color>
     <color name="spinner_background">#ff272727</color>
     <color name="status_bar_text">#ff000000</color>
     <color name="night_status_bar_text">#ffffffff</color>

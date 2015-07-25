@@ -2,7 +2,7 @@
 <selector xmlns:android="http://schemas.android.com/apk/res/android" android:constantSize="true">
 	<item android:drawable="@drawable/key_background_bordered_pressed" android:state_checkable="true" android:state_checked="true" android:state_pressed="true" />
 	<item android:drawable="@drawable/key_background_bordered_pressed" android:state_checkable="true" android:state_pressed="true" />
-	<item android:drawable="@drawable/key_background_bordered_not_pressed" android:state_checkable="true" android:state_checked="true" />
+	<item android:drawable="@drawable/key_background_bordered_checked" android:state_checkable="true" android:state_checked="true" />
 	<item android:drawable="@drawable/key_background_bordered_not_pressed" android:state_checkable="true" />
 	<item android:drawable="@drawable/key_background_bordered_pressed" android:state_pressed="true" />
 	<item android:drawable="@drawable/key_background_bordered_not_pressed" />

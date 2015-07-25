@@ -17,6 +17,7 @@ import android.support.annotation.NonNull;
 import android.support.v4.content.ContextCompat;
 import android.util.AttributeSet;
 import android.util.Log;
+import android.widget.Toast;
 
 public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboardActionListener
 {
@@ -24,6 +25,8 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 	private final GamePlay parent;
 	private boolean undoEnabled = false, redoEnabled = false, followEnabled = true;
 	private String backendForIcons;
+	public static final char SWAP_L_R_KEY = '*';
+	private boolean swapLR = false;
 
 	enum ArrowMode {
 		NO_ARROWS,  // untangle
@@ -55,9 +58,10 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 		final Context context;
         private final KeyboardView keyboardView;  // for invalidateKey()
         final List<Key> mKeys;
-		int undoKey = -1, redoKey = -1, followKey = -1;
+		int undoKey = -1, redoKey = -1, primaryKey = -1, secondaryKey = -1, swapLRKey = -1;
 		boolean followEnabled = true;
 		boolean initDone = false;
+		boolean swapLR = false;
 		final String backendForIcons;
 		private static final Map<String, String> SHARED_ICONS = new LinkedHashMap<>();
 		static {
@@ -274,6 +278,12 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 					key.repeatable = true;
 					key.enabled = true;
 					break;
+				case SWAP_L_R_KEY:
+					swapLRKey = mKeys.size() - 1;
+					key.icon = ContextCompat.getDrawable(context, R.drawable.ic_action_swap_l_r);
+					key.sticky = true;
+					key.enabled = true;
+					break;
 				default:
 					trySpecificCharacterIcon(context.getResources(), key, c);
 					key.enabled = true;
@@ -368,7 +378,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 					key.edgeFlags = bottomIf2Row | EDGE_RIGHT;
 					break;
 				case '\n':
-					followKey = mKeys.size() - 1;
+					primaryKey = mKeys.size() - 1;
 					key.x = arrowsRightEdge  - (isDiagonals ? 2 : 3) * keyPlusPad;
 					key.y = arrowsBottomEdge - 2*keyPlusPad;
 					key.icon = followEnabled ? trySpecificIcon(context.getResources(), R.drawable.sym_key_mouse_left) : null;
@@ -376,6 +386,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 					key.edgeFlags = maybeTopIf2Row;
 					break;
 				case ' ': // right click
+					secondaryKey = mKeys.size() - 1;
 					key.x = arrowsRightEdge  -   keyPlusPad;
 					key.y = arrowsBottomEdge - arrowRows*keyPlusPad;
 					key.icon = trySpecificIcon(context.getResources(), R.drawable.sym_key_mouse_right);
@@ -412,6 +423,28 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 				default:
 					Log.e(TAG, "unknown key in keyboard: " + arrow);
 					break;
+				}
+			}
+		}
+
+		protected void setSwapLR(final boolean swap, final boolean fromKeyPress) {
+			if (swap != swapLR) {
+				swapLR = swap;
+				if (primaryKey != -1 && secondaryKey != -1) {
+					final Key left = getKeys().get(primaryKey);
+					final Key right = getKeys().get(secondaryKey);
+					Drawable tmp = left.icon;
+					left.icon = right.icon;
+					right.icon = tmp;
+					int[] tmpCodes = left.codes;
+					left.codes = right.codes;
+					right.codes = tmpCodes;
+					keyboardView.invalidateKey(primaryKey);
+					keyboardView.invalidateKey(secondaryKey);
+				}
+				if (!fromKeyPress && swapLRKey != -1) {
+					mKeys.get(swapLRKey).on = true;
+					keyboardView.invalidateKey(swapLRKey);
 				}
 			}
 		}
@@ -467,11 +500,11 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 
 		void setInertiaFollowEnabled(final boolean enabled) {
 			followEnabled = enabled;
-			if (followKey == -1) return;
-			final DKey k = (DKey)mKeys.get(followKey);
+			if (primaryKey == -1) return;
+			final DKey k = (DKey)mKeys.get(primaryKey);
 			k.enabled = enabled;
 			k.icon = enabled ? trySpecificIcon(context.getResources(), R.drawable.sym_key_mouse_left) : null;
-			if (initDone) keyboardView.invalidateKey(followKey);
+			if (initDone) keyboardView.invalidateKey(primaryKey);
 		}
 
 		@Override
@@ -493,13 +526,6 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 		public boolean isEmpty() {
 			return mEmpty;
 		}
-	}
-
-	public SmallKeyboard(Context c, boolean undoEnabled, boolean redoEnabled)
-	{
-		this(c, null);
-		this.undoEnabled = undoEnabled;
-		this.redoEnabled = redoEnabled;
 	}
 
     @SuppressWarnings({"SameParameterValue", "WeakerAccess"})  // used by layout
@@ -533,6 +559,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 		final KeyboardModel model = new KeyboardModel(getContext(), this, isInEditMode(), lastKeys,
 				arrowMode, landscape, maxPx, undoEnabled, redoEnabled, followEnabled, backendForIcons);
 		setKeyboard(model);
+		model.setSwapLR(swapLR, false);
 		if (model.isEmpty()) {
 			setMeasuredDimension(0, 0);
 		} else {
@@ -565,6 +592,13 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 		m.setInertiaFollowEnabled(enabled);
 	}
 
+	void setSwapLR(final boolean swap) {
+		swapLR = swap;
+		KeyboardModel m = (KeyboardModel)getKeyboard();
+		if (m == null) return;
+		m.setSwapLR(swap, false);
+	}
+
 	public void swipeUp() {}
 	public void swipeDown() {}
 	public void swipeLeft() {}
@@ -574,5 +608,15 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 	public void onText(CharSequence s) {
 		for (int i=0; i<s.length();i++) parent.sendKey(0,0,s.charAt(i));
 	}
-	public void onKey(int k,int[] ignore) { parent.sendKey(0,0,k); }
+	public void onKey(int k, int[] ignore) {
+		if (k == '*') {
+			final SmallKeyboard.KeyboardModel model = (KeyboardModel) getKeyboard();
+			final Keyboard.Key key = model.getKeys().get(model.swapLRKey);
+			model.setSwapLR(key.on, true);
+			parent.setSwapLR(key.on);
+			Toast.makeText(getContext(), key.on ? R.string.toast_swap_l_r_on : R.string.toast_swap_l_r_off, Toast.LENGTH_SHORT).show();
+		} else {
+			parent.sendKey(0,0,k);
+		}
+	}
 }

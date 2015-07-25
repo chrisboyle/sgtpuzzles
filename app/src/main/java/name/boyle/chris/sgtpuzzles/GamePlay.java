@@ -116,6 +116,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 	private static final String SAVED_COMPLETED_PREFIX = "savedCompleted_";
 	static final String SAVED_GAME_PREFIX = "savedGame_";
 	public static final String LAST_PARAMS_PREFIX = "last_params_";
+	public static final String SWAP_L_R_PREFIX = "swap_l_r_";
 	private static final String PUZZLESGEN_LAST_UPDATE = "puzzlesgen_last_update";
 	private static final String BLUETOOTH_PACKAGE_PREFIX = "com.android.bluetooth";
 	private static final int REQ_CODE_CREATE_DOC = Activity.RESULT_FIRST_USER;
@@ -161,6 +162,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 	private long lastKeySent = 0;
 	NightModeHelper nightModeHelper;
 	private Intent appStartIntentOnResume = null;
+	private boolean swapLR = false;
 
 	enum UIVisibility {
 		UNDO(1), REDO(2), CUSTOM(4), SOLVE(8), STATUS(16);
@@ -1105,6 +1107,12 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 					TIMER_INTERVAL);
 	}
 
+	@SuppressLint("CommitPrefEdits")
+	public void setSwapLR(boolean swap) {
+		swapLR = swap;
+		prefsSaver.save(prefs.edit().putBoolean(SWAP_L_R_PREFIX + currentBackend, swap));
+	}
+
 	void sendKey(PointF p, int k)
 	{
 		sendKey(Math.round(p.x), Math.round(p.y), k);
@@ -1117,6 +1125,14 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 			// menu button hack
 			openOptionsMenu();
 			return;
+		}
+		if (swapLR && (k >= GameView.FIRST_MOUSE && k <= GameView.LAST_MOUSE)) {
+			final int whichButton = (k - GameView.FIRST_MOUSE) % 3;
+			if (whichButton == 0) {
+				k += 2;  // left; send right
+			} else if (whichButton == 2) {
+				k -= 2;  // right; send left
+			}
 		}
 		keyEvent(x, y, k);
 		gameView.requestFocus();
@@ -1168,8 +1184,14 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 			mainLayout.updateViewLayout(gameView, glp);
 		}
 		final SmallKeyboard.ArrowMode arrowMode = computeArrowMode(whichBackend);
+		final String maybeSwapLRKey = (lastArrowMode == SmallKeyboard.ArrowMode.ARROWS_LEFT_RIGHT_CLICK)
+				? String.valueOf(SmallKeyboard.SWAP_L_R_KEY) : "";
 		keyboard.setKeys((c.hardKeyboardHidden == Configuration.HARDKEYBOARDHIDDEN_NO)
-				? maybeUndoRedo : filterKeys(arrowMode) + maybeUndoRedo, arrowMode, whichBackend);
+				? maybeSwapLRKey + maybeUndoRedo
+				: filterKeys(arrowMode) + maybeSwapLRKey + maybeUndoRedo,
+				arrowMode, whichBackend);
+		swapLR = prefs.getBoolean(SWAP_L_R_PREFIX + whichBackend, false);
+		keyboard.setSwapLR(swapLR);
 		prevLandscape = landscape;
 		mainLayout.requestLayout();
 	}

@@ -62,14 +62,20 @@ public class GameView extends View
 	private boolean waitingSpace = false;
 	private PointF touchStart;
 	private final double maxDistSq;
-	private static final int
-			LEFT_BUTTON = 0x0200, MIDDLE_BUTTON = 0x201, RIGHT_BUTTON = 0x202,
-			LEFT_DRAG = 0x203, //MIDDLE_DRAG = 0x204, RIGHT_DRAG = 0x205,
-			LEFT_RELEASE = 0x206, MOD_CTRL = 0x1000,
-			MOD_SHIFT = 0x2000, ALIGN_V_CENTRE = 0x100,
-			ALIGN_H_CENTRE = 0x001, ALIGN_H_RIGHT = 0x002, TEXT_MONO = 0x10,
-			DRAG = LEFT_DRAG - LEFT_BUTTON,  // not bit fields, but there's a pattern
-			RELEASE = LEFT_RELEASE - LEFT_BUTTON;
+	private static final int LEFT_BUTTON = 0x0200;
+	private static final int MIDDLE_BUTTON = 0x201;
+	private static final int RIGHT_BUTTON = 0x202;
+	private static final int LEFT_DRAG = 0x203; //MIDDLE_DRAG = 0x204, RIGHT_DRAG = 0x205,
+			private static final int LEFT_RELEASE = 0x206;
+	static final int FIRST_MOUSE = LEFT_BUTTON, LAST_MOUSE = 0x208;
+	private static final int MOD_CTRL = 0x1000;
+	private static final int MOD_SHIFT = 0x2000;
+	private static final int ALIGN_V_CENTRE = 0x100;
+	private static final int ALIGN_H_CENTRE = 0x001;
+	private static final int ALIGN_H_RIGHT = 0x002;
+	private static final int TEXT_MONO = 0x10;
+	private static final int DRAG = LEFT_DRAG - LEFT_BUTTON;  // not bit fields, but there's a pattern
+			private static final int RELEASE = LEFT_RELEASE - LEFT_BUTTON;
 	static final int CURSOR_UP = 0x209, CURSOR_DOWN = 0x20a,
 			CURSOR_LEFT = 0x20b, CURSOR_RIGHT = 0x20c, MOD_NUM_KEYPAD = 0x4000;
 	int keysHandled = 0;  // debug

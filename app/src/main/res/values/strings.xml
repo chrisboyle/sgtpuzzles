@@ -40,6 +40,8 @@ Version %s"</string>
 "</string>
     <string name="unknown_version">UNKNOWN</string>
     <string name="how_to_scroll">Scroll with two fingers apart</string>
+    <string name="toast_swap_l_r_on">Swapped press &amp; long-press</string>
+    <string name="toast_swap_l_r_off">Press &amp; long-press are no longer swapped</string>
     <!-- {0} = version, {1} = device model number -->
     <string name="email_subject">Puzzles v{0} {1} on {2} / {3} / {4}</string>
     <string name="no_email_app">No email app?</string>
