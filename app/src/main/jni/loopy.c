@@ -878,7 +878,7 @@ static void game_compute_size(const game_params *params, int tilesize,
 }
 
 #ifdef CURSOR_IS_VISIBLE
-#define BLITTER_HSZ ((ds->tilesize)/8)
+#define BLITTER_HSZ ((ds->tilesize)/8+1)
 #define BLITTER_SZ (2*(BLITTER_HSZ)+1)
 
 #define CUR_HSZ 1
@@ -3443,8 +3443,8 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
         ds->cur_bl_y = cy - BLITTER_HSZ;
         blitter_save(dr, ds->cur_bl, ds->cur_bl_x, ds->cur_bl_y);
 
-        draw_rect(dr, ds->cur_bl_x, cy-CUR_HSZ, BLITTER_SZ, CUR_SZ, COL_CURSOR);
-        draw_rect(dr, cx-CUR_HSZ, ds->cur_bl_y, CUR_SZ, BLITTER_SZ, COL_CURSOR);
+        draw_rect(dr, ds->cur_bl_x + 1, cy-CUR_HSZ, BLITTER_SZ - 2, CUR_SZ, COL_CURSOR);
+        draw_rect(dr, cx-CUR_HSZ, ds->cur_bl_y + 1, CUR_SZ, BLITTER_SZ - 2, COL_CURSOR);
 
         draw_update(dr, ds->cur_bl_x, ds->cur_bl_y, BLITTER_SZ, BLITTER_SZ);
     }
