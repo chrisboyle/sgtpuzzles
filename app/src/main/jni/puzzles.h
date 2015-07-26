@@ -5,12 +5,20 @@
 #ifndef PUZZLES_PUZZLES_H
 #define PUZZLES_PUZZLES_H
 
-#ifdef STUDIO_1_3
 /* Android gradle plugin is a little slow on the uptake here */
+#ifndef ANDROID
 #define ANDROID
+#endif
+#ifndef SMALL_SCREEN
 #define SMALL_SCREEN
+#endif
+#ifndef STYLUS_BASED
 #define STYLUS_BASED
+#endif
+#ifndef NO_PRINTING
 #define NO_PRINTING
+#endif
+#ifndef COMBINED
 #define COMBINED
 #endif
 
