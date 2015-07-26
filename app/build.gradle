@@ -126,7 +126,7 @@ android.applicationVariants.all{ variant ->
             'NDK_DEBUG=' + (variant.ndkCompile.debuggable ? '1' : '0')]
         exec {
             commandLine common + [
-                    'APP_PLATFORM=android-5',  // 5 is earliest for x86 + mips, next is 8
+                    'APP_PLATFORM=android-9',  // 9 is earliest for x86 + mips
                     'PUZZLESGEN_SUFFIX=-no-pie',
                     'APP_PIE=false']
         }
