@@ -1,8 +1,17 @@
 #ifdef EXECUTABLE
 #include <stdio.h>
+#include <string.h>
 #include "puzzles.h"
 
 #define USAGE "Usage: puzzles-gen gamename [params | --seed seed | --desc desc]\n"
+
+/* https://github.com/chrisboyle/sgtpuzzles/issues/298 */
+char *
+stpcpy(char *dst, char const *src)
+{
+	size_t src_len = strlen(src);
+	return memcpy(dst, src, src_len) + src_len;
+}
 
 struct frontend {
 	midend *me;

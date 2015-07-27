@@ -872,6 +872,7 @@
       <w>stdin</w>
       <w>stdout</w>
       <w>stimate</w>
+      <w>stpcpy</w>
       <w>strcat</w>
       <w>strchr</w>
       <w>strcmp</w>
