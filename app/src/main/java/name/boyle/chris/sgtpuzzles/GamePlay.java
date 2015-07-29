@@ -1337,8 +1337,10 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 
 	private void completedInternal() {
 		everCompleted = true;
+		final boolean copyStatusBar = "mines".equals(currentBackend) || "flood".equals(currentBackend);
+		final CharSequence titleText = copyStatusBar ? statusBar.getText() : getString(R.string.COMPLETED);
 		if (! prefs.getBoolean(COMPLETED_PROMPT_KEY, true)) {
-			Toast.makeText(GamePlay.this, getString(R.string.COMPLETED), Toast.LENGTH_SHORT).show();
+			Toast.makeText(GamePlay.this, titleText, Toast.LENGTH_SHORT).show();
 			return;
 		}
 		final Dialog d = new Dialog(this, R.style.Dialog_Completed);
@@ -1347,7 +1349,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 		d.getWindow().setAttributes(lp);
 		d.setContentView(R.layout.completed);
 		final TextView title = (TextView) d.findViewById(R.id.completedTitle);
-		title.setText("mines".equals(currentBackend) ? statusBar.getText() : getString(R.string.COMPLETED));
+		title.setText(titleText);
 		d.setCanceledOnTouchOutside(true);
 		final Button newButton = (Button) d.findViewById(R.id.newgame);
 		darkenTopDrawable(newButton);
