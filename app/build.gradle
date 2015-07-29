@@ -38,7 +38,7 @@ android {
 
     defaultConfig {
         applicationId "name.boyle.chris.sgtpuzzles"
-        versionCode 106
+        versionCode 107
         versionName "${timestamp()}-${idForSimon()}"
 
         if (file(ndkDir.absolutePath + '/platforms/android-15').exists()) {  // the last without PIE
