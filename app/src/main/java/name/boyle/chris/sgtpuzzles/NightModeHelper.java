@@ -9,7 +9,6 @@ import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Handler;
 import android.preference.PreferenceManager;
-import android.widget.Toast;
 
 import name.boyle.chris.sgtpuzzles.compat.PrefsSaver;
 
@@ -93,21 +92,15 @@ public class NightModeHelper implements SensorEventListener, SharedPreferences.O
 		}
 	}
 
-	@SuppressLint("CommitPrefEdits")
 	private final Runnable stayedDark = new Runnable() {
 		@Override
 		public void run() {
 			if (darkNowSmoothed) return;
 			darkNowSmoothed = true;
 			parent.refreshNightNow(isNight(), true);
-			long seen = state.getLong(SEEN_NIGHT_MODE, 0);
-			if (seen < 3 && state.getLong(SEEN_NIGHT_MODE_SETTING, 0) < 1) {
-				Toast.makeText(context, R.string.night_mode_hint, Toast.LENGTH_SHORT).show();
+			if (state.getLong(SEEN_NIGHT_MODE_SETTING, 0) < 1) {
+				Utils.toastFirstFewTimes(context, state, prefsSaver, SEEN_NIGHT_MODE, 3, R.string.night_mode_hint);
 			}
-			seen++;
-			SharedPreferences.Editor ed = state.edit();
-			ed.putLong(SEEN_NIGHT_MODE, seen);
-			prefsSaver.save(ed);
 		}
 	};
 

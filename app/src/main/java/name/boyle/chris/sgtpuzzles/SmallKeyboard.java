@@ -7,6 +7,7 @@ import java.util.Map;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.graphics.Canvas;
@@ -17,16 +18,20 @@ import android.support.annotation.NonNull;
 import android.support.v4.content.ContextCompat;
 import android.util.AttributeSet;
 import android.util.Log;
-import android.widget.Toast;
+
+import name.boyle.chris.sgtpuzzles.compat.PrefsSaver;
 
 public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboardActionListener
 {
 	private static final String TAG = "SmallKeyboard";
+	private static final String SEEN_SWAP_L_R_TOAST = "seenSwapLRToast";
 	private final GamePlay parent;
 	private boolean undoEnabled = false, redoEnabled = false, followEnabled = true;
 	private String backendForIcons;
 	public static final char SWAP_L_R_KEY = '*';
 	private boolean swapLR = false;
+	private final SharedPreferences state;
+	private final PrefsSaver prefsSaver;
 
 	enum ArrowMode {
 		NO_ARROWS,  // untangle
@@ -536,6 +541,8 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 		setOnKeyboardActionListener(this);
 		if (isInEditMode()) setKeys("123456\bur", ArrowMode.ARROWS_LEFT_RIGHT_CLICK, "");
 		setPreviewEnabled(false);  // can't get icon buttons to darken properly and there are positioning bugs anyway
+		state = c.getSharedPreferences(GamePlay.STATE_PREFS_NAME, Context.MODE_PRIVATE);
+		prefsSaver = PrefsSaver.get(c);
 	}
 
 	private CharSequence lastKeys = "";
@@ -614,7 +621,8 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 			final Keyboard.Key key = model.getKeys().get(model.swapLRKey);
 			model.setSwapLR(key.on, true);
 			parent.setSwapLR(key.on);
-			Toast.makeText(getContext(), key.on ? R.string.toast_swap_l_r_on : R.string.toast_swap_l_r_off, Toast.LENGTH_SHORT).show();
+			Utils.toastFirstFewTimes(getContext(), state, prefsSaver, SEEN_SWAP_L_R_TOAST, 4,
+					key.on ? R.string.toast_swap_l_r_on : R.string.toast_swap_l_r_off);
 		} else {
 			parent.sendKey(0,0,k);
 		}

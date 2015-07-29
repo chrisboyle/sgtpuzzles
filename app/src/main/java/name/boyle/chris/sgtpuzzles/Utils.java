@@ -1,8 +1,12 @@
 package name.boyle.chris.sgtpuzzles;
 
+import android.annotation.SuppressLint;
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.Build;
 import android.support.annotation.Nullable;
 import android.util.Log;
+import android.widget.Toast;
 
 import java.io.BufferedReader;
 import java.io.Closeable;
@@ -14,6 +18,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
+
+import name.boyle.chris.sgtpuzzles.compat.PrefsSaver;
 
 abstract class Utils {
 
@@ -83,5 +89,17 @@ abstract class Utils {
 		} finally {
 			process.destroy();
 		}
+	}
+
+	@SuppressLint("CommitPrefEdits")
+	static void toastFirstFewTimes(Context context, SharedPreferences state, PrefsSaver prefsSaver, String prefID, int showCount, int messageID) {
+		long seen = state.getLong(prefID, 0);
+		if (seen < showCount) {
+			Toast.makeText(context, messageID, Toast.LENGTH_SHORT).show();
+		}
+		seen++;
+		SharedPreferences.Editor ed = state.edit();
+		ed.putLong(prefID, seen);
+		prefsSaver.save(ed);
 	}
 }
