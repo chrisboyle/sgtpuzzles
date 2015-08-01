@@ -608,7 +608,7 @@ static void win_draw_text(void *handle, int x, int y, int fonttype,
 	HFONT oldfont;
 	TEXTMETRIC tm;
 	SIZE size;
-	TCHAR wText[256];
+	WCHAR wText[256];
 	MultiByteToWideChar (CP_UTF8, 0, text, -1, wText, 256);
 
 	oldfont = SelectObject(fe->hdc, fe->fonts[i].font);
