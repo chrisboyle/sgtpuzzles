@@ -1886,6 +1886,7 @@ static void draw_num(drawing *dr, game_drawstate *ds, int x, int y)
 
 static void draw_hints(drawing *dr, game_drawstate *ds, int x, int y)
 {
+    int fixed_hints = TRUE;
     int ox = COORD(x), oy = COORD(y);
     int nhints, i, j, hw, hh, hmax, fontsz;
     char str[2];
@@ -1895,7 +1896,7 @@ static void draw_hints(drawing *dr, game_drawstate *ds, int x, int y)
     /* Draw hints; steal ingenious algorithm (basically)
      * from solo.c:draw_number() */
     for (i = nhints = 0; i < ds->order; i++) {
-        if (HINT(ds, x, y, i)) nhints++;
+        if (fixed_hints || HINT(ds, x, y, i)) nhints++;
     }
 
     for (hw = 1; hw * hw < nhints; hw++);
@@ -1916,6 +1917,8 @@ static void draw_hints(drawing *dr, game_drawstate *ds, int x, int y)
                       oy + (4*hy+3) * TILE_SIZE / (4*hh+2),
                       FONT_VARIABLE, fontsz,
                       ALIGN_VCENTRE | ALIGN_HCENTRE, COL_PENCIL, str);
+            j++;
+        } else if (fixed_hints) {
             j++;
         }
     }
