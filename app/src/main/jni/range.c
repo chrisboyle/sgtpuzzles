@@ -1264,7 +1264,7 @@ struct game_drawstate {
 };
 
 #define TILESIZE (ds->tilesize)
-#define BORDER (TILESIZE / 2)
+#define BORDER (1)
 #define COORD(x) ((x) * TILESIZE + BORDER)
 #define FROMCOORD(x) (((x) - BORDER) / TILESIZE)
 

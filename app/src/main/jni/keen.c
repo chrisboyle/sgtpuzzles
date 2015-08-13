@@ -1497,7 +1497,7 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
 
 #define PREFERRED_TILESIZE 48
 #define TILESIZE (ds->tilesize)
-#define BORDER (TILESIZE / 2)
+#define BORDER (1)
 #define GRIDEXTRA max((TILESIZE / 32),1)
 #define COORD(x) ((x)*TILESIZE + BORDER)
 #define FROMCOORD(x) (((x)+(TILESIZE-BORDER)) / TILESIZE - 1)

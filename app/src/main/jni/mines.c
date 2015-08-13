@@ -30,9 +30,9 @@ enum {
 #define PREFERRED_TILE_SIZE 20
 #define TILE_SIZE (ds->tilesize)
 #ifdef SMALL_SCREEN
-#define BORDER 8
+#define BORDER 1
 #else
-#define BORDER (TILE_SIZE * 3 / 2)
+#define BORDER (TILE_SIZE / 2)
 #endif
 #define HIGHLIGHT_WIDTH (TILE_SIZE / 10)
 #define OUTER_HIGHLIGHT_WIDTH (BORDER / 10)

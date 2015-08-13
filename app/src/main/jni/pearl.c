@@ -1811,7 +1811,7 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
 #define HALFSZ (ds->halfsz)
 #define TILE_SIZE (ds->halfsz*2 + 1)
 
-#define BORDER ((get_gui_style() == GUI_LOOPY) ? (TILE_SIZE/8) : (TILE_SIZE/2))
+#define BORDER ((get_gui_style() == GUI_LOOPY) ? (TILE_SIZE/8) : (2))
 
 #define BORDER_WIDTH (max(TILE_SIZE / 32, 1))
 
