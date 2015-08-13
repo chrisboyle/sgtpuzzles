@@ -80,6 +80,7 @@ struct game_state {
     digit *nums;                 /* actual numbers (size order^2) */
     unsigned char *hints;        /* remaining possiblities (size order^3) */
     unsigned int *flags;         /* flags (size order^2) */
+    int highlighted_number;      /* highlighting this number in every square and pencil marks */
 };
 
 /* ----------------------------------------------------------
@@ -286,6 +287,8 @@ static game_state *blank_game(int order, int adjacent)
     memset(state->hints, 0, o3);
     memset(state->flags, 0, o2 * sizeof(unsigned int));
 
+    state->highlighted_number = 0;
+
     return state;
 }
 
@@ -297,6 +300,8 @@ static game_state *dup_game(const game_state *state)
     memcpy(ret->nums, state->nums, o2 * sizeof(digit));
     memcpy(ret->hints, state->hints, o3);
     memcpy(ret->flags, state->flags, o2 * sizeof(unsigned int));
+
+    ret->highlighted_number = state->highlighted_number;
 
     return ret;
 }
@@ -1413,6 +1418,7 @@ struct game_drawstate {
 
     int hx, hy, hshow, hpencil; /* as for game_ui. */
     int hflash;
+    int highlighted_number;
 };
 
 static char *interpret_move(const game_state *state, game_ui *ui,
@@ -1531,6 +1537,15 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         return dupstr(buf);
     } while(0);
 
+    n = c2n(button, state->order);
+    if (!ui->hshow && n > 0) {
+        if (state->highlighted_number == n) { // toggle highlight
+            n = 0;
+        }
+        sprintf(buf, "V%d", n);
+        return dupstr(buf);
+    }
+
     if (button == 'h')
         return dupstr("H");
     if (button == 'm')
@@ -1562,6 +1577,7 @@ static game_state *execute_move(const game_state *state, const char *move)
             if (!ret->completed && check_complete(ret->nums, ret, 1) > 0)
                 ret->completed = TRUE;
         }
+        ret->highlighted_number = n;
         return ret;
     } else if (move[0] == 'S') {
         const char *p;
@@ -1593,6 +1609,10 @@ static game_state *execute_move(const game_state *state, const char *move)
         return ret;
     } else if (move[0] == 'H') {
         return solver_hint(state, NULL, DIFF_EASY, DIFF_EASY);
+    } else if (move[0] == 'V' && sscanf(move+1, "%d", &n) == 1 && n >= 0 && n <= state->order) {
+        ret = dup_game(state);
+        ret->highlighted_number = n;
+        return ret;
     }
 
 badmove:
@@ -1670,6 +1690,7 @@ static game_drawstate *game_new_drawstate(drawing *dr, const game_state *state)
 
     ds->hx = ds->hy = 0;
     ds->started = ds->hshow = ds->hpencil = ds->hflash = 0;
+    ds->highlighted_number = 0;
 
     return ds;
 }
@@ -1816,21 +1837,23 @@ static void draw_num(drawing *dr, game_drawstate *ds, int x, int y)
     int ox = COORD(x), oy = COORD(y);
     unsigned int f = GRID(ds,flags,x,y);
     char str[2];
+    int n;
 
     /* (can assume square has just been cleared) */
 
     /* Draw number, choosing appropriate colour */
-    str[0] = n2c(GRID(ds, nums, x, y), ds->order);
+    n = GRID(ds, nums, x, y);
+    str[0] = n2c(n, ds->order);
     str[1] = '\0';
     draw_text(dr, ox + TILE_SIZE/2, oy + TILE_SIZE/2,
               FONT_VARIABLE, 3*TILE_SIZE/4, ALIGN_VCENTRE | ALIGN_HCENTRE,
-              (f & F_IMMUTABLE) ? COL_TEXT : (f & F_ERROR) ? COL_ERROR : COL_GUESS, str);
+              (f & F_IMMUTABLE) ? COL_TEXT : ((f & F_ERROR) || n == ds->highlighted_number) ? COL_ERROR : COL_GUESS, str);
 }
 
 static void draw_hints(drawing *dr, game_drawstate *ds, int x, int y)
 {
     int ox = COORD(x), oy = COORD(y);
-    int nhints, i, j, hw, hh, hmax, fontsz;
+    int nhints, i, j, hw, hh, hmax, fontsz, colour;
     char str[2];
 
     /* (can assume square has just been cleared) */
@@ -1854,11 +1877,18 @@ static void draw_hints(drawing *dr, game_drawstate *ds, int x, int y)
 
             str[0] = n2c(i+1, ds->order);
             str[1] = '\0';
+            if (ds->highlighted_number == i+1) {
+                colour = COL_ERROR;
+            } else if (ds->highlighted_number > 0) {
+                colour = COL_LOWLIGHT;
+            } else {
+                colour = COL_PENCIL;
+            }
             draw_text(dr,
                       ox + (4*hx+3) * TILE_SIZE / (4*hw+2),
                       oy + (4*hy+3) * TILE_SIZE / (4*hh+2),
                       FONT_VARIABLE, fontsz,
-                      ALIGN_VCENTRE | ALIGN_HCENTRE, COL_PENCIL, str);
+                      ALIGN_VCENTRE | ALIGN_HCENTRE, colour, str);
             j++;
         }
     }
@@ -1869,7 +1899,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
                         int dir, const game_ui *ui,
                         float animtime, float flashtime)
 {
-    int x, y, i, hchanged = 0, stale, hflash = 0;
+    int x, y, i, hchanged = 0, stale, hflash = 0, highlighted_number_changed = 0;
 
     debug(("highlight old (%d,%d), new (%d,%d)", ds->hx, ds->hy, ui->hx, ui->hy));
 
@@ -1885,11 +1915,18 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
         ds->hshow != ui->hshow || ds->hpencil != ui->hpencil)
         hchanged = 1;
 
+    if (ds->highlighted_number != state->highlighted_number) {
+        ds->highlighted_number = state->highlighted_number;
+        highlighted_number_changed = 1;
+    }
+
     for (x = 0; x < ds->order; x++) {
         for (y = 0; y < ds->order; y++) {
             if (!ds->started)
                 stale = 1;
             else if (hflash != ds->hflash)
+                stale = 1;
+            else if (highlighted_number_changed)
                 stale = 1;
             else
                 stale = 0;
