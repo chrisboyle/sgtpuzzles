@@ -333,6 +333,7 @@ function initPuzzle() {
             resize_xbase = null;
             resize_ybase = null;
             onscreen_canvas.focus(); // return focus to the puzzle
+            event.preventDefault();
         } else if (restore_pending) {
             // If you have the puzzle at larger than normal size and
             // then right-click to restore, I haven't found any way to
@@ -345,8 +346,8 @@ function initPuzzle() {
                 restore_puzzle_size();
                 onscreen_canvas.focus();
             }, 20);
+            event.preventDefault();
         }
-        event.preventDefault();
     });
 
     // Run the C setup function, passing argv[1] as the fragment
