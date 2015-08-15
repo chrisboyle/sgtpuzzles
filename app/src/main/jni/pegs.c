@@ -814,7 +814,7 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
 
 #define PREFERRED_TILE_SIZE 33
 #define TILESIZE (ds->tilesize)
-#define BORDER (TILESIZE / 2)
+#define BORDER (1)
 
 #define HIGHLIGHT_WIDTH (TILESIZE / 16)
 

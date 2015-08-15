@@ -299,7 +299,7 @@ static grid *loopy_generate_grid(const game_params *params,
 
 /* General constants */
 #define PREFERRED_TILE_SIZE 32
-#define BORDER(tilesize) ((tilesize) / 2)
+#define BORDER(tilesize) (2)
 #define FLASH_TIME 0.5F
 
 #define BIT_SET(field, bit) ((field) & (1<<(bit)))
