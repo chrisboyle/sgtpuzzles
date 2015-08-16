@@ -133,6 +133,7 @@
 	<color name="magnets_night_colour_text">#ffffff</color>
 	<color name="magnets_night_colour_negative">#ffffff</color>
 	<color name="map_night_colour_grid">#888888</color>
+	<color name="map_night_colour_text_on_filled">#000000</color>
 	<color name="mines_night_colour_background2">#999999</color>
 	<color name="mines_night_colour_flagbase">#888888</color>
 	<color name="mines_night_colour_query">#888888</color>

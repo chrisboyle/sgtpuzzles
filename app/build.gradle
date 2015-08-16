@@ -56,7 +56,7 @@ android {
 
         ndk {
             moduleName "puzzles"
-            cFlags "-DANDROID -DSMALL_SCREEN -DSTYLUS_BASED -DNO_PRINTING -DCOMBINED"
+            cFlags "-DANDROID -DSMALL_SCREEN -DSTYLUS_BASED -DNO_PRINTING -DCOMBINED -DVIVID_COLOURS"
             // WARNING abiFilters "all" here can end up omitting lib dir; I don't know why
         }
         fileTree(dir: 'src/main/jni', include: '*.c').each {File f ->

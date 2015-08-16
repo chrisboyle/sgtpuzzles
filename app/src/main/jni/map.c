@@ -72,6 +72,7 @@ enum {
     COL_GRID,
     COL_0, COL_1, COL_2, COL_3,
     COL_ERROR, COL_ERRTEXT,
+    COL_TEXT_ON_FILLED,
     NCOLOURS
 };
 
@@ -2637,10 +2638,11 @@ static void game_set_size(drawing *dr, game_drawstate *ds,
 const float map_colours[FOUR][3] = {
 #ifdef VIVID_COLOURS
     /* Use more vivid colours (e.g. on the Pocket PC) */
-    {0.75F, 0.25F, 0.25F},
-    {0.3F,  0.7F,  0.3F},
-    {0.3F,  0.3F,  0.7F},
-    {0.85F, 0.85F, 0.1F},
+    /* cmb: modified for colour-blindness with http://www.color-blindness.com/coblis-color-blindness-simulator/ */
+    {0.627F, 0.157F, 0.133F},
+    {0.290F, 0.698F, 0.290F},
+    {0.322F, 0.690F, 0.788F},
+    {0.710F, 0.698F, 0.098F},
 #else
     {0.7F, 0.5F, 0.4F},
     {0.8F, 0.7F, 0.4F},
@@ -2661,6 +2663,10 @@ static float *game_colours(frontend *fe, int *ncolours)
     ret[COL_GRID * 3 + 0] = 0.0F;
     ret[COL_GRID * 3 + 1] = 0.0F;
     ret[COL_GRID * 3 + 2] = 0.0F;
+
+    ret[COL_TEXT_ON_FILLED * 3 + 0] = 0.0F;
+    ret[COL_TEXT_ON_FILLED * 3 + 1] = 0.0F;
+    ret[COL_TEXT_ON_FILLED * 3 + 2] = 0.0F;
 
     memcpy(ret + COL_0 * 3, map_colours[0], 3 * sizeof(float));
     memcpy(ret + COL_1 * 3, map_colours[1], 3 * sizeof(float));
@@ -2872,7 +2878,7 @@ static void draw_square(drawing *dr, game_drawstate *ds,
                           (COORD(y)*2+TILESIZE*yo)/2,
                           FONT_VARIABLE, sz,
                           ALIGN_HCENTRE|ALIGN_VCENTRE,
-                          COL_GRID, buf);
+                          (tv == FOUR) ? COL_GRID : COL_TEXT_ON_FILLED, buf);
             }
         }
     }
