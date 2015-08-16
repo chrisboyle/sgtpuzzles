@@ -204,8 +204,8 @@ Version %s"</string>
     <string name="desc_magnets">Place magnets and blanks to satisfy the +/- counts and avoid magnets repelling.</string>
     <string name="desc_map">Copy the 4 colours to colour the map with no regions of the same colour touching.</string>
     <string name="desc_mines">Uncover all squares except the mines using the given counts of adjacent mines. *N.B.* Game is generated after first move; you may see \"not responding\" warnings.</string>
-    <string name="desc_net">Rotate tiles to connect all tiles to the centre tile.</string>
-    <string name="desc_netslide">Slide rows and columns to connect all tiles to the centre tile.</string>
+    <string name="desc_net">Rotate tiles to connect all tiles (not just endpoints) to the centre tile.</string>
+    <string name="desc_netslide">Slide rows and columns to connect all tiles (not just endpoints) to the centre tile.</string>
     <string name="desc_pattern">Fill the grid so that the numbers are the length of each stretch of black tiles in order.</string>
     <string name="desc_pearl">Draw a single loop with corners on black, before/after white, and not vice versa.</string>
     <string name="desc_pegs">Remove pegs by jumping others over them, until only one is left.</string>
