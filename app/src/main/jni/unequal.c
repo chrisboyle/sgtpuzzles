@@ -48,7 +48,7 @@
 #define HINT(p,x,y,n) GRID3(p, hints, x, y, n)
 
 enum {
-    COL_BACKGROUND,
+    COL_BACKGROUND, COL_BACKGROUND_HIGHLIGHTED_NUMBER, COL_BACKGROUND_HIGHLIGHTED_PENCIL,
     COL_GRID,
     COL_TEXT, COL_GUESS, COL_ERROR, COL_PENCIL,
     COL_HIGHLIGHT, COL_LOWLIGHT,
@@ -1668,6 +1668,14 @@ static float *game_colours(frontend *fe, int *ncolours)
     ret[COL_PENCIL * 3 + 1] = 0.5F * ret[COL_BACKGROUND * 3 + 1];
     ret[COL_PENCIL * 3 + 2] = ret[COL_BACKGROUND * 3 + 2];
 
+    ret[COL_BACKGROUND_HIGHLIGHTED_NUMBER * 3 + 0] = 0.85F;
+    ret[COL_BACKGROUND_HIGHLIGHTED_NUMBER * 3 + 1] = 1.0F;
+    ret[COL_BACKGROUND_HIGHLIGHTED_NUMBER * 3 + 2] = 0.85F;
+
+    ret[COL_BACKGROUND_HIGHLIGHTED_PENCIL * 3 + 0] = 1.0F;
+    ret[COL_BACKGROUND_HIGHLIGHTED_PENCIL * 3 + 1] = 0.8F;
+    ret[COL_BACKGROUND_HIGHLIGHTED_PENCIL * 3 + 2] = 0.8F;
+
     *ncolours = NCOLOURS;
     return ret;
 }
@@ -1800,7 +1808,18 @@ static void draw_furniture(drawing *dr, game_drawstate *ds,
     int ox = COORD(x), oy = COORD(y), bg, hon;
     unsigned int f = GRID(state, flags, x, y);
 
-    bg = hflash ? COL_HIGHLIGHT : COL_BACKGROUND;
+    bg = COL_BACKGROUND;
+    if (hflash) {
+        bg = COL_HIGHLIGHT;
+    } else if (ds->highlighted_number > 0) {
+        if (GRID(ds, nums, x, y) > 0) { // there is a number in the cell
+            if (GRID(ds, nums, x, y) == ds->highlighted_number) { // number is the same as the highlighted number
+                bg = COL_BACKGROUND_HIGHLIGHTED_NUMBER;
+            }
+        } else if (HINT(ds, x, y, ds->highlighted_number - 1)) { // there is a pencil mark with the highlighted number
+            bg = COL_BACKGROUND_HIGHLIGHTED_PENCIL;
+        }
+    }
 
     hon = (ui->hshow && x == ui->hx && y == ui->hy);
 
@@ -1837,23 +1856,21 @@ static void draw_num(drawing *dr, game_drawstate *ds, int x, int y)
     int ox = COORD(x), oy = COORD(y);
     unsigned int f = GRID(ds,flags,x,y);
     char str[2];
-    int n;
 
     /* (can assume square has just been cleared) */
 
     /* Draw number, choosing appropriate colour */
-    n = GRID(ds, nums, x, y);
-    str[0] = n2c(n, ds->order);
+    str[0] = n2c(GRID(ds, nums, x, y), ds->order);
     str[1] = '\0';
     draw_text(dr, ox + TILE_SIZE/2, oy + TILE_SIZE/2,
               FONT_VARIABLE, 3*TILE_SIZE/4, ALIGN_VCENTRE | ALIGN_HCENTRE,
-              (f & F_IMMUTABLE) ? COL_TEXT : ((f & F_ERROR) || n == ds->highlighted_number) ? COL_ERROR : COL_GUESS, str);
+              (f & F_IMMUTABLE) ? COL_TEXT : (f & F_ERROR) ? COL_ERROR : COL_GUESS, str);
 }
 
 static void draw_hints(drawing *dr, game_drawstate *ds, int x, int y)
 {
     int ox = COORD(x), oy = COORD(y);
-    int nhints, i, j, hw, hh, hmax, fontsz, colour;
+    int nhints, i, j, hw, hh, hmax, fontsz;
     char str[2];
 
     /* (can assume square has just been cleared) */
@@ -1877,18 +1894,11 @@ static void draw_hints(drawing *dr, game_drawstate *ds, int x, int y)
 
             str[0] = n2c(i+1, ds->order);
             str[1] = '\0';
-            if (ds->highlighted_number == i+1) {
-                colour = COL_ERROR;
-            } else if (ds->highlighted_number > 0) {
-                colour = COL_LOWLIGHT;
-            } else {
-                colour = COL_PENCIL;
-            }
             draw_text(dr,
                       ox + (4*hx+3) * TILE_SIZE / (4*hw+2),
                       oy + (4*hy+3) * TILE_SIZE / (4*hh+2),
                       FONT_VARIABLE, fontsz,
-                      ALIGN_VCENTRE | ALIGN_HCENTRE, colour, str);
+                      ALIGN_VCENTRE | ALIGN_HCENTRE, COL_PENCIL, str);
             j++;
         }
     }
