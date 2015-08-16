@@ -128,6 +128,7 @@
 	<color name="lightup_night_colour_black">#666666</color>
 	<color name="loopy_night_colour_foreground">#ffffff</color>
 	<color name="loopy_night_colour_satisfied">#ffffff</color>
+	<color name="loopy_night_colour_faint">#666666</color>
 	<color name="loopy_night_colour_lineunknown">#808000</color>
 	<color name="magnets_night_colour_text">#ffffff</color>
 	<color name="magnets_night_colour_negative">#ffffff</color>
