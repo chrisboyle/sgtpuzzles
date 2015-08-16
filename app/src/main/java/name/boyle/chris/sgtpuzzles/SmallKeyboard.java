@@ -505,7 +505,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 
 		void setInertiaFollowEnabled(final boolean enabled) {
 			followEnabled = enabled;
-			if (primaryKey == -1) return;
+			if (primaryKey == -1 || swapLR) return;  // can't swapLR in inertia
 			final DKey k = (DKey)mKeys.get(primaryKey);
 			k.enabled = enabled;
 			k.icon = enabled ? trySpecificIcon(context.getResources(), R.drawable.sym_key_mouse_left) : null;
