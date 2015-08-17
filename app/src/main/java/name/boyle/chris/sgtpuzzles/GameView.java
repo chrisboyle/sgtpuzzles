@@ -666,7 +666,17 @@ public class GameView extends View
 			final String[] colourNames = colourNamesJoined.split(",");
 			for (int i = 1; i < colours.length; i++) {
 				final boolean noName = i - 1 >= colourNames.length;
-				final String resourceName = whichBackend + "_night_colour_" + (noName ?  "unnamed_" + (i - 1) : colourNames[i - 1]);
+				String colourName = noName ? "unnamed_" + (i - 1) : colourNames[i - 1];
+				if ("signpost".equals(whichBackend) && noName) {
+					int offset = i - (colourNames.length);
+					int category = offset / 16;
+					int chain = offset % 16;
+					colourName = ((category == 0) ? "b" :
+							(category == 1) ? "m" :
+							(category == 2) ? "d" : "x") + chain;
+				}
+				final String resourceName = whichBackend + "_night_colour_" + colourName;
+				//Log.d("GameView", "\t<color name=\"" + resourceName + "\">" + String.format("#%06x", (0xFFFFFF & colours[i])) + "</color>");
 				final int nightColourId = getResources().getIdentifier(resourceName, "color", parent.getPackageName());
 				if (nightColourId > 0) {
 					colours[i] = getResources().getColor(nightColourId);
@@ -695,8 +705,7 @@ public class GameView extends View
 	}
 
 	@UsedByJNI
-	void clipRect(int x, int y, int w, int h)
-	{
+	void clipRect(int x, int y, int w, int h) {
 		canvas.clipRect(new RectF(x - 0.5f, y - 0.5f, x + w - 0.5f, y + h - 0.5f), Region.Op.REPLACE);
 	}
 

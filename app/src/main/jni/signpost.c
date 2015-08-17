@@ -29,6 +29,7 @@ enum {
     COL_BACKGROUND, COL_HIGHLIGHT, COL_LOWLIGHT,
     COL_GRID, COL_CURSOR, COL_ERROR, COL_DRAG_ORIGIN,
     COL_ARROW, COL_ARROW_BG_DIM,
+    COL_EMPTY, COL_NUMBER0,
     COL_NUMBER, COL_NUMBER_SET, COL_NUMBER_SET_MID,
     COL_B0,                             /* background colours */
     COL_M0 =   COL_B0 + 1*NBACKGROUNDS, /* mid arrow colours */
@@ -1686,9 +1687,13 @@ static float *game_colours(frontend *fe, int *ncolours)
     int c, i;
 
     game_mkhighlight(fe, ret, COL_BACKGROUND, COL_HIGHLIGHT, COL_LOWLIGHT);
+    ret[COL_EMPTY * 3 + 0] = ret[COL_BACKGROUND * 3 + 0];
+    ret[COL_EMPTY * 3 + 1] = ret[COL_BACKGROUND * 3 + 1];
+    ret[COL_EMPTY * 3 + 2] = ret[COL_BACKGROUND * 3 + 2];
 
     for (i = 0; i < 3; i++) {
         ret[COL_NUMBER * 3 + i] = 0.0F;
+        ret[COL_NUMBER0 * 3 + i] = 0.0F;
         ret[COL_ARROW * 3 + i] = 0.0F;
         ret[COL_CURSOR * 3 + i] = ret[COL_BACKGROUND * 3 + i] / 2.0F;
         ret[COL_GRID * 3 + i] = ret[COL_BACKGROUND * 3 + i] / 1.3F;
@@ -1886,10 +1891,10 @@ static void tile_redraw(drawing *dr, game_drawstate *ds, int tx, int ty,
 	setcol = sarrowcol = -1;       /* placate optimiser */
     } else {
 
-	setcol = empty ? COL_BACKGROUND : num2col(ds, num);
+	setcol = empty ? COL_EMPTY : num2col(ds, num);
 
 #define dim(fg,bg) ( \
-      (bg)==COL_BACKGROUND ? COL_ARROW_BG_DIM : \
+      (bg)==COL_EMPTY ? COL_ARROW_BG_DIM : \
       (bg) + COL_D0 - COL_B0 \
     )
 
@@ -1899,7 +1904,7 @@ static void tile_redraw(drawing *dr, game_drawstate *ds, int tx, int ty,
     )
 
 #define dimbg(bg) ( \
-      (bg)==COL_BACKGROUND ? COL_BACKGROUND : \
+      (bg)==COL_EMPTY ? COL_EMPTY : \
       (bg) + COL_X0 - COL_B0 \
     )
 
@@ -1917,6 +1922,9 @@ static void tile_redraw(drawing *dr, game_drawstate *ds, int tx, int ty,
 	    else if (((f & F_ARROW_POINT) || num==ds->n) &&
 		     ((f & F_ARROW_INPOINT) || num==1))
 		textcol = mid(textcol, setcol);
+        if (setcol == COL_B0 && textcol == COL_NUMBER) {
+            textcol = COL_NUMBER0;
+        }
 	}
 
 	if (f & F_DIM) sarrowcol = dim(COL_ARROW, setcol);
