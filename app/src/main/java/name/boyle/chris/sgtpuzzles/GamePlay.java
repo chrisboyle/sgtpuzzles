@@ -1,5 +1,6 @@
 package name.boyle.chris.sgtpuzzles;
 
+import android.Manifest;
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.app.Activity;
@@ -14,6 +15,7 @@ import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
 import android.content.pm.ActivityInfo;
 import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.content.res.Configuration;
 import android.content.res.Resources;
@@ -120,7 +122,9 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 	private static final String PUZZLESGEN_LAST_UPDATE = "puzzlesgen_last_update";
 	private static final String BLUETOOTH_PACKAGE_PREFIX = "com.android.bluetooth";
 	private static final int REQ_CODE_CREATE_DOC = Activity.RESULT_FIRST_USER;
+	private static final int REQ_CODE_STORAGE_PERMISSION = Activity.RESULT_FIRST_USER + 1;
 	static final String MIME_TYPE = "text/prs.sgtatham.puzzles";
+	private static final String STORAGE_PERMISSION_EVER_ASKED = "storage_permission_ever_asked";
 
 	private ProgressDialog progress;
 	private TextView statusBar;
@@ -401,6 +405,20 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 				}
 				if (backendFromChooser == null) {
 					final GameLaunch launch = GameLaunch.ofUri(u);
+					if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
+							&& ("file".equalsIgnoreCase(u.getScheme()) || u.getScheme() == null)) {
+						if (checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+							if (shouldShowStoragePermissionRationale()) {
+								showRationaleThenRequest();
+							} else {
+								// first time, or "never ask again" ticked - we could distinguish this with state, if we wanted to show rationale the first time
+								requestStoragePermission();
+							}
+							return;
+						} else if (checkPermissionGrantBug(u)) {
+							return;
+						}
+					}
 					startGame(launch);
 					return;
 				}
@@ -436,6 +454,85 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 				startChooserAndFinish();
 			}
 		}
+	}
+
+	@TargetApi(Build.VERSION_CODES.M)
+	/** I want to show rationale the first time, not just when re-asking after a no. */
+	private boolean shouldShowStoragePermissionRationale() {
+		return !state.getBoolean(STORAGE_PERMISSION_EVER_ASKED, false) || shouldShowRequestPermissionRationale(Manifest.permission.READ_EXTERNAL_STORAGE);
+	}
+
+	@TargetApi(Build.VERSION_CODES.M)
+	private void showRationaleThenRequest() {
+		new AlertDialog.Builder(this)
+				.setMessage(R.string.storage_permission_explanation)
+				.setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+					@Override
+					public void onClick(DialogInterface dialog, int which) {
+						requestStoragePermission();
+					}
+				})
+				.create().show();
+		state.edit().putBoolean(STORAGE_PERMISSION_EVER_ASKED, true).apply();
+	}
+
+	@TargetApi(Build.VERSION_CODES.M)
+	private void requestStoragePermission() {
+		requestPermissions(new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, REQ_CODE_STORAGE_PERMISSION);
+	}
+
+	@Override
+	@TargetApi(Build.VERSION_CODES.M)
+	public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+		if (requestCode != REQ_CODE_STORAGE_PERMISSION) return;
+		if (grantResults.length < 1) {  // dialog interrupted
+			finish();
+			return;
+		}
+		final Uri uri = getIntent().getData();
+		if (grantResults[0] != PackageManager.PERMISSION_GRANTED) {
+			new AlertDialog.Builder(this)
+					.setMessage(MessageFormat.format(getString(R.string.storage_permission_denied), uri.getPath()))
+					.setOnDismissListener(new DialogInterface.OnDismissListener() {
+						@Override
+						public void onDismiss(DialogInterface dialog) {
+							finish();
+						}
+					}).create().show();
+			return;
+		}
+		if (checkPermissionGrantBug(uri)) return;
+		startGame(GameLaunch.ofUri(uri));
+	}
+
+	@TargetApi(Build.VERSION_CODES.M)
+	private boolean checkPermissionGrantBug(Uri uri) {
+		// Work around https://code.google.com/p/android-developer-preview/issues/detail?id=2982
+		// We know it's a file:// URI.
+		if (new File(uri.getPath()).canRead()) {
+			return false;
+		}
+		new AlertDialog.Builder(this)
+				.setMessage(R.string.storage_permission_bug)
+				.setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+					@Override
+					public void onClick(DialogInterface dialog, int which) {
+						// do nothing
+					}
+				})
+				.setNeutralButton(R.string.storage_permission_bug_more, new DialogInterface.OnClickListener() {
+					@Override
+					public void onClick(DialogInterface dialog, int which) {
+						startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(getString(R.string.storage_permission_bug_url))));
+					}
+				})
+				.setOnDismissListener(new DialogInterface.OnDismissListener() {
+					@Override
+					public void onDismiss(DialogInterface dialog) {
+						finish();
+					}
+				}).create().show();
+		return true;
 	}
 
 	@TargetApi(Build.VERSION_CODES.GINGERBREAD)

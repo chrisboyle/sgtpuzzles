@@ -62,6 +62,13 @@ Version %s"</string>
     <string name="file_exists">File exists; overwrite it?</string>
     <string name="file_saved">Saved the game in {0}</string>
     <string name="replaceGame">You have an unfinished game of {0} which this will replace. Continue loading?</string>
+    <string name="storage_permission_explanation">"To import this file an extra permission is needed. Android might describe this permission in terms of photos and media.
+
+If you don't want to grant it you can instead locate the file from within Puzzles using the Open button on the game chooser."</string>
+    <string name="storage_permission_denied">Could not open {0} because permission was denied. You can either locate the file from within Puzzles (use the Open button on the game chooser) or you can go to the Settings app, then Apps, Puzzles, Permissions, and grant storage permission.</string>
+    <string name="storage_permission_bug">Because of a bug in Android, the permission grant will not take effect until you restart Puzzles (swipe it away in Recent Apps).</string>
+    <string name="storage_permission_bug_more">Bug details</string>
+    <string name="storage_permission_bug_url">https://code.google.com/p/android-developer-preview/issues/detail?id=2982"</string>
     <!-- Help menu -->
     <!-- {0} is a game name -->
     <string name="how_to_play_game">How to play {0}</string>
