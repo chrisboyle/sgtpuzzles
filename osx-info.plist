@@ -20,7 +20,7 @@
 	<string>Unidentified build</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
-	<key>CFBundleIndentifier</key>
+	<key>CFBundleIdentifier</key>
 	<string>uk.org.greenend.chiark.sgtatham.puzzles</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
