@@ -105,6 +105,7 @@
 	<color name="blackbox_night_colour_text">#ffffff</color>
 	<color name="blackbox_night_colour_ball_revealed">#999999</color>
 	<color name="bridges_night_colour_foreground">#ffffff</color>
+	<color name="bridges_night_colour_highlight">#444444</color>
 	<color name="bridges_night_colour_mark">#aaaaaa</color>
 	<color name="cube_night_colour_border">#ffffff</color>
 	<color name="dominosa_night_colour_text">#ffffff</color>
@@ -127,9 +128,11 @@
 	<color name="keen_night_colour_user">#00bb00</color>
 	<color name="lightup_night_colour_black">#666666</color>
 	<color name="loopy_night_colour_foreground">#ffffff</color>
+	<color name="loopy_night_colour_highlight">#444444</color>
 	<color name="loopy_night_colour_satisfied">#ffffff</color>
 	<color name="loopy_night_colour_faint">#666666</color>
 	<color name="loopy_night_colour_lineunknown">#808000</color>
+	<color name="magnets_night_colour_highlight">#888888</color>
 	<color name="magnets_night_colour_text">#ffffff</color>
 	<color name="magnets_night_colour_negative">#ffffff</color>
 	<color name="map_night_colour_grid">#888888</color>
@@ -139,9 +142,10 @@
 	<color name="mines_night_colour_query">#888888</color>
 	<color name="mines_night_colour_highlight">#666666</color>
 	<color name="mines_night_colour_lowlight">#222222</color>
-	<color name="net_night_colour_wire">#888888</color>
+	<color name="net_night_colour_border">#777777</color>
 	<color name="net_night_colour_endpoint">#3636b3</color>
-	<color name="net_night_colour_locked">#444444</color>
+	<color name="net_night_colour_locked">#555555</color>
+	<color name="net_night_colour_wire">#888888</color>
 	<color name="netslide_night_colour_wire">#888888</color>
 	<color name="netslide_night_colour_endpoint">#3636b3</color>
 	<color name="pattern_night_colour_text">#ffffff</color>
