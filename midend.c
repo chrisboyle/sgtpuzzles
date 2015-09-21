@@ -600,7 +600,7 @@ static int midend_really_process_key(midend *me, int x, int y, int button)
 	    midend_new_game(me);
 	    midend_redraw(me);
 	    goto done;		       /* never animate */
-	} else if (button == 'u' || button == 'u' ||
+	} else if (button == 'u' || button == 'U' ||
 		   button == '\x1A' || button == '\x1F') {
 	    midend_stop_anim(me);
 	    type = me->states[me->statepos-1].movetype;
