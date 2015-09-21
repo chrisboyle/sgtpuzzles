@@ -786,7 +786,8 @@ around the board. Pressing the return key then allows you to use the
 cursor keys to drag a rectangle out from that position, and pressing
 the return key again completes the rectangle. Using the space bar
 instead of the return key allows you to erase the contents of a
-rectangle without affecting its edges, as above.
+rectangle without affecting its edges, as above. Pressing escape
+cancels a drag.
 
 When a rectangle of the correct size is completed, it will be shaded.
 
@@ -2921,6 +2922,7 @@ Pressing Return does the same as clicking with the left button, while
 pressing Space does the same as a right button click.  Moving with the
 cursor keys while holding Shift will place dots in all squares that
 are moved through.
+
 
 (All the actions described in \k{common-actions} are also available.)
 
