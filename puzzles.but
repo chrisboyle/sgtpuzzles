@@ -2453,10 +2453,11 @@ press 0, Space, Backspace or Enter to clear it again (or use the Undo
 feature).
 
 You can also move around the grid with the cursor keys; typing a digit will
-fill the square containing the cursor with that number, or typing 0, Space,
-or Enter will clear it. You can also select multiple squares for numbering
-or clearing by using the return key, before typing a digit to fill in the
-highlighted squares (as above).
+fill the square containing the cursor with that number; typing 0 will clear
+it.  You can also select multiple squares for numbering or clearing with the
+return and arrow keys, before typing a digit to fill or clear the highlighted
+squares (as above).  The space bar adds and removes single squares to and from
+the selection.  Backspace and escape remove all squares from the selection.
 
 (All the actions described in \k{common-actions} are also available.)
 

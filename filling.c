@@ -986,7 +986,7 @@ static char *solve_game(const game_state *state, const game_state *currstate,
 
 struct game_ui {
     int *sel; /* w*h highlighted squares, or NULL */
-    int cur_x, cur_y, cur_visible;
+    int cur_x, cur_y, cur_visible, keydragging;
 };
 
 static game_ui *new_ui(const game_state *state)
@@ -994,7 +994,7 @@ static game_ui *new_ui(const game_state *state)
     game_ui *ui = snew(game_ui);
 
     ui->sel = NULL;
-    ui->cur_x = ui->cur_y = ui->cur_visible = 0;
+    ui->cur_x = ui->cur_y = ui->cur_visible = ui->keydragging = 0;
 
     return ui;
 }
@@ -1023,6 +1023,7 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
         sfree(ui->sel);
         ui->sel = NULL;
     }
+    ui->keydragging = FALSE;
 }
 
 #define PREFERRED_TILE_SIZE 32
@@ -1079,34 +1080,57 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     if (IS_CURSOR_MOVE(button)) {
         ui->cur_visible = 1;
         move_cursor(button, &ui->cur_x, &ui->cur_y, w, h, 0);
+	if (ui->keydragging) goto select_square;
         return "";
     }
-    if (IS_CURSOR_SELECT(button)) {
+    if (button == CURSOR_SELECT) {
         if (!ui->cur_visible) {
             ui->cur_visible = 1;
             return "";
         }
+	ui->keydragging = !ui->keydragging;
+	if (!ui->keydragging) return "";
+
+      select_square:
         if (!ui->sel) {
             ui->sel = snewn(w*h, int);
             memset(ui->sel, 0, w*h*sizeof(int));
         }
-        if (state->shared->clues[w*ui->cur_y + ui->cur_x] == 0)
-            ui->sel[w*ui->cur_y + ui->cur_x] ^= 1;
-        return "";
+	if (!state->shared->clues[w*ui->cur_y + ui->cur_x])
+	    ui->sel[w*ui->cur_y + ui->cur_x] = 1;
+	return "";
+    }
+    if (button == CURSOR_SELECT2) {
+	if (!ui->cur_visible) {
+	    ui->cur_visible = 1;
+	    return "";
+	}
+        if (!ui->sel) {
+            ui->sel = snewn(w*h, int);
+            memset(ui->sel, 0, w*h*sizeof(int));
+        }
+	ui->keydragging = FALSE;
+	if (!state->shared->clues[w*ui->cur_y + ui->cur_x])
+	    ui->sel[w*ui->cur_y + ui->cur_x] ^= 1;
+	for (i = 0; i < w*h && !ui->sel[i]; i++);
+	if (i == w*h) {
+	    sfree(ui->sel);
+	    ui->sel = NULL;
+	}
+	return "";
     }
 
-    switch (button) {
-      case ' ':
-      case '\r':
-      case '\n':
-      case '\b':
-        button = 0;
-        break;
-      default:
-        if (button < '0' || button > '9') return NULL;
-        button -= '0';
-        if (button > (w == 2 && h == 2? 3: max(w, h))) return NULL;
+    if (button == '\b' || button == 27) {
+	sfree(ui->sel);
+	ui->sel = NULL;
+	ui->keydragging = FALSE;
+	return "";
     }
+
+    if (button < '0' || button > '9') return NULL;
+    button -= '0';
+    if (button > (w == 2 && h == 2 ? 3 : max(w, h))) return NULL;
+    ui->keydragging = FALSE;
 
     for (i = 0; i < w*h; i++) {
         char buf[32];
