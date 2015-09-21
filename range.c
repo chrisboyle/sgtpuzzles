@@ -1451,7 +1451,7 @@ static int find_errors(const game_state *state, int *report)
         int biggest, canonical;
 
         if (!report) {
-            printf("dfs fail at %d\n", any_white_cell);
+            sfree(dsf);
             goto found_error;
         }
 
