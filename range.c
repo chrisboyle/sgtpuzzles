@@ -1167,7 +1167,7 @@ static char *game_text_format(const game_state *state)
     cellsize = 0; /* or may be used uninitialized */
 
     for (c = 0; c < w; ++c) {
-        for (r = 1; r < h; ++r) {
+        for (r = 0; r < h; ++r) {
             puzzle_size k = state->grid[idx(r, c, w)];
             int d;
             for (d = 0; k; k /= 10, ++d);
