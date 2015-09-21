@@ -1705,6 +1705,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         y = FROMCOORD(y);
         if (x < 0 || y < 0 || x >= w || y >= h)
             return NULL;
+        ui->cur_visible = 0;
     } else if (IS_CURSOR_SELECT(button)) {
         if (!ui->cur_visible) {
             ui->cur_visible = 1;
