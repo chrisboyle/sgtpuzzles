@@ -1709,7 +1709,10 @@ the game entirely with one button if you need to.)
 
 You can also use the cursor keys to move around the grid. Pressing the
 return or space keys will place a \cw{\\} or a \cw{/}, respectively,
-and will then cycle them as above.
+and will then cycle them as above.  You can also press \cw{/} or
+\cw{\\} to place a \cw{/} or \cw{\\}, respectively, independent of
+what is already in the cursor square.  Backspace removes any line from
+the cursor square.
 
 (All the actions described in \k{common-actions} are also available.)
 
