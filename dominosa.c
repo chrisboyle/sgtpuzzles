@@ -944,12 +944,74 @@ static char *solve_game(const game_state *state, const game_state *currstate,
 
 static int game_can_format_as_text_now(const game_params *params)
 {
-    return TRUE;
+    return params->n < 1000;
+}
+
+static void draw_domino(char *board, int start, char corner,
+			int dshort, int nshort, char cshort,
+			int dlong, int nlong, char clong)
+{
+    int go_short = nshort*dshort, go_long = nlong*dlong, i;
+
+    board[start] = corner;
+    board[start + go_short] = corner;
+    board[start + go_long] = corner;
+    board[start + go_short + go_long] = corner;
+
+    for (i = 1; i < nshort; ++i) {
+	int j = start + i*dshort, k = start + i*dshort + go_long;
+	if (board[j] != corner) board[j] = cshort;
+	if (board[k] != corner) board[k] = cshort;
+    }
+
+    for (i = 1; i < nlong; ++i) {
+	int j = start + i*dlong, k = start + i*dlong + go_short;
+	if (board[j] != corner) board[j] = clong;
+	if (board[k] != corner) board[k] = clong;
+    }
 }
 
 static char *game_text_format(const game_state *state)
 {
-    return NULL;
+    int w = state->w, h = state->h, r, c;
+    int cw = 4, ch = 2, gw = cw*w + 2, gh = ch * h + 1, len = gw * gh;
+    char *board = snewn(len + 1, char);
+
+    memset(board, ' ', len);
+
+    for (r = 0; r < h; ++r) {
+	for (c = 0; c < w; ++c) {
+	    int cell = r*ch*gw + cw*c, center = cell + gw*ch/2 + cw/2;
+	    int i = r*w + c, num = state->numbers->numbers[i];
+
+	    if (num < 100) {
+		board[center] = '0' + num % 10;
+		if (num >= 10) board[center - 1] = '0' + num / 10;
+	    } else {
+		board[center+1] = '0' + num % 10;
+		board[center] = '0' + num / 10 % 10;
+		board[center-1] = '0' + num / 100;
+	    }
+
+	    if (state->edges[i] & EDGE_L) board[center - cw/2] = '|';
+	    if (state->edges[i] & EDGE_R) board[center + cw/2] = '|';
+	    if (state->edges[i] & EDGE_T) board[center - gw] = '-';
+	    if (state->edges[i] & EDGE_B) board[center + gw] = '-';
+
+	    if (state->grid[i] == i) continue; /* no domino pairing */
+	    if (state->grid[i] < i) continue; /* already done */
+	    assert (state->grid[i] == i + 1 || state->grid[i] == i + w);
+	    if (state->grid[i] == i + 1)
+		draw_domino(board, cell, '+', gw, ch, '|', +1, 2*cw, '-');
+	    else if (state->grid[i] == i + w)
+		draw_domino(board, cell, '+', +1, cw, '-', gw, 2*ch, '|');
+	}
+	board[r*ch*gw + gw - 1] = '\n';
+	board[r*ch*gw + gw + gw - 1] = '\n';
+    }
+    board[len - 1] = '\n';
+    board[len] = '\0';
+    return board;
 }
 
 struct game_ui {
@@ -1616,7 +1678,7 @@ const struct game thegame = {
     dup_game,
     free_game,
     TRUE, solve_game,
-    FALSE, game_can_format_as_text_now, game_text_format,
+    TRUE, game_can_format_as_text_now, game_text_format,
     new_ui,
     free_ui,
     encode_ui,
