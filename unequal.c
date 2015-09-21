@@ -1427,18 +1427,15 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         return "";
     }
 
-
-    if (ui->hshow) {
+    n = c2n(button, state->order);
+    if (ui->hshow && n >= 0 && n <= ds->order) {
         debug(("button %d, cbutton %d", button, (int)((char)button)));
-        n = c2n(button, state->order);
 
         debug(("n %d, h (%d,%d) p %d flags 0x%x nums %d",
                n, ui->hx, ui->hy, ui->hpencil,
                GRID(state, flags, ui->hx, ui->hy),
                GRID(state, nums, ui->hx, ui->hy)));
 
-        if (n < 0 || n > ds->order)
-            return NULL;        /* out of range */
         if (GRID(state, flags, ui->hx, ui->hy) & F_IMMUTABLE)
             return NULL;        /* can't edit immutable square (!) */
         if (ui->hpencil && GRID(state, nums, ui->hx, ui->hy) > 0)
