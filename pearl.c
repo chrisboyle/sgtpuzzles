@@ -1654,7 +1654,7 @@ static void check_completion(game_state *state, int mark)
  * - no clues must be contradicted (highlight clue itself in error if so)
  * - if there is a closed loop it must include every line segment laid
  *    - if there's a smaller closed loop then highlight whole loop as error
- * - no square must have more than 3 lines radiating from centre point
+ * - no square must have more than 2 lines radiating from centre point
  *   (highlight all lines in that square as error if so)
  */
 
