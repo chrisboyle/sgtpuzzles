@@ -919,7 +919,89 @@ static int game_can_format_as_text_now(const game_params *params)
 
 static char *game_text_format(const game_state *state)
 {
-    return NULL;
+    int w = state->w, h = state->h, i, j;
+    int left_gap = 0, top_gap = 0, ch = 2, cw = 1, limit = 1;
+
+    int len, topleft, lw, lh, gw, gh; /* {line,grid}_{width,height} */
+    char *board, *buf;
+
+    for (i = 0; i < w; ++i) {
+	top_gap = max(top_gap, state->rowlen[i]);
+	for (j = 0; j < state->rowlen[i]; ++j)
+	    while (state->rowdata[i*state->rowsize + j] >= limit) {
+		++cw;
+		limit *= 10;
+	    }
+    }
+    for (i = 0; i < h; ++i) {
+	int rowlen = 0, predecessors = FALSE;
+	for (j = 0; j < state->rowlen[i+w]; ++j) {
+	    int copy = state->rowdata[(i+w)*state->rowsize + j];
+	    rowlen += predecessors;
+	    predecessors = TRUE;
+	    do ++rowlen; while (copy /= 10);
+	}
+	left_gap = max(left_gap, rowlen);
+    }
+
+    cw = max(cw, 3);
+
+    gw = w*cw + 2;
+    gh = h*ch + 1;
+    lw = gw + left_gap;
+    lh = gh + top_gap;
+    len = lw * lh;
+    topleft = lw * top_gap + left_gap;
+
+    board = snewn(len + 1, char);
+    sprintf(board, "%*s\n", len - 2, "");
+
+    for (i = 0; i < lh; ++i) {
+	board[lw - 1 + i*lw] = '\n';
+	if (i < top_gap) continue;
+	board[lw - 2 + i*lw] = ((i - top_gap) % ch ? '|' : '+');
+    }
+
+    for (i = 0; i < w; ++i) {
+	for (j = 0; j < state->rowlen[i]; ++j) {
+	    int cell = topleft + i*cw + 1 + lw*(j - state->rowlen[i]);
+	    int nch = sprintf(board + cell, "%*d", cw - 1,
+			      state->rowdata[i*state->rowsize + j]);
+	    board[cell + nch] = ' '; /* de-NUL-ify */
+	}
+    }
+
+    buf = snewn(left_gap, char);
+    for (i = 0; i < h; ++i) {
+	char *p = buf, *start = board + top_gap*lw + left_gap + (i*ch+1)*lw;
+	for (j = 0; j < state->rowlen[i+w]; ++j) {
+	    if (p > buf) *p++ = ' ';
+	    p += sprintf(p, "%d", state->rowdata[(i+w)*state->rowsize + j]);
+	}
+	memcpy(start - (p - buf), buf, p - buf);
+    }
+
+    for (i = 0; i < w; ++i) {
+	for (j = 0; j < h; ++j) {
+	    int cell = topleft + i*cw + j*ch*lw;
+	    int center = cell + cw/2 + (ch/2)*lw;
+	    int dx, dy;
+	    board[cell] = 0 ? center : '+';
+	    for (dx = 1; dx < cw; ++dx) board[cell + dx] = '-';
+	    for (dy = 1; dy < ch; ++dy) board[cell + dy*lw] = '|';
+	    if (state->grid[i*w+j] == GRID_UNKNOWN) continue;
+	    for (dx = 1; dx < cw; ++dx)
+		for (dy = 1; dy < ch; ++dy)
+		    board[cell + dx + dy*lw] =
+			state->grid[i*w+j] == GRID_FULL ? '#' : '.';
+	}
+    }
+
+    memcpy(board + topleft + h*ch*lw, board + topleft, gw - 1);
+
+    sfree(buf);
+
+    return board;
 }
 
 struct game_ui {
@@ -1708,7 +1790,7 @@ const struct game thegame = {
     dup_game,
     free_game,
     TRUE, solve_game,
-    FALSE, game_can_format_as_text_now, game_text_format,
+    TRUE, game_can_format_as_text_now, game_text_format,
     new_ui,
     free_ui,
     encode_ui,
