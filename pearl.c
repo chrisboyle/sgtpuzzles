@@ -1722,12 +1722,38 @@ done:
 
 static int game_can_format_as_text_now(const game_params *params)
 {
-    return FALSE;
+    return TRUE;
 }
 
 static char *game_text_format(const game_state *state)
 {
-    return NULL;
+    int w = state->shared->w, h = state->shared->h, cw = 4, ch = 2;
+    int gw = cw*(w-1) + 2, gh = ch*(h-1) + 1, len = gw * gh, r, c, j;
+    char *board = snewn(len + 1, char);
+
+    assert(board);
+    memset(board, ' ', len);
+
+    for (r = 0; r < h; ++r) {
+	for (c = 0; c < w; ++c) {
+	    int i = r*w + c, cell = r*ch*gw + c*cw;
+	    board[cell] = state->shared->clues[i]["+BW"];
+	    if (c < w - 1 && (state->lines[i] & R || state->lines[i+1] & L))
+		memset(board + cell + 1, '-', cw - 1);
+	    if (r < h - 1 && (state->lines[i] & D || state->lines[i+w] & U))
+		for (j = 1; j < ch; ++j) board[cell + j*gw] = '|';
+	    if (c < w - 1 && (state->marks[i] & R || state->marks[i+1] & L))
+		board[cell + cw/2] = 'x';
+	    if (r < h - 1 && (state->marks[i] & D || state->marks[i+w] & U))
+		board[cell + (ch/2 * gw)] = 'x';
+	}
+
+	for (j = 0; j < (r == h - 1 ? 1 : ch); ++j)
+	    board[r*ch*gw + (gw - 1) + j*gw] = '\n';
+    }
+
+    board[len] = '\0';
+    return board;
 }
 
 struct game_ui {
@@ -2537,7 +2563,7 @@ const struct game thegame = {
     dup_game,
     free_game,
     TRUE, solve_game,
-    FALSE, game_can_format_as_text_now, game_text_format,
+    TRUE, game_can_format_as_text_now, game_text_format,
     new_ui,
     free_ui,
     encode_ui,
