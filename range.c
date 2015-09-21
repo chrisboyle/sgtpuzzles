@@ -1273,6 +1273,8 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     enum {none, forwards, backwards, hint};
     int const w = state->params.w, h = state->params.h;
     int r = ui->r, c = ui->c, action = none, cell;
+    int shift = button & MOD_SHFT;
+    button &= ~shift;
 
     if (IS_CURSOR_SELECT(button) && !ui->cursor_show) return NULL;
 
@@ -1330,7 +1332,36 @@ static char *interpret_move(const game_state *state, game_ui *ui,
             int i;
             for (i = 0; i < 4 && cursors[i] != button; ++i);
             assert (i < 4);
-            if (!out_of_bounds(ui->r + dr[i], ui->c + dc[i], w, h)) {
+            if (shift) {
+                int pre_r = r, pre_c = c, do_pre, do_post;
+                cell = state->grid[idx(r, c, state->params.w)];
+                do_pre = (cell == EMPTY);
+
+                if (out_of_bounds(ui->r + dr[i], ui->c + dc[i], w, h)) {
+                    if (do_pre)
+                        return nfmtstr(40, "W,%d,%d", pre_r, pre_c);
+                    else
+                        return NULL;
+                }
+
+                ui->r += dr[i];
+                ui->c += dc[i];
+
+                cell = state->grid[idx(ui->r, ui->c, state->params.w)];
+                do_post = (cell == EMPTY);
+
+                /* (do_pre ? "..." : "") concat (do_post ? "..." : "") */
+                if (do_pre && do_post)
+                    return nfmtstr(80, "W,%d,%dW,%d,%d",
+                                   pre_r, pre_c, ui->r, ui->c);
+                else if (do_pre)
+                    return nfmtstr(40, "W,%d,%d", pre_r, pre_c);
+                else if (do_post)
+                    return nfmtstr(40, "W,%d,%d", ui->r, ui->c);
+                else
+                    return "";
+
+            } else if (!out_of_bounds(ui->r + dr[i], ui->c + dc[i], w, h)) {
                 ui->r += dr[i];
                 ui->c += dc[i];
             }

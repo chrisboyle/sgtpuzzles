@@ -2917,7 +2917,9 @@ dotted or empty) in opposite directions.
 
 You can also use the cursor keys to move around the grid squares.
 Pressing Return does the same as clicking with the left button, while
-pressing Space does the same as a right button click.
+pressing Space does the same as a right button click.  Moving with the
+cursor keys while holding Shift will place dots in all squares that
+are moved through.
 
 (All the actions described in \k{common-actions} are also available.)
 
