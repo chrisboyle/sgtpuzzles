@@ -897,6 +897,10 @@ You can also move around the grid with the cursor keys. Pressing the
 return key will cycle the current cell through empty, then black, then
 white, then empty, and the space bar does the same cycle in reverse.
 
+Moving the cursor while holding Control will colour the moved-over
+squares black.  Holding Shift will colour the moved-over squares
+white, and holding both will colour them grey.
+
 (All the actions described in \k{common-actions} are also available.)
 
 \H{pattern-parameters} \I{parameters, for Pattern}Pattern parameters

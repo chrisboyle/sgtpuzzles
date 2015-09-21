@@ -1056,6 +1056,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
                             const game_drawstate *ds,
                             int x, int y, int button)
 {
+    int control = button & MOD_CTRL, shift = button & MOD_SHFT;
     button &= ~MOD_MASK;
 
     x = FROMCOORD(state->w, x);
@@ -1156,10 +1157,23 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     }
 
     if (IS_CURSOR_MOVE(button)) {
+	int x = ui->cur_x, y = ui->cur_y, newstate;
+	char buf[80];
         move_cursor(button, &ui->cur_x, &ui->cur_y, state->w, state->h, 0);
         ui->cur_visible = 1;
-        return "";
+	if (!control && !shift) return "";
+
+	newstate = control ? shift ? GRID_UNKNOWN : GRID_FULL : GRID_EMPTY;
+	if (state->grid[y * state->w + x] == newstate &&
+	    state->grid[ui->cur_y * state->w + ui->cur_x] == newstate)
+	    return "";
+
+	sprintf(buf, "%c%d,%d,%d,%d", control ? shift ? 'U' : 'F' : 'E',
+		min(x, ui->cur_x), min(y, ui->cur_y),
+		abs(x - ui->cur_x) + 1, abs(y - ui->cur_y) + 1);
+	return dupstr(buf);
     }
+
     if (IS_CURSOR_SELECT(button)) {
         int currstate = state->grid[ui->cur_y * state->w + ui->cur_x];
         int newstate;
