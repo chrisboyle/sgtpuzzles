@@ -1998,6 +1998,9 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     int release = FALSE;
     char tmpbuf[80];
 
+    int shift = button & MOD_SHFT, control = button & MOD_CTRL;
+    button &= ~MOD_MASK;
+
     if (IS_MOUSE_DOWN(button)) {
 	ui->cursor_active = FALSE;
 
@@ -2020,10 +2023,10 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 
     if (IS_MOUSE_RELEASE(button)) release = TRUE;
 
-    if (IS_CURSOR_MOVE(button & ~MOD_MASK)) {
+    if (IS_CURSOR_MOVE(button)) {
 	if (!ui->cursor_active) {
 	    ui->cursor_active = TRUE;
-	} else if (button & (MOD_SHFT | MOD_CTRL)) {
+	} else if (control | shift) {
 	    if (ui->ndragcoords > 0) return NULL;
 	    ui->ndragcoords = -1;
 	    return mark_in_direction(state, ui->curx, ui->cury,
@@ -2037,7 +2040,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 	return "";
     }
 
-    if (IS_CURSOR_SELECT(button & ~MOD_MASK)) {
+    if (IS_CURSOR_SELECT(button)) {
 	if (!ui->cursor_active) {
 	    ui->cursor_active = TRUE;
 	    return "";
