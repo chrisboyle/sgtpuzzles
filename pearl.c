@@ -1963,23 +1963,20 @@ static void interpret_ui_drag(const game_state *state, const game_ui *ui,
 }
 
 static char *mark_in_direction(const game_state *state, int x, int y, int dir,
-			       int ismark, char *buf)
+			       int primary, char *buf)
 {
     int w = state->shared->w /*, h = state->shared->h, sz = state->shared->sz */;
     int x2 = x + DX(dir);
     int y2 = y + DY(dir);
     int dir2 = F(dir);
-    char ch = ismark ? 'M' : 'F';
+
+    char ch = primary ? 'F' : 'M', *other;
 
     if (!INGRID(state, x, y) || !INGRID(state, x2, y2)) return "";
+
     /* disallow laying a mark over a line, or vice versa. */
-    if (ismark) {
-	if ((state->lines[y*w+x] & dir) || (state->lines[y2*w+x2] & dir2))
-	    return "";
-    } else {
-	if ((state->marks[y*w+x] & dir) || (state->marks[y2*w+x2] & dir2))
-	    return "";
-    }
+    other = primary ? state->marks : state->lines;
+    if (other[y*w+x] & dir || other[y2*w+x2] & dir2) return "";
     
     sprintf(buf, "%c%d,%d,%d;%c%d,%d,%d", ch, dir, x, y, ch, dir2, x2, y2);
     return dupstr(buf);
@@ -2030,8 +2027,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 	    if (ui->ndragcoords > 0) return NULL;
 	    ui->ndragcoords = -1;
 	    return mark_in_direction(state, ui->curx, ui->cury,
-				     KEY_DIRECTION(button & ~MOD_MASK),
-				     (button & MOD_SHFT), tmpbuf);
+				     KEY_DIRECTION(button), control, tmpbuf);
 	} else {
 	    move_cursor(button, &ui->curx, &ui->cury, w, h, FALSE);
 	    if (ui->ndragcoords >= 0)
@@ -2124,7 +2120,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
                     direction = (x < cx) ? L : R;
                 }
 		return mark_in_direction(state, gx, gy, direction,
-					 (button == RIGHT_RELEASE), tmpbuf);
+					 (button == LEFT_RELEASE), tmpbuf);
             }
         }
     }
