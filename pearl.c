@@ -2024,10 +2024,14 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 	if (!ui->cursor_active) {
 	    ui->cursor_active = TRUE;
 	} else if (control | shift) {
+	    char *move;
 	    if (ui->ndragcoords > 0) return NULL;
 	    ui->ndragcoords = -1;
-	    return mark_in_direction(state, ui->curx, ui->cury,
+	    move = mark_in_direction(state, ui->curx, ui->cury,
 				     KEY_DIRECTION(button), control, tmpbuf);
+	    if (control && !shift && *move)
+		move_cursor(button, &ui->curx, &ui->cury, w, h, FALSE);
+	    return move;
 	} else {
 	    move_cursor(button, &ui->curx, &ui->cury, w, h, FALSE);
 	    if (ui->ndragcoords >= 0)
