@@ -2058,6 +2058,11 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 	}
     }
 
+    if (button == 27 || button == '\b') {
+        ui->ndragcoords = -1;
+        return "";
+    }
+
     if (release) {
         if (ui->ndragcoords > 0) {
             /* End of a drag: process the cached line data. */
