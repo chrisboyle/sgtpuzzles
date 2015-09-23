@@ -332,7 +332,7 @@ public class GameChooser extends AppCompatActivity implements SharedPreferences.
 		}
 		MenuItemCompat.setShowAsAction(menu.findItem(R.id.settings), state);
 		MenuItemCompat.setShowAsAction(menu.findItem(R.id.load), state);
-		MenuItemCompat.setShowAsAction(menu.findItem(R.id.help), state);
+		MenuItemCompat.setShowAsAction(menu.findItem(R.id.help_menu), state);
 	}
 
 	@Override

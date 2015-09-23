@@ -32,7 +32,7 @@
             style="@style/Button.Completed" />
 
         <Button
-            android:id="@+id/type"
+            android:id="@+id/type_menu"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_margin="2dp"

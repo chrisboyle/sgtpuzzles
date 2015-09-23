@@ -754,6 +754,7 @@ void startPlayingIntGameID(frontend* new_fe, jstring jsGameID, jstring backend)
 		throwIllegalArgumentException(env, "Internal error identifying game");
 		return;
 	}
+	thegame = g;
 	new_fe->me = midend_new(new_fe, g, &android_drawing, new_fe);
 	const char * gameIDjs = (*env)->GetStringUTFChars(env, jsGameID, NULL);
 	char * gameID = dupstr(gameIDjs);
@@ -806,6 +807,10 @@ jint JNICALL Java_name_boyle_chris_sgtpuzzles_GamePlay_getUIVisibility(JNIEnv *e
 void startPlayingInt(JNIEnv *env, jobject _obj, jobject _gameView, jstring backend, jstring saveOrGameID, int isGameID)
 {
 	pthread_setspecific(envKey, env);
+	if (obj) (*env)->DeleteGlobalRef(env, obj);
+	obj = (*env)->NewGlobalRef(env, _obj);
+	if (gameView) (*env)->DeleteGlobalRef(env, gameView);
+	gameView = (*env)->NewGlobalRef(env, _gameView);
 
 	frontend *new_fe = snew(frontend);
 	memset(new_fe, 0, sizeof(frontend));
@@ -822,10 +827,6 @@ void startPlayingInt(JNIEnv *env, jobject _obj, jobject _gameView, jstring backe
 		sfree(fe);
 	}
 	fe = new_fe;
-	if (obj) (*env)->DeleteGlobalRef(env, obj);
-	obj = (*env)->NewGlobalRef(env, _obj);
-	if (gameView) (*env)->DeleteGlobalRef(env, gameView);
-	gameView = (*env)->NewGlobalRef(env, _gameView);
 	int x, y;
 	x = INT_MAX;
 	y = INT_MAX;

@@ -34,12 +34,13 @@ def idForSimon() {
 
 android {
     compileSdkVersion 23
-    buildToolsVersion "23"
+    buildToolsVersion "23.0.1"
 
     defaultConfig {
         applicationId "name.boyle.chris.sgtpuzzles"
         versionCode 110
         versionName "${timestamp()}-${idForSimon()}"
+        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
 
         if (file(ndkDir.absolutePath + '/platforms/android-15').exists()) {  // the last without PIE
             minSdkVersion 7
@@ -153,4 +154,7 @@ dependencies {
     compile 'com.android.support:appcompat-v7:23.0.1'
     compile 'com.android.support:gridlayout-v7:23.0.1'
     compile 'com.android.support:support-annotations:23.0.1'
+    androidTestCompile 'com.android.support.test:runner:0.4'
+    androidTestCompile 'com.android.support.test:rules:0.4'
+    androidTestCompile 'com.android.support.test.espresso:espresso-core:2.2.1'
 }

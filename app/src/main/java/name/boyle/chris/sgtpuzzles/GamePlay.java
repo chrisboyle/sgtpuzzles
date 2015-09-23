@@ -357,7 +357,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 	public boolean onKeyUp(int keyCode, @NonNull KeyEvent event) {
 		if (keyCode == KeyEvent.KEYCODE_MENU) {
 			if (hackForSubmenus == null) openOptionsMenu();
-			hackForSubmenus.performIdentifierAction(R.id.game, 0);
+			hackForSubmenus.performIdentifierAction(R.id.game_menu, 0);
 			return true;
 		}
 		// work around http://code.google.com/p/android/issues/detail?id=21181
@@ -392,6 +392,15 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 			} else if (u != null) {
 				Log.d(TAG, "URI is: \"" + u + "\"");
 				String g = u.getSchemeSpecificPart();
+				final String[] split = g.split(":", 2);
+				if (split.length > 1) {
+					if (split[1].contains(":")) {
+						startGame(GameLaunch.ofGameID(split[0], split[1]));
+					} else {  // params only
+						startGame(GameLaunch.toGenerate(split[0], split[1]));
+					}
+					return;
+				}
 				if (games.length < 2) games = getResources().getStringArray(R.array.games);
 				for (String game : games) {
 					if (game.equals(g)) {
@@ -626,7 +635,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 		solveItem.setEnabled(solveEnabled);
 		solveItem.setVisible(solveEnabled);
 		updateUndoRedoEnabled();
-		final MenuItem typeItem = menu.findItem(R.id.type);
+		final MenuItem typeItem = menu.findItem(R.id.type_menu);
 		final boolean enableType = workerRunning || !gameTypes.isEmpty() || customVisible;
 		typeItem.setEnabled(enableType);
 		typeItem.setVisible(enableType);
@@ -1362,9 +1371,9 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 		if (screenWidthDIP >= 480) {
 			state |= MenuItemCompat.SHOW_AS_ACTION_WITH_TEXT;
 		}
-		MenuItemCompat.setShowAsAction(menu.findItem(R.id.game), state);
-		MenuItemCompat.setShowAsAction(menu.findItem(R.id.type), state);
-		MenuItemCompat.setShowAsAction(menu.findItem(R.id.help), state);
+		MenuItemCompat.setShowAsAction(menu.findItem(R.id.game_menu), state);
+		MenuItemCompat.setShowAsAction(menu.findItem(R.id.type_menu), state);
+		MenuItemCompat.setShowAsAction(menu.findItem(R.id.help_menu), state);
 		final boolean undoRedoKbd = prefs.getBoolean(UNDO_REDO_KBD_KEY, UNDO_REDO_KBD_DEFAULT);
 		final MenuItem undoItem = menu.findItem(R.id.undo);
 		undoItem.setVisible(!undoRedoKbd);
@@ -1457,14 +1466,14 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 				startNewGame();
 			}
 		});
-		final Button typeButton = (Button) d.findViewById(R.id.type);
+		final Button typeButton = (Button) d.findViewById(R.id.type_menu);
 		darkenTopDrawable(typeButton);
 		typeButton.setOnClickListener(new OnClickListener() {
 			@Override
 			public void onClick(View v) {
 				d.dismiss();
 				if (hackForSubmenus == null) openOptionsMenu();
-				hackForSubmenus.performIdentifierAction(R.id.type, 0);
+				hackForSubmenus.performIdentifierAction(R.id.type_menu, 0);
 			}
 		});
 		final String style = prefs.getString(GameChooser.CHOOSER_STYLE_KEY, "list");
