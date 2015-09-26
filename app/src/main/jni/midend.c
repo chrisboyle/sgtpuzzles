@@ -664,11 +664,11 @@ static int midend_really_process_key(midend *me, int x, int y, int button)
             me->states[me->nstates].movetype = MOVE;
             me->statepos = ++me->nstates;
             me->dir = +1;
-	    if (me->ui) {
+	    //if (me->ui) {
 		me->ourgame->changed_state(me->ui,
 					   me->states[me->statepos-2].state,
 					   me->states[me->statepos-1].state);
-            }
+            //}
             changed_state(me->drawing, me->statepos > 1, me->statepos < me->nstates);
         } else {
             goto done;
