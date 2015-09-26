@@ -761,7 +761,24 @@ struct frontend {
     [op setAllowsMultipleSelection:NO];
 
     if ([op runModalForTypes:nil] == NSOKButton) {
-	const char *name = [[[op filenames] objectAtIndex:0] cString];
+        /*
+         * This used to be
+         *
+         *    [[[op filenames] objectAtIndex:0] cString]
+         *
+         * but the plain cString method became deprecated and Xcode 7
+         * started complaining about it. Since OS X 10.9 we can
+         * apparently use the more modern API
+         *
+         *    [[[op URLs] objectAtIndex:0] fileSystemRepresentation]
+         *
+         * but the alternative below still compiles with Xcode 7 and
+         * is a bit more backwards compatible, so I'll try it for the
+         * moment.
+         */
+	const char *name = [[[op filenames] objectAtIndex:0]
+                               cStringUsingEncoding:
+                                   [NSString defaultCStringEncoding]];
 	char *err;
 
         FILE *fp = fopen(name, "r");
