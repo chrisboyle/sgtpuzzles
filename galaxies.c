@@ -1301,6 +1301,8 @@ generate:
 
     game_update_dots(state);
 
+    if (state->ndots == 1) goto generate;
+
 #ifdef DEBUGGING
     {
         char *tmp = encode_game(state);
