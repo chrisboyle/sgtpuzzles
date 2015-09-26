@@ -41,18 +41,7 @@ android {
         versionCode 110
         versionName "${timestamp()}-${idForSimon()}"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
-
-        if (file(ndkDir.absolutePath + '/platforms/android-15').exists()) {  // the last without PIE
-            minSdkVersion 7
-        } else {
-            project.logger.log(LogLevel.WARN,
-                    "Your NDK can only support Android 4.1 and up because it forces PIE on. " +
-                    "Install one with platforms other than android-L for broader support.")
-            // Specifically, add-application.mk:149 ends up "Switching to android-L", so
-            // setup-abi.mk:55 ends up setting TARGET_PIE := true, so build-binary.mk:210
-            // will enable PIE regardless of APP_PIE.
-            minSdkVersion 16
-        }
+        minSdkVersion 7
         targetSdkVersion 23
 
         ndk {
