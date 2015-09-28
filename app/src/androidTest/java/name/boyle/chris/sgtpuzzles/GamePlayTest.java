@@ -5,7 +5,9 @@ import android.net.Uri;
 import android.support.test.espresso.ViewAction;
 import android.support.test.espresso.action.CoordinatesProvider;
 import android.support.test.espresso.action.GeneralClickAction;
+import android.support.test.espresso.action.GeneralSwipeAction;
 import android.support.test.espresso.action.Press;
+import android.support.test.espresso.action.Swipe;
 import android.support.test.espresso.action.Tap;
 import android.support.test.rule.ActivityTestRule;
 import android.view.View;
@@ -45,10 +47,7 @@ import static android.view.KeyEvent.KEYCODE_SPACE;
 import static android.view.KeyEvent.KEYCODE_V;
 import static android.view.KeyEvent.KEYCODE_Z;
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assume.assumeThat;
+import static org.junit.Assert.assertNotEquals;
 
 @RunWith(Parameterized.class)
 public class GamePlayTest {
@@ -65,7 +64,8 @@ public class GamePlayTest {
 			new ActivityTestRule<>(GamePlay.class, false, false);
 
 	private static void addExamples() {
-		addExample("net", "1x2:42", tapXYProportion(0.5, 0.25));
+		addExample("net", "1x2:42", new GeneralClickAction(Tap.SINGLE,
+				squareProportions(0, -0.25), Press.FINGER));
 		addExample("blackbox", "w3h3m1M1:38727296",
 				KEYCODE_DPAD_UP, KEYCODE_DPAD_DOWN, KEYCODE_DPAD_CENTER,
 				KEYCODE_DPAD_UP, KEYCODE_DPAD_LEFT, KEYCODE_DPAD_CENTER);
@@ -199,6 +199,8 @@ public class GamePlayTest {
 				KEYCODE_SPACE, KEYCODE_DPAD_RIGHT, KEYCODE_DPAD_UP, KEYCODE_DPAD_CENTER,
 				KEYCODE_DPAD_UP, KEYCODE_DPAD_UP, KEYCODE_SPACE, KEYCODE_DPAD_UP, KEYCODE_DPAD_CENTER,
 				KEYCODE_DPAD_UP, KEYCODE_DPAD_CENTER);
+		addExample("untangle", "4:0-1,0-2,0-3,1-2,1-3,2-3", new GeneralSwipeAction(Swipe.FAST,
+				squareProportions(0, -0.42), squareProportions(0, 0.25), Press.FINGER));
 	}
 
 	private static void addExample(final String backend, final String gameID, final int... keystrokes) {
@@ -223,7 +225,7 @@ public class GamePlayTest {
 			unusedBackends.remove(used);
 		}
 		for (String unused : unusedBackends) {
-			addExample(unused, null, KEYCODE_DPAD_CENTER);  // testGameCompletion will fail appropriately
+			addExample(unused, "", KEYCODE_DPAD_CENTER);  // testGameCompletion will fail appropriately
 		}
 		return _params;
 	}
@@ -236,9 +238,7 @@ public class GamePlayTest {
 
 	@Test
 	public void testGameCompletion() throws InterruptedException {
-		assumeThat("Untangle is currently not testable, no keyboard control and touch controls require too much precision",
-				_backend, not(equalTo("untangle")));
-		assertNotNull("Missing test for " + _backend, _gameID);
+		assertNotEquals("Missing test for " + _backend, "", _gameID);
 		final Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("sgtpuzzles:" + _backend + ":" + _gameID));
 		final GamePlay activity = mActivityRule.launchActivity(intent);
 		assertCompleted(false);
@@ -257,20 +257,17 @@ public class GamePlayTest {
 		}
 	}
 
-	public static ViewAction tapXYProportion(final double x, final double y) {
-		return new GeneralClickAction(
-				Tap.SINGLE,
-				new CoordinatesProvider() {
-					@Override
-					public float[] calculateCoordinates(View view) {
-						final int[] screenPos = new int[2];
-						view.getLocationOnScreen(screenPos);
-
-						final float screenX = (float) (screenPos[0] + (x * view.getWidth()));
-						final float screenY = (float) (screenPos[1] + (y * view.getHeight()));
-						return new float[]{screenX, screenY};
-					}
-				},
-				Press.FINGER);
+	public static CoordinatesProvider squareProportions(final double xProp, final double yProp) {
+		return new CoordinatesProvider() {
+			@Override
+			public float[] calculateCoordinates(View view) {
+				final int[] screenPos = new int[2];
+				view.getLocationOnScreen(screenPos);
+				final int squareSz = Math.min(view.getWidth(), view.getHeight());
+				final float screenX = (float) (screenPos[0] + (0.5 * view.getWidth()) + xProp * squareSz);
+				final float screenY = (float) (screenPos[1] + (0.5 * view.getHeight()) + yProp * squareSz);
+				return new float[]{screenX, screenY};
+			}
+		};
 	}
 }
