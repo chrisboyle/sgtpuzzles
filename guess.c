@@ -1247,28 +1247,30 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
     }
 
     /* draw the guesses (so far) and the hints
-     * (in reverse order to avoid trampling holds) */
+     * (in reverse order to avoid trampling holds, and postponing the
+     * next_go'th to not overrender the top of the circular cursor) */
     for (i = state->params.nguesses - 1; i >= 0; i--) {
-        if (state->next_go > i || state->solved) {
+        if (i < state->next_go || state->solved) {
             /* this info is stored in the game_state already */
             guess_redraw(dr, ds, i, state->guesses[i], NULL, -1, 0,
                          ui->show_labels);
             hint_redraw(dr, ds, i, state->guesses[i],
                         i == (state->next_go-1) ? 1 : 0, FALSE, FALSE);
-        } else if (state->next_go == i) {
-            /* this is the one we're on; the (incomplete) guess is
-             * stored in the game_ui. */
-            guess_redraw(dr, ds, i, ui->curr_pegs,
-                         ui->holds, ui->display_cur ? ui->peg_cur : -1, 0,
-                         ui->show_labels);
-            hint_redraw(dr, ds, i, NULL, 1,
-                        ui->display_cur && ui->peg_cur == state->params.npegs,
-                        ui->markable);
-        } else {
+        } else if (i > state->next_go) {
             /* we've not got here yet; it's blank. */
             guess_redraw(dr, ds, i, NULL, NULL, -1, 0, ui->show_labels);
             hint_redraw(dr, ds, i, NULL, 0, FALSE, FALSE);
         }
+    }
+    if (!state->solved) {
+	/* this is the one we're on; the (incomplete) guess is stored in
+	 * the game_ui. */
+	guess_redraw(dr, ds, state->next_go, ui->curr_pegs,
+		     ui->holds, ui->display_cur ? ui->peg_cur : -1, 0,
+		     ui->show_labels);
+	hint_redraw(dr, ds, state->next_go, NULL, 1,
+		    ui->display_cur && ui->peg_cur == state->params.npegs,
+		    ui->markable);
     }
 
     /* draw the 'current move' and 'able to mark' sign. */
