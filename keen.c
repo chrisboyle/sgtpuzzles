@@ -1790,6 +1790,18 @@ static void draw_tile(drawing *dr, game_drawstate *ds, struct clues *clues,
     draw_rect(dr, cx, cy, cw, ch,
 	      (tile & DF_HIGHLIGHT) ? COL_HIGHLIGHT : COL_BACKGROUND);
 
+    /* pencil-mode highlight */
+    if (tile & DF_HIGHLIGHT_PENCIL) {
+        int coords[6];
+        coords[0] = cx;
+        coords[1] = cy;
+        coords[2] = cx+cw/2;
+        coords[3] = cy;
+        coords[4] = cx;
+        coords[5] = cy+ch/2;
+        draw_polygon(dr, coords, 3, COL_HIGHLIGHT, COL_HIGHLIGHT);
+    }
+
     /*
      * Draw the corners of thick lines in corner-adjacent squares,
      * which jut into this square by one pixel.
@@ -1802,18 +1814,6 @@ static void draw_tile(drawing *dr, game_drawstate *ds, struct clues *clues,
 	draw_rect(dr, tx-GRIDEXTRA, ty+TILESIZE-1-2*GRIDEXTRA, GRIDEXTRA, GRIDEXTRA, COL_GRID);
     if (x+1 < w && y+1 < w && dsf_canonify(clues->dsf, y*w+x) != dsf_canonify(clues->dsf, (y+1)*w+x+1))
 	draw_rect(dr, tx+TILESIZE-1-2*GRIDEXTRA, ty+TILESIZE-1-2*GRIDEXTRA, GRIDEXTRA, GRIDEXTRA, COL_GRID);
-
-    /* pencil-mode highlight */
-    if (tile & DF_HIGHLIGHT_PENCIL) {
-        int coords[6];
-        coords[0] = cx;
-        coords[1] = cy;
-        coords[2] = cx+cw/2;
-        coords[3] = cy;
-        coords[4] = cx;
-        coords[5] = cy+ch/2;
-        draw_polygon(dr, coords, 3, COL_HIGHLIGHT, COL_HIGHLIGHT);
-    }
 
     /* Draw the box clue. */
     if (dsf_canonify(clues->dsf, y*w+x) == y*w+x) {
