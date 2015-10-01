@@ -1248,7 +1248,8 @@ static int check_errors(const game_state *state, int *errors)
 	    }
 	}
 
-	if (n > clues[i] || (j == w && n < clues[i])) {
+	if (n > clues[i] || (best == w && n < clues[i]) ||
+	    (best < w && n == clues[i])) {
 	    if (errors) {
 		int x, y;
 		CLUEPOS(x, y, i, w);
