@@ -2330,6 +2330,11 @@ pencil mark), and typing a number in is entered in the square in the
 appropriate way; typing in a 0 or using the space bar will clear a
 filled square. 
 
+Left-clicking a clue will mark it as done (grey it out), or unmark it
+if it is already marked.  Holding Control or Shift and pressing an
+arrow key likewise marks any clue adjacent to the cursor in the given
+direction.
+
 (All the actions described in \k{common-actions} are also available.)
 
 \H{unequal-parameters} \I{parameters, for Unequal}Unequal parameters
