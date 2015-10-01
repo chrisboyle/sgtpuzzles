@@ -777,6 +777,8 @@ static char *interpret_move(const game_state *from, game_ui *ui,
         set_peg(&from->params, ui, ui->peg_cur, 0);
         ret = "";
     } else if (button == 'H' || button == 'h') {
+        if (ui->peg_cur == from->params.npegs)
+            return NULL;
         ui->display_cur = 1;
         ui->holds[ui->peg_cur] = 1 - ui->holds[ui->peg_cur];
         ret = "";
