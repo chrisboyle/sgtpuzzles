@@ -1,5 +1,6 @@
 /*
- * keen.c: an implementation of the Times's 'KenKen' puzzle.
+ * keen.c: an implementation of the Times's 'KenKen' puzzle, and
+ * also of Nikoli's very similar 'Inshi No Heya' puzzle.
  */
 
 #include <stdio.h>
@@ -61,7 +62,7 @@ enum {
 };
 
 struct game_params {
-    int w, diff;
+    int w, diff, multiplication_only;
 };
 
 struct clues {
@@ -85,19 +86,22 @@ static game_params *default_params(void)
 
     ret->w = 6;
     ret->diff = DIFF_NORMAL;
+    ret->multiplication_only = FALSE;
 
     return ret;
 }
 
 const static struct game_params keen_presets[] = {
-    {  4, DIFF_EASY         },
-    {  5, DIFF_EASY         },
-    {  6, DIFF_EASY         },
-    {  6, DIFF_NORMAL       },
-    {  6, DIFF_HARD         },
-    {  6, DIFF_EXTREME      },
-    {  6, DIFF_UNREASONABLE },
-    {  9, DIFF_NORMAL       },
+    {  4, DIFF_EASY,         FALSE },
+    {  5, DIFF_EASY,         FALSE },
+    {  5, DIFF_EASY,         TRUE  },
+    {  6, DIFF_EASY,         FALSE },
+    {  6, DIFF_NORMAL,       FALSE },
+    {  6, DIFF_NORMAL,       TRUE  },
+    {  6, DIFF_HARD,         FALSE },
+    {  6, DIFF_EXTREME,      FALSE },
+    {  6, DIFF_UNREASONABLE, FALSE },
+    {  9, DIFF_NORMAL,       FALSE },
 };
 
 static int game_fetch_preset(int i, char **name, game_params **params)
@@ -111,7 +115,8 @@ static int game_fetch_preset(int i, char **name, game_params **params)
     ret = snew(game_params);
     *ret = keen_presets[i]; /* structure copy */
 
-    sprintf(buf, "%dx%d %s", ret->w, ret->w, keen_diffnames[ret->diff]);
+    sprintf(buf, "%dx%d %s%s", ret->w, ret->w, keen_diffnames[ret->diff],
+	    ret->multiplication_only ? ", multiplication only" : "");
 
     *name = dupstr(buf);
     *params = ret;
@@ -149,6 +154,11 @@ static void decode_params(game_params *params, char const *string)
             p++;
         }
     }
+
+    if (*p == 'm') {
+	p++;
+	params->multiplication_only = TRUE;
+    }
 }
 
 static char *encode_params(const game_params *params, int full)
@@ -157,7 +167,8 @@ static char *encode_params(const game_params *params, int full)
 
     sprintf(ret, "%d", params->w);
     if (full)
-        sprintf(ret + strlen(ret), "d%c", keen_diffchars[params->diff]);
+        sprintf(ret + strlen(ret), "d%c%s", keen_diffchars[params->diff],
+		params->multiplication_only ? "m" : "");
 
     return dupstr(ret);
 }
@@ -167,7 +178,7 @@ static config_item *game_configure(const game_params *params)
     config_item *ret;
     char buf[80];
 
-    ret = snewn(3, config_item);
+    ret = snewn(4, config_item);
 
     ret[0].name = "Grid size";
     ret[0].type = C_STRING;
@@ -180,10 +191,15 @@ static config_item *game_configure(const game_params *params)
     ret[1].sval = DIFFCONFIG;
     ret[1].ival = params->diff;
 
-    ret[2].name = NULL;
-    ret[2].type = C_END;
+    ret[2].name = "Multiplication only";
+    ret[2].type = C_BOOLEAN;
     ret[2].sval = NULL;
-    ret[2].ival = 0;
+    ret[2].ival = params->multiplication_only;
+
+    ret[3].name = NULL;
+    ret[3].type = C_END;
+    ret[3].sval = NULL;
+    ret[3].ival = 0;
 
     return ret;
 }
@@ -194,6 +210,7 @@ static game_params *custom_params(const config_item *cfg)
 
     ret->w = atoi(cfg[0].sval);
     ret->diff = cfg[1].ival;
+    ret->multiplication_only = cfg[2].ival;
 
     return ret;
 }
@@ -912,7 +929,9 @@ done
 	    singletons[i] = 0;
 	    j = dsf_canonify(dsf, i);
 	    k = dsf_size(dsf, j);
-	    if (j == i && k > 2) {
+	    if (params->multiplication_only)
+		singletons[j] = F_MUL;
+	    else if (j == i && k > 2) {
 		singletons[j] |= F_ADD | F_MUL;
 	    } else if (j != i && k == 2) {
 		/* Fetch the two numbers and sort them into order. */
@@ -1760,7 +1779,7 @@ static void game_free_drawstate(drawing *dr, game_drawstate *ds)
 }
 
 static void draw_tile(drawing *dr, game_drawstate *ds, struct clues *clues,
-		      int x, int y, long tile)
+		      int x, int y, long tile, int only_one_op)
 {
     int w = clues->w /* , a = w*w */;
     int tx, ty, tw, th;
@@ -1830,7 +1849,7 @@ static void draw_tile(drawing *dr, game_drawstate *ds, struct clues *clues,
 	 * want to display them right if so.
 	 */
 	sprintf (str, "%ld%s", clueval,
-		 (size == 1 ? "" :
+		 (size == 1 || only_one_op ? "" :
 		  cluetype == C_ADD ? "+" :
 		  cluetype == C_SUB ? ds->minus_sign :
 		  cluetype == C_MUL ? ds->times_sign :
@@ -2003,7 +2022,8 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
 
 	    if (ds->tiles[y*w+x] != tile) {
 		ds->tiles[y*w+x] = tile;
-		draw_tile(dr, ds, state->clues, x, y, tile);
+		draw_tile(dr, ds, state->clues, x, y, tile,
+			  state->par.multiplication_only);
 	    }
 	}
     }

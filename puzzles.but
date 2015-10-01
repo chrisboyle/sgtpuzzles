@@ -2579,6 +2579,10 @@ level, some backtracking will be required, but the solution should
 still be unique. The remaining levels require increasingly complex
 reasoning to avoid having to backtrack.
 
+\dt \e{Multiplication only}
+
+\dd If this is enabled, all boxes will be multiplication boxes.
+With this rule, the puzzle is known as \q{Inshi No Heya}.
 
 \C{towers} \i{Towers}
 
