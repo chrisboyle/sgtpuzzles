@@ -1459,6 +1459,10 @@ the return key will place a domino covering those numbers, or
 pressing the space bar will lay a line between the two squares.
 Repeating either action removes the domino or line.
 
+Pressing a number key will highlight all occurrences of that
+number. Pressing that number again will clear the highlighting. Up to two
+different numbers can be highlighted at any given time.
+
 (All the actions described in \k{common-actions} are also available.)
 
 \H{dominosa-parameters} \I{parameters, for Dominosa}Dominosa parameters

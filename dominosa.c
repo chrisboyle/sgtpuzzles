@@ -64,6 +64,8 @@ enum {
     COL_DOMINOCLASH,
     COL_DOMINOTEXT,
     COL_EDGE,
+    COL_HIGHLIGHT_1,
+    COL_HIGHLIGHT_2,
     NCOLOURS
 };
 
@@ -1015,7 +1017,7 @@ static char *game_text_format(const game_state *state)
 }
 
 struct game_ui {
-    int cur_x, cur_y, cur_visible;
+    int cur_x, cur_y, cur_visible, highlight_1, highlight_2;
 };
 
 static game_ui *new_ui(const game_state *state)
@@ -1023,6 +1025,7 @@ static game_ui *new_ui(const game_state *state)
     game_ui *ui = snew(game_ui);
     ui->cur_x = ui->cur_y = 0;
     ui->cur_visible = 0;
+    ui->highlight_1 = ui->highlight_2 = -1;
     return ui;
 }
 
@@ -1134,6 +1137,22 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 
         sprintf(buf, "%c%d,%d", (int)(button == CURSOR_SELECT2 ? 'E' : 'D'), d1, d2);
         return dupstr(buf);
+    } else if (isdigit(button)) {
+        int n = state->params.n, num = button - '0';
+        if (num > n) {
+            return NULL;
+        } else if (ui->highlight_1 == num) {
+            ui->highlight_1 = -1;
+        } else if (ui->highlight_2 == num) {
+            ui->highlight_2 = -1;
+        } else if (ui->highlight_1 == -1) {
+            ui->highlight_1 = num;
+        } else if (ui->highlight_2 == -1) {
+            ui->highlight_2 = num;
+        } else {
+            return NULL;
+        }
+        return "";
     }
 
     return NULL;
@@ -1339,6 +1358,14 @@ static float *game_colours(frontend *fe, int *ncolours)
     ret[COL_EDGE * 3 + 1] = ret[COL_BACKGROUND * 3 + 1] * 2 / 3;
     ret[COL_EDGE * 3 + 2] = ret[COL_BACKGROUND * 3 + 2] * 2 / 3;
 
+    ret[COL_HIGHLIGHT_1 * 3 + 0] = 0.85;
+    ret[COL_HIGHLIGHT_1 * 3 + 1] = 0.20;
+    ret[COL_HIGHLIGHT_1 * 3 + 2] = 0.20;
+
+    ret[COL_HIGHLIGHT_2 * 3 + 0] = 0.30;
+    ret[COL_HIGHLIGHT_2 * 3 + 1] = 0.85;
+    ret[COL_HIGHLIGHT_2 * 3 + 2] = 0.20;
+
     *ncolours = NCOLOURS;
     return ret;
 }
@@ -1379,6 +1406,8 @@ enum {
    * EDGE_*                     [0x100 -- 0xF00]
  * and must fit into an unsigned long (32 bits).
  */
+#define DF_HIGHLIGHT_1  0x10
+#define DF_HIGHLIGHT_2  0x20
 #define DF_FLASH        0x40
 #define DF_CLASH        0x80
 
@@ -1393,7 +1422,7 @@ enum {
 #define IS_EMPTY(s,x,y) ((s)->grid[(y)*(s)->w+(x)] == ((y)*(s)->w+(x)))
 
 static void draw_tile(drawing *dr, game_drawstate *ds, const game_state *state,
-                      int x, int y, int type)
+                      int x, int y, int type, int highlight_1, int highlight_2)
 {
     int w = state->w /*, h = state->h */;
     int cx = COORD(x), cy = COORD(y);
@@ -1489,6 +1518,12 @@ static void draw_tile(drawing *dr, game_drawstate *ds, const game_state *state,
 	    draw_rect_corners(dr, ox, oy, CURSOR_RADIUS+1, nc);
     }
 
+    if (flags & DF_HIGHLIGHT_1) {
+        nc = COL_HIGHLIGHT_1;
+    } else if (flags & DF_HIGHLIGHT_2) {
+        nc = COL_HIGHLIGHT_2;
+    }
+
     sprintf(str, "%d", state->numbers->numbers[y*w+x]);
     draw_text(dr, cx+TILESIZE/2, cy+TILESIZE/2, FONT_VARIABLE, TILESIZE/2,
               ALIGN_HCENTRE | ALIGN_VCENTRE, nc, str);
@@ -1551,8 +1586,8 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
             else
                 c = TYPE_BLANK;
 
+            n1 = state->numbers->numbers[n];
             if (c != TYPE_BLANK) {
-                n1 = state->numbers->numbers[n];
                 n2 = state->numbers->numbers[state->grid[n]];
                 di = DINDEX(n1, n2);
                 if (used[di] > 1)
@@ -1560,6 +1595,11 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
             } else {
                 c |= state->edges[n];
             }
+
+            if (n1 == ui->highlight_1)
+                c |= DF_HIGHLIGHT_1;
+            if (n1 == ui->highlight_2)
+                c |= DF_HIGHLIGHT_2;
 
             if (flashtime != 0)
                 c |= DF_FLASH;             /* we're flashing */
@@ -1577,7 +1617,8 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
             }
 
 	    if (ds->visible[n] != c) {
-		draw_tile(dr, ds, state, x, y, c);
+		draw_tile(dr, ds, state, x, y, c,
+                          ui->highlight_1, ui->highlight_2);
                 ds->visible[n] = c;
 	    }
 	}
@@ -1596,7 +1637,10 @@ static float game_flash_length(const game_state *oldstate,
 {
     if (!oldstate->completed && newstate->completed &&
 	!oldstate->cheated && !newstate->cheated)
+    {
+        ui->highlight_1 = ui->highlight_2 = -1;
         return FLASH_TIME;
+    }
     return 0.0F;
 }
 
@@ -1654,7 +1698,7 @@ static void game_print(drawing *dr, const game_state *state, int tilesize)
             else
                 c = TYPE_BLANK;
 
-	    draw_tile(dr, ds, state, x, y, c);
+	    draw_tile(dr, ds, state, x, y, c, -1, -1);
 	}
 }
 
