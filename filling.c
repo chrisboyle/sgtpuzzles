@@ -395,25 +395,10 @@ static void make_board(int *board, int w, int h, random_state *rs) {
     assert(FALSE); /* unreachable */
 }
 
-static int rhofree(int *hop, int start) {
-    int turtle = start, rabbit = hop[start];
-    while (rabbit != turtle) { /* find a cycle */
-        turtle = hop[turtle];
-        rabbit = hop[hop[rabbit]];
-    }
-    do { /* check that start is in the cycle */
-        rabbit = hop[rabbit];
-        if (start == rabbit) return 1;
-    } while (rabbit != turtle);
-    return 0;
-}
-
 static void merge(int *dsf, int *connected, int a, int b) {
     int c;
     assert(dsf);
     assert(connected);
-    assert(rhofree(connected, a));
-    assert(rhofree(connected, b));
     a = dsf_canonify(dsf, a);
     b = dsf_canonify(dsf, b);
     if (a == b) return;
@@ -421,8 +406,6 @@ static void merge(int *dsf, int *connected, int a, int b) {
     c = connected[a];
     connected[a] = connected[b];
     connected[b] = c;
-    assert(rhofree(connected, a));
-    assert(rhofree(connected, b));
 }
 
 static void *memdup(const void *ptr, size_t len, size_t esz) {
@@ -613,6 +596,7 @@ static int learn_expand_or_one(struct solver_state *s, int w, int h) {
 		 (s->board[idx] >= expandsize(s->board, s->dsf, w, h,
 					      i, s->board[idx]))))
 		one = FALSE;
+	    if (dsf_size(s->dsf, idx) == s->board[idx]) continue;
 	    assert(s->board[i] == EMPTY);
 	    s->board[i] = -SENTINEL;
 	    if (check_capacity(s->board, w, h, idx)) continue;
@@ -735,14 +719,24 @@ static int learn_critical_square(struct solver_state *s, int w, int h) {
 
     /* for each connected component */
     for (i = 0; i < sz; ++i) {
-	int j;
+	int j, slack;
 	if (s->board[i] == EMPTY) continue;
 	if (i != dsf_canonify(s->dsf, i)) continue;
-	if (dsf_size(s->dsf, i) == s->board[i]) continue;
+	slack = s->board[i] - dsf_size(s->dsf, i);
+	if (slack == 0) continue;
 	assert(s->board[i] != 1);
 	/* for each empty square */
 	for (j = 0; j < sz; ++j) {
-	    if (s->board[j] != EMPTY) continue;
+	    if (s->board[j] == EMPTY) {
+		/* if it's too far away from the CC, don't bother */
+		int k = i, jx = j % w, jy = j / w;
+		do {
+		    int kx = k % w, ky = k / w;
+		    if (abs(kx - jx) + abs(ky - jy) <= slack) break;
+		    k = s->connected[k];
+		} while (i != k);
+		if (i == k) continue; /* not within range */
+	    } else continue;
 	    s->board[j] = -SENTINEL;
 	    if (check_capacity(s->board, w, h, i)) continue;
 	    /* if not expanding s->board[i] to s->board[j] implies
