@@ -2032,9 +2032,7 @@ begin on this path. If you then move in that direction, the arrow
 will update to indicate the next direction on the path. You can also
 press Space to automatically move in the direction of the hint
 arrow. If you move in a different direction from the one shown by
-the arrow, the hint arrows will stop appearing because you have
-strayed from the provided path; you can then use \q{Solve} again to
-generate a new path if you want to.
+the arrow, arrows will be shown only if the puzzle is still solvable.
 
 All the actions described in \k{common-actions} are also available.
 In particular, if you do run into a mine and die, you can use the
