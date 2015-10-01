@@ -1694,8 +1694,6 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
     if (!ds->started) {
         ds->started = TRUE;
         draw_rect(dr, 0, 0, wpx, hpx, COL_BACKGROUND);
-	draw_rect(dr, BORDER-1, BORDER-1,
-		  ds->tilesize*w+2, ds->tilesize*h+2, COL_GRID);
         draw_update(dr, 0, 0, wpx, hpx);
     }
 
@@ -1727,17 +1725,15 @@ static void draw_cell(drawing *draw, game_drawstate *ds, int r, int c,
                         cell.flash || cell.cursor ?
                         COL_LOWLIGHT : COL_BACKGROUND);
 
-    draw_rect        (draw, x, y, ts, ts, colour);
-    draw_rect_outline(draw, x, y, ts, ts, COL_GRID);
+    draw_rect_outline(draw, x,     y,     ts + 1, ts + 1, COL_GRID);
+    draw_rect        (draw, x + 1, y + 1, ts - 1, ts - 1, colour);
+    if (cell.error)
+	draw_rect_outline(draw, x + 1, y + 1, ts - 1, ts - 1, COL_ERROR);
 
     switch (cell.value) {
       case WHITE: draw_rect(draw, tx - dotsz / 2, ty - dotsz / 2, dotsz, dotsz,
 			    cell.error ? COL_ERROR : COL_USER);
-      case BLACK: break;
-      case EMPTY:
-        if (cell.error)
-            draw_circle(draw, tx, ty, dotsz / 2, COL_ERROR, COL_GRID);
-        break;
+      case BLACK: case EMPTY: break;
       default:
 	{
 	    int const colour = (cell.error ? COL_ERROR : COL_GRID);
@@ -1748,7 +1744,7 @@ static void draw_cell(drawing *draw, game_drawstate *ds, int r, int c,
 	}
     }
 
-    draw_update(draw, x, y, ts, ts);
+    draw_update(draw, x, y, ts + 1, ts + 1);
 }
 
 static int game_timing_state(const game_state *state, game_ui *ui)
