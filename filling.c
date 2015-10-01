@@ -317,11 +317,73 @@ static void free_game(game_state *);
 
 #define SENTINEL sz
 
+static int mark_region(int *board, int w, int h, int i, int n, int m) {
+    int j;
+
+    board[i] = -1;
+
+    for (j = 0; j < 4; ++j) {
+        const int x = (i % w) + dx[j], y = (i / w) + dy[j], ii = w*y + x;
+        if (x < 0 || x >= w || y < 0 || y >= h) continue;
+        if (board[ii] == m) return FALSE;
+        if (board[ii] != n) continue;
+        if (!mark_region(board, w, h, ii, n, m)) return FALSE;
+    }
+    return TRUE;
+}
+
+static int region_size(int *board, int w, int h, int i) {
+    const int sz = w * h;
+    int j, size, copy;
+    if (board[i] == 0) return 0;
+    copy = board[i];
+    mark_region(board, w, h, i, board[i], SENTINEL);
+    for (size = j = 0; j < sz; ++j) {
+        if (board[j] != -1) continue;
+        ++size;
+        board[j] = copy;
+    }
+    return size;
+}
+
+static void merge_ones(int *board, int w, int h)
+{
+    const int sz = w * h;
+    const int maxsize = min(max(max(w, h), 3), 9);
+    int i, j, k, change;
+    do {
+        change = FALSE;
+        for (i = 0; i < sz; ++i) {
+            if (board[i] != 1) continue;
+
+            for (j = 0; j < 4; ++j, board[i] = 1) {
+                const int x = (i % w) + dx[j], y = (i / w) + dy[j];
+                int oldsize, newsize, ok, ii = w*y + x;
+                if (x < 0 || x >= w || y < 0 || y >= h) continue;
+                if (board[ii] == maxsize) continue;
+
+                oldsize = board[ii];
+                board[i] = oldsize;
+                newsize = region_size(board, w, h, i);
+
+                if (newsize > maxsize) continue;
+
+                ok = mark_region(board, w, h, i, oldsize, newsize);
+
+                for (k = 0; k < sz; ++k)
+                    if (board[k] == -1)
+                        board[k] = ok ? newsize : oldsize;
+
+                if (ok) break;
+            }
+            if (j < 4) change = TRUE;
+        }
+    } while (change);
+}
+
 /* generate a random valid board; uses validate_board. */
 static void make_board(int *board, int w, int h, random_state *rs) {
-    int *dsf;
-
-    const unsigned int sz = w * h;
+    const int sz = w * h;
 
     /* w=h=2 is a special case which requires a number > max(w, h) */
     /* TODO prove that this is the case ONLY for w=h=2. */
@@ -330,69 +392,68 @@ static void make_board(int *board, int w, int h, random_state *rs) {
     /* Note that if 1 in {w, h} then it's impossible to have a region
      * of size > w*h, so the special case only affects w=h=2. */
 
-    int nboards = 0;
-    int i;
+    int i, change, *dsf;
 
     assert(w >= 1);
     assert(h >= 1);
-
     assert(board);
 
-    dsf = snew_dsf(sz); /* implicit dsf_init */
-
     /* I abuse the board variable: when generating the puzzle, it
-     * contains a shuffled list of numbers {0, ..., nsq-1}. */
-    for (i = 0; i < (int)sz; ++i) board[i] = i;
+     * contains a shuffled list of numbers {0, ..., sz-1}. */
+    for (i = 0; i < sz; ++i) board[i] = i;
 
-    while (1) {
-	int change;
-	++nboards;
-	shuffle(board, sz, sizeof (int), rs);
-	/* while the board can in principle be fixed */
-	do {
-	    change = FALSE;
-	    for (i = 0; i < (int)sz; ++i) {
-		int a = SENTINEL;
-		int b = SENTINEL;
-		int c = SENTINEL;
-		const int aa = dsf_canonify(dsf, board[i]);
-		int cc = sz;
-		int j;
-		for (j = 0; j < 4; ++j) {
-		    const int x = (board[i] % w) + dx[j];
-		    const int y = (board[i] / w) + dy[j];
-		    int bb;
-		    if (x < 0 || x >= w || y < 0 || y >= h) continue;
-		    bb = dsf_canonify(dsf, w*y + x);
-		    if (aa == bb) continue;
-		    else if (dsf_size(dsf, aa) == dsf_size(dsf, bb)) {
-			a = aa;
-			b = bb;
-			c = cc;
-		    } else if (cc == sz) c = cc = bb;
-		}
-		if (a != SENTINEL) {
-		    a = dsf_canonify(dsf, a);
-		    assert(a != dsf_canonify(dsf, b));
-		    if (c != sz) assert(a != dsf_canonify(dsf, c));
-		    dsf_merge(dsf, a, c == sz? b: c);
-		    /* if repair impossible; make a new board */
-		    if (dsf_size(dsf, a) > maxsize) goto retry;
-		    change = TRUE;
-		}
-	    }
-	} while (change);
+    dsf = snewn(sz, int);
+retry:
+    dsf_init(dsf, sz);
+    shuffle(board, sz, sizeof (int), rs);
 
-	for (i = 0; i < (int)sz; ++i) board[i] = dsf_size(dsf, i);
+    do {
+        change = FALSE; /* as long as the board potentially has errors */
+        for (i = 0; i < sz; ++i) {
+            const int square = dsf_canonify(dsf, board[i]);
+            const int size = dsf_size(dsf, square);
+            int merge = SENTINEL, min = maxsize - size + 1, error = FALSE;
+            int neighbour, neighbour_size, j;
 
-	sfree(dsf);
-	printv("returning board number %d\n", nboards);
-	return;
+            for (j = 0; j < 4; ++j) {
+                const int x = (board[i] % w) + dx[j];
+                const int y = (board[i] / w) + dy[j];
+                if (x < 0 || x >= w || y < 0 || y >= h) continue;
 
-    retry:
-	dsf_init(dsf, sz);
-    }
-    assert(FALSE); /* unreachable */
+                neighbour = dsf_canonify(dsf, w*y + x);
+                if (square == neighbour) continue;
+
+                neighbour_size = dsf_size(dsf, neighbour);
+                if (size == neighbour_size) error = TRUE;
+
+                /* find the smallest neighbour to merge with, which
+                 * wouldn't make the region too large.  (This is
+                 * guaranteed by the initial value of `min'.) */
+                if (neighbour_size < min) {
+                    min = neighbour_size;
+                    merge = neighbour;
+                }
+            }
+
+            /* if this square is not in error, leave it be */
+            if (!error) continue;
+
+            /* if it is, but we can't fix it, retry the whole board.
+             * Maybe we could fix it by merging the conflicting
+             * neighbouring region(s) into some of their neighbours,
+             * but just restarting works out fine. */
+            if (merge == SENTINEL) goto retry;
+
+            /* merge with the smallest neighbouring workable region. */
+            dsf_merge(dsf, square, merge);
+            change = TRUE;
+        }
+    } while (change);
+
+    for (i = 0; i < sz; ++i) board[i] = dsf_size(dsf, i);
+    merge_ones(board, w, h);
+
+    sfree(dsf);
 }
 
 static void merge(int *dsf, int *connected, int a, int b) {
@@ -817,69 +878,33 @@ static int *make_dsf(int *dsf, int *board, const int w, const int h) {
     return dsf;
 }
 
-/*
-static int filled(int *board, int *randomize, int k, int n) {
-    int i;
-    if (board == NULL) return FALSE;
-    if (randomize == NULL) return FALSE;
-    if (k > n) return FALSE;
-    for (i = 0; i < k; ++i) if (board[randomize[i]] == 0) return FALSE;
-    for (; i < n; ++i) if (board[randomize[i]] != 0) return FALSE;
-    return TRUE;
-}
-*/
-
-static int *g_board;
-static int compare(const void *pa, const void *pb) {
-    if (!g_board) return 0;
-    return g_board[*(const int *)pb] - g_board[*(const int *)pa];
-}
-
-static void minimize_clue_set(int *board, int w, int h, int *randomize) {
+static void minimize_clue_set(int *board, int w, int h, random_state *rs)
+{
     const int sz = w * h;
-    int i;
-    int *board_cp = snewn(sz, int);
-    memcpy(board_cp, board, sz * sizeof (int));
+    int *shuf = snewn(sz, int), i;
 
-    /* since more clues only helps and never hurts, one pass will do
-     * just fine: if we can remove clue n with k clues of index > n,
-     * we could have removed clue n with >= k clues of index > n.
-     * So an additional pass wouldn't do anything [use induction]. */
+    for (i = 0; i < sz; ++i) shuf[i] = i;
+    shuffle(shuf, sz, sizeof (int), rs);
+
+    /* the solver is monotone, so a second pass is superfluous. */
     for (i = 0; i < sz; ++i) {
-	if (board[randomize[i]] == EMPTY) continue;
-        board[randomize[i]] = EMPTY;
-	/* (rot.) symmetry tends to include _way_ too many hints */
-	/* board[sz - randomize[i] - 1] = EMPTY; */
-        if (!solver(board, w, h, NULL)) {
-            board[randomize[i]] = board_cp[randomize[i]];
-	    /* board[sz - randomize[i] - 1] =
-	       board_cp[sz - randomize[i] - 1]; */
-	}
+        int tmp = board[shuf[i]];
+        board[shuf[i]] = EMPTY;
+        if (!solver(board, w, h, NULL)) board[shuf[i]] = tmp;
     }
 
-    sfree(board_cp);
+    sfree(shuf);
 }
 
 static char *new_game_desc(const game_params *params, random_state *rs,
                            char **aux, int interactive)
 {
-    const int w = params->w;
-    const int h = params->h;
-    const int sz = w * h;
-    int *board = snewn(sz, int);
-    int *randomize = snewn(sz, int);
+    const int w = params->w, h = params->h, sz = w * h;
+    int *board = snewn(sz, int), i;
     char *game_description = snewn(sz + 1, char);
-    int i;
-
-    for (i = 0; i < sz; ++i) {
-        board[i] = EMPTY;
-        randomize[i] = i;
-    }
 
     make_board(board, w, h, rs);
-    g_board = board;
-    qsort(randomize, sz, sizeof (int), compare);
-    minimize_clue_set(board, w, h, randomize);
+    minimize_clue_set(board, w, h, rs);
 
     for (i = 0; i < sz; ++i) {
         assert(board[i] >= 0);
@@ -888,12 +913,6 @@ static char *new_game_desc(const game_params *params, random_state *rs,
     }
     game_description[sz] = '\0';
 
-/*
-    solver(board, w, h, aux);
-    print_board(board, w, h);
-*/
-
-    sfree(randomize);
     sfree(board);
 
     return game_description;
