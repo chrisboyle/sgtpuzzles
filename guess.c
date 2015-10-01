@@ -421,6 +421,7 @@ struct game_ui {
     int drag_opeg; /* peg index, if dragged from a peg (from current guess), otherwise -1 */
 
     int show_labels;                   /* label the colours with letters */
+    pegrow hint;
 };
 
 static game_ui *new_ui(const game_state *state)
@@ -437,6 +438,8 @@ static game_ui *new_ui(const game_state *state)
 
 static void free_ui(game_ui *ui)
 {
+    if (ui->hint)
+        free_pegrow(ui->hint);
     free_pegrow(ui->curr_pegs);
     sfree(ui->holds);
     sfree(ui);
@@ -486,6 +489,11 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
                                const game_state *newstate)
 {
     int i;
+
+    if (newstate->next_go < oldstate->next_go) {
+        sfree(ui->hint);
+        ui->hint = NULL;
+    }
 
     /* Implement holds, clear other pegs.
      * This does something that is arguably the Right Thing even
@@ -571,7 +579,7 @@ static void set_peg(const game_params *params, game_ui *ui, int peg, int col)
     ui->markable = is_markable(params, ui->curr_pegs);
 }
 
-static int mark_pegs(pegrow guess, pegrow solution, int ncols)
+static int mark_pegs(pegrow guess, const pegrow solution, int ncols)
 {
     int nc_place = 0, nc_colour = 0, i, j;
 
@@ -631,6 +639,125 @@ static char *encode_move(const game_state *from, game_ui *ui)
     buf = sresize(buf, len, char);
 
     return buf;
+}
+
+static void compute_hint(const game_state *state, game_ui *ui)
+{
+    /* Suggest the lexicographically first row consistent with all
+     * previous feedback.  This is not only a useful hint, but also
+     * a reasonable strategy if applied consistently.  If the user
+     * uses hints in every turn, they may be able to intuit this
+     * strategy, or one similar to it.  I (Jonas Kölker) came up
+     * with something close to it without seeing it in action. */
+
+    /* Some performance characteristics: I want to ask for each n,
+     * how many solutions are guessed in exactly n guesses if you
+     * use the hint in each turn.
+     *
+     * With 4 pegs and 6 colours you get the following histogram:
+     *
+     *  1 guesses:     1 solution
+     *  2 guesses:     4 solutions
+     *  3 guesses:    25 solutions
+     *  4 guesses:   108 solutions
+     *  5 guesses:   305 solutions
+     *  6 guesses:   602 solutions
+     *  7 guesses:   196 solutions
+     *  8 guesses:    49 solutions
+     *  9 guesses:     6 solutions
+     * (note: the tenth guess is never necessary.)
+     *
+     * With 5 pegs and 8 colours you get the following histogram:
+     *
+     *  1 guesses:     1 solution
+     *  2 guesses:     5 solutions
+     *  3 guesses:    43 solutions
+     *  4 guesses:   278 solutions
+     *  5 guesses:  1240 solutions
+     *  6 guesses:  3515 solutions
+     *  7 guesses:  7564 solutions
+     *  8 guesses: 14086 solutions
+     *  9 guesses:  4614 solutions
+     * 10 guesses:  1239 solutions
+     * 11 guesses:   175 solutions
+     * 12 guesses:     7 solutions
+     * 13 guesses:     1 solution
+     *
+     * The solution which takes too many guesses is {8, 8, 5, 6, 7}.
+     * The game ID is c8p5g12Bm:4991e5e41a. */
+
+    int mincolour = 1, maxcolour = 0, i, j;
+
+    /* For large values of npegs and ncolours, the lexicographically
+     * next guess make take a while to find.  Finding upper and
+     * lower limits on which colours we have to consider will speed
+     * this up, as will caching our progress from one invocation to
+     * the next.  The latter strategy works, since if we have ruled
+     * out a candidate we will never reverse this judgment in the
+     * light of new information.  Removing information, i.e. undo,
+     * will require us to backtrack somehow.  We backtrack by fully
+     * forgetting our progress (and recomputing it if required). */
+
+    for (i = 0; i < state->next_go; ++i)
+        for (j = 0; j < state->params.npegs; ++j)
+            if (state->guesses[i]->pegs[j] > maxcolour)
+                maxcolour = state->guesses[i]->pegs[j];
+    maxcolour = min(maxcolour + 1, state->params.ncolours);
+
+increase_mincolour:
+    for (i = 0; i < state->next_go; ++i) {
+        if (state->guesses[i]->feedback[0])
+            goto next_iteration;
+        for (j = 0; j < state->params.npegs; ++j)
+            if (state->guesses[i]->pegs[j] != mincolour)
+                goto next_iteration;
+        ++mincolour;
+        goto increase_mincolour;
+    next_iteration:
+        ;
+    }
+
+    if (!ui->hint) {
+        ui->hint = new_pegrow(state->params.npegs);
+        for (i = 0; i < state->params.npegs; ++i)
+            ui->hint->pegs[i] = 1;
+    }
+
+    while (ui->hint->pegs[0] <= state->params.ncolours) {
+        for (i = 0; i < state->next_go; ++i) {
+            mark_pegs(ui->hint, state->guesses[i], maxcolour);
+            for (j = 0; j < state->params.npegs; ++j)
+                if (ui->hint->feedback[j] != state->guesses[i]->feedback[j])
+                    goto increment_pegrow;
+        }
+        /* a valid guess was found; install it and return */
+        for (i = 0; i < state->params.npegs; ++i)
+            ui->curr_pegs->pegs[i] = ui->hint->pegs[i];
+
+        ui->markable = TRUE;
+        ui->peg_cur = state->params.npegs;
+        ui->display_cur = 1;
+        return;
+
+    increment_pegrow:
+        for (i = ui->hint->npegs;
+             ++ui->hint->pegs[--i], i && ui->hint->pegs[i] > maxcolour;
+             ui->hint->pegs[i] = mincolour);
+    }
+    /* No solution is compatible with the given hints.  Impossible! */
+    /* (hack new_game_desc to create invalid solutions to get here) */
+
+    /* For some values of npegs and ncolours, the hinting function takes a
+     * long time to complete.  To visually indicate completion with failure,
+     * should it ever happen, update the ui in some trivial way.  This gives
+     * the user a sense of broken(ish)ness and futility. */
+    if (!ui->display_cur) {
+        ui->display_cur = 1;
+    } else if (state->params.npegs == 1) {
+        ui->display_cur = 0;
+    } else {
+        ui->peg_cur = (ui->peg_cur + 1) % state->params.npegs;
+    }
 }
 
 static char *interpret_move(const game_state *from, game_ui *ui,
@@ -754,6 +881,9 @@ static char *interpret_move(const game_state *from, game_ui *ui,
         if (button == CURSOR_UP && ui->colour_cur > 0)
             ui->colour_cur--;
         ret = "";
+    } else if (button == 'h' || button == 'H' || button == '?') {
+        compute_hint(from, ui);
+        ret = "";
     } else if (button == CURSOR_LEFT || button == CURSOR_RIGHT) {
         int maxcur = from->params.npegs;
         if (ui->markable) maxcur++;
@@ -776,7 +906,7 @@ static char *interpret_move(const game_state *from, game_ui *ui,
         ui->display_cur = 1;
         set_peg(&from->params, ui, ui->peg_cur, 0);
         ret = "";
-    } else if (button == 'H' || button == 'h') {
+    } else if (button == CURSOR_SELECT2) {
         if (ui->peg_cur == from->params.npegs)
             return NULL;
         ui->display_cur = 1;
