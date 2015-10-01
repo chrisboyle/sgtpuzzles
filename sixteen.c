@@ -27,6 +27,9 @@
 #define Y(state, i) ( (i) / (state)->w )
 #define C(state, x, y) ( (y) * (state)->w + (x) )
 
+#define TILE_CURSOR(i, state, x, y) ((i) == C((state), (x), (y)) &&     \
+                                     0 <= (x) && (x) < (state)->w &&    \
+                                     0 <= (y) && (y) < (state)->h)
 enum {
     COL_BACKGROUND,
     COL_TEXT,
@@ -555,24 +558,28 @@ static char *game_text_format(const game_state *state)
     return ret;
 }
 
+enum cursor_mode { unlocked, lock_tile, lock_position };
+
 struct game_ui {
     int cur_x, cur_y;
     int cur_visible;
+    enum cursor_mode cur_mode;
 };
 
 static game_ui *new_ui(const game_state *state)
 {
     game_ui *ui = snew(game_ui);
     ui->cur_x = 0;
-    ui->cur_y = -1;
+    ui->cur_y = 0;
     ui->cur_visible = FALSE;
+    ui->cur_mode = unlocked;
 
     return ui;
 }
 
 static void free_ui(game_ui *ui)
 {
-  sfree(ui);
+    sfree(ui);
 }
 
 static char *encode_ui(const game_ui *ui)
@@ -603,21 +610,71 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 {
     int cx = -1, cy = -1, dx, dy;
     char buf[80];
+    int shift = button & MOD_SHFT, control = button & MOD_CTRL,
+        pad = button & MOD_NUM_KEYPAD;
 
     button &= ~MOD_MASK;
 
-    if (IS_CURSOR_MOVE(button)) {
-        /* right/down rotates cursor clockwise,
-         * left/up rotates anticlockwise. */
-        int cpos, diff;
-        cpos = c2pos(state->w, state->h, ui->cur_x, ui->cur_y);
-        diff = c2diff(state->w, state->h, ui->cur_x, ui->cur_y, button);
+    if (IS_CURSOR_MOVE(button) || pad) {
+        if (!ui->cur_visible) {
+            ui->cur_visible = 1;
+            return "";
+        }
 
-        cpos += diff;
-        pos2c(state->w, state->h, cpos, &ui->cur_x, &ui->cur_y);
+        if (control || shift || ui->cur_mode) {
+            int x = ui->cur_x, y = ui->cur_y, xwrap = x, ywrap = y;
+            if (x < 0 || x >= state->w || y < 0 || y >= state->h)
+                return NULL;
+            move_cursor(button | pad, &x, &y,
+                        state->w, state->h, FALSE);
+            move_cursor(button | pad, &xwrap, &ywrap,
+                        state->w, state->h, TRUE);
 
-        ui->cur_visible = 1;
-        return "";
+            if (x != xwrap) {
+                sprintf(buf, "R%d,%c1", y, x ? '+' : '-');
+            } else if (y != ywrap) {
+                sprintf(buf, "C%d,%c1", x, y ? '+' : '-');
+            } else if (x == ui->cur_x)
+                sprintf(buf, "C%d,%d", x, y - ui->cur_y);
+            else
+                sprintf(buf, "R%d,%d", y, x - ui->cur_x);
+
+            if (control || (!shift && ui->cur_mode == lock_tile)) {
+                ui->cur_x = xwrap;
+                ui->cur_y = ywrap;
+            }
+
+            return dupstr(buf);
+        } else {
+            int x = ui->cur_x + 1, y = ui->cur_y + 1;
+
+            move_cursor(button | pad, &x, &y,
+                        state->w + 2, state->h + 2, FALSE);
+
+            if (x == 0 && y == 0) {
+                int t = ui->cur_x;
+                ui->cur_x = ui->cur_y;
+                ui->cur_y = t;
+            } else if (x == 0 && y == state->h + 1) {
+                int t = ui->cur_x;
+                ui->cur_x = (state->h - 1) - ui->cur_y;
+                ui->cur_y = (state->h - 1) - t;
+            } else if (x == state->w + 1 && y == 0) {
+                int t = ui->cur_x;
+                ui->cur_x = (state->w - 1) - ui->cur_y;
+                ui->cur_y = (state->w - 1) - t;
+            } else if (x == state->w + 1 && y == state->h + 1) {
+                int t = ui->cur_x;
+                ui->cur_x = state->w - state->h + ui->cur_y;
+                ui->cur_y = state->h - state->w + t;
+            } else {
+                ui->cur_x = x - 1;
+                ui->cur_y = y - 1;
+            }
+
+            ui->cur_visible = 1;
+            return "";
+        }
     }
 
     if (button == LEFT_BUTTON || button == RIGHT_BUTTON) {
@@ -626,8 +683,16 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         ui->cur_visible = 0;
     } else if (IS_CURSOR_SELECT(button)) {
         if (ui->cur_visible) {
-            cx = ui->cur_x;
-            cy = ui->cur_y;
+            if (ui->cur_x == -1 || ui->cur_x == state->w ||
+                ui->cur_y == -1 || ui->cur_y == state->h) {
+                cx = ui->cur_x;
+                cy = ui->cur_y;
+            } else {
+                const enum cursor_mode m = (button == CURSOR_SELECT2 ?
+                                            lock_position : lock_tile);
+                ui->cur_mode = (ui->cur_mode == m ? unlocked : m);
+                return "";
+            }
         } else {
             ui->cur_visible = 1;
             return "";
@@ -853,7 +918,7 @@ static void draw_arrow_for_cursor(drawing *dr, game_drawstate *ds,
     else if (cur_y == ds->h) /* Bottom row */
         draw_arrow(dr, ds, COORD(cur_x+1), COORD(ds->h), -1, 0, cur);
     else
-        assert(!"Invalid cursor position");
+        return;
 
     draw_update(dr, COORD(cur_x), COORD(cur_y),
                 TILE_SIZE, TILE_SIZE);
@@ -922,11 +987,11 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
     if (ui->cur_visible) {
         cur_x = ui->cur_x; cur_y = ui->cur_y;
     }
+
     if (cur_x != ds->cur_x || cur_y != ds->cur_y) {
         /* Cursor has changed; redraw two (prev and curr) arrows. */
         draw_arrow_for_cursor(dr, ds, cur_x, cur_y, 1);
         draw_arrow_for_cursor(dr, ds, ds->cur_x, ds->cur_y, 0);
-        ds->cur_x = cur_x; ds->cur_y = cur_y;
     }
 
     /*
@@ -952,8 +1017,11 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
 	t0 = t;
 
 	if (ds->bgcolour != bgcolour ||   /* always redraw when flashing */
-	    ds->tiles[i] != t || ds->tiles[i] == -1 || t == -1) {
-	    int x, y, x2, y2;
+            ds->tiles[i] != t || ds->tiles[i] == -1 || t == -1 ||
+            ((ds->cur_x != cur_x || ds->cur_y != cur_y) && /* cursor moved */
+             (TILE_CURSOR(i, state, ds->cur_x, ds->cur_y) ||
+              TILE_CURSOR(i, state, cur_x, cur_y)))) {
+            int x, y, x2, y2;
 
 	    /*
 	     * Figure out what to _actually_ draw, and where to
@@ -1021,12 +1089,18 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
 		x2 = y2 = -1;
 	    }
 
-	    draw_tile(dr, ds, state, x, y, t, bgcolour);
+	    draw_tile(dr, ds, state, x, y, t,
+		      (x2 == -1 && TILE_CURSOR(i, state, cur_x, cur_y)) ?
+                      COL_LOWLIGHT : bgcolour);
+
 	    if (x2 != -1 || y2 != -1)
 		draw_tile(dr, ds, state, x2, y2, t, bgcolour);
 	}
 	ds->tiles[i] = t0;
     }
+
+    ds->cur_x = cur_x;
+    ds->cur_y = cur_y;
 
     unclip(dr);
 

@@ -662,6 +662,13 @@ Alternatively, use the cursor keys to move the position indicator
 around the edge of the grid, and use the return key to move the
 row/column in the direction indicated. 
 
+You can also move the tiles directly.  Move the cursor onto a tile,
+hold Control and press an arrow key to move the tile under the
+cursor and move the cursor along with the tile.  Or, hold Shift to
+move only the tile.  Pressing Enter simulates holding down Control
+(press Enter again to release), while pressing Space simulates
+holding down shift.
+
 (All the actions described in \k{common-actions} are also available.)
 
 \H{sixteen-params} \I{parameters, for Sixteen}Sixteen parameters
