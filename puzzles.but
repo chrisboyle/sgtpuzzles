@@ -3296,6 +3296,47 @@ more twiddly and interesting. If you want to restore the possibility,
 turn this option off.
 
 
+\C{palisade} \i{Palisade}
+
+\cfg{winhelp-topic}{games.palisade}
+
+You're given a grid of squares, some of which contain numbers.  Your
+goal is to subdivide the grid into contiguous regions, all of the same
+(given) size, such that each square containing a number is adjacent to
+exactly that many edges (including those between the inside and the
+outside of the grid).
+
+Credit for this puzzle goes to \i{Nikoli}, who call it \q{Five Cells}.
+\k{nikoli-palisade}.
+
+Palisade was contributed to this collection by Jonas K\u00F6{oe}lker.
+
+\B{nikoli-palisade}
+\W{http://nikoli.co.jp/en/puzzles/five_cells.html}\cw{http://nikoli.co.jp/en/puzzles/five_cells.html}
+
+\H{palisade-controls} \I{controls, for Palisade}Palisade controls
+
+Left-click to place an edge.  Right-click to indicate \q{no edge}.
+Alternatively, the arrow keys will move a keyboard cursor.  Holding
+Control while pressing an arrow key will place an edge.  Press
+Shift-arrowkey to switch off an edge.  Repeat an action to perform
+its inverse.
+
+(All the actions described in \k{common-actions} are also available.)
+
+\H{Palisade-parameters} \I{parameters, for Palisade}Palisade parameters
+
+These parameters are available from the \q{Custom...} option on the
+\q{Type} menu.
+
+\dt \e{Width}, \e{Height}
+
+\dd Size of grid in squares.
+
+\dt \e{Region size}
+
+\dd The size of the regions into which the grid must be subdivided.
+
 \A{licence} \I{MIT licence}\ii{Licence}
 
 This software is \i{copyright} 2004-2014 Simon Tatham.
