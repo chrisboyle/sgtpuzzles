@@ -1205,10 +1205,14 @@ static gint button_event(GtkWidget *widget, GdkEventButton *event,
 	button = RIGHT_BUTTON;
     else if (event->button == 1)
 	button = LEFT_BUTTON;
+    else if (event->button == 8 && event->type == GDK_BUTTON_PRESS)
+        button = 'u';
+    else if (event->button == 9 && event->type == GDK_BUTTON_PRESS)
+        button = 'r';
     else
 	return FALSE;		       /* don't even know what button! */
 
-    if (event->type == GDK_BUTTON_RELEASE)
+    if (event->type == GDK_BUTTON_RELEASE && button >= LEFT_BUTTON)
         button += LEFT_RELEASE - LEFT_BUTTON;
 
     if (!midend_process_key(fe->me, event->x - fe->ox,
