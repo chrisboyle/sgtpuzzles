@@ -91,7 +91,7 @@ static void printv(char *fmt, ...) {
  *****************************************************************************/
 
 struct game_params {
-    int h, w;
+    int w, h;
 };
 
 struct shared_state {
@@ -106,7 +106,9 @@ struct game_state {
     int completed, cheated;
 };
 
-static const struct game_params filling_defaults[3] = {{7, 9}, {9, 13}, {13, 17}};
+static const struct game_params filling_defaults[3] = {
+    {9, 7}, {13, 9}, {17, 13}
+};
 
 static game_params *default_params(void)
 {
@@ -124,7 +126,7 @@ static int game_fetch_preset(int i, char **name, game_params **params)
     if (i < 0 || i >= lenof(filling_defaults)) return FALSE;
     *params = snew(game_params);
     **params = filling_defaults[i]; /* struct copy */
-    sprintf(buf, "%dx%d", filling_defaults[i].h, filling_defaults[i].w);
+    sprintf(buf, "%dx%d", filling_defaults[i].w, filling_defaults[i].h);
     *name = dupstr(buf);
 
     return TRUE;
