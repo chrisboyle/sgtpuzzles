@@ -156,13 +156,15 @@ struct frontend {
 #ifdef OLD_FILESEL
     char *filesel_name;
 #endif
-    int drawing_area_shrink_pending;
     GSList *preset_radio;
     int n_preset_menu_items;
     int preset_threaded;
     GtkWidget *preset_custom;
     GtkWidget *copy_menu_item;
+#if !GTK_CHECK_VERSION(3,0,0)
+    int drawing_area_shrink_pending;
     int menubar_is_local;
+#endif
 };
 
 struct blitter {
@@ -1763,6 +1765,7 @@ static void changed_preset(frontend *fe)
     }
 }
 
+#if !GTK_CHECK_VERSION(3,0,0)
 static gboolean not_size_allocated_yet(GtkWidget *w)
 {
     /*
@@ -1811,18 +1814,21 @@ static void try_shrink_drawing_area(frontend *fe)
         fe->drawing_area_shrink_pending = FALSE;
     }
 }
+#endif /* !GTK_CHECK_VERSION(3,0,0) */
 
 static gint configure_window(GtkWidget *widget,
                              GdkEventConfigure *event, gpointer data)
 {
-    frontend *fe = (frontend *)data;
+#if !GTK_CHECK_VERSION(3,0,0)
     /*
      * When the main puzzle window changes size, it might be because
      * the menu bar or status bar has turned up after starting off
      * absent, in which case we should have another go at enacting a
      * pending shrink of the drawing area.
      */
+    frontend *fe = (frontend *)data;
     try_shrink_drawing_area(fe);
+#endif
     return FALSE;
 }
 
@@ -1831,6 +1837,10 @@ static void resize_fe(frontend *fe)
     int x, y;
 
     get_size(fe, &x, &y);
+
+#if GTK_CHECK_VERSION(3,0,0)
+    gtk_window_resize_to_geometry(GTK_WINDOW(fe->window), x, y);
+#else
     fe->w = x;
     fe->h = y;
     fe->drawing_area_shrink_pending = FALSE;
@@ -1842,6 +1852,7 @@ static void resize_fe(frontend *fe)
     }
     fe->drawing_area_shrink_pending = TRUE;
     try_shrink_drawing_area(fe);
+#endif
 }
 
 static void menu_preset_event(GtkMenuItem *menuitem, gpointer data)
@@ -2271,6 +2282,7 @@ static frontend *new_window(char *arg, int argtype, char **error)
 	midend_new_game(fe->me);
     }
 
+#if !GTK_CHECK_VERSION(3,0,0)
     {
         /*
          * try_shrink_drawing_area() will do some fiddling with the
@@ -2297,6 +2309,7 @@ static frontend *new_window(char *arg, int argtype, char **error)
             fe->menubar_is_local = !unity_mode;
         }
     }
+#endif
 
     fe->window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     gtk_window_set_title(GTK_WINDOW(fe->window), thegame.name);
@@ -2514,9 +2527,19 @@ static frontend *new_window(char *arg, int argtype, char **error)
 #if GTK_CHECK_VERSION(2,0,0)
     gtk_widget_set_double_buffered(fe->area, FALSE);
 #endif
+    {
+        GdkGeometry geom;
+        geom.base_width = geom.base_height = 0;
+        gtk_window_set_geometry_hints(GTK_WINDOW(fe->window), fe->area,
+                                      &geom, GDK_HINT_BASE_SIZE);
+    }
     get_size(fe, &x, &y);
+#if GTK_CHECK_VERSION(3,0,0)
+    gtk_window_set_default_geometry(GTK_WINDOW(fe->window), x, y);
+#else
     fe->drawing_area_shrink_pending = FALSE;
     gtk_drawing_area_size(GTK_DRAWING_AREA(fe->area), x, y);
+#endif
     fe->w = x;
     fe->h = y;
 
@@ -2581,8 +2604,11 @@ static frontend *new_window(char *arg, int argtype, char **error)
     gtk_widget_show(fe->area);
     gtk_widget_show(fe->window);
 
+#if !GTK_CHECK_VERSION(3,0,0)
     fe->drawing_area_shrink_pending = TRUE;
     try_shrink_drawing_area(fe);
+#endif
+
     set_window_background(fe, 0);
 
     return fe;
