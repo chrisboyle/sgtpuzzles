@@ -268,6 +268,15 @@ static void set_colour(frontend *fe, int colour)
 
 static void set_window_background(frontend *fe, int colour)
 {
+#if GTK_CHECK_VERSION(3,0,0)
+    GdkRGBA rgba;
+    rgba.red = fe->colours[3*colour + 0];
+    rgba.green = fe->colours[3*colour + 1];
+    rgba.blue = fe->colours[3*colour + 2];
+    rgba.alpha = 1.0;
+    gdk_window_set_background_rgba(gtk_widget_get_window(fe->area), &rgba);
+    gdk_window_set_background_rgba(gtk_widget_get_window(fe->window), &rgba);
+#else
     GdkColormap *colmap;
 
     colmap = gdk_colormap_get_system();
@@ -283,6 +292,7 @@ static void set_window_background(frontend *fe, int colour)
                               &fe->background);
     gdk_window_set_background(gtk_widget_get_window(fe->window),
                               &fe->background);
+#endif
 }
 
 static PangoLayout *make_pango_layout(frontend *fe)
