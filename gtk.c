@@ -2299,7 +2299,7 @@ static frontend *new_window(char *arg, int argtype, char **error)
 	    menuitem =
 		gtk_radio_menu_item_new_with_label(fe->preset_radio, name);
 	    fe->preset_radio =
-		gtk_radio_menu_item_group(GTK_RADIO_MENU_ITEM(menuitem));
+		gtk_radio_menu_item_get_group(GTK_RADIO_MENU_ITEM(menuitem));
 	    fe->n_preset_menu_items++;
             gtk_container_add(GTK_CONTAINER(submenu), menuitem);
             g_object_set_data(G_OBJECT(menuitem), "user-data", params);
@@ -2313,7 +2313,7 @@ static frontend *new_window(char *arg, int argtype, char **error)
 		gtk_radio_menu_item_new_with_label(fe->preset_radio,
 						   "Custom...");
 	    fe->preset_radio =
-		gtk_radio_menu_item_group(GTK_RADIO_MENU_ITEM(menuitem));
+		gtk_radio_menu_item_get_group(GTK_RADIO_MENU_ITEM(menuitem));
             gtk_container_add(GTK_CONTAINER(submenu), menuitem);
             g_object_set_data(G_OBJECT(menuitem), "user-data",
                               GINT_TO_POINTER(CFG_SETTINGS));
