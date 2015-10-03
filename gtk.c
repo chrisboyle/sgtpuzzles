@@ -2563,11 +2563,12 @@ static frontend *new_window(char *arg, int argtype, char **error)
 	    (GTK_STATUSBAR(fe->statusbar), "game");
 	gtk_statusbar_push(GTK_STATUSBAR(fe->statusbar), fe->statusctx,
 			   "test");
+#if GTK_CHECK_VERSION(3,0,0)
+	gtk_widget_get_preferred_size(fe->statusbar, &req, NULL);
+#else
 	gtk_widget_size_request(fe->statusbar, &req);
-#if 0
-	/* For GTK 2.0, should we be using gtk_widget_set_size_request? */
 #endif
-	gtk_widget_set_usize(viewport, -1, req.height);
+	gtk_widget_set_size_request(viewport, -1, req.height);
     } else
 	fe->statusbar = NULL;
 
