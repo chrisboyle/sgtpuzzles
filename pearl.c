@@ -1737,7 +1737,7 @@ static char *game_text_format(const game_state *state)
     for (r = 0; r < h; ++r) {
 	for (c = 0; c < w; ++c) {
 	    int i = r*w + c, cell = r*ch*gw + c*cw;
-	    board[cell] = state->shared->clues[i]["+BW"];
+	    board[cell] = "+BW"[(unsigned char)state->shared->clues[i]];
 	    if (c < w - 1 && (state->lines[i] & R || state->lines[i+1] & L))
 		memset(board + cell + 1, '-', cw - 1);
 	    if (r < h - 1 && (state->lines[i] & D || state->lines[i+w] & U))
