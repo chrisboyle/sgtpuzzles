@@ -4,7 +4,40 @@ AC_INIT([puzzles], [6.66], [anakin@pobox.com])
 AC_CONFIG_SRCDIR([midend.c])
 AM_INIT_AUTOMAKE([foreign])
 AC_PROG_CC
-AM_PATH_GTK_2_0([2.0.0])
+
+AC_ARG_WITH([gtk],
+  [AS_HELP_STRING([--with-gtk=VER],
+                  [specify GTK version to use (`2' or `3')])],
+  [gtk_version_desired="$withval"],
+  [gtk_version_desired="any"])
+
+case "$gtk_version_desired" in
+  2 | 3 | any) ;;
+  yes) gtk_version_desired="any" ;;
+  *) AC_ERROR([Invalid GTK version specified])
+esac
+
+gtk=none
+
+case "$gtk_version_desired:$gtk" in
+  3:none | any:none)
+    ifdef([AM_PATH_GTK_3_0],[
+    AM_PATH_GTK_3_0([3.0.0], [gtk=3], [])
+    ],[AC_WARNING([generating configure script without GTK 3 autodetection])])
+    ;;
+esac
+
+case "$gtk_version_desired:$gtk" in
+  2:none | any:none)
+    ifdef([AM_PATH_GTK_2_0],[
+    AM_PATH_GTK_2_0([2.0.0], [gtk=2], [])
+    ],[AC_WARNING([generating configure script without GTK 2 autodetection])])
+    ;;
+esac
+
+if test "$gtk" = "none"; then
+   AC_MSG_ERROR([cannot build without GTK 2 or GTK 3])
+fi
 
 if test "x$GCC" = "xyes"; then
   AC_MSG_CHECKING([for usable gcc warning flags])
