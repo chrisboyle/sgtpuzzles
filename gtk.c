@@ -2153,7 +2153,6 @@ static frontend *new_window(char *arg, int argtype, char **error)
     frontend *fe;
     GtkBox *vbox, *hbox;
     GtkWidget *menu, *menuitem;
-    GdkPixmap *iconpm;
     GList *iconlist;
     int x, y, n;
     char errbuf[1024];
@@ -2515,12 +2514,10 @@ static frontend *new_window(char *arg, int argtype, char **error)
 			  GDK_POINTER_MOTION_HINT_MASK);
 
     if (n_xpm_icons) {
-	gtk_widget_realize(fe->window);
-	iconpm = gdk_pixmap_create_from_xpm_d
-            (gtk_widget_get_window(fe->window), NULL, NULL,
-             (gchar **)xpm_icons[0]);
-	gdk_window_set_icon(gtk_widget_get_window(fe->window),
-                            NULL, iconpm, NULL);
+        gtk_window_set_icon(GTK_WINDOW(fe->window),
+                            gdk_pixbuf_new_from_xpm_data
+                            ((const gchar **)xpm_icons[0]));
+
 	iconlist = NULL;
 	for (n = 0; n < n_xpm_icons; n++) {
 	    iconlist =
@@ -2528,7 +2525,7 @@ static frontend *new_window(char *arg, int argtype, char **error)
 			      gdk_pixbuf_new_from_xpm_data((const gchar **)
 							   xpm_icons[n]));
 	}
-	gdk_window_set_icon_list(gtk_widget_get_window(fe->window), iconlist);
+	gtk_window_set_icon_list(GTK_WINDOW(fe->window), iconlist);
     }
 
     gtk_widget_show(fe->area);
