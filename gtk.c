@@ -1286,7 +1286,7 @@ void deactivate_timer(frontend *fe)
     if (!fe)
 	return;			       /* can happen due to --generate */
     if (fe->timer_active)
-        gtk_timeout_remove(fe->timer_id);
+        g_source_remove(fe->timer_id);
     fe->timer_active = FALSE;
 }
 
@@ -1295,7 +1295,7 @@ void activate_timer(frontend *fe)
     if (!fe)
 	return;			       /* can happen due to --generate */
     if (!fe->timer_active) {
-        fe->timer_id = gtk_timeout_add(20, timer_func, fe);
+        fe->timer_id = g_timeout_add(20, timer_func, fe);
 	gettimeofday(&fe->last_time, NULL);
     }
     fe->timer_active = TRUE;
