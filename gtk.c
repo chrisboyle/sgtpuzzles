@@ -1064,37 +1064,47 @@ static gint key_event(GtkWidget *widget, GdkEventKey *event, gpointer data)
     if (gtk_window_activate_key(GTK_WINDOW(fe->window), event))
         return TRUE;
 
-    if (event->keyval == GDK_Up)
+    if (event->keyval == GDK_KEY_Up)
         keyval = shift | ctrl | CURSOR_UP;
-    else if (event->keyval == GDK_KP_Up || event->keyval == GDK_KP_8)
+    else if (event->keyval == GDK_KEY_KP_Up ||
+             event->keyval == GDK_KEY_KP_8)
 	keyval = MOD_NUM_KEYPAD | '8';
-    else if (event->keyval == GDK_Down)
+    else if (event->keyval == GDK_KEY_Down)
         keyval = shift | ctrl | CURSOR_DOWN;
-    else if (event->keyval == GDK_KP_Down || event->keyval == GDK_KP_2)
+    else if (event->keyval == GDK_KEY_KP_Down ||
+             event->keyval == GDK_KEY_KP_2)
 	keyval = MOD_NUM_KEYPAD | '2';
-    else if (event->keyval == GDK_Left)
+    else if (event->keyval == GDK_KEY_Left)
         keyval = shift | ctrl | CURSOR_LEFT;
-    else if (event->keyval == GDK_KP_Left || event->keyval == GDK_KP_4)
+    else if (event->keyval == GDK_KEY_KP_Left ||
+             event->keyval == GDK_KEY_KP_4)
 	keyval = MOD_NUM_KEYPAD | '4';
-    else if (event->keyval == GDK_Right)
+    else if (event->keyval == GDK_KEY_Right)
         keyval = shift | ctrl | CURSOR_RIGHT;
-    else if (event->keyval == GDK_KP_Right || event->keyval == GDK_KP_6)
+    else if (event->keyval == GDK_KEY_KP_Right ||
+             event->keyval == GDK_KEY_KP_6)
 	keyval = MOD_NUM_KEYPAD | '6';
-    else if (event->keyval == GDK_KP_Home || event->keyval == GDK_KP_7)
+    else if (event->keyval == GDK_KEY_KP_Home ||
+             event->keyval == GDK_KEY_KP_7)
         keyval = MOD_NUM_KEYPAD | '7';
-    else if (event->keyval == GDK_KP_End || event->keyval == GDK_KP_1)
+    else if (event->keyval == GDK_KEY_KP_End ||
+             event->keyval == GDK_KEY_KP_1)
         keyval = MOD_NUM_KEYPAD | '1';
-    else if (event->keyval == GDK_KP_Page_Up || event->keyval == GDK_KP_9)
+    else if (event->keyval == GDK_KEY_KP_Page_Up ||
+             event->keyval == GDK_KEY_KP_9)
         keyval = MOD_NUM_KEYPAD | '9';
-    else if (event->keyval == GDK_KP_Page_Down || event->keyval == GDK_KP_3)
+    else if (event->keyval == GDK_KEY_KP_Page_Down ||
+             event->keyval == GDK_KEY_KP_3)
         keyval = MOD_NUM_KEYPAD | '3';
-    else if (event->keyval == GDK_KP_Insert || event->keyval == GDK_KP_0)
+    else if (event->keyval == GDK_KEY_KP_Insert ||
+             event->keyval == GDK_KEY_KP_0)
         keyval = MOD_NUM_KEYPAD | '0';
-    else if (event->keyval == GDK_KP_Begin || event->keyval == GDK_KP_5)
+    else if (event->keyval == GDK_KEY_KP_Begin ||
+             event->keyval == GDK_KEY_KP_5)
         keyval = MOD_NUM_KEYPAD | '5';
-    else if (event->keyval == GDK_BackSpace ||
-	     event->keyval == GDK_Delete ||
-	     event->keyval == GDK_KP_Delete)
+    else if (event->keyval == GDK_KEY_BackSpace ||
+	     event->keyval == GDK_KEY_Delete ||
+	     event->keyval == GDK_KEY_KP_Delete)
         keyval = '\177';
     else if (event->string[0] && !event->string[1])
         keyval = (unsigned char)event->string[0];
@@ -1287,7 +1297,7 @@ static int win_key_press(GtkWidget *widget, GdkEventKey *event, gpointer data)
     /*
      * `Escape' effectively clicks the cancel button
      */
-    if (event->keyval == GDK_Escape) {
+    if (event->keyval == GDK_KEY_Escape) {
 	gtk_signal_emit_by_name(GTK_OBJECT(cancelbutton), "clicked");
 	return TRUE;
     }
@@ -1400,7 +1410,7 @@ static int editbox_key(GtkWidget *widget, GdkEventKey *event, gpointer data)
      * Return in an edit box will now activate the default button
      * in the dialog just like it will everywhere else.
      */
-    if (event->keyval == GDK_Return &&
+    if (event->keyval == GDK_KEY_Return &&
         gtk_widget_get_parent(widget) != NULL) {
 	gint return_val;
 	gtk_signal_emit_stop_by_name(GTK_OBJECT(widget), "key_press_event");
