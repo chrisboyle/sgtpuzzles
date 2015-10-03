@@ -2562,7 +2562,7 @@ static frontend *new_window(char *arg, int argtype, char **error)
 	fe->statusctx = gtk_statusbar_get_context_id
 	    (GTK_STATUSBAR(fe->statusbar), "game");
 	gtk_statusbar_push(GTK_STATUSBAR(fe->statusbar), fe->statusctx,
-			   "test");
+			   DEFAULT_STATUSBAR_TEXT);
 #if GTK_CHECK_VERSION(3,0,0)
 	gtk_widget_get_preferred_size(fe->statusbar, &req, NULL);
 #else

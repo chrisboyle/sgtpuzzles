@@ -569,7 +569,7 @@ struct frontend {
 	[status setBezeled:YES];
 	[status setBezelStyle:NSTextFieldSquareBezel];
 	[status setDrawsBackground:YES];
-	[[status cell] setTitle:@""];
+	[[status cell] setTitle:@DEFAULT_STATUSBAR_TEXT];
 	[status sizeToFit];
 	rect2 = [status frame];
 	rect.size.height += rect2.size.height;
