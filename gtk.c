@@ -45,6 +45,9 @@
 #endif
 
 #if GTK_CHECK_VERSION(3,0,0)
+/* The old names are still more concise! */
+#define gtk_hbox_new(x,y) gtk_box_new(GTK_ORIENTATION_HORIZONTAL,y)
+#define gtk_vbox_new(x,y) gtk_box_new(GTK_ORIENTATION_VERTICAL,y)
 /* GTK 3 has retired stock button labels */
 #define LABEL_OK "_OK"
 #define LABEL_CANCEL "_Cancel"
