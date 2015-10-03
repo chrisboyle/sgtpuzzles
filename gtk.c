@@ -1436,11 +1436,11 @@ static void button_toggled(GtkToggleButton *tb, gpointer data)
     i->ival = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(tb));
 }
 
-static void droplist_sel(GtkMenuItem *item, gpointer data)
+static void droplist_sel(GtkComboBox *combo, gpointer data)
 {
     config_item *i = (config_item *)data;
 
-    i->ival = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(item), "user-data"));
+    i->ival = gtk_combo_box_get_active(combo);
 }
 
 static int get_config(frontend *fe, int which)
@@ -1532,7 +1532,7 @@ static int get_config(frontend *fe, int which)
 
 	  case C_CHOICES:
 	    /*
-	     * Drop-down list (GtkOptionMenu).
+	     * Drop-down list (GtkComboBox).
 	     */
 
 	    w = gtk_label_new(i->name);
@@ -1543,24 +1543,17 @@ static int get_config(frontend *fe, int which)
 			     3, 3);
 	    gtk_widget_show(w);
 
-	    w = gtk_option_menu_new();
-	    gtk_table_attach(GTK_TABLE(table), w, 1, 2, y, y+1,
-			     GTK_EXPAND | GTK_SHRINK | GTK_FILL,
-			     GTK_EXPAND | GTK_SHRINK | GTK_FILL,
-			     3, 3);
-	    gtk_widget_show(w);
-
-	    {
-		int c, val;
+            {
+		int c;
 		char *p, *q, *name;
-		GtkWidget *menuitem;
-		GtkWidget *menu = gtk_menu_new();
+                GtkListStore *model;
+		GtkCellRenderer *cr;
+                GtkTreeIter iter;
 
-		gtk_option_menu_set_menu(GTK_OPTION_MENU(w), menu);
+                model = gtk_list_store_new(1, G_TYPE_STRING);
 
 		c = *i->sval;
 		p = i->sval+1;
-		val = 0;
 
 		while (*p) {
 		    q = p;
@@ -1573,22 +1566,30 @@ static int get_config(frontend *fe, int which)
 
 		    if (*q) q++;       /* eat delimiter */
 
-		    menuitem = gtk_menu_item_new_with_label(name);
-		    gtk_container_add(GTK_CONTAINER(menu), menuitem);
-		    g_object_set_data(G_OBJECT(menuitem), "user-data",
-                                      GINT_TO_POINTER(val));
-		    g_signal_connect(G_OBJECT(menuitem), "activate",
-                                     G_CALLBACK(droplist_sel), i);
-		    gtk_widget_show(menuitem);
-
-		    val++;
+                    gtk_list_store_append(model, &iter);
+                    gtk_list_store_set(model, &iter, 0, name, -1);
 
 		    p = q;
 		}
 
-		gtk_option_menu_set_history(GTK_OPTION_MENU(w), i->ival);
-	    }
+                w = gtk_combo_box_new_with_model(GTK_TREE_MODEL(model));
 
+		gtk_combo_box_set_active(GTK_COMBO_BOX(w), i->ival);
+
+		cr = gtk_cell_renderer_text_new();
+		gtk_cell_layout_pack_start(GTK_CELL_LAYOUT(w), cr, TRUE);
+		gtk_cell_layout_set_attributes(GTK_CELL_LAYOUT(w), cr,
+					       "text", 0, NULL);
+
+		g_signal_connect(G_OBJECT(w), "changed",
+				 G_CALLBACK(droplist_sel), i);
+            }
+
+	    gtk_table_attach(GTK_TABLE(table), w, 1, 2, y, y+1,
+			     GTK_EXPAND | GTK_SHRINK | GTK_FILL,
+			     GTK_EXPAND | GTK_SHRINK | GTK_FILL,
+			     3, 3);
+	    gtk_widget_show(w);
 	    break;
 	}
 
