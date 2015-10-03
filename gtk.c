@@ -1283,8 +1283,8 @@ static void msgbox_button_clicked(GtkButton *button, gpointer data)
     GtkWidget *window = GTK_WIDGET(data);
     int v, *ip;
 
-    ip = (int *)gtk_object_get_data(GTK_OBJECT(window), "user-data");
-    v = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(button), "user-data"));
+    ip = (int *)g_object_get_data(G_OBJECT(window), "user-data");
+    v = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(button), "user-data"));
     *ip = v;
 
     gtk_widget_destroy(GTK_WIDGET(data));
@@ -1292,13 +1292,13 @@ static void msgbox_button_clicked(GtkButton *button, gpointer data)
 
 static int win_key_press(GtkWidget *widget, GdkEventKey *event, gpointer data)
 {
-    GtkObject *cancelbutton = GTK_OBJECT(data);
+    GObject *cancelbutton = G_OBJECT(data);
 
     /*
      * `Escape' effectively clicks the cancel button
      */
     if (event->keyval == GDK_KEY_Escape) {
-	gtk_signal_emit_by_name(GTK_OBJECT(cancelbutton), "clicked");
+	g_signal_emit_by_name(cancelbutton, "clicked");
 	return TRUE;
     }
 
@@ -1349,19 +1349,19 @@ int message_box(GtkWidget *parent, char *title, char *msg, int centre,
 	    gtk_window_set_default(GTK_WINDOW(window), button);
 	}
 	if (i == cancel) {
-	    gtk_signal_connect(GTK_OBJECT(window), "key_press_event",
-			       GTK_SIGNAL_FUNC(win_key_press), button);
+	    g_signal_connect(G_OBJECT(window), "key_press_event",
+                             G_CALLBACK(win_key_press), button);
 	}
-	gtk_signal_connect(GTK_OBJECT(button), "clicked",
-			   GTK_SIGNAL_FUNC(msgbox_button_clicked), window);
-	gtk_object_set_data(GTK_OBJECT(button), "user-data",
-			    GINT_TO_POINTER(i));
+	g_signal_connect(G_OBJECT(button), "clicked",
+                         G_CALLBACK(msgbox_button_clicked), window);
+	g_object_set_data(G_OBJECT(button), "user-data",
+                          GINT_TO_POINTER(i));
 	titles += strlen(titles)+1;
 	i++;
     }
-    gtk_object_set_data(GTK_OBJECT(window), "user-data", &i);
-    gtk_signal_connect(GTK_OBJECT(window), "destroy",
-                       GTK_SIGNAL_FUNC(window_destroy), NULL);
+    g_object_set_data(G_OBJECT(window), "user-data", &i);
+    g_signal_connect(G_OBJECT(window), "destroy",
+                     G_CALLBACK(window_destroy), NULL);
     gtk_window_set_modal(GTK_WINDOW(window), TRUE);
     gtk_window_set_transient_for(GTK_WINDOW(window), GTK_WINDOW(parent));
     /* set_transient_window_pos(parent, window); */
@@ -1413,9 +1413,9 @@ static int editbox_key(GtkWidget *widget, GdkEventKey *event, gpointer data)
     if (event->keyval == GDK_KEY_Return &&
         gtk_widget_get_parent(widget) != NULL) {
 	gint return_val;
-	gtk_signal_emit_stop_by_name(GTK_OBJECT(widget), "key_press_event");
-	gtk_signal_emit_by_name(GTK_OBJECT(gtk_widget_get_parent(widget)),
-                                "key_press_event", event, &return_val);
+	g_signal_stop_emission_by_name(G_OBJECT(widget), "key_press_event");
+	g_signal_emit_by_name(G_OBJECT(gtk_widget_get_parent(widget)),
+                              "key_press_event", event, &return_val);
 	return return_val;
     }
     return FALSE;
@@ -1440,8 +1440,7 @@ static void droplist_sel(GtkMenuItem *item, gpointer data)
 {
     config_item *i = (config_item *)data;
 
-    i->ival = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(item),
-						  "user-data"));
+    i->ival = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(item), "user-data"));
 }
 
 static int get_config(frontend *fe, int which)
@@ -1464,8 +1463,8 @@ static int get_config(frontend *fe, int which)
         (GTK_BOX(gtk_dialog_get_action_area(GTK_DIALOG(fe->cfgbox))),
          w, FALSE, FALSE, 0);
     gtk_widget_show(w);
-    gtk_signal_connect(GTK_OBJECT(w), "clicked",
-                       GTK_SIGNAL_FUNC(config_cancel_button_clicked), fe);
+    g_signal_connect(G_OBJECT(w), "clicked",
+                     G_CALLBACK(config_cancel_button_clicked), fe);
     cancel = w;
 
     w = gtk_button_new_from_stock(GTK_STOCK_OK);
@@ -1475,8 +1474,8 @@ static int get_config(frontend *fe, int which)
     gtk_widget_show(w);
     gtk_widget_set_can_default(w, TRUE);
     gtk_window_set_default(GTK_WINDOW(fe->cfgbox), w);
-    gtk_signal_connect(GTK_OBJECT(w), "clicked",
-                       GTK_SIGNAL_FUNC(config_ok_button_clicked), fe);
+    g_signal_connect(G_OBJECT(w), "clicked",
+                     G_CALLBACK(config_ok_button_clicked), fe);
 
     table = gtk_table_new(1, 2, FALSE);
     y = 0;
@@ -1508,10 +1507,10 @@ static int get_config(frontend *fe, int which)
 			     GTK_EXPAND | GTK_SHRINK | GTK_FILL,
 			     3, 3);
 	    gtk_entry_set_text(GTK_ENTRY(w), i->sval);
-	    gtk_signal_connect(GTK_OBJECT(w), "changed",
-			       GTK_SIGNAL_FUNC(editbox_changed), i);
-	    gtk_signal_connect(GTK_OBJECT(w), "key_press_event",
-			       GTK_SIGNAL_FUNC(editbox_key), NULL);
+	    g_signal_connect(G_OBJECT(w), "changed",
+                             G_CALLBACK(editbox_changed), i);
+	    g_signal_connect(G_OBJECT(w), "key_press_event",
+                             G_CALLBACK(editbox_key), NULL);
 	    gtk_widget_show(w);
 
 	    break;
@@ -1521,8 +1520,8 @@ static int get_config(frontend *fe, int which)
 	     * Simple checkbox.
 	     */
             w = gtk_check_button_new_with_label(i->name);
-	    gtk_signal_connect(GTK_OBJECT(w), "toggled",
-			       GTK_SIGNAL_FUNC(button_toggled), i);
+	    g_signal_connect(G_OBJECT(w), "toggled",
+                             G_CALLBACK(button_toggled), i);
 	    gtk_table_attach(GTK_TABLE(table), w, 0, 2, y, y+1,
 			     GTK_EXPAND | GTK_SHRINK | GTK_FILL,
 			     GTK_EXPAND | GTK_SHRINK | GTK_FILL,
@@ -1576,10 +1575,10 @@ static int get_config(frontend *fe, int which)
 
 		    menuitem = gtk_menu_item_new_with_label(name);
 		    gtk_container_add(GTK_CONTAINER(menu), menuitem);
-		    gtk_object_set_data(GTK_OBJECT(menuitem), "user-data",
-					GINT_TO_POINTER(val));
-		    gtk_signal_connect(GTK_OBJECT(menuitem), "activate",
-				       GTK_SIGNAL_FUNC(droplist_sel), i);
+		    g_object_set_data(G_OBJECT(menuitem), "user-data",
+                                      GINT_TO_POINTER(val));
+		    g_signal_connect(G_OBJECT(menuitem), "activate",
+                                     G_CALLBACK(droplist_sel), i);
 		    gtk_widget_show(menuitem);
 
 		    val++;
@@ -1596,10 +1595,10 @@ static int get_config(frontend *fe, int which)
 	y++;
     }
 
-    gtk_signal_connect(GTK_OBJECT(fe->cfgbox), "destroy",
-                       GTK_SIGNAL_FUNC(window_destroy), NULL);
-    gtk_signal_connect(GTK_OBJECT(fe->cfgbox), "key_press_event",
-		       GTK_SIGNAL_FUNC(win_key_press), cancel);
+    g_signal_connect(G_OBJECT(fe->cfgbox), "destroy",
+                     G_CALLBACK(window_destroy), NULL);
+    g_signal_connect(G_OBJECT(fe->cfgbox), "key_press_event",
+                     G_CALLBACK(win_key_press), cancel);
     gtk_window_set_modal(GTK_WINDOW(fe->cfgbox), TRUE);
     gtk_window_set_transient_for(GTK_WINDOW(fe->cfgbox),
 				 GTK_WINDOW(fe->window));
@@ -1615,8 +1614,8 @@ static int get_config(frontend *fe, int which)
 static void menu_key_event(GtkMenuItem *menuitem, gpointer data)
 {
     frontend *fe = (frontend *)data;
-    int key = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(menuitem),
-                                                  "user-data"));
+    int key = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(menuitem),
+                                                "user-data"));
     if (!midend_process_key(fe->me, 0, 0, key))
 	gtk_widget_destroy(fe->window);
 }
@@ -1775,7 +1774,7 @@ static void menu_preset_event(GtkMenuItem *menuitem, gpointer data)
 {
     frontend *fe = (frontend *)data;
     game_params *params =
-        (game_params *)gtk_object_get_data(GTK_OBJECT(menuitem), "user-data");
+        (game_params *)g_object_get_data(G_OBJECT(menuitem), "user-data");
 
     if (fe->preset_threaded ||
 	(GTK_IS_CHECK_MENU_ITEM(menuitem) &&
@@ -1866,7 +1865,7 @@ static void filesel_ok(GtkButton *button, gpointer data)
 {
     frontend *fe = (frontend *)data;
 
-    gpointer filesel = gtk_object_get_data(GTK_OBJECT(button), "user-data");
+    gpointer filesel = g_object_get_data(G_OBJECT(button), "user-data");
 
     const char *name =
         gtk_file_selection_get_filename(GTK_FILE_SELECTION(filesel));
@@ -1882,20 +1881,20 @@ static char *file_selector(frontend *fe, char *title, int save)
     fe->filesel_name = NULL;
 
     gtk_window_set_modal(GTK_WINDOW(filesel), TRUE);
-    gtk_object_set_data
-        (GTK_OBJECT(GTK_FILE_SELECTION(filesel)->ok_button), "user-data",
+    g_object_set_data
+        (G_OBJECT(GTK_FILE_SELECTION(filesel)->ok_button), "user-data",
          (gpointer)filesel);
-    gtk_signal_connect
-        (GTK_OBJECT(GTK_FILE_SELECTION(filesel)->ok_button), "clicked",
-         GTK_SIGNAL_FUNC(filesel_ok), fe);
-    gtk_signal_connect_object
-        (GTK_OBJECT(GTK_FILE_SELECTION(filesel)->ok_button), "clicked",
-         GTK_SIGNAL_FUNC(gtk_widget_destroy), (gpointer)filesel);
-    gtk_signal_connect_object
-        (GTK_OBJECT(GTK_FILE_SELECTION(filesel)->cancel_button), "clicked",
-         GTK_SIGNAL_FUNC(gtk_widget_destroy), (gpointer)filesel);
-    gtk_signal_connect(GTK_OBJECT(filesel), "destroy",
-                       GTK_SIGNAL_FUNC(window_destroy), NULL);
+    g_signal_connect
+        (G_OBJECT(GTK_FILE_SELECTION(filesel)->ok_button), "clicked",
+         G_CALLBACK(filesel_ok), fe);
+    g_signal_connect_swapped
+        (G_OBJECT(GTK_FILE_SELECTION(filesel)->ok_button), "clicked",
+         G_CALLBACK(gtk_widget_destroy), (gpointer)filesel);
+    g_signal_connect_object
+        (G_OBJECT(GTK_FILE_SELECTION(filesel)->cancel_button), "clicked",
+         G_CALLBACK(gtk_widget_destroy), (gpointer)filesel);
+    g_signal_connect(G_OBJECT(filesel), "destroy",
+                     G_CALLBACK(window_destroy), NULL);
     gtk_widget_show(filesel);
     gtk_window_set_transient_for(GTK_WINDOW(filesel), GTK_WINDOW(fe->window));
     gtk_main();
@@ -2051,8 +2050,8 @@ static void menu_restart_event(GtkMenuItem *menuitem, gpointer data)
 static void menu_config_event(GtkMenuItem *menuitem, gpointer data)
 {
     frontend *fe = (frontend *)data;
-    int which = GPOINTER_TO_INT(gtk_object_get_data(GTK_OBJECT(menuitem),
-						    "user-data"));
+    int which = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(menuitem),
+                                                  "user-data"));
 
     if (fe->preset_threaded ||
 	(GTK_IS_CHECK_MENU_ITEM(menuitem) &&
@@ -2087,10 +2086,9 @@ static GtkWidget *add_menu_item_with_key(frontend *fe, GtkContainer *cont,
     GtkWidget *menuitem = gtk_menu_item_new_with_label(text);
     int keyqual;
     gtk_container_add(cont, menuitem);
-    gtk_object_set_data(GTK_OBJECT(menuitem), "user-data",
-                        GINT_TO_POINTER(key));
-    gtk_signal_connect(GTK_OBJECT(menuitem), "activate",
-		       GTK_SIGNAL_FUNC(menu_key_event), fe);
+    g_object_set_data(G_OBJECT(menuitem), "user-data", GINT_TO_POINTER(key));
+    g_signal_connect(G_OBJECT(menuitem), "activate",
+                     G_CALLBACK(menu_key_event), fe);
     switch (key & ~0x1F) {
       case 0x00:
 	key += 0x60;
@@ -2256,24 +2254,24 @@ static frontend *new_window(char *arg, int argtype, char **error)
 
     menuitem = gtk_menu_item_new_with_label("Restart");
     gtk_container_add(GTK_CONTAINER(menu), menuitem);
-    gtk_signal_connect(GTK_OBJECT(menuitem), "activate",
-		       GTK_SIGNAL_FUNC(menu_restart_event), fe);
+    g_signal_connect(G_OBJECT(menuitem), "activate",
+                     G_CALLBACK(menu_restart_event), fe);
     gtk_widget_show(menuitem);
 
     menuitem = gtk_menu_item_new_with_label("Specific...");
-    gtk_object_set_data(GTK_OBJECT(menuitem), "user-data",
-			GINT_TO_POINTER(CFG_DESC));
+    g_object_set_data(G_OBJECT(menuitem), "user-data",
+                      GINT_TO_POINTER(CFG_DESC));
     gtk_container_add(GTK_CONTAINER(menu), menuitem);
-    gtk_signal_connect(GTK_OBJECT(menuitem), "activate",
-		       GTK_SIGNAL_FUNC(menu_config_event), fe);
+    g_signal_connect(G_OBJECT(menuitem), "activate",
+                     G_CALLBACK(menu_config_event), fe);
     gtk_widget_show(menuitem);
 
     menuitem = gtk_menu_item_new_with_label("Random Seed...");
-    gtk_object_set_data(GTK_OBJECT(menuitem), "user-data",
-			GINT_TO_POINTER(CFG_SEED));
+    g_object_set_data(G_OBJECT(menuitem), "user-data",
+                      GINT_TO_POINTER(CFG_SEED));
     gtk_container_add(GTK_CONTAINER(menu), menuitem);
-    gtk_signal_connect(GTK_OBJECT(menuitem), "activate",
-		       GTK_SIGNAL_FUNC(menu_config_event), fe);
+    g_signal_connect(G_OBJECT(menuitem), "activate",
+                     G_CALLBACK(menu_config_event), fe);
     gtk_widget_show(menuitem);
 
     fe->preset_radio = NULL;
@@ -2303,9 +2301,9 @@ static frontend *new_window(char *arg, int argtype, char **error)
 		gtk_radio_menu_item_group(GTK_RADIO_MENU_ITEM(menuitem));
 	    fe->n_preset_menu_items++;
             gtk_container_add(GTK_CONTAINER(submenu), menuitem);
-            gtk_object_set_data(GTK_OBJECT(menuitem), "user-data", params);
-            gtk_signal_connect(GTK_OBJECT(menuitem), "activate",
-                               GTK_SIGNAL_FUNC(menu_preset_event), fe);
+            g_object_set_data(G_OBJECT(menuitem), "user-data", params);
+            g_signal_connect(G_OBJECT(menuitem), "activate",
+                             G_CALLBACK(menu_preset_event), fe);
             gtk_widget_show(menuitem);
         }
 
@@ -2316,10 +2314,10 @@ static frontend *new_window(char *arg, int argtype, char **error)
 	    fe->preset_radio =
 		gtk_radio_menu_item_group(GTK_RADIO_MENU_ITEM(menuitem));
             gtk_container_add(GTK_CONTAINER(submenu), menuitem);
-            gtk_object_set_data(GTK_OBJECT(menuitem), "user-data",
-				GINT_TO_POINTER(CFG_SETTINGS));
-            gtk_signal_connect(GTK_OBJECT(menuitem), "activate",
-                               GTK_SIGNAL_FUNC(menu_config_event), fe);
+            g_object_set_data(G_OBJECT(menuitem), "user-data",
+                              GINT_TO_POINTER(CFG_SETTINGS));
+            g_signal_connect(G_OBJECT(menuitem), "activate",
+                             G_CALLBACK(menu_config_event), fe);
             gtk_widget_show(menuitem);
 	}
 
@@ -2328,13 +2326,13 @@ static frontend *new_window(char *arg, int argtype, char **error)
     add_menu_separator(GTK_CONTAINER(menu));
     menuitem = gtk_menu_item_new_with_label("Load...");
     gtk_container_add(GTK_CONTAINER(menu), menuitem);
-    gtk_signal_connect(GTK_OBJECT(menuitem), "activate",
-		       GTK_SIGNAL_FUNC(menu_load_event), fe);
+    g_signal_connect(G_OBJECT(menuitem), "activate",
+                     G_CALLBACK(menu_load_event), fe);
     gtk_widget_show(menuitem);
     menuitem = gtk_menu_item_new_with_label("Save...");
     gtk_container_add(GTK_CONTAINER(menu), menuitem);
-    gtk_signal_connect(GTK_OBJECT(menuitem), "activate",
-		       GTK_SIGNAL_FUNC(menu_save_event), fe);
+    g_signal_connect(G_OBJECT(menuitem), "activate",
+                     G_CALLBACK(menu_save_event), fe);
     gtk_widget_show(menuitem);
 #ifndef STYLUS_BASED
     add_menu_separator(GTK_CONTAINER(menu));
@@ -2345,8 +2343,8 @@ static frontend *new_window(char *arg, int argtype, char **error)
 	add_menu_separator(GTK_CONTAINER(menu));
 	menuitem = gtk_menu_item_new_with_label("Copy");
 	gtk_container_add(GTK_CONTAINER(menu), menuitem);
-	gtk_signal_connect(GTK_OBJECT(menuitem), "activate",
-			   GTK_SIGNAL_FUNC(menu_copy_event), fe);
+	g_signal_connect(G_OBJECT(menuitem), "activate",
+                         G_CALLBACK(menu_copy_event), fe);
 	gtk_widget_show(menuitem);
 	fe->copy_menu_item = menuitem;
     } else {
@@ -2356,8 +2354,8 @@ static frontend *new_window(char *arg, int argtype, char **error)
 	add_menu_separator(GTK_CONTAINER(menu));
 	menuitem = gtk_menu_item_new_with_label("Solve");
 	gtk_container_add(GTK_CONTAINER(menu), menuitem);
-	gtk_signal_connect(GTK_OBJECT(menuitem), "activate",
-			   GTK_SIGNAL_FUNC(menu_solve_event), fe);
+	g_signal_connect(G_OBJECT(menuitem), "activate",
+                         G_CALLBACK(menu_solve_event), fe);
 	gtk_widget_show(menuitem);
     }
     add_menu_separator(GTK_CONTAINER(menu));
@@ -2372,24 +2370,24 @@ static frontend *new_window(char *arg, int argtype, char **error)
 
     menuitem = gtk_menu_item_new_with_label("About");
     gtk_container_add(GTK_CONTAINER(menu), menuitem);
-    gtk_signal_connect(GTK_OBJECT(menuitem), "activate",
-		       GTK_SIGNAL_FUNC(menu_about_event), fe);
+    g_signal_connect(G_OBJECT(menuitem), "activate",
+                     G_CALLBACK(menu_about_event), fe);
     gtk_widget_show(menuitem);
 
 #ifdef STYLUS_BASED
     menuitem=gtk_button_new_with_mnemonic("_Redo");
-    gtk_object_set_data(GTK_OBJECT(menuitem), "user-data",
-			GINT_TO_POINTER((int)('r')));
-    gtk_signal_connect(GTK_OBJECT(menuitem), "clicked",
-		       GTK_SIGNAL_FUNC(menu_key_event), fe);
+    g_object_set_data(G_OBJECT(menuitem), "user-data",
+                      GINT_TO_POINTER((int)('r')));
+    g_signal_connect(G_OBJECT(menuitem), "clicked",
+                     G_CALLBACK(menu_key_event), fe);
     gtk_box_pack_end(hbox, menuitem, FALSE, FALSE, 0);
     gtk_widget_show(menuitem);
 
     menuitem=gtk_button_new_with_mnemonic("_Undo");
-    gtk_object_set_data(GTK_OBJECT(menuitem), "user-data",
-			GINT_TO_POINTER((int)('u')));
-    gtk_signal_connect(GTK_OBJECT(menuitem), "clicked",
-		       GTK_SIGNAL_FUNC(menu_key_event), fe);
+    g_object_set_data(G_OBJECT(menuitem), "user-data",
+                      GINT_TO_POINTER((int)('u')));
+    g_signal_connect(G_OBJECT(menuitem), "clicked",
+                     G_CALLBACK(menu_key_event), fe);
     gtk_box_pack_end(hbox, menuitem, FALSE, FALSE, 0);
     gtk_widget_show(menuitem);
 
@@ -2402,10 +2400,10 @@ static frontend *new_window(char *arg, int argtype, char **error)
 	errbuf[1]='\0';
 	for(errbuf[0]='0';errbuf[0]<='9';errbuf[0]++) {
 	    menuitem=gtk_button_new_with_label(errbuf);
-	    gtk_object_set_data(GTK_OBJECT(menuitem), "user-data",
-				GINT_TO_POINTER((int)(errbuf[0])));
-	    gtk_signal_connect(GTK_OBJECT(menuitem), "clicked",
-			       GTK_SIGNAL_FUNC(menu_key_event), fe);
+	    g_object_set_data(G_OBJECT(menuitem), "user-data",
+                              GINT_TO_POINTER((int)(errbuf[0])));
+	    g_signal_connect(G_OBJECT(menuitem), "clicked",
+                             G_CALLBACK(menu_key_event), fe);
 	    gtk_box_pack_start(hbox, menuitem, TRUE, TRUE, 0);
 	    gtk_widget_show(menuitem);
 	}
@@ -2458,28 +2456,28 @@ static frontend *new_window(char *arg, int argtype, char **error)
     fe->paste_data = NULL;
     fe->paste_data_len = 0;
 
-    gtk_signal_connect(GTK_OBJECT(fe->window), "destroy",
-		       GTK_SIGNAL_FUNC(destroy), fe);
-    gtk_signal_connect(GTK_OBJECT(fe->window), "key_press_event",
-		       GTK_SIGNAL_FUNC(key_event), fe);
-    gtk_signal_connect(GTK_OBJECT(fe->area), "button_press_event",
-		       GTK_SIGNAL_FUNC(button_event), fe);
-    gtk_signal_connect(GTK_OBJECT(fe->area), "button_release_event",
-		       GTK_SIGNAL_FUNC(button_event), fe);
-    gtk_signal_connect(GTK_OBJECT(fe->area), "motion_notify_event",
-		       GTK_SIGNAL_FUNC(motion_event), fe);
-    gtk_signal_connect(GTK_OBJECT(fe->area), "selection_get",
-		       GTK_SIGNAL_FUNC(selection_get), fe);
-    gtk_signal_connect(GTK_OBJECT(fe->area), "selection_clear_event",
-		       GTK_SIGNAL_FUNC(selection_clear), fe);
-    gtk_signal_connect(GTK_OBJECT(fe->area), "expose_event",
-		       GTK_SIGNAL_FUNC(expose_area), fe);
-    gtk_signal_connect(GTK_OBJECT(fe->window), "map_event",
-		       GTK_SIGNAL_FUNC(map_window), fe);
-    gtk_signal_connect(GTK_OBJECT(fe->area), "configure_event",
-		       GTK_SIGNAL_FUNC(configure_area), fe);
-    gtk_signal_connect(GTK_OBJECT(fe->window), "configure_event",
-		       GTK_SIGNAL_FUNC(configure_window), fe);
+    g_signal_connect(G_OBJECT(fe->window), "destroy",
+                     G_CALLBACK(destroy), fe);
+    g_signal_connect(G_OBJECT(fe->window), "key_press_event",
+                     G_CALLBACK(key_event), fe);
+    g_signal_connect(G_OBJECT(fe->area), "button_press_event",
+                     G_CALLBACK(button_event), fe);
+    g_signal_connect(G_OBJECT(fe->area), "button_release_event",
+                     G_CALLBACK(button_event), fe);
+    g_signal_connect(G_OBJECT(fe->area), "motion_notify_event",
+                     G_CALLBACK(motion_event), fe);
+    g_signal_connect(G_OBJECT(fe->area), "selection_get",
+                     G_CALLBACK(selection_get), fe);
+    g_signal_connect(G_OBJECT(fe->area), "selection_clear_event",
+                     G_CALLBACK(selection_clear), fe);
+    g_signal_connect(G_OBJECT(fe->area), "expose_event",
+                     G_CALLBACK(expose_area), fe);
+    g_signal_connect(G_OBJECT(fe->window), "map_event",
+                     G_CALLBACK(map_window), fe);
+    g_signal_connect(G_OBJECT(fe->area), "configure_event",
+                     G_CALLBACK(configure_area), fe);
+    g_signal_connect(G_OBJECT(fe->window), "configure_event",
+                     G_CALLBACK(configure_window), fe);
 
     gtk_widget_add_events(GTK_WIDGET(fe->area),
                           GDK_BUTTON_PRESS_MASK |
