@@ -2573,7 +2573,7 @@ static frontend *new_window(char *arg, int argtype, char **error)
 	fe->statusbar = NULL;
 
     fe->area = gtk_drawing_area_new();
-#if GTK_CHECK_VERSION(2,0,0)
+#if GTK_CHECK_VERSION(2,0,0) && !GTK_CHECK_VERSION(3,0,0)
     gtk_widget_set_double_buffered(fe->area, FALSE);
 #endif
     {
