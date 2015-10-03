@@ -44,6 +44,25 @@
 # endif
 #endif
 
+#if GTK_CHECK_VERSION(3,0,0)
+/* GTK 3 has retired stock button labels */
+#define LABEL_OK "_OK"
+#define LABEL_CANCEL "_Cancel"
+#define LABEL_NO "_No"
+#define LABEL_YES "_Yes"
+#define LABEL_SAVE "_Save"
+#define LABEL_OPEN "_Open"
+#define gtk_button_new_with_our_label gtk_button_new_with_mnemonic
+#else
+#define LABEL_OK GTK_STOCK_OK
+#define LABEL_CANCEL GTK_STOCK_CANCEL
+#define LABEL_NO GTK_STOCK_NO
+#define LABEL_YES GTK_STOCK_YES
+#define LABEL_SAVE GTK_STOCK_SAVE
+#define LABEL_OPEN GTK_STOCK_OPEN
+#define gtk_button_new_with_our_label gtk_button_new_from_stock
+#endif
+
 /* #undef USE_CAIRO */
 /* #define NO_THICK_LINE */
 #ifdef DEBUGGING
@@ -1400,18 +1419,18 @@ int message_box(GtkWidget *parent, char *title, char *msg, int centre,
     gtk_label_set_line_wrap(GTK_LABEL(text), TRUE);
 
     if (type == MB_OK) {
-	titles = GTK_STOCK_OK "\0";
+	titles = LABEL_OK "\0";
 	def = cancel = 0;
     } else {
 	assert(type == MB_YESNO);
-	titles = GTK_STOCK_NO "\0" GTK_STOCK_YES "\0";
+	titles = LABEL_NO "\0" LABEL_YES "\0";
 	def = 1;
 	cancel = 0;
     }
     i = 0;
     
     while (*titles) {
-	button = gtk_button_new_from_stock(titles);
+	button = gtk_button_new_with_our_label(titles);
 	gtk_box_pack_end
             (GTK_BOX(gtk_dialog_get_action_area(GTK_DIALOG(window))),
              button, FALSE, FALSE, 0);
@@ -1530,7 +1549,7 @@ static int get_config(frontend *fe, int which)
     gtk_window_set_title(GTK_WINDOW(fe->cfgbox), title);
     sfree(title);
 
-    w = gtk_button_new_from_stock(GTK_STOCK_CANCEL);
+    w = gtk_button_new_with_our_label(LABEL_CANCEL);
     gtk_box_pack_end
         (GTK_BOX(gtk_dialog_get_action_area(GTK_DIALOG(fe->cfgbox))),
          w, FALSE, FALSE, 0);
@@ -1539,7 +1558,7 @@ static int get_config(frontend *fe, int which)
                      G_CALLBACK(config_cancel_button_clicked), fe);
     cancel = w;
 
-    w = gtk_button_new_from_stock(GTK_STOCK_OK);
+    w = gtk_button_new_with_our_label(LABEL_OK);
     gtk_box_pack_end
         (GTK_BOX(gtk_dialog_get_action_area(GTK_DIALOG(fe->cfgbox))),
          w, FALSE, FALSE, 0);
@@ -2024,8 +2043,8 @@ static char *file_selector(frontend *fe, char *title, int save)
 				    GTK_WINDOW(fe->window),
 				    save ? GTK_FILE_CHOOSER_ACTION_SAVE :
 				    GTK_FILE_CHOOSER_ACTION_OPEN,
-				    GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
-				    save ? GTK_STOCK_SAVE : GTK_STOCK_OPEN,
+				    LABEL_CANCEL, GTK_RESPONSE_CANCEL,
+				    save ? LABEL_SAVE : LABEL_OPEN,
 				    GTK_RESPONSE_ACCEPT,
 				    NULL);
 
