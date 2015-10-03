@@ -1461,7 +1461,7 @@ static int get_config(frontend *fe, int which)
 
     table = gtk_table_new(1, 2, FALSE);
     y = 0;
-    gtk_box_pack_end(GTK_BOX(GTK_DIALOG(fe->cfgbox)->vbox),
+    gtk_box_pack_start(GTK_BOX(GTK_DIALOG(fe->cfgbox)->vbox),
                      table, FALSE, FALSE, 0);
     gtk_widget_show(table);
 
