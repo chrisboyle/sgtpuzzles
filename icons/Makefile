@@ -27,6 +27,10 @@ RC = $(patsubst %,%.rc,$(PUZZLES))
 BIN = ../
 PIC = ./
 
+# Work around newer ImageMagick unilaterally distorting colours when
+# converting to PNG.
+CSP = -set colorspace RGB
+
 base: $(BASE)
 web: $(WEB)
 pngicons: $(P48D24) $(P32D24) $(P16D24)
@@ -93,7 +97,7 @@ $(IBASE): %-ibase.png: %-base.png
 # seems to work better than reducing it in 24 bits and then
 # dithering.
 $(IBASE4): %-ibase4.png: %-ibase.png
-	convert -colors 16 +dither -map $(PIC)win16pal.xpm $^ $@
+	convert -colors 16 +dither $(CSP) -map $(PIC)win16pal.xpm $^ $@
 
 # Build the 24-bit PNGs for the icons, at three sizes.
 $(P48D24): %-48d24.png: %-ibase.png
@@ -115,15 +119,15 @@ $(P48D8) $(P32D8) $(P16D8): %d8.png: %d24.png
 # much...)
 $(P48D4): %-48d4.png: %-ibase4.png
 	$(PIC)square.pl 48 1 $^ $@-tmp2.png
-	convert -colors 16 -map $(PIC)win16pal.xpm $@-tmp2.png $@
+	convert -colors 16 $(CSP) -map $(PIC)win16pal.xpm $@-tmp2.png $@
 	rm -f $@-tmp2.png
 $(P32D4): %-32d4.png: %-ibase.png
 	$(PIC)square.pl 32 1 $^ $@-tmp2.png
-	convert -colors 16 -map $(PIC)win16pal.xpm $@-tmp2.png $@
+	convert -colors 16 $(CSP) -map $(PIC)win16pal.xpm $@-tmp2.png $@
 	rm -f $@-tmp2.png
 $(P16D4): %-16d4.png: %-ibase.png
 	$(PIC)square.pl 16 1 $^ $@-tmp2.png
-	convert -colors 16 -map $(PIC)win16pal.xpm $@-tmp2.png $@
+	convert -colors 16 $(CSP) -map $(PIC)win16pal.xpm $@-tmp2.png $@
 	rm -f $@-tmp2.png
 
 # Build the actual Windows icons themselves, by feeding all those
