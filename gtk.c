@@ -186,10 +186,26 @@ void get_random_seed(void **randseed, int *randseedsize)
 
 void frontend_default_colour(frontend *fe, float *output)
 {
+#if !GTK_CHECK_VERSION(3,0,0)
+    /*
+     * Use the widget style's default background colour as the
+     * background for the puzzle drawing area.
+     */
     GdkColor col = gtk_widget_get_style(fe->window)->bg[GTK_STATE_NORMAL];
     output[0] = col.red / 65535.0;
     output[1] = col.green / 65535.0;
     output[2] = col.blue / 65535.0;
+#else
+    /*
+     * GTK 3 has decided that there's no such thing as a 'default
+     * background colour' any more, because widget styles might set
+     * the background to something more complicated like a background
+     * image. We don't want to get into overlaying our entire puzzle
+     * on an arbitrary background image, so we'll just make up a
+     * reasonable shade of grey.
+     */
+    output[0] = output[1] = output[2] = 0.9F;
+#endif
 }
 
 void gtk_status_bar(void *handle, char *text)
