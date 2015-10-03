@@ -39,7 +39,7 @@
 #endif
 #if GTK_CHECK_VERSION(2,8,0)
 # define USE_CAIRO
-# if defined(GDK_DISABLE_DEPRECATED)
+# if GTK_CHECK_VERSION(3,0,0) || defined(GDK_DISABLE_DEPRECATED)
 #  define USE_CAIRO_WITHOUT_PIXMAP
 # endif
 #endif
@@ -1198,6 +1198,21 @@ static gint motion_event(GtkWidget *widget, GdkEventMotion *event,
     return TRUE;
 }
 
+#if GTK_CHECK_VERSION(3,0,0)
+static gint draw_area(GtkWidget *widget, cairo_t *cr, gpointer data)
+{
+    frontend *fe = (frontend *)data;
+    GdkRectangle dirtyrect;
+
+    gdk_cairo_get_clip_rectangle(cr, &dirtyrect);
+    cairo_set_source_surface(cr, fe->image, fe->ox, fe->oy);
+    cairo_rectangle(cr, dirtyrect.x, dirtyrect.y,
+                    dirtyrect.width, dirtyrect.height);
+    cairo_fill(cr);
+
+    return TRUE;
+}
+#else
 static gint expose_area(GtkWidget *widget, GdkEventExpose *event,
                         gpointer data)
 {
@@ -1219,6 +1234,7 @@ static gint expose_area(GtkWidget *widget, GdkEventExpose *event,
     }
     return TRUE;
 }
+#endif
 
 static gint map_window(GtkWidget *widget, GdkEvent *event,
 		       gpointer data)
@@ -2527,8 +2543,13 @@ static frontend *new_window(char *arg, int argtype, char **error)
                      G_CALLBACK(selection_get), fe);
     g_signal_connect(G_OBJECT(fe->area), "selection_clear_event",
                      G_CALLBACK(selection_clear), fe);
+#if GTK_CHECK_VERSION(3,0,0)
+    g_signal_connect(G_OBJECT(fe->area), "draw",
+                     G_CALLBACK(draw_area), fe);
+#else
     g_signal_connect(G_OBJECT(fe->area), "expose_event",
                      G_CALLBACK(expose_area), fe);
+#endif
     g_signal_connect(G_OBJECT(fe->window), "map_event",
                      G_CALLBACK(map_window), fe);
     g_signal_connect(G_OBJECT(fe->area), "configure_event",
