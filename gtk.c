@@ -1889,8 +1889,6 @@ static void resize_fe(frontend *fe)
 #if GTK_CHECK_VERSION(3,0,0)
     gtk_window_resize_to_geometry(GTK_WINDOW(fe->window), x, y);
 #else
-    fe->w = x;
-    fe->h = y;
     fe->drawing_area_shrink_pending = FALSE;
     gtk_drawing_area_size(GTK_DRAWING_AREA(fe->area), x, y);
     {
@@ -2582,6 +2580,8 @@ static frontend *new_window(char *arg, int argtype, char **error)
         gtk_window_set_geometry_hints(GTK_WINDOW(fe->window), fe->area,
                                       &geom, GDK_HINT_BASE_SIZE);
     }
+    fe->w = -1;
+    fe->h = -1;
     get_size(fe, &x, &y);
 #if GTK_CHECK_VERSION(3,0,0)
     gtk_window_set_default_geometry(GTK_WINDOW(fe->window), x, y);
@@ -2589,8 +2589,6 @@ static frontend *new_window(char *arg, int argtype, char **error)
     fe->drawing_area_shrink_pending = FALSE;
     gtk_drawing_area_size(GTK_DRAWING_AREA(fe->area), x, y);
 #endif
-    fe->w = x;
-    fe->h = y;
 
     gtk_box_pack_end(vbox, fe->area, TRUE, TRUE, 0);
 
