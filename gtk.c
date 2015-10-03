@@ -179,7 +179,7 @@ void get_random_seed(void **randseed, int *randseedsize)
 
 void frontend_default_colour(frontend *fe, float *output)
 {
-    GdkColor col = fe->window->style->bg[GTK_STATE_NORMAL];
+    GdkColor col = gtk_widget_get_style(fe->window)->bg[GTK_STATE_NORMAL];
     output[0] = col.red / 65535.0;
     output[1] = col.green / 65535.0;
     output[2] = col.blue / 65535.0;
@@ -254,8 +254,10 @@ static void set_window_background(frontend *fe, int colour)
 		fe->background.red >> 8, fe->background.green >> 8,
 		fe->background.blue >> 8);
     }
-    gdk_window_set_background(fe->area->window, &fe->background);
-    gdk_window_set_background(fe->window->window, &fe->background);
+    gdk_window_set_background(gtk_widget_get_window(fe->area),
+                              &fe->background);
+    gdk_window_set_background(gtk_widget_get_window(fe->window),
+                              &fe->background);
 }
 
 static PangoLayout *make_pango_layout(frontend *fe)
@@ -385,7 +387,8 @@ static void setup_backing_store(frontend *fe)
     cairo_t *cr;
     int i;
 
-    fe->pixmap = gdk_pixmap_new(fe->area->window, fe->pw, fe->ph, -1);
+    fe->pixmap = gdk_pixmap_new(gtk_widget_get_window(fe->area),
+                                fe->pw, fe->ph, -1);
     fe->image = cairo_image_surface_create(CAIRO_FORMAT_RGB24,
 					   fe->pw, fe->ph);
 
@@ -393,7 +396,8 @@ static void setup_backing_store(frontend *fe)
 	switch (i) {
 	    case 0: cr = cairo_create(fe->image); break;
 	    case 1: cr = gdk_cairo_create(fe->pixmap); break;
-	    case 2: cr = gdk_cairo_create(fe->area->window); break;
+	    case 2: cr = gdk_cairo_create(gtk_widget_get_window(fe->area));
+              break;
 	}
 	cairo_set_source_rgb(cr,
 			     fe->colours[0], fe->colours[1], fe->colours[2]);
@@ -667,35 +671,35 @@ static void teardown_backing_store(frontend *fe)
 static void repaint_rectangle(frontend *fe, GtkWidget *widget,
 			      int x, int y, int w, int h)
 {
-    GdkGC *gc = gdk_gc_new(widget->window);
+    GdkGC *gc = gdk_gc_new(gtk_widget_get_window(widget));
 #ifdef USE_CAIRO
     gdk_gc_set_foreground(gc, &fe->background);
 #else
     gdk_gc_set_foreground(gc, &fe->colours[fe->backgroundindex]);
 #endif
     if (x < fe->ox) {
-	gdk_draw_rectangle(widget->window, gc,
+	gdk_draw_rectangle(gtk_widget_get_window(widget), gc,
 			   TRUE, x, y, fe->ox - x, h);
 	w -= (fe->ox - x);
 	x = fe->ox;
     }
     if (y < fe->oy) {
-	gdk_draw_rectangle(widget->window, gc,
+	gdk_draw_rectangle(gtk_widget_get_window(widget), gc,
 			   TRUE, x, y, w, fe->oy - y);
 	h -= (fe->oy - y);
 	y = fe->oy;
     }
     if (w > fe->pw) {
-	gdk_draw_rectangle(widget->window, gc,
+	gdk_draw_rectangle(gtk_widget_get_window(widget), gc,
 			   TRUE, x + fe->pw, y, w - fe->pw, h);
 	w = fe->pw;
     }
     if (h > fe->ph) {
-	gdk_draw_rectangle(widget->window, gc,
+	gdk_draw_rectangle(gtk_widget_get_window(widget), gc,
 			   TRUE, x, y + fe->ph, w, h - fe->ph);
 	h = fe->ph;
     }
-    gdk_draw_pixmap(widget->window, gc, fe->pixmap,
+    gdk_draw_pixmap(gtk_widget_get_window(widget), gc, fe->pixmap,
 		    x - fe->ox, y - fe->oy, x, y, w, h);
     gdk_gc_unref(gc);
 }
@@ -1159,7 +1163,7 @@ static gint motion_event(GtkWidget *widget, GdkEventMotion *event,
 #if GTK_CHECK_VERSION(2,12,0)
     gdk_event_request_motions(event);
 #else
-    gdk_window_get_pointer(widget->window, NULL, NULL, NULL);
+    gdk_window_get_pointer(gtk_widget_get_window(widget), NULL, NULL, NULL);
 #endif
 
     return TRUE;
@@ -1305,8 +1309,9 @@ int message_box(GtkWidget *parent, char *title, char *msg, int centre,
     gtk_misc_set_alignment(GTK_MISC(text), 0.0, 0.0);
     hbox = gtk_hbox_new(FALSE, 0);
     gtk_box_pack_start(GTK_BOX(hbox), text, FALSE, FALSE, 20);
-    gtk_box_pack_start(GTK_BOX(GTK_DIALOG(window)->vbox),
-                       hbox, FALSE, FALSE, 20);
+    gtk_box_pack_start
+        (GTK_BOX(gtk_dialog_get_content_area(GTK_DIALOG(window))),
+         hbox, FALSE, FALSE, 20);
     gtk_widget_show(text);
     gtk_widget_show(hbox);
     gtk_window_set_title(GTK_WINDOW(window), title);
@@ -1325,11 +1330,12 @@ int message_box(GtkWidget *parent, char *title, char *msg, int centre,
     
     while (*titles) {
 	button = gtk_button_new_from_stock(titles);
-	gtk_box_pack_end(GTK_BOX(GTK_DIALOG(window)->action_area),
-			 button, FALSE, FALSE, 0);
+	gtk_box_pack_end
+            (GTK_BOX(gtk_dialog_get_action_area(GTK_DIALOG(window))),
+             button, FALSE, FALSE, 0);
 	gtk_widget_show(button);
 	if (i == def) {
-	    GTK_WIDGET_SET_FLAGS(button, GTK_CAN_DEFAULT);
+	    gtk_widget_set_can_default(button, TRUE);
 	    gtk_window_set_default(GTK_WINDOW(window), button);
 	}
 	if (i == cancel) {
@@ -1394,11 +1400,12 @@ static int editbox_key(GtkWidget *widget, GdkEventKey *event, gpointer data)
      * Return in an edit box will now activate the default button
      * in the dialog just like it will everywhere else.
      */
-    if (event->keyval == GDK_Return && widget->parent != NULL) {
+    if (event->keyval == GDK_Return &&
+        gtk_widget_get_parent(widget) != NULL) {
 	gint return_val;
 	gtk_signal_emit_stop_by_name(GTK_OBJECT(widget), "key_press_event");
-	gtk_signal_emit_by_name(GTK_OBJECT(widget->parent), "key_press_event",
-				event, &return_val);
+	gtk_signal_emit_by_name(GTK_OBJECT(gtk_widget_get_parent(widget)),
+                                "key_press_event", event, &return_val);
 	return return_val;
     }
     return FALSE;
@@ -1443,26 +1450,29 @@ static int get_config(frontend *fe, int which)
     sfree(title);
 
     w = gtk_button_new_from_stock(GTK_STOCK_CANCEL);
-    gtk_box_pack_end(GTK_BOX(GTK_DIALOG(fe->cfgbox)->action_area),
-                     w, FALSE, FALSE, 0);
+    gtk_box_pack_end
+        (GTK_BOX(gtk_dialog_get_action_area(GTK_DIALOG(fe->cfgbox))),
+         w, FALSE, FALSE, 0);
     gtk_widget_show(w);
     gtk_signal_connect(GTK_OBJECT(w), "clicked",
                        GTK_SIGNAL_FUNC(config_cancel_button_clicked), fe);
     cancel = w;
 
     w = gtk_button_new_from_stock(GTK_STOCK_OK);
-    gtk_box_pack_end(GTK_BOX(GTK_DIALOG(fe->cfgbox)->action_area),
-                     w, FALSE, FALSE, 0);
+    gtk_box_pack_end
+        (GTK_BOX(gtk_dialog_get_action_area(GTK_DIALOG(fe->cfgbox))),
+         w, FALSE, FALSE, 0);
     gtk_widget_show(w);
-    GTK_WIDGET_SET_FLAGS(w, GTK_CAN_DEFAULT);
+    gtk_widget_set_can_default(w, TRUE);
     gtk_window_set_default(GTK_WINDOW(fe->cfgbox), w);
     gtk_signal_connect(GTK_OBJECT(w), "clicked",
                        GTK_SIGNAL_FUNC(config_ok_button_clicked), fe);
 
     table = gtk_table_new(1, 2, FALSE);
     y = 0;
-    gtk_box_pack_start(GTK_BOX(GTK_DIALOG(fe->cfgbox)->vbox),
-                     table, FALSE, FALSE, 0);
+    gtk_box_pack_start
+        (GTK_BOX(gtk_dialog_get_content_area(GTK_DIALOG(fe->cfgbox))),
+         table, FALSE, FALSE, 0);
     gtk_widget_show(table);
 
     for (i = fe->cfg; i->type != C_END; i++) {
@@ -1810,7 +1820,7 @@ void selection_get(GtkWidget *widget, GtkSelectionData *seldata,
 		   guint info, guint time_stamp, gpointer data)
 {
     frontend *fe = (frontend *)data;
-    gtk_selection_data_set(seldata, seldata->target, 8,
+    gtk_selection_data_set(seldata, gtk_selection_data_get_target(seldata), 8,
 			   fe->paste_data, fe->paste_data_len);
 }
 
@@ -2421,7 +2431,7 @@ static frontend *new_window(char *arg, int argtype, char **error)
 
     fe->area = gtk_drawing_area_new();
 #if GTK_CHECK_VERSION(2,0,0)
-    GTK_WIDGET_UNSET_FLAGS(fe->area, GTK_DOUBLE_BUFFERED);
+    gtk_widget_set_double_buffered(fe->area, FALSE);
 #endif
     get_size(fe, &x, &y);
     fe->drawing_area_shrink_pending = FALSE;
@@ -2469,9 +2479,11 @@ static frontend *new_window(char *arg, int argtype, char **error)
 
     if (n_xpm_icons) {
 	gtk_widget_realize(fe->window);
-	iconpm = gdk_pixmap_create_from_xpm_d(fe->window->window, NULL,
-					      NULL, (gchar **)xpm_icons[0]);
-	gdk_window_set_icon(fe->window->window, NULL, iconpm, NULL);
+	iconpm = gdk_pixmap_create_from_xpm_d
+            (gtk_widget_get_window(fe->window), NULL, NULL,
+             (gchar **)xpm_icons[0]);
+	gdk_window_set_icon(gtk_widget_get_window(fe->window),
+                            NULL, iconpm, NULL);
 	iconlist = NULL;
 	for (n = 0; n < n_xpm_icons; n++) {
 	    iconlist =
@@ -2479,7 +2491,7 @@ static frontend *new_window(char *arg, int argtype, char **error)
 			      gdk_pixbuf_new_from_xpm_data((const gchar **)
 							   xpm_icons[n]));
 	}
-	gdk_window_set_icon_list(fe->window->window, iconlist);
+	gdk_window_set_icon_list(gtk_widget_get_window(fe->window), iconlist);
     }
 
     gtk_widget_show(fe->area);
