@@ -1505,7 +1505,11 @@ static int get_config(frontend *fe, int which)
     g_signal_connect(G_OBJECT(w), "clicked",
                      G_CALLBACK(config_ok_button_clicked), fe);
 
+#if GTK_CHECK_VERSION(3,0,0)
+    table = gtk_grid_new();
+#else
     table = gtk_table_new(1, 2, FALSE);
+#endif
     y = 0;
     gtk_box_pack_start
         (GTK_BOX(gtk_dialog_get_content_area(GTK_DIALOG(fe->cfgbox))),
@@ -1513,7 +1517,9 @@ static int get_config(frontend *fe, int which)
     gtk_widget_show(table);
 
     for (i = fe->cfg; i->type != C_END; i++) {
+#if !GTK_CHECK_VERSION(3,0,0)
 	gtk_table_resize(GTK_TABLE(table), y+1, 2);
+#endif
 
 	switch (i->type) {
 	  case C_STRING:
@@ -1523,17 +1529,26 @@ static int get_config(frontend *fe, int which)
 
 	    w = gtk_label_new(i->name);
 	    gtk_misc_set_alignment(GTK_MISC(w), 0.0, 0.5);
+#if GTK_CHECK_VERSION(3,0,0)
+            gtk_grid_attach(GTK_GRID(table), w, 0, y, 1, 1);
+#else
 	    gtk_table_attach(GTK_TABLE(table), w, 0, 1, y, y+1,
 			     GTK_SHRINK | GTK_FILL,
 			     GTK_EXPAND | GTK_SHRINK | GTK_FILL,
 			     3, 3);
+#endif
 	    gtk_widget_show(w);
 
 	    w = gtk_entry_new();
+#if GTK_CHECK_VERSION(3,0,0)
+            gtk_grid_attach(GTK_GRID(table), w, 1, y, 1, 1);
+            g_object_set(G_OBJECT(w), "hexpand", TRUE, (const char *)NULL);
+#else
 	    gtk_table_attach(GTK_TABLE(table), w, 1, 2, y, y+1,
 			     GTK_EXPAND | GTK_SHRINK | GTK_FILL,
 			     GTK_EXPAND | GTK_SHRINK | GTK_FILL,
 			     3, 3);
+#endif
 	    gtk_entry_set_text(GTK_ENTRY(w), i->sval);
 	    g_signal_connect(G_OBJECT(w), "changed",
                              G_CALLBACK(editbox_changed), i);
@@ -1550,10 +1565,15 @@ static int get_config(frontend *fe, int which)
             w = gtk_check_button_new_with_label(i->name);
 	    g_signal_connect(G_OBJECT(w), "toggled",
                              G_CALLBACK(button_toggled), i);
+#if GTK_CHECK_VERSION(3,0,0)
+            gtk_grid_attach(GTK_GRID(table), w, 0, y, 2, 1);
+            g_object_set(G_OBJECT(w), "hexpand", TRUE, (const char *)NULL);
+#else
 	    gtk_table_attach(GTK_TABLE(table), w, 0, 2, y, y+1,
 			     GTK_EXPAND | GTK_SHRINK | GTK_FILL,
 			     GTK_EXPAND | GTK_SHRINK | GTK_FILL,
 			     3, 3);
+#endif
 	    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(w), i->ival);
 	    gtk_widget_show(w);
 	    break;
@@ -1565,10 +1585,14 @@ static int get_config(frontend *fe, int which)
 
 	    w = gtk_label_new(i->name);
 	    gtk_misc_set_alignment(GTK_MISC(w), 0.0, 0.5);
+#if GTK_CHECK_VERSION(3,0,0)
+            gtk_grid_attach(GTK_GRID(table), w, 0, y, 1, 1);
+#else
 	    gtk_table_attach(GTK_TABLE(table), w, 0, 1, y, y+1,
 			     GTK_SHRINK | GTK_FILL,
 			     GTK_EXPAND | GTK_SHRINK | GTK_FILL ,
 			     3, 3);
+#endif
 	    gtk_widget_show(w);
 
             {
@@ -1613,10 +1637,15 @@ static int get_config(frontend *fe, int which)
 				 G_CALLBACK(droplist_sel), i);
             }
 
+#if GTK_CHECK_VERSION(3,0,0)
+            gtk_grid_attach(GTK_GRID(table), w, 1, y, 1, 1);
+            g_object_set(G_OBJECT(w), "hexpand", TRUE, (const char *)NULL);
+#else
 	    gtk_table_attach(GTK_TABLE(table), w, 1, 2, y, y+1,
 			     GTK_EXPAND | GTK_SHRINK | GTK_FILL,
 			     GTK_EXPAND | GTK_SHRINK | GTK_FILL,
 			     3, 3);
+#endif
 	    gtk_widget_show(w);
 	    break;
 	}
