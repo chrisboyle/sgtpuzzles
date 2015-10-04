@@ -1570,6 +1570,7 @@ static void droplist_sel(GtkComboBox *combo, gpointer data)
 static int get_config(frontend *fe, int which)
 {
     GtkWidget *w, *table, *cancel;
+    GtkBox *content_box, *button_box;
     char *title;
     config_item *i;
     int y;
@@ -1578,23 +1579,38 @@ static int get_config(frontend *fe, int which)
     fe->cfg_which = which;
     fe->cfgret = FALSE;
 
+#if GTK_CHECK_VERSION(3,0,0)
+    /* GtkDialog isn't quite flexible enough */
+    fe->cfgbox = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+    content_box = GTK_BOX(gtk_vbox_new(FALSE, 8));
+    g_object_set(G_OBJECT(content_box), "margin", 8, (const char *)NULL);
+    gtk_widget_show(GTK_WIDGET(content_box));
+    gtk_container_add(GTK_CONTAINER(fe->cfgbox), GTK_WIDGET(content_box));
+    button_box = GTK_BOX(gtk_hbox_new(FALSE, 8));
+    gtk_widget_show(GTK_WIDGET(button_box));
+    gtk_box_pack_end(content_box, GTK_WIDGET(button_box), FALSE, FALSE, 0);
+    {
+        GtkWidget *sep = gtk_separator_new(GTK_ORIENTATION_HORIZONTAL);
+        gtk_widget_show(sep);
+        gtk_box_pack_end(content_box, sep, FALSE, FALSE, 0);
+    }
+#else
     fe->cfgbox = gtk_dialog_new();
+    content_box = GTK_BOX(gtk_dialog_get_content_area(GTK_DIALOG(fe->cfgbox)));
+    button_box = GTK_BOX(gtk_dialog_get_action_area(GTK_DIALOG(fe->cfgbox)));
+#endif
     gtk_window_set_title(GTK_WINDOW(fe->cfgbox), title);
     sfree(title);
 
     w = gtk_button_new_with_our_label(LABEL_CANCEL);
-    gtk_box_pack_end
-        (GTK_BOX(gtk_dialog_get_action_area(GTK_DIALOG(fe->cfgbox))),
-         w, FALSE, FALSE, 0);
+    gtk_box_pack_end(button_box, w, FALSE, FALSE, 0);
     gtk_widget_show(w);
     g_signal_connect(G_OBJECT(w), "clicked",
                      G_CALLBACK(config_cancel_button_clicked), fe);
     cancel = w;
 
     w = gtk_button_new_with_our_label(LABEL_OK);
-    gtk_box_pack_end
-        (GTK_BOX(gtk_dialog_get_action_area(GTK_DIALOG(fe->cfgbox))),
-         w, FALSE, FALSE, 0);
+    gtk_box_pack_end(button_box, w, FALSE, FALSE, 0);
     gtk_widget_show(w);
     gtk_widget_set_can_default(w, TRUE);
     gtk_window_set_default(GTK_WINDOW(fe->cfgbox), w);
@@ -1607,9 +1623,7 @@ static int get_config(frontend *fe, int which)
     table = gtk_table_new(1, 2, FALSE);
 #endif
     y = 0;
-    gtk_box_pack_start
-        (GTK_BOX(gtk_dialog_get_content_area(GTK_DIALOG(fe->cfgbox))),
-         table, FALSE, FALSE, 0);
+    gtk_box_pack_start(content_box, table, FALSE, FALSE, 0);
     gtk_widget_show(table);
 
     for (i = fe->cfg; i->type != C_END; i++) {
