@@ -1401,6 +1401,16 @@ static int win_key_press(GtkWidget *widget, GdkEventKey *event, gpointer data)
 
 enum { MB_OK, MB_YESNO };
 
+static void align_label(GtkLabel *label, double x, double y)
+{
+#if GTK_CHECK_VERSION(3,16,0)
+    gtk_label_set_xalign(label, x);
+    gtk_label_set_yalign(label, y);
+#else
+    gtk_misc_set_alignment(GTK_MISC(label), x, y);
+#endif
+}
+
 int message_box(GtkWidget *parent, char *title, char *msg, int centre,
 		int type)
 {
@@ -1410,7 +1420,7 @@ int message_box(GtkWidget *parent, char *title, char *msg, int centre,
 
     window = gtk_dialog_new();
     text = gtk_label_new(msg);
-    gtk_misc_set_alignment(GTK_MISC(text), 0.0, 0.0);
+    align_label(GTK_LABEL(text), 0.0, 0.0);
     hbox = gtk_hbox_new(FALSE, 0);
     gtk_box_pack_start(GTK_BOX(hbox), text, FALSE, FALSE, 20);
     gtk_box_pack_start
@@ -1594,7 +1604,7 @@ static int get_config(frontend *fe, int which)
 	     */
 
 	    w = gtk_label_new(i->name);
-	    gtk_misc_set_alignment(GTK_MISC(w), 0.0, 0.5);
+	    align_label(GTK_LABEL(w), 0.0, 0.5);
 #if GTK_CHECK_VERSION(3,0,0)
             gtk_grid_attach(GTK_GRID(table), w, 0, y, 1, 1);
 #else
@@ -1650,7 +1660,7 @@ static int get_config(frontend *fe, int which)
 	     */
 
 	    w = gtk_label_new(i->name);
-	    gtk_misc_set_alignment(GTK_MISC(w), 0.0, 0.5);
+	    align_label(GTK_LABEL(w), 0.0, 0.5);
 #if GTK_CHECK_VERSION(3,0,0)
             gtk_grid_attach(GTK_GRID(table), w, 0, y, 1, 1);
 #else
