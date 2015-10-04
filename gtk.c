@@ -1372,18 +1372,6 @@ static void window_destroy(GtkWidget *widget, gpointer data)
     gtk_main_quit();
 }
 
-static void msgbox_button_clicked(GtkButton *button, gpointer data)
-{
-    GtkWidget *window = GTK_WIDGET(data);
-    int v, *ip;
-
-    ip = (int *)g_object_get_data(G_OBJECT(window), "user-data");
-    v = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(button), "user-data"));
-    *ip = v;
-
-    gtk_widget_destroy(GTK_WIDGET(data));
-}
-
 static int win_key_press(GtkWidget *widget, GdkEventKey *event, gpointer data)
 {
     GObject *cancelbutton = G_OBJECT(data);
@@ -1409,6 +1397,37 @@ static void align_label(GtkLabel *label, double x, double y)
 #else
     gtk_misc_set_alignment(GTK_MISC(label), x, y);
 #endif
+}
+
+#if GTK_CHECK_VERSION(3,0,0)
+int message_box(GtkWidget *parent, char *title, char *msg, int centre,
+		int type)
+{
+    GtkWidget *window;
+    gint ret;
+
+    window = gtk_message_dialog_new
+        (GTK_WINDOW(parent),
+         (GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT),
+         (type == MB_OK ? GTK_MESSAGE_INFO : GTK_MESSAGE_QUESTION),
+         (type == MB_OK ? GTK_BUTTONS_OK   : GTK_BUTTONS_YES_NO),
+         "%s", msg);
+    gtk_window_set_title(GTK_WINDOW(window), title);
+    ret = gtk_dialog_run(GTK_DIALOG(window));
+    gtk_widget_destroy(window);
+    return (type == MB_OK ? TRUE : (ret == GTK_RESPONSE_YES));
+}
+#else /* GTK_CHECK_VERSION(3,0,0) */
+static void msgbox_button_clicked(GtkButton *button, gpointer data)
+{
+    GtkWidget *window = GTK_WIDGET(data);
+    int v, *ip;
+
+    ip = (int *)g_object_get_data(G_OBJECT(window), "user-data");
+    v = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(button), "user-data"));
+    *ip = v;
+
+    gtk_widget_destroy(GTK_WIDGET(data));
 }
 
 int message_box(GtkWidget *parent, char *title, char *msg, int centre,
@@ -1474,6 +1493,7 @@ int message_box(GtkWidget *parent, char *title, char *msg, int centre,
     gtk_main();
     return (type == MB_YESNO ? i == 1 : TRUE);
 }
+#endif /* GTK_CHECK_VERSION(3,0,0) */
 
 void error_box(GtkWidget *parent, char *msg)
 {
