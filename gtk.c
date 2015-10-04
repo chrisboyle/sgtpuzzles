@@ -2229,6 +2229,21 @@ static void menu_config_event(GtkMenuItem *menuitem, gpointer data)
 static void menu_about_event(GtkMenuItem *menuitem, gpointer data)
 {
     frontend *fe = (frontend *)data;
+
+#if GTK_CHECK_VERSION(3,0,0)
+    extern char *const *const xpm_icons[];
+    extern const int n_xpm_icons;
+    GdkPixbuf *icon = gdk_pixbuf_new_from_xpm_data
+        ((const gchar **)xpm_icons[n_xpm_icons-1]);
+    gtk_show_about_dialog
+        (GTK_WINDOW(fe->window),
+         "program-name", thegame.name,
+         "version", ver,
+         "comments", "Part of Simon Tatham's Portable Puzzle Collection",
+         "logo", icon,
+         (const gchar *)NULL);
+    g_object_unref(G_OBJECT(icon));
+#else
     char titlebuf[256];
     char textbuf[1024];
 
@@ -2239,6 +2254,7 @@ static void menu_about_event(GtkMenuItem *menuitem, gpointer data)
 	    "%.500s", thegame.name, ver);
 
     message_box(fe->window, titlebuf, textbuf, TRUE, MB_OK);
+#endif
 }
 
 static GtkWidget *add_menu_item_with_key(frontend *fe, GtkContainer *cont,
