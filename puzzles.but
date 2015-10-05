@@ -2193,12 +2193,18 @@ it and restore your ability to modify it.
 
 You can also use the cursor keys to move around the grid: if possible
 the cursor will always move orthogonally, otherwise it will move
-towards the nearest island to the indicated direction. Pressing the
-return key followed by a cursor key will lay a bridge in that direction
-(if available); pressing the space bar followed by a cursor key will
-lay a \q{non-bridge} marker.
+towards the nearest island to the indicated direction. Holding Control
+and pressing a cursor key will lay a bridge in that direction (if
+available); Shift and a cursor key will lay a \q{non-bridge} marker.
+Pressing the return key followed by a cursor key will also lay a
+bridge in that direction.
 
-You can mark an island as finished by pressing the return key twice.
+You can mark an island as finished by pressing the space bar or by
+pressing the return key twice.
+
+By pressing a number key, you can jump to the nearest island with that
+number.  Letters \q{a}, ..., \q{f} count as 10, ..., 15 and \q{0} as
+16.
 
 Violations of the puzzle rules will be marked in red:
 
