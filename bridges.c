@@ -2029,7 +2029,7 @@ static char *validate_desc(const game_params *params, const char *desc)
         else if (!*desc)
             return "Game description shorter than expected";
         else
-            return "Game description containers unexpected character";
+            return "Game description contains unexpected character";
         desc++;
     }
     if (*desc || i > wh)
