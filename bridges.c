@@ -2376,6 +2376,8 @@ static char *interpret_move(const game_state *state, game_ui *ui,
             int nx = ui->cur_x, ny = ui->cur_y;
 
             move_cursor(button, &nx, &ny, state->w, state->h, 0);
+            if (nx == ui->cur_x && ny == ui->cur_y)
+                return NULL;
             update_drag_dst(state, ui, ds,
                              COORD(nx)+TILE_SIZE/2,
                              COORD(ny)+TILE_SIZE/2);
