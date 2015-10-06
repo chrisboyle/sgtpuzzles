@@ -2098,8 +2098,9 @@ static char *file_selector(frontend *fe, char *title, int save)
 				    NULL);
 
     if (gtk_dialog_run(GTK_DIALOG(filesel)) == GTK_RESPONSE_ACCEPT) {
-        const char *name = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(filesel));
+        char *name = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(filesel));
         filesel_name = dupstr(name);
+        g_free(name);
     }
 
     gtk_widget_destroy(filesel);
@@ -2149,15 +2150,14 @@ static void menu_save_event(GtkMenuItem *menuitem, gpointer data)
 		    " file \"%.*s\"?",
 		    FILENAME_MAX, name);
 	    if (!message_box(fe->window, "Question", buf, TRUE, MB_YESNO))
-		return;
+                goto free_and_return;
 	}
 
 	fp = fopen(name, "w");
-        sfree(name);
 
         if (!fp) {
             error_box(fe->window, "Unable to open save file");
-            return;
+            goto free_and_return;
         }
 
 	{
@@ -2171,10 +2171,11 @@ static void menu_save_event(GtkMenuItem *menuitem, gpointer data)
 		sprintf(boxmsg, "Error writing save file: %.400s",
 			strerror(errno));
 		error_box(fe->window, boxmsg);
-		return;
+		goto free_and_return;
 	    }
 	}
-
+    free_and_return:
+        sfree(name);
     }
 }
 
