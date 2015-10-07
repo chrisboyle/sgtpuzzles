@@ -355,6 +355,7 @@ void midend_force_redraw(midend *me)
 
 void midend_new_game(midend *me)
 {
+    midend_stop_anim(me);
     midend_free_game(me);
 
     assert(me->nstates == 0);
@@ -596,7 +597,6 @@ static int midend_really_process_key(midend *me, int x, int y, int button)
 
     if (!movestr) {
 	if (button == 'n' || button == 'N' || button == '\x0E') {
-	    midend_stop_anim(me);
 	    midend_new_game(me);
 	    midend_redraw(me);
 	    goto done;		       /* never animate */
