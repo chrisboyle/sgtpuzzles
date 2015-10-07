@@ -898,44 +898,64 @@ static void minimize_clue_set(int *board, int w, int h, random_state *rs)
     sfree(shuf);
 }
 
+static int encode_run(char *buffer, int run)
+{
+    int i = 0;
+    for (; run > 26; run -= 26)
+	buffer[i++] = 'z';
+    if (run)
+	buffer[i++] = 'a' - 1 + run;
+    return i;
+}
+
 static char *new_game_desc(const game_params *params, random_state *rs,
                            char **aux, int interactive)
 {
     const int w = params->w, h = params->h, sz = w * h;
-    int *board = snewn(sz, int), i;
-    char *game_description = snewn(sz + 1, char);
+    int *board = snewn(sz, int), i, j, run;
+    char *description = snewn(sz + 1, char);
 
     make_board(board, w, h, rs);
     minimize_clue_set(board, w, h, rs);
 
-    for (i = 0; i < sz; ++i) {
+    for (run = j = i = 0; i < sz; ++i) {
         assert(board[i] >= 0);
         assert(board[i] < 10);
-        game_description[i] = board[i] + '0';
+	if (board[i] == 0) {
+	    ++run;
+	} else {
+	    j += encode_run(description + j, run);
+	    run = 0;
+	    description[j++] = board[i] + '0';
+	}
     }
-    game_description[sz] = '\0';
+    j += encode_run(description + j, run);
+    description[j++] = '\0';
 
     sfree(board);
 
-    return game_description;
+    return sresize(description, j, char);
 }
 
 static char *validate_desc(const game_params *params, const char *desc)
 {
-    int i;
     const int sz = params->w * params->h;
     const char m = '0' + max(max(params->w, params->h), 3);
+    int area;
 
-    printv("desc = '%s'; sz = %d\n", desc, sz);
-
-    for (i = 0; desc[i] && i < sz; ++i)
-        if (!isdigit((unsigned char) *desc))
-	    return "non-digit in string";
-	else if (desc[i] > m)
-	    return "too large digit in string";
-    if (desc[i]) return "string too long";
-    else if (i < sz) return "string too short";
-    return NULL;
+    for (area = 0; *desc; ++desc) {
+	if (*desc >= 'a' && *desc <= 'z') area += *desc - 'a' + 1;
+	else if (*desc >= '0' && *desc <= m) ++area;
+	else {
+	    static char s[] =  "Invalid character '%""' in game description";
+	    int n = sprintf(s, "Invalid character '%1c' in game description",
+			    *desc);
+	    assert(n + 1 <= lenof(s)); /* +1 for the terminating NUL */
+	    return s;
+	}
+	if (area > sz) return "Too much data to fit in grid";
+    }
+    return (area < sz) ? "Not enough data to fill grid" : NULL;
 }
 
 static game_state *new_game(midend *me, const game_params *params,
@@ -950,7 +970,14 @@ static game_state *new_game(midend *me, const game_params *params,
     state->shared->refcnt = 1;
     state->shared->params = *params; /* struct copy */
     state->shared->clues = snewn(sz, int);
-    for (i = 0; i < sz; ++i) state->shared->clues[i] = desc[i] - '0';
+
+    for (i = 0; *desc; ++desc) {
+	if (*desc >= 'a' && *desc <= 'z') {
+	    int j = *desc - 'a' + 1;
+	    assert(i + j <= sz);
+	    for (; j; --j) state->shared->clues[i++] = 0;
+	} else state->shared->clues[i++] = *desc - '0';
+    }
     state->board = memdup(state->shared->clues, sz, sizeof (int));
 
     return state;
