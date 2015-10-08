@@ -574,7 +574,6 @@ void midend_restart_game(midend *me)
         me->ourgame->changed_state(me->ui,
                                    me->states[me->statepos-2].state,
                                    me->states[me->statepos-1].state);
-    me->anim_time = 0.0;
     midend_finish_move(me);
     midend_redraw(me);
     midend_set_timer(me);
