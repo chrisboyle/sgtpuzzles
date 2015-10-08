@@ -4,6 +4,9 @@ fifteen  : [X] GTK COMMON fifteen fifteen-icon|no-icon
 
 fifteen  : [G] WINDOWS COMMON fifteen fifteen.res|noicon.res
 
+fifteensolver :    [U] fifteen[STANDALONE_SOLVER] STANDALONE
+fifteensolver :    [C] fifteen[STANDALONE_SOLVER] STANDALONE
+
 ALL += fifteen[COMBINED]
 
 !begin am gtk

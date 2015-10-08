@@ -25,6 +25,11 @@
 #define Y(state, i) ( (i) / (state)->w )
 #define C(state, x, y) ( (y) * (state)->w + (x) )
 
+#define PARITY_P(params, gap) (((X((params), (gap)) - ((params)->w - 1)) ^ \
+                                (Y((params), (gap)) - ((params)->h - 1)) ^ \
+                                (((params)->w * (params)->h) + 1)) & 1)
+#define PARITY_S(state) PARITY_P((state), ((state)->gap_pos))
+
 enum {
     COL_BACKGROUND,
     COL_TEXT,
@@ -231,9 +236,7 @@ static char *new_game_desc(const game_params *params, random_state *rs,
      *    rather than 0,...,n-1; this is a cyclic permutation of
      *    the starting point and hence is odd iff n is even.)
      */
-    parity = ((X(params, gap) - (params->w-1)) ^
-	      (Y(params, gap) - (params->h-1)) ^
-	      (n+1)) & 1;
+    parity = PARITY_P(params, gap);
 
     /*
      * Try the last two tiles one way round. If that fails, swap
@@ -1120,3 +1123,93 @@ const struct game thegame = {
     FALSE, game_timing_state,
     0,				       /* flags */
 };
+
+#ifdef STANDALONE_SOLVER
+
+int main(int argc, char **argv)
+{
+    game_params *params;
+    game_state *state;
+    char *id = NULL, *desc, *err;
+    int grade = FALSE;
+    char *progname = argv[0];
+
+    char buf[80];
+    int limit, x, y, solvable;
+
+    while (--argc > 0) {
+        char *p = *++argv;
+        if (!strcmp(p, "-v")) {
+            /* solver_show_working = TRUE; */
+        } else if (!strcmp(p, "-g")) {
+            grade = TRUE;
+        } else if (*p == '-') {
+            fprintf(stderr, "%s: unrecognised option `%s'\n", progname, p);
+            return 1;
+        } else {
+            id = p;
+        }
+    }
+
+    if (!id) {
+        fprintf(stderr, "usage: %s [-g | -v] <game_id>\n", argv[0]);
+        return 1;
+    }
+
+    desc = strchr(id, ':');
+    if (!desc) {
+        fprintf(stderr, "%s: game id expects a colon in it\n", argv[0]);
+        return 1;
+    }
+    *desc++ = '\0';
+
+    params = default_params();
+    decode_params(params, id);
+    err = validate_desc(params, desc);
+    if (err) {
+        free_params(params);
+        fprintf(stderr, "%s: %s\n", argv[0], err);
+        return 1;
+    }
+
+    state = new_game(NULL, params, desc);
+    free_params(params);
+
+    solvable = (PARITY_S(state) == perm_parity(state->tiles, state->n));
+    if (grade || !solvable) {
+        free_game(state);
+        fputs(solvable ? "Game is solvable" : "Game is unsolvable",
+              grade ? stdout : stderr);
+        return !grade;
+    }
+
+    for (limit = 5 * state->n * state->n * state->n; limit; --limit) {
+        game_state *next_state;
+        if (!compute_hint(state, &x, &y)) {
+            fprintf(stderr, "couldn't compute next move while solving %s:%s",
+                    id, desc);
+            return 1;
+        }
+        printf("Move the space to (%d, %d), moving %d into the space\n",
+               x + 1, y + 1, state->tiles[C(state, x, y)]);
+        sprintf(buf, "M%d,%d", x, y);
+        next_state = execute_move(state, buf);
+
+        free_game(state);
+        if (!next_state) {
+            fprintf(stderr, "invalid move when solving %s:%s\n", id, desc);
+            return 1;
+        }
+        state = next_state;
+        if (next_state->completed) {
+            free_game(state);
+            return 0;
+        }
+    }
+
+    free_game(state);
+    fprintf(stderr, "ran out of moves for %s:%s\n", id, desc);
+    return 1;
+}
+
+#endif
