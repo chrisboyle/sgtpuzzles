@@ -462,42 +462,55 @@ struct game_drawstate {
     int tilesize;
 };
 
+static int flip_cursor(int button)
+{
+    switch (button) {
+    case CURSOR_UP: return CURSOR_DOWN;
+    case CURSOR_DOWN: return CURSOR_UP;
+    case CURSOR_LEFT: return CURSOR_RIGHT;
+    case CURSOR_RIGHT: return CURSOR_LEFT;
+    }
+    return 0;
+}
+
 static char *interpret_move(const game_state *state, game_ui *ui,
                             const game_drawstate *ds,
                             int x, int y, int button)
 {
-    int gx, gy, dx, dy;
+    int cx = X(state, state->gap_pos), nx = cx;
+    int cy = Y(state, state->gap_pos), ny = cy;
     char buf[80];
 
     button &= ~MOD_MASK;
 
-    gx = X(state, state->gap_pos);
-    gy = Y(state, state->gap_pos);
-
-    if (button == CURSOR_RIGHT && gx > 0)
-        dx = gx - 1, dy = gy;
-    else if (button == CURSOR_LEFT && gx < state->w-1)
-        dx = gx + 1, dy = gy;
-    else if (button == CURSOR_DOWN && gy > 0)
-        dy = gy - 1, dx = gx;
-    else if (button == CURSOR_UP && gy < state->h-1)
-        dy = gy + 1, dx = gx;
-    else if (button == LEFT_BUTTON) {
-        dx = FROMCOORD(x);
-        dy = FROMCOORD(y);
-        if (dx < 0 || dx >= state->w || dy < 0 || dy >= state->h)
+    if (button == LEFT_BUTTON) {
+        nx = FROMCOORD(x);
+        ny = FROMCOORD(y);
+        if (nx < 0 || nx >= state->w || ny < 0 || ny >= state->h)
             return NULL;               /* out of bounds */
-        /*
-         * Any click location should be equal to the gap location
-         * in _precisely_ one coordinate.
-         */
-        if ((dx == gx && dy == gy) || (dx != gx && dy != gy))
-            return NULL;
+    } else if (IS_CURSOR_MOVE(button)) {
+        static int invert_cursor = -1;
+        if (invert_cursor == -1) {
+            char *env = getenv("FIFTEEN_INVERT_CURSOR");
+            invert_cursor = (env && (env[0] == 'y' || env[0] == 'Y'));
+        }
+        button = flip_cursor(button); /* the default */
+        if (invert_cursor)
+            button = flip_cursor(button); /* undoes the first flip */
+	move_cursor(button, &nx, &ny, state->w, state->h, FALSE);
     } else
         return NULL;                   /* no move */
 
-    sprintf(buf, "M%d,%d", dx, dy);
-    return dupstr(buf);
+    /*
+     * Any click location should be equal to the gap location
+     * in _precisely_ one coordinate.
+     */
+    if ((cx == nx) ^ (cy == ny)) {
+	sprintf(buf, "M%d,%d", nx, ny);
+	return dupstr(buf);
+    }
+
+    return NULL;
 }
 
 static game_state *execute_move(const game_state *from, const char *move)
