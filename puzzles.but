@@ -617,6 +617,10 @@ mouse pointer.
 The arrow keys will move a tile adjacent to the space in the direction
 indicated (moving the space in the \e{opposite} direction).
 
+Pressing \q{h} will make a suggested move.  Pressing \q{h} enough
+times will solve the game, but it may scramble your progress while
+doing so.
+
 (All the actions described in \k{common-actions} are also available.)
 
 \H{fifteen-params} \I{parameters, for Fifteen}Fifteen parameters
