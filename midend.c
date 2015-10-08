@@ -547,8 +547,6 @@ void midend_restart_game(midend *me)
 {
     game_state *s;
 
-    midend_stop_anim(me);
-
     assert(me->statepos >= 1);
     if (me->statepos == 1)
         return;                        /* no point doing anything at all! */
