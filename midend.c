@@ -454,6 +454,7 @@ void midend_new_game(midend *me)
 					       me->states[0].state);
     midend_size_new_drawstate(me);
     me->elapsed = 0.0F;
+    me->flash_pos = me->flash_time = 0.0F;
     me->anim_pos = me->anim_time = 0.0F;
     if (me->ui)
         me->ourgame->free_ui(me->ui);
@@ -575,6 +576,7 @@ void midend_restart_game(midend *me)
         me->ourgame->changed_state(me->ui,
                                    me->states[me->statepos-2].state,
                                    me->states[me->statepos-1].state);
+    me->flash_pos = me->flash_time = 0.0F;
     midend_finish_move(me);
     midend_redraw(me);
     midend_set_timer(me);
