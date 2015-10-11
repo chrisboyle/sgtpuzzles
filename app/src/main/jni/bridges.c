@@ -2352,14 +2352,16 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     if (button == LEFT_BUTTON || button == RIGHT_BUTTON) {
         if (!INGRID(state, gx, gy)) return NULL;
         ui->cur_visible = 0;
-        if ((ggrid & G_ISLAND) && !(ggrid & G_MARK)) {
+        if (ggrid & G_ISLAND) {
             ui->dragx_src = gx;
             ui->dragy_src = gy;
             return "";
         } else
             return ui_cancel_drag(ui);
     } else if (button == LEFT_DRAG || button == RIGHT_DRAG) {
-        if (gx != ui->dragx_src || gy != ui->dragy_src) {
+        if (INGRID(state, ui->dragx_src, ui->dragy_src)
+                && (gx != ui->dragx_src || gy != ui->dragy_src)
+                && !(GRID(state,ui->dragx_src,ui->dragy_src) & G_MARK)) {
             ui->dragging = 1;
             ui->drag_is_noline = (button == RIGHT_DRAG) ? 1 : 0;
             return update_drag_dst(state, ui, ds, x, y);
@@ -2373,6 +2375,10 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         if (ui->dragging) {
             return finish_drag(state, ui);
         } else {
+            if (!INGRID(state, ui->dragx_src, ui->dragy_src)
+                    || gx != ui->dragx_src || gy != ui->dragy_src) {
+                return NULL;
+            }
             ui_cancel_drag(ui);
             if (!INGRID(state, gx, gy)) return NULL;
             if (!(GRID(state, gx, gy) & G_ISLAND)) return NULL;
