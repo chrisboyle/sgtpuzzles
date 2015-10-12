@@ -1955,7 +1955,9 @@ int check_path_solution(game_state *state, int p) {
         }
     }
 
-    if (unfilled == 0 && count != state->common->paths[p].sightings_start) {
+    if (count            > state->common->paths[p].sightings_start ||
+        count + unfilled < state->common->paths[p].sightings_start)
+    {
         correct = FALSE;
         state->hint_errors[state->common->paths[p].grid_start] = TRUE;
     }
@@ -1977,7 +1979,9 @@ int check_path_solution(game_state *state, int p) {
         }
     }
 
-    if (unfilled == 0 && count != state->common->paths[p].sightings_end) {
+    if (count            > state->common->paths[p].sightings_end ||
+        count + unfilled < state->common->paths[p].sightings_end)
+    {
         correct = FALSE;
         state->hint_errors[state->common->paths[p].grid_end] = TRUE;
     }
