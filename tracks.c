@@ -1538,7 +1538,8 @@ static int check_completion(game_state *state, int mark)
         target = state->numbers->numbers[x];
         ntrack = nnotrack = 0;
         for (y = 0; y < h; y++) {
-            if (S_E_COUNT(state, x, y, E_TRACK) > 0)
+            if (S_E_COUNT(state, x, y, E_TRACK) > 0 ||
+                state->sflags[y*w+x] & S_TRACK)
                 ntrack++;
             if (state->sflags[y*w+x] & S_NOTRACK)
                 nnotrack++;
@@ -1557,7 +1558,8 @@ static int check_completion(game_state *state, int mark)
         target = state->numbers->numbers[w+y];
         ntrack = nnotrack = 0;
         for (x = 0; x < w; x++) {
-            if (S_E_COUNT(state, x, y, E_TRACK) == 2)
+            if (S_E_COUNT(state, x, y, E_TRACK) > 0 ||
+                state->sflags[y*w+x] & S_TRACK)
                 ntrack++;
             if (state->sflags[y*w+x] & S_NOTRACK)
                 nnotrack++;
