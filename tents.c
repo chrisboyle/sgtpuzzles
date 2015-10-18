@@ -1063,7 +1063,7 @@ static char *new_game_desc(const game_params *params_in, random_state *rs,
 	j = maxflow(w*h+2, w*h+1, w*h, nedges, edges, capacity, flow, NULL);
 
 	if (j < ntrees)
-	    continue;		       /* couldn't place all the tents */
+	    continue;		       /* couldn't place all the trees */
 
 	/*
 	 * We've placed the trees. Now we need to work out _where_
