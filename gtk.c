@@ -1310,22 +1310,22 @@ static gint configure_area(GtkWidget *widget,
 {
     frontend *fe = (frontend *)data;
     int x, y;
+    int oldw = fe->w, oldpw = fe->pw, oldh = fe->h, oldph = fe->ph;
 
     x = event->width;
     y = event->height;
+    fe->w = x;
+    fe->h = y;
+    midend_size(fe->me, &x, &y, TRUE);
+    fe->pw = x;
+    fe->ph = y;
+    fe->ox = (fe->w - fe->pw) / 2;
+    fe->oy = (fe->h - fe->ph) / 2;
 
-    if (x != fe->w || y != fe->h || !backing_store_ok(fe)) {
+    if (oldw != fe->w || oldpw != fe->pw ||
+        oldh != fe->h || oldph != fe->ph || !backing_store_ok(fe)) {
         if (backing_store_ok(fe))
             teardown_backing_store(fe);
-
-        fe->w = x;
-        fe->h = y;
-        midend_size(fe->me, &x, &y, TRUE);
-        fe->pw = x;
-        fe->ph = y;
-        fe->ox = (fe->w - fe->pw) / 2;
-        fe->oy = (fe->h - fe->ph) / 2;
-
         setup_backing_store(fe);
     }
 
