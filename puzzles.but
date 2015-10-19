@@ -2110,7 +2110,9 @@ remainder of a row once you have placed all its tents.)
 You can also use the cursor keys to move around the grid. Pressing the
 return key over an empty square will place a tent, and pressing the
 space bar over an empty square will colour it green; either key will
-clear an occupied square.
+clear an occupied square.  Holding Shift and pressing the cursor keys
+will colour empty squares green.  Holding Control and pressing the
+cursor keys will colour green both empty squares and squares with tents.
 
 (All the actions described in \k{common-actions} are also available.)
 

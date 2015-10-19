@@ -1544,6 +1544,9 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 {
     int w = state->p.w, h = state->p.h;
     char tmpbuf[80];
+    int shift = button & MOD_SHFT, control = button & MOD_CTRL;
+
+    button &= ~MOD_MASK;
 
     if (button == LEFT_BUTTON || button == RIGHT_BUTTON) {
         x = FROMCOORD(x);
@@ -1640,8 +1643,26 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     }
 
     if (IS_CURSOR_MOVE(button)) {
-        move_cursor(button, &ui->cx, &ui->cy, w, h, 0);
         ui->cdisp = 1;
+        if (shift || control) {
+            int len = 0, i, indices[2];
+            indices[0] = ui->cx + w * ui->cy;
+            move_cursor(button, &ui->cx, &ui->cy, w, h, 0);
+            indices[1] = ui->cx + w * ui->cy;
+
+            /* NONTENTify all unique traversed eligible squares */
+            for (i = 0; i <= (indices[0] != indices[1]); ++i)
+                if (state->grid[indices[i]] == BLANK ||
+                    (control && state->grid[indices[i]] == TENT)) {
+                    len += sprintf(tmpbuf + len, "%sN%d,%d", len ? ";" : "",
+                                   indices[i] % w, indices[i] / w);
+                    assert(len < lenof(tmpbuf));
+                }
+
+            tmpbuf[len] = '\0';
+            if (len) return dupstr(tmpbuf);
+        } else
+            move_cursor(button, &ui->cx, &ui->cy, w, h, 0);
         return "";
     }
     if (ui->cdisp) {
