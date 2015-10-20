@@ -11,13 +11,6 @@
  *        - the type should be somewhat big: board[i] = i
  *        - Using shorts gives us 181x181 puzzles as upper bound.
  *
- *  - make a somewhat more clever solver
- *     + enable "ghost regions" of size > 1
- *        - one can put an upper bound on the size of a ghost region
- *          by considering the board size and summing present hints.
- *     + for each square, for i=1..n, what is the distance to a region
- *       containing i?  How full is the region?  How is this useful?
- *
  *  - in board generation, after having merged regions such that no
  *    more merges are necessary, try splitting (big) regions.
  *     + it seems that smaller regions make for better puzzles; see
@@ -304,6 +297,10 @@ struct solver_state
     int *board;
     int *connected;
     int nempty;
+
+    /* Used internally by learn_bitmap_deductions; kept here to avoid
+     * mallocing/freeing them every time that function is called. */
+    int *bm, *bmdsf, *bmminsize;
 };
 
 static void print_board(int *board, int w, int h) {
@@ -817,6 +814,262 @@ static int learn_critical_square(struct solver_state *s, int w, int h) {
     return learn;
 }
 
+#if 0
+static void print_bitmap(int *bitmap, int w, int h) {
+    if (verbose) {
+	int x, y;
+	for (y = 0; y < h; y++) {
+	    for (x = 0; x < w; x++) {
+		printv(" %03x", bm[y*w+x]);
+	    }
+	    printv("\n");
+	}
+    }
+}
+#endif
+
+static int learn_bitmap_deductions(struct solver_state *s, int w, int h)
+{
+    const int sz = w * h;
+    int *bm = s->bm;
+    int *dsf = s->bmdsf;
+    int *minsize = s->bmminsize;
+    int x, y, i, j, n;
+    int learn = FALSE;
+
+    /*
+     * This function does deductions based on building up a bitmap
+     * which indicates the possible numbers that can appear in each
+     * grid square. If we can rule out all but one possibility for a
+     * particular square, then we've found out the value of that
+     * square. In particular, this is one of the few forms of
+     * deduction capable of inferring the existence of a 'ghost
+     * region', i.e. a region which has none of its squares filled in
+     * at all.
+     *
+     * The reasoning goes like this. A currently unfilled square S can
+     * turn out to contain digit n in exactly two ways: either S is
+     * part of an n-region which also includes some currently known
+     * connected component of squares with n in, or S is part of an
+     * n-region separate from _all_ currently known connected
+     * components. If we can rule out both possibilities, then square
+     * S can't contain digit n at all.
+     *
+     * The former possibility: if there's a region of size n
+     * containing both S and some existing component C, then that
+     * means the distance from S to C must be small enough that C
+     * could be extended to include S without becoming too big. So we
+     * can do a breadth-first search out from all existing components
+     * with n in them, to identify all the squares which could be
+     * joined to any of them.
+     *
+     * The latter possibility: if there's a region of size n that
+     * doesn't contain _any_ existing component, then it also can't
+     * contain any square adjacent to an existing component either. So
+     * we can identify all the EMPTY squares not adjacent to any
+     * existing square with n in, and group them into connected
+     * components; then any component of size less than n is ruled
+     * out, because there wouldn't be room to create a completely new
+     * n-region in it.
+     *
+     * In fact we process these possibilities in the other order.
+     * First we find all the squares not adjacent to an existing
+     * square with n in; then we winnow those by removing too-small
+     * connected components, to get the set of squares which could
+     * possibly be part of a brand new n-region; and finally we do the
+     * breadth-first search to add in the set of squares which could
+     * possibly be added to some existing n-region.
+     */
+
+    /*
+     * Start by initialising our bitmap to 'all numbers possible in
+     * all squares'.
+     */
+    for (y = 0; y < h; y++)
+	for (x = 0; x < w; x++)
+	    bm[y*w+x] = (1 << 10) - (1 << 1); /* bits 1,2,...,9 now set */
+#if 0
+    printv("initial bitmap:\n");
+    print_bitmap(bm, w, h);
+#endif
+
+    /*
+     * Now completely zero out the bitmap for squares that are already
+     * filled in (we aren't interested in those anyway). Also, for any
+     * filled square, eliminate its number from all its neighbours
+     * (because, as discussed above, the neighbours couldn't be part
+     * of a _new_ region with that number in it, and that's the case
+     * we consider first).
+     */
+    for (y = 0; y < h; y++) {
+	for (x = 0; x < w; x++) {
+	    i = y*w+x;
+	    n = s->board[i];
+
+	    if (n != EMPTY) {
+		bm[i] = 0;
+
+		if (x > 0)
+		    bm[i-1] &= ~(1 << n);
+		if (x+1 < w)
+		    bm[i+1] &= ~(1 << n);
+		if (y > 0)
+		    bm[i-w] &= ~(1 << n);
+		if (y+1 < h)
+		    bm[i+w] &= ~(1 << n);
+	    }
+	}
+    }
+#if 0
+    printv("bitmap after filled squares:\n");
+    print_bitmap(bm, w, h);
+#endif
+
+    /*
+     * Now, for each n, we separately find the connected components of
+     * squares for which n is still a possibility. Then discard any
+     * component of size < n, because that component is too small to
+     * have a completely new n-region in it.
+     */
+    for (n = 1; n <= 9; n++) {
+	dsf_init(dsf, sz);
+
+	/* Build the dsf */
+	for (y = 0; y < h; y++)
+	    for (x = 0; x+1 < w; x++)
+		if (bm[y*w+x] & bm[y*w+(x+1)] & (1 << n))
+		    dsf_merge(dsf, y*w+x, y*w+(x+1));
+	for (y = 0; y+1 < h; y++)
+	    for (x = 0; x < w; x++)
+		if (bm[y*w+x] & bm[(y+1)*w+x] & (1 << n))
+		    dsf_merge(dsf, y*w+x, (y+1)*w+x);
+
+	/* Query the dsf */
+	for (i = 0; i < sz; i++)
+	    if ((bm[i] & (1 << n)) && dsf_size(dsf, i) < n)
+		bm[i] &= ~(1 << n);
+    }
+#if 0
+    printv("bitmap after winnowing small components:\n");
+    print_bitmap(bm, w, h);
+#endif
+
+    /*
+     * Now our bitmap includes every square which could be part of a
+     * completely new region, of any size. Extend it to include
+     * squares which could be part of an existing region.
+     */
+    for (n = 1; n <= 9; n++) {
+	/*
+	 * We're going to do a breadth-first search starting from
+	 * existing connected components with cell value n, to find
+	 * all cells they might possibly extend into.
+	 *
+	 * The quantity we compute, for each square, is 'minimum size
+	 * that any existing CC would have to have if extended to
+	 * include this square'. So squares already _in_ an existing
+	 * CC are initialised to the size of that CC; then we search
+	 * outwards using the rule that if a square's score is j, then
+	 * its neighbours can't score more than j+1.
+	 *
+	 * Scores are capped at n+1, because if a square scores more
+	 * than n then that's enough to know it can't possibly be
+	 * reached by extending an existing region - we don't need to
+	 * know exactly _how far_ out of reach it is.
+	 */
+	for (i = 0; i <= sz; i++) {
+	    if (s->board[i] == n) {
+		/* Square is part of an existing CC. */
+		minsize[i] = dsf_size(s->dsf, i);
+	    } else {
+		/* Otherwise, initialise to the maximum score n+1;
+		 * we'll reduce this later if we find a neighbouring
+		 * square with a lower score. */
+		minsize[i] = n+1;
+	    }
+	}
+
+	for (j = 1; j < n; j++) {
+	    /*
+	     * Find neighbours of cells scoring j, and set their score
+	     * to at most j+1.
+	     *
+	     * Doing the BFS this way means we need n passes over the
+	     * grid, which isn't entirely optimal but it seems to be
+	     * fast enough for the moment. This could probably be
+	     * improved by keeping a linked-list queue of cells in
+	     * some way, but I think you'd have to be a bit careful to
+	     * insert things into the right place in the queue; this
+	     * way is easier not to get wrong.
+	     */
+	    for (y = 0; y < h; y++) {
+		for (x = 0; x < w; x++) {
+		    i = y*w+x;
+		    if (minsize[i] == j) {
+			if (x > 0 && minsize[i-1] > j+1)
+			    minsize[i-1] = j+1;
+			if (x+1 < w && minsize[i+1] > j+1)
+			    minsize[i+1] = j+1;
+			if (y > 0 && minsize[i-w] > j+1)
+			    minsize[i-w] = j+1;
+			if (y+1 < h && minsize[i+w] > j+1)
+			    minsize[i+w] = j+1;
+		    }
+		}
+	    }
+	}
+
+	/*
+	 * Now, every cell scoring at most n should have its 1<<n bit
+	 * in the bitmap reinstated, because we've found that it's
+	 * potentially reachable by extending an existing CC.
+	 */
+	for (i = 0; i <= sz; i++)
+	    if (minsize[i] <= n)
+		bm[i] |= 1<<n;
+    }
+#if 0
+    printv("bitmap after bfs:\n");
+    print_bitmap(bm, w, h);
+#endif
+
+    /*
+     * Now our bitmap is complete. Look for entries with only one bit
+     * set; those are squares with only one possible number, in which
+     * case we can fill that number in.
+     */
+    for (i = 0; i < sz; i++) {
+	if (bm[i] && !(bm[i] & (bm[i]-1))) { /* is bm[i] a power of two? */
+	    int val = bm[i];
+
+	    /* Integer log2, by simple binary search. */
+	    n = 0;
+	    if (val >> 8) { val >>= 8; n += 8; }
+	    if (val >> 4) { val >>= 4; n += 4; }
+	    if (val >> 2) { val >>= 2; n += 2; }
+	    if (val >> 1) { val >>= 1; n += 1; }
+
+	    /* Double-check that we ended up with a sensible
+	     * answer. */
+	    assert(1 <= n);
+	    assert(n <= 9);
+	    assert(bm[i] == (1 << n));
+
+	    if (s->board[i] == EMPTY) {
+		printv("learn: %d is only possibility at (%d, %d)\n",
+		       n, i % w, i / w);
+		s->board[i] = n;
+		filled_square(s, w, h, i);
+		assert(s->nempty);
+		--s->nempty;
+		learn = TRUE;
+	    }
+	}
+    }
+
+    return learn;
+}
+
 static int solver(const int *orig, int w, int h, char **solution) {
     const int sz = w * h;
 
@@ -826,6 +1079,9 @@ static int solver(const int *orig, int w, int h, char **solution) {
     ss.connected = snewn(sz, int); /* connected[n] := n.next; */
     /* cyclic disjoint singly linked lists, same partitioning as dsf.
      * The lists lets you iterate over a partition given any member */
+    ss.bm = snewn(sz, int);
+    ss.bmdsf = snew_dsf(sz);
+    ss.bmminsize = snewn(sz, int);
 
     printv("trying to solve this:\n");
     print_board(ss.board, w, h);
@@ -835,6 +1091,7 @@ static int solver(const int *orig, int w, int h, char **solution) {
 	if (learn_blocked_expansion(&ss, w, h)) continue;
 	if (learn_expand_or_one(&ss, w, h)) continue;
 	if (learn_critical_square(&ss, w, h)) continue;
+	if (learn_bitmap_deductions(&ss, w, h)) continue;
 	break;
     } while (ss.nempty);
 
@@ -854,6 +1111,9 @@ static int solver(const int *orig, int w, int h, char **solution) {
     sfree(ss.dsf);
     sfree(ss.board);
     sfree(ss.connected);
+    sfree(ss.bm);
+    sfree(ss.bmdsf);
+    sfree(ss.bmminsize);
 
     return !ss.nempty;
 }
@@ -884,11 +1144,84 @@ static void minimize_clue_set(int *board, int w, int h, random_state *rs)
 {
     const int sz = w * h;
     int *shuf = snewn(sz, int), i;
+    int *dsf, *next;
 
     for (i = 0; i < sz; ++i) shuf[i] = i;
     shuffle(shuf, sz, sizeof (int), rs);
 
-    /* the solver is monotone, so a second pass is superfluous. */
+    /*
+     * First, try to eliminate an entire region at a time if possible,
+     * because inferring the existence of a completely unclued region
+     * is a particularly good aspect of this puzzle type and we want
+     * to encourage it to happen.
+     *
+     * Begin by identifying the regions as linked lists of cells using
+     * the 'next' array.
+     */
+    dsf = make_dsf(NULL, board, w, h);
+    next = snewn(sz, int);
+    for (i = 0; i < sz; ++i) {
+	int j = dsf_canonify(dsf, i);
+	if (i == j) {
+	    /* First cell of a region; set next[i] = -1 to indicate
+	     * end-of-list. */
+	    next[i] = -1;
+	} else {
+	    /* Add this cell to a region which already has a
+	     * linked-list head, by pointing the canonical element j
+	     * at this one, and pointing this one in turn at wherever
+	     * j previously pointed. (This should end up with the
+	     * elements linked in the order 1,n,n-1,n-2,...,2, which
+	     * is a bit weird-looking, but any order is fine.)
+	     */
+	    assert(j < i);
+	    next[i] = next[j];
+	    next[j] = i;
+	}
+    }
+
+    /*
+     * Now loop over the grid cells in our shuffled order, and each
+     * time we encounter a region for the first time, try to remove it
+     * all. Then we set next[canonical index] to -2 rather than -1, to
+     * mark it as already tried.
+     *
+     * Doing this in a loop over _cells_, rather than extracting and
+     * shuffling a list of _regions_, is intended to skew the
+     * probabilities towards trying to remove larger regions first
+     * (but without anything as crudely predictable as enforcing that
+     * we _always_ process regions in descending size order). Region
+     * removals might well be mutually exclusive, and larger ghost
+     * regions are more interesting, so we want to bias towards them
+     * if we can.
+     */
+    for (i = 0; i < sz; ++i) {
+	int j = dsf_canonify(dsf, shuf[i]);
+	if (next[j] != -2) {
+	    int tmp = board[j];
+	    int k;
+
+	    /* Blank out the whole thing. */
+	    for (k = j; k >= 0; k = next[k])
+		board[k] = EMPTY;
+
+	    if (!solver(board, w, h, NULL)) {
+		/* Wasn't still solvable; reinstate it all */
+		for (k = j; k >= 0; k = next[k])
+		    board[k] = tmp;
+	    }
+
+	    /* Either way, don't try this region again. */
+	    next[j] = -2;
+	}
+    }
+    sfree(next);
+    sfree(dsf);
+
+    /*
+     * Now go through individual cells, in the same shuffled order,
+     * and try to remove each one by itself.
+     */
     for (i = 0; i < sz; ++i) {
         int tmp = board[shuf[i]];
         board[shuf[i]] = EMPTY;
