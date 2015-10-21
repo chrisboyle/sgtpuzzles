@@ -977,7 +977,7 @@ static int learn_bitmap_deductions(struct solver_state *s, int w, int h)
 	 * reached by extending an existing region - we don't need to
 	 * know exactly _how far_ out of reach it is.
 	 */
-	for (i = 0; i <= sz; i++) {
+	for (i = 0; i < sz; i++) {
 	    if (s->board[i] == n) {
 		/* Square is part of an existing CC. */
 		minsize[i] = dsf_size(s->dsf, i);
@@ -1024,7 +1024,7 @@ static int learn_bitmap_deductions(struct solver_state *s, int w, int h)
 	 * in the bitmap reinstated, because we've found that it's
 	 * potentially reachable by extending an existing CC.
 	 */
-	for (i = 0; i <= sz; i++)
+	for (i = 0; i < sz; i++)
 	    if (minsize[i] <= n)
 		bm[i] |= 1<<n;
     }
