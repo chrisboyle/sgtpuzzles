@@ -755,8 +755,12 @@ static char *solve_game(const game_state *state, const game_state *currstate,
     init_borders(w, h, move + 1);
     move[wh + 1] = '\0';
 
-    if (solver(&state->shared->params, state->shared->clues, move + 1))
+    if (solver(&state->shared->params, state->shared->clues, move + 1)) {
+        int i;
+        for (i = 0; i < wh; i++)
+            move[i+1] |= '@';          /* turn into sensible ASCII */
         return (char *) move;
+    }
 
     *error = "Sorry, I can't solve this puzzle";
     sfree(move);
