@@ -511,15 +511,45 @@ static void dfs_dsf(int i, int w, borderflag *border, int *dsf, int black)
 static int is_solved(const game_params *params, clue *clues,
                      borderflag *border)
 {
-    int wh = params->w * params->h, k = params->k, *dsf = snew_dsf(wh), i;
+    int w = params->w, h = params->h, wh = w*h, k = params->k;
+    int i, x, y;
+    int *dsf = snew_dsf(wh);
 
     assert (dsf[0] == UNVISITED); /* check: UNVISITED and dsf.c match up */
 
+    /*
+     * A game is solved if:
+     *
+     *  - the borders drawn on the grid divide it into connected
+     *    components such that every square is in a component of the
+     *    correct size
+     *  - the borders also satisfy the clue set
+     */
     for (i = 0; i < wh; ++i) {
         if (dsf[i] == UNVISITED) dfs_dsf(i, params->w, border, dsf, TRUE);
         if (dsf_size(dsf, i) != k) goto error;
         if (clues[i] == EMPTY) continue;
         if (clues[i] != bitcount[border[i] & BORDER_MASK]) goto error;
+    }
+
+    /*
+     * ... and thirdly:
+     *
+     *  - there are no *stray* borders, in that every border is
+     *    actually part of the division between two components.
+     *    Otherwise you could cheat by finding a subdivision which did
+     *    not *exceed* any clue square's counter, and then adding a
+     *    few extra edges.
+     */
+    for (y = 0; y < h; y++) {
+        for (x = 0; x < w; x++) {
+            if (x+1 < w && (border[y*w+x] & BORDER_R) &&
+                dsf_canonify(dsf, y*w+x) == dsf_canonify(dsf, y*w+(x+1)))
+                goto error;
+            if (y+1 < h && (border[y*w+x] & BORDER_D) &&
+                dsf_canonify(dsf, y*w+x) == dsf_canonify(dsf, (y+1)*w+x))
+                goto error;
+        }
     }
 
     sfree(dsf);
