@@ -48,7 +48,7 @@
 #define HINT(p,x,y,n) GRID3(p, hints, x, y, n)
 
 enum {
-    COL_BACKGROUND,
+    COL_BACKGROUND, COL_BACKGROUND_HIGHLIGHTED_NUMBER, COL_BACKGROUND_HIGHLIGHTED_PENCIL,
     COL_GRID,
     COL_TEXT, COL_GUESS, COL_ERROR, COL_PENCIL,
     COL_HIGHLIGHT, COL_LOWLIGHT,
@@ -80,6 +80,7 @@ struct game_state {
     digit *nums;                 /* actual numbers (size order^2) */
     unsigned char *hints;        /* remaining possiblities (size order^3) */
     unsigned int *flags;         /* flags (size order^2) */
+    int highlighted_number;      /* highlighting this number in every square and pencil marks */
 };
 
 /* ----------------------------------------------------------
@@ -286,6 +287,8 @@ static game_state *blank_game(int order, int adjacent)
     memset(state->hints, 0, o3);
     memset(state->flags, 0, o2 * sizeof(unsigned int));
 
+    state->highlighted_number = 0;
+
     return state;
 }
 
@@ -297,6 +300,8 @@ static game_state *dup_game(const game_state *state)
     memcpy(ret->nums, state->nums, o2 * sizeof(digit));
     memcpy(ret->hints, state->hints, o3);
     memcpy(ret->flags, state->flags, o2 * sizeof(unsigned int));
+
+    ret->highlighted_number = state->highlighted_number;
 
     return ret;
 }
@@ -1413,6 +1418,7 @@ struct game_drawstate {
 
     int hx, hy, hshow, hpencil; /* as for game_ui. */
     int hflash;
+    int highlighted_number;
 };
 
 static char *interpret_move(const game_state *state, game_ui *ui,
@@ -1531,6 +1537,15 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         return dupstr(buf);
     } while(0);
 
+    n = c2n(button, state->order);
+    if (!ui->hshow && n > 0) {
+        if (state->highlighted_number == n) { // toggle highlight
+            n = 0;
+        }
+        sprintf(buf, "V%d", n);
+        return dupstr(buf);
+    }
+
     if (button == 'h')
         return dupstr("H");
     if (button == 'm')
@@ -1562,6 +1577,7 @@ static game_state *execute_move(const game_state *state, const char *move)
             if (!ret->completed && check_complete(ret->nums, ret, 1) > 0)
                 ret->completed = TRUE;
         }
+        ret->highlighted_number = n;
         return ret;
     } else if (move[0] == 'S') {
         const char *p;
@@ -1593,6 +1609,10 @@ static game_state *execute_move(const game_state *state, const char *move)
         return ret;
     } else if (move[0] == 'H') {
         return solver_hint(state, NULL, DIFF_EASY, DIFF_EASY);
+    } else if (move[0] == 'V' && sscanf(move+1, "%d", &n) == 1 && n >= 0 && n <= state->order) {
+        ret = dup_game(state);
+        ret->highlighted_number = n;
+        return ret;
     }
 
 badmove:
@@ -1648,6 +1668,14 @@ static float *game_colours(frontend *fe, int *ncolours)
     ret[COL_PENCIL * 3 + 1] = 0.5F * ret[COL_BACKGROUND * 3 + 1];
     ret[COL_PENCIL * 3 + 2] = ret[COL_BACKGROUND * 3 + 2];
 
+    ret[COL_BACKGROUND_HIGHLIGHTED_NUMBER * 3 + 0] = 0.85F;
+    ret[COL_BACKGROUND_HIGHLIGHTED_NUMBER * 3 + 1] = 1.0F;
+    ret[COL_BACKGROUND_HIGHLIGHTED_NUMBER * 3 + 2] = 0.85F;
+
+    ret[COL_BACKGROUND_HIGHLIGHTED_PENCIL * 3 + 0] = 1.0F;
+    ret[COL_BACKGROUND_HIGHLIGHTED_PENCIL * 3 + 1] = 0.8F;
+    ret[COL_BACKGROUND_HIGHLIGHTED_PENCIL * 3 + 2] = 0.8F;
+
     *ncolours = NCOLOURS;
     return ret;
 }
@@ -1670,6 +1698,7 @@ static game_drawstate *game_new_drawstate(drawing *dr, const game_state *state)
 
     ds->hx = ds->hy = 0;
     ds->started = ds->hshow = ds->hpencil = ds->hflash = 0;
+    ds->highlighted_number = 0;
 
     return ds;
 }
@@ -1779,7 +1808,18 @@ static void draw_furniture(drawing *dr, game_drawstate *ds,
     int ox = COORD(x), oy = COORD(y), bg, hon;
     unsigned int f = GRID(state, flags, x, y);
 
-    bg = hflash ? COL_HIGHLIGHT : COL_BACKGROUND;
+    bg = COL_BACKGROUND;
+    if (hflash) {
+        bg = COL_HIGHLIGHT;
+    } else if (ds->highlighted_number > 0) {
+        if (GRID(ds, nums, x, y) > 0) { // there is a number in the cell
+            if (GRID(ds, nums, x, y) == ds->highlighted_number) { // number is the same as the highlighted number
+                bg = COL_BACKGROUND_HIGHLIGHTED_NUMBER;
+            }
+        } else if (HINT(ds, x, y, ds->highlighted_number - 1)) { // there is a pencil mark with the highlighted number
+            bg = COL_BACKGROUND_HIGHLIGHTED_PENCIL;
+        }
+    }
 
     hon = (ui->hshow && x == ui->hx && y == ui->hy);
 
@@ -1869,7 +1909,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
                         int dir, const game_ui *ui,
                         float animtime, float flashtime)
 {
-    int x, y, i, hchanged = 0, stale, hflash = 0;
+    int x, y, i, hchanged = 0, stale, hflash = 0, highlighted_number_changed = 0;
 
     debug(("highlight old (%d,%d), new (%d,%d)", ds->hx, ds->hy, ui->hx, ui->hy));
 
@@ -1885,11 +1925,18 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
         ds->hshow != ui->hshow || ds->hpencil != ui->hpencil)
         hchanged = 1;
 
+    if (ds->highlighted_number != state->highlighted_number) {
+        ds->highlighted_number = state->highlighted_number;
+        highlighted_number_changed = 1;
+    }
+
     for (x = 0; x < ds->order; x++) {
         for (y = 0; y < ds->order; y++) {
             if (!ds->started)
                 stale = 1;
             else if (hflash != ds->hflash)
+                stale = 1;
+            else if (highlighted_number_changed)
                 stale = 1;
             else
                 stale = 0;
