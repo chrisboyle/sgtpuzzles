@@ -123,6 +123,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 	private static final String BLUETOOTH_PACKAGE_PREFIX = "com.android.bluetooth";
 	private static final int REQ_CODE_CREATE_DOC = Activity.RESULT_FIRST_USER;
 	private static final int REQ_CODE_STORAGE_PERMISSION = Activity.RESULT_FIRST_USER + 1;
+	private static final String OUR_SCHEME = "sgtpuzzles";
 	static final String MIME_TYPE = "text/prs.sgtatham.puzzles";
 	private static final String STORAGE_PERMISSION_EVER_ASKED = "storage_permission_ever_asked";
 
@@ -391,25 +392,27 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 				return;
 			} else if (u != null) {
 				Log.d(TAG, "URI is: \"" + u + "\"");
-				String g = u.getSchemeSpecificPart();
-				final String[] split = g.split(":", 2);
-				if (split.length > 1) {
-					if (split[1].contains(":")) {
-						startGame(GameLaunch.ofGameID(split[0], split[1]));
-					} else {  // params only
-						startGame(GameLaunch.toGenerate(split[0], split[1]));
-					}
-					return;
-				}
-				if (games.length < 2) games = getResources().getStringArray(R.array.games);
-				for (String game : games) {
-					if (game.equals(g)) {
-						if (game.equals(currentBackend) && !everCompleted) {
-							// already alive & playing incomplete game of that kind; keep it.
-							return;
+				if (OUR_SCHEME.equals(u.getScheme())) {
+					String g = u.getSchemeSpecificPart();
+					final String[] split = g.split(":", 2);
+					if (split.length > 1) {
+						if (split[1].contains(":")) {
+							startGame(GameLaunch.ofGameID(split[0], split[1]));
+						} else {  // params only
+							startGame(GameLaunch.toGenerate(split[0], split[1]));
 						}
-						backendFromChooser = game;
-						break;
+						return;
+					}
+					if (games.length < 2) games = getResources().getStringArray(R.array.games);
+					for (String game : games) {
+						if (game.equals(g)) {
+							if (game.equals(currentBackend) && !everCompleted) {
+								// already alive & playing incomplete game of that kind; keep it.
+								return;
+							}
+							backendFromChooser = game;
+							break;
+						}
 					}
 				}
 				if (backendFromChooser == null) {
