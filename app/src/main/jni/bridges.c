@@ -2377,7 +2377,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         } else {
             if (!INGRID(state, ui->dragx_src, ui->dragy_src)
                     || gx != ui->dragx_src || gy != ui->dragy_src) {
-                return NULL;
+                return ui_cancel_drag(ui);
             }
             ui_cancel_drag(ui);
             if (!INGRID(state, gx, gy)) return NULL;
