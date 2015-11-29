@@ -46,7 +46,7 @@ struct game_params {
     int w, h, k;
 };
 
-typedef char clue;
+typedef signed char clue;
 typedef unsigned char borderflag;
 
 typedef struct shared_state {

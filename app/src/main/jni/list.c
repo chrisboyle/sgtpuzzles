@@ -27,6 +27,7 @@
     A(mines) \
     A(net) \
     A(netslide) \
+    A(palisade) \
     A(pattern) \
     A(pearl) \
     A(pegs) \
