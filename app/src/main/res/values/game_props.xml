@@ -151,8 +151,8 @@
 	<color name="netslide_night_colour_wire">#888888</color>
 	<color name="netslide_night_colour_endpoint">#3636b3</color>
 	<color name="palisade_night_colour_grid">#ffffff</color>
-	<color name="palisade_night_colour_line_maybe">#808000</color>
-	<color name="palisade_night_colour_line_no">#666666</color>
+	<color name="palisade_night_colour_line_maybe">#bbbb00</color>
+	<color name="palisade_night_colour_line_no">#444444</color>
 	<color name="pattern_night_colour_text">#ffffff</color>
 	<color name="pearl_night_colour_black">#666666</color>
 	<color name="pearl_night_colour_dragon">#3636B3</color>
