@@ -22,6 +22,7 @@ app/src/main/res/drawable-*/logo_ab*.png
 /cube
 /dominosa
 /fifteen
+/fifteensolver
 /filling
 /fillingsolver
 /flip
@@ -49,6 +50,7 @@ app/src/main/res/drawable-*/logo_ab*.png
 /nullgame
 /numgame
 /obfusc
+/palisade
 /path
 /pattern
 /patternsolver

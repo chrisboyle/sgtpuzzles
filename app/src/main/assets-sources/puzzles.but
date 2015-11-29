@@ -631,6 +631,10 @@ mouse pointer.
 The arrow keys will move a tile adjacent to the space in the direction
 indicated (moving the space in the \e{opposite} direction).
 
+Pressing \q{h} will make a suggested move.  Pressing \q{h} enough
+times will solve the game, but it may scramble your progress while
+doing so.
+
 (All the actions described in \k{common-actions} are also available.)
 
 \H{fifteen-params} \I{parameters, for Fifteen}Fifteen parameters
@@ -673,6 +677,13 @@ direction.
 Alternatively, use the cursor keys to move the position indicator
 around the edge of the grid, and use the return key to move the
 row/column in the direction indicated. 
+
+You can also move the tiles directly.  Move the cursor onto a tile,
+hold Control and press an arrow key to move the tile under the
+cursor and move the cursor along with the tile.  Or, hold Shift to
+move only the tile.  Pressing Enter simulates holding down Control
+(press Enter again to release), while pressing Space simulates
+holding down shift.
 
 (All the actions described in \k{common-actions} are also available.)
 
@@ -806,7 +817,8 @@ around the board. Pressing the return key then allows you to use the
 cursor keys to drag a rectangle out from that position, and pressing
 the return key again completes the rectangle. Using the space bar
 instead of the return key allows you to erase the contents of a
-rectangle without affecting its edges, as above.
+rectangle without affecting its edges, as above. Pressing escape
+cancels a drag.
 
 When a rectangle of the correct size is completed, it will be shaded.
 
@@ -920,6 +932,10 @@ grey.
 You can also move around the grid with the cursor keys. Pressing the
 return key will cycle the current cell through empty, then black, then
 white, then empty, and the space bar does the same cycle in reverse.
+
+Moving the cursor while holding Control will colour the moved-over
+squares black.  Holding Shift will colour the moved-over squares
+white, and holding both will colour them grey.
 
 (All the actions described in \k{common-actions} are also available.)
 
@@ -1349,7 +1365,11 @@ Alternatively, with the keyboard, the up and down cursor keys can be
 used to select a peg colour, the left and right keys to select a
 peg position, and the space bar or Enter key to place a peg of the
 selected colour in the chosen position. \q{D} or Backspace removes a
-peg, and \q{H} adds a hold marker.
+peg, and Space adds a hold marker.
+
+Pressing \q{h} or \q{?} will fill the current guess with a suggested
+guess.  Using this is not recommended for 10 or more pegs as it is
+slow.
 
 When the guess is complete, the smaller feedback pegs will be highlighted;
 clicking on these (or moving the peg cursor to them with the arrow keys
@@ -1491,6 +1511,10 @@ When the cursor is half way between two adjacent numbers, pressing
 the return key will place a domino covering those numbers, or
 pressing the space bar will lay a line between the two squares.
 Repeating either action removes the domino or line.
+
+Pressing a number key will highlight all occurrences of that
+number. Pressing that number again will clear the highlighting. Up to two
+different numbers can be highlighted at any given time.
 
 (All the actions described in \k{common-actions} are also available.)
 
@@ -1748,7 +1772,10 @@ the game entirely with one button if you need to.)
 
 You can also use the cursor keys to move around the grid. Pressing the
 return or space keys will place a \cw{\\} or a \cw{/}, respectively,
-and will then cycle them as above.
+and will then cycle them as above.  You can also press \cw{/} or
+\cw{\\} to place a \cw{/} or \cw{\\}, respectively, independent of
+what is already in the cursor square.  Backspace removes any line from
+the cursor square.
 
 (All the actions described in \k{common-actions} are also available.)
 
@@ -2076,9 +2103,7 @@ begin on this path. If you then move in that direction, the arrow
 will update to indicate the next direction on the path. You can also
 press Space to automatically move in the direction of the hint
 arrow. If you move in a different direction from the one shown by
-the arrow, the hint arrows will stop appearing because you have
-strayed from the provided path; you can then use \q{Solve} again to
-generate a new path if you want to.
+the arrow, arrows will be shown only if the puzzle is still solvable.
 
 All the actions described in \k{common-actions} are also available.
 In particular, if you do run into a mine and die, you can use the
@@ -2139,7 +2164,9 @@ remainder of a row once you have placed all its tents.)
 You can also use the cursor keys to move around the grid. Pressing the
 return key over an empty square will place a tent, and pressing the
 space bar over an empty square will colour it green; either key will
-clear an occupied square.
+clear an occupied square.  Holding Shift and pressing the cursor keys
+will colour empty squares green.  Holding Control and pressing the
+cursor keys will colour green both empty squares and squares with tents.
 
 (All the actions described in \k{common-actions} are also available.)
 
@@ -2224,12 +2251,18 @@ it and restore your ability to modify it.
 
 You can also use the cursor keys to move around the grid: if possible
 the cursor will always move orthogonally, otherwise it will move
-towards the nearest island to the indicated direction. Pressing the
-return key followed by a cursor key will lay a bridge in that direction
-(if available); pressing the space bar followed by a cursor key will
-lay a \q{non-bridge} marker.
+towards the nearest island to the indicated direction. Holding Control
+and pressing a cursor key will lay a bridge in that direction (if
+available); Shift and a cursor key will lay a \q{non-bridge} marker.
+Pressing the return key followed by a cursor key will also lay a
+bridge in that direction.
 
-You can mark an island as finished by pressing the return key twice.
+You can mark an island as finished by pressing the space bar or by
+pressing the return key twice.
+
+By pressing a number key, you can jump to the nearest island with that
+number.  Letters \q{a}, ..., \q{f} count as 10, ..., 15 and \q{0} as
+16.
 
 Violations of the puzzle rules will be marked in red:
 
@@ -2370,8 +2403,8 @@ a number, or when you left-click and press space. Right-clicking and
 pressing space will also erase pencil marks.
 
 As for Solo, the cursor keys can be used in conjunction with the digit
-keys to set numbers or pencil marks. You can also use the 'M' key to
-auto-fill every numeric hint, ready for removal as required, or the 'H'
+keys to set numbers or pencil marks. You can also use the \q{M} key to
+auto-fill every numeric hint, ready for removal as required, or the \q{H}
 key to do the same but also to remove all obvious hints. 
 
 Alternatively, use the cursor keys to move the mark around the grid.
@@ -2379,6 +2412,11 @@ Pressing the return key toggles the mark (from a normal mark to a
 pencil mark), and typing a number in is entered in the square in the
 appropriate way; typing in a 0 or using the space bar will clear a
 filled square. 
+
+Left-clicking a clue will mark it as done (grey it out), or unmark it
+if it is already marked.  Holding Control or Shift and pressing an
+arrow key likewise marks any clue adjacent to the cursor in the given
+direction.
 
 (All the actions described in \k{common-actions} are also available.)
 
@@ -2511,10 +2549,11 @@ press 0, Space, Backspace or Enter to clear it again (or use the Undo
 feature).
 
 You can also move around the grid with the cursor keys; typing a digit will
-fill the square containing the cursor with that number, or typing 0, Space,
-or Enter will clear it. You can also select multiple squares for numbering
-or clearing by using the return key, before typing a digit to fill in the
-highlighted squares (as above).
+fill the square containing the cursor with that number; typing 0 will clear
+it.  You can also select multiple squares for numbering or clearing with the
+return and arrow keys, before typing a digit to fill or clear the highlighted
+squares (as above).  The space bar adds and removes single squares to and from
+the selection.  Backspace and escape remove all squares from the selection.
 
 (All the actions described in \k{common-actions} are also available.)
 
@@ -2631,6 +2670,10 @@ level, some backtracking will be required, but the solution should
 still be unique. The remaining levels require increasingly complex
 reasoning to avoid having to backtrack.
 
+\dt \e{Multiplication only}
+
+\dd If this is enabled, all boxes will be multiplication boxes.
+With this rule, the puzzle is known as \q{Inshi No Heya}.
 
 \C{towers} \i{Towers}
 
@@ -2704,7 +2747,8 @@ Pressing M will fill in a full set of pencil marks in every square
 that does not have a main digit in it.
 
 Left-clicking a clue will mark it as done (grey it out), or unmark it
-if it is already marked.
+if it is already marked.  Holding Control or Shift and pressing an
+arrow key likewise marks any clue in the given direction.
 
 (All the actions described in \k{common-actions} are also available.)
 
@@ -2987,7 +3031,10 @@ dotted or empty) in opposite directions.
 
 You can also use the cursor keys to move around the grid squares.
 Pressing Return does the same as clicking with the left button, while
-pressing Space does the same as a right button click.
+pressing Space does the same as a right button click.  Moving with the
+cursor keys while holding Shift will place dots in all squares that
+are moved through.
+
 
 (All the actions described in \k{common-actions} are also available.)
 
@@ -3053,10 +3100,13 @@ white clue has to be a corner, but don't yet know which way the corner
 turns, you might mark the one way it \e{can't} go with a cross.)
 
 Alternatively, use the cursor keys to move the cursor.  Use the Enter
-key to begin and end keyboard `drag' operations.  Use the Space key to
-cancel the drag.  Use Ctrl-arrowkey and Shift-arrowkey to simulate a
-left or right click, respectively, on the edge in the given direction
-relative to the cursor, i.e. to draw a segment or a cross.
+key to begin and end keyboard \q{drag} operations.  Use the Space,
+Escape or Backspace keys to cancel the drag.  Or, hold Control while
+dragging with the cursor keys to toggle segments as you move between
+squares.
+
+Pressing Control-Shift-arrowkey or Shift-arrowkey simulates a left or
+right click, respectively, on the edge in the direction of the key.
 
 (All the actions described in \k{common-actions} are also available.)
 
@@ -3331,6 +3381,47 @@ to avoid long straight boring segments of track and make the games
 more twiddly and interesting. If you want to restore the possibility,
 turn this option off.
 
+
+\C{palisade} \i{Palisade}
+
+\cfg{winhelp-topic}{games.palisade}
+
+You're given a grid of squares, some of which contain numbers.  Your
+goal is to subdivide the grid into contiguous regions, all of the same
+(given) size, such that each square containing a number is adjacent to
+exactly that many edges (including those between the inside and the
+outside of the grid).
+
+Credit for this puzzle goes to \i{Nikoli}, who call it \q{Five Cells}.
+\k{nikoli-palisade}.
+
+Palisade was contributed to this collection by Jonas K\u00F6{oe}lker.
+
+\B{nikoli-palisade}
+\W{http://nikoli.co.jp/en/puzzles/five_cells.html}\cw{http://nikoli.co.jp/en/puzzles/five_cells.html}
+
+\H{palisade-controls} \I{controls, for Palisade}Palisade controls
+
+Left-click to place an edge.  Right-click to indicate \q{no edge}.
+Alternatively, the arrow keys will move a keyboard cursor.  Holding
+Control while pressing an arrow key will place an edge.  Press
+Shift-arrowkey to switch off an edge.  Repeat an action to perform
+its inverse.
+
+(All the actions described in \k{common-actions} are also available.)
+
+\H{Palisade-parameters} \I{parameters, for Palisade}Palisade parameters
+
+These parameters are available from the \q{Custom...} option on the
+\q{Type} menu.
+
+\dt \e{Width}, \e{Height}
+
+\dd Size of grid in squares.
+
+\dt \e{Region size}
+
+\dd The size of the regions into which the grid must be subdivided.
 
 \A{licence} \I{MIT licence}\ii{Licence}
 

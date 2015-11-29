@@ -1703,7 +1703,8 @@ static int fe_set_midend(frontend *fe, midend *me)
     if (fe->statusbar)
         DestroyWindow(fe->statusbar);
     if (midend_wants_statusbar(fe->me)) {
-	fe->statusbar = CreateWindowEx(0, STATUSCLASSNAME, TEXT("ooh"),
+	fe->statusbar = CreateWindowEx(0, STATUSCLASSNAME,
+				       TEXT(DEFAULT_STATUSBAR_TEXT),
 				       WS_CHILD | WS_VISIBLE,
 				       0, 0, 0, 0, /* status bar does these */
 				       NULL, NULL, fe->inst, NULL);

@@ -1064,7 +1064,7 @@ static char *new_game_desc(const game_params *params_in, random_state *rs,
 	j = maxflow(w*h+2, w*h+1, w*h, nedges, edges, capacity, flow, NULL);
 
 	if (j < ntrees)
-	    continue;		       /* couldn't place all the tents */
+	    continue;		       /* couldn't place all the trees */
 
 	/*
 	 * We've placed the trees. Now we need to work out _where_
@@ -1368,42 +1368,57 @@ static char *solve_game(const game_state *state, const game_state *currstate,
 
 static int game_can_format_as_text_now(const game_params *params)
 {
-    return TRUE;
+    return params->w <= 1998 && params->h <= 1998; /* 999 tents */
 }
 
 static char *game_text_format(const game_state *state)
 {
-    int w = state->p.w, h = state->p.h;
-    char *ret, *p;
-    int x, y;
+    int w = state->p.w, h = state->p.h, r, c;
+    int cw = 4, ch = 2, gw = (w+1)*cw + 2, gh = (h+1)*ch + 1, len = gw * gh;
+    char *board = snewn(len + 1, char);
 
-    /*
-     * FIXME: We currently do not print the numbers round the edges
-     * of the grid. I need to work out a sensible way of doing this
-     * even when the column numbers exceed 9.
-     * 
-     * In the absence of those numbers, the result size is h lines
-     * of w+1 characters each, plus a NUL.
-     * 
-     * This function is currently only used by the standalone
-     * solver; until I make it look more sensible, I won't enable
-     * it in the main game structure.
-     */
-    ret = snewn(h*(w+1) + 1, char);
-    p = ret;
-    for (y = 0; y < h; y++) {
-	for (x = 0; x < w; x++) {
-	    *p = (state->grid[y*w+x] == BLANK ? '.' :
-		  state->grid[y*w+x] == TREE ? 'T' :
-		  state->grid[y*w+x] == TENT ? '*' :
-		  state->grid[y*w+x] == NONTENT ? '-' : '?');
-	    p++;
+    sprintf(board, "%*s\n", len - 2, "");
+    for (r = 0; r <= h; ++r) {
+	for (c = 0; c <= w; ++c) {
+	    int cell = r*ch*gw + cw*c, center = cell + gw*ch/2 + cw/2;
+	    int i = r*w + c, n = 1000;
+
+	    if (r == h && c == w) /* NOP */;
+	    else if (c == w) n = state->numbers->numbers[w + r];
+	    else if (r == h) n = state->numbers->numbers[c];
+	    else switch (state->grid[i]) {
+		case BLANK: board[center] = '.'; break;
+		case TREE: board[center] = 'T'; break;
+		case TENT: memcpy(board + center - 1, "//\\", 3); break;
+		case NONTENT: break;
+		default: memcpy(board + center - 1, "wtf", 3);
+		}
+
+	    if (n < 100) {
+                board[center] = '0' + n % 10;
+                if (n >= 10) board[center - 1] = '0' + n / 10;
+            } else if (n < 1000) {
+                board[center + 1] = '0' + n % 10;
+                board[center] = '0' + n / 10 % 10;
+                board[center - 1] = '0' + n / 100;
+	    }
+
+	    board[cell] = '+';
+	    memset(board + cell + 1, '-', cw - 1);
+	    for (i = 1; i < ch; ++i) board[cell + i*gw] = '|';
 	}
-	*p++ = '\n';
-    }
-    *p++ = '\0';
 
-    return ret;
+	for (c = 0; c < ch; ++c) {
+	    board[(r*ch+c)*gw + gw - 2] =
+		c == 0 ? '+' : r < h ? '|' : ' ';
+	    board[(r*ch+c)*gw + gw - 1] = '\n';
+	}
+    }
+
+    memset(board + len - gw, '-', gw - 2 - cw);
+    for (c = 0; c <= w; ++c) board[len - gw + cw*c] = '+';
+
+    return board;
 }
 
 struct game_ui {
@@ -1538,6 +1553,9 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 {
     int w = state->p.w, h = state->p.h;
     char tmpbuf[80];
+    int shift = button & MOD_SHFT, control = button & MOD_CTRL;
+
+    button &= ~MOD_MASK;
 
     if (button == LEFT_BUTTON || button == RIGHT_BUTTON) {
         x = FROMCOORD(x);
@@ -1634,8 +1652,26 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     }
 
     if (IS_CURSOR_MOVE(button)) {
-        move_cursor(button, &ui->cx, &ui->cy, w, h, 0);
         ui->cdisp = 1;
+        if (shift || control) {
+            int len = 0, i, indices[2];
+            indices[0] = ui->cx + w * ui->cy;
+            move_cursor(button, &ui->cx, &ui->cy, w, h, 0);
+            indices[1] = ui->cx + w * ui->cy;
+
+            /* NONTENTify all unique traversed eligible squares */
+            for (i = 0; i <= (indices[0] != indices[1]); ++i)
+                if (state->grid[indices[i]] == BLANK ||
+                    (control && state->grid[indices[i]] == TENT)) {
+                    len += sprintf(tmpbuf + len, "%sN%d,%d", len ? ";" : "",
+                                   indices[i] % w, indices[i] / w);
+                    assert(len < lenof(tmpbuf));
+                }
+
+            tmpbuf[len] = '\0';
+            if (len) return dupstr(tmpbuf);
+        } else
+            move_cursor(button, &ui->cx, &ui->cy, w, h, 0);
         return "";
     }
     if (ui->cdisp) {
@@ -2601,7 +2637,7 @@ const struct game thegame = {
     dup_game,
     free_game,
     TRUE, solve_game,
-    FALSE, game_can_format_as_text_now, game_text_format,
+    TRUE, game_can_format_as_text_now, game_text_format,
     new_ui,
     free_ui,
     encode_ui,

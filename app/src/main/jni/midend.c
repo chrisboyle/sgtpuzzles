@@ -360,6 +360,7 @@ void midend_force_redraw(midend *me)
 
 void midend_new_game(midend *me)
 {
+    midend_stop_anim(me);
     midend_free_game(me);
 
     assert(me->nstates == 0);
@@ -458,6 +459,8 @@ void midend_new_game(midend *me)
 					       me->states[0].state);
     midend_size_new_drawstate(me);
     me->elapsed = 0.0F;
+    me->flash_pos = me->flash_time = 0.0F;
+    me->anim_pos = me->anim_time = 0.0F;
     if (me->ui)
         me->ourgame->free_ui(me->ui);
     me->ui = me->ourgame->new_ui(me->states[0].state);
@@ -554,8 +557,6 @@ void midend_restart_game(midend *me)
 {
     game_state *s;
 
-    midend_stop_anim(me);
-
     assert(me->statepos >= 1);
     if (me->statepos == 1)
         return;                        /* no point doing anything at all! */
@@ -585,7 +586,7 @@ void midend_restart_game(midend *me)
                                    me->states[me->statepos-1].state);
     }
     changed_state(me->drawing, me->statepos > 1, me->statepos < me->nstates);
-    me->anim_time = 0.0;
+    me->flash_pos = me->flash_time = 0.0F;
     midend_finish_move(me);
     midend_redraw(me);
     midend_set_timer(me);
@@ -614,7 +615,6 @@ static int midend_really_process_key(midend *me, int x, int y, int button)
 
     if (!movestr) {
 	if (button == 'n' || button == 'N' || button == '\x0E') {
-	    midend_stop_anim(me);
 	    midend_new_game(me);
 	    midend_redraw(me);
 	    goto done;		       /* never animate */

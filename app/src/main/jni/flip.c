@@ -866,10 +866,45 @@ static int game_can_format_as_text_now(const game_params *params)
     return TRUE;
 }
 
+#define RIGHT 1
+#define DOWN gw
+
 static char *game_text_format(const game_state *state)
 {
-    return NULL;
+    int w = state->w, h = state->h, wh = w*h, r, c, dx, dy;
+    int cw = 4, ch = 4, gw = w * cw + 2, gh = h * ch + 1, len = gw * gh;
+    char *board = snewn(len + 1, char);
+
+    memset(board, ' ', len - 1);
+
+    for (r = 0; r < h; ++r) {
+	for (c = 0; c < w; ++c) {
+	    int cell = r*ch*gw + c*cw, center = cell+(ch/2)*DOWN + cw/2*RIGHT;
+	    char flip = (state->grid[r*w + c] & 1) ? '#' : '.';
+	    for (dy = -1 + (r == 0); dy <= 1 - (r == h - 1); ++dy)
+		for (dx = -1 + (c == 0); dx <= 1 - (c == w - 1); ++dx)
+		    if (state->matrix->matrix[(r*w+c)*wh + ((r+dy)*w + c+dx)])
+			board[center + dy*DOWN + dx*RIGHT] = flip;
+	    board[cell] = '+';
+	    for (dx = 1; dx < cw; ++dx) board[cell+dx*RIGHT] = '-';
+	    for (dy = 1; dy < ch; ++dy) board[cell+dy*DOWN] = '|';
+	}
+	board[r*ch*gw + gw - 2] = '+';
+	board[r*ch*gw + gw - 1] = '\n';
+	for (dy = 1; dy < ch; ++dy) {
+	    board[r*ch*gw + gw - 2 + dy*DOWN] = '|';
+	    board[r*ch*gw + gw - 1 + dy*DOWN] = '\n';
+	}
+    }
+    memset(board + len - gw, '-', gw - 2);
+    for (c = 0; c <= w; ++c) board[len - gw + cw*c] = '+';
+    board[len - 1] = '\n';
+    board[len] = '\0';
+    return board;
 }
+
+#undef RIGHT
+#undef DOWN
 
 struct game_ui {
     int cx, cy, cdraw;
@@ -1308,7 +1343,7 @@ const struct game thegame = {
     dup_game,
     free_game,
     TRUE, solve_game,
-    FALSE, game_can_format_as_text_now, game_text_format,
+    TRUE, game_can_format_as_text_now, game_text_format,
     new_ui,
     free_ui,
     encode_ui,

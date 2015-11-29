@@ -2,9 +2,9 @@
 
 PUZZLES = blackbox bridges cube dominosa fifteen filling flip flood	\
 	  galaxies guess inertia keen lightup loopy magnets map mines	\
-	  net netslide pattern pearl pegs range rect samegame		\
-	  signpost singles sixteen slant solo tents towers twiddle	\
-	  tracks undead unequal unruly untangle
+	  net netslide palisade pattern pearl pegs range rect		\
+	  samegame signpost singles sixteen slant solo tents towers	\
+	  twiddle tracks undead unequal unruly untangle
 
 BINARIES = $(patsubst %,../%,$(PUZZLES))
 BASE = $(patsubst %,%-base.png,$(PUZZLES))
@@ -29,6 +29,10 @@ ANDROIDICONS = $(patsubst %,../../res/drawable/%.png,$(PUZZLES))
 
 BIN = ../
 PIC = ./
+
+# Work around newer ImageMagick unilaterally distorting colours when
+# converting to PNG.
+CSP = -set colorspace RGB
 
 base: $(BASE)
 web: $(WEB)
@@ -80,6 +84,7 @@ magnets-ibase.png : override CROP=264x232 96x96+36+100
 mines-ibase.png : override CROP=240x240 110x110+130+130
 net-ibase.png : override CROP=193x193 113x113+0+80
 netslide-ibase.png : override CROP=289x289 144x144+0+0
+palisade-ibase.png : override CROP=288x288 192x192+0+0
 pattern-ibase.png : override CROP=384x384 223x223+0+0
 pearl-ibase.png : override CROP=216x216 94x94+108+15
 pegs-ibase.png : override CROP=263x263 147x147+116+0
@@ -104,7 +109,7 @@ $(IBASE): %-ibase.png: %-base.png
 # seems to work better than reducing it in 24 bits and then
 # dithering.
 $(IBASE4): %-ibase4.png: %-ibase.png
-	convert -colors 16 +dither -map $(PIC)win16pal.xpm $^ $@
+	convert -colors 16 +dither $(CSP) -map $(PIC)win16pal.xpm $^ $@
 
 # Build the 24-bit PNGs for the icons, at three sizes.
 $(P64D24): %-64d24.png: %-ibase.png
@@ -130,15 +135,15 @@ $(P48D8) $(P32D8) $(P16D8): %d8.png: %d24.png
 # much...)
 $(P48D4): %-48d4.png: %-ibase4.png
 	$(PIC)square.pl 48 1 $^ $@-tmp2.png
-	convert -colors 16 -map $(PIC)win16pal.xpm $@-tmp2.png $@
+	convert -colors 16 $(CSP) -map $(PIC)win16pal.xpm $@-tmp2.png $@
 	rm -f $@-tmp2.png
 $(P32D4): %-32d4.png: %-ibase.png
 	$(PIC)square.pl 32 1 $^ $@-tmp2.png
-	convert -colors 16 -map $(PIC)win16pal.xpm $@-tmp2.png $@
+	convert -colors 16 $(CSP) -map $(PIC)win16pal.xpm $@-tmp2.png $@
 	rm -f $@-tmp2.png
 $(P16D4): %-16d4.png: %-ibase.png
 	$(PIC)square.pl 16 1 $^ $@-tmp2.png
-	convert -colors 16 -map $(PIC)win16pal.xpm $@-tmp2.png $@
+	convert -colors 16 $(CSP) -map $(PIC)win16pal.xpm $@-tmp2.png $@
 	rm -f $@-tmp2.png
 
 # Build the actual Windows icons themselves, by feeding all those

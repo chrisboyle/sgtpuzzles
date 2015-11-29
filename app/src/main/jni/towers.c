@@ -1286,7 +1286,8 @@ static int check_errors(const game_state *state, int *errors)
 	    }
 	}
 
-	if (n > clues[i] || (j == w && n < clues[i])) {
+	if (n > clues[i] || (best == w && n < clues[i]) ||
+	    (best < w && n == clues[i])) {
 	    if (errors) {
 		int x, y;
 		CLUEPOS(x, y, i, w);
@@ -1330,6 +1331,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
                             int x, int y, int button)
 {
     int w = state->par.w;
+    int shift_or_control = button & (MOD_SHFT | MOD_CTRL);
     int tx, ty;
     char buf[80];
 
@@ -1439,6 +1441,20 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         }
     }
     if (IS_CURSOR_MOVE(button)) {
+        if (shift_or_control) {
+            int x = ui->hx, y = ui->hy;
+            switch (button) {
+            case CURSOR_LEFT:   x = -1; break;
+            case CURSOR_RIGHT:  x =  w; break;
+            case CURSOR_UP:     y = -1; break;
+            case CURSOR_DOWN:   y =  w; break;
+            }
+            if (is_clue(state, x, y)) {
+                sprintf(buf, "%c%d,%d", 'D', x, y);
+                return dupstr(buf);
+            }
+            return NULL;
+        }
         move_cursor(button, &ui->hx, &ui->hy, w, w, 0);
         ui->hshow = ui->hcursor = 1;
         return "";

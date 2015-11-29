@@ -1524,7 +1524,7 @@ static void dsf_update_completion(game_state *state, int *loopclass,
 static int check_completion(game_state *state, int mark)
 {
     int w = state->p.w, h = state->p.h, x, y, i, target, ret = TRUE;
-    int ntrack, nnotrack;
+    int ntrack, nnotrack, ntrackcomplete;
     int *dsf, loopclass, pathclass;
 
     if (mark) {
@@ -1540,13 +1540,20 @@ static int check_completion(game_state *state, int mark)
         }
     }
 
-    /* A cell is 'complete' if it has any edges marked as TRACK. */
+    /* A cell is 'complete', for the purposes of marking the game as
+     * finished, if it has two edges marked as TRACK. But it only has
+     * to have one edge marked as TRACK, or be filled in as trackful
+     * without any specific edges known, to count towards checking
+     * row/column clue errors. */
     for (x = 0; x < w; x++) {
         target = state->numbers->numbers[x];
-        ntrack = nnotrack = 0;
+        ntrack = nnotrack = ntrackcomplete = 0;
         for (y = 0; y < h; y++) {
-            if (S_E_COUNT(state, x, y, E_TRACK) > 0)
+            if (S_E_COUNT(state, x, y, E_TRACK) > 0 ||
+                state->sflags[y*w+x] & S_TRACK)
                 ntrack++;
+            if (S_E_COUNT(state, x, y, E_TRACK) == 2)
+                ntrackcomplete++;
             if (state->sflags[y*w+x] & S_NOTRACK)
                 nnotrack++;
         }
@@ -1557,15 +1564,18 @@ static int check_completion(game_state *state, int mark)
                 state->num_errors[x] = 1;
             }
         }
-        if (ntrack != target)
+        if (ntrackcomplete != target)
             ret = FALSE;
     }
     for (y = 0; y < h; y++) {
         target = state->numbers->numbers[w+y];
-        ntrack = nnotrack = 0;
+        ntrack = nnotrack = ntrackcomplete = 0;
         for (x = 0; x < w; x++) {
-            if (S_E_COUNT(state, x, y, E_TRACK) == 2)
+            if (S_E_COUNT(state, x, y, E_TRACK) > 0 ||
+                state->sflags[y*w+x] & S_TRACK)
                 ntrack++;
+            if (S_E_COUNT(state, x, y, E_TRACK) == 2)
+                ntrackcomplete++;
             if (state->sflags[y*w+x] & S_NOTRACK)
                 nnotrack++;
         }
@@ -1576,7 +1586,7 @@ static int check_completion(game_state *state, int mark)
                 state->num_errors[w+y] = 1;
             }
         }
-        if (ntrack != target)
+        if (ntrackcomplete != target)
             ret = FALSE;
     }
 

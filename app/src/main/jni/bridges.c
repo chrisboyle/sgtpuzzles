@@ -2029,7 +2029,7 @@ static char *validate_desc(const game_params *params, const char *desc)
         else if (!*desc)
             return _("Game description shorter than expected");
         else
-            return _("Invalid character in game description");
+            return _("Game description contains unexpected character");
         desc++;
     }
     if (*desc || i > wh)
@@ -2348,6 +2348,8 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     int gx = FROMCOORD(x), gy = FROMCOORD(y);
     char buf[80], *ret;
     grid_type ggrid = INGRID(state,gx,gy) ? GRID(state,gx,gy) : 0;
+    int shift = button & MOD_SHFT, control = button & MOD_CTRL;
+    button &= ~MOD_MASK;
 
     if (button == LEFT_BUTTON || button == RIGHT_BUTTON) {
         if (!INGRID(state, gx, gy)) return NULL;
@@ -2393,10 +2395,18 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         return ret;
     } else if (IS_CURSOR_MOVE(button)) {
         ui->cur_visible = 1;
+        if (control || shift) {
+            ui->dragx_src = ui->cur_x;
+            ui->dragy_src = ui->cur_y;
+            ui->dragging = TRUE;
+            ui->drag_is_noline = !control;
+        }
         if (ui->dragging) {
             int nx = ui->cur_x, ny = ui->cur_y;
 
             move_cursor(button, &nx, &ny, state->w, state->h, 0);
+            if (nx == ui->cur_x && ny == ui->cur_y)
+                return NULL;
             update_drag_dst(state, ui, ds,
                              COORD(nx)+TILE_SIZE/2,
                              COORD(ny)+TILE_SIZE/2);
@@ -2460,7 +2470,7 @@ found:
             ui->cur_visible = 1;
             return "";
         }
-        if (ui->dragging) {
+        if (ui->dragging || button == CURSOR_SELECT2) {
             ui_cancel_drag(ui);
             if (ui->dragx_dst == -1 && ui->dragy_dst == -1) {
                 sprintf(buf, "M%d,%d", ui->cur_x, ui->cur_y);
@@ -2487,6 +2497,51 @@ found:
         }
         sprintf(buf, "M%d,%d", ui->cur_x, ui->cur_y);
         return dupstr(buf);
+    } else if ((button >= '0' && button <= '9') ||
+               (button >= 'a' && button <= 'f') ||
+               (button >= 'A' && button <= 'F')) {
+        /* jump to island with .count == number closest to cur_{x,y} */
+        int best_x = -1, best_y = -1, best_sqdist = -1, number = -1, i;
+
+        if (button >= '0' && button <= '9')
+            number = (button == '0' ? 16 : button - '0');
+        else if (button >= 'a' && button <= 'f')
+            number = 10 + button - 'a';
+        else if (button >= 'A' && button <= 'F')
+            number = 10 + button - 'A';
+
+        if (!ui->cur_visible) {
+            ui->cur_visible = 1;
+            return "";
+        }
+
+        for (i = 0; i < state->n_islands; ++i) {
+            int x = state->islands[i].x, y = state->islands[i].y;
+            int dx = x - ui->cur_x, dy = y - ui->cur_y;
+            int sqdist = dx*dx + dy*dy;
+
+            if (state->islands[i].count != number)
+                continue;
+            if (x == ui->cur_x && y == ui->cur_y)
+                continue;
+
+            /* new_game() reads the islands in row-major order, so by
+             * breaking ties in favor of `first in state->islands' we
+             * also break ties by `lexicographically smallest (y, x)'.
+             * Thus, there's a stable pattern to how ties are broken
+             * which the user can learn and use to navigate faster. */
+            if (best_sqdist == -1 || sqdist < best_sqdist) {
+                best_x = x;
+                best_y = y;
+                best_sqdist = sqdist;
+            }
+        }
+        if (best_x != -1 && best_y != -1) {
+            ui->cur_x = best_x;
+            ui->cur_y = best_y;
+            return "";
+        } else
+            return NULL;
     } else if (button == 'g' || button == 'G') {
         ui->show_hints = 1 - ui->show_hints;
         return "";

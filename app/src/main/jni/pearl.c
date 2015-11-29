@@ -1654,7 +1654,7 @@ static void check_completion(game_state *state, int mark)
  * - no clues must be contradicted (highlight clue itself in error if so)
  * - if there is a closed loop it must include every line segment laid
  *    - if there's a smaller closed loop then highlight whole loop as error
- * - no square must have more than 3 lines radiating from centre point
+ * - no square must have more than 2 lines radiating from centre point
  *   (highlight all lines in that square as error if so)
  */
 
@@ -1722,12 +1722,38 @@ done:
 
 static int game_can_format_as_text_now(const game_params *params)
 {
-    return FALSE;
+    return TRUE;
 }
 
 static char *game_text_format(const game_state *state)
 {
-    return NULL;
+    int w = state->shared->w, h = state->shared->h, cw = 4, ch = 2;
+    int gw = cw*(w-1) + 2, gh = ch*(h-1) + 1, len = gw * gh, r, c, j;
+    char *board = snewn(len + 1, char);
+
+    assert(board);
+    memset(board, ' ', len);
+
+    for (r = 0; r < h; ++r) {
+	for (c = 0; c < w; ++c) {
+	    int i = r*w + c, cell = r*ch*gw + c*cw;
+	    board[cell] = "+BW"[(unsigned char)state->shared->clues[i]];
+	    if (c < w - 1 && (state->lines[i] & R || state->lines[i+1] & L))
+		memset(board + cell + 1, '-', cw - 1);
+	    if (r < h - 1 && (state->lines[i] & D || state->lines[i+w] & U))
+		for (j = 1; j < ch; ++j) board[cell + j*gw] = '|';
+	    if (c < w - 1 && (state->marks[i] & R || state->marks[i+1] & L))
+		board[cell + cw/2] = 'x';
+	    if (r < h - 1 && (state->marks[i] & D || state->marks[i+w] & U))
+		board[cell + (ch/2 * gw)] = 'x';
+	}
+
+	for (j = 0; j < (r == h - 1 ? 1 : ch); ++j)
+	    board[r*ch*gw + (gw - 1) + j*gw] = '\n';
+    }
+
+    board[len] = '\0';
+    return board;
 }
 
 struct game_ui {
@@ -1945,23 +1971,20 @@ static void interpret_ui_drag(const game_state *state, const game_ui *ui,
 }
 
 static char *mark_in_direction(const game_state *state, int x, int y, int dir,
-			       int ismark, char *buf)
+			       int primary, char *buf)
 {
     int w = state->shared->w /*, h = state->shared->h, sz = state->shared->sz */;
     int x2 = x + DX(dir);
     int y2 = y + DY(dir);
     int dir2 = F(dir);
-    char ch = ismark ? 'M' : 'F';
+
+    char ch = primary ? 'F' : 'M', *other;
 
     if (!INGRID(state, x, y) || !INGRID(state, x2, y2)) return "";
+
     /* disallow laying a mark over a line, or vice versa. */
-    if (ismark) {
-	if ((state->lines[y*w+x] & dir) || (state->lines[y2*w+x2] & dir2))
-	    return "";
-    } else {
-	if ((state->marks[y*w+x] & dir) || (state->marks[y2*w+x2] & dir2))
-	    return "";
-    }
+    other = primary ? state->marks : state->lines;
+    if (other[y*w+x] & dir || other[y2*w+x2] & dir2) return "";
     
     sprintf(buf, "%c%d,%d,%d;%c%d,%d,%d", ch, dir, x, y, ch, dir2, x2, y2);
     return dupstr(buf);
@@ -1979,6 +2002,9 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     int gx = FROMCOORD(x), gy = FROMCOORD(y), i;
     int release = FALSE;
     char tmpbuf[80];
+
+    int shift = button & MOD_SHFT, control = button & MOD_CTRL;
+    button &= ~MOD_MASK;
 
     if (IS_MOUSE_DOWN(button)) {
 	ui->cursor_active = FALSE;
@@ -2002,15 +2028,18 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 
     if (IS_MOUSE_RELEASE(button)) release = TRUE;
 
-    if (IS_CURSOR_MOVE(button & ~MOD_MASK)) {
+    if (IS_CURSOR_MOVE(button)) {
 	if (!ui->cursor_active) {
 	    ui->cursor_active = TRUE;
-	} else if (button & (MOD_SHFT | MOD_CTRL)) {
+	} else if (control | shift) {
+	    char *move;
 	    if (ui->ndragcoords > 0) return NULL;
 	    ui->ndragcoords = -1;
-	    return mark_in_direction(state, ui->curx, ui->cury,
-				     KEY_DIRECTION(button & ~MOD_MASK),
-				     (button & MOD_SHFT), tmpbuf);
+	    move = mark_in_direction(state, ui->curx, ui->cury,
+				     KEY_DIRECTION(button), control, tmpbuf);
+	    if (control && !shift && *move)
+		move_cursor(button, &ui->curx, &ui->cury, w, h, FALSE);
+	    return move;
 	} else {
 	    move_cursor(button, &ui->curx, &ui->cury, w, h, FALSE);
 	    if (ui->ndragcoords >= 0)
@@ -2019,7 +2048,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 	return "";
     }
 
-    if (IS_CURSOR_SELECT(button & ~MOD_MASK)) {
+    if (IS_CURSOR_SELECT(button)) {
 	if (!ui->cursor_active) {
 	    ui->cursor_active = TRUE;
 	    return "";
@@ -2035,6 +2064,11 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 	    ui->ndragcoords = -1;
 	    return "";
 	}
+    }
+
+    if (button == 27 || button == '\b') {
+        ui->ndragcoords = -1;
+        return "";
     }
 
     if (release) {
@@ -2103,7 +2137,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
                     direction = (x < cx) ? L : R;
                 }
 		return mark_in_direction(state, gx, gy, direction,
-					 (button == RIGHT_RELEASE), tmpbuf);
+					 (button == LEFT_RELEASE), tmpbuf);
             }
         }
     }
@@ -2547,7 +2581,7 @@ const struct game thegame = {
     dup_game,
     free_game,
     TRUE, solve_game,
-    FALSE, game_can_format_as_text_now, game_text_format,
+    TRUE, game_can_format_as_text_now, game_text_format,
     new_ui,
     free_ui,
     encode_ui,

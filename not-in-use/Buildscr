@@ -57,12 +57,12 @@ in puzzles do perl winiss.pl $(Version) gamedesc.txt > puzzles.iss
 delegate windows
   # Ignore the poorly controlled return value from HHC, and instead
   # just test that the output file was generated.
-  in puzzles do hhc puzzles.hhp; test -f puzzles.chm
+  in puzzles do/win hhc puzzles.hhp & type puzzles.chm >nul
   # FIXME: Cygwin alternative?
-  in puzzles do cmd /c 'vcvars32 & nmake -f Makefile.vc clean'
-  in puzzles do cmd /c 'vcvars32 & nmake -f Makefile.vc VER=-DVER=$(Version)'
+  in puzzles do/win vcvars32 && nmake -f Makefile.vc clean
+  in puzzles do/win vcvars32 && nmake -f Makefile.vc VER=-DVER=$(Version)
   # Build installer.
-  in puzzles do iscc puzzles.iss
+  in puzzles do/win iscc puzzles.iss
   return puzzles/puzzles.chm
   return puzzles/*.exe
   return puzzles/Output/setup.exe

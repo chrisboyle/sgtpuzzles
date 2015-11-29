@@ -15,7 +15,8 @@
  *    cell.  Then n must equal h + v - 1.
  */
 
-/* example instance with its encoding:
+/* example instance with its encoding and textual representation, both
+ * solved and unsolved (made by thegame.solve and thegame.text_format)
  *
  * +--+--+--+--+--+--+--+
  * |  |  |  |  | 7|  |  |
@@ -34,6 +35,22 @@
  * +--+--+--+--+--+--+--+
  *
  * 7x7:d7b3e8e5c7a7c13e4d8b4d
+ *
+ * +--+--+--+--+--+--+--+
+ * |..|..|..|..| 7|..|..|
+ * +--+--+--+--+--+--+--+
+ * | 3|..|##|..|##|..| 8|
+ * +--+--+--+--+--+--+--+
+ * |##|..|..|##|..| 5|..|
+ * +--+--+--+--+--+--+--+
+ * |..|..| 7|..| 7|##|..|
+ * +--+--+--+--+--+--+--+
+ * |..|13|..|..|..|..|..|
+ * +--+--+--+--+--+--+--+
+ * | 4|..|##|..|##|..| 8|
+ * +--+--+--+--+--+--+--+
+ * |##|..| 4|..|..|##|..|
+ * +--+--+--+--+--+--+--+
  */
 
 #include <stdio.h>
@@ -1147,7 +1164,7 @@ static char *game_text_format(const game_state *state)
     cellsize = 0; /* or may be used uninitialized */
 
     for (c = 0; c < w; ++c) {
-        for (r = 1; r < h; ++r) {
+        for (r = 0; r < h; ++r) {
             puzzle_size k = state->grid[idx(r, c, w)];
             int d;
             for (d = 0; k; k /= 10, ++d);
@@ -1258,6 +1275,8 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     enum {none, forwards, backwards, hint};
     int const w = state->params.w, h = state->params.h;
     int r = ui->r, c = ui->c, action = none, cell;
+    int shift = button & MOD_SHFT;
+    button &= ~shift;
 
     if (IS_CURSOR_SELECT(button) && !ui->cursor_show) return NULL;
 
@@ -1315,7 +1334,36 @@ static char *interpret_move(const game_state *state, game_ui *ui,
             int i;
             for (i = 0; i < 4 && cursors[i] != button; ++i);
             assert (i < 4);
-            if (!out_of_bounds(ui->r + dr[i], ui->c + dc[i], w, h)) {
+            if (shift) {
+                int pre_r = r, pre_c = c, do_pre, do_post;
+                cell = state->grid[idx(r, c, state->params.w)];
+                do_pre = (cell == EMPTY);
+
+                if (out_of_bounds(ui->r + dr[i], ui->c + dc[i], w, h)) {
+                    if (do_pre)
+                        return nfmtstr(40, "W,%d,%d", pre_r, pre_c);
+                    else
+                        return NULL;
+                }
+
+                ui->r += dr[i];
+                ui->c += dc[i];
+
+                cell = state->grid[idx(ui->r, ui->c, state->params.w)];
+                do_post = (cell == EMPTY);
+
+                /* (do_pre ? "..." : "") concat (do_post ? "..." : "") */
+                if (do_pre && do_post)
+                    return nfmtstr(80, "W,%d,%dW,%d,%d",
+                                   pre_r, pre_c, ui->r, ui->c);
+                else if (do_pre)
+                    return nfmtstr(40, "W,%d,%d", pre_r, pre_c);
+                else if (do_post)
+                    return nfmtstr(40, "W,%d,%d", ui->r, ui->c);
+                else
+                    return "";
+
+            } else if (!out_of_bounds(ui->r + dr[i], ui->c + dc[i], w, h)) {
                 ui->r += dr[i];
                 ui->c += dc[i];
             }
@@ -1436,7 +1484,7 @@ static int find_errors(const game_state *state, int *report)
         int biggest, canonical;
 
         if (!report) {
-            printf("dfs fail at %d\n", any_white_cell);
+            sfree(dsf);
             goto found_error;
         }
 
@@ -1651,8 +1699,6 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
     if (!ds->started) {
         ds->started = TRUE;
         draw_rect(dr, 0, 0, wpx, hpx, COL_BACKGROUND);
-	draw_rect(dr, BORDER-1, BORDER-1,
-		  ds->tilesize*w+2, ds->tilesize*h+2, COL_GRID);
         draw_update(dr, 0, 0, wpx, hpx);
     }
 
@@ -1684,17 +1730,15 @@ static void draw_cell(drawing *draw, game_drawstate *ds, int r, int c,
                         cell.flash || cell.cursor ?
                         COL_LOWLIGHT : COL_BACKGROUND);
 
-    draw_rect        (draw, x, y, ts, ts, colour);
-    draw_rect_outline(draw, x, y, ts, ts, COL_GRID);
+    draw_rect_outline(draw, x,     y,     ts + 1, ts + 1, COL_GRID);
+    draw_rect        (draw, x + 1, y + 1, ts - 1, ts - 1, colour);
+    if (cell.error)
+	draw_rect_outline(draw, x + 1, y + 1, ts - 1, ts - 1, COL_ERROR);
 
     switch (cell.value) {
       case WHITE: draw_rect(draw, tx - dotsz / 2, ty - dotsz / 2, dotsz, dotsz,
 			    cell.error ? COL_ERROR : COL_USER);
-      case BLACK: break;
-      case EMPTY:
-        if (cell.error)
-            draw_circle(draw, tx, ty, dotsz / 2, COL_ERROR, COL_GRID);
-        break;
+      case BLACK: case EMPTY: break;
       default:
 	{
 	    int const colour = (cell.error ? COL_ERROR : COL_GRID);
@@ -1705,7 +1749,7 @@ static void draw_cell(drawing *draw, game_drawstate *ds, int r, int c,
 	}
     }
 
-    draw_update(draw, x, y, ts, ts);
+    draw_update(draw, x, y, ts + 1, ts + 1);
 }
 
 static int game_timing_state(const game_state *state, game_ui *ui)

@@ -25,6 +25,11 @@
 #define Y(state, i) ( (i) / (state)->w )
 #define C(state, x, y) ( (y) * (state)->w + (x) )
 
+#define PARITY_P(params, gap) (((X((params), (gap)) - ((params)->w - 1)) ^ \
+                                (Y((params), (gap)) - ((params)->h - 1)) ^ \
+                                (((params)->w * (params)->h) + 1)) & 1)
+#define PARITY_S(state) PARITY_P((state), ((state)->gap_pos))
+
 enum {
     COL_BACKGROUND,
     COL_TEXT,
@@ -231,9 +236,7 @@ static char *new_game_desc(const game_params *params, random_state *rs,
      *    rather than 0,...,n-1; this is a cyclic permutation of
      *    the starting point and hence is odd iff n is even.)
      */
-    parity = ((X(params, gap) - (params->w-1)) ^
-	      (Y(params, gap) - (params->h-1)) ^
-	      (n+1)) & 1;
+    parity = PARITY_P(params, gap);
 
     /*
      * Try the last two tiles one way round. If that fails, swap
@@ -472,42 +475,269 @@ struct game_drawstate {
     int tilesize;
 };
 
+static int flip_cursor(int button)
+{
+    switch (button) {
+    case CURSOR_UP: return CURSOR_DOWN;
+    case CURSOR_DOWN: return CURSOR_UP;
+    case CURSOR_LEFT: return CURSOR_RIGHT;
+    case CURSOR_RIGHT: return CURSOR_LEFT;
+    }
+    return 0;
+}
+
+static void next_move_3x2(int ax, int ay, int bx, int by,
+                          int gx, int gy, int *dx, int *dy)
+{
+    /* When w = 3 and h = 2 and the tile going in the top left corner
+     * is at (ax, ay) and the tile going in the bottom left corner is
+     * at (bx, by) and the blank tile is at (gx, gy), how do you move? */
+
+    /* Hard-coded shortest solutions.  Sorry. */
+    static const unsigned char move[120] = {
+        1,2,0,1,2,2,
+        2,0,0,2,0,0,
+        0,0,2,0,2,0,
+        0,0,0,2,0,2,
+        2,0,0,0,2,0,
+
+        0,3,0,1,1,1,
+        3,0,3,2,1,2,
+        2,1,1,0,1,0,
+        2,1,2,1,0,1,
+        1,2,0,2,1,2,
+
+        0,1,3,1,3,0,
+        1,3,1,3,0,3,
+        0,0,3,3,0,0,
+        0,0,0,1,2,1,
+        3,0,0,1,1,1,
+
+        3,1,1,1,3,0,
+        1,1,1,1,1,1,
+        1,3,1,1,3,0,
+        1,1,3,3,1,3,
+        1,3,0,0,0,0
+    };
+    static const struct { int dx, dy; } d[4] = {{+1,0},{-1,0},{0,+1},{0,-1}};
+
+    int ea = 3*ay + ax, eb = 3*by + bx, eg = 3*gy + gx, v;
+    if (eb > ea) --eb;
+    if (eg > ea) --eg;
+    if (eg > eb) --eg;
+    v = move[ea + eb*6 + eg*5*6];
+    *dx = d[v].dx;
+    *dy = d[v].dy;
+}
+
+static void next_move(int nx, int ny, int ox, int oy, int gx, int gy,
+                      int tx, int ty, int w, int *dx, int *dy)
+{
+    const int to_tile_x = (gx < nx ? +1 : -1);
+    const int to_goal_x = (gx < tx ? +1 : -1);
+    const int gap_x_on_goal_side = ((nx-tx) * (nx-gx) > 0);
+
+    assert (nx != tx || ny != ty); /* not already in place */
+    assert (nx != gx || ny != gy); /* not placing the gap */
+    assert (ty <= ny); /* because we're greedy (and flipping) */
+    assert (ty <= gy); /* because we're greedy (and flipping) */
+
+    /* TODO: define a termination function.  Idea: 0 if solved, or
+     * the number of moves to solve the next piece plus the number of
+     * further unsolved pieces times an upper bound on the number of
+     * moves required to solve any piece.  If such a function can be
+     * found, we have (termination && (termination => correctness)).
+     * The catch is our temporary disturbance of 2x3 corners. */
+
+    /* handles end-of-row, when 3 and 4 are in the top right 2x3 box */
+    if (tx == w - 2 &&
+        ny <= ty + 2 && (nx == tx || nx == tx + 1) &&
+        oy <= ty + 2 && (ox == tx || ox == tx + 1) &&
+        gy <= ty + 2 && (gx == tx || gx == tx + 1))
+    {
+        next_move_3x2(oy - ty, tx + 1 - ox,
+                      ny - ty, tx + 1 - nx,
+                      gy - ty, tx + 1 - gx, dy, dx);
+        *dx *= -1;
+        return;
+    }
+
+    if (tx == w - 1) {
+        if (ny <= ty + 2 && (nx == tx || nx == tx - 1) &&
+            gy <= ty + 2 && (gx == tx || gx == tx - 1)) {
+            next_move_3x2(ny - ty, tx - nx, 0, 1, gy - ty, tx - gx, dy, dx);
+            *dx *= -1;
+        } else if (gy == ty)
+            *dy = +1;
+        else if (nx != tx || ny != ty + 1) {
+            next_move((w - 1) - nx, ny, -1, -1, (w - 1) - gx, gy,
+                      0, ty + 1, -1, dx, dy);
+            *dx *= -1;
+        } else if (gx == nx)
+            *dy = -1;
+        else
+            *dx = +1;
+        return;
+    }
+
+    /* note that *dy = -1 is unsafe when gy = ty + 1 and gx < tx */
+    if (gy < ny)
+        if (nx == gx || (gy == ty && gx == tx))
+            *dy = +1;
+        else if (!gap_x_on_goal_side)
+            *dx = to_tile_x;
+        else if (ny - ty > abs(nx - tx))
+            *dx = to_tile_x;
+        else *dy = +1;
+
+    else if (gy == ny)
+        if (nx == tx) /* then we know ny > ty */
+            if (gx > nx || ny > ty + 1)
+                *dy = -1; /* ... so this is safe */
+            else
+                *dy = +1;
+        else if (gap_x_on_goal_side)
+            *dx = to_tile_x;
+        else if (gy == ty || (gy == ty + 1 && gx < tx))
+            *dy = +1;
+        else
+            *dy = -1;
+
+    else if (nx == tx) /* gy > ny */
+        if (gx > nx)
+            *dy = -1;
+        else
+            *dx = +1;
+    else if (gx == nx)
+        *dx = to_goal_x;
+    else if (gap_x_on_goal_side)
+        if (gy == ty + 1 && gx < tx)
+            *dx = to_tile_x;
+        else
+            *dy = -1;
+
+    else if (ny - ty > abs(nx - tx))
+        *dy = -1;
+    else
+        *dx = to_tile_x;
+}
+
+static int compute_hint(const game_state *state, int *out_x, int *out_y)
+{
+    /* The overall solving process is this:
+     * 1. Find the next piece to be put in its place
+     * 2. Move it diagonally towards its place
+     * 3. Move it horizontally or vertically towards its place
+     * (Modulo the last two tiles at the end of each row/column)
+     */
+
+    int gx = X(state, state->gap_pos);
+    int gy = Y(state, state->gap_pos);
+
+    int tx, ty, nx, ny, ox, oy, /* {target,next,next2}_{x,y} */ i;
+    int dx = 0, dy = 0;
+
+    /* 1. Find the next piece
+     * if (there are no more unfinished columns than rows) {
+     *     fill the top-most row, left to right
+     * } else { fill the left-most column, top to bottom }
+     */
+    const int w = state->w, h = state->h, n = w*h;
+    int next_piece = 0, next_piece_2 = 0, solr = 0, solc = 0;
+    int unsolved_rows = h, unsolved_cols = w;
+
+    assert(out_x);
+    assert(out_y);
+
+    while (solr < h && solc < w) {
+        int start, step, stop;
+        if (unsolved_cols <= unsolved_rows)
+            start = solr*w + solc, step = 1, stop = unsolved_cols;
+        else
+            start = solr*w + solc, step = w, stop = unsolved_rows;
+        for (i = 0; i < stop; ++i) {
+            const int j = start + i*step;
+            if (state->tiles[j] != j + 1) {
+                next_piece = j + 1;
+                next_piece_2 = next_piece + step;
+                break;
+            }
+        }
+        if (i < stop) break;
+
+        (unsolved_cols <= unsolved_rows)
+            ? (++solr, --unsolved_rows)
+            : (++solc, --unsolved_cols);
+    }
+
+    if (next_piece == n)
+        return FALSE;
+
+    /* 2, 3. Move the next piece towards its place */
+
+    /* gx, gy already set */
+    tx = X(state, next_piece - 1); /* where we're going */
+    ty = Y(state, next_piece - 1);
+    for (i = 0; i < n && state->tiles[i] != next_piece; ++i);
+    nx = X(state, i); /* where we're at */
+    ny = Y(state, i);
+    for (i = 0; i < n && state->tiles[i] != next_piece_2; ++i);
+    ox = X(state, i);
+    oy = Y(state, i);
+
+    if (unsolved_cols <= unsolved_rows)
+        next_move(nx, ny, ox, oy, gx, gy, tx, ty, w, &dx, &dy);
+    else
+        next_move(ny, nx, oy, ox, gy, gx, ty, tx, h, &dy, &dx);
+
+    assert (dx || dy);
+
+    *out_x = gx + dx;
+    *out_y = gy + dy;
+    return TRUE;
+}
+
 static char *interpret_move(const game_state *state, game_ui *ui,
                             const game_drawstate *ds,
                             int x, int y, int button)
 {
-    int gx, gy, dx, dy;
+    int cx = X(state, state->gap_pos), nx = cx;
+    int cy = Y(state, state->gap_pos), ny = cy;
     char buf[80];
 
     button &= ~MOD_MASK;
 
-    gx = X(state, state->gap_pos);
-    gy = Y(state, state->gap_pos);
-
-    if (button == CURSOR_RIGHT && gx > 0)
-        dx = gx - 1, dy = gy;
-    else if (button == CURSOR_LEFT && gx < state->w-1)
-        dx = gx + 1, dy = gy;
-    else if (button == CURSOR_DOWN && gy > 0)
-        dy = gy - 1, dx = gx;
-    else if (button == CURSOR_UP && gy < state->h-1)
-        dy = gy + 1, dx = gx;
-    else if (button == LEFT_BUTTON) {
-        dx = FROMCOORD(x);
-        dy = FROMCOORD(y);
-        if (dx < 0 || dx >= state->w || dy < 0 || dy >= state->h)
+    if (button == LEFT_BUTTON) {
+        nx = FROMCOORD(x);
+        ny = FROMCOORD(y);
+        if (nx < 0 || nx >= state->w || ny < 0 || ny >= state->h)
             return NULL;               /* out of bounds */
-        /*
-         * Any click location should be equal to the gap location
-         * in _precisely_ one coordinate.
-         */
-        if ((dx == gx && dy == gy) || (dx != gx && dy != gy))
-            return NULL;
+    } else if (IS_CURSOR_MOVE(button)) {
+        static int invert_cursor = -1;
+        if (invert_cursor == -1) {
+            char *env = getenv("FIFTEEN_INVERT_CURSOR");
+            invert_cursor = (env && (env[0] == 'y' || env[0] == 'Y'));
+        }
+        button = flip_cursor(button); /* the default */
+        if (invert_cursor)
+            button = flip_cursor(button); /* undoes the first flip */
+	move_cursor(button, &nx, &ny, state->w, state->h, FALSE);
+    } else if ((button == 'h' || button == 'H') && !state->completed) {
+        if (!compute_hint(state, &nx, &ny))
+            return NULL; /* shouldn't happen, since ^^we^^checked^^ */
     } else
         return NULL;                   /* no move */
 
-    sprintf(buf, "M%d,%d", dx, dy);
-    return dupstr(buf);
+    /*
+     * Any click location should be equal to the gap location
+     * in _precisely_ one coordinate.
+     */
+    if ((cx == nx) ^ (cy == ny)) {
+	sprintf(buf, "M%d,%d", nx, ny);
+	return dupstr(buf);
+    }
+
+    return NULL;
 }
 
 static game_state *execute_move(const game_state *from, const char *move)
@@ -913,3 +1143,93 @@ const struct game thegame = {
     FALSE, game_timing_state,
     0,				       /* flags */
 };
+
+#ifdef STANDALONE_SOLVER
+
+int main(int argc, char **argv)
+{
+    game_params *params;
+    game_state *state;
+    char *id = NULL, *desc, *err;
+    int grade = FALSE;
+    char *progname = argv[0];
+
+    char buf[80];
+    int limit, x, y, solvable;
+
+    while (--argc > 0) {
+        char *p = *++argv;
+        if (!strcmp(p, "-v")) {
+            /* solver_show_working = TRUE; */
+        } else if (!strcmp(p, "-g")) {
+            grade = TRUE;
+        } else if (*p == '-') {
+            fprintf(stderr, "%s: unrecognised option `%s'\n", progname, p);
+            return 1;
+        } else {
+            id = p;
+        }
+    }
+
+    if (!id) {
+        fprintf(stderr, "usage: %s [-g | -v] <game_id>\n", argv[0]);
+        return 1;
+    }
+
+    desc = strchr(id, ':');
+    if (!desc) {
+        fprintf(stderr, "%s: game id expects a colon in it\n", argv[0]);
+        return 1;
+    }
+    *desc++ = '\0';
+
+    params = default_params();
+    decode_params(params, id);
+    err = validate_desc(params, desc);
+    if (err) {
+        free_params(params);
+        fprintf(stderr, "%s: %s\n", argv[0], err);
+        return 1;
+    }
+
+    state = new_game(NULL, params, desc);
+    free_params(params);
+
+    solvable = (PARITY_S(state) == perm_parity(state->tiles, state->n));
+    if (grade || !solvable) {
+        free_game(state);
+        fputs(solvable ? "Game is solvable" : "Game is unsolvable",
+              grade ? stdout : stderr);
+        return !grade;
+    }
+
+    for (limit = 5 * state->n * state->n * state->n; limit; --limit) {
+        game_state *next_state;
+        if (!compute_hint(state, &x, &y)) {
+            fprintf(stderr, "couldn't compute next move while solving %s:%s",
+                    id, desc);
+            return 1;
+        }
+        printf("Move the space to (%d, %d), moving %d into the space\n",
+               x + 1, y + 1, state->tiles[C(state, x, y)]);
+        sprintf(buf, "M%d,%d", x, y);
+        next_state = execute_move(state, buf);
+
+        free_game(state);
+        if (!next_state) {
+            fprintf(stderr, "invalid move when solving %s:%s\n", id, desc);
+            return 1;
+        }
+        state = next_state;
+        if (next_state->completed) {
+            free_game(state);
+            return 0;
+        }
+    }
+
+    free_game(state);
+    fprintf(stderr, "ran out of moves for %s:%s\n", id, desc);
+    return 1;
+}
+
+#endif

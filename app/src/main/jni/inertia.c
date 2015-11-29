@@ -742,7 +742,7 @@ static int compare_integers(const void *av, const void *bv)
 static char *solve_game(const game_state *state, const game_state *currstate,
                         const char *aux, char **error)
 {
-    int w = state->p.w, h = state->p.h, wh = w*h;
+    int w = currstate->p.w, h = currstate->p.h, wh = w*h;
     int *nodes, *nodeindex, *edges, *backedges, *edgei, *backedgei, *circuit;
     int nedges;
     int *dist, *dist2, *list;
@@ -1460,7 +1460,41 @@ static int game_can_format_as_text_now(const game_params *params)
 
 static char *game_text_format(const game_state *state)
 {
-    return NULL;
+    int w = state->p.w, h = state->p.h, r, c;
+    int cw = 4, ch = 2, gw = cw*w + 2, gh = ch * h + 1, len = gw * gh;
+    char *board = snewn(len + 1, char);
+
+    sprintf(board, "%*s+\n", len - 2, "");
+
+    for (r = 0; r < h; ++r) {
+	for (c = 0; c < w; ++c) {
+	    int cell = r*ch*gw + cw*c, center = cell + gw*ch/2 + cw/2;
+	    int i = r*w + c;
+	    switch (state->grid[i]) {
+	    case BLANK: break;
+	    case GEM: board[center] = 'o'; break;
+	    case MINE: board[center] = 'M'; break;
+	    case STOP: board[center-1] = '('; board[center+1] = ')'; break;
+	    case WALL: memset(board + center - 1, 'X', 3);
+	    }
+
+	    if (r == state->py && c == state->px) {
+		if (!state->dead) board[center] = '@';
+		else memcpy(board + center - 1, ":-(", 3);
+	    }
+	    board[cell] = '+';
+	    memset(board + cell + 1, '-', cw - 1);
+	    for (i = 1; i < ch; ++i) board[cell + i*gw] = '|';
+	}
+	for (c = 0; c < ch; ++c) {
+	    board[(r*ch+c)*gw + gw - 2] = "|+"[!c];
+	    board[(r*ch+c)*gw + gw - 1] = '\n';
+	}
+    }
+    memset(board + len - gw, '-', gw - 2);
+    for (c = 0; c < w; ++c) board[len - gw + cw*c] = '+';
+
+    return board;
 }
 
 struct game_ui {
@@ -1621,6 +1655,38 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     return dupstr(buf);
 }
 
+static void install_new_solution(game_state *ret, const char *move)
+{
+    int i;
+    soln *sol;
+    assert (*move == 'S');
+    ++move;
+
+    sol = snew(soln);
+    sol->len = strlen(move);
+    sol->list = snewn(sol->len, unsigned char);
+    for (i = 0; i < sol->len; ++i) sol->list[i] = move[i] - '0';
+
+    if (ret->soln && --ret->soln->refcount == 0) {
+	sfree(ret->soln->list);
+	sfree(ret->soln);
+    }
+
+    ret->soln = sol;
+    sol->refcount = 1;
+
+    ret->cheated = TRUE;
+    ret->solnpos = 0;
+}
+
+static void discard_solution(game_state *ret)
+{
+    --ret->soln->refcount;
+    assert(ret->soln->refcount > 0); /* ret has a soln-pointing dup */
+    ret->soln = NULL;
+    ret->solnpos = 0;
+}
+
 static game_state *execute_move(const game_state *state, const char *move)
 {
     int w = state->p.w, h = state->p.h /*, wh = w*h */;
@@ -1628,29 +1694,12 @@ static game_state *execute_move(const game_state *state, const char *move)
     game_state *ret;
 
     if (*move == 'S') {
-	int len, i;
-	soln *sol;
-
 	/*
 	 * This is a solve move, so we don't actually _change_ the
 	 * grid but merely set up a stored solution path.
 	 */
-	move++;
-	len = strlen(move);
-	sol = snew(soln);
-	sol->len = len;
-	sol->list = snewn(len, unsigned char);
-	for (i = 0; i < len; i++)
-	    sol->list[i] = move[i] - '0';
 	ret = dup_game(state);
-	ret->cheated = TRUE;
-	if (ret->soln && --ret->soln->refcount == 0) {
-	    sfree(ret->soln->list);
-	    sfree(ret->soln);
-	}
-	ret->soln = sol;
-	ret->solnpos = 0;
-	sol->refcount = 1;
+	install_new_solution(ret, move);
 	return ret;
     }
 
@@ -1691,22 +1740,18 @@ static game_state *execute_move(const game_state *state, const char *move)
     }
 
     if (ret->soln) {
-	/*
-	 * If this move is the correct next one in the stored
-	 * solution path, advance solnpos.
-	 */
-	if (ret->soln->list[ret->solnpos] == dir &&
-	    ret->solnpos+1 < ret->soln->len) {
-	    ret->solnpos++;
+	if (ret->dead || ret->gems == 0)
+	    discard_solution(ret);
+	else if (ret->soln->list[ret->solnpos] == dir) {
+	    ++ret->solnpos;
+	    assert(ret->solnpos < ret->soln->len); /* or gems == 0 */
+	    assert(!ret->dead); /* or not a solution */
 	} else {
-	    /*
-	     * Otherwise, the user has strayed from the path, so
-	     * the path is no longer valid.
-	     */
-	    ret->soln->refcount--;
-	    assert(ret->soln->refcount > 0);/* `state' at least still exists */
-	    ret->soln = NULL;
-	    ret->solnpos = 0;
+	    char *error = NULL, *soln = solve_game(NULL, ret, NULL, &error);
+	    if (!error) {
+		install_new_solution(ret, soln);
+		sfree(soln);
+	    } else discard_solution(ret);
 	}
     }
 
@@ -2199,7 +2244,7 @@ const struct game thegame = {
     dup_game,
     free_game,
     TRUE, solve_game,
-    FALSE, game_can_format_as_text_now, game_text_format,
+    TRUE, game_can_format_as_text_now, game_text_format,
     new_ui,
     free_ui,
     encode_ui,

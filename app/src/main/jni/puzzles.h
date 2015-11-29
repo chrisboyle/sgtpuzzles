@@ -635,6 +635,9 @@ extern const char* gamenames[];
 extern const game thegame;
 #endif
 
+/* A little bit of help to lazy developers */
+#define DEFAULT_STATUSBAR_TEXT "Use status_bar() to fill this in."
+
 #ifdef ANDROID
 extern const game* game_by_name(const char *name);
 extern game_params* oriented_params_from_str(const game* game, const char* params, char** error);

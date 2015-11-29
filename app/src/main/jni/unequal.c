@@ -51,7 +51,7 @@ enum {
     COL_BACKGROUND,
     COL_GRID,
     COL_TEXT, COL_GUESS, COL_ERROR, COL_PENCIL,
-    COL_HIGHLIGHT, COL_LOWLIGHT,
+    COL_HIGHLIGHT, COL_LOWLIGHT, COL_SPENT = COL_LOWLIGHT,
     NCOLOURS
 };
 
@@ -72,6 +72,12 @@ struct game_params {
 #define F_ERROR_RIGHT   128
 #define F_ERROR_DOWN    256
 #define F_ERROR_LEFT    512
+#define F_SPENT_UP      1024
+#define F_SPENT_RIGHT   2048
+#define F_SPENT_DOWN    4096
+#define F_SPENT_LEFT    8192
+
+#define ADJ_TO_SPENT(x) ((x) << 9)
 
 #define F_ERROR_MASK (F_ERROR|F_ERROR_UP|F_ERROR_RIGHT|F_ERROR_DOWN|F_ERROR_LEFT)
 
@@ -1421,11 +1427,32 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 {
     int x = FROMCOORD(ox), y = FROMCOORD(oy), n;
     char buf[80];
+    int shift_or_control = button & (MOD_SHFT | MOD_CTRL);
 
     button &= ~MOD_MASK;
 
-    if (x >= 0 && x < ds->order && ((ox - COORD(x)) <= TILE_SIZE) &&
-        y >= 0 && y < ds->order && ((oy - COORD(y)) <= TILE_SIZE)) {
+    if (x >= 0 && x < ds->order && y >= 0 && y < ds->order && IS_MOUSE_DOWN(button)) {
+	if (oy - COORD(y) > TILE_SIZE && ox - COORD(x) > TILE_SIZE)
+	    return NULL;
+
+	if (oy - COORD(y) > TILE_SIZE) {
+	    if (GRID(state, flags, x, y) & F_ADJ_DOWN)
+		sprintf(buf, "F%d,%d,%d", x, y, F_SPENT_DOWN);
+	    else if (y + 1 < ds->order && GRID(state, flags, x, y + 1) & F_ADJ_UP)
+		sprintf(buf, "F%d,%d,%d", x, y + 1, F_SPENT_UP);
+	    else return NULL;
+	    return dupstr(buf);
+	}
+
+	if (ox - COORD(x) > TILE_SIZE) {
+	    if (GRID(state, flags, x, y) & F_ADJ_RIGHT)
+		sprintf(buf, "F%d,%d,%d", x, y, F_SPENT_RIGHT);
+	    else if (x + 1 < ds->order && GRID(state, flags, x + 1, y) & F_ADJ_LEFT)
+		sprintf(buf, "F%d,%d,%d", x + 1, y, F_SPENT_LEFT);
+	    else return NULL;
+	    return dupstr(buf);
+	}
+
         if (button == LEFT_BUTTON) {
             /* normal highlighting for non-immutable squares */
             if (GRID(state, flags, x, y) & F_IMMUTABLE) {
@@ -1496,9 +1523,39 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         return dupstr("M");
 
     if (IS_CURSOR_MOVE(button)) {
-        move_cursor(button, &ui->hx, &ui->hy, ds->order, ds->order, 0);
-        ui->hshow = ui->hcursor = 1;
-        return "";
+	if (shift_or_control) {
+	    int nx = ui->hx, ny = ui->hy, i, self;
+	    move_cursor(button, &nx, &ny, ds->order, ds->order, FALSE);
+	    ui->hshow = ui->hcursor = 1;
+
+	    for (i = 0; i < 4 && (nx != ui->hx + adjthan[i].dx ||
+				  ny != ui->hy + adjthan[i].dy); ++i);
+
+	    if (i == 4)
+		return ""; /* invalid direction, i.e. out of the board */
+
+	    if (!(GRID(state, flags, ui->hx, ui->hy) & adjthan[i].f ||
+		  GRID(state, flags, nx,     ny    ) & adjthan[i].fo))
+		return ""; /* no clue to toggle */
+
+	    if (state->adjacent)
+		self = (adjthan[i].dx >= 0 && adjthan[i].dy >= 0);
+	    else
+		self = (GRID(state, flags, ui->hx, ui->hy) & adjthan[i].f);
+
+	    if (self)
+		sprintf(buf, "F%d,%d,%d", ui->hx, ui->hy,
+			ADJ_TO_SPENT(adjthan[i].f));
+	    else
+		sprintf(buf, "F%d,%d,%d", nx, ny,
+			ADJ_TO_SPENT(adjthan[i].fo));
+
+	    return dupstr(buf);
+	} else {
+	    move_cursor(button, &ui->hx, &ui->hy, ds->order, ds->order, FALSE);
+	    ui->hshow = ui->hcursor = 1;
+	    return "";
+	}
     }
     if (ui->hshow && IS_CURSOR_SELECT(button)) {
         ui->hpencil = 1 - ui->hpencil;
@@ -1506,17 +1563,15 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         return "";
     }
 
-    do if (ui->hshow) {
+    n = c2n(button, state->order);
+    if (ui->hshow && n >= 0 && n <= ds->order) {
         debug(("button %d, cbutton %d", button, (int)((char)button)));
-        n = c2n(button, state->order);
 
         debug(("n %d, h (%d,%d) p %d flags 0x%x nums %d",
                n, ui->hx, ui->hy, ui->hpencil,
                GRID(state, flags, ui->hx, ui->hy),
                GRID(state, nums, ui->hx, ui->hy)));
 
-        if (n < 0 || n > ds->order)
-            break;        /* out of range */
         if (GRID(state, flags, ui->hx, ui->hy) & F_IMMUTABLE)
             return NULL;        /* can't edit immutable square (!) */
         if (ui->hpencil && GRID(state, nums, ui->hx, ui->hy) > 0)
@@ -1593,6 +1648,11 @@ static game_state *execute_move(const game_state *state, const char *move)
         return ret;
     } else if (move[0] == 'H') {
         return solver_hint(state, NULL, DIFF_EASY, DIFF_EASY);
+    } else if (move[0] == 'F' && sscanf(move+1, "%d,%d,%d", &x, &y, &n) == 3 &&
+	       x >= 0 && x < state->order && y >= 0 && y < state->order) {
+	ret = dup_game(state);
+	GRID(ret, flags, x, y) ^= n;
+	return ret;
     }
 
 badmove:
@@ -1702,6 +1762,9 @@ static void draw_gt(drawing *dr, int ox, int oy,
     draw_polygon(dr, coords, 6, col, col);
 }
 
+#define COLOUR(direction) (f & (F_ERROR_##direction) ? COL_ERROR : \
+			   f & (F_SPENT_##direction) ? COL_SPENT : fg)
+
 static void draw_gts(drawing *dr, game_drawstate *ds, int ox, int oy,
                      unsigned int f, int bg, int fg)
 {
@@ -1711,26 +1774,22 @@ static void draw_gts(drawing *dr, game_drawstate *ds, int ox, int oy,
 
     if (f & F_ADJ_UP) {
 	if (bg >= 0) draw_rect(dr, ox, oy - g, TILE_SIZE, g, bg);
-        draw_gt(dr, ox+g2, oy-g4, g2, -g2, g2, g2,
-               (f & F_ERROR_UP) ? COL_ERROR : fg);
+        draw_gt(dr, ox+g2, oy-g4, g2, -g2, g2, g2, COLOUR(UP));
         draw_update(dr, ox, oy-g, TILE_SIZE, g);
     }
     if (f & F_ADJ_RIGHT) {
 	if (bg >= 0) draw_rect(dr, ox + TILE_SIZE, oy, g, TILE_SIZE, bg);
-        draw_gt(dr, ox+TILE_SIZE+g4, oy+g2, g2, g2, -g2, g2,
-                (f & F_ERROR_RIGHT) ? COL_ERROR : fg);
+        draw_gt(dr, ox+TILE_SIZE+g4, oy+g2, g2, g2, -g2, g2, COLOUR(RIGHT));
         draw_update(dr, ox+TILE_SIZE, oy, g, TILE_SIZE);
     }
     if (f & F_ADJ_DOWN) {
 	if (bg >= 0) draw_rect(dr, ox, oy + TILE_SIZE, TILE_SIZE, g, bg);
-        draw_gt(dr, ox+g2, oy+TILE_SIZE+g4, g2, g2, g2, -g2,
-               (f & F_ERROR_DOWN) ? COL_ERROR : fg);
+        draw_gt(dr, ox+g2, oy+TILE_SIZE+g4, g2, g2, g2, -g2, COLOUR(DOWN));
         draw_update(dr, ox, oy+TILE_SIZE, TILE_SIZE, g);
     }
     if (f & F_ADJ_LEFT) {
 	if (bg >= 0) draw_rect(dr, ox - g, oy, g, TILE_SIZE, bg);
-        draw_gt(dr, ox-g4, oy+g2, -g2, g2, g2, g2,
-                (f & F_ERROR_LEFT) ? COL_ERROR : fg);
+        draw_gt(dr, ox-g4, oy+g2, -g2, g2, g2, g2, COLOUR(LEFT));
         draw_update(dr, ox-g, oy, g, TILE_SIZE);
     }
 }
@@ -1749,8 +1808,7 @@ static void draw_adjs(drawing *dr, game_drawstate *ds, int ox, int oy,
 
     if (f & (F_ADJ_RIGHT|F_ERROR_RIGHT)) {
         if (f & F_ADJ_RIGHT) {
-            draw_rect(dr, ox+TILE_SIZE+g38, oy, g4, TILE_SIZE,
-                      (f & F_ERROR_RIGHT) ? COL_ERROR : fg);
+            draw_rect(dr, ox+TILE_SIZE+g38, oy, g4, TILE_SIZE, COLOUR(RIGHT));
         } else {
             draw_rect_outline(dr, ox+TILE_SIZE+g38, oy, g4, TILE_SIZE, COL_ERROR);
         }
@@ -1761,8 +1819,7 @@ static void draw_adjs(drawing *dr, game_drawstate *ds, int ox, int oy,
 
     if (f & (F_ADJ_DOWN|F_ERROR_DOWN)) {
         if (f & F_ADJ_DOWN) {
-            draw_rect(dr, ox, oy+TILE_SIZE+g38, TILE_SIZE, g4,
-                      (f & F_ERROR_DOWN) ? COL_ERROR : fg);
+            draw_rect(dr, ox, oy+TILE_SIZE+g38, TILE_SIZE, g4, COLOUR(DOWN));
         } else {
             draw_rect_outline(dr, ox, oy+TILE_SIZE+g38, TILE_SIZE, g4, COL_ERROR);
         }
