@@ -116,7 +116,7 @@ static int game_fetch_preset(int i, char **name, game_params **params)
     ret = snew(game_params);
     *ret = keen_presets[i]; /* structure copy */
 
-    sprintf(buf, ret->multiplication_only ? _("%dx%d %s, multiplication only") : _("%dx%d %s"), ret->w, ret->w, _(keen_diffnames[ret->diff]);
+    sprintf(buf, ret->multiplication_only ? _("%dx%d %s, multiplication only") : _("%dx%d %s"), ret->w, ret->w, _(keen_diffnames[ret->diff]));
 
     *name = dupstr(buf);
     *params = ret;

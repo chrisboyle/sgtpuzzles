@@ -173,6 +173,7 @@ If you don't want to grant it you can instead locate the file from within Puzzle
     <string name="name_mines">Mines</string>
     <string name="name_net">Net</string>
     <string name="name_netslide">Netslide</string>
+    <string name="name_palisade">Palisade</string>
     <string name="name_pattern">Pattern</string>
     <string name="name_pearl">Pearl</string>
     <string name="name_pegs">Pegs</string>
@@ -213,6 +214,7 @@ If you don't want to grant it you can instead locate the file from within Puzzle
     <string name="desc_mines">Uncover all squares except the mines using the given counts of adjacent mines. *N.B.* Game is generated after first move; you may see \"not responding\" warnings.</string>
     <string name="desc_net">Rotate tiles to connect all tiles (not just endpoints) to the centre tile.</string>
     <string name="desc_netslide">Slide rows and columns to connect all tiles (not just endpoints) to the centre tile.</string>
+    <string name="desc_palisade">Draw lines along the grid edges, in such a way that the grid is divided into connected regions, all of the size shown in the status line. Also, each square containing a number should have that many of its edges drawn in.</string>
     <string name="desc_pattern">Fill the grid so that the numbers are the length of each stretch of black tiles in order.</string>
     <string name="desc_pearl">Draw a single loop with corners on black, before/after white, and not vice versa.</string>
     <string name="desc_pegs">Remove pegs by jumping others over them, until only one is left.</string>

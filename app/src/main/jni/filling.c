@@ -454,7 +454,6 @@ retry:
 
     sfree(dsf);
 }
-#endif
 
 static void merge(int *dsf, int *connected, int a, int b) {
     int c;

@@ -20,6 +20,7 @@
 		<item>mines</item>
 		<item>net</item>
 		<item>netslide</item>
+		<item>palisade</item>
 		<item>pattern</item>
 		<item>pearl</item>
 		<item>pegs</item>
@@ -91,6 +92,7 @@
 	<string translatable="false" name="loopy_drag_mode">prevent</string>
 	<string translatable="false" name="magnets_drag_mode">prevent</string>
 	<string translatable="false" name="netslide_drag_mode">prevent</string>
+	<string translatable="false" name="palisade_drag_mode">prevent</string>
 	<string translatable="false" name="range_drag_mode">prevent</string>
 	<string translatable="false" name="samegame_drag_mode">prevent</string>
 	<string translatable="false" name="singles_drag_mode">prevent</string>
@@ -148,6 +150,9 @@
 	<color name="net_night_colour_wire">#888888</color>
 	<color name="netslide_night_colour_wire">#888888</color>
 	<color name="netslide_night_colour_endpoint">#3636b3</color>
+	<color name="palisade_night_colour_grid">#ffffff</color>
+	<color name="palisade_night_colour_line_maybe">#808000</color>
+	<color name="palisade_night_colour_line_no">#666666</color>
 	<color name="pattern_night_colour_text">#ffffff</color>
 	<color name="pearl_night_colour_black">#666666</color>
 	<color name="pearl_night_colour_dragon">#3636B3</color>

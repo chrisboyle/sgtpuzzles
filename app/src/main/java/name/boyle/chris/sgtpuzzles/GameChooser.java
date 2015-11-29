@@ -154,7 +154,9 @@ public class GameChooser extends AppCompatActivity implements SharedPreferences.
 		for (int i = 0; i < games.length; i++) {
 			final View v = views[i];
 			final View highlight = v.findViewById(R.id.currentGameHighlight);
-			final Drawable icon = ((LayerDrawable) ((ImageView) v.findViewById(R.id.icon)).getDrawable()).getDrawable(0);
+			final LayerDrawable layerDrawable = (LayerDrawable) ((ImageView) v.findViewById(R.id.icon)).getDrawable();
+			if (layerDrawable == null) continue;
+			final Drawable icon = layerDrawable.getDrawable(0);
 			// Ideally this would instead key off the new "activated" state, but it's too new.
 			if (games[i].equals(currentBackend)) {
 				final int highlightColour = getResources().getColor(R.color.chooser_current_background);
@@ -224,8 +226,10 @@ public class GameChooser extends AppCompatActivity implements SharedPreferences.
 	}
 
 	private LayerDrawable mkStarryIcon(String gameId) {
+		final int drawableId = getResources().getIdentifier(gameId, "drawable", getPackageName());
+		if (drawableId == 0) return null;
 		final Drawable icon = ContextCompat.getDrawable(this,
-				getResources().getIdentifier(gameId, "drawable", getPackageName()));
+				drawableId);
 		final LayerDrawable starredIcon = new LayerDrawable(new Drawable[]{
 				icon, ContextCompat.getDrawable(this, R.drawable.ic_star).mutate() });
 		final float density = getResources().getDisplayMetrics().density;
@@ -298,11 +302,14 @@ public class GameChooser extends AppCompatActivity implements SharedPreferences.
 		int col = 0;
 		int row = startRow;
 		for (View v : views) {
-			final Drawable star = ((LayerDrawable) ((ImageView) v.findViewById(R.id.icon)).getDrawable()).getDrawable(1);
-			star.setAlpha(starred ? 255 : 0);
-			if (col >= mColumns) {
-				col = 0;
-				row++;
+			final LayerDrawable layerDrawable = (LayerDrawable) ((ImageView) v.findViewById(R.id.icon)).getDrawable();
+			if (layerDrawable != null) {
+				final Drawable star = layerDrawable.getDrawable(1);
+				star.setAlpha(starred ? 255 : 0);
+				if (col >= mColumns) {
+					col = 0;
+					row++;
+				}
 			}
 			setGridCells(v, col++, row, 1);
 		}
