@@ -1398,6 +1398,13 @@ static void align_label(GtkLabel *label, double x, double y)
 #if GTK_CHECK_VERSION(3,16,0)
     gtk_label_set_xalign(label, x);
     gtk_label_set_yalign(label, y);
+#elif GTK_CHECK_VERSION(3,14,0)
+    gtk_widget_set_halign(GTK_WIDGET(label),
+                          x == 0 ? GTK_ALIGN_START :
+                          x == 1 ? GTK_ALIGN_END : GTK_ALIGN_CENTER);
+    gtk_widget_set_valign(GTK_WIDGET(label),
+                          y == 0 ? GTK_ALIGN_START :
+                          y == 1 ? GTK_ALIGN_END : GTK_ALIGN_CENTER);
 #else
     gtk_misc_set_alignment(GTK_MISC(label), x, y);
 #endif
