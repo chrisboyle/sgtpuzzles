@@ -45,11 +45,17 @@ struct game_params {
 #define GRID_FULL 1
 #define GRID_EMPTY 0
 
-struct game_state {
+typedef struct game_state_common {
+    /* Parts of the game state that don't change during play. */
     int w, h;
-    unsigned char *grid;
     int rowsize;
     int *rowdata, *rowlen;
+    int refcount;
+} game_state_common;
+
+struct game_state {
+    game_state_common *common;
+    unsigned char *grid;
     int completed, cheated;
 };
 
@@ -498,8 +504,8 @@ static int solve_puzzle(const game_state *state, unsigned char *grid,
     for (i=0; i<h; i++) {
 	int freespace;
 	if (state) {
-            memcpy(rowdata, state->rowdata + state->rowsize*(w+i), max*sizeof(int));
-	    rowdata[state->rowlen[w+i]] = 0;
+            memcpy(rowdata, state->common->rowdata + state->common->rowsize*(w+i), max*sizeof(int));
+	    rowdata[state->common->rowlen[w+i]] = 0;
 	} else {
 	    rowdata[compute_rowdata(rowdata, grid+i*w, w, 1)] = 0;
 	}
@@ -514,8 +520,8 @@ static int solve_puzzle(const game_state *state, unsigned char *grid,
     for (i=0; i<w; i++) {
 	int freespace;
 	if (state) {
-	    memcpy(rowdata, state->rowdata + state->rowsize*i, max*sizeof(int));
-	    rowdata[state->rowlen[i]] = 0;
+	    memcpy(rowdata, state->common->rowdata + state->common->rowsize*i, max*sizeof(int));
+	    rowdata[state->common->rowlen[i]] = 0;
 	} else {
 	    rowdata[compute_rowdata(rowdata, grid+i, h, w)] = 0;
 	}
@@ -542,8 +548,8 @@ static int solve_puzzle(const game_state *state, unsigned char *grid,
 	    for (i=0; i<h; i++) {
 		if (changed_h[i] >= max_h) {
 		    if (state) {
-			memcpy(rowdata, state->rowdata + state->rowsize*(w+i), max*sizeof(int));
-			rowdata[state->rowlen[w+i]] = 0;
+			memcpy(rowdata, state->common->rowdata + state->common->rowsize*(w+i), max*sizeof(int));
+			rowdata[state->common->rowlen[w+i]] = 0;
 		    } else {
 			rowdata[compute_rowdata(rowdata, grid+i*w, w, 1)] = 0;
 		    }
@@ -566,8 +572,8 @@ static int solve_puzzle(const game_state *state, unsigned char *grid,
 	    for (i=0; i<w; i++) {
 		if (changed_w[i] >= max_w) {
 		    if (state) {
-			memcpy(rowdata, state->rowdata + state->rowsize*i, max*sizeof(int));
-			rowdata[state->rowlen[i]] = 0;
+			memcpy(rowdata, state->common->rowdata + state->common->rowsize*i, max*sizeof(int));
+			rowdata[state->common->rowlen[i]] = 0;
 		    } else {
 			rowdata[compute_rowdata(rowdata, grid+i, h, w)] = 0;
 		    }
@@ -799,25 +805,28 @@ static game_state *new_game(midend *me, const game_params *params,
     const char *p;
     game_state *state = snew(game_state);
 
-    state->w = params->w;
-    state->h = params->h;
+    state->common = snew(game_state_common);
+    state->common->refcount = 1;
 
-    state->grid = snewn(state->w * state->h, unsigned char);
-    memset(state->grid, GRID_UNKNOWN, state->w * state->h);
+    state->common->w = params->w;
+    state->common->h = params->h;
 
-    state->rowsize = max(state->w, state->h);
-    state->rowdata = snewn(state->rowsize * (state->w + state->h), int);
-    state->rowlen = snewn(state->w + state->h, int);
+    state->grid = snewn(state->common->w * state->common->h, unsigned char);
+    memset(state->grid, GRID_UNKNOWN, state->common->w * state->common->h);
+
+    state->common->rowsize = max(state->common->w, state->common->h);
+    state->common->rowdata = snewn(state->common->rowsize * (state->common->w + state->common->h), int);
+    state->common->rowlen = snewn(state->common->w + state->common->h, int);
 
     state->completed = state->cheated = FALSE;
 
     for (i = 0; i < params->w + params->h; i++) {
-        state->rowlen[i] = 0;
+        state->common->rowlen[i] = 0;
         if (*desc && isdigit((unsigned char)*desc)) {
             do {
                 p = desc;
                 while (*desc && isdigit((unsigned char)*desc)) desc++;
-                state->rowdata[state->rowsize * i + state->rowlen[i]++] =
+                state->common->rowdata[state->common->rowsize * i + state->common->rowlen[i]++] =
                     atoi(p);
             } while (*desc++ == '.');
         } else {
@@ -832,19 +841,11 @@ static game_state *dup_game(const game_state *state)
 {
     game_state *ret = snew(game_state);
 
-    ret->w = state->w;
-    ret->h = state->h;
+    ret->common = state->common;
+    ret->common->refcount++;
 
-    ret->grid = snewn(ret->w * ret->h, unsigned char);
-    memcpy(ret->grid, state->grid, ret->w * ret->h);
-
-    ret->rowsize = state->rowsize;
-    ret->rowdata = snewn(ret->rowsize * (ret->w + ret->h), int);
-    ret->rowlen = snewn(ret->w + ret->h, int);
-    memcpy(ret->rowdata, state->rowdata,
-           ret->rowsize * (ret->w + ret->h) * sizeof(int));
-    memcpy(ret->rowlen, state->rowlen,
-           (ret->w + ret->h) * sizeof(int));
+    ret->grid = snewn(ret->common->w * ret->common->h, unsigned char);
+    memcpy(ret->grid, state->grid, ret->common->w * ret->common->h);
 
     ret->completed = state->completed;
     ret->cheated = state->cheated;
@@ -854,8 +855,11 @@ static game_state *dup_game(const game_state *state)
 
 static void free_game(game_state *state)
 {
-    sfree(state->rowdata);
-    sfree(state->rowlen);
+    if (--state->common->refcount == 0) {
+        sfree(state->common->rowdata);
+        sfree(state->common->rowlen);
+        sfree(state->common);
+    }
     sfree(state->grid);
     sfree(state);
 }
@@ -864,7 +868,7 @@ static char *solve_game(const game_state *state, const game_state *currstate,
                         const char *ai, char **error)
 {
     unsigned char *matrix;
-    int w = state->w, h = state->h;
+    int w = state->common->w, h = state->common->h;
     int i;
     char *ret;
     int max, ok;
@@ -919,24 +923,24 @@ static int game_can_format_as_text_now(const game_params *params)
 
 static char *game_text_format(const game_state *state)
 {
-    int w = state->w, h = state->h, i, j;
+    int w = state->common->w, h = state->common->h, i, j;
     int left_gap = 0, top_gap = 0, ch = 2, cw = 1, limit = 1;
 
     int len, topleft, lw, lh, gw, gh; /* {line,grid}_{width,height} */
     char *board, *buf;
 
     for (i = 0; i < w; ++i) {
-	top_gap = max(top_gap, state->rowlen[i]);
-	for (j = 0; j < state->rowlen[i]; ++j)
-	    while (state->rowdata[i*state->rowsize + j] >= limit) {
+	top_gap = max(top_gap, state->common->rowlen[i]);
+	for (j = 0; j < state->common->rowlen[i]; ++j)
+	    while (state->common->rowdata[i*state->common->rowsize + j] >= limit) {
 		++cw;
 		limit *= 10;
 	    }
     }
     for (i = 0; i < h; ++i) {
 	int rowlen = 0, predecessors = FALSE;
-	for (j = 0; j < state->rowlen[i+w]; ++j) {
-	    int copy = state->rowdata[(i+w)*state->rowsize + j];
+	for (j = 0; j < state->common->rowlen[i+w]; ++j) {
+	    int copy = state->common->rowdata[(i+w)*state->common->rowsize + j];
 	    rowlen += predecessors;
 	    predecessors = TRUE;
 	    do ++rowlen; while (copy /= 10);
@@ -963,10 +967,10 @@ static char *game_text_format(const game_state *state)
     }
 
     for (i = 0; i < w; ++i) {
-	for (j = 0; j < state->rowlen[i]; ++j) {
-	    int cell = topleft + i*cw + 1 + lw*(j - state->rowlen[i]);
+	for (j = 0; j < state->common->rowlen[i]; ++j) {
+	    int cell = topleft + i*cw + 1 + lw*(j - state->common->rowlen[i]);
 	    int nch = sprintf(board + cell, "%*d", cw - 1,
-			      state->rowdata[i*state->rowsize + j]);
+			      state->common->rowdata[i*state->common->rowsize + j]);
 	    board[cell + nch] = ' '; /* de-NUL-ify */
 	}
     }
@@ -974,9 +978,9 @@ static char *game_text_format(const game_state *state)
     buf = snewn(left_gap, char);
     for (i = 0; i < h; ++i) {
 	char *p = buf, *start = board + top_gap*lw + left_gap + (i*ch+1)*lw;
-	for (j = 0; j < state->rowlen[i+w]; ++j) {
+	for (j = 0; j < state->common->rowlen[i+w]; ++j) {
 	    if (p > buf) *p++ = ' ';
-	    p += sprintf(p, "%d", state->rowdata[(i+w)*state->rowsize + j]);
+	    p += sprintf(p, "%d", state->common->rowdata[(i+w)*state->common->rowsize + j]);
 	}
 	memcpy(start - (p - buf), buf, p - buf);
     }
@@ -1059,14 +1063,14 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     int control = button & MOD_CTRL, shift = button & MOD_SHFT;
     button &= ~MOD_MASK;
 
-    x = FROMCOORD(state->w, x);
-    y = FROMCOORD(state->h, y);
+    x = FROMCOORD(state->common->w, x);
+    y = FROMCOORD(state->common->h, y);
 
-    if (x >= 0 && x < state->w && y >= 0 && y < state->h &&
+    if (x >= 0 && x < state->common->w && y >= 0 && y < state->common->h &&
         (button == LEFT_BUTTON || button == RIGHT_BUTTON ||
          button == MIDDLE_BUTTON)) {
 #ifdef STYLUS_BASED
-        int currstate = state->grid[y * state->w + x];
+        int currstate = state->grid[y * state->common->w + x];
 #endif
 
         ui->dragging = TRUE;
@@ -1120,8 +1124,8 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 
         if (x < 0) x = 0;
         if (y < 0) y = 0;
-        if (x >= state->w) x = state->w - 1;
-        if (y >= state->h) y = state->h - 1;
+        if (x >= state->common->w) x = state->common->w - 1;
+        if (y >= state->common->h) y = state->common->h - 1;
 
         ui->drag_end_x = x;
         ui->drag_end_y = y;
@@ -1140,7 +1144,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 
         for (yy = y1; yy <= y2; yy++)
             for (xx = x1; xx <= x2; xx++)
-                if (state->grid[yy * state->w + xx] != ui->state)
+                if (state->grid[yy * state->common->w + xx] != ui->state)
                     move_needed = TRUE;
 
         ui->dragging = FALSE;
@@ -1159,13 +1163,13 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     if (IS_CURSOR_MOVE(button)) {
 	int x = ui->cur_x, y = ui->cur_y, newstate;
 	char buf[80];
-        move_cursor(button, &ui->cur_x, &ui->cur_y, state->w, state->h, 0);
+        move_cursor(button, &ui->cur_x, &ui->cur_y, state->common->w, state->common->h, 0);
         ui->cur_visible = 1;
 	if (!control && !shift) return "";
 
 	newstate = control ? shift ? GRID_UNKNOWN : GRID_FULL : GRID_EMPTY;
-	if (state->grid[y * state->w + x] == newstate &&
-	    state->grid[ui->cur_y * state->w + ui->cur_x] == newstate)
+	if (state->grid[y * state->common->w + x] == newstate &&
+	    state->grid[ui->cur_y * state->common->w + ui->cur_x] == newstate)
 	    return "";
 
 	sprintf(buf, "%c%d,%d,%d,%d", control ? shift ? 'U' : 'F' : 'E',
@@ -1175,7 +1179,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     }
 
     if (IS_CURSOR_SELECT(button)) {
-        int currstate = state->grid[ui->cur_y * state->w + ui->cur_x];
+        int currstate = state->grid[ui->cur_y * state->common->w + ui->cur_x];
         int newstate;
         char buf[80];
 
@@ -1207,12 +1211,13 @@ static game_state *execute_move(const game_state *from, const char *move)
     int x1, x2, y1, y2, xx, yy;
     int val;
 
-    if (move[0] == 'S' && strlen(move) == from->w * from->h + 1) {
+    if (move[0] == 'S' &&
+        strlen(move) == from->common->w * from->common->h + 1) {
 	int i;
 
 	ret = dup_game(from);
 
-	for (i = 0; i < ret->w * ret->h; i++)
+	for (i = 0; i < ret->common->w * ret->common->h; i++)
 	    ret->grid[i] = (move[i+1] == '1' ? GRID_FULL : GRID_EMPTY);
 
 	ret->completed = ret->cheated = TRUE;
@@ -1220,8 +1225,8 @@ static game_state *execute_move(const game_state *from, const char *move)
 	return ret;
     } else if ((move[0] == 'F' || move[0] == 'E' || move[0] == 'U') &&
 	sscanf(move+1, "%d,%d,%d,%d", &x1, &y1, &x2, &y2) == 4 &&
-	x1 >= 0 && x2 >= 0 && x1+x2 <= from->w &&
-	y1 >= 0 && y2 >= 0 && y1+y2 <= from->h) {
+	x1 >= 0 && x2 >= 0 && x1+x2 <= from->common->w &&
+	y1 >= 0 && y2 >= 0 && y1+y2 <= from->common->h) {
 
 	x2 += x1;
 	y2 += y1;
@@ -1231,34 +1236,35 @@ static game_state *execute_move(const game_state *from, const char *move)
 	ret = dup_game(from);
 	for (yy = y1; yy < y2; yy++)
 	    for (xx = x1; xx < x2; xx++)
-		ret->grid[yy * ret->w + xx] = val;
+		ret->grid[yy * ret->common->w + xx] = val;
 
 	/*
 	 * An actual change, so check to see if we've completed the
 	 * game.
 	 */
 	if (!ret->completed) {
-	    int *rowdata = snewn(ret->rowsize, int);
+	    int *rowdata = snewn(ret->common->rowsize, int);
 	    int i, len;
 
 	    ret->completed = TRUE;
 
-	    for (i=0; i<ret->w; i++) {
-		len = compute_rowdata(rowdata,
-				      ret->grid+i, ret->h, ret->w);
-		if (len != ret->rowlen[i] ||
-		    memcmp(ret->rowdata+i*ret->rowsize, rowdata,
-			   len * sizeof(int))) {
+	    for (i=0; i<ret->common->w; i++) {
+		len = compute_rowdata(rowdata, ret->grid+i,
+                                      ret->common->h, ret->common->w);
+		if (len != ret->common->rowlen[i] ||
+		    memcmp(ret->common->rowdata+i*ret->common->rowsize,
+                           rowdata, len * sizeof(int))) {
 		    ret->completed = FALSE;
 		    break;
 		}
 	    }
-	    for (i=0; i<ret->h; i++) {
-		len = compute_rowdata(rowdata,
-				      ret->grid+i*ret->w, ret->w, 1);
-		if (len != ret->rowlen[i+ret->w] ||
-		    memcmp(ret->rowdata+(i+ret->w)*ret->rowsize, rowdata,
-			   len * sizeof(int))) {
+	    for (i=0; i<ret->common->h; i++) {
+		len = compute_rowdata(rowdata, ret->grid+i*ret->common->w,
+                                      ret->common->w, 1);
+		if (len != ret->common->rowlen[i+ret->common->w] ||
+		    memcmp(ret->common->rowdata +
+                           (i+ret->common->w)*ret->common->rowsize,
+                           rowdata, len * sizeof(int))) {
 		    ret->completed = FALSE;
 		    break;
 		}
@@ -1384,20 +1390,20 @@ static int check_errors(const game_state *state, int i)
     int val, runlen;
     struct errcheck_state aes, *es = &aes;
 
-    es->rowlen = state->rowlen[i];
-    es->rowdata = state->rowdata + state->rowsize * i;
+    es->rowlen = state->common->rowlen[i];
+    es->rowdata = state->common->rowdata + state->common->rowsize * i;
     /* Pretend that we've already encountered the initial zero run */
     es->ncontig = 1;
     es->rowpos = 0;
 
-    if (i < state->w) {
+    if (i < state->common->w) {
         start = i;
-        step = state->w;
-        end = start + step * state->h;
+        step = state->common->w;
+        end = start + step * state->common->h;
     } else {
-        start = (i - state->w) * state->w;
+        start = (i - state->common->w) * state->common->w;
         step = 1;
-        end = start + step * state->w;
+        end = start + step * state->common->w;
     }
 
     runlen = -1;
@@ -1482,8 +1488,8 @@ static game_drawstate *game_new_drawstate(drawing *dr, const game_state *state)
     struct game_drawstate *ds = snew(struct game_drawstate);
 
     ds->started = FALSE;
-    ds->w = state->w;
-    ds->h = state->h;
+    ds->w = state->common->w;
+    ds->h = state->common->h;
     ds->visible = snewn(ds->w * ds->h, unsigned char);
     ds->tilesize = 0;                  /* not decided yet */
     memset(ds->visible, 255, ds->w * ds->h);
@@ -1536,19 +1542,19 @@ static void grid_square(drawing *dr, game_drawstate *ds,
 static void draw_numbers(drawing *dr, game_drawstate *ds,
                          const game_state *state, int i, int erase, int colour)
 {
-    int rowlen = state->rowlen[i];
-    int *rowdata = state->rowdata + state->rowsize * i;
+    int rowlen = state->common->rowlen[i];
+    int *rowdata = state->common->rowdata + state->common->rowsize * i;
     int nfit;
     int j;
 
     if (erase) {
-        if (i < state->w) {
-            draw_rect(dr, TOCOORD(state->w, i), 0,
-                      TILE_SIZE, BORDER + TLBORDER(state->h) * TILE_SIZE,
+        if (i < state->common->w) {
+            draw_rect(dr, TOCOORD(state->common->w, i), 0,
+                      TILE_SIZE, BORDER + TLBORDER(state->common->h) * TILE_SIZE,
                       COL_BACKGROUND);
         } else {
-            draw_rect(dr, 0, TOCOORD(state->h, i - state->w),
-                      BORDER + TLBORDER(state->w) * TILE_SIZE, TILE_SIZE,
+            draw_rect(dr, 0, TOCOORD(state->common->h, i - state->common->w),
+                      BORDER + TLBORDER(state->common->w) * TILE_SIZE, TILE_SIZE,
                       COL_BACKGROUND);
         }
     }
@@ -1558,10 +1564,10 @@ static void draw_numbers(drawing *dr, game_drawstate *ds,
      * tile size. However, if there are more numbers than available
      * spaces, I have to squash them up a bit.
      */
-    if (i < state->w)
-        nfit = TLBORDER(state->h);
+    if (i < state->common->w)
+        nfit = TLBORDER(state->common->h);
     else
-        nfit = TLBORDER(state->w);
+        nfit = TLBORDER(state->common->w);
     nfit = max(rowlen, nfit) - 1;
     assert(nfit > 0);
 
@@ -1569,14 +1575,14 @@ static void draw_numbers(drawing *dr, game_drawstate *ds,
         int x, y;
         char str[80];
 
-        if (i < state->w) {
-            x = TOCOORD(state->w, i);
-            y = BORDER + TILE_SIZE * (TLBORDER(state->h)-1);
-            y -= ((rowlen-j-1)*TILE_SIZE) * (TLBORDER(state->h)-1) / nfit;
+        if (i < state->common->w) {
+            x = TOCOORD(state->common->w, i);
+            y = BORDER + TILE_SIZE * (TLBORDER(state->common->h)-1);
+            y -= ((rowlen-j-1)*TILE_SIZE) * (TLBORDER(state->common->h)-1) / nfit;
         } else {
-            y = TOCOORD(state->h, i - state->w);
-            x = BORDER + TILE_SIZE * (TLBORDER(state->w)-1);
-            x -= ((rowlen-j-1)*TILE_SIZE) * (TLBORDER(state->w)-1) / nfit;
+            y = TOCOORD(state->common->h, i - state->common->w);
+            x = BORDER + TILE_SIZE * (TLBORDER(state->common->w)-1);
+            x -= ((rowlen-j-1)*TILE_SIZE) * (TLBORDER(state->common->w)-1) / nfit;
         }
 
         sprintf(str, "%d", rowdata[j]);
@@ -1584,12 +1590,12 @@ static void draw_numbers(drawing *dr, game_drawstate *ds,
                   TILE_SIZE/2, ALIGN_HCENTRE | ALIGN_VCENTRE, colour, str);
     }
 
-    if (i < state->w) {
-        draw_update(dr, TOCOORD(state->w, i), 0,
-                    TILE_SIZE, BORDER + TLBORDER(state->h) * TILE_SIZE);
+    if (i < state->common->w) {
+        draw_update(dr, TOCOORD(state->common->w, i), 0,
+                    TILE_SIZE, BORDER + TLBORDER(state->common->h) * TILE_SIZE);
     } else {
-        draw_update(dr, 0, TOCOORD(state->h, i - state->w),
-                    BORDER + TLBORDER(state->w) * TILE_SIZE, TILE_SIZE);
+        draw_update(dr, 0, TOCOORD(state->common->h, i - state->common->w),
+                    BORDER + TLBORDER(state->common->w) * TILE_SIZE, TILE_SIZE);
     }
 }
 
@@ -1654,7 +1660,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
             if (ui->dragging && x1 <= j && j <= x2 && y1 <= i && i <= y2)
                 val = ui->state;
             else
-                val = state->grid[i * state->w + j];
+                val = state->grid[i * state->common->w + j];
 
             if (cmoved) {
                 /* the cursor has moved; if we were the old or
@@ -1685,7 +1691,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
      * Redraw any numbers which have changed their colour due to error
      * indication.
      */
-    for (i = 0; i < state->w + state->h; i++) {
+    for (i = 0; i < state->common->w + state->common->h; i++) {
         int colour = check_errors(state, i) ? COL_ERROR : COL_TEXT;
         if (ds->numcolours[i] != colour) {
             draw_numbers(dr, ds, state, i, TRUE, colour);
@@ -1733,7 +1739,7 @@ static void game_print_size(const game_params *params, float *x, float *y)
 
 static void game_print(drawing *dr, const game_state *state, int tilesize)
 {
-    int w = state->w, h = state->h;
+    int w = state->common->w, h = state->common->h;
     int ink = print_mono_colour(dr, 0);
     int x, y, i;
 
@@ -1765,7 +1771,7 @@ static void game_print(drawing *dr, const game_state *state, int tilesize)
     /*
      * Clues.
      */
-    for (i = 0; i < state->w + state->h; i++)
+    for (i = 0; i < state->common->w + state->common->h; i++)
         draw_numbers(dr, ds, state, i, FALSE, ink);
 
     /*
