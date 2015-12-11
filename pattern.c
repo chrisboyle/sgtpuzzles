@@ -226,6 +226,7 @@ static char *validate_params(const game_params *params, int full)
  * it's useful to anyone.)
  */
 
+#ifndef STANDALONE_PICTURE_GENERATOR
 static int float_compare(const void *av, const void *bv)
 {
     const float *a = (const float *)av;
@@ -319,6 +320,7 @@ static void generate(random_state *rs, int w, int h, unsigned char *retgrid)
 
     sfree(fgrid);
 }
+#endif
 
 static int compute_rowdata(int *ret, unsigned char *start, int len, int step)
 {
@@ -495,7 +497,7 @@ static int solve_puzzle(const game_state *state, unsigned char *grid,
     int i, j, ok, max;
     int max_h, max_w;
 
-    assert((state!=NULL) ^ (grid!=NULL));
+    assert((state!=NULL && state->common->rowdata!=NULL) ^ (grid!=NULL));
 
     max = max(w, h);
 
@@ -515,7 +517,7 @@ static int solve_puzzle(const game_state *state, unsigned char *grid,
      */
     for (i=0; i<h; i++) {
 	int freespace, rowlen;
-	if (state) {
+	if (state && state->common->rowdata) {
             memcpy(rowdata, state->common->rowdata + state->common->rowsize*(w+i), max*sizeof(int));
 	    rowlen = state->common->rowlen[w+i];
 	} else {
@@ -540,7 +542,7 @@ static int solve_puzzle(const game_state *state, unsigned char *grid,
 	    max_h = changed_h[i];
     for (i=0; i<w; i++) {
 	int freespace, rowlen;
-	if (state) {
+	if (state && state->common->rowdata) {
 	    memcpy(rowdata, state->common->rowdata + state->common->rowsize*i, max*sizeof(int));
 	    rowlen = state->common->rowlen[i];
 	} else {
@@ -577,7 +579,7 @@ static int solve_puzzle(const game_state *state, unsigned char *grid,
 	for (; max_h && max_h >= max_w; max_h--) {
 	    for (i=0; i<h; i++) {
 		if (changed_h[i] >= max_h) {
-		    if (state) {
+		    if (state && state->common->rowdata) {
 			memcpy(rowdata, state->common->rowdata + state->common->rowsize*(w+i), max*sizeof(int));
 			rowdata[state->common->rowlen[w+i]] = 0;
 		    } else {
@@ -601,7 +603,7 @@ static int solve_puzzle(const game_state *state, unsigned char *grid,
 	for (; max_w && max_w >= max_h; max_w--) {
 	    for (i=0; i<w; i++) {
 		if (changed_w[i] >= max_w) {
-		    if (state) {
+		    if (state && state->common->rowdata) {
 			memcpy(rowdata, state->common->rowdata + state->common->rowsize*i, max*sizeof(int));
 			rowdata[state->common->rowlen[i]] = 0;
 		    } else {
@@ -635,6 +637,7 @@ static int solve_puzzle(const game_state *state, unsigned char *grid,
     return ok;
 }
 
+#ifndef STANDALONE_PICTURE_GENERATOR
 static unsigned char *generate_soluble(random_state *rs, int w, int h)
 {
     int i, j, ok, ntries, max;
@@ -698,6 +701,11 @@ static unsigned char *generate_soluble(random_state *rs, int w, int h)
     sfree(rowdata);
     return grid;
 }
+#endif
+
+#ifdef STANDALONE_PICTURE_GENERATOR
+unsigned char *picture;
+#endif
 
 static char *new_game_desc(const game_params *params, random_state *rs,
 			   char **aux, int interactive)
@@ -706,15 +714,63 @@ static char *new_game_desc(const game_params *params, random_state *rs,
     int i, j, max, rowlen, *rowdata;
     char intbuf[80], *desc;
     int desclen, descpos;
+#ifdef STANDALONE_PICTURE_GENERATOR
+    game_state *state;
+    int *index;
+#endif
 
-    grid = generate_soluble(rs, params->w, params->h);
     max = max(params->w, params->h);
+
+#ifdef STANDALONE_PICTURE_GENERATOR
+    /*
+     * Fixed input picture.
+     */
+    grid = snewn(params->w * params->h, unsigned char);
+    memcpy(grid, picture, params->w * params->h);
+
+    /*
+     * Now winnow the immutable square set as far as possible.
+     */
+    state = snew(game_state);
+    state->grid = grid;
+    state->common = snew(game_state_common);
+    state->common->rowdata = NULL;
+    state->common->immutable = snewn(params->w * params->h, unsigned char);
+    memset(state->common->immutable, 1, params->w * params->h);
+
+    index = snewn(params->w * params->h, int);
+    for (i = 0; i < params->w * params->h; i++)
+        index[i] = i;
+    shuffle(index, params->w * params->h, sizeof(*index), rs);
+
+    {
+        unsigned char *matrix = snewn(params->w*params->h, unsigned char);
+        unsigned char *workspace = snewn(max*7, unsigned char);
+        unsigned int *changed_h = snewn(max+1, unsigned int);
+        unsigned int *changed_w = snewn(max+1, unsigned int);
+        int *rowdata = snewn(max+1, int);
+        for (i = 0; i < params->w * params->h; i++) {
+            state->common->immutable[index[i]] = 0;
+            if (!solve_puzzle(state, grid, params->w, params->h,
+                              matrix, workspace, changed_h, changed_w,
+                              rowdata, 0))
+                state->common->immutable[index[i]] = 1;
+        }
+        sfree(workspace);
+        sfree(changed_h);
+        sfree(changed_w);
+        sfree(rowdata);
+        sfree(matrix);
+    }
+#else
+    grid = generate_soluble(rs, params->w, params->h);
+#endif
     rowdata = snewn(max, int);
 
     /*
      * Save the solved game in aux.
      */
-    {
+    if (aux) {
 	char *ai = snewn(params->w * params->h + 2, char);
 
         /*
@@ -781,6 +837,40 @@ static char *new_game_desc(const game_params *params, random_state *rs,
     assert(descpos == desclen);
     assert(desc[desclen-1] == '/');
     desc[desclen-1] = '\0';
+#ifdef STANDALONE_PICTURE_GENERATOR
+    for (i = 0; i < params->w * params->h; i++)
+        if (state->common->immutable[i])
+            break;
+    if (i < params->w * params->h) {
+        /*
+         * At least one immutable square, so we need a suffix.
+         */
+        int run;
+
+        desc = sresize(desc, desclen + params->w * params->h + 3, char);
+        desc[descpos-1] = ',';
+
+        run = 0;
+        for (i = 0; i < params->w * params->h; i++) {
+            if (!state->common->immutable[i]) {
+                run++;
+                if (run == 25) {
+                    desc[descpos++] = 'z';
+                    run = 0;
+                }
+            } else {
+                desc[descpos++] = run + (grid[i] == GRID_FULL ? 'A' : 'a');
+                run = 0;
+            }
+        }
+        if (run > 0)
+            desc[descpos++] = run + 'a';
+        desc[descpos] = '\0';
+    }
+    sfree(state->common->immutable);
+    sfree(state->common);
+    sfree(state);
+#endif
     sfree(rowdata);
     sfree(grid);
     return desc;
@@ -2004,6 +2094,158 @@ int main(int argc, char **argv)
 	    printf("\n");
 	}
     }
+
+    return 0;
+}
+
+#endif
+
+#ifdef STANDALONE_PICTURE_GENERATOR
+
+/*
+ * Main program for the standalone picture generator. To use it,
+ * simply provide it with an XBM-format bitmap file (note XBM, not
+ * XPM) on standard input, and it will output a game ID in return.
+ * For example:
+ *
+ *   $ ./patternpicture < calligraphic-A.xbm
+ *   15x15:2/4/2/2/2/3/3/3.1/3.1/3.1/11/14/12/6/1/2/2/3/4/5/1.3/2.3/1.3/2.3/1.4/9/1.1.3/2.2.3/5.4/3.2
+ *
+ * That looks easy, of course - all the program has done is to count
+ * up the clue numbers! But in fact, it's done more than that: it's
+ * also checked that the result is uniquely soluble from just the
+ * numbers. If it hadn't been, then it would have also left some
+ * filled squares in the playing area as extra clues.
+ *
+ *   $ ./patternpicture < cube.xbm
+ *   15x15:10/2.1/1.1.1/1.1.1/1.1.1/1.1.1/1.1.1/1.1.1/1.1.1/1.10/1.1.1/1.1.1/1.1.1/2.1/10/10/1.2/1.1.1/1.1.1/1.1.1/10.1/1.1.1/1.1.1/1.1.1/1.1.1/1.1.1/1.1.1/1.1.1/1.2/10,TNINzzzzGNzw
+ *
+ * This enables a reasonably convenient design workflow for coming up
+ * with pictorial Pattern puzzles which _are_ uniquely soluble without
+ * those inelegant pre-filled squares. Fire up a bitmap editor (X11
+ * bitmap(1) is good enough), save a trial .xbm, and then test it by
+ * running a command along the lines of
+ *
+ *   $ ./pattern $(./patternpicture < test.xbm)
+ *
+ * If the resulting window pops up with some pre-filled squares, then
+ * that tells you which parts of the image are giving rise to
+ * ambiguities, so try making tweaks in those areas, try the test
+ * command again, and see if it helps. Once you have a design for
+ * which the Pattern starting grid comes out empty, there's your game
+ * ID.
+ */
+
+#include <time.h>
+
+int main(int argc, char **argv)
+{
+    game_params *par;
+    char *params, *desc;
+    random_state *rs;
+    time_t seed = time(NULL);
+    char buf[4096];
+    int i;
+    int x, y;
+
+    par = default_params();
+    if (argc > 1)
+	decode_params(par, argv[1]);   /* get difficulty */
+    par->w = par->h = -1;
+
+    /*
+     * Now read an XBM file from standard input. This is simple and
+     * hacky and will do very little error detection, so don't feed
+     * it bogus data.
+     */
+    picture = NULL;
+    x = y = 0;
+    while (fgets(buf, sizeof(buf), stdin)) {
+	buf[strcspn(buf, "\r\n")] = '\0';
+	if (!strncmp(buf, "#define", 7)) {
+	    /*
+	     * Lines starting `#define' give the width and height.
+	     */
+	    char *num = buf + strlen(buf);
+	    char *symend;
+
+	    while (num > buf && isdigit((unsigned char)num[-1]))
+		num--;
+	    symend = num;
+	    while (symend > buf && isspace((unsigned char)symend[-1]))
+		symend--;
+
+	    if (symend-5 >= buf && !strncmp(symend-5, "width", 5))
+		par->w = atoi(num);
+	    else if (symend-6 >= buf && !strncmp(symend-6, "height", 6))
+		par->h = atoi(num);
+	} else {
+	    /*
+	     * Otherwise, break the string up into words and take
+	     * any word of the form `0x' plus hex digits to be a
+	     * byte.
+	     */
+	    char *p, *wordstart;
+
+	    if (!picture) {
+		if (par->w < 0 || par->h < 0) {
+		    printf("failed to read width and height\n");
+		    return 1;
+		}
+		picture = snewn(par->w * par->h, unsigned char);
+		for (i = 0; i < par->w * par->h; i++)
+		    picture[i] = GRID_UNKNOWN;
+	    }
+
+	    p = buf;
+	    while (*p) {
+		while (*p && (*p == ',' || isspace((unsigned char)*p)))
+		    p++;
+		wordstart = p;
+		while (*p && !(*p == ',' || *p == '}' ||
+			       isspace((unsigned char)*p)))
+		    p++;
+		if (*p)
+		    *p++ = '\0';
+
+		if (wordstart[0] == '0' &&
+		    (wordstart[1] == 'x' || wordstart[1] == 'X') &&
+		    !wordstart[2 + strspn(wordstart+2,
+					  "0123456789abcdefABCDEF")]) {
+		    unsigned long byte = strtoul(wordstart+2, NULL, 16);
+		    for (i = 0; i < 8; i++) {
+			int bit = (byte >> i) & 1;
+			if (y < par->h && x < par->w)
+			    picture[y * par->w + x] =
+                                bit ? GRID_FULL : GRID_EMPTY;
+			x++;
+		    }
+
+		    if (x >= par->w) {
+			x = 0;
+			y++;
+		    }
+		}
+	    }
+	}
+    }
+
+    for (i = 0; i < par->w * par->h; i++)
+	if (picture[i] == GRID_UNKNOWN) {
+	    fprintf(stderr, "failed to read enough bitmap data\n");
+	    return 1;
+	}
+
+    rs = random_new((void*)&seed, sizeof(time_t));
+
+    desc = new_game_desc(par, rs, NULL, FALSE);
+    params = encode_params(par, FALSE);
+    printf("%s:%s\n", params, desc);
+
+    sfree(desc);
+    sfree(params);
+    free_params(par);
+    random_free(rs);
 
     return 0;
 }

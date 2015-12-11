@@ -7,6 +7,9 @@ pattern  : [G] WINDOWS COMMON pattern pattern.res|noicon.res
 patternsolver : [U] pattern[STANDALONE_SOLVER] STANDALONE
 patternsolver : [C] pattern[STANDALONE_SOLVER] STANDALONE
 
+patternpicture : [U] pattern[STANDALONE_PICTURE_GENERATOR] STANDALONE
+patternpicture : [C] pattern[STANDALONE_PICTURE_GENERATOR] STANDALONE
+
 ALL += pattern[COMBINED]
 
 !begin am gtk
