@@ -441,7 +441,12 @@ static int do_row(unsigned char *known, unsigned char *deduced,
     for (i = len - 1; i >= 0 && known[i] == DOT; i--)
         freespace--;
 
-    do_recurse(known, deduced, row, minpos_done, maxpos_done, minpos_ok, maxpos_ok, data, len, freespace, 0, 0);
+    if (rowlen == 0) {
+        memset(deduced, DOT, len);
+    } else {
+        do_recurse(known, deduced, row, minpos_done, maxpos_done, minpos_ok,
+                   maxpos_ok, data, len, freespace, 0, 0);
+    }
 
     done_any = FALSE;
     for (i=0; i<len; i++)
@@ -502,33 +507,45 @@ static int solve_puzzle(const game_state *state, unsigned char *grid,
      * Changed_* is used to choose the next rows / cols to re-examine
      */
     for (i=0; i<h; i++) {
-	int freespace;
+	int freespace, rowlen;
 	if (state) {
             memcpy(rowdata, state->common->rowdata + state->common->rowsize*(w+i), max*sizeof(int));
-	    rowdata[state->common->rowlen[w+i]] = 0;
+	    rowlen = state->common->rowlen[w+i];
 	} else {
-	    rowdata[compute_rowdata(rowdata, grid+i*w, w, 1)] = 0;
+	    rowlen = compute_rowdata(rowdata, grid+i*w, w, 1);
 	}
-	for (j=0, freespace=w+1; rowdata[j]; j++) freespace -= rowdata[j] + 1;
-	for (j=0, changed_h[i]=0; rowdata[j]; j++)
-	    if (rowdata[j] > freespace)
-		changed_h[i] += rowdata[j] - freespace;
+        rowdata[rowlen] = 0;
+        if (rowlen == 0) {
+            changed_h[i] = w;
+        } else {
+            for (j=0, freespace=w+1; rowdata[j]; j++)
+                freespace -= rowdata[j] + 1;
+            for (j=0, changed_h[i]=0; rowdata[j]; j++)
+                if (rowdata[j] > freespace)
+                    changed_h[i] += rowdata[j] - freespace;
+        }
     }
     for (i=0,max_h=0; i<h; i++)
 	if (changed_h[i] > max_h)
 	    max_h = changed_h[i];
     for (i=0; i<w; i++) {
-	int freespace;
+	int freespace, rowlen;
 	if (state) {
 	    memcpy(rowdata, state->common->rowdata + state->common->rowsize*i, max*sizeof(int));
-	    rowdata[state->common->rowlen[i]] = 0;
+	    rowlen = state->common->rowlen[i];
 	} else {
-	    rowdata[compute_rowdata(rowdata, grid+i, h, w)] = 0;
+            rowlen = compute_rowdata(rowdata, grid+i, h, w);
 	}
-	for (j=0, freespace=h+1; rowdata[j]; j++) freespace -= rowdata[j] + 1;
-	for (j=0, changed_w[i]=0; rowdata[j]; j++)
-	    if (rowdata[j] > freespace)
-		changed_w[i] += rowdata[j] - freespace;
+        rowdata[rowlen] = 0;
+        if (rowlen == 0) {
+            changed_w[i] = h;
+        } else {
+            for (j=0, freespace=h+1; rowdata[j]; j++)
+                freespace -= rowdata[j] + 1;
+            for (j=0, changed_w[i]=0; rowdata[j]; j++)
+                if (rowdata[j] > freespace)
+                    changed_w[i] += rowdata[j] - freespace;
+        }
     }
     for (i=0,max_w=0; i<w; i++)
 	if (changed_w[i] > max_w)
@@ -1897,8 +1914,10 @@ int main(int argc, char **argv)
 	     */
 	    for (i = 0; i < (w+h); i++) {
 		char buf[80];
-		for (thiswid = -1, j = 0; j < s->rowlen[i]; j++)
-		    thiswid += sprintf(buf, " %d", s->rowdata[s->rowsize*i+j]);
+		for (thiswid = -1, j = 0; j < s->common->rowlen[i]; j++)
+		    thiswid += sprintf
+                        (buf, " %d",
+                         s->common->rowdata[s->common->rowsize*i+j]);
 		if (cluewid < thiswid)
 		    cluewid = thiswid;
 	    }
