@@ -50,6 +50,7 @@ typedef struct game_state_common {
     int w, h;
     int rowsize;
     int *rowdata, *rowlen;
+    unsigned char *immutable;
     int refcount;
 } game_state_common;
 
@@ -499,9 +500,15 @@ static int solve_puzzle(const game_state *state, unsigned char *grid,
     max = max(w, h);
 
     memset(matrix, 0, w*h);
+    if (state) {
+        for (i=0; i<w*h; i++) {
+            if (state->common->immutable[i])
+                matrix[i] = state->grid[i];
+        }
+    }
 
     /* For each column, compute how many squares can be deduced
-     * from just the row-data.
+     * from just the row-data and initial clues.
      * Later, changed_* will hold how many squares were changed
      * in every row/column in the previous iteration
      * Changed_* is used to choose the next rows / cols to re-examine
@@ -524,6 +531,9 @@ static int solve_puzzle(const game_state *state, unsigned char *grid,
                 if (rowdata[j] > freespace)
                     changed_h[i] += rowdata[j] - freespace;
         }
+        for (j = 0; j < w; j++)
+            if (matrix[i*w+j])
+                changed_h[i]++;
     }
     for (i=0,max_h=0; i<h; i++)
 	if (changed_h[i] > max_h)
@@ -546,6 +556,9 @@ static int solve_puzzle(const game_state *state, unsigned char *grid,
                 if (rowdata[j] > freespace)
                     changed_w[i] += rowdata[j] - freespace;
         }
+        for (j = 0; j < h; j++)
+            if (matrix[j*w+i])
+                changed_w[i]++;
     }
     for (i=0,max_w=0; i<w; i++)
 	if (changed_w[i] > max_w)
@@ -805,11 +818,39 @@ static char *validate_desc(const game_params *params, const char *desc)
         if (desc[-1] == '/') {
             if (i+1 == params->w + params->h)
                 return "too many row/column specifications";
-        } else if (desc[-1] == '\0') {
+        } else if (desc[-1] == '\0' || desc[-1] == ',') {
             if (i+1 < params->w + params->h)
                 return "too few row/column specifications";
         } else
             return "unrecognised character in game specification";
+    }
+
+    if (desc[-1] == ',') {
+        /*
+         * Optional extra piece of game description which fills in
+         * some grid squares as extra clues.
+         */
+        i = 0;
+        while (i < params->w * params->h) {
+            int c = (unsigned char)*desc++;
+            if ((c >= 'a' && c <= 'z') ||
+                (c >= 'A' && c <= 'Z')) {
+                int len = tolower(c) - 'a';
+                i += len;
+                if (len < 25 && i < params->w*params->h)
+                    i++;
+                if (i > params->w * params->h) {
+                    return "too much data in clue-squares section";
+                }
+            } else if (!c) {
+                return "too little data in clue-squares section";
+            } else {
+                return "unrecognised character in clue-squares section";
+            }
+        }
+        if (*desc) {
+            return "too much data in clue-squares section";
+        }
     }
 
     return NULL;
@@ -831,6 +872,10 @@ static game_state *new_game(midend *me, const game_params *params,
     state->grid = snewn(state->common->w * state->common->h, unsigned char);
     memset(state->grid, GRID_UNKNOWN, state->common->w * state->common->h);
 
+    state->common->immutable = snewn(state->common->w * state->common->h,
+                                     unsigned char);
+    memset(state->common->immutable, 0, state->common->w * state->common->h);
+
     state->common->rowsize = max(state->common->w, state->common->h);
     state->common->rowdata = snewn(state->common->rowsize * (state->common->w + state->common->h), int);
     state->common->rowlen = snewn(state->common->w + state->common->h, int);
@@ -848,6 +893,24 @@ static game_state *new_game(midend *me, const game_params *params,
             } while (*desc++ == '.');
         } else {
             desc++;                    /* expect a slash immediately */
+        }
+    }
+
+    if (desc[-1] == ',') {
+        /*
+         * Optional extra piece of game description which fills in
+         * some grid squares as extra clues.
+         */
+        i = 0;
+        while (i < params->w * params->h) {
+            int c = (unsigned char)*desc++;
+            int full = isupper(c), len = tolower(c) - 'a';
+            i += len;
+            if (len < 25 && i < params->w*params->h) {
+                state->grid[i] = full ? GRID_FULL : GRID_EMPTY;
+                state->common->immutable[i] = TRUE;
+                i++;
+            }
         }
     }
 
@@ -875,6 +938,7 @@ static void free_game(game_state *state)
     if (--state->common->refcount == 0) {
         sfree(state->common->rowdata);
         sfree(state->common->rowlen);
+        sfree(state->common->immutable);
         sfree(state->common);
     }
     sfree(state->grid);
@@ -1161,7 +1225,8 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 
         for (yy = y1; yy <= y2; yy++)
             for (xx = x1; xx <= x2; xx++)
-                if (state->grid[yy * state->common->w + xx] != ui->state)
+                if (!state->common->immutable[yy * state->common->w + xx] &&
+                    state->grid[yy * state->common->w + xx] != ui->state)
                     move_needed = TRUE;
 
         ui->dragging = FALSE;
@@ -1253,7 +1318,8 @@ static game_state *execute_move(const game_state *from, const char *move)
 	ret = dup_game(from);
 	for (yy = y1; yy < y2; yy++)
 	    for (xx = x1; xx < x2; xx++)
-		ret->grid[yy * ret->common->w + xx] = val;
+                if (!ret->common->immutable[yy * ret->common->w + xx])
+                    ret->grid[yy * ret->common->w + xx] = val;
 
 	/*
 	 * An actual change, so check to see if we've completed the
@@ -1674,7 +1740,8 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
              * Work out what state this square should be drawn in,
              * taking any current drag operation into account.
              */
-            if (ui->dragging && x1 <= j && j <= x2 && y1 <= i && i <= y2)
+            if (ui->dragging && x1 <= j && j <= x2 && y1 <= i && i <= y2 &&
+                !state->common->immutable[i * state->common->w + j])
                 val = ui->state;
             else
                 val = state->grid[i * state->common->w + j];
