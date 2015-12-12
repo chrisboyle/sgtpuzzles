@@ -800,6 +800,19 @@ static char *validate_desc(const game_params *params, const char *desc)
     return ret;
 }
 
+#ifdef ANDROID
+static void android_request_keys(const game_params *params)
+{
+    int i;
+    char keys[params->n + 1];
+    for (i = 0; i < params->n; i++) {
+        keys[i] = (char) ('1' + i);
+    }
+    keys[params->n] = '\0';
+    android_keys(keys, ANDROID_ARROWS_LEFT_RIGHT);
+}
+#endif
+
 static game_state *new_game(midend *me, const game_params *params,
                             const char *desc)
 {
@@ -1749,7 +1762,7 @@ const struct game thegame = {
     free_ui,
     encode_ui,
     decode_ui,
-    NULL,  /* android_request_keys */
+    android_request_keys,
     android_cursor_visibility,
     game_changed_state,
     interpret_move,
