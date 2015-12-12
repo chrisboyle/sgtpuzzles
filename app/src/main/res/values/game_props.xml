@@ -42,7 +42,6 @@
 		<item>untangle</item>
 	</array>
 	<!-- Is the game capable of arrows? Default true. -->
-	<bool name="palisade_arrows_capable">false</bool>
 	<bool name="untangle_arrows_capable">false</bool>
 	<!-- Should the game have arrows by default? Default false.
 	This is for puzzles where the default preset has small squares, or diagonals are needed.

@@ -719,6 +719,13 @@ static char *validate_desc(const game_params *params, const char *desc)
     return NULL;
 }
 
+#ifdef ANDROID
+static void android_request_keys(const game_params *params)
+{
+    android_keys2(NULL, "HJKL", ANDROID_ARROWS_ONLY);
+}
+#endif
+
 static game_state *new_game(midend *me, const game_params *params,
                             const char *desc)
 {
@@ -914,6 +921,21 @@ static char *interpret_move(const game_state *state, game_ui *ui,
                             const game_drawstate *ds, int x, int y, int button)
 {
     int w = state->shared->params.w, h = state->shared->params.h;
+    switch (button) {
+        case 'h': case 'H':
+            button = MOD_CTRL | CURSOR_LEFT;
+            break;
+        case 'j': case 'J':
+            button = MOD_CTRL | CURSOR_DOWN;
+            break;
+        case 'k': case 'K':
+            button = MOD_CTRL | CURSOR_UP;
+            break;
+        case 'l': case 'L':
+            button = MOD_CTRL | CURSOR_RIGHT;
+            break;
+        default: break;
+    }
     int control = button & MOD_CTRL, shift = button & MOD_SHFT;
 
     button &= ~MOD_MASK;
@@ -1373,7 +1395,7 @@ const struct game thegame = {
     free_ui,
     encode_ui,
     decode_ui,
-    NULL,  /* android_request_keys */
+    android_request_keys,
     android_cursor_visibility,
     game_changed_state,
     interpret_move,
