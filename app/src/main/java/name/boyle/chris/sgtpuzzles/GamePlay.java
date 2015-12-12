@@ -31,6 +31,7 @@ import android.nfc.NfcAdapter;
 import android.nfc.NfcEvent;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.CountDownTimer;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
@@ -128,6 +129,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 	private static final String STORAGE_PERMISSION_EVER_ASKED = "storage_permission_ever_asked";
 
 	private ProgressDialog progress;
+	private CountDownTimer progressResetRevealer;
 	private TextView statusBar;
 	private SmallKeyboard keyboard;
 	private RelativeLayout mainLayout;
@@ -203,10 +205,12 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 		}
 	}
 
-	private void showProgress(int msgId, final boolean returnToChooser)
+	private void showProgress(final GameLaunch launch)
 	{
+		int msgId = launch.needsGenerating() ? R.string.starting : R.string.resuming;
+		final boolean returnToChooser = launch.isFromChooser();
 		progress = new ProgressDialog(this);
-		progress.setMessage( getString(msgId) );
+		progress.setMessage(getString(msgId));
 		progress.setIndeterminate(true);
 		progress.setCancelable(true);
 		progress.setCanceledOnTouchOutside(false);
@@ -221,12 +225,43 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 				abort(null, returnToChooser);
 			}
 		});
+		if (launch.needsGenerating()) {
+			final String backend = launch.getWhichBackend();
+			final String label = getString(R.string.reset_this_backend, getString(getResources().getIdentifier("name_" + backend, "string", getPackageName())));
+			progress.setButton(DialogInterface.BUTTON_NEUTRAL, label, new DialogInterface.OnClickListener() {
+				@Override
+				public void onClick(DialogInterface dialog, int which) {
+					final SharedPreferences.Editor editor = state.edit();
+					editor.remove(SAVED_GAME_PREFIX + backend);
+					editor.remove(SAVED_COMPLETED_PREFIX + backend);
+					editor.remove(LAST_PARAMS_PREFIX + backend);
+					editor.commit();
+					currentBackend = null;  // prevent save undoing our reset
+					abort(null, true);
+				}
+			});
+		}
 		progress.show();
+		if (launch.needsGenerating()) {
+			progress.getButton(DialogInterface.BUTTON_NEUTRAL).setVisibility(View.GONE);
+			progressResetRevealer = new CountDownTimer(3000, 3000) {
+				public void onTick(long millisUntilFinished) {
+				}
+
+				public void onFinish() {
+					progress.getButton(DialogInterface.BUTTON_NEUTRAL).setVisibility(View.VISIBLE);
+				}
+			}.start();
+		}
 	}
 
 	private void dismissProgress()
 	{
-		if( progress == null ) return;
+		if (progress == null) return;
+		if (progressResetRevealer != null) {
+			progressResetRevealer.cancel();
+			progressResetRevealer = null;
+		}
 		try {
 			progress.dismiss();
 		} catch (IllegalArgumentException ignored) {}  // race condition?
@@ -946,7 +981,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 		if (progress != null) {
 			throw new RuntimeException("startGame while already starting!");
 		}
-		showProgress(launch.needsGenerating() ? R.string.starting : R.string.resuming, launch.isFromChooser());
+		showProgress(launch);
 		stopNative();
 		startGameThread(launch);
 	}
@@ -1177,7 +1212,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 	{
 		handler.removeMessages(MsgType.TIMER.ordinal());
 		nightModeHelper.onPause();
-		save();
+		if (progress == null) save();
 		super.onPause();
 	}
 
