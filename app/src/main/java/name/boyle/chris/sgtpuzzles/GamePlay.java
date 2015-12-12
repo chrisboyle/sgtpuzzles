@@ -160,6 +160,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 	private static final File storageDir = Environment.getExternalStorageDirectory();
 	private String[] games;
 	private Menu menu;
+	private long swipeDownStarted = 0;
 	private String maybeUndoRedo = "UR";
 	private PrefsSaver prefsSaver;
 	private boolean startedFullscreen = false, cachedFullscreen = false;
@@ -740,9 +741,15 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 			startActivity(prefsIntent);
 			break;
 		case R.id.newgame:
-			startNewGame();
+			if (menuSlowEnough()) {
+				startNewGame();
+			}
 			break;
-		case R.id.restart:  restartEvent(); break;
+		case R.id.restart:
+			if (menuSlowEnough()) {
+				restartEvent();
+			}
+			break;
 		case R.id.undo:     sendKey(0, 0, 'U'); break;
 		case R.id.redo:     sendKey(0, 0, 'R'); break;
 		case R.id.solve:
@@ -782,10 +789,15 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 			break;
 		default:
 			if (itemId < gameTypes.size()) {
-				String presetParams = orientGameType((String)gameTypes.keySet().toArray()[itemId]);
-				Log.d(TAG, "preset: " + itemId + ": " + presetParams);
-				startGame(GameLaunch.toGenerate(currentBackend, presetParams));
+				if (menuSlowEnough()) {
+					String presetParams = orientGameType((String) gameTypes.keySet().toArray()[itemId]);
+					Log.d(TAG, "preset: " + itemId + ": " + presetParams);
+					startGame(GameLaunch.toGenerate(currentBackend, presetParams));
+				}
 			} else {
+				if (itemId == R.id.game_menu || itemId == R.id.type_menu) {
+					swipeDownStarted = System.currentTimeMillis();
+				}
 				ret = super.onOptionsItemSelected(item);
 			}
 			break;
@@ -796,6 +808,15 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 			rethinkActionBarCapacity();
 		}
 		return ret;
+	}
+
+	private boolean menuSlowEnough() {
+		final long time = System.currentTimeMillis() - swipeDownStarted;
+		if (time > 650) {
+			return true;
+		}
+		Log.d(TAG, "Ignored presumed-accidental fast menu swipe: " + time + "ms");
+		return false;
 	}
 
 	private void share() {
