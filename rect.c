@@ -1317,7 +1317,8 @@ static char *new_game_desc(const game_params *params_in, random_state *rs,
                     if (ndirs > 0) {
                         int which, dir;
                         struct rect r1, r2;
-
+                        memset(&r1, 0, sizeof(struct rect));
+                        memset(&r2, 0, sizeof(struct rect));
                         which = random_upto(rs, ndirs);
                         dir = dirs[which];
 
