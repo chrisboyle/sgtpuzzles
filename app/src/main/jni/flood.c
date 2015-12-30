@@ -705,7 +705,7 @@ static char *solve_game(const game_state *state, const game_state *currstate,
     struct solver_scratch *scratch;
 
     if (currstate->complete) {
-        *error = "Puzzle is already solved";
+        *error = _("Puzzle is already solved");
         return NULL;
     }
 
