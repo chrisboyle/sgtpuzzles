@@ -128,7 +128,8 @@
 	<color name="inertia_night_colour_lowlight">#444444</color>
 	<color name="keen_night_colour_grid">#bbbbbb</color>
 	<color name="keen_night_colour_block_border">#ffffff</color>
-	<color name="keen_night_colour_user">#00bb00</color>
+	<color name="keen_night_colour_user">#00ff00</color>
+	<color name="keen_night_colour_pencil">#8888ff</color>
 	<color name="lightup_night_colour_black">#666666</color>
 	<color name="loopy_night_colour_foreground">#ffffff</color>
 	<color name="loopy_night_colour_highlight">#444444</color>
@@ -195,7 +196,8 @@
 	<color name="solo_night_colour_pencil">#8888ff</color>
 	<color name="tents_night_colour_grid">#ffffff</color>
 	<color name="towers_night_colour_grid">#ffffff</color>
-	<color name="towers_night_colour_user">#00bb00</color>
+	<color name="towers_night_colour_user">#00ff00</color>
+	<color name="towers_night_colour_pencil">#8888ff</color>
 	<color name="tracks_night_colour_clue">#ffffff</color>
 	<color name="tracks_night_colour_grid">#ffffff</color>
 	<color name="twiddle_night_colour_text">#ffffff</color>
