@@ -55,6 +55,7 @@ static char const keen_diffchars[] = DIFFLIST(ENCODE);
 enum {
     COL_BACKGROUND,
     COL_GRID,
+    COL_BLOCK_BORDER,
     COL_USER,
     COL_HIGHLIGHT,
     COL_ERROR,
@@ -1786,6 +1787,10 @@ static float *game_colours(frontend *fe, int *ncolours)
     ret[COL_GRID * 3 + 1] = 0.0F;
     ret[COL_GRID * 3 + 2] = 0.0F;
 
+    ret[COL_BLOCK_BORDER * 3 + 0] = 0.0F;
+    ret[COL_BLOCK_BORDER * 3 + 1] = 0.0F;
+    ret[COL_BLOCK_BORDER * 3 + 2] = 0.0F;
+
     ret[COL_USER * 3 + 0] = 0.0F;
     ret[COL_USER * 3 + 1] = 0.6F * ret[COL_BACKGROUND * 3 + 1];
     ret[COL_USER * 3 + 2] = 0.0F;
@@ -1887,13 +1892,13 @@ static void draw_tile(drawing *dr, game_drawstate *ds, struct clues *clues,
      * which jut into this square by one pixel.
      */
     if (x > 0 && y > 0 && dsf_canonify(clues->dsf, y*w+x) != dsf_canonify(clues->dsf, (y-1)*w+x-1))
-	draw_rect(dr, tx-GRIDEXTRA, ty-GRIDEXTRA, GRIDEXTRA, GRIDEXTRA, COL_GRID);
+	draw_rect(dr, tx-GRIDEXTRA, ty-GRIDEXTRA, GRIDEXTRA, GRIDEXTRA, COL_BLOCK_BORDER);
     if (x+1 < w && y > 0 && dsf_canonify(clues->dsf, y*w+x) != dsf_canonify(clues->dsf, (y-1)*w+x+1))
-	draw_rect(dr, tx+TILESIZE-1-2*GRIDEXTRA, ty-GRIDEXTRA, GRIDEXTRA, GRIDEXTRA, COL_GRID);
+	draw_rect(dr, tx+TILESIZE-1-2*GRIDEXTRA, ty-GRIDEXTRA, GRIDEXTRA, GRIDEXTRA, COL_BLOCK_BORDER);
     if (x > 0 && y+1 < w && dsf_canonify(clues->dsf, y*w+x) != dsf_canonify(clues->dsf, (y+1)*w+x-1))
-	draw_rect(dr, tx-GRIDEXTRA, ty+TILESIZE-1-2*GRIDEXTRA, GRIDEXTRA, GRIDEXTRA, COL_GRID);
+	draw_rect(dr, tx-GRIDEXTRA, ty+TILESIZE-1-2*GRIDEXTRA, GRIDEXTRA, GRIDEXTRA, COL_BLOCK_BORDER);
     if (x+1 < w && y+1 < w && dsf_canonify(clues->dsf, y*w+x) != dsf_canonify(clues->dsf, (y+1)*w+x+1))
-	draw_rect(dr, tx+TILESIZE-1-2*GRIDEXTRA, ty+TILESIZE-1-2*GRIDEXTRA, GRIDEXTRA, GRIDEXTRA, COL_GRID);
+	draw_rect(dr, tx+TILESIZE-1-2*GRIDEXTRA, ty+TILESIZE-1-2*GRIDEXTRA, GRIDEXTRA, GRIDEXTRA, COL_BLOCK_BORDER);
 
     /* Draw the box clue. */
     if (dsf_canonify(clues->dsf, y*w+x) == y*w+x) {
@@ -1917,7 +1922,7 @@ static void draw_tile(drawing *dr, game_drawstate *ds, struct clues *clues,
 		  /* cluetype == C_DIV ? */ ds->divide_sign));
 	draw_text(dr, tx + GRIDEXTRA * 2, ty + GRIDEXTRA * 2 + TILESIZE/4,
 		  FONT_VARIABLE, TILESIZE/4, ALIGN_VNORMAL | ALIGN_HLEFT,
-		  (tile & DF_ERR_CLUE ? COL_ERROR : COL_GRID), str);
+		  (tile & DF_ERR_CLUE ? COL_ERROR : COL_BLOCK_BORDER), str);
     }
 
     /* new number needs drawing? */
@@ -2030,6 +2035,9 @@ static void draw_tile(drawing *dr, game_drawstate *ds, struct clues *clues,
     draw_update(dr, cx, cy, cw, ch);
 }
 
+static void outline_block_structure(drawing *dr, game_drawstate *ds,
+									int w, int *dsf, int ink);
+
 static void game_redraw(drawing *dr, game_drawstate *ds,
                         const game_state *oldstate, const game_state *state,
                         int dir, const game_ui *ui,
@@ -2087,6 +2095,8 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
 	    }
 	}
     }
+    outline_block_structure(dr, ds, w, state->clues->dsf, COL_BLOCK_BORDER);
+    draw_update(dr, 0, 0, SIZE(w), SIZE(w));
 }
 
 static float game_anim_length(const game_state *oldstate,
@@ -2128,6 +2138,7 @@ static void game_print_size(const game_params *params, float *x, float *y)
     *x = pw / 100.0F;
     *y = ph / 100.0F;
 }
+#endif
 
 /*
  * Subfunction to draw the thick lines between cells. In order to do
@@ -2254,12 +2265,17 @@ static void outline_block_structure(drawing *dr, game_drawstate *ds,
 	/*
 	 * That's our polygon; now draw it.
 	 */
-	draw_polygon(dr, coords, n, -1, ink);
+#ifdef ANDROID
+    draw_thick_polygon(dr, 3.f, coords, n, -1, ink);
+#else
+    draw_polygon(dr, coords, n, -1, ink);
+#endif
     }
 
     sfree(coords);
 }
 
+#ifndef NO_PRINTING
 static void game_print(drawing *dr, const game_state *state, int tilesize)
 {
     int w = state->par.w;

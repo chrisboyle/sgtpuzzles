@@ -126,7 +126,8 @@
 	<color name="inertia_night_colour_wall">#555555</color>
 	<color name="inertia_night_colour_highlight">#888888</color>
 	<color name="inertia_night_colour_lowlight">#444444</color>
-	<color name="keen_night_colour_grid">#ffffff</color>
+	<color name="keen_night_colour_grid">#bbbbbb</color>
+	<color name="keen_night_colour_block_border">#ffffff</color>
 	<color name="keen_night_colour_user">#00bb00</color>
 	<color name="lightup_night_colour_black">#666666</color>
 	<color name="loopy_night_colour_foreground">#ffffff</color>
