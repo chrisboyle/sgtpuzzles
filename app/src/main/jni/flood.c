@@ -704,8 +704,10 @@ static char *solve_game(const game_state *state, const game_state *currstate,
     char buf[256];
     struct solver_scratch *scratch;
 
-    if (currstate->complete)
+    if (currstate->complete) {
+        *error = "Puzzle is already solved";
         return NULL;
+    }
 
     /*
      * Find the best solution our solver can give.

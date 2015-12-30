@@ -15,7 +15,8 @@ The Makefiles include:
    configure script and Makefile.in, after which you can then run
    `./configure' to create an actual Unix Makefile.
 
- - `Makefile.vc' should work under MS Visual C++ on Windows.
+ - `Makefile.vc' should work under MS Visual C++ on Windows. Run
+   'nmake /f Makefile.vc' in a Visual Studio command prompt.
 
  - `Makefile.cyg' should work under Cygwin / MinGW. With appropriate
    tweaks and setting of TOOLPATH, it should work for both compiling
