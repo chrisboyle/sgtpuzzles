@@ -251,6 +251,36 @@ static void solver_clue_candidate(struct solver_ctx *ctx, int diff, int box)
      * digit constraints in that box. We expect to find the digits
      * of the candidate layout in ctx->dscratch, and we update
      * ctx->iscratch as appropriate.
+     *
+     * The contents of ctx->iscratch are completely different
+     * depending on whether diff == DIFF_HARD or not. This function
+     * uses iscratch completely differently between the two cases, and
+     * the code in solver_common() which consumes the result must
+     * likewise have an if statement with completely different
+     * branches for the two cases.
+     *
+     * In DIFF_EASY and DIFF_NORMAL modes, the valid entries in
+     * ctx->iscratch are 0,...,n-1, and each of those entries
+     * ctx->iscratch[i] gives a bitmap of the possible digits in the
+     * ith square of the clue box currently under consideration. So
+     * each entry of iscratch starts off as an empty bitmap, and we
+     * set bits in it as possible layouts for the clue box are
+     * considered (and the difference between DIFF_EASY and
+     * DIFF_NORMAL is just that in DIFF_EASY mode we deliberately set
+     * more bits than absolutely necessary, hence restricting our own
+     * knowledge).
+     *
+     * But in DIFF_HARD mode, the valid entries are 0,...,2*w-1 (at
+     * least outside *this* function - inside this function, we also
+     * use 2*w,...,4*w-1 as scratch space in the loop below); the
+     * first w of those give the possible digits in the intersection
+     * of the current clue box with each column of the puzzle, and the
+     * next w do the same for each row. In this mode, each iscratch
+     * entry starts off as a _full_ bitmap, and in this function we
+     * _clear_ bits for digits that are absent from a given row or
+     * column in each candidate layout, so that the only bits which
+     * remain set are those for digits which have to appear in a given
+     * row/column no matter how the clue box is laid out.
      */
     if (diff == DIFF_EASY) {
 	unsigned mask = 0;
@@ -309,8 +339,14 @@ static int solver_common(struct latin_solver *solver, void *vctx, int diff)
 	long value = ctx->clues[box] & ~CMASK;
 	long op = ctx->clues[box] & CMASK;
 
+        /*
+         * Initialise ctx->iscratch for this clue box. At different
+         * difficulty levels we must initialise a different amount of
+         * it to different things; see the comments in
+         * solver_clue_candidate explaining what each version does.
+         */
 	if (diff == DIFF_HARD) {
-	    for (i = 0; i < n; i++)
+	    for (i = 0; i < 2*w; i++)
 		ctx->iscratch[i] = (1 << (w+1)) - (1 << 1);
 	} else {
 	    for (i = 0; i < n; i++)
@@ -424,6 +460,13 @@ static int solver_common(struct latin_solver *solver, void *vctx, int diff)
 	    break;
 	}
 
+        /*
+         * Do deductions based on the information we've now
+         * accumulated in ctx->iscratch. See the comments above in
+         * solver_clue_candidate explaining what data is left in here,
+         * and how it differs between DIFF_HARD and lower difficulty
+         * levels (hence the big if statement here).
+         */
 	if (diff < DIFF_HARD) {
 #ifdef STANDALONE_SOLVER
 	    char prefix[256];
