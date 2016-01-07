@@ -1585,7 +1585,7 @@ of the beam behaviours shown above:
 \c |......O.|
 \c H........|
 \c |.....O..|
-\c  12-RH---
+\c  12-RR---
 
 As shown, it is possible for a beam to receive multiple reflections
 before re-emerging (see turn 3). Similarly, a beam may be reflected
