@@ -760,7 +760,7 @@ for, the more likely it is that solutions shorter than the target
 length will turn out to be possible.
 
 
-\C{rectangles} \i{Rectangles}
+\C{rect} \i{Rectangles}
 
 \cfg{winhelp-topic}{games.rectangles}
 
