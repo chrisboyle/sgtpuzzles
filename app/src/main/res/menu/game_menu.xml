@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:supportLib="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools" tools:ignore="UnusedAttribute">
+	<item android:title="@string/New_game" android:id="@+id/newgame" android:alphabeticShortcut="n" android:icon="@drawable/ic_action_new"/>
+	<item android:title="@string/Restart" android:id="@+id/restart" android:alphabeticShortcut="t" android:icon="@drawable/ic_action_restart"/>
+    <item android:title="@string/Show_solution" android:id="@+id/solve" android:enabled="false" android:icon="@drawable/ic_action_solve" supportLib:showAsAction="ifRoom"/>
+	<item android:title="@string/Save_" android:id="@+id/save" android:alphabeticShortcut="w" android:icon="@drawable/ic_action_save"/>
+	<item android:title="@string/Share_" android:id="@+id/share" android:icon="@drawable/ic_action_share" />
+	<item android:title="@string/Settings" android:id="@+id/settings" android:icon="@drawable/ic_action_settings"/>
+</menu>

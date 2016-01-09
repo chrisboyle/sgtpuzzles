@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools" tools:ignore="UnusedAttribute">
+	<item android:title="@string/How_to_play_this_game" android:id="@+id/this_game"/>
+	<item android:title="@string/Send_feedback" android:id="@+id/email"/>
+</menu>

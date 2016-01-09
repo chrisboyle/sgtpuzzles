@@ -52,6 +52,7 @@ import android.support.v7.widget.AppCompatCheckBox;
 import android.support.v7.widget.AppCompatEditText;
 import android.support.v7.widget.AppCompatSpinner;
 import android.support.v7.widget.AppCompatTextView;
+import android.support.v7.widget.PopupMenu;
 import android.text.InputType;
 import android.util.DisplayMetrics;
 import android.util.Log;
@@ -59,7 +60,6 @@ import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.SubMenu;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.WindowManager;
@@ -82,6 +82,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.ref.WeakReference;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.nio.charset.Charset;
 import java.text.MessageFormat;
 import java.util.ArrayList;
@@ -135,7 +137,6 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 	private SmallKeyboard keyboard;
 	private RelativeLayout mainLayout;
 	private GameView gameView;
-	private SubMenu typeMenu;
 	private Map<String, String> gameTypes;
 	private int currentType = 0;
 	private boolean workerRunning = false;
@@ -161,7 +162,6 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 	private static final File storageDir = Environment.getExternalStorageDirectory();
 	private String[] games;
 	private Menu menu;
-	private long swipeDownStarted = 0;
 	private String maybeUndoRedo = "UR";
 	private PrefsSaver prefsSaver;
 	private boolean startedFullscreen = false, cachedFullscreen = false;
@@ -319,18 +319,18 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 		if (getSupportActionBar() != null) {
 			getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 			getSupportActionBar().setDisplayUseLogoEnabled(false);
-		}
-		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-			getSupportActionBar().addOnMenuVisibilityListener(new ActionBar.OnMenuVisibilityListener() {
-				@Override
-				public void onMenuVisibilityChanged(boolean visible) {
-					// https://code.google.com/p/android/issues/detail?id=69205
-					if (!visible) {
-						supportInvalidateOptionsMenu();
-						rethinkActionBarCapacity();
+			if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+				getSupportActionBar().addOnMenuVisibilityListener(new ActionBar.OnMenuVisibilityListener() {
+					@Override
+					public void onMenuVisibilityChanged(boolean visible) {
+						// https://code.google.com/p/android/issues/detail?id=69205
+						if (!visible) {
+							supportInvalidateOptionsMenu();
+							rethinkActionBarCapacity();
+						}
 					}
-				}
-			});
+				});
+			}
 		}
 		mainLayout = (RelativeLayout)findViewById(R.id.mainLayout);
 		statusBar = (TextView)findViewById(R.id.statusBar);
@@ -672,29 +672,11 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 	{
 		super.onPrepareOptionsMenu(menu);
 		hackForSubmenus = menu;
-		final MenuItem solveItem = menu.findItem(R.id.solve);
-		solveItem.setEnabled(solveEnabled);
-		solveItem.setVisible(solveEnabled);
 		updateUndoRedoEnabled();
 		final MenuItem typeItem = menu.findItem(R.id.type_menu);
 		final boolean enableType = workerRunning || !gameTypes.isEmpty() || customVisible;
 		typeItem.setEnabled(enableType);
 		typeItem.setVisible(enableType);
-		typeMenu = typeItem.getSubMenu();
-		int i = 0;
-		for(String title : gameTypes.values()) {
-			if( menu.findItem(i) == null ) {
-				typeMenu.add(R.id.typeGroup, i, Menu.NONE, orientGameType(title));
-			}
-			i++;
-		}
-		final MenuItem customItem = menu.findItem(R.id.custom);
-		customItem.setVisible(customVisible);
-		typeMenu.setGroupCheckable(R.id.typeGroup, true, true);
-		if( currentType < 0 ) customItem.setChecked(true);
-		else if( currentType < gameTypes.size() ) menu.findItem(currentType).setChecked(true);
-		menu.findItem(R.id.this_game).setTitle(MessageFormat.format(
-					getString(R.string.how_to_play_game),new Object[]{this.getTitle()}));
 		return true;
 	}
 
@@ -734,74 +716,23 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 		int itemId = item.getItemId();
 		boolean ret = true;
 		switch(itemId) {
+		// these all build menus on demand because we had to wait for anchor buttons to exist
+		case R.id.game_menu:
+			doGameMenu();
+			break;
+		case R.id.type_menu:
+			doTypeMenu();
+			break;
+		case R.id.help_menu:
+			doHelpMenu();
+			break;
 		case android.R.id.home:
 			startChooserAndFinish();
 			break;
-		case R.id.settings:
-			final Intent prefsIntent = new Intent(this, PrefsActivity.class);
-			prefsIntent.putExtra(PrefsActivity.BACKEND_EXTRA, currentBackend);
-			startActivity(prefsIntent);
-			break;
-		case R.id.newgame:
-			if (menuSlowEnough()) {
-				startNewGame();
-			}
-			break;
-		case R.id.restart:
-			if (menuSlowEnough()) {
-				restartEvent();
-			}
-			break;
 		case R.id.undo:     sendKey(0, 0, 'U'); break;
 		case R.id.redo:     sendKey(0, 0, 'R'); break;
-		case R.id.solve:
-			try {
-				solveEvent();
-			} catch (IllegalArgumentException e) {
-				messageBox(getString(R.string.Error), e.getMessage(), false);
-			}
-			break;
-		case R.id.custom:
-			configEvent(CFG_SETTINGS);
-			break;
-		case R.id.this_game:
-			Intent intent = new Intent(this, HelpActivity.class);
-			intent.putExtra(HelpActivity.TOPIC, htmlHelpTopic());
-			startActivity(intent);
-			break;
-		case R.id.email:
-			startActivity(new Intent(this, SendFeedbackActivity.class));
-			break;
-		case R.id.save:
-			if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-				Intent saver = new Intent(Intent.ACTION_CREATE_DOCUMENT);
-				saver.addCategory(Intent.CATEGORY_OPENABLE);
-				saver.setType(MIME_TYPE);
-				try {
-					startActivityForResult(saver, REQ_CODE_CREATE_DOC);
-				} catch (ActivityNotFoundException ignored) {
-					SendFeedbackActivity.promptToReport(GamePlay.this, R.string.saf_missing_desc, R.string.saf_missing_short);
-				}
-			} else {
-				new FilePicker(this, storageDir, true).show();
-			}
-			break;
-		case R.id.share:
-			share();
-			break;
 		default:
-			if (itemId < gameTypes.size()) {
-				if (menuSlowEnough()) {
-					String presetParams = orientGameType((String) gameTypes.keySet().toArray()[itemId]);
-					Log.d(TAG, "preset: " + itemId + ": " + presetParams);
-					startGame(GameLaunch.toGenerate(currentBackend, presetParams));
-				}
-			} else {
-				if (itemId == R.id.game_menu || itemId == R.id.type_menu) {
-					swipeDownStarted = System.currentTimeMillis();
-				}
-				ret = super.onOptionsItemSelected(item);
-			}
+			ret = super.onOptionsItemSelected(item);
 			break;
 		}
 		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
@@ -812,13 +743,132 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 		return ret;
 	}
 
-	private boolean menuSlowEnough() {
-		final long time = System.currentTimeMillis() - swipeDownStarted;
-		if (time > 650) {
-			return true;
+	private void doGameMenu() {
+		final PopupMenu gameMenu = popupMenuWithIcons(R.id.game_menu);
+		gameMenu.getMenuInflater().inflate(R.menu.game_menu, gameMenu.getMenu());
+		final MenuItem solveItem = gameMenu.getMenu().findItem(R.id.solve);
+		solveItem.setEnabled(solveEnabled);
+		solveItem.setVisible(solveEnabled);
+		gameMenu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
+			@Override
+			public boolean onMenuItemClick(MenuItem item) {
+				switch (item.getItemId()) {
+					case R.id.newgame:
+						startNewGame();
+						return true;
+					case R.id.restart:
+						restartEvent();
+						return true;
+					case R.id.solve:
+						try {
+							solveEvent();
+						} catch (IllegalArgumentException e) {
+							messageBox(getString(R.string.Error), e.getMessage(), false);
+						}
+						return true;
+					case R.id.save:
+						if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+							Intent saver = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+							saver.addCategory(Intent.CATEGORY_OPENABLE);
+							saver.setType(MIME_TYPE);
+							try {
+								startActivityForResult(saver, REQ_CODE_CREATE_DOC);
+							} catch (ActivityNotFoundException ignored) {
+								SendFeedbackActivity.promptToReport(GamePlay.this, R.string.saf_missing_desc, R.string.saf_missing_short);
+							}
+						} else {
+							new FilePicker(GamePlay.this, storageDir, true).show();
+						}
+						return true;
+					case R.id.share:
+						share();
+						return true;
+					case R.id.settings:
+						final Intent prefsIntent = new Intent(GamePlay.this, PrefsActivity.class);
+						prefsIntent.putExtra(PrefsActivity.BACKEND_EXTRA, currentBackend);
+						startActivity(prefsIntent);
+						return true;
+					default:
+						return false;
+				}
+			}
+		});
+		gameMenu.show();
+	}
+
+	private void doTypeMenu() {
+		final PopupMenu typeMenu = new PopupMenu(GamePlay.this, findViewById(R.id.type_menu));
+		typeMenu.getMenuInflater().inflate(R.menu.type_menu, typeMenu.getMenu());
+		int i = 0;
+		for(String title : gameTypes.values()) {
+			if( typeMenu.getMenu().findItem(i) == null ) {
+				typeMenu.getMenu().add(R.id.typeGroup, i, Menu.NONE, orientGameType(title));
+			}
+			i++;
 		}
-		Log.d(TAG, "Ignored presumed-accidental fast menu swipe: " + time + "ms");
-		return false;
+		final MenuItem customItem = typeMenu.getMenu().findItem(R.id.custom);
+		customItem.setVisible(customVisible);
+		typeMenu.getMenu().setGroupCheckable(R.id.typeGroup, true, true);
+		if( currentType < 0 ) customItem.setChecked(true);
+		else if( currentType < gameTypes.size() ) typeMenu.getMenu().findItem(currentType).setChecked(true);
+		typeMenu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
+			@Override
+			public boolean onMenuItemClick(MenuItem item) {
+				final int itemId = item.getItemId();
+				if (itemId == R.id.custom) {
+					configEvent(CFG_SETTINGS);
+					return true;
+				} else if (itemId < gameTypes.size()) {
+					String presetParams = orientGameType((String) gameTypes.keySet().toArray()[itemId]);
+					Log.d(TAG, "preset: " + itemId + ": " + presetParams);
+					startGame(GameLaunch.toGenerate(currentBackend, presetParams));
+					return true;
+				} else {
+					return false;
+				}
+			}
+		});
+		typeMenu.show();
+	}
+
+	private void doHelpMenu() {
+		final PopupMenu helpMenu = new PopupMenu(GamePlay.this, findViewById(R.id.help_menu));
+		helpMenu.getMenuInflater().inflate(R.menu.help_menu, helpMenu.getMenu());
+		helpMenu.getMenu().findItem(R.id.this_game).setTitle(MessageFormat.format(
+				getString(R.string.how_to_play_game), new Object[]{GamePlay.this.getTitle()}));
+		helpMenu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
+			@Override
+			public boolean onMenuItemClick(MenuItem item) {
+				switch (item.getItemId()) {
+					case R.id.this_game:
+						Intent intent = new Intent(GamePlay.this, HelpActivity.class);
+						intent.putExtra(HelpActivity.TOPIC, htmlHelpTopic());
+						startActivity(intent);
+						return true;
+					case R.id.email:
+						startActivity(new Intent(GamePlay.this, SendFeedbackActivity.class));
+						return true;
+					default:
+						return false;
+				}
+			}
+		});
+		helpMenu.show();
+	}
+
+	private PopupMenu popupMenuWithIcons(int buttonId) {
+		final PopupMenu popupMenu = new PopupMenu(GamePlay.this, findViewById(buttonId));
+		try {
+			Field field = popupMenu.getClass().getDeclaredField("mPopup");
+			field.setAccessible(true);
+			Object menuPopupHelper = field.get(popupMenu);
+			Class<?> classPopupHelper = Class.forName(menuPopupHelper.getClass().getName());
+			Method setForceIcons = classPopupHelper.getMethod("setForceShowIcon", boolean.class);
+			setForceIcons.invoke(menuPopupHelper, true);
+		} catch (Exception e) {
+			// no icons, no big deal
+		}
+		return popupMenu;
 	}
 
 	private void share() {
@@ -1180,10 +1230,6 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 	}
 
 	private void refreshPresets(String currentParams) {
-		if (typeMenu != null) {
-			while (typeMenu.size() > 1)
-				typeMenu.removeItem(typeMenu.getItem(0).getItemId());
-		}
 		gameTypes.clear();
 		currentType = -1;
 		final String[] presets = getPresets();

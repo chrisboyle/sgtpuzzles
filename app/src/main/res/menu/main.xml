@@ -6,21 +6,7 @@
 <!-- showAsAction will be reset by rethinkActionBarCapacity() -->
 <item android:title="@string/Undo" android:id="@+id/undo" android:alphabeticShortcut="u" android:icon="@drawable/ic_action_undo" android:visible="false" supportLib:showAsAction="ifRoom"/>
 <item android:title="@string/Redo" android:id="@+id/redo" android:alphabeticShortcut="r" android:icon="@drawable/ic_action_redo" android:visible="false" supportLib:showAsAction="ifRoom"/>
-<item android:title="@string/Game" android:id="@+id/game_menu" android:icon="@drawable/ic_action_game" supportLib:showAsAction="ifRoom|withText"><menu>
-	<item android:title="@string/New_game" android:id="@+id/newgame" android:alphabeticShortcut="n" android:icon="@drawable/ic_action_new"/>
-	<item android:title="@string/Restart" android:id="@+id/restart" android:alphabeticShortcut="t" android:icon="@drawable/ic_action_restart"/>
-    <item android:title="@string/Show_solution" android:id="@+id/solve" android:enabled="false" android:icon="@drawable/ic_action_solve" supportLib:showAsAction="ifRoom"/>
-	<item android:title="@string/Save_" android:id="@+id/save" android:alphabeticShortcut="w" android:icon="@drawable/ic_action_save"/>
-	<item android:title="@string/Share_" android:id="@+id/share" android:icon="@drawable/ic_action_share" />
-	<item android:title="@string/Settings" android:id="@+id/settings" android:icon="@drawable/ic_action_settings"/>
-</menu></item>
-<item android:title="@string/Type" android:id="@+id/type_menu" android:icon="@drawable/ic_action_type" supportLib:showAsAction="ifRoom|withText"><menu>
-	<group android:id="@+id/typeGroup" android:checkableBehavior="single">
-		<item android:title="@string/Custom_" android:id="@+id/custom" android:visible="false" android:checkable="true" android:menuCategory="secondary"/>
-	</group>
-</menu></item>
-<item android:title="@string/Help" android:id="@+id/help_menu" android:icon="@drawable/ic_action_help" supportLib:showAsAction="ifRoom|withText"><menu>
-	<item android:title="@string/How_to_play_this_game" android:id="@+id/this_game"/>
-	<item android:title="@string/Send_feedback" android:id="@+id/email"/>
-</menu></item>
+<item android:title="@string/Game" android:id="@+id/game_menu" android:icon="@drawable/ic_action_game" supportLib:showAsAction="ifRoom|withText"/>
+<item android:title="@string/Type" android:id="@+id/type_menu" android:icon="@drawable/ic_action_type" supportLib:showAsAction="ifRoom|withText"/>
+<item android:title="@string/Help" android:id="@+id/help_menu" android:icon="@drawable/ic_action_help" supportLib:showAsAction="ifRoom|withText"/>
 </menu>
