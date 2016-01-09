@@ -43,6 +43,7 @@ import android.support.annotation.NonNull;
 import android.support.v4.app.NavUtils;
 import android.support.v4.app.ShareCompat;
 import android.support.v4.content.FileProvider;
+import android.support.v4.content.res.ResourcesCompat;
 import android.support.v4.view.MenuItemCompat;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AlertDialog;
@@ -353,8 +354,9 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 
 	private void refreshStatusBarColours() {
 		final boolean night = nightModeHelper.isNight();
-		final int foreground = getResources().getColor(night ? R.color.night_status_bar_text : R.color.status_bar_text);
-		final int background = getResources().getColor(night ? R.color.night_game_background : R.color.game_background);
+		final ResourcesCompat resourcesCompat = new ResourcesCompat();
+		final int foreground = resourcesCompat.getColor(getResources(), night ? R.color.night_status_bar_text : R.color.status_bar_text, getTheme());
+		final int background = resourcesCompat.getColor(getResources(), night ? R.color.night_game_background : R.color.game_background, getTheme());
 		statusBar.setTextColor(foreground);
 		statusBar.setBackgroundColor(background);
 	}
@@ -888,6 +890,9 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 		try {
 			final String s = saveToString();
 			pfd = getContentResolver().openFileDescriptor(dataIntent.getData(), "w");
+			if (pfd == null) {
+				throw new IOException("Could not open " + dataIntent.getData());
+			}
 			fileOutputStream = new FileOutputStream(pfd.getFileDescriptor());
 			fileOutputStream.write(s.getBytes());
 		} catch (IOException e) {
