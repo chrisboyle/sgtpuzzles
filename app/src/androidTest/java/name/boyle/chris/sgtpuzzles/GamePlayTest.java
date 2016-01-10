@@ -43,6 +43,7 @@ import static android.view.KeyEvent.KEYCODE_DPAD_LEFT;
 import static android.view.KeyEvent.KEYCODE_DPAD_RIGHT;
 import static android.view.KeyEvent.KEYCODE_DPAD_UP;
 import static android.view.KeyEvent.KEYCODE_G;
+import static android.view.KeyEvent.KEYCODE_L;
 import static android.view.KeyEvent.KEYCODE_SPACE;
 import static android.view.KeyEvent.KEYCODE_V;
 import static android.view.KeyEvent.KEYCODE_Z;
@@ -118,6 +119,8 @@ public class GamePlayTest {
 				KEYCODE_DPAD_DOWN, KEYCODE_DPAD_DOWN, KEYCODE_DPAD_CENTER);
 		addExample("net", "1x2:12", KEYCODE_DPAD_UP, KEYCODE_D);
 		addExample("netslide", "2x2:ch116", KEYCODE_DPAD_DOWN, KEYCODE_DPAD_CENTER);
+		addExample("palisade", "2x3n3:d33", KEYCODE_L, KEYCODE_DPAD_DOWN, KEYCODE_L,
+				KEYCODE_DPAD_DOWN, KEYCODE_L);
 		addExample("pattern", "1x2:2/1/1",
 				KEYCODE_DPAD_CENTER, KEYCODE_DPAD_DOWN, KEYCODE_DPAD_CENTER);
 		addExample("pearl", "5x5:dBaWaBgWaBeB", KEYCODE_DPAD_CENTER,
@@ -150,7 +153,8 @@ public class GamePlayTest {
 				KEYCODE_DPAD_DOWN, KEYCODE_DPAD_LEFT, KEYCODE_DPAD_CENTER, KEYCODE_DPAD_CENTER,
 				KEYCODE_DPAD_LEFT, KEYCODE_DPAD_CENTER);
 		addExample("singles", "2x2:1121", KEYCODE_DPAD_RIGHT, KEYCODE_DPAD_CENTER);
-		addExample("sixteen", "2x2:1,4,3,2", KEYCODE_DPAD_RIGHT, KEYCODE_DPAD_CENTER);
+		addExample("sixteen", "2x2:1,4,3,2", KEYCODE_DPAD_UP, KEYCODE_DPAD_UP, KEYCODE_DPAD_RIGHT,
+				KEYCODE_DPAD_CENTER);
 		addExample("slant", "2x2:1c1d", KEYCODE_DPAD_CENTER, KEYCODE_DPAD_RIGHT,
 				KEYCODE_DPAD_CENTER, KEYCODE_DPAD_DOWN, KEYCODE_DPAD_CENTER,
 				KEYCODE_DPAD_CENTER, KEYCODE_DPAD_LEFT, KEYCODE_DPAD_CENTER);
