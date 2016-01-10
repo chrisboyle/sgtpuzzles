@@ -74,6 +74,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 			SHARED_ICONS.put("bridges_sym_key_mouse_left", "line");
 			SHARED_ICONS.put("bridges_sym_key_l", "lock");
 			SHARED_ICONS.put("filling_sym_key_mouse_left", "square_filled");
+			SHARED_ICONS.put("filling_sym_key_0", "square_empty");
 			SHARED_ICONS.put("galaxies_sym_key_mouse_left", "line");
 			SHARED_ICONS.put("guess_sym_key_mouse_right", "lock");
 			SHARED_ICONS.put("inertia_sym_key_mouse_left", "ic_action_solve");
@@ -279,7 +280,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 					setUndoRedoEnabled(ExtraKey.REDO, redoEnabled);
 					break;
 				case '\b':
-					key.icon = ContextCompat.getDrawable(context, R.drawable.sym_key_backspace);
+					key.icon = trySpecificIcon(context.getResources(), R.drawable.sym_key_backspace);
 					key.repeatable = true;
 					key.enabled = true;
 					break;
@@ -466,7 +467,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 
 		private void trySpecificCharacterIcon(final Resources resources, final Key key, final char c) {
 			final int icon;
-			if (Character.isUpperCase(c)) {
+			if (Character.isUpperCase(c) || Character.isDigit(c)) {
 				final String specificName = backendForIcons + "_sym_key_" + Character.toLowerCase(c);
 				final String sharedIcon = SHARED_ICONS.get(specificName);
 				icon = resources.getIdentifier(

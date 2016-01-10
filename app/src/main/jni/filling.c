@@ -1294,7 +1294,7 @@ static char *validate_desc(const game_params *params, const char *desc)
 #ifdef ANDROID
 static void android_request_keys(const game_params *params)
 {
-    android_keys("123456789\b", ANDROID_ARROWS_LEFT);
+    android_keys("1234567890\b", ANDROID_ARROWS_LEFT_RIGHT);
 }
 #endif
 
