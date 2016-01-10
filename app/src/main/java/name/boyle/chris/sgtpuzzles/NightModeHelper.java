@@ -7,6 +7,7 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.os.Build;
 import android.os.Handler;
 import android.preference.PreferenceManager;
 
@@ -41,13 +42,22 @@ public class NightModeHelper implements SensorEventListener, SharedPreferences.O
 	public NightModeHelper(Context context, Parent parent) {
 		this.context = context;
 		this.parent = parent;
-		sensorManager = (SensorManager)context.getSystemService(Context.SENSOR_SERVICE);
-		lightSensor = sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT);
+		if (!isOldEmulator()) {
+			sensorManager = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
+			lightSensor = sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT);
+		}
 		prefs = PreferenceManager.getDefaultSharedPreferences(context);
 		prefs.registerOnSharedPreferenceChangeListener(this);
 		state = context.getSharedPreferences(GamePlay.STATE_PREFS_NAME, Context.MODE_PRIVATE);
 		prefsSaver = PrefsSaver.get(context);
 		applyNightMode(false);
+	}
+
+	private boolean isOldEmulator() {
+		return (Build.VERSION.SDK_INT < Build.VERSION_CODES.GINGERBREAD_MR1)
+				&& (Build.PRODUCT.equals("sdk")
+				|| Build.PRODUCT.contains("sdk_")
+				|| Build.PRODUCT.contains("_sdk"));
 	}
 
 	public boolean isNight() {
@@ -122,7 +132,7 @@ public class NightModeHelper implements SensorEventListener, SharedPreferences.O
 			handler.removeCallbacks(stayedLight);
 			handler.removeCallbacks(stayedDark);
 			previousLux = null;
-			if (wasAuto) sensorManager.unregisterListener(this);
+			if (wasAuto && sensorManager != null) sensorManager.unregisterListener(this);
 		}
 		else if ("off".equals(pref) || lightSensor == null) {
 			nightMode = NightMode.OFF;
@@ -130,18 +140,18 @@ public class NightModeHelper implements SensorEventListener, SharedPreferences.O
 			handler.removeCallbacks(stayedLight);
 			handler.removeCallbacks(stayedDark);
 			previousLux = null;
-			if (wasAuto) sensorManager.unregisterListener(this);
+			if (wasAuto && sensorManager != null) sensorManager.unregisterListener(this);
 		}
 		else if (!wasAuto) {
 			nightMode = NightMode.AUTO;
-			if (alreadyStarted) sensorManager.registerListener(this, lightSensor, SensorManager.SENSOR_DELAY_NORMAL);
+			if (alreadyStarted && sensorManager != null) sensorManager.registerListener(this, lightSensor, SensorManager.SENSOR_DELAY_NORMAL);
 		}
 		parent.refreshNightNow(isNight(), alreadyStarted);
 	}
 
 	public void onPause() {
 		if (nightMode == NightMode.AUTO) {
-			sensorManager.unregisterListener(this);
+			if (sensorManager != null) sensorManager.unregisterListener(this);
 			handler.removeCallbacks(stayedLight);
 			handler.removeCallbacks(stayedDark);
 			previousLux = null;
@@ -150,7 +160,7 @@ public class NightModeHelper implements SensorEventListener, SharedPreferences.O
 
 	public void onResume() {
 		if (nightMode == NightMode.AUTO) {
-			sensorManager.registerListener(this, lightSensor, SensorManager.SENSOR_DELAY_NORMAL);
+			if (sensorManager != null) sensorManager.registerListener(this, lightSensor, SensorManager.SENSOR_DELAY_NORMAL);
 		}
 	}
 }
