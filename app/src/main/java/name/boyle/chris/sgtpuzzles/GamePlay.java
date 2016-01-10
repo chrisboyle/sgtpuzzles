@@ -1297,10 +1297,9 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 		if (restartOnResume) {
 			startActivity(new Intent(this, RestartActivity.class));
 			finish();
+			return;
 		}
-		else {
-			nightModeHelper.onResume();
-		}
+		nightModeHelper.onResume();
 		if (appStartIntentOnResume != null) {
 			onNewIntent(appStartIntentOnResume);
 			appStartIntentOnResume = null;
@@ -1317,10 +1316,12 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 	@Override
 	public void onWindowFocusChanged( boolean f )
 	{
-		if( f && gameWantsTimer && currentBackend != null
-				&& ! handler.hasMessages(MsgType.TIMER.ordinal()) )
+		if (f && gameWantsTimer && currentBackend != null
+				&& ! handler.hasMessages(MsgType.TIMER.ordinal())) {
+			resetTimerBaseline();
 			handler.sendMessageDelayed(handler.obtainMessage(MsgType.TIMER.ordinal()),
 					TIMER_INTERVAL);
+		}
 	}
 
 	@SuppressLint("CommitPrefEdits")
@@ -2021,6 +2022,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 	native void setCursorVisibility(boolean visible);
 	native String[] getPresets();
 	native int getUIVisibility();
+	native void resetTimerBaseline();
 
 	static {
 		System.loadLibrary("puzzles");

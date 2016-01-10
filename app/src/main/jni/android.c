@@ -374,6 +374,12 @@ void activate_timer(frontend *_fe)
 	fe->timer_active = TRUE;
 }
 
+void JNICALL Java_name_boyle_chris_sgtpuzzles_GamePlay_resetTimerBaseline(JNIEnv *env, jobject _obj)
+{
+	if (!fe) return;
+	gettimeofday(&fe->last_time, NULL);
+}
+
 config_item* configItemWithName(JNIEnv *env, jstring js)
 {
 	const char* name = (*env)->GetStringUTFChars(env, js, NULL);
