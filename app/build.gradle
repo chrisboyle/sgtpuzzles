@@ -38,7 +38,7 @@ android {
 
     defaultConfig {
         applicationId "name.boyle.chris.sgtpuzzles"
-        versionCode 111
+        versionCode 112
         versionName "${timestamp()}-${idForSimon()}"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
         minSdkVersion 7
