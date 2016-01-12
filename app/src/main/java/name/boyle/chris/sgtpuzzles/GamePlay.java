@@ -1401,8 +1401,10 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 			mainLayout.updateViewLayout(gameView, glp);
 		}
 		final SmallKeyboard.ArrowMode arrowMode = computeArrowMode(whichBackend);
-		final String maybeSwapLRKey = (lastArrowMode == SmallKeyboard.ArrowMode.ARROWS_LEFT_RIGHT_CLICK)
-				? String.valueOf(SmallKeyboard.SWAP_L_R_KEY) : "";
+		final boolean shouldHaveSwap = (lastArrowMode == SmallKeyboard.ArrowMode.ARROWS_LEFT_RIGHT_CLICK)
+				|| "palisade".equals(whichBackend)
+				|| "net".equals(whichBackend);
+		final String maybeSwapLRKey = shouldHaveSwap ? String.valueOf(SmallKeyboard.SWAP_L_R_KEY) : "";
 		keyboard.setKeys((c.hardKeyboardHidden == Configuration.HARDKEYBOARDHIDDEN_NO)
 				? maybeSwapLRKey + maybeUndoRedo
 				: filterKeys(arrowMode) + maybeSwapLRKey + maybeUndoRedo,

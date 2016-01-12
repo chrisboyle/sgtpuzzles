@@ -617,7 +617,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 		for (int i=0; i<s.length();i++) parent.sendKey(0,0,s.charAt(i));
 	}
 	public void onKey(int k, int[] ignore) {
-		if (k == '*') {
+		if (k == SWAP_L_R_KEY) {
 			final SmallKeyboard.KeyboardModel model = (KeyboardModel) getKeyboard();
 			final Keyboard.Key key = model.getKeys().get(model.swapLRKey);
 			model.setSwapLR(key.on, true);
