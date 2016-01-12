@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: sgt-puzzles\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-12-12 17:38+0000\n"
+"POT-Creation-Date: 2016-01-12 09:29+0000\n"
 "PO-Revision-Date: 2013-06-26 20:41+0200\n"
 "Last-Translator: Helge Kreutzmann <debian@helgefjell.de>\n"
 "Language-Team: de <debian-l10n-german@lists.debian.org>\n"
@@ -98,8 +98,8 @@ msgid ""
 msgstr ""
 "Unter Android muss man drücken statt links klicken und langes drücken statt "
 "rechts klicken. Wo dieses Handbuch Buchstaben auf der Tastatur erwähnt, "
-"können diese als Bildzeichen am Fuß des Bildschirms gefunden werden (Strg"
-"und Umschalt sind nicht verfügbar)."
+"können diese als Bildzeichen am Fuß des Bildschirms gefunden werden (Strg und "
+"Umschalt sind nicht verfügbar)."
 
 #. type: define
 #: puzzles.but:26
@@ -3953,8 +3953,8 @@ msgstr "|.....O..|"
 
 #. type: c
 #: puzzles.but:1628
-#, no-wrap
-msgid "12-RH---"
+#, fuzzy, no-wrap
+msgid "12-RR---"
 msgstr "12-RH---"
 
 #. type: Plain text
@@ -7658,8 +7658,8 @@ msgid ""
 msgstr ""
 "Sie bekommen ein Gitter an Quadraten, von denen einige Ziffern enthalten. "
 "Ihre Aufgabe besteht darin, die Gitter in gleichflächige Regions zu teilen, "
-"so dass jedes nummeriertes Quadrat neben so viele Grenzen ist (einschließlich "
-"die zwischen der Innenseite und der Außenseite des Gitters)."
+"so dass jedes nummeriertes Quadrat neben so viele Grenzen ist "
+"(einschließlich die zwischen der Innenseite und der Außenseite des Gitters)."
 
 #. type: Plain text
 #: puzzles.but:3397
