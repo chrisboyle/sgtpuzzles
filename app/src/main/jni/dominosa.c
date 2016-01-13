@@ -804,11 +804,12 @@ static char *validate_desc(const game_params *params, const char *desc)
 static void android_request_keys(const game_params *params)
 {
     int i;
-    char keys[params->n + 2];
-    for (i = 0; i <= params->n; i++) {
+    int nOr9 = min(params->n, 9);
+    char keys[nOr9 + 2];
+    for (i = 0; i <= nOr9; i++) {
         keys[i] = (char) ('0' + i);
     }
-    keys[params->n + 1] = '\0';
+    keys[nOr9 + 1] = '\0';
     android_keys(keys, ANDROID_ARROWS_LEFT_RIGHT);
 }
 #endif
