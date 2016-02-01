@@ -697,17 +697,17 @@ static char *validate_desc(const game_params *params, const char *desc)
     int w = params->w, h = params->h, wh = w*h, squares = 0;
 
     for (/* nop */; *desc; ++desc) {
-        if (islower(*desc)) {
+        if (islower((unsigned char)*desc)) {
             squares += *desc - 'a' + 1;
-        } else if (isdigit(*desc)) {
+        } else if (isdigit((unsigned char)*desc)) {
             if (*desc > '4') {
                 static char buf[] = "Invalid (too large) number: '5'";
-                assert (isdigit(buf[lenof(buf) - 3]));
+                assert (isdigit((unsigned char)buf[lenof(buf) - 3]));
                 buf[lenof(buf) - 3] = *desc; /* ... or 6, 7, 8, 9 :-) */
                 return buf;
             }
             ++squares;
-        } else if (isprint(*desc)) {
+        } else if (isprint((unsigned char)*desc)) {
             static char buf[] = "Invalid character in data: '?'";
             buf[lenof(buf) - 3] = *desc;
             return buf;
@@ -732,8 +732,8 @@ static game_state *new_game(midend *me, const game_params *params,
 
     setmem(state->shared->clues, EMPTY, wh);
     for (i = 0; *desc; ++desc) {
-        if (isdigit(*desc)) state->shared->clues[i++] = *desc - '0';
-        else if (isalpha(*desc)) i += *desc - 'a' + 1;
+        if (isdigit((unsigned char)*desc)) state->shared->clues[i++] = *desc - '0';
+        else if (isalpha((unsigned char)*desc)) i += *desc - 'a' + 1;
     }
 
     snewa(state->borders, wh);
