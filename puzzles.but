@@ -779,9 +779,10 @@ quite as good as hand-crafted puzzles would be, but on the plus side
 you get an inexhaustible supply of puzzles tailored to your own
 specification.
 
-\B{nikoli-rect} \W{http://www.nikoli.co.jp/puzzles/7/index_text-e.htm}\cw{http://www.nikoli.co.jp/puzzles/7/index_text-e.htm}
+\B{nikoli-rect} \W{http://www.nikoli.co.jp/en/puzzles/shikaku.html}\cw{http://www.nikoli.co.jp/en/puzzles/shikaku.html}
+(beware of Flash)
 
-\B{puzzle-palace-rect} \W{http://www.puzzle.gr.jp/puzzle/sikaku/palm/index.html.en}\cw{http://www.puzzle.gr.jp/puzzle/sikaku/palm/index.html.en}
+\B{puzzle-palace-rect} \W{https://web.archive.org/web/20041024001459/http://www.puzzle.gr.jp/puzzle/sikaku/palm/index.html.en}\cw{https://web.archive.org/web/20041024001459/http://www.puzzle.gr.jp/puzzle/sikaku/palm/index.html.en}
 
 \H{rectangles-controls} \I{controls, for Rectangles}Rectangles controls
 
@@ -970,7 +971,8 @@ of the modern form of the puzzle, and it was first published in
 of the history of the puzzle can be found on Wikipedia
 \k{wikipedia-solo}.
 
-\B{nikoli-solo} \W{http://www.nikoli.co.jp/puzzles/1/index_text-e.htm}\cw{http://www.nikoli.co.jp/puzzles/1/index_text-e.htm}
+\B{nikoli-solo} \W{http://www.nikoli.co.jp/en/puzzles/sudoku.html}\cw{http://www.nikoli.co.jp/en/puzzles/sudoku.html}
+(beware of Flash)
 
 \B{wikipedia-solo} \W{http://en.wikipedia.org/wiki/Sudoku}\cw{http://en.wikipedia.org/wiki/Sudoku}
 
@@ -1513,7 +1515,7 @@ to position the points so that no line crosses another.
 I originally saw this in the form of a Flash game called \i{Planarity}
 \k{Planarity}, written by John Tantalo.
 
-\B{Planarity} \W{http://home.cwru.edu/~jnt5/Planarity}\cw{http://home.cwru.edu/~jnt5/Planarity}
+\B{Planarity} \W{http://planarity.net}\cw{http://planarity.net}
 
 \H{untangle-controls} \i{Untangle controls}
 
@@ -1706,7 +1708,7 @@ grid because that would immediately cause a loop.)
 Credit for this puzzle goes to \i{Nikoli} \k{nikoli-slant}.
 
 \B{nikoli-slant}
-\W{http://www.nikoli.co.jp/puzzles/39/index.htm}\cw{http://www.nikoli.co.jp/puzzles/39/index.htm}
+\W{http://www.nikoli.co.jp/ja/puzzles/gokigen_naname}\cw{http://www.nikoli.co.jp/ja/puzzles/gokigen_naname}
 (in Japanese)
 
 \H{slant-controls} \i{Slant controls}
@@ -1784,7 +1786,7 @@ Credit for this puzzle goes to \i{Nikoli} \k{nikoli-lightup}.
 Light Up was contributed to this collection by James Harvey.
 
 \B{nikoli-lightup}
-\W{http://www.nikoli.co.jp/puzzles/32/index-e.htm}\cw{http://www.nikoli.co.jp/puzzles/32/index-e.htm}
+\W{http://www.nikoli.co.jp/en/puzzles/akari.html}\cw{http://www.nikoli.co.jp/en/puzzles/akari.html}
 (beware of Flash)
 
 \H{lightup-controls} \i{Light Up controls}
@@ -1959,7 +1961,7 @@ and subsequently enhanced to handle various types of non-square grid
 by Lambros Lambrou.
 
 \B{nikoli-loopy}
-\W{http://www.nikoli.co.jp/puzzles/3/index-e.htm}\cw{http://www.nikoli.co.jp/puzzles/3/index-e.htm}
+\W{http://www.nikoli.co.jp/en/puzzles/slitherlink.html}\cw{http://www.nikoli.co.jp/en/puzzles/slitherlink.html}
 (beware of Flash)
 
 \H{loopy-controls} \i{Loopy controls}
@@ -2163,7 +2165,8 @@ Credit for this puzzle goes to \i{Nikoli} \k{nikoli-bridges}.
 Bridges was contributed to this collection by James Harvey.
 
 \B{nikoli-bridges}
-\W{http://www.nikoli.co.jp/puzzles/14/index-e.htm}\cw{http://www.nikoli.co.jp/puzzles/14/index-e.htm}
+\W{http://www.nikoli.co.jp/en/puzzles/hashiwokakero.html}\cw{http://www.nikoli.co.jp/en/puzzles/hashiwokakero.html}
+(beware of Flash)
 
 \H{bridges-controls} \i{Bridges controls}
 
@@ -2402,7 +2405,7 @@ English as \q{Spiral Galaxies}.
 
 Galaxies was contributed to this collection by James Harvey.
 
-\B{nikoli-galaxies} \W{http://www.nikoli.co.jp/en/puzzles/astronomical_show/}\cw{http://www.nikoli.co.jp/en/puzzles/astronomical_show/}
+\B{nikoli-galaxies} \W{http://www.nikoli.co.jp/en/puzzles/astronomical_show.html}\cw{http://www.nikoli.co.jp/en/puzzles/astronomical_show.html}
 
 \H{galaxies-controls} \i{Galaxies controls}
 
@@ -2475,7 +2478,7 @@ Credit for this puzzle goes to \i{Nikoli} \k{nikoli-fillomino}.
 Filling was contributed to this collection by Jonas K\u00F6{oe}lker.
 
 \B{nikoli-fillomino}
-\W{http://www.nikoli.co.jp/en/puzzles/fillomino/}\cw{http://www.nikoli.co.jp/en/puzzles/fillomino/}
+\W{http://www.nikoli.co.jp/en/puzzles/fillomino.html}\cw{http://www.nikoli.co.jp/en/puzzles/fillomino.html}
 
 \H{filling-controls} \I{controls, for Filling}Filling controls
 
@@ -2727,7 +2730,7 @@ Credit for this puzzle goes to \i{Nikoli} \k{nikoli-hitori} who call it
 Singles was contributed to this collection by James Harvey.
 
 \B{nikoli-hitori}
-\W{http://www.nikoli.com/en/puzzles/hitori/index.html}\cw{http://www.nikoli.com/en/puzzles/hitori/index.html}
+\W{http://www.nikoli.com/en/puzzles/hitori.html}\cw{http://www.nikoli.com/en/puzzles/hitori.html}
 (beware of Flash)
 
 \H{singles-controls} \i{Singles controls}
@@ -2945,7 +2948,7 @@ it \q{Kurodoko}, \q{Kuromasu} or \q{Where is Black Cells}.
 Range was contributed to this collection by Jonas K\u00F6{oe}lker.
 
 \B{nikoli-range}
-\W{http://www.nikoli.co.jp/en/puzzles/where_is_black_cells/}\cw{http://www.nikoli.co.jp/en/puzzles/where_is_black_cells/}
+\W{http://www.nikoli.co.jp/en/puzzles/where_is_black_cells.html}\cw{http://www.nikoli.co.jp/en/puzzles/where_is_black_cells.html}
 
 \H{range-controls} \I{controls, for Range}Range controls
 
@@ -3005,7 +3008,8 @@ Credit for this puzzle goes to \i{Nikoli}, who call it \q{Masyu}.
 Thanks to James Harvey for assistance with the implementation.
 
 \B{nikoli-pearl}
-\W{http://www.nikoli.co.jp/en/puzzles/masyu/}\cw{http://www.nikoli.co.jp/en/puzzles/masyu/}
+\W{http://www.nikoli.co.jp/en/puzzles/masyu.html}\cw{http://www.nikoli.co.jp/en/puzzles/masyu.html}
+(beware of Flash)
 
 \H{pearl-controls} \I{controls, for Pearl}Pearl controls
 
@@ -3194,7 +3198,7 @@ running its own internal solver. You win if you can make the whole
 grid the same colour in that many moves or fewer.
 
 I saw this game (with a fixed grid size, fixed number of colours, and
-fixed move limit) at \W{http://floodit.appspot.com}\cw{floodit.appspot.com}.
+fixed move limit) at http://floodit.appspot.com (no longer accessible).
 
 \H{flood-controls} \I{controls, for Flood}Flood controls
 
