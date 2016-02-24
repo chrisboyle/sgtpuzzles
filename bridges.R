@@ -1,6 +1,6 @@
 # -*- makefile -*-
 
-BRIDGES_EXTRA = dsf
+BRIDGES_EXTRA = dsf findloop
 
 bridges  : [X] GTK COMMON bridges BRIDGES_EXTRA bridges-icon|no-icon
 
