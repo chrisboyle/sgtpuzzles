@@ -1646,8 +1646,10 @@ static int check_completion(game_state *state, int mark)
             for (i = 0; i < w*h; i++) {
                 if ((dsf_canonify(dsf, i) != pathclass) &&
                     ((state->sflags[i] & S_TRACK) ||
-                     (S_E_COUNT(state, i%w, i/w, E_TRACK) > 0)))
+                     (S_E_COUNT(state, i%w, i/w, E_TRACK) > 0))) {
+                    ret = FALSE;
                     state->sflags[i] |= S_ERROR;
+                }
             }
         }
     }
