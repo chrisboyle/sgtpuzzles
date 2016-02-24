@@ -118,6 +118,7 @@ struct game_state {
     char *lines;
 
     unsigned char *line_errors;
+    int exactly_one_loop;
 
     int solved;
     int cheated;
@@ -325,6 +326,7 @@ static game_state *dup_game(const game_state *state)
 
     ret->line_errors = snewn(state->game_grid->num_edges, unsigned char);
     memcpy(ret->line_errors, state->line_errors, state->game_grid->num_edges);
+    ret->exactly_one_loop = state->exactly_one_loop;
 
     ret->grid_type = state->grid_type;
     return ret;
@@ -1380,6 +1382,7 @@ static char *new_game_desc(const game_params *params, random_state *rs,
     state->clues = snewn(g->num_faces, signed char);
     state->lines = snewn(g->num_edges, char);
     state->line_errors = snewn(g->num_edges, unsigned char);
+    state->exactly_one_loop = FALSE;
 
     state->grid_type = params->type;
 
@@ -1451,6 +1454,7 @@ static game_state *new_game(midend *me, const game_params *params,
     state->clues = snewn(num_faces, signed char);
     state->lines = snewn(num_edges, char);
     state->line_errors = snewn(num_edges, unsigned char);
+    state->exactly_one_loop = FALSE;
 
     state->solved = state->cheated = FALSE;
 
@@ -1688,8 +1692,17 @@ static int check_completion(game_state *state)
                 break;
             }
         }
+
+        /*
+         * Also, whether or not the puzzle is actually complete, set
+         * the flag that says this game_state has exactly one loop and
+         * nothing else, which will be used to vary the semantics of
+         * clue highlighting at display time.
+         */
+        state->exactly_one_loop = TRUE;
     } else {
         ret = FALSE;
+        state->exactly_one_loop = FALSE;
     }
 
     sfree(component_state);
@@ -3263,16 +3276,53 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
     for (i = 0; i < g->num_faces; i++) {
         grid_face *f = g->faces + i;
         int sides = f->order;
+        int yes_order, no_order;
         int clue_mistake;
         int clue_satisfied;
         int n = state->clues[i];
         if (n < 0)
             continue;
 
-        clue_mistake = (face_order(state, i, LINE_YES) > n ||
-                        face_order(state, i, LINE_NO ) > (sides-n));
-        clue_satisfied = (face_order(state, i, LINE_YES) == n &&
-                          face_order(state, i, LINE_NO ) == (sides-n));
+        yes_order = face_order(state, i, LINE_YES);
+        if (state->exactly_one_loop) {
+            /*
+             * Special case: if the set of LINE_YES edges in the grid
+             * consists of exactly one loop and nothing else, then we
+             * switch to treating LINE_UNKNOWN the same as LINE_NO for
+             * purposes of clue checking.
+             *
+             * This is because some people like to play Loopy without
+             * using the right-click, i.e. never setting anything to
+             * LINE_NO. Without this special case, if a person playing
+             * in that style fills in what they think is a correct
+             * solution loop but in fact it has an underfilled clue,
+             * then we will display no victory flash and also no error
+             * highlight explaining why not. With this special case,
+             * we light up underfilled clues at the instant the loop
+             * is closed. (Of course, *overfilled* clues are fine
+             * either way.)
+             *
+             * (It might still be considered unfortunate that we can't
+             * warn this style of player any earlier, if they make a
+             * mistake very near the beginning which doesn't show up
+             * until they close the last edge of the loop. One other
+             * thing we _could_ do here is to treat any LINE_UNKNOWN
+             * as LINE_NO if either of its endpoints has yes-degree 2,
+             * reflecting the fact that setting that line to YES would
+             * be an obvious error. But I don't think even that could
+             * catch _all_ clue errors in a timely manner; I think
+             * there are some that won't be displayed until the loop
+             * is filled in, even so, and there's no way to avoid that
+             * with complete reliability except to switch to being a
+             * player who sets things to LINE_NO.)
+             */
+            no_order = sides - yes_order;
+        } else {
+            no_order = face_order(state, i, LINE_NO);
+        }
+
+        clue_mistake = (yes_order > n || no_order > (sides-n));
+        clue_satisfied = (yes_order == n && no_order == (sides-n));
 
         if (clue_mistake != ds->clue_error[i] ||
             clue_satisfied != ds->clue_satisfied[i]) {
