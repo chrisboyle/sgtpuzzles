@@ -1,6 +1,6 @@
 # -*- makefile -*-
 
-TRACKS_EXTRA = dsf
+TRACKS_EXTRA = dsf findloop
 
 tracks  : [X] GTK COMMON tracks TRACKS_EXTRA tracks-icon|no-icon
 
