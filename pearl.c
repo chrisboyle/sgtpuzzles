@@ -1509,11 +1509,7 @@ static void dsf_update_completion(game_state *state, int *loopclass,
     assert(INGRID(state, bx, by)); /* should not have a link off grid */
 
     bc = by*w+bx;
-#if 0
     assert(state->lines[bc] & F(dir)); /* should have reciprocal link */
-#endif
-    /* TODO put above assertion back in once we stop generating partially
-     * soluble puzzles. */
     if (!(state->lines[bc] & F(dir))) return;
 
     ae = dsf_canonify(dsf, ac);
