@@ -1,6 +1,6 @@
 # -*- makefile -*-
 
-SLANT_EXTRA = dsf
+SLANT_EXTRA = dsf findloop
 
 slant    : [X] GTK COMMON slant SLANT_EXTRA slant-icon|no-icon
 
