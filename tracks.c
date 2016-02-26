@@ -1551,8 +1551,10 @@ static int check_completion(game_state *state, int mark)
         for (i = 0; i < w*h; i++) {
             state->sflags[i] &= ~S_ERROR;
             if (S_E_COUNT(state, i%w, i/w, E_TRACK) > 0) {
-                if (S_E_COUNT(state, i%w, i/w, E_TRACK) > 2)
+                if (S_E_COUNT(state, i%w, i/w, E_TRACK) > 2) {
+                    ret = FALSE;
                     state->sflags[i] |= S_ERROR;
+                }
             }
         }
     }
@@ -1579,6 +1581,7 @@ static int check_completion(game_state *state, int mark)
                 debug(("col %d error: target %d, track %d, notrack %d",
                        x, target, ntrack, nnotrack));
                 state->num_errors[x] = 1;
+                ret = FALSE;
             }
         }
         if (ntrackcomplete != target)
@@ -1601,6 +1604,7 @@ static int check_completion(game_state *state, int mark)
                 debug(("row %d error: target %d, track %d, notrack %d",
                        y, target, ntrack, nnotrack));
                 state->num_errors[w+y] = 1;
+                ret = FALSE;
             }
         }
         if (ntrackcomplete != target)
@@ -1651,6 +1655,12 @@ static int check_completion(game_state *state, int mark)
                     state->sflags[i] |= S_ERROR;
                 }
             }
+        } else {
+            /* If we _don't_ have such a path, then certainly the game
+             * can't be in a winning state. So even if we're not
+             * highlighting any _errors_, we certainly shouldn't
+             * return true. */
+            ret = FALSE;
         }
     }
 
