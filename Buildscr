@@ -57,10 +57,10 @@ in puzzles do perl winiss.pl $(Version) gamedesc.txt > puzzles.iss
 delegate windows
   # Ignore the poorly controlled return value from HHC, and instead
   # just test that the output file was generated.
-  in puzzles do/win hhc puzzles.hhp & type puzzles.chm >nul
+  in puzzles with htmlhelp do/win hhc puzzles.hhp & type puzzles.chm >nul
   # FIXME: Cygwin alternative?
-  in puzzles do/win vcvars32 && nmake -f Makefile.vc clean
-  in puzzles do/win vcvars32 && nmake -f Makefile.vc VER=-DVER=$(Version)
+  in puzzles with visualstudio do/win nmake -f Makefile.vc clean
+  in puzzles with visualstudio do/win nmake -f Makefile.vc VER=-DVER=$(Version)
   # Code-sign the binaries, if the local bob config provides a script
   # to do so. We assume here that the script accepts an -i option to
   # provide a 'more info' URL, and an optional -n option to provide a
@@ -68,7 +68,7 @@ delegate windows
   # arguments and sign them all in place.
   ifneq "$(winsigncode)" "" in puzzles do $(winsigncode) -i http://www.chiark.greenend.org.uk/~sgtatham/puzzles/ *.exe
   # Build installer.
-  in puzzles do/win iscc puzzles.iss
+  in puzzles with innosetup do/win iscc puzzles.iss
   ifneq "$(winsigncode)" "" in puzzles do $(winsigncode) -i http://www.chiark.greenend.org.uk/~sgtatham/puzzles/ -n "Simon Tatham's Portable Puzzle Collection Installer" Output/setup.exe
   return puzzles/puzzles.chm
   return puzzles/*.exe
