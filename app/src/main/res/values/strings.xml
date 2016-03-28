@@ -118,10 +118,11 @@ If you don't want to grant it you can instead locate the file from within Puzzle
     <string name="chooserStyleGrid">Icons only (compact)</string>
     <string name="thisGame">This game</string>
     <string name="allGames">All games</string>
-    <string name="advancedSettings">Display and keyboard</string>
+    <string name="advancedSettings">Display and input</string>
     <string name="advancedSettingsSummary">Less frequently changed settings</string>
     <string name="displaySettings">Display</string>
     <string name="keyboardSettings">Keyboard</string>
+    <string name="mouseSettings">Mouse/Stylus</string>
     <string name="arrowKeysIn">Arrow keys in {0}</string>
     <string name="arrowKeysUnavailable">Arrow keys unavailable</string>
     <string name="arrowKeysUnavailableIn">Arrow keys unavailable in {0}</string>
@@ -146,6 +147,12 @@ If you don't want to grant it you can instead locate the file from within Puzzle
     <string name="undoRedoOnKeyboardSummary">Allows auto repeat (otherwise in action bar)</string>
     <string name="keyboardBorders">Show edges of keys</string>
     <string name="keyboardBordersSummary">Otherwise only symbols are shown</string>
+    <string name="extMouseLongPress">Use long-press with mouse/stylus</string>
+    <string name="extMouseLongPressNever">Never (only use devices with a right/alt button)</string>
+    <string name="extMouseLongPressAuto">Auto (disable when a right/alt click is detected)</string>
+    <string name="extMouseLongPressAlways">Always (same behavior as finger presses)</string>
+    <string name="extMouseBackKey">Support right mouse button</string>
+    <string name="extMouseBackKeySummary">"Override \"Back\" functionality of right button in puzzles"</string>
     <string name="bridgesShowH">"Show \"H\" in Bridges"</string>
     <string name="bridgesShowHSummary">"Undocumented \"solve from here\" action"</string>
     <string name="unequalShowH">"Show \"H\" in Unequal"</string>

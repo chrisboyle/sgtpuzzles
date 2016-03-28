@@ -74,6 +74,17 @@
 									android:key="keyboardBorders"
 									android:defaultValue="false" />
 			</PreferenceCategory>
+			<PreferenceCategory android:title="@string/mouseSettings">
+				<ListPreference android:title="@string/extMouseLongPress"
+								android:key="extMouseLongPress"
+								android:entryValues="@array/extMouseLongPressModes"
+								android:entries="@array/extMouseLongPressModeDescs"
+								android:defaultValue="auto" />
+				<CheckBoxPreference android:title="@string/extMouseBackKey"
+									android:summary="@string/extMouseBackKeySummary"
+									android:key="extMouseBackKey"
+									android:defaultValue="true" />
+			</PreferenceCategory>
 		</PreferenceScreen>
 	</PreferenceCategory>
 

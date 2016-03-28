@@ -54,6 +54,9 @@ public class GameView extends View
 	private final int longPressTimeout = ViewConfiguration.getLongPressTimeout();
 	private String hardwareKeys;
 	boolean night = false;
+	boolean hasRightMouse = false;
+	boolean alwaysLongPress = false;
+	boolean mouseBackSupport = true;
 
 	private enum TouchState { IDLE, WAITING_LONG_PRESS, DRAGGING, PINCH }
 	private PointF lastDrag = null, lastTouch = new PointF(0.f, 0.f);
@@ -143,13 +146,16 @@ public class GameView extends View
 				} else if ((meta & KeyEvent.META_SHIFT_ON) > 0  ||
 						buttonState == 2 /* MotionEvent.BUTTON_SECONDARY */) {
 					button = RIGHT_BUTTON;
+					hasRightMouse = true;
 				} else {
 					button = LEFT_BUTTON;
 				}
 				touchStart = pointFromEvent(event);
 				parent.handler.removeCallbacks(sendLongPress);
 				if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.GINGERBREAD &&
-						event.getSource() == InputDevice.SOURCE_MOUSE) {
+						(event.getSource() == InputDevice.SOURCE_MOUSE ||
+								event.getSource() == InputDevice.SOURCE_STYLUS) &&
+						((hasRightMouse && !alwaysLongPress) || button != LEFT_BUTTON)) {
 					parent.sendKey(viewToGame(touchStart), button);
 					if (dragMode == DragMode.PREVENT) {
 						touchState = TouchState.IDLE;
@@ -541,12 +547,13 @@ public class GameView extends View
 		case KeyEvent.KEYCODE_DEL: key = '\b'; break;
 		// Mouse right-click = BACK auto-repeats on at least Galaxy S7
 		case KeyEvent.KEYCODE_BACK:
-			if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.GINGERBREAD &&
+			if (mouseBackSupport && Build.VERSION.SDK_INT >= Build.VERSION_CODES.GINGERBREAD &&
 					event.getSource() == InputDevice.SOURCE_MOUSE) {
 				if (rightMouseHeld) {
 					return true;
 				}
 				rightMouseHeld = true;
+				hasRightMouse = true;
 				touchStart = mousePos;
 				button = RIGHT_BUTTON;
 				parent.sendKey(viewToGame(touchStart), button);
@@ -588,7 +595,7 @@ public class GameView extends View
 	@Override
 	public boolean onKeyUp( int keyCode, KeyEvent event )
 	{
-		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.GINGERBREAD &&
+		if (mouseBackSupport && Build.VERSION.SDK_INT >= Build.VERSION_CODES.GINGERBREAD &&
 				event.getSource() == InputDevice.SOURCE_MOUSE) {
 			if (keyCode == KeyEvent.KEYCODE_BACK && rightMouseHeld) {
 				rightMouseHeld = false;

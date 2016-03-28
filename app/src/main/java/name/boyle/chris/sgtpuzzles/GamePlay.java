@@ -113,6 +113,8 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 	private static final String STAY_AWAKE_KEY = "stayAwake";
 	private static final String UNDO_REDO_KBD_KEY = "undoRedoOnKeyboard";
 	private static final boolean UNDO_REDO_KBD_DEFAULT = true;
+	static final String MOUSE_LONG_PRESS_KEY = "extMouseLongPress";
+	private static final String MOUSE_BACK_KEY = "extMouseBackKey";
 	private static final String PATTERN_SHOW_LENGTHS_KEY = "patternShowLengths";
 	private static final String COMPLETED_PROMPT_KEY = "completedPrompt";
 	private static final String CONTROLS_REMINDERS_KEY = "controlsReminders";
@@ -344,6 +346,8 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 		if (prefs.getBoolean(KEYBOARD_BORDERS_KEY, false)) {
 			applyKeyboardBorders();
 		}
+		applyMouseLongPress();
+		applyMouseBackKey();
 		refreshStatusBarColours();
 		getWindow().setBackgroundDrawable(null);
 		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH) {
@@ -1846,7 +1850,21 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 			applyKeyboardBorders();
 		} else if (key.equals(BRIDGES_SHOW_H_KEY) || key.equals(UNEQUAL_SHOW_H_KEY)) {
 			applyShowH();
+		} else if (key.equals(MOUSE_LONG_PRESS_KEY)) {
+			applyMouseLongPress();
+		} else if (key.equals(MOUSE_BACK_KEY)) {
+			applyMouseBackKey();
 		}
+	}
+
+	private void applyMouseLongPress() {
+		final String pref = prefs.getString(MOUSE_LONG_PRESS_KEY, "auto");
+		gameView.alwaysLongPress = "always".equals(pref);
+		gameView.hasRightMouse = "never".equals(pref);
+	}
+
+	private void applyMouseBackKey() {
+		gameView.mouseBackSupport = prefs.getBoolean(MOUSE_BACK_KEY, true);
 	}
 
 	private void applyKeyboardBorders() {
