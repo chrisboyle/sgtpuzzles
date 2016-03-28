@@ -412,6 +412,16 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 	}
 
 	@Override
+	public boolean dispatchKeyEvent(@NonNull KeyEvent event) {
+		int keyCode = event.getKeyCode();
+		// Only delegate for MENU key, delegating for other keys might break something(?)
+		if (progress == null && keyCode == KeyEvent.KEYCODE_MENU && gameView.dispatchKeyEvent(event)) {
+			return true;
+		}
+		return super.dispatchKeyEvent(event);
+	}
+
+	@Override
 	protected void onNewIntent(Intent intent)
 	{
 		if( progress != null ) {
