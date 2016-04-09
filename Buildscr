@@ -71,10 +71,10 @@ delegate windows
   # Build installers.
   in puzzles with wix do/win candle puzzles.wxs && light -ext WixUIExtension -sval puzzles.wixobj
   in puzzles with innosetup do/win iscc puzzles.iss
-  ifneq "$(winsigncode)" "" in puzzles do $(winsigncode) -i http://www.chiark.greenend.org.uk/~sgtatham/puzzles/ -n "Simon Tatham's Portable Puzzle Collection Installer" puzzles.msi Output/setup.exe
+  ifneq "$(winsigncode)" "" in puzzles do $(winsigncode) -i http://www.chiark.greenend.org.uk/~sgtatham/puzzles/ -n "Simon Tatham's Portable Puzzle Collection Installer" puzzles.msi Output/installer.exe
   return puzzles/puzzles.chm
   return puzzles/*.exe
-  return puzzles/Output/setup.exe
+  return puzzles/Output/installer.exe
   return puzzles/puzzles.msi
 enddelegate
 in puzzles do chmod +x *.exe
@@ -179,7 +179,7 @@ deliver puzzles/puzzles.hlp $@
 deliver puzzles/puzzles.cnt $@
 deliver puzzles/puzzles.zip $@
 deliver puzzles/puzzles.msi puzzles-$(Version)-installer.msi
-deliver puzzles/Output/setup.exe puzzles-$(Version)-installer.exe
+deliver puzzles/Output/installer.exe puzzles-$(Version)-installer.exe
 deliver puzzles/*.jar java/$@
 deliver puzzles/js/*.js js/$@
 deliver puzzles/html/*.html html/$@
