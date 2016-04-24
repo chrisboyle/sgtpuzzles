@@ -127,7 +127,7 @@ sub readicon {
     # point, to avoid having to do it ourselves (.BMP and hence
     # .ICO are bottom-up).
     my $data = [];
-    open IDATA, "convert -flip -depth 8 $filename rgba:- |";
+    open IDATA, "convert -set colorspace sRGB -flip -depth 8 $filename rgba:- |";
     push @$data, $rgb while (read IDATA,$rgb,4,0) == 4;
     close IDATA;
     # Check we have the right amount of data.
