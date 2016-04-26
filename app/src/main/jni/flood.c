@@ -822,7 +822,7 @@ struct game_drawstate {
 
 #define TILESIZE (ds->tilesize)
 #define PREFERRED_TILESIZE 32
-#define BORDER (TILESIZE / 2)
+#define BORDER (1)
 #define SEP_WIDTH (TILESIZE / 32)
 #define CURSOR_INSET (TILESIZE / 8)
 #define HIGHLIGHT_WIDTH (TILESIZE / 10)

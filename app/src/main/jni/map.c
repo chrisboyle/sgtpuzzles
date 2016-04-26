@@ -2350,7 +2350,7 @@ struct game_drawstate {
 #define SHOW_LAB_MASK 0x00006000L
 
 #define TILESIZE (ds->tilesize)
-#define BORDER (TILESIZE)
+#define BORDER (1)
 #define COORD(x)  ( (x) * TILESIZE + BORDER )
 #define FROMCOORD(x)  ( ((x) - BORDER + TILESIZE) / TILESIZE - 1 )
 

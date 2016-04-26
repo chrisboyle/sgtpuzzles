@@ -2351,7 +2351,7 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
 #define TILE_SIZE (ds->tilesize)
 #define DOT_SIZE        (TILE_SIZE / 4)
 #define EDGE_THICKNESS (max(TILE_SIZE / 16, 2))
-#define BORDER TILE_SIZE
+#define BORDER (1)
 
 #define COORD(x) ( (x) * TILE_SIZE + BORDER )
 #define SCOORD(x) ( ((x) * TILE_SIZE)/2 + BORDER )
