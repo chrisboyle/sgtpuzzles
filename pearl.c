@@ -1518,7 +1518,7 @@ static void check_completion(game_state *state, int mark)
     int w = state->shared->w, h = state->shared->h, x, y, i, d;
     int had_error = FALSE;
     int *dsf, *component_state;
-    int nsilly, nloop, npath, largest_comp, largest_size;
+    int nsilly, nloop, npath, largest_comp, largest_size, total_pathsize;
     enum { COMP_NONE, COMP_LOOP, COMP_PATH, COMP_SILLY, COMP_EMPTY };
 
     if (mark) {
@@ -1578,24 +1578,28 @@ static void check_completion(game_state *state, int mark)
 
     /* Count the components, and find the largest sensible one. */
     nsilly = nloop = npath = 0;
+    total_pathsize = 0;
     largest_comp = largest_size = -1;
     for (i = 0; i < w*h; i++) {
         if (component_state[i] == COMP_SILLY) {
             nsilly++;
-        } else if (component_state[i] == COMP_PATH ||
-                   component_state[i] == COMP_LOOP) {
+        } else if (component_state[i] == COMP_PATH) {
+            total_pathsize += dsf_size(dsf, i);
+            npath = 1;
+        } else if (component_state[i] == COMP_LOOP) {
             int this_size;
 
-            if (component_state[i] == COMP_PATH)
-                npath++;
-            else if (component_state[i] == COMP_LOOP)
-                nloop++;
+            nloop++;
 
             if ((this_size = dsf_size(dsf, i)) > largest_size) {
                 largest_comp = i;
                 largest_size = this_size;
             }
         }
+    }
+    if (largest_size < total_pathsize) {
+        largest_comp = -1;             /* means the paths */
+        largest_size = total_pathsize;
     }
 
     if (nloop > 0 && nloop + npath > 1) {
@@ -1606,8 +1610,12 @@ static void check_completion(game_state *state, int mark)
          */
         for (i = 0; i < w*h; i++) {
             int comp = dsf_canonify(dsf, i);
-            if ((component_state[comp] == COMP_LOOP ||
-                 component_state[comp] == COMP_PATH) && comp != largest_comp)
+            if (component_state[comp] == COMP_PATH)
+                comp = -1; /* part of the 'all paths' quasi-component */
+            if ((component_state[comp] == COMP_PATH &&
+                 -1 != largest_comp) ||
+                (component_state[comp] == COMP_LOOP &&
+                 comp != largest_comp))
                 ERROR(i%w, i/w, state->lines[i]);
         }
     }

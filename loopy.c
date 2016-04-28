@@ -1495,7 +1495,7 @@ static int check_completion(game_state *state)
     grid *g = state->game_grid;
     int i, ret;
     int *dsf, *component_state;
-    int nsilly, nloop, npath, largest_comp, largest_size;
+    int nsilly, nloop, npath, largest_comp, largest_size, total_pathsize;
     enum { COMP_NONE, COMP_LOOP, COMP_PATH, COMP_SILLY, COMP_EMPTY };
 
     memset(state->line_errors, 0, g->num_edges);
@@ -1564,15 +1564,19 @@ static int check_completion(game_state *state)
      *    hence they all consist of either a simple loop, or a simple
      *    path with two endpoints.
      *
-     *  - If the sensible components are all paths, or if there's
-     *    exactly one of them and it is a loop, then highlight no
-     *    further edge errors. (The former case is normal during play,
-     *    and the latter is a potentially solved puzzle.)
+     *  - For these purposes, group together all the paths and imagine
+     *    them to be a single component (because in most normal
+     *    situations the player will gradually build up the solution
+     *    _not_ all in one connected segment, but as lots of separate
+     *    little path pieces that gradually connect to each other).
      *
-     *  - Otherwise - if there is more than one sensible component
-     *    _and_ at least one of them is a loop - find the largest of
-     *    the sensible components, leave that one unhighlighted, and
-     *    light the rest up in red.
+     *  - After doing that, if there is exactly one (sensible)
+     *    component - be it a collection of paths or a loop - then
+     *    highlight no further edge errors. (The former case is normal
+     *    during play, and the latter is a potentially solved puzzle.)
+     *
+     *  - Otherwise, find the largest of the sensible components,
+     *    leave that one unhighlighted, and light the rest up in red.
      */
 
     dsf = snew_dsf(g->num_dots);
@@ -1640,24 +1644,28 @@ static int check_completion(game_state *state)
      * vertices in the grid data structure, which is fairly arbitrary
      * but at least stays stable throughout the game.) */
     nsilly = nloop = npath = 0;
+    total_pathsize = 0;
     largest_comp = largest_size = -1;
     for (i = 0; i < g->num_dots; i++) {
         if (component_state[i] == COMP_SILLY) {
             nsilly++;
-        } else if (component_state[i] == COMP_PATH ||
-                   component_state[i] == COMP_LOOP) {
+        } else if (component_state[i] == COMP_PATH) {
+            total_pathsize += dsf_size(dsf, i);
+            npath = 1;
+        } else if (component_state[i] == COMP_LOOP) {
             int this_size;
 
-            if (component_state[i] == COMP_PATH)
-                npath++;
-            else if (component_state[i] == COMP_LOOP)
-                nloop++;
+            nloop++;
 
             if ((this_size = dsf_size(dsf, i)) > largest_size) {
                 largest_comp = i;
                 largest_size = this_size;
             }
         }
+    }
+    if (largest_size < total_pathsize) {
+        largest_comp = -1;             /* means the paths */
+        largest_size = total_pathsize;
     }
 
     if (nloop > 0 && nloop + npath > 1) {
@@ -1671,8 +1679,10 @@ static int check_completion(game_state *state)
                 grid_edge *e = g->edges + i;
                 int d1 = e->dot1 - g->dots; /* either endpoint is good enough */
                 int comp = dsf_canonify(dsf, d1);
-                if (component_state[comp] != COMP_SILLY &&
-                    comp != largest_comp)
+                if ((component_state[comp] == COMP_PATH &&
+                     -1 != largest_comp) ||
+                    (component_state[comp] == COMP_LOOP &&
+                     comp != largest_comp))
                     state->line_errors[i] = TRUE;
             }
         }
