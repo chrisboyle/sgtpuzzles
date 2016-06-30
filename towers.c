@@ -385,12 +385,12 @@ static int solver_easy(struct latin_solver *solver, void *vctx)
 	    return ret;
 
 #ifdef STANDALONE_SOLVER
-	    if (solver_show_working)
-		sprintf(prefix, "%*slower bounds for clue %s %d:\n",
-			solver_recurse_depth*4, "",
-			cluepos[c/w], c%w+1);
-	    else
-		prefix[0] = '\0';	       /* placate optimiser */
+	if (solver_show_working)
+	    sprintf(prefix, "%*slower bounds for clue %s %d:\n",
+		    solver_recurse_depth*4, "",
+		    cluepos[c/w], c%w+1);
+	else
+	    prefix[0] = '\0';	       /* placate optimiser */
 #endif
 
 	i = 0;
