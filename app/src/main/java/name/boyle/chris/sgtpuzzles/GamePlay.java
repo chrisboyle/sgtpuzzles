@@ -354,9 +354,8 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 
 	private void refreshStatusBarColours() {
 		final boolean night = nightModeHelper.isNight();
-		final ResourcesCompat resourcesCompat = new ResourcesCompat();
-		final int foreground = resourcesCompat.getColor(getResources(), night ? R.color.night_status_bar_text : R.color.status_bar_text, getTheme());
-		final int background = resourcesCompat.getColor(getResources(), night ? R.color.night_game_background : R.color.game_background, getTheme());
+		final int foreground = ResourcesCompat.getColor(getResources(), night ? R.color.night_status_bar_text : R.color.status_bar_text, getTheme());
+		final int background = ResourcesCompat.getColor(getResources(), night ? R.color.night_game_background : R.color.game_background, getTheme());
 		statusBar.setTextColor(foreground);
 		statusBar.setBackgroundColor(background);
 	}
@@ -935,6 +934,11 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 	@Override
 	protected void onActivityResult(int requestCode, int resultCode, Intent dataIntent) {
 		if (requestCode != REQ_CODE_CREATE_DOC || resultCode != Activity.RESULT_OK || dataIntent == null) return;
+		handleCreateResult(dataIntent);
+	}
+
+	@TargetApi(Build.VERSION_CODES.KITKAT)
+	private void handleCreateResult(Intent dataIntent) {
 		FileOutputStream fileOutputStream = null;
 		ParcelFileDescriptor pfd = null;
 		try {
