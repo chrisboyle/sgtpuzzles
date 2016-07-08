@@ -56,6 +56,7 @@ print 'DefaultGroupName=Simon Tatham\'s Puzzles'."\n";
 print 'ChangesAssociations=no'."\n";
 print 'Compression=zip/9'."\n";
 print 'AllowNoIcons=yes'."\n";
+print 'OutputBaseFilename=installer'."\n";
 print ''."\n";
 print '[Files]'."\n";
 for $exe (@exes) {

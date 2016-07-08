@@ -1,6 +1,6 @@
 # -*- makefile -*-
 
-NET_EXTRA = tree234 dsf
+NET_EXTRA = tree234 dsf findloop
 
 net      : [X] GTK COMMON net NET_EXTRA net-icon|no-icon
 

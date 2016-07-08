@@ -53,26 +53,29 @@ enddelegate
 in puzzles do make -f Makefile.doc clean
 in puzzles do make -f Makefile.doc chm
 in puzzles do make -f Makefile.doc # build help file for installer
+in puzzles do mason.pl --args '{"version":"$(Version)","descfile":"gamedesc.txt"}' winwix.mc > puzzles.wxs
 in puzzles do perl winiss.pl $(Version) gamedesc.txt > puzzles.iss
 delegate windows
   # Ignore the poorly controlled return value from HHC, and instead
   # just test that the output file was generated.
-  in puzzles do/win hhc puzzles.hhp & type puzzles.chm >nul
+  in puzzles with htmlhelp do/win hhc puzzles.hhp & type puzzles.chm >nul
   # FIXME: Cygwin alternative?
-  in puzzles do/win vcvars32 && nmake -f Makefile.vc clean
-  in puzzles do/win vcvars32 && nmake -f Makefile.vc VER=-DVER=$(Version)
+  in puzzles with visualstudio do/win nmake -f Makefile.vc clean
+  in puzzles with visualstudio do/win nmake -f Makefile.vc VER=-DVER=$(Version)
   # Code-sign the binaries, if the local bob config provides a script
   # to do so. We assume here that the script accepts an -i option to
   # provide a 'more info' URL, and an optional -n option to provide a
   # program name, and that it can take multiple .exe filename
   # arguments and sign them all in place.
   ifneq "$(winsigncode)" "" in puzzles do $(winsigncode) -i http://www.chiark.greenend.org.uk/~sgtatham/puzzles/ *.exe
-  # Build installer.
-  in puzzles do/win iscc puzzles.iss
-  ifneq "$(winsigncode)" "" in puzzles do $(winsigncode) -i http://www.chiark.greenend.org.uk/~sgtatham/puzzles/ -n "Simon Tatham's Portable Puzzle Collection Installer" Output/setup.exe
+  # Build installers.
+  in puzzles with wix do/win candle puzzles.wxs && light -ext WixUIExtension -sval puzzles.wixobj
+  in puzzles with innosetup do/win iscc puzzles.iss
+  ifneq "$(winsigncode)" "" in puzzles do $(winsigncode) -i http://www.chiark.greenend.org.uk/~sgtatham/puzzles/ -n "Simon Tatham's Portable Puzzle Collection Installer" puzzles.msi Output/installer.exe
   return puzzles/puzzles.chm
   return puzzles/*.exe
-  return puzzles/Output/setup.exe
+  return puzzles/Output/installer.exe
+  return puzzles/puzzles.msi
 enddelegate
 in puzzles do chmod +x *.exe
 
@@ -161,6 +164,7 @@ in puzzles do echo "AddType application/octet-stream .chm" > .htaccess
 in puzzles do echo "AddType application/octet-stream .hlp" >> .htaccess
 in puzzles do echo "AddType application/octet-stream .cnt" >> .htaccess
 in . do set -- puzzles*.tar.gz; echo RedirectMatch temp '(.*/)'puzzles.tar.gz '$$1'"$$1" >> puzzles/.htaccess
+in puzzles do echo RedirectMatch temp '(.*/)'puzzles-installer.msi '$$1'puzzles-$(Version)-installer.msi >> .htaccess
 in puzzles do echo RedirectMatch temp '(.*/)'puzzles-installer.exe '$$1'puzzles-$(Version)-installer.exe >> .htaccess
 
 # Phew, we're done. Deliver everything!
@@ -174,7 +178,8 @@ deliver puzzles/puzzles.chm $@
 deliver puzzles/puzzles.hlp $@
 deliver puzzles/puzzles.cnt $@
 deliver puzzles/puzzles.zip $@
-deliver puzzles/Output/setup.exe puzzles-$(Version)-installer.exe
+deliver puzzles/puzzles.msi puzzles-$(Version)-installer.msi
+deliver puzzles/Output/installer.exe puzzles-$(Version)-installer.exe
 deliver puzzles/*.jar java/$@
 deliver puzzles/js/*.js js/$@
 deliver puzzles/html/*.html html/$@

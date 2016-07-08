@@ -1356,96 +1356,70 @@ static int vertex_degree(int w, int h, signed char *soln, int x, int y,
     return anti ? 4 - ret : ret;
 }
 
+struct slant_neighbour_ctx {
+    const game_state *state;
+    int i, n, neighbours[4];
+};
+static int slant_neighbour(int vertex, void *vctx)
+{
+    struct slant_neighbour_ctx *ctx = (struct slant_neighbour_ctx *)vctx;
+
+    if (vertex >= 0) {
+        int w = ctx->state->p.w, h = ctx->state->p.h, W = w+1;
+        int x = vertex % W, y = vertex / W;
+        ctx->n = ctx->i = 0;
+        if (x < w && y < h && ctx->state->soln[y*w+x] < 0)
+            ctx->neighbours[ctx->n++] = (y+1)*W+(x+1);
+        if (x > 0 && y > 0 && ctx->state->soln[(y-1)*w+(x-1)] < 0)
+            ctx->neighbours[ctx->n++] = (y-1)*W+(x-1);
+        if (x > 0 && y < h && ctx->state->soln[y*w+(x-1)] > 0)
+            ctx->neighbours[ctx->n++] = (y+1)*W+(x-1);
+        if (x < w && y > 0 && ctx->state->soln[(y-1)*w+x] > 0)
+            ctx->neighbours[ctx->n++] = (y-1)*W+(x+1);
+    }
+
+    if (ctx->i < ctx->n)
+        return ctx->neighbours[ctx->i++];
+    else
+        return -1;
+}
+
 static int check_completion(game_state *state)
 {
     int w = state->p.w, h = state->p.h, W = w+1, H = h+1;
     int x, y, err = FALSE;
-    int *dsf;
 
     memset(state->errors, 0, W*H);
 
     /*
-     * To detect loops in the grid, we iterate through each edge
-     * building up a dsf of connected components of the space
-     * around the edges; if there's more than one such component,
-     * we have a loop, and in particular we can then easily
-     * identify and highlight every edge forming part of a loop
-     * because it separates two nonequivalent regions.
-     *
-     * We use the `tmpdsf' scratch space in the shared clues
-     * structure, to avoid mallocing too often.
-     *
-     * For these purposes, the grid is considered to be divided
-     * into diamond-shaped regions surrounding an orthogonal edge.
-     * This means we have W*h vertical edges and w*H horizontal
-     * ones; so our vertical edges are indexed in the dsf as
-     * (y*W+x) (0<=y<h, 0<=x<W), and the horizontal ones as (W*h +
-     * y*w+x) (0<=y<H, 0<=x<w), where (x,y) is the topmost or
-     * leftmost point on the edge.
+     * Detect and error-highlight loops in the grid.
      */
-    dsf = state->clues->tmpdsf;
-    dsf_init(dsf, W*h + w*H);
-    /* Start by identifying all the outer edges with each other. */
-    for (y = 0; y < h; y++) {
-	dsf_merge(dsf, 0, y*W+0);
-	dsf_merge(dsf, 0, y*W+w);
-    }
-    for (x = 0; x < w; x++) {
-	dsf_merge(dsf, 0, W*h + 0*w+x);
-	dsf_merge(dsf, 0, W*h + h*w+x);
-    }
-    /* Now go through the actual grid. */
-    for (y = 0; y < h; y++)
-        for (x = 0; x < w; x++) {
-            if (state->soln[y*w+x] >= 0) {
-		/*
-		 * There isn't a \ in this square, so we can unify
-		 * the top edge with the left, and the bottom with
-		 * the right.
-		 */
-		dsf_merge(dsf, y*W+x, W*h + y*w+x);
-		dsf_merge(dsf, y*W+(x+1), W*h + (y+1)*w+x);
-	    }
-            if (state->soln[y*w+x] <= 0) {
-		/*
-		 * There isn't a / in this square, so we can unify
-		 * the top edge with the right, and the bottom
-		 * with the left.
-		 */
-		dsf_merge(dsf, y*W+x, W*h + (y+1)*w+x);
-		dsf_merge(dsf, y*W+(x+1), W*h + y*w+x);
+    {
+        struct findloopstate *fls = findloop_new_state(W*H);
+        struct slant_neighbour_ctx ctx;
+        ctx.state = state;
+
+        if (findloop_run(fls, W*H, slant_neighbour, &ctx))
+            err = TRUE;
+        for (y = 0; y < h; y++) {
+            for (x = 0; x < w; x++) {
+                int u, v;
+                if (state->soln[y*w+x] == 0) {
+                    continue;
+                } else if (state->soln[y*w+x] > 0) {
+                    u = y*W+(x+1);
+                    v = (y+1)*W+x;
+                } else {
+                    u = (y+1)*W+(x+1);
+                    v = y*W+x;
+                }
+                if (findloop_is_loop_edge(fls, u, v))
+                    state->errors[y*W+x] |= ERR_SQUARE;
 	    }
         }
-    /* Now go through again and mark the appropriate edges as erroneous. */
-    for (y = 0; y < h; y++)
-        for (x = 0; x < w; x++) {
-	    int erroneous = 0;
-            if (state->soln[y*w+x] > 0) {
-		/*
-		 * A / separates the top and left edges (which
-		 * must already have been identified with each
-		 * other) from the bottom and right (likewise).
-		 * Hence it is erroneous if and only if the top
-		 * and right edges are nonequivalent.
-		 */
-		erroneous = (dsf_canonify(dsf, y*W+(x+1)) !=
-			     dsf_canonify(dsf, W*h + y*w+x));
-	    } else if (state->soln[y*w+x] < 0) {
-		/*
-		 * A \ separates the top and right edges (which
-		 * must already have been identified with each
-		 * other) from the bottom and left (likewise).
-		 * Hence it is erroneous if and only if the top
-		 * and left edges are nonequivalent.
-		 */
-		erroneous = (dsf_canonify(dsf, y*W+x) !=
-			     dsf_canonify(dsf, W*h + y*w+x));
-	    }
-	    if (erroneous) {
-		state->errors[y*W+x] |= ERR_SQUARE;
-		err = TRUE;
-	    }
-        }
+
+        findloop_free_state(fls);
+    }
 
     /*
      * Now go through and check the degree of each clue vertex, and

@@ -17,6 +17,7 @@ else
 fi
 
 perl mkfiles.pl
+./mkauto.sh
 
 mkdir tmp.$$
 mkdir tmp.$$/puzzles$arcsuffix

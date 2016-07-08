@@ -1915,211 +1915,78 @@ static unsigned char *compute_active(const game_state *state, int cx, int cy)
     return active;
 }
 
+struct net_neighbour_ctx {
+    int w, h;
+    const unsigned char *tiles, *barriers;
+    int i, n, neighbours[4];
+};
+static int net_neighbour(int vertex, void *vctx)
+{
+    struct net_neighbour_ctx *ctx = (struct net_neighbour_ctx *)vctx;
+
+    if (vertex >= 0) {
+        int x = vertex % ctx->w, y = vertex / ctx->w;
+        int tile, dir, x1, y1, v1;
+
+        ctx->i = ctx->n = 0;
+
+        tile = ctx->tiles[vertex];
+        if (ctx->barriers)
+            tile &= ~ctx->barriers[vertex];
+
+        for (dir = 1; dir < 0x10; dir <<= 1) {
+            if (!(tile & dir))
+                continue;
+            OFFSETWH(x1, y1, x, y, dir, ctx->w, ctx->h);
+            v1 = y1 * ctx->w + x1;
+            if (ctx->tiles[v1] & F(dir))
+                ctx->neighbours[ctx->n++] = v1;
+        }
+    }
+
+    if (ctx->i < ctx->n)
+        return ctx->neighbours[ctx->i++];
+    else
+        return -1;
+}
+
 static int *compute_loops_inner(int w, int h, int wrapping,
                                 const unsigned char *tiles,
                                 const unsigned char *barriers)
 {
-    int *loops, *dsf;
+    struct net_neighbour_ctx ctx;
+    struct findloopstate *fls;
+    int *loops;
     int x, y;
 
-    /*
-     * The loop-detecting algorithm I use here is not quite the same
-     * one as I've used in Slant and Loopy. Those two puzzles use a
-     * very similar algorithm which works by finding connected
-     * components, not of the graph _vertices_, but of the pieces of
-     * space in between them. You divide the plane into maximal areas
-     * that can't be intersected by a grid edge (faces in Loopy,
-     * diamond shapes centred on a grid edge in Slant); you form a dsf
-     * over those areas, and unify any pair _not_ separated by a graph
-     * edge; then you've identified the connected components of the
-     * space, and can now immediately tell whether an edge is part of
-     * a loop or not by checking whether the pieces of space on either
-     * side of it are in the same component.
-     *
-     * In Net, this doesn't work reliably, because of the toroidal
-     * wrapping mode. A torus has non-trivial homology, which is to
-     * say, there can exist a closed loop on its surface which is not
-     * the boundary of any proper subset of the torus's area. For
-     * example, consider the 'loop' consisting of a straight vertical
-     * line going off the top of the grid and coming back on the
-     * bottom to join up with itself. This certainly wants to be
-     * marked as a loop, but it won't be detected as one by the above
-     * algorithm, because all the area of the grid is still connected
-     * via the left- and right-hand edges, so the two sides of the
-     * loop _are_ in the same equivalence class.
-     *
-     * The replacement algorithm I use here is also dsf-based, but the
-     * dsf is now over _sides of edges_. That is to say, on a general
-     * graph, you would have two dsf elements per edge of the graph.
-     * The unification rule is: for each vertex, iterate round the
-     * edges leaving that vertex in cyclic order, and dsf-unify the
-     * _near sides_ of each pair of adjacent edges. The effect of this
-     * is to trace round the outside edge of each connected component
-     * of the graph (this time of the actual graph, not the space
-     * between), so that the outline of each component becomes its own
-     * equivalence class. And now, just as before, an edge is part of
-     * a loop iff its two sides are not in the same component.
-     *
-     * This correctly detects even homologically nontrivial loops on a
-     * torus, because a torus is still _orientable_ - there's no way
-     * that a loop can join back up with itself with the two sides
-     * swapped. It would stop working, however, on a Mobius strip or a
-     * Klein bottle - so if I ever implement either of those modes for
-     * Net, I'll have to revisit this algorithm yet again and probably
-     * replace it with a completely general and much more fiddly
-     * approach such as Tarjan's bridge-finding algorithm (which is
-     * linear-time, but looks to me as if it's going to take more
-     * effort to get it working, especially when the graph is
-     * represented so unlike an ordinary graph).
-     *
-     * In Net, the algorithm as I describe it above has to be fiddled
-     * with just a little, to deal with the fact that there are two
-     * kinds of 'vertex' in the graph - one set at face-centres, and
-     * another set at edge-midpoints where two wires either do or do
-     * not join. Since those two vertex classes have very different
-     * representations in the Net data structure, separate code is
-     * needed for them.
-     */
+    fls = findloop_new_state(w*h);
+    ctx.w = w;
+    ctx.h = h;
+    ctx.tiles = tiles;
+    ctx.barriers = barriers;
+    findloop_run(fls, w*h, net_neighbour, &ctx);
 
-    /* Four potential edges per grid cell; one dsf node for each side
-     * of each one makes 8 per cell. */
-    dsf = snew_dsf(w*h*8);
-
-    /* Encode the dsf nodes. We imagine going round anticlockwise, so
-     * BEFORE(dir) indicates the clockwise side of an edge, e.g. the
-     * underside of R or the right-hand side of U. AFTER is the other
-     * side. */
-#define BEFORE(dir) ((dir)==R?7:(dir)==U?1:(dir)==L?3:5)
-#define AFTER(dir) ((dir)==R?0:(dir)==U?2:(dir)==L?4:6)
-
-#if 0
-    printf("--- begin\n");
-#endif
-    for (y = 0; y < h; y++) {
-        for (x = 0; x < w; x++) {
-            int tile = tiles[y*w+x]; 
-            int dir;
-            for (dir = 1; dir < 0x10; dir <<= 1) {
-                /*
-                 * To unify dsf nodes around a face-centre vertex,
-                 * it's easiest to do it _unconditionally_ - e.g. just
-                 * unify the top side of R with the right side of U
-                 * regardless of whether there's an edge in either
-                 * place. Later we'll also unify the top and bottom
-                 * sides of any nonexistent edge, which will e.g.
-                 * complete a connection BEFORE(U) - AFTER(R) -
-                 * BEFORE(R) - AFTER(D) in the absence of an R edge.
-                 *
-                 * This is a safe optimisation because these extra dsf
-                 * nodes unified into our equivalence class can't get
-                 * out of control - they are never unified with
-                 * anything _else_ elsewhere in the algorithm.
-                 */
-#if 0
-                printf("tile centre %d,%d: merge %d,%d\n",
-                       x, y,
-                       (y*w+x)*8+AFTER(C(dir)),
-                       (y*w+x)*8+BEFORE(dir));
-#endif
-                dsf_merge(dsf,
-                          (y*w+x)*8+AFTER(C(dir)),
-                          (y*w+x)*8+BEFORE(dir));
-
-                if (tile & dir) {
-                    int x1, y1;
-
-                    OFFSETWH(x1, y1, x, y, dir, w, h);
-
-                    /*
-                     * If the tile does have an edge going out in this
-                     * direction, we must check whether it joins up
-                     * (without being blocked by a barrier) to an edge
-                     * in the next cell along. If so, we unify around
-                     * the edge-centre vertex by joining each side of
-                     * this edge to the appropriate side of the next
-                     * cell's edge; otherwise, the edge is a stub (the
-                     * only one reaching the edge-centre vertex) and
-                     * so we join its own two sides together.
-                     */
-                    if ((barriers && barriers[y*w+x] & dir) ||
-                        !(tiles[y1*w+x1] & F(dir))) {
-#if 0
-                        printf("tile edge stub %d,%d -> %c: merge %d,%d\n",
-                               x, y, (dir==L?'L':dir==U?'U':dir==R?'R':'D'),
-                               (y*w+x)*8+BEFORE(dir),
-                               (y*w+x)*8+AFTER(dir));
-#endif
-                        dsf_merge(dsf,
-                                  (y*w+x)*8+BEFORE(dir),
-                                  (y*w+x)*8+AFTER(dir));
-                    } else {
-#if 0
-                        printf("tile edge conn %d,%d -> %c: merge %d,%d\n",
-                               x, y, (dir==L?'L':dir==U?'U':dir==R?'R':'D'),
-                               (y*w+x)*8+BEFORE(dir),
-                               (y*w+x)*8+AFTER(F(dir)));
-#endif
-                        dsf_merge(dsf,
-                                  (y*w+x)*8+BEFORE(dir),
-                                  (y1*w+x1)*8+AFTER(F(dir)));
-#if 0
-                        printf("tile edge conn %d,%d -> %c: merge %d,%d\n",
-                               x, y, (dir==L?'L':dir==U?'U':dir==R?'R':'D'),
-                               (y*w+x)*8+AFTER(dir),
-                               (y*w+x)*8+BEFORE(F(dir)));
-#endif
-                        dsf_merge(dsf,
-                                  (y*w+x)*8+AFTER(dir),
-                                  (y1*w+x1)*8+BEFORE(F(dir)));
-                    }
-                } else {
-                    /*
-                     * As discussed above, if this edge doesn't even
-                     * exist, we unify its two sides anyway to
-                     * complete the unification of whatever edges do
-                     * exist in this cell.
-                     */
-#if 0
-                    printf("tile edge missing %d,%d -> %c: merge %d,%d\n",
-                           x, y, (dir==L?'L':dir==U?'U':dir==R?'R':'D'),
-                           (y*w+x)*8+BEFORE(dir),
-                           (y*w+x)*8+AFTER(dir));
-#endif
-                    dsf_merge(dsf,
-                              (y*w+x)*8+BEFORE(dir),
-                              (y*w+x)*8+AFTER(dir));
-                }
-            }
-        }
-    }
-
-#if 0
-    printf("--- end\n");
-#endif
     loops = snewn(w*h, int);
 
-    /*
-     * Now we've done the loop detection and can read off the output
-     * flags trivially: any piece of connection whose two sides are
-     * not in the same dsf class is part of a loop.
-     */
     for (y = 0; y < h; y++) {
         for (x = 0; x < w; x++) {
-            int dir;
-            int tile = tiles[y*w+x];
+            int x1, y1, dir;
             int flags = 0;
+
             for (dir = 1; dir < 0x10; dir <<= 1) {
-                if ((tile & dir) &&
-                    (dsf_canonify(dsf, (y*w+x)*8+BEFORE(dir)) !=
-                     dsf_canonify(dsf, (y*w+x)*8+AFTER(dir)))) {
-                    flags |= LOOP(dir);
+                if ((tiles[y*w+x] & dir) &&
+                    !(barriers && (barriers[y*w+x] & dir))) {
+                    OFFSETWH(x1, y1, x, y, dir, w, h);
+                    if ((tiles[y1*w+x1] & F(dir)) &&
+                        findloop_is_loop_edge(fls, y*w+x, y1*w+x1))
+                        flags |= LOOP(dir);
                 }
             }
             loops[y*w+x] = flags;
         }
     }
 
-    sfree(dsf);
+    findloop_free_state(fls);
     return loops;
 }
 

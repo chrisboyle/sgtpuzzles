@@ -1497,11 +1497,10 @@ static void debug_state(game_state *state, const char *what) {
     sfree(sstring);
 }
 
-static void dsf_update_completion(game_state *state, int *loopclass,
-                                  int ax, int ay, char dir,
-                                  int *dsf)
+static void dsf_update_completion(game_state *state, int ax, int ay,
+                                  char dir, int *dsf)
 {
-    int w = state->p.w, ai = ay*w+ax, bx, by, bi, ac, bc;
+    int w = state->p.w, ai = ay*w+ax, bx, by, bi;
 
     if (!(S_E_DIRS(state, ax, ay, E_TRACK) & dir)) return;
     bx = ax + DX(dir);
@@ -1510,22 +1509,47 @@ static void dsf_update_completion(game_state *state, int *loopclass,
     if (!INGRID(state, bx, by)) return;
     bi = by*w+bx;
 
-    ac = dsf_canonify(dsf, ai);
-    bc = dsf_canonify(dsf, bi);
+    dsf_merge(dsf, ai, bi);
+}
 
-    if (ac == bc) {
-        /* loop detected */
-        *loopclass = ac;
-    } else {
-        dsf_merge(dsf, ai, bi);
+struct tracks_neighbour_ctx {
+    game_state *state;
+    int i, n, neighbours[4];
+};
+static int tracks_neighbour(int vertex, void *vctx)
+{
+    struct tracks_neighbour_ctx *ctx = (struct tracks_neighbour_ctx *)vctx;
+    if (vertex >= 0) {
+        game_state *state = ctx->state;
+        int w = state->p.w, x = vertex % w, y = vertex / w;
+        int dirs = S_E_DIRS(state, x, y, E_TRACK);
+        int j;
+
+        ctx->i = ctx->n = 0;
+
+        for (j = 0; j < 4; j++) {
+            int dir = 1<<j;
+            if (dirs & dir) {
+                int nx = x + DX(dir), ny = y + DY(dir);
+                if (INGRID(state, nx, ny))
+                    ctx->neighbours[ctx->n++] = ny * w + nx;
+            }
+        }
     }
+
+    if (ctx->i < ctx->n)
+        return ctx->neighbours[ctx->i++];
+    else
+        return -1;
 }
 
 static int check_completion(game_state *state, int mark)
 {
     int w = state->p.w, h = state->p.h, x, y, i, target, ret = TRUE;
     int ntrack, nnotrack, ntrackcomplete;
-    int *dsf, loopclass, pathclass;
+    int *dsf, pathclass;
+    struct findloopstate *fls;
+    struct tracks_neighbour_ctx ctx;
 
     if (mark) {
         for (i = 0; i < w+h; i++) {
@@ -1534,8 +1558,10 @@ static int check_completion(game_state *state, int mark)
         for (i = 0; i < w*h; i++) {
             state->sflags[i] &= ~S_ERROR;
             if (S_E_COUNT(state, i%w, i/w, E_TRACK) > 0) {
-                if (S_E_COUNT(state, i%w, i/w, E_TRACK) > 2)
+                if (S_E_COUNT(state, i%w, i/w, E_TRACK) > 2) {
+                    ret = FALSE;
                     state->sflags[i] |= S_ERROR;
+                }
             }
         }
     }
@@ -1562,6 +1588,7 @@ static int check_completion(game_state *state, int mark)
                 debug(("col %d error: target %d, track %d, notrack %d",
                        x, target, ntrack, nnotrack));
                 state->num_errors[x] = 1;
+                ret = FALSE;
             }
         }
         if (ntrackcomplete != target)
@@ -1584,6 +1611,7 @@ static int check_completion(game_state *state, int mark)
                 debug(("row %d error: target %d, track %d, notrack %d",
                        y, target, ntrack, nnotrack));
                 state->num_errors[w+y] = 1;
+                ret = FALSE;
             }
         }
         if (ntrackcomplete != target)
@@ -1592,28 +1620,35 @@ static int check_completion(game_state *state, int mark)
 
     dsf = snewn(w*h, int);
     dsf_init(dsf, w*h);
-    loopclass = -1;
 
     for (x = 0; x < w; x++) {
         for (y = 0; y < h; y++) {
-            dsf_update_completion(state, &loopclass, x, y, R, dsf);
-            dsf_update_completion(state, &loopclass, x, y, D, dsf);
+            dsf_update_completion(state, x, y, R, dsf);
+            dsf_update_completion(state, x, y, D, dsf);
         }
     }
-    if (loopclass != -1) {
+
+    fls = findloop_new_state(w*h);
+    ctx.state = state;
+    if (findloop_run(fls, w*h, tracks_neighbour, &ctx)) {
         debug(("loop detected, not complete"));
         ret = FALSE; /* no loop allowed */
         if (mark) {
             for (x = 0; x < w; x++) {
                 for (y = 0; y < h; y++) {
-                    /* TODO this will only highlight the first loop found */
-                    if (dsf_canonify(dsf, y*w + x) == loopclass) {
-                        state->sflags[y*w+x] |= S_ERROR;
-                    }
+                    int u, v;
+
+                    u = y*w + x;
+                    for (v = tracks_neighbour(u, &ctx); v >= 0;
+                         v = tracks_neighbour(-1, &ctx))
+                        if (findloop_is_loop_edge(fls, u, v))
+                            state->sflags[y*w+x] |= S_ERROR;
                 }
             }
         }
     }
+    findloop_free_state(fls);
+
     if (mark) {
         pathclass = dsf_canonify(dsf, state->numbers->row_s*w);
         if (pathclass == dsf_canonify(dsf, (h-1)*w + state->numbers->col_s)) {
@@ -1622,9 +1657,17 @@ static int check_completion(game_state *state, int mark)
             for (i = 0; i < w*h; i++) {
                 if ((dsf_canonify(dsf, i) != pathclass) &&
                     ((state->sflags[i] & S_TRACK) ||
-                     (S_E_COUNT(state, i%w, i/w, E_TRACK) > 0)))
+                     (S_E_COUNT(state, i%w, i/w, E_TRACK) > 0))) {
+                    ret = FALSE;
                     state->sflags[i] |= S_ERROR;
+                }
             }
+        } else {
+            /* If we _don't_ have such a path, then certainly the game
+             * can't be in a winning state. So even if we're not
+             * highlighting any _errors_, we certainly shouldn't
+             * return true. */
+            ret = FALSE;
         }
     }
 

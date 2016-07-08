@@ -119,6 +119,7 @@ struct game_state {
     char *lines;
 
     unsigned char *line_errors;
+    int exactly_one_loop;
 
     int solved;
     int cheated;
@@ -335,6 +336,7 @@ static game_state *dup_game(const game_state *state)
 
     ret->line_errors = snewn(state->game_grid->num_edges, unsigned char);
     memcpy(ret->line_errors, state->line_errors, state->game_grid->num_edges);
+    ret->exactly_one_loop = state->exactly_one_loop;
 
     ret->grid_type = state->grid_type;
     return ret;
@@ -1443,6 +1445,7 @@ static char *new_game_desc(const game_params *params, random_state *rs,
     state->clues = snewn(g->num_faces, signed char);
     state->lines = snewn(g->num_edges, char);
     state->line_errors = snewn(g->num_edges, unsigned char);
+    state->exactly_one_loop = FALSE;
 
     state->grid_type = params->type;
 
@@ -1514,6 +1517,7 @@ static game_state *new_game(midend *me, const game_params *params,
     state->clues = snewn(num_faces, signed char);
     state->lines = snewn(num_edges, char);
     state->line_errors = snewn(num_edges, unsigned char);
+    state->exactly_one_loop = FALSE;
 
     state->solved = state->cheated = FALSE;
 
@@ -1552,141 +1556,119 @@ static game_state *new_game(midend *me, const game_params *params,
 static int check_completion(game_state *state)
 {
     grid *g = state->game_grid;
-    int *dsf;
-    int num_faces = g->num_faces;
-    int i;
-    int infinite_area, finite_area;
-    int loops_found = 0;
-    int found_edge_not_in_loop = FALSE;
+    int i, ret;
+    int *dsf, *component_state;
+    int nsilly, nloop, npath, largest_comp, largest_size, total_pathsize;
+    enum { COMP_NONE, COMP_LOOP, COMP_PATH, COMP_SILLY, COMP_EMPTY };
 
     memset(state->line_errors, 0, g->num_edges);
 
-    /* LL implementation of SGT's idea:
-     * A loop will partition the grid into an inside and an outside.
-     * If there is more than one loop, the grid will be partitioned into
-     * even more distinct regions.  We can therefore track equivalence of
-     * faces, by saying that two faces are equivalent when there is a non-YES
-     * edge between them.
-     * We could keep track of the number of connected components, by counting
-     * the number of dsf-merges that aren't no-ops.
-     * But we're only interested in 3 separate cases:
-     * no loops, one loop, more than one loop.
+    /*
+     * Find loops in the grid, and determine whether the puzzle is
+     * solved.
      *
-     * No loops: all faces are equivalent to the infinite face.
-     * One loop: only two equivalence classes - finite and infinite.
-     * >= 2 loops: there are 2 distinct finite regions.
+     * Loopy is a bit more complicated than most puzzles that care
+     * about loop detection. In most of them, loops are simply
+     * _forbidden_; so the obviously right way to do
+     * error-highlighting during play is to light up a graph edge red
+     * iff it is part of a loop, which is exactly what the centralised
+     * findloop.c makes easy.
      *
-     * So we simply make two passes through all the edges.
-     * In the first pass, we dsf-merge the two faces bordering each non-YES
-     * edge.
-     * In the second pass, we look for YES-edges bordering:
-     * a) two non-equivalent faces.
-     * b) two non-equivalent faces, and one of them is part of a different
-     *    finite area from the first finite area we've seen.
+     * But Loopy is unusual in that you're _supposed_ to be making a
+     * loop - and yet _some_ loops are not the right loop. So we need
+     * to be more discriminating, by identifying loops one by one and
+     * then thinking about which ones to highlight, and so findloop.c
+     * isn't quite the right tool for the job in this case.
      *
-     * An occurrence of a) means there is at least one loop.
-     * An occurrence of b) means there is more than one loop.
-     * Edges satisfying a) are marked as errors.
+     * Worse still, consider situations in which the grid contains a
+     * loop and also some non-loop edges: there are some cases like
+     * this in which the user's intuitive expectation would be to
+     * highlight the loop (if you're only about half way through the
+     * puzzle and have accidentally made a little loop in some corner
+     * of the grid), and others in which they'd be more likely to
+     * expect you to highlight the non-loop edges (if you've just
+     * closed off a whole loop that you thought was the entire
+     * solution, but forgot some disconnected edges in a corner
+     * somewhere). So while it's easy enough to check whether the
+     * solution is _right_, highlighting the wrong parts is a tricky
+     * problem for this puzzle!
      *
-     * While we're at it, we set a flag if we find a YES edge that is not
-     * part of a loop.
-     * This information will help decide, if there's a single loop, whether it
-     * is a candidate for being a solution (that is, all YES edges are part of
-     * this loop).
+     * I'd quite like, in some situations, to identify the largest
+     * loop among the player's YES edges, and then light up everything
+     * other than that. But finding the longest cycle in a graph is an
+     * NP-complete problem (because, in particular, it must return a
+     * Hamilton cycle if one exists).
      *
-     * If there is a candidate loop, we then go through all clues and check
-     * they are all satisfied.  If so, we have found a solution and we can
-     * unmark all line_errors.
+     * However, I think we can make the problem tractable by
+     * exercising the Puzzles principle that it isn't absolutely
+     * necessary to highlight _all_ errors: the key point is that by
+     * the time the user has filled in the whole grid, they should
+     * either have seen a completion flash, or have _some_ error
+     * highlight showing them why the solution isn't right. So in
+     * principle it would be *just about* good enough to highlight
+     * just one error in the whole grid, if there was really no better
+     * way. But we'd like to highlight as many errors as possible.
+     *
+     * In this case, I think the simple approach is to make use of the
+     * fact that no vertex may have degree > 2, and that's really
+     * simple to detect. So the plan goes like this:
+     *
+     *  - Form the dsf of connected components of the graph vertices.
+     *
+     *  - Highlight an error at any vertex with degree > 2. (It so
+     *    happens that we do this by lighting up all the edges
+     *    incident to that vertex, but that's an output detail.)
+     *
+     *  - Any component that contains such a vertex is now excluded
+     *    from further consideration, because it already has a
+     *    highlight.
+     *
+     *  - The remaining components have no vertex with degree > 2, and
+     *    hence they all consist of either a simple loop, or a simple
+     *    path with two endpoints.
+     *
+     *  - For these purposes, group together all the paths and imagine
+     *    them to be a single component (because in most normal
+     *    situations the player will gradually build up the solution
+     *    _not_ all in one connected segment, but as lots of separate
+     *    little path pieces that gradually connect to each other).
+     *
+     *  - After doing that, if there is exactly one (sensible)
+     *    component - be it a collection of paths or a loop - then
+     *    highlight no further edge errors. (The former case is normal
+     *    during play, and the latter is a potentially solved puzzle.)
+     *
+     *  - Otherwise, find the largest of the sensible components,
+     *    leave that one unhighlighted, and light the rest up in red.
      */
-    
-    /* Infinite face is at the end - its index is num_faces.
-     * This macro is just to make this obvious! */
-    #define INF_FACE num_faces
-    dsf = snewn(num_faces + 1, int);
-    dsf_init(dsf, num_faces + 1);
-    
-    /* First pass */
+
+    dsf = snew_dsf(g->num_dots);
+
+    /* Build the dsf. */
     for (i = 0; i < g->num_edges; i++) {
-        grid_edge *e = g->edges + i;
-        int f1 = e->face1 ? e->face1 - g->faces : INF_FACE;
-        int f2 = e->face2 ? e->face2 - g->faces : INF_FACE;
-        if (state->lines[i] != LINE_YES)
-            dsf_merge(dsf, f1, f2);
-    }
-    
-    /* Second pass */
-    infinite_area = dsf_canonify(dsf, INF_FACE);
-    finite_area = -1;
-    for (i = 0; i < g->num_edges; i++) {
-        grid_edge *e = g->edges + i;
-        int f1 = e->face1 ? e->face1 - g->faces : INF_FACE;
-        int can1 = dsf_canonify(dsf, f1);
-        int f2 = e->face2 ? e->face2 - g->faces : INF_FACE;
-        int can2 = dsf_canonify(dsf, f2);
-        if (state->lines[i] != LINE_YES) continue;
-
-        if (can1 == can2) {
-            /* Faces are equivalent, so this edge not part of a loop */
-            found_edge_not_in_loop = TRUE;
-            continue;
-        }
-        state->line_errors[i] = TRUE;
-        if (loops_found == 0) loops_found = 1;
-
-        /* Don't bother with further checks if we've already found 2 loops */
-        if (loops_found == 2) continue;
-
-        if (finite_area == -1) {
-            /* Found our first finite area */
-            if (can1 != infinite_area)
-                finite_area = can1;
-            else
-                finite_area = can2;
-        }
-
-        /* Have we found a second area? */
-        if (finite_area != -1) {
-            if (can1 != infinite_area && can1 != finite_area) {
-                loops_found = 2;
-                continue;
-            }
-            if (can2 != infinite_area && can2 != finite_area) {
-                loops_found = 2;
-            }
+        if (state->lines[i] == LINE_YES) {
+            grid_edge *e = g->edges + i;
+            int d1 = e->dot1 - g->dots, d2 = e->dot2 - g->dots;
+            dsf_merge(dsf, d1, d2);
         }
     }
 
-/*
-    printf("loops_found = %d\n", loops_found);
-    printf("found_edge_not_in_loop = %s\n",
-        found_edge_not_in_loop ? "TRUE" : "FALSE");
-*/
-
-    sfree(dsf); /* No longer need the dsf */
-    
-    /* Have we found a candidate loop? */
-    if (loops_found == 1 && !found_edge_not_in_loop) {
-        /* Yes, so check all clues are satisfied */
-        int found_clue_violation = FALSE;
-        for (i = 0; i < num_faces; i++) {
-            int c = state->clues[i];
-            if (c >= 0) {
-                if (face_order(state, i, LINE_YES) != c) {
-                    found_clue_violation = TRUE;
-                    break;
-                }
-            }
-        }
-        
-        if (!found_clue_violation) {
-            /* The loop is good */
-            memset(state->line_errors, 0, g->num_edges);
-            return TRUE; /* No need to bother checking for dot violations */
-        }
-    }
-
-    /* Check for dot violations */
+    /* Initialise a state variable for each connected component. */
+    component_state = snewn(g->num_dots, int);
     for (i = 0; i < g->num_dots; i++) {
+        if (dsf_canonify(dsf, i) == i)
+            component_state[i] = COMP_LOOP;
+        else
+            component_state[i] = COMP_NONE;
+    }
+
+    /* Check for dots with degree > 3. Here we also spot dots of
+     * degree 1 in which the user has marked all the non-edges as
+     * LINE_NO, because those are also clear vertex-level errors, so
+     * we give them the same treatment of excluding their connected
+     * component from the subsequent loop analysis. */
+    for (i = 0; i < g->num_dots; i++) {
+        int comp = dsf_canonify(dsf, i);
         int yes = dot_order(state, i, LINE_YES);
         int unknown = dot_order(state, i, LINE_UNKNOWN);
         if ((yes == 1 && unknown == 0) || (yes >= 3)) {
@@ -1698,9 +1680,108 @@ static int check_completion(game_state *state)
                 if (state->lines[e] == LINE_YES)
                     state->line_errors[e] = TRUE;
             }
+            /* And mark this component as not worthy of further
+             * consideration. */
+            component_state[comp] = COMP_SILLY;
+
+        } else if (yes == 0) {
+            /* A completely isolated dot must also be excluded it from
+             * the subsequent loop highlighting pass, but we tag it
+             * with a different enum value to avoid it counting
+             * towards the components that inhibit returning a win
+             * status. */
+            component_state[comp] = COMP_EMPTY;
+        } else if (yes == 1) {
+            /* A dot with degree 1 that didn't fall into the 'clearly
+             * erroneous' case above indicates that this connected
+             * component will be a path rather than a loop - unless
+             * something worse elsewhere in the component has
+             * classified it as silly. */
+            if (component_state[comp] != COMP_SILLY)
+                component_state[comp] = COMP_PATH;
         }
     }
-    return FALSE;
+
+    /* Count up the components. Also, find the largest sensible
+     * component. (Tie-breaking condition is derived from the order of
+     * vertices in the grid data structure, which is fairly arbitrary
+     * but at least stays stable throughout the game.) */
+    nsilly = nloop = npath = 0;
+    total_pathsize = 0;
+    largest_comp = largest_size = -1;
+    for (i = 0; i < g->num_dots; i++) {
+        if (component_state[i] == COMP_SILLY) {
+            nsilly++;
+        } else if (component_state[i] == COMP_PATH) {
+            total_pathsize += dsf_size(dsf, i);
+            npath = 1;
+        } else if (component_state[i] == COMP_LOOP) {
+            int this_size;
+
+            nloop++;
+
+            if ((this_size = dsf_size(dsf, i)) > largest_size) {
+                largest_comp = i;
+                largest_size = this_size;
+            }
+        }
+    }
+    if (largest_size < total_pathsize) {
+        largest_comp = -1;             /* means the paths */
+        largest_size = total_pathsize;
+    }
+
+    if (nloop > 0 && nloop + npath > 1) {
+        /*
+         * If there are at least two sensible components including at
+         * least one loop, highlight all edges in every sensible
+         * component that is not the largest one.
+         */
+        for (i = 0; i < g->num_edges; i++) {
+            if (state->lines[i] == LINE_YES) {
+                grid_edge *e = g->edges + i;
+                int d1 = e->dot1 - g->dots; /* either endpoint is good enough */
+                int comp = dsf_canonify(dsf, d1);
+                if ((component_state[comp] == COMP_PATH &&
+                     -1 != largest_comp) ||
+                    (component_state[comp] == COMP_LOOP &&
+                     comp != largest_comp))
+                    state->line_errors[i] = TRUE;
+            }
+        }
+    }
+
+    if (nloop == 1 && npath == 0 && nsilly == 0) {
+        /*
+         * If there is exactly one component and it is a loop, then
+         * the puzzle is potentially complete, so check the clues.
+         */
+        ret = TRUE;
+
+        for (i = 0; i < g->num_faces; i++) {
+            int c = state->clues[i];
+            if (c >= 0 && face_order(state, i, LINE_YES) != c) {
+                ret = FALSE;
+                break;
+            }
+        }
+
+        /*
+         * Also, whether or not the puzzle is actually complete, set
+         * the flag that says this game_state has exactly one loop and
+         * nothing else, which will be used to vary the semantics of
+         * clue highlighting at display time.
+         */
+        state->exactly_one_loop = TRUE;
+    } else {
+        ret = FALSE;
+        state->exactly_one_loop = FALSE;
+    }
+
+    sfree(component_state);
+    sfree(dsf);
+
+    return ret;
 }
 
 /* ----------------------------------------------------------------------
@@ -3347,16 +3428,53 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
     for (i = 0; i < g->num_faces; i++) {
         grid_face *f = g->faces + i;
         int sides = f->order;
+        int yes_order, no_order;
         int clue_mistake;
         int clue_satisfied;
         int n = state->clues[i];
         if (n < 0)
             continue;
 
-        clue_mistake = (face_order(state, i, LINE_YES) > n ||
-                        face_order(state, i, LINE_NO ) > (sides-n));
-        clue_satisfied = (face_order(state, i, LINE_YES) == n &&
-                          face_order(state, i, LINE_NO ) == (sides-n));
+        yes_order = face_order(state, i, LINE_YES);
+        if (state->exactly_one_loop) {
+            /*
+             * Special case: if the set of LINE_YES edges in the grid
+             * consists of exactly one loop and nothing else, then we
+             * switch to treating LINE_UNKNOWN the same as LINE_NO for
+             * purposes of clue checking.
+             *
+             * This is because some people like to play Loopy without
+             * using the right-click, i.e. never setting anything to
+             * LINE_NO. Without this special case, if a person playing
+             * in that style fills in what they think is a correct
+             * solution loop but in fact it has an underfilled clue,
+             * then we will display no victory flash and also no error
+             * highlight explaining why not. With this special case,
+             * we light up underfilled clues at the instant the loop
+             * is closed. (Of course, *overfilled* clues are fine
+             * either way.)
+             *
+             * (It might still be considered unfortunate that we can't
+             * warn this style of player any earlier, if they make a
+             * mistake very near the beginning which doesn't show up
+             * until they close the last edge of the loop. One other
+             * thing we _could_ do here is to treat any LINE_UNKNOWN
+             * as LINE_NO if either of its endpoints has yes-degree 2,
+             * reflecting the fact that setting that line to YES would
+             * be an obvious error. But I don't think even that could
+             * catch _all_ clue errors in a timely manner; I think
+             * there are some that won't be displayed until the loop
+             * is filled in, even so, and there's no way to avoid that
+             * with complete reliability except to switch to being a
+             * player who sets things to LINE_NO.)
+             */
+            no_order = sides - yes_order;
+        } else {
+            no_order = face_order(state, i, LINE_NO);
+        }
+
+        clue_mistake = (yes_order > n || no_order > (sides-n));
+        clue_satisfied = (yes_order == n && no_order == (sides-n));
 
         if (clue_mistake != ds->clue_error[i] ||
             clue_satisfied != ds->clue_satisfied[i]) {
