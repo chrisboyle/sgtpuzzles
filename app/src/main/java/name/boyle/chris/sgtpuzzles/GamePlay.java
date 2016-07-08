@@ -613,25 +613,14 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 		}
 		if (careAboutOldGame) {
 			final String title = getString(getResources().getIdentifier("name_" + backend, "string", getPackageName()));
-			runOnUiThread(new Runnable() {
-				@Override
-				public void run() {
-					new AlertDialog.Builder(GamePlay.this)
-							.setMessage(MessageFormat.format(getString(R.string.replaceGame), title))
-							.setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
-								@Override
-								public void onClick(DialogInterface dialog, int which) {
-									continueLoading.run();
-								}
-							})
-							.setNegativeButton(android.R.string.no, new DialogInterface.OnClickListener() {
-								@Override
-								public void onClick(DialogInterface dialog, int which) {
-									abort(null, returnToChooser);
-								}
-							}).create().show();
-				}
-			});
+			runOnUiThread(() -> new AlertDialog.Builder(GamePlay.this)
+					.setMessage(MessageFormat.format(getString(R.string.replaceGame), title))
+					.setPositiveButton(android.R.string.yes, (dialog1, which) -> {
+						continueLoading.run();
+					})
+					.setNegativeButton(android.R.string.no, (dialog1, which) -> {
+						abort(null, returnToChooser);
+					}).create().show());
 		} else {
 			continueLoading.run();
 		}

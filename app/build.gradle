@@ -34,7 +34,7 @@ def idForSimon() {
 
 android {
     compileSdkVersion 24
-    buildToolsVersion "23.0.2"
+    buildToolsVersion "24.0.0"
 
     defaultConfig {
         applicationId "name.boyle.chris.sgtpuzzles"
@@ -43,6 +43,9 @@ android {
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
         minSdkVersion 7
         targetSdkVersion 24
+        jackOptions {
+            enabled true
+        }
 
         ndk {
             moduleName "puzzles"
@@ -74,6 +77,10 @@ android {
             jniDebuggable false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.txt'
         }
+    }
+    compileOptions {
+        targetCompatibility 1.8
+        sourceCompatibility 1.8
     }
 }
 
