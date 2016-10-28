@@ -2960,11 +2960,46 @@ static int gridgen(int cr, struct block_structure *blocks,
  * End of grid generator code.
  */
 
+static int check_killer_cage_sum(struct block_structure *kblocks,
+                                 digit *kgrid, digit *grid, int blk)
+{
+    /*
+     * Returns: -1 if the cage has any empty square; 0 if all squares
+     * are full but the sum is wrong; +1 if all squares are full and
+     * they have the right sum.
+     *
+     * Does not check uniqueness of numbers within the cage; that's
+     * done elsewhere (because in error highlighting it needs to be
+     * detected separately so as to flag the error in a visually
+     * different way).
+     */
+    int n_squares = kblocks->nr_squares[blk];
+    int sum = 0, clue = 0;
+    int i;
+
+    for (i = 0; i < n_squares; i++) {
+        int xy = kblocks->blocks[blk][i];
+
+        if (grid[xy] == 0)
+            return -1;
+        sum += grid[xy];
+
+        if (kgrid[xy]) {
+            assert(clue == 0);
+            clue = kgrid[xy];
+        }
+    }
+
+    assert(clue != 0);
+    return sum == clue;
+}
+
 /*
  * Check whether a grid contains a valid complete puzzle.
  */
 static int check_valid(int cr, struct block_structure *blocks,
-		       struct block_structure *kblocks, int xtype, digit *grid)
+		       struct block_structure *kblocks,
+                       digit *kgrid, int xtype, digit *grid)
 {
     unsigned char *used;
     int x, y, i, j, n;
@@ -3019,7 +3054,9 @@ static int check_valid(int cr, struct block_structure *blocks,
 
     /*
      * Check that each Killer cage, if any, contains at most one of
-     * everything.
+     * everything. If we also know the clues for those cages (which we
+     * might not, when this function is called early in puzzle
+     * generation), we also check that they all have the right sum.
      */
     if (kblocks) {
 	for (i = 0; i < kblocks->nr_blocks; i++) {
@@ -3033,6 +3070,11 @@ static int check_valid(int cr, struct block_structure *blocks,
 		    }
 		    used[grid[kblocks->blocks[i][j]]-1] = TRUE;
 		}
+
+            if (kgrid && check_killer_cage_sum(kblocks, kgrid, grid, i) != 1) {
+                sfree(used);
+                return FALSE;
+            }
 	}
     }
 
@@ -3619,7 +3661,7 @@ static char *new_game_desc(const game_params *params, random_state *rs,
 
         if (!gridgen(cr, blocks, kblocks, params->xtype, grid, rs, area*area))
 	    continue;
-        assert(check_valid(cr, blocks, kblocks, params->xtype, grid));
+        assert(check_valid(cr, blocks, kblocks, NULL, params->xtype, grid));
 
 	/*
 	 * Save the solved grid in aux.
@@ -4662,8 +4704,9 @@ static game_state *execute_move(const game_state *from, const char *move)
              * We've made a real change to the grid. Check to see
              * if the game has been completed.
              */
-            if (!ret->completed && check_valid(cr, ret->blocks, ret->kblocks,
-					       ret->xtype, ret->grid)) {
+            if (!ret->completed && check_valid(
+                    cr, ret->blocks, ret->kblocks, ret->kgrid,
+                    ret->xtype, ret->grid)) {
                 ret->completed = TRUE;
             }
         }
@@ -5170,26 +5213,10 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
 		highlight |= 16;
 
 	    if (d && state->kblocks) {
-		int i, b = state->kblocks->whichblock[y*cr+x];
-		int n_squares = state->kblocks->nr_squares[b];
-		int sum = 0, clue = 0;
-		for (i = 0; i < n_squares; i++) {
-		    int xy = state->kblocks->blocks[b][i];
-		    if (state->grid[xy] == 0)
-			break;
-
-		    sum += state->grid[xy];
-		    if (state->kgrid[xy]) {
-			assert(clue == 0);
-			clue = state->kgrid[xy];
-		    }
-		}
-
-		if (i == n_squares) {
-		    assert(clue != 0);
-		    if (sum != clue)
-			highlight |= 32;
-		}
+                if (check_killer_cage_sum(
+                        state->kblocks, state->kgrid, state->grid,
+                        state->kblocks->whichblock[y*cr+x]) == 0)
+                    highlight |= 32;
 	    }
 
 	    draw_number(dr, ds, state, x, y, highlight);
