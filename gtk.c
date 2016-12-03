@@ -1935,6 +1935,24 @@ static gint configure_window(GtkWidget *widget,
     return FALSE;
 }
 
+#if GTK_CHECK_VERSION(3,0,0)
+static int window_extra_height(frontend *fe)
+{
+    int ret = 0;
+    if (fe->menubar) {
+        GtkRequisition req;
+        gtk_widget_get_preferred_size(fe->menubar, &req, NULL);
+        ret += req.height;
+    }
+    if (fe->statusbar) {
+        GtkRequisition req;
+        gtk_widget_get_preferred_size(fe->statusbar, &req, NULL);
+        ret += req.height;
+    }
+    return ret;
+}
+#endif
+
 static void resize_fe(frontend *fe)
 {
     int x, y;
@@ -1942,7 +1960,7 @@ static void resize_fe(frontend *fe)
     get_size(fe, &x, &y);
 
 #if GTK_CHECK_VERSION(3,0,0)
-    gtk_window_resize_to_geometry(GTK_WINDOW(fe->window), x, y);
+    gtk_window_resize(GTK_WINDOW(fe->window), x, y + window_extra_height(fe));
 #else
     fe->drawing_area_shrink_pending = FALSE;
     gtk_drawing_area_size(GTK_DRAWING_AREA(fe->area), x, y);
@@ -2648,15 +2666,23 @@ static frontend *new_window(char *arg, int argtype, char **error)
 #endif
     {
         GdkGeometry geom;
-        geom.base_width = geom.base_height = 0;
+        geom.base_width = 0;
+#if GTK_CHECK_VERSION(3,0,0)
+        geom.base_height = window_extra_height(fe);
+        gtk_window_set_geometry_hints(GTK_WINDOW(fe->window), NULL,
+                                      &geom, GDK_HINT_BASE_SIZE);
+#else
+        geom.base_height = 0;
         gtk_window_set_geometry_hints(GTK_WINDOW(fe->window), fe->area,
                                       &geom, GDK_HINT_BASE_SIZE);
+#endif
     }
     fe->w = -1;
     fe->h = -1;
     get_size(fe, &x, &y);
 #if GTK_CHECK_VERSION(3,0,0)
-    gtk_window_set_default_geometry(GTK_WINDOW(fe->window), x, y);
+    gtk_window_set_default_size(GTK_WINDOW(fe->window),
+                                x, y + window_extra_height(fe));
 #else
     fe->drawing_area_shrink_pending = FALSE;
     gtk_drawing_area_size(GTK_DRAWING_AREA(fe->area), x, y);
