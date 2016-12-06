@@ -284,7 +284,7 @@ static int check_nums(game_state *orig, game_state *copy, int only_immutable)
     int i, ret = 1;
     assert(copy->n == orig->n);
     for (i = 0; i < copy->n; i++) {
-        if (only_immutable && !copy->flags[i] & FLAG_IMMUTABLE) continue;
+        if (only_immutable && !(copy->flags[i] & FLAG_IMMUTABLE)) continue;
         assert(copy->nums[i] >= 0);
         assert(copy->nums[i] <= copy->n);
         if (copy->nums[i] != orig->nums[i]) {

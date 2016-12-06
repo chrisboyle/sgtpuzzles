@@ -1072,7 +1072,7 @@ static int solve_check_single_sub(game_state *state, int si, int id, int n,
         x = i%w;
         y = i/w;
         if (abs(ox-x) > 1 || abs(oy-y) > 1) {
-            if (!state->sflags[i] & S_TRACK)
+            if (!(state->sflags[i] & S_TRACK))
                 did += solve_set_sflag(state, x, y, S_NOTRACK, what);
         }
     }
