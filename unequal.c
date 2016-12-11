@@ -1214,7 +1214,7 @@ static game_state *load_game(const game_params *params, const char *desc,
             why = "Too much data to fill grid"; goto fail;
         }
 
-        if (*p < '0' && *p > '9') {
+        if (*p < '0' || *p > '9') {
             why = "Expecting number in game description"; goto fail;
         }
         n = atoi(p);
