@@ -1610,8 +1610,6 @@ static void check_completion(game_state *state, int mark)
          */
         for (i = 0; i < w*h; i++) {
             int comp = dsf_canonify(dsf, i);
-            if (component_state[comp] == COMP_PATH)
-                comp = -1; /* part of the 'all paths' quasi-component */
             if ((component_state[comp] == COMP_PATH &&
                  -1 != largest_comp) ||
                 (component_state[comp] == COMP_LOOP &&
