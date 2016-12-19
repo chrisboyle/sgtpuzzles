@@ -136,18 +136,25 @@ void buildExecutable(String abi, String debugOrRelease) {
                 'PUZZLESGEN_SUFFIX=-no-pie',
                 'APP_PIE=false']
     }
+    // rename to look like libraries, to get them installed
+    copy {
+        from(outAbiDir) {
+            include 'puzzlesgen-no-pie'
+            rename 'puzzlesgen-no-pie', 'libpuzzlesgen-no-pie.so'
+        }
+        into jniLibsDir
+    }
     exec {
         commandLine common + [
                 'APP_PLATFORM=android-16',  // earliest for PIE
                 'PUZZLESGEN_SUFFIX=-with-pie',
                 'APP_PIE=true']
     }
-
     // rename to look like libraries, to get them installed
     copy {
         from(outAbiDir) {
-            include 'puzzlesgen-*'
-            rename 'puzzlesgen-(.*)', 'libpuzzlesgen-$1.so'
+            include 'puzzlesgen-with-pie'
+            rename 'puzzlesgen-with-pie', 'libpuzzlesgen-with-pie.so'
         }
         into jniLibsDir
     }
