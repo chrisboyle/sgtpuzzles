@@ -14,6 +14,7 @@
 #include <ctype.h>
 #include <signal.h>
 #include <pthread.h>
+#include <math.h>
 
 #include <sys/time.h>
 
@@ -560,9 +561,9 @@ static size_t deserialise_readlen = 0;
 
 int android_deserialise_read(void *ctx, void *buf, int len)
 {
+	if (len < 0) return FALSE;
 	size_t l = min((size_t)len, deserialise_readlen);
-	if (l < 0) return FALSE;
-	else if (l == 0) return len == 0;
+	if (l == 0) return len == 0;
 	memcpy( buf, deserialise_readptr, l );
 	deserialise_readptr += l;
 	deserialise_readlen -= l;

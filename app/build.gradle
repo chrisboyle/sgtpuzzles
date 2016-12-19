@@ -33,16 +33,16 @@ def idForSimon() {
 }
 
 android {
-    compileSdkVersion 24
-    buildToolsVersion "24.0.0"
+    compileSdkVersion 25
+    buildToolsVersion "25.0.1"
 
     defaultConfig {
         applicationId "name.boyle.chris.sgtpuzzles"
-        versionCode 113
+        versionCode 114
         versionName "${timestamp()}-${idForSimon()}"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
-        minSdkVersion 7
-        targetSdkVersion 24
+        minSdkVersion 9
+        targetSdkVersion 25
         jackOptions {
             enabled true
         }
@@ -121,6 +121,8 @@ android.applicationVariants.all{ variant ->
             abiParam,
             'NDK_LOG=1',
             'NDK_DEBUG=' + (variant.ndkCompile.debuggable ? '1' : '0')]
+        // TODO consider APP_PLATFORM 21 for x86_64, mips64, arm64
+        println(common)
         exec {
             commandLine common + [
                     'APP_PLATFORM=android-9',  // 9 is earliest for x86 + mips
@@ -129,7 +131,7 @@ android.applicationVariants.all{ variant ->
         }
         exec {
             commandLine common + [
-                    'APP_PLATFORM=android-16',  // earliest for PIE
+                    'APP_PLATFORM=android-16',  // 16 earliest for PIE
                     'PUZZLESGEN_SUFFIX=-with-pie',
                     'APP_PIE=true']
         }
@@ -146,15 +148,15 @@ android.applicationVariants.all{ variant ->
 }
 
 dependencies {
-    compile 'com.android.support:support-v4:24.0.0'
-    compile 'com.android.support:appcompat-v7:24.0.0'
-    compile 'com.android.support:gridlayout-v7:24.0.0'
-    compile 'com.android.support:support-annotations:24.0.0'
-    androidTestCompile 'com.android.support:support-annotations:24.0.0'
+    compile 'com.android.support:support-v4:25.1.0'
+    compile 'com.android.support:appcompat-v7:25.1.0'
+    compile 'com.android.support:gridlayout-v7:25.1.0'
+    compile 'com.android.support:support-annotations:25.1.0'
+    androidTestCompile 'com.android.support:support-annotations:25.1.0'
     testCompile 'junit:junit:4.12'
     testCompile 'org.mockito:mockito-core:1.10.19'
     //testCompile 'org.hamcrest:hamcrest-library:1.1'
-    androidTestCompile 'com.android.support.test:runner:0.4'
-    androidTestCompile 'com.android.support.test:rules:0.4'
-    androidTestCompile 'com.android.support.test.espresso:espresso-core:2.2.1'
+    androidTestCompile 'com.android.support.test:runner:0.5'
+    androidTestCompile 'com.android.support.test:rules:0.5'
+    androidTestCompile 'com.android.support.test.espresso:espresso-core:2.2.2'
 }

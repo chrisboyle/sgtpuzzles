@@ -688,7 +688,7 @@ static char *new_game_desc(const game_params *params, random_state *rs,
     }
     *p++ = '\0';
 
-    return sresize(numbers, p - numbers, clue);
+    return (char *)sresize(numbers, p - numbers, clue);
 }
 
 static char *validate_desc(const game_params *params, const char *desc)
@@ -1304,6 +1304,7 @@ static int game_timing_state(const game_state *state, game_ui *ui)
     return 0;                          /* placate optimiser */
 }
 
+#ifndef NO_PRINTING
 static void game_print_size(const game_params *params, float *x, float *y)
 {
     int pw, ph;
@@ -1369,6 +1370,7 @@ static void game_print(drawing *dr, const game_state *state, int tilesize)
             draw_circle(dr, x, y, 3, ink, ink);
         }
 }
+#endif
 
 #ifdef COMBINED
 #define thegame palisade

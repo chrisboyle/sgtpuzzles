@@ -1,5 +1,6 @@
 #ifdef EXECUTABLE
 #include <stdio.h>
+#include <unistd.h>
 #include "puzzles.h"
 
 #define USAGE "Usage: puzzles-gen gamename [params | --seed seed | --desc desc]\n"

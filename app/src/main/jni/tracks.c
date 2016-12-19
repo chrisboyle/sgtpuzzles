@@ -2562,6 +2562,7 @@ static int game_timing_state(const game_state *state, game_ui *ui)
     return TRUE;
 }
 
+#ifndef NO_PRINTING
 static void game_print_size(const game_params *params, float *x, float *y)
 {
     int pw, ph;
@@ -2609,6 +2610,7 @@ static void game_print(drawing *dr, const game_state *state, int tilesize)
         }
     }
 }
+#endif
 
 #ifdef COMBINED
 #define thegame tracks
