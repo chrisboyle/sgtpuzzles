@@ -162,14 +162,14 @@ void buildExecutable(String abi, String debugOrRelease) {
 
 def ABIs = ["arm64-v8a", "armeabi", "armeabi-v7a", "mips", "mips64", "x86", "x86_64"]
 
-task "buildGameGenerationExecutableDebug" {
+task buildGameGenerationExecutableDebug(dependsOn: ':app:prepareDebugDependencies') {
     doLast {
         for (String abi : ABIs) {
             buildExecutable(abi, "debug")
         }
     }
 }
-task "buildGameGenerationExecutableRelease" {
+task buildGameGenerationExecutableRelease(dependsOn: ':app:prepareReleaseDependencies') {
     doLast {
         for (String abi : ABIs) {
             buildExecutable(abi, "release")

@@ -62,6 +62,10 @@ all within github.
 You'll also find a branch called "upstream", which is Simon's code whenever
 I last synced. Handy for diffs, to see what I broke on Android. :-)
 
+IMPORTANT: run the gradle task "buildGameGenerationExecutableDebug", ideally
+before installation (or force a rebuild after). This gives you the executable
+required to generate each new game ("puzzlesgen").
+
 You should now be able to edit, build and launch the app like any other Android
 project (except a lot of it is in C). Don't forget that you'll be signing with
 a dev key, so to test on a device that already has the Google Play version,
