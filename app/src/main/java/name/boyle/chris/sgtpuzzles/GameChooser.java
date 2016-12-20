@@ -103,12 +103,9 @@ public class GameChooser extends AppCompatActivity implements SharedPreferences.
 		buildViews();
 		rethinkActionBarCapacity();
 		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT && getSupportActionBar() != null) {
-			getSupportActionBar().addOnMenuVisibilityListener(new ActionBar.OnMenuVisibilityListener() {
-				@Override
-				public void onMenuVisibilityChanged(boolean visible) {
-					// https://code.google.com/p/android/issues/detail?id=69205
-					if (!visible) supportInvalidateOptionsMenu();
-				}
+			getSupportActionBar().addOnMenuVisibilityListener(visible -> {
+				// https://code.google.com/p/android/issues/detail?id=69205
+				if (!visible) supportInvalidateOptionsMenu();
 			});
 		}
 
@@ -121,14 +118,11 @@ public class GameChooser extends AppCompatActivity implements SharedPreferences.
 //		}
 
 		scrollView = (ScrollView) findViewById(R.id.scrollView);
-		scrollView.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
-			@Override
-			public void onGlobalLayout() {
-				if (scrollToOnNextLayout >= 0) {
-					final View v = views[scrollToOnNextLayout];
-					scrollView.requestChildRectangleOnScreen(v, new Rect(0, 0, v.getWidth(), v.getHeight()), true);
-					scrollToOnNextLayout = -1;
-				}
+		scrollView.getViewTreeObserver().addOnGlobalLayoutListener(() -> {
+			if (scrollToOnNextLayout >= 0) {
+				final View v = views[scrollToOnNextLayout];
+				scrollView.requestChildRectangleOnScreen(v, new Rect(0, 0, v.getWidth(), v.getHeight()), true);
+				scrollToOnNextLayout = -1;
 			}
 		});
 
@@ -192,27 +186,19 @@ public class GameChooser extends AppCompatActivity implements SharedPreferences.
 			final TextView textView = (TextView) views[i].findViewById(R.id.text);
 			textView.setText(desc);
 			textView.setVisibility(useGrid ? View.GONE : View.VISIBLE);
-			views[i].setOnTouchListener(new View.OnTouchListener() {
-				@Override
-				public boolean onTouch(View v, MotionEvent event) {
-					// Ignore touch within 300ms of resume
-					return System.nanoTime() - resumeTime < 300000000;
-				}
+			views[i].setOnTouchListener((v, event) -> {
+				// Ignore touch within 300ms of resume
+				return System.nanoTime() - resumeTime < 300000000;
 			});
-			views[i].setOnClickListener(new View.OnClickListener() {
-				public void onClick(View arg1) {
-					Intent i = new Intent(GameChooser.this, GamePlay.class);
-					i.setData(Uri.fromParts("sgtpuzzles", gameId, null));
-					startActivity(i);
-					overridePendingTransition(0, 0);
-				}
+			views[i].setOnClickListener(v -> {
+				Intent i1 = new Intent(GameChooser.this, GamePlay.class);
+				i1.setData(Uri.fromParts("sgtpuzzles", gameId, null));
+				startActivity(i1);
+				overridePendingTransition(0, 0);
 			});
-			views[i].setOnLongClickListener(new View.OnLongClickListener() {
-				@Override
-				public boolean onLongClick(View v) {
-					toggleStarred(gameId);
-					return true;
-				}
+			views[i].setOnLongClickListener(v -> {
+				toggleStarred(gameId);
+				return true;
 			});
 			views[i].setFocusable(true);
 			views[i].setLayoutParams(mkLayoutParams());

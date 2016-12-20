@@ -214,31 +214,19 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 		progress.setIndeterminate(true);
 		progress.setCancelable(true);
 		progress.setCanceledOnTouchOutside(false);
-		progress.setOnCancelListener(new OnCancelListener() {
-			public void onCancel(DialogInterface dialog) {
-				abort(null, returnToChooser);
-			}
-		});
-		progress.setButton(DialogInterface.BUTTON_NEGATIVE, getString(android.R.string.cancel), new DialogInterface.OnClickListener() {
-			@Override
-			public void onClick(DialogInterface dialog, int which) {
-				abort(null, returnToChooser);
-			}
-		});
+		progress.setOnCancelListener(dialog1 -> abort(null, returnToChooser));
+		progress.setButton(DialogInterface.BUTTON_NEGATIVE, getString(android.R.string.cancel), (dialog, which) -> abort(null, returnToChooser));
 		if (launch.needsGenerating()) {
 			final String backend = launch.getWhichBackend();
 			final String label = getString(R.string.reset_this_backend, getString(getResources().getIdentifier("name_" + backend, "string", getPackageName())));
-			progress.setButton(DialogInterface.BUTTON_NEUTRAL, label, new DialogInterface.OnClickListener() {
-				@Override
-				public void onClick(DialogInterface dialog, int which) {
-					final SharedPreferences.Editor editor = state.edit();
-					editor.remove(SAVED_GAME_PREFIX + backend);
-					editor.remove(SAVED_COMPLETED_PREFIX + backend);
-					editor.remove(LAST_PARAMS_PREFIX + backend);
-					editor.apply();
-					currentBackend = null;  // prevent save undoing our reset
-					abort(null, true);
-				}
+			progress.setButton(DialogInterface.BUTTON_NEUTRAL, label, (dialog, which) -> {
+				final SharedPreferences.Editor editor = state.edit();
+				editor.remove(SAVED_GAME_PREFIX + backend);
+				editor.remove(SAVED_COMPLETED_PREFIX + backend);
+				editor.remove(LAST_PARAMS_PREFIX + backend);
+				editor.apply();
+				currentBackend = null;  // prevent save undoing our reset
+				abort(null, true);
 			});
 		}
 		progress.show();
@@ -317,14 +305,11 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 			getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 			getSupportActionBar().setDisplayUseLogoEnabled(false);
 			if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-				getSupportActionBar().addOnMenuVisibilityListener(new ActionBar.OnMenuVisibilityListener() {
-					@Override
-					public void onMenuVisibilityChanged(boolean visible) {
-						// https://code.google.com/p/android/issues/detail?id=69205
-						if (!visible) {
-							supportInvalidateOptionsMenu();
-							rethinkActionBarCapacity();
-						}
+				getSupportActionBar().addOnMenuVisibilityListener(visible -> {
+					// https://code.google.com/p/android/issues/detail?id=69205
+					if (!visible) {
+						supportInvalidateOptionsMenu();
+						rethinkActionBarCapacity();
 					}
 				});
 			}
@@ -361,17 +346,14 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 	private void setUpBeam() {
 		NfcAdapter nfcAdapter = NfcAdapter.getDefaultAdapter(this);
 		if (nfcAdapter == null) return;  // NFC not available on this device
-		nfcAdapter.setNdefPushMessageCallback(new NfcAdapter.CreateNdefMessageCallback() {
-			@Override
-			public NdefMessage createNdefMessage(NfcEvent event) {
-				String saved = saveToString();
-				if (saved == null) return null;
-				return new NdefMessage(
-						new NdefRecord[]{
-								createMime(saved),
-								NdefRecord.createApplicationRecord(getPackageName())
-						});
-			}
+		nfcAdapter.setNdefPushMessageCallback(event -> {
+			String saved = saveToString();
+			if (saved == null) return null;
+			return new NdefMessage(
+					new NdefRecord[]{
+							createMime(saved),
+							NdefRecord.createApplicationRecord(getPackageName())
+					});
 		}, this);
 	}
 
@@ -512,12 +494,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 	private void showRationaleThenRequest() {
 		new AlertDialog.Builder(this)
 				.setMessage(R.string.storage_permission_explanation)
-				.setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
-					@Override
-					public void onClick(DialogInterface dialog, int which) {
-						requestStoragePermission();
-					}
-				})
+				.setPositiveButton(android.R.string.ok, (dialog, which) -> requestStoragePermission())
 				.create().show();
 		state.edit().putBoolean(STORAGE_PERMISSION_EVER_ASKED, true).apply();
 	}
@@ -539,12 +516,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 		if (grantResults[0] != PackageManager.PERMISSION_GRANTED) {
 			new AlertDialog.Builder(this)
 					.setMessage(MessageFormat.format(getString(R.string.storage_permission_denied), uri.getPath()))
-					.setOnDismissListener(new DialogInterface.OnDismissListener() {
-						@Override
-						public void onDismiss(DialogInterface dialog) {
-							finish();
-						}
-					}).create().show();
+					.setOnDismissListener(dialog1 -> finish()).create().show();
 			return;
 		}
 		if (checkPermissionGrantBug(uri)) return;
@@ -560,24 +532,11 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 		}
 		new AlertDialog.Builder(this)
 				.setMessage(R.string.storage_permission_bug)
-				.setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
-					@Override
-					public void onClick(DialogInterface dialog, int which) {
-						// do nothing
-					}
+				.setPositiveButton(android.R.string.ok, (dialog, which) -> {
+					// do nothing
 				})
-				.setNeutralButton(R.string.storage_permission_bug_more, new DialogInterface.OnClickListener() {
-					@Override
-					public void onClick(DialogInterface dialog, int which) {
-						startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(getString(R.string.storage_permission_bug_url))));
-					}
-				})
-				.setOnDismissListener(new DialogInterface.OnDismissListener() {
-					@Override
-					public void onDismiss(DialogInterface dialog) {
-						finish();
-					}
-				}).create().show();
+				.setNeutralButton(R.string.storage_permission_bug_more, (dialog, which) -> startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(getString(R.string.storage_permission_bug_url)))))
+				.setOnDismissListener(dialog -> finish()).create().show();
 		return true;
 	}
 
@@ -612,12 +571,8 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 			final String title = getString(getResources().getIdentifier("name_" + backend, "string", getPackageName()));
 			runOnUiThread(() -> new AlertDialog.Builder(GamePlay.this)
 					.setMessage(MessageFormat.format(getString(R.string.replaceGame), title))
-					.setPositiveButton(android.R.string.yes, (dialog1, which) -> {
-						continueLoading.run();
-					})
-					.setNegativeButton(android.R.string.no, (dialog1, which) -> {
-						abort(null, returnToChooser);
-					}).create().show());
+					.setPositiveButton(android.R.string.yes, (dialog1, which) -> continueLoading.run())
+					.setNegativeButton(android.R.string.no, (dialog1, which) -> abort(null, returnToChooser)).create().show());
 		} else {
 			continueLoading.run();
 		}
@@ -734,48 +689,45 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 		final MenuItem solveItem = gameMenu.getMenu().findItem(R.id.solve);
 		solveItem.setEnabled(solveEnabled);
 		solveItem.setVisible(solveEnabled);
-		gameMenu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
-			@Override
-			public boolean onMenuItemClick(MenuItem item) {
-				switch (item.getItemId()) {
-					case R.id.newgame:
-						startNewGame();
-						return true;
-					case R.id.restart:
-						restartEvent();
-						return true;
-					case R.id.solve:
+		gameMenu.setOnMenuItemClickListener(item -> {
+			switch (item.getItemId()) {
+				case R.id.newgame:
+					startNewGame();
+					return true;
+				case R.id.restart:
+					restartEvent();
+					return true;
+				case R.id.solve:
+					try {
+						solveEvent();
+					} catch (IllegalArgumentException e) {
+						messageBox(getString(R.string.Error), e.getMessage(), false);
+					}
+					return true;
+				case R.id.save:
+					if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+						Intent saver = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+						saver.addCategory(Intent.CATEGORY_OPENABLE);
+						saver.setType(MIME_TYPE);
 						try {
-							solveEvent();
-						} catch (IllegalArgumentException e) {
-							messageBox(getString(R.string.Error), e.getMessage(), false);
+							startActivityForResult(saver, REQ_CODE_CREATE_DOC);
+						} catch (ActivityNotFoundException ignored) {
+							SendFeedbackActivity.promptToReport(GamePlay.this, R.string.saf_missing_desc, R.string.saf_missing_short);
 						}
-						return true;
-					case R.id.save:
-						if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-							Intent saver = new Intent(Intent.ACTION_CREATE_DOCUMENT);
-							saver.addCategory(Intent.CATEGORY_OPENABLE);
-							saver.setType(MIME_TYPE);
-							try {
-								startActivityForResult(saver, REQ_CODE_CREATE_DOC);
-							} catch (ActivityNotFoundException ignored) {
-								SendFeedbackActivity.promptToReport(GamePlay.this, R.string.saf_missing_desc, R.string.saf_missing_short);
-							}
-						} else {
-							new FilePicker(GamePlay.this, storageDir, true).show();
-						}
-						return true;
-					case R.id.share:
-						share();
-						return true;
-					case R.id.settings:
-						final Intent prefsIntent = new Intent(GamePlay.this, PrefsActivity.class);
-						prefsIntent.putExtra(PrefsActivity.BACKEND_EXTRA, currentBackend);
-						startActivity(prefsIntent);
-						return true;
-					default:
-						return false;
-				}
+					} else {
+						new FilePicker(GamePlay.this, storageDir, true).show();
+					}
+					return true;
+				case R.id.share:
+					share();
+					return true;
+				case R.id.settings:
+					final Intent prefsIntent = new Intent(GamePlay.this, PrefsActivity.class);
+					prefsIntent.putExtra(PrefsActivity.BACKEND_EXTRA, currentBackend);
+					startActivity(prefsIntent);
+					return true;
+				default:
+					return false;
 			}
 		});
 		gameMenu.show();
@@ -796,21 +748,18 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 		typeMenu.getMenu().setGroupCheckable(R.id.typeGroup, true, true);
 		if( currentType < 0 ) customItem.setChecked(true);
 		else if( currentType < gameTypes.size() ) typeMenu.getMenu().findItem(currentType).setChecked(true);
-		typeMenu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
-			@Override
-			public boolean onMenuItemClick(MenuItem item) {
-				final int itemId = item.getItemId();
-				if (itemId == R.id.custom) {
-					configEvent(CFG_SETTINGS);
-					return true;
-				} else if (itemId < gameTypes.size()) {
-					String presetParams = orientGameType((String) gameTypes.keySet().toArray()[itemId]);
-					Log.d(TAG, "preset: " + itemId + ": " + presetParams);
-					startGame(GameLaunch.toGenerate(currentBackend, presetParams));
-					return true;
-				} else {
-					return false;
-				}
+		typeMenu.setOnMenuItemClickListener(item -> {
+			final int itemId = item.getItemId();
+			if (itemId == R.id.custom) {
+				configEvent(CFG_SETTINGS);
+				return true;
+			} else if (itemId < gameTypes.size()) {
+				String presetParams = orientGameType((String) gameTypes.keySet().toArray()[itemId]);
+				Log.d(TAG, "preset: " + itemId + ": " + presetParams);
+				startGame(GameLaunch.toGenerate(currentBackend, presetParams));
+				return true;
+			} else {
+				return false;
 			}
 		});
 		typeMenu.show();
@@ -821,21 +770,18 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 		helpMenu.getMenuInflater().inflate(R.menu.help_menu, helpMenu.getMenu());
 		helpMenu.getMenu().findItem(R.id.this_game).setTitle(MessageFormat.format(
 				getString(R.string.how_to_play_game), new Object[]{GamePlay.this.getTitle()}));
-		helpMenu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
-			@Override
-			public boolean onMenuItemClick(MenuItem item) {
-				switch (item.getItemId()) {
-					case R.id.this_game:
-						Intent intent = new Intent(GamePlay.this, HelpActivity.class);
-						intent.putExtra(HelpActivity.TOPIC, htmlHelpTopic());
-						startActivity(intent);
-						return true;
-					case R.id.email:
-						startActivity(new Intent(GamePlay.this, SendFeedbackActivity.class));
-						return true;
-					default:
-						return false;
-				}
+		helpMenu.setOnMenuItemClickListener(item -> {
+			switch (item.getItemId()) {
+				case R.id.this_game:
+					Intent intent = new Intent(GamePlay.this, HelpActivity.class);
+					intent.putExtra(HelpActivity.TOPIC, htmlHelpTopic());
+					startActivity(intent);
+					return true;
+				case R.id.email:
+					startActivity(new Intent(GamePlay.this, SendFeedbackActivity.class));
+					return true;
+				default:
+					return false;
 			}
 		});
 		helpMenu.show();
@@ -946,21 +892,18 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 	private void abort(final String why, final boolean returnToChooser)
 	{
 		workerRunning = false;
-		runOnUiThread(new Runnable() {
-			@Override
-			public void run() {
-				stopNative();
-				dismissProgress();
-				if (why != null && !why.equals("")) {
-					messageBox(getString(R.string.Error), why, returnToChooser);
-				} else if (returnToChooser) {
-					startChooserAndFinish();
-					return;
-				}
-				startingBackend = currentBackend;
-				if (currentBackend != null) {
-					requestKeys(currentBackend, getCurrentParams());
-				}
+		runOnUiThread(() -> {
+			stopNative();
+			dismissProgress();
+			if (why != null && !why.equals("")) {
+				messageBox(getString(R.string.Error), why, returnToChooser);
+			} else if (returnToChooser) {
+				startChooserAndFinish();
+				return;
+			}
+			startingBackend = currentBackend;
+			if (currentBackend != null) {
+				requestKeys(currentBackend, getCurrentParams());
 			}
 		});
 
@@ -1098,12 +1041,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 						args.add(params);
 					}
 					final String finalParams = params;
-					runOnUiThread(new Runnable() {
-						@Override
-						public void run() {
-							requestKeys(startingBackend, finalParams);
-						}
-					});
+					runOnUiThread(() -> requestKeys(startingBackend, finalParams));
 					String generated = generateGame(args);
 					if (generated != null) {
 						launch.finishedGenerating(generated);
@@ -1112,12 +1050,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 					}
 					startGameConfirmed(true, launch);
 				} else if (launch.isOfNonLocalState() && launch.getSaved() != null) {
-					warnOfStateLoss(launch.getSaved(), new Runnable() {
-						@Override
-						public void run() {
-							startGameConfirmed(false, launch);
-						}
-					}, launch.isFromChooser());
+					warnOfStateLoss(launch.getSaved(), () -> startGameConfirmed(false, launch), launch.isFromChooser());
 				} else {
 					startGameConfirmed(false, launch);
 				}
@@ -1161,52 +1094,49 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 		}
 
 		if (! workerRunning) return;
-		runOnUiThread(new Runnable() {
-			@Override
-			public void run() {
-				currentBackend = startingBackend;
-				gameView.refreshColours(currentBackend);
-				gameView.resetZoomForClear();
-				gameView.clear();
-				applyUndoRedoKbd();
-				gameView.keysHandled = 0;
-				everCompleted = false;
+		runOnUiThread(() -> {
+			currentBackend = startingBackend;
+			gameView.refreshColours(currentBackend);
+			gameView.resetZoomForClear();
+			gameView.clear();
+			applyUndoRedoKbd();
+			gameView.keysHandled = 0;
+			everCompleted = false;
 
-				final String currentParams = orientGameType(getCurrentParams());
-				refreshPresets(currentParams);
-				gameView.setDragModeFor(currentBackend);
-				final String title = getString(getResources().getIdentifier("name_" + currentBackend, "string", getPackageName()));
-				setTitle(title);
-				if (getSupportActionBar() != null) {
-					getSupportActionBar().setTitle(title);
-				}
-				final int flags = getUIVisibility();
-				changedState((flags & UIVisibility.UNDO.getValue()) > 0, (flags & UIVisibility.REDO.getValue()) > 0);
-				customVisible = (flags & UIVisibility.CUSTOM.getValue()) > 0;
-				solveEnabled = (flags & UIVisibility.SOLVE.getValue()) > 0;
-				setStatusBarVisibility((flags & UIVisibility.STATUS.getValue()) > 0);
+			final String currentParams = orientGameType(getCurrentParams());
+			refreshPresets(currentParams);
+			gameView.setDragModeFor(currentBackend);
+			final String title = getString(getResources().getIdentifier("name_" + currentBackend, "string", getPackageName()));
+			setTitle(title);
+			if (getSupportActionBar() != null) {
+				getSupportActionBar().setTitle(title);
+			}
+			final int flags = getUIVisibility();
+			changedState((flags & UIVisibility.UNDO.getValue()) > 0, (flags & UIVisibility.REDO.getValue()) > 0);
+			customVisible = (flags & UIVisibility.CUSTOM.getValue()) > 0;
+			solveEnabled = (flags & UIVisibility.SOLVE.getValue()) > 0;
+			setStatusBarVisibility((flags & UIVisibility.STATUS.getValue()) > 0);
 
-				if (!generating) {  // we didn't know params until we loaded the game
-					requestKeys(currentBackend, currentParams);
-				}
-				inertiaFollow(false);
-				if (launch.isKnownCompleted()) {
-					completed();
-				}
-				final boolean hasArrows = computeArrowMode(currentBackend).hasArrows();
-				setCursorVisibility(hasArrows);
-				if (changingGame) {
-					if (prefs.getBoolean(CONTROLS_REMINDERS_KEY, true)) {
-						if (hasArrows || !showToastIfExists("toast_no_arrows_" + currentBackend)) {
-							showToastIfExists("toast_" + currentBackend);
-						}
+			if (!generating) {  // we didn't know params until we loaded the game
+				requestKeys(currentBackend, currentParams);
+			}
+			inertiaFollow(false);
+			if (launch.isKnownCompleted()) {
+				completed();
+			}
+			final boolean hasArrows = computeArrowMode(currentBackend).hasArrows();
+			setCursorVisibility(hasArrows);
+			if (changingGame) {
+				if (prefs.getBoolean(CONTROLS_REMINDERS_KEY, true)) {
+					if (hasArrows || !showToastIfExists("toast_no_arrows_" + currentBackend)) {
+						showToastIfExists("toast_" + currentBackend);
 					}
 				}
-				dismissProgress();
-				gameView.rebuildBitmap();
-				if (menu != null) onPrepareOptionsMenu(menu);
-				save();
 			}
+			dismissProgress();
+			gameView.rebuildBitmap();
+			if (menu != null) onPrepareOptionsMenu(menu);
+			save();
 		});
 	}
 
@@ -1499,23 +1429,14 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 				.setTitle(title)
 				.setMessage(msg)
 				.setIcon(android.R.drawable.ic_dialog_alert)
-				.setOnCancelListener(returnToChooser ? new DialogInterface.OnCancelListener() {
-					@Override
-					public void onCancel(DialogInterface dialog) {
-						startChooserAndFinish();
-					}
-				} : null)
+				.setOnCancelListener(returnToChooser ? (OnCancelListener) dialog1 -> startChooserAndFinish() : null)
 				.show();
 	}
 
 	@UsedByJNI
 	void showToast(final String msg, final boolean fromPattern) {
 		if (fromPattern && ! prefs.getBoolean(PATTERN_SHOW_LENGTHS_KEY, false)) return;
-		runOnUiThread(new Runnable() {
-			public void run() {
-				Toast.makeText(GamePlay.this, msg, Toast.LENGTH_SHORT).show();
-			}
-		});
+		runOnUiThread(() -> Toast.makeText(GamePlay.this, msg, Toast.LENGTH_SHORT).show());
 	}
 
 	public void zoomedIn() {
@@ -1527,14 +1448,11 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 
 	@UsedByJNI
 	void completed() {
-		handler.postDelayed(new Runnable() {
-			@Override
-			public void run() {
-				try {
-					completedInternal();
-				} catch (WindowManager.BadTokenException activityWentAway) {
-					// fine, nothing we can do here
-				}
+		handler.postDelayed(() -> {
+			try {
+				completedInternal();
+			} catch (WindowManager.BadTokenException activityWentAway) {
+				// fine, nothing we can do here
 			}
 		}, 0);
 	}
@@ -1563,22 +1481,16 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 		d.setCanceledOnTouchOutside(true);
 		final Button newButton = (Button) d.findViewById(R.id.newgame);
 		darkenTopDrawable(newButton);
-		newButton.setOnClickListener(new OnClickListener() {
-			@Override
-			public void onClick(View v) {
-				d.dismiss();
-				startNewGame();
-			}
+		newButton.setOnClickListener(v -> {
+			d.dismiss();
+			startNewGame();
 		});
 		final Button typeButton = (Button) d.findViewById(R.id.type_menu);
 		darkenTopDrawable(typeButton);
-		typeButton.setOnClickListener(new OnClickListener() {
-			@Override
-			public void onClick(View v) {
-				d.dismiss();
-				if (hackForSubmenus == null) openOptionsMenu();
-				hackForSubmenus.performIdentifierAction(R.id.type_menu, 0);
-			}
+		typeButton.setOnClickListener(v -> {
+			d.dismiss();
+			if (hackForSubmenus == null) openOptionsMenu();
+			hackForSubmenus.performIdentifierAction(R.id.type_menu, 0);
 		});
 		final String style = prefs.getString(GameChooser.CHOOSER_STYLE_KEY, "list");
 		final boolean useGrid = style.equals("grid");
@@ -1587,12 +1499,9 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 				? R.drawable.ic_action_view_as_grid
 				: R.drawable.ic_action_view_as_list, 0, 0);
 		darkenTopDrawable(chooserButton);
-		chooserButton.setOnClickListener(new OnClickListener() {
-			@Override
-			public void onClick(View v) {
-				d.dismiss();
-				startChooserAndFinish();
-			}
+		chooserButton.setOnClickListener(v -> {
+			d.dismiss();
+			startChooserAndFinish();
 		});
 		d.show();
 	}
@@ -1606,11 +1515,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 	@UsedByJNI
 	void setStatus(final String status)
 	{
-		runOnUiThread(new Runnable() {
-			public void run() {
-				statusBar.setText(status.length() == 0 ? " " : status);
-			}
-		});
+		runOnUiThread(() -> statusBar.setText(status.length() == 0 ? " " : status));
 	}
 
 	@UsedByJNI
@@ -1627,33 +1532,21 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 	{
 		dialogBuilder = new AlertDialog.Builder(GamePlay.this)
 				.setTitle(title)
-				.setOnCancelListener(new OnCancelListener() {
-					public void onCancel(DialogInterface dialog) {
-						configCancel();
-					}
-				})
-				.setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
-					public void onClick(DialogInterface d, int whichButton) {
-						// do nothing - but must have listener to ensure button is shown
-						// (listener is overridden in dialogShow to prevent dismiss)
-					}
+				.setOnCancelListener(dialog1 -> configCancel())
+				.setPositiveButton(android.R.string.ok, (d, whichButton) -> {
+					// do nothing - but must have listener to ensure button is shown
+					// (listener is overridden in dialogShow to prevent dismiss)
 				});
 		ScrollView sv = new ScrollView(dialogBuilder.getContext());
 		dialogBuilder.setView(sv);
 		if (whichEvent == CFG_SETTINGS) {
-			dialogBuilder.setNegativeButton(R.string.Game_ID_, new DialogInterface.OnClickListener() {
-				@Override
-				public void onClick(DialogInterface dialog, int which) {
-					configCancel();
-					configEvent(CFG_DESC);
-				}
+			dialogBuilder.setNegativeButton(R.string.Game_ID_, (dialog, which) -> {
+				configCancel();
+				configEvent(CFG_DESC);
 			})
-			.setNeutralButton(R.string.Seed_, new DialogInterface.OnClickListener() {
-				@Override
-				public void onClick(DialogInterface dialog, int which) {
-					configCancel();
-					configEvent(CFG_SEED);
-				}
+			.setNeutralButton(R.string.Seed_, (dialog, which) -> {
+				configCancel();
+				configEvent(CFG_SEED);
 			});
 		}
 		sv.addView(dialogLayout = new TableLayout(dialogBuilder.getContext()));
@@ -1752,34 +1645,31 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 			dialogLayout.requestFocus();
 		}
 		dialog.show();
-		dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(new View.OnClickListener() {
-			@Override
-			public void onClick(View button) {
-				for (String i : dialogIds) {
-					View v = dialogLayout.findViewWithTag(i);
-					if (v instanceof EditText) {
-						configSetString(i, ((EditText) v).getText().toString());
-					} else if (v instanceof CheckBox) {
-						configSetBool(i, ((CheckBox) v).isChecked() ? 1 : 0);
-					} else if (v instanceof Spinner) {
-						configSetChoice(i, ((Spinner) v).getSelectedItemPosition());
-					}
+		dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(button -> {
+			for (String i : dialogIds) {
+				View v = dialogLayout.findViewWithTag(i);
+				if (v instanceof EditText) {
+					configSetString(i, ((EditText) v).getText().toString());
+				} else if (v instanceof CheckBox) {
+					configSetBool(i, ((CheckBox) v).isChecked() ? 1 : 0);
+				} else if (v instanceof Spinner) {
+					configSetChoice(i, ((Spinner) v).getSelectedItemPosition());
 				}
-				try {
-					final GameLaunch launch;
-					if (dialogEvent == CFG_DESC) {
-						launch = GameLaunch.ofGameID(currentBackend, getFullGameIDFromDialog());
-					} else if (dialogEvent == CFG_SEED) {
-						launch = GameLaunch.fromSeed(currentBackend, getFullSeedFromDialog());
-					} else {
-						launch = GameLaunch.toGenerate(currentBackend, configOK());
-					}
-					startGame(launch);
-					dialog.dismiss();
-				} catch (IllegalArgumentException e) {
-					dismissProgress();
-					messageBox(getString(R.string.Error), e.getMessage(), false);
+			}
+			try {
+				final GameLaunch launch;
+				if (dialogEvent == CFG_DESC) {
+					launch = GameLaunch.ofGameID(currentBackend, getFullGameIDFromDialog());
+				} else if (dialogEvent == CFG_SEED) {
+					launch = GameLaunch.fromSeed(currentBackend, getFullSeedFromDialog());
+				} else {
+					launch = GameLaunch.toGenerate(currentBackend, configOK());
 				}
+				startGame(launch);
+				dialog.dismiss();
+			} catch (IllegalArgumentException e) {
+				dismissProgress();
+				messageBox(getString(R.string.Error), e.getMessage(), false);
 			}
 		});
 	}
@@ -1853,11 +1743,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 		final boolean hasLightsOut = (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB);
 		if (cachedFullscreen) {
 			if (hasLightsOut) {
-				runOnUiThread(new Runnable() {
-					public void run() {
-						lightsOut(true);
-					}
-				});
+				runOnUiThread(() -> lightsOut(true));
 			} else if (alreadyStarted) {
 				// This is the only way to change the theme
 				if (! startedFullscreen) restartOnResume = true;
@@ -1867,12 +1753,10 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 		} else {
 			if (hasLightsOut) {
 				final boolean fAlreadyStarted = alreadyStarted;
-				runOnUiThread(new Runnable() {
-					public void run() {
-						lightsOut(false);
-						// This shouldn't be necessary but is on Galaxy Tab 10.1
-						if (fAlreadyStarted && startedFullscreen) restartOnResume = true;
-					}
+				runOnUiThread(() -> {
+					lightsOut(false);
+					// This shouldn't be necessary but is on Galaxy Tab 10.1
+					if (fAlreadyStarted && startedFullscreen) restartOnResume = true;
 				});
 			} else if (alreadyStarted && startedFullscreen) {
 				// This is the only way to change the theme
@@ -1967,26 +1851,23 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 
 	@UsedByJNI
 	void changedState(final boolean canUndo, final boolean canRedo) {
-		runOnUiThread(new Runnable() {
-			@Override
-			public void run() {
-				undoEnabled = canUndo;
-				redoEnabled = canRedo;
-				if (keyboard != null) {
-					keyboard.setUndoRedoEnabled(canUndo, canRedo);
+		runOnUiThread(() -> {
+			undoEnabled = canUndo;
+			redoEnabled = canRedo;
+			if (keyboard != null) {
+				keyboard.setUndoRedoEnabled(canUndo, canRedo);
+			}
+			if (menu != null) {
+				MenuItem mi;
+				mi = menu.findItem(R.id.undo);
+				if (mi != null) {
+					mi.setEnabled(undoEnabled);
+					mi.setIcon(undoEnabled ? R.drawable.ic_action_undo : R.drawable.ic_action_undo_disabled);
 				}
-				if (menu != null) {
-					MenuItem mi;
-					mi = menu.findItem(R.id.undo);
-					if (mi != null) {
-						mi.setEnabled(undoEnabled);
-						mi.setIcon(undoEnabled ? R.drawable.ic_action_undo : R.drawable.ic_action_undo_disabled);
-					}
-					mi = menu.findItem(R.id.redo);
-					if (mi != null) {
-						mi.setEnabled(redoEnabled);
-						mi.setIcon(redoEnabled ? R.drawable.ic_action_redo : R.drawable.ic_action_redo_disabled);
-					}
+				mi = menu.findItem(R.id.redo);
+				if (mi != null) {
+					mi.setEnabled(redoEnabled);
+					mi.setIcon(redoEnabled ? R.drawable.ic_action_redo : R.drawable.ic_action_redo_disabled);
 				}
 			}
 		});

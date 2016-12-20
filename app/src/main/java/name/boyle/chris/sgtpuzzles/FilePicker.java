@@ -71,7 +71,7 @@ class FilePicker extends Dialog
 				.setMessage(R.string.file_exists)
 				.setCancelable(true)
 				.setIcon(android.R.drawable.ic_dialog_alert);
-			b.setPositiveButton(android.R.string.yes, new OnClickListener(){ public void onClick(DialogInterface d, int which) {
+			b.setPositiveButton(android.R.string.yes, (d, which) -> {
 				try {
 					if (!f.delete()) {
 						throw new RuntimeException("delete failed");
@@ -81,10 +81,8 @@ class FilePicker extends Dialog
 					Toast.makeText(getContext(), e.toString(), Toast.LENGTH_LONG).show();
 				}
 				d.dismiss();
-			}});
-			b.setNegativeButton(android.R.string.no, new OnClickListener(){ public void onClick(DialogInterface d, int which) {
-				d.cancel();
-			}});
+			});
+			b.setNegativeButton(android.R.string.no, (d, which) -> d.cancel());
 			b.show();
 			return;
 		}
@@ -122,26 +120,24 @@ class FilePicker extends Dialog
 		setContentView(isSave ? R.layout.file_save : R.layout.file_load);
 		lv = (ListView)findViewById(R.id.filelist);
 		lv.setAdapter(new ArrayAdapter<>(getContext(), android.R.layout.simple_list_item_1, files));
-		lv.setOnItemClickListener(new OnItemClickListener() {
-			public void onItemClick(AdapterView<?> arg0, View arg1, int which, long arg3) {
-				File f = new File(path,files[which]);
-				if (f.isDirectory()) {
-					new FilePicker(FilePicker.this.activity, f,isSave,FilePicker.this).show();
+		lv.setOnItemClickListener((arg0, arg1, which, arg3) -> {
+			File f = new File(path,files[which]);
+			if (f.isDirectory()) {
+				new FilePicker(FilePicker.this.activity, f,isSave,FilePicker.this).show();
+				return;
+			}
+			if (isSave) {
+				save(f, false);
+				return;
+			}
+			try {
+				if (f.length() > GamePlay.MAX_SAVE_SIZE) {
+					Toast.makeText(getContext(), R.string.file_too_big, Toast.LENGTH_LONG).show();
 					return;
 				}
-				if (isSave) {
-					save(f, false);
-					return;
-				}
-				try {
-					if (f.length() > GamePlay.MAX_SAVE_SIZE) {
-						Toast.makeText(getContext(), R.string.file_too_big, Toast.LENGTH_LONG).show();
-						return;
-					}
-					load(f);
-				} catch (Exception e) {
-					Toast.makeText(getContext(), e.toString(), Toast.LENGTH_LONG).show();
-				}
+				load(f);
+			} catch (Exception e) {
+				Toast.makeText(getContext(), e.toString(), Toast.LENGTH_LONG).show();
 			}
 		});
 		if (!isSave) return;
@@ -153,18 +149,16 @@ class FilePicker extends Dialog
 				lv.setFilterText(s.toString());
 			}
 		});
-		et.setOnEditorActionListener(new TextView.OnEditorActionListener() { public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
+		et.setOnEditorActionListener((v, actionId, event) -> {
 			Log.d(GamePlay.TAG,"actionId: "+actionId+", event: "+event);
 			if (actionId == EditorInfo.IME_ACTION_DONE) return false;
 			if ((event != null && event.getAction() != KeyEvent.ACTION_DOWN)
 					|| et.length() == 0) return true;
 			save(new File(path,et.getText().toString()), false);
 			return true;
-		}});
+		});
 		final Button saveButton = (Button)findViewById(R.id.saveButton);
-		saveButton.setOnClickListener(new View.OnClickListener(){public void onClick(View v){
-			save(new File(path,et.getText().toString()), false);
-		}});
+		saveButton.setOnClickListener(v -> save(new File(path,et.getText().toString()), false));
 		et.requestFocus();
 	}
 }

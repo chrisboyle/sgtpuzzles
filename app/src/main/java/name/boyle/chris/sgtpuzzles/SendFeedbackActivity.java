@@ -55,12 +55,7 @@ public class SendFeedbackActivity extends Activity
 							getString(R.string.author_email),
 							emailSubject))
 					.setIcon(android.R.drawable.ic_dialog_alert)
-					.setOnCancelListener(new DialogInterface.OnCancelListener() {
-						@Override
-						public void onCancel(DialogInterface dialog) {
-							finish();
-						}
-					})
+					.setOnCancelListener(dialog -> finish())
 					.show();
 		}
 	}
@@ -82,13 +77,10 @@ public class SendFeedbackActivity extends Activity
 				.setTitle(R.string.Error)
 				.setIcon(android.R.drawable.ic_dialog_alert)
 				.setMessage(descId)
-				.setPositiveButton(R.string.report_it, new DialogInterface.OnClickListener() {
-					@Override
-					public void onClick(DialogInterface dialog, int which) {
-						final Intent intent = new Intent(context, SendFeedbackActivity.class);
-						intent.putExtra(SendFeedbackActivity.REASON, context.getString(shortId));
-						context.startActivity(intent);
-					}
+				.setPositiveButton(R.string.report_it, (dialog, which) -> {
+					final Intent intent = new Intent(context, SendFeedbackActivity.class);
+					intent.putExtra(SendFeedbackActivity.REASON, context.getString(shortId));
+					context.startActivity(intent);
 				}).show();
 	}
 }

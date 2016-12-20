@@ -200,12 +200,9 @@ public class GameView extends View
 			final PointF currentScroll = getCurrentScroll();
 			scrollBy(mScroller.getCurrX() - currentScroll.x, mScroller.getCurrY() - currentScroll.y);
 			if (mScroller.isFinished()) {
-				ViewCompat.postOnAnimation(GameView.this, new Runnable() {
-					@Override
-					public void run() {
-						redrawForZoomChange();
-						for (EdgeEffectCompat edge : edges) edge.onRelease();
-					}
+				ViewCompat.postOnAnimation(GameView.this, () -> {
+					redrawForZoomChange();
+					for (EdgeEffectCompat edge : edges) edge.onRelease();
 				});
 			} else {
 				ViewCompat.postOnAnimation(GameView.this, animateScroll);

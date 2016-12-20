@@ -263,16 +263,13 @@ public class GamePlayTest {
 	}
 
 	public static CoordinatesProvider squareProportions(final double xProp, final double yProp) {
-		return new CoordinatesProvider() {
-			@Override
-			public float[] calculateCoordinates(View view) {
-				final int[] screenPos = new int[2];
-				view.getLocationOnScreen(screenPos);
-				final int squareSz = Math.min(view.getWidth(), view.getHeight());
-				final float screenX = (float) (screenPos[0] + (0.5 * view.getWidth()) + xProp * squareSz);
-				final float screenY = (float) (screenPos[1] + (0.5 * view.getHeight()) + yProp * squareSz);
-				return new float[]{screenX, screenY};
-			}
+		return view -> {
+			final int[] screenPos = new int[2];
+			view.getLocationOnScreen(screenPos);
+			final int squareSz = Math.min(view.getWidth(), view.getHeight());
+			final float screenX = (float) (screenPos[0] + (0.5 * view.getWidth()) + xProp * squareSz);
+			final float screenY = (float) (screenPos[1] + (0.5 * view.getHeight()) + yProp * squareSz);
+			return new float[]{screenX, screenY};
 		};
 	}
 }
