@@ -164,7 +164,7 @@ public class GameChooser extends AppCompatActivity implements SharedPreferences.
 		table.setLayoutTransition(transition);
 	}
 
-	void buildViews()
+	private void buildViews()
 	{
 		for( int i = 0; i < games.length; i++ ) {
 			final String gameId = games[i];

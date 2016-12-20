@@ -127,8 +127,8 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 	static final String MIME_TYPE = "text/prs.sgtatham.puzzles";
 	private static final String STORAGE_PERMISSION_EVER_ASKED = "storage_permission_ever_asked";
 	private static final String LIGHTUP_383_NEED_MIGRATE = "lightup_383_need_migrate";
-	public static final String LIGHTUP_383_PARAMS_ROT4 = "^(\\d+(?:x\\d+)?(?:b\\d+)?)s4(.*)$";
-	public static final String LIGHTUP_383_REPLACE_ROT4 = "$1s3$2";
+	private static final String LIGHTUP_383_PARAMS_ROT4 = "^(\\d+(?:x\\d+)?(?:b\\d+)?)s4(.*)$";
+	private static final String LIGHTUP_383_REPLACE_ROT4 = "$1s3$2";
 
 	private ProgressDialog progress;
 	private CountDownTimer progressResetRevealer;

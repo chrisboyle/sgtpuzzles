@@ -14,7 +14,7 @@ import java.text.MessageFormat;
 
 public class SendFeedbackActivity extends Activity
 {
-	public static final String REASON = SendFeedbackActivity.class.getName() + ".REASON";
+	private static final String REASON = SendFeedbackActivity.class.getName() + ".REASON";
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState)
@@ -58,7 +58,7 @@ public class SendFeedbackActivity extends Activity
 		}
 	}
 
-	static String getEmailSubject(Context c, String currentGame)
+	private static String getEmailSubject(Context c, String currentGame)
 	{
 		String modVer = "unknown";
 		try {

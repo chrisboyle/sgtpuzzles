@@ -16,7 +16,9 @@
 		android:layout_height="wrap_content"
 		android:layout_alignParentBottom="true"
 		android:layout_alignParentLeft="true"
+		android:layout_alignParentStart="true"
 		android:layout_toLeftOf="@+id/saveButton"
+		android:layout_toStartOf="@+id/saveButton"
 		android:hint="@string/filename"
 		android:imeOptions="flagNoAccessoryAction"
 		android:inputType="text"
@@ -28,6 +30,7 @@
 		android:layout_height="wrap_content"
 		android:layout_alignParentBottom="true"
 		android:layout_alignParentRight="true"
+		android:layout_alignParentEnd="true"
 		android:layout_alignTop="@+id/savebox"
 		android:text="@string/save" />
 

@@ -103,7 +103,7 @@ public class PrefsActivity extends PreferenceActivity implements OnSharedPrefere
 		if (p != null && p instanceof ListPreference) updateSummary((ListPreference)p);
 	}
 
-	void updateSummary(ListPreference lp)
+	private void updateSummary(ListPreference lp)
 	{
 		lp.setSummary(lp.getEntry());
 		getListView().postInvalidate();
@@ -117,7 +117,7 @@ public class PrefsActivity extends PreferenceActivity implements OnSharedPrefere
 		getDelegate().onPostCreate(savedInstanceState);
 	}
 
-	public ActionBar getSupportActionBar() {
+	private ActionBar getSupportActionBar() {
 		return getDelegate().getSupportActionBar();
 	}
 

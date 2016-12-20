@@ -288,6 +288,7 @@
       <w>fillomino</w>
       <w>fillstart</w>
       <w>fillx</w>
+      <w>findloop</w>
       <w>findtest</w>
       <w>firstbackedge</w>
       <w>firsthalf</w>
@@ -441,6 +442,7 @@
       <w>ksums</w>
       <w>kurodoko</w>
       <w>kuromasu</w>
+      <w>kölker</w>
       <w>lambros</w>
       <w>lambrou</w>
       <w>laserval</w>
@@ -615,6 +617,7 @@
       <w>nlines</w>
       <w>nlocs</w>
       <w>nloose</w>
+      <w>nmake</w>
       <w>nmatch</w>
       <w>nminmax</w>
       <w>nmoves</w>
@@ -657,6 +660,7 @@
       <w>ntodo</w>
       <w>ntofill</w>
       <w>ntok</w>
+      <w>ntrackcomplete</w>
       <w>ntracks</w>
       <w>ntries</w>
       <w>nullfe</w>
@@ -962,6 +966,7 @@
       <w>totallen</w>
       <w>totalsize</w>
       <w>tpos</w>
+      <w>trackful</w>
       <w>tricker</w>
       <w>tstart</w>
       <w>ttbtbbtb</w>
@@ -984,6 +989,7 @@
       <w>unclip</w>
       <w>undead's</w>
       <w>undef</w>
+      <w>underfilled</w>
       <w>underspecify</w>
       <w>undrawn</w>
       <w>uniques</w>
@@ -1049,6 +1055,7 @@
       <w>xret</w>
       <w>xsize</w>
       <w>xtype</w>
+      <w>xwrap</w>
       <w>ybase</w>
       <w>ybest</w>
       <w>ydiff</w>
@@ -1062,6 +1069,7 @@
       <w>ynudge</w>
       <w>yret</w>
       <w>ysize</w>
+      <w>ywrap</w>
       <w>zanellati</w>
       <w>zmin</w>
       <w>zotmeister</w>

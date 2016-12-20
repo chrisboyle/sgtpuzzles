@@ -42,13 +42,13 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 	private ArrowMode arrowMode = ArrowMode.NO_ARROWS;
 
 	/** Key which can be disabled */
-	static class DKey extends Keyboard.Key
+	private static class DKey extends Keyboard.Key
 	{
 		boolean enabled;
 		DKey(Keyboard.Row r) { super(r); }
 	}
 
-	static class KeyboardModel extends Keyboard
+	private static class KeyboardModel extends Keyboard
 	{
 		final int mDefaultWidth;
 		final int mDefaultHeight;
@@ -112,7 +112,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 			SHARED_ICONS.put("unruly_sym_key_mouse_right", "square_filled");
 		}
 
-		public KeyboardModel(final Context context, final KeyboardView keyboardView,
+		KeyboardModel(final Context context, final KeyboardView keyboardView,
 				final boolean isInEditMode, final CharSequence characters,
 				final ArrowMode requestedArrowMode, final boolean columnMajor, final int maxPx,
 				final boolean undoEnabled, final boolean redoEnabled, final boolean followEnabled,

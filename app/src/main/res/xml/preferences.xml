@@ -6,7 +6,7 @@
 							android:key="chooserStyle"
 							android:entryValues="@array/chooserStyles"
 							android:entries="@array/chooserStyleDescs"
-							android:defaultValue="list" />
+							android:defaultValue="@string/chooserStyleDefaultValue" />
 	</PreferenceCategory>
 
 	<PreferenceCategory android:title="@string/thisGame" android:key="thisGame">
@@ -35,12 +35,12 @@
 						android:key="orientation"
 						android:entryValues="@array/orientationModes"
 						android:entries="@array/orientationModeDescs"
-						android:defaultValue="unspecified" />
+						android:defaultValue="@string/orientationModeDefaultValue" />
 		<ListPreference android:title="@string/nightMode"
 						android:key="nightMode"
 						android:entryValues="@array/nightModes"
 						android:entries="@array/nightModeDescs"
-						android:defaultValue="auto" />
+						android:defaultValue="@string/nightModeDefaultValue" />
 		<PreferenceScreen android:title="@string/advancedSettings"
 						  android:summary="@string/advancedSettingsSummary"
 						  android:key="advancedSettings"
@@ -62,7 +62,7 @@
 								android:key="limitDpi"
 								android:entryValues="@array/limitDpiModes"
 								android:entries="@array/limitDpiModeDescs"
-								android:defaultValue="auto" />
+								android:defaultValue="@string/limitDpiModeDefaultValue" />
 			</PreferenceCategory>
 			<PreferenceCategory android:title="@string/keyboardSettings">
 				<CheckBoxPreference android:title="@string/undoRedoOnKeyboard"

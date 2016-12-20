@@ -5,6 +5,7 @@
 		<item>portrait</item>
 		<item>landscape</item>
 	</array>
+	<string name="orientationModeDefaultValue" translatable="false">unspecified</string>
 	<array name="orientationModeDescs">
 		<item>@string/orientationUnspecified</item>
 		<item>@string/orientationPortrait</item>
@@ -15,6 +16,7 @@
 		<item>auto</item>
 		<item>off</item>
 	</array>
+	<string name="nightModeDefaultValue" translatable="false">auto</string>
 	<array name="nightModeDescs">
 		<item>@string/nightModeOn</item>
 		<item>@string/nightModeAuto</item>
@@ -25,6 +27,7 @@
 		<item>auto</item>
 		<item>on</item>
 	</array>
+	<string name="limitDpiModeDefaultValue" translatable="false">auto</string>
 	<array name="limitDpiModeDescs">
 		<item>@string/limitDpiModeOff</item>
 		<item>@string/limitDpiModeAuto</item>
@@ -34,6 +37,7 @@
 		<item>list</item>
 		<item>grid</item>
 	</array>
+	<string name="chooserStyleDefaultValue" translatable="false">list</string>
 	<array name="chooserStyleDescs">
 		<item>@string/chooserStyleList</item>
 		<item>@string/chooserStyleGrid</item>

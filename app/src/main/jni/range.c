@@ -323,7 +323,7 @@ static char *solve_game(const game_state *orig, const game_state *curpos,
     if (moves != NULL) {
         int const k = moves - base;
         char *str = ret = snewn(15*k + 2, char);
-        char colour[2] = "BW";
+        char colour[3] = "BW";
         move *it;
         *str++ = 'S';
         *str = '\0';
