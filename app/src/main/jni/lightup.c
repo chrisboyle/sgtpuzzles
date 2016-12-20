@@ -356,6 +356,8 @@ static char *validate_params(const game_params *params, int full)
             if (params->symm == SYMM_ROT4)
                 return _("4-fold symmetry is only available with square grids");
         }
+        if ((params->symm == SYMM_ROT4 || params->symm == SYMM_REF4) && params->w < 3 && params->h < 3)
+            return _("Width or height must be at least 3 for 4-way symmetry");
         if (params->symm < 0 || params->symm >= SYMM_MAX)
             return _("Unknown symmetry type");
         if (params->difficulty < 0 || params->difficulty > DIFFCOUNT)
