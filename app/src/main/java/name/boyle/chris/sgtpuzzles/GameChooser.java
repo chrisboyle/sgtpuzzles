@@ -145,7 +145,7 @@ public class GameChooser extends AppCompatActivity implements SharedPreferences.
 			final Drawable icon = layerDrawable.getDrawable(0);
 			// Ideally this would instead key off the new "activated" state, but it's too new.
 			if (games[i].equals(currentBackend)) {
-				final int highlightColour = getResources().getColor(R.color.chooser_current_background);
+				final int highlightColour = ContextCompat.getColor(this, R.color.chooser_current_background);
 				highlight.setBackgroundColor(highlightColour);
 				icon.setColorFilter(highlightColour, PorterDuff.Mode.SRC_OVER);
 				// wait until we know the size

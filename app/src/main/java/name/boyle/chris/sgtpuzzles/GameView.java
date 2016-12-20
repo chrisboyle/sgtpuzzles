@@ -89,7 +89,7 @@ public class GameView extends View
 	private final Matrix zoomInProgressMatrix = new Matrix();
 	private final Matrix inverseZoomMatrix = new Matrix();
 	private final Matrix tempDrawMatrix = new Matrix();
-	enum DragMode { UNMODIFIED, REVERT_OFF_SCREEN, REVERT_TO_START, PREVENT }
+	private enum DragMode { UNMODIFIED, REVERT_OFF_SCREEN, REVERT_TO_START, PREVENT }
 	private DragMode dragMode = DragMode.UNMODIFIED;
 	private ScrollerCompat mScroller;
 	private final EdgeEffectCompat[] edges = new EdgeEffectCompat[4];
@@ -653,7 +653,7 @@ public class GameView extends View
 			colours[i] = colour;
 		}
 		if (night) {
-			colours[0] = getResources().getColor(R.color.night_game_background);
+			colours[0] = ContextCompat.getColor(getContext(), R.color.night_game_background);
 			final String colourNamesJoined = getResources().getString(getResources().getIdentifier(whichBackend + "_colours", "string", parent.getPackageName()));
 			final String[] colourNames = colourNamesJoined.split(",");
 			for (int i = 1; i < colours.length; i++) {
@@ -671,7 +671,7 @@ public class GameView extends View
 				//Log.d("GameView", "\t<color name=\"" + resourceName + "\">" + String.format("#%06x", (0xFFFFFF & colours[i])) + "</color>");
 				final int nightColourId = getResources().getIdentifier(resourceName, "color", parent.getPackageName());
 				if (nightColourId > 0) {
-					colours[i] = getResources().getColor(nightColourId);
+					colours[i] = ContextCompat.getColor(getContext(), nightColourId);
 				}
 			}
 		}
@@ -693,7 +693,7 @@ public class GameView extends View
 	 *  the colours in night mode anyway. */
 	@UsedByJNI
 	int getDefaultBackgroundColour() {
-		return getResources().getColor(R.color.game_background);
+		return ContextCompat.getColor(getContext(), R.color.game_background);
 	}
 
 	@UsedByJNI
