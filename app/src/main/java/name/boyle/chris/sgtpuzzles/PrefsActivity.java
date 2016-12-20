@@ -22,7 +22,6 @@ import android.view.ViewGroup;
 
 import java.text.MessageFormat;
 
-@SuppressWarnings("WeakerAccess")
 public class PrefsActivity extends PreferenceActivity implements OnSharedPreferenceChangeListener
 {
 	static final String BACKEND_EXTRA = "backend";

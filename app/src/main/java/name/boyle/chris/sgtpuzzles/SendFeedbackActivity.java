@@ -4,7 +4,6 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.ActivityNotFoundException;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
@@ -13,7 +12,6 @@ import android.os.Bundle;
 
 import java.text.MessageFormat;
 
-@SuppressWarnings("WeakerAccess")  // used by manifest
 public class SendFeedbackActivity extends Activity
 {
 	public static final String REASON = SendFeedbackActivity.class.getName() + ".REASON";

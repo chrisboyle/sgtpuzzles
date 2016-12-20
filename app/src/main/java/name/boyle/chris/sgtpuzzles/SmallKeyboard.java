@@ -531,7 +531,6 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 		}
 	}
 
-    @SuppressWarnings({"SameParameterValue", "WeakerAccess"})  // used by layout
     public SmallKeyboard(Context c, AttributeSet a)
 	{
 		super(c, a);
