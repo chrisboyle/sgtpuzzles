@@ -28,7 +28,6 @@ import android.net.Uri;
 import android.nfc.NdefMessage;
 import android.nfc.NdefRecord;
 import android.nfc.NfcAdapter;
-import android.nfc.NfcEvent;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.CountDownTimer;
@@ -45,7 +44,6 @@ import android.support.v4.app.ShareCompat;
 import android.support.v4.content.FileProvider;
 import android.support.v4.content.res.ResourcesCompat;
 import android.support.v4.view.MenuItemCompat;
-import android.support.v7.app.ActionBar;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.AppCompatCheckBox;
@@ -61,7 +59,6 @@ import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.View.OnClickListener;
 import android.view.WindowManager;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
@@ -129,6 +126,9 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 	private static final String OUR_SCHEME = "sgtpuzzles";
 	static final String MIME_TYPE = "text/prs.sgtatham.puzzles";
 	private static final String STORAGE_PERMISSION_EVER_ASKED = "storage_permission_ever_asked";
+	private static final String LIGHTUP_383_NEED_MIGRATE = "lightup_383_need_migrate";
+	public static final String LIGHTUP_383_PARAMS_ROT4 = "^(\\d+(?:x\\d+)?(?:b\\d+)?)s4(.*)$";
+	public static final String LIGHTUP_383_REPLACE_ROT4 = "$1s3$2";
 
 	private ProgressDialog progress;
 	private CountDownTimer progressResetRevealer;
@@ -170,19 +170,20 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 	private NightModeHelper nightModeHelper;
 	private Intent appStartIntentOnResume = null;
 	private boolean swapLR = false;
+	private boolean migrateLightUp383InProgress = false;
 
-	enum UIVisibility {
+	private enum UIVisibility {
 		UNDO(1), REDO(2), CUSTOM(4), SOLVE(8), STATUS(16);
 		private final int _flag;
 		UIVisibility(final int flag) { _flag = flag; }
 		public int getValue() { return _flag; }
 	}
 
-	enum MsgType { TIMER }
-	static class PuzzlesHandler extends Handler
+	private enum MsgType { TIMER }
+	private static class PuzzlesHandler extends Handler
 	{
 		final WeakReference<GamePlay> ref;
-		public PuzzlesHandler(GamePlay outer) {
+		PuzzlesHandler(GamePlay outer) {
 			ref = new WeakReference<>(outer);
 		}
 		public void handleMessage( Message msg ) {
@@ -397,6 +398,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 			dismissProgress();
 		}
 		migrateToPerPuzzleSave();
+		migrateLightUp383Start();
 		String backendFromChooser = null;
 		// Don't regenerate on resurrecting a URL-bound activity from the recent list
 		if ((intent.getFlags() & Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY) == 0) {
@@ -578,7 +580,6 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 		}
 	}
 
-	@SuppressLint("CommitPrefEdits")
 	private void migrateToPerPuzzleSave() {
 		final String oldSave = state.getString(OLD_SAVED_GAME, null);
 		if (oldSave != null) {
@@ -594,6 +595,23 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 			} catch (IllegalArgumentException ignored) {}
 			ed.apply();
 		}
+	}
+
+	private void migrateLightUp383Start() {
+		if (state.contains(LIGHTUP_383_NEED_MIGRATE)) return;
+		final String lastLightUpParams = state.getString(LAST_PARAMS_PREFIX + "lightup", "");
+		final String savedLightUp = state.getString(SAVED_GAME_PREFIX + "lightup", "");
+		final String[] parts = savedLightUp.split("PARAMS  :\\d+:");
+		final boolean needMigrate = lastLightUpParams.matches(LIGHTUP_383_PARAMS_ROT4)
+				|| (parts.length > 1 && parts[1].matches(LIGHTUP_383_PARAMS_ROT4));
+		state.edit().putBoolean(LIGHTUP_383_NEED_MIGRATE, needMigrate).apply();
+	}
+
+	private String migrateLightUp383(final String currentBackend, final String in) {
+		migrateLightUp383InProgress = "lightup".equals(currentBackend) && state.getBoolean(LIGHTUP_383_NEED_MIGRATE, false);
+		return migrateLightUp383InProgress
+				? in.replaceAll(LIGHTUP_383_PARAMS_ROT4, LIGHTUP_383_REPLACE_ROT4)
+				: in;
 	}
 
 	@Override
@@ -981,7 +999,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 
 	private void startNewGame()
 	{
-		startGame(GameLaunch.toGenerate(currentBackend, orientGameType(getCurrentParams())));
+		startGame(GameLaunch.toGenerate(currentBackend, orientGameType(migrateLightUp383(currentBackend, getCurrentParams()))));
 	}
 
 	private void startGame(final GameLaunch launch)
@@ -1027,7 +1045,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 						args.add(launch.getSeed());
 					} else {
 						if (params == null) {
-							params = getLastParams(whichBackend);
+							params = migrateLightUp383(whichBackend, getLastParams(whichBackend));
 							if (params == null) {
 								params = (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE)
 										? "--landscape" : "--portrait";
@@ -1137,6 +1155,9 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 			gameView.rebuildBitmap();
 			if (menu != null) onPrepareOptionsMenu(menu);
 			save();
+			if (migrateLightUp383InProgress) {
+				state.edit().putBoolean(LIGHTUP_383_NEED_MIGRATE, false).apply();
+			}
 		});
 	}
 
