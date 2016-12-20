@@ -226,9 +226,7 @@ public class GamePlayTest {
 		Set<String> unusedBackends = new LinkedHashSet<>(Arrays.asList(
 				getTargetContext().getResources().getStringArray(R.array.games)));
 		addExamples();
-		for (String used : _usedBackends) {
-			unusedBackends.remove(used);
-		}
+		_usedBackends.forEach(unusedBackends::remove);
 		for (String unused : unusedBackends) {
 			addExample(unused, "", KEYCODE_DPAD_CENTER);  // testGameCompletion will fail appropriately
 		}
