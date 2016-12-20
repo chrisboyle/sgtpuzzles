@@ -230,8 +230,15 @@ static game_params *custom_params(const config_item *cfg)
 
 static const char *validate_params(const game_params *params, bool full)
 {
-    if (params->w < 2) return "Width must be at least one";
-    if (params->h < 2) return "Height must be at least one";
+    if (params->w < 2) return "Width must be at least two";
+    if (params->h < 2) return "Height must be at least two";
+    if (params->diff >= DIFF_TRICKY) {
+        if (params->w < 5 && params->h < 5)
+            return "Either width or height must be at least five for Tricky";
+    } else {
+        if (params->w < 3 && params->h < 3)
+            return "Either width or height must be at least three";
+    }
     if (params->diff < 0 || params->diff >= DIFFCOUNT)
         return "Unknown difficulty level";
 
