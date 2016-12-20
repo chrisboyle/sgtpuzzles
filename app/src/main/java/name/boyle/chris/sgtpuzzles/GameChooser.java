@@ -1,7 +1,5 @@
 package name.boyle.chris.sgtpuzzles;
 
-import name.boyle.chris.sgtpuzzles.compat.PrefsSaver;
-
 import android.animation.LayoutTransition;
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
@@ -71,7 +69,6 @@ public class GameChooser extends AppCompatActivity implements SharedPreferences.
 	private String[] games;
 	private View[] views;
 	private Menu menu;
-	private PrefsSaver prefsSaver;
 	private ScrollView scrollView;
 	private int scrollToOnNextLayout = -1;
 	private long resumeTime = 0;
@@ -84,16 +81,15 @@ public class GameChooser extends AppCompatActivity implements SharedPreferences.
 		prefs = PreferenceManager.getDefaultSharedPreferences(this);
 		prefs.registerOnSharedPreferenceChangeListener(this);
         SharedPreferences state = getSharedPreferences(GamePlay.STATE_PREFS_NAME, MODE_PRIVATE);
-		prefsSaver = PrefsSaver.get(this);
 
 		String oldCS = state.getString(CHOOSER_STYLE_KEY, null);
 		if (oldCS != null) {  // migrate to somewhere more sensible
 			SharedPreferences.Editor ed = prefs.edit();
 			ed.putString(CHOOSER_STYLE_KEY, oldCS);
-			prefsSaver.save(ed);
+			ed.apply();
 			ed = state.edit();
 			ed.remove(CHOOSER_STYLE_KEY);
-			prefsSaver.save(ed);
+			ed.apply();
 		}
 
 		String s = prefs.getString(CHOOSER_STYLE_KEY, "list");
@@ -325,7 +321,7 @@ public class GameChooser extends AppCompatActivity implements SharedPreferences.
 	private void toggleStarred(String game) {
 		SharedPreferences.Editor ed = prefs.edit();
 		ed.putBoolean("starred_" + game, !isStarred(game));
-		prefsSaver.save(ed);
+		ed.apply();
 		rethinkColumns(true);
 	}
 

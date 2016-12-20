@@ -19,8 +19,6 @@ import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
-import name.boyle.chris.sgtpuzzles.compat.PrefsSaver;
-
 abstract class Utils {
 
 	static String readAllOf(InputStream s) throws IOException
@@ -92,7 +90,7 @@ abstract class Utils {
 	}
 
 	@SuppressLint("CommitPrefEdits")
-	static void toastFirstFewTimes(Context context, SharedPreferences state, PrefsSaver prefsSaver, String prefID, int showCount, int messageID) {
+	static void toastFirstFewTimes(Context context, SharedPreferences state, String prefID, int showCount, int messageID) {
 		long seen = state.getLong(prefID, 0);
 		if (seen < showCount) {
 			Toast.makeText(context, messageID, Toast.LENGTH_SHORT).show();
@@ -100,6 +98,6 @@ abstract class Utils {
 		seen++;
 		SharedPreferences.Editor ed = state.edit();
 		ed.putLong(prefID, seen);
-		prefsSaver.save(ed);
+		ed.apply();
 	}
 }

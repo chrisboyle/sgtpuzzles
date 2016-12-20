@@ -81,12 +81,10 @@ public class HelpActivity extends AppCompatActivity implements NightModeHelper.P
 		settings.setAllowFileAccess(false);  // android_asset still works
 		settings.setBlockNetworkImage(true);
 		settings.setBuiltInZoomControls(true);
-		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.FROYO) {
-			settings.setBlockNetworkLoads(true);
-			if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
-				settings.setDisplayZoomControls(false);
-				settings.setAllowContentAccess(false);
-			}
+		settings.setBlockNetworkLoads(true);
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
+			settings.setDisplayZoomControls(false);
+			settings.setAllowContentAccess(false);
 		}
 		final Resources resources = getResources();
 		final String lang = resources.getConfiguration().locale.getLanguage();

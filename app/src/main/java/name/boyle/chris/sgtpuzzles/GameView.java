@@ -79,7 +79,6 @@ public class GameView extends View
 	static final int CURSOR_UP = 0x209, CURSOR_DOWN = 0x20a,
 			CURSOR_LEFT = 0x20b, CURSOR_RIGHT = 0x20c, MOD_NUM_KEYPAD = 0x4000;
 	int keysHandled = 0;  // debug
-	private final boolean hasPinchZoom;
 	private ScaleGestureDetector scaleDetector = null;
 	private GestureDetectorCompat gestureDetector;
 	private static final float MAX_ZOOM = 30.f;
@@ -153,7 +152,7 @@ public class GameView extends View
 			@Override
 			public boolean onScroll(MotionEvent downEvent, MotionEvent event, float distanceX, float distanceY) {
 				// 2nd clause is 2 fingers a constant distance apart
-				if ((hasPinchZoom && isScaleInProgress()) || event.getPointerCount() > 1) {
+				if (isScaleInProgress() || event.getPointerCount() > 1) {
 					revertDragInProgress(pointFromEvent(event));
 					if (touchState == TouchState.WAITING_LONG_PRESS) {
 						parent.handler.removeCallbacks(sendLongPress);
@@ -187,10 +186,7 @@ public class GameView extends View
 		});
 		// We do our own long-press detection to capture movement afterwards
 		gestureDetector.setIsLongpressEnabled(false);
-		hasPinchZoom = (Build.VERSION.SDK_INT >= Build.VERSION_CODES.FROYO);
-		if (hasPinchZoom) {
-			enablePinchZoom();
-		}
+		enablePinchZoom();
 	}
 
 	private PointF getCurrentScroll() {
@@ -413,7 +409,7 @@ public class GameView extends View
 
 	private final Runnable sendLongPress = new Runnable() {
 		public void run() {
-			if (hasPinchZoom && isScaleInProgress()) return;
+			if (isScaleInProgress()) return;
 			button = RIGHT_BUTTON;
 			touchState = TouchState.DRAGGING;
 			performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
@@ -425,7 +421,7 @@ public class GameView extends View
 	public boolean onTouchEvent(@NonNull MotionEvent event)
 	{
 		if (parent.currentBackend == null) return false;
-		boolean sdRet = hasPinchZoom && checkPinchZoom(event);
+		boolean sdRet = checkPinchZoom(event);
 		boolean gdRet = gestureDetector.onTouchEvent(event);
 		lastTouch = pointFromEvent(event);
 		if (event.getAction() == MotionEvent.ACTION_UP) {
@@ -444,7 +440,7 @@ public class GameView extends View
 			return true;
 		} else if (event.getAction() == MotionEvent.ACTION_MOVE) {
 			// 2nd clause is 2 fingers a constant distance apart
-			if ((hasPinchZoom && isScaleInProgress()) || event.getPointerCount() > 1) {
+			if (isScaleInProgress() || event.getPointerCount() > 1) {
 				return sdRet || gdRet;
 			}
 			float x = event.getX(), y = event.getY();

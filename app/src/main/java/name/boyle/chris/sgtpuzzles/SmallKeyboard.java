@@ -19,8 +19,6 @@ import android.support.v4.content.ContextCompat;
 import android.util.AttributeSet;
 import android.util.Log;
 
-import name.boyle.chris.sgtpuzzles.compat.PrefsSaver;
-
 public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboardActionListener
 {
 	private static final String TAG = "SmallKeyboard";
@@ -31,7 +29,6 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 	public static final char SWAP_L_R_KEY = '*';
 	private boolean swapLR = false;
 	private final SharedPreferences state;
-	private final PrefsSaver prefsSaver;
 
 	enum ArrowMode {
 		NO_ARROWS,  // untangle
@@ -543,7 +540,6 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 		if (isInEditMode()) setKeys("123456\bur", ArrowMode.ARROWS_LEFT_RIGHT_CLICK, "");
 		setPreviewEnabled(false);  // can't get icon buttons to darken properly and there are positioning bugs anyway
 		state = c.getSharedPreferences(GamePlay.STATE_PREFS_NAME, Context.MODE_PRIVATE);
-		prefsSaver = PrefsSaver.get(c);
 	}
 
 	private CharSequence lastKeys = "";
@@ -622,7 +618,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 			final Keyboard.Key key = model.getKeys().get(model.swapLRKey);
 			model.setSwapLR(key.on, true);
 			parent.setSwapLR(key.on);
-			Utils.toastFirstFewTimes(getContext(), state, prefsSaver, SEEN_SWAP_L_R_TOAST, 4,
+			Utils.toastFirstFewTimes(getContext(), state, SEEN_SWAP_L_R_TOAST, 4,
 					key.on ? R.string.toast_swap_l_r_on : R.string.toast_swap_l_r_off);
 		} else {
 			parent.sendKey(0,0,k);

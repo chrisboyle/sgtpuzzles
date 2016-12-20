@@ -1,7 +1,6 @@
 package name.boyle.chris.sgtpuzzles;
 
-import name.boyle.chris.sgtpuzzles.compat.PrefsSaver;
-
+import android.app.backup.BackupManager;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
 import android.content.res.Configuration;
@@ -27,7 +26,7 @@ import java.text.MessageFormat;
 public class PrefsActivity extends PreferenceActivity implements OnSharedPreferenceChangeListener
 {
 	static final String BACKEND_EXTRA = "backend";
-	private PrefsSaver prefsSaver;
+	private BackupManager backupManager = null;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState)
@@ -35,7 +34,7 @@ public class PrefsActivity extends PreferenceActivity implements OnSharedPrefere
 		getDelegate().installViewFactory();
 		getDelegate().onCreate(savedInstanceState);
 		super.onCreate(savedInstanceState);
-		prefsSaver = PrefsSaver.get(this);
+		backupManager = new BackupManager(this);
 		addPreferencesFromResource(R.xml.preferences);
 		final String whichBackend = getIntent().getStringExtra(BACKEND_EXTRA);
 		final PreferenceCategory chooserCategory = (PreferenceCategory) findPreference("gameChooser");
@@ -85,7 +84,7 @@ public class PrefsActivity extends PreferenceActivity implements OnSharedPrefere
 	{
 		super.onPause();
 		getPreferenceScreen().getSharedPreferences().unregisterOnSharedPreferenceChangeListener(this);
-		prefsSaver.backup();
+		backupManager.dataChanged();
 	}
 
 	@Override

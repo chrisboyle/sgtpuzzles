@@ -96,7 +96,6 @@ import java.util.StringTokenizer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import name.boyle.chris.sgtpuzzles.compat.PrefsSaver;
 import name.boyle.chris.sgtpuzzles.compat.SysUIVisSetter;
 
 public class GamePlay extends AppCompatActivity implements OnSharedPreferenceChangeListener, NightModeHelper.Parent
@@ -163,7 +162,6 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 	private String[] games;
 	private Menu menu;
 	private String maybeUndoRedo = "UR";
-	private PrefsSaver prefsSaver;
 	private boolean startedFullscreen = false, cachedFullscreen = false;
 	private boolean keysAlreadySet = false;
 	private boolean everCompleted = false;
@@ -237,7 +235,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 					editor.remove(SAVED_GAME_PREFIX + backend);
 					editor.remove(SAVED_COMPLETED_PREFIX + backend);
 					editor.remove(LAST_PARAMS_PREFIX + backend);
-					editor.commit();
+					editor.apply();
 					currentBackend = null;  // prevent save undoing our reset
 					abort(null, true);
 				}
@@ -291,7 +289,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 		ed.putString(SAVED_GAME_PREFIX + currentBackend, s);
 		ed.putBoolean(SAVED_COMPLETED_PREFIX + currentBackend, everCompleted);
 		ed.putString(LAST_PARAMS_PREFIX + currentBackend, getCurrentParams());
-		prefsSaver.save(ed);
+		ed.apply();
 	}
 
 	void gameViewResized()
@@ -306,7 +304,6 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 		prefs = PreferenceManager.getDefaultSharedPreferences(this);
 		prefs.registerOnSharedPreferenceChangeListener(this);
 		state = getSharedPreferences(STATE_PREFS_NAME, MODE_PRIVATE);
-		prefsSaver = PrefsSaver.get(this);
 		games = getResources().getStringArray(R.array.games);
 		gameTypes = new LinkedHashMap<>();
 
@@ -640,7 +637,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 				ed.putString(SAVED_GAME_PREFIX + oldBackend, oldSave);
 				ed.putBoolean(SAVED_COMPLETED_PREFIX + oldBackend, oldCompleted);
 			} catch (IllegalArgumentException ignored) {}
-			prefsSaver.save(ed);
+			ed.apply();
 		}
 	}
 
@@ -1012,7 +1009,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 		File executablePath = new File(dataDir, "puzzlesgen" + suffix);
 		if (!executablePath.exists() || (prefs.getInt(PUZZLESGEN_LAST_UPDATE, 0) < BuildConfig.VERSION_CODE)) {
 			copyFile(installablePath, executablePath);
-			prefsSaver.save(prefs.edit().putInt(PUZZLESGEN_LAST_UPDATE, BuildConfig.VERSION_CODE));
+			prefs.edit().putInt(PUZZLESGEN_LAST_UPDATE, BuildConfig.VERSION_CODE).apply();
 		}
 		Utils.setExecutable(executablePath);
 		final String[] cmdLine = new String[args.size() + 1];
@@ -1320,7 +1317,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 	@SuppressLint("CommitPrefEdits")
 	public void setSwapLR(boolean swap) {
 		swapLR = swap;
-		prefsSaver.save(prefs.edit().putBoolean(SWAP_L_R_PREFIX + currentBackend, swap));
+		prefs.edit().putBoolean(SWAP_L_R_PREFIX + currentBackend, swap).apply();
 	}
 
 	void sendKey(PointF p, int k)

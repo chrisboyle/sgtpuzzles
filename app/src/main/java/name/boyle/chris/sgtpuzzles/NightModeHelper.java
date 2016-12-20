@@ -11,8 +11,6 @@ import android.os.Build;
 import android.os.Handler;
 import android.preference.PreferenceManager;
 
-import name.boyle.chris.sgtpuzzles.compat.PrefsSaver;
-
 public class NightModeHelper implements SensorEventListener, SharedPreferences.OnSharedPreferenceChangeListener {
 	static final String NIGHT_MODE_KEY = "nightMode";
 	private static final String SEEN_NIGHT_MODE = "seenNightMode";
@@ -24,7 +22,6 @@ public class NightModeHelper implements SensorEventListener, SharedPreferences.O
 	private final Parent parent;
 	private final SharedPreferences prefs;
 	private final SharedPreferences state;
-	private final PrefsSaver prefsSaver;
 	private Context context;
 	private SensorManager sensorManager;
 	private Sensor lightSensor;
@@ -49,7 +46,6 @@ public class NightModeHelper implements SensorEventListener, SharedPreferences.O
 		prefs = PreferenceManager.getDefaultSharedPreferences(context);
 		prefs.registerOnSharedPreferenceChangeListener(this);
 		state = context.getSharedPreferences(GamePlay.STATE_PREFS_NAME, Context.MODE_PRIVATE);
-		prefsSaver = PrefsSaver.get(context);
 		applyNightMode(false);
 	}
 
@@ -98,7 +94,6 @@ public class NightModeHelper implements SensorEventListener, SharedPreferences.O
 			changed++;
 			SharedPreferences.Editor ed = state.edit();
 			ed.putLong(SEEN_NIGHT_MODE_SETTING, changed);
-			prefsSaver.save(ed);
 		}
 	}
 
@@ -109,7 +104,7 @@ public class NightModeHelper implements SensorEventListener, SharedPreferences.O
 			darkNowSmoothed = true;
 			parent.refreshNightNow(isNight(), true);
 			if (state.getLong(SEEN_NIGHT_MODE_SETTING, 0) < 1) {
-				Utils.toastFirstFewTimes(context, state, prefsSaver, SEEN_NIGHT_MODE, 3, R.string.night_mode_hint);
+				Utils.toastFirstFewTimes(context, state, SEEN_NIGHT_MODE, 3, R.string.night_mode_hint);
 			}
 		}
 	};
