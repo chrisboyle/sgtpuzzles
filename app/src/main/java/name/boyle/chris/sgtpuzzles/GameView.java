@@ -215,12 +215,11 @@ public class GameView extends View
 
 	public void setDragModeFor(final String whichBackend) {
 		final int modeId = getResources().getIdentifier(whichBackend + "_drag_mode", "string", getContext().getPackageName());
-		final String mode;
-		if (modeId <= 0 || ((mode = getResources().getString(modeId)) == null)) {
+		if (modeId <= 0) {
 			dragMode = DragMode.UNMODIFIED;
 			return;
 		}
-		switch (mode) {
+		switch (getResources().getString(modeId)) {
 			case "off_screen":
 				dragMode = DragMode.REVERT_OFF_SCREEN;
 				break;
@@ -692,10 +691,10 @@ public class GameView extends View
 		backgroundColour = colour;
 	}
 
-	@UsedByJNI
 	/** Unfortunately backends do things like setting other colours as fractions of this, so
 	 *  e.g. black (night mode) would make all of Undead's monsters white - but we replace all
 	 *  the colours in night mode anyway. */
+	@UsedByJNI
 	int getDefaultBackgroundColour() {
 		return getResources().getColor(R.color.game_background);
 	}

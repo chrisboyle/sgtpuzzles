@@ -430,7 +430,7 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 			}
 		}
 
-		protected void setSwapLR(final boolean swap, final boolean fromKeyPress) {
+		void setSwapLR(final boolean swap, final boolean fromKeyPress) {
 			if (swap != swapLR) {
 				swapLR = swap;
 				if (primaryKey != -1 && secondaryKey != -1) {

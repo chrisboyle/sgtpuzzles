@@ -22,7 +22,7 @@ public class NightModeHelper implements SensorEventListener, SharedPreferences.O
 	private final Parent parent;
 	private final SharedPreferences prefs;
 	private final SharedPreferences state;
-	private Context context;
+	private final Context context;
 	private SensorManager sensorManager;
 	private Sensor lightSensor;
 
@@ -30,7 +30,7 @@ public class NightModeHelper implements SensorEventListener, SharedPreferences.O
 	private NightMode nightMode = NightMode.OFF;
 	private boolean darkNowSmoothed = false;
 	private Float previousLux = null;
-	private Handler handler = new Handler();
+	private final Handler handler = new Handler();
 
 	public interface Parent {
 		void refreshNightNow(boolean isNight, boolean alreadyStarted);

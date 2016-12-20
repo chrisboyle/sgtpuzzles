@@ -1,11 +1,10 @@
 import org.apache.tools.ant.taskdefs.condition.Os
-import com.google.common.base.Joiner
 
 import java.text.SimpleDateFormat
 
 apply plugin: 'com.android.model.application'
 
-def timestamp() {
+static def timestamp() {
     def dateFormat = new SimpleDateFormat("yyyy-MM-dd-HHmm")
     dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"))
     return dateFormat.format(new Date())
@@ -129,7 +128,7 @@ void buildExecutable(String abi, String debugOrRelease) {
             'PUZZLES_PREBUILT_DIR=' + prebuiltDir.absolutePath,
             abiParam,
             'NDK_LOG=1',
-            'NDK_DEBUG=' + (('debug'.equals(debugOrRelease)) ? '1' : '0')]
+            'NDK_DEBUG=' + (('debug' == debugOrRelease) ? '1' : '0')]
     exec {
         commandLine common + [
                 'APP_PLATFORM=android-9',  // 9 is earliest for x86 + mips

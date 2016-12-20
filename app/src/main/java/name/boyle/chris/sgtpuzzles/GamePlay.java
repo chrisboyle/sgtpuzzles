@@ -121,7 +121,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 	private static final String SAVED_COMPLETED_PREFIX = "savedCompleted_";
 	static final String SAVED_GAME_PREFIX = "savedGame_";
 	public static final String LAST_PARAMS_PREFIX = "last_params_";
-	public static final String SWAP_L_R_PREFIX = "swap_l_r_";
+	private static final String SWAP_L_R_PREFIX = "swap_l_r_";
 	private static final String PUZZLESGEN_LAST_UPDATE = "puzzlesgen_last_update";
 	private static final String BLUETOOTH_PACKAGE_PREFIX = "com.android.bluetooth";
 	private static final int REQ_CODE_CREATE_DOC = Activity.RESULT_FIRST_USER;
@@ -167,7 +167,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 	private boolean everCompleted = false;
 	private final Pattern DIMENSIONS = Pattern.compile("(\\d+)( ?)x\\2(\\d+)(.*)");
 	private long lastKeySent = 0;
-	NightModeHelper nightModeHelper;
+	private NightModeHelper nightModeHelper;
 	private Intent appStartIntentOnResume = null;
 	private boolean swapLR = false;
 
@@ -502,8 +502,8 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 		}
 	}
 
-	@TargetApi(Build.VERSION_CODES.M)
 	/** I want to show rationale the first time, not just when re-asking after a no. */
+	@TargetApi(Build.VERSION_CODES.M)
 	private boolean shouldShowStoragePermissionRationale() {
 		return !state.getBoolean(STORAGE_PERMISSION_EVER_ASKED, false) || shouldShowRequestPermissionRationale(Manifest.permission.READ_EXTERNAL_STORAGE);
 	}
@@ -729,7 +729,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 	}
 
 	private void doGameMenu() {
-		final PopupMenu gameMenu = popupMenuWithIcons(R.id.game_menu);
+		final PopupMenu gameMenu = popupMenuWithIcons();
 		gameMenu.getMenuInflater().inflate(R.menu.game_menu, gameMenu.getMenu());
 		final MenuItem solveItem = gameMenu.getMenu().findItem(R.id.solve);
 		solveItem.setEnabled(solveEnabled);
@@ -841,8 +841,8 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 		helpMenu.show();
 	}
 
-	private PopupMenu popupMenuWithIcons(int buttonId) {
-		final PopupMenu popupMenu = new PopupMenu(GamePlay.this, findViewById(buttonId));
+	private PopupMenu popupMenuWithIcons() {
+		final PopupMenu popupMenu = new PopupMenu(GamePlay.this, findViewById(R.id.game_menu));
 		try {
 			Field field = popupMenu.getClass().getDeclaredField("mPopup");
 			field.setAccessible(true);
@@ -1553,6 +1553,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 			return;
 		}
 		final Dialog d = new Dialog(this, R.style.Dialog_Completed);
+		//noinspection ConstantConditions
 		WindowManager.LayoutParams lp = d.getWindow().getAttributes();
 		lp.gravity = Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL;
 		d.getWindow().setAttributes(lp);
