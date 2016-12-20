@@ -3,6 +3,7 @@
 **/app*.apk
 local.properties
 /app/src/main/res/values-v8/api_keys.xml
+/app/src/main/jniLibs/*
 .gradle/
 .idea/workspace.xml
 .idea/tasks.xml
