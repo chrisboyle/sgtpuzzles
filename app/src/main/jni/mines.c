@@ -261,8 +261,8 @@ static char *validate_params(const game_params *params, int full)
      * _have_ to have a gap somewhere which you can't determine the
      * position of.
      */
-    if (full && params->unique && (params->w <= 2 || params->h <= 2))
-	return _("Width and height must both be greater than two");
+    if (full && params->unique && (params->w <= 2 || params->h <= 2 || params->w * params->h <= 9))
+	return _("Width and height must both be greater than two and area must be greater than nine");
     if (params->n > params->w * params->h - 9)
 	return _("Too many mines for grid size");
 
