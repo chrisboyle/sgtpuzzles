@@ -179,6 +179,8 @@ static char *validate_params(const game_params *params, int full)
 {
     if (params->w <= 0 || params->h <= 0)
 	return _("Width and height must both be greater than zero");
+    if (params->w < 2 && params->h < 2)
+        return _("Either width or height must be at least 2");
     return NULL;
 }
 
