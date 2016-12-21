@@ -160,6 +160,14 @@ static int perm_parity(int *perm, int n)
     return ret;
 }
 
+static int is_completed(int *tiles, int n) {
+    int p;
+    for (p = 0; p < n; p++)
+        if (tiles[p] != (p < n-1 ? p+1 : 0))
+            return 0;
+    return 1;
+}
+
 static char *new_game_desc(const game_params *params, random_state *rs,
 			   char **aux, int interactive)
 {
@@ -174,81 +182,83 @@ static char *new_game_desc(const game_params *params, random_state *rs,
     tiles = snewn(n, int);
     used = snewn(n, int);
 
-    for (i = 0; i < n; i++) {
-        tiles[i] = -1;
-        used[i] = FALSE;
-    }
+    do {
+        for (i = 0; i < n; i++) {
+            tiles[i] = -1;
+            used[i] = FALSE;
+        }
 
-    gap = random_upto(rs, n);
-    tiles[gap] = 0;
-    used[0] = TRUE;
+        gap = random_upto(rs, n);
+        tiles[gap] = 0;
+        used[0] = TRUE;
 
-    /*
-     * Place everything else except the last two tiles.
-     */
-    for (x = 0, i = n-1; i > 2; i--) {
-        int k = random_upto(rs, i);
-        int j;
+        /*
+         * Place everything else except the last two tiles.
+         */
+        for (x = 0, i = n - 1; i > 2; i--) {
+            int k = random_upto(rs, i);
+            int j;
 
-        for (j = 0; j < n; j++)
-            if (!used[j] && (k-- == 0))
-                break;
+            for (j = 0; j < n; j++)
+                if (!used[j] && (k-- == 0))
+                    break;
 
-        assert(j < n && !used[j]);
-        used[j] = TRUE;
+            assert(j < n && !used[j]);
+            used[j] = TRUE;
 
+            while (tiles[x] >= 0)
+                x++;
+            assert(x < n);
+            tiles[x] = j;
+        }
+
+        /*
+         * Find the last two locations, and the last two pieces.
+         */
         while (tiles[x] >= 0)
             x++;
         assert(x < n);
-        tiles[x] = j;
-    }
-
-    /*
-     * Find the last two locations, and the last two pieces.
-     */
-    while (tiles[x] >= 0)
+        x1 = x;
         x++;
-    assert(x < n);
-    x1 = x;
-    x++;
-    while (tiles[x] >= 0)
-        x++;
-    assert(x < n);
-    x2 = x;
+        while (tiles[x] >= 0)
+            x++;
+        assert(x < n);
+        x2 = x;
 
-    for (i = 0; i < n; i++)
-        if (!used[i])
-            break;
-    p1 = i;
-    for (i = p1+1; i < n; i++)
-        if (!used[i])
-            break;
-    p2 = i;
+        for (i = 0; i < n; i++)
+            if (!used[i])
+                break;
+        p1 = i;
+        for (i = p1 + 1; i < n; i++)
+            if (!used[i])
+                break;
+        p2 = i;
 
-    /*
-     * Determine the required parity of the overall permutation.
-     * This is the XOR of:
-     * 
-     * 	- The chessboard parity ((x^y)&1) of the gap square. The
-     * 	  bottom right counts as even.
-     * 
-     *  - The parity of n. (The target permutation is 1,...,n-1,0
-     *    rather than 0,...,n-1; this is a cyclic permutation of
-     *    the starting point and hence is odd iff n is even.)
-     */
-    parity = PARITY_P(params, gap);
+        /*
+         * Determine the required parity of the overall permutation.
+         * This is the XOR of:
+         *
+         * 	- The chessboard parity ((x^y)&1) of the gap square. The
+         * 	  bottom right counts as even.
+         *
+         *  - The parity of n. (The target permutation is 1,...,n-1,0
+         *    rather than 0,...,n-1; this is a cyclic permutation of
+         *    the starting point and hence is odd iff n is even.)
+         */
+        parity = PARITY_P(params, gap);
 
-    /*
-     * Try the last two tiles one way round. If that fails, swap
-     * them.
-     */
-    tiles[x1] = p1;
-    tiles[x2] = p2;
-    if (perm_parity(tiles, n) != parity) {
-        tiles[x1] = p2;
-        tiles[x2] = p1;
-        assert(perm_parity(tiles, n) == parity);
-    }
+        /*
+         * Try the last two tiles one way round. If that fails, swap
+         * them.
+         */
+        tiles[x1] = p1;
+        tiles[x2] = p2;
+        if (perm_parity(tiles, n) != parity) {
+            tiles[x1] = p2;
+            tiles[x2] = p1;
+            assert(perm_parity(tiles, n) == parity);
+        }
+    } while (is_completed(tiles, n));
 
     /*
      * Now construct the game description, by describing the tile
@@ -799,11 +809,8 @@ static game_state *execute_move(const game_state *from, const char *move)
     /*
      * See if the game has been completed.
      */
-    if (!ret->completed) {
+    if (!ret->completed && is_completed(ret->tiles, ret->n)) {
         ret->completed = ret->movecount;
-        for (p = 0; p < ret->n; p++)
-            if (ret->tiles[p] != (p < ret->n-1 ? p+1 : 0))
-                ret->completed = 0;
     }
 
     return ret;

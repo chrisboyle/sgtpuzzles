@@ -558,8 +558,10 @@ static char *new_game_desc(const game_params *params, random_state *rs,
     /*
      * Invent a random grid.
      */
-    for (i = 0; i < wh; i++)
-        scratch->grid[i] = random_upto(rs, params->colours);
+    do {
+        for (i = 0; i < wh; i++)
+            scratch->grid[i] = random_upto(rs, params->colours);
+    } while (completed(w, h, scratch->grid));
 
     /*
      * Run the solver, and count how many moves it uses.
