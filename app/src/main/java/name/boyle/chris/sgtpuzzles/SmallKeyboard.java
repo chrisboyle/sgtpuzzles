@@ -617,9 +617,11 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 			final Keyboard.Key key = model.getKeys().get(model.swapLRKey);
 			model.setSwapLR(key.on, true);
 			parent.setSwapLR(key.on);
+			swapLR = key.on;
 			Utils.toastFirstFewTimes(getContext(), state, SEEN_SWAP_L_R_TOAST, 4,
 					key.on ? R.string.toast_swap_l_r_on : R.string.toast_swap_l_r_off);
 		} else {
+			if (!swapLR && "palisade".equals(backendForIcons) && "HJKL".indexOf(k) > -1) k = Character.toLowerCase(k);
 			parent.sendKey(0,0,k);
 		}
 	}

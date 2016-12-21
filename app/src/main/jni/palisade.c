@@ -922,18 +922,14 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 {
     int w = state->shared->params.w, h = state->shared->params.h;
     switch (button) {
-        case 'h': case 'H':
-            button = MOD_CTRL | CURSOR_LEFT;
-            break;
-        case 'j': case 'J':
-            button = MOD_CTRL | CURSOR_DOWN;
-            break;
-        case 'k': case 'K':
-            button = MOD_CTRL | CURSOR_UP;
-            break;
-        case 'l': case 'L':
-            button = MOD_CTRL | CURSOR_RIGHT;
-            break;
+        case 'h': button = MOD_CTRL | CURSOR_LEFT;  break;
+        case 'H': button = MOD_SHFT | CURSOR_LEFT;  break;
+        case 'j': button = MOD_CTRL | CURSOR_DOWN;  break;
+        case 'J': button = MOD_SHFT | CURSOR_DOWN;  break;
+        case 'k': button = MOD_CTRL | CURSOR_UP;    break;
+        case 'K': button = MOD_SHFT | CURSOR_UP;    break;
+        case 'l': button = MOD_CTRL | CURSOR_RIGHT; break;
+        case 'L': button = MOD_SHFT | CURSOR_RIGHT; break;
         default: break;
     }
     int control = button & MOD_CTRL, shift = button & MOD_SHFT;
@@ -973,7 +969,6 @@ static char *interpret_move(const game_state *state, game_ui *ui,
                 ((state->borders[i] & DISABLED(BORDER(dir))) >> dir >> 2)) {
 
         case MAYBE_LEFT:
-        case ON_LEFT:
         case ON_RIGHT:
             return string(80, "F%d,%d,%dF%d,%d,%d",
                           gx, gy, BORDER(dir),
@@ -981,17 +976,22 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 
         case MAYBE_RIGHT:
         case OFF_LEFT:
-        case OFF_RIGHT:
             return string(80, "F%d,%d,%dF%d,%d,%d",
                           gx, gy, DISABLED(BORDER(dir)),
                           hx, hy, DISABLED(BORDER(FLIP(dir))));
+
+        case ON_LEFT:
+        case OFF_RIGHT:
+            return string(80, "F%d,%d,%dF%d,%d,%d",
+                          gx, gy, BORDER(dir) | DISABLED(BORDER(dir)),
+                          hx, hy, BORDER(FLIP(dir)) | DISABLED(BORDER(FLIP(dir))));
         }
     }
 
     if (IS_CURSOR_MOVE(button)) {
         ui->show = TRUE;
         if (control || shift) {
-            borderflag flag = 0, newflag;
+            borderflag flag = 0, newflag, flipflag = 0;
             int dir, i =  ui->y * w + ui->x;
             x = ui->x;
             y = ui->y;
@@ -1002,18 +1002,34 @@ static char *interpret_move(const game_state *state, game_ui *ui,
                 if (dx[dir] == x - ui->x && dy[dir] == y - ui->y) break;
             if (dir == 4) return NULL; /* how the ... ?! */
 
-            if (control) flag |= BORDER(dir);
-            if (shift) flag |= DISABLED(BORDER(dir));
+            switch ((shift != 0) |
+                    ((state->borders[i] & BORDER(dir)) >> dir << 1) |
+                    ((state->borders[i] & DISABLED(BORDER(dir))) >> dir >> 2)) {
+                case MAYBE_LEFT:
+                case ON_RIGHT:
+                    flag |= BORDER(dir);
+                    flipflag |= BORDER(FLIP(dir));
+                    break;
+
+                case MAYBE_RIGHT:
+                case OFF_LEFT:
+                    flag |= DISABLED(BORDER(dir));
+                    flipflag |= DISABLED(BORDER(FLIP(dir)));
+                    break;
+
+                case ON_LEFT:
+                case OFF_RIGHT:
+                    flag |= BORDER(dir) | DISABLED(BORDER(dir));
+                    flipflag |= BORDER(FLIP(dir)) | DISABLED(BORDER(FLIP(dir)));
+                    break;
+            }
 
             newflag = state->borders[i] ^ flag;
             if (newflag & BORDER(dir) && newflag & DISABLED(BORDER(dir)))
                 return NULL;
 
-            newflag = 0;
-            if (control) newflag |= BORDER(FLIP(dir));
-            if (shift) newflag |= DISABLED(BORDER(FLIP(dir)));
             return string(80, "F%d,%d,%dF%d,%d,%d",
-                          ui->x, ui->y, flag, x, y, newflag);
+                          ui->x, ui->y, flag, x, y, flipflag);
         } else {
             move_cursor(button, &ui->x, &ui->y, w, h, FALSE);
             return "";

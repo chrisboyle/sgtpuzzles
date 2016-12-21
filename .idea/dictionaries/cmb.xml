@@ -375,6 +375,7 @@
       <w>hintw</w>
       <w>hitedge</w>
       <w>hitori</w>
+      <w>hjkl</w>
       <w>hleft</w>
       <w>hline</w>
       <w>hmmm</w>
@@ -582,6 +583,7 @@
       <w>newedge</w>
       <w>newf</w>
       <w>newface</w>
+      <w>newflag</w>
       <w>newgrid</w>
       <w>newi</w>
       <w>newmask</w>
