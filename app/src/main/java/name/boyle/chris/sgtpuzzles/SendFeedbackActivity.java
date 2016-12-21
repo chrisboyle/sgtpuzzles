@@ -3,12 +3,14 @@ package name.boyle.chris.sgtpuzzles;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.ActivityNotFoundException;
+import android.text.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.widget.Toast;
 
 import java.text.MessageFormat;
 
@@ -47,14 +49,11 @@ public class SendFeedbackActivity extends Activity
 			startActivity(i);
 			finish();
 		} catch (ActivityNotFoundException e) {
-			new AlertDialog.Builder(this)
-					.setTitle(getString(R.string.no_email_app))
-					.setMessage(MessageFormat.format(getString(R.string.email_manually),
-							getString(R.string.author_email),
-							emailSubject))
-					.setIcon(android.R.drawable.ic_dialog_alert)
-					.setOnCancelListener(dialog -> finish())
-					.show();
+			((ClipboardManager) getSystemService(CLIPBOARD_SERVICE)).setText(emailSubject + "\n\n" + body);
+			Toast.makeText(this, MessageFormat.format(getString(R.string.no_email_app),
+					getString(R.string.author_email),
+					emailSubject), Toast.LENGTH_LONG).show();
+			finish();
 		}
 	}
 
