@@ -194,6 +194,7 @@
 	<color name="solo_night_colour_clue">#ffffff</color>
 	<color name="solo_night_colour_user">#00ff00</color>
 	<color name="solo_night_colour_pencil">#8888ff</color>
+	<color name="solo_night_colour_killer">#cccc00</color>
 	<color name="tents_night_colour_grid">#ffffff</color>
 	<color name="towers_night_colour_grid">#ffffff</color>
 	<color name="towers_night_colour_user">#00ff00</color>
