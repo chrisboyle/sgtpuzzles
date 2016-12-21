@@ -1459,8 +1459,8 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
                         state->nguesses, state->minballs, state->maxballs);
         }
 	if (ui->errors) {
-	    if (ui->errors == 1) strcpy(buf + strlen(buf), _(" (1 error)"));
-	    else sprintf(buf + strlen(buf), _(" (%d errors)"), ui->errors);
+	    if (ui->errors == 1) strcpy(buf + strlen(buf), _(" (1 incorrect attempt)"));
+	    else sprintf(buf + strlen(buf), _(" (%d incorrect attempts)"), ui->errors);
 	}
         status_bar(dr, buf);
     }
