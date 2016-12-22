@@ -2502,8 +2502,10 @@ static char *interpret_move(const game_state *from, game_ui *ui,
 	 * FIXME: question marks.
 	 */
 	if (from->grid[cy * from->w + cx] != -2 &&
-	    from->grid[cy * from->w + cx] != -1)
-	    return NULL;
+	    from->grid[cy * from->w + cx] != -1) {
+	    ui->validradius = 1;
+	    goto uncover;
+    }
 
 	sprintf(buf, "F%d,%d", cx, cy);
 	return dupstr(buf);
