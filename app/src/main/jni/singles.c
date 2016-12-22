@@ -1536,8 +1536,10 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 
     if (action == TOGGLE_BLACK || action == TOGGLE_CIRCLE) {
         i = y * state->w + x;
-        if (state->flags[i] & (F_BLACK | F_CIRCLE))
-            c = 'E';
+        if (state->flags[i] & F_BLACK)
+            c = (action == TOGGLE_BLACK) ? 'C' : 'E';
+        else if (state->flags[i] & F_CIRCLE)
+            c = (action == TOGGLE_BLACK) ? 'E' : 'B';
         else
             c = (action == TOGGLE_BLACK) ? 'B' : 'C';
         sprintf(buf, "%c%d,%d", (int)c, x, y);
