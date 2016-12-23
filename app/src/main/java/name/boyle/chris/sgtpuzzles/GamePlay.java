@@ -1485,7 +1485,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 
 	private void completedInternal() {
 		everCompleted = true;
-		final boolean copyStatusBar = "mines".equals(currentBackend) || "flood".equals(currentBackend);
+		final boolean copyStatusBar = "mines".equals(currentBackend) || "flood".equals(currentBackend) || "samegame".equals(currentBackend);
 		final CharSequence titleText = copyStatusBar ? statusBar.getText() : getString(R.string.COMPLETED);
 		if (! prefs.getBoolean(COMPLETED_PROMPT_KEY, true)) {
 			Toast.makeText(GamePlay.this, titleText, Toast.LENGTH_SHORT).show();
