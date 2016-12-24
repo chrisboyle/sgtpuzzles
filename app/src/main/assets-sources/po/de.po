@@ -1,16 +1,16 @@
 # Documentation for Simon Tatham's Portable Puzzle Collection:
 # translation into German.
-# Copyright (C) 2009-2013 Helge Kreutzmann.
+# Copyright (C) 2009-2014,2016 Helge Kreutzmann.
 # This file is distributed under the same license as the English
 # documentation.
-# Helge Kreutzmann <debian@helgefjell.de>, 2009-2013.
+# Helge Kreutzmann <debian@helgefjell.de>, 2009-2014, 2016.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: sgt-puzzles\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2016-01-12 09:29+0000\n"
-"PO-Revision-Date: 2013-06-26 20:41+0200\n"
+"POT-Creation-Date: 2016-06-30 16:17+0200\n"
+"PO-Revision-Date: 2016-07-17 11:44+0200\n"
 "Last-Translator: Helge Kreutzmann <debian@helgefjell.de>\n"
 "Language-Team: de <debian-l10n-german@lists.debian.org>\n"
 "Language: \n"
@@ -574,7 +574,7 @@ msgstr ""
 "einige, wie Cube (\\k{cube}) nur eine sehr kurze Beschreibung benötigen). "
 "Daher ist der Zufallsstartwert oft ein \\e{schnellerer} Weg, um das gerade "
 "gespielte Puzzle aufzuschreiben oder es jemanden anderen mitzuteilen, so "
-"dass er das gleiche wie Sie spielen kann."
+"dass er das Gleiche wie Sie spielen kann."
 
 #. type: Plain text
 #: puzzles.but:219
@@ -1645,6 +1645,9 @@ msgid ""
 "Pressing \\q{h} will make a suggested move.  Pressing \\q{h} enough times "
 "will solve the game, but it may scramble your progress while doing so."
 msgstr ""
+"Durch Druck von \\q{h} wird eine vorgeschlagene Bewegung durchgeführt. Durch "
+"Druck von \\q{h} wird das Spiel gelöst, aber Ihr Fortschritt könnte dabei "
+"durcheinander geraten."
 
 #. type: Plain text
 #: puzzles.but:641
@@ -1749,6 +1752,13 @@ msgid ""
 "Pressing Enter simulates holding down Control (press Enter again to "
 "release), while pressing Space simulates holding down shift."
 msgstr ""
+"Sie können die Kacheln auch direkt bewegen. Bewegen Sie den Cursor auf eine "
+"Kachel, halten Sie Strg und bewegen Sie die Pfeiltasten, um die Kachel unter "
+"dem Cursor zu bewegen und verschieben Sie den Cursor zusammen mit der "
+"Kachel. Oder halten Sie Umschalten und verschieben Sie nur die Kachel. Der "
+"Druck der Eingabetaste simuliert das Halten von Strg (durch erneuten Druck "
+"der Eingabetaste wird dies wieder aufgelöst), das Drücken der Leertaste "
+"simuliert das Halten der Umschalttaste."
 
 #. type: Plain text
 #: puzzles.but:691
@@ -2015,20 +2025,17 @@ msgstr ""
 #. type: Plain text
 #: puzzles.but:801
 msgid ""
-"\\W{http://www.nikoli.co.jp/puzzles/7/index_text-e.htm}\\cw{http://www."
-"nikoli.co.jp/puzzles/7/index_text-e.htm}"
-msgstr ""
-"\\W{http://www.nikoli.co.jp/puzzles/7/index_text-e.htm}\\cw{http://www."
-"nikoli.co.jp/puzzles/7/index_text-e.htm}"
+"\\W{http://www.nikoli.co.jp/en/puzzles/shikaku.html}\\cw{http://www.nikoli."
+"co.jp/en/puzzles/shikaku.html} (beware of Flash)"
+msgstr "\\W{http://www.nikoli.co.jp/en/puzzles/shikaku.html}\\cw{http://www.nikoli.co.jp/en/puzzles/shikaku.html} (Achtung Flash)"
 
 #. type: Plain text
 #: puzzles.but:803
 msgid ""
-"\\W{http://www.puzzle.gr.jp/puzzle/sikaku/palm/index.html.en}\\cw{http://www."
-"puzzle.gr.jp/puzzle/sikaku/palm/index.html.en}"
-msgstr ""
-"\\W{http://www.puzzle.gr.jp/puzzle/sikaku/palm/index.html.en}\\cw{http://www."
-"puzzle.gr.jp/puzzle/sikaku/palm/index.html.en}"
+"\\W{https://web.archive.org/web/20041024001459/http://www.puzzle.gr.jp/"
+"puzzle/sikaku/palm/index.html.en}\\cw{https://web.archive.org/"
+"web/20041024001459/http://www.puzzle.gr.jp/puzzle/sikaku/palm/index.html.en}"
+msgstr "\\W{https://web.archive.org/web/20041024001459/http://www.puzzle.gr.jp/puzzle/sikaku/palm/index.html.en}\\cw{https://web.archive.org/web/20041024001459/http://www.puzzle.gr.jp/puzzle/sikaku/palm/index.html.en}"
 
 #. type: Plain text
 #: puzzles.but:805
@@ -2069,8 +2076,8 @@ msgstr ""
 "Pfeiltasten ein Rechteck von dieser Position aus ziehen und durch erneutes "
 "Drücken der Eingabetaste das Rechteck abschließen. Verwenden Sie die "
 "Leertaste statt der Eingabetaste, um den Inhalt eines Rechtecks zu löschen, "
-"ohne dessen Ecken zu beeinflussen, wie oben. Drücken Sie Esc, um das "
-"Rechteck abzubrechen."
+"ohne dessen Ecken zu beeinflussen, wie oben. Durch Drücken der Taste Esc wird "
+"das Ziehen abgebrochen."
 
 #. type: Plain text
 #: puzzles.but:824
@@ -2320,6 +2327,9 @@ msgid ""
 "black.  Holding Shift will colour the moved-over squares white, and holding "
 "both will colour them grey."
 msgstr ""
+"Bewegen des Cursors während Strg gehalten wird färbt die überstrichenen "
+"Quadrate schwarz. Halten von Umschalten färbt die überstrichenen Quadrate "
+"weiß und Halten von beiden färbt sie grau."
 
 #. type: Plain text
 #: puzzles.but:943
@@ -2459,11 +2469,9 @@ msgstr ""
 #. type: Plain text
 #: puzzles.but:998
 msgid ""
-"\\W{http://www.nikoli.co.jp/puzzles/1/index_text-e.htm}\\cw{http://www."
-"nikoli.co.jp/puzzles/1/index_text-e.htm}"
-msgstr ""
-"\\W{http://www.nikoli.co.jp/puzzles/1/index_text-e.htm}\\cw{http://www."
-"nikoli.co.jp/puzzles/1/index_text-e.htm}"
+"\\W{http://www.nikoli.co.jp/en/puzzles/sudoku.html}\\cw{http://www.nikoli.co."
+"jp/en/puzzles/sudoku.html} (beware of Flash)"
+msgstr "\\W{http://www.nikoli.co.jp/en/puzzles/sudoku.html}\\cw{http://www.nikoli.co.jp/en/puzzles/sudoku.html} (Achtung Flash)"
 
 #. type: Plain text
 #: puzzles.but:1000
@@ -2950,7 +2958,7 @@ msgstr ""
 #. type: Plain text
 #: puzzles.but:1207
 msgid "Same Game was contributed to this collection by James Harvey."
-msgstr "Same Game wurde von James Harvey zu dieser Sammlung beigesteuert."
+msgstr "Same Game ist ein Beitrag von James Harvey zu dieser Sammlung."
 
 #. type: Plain text
 #: puzzles.but:1209
@@ -3245,7 +3253,7 @@ msgstr ""
 #. type: Plain text
 #: puzzles.but:1344
 msgid "Guess was contributed to this collection by James Harvey."
-msgstr "Guess wurde von James Harvey zu dieser Sammlung beigesteuert."
+msgstr "Guess ist ein Beitrag von James Harvey zu dieser Sammlung."
 
 #. type: Plain text
 #: puzzles.but:1346
@@ -3320,6 +3328,9 @@ msgid ""
 "Pressing \\q{h} or \\q{?} will fill the current guess with a suggested "
 "guess.  Using this is not recommended for 10 or more pegs as it is slow."
 msgstr ""
+"Mit \\q{h} oder \\q{?} wird die aktuelle Vermutung mit einer vorgeschlagenen "
+"Vermutung ausgefüllt. Bei 10 oder mehr Stiften wird dies nicht empfohlen, da "
+"es langsam ist."
 
 #. type: Plain text
 #: puzzles.but:1379
@@ -3656,6 +3667,10 @@ msgid ""
 "Pressing that number again will clear the highlighting. Up to two different "
 "numbers can be highlighted at any given time."
 msgstr ""
+"Durch Drücken einer Zahltaste werden alle Vorkommen dieser Zahl "
+"hervorgehoben. Durch erneutes Drücken dieser Zahl wird die Hervorhebung "
+"aufgehoben. Bis zu zwei verschiedene Zahlen können auf diese Weise "
+"gleichzeitig hervorgehoben werden."
 
 #. type: Plain text
 #: puzzles.but:1522
@@ -3728,12 +3743,8 @@ msgstr ""
 
 #. type: Plain text
 #: puzzles.but:1555
-msgid ""
-"\\W{http://home.cwru.edu/~jnt5/Planarity}\\cw{http://home.cwru.edu/~jnt5/"
-"Planarity}"
-msgstr ""
-"\\W{http://home.cwru.edu/~jnt5/Planarity}\\cw{http://home.cwru.edu/~jnt5/"
-"Planarity}"
+msgid "\\W{http://planarity.net}\\cw{http://planarity.net}"
+msgstr "\\W{http://planarity.net}\\cw{http://planarity.net}"
 
 #. type: Plain text
 #: puzzles.but:1557
@@ -3953,9 +3964,9 @@ msgstr "|.....O..|"
 
 #. type: c
 #: puzzles.but:1628
-#, fuzzy, no-wrap
+#, no-wrap
 msgid "12-RR---"
-msgstr "12-RH---"
+msgstr "12-RR---"
 
 #. type: Plain text
 #: puzzles.but:1634
@@ -4020,7 +4031,7 @@ msgstr ""
 #. type: Plain text
 #: puzzles.but:1659
 msgid "Black Box was contributed to this collection by James Harvey."
-msgstr "Black Box wurde von James Harvey zu dieser Sammlung beigesteuert."
+msgstr "Black Box ist ein Beitrag von James Harvey zu dieser Sammlung."
 
 #. type: Plain text
 #: puzzles.but:1661
@@ -4237,11 +4248,9 @@ msgstr "Dank für dieses Puzzle geht an \\i{Nikoli} \\k{nikoli-slant}."
 #. type: Plain text
 #: puzzles.but:1753
 msgid ""
-"\\W{http://www.nikoli.co.jp/puzzles/39/index.htm}\\cw{http://www.nikoli.co."
-"jp/puzzles/39/index.htm} (in Japanese)"
-msgstr ""
-"\\W{http://www.nikoli.co.jp/puzzles/39/index.htm}\\cw{http://www.nikoli.co."
-"jp/puzzles/39/index.htm} (auf Japanisch)"
+"\\W{http://www.nikoli.co.jp/ja/puzzles/gokigen_naname}\\cw{http://www.nikoli."
+"co.jp/ja/puzzles/gokigen_naname} (in Japanese)"
+msgstr "\\W{http://www.nikoli.co.jp/ja/puzzles/gokigen_naname}\\cw{http://www.nikoli.co.jp/ja/puzzles/gokigen_naname} (auf Japanisch)"
 
 #. type: Plain text
 #: puzzles.but:1755
@@ -4293,7 +4302,6 @@ msgstr ""
 
 #. type: Plain text
 #: puzzles.but:1779
-#, fuzzy
 msgid ""
 "You can also use the cursor keys to move around the grid. Pressing the "
 "return or space keys will place a \\cw{\\\\} or a \\cw{/}, respectively, and "
@@ -4303,7 +4311,11 @@ msgid ""
 msgstr ""
 "Sie können auch die Pfeiltasten verwenden, um sich auf dem Gitter zu "
 "bewegen. Durch Drücken der Eingabe- oder Leertaste wird ein \\cw{\\\\} bzw. "
-"ein \\cw{/} platziert und diese dann zyklisch wie oben durchlaufen."
+"ein \\cw{/} platziert und dies dann zyklisch wie oben durchlaufen. Sie können "
+"auch \\cw{/} oder \\cw{\\\\} drücken, um ein \\cw{/} oder entsprechend "
+"\\cw{\\\\} zu setzen, unabhängig davon, was bereits im Quadrat unter dem "
+"Cursor vorliegt. Rückschritt entfernt jede Zeile aus dem Quadrat unter dem "
+"Cursor."
 
 #. type: Plain text
 #: puzzles.but:1783
@@ -4410,16 +4422,14 @@ msgstr "Dank für dieses Puzzle geht an \\i{Nikoli} \\k{nikoli-lightup}."
 #. type: Plain text
 #: puzzles.but:1829
 msgid "Light Up was contributed to this collection by James Harvey."
-msgstr "Light Up wurde von James Harvey zu dieser Sammlung beigesteuert."
+msgstr "Light Up ist ein Beitrag von James Harvey zu dieser Sammlung."
 
 #. type: Plain text
 #: puzzles.but:1833
 msgid ""
-"\\W{http://www.nikoli.co.jp/puzzles/32/index-e.htm}\\cw{http://www.nikoli.co."
-"jp/puzzles/32/index-e.htm} (beware of Flash)"
-msgstr ""
-"\\W{http://www.nikoli.co.jp/puzzles/32/index-e.htm}\\cw{http://www.nikoli.co."
-"jp/puzzles/32/index-e.htm} (Achtung Flash)"
+"\\W{http://www.nikoli.co.jp/en/puzzles/akari.html}\\cw{http://www.nikoli.co."
+"jp/en/puzzles/akari.html} (beware of Flash)"
+msgstr "\\W{http://www.nikoli.co.jp/en/puzzles/akari.html}\\cw{http://www.nikoli.co.jp/en/puzzles/akari.html} (Achtung Flash)"
 
 #. type: Plain text
 #: puzzles.but:1835
@@ -4796,11 +4806,9 @@ msgstr ""
 #. type: Plain text
 #: puzzles.but:2012
 msgid ""
-"\\W{http://www.nikoli.co.jp/puzzles/3/index-e.htm}\\cw{http://www.nikoli.co."
-"jp/puzzles/3/index-e.htm} (beware of Flash)"
-msgstr ""
-"\\W{http://www.nikoli.co.jp/puzzles/3/index-e.htm}\\cw{http://www.nikoli.co."
-"jp/puzzles/3/index-e.htm} (Achtung Flash)"
+"\\W{http://www.nikoli.co.jp/en/puzzles/slitherlink.html}\\cw{http://www."
+"nikoli.co.jp/en/puzzles/slitherlink.html} (beware of Flash)"
+msgstr "\\W{http://www.nikoli.com/en/puzzles/slitherlink.html}\\cw{http://www.nikoli.com/en/puzzles/slitherlink.html} (Achtung Flash)"
 
 #. type: Plain text
 #: puzzles.but:2014
@@ -5003,7 +5011,6 @@ msgstr ""
 
 #. type: Plain text
 #: puzzles.but:2107
-#, fuzzy
 msgid ""
 "If you use the \\q{Solve} function on this game, the program will compute a "
 "path through the grid which collects all the remaining gems and returns to "
@@ -5023,9 +5030,7 @@ msgstr ""
 "Pfad anzuzeigen. Sie können auch die Leertaste drücken, um den Ball "
 "automatisch in die Richtung des Hinweispfeils zu bewegen. Falls Sie den Ball "
 "in eine andere Richtung als die vom Hinweispfeil angezeigte bewegen, dann "
-"wird der Hinweispfeil nicht mehr angezeigt, da Sie vom vorgegebenen Pfad "
-"abgewichen sind; Sie können dann \\q{Solve} erneut aufrufen, um einen neuen "
-"Pfad zu erzeugen, falls Sie dies möchten."
+"werden die Hinweispfeile nur noch angezeigt, falls das Puzzle noch lösbar ist."
 
 #. type: Plain text
 #: puzzles.but:2112
@@ -5153,7 +5158,6 @@ msgstr ""
 
 #. type: Plain text
 #: puzzles.but:2170
-#, fuzzy
 msgid ""
 "You can also use the cursor keys to move around the grid. Pressing the "
 "return key over an empty square will place a tent, and pressing the space "
@@ -5166,7 +5170,9 @@ msgstr ""
 "Durch Drücken der Eingabetaste auf einem leeren Feld wird dort ein Zelt "
 "positioniert und durch Drücken der Leertaste auf einem leeren Feld wird dies "
 "grün eingefärbt; jede der beiden Tasten wird ein besetztes Quadrat "
-"bereinigen."
+"bereinigen. Durch Drücken von Umschalten und von Pfeiltasten wird ein leeres "
+"Quadrat grün eingefärbt. Durch Drücken von Strg und Pfeiltasten werden sowohl "
+"leere als auch Quadrate mit Zelten grün eingefärbt."
 
 #. type: Plain text
 #: puzzles.but:2174
@@ -5260,16 +5266,14 @@ msgstr "Dank für dieses Puzzle geht an \\i{Nikoli} \\k{nikoli-bridges}."
 #. type: Plain text
 #: puzzles.but:2218
 msgid "Bridges was contributed to this collection by James Harvey."
-msgstr "Bridges wurde von James Harvey zu dieser Sammlung beigesteuert."
+msgstr "Bridges ist ein Beitrag von James Harvey zu dieser Sammlung."
 
 #. type: Plain text
 #: puzzles.but:2221
 msgid ""
-"\\W{http://www.nikoli.co.jp/puzzles/14/index-e.htm}\\cw{http://www.nikoli.co."
-"jp/puzzles/14/index-e.htm}"
-msgstr ""
-"\\W{http://www.nikoli.co.jp/puzzles/14/index-e.htm}\\cw{http://www.nikoli.co."
-"jp/puzzles/14/index-e.htm}"
+"\\W{http://www.nikoli.co.jp/en/puzzles/hashiwokakero.html}\\cw{http://www."
+"nikoli.co.jp/en/puzzles/hashiwokakero.html} (beware of Flash)"
+msgstr "\\W{http://www.nikoli.com/en/puzzles/hashiwokakero.html}\\cw{http://www.nikoli.com/en/puzzles/hashiwokakero.html} (Achtung Flash)"
 
 #. type: Plain text
 #: puzzles.but:2223
@@ -5350,7 +5354,6 @@ msgstr ""
 
 #. type: Plain text
 #: puzzles.but:2259
-#, fuzzy
 msgid ""
 "You can also use the cursor keys to move around the grid: if possible the "
 "cursor will always move orthogonally, otherwise it will move towards the "
@@ -5362,9 +5365,11 @@ msgstr ""
 "Sie können auch die Pfeiltasten zur Bewegung im Gitter verwenden: Falls "
 "möglich, wird sich der Cursor immer orthogonal bewegen, andernfalls wird er "
 "sich zur Insel bewegen, die der angezeigten Richtung am nächsten liegt. "
-"Durch Drücken der Eingabetaste gefolgt von einer Pfeiltaste wird eine Brücke "
+"Durch Drücken von Strg gefolgt von einer Pfeiltaste wird eine Brücke "
 "in diese Richtung gelegt (falls möglich). Durch Drücken der Leertaste "
-"gefolgt von einer Pfeiltaste wird eine \\q{keine-Brücke}-Markierung gesetzt."
+"gefolgt von einer Pfeiltaste wird eine \\q{keine-Brücke}-Markierung gesetzt. "
+"Durch Druck der Eingabetaste gefolgt von einer Pfeiltaste wird auch eine "
+"Brücke in diese Richtung gelegt."
 
 #. type: Plain text
 #: puzzles.but:2262
@@ -5372,8 +5377,8 @@ msgid ""
 "You can mark an island as finished by pressing the space bar or by pressing "
 "the return key twice."
 msgstr ""
-"Durch Drücken der Leertaste oder zweifaches Drücken der Eingabetaste können "
-"Sie eine Insel als beendet markieren."
+"Durch zweifaches Drücken der Leer- oder Eingabetaste können Sie eine Insel als beendet "
+"markieren."
 
 #. type: Plain text
 #: puzzles.but:2266
@@ -5381,6 +5386,8 @@ msgid ""
 "By pressing a number key, you can jump to the nearest island with that "
 "number.  Letters \\q{a}, ..., \\q{f} count as 10, ..., 15 and \\q{0} as 16."
 msgstr ""
+"Durch Drücken einer Zahltaste können Sie zur nächsten Insel mit dieser Zahl "
+"springen. Die Buchstaben \\q{a} … \\q{f} zählen als 10 … 15 und \\q{0} als 16."
 
 #. type: Plain text
 #: puzzles.but:2268
@@ -5613,7 +5620,7 @@ msgstr ""
 #. type: Plain text
 #: puzzles.but:2373
 msgid "Unequal was contributed to this collection by James Harvey."
-msgstr "Unequal wurde von James Harvey zu dieser Sammlung beigesteuert."
+msgstr "Unequal ist ein Beitrag von James Harvey zu dieser Sammlung."
 
 #. type: Plain text
 #: puzzles.but:2375
@@ -5652,7 +5659,6 @@ msgstr ""
 
 #. type: Plain text
 #: puzzles.but:2409
-#, fuzzy
 msgid ""
 "As for Solo, the cursor keys can be used in conjunction with the digit keys "
 "to set numbers or pencil marks. You can also use the \\q{M} key to auto-fill "
@@ -5661,21 +5667,22 @@ msgid ""
 msgstr ""
 "Wie bei Solo können die Pfeiltasten zusammen mit den Zifferntasten verwendet "
 "werden, um Nummern oder Bleistiftmarkierungen zu setzen. Sie können auch die "
-"»M«-Taste verwenden, um jeden Vorschlag automatisch eintragen zu lassen, der "
-"dann zur Entfernung (soweit notwendig) bereit steht oder die »H«-Taste, um "
+"Taste \\q{M} verwenden, um jeden Vorschlag automatisch eintragen zu lassen, der "
+"dann zur Entfernung (soweit notwendig) bereit steht oder die Taste \\q{H}, um "
 "das gleiche durchzuführen und zusätzlich alle offensichtlichen Vorschläge zu "
 "entfernen."
 
 #. type: Plain text
 #: puzzles.but:2420
-#, fuzzy
 msgid ""
 "Left-clicking a clue will mark it as done (grey it out), or unmark it if it "
 "is already marked.  Holding Control or Shift and pressing an arrow key "
 "likewise marks any clue adjacent to the cursor in the given direction."
 msgstr ""
-"Links-klicken auf einen Hinweis wird es durch graue Farbe als fertig "
-"markieren, oder die Markierung lösen, wenn es schon markiert ist."
+"Durch Linksklick auf einen Hinweis wird dieser als erledigt markiert "
+"(ausgegraut) oder die Markierung entfernt, falls er bereits markiert ist. "
+"Durch Halten von Strg oder Umschalten und Drücken einer Pfeiltaste werden "
+"entsprechende Hinweise neben dem Cursor in der angegebenen Richtung markiert."
 
 #. type: Plain text
 #: puzzles.but:2424
@@ -5757,16 +5764,14 @@ msgstr ""
 #. type: Plain text
 #: puzzles.but:2462
 msgid "Galaxies was contributed to this collection by James Harvey."
-msgstr "Galaxies wurde von James Harvey zu dieser Sammlung beigesteuert."
+msgstr "Galaxies ist ein Beitrag von James Harvey zu dieser Sammlung."
 
 #. type: Plain text
 #: puzzles.but:2464
 msgid ""
-"\\W{http://www.nikoli.co.jp/en/puzzles/astronomical_show/}\\cw{http://www."
-"nikoli.co.jp/en/puzzles/astronomical_show/}"
-msgstr ""
-"\\W{http://www.nikoli.co.jp/en/puzzles/astronomical_show/}\\cw{http://www."
-"nikoli.co.jp/en/puzzles/astronomical_show/}"
+"\\W{http://www.nikoli.co.jp/en/puzzles/astronomical_show.html}\\cw{http://"
+"www.nikoli.co.jp/en/puzzles/astronomical_show.html}"
+msgstr "\\W{http://www.nikoli.co.jp/en/puzzles/astronomical_show.html}\\cw{http://www.nikoli.co.jp/en/puzzles/astronomical_show.html}"
 
 #. type: Plain text
 #: puzzles.but:2466
@@ -5915,16 +5920,14 @@ msgstr "Dank für dieses Puzzle geht an \\i{Nikoli} \\k{nikoli-fillomino}."
 #: puzzles.but:2536
 msgid "Filling was contributed to this collection by Jonas K\\u00F6{oe}lker."
 msgstr ""
-"Filling wurde von Jonas K\\u00F6{oe}lker zu dieser Sammlung beigesteuert."
+"Filling ist ein Beitrag von Jonas K\\u00F6{oe}lker zu dieser Sammlung."
 
 #. type: Plain text
 #: puzzles.but:2539
 msgid ""
-"\\W{http://www.nikoli.co.jp/en/puzzles/fillomino/}\\cw{http://www.nikoli.co."
-"jp/en/puzzles/fillomino/}"
-msgstr ""
-"\\W{http://www.nikoli.co.jp/en/puzzles/fillomino/}\\cw{http://www.nikoli.co."
-"jp/en/puzzles/fillomino/}"
+"\\W{http://www.nikoli.co.jp/en/puzzles/fillomino.html}\\cw{http://www.nikoli."
+"co.jp/en/puzzles/fillomino.html}"
+msgstr "\\W{http://www.nikoli.co.jp/en/puzzles/fillomino.html}\\cw{http://www.nikoli.co.jp/en/puzzles/fillomino.html}"
 
 #. type: Plain text
 #: puzzles.but:2541
@@ -5950,7 +5953,6 @@ msgstr ""
 
 #. type: Plain text
 #: puzzles.but:2557
-#, fuzzy
 msgid ""
 "You can also move around the grid with the cursor keys; typing a digit will "
 "fill the square containing the cursor with that number; typing 0 will clear "
@@ -5962,10 +5964,13 @@ msgid ""
 msgstr ""
 "Sie können sich im Gitter auch mit den Pfeiltasten bewegen. Durch Drücken "
 "einer Ziffer wird das Quadrat unter dem Cursor mit der Zahl gefüllt, durch "
-"Drücken der 0, Leer-, Rückschritt- oder Eingabetaste wird es wieder "
+"Drücken der 0 wird es wieder "
 "bereinigt. Sie können auch mehrere Quadrate zur Nummerierung oder "
-"Bereinigung auswählen, indem Sie vor der Eingabe der Ziffer in ein "
-"hervorgehobenes Quadrat die Eingabetaste drücken (wie oben)."
+"Bereinigung mit der Eingabe- und den Pfeiltasten auswählen, bevor Sie eine "
+"Ziffer eingeben, um die hervorgehobenen Quadrate auszufüllen oder zu "
+"bereinigen (wie oben). Die Leertaste fügt einzelne Quadrate zu der Auswahl "
+"hinzu oder entfernt sie daraus. Rückschritt oder Escape entfernen alle "
+"Quadrate aus der Auswahl."
 
 #. type: Plain text
 #: puzzles.but:2561
@@ -6175,7 +6180,7 @@ msgstr ""
 #. type: e{#1}
 #: puzzles.but:2674
 msgid "Multiplication only"
-msgstr ""
+msgstr "Multiplication only"
 
 #. type: Plain text
 #: puzzles.but:2677
@@ -6183,6 +6188,8 @@ msgid ""
 "If this is enabled, all boxes will be multiplication boxes.  With this rule, "
 "the puzzle is known as \\q{Inshi No Heya}."
 msgstr ""
+"Falls dies aktiviert ist, sind alle Kästen Multiplikationskästen. Mit dieser "
+"Regel ist das Puzzle als \\q{Inshi No Heya} bekannt."
 
 #. type: Plain text
 #: puzzles.but:2679
@@ -6311,14 +6318,15 @@ msgstr ""
 
 #. type: Plain text
 #: puzzles.but:2752
-#, fuzzy
 msgid ""
 "Left-clicking a clue will mark it as done (grey it out), or unmark it if it "
 "is already marked.  Holding Control or Shift and pressing an arrow key "
 "likewise marks any clue in the given direction."
 msgstr ""
-"Links-klicken auf einen Hinweis wird es durch graue Farbe als fertig "
-"markieren, oder die Markierung lösen, wenn es schon markiert ist."
+"Durch Linksklick auf einen Hinweis wird dieser als erledigt markiert "
+"(ausgegraut) oder die Markierung entfernt, falls er bereits markiert ist. "
+"Durch Drücken von Strg oder Umschalten und den Pfeiltasten wird entsprechend "
+"ein Hinweis in der angegebenen Richtung markiert."
 
 #. type: Plain text
 #: puzzles.but:2756
@@ -6381,16 +6389,14 @@ msgstr ""
 #. type: Plain text
 #: puzzles.but:2794
 msgid "Singles was contributed to this collection by James Harvey."
-msgstr "Singles wurde von James Harvey zu dieser Sammlung beigesteuert."
+msgstr "Singles ist ein Beitrag von James Harvey zu dieser Sammlung."
 
 #. type: Plain text
 #: puzzles.but:2798
 msgid ""
-"\\W{http://www.nikoli.com/en/puzzles/hitori/index.html}\\cw{http://www."
-"nikoli.com/en/puzzles/hitori/index.html} (beware of Flash)"
-msgstr ""
-"\\W{http://www.nikoli.com/en/puzzles/hitori/index.html}\\cw{http://www."
-"nikoli.com/en/puzzles/hitori/index.html} (Achtung Flash)"
+"\\W{http://www.nikoli.com/en/puzzles/hitori.html}\\cw{http://www.nikoli.com/"
+"en/puzzles/hitori.html} (beware of Flash)"
+msgstr "\\W{http://www.nikoli.com/en/puzzles/hitori.html}\\cw{http://www.nikoli.com/en/puzzles/hitori.html} (Achtung Flash)"
 
 #. type: Plain text
 #: puzzles.but:2800
@@ -6491,7 +6497,7 @@ msgstr "Dank für dieses Puzzle geht an \\i{Janko} \\k{janko-magnets}."
 #. type: Plain text
 #: puzzles.but:2848
 msgid "Magnets was contributed to this collection by James Harvey."
-msgstr "Magnets wurde von James Harvey zu dieser Sammlung beigesteuert."
+msgstr "Magnets ist ein Beitrag von James Harvey zu dieser Sammlung."
 
 #. type: Plain text
 #: puzzles.but:2851
@@ -6550,8 +6556,9 @@ msgid ""
 "Left-clicking a clue will mark it as done (grey it out), or unmark it if it "
 "is already marked."
 msgstr ""
-"Links-klicken auf einen Hinweis wird es durch graue Farbe als fertig "
-"markieren, oder die Markierung lösen, wenn es schon markiert ist."
+"Durch Linksklick auf einen Hinweis wird dieser als erledigt markiert "
+"(ausgegraut) oder die Markierung entfernt, falls er bereits markiert ist."
+
 
 #. type: Plain text
 #: puzzles.but:2876
@@ -6666,7 +6673,7 @@ msgstr ""
 #. type: Plain text
 #: puzzles.but:2928
 msgid "Signpost was contributed to this collection by James Harvey."
-msgstr "Signpost wurde von James Harvey zu dieser Sammlung beigesteuert."
+msgstr "Signpost ist ein Beitrag von James Harvey zu dieser Sammlung."
 
 #. type: Plain text
 #: puzzles.but:2931
@@ -6866,24 +6873,21 @@ msgid ""
 "\\q{Kurodoko}, \\q{Kuromasu} or \\q{Where is Black Cells}.  \\k{nikoli-"
 "range}."
 msgstr ""
-"Dank für dieses Puzzle geht an \\i{Nikoli} \\k{nikoli-slant}, die es "
-"verschieden benannt haben: \\q{Kurodoko}, \\q{Kuromasu} oder \\q{Where is "
-"Black Cells}.  \\k{nikoli-range}."
+"Dank für dieses Puzzle geht an \\i{Nikoli}, die es verschieden benannt "
+"haben: \\q{Kurodoko}, \\q{Kuromasu} oder \\q{Where is Black Cells}.  "
+"\\k{nikoli-range}."
 
 #. type: Plain text
 #: puzzles.but:3018
 msgid "Range was contributed to this collection by Jonas K\\u00F6{oe}lker."
-msgstr ""
-"Range wurde von Jonas K\\u00F6{oe}lker zu dieser Sammlung beigesteuert."
+msgstr "Range ist ein Beitrag von Jonas K\\u00F6{oe}lker zu dieser Sammlung."
 
 #. type: Plain text
 #: puzzles.but:3021
 msgid ""
-"\\W{http://www.nikoli.co.jp/en/puzzles/where_is_black_cells/}\\cw{http://www."
-"nikoli.co.jp/en/puzzles/where_is_black_cells/}"
-msgstr ""
-"\\W{http://www.nikoli.co.jp/en/puzzles/where_is_black_cells/}\\cw{http://www."
-"nikoli.co.jp/en/puzzles/where_is_black_cells/}"
+"\\W{http://www.nikoli.co.jp/en/puzzles/where_is_black_cells.html}\\cw{http://"
+"www.nikoli.co.jp/en/puzzles/where_is_black_cells.html}"
+msgstr "\\W{http://www.nikoli.co.jp/en/puzzles/where_is_black_cells.html}\\cw{http://www.nikoli.co.jp/en/puzzles/where_is_black_cells.html}"
 
 #. type: Plain text
 #: puzzles.but:3023
@@ -6908,7 +6912,6 @@ msgstr ""
 
 #. type: Plain text
 #: puzzles.but:3037
-#, fuzzy
 msgid ""
 "You can also use the cursor keys to move around the grid squares.  Pressing "
 "Return does the same as clicking with the left button, while pressing Space "
@@ -6916,8 +6919,10 @@ msgid ""
 "holding Shift will place dots in all squares that are moved through."
 msgstr ""
 "Sie können auch die Pfeiltasten verwenden, um sich auf dem Gitter zu "
-"bewegen. Drücken der Eingabetaste bewirkt das gleiche wie die linke Taste, "
-"während die Leertaste das gleiche wie die rechte Taste durchführt."
+"bewegen. Drücken der Eingabetaste bewirkt das Gleiche wie die linke Taste, "
+"während die Leertaste das Gleiche wie die rechte Taste durchführt. Bewegen "
+"mit den Pfeiltasten während Umschalten gehalten ist wird Punkte in alle "
+"überstriffenen Quadrate setzen."
 
 #. type: Plain text
 #: puzzles.but:3042
@@ -7000,8 +7005,8 @@ msgid ""
 "Credit for this puzzle goes to \\i{Nikoli}, who call it \\q{Masyu}.  "
 "\\k{nikoli-pearl}"
 msgstr ""
-"Dank für dieses Puzzle geht an \\i{Nikoli}, die es \\q{Masyu} nannten. "
-"\\k{nikoli-pearl}."
+"Dank für dieses Puzzle geht an \\i{Nikoli}, die es \\q{Masyu} nennen. "
+"\\k{nikoli-pearl}"
 
 #. type: Plain text
 #: puzzles.but:3080
@@ -7011,11 +7016,11 @@ msgstr "Dank an James Harvey für Hilfe bei der Implementierung."
 #. type: Plain text
 #: puzzles.but:3083
 msgid ""
-"\\W{http://www.nikoli.co.jp/en/puzzles/masyu/}\\cw{http://www.nikoli.co.jp/"
-"en/puzzles/masyu/}"
+"\\W{http://www.nikoli.co.jp/en/puzzles/masyu.html}\\cw{http://www.nikoli.co."
+"jp/en/puzzles/masyu.html} (beware of Flash)"
 msgstr ""
-"\\W{http://www.nikoli.co.jp/en/puzzles/masyu/}\\cw{http://www.nikoli.co.jp/"
-"en/puzzles/masyu/}"
+"\\W{http://www.nikoli.co.jp/en/puzzles/masyu.html}\\cw{http://www.nikoli.co."
+"jp/en/puzzles/masyu.html} (Achtung Flash)"
 
 #. type: Plain text
 #: puzzles.but:3085
@@ -7064,7 +7069,6 @@ msgstr ""
 
 #. type: Plain text
 #: puzzles.but:3107
-#, fuzzy
 msgid ""
 "Alternatively, use the cursor keys to move the cursor.  Use the Enter key to "
 "begin and end keyboard \\q{drag} operations.  Use the Space, Escape or "
@@ -7073,10 +7077,9 @@ msgid ""
 msgstr ""
 "Sie können alternativ die Pfeiltasten zur Bewegung des Cursors benutzen. Um "
 "»Ziehen«-Aktionen per Tastatur zu beginnen oder zu beenden, drücken Sie auf "
-"die Eingabetaste. Mit der Leertaste brechen Sie das Ziehen ab. Verwenden Sie "
-"auf der Kante in der angegeben Richtung relativ zum Cursor Strg-Pfeiltaste "
-"und Umschalt-Pfeiltaste, um einen Klick mit der linken oder rechten "
-"Maustaste zu simulieren, d.h. einen Abschnitt oder ein Kreuz zu zeichnen."
+"die Eingabetaste. Mit der Leertaste, Escape oder Rückschritt brechen Sie das "
+"Ziehen ab. Oder halten Sie Strg, während Sie mit den Pfeiltasten ziehen, um "
+"Segmente umzuschalten, während Sie sich zwischen Quadraten bewegen."
 
 #. type: Plain text
 #: puzzles.but:3110
@@ -7084,6 +7087,9 @@ msgid ""
 "Pressing Control-Shift-arrowkey or Shift-arrowkey simulates a left or right "
 "click, respectively, on the edge in the direction of the key."
 msgstr ""
+"Durch Drücken von Strg-Umschalt-Pfeiltaste oder Umschalt-Pfeiltaste wird ein "
+"Rechts- bzw. ein Linksklick an der Kante in der Richtung der Pfeiltaste "
+"simuliert."
 
 #. type: Plain text
 #: puzzles.but:3114
@@ -7154,7 +7160,7 @@ msgstr ""
 #. type: Plain text
 #: puzzles.but:3143
 msgid "Undead was contributed to this collection by Steffen Bauer."
-msgstr "Unruly wurde von Steffen Bauer zu dieser Sammlung beigesteuert."
+msgstr "Undead ist ein Beitrag von Steffen Bauer zu dieser Sammlung."
 
 #. type: Plain text
 #: puzzles.but:3146
@@ -7314,7 +7320,7 @@ msgstr ""
 #. type: Plain text
 #: puzzles.but:3220
 msgid "Unruly was contributed to this collection by Lennard Sprong."
-msgstr "Unruly wurde von Lennard Sprong zu dieser Sammlung beigesteuert."
+msgstr "Unruly ist ein Beitrag von Lennard Sprong zu dieser Sammlung."
 
 #. type: Plain text
 #: puzzles.but:3223
@@ -7377,7 +7383,7 @@ msgstr ""
 #. type: e{#1}
 #: puzzles.but:3256
 msgid "Unique rows and columns"
-msgstr ""
+msgstr "Eindeutige Zeilen und Spalten"
 
 #. type: Plain text
 #: puzzles.but:3259
@@ -7385,6 +7391,9 @@ msgid ""
 "If enabled, no two rows are permitted to have exactly the same pattern, and "
 "likewise columns. (A row and a column can match, though.)"
 msgstr ""
+"Falls aktiviert, dürfen keine zwei Zeilen über das gleiche Muster verfügen "
+"und entsprechendes bei den Spalten. (Eine Spalte und eine Zeile können "
+"allerdings übereinstimmen.)"
 
 #. type: Plain text
 #: puzzles.but:3261
@@ -7406,12 +7415,12 @@ msgid ""
 "colour). As you do this, more and more of the grid becomes connected to the "
 "starting square."
 msgstr ""
-"Sie bekommen ein Gitter von Quadraten, zufällig in mehreren Farben gefärbt. "
-"In jedem Spielzug können Sie in einer Farbe Ihrer Wahl von der oberen linken "
-"Quadrat aus farben. Jeder Quadrat erreichbar vom Startplatz über einen "
-"orthogonal verbunden Pfad der gleichfarbigen Quadrate wird in der neuen "
-"Farbe gefüllt werden. Auf diese Weise wird mehr und mehr von dem Gitter auf "
-"das Startfeld verbunden."
+"Sie erhalten ein Gitter von Quadraten, die zufällig in mehreren Farben "
+"eingefärbt sind. Bei jedem Zug können Sie durch Fluten das Quadrat in der "
+"oberen linken Ecke mit einer Farbe Ihrer Wahl füllen (d.h. jedes Quadrat, das "
+"vom Startquadrat durch einen orthogonal verbundenen Pfad von Quadraten der "
+"gleichen Farbe verbunden ist, wird mit der neuen Farbe gefüllt). Dadurch wird "
+"schrittweise mehr und mehr des Gitters mit dem Startquadrat verbunden."
 
 #. type: Plain text
 #: puzzles.but:3275
@@ -7421,25 +7430,25 @@ msgid ""
 "its own internal solver. You win if you can make the whole grid the same "
 "colour in that many moves or fewer."
 msgstr ""
-"Ihr Ziel ist, das gesamte Netz der gleichen Farbe in so wenig Spielzügen wie "
-"möglich zu machen. Das Spiel wird eine Obergrenze für die Anzahl der Züge "
-"setzen, basierend auf seiner eigenen internen Löser. Sie gewinnen, wenn Sie "
-"das gesamte Netz in der gleichen Farbe in so viele Züge oder weniger machen."
+"Ihr Ziel besteht darin, das gesamte Gitter mit so wenig Zügen wie möglich in "
+"eine Farbe zu verwandeln. Das Spiel setzt eine Grenze an Zügen, basierend auf "
+"seinem internen Lösungsalgorithmus. Sie gewinnen, falls Sie das Gitter mit "
+"dieser Anzahl (oder weniger) an Zügen in die gleiche Farbe umwandeln."
 
 #. type: Plain text
 #: puzzles.but:3278
 msgid ""
 "I saw this game (with a fixed grid size, fixed number of colours, and fixed "
-"move limit) at \\W{http://floodit.appspot.com}\\cw{floodit.appspot.com}."
+"move limit) at http://floodit.appspot.com (no longer accessible)."
 msgstr ""
-"Ich sah das Spiel (mit einem festen Gittergröße, feste Anzahl von Farben und "
-"festen Bewegungsweite) bei \\W{http://floodit.appspot.com}\\cw{floodit."
-"appspot.com}."
+"Ich habe dieses Spiel (mit einer festen Gittergröße, festen Anzahl an Farben "
+"und festen Anzahl an Zügen) unter http://floodit.appspot.com (nicht mehr "
+"erreichbar) gesehen."
 
 #. type: Plain text
 #: puzzles.but:3280
 msgid "\\I{controls, for Flood}Flood controls"
-msgstr "\\I{Steuerung, von Flood}Flood-Steuerung"
+msgstr "\\I{Steuerung, für Flood}Flood-Steuerung"
 
 #. type: Plain text
 #: puzzles.but:3287
@@ -7449,11 +7458,11 @@ msgid ""
 "square you clicked. Clicking a square the same colour as the top left corner "
 "has no effect, and therefore does not count as a move."
 msgstr ""
-"Um Flood zu spielen, klicken Sie in einem Quadrat. Die obere linke Ecke und "
-"alles, was damit orthogonal verbunden ist, wird mit Flut gefüllt mit der "
-"Farbe des Quadrats, den Sie angeklickt haben. Ein Klick auf einen Quadrat "
-"der gleichen Farbe wie die obere linke Ecke hat keine Wirkung, und daher "
-"zählt nicht als Spielzug."
+"Um Flood zu spielen, klicken Sie mit der Maus in ein Quadrat. Die obere linke "
+"Ecke und alles damit verbundene wird mit der gleichen Farbe wie das von Ihnen "
+"angeklickte Quadrat geflutet. Das Klicken auf ein Quadrat mit der gleichen "
+"Farbe wie die obere linke Ecke hat keinen Effekt und zählt daher nicht als "
+"Spielzug."
 
 #. type: Plain text
 #: puzzles.but:3291
@@ -7462,9 +7471,10 @@ msgid ""
 "around the grid. Pressing the return key will fill the top left corner in "
 "the colour of the square under the cursor."
 msgstr ""
-"Sie können auch die Pfeiltasten verwenden, um einen Positionsanzeiger über "
-"das Gitter zu bewegen. Drücken der Eingabetaste wird die obere linke Ecke "
-"mit Flut mit der Farbe der aktuellen Position füllen."
+"Sie können auch die Pfeiltasten verwenden, um den Cursor (ein leeres "
+"schwarzes Quadrat) über das Gitter zu bewegen. Drücken der Eingabetaste "
+"füllt die obere linke Ecke mit der gleichen Farbe wie das Quadrat unter dem "
+"Cursor."
 
 #. type: Plain text
 #: puzzles.but:3295
@@ -7483,14 +7493,14 @@ msgid ""
 "colours there would only be one legal move at any stage, hence no choice to "
 "make at all), and at most 10."
 msgstr ""
-"Anzahl an verschiedenen Farben, die zum Auffüllen des Gitters verwandt "
-"werden. Muss mindestens 3 and höchstens 10 sein. Bei 2 Farben gäbe es immer "
-"nür einen gültigen Spielzug, und deswegen nie eine Wahl zu machen."
+"Anzahl an Farben, die zum Füllen des Gitters verwandt werden. Muss mindestens "
+"3 sein (bei zwei Farben gäbe es bei jeder Stufe nur einen gültigen Zug und "
+"somit keine zu treffende Auswahl) und höchstens 10."
 
 #. type: e{#1}
 #: puzzles.but:3310
 msgid "Extra moves permitted"
-msgstr "Zusätzliche Spielzüge erlaubt."
+msgstr "Extra moves permitted"
 
 #. type: Plain text
 #: puzzles.but:3317
@@ -7502,13 +7512,12 @@ msgid ""
 "be just as efficient as Flood's automated solver, and a larger value makes "
 "it easier."
 msgstr ""
-"Steuert die Schwierigkeit des erstellten Puzzles, indem die Grenze für die "
-"Anzahl der Spielzüge erhöht wird. In jedem neuen Gitter wird Flood eine "
-"interne Löser ausführen, um eine eigene Lösung zu erzeugen. Dann wird auf "
-"die Länge des Lösung um Spielzugsgrenze des Spiels zu erzeugen der Wert in "
-"diesem Feld hinzugefügt. So ein Wert von 0 erfordert, dass Sie genauso "
-"effizient sein wie die automatische Löser und ein größerer Wert macht es "
-"einfacher."
+"Steuert die Schwierigkeit des Puzzles durch Erhöhung der Zugbegrenzung. In "
+"jedem neuen Gitter lässt Flood ein internes Lösungsprogramm laufen, um seine "
+"eigene Lösung zu erstellen und dann wird der Wert in diesem Feld zu der Länge "
+"der Lösung von Flood hinzuaddiert, um die Spielzugbegrenzung zu erstellen. "
+"Ein Wert von 0 verlangt daher von Ihnen, so effizient wie der automatische "
+"Lösungsfinder von Flood zu sein und ein größerer Wert erleichtert es."
 
 #. type: Plain text
 #: puzzles.but:3326
@@ -7518,10 +7527,11 @@ msgid ""
 "set this value to 0 and then try to solve a grid in \\e{strictly fewer} "
 "moves than the limit you're given!)"
 msgstr ""
-"(Beachten Sie, dass der interne Solver nicht unbedingt den kürzesten "
-"mögliche Lösung findet, aber ich glaube, es ist ziemlich nah dran. Für eine "
-"echte Herausforderung, setzen Sie diesen Wert auf 0 und dann versuchen, ein "
-"Gitter in streng weniger Spielzüge als der Grenzwert zu lösen!)"
+"(Beachten Sie, dass das interne Lösungsprogramm von Flood nicht "
+"notwendigerweise die kürzeste mögliche Lösung findet, obwohl ich annehme, "
+"dass es ziemlich nahe dran ist. Für eine echte Herausforderung setzen Sie "
+"diesen Wert auf 0 und versuchen dann, ein Gitter in \\e{echt weniger} Zügen "
+"zu lösen, als Ihnen vorgegeben werden!)"
 
 #. type: Plain text
 #: puzzles.but:3328
@@ -7541,10 +7551,10 @@ msgid ""
 "contain the same number of track segments as are indicated in the clues to "
 "the top and right of the grid."
 msgstr ""
-"Sie bekommen ein Gitter von Quadraten, von denen einige Schienen enthalten. "
-"Sie müssen die Bahnstrecke von A bis B ausfüllen. Die Anzahl der "
-"Bahnabschnitte in jeder Zeile und in jeder Spalte muss zu der Zahl, die an "
-"der Ränder des Gitters angegeben sind passen."
+"Sie erhalten ein Gitter von Quadraten von denen einige mit Gleisen von Zügen "
+"gefüllt sind. Sie müssen die Gleise von A nach B so vervollständigen, dass "
+"die Zeilen und Spalten die gleiche Anzahl von Gleissegmenten enthalten, wie "
+"dies in den Hilfestellungen oben und rechts vom Gitter angegeben ist."
 
 #. type: Plain text
 #: puzzles.but:3338
@@ -7552,18 +7562,18 @@ msgid ""
 "There are only straight and 90 degree curved rails, and the track may not "
 "cross itself."
 msgstr ""
-"Es gibt nur gerade und 90 Grad gebogene Schienen, und die Strecke darf sich "
-"nicht kreuzen."
+"Es gibt nur gerade und 90° gebogene Schienen und die Gleise dürfen sich nicht "
+"selbst kreuzen."
 
 #. type: Plain text
 #: puzzles.but:3340
 msgid "Tracks was contributed to this collection by James Harvey."
-msgstr "Tracks wurde von James Harvey zu dieser Sammlung beigesteuert."
+msgstr "Tracks ist ein Beitrag von James Harvey zu dieser Sammlung."
 
 #. type: Plain text
 #: puzzles.but:3342
 msgid "\\I{controls, for Tracks}Tracks controls"
-msgstr "\\I{Steuerung, von Tracks}Tracks-Steuerung"
+msgstr "\\I{Steuerungen, für Tracks}Tracks-Steuerungen"
 
 #. type: Plain text
 #: puzzles.but:3348
@@ -7572,10 +7582,10 @@ msgid ""
 "the two squares. Right-clicking on an edge adds a cross on the edge, "
 "indicating no track is possible there."
 msgstr ""
-"Durch Linksklick auf eine Gitterkante wird ein Bahnabschnitt zwischen die "
-"zwei Quadraten gezeichnet. Durch Rechtsklick auf eine Gitterkante wird ein "
-"Kreuz dort gezeichnet, was markiert, dass kein Bahnabschnitt dort möglich "
-"ist."
+"Durch Linksklick auf eine Kante zwischen zwei Quadraten wird ein "
+"Gleissgement zwischen den zwei Quadraten hinzugefügt. Durch Rechtsklick wird "
+"ein Kreuz auf der Kante hinzugefügt, das anzeigt, dass hier kein Gleis "
+"möglich ist."
 
 #. type: Plain text
 #: puzzles.but:3353
@@ -7585,10 +7595,11 @@ msgid ""
 "yet. Right-clicking in a square adds a cross indicating it contains no track "
 "segment."
 msgstr ""
-"Ein Linksklick in ein Quadrat färbt es um dass der Quadrat ein Bahnabschnitt "
-"enthält zu markieren, selbst wenn Sie wissen noch nicht, welche Gitterkanten "
-"es kreuzt. Ein Rechtsklick in ein Quadrat zeichnet ein Kreuz, um zu "
-"markieren, dass der Quadrat kein Bahnabschnitt enthält."
+"Durch Linksklick auf ein Quadrat wird eine Farbanzeige hinzugefügt, die "
+"zeigt, dass Sie wissen, dass das Quadrat ein Gleis enthalten muss, selbst "
+"wenn Sie noch nicht wissen, über welche Kante es läuft. Durch Rechtsklick in "
+"ein Quadrat wird ein Kreuz hinzugefügt, das angibt, dass es kein Gleissgement "
+"enthält."
 
 #. type: Plain text
 #: puzzles.but:3357
@@ -7597,9 +7608,9 @@ msgid ""
 "is-track or is-not-track indicators, useful for filling in rows or columns "
 "to match the clue."
 msgstr ""
-"Durch links- oder rechtsklicken und ziehen wird eine Reihe von Quadraten als "
-"Bahnabschnitte enthalten oder nicht enthalten markiert, was bei Zeilen oder "
-"Spalten um den Hinweis passen auszufüllen hilft."
+"Links- oder Rechts-Ziehen zwischen Quadraten erlaubt es Ihnen, eine gerade "
+"Linie von Schienen-existieren- oder Schienen-existieren-nicht-Anzeigen zu "
+"legen. Dies ist nützlich, um Zeilen oder Spalten auf den Hinweis anzupassen."
 
 #. type: Plain text
 #: puzzles.but:3361
@@ -7613,14 +7624,14 @@ msgid ""
 "required to make more deductions regarding disregarding moves that would "
 "lead to impossible crossings later."
 msgstr ""
-"Steuert die Schwierigkeit des erstellten Puzzles. Auf der Stufe »Tricky« "
-"müssen Sie schwierigere Schlussfolgerungen über Spielzüge, die später zu "
-"unmögliche Kreuzungen führen würden machen."
+"Steuert die Schwierigkeit des erstellten Puzzles: bei der Stufe »Tricky« "
+"müssen Sie schwierigere Schlussfolgerungen in Bezug auf Züge machen, die "
+"später zu unmöglichen Kreuzungen führen könnten."
 
 #. type: e{#1}
 #: puzzles.but:3376
 msgid "Disallow consecutive 1 clues"
-msgstr "Aufeinanderfolgenden 1-Hinweise verbieten"
+msgstr "Disallow consecutive 1 clues"
 
 #. type: Plain text
 #: puzzles.but:3383
@@ -7631,12 +7642,13 @@ msgid ""
 "straight boring segments of track and make the games more twiddly and "
 "interesting. If you want to restore the possibility, turn this option off."
 msgstr ""
-"Steuert ob der Erzeugungsalgorithmus 1-Hinweise auf zwei benachbarten Zeilen "
-"oder Spalten, oder auf der Zeile oder Spalte von dem Ende der Spurerlaubt. "
-"Standardmäßig wird dies nicht erlaubt, um lange gerade langweilige "
-"Streckenabschnitte zu vermeiden und die Spiele schlängelnder und "
-"interessanter zu machen. Um die Möglichkeit wiederherzustellen, deaktivieren "
-"Sie diese Option."
+"Steuert, ob es die Spielerzeugung von Tracks zwei benachbarten Zeilen oder "
+"Spalten erlaubt, genau einen Hinweis zu haben oder es der Zeile oder Spalte "
+"der Endpunkte der Gleise erlaubt, genau einen Hinweis zu tragen. "
+"Standardmäßig ist dies nicht erlaubt, um lange gerade und langweilige "
+"Gleissegmente zu vermeiden und das Spiel fummeliger und interessanter zu "
+"gestalten. Falls Sie diese Möglichkeit wieder erlauben wollen, schalten Sie "
+"diese Option aus."
 
 #. type: Plain text
 #: puzzles.but:3386
@@ -7656,10 +7668,11 @@ msgid ""
 "such that each square containing a number is adjacent to exactly that many "
 "edges (including those between the inside and the outside of the grid)."
 msgstr ""
-"Sie bekommen ein Gitter an Quadraten, von denen einige Ziffern enthalten. "
-"Ihre Aufgabe besteht darin, die Gitter in gleichflächige Regions zu teilen, "
-"so dass jedes nummeriertes Quadrat neben so viele Grenzen ist "
-"(einschließlich die zwischen der Innenseite und der Außenseite des Gitters)."
+"Sie erhalten ein Gitter von Quadraten, von denen einige Zahlen enthalten. Ihr "
+"Ziel besteht darin, das Gitter in zusammenhängende Regionen zu zerteilen, die "
+"alle die gleiche (vorgegebene) Größe haben, so dass jedes Quadrat, das eine "
+"Nummer trägt, zu genau dieser Anzahl an Kanten benachbart ist (dazu gehören "
+"auch solche zwischen der Innenseite und der Außenseite des Gitters)."
 
 #. type: Plain text
 #: puzzles.but:3397
@@ -7667,28 +7680,25 @@ msgid ""
 "Credit for this puzzle goes to \\i{Nikoli}, who call it \\q{Five Cells}.  "
 "\\k{nikoli-palisade}."
 msgstr ""
-"Dank für dieses Puzzle geht an \\i{Nikoli}, die es \\q{Five Cells} nannten. "
-"\\k{nikoli-palisade}."
+"Der Dank für dieses Puzzle geht an \\i{Nikoli}, die es \\q{Five Cells} "
+"nennen. \\k{nikoli-palisade}."
 
 #. type: Plain text
 #: puzzles.but:3399
 msgid "Palisade was contributed to this collection by Jonas K\\u00F6{oe}lker."
-msgstr ""
-"Palisade wurde von Jonas K\\u00F6{oe}lker zu dieser Sammlung beigesteuert."
+msgstr "Palisade ist ein Beitrag von Jonas K\\u00F6{oe}lker zu dieser Sammlung."
 
 #. type: Plain text
 #: puzzles.but:3402
 msgid ""
 "\\W{http://nikoli.co.jp/en/puzzles/five_cells.html}\\cw{http://nikoli.co.jp/"
 "en/puzzles/five_cells.html}"
-msgstr ""
-"\\W{http://nikoli.co.jp/en/puzzles/five_cells.html}\\cw{http://nikoli.co.jp/"
-"en/puzzles/five_cells.html}"
+msgstr "\\W{http://www.nikoli.co.jp/en/puzzles/five_cells.html}\\cw{http://www.nikoli.co.jp/en/puzzles/five_cells.html}"
 
 #. type: Plain text
 #: puzzles.but:3404
 msgid "\\I{controls, for Palisade}Palisade controls"
-msgstr "\\I{Steuerung, von Palisade}Palisade-Steuerung"
+msgstr "\\I{Steuerungen, für Palisade}Palisade-Steuerungen"
 
 #. type: Plain text
 #: puzzles.but:3410
@@ -7698,12 +7708,11 @@ msgid ""
 "while pressing an arrow key will place an edge.  Press Shift-arrowkey to "
 "switch off an edge.  Repeat an action to perform its inverse."
 msgstr ""
-"Ein Linksklick legt eine Grenze. Ein Rechtsklick markiert \\q{keine Grenze}. "
-"Verwenden Sie alternativ die Pfeiltasten, um den Positionsanzeiger um den "
-"Gitter zu bewegen. Halten Sie die Strg-Taste und drücken Sie eine Pfeiltaste "
-"um eine Grenze zu legen. Halten Sie die Umschalt-Taste und drücken Sie eine "
-"Pfeiltaste um eine Grenze zu lösen. Wiederholen Sie so einen Tastendruck, um "
-"seinen Gegenteil durchzuführen."
+"Durch Linksklick setzen Sie eine Kante. Rechtsklick zeigt \\q{keine Kante} "
+"an. Alternativ können die Pfeiltasten einen Tastatur-Cursor bewegen. Wird "
+"Strg während der Pfeiltasten gedrückt, wird eine Kante gesetzt. Umschalt-"
+"Pfeiltaste schaltet eine Kante aus. Wiederholen Sie eine Aktion, um ihr "
+"Gegenteil auszulösen."
 
 #. type: Plain text
 #: puzzles.but:3414
@@ -7713,12 +7722,12 @@ msgstr "\\I{Parameter, für Palisade}Palisade-Parameter"
 #. type: e{#1}
 #: puzzles.but:3423
 msgid "Region size"
-msgstr "Regionsgröße"
+msgstr "Region size"
 
 #. type: Plain text
 #: puzzles.but:3425
 msgid "The size of the regions into which the grid must be subdivided."
-msgstr "Die Größe der Bereiche, in die das Gitter unterteilt werden müssen."
+msgstr "Die Größe der Regionen, in die das Gitter zerteilt werden muss."
 
 #. type: Plain text
 #: puzzles.but:3427
@@ -7939,12 +7948,6 @@ msgstr "MIT-Lizenz"
 #, no-wrap
 msgid "licence, MIT"
 msgstr "Lizenz, MIT"
-
-#~ msgid ""
-#~ "On Android, please touch for left click and long press for right click."
-#~ msgstr ""
-#~ "Unter Android muss man drücken statt links klicken und langes drücken "
-#~ "statt rechts klicken."
 
 #~ msgid "$Id: puzzles.but 9828 2013-04-12 16:28:55Z simon $"
 #~ msgstr "$Id: puzzles.but 9828 2013-04-12 16:28:55Z simon $"
