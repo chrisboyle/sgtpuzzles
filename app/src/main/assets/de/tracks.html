@@ -14,26 +14,26 @@
 <p><a href="flood.html">Previous</a> | <a href="index.html">Contents</a> | <a href="docindex.html">Index</a> | <a href="palisade.html">Next</a></p>
 <h1><a name="C40"></a>Chapter 40: <a name="i0"></a>Tracks</h1>
 <p>
-Sie bekommen ein Gitter von Quadraten, von denen einige Schienen enthalten. Sie m&#252;ssen die Bahnstrecke von A bis B ausf&#252;llen. Die Anzahl der Bahnabschnitte in jeder Zeile und in jeder Spalte muss zu der Zahl, die an der R&#228;nder des Gitters angegeben sind passen.
+Sie erhalten ein Gitter von Quadraten von denen einige mit Gleisen von Z&#252;gen gef&#252;llt sind. Sie m&#252;ssen die Gleise von A nach B so vervollst&#228;ndigen, dass die Zeilen und Spalten die gleiche Anzahl von Gleissegmenten enthalten, wie dies in den Hilfestellungen oben und rechts vom Gitter angegeben ist.
 </p>
 <p>
-Es gibt nur gerade und 90 Grad gebogene Schienen, und die Strecke darf sich nicht kreuzen.
+Es gibt nur gerade und 90&#176; gebogene Schienen und die Gleise d&#252;rfen sich nicht selbst kreuzen.
 </p>
 <p>
-Tracks wurde von James Harvey zu dieser Sammlung beigesteuert.
+Tracks ist ein Beitrag von James Harvey zu dieser Sammlung.
 </p>
-<h2><a name="S40.1"></a>40.1 <a name="i1"></a>Tracks-Steuerung</h2>
+<h2><a name="S40.1"></a>40.1 <a name="i1"></a>Tracks-Steuerungen</h2>
 <p>
 <em>Unter Android muss man dr&#252;cken statt links klicken und langes dr&#252;cken statt rechts klicken. Wo dieses Handbuch Buchstaben auf der Tastatur erw&#228;hnt, k&#246;nnen diese als Bildzeichen am Fu&#223; des Bildschirms gefunden werden (Strg und Umschalt sind nicht verf&#252;gbar).</em>
 </p>
 <p>
-Durch Linksklick auf eine Gitterkante wird ein Bahnabschnitt zwischen die zwei Quadraten gezeichnet. Durch Rechtsklick auf eine Gitterkante wird ein Kreuz dort gezeichnet, was markiert, dass kein Bahnabschnitt dort m&#246;glich ist.
+Durch Linksklick auf eine Kante zwischen zwei Quadraten wird ein Gleissgement zwischen den zwei Quadraten hinzugef&#252;gt. Durch Rechtsklick wird ein Kreuz auf der Kante hinzugef&#252;gt, das anzeigt, dass hier kein Gleis m&#246;glich ist.
 </p>
 <p>
-Ein Linksklick in ein Quadrat f&#228;rbt es um dass der Quadrat ein Bahnabschnitt enth&#228;lt zu markieren, selbst wenn Sie wissen noch nicht, welche Gitterkanten es kreuzt. Ein Rechtsklick in ein Quadrat zeichnet ein Kreuz, um zu markieren, dass der Quadrat kein Bahnabschnitt enth&#228;lt.
+Durch Linksklick auf ein Quadrat wird eine Farbanzeige hinzugef&#252;gt, die zeigt, dass Sie wissen, dass das Quadrat ein Gleis enthalten muss, selbst wenn Sie noch nicht wissen, &#252;ber welche Kante es l&#228;uft. Durch Rechtsklick in ein Quadrat wird ein Kreuz hinzugef&#252;gt, das angibt, dass es kein Gleissgement enth&#228;lt.
 </p>
 <p>
-Durch links- oder rechtsklicken und ziehen wird eine Reihe von Quadraten als Bahnabschnitte enthalten oder nicht enthalten markiert, was bei Zeilen oder Spalten um den Hinweis passen auszuf&#252;llen hilft.
+Links- oder Rechts-Ziehen zwischen Quadraten erlaubt es Ihnen, eine gerade Linie von Schienen-existieren- oder Schienen-existieren-nicht-Anzeigen zu legen. Dies ist n&#252;tzlich, um Zeilen oder Spalten auf den Hinweis anzupassen.
 </p>
 <p>
 (Alle in <a href="common.html#S2.1">section 2.1</a> beschriebene Aktionen sind auch verf&#252;gbar.)
@@ -52,13 +52,13 @@ Gr&#246;&#223;e des Gitters, in Quadraten.
 <em>Difficulty</em>
 </dt>
 <dd>
-Steuert die Schwierigkeit des erstellten Puzzles. Auf der Stufe &#187;Tricky&#171; m&#252;ssen Sie schwierigere Schlussfolgerungen &#252;ber Spielz&#252;ge, die sp&#228;ter zu unm&#246;gliche Kreuzungen f&#252;hren w&#252;rden machen.
+Steuert die Schwierigkeit des erstellten Puzzles: bei der Stufe &#187;Tricky&#171; m&#252;ssen Sie schwierigere Schlussfolgerungen in Bezug auf Z&#252;ge machen, die sp&#228;ter zu unm&#246;glichen Kreuzungen f&#252;hren k&#246;nnten.
 </dd>
 <dt>
-<em>Aufeinanderfolgenden 1-Hinweise verbieten</em>
+<em>Disallow consecutive 1 clues</em>
 </dt>
 <dd>
-Steuert ob der Erzeugungsalgorithmus 1-Hinweise auf zwei benachbarten Zeilen oder Spalten, oder auf der Zeile oder Spalte von dem Ende der Spurerlaubt. Standardm&#228;&#223;ig wird dies nicht erlaubt, um lange gerade langweilige Streckenabschnitte zu vermeiden und die Spiele schl&#228;ngelnder und interessanter zu machen. Um die M&#246;glichkeit wiederherzustellen, deaktivieren Sie diese Option.
+Steuert, ob es die Spielerzeugung von Tracks zwei benachbarten Zeilen oder Spalten erlaubt, genau einen Hinweis zu haben oder es der Zeile oder Spalte der Endpunkte der Gleise erlaubt, genau einen Hinweis zu tragen. Standardm&#228;&#223;ig ist dies nicht erlaubt, um lange gerade und langweilige Gleissegmente zu vermeiden und das Spiel fummeliger und interessanter zu gestalten. Falls Sie diese M&#246;glichkeit wieder erlauben wollen, schalten Sie diese Option aus.
 </dd>
 </dl>
 
