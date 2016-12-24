@@ -3845,20 +3845,20 @@ msgstr ""
 #. type: Plain text
 #: puzzles.but:1596
 msgid ""
-"A beam with a ball to its front-left square gets deflected 90 degrees to the "
-"right."
+"A beam with a ball in its front-left square and no ball ahead of it gets "
+"deflected 90 degrees to the right."
 msgstr ""
-"Ein Strahl mit einem Ball im Quadrat vorne links wird um 90 Grad nach rechts "
-"reflektiert."
+"Ein Strahl mit einem Ball im Quadrat vorne links und keinem Ball direkt nach "
+"vorne wird um 90 Grad nach rechts reflektiert."
 
 #. type: Plain text
 #: puzzles.but:1599
 msgid ""
-"A beam with a ball to its front-right square gets similarly deflected to the "
-"left."
+"A beam with a ball in its front-right square and no ball ahead of it gets "
+"similarly deflected to the left."
 msgstr ""
-"Ein Strahl mit einem Ball im Quadrat vorne rechts wird entsprechend nach "
-"links reflektiert."
+"Ein Strahl mit einem Ball im Quadrat vorne rechts und keinem Ball direkt "
+"nach vorne wird entsprechend nach links reflektiert."
 
 #. type: Plain text
 #: puzzles.but:1602
@@ -6558,7 +6558,6 @@ msgid ""
 msgstr ""
 "Durch Linksklick auf einen Hinweis wird dieser als erledigt markiert "
 "(ausgegraut) oder die Markierung entfernt, falls er bereits markiert ist."
-
 
 #. type: Plain text
 #: puzzles.but:2876
