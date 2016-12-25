@@ -70,7 +70,7 @@ model {
 
         ndk {
             moduleName "puzzles"
-            CFlags.add("-DANDROID -DSMALL_SCREEN -DSTYLUS_BASED -DNO_PRINTING -DCOMBINED -DVIVID_COLOURS")
+            CFlags.addAll(["-DANDROID", "-DSMALL_SCREEN", "-DSTYLUS_BASED", "-DNO_PRINTING", "-DCOMBINED", "-DVIVID_COLOURS"])
             // WARNING abiFilters "all" here can end up omitting lib dir; I don't know why
             platformVersion "android-21"
         }
