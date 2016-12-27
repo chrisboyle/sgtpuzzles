@@ -1988,6 +1988,7 @@ static void menu_preset_event(GtkMenuItem *menuitem, gpointer data)
     midend_new_game(fe->me);
     changed_preset(fe);
     resize_fe(fe);
+    midend_redraw(fe->me);
 }
 
 GdkAtom compound_text_atom, utf8_string_atom;
@@ -2231,6 +2232,7 @@ static void menu_load_event(GtkMenuItem *menuitem, gpointer data)
 
 	changed_preset(fe);
         resize_fe(fe);
+        midend_redraw(fe->me);
     }
 }
 
@@ -2268,6 +2270,7 @@ static void menu_config_event(GtkMenuItem *menuitem, gpointer data)
 
     midend_new_game(fe->me);
     resize_fe(fe);
+    midend_redraw(fe->me);
 }
 
 static void menu_about_event(GtkMenuItem *menuitem, gpointer data)
