@@ -1743,6 +1743,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 
 static game_state *execute_move(const game_state *from, const char *move)
 {
+    int auto_remove_hints = TRUE;
     int w = from->par.w, a = w*w;
     game_state *ret;
     int x, y, i, n;
@@ -1776,6 +1777,17 @@ static game_state *execute_move(const game_state *from, const char *move)
         } else {
             ret->grid[y*w+x] = n;
             ret->pencil[y*w+x] = 0;
+
+            if (auto_remove_hints) {
+                for (i = 0; i < w; i++) {
+                    if (!ret->grid[y*w+i] && (ret->pencil[y*w+i] & (1L << n))) {
+                        ret->pencil[y*w+i] ^= 1L << n;
+                    }
+                    if (!ret->grid[i*w+x] && (ret->pencil[i*w+x] & (1L << n))) {
+                        ret->pencil[i*w+x] ^= 1L << n;
+                    }
+                }
+            }
 
             if (!ret->completed && !check_errors(ret, NULL))
                 ret->completed = TRUE;

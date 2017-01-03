@@ -1596,6 +1596,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 
 static game_state *execute_move(const game_state *state, const char *move)
 {
+    int auto_remove_hints = TRUE;
     game_state *ret = NULL;
     int x, y, n, i, rc;
 
@@ -1612,6 +1613,12 @@ static game_state *execute_move(const game_state *state, const char *move)
             GRID(ret, nums, x, y) = n;
             for (i = 0; i < state->order; i++)
                 HINT(ret, x, y, i) = 0;
+            if (auto_remove_hints) {
+                for (i = 0; i < state->order; i++) {
+                    HINT(ret, i, y, n-1) = 0;
+                    HINT(ret, x, i, n-1) = 0;
+                }
+            }
 
             /* real change to grid; check for completion */
             if (!ret->completed && check_complete(ret->nums, ret, 1) > 0)

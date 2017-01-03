@@ -1500,8 +1500,25 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     return NULL;
 }
 
+static void remove_pencil_marks(const game_state *ret, const int x, const int y) {
+    int i;
+    const int w = ret->par.w;
+    const int n = ret->grid[y * w + x];
+    const int mask = 1L << n;
+
+    for (i = 0; i < w; i++) {
+        if (!ret->grid[y*w+i] && (ret->pencil[y*w+i] & mask)) {
+            ret->pencil[y*w+i] ^= mask;
+        }
+        if (!ret->grid[i*w+x] && (ret->pencil[i*w+x] & mask)) {
+            ret->pencil[i*w+x] ^= mask;
+        }
+    }
+}
+
 static game_state *execute_move(const game_state *from, const char *move)
 {
+    int auto_remove_hints = TRUE;
     int w = from->par.w, a = w*w;
     game_state *ret = dup_game(from);
     int x, y, i, n;
@@ -1531,6 +1548,9 @@ static game_state *execute_move(const game_state *from, const char *move)
         } else {
             ret->grid[y*w+x] = n;
             ret->pencil[y*w+x] = 0;
+            if (auto_remove_hints) {
+                remove_pencil_marks(ret, x, y);
+            }
 
             if (!ret->completed && !check_errors(ret, NULL))
                 ret->completed = TRUE;
@@ -1547,6 +1567,14 @@ static game_state *execute_move(const game_state *from, const char *move)
 	    if (!ret->grid[i])
 		ret->pencil[i] = (1L << (w+1)) - (1L << 1);
 	}
+        // clear pencil marks for the already solved cells
+        for (y = 0; y < w; y++) {
+            for (x = 0; x < w; x++) {
+                if (ret->grid[y * w + x]) {
+                    remove_pencil_marks(ret, x, y);
+                }
+            }
+        }
 	return ret;
     } else if (move[0] == 'D' && sscanf(move+1, "%d,%d", &x, &y) == 2 &&
                is_clue(from, x, y)) {
