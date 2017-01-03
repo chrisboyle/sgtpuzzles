@@ -4902,6 +4902,7 @@ static void game_free_drawstate(drawing *dr, game_drawstate *ds)
 static void draw_number(drawing *dr, game_drawstate *ds,
                         const game_state *state, int x, int y, int hl)
 {
+    int fixed_hints = TRUE;
     int cr = state->cr;
     int tx, ty, tw, th;
     int cx, cy, cw, ch;
@@ -5103,6 +5104,9 @@ static void draw_number(drawing *dr, game_drawstate *ds,
 		}
 	    }
 
+	    if (fixed_hints) {
+		npencil = cr;
+	    }
 	    /*
 	     * We arrange our pencil marks in a grid layout, with
 	     * the number of rows and columns adjusted to allow the
@@ -5167,6 +5171,8 @@ static void draw_number(drawing *dr, game_drawstate *ds,
 			      pt + fontsize * (2*dy+1) / 2,
 			      FONT_VARIABLE, fontsize,
 			      ALIGN_VCENTRE | ALIGN_HCENTRE, COL_PENCIL, str);
+		    j++;
+		} else if (fixed_hints) {
 		    j++;
 		}
 	}
