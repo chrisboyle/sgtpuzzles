@@ -462,11 +462,13 @@ static void clear_backing_store(frontend *fe)
     fe->image = NULL;
 }
 
-static void wipe_and_destroy_cairo(frontend *fe, cairo_t *cr)
+static void wipe_and_maybe_destroy_cairo(frontend *fe, cairo_t *cr,
+                                         int destroy)
 {
     cairo_set_source_rgb(cr, fe->colours[0], fe->colours[1], fe->colours[2]);
     cairo_paint(cr);
-    cairo_destroy(cr);
+    if (destroy)
+        cairo_destroy(cr);
 }
 
 static void setup_backing_store(frontend *fe)
@@ -478,12 +480,29 @@ static void setup_backing_store(frontend *fe)
     fe->image = cairo_image_surface_create(CAIRO_FORMAT_RGB24,
 					   fe->pw, fe->ph);
 
-    wipe_and_destroy_cairo(fe, cairo_create(fe->image));
+    wipe_and_maybe_destroy_cairo(fe, cairo_create(fe->image), TRUE);
 #ifndef USE_CAIRO_WITHOUT_PIXMAP
-    wipe_and_destroy_cairo(fe, gdk_cairo_create(fe->pixmap));
+    wipe_and_maybe_destroy_cairo(fe, gdk_cairo_create(fe->pixmap), TRUE);
 #endif
-    wipe_and_destroy_cairo(fe, gdk_cairo_create
-                           (gtk_widget_get_window(fe->area)));
+#if GTK_CHECK_VERSION(3,22,0)
+    {
+        GdkWindow *gdkwin;
+        cairo_region_t *region;
+        GdkDrawingContext *drawctx;
+        cairo_t *cr;
+
+        gdkwin = gtk_widget_get_window(fe->area);
+        region = gdk_window_get_clip_region(gdkwin);
+        drawctx = gdk_window_begin_draw_frame(gdkwin, region);
+        cr = gdk_drawing_context_get_cairo_context(drawctx);
+        wipe_and_maybe_destroy_cairo(fe, cr, FALSE);
+        gdk_window_end_draw_frame(gdkwin, drawctx);
+        cairo_region_destroy(region);
+    }
+#else
+    wipe_and_maybe_destroy_cairo(
+        fe, gdk_cairo_create(gtk_widget_get_window(fe->area)), TRUE);
+#endif
 }
 
 static int backing_store_ok(frontend *fe)
