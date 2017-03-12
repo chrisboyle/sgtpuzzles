@@ -2390,24 +2390,31 @@ static game_state *execute_move(const game_state *from, const char *move)
     /*
      * Check whether the game has been completed.
      * 
-     * For this purpose it doesn't matter where the source square
-     * is, because we can start from anywhere and correctly
-     * determine whether the game is completed.
+     * For this purpose it doesn't matter where the source square is,
+     * because we can start from anywhere (or, at least, any square
+     * that's non-empty!), and correctly determine whether the game is
+     * completed.
      */
     {
-	unsigned char *active = compute_active(ret, 0, 0);
-	int x1, y1;
+	unsigned char *active;
+	int pos;
 	int complete = TRUE;
 
-	for (x1 = 0; x1 < ret->width; x1++)
-	    for (y1 = 0; y1 < ret->height; y1++)
-		if ((tile(ret, x1, y1) & 0xF) && !index(ret, active, x1, y1)) {
-		    complete = FALSE;
-		    goto break_label;  /* break out of two loops at once */
-		}
-	break_label:
+	for (pos = 0; pos < ret->width * ret->height; pos++)
+            if (ret->tiles[pos] & 0xF)
+                break;
 
-	sfree(active);
+        if (pos < ret->width * ret->height) {
+            active = compute_active(ret, pos % ret->width, pos / ret->width);
+
+            for (pos = 0; pos < ret->width * ret->height; pos++)
+                if ((ret->tiles[pos] & 0xF) && !active[pos]) {
+		    complete = FALSE;
+                    break;
+                }
+
+            sfree(active);
+        }
 
 	if (complete)
 	    ret->completed = TRUE;
