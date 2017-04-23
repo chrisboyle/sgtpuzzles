@@ -258,6 +258,7 @@ static void check_caches(const solver_state* sstate);
     A(Great-Dodecagonal,GRID_GREATDODECAGONAL,2,2) \
     A(Penrose (kite/dart),GRID_PENROSE_P2,3,3) \
     A(Penrose (rhombs),GRID_PENROSE_P3,3,3)
+    A(Great-Great-Dodecagonal,GRID_GREATGREATDODECAGONAL,2,2) \
 
 #define GRID_NAME(title,type,amin,omin) #title,
 #define GRID_CONFIG(title,type,amin,omin) ":" #title
@@ -505,6 +506,7 @@ static const game_params presets[] = {
     {  3,  3, DIFF_HARD, 8 },
     {  3,  3, DIFF_HARD, 9 },
     {  3,  3, DIFF_HARD, 10 },
+    {  3,  2, DIFF_HARD, 13 },
     {  6,  6, DIFF_HARD, 11 },
     {  6,  6, DIFF_HARD, 12 },
 #else
@@ -524,6 +526,7 @@ static const game_params presets[] = {
     {  5,  5, DIFF_HARD, 8 },
     {  5,  4, DIFF_HARD, 9 },
     {  5,  4, DIFF_HARD, 10 },
+    {  5,  3, DIFF_HARD, 13 },
     {  10, 10, DIFF_HARD, 11 },
     {  10, 10, DIFF_HARD, 12 }
 #endif
