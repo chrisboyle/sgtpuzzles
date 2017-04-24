@@ -513,22 +513,15 @@ static game_params *dup_params(const game_params *params)
     return ret;
 }
 
-static const game_params presets[] = {
+static const game_params loopy_presets_top[] = {
 #ifdef SMALL_SCREEN
     {  7,  7, DIFF_EASY,   LOOPY_GRID_SQUARE },
     {  7,  7, DIFF_NORMAL, LOOPY_GRID_SQUARE },
     {  7,  7, DIFF_HARD,   LOOPY_GRID_SQUARE },
-    {  7,  7, DIFF_HARD,   LOOPY_GRID_HONEYCOMB },
     {  7,  7, DIFF_HARD,   LOOPY_GRID_TRIANGULAR },
     {  5,  5, DIFF_HARD,   LOOPY_GRID_SNUBSQUARE },
     {  7,  7, DIFF_HARD,   LOOPY_GRID_CAIRO },
-    {  5,  4, DIFF_HARD,   LOOPY_GRID_GREATHEXAGONAL },
-    {  5,  5, DIFF_HARD,   LOOPY_GRID_OCTAGONAL },
     {  5,  5, DIFF_HARD,   LOOPY_GRID_KITE },
-    {  3,  3, DIFF_HARD,   LOOPY_GRID_FLORET },
-    {  3,  3, DIFF_HARD,   LOOPY_GRID_DODECAGONAL },
-    {  3,  3, DIFF_HARD,   LOOPY_GRID_GREATDODECAGONAL },
-    {  3,  2, DIFF_HARD,   LOOPY_GRID_GREATGREATDODECAGONAL },
     {  6,  6, DIFF_HARD,   LOOPY_GRID_PENROSE_P2 },
     {  6,  6, DIFF_HARD,   LOOPY_GRID_PENROSE_P3 },
 #else
@@ -538,38 +531,64 @@ static const game_params presets[] = {
     { 10, 10, DIFF_NORMAL, LOOPY_GRID_SQUARE },
     {  7,  7, DIFF_HARD,   LOOPY_GRID_SQUARE },
     { 10, 10, DIFF_HARD,   LOOPY_GRID_SQUARE },
-    { 10, 10, DIFF_HARD,   LOOPY_GRID_HONEYCOMB },
     { 12, 10, DIFF_HARD,   LOOPY_GRID_TRIANGULAR },
     {  7,  7, DIFF_HARD,   LOOPY_GRID_SNUBSQUARE },
     {  9,  9, DIFF_HARD,   LOOPY_GRID_CAIRO },
-    {  5,  4, DIFF_HARD,   LOOPY_GRID_GREATHEXAGONAL },
-    {  7,  7, DIFF_HARD,   LOOPY_GRID_OCTAGONAL },
     {  5,  5, DIFF_HARD,   LOOPY_GRID_KITE },
-    {  5,  5, DIFF_HARD,   LOOPY_GRID_FLORET },
-    {  5,  4, DIFF_HARD,   LOOPY_GRID_DODECAGONAL },
-    {  5,  4, DIFF_HARD,   LOOPY_GRID_GREATDODECAGONAL },
-    {  5,  3, DIFF_HARD,   LOOPY_GRID_GREATGREATDODECAGONAL },
     { 10, 10, DIFF_HARD,   LOOPY_GRID_PENROSE_P2 },
     { 10, 10, DIFF_HARD,   LOOPY_GRID_PENROSE_P3 },
 #endif
 };
 
-static int game_fetch_preset(int i, char **name, game_params **params)
+static const game_params loopy_presets_more[] = {
+#ifdef SMALL_SCREEN
+    {  7,  7, DIFF_HARD,   LOOPY_GRID_HONEYCOMB },
+    {  5,  4, DIFF_HARD,   LOOPY_GRID_GREATHEXAGONAL },
+    {  5,  5, DIFF_HARD,   LOOPY_GRID_OCTAGONAL },
+    {  3,  3, DIFF_HARD,   LOOPY_GRID_FLORET },
+    {  3,  3, DIFF_HARD,   LOOPY_GRID_DODECAGONAL },
+    {  3,  3, DIFF_HARD,   LOOPY_GRID_GREATDODECAGONAL },
+    {  3,  2, DIFF_HARD,   LOOPY_GRID_GREATGREATDODECAGONAL },
+#else
+    { 10, 10, DIFF_HARD,   LOOPY_GRID_HONEYCOMB },
+    {  5,  4, DIFF_HARD,   LOOPY_GRID_GREATHEXAGONAL },
+    {  7,  7, DIFF_HARD,   LOOPY_GRID_OCTAGONAL },
+    {  5,  5, DIFF_HARD,   LOOPY_GRID_FLORET },
+    {  5,  4, DIFF_HARD,   LOOPY_GRID_DODECAGONAL },
+    {  5,  4, DIFF_HARD,   LOOPY_GRID_GREATDODECAGONAL },
+    {  5,  3, DIFF_HARD,   LOOPY_GRID_GREATGREATDODECAGONAL },
+#endif
+};
+
+static void preset_menu_add_preset_with_title(struct preset_menu *menu,
+                                              const game_params *params)
 {
-    game_params *tmppar;
     char buf[80];
+    game_params *dup_params;
 
-    if (i < 0 || i >= lenof(presets))
-        return FALSE;
+    sprintf(buf, "%dx%d %s - %s", params->h, params->w,
+            gridnames[params->type], diffnames[params->diff]);
 
-    tmppar = snew(game_params);
-    *tmppar = presets[i];
-    *params = tmppar;
-    sprintf(buf, "%dx%d %s - %s", tmppar->h, tmppar->w,
-            gridnames[tmppar->type], diffnames[tmppar->diff]);
-    *name = dupstr(buf);
+    dup_params = snew(game_params);
+    *dup_params = *params;
 
-    return TRUE;
+    preset_menu_add_preset(menu, dupstr(buf), dup_params);
+}
+
+static struct preset_menu *game_preset_menu(void)
+{
+    struct preset_menu *top, *more;
+    int i;
+
+    top = preset_menu_new();
+    for (i = 0; i < lenof(loopy_presets_top); i++)
+        preset_menu_add_preset_with_title(top, &loopy_presets_top[i]);
+
+    more = preset_menu_add_submenu(top, dupstr("More..."));
+    for (i = 0; i < lenof(loopy_presets_more); i++)
+        preset_menu_add_preset_with_title(more, &loopy_presets_more[i]);
+
+    return top;
 }
 
 static void free_params(game_params *params)
@@ -3548,7 +3567,7 @@ static void game_print(drawing *dr, const game_state *state, int tilesize)
 const struct game thegame = {
     "Loopy", "games.loopy", "loopy",
     default_params,
-    game_fetch_preset, NULL,
+    NULL, game_preset_menu,
     decode_params,
     encode_params,
     free_params,
