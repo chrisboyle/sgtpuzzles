@@ -154,6 +154,54 @@ struct config_item {
 };
 
 /*
+ * Structure used to communicate the presets menu from midend to
+ * frontend. In principle, it's also used to pass the same information
+ * from game to midend, though games that don't specify a menu
+ * hierarchy (i.e. most of them) will use the simpler fetch_preset()
+ * function to return an unstructured list.
+ *
+ * A tree of these structures always belongs to the midend, and only
+ * the midend should ever need to free it. The front end should treat
+ * them as read-only.
+ */
+struct preset_menu_entry {
+    char *title;
+    /* Exactly one of the next two fields is NULL, depending on
+     * whether this entry is a submenu title or an actual preset */
+    game_params *params;
+    struct preset_menu *submenu;
+    /* Every preset menu entry has a number allocated by the mid-end,
+     * so that midend_which_preset() can return a value that
+     * identifies an entry anywhere in the menu hierarchy. The values
+     * will be allocated reasonably densely from 1 upwards (so it's
+     * reasonable for the front end to use them as array indices if it
+     * needs to store GUI state per menu entry), but no other
+     * guarantee is given about their ordering.
+     *
+     * Entries containing submenus have ids too - not only the actual
+     * presets are numbered. */
+    int id;
+};
+struct preset_menu {
+    int n_entries;             /* number of entries actually in use */
+    int entries_size;          /* space currently allocated in this array */
+    struct preset_menu_entry *entries;
+};
+/* For games which do want to directly return a tree of these, here
+ * are convenience routines (in midend.c) for constructing one. These
+ * assume that 'title' and 'encoded_params' are already dynamically
+ * allocated by the caller; the resulting preset_menu tree takes
+ * ownership of them. */
+struct preset_menu *preset_menu_new(void);
+struct preset_menu *preset_menu_add_submenu(struct preset_menu *parent,
+                                            char *title);
+void preset_menu_add_preset(struct preset_menu *menu,
+                            char *title, game_params *params);
+/* Helper routine front ends can use for one of the ways they might
+ * want to organise their preset menu usage */
+game_params *preset_menu_lookup_by_id(struct preset_menu *menu, int id);
+
+/*
  * Platform routines
  */
 
@@ -242,9 +290,7 @@ void midend_redraw(midend *me);
 float *midend_colours(midend *me, int *ncolours);
 void midend_freeze_timer(midend *me, float tprop);
 void midend_timer(midend *me, float tplus);
-int midend_num_presets(midend *me);
-void midend_fetch_preset(midend *me, int n,
-                         char **name, game_params **params);
+struct preset_menu *midend_get_presets(midend *me, int *id_limit);
 int midend_which_preset(midend *me);
 int midend_wants_statusbar(midend *me);
 enum { CFG_SETTINGS, CFG_SEED, CFG_DESC, CFG_FRONTEND_SPECIFIC };
@@ -514,6 +560,7 @@ struct game {
     const char *winhelp_topic, *htmlhelp_topic;
     game_params *(*default_params)(void);
     int (*fetch_preset)(int i, char **name, game_params **params);
+    struct preset_menu *(*preset_menu)(void);
     void (*decode_params)(game_params *, char const *string);
     char *(*encode_params)(const game_params *, int full);
     void (*free_params)(game_params *params);

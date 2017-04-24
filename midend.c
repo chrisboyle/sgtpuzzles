@@ -30,9 +30,9 @@ struct midend {
     random_state *random;
     const game *ourgame;
 
-    game_params **presets;
-    char **preset_names, **preset_encodings;
-    int npresets, presetsize;
+    struct preset_menu *preset_menu;
+    char **encoded_presets; /* for midend_which_preset to check against */
+    int n_encoded_presets;
 
     /*
      * `desc' and `privdesc' deserve a comment.
@@ -158,10 +158,7 @@ midend *midend_new(frontend *fe, const game *ourgame,
     me->genmode = GOT_NOTHING;
     me->drawstate = NULL;
     me->oldstate = NULL;
-    me->presets = NULL;
-    me->preset_names = NULL;
-    me->preset_encodings = NULL;
-    me->npresets = me->presetsize = 0;
+    me->preset_menu = NULL;
     me->anim_time = me->anim_pos = 0.0F;
     me->flash_time = me->flash_pos = 0.0F;
     me->dir = 0;
@@ -209,10 +206,23 @@ static void midend_free_game(midend *me)
         me->ourgame->free_drawstate(me->drawing, me->drawstate);
 }
 
+static void midend_free_preset_menu(midend *me, struct preset_menu *menu)
+{
+    if (menu) {
+        int i;
+        for (i = 0; i < menu->n_entries; i++) {
+            sfree(menu->entries[i].title);
+            if (menu->entries[i].params)
+                me->ourgame->free_params(menu->entries[i].params);
+            midend_free_preset_menu(me, menu->entries[i].submenu);
+        }
+        sfree(menu->entries);
+        sfree(menu);
+    }
+}
+
 void midend_free(midend *me)
 {
-    int i;
-
     midend_free_game(me);
 
     if (me->drawing)
@@ -224,16 +234,7 @@ void midend_free(midend *me)
     sfree(me->seedstr);
     sfree(me->aux_info);
     me->ourgame->free_params(me->params);
-    if (me->npresets) {
-	for (i = 0; i < me->npresets; i++) {
-	    sfree(me->presets[i]);
-	    sfree(me->preset_names[i]);
-	    sfree(me->preset_encodings[i]);
-	}
-	sfree(me->presets);
-	sfree(me->preset_names);
-	sfree(me->preset_encodings);
-    }
+    midend_free_preset_menu(me, me->preset_menu);
     if (me->ui)
         me->ourgame->free_ui(me->ui);
     if (me->curparams)
@@ -927,40 +928,177 @@ float *midend_colours(midend *me, int *ncolours)
     return ret;
 }
 
-int midend_num_presets(midend *me)
+struct preset_menu *preset_menu_new(void)
 {
-    if (!me->npresets) {
+    struct preset_menu *menu = snew(struct preset_menu);
+    menu->n_entries = 0;
+    menu->entries_size = 0;
+    menu->entries = NULL;
+    return menu;
+}
+
+static struct preset_menu_entry *preset_menu_add(struct preset_menu *menu,
+                                                 char *title)
+{
+    struct preset_menu_entry *toret;
+    if (menu->n_entries >= menu->entries_size) {
+        menu->entries_size = menu->n_entries * 5 / 4 + 10;
+        menu->entries = sresize(menu->entries, menu->entries_size,
+                                struct preset_menu_entry);
+    }
+    toret = &menu->entries[menu->n_entries++];
+    toret->title = title;
+    toret->params = NULL;
+    toret->submenu = NULL;
+    return toret;
+}
+
+struct preset_menu *preset_menu_add_submenu(struct preset_menu *parent,
+                                            char *title)
+{
+    struct preset_menu_entry *entry = preset_menu_add(parent, title);
+    entry->submenu = preset_menu_new();
+    return entry->submenu;
+}
+
+void preset_menu_add_preset(struct preset_menu *parent,
+                            char *title, game_params *params)
+{
+    struct preset_menu_entry *entry = preset_menu_add(parent, title);
+    entry->params = params;
+}
+
+game_params *preset_menu_lookup_by_id(struct preset_menu *menu, int id)
+{
+    int i;
+    game_params *retd;
+
+    for (i = 0; i < menu->n_entries; i++) {
+        if (id == menu->entries[i].id)
+            return menu->entries[i].params;
+        if (menu->entries[i].submenu &&
+            (retd = preset_menu_lookup_by_id(
+                 menu->entries[i].submenu, id)) != NULL)
+            return retd;
+    }
+
+    return NULL;
+}
+
+static char *preset_menu_add_from_user_env(
+    midend *me, struct preset_menu *menu, char *p, int top_level)
+{
+    while (*p) {
+        char *name, *val;
+        game_params *preset;
+
+        name = p;
+        while (*p && *p != ':') p++;
+        if (*p) *p++ = '\0';
+        val = p;
+        while (*p && *p != ':') p++;
+        if (*p) *p++ = '\0';
+
+        if (!strcmp(val, "#")) {
+            /*
+             * Special case: either open a new submenu with the given
+             * title, or terminate the current submenu.
+             */
+            if (*name) {
+                struct preset_menu *submenu =
+                    preset_menu_add_submenu(menu, dupstr(name));
+                p = preset_menu_add_from_user_env(me, submenu, p, FALSE);
+            } else {
+                /*
+                 * If we get a 'close submenu' indication at the top
+                 * level, there's not much we can do but quietly
+                 * ignore it.
+                 */
+                if (!top_level)
+                    return p;
+            }
+            continue;
+        }
+
+        preset = me->ourgame->default_params();
+        me->ourgame->decode_params(preset, val);
+
+        if (me->ourgame->validate_params(preset, TRUE)) {
+            /* Drop this one from the list. */
+            me->ourgame->free_params(preset);
+            continue;
+        }
+
+        preset_menu_add_preset(menu, dupstr(name), preset);
+    }
+
+    return p;
+}
+
+static void preset_menu_alloc_ids(midend *me, struct preset_menu *menu)
+{
+    int i;
+
+    for (i = 0; i < menu->n_entries; i++)
+        menu->entries[i].id = me->n_encoded_presets++;
+
+    for (i = 0; i < menu->n_entries; i++)
+        if (menu->entries[i].submenu)
+            preset_menu_alloc_ids(me, menu->entries[i].submenu);
+}
+
+static void preset_menu_encode_params(midend *me, struct preset_menu *menu)
+{
+    int i;
+
+    for (i = 0; i < menu->n_entries; i++) {
+        if (menu->entries[i].params) {
+            me->encoded_presets[menu->entries[i].id] =
+                me->ourgame->encode_params(menu->entries[i].params, TRUE);
+        } else {
+            preset_menu_encode_params(me, menu->entries[i].submenu);
+        }
+    }
+}
+
+struct preset_menu *midend_get_presets(midend *me, int *id_limit)
+{
+    int i;
+
+    if (me->preset_menu)
+        return me->preset_menu;
+
+#if 0
+    /* Expect the game to implement exactly one of the two preset APIs */
+    assert(me->ourgame->fetch_preset || me->ourgame->preset_menu);
+    assert(!(me->ourgame->fetch_preset && me->ourgame->preset_menu));
+#endif
+
+    if (me->ourgame->fetch_preset) {
         char *name;
         game_params *preset;
 
-        while (me->ourgame->fetch_preset(me->npresets, &name, &preset)) {
-            if (me->presetsize <= me->npresets) {
-                me->presetsize = me->npresets + 10;
-                me->presets = sresize(me->presets, me->presetsize,
-                                      game_params *);
-                me->preset_names = sresize(me->preset_names, me->presetsize,
-                                           char *);
-                me->preset_encodings = sresize(me->preset_encodings,
-					       me->presetsize, char *);
-            }
+        /* Simple one-level menu */
+        assert(!me->ourgame->preset_menu);
+        me->preset_menu = preset_menu_new();
+        for (i = 0; me->ourgame->fetch_preset(i, &name, &preset); i++)
+            preset_menu_add_preset(me->preset_menu, name, preset);
 
-            me->presets[me->npresets] = preset;
-            me->preset_names[me->npresets] = name;
-            me->preset_encodings[me->npresets] =
-		me->ourgame->encode_params(preset, TRUE);;
-            me->npresets++;
-        }
+    } else {
+        /* Hierarchical menu provided by the game backend */
+        me->preset_menu = me->ourgame->preset_menu();
     }
 
     {
         /*
-         * Allow environment-based extensions to the preset list by
-         * defining a variable along the lines of `SOLO_PRESETS=2x3
-         * Advanced:2x3da'. Colon-separated list of items,
-         * alternating between textual titles in the menu and
-         * encoded parameter strings.
+         * Allow user extensions to the preset list by defining an
+         * environment variable <gamename>_PRESETS whose value is a
+         * colon-separated list of items, alternating between textual
+         * titles in the menu and encoded parameter strings. For
+         * example, "SOLO_PRESETS=2x3 Advanced:2x3da" would define
+         * just one additional preset for Solo.
          */
-        char buf[80], *e, *p;
+        char buf[80], *e;
         int j, k;
 
         sprintf(buf, "%s_PRESETS", me->ourgame->name);
@@ -970,57 +1108,27 @@ int midend_num_presets(midend *me)
 	buf[k] = '\0';
 
         if ((e = getenv(buf)) != NULL) {
-            p = e = dupstr(e);
-
-            while (*p) {
-                char *name, *val;
-                game_params *preset;
-
-                name = p;
-                while (*p && *p != ':') p++;
-                if (*p) *p++ = '\0';
-                val = p;
-                while (*p && *p != ':') p++;
-                if (*p) *p++ = '\0';
-
-                preset = me->ourgame->default_params();
-                me->ourgame->decode_params(preset, val);
-
-		if (me->ourgame->validate_params(preset, TRUE)) {
-		    /* Drop this one from the list. */
-		    me->ourgame->free_params(preset);
-		    continue;
-		}
-
-                if (me->presetsize <= me->npresets) {
-                    me->presetsize = me->npresets + 10;
-                    me->presets = sresize(me->presets, me->presetsize,
-                                          game_params *);
-                    me->preset_names = sresize(me->preset_names,
-                                               me->presetsize, char *);
-                    me->preset_encodings = sresize(me->preset_encodings,
-						   me->presetsize, char *);
-                }
-
-                me->presets[me->npresets] = preset;
-                me->preset_names[me->npresets] = dupstr(name);
-                me->preset_encodings[me->npresets] =
-		    me->ourgame->encode_params(preset, TRUE);
-                me->npresets++;
-            }
+            e = dupstr(e);
+            preset_menu_add_from_user_env(me, me->preset_menu, e, TRUE);
             sfree(e);
         }
     }
 
-    return me->npresets;
-}
+    /*
+     * Finalise the menu: allocate an integer id to each entry, and
+     * store string encodings of the presets' parameters in
+     * me->encoded_presets.
+     */
+    me->n_encoded_presets = 0;
+    preset_menu_alloc_ids(me, me->preset_menu);
+    me->encoded_presets = snewn(me->n_encoded_presets, char *);
+    for (i = 0; i < me->n_encoded_presets; i++)
+        me->encoded_presets[i] = NULL;
+    preset_menu_encode_params(me, me->preset_menu);
 
-void midend_fetch_preset(midend *me, int n,
-                         char **name, game_params **params)
-{
-    assert(n >= 0 && n < me->npresets);
-    *name = me->preset_names[n];
-    *params = me->presets[n];
+    if (id_limit)
+        *id_limit = me->n_encoded_presets;
+    return me->preset_menu;
 }
 
 int midend_which_preset(midend *me)
@@ -1029,8 +1137,9 @@ int midend_which_preset(midend *me)
     int i, ret;
 
     ret = -1;
-    for (i = 0; i < me->npresets; i++)
-	if (!strcmp(encoding, me->preset_encodings[i])) {
+    for (i = 0; i < me->n_encoded_presets; i++)
+	if (me->encoded_presets[i] &&
+            !strcmp(encoding, me->encoded_presets[i])) {
 	    ret = i;
 	    break;
 	}

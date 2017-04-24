@@ -59,28 +59,17 @@ mergeInto(LibraryManager.library, {
     },
 
     /*
-     * void js_add_preset(const char *name);
+     * void js_add_preset(int menuid, const char *name, int value);
      *
-     * Add a preset to the drop-down types menu. The provided text is
-     * the name of the preset. (The corresponding game_params stays on
-     * the C side and never comes out this far; we just pass a numeric
-     * index back to the C code when a selection is made.)
-     *
-     * The special 'Custom' preset is requested by passing NULL to
-     * this function.
+     * Add a preset to the drop-down types menu, or to a submenu of
+     * it. 'menuid' specifies an index into our array of submenus
+     * where the item might be placed; 'value' specifies the number
+     * that js_get_selected_preset() will return when this item is
+     * clicked.
      */
-    js_add_preset: function(ptr) {
-        var name = (ptr == 0 ? "Custom" : Pointer_stringify(ptr));
-        var value = gametypeitems.length;
-
+    js_add_preset: function(menuid, ptr, value) {
+        var name = Pointer_stringify(ptr);
         var item = document.createElement("li");
-        if (ptr == 0) {
-            // The option we've just created is the one for inventing
-            // a new custom setup.
-            gametypecustom = item;
-            value = -1;
-        }
-
         item.setAttribute("data-index", value);
         var tick = document.createElement("span");
         tick.appendChild(document.createTextNode("\u2713"));
@@ -88,7 +77,7 @@ mergeInto(LibraryManager.library, {
         tick.style.paddingRight = "0.5em";
         item.appendChild(tick);
         item.appendChild(document.createTextNode(name));
-        gametypelist.appendChild(item);
+        gametypesubmenus[menuid].appendChild(item);
         gametypeitems.push(item);
 
         item.onclick = function(event) {
@@ -97,6 +86,34 @@ mergeInto(LibraryManager.library, {
                 command(2);
             }
         }
+    },
+
+    /*
+     * int js_add_preset_submenu(int menuid, const char *name);
+     *
+     * Add a submenu in the presets menu hierarchy. Returns its index,
+     * for passing as the 'menuid' argument in further calls to
+     * js_add_preset or this function.
+     */
+    js_add_preset_submenu: function(menuid, ptr, value) {
+        var name = Pointer_stringify(ptr);
+        var item = document.createElement("li");
+        // We still create a transparent tick element, even though it
+        // won't ever be selected, to make submenu titles line up
+        // nicely with their neighbours.
+        var tick = document.createElement("span");
+        tick.appendChild(document.createTextNode("\u2713"));
+        tick.style.color = "transparent";
+        tick.style.paddingRight = "0.5em";
+        item.appendChild(tick);
+        item.appendChild(document.createTextNode(name));
+        var submenu = document.createElement("ul");
+        submenu.className = "left";
+        item.appendChild(submenu);
+        gametypesubmenus[menuid].appendChild(item);
+        var toret = gametypesubmenus.length;
+        gametypesubmenus.push(submenu);
+        return toret;
     },
 
     /*

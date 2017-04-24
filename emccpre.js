@@ -82,8 +82,9 @@ var dlg_return_sval, dlg_return_ival;
 // The <ul> object implementing the game-type drop-down, and a list of
 // the <li> objects inside it. Used by js_add_preset(),
 // js_get_selected_preset() and js_select_preset().
-var gametypelist = null, gametypeitems = [], gametypecustom = null;
+var gametypelist = null, gametypeitems = [];
 var gametypeselectedindex = null;
+var gametypesubmenus = [];
 
 // The two anchors used to give permalinks to the current puzzle. Used
 // by js_update_permalinks().
@@ -230,6 +231,7 @@ function initPuzzle() {
     };
 
     gametypelist = document.getElementById("gametype");
+    gametypesubmenus.push(gametypelist);
 
     // In IE, the canvas doesn't automatically gain focus on a mouse
     // click, so make sure it does

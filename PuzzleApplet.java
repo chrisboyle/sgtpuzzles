@@ -28,6 +28,9 @@ public class PuzzleApplet extends JApplet implements Runtime.CallJavaCB {
     private JFrame mainWindow;
 
     private JMenu typeMenu;
+    private JMenuItem[] typeMenuItems;
+    private int customMenuItemIndex;
+
     private JMenuItem solveCommand;
     private Color[] colors;
     private JLabel statusBar;
@@ -219,17 +222,17 @@ public class PuzzleApplet extends JApplet implements Runtime.CallJavaCB {
     }
 
     private JMenuItem addMenuItemCallback(JMenu jm, String name, final String callback, final int arg) {
-        return addMenuItemCallback(jm, name, callback, new int[] {arg});
+        return addMenuItemCallback(jm, name, callback, new int[] {arg}, false);
     }
 
     private JMenuItem addMenuItemCallback(JMenu jm, String name, final String callback) {
-        return addMenuItemCallback(jm, name, callback, new int[0]);
+        return addMenuItemCallback(jm, name, callback, new int[0], false);
     }
 
-    private JMenuItem addMenuItemCallback(JMenu jm, String name, final String callback, final int[] args) {
+    private JMenuItem addMenuItemCallback(JMenu jm, String name, final String callback, final int[] args, boolean checkbox) {
         JMenuItem jmi;
-        if (jm == typeMenu)
-            typeMenu.add(jmi = new JCheckBoxMenuItem(name));
+        if (checkbox)
+            jm.add(jmi = new JCheckBoxMenuItem(name));
         else
         jm.add(jmi = new JMenuItem(name));
         jmi.addActionListener(new ActionListener() {
@@ -261,12 +264,29 @@ public class PuzzleApplet extends JApplet implements Runtime.CallJavaCB {
         } else {
             typeMenu.setVisible(true);
         }
-        addMenuItemCallback(typeMenu, "Custom...", "jcallback_config_event", CFG_SETTINGS);
+        typeMenuItems[customMenuItemIndex] =
+            addMenuItemCallback(typeMenu, "Custom...",
+                                "jcallback_config_event",
+                                new int[] {CFG_SETTINGS}, true);
     }
 
-    private void addTypeItem(String name, final int ptrGameParams) {
+    private void addTypeItem
+        (JMenu targetMenu, String name, int newId, final int ptrGameParams) {
+
         typeMenu.setVisible(true);
-        addMenuItemCallback(typeMenu, name, "jcallback_preset_event", ptrGameParams);
+        typeMenuItems[newId] =
+            addMenuItemCallback(targetMenu, name,
+                                "jcallback_preset_event",
+                                new int[] {ptrGameParams}, true);
+    }
+
+    private void addTypeSubmenu
+        (JMenu targetMenu, String name, int newId) {
+
+        JMenu newMenu = new JMenu(name);
+        newMenu.setVisible(true);
+        typeMenuItems[newId] = newMenu;
+        targetMenu.add(newMenu);
     }
 
     public int call(int cmd, int arg1, int arg2, int arg3) {
@@ -279,8 +299,20 @@ public class PuzzleApplet extends JApplet implements Runtime.CallJavaCB {
                 if ((arg2 & 4) != 0) solveCommand.setEnabled(true);
                 colors = new Color[arg3];
                 return 0;
-            case 1: // Type menu item
-                addTypeItem(runtime.cstring(arg1), arg2);
+            case 1: // configure Type menu
+                if (arg1 == 0) {
+                    // preliminary setup
+                    typeMenuItems = new JMenuItem[arg2 + 2];
+                    typeMenuItems[arg2] = typeMenu;
+                    customMenuItemIndex = arg2 + 1;
+                    return arg2;
+                } else if (xarg1 != 0) {
+                    addTypeItem((JMenu)typeMenuItems[arg2],
+                                runtime.cstring(arg1), arg3, xarg1);
+                } else {
+                    addTypeSubmenu((JMenu)typeMenuItems[arg2],
+                                   runtime.cstring(arg1), arg3);
+                }
                 return 0;
             case 2: // MessageBox
                 JOptionPane.showMessageDialog(this, runtime.cstring(arg2), runtime.cstring(arg1), arg3 == 0 ? JOptionPane.INFORMATION_MESSAGE : JOptionPane.ERROR_MESSAGE);
@@ -432,10 +464,11 @@ public class PuzzleApplet extends JApplet implements Runtime.CallJavaCB {
                 dlg = null;
                 return 0;
             case 13: // tick a menu item
-                if (arg1 < 0) arg1 = typeMenu.getItemCount() - 1;
-                for (int i = 0; i < typeMenu.getItemCount(); i++) {
-                    if (typeMenu.getMenuComponent(i) instanceof JCheckBoxMenuItem) {
-                        ((JCheckBoxMenuItem)typeMenu.getMenuComponent(i)).setSelected(arg1 == i);
+                if (arg1 < 0) arg1 = customMenuItemIndex;
+                for (int i = 0; i < typeMenuItems.length; i++) {
+                    if (typeMenuItems[i] instanceof JCheckBoxMenuItem) {
+                        ((JCheckBoxMenuItem)typeMenuItems[i]).setSelected
+                            (arg1 == i);
                     }
                 }
                 return 0;

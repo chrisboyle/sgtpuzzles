@@ -382,6 +382,23 @@ int jcallback_about_event()
     return 0;
 }
 
+void preset_menu_populate(struct preset_menu *menu, int menuid)
+{
+    int i;
+
+    for (i = 0; i < menu->n_entries; i++) {
+        struct preset_menu_entry *entry = &menu->entries[i];
+        if (entry->params) {
+            _call_java(5, (int)entry->params, 0, 0);
+            _call_java(1, (int)entry->title, menuid, entry->id);
+        } else {
+            _call_java(5, 0, 0, 0);
+            _call_java(1, (int)entry->title, menuid, entry->id);
+            preset_menu_populate(entry->submenu, entry->id);
+        }
+    }
+}
+
 int main(int argc, char **argv)
 {
     int i, n;
@@ -394,14 +411,12 @@ int main(int argc, char **argv)
 	midend_game_id(_fe->me, argv[1]);   /* ignore failure */
     midend_new_game(_fe->me);
 
-    if ((n = midend_num_presets(_fe->me)) > 0) {
-        int i;
-        for (i = 0; i < n; i++) {
-            char *name;
-            game_params *params;
-            midend_fetch_preset(_fe->me, i, &name, &params);
-	    _call_java(1, (int)name, (int)params, 0);
-        }
+    {
+        struct preset_menu *menu;
+        int nids, topmenu;
+        menu = midend_get_presets(_fe->me, &nids);
+        topmenu = _call_java(1, 0, nids, 0);
+        preset_menu_populate(menu, topmenu);
     }
 
     colours = midend_colours(_fe->me, &n);

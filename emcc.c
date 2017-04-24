@@ -61,7 +61,8 @@ extern void js_debug(const char *);
 extern void js_error_box(const char *message);
 extern void js_remove_type_dropdown(void);
 extern void js_remove_solve_button(void);
-extern void js_add_preset(const char *name);
+extern void js_add_preset(int menuid, const char *name, int value);
+extern int js_add_preset_submenu(int menuid, const char *name);
 extern int js_get_selected_preset(void);
 extern void js_select_preset(int n);
 extern void js_get_date_64(unsigned *p);
@@ -552,6 +553,21 @@ static game_params **presets;
 static int npresets;
 int have_presets_dropdown;
 
+void populate_js_preset_menu(int menuid, struct preset_menu *menu)
+{
+    int i;
+    for (i = 0; i < menu->n_entries; i++) {
+        struct preset_menu_entry *entry = &menu->entries[i];
+        if (entry->params) {
+            presets[entry->id] = entry->params;
+            js_add_preset(menuid, entry->title, entry->id);
+        } else {
+            int js_submenu = js_add_preset_submenu(menuid, entry->title);
+            populate_js_preset_menu(js_submenu, entry->submenu);
+        }
+    }
+}
+
 void select_appropriate_preset(void)
 {
     if (have_presets_dropdown) {
@@ -787,23 +803,16 @@ int main(int argc, char **argv)
      * Set up the game-type dropdown with presets and/or the Custom
      * option.
      */
-    npresets = midend_num_presets(me);
-    if (npresets == 0) {
-        /*
-         * This puzzle doesn't have selectable game types at all.
-         * Completely remove the drop-down list from the page.
-         */
-        js_remove_type_dropdown();
-        have_presets_dropdown = FALSE;
-    } else {
+    {
+        struct preset_menu *menu = midend_get_presets(me, &npresets);
         presets = snewn(npresets, game_params *);
-        for (i = 0; i < npresets; i++) {
-            char *name;
-            midend_fetch_preset(me, i, &name, &presets[i]);
-            js_add_preset(name);
-        }
+        for (i = 0; i < npresets; i++)
+            presets[i] = NULL;
+
+        populate_js_preset_menu(0, menu);
+
         if (thegame.can_configure)
-            js_add_preset(NULL);   /* the 'Custom' entry in the dropdown */
+            js_add_preset(0, "Custom", -1);
 
         have_presets_dropdown = TRUE;
 
