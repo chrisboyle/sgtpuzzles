@@ -2947,7 +2947,8 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     grid *g = state->game_grid;
     grid_edge *e;
     int i;
-    char *ret, buf[80];
+    char *movebuf;
+    int movelen, movesize;
     char button_char = ' ';
     enum line_state old_state;
 
@@ -3009,11 +3010,64 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 	return NULL;
     }
 
+    movelen = 0;
+    movesize = 80;
+    movebuf = snewn(movesize, char);
+    movelen = sprintf(movebuf, "%d%c", i, (int)button_char);
+    {
+        static enum { OFF, FIXED, ADAPTIVE, DUNNO } autofollow = DUNNO;
+        if (autofollow == DUNNO) {
+            const char *env = getenv("LOOPY_AUTOFOLLOW");
+            if (env && !strcmp(env, "off"))
+                autofollow = OFF;
+            else if (env && !strcmp(env, "fixed"))
+                autofollow = FIXED;
+            else if (env && !strcmp(env, "adaptive"))
+                autofollow = ADAPTIVE;
+            else
+                autofollow = OFF;
+        }
 
-    sprintf(buf, "%d%c", i, (int)button_char);
-    ret = dupstr(buf);
+        if (autofollow != OFF) {
+            int dotid;
+            for (dotid = 0; dotid < 2; dotid++) {
+                grid_dot *dot = (dotid == 0 ? e->dot1 : e->dot2);
+                grid_edge *e_this = e;
 
-    return ret;
+                while (1) {
+                    int j, n_found;
+                    grid_edge *e_next = NULL;
+
+                    for (j = n_found = 0; j < dot->order; j++) {
+                        grid_edge *e_candidate = dot->edges[j];
+                        int i_candidate = e_candidate - g->edges;
+                        if (e_candidate != e_this &&
+                            (autofollow == FIXED ||
+                             state->lines[i] == LINE_NO ||
+                             state->lines[i_candidate] != LINE_NO)) {
+                            e_next = e_candidate;
+                            n_found++;
+                        }
+                    }
+
+                    if (n_found != 1 ||
+                        state->lines[e_next - g->edges] != state->lines[i])
+                        break;
+
+                    dot = (e_next->dot1 != dot ? e_next->dot1 : e_next->dot2);
+                    if (movelen > movesize - 40) {
+                        movesize = movesize * 5 / 4 + 128;
+                        movebuf = sresize(movebuf, movesize, char);
+                    }
+                    e_this = e_next;
+                    movelen += sprintf(movebuf+movelen, "%d%c",
+                                       (int)(e_this - g->edges), button_char);
+                }
+            }
+        }
+    }
+
+    return sresize(movebuf, movelen+1, char);
 }
 
 static game_state *execute_move(const game_state *state, const char *move)
