@@ -79,22 +79,11 @@ var dlg_return_funcs = null;
 // pass back the final value in each dialog control.
 var dlg_return_sval, dlg_return_ival;
 
-// The <select> object implementing the game-type drop-down, and a
-// list of the <option> objects inside it. Used by js_add_preset(),
+// The <ul> object implementing the game-type drop-down, and a list of
+// the <li> objects inside it. Used by js_add_preset(),
 // js_get_selected_preset() and js_select_preset().
-//
-// gametypethiscustom is an option which indicates some custom game
-// params you've already set up, and which will be auto-selected on
-// return from the customisation dialog; gametypenewcustom is an
-// option which you select to indicate that you want to bring up the
-// customisation dialog and select a new configuration. Ideally I'd do
-// this with just one option serving both purposes, but instead we
-// have to do this a bit oddly because browsers don't send 'onchange'
-// events for a select element if you reselect the same one - so if
-// you've picked a custom setup and now want to change it, you need a
-// way to specify that.
-var gametypeselector = null, gametypeoptions = [];
-var gametypethiscustom = null, gametypehiddencustom = null;
+var gametypelist = null, gametypeitems = [], gametypecustom = null;
+var gametypeselectedindex = null;
 
 // The two anchors used to give permalinks to the current puzzle. Used
 // by js_update_permalinks().
@@ -129,6 +118,14 @@ function relative_mouse_coords(event, element) {
     var ecoords = element_coords(element);
     return {x: event.pageX - ecoords.x,
             y: event.pageY - ecoords.y};
+}
+
+// Enable and disable items in the CSS menus.
+function disable_menu_item(item, disabledFlag) {
+    if (disabledFlag)
+        item.className = "disabled";
+    else
+        item.className = "";
 }
 
 // Init function called from body.onload.
@@ -232,11 +229,7 @@ function initPuzzle() {
             command(9);
     };
 
-    gametypeselector = document.getElementById("gametype");
-    gametypeselector.onchange = function(event) {
-        if (dlg_dimmer === null)
-            command(2);
-    };
+    gametypelist = document.getElementById("gametype");
 
     // In IE, the canvas doesn't automatically gain focus on a mouse
     // click, so make sure it does

@@ -696,7 +696,7 @@ void command(int n)
                 midend_redraw(me);
                 update_undo_redo();
                 js_focus_canvas();
-                select_appropriate_preset(); /* sort out Custom/Customise */
+                select_appropriate_preset();
             }
         }
         break;
