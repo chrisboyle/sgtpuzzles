@@ -358,6 +358,19 @@ void draw_text_outline(drawing *dr, int x, int y, int fonttype,
         draw_text(dr, x, y+1, fonttype, fontsize, align, outline_colour, text);
     }
     draw_text(dr, x, y, fonttype, fontsize, align, text_colour, text);
+
+}
+
+/* kludge for non-compliant sprintf() */
+void copy_left_justified(char *buf, size_t sz, const char *str)
+{
+    memset(buf, ' ', sz - 1);
+    int len = strlen(str);
+    if(len <= sz - 1)
+        memcpy(buf, str, len);
+    else
+        fatal("overrun");
+    buf[sz - 1] = 0;
 }
 
 /* vim: set shiftwidth=4 tabstop=8: */

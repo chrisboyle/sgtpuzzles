@@ -1610,7 +1610,9 @@ void midend_serialise(midend *me,
 #define wr(h,s) do { \
     char hbuf[80]; \
     char *str = (s); \
-    sprintf(hbuf, "%-8.8s:%d:", (h), (int)strlen(str)); \
+    char lbuf[9];                               \
+    copy_left_justified(lbuf, sizeof(lbuf), h); \
+    sprintf(hbuf, "%s:%d:", lbuf, (int)strlen(str)); \
     write(wctx, hbuf, strlen(hbuf)); \
     write(wctx, str, strlen(str)); \
     write(wctx, "\n", 1); \
