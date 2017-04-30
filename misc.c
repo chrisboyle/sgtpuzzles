@@ -361,15 +361,14 @@ void draw_text_outline(drawing *dr, int x, int y, int fonttype,
 
 }
 
-/* kludge for non-compliant sprintf() */
+/* kludge for sprintf() in Rockbox not supporting "%-8.8s" */
 void copy_left_justified(char *buf, size_t sz, const char *str)
 {
+    size_t len = strlen(str);
+    assert(sz > 0);
     memset(buf, ' ', sz - 1);
-    int len = strlen(str);
-    if(len <= sz - 1)
-        memcpy(buf, str, len);
-    else
-        fatal("overrun");
+    assert(len <= sz - 1);
+    memcpy(buf, str, len);
     buf[sz - 1] = 0;
 }
 
