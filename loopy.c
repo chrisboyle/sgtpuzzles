@@ -3054,6 +3054,24 @@ static char *interpret_move(const game_state *state, game_ui *ui,
                         state->lines[e_next - g->edges] != state->lines[i])
                         break;
 
+                    if (e_next == e) {
+                        /*
+                         * Special case: we might have come all the
+                         * way round a loop and found our way back to
+                         * the same edge we started from. In that
+                         * situation, we must terminate not only this
+                         * while loop, but the 'for' outside it that
+                         * was tracing in both directions from the
+                         * starting edge, because if we let it trace
+                         * in the second direction then we'll only
+                         * find ourself traversing the same loop in
+                         * the other order and generate an encoded
+                         * move string that mentions the same set of
+                         * edges twice.
+                         */
+                        goto autofollow_done;
+                    }
+
                     dot = (e_next->dot1 != dot ? e_next->dot1 : e_next->dot2);
                     if (movelen > movesize - 40) {
                         movesize = movesize * 5 / 4 + 128;
@@ -3064,6 +3082,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
                                        (int)(e_this - g->edges), button_char);
                 }
             }
+          autofollow_done:;
         }
     }
 
