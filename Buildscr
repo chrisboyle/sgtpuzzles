@@ -67,11 +67,11 @@ delegate windows
   # provide a 'more info' URL, and an optional -n option to provide a
   # program name, and that it can take multiple .exe filename
   # arguments and sign them all in place.
-  ifneq "$(winsigncode)" "" in puzzles do $(winsigncode) -i http://www.chiark.greenend.org.uk/~sgtatham/puzzles/ *.exe
+  ifneq "$(winsigncode)" "" in puzzles do $(winsigncode) -i https://www.chiark.greenend.org.uk/~sgtatham/puzzles/ *.exe
   # Build installers.
   in puzzles with wix do/win candle puzzles.wxs && light -ext WixUIExtension -sval puzzles.wixobj
   in puzzles with innosetup do/win iscc puzzles.iss
-  ifneq "$(winsigncode)" "" in puzzles do $(winsigncode) -i http://www.chiark.greenend.org.uk/~sgtatham/puzzles/ -n "Simon Tatham's Portable Puzzle Collection Installer" puzzles.msi Output/installer.exe
+  ifneq "$(winsigncode)" "" in puzzles do $(winsigncode) -i https://www.chiark.greenend.org.uk/~sgtatham/puzzles/ -n "Simon Tatham's Portable Puzzle Collection Installer" puzzles.msi Output/installer.exe
   return puzzles/puzzles.chm
   return puzzles/*.exe
   return puzzles/Output/installer.exe
