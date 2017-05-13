@@ -51,14 +51,10 @@ enddelegate
 
 # Build the Windows binaries and installer, and the CHM file.
 in puzzles do make -f Makefile.doc clean
-in puzzles do make -f Makefile.doc chm
-in puzzles do make -f Makefile.doc # build help file for installer
+in puzzles do make -f Makefile.doc # build help files for installer
 in puzzles do mason.pl --args '{"version":"$(Version)","descfile":"gamedesc.txt"}' winwix.mc > puzzles.wxs
 in puzzles do perl winiss.pl $(Version) gamedesc.txt > puzzles.iss
 delegate windows
-  # Ignore the poorly controlled return value from HHC, and instead
-  # just test that the output file was generated.
-  in puzzles with htmlhelp do/win hhc puzzles.hhp & type puzzles.chm >nul
   # FIXME: Cygwin alternative?
   in puzzles with visualstudio do/win nmake -f Makefile.vc clean
   in puzzles with visualstudio do/win nmake -f Makefile.vc VER=-DVER=$(Version)
@@ -72,7 +68,6 @@ delegate windows
   in puzzles with wix do/win candle puzzles.wxs && light -ext WixUIExtension -sval puzzles.wixobj
   in puzzles with innosetup do/win iscc puzzles.iss
   ifneq "$(winsigncode)" "" in puzzles do $(winsigncode) -i https://www.chiark.greenend.org.uk/~sgtatham/puzzles/ -n "Simon Tatham's Portable Puzzle Collection Installer" puzzles.msi Output/installer.exe
-  return puzzles/puzzles.chm
   return puzzles/*.exe
   return puzzles/Output/installer.exe
   return puzzles/puzzles.msi
@@ -114,9 +109,7 @@ in puzzles do chmod +x *.exe
 #  return puzzles/puzzles.armv4.cab
 #enddelegate
 
-# Build the help file and the HTML docs.
-in puzzles do make -f Makefile.doc clean # remove CHM-target HTML
-in puzzles do make -f Makefile.doc # and rebuild help file...
+# Build the HTML docs.
 in puzzles do mkdir doc
 in puzzles do mkdir devel
 in puzzles/doc do halibut --html -Chtml-contents-filename:index.html -Chtml-index-filename:indexpage.html -Chtml-template-filename:%k.html -Chtml-template-fragment:%k ../puzzles.but

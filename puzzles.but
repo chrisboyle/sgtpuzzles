@@ -13,6 +13,12 @@
 \cfg{html-contents-depth-1}{2}
 \cfg{html-leaf-contains-contents}{true}
 
+\cfg{chm-filename}{puzzles.chm}
+\cfg{chm-contents-filename}{index.html}
+\cfg{chm-template-filename}{%k.html}
+\cfg{chm-head-end}{<link rel="stylesheet" type="text/css" href="chm.css">}
+\cfg{chm-extra-file}{chm.css}
+
 \cfg{info-filename}{puzzles.info}
 
 \cfg{ps-filename}{puzzles.ps}
