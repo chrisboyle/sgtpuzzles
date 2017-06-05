@@ -1159,7 +1159,8 @@ static int game_can_format_as_text_now(const game_params *params)
 
 static char *game_text_format(const game_state *state)
 {
-    int cellsize, r, c, i, w_string, h_string, n_string;
+    int r, c, i, w_string, h_string, n_string;
+    char cellsize;
     char *ret, *buf, *gridline;
 
     int const w = state->params.w, h = state->params.h;
