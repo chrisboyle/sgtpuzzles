@@ -54,22 +54,30 @@ in puzzles do make -f Makefile.doc clean
 in puzzles do make -f Makefile.doc # build help files for installer
 in puzzles do mason.pl --args '{"version":"$(Version)","descfile":"gamedesc.txt"}' winwix.mc > puzzles.wxs
 in puzzles do perl winiss.pl $(Version) gamedesc.txt > puzzles.iss
-delegate windows
-  # FIXME: Cygwin alternative?
-  in puzzles with visualstudio do/win nmake -f Makefile.vc clean
-  in puzzles with visualstudio do/win nmake -f Makefile.vc VER=-DVER=$(Version)
+ifneq "$(VISUAL_STUDIO)" "yes" then
+  in puzzles with clangcl64 do Platform=x64 make -f Makefile.clangcl clean
+  in puzzles with clangcl64 do Platform=x64 make -f Makefile.clangcl VER=-DVER=$(Version)
   # Code-sign the binaries, if the local bob config provides a script
   # to do so. We assume here that the script accepts an -i option to
   # provide a 'more info' URL, and an optional -n option to provide a
   # program name, and that it can take multiple .exe filename
   # arguments and sign them all in place.
-  ifneq "$(winsigncode)" "" in puzzles do $(winsigncode) -i https://www.chiark.greenend.org.uk/~sgtatham/puzzles/ *.exe
+  ifneq "$(cross_winsigncode)" "" in puzzles do $(cross_winsigncode) -i https://www.chiark.greenend.org.uk/~sgtatham/puzzles/ *.exe
   # Build installers.
-  in puzzles with wix do/win candle puzzles.wxs && light -ext WixUIExtension -sval puzzles.wixobj
-  ifneq "$(winsigncode)" "" in puzzles do $(winsigncode) -i https://www.chiark.greenend.org.uk/~sgtatham/puzzles/ -n "Simon Tatham's Portable Puzzle Collection Installer" puzzles.msi Output/installer.exe
-  return puzzles/*.exe
-  return puzzles/puzzles.msi
-enddelegate
+  in puzzles with wixonlinux do candle -arch x64 puzzles.wxs && light -ext WixUIExtension -sval puzzles.wixobj
+  ifneq "$(cross_winsigncode)" "" in puzzles do $(cross_winsigncode) -i https://www.chiark.greenend.org.uk/~sgtatham/puzzles/ -n "Simon Tatham's Portable Puzzle Collection Installer" puzzles.msi
+else
+  delegate windows
+    in puzzles with visualstudio do/win nmake -f Makefile.vc clean
+    in puzzles with visualstudio do/win nmake -f Makefile.vc VER=-DVER=$(Version)
+    ifneq "$(winsigncode)" "" in puzzles do $(winsigncode) -i https://www.chiark.greenend.org.uk/~sgtatham/puzzles/ *.exe
+    # Build installers.
+    in puzzles with wix do/win candle puzzles.wxs && light -ext WixUIExtension -sval puzzles.wixobj
+    in puzzles with innosetup do/win iscc puzzles.iss
+    return puzzles/*.exe
+    return puzzles/puzzles.msi
+  enddelegate
+endif
 in puzzles do chmod +x *.exe
 
 # Build the Pocket PC binaries and CAB.

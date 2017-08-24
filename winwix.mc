@@ -61,7 +61,7 @@ has 'descfile' => (required => 1);
 % # (individual files or shortcuts or additions to PATH) that are
 % # installed.
     <Directory Id="TARGETDIR" Name="SourceDir">
-      <Directory Id="ProgramFilesFolder" Name="PFiles">
+      <Directory Id="ProgramFiles64Folder" Name="PFiles">
         <Directory Id="INSTALLDIR" Name="Simon Tatham's Portable Puzzle Collection">
 
 % # The following components all install things in the main
