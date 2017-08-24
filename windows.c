@@ -1545,7 +1545,7 @@ static frontend *frontend_new(HINSTANCE inst)
     fe->statusbar = NULL;
     fe->bitmap = NULL;
 
-    SetWindowLong(fe->hwnd, GWL_USERDATA, (LONG)fe);
+    SetWindowLongPtr(fe->hwnd, GWLP_USERDATA, (LONG_PTR)fe);
 
     return fe;
 }
@@ -1992,7 +1992,7 @@ static void make_dialog_full_screen(HWND hwnd)
 static int CALLBACK AboutDlgProc(HWND hwnd, UINT msg,
 				 WPARAM wParam, LPARAM lParam)
 {
-    frontend *fe = (frontend *)GetWindowLong(hwnd, GWL_USERDATA);
+    frontend *fe = (frontend *)GetWindowLongPtr(hwnd, GWLP_USERDATA);
 
     switch (msg) {
       case WM_INITDIALOG:
@@ -2249,7 +2249,7 @@ static void create_config_controls(frontend * fe)
 static int CALLBACK ConfigDlgProc(HWND hwnd, UINT msg,
 				  WPARAM wParam, LPARAM lParam)
 {
-    frontend *fe = (frontend *)GetWindowLong(hwnd, GWL_USERDATA);
+    frontend *fe = (frontend *)GetWindowLongPtr(hwnd, GWLP_USERDATA);
     config_item *i;
     struct cfg_aux *j;
 
@@ -2260,7 +2260,7 @@ static int CALLBACK ConfigDlgProc(HWND hwnd, UINT msg,
             char *title;
 
 	    fe = (frontend *) lParam;
-	    SetWindowLong(hwnd, GWL_USERDATA, lParam);
+	    SetWindowLongPtr(hwnd, GWLP_USERDATA, lParam);
 	    fe->cfgbox = hwnd;
 
             fe->cfg = frontend_get_config(fe, fe->cfg_which, &title);
@@ -2479,8 +2479,8 @@ static void about(frontend *fe)
 
     SendMessage(fe->cfgbox, WM_SETFONT, (WPARAM)fe->cfgfont, FALSE);
 
-    SetWindowLong(fe->cfgbox, GWL_USERDATA, (LONG)fe);
-    SetWindowLong(fe->cfgbox, DWL_DLGPROC, (LONG)AboutDlgProc);
+    SetWindowLongPtr(fe->cfgbox, GWLP_USERDATA, (LONG_PTR)fe);
+    SetWindowLongPtr(fe->cfgbox, DWLP_DLGPROC, (LONG_PTR)AboutDlgProc);
 
     id = 1000;
     y = height/2;
@@ -2660,8 +2660,8 @@ static int get_config(frontend *fe, int which)
 
     SendMessage(fe->cfgbox, WM_SETFONT, (WPARAM)fe->cfgfont, FALSE);
 
-    SetWindowLong(fe->cfgbox, GWL_USERDATA, (LONG)fe);
-    SetWindowLong(fe->cfgbox, DWL_DLGPROC, (LONG)ConfigDlgProc);
+    SetWindowLongPtr(fe->cfgbox, GWLP_USERDATA, (LONG_PTR)fe);
+    SetWindowLongPtr(fe->cfgbox, DWLP_DLGPROC, (LONG_PTR)ConfigDlgProc);
 
     /*
      * Count the controls so we can allocate cfgaux.
@@ -2975,7 +2975,7 @@ static int is_alt_pressed(void)
 static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
 				WPARAM wParam, LPARAM lParam)
 {
-    frontend *fe = (frontend *)GetWindowLong(hwnd, GWL_USERDATA);
+    frontend *fe = (frontend *)GetWindowLongPtr(hwnd, GWLP_USERDATA);
     int cmd;
 
     switch (message) {
