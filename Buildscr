@@ -66,10 +66,8 @@ delegate windows
   ifneq "$(winsigncode)" "" in puzzles do $(winsigncode) -i https://www.chiark.greenend.org.uk/~sgtatham/puzzles/ *.exe
   # Build installers.
   in puzzles with wix do/win candle puzzles.wxs && light -ext WixUIExtension -sval puzzles.wixobj
-  in puzzles with innosetup do/win iscc puzzles.iss
   ifneq "$(winsigncode)" "" in puzzles do $(winsigncode) -i https://www.chiark.greenend.org.uk/~sgtatham/puzzles/ -n "Simon Tatham's Portable Puzzle Collection Installer" puzzles.msi Output/installer.exe
   return puzzles/*.exe
-  return puzzles/Output/installer.exe
   return puzzles/puzzles.msi
 enddelegate
 in puzzles do chmod +x *.exe
@@ -158,7 +156,6 @@ in puzzles do echo "AddType application/octet-stream .hlp" >> .htaccess
 in puzzles do echo "AddType application/octet-stream .cnt" >> .htaccess
 in . do set -- puzzles*.tar.gz; echo RedirectMatch temp '(.*/)'puzzles.tar.gz '$$1'"$$1" >> puzzles/.htaccess
 in puzzles do echo RedirectMatch temp '(.*/)'puzzles-installer.msi '$$1'puzzles-$(Version)-installer.msi >> .htaccess
-in puzzles do echo RedirectMatch temp '(.*/)'puzzles-installer.exe '$$1'puzzles-$(Version)-installer.exe >> .htaccess
 
 # Phew, we're done. Deliver everything!
 deliver puzzles/icons/*-web.png $@
@@ -172,7 +169,6 @@ deliver puzzles/puzzles.hlp $@
 deliver puzzles/puzzles.cnt $@
 deliver puzzles/puzzles.zip $@
 deliver puzzles/puzzles.msi puzzles-$(Version)-installer.msi
-deliver puzzles/Output/installer.exe puzzles-$(Version)-installer.exe
 deliver puzzles/*.jar java/$@
 deliver puzzles/js/*.js js/$@
 deliver puzzles/html/*.html html/$@
