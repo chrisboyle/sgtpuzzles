@@ -319,7 +319,7 @@ sub mfval($) {
     # Returns true if the argument is a known makefile type. Otherwise,
     # prints a warning and returns false;
     if (grep { $type eq $_ }
-	("vc","vcproj","cygwin","borland","lcc","gtk","am","mpw","nestedvm","osx","wce","gnustep","emcc")) {
+	("vc","vcproj","cygwin","borland","lcc","gtk","am","mpw","nestedvm","osx","wce","gnustep","emcc","clangcl")) {
 	    return 1;
 	}
     warn "$.:unknown makefile type '$type'\n";
@@ -502,6 +502,151 @@ sub manpages {
 $orig_dir = cwd;
 
 # Now we're ready to output the actual Makefiles.
+
+if (defined $makefiles{'clangcl'}) {
+    $mftyp = 'clangcl';
+    $dirpfx = &dirpfx($makefiles{'clangcl'}, "/");
+
+    ##-- Makefile for cross-compiling using clang-cl, lld-link, and
+    ##   MinGW's windres for resource compilation.
+    #
+    # This makefile allows a complete Linux-based cross-compile, but
+    # using the real Visual Studio header files and libraries. In
+    # order to run it, you will need:
+    #
+    #  - MinGW windres on your PATH.
+    #     * On Ubuntu as of 16.04, you can apt-get install
+    #       binutils-mingw-w64-x86-64 and binutils-mingw-w64-i686
+    #       which will provide (respectively) 64- and 32-bit versions,
+    #       under the names to which RCCMD is defined below.
+    #  - clang-cl and lld-link on your PATH.
+    #     * I built these from the up-to-date LLVM project trunk git
+    #       repositories, as of 2017-02-05.
+    #  - case-mashed copies of the Visual Studio include directories.
+    #     * On a real VS installation, run vcvars32.bat and look at
+    #       the resulting value of %INCLUDE%. Take a full copy of each
+    #       of those directories, and inside the copy, for each
+    #       include file that has an uppercase letter in its name,
+    #       make a lowercased symlink to it. Additionally, one of the
+    #       directories will contain files called driverspecs.h and
+    #       specstrings.h, and those will need symlinks called
+    #       DriverSpecs.h and SpecStrings.h.
+    #     * Now, on Linux, define the environment variable INCLUDE to
+    #       be a list, separated by *semicolons* (in the Windows
+    #       style), of those directories, but before all of them you
+    #       must also include lib/clang/5.0.0/include from the clang
+    #       installation area (which contains in particular a
+    #       clang-compatible stdarg.h overriding the Visual Studio
+    #       one).
+    #  - similarly case-mashed copies of the library directories.
+    #     * Again, on a real VS installation, run vcvars32 or
+    #       vcvarsx86_amd64 (as appropriate), look at %LIB%, make a
+    #       copy of each directory, and provide symlinks within that
+    #       directory so that all the files can be opened as
+    #       lowercase.
+    #     * Then set LIB to be a semicolon-separated list of those
+    #       directories (but you'll need to change which set of
+    #       directories depending on whether you want to do a 32-bit
+    #       or 64-bit build).
+    #  - for a 64-bit build, set 'Platform=x64' in the environment as
+    #    well, or else on the make command line.
+    #     * This is a variable understood only by this makefile - none
+    #       of the tools we invoke will know it - but it's consistent
+    #       with the way the VS scripts like vcvarsx86_amd64.bat set
+    #       things up, and since the environment has to change
+    #       _anyway_ between 32- and 64-bit builds (different set of
+    #       paths in $LIB) it's reasonable to have the choice of
+    #       compilation target driven by another environment variable
+    #       set in parallel with that one.
+    #  - for older versions of the VS libraries you may also have to
+    #    set EXTRA_console and/or EXTRA_windows to the name of an
+    #    object file manually extracted from one of those libraries.
+    #     * This is because old VS seems to manage its startup code by
+    #       having libcmt.lib contain lots of *crt0.obj objects, one
+    #       for each possible user entry point (main, WinMain and the
+    #       wide-char versions of both), of which the linker arranges
+    #       to include the right one by special-case code. But lld
+    #       only seems to mimic half of that code - it does include
+    #       the right crt0 object, but it doesn't also deliberately
+    #       _avoid_ including the _wrong_ ones, and since all those
+    #       objects define a common set of global symbols for other
+    #       parts of the library to use, lld may well select an
+    #       arbitrary one of them the first time it sees a reference
+    #       to one of those global symbols, and then later also select
+    #       the _right_ one for the application's entry point, causing
+    #       a multiple-definitions crash.
+    #     * So the workaround is to explicitly include the right
+    #       *crt0.obj file on the linker command line before lld even
+    #       begins searching libraries. Hence, for a console
+    #       application, you might extract crt0.obj from the library
+    #       in question and set EXTRA_console=crt0.obj, and for a GUI
+    #       application, do the same with wincrt0.obj. Then this
+    #       makefile will include the right one of those objects
+    #       alongside the matching /subsystem linker option.
+
+    open OUT, ">$makefiles{'clangcl'}"; select OUT;
+    print
+    "# Makefile for cross-compiling $project_name using clang-cl, lld-link,\n".
+    "# and MinGW's windres, using GNU make on Linux.\n".
+    "#\n# This file was created by `mkfiles.pl' from the `Recipe' file.\n".
+    "# DO NOT EDIT THIS FILE DIRECTLY; edit Recipe or mkfiles.pl instead.\n";
+    print $help;
+    print
+    "\n".
+    "CCCMD = clang-cl\n".
+    "ifeq (\$(Platform),x64)\n".
+    "CCTARGET = x86_64-pc-windows-msvc18.0.0\n".
+    "RCCMD = x86_64-w64-mingw32-windres\n".
+    "else\n".
+    "CCTARGET = i386-pc-windows-msvc18.0.0\n".
+    "RCCMD = i686-w64-mingw32-windres\n".
+    "endif\n".
+    "CC = \$(CCCMD) --target=\$(CCTARGET)\n".
+    &splitline("RC = \$(RCCMD) --preprocessor=\$(CCCMD) ".
+               "--preprocessor-arg=/TC --preprocessor-arg=/E")."\n".
+    "LD = lld-link\n".
+    "\n".
+    "# C compilation flags\n".
+    &splitline("CFLAGS = /nologo /W3 /O1 " .
+               (join " ", map {"-I$dirpfx$_"} @srcdirs) .
+               " /D_WINDOWS /D_WIN32_WINDOWS=0x401 /DWINVER=0x401 ".
+               "/D_CRT_SECURE_NO_WARNINGS")."\n".
+    "LFLAGS = /incremental:no /dynamicbase /nxcompat\n".
+    &splitline("RCFLAGS = ".(join " ", map {"-I$dirpfx$_"} @srcdirs).
+               " -DWIN32 -D_WIN32 -DWINVER=0x0400 --define MINGW32_FIX=1")."\n".
+    "\n".
+    "\n";
+    print &splitline("all:" . join "", map { " \$(BUILDDIR)$_.exe" } &progrealnames("G:C"));
+    print "\n\n";
+    foreach $p (&prognames("G:C")) {
+	($prog, $type) = split ",", $p;
+	$objstr = &objects($p, "\$(BUILDDIR)X.obj", "\$(BUILDDIR)X.res", undef);
+	print &splitline("\$(BUILDDIR)$prog.exe: " . $objstr), "\n";
+
+	$objstr = &objects($p, "\$(BUILDDIR)X.obj", "\$(BUILDDIR)X.res", "X.lib");
+	$subsys = ($type eq "G") ? "windows" : "console";
+	print &splitline("\t\$(LD) \$(LFLAGS) \$(XLFLAGS) ".
+                         "/out:\$(BUILDDIR)$prog.exe ".
+                         "/lldmap:\$(BUILDDIR)$prog.map ".
+                         "/subsystem:$subsys\$(SUBSYSVER) ".
+                         "\$(EXTRA_$subsys) $objstr")."\n\n";
+    }
+    foreach $d (&deps("\$(BUILDDIR)X.obj", "\$(BUILDDIR)X.res", $dirpfx, "/", "vc")) {
+        print &splitline(sprintf("%s: %s", $d->{obj},
+                                 join " ", @{$d->{deps}})), "\n";
+        if ($d->{obj} =~ /\.res$/) {
+            print "\t\$(RC) \$(RCFLAGS) ".$d->{deps}->[0]." -o ".$d->{obj}."\n\n";
+	} else {
+	    $deflist = join "", map { " /D$_" } @{$d->{defs}};
+            print "\t\$(CC) /Fo\$(BUILDDIR)".$d->{obj}." \$(COMPAT) \$(CFLAGS) \$(XFLAGS)$deflist /c \$<\n\n";
+        }
+    }
+    print "\nclean:\n".
+        &splitline("\trm -f \$(BUILDDIR)*.obj \$(BUILDDIR)*.exe ".
+                   "\$(BUILDDIR)*.res \$(BUILDDIR)*.map ".
+                   "\$(BUILDDIR)*.exe.manifest")."\n";
+    select STDOUT; close OUT;
+}
 
 if (defined $makefiles{'cygwin'}) {
     $mftyp = 'cygwin';
