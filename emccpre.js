@@ -129,6 +129,72 @@ function disable_menu_item(item, disabledFlag) {
         item.className = "";
 }
 
+// Dialog-box functions called from both C and JS.
+function dialog_init(titletext) {
+    // Create an overlay on the page which darkens everything
+    // beneath it.
+    dlg_dimmer = document.createElement("div");
+    dlg_dimmer.style.width = "100%";
+    dlg_dimmer.style.height = "100%";
+    dlg_dimmer.style.background = '#000000';
+    dlg_dimmer.style.position = 'fixed';
+    dlg_dimmer.style.opacity = 0.3;
+    dlg_dimmer.style.top = dlg_dimmer.style.left = 0;
+    dlg_dimmer.style["z-index"] = 99;
+
+    // Now create a form which sits on top of that in turn.
+    dlg_form = document.createElement("form");
+    dlg_form.style.width = (window.innerWidth * 2 / 3) + "px";
+    dlg_form.style.opacity = 1;
+    dlg_form.style.background = '#ffffff';
+    dlg_form.style.color = '#000000';
+    dlg_form.style.position = 'absolute';
+    dlg_form.style.border = "2px solid black";
+    dlg_form.style.padding = "20px";
+    dlg_form.style.top = (window.innerHeight / 10) + "px";
+    dlg_form.style.left = (window.innerWidth / 6) + "px";
+    dlg_form.style["z-index"] = 100;
+
+    var title = document.createElement("p");
+    title.style.marginTop = "0px";
+    title.appendChild(document.createTextNode(titletext));
+    dlg_form.appendChild(title);
+
+    dlg_return_funcs = [];
+    dlg_next_id = 0;
+}
+
+function dialog_launch(ok_function, cancel_function) {
+    // Put in the OK and Cancel buttons at the bottom.
+    var button;
+
+    if (ok_function) {
+        button = document.createElement("input");
+        button.type = "button";
+        button.value = "OK";
+        button.onclick = ok_function;
+        dlg_form.appendChild(button);
+    }
+
+    if (cancel_function) {
+        button = document.createElement("input");
+        button.type = "button";
+        button.value = "Cancel";
+        button.onclick = cancel_function;
+        dlg_form.appendChild(button);
+    }
+
+    document.body.appendChild(dlg_dimmer);
+    document.body.appendChild(dlg_form);
+}
+
+function dialog_cleanup() {
+    document.body.removeChild(dlg_dimmer);
+    document.body.removeChild(dlg_form);
+    dlg_dimmer = dlg_form = null;
+    onscreen_canvas.focus();
+}
+
 // Init function called from body.onload.
 function initPuzzle() {
     // Construct the off-screen canvas used for double buffering.
