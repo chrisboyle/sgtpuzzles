@@ -103,6 +103,15 @@ EOF
     color: rgba(0,0,0,0.5);
 }
 
+#gamemenu ul li.separator {
+    color: transparent;
+    border: 0;
+}
+
+#gamemenu ul li.afterseparator {
+    border-left: 1px solid rgba(0,0,0,0.3);
+}
+
 #gamemenu ul li:first-of-type {
     /* Reinstate the left border for the leftmost top-level menu item */
     border-left: 1px solid rgba(0,0,0,0.3);
@@ -196,14 +205,17 @@ ${unfinishedpara}
 
 <hr>
 <div id="puzzle" style="display: none">
-<div id="gamemenu"><ul><li id="new">New game</li
-><li id="restart">Restart game</li
+<div id="gamemenu"><ul><li>Game...<ul
+><li id="new">New game</li
+><li id="specific">Enter game ID</li
+><li id="random">Enter random seed</li
+></ul></li
+><li>Type...<ul id="gametype"></ul></li
+><li class="separator"></li
+><li id="restart" class="afterseparator">Restart game</li
 ><li id="undo">Undo move</li
 ><li id="redo">Redo move</li
 ><li id="solve">Solve game</li
-><li id="specific">Enter game ID</li
-><li id="random">Enter random seed</li
-><li>Select game type<ul id="gametype" class="left"></ul></li
 ></ul></div>
 <div align=center>
   <div id="resizable" style="position:relative; left:0; top:0">

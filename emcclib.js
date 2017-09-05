@@ -108,7 +108,6 @@ mergeInto(LibraryManager.library, {
         item.appendChild(tick);
         item.appendChild(document.createTextNode(name));
         var submenu = document.createElement("ul");
-        submenu.className = "left";
         item.appendChild(submenu);
         gametypesubmenus[menuid].appendChild(item);
         var toret = gametypesubmenus.length;
