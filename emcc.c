@@ -766,9 +766,9 @@ struct savefile_write_ctx {
     size_t pos;
 };
 
-static void savefile_write(void *wctx, void *buf, int len)
+static void savefile_write(void *vctx, void *buf, int len)
 {
-    struct savefile_write_ctx *ctx = (struct savefile_write_ctx *)wctx;
+    struct savefile_write_ctx *ctx = (struct savefile_write_ctx *)vctx;
     if (ctx->buffer)
         memcpy(ctx->buffer + ctx->pos, buf, len);
     ctx->pos += len;
@@ -797,6 +797,40 @@ char *get_save_file(void)
 void free_save_file(char *buffer)
 {
     sfree(buffer);
+}
+
+struct savefile_read_ctx {
+    const char *buffer;
+    int len_remaining;
+};
+
+static int savefile_read(void *vctx, void *buf, int len)
+{
+    struct savefile_read_ctx *ctx = (struct savefile_read_ctx *)vctx;
+    if (ctx->len_remaining < len)
+        return FALSE;
+    memcpy(buf, ctx->buffer, len);
+    ctx->len_remaining -= len;
+    ctx->buffer += len;
+    return TRUE;
+}
+
+void load_game(const char *buffer, int len)
+{
+    struct savefile_read_ctx ctx;
+    const char *err;
+
+    ctx.buffer = buffer;
+    ctx.len_remaining = len;
+    err = midend_deserialise(me, savefile_read, &ctx);
+
+    if (err) {
+        js_error_box(err);
+    } else {
+        select_appropriate_preset();
+        resize();
+        midend_redraw(me);
+    }
 }
 
 /* ----------------------------------------------------------------------

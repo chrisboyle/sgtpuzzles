@@ -210,6 +210,7 @@ ${unfinishedpara}
 ><li id="specific">Enter game ID</li
 ><li id="random">Enter random seed</li
 ><li id="save">Download save file</li
+><li id="load">Upload save file</li
 ></ul></li
 ><li>Type...<ul id="gametype"></ul></li
 ><li class="separator"></li

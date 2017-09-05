@@ -299,6 +299,7 @@ function initPuzzle() {
     // 'number' is used for C pointers
     get_save_file = Module.cwrap('get_save_file', 'number', []);
     free_save_file = Module.cwrap('free_save_file', 'void', ['number']);
+    load_game = Module.cwrap('load_game', 'void', ['string', 'number']);
 
     document.getElementById("save").onclick = function(event) {
         if (dlg_dimmer === null) {
@@ -317,6 +318,31 @@ function initPuzzle() {
             dlg_form.appendChild(document.createTextNode("."));
             dlg_form.appendChild(document.createElement("br"));
             dialog_launch(function(event) {
+                dialog_cleanup();
+            });
+        }
+    };
+
+    document.getElementById("load").onclick = function(event) {
+        if (dlg_dimmer === null) {
+            dialog_init("Upload saved-game file");
+            var input = document.createElement("input");
+            input.type = "file";
+            input.multiple = false;
+            dlg_form.appendChild(input);
+            dlg_form.appendChild(document.createElement("br"));
+            dialog_launch(function(event) {
+                if (input.files.length == 1) {
+                    var file = input.files.item(0);
+                    var reader = new FileReader();
+                    reader.addEventListener("loadend", function() {
+                        var string = reader.result;
+                        load_game(string, string.length);
+                    });
+                    reader.readAsBinaryString(file);
+                }
+                dialog_cleanup();
+            }, function(event) {
                 dialog_cleanup();
             });
         }
