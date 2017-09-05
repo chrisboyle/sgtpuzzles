@@ -296,6 +296,32 @@ function initPuzzle() {
             command(9);
     };
 
+    // 'number' is used for C pointers
+    get_save_file = Module.cwrap('get_save_file', 'number', []);
+    free_save_file = Module.cwrap('free_save_file', 'void', ['number']);
+
+    document.getElementById("save").onclick = function(event) {
+        if (dlg_dimmer === null) {
+            var savefile_ptr = get_save_file();
+            var savefile_text = Pointer_stringify(savefile_ptr);
+            free_save_file(savefile_ptr);
+            dialog_init("Download saved-game file");
+            dlg_form.appendChild(document.createTextNode(
+                "Click to download the "));
+            var a = document.createElement("a");
+            a.download = "puzzle.sav";
+            a.href = "data:application/octet-stream," +
+                encodeURIComponent(savefile_text);
+            a.appendChild(document.createTextNode("saved-game file"));
+            dlg_form.appendChild(a);
+            dlg_form.appendChild(document.createTextNode("."));
+            dlg_form.appendChild(document.createElement("br"));
+            dialog_launch(function(event) {
+                dialog_cleanup();
+            });
+        }
+    };
+
     gametypelist = document.getElementById("gametype");
     gametypesubmenus.push(gametypelist);
 

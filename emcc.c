@@ -757,6 +757,49 @@ void command(int n)
 }
 
 /* ----------------------------------------------------------------------
+ * Called from JS to prepare a save-game file, and free one after it's
+ * been used.
+ */
+
+struct savefile_write_ctx {
+    char *buffer;
+    size_t pos;
+};
+
+static void savefile_write(void *wctx, void *buf, int len)
+{
+    struct savefile_write_ctx *ctx = (struct savefile_write_ctx *)wctx;
+    if (ctx->buffer)
+        memcpy(ctx->buffer + ctx->pos, buf, len);
+    ctx->pos += len;
+}
+
+char *get_save_file(void)
+{
+    struct savefile_write_ctx ctx;
+    size_t size;
+
+    /* First pass, to count up the size */
+    ctx.buffer = NULL;
+    ctx.pos = 0;
+    midend_serialise(me, savefile_write, &ctx);
+    size = ctx.pos;
+
+    /* Second pass, to actually write out the data */
+    ctx.buffer = snewn(size, char);
+    ctx.pos = 0;
+    midend_serialise(me, savefile_write, &ctx);
+    assert(ctx.pos == size);
+
+    return ctx.buffer;
+}
+
+void free_save_file(char *buffer)
+{
+    sfree(buffer);
+}
+
+/* ----------------------------------------------------------------------
  * Setup function called at page load time. It's called main() because
  * that's the most convenient thing in Emscripten, but it's not main()
  * in the usual sense of bounding the program's entire execution.

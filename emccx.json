@@ -18,6 +18,9 @@
     '_timer_callback',
     // Callback from button presses in the UI outside the canvas
     '_command',
+    // Game-saving functions
+    '_get_save_file',
+    '_free_save_file',
     // Callbacks to return values from dialog boxes
     '_dlg_return_sval',
     '_dlg_return_ival',

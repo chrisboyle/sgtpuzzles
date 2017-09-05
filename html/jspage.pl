@@ -209,6 +209,7 @@ ${unfinishedpara}
 ><li id="new">New game</li
 ><li id="specific">Enter game ID</li
 ><li id="random">Enter random seed</li
+><li id="save">Download save file</li
 ></ul></li
 ><li>Type...<ul id="gametype"></ul></li
 ><li class="separator"></li
