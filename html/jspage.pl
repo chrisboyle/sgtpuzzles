@@ -206,7 +206,6 @@ ${unfinishedpara}
 <hr>
 <div id="puzzle" style="display: none">
 <div id="gamemenu"><ul><li>Game...<ul
-><li id="new">New game</li
 ><li id="specific">Enter game ID</li
 ><li id="random">Enter random seed</li
 ><li id="save">Download save file</li
@@ -214,6 +213,7 @@ ${unfinishedpara}
 ></ul></li
 ><li>Type...<ul id="gametype"></ul></li
 ><li class="separator"></li
+><li id="new">New game</li
 ><li id="restart" class="afterseparator">Restart game</li
 ><li id="undo">Undo move</li
 ><li id="redo">Redo move</li
