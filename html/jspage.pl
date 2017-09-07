@@ -213,8 +213,8 @@ ${unfinishedpara}
 ></ul></li
 ><li>Type...<ul id="gametype"></ul></li
 ><li class="separator"></li
-><li id="new">New game</li
-><li id="restart" class="afterseparator">Restart game</li
+><li id="new" class="afterseparator">New game</li
+><li id="restart">Restart game</li
 ><li id="undo">Undo move</li
 ><li id="redo">Redo move</li
 ><li id="solve">Solve game</li
