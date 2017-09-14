@@ -2059,6 +2059,8 @@ char *midend_deserialise(midend *me,
         me->ourgame->new_drawstate(me->drawing,
 				   me->states[me->statepos-1].state);
     midend_size_new_drawstate(me);
+    if (me->game_id_change_notify_function)
+        me->game_id_change_notify_function(me->game_id_change_notify_ctx);
 
     ret = NULL;                        /* success! */
 
