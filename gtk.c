@@ -1206,6 +1206,8 @@ static gint key_event(GtkWidget *widget, GdkEventKey *event, gpointer data)
 	     event->keyval == GDK_KEY_Delete ||
 	     event->keyval == GDK_KEY_KP_Delete)
         keyval = '\177';
+    else if ((event->keyval == 'z' || event->keyval == 'Z') && shift && ctrl)
+        keyval = UI_REDO;
     else if (event->string[0] && !event->string[1])
         keyval = (unsigned char)event->string[0];
     else

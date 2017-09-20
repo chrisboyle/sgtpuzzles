@@ -687,6 +687,10 @@ struct frontend {
 	if (c >= '0' && c <= '9' && ([ev modifierFlags] & NSNumericPadKeyMask))
 	    c |= MOD_NUM_KEYPAD;
 
+        if (c == 26 &&
+            !((NSShiftKeyMask | NSControlKeyMask) & ~[ev modifierFlags]))
+            c = UI_REDO;
+
 	[self processKey:c];
     }
 }

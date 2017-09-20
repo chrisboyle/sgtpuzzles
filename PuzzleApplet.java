@@ -126,7 +126,12 @@ public class PuzzleApplet extends JApplet implements Runtime.CallJavaCB {
                     }
                 }
                 public void keyTyped(KeyEvent e) {
-                    runtimeCall("jcallback_key_event", new int[] {0, 0, e.getKeyChar()});
+                    int key = e.getKeyChar();
+                    if (key == 26 && e.isShiftDown() && e.isControlDown()) {
+                        runtimeCall("jcallback_redo_event", new int[0]);
+                        return;
+                    }
+                    runtimeCall("jcallback_key_event", new int[] {0, 0, key});
                 }
             });
             pp.addMouseListener(new MouseAdapter() {

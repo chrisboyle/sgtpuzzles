@@ -310,6 +310,8 @@ void key(int keycode, int charcode, const char *key, const char *chr,
         keyevent = MOD_NUM_KEYPAD | '7';
     } else if (!strnullcmp(key, "PageUp") || keycode==33) {
         keyevent = MOD_NUM_KEYPAD | '9';
+    } else if (shift && ctrl && (keycode & 0x1F) == 26) {
+        keyevent = UI_REDO;
     } else if (chr && chr[0] && !chr[1]) {
         keyevent = chr[0] & 0xFF;
     } else if (keycode >= 96 && keycode < 106) {
@@ -323,10 +325,10 @@ void key(int keycode, int charcode, const char *key, const char *chr,
     }
 
     if (keyevent >= 0) {
-        if (shift && keyevent >= 0x100)
+        if (shift && (keyevent >= 0x100 && !IS_UI_FAKE_KEY(keyevent)))
             keyevent |= MOD_SHFT;
 
-        if (ctrl) {
+        if (ctrl && !IS_UI_FAKE_KEY(keyevent)) {
             if (keyevent >= 0x100)
                 keyevent |= MOD_CTRL;
             else

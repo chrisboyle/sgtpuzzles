@@ -3405,8 +3405,18 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
 	}
 	break;
       case WM_CHAR:
-	if (!midend_process_key(fe->me, 0, 0, (unsigned char)wParam))
-	    PostQuitMessage(0);
+        {
+            int key = (unsigned char)wParam;
+            if (key == '\x1A') {
+                BYTE keystate[256];
+                if (GetKeyboardState(keystate) &&
+                    (keystate[VK_SHIFT] & 0x80) &&
+                    (keystate[VK_CONTROL] & 0x80))
+                    key = UI_REDO;
+            }
+            if (!midend_process_key(fe->me, 0, 0, key))
+                PostQuitMessage(0);
+        }
 	return 0;
       case WM_TIMER:
 	if (fe->timer) {
