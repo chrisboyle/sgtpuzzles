@@ -735,7 +735,7 @@ struct frontend {
 
 - (void)newGame:(id)sender
 {
-    [self processKey:'n'];
+    [self processKey:UI_NEWGAME];
 }
 - (void)restartGame:(id)sender
 {
@@ -809,11 +809,11 @@ struct frontend {
 }
 - (void)undoMove:(id)sender
 {
-    [self processKey:'u'];
+    [self processKey:UI_UNDO];
 }
 - (void)redoMove:(id)sender
 {
-    [self processKey:'r'&0x1F];
+    [self processKey:UI_REDO];
 }
 
 - (void)copy:(id)sender

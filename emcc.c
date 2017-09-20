@@ -725,7 +725,7 @@ void command(int n)
         update_undo_redo();
         break;
       case 5:                          /* New Game */
-        midend_process_key(me, 0, 0, 'n');
+        midend_process_key(me, 0, 0, UI_NEWGAME);
         update_undo_redo();
         js_focus_canvas();
         break;
@@ -735,12 +735,12 @@ void command(int n)
         js_focus_canvas();
         break;
       case 7:                          /* Undo */
-        midend_process_key(me, 0, 0, 'u');
+        midend_process_key(me, 0, 0, UI_UNDO);
         update_undo_redo();
         js_focus_canvas();
         break;
       case 8:                          /* Redo */
-        midend_process_key(me, 0, 0, 'r');
+        midend_process_key(me, 0, 0, UI_REDO);
         update_undo_redo();
         js_focus_canvas();
         break;

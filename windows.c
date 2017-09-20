@@ -2993,18 +2993,18 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
 	cmd = wParam & ~0xF;	       /* low 4 bits reserved to Windows */
 	switch (cmd) {
 	  case IDM_NEW:
-	    if (!midend_process_key(fe->me, 0, 0, 'n'))
+	    if (!midend_process_key(fe->me, 0, 0, UI_NEWGAME))
 		PostQuitMessage(0);
 	    break;
 	  case IDM_RESTART:
 	    midend_restart_game(fe->me);
 	    break;
 	  case IDM_UNDO:
-	    if (!midend_process_key(fe->me, 0, 0, 'u'))
+	    if (!midend_process_key(fe->me, 0, 0, UI_UNDO))
 		PostQuitMessage(0);
 	    break;
 	  case IDM_REDO:
-	    if (!midend_process_key(fe->me, 0, 0, '\x12'))
+	    if (!midend_process_key(fe->me, 0, 0, UI_REDO))
 		PostQuitMessage(0);
 	    break;
 	  case IDM_COPY:
@@ -3026,7 +3026,7 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
 	    }
 	    break;
 	  case IDM_QUIT:
-	    if (!midend_process_key(fe->me, 0, 0, 'q'))
+	    if (!midend_process_key(fe->me, 0, 0, UI_QUIT))
 		PostQuitMessage(0);
 	    break;
 	  case IDM_CONFIG:

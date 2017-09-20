@@ -305,10 +305,34 @@ static int get_config(frontend *fe, int which)
     return fe->cfgret;
 }
 
-int jcallback_menu_key_event(int key)
+int jcallback_newgame_event(void)
 {
     frontend *fe = (frontend *)_fe;
-    if (!midend_process_key(fe->me, 0, 0, key))
+    if (!midend_process_key(fe->me, 0, 0, UI_NEWGAME))
+	return 42;
+    return 0;
+}
+
+int jcallback_undo_event(void)
+{
+    frontend *fe = (frontend *)_fe;
+    if (!midend_process_key(fe->me, 0, 0, UI_UNDO))
+	return 42;
+    return 0;
+}
+
+int jcallback_redo_event(void)
+{
+    frontend *fe = (frontend *)_fe;
+    if (!midend_process_key(fe->me, 0, 0, UI_REDO))
+	return 42;
+    return 0;
+}
+
+int jcallback_quit_event(void)
+{
+    frontend *fe = (frontend *)_fe;
+    if (!midend_process_key(fe->me, 0, 0, UI_QUIT))
 	return 42;
     return 0;
 }
