@@ -446,6 +446,8 @@ static int do_row(unsigned char *known, unsigned char *deduced,
 
     if (rowlen == 0) {
         memset(deduced, DOT, len);
+    } else if (rowlen == 1 && data[0] == len) {
+        memset(deduced, BLOCK, len);
     } else {
         do_recurse(known, deduced, row, minpos_done, maxpos_done, minpos_ok,
                    maxpos_ok, data, len, freespace, 0, 0);
