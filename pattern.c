@@ -308,7 +308,18 @@ static void generate(random_state *rs, int w, int h, unsigned char *retgrid)
     fgrid2 = snewn(w*h, float);
     memcpy(fgrid2, fgrid, w*h*sizeof(float));
     qsort(fgrid2, w*h, sizeof(float), float_compare);
-    threshold = fgrid2[w*h/2];
+    /* Choose a threshold that makes half the pixels black. In case of
+     * an odd number of pixels, select randomly between just under and
+     * just over half. */
+    {
+        int index = w * h / 2;
+        if (w & h & 1)
+            index += random_upto(rs, 2);
+        if (index < w*h)
+            threshold = fgrid2[index];
+        else
+            threshold = fgrid2[w*h-1] + 1;
+    }
     sfree(fgrid2);
 
     for (i = 0; i < h; i++) {
