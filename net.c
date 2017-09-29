@@ -102,12 +102,17 @@ struct game_params {
     float barrier_probability;
 };
 
+typedef struct game_immutable_state {
+    int refcount;
+    unsigned char *barriers;
+} game_immutable_state;
+
 struct game_state {
     int width, height, wrapping, completed;
     int last_rotate_x, last_rotate_y, last_rotate_dir;
     int used_solve;
     unsigned char *tiles;
-    unsigned char *barriers;
+    struct game_immutable_state *imm;
 };
 
 #define OFFSETWH(x2,y2,x1,y1,dir,width,height) \
@@ -119,7 +124,7 @@ struct game_state {
 
 #define index(state, a, x, y) ( a[(y) * (state)->width + (x)] )
 #define tile(state, x, y)     index(state, (state)->tiles, x, y)
-#define barrier(state, x, y)  index(state, (state)->barriers, x, y)
+#define barrier(state, x, y)  index(state, (state)->imm->barriers, x, y)
 
 struct xyd {
     int x, y, direction;
@@ -1653,12 +1658,14 @@ static game_state *new_game(midend *me, const game_params *params,
     w = state->width = params->width;
     h = state->height = params->height;
     state->wrapping = params->wrapping;
+    state->imm = snew(game_immutable_state);
+    state->imm->refcount = 1;
     state->last_rotate_dir = state->last_rotate_x = state->last_rotate_y = 0;
     state->completed = state->used_solve = FALSE;
     state->tiles = snewn(state->width * state->height, unsigned char);
     memset(state->tiles, 0, state->width * state->height);
-    state->barriers = snewn(state->width * state->height, unsigned char);
-    memset(state->barriers, 0, state->width * state->height);
+    state->imm->barriers = snewn(state->width * state->height, unsigned char);
+    memset(state->imm->barriers, 0, state->width * state->height);
 
     /*
      * Parse the game description into the grid.
@@ -1729,6 +1736,8 @@ static game_state *dup_game(const game_state *state)
     game_state *ret;
 
     ret = snew(game_state);
+    ret->imm = state->imm;
+    ret->imm->refcount++;
     ret->width = state->width;
     ret->height = state->height;
     ret->wrapping = state->wrapping;
@@ -1739,16 +1748,17 @@ static game_state *dup_game(const game_state *state)
     ret->last_rotate_y = state->last_rotate_y;
     ret->tiles = snewn(state->width * state->height, unsigned char);
     memcpy(ret->tiles, state->tiles, state->width * state->height);
-    ret->barriers = snewn(state->width * state->height, unsigned char);
-    memcpy(ret->barriers, state->barriers, state->width * state->height);
 
     return ret;
 }
 
 static void free_game(game_state *state)
 {
+    if (--state->imm->refcount == 0) {
+        sfree(state->imm->barriers);
+        sfree(state->imm);
+    }
     sfree(state->tiles);
-    sfree(state->barriers);
     sfree(state);
 }
 
@@ -1771,7 +1781,7 @@ static char *solve_game(const game_state *state, const game_state *currstate,
 
 	memcpy(tiles, state->tiles, state->width * state->height);
 	solver_result = net_solver(state->width, state->height, tiles,
-                                   state->barriers, state->wrapping);
+                                   state->imm->barriers, state->wrapping);
 
         if (solver_result < 0) {
             *error = "No solution exists for this puzzle";
@@ -2004,7 +2014,7 @@ static int *compute_loops_inner(int w, int h, int wrapping,
 static int *compute_loops(const game_state *state)
 {
     return compute_loops_inner(state->width, state->height, state->wrapping,
-                               state->tiles, state->barriers);
+                               state->tiles, state->imm->barriers);
 }
 
 struct game_ui {
