@@ -1718,8 +1718,10 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
 #define TILE_SIZE (ds->sz6*6)
 
 #define BORDER (TILE_SIZE/8)
-#define BORDER_WIDTH (max(TILE_SIZE / 32, 1))
 #define LINE_THICK (TILE_SIZE/16)
+#define GRID_LINE_TL (ds->grid_line_tl)
+#define GRID_LINE_BR (ds->grid_line_br)
+#define GRID_LINE_ALL (ds->grid_line_all)
 
 #define COORD(x) ( (x+1) * TILE_SIZE + BORDER )
 #define CENTERED_COORD(x) ( COORD(x) + TILE_SIZE/2 )
@@ -1739,7 +1741,7 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
 #define DS_CSHIFT 20    /* R/U/L/D shift, for cursor-on-edge */
 
 struct game_drawstate {
-    int sz6;
+    int sz6, grid_line_all, grid_line_tl, grid_line_br;
     int started;
 
     int w, h, sz;
@@ -2119,7 +2121,6 @@ static void game_compute_size(const game_params *params, int tilesize,
         int sz6;
     } ads, *ds = &ads;
     ads.sz6 = tilesize/6;
-
     *x = (params->w+2) * TILE_SIZE + 2 * BORDER;
     *y = (params->h+2) * TILE_SIZE + 2 * BORDER;
 }
@@ -2128,6 +2129,9 @@ static void game_set_size(drawing *dr, game_drawstate *ds,
                           const game_params *params, int tilesize)
 {
     ds->sz6 = tilesize/6;
+    ds->grid_line_all = max(LINE_THICK, 1);
+    ds->grid_line_br = ds->grid_line_all / 2;
+    ds->grid_line_tl = ds->grid_line_all - ds->grid_line_br;
 }
 
 enum {
@@ -2347,14 +2351,13 @@ static void draw_square(drawing *dr, game_drawstate *ds,
     /* Clip to the grid square. */
     clip(dr, ox, oy, TILE_SIZE, TILE_SIZE);
 
-    /* Clear the square. */
+    /* Clear the square so that it's got an appropriately-sized border
+     * in COL_GRID and a central area in the right background colour. */
     best_bits((flags & DS_TRACK) == DS_TRACK,
               (flags_drag & DS_TRACK) == DS_TRACK, &bg);
-    draw_rect(dr, ox, oy, TILE_SIZE, TILE_SIZE, bg);
-
-    /* Draw outline of grid square */
-    draw_line(dr, ox, oy, COORD(x+1), oy, COL_GRID);
-    draw_line(dr, ox, oy, ox, COORD(y+1), COL_GRID);
+    draw_rect(dr, ox, oy, TILE_SIZE, TILE_SIZE, COL_GRID);
+    draw_rect(dr, ox + GRID_LINE_TL, oy + GRID_LINE_TL,
+              TILE_SIZE - GRID_LINE_ALL, TILE_SIZE - GRID_LINE_ALL, bg);
 
     /* More outlines for clue squares. */
     if (flags & DS_CURSOR) {
@@ -2427,12 +2430,14 @@ static void draw_clue(drawing *dr, game_drawstate *ds, int w, int clue, int i, i
         cy = CENTERED_COORD(i-w);
     }
 
-    draw_rect(dr, cx - tsz + BORDER, cy - tsz + BORDER,
-              TILE_SIZE - BORDER, TILE_SIZE - BORDER, COL_BACKGROUND);
+    draw_rect(dr, cx - tsz + GRID_LINE_TL, cy - tsz + GRID_LINE_TL,
+              TILE_SIZE - GRID_LINE_ALL, TILE_SIZE - GRID_LINE_ALL,
+              COL_BACKGROUND);
     sprintf(buf, "%d", clue);
     draw_text(dr, cx, cy, FONT_VARIABLE, tsz, ALIGN_VCENTRE|ALIGN_HCENTRE,
               col, buf);
-    draw_update(dr, cx - tsz, cy - tsz, TILE_SIZE, TILE_SIZE);
+    draw_update(dr, cx - tsz + GRID_LINE_TL, cy - tsz + GRID_LINE_TL,
+                TILE_SIZE - GRID_LINE_ALL, TILE_SIZE - GRID_LINE_ALL);
 }
 
 static void draw_loop_ends(drawing *dr, game_drawstate *ds,
@@ -2499,8 +2504,9 @@ static void game_redraw(drawing *dr, game_drawstate *ds, const game_state *oldst
 
         draw_loop_ends(dr, ds, state, COL_CLUE);
 
-        draw_line(dr, COORD(ds->w), COORD(0), COORD(ds->w), COORD(ds->h), COL_GRID);
-        draw_line(dr, COORD(0), COORD(ds->h), COORD(ds->w), COORD(ds->h), COL_GRID);
+        draw_rect(dr, COORD(0) - GRID_LINE_BR, COORD(0) - GRID_LINE_BR,
+                  ds->w * TILE_SIZE + GRID_LINE_ALL,
+                  ds->h * TILE_SIZE + GRID_LINE_ALL, COL_GRID);
 
         draw_update(dr, 0, 0, (w+2)*TILE_SIZE + 2*BORDER, (h+2)*TILE_SIZE + 2*BORDER);
 
