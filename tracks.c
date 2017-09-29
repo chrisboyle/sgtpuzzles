@@ -1719,6 +1719,7 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
 
 #define BORDER (TILE_SIZE/8)
 #define BORDER_WIDTH (max(TILE_SIZE / 32, 1))
+#define LINE_THICK (TILE_SIZE/30)
 
 #define COORD(x) ( (x+1) * TILE_SIZE + BORDER )
 #define CENTERED_COORD(x) ( COORD(x) + TILE_SIZE/2 )
@@ -2389,8 +2390,8 @@ static void draw_square(drawing *dr, game_drawstate *ds,
                            (flags_drag & DS_NOTRACK) == DS_NOTRACK, &c);
     if (flags_best) {
         off = HALFSZ/2;
-        draw_line(dr, cx - off, cy - off, cx + off, cy + off, c);
-        draw_line(dr, cx - off, cy + off, cx + off, cy - off, c);
+        draw_thick_line(dr, LINE_THICK, cx - off, cy - off, cx + off, cy + off, c);
+        draw_thick_line(dr, LINE_THICK, cx - off, cy + off, cx + off, cy - off, c);
     }
 
     c = COL_TRACK;
@@ -2404,8 +2405,8 @@ static void draw_square(drawing *dr, game_drawstate *ds,
             cx += (d == R) ? t2 : (d == L) ? -t2 : 0;
             cy += (d == D) ? t2 : (d == U) ? -t2 : 0;
 
-            draw_line(dr, cx - off, cy - off, cx + off, cy + off, c);
-            draw_line(dr, cx - off, cy + off, cx + off, cy - off, c);
+            draw_thick_line(dr, LINE_THICK, cx - off, cy - off, cx + off, cy + off, c);
+            draw_thick_line(dr, LINE_THICK, cx - off, cy + off, cx + off, cy - off, c);
         }
     }
 
