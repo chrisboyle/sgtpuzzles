@@ -1719,7 +1719,7 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
 
 #define BORDER (TILE_SIZE/8)
 #define BORDER_WIDTH (max(TILE_SIZE / 32, 1))
-#define LINE_THICK (TILE_SIZE/30)
+#define LINE_THICK (TILE_SIZE/16)
 
 #define COORD(x) ( (x+1) * TILE_SIZE + BORDER )
 #define CENTERED_COORD(x) ( COORD(x) + TILE_SIZE/2 )
