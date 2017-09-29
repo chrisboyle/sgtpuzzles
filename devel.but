@@ -1928,6 +1928,9 @@ Indeed, even horizontal or vertical lines may be anti-aliased.
 
 This function may be used for both drawing and printing.
 
+If the xpecified thickness is less than 1.0, 1.0 is used.
+This ensures that thin lines are visible even at small scales.
+
 \S{drawing-draw-text} \cw{draw_text()}
 
 \c void draw_text(drawing *dr, int x, int y, int fonttype,
