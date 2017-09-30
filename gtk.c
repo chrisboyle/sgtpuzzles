@@ -189,6 +189,38 @@ struct frontend {
     int drawing_area_shrink_pending;
     int menubar_is_local;
 #endif
+#if GTK_CHECK_VERSION(3,0,0)
+    /*
+     * This is used to get round an annoying lack of GTK notification
+     * message. If we request a window resize with
+     * gtk_window_resize(), we normally get back a "configure" event
+     * on the window and on its drawing area, and we respond to the
+     * latter by doing an appropriate resize of the puzzle. If the
+     * window is maximised, so that gtk_window_resize() _doesn't_
+     * change its size, then that configure event never shows up. But
+     * if we requested the resize in response to a change of puzzle
+     * parameters (say, the user selected a differently-sized preset
+     * from the menu), then we would still like to be _notified_ that
+     * the window size was staying the same, so that we can respond by
+     * choosing an appropriate tile size for the new puzzle preset in
+     * the existing window size.
+     *
+     * Fortunately, in GTK 3, we may not get a "configure" event on
+     * the drawing area in this situation, but we still get a
+     * "size_allocate" event on the whole window (which, in other
+     * situations when we _do_ get a "configure" on the area, turns up
+     * second). So we treat _that_ event as indicating that if the
+     * "configure" event hasn't already shown up then it's not going
+     * to arrive.
+     *
+     * This flag is where we bookkeep this system. On
+     * gtk_window_resize we set this flag to true; the area's
+     * configure handler sets it back to false; then if that doesn't
+     * happen, the window's size_allocate handler does a fallback
+     * puzzle resize when it sees this flag still set to true.
+     */
+    int awaiting_resize_ack;
+#endif
 };
 
 struct blitter {
@@ -1338,15 +1370,10 @@ static gint map_window(GtkWidget *widget, GdkEvent *event,
     return TRUE;
 }
 
-static gint configure_area(GtkWidget *widget,
-                           GdkEventConfigure *event, gpointer data)
+static void resize_puzzle_to_area(frontend *fe, int x, int y)
 {
-    frontend *fe = (frontend *)data;
-    int x, y;
     int oldw = fe->w, oldpw = fe->pw, oldh = fe->h, oldph = fe->ph;
 
-    x = event->width;
-    y = event->height;
     fe->w = x;
     fe->h = y;
     midend_size(fe->me, &x, &y, TRUE);
@@ -1363,9 +1390,30 @@ static gint configure_area(GtkWidget *widget,
     }
 
     midend_force_redraw(fe->me);
+}
 
+static gint configure_area(GtkWidget *widget,
+                           GdkEventConfigure *event, gpointer data)
+{
+    frontend *fe = (frontend *)data;
+    resize_puzzle_to_area(fe, event->width, event->height);
+    fe->awaiting_resize_ack = FALSE;
     return TRUE;
 }
+
+#if GTK_CHECK_VERSION(3,0,0)
+static void window_size_alloc(GtkWidget *widget, GtkAllocation *allocation,
+                              gpointer data)
+{
+    frontend *fe = (frontend *)data;
+    if (fe->awaiting_resize_ack) {
+        GtkAllocation a;
+        gtk_widget_get_allocation(fe->area, &a);
+        resize_puzzle_to_area(fe, a.width, a.height);
+        fe->awaiting_resize_ack = FALSE;
+    }
+}
+#endif
 
 static gint timer_func(gpointer data)
 {
@@ -1995,6 +2043,7 @@ static void resize_fe(frontend *fe)
 
 #if GTK_CHECK_VERSION(3,0,0)
     gtk_window_resize(GTK_WINDOW(fe->window), x, y + window_extra_height(fe));
+    fe->awaiting_resize_ack = TRUE;
 #else
     fe->drawing_area_shrink_pending = FALSE;
     gtk_drawing_area_size(GTK_DRAWING_AREA(fe->area), x, y);
@@ -2521,6 +2570,10 @@ static frontend *new_window(char *arg, int argtype, char **error)
     }
 #endif
 
+#if GTK_CHECK_VERSION(3,0,0)
+    fe->awaiting_resize_ack = FALSE;
+#endif
+
     fe->window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     gtk_window_set_title(GTK_WINDOW(fe->window), thegame.name);
 
@@ -2785,6 +2838,10 @@ static frontend *new_window(char *arg, int argtype, char **error)
                      G_CALLBACK(configure_area), fe);
     g_signal_connect(G_OBJECT(fe->window), "configure_event",
                      G_CALLBACK(configure_window), fe);
+#if GTK_CHECK_VERSION(3,0,0)
+    g_signal_connect(G_OBJECT(fe->window), "size_allocate",
+                     G_CALLBACK(window_size_alloc), fe);
+#endif
 
     gtk_widget_add_events(GTK_WIDGET(fe->area),
                           GDK_BUTTON_PRESS_MASK |
