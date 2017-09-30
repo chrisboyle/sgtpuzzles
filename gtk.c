@@ -1881,8 +1881,7 @@ static void changed_preset(frontend *fe)
             struct preset_menu_entry *entry =
                 (struct preset_menu_entry *)g_object_get_data(
                     G_OBJECT(gs->data), "user-data");
-
-            if (entry && entry->id != n)
+            if (!entry || entry->id != n)
                 gtk_check_menu_item_set_active(
                     GTK_CHECK_MENU_ITEM(gs->data), FALSE);
             else
@@ -1890,7 +1889,7 @@ static void changed_preset(frontend *fe)
         }
         if (found)
             gtk_check_menu_item_set_active(
-                GTK_CHECK_MENU_ITEM(found->data), FALSE);
+                GTK_CHECK_MENU_ITEM(found->data), TRUE);
     }
     fe->preset_threaded = FALSE;
 
