@@ -27,13 +27,6 @@
 #define USE_DRAGGING
 #endif
 
-#define MATMUL(xr,yr,m,x,y) do { \
-    float rx, ry, xx = (x), yy = (y), *mat = (m); \
-    rx = mat[0] * xx + mat[2] * yy; \
-    ry = mat[1] * xx + mat[3] * yy; \
-    (xr) = rx; (yr) = ry; \
-} while (0)
-
 /* Direction and other bitfields */
 #define R 0x01
 #define U 0x02
@@ -65,7 +58,7 @@
 
 #define PREFERRED_TILE_SIZE 32
 #define TILE_SIZE (ds->tilesize)
-#define TILE_BORDER 1
+#define LINE_THICK ((TILE_SIZE+47)/48)
 #ifdef SMALL_SCREEN
 #define WINDOW_OFFSET 4
 #else
@@ -74,13 +67,6 @@
 
 #define ROTATE_TIME 0.13F
 #define FLASH_FRAME 0.07F
-
-/* Transform physical coords to game coords using game_drawstate ds */
-#define GX(x) (((x) + ds->org_x) % ds->width)
-#define GY(y) (((y) + ds->org_y) % ds->height)
-/* ...and game coords to physical coords */
-#define RX(x) (((x) + ds->width - ds->org_x) % ds->width)
-#define RY(y) (((y) + ds->height - ds->org_y) % ds->height)
 
 enum {
     COL_BACKGROUND,
@@ -2075,9 +2061,8 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
 struct game_drawstate {
     int started;
     int width, height;
-    int org_x, org_y;
     int tilesize;
-    int *visible;
+    unsigned long *visible, *to_draw;
 };
 
 /* ----------------------------------------------------------------------
@@ -2117,8 +2102,8 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 	/*
 	 * The button must have been clicked on a valid tile.
 	 */
-	x -= WINDOW_OFFSET + TILE_BORDER;
-	y -= WINDOW_OFFSET + TILE_BORDER;
+	x -= WINDOW_OFFSET + LINE_THICK;
+	y -= WINDOW_OFFSET + LINE_THICK;
 	if (x < 0 || y < 0)
 	    return nullret;
 	tx = x / TILE_SIZE;
@@ -2128,8 +2113,8 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         /* Transform from physical to game coords */
         tx = (tx + ui->org_x) % state->width;
         ty = (ty + ui->org_y) % state->height;
-	if (x % TILE_SIZE >= TILE_SIZE - TILE_BORDER ||
-	    y % TILE_SIZE >= TILE_SIZE - TILE_BORDER)
+	if (x % TILE_SIZE >= TILE_SIZE - LINE_THICK ||
+	    y % TILE_SIZE >= TILE_SIZE - LINE_THICK)
 	    return nullret;
 
 #ifdef USE_DRAGGING
@@ -2458,19 +2443,24 @@ static game_state *execute_move(const game_state *from, const char *move)
 static game_drawstate *game_new_drawstate(drawing *dr, const game_state *state)
 {
     game_drawstate *ds = snew(game_drawstate);
-    int i;
+    int i, ncells;
 
     ds->started = FALSE;
     ds->width = state->width;
     ds->height = state->height;
-    ds->org_x = ds->org_y = -1;
-    ds->visible = snewn(state->width * state->height, int);
+    ncells = (state->width+2) * (state->height+2);
+    ds->visible = snewn(ncells, unsigned long);
+    ds->to_draw = snewn(ncells, unsigned long);
     ds->tilesize = 0;                  /* undecided yet */
-    for (i = 0; i < state->width * state->height; i++)
+    for (i = 0; i < ncells; i++)
         ds->visible[i] = -1;
 
     return ds;
 }
+
+#define dsindex(ds, field, x, y) ((ds)->field[((y)+1)*((ds)->width+2)+((x)+1)])
+#define visible(ds, x, y) dsindex(ds, visible, x, y)
+#define todraw(ds, x, y) dsindex(ds, to_draw, x, y)
 
 static void game_free_drawstate(drawing *dr, game_drawstate *ds)
 {
@@ -2481,8 +2471,12 @@ static void game_free_drawstate(drawing *dr, game_drawstate *ds)
 static void game_compute_size(const game_params *params, int tilesize,
                               int *x, int *y)
 {
-    *x = WINDOW_OFFSET * 2 + tilesize * params->width + TILE_BORDER;
-    *y = WINDOW_OFFSET * 2 + tilesize * params->height + TILE_BORDER;
+    /* Ick: fake up `ds->tilesize' for macro expansion purposes */
+    struct { int tilesize; } ads, *ds = &ads;
+    ads.tilesize = tilesize;
+
+    *x = WINDOW_OFFSET * 2 + TILE_SIZE * params->width + LINE_THICK;
+    *y = WINDOW_OFFSET * 2 + TILE_SIZE * params->height + LINE_THICK;
 }
 
 static void game_set_size(drawing *dr, game_drawstate *ds,
@@ -2556,297 +2550,286 @@ static float *game_colours(frontend *fe, int *ncolours)
     return ret;
 }
 
-static void draw_filled_line(drawing *dr, int x1, int y1, int x2, int y2,
-			     int colour)
+static void rotated_coords(float *ox, float *oy, const float matrix[4],
+                           float cx, float cy, float ix, float iy)
 {
-    draw_line(dr, x1-1, y1, x2-1, y2, COL_WIRE);
-    draw_line(dr, x1+1, y1, x2+1, y2, COL_WIRE);
-    draw_line(dr, x1, y1-1, x2, y2-1, COL_WIRE);
-    draw_line(dr, x1, y1+1, x2, y2+1, COL_WIRE);
-    draw_line(dr, x1, y1, x2, y2, colour);
+    *ox = matrix[0] * ix + matrix[2] * iy + cx;
+    *oy = matrix[1] * ix + matrix[3] * iy + cy;
 }
 
-static void draw_rect_coords(drawing *dr, int x1, int y1, int x2, int y2,
-                             int colour)
+/* Flags describing the visible features of a tile. */
+#define TILE_BARRIER_SHIFT            0  /* 4 bits: R U L D */
+#define TILE_BARRIER_CORNER_SHIFT     4  /* 4 bits: RU UL LD DR */
+#define TILE_KEYBOARD_CURSOR      (1<<8) /* 1 bit if cursor is here */
+#define TILE_WIRE_SHIFT               9  /* 8 bits: RR UU LL DD
+                                          * Each pair: 0=no wire, 1=unpowered,
+                                          * 2=powered, 3=loop err highlight */
+#define TILE_ENDPOINT_SHIFT          17  /* 2 bits: 0=no endpoint, 1=unpowered,
+                                          * 2=powered, 3=power-source square */
+#define TILE_WIRE_ON_EDGE_SHIFT      19  /* 8 bits: RR UU LL DD,
+                                          * same encoding as TILE_WIRE_SHIFT */
+#define TILE_ROTATING          (1UL<<27) /* 1 bit if tile is rotating */
+#define TILE_LOCKED            (1UL<<28) /* 1 bit if tile is locked */
+
+static void draw_wires(drawing *dr, int cx, int cy, int radius,
+                       unsigned long tile, int bitmap,
+                       int colour, int halfwidth, const float matrix[4])
 {
-    int mx = (x1 < x2 ? x1 : x2);
-    int my = (y1 < y2 ? y1 : y2);
-    int dx = (x2 + x1 - 2*mx + 1);
-    int dy = (y2 + y1 - 2*my + 1);
+    float fpoints[12*2];
+    int points[12*2];
+    int npoints, d, dsh, i;
+    int any_wire_this_colour = FALSE;
+    float xf, yf;
 
-    draw_rect(dr, mx, my, dx, dy, colour);
-}
+    npoints = 0;
+    for (d = 1, dsh = 0; d < 16; d *= 2, dsh++) {
+        int wiretype = (tile >> (TILE_WIRE_SHIFT + 2*dsh)) & 3;
 
-/*
- * draw_barrier_corner() and draw_barrier() are passed physical coords
- */
-static void draw_barrier_corner(drawing *dr, game_drawstate *ds,
-                                int x, int y, int dx, int dy, int phase)
-{
-    int bx = WINDOW_OFFSET + TILE_SIZE * x;
-    int by = WINDOW_OFFSET + TILE_SIZE * y;
-    int x1, y1;
+        fpoints[2*npoints+0] = halfwidth * (X(d) + X(C(d)));
+        fpoints[2*npoints+1] = halfwidth * (Y(d) + Y(C(d)));
+        npoints++;
 
-    x1 = (dx > 0 ? TILE_SIZE+TILE_BORDER-1 : 0);
-    y1 = (dy > 0 ? TILE_SIZE+TILE_BORDER-1 : 0);
+        if (bitmap & (1 << wiretype)) {
+            fpoints[2*npoints+0] = radius * X(d) + halfwidth * X(C(d));
+            fpoints[2*npoints+1] = radius * Y(d) + halfwidth * Y(C(d));
+            npoints++;
+            fpoints[2*npoints+0] = radius * X(d) + halfwidth * X(A(d));
+            fpoints[2*npoints+1] = radius * Y(d) + halfwidth * Y(A(d));
+            npoints++;
 
-    if (phase == 0) {
-        draw_rect_coords(dr, bx+x1+dx, by+y1,
-                         bx+x1-TILE_BORDER*dx, by+y1-(TILE_BORDER-1)*dy,
-                         COL_WIRE);
-        draw_rect_coords(dr, bx+x1, by+y1+dy,
-                         bx+x1-(TILE_BORDER-1)*dx, by+y1-TILE_BORDER*dy,
-                         COL_WIRE);
-    } else {
-        draw_rect_coords(dr, bx+x1, by+y1,
-                         bx+x1-(TILE_BORDER-1)*dx, by+y1-(TILE_BORDER-1)*dy,
-                         COL_BARRIER);
+            any_wire_this_colour = TRUE;
+        }
     }
-}
 
-static void draw_barrier(drawing *dr, game_drawstate *ds,
-                         int x, int y, int dir, int phase)
-{
-    int bx = WINDOW_OFFSET + TILE_SIZE * x;
-    int by = WINDOW_OFFSET + TILE_SIZE * y;
-    int x1, y1, w, h;
+    if (!any_wire_this_colour)
+        return;
 
-    x1 = (X(dir) > 0 ? TILE_SIZE : X(dir) == 0 ? TILE_BORDER : 0);
-    y1 = (Y(dir) > 0 ? TILE_SIZE : Y(dir) == 0 ? TILE_BORDER : 0);
-    w = (X(dir) ? TILE_BORDER : TILE_SIZE - TILE_BORDER);
-    h = (Y(dir) ? TILE_BORDER : TILE_SIZE - TILE_BORDER);
-
-    if (phase == 0) {
-        draw_rect(dr, bx+x1-X(dir), by+y1-Y(dir), w, h, COL_WIRE);
-    } else {
-        draw_rect(dr, bx+x1, by+y1, w, h, COL_BARRIER);
+    for (i = 0; i < npoints; i++) {
+        rotated_coords(&xf, &yf, matrix, cx, cy, fpoints[2*i], fpoints[2*i+1]);
+        points[2*i] = 0.5 + xf;
+        points[2*i+1] = 0.5 + yf;
     }
+
+    draw_polygon(dr, points, npoints, colour, colour);
 }
 
-/*
- * draw_tile() is passed physical coordinates
- */
-static void draw_tile(drawing *dr, const game_state *state, game_drawstate *ds,
-                      int x, int y, int tile, int src, float angle, int cursor)
+static void draw_tile(drawing *dr, game_drawstate *ds, int x, int y,
+                      unsigned long tile, float angle)
 {
-    int bx = WINDOW_OFFSET + TILE_SIZE * x;
-    int by = WINDOW_OFFSET + TILE_SIZE * y;
+    int tx, ty;
+    int clipx, clipy, clipX, clipY, clipw, cliph;
+    int border_br = LINE_THICK/2, border_tl = LINE_THICK - border_br;
+    int barrier_outline_thick = (LINE_THICK+1)/2;
+    int bg, d, dsh, pass;
+    int cx, cy, radius;
     float matrix[4];
-    float cx, cy, ex, ey, tx, ty;
-    int dir, col, phase;
+
+    tx = WINDOW_OFFSET + TILE_SIZE * x + border_br;
+    ty = WINDOW_OFFSET + TILE_SIZE * y + border_br;
 
     /*
-     * When we draw a single tile, we must draw everything up to
-     * and including the borders around the tile. This means that
-     * if the neighbouring tiles have connections to those borders,
-     * we must draw those connections on the borders themselves.
+     * Clip to the tile boundary, with adjustments if we're drawing
+     * just outside the grid.
      */
-
-    clip(dr, bx, by, TILE_SIZE+TILE_BORDER, TILE_SIZE+TILE_BORDER);
+    clipx = tx; clipX = tx + TILE_SIZE;
+    clipy = ty; clipY = ty + TILE_SIZE;
+    if (x == -1) {
+        clipx = clipX - border_br - barrier_outline_thick;
+    } else if (x == ds->width) {
+        clipX = clipx + border_tl + barrier_outline_thick;
+    }
+    if (y == -1) {
+        clipy = clipY - border_br - barrier_outline_thick;
+    } else if (y == ds->height) {
+        clipY = clipy + border_tl + barrier_outline_thick;
+    }
+    clipw = clipX - clipx;
+    cliph = clipY - clipy;
+    clip(dr, clipx, clipy, clipw, cliph);
 
     /*
-     * So. First blank the tile out completely: draw a big
-     * rectangle in border colour, and a smaller rectangle in
-     * background colour to fill it in.
+     * Clear the clip region.
      */
-    draw_rect(dr, bx, by, TILE_SIZE+TILE_BORDER, TILE_SIZE+TILE_BORDER,
-              COL_BORDER);
-    draw_rect(dr, bx+TILE_BORDER, by+TILE_BORDER,
-              TILE_SIZE-TILE_BORDER, TILE_SIZE-TILE_BORDER,
-              tile & LOCKED ? COL_LOCKED : COL_BACKGROUND);
+    bg = (tile & TILE_LOCKED) ? COL_LOCKED : COL_BACKGROUND;
+    draw_rect(dr, clipx, clipy, clipw, cliph, bg);
 
     /*
-     * Draw an inset outline rectangle as a cursor, in whichever of
-     * COL_LOCKED and COL_BACKGROUND we aren't currently drawing
-     * in.
+     * Draw the grid lines.
      */
-    if (cursor) {
-	draw_line(dr, bx+TILE_SIZE/8, by+TILE_SIZE/8,
-		  bx+TILE_SIZE/8, by+TILE_SIZE-TILE_SIZE/8,
-		  tile & LOCKED ? COL_BACKGROUND : COL_LOCKED);
-	draw_line(dr, bx+TILE_SIZE/8, by+TILE_SIZE/8,
-		  bx+TILE_SIZE-TILE_SIZE/8, by+TILE_SIZE/8,
-		  tile & LOCKED ? COL_BACKGROUND : COL_LOCKED);
-	draw_line(dr, bx+TILE_SIZE-TILE_SIZE/8, by+TILE_SIZE/8,
-		  bx+TILE_SIZE-TILE_SIZE/8, by+TILE_SIZE-TILE_SIZE/8,
-		  tile & LOCKED ? COL_BACKGROUND : COL_LOCKED);
-	draw_line(dr, bx+TILE_SIZE/8, by+TILE_SIZE-TILE_SIZE/8,
-		  bx+TILE_SIZE-TILE_SIZE/8, by+TILE_SIZE-TILE_SIZE/8,
-		  tile & LOCKED ? COL_BACKGROUND : COL_LOCKED);
+    {
+        int gridl = (x == -1 ? tx+TILE_SIZE-border_br : tx);
+        int gridr = (x == ds->width ? tx+border_tl : tx+TILE_SIZE);
+        int gridu = (y == -1 ? ty+TILE_SIZE-border_br : ty);
+        int gridd = (y == ds->height ? ty+border_tl : ty+TILE_SIZE);
+        if (x >= 0)
+            draw_rect(dr, tx, gridu, border_tl, gridd-gridu, COL_BORDER);
+        if (y >= 0)
+            draw_rect(dr, gridl, ty, gridr-gridl, border_tl, COL_BORDER);
+        if (x < ds->width)
+            draw_rect(dr, tx+TILE_SIZE-border_br, gridu,
+                      border_br, gridd-gridu, COL_BORDER);
+        if (y < ds->height)
+            draw_rect(dr, gridl, ty+TILE_SIZE-border_br,
+                      gridr-gridl, border_br, COL_BORDER);
     }
 
     /*
-     * Set up the rotation matrix.
+     * Draw the keyboard cursor.
      */
-    matrix[0] = (float)cos(angle * PI / 180.0);
-    matrix[1] = (float)-sin(angle * PI / 180.0);
-    matrix[2] = (float)sin(angle * PI / 180.0);
-    matrix[3] = (float)cos(angle * PI / 180.0);
+    if (tile & TILE_KEYBOARD_CURSOR) {
+        int cursorcol = (tile & TILE_LOCKED) ? COL_BACKGROUND : COL_LOCKED;
+        int inset_outer = TILE_SIZE/8, inset_inner = inset_outer + LINE_THICK;
+        draw_rect(dr, tx + inset_outer, ty + inset_outer,
+                  TILE_SIZE - 2*inset_outer, TILE_SIZE - 2*inset_outer,
+                  cursorcol);
+        draw_rect(dr, tx + inset_inner, ty + inset_inner,
+                  TILE_SIZE - 2*inset_inner, TILE_SIZE - 2*inset_inner,
+                  bg);
+    }
+
+    radius = (TILE_SIZE+1)/2;
+    cx = tx + radius;
+    cy = ty + radius;
+    radius++;
+
+    /*
+     * Draw protrusions into this cell's edges of wires in
+     * neighbouring cells, as given by the TILE_WIRE_ON_EDGE_SHIFT
+     * flags. We only draw each of these if there _isn't_ a wire of
+     * our own that's going to overlap it, which means either the
+     * corresponding TILE_WIRE_SHIFT flag is zero, or else the
+     * TILE_ROTATING flag is set (so that our main wire won't be drawn
+     * in quite that place anyway).
+     */
+    for (d = 1, dsh = 0; d < 16; d *= 2, dsh++) {
+        int edgetype = ((tile >> (TILE_WIRE_ON_EDGE_SHIFT + 2*dsh)) & 3);
+        if (edgetype == 0)
+            continue;             /* there isn't a wire on the edge */
+        if (!(tile & TILE_ROTATING) &&
+            ((tile >> (TILE_WIRE_SHIFT + 2*dsh)) & 3) != 0)
+            continue;     /* wire on edge would be overdrawn anyway */
+
+        for (pass = 0; pass < 2; pass++) {
+            int x, y, w, h;
+            int col = (pass == 0 || edgetype == 1 ? COL_WIRE :
+                       edgetype == 2 ? COL_POWERED : COL_LOOP);
+            int halfwidth = pass == 0 ? 2*LINE_THICK-1 : LINE_THICK-1;
+
+            if (X(d) < 0) {
+                x = tx;
+                w = border_tl;
+            } else if (X(d) > 0) {
+                x = tx + TILE_SIZE - border_br;
+                w = border_br;
+            } else {
+                x = cx - halfwidth;
+                w = 2 * halfwidth + 1;
+            }
+
+            if (Y(d) < 0) {
+                y = ty;
+                h = border_tl;
+            } else if (Y(d) > 0) {
+                y = ty + TILE_SIZE - border_br;
+                h = border_br;
+            } else {
+                y = cy - halfwidth;
+                h = 2 * halfwidth + 1;
+            }
+
+            draw_rect(dr, x, y, w, h, col);
+        }
+    }
+
+    /*
+     * Set up the rotation matrix for the main cell contents, i.e.
+     * everything that is centred in the grid square and optionally
+     * rotated by an arbitrary angle about that centre point.
+     */
+    if (tile & TILE_ROTATING) {
+        matrix[0] = (float)cos(angle * PI / 180.0);
+        matrix[2] = (float)sin(angle * PI / 180.0);
+    } else {
+        matrix[0] = 1.0F;
+        matrix[2] = 0.0F;
+    }
+    matrix[3] = matrix[0];
+    matrix[1] = -matrix[2];
 
     /*
      * Draw the wires.
      */
-    cx = cy = TILE_BORDER + (TILE_SIZE-TILE_BORDER) / 2.0F - 0.5F;
-    col = (tile & ACTIVE ? COL_POWERED : COL_WIRE);
-    for (dir = 1; dir < 0x10; dir <<= 1) {
-        if (tile & dir) {
-            ex = (TILE_SIZE - TILE_BORDER - 1.0F) / 2.0F * X(dir);
-            ey = (TILE_SIZE - TILE_BORDER - 1.0F) / 2.0F * Y(dir);
-            MATMUL(tx, ty, matrix, ex, ey);
-            draw_filled_line(dr, bx+(int)cx, by+(int)cy,
-			     bx+(int)(cx+tx), by+(int)(cy+ty),
-			     COL_WIRE);
-        }
-    }
-    for (dir = 1; dir < 0x10; dir <<= 1) {
-        if (tile & dir) {
-            ex = (TILE_SIZE - TILE_BORDER - 1.0F) / 2.0F * X(dir);
-            ey = (TILE_SIZE - TILE_BORDER - 1.0F) / 2.0F * Y(dir);
-            MATMUL(tx, ty, matrix, ex, ey);
-            draw_line(dr, bx+(int)cx, by+(int)cy,
-		      bx+(int)(cx+tx), by+(int)(cy+ty),
-                      (tile & LOOP(dir)) ? COL_LOOP : col);
-        }
-    }
-    /* If we've drawn any loop-highlighted arms, make sure the centre
-     * point is loop-coloured rather than a later arm overwriting it. */
-    if (tile & (RLOOP | ULOOP | LLOOP | DLOOP))
-        draw_rect(dr, bx+(int)cx, by+(int)cy, 1, 1, COL_LOOP);
+    draw_wires(dr, cx, cy, radius, tile,
+               0xE, COL_WIRE, 2*LINE_THICK-1, matrix);
+    draw_wires(dr, cx, cy, radius, tile,
+               0x4, COL_POWERED, LINE_THICK-1, matrix);
+    draw_wires(dr, cx, cy, radius, tile,
+               0x8, COL_LOOP, LINE_THICK-1, matrix);
 
     /*
-     * Draw the box in the middle. We do this in blue if the tile
-     * is an unpowered endpoint, in cyan if the tile is a powered
-     * endpoint, in black if the tile is the centrepiece, and
-     * otherwise not at all.
+     * Draw the central box.
      */
-    col = -1;
-    if (src)
-        col = COL_WIRE;
-    else if (COUNT(tile) == 1) {
-        col = (tile & ACTIVE ? COL_POWERED : COL_ENDPOINT);
-    }
-    if (col >= 0) {
-        int i, points[8];
+    for (pass = 0; pass < 2; pass++) {
+        int endtype = (tile >> TILE_ENDPOINT_SHIFT) & 3;
+        if (endtype) {
+            int i, points[8], col;
+            float boxr = TILE_SIZE * 0.24F + (pass == 0 ? LINE_THICK-1 : 0);
 
-        points[0] = +1; points[1] = +1;
-        points[2] = +1; points[3] = -1;
-        points[4] = -1; points[5] = -1;
-        points[6] = -1; points[7] = +1;
+            col = (pass == 0 || endtype == 3 ? COL_WIRE :
+                   endtype == 2 ? COL_POWERED : COL_ENDPOINT);
 
-        for (i = 0; i < 8; i += 2) {
-            ex = (TILE_SIZE * 0.24F) * points[i];
-            ey = (TILE_SIZE * 0.24F) * points[i+1];
-            MATMUL(tx, ty, matrix, ex, ey);
-            points[i] = bx+(int)(cx+tx);
-            points[i+1] = by+(int)(cy+ty);
-        }
+            points[0] = +1; points[1] = +1;
+            points[2] = +1; points[3] = -1;
+            points[4] = -1; points[5] = -1;
+            points[6] = -1; points[7] = +1;
 
-        draw_polygon(dr, points, 4, col, COL_WIRE);
-    }
-
-    /*
-     * Draw the points on the border if other tiles are connected
-     * to us.
-     */
-    for (dir = 1; dir < 0x10; dir <<= 1) {
-        int dx, dy, px, py, lx, ly, vx, vy, ox, oy;
-
-        dx = X(dir);
-        dy = Y(dir);
-
-        ox = x + dx;
-        oy = y + dy;
-
-        if (ox < 0 || ox >= state->width || oy < 0 || oy >= state->height)
-            continue;
-
-        if (!(tile(state, GX(ox), GY(oy)) & F(dir)))
-            continue;
-
-        px = bx + (int)(dx>0 ? TILE_SIZE + TILE_BORDER - 1 : dx<0 ? 0 : cx);
-        py = by + (int)(dy>0 ? TILE_SIZE + TILE_BORDER - 1 : dy<0 ? 0 : cy);
-        lx = dx * (TILE_BORDER-1);
-        ly = dy * (TILE_BORDER-1);
-        vx = (dy ? 1 : 0);
-        vy = (dx ? 1 : 0);
-
-        if (angle == 0.0 && (tile & dir)) {
-            /*
-             * If we are fully connected to the other tile, we must
-             * draw right across the tile border. (We can use our
-             * own ACTIVE state to determine what colour to do this
-             * in: if we are fully connected to the other tile then
-             * the two ACTIVE states will be the same.)
-             */
-            draw_rect_coords(dr, px-vx, py-vy, px+lx+vx, py+ly+vy, COL_WIRE);
-            draw_rect_coords(dr, px, py, px+lx, py+ly,
-                             ((tile & LOOP(dir)) ? COL_LOOP :
-                              (tile & ACTIVE) ? COL_POWERED :
-                              COL_WIRE));
-        } else {
-            /*
-             * The other tile extends into our border, but isn't
-             * actually connected to us. Just draw a single black
-             * dot.
-             */
-            draw_rect_coords(dr, px, py, px, py, COL_WIRE);
-        }
-    }
-
-    /*
-     * Draw barrier corners, and then barriers.
-     */
-    for (phase = 0; phase < 2; phase++) {
-        for (dir = 1; dir < 0x10; dir <<= 1) {
-            int x1, y1, corner = FALSE;
-            /*
-             * If at least one barrier terminates at the corner
-             * between dir and A(dir), draw a barrier corner.
-             */
-            if (barrier(state, GX(x), GY(y)) & (dir | A(dir))) {
-                corner = TRUE;
-            } else {
-                /*
-                 * Only count barriers terminating at this corner
-                 * if they're physically next to the corner. (That
-                 * is, if they've wrapped round from the far side
-                 * of the screen, they don't count.)
-                 */
-                x1 = x + X(dir);
-                y1 = y + Y(dir);
-                if (x1 >= 0 && x1 < state->width &&
-                    y1 >= 0 && y1 < state->height &&
-                    (barrier(state, GX(x1), GY(y1)) & A(dir))) {
-                    corner = TRUE;
-                } else {
-                    x1 = x + X(A(dir));
-                    y1 = y + Y(A(dir));
-                    if (x1 >= 0 && x1 < state->width &&
-                        y1 >= 0 && y1 < state->height &&
-                        (barrier(state, GX(x1), GY(y1)) & dir))
-                        corner = TRUE;
-                }
+            for (i = 0; i < 8; i += 2) {
+                float x, y;
+                rotated_coords(&x, &y, matrix, cx, cy,
+                               boxr * points[i], boxr * points[i+1]);
+                points[i] = x + 0.5;
+                points[i+1] = y + 0.5;
             }
 
-            if (corner) {
-                /*
-                 * At least one barrier terminates here. Draw a
-                 * corner.
-                 */
-                draw_barrier_corner(dr, ds, x, y,
-                                    X(dir)+X(A(dir)), Y(dir)+Y(A(dir)),
-                                    phase);
-            }
+            draw_polygon(dr, points, 4, col, COL_WIRE);
         }
-
-        for (dir = 1; dir < 0x10; dir <<= 1)
-            if (barrier(state, GX(x), GY(y)) & dir)
-                draw_barrier(dr, ds, x, y, dir, phase);
     }
 
+    /*
+     * Draw barriers along grid edges.
+     */
+    for (pass = 0; pass < 2; pass++) {
+        int btl = border_tl, bbr = border_br, col = COL_BARRIER;
+        if (pass == 0) {
+            btl += barrier_outline_thick;
+            bbr += barrier_outline_thick;
+            col = COL_WIRE;
+        }
+
+        if (tile & (L << TILE_BARRIER_SHIFT))
+            draw_rect(dr, tx, ty, btl, TILE_SIZE, col);
+        if (tile & (R << TILE_BARRIER_SHIFT))
+            draw_rect(dr, tx+TILE_SIZE-bbr, ty, bbr, TILE_SIZE, col);
+        if (tile & (U << TILE_BARRIER_SHIFT))
+            draw_rect(dr, tx, ty, TILE_SIZE, btl, col);
+        if (tile & (D << TILE_BARRIER_SHIFT))
+            draw_rect(dr, tx, ty+TILE_SIZE-bbr, TILE_SIZE, bbr, col);
+
+        if (tile & (R << TILE_BARRIER_CORNER_SHIFT))
+            draw_rect(dr, tx+TILE_SIZE-bbr, ty, bbr, btl, col);
+        if (tile & (U << TILE_BARRIER_CORNER_SHIFT))
+            draw_rect(dr, tx, ty, btl, btl, col);
+        if (tile & (L << TILE_BARRIER_CORNER_SHIFT))
+            draw_rect(dr, tx, ty+TILE_SIZE-bbr, btl, bbr, col);
+        if (tile & (D << TILE_BARRIER_CORNER_SHIFT))
+            draw_rect(dr, tx+TILE_SIZE-bbr, ty+TILE_SIZE-bbr, bbr, bbr, col);
+    }
+
+    /*
+     * Unclip and draw update, to finish.
+     */
     unclip(dr);
-
-    draw_update(dr, bx, by, TILE_SIZE+TILE_BORDER, TILE_SIZE+TILE_BORDER);
+    draw_update(dr, clipx, clipy, clipw, cliph);
 }
 
 static void game_redraw(drawing *dr, game_drawstate *ds,
@@ -2854,73 +2837,26 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
                         int dir, const game_ui *ui,
                         float t, float ft)
 {
-    int x, y, tx, ty, frame, last_rotate_dir, moved_origin = FALSE;
+    int tx, ty, dx, dy, d, dsh, last_rotate_dir, frame;
     unsigned char *active;
     int *loops;
     float angle = 0.0;
 
     /*
-     * Clear the screen, and draw the exterior barrier lines, if
-     * this is our first call or if the origin has changed.
+     * Clear the screen on our first call.
      */
-    if (!ds->started || ui->org_x != ds->org_x || ui->org_y != ds->org_y) {
-        int phase;
+    if (!ds->started) {
+        int w, h;
+        game_params params;
 
         ds->started = TRUE;
 
-        draw_rect(dr, 0, 0, 
-                  WINDOW_OFFSET * 2 + TILE_SIZE * state->width + TILE_BORDER,
-                  WINDOW_OFFSET * 2 + TILE_SIZE * state->height + TILE_BORDER,
-                  COL_BACKGROUND);
+        params.width = ds->width;
+        params.height = ds->height;
+        game_compute_size(&params, TILE_SIZE, &w, &h);
 
-        ds->org_x = ui->org_x;
-        ds->org_y = ui->org_y;
-        moved_origin = TRUE;
-
-        draw_update(dr, 0, 0, 
-                    WINDOW_OFFSET*2 + TILE_SIZE*state->width + TILE_BORDER,
-                    WINDOW_OFFSET*2 + TILE_SIZE*state->height + TILE_BORDER);
-
-        for (phase = 0; phase < 2; phase++) {
-
-            for (x = 0; x < ds->width; x++) {
-                if (x+1 < ds->width) {
-                    if (barrier(state, GX(x), GY(0)) & R)
-                        draw_barrier_corner(dr, ds, x, -1, +1, +1, phase);
-                    if (barrier(state, GX(x), GY(ds->height-1)) & R)
-                        draw_barrier_corner(dr, ds, x, ds->height, +1, -1, phase);
-                }
-                if (barrier(state, GX(x), GY(0)) & U) {
-                    draw_barrier_corner(dr, ds, x, -1, -1, +1, phase);
-                    draw_barrier_corner(dr, ds, x, -1, +1, +1, phase);
-                    draw_barrier(dr, ds, x, -1, D, phase);
-                }
-                if (barrier(state, GX(x), GY(ds->height-1)) & D) {
-                    draw_barrier_corner(dr, ds, x, ds->height, -1, -1, phase);
-                    draw_barrier_corner(dr, ds, x, ds->height, +1, -1, phase);
-                    draw_barrier(dr, ds, x, ds->height, U, phase);
-                }
-            }
-
-            for (y = 0; y < ds->height; y++) {
-                if (y+1 < ds->height) {
-                    if (barrier(state, GX(0), GY(y)) & D)
-                        draw_barrier_corner(dr, ds, -1, y, +1, +1, phase);
-                    if (barrier(state, GX(ds->width-1), GY(y)) & D)
-                        draw_barrier_corner(dr, ds, ds->width, y, -1, +1, phase);
-                }
-                if (barrier(state, GX(0), GY(y)) & L) {
-                    draw_barrier_corner(dr, ds, -1, y, +1, -1, phase);
-                    draw_barrier_corner(dr, ds, -1, y, +1, +1, phase);
-                    draw_barrier(dr, ds, -1, y, R, phase);
-                }
-                if (barrier(state, GX(ds->width-1), GY(y)) & R) {
-                    draw_barrier_corner(dr, ds, ds->width, y, -1, -1, phase);
-                    draw_barrier_corner(dr, ds, ds->width, y, -1, +1, phase);
-                    draw_barrier(dr, ds, ds->width, y, L, phase);
-                }
-            }
-        }
+        draw_rect(dr, 0, 0, w, h, COL_BACKGROUND);
+        draw_update(dr, 0, 0, w, h);
     }
 
     tx = ty = -1;
@@ -2937,30 +2873,83 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
         state = oldstate;
     }
 
-    frame = -1;
     if (ft > 0) {
         /*
          * We're animating a completion flash. Find which frame
          * we're at.
          */
         frame = (int)(ft / FLASH_FRAME);
+    } else {
+        frame = 0;
     }
 
     /*
-     * Draw any tile which differs from the way it was last drawn.
+     * Build up a map of what we want every tile to look like. We
+     * include tiles one square outside the grid, for the outer edges
+     * of barriers.
      */
     active = compute_active(state, ui->cx, ui->cy);
     loops = compute_loops(state);
 
-    for (x = 0; x < ds->width; x++)
-        for (y = 0; y < ds->height; y++) {
-            int c = tile(state, GX(x), GY(y)) |
-                index(state, active, GX(x), GY(y)) |
-                index(state, loops, GX(x), GY(y));
-            int is_src = GX(x) == ui->cx && GY(y) == ui->cy;
-            int is_anim = GX(x) == tx && GY(y) == ty;
-            int is_cursor = ui->cur_visible &&
-                            GX(x) == ui->cur_x && GY(y) == ui->cur_y;
+    for (dy = -1; dy < ds->height+1; dy++) {
+        for (dx = -1; dx < ds->width+1; dx++) {
+            todraw(ds, dx, dy) = 0;
+        }
+    }
+
+    for (dy = 0; dy < ds->height; dy++) {
+        int gy = (dy + ui->org_y) % ds->height;
+        for (dx = 0; dx < ds->width; dx++) {
+            int gx = (dx + ui->org_x) % ds->width;
+            int t = (tile(state, gx, gy) |
+                     index(state, loops, gx, gy) |
+                     index(state, active, gx, gy));
+
+            for (d = 1, dsh = 0; d < 16; d *= 2, dsh++) {
+                if (barrier(state, gx, gy) & d) {
+                    todraw(ds, dx, dy) |=
+                        d << TILE_BARRIER_SHIFT;
+                    todraw(ds, dx + X(d), dy + Y(d)) |=
+                        F(d) << TILE_BARRIER_SHIFT;
+                    todraw(ds, dx + X(A(d)), dy + Y(A(d))) |=
+                        C(d) << TILE_BARRIER_CORNER_SHIFT;
+                    todraw(ds, dx + X(A(d)) + X(d), dy + Y(A(d)) + Y(d)) |=
+                        F(d) << TILE_BARRIER_CORNER_SHIFT;
+                    todraw(ds, dx + X(C(d)), dy + Y(C(d))) |=
+                        d << TILE_BARRIER_CORNER_SHIFT;
+                    todraw(ds, dx + X(C(d)) + X(d), dy + Y(C(d)) + Y(d)) |=
+                        A(d) << TILE_BARRIER_CORNER_SHIFT;
+                }
+
+                if (t & d) {
+                    int edgeval = (t & LOOP(d) ? 3 : t & ACTIVE ? 2 : 1);
+                    todraw(ds, dx, dy) |= edgeval << (TILE_WIRE_SHIFT + dsh*2);
+                    if (!(gx == tx && gy == ty)) {
+                        todraw(ds, dx + X(d), dy + Y(d)) |=
+                            edgeval << (TILE_WIRE_ON_EDGE_SHIFT + (dsh ^ 2)*2);
+                    }
+                }
+            }
+
+            if (ui->cur_visible && gx == ui->cur_x && gy == ui->cur_y)
+                todraw(ds, dx, dy) |= TILE_KEYBOARD_CURSOR;
+
+            if (gx == tx && gy == ty)
+                todraw(ds, dx, dy) |= TILE_ROTATING;
+
+            if (gx == ui->cx && gy == ui->cy) {
+                todraw(ds, dx, dy) |= 3 << TILE_ENDPOINT_SHIFT;
+            } else if ((t & 0xF) != R && (t & 0xF) != U && 
+                       (t & 0xF) != L && (t & 0xF) != D) {
+                /* this is not an endpoint tile */
+            } else if (t & ACTIVE) {
+                todraw(ds, dx, dy) |= 2 << TILE_ENDPOINT_SHIFT;
+            } else {
+                todraw(ds, dx, dy) |= 1 << TILE_ENDPOINT_SHIFT;
+            }
+
+            if (t & LOCKED)
+                todraw(ds, dx, dy) |= TILE_LOCKED;
 
             /*
              * In a completion flash, we adjust the LOCKED bit
@@ -2968,31 +2957,36 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
              * the frame number.
              */
             if (frame >= 0) {
-                int rcx = RX(ui->cx), rcy = RY(ui->cy);
+                int rcx = (ui->cx + ds->width - ui->org_x) % ds->width;
+                int rcy = (ui->cy + ds->height - ui->org_y) % ds->height;
                 int xdist, ydist, dist;
-                xdist = (x < rcx ? rcx - x : x - rcx);
-                ydist = (y < rcy ? rcy - y : y - rcy);
+                xdist = (dx < rcx ? rcx - dx : dx - rcx);
+                ydist = (dy < rcy ? rcy - dy : dy - rcy);
                 dist = (xdist > ydist ? xdist : ydist);
 
-                if (frame >= dist && frame < dist+4) {
-                    int lock = (frame - dist) & 1;
-                    lock = lock ? LOCKED : 0;
-                    c = (c &~ LOCKED) | lock;
-                }
-            }
-
-            if (moved_origin ||
-                index(state, ds->visible, x, y) != c ||
-                index(state, ds->visible, x, y) == -1 ||
-                is_src || is_anim || is_cursor) {
-                draw_tile(dr, state, ds, x, y, c,
-                          is_src, (is_anim ? angle : 0.0F), is_cursor);
-                if (is_src || is_anim || is_cursor)
-                    index(state, ds->visible, x, y) = -1;
-                else
-                    index(state, ds->visible, x, y) = c;
+                if (frame >= dist && frame < dist+4 &&
+                    ((frame - dist) & 1))
+                    todraw(ds, dx, dy) ^= TILE_LOCKED;
             }
         }
+    }
+
+    /*
+     * Now draw any tile that differs from the way it was last drawn.
+     * An exception is that if either the previous _or_ current state
+     * has the TILE_ROTATING bit set, we must draw it regardless,
+     * because it will have rotated to a different angle.q
+     */
+    for (dy = -1; dy < ds->height+1; dy++) {
+        for (dx = -1; dx < ds->width+1; dx++) {
+            int prev = visible(ds, dx, dy);
+            int curr = todraw(ds, dx, dy);
+            if (prev != curr || ((prev | curr) & TILE_ROTATING) != 0) {
+                draw_tile(dr, ds, dx, dy, curr, angle);
+                visible(ds, dx, dy) = curr;
+            }
+        }
+    }
 
     /*
      * Update the status bar.
