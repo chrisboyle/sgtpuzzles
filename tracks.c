@@ -2417,7 +2417,7 @@ static void draw_square(drawing *dr, game_drawstate *ds,
     draw_update(dr, ox, oy, TILE_SIZE, TILE_SIZE);
 }
 
-static void draw_clue(drawing *dr, game_drawstate *ds, int w, int clue, int i, int col)
+static void draw_clue(drawing *dr, game_drawstate *ds, int w, int clue, int i, int col, int bg)
 {
     int cx, cy, tsz = TILE_SIZE/2;
     char buf[20];
@@ -2432,7 +2432,7 @@ static void draw_clue(drawing *dr, game_drawstate *ds, int w, int clue, int i, i
 
     draw_rect(dr, cx - tsz + GRID_LINE_TL, cy - tsz + GRID_LINE_TL,
               TILE_SIZE - GRID_LINE_ALL, TILE_SIZE - GRID_LINE_ALL,
-              COL_BACKGROUND);
+              bg);
     sprintf(buf, "%d", clue);
     draw_text(dr, cx, cy, FONT_VARIABLE, tsz, ALIGN_VCENTRE|ALIGN_HCENTRE,
               col, buf);
@@ -2518,7 +2518,8 @@ static void game_redraw(drawing *dr, game_drawstate *ds, const game_state *oldst
         if (force || (state->num_errors[i] != ds->num_errors[i])) {
             ds->num_errors[i] = state->num_errors[i];
             draw_clue(dr, ds, w, state->numbers->numbers[i], i,
-                      ds->num_errors[i] ? COL_ERROR : COL_CLUE);
+                      ds->num_errors[i] ? COL_ERROR : COL_CLUE,
+		      COL_BACKGROUND);
         }
     }
 
@@ -2608,7 +2609,8 @@ static void game_print(drawing *dr, const game_state *state, int tilesize)
 
     /* clue numbers, and loop ends */
     for (i = 0; i < w+h; i++)
-        draw_clue(dr, ds, w, state->numbers->numbers[i], i, black);
+        draw_clue(dr, ds, w, state->numbers->numbers[i], i,
+		  black, COL_BACKGROUND);
     draw_loop_ends(dr, ds, state, black);
 
     /* clue tracks / solution */
