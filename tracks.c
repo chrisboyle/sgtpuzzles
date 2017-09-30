@@ -2140,7 +2140,7 @@ enum {
     COL_GRID, COL_CLUE, COL_CURSOR,
     COL_TRACK, COL_TRACK_CLUE, COL_SLEEPER,
     COL_DRAGON, COL_DRAGOFF,
-    COL_ERROR, COL_FLASH,
+    COL_ERROR, COL_FLASH, COL_ERROR_BACKGROUND,
     NCOLOURS
 };
 
@@ -2157,6 +2157,7 @@ static float *game_colours(frontend *fe, int *ncolours)
         ret[COL_CLUE             * 3 + i] = 0.0F;
         ret[COL_GRID             * 3 + i] = 0.75F;
         ret[COL_CURSOR           * 3 + i] = 0.6F;
+        ret[COL_ERROR_BACKGROUND * 3 + i] = 1.0F;
     }
 
     ret[COL_SLEEPER * 3 + 0] = 0.5F;
@@ -2519,7 +2520,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds, const game_state *oldst
             ds->num_errors[i] = state->num_errors[i];
             draw_clue(dr, ds, w, state->numbers->numbers[i], i,
                       ds->num_errors[i] ? COL_ERROR : COL_CLUE,
-		      COL_BACKGROUND);
+		      ds->num_errors[i] ? COL_ERROR_BACKGROUND : COL_BACKGROUND);
         }
     }
 
