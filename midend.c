@@ -63,6 +63,9 @@ struct midend {
     int nstates, statesize, statepos;
     struct midend_state_entry *states;
 
+    void *newgame_undo;
+    int newgame_undo_avail, newgame_undo_used;
+
     game_params *params, *curparams;
     game_drawstate *drawstate;
     game_ui *ui;
@@ -155,6 +158,8 @@ midend *midend_new(frontend *fe, const game *ourgame,
     me->random = random_new(randseed, randseedsize);
     me->nstates = me->statesize = me->statepos = 0;
     me->states = NULL;
+    me->newgame_undo = 0;
+    me->newgame_undo_avail = me->newgame_undo_used = 0;
     me->params = ourgame->default_params();
     me->game_id_change_notify_function = NULL;
     me->game_id_change_notify_ctx = NULL;
@@ -378,8 +383,28 @@ void midend_force_redraw(midend *me)
     midend_redraw(me);
 }
 
+static void newgame_serialise_write(void *ctx, void *buf, int len)
+{
+    midend *const me = ctx;
+    int new_used;
+
+    assert(len < INT_MAX - me->newgame_undo_used);
+    new_used = me->newgame_undo_used + len;
+    if (new_used > me-> newgame_undo_avail) {
+	me->newgame_undo_avail = max(me->newgame_undo_avail, new_used);
+	me->newgame_undo_avail *= 2;
+	me->newgame_undo = sresize(me->newgame_undo,
+				   me->newgame_undo_avail, char);
+    }
+    memcpy(me->newgame_undo + me->newgame_undo_used, buf, len);
+    me->newgame_undo_used = new_used;
+}
+
 void midend_new_game(midend *me)
 {
+    me->newgame_undo_used = 0;
+    midend_serialise(me, newgame_serialise_write, me);
+
     midend_stop_anim(me);
     midend_free_game(me);
 
@@ -493,7 +518,7 @@ void midend_new_game(midend *me)
 
 int midend_can_undo(midend *me)
 {
-    return (me->statepos > 1);
+    return (me->statepos > 1 || me->newgame_undo_used);
 }
 
 int midend_can_redo(midend *me)
@@ -501,8 +526,26 @@ int midend_can_redo(midend *me)
     return (me->statepos < me->nstates);
 }
 
+struct newgame_undo_deserialise_read_ctx {
+    midend *me;
+    int size, pos;
+};
+
+int newgame_undo_deserialise_read(void *ctx, void *buf, int len)
+{
+    struct newgame_undo_deserialise_read_ctx *const rctx = ctx;
+    midend *const me = rctx->me;
+
+    int use = min(len, rctx->size - rctx->pos);
+    memcpy(buf, me->newgame_undo + rctx->pos, use);
+    rctx->pos += use;
+    return use;
+}
+
 static int midend_undo(midend *me)
 {
+    char *deserialise_error;
+
     if (me->statepos > 1) {
         if (me->ui)
             me->ourgame->changed_state(me->ui,
@@ -511,6 +554,18 @@ static int midend_undo(midend *me)
 	me->statepos--;
         me->dir = -1;
         return 1;
+    } else if (me->newgame_undo_used) {
+	/* This undo cannot be undone with redo */
+	struct newgame_undo_deserialise_read_ctx rctx;
+	rctx.me = me;
+	rctx.size = me->newgame_undo_used; /* copy for reentrancy safety */
+	rctx.pos = 0;
+        deserialise_error =
+	    midend_deserialise(me, newgame_undo_deserialise_read, &rctx);
+	if (deserialise_error)
+	    /* umm, better to carry on than to crash ? */
+	    return 0;
+	return 1;
     } else
         return 0;
 }
@@ -2067,6 +2122,15 @@ static char *midend_deserialise_internal(
         data.states = tmp;
     }
     me->statepos = data.statepos;
+
+    /*
+     * Don't save the "new game undo" state.  So "new game" twice or
+     * (in some environments) switching away and back, will make a
+     * "new game" irreversible.  Maybe in the future we will have a
+     * more sophisticated way to decide when to discard the previous
+     * game state.
+     */
+    me->newgame_undo_used = 0;
 
     {
         game_params *tmp;
