@@ -2152,11 +2152,11 @@ static float *game_colours(frontend *fe, int *ncolours)
     game_mkhighlight(fe, ret, COL_BACKGROUND, COL_HIGHLIGHT, COL_LOWLIGHT);
 
     for (i = 0; i < 3; i++) {
-        ret[COL_TRACK_CLUE * 3 + i] = 0.0F;
-        ret[COL_TRACK * 3 + i] = 0.5F;
-        ret[COL_CLUE * 3 + i] = 0.0F;
-        ret[COL_GRID * 3 + i] = 0.75F;
-        ret[COL_CURSOR * 3 + i] = 0.6F;
+        ret[COL_TRACK_CLUE       * 3 + i] = 0.0F;
+        ret[COL_TRACK            * 3 + i] = 0.5F;
+        ret[COL_CLUE             * 3 + i] = 0.0F;
+        ret[COL_GRID             * 3 + i] = 0.75F;
+        ret[COL_CURSOR           * 3 + i] = 0.6F;
     }
 
     ret[COL_SLEEPER * 3 + 0] = 0.5F;
