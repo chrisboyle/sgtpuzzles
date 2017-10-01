@@ -1641,22 +1641,25 @@ static void editbox_changed(GtkEditable *ed, gpointer data)
 {
     config_item *i = (config_item *)data;
 
-    sfree(i->sval);
-    i->sval = dupstr(gtk_entry_get_text(GTK_ENTRY(ed)));
+    assert(i->type == C_STRING);
+    sfree(i->u.string.sval);
+    i->u.string.sval = dupstr(gtk_entry_get_text(GTK_ENTRY(ed)));
 }
 
 static void button_toggled(GtkToggleButton *tb, gpointer data)
 {
     config_item *i = (config_item *)data;
 
-    i->ival = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(tb));
+    assert(i->type == C_BOOLEAN);
+    i->u.boolean.bval = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(tb));
 }
 
 static void droplist_sel(GtkComboBox *combo, gpointer data)
 {
     config_item *i = (config_item *)data;
 
-    i->ival = gtk_combo_box_get_active(combo);
+    assert(i->type == C_CHOICES);
+    i->u.choices.selected = gtk_combo_box_get_active(combo);
 }
 
 static int get_config(frontend *fe, int which)
@@ -1751,7 +1754,7 @@ static int get_config(frontend *fe, int which)
 			     GTK_EXPAND | GTK_SHRINK | GTK_FILL,
 			     3, 3);
 #endif
-	    gtk_entry_set_text(GTK_ENTRY(w), i->sval);
+	    gtk_entry_set_text(GTK_ENTRY(w), i->u.string.sval);
 	    g_signal_connect(G_OBJECT(w), "changed",
                              G_CALLBACK(editbox_changed), i);
 	    g_signal_connect(G_OBJECT(w), "key_press_event",
@@ -1776,7 +1779,8 @@ static int get_config(frontend *fe, int which)
 			     GTK_EXPAND | GTK_SHRINK | GTK_FILL,
 			     3, 3);
 #endif
-	    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(w), i->ival);
+	    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(w),
+                                         i->u.boolean.bval);
 	    gtk_widget_show(w);
 	    break;
 
@@ -1799,15 +1803,16 @@ static int get_config(frontend *fe, int which)
 
             {
 		int c;
-		char *p, *q, *name;
+		const char *p, *q;
+                char *name;
                 GtkListStore *model;
 		GtkCellRenderer *cr;
                 GtkTreeIter iter;
 
                 model = gtk_list_store_new(1, G_TYPE_STRING);
 
-		c = *i->sval;
-		p = i->sval+1;
+		c = *i->u.choices.choicenames;
+		p = i->u.choices.choicenames+1;
 
 		while (*p) {
 		    q = p;
@@ -1828,7 +1833,8 @@ static int get_config(frontend *fe, int which)
 
                 w = gtk_combo_box_new_with_model(GTK_TREE_MODEL(model));
 
-		gtk_combo_box_set_active(GTK_COMBO_BOX(w), i->ival);
+		gtk_combo_box_set_active(GTK_COMBO_BOX(w),
+                                         i->u.choices.selected);
 
 		cr = gtk_cell_renderer_text_new();
 		gtk_cell_layout_pack_start(GTK_CELL_LAYOUT(w), cr, TRUE);

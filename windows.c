@@ -2057,52 +2057,43 @@ static config_item *frontend_get_config(frontend *fe, int which,
 
 	ret[i].name = "Number of puzzles to print";
 	ret[i].type = C_STRING;
-	ret[i].sval = dupstr("1");
-	ret[i].ival = 0;
+	ret[i].u.string.sval = dupstr("1");
 	i++;
 
 	ret[i].name = "Number of puzzles across the page";
 	ret[i].type = C_STRING;
-	ret[i].sval = dupstr("1");
-	ret[i].ival = 0;
+	ret[i].u.string.sval = dupstr("1");
 	i++;
 
 	ret[i].name = "Number of puzzles down the page";
 	ret[i].type = C_STRING;
-	ret[i].sval = dupstr("1");
-	ret[i].ival = 0;
+	ret[i].u.string.sval = dupstr("1");
 	i++;
 
 	ret[i].name = "Percentage of standard size";
 	ret[i].type = C_STRING;
-	ret[i].sval = dupstr("100.0");
-	ret[i].ival = 0;
+	ret[i].u.string.sval = dupstr("100.0");
 	i++;
 
 	ret[i].name = "Include currently shown puzzle";
 	ret[i].type = C_BOOLEAN;
-	ret[i].sval = NULL;
-	ret[i].ival = TRUE;
+	ret[i].u.boolean.bval = TRUE;
 	i++;
 
 	ret[i].name = "Print solutions";
 	ret[i].type = C_BOOLEAN;
-	ret[i].sval = NULL;
-	ret[i].ival = FALSE;
+	ret[i].u.boolean.bval = FALSE;
 	i++;
 
 	if (fe->game->can_print_in_colour) {
 	    ret[i].name = "Print in colour";
 	    ret[i].type = C_BOOLEAN;
-	    ret[i].sval = NULL;
-	    ret[i].ival = FALSE;
+	    ret[i].u.boolean.bval = FALSE;
 	    i++;
 	}
 
 	ret[i].name = NULL;
 	ret[i].type = C_END;
-	ret[i].sval = NULL;
-	ret[i].ival = 0;
 	i++;
 
 	return ret;
@@ -2117,17 +2108,18 @@ static char *frontend_set_config(frontend *fe, int which, config_item *cfg)
     if (which < CFG_FRONTEND_SPECIFIC) {
 	return midend_set_config(fe->me, which, cfg);
     } else if (which == CFG_PRINT) {
-	if ((fe->printcount = atoi(cfg[0].sval)) <= 0)
+	if ((fe->printcount = atoi(cfg[0].u.string.sval)) <= 0)
 	    return "Number of puzzles to print should be at least one";
-	if ((fe->printw = atoi(cfg[1].sval)) <= 0)
+	if ((fe->printw = atoi(cfg[1].u.string.sval)) <= 0)
 	    return "Number of puzzles across the page should be at least one";
-	if ((fe->printh = atoi(cfg[2].sval)) <= 0)
+	if ((fe->printh = atoi(cfg[2].u.string.sval)) <= 0)
 	    return "Number of puzzles down the page should be at least one";
-	if ((fe->printscale = (float)atof(cfg[3].sval)) <= 0)
+	if ((fe->printscale = (float)atof(cfg[3].u.string.sval)) <= 0)
 	    return "Print size should be positive";
-	fe->printcurr = cfg[4].ival;
-	fe->printsolns = cfg[5].ival;
-	fe->printcolour = fe->game->can_print_in_colour && cfg[6].ival;
+	fe->printcurr = cfg[4].u.boolean.bval;
+	fe->printsolns = cfg[5].u.boolean.bval;
+	fe->printcolour = fe->game->can_print_in_colour &&
+            cfg[6].u.boolean.bval;
 	return NULL;
     } else {
 	assert(!"We should never get here");
@@ -2191,7 +2183,7 @@ static void create_config_controls(frontend * fe)
 	    mkctrl(fe, col2l, col2r, y, y + 12,
 		   TEXT("EDIT"), WS_BORDER | WS_TABSTOP | ES_AUTOHSCROLL,
 		   0, "", (j->ctlid = id++));
-	    SetDlgItemTextA(fe->cfgbox, j->ctlid, i->sval);
+	    SetDlgItemTextA(fe->cfgbox, j->ctlid, i->u.string.sval);
 	    break;
 
 	  case C_BOOLEAN:
@@ -2201,7 +2193,7 @@ static void create_config_controls(frontend * fe)
 	    mkctrl(fe, col1l, col2r, y + 1, y + 11, TEXT("BUTTON"),
 		   BS_NOTIFY | BS_AUTOCHECKBOX | WS_TABSTOP,
 		   0, i->name, (j->ctlid = id++));
-	    CheckDlgButton(fe->cfgbox, j->ctlid, (i->ival != 0));
+	    CheckDlgButton(fe->cfgbox, j->ctlid, (i->u.boolean.bval != 0));
 	    break;
 
 	  case C_CHOICES:
@@ -2215,9 +2207,11 @@ static void create_config_controls(frontend * fe)
 			 CBS_DROPDOWNLIST | CBS_HASSTRINGS,
 			 0, "", (j->ctlid = id++));
 	    {
-		char c, *p, *q, *str;
+		char c;
+                const char *p, *q;
+                char *str;
 
-		p = i->sval;
+		p = i->u.choices.choicenames;
 		c = *p++;
 		while (*p) {
 		    q = p;
@@ -2236,7 +2230,7 @@ static void create_config_controls(frontend * fe)
 		    p = q;
 		}
 	    }
-	    SendMessage(ctl, CB_SETCURSEL, i->ival, 0);
+	    SendMessage(ctl, CB_SETCURSEL, i->u.choices.selected, 0);
 	    break;
 	}
 
@@ -2324,16 +2318,16 @@ static int CALLBACK ConfigDlgProc(HWND hwnd, UINT msg,
 	    GetDlgItemText(fe->cfgbox, j->ctlid, buffer, lenof(buffer));
 #endif
 	    buffer[lenof(buffer)-1] = '\0';
-	    sfree(i->sval);
-	    i->sval = dupstr(buffer);
+	    sfree(i->u.string.sval);
+	    i->u.string.sval = dupstr(buffer);
 	} else if (i->type == C_BOOLEAN && 
 		   (HIWORD(wParam) == BN_CLICKED ||
 		    HIWORD(wParam) == BN_DBLCLK)) {
-	    i->ival = IsDlgButtonChecked(fe->cfgbox, j->ctlid);
+	    i->u.boolean.bval = IsDlgButtonChecked(fe->cfgbox, j->ctlid);
 	} else if (i->type == C_CHOICES &&
 		   HIWORD(wParam) == CBN_SELCHANGE) {
-	    i->ival = SendDlgItemMessage(fe->cfgbox, j->ctlid,
-					 CB_GETCURSEL, 0, 0);
+	    i->u.choices.selected = SendDlgItemMessage(fe->cfgbox, j->ctlid,
+                                                       CB_GETCURSEL, 0, 0);
 	}
 
 	return 0;
@@ -2683,7 +2677,7 @@ static int get_config(frontend *fe, int which)
 	    ctl = mkctrl(fe, col2l, col2r, y, y+height*3/2,
 			 "EDIT", WS_TABSTOP | ES_AUTOHSCROLL,
 			 WS_EX_CLIENTEDGE, "", (j->ctlid = id++));
-	    SetWindowText(ctl, i->sval);
+	    SetWindowText(ctl, i->u.string.sval);
 	    y += height*3/2;
 	    break;
 
@@ -2694,7 +2688,7 @@ static int get_config(frontend *fe, int which)
 	    mkctrl(fe, col1l, col2r, y, y+height, "BUTTON",
 		   BS_NOTIFY | BS_AUTOCHECKBOX | WS_TABSTOP,
 		   0, i->name, (j->ctlid = id++));
-	    CheckDlgButton(fe->cfgbox, j->ctlid, (i->ival != 0));
+	    CheckDlgButton(fe->cfgbox, j->ctlid, (i->u.boolean.bval != 0));
 	    y += height;
 	    break;
 
@@ -2709,10 +2703,12 @@ static int get_config(frontend *fe, int which)
 			 CBS_DROPDOWNLIST | CBS_HASSTRINGS,
 			 WS_EX_CLIENTEDGE, "", (j->ctlid = id++));
 	    {
-		char c, *p, *q, *str;
+		char c;
+                const char *p, *q;
+                char *str;
 
 		SendMessage(ctl, CB_RESETCONTENT, 0, 0);
-		p = i->sval;
+		p = i->u.choices.choicenames;
 		c = *p++;
 		while (*p) {
 		    q = p;
@@ -2727,7 +2723,7 @@ static int get_config(frontend *fe, int which)
 		}
 	    }
 
-	    SendMessage(ctl, CB_SETCURSEL, i->ival, 0);
+	    SendMessage(ctl, CB_SETCURSEL, i->u.choices.selected, 0);
 
 	    y += height*3/2;
 	    break;

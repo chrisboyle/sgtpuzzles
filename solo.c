@@ -445,46 +445,39 @@ static config_item *game_configure(const game_params *params)
     ret[0].name = "Columns of sub-blocks";
     ret[0].type = C_STRING;
     sprintf(buf, "%d", params->c);
-    ret[0].sval = dupstr(buf);
-    ret[0].ival = 0;
+    ret[0].u.string.sval = dupstr(buf);
 
     ret[1].name = "Rows of sub-blocks";
     ret[1].type = C_STRING;
     sprintf(buf, "%d", params->r);
-    ret[1].sval = dupstr(buf);
-    ret[1].ival = 0;
+    ret[1].u.string.sval = dupstr(buf);
 
     ret[2].name = "\"X\" (require every number in each main diagonal)";
     ret[2].type = C_BOOLEAN;
-    ret[2].sval = NULL;
-    ret[2].ival = params->xtype;
+    ret[2].u.boolean.bval = params->xtype;
 
     ret[3].name = "Jigsaw (irregularly shaped sub-blocks)";
     ret[3].type = C_BOOLEAN;
-    ret[3].sval = NULL;
-    ret[3].ival = (params->r == 1);
+    ret[3].u.boolean.bval = (params->r == 1);
 
     ret[4].name = "Killer (digit sums)";
     ret[4].type = C_BOOLEAN;
-    ret[4].sval = NULL;
-    ret[4].ival = params->killer;
+    ret[4].u.boolean.bval = params->killer;
 
     ret[5].name = "Symmetry";
     ret[5].type = C_CHOICES;
-    ret[5].sval = ":None:2-way rotation:4-way rotation:2-way mirror:"
+    ret[5].u.choices.choicenames = ":None:2-way rotation:4-way rotation:2-way mirror:"
         "2-way diagonal mirror:4-way mirror:4-way diagonal mirror:"
         "8-way mirror";
-    ret[5].ival = params->symm;
+    ret[5].u.choices.selected = params->symm;
 
     ret[6].name = "Difficulty";
     ret[6].type = C_CHOICES;
-    ret[6].sval = ":Trivial:Basic:Intermediate:Advanced:Extreme:Unreasonable";
-    ret[6].ival = params->diff;
+    ret[6].u.choices.choicenames = ":Trivial:Basic:Intermediate:Advanced:Extreme:Unreasonable";
+    ret[6].u.choices.selected = params->diff;
 
     ret[7].name = NULL;
     ret[7].type = C_END;
-    ret[7].sval = NULL;
-    ret[7].ival = 0;
 
     return ret;
 }
@@ -493,16 +486,16 @@ static game_params *custom_params(const config_item *cfg)
 {
     game_params *ret = snew(game_params);
 
-    ret->c = atoi(cfg[0].sval);
-    ret->r = atoi(cfg[1].sval);
-    ret->xtype = cfg[2].ival;
-    if (cfg[3].ival) {
+    ret->c = atoi(cfg[0].u.string.sval);
+    ret->r = atoi(cfg[1].u.string.sval);
+    ret->xtype = cfg[2].u.boolean.bval;
+    if (cfg[3].u.boolean.bval) {
 	ret->c *= ret->r;
 	ret->r = 1;
     }
-    ret->killer = cfg[4].ival;
-    ret->symm = cfg[5].ival;
-    ret->diff = cfg[6].ival;
+    ret->killer = cfg[4].u.boolean.bval;
+    ret->symm = cfg[5].u.choices.selected;
+    ret->diff = cfg[6].u.choices.selected;
     ret->kdiff = DIFF_KINTERSECT;
 
     return ret;

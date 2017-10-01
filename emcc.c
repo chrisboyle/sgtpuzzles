@@ -599,13 +599,14 @@ static void cfg_start(int which)
     for (i = 0; cfg[i].type != C_END; i++) {
 	switch (cfg[i].type) {
 	  case C_STRING:
-            js_dialog_string(i, cfg[i].name, cfg[i].sval);
+            js_dialog_string(i, cfg[i].name, cfg[i].u.string.sval);
 	    break;
 	  case C_BOOLEAN:
-            js_dialog_boolean(i, cfg[i].name, cfg[i].ival);
+            js_dialog_boolean(i, cfg[i].name, cfg[i].u.boolean.bval);
 	    break;
 	  case C_CHOICES:
-            js_dialog_choices(i, cfg[i].name, cfg[i].sval, cfg[i].ival);
+            js_dialog_choices(i, cfg[i].name, cfg[i].u.choices.choicenames,
+                              cfg[i].u.choices.selected);
 	    break;
 	}
     }
@@ -619,12 +620,29 @@ static void cfg_start(int which)
  */
 void dlg_return_sval(int index, const char *val)
 {
-    sfree(cfg[index].sval);
-    cfg[index].sval = dupstr(val);
+    config_item *i = cfg + index;
+    switch (i->type) {
+      case C_STRING:
+        sfree(i->u.string.sval);
+        i->u.string.sval = dupstr(val);
+        break;
+      default:
+        assert(0 && "Bad type for return_sval");
+    }
 }
 void dlg_return_ival(int index, int val)
 {
-    cfg[index].ival = val;
+    config_item *i = cfg + index;
+    switch (i->type) {
+      case C_BOOLEAN:
+        i->u.boolean.bval = val;
+        break;
+      case C_CHOICES:
+        i->u.choices.selected = val;
+        break;
+      default:
+        assert(0 && "Bad type for return_ival");
+    }
 }
 
 /*

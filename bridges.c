@@ -742,44 +742,40 @@ static config_item *game_configure(const game_params *params)
     ret[0].name = "Width";
     ret[0].type = C_STRING;
     sprintf(buf, "%d", params->w);
-    ret[0].sval = dupstr(buf);
-    ret[0].ival = 0;
+    ret[0].u.string.sval = dupstr(buf);
 
     ret[1].name = "Height";
     ret[1].type = C_STRING;
     sprintf(buf, "%d", params->h);
-    ret[1].sval = dupstr(buf);
-    ret[1].ival = 0;
+    ret[1].u.string.sval = dupstr(buf);
 
     ret[2].name = "Difficulty";
     ret[2].type = C_CHOICES;
-    ret[2].sval = ":Easy:Medium:Hard";
-    ret[2].ival = params->difficulty;
+    ret[2].u.choices.choicenames = ":Easy:Medium:Hard";
+    ret[2].u.choices.selected = params->difficulty;
 
     ret[3].name = "Allow loops";
     ret[3].type = C_BOOLEAN;
-    ret[3].sval = NULL;
-    ret[3].ival = params->allowloops;
+    ret[3].u.boolean.bval = params->allowloops;
 
     ret[4].name = "Max. bridges per direction";
     ret[4].type = C_CHOICES;
-    ret[4].sval = ":1:2:3:4"; /* keep up-to-date with MAX_BRIDGES */
-    ret[4].ival = params->maxb - 1;
+    ret[4].u.choices.choicenames = ":1:2:3:4"; /* keep up-to-date with
+                                                * MAX_BRIDGES */
+    ret[4].u.choices.selected = params->maxb - 1;
 
     ret[5].name = "%age of island squares";
     ret[5].type = C_CHOICES;
-    ret[5].sval = ":5%:10%:15%:20%:25%:30%";
-    ret[5].ival = (params->islands / 5)-1;
+    ret[5].u.choices.choicenames = ":5%:10%:15%:20%:25%:30%";
+    ret[5].u.choices.selected = (params->islands / 5)-1;
 
     ret[6].name = "Expansion factor (%age)";
     ret[6].type = C_CHOICES;
-    ret[6].sval = ":0%:10%:20%:30%:40%:50%:60%:70%:80%:90%:100%";
-    ret[6].ival = params->expansion / 10;
+    ret[6].u.choices.choicenames = ":0%:10%:20%:30%:40%:50%:60%:70%:80%:90%:100%";
+    ret[6].u.choices.selected = params->expansion / 10;
 
     ret[7].name = NULL;
     ret[7].type = C_END;
-    ret[7].sval = NULL;
-    ret[7].ival = 0;
 
     return ret;
 }
@@ -788,13 +784,13 @@ static game_params *custom_params(const config_item *cfg)
 {
     game_params *ret = snew(game_params);
 
-    ret->w          = atoi(cfg[0].sval);
-    ret->h          = atoi(cfg[1].sval);
-    ret->difficulty = cfg[2].ival;
-    ret->allowloops = cfg[3].ival;
-    ret->maxb       = cfg[4].ival + 1;
-    ret->islands    = (cfg[5].ival + 1) * 5;
-    ret->expansion  = cfg[6].ival * 10;
+    ret->w          = atoi(cfg[0].u.string.sval);
+    ret->h          = atoi(cfg[1].u.string.sval);
+    ret->difficulty = cfg[2].u.choices.selected;
+    ret->allowloops = cfg[3].u.boolean.bval;
+    ret->maxb       = cfg[4].u.choices.selected + 1;
+    ret->islands    = (cfg[5].u.choices.selected + 1) * 5;
+    ret->expansion  = cfg[6].u.choices.selected * 10;
 
     return ret;
 }

@@ -166,35 +166,28 @@ static config_item *game_configure(const game_params *params)
     ret[0].name = "Colours";
     ret[0].type = C_STRING;
     sprintf(buf, "%d", params->ncolours);
-    ret[0].sval = dupstr(buf);
-    ret[0].ival = 0;
+    ret[0].u.string.sval = dupstr(buf);
 
     ret[1].name = "Pegs per guess";
     ret[1].type = C_STRING;
     sprintf(buf, "%d", params->npegs);
-    ret[1].sval = dupstr(buf);
-    ret[1].ival = 0;
+    ret[1].u.string.sval = dupstr(buf);
 
     ret[2].name = "Guesses";
     ret[2].type = C_STRING;
     sprintf(buf, "%d", params->nguesses);
-    ret[2].sval = dupstr(buf);
-    ret[2].ival = 0;
+    ret[2].u.string.sval = dupstr(buf);
 
     ret[3].name = "Allow blanks";
     ret[3].type = C_BOOLEAN;
-    ret[3].sval = NULL;
-    ret[3].ival = params->allow_blank;
+    ret[3].u.boolean.bval = params->allow_blank;
 
     ret[4].name = "Allow duplicates";
     ret[4].type = C_BOOLEAN;
-    ret[4].sval = NULL;
-    ret[4].ival = params->allow_multiple;
+    ret[4].u.boolean.bval = params->allow_multiple;
 
     ret[5].name = NULL;
     ret[5].type = C_END;
-    ret[5].sval = NULL;
-    ret[5].ival = 0;
 
     return ret;
 }
@@ -203,12 +196,12 @@ static game_params *custom_params(const config_item *cfg)
 {
     game_params *ret = snew(game_params);
 
-    ret->ncolours = atoi(cfg[0].sval);
-    ret->npegs = atoi(cfg[1].sval);
-    ret->nguesses = atoi(cfg[2].sval);
+    ret->ncolours = atoi(cfg[0].u.string.sval);
+    ret->npegs = atoi(cfg[1].u.string.sval);
+    ret->nguesses = atoi(cfg[2].u.string.sval);
 
-    ret->allow_blank = cfg[3].ival;
-    ret->allow_multiple = cfg[4].ival;
+    ret->allow_blank = cfg[3].u.boolean.bval;
+    ret->allow_multiple = cfg[4].u.boolean.bval;
 
     return ret;
 }

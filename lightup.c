@@ -299,37 +299,32 @@ static config_item *game_configure(const game_params *params)
     ret[0].name = "Width";
     ret[0].type = C_STRING;
     sprintf(buf, "%d", params->w);
-    ret[0].sval = dupstr(buf);
-    ret[0].ival = 0;
+    ret[0].u.string.sval = dupstr(buf);
 
     ret[1].name = "Height";
     ret[1].type = C_STRING;
     sprintf(buf, "%d", params->h);
-    ret[1].sval = dupstr(buf);
-    ret[1].ival = 0;
+    ret[1].u.string.sval = dupstr(buf);
 
     ret[2].name = "%age of black squares";
     ret[2].type = C_STRING;
     sprintf(buf, "%d", params->blackpc);
-    ret[2].sval = dupstr(buf);
-    ret[2].ival = 0;
+    ret[2].u.string.sval = dupstr(buf);
 
     ret[3].name = "Symmetry";
     ret[3].type = C_CHOICES;
-    ret[3].sval = ":None"
+    ret[3].u.choices.choicenames = ":None"
                   ":2-way mirror:2-way rotational"
                   ":4-way mirror:4-way rotational";
-    ret[3].ival = params->symm;
+    ret[3].u.choices.selected = params->symm;
 
     ret[4].name = "Difficulty";
     ret[4].type = C_CHOICES;
-    ret[4].sval = ":Easy:Tricky:Hard";
-    ret[4].ival = params->difficulty;
+    ret[4].u.choices.choicenames = ":Easy:Tricky:Hard";
+    ret[4].u.choices.selected = params->difficulty;
 
     ret[5].name = NULL;
     ret[5].type = C_END;
-    ret[5].sval = NULL;
-    ret[5].ival = 0;
 
     return ret;
 }
@@ -338,11 +333,11 @@ static game_params *custom_params(const config_item *cfg)
 {
     game_params *ret = snew(game_params);
 
-    ret->w =       atoi(cfg[0].sval);
-    ret->h =       atoi(cfg[1].sval);
-    ret->blackpc = atoi(cfg[2].sval);
-    ret->symm =    cfg[3].ival;
-    ret->difficulty = cfg[4].ival;
+    ret->w =       atoi(cfg[0].u.string.sval);
+    ret->h =       atoi(cfg[1].u.string.sval);
+    ret->blackpc = atoi(cfg[2].u.string.sval);
+    ret->symm =    cfg[3].u.choices.selected;
+    ret->difficulty = cfg[4].u.choices.selected;
 
     return ret;
 }

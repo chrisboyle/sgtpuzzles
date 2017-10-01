@@ -267,35 +267,28 @@ static config_item *game_configure(const game_params *params)
     ret[0].name = "Width";
     ret[0].type = C_STRING;
     sprintf(buf, "%d", params->width);
-    ret[0].sval = dupstr(buf);
-    ret[0].ival = 0;
+    ret[0].u.string.sval = dupstr(buf);
 
     ret[1].name = "Height";
     ret[1].type = C_STRING;
     sprintf(buf, "%d", params->height);
-    ret[1].sval = dupstr(buf);
-    ret[1].ival = 0;
+    ret[1].u.string.sval = dupstr(buf);
 
     ret[2].name = "Walls wrap around";
     ret[2].type = C_BOOLEAN;
-    ret[2].sval = NULL;
-    ret[2].ival = params->wrapping;
+    ret[2].u.boolean.bval = params->wrapping;
 
     ret[3].name = "Barrier probability";
     ret[3].type = C_STRING;
     sprintf(buf, "%g", params->barrier_probability);
-    ret[3].sval = dupstr(buf);
-    ret[3].ival = 0;
+    ret[3].u.string.sval = dupstr(buf);
 
     ret[4].name = "Ensure unique solution";
     ret[4].type = C_BOOLEAN;
-    ret[4].sval = NULL;
-    ret[4].ival = params->unique;
+    ret[4].u.boolean.bval = params->unique;
 
     ret[5].name = NULL;
     ret[5].type = C_END;
-    ret[5].sval = NULL;
-    ret[5].ival = 0;
 
     return ret;
 }
@@ -304,11 +297,11 @@ static game_params *custom_params(const config_item *cfg)
 {
     game_params *ret = snew(game_params);
 
-    ret->width = atoi(cfg[0].sval);
-    ret->height = atoi(cfg[1].sval);
-    ret->wrapping = cfg[2].ival;
-    ret->barrier_probability = (float)atof(cfg[3].sval);
-    ret->unique = cfg[4].ival;
+    ret->width = atoi(cfg[0].u.string.sval);
+    ret->height = atoi(cfg[1].u.string.sval);
+    ret->wrapping = cfg[2].u.boolean.bval;
+    ret->barrier_probability = (float)atof(cfg[3].u.string.sval);
+    ret->unique = cfg[4].u.boolean.bval;
 
     return ret;
 }
