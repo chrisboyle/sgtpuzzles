@@ -299,9 +299,9 @@ static game_params *dup_params(const game_params *params)
 static int game_fetch_preset(int i, char **name, game_params **params)
 {
     static struct {
-        char *title;
+        const char *title;
         game_params params;
-    } presets[] = {
+    } const presets[] = {
         { "2x2 Trivial", { 2, 2, SYMM_ROT2, DIFF_BLOCK, DIFF_KMINMAX, FALSE, FALSE } },
         { "2x3 Basic", { 2, 3, SYMM_ROT2, DIFF_SIMPLE, DIFF_KMINMAX, FALSE, FALSE } },
         { "3x3 Trivial", { 3, 3, SYMM_ROT2, DIFF_BLOCK, DIFF_KMINMAX, FALSE, FALSE } },
@@ -831,19 +831,20 @@ static void solver_place(struct solver_usage *usage, int x, int y, int n)
  */
 struct solver_scratch;
 static int solver_elim(struct solver_usage *usage, int *indices,
-                       char *fmt, ...) __attribute__((format(printf,3,4)));
+                       const char *fmt, ...)
+    __attribute__((format(printf,3,4)));
 static int solver_intersect(struct solver_usage *usage,
-                            int *indices1, int *indices2, char *fmt, ...)
+                            int *indices1, int *indices2, const char *fmt, ...)
     __attribute__((format(printf,4,5)));
 static int solver_set(struct solver_usage *usage,
                       struct solver_scratch *scratch,
-                      int *indices, char *fmt, ...)
+                      int *indices, const char *fmt, ...)
     __attribute__((format(printf,4,5)));
 #endif
 
 static int solver_elim(struct solver_usage *usage, int *indices
 #ifdef STANDALONE_SOLVER
-                       , char *fmt, ...
+                       , const char *fmt, ...
 #endif
                        )
 {
@@ -907,7 +908,7 @@ static int solver_elim(struct solver_usage *usage, int *indices
 static int solver_intersect(struct solver_usage *usage,
                             int *indices1, int *indices2
 #ifdef STANDALONE_SOLVER
-                            , char *fmt, ...
+                            , const char *fmt, ...
 #endif
                             )
 {
@@ -985,7 +986,7 @@ static int solver_set(struct solver_usage *usage,
                       struct solver_scratch *scratch,
                       int *indices
 #ifdef STANDALONE_SOLVER
-                      , char *fmt, ...
+                      , const char *fmt, ...
 #endif
                       )
 {
@@ -1351,7 +1352,7 @@ static int solver_forcing(struct solver_usage *usage,
 						  (ondiag1(yt*cr+xt) && ondiag1(y*cr+x)))))) {
 #ifdef STANDALONE_SOLVER
                                 if (solver_show_working) {
-                                    char *sep = "";
+                                    const char *sep = "";
                                     int xl, yl;
                                     printf("%*sforcing chain, %d at ends of ",
                                            solver_recurse_depth*4, "", orign);
@@ -2516,7 +2517,7 @@ static void solver(int cr, struct block_structure *blocks,
 
 #ifdef STANDALONE_SOLVER
 	    if (solver_show_working) {
-		char *sep = "";
+		const char *sep = "";
 		printf("%*srecursing on (%d,%d) [",
 		       solver_recurse_depth*4, "", x + 1, y + 1);
 		for (i = 0; i < j; i++) {
@@ -3154,7 +3155,8 @@ static int symmetries(const game_params *params, int x, int y,
 static char *encode_solve_move(int cr, digit *grid)
 {
     int i, len;
-    char *ret, *p, *sep;
+    char *ret, *p;
+    const char *sep;
 
     /*
      * It's surprisingly easy to work out _exactly_ how long this

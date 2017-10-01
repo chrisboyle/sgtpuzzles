@@ -325,7 +325,7 @@ void midend_supersede_game_desc(midend *me, const char *desc,
                                 const char *privdesc);
 char *midend_rewrite_statusbar(midend *me, const char *text);
 void midend_serialise(midend *me,
-                      void (*write)(void *ctx, void *buf, int len),
+                      void (*write)(void *ctx, const void *buf, int len),
                       void *wctx);
 const char *midend_deserialise(midend *me,
                                int (*read)(void *ctx, void *buf, int len),

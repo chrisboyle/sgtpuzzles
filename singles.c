@@ -330,10 +330,10 @@ static int c2n(char c) {
 }
 
 static void unpick_desc(const game_params *params, const char *desc,
-                        game_state **sout, char **mout)
+                        game_state **sout, const char **mout)
 {
     game_state *state = blank_game(params->w, params->h);
-    char *msg = NULL;
+    const char *msg = NULL;
     int num = 0, i = 0;
 
     if (strlen(desc) != state->n) {
@@ -1412,7 +1412,7 @@ randomise:
 
 static const char *validate_desc(const game_params *params, const char *desc)
 {
-    char *ret = NULL;
+    const char *ret = NULL;
 
     unpick_desc(params, desc, NULL, &ret);
     return ret;

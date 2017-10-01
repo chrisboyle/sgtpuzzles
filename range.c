@@ -66,7 +66,7 @@
 
 #define setmember(obj, field) ( (obj) . field = field )
 
-static char *nfmtstr(int n, char *fmt, ...) {
+static char *nfmtstr(int n, const char *fmt, ...) {
     va_list va;
     char *ret = snewn(n+1, char);
     va_start(va, fmt);

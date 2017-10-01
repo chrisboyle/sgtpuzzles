@@ -251,7 +251,7 @@ static const char *validate_desc(const game_params *params, const char *desc)
 {
     int nballs, dlen = strlen(desc), i;
     unsigned char *bmp;
-    char *ret;
+    const char *ret;
 
     /* the bitmap is 2+(nballs*2) long; the hex version is double that. */
     nballs = ((dlen/2)-2)/2;

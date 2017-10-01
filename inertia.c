@@ -738,7 +738,8 @@ static char *solve_game(const game_state *state, const game_state *currstate,
     int *unvisited;
     int circuitlen, circuitsize;
     int head, tail, pass, i, j, n, x, y, d, dd;
-    char *err, *soln, *p;
+    const char *err;
+    char *soln, *p;
 
     /*
      * Before anything else, deal with the special case in which

@@ -25,7 +25,7 @@ in puzzles do echo '$#define VER "Version $(Version)"' >> version.h
 in puzzles do perl -i -pe 's/Unidentified build/$(Version)/' osx-info.plist
 
 # First build some local binaries, to run the icon build.
-in puzzles do perl mkfiles.pl -U
+in puzzles do perl mkfiles.pl -U CFLAGS='-Wwrite-strings -Werror'
 in puzzles do make
 
 # Now build the screenshots and icons.
@@ -45,7 +45,7 @@ in puzzles do ./mkauto.sh
 # Build the OS X .dmg archive.
 delegate osx
   in puzzles do make -f Makefile.osx clean
-  in puzzles do make -f Makefile.osx release VER=-DVER=$(Version)
+  in puzzles do make -f Makefile.osx release VER=-DVER=$(Version) XFLAGS='-Wwrite-strings -Werror'
   return puzzles/Puzzles.dmg
 enddelegate
 
@@ -56,7 +56,7 @@ in puzzles do mason.pl --args '{"version":"$(Version)","descfile":"gamedesc.txt"
 in puzzles do perl winiss.pl $(Version) gamedesc.txt > puzzles.iss
 ifneq "$(VISUAL_STUDIO)" "yes" then
   in puzzles with clangcl64 do Platform=x64 make -f Makefile.clangcl clean
-  in puzzles with clangcl64 do Platform=x64 make -f Makefile.clangcl VER=-DVER=$(Version)
+  in puzzles with clangcl64 do Platform=x64 make -f Makefile.clangcl VER=-DVER=$(Version) XFLAGS='-Wwrite-strings -Werror'
   # Code-sign the binaries, if the local bob config provides a script
   # to do so. We assume here that the script accepts an -i option to
   # provide a 'more info' URL, and an optional -n option to provide a
@@ -144,7 +144,7 @@ ifneq "$(JAVA_UNFINISHED)" "" in puzzles do perl mkfiles.pl
 
 # Build the Java applets.
 delegate nestedvm
-  in puzzles do make -f Makefile.nestedvm NESTEDVM="$$NESTEDVM" VER=-DVER=$(Version)
+  in puzzles do make -f Makefile.nestedvm NESTEDVM="$$NESTEDVM" VER=-DVER=$(Version) XFLAGS="-Wwrite-strings -Werror"
   return puzzles/*.jar
 enddelegate
 
@@ -154,7 +154,7 @@ enddelegate
 in puzzles do mkdir js # so we can tell output .js files from emcc*.js
 delegate emscripten
   in puzzles do make -f Makefile.emcc OUTPREFIX=js/ clean
-  in puzzles do make -f Makefile.emcc OUTPREFIX=js/
+  in puzzles do make -f Makefile.emcc OUTPREFIX=js/ XFLAGS="-Wwrite-strings -Werror"
   return puzzles/js/*.js
 enddelegate
 

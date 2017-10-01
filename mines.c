@@ -2558,7 +2558,7 @@ uncover:
 		 * can.
 		 */
 		char *p = buf;
-		char *sep = "";
+		const char *sep = "";
 
 		for (dy = -1; dy <= +1; dy++)
 		    for (dx = -1; dx <= +1; dx++)

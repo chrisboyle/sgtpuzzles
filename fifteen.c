@@ -273,7 +273,7 @@ static char *new_game_desc(const game_params *params, random_state *rs,
 static const char *validate_desc(const game_params *params, const char *desc)
 {
     const char *p;
-    char *err;
+    const char *err;
     int i, area;
     int *used;
 

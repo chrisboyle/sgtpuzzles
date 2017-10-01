@@ -73,7 +73,7 @@ void latin_solver_place(struct latin_solver *solver, int x, int y, int n)
 
 int latin_solver_elim(struct latin_solver *solver, int start, int step
 #ifdef STANDALONE_SOLVER
-		      , char *fmt, ...
+		      , const char *fmt, ...
 #endif
 		      )
 {
@@ -150,7 +150,7 @@ int latin_solver_set(struct latin_solver *solver,
                      struct latin_solver_scratch *scratch,
                      int start, int step1, int step2
 #ifdef STANDALONE_SOLVER
-                     , char *fmt, ...
+                     , const char *fmt, ...
 #endif
                      )
 {
@@ -499,7 +499,7 @@ int latin_solver_forcing(struct latin_solver *solver,
                                 (xt == x || yt == y)) {
 #ifdef STANDALONE_SOLVER
                                 if (solver_show_working) {
-                                    char *sep = "";
+                                    const char *sep = "";
                                     int xl, yl;
                                     printf("%*sforcing chain, %s at ends of ",
                                            solver_recurse_depth*4, "",
@@ -775,7 +775,7 @@ static int latin_solver_recurse
 
 #ifdef STANDALONE_SOLVER
         if (solver_show_working) {
-            char *sep = "";
+            const char *sep = "";
             printf("%*srecursing on (%d,%d) [",
                    solver_recurse_depth*4, "", x+1, y+1);
             for (i = 0; i < j; i++) {

@@ -3296,8 +3296,7 @@ visually activate and deactivate a redo button.
 \H{midend-serialise} \cw{midend_serialise()}
 
 \c void midend_serialise(midend *me,
-\c                       void (*write)(void *ctx, void *buf, int len),
-\c                       void *wctx);
+\c     void (*write)(void *ctx, const void *buf, int len), void *wctx);
 
 Calling this function causes the mid-end to convert its entire
 internal state into a long ASCII text string, and to pass that

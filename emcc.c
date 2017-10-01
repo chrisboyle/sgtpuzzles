@@ -787,7 +787,7 @@ struct savefile_write_ctx {
     size_t pos;
 };
 
-static void savefile_write(void *vctx, void *buf, int len)
+static void savefile_write(void *vctx, const void *buf, int len)
 {
     struct savefile_write_ctx *ctx = (struct savefile_write_ctx *)vctx;
     if (ctx->buffer)

@@ -238,7 +238,7 @@ static game_params *default_params(void)
 static int game_fetch_preset(int i, char **name, game_params **params)
 {
     game_params *ret = snew(game_params);
-    char *str;
+    const char *str;
 
     switch (i) {
       case 0:

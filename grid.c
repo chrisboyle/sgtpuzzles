@@ -1529,8 +1529,8 @@ static void grid_size_triangular(int width, int height,
     *yextent = height * vec_y;
 }
 
-static char *grid_validate_desc_triangular(grid_type type, int width,
-                                           int height, const char *desc)
+static const char *grid_validate_desc_triangular(grid_type type, int width,
+                                                 int height, const char *desc)
 {
     /*
      * Triangular grids: an absent description is valid (indicating
@@ -2855,8 +2855,9 @@ static char *grid_new_desc_penrose(grid_type type, int width, int height, random
     return dupstr(gd);
 }
 
-static char *grid_validate_desc_penrose(grid_type type, int width, int height,
-                                        const char *desc)
+static const char *grid_validate_desc_penrose(grid_type type,
+                                              int width, int height,
+                                              const char *desc)
 {
     int tilesize = PENROSE_TILESIZE, startsz, depth, xoff, yoff, aoff, inner_radius;
     double outer_radius;
@@ -3032,8 +3033,8 @@ char *grid_new_desc(grid_type type, int width, int height, random_state *rs)
     }
 }
 
-char *grid_validate_desc(grid_type type, int width, int height,
-                         const char *desc)
+const char *grid_validate_desc(grid_type type, int width, int height,
+                               const char *desc)
 {
     if (type == GRID_PENROSE_P2 || type == GRID_PENROSE_P3) {
         return grid_validate_desc_penrose(type, width, height, desc);
@@ -3048,7 +3049,7 @@ char *grid_validate_desc(grid_type type, int width, int height,
 
 grid *grid_new(grid_type type, int width, int height, const char *desc)
 {
-    char *err = grid_validate_desc(type, width, height, desc);
+    const char *err = grid_validate_desc(type, width, height, desc);
     if (err) assert(!"Invalid grid description.");
 
     return grid_news[type](width, height, desc);

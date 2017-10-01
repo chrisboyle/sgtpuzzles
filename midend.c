@@ -118,7 +118,7 @@ struct deserialise_data {
  */
 static const char *midend_deserialise_internal(
     midend *me, int (*read)(void *ctx, void *buf, int len), void *rctx,
-    char *(*check)(void *ctx, midend *, const struct deserialise_data *),
+    const char *(*check)(void *ctx, midend *, const struct deserialise_data *),
     void *cctx);
 
 void midend_reset_tilesize(midend *me)
@@ -384,7 +384,7 @@ void midend_force_redraw(midend *me)
     midend_redraw(me);
 }
 
-static void newgame_serialise_write(void *ctx, void *buf, int len)
+static void newgame_serialise_write(void *ctx, const void *buf, int len)
 {
     midend *const me = ctx;
     int new_len;
@@ -547,7 +547,7 @@ struct newgame_undo_deserialise_check_ctx {
     int refused;
 };
 
-static char *newgame_undo_deserialise_check(
+static const char *newgame_undo_deserialise_check(
     void *vctx, midend *me, const struct deserialise_data *data)
 {
     struct newgame_undo_deserialise_check_ctx *ctx =
@@ -1333,7 +1333,8 @@ void midend_supersede_game_desc(midend *me, const char *desc,
 
 config_item *midend_get_config(midend *me, int which, char **wintitle)
 {
-    char *titlebuf, *parstr, *rest;
+    char *titlebuf, *parstr;
+    const char *rest;
     config_item *ret;
     char sep;
 
@@ -1765,7 +1766,7 @@ char *midend_rewrite_statusbar(midend *me, const char *text)
 #define SERIALISE_VERSION "1"
 
 void midend_serialise(midend *me,
-                      void (*write)(void *ctx, void *buf, int len),
+                      void (*write)(void *ctx, const void *buf, int len),
                       void *wctx)
 {
     int i;
@@ -1781,7 +1782,7 @@ void midend_serialise(midend *me,
      */
 #define wr(h,s) do { \
     char hbuf[80]; \
-    char *str = (s); \
+    const char *str = (s); \
     char lbuf[9];                               \
     copy_left_justified(lbuf, sizeof(lbuf), h); \
     sprintf(hbuf, "%s:%d:", lbuf, (int)strlen(str)); \
@@ -1922,7 +1923,7 @@ void midend_serialise(midend *me,
  */
 static const char *midend_deserialise_internal(
     midend *me, int (*read)(void *ctx, void *buf, int len), void *rctx,
-    char *(*check)(void *ctx, midend *, const struct deserialise_data *data),
+    const char *(*check)(void *ctx, midend *, const struct deserialise_data *),
     void *cctx)
 {
     struct deserialise_data data;
@@ -1932,7 +1933,7 @@ static const char *midend_deserialise_internal(
 
     char *val = NULL;
     /* Initially all errors give the same report */
-    char *ret = "Data does not appear to be a saved game file";
+    const char *ret = "Data does not appear to be a saved game file";
 
     data.seed = data.parstr = data.desc = data.privdesc = NULL;
     data.auxinfo = data.uistr = data.cparstr = NULL;
@@ -2309,7 +2310,7 @@ const char *identify_game(char **name,
 
     char *val = NULL;
     /* Initially all errors give the same report */
-    char *ret = "Data does not appear to be a saved game file";
+    const char *ret = "Data does not appear to be a saved game file";
 
     *name = NULL;
 

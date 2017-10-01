@@ -667,7 +667,8 @@ static char *diff_game(const game_state *src, const game_state *dest,
                        int issolve)
 {
     int movelen = 0, movesize = 256, x, y, len;
-    char *move = snewn(movesize, char), buf[80], *sep = "";
+    char *move = snewn(movesize, char), buf[80];
+    const char *sep = "";
     char achar = issolve ? 'a' : 'A';
     space *sps, *spd;
 
@@ -1523,10 +1524,10 @@ static int dots_too_close(game_state *state)
 }
 
 static game_state *load_game(const game_params *params, const char *desc,
-                             char **why_r)
+                             const char **why_r)
 {
     game_state *state = blank_game(params->w, params->h);
-    char *why = NULL;
+    const char *why = NULL;
     int i, x, y, n;
     unsigned int df;
 
@@ -1572,7 +1573,7 @@ fail:
 
 static const char *validate_desc(const game_params *params, const char *desc)
 {
-    char *why = NULL;
+    const char *why = NULL;
     game_state *dummy = load_game(params, desc, &why);
     if (dummy) {
         free_game(dummy);

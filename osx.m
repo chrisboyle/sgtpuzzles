@@ -152,7 +152,7 @@ void get_random_seed(void **randseed, int *randseedsize)
     *randseedsize = sizeof(time_t);
 }
 
-static void savefile_write(void *wctx, void *buf, int len)
+static void savefile_write(void *wctx, const void *buf, int len)
 {
     FILE *fp = (FILE *)wctx;
     fwrite(buf, 1, len, fp);

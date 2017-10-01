@@ -295,7 +295,7 @@ static grid_type grid_types[] = { GRIDLIST(GRID_GRIDTYPE) };
 #define NUM_GRID_TYPES (sizeof(grid_types) / sizeof(grid_types[0]))
 static const struct {
     int amin, omin;
-    char *aerr, *oerr;
+    const char *aerr, *oerr;
 } grid_size_limits[] = { GRIDLIST(GRID_SIZES) };
 
 /* Generates a (dynamically allocated) new grid, according to the
@@ -760,7 +760,8 @@ static const char *validate_desc(const game_params *params, const char *desc)
 {
     int count = 0;
     grid *g;
-    char *grid_desc, *ret;
+    char *grid_desc;
+    const char *ret;
 
     /* It's pretty inefficient to do this just for validation. All we need to
      * know is the precise number of faces. */

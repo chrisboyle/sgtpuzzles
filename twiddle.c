@@ -80,9 +80,9 @@ static game_params *dup_params(const game_params *params)
 static int game_fetch_preset(int i, char **name, game_params **params)
 {
     static struct {
-        char *title;
+        const char *title;
         game_params params;
-    } presets[] = {
+    } const presets[] = {
         { "3x3 rows only", { 3, 3, 2, TRUE, FALSE } },
         { "3x3 normal", { 3, 3, 2, FALSE, FALSE } },
         { "3x3 orientable", { 3, 3, 2, FALSE, TRUE } },

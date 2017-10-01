@@ -1561,7 +1561,8 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     if ((IS_MOUSE_DRAG(button) || IS_MOUSE_RELEASE(button)) &&
         ui->drag_button > 0) {
         int xmin, ymin, xmax, ymax;
-        char *buf, *sep;
+        char *buf;
+        const char *sep;
         int buflen, bufsize, tmplen;
 
         x = FROMCOORD(x);

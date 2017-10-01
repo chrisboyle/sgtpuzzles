@@ -2168,7 +2168,7 @@ static void filesel_ok(GtkButton *button, gpointer data)
     fe->filesel_name = dupstr(name);
 }
 
-static char *file_selector(frontend *fe, char *title, int save)
+static char *file_selector(frontend *fe, const char *title, int save)
 {
     GtkWidget *filesel =
         gtk_file_selection_new(title);
@@ -2199,7 +2199,7 @@ static char *file_selector(frontend *fe, char *title, int save)
 
 #else
 
-static char *file_selector(frontend *fe, char *title, int save)
+static char *file_selector(frontend *fe, const char *title, int save)
 {
     char *filesel_name = NULL;
 
@@ -2231,7 +2231,7 @@ struct savefile_write_ctx {
     int error;
 };
 
-static void savefile_write(void *wctx, void *buf, int len)
+static void savefile_write(void *wctx, const void *buf, int len)
 {
     struct savefile_write_ctx *ctx = (struct savefile_write_ctx *)wctx;
     if (fwrite(buf, 1, len, ctx->fp) < len)
@@ -2396,7 +2396,7 @@ static void menu_about_event(GtkMenuItem *menuitem, gpointer data)
 }
 
 static GtkWidget *add_menu_ui_item(
-    frontend *fe, GtkContainer *cont, char *text, int action,
+    frontend *fe, GtkContainer *cont, const char *text, int action,
     int accel_key, int accel_keyqual)
 {
     GtkWidget *menuitem = gtk_menu_item_new_with_label(text);
@@ -2928,7 +2928,7 @@ int main(int argc, char **argv)
     int soln = FALSE, colour = FALSE;
     float scale = 1.0F;
     float redo_proportion = 0.0F;
-    char *savefile = NULL, *savesuffix = NULL;
+    const char *savefile = NULL, *savesuffix = NULL;
     char *arg = NULL;
     int argtype = ARG_EITHER;
     char *screenshot_file = NULL;

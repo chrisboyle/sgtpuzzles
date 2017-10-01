@@ -68,7 +68,7 @@
 
 static unsigned char verbose;
 
-static void printv(char *fmt, ...) {
+static void printv(const char *fmt, ...) {
 #ifndef PALM
     if (verbose) {
 	va_list va;

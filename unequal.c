@@ -1195,12 +1195,12 @@ generate:
 }
 
 static game_state *load_game(const game_params *params, const char *desc,
-                             char **why_r)
+                             const char **why_r)
 {
     game_state *state = blank_game(params->order, params->adjacent);
     const char *p = desc;
     int i = 0, n, o = params->order, x, y;
-    char *why = NULL;
+    const char *why = NULL;
 
     while (*p) {
         while (*p >= 'a' && *p <= 'z') {
@@ -1293,7 +1293,7 @@ static game_state *new_game(midend *me, const game_params *params,
 
 static const char *validate_desc(const game_params *params, const char *desc)
 {
-    char *why = NULL;
+    const char *why = NULL;
     game_state *dummy = load_game(params, desc, &why);
     if (dummy) {
         free_game(dummy);

@@ -727,7 +727,7 @@ static char *encode_block_structure(char *p, int w, int *dsf)
     return q;
 }
 
-static char *parse_block_structure(const char **p, int w, int *dsf)
+static const char *parse_block_structure(const char **p, int w, int *dsf)
 {
     int a = w*w;
     int pos = 0;
@@ -1207,7 +1207,7 @@ static const char *validate_desc(const game_params *params, const char *desc)
 {
     int w = params->w, a = w*w;
     int *dsf;
-    char *ret;
+    const char *ret;
     const char *p = desc;
     int i;
 

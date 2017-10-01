@@ -1108,7 +1108,8 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
 static char *sel_movedesc(game_ui *ui, const game_state *state)
 {
     int i;
-    char *ret, *sep, buf[80];
+    char *ret, buf[80];
+    const char *sep;
     int retlen, retsize;
 
     retsize = 256;

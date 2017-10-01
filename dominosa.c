@@ -749,7 +749,7 @@ static const char *validate_desc(const game_params *params, const char *desc)
     int n = params->n, w = n+2, h = n+1, wh = w*h;
     int *occurrences;
     int i, j;
-    char *ret;
+    const char *ret;
 
     ret = NULL;
     occurrences = snewn(n+1, int);

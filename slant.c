@@ -413,7 +413,7 @@ static void fill_square(int w, int h, int x, int y, int v,
 }
 
 static int vbitmap_clear(int w, int h, struct solver_scratch *sc,
-                         int x, int y, int vbits, char *reason, ...)
+                         int x, int y, int vbits, const char *reason, ...)
 {
     int done_something = FALSE;
     int vbit;
@@ -734,7 +734,7 @@ static int slant_solve(int w, int h, const signed char *clues,
 		int fs, bs, v;
 		int c1, c2;
 #ifdef SOLVER_DIAGNOSTICS
-		char *reason = "<internal error>";
+		const char *reason = "<internal error>";
 #endif
 
 		if (soln[y*w+x])

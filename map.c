@@ -873,7 +873,7 @@ static const char colnames[FOUR] = { 'R', 'Y', 'G', 'B' };
 static int place_colour(struct solver_scratch *sc,
 			int *colouring, int index, int colour
 #ifdef SOLVER_DIAGNOSTICS
-                        , char *verb
+                        , const char *verb
 #endif
                         )
 {
@@ -920,7 +920,7 @@ static char *colourset(char *buf, int set)
 {
     int i;
     char *p = buf;
-    char *sep = "";
+    const char *sep = "";
 
     for (i = 0; i < FOUR; i++)
         if (set & (1 << i)) {
@@ -1214,7 +1214,8 @@ static int map_solver(struct solver_scratch *sc,
                                 (sc->possible[k] & currc)) {
 #ifdef SOLVER_DIAGNOSTICS
                                 if (verbose) {
-                                    char buf[80], *sep = "";
+                                    char buf[80];
+                                    const char *sep = "";
                                     int r;
 
                                     printf("%*sforcing chain, colour %s, ",
@@ -1699,8 +1700,8 @@ static char *new_game_desc(const game_params *params, random_state *rs,
     return ret;
 }
 
-static char *parse_edge_list(const game_params *params, const char **desc,
-                             int *map)
+static const char *parse_edge_list(const game_params *params,
+                                   const char **desc, int *map)
 {
     int w = params->w, h = params->h, wh = w*h, n = params->n;
     int i, k, pos, state;
@@ -1781,7 +1782,7 @@ static const char *validate_desc(const game_params *params, const char *desc)
     int w = params->w, h = params->h, wh = w*h, n = params->n;
     int area;
     int *map;
-    char *ret;
+    const char *ret;
 
     map = snewn(2*wh, int);
     ret = parse_edge_list(params, &desc, map);
@@ -1841,7 +1842,7 @@ static game_state *new_game(midend *me, const game_params *params,
     p = desc;
 
     {
-	char *ret;
+	const char *ret;
 	ret = parse_edge_list(params, &p, state->map->map);
 	assert(!ret);
     }

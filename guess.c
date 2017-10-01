@@ -74,7 +74,7 @@ static game_params *dup_params(const game_params *params)
 }
 
 static const struct {
-    char *name;
+    const char *name;
     game_params params;
 } guess_presets[] = {
     {"Standard", {6, 4, 10, FALSE, TRUE}},
@@ -440,7 +440,8 @@ static void free_ui(game_ui *ui)
 
 static char *encode_ui(const game_ui *ui)
 {
-    char *ret, *p, *sep;
+    char *ret, *p;
+    const char *sep;
     int i;
 
     /*
@@ -614,7 +615,8 @@ static int mark_pegs(pegrow guess, const pegrow solution, int ncols)
 
 static char *encode_move(const game_state *from, game_ui *ui)
 {
-    char *buf, *p, *sep;
+    char *buf, *p;
+    const char *sep;
     int len, i;
 
     len = ui->curr_pegs->npegs * 20 + 2;
