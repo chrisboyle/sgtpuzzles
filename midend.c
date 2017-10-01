@@ -110,6 +110,14 @@ struct deserialise_data {
     int nstates, statepos;
 };
 
+/*
+ * Forward reference.
+ */
+static char *midend_deserialise_internal(
+    midend *me, int (*read)(void *ctx, void *buf, int len), void *rctx,
+    char *(*check)(void *ctx, midend *, const struct deserialise_data *),
+    void *cctx);
+
 void midend_reset_tilesize(midend *me)
 {
     me->preferred_tilesize = me->ourgame->preferred_tilesize;
@@ -1764,11 +1772,17 @@ void midend_serialise(midend *me,
 }
 
 /*
- * This function returns NULL on success, or an error message.
+ * Internal version of midend_deserialise, taking an extra check
+ * function to be called just before beginning to install things in
+ * the midend.
+ *
+ * Like midend_deserialise proper, this function returns NULL on
+ * success, or an error message.
  */
-char *midend_deserialise(midend *me,
-                         int (*read)(void *ctx, void *buf, int len),
-                         void *rctx)
+static char *midend_deserialise_internal(
+    midend *me, int (*read)(void *ctx, void *buf, int len), void *rctx,
+    char *(*check)(void *ctx, midend *, const struct deserialise_data *data),
+    void *cctx)
 {
     struct deserialise_data data;
     int gotstates = 0;
@@ -2008,6 +2022,13 @@ char *midend_deserialise(midend *me,
     me->ourgame->decode_ui(data.ui, data.uistr);
 
     /*
+     * Run the externally provided check function, and abort if it
+     * returns an error message.
+     */
+    if (check && (ret = check(cctx, me, &data)) != NULL)
+        goto cleanup;            /* error message is already in ret */
+
+    /*
      * Now we've run out of possible error conditions, so we're
      * ready to start overwriting the real data in the current
      * midend. We'll do this by swapping things with the local
@@ -2114,6 +2135,12 @@ char *midend_deserialise(midend *me,
     }
 
     return ret;
+}
+
+char *midend_deserialise(
+    midend *me, int (*read)(void *ctx, void *buf, int len), void *rctx)
+{
+    return midend_deserialise_internal(me, read, rctx, NULL, NULL);
 }
 
 /*
