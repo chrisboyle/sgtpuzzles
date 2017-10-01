@@ -211,7 +211,7 @@ static game_params *custom_params(const config_item *cfg)
     return ret;
 }
 
-static char *validate_params(const game_params *params, int full)
+static const char *validate_params(const game_params *params, int full)
 {
     if (params->w < 3 || params->w > 9)
         return "Grid size must be between 3 and 9";
@@ -1203,7 +1203,7 @@ done
  * Gameplay.
  */
 
-static char *validate_desc(const game_params *params, const char *desc)
+static const char *validate_desc(const game_params *params, const char *desc)
 {
     int w = params->w, a = w*w;
     int *dsf;
@@ -1345,7 +1345,7 @@ static void free_game(game_state *state)
 }
 
 static char *solve_game(const game_state *state, const game_state *currstate,
-                        const char *aux, char **error)
+                        const char *aux, const char **error)
 {
     int w = state->par.w, a = w*w;
     int i, ret;
@@ -2379,7 +2379,8 @@ int main(int argc, char **argv)
 {
     game_params *p;
     game_state *s;
-    char *id = NULL, *desc, *err;
+    char *id = NULL, *desc;
+    const char *err;
     int grade = FALSE;
     int ret, diff, really_show_working = FALSE;
 

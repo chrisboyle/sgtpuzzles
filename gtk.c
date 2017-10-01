@@ -1492,8 +1492,8 @@ static void align_label(GtkLabel *label, double x, double y)
 }
 
 #if GTK_CHECK_VERSION(3,0,0)
-int message_box(GtkWidget *parent, char *title, char *msg, int centre,
-		int type)
+int message_box(GtkWidget *parent, const char *title, const char *msg,
+                int centre, int type)
 {
     GtkWidget *window;
     gint ret;
@@ -1587,7 +1587,7 @@ int message_box(GtkWidget *parent, char *title, char *msg, int centre,
 }
 #endif /* GTK_CHECK_VERSION(3,0,0) */
 
-void error_box(GtkWidget *parent, char *msg)
+void error_box(GtkWidget *parent, const char *msg)
 {
     message_box(parent, "Error", msg, FALSE, MB_OK);
 }
@@ -1595,7 +1595,7 @@ void error_box(GtkWidget *parent, char *msg)
 static void config_ok_button_clicked(GtkButton *button, gpointer data)
 {
     frontend *fe = (frontend *)data;
-    char *err;
+    const char *err;
 
     err = midend_set_config(fe->me, fe->cfg_which, fe->cfg);
 
@@ -2298,7 +2298,8 @@ static void menu_save_event(GtkMenuItem *menuitem, gpointer data)
 static void menu_load_event(GtkMenuItem *menuitem, gpointer data)
 {
     frontend *fe = (frontend *)data;
-    char *name, *err;
+    char *name;
+    const char *err;
 
     name = file_selector(fe, "Enter name of saved game file to load", FALSE);
 
@@ -2329,7 +2330,7 @@ static void menu_load_event(GtkMenuItem *menuitem, gpointer data)
 static void menu_solve_event(GtkMenuItem *menuitem, gpointer data)
 {
     frontend *fe = (frontend *)data;
-    char *msg;
+    const char *msg;
 
     msg = midend_solve(fe->me);
 
@@ -2488,7 +2489,7 @@ static frontend *new_window(char *arg, int argtype, char **error)
     fe->me = midend_new(fe, &thegame, &gtk_drawing, fe);
 
     if (arg) {
-	char *err;
+	const char *err;
 	FILE *fp;
 
 	errbuf[0] = '\0';
@@ -3170,7 +3171,8 @@ int main(int argc, char **argv)
 	 * generated descriptive game IDs.)
 	 */
 	while (ngenerate == 0 || i < n) {
-	    char *pstr, *err, *seed;
+	    char *pstr, *seed;
+            const char *err;
             struct rusage before, after;
 
 	    if (ngenerate == 0) {
@@ -3224,7 +3226,7 @@ int main(int argc, char **argv)
                  * re-entering the same game id, and then try to solve
                  * it.
                  */
-                char *game_id, *err;
+                char *game_id;
 
                 game_id = midend_get_game_id(me);
                 err = midend_game_id(me, game_id);
@@ -3269,7 +3271,7 @@ int main(int argc, char **argv)
 		sprintf(realname, "%s%d%s", savefile, i, savesuffix);
 
                 if (soln) {
-                    char *err = midend_solve(me);
+                    const char *err = midend_solve(me);
                     if (err) {
                         fprintf(stderr, "%s: unable to show solution: %s\n",
                                 realname, err);

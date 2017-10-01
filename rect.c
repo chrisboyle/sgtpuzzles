@@ -214,7 +214,7 @@ static game_params *custom_params(const config_item *cfg)
     return ret;
 }
 
-static char *validate_params(const game_params *params, int full)
+static const char *validate_params(const game_params *params, int full)
 {
     if (params->w <= 0 || params->h <= 0)
 	return "Width and height must both be greater than zero";
@@ -1773,7 +1773,7 @@ static char *new_game_desc(const game_params *params_in, random_state *rs,
     return desc;
 }
 
-static char *validate_desc(const game_params *params, const char *desc)
+static const char *validate_desc(const game_params *params, const char *desc)
 {
     int area = params->w * params->h;
     int squares = 0;
@@ -1974,7 +1974,7 @@ static void free_game(game_state *state)
 }
 
 static char *solve_game(const game_state *state, const game_state *currstate,
-                        const char *ai, char **error)
+                        const char *ai, const char **error)
 {
     unsigned char *vedge, *hedge;
     int x, y, len;

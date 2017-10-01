@@ -248,7 +248,7 @@ static game_params *custom_params(const config_item *cfg)
     return ret;
 }
 
-static char *validate_params(const game_params *params, int full)
+static const char *validate_params(const game_params *params, int full)
 {
     if (params->order < 3 || params->order > 32)
         return "Order must be between 3 and 32";
@@ -1291,7 +1291,7 @@ static game_state *new_game(midend *me, const game_params *params,
     return state;
 }
 
-static char *validate_desc(const game_params *params, const char *desc)
+static const char *validate_desc(const game_params *params, const char *desc)
 {
     char *why = NULL;
     game_state *dummy = load_game(params, desc, &why);
@@ -1304,7 +1304,7 @@ static char *validate_desc(const game_params *params, const char *desc)
 }
 
 static char *solve_game(const game_state *state, const game_state *currstate,
-                        const char *aux, char **error)
+                        const char *aux, const char **error)
 {
     game_state *solved;
     int r;
@@ -2123,7 +2123,7 @@ static int solve(game_params *p, char *desc, int debug)
 
 static void check(game_params *p)
 {
-    char *msg = validate_params(p, 1);
+    const char *msg = validate_params(p, 1);
     if (msg) {
         fprintf(stderr, "%s: %s", quis, msg);
         exit(1);
@@ -2231,7 +2231,8 @@ int main(int argc, const char *argv[])
         int i;
         for (i = 0; i < argc; i++) {
             const char *id = *argv++;
-            char *desc = strchr(id, ':'), *err;
+            char *desc = strchr(id, ':');
+            const char *err;
             p = default_params();
             if (desc) {
                 *desc++ = '\0';

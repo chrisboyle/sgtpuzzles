@@ -311,13 +311,13 @@ int midend_which_preset(midend *me);
 int midend_wants_statusbar(midend *me);
 enum { CFG_SETTINGS, CFG_SEED, CFG_DESC, CFG_FRONTEND_SPECIFIC };
 config_item *midend_get_config(midend *me, int which, char **wintitle);
-char *midend_set_config(midend *me, int which, config_item *cfg);
-char *midend_game_id(midend *me, char *id);
+const char *midend_set_config(midend *me, int which, config_item *cfg);
+const char *midend_game_id(midend *me, char *id);
 char *midend_get_game_id(midend *me);
 char *midend_get_random_seed(midend *me);
 int midend_can_format_as_text_now(midend *me);
 char *midend_text_format(midend *me);
-char *midend_solve(midend *me);
+const char *midend_solve(midend *me);
 int midend_status(midend *me);
 int midend_can_undo(midend *me);
 int midend_can_redo(midend *me);
@@ -326,14 +326,15 @@ char *midend_rewrite_statusbar(midend *me, char *text);
 void midend_serialise(midend *me,
                       void (*write)(void *ctx, void *buf, int len),
                       void *wctx);
-char *midend_deserialise(midend *me,
-                         int (*read)(void *ctx, void *buf, int len),
-                         void *rctx);
-char *identify_game(char **name, int (*read)(void *ctx, void *buf, int len),
-                    void *rctx);
+const char *midend_deserialise(midend *me,
+                               int (*read)(void *ctx, void *buf, int len),
+                               void *rctx);
+const char *identify_game(char **name,
+                          int (*read)(void *ctx, void *buf, int len),
+                          void *rctx);
 void midend_request_id_changes(midend *me, void (*notify)(void *), void *ctx);
 /* Printing functions supplied by the mid-end */
-char *midend_print_puzzle(midend *me, document *doc, int with_soln);
+const char *midend_print_puzzle(midend *me, document *doc, int with_soln);
 int midend_tilesize(midend *me);
 
 /*
@@ -589,17 +590,17 @@ struct game {
     int can_configure;
     config_item *(*configure)(const game_params *params);
     game_params *(*custom_params)(const config_item *cfg);
-    char *(*validate_params)(const game_params *params, int full);
+    const char *(*validate_params)(const game_params *params, int full);
     char *(*new_desc)(const game_params *params, random_state *rs,
 		      char **aux, int interactive);
-    char *(*validate_desc)(const game_params *params, const char *desc);
+    const char *(*validate_desc)(const game_params *params, const char *desc);
     game_state *(*new_game)(midend *me, const game_params *params,
                             const char *desc);
     game_state *(*dup_game)(const game_state *state);
     void (*free_game)(game_state *state);
     int can_solve;
     char *(*solve)(const game_state *orig, const game_state *curr,
-                   const char *aux, char **error);
+                   const char *aux, const char **error);
     int can_format_as_text_ever;
     int (*can_format_as_text_now)(const game_params *params);
     char *(*text_format)(const game_state *state);

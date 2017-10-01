@@ -789,7 +789,7 @@ struct frontend {
 	const char *name = [[[op filenames] objectAtIndex:0]
                                cStringUsingEncoding:
                                    [NSString defaultCStringEncoding]];
-	char *err;
+	const char *err;
 
         FILE *fp = fopen(name, "r");
 
@@ -836,7 +836,7 @@ struct frontend {
 
 - (void)solveGame:(id)sender
 {
-    char *msg;
+    const char *msg;
 
     msg = midend_solve(me);
 

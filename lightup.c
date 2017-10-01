@@ -342,7 +342,7 @@ static game_params *custom_params(const config_item *cfg)
     return ret;
 }
 
-static char *validate_params(const game_params *params, int full)
+static const char *validate_params(const game_params *params, int full)
 {
     if (params->w < 2 || params->h < 2)
         return "Width and height must be at least 2";
@@ -1624,7 +1624,7 @@ goodpuzzle:
     return ret;
 }
 
-static char *validate_desc(const game_params *params, const char *desc)
+static const char *validate_desc(const game_params *params, const char *desc)
 {
     int i;
     for (i = 0; i < params->w*params->h; i++) {
@@ -1695,7 +1695,7 @@ static game_state *new_game(midend *me, const game_params *params,
 }
 
 static char *solve_game(const game_state *state, const game_state *currstate,
-                        const char *aux, char **error)
+                        const char *aux, const char **error)
 {
     game_state *solved;
     char *move = NULL, buf[80];
@@ -2326,7 +2326,8 @@ int main(int argc, char **argv)
 {
     game_params *p;
     game_state *s;
-    char *id = NULL, *desc, *err, *result;
+    char *id = NULL, *desc, *result;
+    const char *err;
     int nsol, diff, really_verbose = 0;
     unsigned int sflags;
 

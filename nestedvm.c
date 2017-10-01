@@ -259,7 +259,7 @@ void activate_timer(frontend *fe)
 void jcallback_config_ok()
 {
     frontend *fe = (frontend *)_fe;
-    char *err;
+    const char *err;
 
     err = midend_set_config(fe->me, fe->cfg_which, fe->cfg);
 
@@ -377,7 +377,7 @@ int jcallback_preset_event(int ptr_game_params)
 int jcallback_solve_event()
 {
     frontend *fe = (frontend *)_fe;
-    char *msg;
+    const char *msg;
 
     msg = midend_solve(fe->me);
 

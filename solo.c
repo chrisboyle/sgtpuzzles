@@ -501,7 +501,7 @@ static game_params *custom_params(const config_item *cfg)
     return ret;
 }
 
-static char *validate_params(const game_params *params, int full)
+static const char *validate_params(const game_params *params, int full)
 {
     if (params->c < 2)
 	return "Both dimensions must be at least 2";
@@ -3854,7 +3854,8 @@ static const char *spec_to_grid(const char *desc, digit *grid, int area)
  * end of the block spec, and return an error string or NULL if everything
  * is OK. The DSF is stored in *PDSF.
  */
-static char *spec_to_dsf(const char **pdesc, int **pdsf, int cr, int area)
+static const char *spec_to_dsf(const char **pdesc, int **pdsf,
+                               int cr, int area)
 {
     const char *desc = *pdesc;
     int pos = 0;
@@ -3922,7 +3923,7 @@ static char *spec_to_dsf(const char **pdesc, int **pdsf, int cr, int area)
     return NULL;
 }
 
-static char *validate_grid_desc(const char **pdesc, int range, int area)
+static const char *validate_grid_desc(const char **pdesc, int range, int area)
 {
     const char *desc = *pdesc;
     int squares = 0;
@@ -3952,11 +3953,11 @@ static char *validate_grid_desc(const char **pdesc, int range, int area)
     return NULL;
 }
 
-static char *validate_block_desc(const char **pdesc, int cr, int area,
-				 int min_nr_blocks, int max_nr_blocks,
-				 int min_nr_squares, int max_nr_squares)
+static const char *validate_block_desc(const char **pdesc, int cr, int area,
+                                       int min_nr_blocks, int max_nr_blocks,
+                                       int min_nr_squares, int max_nr_squares)
 {
-    char *err;
+    const char *err;
     int *dsf;
 
     err = spec_to_dsf(pdesc, &dsf, cr, area);
@@ -4029,10 +4030,10 @@ static char *validate_block_desc(const char **pdesc, int cr, int area,
     return NULL;
 }
 
-static char *validate_desc(const game_params *params, const char *desc)
+static const char *validate_desc(const game_params *params, const char *desc)
 {
     int cr = params->c * params->r, area = cr*cr;
-    char *err;
+    const char *err;
 
     err = validate_grid_desc(&desc, cr, area);
     if (err)
@@ -4109,7 +4110,7 @@ static game_state *new_game(midend *me, const game_params *params,
 	    state->immutable[i] = TRUE;
 
     if (r == 1) {
-	char *err;
+	const char *err;
 	int *dsf;
 	assert(*desc == ',');
 	desc++;
@@ -4127,7 +4128,7 @@ static game_state *new_game(midend *me, const game_params *params,
     make_blocks_from_whichblock(state->blocks);
 
     if (params->killer) {
-	char *err;
+	const char *err;
 	int *dsf;
 	assert(*desc == ',');
 	desc++;
@@ -4227,7 +4228,7 @@ static void free_game(game_state *state)
 }
 
 static char *solve_game(const game_state *state, const game_state *currstate,
-                        const char *ai, char **error)
+                        const char *ai, const char **error)
 {
     int cr = state->cr;
     char *ret;
@@ -5577,7 +5578,8 @@ int main(int argc, char **argv)
 {
     game_params *p;
     game_state *s;
-    char *id = NULL, *desc, *err;
+    char *id = NULL, *desc;
+    const char *err;
     int grade = FALSE;
     struct difficulty dlev;
 

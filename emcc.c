@@ -656,7 +656,7 @@ static void cfg_end(int use_results)
         /*
          * User hit OK.
          */
-        char *err = midend_set_config(me, cfg_which, cfg);
+        const char *err = midend_set_config(me, cfg_which, cfg);
 
         if (err) {
             /*
@@ -766,7 +766,7 @@ void command(int n)
         break;
       case 9:                          /* Solve */
         if (thegame.can_solve) {
-            char *msg = midend_solve(me);
+            const char *msg = midend_solve(me);
             if (msg)
                 js_error_box(msg);
         }
@@ -863,7 +863,7 @@ void load_game(const char *buffer, int len)
  */
 int main(int argc, char **argv)
 {
-    char *param_err;
+    const char *param_err;
     float *colours;
     int i;
 

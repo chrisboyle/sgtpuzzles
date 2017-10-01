@@ -277,7 +277,7 @@ static game_params *custom_params(const config_item *cfg)
     return ret;
 }
 
-static char *validate_params(const game_params *params, int full)
+static const char *validate_params(const game_params *params, int full)
 {
     if (params->w < 3 || params->h < 3)
         return "Width and height must both be at least 3";
@@ -1570,7 +1570,7 @@ fail:
     return NULL;
 }
 
-static char *validate_desc(const game_params *params, const char *desc)
+static const char *validate_desc(const game_params *params, const char *desc)
 {
     char *why = NULL;
     game_state *dummy = load_game(params, desc, &why);
@@ -2254,7 +2254,7 @@ got_result:
 
 #ifndef EDITOR
 static char *solve_game(const game_state *state, const game_state *currstate,
-                        const char *aux, char **error)
+                        const char *aux, const char **error)
 {
     game_state *tosolve;
     char *ret;
@@ -3771,7 +3771,8 @@ static void soak(game_params *p, random_state *rs)
 int main(int argc, char **argv)
 {
     game_params *p;
-    char *id = NULL, *desc, *err;
+    char *id = NULL, *desc;
+    const char *err;
     game_state *s;
     int diff, do_soak = 0, verbose = 0;
     random_state *rs;

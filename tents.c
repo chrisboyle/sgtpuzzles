@@ -400,7 +400,7 @@ static game_params *custom_params(const config_item *cfg)
     return ret;
 }
 
-static char *validate_params(const game_params *params, int full)
+static const char *validate_params(const game_params *params, int full)
 {
     /*
      * Generating anything under 4x4 runs into trouble of one kind
@@ -1186,7 +1186,7 @@ static char *new_game_desc(const game_params *params_in, random_state *rs,
     return ret;
 }
 
-static char *validate_desc(const game_params *params, const char *desc)
+static const char *validate_desc(const game_params *params, const char *desc)
 {
     int w = params->w, h = params->h;
     int area, i;
@@ -1312,7 +1312,7 @@ static void free_game(game_state *state)
 }
 
 static char *solve_game(const game_state *state, const game_state *currstate,
-                        const char *aux, char **error)
+                        const char *aux, const char **error)
 {
     int w = state->p.w, h = state->p.h;
 
@@ -2650,7 +2650,8 @@ int main(int argc, char **argv)
 {
     game_params *p;
     game_state *s, *s2;
-    char *id = NULL, *desc, *err;
+    char *id = NULL, *desc;
+    const char *err;
     int grade = FALSE;
     int ret, diff, really_verbose = FALSE;
     struct solver_scratch *sc;

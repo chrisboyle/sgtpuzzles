@@ -795,7 +795,7 @@ static game_params *custom_params(const config_item *cfg)
     return ret;
 }
 
-static char *validate_params(const game_params *params, int full)
+static const char *validate_params(const game_params *params, int full)
 {
     if (params->w < 3 || params->h < 3)
         return "Width and height must be at least 3";
@@ -1989,7 +1989,7 @@ generated:
     return ret;
 }
 
-static char *validate_desc(const game_params *params, const char *desc)
+static const char *validate_desc(const game_params *params, const char *desc)
 {
     int i, wh = params->w * params->h;
 
@@ -2573,7 +2573,7 @@ badmove:
 }
 
 static char *solve_game(const game_state *state, const game_state *currstate,
-                        const char *aux, char **error)
+                        const char *aux, const char **error)
 {
     char *ret;
     game_state *solved;

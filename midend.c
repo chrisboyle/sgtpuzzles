@@ -116,7 +116,7 @@ struct deserialise_data {
 /*
  * Forward reference.
  */
-static char *midend_deserialise_internal(
+static const char *midend_deserialise_internal(
     midend *me, int (*read)(void *ctx, void *buf, int len), void *rctx,
     char *(*check)(void *ctx, midend *, const struct deserialise_data *),
     void *cctx);
@@ -483,7 +483,8 @@ void midend_new_game(midend *me)
      */
     if (me->ourgame->can_solve && me->aux_info) {
 	game_state *s;
-	char *msg, *movestr;
+	const char *msg;
+        char *movestr;
 
 	msg = NULL;
 	movestr = me->ourgame->solve(me->states[0].state,
@@ -600,7 +601,7 @@ static char *newgame_undo_deserialise_check(
 
 static int midend_undo(midend *me)
 {
-    char *deserialise_error;
+    const char *deserialise_error;
 
     if (me->statepos > 1) {
         if (me->ui)
@@ -1392,9 +1393,10 @@ config_item *midend_get_config(midend *me, int which, char **wintitle)
     return NULL;
 }
 
-static char *midend_game_id_int(midend *me, char *id, int defmode)
+static const char *midend_game_id_int(midend *me, char *id, int defmode)
 {
-    char *error, *par, *desc, *seed;
+    const char *error;
+    char *par, *desc, *seed;
     game_params *newcurparams, *newparams, *oldparams1, *oldparams2;
     int free_params;
 
@@ -1564,7 +1566,7 @@ static char *midend_game_id_int(midend *me, char *id, int defmode)
     return NULL;
 }
 
-char *midend_game_id(midend *me, char *id)
+const char *midend_game_id(midend *me, char *id)
 {
     return midend_game_id_int(me, id, DEF_PARAMS);
 }
@@ -1597,9 +1599,9 @@ char *midend_get_random_seed(midend *me)
     return ret;
 }
 
-char *midend_set_config(midend *me, int which, config_item *cfg)
+const char *midend_set_config(midend *me, int which, config_item *cfg)
 {
-    char *error;
+    const char *error;
     game_params *params;
 
     switch (which) {
@@ -1645,10 +1647,11 @@ char *midend_text_format(midend *me)
 	return NULL;
 }
 
-char *midend_solve(midend *me)
+const char *midend_solve(midend *me)
 {
     game_state *s;
-    char *msg, *movestr;
+    const char *msg;
+    char *movestr;
 
     if (!me->ourgame->can_solve)
 	return "This game does not support the Solve operation";
@@ -1907,7 +1910,7 @@ void midend_serialise(midend *me,
  * Like midend_deserialise proper, this function returns NULL on
  * success, or an error message.
  */
-static char *midend_deserialise_internal(
+static const char *midend_deserialise_internal(
     midend *me, int (*read)(void *ctx, void *buf, int len), void *rctx,
     char *(*check)(void *ctx, midend *, const struct deserialise_data *data),
     void *cctx)
@@ -2274,7 +2277,7 @@ static char *midend_deserialise_internal(
     return ret;
 }
 
-char *midend_deserialise(
+const char *midend_deserialise(
     midend *me, int (*read)(void *ctx, void *buf, int len), void *rctx)
 {
     return midend_deserialise_internal(me, read, rctx, NULL, NULL);
@@ -2287,8 +2290,9 @@ char *midend_deserialise(
  * allocated and should be caller-freed), or an error message on
  * failure.
  */
-char *identify_game(char **name, int (*read)(void *ctx, void *buf, int len),
-                    void *rctx)
+const char *identify_game(char **name,
+                          int (*read)(void *ctx, void *buf, int len),
+                          void *rctx)
 {
     int nstates = 0, statepos = -1, gotstates = 0;
     int started = FALSE;
@@ -2385,7 +2389,7 @@ char *identify_game(char **name, int (*read)(void *ctx, void *buf, int len),
     return ret;
 }
 
-char *midend_print_puzzle(midend *me, document *doc, int with_soln)
+const char *midend_print_puzzle(midend *me, document *doc, int with_soln)
 {
     game_state *soln = NULL;
 
@@ -2393,7 +2397,8 @@ char *midend_print_puzzle(midend *me, document *doc, int with_soln)
 	return "No game set up to print";/* _shouldn't_ happen! */
 
     if (with_soln) {
-	char *msg, *movestr;
+	const char *msg;
+        char *movestr;
 
 	if (!me->ourgame->can_solve)
 	    return "This game does not support the Solve operation";

@@ -534,7 +534,7 @@ static void count_grid_square_callback(void *ctx, struct grid_square *sq)
     classes[thisclass]++;
 }
 
-static char *validate_params(const game_params *params, int full)
+static const char *validate_params(const game_params *params, int full)
 {
     int classes[5];
     int i;
@@ -842,7 +842,7 @@ static struct solid *transform_poly(const struct solid *solid, int flip,
     return ret;
 }
 
-static char *validate_desc(const game_params *params, const char *desc)
+static const char *validate_desc(const game_params *params, const char *desc)
 {
     int area = grid_area(params->d1, params->d2, solids[params->solid]->order);
     int i, j;
@@ -1000,7 +1000,7 @@ static void free_game(game_state *state)
 }
 
 static char *solve_game(const game_state *state, const game_state *currstate,
-                        const char *aux, char **error)
+                        const char *aux, const char **error)
 {
     return NULL;
 }

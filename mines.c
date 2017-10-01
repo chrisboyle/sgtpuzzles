@@ -239,7 +239,7 @@ static game_params *custom_params(const config_item *cfg)
     return ret;
 }
 
-static char *validate_params(const game_params *params, int full)
+static const char *validate_params(const game_params *params, int full)
 {
     /*
      * Lower limit on grid size: each dimension must be at least 3.
@@ -1988,7 +1988,7 @@ static char *new_game_desc(const game_params *params, random_state *rs,
     }
 }
 
-static char *validate_desc(const game_params *params, const char *desc)
+static const char *validate_desc(const game_params *params, const char *desc)
 {
     int wh = params->w * params->h;
     int x, y;
@@ -2298,7 +2298,7 @@ static void free_game(game_state *state)
 }
 
 static char *solve_game(const game_state *state, const game_state *currstate,
-                        const char *aux, char **error)
+                        const char *aux, const char **error)
 {
     if (!state->layout->mines) {
 	*error = "Game has not been started yet";
@@ -3227,7 +3227,8 @@ int main(int argc, char **argv)
 {
     game_params *p;
     game_state *s;
-    char *id = NULL, *desc, *err;
+    char *id = NULL, *desc;
+    const char *err;
     int y, x;
 
     while (--argc > 0) {

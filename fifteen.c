@@ -134,7 +134,7 @@ static game_params *custom_params(const config_item *cfg)
     return ret;
 }
 
-static char *validate_params(const game_params *params, int full)
+static const char *validate_params(const game_params *params, int full)
 {
     if (params->w < 2 || params->h < 2)
 	return "Width and height must both be at least two";
@@ -270,7 +270,7 @@ static char *new_game_desc(const game_params *params, random_state *rs,
     return ret;
 }
 
-static char *validate_desc(const game_params *params, const char *desc)
+static const char *validate_desc(const game_params *params, const char *desc)
 {
     const char *p;
     char *err;
@@ -379,7 +379,7 @@ static void free_game(game_state *state)
 }
 
 static char *solve_game(const game_state *state, const game_state *currstate,
-                        const char *aux, char **error)
+                        const char *aux, const char **error)
 {
     return dupstr("S");
 }
@@ -1126,7 +1126,8 @@ int main(int argc, char **argv)
 {
     game_params *params;
     game_state *state;
-    char *id = NULL, *desc, *err;
+    char *id = NULL, *desc;
+    const char *err;
     int grade = FALSE;
     char *progname = argv[0];
 

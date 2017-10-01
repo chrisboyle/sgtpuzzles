@@ -182,7 +182,7 @@ static game_params *custom_params(const config_item *cfg)
     return ret;
 }
 
-static char *validate_params(const game_params *params, int full)
+static const char *validate_params(const game_params *params, int full)
 {
     /*
      * Generating anything under 4x4 runs into trouble of one kind
@@ -782,7 +782,7 @@ newpath:
     return desc;
 }
 
-static char *validate_desc(const game_params *params, const char *desc)
+static const char *validate_desc(const game_params *params, const char *desc)
 {
     int i = 0, w = params->w, h = params->h, in = 0, out = 0;
 
@@ -1364,7 +1364,7 @@ static char *move_string_diff(const game_state *before, const game_state *after,
 }
 
 static char *solve_game(const game_state *state, const game_state *currstate,
-                        const char *aux, char **error)
+                        const char *aux, const char **error)
 {
     game_state *solved;
     int ret;

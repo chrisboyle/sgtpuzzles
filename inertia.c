@@ -191,7 +191,7 @@ static game_params *custom_params(const config_item *cfg)
     return ret;
 }
 
-static char *validate_params(const game_params *params, int full)
+static const char *validate_params(const game_params *params, int full)
 {
     /*
      * Avoid completely degenerate cases which only have one
@@ -585,7 +585,7 @@ static char *new_game_desc(const game_params *params, random_state *rs,
     return gengrid(params->w, params->h, rs);
 }
 
-static char *validate_desc(const game_params *params, const char *desc)
+static const char *validate_desc(const game_params *params, const char *desc)
 {
     int w = params->w, h = params->h, wh = w*h;
     int starts = 0, gems = 0, i;
@@ -729,7 +729,7 @@ static int compare_integers(const void *av, const void *bv)
 }
 
 static char *solve_game(const game_state *state, const game_state *currstate,
-                        const char *aux, char **error)
+                        const char *aux, const char **error)
 {
     int w = currstate->p.w, h = currstate->p.h, wh = w*h;
     int *nodes, *nodeindex, *edges, *backedges, *edgei, *backedgei, *circuit;
@@ -1733,7 +1733,8 @@ static game_state *execute_move(const game_state *state, const char *move)
 	    assert(ret->solnpos < ret->soln->len); /* or gems == 0 */
 	    assert(!ret->dead); /* or not a solution */
 	} else {
-	    char *error = NULL, *soln = solve_game(NULL, ret, NULL, &error);
+	    const char *error = NULL;
+            char *soln = solve_game(NULL, ret, NULL, &error);
 	    if (!error) {
 		install_new_solution(ret, soln);
 		sfree(soln);

@@ -213,7 +213,7 @@ static game_params *custom_params(const config_item *cfg)
     return ret;
 }
 
-static char *validate_params(const game_params *params, int full)
+static const char *validate_params(const game_params *params, int full)
 {
     /*
      * (At least at the time of writing this comment) The grid
@@ -1212,7 +1212,7 @@ static char *new_game_desc(const game_params *params, random_state *rs,
     return desc;
 }
 
-static char *validate_desc(const game_params *params, const char *desc)
+static const char *validate_desc(const game_params *params, const char *desc)
 {
     int w = params->w, h = params->h, W = w+1, H = h+1;
     int area = W*H;
@@ -1456,7 +1456,7 @@ static int check_completion(game_state *state)
 }
 
 static char *solve_game(const game_state *state, const game_state *currstate,
-                        const char *aux, char **error)
+                        const char *aux, const char **error)
 {
     int w = state->p.w, h = state->p.h;
     signed char *soln;
@@ -2189,7 +2189,8 @@ int main(int argc, char **argv)
 {
     game_params *p;
     game_state *s;
-    char *id = NULL, *desc, *err;
+    char *id = NULL, *desc;
+    const char *err;
     int grade = FALSE;
     int ret, diff, really_verbose = FALSE;
     struct solver_scratch *sc;

@@ -232,7 +232,7 @@ struct game_drawstate {
     char *clue_satisfied;
 };
 
-static char *validate_desc(const game_params *params, const char *desc);
+static const char *validate_desc(const game_params *params, const char *desc);
 static int dot_order(const game_state* state, int i, char line_type);
 static int face_order(const game_state* state, int i, char line_type);
 static solver_state *solve_game_rec(const solver_state *sstate);
@@ -675,7 +675,7 @@ static game_params *custom_params(const config_item *cfg)
     return ret;
 }
 
-static char *validate_params(const game_params *params, int full)
+static const char *validate_params(const game_params *params, int full)
 {
     if (params->type < 0 || params->type >= NUM_GRID_TYPES)
         return "Illegal grid type";
@@ -756,7 +756,7 @@ static char *extract_grid_desc(const char **desc)
 
 /* We require that the params pass the test in validate_params and that the
  * description fills the entire game area */
-static char *validate_desc(const game_params *params, const char *desc)
+static const char *validate_desc(const game_params *params, const char *desc)
 {
     int count = 0;
     grid *g;
@@ -2908,7 +2908,7 @@ static solver_state *solve_game_rec(const solver_state *sstate_start)
 }
 
 static char *solve_game(const game_state *state, const game_state *currstate,
-                        const char *aux, char **error)
+                        const char *aux, const char **error)
 {
     char *soln = NULL;
     solver_state *sstate, *new_sstate;
@@ -3687,7 +3687,8 @@ int main(int argc, char **argv)
 {
     game_params *p;
     game_state *s;
-    char *id = NULL, *desc, *err;
+    char *id = NULL, *desc;
+    const char *err;
     int grade = FALSE;
     int ret, diff;
 #if 0 /* verbose solver not supported here (yet) */

@@ -308,7 +308,7 @@ enum {
 static move *solve_internal(const game_state *state, move *base, int diff);
 
 static char *solve_game(const game_state *orig, const game_state *curpos,
-                        const char *aux, char **error)
+                        const char *aux, const char **error)
 {
     int const n = orig->params.w * orig->params.h;
     move *const base = snewn(n, move);
@@ -906,7 +906,7 @@ static int dfs_count_white(game_state *state, int cell)
     return k;
 }
 
-static char *validate_params(const game_params *params, int full)
+static const char *validate_params(const game_params *params, int full)
 {
     int const w = params->w, h = params->h;
     if (w < 1) return "Error: width is less than 1";
@@ -1073,7 +1073,7 @@ static char *newdesc_encode_game_description(int area, puzzle_size *grid)
     return desc;
 }
 
-static char *validate_desc(const game_params *params, const char *desc)
+static const char *validate_desc(const game_params *params, const char *desc)
 {
     int const n = params->w * params->h;
     int squares = 0;

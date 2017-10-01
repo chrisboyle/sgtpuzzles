@@ -191,7 +191,7 @@ static game_params *custom_params(const config_item *cfg)
     return ret;
 }
 
-static char *validate_params(const game_params *params, int full)
+static const char *validate_params(const game_params *params, int full)
 {
     if ((params->w * params->h ) > 54)  return "Grid is too big";
     if (params->w < 3)                  return "Width must be at least 3";
@@ -1436,7 +1436,7 @@ static game_state *new_game(midend *me, const game_params *params,
     return state;
 }
 
-static char *validate_desc(const game_params *params, const char *desc)
+static const char *validate_desc(const game_params *params, const char *desc)
 {
     int i;
     int w = params->w, h = params->h;
@@ -1489,7 +1489,7 @@ static char *validate_desc(const game_params *params, const char *desc)
 }
 
 static char *solve_game(const game_state *state_start, const game_state *currstate,
-                        const char *aux, char **error)
+                        const char *aux, const char **error)
 {
     int p;
     int *old_guess;

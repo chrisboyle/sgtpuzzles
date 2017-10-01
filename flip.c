@@ -178,7 +178,7 @@ static game_params *custom_params(const config_item *cfg)
     return ret;
 }
 
-static char *validate_params(const game_params *params, int full)
+static const char *validate_params(const game_params *params, int full)
 {
     if (params->w <= 0 || params->h <= 0)
         return "Width and height must both be greater than zero";
@@ -592,7 +592,7 @@ static char *new_game_desc(const game_params *params, random_state *rs,
     return ret;
 }
 
-static char *validate_desc(const game_params *params, const char *desc)
+static const char *validate_desc(const game_params *params, const char *desc)
 {
     int w = params->w, h = params->h, wh = w * h;
     int mlen = (wh*wh+3)/4, glen = (wh+3)/4;
@@ -669,7 +669,7 @@ static void rowxor(unsigned char *row1, unsigned char *row2, int len)
 }
 
 static char *solve_game(const game_state *state, const game_state *currstate,
-                        const char *aux, char **error)
+                        const char *aux, const char **error)
 {
     int w = state->w, h = state->h, wh = w * h;
     unsigned char *equations, *solution, *shortest;
