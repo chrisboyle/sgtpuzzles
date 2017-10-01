@@ -1961,7 +1961,8 @@ This ensures that thin lines are visible even at small scales.
 \S{drawing-draw-text} \cw{draw_text()}
 
 \c void draw_text(drawing *dr, int x, int y, int fonttype,
-\c                int fontsize, int align, int colour, char *text);
+\c                int fontsize, int align, int colour,
+\c                const char *text);
 
 Draws text in the puzzle window.
 
@@ -2122,7 +2123,7 @@ printing routines, that code may safely call \cw{draw_update()}.)
 
 \S{drawing-status-bar} \cw{status_bar()}
 
-\c void status_bar(drawing *dr, char *text);
+\c void status_bar(drawing *dr, const char *text);
 
 Sets the text in the game's status bar to \c{text}. The text is copied
 from the supplied buffer, so the caller is free to deallocate or
@@ -2393,7 +2394,8 @@ function \cw{drawing_new()} (see \k{drawing-new}).
 \S{drawingapi-draw-text} \cw{draw_text()}
 
 \c void (*draw_text)(void *handle, int x, int y, int fonttype,
-\c                   int fontsize, int align, int colour, char *text);
+\c                   int fontsize, int align, int colour,
+\c                   const char *text);
 
 This function behaves exactly like the back end \cw{draw_text()}
 function; see \k{drawing-draw-text}.
@@ -2496,7 +2498,7 @@ called unless drawing is attempted.
 
 \S{drawingapi-status-bar} \cw{status_bar()}
 
-\c void (*status_bar)(void *handle, char *text);
+\c void (*status_bar)(void *handle, const char *text);
 
 This function behaves exactly like the back end \cw{status_bar()}
 function; see \k{drawing-status-bar}.
@@ -3178,7 +3180,7 @@ using \cw{midend_size()} and eventually perform a refresh using
 
 \H{midend-game-id} \cw{midend_game_id()}
 
-\c const char *midend_game_id(midend *me, char *id);
+\c const char *midend_game_id(midend *me, const char *id);
 
 Passes the mid-end a string game ID (of any of the valid forms
 \cq{params}, \cq{params:description} or \cq{params#seed}) which the
@@ -3507,7 +3509,7 @@ calling \cw{midend_timer()}.
 
 \H{frontend-fatal} \cw{fatal()}
 
-\c void fatal(char *fmt, ...);
+\c void fatal(const char *fmt, ...);
 
 This is called by some utility functions if they encounter a
 genuinely fatal error such as running out of memory. It is a

@@ -111,7 +111,7 @@ NSApplication *app;
  * clearly defined subsystem.
  */
 
-void fatal(char *fmt, ...)
+void fatal(const char *fmt, ...)
 {
     va_list ap;
     char errorbuf[2048];
@@ -275,7 +275,7 @@ id initnewitem(NSMenuItem *item, NSMenu *parent, const char *title,
     return item;
 }
 
-NSMenuItem *newitem(NSMenu *parent, char *title, char *key,
+NSMenuItem *newitem(NSMenu *parent, const char *title, const char *key,
 		    id target, SEL action)
 {
     return initnewitem([NSMenuItem allocWithZone:[NSMenu menuZone]],
@@ -437,7 +437,7 @@ struct frontend {
 - (void)keyDown:(NSEvent *)ev;
 - (void)activateTimer;
 - (void)deactivateTimer;
-- (void)setStatusLine:(char *)text;
+- (void)setStatusLine:(const char *)text;
 - (void)resizeForNewGameParams;
 - (void)updateTypeMenuTick;
 @end
@@ -726,7 +726,7 @@ struct frontend {
     last_time = now;
 }
 
-- (void)showError:(char *)message
+- (void)showError:(const char *)message
 {
     NSAlert *alert;
 
@@ -1300,7 +1300,7 @@ struct frontend {
     if (update) {
 	int k;
 	config_item *i;
-	char *error;
+	const char *error;
 
 	k = 0;
 	for (i = cfg; i->type != C_END; i++) {
@@ -1348,7 +1348,7 @@ struct frontend {
     [self sheetEndWithStatus:NO];
 }
 
-- (void)setStatusLine:(char *)text
+- (void)setStatusLine:(const char *)text
 {
     [[status cell] setTitle:[NSString stringWithUTF8String:text]];
 }
@@ -1461,7 +1461,8 @@ static void osx_draw_rect(void *handle, int x, int y, int w, int h, int colour)
     NSRectFill(r);
 }
 static void osx_draw_text(void *handle, int x, int y, int fonttype,
-			  int fontsize, int align, int colour, char *text)
+			  int fontsize, int align, int colour,
+                          const char *text)
 {
     frontend *fe = (frontend *)handle;
     NSString *string = [NSString stringWithUTF8String:text];
@@ -1612,7 +1613,7 @@ static void osx_end_draw(void *handle)
     frontend *fe = (frontend *)handle;
     [fe->image unlockFocus];
 }
-static void osx_status_bar(void *handle, char *text)
+static void osx_status_bar(void *handle, const char *text)
 {
     frontend *fe = (frontend *)handle;
     [fe->window setStatusLine:text];

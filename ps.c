@@ -102,7 +102,8 @@ static void ps_stroke(psdata *ps, int colour)
 }
 
 static void ps_draw_text(void *handle, int x, int y, int fonttype,
-			 int fontsize, int align, int colour, char *text)
+			 int fontsize, int align, int colour,
+                         const char *text)
 {
     psdata *ps = (psdata *)handle;
 

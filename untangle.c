@@ -656,7 +656,7 @@ static char *new_game_desc(const game_params *params, random_state *rs,
      */
     ret = NULL;
     {
-	char *sep;
+	const char *sep;
 	char buf[80];
 	int retlen;
 	edge *ea;

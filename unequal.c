@@ -2039,7 +2039,7 @@ const char *quis = NULL;
 
 #if 0 /* currently unused */
 
-static void debug_printf(char *fmt, ...)
+static void debug_printf(const char *fmt, ...)
 {
     char buf[4096];
     va_list ap;

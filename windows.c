@@ -150,7 +150,7 @@ void dputs(char *buf)
     OutputDebugString(buf);
 }
 
-void debug_printf(char *fmt, ...)
+void debug_printf(const char *fmt, ...)
 {
     char buf[4096];
     va_list ap;
@@ -258,7 +258,7 @@ void frontend_free(frontend *fe)
 static void update_type_menu_tick(frontend *fe);
 static void update_copy_menu_greying(frontend *fe);
 
-void fatal(char *fmt, ...)
+void fatal(const char *fmt, ...)
 {
     char buf[2048];
     va_list ap;
@@ -304,7 +304,7 @@ void get_random_seed(void **randseed, int *randseedsize)
     *randseedsize = sizeof(SYSTEMTIME);
 }
 
-static void win_status_bar(void *handle, char *text)
+static void win_status_bar(void *handle, const char *text)
 {
 #ifdef _WIN32_WCE
     TCHAR wText[255];
@@ -556,7 +556,8 @@ static void win_unclip(void *handle)
 }
 
 static void win_draw_text(void *handle, int x, int y, int fonttype,
-			  int fontsize, int align, int colour, char *text)
+			  int fontsize, int align, int colour,
+                          const char *text)
 {
     frontend *fe = (frontend *)handle;
     POINT xy;

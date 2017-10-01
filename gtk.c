@@ -71,7 +71,7 @@
 #ifdef DEBUGGING
 static FILE *debug_fp = NULL;
 
-void dputs(char *buf)
+void dputs(const char *buf)
 {
     if (!debug_fp) {
         debug_fp = fopen("debug.log", "w");
@@ -85,7 +85,7 @@ void dputs(char *buf)
     }
 }
 
-void debug_printf(char *fmt, ...)
+void debug_printf(const char *fmt, ...)
 {
     char buf[4096];
     va_list ap;
@@ -101,7 +101,7 @@ void debug_printf(char *fmt, ...)
  * Error reporting functions used elsewhere.
  */
 
-void fatal(char *fmt, ...)
+void fatal(const char *fmt, ...)
 {
     va_list ap;
 
@@ -264,7 +264,7 @@ void frontend_default_colour(frontend *fe, float *output)
 #endif
 }
 
-void gtk_status_bar(void *handle, char *text)
+void gtk_status_bar(void *handle, const char *text)
 {
     frontend *fe = (frontend *)handle;
 
@@ -1000,7 +1000,7 @@ void gtk_unclip(void *handle)
 }
 
 void gtk_draw_text(void *handle, int x, int y, int fonttype, int fontsize,
-		   int align, int colour, char *text)
+		   int align, int colour, const char *text)
 {
     frontend *fe = (frontend *)handle;
     int i;

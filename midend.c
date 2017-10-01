@@ -1320,7 +1320,8 @@ void midend_request_id_changes(midend *me, void (*notify)(void *), void *ctx)
     me->game_id_change_notify_ctx = ctx;
 }
 
-void midend_supersede_game_desc(midend *me, char *desc, char *privdesc)
+void midend_supersede_game_desc(midend *me, const char *desc,
+                                const char *privdesc)
 {
     sfree(me->desc);
     sfree(me->privdesc);
@@ -1393,10 +1394,11 @@ config_item *midend_get_config(midend *me, int which, char **wintitle)
     return NULL;
 }
 
-static const char *midend_game_id_int(midend *me, char *id, int defmode)
+static const char *midend_game_id_int(midend *me, const char *id, int defmode)
 {
     const char *error;
-    char *par, *desc, *seed;
+    char *par = NULL;
+    const char *desc, *seed;
     game_params *newcurparams, *newparams, *oldparams1, *oldparams2;
     int free_params;
 
@@ -1409,8 +1411,10 @@ static const char *midend_game_id_int(midend *me, char *id, int defmode)
          * description. So `par' now points to the parameters
          * string, and `desc' to the description string.
          */
-        *desc++ = '\0';
-        par = id;
+        par = snewn(desc-id + 1, char);
+        strncpy(par, id, desc-id);
+        par[desc-id] = '\0';
+        desc++;
         seed = NULL;
     } else if (seed && (!desc || seed < desc)) {
         /*
@@ -1418,8 +1422,10 @@ static const char *midend_game_id_int(midend *me, char *id, int defmode)
          * So `par' now points to the parameters string, and `seed'
          * to the seed string.
          */
-        *seed++ = '\0';
-        par = id;
+        par = snewn(seed-id + 1, char);
+        strncpy(par, id, seed-id);
+        par[seed-id] = '\0';
+        seed++;
         desc = NULL;
     } else {
         /*
@@ -1428,12 +1434,14 @@ static const char *midend_game_id_int(midend *me, char *id, int defmode)
          */
         if (defmode == DEF_SEED) {
             seed = id;
-            par = desc = NULL;
+            par = NULL;
+            desc = NULL;
         } else if (defmode == DEF_DESC) {
             desc = id;
-            par = seed = NULL;
+            par = NULL;
+            seed = NULL;
         } else {
-            par = id;
+            par = dupstr(id);
             seed = desc = NULL;
         }
     }
@@ -1563,10 +1571,12 @@ static const char *midend_game_id_int(midend *me, char *id, int defmode)
         me->genmode = GOT_SEED;
     }
 
+    sfree(par);
+
     return NULL;
 }
 
-const char *midend_game_id(midend *me, char *id)
+const char *midend_game_id(midend *me, const char *id)
 {
     return midend_game_id_int(me, id, DEF_PARAMS);
 }
@@ -1721,7 +1731,7 @@ int midend_status(midend *me)
     return me->ourgame->status(me->states[me->statepos-1].state);
 }
 
-char *midend_rewrite_statusbar(midend *me, char *text)
+char *midend_rewrite_statusbar(midend *me, const char *text)
 {
     /*
      * An important special case is that we are occasionally called

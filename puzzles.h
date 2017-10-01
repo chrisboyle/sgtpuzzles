@@ -224,12 +224,12 @@ game_params *preset_menu_lookup_by_id(struct preset_menu *menu, int id);
 /* We can't use #ifdef DEBUG, because Cygwin defines it by default. */
 #ifdef DEBUGGING
 #define debug(x) (debug_printf x)
-void debug_printf(char *fmt, ...);
+void debug_printf(const char *fmt, ...);
 #else
 #define debug(x)
 #endif
 
-void fatal(char *fmt, ...);
+void fatal(const char *fmt, ...);
 void frontend_default_colour(frontend *fe, float *output);
 void deactivate_timer(frontend *fe);
 void activate_timer(frontend *fe);
@@ -241,7 +241,7 @@ void get_random_seed(void **randseed, int *randseedsize);
 drawing *drawing_new(const drawing_api *api, midend *me, void *handle);
 void drawing_free(drawing *dr);
 void draw_text(drawing *dr, int x, int y, int fonttype, int fontsize,
-               int align, int colour, char *text);
+               int align, int colour, const char *text);
 void draw_rect(drawing *dr, int x, int y, int w, int h, int colour);
 void draw_line(drawing *dr, int x1, int y1, int x2, int y2, int colour);
 void draw_polygon(drawing *dr, int *coords, int npoints,
@@ -256,7 +256,7 @@ void start_draw(drawing *dr);
 void draw_update(drawing *dr, int x, int y, int w, int h);
 void end_draw(drawing *dr);
 char *text_fallback(drawing *dr, const char *const *strings, int nstrings);
-void status_bar(drawing *dr, char *text);
+void status_bar(drawing *dr, const char *text);
 blitter *blitter_new(drawing *dr, int w, int h);
 void blitter_free(drawing *dr, blitter *bl);
 /* save puts the portion of the current display with top-left corner
@@ -312,7 +312,7 @@ int midend_wants_statusbar(midend *me);
 enum { CFG_SETTINGS, CFG_SEED, CFG_DESC, CFG_FRONTEND_SPECIFIC };
 config_item *midend_get_config(midend *me, int which, char **wintitle);
 const char *midend_set_config(midend *me, int which, config_item *cfg);
-const char *midend_game_id(midend *me, char *id);
+const char *midend_game_id(midend *me, const char *id);
 char *midend_get_game_id(midend *me);
 char *midend_get_random_seed(midend *me);
 int midend_can_format_as_text_now(midend *me);
@@ -321,8 +321,9 @@ const char *midend_solve(midend *me);
 int midend_status(midend *me);
 int midend_can_undo(midend *me);
 int midend_can_redo(midend *me);
-void midend_supersede_game_desc(midend *me, char *desc, char *privdesc);
-char *midend_rewrite_statusbar(midend *me, char *text);
+void midend_supersede_game_desc(midend *me, const char *desc,
+                                const char *privdesc);
+char *midend_rewrite_statusbar(midend *me, const char *text);
 void midend_serialise(midend *me,
                       void (*write)(void *ctx, void *buf, int len),
                       void *wctx);
@@ -392,7 +393,7 @@ void pos2c(int w, int h, int pos, int *cx, int *cy);
  * by one pixel; useful for highlighting. Outline is omitted if -1. */
 void draw_text_outline(drawing *dr, int x, int y, int fonttype,
                        int fontsize, int align,
-                       int text_colour, int outline_colour, char *text);
+                       int text_colour, int outline_colour, const char *text);
 
 /* Copies text left-justified with spaces. Length of string must be
  * less than buffer size. */
@@ -645,7 +646,7 @@ struct game {
  */
 struct drawing_api {
     void (*draw_text)(void *handle, int x, int y, int fonttype, int fontsize,
-		      int align, int colour, char *text);
+		      int align, int colour, const char *text);
     void (*draw_rect)(void *handle, int x, int y, int w, int h, int colour);
     void (*draw_line)(void *handle, int x1, int y1, int x2, int y2,
 		      int colour);
@@ -658,7 +659,7 @@ struct drawing_api {
     void (*unclip)(void *handle);
     void (*start_draw)(void *handle);
     void (*end_draw)(void *handle);
-    void (*status_bar)(void *handle, char *text);
+    void (*status_bar)(void *handle, const char *text);
     blitter *(*blitter_new)(void *handle, int w, int h);
     void (*blitter_free)(void *handle, blitter *bl);
     void (*blitter_save)(void *handle, blitter *bl, int x, int y);

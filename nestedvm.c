@@ -17,7 +17,7 @@
 extern void _pause();
 extern int _call_java(int cmd, int arg1, int arg2, int arg3);
 
-void fatal(char *fmt, ...)
+void fatal(const char *fmt, ...)
 {
     va_list ap;
     fprintf(stderr, "fatal error: ");
@@ -53,7 +53,7 @@ void frontend_default_colour(frontend *fe, float *output)
     output[0] = output[1]= output[2] = 0.8f;
 }
 
-void nestedvm_status_bar(void *handle, char *text)
+void nestedvm_status_bar(void *handle, const char *text)
 {
     _call_java(4,0,(int)text,0);
 }
@@ -79,7 +79,7 @@ void nestedvm_unclip(void *handle)
 }
 
 void nestedvm_draw_text(void *handle, int x, int y, int fonttype, int fontsize,
-		   int align, int colour, char *text)
+                        int align, int colour, const char *text)
 {
     frontend *fe = (frontend *)handle;
     _call_java(5, x + fe->ox, y + fe->oy, 
