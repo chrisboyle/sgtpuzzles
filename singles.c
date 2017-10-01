@@ -1522,7 +1522,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
             action = TOGGLE_CIRCLE;
         }
     }
-    if (action == UI) return "";
+    if (action == UI) return UI_UPDATE;
 
     if (action == TOGGLE_BLACK || action == TOGGLE_CIRCLE) {
         i = y * state->w + x;

@@ -1119,7 +1119,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 
         move_cursor(button, &ui->cur_x, &ui->cur_y, 2*w-1, 2*h-1, 0);
 
-	return "";
+	return UI_UPDATE;
     } else if (IS_CURSOR_SELECT(button)) {
         int d1, d2;
 
@@ -1152,7 +1152,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         } else {
             return NULL;
         }
-        return "";
+        return UI_UPDATE;
     }
 
     return NULL;

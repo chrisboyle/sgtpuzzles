@@ -1725,7 +1725,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 
     if (button == 'a' || button == 'A') {
         ui->ascii = !ui->ascii;
-        return "";      
+        return UI_UPDATE;
     }
 
     if (button == 'm' || button == 'M') {
@@ -1771,12 +1771,12 @@ static char *interpret_move(const game_state *state, game_ui *ui,
               case CURSOR_LEFT:   ui->hx -= (ui->hx > 1)     ? 1 : 0; break;
             }
         ui->hshow = ui->hcursor = 1;
-        return "";
+        return UI_UPDATE;
     }
     if (ui->hshow && button == CURSOR_SELECT) {
         ui->hpencil = 1 - ui->hpencil;
         ui->hcursor = 1;
-        return "";
+        return UI_UPDATE;
     }
 
     if (ui->hshow == 1 && ui->hpencil == 1) {
@@ -1814,12 +1814,12 @@ static char *interpret_move(const game_state *state, game_ui *ui,
                 if (button == LEFT_BUTTON) {
                     ui->hshow = 1; ui->hpencil = 0; ui->hcursor = 0;
                     ui->hx = gx; ui->hy = gy;
-                    return "";
+                    return UI_UPDATE;
                 }
                 else if (button == RIGHT_BUTTON && g == 7) {
                     ui->hshow = 1; ui->hpencil = 1; ui->hcursor = 0;
                     ui->hx = gx; ui->hy = gy;
-                    return "";
+                    return UI_UPDATE;
                 }
             }
             else if (ui->hshow == 1) {
@@ -1828,36 +1828,36 @@ static char *interpret_move(const game_state *state, game_ui *ui,
                         if (gx == ui->hx && gy == ui->hy) {
                             ui->hshow = 0; ui->hpencil = 0; ui->hcursor = 0;
                             ui->hx = 0; ui->hy = 0;
-                            return "";
+                            return UI_UPDATE;
                         }
                         else {
                             ui->hshow = 1; ui->hpencil = 0; ui->hcursor = 0;
                             ui->hx = gx; ui->hy = gy;
-                            return "";
+                            return UI_UPDATE;
                         }
                     }
                     else {
                         ui->hshow = 1; ui->hpencil = 0; ui->hcursor = 0;
                         ui->hx = gx; ui->hy = gy;
-                        return "";
+                        return UI_UPDATE;
                     }
                 }
                 else if (button == RIGHT_BUTTON) {
                     if (ui->hpencil == 0 && g == 7) {
                         ui->hshow = 1; ui->hpencil = 1; ui->hcursor = 0;
                         ui->hx = gx; ui->hy = gy;
-                        return "";
+                        return UI_UPDATE;
                     }
                     else {
                         if (gx == ui->hx && gy == ui->hy) {
                             ui->hshow = 0; ui->hpencil = 0; ui->hcursor = 0;
                             ui->hx = 0; ui->hy = 0;
-                            return "";
+                            return UI_UPDATE;
                         }
                         else if (g == 7) {
                             ui->hshow = 1; ui->hpencil = 1; ui->hcursor = 0;
                             ui->hx = gx; ui->hy = gy;
-                            return "";
+                            return UI_UPDATE;
                         }
                     }
                 }

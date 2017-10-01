@@ -684,6 +684,14 @@ extern const int gamecount;
 extern const game thegame;
 #endif
 
+/*
+ * Special string value to return from interpret_move in the case
+ * where the game UI has been updated but no actual move is being
+ * appended to the undo chain. Must be declared as a non-const char,
+ * but should never actually be modified by anyone.
+ */
+extern char UI_UPDATE[];
+
 /* A little bit of help to lazy developers */
 #define DEFAULT_STATUSBAR_TEXT "Use status_bar() to fill this in."
 

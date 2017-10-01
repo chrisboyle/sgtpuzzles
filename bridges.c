@@ -2094,7 +2094,7 @@ static char *ui_cancel_drag(game_ui *ui)
     ui->dragx_src = ui->dragy_src = -1;
     ui->dragx_dst = ui->dragy_dst = -1;
     ui->dragging = 0;
-    return "";
+    return UI_UPDATE;
 }
 
 static game_ui *new_ui(const game_state *state)
@@ -2282,7 +2282,7 @@ static char *update_drag_dst(const game_state *state, game_ui *ui,
     /*debug(("update_drag src (%d,%d) d(%d,%d) dst (%d,%d)\n",
            ui->dragx_src, ui->dragy_src, dx, dy,
            ui->dragx_dst, ui->dragy_dst));*/
-    return "";
+    return UI_UPDATE;
 }
 
 static char *finish_drag(const game_state *state, game_ui *ui)
@@ -2325,7 +2325,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         if (ggrid & G_ISLAND) {
             ui->dragx_src = gx;
             ui->dragy_src = gy;
-            return "";
+            return UI_UPDATE;
         } else
             return ui_cancel_drag(ui);
     } else if (button == LEFT_DRAG || button == RIGHT_DRAG) {
@@ -2339,7 +2339,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
             /* cancel a drag when we go back to the starting point */
             ui->dragx_dst = -1;
             ui->dragy_dst = -1;
-            return "";
+            return UI_UPDATE;
         }
     } else if (button == LEFT_RELEASE || button == RIGHT_RELEASE) {
         if (ui->dragging) {
@@ -2424,19 +2424,19 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 
                     if (!dingrid) break;
                 }
-                if (!oingrid) return "";
+                if (!oingrid) return UI_UPDATE;
             }
             /* not reached */
 
 found:
             ui->cur_x = nx;
             ui->cur_y = ny;
-            return "";
+            return UI_UPDATE;
         }
     } else if (IS_CURSOR_SELECT(button)) {
         if (!ui->cur_visible) {
             ui->cur_visible = 1;
-            return "";
+            return UI_UPDATE;
         }
         if (ui->dragging || button == CURSOR_SELECT2) {
             ui_cancel_drag(ui);
@@ -2444,7 +2444,7 @@ found:
                 sprintf(buf, "M%d,%d", ui->cur_x, ui->cur_y);
                 return dupstr(buf);
             } else
-                return "";
+                return UI_UPDATE;
         } else {
             grid_type v = GRID(state, ui->cur_x, ui->cur_y);
             if (v & G_ISLAND) {
@@ -2453,7 +2453,7 @@ found:
                 ui->dragy_src = ui->cur_y;
                 ui->dragx_dst = ui->dragy_dst = -1;
                 ui->drag_is_noline = (button == CURSOR_SELECT2) ? 1 : 0;
-                return "";
+                return UI_UPDATE;
             }
         }
     } else if ((button >= '0' && button <= '9') ||
@@ -2471,7 +2471,7 @@ found:
 
         if (!ui->cur_visible) {
             ui->cur_visible = 1;
-            return "";
+            return UI_UPDATE;
         }
 
         for (i = 0; i < state->n_islands; ++i) {
@@ -2498,12 +2498,12 @@ found:
         if (best_x != -1 && best_y != -1) {
             ui->cur_x = best_x;
             ui->cur_y = best_y;
-            return "";
+            return UI_UPDATE;
         } else
             return NULL;
     } else if (button == 'g' || button == 'G') {
         ui->show_hints = 1 - ui->show_hints;
-        return "";
+        return UI_UPDATE;
     }
 
     return NULL;

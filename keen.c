@@ -1616,7 +1616,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
                 ui->hpencil = 0;
             }
             ui->hcursor = 0;
-            return "";		       /* UI activity occurred */
+            return UI_UPDATE;
         }
         if (button == RIGHT_BUTTON) {
             /*
@@ -1636,19 +1636,19 @@ static char *interpret_move(const game_state *state, game_ui *ui,
                 ui->hshow = 0;
             }
             ui->hcursor = 0;
-            return "";		       /* UI activity occurred */
+            return UI_UPDATE;
         }
     }
     if (IS_CURSOR_MOVE(button)) {
         move_cursor(button, &ui->hx, &ui->hy, w, w, 0);
         ui->hshow = ui->hcursor = 1;
-        return "";
+        return UI_UPDATE;
     }
     if (ui->hshow &&
         (button == CURSOR_SELECT)) {
         ui->hpencil = 1 - ui->hpencil;
         ui->hcursor = 1;
-        return "";
+        return UI_UPDATE;
     }
 
     if (ui->hshow &&

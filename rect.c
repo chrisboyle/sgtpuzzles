@@ -2407,7 +2407,7 @@ static char *interpret_move(const game_state *from, game_ui *ui,
         move_cursor(button, &ui->cur_x, &ui->cur_y, from->w, from->h, 0);
         ui->cur_visible = TRUE;
         active = TRUE;
-        if (!ui->cur_dragging) return "";
+        if (!ui->cur_dragging) return UI_UPDATE;
         coord_round((float)ui->cur_x + 0.5F, (float)ui->cur_y + 0.5F, &xc, &yc);
     } else if (IS_CURSOR_SELECT(button)) {
         if (ui->drag_start_x >= 0 && !ui->cur_dragging) {
@@ -2420,7 +2420,7 @@ static char *interpret_move(const game_state *from, game_ui *ui,
         if (!ui->cur_visible) {
             assert(!ui->cur_dragging);
             ui->cur_visible = TRUE;
-            return "";
+            return UI_UPDATE;
         }
         coord_round((float)ui->cur_x + 0.5F, (float)ui->cur_y + 0.5F, &xc, &yc);
         erasing = (button == CURSOR_SELECT2);
@@ -2441,7 +2441,7 @@ static char *interpret_move(const game_state *from, game_ui *ui,
             reset_ui(ui); /* cancel keyboard dragging */
             ui->cur_dragging = FALSE;
         }
-        return "";
+        return UI_UPDATE;
     } else if (button != LEFT_DRAG && button != RIGHT_DRAG) {
         return NULL;
     }
@@ -2525,7 +2525,7 @@ static char *interpret_move(const game_state *from, game_ui *ui,
     if (ret)
 	return ret;		       /* a move has been made */
     else if (active)
-        return "";		       /* UI activity has occurred */
+        return UI_UPDATE;
     else
 	return NULL;
 }

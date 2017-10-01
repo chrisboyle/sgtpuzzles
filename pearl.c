@@ -2022,11 +2022,11 @@ static char *mark_in_direction(const game_state *state, int x, int y, int dir,
 
     char ch = primary ? 'F' : 'M', *other;
 
-    if (!INGRID(state, x, y) || !INGRID(state, x2, y2)) return "";
+    if (!INGRID(state, x, y) || !INGRID(state, x2, y2)) return UI_UPDATE;
 
     /* disallow laying a mark over a line, or vice versa. */
     other = primary ? state->marks : state->lines;
-    if (other[y*w+x] & dir || other[y2*w+x2] & dir2) return "";
+    if (other[y*w+x] & dir || other[y2*w+x2] & dir2) return UI_UPDATE;
     
     sprintf(buf, "%c%d,%d,%d;%c%d,%d,%d", ch, dir, x, y, ch, dir2, x2, y2);
     return dupstr(buf);
@@ -2060,12 +2060,12 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         ui->dragcoords[0] = gy * w + gx;
         ui->ndragcoords = 0;           /* will be 1 once drag is confirmed */
 
-        return "";
+        return UI_UPDATE;
     }
 
     if (button == LEFT_DRAG && ui->ndragcoords >= 0) {
         update_ui_drag(state, ui, gx, gy);
-        return "";
+        return UI_UPDATE;
     }
 
     if (IS_MOUSE_RELEASE(button)) release = TRUE;
@@ -2087,30 +2087,30 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 	    if (ui->ndragcoords >= 0)
 		update_ui_drag(state, ui, ui->curx, ui->cury);
 	}
-	return "";
+	return UI_UPDATE;
     }
 
     if (IS_CURSOR_SELECT(button)) {
 	if (!ui->cursor_active) {
 	    ui->cursor_active = TRUE;
-	    return "";
+	    return UI_UPDATE;
 	} else if (button == CURSOR_SELECT) {
 	    if (ui->ndragcoords == -1) {
 		ui->ndragcoords = 0;
 		ui->dragcoords[0] = ui->cury * w + ui->curx;
 		ui->clickx = CENTERED_COORD(ui->curx);
 		ui->clicky = CENTERED_COORD(ui->cury);
-		return "";
+		return UI_UPDATE;
 	    } else release = TRUE;
 	} else if (button == CURSOR_SELECT2 && ui->ndragcoords >= 0) {
 	    ui->ndragcoords = -1;
-	    return "";
+	    return UI_UPDATE;
 	}
     }
 
     if (button == 27 || button == '\b') {
         ui->ndragcoords = -1;
-        return "";
+        return UI_UPDATE;
     }
 
     if (release) {
@@ -2142,7 +2142,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 
             ui->ndragcoords = -1;
 
-            return buf ? buf : "";
+            return buf ? buf : UI_UPDATE;
         } else if (ui->ndragcoords == 0) {
             /* Click (or tiny drag). Work out which edge we were
              * closest to. */
@@ -2163,12 +2163,12 @@ static char *interpret_move(const game_state *state, game_ui *ui,
             cx = CENTERED_COORD(gx);
             cy = CENTERED_COORD(gy);
 
-            if (!INGRID(state, gx, gy)) return "";
+            if (!INGRID(state, gx, gy)) return UI_UPDATE;
 
             if (max(abs(x-cx),abs(y-cy)) < TILE_SIZE/4) {
                 /* TODO closer to centre of grid: process as a cell click not an edge click. */
 
-                return "";
+                return UI_UPDATE;
             } else {
 		int direction;
                 if (abs(x-cx) < abs(y-cy)) {

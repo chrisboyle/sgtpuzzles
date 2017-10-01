@@ -618,7 +618,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     if (IS_CURSOR_MOVE(button) || pad) {
         if (!ui->cur_visible) {
             ui->cur_visible = 1;
-            return "";
+            return UI_UPDATE;
         }
 
         if (control || shift || ui->cur_mode) {
@@ -673,7 +673,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
             }
 
             ui->cur_visible = 1;
-            return "";
+            return UI_UPDATE;
         }
     }
 
@@ -691,11 +691,11 @@ static char *interpret_move(const game_state *state, game_ui *ui,
                 const enum cursor_mode m = (button == CURSOR_SELECT2 ?
                                             lock_position : lock_tile);
                 ui->cur_mode = (ui->cur_mode == m ? unlocked : m);
-                return "";
+                return UI_UPDATE;
             }
         } else {
             ui->cur_visible = 1;
-            return "";
+            return UI_UPDATE;
         }
     } else {
 	return NULL;
@@ -710,7 +710,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     else if (cy == state->h && cx >= 0 && cx < state->w)
         dy = +1, dx = 0;
     else
-        return "";                   /* invalid click location */
+        return UI_UPDATE;            /* invalid click location */
 
     /* reverse direction if right hand button is pressed */
     if (button == RIGHT_BUTTON || button == CURSOR_SELECT2) {

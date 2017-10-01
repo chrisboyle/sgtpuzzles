@@ -2375,7 +2375,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
      */
     if (button == 'l' || button == 'L') {
         ui->show_numbers = !ui->show_numbers;
-        return "";
+        return UI_UPDATE;
     }
 
     if (IS_CURSOR_MOVE(button)) {
@@ -2385,14 +2385,14 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         ui->cur_lastmove = button;
         ui->dragx = COORD(ui->cur_x) + TILESIZE/2 + EPSILON_X(button);
         ui->dragy = COORD(ui->cur_y) + TILESIZE/2 + EPSILON_Y(button);
-        return "";
+        return UI_UPDATE;
     }
     if (IS_CURSOR_SELECT(button)) {
         if (!ui->cur_visible) {
             ui->dragx = COORD(ui->cur_x) + TILESIZE/2 + EPSILON_X(ui->cur_lastmove);
             ui->dragy = COORD(ui->cur_y) + TILESIZE/2 + EPSILON_Y(ui->cur_lastmove);
             ui->cur_visible = 1;
-            return "";
+            return UI_UPDATE;
         }
         if (ui->drag_colour == -2) { /* not currently cursor-dragging, start. */
             int r = region_from_coords(state, ds, ui->dragx, ui->dragy);
@@ -2404,7 +2404,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
                 ui->drag_pencil = 0;
             }
             ui->cur_moved = 0;
-            return "";
+            return UI_UPDATE;
         } else { /* currently cursor-dragging; drop the colour in the new region. */
             x = COORD(ui->cur_x) + TILESIZE/2 + EPSILON_X(ui->cur_lastmove);
             y = COORD(ui->cur_y) + TILESIZE/2 + EPSILON_Y(ui->cur_lastmove);
@@ -2430,14 +2430,14 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         ui->dragx = x;
         ui->dragy = y;
         ui->cur_visible = 0;
-        return "";
+        return UI_UPDATE;
     }
 
     if ((button == LEFT_DRAG || button == RIGHT_DRAG) &&
         ui->drag_colour > -2) {
         ui->dragx = x;
         ui->dragy = y;
-        return "";
+        return UI_UPDATE;
     }
 
     if ((button == LEFT_RELEASE || button == RIGHT_RELEASE) &&
@@ -2461,18 +2461,18 @@ drag_dropped:
         ui->drag_colour = -2;
 
 	if (r < 0)
-            return "";                 /* drag into border; do nothing else */
+            return UI_UPDATE;          /* drag into border; do nothing else */
 
 	if (state->map->immutable[r])
-	    return "";                 /* can't change this region */
+	    return UI_UPDATE;          /* can't change this region */
 
         if (state->colouring[r] == c && state->pencil[r] == p)
-            return "";                 /* don't _need_ to change this region */
+            return UI_UPDATE;          /* don't _need_ to change this region */
 
 	if (alt_button) {
 	    if (state->colouring[r] >= 0) {
 		/* Can't pencil on a coloured region */
-		return "";
+		return UI_UPDATE;
 	    } else if (c >= 0) {
 		/* Right-dragging from colour to blank toggles one pencil */
 		p = state->pencil[r] ^ (1 << c);

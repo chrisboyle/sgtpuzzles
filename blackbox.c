@@ -902,7 +902,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         ui->cur_x = cx;
         ui->cur_y = cy;
         ui->cur_visible = 1;
-        return "";
+        return UI_UPDATE;
     }
 
     if (button == LEFT_BUTTON || button == RIGHT_BUTTON) {
@@ -912,7 +912,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         wouldflash = 1;
     } else if (button == LEFT_RELEASE) {
         ui->flash_laser = 0;
-        return "";
+        return UI_UPDATE;
     } else if (IS_CURSOR_SELECT(button)) {
         if (ui->cur_visible) {
             gx = ui->cur_x;
@@ -921,7 +921,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
             wouldflash = 2;
         } else {
             ui->cur_visible = 1;
-            return "";
+            return UI_UPDATE;
         }
         /* Fix up 'button' for the below logic. */
         if (button == CURSOR_SELECT2) button = RIGHT_BUTTON;
@@ -970,9 +970,9 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 	    return nullret;
         ui->flash_laserno = rangeno;
         ui->flash_laser = wouldflash;
-        nullret = "";
+        nullret = UI_UPDATE;
         if (state->exits[rangeno] != LASER_EMPTY)
-            return "";
+            return UI_UPDATE;
         sprintf(buf, "F%d", rangeno);
         break;
 
