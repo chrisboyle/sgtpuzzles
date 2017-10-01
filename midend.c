@@ -63,7 +63,7 @@ struct midend {
     int nstates, statesize, statepos;
     struct midend_state_entry *states;
 
-    void *newgame_undo_buf;
+    char *newgame_undo_buf;
     int newgame_undo_len, newgame_undo_size;
 
     game_params *params, *curparams;
