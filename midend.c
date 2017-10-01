@@ -1951,11 +1951,11 @@ char *midend_deserialise(midend *me,
     if (!desc) {
         ret = "Game description in save file is missing";
         goto cleanup;
-    } else if (me->ourgame->validate_desc(params, desc)) {
+    } else if (me->ourgame->validate_desc(cparams, desc)) {
         ret = "Game description in save file is invalid";
         goto cleanup;
     }
-    if (privdesc && me->ourgame->validate_desc(params, privdesc)) {
+    if (privdesc && me->ourgame->validate_desc(cparams, privdesc)) {
         ret = "Game private description in save file is invalid";
         goto cleanup;
     }
@@ -1963,7 +1963,7 @@ char *midend_deserialise(midend *me,
         ret = "Game position in save file is out of range";
     }
 
-    states[0].state = me->ourgame->new_game(me, params,
+    states[0].state = me->ourgame->new_game(me, cparams,
                                             privdesc ? privdesc : desc);
     for (i = 1; i < nstates; i++) {
         assert(states[i].movetype != NEWGAME);
@@ -1978,11 +1978,11 @@ char *midend_deserialise(midend *me,
             }
             break;
           case RESTART:
-            if (me->ourgame->validate_desc(params, states[i].movestr)) {
+            if (me->ourgame->validate_desc(cparams, states[i].movestr)) {
                 ret = "Save file contained an invalid restart move";
                 goto cleanup;
             }
-            states[i].state = me->ourgame->new_game(me, params,
+            states[i].state = me->ourgame->new_game(me, cparams,
                                                     states[i].movestr);
             break;
         }
