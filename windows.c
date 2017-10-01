@@ -2140,7 +2140,7 @@ static char *frontend_set_config(frontend *fe, int which, config_item *cfg)
 /* Control coordinates should be specified in dialog units. */
 HWND mkctrl(frontend *fe, int x1, int x2, int y1, int y2,
 	    LPCTSTR wclass, int wstyle,
-	    int exstyle, const char *wtext, int wid)
+	    int exstyle, const char *wtext, INT_PTR wid)
 {
     RECT rc;
     TCHAR wwtext[256];
@@ -2349,7 +2349,7 @@ static int CALLBACK ConfigDlgProc(HWND hwnd, UINT msg,
 #ifndef _WIN32_WCE
 HWND mkctrl(frontend *fe, int x1, int x2, int y1, int y2,
 	    char *wclass, int wstyle,
-	    int exstyle, const char *wtext, int wid)
+	    int exstyle, const char *wtext, INT_PTR wid)
 {
     HWND ret;
     ret = CreateWindowEx(exstyle, wclass, wtext,
