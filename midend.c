@@ -403,7 +403,20 @@ static void newgame_serialise_write(void *ctx, const void *buf, int len)
 void midend_new_game(midend *me)
 {
     me->newgame_undo_len = 0;
-    midend_serialise(me, newgame_serialise_write, me);
+    if (me->nstates != 0) {
+        /*
+         * Serialise the whole of the game that we're about to
+         * supersede, so that the 'New Game' action can be undone
+         * later. But if nstates == 0, that means there _isn't_ a
+         * current game (not even a starting position), because this
+         * is the initial call to midend_new_game when the midend is
+         * first set up; in that situation, we want to avoid writing
+         * out any serialisation, because it would be useless anyway
+         * and just confuse us into thinking we had something to undo
+         * to.
+         */
+        midend_serialise(me, newgame_serialise_write, me);
+    }
 
     midend_stop_anim(me);
     midend_free_game(me);
