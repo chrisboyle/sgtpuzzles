@@ -80,7 +80,7 @@ int maxflow_with_scratch(void *scratch, int nv, int source, int sink,
 	/*
 	 * Now do the BFS loop.
 	 */
-	while (head < tail && prev[sink] <= 0) {
+	while (head < tail && prev[sink] < 0) {
 	    from = todo[head++];
 
 	    /*
