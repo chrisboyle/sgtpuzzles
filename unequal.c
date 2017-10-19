@@ -1566,7 +1566,9 @@ static game_state *execute_move(const game_state *state, const char *move)
         }
         return ret;
     } else if (move[0] == 'H') {
-        return solver_hint(state, NULL, DIFF_EASY, DIFF_EASY);
+        ret = solver_hint(state, NULL, DIFF_EASY, DIFF_EASY);
+        check_complete(ret->nums, ret, 1);
+        return ret;
     } else if (move[0] == 'F' && sscanf(move+1, "%d,%d,%d", &x, &y, &n) == 3 &&
 	       x >= 0 && x < state->order && y >= 0 && y < state->order) {
 	ret = dup_game(state);
