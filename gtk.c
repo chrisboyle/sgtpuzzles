@@ -1397,7 +1397,9 @@ static gint configure_area(GtkWidget *widget,
 {
     frontend *fe = (frontend *)data;
     resize_puzzle_to_area(fe, event->width, event->height);
+#if GTK_CHECK_VERSION(3,0,0)
     fe->awaiting_resize_ack = FALSE;
+#endif
     return TRUE;
 }
 
@@ -1522,8 +1524,8 @@ static void msgbox_button_clicked(GtkButton *button, gpointer data)
     gtk_widget_destroy(GTK_WIDGET(data));
 }
 
-int message_box(GtkWidget *parent, char *title, char *msg, int centre,
-		int type)
+int message_box(GtkWidget *parent, const char *title, const char *msg,
+                int centre, int type)
 {
     GtkWidget *window, *hbox, *text, *button;
     char *titles;
