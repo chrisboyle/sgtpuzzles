@@ -1013,12 +1013,23 @@ static int solver_set(struct solver_usage *usage,
 
 	/*
 	 * If count == 0, then there's a row with no 1s at all and
-	 * the puzzle is internally inconsistent. However, we ought
-	 * to have caught this already during the simpler reasoning
-	 * methods, so we can safely fail an assertion if we reach
-	 * this point here.
+	 * the puzzle is internally inconsistent.
 	 */
-	assert(count > 0);
+        if (count == 0) {
+#ifdef STANDALONE_SOLVER
+            if (solver_show_working) {
+                va_list ap;
+                printf("%*s", solver_recurse_depth*4,
+                       "");
+                va_start(ap, fmt);
+                vprintf(fmt, ap);
+                va_end(ap);
+                printf(":\n%*s  solver_set: impossible on entry\n",
+                       solver_recurse_depth*4, "");
+            }
+#endif
+            return -1;
+        }
         if (count == 1)
             rowidx[i] = colidx[first] = FALSE;
     }
@@ -1465,7 +1476,14 @@ static int solver_killer_sums(struct solver_usage *usage, int b,
 	assert(nsquares == 0);
 	return 0;
     }
-    assert(nsquares > 0);
+    if (nsquares == 0) {
+#ifdef STANDALONE_SOLVER
+        if (solver_show_working)
+            printf("%*skiller: cage has no usable squares left\n",
+                   solver_recurse_depth*4, "");
+#endif
+        return -1;
+    }
 
     if (nsquares < 2 || nsquares > 4)
 	return 0;
