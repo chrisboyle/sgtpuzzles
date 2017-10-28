@@ -2340,18 +2340,21 @@ struct game_drawstate {
                            ((button) == CURSOR_UP)    ? -1 : 0)
 
 
-static int region_from_coords(const game_state *state,
-                              const game_drawstate *ds, int x, int y)
+/*
+ * Return the map region containing a point in tile (tx,ty), offset by
+ * (x_eps,y_eps) from the centre of the tile.
+ */
+static int region_from_logical_coords(const game_state *state, int tx, int ty,
+                                      int x_eps, int y_eps)
 {
     int w = state->p.w, h = state->p.h, wh = w*h /*, n = state->p.n */;
-    int tx = FROMCOORD(x), ty = FROMCOORD(y);
-    int dx = x - COORD(tx), dy = y - COORD(ty);
+
     int quadrant;
 
     if (tx < 0 || tx >= w || ty < 0 || ty >= h)
         return -1;                     /* border */
 
-    quadrant = 2 * (dx > dy) + (TILESIZE - dx > dy);
+    quadrant = 2 * (x_eps > y_eps) + (-x_eps > y_eps);
     quadrant = (quadrant == 0 ? BE :
                 quadrant == 1 ? LE :
                 quadrant == 2 ? RE : TE);
@@ -2359,12 +2362,28 @@ static int region_from_coords(const game_state *state,
     return state->map->map[quadrant * wh + ty*w+tx];
 }
 
+static int region_from_coords(const game_state *state,
+                              const game_drawstate *ds, int x, int y)
+{
+    int tx = FROMCOORD(x), ty = FROMCOORD(y);
+    return region_from_logical_coords(
+        state, tx, ty, x - COORD(tx) - TILESIZE/2, y - COORD(ty) - TILESIZE/2);
+}
+
+static int region_from_ui_cursor(const game_state *state, const game_ui *ui)
+{
+    assert(ui->cur_visible);
+    return region_from_logical_coords(state, ui->cur_x, ui->cur_y,
+                                      EPSILON_X(ui->cur_lastmove),
+                                      EPSILON_Y(ui->cur_lastmove));
+}
+
 static char *interpret_move(const game_state *state, game_ui *ui,
                             const game_drawstate *ds,
                             int x, int y, int button)
 {
     char *bufp, buf[256];
-    int alt_button;
+    int alt_button, drop_region;
 
     /*
      * Enable or disable numeric labels on regions.
@@ -2379,19 +2398,15 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         ui->cur_visible = 1;
         ui->cur_moved = 1;
         ui->cur_lastmove = button;
-        ui->dragx = COORD(ui->cur_x) + TILESIZE/2 + EPSILON_X(button);
-        ui->dragy = COORD(ui->cur_y) + TILESIZE/2 + EPSILON_Y(button);
         return UI_UPDATE;
     }
     if (IS_CURSOR_SELECT(button)) {
         if (!ui->cur_visible) {
-            ui->dragx = COORD(ui->cur_x) + TILESIZE/2 + EPSILON_X(ui->cur_lastmove);
-            ui->dragy = COORD(ui->cur_y) + TILESIZE/2 + EPSILON_Y(ui->cur_lastmove);
             ui->cur_visible = 1;
             return UI_UPDATE;
         }
         if (ui->drag_colour == -2) { /* not currently cursor-dragging, start. */
-            int r = region_from_coords(state, ds, ui->dragx, ui->dragy);
+            int r = region_from_ui_cursor(state, ui);
             if (r >= 0) {
                 ui->drag_colour = state->colouring[r];
                 ui->drag_pencil = (ui->drag_colour >= 0) ? 0 : state->pencil[r];
@@ -2402,11 +2417,10 @@ static char *interpret_move(const game_state *state, game_ui *ui,
             ui->cur_moved = 0;
             return UI_UPDATE;
         } else { /* currently cursor-dragging; drop the colour in the new region. */
-            x = COORD(ui->cur_x) + TILESIZE/2 + EPSILON_X(ui->cur_lastmove);
-            y = COORD(ui->cur_y) + TILESIZE/2 + EPSILON_Y(ui->cur_lastmove);
             alt_button = (button == CURSOR_SELECT2) ? 1 : 0;
             /* Double-select removes current colour. */
             if (!ui->cur_moved) ui->drag_colour = -1;
+            drop_region = region_from_ui_cursor(state, ui);
             goto drag_dropped;
         }
     }
@@ -2439,6 +2453,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     if ((button == LEFT_RELEASE || button == RIGHT_RELEASE) &&
         ui->drag_colour > -2) {
         alt_button = (button == RIGHT_RELEASE) ? 1 : 0;
+        drop_region = region_from_coords(state, ds, x, y);
         goto drag_dropped;
     }
 
@@ -2446,7 +2461,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 
 drag_dropped:
     {
-	int r = region_from_coords(state, ds, x, y);
+	int r = drop_region;
         int c = ui->drag_colour;
 	int p = ui->drag_pencil;
 	int oldp;
@@ -2972,29 +2987,37 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
      * Draw the dragged colour blob if any.
      */
     if ((ui->drag_colour > -2) || ui->cur_visible) {
-        int bg, iscur = 0;
+        int bg, iscur = 0, cursor_x, cursor_y;
         if (ui->drag_colour >= 0)
             bg = COL_0 + ui->drag_colour;
         else if (ui->drag_colour == -1) {
             bg = COL_BACKGROUND;
         } else {
-            int r = region_from_coords(state, ds, ui->dragx, ui->dragy);
+            int r = region_from_ui_cursor(state, ui);
             int c = (r < 0) ? -1 : state->colouring[r];
-            assert(ui->cur_visible);
             /*bg = COL_GRID;*/
             bg = (c < 0) ? COL_BACKGROUND : COL_0 + c;
             iscur = 1;
         }
 
-        ds->dragx = ui->dragx - TILESIZE/2 - 2;
-        ds->dragy = ui->dragy - TILESIZE/2 - 2;
+        if (ui->cur_visible) {
+            cursor_x = COORD(ui->cur_x) + TILESIZE/2 +
+                EPSILON_X(ui->cur_lastmove);
+            cursor_y = COORD(ui->cur_y) + TILESIZE/2 +
+                EPSILON_Y(ui->cur_lastmove);
+        } else {
+            cursor_x = ui->dragx;
+            cursor_y = ui->dragy;
+        }
+        ds->dragx = cursor_x - TILESIZE/2 - 2;
+        ds->dragy = cursor_y - TILESIZE/2 - 2;
         blitter_save(dr, ds->bl, ds->dragx, ds->dragy);
-        draw_circle(dr, ui->dragx, ui->dragy,
+        draw_circle(dr, cursor_x, cursor_y,
                     iscur ? TILESIZE/4 : TILESIZE/2, bg, COL_GRID);
 	for (i = 0; i < FOUR; i++)
 	    if (ui->drag_pencil & (1 << i))
-		draw_circle(dr, ui->dragx + ((i*4+2)%10-3) * TILESIZE/10,
-			    ui->dragy + (i*2-3) * TILESIZE/10,
+		draw_circle(dr, cursor_x + ((i*4+2)%10-3) * TILESIZE/10,
+			    cursor_y + (i*2-3) * TILESIZE/10,
 			    TILESIZE/8, COL_0 + i, COL_0 + i);
         draw_update(dr, ds->dragx, ds->dragy, TILESIZE + 3, TILESIZE + 3);
         ds->drag_visible = TRUE;
