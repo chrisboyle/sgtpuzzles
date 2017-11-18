@@ -100,6 +100,7 @@ typedef struct grid {
   A(SNUBSQUARE,snubsquare) \
   A(CAIRO,cairo) \
   A(GREATHEXAGONAL,greathexagonal) \
+  A(KAGOME,kagome) \
   A(OCTAGONAL,octagonal) \
   A(KITE,kites) \
   A(FLORET,floret) \

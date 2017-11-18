@@ -278,6 +278,7 @@ static void check_caches(const solver_state* sstate);
     A("Penrose (kite/dart)",PENROSE_P2,3,3)                     \
     A("Penrose (rhombs)",PENROSE_P3,3,3)                        \
     A("Great-Great-Dodecagonal",GREATGREATDODECAGONAL,2,2)      \
+    A("Kagome",KAGOME,3,3)                                      \
     /* end of list */
 
 #define GRID_NAME(title,type,amin,omin) title,
@@ -544,6 +545,7 @@ static const game_params loopy_presets_more[] = {
 #ifdef SMALL_SCREEN
     {  7,  7, DIFF_HARD,   LOOPY_GRID_HONEYCOMB },
     {  5,  4, DIFF_HARD,   LOOPY_GRID_GREATHEXAGONAL },
+    {  5,  4, DIFF_HARD,   LOOPY_GRID_KAGOME },
     {  5,  5, DIFF_HARD,   LOOPY_GRID_OCTAGONAL },
     {  3,  3, DIFF_HARD,   LOOPY_GRID_FLORET },
     {  3,  3, DIFF_HARD,   LOOPY_GRID_DODECAGONAL },
@@ -552,6 +554,7 @@ static const game_params loopy_presets_more[] = {
 #else
     { 10, 10, DIFF_HARD,   LOOPY_GRID_HONEYCOMB },
     {  5,  4, DIFF_HARD,   LOOPY_GRID_GREATHEXAGONAL },
+    {  5,  4, DIFF_HARD,   LOOPY_GRID_KAGOME },
     {  7,  7, DIFF_HARD,   LOOPY_GRID_OCTAGONAL },
     {  5,  5, DIFF_HARD,   LOOPY_GRID_FLORET },
     {  5,  4, DIFF_HARD,   LOOPY_GRID_DODECAGONAL },
