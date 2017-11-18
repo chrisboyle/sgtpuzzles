@@ -25,6 +25,11 @@ struct midend_state_entry {
     int movetype;
 };
 
+struct midend_serialise_buf {
+    char *buf;
+    int len, size;
+};
+
 struct midend {
     frontend *frontend;
     random_state *random;
@@ -63,8 +68,7 @@ struct midend {
     int nstates, statesize, statepos;
     struct midend_state_entry *states;
 
-    char *newgame_undo_buf;
-    int newgame_undo_len, newgame_undo_size;
+    struct midend_serialise_buf newgame_undo;
 
     game_params *params, *curparams;
     game_drawstate *drawstate;
@@ -158,8 +162,8 @@ midend *midend_new(frontend *fe, const game *ourgame,
     me->random = random_new(randseed, randseedsize);
     me->nstates = me->statesize = me->statepos = 0;
     me->states = NULL;
-    me->newgame_undo_buf = NULL;
-    me->newgame_undo_size = me->newgame_undo_len = 0;
+    me->newgame_undo.buf = NULL;
+    me->newgame_undo.size = me->newgame_undo.len = 0;
     me->params = ourgame->default_params();
     me->game_id_change_notify_function = NULL;
     me->game_id_change_notify_ctx = NULL;
@@ -257,7 +261,7 @@ void midend_free(midend *me)
     if (me->drawing)
 	drawing_free(me->drawing);
     random_free(me->random);
-    sfree(me->newgame_undo_buf);
+    sfree(me->newgame_undo.buf);
     sfree(me->states);
     sfree(me->desc);
     sfree(me->privdesc);
@@ -386,23 +390,22 @@ void midend_force_redraw(midend *me)
 
 static void newgame_serialise_write(void *ctx, const void *buf, int len)
 {
-    midend *const me = ctx;
+    struct midend_serialise_buf *ser = (struct midend_serialise_buf *)ctx;
     int new_len;
 
-    assert(len < INT_MAX - me->newgame_undo_len);
-    new_len = me->newgame_undo_len + len;
-    if (new_len > me->newgame_undo_size) {
-	me->newgame_undo_size = new_len + new_len / 4 + 1024;
-	me->newgame_undo_buf = sresize(me->newgame_undo_buf,
-                                       me->newgame_undo_size, char);
+    assert(len < INT_MAX - ser->len);
+    new_len = ser->len + len;
+    if (new_len > ser->size) {
+	ser->size = new_len + new_len / 4 + 1024;
+	ser->buf = sresize(ser->buf, ser->size, char);
     }
-    memcpy(me->newgame_undo_buf + me->newgame_undo_len, buf, len);
-    me->newgame_undo_len = new_len;
+    memcpy(ser->buf + ser->len, buf, len);
+    ser->len = new_len;
 }
 
 void midend_new_game(midend *me)
 {
-    me->newgame_undo_len = 0;
+    me->newgame_undo.len = 0;
     if (me->nstates != 0) {
         /*
          * Serialise the whole of the game that we're about to
@@ -415,7 +418,7 @@ void midend_new_game(midend *me)
          * and just confuse us into thinking we had something to undo
          * to.
          */
-        midend_serialise(me, newgame_serialise_write, me);
+        midend_serialise(me, newgame_serialise_write, &me->newgame_undo);
     }
 
     midend_stop_anim(me);
@@ -532,7 +535,7 @@ void midend_new_game(midend *me)
 
 int midend_can_undo(midend *me)
 {
-    return (me->statepos > 1 || me->newgame_undo_len);
+    return (me->statepos > 1 || me->newgame_undo.len);
 }
 
 int midend_can_redo(midend *me)
@@ -541,17 +544,16 @@ int midend_can_redo(midend *me)
 }
 
 struct newgame_undo_deserialise_read_ctx {
-    midend *me;
+    struct midend_serialise_buf *ser;
     int len, pos;
 };
 
 static int newgame_undo_deserialise_read(void *ctx, void *buf, int len)
 {
     struct newgame_undo_deserialise_read_ctx *const rctx = ctx;
-    midend *const me = rctx->me;
 
     int use = min(len, rctx->len - rctx->pos);
-    memcpy(buf, me->newgame_undo_buf + rctx->pos, use);
+    memcpy(buf, rctx->ser->buf + rctx->pos, use);
     rctx->pos += use;
     return use;
 }
@@ -624,12 +626,12 @@ static int midend_undo(midend *me)
 	me->statepos--;
         me->dir = -1;
         return 1;
-    } else if (me->newgame_undo_len) {
+    } else if (me->newgame_undo.len) {
 	/* This undo cannot be undone with redo */
 	struct newgame_undo_deserialise_read_ctx rctx;
 	struct newgame_undo_deserialise_check_ctx cctx;
-	rctx.me = me;
-	rctx.len = me->newgame_undo_len; /* copy for reentrancy safety */
+	rctx.ser = &me->newgame_undo;
+	rctx.len = me->newgame_undo.len; /* copy for reentrancy safety */
 	rctx.pos = 0;
         cctx.refused = FALSE;
         deserialise_error = midend_deserialise_internal(
@@ -2230,7 +2232,7 @@ static const char *midend_deserialise_internal(
      * more sophisticated way to decide when to discard the previous
      * game state.
      */
-    me->newgame_undo_len = 0;
+    me->newgame_undo.len = 0;
 
     {
         game_params *tmp;
