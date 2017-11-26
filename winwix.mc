@@ -12,6 +12,12 @@ has 'descfile' => (required => 1);
 
 <?xml version="1.0" encoding="utf-8"?>
 
+<?if $(var.Win64) = yes ?>
+  <?define PlatformProgramFilesFolder = "ProgramFiles64Folder" ?>
+<?else ?>
+  <?define PlatformProgramFilesFolder = "ProgramFilesFolder" ?>
+<?endif ?>
+
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
 
 % # Product tag. The Id component is set to "*", which causes WiX to
@@ -61,7 +67,7 @@ has 'descfile' => (required => 1);
 % # (individual files or shortcuts or additions to PATH) that are
 % # installed.
     <Directory Id="TARGETDIR" Name="SourceDir">
-      <Directory Id="ProgramFiles64Folder" Name="PFiles">
+      <Directory Id="$(var.PlatformProgramFilesFolder)" Name="PFiles">
         <Directory Id="INSTALLDIR" Name="Simon Tatham's Portable Puzzle Collection">
 
 % # The following components all install things in the main
@@ -71,12 +77,12 @@ has 'descfile' => (required => 1);
 % # the more obscure things like LICENCE are just there for
 % # the sake of being _somewhere_ and don't rate a shortcut.
 
-<%method file_component ($filename, $shortcutname)>
+<%method file_component ($prefix, $filename, $shortcutname)>
 % my $filename_id = file_component_name($filename);
 <Component Id="File_Component_<% $filename_id %>"
     Guid="<% invent_guid('file:' . $filename) %>">
   <File Id="File_<% $filename_id %>"
-        Source="<% $filename %>" KeyPath="yes">
+        Source="<% $prefix %><% $filename %>" KeyPath="yes">
 % if (defined $shortcutname) {
     <Shortcut Id="startmenu_<% $filename_id %>"
               Directory="ProgramMenuDir" WorkingDirectory="INSTALLDIR"
@@ -87,12 +93,12 @@ has 'descfile' => (required => 1);
 </%method>
 
 % for my $exe (@exes) {
-<% $.file_component($exe, $names{$exe}) %>
+<% $.file_component('$(var.Bindir)', $exe, $names{$exe}) %>
 % }
 
-<% $.file_component("puzzles.chm", "Puzzles Manual") %>
-<% $.file_component("website.url", "Puzzles Web Site") %>
-<% $.file_component("LICENCE") %>
+<% $.file_component('', "puzzles.chm", "Puzzles Manual") %>
+<% $.file_component('', "website.url", "Puzzles Web Site") %>
+<% $.file_component('', "LICENCE") %>
 
         </Directory>
       </Directory>
