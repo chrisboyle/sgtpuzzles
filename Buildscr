@@ -56,7 +56,7 @@ in puzzles do mason.pl --args '{"version":"$(Version)","descfile":"gamedesc.txt"
 in puzzles do perl winiss.pl $(Version) gamedesc.txt > puzzles.iss
 ifneq "$(VISUAL_STUDIO)" "yes" then
   in puzzles with clangcl64 do mkdir win64 && Platform=x64 make -f Makefile.clangcl BUILDDIR=win64/ VER=-DVER=$(Version) XFLAGS='-Wwrite-strings -Werror'
-  in puzzles with clangcl32 do mkdir win32 && Platform=x86 make -f Makefile.clangcl BUILDDIR=win32/ VER=-DVER=$(Version) XFLAGS='-Wwrite-strings -Werror'
+  in puzzles with clangcl32 do mkdir win32 && Platform=x86 make -f Makefile.clangcl BUILDDIR=win32/ SUBSYSVER=,5.01 VER=-DVER=$(Version) XFLAGS='-Wwrite-strings -Werror'
   # Code-sign the binaries, if the local bob config provides a script
   # to do so. We assume here that the script accepts an -i option to
   # provide a 'more info' URL, and an optional -n option to provide a
