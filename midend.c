@@ -69,6 +69,7 @@ struct midend {
     struct midend_state_entry *states;
 
     struct midend_serialise_buf newgame_undo, newgame_redo;
+    int newgame_can_store_undo;
 
     game_params *params, *curparams;
     game_drawstate *drawstate;
@@ -166,6 +167,7 @@ midend *midend_new(frontend *fe, const game *ourgame,
     me->newgame_undo.size = me->newgame_undo.len = 0;
     me->newgame_redo.buf = NULL;
     me->newgame_redo.size = me->newgame_redo.len = 0;
+    me->newgame_can_store_undo = FALSE;
     me->params = ourgame->default_params();
     me->game_id_change_notify_function = NULL;
     me->game_id_change_notify_ctx = NULL;
@@ -410,17 +412,20 @@ static void newgame_serialise_write(void *ctx, const void *buf, int len)
 void midend_new_game(midend *me)
 {
     me->newgame_undo.len = 0;
-    if (me->nstates != 0) {
+    if (me->newgame_can_store_undo) {
         /*
          * Serialise the whole of the game that we're about to
          * supersede, so that the 'New Game' action can be undone
-         * later. But if nstates == 0, that means there _isn't_ a
-         * current game (not even a starting position), because this
-         * is the initial call to midend_new_game when the midend is
-         * first set up; in that situation, we want to avoid writing
-         * out any serialisation, because it would be useless anyway
-         * and just confuse us into thinking we had something to undo
-         * to.
+         * later.
+         *
+         * We omit this in various situations, such as if there
+         * _isn't_ a current game (not even a starting position)
+         * because this is the initial call to midend_new_game when
+         * the midend is first set up, or if the midend state has
+         * already begun to be overwritten by midend_set_config. In
+         * those situations, we want to avoid writing out any
+         * serialisation, because they will be either invalid, or
+         * worse, valid but wrong.
          */
         midend_purge_states(me);
         midend_serialise(me, newgame_serialise_write, &me->newgame_undo);
@@ -536,6 +541,8 @@ void midend_new_game(midend *me)
 
     if (me->game_id_change_notify_function)
         me->game_id_change_notify_function(me->game_id_change_notify_ctx);
+
+    me->newgame_can_store_undo = TRUE;
 }
 
 int midend_can_undo(midend *me)
@@ -1679,6 +1686,8 @@ static const char *midend_game_id_int(midend *me, const char *id, int defmode)
     }
 
     sfree(par);
+
+    me->newgame_can_store_undo = FALSE;
 
     return NULL;
 }
