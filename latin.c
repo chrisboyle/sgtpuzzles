@@ -964,13 +964,30 @@ static int latin_solver_top(struct latin_solver *solver, int maxdiff,
     got_result:
 
 #ifdef STANDALONE_SOLVER
-    if (solver_show_working)
-        printf("%*s%s found\n",
-               solver_recurse_depth*4, "",
-               diff == diff_impossible ? "no solution (impossible)" :
-               diff == diff_unfinished ? "no solution (unfinished)" :
-               diff == diff_ambiguous ? "multiple solutions" :
-               "one solution");
+    if (solver_show_working) {
+        if (diff != diff_impossible && diff != diff_unfinished &&
+            diff != diff_ambiguous) {
+            int x, y;
+
+            printf("%*sone solution found:\n", solver_recurse_depth*4, "");
+
+            for (y = 0; y < solver->o; y++) {
+                printf("%*s", solver_recurse_depth*4+1, "");
+                for (x = 0; x < solver->o; x++) {
+                    int val = solver->grid[y*solver->o+x];
+                    assert(val);
+                    printf(" %s", solver->names[val-1]);
+                }
+                printf("\n");
+            }
+        } else {
+            printf("%*s%s found\n",
+                   solver_recurse_depth*4, "",
+                   diff == diff_impossible ? "no solution (impossible)" :
+                   diff == diff_unfinished ? "no solution (unfinished)" :
+                   "multiple solutions");
+        }
+    }
 #endif
 
     latin_solver_free_scratch(scratch);
