@@ -2072,6 +2072,17 @@ int main(int argc, char **argv)
 	    break;
     }
 
+    if (really_show_working) {
+        /*
+         * Now run the solver again at the last difficulty level we
+         * tried, but this time with diagnostics enabled.
+         */
+        solver_show_working = really_show_working;
+        memcpy(s->grid, s->clues->immutable, p->w * p->w);
+        ret = solver(p->w, s->clues->clues, s->grid,
+                     diff < DIFFCOUNT ? diff : DIFFCOUNT-1);
+    }
+
     if (diff == DIFFCOUNT) {
 	if (grade)
 	    printf("Difficulty rating: ambiguous\n");
@@ -2084,9 +2095,6 @@ int main(int argc, char **argv)
 	    else
 		printf("Difficulty rating: %s\n", towers_diffnames[ret]);
 	} else {
-	    solver_show_working = really_show_working;
-	    memcpy(s->grid, s->clues->immutable, p->w * p->w);
-	    ret = solver(p->w, s->clues->clues, s->grid, diff);
 	    if (ret != diff)
 		printf("Puzzle is inconsistent\n");
 	    else
