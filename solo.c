@@ -3103,6 +3103,8 @@ static int check_valid(int cr, struct block_structure *blocks,
 		sfree(used);
 		return FALSE;
 	    }
+
+	memset(used, FALSE, cr);
 	for (i = 0; i < cr; i++)
 	    if (grid[diag1(i)] > 0 && grid[diag1(i)] <= cr)
 		used[grid[diag1(i)]-1] = TRUE;
