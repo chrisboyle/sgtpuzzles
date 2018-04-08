@@ -510,7 +510,9 @@ static const char *validate_params(const game_params *params, int full)
     if ((params->c * params->r) > 31)
         return "Unable to support more than 31 distinct symbols in a puzzle";
     if (params->killer && params->c * params->r > 9)
-	return "Killer puzzle dimensions must be smaller than 10.";
+        return "Killer puzzle dimensions must be smaller than 10";
+    if (params->xtype && params->c * params->r < 4)
+        return "X-type puzzle dimensions must be larger than 3";
     return NULL;
 }
 
