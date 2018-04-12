@@ -613,15 +613,16 @@ static move *solver_reasoning_recursion(game_state *state,
         /* FIXME: add enum alias for smallest and largest (or N) */
         for (colour = M_BLACK; colour <= M_WHITE; ++colour) {
             newstate = dup_game(state);
-            newstate->grid[cell] = colour;
+            newstate->grid[cell] = colour == M_BLACK ? BLACK : WHITE;
             recursive_result = do_solve(newstate, nclues, clues, buf,
                                         DIFF_RECURSION);
-            free_game(newstate);
             if (recursive_result == NULL) {
+                free_game(newstate);
                 solver_makemove(r, c, M_BLACK + M_WHITE - colour, state, &buf);
                 return buf;
             }
             for (i = 0; i < n && newstate->grid[i] != EMPTY; ++i);
+            free_game(newstate);
             if (i == n) return buf;
         }
     }
