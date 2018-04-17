@@ -21,6 +21,15 @@ void free_cfg(config_item *cfg)
     sfree(cfg);
 }
 
+void free_keys(key_label *keys, int nkeys)
+{
+    int i;
+
+    for(i = 0; i < nkeys; i++)
+        sfree(keys->label);
+    sfree(keys);
+}
+
 /*
  * The Mines (among others) game descriptions contain the location of every
  * mine, and can therefore be used to cheat.
@@ -391,6 +400,42 @@ void copy_left_justified(char *buf, size_t sz, const char *str)
     assert(len <= sz - 1);
     memcpy(buf, str, len);
     buf[sz - 1] = 0;
+}
+
+/* Returns a dynamically allocated label for a generic button.
+ * Game-specific buttons should go into the `label' field of key_label
+ * instead. */
+char *button2label(int button)
+{
+    /* check if it's a keyboard button */
+    if(('A' <= button && button <= 'Z') ||
+       ('a' <= button && button <= 'z') ||
+       ('0' <= button && button <= '9') )
+    {
+        char str[2] = { button, '\0' };
+        return dupstr(str);
+    }
+
+    switch(button)
+    {
+    case CURSOR_UP:
+        return dupstr("Up");
+    case CURSOR_DOWN:
+        return dupstr("Down");
+    case CURSOR_LEFT:
+        return dupstr("Left");
+    case CURSOR_RIGHT:
+        return dupstr("Right");
+    case CURSOR_SELECT:
+        return dupstr("Select");
+    case '\b':
+        return dupstr("Clear");
+    default:
+        fatal("unknown generic key");
+    }
+
+    /* should never get here */
+    return NULL;
 }
 
 /* vim: set shiftwidth=4 tabstop=8: */

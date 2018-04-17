@@ -1560,6 +1560,41 @@ the game was first completed (by setting a flag in
 freeze the timer thereafter so that the user can undo back through
 their solution process without altering their time.
 
+\S{backend-request-keys} \cw{request_keys()}
+
+\c key_label *(*request_keys)(const game_params *params, int *nkeys);
+
+This function returns a dynamically allocated array of \cw{key_label}
+items containing the buttons the back end deems absolutely
+\e{necessary} for gameplay, not an exhaustive list of every button the
+back end could accept. For example, Keen only returns the digits up to
+the game size and the backspace character, \cw{\\b}, even though it
+\e{could} accept \cw{M}, as only these buttons are actually needed to
+play the game. Each \cw{key_label} item contains the following fields:
+
+\c struct key_label {
+\c     const char *label; /* label for frontend use */
+\c     int button; /* button to pass to midend */
+\c } key_label;
+
+The \cw{label} field of this structure can (and often will) be set by
+the backend to \cw{NULL}, in which case the midend will instead call
+\c{button2label()} (\k{utils-button2label}) and fill in a generic
+label. The \cw{button} field is the associated code that can be passed
+to the midend when the frontend deems appropriate.
+
+The backend should set \cw{*nkeys} to the number of elements in the
+returned array.
+
+The field for this function point in the \cw{game} structure might be
+set to \cw{NULL} (and indeed it is for the majority of the games) to
+indicate that no additional buttons (apart from the cursor keys) are
+required to play the game.
+
+This function should not be called directly by frontends. Instead,
+frontends should use \cw{midend_request_keys()}
+(\k{midend-request-keys}).
+
 \S{backend-flags} \c{flags}
 
 \c int flags;
@@ -2998,6 +3033,18 @@ the effect of the keypress was to request termination of the
 program. A front end should shut down the puzzle in response to a
 zero return.
 
+\H{midend-request-keys} \cw{midend_request_keys()}
+
+\c key_label *midend_request_keys(midend *me, int *nkeys);
+
+This function behaves similarly to the backend's \cw{request_keys()}
+function (\k{backend-request-keys}). If the backend does not provide
+\cw{request_keys()}, this function will return \cw{NULL} and set
+\cw{*nkeys} to zero. Otherwise, this function will fill in the generic
+labels (i.e. the \cw{key_label} items that have their \cw{label}
+fields set to \cw{NULL}) by using \cw{button2label()}
+(\k{utils-button2label}).
+
 \H{midend-colours} \cw{midend_colours()}
 
 \c float *midend_colours(midend *me, int *ncolours);
@@ -4214,6 +4261,24 @@ array.
 Thus, \cw{ret[background*3]} to \cw{ret[background*3+2]} will be set
 to RGB values defining a sensible background colour, and similary
 \c{highlight} and \c{lowlight} will be set to sensible colours.
+
+\S{utils-button2label} \cw{button2label()}
+
+\c char *button2label(int button);
+
+This function generates a descriptive text label for \cw{button},
+which should be a button code that can be passed to the midend. For
+example, calling this function with \cw{CURSOR_UP} will result in the
+string \cw{"Up"}. This function should only be called when the
+\cw{key_label} item returned by a backend's \cw{request_keys()}
+(\k{backend-request-keys}) function has its \cw{label} field set to
+\cw{NULL}; in this case, the corresponding \cw{button} field can be
+passed to this function to obtain an appropriate label. If, however,
+the field is not \cw{NULL}, this function should not be called with
+the corresponding \cw{button} field.
+
+The returned string is dynamically allocated and should be
+\cw{sfree}'d by the caller.
 
 \C{writing} How to write a new puzzle
 

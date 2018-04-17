@@ -3608,6 +3608,26 @@ static struct block_structure *gen_killer_cages(int cr, random_state *rs,
     return b;
 }
 
+static key_label *game_request_keys(const game_params *params, int *nkeys)
+{
+    int i;
+    int cr = params->c * params->r;
+    key_label *keys = snewn(cr+1, key_label);
+    *nkeys = cr + 1;
+
+    for (i = 0; i < cr; i++) {
+        if (i<9) keys[i].button = '1' + i;
+        else keys[i].button = 'a' + i - 9;
+
+        keys[i].label = NULL;
+    }
+    keys[cr].button = '\b';
+    keys[cr].label = NULL;
+
+
+    return keys;
+}
+
 static char *new_game_desc(const game_params *params, random_state *rs,
 			   char **aux, int interactive)
 {
@@ -5579,6 +5599,7 @@ const struct game thegame = {
     free_ui,
     encode_ui,
     decode_ui,
+    game_request_keys,
     game_changed_state,
     interpret_move,
     execute_move,

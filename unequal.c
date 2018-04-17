@@ -1280,6 +1280,25 @@ fail:
     return NULL;
 }
 
+static key_label *game_request_keys(const game_params *params, int *nkeys)
+{
+    int order = params->order;
+    char off = (order > 9) ? '0' : '1';
+    key_label *keys = snewn(order + 1, key_label);
+    *nkeys = order + 1;
+
+    int i;
+    for(i = 0; i < order; i++) {
+        if (i==10) off = 'a'-10;
+        keys[i].button = i + off;
+        keys[i].label = NULL;
+    }
+    keys[order].button = '\b';
+    keys[order].label = NULL;
+
+    return keys;
+}
+
 static game_state *new_game(midend *me, const game_params *params,
                             const char *desc)
 {
@@ -2011,6 +2030,7 @@ const struct game thegame = {
     free_ui,
     encode_ui,
     decode_ui,
+    game_request_keys,
     game_changed_state,
     interpret_move,
     execute_move,

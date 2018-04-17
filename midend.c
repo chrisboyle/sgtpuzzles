@@ -1104,6 +1104,27 @@ int midend_process_key(midend *me, int x, int y, int button)
     return ret;
 }
 
+key_label *midend_request_keys(midend *me, int *n)
+{
+    key_label *keys = NULL;
+    int nkeys = 0, i;
+
+    if(me->ourgame->request_keys)
+    {
+        keys = me->ourgame->request_keys(midend_get_params(me), &nkeys);
+        for(i = 0; i < nkeys; ++i)
+        {
+            if(!keys[i].label)
+                keys[i].label = button2label(keys[i].button);
+        }
+    }
+
+    if(n)
+        *n = nkeys;
+
+    return keys;
+}
+
 void midend_redraw(midend *me)
 {
     assert(me->drawing);
