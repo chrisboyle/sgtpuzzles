@@ -2400,10 +2400,15 @@ increasingly complex reasoning to avoid having to backtrack.
 \cfg{winhelp-topic}{games.galaxies}
 
 You have a rectangular grid containing a number of dots. Your aim is
-to draw edges along the grid lines which divide the rectangle into
-regions in such a way that every region is 180\u00b0{-degree}
-rotationally symmetric, and contains exactly one dot which is
-located at its centre of symmetry.
+to partition the rectangle into connected regions of squares, in such
+a way that every region is 180\u00b0{-degree} rotationally symmetric,
+and contains exactly one dot which is located at its centre of
+symmetry.
+
+To enter your solution, you draw lines along the grid edges to mark
+the boundaries of the regions. The puzzle is complete when the marked
+lines on the grid are precisely those that separate two squares
+belonging to different regions.
 
 This puzzle was invented by \i{Nikoli} \k{nikoli-galaxies}, under
 the name \q{Tentai Show}; its name is commonly translated into
@@ -2418,11 +2423,11 @@ Galaxies was contributed to this collection by James Harvey.
 \IM{Galaxies controls} controls, for Galaxies
 
 Left-click on any grid line to draw an edge if there isn't one
-already, or to remove one if there is. When you create a valid
-region (one which is closed, contains exactly one dot, is
-180\u00b0{-degree} symmetric about that dot, and contains no
-extraneous edges inside it) it will be highlighted automatically; so
-your aim is to have the whole grid highlighted in that way.
+already, or to remove one if there is. When you create a valid region
+(one which is closed, contains exactly one dot, is 180\u00b0{-degree}
+symmetric about that dot, and contains no extraneous edges between two
+of its own squares), it will be highlighted automatically; so your aim
+is to have the whole grid highlighted in that way.
 
 During solving, you might know that a particular grid square belongs
 to a specific dot, but not be sure of where the edges go and which
