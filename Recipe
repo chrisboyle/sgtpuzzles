@@ -69,6 +69,10 @@ obfusc : [U] obfusc STANDALONE
 latincheck : [U] latin[STANDALONE_LATIN_TEST] LATIN_DEPS STANDALONE
 latincheck : [C] latin[STANDALONE_LATIN_TEST] LATIN_DEPS STANDALONE
 
+# Test program built from matching.c.
+matching : [U] matching[STANDALONE_MATCHING_TEST] tree234 STANDALONE
+matching : [C] matching[STANDALONE_MATCHING_TEST] tree234 STANDALONE
+
 puzzles  : [G] windows[COMBINED] WINDOWS_COMMON COMMON ALL noicon.res
 
 # Mac OS X unified application containing all the puzzles.
