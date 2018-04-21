@@ -35,7 +35,7 @@
 #include <math.h>
 
 #include "puzzles.h"
-#include "maxflow.h"
+#include "matching.h"
 
 /*
  * Design discussion
@@ -907,14 +907,17 @@ static char *new_game_desc(const game_params *params_in, random_state *rs,
     char *puzzle = snewn(w*h, char);
     int *numbers = snewn(w+h, int);
     char *soln = snewn(w*h, char);
-    int *temp = snewn(2*w*h, int);
+    int *order = snewn(w*h, int);
+    int *treemap = snewn(w*h, int);
     int maxedges = ntrees*4 + w*h;
-    int *edges = snewn(2*maxedges, int);
-    int *capacity = snewn(maxedges, int);
-    int *flow = snewn(maxedges, int);
+    int *adjdata = snewn(maxedges, int);
+    int **adjlists = snewn(ntrees, int *);
+    int *adjsizes = snewn(ntrees, int);
+    int *outr = snewn(4*ntrees, int);
     struct solver_scratch *sc = new_scratch(w, h);
     char *ret, *p;
-    int i, j, nedges;
+    int i, j, nl, nr;
+    int *adjptr;
 
     /*
      * Since this puzzle has many global deductions and doesn't
@@ -940,7 +943,7 @@ static char *new_game_desc(const game_params *params_in, random_state *rs,
      * would make the grids emptier and more boring.
      * 
      * Actually generating a grid is a matter of first placing the
-     * tents, and then placing the trees by the use of maxflow
+     * tents, and then placing the trees by the use of matching.c
      * (finding a distinct square adjacent to every tent). We do it
      * this way round because otherwise satisfying the tent
      * separation condition would become onerous: most randomly
@@ -950,19 +953,12 @@ static char *new_game_desc(const game_params *params_in, random_state *rs,
      * ensure they meet the separation criterion _before_ doing
      * lots of computation; this works much better.
      * 
-     * The maxflow algorithm is not randomised, so employed naively
-     * it would give rise to grids with clear structure and
-     * directional bias. Hence, I assign the network nodes as seen
-     * by maxflow to be a _random_ permutation of the squares of
-     * the grid, so that any bias shown by maxflow towards
-     * low-numbered nodes is turned into a random bias.
-     * 
      * This generation strategy can fail at many points, including
      * as early as tent placement (if you get a bad random order in
      * which to greedily try the grid squares, you won't even
      * manage to find enough mutually non-adjacent squares to put
-     * the tents in). Then it can fail if maxflow doesn't manage to
-     * find a good enough matching (i.e. the tent placements don't
+     * the tents in). Then it can fail if matching.c doesn't manage
+     * to find a good enough matching (i.e. the tent placements don't
      * admit any adequate tree placements); and finally it can fail
      * if the solver finds that the problem has the wrong
      * difficulty (including being actually non-unique). All of
@@ -975,22 +971,37 @@ static char *new_game_desc(const game_params *params_in, random_state *rs,
 
     while (1) {
 	/*
-	 * Arrange the grid squares into a random order.
+	 * Make a list of grid squares which we'll permute as we pick
+	 * the tent locations.
+         *
+         * We'll also need to index all the potential tree squares,
+         * i.e. the ones adjacent to the tents.
 	 */
-	for (i = 0; i < w*h; i++)
-	    temp[i] = i;
-	shuffle(temp, w*h, sizeof(*temp), rs);
+	for (i = 0; i < w*h; i++) {
+	    order[i] = i;
+	    treemap[i] = -1;
+        }
 
 	/*
-	 * The first `ntrees' entries in temp which we can get
-	 * without making two tents adjacent will be the tent
-	 * locations.
+	 * Place tents at random without making any two adjacent.
 	 */
 	memset(grid, BLANK, w*h);
 	j = ntrees;
-	for (i = 0; i < w*h && j > 0; i++) {
-	    int x = temp[i] % w, y = temp[i] / w;
+        nr = 0;
+        /* Loop end condition: either j==0 (we've placed all the
+         * tents), or the number of grid squares we have yet to try
+         * is too few to fit the remaining tents into. */
+	for (i = 0; j > 0 && i+j <= w*h; i++) {
+            int which, x, y, d, tmp;
 	    int dy, dx, ok = TRUE;
+
+            which = i + random_upto(rs, j);
+            tmp = order[which];
+            order[which] = order[i];
+            order[i] = tmp;
+
+	    x = order[i] % w;
+            y = order[i] / w;
 
 	    for (dy = -1; dy <= +1; dy++)
 		for (dx = -1; dx <= +1; dx++)
@@ -1000,7 +1011,14 @@ static char *new_game_desc(const game_params *params_in, random_state *rs,
 			ok = FALSE;
 
 	    if (ok) {
-		grid[temp[i]] = TENT;
+		grid[order[i]] = TENT;
+                for (d = 1; d < MAXDIR; d++) {
+                    int x2 = x + dx(d), y2 = y + dy(d);
+                    if (x2 >= 0 && x2 < w && y2 >= 0 && y2 < h &&
+                        treemap[y2*w+x2] == -1) {
+                        treemap[y2*w+x2] = nr++;
+                    }
+                }
 		j--;
 	    }
 	}
@@ -1008,68 +1026,47 @@ static char *new_game_desc(const game_params *params_in, random_state *rs,
 	    continue;		       /* couldn't place all the tents */
 
 	/*
-	 * Now we build up the list of graph edges.
+	 * Build up the graph for matching.c.
 	 */
-	nedges = 0;
+        adjptr = adjdata;
+        nl = 0;
 	for (i = 0; i < w*h; i++) {
-	    if (grid[temp[i]] == TENT) {
-		for (j = 0; j < w*h; j++) {
-		    if (grid[temp[j]] != TENT) {
-			int xi = temp[i] % w, yi = temp[i] / w;
-			int xj = temp[j] % w, yj = temp[j] / w;
-			if (abs(xi-xj) + abs(yi-yj) == 1) {
-			    edges[nedges*2] = i;
-			    edges[nedges*2+1] = j;
-			    capacity[nedges] = 1;
-			    nedges++;
-			}
+	    if (grid[i] == TENT) {
+                int d, x = i % w, y = i / w;
+                adjlists[nl] = adjptr;
+                for (d = 1; d < MAXDIR; d++) {
+                    int x2 = x + dx(d), y2 = y + dy(d);
+                    if (x2 >= 0 && x2 < w && y2 >= 0 && y2 < h) {
+                        assert(treemap[y2*w+x2] != -1);
+                        *adjptr++ = treemap[y2*w+x2];
 		    }
 		}
-	    } else {
-		/*
-		 * Special node w*h is the sink node; any non-tent node
-		 * has an edge going to it.
-		 */
-		edges[nedges*2] = i;
-		edges[nedges*2+1] = w*h;
-		capacity[nedges] = 1;
-		nedges++;
+                adjsizes[nl] = adjptr - adjlists[nl];
+                nl++;
 	    }
 	}
 
 	/*
-	 * Special node w*h+1 is the source node, with an edge going to
-	 * every tent.
+	 * Call the matching algorithm to actually place the trees.
 	 */
-	for (i = 0; i < w*h; i++) {
-	    if (grid[temp[i]] == TENT) {
-		edges[nedges*2] = w*h+1;
-		edges[nedges*2+1] = i;
-		capacity[nedges] = 1;
-		nedges++;
-	    }
-	}
-
-	assert(nedges <= maxedges);
-
-	/*
-	 * Now we're ready to call the maxflow algorithm to place the
-	 * trees.
-	 */
-	j = maxflow(w*h+2, w*h+1, w*h, nedges, edges, capacity, flow, NULL);
+	j = matching(ntrees, nr, adjlists, adjsizes, rs, NULL, outr);
 
 	if (j < ntrees)
 	    continue;		       /* couldn't place all the trees */
 
 	/*
-	 * We've placed the trees. Now we need to work out _where_
-	 * we've placed them, which is a matter of reading back out
-	 * from the `flow' array.
+	 * Fill in the trees in the grid, by cross-referencing treemap
+	 * (which maps a grid square to its index as known to
+	 * matching()) against the output from matching().
+         *
+         * Note that for these purposes we don't actually care _which_
+         * tent each potential tree square is assigned to - we only
+         * care whether it was assigned to any tent at all, in order
+         * to decide whether to put a tree in it.
 	 */
-	for (i = 0; i < nedges; i++) {
-	    if (edges[2*i] < w*h && edges[2*i+1] < w*h && flow[i] > 0)
-		grid[temp[edges[2*i+1]]] = TREE;
-	}
+	for (i = 0; i < w*h; i++)
+            if (treemap[i] != -1 && outr[treemap[i]] != -1)
+		grid[i] = TREE;
 
 	/*
 	 * I think it looks ugly if there isn't at least one of
@@ -1174,10 +1171,12 @@ static char *new_game_desc(const game_params *params_in, random_state *rs,
     *aux = sresize(*aux, p - *aux, char);
 
     free_scratch(sc);
-    sfree(flow);
-    sfree(capacity);
-    sfree(edges);
-    sfree(temp);
+    sfree(outr);
+    sfree(adjdata);
+    sfree(adjlists);
+    sfree(adjsizes);
+    sfree(treemap);
+    sfree(order);
     sfree(soln);
     sfree(numbers);
     sfree(puzzle);
@@ -1748,7 +1747,7 @@ static game_state *execute_move(const game_state *state, const char *move)
             m++;
     }
     if (n == m) {
-        int nedges, maxedges, *edges, *capacity, *flow;
+        int *gridids, *adjdata, **adjlists, *adjsizes, *adjptr;
 
         /*
          * We have the right number of tents, which is a
@@ -1800,28 +1799,33 @@ static game_state *execute_move(const game_state *state, const char *move)
          * every tent is orthogonally adjacent to its tree.
          * 
          * This bit is where the hard work comes in: we have to do
-         * it by finding such a matching using maxflow.
-         * 
-         * So we construct a network with one special source node,
-         * one special sink node, one node per tent, and one node
-         * per tree.
+         * it by finding such a matching using matching.c.
          */
-        maxedges = 6 * m;
-        edges = snewn(2 * maxedges, int);
-        capacity = snewn(maxedges, int);
-        flow = snewn(maxedges, int);
-        nedges = 0;
-        /*
-         * Node numbering:
-         * 
-         * 0..w*h   trees/tents
-         * w*h      source
-         * w*h+1    sink
-         */
+        gridids = snewn(w*h, int);
+        adjdata = snewn(m*4, int);
+        adjlists = snewn(m, int *);
+        adjsizes = snewn(m, int);
+
+        /* Assign each tent and tree a consecutive vertex id for
+         * matching(). */
+        for (i = n = 0; i < w*h; i++) {
+            if (ret->grid[i] == TENT)
+                gridids[i] = n++;
+        }
+        assert(n == m);
+        for (i = n = 0; i < w*h; i++) {
+            if (ret->grid[i] == TREE)
+                gridids[i] = n++;
+        }
+        assert(n == m);
+
+        /* Build the vertices' adjacency lists. */
+        adjptr = adjdata;
         for (y = 0; y < h; y++)
             for (x = 0; x < w; x++)
                 if (ret->grid[y*w+x] == TREE) {
-                    int d;
+                    int d, treeid = gridids[y*w+x];
+                    adjlists[treeid] = adjptr;
 
                     /*
                      * Here we use the direction enum declared for
@@ -1835,34 +1839,18 @@ static game_state *execute_move(const game_state *state, const char *move)
 			int x2 = x + dx(d), y2 = y + dy(d);
 			if (x2 >= 0 && x2 < w && y2 >= 0 && y2 < h &&
                             ret->grid[y2*w+x2] == TENT) {
-                            assert(nedges < maxedges);
-                            edges[nedges*2] = y*w+x;
-                            edges[nedges*2+1] = y2*w+x2;
-                            capacity[nedges] = 1;
-                            nedges++;
+                            *adjptr++ = gridids[y2*w+x2];
                         }
                     }
-                } else if (ret->grid[y*w+x] == TENT) {
-                    assert(nedges < maxedges);
-                    edges[nedges*2] = y*w+x;
-                    edges[nedges*2+1] = w*h+1;   /* edge going to sink */
-                    capacity[nedges] = 1;
-                    nedges++;
+                    adjsizes[treeid] = adjptr - adjlists[treeid];
                 }
-        for (y = 0; y < h; y++)
-            for (x = 0; x < w; x++)
-                if (ret->grid[y*w+x] == TREE) {
-                    assert(nedges < maxedges);
-                    edges[nedges*2] = w*h;   /* edge coming from source */
-                    edges[nedges*2+1] = y*w+x;
-                    capacity[nedges] = 1;
-                    nedges++;
-                }
-	n = maxflow(w*h+2, w*h, w*h+1, nedges, edges, capacity, flow, NULL);
 
-        sfree(flow);
-        sfree(capacity);
-        sfree(edges);
+	n = matching(m, m, adjlists, adjsizes, NULL, NULL, NULL);
+
+        sfree(gridids);
+        sfree(adjdata);
+        sfree(adjlists);
+        sfree(adjsizes);
 
         if (n != m)
             goto completion_check_done;
@@ -2000,14 +1988,13 @@ static int *find_errors(const game_state *state, char *grid)
      * tents. The difficult bit is highlighting failures in the
      * tent/tree matching criterion.
      *
-     * A natural approach would seem to be to apply the maxflow
+     * A natural approach would seem to be to apply the matching.c
      * algorithm to find the tent/tree matching; if this fails, it
-     * must necessarily terminate with a min-cut which can be
-     * reinterpreted as some set of trees which have too few tents
-     * between them (or vice versa). However, it's bad for
-     * localising errors, because it's not easy to make the
-     * algorithm narrow down to the _smallest_ such set of trees: if
-     * trees A and B have only one tent between them, for instance,
+     * could be made to produce as a by-product some set of trees
+     * which have too few tents between them (or vice versa). However,
+     * it's bad for localising errors, because it's not easy to make
+     * the algorithm narrow down to the _smallest_ such set of trees:
+     * if trees A and B have only one tent between them, for instance,
      * it might perfectly well highlight not only A and B but also
      * trees C and D which are correctly matched on the far side of
      * the grid, on the grounds that those four trees between them
