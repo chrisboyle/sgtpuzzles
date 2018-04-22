@@ -357,6 +357,7 @@ char *dupstr(const char *s);
  */
 void free_cfg(config_item *cfg);
 void obfuscate_bitmap(unsigned char *bmp, int bits, int decode);
+char *fgetline(FILE *fp);
 
 /* allocates output each time. len is always in bytes of binary data.
  * May assert (or just go wrong) if lengths are unchecked. */
