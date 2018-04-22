@@ -1,6 +1,6 @@
 # -*- makefile -*-
 
-SINGLES_EXTRA = dsf latin maxflow tree234
+SINGLES_EXTRA = dsf LATIN
 
 singles : [X] GTK COMMON singles SINGLES_EXTRA singles-icon|no-icon
 singles : [G] WINDOWS COMMON singles SINGLES_EXTRA singles.res|noicon.res

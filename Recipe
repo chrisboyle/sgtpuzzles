@@ -31,6 +31,10 @@ STANDALONE = nullfe random misc malloc
 
 ALL      = list
 
+LATIN_DEPS   = maxflow tree234
+LATIN        = latin LATIN_DEPS
+LATIN_SOLVER = latin[STANDALONE_SOLVER] LATIN_DEPS
+
 # First half of list.c.
 !begin >list.c
 /*
@@ -60,6 +64,10 @@ const int gamecount = lenof(gamelist);
 
 # Unix standalone application for special-purpose obfuscation.
 obfusc : [U] obfusc STANDALONE
+
+# Test program built from latin.c.
+latincheck : [U] latin[STANDALONE_LATIN_TEST] LATIN_DEPS STANDALONE
+latincheck : [C] latin[STANDALONE_LATIN_TEST] LATIN_DEPS STANDALONE
 
 puzzles  : [G] windows[COMBINED] WINDOWS_COMMON COMMON ALL noicon.res
 
