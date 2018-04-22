@@ -31,7 +31,7 @@ STANDALONE = nullfe random misc malloc
 
 ALL      = list
 
-LATIN_DEPS   = maxflow tree234
+LATIN_DEPS   = matching tree234
 LATIN        = latin LATIN_DEPS
 LATIN_SOLVER = latin[STANDALONE_SOLVER] LATIN_DEPS
 
