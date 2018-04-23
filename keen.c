@@ -91,7 +91,7 @@ static game_params *default_params(void)
     return ret;
 }
 
-const static struct game_params keen_presets[] = {
+static const struct game_params keen_presets[] = {
     {  4, DIFF_EASY,         FALSE },
     {  5, DIFF_EASY,         FALSE },
     {  5, DIFF_EASY,         TRUE  },
