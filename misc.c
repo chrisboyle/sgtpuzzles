@@ -412,7 +412,9 @@ char *button2label(int button)
        ('a' <= button && button <= 'z') ||
        ('0' <= button && button <= '9') )
     {
-        char str[2] = { button, '\0' };
+        char str[2];
+        str[0] = button;
+        str[1] = '\0';
         return dupstr(str);
     }
 
