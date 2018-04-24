@@ -111,7 +111,7 @@ static char const unequal_diffchars[] = DIFFLIST(ENCODE);
 
 #define DEFAULT_PRESET 0
 
-const static struct game_params unequal_presets[] = {
+static const struct game_params unequal_presets[] = {
     {  4, DIFF_EASY,    0 },
     {  5, DIFF_EASY,    0 },
     {  5, DIFF_SET,     0 },

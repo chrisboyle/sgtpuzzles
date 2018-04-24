@@ -94,7 +94,7 @@ static char const *const unruly_diffnames[] = { DIFFLIST(TITLE) };
 static char const unruly_diffchars[] = DIFFLIST(ENCODE);
 #define DIFFCONFIG DIFFLIST(CONFIG)
 
-const static struct game_params unruly_presets[] = {
+static const struct game_params unruly_presets[] = {
     { 8,  8, FALSE, DIFF_EASY},
     { 8,  8, FALSE, DIFF_NORMAL},
     {10, 10, FALSE, DIFF_EASY},

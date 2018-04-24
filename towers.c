@@ -130,7 +130,7 @@ static game_params *default_params(void)
     return ret;
 }
 
-const static struct game_params towers_presets[] = {
+static const struct game_params towers_presets[] = {
     {  4, DIFF_EASY         },
     {  5, DIFF_EASY         },
     {  5, DIFF_HARD         },
