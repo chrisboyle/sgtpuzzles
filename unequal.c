@@ -1282,12 +1282,12 @@ fail:
 
 static key_label *game_request_keys(const game_params *params, int *nkeys)
 {
+    int i;
     int order = params->order;
     char off = (order > 9) ? '0' : '1';
     key_label *keys = snewn(order + 1, key_label);
     *nkeys = order + 1;
 
-    int i;
     for(i = 0; i < order; i++) {
         if (i==10) off = 'a'-10;
         keys[i].button = i + off;

@@ -1289,10 +1289,10 @@ static const char *validate_desc(const game_params *params, const char *desc)
 
 static key_label *game_request_keys(const game_params *params, int *nkeys)
 {
-    key_label *keys = snewn(11, key_label);
-    *nkeys = 11;
-
     int i;
+    key_label *keys = snewn(11, key_label);
+
+    *nkeys = 11;
 
     for(i = 0; i < 10; ++i)
     {
