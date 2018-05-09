@@ -2152,7 +2152,7 @@ static void menu_copy_event(GtkMenuItem *menuitem, gpointer data)
     if (text) {
 	write_clip(fe, text);
     } else {
-	gdk_beep();
+        gdk_display_beep(gdk_display_get_default());
     }
 }
 
