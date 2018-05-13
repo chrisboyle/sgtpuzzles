@@ -101,7 +101,6 @@ void buildExecutable(String abi, String debugOrRelease) {
     properties.load(project.rootProject.file('local.properties').newDataInputStream())
     def ndkDir = properties.getProperty('ndk.dir')
     def jniLibsDir = file('src/main/jniLibs/' + abi)
-    def soFolder = file('build/intermediates/binaries/' + debugOrRelease + '/lib/' + abi)
     def objFolder = file('build/intermediates/binaries/' + debugOrRelease + '/obj/' + abi)
     // library is built, now build the executables: copy libpuzzles aside...
     def prebuiltDir = file(objFolder.parent + '/prebuilt')
@@ -111,7 +110,7 @@ void buildExecutable(String abi, String debugOrRelease) {
     def outAbiDir = file(outDir.absolutePath + '/' + abi)
     outAbiDir.mkdirs()
     copy {
-        from(soFolder.absolutePath + '/libpuzzles.so')
+        from(objFolder.absolutePath + '/libpuzzles.so')
         into prebuiltAbiDir
     }
 
@@ -161,14 +160,14 @@ void buildExecutable(String abi, String debugOrRelease) {
 
 def ABIs = ["arm64-v8a", "armeabi-v7a", "x86", "x86_64"]
 
-task buildGameGenerationExecutableDebug(dependsOn: ':app:prepareDebugDependencies') {
+task buildGameGenerationExecutableDebug(dependsOn: ':app:assembleDependentsPuzzles') {
     doLast {
         for (String abi : ABIs) {
             buildExecutable(abi, "debug")
         }
     }
 }
-task buildGameGenerationExecutableRelease(dependsOn: ':app:prepareReleaseDependencies') {
+task buildGameGenerationExecutableRelease(dependsOn: ':app:assembleDependentsPuzzles') {
     doLast {
         for (String abi : ABIs) {
             buildExecutable(abi, "release")
