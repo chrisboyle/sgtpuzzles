@@ -32,11 +32,11 @@ def idForSimon() {
 model {
     android {
         compileSdkVersion 25
-        buildToolsVersion "25.0.1"
+        buildToolsVersion "25.0.2"
 
         defaultConfig {
             applicationId "name.boyle.chris.sgtpuzzles"
-            versionCode 115
+            versionCode 116
             versionName "${timestamp()}-${idForSimon()}"
             testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
             minSdkVersion.apiLevel 9
@@ -48,7 +48,7 @@ model {
             fileTree(dir: 'src/main/jni', include: '*.c').each { File f ->
                 def game = f.name.replace(".c", "")
                 def text = f.text
-                def match = text =~ /enum\s+\{\s*COL_[^,]+,\s*(COL_[^\}]+)\}/
+                def match = text =~ /enum\s+\{\s*COL_[^,]+,\s*(COL_[^}]+)}/
                 if (match) {
                     def colours = match.group(1).replaceAll(/(?s)\/\*.*?\*\//, "").replaceAll(/#[^\n]*\n/, "")
                             .trim().split(",")*.trim()*.replaceFirst(/^COL_/, "")*.toLowerCase()
@@ -82,7 +82,7 @@ model {
                 }
             }
             release {
-                minifyEnabled true  // about to be renamed to minifyEnabled
+                minifyEnabled true
                 ndk {
                     debuggable false
                 }
@@ -131,7 +131,7 @@ void buildExecutable(String abi, String debugOrRelease) {
             'NDK_DEBUG=' + (('debug' == debugOrRelease) ? '1' : '0')]
     exec {
         commandLine common + [
-                'APP_PLATFORM=android-9',  // 9 is earliest for x86 + mips
+                'APP_PLATFORM=android-14',  // 14 is earliest supported
                 'PUZZLESGEN_SUFFIX=-no-pie',
                 'APP_PIE=false']
     }
@@ -159,7 +159,7 @@ void buildExecutable(String abi, String debugOrRelease) {
     }
 }
 
-def ABIs = ["arm64-v8a", "armeabi", "armeabi-v7a", "mips", "mips64", "x86", "x86_64"]
+def ABIs = ["arm64-v8a", "armeabi-v7a", "x86", "x86_64"]
 
 task buildGameGenerationExecutableDebug(dependsOn: ':app:prepareDebugDependencies') {
     doLast {
@@ -178,15 +178,15 @@ task buildGameGenerationExecutableRelease(dependsOn: ':app:prepareReleaseDepende
 
 
 dependencies {
-    compile 'com.android.support:support-v4:25.1.0'
-    compile 'com.android.support:appcompat-v7:25.1.0'
-    compile 'com.android.support:gridlayout-v7:25.1.0'
-    compile 'com.android.support:support-annotations:25.1.0'
-    androidTestCompile 'com.android.support:support-annotations:25.1.0'
+    compile 'com.android.support:support-v4:25.4.0'
+    compile 'com.android.support:appcompat-v7:25.4.0'
+    compile 'com.android.support:gridlayout-v7:25.4.0'
+    compile 'com.android.support:support-annotations:27.1.1'
+    androidTestCompile 'com.android.support:support-annotations:27.1.1'
     testCompile 'junit:junit:4.12'
     testCompile 'org.mockito:mockito-core:1.10.19'
     //testCompile 'org.hamcrest:hamcrest-library:1.1'
-    androidTestCompile 'com.android.support.test:runner:0.5'
-    androidTestCompile 'com.android.support.test:rules:0.5'
-    androidTestCompile 'com.android.support.test.espresso:espresso-core:2.2.2'
+    androidTestCompile 'com.android.support.test:runner:1.0.2'
+    androidTestCompile 'com.android.support.test:rules:1.0.2'
+    androidTestCompile 'com.android.support.test.espresso:espresso-core:3.0.2'
 }
