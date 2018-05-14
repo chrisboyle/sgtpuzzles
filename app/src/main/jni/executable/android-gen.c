@@ -1,8 +1,7 @@
-#ifdef EXECUTABLE
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
-#include "puzzles.h"
+#include "../puzzles.h"
 
 #define USAGE "Usage: puzzles-gen gamename [params | --seed seed | --desc desc]\n"
 
@@ -68,4 +67,3 @@ int main(int argc, const char *argv[]) {
 	midend_serialise(fe->me, serialise_write, NULL);
 	exit(0);
 }
-#endif

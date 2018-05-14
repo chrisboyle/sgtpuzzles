@@ -955,19 +955,13 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 		final ApplicationInfo applicationInfo = getApplicationInfo();
 		final File dataDir = new File(applicationInfo.dataDir);
 		final File libDir;
-		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.GINGERBREAD) {
-			libDir = new File(applicationInfo.nativeLibraryDir);
-		} else {
-			libDir = new File(dataDir, "lib");
-		}
-		final boolean canRunPIE = Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN;
-		final String suffix = canRunPIE ? "-with-pie" : "-no-pie";
-		final String baseName = "libpuzzlesgen" + suffix + ".so";
+		libDir = new File(applicationInfo.nativeLibraryDir);
+		final String baseName = "libpuzzlesgen.so";
 		File installablePath = new File(libDir, baseName);
 		final File SYS_LIB = new File("/system/lib");
 		final File altPath = new File(SYS_LIB, baseName);
 		if (!installablePath.exists() && altPath.exists()) installablePath = altPath;
-		File executablePath = new File(dataDir, "puzzlesgen" + suffix);
+		File executablePath = new File(dataDir, "puzzlesgen");
 		if (!executablePath.exists() || (prefs.getInt(PUZZLESGEN_LAST_UPDATE, 0) < BuildConfig.VERSION_CODE)) {
 			copyFile(installablePath, executablePath);
 			prefs.edit().putInt(PUZZLESGEN_LAST_UPDATE, BuildConfig.VERSION_CODE).apply();
