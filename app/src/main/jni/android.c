@@ -19,6 +19,7 @@
 #include <sys/time.h>
 
 #include "puzzles.h"
+#include "android.h"
 
 #ifndef JNICALL
 #define JNICALL
@@ -47,15 +48,6 @@ void fatal(char *fmt, ...)
 	fprintf(stderr, "\n");
 	exit(1);
 }
-
-struct frontend {
-	midend *me;
-	int timer_active;
-	struct timeval last_time;
-	config_item *cfg;
-	int cfg_which;
-	int ox, oy;
-};
 
 static frontend *fe = NULL;
 static pthread_key_t envKey;
@@ -460,7 +452,7 @@ void JNICALL Java_name_boyle_chris_sgtpuzzles_GamePlay_configEvent(JNIEnv *env, 
 					if (!sval) return;
 				}
 				break;
-			case C_BOOLEAN: case C_END:
+			case C_BOOLEAN: case C_END: default:
 				break;
 		}
 		(*env)->CallVoidMethod(env, obj, dialogAdd, whichEvent, i->type, name, sval, i->ival);
@@ -494,7 +486,7 @@ jstring getDescOrSeedFromDialog(JNIEnv *env, jobject _obj, int mode)
 	/* we must build a fully-specified string (with params) so GameLaunch knows params,
 	   and in the case of seed, so the game gen process generates with correct params */
 	pthread_setspecific(envKey, env);
-	char sep = (mode == CFG_SEED) ? '#' : ':';
+	char sep = (mode == CFG_SEED) ? (char)'#' : (char)':';
 	char *buf;
 	int free_buf = FALSE;
 	jstring ret = NULL;
@@ -605,7 +597,7 @@ int deserialiseOrIdentify(frontend *new_fe, jstring s, jboolean identifyOnly) {
 	return whichBackend;
 }
 
-jint JNICALL Java_name_boyle_chris_sgtpuzzles_GamePlay_identifyBackend(JNIEnv *env, jclass c, jstring savedGame)
+jint JNICALL Java_name_boyle_chris_sgtpuzzles_GamePlay_identifyBackend(JNIEnv *env, jobject c, jstring savedGame)
 {
 	pthread_setspecific(envKey, env);
 	return deserialiseOrIdentify(NULL, savedGame, TRUE);
