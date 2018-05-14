@@ -139,7 +139,7 @@ org:
 	echo "Main-Class: PuzzleApplet" >applet.manifest
 
 PuzzleApplet.class: PuzzleApplet.java org
-	javac -source 1.3 -target 1.3 PuzzleApplet.java
+	javac -source 1.7 -target 1.7 PuzzleApplet.java
 
 %.jar: %.class PuzzleApplet.class org
 	mv $< PuzzleEngine.class
