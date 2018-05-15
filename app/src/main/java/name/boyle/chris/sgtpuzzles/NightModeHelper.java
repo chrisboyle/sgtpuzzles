@@ -7,9 +7,10 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
-import android.os.Build;
 import android.os.Handler;
 import android.preference.PreferenceManager;
+import android.support.annotation.NonNull;
+import android.util.Log;
 
 public class NightModeHelper implements SensorEventListener, SharedPreferences.OnSharedPreferenceChangeListener {
 	static final String NIGHT_MODE_KEY = "nightMode";
@@ -18,6 +19,7 @@ public class NightModeHelper implements SensorEventListener, SharedPreferences.O
 	private static final float MAX_LUX_NIGHT = 3.4f;
 	private static final float MIN_LUX_DAY = 15.0f;
 	private static final long NIGHT_MODE_AUTO_DELAY = 2100;
+	private static final String TAG = "NightModeHelper";
 
 	private final Parent parent;
 	private final SharedPreferences prefs;
@@ -36,24 +38,20 @@ public class NightModeHelper implements SensorEventListener, SharedPreferences.O
 		void refreshNightNow(boolean isNight, boolean alreadyStarted);
 	}
 
-	public NightModeHelper(Context context, Parent parent) {
+	NightModeHelper(@NonNull Context context, @NonNull Parent parent) {
 		this.context = context;
 		this.parent = parent;
-		if (!isOldEmulator()) {
-			sensorManager = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
+		sensorManager = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
+		if (sensorManager != null) {
 			lightSensor = sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT);
+		}
+		if (lightSensor == null) {
+			Log.w(TAG, "No light sensor available");
 		}
 		prefs = PreferenceManager.getDefaultSharedPreferences(context);
 		prefs.registerOnSharedPreferenceChangeListener(this);
 		state = context.getSharedPreferences(GamePlay.STATE_PREFS_NAME, Context.MODE_PRIVATE);
 		applyNightMode(false);
-	}
-
-	private boolean isOldEmulator() {
-		return (Build.VERSION.SDK_INT < Build.VERSION_CODES.GINGERBREAD_MR1)
-				&& (Build.PRODUCT.equals("sdk")
-				|| Build.PRODUCT.contains("sdk_")
-				|| Build.PRODUCT.contains("_sdk"));
 	}
 
 	public boolean isNight() {

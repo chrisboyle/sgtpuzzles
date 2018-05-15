@@ -43,7 +43,6 @@ import android.support.v4.app.NavUtils;
 import android.support.v4.app.ShareCompat;
 import android.support.v4.content.FileProvider;
 import android.support.v4.content.res.ResourcesCompat;
-import android.support.v4.view.MenuItemCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.AppCompatCheckBox;
@@ -89,11 +88,10 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.StringTokenizer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import name.boyle.chris.sgtpuzzles.compat.SysUIVisSetter;
 
 public class GamePlay extends AppCompatActivity implements OnSharedPreferenceChangeListener, NightModeHelper.Parent
 {
@@ -315,10 +313,10 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 				});
 			}
 		}
-		mainLayout = (RelativeLayout)findViewById(R.id.mainLayout);
-		statusBar = (TextView)findViewById(R.id.statusBar);
-		gameView = (GameView)findViewById(R.id.game);
-		keyboard = (SmallKeyboard)findViewById(R.id.keyboard);
+		mainLayout = findViewById(R.id.mainLayout);
+		statusBar = findViewById(R.id.statusBar);
+		gameView = findViewById(R.id.game);
+		keyboard = findViewById(R.id.keyboard);
 		dialogIds = new ArrayList<>();
 		setDefaultKeyMode(DEFAULT_KEYS_SHORTCUT);
 		gameView.requestFocus();
@@ -329,9 +327,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 		}
 		refreshStatusBarColours();
 		getWindow().setBackgroundDrawable(null);
-		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH) {
-			setUpBeam();
-		}
+		setUpBeam();
 		appStartIntentOnResume = getIntent();
 	}
 
@@ -452,7 +448,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 					startGame(launch);
 					return;
 				}
-			} else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.GINGERBREAD && handleNFC(intent)) {
+			} else if (handleNFC(intent)) {
 				return;
 			}
 		}
@@ -514,7 +510,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 			finish();
 			return;
 		}
-		final Uri uri = getIntent().getData();
+		final Uri uri = Objects.requireNonNull(getIntent().getData());
 		if (grantResults[0] != PackageManager.PERMISSION_GRANTED) {
 			new AlertDialog.Builder(this)
 					.setMessage(MessageFormat.format(getString(R.string.storage_permission_denied), uri.getPath()))
@@ -601,7 +597,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 		if (state.contains(LIGHTUP_383_NEED_MIGRATE)) return;
 		final String lastLightUpParams = state.getString(LAST_PARAMS_PREFIX + "lightup", "");
 		final String savedLightUp = state.getString(SAVED_GAME_PREFIX + "lightup", "");
-		final String[] parts = savedLightUp.split("PARAMS  :\\d+:");
+		final String[] parts = savedLightUp.split("PARAMS {2}:\\d+:");
 		final boolean needMigrate = lastLightUpParams.matches(LIGHTUP_383_PARAMS_ROT4)
 				|| (parts.length > 1 && parts[1].matches(LIGHTUP_383_PARAMS_ROT4));
 		state.edit().putBoolean(LIGHTUP_383_NEED_MIGRATE, needMigrate).apply();
@@ -733,7 +729,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 							SendFeedbackActivity.promptToReport(GamePlay.this, R.string.saf_missing_desc, R.string.saf_missing_short);
 						}
 					} else {
-						new FilePicker(GamePlay.this, storageDir, true).show();
+						FilePicker.createAndShow(GamePlay.this, storageDir, true);
 					}
 					return true;
 				case R.id.share:
@@ -787,7 +783,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 		final PopupMenu helpMenu = new PopupMenu(GamePlay.this, findViewById(R.id.help_menu));
 		helpMenu.getMenuInflater().inflate(R.menu.help_menu, helpMenu.getMenu());
 		helpMenu.getMenu().findItem(R.id.this_game).setTitle(MessageFormat.format(
-				getString(R.string.how_to_play_game), new Object[]{GamePlay.this.getTitle()}));
+				getString(R.string.how_to_play_game), GamePlay.this.getTitle()));
 		helpMenu.setOnMenuItemClickListener(item -> {
 			switch (item.getItemId()) {
 				case R.id.this_game:
@@ -883,7 +879,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 
 	@Override
 	protected void onActivityResult(int requestCode, int resultCode, Intent dataIntent) {
-		if (requestCode != REQ_CODE_CREATE_DOC || resultCode != Activity.RESULT_OK || dataIntent == null) return;
+		if (requestCode != REQ_CODE_CREATE_DOC || resultCode != Activity.RESULT_OK || dataIntent == null || dataIntent.getData() == null) return;
 		handleCreateResult(dataIntent);
 	}
 
@@ -893,9 +889,10 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 		ParcelFileDescriptor pfd = null;
 		try {
 			final String s = saveToString();
-			pfd = getContentResolver().openFileDescriptor(dataIntent.getData(), "w");
+			final Uri uri = Objects.requireNonNull(dataIntent.getData());
+			pfd = getContentResolver().openFileDescriptor(uri, "w");
 			if (pfd == null) {
-				throw new IOException("Could not open " + dataIntent.getData());
+				throw new IOException("Could not open " + uri);
 			}
 			fileOutputStream = new FileOutputStream(pfd.getFileDescriptor());
 			fileOutputStream.write(s.getBytes());
@@ -937,7 +934,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 		int exitStatus = Utils.waitForProcess(gameGenProcess);
 		if (exitStatus != 0) {
 			String error = game;
-			if (error != null && error.length() > 0) {  // probably bogus params
+			if (error != null) {  // probably bogus params
 				throw new IllegalArgumentException(error);
 			} else if (workerRunning) {
 				error = "Game generation exited with status "+exitStatus;
@@ -1415,21 +1412,21 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 		if (menu == null) return;
 		DisplayMetrics dm = getResources().getDisplayMetrics();
 		final int screenWidthDIP = (int) Math.round(((double) dm.widthPixels) / dm.density);
-		int state = MenuItemCompat.SHOW_AS_ACTION_ALWAYS;
+		int state = MenuItem.SHOW_AS_ACTION_ALWAYS;
 		if (screenWidthDIP >= 480) {
-			state |= MenuItemCompat.SHOW_AS_ACTION_WITH_TEXT;
+			state |= MenuItem.SHOW_AS_ACTION_WITH_TEXT;
 		}
-		MenuItemCompat.setShowAsAction(menu.findItem(R.id.game_menu), state);
-		MenuItemCompat.setShowAsAction(menu.findItem(R.id.type_menu), state);
-		MenuItemCompat.setShowAsAction(menu.findItem(R.id.help_menu), state);
+		menu.findItem(R.id.type_menu).setShowAsAction(state);
+		menu.findItem(R.id.game_menu).setShowAsAction(state);
+		menu.findItem(R.id.help_menu).setShowAsAction(state);
 		final boolean undoRedoKbd = prefs.getBoolean(UNDO_REDO_KBD_KEY, UNDO_REDO_KBD_DEFAULT);
 		final MenuItem undoItem = menu.findItem(R.id.undo);
 		undoItem.setVisible(!undoRedoKbd);
 		final MenuItem redoItem = menu.findItem(R.id.redo);
 		redoItem.setVisible(!undoRedoKbd);
 		if (!undoRedoKbd) {
-			MenuItemCompat.setShowAsAction(undoItem, state);
-			MenuItemCompat.setShowAsAction(redoItem, state);
+			undoItem.setShowAsAction(state);
+			redoItem.setShowAsAction(state);
 			updateUndoRedoEnabled();
 		}
 		// emulator at 598 dip looks bad with title+undo; GT-N7100 at 640dip looks good
@@ -1491,16 +1488,16 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 		lp.gravity = Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL;
 		d.getWindow().setAttributes(lp);
 		d.setContentView(R.layout.completed);
-		final TextView title = (TextView) d.findViewById(R.id.completedTitle);
+		final TextView title = d.findViewById(R.id.completedTitle);
 		title.setText(titleText);
 		d.setCanceledOnTouchOutside(true);
-		final Button newButton = (Button) d.findViewById(R.id.newgame);
+		final Button newButton = d.findViewById(R.id.newgame);
 		darkenTopDrawable(newButton);
 		newButton.setOnClickListener(v -> {
 			d.dismiss();
 			startNewGame();
 		});
-		final Button typeButton = (Button) d.findViewById(R.id.type_menu);
+		final Button typeButton = d.findViewById(R.id.type_menu);
 		darkenTopDrawable(typeButton);
 		typeButton.setOnClickListener(v -> {
 			d.dismiss();
@@ -1509,7 +1506,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 		});
 		final String style = prefs.getString(GameChooser.CHOOSER_STYLE_KEY, "list");
 		final boolean useGrid = style.equals("grid");
-		final Button chooserButton = (Button) d.findViewById(R.id.other);
+		final Button chooserButton = d.findViewById(R.id.other);
 		chooserButton.setCompoundDrawablesWithIntrinsicBounds(0, useGrid
 				? R.drawable.ic_action_view_as_grid
 				: R.drawable.ic_action_view_as_list, 0, 0);
@@ -1755,40 +1752,23 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 
 	private void applyFullscreen(boolean alreadyStarted) {
 		cachedFullscreen = prefs.getBoolean(FULLSCREEN_KEY, false);
-		final boolean hasLightsOut = (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB);
 		if (cachedFullscreen) {
-			if (hasLightsOut) {
-				runOnUiThread(() -> lightsOut(true));
-			} else if (alreadyStarted) {
-				// This is the only way to change the theme
-				if (! startedFullscreen) restartOnResume = true;
-			} else {
-				setTheme(R.style.SolidActionBar_Gameplay_FullScreen);
-			}
+			runOnUiThread(() -> lightsOut(true));
 		} else {
-			if (hasLightsOut) {
-				final boolean fAlreadyStarted = alreadyStarted;
-				runOnUiThread(() -> {
-					lightsOut(false);
-					// This shouldn't be necessary but is on Galaxy Tab 10.1
-					if (fAlreadyStarted && startedFullscreen) restartOnResume = true;
-				});
-			} else if (alreadyStarted && startedFullscreen) {
-				// This is the only way to change the theme
-				restartOnResume = true;
-			}  // else leave it as default non-fullscreen
+			final boolean fAlreadyStarted = alreadyStarted;
+			runOnUiThread(() -> {
+				lightsOut(false);
+				// This shouldn't be necessary but is on Galaxy Tab 10.1
+				if (fAlreadyStarted && startedFullscreen) restartOnResume = true;
+			});
 		}
 	}
 
 	private void lightsOut(final boolean fullScreen) {
-		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH) {
-			if (fullScreen) {
-				getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
-			} else {
-				getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
-			}
-		} else if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
-			SysUIVisSetter.set(gameView, fullScreen);
+		if (fullScreen) {
+			getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+		} else {
+			getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
 		}
 	}
 
@@ -1845,9 +1825,9 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 	{
 		if (s.startsWith(":")) {
 			String[] choices = s.substring(1).split(":");
-			String ret = "";
-			for (String choice : choices) ret += ":"+gettext(choice);
-			return ret;
+			StringBuilder ret = new StringBuilder();
+			for (String choice : choices) ret.append(":").append(gettext(choice));
+			return ret.toString();
 		}
 		String id = s
 				.replaceAll("^([0-9])","_$1")

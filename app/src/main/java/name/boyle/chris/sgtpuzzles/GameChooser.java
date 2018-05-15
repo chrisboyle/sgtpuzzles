@@ -36,6 +36,7 @@ import android.widget.TextView;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 public class GameChooser extends AppCompatActivity implements SharedPreferences.OnSharedPreferenceChangeListener
@@ -93,9 +94,9 @@ public class GameChooser extends AppCompatActivity implements SharedPreferences.
 		games = getResources().getStringArray(R.array.games);
 		views = new View[games.length];
 		setContentView(R.layout.chooser);
-		table = (GridLayout) findViewById(R.id.table);
-		starredHeader = (TextView) findViewById(R.id.games_starred);
-		otherHeader = (TextView) findViewById(R.id.games_others);
+		table = findViewById(R.id.table);
+		starredHeader = findViewById(R.id.games_starred);
+		otherHeader = findViewById(R.id.games_others);
 		buildViews();
 		rethinkActionBarCapacity();
 		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT && getSupportActionBar() != null) {
@@ -113,7 +114,7 @@ public class GameChooser extends AppCompatActivity implements SharedPreferences.
 //					.show();
 //		}
 
-		scrollView = (ScrollView) findViewById(R.id.scrollView);
+		scrollView = findViewById(R.id.scrollView);
 		scrollView.getViewTreeObserver().addOnGlobalLayoutListener(() -> {
 			if (scrollToOnNextLayout >= 0) {
 				final View v = views[scrollToOnNextLayout];
@@ -179,7 +180,7 @@ public class GameChooser extends AppCompatActivity implements SharedPreferences.
 			desc.setSpan(new TextAppearanceSpan(this, R.style.ChooserItemName),
 					0, desc.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
 			desc.append(": ").append(getString(descId > 0 ? descId : R.string.no_desc));
-			final TextView textView = (TextView) views[i].findViewById(R.id.text);
+			final TextView textView = views[i].findViewById(R.id.text);
 			textView.setText(desc);
 			textView.setVisibility(useGrid ? View.GONE : View.VISIBLE);
 			views[i].setOnTouchListener((v, event) -> {
@@ -209,7 +210,7 @@ public class GameChooser extends AppCompatActivity implements SharedPreferences.
 		final Drawable icon = ContextCompat.getDrawable(this,
 				drawableId);
 		final LayerDrawable starredIcon = new LayerDrawable(new Drawable[]{
-				icon, ContextCompat.getDrawable(this, R.drawable.ic_star).mutate() });
+				icon, Objects.requireNonNull(ContextCompat.getDrawable(this, R.drawable.ic_star)).mutate() });
 		final float density = getResources().getDisplayMetrics().density;
 		starredIcon.setLayerInset(1, (int)(42*density), (int)(42*density), 0, 0);
 		return starredIcon;
@@ -311,13 +312,13 @@ public class GameChooser extends AppCompatActivity implements SharedPreferences.
 		if (menu == null) return;
 		DisplayMetrics dm = getResources().getDisplayMetrics();
 		final int screenWidthDIP = (int) Math.round(((double) dm.widthPixels) / dm.density);
-		int state = MenuItemCompat.SHOW_AS_ACTION_ALWAYS;
+		int state = MenuItem.SHOW_AS_ACTION_ALWAYS;
 		if (screenWidthDIP >= 480) {
-			state |= MenuItemCompat.SHOW_AS_ACTION_WITH_TEXT;
+			state |= MenuItem.SHOW_AS_ACTION_WITH_TEXT;
 		}
-		MenuItemCompat.setShowAsAction(menu.findItem(R.id.settings), state);
-		MenuItemCompat.setShowAsAction(menu.findItem(R.id.load), state);
-		MenuItemCompat.setShowAsAction(menu.findItem(R.id.help_menu), state);
+		menu.findItem(R.id.settings).setShowAsAction(state);
+		menu.findItem(R.id.load).setShowAsAction(state);
+		menu.findItem(R.id.help_menu).setShowAsAction(state);
 	}
 
 	@Override
@@ -358,7 +359,7 @@ public class GameChooser extends AppCompatActivity implements SharedPreferences.
 						SendFeedbackActivity.promptToReport(this, R.string.saf_missing_desc, R.string.saf_missing_short);
 					}
 				} else {
-					new FilePicker(this, Environment.getExternalStorageDirectory(), false).show();
+					FilePicker.createAndShow(this, Environment.getExternalStorageDirectory(), false);
 				}
 				break;
 			case R.id.contents:

@@ -29,7 +29,7 @@
 				<action android:name="android.intent.action.VIEW" />
 				<data android:scheme="sgtpuzzles" />
 			</intent-filter>
-			<intent-filter tools:ignore="GoogleAppIndexingWarning">
+			<intent-filter tools:ignore="AppLinkUrlError,GoogleAppIndexingWarning">
 				<action android:name="android.intent.action.VIEW" />
 				<action android:name="android.intent.action.EDIT" />
 				<action android:name="android.nfc.action.NDEF_DISCOVERED" />

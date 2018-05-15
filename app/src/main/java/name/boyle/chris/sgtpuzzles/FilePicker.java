@@ -5,6 +5,7 @@ import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.Intent;
 import android.os.Environment;
+import android.support.annotation.NonNull;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
@@ -88,7 +89,7 @@ class FilePicker extends Dialog
 			w.write(s,0,s.length());
 			w.close();
 			Toast.makeText(getContext(), MessageFormat.format(
-					getContext().getString(R.string.file_saved),new Object[]{f.getPath()}),
+					getContext().getString(R.string.file_saved), f.getPath()),
 					Toast.LENGTH_LONG).show();
 			dismissAll();
 		} catch (Exception e) {
@@ -96,16 +97,18 @@ class FilePicker extends Dialog
 		}
 	}
 
-	FilePicker(Activity activity, final File path, final boolean isSave) { this(activity, path, isSave, null); }
+	static void createAndShow(@NonNull final Activity activity, @NonNull final File path, final boolean isSave) {
+		if(! Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)) {
+			Toast.makeText(activity, R.string.storage_not_ready, Toast.LENGTH_SHORT).show();
+			return;
+		}
+		new FilePicker(activity, path, isSave, null).show();
+	}
+
 	private FilePicker(Activity activity, final File path, final boolean isSave, FilePicker parent)
 	{
 		super(activity, android.R.style.Theme);  // full screen
 		this.activity = activity;
-		if( parent==null && ! Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)) {
-			Toast.makeText(getContext(), R.string.storage_not_ready, Toast.LENGTH_SHORT).show();
-			dismiss();
-			return;
-		}
 		this.parent = parent;
 		files = path.list();
 		if (files == null) files = new String[0];  // TODO, this is probably permission denied, handle it better
@@ -113,7 +116,7 @@ class FilePicker extends Dialog
 		setTitle(path.getName());
 		setCancelable(true);
 		setContentView(isSave ? R.layout.file_save : R.layout.file_load);
-		lv = (ListView)findViewById(R.id.filelist);
+		lv = findViewById(R.id.filelist);
 		lv.setAdapter(new ArrayAdapter<>(getContext(), android.R.layout.simple_list_item_1, files));
 		lv.setOnItemClickListener((arg0, arg1, which, arg3) -> {
 			File f = new File(path,files[which]);
@@ -136,7 +139,7 @@ class FilePicker extends Dialog
 			}
 		});
 		if (!isSave) return;
-		final EditText et = (EditText)findViewById(R.id.savebox);
+		final EditText et = findViewById(R.id.savebox);
 		et.addTextChangedListener(new TextWatcher(){
 			public void onTextChanged(CharSequence s,int a,int b, int c){}
 			public void beforeTextChanged(CharSequence s,int a,int b, int c){}
@@ -152,7 +155,7 @@ class FilePicker extends Dialog
 			save(new File(path,et.getText().toString()), false);
 			return true;
 		});
-		final Button saveButton = (Button)findViewById(R.id.saveButton);
+		final Button saveButton = findViewById(R.id.saveButton);
 		saveButton.setOnClickListener(v -> save(new File(path,et.getText().toString()), false));
 		et.requestFocus();
 	}

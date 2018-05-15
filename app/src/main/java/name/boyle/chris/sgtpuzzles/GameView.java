@@ -83,7 +83,6 @@ public class GameView extends View
 	private GestureDetectorCompat gestureDetector;
 	private static final float MAX_ZOOM = 30.f;
 	private static final float ZOOM_OVERDRAW_PROPORTION = 0.25f;  // of a screen-full, in each direction, that you can see before checkerboard
-	private static final Point TEXTURE_SIZE_BEFORE_ICS = new Point(2048, 2048);
 	private int overdrawX, overdrawY;
 	private final Matrix zoomMatrix = new Matrix();
 	private final Matrix zoomInProgressMatrix = new Matrix();
@@ -130,9 +129,7 @@ public class GameView extends View
 			public boolean onDown(MotionEvent event) {
 				int meta = event.getMetaState();
 				int buttonState = 1; // MotionEvent.BUTTON_PRIMARY
-				if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH) {
-					buttonState = event.getButtonState();
-				}
+				buttonState = event.getButtonState();
 				if ((meta & KeyEvent.META_ALT_ON) > 0  ||
 						buttonState == 4 /* MotionEvent.BUTTON_TERTIARY */)  {
 					button = MIDDLE_BUTTON;
@@ -609,9 +606,7 @@ public class GameView extends View
 		overdrawX = Math.round(Math.round(ZOOM_OVERDRAW_PROPORTION * wDip) * density);
 		overdrawY = Math.round(Math.round(ZOOM_OVERDRAW_PROPORTION * hDip) * density);
 		// texture size limit, see http://stackoverflow.com/a/7523221/6540
-		final Point maxTextureSize =
-				(Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH)
-						? getMaxTextureSize() : TEXTURE_SIZE_BEFORE_ICS;
+		final Point maxTextureSize = getMaxTextureSize();
 		// Assumes maxTextureSize >= (w,h) otherwise you get checkerboard edges
 		// https://github.com/chrisboyle/sgtpuzzles/issues/199
 		overdrawX = Math.min(overdrawX, (maxTextureSize.x - w) / 2);

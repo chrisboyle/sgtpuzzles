@@ -42,7 +42,7 @@ public class HelpActivity extends AppCompatActivity implements NightModeHelper.P
 			getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 		}
 		setContentView(R.layout.activity_help);
-		webView = (WebView) findViewById(R.id.webView);
+		webView = findViewById(R.id.webView);
 		nightModeHelper = new NightModeHelper(this, this);
 		if (nightModeHelper.isNight()) webView.setBackgroundColor(Color.BLACK);
 		webView.setWebChromeClient(new WebChromeClient() {
@@ -82,10 +82,8 @@ public class HelpActivity extends AppCompatActivity implements NightModeHelper.P
 		settings.setBlockNetworkImage(true);
 		settings.setBuiltInZoomControls(true);
 		settings.setBlockNetworkLoads(true);
-		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
-			settings.setDisplayZoomControls(false);
-			settings.setAllowContentAccess(false);
-		}
+		settings.setDisplayZoomControls(false);
+		settings.setAllowContentAccess(false);
 		final Resources resources = getResources();
 		final String lang = resources.getConfiguration().locale.getLanguage();
 		String assetPath = helpPath(lang, topic);

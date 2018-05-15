@@ -42,37 +42,8 @@ abstract class Utils {
 	}
 
 	static void setExecutable(File executablePath) throws IOException {
-		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.GINGERBREAD) {
-			if (!executablePath.setExecutable(true)) {
-				throw new IOException("Can't make game binary executable: File.setExecutable failed");
-			}
-		} else {
-			Set<String> dirs = new LinkedHashSet<>();
-			dirs.add("/system/bin");
-			dirs.add("/system/xbin");
-			final String path = System.getenv("PATH");
-			if (path != null) {
-				Collections.addAll(dirs, path.split(":"));
-			}
-			Set<File> tried = new LinkedHashSet<>();
-			boolean ok = false;
-			for (String dir : dirs) {
-				final File chmod = new File(dir, "chmod");
-				if (chmod.exists()) {
-					final String[] chmodArgs = {
-							chmod.getAbsolutePath(), "755", executablePath.getAbsolutePath()};
-					Log.d(GamePlay.TAG, "exec: " + Arrays.toString(chmodArgs));
-					final int chmodExit = waitForProcess(Runtime.getRuntime().exec(chmodArgs));
-					if (chmodExit == 0) {
-						ok = true;
-						break;
-					}
-					tried.add(chmod);
-				}
-			}
-			if (! ok) {
-				throw new IOException("Can't make game binary executable, tried " + tried);
-			}
+		if (!executablePath.setExecutable(true)) {
+			throw new IOException("Can't make game binary executable: File.setExecutable failed");
 		}
 	}
 
