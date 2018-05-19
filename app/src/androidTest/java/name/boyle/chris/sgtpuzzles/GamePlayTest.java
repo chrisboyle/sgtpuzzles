@@ -66,7 +66,7 @@ public class GamePlayTest {
 
 	private static void addExamples() {
 		addExample("net", "1x2:42", new GeneralClickAction(Tap.SINGLE,
-				squareProportions(0, -0.25), Press.FINGER));
+				squareProportions(0, -0.25), Press.FINGER, 0, 0));
 		addExample("blackbox", "w3h3m1M1:38727296",
 				KEYCODE_DPAD_UP, KEYCODE_DPAD_DOWN, KEYCODE_DPAD_CENTER,
 				KEYCODE_DPAD_UP, KEYCODE_DPAD_LEFT, KEYCODE_DPAD_CENTER);
@@ -226,7 +226,9 @@ public class GamePlayTest {
 		Set<String> unusedBackends = new LinkedHashSet<>(Arrays.asList(
 				getTargetContext().getResources().getStringArray(R.array.games)));
 		addExamples();
-		_usedBackends.forEach(unusedBackends::remove);
+		for (String _usedBackend : _usedBackends) {
+			unusedBackends.remove(_usedBackend);
+		}
 		for (String unused : unusedBackends) {
 			addExample(unused, "", KEYCODE_DPAD_CENTER);  // testGameCompletion will fail appropriately
 		}
@@ -240,7 +242,7 @@ public class GamePlayTest {
 	}
 
 	@Test
-	public void testGameCompletion() throws InterruptedException {
+	public void testGameCompletion() {
 		assertNotEquals("Missing test for " + _backend, "", _gameID);
 		final Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("sgtpuzzles:" + _backend + ":" + _gameID));
 		final GamePlay activity = mActivityRule.launchActivity(intent);
@@ -260,7 +262,7 @@ public class GamePlayTest {
 		}
 	}
 
-	public static CoordinatesProvider squareProportions(final double xProp, final double yProp) {
+	private static CoordinatesProvider squareProportions(final double xProp, final double yProp) {
 		return view -> {
 			final int[] screenPos = new int[2];
 			view.getLocationOnScreen(screenPos);
