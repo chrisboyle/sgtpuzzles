@@ -30,5 +30,7 @@
 	<string>????</string>
 	<key>NSHumanReadableCopyright</key>
 	<string>This software is copyright (c) 2004-2014 Simon Tatham</string>
+	<key>NSHighResolutionCapable</key>
+	<true/>
 </dict>
 </plist>
