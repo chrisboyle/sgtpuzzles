@@ -1707,7 +1707,7 @@ if (defined $makefiles{'nestedvm'}) {
 if (defined $makefiles{'osx'}) {
     $mftyp = 'osx';
     $dirpfx = &dirpfx($makefiles{'osx'}, "/");
-    @osxarchs = ('i386');
+    @osxarchs = ('i386', 'x86_64');
 
     ##-- Mac OS X makefile
     open OUT, ">$makefiles{'osx'}"; select OUT;

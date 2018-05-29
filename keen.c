@@ -1101,7 +1101,7 @@ done
 		    cluevals[j] *= grid[i];
 		    break;
 		  case C_SUB:
-		    cluevals[j] = abs(cluevals[j] - grid[i]);
+		    cluevals[j] = labs(cluevals[j] - grid[i]);
 		    break;
 		  case C_DIV:
 		    {
@@ -1534,7 +1534,7 @@ static int check_errors(const game_state *state, long *errors)
 		cluevals[j] *= state->grid[i];
 		break;
 	      case C_SUB:
-		cluevals[j] = abs(cluevals[j] - state->grid[i]);
+		cluevals[j] = labs(cluevals[j] - state->grid[i]);
 		break;
 	      case C_DIV:
 		{
