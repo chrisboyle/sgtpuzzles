@@ -31,10 +31,10 @@ in puzzles do perl -i -pe 's/Unidentified build/$(Version)/' osx-info.plist
 ifneq "$(NOICONS)" yes then
   # First build some local binaries, to run the icon build.
   in puzzles do perl mkfiles.pl -U CFLAGS='-Wwrite-strings -Werror'
-  in puzzles do make
+  in puzzles do make -j$(nproc)
 
   # Now build the screenshots and icons.
-  in puzzles/icons do xvfb-run -s "-screen 0 1024x768x24" make web winicons gtkicons
+  in puzzles/icons do xvfb-run -s "-screen 0 1024x768x24" make web winicons gtkicons -j$(nproc)
 
   # Destroy the local binaries and autoconf detritus, mostly to avoid
   # wasting network bandwidth by transferring them to the delegate
@@ -54,7 +54,7 @@ ifneq "$(NOMACOS)" yes then
   # Build the OS X .dmg archive.
   delegate osx
     in puzzles do make -f Makefile.osx clean
-    in puzzles do make -f Makefile.osx release VER=-DVER=$(Version) XFLAGS='-Wwrite-strings -Werror'
+    in puzzles do make -f Makefile.osx release VER=-DVER=$(Version) XFLAGS='-Wwrite-strings -Werror' -j$(nproc)
     return puzzles/Puzzles.dmg
   enddelegate
 endif
@@ -62,12 +62,12 @@ endif
 ifneq "$(NOWINDOWS)" yes then
   # Build the Windows binaries and installer, and the CHM file.
   in puzzles do make -f Makefile.doc clean
-  in puzzles do make -f Makefile.doc # build help files for installer
+  in puzzles do make -f Makefile.doc -j$(nproc) # build help files for installer
   in puzzles do mason.pl --args '{"version":"$(Version)","descfile":"gamedesc.txt"}' winwix.mc > puzzles.wxs
   in puzzles do perl winiss.pl $(Version) gamedesc.txt > puzzles.iss
   ifneq "$(VISUAL_STUDIO)" "yes" then
-    in puzzles with clangcl64 do mkdir win64 && Platform=x64 make -f Makefile.clangcl BUILDDIR=win64/ VER=-DVER=$(Version) XFLAGS='-Wwrite-strings -Werror'
-    in puzzles with clangcl32 do mkdir win32 && Platform=x86 make -f Makefile.clangcl BUILDDIR=win32/ SUBSYSVER=,5.01 VER=-DVER=$(Version) XFLAGS='-Wwrite-strings -Werror'
+    in puzzles with clangcl64 do mkdir win64 && Platform=x64 make -f Makefile.clangcl BUILDDIR=win64/ VER=-DVER=$(Version) XFLAGS='-Wwrite-strings -Werror' -j$(nproc)
+    in puzzles with clangcl32 do mkdir win32 && Platform=x86 make -f Makefile.clangcl BUILDDIR=win32/ SUBSYSVER=,5.01 VER=-DVER=$(Version) XFLAGS='-Wwrite-strings -Werror' -j$(nproc)
     # Code-sign the binaries, if the local bob config provides a script
     # to do so. We assume here that the script accepts an -i option to
     # provide a 'more info' URL, and an optional -n option to provide a
@@ -162,7 +162,7 @@ ifneq "$(JAVA_UNFINISHED)" "" in puzzles do perl mkfiles.pl
 ifneq "$(NOJAVA)" yes then
   # Build the Java applets.
   delegate nestedvm
-    in puzzles do make -f Makefile.nestedvm NESTEDVM="$$NESTEDVM" VER=-DVER=$(Version) XFLAGS="-Wwrite-strings -Werror"
+    in puzzles do make -f Makefile.nestedvm NESTEDVM="$$NESTEDVM" VER=-DVER=$(Version) XFLAGS="-Wwrite-strings -Werror" -j$(nproc)
     return puzzles/*.jar
   enddelegate
 endif
@@ -174,7 +174,7 @@ ifneq "$(NOJS)" yes then
   in puzzles do mkdir js # so we can tell output .js files from emcc*.js
   delegate emscripten
     in puzzles do make -f Makefile.emcc OUTPREFIX=js/ clean
-    in puzzles do make -f Makefile.emcc OUTPREFIX=js/ XFLAGS="-Wwrite-strings -Werror"
+    in puzzles do make -f Makefile.emcc OUTPREFIX=js/ XFLAGS="-Wwrite-strings -Werror" -j$(nproc)
     return puzzles/js/*.js
   enddelegate
 
