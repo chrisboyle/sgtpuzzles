@@ -122,12 +122,12 @@ install:
 	done
 !end
 !begin nestedvm
-.PRECIOUS: %.class
-%.class: %.mips
-	java -cp $(NESTEDVM)/build:$(NESTEDVM)/upstream/build/classgen/build \
+%.tmpdir/PuzzleEngine.class: %.mips
+	mkdir -p $(patsubst %.mips,%,$<).tmpdir
+	cd $(patsubst %.mips,%,$<).tmpdir && \
+		java -cp $(NESTEDVM)/build:$(NESTEDVM)/upstream/build/classgen/build \
 		org.ibex.nestedvm.Compiler -outformat class -d . \
-		PuzzleEngine $<
-		mv PuzzleEngine.class $@
+		PuzzleEngine ../$<
 
 org:
 	mkdir -p org/ibex/nestedvm/util
@@ -136,16 +136,17 @@ org:
 	cp $(NESTEDVM)/build/org/ibex/nestedvm/Runtime*.class org/ibex/nestedvm
 	cp $(NESTEDVM)/build/org/ibex/nestedvm/util/Platform*.class org/ibex/nestedvm/util
 	cp $(NESTEDVM)/build/org/ibex/nestedvm/util/Seekable*.class org/ibex/nestedvm/util
+
+applet.manifest:
 	echo "Main-Class: PuzzleApplet" >applet.manifest
 
 PuzzleApplet.class: PuzzleApplet.java org
 	javac -source 1.7 -target 1.7 PuzzleApplet.java
 
-%.jar: %.class PuzzleApplet.class org
-	mv $< PuzzleEngine.class
-	jar cfm $@ applet.manifest PuzzleEngine.class PuzzleApplet*.class org
+%.jar: %.tmpdir/PuzzleEngine.class PuzzleApplet.class applet.manifest org
+	cd $(patsubst %.jar,%,$@).tmpdir && ln -s ../applet.manifest ../org ../PuzzleApplet*.class .
+	cd $(patsubst %.jar,%,$@).tmpdir && jar cfm ../$@ applet.manifest PuzzleEngine.class PuzzleApplet*.class org
 	echo '<applet archive="'$@'" code="PuzzleApplet" width="700" height="500"></applet>' >$*.html
-	mv PuzzleEngine.class $<
 !end
 
 # A benchmarking and testing target for the GTK puzzles.
