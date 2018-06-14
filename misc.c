@@ -26,7 +26,7 @@ void free_keys(key_label *keys, int nkeys)
     int i;
 
     for(i = 0; i < nkeys; i++)
-        sfree(keys->label);
+        sfree(keys[i].label);
     sfree(keys);
 }
 
