@@ -806,11 +806,15 @@ char *get_save_file(void)
     midend_serialise(me, savefile_write, &ctx);
     size = ctx.pos;
 
-    /* Second pass, to actually write out the data */
-    ctx.buffer = snewn(size, char);
+    /* Second pass, to actually write out the data. We have to put a
+     * terminating \0 on the end (which we expect never to show up in
+     * the actual serialisation format - it's text, not binary) so
+     * that the Javascript side can easily find out the length. */
+    ctx.buffer = snewn(size+1, char);
     ctx.pos = 0;
     midend_serialise(me, savefile_write, &ctx);
     assert(ctx.pos == size);
+    ctx.buffer[ctx.pos] = '\0';
 
     return ctx.buffer;
 }
