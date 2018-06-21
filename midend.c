@@ -564,10 +564,12 @@ static int newgame_undo_deserialise_read(void *ctx, void *buf, int len)
 {
     struct newgame_undo_deserialise_read_ctx *const rctx = ctx;
 
-    int use = min(len, rctx->len - rctx->pos);
-    memcpy(buf, rctx->ser->buf + rctx->pos, use);
-    rctx->pos += use;
-    return use;
+    if (len > rctx->len - rctx->pos)
+        return FALSE;
+
+    memcpy(buf, rctx->ser->buf + rctx->pos, len);
+    rctx->pos += len;
+    return TRUE;
 }
 
 struct newgame_undo_deserialise_check_ctx {
