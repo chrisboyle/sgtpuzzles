@@ -2427,9 +2427,9 @@ static void draw_clue(drawing *dr, game_drawstate *ds, int w, int clue, int i, i
         cy = CENTERED_COORD(i-w);
     }
 
-    draw_rect(dr, cx - tsz + GRID_LINE_TL, cy - tsz + GRID_LINE_TL,
-              TILE_SIZE - GRID_LINE_ALL, TILE_SIZE - GRID_LINE_ALL,
-              bg);
+    if (bg >= 0)
+        draw_rect(dr, cx - tsz + GRID_LINE_TL, cy - tsz + GRID_LINE_TL,
+                  TILE_SIZE - GRID_LINE_ALL, TILE_SIZE - GRID_LINE_ALL, bg);
     sprintf(buf, "%d", clue);
     draw_text(dr, cx, cy, FONT_VARIABLE, tsz, ALIGN_VCENTRE|ALIGN_HCENTRE,
               col, buf);
@@ -2606,8 +2606,7 @@ static void game_print(drawing *dr, const game_state *state, int tilesize)
 
     /* clue numbers, and loop ends */
     for (i = 0; i < w+h; i++)
-        draw_clue(dr, ds, w, state->numbers->numbers[i], i,
-		  black, COL_BACKGROUND);
+        draw_clue(dr, ds, w, state->numbers->numbers[i], i, black, -1);
     draw_loop_ends(dr, ds, state, black);
 
     /* clue tracks / solution */
