@@ -274,6 +274,8 @@ static const char *validate_params(const game_params *params, bool full)
     if (params->h < 5) return "Height must be at least five";
     if (params->difficulty < 0 || params->difficulty >= DIFFCOUNT)
         return "Unknown difficulty level";
+    if (params->difficulty >= DIFF_TRICKY && params->w + params->h < 11)
+	return "Width or height must be at least six for Tricky";
 
     return NULL;
 }
