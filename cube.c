@@ -543,8 +543,8 @@ static const char *validate_params(const game_params *params, int full)
 	return "Unrecognised solid type";
 
     if (solids[params->solid]->order == 4) {
-	if (params->d1 <= 0 || params->d2 <= 0)
-	    return "Both grid dimensions must be greater than zero";
+	if (params->d1 <= 1 || params->d2 <= 1)
+	    return "Both grid dimensions must be greater than one";
     } else {
 	if (params->d1 <= 0 && params->d2 <= 0)
 	    return "At least one grid dimension must be greater than zero";
