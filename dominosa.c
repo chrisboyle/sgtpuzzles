@@ -13,13 +13,17 @@
  *     * rule out a domino placement if it would divide an unfilled
  *       region such that at least one resulting region had an odd
  *       area
- *        + use b.f.s. to determine the area of an unfilled region
- *        + a square is unfilled iff it has at least two possible
- *          placements, and two adjacent unfilled squares are part
- *          of the same region iff the domino placement joining
- *          them is possible
+ *        + Tarjan's bridge-finding algorithm would be a way to find
+ *          domino placements that split a connected region in two:
+ *          form the graph whose vertices are unpaired squares and
+ *          whose edges are potential (not placed but also not ruled
+ *          out) dominoes covering two of them, and any bridge in that
+ *          graph is a candidate.
+ *        + Then, finding any old spanning forest of the unfilled
+ *          squares should be sufficient to determine the area parity
+ *          of the region that any such placement would cut off.
  *
- *     * perhaps set analysis
+ *     * set analysis
  *        + look at all unclaimed squares containing a given number
  *        + for each one, find the set of possible numbers that it
  *          can connect to (i.e. each neighbouring tile such that
@@ -37,6 +41,29 @@
  *             things out after finding the subset, we must be
  *             careful that we don't rule out precisely the domino
  *             placement that was _included_ in our set!
+ *
+ *     * playing off the two ends of one potential domino, by
+ *       considering the alternatives to that domino that each end
+ *       might otherwise be part of.
+ *        + if not playing this domino would require each end to be
+ *          part of an identical domino, play it. (e.g. the middle of
+ *          5-4-4-5)
+ *        + if not playing this domino would guarantee that the two
+ *          ends between them used up all of some other square's
+ *          choices, play it. (e.g. the middle of 2-3-3-1 if another 3
+ *          cell can only link to a 2 or a 1)
+ *
+ *     * identify 'forcing chains', in the sense of any path of cells
+ *       each of which has only two possible dominoes to be part of,
+ *       and each of those rules out one of the choices for the next
+ *       cell. Such a chain has the property that either all the odd
+ *       dominoes are placed, or all the even ones are placed; so if
+ *       either set of those introduces a conflict (e.g. a dupe within
+ *       the chain, or using up all of some other square's choices),
+ *       then the whole set can be ruled out, and the other set played
+ *       immediately.
+ *        + this is of course a generalisation of the previous idea,
+ *          which is simply a forcing chain of length 3.
  */
 
 #include <stdio.h>
