@@ -2915,7 +2915,25 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
                 }
 
                 if (t & d) {
-                    int edgeval = (t & ERR(d) ? 3 : t & ACTIVE ? 2 : 1);
+                    int edgeval;
+
+                    /* Highlight as an error any edge in a locked tile that
+                     * is adjacent to a lack-of-edge in another locked tile,
+                     * or to a barrier */
+                    if (t & LOCKED) {
+                        if (barrier(state, gx, gy) & d) {
+                            t |= ERR(d);
+                        } else {
+                            int ox, oy, t2;
+                            OFFSET(ox, oy, gx, gy, d, state);
+                            t2 = tile(state, ox, oy);
+                            if ((t2 & LOCKED) && !(t2 & F(d))) {
+                                t |= ERR(d);
+                            }
+                        }
+                    }
+
+                    edgeval = (t & ERR(d) ? 3 : t & ACTIVE ? 2 : 1);
                     todraw(ds, dx, dy) |= edgeval << (TILE_WIRE_SHIFT + dsh*2);
                     if (!(gx == tx && gy == ty)) {
                         todraw(ds, dx + X(d), dy + Y(d)) |=
