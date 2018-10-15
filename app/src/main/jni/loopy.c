@@ -255,34 +255,60 @@ static void check_caches(const solver_state* sstate);
 #define check_caches(s)
 #endif
 
-/* ------- List of grid generators ------- */
-#define GRIDLIST(A) \
-    A(Squares,GRID_SQUARE,3,3) \
-    A(Triangular,GRID_TRIANGULAR,3,3) \
-    A(Honeycomb,GRID_HONEYCOMB,3,3) \
-    A(Snub-Square,GRID_SNUBSQUARE,3,3) \
-    A(Cairo,GRID_CAIRO,3,4) \
-    A(Great-Hexagonal,GRID_GREATHEXAGONAL,3,3) \
-    A(Octagonal,GRID_OCTAGONAL,3,3) \
-    A(Kites,GRID_KITE,3,3) \
-    A(Floret,GRID_FLORET,1,2) \
-    A(Dodecagonal,GRID_DODECAGONAL,2,2) \
-    A(Great-Dodecagonal,GRID_GREATDODECAGONAL,2,2) \
-    A(Penrose (kite/dart),GRID_PENROSE_P2,3,3) \
-    A(Penrose (rhombs),GRID_PENROSE_P3,3,3)
-/* _("Squares"), _("Triangular"), _("Honeycomb"), _("Snub-Square"), _("Cairo"), _("Great-Hexagonal"), _("Octagonal"), _("Kites"), _("Floret"), _("Dodecagonal"), _("Great-Dodecagonal"), _("Penrose (kite/dart)"), _("Penrose (rhombs)") */
+/*
+ * Grid type config options available in Loopy.
+ *
+ * Annoyingly, we have to use an enum here which doesn't match up
+ * exactly to the grid-type enum in grid.h. Values in params->types
+ * are given by names such as LOOPY_GRID_SQUARE, which shouldn't be
+ * confused with GRID_SQUARE which is the value you pass to grid_new()
+ * and friends. So beware!
+ *
+ * (This is partly for historical reasons - Loopy's version of the
+ * enum is encoded in game parameter strings, so we keep it for
+ * backwards compatibility. But also, we need to store additional data
+ * here alongside each enum value, such as names for the presets menu,
+ * which isn't stored in grid.h; so we have to have our own list macro
+ * here anyway, and C doesn't make it easy to enforce that that lines
+ * up exactly with grid.h.)
+ *
+ * Do not add values to this list _except_ at the end, or old game ids
+ * will stop working!
+ */
+#define GRIDLIST(A)                                             \
+    A("Squares",SQUARE,3,3)                                     \
+    A("Triangular",TRIANGULAR,3,3)                              \
+    A("Honeycomb",HONEYCOMB,3,3)                                \
+    A("Snub-Square",SNUBSQUARE,3,3)                             \
+    A("Cairo",CAIRO,3,4)                                        \
+    A("Great-Hexagonal",GREATHEXAGONAL,3,3)                     \
+    A("Octagonal",OCTAGONAL,3,3)                                \
+    A("Kites",KITE,3,3)                                         \
+    A("Floret",FLORET,1,2)                                      \
+    A("Dodecagonal",DODECAGONAL,2,2)                            \
+    A("Great-Dodecagonal",GREATDODECAGONAL,2,2)                 \
+    A("Penrose (kite/dart)",PENROSE_P2,3,3)                     \
+    A("Penrose (rhombs)",PENROSE_P3,3,3)                        \
+    A("Great-Great-Dodecagonal",GREATGREATDODECAGONAL,2,2)      \
+    /* end of list */
+/* _("Squares"), _("Triangular"), _("Honeycomb"), _("Snub-Square"), _("Cairo"), _("Great-Hexagonal"), _("Octagonal"), _("Kites"), _("Floret"), _("Dodecagonal"), _("Great-Dodecagonal"), _("Penrose (kite/dart)"), _("Penrose (rhombs)"), _("Great-Great-Dodecagonal") */
 
-#define GRID_NAME(title,type,amin,omin) #title,
-#define GRID_CONFIG(title,type,amin,omin) ":" #title
-#define GRID_TYPE(title,type,amin,omin) type,
+#define GRID_NAME(title,type,amin,omin) title,
+#define GRID_CONFIG(title,type,amin,omin) ":" title
+#define GRID_LOOPYTYPE(title,type,amin,omin) LOOPY_GRID_ ## type,
+#define GRID_GRIDTYPE(title,type,amin,omin) GRID_ ## type,
 #define GRID_SIZES(title,type,amin,omin) \
-    {amin, omin},
+    {amin, omin, \
+     "Width and height for this grid type must both be at least " #amin, \
+     "At least one of width and height for this grid type must be at least " #omin,},
+enum { GRIDLIST(GRID_LOOPYTYPE) };
 static char const *const gridnames[] = { GRIDLIST(GRID_NAME) };
 #define GRID_CONFIGS GRIDLIST(GRID_CONFIG)
-static grid_type grid_types[] = { GRIDLIST(GRID_TYPE) };
+static grid_type grid_types[] = { GRIDLIST(GRID_GRIDTYPE) };
 #define NUM_GRID_TYPES (sizeof(grid_types) / sizeof(grid_types[0]))
 static const struct {
     int amin, omin;
+    char *aerr, *oerr;
 } grid_size_limits[] = { GRIDLIST(GRID_SIZES) };
 
 /* Generates a (dynamically allocated) new grid, according to the
@@ -500,61 +526,82 @@ static game_params *dup_params(const game_params *params)
     return ret;
 }
 
-static const game_params presets[] = {
+static const game_params loopy_presets_top[] = {
 #ifdef SMALL_SCREEN
-    {  7,  7, DIFF_EASY, 0 },
-    {  7,  7, DIFF_NORMAL, 0 },
-    {  7,  7, DIFF_HARD, 0 },
-    {  7,  7, DIFF_HARD, 1 },
-    {  7,  7, DIFF_HARD, 2 },
-    {  5,  5, DIFF_HARD, 3 },
-    {  7,  7, DIFF_HARD, 4 },
-    {  5,  4, DIFF_HARD, 5 },
-    {  5,  5, DIFF_HARD, 6 },
-    {  5,  5, DIFF_HARD, 7 },
-    {  3,  3, DIFF_HARD, 8 },
-    {  3,  3, DIFF_HARD, 9 },
-    {  3,  3, DIFF_HARD, 10 },
-    {  6,  6, DIFF_HARD, 11 },
-    {  6,  6, DIFF_HARD, 12 },
+    {  7,  7, DIFF_EASY,   LOOPY_GRID_SQUARE },
+    {  7,  7, DIFF_NORMAL, LOOPY_GRID_SQUARE },
+    {  7,  7, DIFF_HARD,   LOOPY_GRID_SQUARE },
+    {  7,  7, DIFF_HARD,   LOOPY_GRID_TRIANGULAR },
+    {  5,  5, DIFF_HARD,   LOOPY_GRID_SNUBSQUARE },
+    {  7,  7, DIFF_HARD,   LOOPY_GRID_CAIRO },
+    {  5,  5, DIFF_HARD,   LOOPY_GRID_KITE },
+    {  6,  6, DIFF_HARD,   LOOPY_GRID_PENROSE_P2 },
+    {  6,  6, DIFF_HARD,   LOOPY_GRID_PENROSE_P3 },
 #else
-    {  7,  7, DIFF_EASY, 0 },
-    {  10,  10, DIFF_EASY, 0 },
-    {  7,  7, DIFF_NORMAL, 0 },
-    {  10,  10, DIFF_NORMAL, 0 },
-    {  7,  7, DIFF_HARD, 0 },
-    {  10,  10, DIFF_HARD, 0 },
-    {  10,  10, DIFF_HARD, 1 },
-    {  12,  10, DIFF_HARD, 2 },
-    {  7,  7, DIFF_HARD, 3 },
-    {  9,  9, DIFF_HARD, 4 },
-    {  5,  4, DIFF_HARD, 5 },
-    {  7,  7, DIFF_HARD, 6 },
-    {  5,  5, DIFF_HARD, 7 },
-    {  5,  5, DIFF_HARD, 8 },
-    {  5,  4, DIFF_HARD, 9 },
-    {  5,  4, DIFF_HARD, 10 },
-    {  10, 10, DIFF_HARD, 11 },
-    {  10, 10, DIFF_HARD, 12 }
+    {  7,  7, DIFF_EASY,   LOOPY_GRID_SQUARE },
+    { 10, 10, DIFF_EASY,   LOOPY_GRID_SQUARE },
+    {  7,  7, DIFF_NORMAL, LOOPY_GRID_SQUARE },
+    { 10, 10, DIFF_NORMAL, LOOPY_GRID_SQUARE },
+    {  7,  7, DIFF_HARD,   LOOPY_GRID_SQUARE },
+    { 10, 10, DIFF_HARD,   LOOPY_GRID_SQUARE },
+    { 12, 10, DIFF_HARD,   LOOPY_GRID_TRIANGULAR },
+    {  7,  7, DIFF_HARD,   LOOPY_GRID_SNUBSQUARE },
+    {  9,  9, DIFF_HARD,   LOOPY_GRID_CAIRO },
+    {  5,  5, DIFF_HARD,   LOOPY_GRID_KITE },
+    { 10, 10, DIFF_HARD,   LOOPY_GRID_PENROSE_P2 },
+    { 10, 10, DIFF_HARD,   LOOPY_GRID_PENROSE_P3 },
 #endif
 };
 
-static int game_fetch_preset(int i, char **name, game_params **params)
+static const game_params loopy_presets_more[] = {
+#ifdef SMALL_SCREEN
+    {  7,  7, DIFF_HARD,   LOOPY_GRID_HONEYCOMB },
+    {  5,  4, DIFF_HARD,   LOOPY_GRID_GREATHEXAGONAL },
+    {  5,  5, DIFF_HARD,   LOOPY_GRID_OCTAGONAL },
+    {  3,  3, DIFF_HARD,   LOOPY_GRID_FLORET },
+    {  3,  3, DIFF_HARD,   LOOPY_GRID_DODECAGONAL },
+    {  3,  3, DIFF_HARD,   LOOPY_GRID_GREATDODECAGONAL },
+    {  3,  2, DIFF_HARD,   LOOPY_GRID_GREATGREATDODECAGONAL },
+#else
+    { 10, 10, DIFF_HARD,   LOOPY_GRID_HONEYCOMB },
+    {  5,  4, DIFF_HARD,   LOOPY_GRID_GREATHEXAGONAL },
+    {  7,  7, DIFF_HARD,   LOOPY_GRID_OCTAGONAL },
+    {  5,  5, DIFF_HARD,   LOOPY_GRID_FLORET },
+    {  5,  4, DIFF_HARD,   LOOPY_GRID_DODECAGONAL },
+    {  5,  4, DIFF_HARD,   LOOPY_GRID_GREATDODECAGONAL },
+    {  5,  3, DIFF_HARD,   LOOPY_GRID_GREATGREATDODECAGONAL },
+#endif
+};
+
+static void preset_menu_add_preset_with_title(struct preset_menu *menu,
+                                              const game_params *params)
 {
-    game_params *tmppar;
     char buf[80];
+    game_params *dup_params;
 
-    if (i < 0 || i >= lenof(presets))
-        return FALSE;
+    sprintf(buf, "%dx%d %s - %s", params->h, params->w,
+            _(gridnames[params->type]), diffnames[params->diff]);
 
-    tmppar = snew(game_params);
-    *tmppar = presets[i];
-    *params = tmppar;
-    sprintf(buf, "%dx%d %s - %s", tmppar->h, tmppar->w,
-            _(gridnames[tmppar->type]), diffnames[tmppar->diff]);
-    *name = dupstr(buf);
+    dup_params = snew(game_params);
+    *dup_params = *params;
 
-    return TRUE;
+    preset_menu_add_preset(menu, dupstr(buf), dup_params);
+}
+
+static struct preset_menu *game_preset_menu(void)
+{
+    struct preset_menu *top, *more;
+    int i;
+
+    top = preset_menu_new();
+    for (i = 0; i < lenof(loopy_presets_top); i++)
+        preset_menu_add_preset_with_title(top, &loopy_presets_top[i]);
+
+    more = preset_menu_add_submenu(top, dupstr("More..."));
+    for (i = 0; i < lenof(loopy_presets_more); i++)
+        preset_menu_add_preset_with_title(more, &loopy_presets_more[i]);
+
+    return top;
 }
 
 static void free_params(game_params *params)
@@ -2971,7 +3018,8 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     grid *g = state->game_grid;
     grid_edge *e;
     int i;
-    char *ret, buf[80];
+    char *movebuf;
+    int movelen, movesize;
     char button_char = ' ';
     enum line_state old_state;
 
@@ -3081,13 +3129,84 @@ hitedge:
 	return NULL;
     }
 
-    ui->cur_visible = 0;
-
 makemove:
-    sprintf(buf, "%d%c", i, (int)button_char);
-    ret = dupstr(buf);
+    movelen = 0;
+    movesize = 80;
+    movebuf = snewn(movesize, char);
+    movelen = sprintf(movebuf, "%d%c", i, (int)button_char);
+    {
+        static enum { OFF, FIXED, ADAPTIVE, DUNNO } autofollow = DUNNO;
+        if (autofollow == DUNNO) {
+            const char *env = getenv("LOOPY_AUTOFOLLOW");
+            if (env && !strcmp(env, "off"))
+                autofollow = OFF;
+            else if (env && !strcmp(env, "fixed"))
+                autofollow = FIXED;
+            else if (env && !strcmp(env, "adaptive"))
+                autofollow = ADAPTIVE;
+            else
+                autofollow = OFF;
+        }
 
-    return ret;
+        if (autofollow != OFF) {
+            int dotid;
+            for (dotid = 0; dotid < 2; dotid++) {
+                grid_dot *dot = (dotid == 0 ? e->dot1 : e->dot2);
+                grid_edge *e_this = e;
+
+                while (1) {
+                    int j, n_found;
+                    grid_edge *e_next = NULL;
+
+                    for (j = n_found = 0; j < dot->order; j++) {
+                        grid_edge *e_candidate = dot->edges[j];
+                        int i_candidate = e_candidate - g->edges;
+                        if (e_candidate != e_this &&
+                            (autofollow == FIXED ||
+                             state->lines[i] == LINE_NO ||
+                             state->lines[i_candidate] != LINE_NO)) {
+                            e_next = e_candidate;
+                            n_found++;
+                        }
+                    }
+
+                    if (n_found != 1 ||
+                        state->lines[e_next - g->edges] != state->lines[i])
+                        break;
+
+                    if (e_next == e) {
+                        /*
+                         * Special case: we might have come all the
+                         * way round a loop and found our way back to
+                         * the same edge we started from. In that
+                         * situation, we must terminate not only this
+                         * while loop, but the 'for' outside it that
+                         * was tracing in both directions from the
+                         * starting edge, because if we let it trace
+                         * in the second direction then we'll only
+                         * find ourself traversing the same loop in
+                         * the other order and generate an encoded
+                         * move string that mentions the same set of
+                         * edges twice.
+                         */
+                        goto autofollow_done;
+                    }
+
+                    dot = (e_next->dot1 != dot ? e_next->dot1 : e_next->dot2);
+                    if (movelen > movesize - 40) {
+                        movesize = movesize * 5 / 4 + 128;
+                        movebuf = sresize(movebuf, movesize, char);
+                    }
+                    e_this = e_next;
+                    movelen += sprintf(movebuf+movelen, "%d%c",
+                                       (int)(e_this - g->edges), button_char);
+                }
+            }
+          autofollow_done:;
+        }
+    }
+
+    return sresize(movebuf, movelen+1, char);
 }
 
 static game_state *execute_move(const game_state *state, const char *move)
@@ -3694,7 +3813,7 @@ static void game_print(drawing *dr, const game_state *state, int tilesize)
 const struct game thegame = {
     "Loopy", "games.loopy", "loopy",
     default_params,
-    game_fetch_preset,
+    NULL, game_preset_menu,
     decode_params,
     encode_params,
     free_params,

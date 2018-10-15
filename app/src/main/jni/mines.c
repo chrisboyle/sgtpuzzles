@@ -2973,7 +2973,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
                         float animtime, float flashtime)
 {
     int x, y;
-    int mines, markers, bg;
+    int mines, markers, closed, bg;
     int cx = -1, cy = -1, cmoved;
 
     if (flashtime) {
@@ -3023,13 +3023,15 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
 
     /*
      * Now draw the tiles. Also in this loop, count up the number
-     * of mines and mine markers.
+     * of mines, mine markers, and closed squares.
      */
-    mines = markers = 0;
+    mines = markers = closed = 0;
     for (y = 0; y < ds->h; y++)
 	for (x = 0; x < ds->w; x++) {
 	    int v = state->grid[y*ds->w+x], cc = 0;
 
+            if (v < 0)
+                closed++;
 	    if (v == -1)
 		markers++;
 	    if (state->layout->mines && state->layout->mines[y*ds->w+x])
@@ -3088,7 +3090,42 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
             else
                 strcpy(statusbar, _("COMPLETED!"));
 	} else {
+            int safe_closed = closed - mines;
 	    sprintf(statusbar, _("Marked: %d / %d"), markers, mines);
+            if (safe_closed > 0 && safe_closed <= 9) {
+                /*
+                 * In the situation where there's a very small number
+                 * of _non_-mine squares left unopened, it's helpful
+                 * to mention that number in the status line, to save
+                 * the player from having to count it up
+                 * painstakingly. This is particularly important if
+                 * the player has turned up the mine density to the
+                 * point where game generation resorts to its weird
+                 * pathological fallback of a very dense mine area
+                 * with a clearing in the middle, because that often
+                 * leads to a deduction you can only make by knowing
+                 * that there is (say) exactly one non-mine square to
+                 * find, and it's a real pain to have to count up two
+                 * large numbers of squares and subtract them to get
+                 * that value of 1.
+                 *
+                 * The threshold value of 8 for displaying this
+                 * information is because that's the largest number of
+                 * non-mine squares that might conceivably fit around
+                 * a single central square, and the most likely way to
+                 * _use_ this information is to observe that if all
+                 * the remaining safe squares are adjacent to _this_
+                 * square then everything else can be immediately
+                 * flagged as a mine.
+                 */
+                if (safe_closed == 1) {
+                    sprintf(statusbar + strlen(statusbar),
+                            " (1 safe square remains)");
+                } else {
+                    sprintf(statusbar + strlen(statusbar),
+                            " (%d safe squares remain)", safe_closed);
+                }
+            }
 	}
         if (ui->deaths) {
             strcpy(statusbar + strlen(statusbar), "  ");
@@ -3158,7 +3195,7 @@ static void game_print(drawing *dr, const game_state *state, int tilesize)
 const struct game thegame = {
     "Mines", "games.mines", "mines",
     default_params,
-    game_fetch_preset,
+    game_fetch_preset, NULL,
     decode_params,
     encode_params,
     free_params,

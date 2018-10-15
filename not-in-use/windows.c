@@ -195,6 +195,11 @@ struct blitter {
 
 enum { CFG_PRINT = CFG_FRONTEND_SPECIFIC };
 
+struct preset_menuitemref {
+    HMENU which_menu;
+    int item_index;
+};
+
 struct frontend {
     const game *game;
     midend *me;
@@ -213,8 +218,9 @@ struct frontend {
     HMENU gamemenu, typemenu;
     UINT timer;
     DWORD timer_last_tickcount;
-    int npresets;
-    game_params **presets;
+    struct preset_menu *preset_menu;
+    struct preset_menuitemref *preset_menuitems;
+    int n_preset_menuitems;
     struct font *fonts;
     int nfonts, fontsize;
     config_item *cfg;
@@ -244,7 +250,6 @@ void frontend_free(frontend *fe)
     sfree(fe->colours);
     sfree(fe->brushes);
     sfree(fe->pens);
-    sfree(fe->presets);
     sfree(fe->fonts);
 
     sfree(fe);
@@ -1531,17 +1536,17 @@ static frontend *frontend_new(HINSTANCE inst)
 			      NULL, NULL, inst, NULL);
     if (!fe->hwnd) {
         DWORD lerr = GetLastError();
-        printf("no window: 0x%x\n", lerr);
+        printf("no window: 0x%x\n", (unsigned)lerr);
     }
 #endif
 
     fe->gamemenu = NULL;
-    fe->presets = NULL;
+    fe->preset_menu = NULL;
 
     fe->statusbar = NULL;
     fe->bitmap = NULL;
 
-    SetWindowLong(fe->hwnd, GWL_USERDATA, (LONG)fe);
+    SetWindowLongPtr(fe->hwnd, GWLP_USERDATA, (LONG_PTR)fe);
 
     return fe;
 }
@@ -1657,6 +1662,46 @@ static midend *midend_for_new_game(frontend *fe, const game *cgame,
     }
 
     return me;
+}
+
+static void populate_preset_menu(frontend *fe,
+                                 struct preset_menu *menu, HMENU winmenu)
+{
+    int i;
+    for (i = 0; i < menu->n_entries; i++) {
+        struct preset_menu_entry *entry = &menu->entries[i];
+        UINT_PTR id_or_sub;
+        UINT flags = MF_ENABLED;
+
+        if (entry->params) {
+            id_or_sub = (UINT_PTR)(IDM_PRESETS + 0x10 * entry->id);
+
+            fe->preset_menuitems[entry->id].which_menu = winmenu;
+            fe->preset_menuitems[entry->id].item_index =
+                GetMenuItemCount(winmenu);
+        } else {
+            HMENU winsubmenu = CreateMenu();
+            id_or_sub = (UINT_PTR)winsubmenu;
+            flags |= MF_POPUP;
+
+            populate_preset_menu(fe, entry->submenu, winsubmenu);
+        }
+
+        /*
+         * FIXME: we ought to go through and do something with ampersands
+         * here.
+         */
+
+#ifndef _WIN32_WCE
+        AppendMenu(winmenu, flags, id_or_sub, entry->title);
+#else
+        {
+            TCHAR wName[255];
+            MultiByteToWideChar(CP_ACP, 0, entry->title, -1, wName, 255);
+            AppendMenu(winmenu, flags, id_or_sub, wName);
+        }
+#endif
+    }
 }
 
 /*
@@ -1800,11 +1845,16 @@ static int fe_set_midend(frontend *fe, midend *me)
 	AppendMenu(menu, MF_ENABLED, IDM_SEED, TEXT("Rando&m Seed..."));
 #endif
 
-        if (fe->presets)
-            sfree(fe->presets);
-	if ((fe->npresets = midend_num_presets(fe->me)) > 0 ||
-	    fe->game->can_configure) {
-	    int i;
+        if (!fe->preset_menu) {
+            int i;
+            fe->preset_menu = midend_get_presets(
+                fe->me, &fe->n_preset_menuitems);
+            fe->preset_menuitems = snewn(fe->n_preset_menuitems,
+                                         struct preset_menuitemref);
+            for (i = 0; i < fe->n_preset_menuitems; i++)
+                fe->preset_menuitems[i].which_menu = NULL;
+        }
+	if (fe->preset_menu->n_entries > 0 || fe->game->can_configure) {
 #ifndef _WIN32_WCE
 	    HMENU sub = CreateMenu();
 
@@ -1813,28 +1863,9 @@ static int fe_set_midend(frontend *fe, midend *me)
 	    HMENU sub = SHGetSubMenu(SHFindMenuBar(fe->hwnd), ID_TYPE);
 	    DeleteMenu(sub, 0, MF_BYPOSITION);
 #endif
-	    fe->presets = snewn(fe->npresets, game_params *);
 
-	    for (i = 0; i < fe->npresets; i++) {
-		char *name;
-#ifdef _WIN32_WCE
-		TCHAR wName[255];
-#endif
+            populate_preset_menu(fe, fe->preset_menu, sub);
 
-		midend_fetch_preset(fe->me, i, &name, &fe->presets[i]);
-
-		/*
-		 * FIXME: we ought to go through and do something
-		 * with ampersands here.
-		 */
-
-#ifndef _WIN32_WCE
-		AppendMenu(sub, MF_ENABLED, IDM_PRESETS + 0x10 * i, name);
-#else
-		MultiByteToWideChar (CP_ACP, 0, name, -1, wName, 255);
-		AppendMenu(sub, MF_ENABLED, IDM_PRESETS + 0x10 * i, wName);
-#endif
-	    }
 	    if (fe->game->can_configure) {
 		AppendMenu(sub, MF_ENABLED, IDM_CONFIG, TEXT("&Custom..."));
 	    }
@@ -1842,7 +1873,6 @@ static int fe_set_midend(frontend *fe, midend *me)
 	    fe->typemenu = sub;
 	} else {
 	    fe->typemenu = INVALID_HANDLE_VALUE;
-            fe->presets = NULL;
         }
 
 #ifdef COMBINED
@@ -1963,7 +1993,7 @@ static void make_dialog_full_screen(HWND hwnd)
 static int CALLBACK AboutDlgProc(HWND hwnd, UINT msg,
 				 WPARAM wParam, LPARAM lParam)
 {
-    frontend *fe = (frontend *)GetWindowLong(hwnd, GWL_USERDATA);
+    frontend *fe = (frontend *)GetWindowLongPtr(hwnd, GWLP_USERDATA);
 
     switch (msg) {
       case WM_INITDIALOG:
@@ -2220,7 +2250,7 @@ static void create_config_controls(frontend * fe)
 static int CALLBACK ConfigDlgProc(HWND hwnd, UINT msg,
 				  WPARAM wParam, LPARAM lParam)
 {
-    frontend *fe = (frontend *)GetWindowLong(hwnd, GWL_USERDATA);
+    frontend *fe = (frontend *)GetWindowLongPtr(hwnd, GWLP_USERDATA);
     config_item *i;
     struct cfg_aux *j;
 
@@ -2231,7 +2261,7 @@ static int CALLBACK ConfigDlgProc(HWND hwnd, UINT msg,
             char *title;
 
 	    fe = (frontend *) lParam;
-	    SetWindowLong(hwnd, GWL_USERDATA, lParam);
+	    SetWindowLongPtr(hwnd, GWLP_USERDATA, lParam);
 	    fe->cfgbox = hwnd;
 
             fe->cfg = frontend_get_config(fe, fe->cfg_which, &title);
@@ -2450,8 +2480,8 @@ static void about(frontend *fe)
 
     SendMessage(fe->cfgbox, WM_SETFONT, (WPARAM)fe->cfgfont, FALSE);
 
-    SetWindowLong(fe->cfgbox, GWL_USERDATA, (LONG)fe);
-    SetWindowLong(fe->cfgbox, DWL_DLGPROC, (LONG)AboutDlgProc);
+    SetWindowLongPtr(fe->cfgbox, GWLP_USERDATA, (LONG_PTR)fe);
+    SetWindowLongPtr(fe->cfgbox, DWLP_DLGPROC, (LONG_PTR)AboutDlgProc);
 
     id = 1000;
     y = height/2;
@@ -2631,8 +2661,8 @@ static int get_config(frontend *fe, int which)
 
     SendMessage(fe->cfgbox, WM_SETFONT, (WPARAM)fe->cfgfont, FALSE);
 
-    SetWindowLong(fe->cfgbox, GWL_USERDATA, (LONG)fe);
-    SetWindowLong(fe->cfgbox, DWL_DLGPROC, (LONG)ConfigDlgProc);
+    SetWindowLongPtr(fe->cfgbox, GWLP_USERDATA, (LONG_PTR)fe);
+    SetWindowLongPtr(fe->cfgbox, DWLP_DLGPROC, (LONG_PTR)ConfigDlgProc);
 
     /*
      * Count the controls so we can allocate cfgaux.
@@ -2894,14 +2924,22 @@ static void update_type_menu_tick(frontend *fe)
     if (fe->typemenu == INVALID_HANDLE_VALUE)
 	return;
 
-    total = GetMenuItemCount(fe->typemenu);
     n = midend_which_preset(fe->me);
-    if (n < 0)
-	n = total - 1;		       /* "Custom" item */
 
-    for (i = 0; i < total; i++) {
-	int flag = (i == n ? MF_CHECKED : MF_UNCHECKED);
-	CheckMenuItem(fe->typemenu, i, MF_BYPOSITION | flag);
+    for (i = 0; i < fe->n_preset_menuitems; i++) {
+        if (fe->preset_menuitems[i].which_menu) {
+            int flag = (i == n ? MF_CHECKED : MF_UNCHECKED);
+            CheckMenuItem(fe->preset_menuitems[i].which_menu,
+                          fe->preset_menuitems[i].item_index,
+                          MF_BYPOSITION | flag);
+        }
+    }
+
+    if (fe->game->can_configure) {
+	int flag = (n < 0 ? MF_CHECKED : MF_UNCHECKED);
+        /* "Custom" menu item is at the bottom of the top-level Type menu */
+        total = GetMenuItemCount(fe->typemenu);
+	CheckMenuItem(fe->typemenu, total - 1, MF_BYPOSITION | flag);
     }
 
     DrawMenuBar(fe->hwnd);
@@ -2938,7 +2976,7 @@ static int is_alt_pressed(void)
 static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
 				WPARAM wParam, LPARAM lParam)
 {
-    frontend *fe = (frontend *)GetWindowLong(hwnd, GWL_USERDATA);
+    frontend *fe = (frontend *)GetWindowLongPtr(hwnd, GWLP_USERDATA);
     int cmd;
 
     switch (message) {
@@ -3147,10 +3185,12 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
             } else
 #endif
 	    {
-		int p = ((wParam &~ 0xF) - IDM_PRESETS) / 0x10;
+                game_params *preset = preset_menu_lookup_by_id(
+                    fe->preset_menu,
+                    ((wParam &~ 0xF) - IDM_PRESETS) / 0x10);
 
-		if (p >= 0 && p < fe->npresets) {
-		    midend_set_params(fe->me, fe->presets[p]);
+		if (preset) {
+		    midend_set_params(fe->me, preset);
 		    new_game_type(fe);
 		}
 	    }
@@ -3654,7 +3694,7 @@ void split_into_argv(char *cmdline, int *argc, char ***argv,
 int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
 {
     MSG msg;
-    char *error;
+    char *error = NULL;
     const game *gg;
     frontend *fe;
     midend *me;

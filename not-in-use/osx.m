@@ -426,6 +426,9 @@ struct frontend {
     NSView **cfg_controls;
     int cfg_ncontrols;
     NSTextField *status;
+    struct preset_menu *preset_menu;
+    NSMenuItem **preset_menu_items;
+    int n_preset_menu_items;
 }
 - (id)initWithGame:(const game *)g;
 - (void)dealloc;
@@ -540,6 +543,8 @@ struct frontend {
     int w, h;
 
     ourgame = g;
+    preset_menu = NULL;
+    preset_menu_items = NULL;
 
     fe.window = self;
 
@@ -618,6 +623,7 @@ struct frontend {
 	[fe.colours[i] release];
     }
     sfree(fe.colours);
+    sfree(preset_menu_items);
     midend_free(me);
     [super dealloc];
 }
@@ -847,54 +853,99 @@ struct frontend {
 
 - (void)clearTypeMenu
 {
+    int i;
+
     while ([typemenu numberOfItems] > 1)
 	[typemenu removeItemAtIndex:0];
     [[typemenu itemAtIndex:0] setState:NSOffState];
+
+    for (i = 0; i < n_preset_menu_items; i++)
+        preset_menu_items[i] = NULL;
 }
 
 - (void)updateTypeMenuTick
 {
-    int i, total, n;
+    int i, n;
 
-    total = [typemenu numberOfItems];
     n = midend_which_preset(me);
-    if (n < 0)
-	n = total - 1;		       /* that's always where "Custom" lives */
-    for (i = 0; i < total; i++)
-	[[typemenu itemAtIndex:i] setState:(i == n ? NSOnState : NSOffState)];
+
+    for (i = 0; i < n_preset_menu_items; i++)
+        if (preset_menu_items[i])
+            [preset_menu_items[i] setState:(i == n ? NSOnState : NSOffState)];
+
+    /*
+     * The Custom menu item is always right at the bottom of the
+     * Type menu.
+     */
+    [[typemenu itemAtIndex:[typemenu numberOfItems]-1]
+             setState:(n < 0 ? NSOnState : NSOffState)];
+}
+
+- (void)populateTypeMenu:(NSMenu *)nsmenu from:(struct preset_menu *)menu
+{
+    int i;
+
+    /*
+     * We process the entries in reverse order so that (in the
+     * top-level Type menu at least) we don't disturb the 'Custom'
+     * item which remains fixed even when we change back and forth
+     * between puzzle type windows.
+     */
+    for (i = menu->n_entries; i-- > 0 ;) {
+        struct preset_menu_entry *entry = &menu->entries[i];
+        NSMenuItem *item;
+
+        if (entry->params) {
+            DataMenuItem *ditem;
+            ditem = [[[DataMenuItem alloc]
+                        initWithTitle:[NSString stringWithUTF8String:
+                                                    entry->title]
+                               action:NULL keyEquivalent:@""]
+                       autorelease];
+
+            [ditem setTarget:self];
+            [ditem setAction:@selector(presetGame:)];
+            [ditem setPayload:entry->params];
+
+            preset_menu_items[entry->id] = ditem;
+
+            item = ditem;
+        } else {
+            NSMenu *nssubmenu;
+
+            item = [[[NSMenuItem alloc]
+                        initWithTitle:[NSString stringWithUTF8String:
+                                                    entry->title]
+                               action:NULL keyEquivalent:@""]
+                       autorelease];
+            nssubmenu = newmenu(entry->title);
+            [item setSubmenu:nssubmenu];
+
+            [self populateTypeMenu:nssubmenu from:entry->submenu];
+        }
+
+        [item setEnabled:YES];
+        [nsmenu insertItem:item atIndex:0];
+    }
 }
 
 - (void)becomeKeyWindow
 {
-    int n;
-
     [self clearTypeMenu];
 
     [super becomeKeyWindow];
 
-    n = midend_num_presets(me);
+    if (!preset_menu) {
+        int i;
+        preset_menu = midend_get_presets(me, &n_preset_menu_items);
+        preset_menu_items = snewn(n_preset_menu_items, NSMenuItem *);
+        for (i = 0; i < n_preset_menu_items; i++)
+            preset_menu_items[i] = NULL;
+    }
 
-    if (n > 0) {
+    if (preset_menu->n_entries > 0) {
 	[typemenu insertItem:[NSMenuItem separatorItem] atIndex:0];
-	while (n--) {
-	    char *name;
-	    game_params *params;
-	    DataMenuItem *item;
-
-	    midend_fetch_preset(me, n, &name, &params);
-
-	    item = [[[DataMenuItem alloc]
-		     initWithTitle:[NSString stringWithUTF8String:name]
-		     action:NULL keyEquivalent:@""]
-		    autorelease];
-
-	    [item setEnabled:YES];
-	    [item setTarget:self];
-	    [item setAction:@selector(presetGame:)];
-	    [item setPayload:params];
-
-	    [typemenu insertItem:item atIndex:0];
-	}
+        [self populateTypeMenu:typemenu from:preset_menu];
     }
 
     [self updateTypeMenuTick];

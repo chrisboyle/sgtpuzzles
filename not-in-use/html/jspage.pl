@@ -63,6 +63,138 @@ EOF
 <meta http-equiv="Content-Type" content="text/html; charset=ASCII" />
 <title>${puzzlename}, ${unfinishedtitlefragment}from Simon Tatham's Portable Puzzle Collection</title>
 <script type="text/javascript" src="${filename}.js"></script>
+<style class="text/css">
+/* Margins and centring on the top-level div for the game menu */
+#gamemenu { margin-top: 0; margin-bottom: 0.5em; text-align: center }
+
+/* Inside that div, the main menu bar and every submenu inside it is a <ul> */
+#gamemenu ul {
+    list-style: none;  /* get rid of the normal unordered-list bullets */
+    display: inline;   /* make top-level menu bar items appear side by side */
+    position: relative; /* allow submenus to position themselves near parent */
+    margin: 0;
+    margin-bottom: 0.5em;
+    padding: 0;
+}
+
+/* Individual menu items are <li> elements within such a <ul> */
+#gamemenu ul li {
+    /* Add a little mild text formatting */
+    font-weight: bold; font-size: 0.8em;
+    /* Line height and padding appropriate to top-level menu items */
+    padding-left: 0.75em; padding-right: 0.75em;
+    padding-top: 0.2em; padding-bottom: 0.2em;
+    margin: 0;
+    /* Make top-level menu items appear side by side, not vertically stacked */
+    display: inline;
+    /* Suppress the text-selection I-beam pointer */
+    cursor: default;
+    /* Surround each menu item with a border. The left border is removed
+     * because it will abut the right border of the previous item. (A rule
+     * below will reinstate the left border for the leftmost menu item.) */
+    border-left: 0;
+    border-right: 1px solid rgba(0,0,0,0.3);
+    border-top: 1px solid rgba(0,0,0,0.3);
+    border-bottom: 1px solid rgba(0,0,0,0.3);
+}
+
+#gamemenu ul li.disabled {
+    /* Grey out menu items with the "disabled" class */
+    color: rgba(0,0,0,0.5);
+}
+
+#gamemenu ul li.separator {
+    color: transparent;
+    border: 0;
+}
+
+#gamemenu ul li.afterseparator {
+    border-left: 1px solid rgba(0,0,0,0.3);
+}
+
+#gamemenu ul li:first-of-type {
+    /* Reinstate the left border for the leftmost top-level menu item */
+    border-left: 1px solid rgba(0,0,0,0.3);
+}
+
+#gamemenu ul li:hover {
+    /* When the mouse is over a menu item, highlight it */
+    background: rgba(0,0,0,0.3);
+    /* Set position:relative, so that if this item has a submenu it can
+     * position itself relative to the parent item. */
+    position: relative;
+}
+
+#gamemenu ul li.disabled:hover {
+    /* Disabled menu items don't get a highlight on mouse hover */
+    background: inherit;
+}
+
+#gamemenu ul ul {
+    /* Second-level menus and below are not displayed by default */
+    display: none;
+    /* When they are displayed, they are positioned immediately below
+     * their parent <li>, and with the left edge aligning */
+    position: absolute;
+    top: 100%;
+    left: 0;
+    /* We must specify an explicit background colour for submenus, because
+     * they must be opaque (don't want other page contents showing through
+     * them). */
+    background: white;
+    /* And make sure they appear in front. */
+    z-index: 1;
+}
+
+#gamemenu ul ul.left {
+    /* A second-level menu with class "left" aligns its right edge with
+     * its parent, rather than its left edge */
+    left: inherit; right: 0;
+}
+
+/* Menu items in second-level menus and below */
+#gamemenu ul ul li {
+    /* Go back to vertical stacking, for drop-down submenus */
+    display: block;
+    /* Inhibit wrapping, so the submenu will expand its width as needed. */
+    white-space: nowrap;
+    /* Override the text-align:center from above */
+    text-align: left;
+    /* Don't make the text any smaller than the previous level of menu */
+    font-size: 100%;
+    /* This time it's the top border that we omit on all but the first
+     * element in the submenu, since now they're vertically stacked */
+    border-left: 1px solid rgba(0,0,0,0.3);
+    border-right: 1px solid rgba(0,0,0,0.3);
+    border-top: 0;
+    border-bottom: 1px solid rgba(0,0,0,0.3);
+}
+
+#gamemenu ul ul li:first-of-type {
+    /* Reinstate top border for first item in a submenu */
+    border-top: 1px solid rgba(0,0,0,0.3);
+}
+
+#gamemenu ul ul ul {
+    /* Third-level submenus are drawn to the side of their parent menu
+     * item, not below it */
+    top: 0; left: 100%;
+}
+
+#gamemenu ul ul ul.left {
+    /* A submenu with class "left" goes to the left of its parent,
+     * not the right */
+    left: inherit; right: 100%;
+}
+
+#gamemenu ul li:hover > ul {
+    /* Last but by no means least, the all-important line that makes
+     * submenus be displayed! Any <ul> whose parent <li> is being
+     * hovered over gets display:block overriding the display:none
+     * from above. */
+    display: block;
+}
+</style>
 </head>
 <body onLoad="initPuzzle();">
 <h1 align=center>${puzzlename}</h1>
@@ -73,16 +205,20 @@ ${unfinishedpara}
 
 <hr>
 <div id="puzzle" style="display: none">
-<p align=center>
-  <input type="button" id="new" value="New game">
-  <input type="button" id="restart" value="Restart game">
-  <input type="button" id="undo" value="Undo move">
-  <input type="button" id="redo" value="Redo move">
-  <input type="button" id="solve" value="Solve game">
-  <input type="button" id="specific" value="Enter game ID">
-  <input type="button" id="random" value="Enter random seed">
-  <select id="gametype"></select>
-</p>
+<div id="gamemenu"><ul><li>Game...<ul
+><li id="specific">Enter game ID</li
+><li id="random">Enter random seed</li
+><li id="save">Download save file</li
+><li id="load">Upload save file</li
+></ul></li
+><li>Type...<ul id="gametype"></ul></li
+><li class="separator"></li
+><li id="new" class="afterseparator">New game</li
+><li id="restart">Restart game</li
+><li id="undo">Undo move</li
+><li id="redo">Redo move</li
+><li id="solve">Solve game</li
+></ul></div>
 <div align=center>
   <div id="resizable" style="position:relative; left:0; top:0">
   <canvas style="display: block" id="puzzlecanvas" width="1px" height="1px" tabindex="1">

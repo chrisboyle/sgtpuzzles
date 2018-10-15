@@ -79,22 +79,12 @@ var dlg_return_funcs = null;
 // pass back the final value in each dialog control.
 var dlg_return_sval, dlg_return_ival;
 
-// The <select> object implementing the game-type drop-down, and a
-// list of the <option> objects inside it. Used by js_add_preset(),
+// The <ul> object implementing the game-type drop-down, and a list of
+// the <li> objects inside it. Used by js_add_preset(),
 // js_get_selected_preset() and js_select_preset().
-//
-// gametypethiscustom is an option which indicates some custom game
-// params you've already set up, and which will be auto-selected on
-// return from the customisation dialog; gametypenewcustom is an
-// option which you select to indicate that you want to bring up the
-// customisation dialog and select a new configuration. Ideally I'd do
-// this with just one option serving both purposes, but instead we
-// have to do this a bit oddly because browsers don't send 'onchange'
-// events for a select element if you reselect the same one - so if
-// you've picked a custom setup and now want to change it, you need a
-// way to specify that.
-var gametypeselector = null, gametypeoptions = [];
-var gametypethiscustom = null, gametypehiddencustom = null;
+var gametypelist = null, gametypeitems = [];
+var gametypeselectedindex = null;
+var gametypesubmenus = [];
 
 // The two anchors used to give permalinks to the current puzzle. Used
 // by js_update_permalinks().
@@ -129,6 +119,80 @@ function relative_mouse_coords(event, element) {
     var ecoords = element_coords(element);
     return {x: event.pageX - ecoords.x,
             y: event.pageY - ecoords.y};
+}
+
+// Enable and disable items in the CSS menus.
+function disable_menu_item(item, disabledFlag) {
+    if (disabledFlag)
+        item.className = "disabled";
+    else
+        item.className = "";
+}
+
+// Dialog-box functions called from both C and JS.
+function dialog_init(titletext) {
+    // Create an overlay on the page which darkens everything
+    // beneath it.
+    dlg_dimmer = document.createElement("div");
+    dlg_dimmer.style.width = "100%";
+    dlg_dimmer.style.height = "100%";
+    dlg_dimmer.style.background = '#000000';
+    dlg_dimmer.style.position = 'fixed';
+    dlg_dimmer.style.opacity = 0.3;
+    dlg_dimmer.style.top = dlg_dimmer.style.left = 0;
+    dlg_dimmer.style["z-index"] = 99;
+
+    // Now create a form which sits on top of that in turn.
+    dlg_form = document.createElement("form");
+    dlg_form.style.width = (window.innerWidth * 2 / 3) + "px";
+    dlg_form.style.opacity = 1;
+    dlg_form.style.background = '#ffffff';
+    dlg_form.style.color = '#000000';
+    dlg_form.style.position = 'absolute';
+    dlg_form.style.border = "2px solid black";
+    dlg_form.style.padding = "20px";
+    dlg_form.style.top = (window.innerHeight / 10) + "px";
+    dlg_form.style.left = (window.innerWidth / 6) + "px";
+    dlg_form.style["z-index"] = 100;
+
+    var title = document.createElement("p");
+    title.style.marginTop = "0px";
+    title.appendChild(document.createTextNode(titletext));
+    dlg_form.appendChild(title);
+
+    dlg_return_funcs = [];
+    dlg_next_id = 0;
+}
+
+function dialog_launch(ok_function, cancel_function) {
+    // Put in the OK and Cancel buttons at the bottom.
+    var button;
+
+    if (ok_function) {
+        button = document.createElement("input");
+        button.type = "button";
+        button.value = "OK";
+        button.onclick = ok_function;
+        dlg_form.appendChild(button);
+    }
+
+    if (cancel_function) {
+        button = document.createElement("input");
+        button.type = "button";
+        button.value = "Cancel";
+        button.onclick = cancel_function;
+        dlg_form.appendChild(button);
+    }
+
+    document.body.appendChild(dlg_dimmer);
+    document.body.appendChild(dlg_form);
+}
+
+function dialog_cleanup() {
+    document.body.removeChild(dlg_dimmer);
+    document.body.removeChild(dlg_form);
+    dlg_dimmer = dlg_form = null;
+    onscreen_canvas.focus();
 }
 
 // Init function called from body.onload.
@@ -232,11 +296,60 @@ function initPuzzle() {
             command(9);
     };
 
-    gametypeselector = document.getElementById("gametype");
-    gametypeselector.onchange = function(event) {
-        if (dlg_dimmer === null)
-            command(2);
+    // 'number' is used for C pointers
+    get_save_file = Module.cwrap('get_save_file', 'number', []);
+    free_save_file = Module.cwrap('free_save_file', 'void', ['number']);
+    load_game = Module.cwrap('load_game', 'void', ['string', 'number']);
+
+    document.getElementById("save").onclick = function(event) {
+        if (dlg_dimmer === null) {
+            var savefile_ptr = get_save_file();
+            var savefile_text = Pointer_stringify(savefile_ptr);
+            free_save_file(savefile_ptr);
+            dialog_init("Download saved-game file");
+            dlg_form.appendChild(document.createTextNode(
+                "Click to download the "));
+            var a = document.createElement("a");
+            a.download = "puzzle.sav";
+            a.href = "data:application/octet-stream," +
+                encodeURIComponent(savefile_text);
+            a.appendChild(document.createTextNode("saved-game file"));
+            dlg_form.appendChild(a);
+            dlg_form.appendChild(document.createTextNode("."));
+            dlg_form.appendChild(document.createElement("br"));
+            dialog_launch(function(event) {
+                dialog_cleanup();
+            });
+        }
     };
+
+    document.getElementById("load").onclick = function(event) {
+        if (dlg_dimmer === null) {
+            dialog_init("Upload saved-game file");
+            var input = document.createElement("input");
+            input.type = "file";
+            input.multiple = false;
+            dlg_form.appendChild(input);
+            dlg_form.appendChild(document.createElement("br"));
+            dialog_launch(function(event) {
+                if (input.files.length == 1) {
+                    var file = input.files.item(0);
+                    var reader = new FileReader();
+                    reader.addEventListener("loadend", function() {
+                        var string = reader.result;
+                        load_game(string, string.length);
+                    });
+                    reader.readAsBinaryString(file);
+                }
+                dialog_cleanup();
+            }, function(event) {
+                dialog_cleanup();
+            });
+        }
+    };
+
+    gametypelist = document.getElementById("gametype");
+    gametypesubmenus.push(gametypelist);
 
     // In IE, the canvas doesn't automatically gain focus on a mouse
     // click, so make sure it does

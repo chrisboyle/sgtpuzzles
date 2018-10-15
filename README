@@ -1,6 +1,6 @@
 This is the README accompanying the source code to Simon Tatham's
 puzzle collection. The collection's web site is at
-<http://www.chiark.greenend.org.uk/~sgtatham/puzzles/>.
+<https://www.chiark.greenend.org.uk/~sgtatham/puzzles/>.
 
 If you've obtained the source code by downloading a .tar.gz archive
 from the Puzzles web site, you should find several Makefiles in the
@@ -51,4 +51,4 @@ application and for the web site. It is generated from a Halibut
 source file (puzzles.but), which is the preferred form for
 modification. To generate the manual in other formats, rebuild it,
 or learn about Halibut, visit the Halibut website at
-<http://www.chiark.greenend.org.uk/~sgtatham/halibut/>.
+<https://www.chiark.greenend.org.uk/~sgtatham/halibut/>.

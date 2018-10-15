@@ -51,32 +51,33 @@ enddelegate
 
 # Build the Windows binaries and installer, and the CHM file.
 in puzzles do make -f Makefile.doc clean
-in puzzles do make -f Makefile.doc chm
-in puzzles do make -f Makefile.doc # build help file for installer
+in puzzles do make -f Makefile.doc # build help files for installer
 in puzzles do mason.pl --args '{"version":"$(Version)","descfile":"gamedesc.txt"}' winwix.mc > puzzles.wxs
 in puzzles do perl winiss.pl $(Version) gamedesc.txt > puzzles.iss
-delegate windows
-  # Ignore the poorly controlled return value from HHC, and instead
-  # just test that the output file was generated.
-  in puzzles with htmlhelp do/win hhc puzzles.hhp & type puzzles.chm >nul
-  # FIXME: Cygwin alternative?
-  in puzzles with visualstudio do/win nmake -f Makefile.vc clean
-  in puzzles with visualstudio do/win nmake -f Makefile.vc VER=-DVER=$(Version)
+ifneq "$(VISUAL_STUDIO)" "yes" then
+  in puzzles with clangcl64 do Platform=x64 make -f Makefile.clangcl clean
+  in puzzles with clangcl64 do Platform=x64 make -f Makefile.clangcl VER=-DVER=$(Version)
   # Code-sign the binaries, if the local bob config provides a script
   # to do so. We assume here that the script accepts an -i option to
   # provide a 'more info' URL, and an optional -n option to provide a
   # program name, and that it can take multiple .exe filename
   # arguments and sign them all in place.
-  ifneq "$(winsigncode)" "" in puzzles do $(winsigncode) -i http://www.chiark.greenend.org.uk/~sgtatham/puzzles/ *.exe
+  ifneq "$(cross_winsigncode)" "" in puzzles do $(cross_winsigncode) -i https://www.chiark.greenend.org.uk/~sgtatham/puzzles/ *.exe
   # Build installers.
-  in puzzles with wix do/win candle puzzles.wxs && light -ext WixUIExtension -sval puzzles.wixobj
-  in puzzles with innosetup do/win iscc puzzles.iss
-  ifneq "$(winsigncode)" "" in puzzles do $(winsigncode) -i http://www.chiark.greenend.org.uk/~sgtatham/puzzles/ -n "Simon Tatham's Portable Puzzle Collection Installer" puzzles.msi Output/installer.exe
-  return puzzles/puzzles.chm
-  return puzzles/*.exe
-  return puzzles/Output/installer.exe
-  return puzzles/puzzles.msi
-enddelegate
+  in puzzles with wixonlinux do candle -arch x64 puzzles.wxs && light -ext WixUIExtension -sval puzzles.wixobj
+  ifneq "$(cross_winsigncode)" "" in puzzles do $(cross_winsigncode) -i https://www.chiark.greenend.org.uk/~sgtatham/puzzles/ -n "Simon Tatham's Portable Puzzle Collection Installer" puzzles.msi
+else
+  delegate windows
+    in puzzles with visualstudio do/win nmake -f Makefile.vc clean
+    in puzzles with visualstudio do/win nmake -f Makefile.vc VER=-DVER=$(Version)
+    ifneq "$(winsigncode)" "" in puzzles do $(winsigncode) -i https://www.chiark.greenend.org.uk/~sgtatham/puzzles/ *.exe
+    # Build installers.
+    in puzzles with wix do/win candle puzzles.wxs && light -ext WixUIExtension -sval puzzles.wixobj
+    in puzzles with innosetup do/win iscc puzzles.iss
+    return puzzles/*.exe
+    return puzzles/puzzles.msi
+  enddelegate
+endif
 in puzzles do chmod +x *.exe
 
 # Build the Pocket PC binaries and CAB.
@@ -114,9 +115,7 @@ in puzzles do chmod +x *.exe
 #  return puzzles/puzzles.armv4.cab
 #enddelegate
 
-# Build the help file and the HTML docs.
-in puzzles do make -f Makefile.doc clean # remove CHM-target HTML
-in puzzles do make -f Makefile.doc # and rebuild help file...
+# Build the HTML docs.
 in puzzles do mkdir doc
 in puzzles do mkdir devel
 in puzzles/doc do halibut --html -Chtml-contents-filename:index.html -Chtml-index-filename:indexpage.html -Chtml-template-filename:%k.html -Chtml-template-fragment:%k ../puzzles.but
@@ -165,7 +164,6 @@ in puzzles do echo "AddType application/octet-stream .hlp" >> .htaccess
 in puzzles do echo "AddType application/octet-stream .cnt" >> .htaccess
 in . do set -- puzzles*.tar.gz; echo RedirectMatch temp '(.*/)'puzzles.tar.gz '$$1'"$$1" >> puzzles/.htaccess
 in puzzles do echo RedirectMatch temp '(.*/)'puzzles-installer.msi '$$1'puzzles-$(Version)-installer.msi >> .htaccess
-in puzzles do echo RedirectMatch temp '(.*/)'puzzles-installer.exe '$$1'puzzles-$(Version)-installer.exe >> .htaccess
 
 # Phew, we're done. Deliver everything!
 deliver puzzles/icons/*-web.png $@
@@ -179,7 +177,6 @@ deliver puzzles/puzzles.hlp $@
 deliver puzzles/puzzles.cnt $@
 deliver puzzles/puzzles.zip $@
 deliver puzzles/puzzles.msi puzzles-$(Version)-installer.msi
-deliver puzzles/Output/installer.exe puzzles-$(Version)-installer.exe
 deliver puzzles/*.jar java/$@
 deliver puzzles/js/*.js js/$@
 deliver puzzles/html/*.html html/$@

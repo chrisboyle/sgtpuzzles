@@ -391,8 +391,9 @@ with the default values, and returns a pointer to it.
 
 \c int (*fetch_preset)(int i, char **name, game_params **params);
 
-This function is used to populate the \q{Type} menu, which provides
-a list of conveniently accessible preset parameters for most games.
+This function is one of the two APIs a back end can provide to
+populate the \q{Type} menu, which provides a list of conveniently
+accessible preset parameters for most games.
 
 The function is called with \c{i} equal to the index of the preset
 required (numbering from zero). It returns \cw{FALSE} if that preset
@@ -405,6 +406,33 @@ returns \cw{TRUE}.
 
 If the game does not wish to support any presets at all, this
 function is permitted to return \cw{FALSE} always.
+
+If the game wants to return presets in the form of a hierarchical menu
+instead of a flat list (and, indeed, even if it doesn't), then it may
+set this function pointer to \cw{NULL}, and instead fill in the
+alternative function pointer \cw{preset_menu}
+(\k{backend-preset-menu}).
+
+\S{backend-preset-menu} \cw{preset_menu()}
+
+\c struct preset_menu *(*preset_menu)(void);
+
+This function is the more flexible of the two APIs by which a back end
+can define a collection of preset game parameters.
+
+This function simply returns a complete menu hierarchy, in the form of
+a \c{struct preset_menu} (see \k{midend-get-presets}) and further
+submenus (if it wishes) dangling off it. There are utility functions
+described in \k{utils-presets} to make it easy for the back end to
+construct this menu.
+
+If the game has no need to return a hierarchy of menus, it may instead
+opt to implement the \cw{fetch_preset()} function (see
+\k{backend-fetch-preset}).
+
+The game need not fill in the \c{id} fields in the preset menu
+structures. The mid-end will do that after it receives the structure
+from the game, and before passing it on to the front end.
 
 \S{backend-encode-params} \cw{encode_params()}
 
@@ -2743,8 +2771,8 @@ these parameters until further notice.
 
 The usual way in which the front end will have an actual
 \c{game_params} structure to pass to this function is if it had
-previously got it from \cw{midend_fetch_preset()}
-(\k{midend-fetch-preset}). Thus, this function is usually called in
+previously got it from \cw{midend_get_presets()}
+(\k{midend-get-presets}). Thus, this function is usually called in
 response to the user making a selection from the presets menu.
 
 \H{midend-get-params} \cw{midend_get_params()}
@@ -2966,34 +2994,63 @@ One of the major purposes of timing in the mid-end is to perform
 move animation. Therefore, calling this function is very likely to
 result in calls back to the front end's drawing API.
 
-\H{midend-num-presets} \cw{midend_num_presets()}
+\H{midend-get-presets} \cw{midend_get_presets()}
 
-\c int midend_num_presets(midend *me);
+\c struct preset_menu *midend_get_presets(midend *me, int *id_limit);
 
-Returns the number of game parameter presets supplied by this game.
-Front ends should use this function and \cw{midend_fetch_preset()}
-to configure their presets menu rather than calling the back end
-directly, since the mid-end adds standard customisation facilities.
-(At the time of writing, those customisation facilities are
-implemented hackily by means of environment variables, but it's not
-impossible that they may become more full and formal in future.)
+Returns a data structure describing this game's collection of preset
+game parameters, organised into a hierarchical structure of menus and
+submenus.
 
-\H{midend-fetch-preset} \cw{midend_fetch_preset()}
+The return value is a pointer to a data structure containing the
+following fields (among others, which are not intended for front end
+use):
 
-\c void midend_fetch_preset(midend *me, int n,
-\c                          char **name, game_params **params);
+\c struct preset_menu {
+\c     int n_entries;
+\c     struct preset_menu_entry *entries;
+\c     /* and other things */
+\e     iiiiiiiiiiiiiiiiiiiiii
+\c };
 
-Returns one of the preset game parameter structures for the game. On
-input \c{n} must be a non-negative integer and less than the value
-returned from \cw{midend_num_presets()}. On output, \c{*name} is set
-to an ASCII string suitable for entering in the game's presets menu,
-and \c{*params} is set to the corresponding \c{game_params}
-structure.
+Those fields describe the intended contents of one particular menu in
+the hierarchy. \cq{entries} points to an array of \cq{n_entries}
+items, each of which is a structure containing the following fields:
 
-Both of the two output values are dynamically allocated, but they
-are owned by the mid-end structure: the front end should not ever
-free them directly, because they will be freed automatically during
-\cw{midend_free()}.
+\c struct preset_menu_entry {
+\c     char *title;
+\c     game_params *params;
+\c     struct preset_menu *submenu;
+\c     int id;
+\c };
+
+Of these fields, \cq{title} and \cq{id} are present in every entry,
+giving (respectively) the textual name of the menu item and an integer
+identifier for it. The integer id will correspond to the one returned
+by \c{midend_which_preset} (\k{midend-which-preset}), when that preset
+is the one selected.
+
+The other two fields are mutually exclusive. Each \c{struct
+preset_menu_entry} will have one of those fields \cw{NULL} and the
+other one non-null. If the menu item is an actual preset, then
+\cq{params} will point to the set of game parameters that go with the
+name; if it's a submenu, then \cq{submenu} instead will be non-null,
+and will point at a subsidiary \c{struct preset_menu}.
+
+The complete hierarchy of these structures is owned by the mid-end,
+and will be freed when the mid-end is freed. The front end should not
+attempt to free any of it.
+
+The integer identifiers will be allocated densely from 0 upwards, so
+that it's reasonable for the front end to allocate an array which uses
+them as indices, if it needs to store information per preset menu
+item. For this purpose, the front end may pass the second parameter
+\cq{id_limit} to \cw{midend_get_presets} as the address of an \c{int}
+variable, into which \cw{midend_get_presets} will write an integer one
+larger than the largest id number actually used (i.e. the number of
+elements the front end would need in the array).
+
+Submenu-type entries also have integer identifiers.
 
 \H{midend-which-preset} \cw{midend_which_preset()}
 
@@ -3004,6 +3061,10 @@ which matches the current game parameters, or a negative number if
 no preset matches. Front ends could use this to maintain a tick
 beside one of the items in the menu (or tick the \q{Custom} option
 if the return value is less than zero).
+
+The returned index value (if non-negative) will match the \c{id} field
+of the corresponding \cw{struct preset_menu_entry} returned by
+\c{midend_get_presets()} (\k{midend-get-presets}).
 
 \H{midend-wants-statusbar} \cw{midend_wants_statusbar()}
 
@@ -3534,6 +3595,63 @@ is the number of elements in the array; \c{eltsize} is the size of a
 single element (typically measured using \c{sizeof}). \c{rs} is a
 \c{random_state} used to generate all the random numbers for the
 shuffling process.
+
+\H{utils-presets} Presets menu management
+
+The function \c{midend_get_presets()} (\k{midend-get-presets}) returns
+a data structure describing a menu hierarchy. Back ends can also
+choose to provide such a structure to the mid-end, if they want to
+group their presets hierarchically. To make this easy, there are a few
+utility functions to construct preset menu structures, and also one
+intended for front-end use.
+
+\S{utils-preset-menu-new} \cw{preset_menu_new()}
+
+\c struct preset_menu *preset_menu_new(void);
+
+Allocates a new \c{struct preset_menu}, and initialises it to hold no
+menu items.
+
+\S{utils-preset-menu-add_submenu} \cw{preset_menu_add_submenu()}
+
+\c struct preset_menu *preset_menu_add_submenu
+\c     (struct preset_menu *parent, char *title);
+
+Adds a new submenu to the end of an existing preset menu, and returns
+a pointer to a newly allocated \c{struct preset_menu} describing the
+submenu.
+
+The string parameter \cq{title} must be dynamically allocated by the
+caller. The preset-menu structure will take ownership of it, so the
+caller must not free it.
+
+\S{utils-preset-menu-add-preset} \cw{preset_menu_add_preset()}
+
+\c void preset_menu_add_preset
+\c     (struct preset_menu *menu, char *title, game_params *params);
+
+Adds a preset game configuration to the end of a preset menu.
+
+Both the string parameter \cq{title} and the game parameter structure
+\cq{params} itself must be dynamically allocated by the caller. The
+preset-menu structure will take ownership of it, so the caller must
+not free it.
+
+\S{utils-preset-menu-lookup-by-id} \cw{preset_menu_lookup_by_id()}
+
+\c game_params *preset_menu_lookup_by_id
+\c     (struct preset_menu *menu, int id);
+
+Given a numeric index, searches recursively through a preset menu
+hierarchy to find the corresponding menu entry, and returns a pointer
+to its existing \c{game_params} structure.
+
+This function is intended for front end use (but front ends need not
+use it if they prefer to do things another way). If a front end finds
+it inconvenient to store anything more than a numeric index alongside
+each menu item, then this function provides an easy way for the front
+end to get back the actual game parameters corresponding to a menu
+item that the user has selected.
 
 \H{utils-alloc} Memory allocation
 

@@ -458,6 +458,11 @@ static int todo_get(struct todo *todo) {
     return ret;
 }
 
+/*
+ * Return values: -1 means puzzle was proved inconsistent, 0 means we
+ * failed to narrow down to a unique solution, +1 means we solved it
+ * fully.
+ */
 static int net_solver(int w, int h, unsigned char *tiles,
 		      unsigned char *barriers, int wrapping)
 {
@@ -732,7 +737,11 @@ static int net_solver(int w, int h, unsigned char *tiles,
 #endif
 	    }
 
-	    assert(j > 0);	       /* we can't lose _all_ possibilities! */
+	    if (j == 0) {
+                /* If we've ruled out all possible orientations for a
+                 * tile, then our puzzle has no solution at all. */
+                return -1;
+            }
 
 	    if (j < i) {
 		done_something = TRUE;
@@ -812,14 +821,14 @@ static int net_solver(int w, int h, unsigned char *tiles,
     /*
      * Mark all completely determined tiles as locked.
      */
-    j = TRUE;
+    j = +1;
     for (i = 0; i < w*h; i++) {
 	if (tilestate[i * 4 + 1] == 255) {
 	    assert(tilestate[i * 4 + 0] != 255);
 	    tiles[i] = tilestate[i * 4] | LOCKED;
 	} else {
 	    tiles[i] &= ~LOCKED;
-	    j = FALSE;
+	    j = 0;
 	}
     }
 
@@ -1333,7 +1342,7 @@ static char *new_game_desc(const game_params *params, random_state *rs,
 	/*
 	 * Run the solver to check unique solubility.
 	 */
-	while (!net_solver(w, h, tiles, NULL, params->wrapping)) {
+	while (net_solver(w, h, tiles, NULL, params->wrapping) != 1) {
 	    int n = 0;
 
 	    /*
@@ -1764,9 +1773,17 @@ static char *solve_game(const game_state *state, const game_state *currstate,
 	 * Run the internal solver on the provided grid. This might
 	 * not yield a complete solution.
 	 */
+        int solver_result;
+
 	memcpy(tiles, state->tiles, state->width * state->height);
-	net_solver(state->width, state->height, tiles,
-		   state->barriers, state->wrapping);
+	solver_result = net_solver(state->width, state->height, tiles,
+                                   state->barriers, state->wrapping);
+
+        if (solver_result < 0) {
+            *error = "No solution exists for this puzzle";
+            sfree(tiles);
+            return NULL;
+        }
     } else {
         for (i = 0; i < state->width * state->height; i++) {
             int c = aux[i];
@@ -2404,24 +2421,31 @@ static game_state *execute_move(const game_state *from, const char *move)
     /*
      * Check whether the game has been completed.
      * 
-     * For this purpose it doesn't matter where the source square
-     * is, because we can start from anywhere and correctly
-     * determine whether the game is completed.
+     * For this purpose it doesn't matter where the source square is,
+     * because we can start from anywhere (or, at least, any square
+     * that's non-empty!), and correctly determine whether the game is
+     * completed.
      */
     {
-	unsigned char *active = compute_active(ret, 0, 0);
-	int x1, y1;
+	unsigned char *active;
+	int pos;
 	int complete = TRUE;
 
-	for (x1 = 0; x1 < ret->width; x1++)
-	    for (y1 = 0; y1 < ret->height; y1++)
-		if ((tile(ret, x1, y1) & 0xF) && !index(ret, active, x1, y1)) {
-		    complete = FALSE;
-		    goto break_label;  /* break out of two loops at once */
-		}
-	break_label:
+	for (pos = 0; pos < ret->width * ret->height; pos++)
+            if (ret->tiles[pos] & 0xF)
+                break;
 
-	sfree(active);
+        if (pos < ret->width * ret->height) {
+            active = compute_active(ret, pos % ret->width, pos / ret->width);
+
+            for (pos = 0; pos < ret->width * ret->height; pos++)
+                if ((ret->tiles[pos] & 0xF) && !active[pos]) {
+		    complete = FALSE;
+                    break;
+                }
+
+            sfree(active);
+        }
 
 	if (complete)
 	    ret->completed = TRUE;
@@ -2976,27 +3000,45 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
      * Update the status bar.
      */
     {
-	char statusbuf[256];
+	char statusbuf[256], *p;
 	int i, n, n2, a;
+        int complete = FALSE;
 
-	n = state->width * state->height;
-	for (i = a = n2 = 0; i < n; i++) {
-	    if (active[i])
-		a++;
-            if (state->tiles[i] & 0xF)
-                n2++;
+        p = statusbuf;
+        *p = '\0';     /* ensure even an empty status string is terminated */
+
+        if (state->used_solve) {
+            p += sprintf(p, _("Auto-solved."));
+            p += sprintf(p, " ");
+            complete = TRUE;
+        } else if (state->completed) {
+            p += sprintf(p, _("COMPLETED!"));
+            p += sprintf(p, " ");
+            complete = TRUE;
         }
 
-	if (state->used_solve) {
-		strcpy(statusbuf, _("Auto-solved."));
-		strcpy(statusbuf+strlen(statusbuf)," ");
-	} else if (state->completed) {
-		strcpy(statusbuf, _("COMPLETED!"));
-		strcpy(statusbuf+strlen(statusbuf)," ");
-	} else {
-		statusbuf[0]='\0';
-	}
-	sprintf(statusbuf+strlen(statusbuf), _("Active: %d/%d"), a, n2);
+        /*
+         * Omit the 'Active: n/N' counter completely if the source
+         * tile is a completely empty one, because then the active
+         * count can't help but read '1'.
+         */
+        if (tile(state, ui->cx, ui->cy) & 0xF) {
+            n = state->width * state->height;
+            for (i = a = n2 = 0; i < n; i++) {
+                if (active[i])
+                    a++;
+                if (state->tiles[i] & 0xF)
+                    n2++;
+            }
+
+            /*
+             * Also, if we're displaying a completion indicator and
+             * the game is still in its completed state (i.e. every
+             * tile is active), we might as well omit this too.
+             */
+            if (!complete || a < n2)
+                p += sprintf(p, _("Active: %d/%d"), a, n2);
+        }
 
 	status_bar(dr, statusbuf);
     }
@@ -3195,7 +3237,7 @@ static void game_print(drawing *dr, const game_state *state, int tilesize)
 const struct game thegame = {
     "Net", "games.net", "net",
     default_params,
-    game_fetch_preset,
+    game_fetch_preset, NULL,
     decode_params,
     encode_params,
     free_params,

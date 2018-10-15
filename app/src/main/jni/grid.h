@@ -105,6 +105,7 @@ typedef struct grid {
   A(FLORET,floret) \
   A(DODECAGONAL,dodecagonal) \
   A(GREATDODECAGONAL,greatdodecagonal) \
+  A(GREATGREATDODECAGONAL,greatgreatdodecagonal) \
   A(PENROSE_P2,penrose_p2_kite) \
   A(PENROSE_P3,penrose_p3_thick)
 

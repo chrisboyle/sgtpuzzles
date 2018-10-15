@@ -61,7 +61,8 @@ extern void js_debug(const char *);
 extern void js_error_box(const char *message);
 extern void js_remove_type_dropdown(void);
 extern void js_remove_solve_button(void);
-extern void js_add_preset(const char *name);
+extern void js_add_preset(int menuid, const char *name, int value);
+extern int js_add_preset_submenu(int menuid, const char *name);
 extern int js_get_selected_preset(void);
 extern void js_select_preset(int n);
 extern void js_get_date_64(unsigned *p);
@@ -552,6 +553,21 @@ static game_params **presets;
 static int npresets;
 int have_presets_dropdown;
 
+void populate_js_preset_menu(int menuid, struct preset_menu *menu)
+{
+    int i;
+    for (i = 0; i < menu->n_entries; i++) {
+        struct preset_menu_entry *entry = &menu->entries[i];
+        if (entry->params) {
+            presets[entry->id] = entry->params;
+            js_add_preset(menuid, entry->title, entry->id);
+        } else {
+            int js_submenu = js_add_preset_submenu(menuid, entry->title);
+            populate_js_preset_menu(js_submenu, entry->submenu);
+        }
+    }
+}
+
 void select_appropriate_preset(void)
 {
     if (have_presets_dropdown) {
@@ -696,7 +712,7 @@ void command(int n)
                 midend_redraw(me);
                 update_undo_redo();
                 js_focus_canvas();
-                select_appropriate_preset(); /* sort out Custom/Customise */
+                select_appropriate_preset();
             }
         }
         break;
@@ -737,6 +753,83 @@ void command(int n)
         update_undo_redo();
         js_focus_canvas();
         break;
+    }
+}
+
+/* ----------------------------------------------------------------------
+ * Called from JS to prepare a save-game file, and free one after it's
+ * been used.
+ */
+
+struct savefile_write_ctx {
+    char *buffer;
+    size_t pos;
+};
+
+static void savefile_write(void *vctx, void *buf, int len)
+{
+    struct savefile_write_ctx *ctx = (struct savefile_write_ctx *)vctx;
+    if (ctx->buffer)
+        memcpy(ctx->buffer + ctx->pos, buf, len);
+    ctx->pos += len;
+}
+
+char *get_save_file(void)
+{
+    struct savefile_write_ctx ctx;
+    size_t size;
+
+    /* First pass, to count up the size */
+    ctx.buffer = NULL;
+    ctx.pos = 0;
+    midend_serialise(me, savefile_write, &ctx);
+    size = ctx.pos;
+
+    /* Second pass, to actually write out the data */
+    ctx.buffer = snewn(size, char);
+    ctx.pos = 0;
+    midend_serialise(me, savefile_write, &ctx);
+    assert(ctx.pos == size);
+
+    return ctx.buffer;
+}
+
+void free_save_file(char *buffer)
+{
+    sfree(buffer);
+}
+
+struct savefile_read_ctx {
+    const char *buffer;
+    int len_remaining;
+};
+
+static int savefile_read(void *vctx, void *buf, int len)
+{
+    struct savefile_read_ctx *ctx = (struct savefile_read_ctx *)vctx;
+    if (ctx->len_remaining < len)
+        return FALSE;
+    memcpy(buf, ctx->buffer, len);
+    ctx->len_remaining -= len;
+    ctx->buffer += len;
+    return TRUE;
+}
+
+void load_game(const char *buffer, int len)
+{
+    struct savefile_read_ctx ctx;
+    const char *err;
+
+    ctx.buffer = buffer;
+    ctx.len_remaining = len;
+    err = midend_deserialise(me, savefile_read, &ctx);
+
+    if (err) {
+        js_error_box(err);
+    } else {
+        select_appropriate_preset();
+        resize();
+        midend_redraw(me);
     }
 }
 
@@ -787,23 +880,16 @@ int main(int argc, char **argv)
      * Set up the game-type dropdown with presets and/or the Custom
      * option.
      */
-    npresets = midend_num_presets(me);
-    if (npresets == 0) {
-        /*
-         * This puzzle doesn't have selectable game types at all.
-         * Completely remove the drop-down list from the page.
-         */
-        js_remove_type_dropdown();
-        have_presets_dropdown = FALSE;
-    } else {
+    {
+        struct preset_menu *menu = midend_get_presets(me, &npresets);
         presets = snewn(npresets, game_params *);
-        for (i = 0; i < npresets; i++) {
-            char *name;
-            midend_fetch_preset(me, i, &name, &presets[i]);
-            js_add_preset(name);
-        }
+        for (i = 0; i < npresets; i++)
+            presets[i] = NULL;
+
+        populate_js_preset_menu(0, menu);
+
         if (thegame.can_configure)
-            js_add_preset(NULL);   /* the 'Custom' entry in the dropdown */
+            js_add_preset(0, "Custom", -1);
 
         have_presets_dropdown = TRUE;
 

@@ -17,6 +17,7 @@
 !makefile gnustep Makefile.gnustep
 !makefile nestedvm Makefile.nestedvm
 !makefile emcc Makefile.emcc
+!makefile clangcl Makefile.clangcl
 
 !srcdir icons/
 

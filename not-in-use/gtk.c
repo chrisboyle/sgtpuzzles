@@ -144,6 +144,9 @@ struct frontend {
     GtkWidget *area;
     GtkWidget *statusbar;
     GtkWidget *menubar;
+#if GTK_CHECK_VERSION(3,20,0)
+    GtkCssProvider *css_provider;
+#endif
     guint statusctx;
     int w, h;
     midend *me;
@@ -179,7 +182,6 @@ struct frontend {
     char *filesel_name;
 #endif
     GSList *preset_radio;
-    int n_preset_menu_items;
     int preset_threaded;
     GtkWidget *preset_custom;
     GtkWidget *copy_menu_item;
@@ -290,7 +292,27 @@ static void set_colour(frontend *fe, int colour)
 
 static void set_window_background(frontend *fe, int colour)
 {
-#if GTK_CHECK_VERSION(3,0,0)
+#if GTK_CHECK_VERSION(3,20,0)
+    char css_buf[512];
+    sprintf(css_buf, ".background { "
+            "background-color: #%02x%02x%02x; }",
+            (unsigned)(fe->colours[3*colour + 0] * 255),
+            (unsigned)(fe->colours[3*colour + 1] * 255),
+            (unsigned)(fe->colours[3*colour + 2] * 255));
+    if (!fe->css_provider)
+        fe->css_provider = gtk_css_provider_new();
+    if (!gtk_css_provider_load_from_data(
+            GTK_CSS_PROVIDER(fe->css_provider), css_buf, -1, NULL))
+        assert(0 && "Couldn't load CSS");
+    gtk_style_context_add_provider(
+        gtk_widget_get_style_context(fe->window),
+        GTK_STYLE_PROVIDER(fe->css_provider),
+        GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+    gtk_style_context_add_provider(
+        gtk_widget_get_style_context(fe->area),
+        GTK_STYLE_PROVIDER(fe->css_provider),
+        GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+#elif GTK_CHECK_VERSION(3,0,0)
     GdkRGBA rgba;
     rgba.red = fe->colours[3*colour + 0];
     rgba.green = fe->colours[3*colour + 1];
@@ -439,11 +461,13 @@ static void clear_backing_store(frontend *fe)
     fe->image = NULL;
 }
 
-static void wipe_and_destroy_cairo(frontend *fe, cairo_t *cr)
+static void wipe_and_maybe_destroy_cairo(frontend *fe, cairo_t *cr,
+                                         int destroy)
 {
     cairo_set_source_rgb(cr, fe->colours[0], fe->colours[1], fe->colours[2]);
     cairo_paint(cr);
-    cairo_destroy(cr);
+    if (destroy)
+        cairo_destroy(cr);
 }
 
 static void setup_backing_store(frontend *fe)
@@ -455,12 +479,29 @@ static void setup_backing_store(frontend *fe)
     fe->image = cairo_image_surface_create(CAIRO_FORMAT_RGB24,
 					   fe->pw, fe->ph);
 
-    wipe_and_destroy_cairo(fe, cairo_create(fe->image));
+    wipe_and_maybe_destroy_cairo(fe, cairo_create(fe->image), TRUE);
 #ifndef USE_CAIRO_WITHOUT_PIXMAP
-    wipe_and_destroy_cairo(fe, gdk_cairo_create(fe->pixmap));
+    wipe_and_maybe_destroy_cairo(fe, gdk_cairo_create(fe->pixmap), TRUE);
 #endif
-    wipe_and_destroy_cairo(fe, gdk_cairo_create
-                           (gtk_widget_get_window(fe->area)));
+#if GTK_CHECK_VERSION(3,22,0)
+    {
+        GdkWindow *gdkwin;
+        cairo_region_t *region;
+        GdkDrawingContext *drawctx;
+        cairo_t *cr;
+
+        gdkwin = gtk_widget_get_window(fe->area);
+        region = gdk_window_get_clip_region(gdkwin);
+        drawctx = gdk_window_begin_draw_frame(gdkwin, region);
+        cr = gdk_drawing_context_get_cairo_context(drawctx);
+        wipe_and_maybe_destroy_cairo(fe, cr, FALSE);
+        gdk_window_end_draw_frame(gdkwin, drawctx);
+        cairo_region_destroy(region);
+    }
+#else
+    wipe_and_maybe_destroy_cairo(
+        fe, gdk_cairo_create(gtk_widget_get_window(fe->area)), TRUE);
+#endif
 }
 
 static int backing_store_ok(frontend *fe)
@@ -1843,20 +1884,22 @@ static void changed_preset(frontend *fe)
 	    TRUE);
     } else {
 	GSList *gs = fe->preset_radio;
-	int i = fe->n_preset_menu_items - 1 - n;
-	if (fe->preset_custom)
-	    gs = gs->next;
-	while (i && gs) {
-	    i--;
-	    gs = gs->next;
-	}
-	if (gs) {
-	    gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(gs->data),
-					   TRUE);
-	} else for (gs = fe->preset_radio; gs; gs = gs->next) {
-	    gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(gs->data),
-					   FALSE);
-	}
+        GSList *found = NULL;
+
+        for (gs = fe->preset_radio; gs; gs = gs->next) {
+            struct preset_menu_entry *entry =
+                (struct preset_menu_entry *)g_object_get_data(
+                    G_OBJECT(gs->data), "user-data");
+
+            if (entry && entry->id != n)
+                gtk_check_menu_item_set_active(
+                    GTK_CHECK_MENU_ITEM(gs->data), FALSE);
+            else
+                found = gs;
+        }
+        if (found)
+            gtk_check_menu_item_set_active(
+                GTK_CHECK_MENU_ITEM(found->data), FALSE);
     }
     fe->preset_threaded = FALSE;
 
@@ -1978,17 +2021,19 @@ static void resize_fe(frontend *fe)
 static void menu_preset_event(GtkMenuItem *menuitem, gpointer data)
 {
     frontend *fe = (frontend *)data;
-    game_params *params =
-        (game_params *)g_object_get_data(G_OBJECT(menuitem), "user-data");
+    struct preset_menu_entry *entry =
+        (struct preset_menu_entry *)g_object_get_data(
+            G_OBJECT(menuitem), "user-data");
 
     if (fe->preset_threaded ||
 	(GTK_IS_CHECK_MENU_ITEM(menuitem) &&
 	 !gtk_check_menu_item_get_active(GTK_CHECK_MENU_ITEM(menuitem))))
 	return;
-    midend_set_params(fe->me, params);
+    midend_set_params(fe->me, entry->params);
     midend_new_game(fe->me);
     changed_preset(fe);
     resize_fe(fe);
+    midend_redraw(fe->me);
 }
 
 GdkAtom compound_text_atom, utf8_string_atom;
@@ -2232,6 +2277,7 @@ static void menu_load_event(GtkMenuItem *menuitem, gpointer data)
 
 	changed_preset(fe);
         resize_fe(fe);
+        midend_redraw(fe->me);
     }
 }
 
@@ -2269,6 +2315,7 @@ static void menu_config_event(GtkMenuItem *menuitem, gpointer data)
 
     midend_new_game(fe->me);
     resize_fe(fe);
+    midend_redraw(fe->me);
 }
 
 static void menu_about_event(GtkMenuItem *menuitem, gpointer data)
@@ -2339,6 +2386,36 @@ static void add_menu_separator(GtkContainer *cont)
     gtk_widget_show(menuitem);
 }
 
+static void populate_gtk_preset_menu(frontend *fe, struct preset_menu *menu,
+                                     GtkWidget *gtkmenu)
+{
+    int i;
+
+    for (i = 0; i < menu->n_entries; i++) {
+        struct preset_menu_entry *entry = &menu->entries[i];
+        GtkWidget *menuitem;
+
+        if (entry->params) {
+            menuitem = gtk_radio_menu_item_new_with_label(
+                fe->preset_radio, entry->title);
+            fe->preset_radio = gtk_radio_menu_item_get_group(
+                GTK_RADIO_MENU_ITEM(menuitem));
+            g_object_set_data(G_OBJECT(menuitem), "user-data", entry);
+            g_signal_connect(G_OBJECT(menuitem), "activate",
+                             G_CALLBACK(menu_preset_event), fe);
+        } else {
+            GtkWidget *submenu;
+            menuitem = gtk_menu_item_new_with_label(entry->title);
+            submenu = gtk_menu_new();
+            gtk_menu_item_set_submenu(GTK_MENU_ITEM(menuitem), submenu);
+            populate_gtk_preset_menu(fe, entry->submenu, submenu);
+        }
+
+        gtk_container_add(GTK_CONTAINER(gtkmenu), menuitem);
+        gtk_widget_show(menuitem);
+    }
+}
+
 enum { ARG_EITHER, ARG_SAVE, ARG_ID }; /* for argtype */
 
 static frontend *new_window(char *arg, int argtype, char **error)
@@ -2351,8 +2428,12 @@ static frontend *new_window(char *arg, int argtype, char **error)
     char errbuf[1024];
     extern char *const *const xpm_icons[];
     extern const int n_xpm_icons;
+    struct preset_menu *preset_menu;
 
     fe = snew(frontend);
+#if GTK_CHECK_VERSION(3,20,0)
+    fe->css_provider = NULL;
+#endif
 
     fe->timer_active = FALSE;
     fe->timer_id = -1;
@@ -2499,11 +2580,11 @@ static frontend *new_window(char *arg, int argtype, char **error)
 
     fe->preset_radio = NULL;
     fe->preset_custom = NULL;
-    fe->n_preset_menu_items = 0;
     fe->preset_threaded = FALSE;
-    if ((n = midend_num_presets(fe->me)) > 0 || thegame.can_configure) {
+
+    preset_menu = midend_get_presets(fe->me, NULL);
+    if (preset_menu->n_entries > 0 || thegame.can_configure) {
         GtkWidget *submenu;
-        int i;
 
         menuitem = gtk_menu_item_new_with_mnemonic("_Type");
         gtk_container_add(GTK_CONTAINER(fe->menubar), menuitem);
@@ -2512,23 +2593,7 @@ static frontend *new_window(char *arg, int argtype, char **error)
         submenu = gtk_menu_new();
         gtk_menu_item_set_submenu(GTK_MENU_ITEM(menuitem), submenu);
 
-        for (i = 0; i < n; i++) {
-            char *name;
-            game_params *params;
-
-            midend_fetch_preset(fe->me, i, &name, &params);
-
-	    menuitem =
-		gtk_radio_menu_item_new_with_label(fe->preset_radio, name);
-	    fe->preset_radio =
-		gtk_radio_menu_item_get_group(GTK_RADIO_MENU_ITEM(menuitem));
-	    fe->n_preset_menu_items++;
-            gtk_container_add(GTK_CONTAINER(submenu), menuitem);
-            g_object_set_data(G_OBJECT(menuitem), "user-data", params);
-            g_signal_connect(G_OBJECT(menuitem), "activate",
-                             G_CALLBACK(menu_preset_event), fe);
-            gtk_widget_show(menuitem);
-        }
+        populate_gtk_preset_menu(fe, preset_menu, submenu);
 
 	if (thegame.can_configure) {
 	    menuitem = fe->preset_custom =
@@ -2777,6 +2842,22 @@ char *fgetline(FILE *fp)
     }
     ret[len] = '\0';
     return ret;
+}
+
+static void list_presets_from_menu(struct preset_menu *menu)
+{
+    int i;
+
+    for (i = 0; i < menu->n_entries; i++) {
+        if (menu->entries[i].params) {
+            char *paramstr = thegame.encode_params(
+                menu->entries[i].params, TRUE);
+            printf("%s %s\n", paramstr, menu->entries[i].title);
+            sfree(paramstr);
+        } else {
+            list_presets_from_menu(menu->entries[i].submenu);
+        }
+    }
 }
 
 int main(int argc, char **argv)
@@ -3182,23 +3263,12 @@ int main(int argc, char **argv)
          * Another specialist mode which causes the puzzle to list the
          * game_params strings for all its preset configurations.
          */
-        int i, npresets;
         midend *me;
+        struct preset_menu *menu;
 
 	me = midend_new(NULL, &thegame, NULL, NULL);
-        npresets = midend_num_presets(me);
-
-        for (i = 0; i < npresets; i++) {
-            game_params *params;
-            char *name, *paramstr;
-
-            midend_fetch_preset(me, i, &name, &params);
-            paramstr = thegame.encode_params(params, TRUE);
-
-            printf("%s %s\n", paramstr, name);
-            sfree(paramstr);
-        }
-
+        menu = midend_get_presets(me, NULL);
+        list_presets_from_menu(menu);
 	midend_free(me);
         return 0;
     } else {

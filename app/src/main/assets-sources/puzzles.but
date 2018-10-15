@@ -13,6 +13,12 @@
 \cfg{html-contents-depth-1}{2}
 \cfg{html-leaf-contains-contents}{true}
 
+\cfg{chm-filename}{puzzles.chm}
+\cfg{chm-contents-filename}{index.html}
+\cfg{chm-template-filename}{%k.html}
+\cfg{chm-head-end}{<link rel="stylesheet" type="text/css" href="chm.css">}
+\cfg{chm-extra-file}{chm.css}
+
 \cfg{info-filename}{puzzles.info}
 
 \cfg{ps-filename}{puzzles.ps}
@@ -71,13 +77,13 @@ with the game binaries or the code, except pretending you wrote them
 yourself, or suing me if anything goes wrong. 
 
 The most recent versions, and \i{source code}, can be found at
-\I{website}\W{http://www.chiark.greenend.org.uk/~sgtatham/puzzles/}\cw{http://www.chiark.greenend.org.uk/~sgtatham/puzzles/}.
+\I{website}\W{https://www.chiark.greenend.org.uk/~sgtatham/puzzles/}\cw{https://www.chiark.greenend.org.uk/~sgtatham/puzzles/}.
 
 Please report \I{feedback}\i{bugs} to
 \W{mailto:anakin@pobox.com}\cw{anakin@pobox.com}.
 You might find it helpful to read this article before reporting a bug:
 
-\W{http://www.chiark.greenend.org.uk/~sgtatham/bugs.html}\cw{http://www.chiark.greenend.org.uk/~sgtatham/bugs.html}
+\W{https://www.chiark.greenend.org.uk/~sgtatham/bugs.html}\cw{https://www.chiark.greenend.org.uk/~sgtatham/bugs.html}
 
 \ii{Patches} are welcome. Especially if they provide a new front end
 (to make all these games run on another platform), or a new game.

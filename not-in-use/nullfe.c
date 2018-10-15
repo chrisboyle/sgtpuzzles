@@ -43,6 +43,11 @@ void print_line_width(drawing *dr, int width) {}
 void print_line_dotted(drawing *dr, int dotted) {}
 void midend_supersede_game_desc(midend *me, char *desc, char *privdesc) {}
 void status_bar(drawing *dr, char *text) {}
+struct preset_menu *preset_menu_new(void) {return NULL;}
+struct preset_menu *preset_menu_add_submenu(struct preset_menu *parent,
+                                            char *title) {return NULL;}
+void preset_menu_add_preset(struct preset_menu *parent,
+                            char *title, game_params *params) {}
 
 void fatal(char *fmt, ...)
 {
