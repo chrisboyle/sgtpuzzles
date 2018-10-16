@@ -266,12 +266,12 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 			key.height = mDefaultHeight;
 			key.gap = mDefaultHorizontalGap;
 			switch(c) {
-				case 'U':
+				case GameView.UI_UNDO: case 'U':
 					undoKey = mKeys.size() - 1;
 					key.repeatable = true;
 					setUndoRedoEnabled(ExtraKey.UNDO, undoEnabled);
 					break;
-				case 'R':
+				case GameView.UI_REDO: case 'R':
 					redoKey = mKeys.size() - 1;
 					key.repeatable = true;
 					setUndoRedoEnabled(ExtraKey.REDO, redoEnabled);

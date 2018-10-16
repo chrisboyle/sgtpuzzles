@@ -77,7 +77,7 @@ public class GameView extends View
 	private static final int DRAG = LEFT_DRAG - LEFT_BUTTON;  // not bit fields, but there's a pattern
 			private static final int RELEASE = LEFT_RELEASE - LEFT_BUTTON;
 	static final int CURSOR_UP = 0x209, CURSOR_DOWN = 0x20a,
-			CURSOR_LEFT = 0x20b, CURSOR_RIGHT = 0x20c, MOD_NUM_KEYPAD = 0x4000;
+			CURSOR_LEFT = 0x20b, CURSOR_RIGHT = 0x20c, UI_UNDO = 0x213, UI_REDO = 0x214, MOD_NUM_KEYPAD = 0x4000;
 	int keysHandled = 0;  // debug
 	private ScaleGestureDetector scaleDetector = null;
 	private GestureDetectorCompat gestureDetector;
@@ -489,8 +489,8 @@ public class GameView extends View
 		case KeyEvent.KEYCODE_ENTER: key = '\n'; break;
 		case KeyEvent.KEYCODE_FOCUS: case KeyEvent.KEYCODE_SPACE: case KeyEvent.KEYCODE_BUTTON_X:
 			key = ' '; break;
-		case KeyEvent.KEYCODE_BUTTON_L1: key = 'U'; break;
-		case KeyEvent.KEYCODE_BUTTON_R1: key = 'R'; break;
+		case KeyEvent.KEYCODE_BUTTON_L1: key = UI_UNDO; break;
+		case KeyEvent.KEYCODE_BUTTON_R1: key = UI_REDO; break;
 		case KeyEvent.KEYCODE_DEL: key = '\b'; break;
 		}
 		if (key == CURSOR_UP || key == CURSOR_DOWN || key == CURSOR_LEFT || key == CURSOR_RIGHT) {

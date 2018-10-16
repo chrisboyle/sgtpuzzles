@@ -161,7 +161,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 	private static final File storageDir = Environment.getExternalStorageDirectory();
 	private String[] games;
 	private Menu menu;
-	private String maybeUndoRedo = "UR";
+	private String maybeUndoRedo = "" + ((char)GameView.UI_UNDO) + ((char)GameView.UI_REDO);
 	private boolean startedFullscreen = false, cachedFullscreen = false;
 	private boolean keysAlreadySet = false;
 	private boolean everCompleted = false;
@@ -686,8 +686,8 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 		case android.R.id.home:
 			startChooserAndFinish();
 			break;
-		case R.id.undo:     sendKey(0, 0, 'U'); break;
-		case R.id.redo:     sendKey(0, 0, 'R'); break;
+		case R.id.undo:     sendKey(0, 0, GameView.UI_UNDO); break;
+		case R.id.redo:     sendKey(0, 0, GameView.UI_REDO); break;
 		default:
 			ret = super.onOptionsItemSelected(item);
 			break;
