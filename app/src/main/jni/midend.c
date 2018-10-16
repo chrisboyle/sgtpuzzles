@@ -2268,11 +2268,19 @@ char *identify_game(char **name, int (*read)(void *ctx, void *buf, int len),
     return ret;
 }
 
+#ifdef ANDROID
+const char * midend_android_preset_menu_get_encoded_params(midend *me, int id)
+{
+    assert(id >= 0 && id < me->n_encoded_presets);
+    return me->encoded_presets[id];
+}
+
 void midend_android_cursor_visibility(midend *me, int visible)
 {
     if (!me->ourgame->android_cursor_visibility) return;
     me->ourgame->android_cursor_visibility(me->ui, visible);
 }
+#endif
 
 #ifndef NO_PRINTING
 char *midend_print_puzzle(midend *me, document *doc, int with_soln)

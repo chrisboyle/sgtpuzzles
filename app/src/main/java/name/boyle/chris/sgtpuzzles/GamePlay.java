@@ -57,6 +57,7 @@ import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.SubMenu;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.ArrayAdapter;
@@ -134,7 +135,8 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 	private SmallKeyboard keyboard;
 	private RelativeLayout mainLayout;
 	private GameView gameView;
-	private Map<String, String> gameTypes;
+	private Map<Integer, String> gameTypesById;
+	private MenuEntry[] gameTypesMenu = new MenuEntry[]{};
 	private int currentType = 0;
 	private boolean workerRunning = false;
 	private Process gameGenProcess = null;
@@ -292,7 +294,8 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 		prefs.registerOnSharedPreferenceChangeListener(this);
 		state = getSharedPreferences(STATE_PREFS_NAME, MODE_PRIVATE);
 		games = getResources().getStringArray(R.array.games);
-		gameTypes = new LinkedHashMap<>();
+		gameTypesById = new LinkedHashMap<>();
+		gameTypesMenu = new MenuEntry[]{};
 
 		applyFullscreen(false);  // must precede super.onCreate and setContentView
 		cachedFullscreen = startedFullscreen = prefs.getBoolean(FULLSCREEN_KEY, false);
@@ -628,7 +631,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 		hackForSubmenus = menu;
 		updateUndoRedoEnabled();
 		final MenuItem typeItem = menu.findItem(R.id.type_menu);
-		final boolean enableType = workerRunning || !gameTypes.isEmpty() || customVisible;
+		final boolean enableType = workerRunning || !gameTypesById.isEmpty() || customVisible;
 		typeItem.setEnabled(enableType);
 		typeItem.setVisible(enableType);
 		return true;
@@ -747,36 +750,64 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 		gameMenu.show();
 	}
 
+	private final MenuItem.OnMenuItemClickListener TYPE_CLICK_LISTENER = item -> {
+		final int itemId = item.getItemId();
+		if (itemId == R.id.custom) {
+			configEvent(CFG_SETTINGS);
+			return true;
+		} else {
+			final String presetParams = orientGameType(gameTypesById.get(itemId));
+			Log.d(TAG, "preset: " + itemId + ": " + presetParams);
+			startGame(GameLaunch.toGenerate(currentBackend, presetParams));
+			return true;
+		}
+	};
+
 	private void doTypeMenu() {
+		doTypeMenu(gameTypesMenu, true);
+	}
+
+	private void doTypeMenu(final MenuEntry[] menuEntries, final boolean includeCustom) {
 		final PopupMenu typeMenu = new PopupMenu(GamePlay.this, findViewById(R.id.type_menu));
 		typeMenu.getMenuInflater().inflate(R.menu.type_menu, typeMenu.getMenu());
-		int i = 0;
-		for(String title : gameTypes.values()) {
-			if( typeMenu.getMenu().findItem(i) == null ) {
-				typeMenu.getMenu().add(R.id.typeGroup, i, Menu.NONE, orientGameType(title));
-			}
-			i++;
-		}
-		final MenuItem customItem = typeMenu.getMenu().findItem(R.id.custom);
-		customItem.setVisible(customVisible);
-		typeMenu.getMenu().setGroupCheckable(R.id.typeGroup, true, true);
-		if( currentType < 0 ) customItem.setChecked(true);
-		else if( currentType < gameTypes.size() ) typeMenu.getMenu().findItem(currentType).setChecked(true);
-		typeMenu.setOnMenuItemClickListener(item -> {
-			final int itemId = item.getItemId();
-			if (itemId == R.id.custom) {
-				configEvent(CFG_SETTINGS);
-				return true;
-			} else if (itemId < gameTypes.size()) {
-				String presetParams = orientGameType((String) gameTypes.keySet().toArray()[itemId]);
-				Log.d(TAG, "preset: " + itemId + ": " + presetParams);
-				startGame(GameLaunch.toGenerate(currentBackend, presetParams));
-				return true;
+		for (final MenuEntry entry : menuEntries) {
+			if (entry.getParams() != null) {
+				final MenuItem added = typeMenu.getMenu().add(R.id.typeGroup, entry.getId(), Menu.NONE, entry.getTitle());
+				added.setOnMenuItemClickListener(TYPE_CLICK_LISTENER);
+				if (currentType == entry.getId()) {
+					added.setChecked(true);
+				}
 			} else {
-				return false;
+				final MenuItem added = typeMenu.getMenu().add(R.id.typeGroup, entry.getId(), Menu.NONE, entry.getTitle());
+				if (menuContainsCurrent(entry.getSubmenu())) {
+					added.setChecked(true);
+				}
+				added.setOnMenuItemClickListener(item -> {
+					doTypeMenu(entry.getSubmenu(), false);
+					return true;
+				});
 			}
-		});
+		}
+		typeMenu.getMenu().setGroupCheckable(R.id.typeGroup, true, true);
+		if (includeCustom) {
+			final MenuItem customItem = typeMenu.getMenu().findItem(R.id.custom);
+			customItem.setVisible(customVisible);
+			customItem.setOnMenuItemClickListener(TYPE_CLICK_LISTENER);
+			if( currentType < 0 ) customItem.setChecked(true);
+		}
 		typeMenu.show();
+	}
+
+	private boolean menuContainsCurrent(MenuEntry[] submenu) {
+		for (final MenuEntry entry : submenu) {
+			if (entry.getId() == currentType) {
+				return true;
+			}
+			if (entry.getSubmenu() != null && menuContainsCurrent(entry.getSubmenu())) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	private void doHelpMenu() {
@@ -1161,17 +1192,21 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 		return true;
 	}
 
-	private void refreshPresets(String currentParams) {
-		gameTypes.clear();
+	private void refreshPresets(final String currentParams) {
 		currentType = -1;
-		final String[] presets = getPresets();
-		for (int i = 0; i < presets.length/2; i++) {
-			final String encoded = presets[2 * i];
-			final String name = presets[(2 * i) + 1];
-			gameTypes.put(encoded, name);
-			if (currentParams.equals(orientGameType(encoded))) {
-				currentType = i;
-				// TODO if it's only equal modulo orientation; should we put a star by it or something?
+		gameTypesMenu = getPresets();
+		populateGameTypesById(gameTypesMenu, currentParams);
+	}
+
+	private void populateGameTypesById(final MenuEntry[] menuEntries, final String currentParams) {
+		for (final MenuEntry entry : menuEntries) {
+			if (entry.getParams() != null) {
+				gameTypesById.put(entry.getId(), entry.getParams());
+				if (currentParams.equals(orientGameType(entry.getParams()))) {
+					currentType = entry.getId();
+				}
+			} else {
+				populateGameTypesById(entry.getSubmenu(), currentParams);
 			}
 		}
 	}
@@ -1889,7 +1924,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 	native String getCurrentParams();
 	native void requestKeys(String backend, String params);
 	native void setCursorVisibility(boolean visible);
-	native String[] getPresets();
+	native MenuEntry[] getPresets();
 	native int getUIVisibility();
 	native void resetTimerBaseline();
 

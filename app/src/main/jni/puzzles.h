@@ -339,7 +339,10 @@ void midend_request_id_changes(midend *me, void (*notify)(void *), void *ctx);
 /* Printing functions supplied by the mid-end */
 char *midend_print_puzzle(midend *me, document *doc, int with_soln);
 int midend_tilesize(midend *me);
+#ifdef ANDROID
+const char * midend_android_preset_menu_get_encoded_params(midend *me, int id);
 void midend_android_cursor_visibility(midend *me, int visible);
+#endif
 
 /*
  * malloc.c

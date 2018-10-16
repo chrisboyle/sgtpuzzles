@@ -778,21 +778,36 @@ jfloatArray JNICALL Java_name_boyle_chris_sgtpuzzles_GameView_getColours(JNIEnv 
 	return jColours;
 }
 
+jobject getPresetInternal(JNIEnv *env, const struct preset_menu_entry entry);
+
+jobjectArray getPresetsInternal(JNIEnv *env, struct preset_menu *menu) {
+    jclass MenuEntry = (*env)->FindClass(env, "name/boyle/chris/sgtpuzzles/MenuEntry");
+    jobjectArray ret = (*env)->NewObjectArray(env, menu->n_entries, MenuEntry, NULL);
+    for (int i = 0; i < menu->n_entries; i++) {
+        jobject menuItem = getPresetInternal(env, menu->entries[i]);
+        (*env)->SetObjectArrayElement(env, ret, i, menuItem);
+    }
+    return ret;
+}
+
+jobject getPresetInternal(JNIEnv *env, const struct preset_menu_entry entry) {
+    jclass MenuEntry = (*env)->FindClass(env, "name/boyle/chris/sgtpuzzles/MenuEntry");
+    jstring title = (*env)->NewStringUTF(env, entry.title);
+    if (entry.submenu) {
+        jobject submenu = getPresetsInternal(env, entry.submenu);
+        jmethodID newEntryWithSubmenu = (*env)->GetMethodID(env, MenuEntry,  "<init>", "(ILjava/lang/String;[Lname/boyle/chris/sgtpuzzles/MenuEntry;)V");
+        return (*env)->NewObject(env, MenuEntry, newEntryWithSubmenu, entry.id, title, submenu);
+    } else {
+        jstring params = (*env)->NewStringUTF(env, midend_android_preset_menu_get_encoded_params(fe->me, entry.id));
+        jmethodID newEntryWithParams = (*env)->GetMethodID(env, MenuEntry,  "<init>", "(ILjava/lang/String;Ljava/lang/String;)V");
+        return (*env)->NewObject(env, MenuEntry, newEntryWithParams, entry.id, title, params);
+    }
+}
+
 jobjectArray JNICALL Java_name_boyle_chris_sgtpuzzles_GamePlay_getPresets(JNIEnv *env, jobject _obj)
 {
-	int n = midend_num_presets(fe->me);
-	int i;
-	jclass String = (*env)->FindClass(env, "java/lang/String");
-	jobjectArray ret = (*env)->NewObjectArray(env, n * 2, String, NULL);
-	for (i = 0; i < n; i++) {
-		char *name;
-		game_params *params;
-		char *encoded;
-		midend_fetch_preset(fe->me, i, &name, &params, &encoded);
-		(*env)->SetObjectArrayElement(env, ret, 2 * i, (*env)->NewStringUTF(env, encoded));
-		(*env)->SetObjectArrayElement(env, ret, (2 * i) + 1, (*env)->NewStringUTF(env, name));
-	}
-	return ret;
+	struct preset_menu* menu = midend_get_presets(fe->me, NULL);
+	return getPresetsInternal(env, menu);
 }
 
 jint JNICALL Java_name_boyle_chris_sgtpuzzles_GamePlay_getUIVisibility(JNIEnv *env, jobject _obj) {
