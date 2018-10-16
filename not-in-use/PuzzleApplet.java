@@ -61,19 +61,19 @@ public class PuzzleApplet extends JApplet implements Runtime.CallJavaCB {
             JMenuBar menubar = new JMenuBar();
             JMenu jm;
             menubar.add(jm = new JMenu("Game"));
-            addMenuItemWithKey(jm, "New", 'n');
+            addMenuItemCallback(jm, "New", "jcallback_newgame_event");
             addMenuItemCallback(jm, "Restart", "jcallback_restart_event");
             addMenuItemCallback(jm, "Specific...", "jcallback_config_event", CFG_DESC);
             addMenuItemCallback(jm, "Random Seed...", "jcallback_config_event", CFG_SEED);
             jm.addSeparator();
-            addMenuItemWithKey(jm, "Undo", 'u');
-            addMenuItemWithKey(jm, "Redo", 'r');
+            addMenuItemCallback(jm, "Undo", "jcallback_undo_event");
+            addMenuItemCallback(jm, "Redo", "jcallback_redo_event");
             jm.addSeparator();
             solveCommand = addMenuItemCallback(jm, "Solve", "jcallback_solve_event");
             solveCommand.setEnabled(false);
             if (mainWindow != null) {
                 jm.addSeparator();
-                addMenuItemWithKey(jm, "Exit", 'q');
+                addMenuItemCallback(jm, "Exit", "jcallback_quit_event");
             }
             menubar.add(typeMenu = new JMenu("Type"));
             typeMenu.setVisible(false);
@@ -126,7 +126,12 @@ public class PuzzleApplet extends JApplet implements Runtime.CallJavaCB {
                     }
                 }
                 public void keyTyped(KeyEvent e) {
-                    runtimeCall("jcallback_key_event", new int[] {0, 0, e.getKeyChar()});
+                    int key = e.getKeyChar();
+                    if (key == 26 && e.isShiftDown() && e.isControlDown()) {
+                        runtimeCall("jcallback_redo_event", new int[0]);
+                        return;
+                    }
+                    runtimeCall("jcallback_key_event", new int[] {0, 0, key});
                 }
             });
             pp.addMouseListener(new MouseAdapter() {
@@ -215,10 +220,6 @@ public class PuzzleApplet extends JApplet implements Runtime.CallJavaCB {
     protected void handleResized() {
         pp.createBackBuffer(pp.getWidth(), pp.getHeight(), colors[0]);
         runtimeCall("jcallback_resize", new int[] {pp.getWidth(), pp.getHeight()});
-    }
-
-    private void addMenuItemWithKey(JMenu jm, String name, int key) {
-        addMenuItemCallback(jm, name, "jcallback_menu_key_event", key);
     }
 
     private JMenuItem addMenuItemCallback(JMenu jm, String name, final String callback, final int arg) {

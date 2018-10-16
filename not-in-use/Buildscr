@@ -158,6 +158,16 @@ delegate emscripten
   return puzzles/js/*.js
 enddelegate
 
+# Build a set of wrapping HTML pages for easy testing of the
+# Javascript puzzles. These aren't quite the same as the versions that
+# will go on my live website, because those ones will substitute in a
+# different footer, and not have to link to the .js files with the
+# ../js/ prefix. But these ones should be good enough to just open
+# using a file:// URL in a browser after running a build, and make
+# sure the main functionality works.
+in puzzles do mkdir jstest
+in puzzles/jstest do ../html/jspage.pl --jspath=../js/ /dev/null ../html/*.html
+
 # Set up .htaccess containing a redirect for the archive filename.
 in puzzles do echo "AddType application/octet-stream .chm" > .htaccess
 in puzzles do echo "AddType application/octet-stream .hlp" >> .htaccess
@@ -179,6 +189,7 @@ deliver puzzles/puzzles.zip $@
 deliver puzzles/puzzles.msi puzzles-$(Version)-installer.msi
 deliver puzzles/*.jar java/$@
 deliver puzzles/js/*.js js/$@
+deliver puzzles/jstest/*.html jstest/$@
 deliver puzzles/html/*.html html/$@
 deliver puzzles/html/*.pl html/$@
 deliver puzzles/wwwspans.html $@

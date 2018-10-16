@@ -140,7 +140,7 @@ struct font {
  */
 struct frontend {
     GtkWidget *window;
-    GtkAccelGroup *accelgroup;
+    GtkAccelGroup *dummy_accelgroup;
     GtkWidget *area;
     GtkWidget *statusbar;
     GtkWidget *menubar;
@@ -188,6 +188,38 @@ struct frontend {
 #if !GTK_CHECK_VERSION(3,0,0)
     int drawing_area_shrink_pending;
     int menubar_is_local;
+#endif
+#if GTK_CHECK_VERSION(3,0,0)
+    /*
+     * This is used to get round an annoying lack of GTK notification
+     * message. If we request a window resize with
+     * gtk_window_resize(), we normally get back a "configure" event
+     * on the window and on its drawing area, and we respond to the
+     * latter by doing an appropriate resize of the puzzle. If the
+     * window is maximised, so that gtk_window_resize() _doesn't_
+     * change its size, then that configure event never shows up. But
+     * if we requested the resize in response to a change of puzzle
+     * parameters (say, the user selected a differently-sized preset
+     * from the menu), then we would still like to be _notified_ that
+     * the window size was staying the same, so that we can respond by
+     * choosing an appropriate tile size for the new puzzle preset in
+     * the existing window size.
+     *
+     * Fortunately, in GTK 3, we may not get a "configure" event on
+     * the drawing area in this situation, but we still get a
+     * "size_allocate" event on the whole window (which, in other
+     * situations when we _do_ get a "configure" on the area, turns up
+     * second). So we treat _that_ event as indicating that if the
+     * "configure" event hasn't already shown up then it's not going
+     * to arrive.
+     *
+     * This flag is where we bookkeep this system. On
+     * gtk_window_resize we set this flag to true; the area's
+     * configure handler sets it back to false; then if that doesn't
+     * happen, the window's size_allocate handler does a fallback
+     * puzzle resize when it sees this flag still set to true.
+     */
+    int awaiting_resize_ack;
 #endif
 };
 
@@ -1161,16 +1193,6 @@ static gint key_event(GtkWidget *widget, GdkEventKey *event, gpointer data)
     if (!backing_store_ok(fe))
         return TRUE;
 
-#if !GTK_CHECK_VERSION(2,0,0)
-    /* Gtk 1.2 passes a key event to this function even if it's also
-     * defined as an accelerator.
-     * Gtk 2 doesn't do this, and this function appears not to exist there. */
-    if (fe->accelgroup &&
-        gtk_accel_group_get_entry(fe->accelgroup,
-        event->keyval, event->state))
-        return TRUE;
-#endif
-
     /* Handle mnemonics. */
     if (gtk_window_activate_key(GTK_WINDOW(fe->window), event))
         return TRUE;
@@ -1217,6 +1239,8 @@ static gint key_event(GtkWidget *widget, GdkEventKey *event, gpointer data)
 	     event->keyval == GDK_KEY_Delete ||
 	     event->keyval == GDK_KEY_KP_Delete)
         keyval = '\177';
+    else if ((event->keyval == 'z' || event->keyval == 'Z') && shift && ctrl)
+        keyval = UI_REDO;
     else if (event->string[0] && !event->string[1])
         keyval = (unsigned char)event->string[0];
     else
@@ -1347,15 +1371,10 @@ static gint map_window(GtkWidget *widget, GdkEvent *event,
     return TRUE;
 }
 
-static gint configure_area(GtkWidget *widget,
-                           GdkEventConfigure *event, gpointer data)
+static void resize_puzzle_to_area(frontend *fe, int x, int y)
 {
-    frontend *fe = (frontend *)data;
-    int x, y;
     int oldw = fe->w, oldpw = fe->pw, oldh = fe->h, oldph = fe->ph;
 
-    x = event->width;
-    y = event->height;
     fe->w = x;
     fe->h = y;
     midend_size(fe->me, &x, &y, TRUE);
@@ -1372,9 +1391,30 @@ static gint configure_area(GtkWidget *widget,
     }
 
     midend_force_redraw(fe->me);
+}
 
+static gint configure_area(GtkWidget *widget,
+                           GdkEventConfigure *event, gpointer data)
+{
+    frontend *fe = (frontend *)data;
+    resize_puzzle_to_area(fe, event->width, event->height);
+    fe->awaiting_resize_ack = FALSE;
     return TRUE;
 }
+
+#if GTK_CHECK_VERSION(3,0,0)
+static void window_size_alloc(GtkWidget *widget, GtkAllocation *allocation,
+                              gpointer data)
+{
+    frontend *fe = (frontend *)data;
+    if (fe->awaiting_resize_ack) {
+        GtkAllocation a;
+        gtk_widget_get_allocation(fe->area, &a);
+        resize_puzzle_to_area(fe, a.width, a.height);
+        fe->awaiting_resize_ack = FALSE;
+    }
+}
+#endif
 
 static gint timer_func(gpointer data)
 {
@@ -1890,8 +1930,7 @@ static void changed_preset(frontend *fe)
             struct preset_menu_entry *entry =
                 (struct preset_menu_entry *)g_object_get_data(
                     G_OBJECT(gs->data), "user-data");
-
-            if (entry && entry->id != n)
+            if (!entry || entry->id != n)
                 gtk_check_menu_item_set_active(
                     GTK_CHECK_MENU_ITEM(gs->data), FALSE);
             else
@@ -1899,7 +1938,7 @@ static void changed_preset(frontend *fe)
         }
         if (found)
             gtk_check_menu_item_set_active(
-                GTK_CHECK_MENU_ITEM(found->data), FALSE);
+                GTK_CHECK_MENU_ITEM(found->data), TRUE);
     }
     fe->preset_threaded = FALSE;
 
@@ -2005,6 +2044,7 @@ static void resize_fe(frontend *fe)
 
 #if GTK_CHECK_VERSION(3,0,0)
     gtk_window_resize(GTK_WINDOW(fe->window), x, y + window_extra_height(fe));
+    fe->awaiting_resize_ack = TRUE;
 #else
     fe->drawing_area_shrink_pending = FALSE;
     gtk_drawing_area_size(GTK_DRAWING_AREA(fe->area), x, y);
@@ -2349,32 +2389,34 @@ static void menu_about_event(GtkMenuItem *menuitem, gpointer data)
 #endif
 }
 
-static GtkWidget *add_menu_item_with_key(frontend *fe, GtkContainer *cont,
-                                         char *text, int key)
+static GtkWidget *add_menu_ui_item(
+    frontend *fe, GtkContainer *cont, char *text, int action,
+    int accel_key, int accel_keyqual)
 {
     GtkWidget *menuitem = gtk_menu_item_new_with_label(text);
-    int keyqual;
     gtk_container_add(cont, menuitem);
-    g_object_set_data(G_OBJECT(menuitem), "user-data", GINT_TO_POINTER(key));
+    g_object_set_data(G_OBJECT(menuitem), "user-data",
+                      GINT_TO_POINTER(action));
     g_signal_connect(G_OBJECT(menuitem), "activate",
                      G_CALLBACK(menu_key_event), fe);
-    switch (key & ~0x1F) {
-      case 0x00:
-	key += 0x60;
-	keyqual = GDK_CONTROL_MASK;
-	break;
-      case 0x40:
-	key += 0x20;
-	keyqual = GDK_SHIFT_MASK;
-	break;
-      default:
-	keyqual = 0;
-	break;
+
+    if (accel_key) {
+        /*
+         * Display a keyboard accelerator alongside this menu item.
+         * Actually this won't be processed via the usual GTK
+         * accelerator system, because we add it to a dummy
+         * accelerator group which is never actually activated on the
+         * main window; this permits back ends to override special
+         * keys like 'n' and 'r' and 'u' in some UI states. So
+         * whatever keystroke we display here will still go to
+         * key_event and be handled in the normal way.
+         */
+        gtk_widget_add_accelerator(menuitem,
+                                   "activate", fe->dummy_accelgroup,
+                                   accel_key, accel_keyqual,
+                                   GTK_ACCEL_VISIBLE | GTK_ACCEL_LOCKED);
     }
-    gtk_widget_add_accelerator(menuitem,
-			       "activate", fe->accelgroup,
-			       key, keyqual,
-			       GTK_ACCEL_VISIBLE);
+
     gtk_widget_show(menuitem);
     return menuitem;
 }
@@ -2529,6 +2571,10 @@ static frontend *new_window(char *arg, int argtype, char **error)
     }
 #endif
 
+#if GTK_CHECK_VERSION(3,0,0)
+    fe->awaiting_resize_ack = FALSE;
+#endif
+
     fe->window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     gtk_window_set_title(GTK_WINDOW(fe->window), thegame.name);
 
@@ -2536,8 +2582,11 @@ static frontend *new_window(char *arg, int argtype, char **error)
     gtk_container_add(GTK_CONTAINER(fe->window), GTK_WIDGET(vbox));
     gtk_widget_show(GTK_WIDGET(vbox));
 
-    fe->accelgroup = gtk_accel_group_new();
-    gtk_window_add_accel_group(GTK_WINDOW(fe->window), fe->accelgroup);
+    fe->dummy_accelgroup = gtk_accel_group_new();
+    /*
+     * Intentionally _not_ added to the window via
+     * gtk_window_add_accel_group; see menu_key_event
+     */
 
     hbox = GTK_BOX(gtk_hbox_new(FALSE, 0));
     gtk_box_pack_start(vbox, GTK_WIDGET(hbox), FALSE, FALSE, 0);
@@ -2554,7 +2603,7 @@ static frontend *new_window(char *arg, int argtype, char **error)
     menu = gtk_menu_new();
     gtk_menu_item_set_submenu(GTK_MENU_ITEM(menuitem), menu);
 
-    add_menu_item_with_key(fe, GTK_CONTAINER(menu), "New", 'n');
+    add_menu_ui_item(fe, GTK_CONTAINER(menu), "New", UI_NEWGAME, 'n', 0);
 
     menuitem = gtk_menu_item_new_with_label("Restart");
     gtk_container_add(GTK_CONTAINER(menu), menuitem);
@@ -2624,8 +2673,8 @@ static frontend *new_window(char *arg, int argtype, char **error)
     gtk_widget_show(menuitem);
 #ifndef STYLUS_BASED
     add_menu_separator(GTK_CONTAINER(menu));
-    add_menu_item_with_key(fe, GTK_CONTAINER(menu), "Undo", 'u');
-    add_menu_item_with_key(fe, GTK_CONTAINER(menu), "Redo", 'r');
+    add_menu_ui_item(fe, GTK_CONTAINER(menu), "Undo", UI_UNDO, 'u', 0);
+    add_menu_ui_item(fe, GTK_CONTAINER(menu), "Redo", UI_REDO, 'r', 0);
 #endif
     if (thegame.can_format_as_text_ever) {
 	add_menu_separator(GTK_CONTAINER(menu));
@@ -2647,7 +2696,7 @@ static frontend *new_window(char *arg, int argtype, char **error)
 	gtk_widget_show(menuitem);
     }
     add_menu_separator(GTK_CONTAINER(menu));
-    add_menu_item_with_key(fe, GTK_CONTAINER(menu), "Exit", 'q');
+    add_menu_ui_item(fe, GTK_CONTAINER(menu), "Exit", UI_QUIT, 'q', 0);
 
     menuitem = gtk_menu_item_new_with_mnemonic("_Help");
     gtk_container_add(GTK_CONTAINER(fe->menubar), menuitem);
@@ -2665,7 +2714,7 @@ static frontend *new_window(char *arg, int argtype, char **error)
 #ifdef STYLUS_BASED
     menuitem=gtk_button_new_with_mnemonic("_Redo");
     g_object_set_data(G_OBJECT(menuitem), "user-data",
-                      GINT_TO_POINTER((int)('r')));
+                      GINT_TO_POINTER(UI_REDO));
     g_signal_connect(G_OBJECT(menuitem), "clicked",
                      G_CALLBACK(menu_key_event), fe);
     gtk_box_pack_end(hbox, menuitem, FALSE, FALSE, 0);
@@ -2673,7 +2722,7 @@ static frontend *new_window(char *arg, int argtype, char **error)
 
     menuitem=gtk_button_new_with_mnemonic("_Undo");
     g_object_set_data(G_OBJECT(menuitem), "user-data",
-                      GINT_TO_POINTER((int)('u')));
+                      GINT_TO_POINTER(UI_UNDO));
     g_signal_connect(G_OBJECT(menuitem), "clicked",
                      G_CALLBACK(menu_key_event), fe);
     gtk_box_pack_end(hbox, menuitem, FALSE, FALSE, 0);
@@ -2790,6 +2839,10 @@ static frontend *new_window(char *arg, int argtype, char **error)
                      G_CALLBACK(configure_area), fe);
     g_signal_connect(G_OBJECT(fe->window), "configure_event",
                      G_CALLBACK(configure_window), fe);
+#if GTK_CHECK_VERSION(3,0,0)
+    g_signal_connect(G_OBJECT(fe->window), "size_allocate",
+                     G_CALLBACK(window_size_alloc), fe);
+#endif
 
     gtk_widget_add_events(GTK_WIDGET(fe->area),
                           GDK_BUTTON_PRESS_MASK |

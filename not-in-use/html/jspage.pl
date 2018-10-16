@@ -3,6 +3,17 @@
 use strict;
 use warnings;
 
+my $jspath = "";
+while ($ARGV[0] =~ /^-/) {
+    my $opt = shift @ARGV;
+    last if $opt eq "--";
+    if ($opt =~ /^--jspath=(.+)$/) {
+        $jspath = $1;
+    } else {
+        die "jspage.pl: unrecognised option '$opt'\n";
+    }
+}
+
 open my $footerfile, "<", shift @ARGV or die "footer: open: $!\n";
 my $footer = "";
 $footer .= $_ while <$footerfile>;
@@ -62,7 +73,7 @@ EOF
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=ASCII" />
 <title>${puzzlename}, ${unfinishedtitlefragment}from Simon Tatham's Portable Puzzle Collection</title>
-<script type="text/javascript" src="${filename}.js"></script>
+<script type="text/javascript" src="${jspath}${filename}.js"></script>
 <style class="text/css">
 /* Margins and centring on the top-level div for the game menu */
 #gamemenu { margin-top: 0; margin-bottom: 0.5em; text-align: center }

@@ -97,6 +97,30 @@ struct midend {
     } \
 } while (0)
 
+/*
+ * Structure storing all the decoded data from reading a serialised
+ * game. We keep it in one of these while we check its sanity, and
+ * only once we're completely satisfied do we install it all in the
+ * midend structure proper.
+ */
+struct deserialise_data {
+    char *seed, *parstr, *desc, *privdesc;
+    char *auxinfo, *uistr, *cparstr;
+    float elapsed;
+    game_params *params, *cparams;
+    game_ui *ui;
+    struct midend_state_entry *states;
+    int nstates, statepos;
+};
+
+/*
+ * Forward reference.
+ */
+static char *midend_deserialise_internal(
+    midend *me, int (*read)(void *ctx, void *buf, int len), void *rctx,
+    char *(*check)(void *ctx, midend *, const struct deserialise_data *),
+    void *cctx);
+
 void midend_reset_tilesize(midend *me)
 {
     me->preferred_tilesize = me->ourgame->preferred_tilesize;
@@ -602,37 +626,38 @@ static int midend_really_process_key(midend *me, int x, int y, int button)
     game_state *s;
     char *movestr = NULL;
 
-    if (button == 'U' ||
-	       button == '\x1A' || button == '\x1F') {
-	button = 'u';
-    } else if (button == 'R' ||
-	       button == '\x12' || button == '\x19') {
-	button = 'r';
-    } else {
-	movestr =
-	    me->ourgame->interpret_move(me->states[me->statepos-1].state,
-					me->ui, me->drawstate, x, y, button);
+    if (!IS_UI_FAKE_KEY(button)) {
+        movestr = me->ourgame->interpret_move(
+            me->states[me->statepos-1].state,
+            me->ui, me->drawstate, x, y, button);
     }
 
     if (!movestr) {
-	if (button == 'n' || button == 'N' || button == '\x0E') {
+	if (button == 'n' || button == 'N' || button == '\x0E' ||
+            button == UI_NEWGAME) {
 	    midend_new_game(me);
 	    midend_redraw(me);
 	    goto done;		       /* never animate */
-	} else if (button == 'u') {
+	} else if (button == 'u' || button == 'U' ||
+		   button == '\x1A' || button == '\x1F' ||
+                   button == UI_UNDO) {
 	    midend_stop_anim(me);
 	    type = me->states[me->statepos-1].movetype;
 	    gottype = TRUE;
 	    if (!midend_undo(me))
 		goto done;
-	} else if (button == 'r') {
+	} else if (button == 'r' || button == 'R' ||
+		   button == '\x12' || button == '\x19' ||
+                   button == UI_REDO) {
 	    midend_stop_anim(me);
 	    if (!midend_redo(me))
 		goto done;
-	} else if (button == '\x13' && me->ourgame->can_solve) {
+	} else if ((button == '\x13' || button == UI_SOLVE) &&
+                   me->ourgame->can_solve) {
 	    if (midend_solve(me))
 		goto done;
-	} else if (button == 'q' || button == 'Q' || button == '\x11') {
+	} else if (button == 'q' || button == 'Q' || button == '\x11' ||
+                   button == UI_QUIT) {
 	    ret = 0;
 	    goto done;
 	} else
@@ -1795,14 +1820,22 @@ void midend_serialise(midend *me,
 }
 
 /*
- * This function returns NULL on success, or an error message.
+ * Internal version of midend_deserialise, taking an extra check
+ * function to be called just before beginning to install things in
+ * the midend.
+ *
+ * Like midend_deserialise proper, this function returns NULL on
+ * success, or an error message.
+ *
  * Accepts me == null, to identify the game only.
  */
-char *midend_deserialise(midend *me,
-                         int (*read)(void *ctx, void *buf, int len),
-                         void *rctx)
+static char *midend_deserialise_internal(
+    midend *me, int (*read)(void *ctx, void *buf, int len), void *rctx,
+    char *(*check)(void *ctx, midend *, const struct deserialise_data *data),
+    void *cctx)
 {
-    int nstates = 0, statepos = -1, gotstates = 0;
+    struct deserialise_data data;
+    int gotstates = 0;
     int started = FALSE;
     int i;
 
@@ -1810,25 +1843,22 @@ char *midend_deserialise(midend *me,
     /* Initially all errors give the same report */
     char *ret = _("Data does not appear to be a saved game file");
 
-    /*
-     * We construct all the new state in local variables while we
-     * check its sanity. Only once we have finished reading the
-     * serialised data and detected no errors at all do we start
-     * modifying stuff in the midend passed in.
-     */
-    char *seed = NULL, *parstr = NULL, *desc = NULL, *privdesc = NULL;
-    char *auxinfo = NULL, *uistr = NULL, *cparstr = NULL;
-    float elapsed = 0.0F;
-    game_params *params = NULL, *cparams = NULL;
-    game_ui *ui = NULL;
-    struct midend_state_entry *states = NULL;
+    data.seed = data.parstr = data.desc = data.privdesc = NULL;
+    data.auxinfo = data.uistr = data.cparstr = NULL;
+    data.elapsed = 0.0F;
+    data.params = data.cparams = NULL;
+    data.ui = NULL;
+    data.states = NULL;
+    data.nstates = 0;
+    data.statepos = -1;
 
     /*
      * Loop round and round reading one key/value pair at a time
      * from the serialised stream, until we have enough game states
      * to finish.
      */
-    while (nstates <= 0 || statepos < 0 || gotstates < nstates-1) {
+    while (data.nstates <= 0 || data.statepos < 0 ||
+           gotstates < data.nstates-1) {
         char key[9], c;
         int len;
 
@@ -1915,24 +1945,24 @@ char *midend_deserialise(midend *me,
                 }
 #endif
             } else if (!strcmp(key, "PARAMS")) {
-                sfree(parstr);
-                parstr = val;
+                sfree(data.parstr);
+                data.parstr = val;
                 val = NULL;
             } else if (!strcmp(key, "CPARAMS")) {
-                sfree(cparstr);
-                cparstr = val;
+                sfree(data.cparstr);
+                data.cparstr = val;
                 val = NULL;
             } else if (!strcmp(key, "SEED")) {
-                sfree(seed);
-                seed = val;
+                sfree(data.seed);
+                data.seed = val;
                 val = NULL;
             } else if (!strcmp(key, "DESC")) {
-                sfree(desc);
-                desc = val;
+                sfree(data.desc);
+                data.desc = val;
                 val = NULL;
             } else if (!strcmp(key, "PRIVDESC")) {
-                sfree(privdesc);
-                privdesc = val;
+                sfree(data.privdesc);
+                data.privdesc = val;
                 val = NULL;
             } else if (!strcmp(key, "AUXINFO")) {
                 unsigned char *tmp;
@@ -1940,49 +1970,49 @@ char *midend_deserialise(midend *me,
                 tmp = hex2bin(val, len);
                 obfuscate_bitmap(tmp, len*8, TRUE);
 
-                sfree(auxinfo);
-                auxinfo = snewn(len + 1, char);
-                memcpy(auxinfo, tmp, len);
-                auxinfo[len] = '\0';
+                sfree(data.auxinfo);
+                data.auxinfo = snewn(len + 1, char);
+                memcpy(data.auxinfo, tmp, len);
+                data.auxinfo[len] = '\0';
                 sfree(tmp);
             } else if (!strcmp(key, "UI")) {
-                sfree(uistr);
-                uistr = val;
+                sfree(data.uistr);
+                data.uistr = val;
                 val = NULL;
             } else if (!strcmp(key, "TIME")) {
-                elapsed = (float)strtod(val, NULL);
+                data.elapsed = (float)atof(val);
             } else if (!strcmp(key, "NSTATES")) {
-                nstates = atoi(val);
-                if (nstates <= 0) {
+                data.nstates = atoi(val);
+                if (data.nstates <= 0) {
                     ret = _("Number of states in save file was negative");
                     goto cleanup;
                 }
-                if (states) {
+                if (data.states) {
                     ret = _("Two state counts provided in save file");
                     goto cleanup;
                 }
-                states = snewn(nstates, struct midend_state_entry);
-                for (i = 0; i < nstates; i++) {
-                    states[i].state = NULL;
-                    states[i].movestr = NULL;
-                    states[i].movetype = NEWGAME;
+                data.states = snewn(data.nstates, struct midend_state_entry);
+                for (i = 0; i < data.nstates; i++) {
+                    data.states[i].state = NULL;
+                    data.states[i].movestr = NULL;
+                    data.states[i].movetype = NEWGAME;
                 }
             } else if (!strcmp(key, "STATEPOS")) {
-                statepos = atoi(val);
+                data.statepos = atoi(val);
             } else if (!strcmp(key, "MOVE")) {
                 gotstates++;
-                states[gotstates].movetype = MOVE;
-                states[gotstates].movestr = val;
+                data.states[gotstates].movetype = MOVE;
+                data.states[gotstates].movestr = val;
                 val = NULL;
             } else if (!strcmp(key, "SOLVE")) {
                 gotstates++;
-                states[gotstates].movetype = SOLVE;
-                states[gotstates].movestr = val;
+                data.states[gotstates].movetype = SOLVE;
+                data.states[gotstates].movestr = val;
                 val = NULL;
             } else if (!strcmp(key, "RESTART")) {
                 gotstates++;
-                states[gotstates].movetype = RESTART;
-                states[gotstates].movestr = val;
+                data.states[gotstates].movetype = RESTART;
+                data.states[gotstates].movestr = val;
                 val = NULL;
             }
         }
@@ -1991,68 +2021,77 @@ char *midend_deserialise(midend *me,
         val = NULL;
     }
 
-    params = me->ourgame->default_params();
-    me->ourgame->decode_params(params, parstr);
-    if (me->ourgame->validate_params(params, TRUE)) {
+    data.params = me->ourgame->default_params();
+    me->ourgame->decode_params(data.params, data.parstr);
+    if (me->ourgame->validate_params(data.params, TRUE)) {
         ret = _("Long-term parameters in save file are invalid");
         goto cleanup;
     }
-    cparams = me->ourgame->default_params();
-    me->ourgame->decode_params(cparams, cparstr);
-    if (me->ourgame->validate_params(cparams, FALSE)) {
+    data.cparams = me->ourgame->default_params();
+    me->ourgame->decode_params(data.cparams, data.cparstr);
+    if (me->ourgame->validate_params(data.cparams, FALSE)) {
         ret = _("Short-term parameters in save file are invalid");
         goto cleanup;
     }
-    if (seed && me->ourgame->validate_params(cparams, TRUE)) {
+    if (data.seed && me->ourgame->validate_params(data.cparams, TRUE)) {
         /*
          * The seed's no use with this version, but we can perfectly
          * well use the rest of the data.
          */
-        sfree(seed);
-        seed = NULL;
+        sfree(data.seed);
+        data.seed = NULL;
     }
-    if (!desc) {
+    if (!data.desc) {
         ret = _("Game description in save file is missing");
         goto cleanup;
-    } else if (me->ourgame->validate_desc(params, desc)) {
+    } else if (me->ourgame->validate_desc(data.cparams, data.desc)) {
         ret = _("Game description in save file is invalid");
         goto cleanup;
     }
-    if (privdesc && me->ourgame->validate_desc(params, privdesc)) {
+    if (data.privdesc &&
+        me->ourgame->validate_desc(data.cparams, data.privdesc)) {
         ret = _("Game private description in save file is invalid");
         goto cleanup;
     }
-    if (statepos < 0 || statepos >= nstates) {
+    if (data.statepos < 0 || data.statepos >= data.nstates) {
         ret = _("Game position in save file is out of range");
     }
 
-    states[0].state = me->ourgame->new_game(me, params,
-                                            privdesc ? privdesc : desc);
-    for (i = 1; i < nstates; i++) {
-        assert(states[i].movetype != NEWGAME);
-        switch (states[i].movetype) {
+    data.states[0].state = me->ourgame->new_game(
+        me, data.cparams, data.privdesc ? data.privdesc : data.desc);
+    for (i = 1; i < data.nstates; i++) {
+        assert(data.states[i].movetype != NEWGAME);
+        switch (data.states[i].movetype) {
           case MOVE:
           case SOLVE:
-            states[i].state = me->ourgame->execute_move(states[i-1].state,
-                                                        states[i].movestr);
-            if (states[i].state == NULL) {
+            data.states[i].state = me->ourgame->execute_move(
+                data.states[i-1].state, data.states[i].movestr);
+            if (data.states[i].state == NULL) {
                 ret = _("Save file contained an invalid move");
                 goto cleanup;
             }
             break;
           case RESTART:
-            if (me->ourgame->validate_desc(params, states[i].movestr)) {
+            if (me->ourgame->validate_desc(
+                    data.cparams, data.states[i].movestr)) {
                 ret = _("Save file contained an invalid restart move");
                 goto cleanup;
             }
-            states[i].state = me->ourgame->new_game(me, params,
-                                                    states[i].movestr);
+            data.states[i].state = me->ourgame->new_game(
+                me, data.cparams, data.states[i].movestr);
             break;
         }
     }
 
-    ui = me->ourgame->new_ui(states[0].state);
-    me->ourgame->decode_ui(ui, uistr);
+    data.ui = me->ourgame->new_ui(data.states[0].state);
+    me->ourgame->decode_ui(data.ui, data.uistr);
+
+    /*
+     * Run the externally provided check function, and abort if it
+     * returns an error message.
+     */
+    if (check && (ret = check(cctx, me, &data)) != NULL)
+        goto cleanup;            /* error message is already in ret */
 
     /*
      * Now we've run out of possible error conditions, so we're
@@ -2065,45 +2104,45 @@ char *midend_deserialise(midend *me,
         char *tmp;
 
         tmp = me->desc;
-        me->desc = desc;
-        desc = tmp;
+        me->desc = data.desc;
+        data.desc = tmp;
 
         tmp = me->privdesc;
-        me->privdesc = privdesc;
-        privdesc = tmp;
+        me->privdesc = data.privdesc;
+        data.privdesc = tmp;
 
         tmp = me->seedstr;
-        me->seedstr = seed;
-        seed = tmp;
+        me->seedstr = data.seed;
+        data.seed = tmp;
 
         tmp = me->aux_info;
-        me->aux_info = auxinfo;
-        auxinfo = tmp;
+        me->aux_info = data.auxinfo;
+        data.auxinfo = tmp;
     }
 
     me->genmode = GOT_NOTHING;
 
-    me->statesize = nstates;
-    nstates = me->nstates;
+    me->statesize = data.nstates;
+    data.nstates = me->nstates;
     me->nstates = me->statesize;
     {
         struct midend_state_entry *tmp;
         tmp = me->states;
-        me->states = states;
-        states = tmp;
+        me->states = data.states;
+        data.states = tmp;
     }
-    me->statepos = statepos;
+    me->statepos = data.statepos;
 
     {
         game_params *tmp;
 
         tmp = me->params;
-        me->params = params;
-        params = tmp;
+        me->params = data.params;
+        data.params = tmp;
 
         tmp = me->curparams;
-        me->curparams = cparams;
-        cparams = tmp;
+        me->curparams = data.cparams;
+        data.cparams = tmp;
     }
 
     me->oldstate = NULL;
@@ -2114,11 +2153,11 @@ char *midend_deserialise(midend *me,
         game_ui *tmp;
 
         tmp = me->ui;
-        me->ui = ui;
-        ui = tmp;
+        me->ui = data.ui;
+        data.ui = tmp;
     }
 
-    me->elapsed = elapsed;
+    me->elapsed = data.elapsed;
     me->pressed_mouse_button = 0;
 
     midend_set_timer(me);
@@ -2136,31 +2175,37 @@ char *midend_deserialise(midend *me,
 
     cleanup:
     sfree(val);
-    sfree(seed);
-    sfree(parstr);
-    sfree(cparstr);
-    sfree(desc);
-    sfree(privdesc);
-    sfree(auxinfo);
-    sfree(uistr);
-    if (params)
-        me->ourgame->free_params(params);
-    if (cparams)
-        me->ourgame->free_params(cparams);
-    if (ui)
-        me->ourgame->free_ui(ui);
-    if (states) {
+    sfree(data.seed);
+    sfree(data.parstr);
+    sfree(data.cparstr);
+    sfree(data.desc);
+    sfree(data.privdesc);
+    sfree(data.auxinfo);
+    sfree(data.uistr);
+    if (data.params)
+        me->ourgame->free_params(data.params);
+    if (data.cparams)
+        me->ourgame->free_params(data.cparams);
+    if (data.ui)
+        me->ourgame->free_ui(data.ui);
+    if (data.states) {
         int i;
 
-        for (i = 0; i < nstates; i++) {
-            if (states[i].state)
-                me->ourgame->free_game(states[i].state);
-            sfree(states[i].movestr);
+        for (i = 0; i < data.nstates; i++) {
+            if (data.states[i].state)
+                me->ourgame->free_game(data.states[i].state);
+            sfree(data.states[i].movestr);
         }
-        sfree(states);
+        sfree(data.states);
     }
 
     return ret;
+}
+
+char *midend_deserialise(
+    midend *me, int (*read)(void *ctx, void *buf, int len), void *rctx)
+{
+    return midend_deserialise_internal(me, read, rctx, NULL, NULL);
 }
 
 /*

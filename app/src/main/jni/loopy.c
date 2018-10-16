@@ -301,7 +301,7 @@ static void check_caches(const solver_state* sstate);
     {amin, omin, \
      "Width and height for this grid type must both be at least " #amin, \
      "At least one of width and height for this grid type must be at least " #omin,},
-enum { GRIDLIST(GRID_LOOPYTYPE) };
+enum { GRIDLIST(GRID_LOOPYTYPE) LOOPY_GRID_DUMMY_TERMINATOR };
 static char const *const gridnames[] = { GRIDLIST(GRID_NAME) };
 #define GRID_CONFIGS GRIDLIST(GRID_CONFIG)
 static grid_type grid_types[] = { GRIDLIST(GRID_GRIDTYPE) };
