@@ -203,30 +203,24 @@ static config_item *game_configure(const game_params *params)
     ret[0].name = _("Width");
     ret[0].type = C_STRING;
     sprintf(buf, "%d", params->w);
-    ret[0].sval = dupstr(buf);
-    ret[0].ival = 0;
+    ret[0].u.string.sval = dupstr(buf);
 
     ret[1].name = _("Height");
     ret[1].type = C_STRING;
     sprintf(buf, "%d", params->h);
-    ret[1].sval = dupstr(buf);
-    ret[1].ival = 0;
+    ret[1].u.string.sval = dupstr(buf);
 
     ret[2].name = _("Mines");
     ret[2].type = C_STRING;
     sprintf(buf, "%d", params->n);
-    ret[2].sval = dupstr(buf);
-    ret[2].ival = 0;
+    ret[2].u.string.sval = dupstr(buf);
 
     ret[3].name = _("Ensure solubility");
     ret[3].type = C_BOOLEAN;
-    ret[3].sval = NULL;
-    ret[3].ival = params->unique;
+    ret[3].u.boolean.bval = params->unique;
 
     ret[4].name = NULL;
     ret[4].type = C_END;
-    ret[4].sval = NULL;
-    ret[4].ival = 0;
 
     return ret;
 }
@@ -235,12 +229,12 @@ static game_params *custom_params(const config_item *cfg)
 {
     game_params *ret = snew(game_params);
 
-    ret->w = atoi(cfg[0].sval);
-    ret->h = atoi(cfg[1].sval);
-    ret->n = atoi(cfg[2].sval);
-    if (strchr(cfg[2].sval, '%'))
+    ret->w = atoi(cfg[0].u.string.sval);
+    ret->h = atoi(cfg[1].u.string.sval);
+    ret->n = atoi(cfg[2].u.string.sval);
+    if (strchr(cfg[2].u.string.sval, '%'))
 	ret->n = ret->n * (ret->w * ret->h) / 100;
-    ret->unique = cfg[3].ival;
+    ret->unique = cfg[3].u.boolean.bval;
 
     return ret;
 }

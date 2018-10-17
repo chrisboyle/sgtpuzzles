@@ -1373,7 +1373,6 @@ config_item *midend_get_config(midend *me, int which, char **wintitle)
             ret[0].name = _("Seed");
         else
             ret[0].name = _("Game ID");
-	ret[0].ival = 0;
         /*
          * For CFG_DESC the text going in here will be a string
          * encoding of the restricted parameters, plus a colon,
@@ -1392,13 +1391,12 @@ config_item *midend_get_config(midend *me, int which, char **wintitle)
             rest = me->seedstr ? me->seedstr : "";
             sep = '#';
         }
-        ret[0].sval = snewn(strlen(parstr) + strlen(rest) + 2, char);
-        sprintf(ret[0].sval, "%s%c%s", parstr, sep, rest);
+        ret[0].u.string.sval = snewn(strlen(parstr) + strlen(rest) + 2, char);
+        sprintf(ret[0].u.string.sval, "%s%c%s", parstr, sep, rest);
         sfree(parstr);
 
 	ret[1].type = C_END;
-	ret[1].name = ret[1].sval = NULL;
-	ret[1].ival = 0;
+	ret[1].name = NULL;
 
 	return ret;
     }
@@ -1667,7 +1665,7 @@ char *midend_set_config(midend *me, int which, config_item *cfg)
 
       case CFG_SEED:
       case CFG_DESC:
-        error = midend_game_id_int(me, cfg[0].sval,
+        error = midend_game_id_int(me, cfg[0].u.string.sval,
                                    (which == CFG_SEED ? DEF_SEED : DEF_DESC), FALSE);
 	if (error)
 	    return error;

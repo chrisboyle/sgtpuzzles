@@ -170,18 +170,14 @@ static config_item *game_configure(const game_params *params)
 
     ret[0].name = _("Width");
     ret[0].type = C_STRING;
-    ret[0].sval = nfmtstr(10, "%d", params->w);
-    ret[0].ival = 0;
+    ret[0].u.string.sval = nfmtstr(10, "%d", params->w);
 
     ret[1].name = _("Height");
     ret[1].type = C_STRING;
-    ret[1].sval = nfmtstr(10, "%d", params->h);
-    ret[1].ival = 0;
+    ret[1].u.string.sval = nfmtstr(10, "%d", params->h);
 
     ret[2].name = NULL;
     ret[2].type = C_END;
-    ret[2].sval = NULL;
-    ret[2].ival = 0;
 
     return ret;
 }
@@ -189,8 +185,8 @@ static config_item *game_configure(const game_params *params)
 static game_params *custom_params(const config_item *configuration)
 {
     game_params *ret = snew(game_params);
-    ret->w = atoi(configuration[0].sval);
-    ret->h = atoi(configuration[1].sval);
+    ret->w = atoi(configuration[0].u.string.sval);
+    ret->h = atoi(configuration[1].u.string.sval);
     return ret;
 }
 

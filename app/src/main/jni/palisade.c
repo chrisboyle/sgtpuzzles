@@ -119,10 +119,20 @@ static config_item *game_configure(const game_params *params)
 {
     config_item *ret = snewn(4, config_item);
 
-    CONFIG(0, "Width",       C_STRING, 0, string(20, "%d", params->w));
-    CONFIG(1, "Height",      C_STRING, 0, string(20, "%d", params->h));
-    CONFIG(2, "Region size", C_STRING, 0, string(20, "%d", params->k));
-    CONFIG(3, NULL,          C_END,    0, NULL);
+    ret[0].name = "Width";
+    ret[0].type = C_STRING;
+    ret[0].u.string.sval = string(20, "%d", params->w);
+
+    ret[1].name = "Height";
+    ret[1].type = C_STRING;
+    ret[1].u.string.sval = string(20, "%d", params->h);
+
+    ret[2].name = "Region size";
+    ret[2].type = C_STRING;
+    ret[2].u.string.sval = string(20, "%d", params->k);
+
+    ret[3].name = NULL;
+    ret[3].type = C_END;
 
     return ret;
 }
@@ -131,9 +141,9 @@ static game_params *custom_params(const config_item *cfg)
 {
     game_params *params = snew(game_params);
 
-    params->w = atoi(cfg[0].sval);
-    params->h = atoi(cfg[1].sval);
-    params->k = atoi(cfg[2].sval);
+    params->w = atoi(cfg[0].u.string.sval);
+    params->h = atoi(cfg[1].u.string.sval);
+    params->k = atoi(cfg[2].u.string.sval);
 
     return params;
 }

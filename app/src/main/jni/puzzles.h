@@ -139,30 +139,36 @@ enum { DEF_PARAMS, DEF_SEED, DEF_DESC };   /* for midend_game_id_int */
  */
 enum { C_STRING, C_CHOICES, C_BOOLEAN, C_END };
 struct config_item {
-    /*
-     * `name' is never dynamically allocated.
-     */
-    char *name;
-    /*
-     * `type' contains one of the above values.
-     */
+    /* Not dynamically allocated */
+    const char *name;
+    /* Value from the above C_* enum */
     int type;
-    /*
-     * For C_STRING, `sval' is always dynamically allocated and
-     * non-NULL. For C_BOOLEAN and C_END, `sval' is always NULL.
-     * For C_CHOICES, `sval' is non-NULL, _not_ dynamically
-     * allocated, and contains a set of option strings separated by
-     * a delimiter. The delimeter is also the first character in
-     * the string, so for example ":Foo:Bar:Baz" gives three
-     * options `Foo', `Bar' and `Baz'.
-     */
-    char *sval;
-    /*
-     * For C_BOOLEAN, this is TRUE or FALSE. For C_CHOICES, it
-     * indicates the chosen index from the `sval' list. In the
-     * above example, 0==Foo, 1==Bar and 2==Baz.
-     */
-    int ival;
+    union {
+        struct { /* if type == C_STRING */
+            /* Always dynamically allocated and non-NULL */
+            char *sval;
+        } string;
+        struct { /* if type == C_CHOICES */
+            /*
+             * choicenames is non-NULL, not dynamically allocated, and
+             * contains a set of option strings separated by a
+             * delimiter. The delimiter is also the first character in
+             * the string, so for example ":Foo:Bar:Baz" gives three
+             * options `Foo', `Bar' and `Baz'.
+             */
+            const char *choicenames;
+            /*
+             * Indicates the chosen index from the options in
+             * choicenames. In the above example, 0==Foo, 1==Bar and
+             * 2==Baz.
+             */
+            int selected;
+        } choices;
+        struct {
+            /* just TRUE or FALSE */
+            int bval;
+        } boolean;
+    } u;
 };
 
 /*

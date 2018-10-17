@@ -241,35 +241,29 @@ static config_item *game_configure(const game_params *params)
     ret[0].name = _("Width");
     ret[0].type = C_STRING;
     sprintf(buf, "%d", params->w);
-    ret[0].sval = dupstr(buf);
-    ret[0].ival = 0;
+    ret[0].u.string.sval = dupstr(buf);
 
     ret[1].name = _("Height");
     ret[1].type = C_STRING;
     sprintf(buf, "%d", params->h);
-    ret[1].sval = dupstr(buf);
-    ret[1].ival = 0;
+    ret[1].u.string.sval = dupstr(buf);
 
     ret[2].name = _("No. of colours");
     ret[2].type = C_STRING;
     sprintf(buf, "%d", params->ncols);
-    ret[2].sval = dupstr(buf);
-    ret[2].ival = 0;
+    ret[2].u.string.sval = dupstr(buf);
 
     ret[3].name = _("Scoring system");
     ret[3].type = C_CHOICES;
-    ret[3].sval = _(":(n-1)^2:(n-2)^2");
-    ret[3].ival = params->scoresub-1;
+    ret[3].u.choices.choicenames = _(":(n-1)^2:(n-2)^2");
+    ret[3].u.choices.selected = params->scoresub-1;
 
     ret[4].name = _("Ensure solubility");
     ret[4].type = C_BOOLEAN;
-    ret[4].sval = NULL;
-    ret[4].ival = params->soluble;
+    ret[4].u.boolean.bval = params->soluble;
 
     ret[5].name = NULL;
     ret[5].type = C_END;
-    ret[5].sval = NULL;
-    ret[5].ival = 0;
 
     return ret;
 }
@@ -278,11 +272,11 @@ static game_params *custom_params(const config_item *cfg)
 {
     game_params *ret = snew(game_params);
 
-    ret->w = atoi(cfg[0].sval);
-    ret->h = atoi(cfg[1].sval);
-    ret->ncols = atoi(cfg[2].sval);
-    ret->scoresub = cfg[3].ival + 1;
-    ret->soluble = cfg[4].ival;
+    ret->w = atoi(cfg[0].u.string.sval);
+    ret->h = atoi(cfg[1].u.string.sval);
+    ret->ncols = atoi(cfg[2].u.string.sval);
+    ret->scoresub = cfg[3].u.choices.selected + 1;
+    ret->soluble = cfg[4].u.boolean.bval;
 
     return ret;
 }

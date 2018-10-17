@@ -274,19 +274,22 @@ void jcallback_config_ok()
 void jcallback_config_set_string(int item_ptr, int char_ptr) {
     config_item *i = (config_item *)item_ptr;
     char* newval = (char*) char_ptr;
-    sfree(i->sval);
-    i->sval = dupstr(newval);
+    assert(i->type == C_STRING);
+    sfree(i->u.string.sval);
+    i->u.string.sval = dupstr(newval);
     free(newval);
 }
 
 void jcallback_config_set_boolean(int item_ptr, int selected) {
     config_item *i = (config_item *)item_ptr;
-    i->ival = selected != 0 ? TRUE : FALSE;
+    assert(i->type == C_BOOLEAN);
+    i->u.boolean.bval = selected != 0 ? TRUE : FALSE;
 }
 
 void jcallback_config_set_choice(int item_ptr, int selected) {
     config_item *i = (config_item *)item_ptr;
-    i->ival = selected;
+    assert(i->type == C_CHOICES);
+    i->u.choices.selected = selected;
 }
 
 static int get_config(frontend *fe, int which)
@@ -299,7 +302,18 @@ static int get_config(frontend *fe, int which)
     _call_java(10, (int)title, 0, 0);
     for (i = fe->cfg; i->type != C_END; i++) {
 	_call_java(5, (int)i, i->type, (int)i->name);
-	_call_java(11, (int)i->sval, i->ival, 0);
+        switch (i->type) {
+          case C_STRING:
+            _call_java(11, (int)i->u.string.sval, 0, 0);
+            break;
+          case C_BOOLEAN:
+            _call_java(11, 0, i->u.boolean.bval, 0);
+            break;
+          case C_CHOICES:
+            _call_java(11, (int)i->u.choices.choicenames,
+                       i->u.choices.selected, 0);
+            break;
+        }
     }
     _call_java(12,0,0,0);
     free_cfg(fe->cfg);

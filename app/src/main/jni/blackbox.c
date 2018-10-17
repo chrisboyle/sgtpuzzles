@@ -148,14 +148,12 @@ static config_item *game_configure(const game_params *params)
     ret[0].name = _("Width");
     ret[0].type = C_STRING;
     sprintf(buf, "%d", params->w);
-    ret[0].sval = dupstr(buf);
-    ret[0].ival = 0;
+    ret[0].u.string.sval = dupstr(buf);
 
     ret[1].name = _("Height");
     ret[1].type = C_STRING;
     sprintf(buf, "%d", params->h);
-    ret[1].sval = dupstr(buf);
-    ret[1].ival = 0;
+    ret[1].u.string.sval = dupstr(buf);
 
     ret[2].name = _("No. of balls");
     ret[2].type = C_STRING;
@@ -163,13 +161,10 @@ static config_item *game_configure(const game_params *params)
         sprintf(buf, "%d", params->minballs);
     else
         sprintf(buf, "%d-%d", params->minballs, params->maxballs);
-    ret[2].sval = dupstr(buf);
-    ret[2].ival = 0;
+    ret[2].u.string.sval = dupstr(buf);
 
     ret[3].name = NULL;
     ret[3].type = C_END;
-    ret[3].sval = NULL;
-    ret[3].ival = 0;
 
     return ret;
 }
@@ -178,12 +173,13 @@ static game_params *custom_params(const config_item *cfg)
 {
     game_params *ret = snew(game_params);
 
-    ret->w = atoi(cfg[0].sval);
-    ret->h = atoi(cfg[1].sval);
+    ret->w = atoi(cfg[0].u.string.sval);
+    ret->h = atoi(cfg[1].u.string.sval);
 
     /* Allow 'a-b' for a range, otherwise assume a single number. */
-    if (sscanf(cfg[2].sval, "%d-%d", &ret->minballs, &ret->maxballs) < 2)
-        ret->minballs = ret->maxballs = atoi(cfg[2].sval);
+    if (sscanf(cfg[2].u.string.sval, "%d-%d",
+               &ret->minballs, &ret->maxballs) < 2)
+        ret->minballs = ret->maxballs = atoi(cfg[2].u.string.sval);
 
     return ret;
 }

@@ -1103,7 +1103,8 @@ struct frontend {
 	    [tf setEditable:YES];
 	    [tf setSelectable:YES];
 	    [tf setBordered:YES];
-	    [[tf cell] setTitle:[NSString stringWithUTF8String:i->sval]];
+	    [[tf cell] setTitle:[NSString
+                                    stringWithUTF8String:i->u.string.sval]];
 	    [tf sizeToFit];
 	    rect = [tf frame];
 	    /*
@@ -1132,7 +1133,7 @@ struct frontend {
 	    [b setButtonType:NSSwitchButton];
 	    [b setTitle:[NSString stringWithUTF8String:i->name]];
 	    [b sizeToFit];
-	    [b setState:(i->ival ? NSOnState : NSOffState)];
+	    [b setState:(i->u.boolean.bval ? NSOnState : NSOffState)];
 	    rect = [b frame];
 	    if (totalw < rect.size.width + 1) totalw = rect.size.width + 1;
 	    if (thish < rect.size.height + 1) thish = rect.size.height + 1;
@@ -1161,12 +1162,14 @@ struct frontend {
 	    pb = [[NSPopUpButton alloc] initWithFrame:tmprect pullsDown:NO];
 	    [pb setBezelStyle:NSRoundedBezelStyle];
 	    {
-		char c, *p;
+		char c;
+                const char *p;
 
-		p = i->sval;
+		p = i->u.choices.choicenames;
 		c = *p++;
 		while (*p) {
-		    char *q, *copy;
+		    const char *q;
+                    char *copy;
 
 		    q = p;
 		    while (*p && *p != c) p++;
@@ -1180,7 +1183,7 @@ struct frontend {
 		    if (*p) p++;
 		}
 	    }
-	    [pb selectItemAtIndex:i->ival];
+	    [pb selectItemAtIndex:i->u.choices.selected];
 	    [pb sizeToFit];
 
 	    rect = [pb frame];
@@ -1303,17 +1306,18 @@ struct frontend {
 	for (i = cfg; i->type != C_END; i++) {
 	    switch (i->type) {
 	      case C_STRING:
-		sfree(i->sval);
-		i->sval = dupstr([[[(id)cfg_controls[k+1] cell]
+		sfree(i->u.string.sval);
+		i->u.string.sval = dupstr([[[(id)cfg_controls[k+1] cell]
                                   title] UTF8String]);
 		k += 2;
 		break;
 	      case C_BOOLEAN:
-		i->ival = [(id)cfg_controls[k] state] == NSOnState;
+		i->u.boolean.bval = [(id)cfg_controls[k] state] == NSOnState;
 		k++;
 		break;
 	      case C_CHOICES:
-		i->ival = [(id)cfg_controls[k+1] indexOfSelectedItem];
+		i->u.choices.selected =
+                    [(id)cfg_controls[k+1] indexOfSelectedItem];
 		k += 2;
 		break;
 	    }

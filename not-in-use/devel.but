@@ -555,16 +555,15 @@ The \cw{config_item} structure contains the following elements:
 
 \c char *name;
 \c int type;
-\c char *sval;
-\c int ival;
+\c union { /* type-specific fields */ } u;
+\e         iiiiiiiiiiiiiiiiiiiiiiiiii
 
 \c{name} is an ASCII string giving the textual label for a GUI
 control. It is \e{not} expected to be dynamically allocated.
 
 \c{type} contains one of a small number of \c{enum} values defining
-what type of control is being described. The meaning of the \c{sval}
-and \c{ival} fields depends on the value in \c{type}. The valid
-values are:
+what type of control is being described. The usable member of the
+union field \c{u} depends on \c{type}. The valid type values are:
 
 \dt \c{C_STRING}
 
@@ -572,38 +571,64 @@ values are:
 input. The back end does not bother informing the front end that the
 box is numeric rather than textual; some front ends do have the
 capacity to take this into account, but I decided it wasn't worth
-the extra complexity in the interface.) For this type, \c{ival} is
-unused, and \c{sval} contains a dynamically allocated string
-representing the contents of the input box.
+the extra complexity in the interface.)
+
+\lcont{
+
+For controls of this type, \c{u.string} contains a single field
+
+\c char *sval;
+
+which stores a dynamically allocated string representing the contents
+of the input box.
+
+}
 
 \dt \c{C_BOOLEAN}
 
-\dd Describes a simple checkbox. For this type, \c{sval} is unused,
-and \c{ival} is \cw{TRUE} or \cw{FALSE}.
+\dd Describes a simple checkbox.
+
+\lcont{
+
+For controls of this type, \c{u.boolean} contains a single field
+
+\c int bval;
+
+which is either \cw{TRUE} or \cw{FALSE}.
+
+}
 
 \dt \c{C_CHOICES}
 
 \dd Describes a drop-down list presenting one of a small number of
-fixed choices. For this type, \c{sval} contains a list of strings
-describing the choices; the very first character of \c{sval} is used
-as a delimiter when processing the rest (so that the strings
-\cq{:zero:one:two}, \cq{!zero!one!two} and \cq{xzeroxonextwo} all
-define a three-element list containing \cq{zero}, \cq{one} and
-\cq{two}). \c{ival} contains the index of the currently selected
-element, numbering from zero (so that in the above example, 0 would
-mean \cq{zero} and 2 would mean \cq{two}).
+fixed choices.
 
 \lcont{
 
-Note that for this control type, \c{sval} is \e{not} dynamically
-allocated, whereas it was for \c{C_STRING}.
+For controls of this type, \c{u.choices} contains two fields:
+
+\c const char *choicenames;
+\c int selected;
+
+\c{choicenames} contains a list of strings describing the choices. The
+very first character of \c{sval} is used as a delimiter when
+processing the rest (so that the strings \cq{:zero:one:two},
+\cq{!zero!one!two} and \cq{xzeroxonextwo} all define a three-element
+list containing \cq{zero}, \cq{one} and \cq{two}).
+
+\c{selected} contains the index of the currently selected element,
+numbering from zero (so that in the above example, 0 would mean
+\cq{zero} and 2 would mean \cq{two}).
+
+Note that \c{u.choices.choicenames} is \e{not} dynamically allocated,
+unlike \c{u.string.sval}.
 
 }
 
 \dt \c{C_END}
 
-\dd Marks the end of the array of \c{config_item}s. All other fields
-are unused.
+\dd Marks the end of the array of \c{config_item}s. There is no
+associated member of the union field \c{u} for this type.
 
 The array returned from this function is expected to have filled in
 the initial values of all the controls according to the input
@@ -3737,10 +3762,10 @@ quite everywhere.)
 
 \c void free_cfg(config_item *cfg);
 
-This function correctly frees an array of \c{config_item}s,
-including walking the array until it gets to the end and freeing
-precisely those \c{sval} fields which are expected to be dynamically
-allocated.
+This function correctly frees an array of \c{config_item}s, including
+walking the array until it gets to the end and freeing any subsidiary
+data items in each \c{u} sub-union which are expected to be
+dynamically allocated.
 
 (See \k{backend-configure} for details of the \c{config_item}
 structure.)

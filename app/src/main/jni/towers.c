@@ -213,18 +213,15 @@ static config_item *game_configure(const game_params *params)
     ret[0].name = _("Grid size");
     ret[0].type = C_STRING;
     sprintf(buf, "%d", params->w);
-    ret[0].sval = dupstr(buf);
-    ret[0].ival = 0;
+    ret[0].u.string.sval = dupstr(buf);
 
     ret[1].name = _("Difficulty");
     ret[1].type = C_CHOICES;
-    ret[1].sval = _(DIFFCONFIG);
-    ret[1].ival = params->diff;
+    ret[1].u.choices.choicenames = _(DIFFCONFIG);
+    ret[1].u.choices.selected = params->diff;
 
     ret[2].name = NULL;
     ret[2].type = C_END;
-    ret[2].sval = NULL;
-    ret[2].ival = 0;
 
     return ret;
 }
@@ -233,8 +230,8 @@ static game_params *custom_params(const config_item *cfg)
 {
     game_params *ret = snew(game_params);
 
-    ret->w = atoi(cfg[0].sval);
-    ret->diff = cfg[1].ival;
+    ret->w = atoi(cfg[0].u.string.sval);
+    ret->diff = cfg[1].u.choices.selected;
 
     return ret;
 }

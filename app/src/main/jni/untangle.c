@@ -189,13 +189,10 @@ static config_item *game_configure(const game_params *params)
     ret[0].name = _("Number of points");
     ret[0].type = C_STRING;
     sprintf(buf, "%d", params->n);
-    ret[0].sval = dupstr(buf);
-    ret[0].ival = 0;
+    ret[0].u.string.sval = dupstr(buf);
 
     ret[1].name = NULL;
     ret[1].type = C_END;
-    ret[1].sval = NULL;
-    ret[1].ival = 0;
 
     return ret;
 }
@@ -204,7 +201,7 @@ static game_params *custom_params(const config_item *cfg)
 {
     game_params *ret = snew(game_params);
 
-    ret->n = atoi(cfg[0].sval);
+    ret->n = atoi(cfg[0].u.string.sval);
 
     return ret;
 }

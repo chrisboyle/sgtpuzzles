@@ -170,18 +170,14 @@ static config_item *game_configure(const game_params *params)
     ret[0].name = _("Maximum number on dominoes");
     ret[0].type = C_STRING;
     sprintf(buf, "%d", params->n);
-    ret[0].sval = dupstr(buf);
-    ret[0].ival = 0;
+    ret[0].u.string.sval = dupstr(buf);
 
     ret[1].name = _("Ensure unique solution");
     ret[1].type = C_BOOLEAN;
-    ret[1].sval = NULL;
-    ret[1].ival = params->unique;
+    ret[1].u.boolean.bval = params->unique;
 
     ret[2].name = NULL;
     ret[2].type = C_END;
-    ret[2].sval = NULL;
-    ret[2].ival = 0;
 
     return ret;
 }
@@ -190,8 +186,8 @@ static game_params *custom_params(const config_item *cfg)
 {
     game_params *ret = snew(game_params);
 
-    ret->n = atoi(cfg[0].sval);
-    ret->unique = cfg[1].ival;
+    ret->n = atoi(cfg[0].u.string.sval);
+    ret->unique = cfg[1].u.boolean.bval;
 
     return ret;
 }
