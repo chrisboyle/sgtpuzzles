@@ -75,6 +75,7 @@ static jmethodID
 	blitterLoad,
 	blitterSave,
 	changedState,
+	purgingStates,
 	clipRect,
 	dialogAdd,
 	dialogInit,
@@ -269,6 +270,12 @@ void android_changed_state(void *handle, int can_undo, int can_redo)
 	(*env)->CallVoidMethod(env, obj, changedState, can_undo, can_redo);
 }
 
+void android_purging_states(void *handle)
+{
+    JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
+    (*env)->CallVoidMethod(env, obj, purgingStates);
+}
+
 static char *android_text_fallback(void *handle, const char *const *strings,
 			       int nstrings)
 {
@@ -301,6 +308,7 @@ const struct drawing_api android_drawing = {
 	NULL, NULL,				   /* line_width, line_dotted */
 	android_text_fallback,
 	android_changed_state,
+    android_purging_states,
 	android_draw_thick_line,
 };
 
@@ -889,6 +897,7 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
 	blitterLoad    = (*env)->GetMethodID(env, vcls, "blitterLoad", "(III)V");
 	blitterSave    = (*env)->GetMethodID(env, vcls, "blitterSave", "(III)V");
 	changedState   = (*env)->GetMethodID(env, cls,  "changedState", "(ZZ)V");
+	purgingStates  = (*env)->GetMethodID(env, cls,  "purgingStates", "()V");
 	clipRect       = (*env)->GetMethodID(env, vcls, "clipRect", "(IIII)V");
 	dialogAdd      = (*env)->GetMethodID(env, cls,  "dialogAdd", "(IILjava/lang/String;Ljava/lang/String;I)V");
 	dialogInit     = (*env)->GetMethodID(env, cls,  "dialogInit", "(ILjava/lang/String;)V");

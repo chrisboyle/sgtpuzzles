@@ -295,7 +295,6 @@ int print_rgb_hatched_colour(drawing *dr, float r, float g, float b,
 void print_line_width(drawing *dr, int width);
 void print_line_dotted(drawing *dr, int dotted);
 #endif
-void changed_state(drawing *dr, int can_undo, int can_redo);
 
 /*
  * midend.c
@@ -353,6 +352,8 @@ int midend_tilesize(midend *me);
 const char * midend_android_preset_menu_get_encoded_params(midend *me, int id);
 void midend_android_cursor_visibility(midend *me, int visible);
 void midend_purge_states(midend *me);
+void changed_state(drawing *dr, int can_undo, int can_redo);
+void purging_states(drawing *dr);
 #endif
 
 /*
@@ -701,6 +702,7 @@ struct drawing_api {
     char *(*text_fallback)(void *handle, const char *const *strings,
 			   int nstrings);
     void (*changed_state)(void *handle, int can_undo, int can_redo);
+    void (*purging_states)(void *handle);
     void (*draw_thick_line)(void *handle, float thickness,
 			    float x1, float y1, float x2, float y2,
 			    int colour);

@@ -1940,6 +1940,12 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 		});
 	}
 
+	@UsedByJNI
+	void purgingStates()
+	{
+		redoToGame = null;
+	}
+
 	native void startPlaying(GameView _gameView, String savedGame);
 	native void startPlayingGameID(GameView _gameView, String whichBackend, String gameID);
 	native void timerTick();

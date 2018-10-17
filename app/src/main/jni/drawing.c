@@ -371,3 +371,9 @@ void changed_state(drawing *dr, int can_undo, int can_redo)
     if (! dr->api->changed_state) return;
     dr->api->changed_state(dr->handle, can_undo, can_redo);
 }
+
+void purging_states(drawing *dr)
+{
+    if (! dr->api->purging_states) return;
+    dr->api->purging_states(dr->handle);
+}

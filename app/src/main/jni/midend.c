@@ -224,6 +224,7 @@ void midend_purge_states(midend *me)
         if (me->states[me->nstates].movestr)
             sfree(me->states[me->nstates].movestr);
     }
+    purging_states(me->drawing);
 }
 
 static void midend_free_game(midend *me)
