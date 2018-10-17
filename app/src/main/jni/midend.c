@@ -793,7 +793,7 @@ static int midend_really_process_key(midend *me, int x, int y, int button)
 	} else
 	    goto done;
     } else {
-	if (!*movestr)
+	if (movestr == UI_UPDATE)
 	    s = me->states[me->statepos-1].state;
 	else {
 	    s = me->ourgame->execute_move(me->states[me->statepos-1].state,
@@ -1709,6 +1709,7 @@ char *midend_solve(midend *me)
     movestr = me->ourgame->solve(me->states[0].state,
 				 me->states[me->statepos-1].state,
 				 me->aux_info, &msg);
+    assert(movestr != UI_UPDATE);
     if (!movestr) {
 	if (!msg)
 	    msg = _("Solve operation failed");   /* _shouldn't_ happen, but can */

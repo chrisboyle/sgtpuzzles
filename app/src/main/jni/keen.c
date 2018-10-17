@@ -1665,7 +1665,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
             /* Android is always in cursor mode */
             ui->hcursor = 0;
 #endif
-            return "";		       /* UI activity occurred */
+            return UI_UPDATE;
         }
         if (button == RIGHT_BUTTON) {
             /*
@@ -1694,7 +1694,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
             /* Android is always in cursor mode */
             ui->hcursor = 0;
 #endif
-            return "";		       /* UI activity occurred */
+            return UI_UPDATE;
         }
     } else if (button == LEFT_BUTTON || button == RIGHT_BUTTON) {
         ui->hshow = 0;
@@ -1704,13 +1704,13 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     if (IS_CURSOR_MOVE(button)) {
         move_cursor(button, &ui->hx, &ui->hy, w, w, 0);
         ui->hshow = ui->hcursor = 1;
-        return "";
+        return UI_UPDATE;
     }
     if (ui->hshow &&
         (button == CURSOR_SELECT)) {
         ui->hpencil = 1 - ui->hpencil;
         ui->hcursor = 1;
-        return "";
+        return UI_UPDATE;
     }
 
     if (ui->hshow &&

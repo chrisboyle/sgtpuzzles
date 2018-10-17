@@ -966,7 +966,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
             tx = ui->cx; ty = ui->cy;
             ui->cdraw = 1;
         }
-        nullret = "";
+        nullret = UI_UPDATE;
 
         if (tx >= 0 && tx < w && ty >= 0 && ty < h) {
             /*
@@ -1000,7 +1000,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         ui->cx = min(max(ui->cx, 0), state->w - 1);
         ui->cy = min(max(ui->cy, 0), state->h - 1);
         ui->cdraw = 1;
-        nullret = "";
+        nullret = UI_UPDATE;
     }
 
     return nullret;

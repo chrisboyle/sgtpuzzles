@@ -1469,22 +1469,22 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 #else
         ui->cur_visible = 0;
 #endif
-        return ""; /* redraw */
+        return UI_UPDATE;
     }
 
     if (IS_CURSOR_MOVE(button)) {
         ui->cur_visible = 1;
         move_cursor(button, &ui->cur_x, &ui->cur_y, w, h, 0);
 	if (ui->keydragging) goto select_square;
-        return "";
+        return UI_UPDATE;
     }
     if (button == CURSOR_SELECT) {
         if (!ui->cur_visible) {
             ui->cur_visible = 1;
-            return "";
+            return UI_UPDATE;
         }
 	ui->keydragging = !ui->keydragging;
-	if (!ui->keydragging) return "";
+	if (!ui->keydragging) return UI_UPDATE;
 
       select_square:
         if (!ui->sel) {
@@ -1493,12 +1493,12 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         }
 	if (!state->shared->clues[w*ui->cur_y + ui->cur_x])
 	    ui->sel[w*ui->cur_y + ui->cur_x] = 1;
-	return "";
+	return UI_UPDATE;
     }
     if (button == CURSOR_SELECT2) {
 	if (!ui->cur_visible) {
 	    ui->cur_visible = 1;
-	    return "";
+	    return UI_UPDATE;
 	}
         if (!ui->sel) {
             ui->sel = snewn(w*h, int);
@@ -1512,14 +1512,14 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 	    sfree(ui->sel);
 	    ui->sel = NULL;
 	}
-	return "";
+	return UI_UPDATE;
     }
 
     if (button == '\b' || button == 27) {
 	sfree(ui->sel);
 	ui->sel = NULL;
 	ui->keydragging = FALSE;
-	return "";
+	return UI_UPDATE;
     }
 
     if (button < '0' || button > '9') return NULL;
@@ -1554,7 +1554,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     sfree(ui->sel);
     ui->sel = NULL;
     /* Need to update UI at least, as we cleared the selection */
-    return move ? move : "";
+    return move ? move : UI_UPDATE;
 }
 
 static game_state *execute_move(const game_state *state, const char *move)

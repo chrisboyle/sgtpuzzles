@@ -1484,7 +1484,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
             /* Android should stay in cursor mode */
             ui->hcursor = 0;
 #endif
-            return "";
+            return UI_UPDATE;
         }
         if (button == RIGHT_BUTTON) {
             /* pencil highlighting for non-filled squares */
@@ -1509,7 +1509,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
             /* Android should stay in cursor mode */
             ui->hcursor = 0;
 #endif
-            return "";
+            return UI_UPDATE;
         }
     } else if (button == LEFT_BUTTON || button == RIGHT_BUTTON) {
         ui->hshow = 0;
@@ -1532,11 +1532,12 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 				  ny != ui->hy + adjthan[i].dy); ++i);
 
 	    if (i == 4)
-		return ""; /* invalid direction, i.e. out of the board */
+		return UI_UPDATE; /* invalid direction, i.e. out of
+                                   * the board */
 
 	    if (!(GRID(state, flags, ui->hx, ui->hy) & adjthan[i].f ||
 		  GRID(state, flags, nx,     ny    ) & adjthan[i].fo))
-		return ""; /* no clue to toggle */
+		return UI_UPDATE; /* no clue to toggle */
 
 	    if (state->adjacent)
 		self = (adjthan[i].dx >= 0 && adjthan[i].dy >= 0);
@@ -1554,13 +1555,13 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 	} else {
 	    move_cursor(button, &ui->hx, &ui->hy, ds->order, ds->order, FALSE);
 	    ui->hshow = ui->hcursor = 1;
-	    return "";
+	    return UI_UPDATE;
 	}
     }
     if (ui->hshow && IS_CURSOR_SELECT(button)) {
         ui->hpencil = 1 - ui->hpencil;
         ui->hcursor = 1;
-        return "";
+        return UI_UPDATE;
     }
 
     n = c2n(button, state->order);

@@ -9,6 +9,8 @@
 
 #include "puzzles.h"
 
+char UI_UPDATE[] = "";
+
 void free_cfg(config_item *cfg)
 {
     config_item *i;

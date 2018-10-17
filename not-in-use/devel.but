@@ -907,10 +907,10 @@ divide mouse coordinates by it.)
 in response to the input event; the puzzle was not interested in it
 at all.
 
-\b Returning the empty string (\cw{""}) indicates that the input
+\b Returning the special value \cw{UI_UPDATE} indicates that the input
 event has resulted in a change being made to the \c{game_ui} which
-will require a redraw of the game window, but that no actual
-\e{move} was made (i.e. no new \c{game_state} needs to be created).
+will require a redraw of the game window, but that no actual \e{move}
+was made (i.e. no new \c{game_state} needs to be created).
 
 \b Returning anything else indicates that a move was made and that a
 new \c{game_state} must be created. However, instead of actually
@@ -925,7 +925,7 @@ strings can be written to disk when saving the game and fed to
 
 The return value from \cw{interpret_move()} is expected to be
 dynamically allocated if and only if it is not either \cw{NULL}
-\e{or} the empty string.
+\e{or} the special string constant \c{UI_UPDATE}.
 
 After this function is called, the back end is permitted to rely on
 some subsequent operations happening in sequence:

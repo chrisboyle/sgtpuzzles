@@ -1349,7 +1349,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 	 * And that's it. Update the display to reflect the start
 	 * of a drag.
 	 */
-	return "";
+	return UI_UPDATE;
     } else if (button == LEFT_DRAG && ui->dragging) {
 	int dist, distlimit, dx, dy, s, px, py;
 
@@ -1376,7 +1376,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 		    if (px >= 0 && px < w && py >= 0 && py < h &&
 			ui->reachable[py*w+px]) {
 			ui->drag_currpos = py*w+px;
-			return "";
+			return UI_UPDATE;
 		    }
 		}
 	}

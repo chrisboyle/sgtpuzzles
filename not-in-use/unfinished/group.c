@@ -1281,13 +1281,13 @@ static char *interpret_move(const game_state *state, game_ui *ui,
             ui->drag |= 4;             /* some movement has happened */
             if (tcoord >= 0 && tcoord < w) {
                 ui->dragpos = tcoord;
-                return "";
+                return UI_UPDATE;
             }
         } else if (IS_MOUSE_RELEASE(button)) {
             if (ui->drag & 4) {
                 ui->drag = 0;          /* end drag */
                 if (state->sequence[ui->dragpos] == ui->dragnum)
-                    return "";         /* drag was a no-op overall */
+                    return UI_UPDATE;  /* drag was a no-op overall */
                 sprintf(buf, "D%d,%d", ui->dragnum, ui->dragpos);
                 return dupstr(buf);
             } else {
@@ -1298,7 +1298,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
                             state->sequence[ui->edgepos]);
                     return dupstr(buf);
                 } else
-                    return "";         /* no-op */
+                    return UI_UPDATE;  /* no-op */
             }
         }
     } else if (IS_MOUSE_DOWN(button)) {
@@ -1321,7 +1321,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
                     ui->hpencil = 0;
                 }
                 ui->hcursor = 0;
-                return "";		       /* UI activity occurred */
+                return UI_UPDATE;
             }
             if (button == RIGHT_BUTTON) {
                 /*
@@ -1345,20 +1345,20 @@ static char *interpret_move(const game_state *state, game_ui *ui,
                     ui->hshow = 0;
                 }
                 ui->hcursor = 0;
-                return "";		       /* UI activity occurred */
+                return UI_UPDATE;
             }
         } else if (tx >= 0 && tx < w && ty == -1) {
             ui->drag = 2;
             ui->dragnum = state->sequence[tx];
             ui->dragpos = tx;
             ui->edgepos = FROMCOORD(x + TILESIZE/2);
-            return "";
+            return UI_UPDATE;
         } else if (ty >= 0 && ty < w && tx == -1) {
             ui->drag = 1;
             ui->dragnum = state->sequence[ty];
             ui->dragpos = ty;
             ui->edgepos = FROMCOORD(y + TILESIZE/2);
-            return "";
+            return UI_UPDATE;
         }
     } else if (IS_MOUSE_DRAG(button)) {
         if (!ui->hpencil &&
@@ -1371,7 +1371,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
             ui->odx = ui->ody = 0;
             ui->odn = 1;
         }
-        return "";
+        return UI_UPDATE;
     }
 
     if (IS_CURSOR_MOVE(button)) {
@@ -1381,13 +1381,13 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         ui->hx = state->sequence[cx];
         ui->hy = state->sequence[cy];
         ui->hshow = ui->hcursor = 1;
-        return "";
+        return UI_UPDATE;
     }
     if (ui->hshow &&
         (button == CURSOR_SELECT)) {
         ui->hpencil = 1 - ui->hpencil;
         ui->hcursor = 1;
-        return "";
+        return UI_UPDATE;
     }
 
     if (ui->hshow &&
