@@ -66,6 +66,9 @@ struct midend {
     int nstates, statesize, statepos;
     struct midend_state_entry *states;
 
+    char *newgame_undo_buf;
+    int newgame_undo_len, newgame_undo_size;
+
     game_params *params, *curparams;
     game_drawstate *drawstate;
     game_ui *ui;
@@ -158,6 +161,8 @@ midend *midend_new(frontend *fe, const game *ourgame,
     me->random = random_new(randseed, randseedsize);
     me->nstates = me->statesize = me->statepos = 0;
     me->states = NULL;
+    me->newgame_undo_buf = NULL;
+    me->newgame_undo_size = me->newgame_undo_len = 0;
     me->params = ourgame->default_params();
     me->game_id_change_notify_function = NULL;
     me->game_id_change_notify_ctx = NULL;
@@ -257,6 +262,7 @@ void midend_free(midend *me)
     if (me->drawing)
 	drawing_free(me->drawing);
     random_free(me->random);
+    sfree(me->newgame_undo_buf);
     sfree(me->states);
     sfree(me->desc);
     sfree(me->privdesc);
@@ -383,8 +389,27 @@ void midend_force_redraw(midend *me)
     midend_redraw(me);
 }
 
+static void newgame_serialise_write(void *ctx, void *buf, int len)
+{
+    midend *const me = ctx;
+    int new_len;
+
+    assert(len < INT_MAX - me->newgame_undo_len);
+    new_len = me->newgame_undo_len + len;
+    if (new_len > me->newgame_undo_size) {
+	me->newgame_undo_size = new_len + new_len / 4 + 1024;
+	me->newgame_undo_buf = sresize(me->newgame_undo_buf,
+                                       me->newgame_undo_size, char);
+    }
+    memcpy(me->newgame_undo_buf + me->newgame_undo_len, buf, len);
+    me->newgame_undo_len = new_len;
+}
+
 void midend_new_game(midend *me)
 {
+    me->newgame_undo_len = 0;
+    midend_serialise(me, newgame_serialise_write, me);
+
     midend_stop_anim(me);
     midend_free_game(me);
 
@@ -499,7 +524,7 @@ void midend_new_game(midend *me)
 
 int midend_can_undo(midend *me)
 {
-    return (me->statepos > 1);
+    return (me->statepos > 1 || me->newgame_undo_len);
 }
 
 int midend_can_redo(midend *me)
@@ -507,8 +532,82 @@ int midend_can_redo(midend *me)
     return (me->statepos < me->nstates);
 }
 
+struct newgame_undo_deserialise_read_ctx {
+    midend *me;
+    int len, pos;
+};
+
+static int newgame_undo_deserialise_read(void *ctx, void *buf, int len)
+{
+    struct newgame_undo_deserialise_read_ctx *const rctx = ctx;
+    midend *const me = rctx->me;
+
+    int use = min(len, rctx->len - rctx->pos);
+    memcpy(buf, me->newgame_undo_buf + rctx->pos, use);
+    rctx->pos += use;
+    return use;
+}
+
+struct newgame_undo_deserialise_check_ctx {
+    int refused;
+};
+
+static char *newgame_undo_deserialise_check(
+    void *vctx, midend *me, const struct deserialise_data *data)
+{
+    struct newgame_undo_deserialise_check_ctx *ctx =
+        (struct newgame_undo_deserialise_check_ctx *)vctx;
+    char *old, *new;
+
+    /*
+     * Undoing a New Game operation is only permitted if it doesn't
+     * change the game parameters. The point of having the ability at
+     * all is to recover from the momentary finger error of having hit
+     * the 'n' key (perhaps in place of some other nearby key), or hit
+     * the New Game menu item by mistake when aiming for the adjacent
+     * Restart; in both those situations, the game params are the same
+     * before and after the new-game operation.
+     *
+     * In principle, we could generalise this so that _any_ call to
+     * midend_new_game could be undone, but that would need all front
+     * ends to be alert to the possibility that any keystroke passed
+     * to midend_process_key might (if it turns out to have been one
+     * of the synonyms for undo, which the frontend doesn't
+     * necessarily check for) have various knock-on effects like
+     * needing to select a different preset in the game type menu, or
+     * even resizing the window. At least for the moment, it's easier
+     * not to do that, and to simply disallow any newgame-undo that is
+     * disruptive in either of those ways.
+     *
+     * We check both params and cparams, to be as safe as possible.
+     */
+
+    old = me->ourgame->encode_params(me->params, TRUE);
+    new = me->ourgame->encode_params(data->params, TRUE);
+    if (strcmp(old, new)) {
+        /* Set a flag to distinguish this deserialise failure
+         * from one due to faulty decoding */
+        ctx->refused = TRUE;
+        return "Undoing this new-game operation would change params";
+    }
+
+    old = me->ourgame->encode_params(me->curparams, TRUE);
+    new = me->ourgame->encode_params(data->cparams, TRUE);
+    if (strcmp(old, new)) {
+        ctx->refused = TRUE;
+        return "Undoing this new-game operation would change params";
+    }
+
+    /*
+     * Otherwise, fine, go ahead.
+     */
+    return NULL;
+}
+
 static int midend_undo(midend *me)
 {
+    char *deserialise_error;
+
     if (me->statepos > 1) {
         if (me->ui)
             me->ourgame->changed_state(me->ui,
@@ -518,6 +617,36 @@ static int midend_undo(midend *me)
         me->dir = -1;
         changed_state(me->drawing, me->statepos > 1, me->statepos < me->nstates);
         return 1;
+    } else if (me->newgame_undo_len) {
+	/* This undo cannot be undone with redo */
+	struct newgame_undo_deserialise_read_ctx rctx;
+	struct newgame_undo_deserialise_check_ctx cctx;
+	rctx.me = me;
+	rctx.len = me->newgame_undo_len; /* copy for reentrancy safety */
+	rctx.pos = 0;
+        cctx.refused = FALSE;
+        deserialise_error = midend_deserialise_internal(
+            me, newgame_undo_deserialise_read, &rctx,
+            newgame_undo_deserialise_check, &cctx);
+        if (cctx.refused) {
+            /*
+             * Our post-deserialisation check shows that we can't use
+             * this saved game after all. (deserialise_error will
+             * contain the dummy error message generated by our check
+             * function, which we ignore.)
+             */
+            return 0;
+        } else {
+            /*
+             * There should never be any _other_ deserialisation
+             * error, because this serialised data has been held in
+             * our memory since it was created, and hasn't had any
+             * opportunity to be corrupted on disk, accidentally
+             * replaced by the wrong file, etc., by user error.
+             */
+            assert(!deserialise_error);
+            return 1;
+        }
     } else
         return 0;
 }
@@ -2132,6 +2261,15 @@ static char *midend_deserialise_internal(
         data.states = tmp;
     }
     me->statepos = data.statepos;
+
+    /*
+     * Don't save the "new game undo" state.  So "new game" twice or
+     * (in some environments) switching away and back, will make a
+     * "new game" irreversible.  Maybe in the future we will have a
+     * more sophisticated way to decide when to discard the previous
+     * game state.
+     */
+    me->newgame_undo_len = 0;
 
     {
         game_params *tmp;
