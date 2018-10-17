@@ -857,6 +857,13 @@ void JNICALL Java_name_boyle_chris_sgtpuzzles_GamePlay_startPlayingGameID(JNIEnv
 	startPlayingInt(env, _obj, _gameView, backend, gameID, TRUE);
 }
 
+void JNICALL Java_name_boyle_chris_sgtpuzzles_GamePlay_purgeStates(JNIEnv *env, jobject _obj)
+{
+    if (fe->me) {
+        midend_purge_states(fe->me);
+    }
+}
+
 JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
 {
 	jclass cls, vcls, arrowModeCls;

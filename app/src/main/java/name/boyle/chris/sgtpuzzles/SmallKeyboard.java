@@ -270,12 +270,14 @@ public class SmallKeyboard extends KeyboardView implements KeyboardView.OnKeyboa
 					undoKey = mKeys.size() - 1;
 					key.repeatable = true;
 					setUndoRedoEnabled(ExtraKey.UNDO, undoEnabled);
-					break;
+					key.codes = new int[] { GameView.UI_UNDO };
+					return;
 				case GameView.UI_REDO: case 'R':
 					redoKey = mKeys.size() - 1;
 					key.repeatable = true;
 					setUndoRedoEnabled(ExtraKey.REDO, redoEnabled);
-					break;
+					key.codes = new int[] { GameView.UI_REDO };
+					return;
 				case '\b':
 					key.icon = trySpecificIcon(context.getResources(), R.drawable.sym_key_backspace);
 					key.repeatable = true;

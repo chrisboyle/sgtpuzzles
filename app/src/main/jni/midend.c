@@ -217,7 +217,7 @@ const game *midend_which_game(midend *me)
     return me->ourgame;
 }
 
-static void midend_purge_states(midend *me)
+void midend_purge_states(midend *me)
 {
     while (me->nstates > me->statepos) {
         me->ourgame->free_game(me->states[--me->nstates].state);

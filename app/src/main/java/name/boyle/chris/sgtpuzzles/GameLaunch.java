@@ -42,6 +42,10 @@ public class GameLaunch {
 		return new GameLaunch(null, null, null, null, null, saved, false, true, false);
 	}
 
+	public static GameLaunch undoingOrRedoingNewGame(@NonNull final String saved) {
+		return new GameLaunch(null, null, null, null, null, saved, false, true, true);
+	}
+
 	public static GameLaunch ofLocalState(@NonNull final String backend, @NonNull final String saved, final boolean knownCompleted, final boolean fromChooser) {
 		return new GameLaunch(backend, null, null, null, null, saved, knownCompleted, fromChooser, true);
 	}

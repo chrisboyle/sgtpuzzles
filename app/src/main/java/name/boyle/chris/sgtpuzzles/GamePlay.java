@@ -94,6 +94,9 @@ import java.util.StringTokenizer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static name.boyle.chris.sgtpuzzles.GameView.UI_REDO;
+import static name.boyle.chris.sgtpuzzles.GameView.UI_UNDO;
+
 public class GamePlay extends AppCompatActivity implements OnSharedPreferenceChangeListener, NightModeHelper.Parent
 {
 	static final String TAG = "GamePlay";
@@ -141,7 +144,8 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 	private boolean workerRunning = false;
 	private Process gameGenProcess = null;
 	private boolean solveEnabled = false, customVisible = false,
-			undoEnabled = false, redoEnabled = false;
+			undoEnabled = false, redoEnabled = false, undoIsLoadGame = false;
+	private String undoToGame = null;
 	private SharedPreferences prefs, state;
 	private static final int CFG_SETTINGS = 0, CFG_SEED = 1, CFG_DESC = 2,
 		C_STRING = 0, C_CHOICES = 1, C_BOOLEAN = 2;
@@ -161,7 +165,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 	private static final File storageDir = Environment.getExternalStorageDirectory();
 	private String[] games;
 	private Menu menu;
-	private String maybeUndoRedo = "" + ((char)GameView.UI_UNDO) + ((char)GameView.UI_REDO);
+	private String maybeUndoRedo = "" + ((char)UI_UNDO) + ((char)UI_REDO);
 	private boolean startedFullscreen = false, cachedFullscreen = false;
 	private boolean keysAlreadySet = false;
 	private boolean everCompleted = false;
@@ -686,8 +690,8 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 		case android.R.id.home:
 			startChooserAndFinish();
 			break;
-		case R.id.undo:     sendKey(0, 0, GameView.UI_UNDO); break;
-		case R.id.redo:     sendKey(0, 0, GameView.UI_REDO); break;
+		case R.id.undo:     sendKey(0, 0, UI_UNDO); break;
+		case R.id.redo:     sendKey(0, 0, UI_REDO); break;
 		default:
 			ret = super.onOptionsItemSelected(item);
 			break;
@@ -1030,12 +1034,19 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 		if (progress != null) {
 			throw new RuntimeException("startGame while already starting!");
 		}
+		final String previousGame;
+		if (launch.needsGenerating()) {
+			purgeStates();
+			previousGame = saveToString();
+		} else {
+			previousGame = null;
+		}
 		showProgress(launch);
 		stopNative();
-		startGameThread(launch);
+		startGameThread(launch, previousGame);
 	}
 
-	private void startGameThread(final GameLaunch launch) {
+	private void startGameThread(final GameLaunch launch, final String previousGame) {
 		workerRunning = true;
 		(worker = new Thread(launch.needsGenerating() ? "generateAndLoadGame" : "loadGame") { public void run() {
 			try {
@@ -1088,11 +1099,11 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 					} else if (workerRunning) {
 						throw new IOException("Internal error generating game: result is blank");
 					}
-					startGameConfirmed(true, launch);
+					startGameConfirmed(true, launch, previousGame);
 				} else if (launch.isOfNonLocalState() && launch.getSaved() != null) {
-					warnOfStateLoss(launch.getSaved(), () -> startGameConfirmed(false, launch), launch.isFromChooser());
+					warnOfStateLoss(launch.getSaved(), () -> startGameConfirmed(false, launch, previousGame), launch.isFromChooser());
 				} else {
-					startGameConfirmed(false, launch);
+					startGameConfirmed(false, launch, previousGame);
 				}
 			} catch (IllegalArgumentException e) {
 				abort(e.getMessage(), launch.isFromChooser());  // probably bogus params
@@ -1103,7 +1114,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 		}}).start();
 	}
 
-	private void startGameConfirmed(final boolean generating, final GameLaunch launch) {
+	private void startGameConfirmed(final boolean generating, final GameLaunch launch, final String previousGame) {
 		final String toPlay = launch.getSaved();
 		final String gameID = launch.getGameID();
 		if (toPlay == null && gameID == null) {
@@ -1120,6 +1131,11 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 			}
 		} else {
 			changingGame = ! currentBackend.equals(startingBackend);
+		}
+		if (previousGame != null && !changingGame && !previousGame.equals(toPlay)) {
+			undoToGame = previousGame;
+		} else {
+			undoToGame = null;
 		}
 
 		try {
@@ -1308,6 +1324,10 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 		if (k == '\f') {
 			// menu button hack
 			openOptionsMenu();
+			return;
+		}
+		if (k == UI_UNDO && undoIsLoadGame) {
+			startGame(GameLaunch.undoingOrRedoingNewGame(undoToGame));
 			return;
 		}
 		if (swapLR && (k >= GameView.FIRST_MOUSE && k <= GameView.LAST_MOUSE)) {
@@ -1882,10 +1902,11 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 	@UsedByJNI
 	void changedState(final boolean canUndo, final boolean canRedo) {
 		runOnUiThread(() -> {
-			undoEnabled = canUndo;
+			undoEnabled = canUndo || undoToGame != null;
+			undoIsLoadGame = !canUndo && undoToGame != null;
 			redoEnabled = canRedo;
 			if (keyboard != null) {
-				keyboard.setUndoRedoEnabled(canUndo, canRedo);
+				keyboard.setUndoRedoEnabled(undoEnabled, redoEnabled);
 			}
 			if (menu != null) {
 				MenuItem mi;
@@ -1927,6 +1948,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 	native MenuEntry[] getPresets();
 	native int getUIVisibility();
 	native void resetTimerBaseline();
+	native void purgeStates();
 
 	static {
 		System.loadLibrary("puzzles");

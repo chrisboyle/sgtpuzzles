@@ -352,6 +352,7 @@ int midend_tilesize(midend *me);
 #ifdef ANDROID
 const char * midend_android_preset_menu_get_encoded_params(midend *me, int id);
 void midend_android_cursor_visibility(midend *me, int visible);
+void midend_purge_states(midend *me);
 #endif
 
 /*
