@@ -144,8 +144,9 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 	private boolean workerRunning = false;
 	private Process gameGenProcess = null;
 	private boolean solveEnabled = false, customVisible = false,
-			undoEnabled = false, redoEnabled = false, undoIsLoadGame = false;
-	private String undoToGame = null;
+			undoEnabled = false, redoEnabled = false,
+			undoIsLoadGame = false, redoIsLoadGame = false;
+	private String undoToGame = null, redoToGame = null;
 	private SharedPreferences prefs, state;
 	private static final int CFG_SETTINGS = 0, CFG_SEED = 1, CFG_DESC = 2,
 		C_STRING = 0, C_CHOICES = 1, C_BOOLEAN = 2;
@@ -1030,13 +1031,19 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 
 	private void startGame(final GameLaunch launch)
 	{
+		startGame(launch, false);
+	}
+
+	private void startGame(final GameLaunch launch, final boolean isRedo)
+	{
 		Log.d(TAG, "startGame: " + launch);
 		if (progress != null) {
 			throw new RuntimeException("startGame while already starting!");
 		}
 		final String previousGame;
-		if (launch.needsGenerating()) {
+		if (isRedo || launch.needsGenerating()) {
 			purgeStates();
+			redoToGame = null;
 			previousGame = saveToString();
 		} else {
 			previousGame = null;
@@ -1327,7 +1334,15 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 			return;
 		}
 		if (k == UI_UNDO && undoIsLoadGame) {
-			startGame(GameLaunch.undoingOrRedoingNewGame(undoToGame));
+			final GameLaunch launchUndo = GameLaunch.undoingOrRedoingNewGame(undoToGame);
+			redoToGame = saveToString();
+			startGame(launchUndo);
+			return;
+		}
+		if (k == UI_REDO && redoIsLoadGame) {
+			final GameLaunch launchRedo = GameLaunch.undoingOrRedoingNewGame(redoToGame);
+			redoToGame = null;
+			startGame(launchRedo, true);
 			return;
 		}
 		if (swapLR && (k >= GameView.FIRST_MOUSE && k <= GameView.LAST_MOUSE)) {
@@ -1904,7 +1919,8 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 		runOnUiThread(() -> {
 			undoEnabled = canUndo || undoToGame != null;
 			undoIsLoadGame = !canUndo && undoToGame != null;
-			redoEnabled = canRedo;
+			redoEnabled = canRedo || redoToGame != null;
+			redoIsLoadGame = !canRedo && redoToGame != null;
 			if (keyboard != null) {
 				keyboard.setUndoRedoEnabled(undoEnabled, redoEnabled);
 			}
