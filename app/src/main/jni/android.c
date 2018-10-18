@@ -77,7 +77,9 @@ static jmethodID
 	changedState,
 	purgingStates,
 	clipRect,
-	dialogAdd,
+	dialogAddString,
+	dialogAddBoolean,
+	dialogAddChoices,
 	dialogInit,
 	dialogShow,
 	drawCircle,
@@ -401,8 +403,8 @@ void JNICALL Java_name_boyle_chris_sgtpuzzles_GamePlay_configSetString(JNIEnv *e
 	pthread_setspecific(envKey, env);
 	config_item *i = configItemWithName(env, name);
 	const char* newval = (*env)->GetStringUTFChars(env, s, NULL);
-	sfree(i->sval);
-	i->sval = dupstr(newval);
+	sfree(i->u.string.sval);
+	i->u.string.sval = dupstr(newval);
 	(*env)->ReleaseStringUTFChars(env, s, newval);
 }
 
@@ -410,14 +412,14 @@ void JNICALL Java_name_boyle_chris_sgtpuzzles_GamePlay_configSetBool(JNIEnv *env
 {
 	pthread_setspecific(envKey, env);
 	config_item *i = configItemWithName(env, name);
-	i->ival = selected != 0 ? TRUE : FALSE;
+	i->u.boolean.bval = selected != 0 ? TRUE : FALSE;
 }
 
 void JNICALL Java_name_boyle_chris_sgtpuzzles_GamePlay_configSetChoice(JNIEnv *env, jobject _obj, jstring name, jint selected)
 {
 	pthread_setspecific(envKey, env);
 	config_item *i = configItemWithName(env, name);
-	i->ival = selected;
+	i->u.choices.selected = selected;
 }
 
 void JNICALL Java_name_boyle_chris_sgtpuzzles_GamePlay_solveEvent(JNIEnv *env, jobject _obj)
@@ -454,16 +456,24 @@ void JNICALL Java_name_boyle_chris_sgtpuzzles_GamePlay_configEvent(JNIEnv *env, 
 		}
 		jstring sval = NULL;
 		switch (i->type) {
-			case C_STRING: case C_CHOICES:
-				if (i->sval) {
-					sval = (*env)->NewStringUTF(env, i->sval);
+			case C_STRING:
+				if (i->u.string.sval) {
+					sval = (*env)->NewStringUTF(env, i->u.string.sval);
 					if (!sval) return;
 				}
+				(*env)->CallVoidMethod(env, obj, dialogAddString, whichEvent, name, sval);
+				break;
+			case C_CHOICES:
+				if (i->u.choices.choicenames) {
+					sval = (*env)->NewStringUTF(env, i->u.choices.choicenames);
+					if (!sval) return;
+				}
+				(*env)->CallVoidMethod(env, obj, dialogAddChoices, whichEvent, name, sval, i->u.choices.selected);
 				break;
 			case C_BOOLEAN: case C_END: default:
+				(*env)->CallVoidMethod(env, obj, dialogAddBoolean, whichEvent, name, i->u.boolean.bval);
 				break;
 		}
-		(*env)->CallVoidMethod(env, obj, dialogAdd, whichEvent, i->type, name, sval, i->ival);
 		if (name) (*env)->DeleteLocalRef(env, name);
 		if (sval) (*env)->DeleteLocalRef(env, sval);
 	}
@@ -498,15 +508,15 @@ jstring getDescOrSeedFromDialog(JNIEnv *env, jobject _obj, int mode)
 	char *buf;
 	int free_buf = FALSE;
 	jstring ret = NULL;
-	if (!strchr(fe->cfg[0].sval, sep)) {
+	if (!strchr(fe->cfg[0].u.string.sval, sep)) {
 		char *params = midend_get_current_params(fe->me, mode == CFG_SEED);
 		size_t plen = strlen(params);
-		buf = snewn(plen + strlen(fe->cfg[0].sval) + 2, char);
-		sprintf(buf, "%s%c%s", params, sep, fe->cfg[0].sval);
+		buf = snewn(plen + strlen(fe->cfg[0].u.string.sval) + 2, char);
+		sprintf(buf, "%s%c%s", params, sep, fe->cfg[0].u.string.sval);
 		sfree(params);
 		free_buf = TRUE;
 	} else {
-		buf = fe->cfg[0].sval;
+		buf = fe->cfg[0].u.string.sval;
 	}
 	char *willBeMangled = dupstr(buf);
 	char *error = midend_game_id_int(fe->me, willBeMangled, mode, TRUE);
@@ -605,7 +615,7 @@ int deserialiseOrIdentify(frontend *new_fe, jstring s, jboolean identifyOnly) {
 	return whichBackend;
 }
 
-jint JNICALL Java_name_boyle_chris_sgtpuzzles_GamePlay_identifyBackend(JNIEnv *env, jobject c, jstring savedGame)
+jint JNICALL Java_name_boyle_chris_sgtpuzzles_GamePlay_identifyBackend(JNIEnv *env, jclass type, jstring savedGame)
 {
 	pthread_setspecific(envKey, env);
 	return deserialiseOrIdentify(NULL, savedGame, TRUE);
@@ -899,7 +909,9 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
 	changedState   = (*env)->GetMethodID(env, cls,  "changedState", "(ZZ)V");
 	purgingStates  = (*env)->GetMethodID(env, cls,  "purgingStates", "()V");
 	clipRect       = (*env)->GetMethodID(env, vcls, "clipRect", "(IIII)V");
-	dialogAdd      = (*env)->GetMethodID(env, cls,  "dialogAdd", "(IILjava/lang/String;Ljava/lang/String;I)V");
+	dialogAddString = (*env)->GetMethodID(env, cls,  "dialogAddString", "(ILjava/lang/String;Ljava/lang/String;)V");
+    dialogAddBoolean = (*env)->GetMethodID(env, cls,  "dialogAddBoolean", "(ILjava/lang/String;Z)V");
+    dialogAddChoices = (*env)->GetMethodID(env, cls,  "dialogAddChoices", "(ILjava/lang/String;Ljava/lang/String;I)V");
 	dialogInit     = (*env)->GetMethodID(env, cls,  "dialogInit", "(ILjava/lang/String;)V");
 	dialogShow     = (*env)->GetMethodID(env, cls,  "dialogShow", "()V");
 	drawCircle     = (*env)->GetMethodID(env, vcls, "drawCircle", "(FFFFII)V");

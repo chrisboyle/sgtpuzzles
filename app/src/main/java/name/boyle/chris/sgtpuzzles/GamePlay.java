@@ -57,7 +57,6 @@ import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.SubMenu;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.ArrayAdapter;
@@ -148,8 +147,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 			undoIsLoadGame = false, redoIsLoadGame = false;
 	private String undoToGame = null, redoToGame = null;
 	private SharedPreferences prefs, state;
-	private static final int CFG_SETTINGS = 0, CFG_SEED = 1, CFG_DESC = 2,
-		C_STRING = 0, C_CHOICES = 1, C_BOOLEAN = 2;
+	private static final int CFG_SETTINGS = 0, CFG_SEED = 1, CFG_DESC = 2;
 	static final long MAX_SAVE_SIZE = 1000000; // 1MB; we only have 16MB of heap
 	private boolean gameWantsTimer = false;
 	private static final int TIMER_INTERVAL = 20;
@@ -533,7 +531,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 	private boolean checkPermissionGrantBug(Uri uri) {
 		// Work around https://code.google.com/p/android-developer-preview/issues/detail?id=2982
 		// We know it's a file:// URI.
-		if (new File(uri.getPath()).canRead()) {
+		if (uri.getPath() == null || new File(uri.getPath()).canRead()) {
 			return false;
 		}
 		new AlertDialog.Builder(this)
@@ -899,7 +897,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 			targets.add(target);
 		}
 		Intent chooser = Intent.createChooser(targets.remove(targets.size() - 1), getString(R.string.share_title));
-		chooser.putExtra(Intent.EXTRA_INITIAL_INTENTS, targets.toArray(new Parcelable[targets.size()]));
+		chooser.putExtra(Intent.EXTRA_INITIAL_INTENTS, targets.toArray(new Parcelable[0]));
 		startActivity(chooser);
 	}
 
@@ -1642,75 +1640,77 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 
 	@SuppressLint("InlinedApi")
 	@UsedByJNI
-	void dialogAdd(int whichEvent, int type, String name, String value, int selection)
+	void dialogAddString(int whichEvent, String name, String value)
 	{
 		final Context context = dialogBuilder.getContext();
-		switch(type) {
-		case C_STRING: {
-			dialogIds.add(name);
-			AppCompatEditText et = new AppCompatEditText(context);
-			// TODO: C_INT, C_UINT, C_UDOUBLE, C_DOUBLE
-			// Ugly temporary hack: in custom game dialog, all text boxes are numeric, in the other two dialogs they aren't.
-			// Uglier temporary-er hack: Black Box must accept a range for ball count.
-			if (whichEvent == CFG_SETTINGS && !currentBackend.equals("blackbox")) {
-				et.setInputType(InputType.TYPE_CLASS_NUMBER
-								| InputType.TYPE_NUMBER_FLAG_DECIMAL
-								| InputType.TYPE_NUMBER_FLAG_SIGNED);
-			}
-			et.setTag(name);
-			et.setText(value);
-			et.setWidth(getResources().getDimensionPixelSize((whichEvent == CFG_SETTINGS)
-					? R.dimen.dialog_edit_text_width : R.dimen.dialog_long_edit_text_width));
-			et.setSelectAllOnFocus(true);
-			AppCompatTextView tv = new AppCompatTextView(context);
-			tv.setText(name);
-			tv.setPadding(0, 0, getResources().getDimensionPixelSize(R.dimen.dialog_padding_horizontal), 0);
-			tv.setGravity(Gravity.END);
-			TableRow tr = new TableRow(context);
-			tr.addView(tv);
-			tr.addView(et);
-			tr.setGravity(Gravity.CENTER_VERTICAL);
-			dialogLayout.addView(tr);
-			if (whichEvent == CFG_SEED && value.indexOf('#') == value.length() - 1) {
-				final AppCompatTextView seedWarning = new AppCompatTextView(context);
-				seedWarning.setText(R.string.seedWarning);
-				dialogLayout.addView(seedWarning);
-			}
-			break; }
-		case C_BOOLEAN: {
-			dialogIds.add(name);
-			AppCompatCheckBox c = new AppCompatCheckBox(context);
-			c.setTag(name);
-			c.setText(name);
-			c.setChecked(selection != 0);
-			dialogLayout.addView(c);
-			break; }
-		case C_CHOICES: {
-			StringTokenizer st = new StringTokenizer(value.substring(1),value.substring(0,1));
-			ArrayList<String> choices = new ArrayList<>();
-			while(st.hasMoreTokens()) choices.add(st.nextToken());
-			dialogIds.add(name);
-			AppCompatSpinner s = new AppCompatSpinner(context);
-			s.setTag(name);
-			ArrayAdapter<String> a = new ArrayAdapter<>(context,
-					android.R.layout.simple_spinner_item, choices.toArray(new String[choices.size()]));
-			a.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-			s.setAdapter(a);
-			s.setSelection(selection);
-			s.setLayoutParams(new TableRow.LayoutParams(
-					getResources().getDimensionPixelSize(R.dimen.dialog_spinner_width),
-					TableRow.LayoutParams.WRAP_CONTENT));
-			TextView tv = new TextView(context);
-			tv.setText(name);
-			tv.setPadding(0, 0, getResources().getDimensionPixelSize(R.dimen.dialog_padding_horizontal), 0);
-			tv.setGravity(Gravity.END);
-			TableRow tr = new TableRow(context);
-			tr.addView(tv);
-			tr.addView(s);
-			tr.setGravity(Gravity.CENTER_VERTICAL);
-			dialogLayout.addView(tr);
-			break; }
+		dialogIds.add(name);
+		AppCompatEditText et = new AppCompatEditText(context);
+		// Ugly temporary hack: in custom game dialog, all text boxes are numeric, in the other two dialogs they aren't.
+		// Uglier temporary-er hack: Black Box must accept a range for ball count.
+		if (whichEvent == CFG_SETTINGS && !currentBackend.equals("blackbox")) {
+			et.setInputType(InputType.TYPE_CLASS_NUMBER
+					| InputType.TYPE_NUMBER_FLAG_DECIMAL
+					| InputType.TYPE_NUMBER_FLAG_SIGNED);
 		}
+		et.setTag(name);
+		et.setText(value);
+		et.setWidth(getResources().getDimensionPixelSize((whichEvent == CFG_SETTINGS)
+				? R.dimen.dialog_edit_text_width : R.dimen.dialog_long_edit_text_width));
+		et.setSelectAllOnFocus(true);
+		AppCompatTextView tv = new AppCompatTextView(context);
+		tv.setText(name);
+		tv.setPadding(0, 0, getResources().getDimensionPixelSize(R.dimen.dialog_padding_horizontal), 0);
+		tv.setGravity(Gravity.END);
+		TableRow tr = new TableRow(context);
+		tr.addView(tv);
+		tr.addView(et);
+		tr.setGravity(Gravity.CENTER_VERTICAL);
+		dialogLayout.addView(tr);
+		if (whichEvent == CFG_SEED && value.indexOf('#') == value.length() - 1) {
+			final AppCompatTextView seedWarning = new AppCompatTextView(context);
+			seedWarning.setText(R.string.seedWarning);
+			dialogLayout.addView(seedWarning);
+		}
+	}
+
+	@UsedByJNI
+	void dialogAddBoolean(int whichEvent, String name, boolean selected)
+	{
+		final Context context = dialogBuilder.getContext();
+		dialogIds.add(name);
+		AppCompatCheckBox c = new AppCompatCheckBox(context);
+		c.setTag(name);
+		c.setText(name);
+		c.setChecked(selected);
+		dialogLayout.addView(c);
+	}
+
+	@UsedByJNI
+	void dialogAddChoices(int whichEvent, String name, String value, int selection) {
+		final Context context = dialogBuilder.getContext();
+		StringTokenizer st = new StringTokenizer(value.substring(1), value.substring(0, 1));
+		ArrayList<String> choices = new ArrayList<>();
+		while (st.hasMoreTokens()) choices.add(st.nextToken());
+		dialogIds.add(name);
+		AppCompatSpinner s = new AppCompatSpinner(context);
+		s.setTag(name);
+		ArrayAdapter<String> a = new ArrayAdapter<>(context,
+				android.R.layout.simple_spinner_item, choices.toArray(new String[0]));
+		a.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+		s.setAdapter(a);
+		s.setSelection(selection);
+		s.setLayoutParams(new TableRow.LayoutParams(
+				getResources().getDimensionPixelSize(R.dimen.dialog_spinner_width),
+				TableRow.LayoutParams.WRAP_CONTENT));
+		TextView tv = new TextView(context);
+		tv.setText(name);
+		tv.setPadding(0, 0, getResources().getDimensionPixelSize(R.dimen.dialog_padding_horizontal), 0);
+		tv.setGravity(Gravity.END);
+		TableRow tr = new TableRow(context);
+		tr.addView(tv);
+		tr.addView(s);
+		tr.setGravity(Gravity.CENTER_VERTICAL);
+		dialogLayout.addView(tr);
 	}
 
 	@UsedByJNI
