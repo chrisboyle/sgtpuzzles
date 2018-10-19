@@ -332,7 +332,7 @@ const char *midend_game_id(midend *me, const char *id);
 const char *midend_game_id_int(midend *me, const char *id, int defmode, int validate_only);
 char *midend_get_game_id(midend *me);
 char *midend_get_current_params(midend *me, int full);
-char *midend_config_to_encoded_params(midend *me, config_item *cfg, char **encoded);
+const char *midend_config_to_encoded_params(midend *me, config_item *cfg, char **encoded);
 char *midend_get_random_seed(midend *me);
 int midend_can_format_as_text_now(midend *me);
 char *midend_text_format(midend *me);
@@ -743,7 +743,7 @@ extern char UI_UPDATE[];
 
 #ifdef ANDROID
 extern const game* game_by_name(const char *name);
-extern game_params* oriented_params_from_str(const game* game, const char* params, char** error);
+extern game_params* oriented_params_from_str(const game* game, const char* params, const char** error);
 extern void android_completed();
 extern void android_inertia_follow(int is_solved);
 extern void android_keys(const char *keys, int arrowMode);

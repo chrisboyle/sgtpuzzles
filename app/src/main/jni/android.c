@@ -38,7 +38,7 @@ stpcpy(char *dst, char const *src)
 
 const struct game* thegame;
 
-void fatal(char *fmt, ...)
+void fatal(const char *fmt, ...)
 {
 	va_list ap;
 	fprintf(stderr, "fatal error: ");
@@ -122,7 +122,7 @@ void frontend_default_colour(frontend *fe, float *output)
 	output[2] = (argb & 0x000000ff) / 255.0f;
 }
 
-void android_status_bar(void *handle, char *text)
+void android_status_bar(void *handle, const char *text)
 {
 	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
 	jstring js = (*env)->NewStringUTF(env, text);
@@ -154,7 +154,7 @@ void android_unclip(void *handle)
 }
 
 void android_draw_text(void *handle, int x, int y, int fonttype, int fontsize,
-		int align, int colour, char *text)
+		int align, int colour, const char *text)
 {
 	CHECK_DR_HANDLE
 	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
@@ -425,7 +425,7 @@ void JNICALL Java_name_boyle_chris_sgtpuzzles_GamePlay_configSetChoice(JNIEnv *e
 void JNICALL Java_name_boyle_chris_sgtpuzzles_GamePlay_solveEvent(JNIEnv *env, jobject _obj)
 {
 	pthread_setspecific(envKey, env);
-	char *msg = midend_solve(fe->me);
+	const char *msg = midend_solve(fe->me);
 	if (! msg) return;
 	jstring js = (*env)->NewStringUTF(env, msg);
 	if( js == NULL ) return;
@@ -484,7 +484,7 @@ jstring JNICALL Java_name_boyle_chris_sgtpuzzles_GamePlay_configOK(JNIEnv *env, 
 {
 	pthread_setspecific(envKey, env);
 	char *encoded;
-	char *err = midend_config_to_encoded_params(fe->me, fe->cfg, &encoded);
+	const char *err = midend_config_to_encoded_params(fe->me, fe->cfg, &encoded);
 
 	if (err) {
 		throwIllegalArgumentException(env, err);
@@ -519,7 +519,7 @@ jstring getDescOrSeedFromDialog(JNIEnv *env, jobject _obj, int mode)
 		buf = fe->cfg[0].u.string.sval;
 	}
 	char *willBeMangled = dupstr(buf);
-	char *error = midend_game_id_int(fe->me, willBeMangled, mode, TRUE);
+	const char *error = midend_game_id_int(fe->me, willBeMangled, mode, TRUE);
 	sfree(willBeMangled);
 	if (!error) ret = (*env)->NewStringUTF(env, buf);
 	if (free_buf) sfree(buf);
@@ -549,7 +549,7 @@ void JNICALL Java_name_boyle_chris_sgtpuzzles_GamePlay_configCancel(JNIEnv *env,
 	fe->cfg = NULL;
 }
 
-void android_serialise_write(void *ctx, void *buf, int len)
+void android_serialise_write(void *ctx, const void *buf, int len)
 {
 	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
 	jbyteArray bytesJava = (*env)->NewByteArray(env, len);
@@ -668,7 +668,7 @@ const game* game_by_name(const char* name) {
 	return NULL;
 }
 
-game_params* oriented_params_from_str(const game* my_game, const char* params_str, char** error) {
+game_params* oriented_params_from_str(const game* my_game, const char* params_str, const char** error) {
 	game_params *params = my_game->default_params();
 	if (params_str != NULL) {
 		if (!strcmp(params_str, "--portrait") || !strcmp(params_str, "--landscape")) {
@@ -686,7 +686,7 @@ game_params* oriented_params_from_str(const game* my_game, const char* params_st
 			my_game->decode_params(params, params_str);
 		}
 	}
-	char *our_error = my_game->validate_params(params, TRUE);
+	const char *our_error = my_game->validate_params(params, TRUE);
 	if (our_error) {
 		my_game->free_params(params);
 		if (error) {
