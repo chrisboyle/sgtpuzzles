@@ -71,7 +71,7 @@
 #ifdef DEBUGGING
 static FILE *debug_fp = NULL;
 
-void dputs(char *buf)
+void dputs(const char *buf)
 {
     if (!debug_fp) {
         debug_fp = fopen("debug.log", "w");
@@ -85,7 +85,7 @@ void dputs(char *buf)
     }
 }
 
-void debug_printf(char *fmt, ...)
+void debug_printf(const char *fmt, ...)
 {
     char buf[4096];
     va_list ap;
@@ -101,7 +101,7 @@ void debug_printf(char *fmt, ...)
  * Error reporting functions used elsewhere.
  */
 
-void fatal(char *fmt, ...)
+void fatal(const char *fmt, ...)
 {
     va_list ap;
 
@@ -264,7 +264,7 @@ void frontend_default_colour(frontend *fe, float *output)
 #endif
 }
 
-void gtk_status_bar(void *handle, char *text)
+void gtk_status_bar(void *handle, const char *text)
 {
     frontend *fe = (frontend *)handle;
 
@@ -1000,7 +1000,7 @@ void gtk_unclip(void *handle)
 }
 
 void gtk_draw_text(void *handle, int x, int y, int fonttype, int fontsize,
-		   int align, int colour, char *text)
+		   int align, int colour, const char *text)
 {
     frontend *fe = (frontend *)handle;
     int i;
@@ -1398,7 +1398,9 @@ static gint configure_area(GtkWidget *widget,
 {
     frontend *fe = (frontend *)data;
     resize_puzzle_to_area(fe, event->width, event->height);
+#if GTK_CHECK_VERSION(3,0,0)
     fe->awaiting_resize_ack = FALSE;
+#endif
     return TRUE;
 }
 
@@ -1493,8 +1495,8 @@ static void align_label(GtkLabel *label, double x, double y)
 }
 
 #if GTK_CHECK_VERSION(3,0,0)
-int message_box(GtkWidget *parent, char *title, char *msg, int centre,
-		int type)
+int message_box(GtkWidget *parent, const char *title, const char *msg,
+                int centre, int type)
 {
     GtkWidget *window;
     gint ret;
@@ -1523,8 +1525,8 @@ static void msgbox_button_clicked(GtkButton *button, gpointer data)
     gtk_widget_destroy(GTK_WIDGET(data));
 }
 
-int message_box(GtkWidget *parent, char *title, char *msg, int centre,
-		int type)
+int message_box(GtkWidget *parent, const char *title, const char *msg,
+                int centre, int type)
 {
     GtkWidget *window, *hbox, *text, *button;
     char *titles;
@@ -1588,7 +1590,7 @@ int message_box(GtkWidget *parent, char *title, char *msg, int centre,
 }
 #endif /* GTK_CHECK_VERSION(3,0,0) */
 
-void error_box(GtkWidget *parent, char *msg)
+void error_box(GtkWidget *parent, const char *msg)
 {
     message_box(parent, "Error", msg, FALSE, MB_OK);
 }
@@ -1596,7 +1598,7 @@ void error_box(GtkWidget *parent, char *msg)
 static void config_ok_button_clicked(GtkButton *button, gpointer data)
 {
     frontend *fe = (frontend *)data;
-    char *err;
+    const char *err;
 
     err = midend_set_config(fe->me, fe->cfg_which, fe->cfg);
 
@@ -2169,7 +2171,7 @@ static void filesel_ok(GtkButton *button, gpointer data)
     fe->filesel_name = dupstr(name);
 }
 
-static char *file_selector(frontend *fe, char *title, int save)
+static char *file_selector(frontend *fe, const char *title, int save)
 {
     GtkWidget *filesel =
         gtk_file_selection_new(title);
@@ -2200,7 +2202,7 @@ static char *file_selector(frontend *fe, char *title, int save)
 
 #else
 
-static char *file_selector(frontend *fe, char *title, int save)
+static char *file_selector(frontend *fe, const char *title, int save)
 {
     char *filesel_name = NULL;
 
@@ -2232,7 +2234,7 @@ struct savefile_write_ctx {
     int error;
 };
 
-static void savefile_write(void *wctx, void *buf, int len)
+static void savefile_write(void *wctx, const void *buf, int len)
 {
     struct savefile_write_ctx *ctx = (struct savefile_write_ctx *)wctx;
     if (fwrite(buf, 1, len, ctx->fp) < len)
@@ -2299,7 +2301,8 @@ static void menu_save_event(GtkMenuItem *menuitem, gpointer data)
 static void menu_load_event(GtkMenuItem *menuitem, gpointer data)
 {
     frontend *fe = (frontend *)data;
-    char *name, *err;
+    char *name;
+    const char *err;
 
     name = file_selector(fe, "Enter name of saved game file to load", FALSE);
 
@@ -2330,7 +2333,7 @@ static void menu_load_event(GtkMenuItem *menuitem, gpointer data)
 static void menu_solve_event(GtkMenuItem *menuitem, gpointer data)
 {
     frontend *fe = (frontend *)data;
-    char *msg;
+    const char *msg;
 
     msg = midend_solve(fe->me);
 
@@ -2396,7 +2399,7 @@ static void menu_about_event(GtkMenuItem *menuitem, gpointer data)
 }
 
 static GtkWidget *add_menu_ui_item(
-    frontend *fe, GtkContainer *cont, char *text, int action,
+    frontend *fe, GtkContainer *cont, const char *text, int action,
     int accel_key, int accel_keyqual)
 {
     GtkWidget *menuitem = gtk_menu_item_new_with_label(text);
@@ -2489,7 +2492,7 @@ static frontend *new_window(char *arg, int argtype, char **error)
     fe->me = midend_new(fe, &thegame, &gtk_drawing, fe);
 
     if (arg) {
-	char *err;
+	const char *err;
 	FILE *fp;
 
 	errbuf[0] = '\0';
@@ -2884,25 +2887,6 @@ static frontend *new_window(char *arg, int argtype, char **error)
     return fe;
 }
 
-char *fgetline(FILE *fp)
-{
-    char *ret = snewn(512, char);
-    int size = 512, len = 0;
-    while (fgets(ret + len, size - len, fp)) {
-	len += strlen(ret + len);
-	if (ret[len-1] == '\n')
-	    break;		       /* got a newline, we're done */
-	size = len + 512;
-	ret = sresize(ret, size, char);
-    }
-    if (len == 0) {		       /* first fgets returned NULL */
-	sfree(ret);
-	return NULL;
-    }
-    ret[len] = '\0';
-    return ret;
-}
-
 static void list_presets_from_menu(struct preset_menu *menu)
 {
     int i;
@@ -2928,7 +2912,7 @@ int main(int argc, char **argv)
     int soln = FALSE, colour = FALSE;
     float scale = 1.0F;
     float redo_proportion = 0.0F;
-    char *savefile = NULL, *savesuffix = NULL;
+    const char *savefile = NULL, *savesuffix = NULL;
     char *arg = NULL;
     int argtype = ARG_EITHER;
     char *screenshot_file = NULL;
@@ -3171,7 +3155,8 @@ int main(int argc, char **argv)
 	 * generated descriptive game IDs.)
 	 */
 	while (ngenerate == 0 || i < n) {
-	    char *pstr, *err, *seed;
+	    char *pstr, *seed;
+            const char *err;
             struct rusage before, after;
 
 	    if (ngenerate == 0) {
@@ -3225,7 +3210,7 @@ int main(int argc, char **argv)
                  * re-entering the same game id, and then try to solve
                  * it.
                  */
-                char *game_id, *err;
+                char *game_id;
 
                 game_id = midend_get_game_id(me);
                 err = midend_game_id(me, game_id);
@@ -3270,7 +3255,7 @@ int main(int argc, char **argv)
 		sprintf(realname, "%s%d%s", savefile, i, savesuffix);
 
                 if (soln) {
-                    char *err = midend_solve(me);
+                    const char *err = midend_solve(me);
                     if (err) {
                         fprintf(stderr, "%s: unable to show solution: %s\n",
                                 realname, err);

@@ -244,7 +244,7 @@ struct game_drawstate {
     grid_edge *cur_edge;
 };
 
-static char *validate_desc(const game_params *params, const char *desc);
+static const char *validate_desc(const game_params *params, const char *desc);
 static int dot_order(const game_state* state, int i, char line_type);
 static int face_order(const game_state* state, int i, char line_type);
 static solver_state *solve_game_rec(const solver_state *sstate);
@@ -290,6 +290,7 @@ static void check_caches(const solver_state* sstate);
     A("Penrose (kite/dart)",PENROSE_P2,3,3)                     \
     A("Penrose (rhombs)",PENROSE_P3,3,3)                        \
     A("Great-Great-Dodecagonal",GREATGREATDODECAGONAL,2,2)      \
+    A("Kagome",KAGOME,3,3)                                      \
     /* end of list */
 /* _("Squares"), _("Triangular"), _("Honeycomb"), _("Snub-Square"), _("Cairo"), _("Great-Hexagonal"), _("Octagonal"), _("Kites"), _("Floret"), _("Dodecagonal"), _("Great-Dodecagonal"), _("Penrose (kite/dart)"), _("Penrose (rhombs)"), _("Great-Great-Dodecagonal") */
 
@@ -308,7 +309,7 @@ static grid_type grid_types[] = { GRIDLIST(GRID_GRIDTYPE) };
 #define NUM_GRID_TYPES (sizeof(grid_types) / sizeof(grid_types[0]))
 static const struct {
     int amin, omin;
-    char *aerr, *oerr;
+    const char *aerr, *oerr;
 } grid_size_limits[] = { GRIDLIST(GRID_SIZES) };
 
 /* Generates a (dynamically allocated) new grid, according to the
@@ -557,6 +558,7 @@ static const game_params loopy_presets_more[] = {
 #ifdef SMALL_SCREEN
     {  7,  7, DIFF_HARD,   LOOPY_GRID_HONEYCOMB },
     {  5,  4, DIFF_HARD,   LOOPY_GRID_GREATHEXAGONAL },
+    {  5,  4, DIFF_HARD,   LOOPY_GRID_KAGOME },
     {  5,  5, DIFF_HARD,   LOOPY_GRID_OCTAGONAL },
     {  3,  3, DIFF_HARD,   LOOPY_GRID_FLORET },
     {  3,  3, DIFF_HARD,   LOOPY_GRID_DODECAGONAL },
@@ -565,6 +567,7 @@ static const game_params loopy_presets_more[] = {
 #else
     { 10, 10, DIFF_HARD,   LOOPY_GRID_HONEYCOMB },
     {  5,  4, DIFF_HARD,   LOOPY_GRID_GREATHEXAGONAL },
+    {  5,  4, DIFF_HARD,   LOOPY_GRID_KAGOME },
     {  7,  7, DIFF_HARD,   LOOPY_GRID_OCTAGONAL },
     {  5,  5, DIFF_HARD,   LOOPY_GRID_FLORET },
     {  5,  4, DIFF_HARD,   LOOPY_GRID_DODECAGONAL },
@@ -688,7 +691,7 @@ static game_params *custom_params(const config_item *cfg)
     return ret;
 }
 
-static char *validate_params(const game_params *params, int full)
+static const char *validate_params(const game_params *params, int full)
 {
     static char err[128];
     int l = grid_size_limits[params->type].amin;
@@ -774,11 +777,12 @@ static char *extract_grid_desc(const char **desc)
 
 /* We require that the params pass the test in validate_params and that the
  * description fills the entire game area */
-static char *validate_desc(const game_params *params, const char *desc)
+static const char *validate_desc(const game_params *params, const char *desc)
 {
     int count = 0;
     grid *g;
-    char *grid_desc, *ret;
+    char *grid_desc;
+    const char *ret;
 
     /* It's pretty inefficient to do this just for validation. All we need to
      * know is the precise number of faces. */
@@ -2979,7 +2983,7 @@ static solver_state *solve_game_rec(const solver_state *sstate_start)
 }
 
 static char *solve_game(const game_state *state, const game_state *currstate,
-                        const char *aux, char **error)
+                        const char *aux, const char **error)
 {
     char *soln = NULL;
     solver_state *sstate, *new_sstate;
@@ -3864,7 +3868,8 @@ int main(int argc, char **argv)
 {
     game_params *p;
     game_state *s;
-    char *id = NULL, *desc, *err;
+    char *id = NULL, *desc;
+    const char *err;
     int grade = FALSE;
     int ret, diff;
 #if 0 /* verbose solver not supported here (yet) */

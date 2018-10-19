@@ -268,7 +268,7 @@ static game_params *custom_params(const config_item *cfg)
     return ret;
 }
 
-static char *validate_params(const game_params *params, int full)
+static const char *validate_params(const game_params *params, int full)
 {
     if (params->w < 5) return "Width must be at least five";
     if (params->h < 5) return "Height must be at least five";
@@ -1387,7 +1387,7 @@ static char *new_game_desc(const game_params *params, random_state *rs,
     return desc;
 }
 
-static char *validate_desc(const game_params *params, const char *desc)
+static const char *validate_desc(const game_params *params, const char *desc)
 {
     int i, sizesofar;
     const int totalsize = params->w * params->h;
@@ -1721,7 +1721,7 @@ static char *solve_for_diff(game_state *state, char *old_lines, char *new_lines)
 }
 
 static char *solve_game(const game_state *state, const game_state *currstate,
-                        const char *aux, char **error)
+                        const char *aux, const char **error)
 {
     game_state *solved = dup_game(state);
     int i, ret, sz = state->shared->sz;
@@ -2721,7 +2721,8 @@ int main(int argc, const char *argv[])
     game_params *p = NULL;
     random_state *rs = NULL;
     time_t seed = time(NULL);
-    char *id = NULL, *err;
+    char *id = NULL;
+    const char *err;
 
     setvbuf(stdout, NULL, _IONBF, 0);
 

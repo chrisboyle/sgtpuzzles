@@ -21,7 +21,7 @@ struct psdata {
     drawing *drawing;
 };
 
-static void ps_printf(psdata *ps, char *fmt, ...)
+static void ps_printf(psdata *ps, const char *fmt, ...)
 {
     va_list ap;
 
@@ -73,7 +73,7 @@ static void ps_fill(psdata *ps, int colour)
     }
 }
 
-static void ps_setcolour_internal(psdata *ps, int colour, char *suffix)
+static void ps_setcolour_internal(psdata *ps, int colour, const char *suffix)
 {
     int hatch;
     float r, g, b;
@@ -102,7 +102,8 @@ static void ps_stroke(psdata *ps, int colour)
 }
 
 static void ps_draw_text(void *handle, int x, int y, int fonttype,
-			 int fontsize, int align, int colour, char *text)
+			 int fontsize, int align, int colour,
+                         const char *text)
 {
     psdata *ps = (psdata *)handle;
 

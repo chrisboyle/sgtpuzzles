@@ -300,9 +300,9 @@ static game_params *dup_params(const game_params *params)
 static int game_fetch_preset(int i, char **name, game_params **params)
 {
     static struct {
-        char *title;
+        const char *title;
         game_params params;
-    } presets[] = {
+    } const presets[] = {
         { "2x2 Trivial", { 2, 2, SYMM_ROT2, DIFF_BLOCK, DIFF_KMINMAX, FALSE, FALSE } },
         { "2x3 Basic", { 2, 3, SYMM_ROT2, DIFF_SIMPLE, DIFF_KMINMAX, FALSE, FALSE } },
         { "3x3 Trivial", { 3, 3, SYMM_ROT2, DIFF_BLOCK, DIFF_KMINMAX, FALSE, FALSE } },
@@ -503,7 +503,7 @@ static game_params *custom_params(const config_item *cfg)
     return ret;
 }
 
-static char *validate_params(const game_params *params, int full)
+static const char *validate_params(const game_params *params, int full)
 {
     if (params->c < 2)
 	return _("Both dimensions must be at least 2");
@@ -513,7 +513,9 @@ static char *validate_params(const game_params *params, int full)
     if ((params->c * params->r) > 31)
         return _("Unable to support more than 31 distinct symbols in a puzzle");
     if (params->killer && params->c * params->r > 9)
-	return _("Killer puzzle dimensions must be smaller than 10.");
+        return _("Killer puzzle dimensions must be smaller than 10");
+    if (params->xtype && params->c * params->r < 4)
+        return _("X-type puzzle dimensions must be larger than 3");
     return NULL;
 }
 
@@ -834,19 +836,20 @@ static void solver_place(struct solver_usage *usage, int x, int y, int n)
  */
 struct solver_scratch;
 static int solver_elim(struct solver_usage *usage, int *indices,
-                       char *fmt, ...) __attribute__((format(printf,3,4)));
+                       const char *fmt, ...)
+    __attribute__((format(printf,3,4)));
 static int solver_intersect(struct solver_usage *usage,
-                            int *indices1, int *indices2, char *fmt, ...)
+                            int *indices1, int *indices2, const char *fmt, ...)
     __attribute__((format(printf,4,5)));
 static int solver_set(struct solver_usage *usage,
                       struct solver_scratch *scratch,
-                      int *indices, char *fmt, ...)
+                      int *indices, const char *fmt, ...)
     __attribute__((format(printf,4,5)));
 #endif
 
 static int solver_elim(struct solver_usage *usage, int *indices
 #ifdef STANDALONE_SOLVER
-                       , char *fmt, ...
+                       , const char *fmt, ...
 #endif
                        )
 {
@@ -910,7 +913,7 @@ static int solver_elim(struct solver_usage *usage, int *indices
 static int solver_intersect(struct solver_usage *usage,
                             int *indices1, int *indices2
 #ifdef STANDALONE_SOLVER
-                            , char *fmt, ...
+                            , const char *fmt, ...
 #endif
                             )
 {
@@ -988,7 +991,7 @@ static int solver_set(struct solver_usage *usage,
                       struct solver_scratch *scratch,
                       int *indices
 #ifdef STANDALONE_SOLVER
-                      , char *fmt, ...
+                      , const char *fmt, ...
 #endif
                       )
 {
@@ -1015,12 +1018,23 @@ static int solver_set(struct solver_usage *usage,
 
 	/*
 	 * If count == 0, then there's a row with no 1s at all and
-	 * the puzzle is internally inconsistent. However, we ought
-	 * to have caught this already during the simpler reasoning
-	 * methods, so we can safely fail an assertion if we reach
-	 * this point here.
+	 * the puzzle is internally inconsistent.
 	 */
-	assert(count > 0);
+        if (count == 0) {
+#ifdef STANDALONE_SOLVER
+            if (solver_show_working) {
+                va_list ap;
+                printf("%*s", solver_recurse_depth*4,
+                       "");
+                va_start(ap, fmt);
+                vprintf(fmt, ap);
+                va_end(ap);
+                printf(":\n%*s  solver_set: impossible on entry\n",
+                       solver_recurse_depth*4, "");
+            }
+#endif
+            return -1;
+        }
         if (count == 1)
             rowidx[i] = colidx[first] = FALSE;
     }
@@ -1354,7 +1368,7 @@ static int solver_forcing(struct solver_usage *usage,
 						  (ondiag1(yt*cr+xt) && ondiag1(y*cr+x)))))) {
 #ifdef STANDALONE_SOLVER
                                 if (solver_show_working) {
-                                    char *sep = "";
+                                    const char *sep = "";
                                     int xl, yl;
                                     printf("%*sforcing chain, %d at ends of ",
                                            solver_recurse_depth*4, "", orign);
@@ -1467,7 +1481,14 @@ static int solver_killer_sums(struct solver_usage *usage, int b,
 	assert(nsquares == 0);
 	return 0;
     }
-    assert(nsquares > 0);
+    if (nsquares == 0) {
+#ifdef STANDALONE_SOLVER
+        if (solver_show_working)
+            printf("%*skiller: cage has no usable squares left\n",
+                   solver_recurse_depth*4, "");
+#endif
+        return -1;
+    }
 
     if (nsquares < 2 || nsquares > 4)
 	return 0;
@@ -2519,7 +2540,7 @@ static void solver(int cr, struct block_structure *blocks,
 
 #ifdef STANDALONE_SOLVER
 	    if (solver_show_working) {
-		char *sep = "";
+		const char *sep = "";
 		printf("%*srecursing on (%d,%d) [",
 		       solver_recurse_depth*4, "", x + 1, y + 1);
 		for (i = 0; i < j; i++) {
@@ -3087,6 +3108,8 @@ static int check_valid(int cr, struct block_structure *blocks,
 		sfree(used);
 		return FALSE;
 	    }
+
+	memset(used, FALSE, cr);
 	for (i = 0; i < cr; i++)
 	    if (grid[diag1(i)] > 0 && grid[diag1(i)] <= cr)
 		used[grid[diag1(i)]-1] = TRUE;
@@ -3157,7 +3180,8 @@ static int symmetries(const game_params *params, int x, int y,
 static char *encode_solve_move(int cr, digit *grid)
 {
     int i, len;
-    char *ret, *p, *sep;
+    char *ret, *p;
+    const char *sep;
 
     /*
      * It's surprisingly easy to work out _exactly_ how long this
@@ -3858,7 +3882,8 @@ static const char *spec_to_grid(const char *desc, digit *grid, int area)
  * end of the block spec, and return an error string or NULL if everything
  * is OK. The DSF is stored in *PDSF.
  */
-static char *spec_to_dsf(const char **pdesc, int **pdsf, int cr, int area)
+static const char *spec_to_dsf(const char **pdesc, int **pdsf,
+                               int cr, int area)
 {
     const char *desc = *pdesc;
     int pos = 0;
@@ -3926,7 +3951,7 @@ static char *spec_to_dsf(const char **pdesc, int **pdsf, int cr, int area)
     return NULL;
 }
 
-static char *validate_grid_desc(const char **pdesc, int range, int area)
+static const char *validate_grid_desc(const char **pdesc, int range, int area)
 {
     const char *desc = *pdesc;
     int squares = 0;
@@ -3956,11 +3981,11 @@ static char *validate_grid_desc(const char **pdesc, int range, int area)
     return NULL;
 }
 
-static char *validate_block_desc(const char **pdesc, int cr, int area,
-				 int min_nr_blocks, int max_nr_blocks,
-				 int min_nr_squares, int max_nr_squares)
+static const char *validate_block_desc(const char **pdesc, int cr, int area,
+                                       int min_nr_blocks, int max_nr_blocks,
+                                       int min_nr_squares, int max_nr_squares)
 {
-    char *err;
+    const char *err;
     int *dsf;
 
     err = spec_to_dsf(pdesc, &dsf, cr, area);
@@ -4033,10 +4058,10 @@ static char *validate_block_desc(const char **pdesc, int cr, int area,
     return NULL;
 }
 
-static char *validate_desc(const game_params *params, const char *desc)
+static const char *validate_desc(const game_params *params, const char *desc)
 {
     int cr = params->c * params->r, area = cr*cr;
-    char *err;
+    const char *err;
 
     err = validate_grid_desc(&desc, cr, area);
     if (err)
@@ -4130,7 +4155,7 @@ static game_state *new_game(midend *me, const game_params *params,
 	    state->immutable[i] = TRUE;
 
     if (r == 1) {
-	char *err;
+	const char *err;
 	int *dsf;
 	assert(*desc == ',');
 	desc++;
@@ -4148,7 +4173,7 @@ static game_state *new_game(midend *me, const game_params *params,
     make_blocks_from_whichblock(state->blocks);
 
     if (params->killer) {
-	char *err;
+	const char *err;
 	int *dsf;
 	assert(*desc == ',');
 	desc++;
@@ -4248,7 +4273,7 @@ static void free_game(game_state *state)
 }
 
 static char *solve_game(const game_state *state, const game_state *currstate,
-                        const char *ai, char **error)
+                        const char *ai, const char **error)
 {
     int cr = state->cr;
     char *ret;
@@ -5667,7 +5692,8 @@ int main(int argc, char **argv)
 {
     game_params *p;
     game_state *s;
-    char *id = NULL, *desc, *err;
+    char *id = NULL, *desc;
+    const char *err;
     int grade = FALSE;
     struct difficulty dlev;
 

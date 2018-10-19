@@ -664,7 +664,8 @@ function is never called and need not do anything at all.
 
 \S{backend-validate-params} \cw{validate_params()}
 
-\c char *(*validate_params)(const game_params *params, int full);
+\c const char *(*validate_params)(const game_params *params,
+\c                                int full);
 
 This function takes a \c{game_params} structure as input, and checks
 that the parameters described in it fall within sensible limits. (At
@@ -749,7 +750,8 @@ again in the game description.
 
 \S{backend-validate-desc} \cw{validate_desc()}
 
-\c char *(*validate_desc)(const game_params *params, const char *desc);
+\c const char *(*validate_desc)(const game_params *params,
+\c                              const char *desc);
 
 This function is given a game description, and its job is to
 validate that it describes a puzzle which makes sense.
@@ -1053,7 +1055,7 @@ not even offer the \q{Solve} menu option.
 \S{backend-solve} \cw{solve()}
 
 \c char *(*solve)(const game_state *orig, const game_state *curr,
-\c                const char *aux, char **error);
+\c                const char *aux, const char **error);
 
 This function is called when the user selects the \q{Solve} option
 from the menu.
@@ -1959,7 +1961,8 @@ This ensures that thin lines are visible even at small scales.
 \S{drawing-draw-text} \cw{draw_text()}
 
 \c void draw_text(drawing *dr, int x, int y, int fonttype,
-\c                int fontsize, int align, int colour, char *text);
+\c                int fontsize, int align, int colour,
+\c                const char *text);
 
 Draws text in the puzzle window.
 
@@ -2120,7 +2123,7 @@ printing routines, that code may safely call \cw{draw_update()}.)
 
 \S{drawing-status-bar} \cw{status_bar()}
 
-\c void status_bar(drawing *dr, char *text);
+\c void status_bar(drawing *dr, const char *text);
 
 Sets the text in the game's status bar to \c{text}. The text is copied
 from the supplied buffer, so the caller is free to deallocate or
@@ -2391,7 +2394,8 @@ function \cw{drawing_new()} (see \k{drawing-new}).
 \S{drawingapi-draw-text} \cw{draw_text()}
 
 \c void (*draw_text)(void *handle, int x, int y, int fonttype,
-\c                   int fontsize, int align, int colour, char *text);
+\c                   int fontsize, int align, int colour,
+\c                   const char *text);
 
 This function behaves exactly like the back end \cw{draw_text()}
 function; see \k{drawing-draw-text}.
@@ -2494,7 +2498,7 @@ called unless drawing is attempted.
 
 \S{drawingapi-status-bar} \cw{status_bar()}
 
-\c void (*status_bar)(void *handle, char *text);
+\c void (*status_bar)(void *handle, const char *text);
 
 This function behaves exactly like the back end \cw{status_bar()}
 function; see \k{drawing-status-bar}.
@@ -3154,8 +3158,8 @@ will probably need to pass it to \cw{midend_set_config}.)
 
 \H{midend-set-config} \cw{midend_set_config()}
 
-\c char *midend_set_config(midend *me, int which,
-\c                         config_item *cfg);
+\c const char *midend_set_config(midend *me, int which,
+\c                               config_item *cfg);
 
 Passes the mid-end the results of a configuration dialog box.
 \c{which} should have the same value which it had when
@@ -3176,7 +3180,7 @@ using \cw{midend_size()} and eventually perform a refresh using
 
 \H{midend-game-id} \cw{midend_game_id()}
 
-\c char *midend_game_id(midend *me, char *id);
+\c const char *midend_game_id(midend *me, const char *id);
 
 Passes the mid-end a string game ID (of any of the valid forms
 \cq{params}, \cq{params:description} or \cq{params#seed}) which the
@@ -3244,7 +3248,7 @@ conversion.
 
 \H{midend-solve} \cw{midend_solve()}
 
-\c char *midend_solve(midend *me);
+\c const char *midend_solve(midend *me);
 
 Requests the mid-end to perform a Solve operation.
 
@@ -3292,8 +3296,7 @@ visually activate and deactivate a redo button.
 \H{midend-serialise} \cw{midend_serialise()}
 
 \c void midend_serialise(midend *me,
-\c                       void (*write)(void *ctx, void *buf, int len),
-\c                       void *wctx);
+\c     void (*write)(void *ctx, const void *buf, int len), void *wctx);
 
 Calling this function causes the mid-end to convert its entire
 internal state into a long ASCII text string, and to pass that
@@ -3316,9 +3319,8 @@ output string.
 
 \H{midend-deserialise} \cw{midend_deserialise()}
 
-\c char *midend_deserialise(midend *me,
-\c                          int (*read)(void *ctx, void *buf, int len),
-\c                          void *rctx);
+\c const char *midend_deserialise(midend *me,
+\c     int (*read)(void *ctx, void *buf, int len), void *rctx);
 
 This function is the counterpart to \cw{midend_serialise()}. It
 calls the supplied \cw{read} function repeatedly to read a quantity
@@ -3355,9 +3357,8 @@ place.
 
 \H{identify-game} \cw{identify_game()}
 
-\c char *identify_game(char **name,
-\c                     int (*read)(void *ctx, void *buf, int len),
-\c                     void *rctx);
+\c const char *identify_game(char **name,
+\c     int (*read)(void *ctx, void *buf, int len), void *rctx);
 
 This function examines a serialised midend stream, of the same kind
 used by \cw{midend_serialise()} and \cw{midend_deserialise()}, and
@@ -3507,7 +3508,7 @@ calling \cw{midend_timer()}.
 
 \H{frontend-fatal} \cw{fatal()}
 
-\c void fatal(char *fmt, ...);
+\c void fatal(const char *fmt, ...);
 
 This is called by some utility functions if they encounter a
 genuinely fatal error such as running out of memory. It is a

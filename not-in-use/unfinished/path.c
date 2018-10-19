@@ -770,7 +770,7 @@ int main(void)
 #ifdef TEST_GENERAL
 #include <stdarg.h>
 
-void fatal(char *fmt, ...)
+void fatal(const char *fmt, ...)
 {
     va_list ap;
 

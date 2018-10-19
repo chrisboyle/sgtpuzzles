@@ -419,7 +419,7 @@ static game_params *custom_params(const config_item *cfg)
     return ret;
 }
 
-static char *validate_params(const game_params *params, int full)
+static const char *validate_params(const game_params *params, int full)
 {
     if (params->w < 1) return _("Width must be at least one");
     if (params->h < 1) return _("Height must be at least one");
@@ -501,10 +501,11 @@ static void free_game(game_state *state)
 }
 
 static void unpick_desc(const game_params *params, const char *desc,
-                        game_state **sout, char **mout)
+                        game_state **sout, const char **mout)
 {
     game_state *state = blank_game(params->w, params->h);
-    char *msg = NULL, c;
+    const char *msg = NULL;
+    char c;
     int num = 0, i = 0;
 
     while (*desc) {
@@ -851,9 +852,9 @@ generate:
     return ret;
 }
 
-static char *validate_desc(const game_params *params, const char *desc)
+static const char *validate_desc(const game_params *params, const char *desc)
 {
-    char *ret = NULL;
+    const char *ret = NULL;
 
     unpick_desc(params, desc, NULL, &ret);
     return ret;
@@ -1353,7 +1354,7 @@ static int solve_state(game_state *state)
 }
 
 static char *solve_game(const game_state *state, const game_state *currstate,
-                        const char *aux, char **error)
+                        const char *aux, const char **error)
 {
     game_state *tosolve;
     char *ret = NULL;
@@ -1583,7 +1584,7 @@ static game_state *execute_move(const game_state *state, const char *move)
     if (move[0] == 'S') {
         game_params p;
 	game_state *tmp;
-        char *valid;
+        const char *valid;
 	int i;
 
         p.w = state->w; p.h = state->h;
@@ -2365,7 +2366,8 @@ static void start_soak(game_params *p, char *seedstr)
 
 static void process_desc(char *id)
 {
-    char *desc, *err, *solvestr;
+    char *desc, *solvestr;
+    const char *err;
     game_params *p;
     game_state *s;
 
@@ -2409,7 +2411,8 @@ static void process_desc(char *id)
 
 int main(int argc, const char *argv[])
 {
-    char *id = NULL, *desc, *err, *aux = NULL;
+    char *id = NULL, *desc, *aux = NULL;
+    const char *err;
     int soak = 0, verbose = 0, stdin_desc = 0, n = 1, i;
     char *seedstr = NULL, newseed[16];
 

@@ -278,7 +278,7 @@ static game_params *custom_params(const config_item *cfg)
     return ret;
 }
 
-static char *validate_params(const game_params *params, int full)
+static const char *validate_params(const game_params *params, int full)
 {
     if (params->w < 3 || params->h < 3)
         return _("Width and height must both be at least 3");
@@ -668,7 +668,8 @@ static char *diff_game(const game_state *src, const game_state *dest,
                        int issolve)
 {
     int movelen = 0, movesize = 256, x, y, len;
-    char *move = snewn(movesize, char), buf[80], *sep = "";
+    char *move = snewn(movesize, char), buf[80];
+    const char *sep = "";
     char achar = issolve ? 'a' : 'A';
     space *sps, *spd;
 
@@ -1524,10 +1525,10 @@ static int dots_too_close(game_state *state)
 }
 
 static game_state *load_game(const game_params *params, const char *desc,
-                             char **why_r)
+                             const char **why_r)
 {
     game_state *state = blank_game(params->w, params->h);
-    char *why = NULL;
+    const char *why = NULL;
     int i, x, y, n;
     unsigned int df;
 
@@ -1571,9 +1572,9 @@ fail:
     return NULL;
 }
 
-static char *validate_desc(const game_params *params, const char *desc)
+static const char *validate_desc(const game_params *params, const char *desc)
 {
-    char *why = NULL;
+    const char *why = NULL;
     game_state *dummy = load_game(params, desc, &why);
     if (dummy) {
         free_game(dummy);
@@ -2255,7 +2256,7 @@ got_result:
 
 #ifndef EDITOR
 static char *solve_game(const game_state *state, const game_state *currstate,
-                        const char *aux, char **error)
+                        const char *aux, const char **error)
 {
     game_state *tosolve;
     char *ret;
@@ -3788,7 +3789,8 @@ static void soak(game_params *p, random_state *rs)
 int main(int argc, char **argv)
 {
     game_params *p;
-    char *id = NULL, *desc, *err;
+    char *id = NULL, *desc;
+    const char *err;
     game_state *s;
     int diff, do_soak = 0, verbose = 0;
     random_state *rs;

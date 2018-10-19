@@ -66,7 +66,7 @@
 
 #define setmember(obj, field) ( (obj) . field = field )
 
-static char *nfmtstr(int n, char *fmt, ...) {
+static char *nfmtstr(int n, const char *fmt, ...) {
     va_list va;
     char *ret = snewn(n+1, char);
     va_start(va, fmt);
@@ -308,7 +308,7 @@ enum {
 static move *solve_internal(const game_state *state, move *base, int diff);
 
 static char *solve_game(const game_state *orig, const game_state *curpos,
-                        const char *aux, char **error)
+                        const char *aux, const char **error)
 {
     int const n = orig->params.w * orig->params.h;
     move *const base = snewn(n, move);
@@ -613,15 +613,16 @@ static move *solver_reasoning_recursion(game_state *state,
         /* FIXME: add enum alias for smallest and largest (or N) */
         for (colour = M_BLACK; colour <= M_WHITE; ++colour) {
             newstate = dup_game(state);
-            newstate->grid[cell] = colour;
+            newstate->grid[cell] = colour == M_BLACK ? BLACK : WHITE;
             recursive_result = do_solve(newstate, nclues, clues, buf,
                                         DIFF_RECURSION);
-            free_game(newstate);
             if (recursive_result == NULL) {
+                free_game(newstate);
                 solver_makemove(r, c, M_BLACK + M_WHITE - colour, state, &buf);
                 return buf;
             }
             for (i = 0; i < n && newstate->grid[i] != EMPTY; ++i);
+            free_game(newstate);
             if (i == n) return buf;
         }
     }
@@ -906,7 +907,7 @@ static int dfs_count_white(game_state *state, int cell)
     return k;
 }
 
-static char *validate_params(const game_params *params, int full)
+static const char *validate_params(const game_params *params, int full)
 {
     int const w = params->w, h = params->h;
     if (w < 1) return _("Width must be at least one");
@@ -1070,7 +1071,7 @@ static char *newdesc_encode_game_description(int area, puzzle_size *grid)
     return desc;
 }
 
-static char *validate_desc(const game_params *params, const char *desc)
+static const char *validate_desc(const game_params *params, const char *desc)
 {
     int const n = params->w * params->h;
     int squares = 0;

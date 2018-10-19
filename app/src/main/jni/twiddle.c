@@ -80,9 +80,9 @@ static game_params *dup_params(const game_params *params)
 static int game_fetch_preset(int i, char **name, game_params **params)
 {
     static struct {
-        char *title;
+        const char *title;
         game_params params;
-    } presets[] = {
+    } const presets[] = {
         { "3x3 rows only", { 3, 3, 2, TRUE, FALSE } },
         { "3x3 normal", { 3, 3, 2, FALSE, FALSE } },
         { "3x3 orientable", { 3, 3, 2, FALSE, TRUE } },
@@ -202,7 +202,7 @@ static game_params *custom_params(const config_item *cfg)
     return ret;
 }
 
-static char *validate_params(const game_params *params, int full)
+static const char *validate_params(const game_params *params, int full)
 {
     if (params->n < 2)
 	return _("Rotating block size must be at least two");
@@ -423,7 +423,7 @@ static char *new_game_desc(const game_params *params, random_state *rs,
     return ret;
 }
 
-static char *validate_desc(const game_params *params, const char *desc)
+static const char *validate_desc(const game_params *params, const char *desc)
 {
     const char *p;
     int w = params->w, h = params->h, wh = w*h;
@@ -534,7 +534,7 @@ static int compare_int(const void *av, const void *bv)
 }
 
 static char *solve_game(const game_state *state, const game_state *currstate,
-                        const char *aux, char **error)
+                        const char *aux, const char **error)
 {
     return dupstr("S");
 }

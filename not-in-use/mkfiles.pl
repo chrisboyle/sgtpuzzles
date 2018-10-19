@@ -638,7 +638,7 @@ if (defined $makefiles{'clangcl'}) {
             print "\t\$(RC) \$(RCFLAGS) ".$d->{deps}->[0]." -o ".$d->{obj}."\n\n";
 	} else {
 	    $deflist = join "", map { " /D$_" } @{$d->{defs}};
-            print "\t\$(CC) /Fo\$(BUILDDIR)".$d->{obj}." \$(COMPAT) \$(CFLAGS) \$(XFLAGS)$deflist /c \$<\n\n";
+            print "\t\$(CC) /Fo".$d->{obj}." \$(COMPAT) \$(CFLAGS) \$(XFLAGS)$deflist /c \$<\n\n";
         }
     }
     print "\nclean:\n".

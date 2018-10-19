@@ -74,7 +74,7 @@ static game_params *dup_params(const game_params *params)
 }
 
 static const struct {
-    char *name;
+    const char *name;
     game_params params;
 } guess_presets[] = {
     {"Standard", {6, 4, 10, FALSE, TRUE}},
@@ -206,7 +206,7 @@ static game_params *custom_params(const config_item *cfg)
     return ret;
 }
 
-static char *validate_params(const game_params *params, int full)
+static const char *validate_params(const game_params *params, int full)
 {
     if (params->ncolours < 2 || params->npegs < 2)
 	return _("Trivial solutions are uninteresting");
@@ -280,7 +280,7 @@ newcol:
     return ret;
 }
 
-static char *validate_desc(const game_params *params, const char *desc)
+static const char *validate_desc(const game_params *params, const char *desc)
 {
     unsigned char *bmp;
     int i;
@@ -367,7 +367,7 @@ static void free_game(game_state *state)
 }
 
 static char *solve_game(const game_state *state, const game_state *currstate,
-                        const char *aux, char **error)
+                        const char *aux, const char **error)
 {
     return dupstr("S");
 }
@@ -447,7 +447,8 @@ static void free_ui(game_ui *ui)
 
 static char *encode_ui(const game_ui *ui)
 {
-    char *ret, *p, *sep;
+    char *ret, *p;
+    const char *sep;
     int i;
 
     /*
@@ -629,7 +630,8 @@ static int mark_pegs(pegrow guess, const pegrow solution, int ncols)
 
 static char *encode_move(const game_state *from, game_ui *ui)
 {
-    char *buf, *p, *sep;
+    char *buf, *p;
+    const char *sep;
     int len, i;
 
     len = ui->curr_pegs->npegs * 20 + 2;

@@ -1,16 +1,14 @@
 # -*- makefile -*-
 
-UNEQUAL_EXTRA = latin tree234 maxflow
+UNEQUAL_EXTRA        = LATIN
+UNEQUAL_EXTRA_SOLVER = LATIN_SOLVER
 
 unequal  : [X] GTK COMMON unequal UNEQUAL_EXTRA unequal-icon|no-icon
 
 unequal  : [G] WINDOWS COMMON unequal UNEQUAL_EXTRA unequal.res|noicon.res
 
-unequalsolver : [U] unequal[STANDALONE_SOLVER] latin[STANDALONE_SOLVER] tree234 maxflow STANDALONE
-unequalsolver : [C] unequal[STANDALONE_SOLVER] latin[STANDALONE_SOLVER] tree234 maxflow STANDALONE
-
-latincheck : [U] latin[STANDALONE_LATIN_TEST] tree234 maxflow STANDALONE
-latincheck : [C] latin[STANDALONE_LATIN_TEST] tree234 maxflow STANDALONE
+unequalsolver : [U] unequal[STANDALONE_SOLVER] UNEQUAL_EXTRA_SOLVER STANDALONE
+unequalsolver : [C] unequal[STANDALONE_SOLVER] UNEQUAL_EXTRA_SOLVER STANDALONE
 
 ALL += unequal[COMBINED] UNEQUAL_EXTRA
 

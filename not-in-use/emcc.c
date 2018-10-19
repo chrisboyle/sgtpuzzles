@@ -122,7 +122,7 @@ void get_random_seed(void **randseed, int *randseedsize)
  * Fatal error, called in cases of complete despair such as when
  * malloc() has returned NULL.
  */
-void fatal(char *fmt, ...)
+void fatal(const char *fmt, ...)
 {
     char buf[512];
     va_list ap;
@@ -136,7 +136,7 @@ void fatal(char *fmt, ...)
     js_error_box(buf);
 }
 
-void debug_printf(char *fmt, ...)
+void debug_printf(const char *fmt, ...)
 {
     char buf[512];
     va_list ap;
@@ -384,7 +384,8 @@ static void js_unclip(void *handle)
 }
 
 static void js_draw_text(void *handle, int x, int y, int fonttype,
-                         int fontsize, int align, int colour, char *text)
+                         int fontsize, int align, int colour,
+                         const char *text)
 {
     char fontstyle[80];
     int halign;
@@ -515,7 +516,7 @@ static void js_end_draw(void *handle)
     js_canvas_end_draw();
 }
 
-static void js_status_bar(void *handle, char *text)
+static void js_status_bar(void *handle, const char *text)
 {
     js_canvas_set_statusbar(text);
 }
@@ -656,7 +657,7 @@ static void cfg_end(int use_results)
         /*
          * User hit OK.
          */
-        char *err = midend_set_config(me, cfg_which, cfg);
+        const char *err = midend_set_config(me, cfg_which, cfg);
 
         if (err) {
             /*
@@ -766,7 +767,7 @@ void command(int n)
         break;
       case 9:                          /* Solve */
         if (thegame.can_solve) {
-            char *msg = midend_solve(me);
+            const char *msg = midend_solve(me);
             if (msg)
                 js_error_box(msg);
         }
@@ -786,7 +787,7 @@ struct savefile_write_ctx {
     size_t pos;
 };
 
-static void savefile_write(void *vctx, void *buf, int len)
+static void savefile_write(void *vctx, const void *buf, int len)
 {
     struct savefile_write_ctx *ctx = (struct savefile_write_ctx *)vctx;
     if (ctx->buffer)
@@ -863,7 +864,7 @@ void load_game(const char *buffer, int len)
  */
 int main(int argc, char **argv)
 {
-    char *param_err;
+    const char *param_err;
     float *colours;
     int i;
 

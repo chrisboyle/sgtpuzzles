@@ -150,7 +150,7 @@ void dputs(char *buf)
     OutputDebugString(buf);
 }
 
-void debug_printf(char *fmt, ...)
+void debug_printf(const char *fmt, ...)
 {
     char buf[4096];
     va_list ap;
@@ -258,7 +258,7 @@ void frontend_free(frontend *fe)
 static void update_type_menu_tick(frontend *fe);
 static void update_copy_menu_greying(frontend *fe);
 
-void fatal(char *fmt, ...)
+void fatal(const char *fmt, ...)
 {
     char buf[2048];
     va_list ap;
@@ -304,7 +304,7 @@ void get_random_seed(void **randseed, int *randseedsize)
     *randseedsize = sizeof(SYSTEMTIME);
 }
 
-static void win_status_bar(void *handle, char *text)
+static void win_status_bar(void *handle, const char *text)
 {
 #ifdef _WIN32_WCE
     TCHAR wText[255];
@@ -556,7 +556,8 @@ static void win_unclip(void *handle)
 }
 
 static void win_draw_text(void *handle, int x, int y, int fonttype,
-			  int fontsize, int align, int colour, char *text)
+			  int fontsize, int align, int colour,
+                          const char *text)
 {
     frontend *fe = (frontend *)handle;
     POINT xy;
@@ -1003,7 +1004,7 @@ void print(frontend *fe)
     document *doc;
     midend *nme = NULL;  /* non-interactive midend for bulk puzzle generation */
     int i;
-    char *err = NULL;
+    const char *err = NULL;
 
     /*
      * Create our document structure and fill it up with puzzles.
@@ -1551,7 +1552,7 @@ static frontend *frontend_new(HINSTANCE inst)
     return fe;
 }
 
-static void savefile_write(void *wctx, void *buf, int len)
+static void savefile_write(void *wctx, const void *buf, int len)
 {
     FILE *fp = (FILE *)wctx;
     fwrite(buf, 1, len, fp);
@@ -1587,7 +1588,7 @@ static midend *midend_for_new_game(frontend *fe, const game *cgame,
         midend_new_game(me);
     } else {
         FILE *fp;
-        char *err_param, *err_load;
+        const char *err_param, *err_load;
 
         /*
          * See if arg is a valid filename of a save game file.
@@ -2104,7 +2105,8 @@ static config_item *frontend_get_config(frontend *fe, int which,
     }
 }
 
-static char *frontend_set_config(frontend *fe, int which, config_item *cfg)
+static const char *frontend_set_config(
+    frontend *fe, int which, config_item *cfg)
 {
     if (which < CFG_FRONTEND_SPECIFIC) {
 	return midend_set_config(fe->me, which, cfg);
@@ -2277,7 +2279,8 @@ static int CALLBACK ConfigDlgProc(HWND hwnd, UINT msg,
 	 */
 	if ((LOWORD(wParam) == IDOK || LOWORD(wParam) == IDCANCEL)) {
 	    if (LOWORD(wParam) == IDOK) {
-		char *err = frontend_set_config(fe, fe->cfg_which, fe->cfg);
+		const char *err = frontend_set_config(
+                    fe, fe->cfg_which, fe->cfg);
 
 		if (err) {
 		    MessageBox(hwnd, err, "Validation error",
@@ -3016,7 +3019,7 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
 	    break;
 	  case IDM_SOLVE:
 	    {
-		char *msg = midend_solve(fe->me);
+		const char *msg = midend_solve(fe->me);
 		if (msg)
 		    MessageBox(hwnd, msg, "Unable to solve",
 			       MB_ICONERROR | MB_OK);
@@ -3108,7 +3111,8 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
 			fclose(fp);
 		    } else {
 			FILE *fp = fopen(filename, "r");
-			char *err = NULL;
+			const char *err = NULL;
+                        char *err_w = NULL;
                         midend *me = fe->me;
 #ifdef COMBINED
                         char *id_name;
@@ -3136,7 +3140,8 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
                                     "supported by this program";
                             } else {
                                 me = midend_for_new_game(fe, gamelist[i], NULL,
-                                                         FALSE, FALSE, &err);
+                                                         FALSE, FALSE, &err_w);
+                                err = err_w;
                                 rewind(fp); /* for the actual load */
                             }
                             sfree(id_name);
@@ -3149,6 +3154,7 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
 
 			if (err) {
 			    MessageBox(hwnd, err, "Error", MB_ICONERROR|MB_OK);
+                            sfree(err_w);
 			    break;
 			}
 

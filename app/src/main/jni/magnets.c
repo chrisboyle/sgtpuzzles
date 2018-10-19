@@ -228,7 +228,7 @@ static game_params *custom_params(const config_item *cfg)
     return ret;
 }
 
-static char *validate_params(const game_params *params, int full)
+static const char *validate_params(const game_params *params, int full)
 {
     if (params->w < 2) return _("Width must be at least two");
     if (params->h < 2) return _("Height must be at least two");
@@ -542,7 +542,7 @@ done:
     return state;
 }
 
-static char *validate_desc(const game_params *params, const char *desc)
+static const char *validate_desc(const game_params *params, const char *desc)
 {
     const char *prob;
     game_state *st = new_game_int(params, desc, &prob);
@@ -1459,7 +1459,7 @@ static void solve_from_aux(const game_state *state, const char *aux)
 }
 
 static char *solve_game(const game_state *state, const game_state *currstate,
-                        const char *aux, char **error)
+                        const char *aux, const char **error)
 {
     game_state *solved = dup_game(currstate);
     char *move = NULL;
@@ -2558,7 +2558,8 @@ static void start_soak(game_params *p, random_state *rs)
 int main(int argc, const char *argv[])
 {
     int print = 0, soak = 0, solved = 0, ret;
-    char *id = NULL, *desc, *desc_gen = NULL, *err, *aux = NULL;
+    char *id = NULL, *desc, *desc_gen = NULL, *aux = NULL;
+    const char *err;
     game_state *s = NULL;
     game_params *p = NULL;
     random_state *rs = NULL;

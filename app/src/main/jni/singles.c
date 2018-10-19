@@ -252,7 +252,7 @@ static game_params *custom_params(const config_item *cfg)
     return ret;
 }
 
-static char *validate_params(const game_params *params, int full)
+static const char *validate_params(const game_params *params, int full)
 {
     if (params->w < 2 || params->h < 2)
 	return _("Width and height must be at least two");
@@ -331,10 +331,10 @@ static int c2n(char c) {
 }
 
 static void unpick_desc(const game_params *params, const char *desc,
-                        game_state **sout, char **mout)
+                        game_state **sout, const char **mout)
 {
     game_state *state = blank_game(params->w, params->h);
-    char *msg = NULL;
+    const char *msg = NULL;
     int num = 0, i = 0;
 
     if (strlen(desc) != state->n) {
@@ -1182,7 +1182,7 @@ static int solve_specific(game_state *state, int diff, int sneaky)
 }
 
 static char *solve_game(const game_state *state, const game_state *currstate,
-                        const char *aux, char **error)
+                        const char *aux, const char **error)
 {
     game_state *solved = dup_game(currstate);
     char *move = NULL;
@@ -1412,9 +1412,9 @@ randomise:
     return ret;
 }
 
-static char *validate_desc(const game_params *params, const char *desc)
+static const char *validate_desc(const game_params *params, const char *desc)
 {
-    char *ret = NULL;
+    const char *ret = NULL;
 
     unpick_desc(params, desc, NULL, &ret);
     return ret;
@@ -1924,7 +1924,8 @@ static void start_soak(game_params *p, random_state *rs)
 
 int main(int argc, char **argv)
 {
-    char *id = NULL, *desc, *desc_gen = NULL, *tgame, *err, *aux;
+    char *id = NULL, *desc, *desc_gen = NULL, *tgame, *aux;
+    const char *err;
     game_state *s = NULL;
     game_params *p = NULL;
     int soln, soak = 0, ret = 1;

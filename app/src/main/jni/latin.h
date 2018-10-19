@@ -39,7 +39,7 @@ void latin_solver_place(struct latin_solver *solver, int x, int y, int n);
 /* Positional elimination. */
 int latin_solver_elim(struct latin_solver *solver, int start, int step
 #ifdef STANDALONE_SOLVER
-                      , char *fmt, ...
+                      , const char *fmt, ...
 #endif
                       );
 
@@ -49,7 +49,7 @@ int latin_solver_set(struct latin_solver *solver,
                      struct latin_solver_scratch *scratch,
                      int start, int step1, int step2
 #ifdef STANDALONE_SOLVER
-                     , char *fmt, ...
+                     , const char *fmt, ...
 #endif
                      );
 

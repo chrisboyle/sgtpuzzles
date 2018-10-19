@@ -71,7 +71,7 @@ void drawing_free(drawing *dr)
 }
 
 void draw_text(drawing *dr, int x, int y, int fonttype, int fontsize,
-               int align, int colour, char *text)
+               int align, int colour, const char *text)
 {
     dr->api->draw_text(dr->handle, x, y, fonttype, fontsize, align,
 		       colour, text);
@@ -204,7 +204,7 @@ char *text_fallback(drawing *dr, const char *const *strings, int nstrings)
     return NULL;		       /* placate optimiser */
 }
 
-void status_bar(drawing *dr, char *text)
+void status_bar(drawing *dr, const char *text)
 {
     char *rewritten;
 

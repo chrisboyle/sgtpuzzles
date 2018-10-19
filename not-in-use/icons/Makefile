@@ -12,6 +12,9 @@ WEB = $(patsubst %,%-web.png,$(PUZZLES))
 
 IBASE = $(patsubst %,%-ibase.png,$(PUZZLES))
 IBASE4 = $(patsubst %,%-ibase4.png,$(PUZZLES))
+P96D24 = $(patsubst %,%-96d24.png,$(PUZZLES))
+P96D8 = $(patsubst %,%-96d8.png,$(PUZZLES))
+P96D4 = $(patsubst %,%-96d4.png,$(PUZZLES))
 P64D24 = $(patsubst %,%-64d24.png,$(PUZZLES))
 P48D24 = $(patsubst %,%-48d24.png,$(PUZZLES))
 P48D8 = $(patsubst %,%-48d8.png,$(PUZZLES))
@@ -36,7 +39,7 @@ CSP = -set colorspace RGB
 
 base: $(BASE)
 web: $(WEB)
-pngicons: $(P64D24) $(P48D24) $(P32D24) $(P16D24)
+pngicons: $(P96D24) $(P64D24) $(P48D24) $(P32D24) $(P16D24)
 winicons: $(ICONS) $(RC)
 gtkicons: $(CICONS)
 androidicons: $(ANDROIDICONS) ../../res/drawable/icon.png
@@ -111,7 +114,9 @@ $(IBASE): %-ibase.png: %-base.png
 $(IBASE4): %-ibase4.png: %-ibase.png
 	convert -colors 16 +dither $(CSP) -map $(PIC)win16pal.xpm $^ $@
 
-# Build the 24-bit PNGs for the icons, at three sizes.
+# Build the 24-bit PNGs for the icons, at five sizes.
+$(P96D24): %-96d24.png: %-ibase.png
+	$(PIC)square.pl 96 4 $^ $@
 $(P64D24): %-64d24.png: %-ibase.png
 	$(PIC)square.pl 64 4 $^ $@
 $(P48D24): %-48d24.png: %-ibase.png
@@ -125,7 +130,7 @@ $(ANDROIDICONS): ../../res/drawable/%.png: %-64d24.png
 
 # The 8-bit icon PNGs are just custom-paletted quantisations of the
 # 24-bit ones.
-$(P48D8) $(P32D8) $(P16D8): %d8.png: %d24.png
+$(P96D8) $(P48D8) $(P32D8) $(P16D8): %d8.png: %d24.png
 	convert -colors 256 $^ $@
 
 # But the depth-4 images work better if we re-shrink from the
@@ -133,6 +138,10 @@ $(P48D8) $(P32D8) $(P16D8): %d8.png: %d24.png
 # again afterwards. (They're still not very good, but my hope is
 # that on most modern Windows machines this won't matter too
 # much...)
+$(P96D4): %-96d4.png: %-ibase4.png
+	$(PIC)square.pl 96 1 $^ $@-tmp2.png
+	convert -colors 16 $(CSP) -map $(PIC)win16pal.xpm $@-tmp2.png $@
+	rm -f $@-tmp2.png
 $(P48D4): %-48d4.png: %-ibase4.png
 	$(PIC)square.pl 48 1 $^ $@-tmp2.png
 	convert -colors 16 $(CSP) -map $(PIC)win16pal.xpm $@-tmp2.png $@
@@ -161,7 +170,7 @@ $(RC): %.rc:
 	echo '200 ICON "$*.ico"' >> $@
 
 # Build the GTK icon source files.
-$(CICONS): %-icon.c: %-16d24.png %-32d24.png %-48d24.png
+$(CICONS): %-icon.c: %-16d24.png %-32d24.png %-48d24.png %-96d24.png
 	$(PIC)cicon.pl $^ > $@	
 
 clean:

@@ -249,7 +249,7 @@ static game_params *custom_params(const config_item *cfg)
     return ret;
 }
 
-static char *validate_params(const game_params *params, int full)
+static const char *validate_params(const game_params *params, int full)
 {
     if (params->order < 3 || params->order > 32)
         return _("Order must be between 3 and 32");
@@ -1199,12 +1199,12 @@ generate:
 }
 
 static game_state *load_game(const game_params *params, const char *desc,
-                             char **why_r)
+                             const char **why_r)
 {
     game_state *state = blank_game(params->order, params->adjacent);
     const char *p = desc;
     int i = 0, n, o = params->order, x, y;
-    char *why = NULL;
+    const char *why = NULL;
 
     while (*p) {
         while (*p >= 'a' && *p <= 'z') {
@@ -1314,9 +1314,9 @@ static game_state *new_game(midend *me, const game_params *params,
     return state;
 }
 
-static char *validate_desc(const game_params *params, const char *desc)
+static const char *validate_desc(const game_params *params, const char *desc)
 {
-    char *why = NULL;
+    const char *why = NULL;
     game_state *dummy = load_game(params, desc, &why);
     if (dummy) {
         free_game(dummy);
@@ -1327,7 +1327,7 @@ static char *validate_desc(const game_params *params, const char *desc)
 }
 
 static char *solve_game(const game_state *state, const game_state *currstate,
-                        const char *aux, char **error)
+                        const char *aux, const char **error)
 {
     game_state *solved;
     int r;
@@ -1645,7 +1645,9 @@ static game_state *execute_move(const game_state *state, const char *move)
         }
         return ret;
     } else if (move[0] == 'H') {
-        return solver_hint(state, NULL, DIFF_EASY, DIFF_EASY);
+        ret = solver_hint(state, NULL, DIFF_EASY, DIFF_EASY);
+        check_complete(ret->nums, ret, 1);
+        return ret;
     } else if (move[0] == 'F' && sscanf(move+1, "%d,%d,%d", &x, &y, &n) == 3 &&
 	       x >= 0 && x < state->order && y >= 0 && y < state->order) {
 	ret = dup_game(state);
@@ -2124,7 +2126,7 @@ const char *quis = NULL;
 
 #if 0 /* currently unused */
 
-static void debug_printf(char *fmt, ...)
+static void debug_printf(const char *fmt, ...)
 {
     char buf[4096];
     va_list ap;
@@ -2208,7 +2210,7 @@ static int solve(game_params *p, char *desc, int debug)
 
 static void check(game_params *p)
 {
-    char *msg = validate_params(p, 1);
+    const char *msg = validate_params(p, 1);
     if (msg) {
         fprintf(stderr, "%s: %s", quis, msg);
         exit(1);
@@ -2316,7 +2318,8 @@ int main(int argc, const char *argv[])
         int i;
         for (i = 0; i < argc; i++) {
             const char *id = *argv++;
-            char *desc = strchr(id, ':'), *err;
+            char *desc = strchr(id, ':');
+            const char *err;
             p = default_params();
             if (desc) {
                 *desc++ = '\0';

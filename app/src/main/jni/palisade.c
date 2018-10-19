@@ -155,7 +155,7 @@ static game_params *custom_params(const config_item *cfg)
  * +---+   the dominos is horizontal or vertical.            +---+---+
  */
 
-static char *validate_params(const game_params *params, int full)
+static const char *validate_params(const game_params *params, int full)
 {
     int w = params->w, h = params->h, k = params->k, wh = w * h;
 
@@ -701,7 +701,7 @@ static char *new_game_desc(const game_params *params, random_state *rs,
     return (char *)sresize(numbers, p - numbers, clue);
 }
 
-static char *validate_desc(const game_params *params, const char *desc)
+static const char *validate_desc(const game_params *params, const char *desc)
 {
 
     int w = params->w, h = params->h, wh = w*h, squares = 0;
@@ -789,7 +789,7 @@ static void free_game(game_state *state)
 }
 
 static char *solve_game(const game_state *state, const game_state *currstate,
-                        const char *aux, char **error)
+                        const char *aux, const char **error)
 {
     int w = state->shared->params.w, h = state->shared->params.h, wh = w*h;
     borderflag *move;
