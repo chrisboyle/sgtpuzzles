@@ -571,10 +571,12 @@ static int newgame_undo_deserialise_read(void *ctx, void *buf, int len)
 {
     struct newgame_undo_deserialise_read_ctx *const rctx = ctx;
 
-    int use = min(len, rctx->len - rctx->pos);
-    memcpy(buf, rctx->ser->buf + rctx->pos, use);
-    rctx->pos += use;
-    return use;
+    if (len > rctx->len - rctx->pos)
+        return FALSE;
+
+    memcpy(buf, rctx->ser->buf + rctx->pos, len);
+    rctx->pos += len;
+    return TRUE;
 }
 
 struct newgame_undo_deserialise_check_ctx {
@@ -1115,6 +1117,34 @@ int midend_process_key(midend *me, int x, int y, int button)
         me->pressed_mouse_button = button;
 
     return ret;
+}
+
+key_label *midend_request_keys(midend *me, int *n, int *arrow_mode)
+{
+    return midend_request_keys_by_game(me, n, me->ourgame, midend_get_params(me), arrow_mode);
+}
+
+key_label *midend_request_keys_by_game(midend *me, int *n, const game *ourgame, const game_params *params, int *arrow_mode)
+{
+    key_label *keys = NULL;
+    int nkeys = 0, i, arrows = ANDROID_ARROWS_LEFT_RIGHT;
+
+    if(ourgame->request_keys)
+    {
+        keys = ourgame->request_keys(params, &nkeys, &arrows);
+        for(i = 0; i < nkeys; ++i)
+        {
+            if(!keys[i].label)
+                keys[i].label = button2label(keys[i].button);
+        }
+    }
+
+    if(n)
+        *n = nkeys;
+    if (arrow_mode)
+        *arrow_mode = arrows;
+
+    return keys;
 }
 
 void midend_redraw(midend *me)

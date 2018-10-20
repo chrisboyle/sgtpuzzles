@@ -1215,12 +1215,18 @@ static int check_completion(game_state *state, int mark_errors)
     return complete;
 }
 
-#ifdef ANDROID
-static void android_request_keys(const game_params *params)
+static key_label *game_request_keys(const game_params *params, int *nkeys, int *arrow_mode)
 {
-    android_keys("\b", ANDROID_ARROWS_LEFT_RIGHT);
+    key_label *keys = snewn(1, key_label);
+    *nkeys = 1;
+    *arrow_mode = ANDROID_ARROWS_LEFT_RIGHT;
+
+    keys[0].button = '\b';
+    keys[0].needs_arrows = FALSE;
+    keys[0].label = NULL;
+
+    return keys;
 }
-#endif
 
 static game_state *new_game(midend *me, const game_params *params,
                             const char *desc)
@@ -2279,7 +2285,7 @@ const struct game thegame = {
     free_ui,
     encode_ui,
     decode_ui,
-    android_request_keys,
+    game_request_keys,
     android_cursor_visibility,
     game_changed_state,
     interpret_move,

@@ -1172,7 +1172,6 @@ digit *latin_generate(int o, random_state *rs)
                 if (adj[k])
                     *p++ = k;
             adjsizes[j] = p - adjlists[j];
-            *p = -1;
         }
 
 	/*

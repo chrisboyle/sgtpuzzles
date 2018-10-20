@@ -1287,12 +1287,30 @@ static const char *validate_desc(const game_params *params, const char *desc)
     return (area < sz) ? _("Not enough data to fill grid") : NULL;
 }
 
-#ifdef ANDROID
-static void android_request_keys(const game_params *params)
+static key_label *game_request_keys(const game_params *params, int *nkeys, int *arrow_mode)
 {
-    android_keys("1234567890\b", ANDROID_ARROWS_LEFT_RIGHT);
+    int i;
+    key_label *keys = snewn(11, key_label);
+
+    *nkeys = 11;
+    *arrow_mode = ANDROID_ARROWS_LEFT_RIGHT;
+
+    for(i = 1; i < 10; ++i)
+    {
+        keys[i-1].button = '0' + i;
+        keys[i-1].label = NULL;
+        keys[i-1].needs_arrows = FALSE;
+    }
+    keys[9].button = '0';
+    keys[9].label = NULL;
+    keys[9].needs_arrows = FALSE;
+
+    keys[10].button = '\b';
+    keys[10].label = NULL;
+    keys[10].needs_arrows = FALSE;
+
+    return keys;
 }
-#endif
 
 static game_state *new_game(midend *me, const game_params *params,
                             const char *desc)
@@ -2147,7 +2165,7 @@ const struct game thegame = {
     free_ui,
     encode_ui,
     decode_ui,
-    android_request_keys,
+    game_request_keys,
     android_cursor_visibility,
     game_changed_state,
     interpret_move,

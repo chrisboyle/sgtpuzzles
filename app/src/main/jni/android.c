@@ -704,39 +704,41 @@ void JNICALL Java_name_boyle_chris_sgtpuzzles_GamePlay_requestKeys(JNIEnv *env, 
 	obj = (*env)->NewGlobalRef(env, _obj);
 	const char *backend = (*env)->GetStringUTFChars(env, jBackend, NULL);
 	const game *my_game = game_by_name(backend);
+	int nkeys = 0;
 	assert(my_game != NULL);
-	if (my_game->android_request_keys == NULL) {
-		android_keys("", ANDROID_ARROWS_LEFT_RIGHT);
-	} else {
-		const char *paramsStr = jParams ? (*env)->GetStringUTFChars(env, jParams, NULL) : NULL;
-		game_params *params = oriented_params_from_str(my_game, paramsStr, NULL);
-		if (jParams) (*env)->ReleaseStringUTFChars(env, jParams, paramsStr);
-		if (params) {
-			my_game->android_request_keys(params);
-			sfree(params);
+	const char *paramsStr = jParams ? (*env)->GetStringUTFChars(env, jParams, NULL) : NULL;
+	game_params *params = oriented_params_from_str(my_game, paramsStr, NULL);
+	if (jParams) (*env)->ReleaseStringUTFChars(env, jParams, paramsStr);
+	if (params) {
+		int arrowMode;
+		const key_label *keys = midend_request_keys_by_game(fe->me, &nkeys, my_game, params, &arrowMode);
+		char *keyChars = snewn(nkeys + 1, char);
+		char *keyCharsIfArrows = snewn(nkeys + 1, char);
+		int pos = 0, posIfArrows = 0;
+		for (int i = 0; i < nkeys; i++) {
+			if (keys[i].needs_arrows) {
+				keyCharsIfArrows[posIfArrows++] = (char)keys[i].button;
+			} else {
+				keyChars[pos++] = (char)keys[i].button;
+			}
 		}
+		keyChars[pos] = '\0';
+		keyCharsIfArrows[posIfArrows] = '\0';
+		jstring jKeys = (*env)->NewStringUTF(env, keyChars);
+		jstring jKeysIfArrows = (*env)->NewStringUTF(env, keyCharsIfArrows);
+		jobject jArrowMode = (arrowMode == ANDROID_ARROWS_DIAGONALS) ? ARROW_MODE_DIAGONALS :
+				(arrowMode == ANDROID_ARROWS_LEFT_RIGHT) ? ARROW_MODE_ARROWS_LEFT_RIGHT_CLICK :
+				(arrowMode == ANDROID_ARROWS_LEFT) ? ARROW_MODE_ARROWS_LEFT_CLICK :
+				(arrowMode == ANDROID_ARROWS_ONLY) ? ARROW_MODE_ARROWS_ONLY :
+				ARROW_MODE_NONE;
+		(*env)->CallVoidMethod(env, obj, setKeys, jKeys, jKeysIfArrows, jArrowMode);
+		(*env)->DeleteLocalRef(env, jKeys);
+		(*env)->DeleteLocalRef(env, jKeysIfArrows);
+		sfree(keyChars);
+		sfree(keyCharsIfArrows);
+		sfree(params);
 	}
 	(*env)->ReleaseStringUTFChars(env, jBackend, backend);
-}
-
-void android_keys(const char *keys, int arrowMode)
-{
-    android_keys2(keys, NULL, arrowMode);
-}
-
-void android_keys2(const char *keys, const char *extraKeysIfArrows, int arrowMode)
-{
-	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
-	jobject jArrowMode = (arrowMode == ANDROID_ARROWS_DIAGONALS) ? ARROW_MODE_DIAGONALS :
-			(arrowMode == ANDROID_ARROWS_LEFT_RIGHT) ? ARROW_MODE_ARROWS_LEFT_RIGHT_CLICK :
-			(arrowMode == ANDROID_ARROWS_LEFT) ? ARROW_MODE_ARROWS_LEFT_CLICK :
-			(arrowMode == ANDROID_ARROWS_ONLY) ? ARROW_MODE_ARROWS_ONLY :
-			ARROW_MODE_NONE;
-	jstring jKeys = (*env)->NewStringUTF(env, keys ? keys : "");
-	jstring jKeysIfArrows = (*env)->NewStringUTF(env, extraKeysIfArrows ? extraKeysIfArrows : "");
-	(*env)->CallVoidMethod(env, obj, setKeys, jKeys, jKeysIfArrows, jArrowMode);
-	(*env)->DeleteLocalRef(env, jKeys);
-	(*env)->DeleteLocalRef(env, jKeysIfArrows);
 }
 
 void JNICALL Java_name_boyle_chris_sgtpuzzles_GamePlay_setCursorVisibility(JNIEnv *env, jobject _obj, jboolean visible)

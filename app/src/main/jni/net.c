@@ -34,11 +34,11 @@
 #define D 0x08
 #define LOCKED 0x10
 #define ACTIVE 0x20
-#define RLOOP (R << 6)
-#define ULOOP (U << 6)
-#define LLOOP (L << 6)
-#define DLOOP (D << 6)
-#define LOOP(dir) ((dir) << 6)
+#define RERR (R << 6)
+#define UERR (U << 6)
+#define LERR (L << 6)
+#define DERR (D << 6)
+#define ERR(dir) ((dir) << 6)
 
 /* Rotations: Anticlockwise, Clockwise, Flip, general rotate */
 #define A(x) ( (((x) & 0x07) << 1) | (((x) & 0x08) >> 3) )
@@ -76,7 +76,7 @@ enum {
     COL_ENDPOINT,
     COL_POWERED,
     COL_BARRIER,
-    COL_LOOP,
+    COL_ERR,
     NCOLOURS
 };
 
@@ -1616,12 +1616,34 @@ static const char *validate_desc(const game_params *params, const char *desc)
     return NULL;
 }
 
-#ifdef ANDROID
-static void android_request_keys(const game_params *params)
+static key_label *game_request_keys(const game_params *params, int *nkeys, int *arrow_mode)
 {
-    android_keys2("J", "ASDF", ANDROID_ARROWS_ONLY);  // left/right == a/s
+    key_label *keys = snewn(5, key_label);
+    *nkeys = 5;
+    *arrow_mode = ANDROID_ARROWS_ONLY;  // left/right == a/s
+
+    keys[0].button = 'J';
+    keys[0].needs_arrows = FALSE;
+    keys[0].label = dupstr(_("Jumble"));
+
+    keys[1].button = 'A';
+    keys[1].needs_arrows = TRUE;
+    keys[1].label = dupstr(_("Anticlockwise"));
+
+    keys[2].button = 'S';
+    keys[2].needs_arrows = TRUE;
+    keys[2].label = dupstr(_("Lock"));
+
+    keys[3].button = 'D';
+    keys[3].needs_arrows = TRUE;
+    keys[3].label = dupstr(_("Clockwise"));
+
+    keys[4].button = 'F';
+    keys[4].needs_arrows = TRUE;
+    keys[4].label = dupstr(_("Flip"));
+
+    return keys;
 }
-#endif
 
 /* ----------------------------------------------------------------------
  * Construct an initial game state, given a description and parameters.
@@ -1985,7 +2007,7 @@ static int *compute_loops_inner(int w, int h, int wrapping,
                     OFFSETWH(x1, y1, x, y, dir, w, h);
                     if ((tiles[y1*w+x1] & F(dir)) &&
                         findloop_is_loop_edge(fls, y*w+x, y1*w+x1))
-                        flags |= LOOP(dir);
+                        flags |= ERR(dir);
                 }
             }
             loops[y*w+x] = flags;
@@ -2527,11 +2549,11 @@ static float *game_colours(frontend *fe, int *ncolours)
     ret[COL_BARRIER * 3 + 2] = 0.0F;
 
     /*
-     * Highlighted loops are red as well.
+     * Highlighted errors are red as well.
      */
-    ret[COL_LOOP * 3 + 0] = 1.0F;
-    ret[COL_LOOP * 3 + 1] = 0.0F;
-    ret[COL_LOOP * 3 + 2] = 0.0F;
+    ret[COL_ERR * 3 + 0] = 1.0F;
+    ret[COL_ERR * 3 + 1] = 0.0F;
+    ret[COL_ERR * 3 + 2] = 0.0F;
 
     /*
      * Unpowered endpoints are blue.
@@ -2570,7 +2592,7 @@ static void rotated_coords(float *ox, float *oy, const float matrix[4],
 #define TILE_KEYBOARD_CURSOR      (1<<8) /* 1 bit if cursor is here */
 #define TILE_WIRE_SHIFT               9  /* 8 bits: RR UU LL DD
                                           * Each pair: 0=no wire, 1=unpowered,
-                                          * 2=powered, 3=loop err highlight */
+                                          * 2=powered, 3=error highlight */
 #define TILE_ENDPOINT_SHIFT          17  /* 2 bits: 0=no endpoint, 1=unpowered,
                                           * 2=powered, 3=power-source square */
 #define TILE_WIRE_ON_EDGE_SHIFT      19  /* 8 bits: RR UU LL DD,
@@ -2719,7 +2741,7 @@ static void draw_tile(drawing *dr, game_drawstate *ds, int x, int y,
         for (pass = 0; pass < 2; pass++) {
             int x, y, w, h;
             int col = (pass == 0 || edgetype == 1 ? COL_WIRE :
-                       edgetype == 2 ? COL_POWERED : COL_LOOP);
+                       edgetype == 2 ? COL_POWERED : COL_ERR);
             int halfwidth = pass == 0 ? 2*LINE_THICK-1 : LINE_THICK-1;
 
             if (X(d) < 0) {
@@ -2771,7 +2793,7 @@ static void draw_tile(drawing *dr, game_drawstate *ds, int x, int y,
     draw_wires(dr, cx, cy, radius, tile,
                0x4, COL_POWERED, LINE_THICK-1, matrix);
     draw_wires(dr, cx, cy, radius, tile,
-               0x8, COL_LOOP, LINE_THICK-1, matrix);
+               0x8, COL_ERR, LINE_THICK-1, matrix);
 
     /*
      * Draw the central box.
@@ -2929,7 +2951,25 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
                 }
 
                 if (t & d) {
-                    int edgeval = (t & LOOP(d) ? 3 : t & ACTIVE ? 2 : 1);
+                    int edgeval;
+
+                    /* Highlight as an error any edge in a locked tile that
+                     * is adjacent to a lack-of-edge in another locked tile,
+                     * or to a barrier */
+                    if (t & LOCKED) {
+                        if (barrier(state, gx, gy) & d) {
+                            t |= ERR(d);
+                        } else {
+                            int ox, oy, t2;
+                            OFFSET(ox, oy, gx, gy, d, state);
+                            t2 = tile(state, ox, oy);
+                            if ((t2 & LOCKED) && !(t2 & F(d))) {
+                                t |= ERR(d);
+                            }
+                        }
+                    }
+
+                    edgeval = (t & ERR(d) ? 3 : t & ACTIVE ? 2 : 1);
                     todraw(ds, dx, dy) |= edgeval << (TILE_WIRE_SHIFT + dsh*2);
                     if (!(gx == tx && gy == ty)) {
                         todraw(ds, dx + X(d), dy + Y(d)) |=
@@ -3254,7 +3294,7 @@ const struct game thegame = {
     free_ui,
     encode_ui,
     decode_ui,
-    android_request_keys,
+    game_request_keys,
     android_cursor_visibility,
     game_changed_state,
     interpret_move,

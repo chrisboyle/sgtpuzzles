@@ -729,12 +729,30 @@ static const char *validate_desc(const game_params *params, const char *desc)
     return NULL;
 }
 
-#ifdef ANDROID
-static void android_request_keys(const game_params *params)
+static key_label *game_request_keys(const game_params *params, int *nkeys, int *arrow_mode)
 {
-    android_keys2(NULL, "HJKL", ANDROID_ARROWS_ONLY);
+    key_label *keys = snewn(4, key_label);
+    *nkeys = 4;
+    *arrow_mode = ANDROID_ARROWS_ONLY;
+
+    keys[0].button = 'H';
+    keys[0].needs_arrows = TRUE;
+    keys[0].label = dupstr(_("Left"));
+
+    keys[1].button = 'J';
+    keys[1].needs_arrows = TRUE;
+    keys[1].label = dupstr(_("Bottom"));
+
+    keys[2].button = 'K';
+    keys[2].needs_arrows = TRUE;
+    keys[2].label = dupstr(_("Top"));
+
+    keys[3].button = 'L';
+    keys[3].needs_arrows = TRUE;
+    keys[3].label = dupstr(_("Right"));
+
+    return keys;
 }
-#endif
 
 static game_state *new_game(midend *me, const game_params *params,
                             const char *desc)
@@ -1423,7 +1441,7 @@ const struct game thegame = {
     free_ui,
     encode_ui,
     decode_ui,
-    android_request_keys,
+    game_request_keys,
     android_cursor_visibility,
     game_changed_state,
     interpret_move,

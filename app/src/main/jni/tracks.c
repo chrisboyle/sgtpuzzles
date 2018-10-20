@@ -827,13 +827,6 @@ static const char *validate_desc(const game_params *params, const char *desc)
     return NULL;
 }
 
-#ifdef ANDROID
-static void android_request_keys(const game_params *params)
-{
-    android_keys("", ANDROID_ARROWS_LEFT_RIGHT);
-}
-#endif
-
 static game_state *new_game(midend *me, const game_params *params, const char *desc)
 {
     game_state *state = blank_game(params);
@@ -2422,9 +2415,9 @@ static void draw_clue(drawing *dr, game_drawstate *ds, int w, int clue, int i, i
         cy = CENTERED_COORD(i-w);
     }
 
-    draw_rect(dr, cx - tsz + GRID_LINE_TL, cy - tsz + GRID_LINE_TL,
-              TILE_SIZE - GRID_LINE_ALL, TILE_SIZE - GRID_LINE_ALL,
-              bg);
+    if (bg >= 0)
+        draw_rect(dr, cx - tsz + GRID_LINE_TL, cy - tsz + GRID_LINE_TL,
+                  TILE_SIZE - GRID_LINE_ALL, TILE_SIZE - GRID_LINE_ALL, bg);
     sprintf(buf, "%d", clue);
     draw_text(dr, cx, cy, FONT_VARIABLE, tsz, ALIGN_VCENTRE|ALIGN_HCENTRE,
               col, buf);
@@ -2602,8 +2595,7 @@ static void game_print(drawing *dr, const game_state *state, int tilesize)
 
     /* clue numbers, and loop ends */
     for (i = 0; i < w+h; i++)
-        draw_clue(dr, ds, w, state->numbers->numbers[i], i,
-		  black, COL_BACKGROUND);
+        draw_clue(dr, ds, w, state->numbers->numbers[i], i, black, -1);
     draw_loop_ends(dr, ds, state, black);
 
     /* clue tracks / solution */
@@ -2643,7 +2635,7 @@ const struct game thegame = {
     free_ui,
     encode_ui,
     decode_ui,
-    android_request_keys,
+    NULL, /* game_request_keys */
     android_cursor_visibility,
     game_changed_state,
     interpret_move,

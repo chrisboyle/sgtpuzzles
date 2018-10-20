@@ -2019,7 +2019,7 @@ const struct game thegame = {
     free_ui,
     encode_ui,
     decode_ui,
-    NULL,  /* android_request_keys */
+    NULL, /* game_request_keys */
     android_cursor_visibility,
     game_changed_state,
     interpret_move,

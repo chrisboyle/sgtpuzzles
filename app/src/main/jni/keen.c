@@ -93,7 +93,7 @@ static game_params *default_params(void)
     return ret;
 }
 
-const static struct game_params keen_presets[] = {
+static const struct game_params keen_presets[] = {
     {  4, DIFF_EASY,         FALSE },
     {  5, DIFF_EASY,         FALSE },
     {  5, DIFF_EASY,         TRUE  },
@@ -1252,22 +1252,32 @@ static const char *validate_desc(const game_params *params, const char *desc)
     return NULL;
 }
 
-#ifdef ANDROID
-static void android_request_keys(const game_params *params)
+static key_label *game_request_keys(const game_params *params, int *nkeys, int *arrow_mode)
 {
     int i;
     int w = params->w;
-    char keys[w+3];
+
+    key_label *keys = snewn(w+2, key_label);
+    *nkeys = w + 2;
+    *arrow_mode = ANDROID_ARROWS_LEFT;  // right == \b
+
     for (i = 0; i < w; i++) {
-	if (i<9) keys[i] = '1' + i;
-	else keys[i] = 'a' + i - 9;
+        if (i<9) keys[i].button = '1' + i;
+        else keys[i].button = 'a' + i - 9;
+
+        keys[i].label = NULL;
+        keys[i].needs_arrows = FALSE;
     }
-    keys[w] = '\b';
-    keys[w+1] = 'M';
-    keys[w+2] = '\0';
-    android_keys(keys, ANDROID_ARROWS_LEFT);  // right == \b
+    keys[w].button = '\b';
+    keys[w].label = NULL;
+    keys[w].needs_arrows = FALSE;
+
+    keys[w+1].button = 'M';
+    keys[w+1].label = dupstr(_("Mark"));
+    keys[w+1].needs_arrows = FALSE;
+
+    return keys;
 }
-#endif
 
 static game_state *new_game(midend *me, const game_params *params,
                             const char *desc)
@@ -2432,7 +2442,7 @@ const struct game thegame = {
     free_ui,
     encode_ui,
     decode_ui,
-    android_request_keys,
+    game_request_keys,
     android_cursor_visibility,
     game_changed_state,
     interpret_move,

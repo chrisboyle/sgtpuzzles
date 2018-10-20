@@ -3611,6 +3611,32 @@ static struct block_structure *gen_killer_cages(int cr, random_state *rs,
     return b;
 }
 
+static key_label *game_request_keys(const game_params *params, int *nkeys, int *arrow_mode)
+{
+    int i;
+    int cr = params->c * params->r;
+    key_label *keys = snewn(cr+2, key_label);
+    *nkeys = cr + 2;
+    *arrow_mode = ANDROID_ARROWS_LEFT;
+
+    for (i = 0; i < cr; i++) {
+        if (i<9) keys[i].button = '1' + i;
+        else keys[i].button = 'a' + i - 9;
+
+        keys[i].needs_arrows = FALSE;
+        keys[i].label = NULL;
+    }
+    keys[cr].button = '\b';
+    keys[cr].needs_arrows = FALSE;
+    keys[cr].label = NULL;
+
+    keys[cr + 1].button = 'M';
+    keys[cr + 1].needs_arrows = FALSE;
+    keys[cr + 1].label = dupstr("Mark");
+
+    return keys;
+}
+
 static char *new_game_desc(const game_params *params, random_state *rs,
 			   char **aux, int interactive)
 {
@@ -4101,23 +4127,6 @@ static const char *validate_desc(const game_params *params, const char *desc)
 
     return NULL;
 }
-
-#ifdef ANDROID
-static void android_request_keys(const game_params *params)
-{
-    int i;
-    int cr = params->c * params->r;
-    char keys[cr+3];
-    for (i = 0; i < cr; i++) {
-	if (i<9) keys[i] = '1' + i;
-	else keys[i] = 'a' + i - 9;
-    }
-    keys[cr] = '\b';
-    keys[cr+1] = 'M';
-    keys[cr+2] = '\0';
-    android_keys(keys, ANDROID_ARROWS_LEFT);  // right == \b
-}
-#endif
 
 static game_state *new_game(midend *me, const game_params *params,
                             const char *desc)
@@ -5665,7 +5674,7 @@ const struct game thegame = {
     free_ui,
     encode_ui,
     decode_ui,
-    android_request_keys,
+    game_request_keys,
     android_cursor_visibility,
     game_changed_state,
     interpret_move,

@@ -1707,7 +1707,8 @@ if (defined $makefiles{'nestedvm'}) {
 if (defined $makefiles{'osx'}) {
     $mftyp = 'osx';
     $dirpfx = &dirpfx($makefiles{'osx'}, "/");
-    @osxarchs = ('i386');
+    @osxarchs = ('x86_64');
+    my $osxminver = "10.6";
 
     ##-- Mac OS X makefile
     open OUT, ">$makefiles{'osx'}"; select OUT;
@@ -1756,7 +1757,7 @@ if (defined $makefiles{'osx'}) {
       foreach $arch (@osxarchs) {
 	$objstr = &objects($p, "X.${arch}.o", undef, undef);
 	print &splitline("${prog}.${arch}.bin: " . $objstr), "\n";
-	print &splitline("\t\$(CC) -arch ${arch} -mmacosx-version-min=10.4 \$(LDFLAGS) -o \$@ " .
+	print &splitline("\t\$(CC) -arch ${arch} -mmacosx-version-min=${osxminver} \$(LDFLAGS) -o \$@ " .
                        $objstr . " $libstr", 69), "\n\n";
 	$archbins .= " ${prog}.${arch}.bin";
       }
@@ -1771,7 +1772,7 @@ if (defined $makefiles{'osx'}) {
       foreach $arch (@osxarchs) {
 	$objstr = &objects($p, "X.${arch}.o", undef, undef);
 	print &splitline("${prog}.${arch}: " . $objstr), "\n";
-	print &splitline("\t\$(CC) -arch ${arch} -mmacosx-version-min=10.4 \$(ULDFLAGS) -o \$@ " .
+	print &splitline("\t\$(CC) -arch ${arch} -mmacosx-version-min=${osxminver} \$(ULDFLAGS) -o \$@ " .
                        $objstr . " $libstr", 69), "\n\n";
 	$archbins .= " ${prog}.${arch}";
       }
@@ -1784,10 +1785,10 @@ if (defined $makefiles{'osx'}) {
             "\n";
         $deflist = join "", map { " -D$_" } @{$d->{defs}};
         if ($d->{deps}->[0] =~ /\.m$/) {
-	  print "\t\$(CC) -arch $arch -mmacosx-version-min=10.4 -x objective-c \$(COMPAT) \$(FWHACK) \$(CFLAGS)".
+	  print "\t\$(CC) -arch $arch -mmacosx-version-min=${osxminver} -x objective-c \$(COMPAT) \$(FWHACK) \$(CFLAGS)".
 	      " \$(XFLAGS)$deflist -c \$< -o \$\@\n";
         } else {
-	  print "\t\$(CC) -arch $arch -mmacosx-version-min=10.4 \$(COMPAT) \$(FWHACK) \$(CFLAGS) \$(XFLAGS)$deflist" .
+	  print "\t\$(CC) -arch $arch -mmacosx-version-min=${osxminver} \$(COMPAT) \$(FWHACK) \$(CFLAGS) \$(XFLAGS)$deflist" .
 	      " -c \$< -o \$\@\n";
         }
       }
