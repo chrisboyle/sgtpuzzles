@@ -1659,8 +1659,8 @@ static float *game_colours(frontend *fe, int *ncolours)
     frontend_default_colour(fe, &ret[COL_BACKGROUND * 3]);
 
     for (i = 0; i < 3; i++) {
-        ret[COL_1 * 3 + i] = 0.2F;
-        ret[COL_1_HIGHLIGHT * 3 + i] = 0.4F;
+        ret[COL_1 * 3 + i] = 0.23F;
+        ret[COL_1_HIGHLIGHT * 3 + i] = 0.6F;
         ret[COL_1_LOWLIGHT * 3 + i] = 0.0F;
         ret[COL_0 * 3 + i] = 0.95F;
         ret[COL_0_HIGHLIGHT * 3 + i] = 1.0F;
@@ -1716,13 +1716,13 @@ static void unruly_draw_tile(drawing *dr, int x, int y, int tilesize, int tile)
 
         if ((val == COL_0 || val == COL_1) && (tile & FF_IMMUTABLE)) {
             draw_rect(dr, x + tilesize/6, y + tilesize/6,
-                      tilesize - 2*(tilesize/6) - 2, 1, val + 2);
+                      tilesize - 2*(tilesize/6) - 2, 2, val + 2);
             draw_rect(dr, x + tilesize/6, y + tilesize/6,
-                      1, tilesize - 2*(tilesize/6) - 2, val + 2);
+                      2, tilesize - 2*(tilesize/6) - 2, val + 2);
             draw_rect(dr, x + tilesize/6 + 1, y + tilesize - tilesize/6 - 2,
-                      tilesize - 2*(tilesize/6) - 2, 1, val + 1);
+                      tilesize - 2*(tilesize/6) - 2, 2, val + 1);
             draw_rect(dr, x + tilesize - tilesize/6 - 2, y + tilesize/6 + 1,
-                      1, tilesize - 2*(tilesize/6) - 2, val + 1);
+                      2, tilesize - 2*(tilesize/6) - 2, val + 1);
         }
     }
 
