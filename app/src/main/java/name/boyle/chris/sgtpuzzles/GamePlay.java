@@ -112,6 +112,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 	private static final boolean UNDO_REDO_KBD_DEFAULT = true;
 	private static final String PATTERN_SHOW_LENGTHS_KEY = "patternShowLengths";
 	private static final String COMPLETED_PROMPT_KEY = "completedPrompt";
+	private static final String VICTORY_FLASH_KEY = "victoryFlash";
 	private static final String CONTROLS_REMINDERS_KEY = "controlsReminders";
 	private static final String OLD_SAVED_COMPLETED = "savedCompleted";
 	private static final String OLD_SAVED_GAME = "savedGame";
@@ -1944,6 +1945,12 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 	void purgingStates()
 	{
 		redoToGame = null;
+	}
+
+	@UsedByJNI
+	boolean allowFlash()
+	{
+		return prefs.getBoolean(VICTORY_FLASH_KEY, true);
 	}
 
 	native void startPlaying(GameView _gameView, String savedGame);

@@ -76,6 +76,8 @@ If you don’t want to grant it you can instead locate the file from within Puzz
     <!-- "Completed" dialog -->
     <string name="completedPrompt">Buttons when a game is completed</string>
     <string name="completedPromptSummary">Shortcuts to start a new or different game</string>
+    <string name="victoryFlash">Animations when a game is completed</string>
+    <string name="victoryFlashSummary">Victory flash</string>
     <string name="Change_type">Change type</string>
     <!-- Chooser -->
     <string name="games_starred">Starred (long press to toggle)</string>

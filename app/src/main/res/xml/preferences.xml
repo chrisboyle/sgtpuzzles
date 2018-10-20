@@ -46,6 +46,10 @@
 						  android:key="advancedSettings"
 						  android:persistent="false">
 			<PreferenceCategory android:title="@string/displaySettings">
+				<CheckBoxPreference android:title="@string/victoryFlash"
+									android:summary="@string/victoryFlashSummary"
+									android:key="victoryFlash"
+									android:defaultValue="true" />
 				<CheckBoxPreference android:title="@string/completedPrompt"
 									android:summary="@string/completedPromptSummary"
 									android:key="completedPrompt"

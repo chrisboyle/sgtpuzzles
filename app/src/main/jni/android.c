@@ -76,6 +76,7 @@ static jmethodID
 	blitterSave,
 	changedState,
 	purgingStates,
+	allowFlash,
 	clipRect,
 	dialogAddString,
 	dialogAddBoolean,
@@ -276,6 +277,12 @@ void android_purging_states(void *handle)
 {
     JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
     (*env)->CallVoidMethod(env, obj, purgingStates);
+}
+
+int allow_flash()
+{
+	JNIEnv *env = (JNIEnv*)pthread_getspecific(envKey);
+	return (*env)->CallBooleanMethod(env, obj, allowFlash);
 }
 
 static char *android_text_fallback(void *handle, const char *const *strings,
@@ -910,6 +917,7 @@ JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
 	blitterSave    = (*env)->GetMethodID(env, vcls, "blitterSave", "(III)V");
 	changedState   = (*env)->GetMethodID(env, cls,  "changedState", "(ZZ)V");
 	purgingStates  = (*env)->GetMethodID(env, cls,  "purgingStates", "()V");
+	allowFlash     = (*env)->GetMethodID(env, cls,  "allowFlash", "()Z");
 	clipRect       = (*env)->GetMethodID(env, vcls, "clipRect", "(IIII)V");
 	dialogAddString = (*env)->GetMethodID(env, cls,  "dialogAddString", "(ILjava/lang/String;Ljava/lang/String;)V");
     dialogAddBoolean = (*env)->GetMethodID(env, cls,  "dialogAddBoolean", "(ILjava/lang/String;Z)V");

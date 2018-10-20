@@ -795,7 +795,8 @@ static void midend_finish_move(midend *me)
     if ((me->oldstate || me->statepos > 1) &&
         ((me->dir > 0 && !special(me->states[me->statepos-1].movetype)) ||
          (me->dir < 0 && me->statepos < me->nstates &&
-          !special(me->states[me->statepos].movetype)))) {
+          !special(me->states[me->statepos].movetype))) &&
+        allow_flash()) {
 	flashtime = me->ourgame->flash_length(me->oldstate ? me->oldstate :
 					      me->states[me->statepos-2].state,
 					      me->states[me->statepos-1].state,

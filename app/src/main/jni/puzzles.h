@@ -383,6 +383,7 @@ void midend_android_cursor_visibility(midend *me, int visible);
 void midend_purge_states(midend *me);
 void changed_state(drawing *dr, int can_undo, int can_redo);
 void purging_states(drawing *dr);
+int allow_flash();
 #endif
 
 /*
