@@ -311,7 +311,7 @@ static key_label *game_request_keys(const game_params *params, int *nkeys, int *
 
     keys[0].button = 'L';
     keys[0].needs_arrows = FALSE;
-    keys[0].label = dupstr(_("Lock"));
+    keys[0].label = dupstr(_("Labels"));
 
     keys[1].button = '\b';
     keys[1].needs_arrows = TRUE;
