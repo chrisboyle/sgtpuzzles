@@ -1183,7 +1183,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 				requestKeys(currentBackend, currentParams);
 			}
 			inertiaFollow(false);
-			if (launch.isKnownCompleted()) {
+			if (isCompletedNow()) {
 				completed();
 			}
 			final boolean hasArrows = computeArrowMode(currentBackend).hasArrows();
@@ -1978,6 +1978,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 	native int getUIVisibility();
 	native void resetTimerBaseline();
 	native void purgeStates();
+	native boolean isCompletedNow();
 
 	static {
 		System.loadLibrary("puzzles");

@@ -891,6 +891,10 @@ void JNICALL Java_name_boyle_chris_sgtpuzzles_GamePlay_purgeStates(JNIEnv *env, 
     }
 }
 
+jboolean JNICALL Java_name_boyle_chris_sgtpuzzles_GamePlay_isCompletedNow(JNIEnv *env, jobject _obj) {
+    return fe && fe->me && midend_status(fe->me) ? TRUE : FALSE;
+}
+
 JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *reserved)
 {
 	jclass cls, vcls, arrowModeCls;
