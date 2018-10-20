@@ -879,7 +879,7 @@ void JNICALL Java_name_boyle_chris_sgtpuzzles_GamePlay_startPlayingGameID(JNIEnv
 
 void JNICALL Java_name_boyle_chris_sgtpuzzles_GamePlay_purgeStates(JNIEnv *env, jobject _obj)
 {
-    if (fe->me) {
+    if (fe && fe->me) {
         midend_purge_states(fe->me);
     }
 }
