@@ -462,6 +462,9 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 
 		if (backendFromChooser != null) {
 			final String savedGame = state.getString(SAVED_GAME_PREFIX + backendFromChooser, null);
+			// We have a saved game, and if it's completed the user probably wants a fresh one.
+			// Theoretically we could silently load it and ask midend_status() but remembering is
+			// still faster and some people play large games.
 			final boolean wasCompleted = state.getBoolean(SAVED_COMPLETED_PREFIX + backendFromChooser, false);
 			if (savedGame == null || wasCompleted) {
 				Log.d(TAG, "generating as requested");
@@ -469,7 +472,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 				return;
 			}
 			Log.d(TAG, "restoring last state of " + backendFromChooser);
-			startGame(GameLaunch.ofLocalState(backendFromChooser, savedGame, false, true));
+			startGame(GameLaunch.ofLocalState(backendFromChooser, savedGame, true));
 		} else {
 			final String savedBackend = state.getString(SAVED_BACKEND, null);
 			if (savedBackend != null) {
@@ -479,8 +482,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 					startGame(GameLaunch.toGenerateFromChooser(savedBackend));
 				} else {
 					Log.d(TAG, "normal launch; resuming game of " + savedBackend);
-					final boolean wasCompleted = state.getBoolean(SAVED_COMPLETED_PREFIX + savedBackend, false);
-					startGame(GameLaunch.ofLocalState(savedBackend, savedGame, wasCompleted, false));
+					startGame(GameLaunch.ofLocalState(savedBackend, savedGame, false));
 				}
 			} else {
 				Log.d(TAG, "no state, starting chooser");
@@ -1106,7 +1108,7 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 						throw new IOException("Internal error generating game: result is blank");
 					}
 					startGameConfirmed(true, launch, previousGame);
-				} else if (launch.isOfNonLocalState() && launch.getSaved() != null) {
+				} else if (!launch.isOfLocalState() && launch.getSaved() != null) {
 					warnOfStateLoss(launch.getSaved(), () -> startGameConfirmed(false, launch, previousGame), launch.isFromChooser());
 				} else {
 					startGameConfirmed(false, launch, previousGame);
@@ -1183,7 +1185,9 @@ public class GamePlay extends AppCompatActivity implements OnSharedPreferenceCha
 				requestKeys(currentBackend, currentParams);
 			}
 			inertiaFollow(false);
-			if (isCompletedNow()) {
+			// We have a saved completion flag but completion could have been done; find out whether
+			// it's really completed
+			if (launch.isOfLocalState() && !launch.isUndoingOrRedoing() && isCompletedNow()) {
 				completed();
 			}
 			final boolean hasArrows = computeArrowMode(currentBackend).hasArrows();
