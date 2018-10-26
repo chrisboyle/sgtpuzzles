@@ -33,6 +33,16 @@
 		<item>@string/limitDpiModeAuto</item>
 		<item>@string/limitDpiModeOn</item>
 	</array>
+	<array name="extMouseLongPressModes">
+		<item>never</item>
+		<item>auto</item>
+		<item>always</item>
+	</array>
+	<array name="extMouseLongPressModeDescs">
+		<item>@string/extMouseLongPressNever</item>
+		<item>@string/extMouseLongPressAuto</item>
+		<item>@string/extMouseLongPressAlways</item>
+	</array>
 	<array name="chooserStyles">
 		<item>list</item>
 		<item>grid</item>
