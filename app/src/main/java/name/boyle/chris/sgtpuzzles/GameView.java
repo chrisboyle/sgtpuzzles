@@ -13,7 +13,6 @@ import android.graphics.Point;
 import android.graphics.PointF;
 import android.graphics.Rect;
 import android.graphics.RectF;
-import android.graphics.Region;
 import android.graphics.Shader;
 import android.graphics.Typeface;
 import android.graphics.drawable.BitmapDrawable;
@@ -47,6 +46,7 @@ public class GameView extends View
 	private GamePlay parent;
 	private Bitmap bitmap;
 	private Canvas canvas;
+	private int canvasRestoreJustAfterCreation;
 	private final Paint paint;
 	private final Paint checkerboardPaint;
 	private final Bitmap[] blitters;
@@ -118,6 +118,7 @@ public class GameView extends View
 		}
 		bitmap = Bitmap.createBitmap(100, 100, BITMAP_CONFIG);  // for safety
 		canvas = new Canvas(bitmap);
+		canvasRestoreJustAfterCreation = canvas.save();
 		paint = new Paint();
 		paint.setAntiAlias(true);
 		paint.setStrokeCap(Paint.Cap.SQUARE);
@@ -696,6 +697,7 @@ public class GameView extends View
 		bitmap = Bitmap.createBitmap(Math.max(1, w + 2 * overdrawX), Math.max(1, h + 2 * overdrawY), BITMAP_CONFIG);
 		clear();
 		canvas = new Canvas(bitmap);
+		canvasRestoreJustAfterCreation = canvas.save();
 		resetZoomForClear();
 		redrawForZoomChange();
 	}
@@ -775,13 +777,19 @@ public class GameView extends View
 
 	@UsedByJNI
 	void clipRect(int x, int y, int w, int h) {
-		canvas.clipRect(new RectF(x - 0.5f, y - 0.5f, x + w - 0.5f, y + h - 0.5f), Region.Op.REPLACE);
+		canvas.restoreToCount(canvasRestoreJustAfterCreation);
+		canvasRestoreJustAfterCreation = canvas.save();
+		canvas.setMatrix(zoomMatrix);
+		canvas.clipRect(new RectF(x - 0.5f, y - 0.5f, x + w - 0.5f, y + h - 0.5f));
 	}
 
 	@UsedByJNI
 	void unClip(int marginX, int marginY)
 	{
-		canvas.clipRect(marginX - 0.5f, marginY - 0.5f, wDip - marginX - 1.5f, hDip - marginY - 1.5f, Region.Op.REPLACE);
+		canvas.restoreToCount(canvasRestoreJustAfterCreation);
+		canvasRestoreJustAfterCreation = canvas.save();
+		canvas.setMatrix(zoomMatrix);
+		canvas.clipRect(marginX - 0.5f, marginY - 0.5f, wDip - marginX - 1.5f, hDip - marginY - 1.5f);
 	}
 
 	@UsedByJNI
