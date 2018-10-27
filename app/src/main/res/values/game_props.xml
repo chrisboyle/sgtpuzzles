@@ -108,6 +108,7 @@
 	<color name="blackbox_night_colour_ball_revealed">#999999</color>
 	<color name="bridges_night_colour_foreground">#ffffff</color>
 	<color name="bridges_night_colour_highlight">#444444</color>
+	<color name="bridges_night_colour_hint">#333333</color>
 	<color name="bridges_night_colour_mark">#aaaaaa</color>
 	<color name="cube_night_colour_border">#ffffff</color>
 	<color name="dominosa_night_colour_text">#ffffff</color>
