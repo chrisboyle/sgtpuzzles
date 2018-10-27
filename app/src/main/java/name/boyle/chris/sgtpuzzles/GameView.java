@@ -31,12 +31,16 @@ import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.GestureDetector;
 import android.view.HapticFeedbackConstants;
-import android.view.InputDevice;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
 import android.view.View;
 import android.view.ViewConfiguration;
+
+import static android.support.v4.view.MotionEventCompat.isFromSource;
+import static android.view.InputDevice.SOURCE_MOUSE;
+import static android.view.InputDevice.SOURCE_STYLUS;
+import static android.view.MotionEvent.TOOL_TYPE_STYLUS;
 
 public class GameView extends View
 {
@@ -134,13 +138,12 @@ public class GameView extends View
 			@Override
 			public boolean onDown(MotionEvent event) {
 				int meta = event.getMetaState();
-				int buttonState = 1; // MotionEvent.BUTTON_PRIMARY
-				buttonState = event.getButtonState();
+				int buttonState = event.getButtonState();
 				if ((meta & KeyEvent.META_ALT_ON) > 0  ||
-						buttonState == 4 /* MotionEvent.BUTTON_TERTIARY */)  {
+						buttonState == MotionEvent.BUTTON_TERTIARY)  {
 					button = MIDDLE_BUTTON;
 				} else if ((meta & KeyEvent.META_SHIFT_ON) > 0  ||
-						buttonState == 2 /* MotionEvent.BUTTON_SECONDARY */) {
+						buttonState == MotionEvent.BUTTON_SECONDARY) {
 					button = RIGHT_BUTTON;
 					hasRightMouse = true;
 				} else {
@@ -148,9 +151,8 @@ public class GameView extends View
 				}
 				touchStart = pointFromEvent(event);
 				parent.handler.removeCallbacks(sendLongPress);
-				if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.GINGERBREAD &&
-						(event.getSource() == InputDevice.SOURCE_MOUSE ||
-								event.getSource() == InputDevice.SOURCE_STYLUS) &&
+				if ((isFromSource(event, SOURCE_MOUSE) || isFromSource(event, SOURCE_STYLUS)
+						|| event.getToolType(event.getActionIndex()) == TOOL_TYPE_STYLUS) &&
 						((hasRightMouse && !alwaysLongPress) || button != LEFT_BUTTON)) {
 					parent.sendKey(viewToGame(touchStart), button);
 					if (dragMode == DragMode.PREVENT) {
@@ -432,8 +434,7 @@ public class GameView extends View
 	@Override
 	public boolean onGenericMotionEvent(@NonNull MotionEvent event)
 	{
-		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.GINGERBREAD &&
-				event.getSource() == InputDevice.SOURCE_MOUSE) {
+		if (isFromSource(event, SOURCE_MOUSE)) {
 			switch (event.getActionMasked()) {
 				case MotionEvent.ACTION_HOVER_MOVE:
 					mousePos = pointFromEvent(event);
@@ -536,8 +537,7 @@ public class GameView extends View
 		case KeyEvent.KEYCODE_DEL: key = '\b'; break;
 		// Mouse right-click = BACK auto-repeats on at least Galaxy S7
 		case KeyEvent.KEYCODE_BACK:
-			if (mouseBackSupport && Build.VERSION.SDK_INT >= Build.VERSION_CODES.GINGERBREAD &&
-					event.getSource() == InputDevice.SOURCE_MOUSE) {
+			if (mouseBackSupport && event.getSource() == SOURCE_MOUSE) {
 				if (rightMouseHeld) {
 					return true;
 				}
@@ -584,8 +584,7 @@ public class GameView extends View
 	@Override
 	public boolean onKeyUp( int keyCode, KeyEvent event )
 	{
-		if (mouseBackSupport && Build.VERSION.SDK_INT >= Build.VERSION_CODES.GINGERBREAD &&
-				event.getSource() == InputDevice.SOURCE_MOUSE) {
+		if (mouseBackSupport && event.getSource() == SOURCE_MOUSE) {
 			if (keyCode == KeyEvent.KEYCODE_BACK && rightMouseHeld) {
 				rightMouseHeld = false;
 				if (touchState == TouchState.DRAGGING) {
