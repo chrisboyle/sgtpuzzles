@@ -37,6 +37,11 @@ import android.view.ScaleGestureDetector;
 import android.view.View;
 import android.view.ViewConfiguration;
 
+import static android.support.v4.view.MotionEventCompat.isFromSource;
+import static android.view.InputDevice.SOURCE_MOUSE;
+import static android.view.InputDevice.SOURCE_STYLUS;
+import static android.view.MotionEvent.TOOL_TYPE_STYLUS;
+
 public class GameView extends View
 {
 	private GamePlay parent;
@@ -53,6 +58,9 @@ public class GameView extends View
 	private final int longPressTimeout = ViewConfiguration.getLongPressTimeout();
 	private String hardwareKeys;
 	boolean night = false;
+	boolean hasRightMouse = false;
+	boolean alwaysLongPress = false;
+	boolean mouseBackSupport = true;
 
 	private enum TouchState { IDLE, WAITING_LONG_PRESS, DRAGGING, PINCH }
 	private PointF lastDrag = null, lastTouch = new PointF(0.f, 0.f);
@@ -60,7 +68,9 @@ public class GameView extends View
 	private int button;
 	private int backgroundColour;
 	private boolean waitingSpace = false;
+	private boolean rightMouseHeld = false;
 	private PointF touchStart;
+	private PointF mousePos;
 	private final double maxDistSq;
 	private static final int LEFT_BUTTON = 0x0200;
 	private static final int MIDDLE_BUTTON = 0x201;
@@ -128,21 +138,32 @@ public class GameView extends View
 			@Override
 			public boolean onDown(MotionEvent event) {
 				int meta = event.getMetaState();
-				int buttonState = 1; // MotionEvent.BUTTON_PRIMARY
-				buttonState = event.getButtonState();
+				int buttonState = event.getButtonState();
 				if ((meta & KeyEvent.META_ALT_ON) > 0  ||
-						buttonState == 4 /* MotionEvent.BUTTON_TERTIARY */)  {
+						buttonState == MotionEvent.BUTTON_TERTIARY)  {
 					button = MIDDLE_BUTTON;
 				} else if ((meta & KeyEvent.META_SHIFT_ON) > 0  ||
-						buttonState == 2 /* MotionEvent.BUTTON_SECONDARY */) {
+						buttonState == MotionEvent.BUTTON_SECONDARY) {
 					button = RIGHT_BUTTON;
+					hasRightMouse = true;
 				} else {
 					button = LEFT_BUTTON;
 				}
 				touchStart = pointFromEvent(event);
-				touchState = TouchState.WAITING_LONG_PRESS;
 				parent.handler.removeCallbacks(sendLongPress);
-				parent.handler.postDelayed(sendLongPress, longPressTimeout);
+				if ((isFromSource(event, SOURCE_MOUSE) || isFromSource(event, SOURCE_STYLUS)
+						|| event.getToolType(event.getActionIndex()) == TOOL_TYPE_STYLUS) &&
+						((hasRightMouse && !alwaysLongPress) || button != LEFT_BUTTON)) {
+					parent.sendKey(viewToGame(touchStart), button);
+					if (dragMode == DragMode.PREVENT) {
+						touchState = TouchState.IDLE;
+					} else {
+						touchState = TouchState.DRAGGING;
+					}
+				} else {
+					touchState = TouchState.WAITING_LONG_PRESS;
+					parent.handler.postDelayed(sendLongPress, longPressTimeout);
+				}
 				return true;
 			}
 
@@ -411,11 +432,33 @@ public class GameView extends View
 	};
 
 	@Override
+	public boolean onGenericMotionEvent(@NonNull MotionEvent event)
+	{
+		if (isFromSource(event, SOURCE_MOUSE)) {
+			switch (event.getActionMasked()) {
+				case MotionEvent.ACTION_HOVER_MOVE:
+					mousePos = pointFromEvent(event);
+					if (rightMouseHeld && touchState == TouchState.DRAGGING) {
+						event.setAction(MotionEvent.ACTION_MOVE);
+						return handleTouchEvent(event, false);
+					}
+					break;
+			}
+		}
+		return super.onGenericMotionEvent(event);
+	}
+
+	@Override
 	public boolean onTouchEvent(@NonNull MotionEvent event)
 	{
 		if (parent.currentBackend == null) return false;
 		boolean sdRet = checkPinchZoom(event);
 		boolean gdRet = gestureDetector.onTouchEvent(event);
+		return handleTouchEvent(event, sdRet || gdRet);
+	}
+
+	private boolean handleTouchEvent(@NonNull MotionEvent event, boolean sdgdRet)
+	{
 		lastTouch = pointFromEvent(event);
 		if (event.getAction() == MotionEvent.ACTION_UP) {
 			parent.handler.removeCallbacks(sendLongPress);
@@ -434,7 +477,7 @@ public class GameView extends View
 		} else if (event.getAction() == MotionEvent.ACTION_MOVE) {
 			// 2nd clause is 2 fingers a constant distance apart
 			if (isScaleInProgress() || event.getPointerCount() > 1) {
-				return sdRet || gdRet;
+				return sdgdRet;
 			}
 			float x = event.getX(), y = event.getY();
 			if (touchState == TouchState.WAITING_LONG_PRESS && movedPastTouchSlop(x, y)) {
@@ -453,7 +496,7 @@ public class GameView extends View
 			}
 			return false;
 		} else {
-			return sdRet || gdRet;
+			return sdgdRet;
 		}
 	}
 
@@ -492,6 +535,25 @@ public class GameView extends View
 		case KeyEvent.KEYCODE_BUTTON_L1: key = UI_UNDO; break;
 		case KeyEvent.KEYCODE_BUTTON_R1: key = UI_REDO; break;
 		case KeyEvent.KEYCODE_DEL: key = '\b'; break;
+		// Mouse right-click = BACK auto-repeats on at least Galaxy S7
+		case KeyEvent.KEYCODE_BACK:
+			if (mouseBackSupport && event.getSource() == SOURCE_MOUSE) {
+				if (rightMouseHeld) {
+					return true;
+				}
+				rightMouseHeld = true;
+				hasRightMouse = true;
+				touchStart = mousePos;
+				button = RIGHT_BUTTON;
+				parent.sendKey(viewToGame(touchStart), button);
+				if (dragMode == DragMode.PREVENT) {
+					touchState = TouchState.IDLE;
+				} else {
+					touchState = TouchState.DRAGGING;
+				}
+				return true;
+			}
+			break;
 		}
 		if (key == CURSOR_UP || key == CURSOR_DOWN || key == CURSOR_LEFT || key == CURSOR_RIGHT) {
 			// "only apply to cursor keys"
@@ -522,11 +584,31 @@ public class GameView extends View
 	@Override
 	public boolean onKeyUp( int keyCode, KeyEvent event )
 	{
+		if (mouseBackSupport && event.getSource() == SOURCE_MOUSE) {
+			if (keyCode == KeyEvent.KEYCODE_BACK && rightMouseHeld) {
+				rightMouseHeld = false;
+				if (touchState == TouchState.DRAGGING) {
+					parent.sendKey(viewToGame(mousePos), button + RELEASE);
+				}
+				touchState = TouchState.IDLE;
+			}
+			return true;
+		}
 		if (keyCode != KeyEvent.KEYCODE_DPAD_CENTER || ! waitingSpace)
 			return super.onKeyUp(keyCode, event);
 		parent.handler.removeCallbacks(sendSpace);
 		parent.sendKey(0, 0, '\n');
 		return true;
+	}
+
+	@Override
+	public boolean dispatchKeyEvent(@NonNull KeyEvent event) {
+		int keyCode = event.getKeyCode();
+		// Mouse right-click-and-hold sends MENU as a "keyboard" on at least Galaxy S7, ignore
+		if (keyCode == KeyEvent.KEYCODE_MENU && rightMouseHeld) {
+			return true;
+		}
+		return super.dispatchKeyEvent(event);
 	}
 
 	@Override

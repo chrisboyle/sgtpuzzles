@@ -66,6 +66,7 @@ public class PrefsActivity extends PreferenceActivity implements OnSharedPrefere
 		updateSummary((ListPreference) findPreference(GamePlay.ORIENTATION_KEY));
 		updateSummary((ListPreference) findPreference(NightModeHelper.NIGHT_MODE_KEY));
 		updateSummary((ListPreference) findPreference(GamePlay.LIMIT_DPI_KEY));
+		updateSummary((ListPreference) findPreference(GamePlay.MOUSE_LONG_PRESS_KEY));
 		findPreference("about_content").setSummary(
 				String.format(getString(R.string.about_content), BuildConfig.VERSION_NAME));
 		getSupportActionBar().setDisplayHomeAsUpEnabled(true);
