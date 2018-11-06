@@ -2287,7 +2287,7 @@ static void menu_save_event(GtkMenuItem *menuitem, gpointer data)
 	    if (ctx.error) {
 		char boxmsg[512];
 		sprintf(boxmsg, "Error writing save file: %.400s",
-			strerror(errno));
+			strerror(ctx.error));
 		error_box(fe->window, boxmsg);
 		goto free_and_return;
 	    }
