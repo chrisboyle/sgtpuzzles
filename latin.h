@@ -78,8 +78,8 @@ void latin_solver_free_scratch(struct latin_solver_scratch *scratch);
 /* Looped positional elimination */
 int latin_solver_diff_simple(struct latin_solver *solver);
 
-/* Looped set elimination; *extreme is set if it used
- * the more difficult single-number elimination. */
+/* Looped set elimination; extreme permits use of the more difficult
+ * single-number elimination. */
 int latin_solver_diff_set(struct latin_solver *solver,
                           struct latin_solver_scratch *scratch,
                           int extreme);
