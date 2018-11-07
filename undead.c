@@ -225,7 +225,6 @@ struct game_common {
     int *grid;
     int *xinfo;
     int *fixed;
-    int solved;
 };
 
 struct game_state {
@@ -260,7 +259,6 @@ static game_state *new_state(const game_params *params) {
     state->common->grid = snewn(state->common->wh, int);
     state->common->xinfo = snewn(state->common->wh, int);
     state->common->fixed = NULL;
-    state->common->solved = FALSE;
 
     state->common->num_paths =
         state->common->params.w + state->common->params.h;
