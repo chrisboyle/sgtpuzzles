@@ -228,7 +228,7 @@ static const char *validate_params(const game_params *params, bool full)
 #define BLANK 0
 #define UNKNOWN 15
 
-int nbits[] = { 0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4 };
+static const int nbits[] = { 0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4 };
 
 /* square grid flags */
 #define S_TRACK 1     /* a track passes through this square (--> 2 edges) */
@@ -263,25 +263,28 @@ struct game_state {
 };
 
 /* Return the four directions in which a particular edge flag is set, around a square. */
-int S_E_DIRS(const game_state *state, int sx, int sy, unsigned int eflag) {
+static int S_E_DIRS(const game_state *state, int sx, int sy,
+                    unsigned int eflag) {
     return (state->sflags[sy*state->p.w+sx] >>
             ((eflag == E_TRACK) ? S_TRACK_SHIFT : S_NOTRACK_SHIFT)) & ALLDIR;
 }
 
 /* Count the number of a particular edge flag around a grid square. */
-int S_E_COUNT(const game_state *state, int sx, int sy, unsigned int eflag) {
+static int S_E_COUNT(const game_state *state, int sx, int sy,
+                     unsigned int eflag) {
     return nbits[S_E_DIRS(state, sx, sy, eflag)];
 }
 
 /* Return the two flags (E_TRACK and/or E_NOTRACK) set on a specific
  * edge of a square. */
-unsigned S_E_FLAGS(const game_state *state, int sx, int sy, int d) {
+static unsigned S_E_FLAGS(const game_state *state, int sx, int sy, int d) {
     unsigned f = state->sflags[sy*state->p.w+sx];
     int t = (f & (d << S_TRACK_SHIFT)), nt = (f & (d << S_NOTRACK_SHIFT));
     return (t ? E_TRACK : 0) | (nt ? E_NOTRACK : 0);
 }
 
-bool S_E_ADJ(const game_state *state, int sx, int sy, int d, int *ax, int *ay, unsigned int *ad) {
+static bool S_E_ADJ(const game_state *state, int sx, int sy, int d, int *ax,
+                    int *ay, unsigned int *ad) {
     if (d == L && sx > 0)            { *ax = sx-1; *ay = sy;   *ad = R; return true; }
     if (d == R && sx < state->p.w-1) { *ax = sx+1; *ay = sy;   *ad = L; return true; }
     if (d == U && sy > 0)            { *ax = sx;   *ay = sy-1; *ad = D; return true; }
@@ -291,7 +294,8 @@ bool S_E_ADJ(const game_state *state, int sx, int sy, int d, int *ax, int *ay, u
 }
 
 /* Sets flag (E_TRACK or E_NOTRACK) on a given edge of a square. */
-void S_E_SET(game_state *state, int sx, int sy, int d, unsigned int eflag) {
+static void S_E_SET(game_state *state, int sx, int sy, int d,
+                    unsigned int eflag) {
     unsigned shift = (eflag == E_TRACK) ? S_TRACK_SHIFT : S_NOTRACK_SHIFT, ad;
     int ax, ay;
 
@@ -303,7 +307,8 @@ void S_E_SET(game_state *state, int sx, int sy, int d, unsigned int eflag) {
 }
 
 /* Clears flag (E_TRACK or E_NOTRACK) on a given edge of a square. */
-void S_E_CLEAR(game_state *state, int sx, int sy, int d, unsigned int eflag) {
+static void S_E_CLEAR(game_state *state, int sx, int sy, int d,
+                      unsigned int eflag) {
     unsigned shift = (eflag == E_TRACK) ? S_TRACK_SHIFT : S_NOTRACK_SHIFT, ad;
     int ax, ay;
 
@@ -389,7 +394,7 @@ static void free_game(game_state *state)
 }
 
 #define NDIRS 4
-const unsigned int dirs_const[] = { U, D, L, R };
+static const unsigned int dirs_const[] = { U, D, L, R };
 
 static unsigned int find_direction(game_state *state, random_state *rs,
                                    int x, int y)

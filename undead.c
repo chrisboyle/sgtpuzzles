@@ -397,7 +397,7 @@ enum {
     DIRECTION_DOWN
 };
 
-int range2grid(int rangeno, int width, int height, int *x, int *y) {
+static int range2grid(int rangeno, int width, int height, int *x, int *y) {
 
     if (rangeno < 0) {
         *x = 0; *y = 0; return DIRECTION_NONE;
@@ -421,7 +421,7 @@ int range2grid(int rangeno, int width, int height, int *x, int *y) {
     return DIRECTION_NONE;
 }
 
-int grid2range(int x, int y, int w, int h) {
+static int grid2range(int x, int y, int w, int h) {
     if (x>0 && x<w+1 && y>0 && y<h+1)           return -1;
     if (x<0 || x>w+1 || y<0 || y>h+1)           return -1;
     if ((x == 0 || x==w+1) && (y==0 || y==h+1)) return -1;
@@ -431,7 +431,7 @@ int grid2range(int x, int y, int w, int h) {
     return 2*(w+h) - y;
 }
 
-void make_paths(game_state *state) {
+static void make_paths(game_state *state) {
     int i;
     int count = 0;
 
@@ -529,7 +529,7 @@ struct guess {
     int *possible;
 };
 
-bool next_list(struct guess *g, int pos) {
+static bool next_list(struct guess *g, int pos) {
 
     if (pos == 0) {
         if ((g->guess[pos] == 1 && g->possible[pos] == 1) || 
@@ -587,7 +587,7 @@ bool next_list(struct guess *g, int pos) {
     return false;
 }
 
-void get_unique(game_state *state, int counter, random_state *rs) {
+static void get_unique(game_state *state, int counter, random_state *rs) {
 
     int p,i,c,pathlimit,count_uniques;
     struct guess path_guess;
@@ -765,8 +765,8 @@ void get_unique(game_state *state, int counter, random_state *rs) {
     return;
 }
 
-int count_monsters(game_state *state,
-                   int *cGhost, int *cVampire, int *cZombie) {
+static int count_monsters(game_state *state,
+                          int *cGhost, int *cVampire, int *cZombie) {
     int cNone;
     int i;
 
@@ -782,7 +782,7 @@ int count_monsters(game_state *state,
     return cNone;
 }
 
-bool check_numbers(game_state *state, int *guess) {
+static bool check_numbers(game_state *state, int *guess) {
     bool valid;
     int i;
     int count_ghosts, count_vampires, count_zombies;
@@ -803,7 +803,7 @@ bool check_numbers(game_state *state, int *guess) {
     return valid;
 }
 
-bool check_solution(int *g, struct path path) {
+static bool check_solution(int *g, struct path path) {
     int i;
     bool mirror;
     int count;
@@ -835,7 +835,7 @@ bool check_solution(int *g, struct path path) {
     return true;
 }
 
-bool solve_iterative(game_state *state, struct path *paths) {
+static bool solve_iterative(game_state *state, struct path *paths) {
     bool solved;
     int p,i,j,count;
 
@@ -908,7 +908,7 @@ bool solve_iterative(game_state *state, struct path *paths) {
     return solved;
 }
 
-bool solve_bruteforce(game_state *state, struct path *paths) {
+static bool solve_bruteforce(game_state *state, struct path *paths) {
     bool solved, correct;
     int number_solutions;
     int p,i;
@@ -964,7 +964,7 @@ bool solve_bruteforce(game_state *state, struct path *paths) {
     return solved;
 }
 
-int path_cmp(const void *a, const void *b) {
+static int path_cmp(const void *a, const void *b) {
     const struct path *pa = (const struct path *)a;
     const struct path *pb = (const struct path *)b;
     return pa->num_monsters - pb->num_monsters;
@@ -1307,7 +1307,7 @@ static char *new_game_desc(const game_params *params, random_state *rs,
     return desc;
 }
 
-void num2grid(int num, int width, int height, int *x, int *y) {
+static void num2grid(int num, int width, int height, int *x, int *y) {
     *x = 1+(num%width);
     *y = 1+(num/width);
     return;
@@ -1920,7 +1920,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     return NULL;
 }
 
-bool check_numbers_draw(game_state *state, int *guess) {
+static bool check_numbers_draw(game_state *state, int *guess) {
     bool valid, filled;
     int i,x,y,xy;
     int count_ghosts, count_vampires, count_zombies;
@@ -1976,7 +1976,7 @@ bool check_numbers_draw(game_state *state, int *guess) {
     return valid;
 }
 
-bool check_path_solution(game_state *state, int p) {
+static bool check_path_solution(game_state *state, int p) {
     int i;
     bool mirror;
     int count;

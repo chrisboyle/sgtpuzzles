@@ -1009,7 +1009,7 @@ int maxtries;
 #else
 #define MAXTRIES 50
 #endif
-int gg_solved;
+static int gg_solved;
 
 static int game_assemble(game_state *new, int *scratch, digit *latin,
                          int difficulty)

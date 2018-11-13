@@ -632,7 +632,7 @@ static bool island_impossible(struct island *is, bool strict)
 
 #define DEFAULT_PRESET 0
 
-const struct game_params bridges_presets[] = {
+static const struct game_params bridges_presets[] = {
   { 7, 7, 2, 30, 10, 1, 0 },
   { 7, 7, 2, 30, 10, 1, 1 },
   { 7, 7, 2, 30, 10, 1, 2 },

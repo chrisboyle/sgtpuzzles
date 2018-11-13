@@ -146,9 +146,9 @@ enum {
 #define MAX_2SUMS 5
 #define MAX_3SUMS 8
 #define MAX_4SUMS 12
-unsigned long sum_bits2[18][MAX_2SUMS];
-unsigned long sum_bits3[25][MAX_3SUMS];
-unsigned long sum_bits4[31][MAX_4SUMS];
+static unsigned long sum_bits2[18][MAX_2SUMS];
+static unsigned long sum_bits3[25][MAX_3SUMS];
+static unsigned long sum_bits4[31][MAX_4SUMS];
 
 static int find_sum_bits(unsigned long *array, int idx, int value_left,
 			 int addends_left, int min_addend,

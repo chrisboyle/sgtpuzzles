@@ -49,7 +49,7 @@
 #ifdef DEBUGGING
 #define solvep debug
 #else
-bool solver_show_working;
+static bool solver_show_working;
 #define solvep(x) do { if (solver_show_working) { printf x; } } while(0)
 #endif
 
@@ -1605,7 +1605,7 @@ static game_state *new_game(midend *me, const game_params *params,
  * Solver and all its little wizards.
  */
 
-int solver_recurse_depth;
+static int solver_recurse_depth;
 
 typedef struct solver_ctx {
     game_state *state;

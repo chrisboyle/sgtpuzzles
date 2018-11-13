@@ -282,8 +282,8 @@ static const char *validate_params(const game_params *params, bool full)
  * Solver.
  */
 
-int pearl_solve(int w, int h, char *clues, char *result,
-                int difficulty, bool partial)
+static int pearl_solve(int w, int h, char *clues, char *result,
+                       int difficulty, bool partial)
 {
     int W = 2*w+1, H = 2*h+1;
     short *workspace;
@@ -921,7 +921,7 @@ struct pearl_loopgen_bias_ctx {
 
     grid *g;
 };
-int pearl_loopgen_bias(void *vctx, char *board, int face)
+static int pearl_loopgen_bias(void *vctx, char *board, int face)
 {
     struct pearl_loopgen_bias_ctx *ctx = (struct pearl_loopgen_bias_ctx *)vctx;
     grid *g = ctx->g;
@@ -1048,7 +1048,7 @@ int pearl_loopgen_bias(void *vctx, char *board, int face)
     return ctx->score;
 }
 
-void pearl_loopgen(int w, int h, char *lines, random_state *rs)
+static void pearl_loopgen(int w, int h, char *lines, random_state *rs)
 {
     grid *g = grid_new(GRID_SQUARE, w-1, h-1, NULL);
     char *board = snewn(g->num_faces, char);

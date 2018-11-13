@@ -2624,7 +2624,7 @@ static void game_set_size(drawing *dr, game_drawstate *ds,
     ds->bl = blitter_new(dr, TILESIZE+3, TILESIZE+3);
 }
 
-const float map_colours[FOUR][3] = {
+static const float map_colours[FOUR][3] = {
 #ifdef VIVID_COLOURS
     /* Use more vivid colours (e.g. on the Pocket PC) */
     {0.75F, 0.25F, 0.25F},
@@ -2638,7 +2638,7 @@ const float map_colours[FOUR][3] = {
     {0.55F, 0.45F, 0.35F},
 #endif
 };
-const int map_hatching[FOUR] = {
+static const int map_hatching[FOUR] = {
     HATCH_VERT, HATCH_SLASH, HATCH_HORIZ, HATCH_BACKSLASH
 };
 
