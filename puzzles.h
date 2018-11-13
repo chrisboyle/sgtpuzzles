@@ -8,6 +8,7 @@
 #include <stdio.h>  /* for FILE */
 #include <stdlib.h> /* for size_t */
 #include <limits.h> /* for UINT_MAX */
+#include <stdbool.h>
 
 #ifndef TRUE
 #define TRUE 1
