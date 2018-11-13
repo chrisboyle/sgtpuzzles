@@ -4044,13 +4044,13 @@ Returns the number of elements currently in the tree.
 
 \S{utils-splitpos234} \cw{splitpos234()}
 
-\c tree234 *splitpos234(tree234 *t, int index, int before);
+\c tree234 *splitpos234(tree234 *t, int index, bool before);
 
 Splits the input tree into two pieces at a given position, and
 creates a new tree containing all the elements on one side of that
 position.
 
-If \c{before} is \cw{TRUE}, then all the items at or after position
+If \c{before} is \cw{true}, then all the items at or after position
 \c{index} are left in the input tree, and the items before that
 point are returned in the new tree. Otherwise, the reverse happens:
 all the items at or after \c{index} are moved into the new tree, and

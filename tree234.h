@@ -28,6 +28,8 @@
 #ifndef TREE234_H
 #define TREE234_H
 
+#include <stdbool.h>
+
 /*
  * This typedef is opaque outside tree234.c itself.
  */
@@ -172,7 +174,7 @@ int count234(tree234 *t);
  * in the tree that satisfy the relation are returned; the
  * remainder are left.
  */
-tree234 *splitpos234(tree234 *t, int index, int before);
+tree234 *splitpos234(tree234 *t, int index, bool before);
 tree234 *split234(tree234 *t, void *e, cmpfn234 cmp, int rel);
 
 /*
