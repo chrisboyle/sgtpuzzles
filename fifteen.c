@@ -46,8 +46,8 @@ struct game_state {
     int w, h, n;
     int *tiles;
     int gap_pos;
-    int completed;
-    int used_solve;		       /* used to suppress completion flash */
+    int completed;             /* move count at time of completion */
+    bool used_solve;           /* used to suppress completion flash */
     int movecount;
 };
 
@@ -161,14 +161,15 @@ static char *new_game_desc(const game_params *params, random_state *rs,
 {
     int gap, n, i, x;
     int x1, x2, p1, p2, parity;
-    int *tiles, *used;
+    int *tiles;
+    bool *used;
     char *ret;
     int retlen;
 
     n = params->w * params->h;
 
     tiles = snewn(n, int);
-    used = snewn(n, int);
+    used = snewn(n, bool);
 
     for (i = 0; i < n; i++) {
         tiles[i] = -1;
@@ -275,13 +276,13 @@ static const char *validate_desc(const game_params *params, const char *desc)
     const char *p;
     const char *err;
     int i, area;
-    int *used;
+    bool *used;
 
     area = params->w * params->h;
     p = desc;
     err = NULL;
 
-    used = snewn(area, int);
+    used = snewn(area, bool);
     for (i = 0; i < area; i++)
 	used[i] = false;
 
@@ -455,7 +456,7 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
 }
 
 struct game_drawstate {
-    int started;
+    bool started;
     int w, h, bgcolour;
     int *tiles;
     int tilesize;
@@ -521,7 +522,7 @@ static void next_move(int nx, int ny, int ox, int oy, int gx, int gy,
 {
     const int to_tile_x = (gx < nx ? +1 : -1);
     const int to_goal_x = (gx < tx ? +1 : -1);
-    const int gap_x_on_goal_side = ((nx-tx) * (nx-gx) > 0);
+    const bool gap_x_on_goal_side = ((nx-tx) * (nx-gx) > 0);
 
     assert (nx != tx || ny != ty); /* not already in place */
     assert (nx != gx || ny != gy); /* not placing the gap */
@@ -608,7 +609,7 @@ static void next_move(int nx, int ny, int ox, int oy, int gx, int gy,
         *dx = to_tile_x;
 }
 
-static int compute_hint(const game_state *state, int *out_x, int *out_y)
+static bool compute_hint(const game_state *state, int *out_x, int *out_y)
 {
     /* The overall solving process is this:
      * 1. Find the next piece to be put in its place
@@ -1129,11 +1130,12 @@ int main(int argc, char **argv)
     game_state *state;
     char *id = NULL, *desc;
     const char *err;
-    int grade = false;
+    bool grade = false;
     char *progname = argv[0];
 
     char buf[80];
-    int limit, x, y, solvable;
+    int limit, x, y;
+    bool solvable;
 
     while (--argc > 0) {
         char *p = *++argv;

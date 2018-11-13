@@ -178,7 +178,7 @@ struct grid_square {
     int npoints;
     float points[8];                   /* maximum */
     int directions[8];                 /* bit masks showing point pairs */
-    int flip;
+    bool flip;
     int tetra_class;
 };
 
@@ -220,7 +220,7 @@ struct game_state {
     int dpkey[2];                      /* key-point indices into polyhedron */
     int previous;
     float angle;
-    int completed;
+    int completed;                     /* stores move count at completion */
     int movecount;
 };
 
@@ -599,7 +599,7 @@ static char *new_game_desc(const game_params *params, random_state *rs,
 {
     struct grid_data data;
     int i, j, k, m, area, facesperclass;
-    int *flags;
+    bool *flags;
     char *desc, *p;
 
     /*
@@ -634,7 +634,7 @@ static char *new_game_desc(const game_params *params, random_state *rs,
      * So now we know how many faces to allocate in each class. Get
      * on with it.
      */
-    flags = snewn(area, int);
+    flags = snewn(area, bool);
     for (i = 0; i < area; i++)
 	flags[i] = false;
 
@@ -727,8 +727,8 @@ static int lowest_face(const struct solid *solid)
     return best;
 }
 
-static int align_poly(const struct solid *solid, struct grid_square *sq,
-                      int *pkey)
+static bool align_poly(const struct solid *solid, struct grid_square *sq,
+                       int *pkey)
 {
     float zmin;
     int i, j;
@@ -775,7 +775,7 @@ static int align_poly(const struct solid *solid, struct grid_square *sq,
     return true;
 }
 
-static void flip_poly(struct solid *solid, int flip)
+static void flip_poly(struct solid *solid, bool flip)
 {
     int i;
 
@@ -791,7 +791,7 @@ static void flip_poly(struct solid *solid, int flip)
     }
 }
 
-static struct solid *transform_poly(const struct solid *solid, int flip,
+static struct solid *transform_poly(const struct solid *solid, bool flip,
                                     int key0, int key1, float angle)
 {
     struct solid *ret = snew(struct solid);
@@ -938,7 +938,7 @@ static game_state *new_game(midend *me, const game_params *params,
      */
     {
         int pkey[4];
-        int ret;
+        bool ret;
 
         ret = align_poly(state->solid, &state->grid->squares[state->current], pkey);
         assert(ret);
@@ -1312,7 +1312,7 @@ static game_state *execute_move(const game_state *from, const char *move)
      */
     {
         int all_pkey[4];
-        int success;
+        bool success;
 
         if (from->solid->order == 4 && direction == UP)
             angle = -angle;            /* HACK */
@@ -1418,7 +1418,7 @@ static game_state *execute_move(const game_state *from, const char *move)
      */
     {
         int pkey[4];
-        int success;
+        bool success;
 
         success = align_poly(ret->solid, &ret->grid->squares[ret->current], pkey);
         assert(success);

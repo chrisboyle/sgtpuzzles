@@ -117,11 +117,11 @@ struct game_state {
      * YES, NO or UNKNOWN */
     char *lines;
 
-    unsigned char *line_errors;
-    int exactly_one_loop;
+    bool *line_errors;
+    bool exactly_one_loop;
 
-    int solved;
-    int cheated;
+    bool solved;
+    bool cheated;
 
     /* Used in game_text_format(), so that it knows what type of
      * grid it's trying to render as ASCII text. */
@@ -152,7 +152,7 @@ typedef struct solver_state {
     char *dot_no_count;
     char *face_yes_count;
     char *face_no_count;
-    char *dot_solved, *face_solved;
+    bool *dot_solved, *face_solved;
     int *dotdsf;
 
     /* Information for Normal level deductions:
@@ -223,13 +223,13 @@ enum line_drawstate { DS_LINE_YES, DS_LINE_UNKNOWN,
 
 
 struct game_drawstate {
-    int started;
+    bool started;
     int tilesize;
-    int flashing;
+    bool flashing;
     int *textx, *texty;
     char *lines;
-    char *clue_error;
-    char *clue_satisfied;
+    bool *clue_error;
+    bool *clue_satisfied;
 };
 
 static const char *validate_desc(const game_params *params, const char *desc);
@@ -348,8 +348,9 @@ static game_state *dup_game(const game_state *state)
     ret->lines = snewn(state->game_grid->num_edges, char);
     memcpy(ret->lines, state->lines, state->game_grid->num_edges);
 
-    ret->line_errors = snewn(state->game_grid->num_edges, unsigned char);
-    memcpy(ret->line_errors, state->line_errors, state->game_grid->num_edges);
+    ret->line_errors = snewn(state->game_grid->num_edges, bool);
+    memcpy(ret->line_errors, state->line_errors,
+           state->game_grid->num_edges * sizeof(bool));
     ret->exactly_one_loop = state->exactly_one_loop;
 
     ret->grid_type = state->grid_type;
@@ -386,10 +387,10 @@ static solver_state *new_solver_state(const game_state *state, int diff) {
         ret->looplen[i] = 1;
     }
 
-    ret->dot_solved = snewn(num_dots, char);
-    ret->face_solved = snewn(num_faces, char);
-    memset(ret->dot_solved, false, num_dots);
-    memset(ret->face_solved, false, num_faces);
+    ret->dot_solved = snewn(num_dots, bool);
+    ret->face_solved = snewn(num_faces, bool);
+    memset(ret->dot_solved, 0, num_dots * sizeof(bool));
+    memset(ret->face_solved, 0, num_faces * sizeof(bool));
 
     ret->dot_yes_count = snewn(num_dots, char);
     memset(ret->dot_yes_count, 0, num_dots);
@@ -455,10 +456,10 @@ static solver_state *dup_solver_state(const solver_state *sstate) {
     memcpy(ret->looplen, sstate->looplen,
            num_dots * sizeof(int));
 
-    ret->dot_solved = snewn(num_dots, char);
-    ret->face_solved = snewn(num_faces, char);
-    memcpy(ret->dot_solved, sstate->dot_solved, num_dots);
-    memcpy(ret->face_solved, sstate->face_solved, num_faces);
+    ret->dot_solved = snewn(num_dots, bool);
+    ret->face_solved = snewn(num_faces, bool);
+    memcpy(ret->dot_solved, sstate->dot_solved, num_dots * sizeof(bool));
+    memcpy(ret->face_solved, sstate->face_solved, num_faces * sizeof(bool));
 
     ret->dot_yes_count = snewn(num_dots, char);
     memcpy(ret->dot_yes_count, sstate->dot_yes_count, num_dots);
@@ -946,17 +947,17 @@ static game_drawstate *game_new_drawstate(drawing *dr, const game_state *state)
     int i;
 
     ds->tilesize = 0;
-    ds->started = 0;
+    ds->started = false;
     ds->lines = snewn(num_edges, char);
-    ds->clue_error = snewn(num_faces, char);
-    ds->clue_satisfied = snewn(num_faces, char);
+    ds->clue_error = snewn(num_faces, bool);
+    ds->clue_satisfied = snewn(num_faces, bool);
     ds->textx = snewn(num_faces, int);
     ds->texty = snewn(num_faces, int);
-    ds->flashing = 0;
+    ds->flashing = false;
 
     memset(ds->lines, LINE_UNKNOWN, num_edges);
-    memset(ds->clue_error, 0, num_faces);
-    memset(ds->clue_satisfied, 0, num_faces);
+    memset(ds->clue_error, 0, num_faces * sizeof(bool));
+    memset(ds->clue_satisfied, 0, num_faces * sizeof(bool));
     for (i = 0; i < num_faces; i++)
         ds->textx[i] = ds->texty[i] = -1;
 
@@ -1107,12 +1108,12 @@ static void check_caches(const solver_state* sstate)
 /* Sets the line (with index i) to the new state 'line_new', and updates
  * the cached counts of any affected faces and dots.
  * Returns true if this actually changed the line's state. */
-static int solver_set_line(solver_state *sstate, int i,
-                           enum line_state line_new
+static bool solver_set_line(solver_state *sstate, int i,
+                            enum line_state line_new
 #ifdef SHOW_WORKING
-			   , const char *reason
+                            , const char *reason
 #endif
-			   )
+                            )
 {
     game_state *state = sstate->state;
     grid *g;
@@ -1173,7 +1174,7 @@ static int solver_set_line(solver_state *sstate, int i,
  * Returns true if the dots were already linked, ie if they are part of a
  * closed loop, and false otherwise.
  */
-static int merge_dots(solver_state *sstate, int edge_index)
+static bool merge_dots(solver_state *sstate, int edge_index)
 {
     int i, j, len;
     grid *g = sstate->state->game_grid;
@@ -1199,11 +1200,11 @@ static int merge_dots(solver_state *sstate, int edge_index)
 /* Merge two lines because the solver has deduced that they must be either
  * identical or opposite.   Returns true if this is new information, otherwise
  * false. */
-static int merge_lines(solver_state *sstate, int i, int j, bool inverse
+static bool merge_lines(solver_state *sstate, int i, int j, bool inverse
 #ifdef SHOW_WORKING
-                       , const char *reason
+                        , const char *reason
 #endif
-		       )
+                        )
 {
     bool inv_tmp;
 
@@ -1268,10 +1269,10 @@ static int face_order(const game_state* state, int face, char line_type)
 
 /* Set all lines bordering a dot of type old_type to type new_type
  * Return value tells caller whether this function actually did anything */
-static int dot_setall(solver_state *sstate, int dot,
-		      char old_type, char new_type)
+static bool dot_setall(solver_state *sstate, int dot,
+                       char old_type, char new_type)
 {
-    int retval = false, r;
+    bool retval = false, r;
     game_state *state = sstate->state;
     grid *g;
     grid_dot *d;
@@ -1287,7 +1288,7 @@ static int dot_setall(solver_state *sstate, int dot,
         int line_index = d->edges[i] - g->edges;
         if (state->lines[line_index] == old_type) {
             r = solver_set_line(sstate, line_index, new_type);
-            assert(r == true);
+            assert(r);
             retval = true;
         }
     }
@@ -1295,10 +1296,10 @@ static int dot_setall(solver_state *sstate, int dot,
 }
 
 /* Set all lines bordering a face of type old_type to type new_type */
-static int face_setall(solver_state *sstate, int face,
-                       char old_type, char new_type)
+static bool face_setall(solver_state *sstate, int face,
+                        char old_type, char new_type)
 {
-    int retval = false, r;
+    bool retval = false, r;
     game_state *state = sstate->state;
     grid *g;
     grid_face *f;
@@ -1314,7 +1315,7 @@ static int face_setall(solver_state *sstate, int face,
         int line_index = f->edges[i] - g->edges;
         if (state->lines[line_index] == old_type) {
             r = solver_set_line(sstate, line_index, new_type);
-            assert(r == true);
+            assert(r);
             retval = true;
         }
     }
@@ -1356,9 +1357,9 @@ static void add_full_clues(game_state *state, random_state *rs)
 }
 
 
-static int game_has_unique_soln(const game_state *state, int diff)
+static bool game_has_unique_soln(const game_state *state, int diff)
 {
-    int ret;
+    bool ret;
     solver_state *sstate_new;
     solver_state *sstate = new_solver_state((game_state *)state, diff);
 
@@ -1425,7 +1426,7 @@ static char *new_game_desc(const game_params *params, random_state *rs,
 
     state->clues = snewn(g->num_faces, signed char);
     state->lines = snewn(g->num_edges, char);
-    state->line_errors = snewn(g->num_edges, unsigned char);
+    state->line_errors = snewn(g->num_edges, bool);
     state->exactly_one_loop = false;
 
     state->grid_type = params->type;
@@ -1433,9 +1434,10 @@ static char *new_game_desc(const game_params *params, random_state *rs,
     newboard_please:
 
     memset(state->lines, LINE_UNKNOWN, g->num_edges);
-    memset(state->line_errors, 0, g->num_edges);
+    memset(state->line_errors, 0, g->num_edges * sizeof(bool));
 
-    state->solved = state->cheated = false;
+    state->solved = false;
+    state->cheated = false;
 
     /* Get a new random solvable board with all its clues filled in.  Yes, this
      * can loop for ever if the params are suitably unfavourable, but
@@ -1497,7 +1499,7 @@ static game_state *new_game(midend *me, const game_params *params,
 
     state->clues = snewn(num_faces, signed char);
     state->lines = snewn(num_edges, char);
-    state->line_errors = snewn(num_edges, unsigned char);
+    state->line_errors = snewn(num_edges, bool);
     state->exactly_one_loop = false;
 
     state->solved = state->cheated = false;
@@ -1528,21 +1530,22 @@ static game_state *new_game(midend *me, const game_params *params,
     }
 
     memset(state->lines, LINE_UNKNOWN, num_edges);
-    memset(state->line_errors, 0, num_edges);
+    memset(state->line_errors, 0, num_edges * sizeof(bool));
     return state;
 }
 
 /* Calculates the line_errors data, and checks if the current state is a
  * solution */
-static int check_completion(game_state *state)
+static bool check_completion(game_state *state)
 {
     grid *g = state->game_grid;
-    int i, ret;
+    int i;
+    bool ret;
     int *dsf, *component_state;
     int nsilly, nloop, npath, largest_comp, largest_size, total_pathsize;
     enum { COMP_NONE, COMP_LOOP, COMP_PATH, COMP_SILLY, COMP_EMPTY };
 
-    memset(state->line_errors, 0, g->num_edges);
+    memset(state->line_errors, 0, g->num_edges * sizeof(bool));
 
     /*
      * Find loops in the grid, and determine whether the puzzle is
@@ -1850,19 +1853,19 @@ static int dline_index_from_face(grid *g, grid_face *f, int i)
 #endif
     return ret;
 }
-static int is_atleastone(const char *dline_array, int index)
+static bool is_atleastone(const char *dline_array, int index)
 {
     return BIT_SET(dline_array[index], 0);
 }
-static int set_atleastone(char *dline_array, int index)
+static bool set_atleastone(char *dline_array, int index)
 {
     return SET_BIT(dline_array[index], 0);
 }
-static int is_atmostone(const char *dline_array, int index)
+static bool is_atmostone(const char *dline_array, int index)
 {
     return BIT_SET(dline_array[index], 1);
 }
-static int set_atmostone(char *dline_array, int index)
+static bool set_atmostone(char *dline_array, int index)
 {
     return SET_BIT(dline_array[index], 1);
 }
@@ -1886,8 +1889,8 @@ static void array_setall(char *array, char from, char to, int len)
  * will find the opposite UNKNOWNS (if they are adjacent to one another)
  * and set their corresponding dline to atleastone.  (Setting atmostone
  * already happens in earlier dline deductions) */
-static int dline_set_opp_atleastone(solver_state *sstate,
-                                    grid_dot *d, int edge)
+static bool dline_set_opp_atleastone(solver_state *sstate,
+                                     grid_dot *d, int edge)
 {
     game_state *state = sstate->state;
     grid *g = state->game_grid;
@@ -1918,14 +1921,14 @@ static int dline_set_opp_atleastone(solver_state *sstate,
 
 /* Set pairs of lines around this face which are known to be identical, to
  * the given line_state */
-static int face_setall_identical(solver_state *sstate, int face_index,
-                                 enum line_state line_new)
+static bool face_setall_identical(solver_state *sstate, int face_index,
+                                  enum line_state line_new)
 {
     /* can[dir] contains the canonical line associated with the line in
      * direction dir from the square in question.  Similarly inv[dir] is
      * whether or not the line in question is inverse to its canonical
      * element. */
-    int retval = false;
+    bool retval = false;
     game_state *state = sstate->state;
     grid *g = state->game_grid;
     grid_face *f = g->faces + face_index;
@@ -2183,7 +2186,7 @@ static int trivial_deductions(solver_state *sstate)
             for (j = 0; j < f->order; j++) {
                 e = f->edges[j] - g->edges;
                 if (state->lines[e] == LINE_UNKNOWN && e != e1 && e != e2) {
-                    int r = solver_set_line(sstate, e, LINE_YES);
+                    bool r = solver_set_line(sstate, e, LINE_YES);
                     assert(r);
                     diff = min(diff, DIFF_EASY);
                 }
@@ -2653,7 +2656,7 @@ static int linedsf_deductions(solver_state *sstate)
             /* Infer linedsf from dline flags */
             if (is_atmostone(dlines, dline_index)
 		&& is_atleastone(dlines, dline_index)) {
-                if (merge_lines(sstate, line1_index, line2_index, 1))
+                if (merge_lines(sstate, line1_index, line2_index, true))
                     diff = min(diff, DIFF_HARD);
             }
         }
@@ -2701,9 +2704,9 @@ static int loop_deductions(solver_state *sstate)
     game_state *state = sstate->state;
     grid *g = state->game_grid;
     int shortest_chainlen = g->num_dots;
-    int loop_found = false;
+    bool loop_found = false;
     int dots_connected;
-    int progress = false;
+    bool progress = false;
     int i;
 
     /*
@@ -2836,7 +2839,7 @@ static int loop_deductions(solver_state *sstate)
          * make.
          */
         progress = solver_set_line(sstate, i, val);
-        assert(progress == true);
+        assert(progress);
         if (val == LINE_YES) {
             sstate->solver_status = SOLVER_AMBIGUOUS;
             goto finished_loop_deductionsing;
@@ -3307,8 +3310,8 @@ static void game_redraw_dot(drawing *dr, game_drawstate *ds,
     draw_circle(dr, x, y, 2, COL_FOREGROUND, COL_FOREGROUND);
 }
 
-static int boxes_intersect(int x0, int y0, int w0, int h0,
-                           int x1, int y1, int w1, int h1)
+static bool boxes_intersect(int x0, int y0, int w0, int h0,
+                            int x1, int y1, int w1, int h1)
 {
     /*
      * Two intervals intersect iff neither is wholly on one side of
@@ -3363,8 +3366,8 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
     grid *g = state->game_grid;
     int border = BORDER(ds->tilesize);
     int i;
-    int flash_changed;
-    int redraw_everything = false;
+    bool flash_changed;
+    bool redraw_everything = false;
 
     int edges[REDRAW_OBJECTS_LIMIT], nedges = 0;
     int faces[REDRAW_OBJECTS_LIMIT], nfaces = 0;
@@ -3407,8 +3410,8 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
         grid_face *f = g->faces + i;
         int sides = f->order;
         int yes_order, no_order;
-        int clue_mistake;
-        int clue_satisfied;
+        bool clue_mistake;
+        bool clue_satisfied;
         int n = state->clues[i];
         if (n < 0)
             continue;
@@ -3697,10 +3700,10 @@ int main(int argc, char **argv)
     game_state *s;
     char *id = NULL, *desc;
     const char *err;
-    int grade = false;
+    bool grade = false;
     int ret, diff;
 #if 0 /* verbose solver not supported here (yet) */
-    int really_verbose = false;
+    bool really_verbose = false;
 #endif
 
     while (--argc > 0) {

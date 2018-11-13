@@ -58,7 +58,8 @@ struct matrix {
 
 struct game_state {
     int w, h;
-    int moves, completed, cheated, hints_active;
+    int moves;
+    bool completed, cheated, hints_active;
     unsigned char *grid;               /* array of w*h */
     struct matrix *matrix;
 };
@@ -896,13 +897,15 @@ static char *game_text_format(const game_state *state)
 #undef DOWN
 
 struct game_ui {
-    int cx, cy, cdraw;
+    int cx, cy;
+    bool cdraw;
 };
 
 static game_ui *new_ui(const game_state *state)
 {
     game_ui *ui = snew(game_ui);
-    ui->cx = ui->cy = ui->cdraw = 0;
+    ui->cx = ui->cy = 0;
+    ui->cdraw = false;
     return ui;
 }
 
@@ -926,7 +929,8 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
 }
 
 struct game_drawstate {
-    int w, h, started;
+    int w, h;
+    bool started;
     unsigned char *tiles;
     int tilesize;
 };
@@ -942,10 +946,10 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         int tx, ty;
         if (button == LEFT_BUTTON) {
             tx = FROMCOORD(x), ty = FROMCOORD(y);
-            ui->cdraw = 0;
+            ui->cdraw = false;
         } else {
             tx = ui->cx; ty = ui->cy;
-            ui->cdraw = 1;
+            ui->cdraw = true;
         }
         nullret = UI_UPDATE;
 
@@ -955,7 +959,8 @@ static char *interpret_move(const game_state *state, game_ui *ui,
              * will have at least one square do nothing whatsoever.
              * If so, we avoid encoding a move at all.
              */
-            int i = ty*w+tx, j, makemove = false;
+            int i = ty*w+tx, j;
+            bool makemove = false;
             for (j = 0; j < wh; j++) {
                 if (state->matrix->matrix[i*wh+j])
                     makemove = true;
@@ -980,7 +985,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         ui->cx += dx; ui->cy += dy;
         ui->cx = min(max(ui->cx, 0), state->w - 1);
         ui->cy = min(max(ui->cy, 0), state->h - 1);
-        ui->cdraw = 1;
+        ui->cdraw = true;
         nullret = UI_UPDATE;
     }
 
@@ -1008,7 +1013,8 @@ static game_state *execute_move(const game_state *from, const char *move)
     } else if (move[0] == 'M' &&
 	       sscanf(move+1, "%d,%d", &x, &y) == 2 &&
 	x >= 0 && x < w && y >= 0 && y < h) {
-	int i, j, done;
+	int i, j;
+        bool done;
 
 	ret = dup_game(from);
 
@@ -1112,7 +1118,7 @@ static void game_free_drawstate(drawing *dr, game_drawstate *ds)
 }
 
 static void draw_tile(drawing *dr, game_drawstate *ds, const game_state *state,
-                      int x, int y, int tile, int anim, float animtime)
+                      int x, int y, int tile, bool anim, float animtime)
 {
     int w = ds->w, h = ds->h, wh = w * h;
     int bx = x * TILE_SIZE + BORDER, by = y * TILE_SIZE + BORDER;

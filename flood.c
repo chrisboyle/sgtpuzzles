@@ -63,9 +63,9 @@ typedef struct soln {
 struct game_state {
     int w, h, colours;
     int moves, movelimit;
-    int complete;
+    bool complete;
     char *grid;
-    int cheated;
+    bool cheated;
     int solnpos;
     soln *soln;
 };
@@ -441,7 +441,7 @@ static void fill(int w, int h, char *grid, int x0, int y0, char newcolour,
 /*
  * Detect a completed grid.
  */
-static int completed(int w, int h, char *grid)
+static bool completed(int w, int h, char *grid)
 {
     int wh = w*h;
     int i;
@@ -760,7 +760,7 @@ static char *game_text_format(const game_state *state)
 }
 
 struct game_ui {
-    int cursor_visible;
+    bool cursor_visible;
     int cx, cy;
     enum { VICTORY, DEFEAT } flash_type;
 };
@@ -794,7 +794,7 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
 }
 
 struct game_drawstate {
-    int started;
+    bool started;
     int tilesize;
     int *grid;
 };
@@ -1158,7 +1158,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
                   TILESIZE * w + 2 * SEP_WIDTH, TILESIZE * h + 2 * SEP_WIDTH,
                   COL_SEPARATOR);
 
-	ds->started = 1;
+	ds->started = true;
     }
 
     if (flashtime > 0) {

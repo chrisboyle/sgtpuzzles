@@ -83,8 +83,8 @@ enum {
 struct game_params {
     int width;
     int height;
-    int wrapping;
-    int unique;
+    bool wrapping;
+    bool unique;
     float barrier_probability;
 };
 
@@ -94,9 +94,10 @@ typedef struct game_immutable_state {
 } game_immutable_state;
 
 struct game_state {
-    int width, height, wrapping, completed;
+    int width, height;
+    bool wrapping, completed;
     int last_rotate_x, last_rotate_y, last_rotate_dir;
-    int used_solve;
+    bool used_solve;
     unsigned char *tiles;
     struct game_immutable_state *imm;
 };
@@ -396,7 +397,7 @@ static const char *validate_params(const game_params *params, bool full)
  */
 
 struct todo {
-    unsigned char *marked;
+    bool *marked;
     int *buffer;
     int buflen;
     int head, tail;
@@ -405,7 +406,7 @@ struct todo {
 static struct todo *todo_new(int maxsize)
 {
     struct todo *todo = snew(struct todo);
-    todo->marked = snewn(maxsize, unsigned char);
+    todo->marked = snewn(maxsize, bool);
     memset(todo->marked, 0, maxsize);
     todo->buflen = maxsize + 1;
     todo->buffer = snewn(todo->buflen, int);
@@ -449,7 +450,7 @@ static int todo_get(struct todo *todo) {
  * fully.
  */
 static int net_solver(int w, int h, unsigned char *tiles,
-		      unsigned char *barriers, int wrapping)
+		      unsigned char *barriers, bool wrapping)
 {
     unsigned char *tilestate;
     unsigned char *edgestate;
@@ -458,7 +459,7 @@ static int net_solver(int w, int h, unsigned char *tiles,
     struct todo *todo;
     int i, j, x, y;
     int area;
-    int done_something;
+    bool done_something;
 
     /*
      * Set up the solver's data structures.
@@ -628,7 +629,7 @@ static int net_solver(int w, int h, unsigned char *tiles,
 	    deadendmax[1] = deadendmax[2] = deadendmax[4] = deadendmax[8] = 0;
 
 	    for (i = j = 0; i < 4 && tilestate[(y*w+x) * 4 + i] != 255; i++) {
-		int valid;
+		bool valid;
 		int nnondeadends, nondeadends[4], deadendtotal;
 		int nequiv, equiv[5];
 		int val = tilestate[(y*w+x) * 4 + i];
@@ -837,7 +838,7 @@ static int net_solver(int w, int h, unsigned char *tiles,
  * Function to randomly perturb an ambiguous section in a grid, to
  * attempt to ensure unique solvability.
  */
-static void perturb(int w, int h, unsigned char *tiles, int wrapping,
+static void perturb(int w, int h, unsigned char *tiles, bool wrapping,
 		    random_state *rs, int startx, int starty, int startd)
 {
     struct xyd *perimeter, *perim2, *loop[2], looppos[2];
@@ -1125,7 +1126,7 @@ static void perturb(int w, int h, unsigned char *tiles, int wrapping,
     sfree(perimeter);
 }
 
-static int *compute_loops_inner(int w, int h, int wrapping,
+static int *compute_loops_inner(int w, int h, bool wrapping,
                                 const unsigned char *tiles,
                                 const unsigned char *barriers);
 
@@ -1950,7 +1951,7 @@ static int net_neighbour(int vertex, void *vctx)
         return -1;
 }
 
-static int *compute_loops_inner(int w, int h, int wrapping,
+static int *compute_loops_inner(int w, int h, bool wrapping,
                                 const unsigned char *tiles,
                                 const unsigned char *barriers)
 {
@@ -2000,10 +2001,11 @@ struct game_ui {
     int org_x, org_y; /* origin */
     int cx, cy;       /* source tile (game coordinates) */
     int cur_x, cur_y;
-    int cur_visible;
+    bool cur_visible;
     random_state *rs; /* used for jumbling */
 #ifdef USE_DRAGGING
-    int dragtilex, dragtiley, dragstartx, dragstarty, dragged;
+    int dragtilex, dragtiley, dragstartx, dragstarty;
+    bool dragged;
 #endif
 };
 
@@ -2052,7 +2054,7 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
 }
 
 struct game_drawstate {
-    int started;
+    bool started;
     int width, height;
     int tilesize;
     unsigned long *visible, *to_draw;
@@ -2067,7 +2069,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 {
     char *nullret;
     int tx = -1, ty = -1, dir = 0;
-    int shift = button & MOD_SHFT, ctrl = button & MOD_CTRL;
+    bool shift = button & MOD_SHFT, ctrl = button & MOD_CTRL;
     enum {
         NONE, ROTATE_LEFT, ROTATE_180, ROTATE_RIGHT, TOGGLE_LOCK, JUMBLE,
         MOVE_ORIGIN, MOVE_SOURCE, MOVE_ORIGIN_AND_SOURCE, MOVE_CURSOR
@@ -2338,7 +2340,8 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 static game_state *execute_move(const game_state *from, const char *move)
 {
     game_state *ret;
-    int tx = -1, ty = -1, n, noanim, orig;
+    int tx = -1, ty = -1, n, orig;
+    bool noanim;
 
     ret = dup_game(from);
 
@@ -2403,7 +2406,7 @@ static game_state *execute_move(const game_state *from, const char *move)
     {
 	unsigned char *active;
 	int pos;
-	int complete = true;
+        bool complete = true;
 
 	for (pos = 0; pos < ret->width * ret->height; pos++)
             if (ret->tiles[pos] & 0xF)
@@ -2571,7 +2574,7 @@ static void draw_wires(drawing *dr, int cx, int cy, int radius,
     float fpoints[12*2];
     int points[12*2];
     int npoints, d, dsh, i;
-    int any_wire_this_colour = false;
+    bool any_wire_this_colour = false;
     float xf, yf;
 
     npoints = 0;
@@ -3005,7 +3008,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
     {
 	char statusbuf[256], *p;
 	int i, n, n2, a;
-        int complete = false;
+        bool complete = false;
 
         p = statusbuf;
         *p = '\0';     /* ensure even an empty status string is terminated */
@@ -3107,7 +3110,7 @@ static void game_print_size(const game_params *params, float *x, float *y)
 }
 
 static void draw_diagram(drawing *dr, game_drawstate *ds, int x, int y,
-			 int topleft, int v, int drawlines, int ink)
+			 bool topleft, int v, bool drawlines, int ink)
 {
     int tx, ty, cx, cy, r, br, k, thick;
 

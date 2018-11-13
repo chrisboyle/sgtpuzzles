@@ -129,13 +129,13 @@ int edsf_canonify(int *dsf, int index, bool *inverse_return)
     index = start_index;
     while (index != canonical_index) {
 	int nextindex = dsf[index] >> 2;
-        int nextinverse = inverse ^ (dsf[index] & 1);
+        bool nextinverse = inverse ^ (dsf[index] & 1);
 	dsf[index] = (canonical_index << 2) | inverse;
         inverse = nextinverse;
 	index = nextindex;
     }
 
-    assert(inverse == 0);
+    assert(!inverse);
 
 /*    fprintf(stderr, "Return %2d\n", index); */
     
@@ -161,7 +161,6 @@ void edsf_merge(int *dsf, int v1, int v2, bool inverse)
     if (v1 == v2)
         assert(!inverse);
     else {
-	assert(inverse == 0 || inverse == 1);
 	/*
 	 * We always make the smaller of v1 and v2 the new canonical
 	 * element. This ensures that the canonical element of any
@@ -182,7 +181,7 @@ void edsf_merge(int *dsf, int v1, int v2, bool inverse)
 	    v2 = v3;
 	}
 	dsf[v1] += (dsf[v2] >> 2) << 2;
-	dsf[v2] = (v1 << 2) | !!inverse;
+	dsf[v2] = (v1 << 2) | inverse;
     }
     
     v2 = edsf_canonify(dsf, v2, &i2);

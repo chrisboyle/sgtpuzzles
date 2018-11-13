@@ -17,7 +17,7 @@ struct document {
     int npuzzles;
     struct puzzle *puzzles;
     int puzzlesize;
-    int got_solns;
+    bool got_solns;
     float *colwid, *rowht;
     float userscale;
 };

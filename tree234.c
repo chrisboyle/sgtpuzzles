@@ -1337,7 +1337,7 @@ static node234 *split234_internal(tree234 *t, int index) {
 		 * over to it until it is greater than minimum
 		 * size.
 		 */
-		int undersized = (!sub->elems[0]);
+		bool undersized = (!sub->elems[0]);
 		LOG(("  child %d is %ssize\n", ki,
 		     undersized ? "under" : "minimum-"));
 		LOG(("  neighbour is %s\n",
@@ -1400,16 +1400,16 @@ tree234 *splitpos234(tree234 *t, int index, bool before) {
     return ret;
 }
 tree234 *split234(tree234 *t, void *e, cmpfn234 cmp, int rel) {
-    int before;
+    bool before;
     int index;
 
     assert(rel != REL234_EQ);
 
     if (rel == REL234_GT || rel == REL234_GE) {
-	before = 1;
+	before = true;
 	rel = (rel == REL234_GT ? REL234_LE : REL234_LT);
     } else {
-	before = 0;
+	before = false;
     }
     if (!findrelpos234(t, e, cmp, rel, &index))
 	index = 0;
@@ -2012,7 +2012,7 @@ void splittest(tree234 *tree, void **array, int arraylen) {
     tree234 *tree3, *tree4;
     for (i = 0; i <= arraylen; i++) {
 	tree3 = copytree234(tree, NULL, NULL);
-	tree4 = splitpos234(tree3, i, 0);
+	tree4 = splitpos234(tree3, i, false);
 	verifytree(tree3, array, i);
 	verifytree(tree4, array+i, arraylen-i);
 	join234(tree3, tree4);

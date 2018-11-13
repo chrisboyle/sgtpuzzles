@@ -95,7 +95,7 @@ struct game_state {
     int *crosses;		       /* mark edges which are crossed */
 #endif
     struct graph *graph;
-    int completed, cheated, just_solved;
+    bool completed, cheated, just_solved;
 };
 
 static int edgecmpC(const void *av, const void *bv)
@@ -298,7 +298,7 @@ static int64 dotprod64(long a, long b, long p, long q)
  * between b1 and b2, intersect. We count it as an intersection if
  * any of the endpoints lies _on_ the other line.
  */
-static int cross(point a1, point a2, point b1, point b2)
+static bool cross(point a1, point a2, point b1, point b2)
 {
     long b1x, b1y, b2x, b2y, px, py;
     int64 d1, d2, d3;
@@ -420,7 +420,7 @@ static void addedge(tree234 *edges, int a, int b)
     add234(edges, e);
 }
 
-static int isedge(tree234 *edges, int a, int b)
+static bool isedge(tree234 *edges, int a, int b)
 {
     edge e;
 
@@ -540,7 +540,7 @@ static char *new_game_desc(const game_params *params, random_state *rs,
     edges = newtree234(edgecmp);
     vlist = snewn(n, vertex);
     while (1) {
-	int added = false;
+        bool added = false;
 
 	for (i = 0; i < n; i++) {
 	    v = index234(vertices, i);
@@ -759,7 +759,7 @@ static const char *validate_desc(const game_params *params, const char *desc)
 
 static void mark_crossings(game_state *state)
 {
-    int ok = true;
+    bool ok = true;
     int i, j;
     edge *e, *e2;
 
@@ -1036,8 +1036,8 @@ static char *game_text_format(const game_state *state)
 struct game_ui {
     int dragpoint;		       /* point being dragged; -1 if none */
     point newpoint;		       /* where it's been dragged to so far */
-    int just_dragged;		       /* reset in game_changed_state */
-    int just_moved;		       /* _set_ in game_changed_state */
+    bool just_dragged;                 /* reset in game_changed_state */
+    bool just_moved;                   /* _set_ in game_changed_state */
     float anim_length;
 };
 
@@ -1296,7 +1296,8 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
     int w, h;
     edge *e;
     int i, j;
-    int bg, points_moved;
+    int bg;
+    bool points_moved;
 
     /*
      * There's no terribly sensible way to do partial redraws of

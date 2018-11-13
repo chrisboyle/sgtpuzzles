@@ -78,15 +78,16 @@ enum {
 #define TOCHAR(c,id) (E_FROM_FRONT(c,id) + ('a'-1))
 
 struct game_params {
-    int w, diff, id;
+    int w, diff;
+    bool id;
 };
 
 struct game_state {
     game_params par;
     digit *grid;
-    unsigned char *immutable;
+    bool *immutable;
     int *pencil;		       /* bitmaps using bits 1<<1..1<<n */
-    int completed, cheated;
+    bool completed, cheated;
     digit *sequence;                   /* sequence of group elements shown */
 
     /*
@@ -849,11 +850,11 @@ static game_state *new_game(midend *me, const game_params *params,
 
     state->par = *params;	       /* structure copy */
     state->grid = snewn(a, digit);
-    state->immutable = snewn(a, unsigned char);
+    state->immutable = snewn(a, bool);
     state->pencil = snewn(a, int);
     for (i = 0; i < a; i++) {
 	state->grid[i] = 0;
-	state->immutable[i] = 0;
+	state->immutable[i] = false;
 	state->pencil[i] = 0;
     }
     state->sequence = snewn(w, digit);
@@ -868,7 +869,8 @@ static game_state *new_game(midend *me, const game_params *params,
 	if (state->grid[i] != 0)
 	    state->immutable[i] = true;
 
-    state->completed = state->cheated = false;
+    state->completed = false;
+    state->cheated = false;
 
     return state;
 }
@@ -881,12 +883,12 @@ static game_state *dup_game(const game_state *state)
     ret->par = state->par;	       /* structure copy */
 
     ret->grid = snewn(a, digit);
-    ret->immutable = snewn(a, unsigned char);
+    ret->immutable = snewn(a, bool);
     ret->pencil = snewn(a, int);
     ret->sequence = snewn(w, digit);
     ret->dividers = snewn(w, int);
     memcpy(ret->grid, state->grid, a*sizeof(digit));
-    memcpy(ret->immutable, state->immutable, a*sizeof(unsigned char));
+    memcpy(ret->immutable, state->immutable, a*sizeof(bool));
     memcpy(ret->pencil, state->pencil, a*sizeof(int));
     memcpy(ret->sequence, state->sequence, w*sizeof(digit));
     memcpy(ret->dividers, state->dividers, w*sizeof(int));
@@ -1001,7 +1003,7 @@ struct game_ui {
      * This indicates whether the current highlight is a
      * pencil-mark one or a real one.
      */
-    int hpencil;
+    bool hpencil;
     /*
      * This indicates whether or not we're showing the highlight
      * (used to be hx = hy = -1); important so that when we're
@@ -1009,13 +1011,13 @@ struct game_ui {
      * fixed position. When hshow = 1, pressing a valid number
      * or letter key or Space will enter that number or letter in the grid.
      */
-    int hshow;
+    bool hshow;
     /*
      * This indicates whether we're using the highlight as a cursor;
      * it means that it doesn't vanish on a keypress, and that it is
      * allowed on immutable squares.
      */
-    int hcursor;
+    bool hcursor;
     /*
      * This indicates whether we're dragging a table header to
      * reposition an entire row or column.
@@ -1031,7 +1033,9 @@ static game_ui *new_ui(const game_state *state)
     game_ui *ui = snew(game_ui);
 
     ui->hx = ui->hy = 0;
-    ui->hpencil = ui->hshow = ui->hcursor = 0;
+    ui->hpencil = false;
+    ui->hshow = false;
+    ui->hcursor = false;
     ui->drag = 0;
 
     return ui;
@@ -1063,7 +1067,7 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
      */
     if (ui->hshow && ui->hpencil && !ui->hcursor &&
         newstate->grid[ui->hy * w + ui->hx] != 0) {
-        ui->hshow = 0;
+        ui->hshow = false;
     }
     if (ui->hshow && ui->odn > 1) {
         /*
@@ -1075,12 +1079,12 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
         for (i = 0; i < ui->odn; i++) {
             if (oldstate->sequence[ui->ohx + i*ui->odx] !=
                 newstate->sequence[ui->ohx + i*ui->odx]) {
-                ui->hshow = 0;
+                ui->hshow = false;
                 break;
             }
             if (oldstate->sequence[ui->ohy + i*ui->ody] !=
                 newstate->sequence[ui->ohy + i*ui->ody]) {
-                ui->hshow = 0;
+                ui->hshow = false;
                 break;
             }
         }
@@ -1132,17 +1136,18 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
 struct game_drawstate {
     game_params par;
     int w, tilesize;
-    int started;
+    bool started;
     long *tiles, *legend, *pencil, *errors;
     long *errtmp;
     digit *sequence;
 };
 
-static int check_errors(const game_state *state, long *errors)
+static bool check_errors(const game_state *state, long *errors)
 {
     int w = state->par.w, a = w*w;
     digit *grid = state->grid;
-    int i, j, k, x, y, errs = false;
+    int i, j, k, x, y;
+    bool errs = false;
 
     /*
      * To verify that we have a valid group table, it suffices to
@@ -1304,8 +1309,8 @@ static char *interpret_move(const game_state *state, game_ui *ui,
             ty = state->sequence[ty];
             if (button == LEFT_BUTTON) {
                 if (tx == ui->hx && ty == ui->hy &&
-                    ui->hshow && ui->hpencil == 0) {
-                    ui->hshow = 0;
+                    ui->hshow && !ui->hpencil) {
+                    ui->hshow = false;
                 } else {
                     ui->hx = tx;
                     ui->hy = ty;
@@ -1314,9 +1319,9 @@ static char *interpret_move(const game_state *state, game_ui *ui,
                     ui->odx = ui->ody = 0;
                     ui->odn = 1;
                     ui->hshow = !state->immutable[ty*w+tx];
-                    ui->hpencil = 0;
+                    ui->hpencil = false;
                 }
-                ui->hcursor = 0;
+                ui->hcursor = false;
                 return UI_UPDATE;
             }
             if (button == RIGHT_BUTTON) {
@@ -1326,21 +1331,21 @@ static char *interpret_move(const game_state *state, game_ui *ui,
                 if (state->grid[ty*w+tx] == 0) {
                     if (tx == ui->hx && ty == ui->hy &&
                         ui->hshow && ui->hpencil) {
-                        ui->hshow = 0;
+                        ui->hshow = false;
                     } else {
-                        ui->hpencil = 1;
+                        ui->hpencil = true;
                         ui->hx = tx;
                         ui->hy = ty;
                         ui->ohx = otx;
                         ui->ohy = oty;
                         ui->odx = ui->ody = 0;
                         ui->odn = 1;
-                        ui->hshow = 1;
+                        ui->hshow = true;
                     }
                 } else {
-                    ui->hshow = 0;
+                    ui->hshow = false;
                 }
-                ui->hcursor = 0;
+                ui->hcursor = false;
                 return UI_UPDATE;
             }
         } else if (tx >= 0 && tx < w && ty == -1) {
@@ -1373,16 +1378,17 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     if (IS_CURSOR_MOVE(button)) {
         int cx = find_in_sequence(state->sequence, w, ui->hx);
         int cy = find_in_sequence(state->sequence, w, ui->hy);
-        move_cursor(button, &cx, &cy, w, w, 0);
+        move_cursor(button, &cx, &cy, w, w, false);
         ui->hx = state->sequence[cx];
         ui->hy = state->sequence[cy];
-        ui->hshow = ui->hcursor = 1;
+        ui->hshow = true;
+        ui->hcursor = true;
         return UI_UPDATE;
     }
     if (ui->hshow &&
         (button == CURSOR_SELECT)) {
-        ui->hpencil = 1 - ui->hpencil;
-        ui->hcursor = 1;
+        ui->hpencil = !ui->hpencil;
+        ui->hcursor = true;
         return UI_UPDATE;
     }
 
@@ -1433,7 +1439,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         }
         movebuf = sresize(movebuf, buflen+1, char);
 
-        if (!ui->hcursor) ui->hshow = 0;
+        if (!ui->hcursor) ui->hshow = false;
 
 	return movebuf;
     }
@@ -1473,7 +1479,7 @@ static game_state *execute_move(const game_state *from, const char *move)
                sscanf(move+1, "%d,%d,%d%n", &x, &y, &n, &pos) == 3 &&
                n >= 0 && n <= w) {
         const char *mp = move + 1 + pos;
-        int pencil = (move[0] == 'P');
+        bool pencil = (move[0] == 'P');
         ret = dup_game(from);
 
         while (1) {
@@ -1902,7 +1908,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
                 tile |= DF_HIGHLIGHT;
             } else if (ui->hshow) {
                 int i = abs(x - ui->ohx);
-                int highlight = 0;
+                bool highlight = false;
                 if (ui->odn > 1) {
                     /*
                      * When a diagonal multifill selection is shown,
@@ -1913,7 +1919,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
                     if (i >= 0 && i < ui->odn &&
                         x == ui->ohx + i*ui->odx &&
                         y == ui->ohy + i*ui->ody)
-                        highlight = 1;
+                        highlight = true;
                 } else {
                     /*
                      * For a single square, we move its highlight
@@ -2110,8 +2116,9 @@ int main(int argc, char **argv)
     char *id = NULL, *desc;
     const char *err;
     digit *grid;
-    int grade = false;
-    int ret, diff, really_show_working = false;
+    bool grade = false;
+    int ret, diff;
+    bool really_show_working = false;
 
     while (--argc > 0) {
         char *p = *++argv;
@@ -2156,7 +2163,7 @@ int main(int argc, char **argv)
      * the puzzle internally before doing anything else.
      */
     ret = -1;			       /* placate optimiser */
-    solver_show_working = false;
+    solver_show_working = 0;
     for (diff = 0; diff < DIFFCOUNT; diff++) {
 	memcpy(grid, s->grid, p->w * p->w);
 	ret = solver(&s->par, grid, diff);

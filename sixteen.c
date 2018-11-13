@@ -47,7 +47,7 @@ struct game_state {
     int w, h, n;
     int *tiles;
     int completed;
-    int used_solve;		       /* used to suppress completion flash */
+    bool used_solve;           /* used to suppress completion flash */
     int movecount, movetarget;
     int last_movement_sense;
 };
@@ -196,7 +196,8 @@ static char *new_game_desc(const game_params *params, random_state *rs,
 {
     int stop, n, i, x;
     int x1, x2, p1, p2;
-    int *tiles, *used;
+    int *tiles;
+    bool *used;
     char *ret;
     int retlen;
 
@@ -296,7 +297,7 @@ static char *new_game_desc(const game_params *params, random_state *rs,
 
     } else {
 
-	used = snewn(n, int);
+	used = snewn(n, bool);
 
 	for (i = 0; i < n; i++) {
 	    tiles[i] = -1;
@@ -400,13 +401,13 @@ static const char *validate_desc(const game_params *params, const char *desc)
 {
     const char *p, *err;
     int i, area;
-    int *used;
+    bool *used;
 
     area = params->w * params->h;
     p = desc;
     err = NULL;
 
-    used = snewn(area, int);
+    used = snewn(area, bool);
     for (i = 0; i < area; i++)
 	used[i] = false;
 
@@ -556,7 +557,7 @@ enum cursor_mode { unlocked, lock_tile, lock_position };
 
 struct game_ui {
     int cur_x, cur_y;
-    int cur_visible;
+    bool cur_visible;
     enum cursor_mode cur_mode;
 };
 
@@ -591,7 +592,7 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
 }
 
 struct game_drawstate {
-    int started;
+    bool started;
     int w, h, bgcolour;
     int *tiles;
     int tilesize;
@@ -604,14 +605,14 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 {
     int cx = -1, cy = -1, dx, dy;
     char buf[80];
-    int shift = button & MOD_SHFT, control = button & MOD_CTRL,
-        pad = button & MOD_NUM_KEYPAD;
+    bool shift = button & MOD_SHFT, control = button & MOD_CTRL;
+    int pad = button & MOD_NUM_KEYPAD;
 
     button &= ~MOD_MASK;
 
     if (IS_CURSOR_MOVE(button) || pad) {
         if (!ui->cur_visible) {
-            ui->cur_visible = 1;
+            ui->cur_visible = true;
             return UI_UPDATE;
         }
 
@@ -666,7 +667,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
                 ui->cur_y = y - 1;
             }
 
-            ui->cur_visible = 1;
+            ui->cur_visible = true;
             return UI_UPDATE;
         }
     }
@@ -674,7 +675,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     if (button == LEFT_BUTTON || button == RIGHT_BUTTON) {
         cx = FROMCOORD(x);
         cy = FROMCOORD(y);
-        ui->cur_visible = 0;
+        ui->cur_visible = false;
     } else if (IS_CURSOR_SELECT(button)) {
         if (ui->cur_visible) {
             if (ui->cur_x == -1 || ui->cur_x == state->w ||
@@ -688,7 +689,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
                 return UI_UPDATE;
             }
         } else {
-            ui->cur_visible = 1;
+            ui->cur_visible = true;
             return UI_UPDATE;
         }
     } else {
@@ -777,7 +778,7 @@ static game_state *execute_move(const game_state *from, const char *move)
         ret->completed = ret->movecount;
         for (n = 0; n < ret->n; n++)
             if (ret->tiles[n] != n+1)
-                ret->completed = false;
+                ret->completed = 0;
     }
 
     return ret;
@@ -878,7 +879,7 @@ static void draw_tile(drawing *dr, game_drawstate *ds,
 }
 
 static void draw_arrow(drawing *dr, game_drawstate *ds,
-                       int x, int y, int xdx, int xdy, int cur)
+                       int x, int y, int xdx, int xdy, bool cur)
 {
     int coords[14];
     int ydy = -xdx, ydx = xdy;
@@ -899,7 +900,7 @@ static void draw_arrow(drawing *dr, game_drawstate *ds,
 }
 
 static void draw_arrow_for_cursor(drawing *dr, game_drawstate *ds,
-                                  int cur_x, int cur_y, int cur)
+                                  int cur_x, int cur_y, bool cur)
 {
     if (cur_x == -1 && cur_y == -1)
         return; /* 'no cursur here */
@@ -965,12 +966,12 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
          * Arrows for making moves.
          */
         for (i = 0; i < state->w; i++) {
-            draw_arrow(dr, ds, COORD(i), COORD(0), +1, 0, 0);
-            draw_arrow(dr, ds, COORD(i+1), COORD(state->h), -1, 0, 0);
+            draw_arrow(dr, ds, COORD(i), COORD(0), +1, 0, false);
+            draw_arrow(dr, ds, COORD(i+1), COORD(state->h), -1, 0, false);
         }
         for (i = 0; i < state->h; i++) {
-            draw_arrow(dr, ds, COORD(state->w), COORD(i), 0, +1, 0);
-            draw_arrow(dr, ds, COORD(0), COORD(i+1), 0, -1, 0);
+            draw_arrow(dr, ds, COORD(state->w), COORD(i), 0, +1, false);
+            draw_arrow(dr, ds, COORD(0), COORD(i+1), 0, -1, false);
         }
 
         ds->started = true;
@@ -984,8 +985,8 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
 
     if (cur_x != ds->cur_x || cur_y != ds->cur_y) {
         /* Cursor has changed; redraw two (prev and curr) arrows. */
-        draw_arrow_for_cursor(dr, ds, cur_x, cur_y, 1);
-        draw_arrow_for_cursor(dr, ds, ds->cur_x, ds->cur_y, 0);
+        draw_arrow_for_cursor(dr, ds, cur_x, cur_y, true);
+        draw_arrow_for_cursor(dr, ds, ds->cur_x, ds->cur_y, false);
     }
 
     /*

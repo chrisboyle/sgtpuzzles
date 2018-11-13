@@ -114,10 +114,10 @@ static const char *const cluepos[] = {
 struct game_state {
     game_params par;
     struct clues *clues;
-    unsigned char *clues_done;
+    bool *clues_done;
     digit *grid;
     int *pencil;		       /* bitmaps using bits 1<<1..1<<n */
-    int completed, cheated;
+    bool completed, cheated;
 };
 
 static game_params *default_params(void)
@@ -250,7 +250,7 @@ static const char *validate_params(const game_params *params, bool full)
 
 struct solver_ctx {
     int w, diff;
-    int started;
+    bool started;
     int *clues;
     long *iscratch;
     int *dscratch;
@@ -898,7 +898,7 @@ static game_state *new_game(midend *me, const game_params *params,
     state->clues->clues = snewn(4*w, int);
     state->clues->immutable = snewn(a, digit);
     state->grid = snewn(a, digit);
-    state->clues_done = snewn(4*w, unsigned char);
+    state->clues_done = snewn(4*w, bool);
     state->pencil = snewn(a, int);
 
     for (i = 0; i < a; i++) {
@@ -907,7 +907,7 @@ static game_state *new_game(midend *me, const game_params *params,
     }
 
     memset(state->clues->immutable, 0, a);
-    memset(state->clues_done, 0, 4*w*sizeof(unsigned char));
+    memset(state->clues_done, 0, 4*w*sizeof(bool));
 
     for (i = 0; i < 4*w; i++) {
 	if (i > 0) {
@@ -944,7 +944,8 @@ static game_state *new_game(midend *me, const game_params *params,
     }
     assert(!*p);
 
-    state->completed = state->cheated = false;
+    state->completed = false;
+    state->cheated = false;
 
     return state;
 }
@@ -961,10 +962,10 @@ static game_state *dup_game(const game_state *state)
 
     ret->grid = snewn(a, digit);
     ret->pencil = snewn(a, int);
-    ret->clues_done = snewn(4*w, unsigned char);
+    ret->clues_done = snewn(4*w, bool);
     memcpy(ret->grid, state->grid, a*sizeof(digit));
     memcpy(ret->pencil, state->pencil, a*sizeof(int));
-    memcpy(ret->clues_done, state->clues_done, 4*w*sizeof(unsigned char));
+    memcpy(ret->clues_done, state->clues_done, 4*w*sizeof(bool));
 
     ret->completed = state->completed;
     ret->cheated = state->cheated;
@@ -1106,7 +1107,7 @@ struct game_ui {
      * This indicates whether the current highlight is a
      * pencil-mark one or a real one.
      */
-    int hpencil;
+    bool hpencil;
     /*
      * This indicates whether or not we're showing the highlight
      * (used to be hx = hy = -1); important so that when we're
@@ -1114,13 +1115,13 @@ struct game_ui {
      * fixed position. When hshow = 1, pressing a valid number
      * or letter key or Space will enter that number or letter in the grid.
      */
-    int hshow;
+    bool hshow;
     /*
      * This indicates whether we're using the highlight as a cursor;
      * it means that it doesn't vanish on a keypress, and that it is
      * allowed on immutable squares.
      */
-    int hcursor;
+    bool hcursor;
 };
 
 static game_ui *new_ui(const game_state *state)
@@ -1128,7 +1129,9 @@ static game_ui *new_ui(const game_state *state)
     game_ui *ui = snew(game_ui);
 
     ui->hx = ui->hy = 0;
-    ui->hpencil = ui->hshow = ui->hcursor = 0;
+    ui->hpencil = false;
+    ui->hshow = false;
+    ui->hcursor = false;
 
     return ui;
 }
@@ -1159,7 +1162,7 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
      */
     if (ui->hshow && ui->hpencil && !ui->hcursor &&
         newstate->grid[ui->hy * w + ui->hx] != 0) {
-        ui->hshow = 0;
+        ui->hshow = false;
     }
 }
 
@@ -1186,27 +1189,28 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
 
 struct game_drawstate {
     int tilesize;
-    int three_d;		/* default 3D graphics are user-disableable */
-    int started;
+    bool three_d;       /* default 3D graphics are user-disableable */
+    bool started;
     long *tiles;		       /* (w+2)*(w+2) temp space */
     long *drawn;		       /* (w+2)*(w+2)*4: current drawn data */
-    int *errtmp;
+    bool *errtmp;
 };
 
-static int check_errors(const game_state *state, int *errors)
+static bool check_errors(const game_state *state, bool *errors)
 {
     int w = state->par.w /*, a = w*w */;
     int W = w+2, A = W*W;	       /* the errors array is (w+2) square */
     int *clues = state->clues->clues;
     digit *grid = state->grid;
-    int i, x, y, errs = false;
+    int i, x, y;
+    bool errs = false;
     int tmp[32];
 
     assert(w < lenof(tmp));
 
     if (errors)
 	for (i = 0; i < A; i++)
-	    errors[i] = 0;
+	    errors[i] = false;
 
     for (y = 0; y < w; y++) {
 	unsigned long mask = 0, errmask = 0;
@@ -1290,7 +1294,7 @@ static int clue_index(const game_state *state, int x, int y)
     return -1;
 }
 
-static int is_clue(const game_state *state, int x, int y)
+static bool is_clue(const game_state *state, int x, int y)
 {
     int w = state->par.w;
 
@@ -1309,7 +1313,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
                             int x, int y, int button)
 {
     int w = state->par.w;
-    int shift_or_control = button & (MOD_SHFT | MOD_CTRL);
+    bool shift_or_control = button & (MOD_SHFT | MOD_CTRL);
     int tx, ty;
     char buf[80];
 
@@ -1356,15 +1360,15 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     if (tx >= 0 && tx < w && ty >= 0 && ty < w) {
         if (button == LEFT_BUTTON) {
 	    if (tx == ui->hx && ty == ui->hy &&
-		ui->hshow && ui->hpencil == 0) {
-                ui->hshow = 0;
+		ui->hshow && !ui->hpencil) {
+                ui->hshow = false;
             } else {
                 ui->hx = tx;
                 ui->hy = ty;
 		ui->hshow = !state->clues->immutable[ty*w+tx];
-                ui->hpencil = 0;
+                ui->hpencil = false;
             }
-            ui->hcursor = 0;
+            ui->hcursor = false;
             return UI_UPDATE;
         }
         if (button == RIGHT_BUTTON) {
@@ -1374,17 +1378,17 @@ static char *interpret_move(const game_state *state, game_ui *ui,
             if (state->grid[ty*w+tx] == 0) {
                 if (tx == ui->hx && ty == ui->hy &&
                     ui->hshow && ui->hpencil) {
-                    ui->hshow = 0;
+                    ui->hshow = false;
                 } else {
-                    ui->hpencil = 1;
+                    ui->hpencil = true;
                     ui->hx = tx;
                     ui->hy = ty;
-                    ui->hshow = 1;
+                    ui->hshow = true;
                 }
             } else {
-                ui->hshow = 0;
+                ui->hshow = false;
             }
-            ui->hcursor = 0;
+            ui->hcursor = false;
             return UI_UPDATE;
         }
     } else if (button == LEFT_BUTTON) {
@@ -1408,14 +1412,15 @@ static char *interpret_move(const game_state *state, game_ui *ui,
             }
             return NULL;
         }
-        move_cursor(button, &ui->hx, &ui->hy, w, w, 0);
-        ui->hshow = ui->hcursor = 1;
+        move_cursor(button, &ui->hx, &ui->hy, w, w, false);
+        ui->hshow = true;
+        ui->hcursor = true;
         return UI_UPDATE;
     }
     if (ui->hshow &&
         (button == CURSOR_SELECT)) {
-        ui->hpencil = 1 - ui->hpencil;
-        ui->hcursor = 1;
+        ui->hpencil = !ui->hpencil;
+        ui->hcursor = true;
         return UI_UPDATE;
     }
 
@@ -1442,7 +1447,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 	sprintf(buf, "%c%d,%d,%d",
 		(char)(ui->hpencil && n > 0 ? 'P' : 'R'), ui->hx, ui->hy, n);
 
-        if (!ui->hcursor) ui->hshow = 0;
+        if (!ui->hcursor) ui->hshow = false;
 
 	return dupstr(buf);
     }
@@ -1583,7 +1588,7 @@ static game_drawstate *game_new_drawstate(drawing *dr, const game_state *state)
     ds->drawn = snewn((w+2)*(w+2)*4, long);
     for (i = 0; i < (w+2)*(w+2)*4; i++)
 	ds->drawn[i] = -1;
-    ds->errtmp = snewn((w+2)*(w+2), int);
+    ds->errtmp = snewn((w+2)*(w+2), bool);
 
     return ds;
 }
@@ -2040,8 +2045,9 @@ int main(int argc, char **argv)
     game_state *s;
     char *id = NULL, *desc;
     const char *err;
-    int grade = false;
-    int ret, diff, really_show_working = false;
+    bool grade = false;
+    int ret, diff;
+    bool really_show_working = false;
 
     while (--argc > 0) {
         char *p = *++argv;
@@ -2084,7 +2090,7 @@ int main(int argc, char **argv)
      * the puzzle internally before doing anything else.
      */
     ret = -1;			       /* placate optimiser */
-    solver_show_working = false;
+    solver_show_working = 0;
     for (diff = 0; diff < DIFFCOUNT; diff++) {
 	memcpy(s->grid, s->clues->immutable, p->w * p->w);
 	ret = solver(p->w, s->clues->clues, s->grid, diff);

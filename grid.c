@@ -386,11 +386,11 @@ static void grid_trim_vigorously(grid *g)
      */
     dots = snewn(g->num_dots, int);
     for (i = 0; i < g->num_dots; i++) {
-        dots[i] = true;
+        dots[i] = 1;
         for (j = 0; j < g->num_dots; j++) {
             if ((dotpairs[i*g->num_dots+j] >= 0) ^
                 (dotpairs[j*g->num_dots+i] >= 0))
-                dots[i] = false;    /* non-duplicated edge: coastal dot */
+                dots[i] = 0;    /* non-duplicated edge: coastal dot */
         }
     }
 
@@ -435,14 +435,14 @@ static void grid_trim_vigorously(grid *g)
         dots[i] = 0;
     for (i = 0; i < g->num_faces; i++) {
         grid_face *f = g->faces + i;
-        int keep = false;
+        bool keep = false;
         for (k = 0; k < f->order; k++)
             if (dsf_canonify(dsf, f->dots[k] - g->dots) == j)
                 keep = true;
         if (keep) {
-            faces[i] = true;
+            faces[i] = 1;
             for (k = 0; k < f->order; k++)
-                dots[f->dots[k]-g->dots] = true;
+                dots[f->dots[k]-g->dots] = 1;
         }
     }
 
@@ -862,7 +862,7 @@ static void grid_face_set_dot(grid *g, grid_dot *d, int position)
 /*
  * Helper routines for grid_find_incentre.
  */
-static int solve_2x2_matrix(double mx[4], double vin[2], double vout[2])
+static bool solve_2x2_matrix(double mx[4], double vin[2], double vout[2])
 {
     double inv[4];
     double det;
@@ -880,7 +880,7 @@ static int solve_2x2_matrix(double mx[4], double vin[2], double vout[2])
 
     return true;
 }
-static int solve_3x3_matrix(double mx[9], double vin[3], double vout[3])
+static bool solve_3x3_matrix(double mx[9], double vin[3], double vout[3])
 {
     double inv[9];
     double det;
@@ -1239,7 +1239,8 @@ void grid_find_incentre(grid_face *f)
                      * _positive_ epsilon in both the x- and
                      * y-direction.)
                      */
-                    int e, in = 0;
+                    int e;
+                    bool in = false;
                     for (e = 0; e < f->order; e++) {
                         int xs = f->edges[e]->dot1->x;
                         int xe = f->edges[e]->dot2->x;
@@ -1265,7 +1266,7 @@ void grid_find_incentre(grid_face *f)
                                 denom = -denom;
                             }
                             if ((x - xs) * denom >= (y - ys) * num)
-                                in ^= 1;
+                                in = !in;
                         }
                     }
 

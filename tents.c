@@ -229,7 +229,7 @@
  */
 #if defined STANDALONE_SOLVER
 #define SOLVER_DIAGNOSTICS
-int verbose = false;
+bool verbose = false;
 #elif defined SOLVER_DIAGNOSTICS
 #define verbose true
 #endif
@@ -279,7 +279,7 @@ struct game_state {
     game_params p;
     char *grid;
     struct numbers *numbers;
-    int completed, used_solve;
+    bool completed, used_solve;
 };
 
 static game_params *default_params(void)
@@ -471,7 +471,7 @@ static int tents_solve(int w, int h, const char *grid, int *numbers,
      * Main solver loop.
      */
     while (1) {
-	int done_something = false;
+	bool done_something = false;
 
 	/*
 	 * Any tent which has only one unattached tree adjacent to
@@ -528,7 +528,7 @@ static int tents_solve(int w, int h, const char *grid, int *numbers,
 	for (y = 0; y < h; y++)
 	    for (x = 0; x < w; x++)
 		if (soln[y*w+x] == BLANK) {
-		    int can_be_tent = false;
+		    bool can_be_tent = false;
 
 		    for (d = 1; d < MAXDIR; d++) {
 			int x2 = x + dx(d), y2 = y + dy(d);
@@ -559,7 +559,8 @@ static int tents_solve(int w, int h, const char *grid, int *numbers,
 	for (y = 0; y < h; y++)
 	    for (x = 0; x < w; x++)
 		if (soln[y*w+x] == BLANK) {
-		    int dx, dy, imposs = false;
+		    int dx, dy;
+                    bool imposs = false;
 
 		    for (dy = -1; dy <= +1; dy++)
 			for (dx = -1; dx <= +1; dx++)
@@ -751,7 +752,8 @@ static int tents_solve(int w, int h, const char *grid, int *numbers,
 	     * And iterate over all possibilities.
 	     */
 	    while (1) {
-		int p, valid;
+		int p;
+                bool valid;
 
 		/*
 		 * See if this possibility is valid. The only way
@@ -993,7 +995,8 @@ static char *new_game_desc(const game_params *params_in, random_state *rs,
          * is too few to fit the remaining tents into. */
 	for (i = 0; j > 0 && i+j <= w*h; i++) {
             int which, x, y, d, tmp;
-	    int dy, dx, ok = true;
+	    int dy, dx;
+            bool ok = true;
 
             which = i + random_upto(rs, j);
             tmp = order[which];
@@ -1141,7 +1144,7 @@ static char *new_game_desc(const game_params *params_in, random_state *rs,
     p = ret;
     j = 0;
     for (i = 0; i <= w*h; i++) {
-	int c = (i < w*h ? grid[i] == TREE : 1);
+	bool c = (i < w*h ? grid[i] == TREE : true);
 	if (c) {
 	    *p++ = (j == 0 ? '_' : j-1 + 'a');
 	    j = 0;
@@ -1419,9 +1422,10 @@ struct game_ui {
     int dsx, dsy;                      /* coords of drag start */
     int dex, dey;                      /* coords of drag end */
     int drag_button;                   /* -1 for none, or a button code */
-    int drag_ok;                       /* dragged off the window, to cancel */
+    bool drag_ok;                      /* dragged off the window, to cancel */
 
-    int cx, cy, cdisp;                 /* cursor position, and ?display. */
+    int cx, cy;                        /* cursor position. */
+    bool cdisp;                        /* is cursor displayed? */
 };
 
 static game_ui *new_ui(const game_state *state)
@@ -1431,7 +1435,8 @@ static game_ui *new_ui(const game_state *state)
     ui->dex = ui->dey = -1;
     ui->drag_button = -1;
     ui->drag_ok = false;
-    ui->cx = ui->cy = ui->cdisp = 0;
+    ui->cx = ui->cy = 0;
+    ui->cdisp = false;
     return ui;
 }
 
@@ -1456,7 +1461,7 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
 
 struct game_drawstate {
     int tilesize;
-    int started;
+    bool started;
     game_params p;
     int *drawn, *numbersdrawn;
     int cx, cy;         /* last-drawn cursor pos, or (-1,-1) if absent. */
@@ -1539,7 +1544,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 {
     int w = state->p.w, h = state->p.h;
     char tmpbuf[80];
-    int shift = button & MOD_SHFT, control = button & MOD_CTRL;
+    bool shift = button & MOD_SHFT, control = button & MOD_CTRL;
 
     button &= ~MOD_MASK;
 
@@ -1553,7 +1558,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         ui->dsx = ui->dex = x;
         ui->dsy = ui->dey = y;
         ui->drag_ok = true;
-        ui->cdisp = 0;
+        ui->cdisp = false;
         return UI_UPDATE;
     }
 
@@ -1639,11 +1644,11 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     }
 
     if (IS_CURSOR_MOVE(button)) {
-        ui->cdisp = 1;
+        ui->cdisp = true;
         if (shift || control) {
             int len = 0, i, indices[2];
             indices[0] = ui->cx + w * ui->cy;
-            move_cursor(button, &ui->cx, &ui->cy, w, h, 0);
+            move_cursor(button, &ui->cx, &ui->cy, w, h, false);
             indices[1] = ui->cx + w * ui->cy;
 
             /* NONTENTify all unique traversed eligible squares */
@@ -1658,7 +1663,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
             tmpbuf[len] = '\0';
             if (len) return dupstr(tmpbuf);
         } else
-            move_cursor(button, &ui->cx, &ui->cy, w, h, 0);
+            move_cursor(button, &ui->cx, &ui->cy, w, h, false);
         return UI_UPDATE;
     }
     if (ui->cdisp) {
@@ -1685,7 +1690,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
             return dupstr(tmpbuf);
         }
     } else if (IS_CURSOR_SELECT(button)) {
-        ui->cdisp = 1;
+        ui->cdisp = true;
         return UI_UPDATE;
     }
 
@@ -2302,7 +2307,7 @@ static void draw_err_adj(drawing *dr, game_drawstate *ds, int x, int y)
 }
 
 static void draw_tile(drawing *dr, game_drawstate *ds,
-                      int x, int y, int v, int cur, int printing)
+                      int x, int y, int v, bool cur, bool printing)
 {
     int err;
     int tx = COORD(x), ty = COORD(y);
@@ -2390,18 +2395,19 @@ static void draw_tile(drawing *dr, game_drawstate *ds,
 static void int_redraw(drawing *dr, game_drawstate *ds,
                        const game_state *oldstate, const game_state *state,
                        int dir, const game_ui *ui,
-		       float animtime, float flashtime, int printing)
+		       float animtime, float flashtime, bool printing)
 {
     int w = state->p.w, h = state->p.h;
-    int x, y, flashing;
+    int x, y;
+    bool flashing;
     int cx = -1, cy = -1;
-    int cmoved = 0;
+    bool cmoved = false;
     char *tmpgrid;
     int *errors;
 
     if (ui) {
       if (ui->cdisp) { cx = ui->cx; cy = ui->cy; }
-      if (cx != ds->cx || cy != ds->cy) cmoved = 1;
+      if (cx != ds->cx || cy != ds->cy) cmoved = true;
     }
 
     if (printing || !ds->started) {
@@ -2454,7 +2460,7 @@ static void int_redraw(drawing *dr, game_drawstate *ds,
     for (y = 0; y < h; y++) {
         for (x = 0; x < w; x++) {
             int v = state->grid[y*w+x];
-            int credraw = 0;
+            bool credraw = false;
 
             /*
              * We deliberately do not take drag_ok into account
@@ -2470,7 +2476,7 @@ static void int_redraw(drawing *dr, game_drawstate *ds,
 
             if (cmoved) {
               if ((x == cx && y == cy) ||
-                  (x == ds->cx && y == ds->cy)) credraw = 1;
+                  (x == ds->cx && y == ds->cy)) credraw = true;
             }
 
 	    v |= errors[y*w+x];
@@ -2641,8 +2647,9 @@ int main(int argc, char **argv)
     game_state *s, *s2;
     char *id = NULL, *desc;
     const char *err;
-    int grade = false;
-    int ret, diff, really_verbose = false;
+    bool grade = false;
+    int ret, diff;
+    bool really_verbose = false;
     struct solver_scratch *sc;
 
     while (--argc > 0) {

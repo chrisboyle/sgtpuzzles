@@ -97,7 +97,7 @@ enum {
 /* scoresub is 1 or 2 (for (n-1)^2 or (n-2)^2) */
 struct game_params {
     int w, h, ncols, scoresub;
-    int soluble;		       /* choose generation algorithm */
+    bool soluble;                    /* choose generation algorithm */
 };
 
 /* These flags must be unique across all uses; in the game_state,
@@ -132,7 +132,7 @@ struct game_state {
     int n;
     int *tiles; /* colour only */
     int score;
-    int complete, impossible;
+    bool complete, impossible;
 };
 
 static game_params *default_params(void)
@@ -317,7 +317,8 @@ static void gen_grid(int w, int h, int nc, int *grid, random_state *rs)
     int wh = w*h, tc = nc+1;
     int i, j, k, c, x, y, pos, n;
     int *list, *grid2;
-    int ok, failures = 0;
+    bool ok;
+    int failures = 0;
 
     /*
      * We'll use `list' to track the possible places to put our
@@ -662,7 +663,7 @@ static void gen_grid(int w, int h, int nc, int *grid, random_state *rs)
                  */
                 {
                     int x1, x2, y1, y2;
-                    int ok = true;
+                    bool ok = true;
                     int fillstart = -1, ntc = 0;
 
 #ifdef GENERATION_DIAGNOSTICS
@@ -691,7 +692,7 @@ static void gen_grid(int w, int h, int nc, int *grid, random_state *rs)
 #endif
 
                     for (x1 = x2 = 0; x2 < w; x2++) {
-                        int usedcol = false;
+                        bool usedcol = false;
 
                         for (y1 = y2 = h-1; y2 >= 0; y2--) {
                             if (grid2[y2*w+x2] == tc) {
@@ -987,7 +988,8 @@ static game_state *new_game(midend *me, const game_params *params,
             p++;
         if (*p) p++;                   /* eat comma */
     }
-    state->complete = state->impossible = 0;
+    state->complete = false;
+    state->impossible = false;
     state->score = 0;
 
     return state;
@@ -1049,7 +1051,8 @@ struct game_ui {
     struct game_params params;
     int *tiles; /* selected-ness only */
     int nselected;
-    int xsel, ysel, displaysel;
+    int xsel, ysel;
+    bool displaysel;
 };
 
 static game_ui *new_ui(const game_state *state)
@@ -1061,7 +1064,8 @@ static game_ui *new_ui(const game_state *state)
     memset(ui->tiles, 0, state->n*sizeof(int));
     ui->nselected = 0;
 
-    ui->xsel = ui->ysel = ui->displaysel = 0;
+    ui->xsel = ui->ysel = 0;
+    ui->displaysel = false;
 
     return ui;
 }
@@ -1102,7 +1106,7 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
      * control cursor.
      */
     if (newstate->complete || newstate->impossible)
-	ui->displaysel = 0;
+	ui->displaysel = false;
 }
 
 static char *sel_movedesc(game_ui *ui, const game_state *state)
@@ -1192,13 +1196,13 @@ static void sel_expand(game_ui *ui, const game_state *state, int tx, int ty)
     }
 }
 
-static int sg_emptycol(game_state *ret, int x)
+static bool sg_emptycol(game_state *ret, int x)
 {
     int y;
     for (y = 0; y < ret->params.h; y++) {
-	if (COL(ret,x,y)) return 0;
+	if (COL(ret,x,y)) return false;
     }
-    return 1;
+    return true;
 }
 
 
@@ -1236,20 +1240,21 @@ static void sg_snuggle(game_state *ret)
 
 static void sg_check(game_state *ret)
 {
-    int x,y, complete = 1, impossible = 1;
+    int x,y;
+    bool complete = true, impossible = true;
 
     for (x = 0; x < ret->params.w; x++) {
 	for (y = 0; y < ret->params.h; y++) {
 	    if (COL(ret,x,y) == 0)
 		continue;
-	    complete = 0;
+	    complete = false;
 	    if (x+1 < ret->params.w) {
 		if (COL(ret,x,y) == COL(ret,x+1,y))
-		    impossible = 0;
+		    impossible = false;
 	    }
 	    if (y+1 < ret->params.h) {
 		if (COL(ret,x,y) == COL(ret,x,y+1))
-		    impossible = 0;
+		    impossible = false;
 	    }
 	}
     }
@@ -1258,7 +1263,8 @@ static void sg_check(game_state *ret)
 }
 
 struct game_drawstate {
-    int started, bgcolour;
+    bool started;
+    int bgcolour;
     int tileinner, tilegap;
     int *tiles; /* contains colour and SELECTED. */
 };
@@ -1270,20 +1276,20 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     int tx, ty;
     char *ret = UI_UPDATE;
 
-    ui->displaysel = 0;
+    ui->displaysel = false;
 
     if (button == RIGHT_BUTTON || button == LEFT_BUTTON) {
 	tx = FROMCOORD(x); ty= FROMCOORD(y);
     } else if (IS_CURSOR_MOVE(button)) {
 	int dx = 0, dy = 0;
-	ui->displaysel = 1;
+	ui->displaysel = true;
 	dx = (button == CURSOR_LEFT) ? -1 : ((button == CURSOR_RIGHT) ? +1 : 0);
 	dy = (button == CURSOR_DOWN) ? +1 : ((button == CURSOR_UP)    ? -1 : 0);
 	ui->xsel = (ui->xsel + state->params.w + dx) % state->params.w;
 	ui->ysel = (ui->ysel + state->params.h + dy) % state->params.h;
 	return ret;
     } else if (IS_CURSOR_SELECT(button)) {
-	ui->displaysel = 1;
+	ui->displaysel = true;
 	tx = ui->xsel;
 	ty = ui->ysel;
     } else
@@ -1429,7 +1435,7 @@ static game_drawstate *game_new_drawstate(drawing *dr, const game_state *state)
     struct game_drawstate *ds = snew(struct game_drawstate);
     int i;
 
-    ds->started = 0;
+    ds->started = false;
     ds->tileinner = ds->tilegap = 0;   /* not decided yet */
     ds->tiles = snewn(state->n, int);
     ds->bgcolour = -1;
@@ -1452,7 +1458,7 @@ static void game_free_drawstate(drawing *dr, game_drawstate *ds)
  */
 
 static void tile_redraw(drawing *dr, game_drawstate *ds,
-			int x, int y, int dright, int dbelow,
+			int x, int y, bool dright, bool dbelow,
                         int tile, int bgcolour)
 {
     int outer = bgcolour, inner = outer, col = tile & TILE_COLMASK;
@@ -1532,7 +1538,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
 	coords[0] = COORD(0) - HIGHLIGHT_WIDTH;
 	draw_polygon(dr, coords, 5, COL_LOWLIGHT, COL_LOWLIGHT);
 
-	ds->started = 1;
+	ds->started = true;
     }
 
     if (flashtime > 0.0) {
@@ -1545,8 +1551,8 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
 	for (y = 0; y < state->params.h; y++) {
 	    int i = (state->params.w * y) + x;
 	    int col = COL(state,x,y), tile = col;
-	    int dright = (x+1 < state->params.w);
-	    int dbelow = (y+1 < state->params.h);
+	    bool dright = (x+1 < state->params.w);
+	    bool dbelow = (y+1 < state->params.h);
 
 	    tile |= ISSEL(ui,x,y);
 	    if (state->impossible)

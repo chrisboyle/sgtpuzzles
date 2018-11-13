@@ -51,7 +51,7 @@ enum {
  */
 #if defined STANDALONE_SOLVER
 #define SOLVER_DIAGNOSTICS
-int verbose = false;
+bool verbose = false;
 #elif defined SOLVER_DIAGNOSTICS
 #define verbose true
 #endif
@@ -91,8 +91,8 @@ struct game_state {
     game_clues *clues;
     signed char *soln;
     unsigned char *errors;
-    int completed;
-    int used_solve;		       /* used to suppress completion flash */
+    bool completed;
+    bool used_solve;           /* used to suppress completion flash */
 };
 
 static game_params *default_params(void)
@@ -253,7 +253,7 @@ struct solver_scratch {
      * Tracks whether each connected set of points includes a
      * border point.
      */
-    unsigned char *border;
+    bool *border;
 
     /*
      * Another disjoint set forest. This one tracks _squares_ which
@@ -308,7 +308,7 @@ static struct solver_scratch *new_scratch(int w, int h)
     struct solver_scratch *ret = snew(struct solver_scratch);
     ret->connected = snewn(W*H, int);
     ret->exits = snewn(W*H, int);
-    ret->border = snewn(W*H, unsigned char);
+    ret->border = snewn(W*H, bool);
     ret->equiv = snewn(w*h, int);
     ret->slashval = snewn(w*h, signed char);
     ret->vbitmap = snewn(w*h, unsigned char);
@@ -333,7 +333,8 @@ static void free_scratch(struct solver_scratch *sc)
 static void merge_vertices(int *connected,
 			   struct solver_scratch *sc, int i, int j)
 {
-    int exits = -1, border = false;    /* initialise to placate optimiser */
+    int exits = -1;
+    bool border = false;    /* initialise to placate optimiser */
 
     if (sc) {
 	i = dsf_canonify(connected, i);
@@ -412,10 +413,10 @@ static void fill_square(int w, int h, int x, int y, int v,
     }
 }
 
-static int vbitmap_clear(int w, int h, struct solver_scratch *sc,
-                         int x, int y, int vbits, const char *reason, ...)
+static bool vbitmap_clear(int w, int h, struct solver_scratch *sc,
+                          int x, int y, int vbits, const char *reason, ...)
 {
-    int done_something = false;
+    bool done_something = false;
     int vbit;
 
     for (vbit = 1; vbit <= 8; vbit <<= 1)
@@ -452,7 +453,7 @@ static int slant_solve(int w, int h, const signed char *clues,
 {
     int W = w+1, H = h+1;
     int x, y, i, j;
-    int done_something;
+    bool done_something;
 
     /*
      * Clear the output.
@@ -731,8 +732,8 @@ static int slant_solve(int w, int h, const signed char *clues,
 	 */
 	for (y = 0; y < h; y++)
 	    for (x = 0; x < w; x++) {
-		int fs, bs, v;
-		int c1, c2;
+		bool fs, bs;
+                int v, c1, c2;
 #ifdef SOLVER_DIAGNOSTICS
 		const char *reason = "<internal error>";
 #endif
@@ -1016,7 +1017,8 @@ static void slant_generate(int w, int h, signed char *soln, random_state *rs)
      * Fill in each one in turn.
      */
     for (i = 0; i < w*h; i++) {
-	int fs, bs, v;
+	bool fs, bs;
+        int v;
 
 	y = indices[i] / w;
 	x = indices[i] % w;
@@ -1119,7 +1121,8 @@ static char *new_game_desc(const game_params *params, random_state *rs,
 	shuffle(clueindices, W*H, sizeof(*clueindices), rs);
 	for (j = 0; j < 2; j++) {
 	    for (i = 0; i < W*H; i++) {
-		int pass, yb, xb;
+		int pass;
+                bool yb, xb;
 
 		y = clueindices[i] / W;
 		x = clueindices[i] % W;
@@ -1319,7 +1322,7 @@ static void free_game(game_state *state)
  * squares that contributed to it.
  */
 static int vertex_degree(int w, int h, signed char *soln, int x, int y,
-                         int anti, int *sx, int *sy)
+                         bool anti, int *sx, int *sy)
 {
     int ret = 0;
 
@@ -1376,10 +1379,11 @@ static int slant_neighbour(int vertex, void *vctx)
         return -1;
 }
 
-static int check_completion(game_state *state)
+static bool check_completion(game_state *state)
 {
     int w = state->p.w, h = state->p.h, W = w+1, H = h+1;
-    int x, y, err = false;
+    int x, y;
+    bool err = false;
 
     memset(state->errors, 0, W*H);
 
@@ -1461,7 +1465,7 @@ static char *solve_game(const game_state *state, const game_state *currstate,
     int w = state->p.w, h = state->p.h;
     signed char *soln;
     int bs, ret;
-    int free_soln = false;
+    bool free_soln = false;
     char *move, buf[80];
     int movelen, movesize;
     int x, y;
@@ -1568,13 +1572,15 @@ static char *game_text_format(const game_state *state)
 }
 
 struct game_ui {
-    int cur_x, cur_y, cur_visible;
+    int cur_x, cur_y;
+    bool cur_visible;
 };
 
 static game_ui *new_ui(const game_state *state)
 {
     game_ui *ui = snew(game_ui);
-    ui->cur_x = ui->cur_y = ui->cur_visible = 0;
+    ui->cur_x = ui->cur_y = 0;
+    ui->cur_visible = false;
     return ui;
 }
 
@@ -1632,7 +1638,7 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
 
 struct game_drawstate {
     int tilesize;
-    int started;
+    bool started;
     long *grid;
     long *todraw;
 };
@@ -1675,10 +1681,10 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         y = FROMCOORD(y);
         if (x < 0 || y < 0 || x >= w || y >= h)
             return NULL;
-        ui->cur_visible = 0;
+        ui->cur_visible = false;
     } else if (IS_CURSOR_SELECT(button)) {
         if (!ui->cur_visible) {
-            ui->cur_visible = 1;
+            ui->cur_visible = true;
             return UI_UPDATE;
         }
         x = ui->cur_x;
@@ -1686,8 +1692,8 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 
         action = (button == CURSOR_SELECT2) ? ANTICLOCKWISE : CLOCKWISE;
     } else if (IS_CURSOR_MOVE(button)) {
-        move_cursor(button, &ui->cur_x, &ui->cur_y, w, h, 0);
-        ui->cur_visible = 1;
+        move_cursor(button, &ui->cur_x, &ui->cur_y, w, h, false);
+        ui->cur_visible = true;
         return UI_UPDATE;
     } else if (button == '\\' || button == '\b' || button == '/') {
 	int x = ui->cur_x, y = ui->cur_y;
@@ -1843,7 +1849,7 @@ static void game_free_drawstate(drawing *dr, game_drawstate *ds)
 }
 
 static void draw_clue(drawing *dr, game_drawstate *ds,
-		      int x, int y, long v, long err, int bg, int colour)
+		      int x, int y, long v, bool err, int bg, int colour)
 {
     char p[2];
     int ccol = colour >= 0 ? colour : ((x ^ y) & 1) ? COL_SLANT1 : COL_SLANT2;
@@ -1959,7 +1965,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
 {
     int w = state->p.w, h = state->p.h, W = w+1, H = h+1;
     int x, y;
-    int flashing;
+    bool flashing;
 
     if (flashtime > 0)
 	flashing = (int)(flashtime * 3 / FLASH_TIME) != 1;
@@ -1989,7 +1995,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
 
     for (y = 0; y < h; y++) {
 	for (x = 0; x < w; x++) {
-            int err = state->errors[y*W+x] & ERR_SQUARE;
+            bool err = state->errors[y*W+x] & ERR_SQUARE;
 
 	    if (state->soln[y*w+x] < 0) {
 		ds->todraw[(y+1)*(w+2)+(x+1)] |= BACKSLASH;
@@ -2192,8 +2198,9 @@ int main(int argc, char **argv)
     game_state *s;
     char *id = NULL, *desc;
     const char *err;
-    int grade = false;
-    int ret, diff, really_verbose = false;
+    bool grade = false;
+    int ret, diff;
+    bool really_verbose = false;
     struct solver_scratch *sc;
 
     while (--argc > 0) {

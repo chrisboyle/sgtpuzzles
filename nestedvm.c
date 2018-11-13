@@ -31,10 +31,11 @@ void fatal(const char *fmt, ...)
 struct frontend {
     // TODO kill unneeded members!
     midend *me;
-    int timer_active;
+    bool timer_active;
     struct timeval last_time;
     config_item *cfg;
-    int cfg_which, cfgret;
+    int cfg_which;
+    bool cfgret;
     int ox, oy, w, h;
 };
 
@@ -291,7 +292,7 @@ void jcallback_config_set_choice(int item_ptr, int selected) {
     i->u.choices.selected = selected;
 }
 
-static int get_config(frontend *fe, int which)
+static bool get_config(frontend *fe, int which)
 {
     char *title;
     config_item *i;

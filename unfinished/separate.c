@@ -207,7 +207,7 @@ struct solver_scratch {
      * tracks whether or not the connected components containing
      * yx1 and yx2 are known to be distinct.
      */
-    unsigned char *disconnect;
+    bool *disconnect;
 
     /*
      * Temporary space used only inside particular solver loops.
@@ -227,7 +227,7 @@ struct solver_scratch *solver_scratch_new(int w, int h, int k)
     sc->dsf = snew_dsf(wh);
     sc->size = snewn(wh, int);
     sc->contents = snewn(wh * k, int);
-    sc->disconnect = snewn(wh*wh, unsigned char);
+    sc->disconnect = snewn(wh*wh, bool);
     sc->tmp = snewn(wh, int);
 
     return sc;
@@ -312,7 +312,8 @@ void solver_disconnect(struct solver_scratch *sc, int yx1, int yx2)
      * Mark the components as disconnected from each other in the
      * disconnect matrix.
      */
-    sc->disconnect[yx1*wh+yx2] = sc->disconnect[yx2*wh+yx1] = 1;
+    sc->disconnect[yx1*wh+yx2] = true;
+    sc->disconnect[yx2*wh+yx1] = true;
 }
 
 void solver_init(struct solver_scratch *sc)
@@ -328,16 +329,16 @@ void solver_init(struct solver_scratch *sc)
      */
     dsf_init(sc->dsf, wh);
     for (i = 0; i < wh; i++) sc->size[i] = 1;
-    memset(sc->disconnect, 0, wh*wh);
+    memset(sc->disconnect, 0, wh*wh * sizeof(bool));
 }
 
 int solver_attempt(struct solver_scratch *sc, const unsigned char *grid,
-		   unsigned char *gen_lock)
+		   bool *gen_lock)
 {
     int w = sc->w, h = sc->h, k = sc->k;
     int wh = w*h;
     int i, x, y;
-    int done_something_overall = false;
+    bool done_something_overall = false;
 
     /*
      * Set up the contents array from the grid.
@@ -348,7 +349,7 @@ int solver_attempt(struct solver_scratch *sc, const unsigned char *grid,
 	sc->contents[dsf_canonify(sc->dsf, i)*k+grid[i]] = i;
 
     while (1) {
-	int done_something = false;
+	bool done_something = false;
 
 	/*
 	 * Go over the grid looking for reasons to add to the
@@ -406,8 +407,8 @@ int solver_attempt(struct solver_scratch *sc, const unsigned char *grid,
 		     * based deductions.
 		     */
 		    if (gen_lock) {
-			gen_lock[sc->contents[yx*k+i]] = 1;
-			gen_lock[sc->contents[yx2*k+i]] = 1;
+			gen_lock[sc->contents[yx*k+i]] = true;
+			gen_lock[sc->contents[yx2*k+i]] = true;
 		    }
 		}
 	    }
@@ -500,14 +501,14 @@ unsigned char *generate(int w, int h, int k, random_state *rs)
     unsigned char *shuffled;
     int i, j, m, retries;
     int *permutation;
-    unsigned char *gen_lock;
+    bool *gen_lock;
     extern int *divvy_rectangle(int w, int h, int k, random_state *rs);
 
     sc = solver_scratch_new(w, h, k);
     grid = snewn(wh, unsigned char);
     shuffled = snewn(k, unsigned char);
     permutation = snewn(wh, int);
-    gen_lock = snewn(wh, unsigned char);
+    gen_lock = snewn(wh, bool);
 
     do {
 	int *dsf = divvy_rectangle(w, h, k, rs);
@@ -547,7 +548,7 @@ unsigned char *generate(int w, int h, int k, random_state *rs)
 	 * on for deductions. This is gradually updated by
 	 * solver_attempt().
 	 */
-	memset(gen_lock, 0, wh);
+	memset(gen_lock, 0, wh * sizeof(bool));
 
 	/*
 	 * Now repeatedly fill the grid with letters, and attempt

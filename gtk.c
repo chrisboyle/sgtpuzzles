@@ -167,12 +167,14 @@ struct frontend {
 #endif
     int ncolours;
     int bbox_l, bbox_r, bbox_u, bbox_d;
-    int timer_active, timer_id;
+    bool timer_active;
+    int timer_id;
     struct timeval last_time;
     struct font *fonts;
     int nfonts, fontsize;
     config_item *cfg;
-    int cfg_which, cfgret;
+    int cfg_which;
+    bool cfgret;
     GtkWidget *cfgbox;
     void *paste_data;
     int paste_data_len;
@@ -182,12 +184,12 @@ struct frontend {
     char *filesel_name;
 #endif
     GSList *preset_radio;
-    int preset_threaded;
+    bool preset_threaded;
     GtkWidget *preset_custom;
     GtkWidget *copy_menu_item;
 #if !GTK_CHECK_VERSION(3,0,0)
-    int drawing_area_shrink_pending;
-    int menubar_is_local;
+    bool drawing_area_shrink_pending;
+    bool menubar_is_local;
 #endif
 #if GTK_CHECK_VERSION(3,0,0)
     /*
@@ -219,7 +221,7 @@ struct frontend {
      * happen, the window's size_allocate handler does a fallback
      * puzzle resize when it sees this flag still set to true.
      */
-    int awaiting_resize_ack;
+    bool awaiting_resize_ack;
 #endif
 };
 
@@ -494,7 +496,7 @@ static void clear_backing_store(frontend *fe)
 }
 
 static void wipe_and_maybe_destroy_cairo(frontend *fe, cairo_t *cr,
-                                         int destroy)
+                                         bool destroy)
 {
     cairo_set_source_rgb(cr, fe->colours[0], fe->colours[1], fe->colours[2]);
     cairo_paint(cr);
@@ -536,9 +538,9 @@ static void setup_backing_store(frontend *fe)
 #endif
 }
 
-static int backing_store_ok(frontend *fe)
+static bool backing_store_ok(frontend *fe)
 {
-    return (!!fe->image);
+    return fe->image != NULL;
 }
 
 static void teardown_backing_store(frontend *fe)
@@ -1459,7 +1461,7 @@ static void window_destroy(GtkWidget *widget, gpointer data)
     gtk_main_quit();
 }
 
-static int win_key_press(GtkWidget *widget, GdkEventKey *event, gpointer data)
+static gint win_key_press(GtkWidget *widget, GdkEventKey *event, gpointer data)
 {
     GObject *cancelbutton = G_OBJECT(data);
 
@@ -1494,8 +1496,8 @@ static void align_label(GtkLabel *label, double x, double y)
 }
 
 #if GTK_CHECK_VERSION(3,0,0)
-int message_box(GtkWidget *parent, const char *title, const char *msg,
-                int centre, int type)
+bool message_box(GtkWidget *parent, const char *title, const char *msg,
+                 bool centre, int type)
 {
     GtkWidget *window;
     gint ret;
@@ -1524,8 +1526,8 @@ static void msgbox_button_clicked(GtkButton *button, gpointer data)
     gtk_widget_destroy(GTK_WIDGET(data));
 }
 
-int message_box(GtkWidget *parent, const char *title, const char *msg,
-                int centre, int type)
+bool message_box(GtkWidget *parent, const char *title, const char *msg,
+                 bool centre, int type)
 {
     GtkWidget *window, *hbox, *text, *button;
     char *titles;
@@ -1617,7 +1619,7 @@ static void config_cancel_button_clicked(GtkButton *button, gpointer data)
     gtk_widget_destroy(fe->cfgbox);
 }
 
-static int editbox_key(GtkWidget *widget, GdkEventKey *event, gpointer data)
+static gint editbox_key(GtkWidget *widget, GdkEventKey *event, gpointer data)
 {
     /*
      * GtkEntry has a nasty habit of eating the Return key, which
@@ -1664,7 +1666,7 @@ static void droplist_sel(GtkComboBox *combo, gpointer data)
     i->u.choices.selected = gtk_combo_box_get_active(combo);
 }
 
-static int get_config(frontend *fe, int which)
+static bool get_config(frontend *fe, int which)
 {
     GtkWidget *w, *table, *cancel;
     GtkBox *content_box, *button_box;
@@ -1953,13 +1955,13 @@ static void changed_preset(frontend *fe)
      * Update the greying on the Copy menu option.
      */
     if (fe->copy_menu_item) {
-	int enabled = midend_can_format_as_text_now(fe->me);
+        bool enabled = midend_can_format_as_text_now(fe->me);
 	gtk_widget_set_sensitive(fe->copy_menu_item, enabled);
     }
 }
 
 #if !GTK_CHECK_VERSION(3,0,0)
-static gboolean not_size_allocated_yet(GtkWidget *w)
+static bool not_size_allocated_yet(GtkWidget *w)
 {
     /*
      * This function tests whether a widget has not yet taken up space
@@ -2084,7 +2086,7 @@ static void menu_preset_event(GtkMenuItem *menuitem, gpointer data)
 }
 
 GdkAtom compound_text_atom, utf8_string_atom;
-int paste_initialised = false;
+bool paste_initialised = false;
 
 static void set_selection(frontend *fe, GdkAtom selection)
 {
@@ -2201,7 +2203,7 @@ static char *file_selector(frontend *fe, const char *title, int save)
 
 #else
 
-static char *file_selector(frontend *fe, const char *title, int save)
+static char *file_selector(frontend *fe, const char *title, bool save)
 {
     char *filesel_name = NULL;
 
@@ -2906,16 +2908,17 @@ int main(int argc, char **argv)
 {
     char *pname = argv[0];
     char *error;
-    int ngenerate = 0, print = false, px = 1, py = 1;
-    int time_generation = false, test_solve = false, list_presets = false;
-    int soln = false, colour = false;
+    int ngenerate = 0, px = 1, py = 1;
+    bool print = false;
+    bool time_generation = false, test_solve = false, list_presets = false;
+    bool soln = false, colour = false;
     float scale = 1.0F;
     float redo_proportion = 0.0F;
     const char *savefile = NULL, *savesuffix = NULL;
     char *arg = NULL;
     int argtype = ARG_EITHER;
     char *screenshot_file = NULL;
-    int doing_opts = true;
+    bool doing_opts = true;
     int ac = argc;
     char **av = argv;
     char errbuf[500];

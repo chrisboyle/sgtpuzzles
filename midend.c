@@ -69,7 +69,7 @@ struct midend {
     struct midend_state_entry *states;
 
     struct midend_serialise_buf newgame_undo, newgame_redo;
-    int newgame_can_store_undo;
+    bool newgame_can_store_undo;
 
     game_params *params, *curparams;
     game_drawstate *drawstate;
@@ -80,7 +80,7 @@ struct midend {
     float flash_time, flash_pos;
     int dir;
 
-    int timing;
+    bool timing;
     float elapsed;
     char *laststatus;
 
@@ -573,7 +573,7 @@ static bool newgame_undo_deserialise_read(void *ctx, void *buf, int len)
 }
 
 struct newgame_undo_deserialise_check_ctx {
-    int refused;
+    bool refused;
 };
 
 static const char *newgame_undo_deserialise_check(
@@ -628,7 +628,7 @@ static const char *newgame_undo_deserialise_check(
     return NULL;
 }
 
-static int midend_undo(midend *me)
+static bool midend_undo(midend *me)
 {
     const char *deserialise_error;
 
@@ -639,7 +639,7 @@ static int midend_undo(midend *me)
                                        me->states[me->statepos-2].state);
 	me->statepos--;
         me->dir = -1;
-        return 1;
+        return true;
     } else if (me->newgame_undo.len) {
 	struct newgame_undo_deserialise_read_ctx rctx;
 	struct newgame_undo_deserialise_check_ctx cctx;
@@ -669,7 +669,7 @@ static int midend_undo(midend *me)
              * function, which we ignore.)
              */
             sfree(serbuf.buf);
-            return 0;
+            return false;
         } else {
             /*
              * There should never be any _other_ deserialisation
@@ -695,13 +695,13 @@ static int midend_undo(midend *me)
             newgame_serialise_write(&me->newgame_redo, serbuf.buf, serbuf.len);
 
             sfree(serbuf.buf);
-            return 1;
+            return true;
         }
     } else
-        return 0;
+        return false;
 }
 
-static int midend_redo(midend *me)
+static bool midend_redo(midend *me)
 {
     const char *deserialise_error;
 
@@ -712,7 +712,7 @@ static int midend_redo(midend *me)
                                        me->states[me->statepos].state);
 	me->statepos++;
         me->dir = +1;
-        return 1;
+        return true;
     } else if (me->newgame_redo.len) {
 	struct newgame_undo_deserialise_read_ctx rctx;
 	struct newgame_undo_deserialise_check_ctx cctx;
@@ -742,7 +742,7 @@ static int midend_redo(midend *me)
              * function, which we ignore.)
              */
             sfree(serbuf.buf);
-            return 0;
+            return false;
         } else {
             /*
              * There should never be any _other_ deserialisation
@@ -768,10 +768,10 @@ static int midend_redo(midend *me)
             newgame_serialise_write(&me->newgame_undo, serbuf.buf, serbuf.len);
 
             sfree(serbuf.buf);
-            return 1;
+            return true;
         }
     } else
-        return 0;
+        return false;
 }
 
 static void midend_finish_move(midend *me)
@@ -856,7 +856,8 @@ static bool midend_really_process_key(midend *me, int x, int y, int button)
 {
     game_state *oldstate =
         me->ourgame->dup_game(me->states[me->statepos - 1].state);
-    int type = MOVE, gottype = false, ret = true;
+    int type = MOVE;
+    bool gottype = false, ret = true;
     float anim_time;
     game_state *s;
     char *movestr = NULL;
@@ -1161,7 +1162,7 @@ void midend_freeze_timer(midend *me, float tprop)
 
 void midend_timer(midend *me, float tplus)
 {
-    int need_redraw = (me->anim_time > 0 || me->flash_time > 0);
+    bool need_redraw = (me->anim_time > 0 || me->flash_time > 0);
 
     me->anim_pos += tplus;
     if (me->anim_pos >= me->anim_time ||
@@ -1283,7 +1284,7 @@ game_params *preset_menu_lookup_by_id(struct preset_menu *menu, int id)
 }
 
 static char *preset_menu_add_from_user_env(
-    midend *me, struct preset_menu *menu, char *p, int top_level)
+    midend *me, struct preset_menu *menu, char *p, bool top_level)
 {
     while (*p) {
         char *name, *val;
@@ -1537,7 +1538,7 @@ static const char *midend_game_id_int(midend *me, const char *id, int defmode)
     char *par = NULL;
     const char *desc, *seed;
     game_params *newcurparams, *newparams, *oldparams1, *oldparams2;
-    int free_params;
+    bool free_params;
 
     seed = strchr(id, '#');
     desc = strchr(id, ':');
@@ -2066,7 +2067,7 @@ static const char *midend_deserialise_internal(
 {
     struct deserialise_data data;
     int gotstates = 0;
-    int started = false;
+    bool started = false;
     int i;
 
     char *val = NULL;
@@ -2445,7 +2446,7 @@ const char *identify_game(char **name,
                           void *rctx)
 {
     int nstates = 0, statepos = -1, gotstates = 0;
-    int started = false;
+    bool started = false;
 
     char *val = NULL;
     /* Initially all errors give the same report */

@@ -41,7 +41,7 @@
 #include "puzzles.h"
 
 #ifdef STANDALONE_SOLVER
-int verbose = 0;
+bool verbose = 0;
 #endif
 
 enum {
@@ -88,7 +88,8 @@ static char const magnets_diffchars[] = DIFFLIST(ENCODE);
 /* Game parameter functions. */
 
 struct game_params {
-    int w, h, diff, stripclues;
+    int w, h, diff;
+    bool stripclues;
 };
 
 #define DEFAULT_PRESET 2
@@ -165,10 +166,10 @@ static void decode_params(game_params *ret, char const *string)
 	if (*string) string++;
     }
 
-    ret->stripclues = 0;
+    ret->stripclues = false;
     if (*string == 'S') {
         string++;
-        ret->stripclues = 1;
+        ret->stripclues = true;
     }
 }
 
@@ -267,8 +268,8 @@ struct game_state {
     int w, h, wh;
     int *grid;                  /* size w*h, for cell state (pos/neg) */
     unsigned int *flags;        /* size w*h */
-    int solved, completed, numbered;
-    unsigned char *counts_done;
+    bool solved, completed, numbered;
+    bool *counts_done;
 
     struct game_common *common; /* domino layout never changes. */
 };
@@ -277,11 +278,13 @@ static void clear_state(game_state *ret)
 {
     int i;
 
-    ret->solved = ret->completed = ret->numbered = 0;
+    ret->solved = false;
+    ret->completed = false;
+    ret->numbered = false;
 
     memset(ret->common->rowcount, 0, ret->h*3*sizeof(int));
     memset(ret->common->colcount, 0, ret->w*3*sizeof(int));
-    memset(ret->counts_done, 0, (ret->h + ret->w) * 2 * sizeof(unsigned char));
+    memset(ret->counts_done, 0, (ret->h + ret->w) * 2 * sizeof(bool));
 
     for (i = 0; i < ret->wh; i++) {
         ret->grid[i] = EMPTY;
@@ -301,7 +304,7 @@ static game_state *new_state(int w, int h)
 
     ret->grid = snewn(ret->wh, int);
     ret->flags = snewn(ret->wh, unsigned int);
-    ret->counts_done = snewn((ret->h + ret->w) * 2, unsigned char);
+    ret->counts_done = snewn((ret->h + ret->w) * 2, bool);
 
     ret->common = snew(struct game_common);
     ret->common->refcount = 1;
@@ -333,9 +336,9 @@ static game_state *dup_game(const game_state *src)
     dest->grid = snewn(dest->wh, int);
     memcpy(dest->grid, src->grid, dest->wh*sizeof(int));
 
-    dest->counts_done = snewn((dest->h + dest->w) * 2, unsigned char);
+    dest->counts_done = snewn((dest->h + dest->w) * 2, bool);
     memcpy(dest->counts_done, src->counts_done,
-           (dest->h + dest->w) * 2 * sizeof(unsigned char));
+           (dest->h + dest->w) * 2 * sizeof(bool));
 
     dest->flags = snewn(dest->wh, unsigned int);
     memcpy(dest->flags, src->flags, dest->wh*sizeof(unsigned int));
@@ -518,7 +521,7 @@ nextchar:
         }
     }
     /* Success. */
-    state->numbered = 1;
+    state->numbered = true;
     goto done;
 
 badchar:
@@ -728,21 +731,22 @@ static int count_rowcol(const game_state *state, int num, int roworcol,
 }
 
 static void check_rowcol(game_state *state, int num, int roworcol, int which,
-                        int *wrong, int *incomplete)
+                         bool *wrong, bool *incomplete)
 {
     int count, target = mkrowcol(state, num, roworcol).targets[which];
 
     if (target == -1) return; /* no number to check against. */
 
     count = count_rowcol(state, num, roworcol, which);
-    if (count < target) *incomplete = 1;
-    if (count > target) *wrong = 1;
+    if (count < target) *incomplete = true;
+    if (count > target) *wrong = true;
 }
 
 static int check_completion(game_state *state)
 {
     int i, j, x, y, idx, w = state->w, h = state->h;
-    int which = POSITIVE, wrong = 0, incomplete = 0;
+    int which = POSITIVE;
+    bool wrong = false, incomplete = false;
 
     /* Check row and column counts for magnets. */
     for (which = POSITIVE, j = 0; j < 2; which = OPPOSITE(which), j++) {
@@ -762,14 +766,14 @@ static int check_completion(game_state *state)
                 continue; /* no domino here */
 
             if (!(state->flags[idx] & GS_SET))
-                incomplete = 1;
+                incomplete = true;
 
             which = state->grid[idx];
             if (which != NEUTRAL) {
 #define CHECK(xx,yy) do { \
     if (INGRID(state,xx,yy) && \
         (state->grid[(yy)*w+(xx)] == which)) { \
-        wrong = 1; \
+        wrong = true; \
         state->flags[(yy)*w+(xx)] |= GS_ERROR; \
         state->flags[y*w+x] |= GS_ERROR; \
     } \
@@ -1100,7 +1104,8 @@ static int solve_neither(game_state *state)
 
 static int solve_advancedfull(game_state *state, rowcol rc, int *counts)
 {
-    int i, j, nfound = 0, clearpos = 0, clearneg = 0, ret = 0;
+    int i, j, nfound = 0, ret = 0;
+    bool clearpos = false, clearneg = false;
 
     /* For this row/col, look for a domino entirely within the row where
      * both ends can only be + or - (but isn't held).
@@ -1146,11 +1151,11 @@ static int solve_advancedfull(game_state *state, rowcol rc, int *counts)
 
     if (rc.targets[POSITIVE] >= 0 && counts[POSITIVE] == rc.targets[POSITIVE]) {
         debug(("%s %d has now filled POSITIVE:", rc.name, rc.num));
-        clearpos = 1;
+        clearpos = true;
     }
     if (rc.targets[NEGATIVE] >= 0 && counts[NEGATIVE] == rc.targets[NEGATIVE]) {
         debug(("%s %d has now filled NEGATIVE:", rc.name, rc.num));
-        clearneg = 1;
+        clearneg = true;
     }
 
     if (!clearpos && !clearneg) return 0;
@@ -1202,7 +1207,8 @@ static int solve_nonneutral(game_state *state, rowcol rc, int *counts)
 static int solve_oddlength(game_state *state, rowcol rc, int *counts)
 {
     int i, j, ret = 0, extra, tpos, tneg;
-    int start = -1, length = 0, inempty = 0, startodd = -1;
+    int start = -1, length = 0, startodd = -1;
+    bool inempty = false;
 
     /* need zero neutral cells still to find... */
     if (rc.targets[NEUTRAL] != counts[NEUTRAL])
@@ -1225,7 +1231,7 @@ static int solve_oddlength(game_state *state, rowcol rc, int *counts)
                     if (startodd != -1) goto twoodd;
                     startodd = start;
                 }
-                inempty = 0;
+                inempty = false;
             }
         } else {
             if (inempty)
@@ -1233,7 +1239,7 @@ static int solve_oddlength(game_state *state, rowcol rc, int *counts)
             else {
                 start = i;
                 length = 1;
-                inempty = 1;
+                inempty = true;
             }
         }
     }
@@ -1259,7 +1265,8 @@ twoodd:
  * or to the #remaining negative, no empty cells can be neutral. */
 static int solve_countdominoes_neutral(game_state *state, rowcol rc, int *counts)
 {
-    int i, j, ndom = 0, nonn = 0, ret = 0;
+    int i, j, ndom = 0, ret = 0;
+    bool nonn = false;
 
     if ((rc.targets[POSITIVE] == -1) && (rc.targets[NEGATIVE] == -1))
         return 0; /* need at least one target to compare. */
@@ -1278,10 +1285,10 @@ static int solve_countdominoes_neutral(game_state *state, rowcol rc, int *counts
 
     if ((rc.targets[POSITIVE] != -1) &&
         (rc.targets[POSITIVE]-counts[POSITIVE] == ndom))
-        nonn = 1;
+        nonn = true;
     if ((rc.targets[NEGATIVE] != -1) &&
         (rc.targets[NEGATIVE]-counts[NEGATIVE] == ndom))
-        nonn = 1;
+        nonn = true;
 
     if (!nonn) return 0;
 
@@ -1400,7 +1407,7 @@ static int solve_state(game_state *state, int diff)
 
 
 static char *game_state_diff(const game_state *src, const game_state *dst,
-                             int issolve)
+                             bool issolve)
 {
     char *ret = NULL, buf[80], c;
     int retlen = 0, x, y, i, k;
@@ -1473,7 +1480,7 @@ static char *solve_game(const game_state *state, const game_state *currstate,
     return NULL;
 
 solved:
-    move = game_state_diff(currstate, solved, 1);
+    move = game_state_diff(currstate, solved, true);
     free_game(solved);
     return move;
 }
@@ -1598,7 +1605,7 @@ static void gen_game(game_state *new, random_state *rs)
             new->common->rowcount[y*3+val]++;
         }
     }
-    new->numbered = 1;
+    new->numbered = true;
 
     sfree(scratch);
 }
@@ -1705,14 +1712,15 @@ static char *new_game_desc(const game_params *params, random_state *rs,
 }
 
 struct game_ui {
-    int cur_x, cur_y, cur_visible;
+    int cur_x, cur_y;
+    bool cur_visible;
 };
 
 static game_ui *new_ui(const game_state *state)
 {
     game_ui *ui = snew(game_ui);
     ui->cur_x = ui->cur_y = 0;
-    ui->cur_visible = 0;
+    ui->cur_visible = false;
     return ui;
 }
 
@@ -1734,11 +1742,12 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
                                const game_state *newstate)
 {
     if (!oldstate->completed && newstate->completed)
-        ui->cur_visible = 0;
+        ui->cur_visible = false;
 }
 
 struct game_drawstate {
-    int tilesize, started, solved;
+    int tilesize;
+    bool started, solved;
     int w, h;
     unsigned long *what;                /* size w*h */
     unsigned long *colwhat, *rowwhat;   /* size 3*w, 3*h */
@@ -1761,7 +1770,7 @@ struct game_drawstate {
 #define COORD(x) ( (x+1) * TILE_SIZE + BORDER )
 #define FROMCOORD(x) ( (x - BORDER) / TILE_SIZE - 1 )
 
-static int is_clue(const game_state *state, int x, int y)
+static bool is_clue(const game_state *state, int x, int y)
 {
     int h = state->h, w = state->w;
 
@@ -1797,12 +1806,12 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     enum { CYCLE_MAGNET, CYCLE_NEUTRAL } action;
 
     if (IS_CURSOR_MOVE(button)) {
-        move_cursor(button, &ui->cur_x, &ui->cur_y, state->w, state->h, 0);
-        ui->cur_visible = 1;
+        move_cursor(button, &ui->cur_x, &ui->cur_y, state->w, state->h, false);
+        ui->cur_visible = true;
         return UI_UPDATE;
     } else if (IS_CURSOR_SELECT(button)) {
         if (!ui->cur_visible) {
-            ui->cur_visible = 1;
+            ui->cur_visible = true;
             return UI_UPDATE;
         }
         action = (button == CURSOR_SELECT) ? CYCLE_MAGNET : CYCLE_NEUTRAL;
@@ -1811,7 +1820,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     } else if (INGRID(state, gx, gy) &&
                (button == LEFT_BUTTON || button == RIGHT_BUTTON)) {
         if (ui->cur_visible) {
-            ui->cur_visible = 0;
+            ui->cur_visible = false;
             nullret = UI_UPDATE;
         }
         action = (button == LEFT_BUTTON) ? CYCLE_MAGNET : CYCLE_NEUTRAL;
@@ -1905,7 +1914,7 @@ static game_state *execute_move(const game_state *state, const char *move)
         else if (*move) goto badmove;
     }
     if (check_completion(ret) == 1)
-        ret->completed = 1;
+        ret->completed = true;
 
     return ret;
 
@@ -1973,7 +1982,9 @@ static game_drawstate *game_new_drawstate(drawing *dr, const game_state *state)
 {
     struct game_drawstate *ds = snew(struct game_drawstate);
 
-    ds->tilesize = ds->started = ds->solved = 0;
+    ds->tilesize = 0;
+    ds->started = false;
+    ds->solved = false;
     ds->w = state->w;
     ds->h = state->h;
 
@@ -2188,7 +2199,8 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
                         int dir, const game_ui *ui,
                         float animtime, float flashtime)
 {
-    int x, y, w = state->w, h = state->h, which, i, j, flash;
+    int x, y, w = state->w, h = state->h, which, i, j;
+    bool flash;
 
     flash = (int)(flashtime * 5 / FLASH_TIME) % 2;
 
@@ -2261,7 +2273,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
         }
     }
 
-    ds->started = 1;
+    ds->started = true;
 }
 
 static float game_anim_length(const game_state *oldstate,
@@ -2433,7 +2445,7 @@ const struct game thegame = {
 #include <stdarg.h>
 
 const char *quis = NULL;
-int csv = 0;
+bool csv = false;
 
 void usage(FILE *out) {
     fprintf(out, "usage: %s [-v] [--print] <params>|<game id>\n", quis);
@@ -2535,7 +2547,8 @@ static void start_soak(game_params *p, random_state *rs)
 
 int main(int argc, const char *argv[])
 {
-    int print = 0, soak = 0, solved = 0, ret;
+    bool print = false, soak = false, solved = false;
+    int ret;
     char *id = NULL, *desc, *desc_gen = NULL, *aux = NULL;
     const char *err;
     game_state *s = NULL;
@@ -2549,16 +2562,16 @@ int main(int argc, const char *argv[])
     while (--argc > 0) {
         char *p = (char*)(*++argv);
         if (!strcmp(p, "-v") || !strcmp(p, "--verbose")) {
-            verbose = 1;
+            verbose = true;
         } else if (!strcmp(p, "--csv")) {
-            csv = 1;
+            csv = true;
         } else if (!strcmp(p, "-e") || !strcmp(p, "--seed")) {
             seed = atoi(*++argv);
             argc--;
         } else if (!strcmp(p, "-p") || !strcmp(p, "--print")) {
-            print = 1;
+            print = true;
         } else if (!strcmp(p, "-s") || !strcmp(p, "--soak")) {
-            soak = 1;
+            soak = true;
         } else if (*p == '-') {
             fprintf(stderr, "%s: unrecognised option `%s'\n", argv[0], p);
             usage(stderr);
@@ -2579,7 +2592,7 @@ int main(int argc, const char *argv[])
 
     p = default_params();
     decode_params(p, id);
-    err = validate_params(p, 1);
+    err = validate_params(p, true);
     if (err) {
         fprintf(stderr, "%s: %s", argv[0], err);
         goto done;
@@ -2595,7 +2608,7 @@ int main(int argc, const char *argv[])
     }
 
     if (!desc)
-        desc = desc_gen = new_game_desc(p, rs, &aux, 0);
+        desc = desc_gen = new_game_desc(p, rs, &aux, false);
 
     err = validate_desc(p, desc);
     if (err) {
@@ -2609,17 +2622,17 @@ int main(int argc, const char *argv[])
         if (verbose || print) {
             doprint(s);
             solve_from_aux(s, aux);
-            solved = 1;
+            solved = true;
         }
     } else {
         doprint(s);
-        verbose = 1;
+        verbose = true;
         ret = solve_state(s, DIFFCOUNT);
         if (ret < 0) printf("Puzzle is impossible.\n");
         else if (ret == 0) printf("Puzzle is ambiguous.\n");
         else printf("Puzzle was solved.\n");
-        verbose = 0;
-        solved = 1;
+        verbose = false;
+        solved = true;
     }
     if (solved) doprint(s);
 

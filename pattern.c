@@ -50,14 +50,14 @@ typedef struct game_state_common {
     int w, h;
     int rowsize;
     int *rowdata, *rowlen;
-    unsigned char *immutable;
+    bool *immutable;
     int refcount;
 } game_state_common;
 
 struct game_state {
     game_state_common *common;
     unsigned char *grid;
-    int completed, cheated;
+    bool completed, cheated;
 };
 
 #define FLASH_TIME 0.13F
@@ -357,10 +357,10 @@ static int compute_rowdata(int *ret, unsigned char *start, int len, int step)
 #define STILL_UNKNOWN 3
 
 #ifdef STANDALONE_SOLVER
-int verbose = false;
+bool verbose = false;
 #endif
 
-static int do_recurse(unsigned char *known, unsigned char *deduced,
+static bool do_recurse(unsigned char *known, unsigned char *deduced,
                        unsigned char *row,
 		       unsigned char *minpos_done, unsigned char *maxpos_done,
 		       unsigned char *minpos_ok, unsigned char *maxpos_ok,
@@ -424,18 +424,19 @@ static int do_recurse(unsigned char *known, unsigned char *deduced,
 }
 
 
-static int do_row(unsigned char *known, unsigned char *deduced,
-                  unsigned char *row,
-                  unsigned char *minpos_done, unsigned char *maxpos_done,
-		  unsigned char *minpos_ok, unsigned char *maxpos_ok,
-                  unsigned char *start, int len, int step, int *data,
-		  unsigned int *changed
+static bool do_row(unsigned char *known, unsigned char *deduced,
+                   unsigned char *row,
+                   unsigned char *minpos_done, unsigned char *maxpos_done,
+                   unsigned char *minpos_ok, unsigned char *maxpos_ok,
+                   unsigned char *start, int len, int step, int *data,
+                   unsigned int *changed
 #ifdef STANDALONE_SOLVER
-		  , const char *rowcol, int index, int cluewid
+                   , const char *rowcol, int index, int cluewid
 #endif
-		  )
+                   )
 {
-    int rowlen, i, freespace, done_any;
+    int rowlen, i, freespace;
+    bool done_any;
 
     freespace = len+1;
     for (rowlen = 0; data[rowlen]; rowlen++) {
@@ -491,19 +492,20 @@ static int do_row(unsigned char *known, unsigned char *deduced,
     return done_any;
 }
 
-static int solve_puzzle(const game_state *state, unsigned char *grid,
-                        int w, int h,
-			unsigned char *matrix, unsigned char *workspace,
-			unsigned int *changed_h, unsigned int *changed_w,
-			int *rowdata
+static bool solve_puzzle(const game_state *state, unsigned char *grid,
+                         int w, int h,
+                         unsigned char *matrix, unsigned char *workspace,
+                         unsigned int *changed_h, unsigned int *changed_w,
+                         int *rowdata
 #ifdef STANDALONE_SOLVER
-			, int cluewid
+                         , int cluewid
 #else
-			, int dummy
+                         , int dummy
 #endif
-			)
+                         )
 {
-    int i, j, ok, max;
+    int i, j, max;
+    bool ok;
     int max_h, max_w;
 
     assert((state!=NULL && state->common->rowdata!=NULL) ^ (grid!=NULL));
@@ -649,7 +651,8 @@ static int solve_puzzle(const game_state *state, unsigned char *grid,
 #ifndef STANDALONE_PICTURE_GENERATOR
 static unsigned char *generate_soluble(random_state *rs, int w, int h)
 {
-    int i, j, ok, ntries, max;
+    int i, j, ntries, max;
+    bool ok;
     unsigned char *grid, *matrix, *workspace;
     unsigned int *changed_h, *changed_w;
     int *rowdata;
@@ -744,8 +747,9 @@ static char *new_game_desc(const game_params *params, random_state *rs,
     state->grid = grid;
     state->common = snew(game_state_common);
     state->common->rowdata = NULL;
-    state->common->immutable = snewn(params->w * params->h, unsigned char);
-    memset(state->common->immutable, 1, params->w * params->h);
+    state->common->immutable = snewn(params->w * params->h, bool);
+    for (i = 0; i < params->w * params->h; i++)
+        state->common->immutable[i] = true;
 
     index = snewn(params->w * params->h, int);
     for (i = 0; i < params->w * params->h; i++)
@@ -759,11 +763,11 @@ static char *new_game_desc(const game_params *params, random_state *rs,
         unsigned int *changed_w = snewn(max+1, unsigned int);
         int *rowdata = snewn(max+1, int);
         for (i = 0; i < params->w * params->h; i++) {
-            state->common->immutable[index[i]] = 0;
+            state->common->immutable[index[i]] = false;
             if (!solve_puzzle(state, grid, params->w, params->h,
                               matrix, workspace, changed_h, changed_w,
                               rowdata, 0))
-                state->common->immutable[index[i]] = 1;
+                state->common->immutable[index[i]] = true;
         }
         sfree(workspace);
         sfree(changed_h);
@@ -972,8 +976,9 @@ static game_state *new_game(midend *me, const game_params *params,
     memset(state->grid, GRID_UNKNOWN, state->common->w * state->common->h);
 
     state->common->immutable = snewn(state->common->w * state->common->h,
-                                     unsigned char);
-    memset(state->common->immutable, 0, state->common->w * state->common->h);
+                                     bool);
+    memset(state->common->immutable, 0,
+           state->common->w * state->common->h * sizeof(bool));
 
     state->common->rowsize = max(state->common->w, state->common->h);
     state->common->rowdata = snewn(state->common->rowsize * (state->common->w + state->common->h), int);
@@ -1003,7 +1008,8 @@ static game_state *new_game(midend *me, const game_params *params,
         i = 0;
         while (i < params->w * params->h) {
             int c = (unsigned char)*desc++;
-            int full = isupper(c), len = tolower(c) - 'a';
+            bool full = isupper(c);
+            int len = tolower(c) - 'a';
             i += len;
             if (len < 25 && i < params->w*params->h) {
                 state->grid[i] = full ? GRID_FULL : GRID_EMPTY;
@@ -1051,7 +1057,8 @@ static char *solve_game(const game_state *state, const game_state *currstate,
     int w = state->common->w, h = state->common->h;
     int i;
     char *ret;
-    int max, ok;
+    int max;
+    bool ok;
     unsigned char *workspace;
     unsigned int *changed_h, *changed_w;
     int *rowdata;
@@ -1118,7 +1125,8 @@ static char *game_text_format(const game_state *state)
 	    }
     }
     for (i = 0; i < h; ++i) {
-	int rowlen = 0, predecessors = false;
+	int rowlen = 0;
+        bool predecessors = false;
 	for (j = 0; j < state->common->rowlen[i+w]; ++j) {
 	    int copy = state->common->rowdata[(i+w)*state->common->rowsize + j];
 	    rowlen += predecessors;
@@ -1170,7 +1178,7 @@ static char *game_text_format(const game_state *state)
 	    int cell = topleft + i*cw + j*ch*lw;
 	    int center = cell + cw/2 + (ch/2)*lw;
 	    int dx, dy;
-	    board[cell] = 0 ? center : '+';
+	    board[cell] = false ? center : '+';
 	    for (dx = 1; dx < cw; ++dx) board[cell + dx] = '-';
 	    for (dy = 1; dy < ch; ++dy) board[cell + dy*lw] = '|';
 	    if (state->grid[i*w+j] == GRID_UNKNOWN) continue;
@@ -1189,13 +1197,14 @@ static char *game_text_format(const game_state *state)
 }
 
 struct game_ui {
-    int dragging;
+    bool dragging;
     int drag_start_x;
     int drag_start_y;
     int drag_end_x;
     int drag_end_y;
     int drag, release, state;
-    int cur_x, cur_y, cur_visible;
+    int cur_x, cur_y;
+    bool cur_visible;
 };
 
 static game_ui *new_ui(const game_state *state)
@@ -1204,7 +1213,8 @@ static game_ui *new_ui(const game_state *state)
 
     ret = snew(game_ui);
     ret->dragging = false;
-    ret->cur_x = ret->cur_y = ret->cur_visible = 0;
+    ret->cur_x = ret->cur_y = 0;
+    ret->cur_visible = false;
 
     return ret;
 }
@@ -1229,7 +1239,7 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
 }
 
 struct game_drawstate {
-    int started;
+    bool started;
     int w, h;
     int tilesize;
     unsigned char *visible, *numcolours;
@@ -1240,7 +1250,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
                             const game_drawstate *ds,
                             int x, int y, int button)
 {
-    int control = button & MOD_CTRL, shift = button & MOD_SHFT;
+    bool control = button & MOD_CTRL, shift = button & MOD_SHFT;
     button &= ~MOD_MASK;
 
     x = FROMCOORD(state->common->w, x);
@@ -1279,7 +1289,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 
         ui->drag_start_x = ui->drag_end_x = x;
         ui->drag_start_y = ui->drag_end_y = y;
-        ui->cur_visible = 0;
+        ui->cur_visible = false;
 
         return UI_UPDATE;
     }
@@ -1315,7 +1325,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 
     if (ui->dragging && button == ui->release) {
         int x1, x2, y1, y2, xx, yy;
-        int move_needed = false;
+        bool move_needed = false;
 
         x1 = min(ui->drag_start_x, ui->drag_end_x);
         x2 = max(ui->drag_start_x, ui->drag_end_x);
@@ -1344,8 +1354,8 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     if (IS_CURSOR_MOVE(button)) {
 	int x = ui->cur_x, y = ui->cur_y, newstate;
 	char buf[80];
-        move_cursor(button, &ui->cur_x, &ui->cur_y, state->common->w, state->common->h, 0);
-        ui->cur_visible = 1;
+        move_cursor(button, &ui->cur_x, &ui->cur_y, state->common->w, state->common->h, false);
+        ui->cur_visible = true;
 	if (!control && !shift) return UI_UPDATE;
 
 	newstate = control ? shift ? GRID_UNKNOWN : GRID_FULL : GRID_EMPTY;
@@ -1365,7 +1375,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         char buf[80];
 
         if (!ui->cur_visible) {
-            ui->cur_visible = 1;
+            ui->cur_visible = true;
             return UI_UPDATE;
         }
 
@@ -1535,7 +1545,7 @@ struct errcheck_state {
     int ncontig;
 };
 
-static int errcheck_found_run(struct errcheck_state *es, int r)
+static bool errcheck_found_run(struct errcheck_state *es, int r)
 {
 /* Macro to handle the pretence that rowdata has a 0 at each end */
 #define ROWDATA(k) ((k)<0 || (k)>=es->rowlen ? 0 : es->rowdata[(k)])
@@ -1566,7 +1576,7 @@ static int errcheck_found_run(struct errcheck_state *es, int r)
 #undef ROWDATA
 }
 
-static int check_errors(const game_state *state, int i)
+static bool check_errors(const game_state *state, int i)
 {
     int start, step, end, j;
     int val, runlen;
@@ -1689,7 +1699,7 @@ static void game_free_drawstate(drawing *dr, game_drawstate *ds)
 }
 
 static void grid_square(drawing *dr, game_drawstate *ds,
-                        int y, int x, int state, int cur)
+                        int y, int x, int state, bool cur)
 {
     int xl, xr, yt, yb, dx, dy, dw, dh;
 
@@ -1721,8 +1731,9 @@ static void grid_square(drawing *dr, game_drawstate *ds,
 /*
  * Draw the numbers for a single row or column.
  */
-static void draw_numbers(drawing *dr, game_drawstate *ds,
-                         const game_state *state, int i, int erase, int colour)
+static void draw_numbers(
+    drawing *dr, game_drawstate *ds, const game_state *state,
+    int i, bool erase, int colour)
 {
     int rowlen = state->common->rowlen[i];
     int *rowdata = state->common->rowdata + state->common->rowsize * i;
@@ -1788,7 +1799,8 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
 {
     int i, j;
     int x1, x2, y1, y2;
-    int cx, cy, cmoved;
+    int cx, cy;
+    bool cmoved;
 
     if (!ds->started) {
         /*
@@ -1833,7 +1845,8 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
      */
     for (i = 0; i < ds->h; i++) {
         for (j = 0; j < ds->w; j++) {
-            int val, cc = 0;
+            int val;
+            bool cc = false;
 
             /*
              * Work out what state this square should be drawn in,
@@ -1848,8 +1861,8 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
             if (cmoved) {
                 /* the cursor has moved; if we were the old or
                  * the new cursor position we need to redraw. */
-                if (j == cx && i == cy) cc = 1;
-                if (j == ds->cur_x && i == ds->cur_y) cc = 1;
+                if (j == cx && i == cy) cc = true;
+                if (j == ds->cur_x && i == ds->cur_y) cc = true;
             }
 
             /*

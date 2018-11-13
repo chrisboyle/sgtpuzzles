@@ -55,7 +55,7 @@ struct game_params {
 
 struct game_state {
     int w, h;
-    int completed;
+    bool completed;
     unsigned char *grid;
 };
 
@@ -677,7 +677,7 @@ static game_state *new_game(midend *me, const game_params *params,
 
     state->w = w;
     state->h = h;
-    state->completed = 0;
+    state->completed = false;
     state->grid = snewn(w*h, unsigned char);
     for (i = 0; i < w*h; i++)
 	state->grid[i] = (desc[i] == 'P' ? GRID_PEG :
@@ -737,10 +737,11 @@ static char *game_text_format(const game_state *state)
 }
 
 struct game_ui {
-    int dragging;		       /* boolean: is a drag in progress? */
+    bool dragging;                     /* is a drag in progress? */
     int sx, sy;			       /* grid coords of drag start cell */
     int dx, dy;			       /* pixel coords of current drag posn */
-    int cur_x, cur_y, cur_visible, cur_jumping;
+    int cur_x, cur_y;
+    bool cur_visible, cur_jumping;
 };
 
 static game_ui *new_ui(const game_state *state)
@@ -750,7 +751,8 @@ static game_ui *new_ui(const game_state *state)
 
     ui->sx = ui->sy = ui->dx = ui->dy = 0;
     ui->dragging = false;
-    ui->cur_visible = ui->cur_jumping = 0;
+    ui->cur_visible = false;
+    ui->cur_jumping = false;
 
     /* make sure we start the cursor somewhere on the grid. */
     for (x = 0; x < state->w; x++) {
@@ -804,10 +806,11 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
 struct game_drawstate {
     int tilesize;
     blitter *drag_background;
-    int dragging, dragx, dragy;
+    bool dragging;
+    int dragx, dragy;
     int w, h;
     unsigned char *grid;
-    int started;
+    bool started;
     int bgcolour;
 };
 
@@ -843,7 +846,8 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 	    ui->sy = ty;
 	    ui->dx = x;
 	    ui->dy = y;
-            ui->cur_visible = ui->cur_jumping = 0;
+            ui->cur_visible = false;
+            ui->cur_jumping = false;
 	    return UI_UPDATE;
 	}
     } else if (button == LEFT_DRAG && ui->dragging) {
@@ -888,8 +892,8 @@ static char *interpret_move(const game_state *state, game_ui *ui,
             /* Not jumping; move cursor as usual, making sure we don't
              * leave the gameboard (which may be an irregular shape) */
             int cx = ui->cur_x, cy = ui->cur_y;
-            move_cursor(button, &cx, &cy, w, h, 0);
-            ui->cur_visible = 1;
+            move_cursor(button, &cx, &cy, w, h, false);
+            ui->cur_visible = true;
             if (state->grid[cy*w+cx] == GRID_HOLE ||
                 state->grid[cy*w+cx] == GRID_PEG) {
                 ui->cur_x = cx;
@@ -908,7 +912,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
             mx = ui->cur_x+dx; my = ui->cur_y+dy;
             jx = mx+dx; jy = my+dy;
 
-            ui->cur_jumping = 0; /* reset, whatever. */
+            ui->cur_jumping = false; /* reset, whatever. */
             if (jx >= 0 && jy >= 0 && jx < w && jy < h &&
                 state->grid[my*w+mx] == GRID_PEG &&
                 state->grid[jy*w+jx] == GRID_HOLE) {
@@ -922,16 +926,16 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         }
     } else if (IS_CURSOR_SELECT(button)) {
         if (!ui->cur_visible) {
-            ui->cur_visible = 1;
+            ui->cur_visible = true;
             return UI_UPDATE;
         }
         if (ui->cur_jumping) {
-            ui->cur_jumping = 0;
+            ui->cur_jumping = false;
             return UI_UPDATE;
         }
         if (state->grid[ui->cur_y*w+ui->cur_x] == GRID_PEG) {
             /* cursor is on peg: next arrow-move wil jump. */
-            ui->cur_jumping = 1;
+            ui->cur_jumping = true;
             return UI_UPDATE;
         }
         return NULL;
@@ -983,7 +987,7 @@ static game_state *execute_move(const game_state *state, const char *move)
                 if (ret->grid[i] == GRID_PEG)
                     count++;
             if (count == 1)
-                ret->completed = 1;
+                ret->completed = true;
         }
 
 	return ret;
@@ -1069,16 +1073,17 @@ static void game_free_drawstate(drawing *dr, game_drawstate *ds)
 static void draw_tile(drawing *dr, game_drawstate *ds,
 		      int x, int y, int v, int bgcolour)
 {
-    int cursor = 0, jumping = 0, bg;
+    bool cursor = false, jumping = false;
+    int bg;
 
     if (bgcolour >= 0) {
 	draw_rect(dr, x, y, TILESIZE, TILESIZE, bgcolour);
     }
     if (v >= GRID_JUMPING) {
-        jumping = 1; v -= GRID_JUMPING;
+        jumping = true; v -= GRID_JUMPING;
     }
     if (v >= GRID_CURSOR) {
-        cursor = 1; v -= GRID_CURSOR;
+        cursor = true; v -= GRID_CURSOR;
     }
 
     if (v == GRID_HOLE) {

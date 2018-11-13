@@ -94,8 +94,7 @@ struct game_params {
 
 struct game_state {
     struct game_params params;
-    unsigned int has_cheated: 1;
-    unsigned int was_solved: 1;
+    bool has_cheated, was_solved;
     puzzle_size *grid;
 };
 
@@ -702,7 +701,7 @@ static char *new_game_desc(const game_params *params, random_state *rs,
     state.params = *params;
     state.grid = grid;
 
-    interactive = 0; /* I don't need it, I shouldn't use it*/
+    interactive = false; /* I don't need it, I shouldn't use it*/
 
     for (i = 0; i < n; ++i) shuffle_1toN[i] = i;
 
@@ -1221,7 +1220,7 @@ static char *game_text_format(const game_state *state)
 
 struct game_ui {
     puzzle_size r, c; /* cursor position */
-    unsigned int cursor_show: 1;
+    bool cursor_show;
 };
 
 static game_ui *new_ui(const game_state *state)
@@ -1248,15 +1247,13 @@ static void decode_ui(game_ui *ui, const char *encoding)
 
 typedef struct drawcell {
     puzzle_size value;
-    unsigned int error: 1;
-    unsigned int cursor: 1;
-    unsigned int flash: 1;
+    bool error, cursor, flash;
 } drawcell;
 
 struct game_drawstate {
     int tilesize;
     drawcell *grid;
-    unsigned int started: 1;
+    bool started;
 };
 
 #define TILESIZE (ds->tilesize)
@@ -1271,8 +1268,8 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     enum {none, forwards, backwards, hint};
     int const w = state->params.w, h = state->params.h;
     int r = ui->r, c = ui->c, action = none, cell;
-    int shift = button & MOD_SHFT;
-    button &= ~shift;
+    bool shift = button & MOD_SHFT;
+    button &= ~MOD_SHFT;
 
     if (IS_CURSOR_SELECT(button) && !ui->cursor_show) return NULL;
 
@@ -1331,7 +1328,8 @@ static char *interpret_move(const game_state *state, game_ui *ui,
             for (i = 0; i < 4 && cursors[i] != button; ++i);
             assert (i < 4);
             if (shift) {
-                int pre_r = r, pre_c = c, do_pre, do_post;
+                int pre_r = r, pre_c = c;
+                bool do_pre, do_post;
                 cell = state->grid[idx(r, c, state->params.w)];
                 do_pre = (cell == EMPTY);
 
@@ -1407,7 +1405,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     return NULL;
 }
 
-static int find_errors(const game_state *state, int *report)
+static bool find_errors(const game_state *state, bool *report)
 {
     int const w = state->params.w, h = state->params.h, n = w * h;
     int *dsf;
@@ -1543,7 +1541,7 @@ static game_state *execute_move(const game_state *state, const char *move)
         ret->grid[idx(r, c, ret->params.w)] = value;
     }
 
-    if (ret->was_solved == false)
+    if (!ret->was_solved)
         ret->was_solved = !find_errors(ret, NULL);
 
     return ret;
@@ -1626,7 +1624,8 @@ static float *game_colours(frontend *fe, int *ncolours)
     return ret;
 }
 
-static drawcell makecell(puzzle_size value, int error, int cursor, int flash)
+static drawcell makecell(puzzle_size value,
+                         bool error, bool cursor, bool flash)
 {
     drawcell ret;
     setmember(ret, value);
@@ -1660,7 +1659,7 @@ static void game_free_drawstate(drawing *dr, game_drawstate *ds)
 
 #define cmpmember(a, b, field) ((a) . field == (b) . field)
 
-static int cell_eq(drawcell a, drawcell b)
+static bool cell_eq(drawcell a, drawcell b)
 {
     return
         cmpmember(a, b, value) &&
@@ -1683,8 +1682,8 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
 
     int r, c, i;
 
-    int *errors = snewn(n, int);
-    memset(errors, false, n * sizeof (int));
+    bool *errors = snewn(n, bool);
+    memset(errors, 0, n * sizeof (bool));
     find_errors(state, errors);
 
     assert (oldstate == NULL); /* only happens if animating moves */

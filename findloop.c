@@ -14,7 +14,8 @@
 #include "puzzles.h"
 
 struct findloopstate {
-    int parent, child, sibling, visited;
+    int parent, child, sibling;
+    bool visited;
     int index, minindex, maxindex;
     int minreachable, maxreachable;
     int bridge;

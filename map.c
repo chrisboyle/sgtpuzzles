@@ -25,7 +25,7 @@
  */
 #if defined STANDALONE_SOLVER
 #define SOLVER_DIAGNOSTICS
-int verbose = false;
+bool verbose = false;
 #elif defined SOLVER_DIAGNOSTICS
 #define verbose true
 #endif
@@ -84,7 +84,7 @@ struct map {
     int *graph;
     int n;
     int ngraph;
-    int *immutable;
+    bool *immutable;
     int *edgex, *edgey;		       /* position of a point on each edge */
     int *regionx, *regiony;            /* position of a point in each region */
 };
@@ -93,7 +93,7 @@ struct game_state {
     game_params p;
     struct map *map;
     int *colouring, *pencil;
-    int completed, cheated;
+    bool completed, cheated;
 };
 
 static game_params *default_params(void)
@@ -680,8 +680,8 @@ static int graph_vertex_start(int *graph, int n, int ngraph, int i)
  * the sake of the Palm port and its limited stack.
  */
 
-static int fourcolour_recurse(int *graph, int n, int ngraph,
-			      int *colouring, int *scratch, random_state *rs)
+static bool fourcolour_recurse(int *graph, int n, int ngraph,
+                               int *colouring, int *scratch, random_state *rs)
 {
     int nfree, nvert, start, i, j, k, c, ci;
     int cs[FOUR];
@@ -783,6 +783,7 @@ static void fourcolour(int *graph, int n, int ngraph, int *colouring,
 {
     int *scratch;
     int i;
+    bool retd;
 
     /*
      * For each vertex and each colour, we store the number of
@@ -799,8 +800,8 @@ static void fourcolour(int *graph, int n, int ngraph, int *colouring,
     for (i = 0; i < n; i++)
 	colouring[i] = -1;
 
-    i = fourcolour_recurse(graph, n, ngraph, colouring, scratch, rs);
-    assert(i);			       /* by the Four Colour Theorem :-) */
+    retd = fourcolour_recurse(graph, n, ngraph, colouring, scratch, rs);
+    assert(retd);                 /* by the Four Colour Theorem :-) */
 
     sfree(scratch);
 }
@@ -870,12 +871,12 @@ static int bitcount(int word)
 static const char colnames[FOUR] = { 'R', 'Y', 'G', 'B' };
 #endif
 
-static int place_colour(struct solver_scratch *sc,
-			int *colouring, int index, int colour
+static bool place_colour(struct solver_scratch *sc,
+                         int *colouring, int index, int colour
 #ifdef SOLVER_DIAGNOSTICS
-                        , const char *verb
+                         , const char *verb
 #endif
-                        )
+                         )
 {
     int *graph = sc->graph, n = sc->n, ngraph = sc->ngraph;
     int j, k;
@@ -974,7 +975,7 @@ static int map_solver(struct solver_scratch *sc,
      * Now repeatedly loop until we find nothing further to do.
      */
     while (1) {
-	int done_something = false;
+	bool done_something = false;
 
         if (difficulty < DIFF_EASY)
             break;                     /* can't do anything at all! */
@@ -996,7 +997,8 @@ static int map_solver(struct solver_scratch *sc,
             }
 
 	    if ((p & (p-1)) == 0) {    /* p is a power of two */
-		int c, ret;
+		int c;
+                bool ret;
 		for (c = 0; c < FOUR; c++)
 		    if (p == (1 << c))
 			break;
@@ -1040,7 +1042,7 @@ static int map_solver(struct solver_scratch *sc,
             int j1 = graph[i] / n, j2 = graph[i] % n;
             int j, k, v, v2;
 #ifdef SOLVER_DIAGNOSTICS
-            int started = false;
+            bool started = false;
 #endif
 
             if (j1 > j2)
@@ -1279,7 +1281,7 @@ static int map_solver(struct solver_scratch *sc,
         struct solver_scratch *rsc;
         int *subcolouring, *origcolouring;
         int ret, subret;
-        int we_already_got_one;
+        bool we_already_got_one;
 
         best = -1;
         bestc = FIVE;
@@ -1601,7 +1603,8 @@ static char *new_game_desc(const game_params *params, random_state *rs,
     ret = NULL;
 
     {
-	int run, pv;
+	int run;
+        bool pv;
 
 	/*
 	 * Start with a notional non-edge, so that there'll be an
@@ -1609,10 +1612,11 @@ static char *new_game_desc(const game_params *params, random_state *rs,
 	 * an edge.
 	 */
 	run = 1;
-	pv = 0;
+	pv = false;
 
 	for (i = 0; i < w*(h-1) + (w-1)*h; i++) {
-	    int x, y, dx, dy, v;
+	    int x, y, dx, dy;
+            bool v;
 
 	    if (i < w*(h-1)) {
 		/* Horizontal edge. */
@@ -1704,13 +1708,14 @@ static const char *parse_edge_list(const game_params *params,
                                    const char **desc, int *map)
 {
     int w = params->w, h = params->h, wh = w*h, n = params->n;
-    int i, k, pos, state;
+    int i, k, pos;
+    bool state;
     const char *p = *desc;
 
     dsf_init(map+wh, wh);
 
     pos = -1;
-    state = 0;
+    state = false;
 
     /*
      * Parse the game description to get the list of edges, and
@@ -1828,14 +1833,15 @@ static game_state *new_game(midend *me, const game_params *params,
     for (i = 0; i < n; i++)
 	state->pencil[i] = 0;
 
-    state->completed = state->cheated = false;
+    state->completed = false;
+    state->cheated = false;
 
     state->map = snew(struct map);
     state->map->refcount = 1;
     state->map->map = snewn(wh*4, int);
     state->map->graph = snewn(n*n, int);
     state->map->n = n;
-    state->map->immutable = snewn(n, int);
+    state->map->immutable = snewn(n, bool);
     for (i = 0; i < n; i++)
 	state->map->immutable[i] = false;
 
@@ -1882,7 +1888,7 @@ static game_state *new_game(midend *me, const game_params *params,
     {
         random_state *rs = random_new(desc, strlen(desc));
         int *squares = snewn(wh, int);
-        int done_something;
+        bool done_something;
 
         for (i = 0; i < wh; i++)
             squares[i] = i;
@@ -2268,9 +2274,10 @@ struct game_ui {
     int drag_colour;
     int drag_pencil;
     int dragx, dragy;
-    int show_numbers;
+    bool show_numbers;
 
-    int cur_x, cur_y, cur_visible, cur_moved, cur_lastmove;
+    int cur_x, cur_y, cur_lastmove;
+    bool cur_visible, cur_moved;
 };
 
 static game_ui *new_ui(const game_state *state)
@@ -2280,7 +2287,9 @@ static game_ui *new_ui(const game_state *state)
     ui->drag_colour = -2;
     ui->drag_pencil = 0;
     ui->show_numbers = false;
-    ui->cur_x = ui->cur_y = ui->cur_visible = ui->cur_moved = 0;
+    ui->cur_x = ui->cur_y = 0;
+    ui->cur_visible = false;
+    ui->cur_moved = false;
     ui->cur_lastmove = 0;
     return ui;
 }
@@ -2307,8 +2316,9 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
 struct game_drawstate {
     int tilesize;
     unsigned long *drawn, *todraw;
-    int started;
-    int dragx, dragy, drag_visible;
+    bool started;
+    int dragx, dragy;
+    bool drag_visible;
     blitter *bl;
 };
 
@@ -2383,7 +2393,8 @@ static char *interpret_move(const game_state *state, game_ui *ui,
                             int x, int y, int button)
 {
     char *bufp, buf[256];
-    int alt_button, drop_region;
+    bool alt_button;
+    int drop_region;
 
     /*
      * Enable or disable numeric labels on regions.
@@ -2394,15 +2405,16 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     }
 
     if (IS_CURSOR_MOVE(button)) {
-        move_cursor(button, &ui->cur_x, &ui->cur_y, state->p.w, state->p.h, 0);
-        ui->cur_visible = 1;
-        ui->cur_moved = 1;
+        move_cursor(button, &ui->cur_x, &ui->cur_y, state->p.w, state->p.h,
+                    false);
+        ui->cur_visible = true;
+        ui->cur_moved = true;
         ui->cur_lastmove = button;
         return UI_UPDATE;
     }
     if (IS_CURSOR_SELECT(button)) {
         if (!ui->cur_visible) {
-            ui->cur_visible = 1;
+            ui->cur_visible = true;
             return UI_UPDATE;
         }
         if (ui->drag_colour == -2) { /* not currently cursor-dragging, start. */
@@ -2414,10 +2426,10 @@ static char *interpret_move(const game_state *state, game_ui *ui,
                 ui->drag_colour = -1;
                 ui->drag_pencil = 0;
             }
-            ui->cur_moved = 0;
+            ui->cur_moved = false;
             return UI_UPDATE;
         } else { /* currently cursor-dragging; drop the colour in the new region. */
-            alt_button = (button == CURSOR_SELECT2) ? 1 : 0;
+            alt_button = (button == CURSOR_SELECT2);
             /* Double-select removes current colour. */
             if (!ui->cur_moved) ui->drag_colour = -1;
             drop_region = region_from_ui_cursor(state, ui);
@@ -2439,7 +2451,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 	}
         ui->dragx = x;
         ui->dragy = y;
-        ui->cur_visible = 0;
+        ui->cur_visible = false;
         return UI_UPDATE;
     }
 
@@ -2452,7 +2464,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 
     if ((button == LEFT_RELEASE || button == RIGHT_RELEASE) &&
         ui->drag_colour > -2) {
-        alt_button = (button == RIGHT_RELEASE) ? 1 : 0;
+        alt_button = (button == RIGHT_RELEASE);
         drop_region = region_from_coords(state, ds, x, y);
         goto drag_dropped;
     }
@@ -2518,7 +2530,7 @@ static game_state *execute_move(const game_state *state, const char *move)
     int c, k, adv, i;
 
     while (*move) {
-        int pencil = false;
+        bool pencil = false;
 
 	c = *move;
         if (c == 'p') {
@@ -2562,7 +2574,7 @@ static game_state *execute_move(const game_state *state, const char *move)
      * Check for completion.
      */
     if (!ret->completed) {
-	int ok = true;
+	bool ok = true;
 
 	for (i = 0; i < n; i++)
 	    if (ret->colouring[i] < 0) {
@@ -2987,7 +2999,8 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
      * Draw the dragged colour blob if any.
      */
     if ((ui->drag_colour > -2) || ui->cur_visible) {
-        int bg, iscur = 0, cursor_x, cursor_y;
+        int bg, cursor_x, cursor_y;
+        bool iscur = false;
         if (ui->drag_colour >= 0)
             bg = COL_0 + ui->drag_colour;
         else if (ui->drag_colour == -1) {
@@ -2997,7 +3010,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
             int c = (r < 0) ? -1 : state->colouring[r];
             /*bg = COL_GRID;*/
             bg = (c < 0) ? COL_BACKGROUND : COL_0 + c;
-            iscur = 1;
+            iscur = true;
         }
 
         if (ui->cur_visible) {
@@ -3262,8 +3275,9 @@ int main(int argc, char **argv)
     game_state *s;
     char *id = NULL, *desc;
     const char *err;
-    int grade = false;
-    int ret, diff, really_verbose = false;
+    bool grade = false;
+    int ret, diff;
+    bool really_verbose = false;
     struct solver_scratch *sc;
     int i;
 

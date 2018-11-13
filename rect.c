@@ -44,7 +44,7 @@ enum {
 struct game_params {
     int w, h;
     float expandfactor;
-    int unique;
+    bool unique;
 };
 
 #define INDEX(state, x, y)    (((y) * (state)->w) + (x))
@@ -80,7 +80,7 @@ struct game_state {
     int *grid;			       /* contains the numbers */
     unsigned char *vedge;	       /* (w+1) x h */
     unsigned char *hedge;	       /* w x (h+1) */
-    int completed, cheated;
+    bool completed, cheated;
     unsigned char *correct;
 };
 
@@ -493,7 +493,7 @@ static int rect_solver(int w, int h, int nrects, struct numberdata *numbers,
      * Now run the actual deduction loop.
      */
     while (1) {
-        int done_something = false;
+        bool done_something = false;
 
 #ifdef SOLVER_DIAGNOSTICS
         printf("starting deduction loop\n");
@@ -606,7 +606,7 @@ static int rect_solver(int w, int h, int nrects, struct numberdata *numbers,
 
             for (j = 0; j < rectpositions[i].n; j++) {
                 int xx, yy, k;
-                int del = false;
+                bool del = false;
 
                 for (k = 0; k < nrects; k++)
                     workspace[k] = 0;
@@ -1814,7 +1814,8 @@ static unsigned char *get_correct(game_state *state)
 	    if (index(state,ret,x,y) == 0xFF) {
 		int rw, rh;
 		int xx, yy;
-		int num, area, valid;
+		int num, area;
+                bool valid;
 
 		/*
 		 * Find a rectangle starting at this point.
@@ -1908,7 +1909,8 @@ static game_state *new_game(midend *me, const game_params *params,
     state->grid = snewn(area, int);
     state->vedge = snewn(area, unsigned char);
     state->hedge = snewn(area, unsigned char);
-    state->completed = state->cheated = false;
+    state->completed = false;
+    state->cheated = false;
 
     i = 0;
     while (*desc) {
@@ -2161,12 +2163,12 @@ struct game_ui {
      * the pointer _returns_ to its starting point the action is
      * treated as a small drag rather than a click.
      */
-    int dragged;
+    bool dragged;
     /* This flag is set if we're doing an erase operation (i.e.
      * removing edges in the centre of the rectangle without altering
      * the outlines).
      */
-    int erasing;
+    bool erasing;
     /*
      * These are the co-ordinates of the top-left and bottom-right squares
      * in the drag box, respectively, or -1 otherwise.
@@ -2179,7 +2181,8 @@ struct game_ui {
      * These are the coordinates of a cursor, whether it's visible, and
      * whether it was used to start a drag.
      */
-    int cur_x, cur_y, cur_visible, cur_dragging;
+    int cur_x, cur_y;
+    bool cur_visible, cur_dragging;
 };
 
 static void reset_ui(game_ui *ui)
@@ -2200,7 +2203,9 @@ static game_ui *new_ui(const game_state *state)
     game_ui *ui = snew(game_ui);
     reset_ui(ui);
     ui->erasing = false;
-    ui->cur_x = ui->cur_y = ui->cur_visible = ui->cur_dragging = 0;
+    ui->cur_x = ui->cur_y = 0;
+    ui->cur_visible = false;
+    ui->cur_dragging = false;
     return ui;
 }
 
@@ -2305,13 +2310,13 @@ static void coord_round(float x, float y, int *xr, int *yr)
 /*
  * Returns true if it has made any change to the grid.
  */
-static int grid_draw_rect(const game_state *state,
+static bool grid_draw_rect(const game_state *state,
 			  unsigned char *hedge, unsigned char *vedge,
-			  int c, int really, int outline,
+			  int c, bool really, bool outline,
 			  int x1, int y1, int x2, int y2)
 {
     int x, y;
-    int changed = false;
+    bool changed = false;
 
     /*
      * Draw horizontal edges of rectangles.
@@ -2350,9 +2355,9 @@ static int grid_draw_rect(const game_state *state,
     return changed;
 }
 
-static int ui_draw_rect(const game_state *state, const game_ui *ui,
+static bool ui_draw_rect(const game_state *state, const game_ui *ui,
 			unsigned char *hedge, unsigned char *vedge, int c,
-			int really, int outline)
+			bool really, bool outline)
 {
     return grid_draw_rect(state, hedge, vedge, c, really, outline,
 			  ui->x1, ui->y1, ui->x2, ui->y2);
@@ -2364,7 +2369,7 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
 }
 
 struct game_drawstate {
-    int started;
+    bool started;
     int w, h, tilesize;
     unsigned long *visible;
 };
@@ -2374,7 +2379,7 @@ static char *interpret_move(const game_state *from, game_ui *ui,
                             int x, int y, int button)
 {
     int xc, yc;
-    int startdrag = false, enddrag = false, active = false, erasing = false;
+    bool startdrag = false, enddrag = false, active = false, erasing = false;
     char buf[80], *ret;
 
     button &= ~MOD_MASK;
@@ -2398,7 +2403,7 @@ static char *interpret_move(const game_state *from, game_ui *ui,
         enddrag = true;
         erasing = (button == RIGHT_RELEASE);
     } else if (IS_CURSOR_MOVE(button)) {
-        move_cursor(button, &ui->cur_x, &ui->cur_y, from->w, from->h, 0);
+        move_cursor(button, &ui->cur_x, &ui->cur_y, from->w, from->h, false);
         ui->cur_visible = true;
         active = true;
         if (!ui->cur_dragging) return UI_UPDATE;
@@ -2586,7 +2591,8 @@ static game_state *execute_move(const game_state *from, const char *move)
      * if the game has been completed.
      */
     if (!ret->completed) {
-	int x, y, ok;
+	int x, y;
+        bool ok;
 
 	ok = true;
 	for (x = 0; x < ret->w; x++)

@@ -61,7 +61,7 @@ static HINSTANCE hh_dll;
 #endif /* NO_HTMLHELP */
 enum { NONE, HLP, CHM } help_type;
 char *help_path;
-int help_has_contents;
+bool help_has_contents;
 
 #ifndef FILENAME_MAX
 #define	FILENAME_MAX	(260)
@@ -229,15 +229,17 @@ struct frontend {
     HFONT cfgfont;
     HBRUSH oldbr;
     HPEN oldpen;
-    int help_running;
+    bool help_running;
     enum { DRAWING, PRINTING, NOTHING } drawstatus;
     DOCINFO di;
-    int printcount, printw, printh, printsolns, printcurr, printcolour;
+    int printcount, printw, printh;
+    bool printsolns, printcurr, printcolour;
     float printscale;
     int printoffsetx, printoffsety;
     float printpixelscale;
     int fontstart;
-    int linewidth, linedotted;
+    int linewidth;
+    bool linedotted;
     drawing *dr;
     int xmin, ymin;
     float puzz_scale;
@@ -495,7 +497,7 @@ static void win_reset_brush(frontend *fe)
 	DeleteObject(br);
 }
 
-static void win_set_pen(frontend *fe, int colour, int thin)
+static void win_set_pen(frontend *fe, int colour, bool thin)
 {
     HPEN pen;
     assert(fe->drawstatus != NOTHING);
@@ -1361,12 +1363,12 @@ static void get_menu_size(HWND wh, RECT *r)
  * furniture (wx,wy).
  */
 
-static int check_window_resize(frontend *fe, int cx, int cy,
-                               int *px, int *py,
-                               int *wx, int *wy)
+static bool check_window_resize(frontend *fe, int cx, int cy,
+                                int *px, int *py, int *wx, int *wy)
 {
     RECT r;
-    int x, y, sy = get_statusbar_height(fe), changed = 0;
+    int x, y, sy = get_statusbar_height(fe);
+    bool changed = false;
 
     /* disallow making window thinner than menu bar */
     x = max(cx, fe->xmin);
@@ -1388,7 +1390,7 @@ static int check_window_resize(frontend *fe, int cx, int cy,
         AdjustWindowRectEx(&r, WINFLAGS, true, 0);
         *wx = r.right - r.left;
         *wy = r.bottom - r.top;
-        changed = 1;
+        changed = true;
     }
 
     *px = x;
@@ -1576,8 +1578,8 @@ static bool savefile_read(void *wctx, void *buf, int len)
  * permissible.
  */
 static midend *midend_for_new_game(frontend *fe, const game *cgame,
-                                   char *arg, int maybe_game_id,
-                                   int maybe_save_file, char **error)
+                                   char *arg, bool maybe_game_id,
+                                   bool maybe_save_file, char **error)
 {
     midend *me = NULL;
 
@@ -2013,7 +2015,7 @@ static int CALLBACK AboutDlgProc(HWND hwnd, UINT msg,
 	    SetDlgItemTextA(hwnd, IDC_ABOUT_VERSION, ver);
 	}
 #endif
-	return true;
+	return 1;
 
       case WM_COMMAND:
 	if (LOWORD(wParam) == IDOK)
@@ -2270,7 +2272,7 @@ static int CALLBACK ConfigDlgProc(HWND hwnd, UINT msg,
 	    create_config_controls(fe);
 	}
 #endif
-	return true;
+	return 1;
 
       case WM_COMMAND:
 	/*
@@ -2398,7 +2400,7 @@ static void about(frontend *fe)
     hdc = GetDC(fe->hwnd);
     SetMapMode(hdc, MM_TEXT);
 
-    fe->dlg_done = false;
+    fe->dlg_done = 0;
 
     fe->cfgfont = CreateFont(-MulDiv(8, GetDeviceCaps(hdc, LOGPIXELSY), 72),
 			     0, 0, 0, 0,
@@ -2513,7 +2515,7 @@ static void about(frontend *fe)
 #endif
 }
 
-static int get_config(frontend *fe, int which)
+static bool get_config(frontend *fe, int which)
 {
 #ifdef _WIN32_WCE
     fe->cfg_which = which;
@@ -2552,7 +2554,7 @@ static int get_config(frontend *fe, int which)
     hdc = GetDC(fe->hwnd);
     SetMapMode(hdc, MM_TEXT);
 
-    fe->dlg_done = false;
+    fe->dlg_done = 0;
 
     fe->cfgfont = CreateFont(-MulDiv(8, GetDeviceCaps(hdc, LOGPIXELSY), 72),
 			     0, 0, 0, 0,
@@ -2691,7 +2693,7 @@ static int get_config(frontend *fe, int which)
 	    mkctrl(fe, col1l, col2r, y, y+height, "BUTTON",
 		   BS_NOTIFY | BS_AUTOCHECKBOX | WS_TABSTOP,
 		   0, i->name, (j->ctlid = id++));
-	    CheckDlgButton(fe->cfgbox, j->ctlid, (i->u.boolean.bval != 0));
+	    CheckDlgButton(fe->cfgbox, j->ctlid, i->u.boolean.bval);
 	    y += height;
 	    break;
 
@@ -2871,7 +2873,7 @@ static void new_game_size(frontend *fe, float scale)
  * new window size.
  */
 
-static void adjust_game_size(frontend *fe, RECT *proposed, int isedge,
+static void adjust_game_size(frontend *fe, RECT *proposed, bool isedge,
                              int *wx_r, int *wy_r)
 {
     RECT cr, wr;
@@ -2958,7 +2960,7 @@ static void new_game_type(frontend *fe)
     update_copy_menu_greying(fe);
 }
 
-static int is_alt_pressed(void)
+static bool is_alt_pressed(void)
 {
     BYTE keystate[256];
     int r = GetKeyboardState(keystate);
@@ -3432,12 +3434,13 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
       case WM_SIZING:
         {
             RECT *sr = (RECT *)lParam;
-            int wx, wy, isedge = 0;
+            int wx, wy;
+            bool isedge = false;
 
             if (wParam == WMSZ_TOP ||
                 wParam == WMSZ_RIGHT ||
                 wParam == WMSZ_BOTTOM ||
-                wParam == WMSZ_LEFT) isedge = 1;
+                wParam == WMSZ_LEFT) isedge = true;
             adjust_game_size(fe, sr, isedge, &wx, &wy);
 
             /* Given the window size the puzzles constrain
@@ -3632,7 +3635,7 @@ void split_into_argv(char *cmdline, int *argc, char ***argv,
     p = cmdline; q = outputline; outputargc = 0;
 
     while (*p) {
-	int quote;
+	bool quote;
 
 	/* Skip whitespace searching for start of argument. */
 	while (*p && isspace(*p)) p++;
@@ -3642,7 +3645,7 @@ void split_into_argv(char *cmdline, int *argc, char ***argv,
 	outputargv[outputargc] = q;
 	outputargstart[outputargc] = p;
 	outputargc++;
-	quote = 0;
+	quote = false;
 
 	/* Copy data into the argument until it's finished. */
 	while (*p) {
@@ -3676,7 +3679,7 @@ void split_into_argv(char *cmdline, int *argc, char ***argv,
 
 		    if (quotes > 0) {
 			/* Outside a quote segment, a quote starts one. */
-			if (!quote) quotes--, quote = 1;
+			if (!quote) quotes--, quote = true;
 
 			/* Now we produce (n+1)/3 literal quotes... */
 			for (i = 3; i <= quotes+1; i += 3) *q++ = '"';

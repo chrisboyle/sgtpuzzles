@@ -128,7 +128,7 @@ struct game_params {
 
 struct game_immutable_state {
     int refcount;
-    unsigned char *forcefield;
+    bool *forcefield;
 };
 
 struct game_solution {
@@ -145,7 +145,7 @@ struct game_state {
     int lastmoved, lastmoved_pos;      /* for move counting */
     int movecount;
     int completed;
-    int cheated;
+    bool cheated;
     struct game_immutable_state *imm;
     struct game_solution *soln;
     int soln_index;
@@ -287,7 +287,7 @@ static const char *validate_params(const game_params *params, bool full)
 }
 
 static char *board_text_format(int w, int h, unsigned char *data,
-			       unsigned char *forcefield)
+			       bool *forcefield)
 {
     int wh = w*h;
     int *dsf = snew_dsf(wh);
@@ -406,13 +406,14 @@ static struct board *newboard(int w, int h, unsigned char *data)
  * which is a pointer to a dynamically allocated array.
  */
 static int solve_board(int w, int h, unsigned char *board,
-		       unsigned char *forcefield, int tx, int ty,
+		       bool *forcefield, int tx, int ty,
 		       int movelimit, int **moveout)
 {
     int wh = w*h;
     struct board *b, *b2, *b3;
-    int *next, *anchors, *which;
-    int *movereached, *movequeue, mqhead, mqtail;
+    int *next, *which;
+    bool *anchors, *movereached;
+    int *movequeue, mqhead, mqtail;
     tree234 *sorted, *queue;
     int i, j, dir;
     int qlen, lastdist;
@@ -453,9 +454,9 @@ static int solve_board(int w, int h, unsigned char *board,
     qlen = 1;
 
     next = snewn(wh, int);
-    anchors = snewn(wh, int);
+    anchors = snewn(wh, bool);
     which = snewn(wh, int);
-    movereached = snewn(wh, int);
+    movereached = snewn(wh, bool);
     movequeue = snewn(wh, int);
     lastdist = -1;
 
@@ -637,11 +638,12 @@ static int solve_board(int w, int h, unsigned char *board,
 
 static void generate_board(int w, int h, int *rtx, int *rty, int *minmoves,
 			   random_state *rs, unsigned char **rboard,
-			   unsigned char **rforcefield, int movelimit)
+			   bool **rforcefield, int movelimit)
 {
     int wh = w*h;
-    unsigned char *board, *board2, *forcefield;
-    unsigned char *tried_merge;
+    unsigned char *board, *board2;
+    bool *forcefield;
+    bool *tried_merge;
     int *dsf;
     int *list, nlist, pos;
     int tx, ty;
@@ -653,17 +655,17 @@ static void generate_board(int w, int h, int *rtx, int *rty, int *minmoves,
      * border of walls.
      */
     board = snewn(wh, unsigned char);
-    forcefield = snewn(wh, unsigned char);
+    forcefield = snewn(wh, bool);
     board2 = snewn(wh, unsigned char);
     memset(board, ANCHOR, wh);
-    memset(forcefield, false, wh);
+    memset(forcefield, 0, wh * sizeof(bool));
     for (i = 0; i < w; i++)
 	board[i] = board[i+w*(h-1)] = WALL;
     for (i = 0; i < h; i++)
 	board[i*w] = board[i*w+(w-1)] = WALL;
 
-    tried_merge = snewn(wh * wh, unsigned char);
-    memset(tried_merge, 0, wh*wh);
+    tried_merge = snewn(wh * wh, bool);
+    memset(tried_merge, 0, wh*wh * sizeof(bool));
     dsf = snew_dsf(wh);
 
     /*
@@ -680,7 +682,8 @@ static void generate_board(int w, int h, int *rtx, int *rty, int *minmoves,
      */
     tx = w-2;
     ty = h-3;
-    forcefield[ty*w+tx+1] = forcefield[(ty+1)*w+tx+1] = true;
+    forcefield[ty*w+tx+1] = true;
+    forcefield[(ty+1)*w+tx+1] = true;
     board[ty*w+tx+1] = board[(ty+1)*w+tx+1] = EMPTY;
 
     /*
@@ -799,7 +802,8 @@ static void generate_board(int w, int h, int *rtx, int *rty, int *minmoves,
 	     * Didn't work. Revert the merge.
 	     */
 	    memcpy(board, board2, wh);
-	    tried_merge[c1 * wh + c2] = tried_merge[c2 * wh + c1] = true;
+	    tried_merge[c1 * wh + c2] = true;
+            tried_merge[c2 * wh + c1] = true;
 	} else {
 	    int c;
 
@@ -808,10 +812,10 @@ static void generate_board(int w, int h, int *rtx, int *rty, int *minmoves,
 	    dsf_merge(dsf, c1, c2);
 	    c = dsf_canonify(dsf, c1);
 	    for (i = 0; i < wh; i++)
-		tried_merge[c*wh+i] = (tried_merge[c1*wh+i] |
+		tried_merge[c*wh+i] = (tried_merge[c1*wh+i] ||
 				       tried_merge[c2*wh+i]);
 	    for (i = 0; i < wh; i++)
-		tried_merge[i*wh+c] = (tried_merge[i*wh+c1] |
+		tried_merge[i*wh+c] = (tried_merge[i*wh+c1] ||
 				       tried_merge[i*wh+c2]);
 	}
     }
@@ -837,7 +841,8 @@ static char *new_game_desc(const game_params *params, random_state *rs,
 {
     int w = params->w, h = params->h, wh = w*h;
     int tx, ty, minmoves;
-    unsigned char *board, *forcefield;
+    unsigned char *board;
+    bool *forcefield;
     char *ret, *p;
     int i;
 
@@ -863,7 +868,8 @@ static char *new_game_desc(const game_params *params, random_state *rs,
 	    i++;
 	} else {
 	    int count = 1;
-	    int b = board[i], f = forcefield[i];
+	    int b = board[i];
+            bool f = forcefield[i];
 	    int c = (b == ANCHOR ? 'a' :
 		     b == MAINANCHOR ? 'm' :
 		     b == EMPTY ? 'e' :
@@ -889,12 +895,13 @@ static char *new_game_desc(const game_params *params, random_state *rs,
 static const char *validate_desc(const game_params *params, const char *desc)
 {
     int w = params->w, h = params->h, wh = w*h;
-    int *active, *link;
+    bool *active;
+    int *link;
     int mains = 0;
     int i, tx, ty, minmoves;
     char *ret;
 
-    active = snewn(wh, int);
+    active = snewn(wh, bool);
     link = snewn(wh, int);
     i = 0;
 
@@ -1011,12 +1018,12 @@ static game_state *new_game(midend *me, const game_params *params,
     state->movecount = 0;
     state->imm = snew(struct game_immutable_state);
     state->imm->refcount = 1;
-    state->imm->forcefield = snewn(wh, unsigned char);
+    state->imm->forcefield = snewn(wh, bool);
 
     i = 0;
 
     while (*desc && *desc != ',') {
-	int f = false;
+	bool f = false;
 
 	assert(i < wh);
 
@@ -1176,11 +1183,11 @@ static char *game_text_format(const game_state *state)
 }
 
 struct game_ui {
-    int dragging;
+    bool dragging;
     int drag_anchor;
     int drag_offset_x, drag_offset_y;
     int drag_currpos;
-    unsigned char *reachable;
+    bool *reachable;
     int *bfs_queue;		       /* used as scratch in interpret_move */
 };
 
@@ -1192,8 +1199,8 @@ static game_ui *new_ui(const game_state *state)
     ui->dragging = false;
     ui->drag_anchor = ui->drag_currpos = -1;
     ui->drag_offset_x = ui->drag_offset_y = -1;
-    ui->reachable = snewn(wh, unsigned char);
-    memset(ui->reachable, 0, wh);
+    ui->reachable = snewn(wh, bool);
+    memset(ui->reachable, 0, wh * sizeof(bool));
     ui->bfs_queue = snewn(wh, int);
 
     return ui;
@@ -1235,7 +1242,7 @@ struct game_drawstate {
     int tilesize;
     int w, h;
     unsigned long *grid;	       /* what's currently displayed */
-    int started;
+    bool started;
 };
 
 static char *interpret_move(const game_state *state, game_ui *ui,
@@ -1274,7 +1281,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 	 * the anchor, to find all the places to which this block
 	 * can be dragged.
 	 */
-	memset(ui->reachable, false, wh);
+	memset(ui->reachable, 0, wh * sizeof(bool));
 	qhead = qtail = 0;
 	ui->reachable[i] = true;
 	ui->bfs_queue[qtail++] = i;
@@ -1393,7 +1400,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 	ui->dragging = false;
 	ui->drag_anchor = ui->drag_currpos = -1;
 	ui->drag_offset_x = ui->drag_offset_y = -1;
-	memset(ui->reachable, 0, wh);
+	memset(ui->reachable, 0, wh * sizeof(bool));
 
 	return str;
     } else if (button == ' ' && state->soln) {
@@ -1415,8 +1422,8 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     return NULL;
 }
 
-static int move_piece(int w, int h, const unsigned char *src,
-		      unsigned char *dst, unsigned char *ff, int from, int to)
+static bool move_piece(int w, int h, const unsigned char *src,
+                       unsigned char *dst, bool *ff, int from, int to)
 {
     int wh = w*h;
     int i, j;
@@ -2141,9 +2148,9 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
     board = snewn(wh, unsigned char);
     memcpy(board, state->board, wh);
     if (ui->dragging) {
-	int mpret = move_piece(w, h, state->board, board,
-			       state->imm->forcefield,
-			       ui->drag_anchor, ui->drag_currpos);
+	bool mpret = move_piece(w, h, state->board, board,
+                                state->imm->forcefield,
+                                ui->drag_anchor, ui->drag_currpos);
 	assert(mpret);
     }
 
@@ -2359,8 +2366,9 @@ int main(int argc, char **argv)
 {
     game_params *p;
     game_state *s;
-    char *id = NULL, *desc, *err;
-    int count = false;
+    char *id = NULL, *desc;
+    const char *err;
+    bool count = false;
     int ret;
     int *moves;
 
@@ -2413,7 +2421,7 @@ int main(int argc, char **argv)
 	    return 0;
 	}
 	while (1) {
-	    int moveret;
+	    bool moveret;
 	    char *text = board_text_format(s->w, s->h, s->board,
 					   s->imm->forcefield);
 	    game_state *s2;

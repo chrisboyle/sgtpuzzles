@@ -98,7 +98,7 @@ enum {
 
 struct game_params {
     int n;
-    int unique;
+    bool unique;
 };
 
 struct game_numbers {
@@ -117,7 +117,7 @@ struct game_state {
     struct game_numbers *numbers;
     int *grid;
     unsigned short *edges;             /* h x w */
-    int completed, cheated;
+    bool completed, cheated;
 };
 
 static game_params *default_params(void)
@@ -352,7 +352,7 @@ static int solver(int w, int h, int n, int *grid, int *output)
 #endif
 
     while (1) {
-        int done_something = false;
+        bool done_something = false;
 
         /*
          * For each domino, look at its possible placements, and
@@ -861,7 +861,8 @@ static game_state *new_game(midend *me, const game_params *params,
         state->numbers->numbers[i] = j;
     }
 
-    state->completed = state->cheated = false;
+    state->completed = false;
+    state->cheated = false;
 
     return state;
 }
@@ -1040,14 +1041,15 @@ static char *game_text_format(const game_state *state)
 }
 
 struct game_ui {
-    int cur_x, cur_y, cur_visible, highlight_1, highlight_2;
+    int cur_x, cur_y, highlight_1, highlight_2;
+    bool cur_visible;
 };
 
 static game_ui *new_ui(const game_state *state)
 {
     game_ui *ui = snew(game_ui);
     ui->cur_x = ui->cur_y = 0;
-    ui->cur_visible = 0;
+    ui->cur_visible = false;
     ui->highlight_1 = ui->highlight_2 = -1;
     return ui;
 }
@@ -1070,7 +1072,7 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
                                const game_state *newstate)
 {
     if (!oldstate->completed && newstate->completed)
-        ui->cur_visible = 0;
+        ui->cur_visible = false;
 }
 
 #define PREFERRED_TILESIZE 32
@@ -1085,7 +1087,7 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
 #define FROMCOORD(x) ( ((x) - BORDER + TILESIZE) / TILESIZE - 1 )
 
 struct game_drawstate {
-    int started;
+    bool started;
     int w, h, tilesize;
     unsigned long *visible;
 };
@@ -1134,13 +1136,13 @@ static char *interpret_move(const game_state *state, game_ui *ui,
             (state->grid[d1] != d1 || state->grid[d2] != d2))
             return NULL;
 
-        ui->cur_visible = 0;
+        ui->cur_visible = false;
         sprintf(buf, "%c%d,%d", (int)(button == RIGHT_BUTTON ? 'E' : 'D'), d1, d2);
         return dupstr(buf);
     } else if (IS_CURSOR_MOVE(button)) {
-	ui->cur_visible = 1;
+	ui->cur_visible = true;
 
-        move_cursor(button, &ui->cur_x, &ui->cur_y, 2*w-1, 2*h-1, 0);
+        move_cursor(button, &ui->cur_x, &ui->cur_y, 2*w-1, 2*h-1, false);
 
 	return UI_UPDATE;
     } else if (IS_CURSOR_SELECT(button)) {
@@ -1305,7 +1307,7 @@ static game_state *execute_move(const game_state *state, const char *move)
      */
     if (!ret->completed) {
         int i, ok = 0;
-        unsigned char *used = snewn(TRI(n+1), unsigned char);
+        bool *used = snewn(TRI(n+1), bool);
 
         memset(used, 0, TRI(n+1));
         for (i = 0; i < wh; i++)
@@ -1319,7 +1321,7 @@ static game_state *execute_move(const game_state *state, const char *move)
                 assert(di >= 0 && di < TRI(n+1));
 
                 if (!used[di]) {
-                    used[di] = 1;
+                    used[di] = true;
                     ok++;
                 }
             }

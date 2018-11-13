@@ -77,8 +77,8 @@ struct game_state {
     int gems;
     char *grid;
     int distance_moved;
-    int dead;
-    int cheated;
+    bool dead;
+    bool cheated;
     int solnpos;
     soln *soln;
 };
@@ -220,7 +220,7 @@ static const char *validate_params(const game_params *params, bool full)
  */
 
 struct solver_scratch {
-    unsigned char *reachable_from, *reachable_to;
+    bool *reachable_from, *reachable_to;
     int *positions;
 };
 
@@ -228,8 +228,8 @@ static struct solver_scratch *new_scratch(int w, int h)
 {
     struct solver_scratch *sc = snew(struct solver_scratch);
 
-    sc->reachable_from = snewn(w * h * DIRECTIONS, unsigned char);
-    sc->reachable_to = snewn(w * h * DIRECTIONS, unsigned char);
+    sc->reachable_from = snewn(w * h * DIRECTIONS, bool);
+    sc->reachable_to = snewn(w * h * DIRECTIONS, bool);
     sc->positions = snewn(w * h * DIRECTIONS, int);
 
     return sc;
@@ -243,8 +243,8 @@ static void free_scratch(struct solver_scratch *sc)
     sfree(sc);
 }
 
-static int can_go(int w, int h, char *grid,
-		  int x1, int y1, int dir1, int x2, int y2, int dir2)
+static bool can_go(int w, int h, char *grid,
+                   int x1, int y1, int dir1, int x2, int y2, int dir2)
 {
     /*
      * Returns true if we can transition directly from (x1,y1)
@@ -317,8 +317,8 @@ static int find_gem_candidates(int w, int h, char *grid,
      * flags set.
      */
 
-    memset(sc->reachable_from, 0, wh * DIRECTIONS);
-    memset(sc->reachable_to, 0, wh * DIRECTIONS);
+    memset(sc->reachable_from, 0, wh * DIRECTIONS * sizeof(bool));
+    memset(sc->reachable_to, 0, wh * DIRECTIONS * sizeof(bool));
 
     /*
      * Find the starting square.
@@ -334,8 +334,7 @@ static int find_gem_candidates(int w, int h, char *grid,
     assert(sy < h);
 
     for (pass = 0; pass < 2; pass++) {
-	unsigned char *reachable = (pass == 0 ? sc->reachable_from :
-				    sc->reachable_to);
+	bool *reachable = (pass == 0 ? sc->reachable_from : sc->reachable_to);
 	int sign = (pass == 0 ? +1 : -1);
 	int dir;
 
@@ -392,7 +391,7 @@ static int find_gem_candidates(int w, int h, char *grid,
 		if (x2 >= 0 && x2 < w &&
 		    y2 >= 0 && y2 < h &&
 		    !reachable[i2]) {
-		    int ok;
+		    bool ok;
 #ifdef SOLVER_DIAGNOSTICS
 		    printf("  trying point %d,%d,%d", x2, y2, d2);
 #endif
@@ -1491,8 +1490,8 @@ struct game_ui {
     float anim_length;
     int flashtype;
     int deaths;
-    int just_made_move;
-    int just_died;
+    bool just_made_move;
+    bool just_died;
 };
 
 static game_ui *new_ui(const game_state *state)
@@ -1549,10 +1548,11 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
 struct game_drawstate {
     game_params p;
     int tilesize;
-    int started;
+    bool started;
     unsigned short *grid;
     blitter *player_background;
-    int player_bg_saved, pbgx, pbgy;
+    bool player_bg_saved;
+    int pbgx, pbgy;
 };
 
 #define PREFERRED_TILESIZE 32
@@ -1844,7 +1844,7 @@ static void game_free_drawstate(drawing *dr, game_drawstate *ds)
 }
 
 static void draw_player(drawing *dr, game_drawstate *ds, int x, int y,
-			int dead, int hintdir)
+			bool dead, int hintdir)
 {
     if (dead) {
 	int coords[DIRECTIONS*4];

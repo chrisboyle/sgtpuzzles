@@ -13,9 +13,9 @@
 
 struct psdata {
     FILE *fp;
-    int colour;
+    bool colour;
     int ytop;
-    int clipped;
+    bool clipped;
     float hatchthick, hatchspace;
     int gamewidth, gameheight;
     drawing *drawing;

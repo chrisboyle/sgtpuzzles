@@ -37,17 +37,17 @@ enum {
 
 struct game_params {
     int w, h, n;
-    int rowsonly;
-    int orientable;
+    bool rowsonly;
+    bool orientable;
     int movetarget;
 };
 
 struct game_state {
     int w, h, n;
-    int orientable;
+    bool orientable;
     int *grid;
     int completed;
-    int used_solve;		       /* used to suppress completion flash */
+    bool used_solve;		       /* used to suppress completion flash */
     int movecount, movetarget;
     int lastx, lasty, lastr;	       /* coordinates of last rotation */
 };
@@ -106,7 +106,8 @@ static void decode_params(game_params *ret, char const *string)
 {
     ret->w = ret->h = atoi(string);
     ret->n = 2;
-    ret->rowsonly = ret->orientable = false;
+    ret->rowsonly = false;
+    ret->orientable = false;
     ret->movetarget = 0;
     while (*string && isdigit((unsigned char)*string)) string++;
     if (*string == 'x') {
@@ -220,7 +221,7 @@ static const char *validate_params(const game_params *params, bool full)
  * the centre is good for a user interface, but too inconvenient to
  * use internally.)
  */
-static void do_rotate(int *grid, int w, int h, int n, int orientable,
+static void do_rotate(int *grid, int w, int h, int n, bool orientable,
 		      int x, int y, int dir)
 {
     int i, j;
@@ -283,9 +284,9 @@ static void do_rotate(int *grid, int w, int h, int n, int orientable,
     }
 }
 
-static int grid_complete(int *grid, int wh, int orientable)
+static bool grid_complete(int *grid, int wh, bool orientable)
 {
-    int ok = true;
+    bool ok = true;
     int i;
     for (i = 1; i < wh; i++)
 	if (grid[i] < grid[i-1])
@@ -546,7 +547,8 @@ static bool game_can_format_as_text_now(const game_params *params)
 static char *game_text_format(const game_state *state)
 {
     char *ret, *p, buf[80];
-    int i, x, y, col, o, maxlen;
+    int i, x, y, col, maxlen;
+    bool o = state->orientable;
 
     /*
      * First work out how many characters we need to display each
@@ -558,7 +560,6 @@ static char *game_text_format(const game_state *state)
 	x = sprintf(buf, "%d", state->grid[i] / 4);
 	if (col < x) col = x;
     }
-    o = (state->orientable ? 1 : 0);
 
     /*
      * Now we know the exact total size of the grid we're going to
@@ -592,7 +593,7 @@ static char *game_text_format(const game_state *state)
 
 struct game_ui {
     int cur_x, cur_y;
-    int cur_visible;
+    bool cur_visible;
 };
 
 static game_ui *new_ui(const game_state *state)
@@ -626,7 +627,7 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
 }
 
 struct game_drawstate {
-    int started;
+    bool started;
     int w, h, bgcolour;
     int *grid;
     int tilesize;
@@ -652,7 +653,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
             ui->cur_y--;
         if (button == CURSOR_DOWN && (ui->cur_y+n) < (h))
             ui->cur_y++;
-        ui->cur_visible = 1;
+        ui->cur_visible = true;
         return UI_UPDATE;
     }
 
@@ -669,14 +670,14 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 	dir = (button == LEFT_BUTTON ? 1 : -1);
 	if (x < 0 || x > w-n || y < 0 || y > h-n)
 	    return NULL;
-        ui->cur_visible = 0;
+        ui->cur_visible = false;
     } else if (IS_CURSOR_SELECT(button)) {
         if (ui->cur_visible) {
             x = ui->cur_x;
             y = ui->cur_y;
             dir = (button == CURSOR_SELECT2) ? -1 : +1;
         } else {
-            ui->cur_visible = 1;
+            ui->cur_visible = true;
             return UI_UPDATE;
         }
     } else if (button == 'a' || button == 'A' || button==MOD_NUM_KEYPAD+'7') {
@@ -1091,12 +1092,13 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
     int i, bgcolour;
     struct rotation srot, *rot;
     int lastx = -1, lasty = -1, lastr = -1;
-    int cx, cy, cmoved = 0, n = state->n;
+    int cx, cy, n = state->n;
+    bool cmoved = false;
 
     cx = ui->cur_visible ? ui->cur_x : -state->n;
     cy = ui->cur_visible ? ui->cur_y : -state->n;
     if (cx != ds->cur_x || cy != ds->cur_y)
-        cmoved = 1;
+        cmoved = true;
 
     if (flashtime > 0) {
         int frame = (int)(flashtime / FLASH_FRAME);
@@ -1181,7 +1183,8 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
      * Now draw each tile.
      */
     for (i = 0; i < state->w * state->h; i++) {
-	int t, cc = 0;
+	int t;
+        bool cc = false;
 	int tx = i % state->w, ty = i / state->w;
 
 	/*
@@ -1201,10 +1204,10 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
         if (cmoved) {
             /* cursor has moved (or changed visibility)... */
             if (tx == cx || tx == cx+n-1 || ty == cy || ty == cy+n-1)
-                cc = 1; /* ...we're on new cursor, redraw */
+                cc = true; /* ...we're on new cursor, redraw */
             if (tx == ds->cur_x || tx == ds->cur_x+n-1 ||
                 ty == ds->cur_y || ty == ds->cur_y+n-1)
-                cc = 1; /* ...we were on old cursor, redraw */
+                cc = true; /* ...we were on old cursor, redraw */
         }
 
 	if (ds->bgcolour != bgcolour ||   /* always redraw when flashing */

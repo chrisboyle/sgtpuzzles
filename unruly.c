@@ -52,7 +52,7 @@
 #include "puzzles.h"
 
 #ifdef STANDALONE_SOLVER
-int solver_verbose = false;
+bool solver_verbose = false;
 #endif
 
 enum {
@@ -77,7 +77,7 @@ enum {
 
 struct game_params {
     int w2, h2;        /* full grid width and height respectively */
-    int unique;        /* should row and column patterns be unique? */
+    bool unique;       /* should row and column patterns be unique? */
     int diff;
 };
 #define DIFFLIST(A)                             \
@@ -135,11 +135,11 @@ enum {
 
 struct game_state {
     int w2, h2;
-    int unique;
+    bool unique;
     char *grid;
-    unsigned char *immutable;
+    bool *immutable;
 
-    int completed, cheated;
+    bool completed, cheated;
 };
 
 static game_params *default_params(void)
@@ -344,7 +344,7 @@ static const char *validate_desc(const game_params *params, const char *desc)
     return NULL;
 }
 
-static game_state *blank_state(int w2, int h2, int unique)
+static game_state *blank_state(int w2, int h2, bool unique)
 {
     game_state *state = snew(game_state);
     int s = w2 * h2;
@@ -353,10 +353,10 @@ static game_state *blank_state(int w2, int h2, int unique)
     state->h2 = h2;
     state->unique = unique;
     state->grid = snewn(s, char);
-    state->immutable = snewn(s, unsigned char);
+    state->immutable = snewn(s, bool);
 
     memset(state->grid, EMPTY, s);
-    memset(state->immutable, false, s);
+    memset(state->immutable, 0, s*sizeof(bool));
 
     state->completed = state->cheated = false;
 
@@ -409,7 +409,7 @@ static game_state *dup_game(const game_state *state)
     game_state *ret = blank_state(w2, h2, state->unique);
 
     memcpy(ret->grid, state->grid, s);
-    memcpy(ret->immutable, state->immutable, s);
+    memcpy(ret->immutable, state->immutable, s*sizeof(bool));
 
     ret->completed = state->completed;
     ret->cheated = state->cheated;
@@ -517,7 +517,7 @@ static void unruly_free_scratch(struct unruly_scratch *scratch)
 }
 
 static int unruly_solver_check_threes(game_state *state, int *rowcount,
-                                      int *colcount, int horizontal,
+                                      int *colcount, bool horizontal,
                                       char check, char block)
 {
     int w2 = state->w2, h2 = state->h2;
@@ -610,7 +610,7 @@ static int unruly_solver_check_all_threes(game_state *state,
 }
 
 static int unruly_solver_check_uniques(game_state *state, int *rowcount,
-                                       int horizontal, char check, char block,
+                                       bool horizontal, char check, char block,
                                        struct unruly_scratch *scratch)
 {
     int w2 = state->w2, h2 = state->h2;
@@ -691,7 +691,7 @@ static int unruly_solver_check_all_uniques(game_state *state,
     return ret;
 }
 
-static int unruly_solver_fill_row(game_state *state, int i, int horizontal,
+static int unruly_solver_fill_row(game_state *state, int i, bool horizontal,
                                   int *rowcount, int *colcount, char fill)
 {
     int ret = 0;
@@ -733,7 +733,7 @@ static int unruly_solver_fill_row(game_state *state, int i, int horizontal,
 }
 
 static int unruly_solver_check_complete_nums(game_state *state,
-                                             int *complete, int horizontal,
+                                             int *complete, bool horizontal,
                                              int *rowcount, int *colcount,
                                              char fill)
 {
@@ -788,7 +788,7 @@ static int unruly_solver_check_all_complete_nums(game_state *state,
 }
 
 static int unruly_solver_check_near_complete(game_state *state,
-                                             int *complete, int horizontal,
+                                             int *complete, bool horizontal,
                                              int *rowcount, int *colcount,
                                              char fill)
 {
@@ -947,7 +947,7 @@ static int unruly_solver_check_all_near_complete(game_state *state,
     return ret;
 }
 
-static int unruly_validate_rows(const game_state *state, int horizontal,
+static int unruly_validate_rows(const game_state *state, bool horizontal,
                                 char check, int *errors)
 {
     int w2 = state->w2, h2 = state->h2;
@@ -987,7 +987,7 @@ static int unruly_validate_rows(const game_state *state, int horizontal,
     return ret;
 }
 
-static int unruly_validate_unique(const game_state *state, int horizontal,
+static int unruly_validate_unique(const game_state *state, bool horizontal,
                                   int *errors)
 {
     int w2 = state->w2, h2 = state->h2;
@@ -1011,7 +1011,7 @@ static int unruly_validate_unique(const game_state *state, int horizontal,
         if (nfull != nc)
             continue;
         for (r2 = r+1; r2 < nr; r2++) {
-            int match = true;
+            bool match = true;
             for (c = 0; c < nc; c++)
                 if (state->grid[r*rmult + c*cmult] !=
                     state->grid[r2*rmult + c*cmult])
@@ -1051,19 +1051,19 @@ static int unruly_validate_all_rows(const game_state *state, int *errors)
 }
 
 static int unruly_validate_counts(const game_state *state,
-                                  struct unruly_scratch *scratch, int *errors)
+                                  struct unruly_scratch *scratch, bool *errors)
 {
     int w2 = state->w2, h2 = state->h2;
     int w = w2/2, h = h2/2;
-    char below = false;
-    char above = false;
+    bool below = false;
+    bool above = false;
     int i;
 
     /* See if all rows/columns are satisfied. If one is exceeded,
      * mark it as an error (if required)
      */
 
-    char hasscratch = true;
+    bool hasscratch = true;
     if (!scratch) {
         scratch = unruly_new_scratch(state);
         hasscratch = false;
@@ -1215,8 +1215,8 @@ static char *solve_game(const game_state *state, const game_state *currstate,
  * Generator *
  * ********* */
 
-static int unruly_fill_game(game_state *state, struct unruly_scratch *scratch,
-                            random_state *rs)
+static bool unruly_fill_game(game_state *state, struct unruly_scratch *scratch,
+                             random_state *rs)
 {
 
     int w2 = state->w2, h2 = state->h2;
@@ -1273,7 +1273,7 @@ static char *new_game_desc(const game_params *params, random_state *rs,
 {
 #ifdef STANDALONE_SOLVER
     char *debug;
-    int temp_verbose = false;
+    bool temp_verbose = false;
 #endif
 
     int w2 = params->w2, h2 = params->h2;
@@ -1361,7 +1361,7 @@ static char *new_game_desc(const game_params *params, random_state *rs,
          * See if the game has accidentally come out too easy.
          */
         if (params->diff > 0) {
-            int ok;
+            bool ok;
             game_state *solver;
 
             solver = dup_game(state);
@@ -1369,7 +1369,7 @@ static char *new_game_desc(const game_params *params, random_state *rs,
 
             unruly_solve_game(solver, scratch, params->diff - 1);
 
-            ok = unruly_validate_counts(solver, scratch, NULL);
+            ok = unruly_validate_counts(solver, scratch, NULL) > 0;
 
             free_game(solver);
             unruly_free_scratch(scratch);
@@ -1420,7 +1420,7 @@ static char *new_game_desc(const game_params *params, random_state *rs,
 
 struct game_ui {
     int cx, cy;
-    char cursor;
+    bool cursor;
 };
 
 static game_ui *new_ui(const game_state *state)
@@ -1455,10 +1455,10 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
 struct game_drawstate {
     int tilesize;
     int w2, h2;
-    int started;
+    bool started;
 
     int *gridfs;
-    int *rowfs;
+    bool *rowfs;
 
     int *grid;
 };
@@ -1477,7 +1477,7 @@ static game_drawstate *game_new_drawstate(drawing *dr, const game_state *state)
     ds->started = false;
 
     ds->gridfs = snewn(s, int);
-    ds->rowfs = snewn(2 * (w2 + h2), int);
+    ds->rowfs = snewn(2 * (w2 + h2), bool);
 
     ds->grid = snewn(s, int);
     for (i = 0; i < s; i++)
@@ -1525,7 +1525,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 
     /* Keyboard move */
     if (IS_CURSOR_MOVE(button)) {
-        move_cursor(button, &ui->cx, &ui->cy, w2, h2, 0);
+        move_cursor(button, &ui->cx, &ui->cy, w2, h2, false);
         ui->cursor = true;
         return UI_UPDATE;
     }
@@ -1797,7 +1797,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
         ds->gridfs[i] = 0;
     unruly_validate_all_rows(state, ds->gridfs);
     for (i = 0; i < 2 * (h2 + w2); i++)
-        ds->rowfs[i] = 0;
+        ds->rowfs[i] = false;
     unruly_validate_counts(state, NULL, ds->rowfs);
 
     for (y = 0; y < h2; y++) {

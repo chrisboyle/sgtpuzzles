@@ -67,7 +67,7 @@ extern int js_get_selected_preset(void);
 extern void js_select_preset(int n);
 extern void js_get_date_64(unsigned *p);
 extern void js_update_permalinks(const char *desc, const char *seed);
-extern void js_enable_undo_redo(int undo, int redo);
+extern void js_enable_undo_redo(bool undo, bool redo);
 extern void js_activate_timer();
 extern void js_deactivate_timer();
 extern void js_canvas_start_draw(void);
@@ -101,7 +101,7 @@ extern void js_dialog_init(const char *title);
 extern void js_dialog_string(int i, const char *title, const char *initvalue);
 extern void js_dialog_choices(int i, const char *title, const char *choicelist,
                               int initvalue);
-extern void js_dialog_boolean(int i, const char *title, int initvalue);
+extern void js_dialog_boolean(int i, const char *title, bool initvalue);
 extern void js_dialog_launch(void);
 extern void js_dialog_cleanup(void);
 extern void js_focus_canvas(void);
@@ -171,7 +171,7 @@ midend *me;
 /* ----------------------------------------------------------------------
  * Timing functions.
  */
-int timer_active = false;
+bool timer_active = false;
 void deactivate_timer(frontend *fe)
 {
     js_deactivate_timer();
@@ -277,7 +277,7 @@ void mousemove(int x, int y, int buttons)
  * Keyboard handler called from JS.
  */
 void key(int keycode, int charcode, const char *key, const char *chr,
-         int shift, int ctrl)
+         bool shift, bool ctrl)
 {
     int keyevent = -1;
 
@@ -554,7 +554,7 @@ const struct drawing_api js_drawing = {
  */
 static game_params **presets;
 static int npresets;
-int have_presets_dropdown;
+bool have_presets_dropdown;
 
 void populate_js_preset_menu(int menuid, struct preset_menu *menu)
 {
@@ -651,7 +651,7 @@ void dlg_return_ival(int index, int val)
  * or false respectively, in those cases. We terminate the dialog box,
  * unless the user selected an invalid combination of parameters.
  */
-static void cfg_end(int use_results)
+static void cfg_end(bool use_results)
 {
     if (use_results) {
         /*

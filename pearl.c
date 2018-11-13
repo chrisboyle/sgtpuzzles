@@ -113,7 +113,7 @@ static char const pearl_diffchars[] = DIFFLIST(ENCODE);
 struct game_params {
     int w, h;
     int difficulty;
-    int nosolve;        /* XXX remove me! */
+    bool nosolve;        /* XXX remove me! */
 };
 
 struct shared_state {
@@ -129,7 +129,7 @@ struct game_state {
     char *lines;        /* size w*h: lines placed */
     char *errors;       /* size w*h: errors detected */
     char *marks;        /* size w*h: 'no line here' marks placed. */
-    int completed, used_solve;
+    bool completed, used_solve;
 };
 
 #define DEFAULT_PRESET 3
@@ -283,7 +283,7 @@ static const char *validate_params(const game_params *params, bool full)
  */
 
 int pearl_solve(int w, int h, char *clues, char *result,
-                int difficulty, int partial)
+                int difficulty, bool partial)
 {
     int W = 2*w+1, H = 2*h+1;
     short *workspace;
@@ -347,7 +347,7 @@ int pearl_solve(int w, int h, char *clues, char *result,
      * Now repeatedly try to find something we can do.
      */
     while (1) {
-	int done_something = false;
+	bool done_something = false;
 
 #ifdef SOLVER_DIAGNOSTICS
 	for (y = 0; y < H; y++) {
@@ -900,7 +900,7 @@ struct pearl_loopgen_bias_ctx {
     struct pearl_loopgen_bias_ctx_boundary {
         int colour;                    /* FACE_WHITE or FACE_BLACK */
 
-        char *edges;                   /* is each edge part of the loop? */
+        bool *edges;                   /* is each edge part of the loop? */
         tdq *edges_todo;
 
         char *vertextypes;             /* bits 0-3 == outgoing edge bitmap;
@@ -962,8 +962,8 @@ int pearl_loopgen_bias(void *vctx, char *board, int face)
             grid_edge *e = &g->edges[j];
             int fc1 = e->face1 ? board[e->face1 - g->faces] : FACE_BLACK;
             int fc2 = e->face2 ? board[e->face2 - g->faces] : FACE_BLACK;
-            int oldedge = b->edges[j];
-            int newedge = (fc1==c) ^ (fc2==c);
+            bool oldedge = b->edges[j];
+            bool newedge = (fc1==c) ^ (fc2==c);
             if (oldedge != newedge) {
                 b->edges[j] = newedge;
                 tdq_add(b->vertextypes_todo, e->dot1 - g->dots);
@@ -1070,8 +1070,8 @@ void pearl_loopgen(int w, int h, char *lines, random_state *rs)
     biasctx.score = 0;
     memset(biasctx.faces, FACE_GREY, g->num_faces);
     for (i = 0; i < 2; i++) {
-        biasctx.boundaries[i].edges = snewn(g->num_edges, char);
-        memset(biasctx.boundaries[i].edges, 0, g->num_edges);
+        biasctx.boundaries[i].edges = snewn(g->num_edges, bool);
+        memset(biasctx.boundaries[i].edges, 0, g->num_edges * sizeof(bool));
         biasctx.boundaries[i].edges_todo = tdq_new(g->num_edges);
         tdq_fill(biasctx.boundaries[i].edges_todo);
         biasctx.boundaries[i].vertextypes = snewn(g->num_dots, char);
@@ -1416,7 +1416,8 @@ static game_state *new_game(midend *me, const game_params *params,
     game_state *state = snew(game_state);
     int i, j, sz = params->w*params->h;
 
-    state->completed = state->used_solve = false;
+    state->completed = false;
+    state->used_solve = false;
     state->shared = snew(struct shared_state);
 
     state->shared->w = params->w;
@@ -1508,10 +1509,10 @@ static void dsf_update_completion(game_state *state, int ax, int ay, char dir,
     dsf_merge(dsf, ac, bc);
 }
 
-static void check_completion(game_state *state, int mark)
+static void check_completion(game_state *state, bool mark)
 {
     int w = state->shared->w, h = state->shared->h, x, y, i, d;
-    int had_error = false;
+    bool had_error = false;
     int *dsf, *component_state;
     int nsilly, nloop, npath, largest_comp, largest_size, total_pathsize;
     enum { COMP_NONE, COMP_LOOP, COMP_PATH, COMP_SILLY, COMP_EMPTY };
@@ -1808,7 +1809,7 @@ struct game_ui {
     int clickx, clicky;    /* pixel position of initial click */
 
     int curx, cury;        /* grid position of keyboard cursor */
-    int cursor_active;     /* true iff cursor is shown */
+    bool cursor_active;    /* true iff cursor is shown */
 };
 
 static game_ui *new_ui(const game_state *state)
@@ -1882,7 +1883,7 @@ static int get_gui_style(void)
 
 struct game_drawstate {
     int halfsz;
-    int started;
+    bool started;
 
     int w, h, sz;
     unsigned int *lflags;       /* size w*h */
@@ -1963,7 +1964,7 @@ static void update_ui_drag(const game_state *state, game_ui *ui,
  *
  * Call it in a loop, like this:
  *
- *     int clearing = true;
+ *     bool clearing = true;
  *     for (i = 0; i < ui->ndragcoords - 1; i++) {
  *         int sx, sy, dx, dy, dir, oldstate, newstate;
  *         interpret_ui_drag(state, ui, &clearing, i, &sx, &sy, &dx, &dy,
@@ -1976,7 +1977,7 @@ static void update_ui_drag(const game_state *state, game_ui *ui,
  *     }
  */
 static void interpret_ui_drag(const game_state *state, const game_ui *ui,
-                              int *clearing, int i, int *sx, int *sy,
+                              bool *clearing, int i, int *sx, int *sy,
                               int *dx, int *dy, int *dir,
                               int *oldstate, int *newstate)
 {
@@ -2008,7 +2009,7 @@ static void interpret_ui_drag(const game_state *state, const game_ui *ui,
 }
 
 static char *mark_in_direction(const game_state *state, int x, int y, int dir,
-			       int primary, char *buf)
+			       bool primary, char *buf)
 {
     int w = state->shared->w /*, h = state->shared->h, sz = state->shared->sz */;
     int x2 = x + DX(dir);
@@ -2037,10 +2038,10 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 {
     int w = state->shared->w, h = state->shared->h /*, sz = state->shared->sz */;
     int gx = FROMCOORD(x), gy = FROMCOORD(y), i;
-    int release = false;
+    bool release = false;
     char tmpbuf[80];
 
-    int shift = button & MOD_SHFT, control = button & MOD_CTRL;
+    bool shift = button & MOD_SHFT, control = button & MOD_CTRL;
     button &= ~MOD_MASK;
 
     if (IS_MOUSE_DOWN(button)) {
@@ -2068,7 +2069,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
     if (IS_CURSOR_MOVE(button)) {
 	if (!ui->cursor_active) {
 	    ui->cursor_active = true;
-	} else if (control | shift) {
+	} else if (control || shift) {
 	    char *move;
 	    if (ui->ndragcoords > 0) return NULL;
 	    ui->ndragcoords = -1;
@@ -2114,7 +2115,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
             int buflen = 0, bufsize = 256, tmplen;
             char *buf = NULL;
             const char *sep = "";
-            int clearing = true;
+            bool clearing = true;
 
             for (i = 0; i < ui->ndragcoords - 1; i++) {
                 int sx, sy, dx, dy, dir, oldstate, newstate;
@@ -2453,7 +2454,8 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
                         float animtime, float flashtime)
 {
     int w = state->shared->w, h = state->shared->h, sz = state->shared->sz;
-    int x, y, force = 0, flashing = 0;
+    int x, y, flashing = 0;
+    bool force = false;
 
     if (!ds->started) {
         /*
@@ -2478,7 +2480,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
         draw_update(dr, 0, 0, w*TILE_SIZE + 2*BORDER, h*TILE_SIZE + 2*BORDER);
 
         ds->started = true;
-        force = 1;
+        force = true;
     }
 
     if (flashtime > 0 &&
@@ -2488,7 +2490,8 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
 
     memset(ds->draglines, 0, sz);
     if (ui->ndragcoords > 0) {
-        int i, clearing = true;
+        int i;
+        bool clearing = true;
         for (i = 0; i < ui->ndragcoords - 1; i++) {
             int sx, sy, dx, dy, dir, oldstate, newstate;
             interpret_ui_drag(state, ui, &clearing, i, &sx, &sy, &dx, &dy,
@@ -2739,7 +2742,7 @@ int main(int argc, const char *argv[])
         }
 
         decode_params(p, id);
-        err = validate_params(p, 1);
+        err = validate_params(p, true);
         if (err) {
             fprintf(stderr, "%s: %s", argv[0], err);
             goto done;

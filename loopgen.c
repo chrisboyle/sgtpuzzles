@@ -75,16 +75,16 @@ static int black_sort_cmpfn(void *v1, void *v2)
 /* 'board' is an array of enum face_colour, indicating which faces are
  * currently black/white/grey.  'colour' is FACE_WHITE or FACE_BLACK.
  * Returns whether it's legal to colour the given face with this colour. */
-static int can_colour_face(grid *g, char* board, int face_index,
-                           enum face_colour colour)
+static bool can_colour_face(grid *g, char* board, int face_index,
+                            enum face_colour colour)
 {
     int i, j;
     grid_face *test_face = g->faces + face_index;
     grid_face *starting_face, *current_face;
     grid_dot *starting_dot;
     int transitions;
-    int current_state, s; /* booleans: equal or not-equal to 'colour' */
-    int found_same_coloured_neighbour = false;
+    bool current_state, s; /* equal or not-equal to 'colour' */
+    bool found_same_coloured_neighbour = false;
     assert(board[face_index] != colour);
 
     /* Can only consider a face for colouring if it's adjacent to a face
@@ -306,7 +306,7 @@ void generate_loop(grid *g, char *board, random_state *rs,
     tree234 *lightable_faces_sorted;
     tree234 *darkable_faces_sorted;
     int *face_list;
-    int do_random_pass;
+    bool do_random_pass;
 
     /* Make a board */
     memset(board, FACE_GREY, num_faces);
@@ -506,7 +506,7 @@ void generate_loop(grid *g, char *board, random_state *rs,
 
     while (true) {
         /* Remember whether a flip occurred during this pass */
-        int flipped = false;
+        bool flipped = false;
 
         for (i = 0; i < num_faces; ++i) {
             int j = face_list[i];

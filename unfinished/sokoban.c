@@ -131,7 +131,7 @@ struct game_state {
     game_params p;
     unsigned char *grid;
     int px, py;
-    int completed;
+    bool completed;
 };
 
 static game_params *default_params(void)
@@ -300,7 +300,7 @@ static const char *validate_params(const game_params *params, bool full)
  */
 
 static void sokoban_generate(int w, int h, unsigned char *grid, int moves,
-			     int nethack, random_state *rs)
+			     bool nethack, random_state *rs)
 {
     struct pull {
 	int ox, oy, nx, ny, score;
@@ -940,7 +940,7 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
 struct game_drawstate {
     game_params p;
     int tilesize;
-    int started;
+    bool started;
     unsigned short *grid;
 };
 
@@ -1099,7 +1099,8 @@ static game_state *execute_move(const game_state *state, const char *move)
 {
     int w = state->p.w, h = state->p.h;
     int px = state->px, py = state->py;
-    int dx, dy, nx, ny, nbx, nby, type, m, i, freebarrels, freetargets;
+    int dx, dy, nx, ny, nbx, nby, type, m, i;
+    bool freebarrels, freetargets;
     game_state *ret;
 
     if (*move < '1' || *move == '5' || *move > '9' || move[1])

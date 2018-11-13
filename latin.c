@@ -226,7 +226,7 @@ int latin_solver_set(struct latin_solver *solver,
              */
             int rows = 0;
             for (i = 0; i < n; i++) {
-                int ok = true;
+                bool ok = true;
                 for (j = 0; j < n; j++)
                     if (set[j] && grid[i*o+j]) {
                         ok = false;
@@ -261,7 +261,7 @@ int latin_solver_set(struct latin_solver *solver,
 	    }
 
             if (rows >= n - count) {
-                int progress = false;
+                bool progress = false;
 
                 /*
                  * We've got one! Now, for each row which _doesn't_
@@ -275,7 +275,7 @@ int latin_solver_set(struct latin_solver *solver,
                  * positions in the cube to meddle with.
                  */
                 for (i = 0; i < n; i++) {
-                    int ok = true;
+                    bool ok = true;
                     for (j = 0; j < n; j++)
                         if (set[j] && grid[i*o+j]) {
                             ok = false;
@@ -570,12 +570,12 @@ void latin_solver_alloc(struct latin_solver *solver, digit *grid, int o)
     solver->o = o;
     solver->cube = snewn(o*o*o, unsigned char);
     solver->grid = grid;		/* write straight back to the input */
-    memset(solver->cube, true, o*o*o);
+    memset(solver->cube, 1, o*o*o);
 
     solver->row = snewn(o*o, unsigned char);
     solver->col = snewn(o*o, unsigned char);
-    memset(solver->row, false, o*o);
-    memset(solver->col, false, o*o);
+    memset(solver->row, 0, o*o);
+    memset(solver->col, 0, o*o);
 
     for (x = 0; x < o; x++)
 	for (y = 0; y < o; y++)
@@ -908,9 +908,9 @@ static int latin_solver_top(struct latin_solver *solver, int maxdiff,
 	    if (ret == 0 && i == diff_simple)
 		ret = latin_solver_diff_simple(solver);
 	    if (ret == 0 && i == diff_set_0)
-		ret = latin_solver_diff_set(solver, scratch, 0);
+		ret = latin_solver_diff_set(solver, scratch, false);
 	    if (ret == 0 && i == diff_set_1)
-		ret = latin_solver_diff_set(solver, scratch, 1);
+		ret = latin_solver_diff_set(solver, scratch, true);
 	    if (ret == 0 && i == diff_forcing)
 		ret = latin_solver_forcing(solver, scratch);
 

@@ -66,7 +66,7 @@
 
 #include "puzzles.h"
 
-static unsigned char verbose;
+static bool verbose;
 
 static void printv(const char *fmt, ...) {
 #ifndef PALM
@@ -96,7 +96,7 @@ struct shared_state {
 struct game_state {
     int *board;
     struct shared_state *shared;
-    int completed, cheated;
+    bool completed, cheated;
 };
 
 static const struct game_params filling_defaults[3] = {
@@ -312,7 +312,7 @@ static void free_game(game_state *);
 
 #define SENTINEL sz
 
-static int mark_region(int *board, int w, int h, int i, int n, int m) {
+static bool mark_region(int *board, int w, int h, int i, int n, int m) {
     int j;
 
     board[i] = -1;
@@ -345,7 +345,8 @@ static void merge_ones(int *board, int w, int h)
 {
     const int sz = w * h;
     const int maxsize = min(max(max(w, h), 3), 9);
-    int i, j, k, change;
+    int i, j, k;
+    bool change;
     do {
         change = false;
         for (i = 0; i < sz; ++i) {
@@ -353,7 +354,9 @@ static void merge_ones(int *board, int w, int h)
 
             for (j = 0; j < 4; ++j, board[i] = 1) {
                 const int x = (i % w) + dx[j], y = (i / w) + dy[j];
-                int oldsize, newsize, ok, ii = w*y + x;
+                int oldsize, newsize, ii = w*y + x;
+		bool ok;
+
                 if (x < 0 || x >= w || y < 0 || y >= h) continue;
                 if (board[ii] == maxsize) continue;
 
@@ -387,7 +390,8 @@ static void make_board(int *board, int w, int h, random_state *rs) {
     /* Note that if 1 in {w, h} then it's impossible to have a region
      * of size > w*h, so the special case only affects w=h=2. */
 
-    int i, change, *dsf;
+    int i, *dsf;
+    bool change;
 
     assert(w >= 1);
     assert(h >= 1);
@@ -407,7 +411,8 @@ retry:
         for (i = 0; i < sz; ++i) {
             const int square = dsf_canonify(dsf, board[i]);
             const int size = dsf_size(dsf, square);
-            int merge = SENTINEL, min = maxsize - size + 1, error = false;
+            int merge = SENTINEL, min = maxsize - size + 1;
+	    bool error = false;
             int neighbour, neighbour_size, j;
 
             for (j = 0; j < 4; ++j) {
@@ -520,7 +525,7 @@ static void flood_count(int *board, int w, int h, int i, int n, int *c) {
     }
 }
 
-static int check_capacity(int *board, int w, int h, int i) {
+static bool check_capacity(int *board, int w, int h, int i) {
     int n = board[i];
     flood_count(board, w, h, i, board[i], &n);
     clear_count(board, w * h);
@@ -625,16 +630,16 @@ static void init_solver_state(struct solver_state *s, int w, int h) {
         else filled_square(s, w, h, i);
 }
 
-static int learn_expand_or_one(struct solver_state *s, int w, int h) {
+static bool learn_expand_or_one(struct solver_state *s, int w, int h) {
     const int sz = w * h;
     int i;
-    int learn = false;
+    bool learn = false;
 
     assert(s);
 
     for (i = 0; i < sz; ++i) {
 	int j;
-	int one = true;
+	bool one = true;
 
 	if (s->board[i] != EMPTY) continue;
 
@@ -675,10 +680,10 @@ static int learn_expand_or_one(struct solver_state *s, int w, int h) {
     return learn;
 }
 
-static int learn_blocked_expansion(struct solver_state *s, int w, int h) {
+static bool learn_blocked_expansion(struct solver_state *s, int w, int h) {
     const int sz = w * h;
     int i;
-    int learn = false;
+    bool learn = false;
 
     assert(s);
     /* for every connected component */
@@ -767,10 +772,10 @@ static int learn_blocked_expansion(struct solver_state *s, int w, int h) {
     return learn;
 }
 
-static int learn_critical_square(struct solver_state *s, int w, int h) {
+static bool learn_critical_square(struct solver_state *s, int w, int h) {
     const int sz = w * h;
     int i;
-    int learn = false;
+    bool learn = false;
     assert(s);
 
     /* for each connected component */
@@ -824,14 +829,14 @@ static void print_bitmap(int *bitmap, int w, int h) {
 }
 #endif
 
-static int learn_bitmap_deductions(struct solver_state *s, int w, int h)
+static bool learn_bitmap_deductions(struct solver_state *s, int w, int h)
 {
     const int sz = w * h;
     int *bm = s->bm;
     int *dsf = s->bmdsf;
     int *minsize = s->bmminsize;
     int x, y, i, j, n;
-    int learn = false;
+    bool learn = false;
 
     /*
      * This function does deductions based on building up a bitmap
@@ -1066,7 +1071,7 @@ static int learn_bitmap_deductions(struct solver_state *s, int w, int h)
     return learn;
 }
 
-static int solver(const int *orig, int w, int h, char **solution) {
+static bool solver(const int *orig, int w, int h, char **solution) {
     const int sz = w * h;
 
     struct solver_state ss;
@@ -1312,7 +1317,8 @@ static game_state *new_game(midend *me, const game_params *params,
     int sz = params->w * params->h;
     int i;
 
-    state->cheated = state->completed = false;
+    state->cheated = false;
+    state->completed = false;
     state->shared = snew(struct shared_state);
     state->shared->refcnt = 1;
     state->shared->params = *params; /* struct copy */
@@ -1374,8 +1380,9 @@ static char *solve_game(const game_state *state, const game_state *currstate,
  *****************************************************************************/
 
 struct game_ui {
-    int *sel; /* w*h highlighted squares, or NULL */
-    int cur_x, cur_y, cur_visible, keydragging;
+    bool *sel; /* w*h highlighted squares, or NULL */
+    int cur_x, cur_y;
+    bool cur_visible, keydragging;
 };
 
 static game_ui *new_ui(const game_state *state)
@@ -1383,7 +1390,9 @@ static game_ui *new_ui(const game_state *state)
     game_ui *ui = snew(game_ui);
 
     ui->sel = NULL;
-    ui->cur_x = ui->cur_y = ui->cur_visible = ui->keydragging = 0;
+    ui->cur_x = ui->cur_y = 0;
+    ui->cur_visible = false;
+    ui->keydragging = false;
 
     return ui;
 }
@@ -1423,7 +1432,7 @@ static void game_changed_state(game_ui *ui, const game_state *oldstate,
 struct game_drawstate {
     struct game_params params;
     int tilesize;
-    int started;
+    bool started;
     int *v, *flags;
     int *dsf_scratch, *border_scratch;
 };
@@ -1456,25 +1465,25 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         }
         if (tx >= 0 && tx < w && ty >= 0 && ty < h) {
             if (!ui->sel) {
-                ui->sel = snewn(w*h, int);
-                memset(ui->sel, 0, w*h*sizeof(int));
+                ui->sel = snewn(w*h, bool);
+                memset(ui->sel, 0, w*h*sizeof(bool));
             }
             if (!state->shared->clues[w*ty+tx])
-                ui->sel[w*ty+tx] = 1;
+                ui->sel[w*ty+tx] = true;
         }
-        ui->cur_visible = 0;
+        ui->cur_visible = false;
         return UI_UPDATE;
     }
 
     if (IS_CURSOR_MOVE(button)) {
-        ui->cur_visible = 1;
-        move_cursor(button, &ui->cur_x, &ui->cur_y, w, h, 0);
+        ui->cur_visible = true;
+        move_cursor(button, &ui->cur_x, &ui->cur_y, w, h, false);
 	if (ui->keydragging) goto select_square;
         return UI_UPDATE;
     }
     if (button == CURSOR_SELECT) {
         if (!ui->cur_visible) {
-            ui->cur_visible = 1;
+            ui->cur_visible = true;
             return UI_UPDATE;
         }
 	ui->keydragging = !ui->keydragging;
@@ -1482,21 +1491,21 @@ static char *interpret_move(const game_state *state, game_ui *ui,
 
       select_square:
         if (!ui->sel) {
-            ui->sel = snewn(w*h, int);
-            memset(ui->sel, 0, w*h*sizeof(int));
+            ui->sel = snewn(w*h, bool);
+            memset(ui->sel, 0, w*h*sizeof(bool));
         }
 	if (!state->shared->clues[w*ui->cur_y + ui->cur_x])
-	    ui->sel[w*ui->cur_y + ui->cur_x] = 1;
+	    ui->sel[w*ui->cur_y + ui->cur_x] = true;
 	return UI_UPDATE;
     }
     if (button == CURSOR_SELECT2) {
 	if (!ui->cur_visible) {
-	    ui->cur_visible = 1;
+	    ui->cur_visible = true;
 	    return UI_UPDATE;
 	}
         if (!ui->sel) {
-            ui->sel = snewn(w*h, int);
-            memset(ui->sel, 0, w*h*sizeof(int));
+            ui->sel = snewn(w*h, bool);
+            memset(ui->sel, 0, w*h*sizeof(bool));
         }
 	ui->keydragging = false;
 	if (!state->shared->clues[w*ui->cur_y + ui->cur_x])
@@ -1673,7 +1682,7 @@ static game_drawstate *game_new_drawstate(drawing *dr, const game_state *state)
     int i;
 
     ds->tilesize = PREFERRED_TILE_SIZE;
-    ds->started = 0;
+    ds->started = false;
     ds->params = state->shared->params;
     ds->v = snewn(ds->params.w * ds->params.h, int);
     ds->flags = snewn(ds->params.w * ds->params.h, int);
@@ -1836,8 +1845,9 @@ static void draw_square(drawing *dr, game_drawstate *ds, int x, int y,
 		TILE_SIZE);
 }
 
-static void draw_grid(drawing *dr, game_drawstate *ds, const game_state *state,
-                      const game_ui *ui, int flashy, int borders, int shading)
+static void draw_grid(
+    drawing *dr, game_drawstate *ds, const game_state *state,
+    const game_ui *ui, bool flashy, bool borders, bool shading)
 {
     const int w = state->shared->params.w;
     const int h = state->shared->params.h;
@@ -1862,7 +1872,7 @@ static void draw_grid(drawing *dr, game_drawstate *ds, const game_state *state,
             int v1, s1, v2, s2;
 
             for (dx = 0; dx <= 1; dx++) {
-                int border = false;
+                bool border = false;
 
                 dy = 1 - dx;
 
@@ -2001,7 +2011,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
     const int w = state->shared->params.w;
     const int h = state->shared->params.h;
 
-    const int flashy =
+    const bool flashy =
         flashtime > 0 &&
         (flashtime <= FLASH_TIME/3 || flashtime >= FLASH_TIME*2/3);
 
@@ -2076,7 +2086,8 @@ static void game_print(drawing *dr, const game_state *state, int tilesize)
 {
     const int w = state->shared->params.w;
     const int h = state->shared->params.h;
-    int c, i, borders;
+    int c, i;
+    bool borders;
 
     /* Ick: fake up `ds->tilesize' for macro expansion purposes */
     game_drawstate *ds = game_new_drawstate(dr, state);
