@@ -133,11 +133,16 @@ enum {
 #define FF_FLASH2         0x0800
 #define FF_IMMUTABLE      0x1000
 
+typedef struct unruly_common {
+    int refcount;
+    bool *immutable;
+} unruly_common;
+
 struct game_state {
     int w2, h2;
     bool unique;
     char *grid;
-    bool *immutable;
+    unruly_common *common;
 
     bool completed, cheated;
 };
@@ -353,10 +358,12 @@ static game_state *blank_state(int w2, int h2, bool unique)
     state->h2 = h2;
     state->unique = unique;
     state->grid = snewn(s, char);
-    state->immutable = snewn(s, bool);
+    state->common = snew(unruly_common);
+    state->common->refcount = 1;
+    state->common->immutable = snewn(s, bool);
 
     memset(state->grid, EMPTY, s);
-    memset(state->immutable, 0, s*sizeof(bool));
+    memset(state->common->immutable, 0, s*sizeof(bool));
 
     state->completed = state->cheated = false;
 
@@ -379,14 +386,14 @@ static game_state *new_game(midend *me, const game_params *params,
             pos += (*p - 'a');
             if (pos < s) {
                 state->grid[pos] = N_ZERO;
-                state->immutable[pos] = true;
+                state->common->immutable[pos] = true;
             }
             pos++;
         } else if (*p >= 'A' && *p < 'Z') {
             pos += (*p - 'A');
             if (pos < s) {
                 state->grid[pos] = N_ONE;
-                state->immutable[pos] = true;
+                state->common->immutable[pos] = true;
             }
             pos++;
         } else if (*p == 'Z' || *p == 'z') {
@@ -409,7 +416,8 @@ static game_state *dup_game(const game_state *state)
     game_state *ret = blank_state(w2, h2, state->unique);
 
     memcpy(ret->grid, state->grid, s);
-    memcpy(ret->immutable, state->immutable, s*sizeof(bool));
+    ret->common = state->common;
+    ret->common->refcount++;
 
     ret->completed = state->completed;
     ret->cheated = state->cheated;
@@ -420,7 +428,10 @@ static game_state *dup_game(const game_state *state)
 static void free_game(game_state *state)
 {
     sfree(state->grid);
-    sfree(state->immutable);
+    if (--state->common->refcount == 0) {
+        sfree(state->common->immutable);
+        sfree(state->common);
+    }
 
     sfree(state);
 }
@@ -1539,7 +1550,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
         char buf[80];
         char c, i;
 
-        if (state->immutable[hy * w2 + hx])
+        if (state->common->immutable[hy * w2 + hx])
             return NULL;
 
         c = '-';
@@ -1604,7 +1615,7 @@ static game_state *execute_move(const game_state *state, const char *move)
         ret = dup_game(state);
         i = y * w2 + x;
 
-        if (state->immutable[i]) {
+        if (state->common->immutable[i]) {
             free_game(ret);
             return NULL;
         }
@@ -1820,7 +1831,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
 
             tile |= flash;
 
-            if (state->immutable[i])
+            if (state->common->immutable[i])
                 tile |= FF_IMMUTABLE;
 
             if (ui->cursor && ui->cx == x && ui->cy == y)

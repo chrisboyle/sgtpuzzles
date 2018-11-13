@@ -82,11 +82,16 @@ struct game_params {
     bool id;
 };
 
+typedef struct group_common {
+    int refcount;
+    bool *immutable;
+} group_common;
+
 struct game_state {
     game_params par;
     digit *grid;
-    bool *immutable;
     int *pencil;		       /* bitmaps using bits 1<<1..1<<n */
+    group_common *common;
     bool completed, cheated;
     digit *sequence;                   /* sequence of group elements shown */
 
@@ -850,11 +855,13 @@ static game_state *new_game(midend *me, const game_params *params,
 
     state->par = *params;	       /* structure copy */
     state->grid = snewn(a, digit);
-    state->immutable = snewn(a, bool);
+    state->common = snew(group_common);
+    state->common->refcount = 1;
+    state->common->immutable = snewn(a, bool);
     state->pencil = snewn(a, int);
     for (i = 0; i < a; i++) {
 	state->grid[i] = 0;
-	state->immutable[i] = false;
+	state->common->immutable[i] = false;
 	state->pencil[i] = 0;
     }
     state->sequence = snewn(w, digit);
@@ -867,7 +874,7 @@ static game_state *new_game(midend *me, const game_params *params,
     desc = spec_to_grid(desc, state->grid, a);
     for (i = 0; i < a; i++)
 	if (state->grid[i] != 0)
-	    state->immutable[i] = true;
+	    state->common->immutable[i] = true;
 
     state->completed = false;
     state->cheated = false;
@@ -883,12 +890,12 @@ static game_state *dup_game(const game_state *state)
     ret->par = state->par;	       /* structure copy */
 
     ret->grid = snewn(a, digit);
-    ret->immutable = snewn(a, bool);
+    ret->common = state->common;
+    ret->common->refcount++;
     ret->pencil = snewn(a, int);
     ret->sequence = snewn(w, digit);
     ret->dividers = snewn(w, int);
     memcpy(ret->grid, state->grid, a*sizeof(digit));
-    memcpy(ret->immutable, state->immutable, a*sizeof(bool));
     memcpy(ret->pencil, state->pencil, a*sizeof(int));
     memcpy(ret->sequence, state->sequence, w*sizeof(digit));
     memcpy(ret->dividers, state->dividers, w*sizeof(int));
@@ -902,7 +909,10 @@ static game_state *dup_game(const game_state *state)
 static void free_game(game_state *state)
 {
     sfree(state->grid);
-    sfree(state->immutable);
+    if (--state->common->refcount == 0) {
+        sfree(state->common->immutable);
+        sfree(state->common);
+    }
     sfree(state->pencil);
     sfree(state->sequence);
     sfree(state);
@@ -1318,7 +1328,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
                     ui->ohy = oty;
                     ui->odx = ui->ody = 0;
                     ui->odn = 1;
-                    ui->hshow = !state->immutable[ty*w+tx];
+                    ui->hshow = !state->common->immutable[ty*w+tx];
                     ui->hpencil = false;
                 }
                 ui->hcursor = false;
@@ -1423,7 +1433,7 @@ static char *interpret_move(const game_state *state, game_ui *ui,
              */
             if (!ui->hpencil && state->grid[index] == n)
                 /* OK even if it is immutable */;
-            else if (state->immutable[index])
+            else if (state->common->immutable[index])
                 return NULL;
         }
 
@@ -1487,7 +1497,8 @@ static game_state *execute_move(const game_state *from, const char *move)
                 free_game(ret);
                 return NULL;
             }
-            if (from->immutable[y*w+x] && !(!pencil && from->grid[y*w+x] == n))
+            if (from->common->immutable[y*w+x] &&
+                !(!pencil && from->grid[y*w+x] == n))
                 return NULL;
 
             if (move[0] == 'P' && n > 0) {
@@ -1900,7 +1911,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
 	    else
 		pencil = (long)state->pencil[sy*w+sx];
 
-	    if (state->immutable[sy*w+sx])
+	    if (state->common->immutable[sy*w+sx])
 		tile |= DF_IMMUTABLE;
 
             if ((ui->drag == 5 && ui->dragnum == sy) ||
