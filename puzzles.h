@@ -376,7 +376,7 @@ char *dupstr(const char *s);
  */
 void free_cfg(config_item *cfg);
 void free_keys(key_label *keys, int nkeys);
-void obfuscate_bitmap(unsigned char *bmp, int bits, int decode);
+void obfuscate_bitmap(unsigned char *bmp, int bits, bool decode);
 char *fgetline(FILE *fp);
 
 /* allocates output each time. len is always in bytes of binary data.
@@ -403,7 +403,7 @@ void draw_rect_outline(drawing *dr, int x, int y, int w, int h,
 /* Draw a set of rectangle corners (e.g. for a cursor display). */
 void draw_rect_corners(drawing *dr, int cx, int cy, int r, int col);
 
-void move_cursor(int button, int *x, int *y, int maxw, int maxh, int wrap);
+void move_cursor(int button, int *x, int *y, int maxw, int maxh, bool wrap);
 
 /* Used in netslide.c and sixteen.c for cursor movement around edge. */
 int c2pos(int w, int h, int cx, int cy);
