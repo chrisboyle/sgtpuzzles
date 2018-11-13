@@ -292,7 +292,7 @@ void print_begin_puzzle(drawing *dr, float xm, float xc,
 void print_end_puzzle(drawing *dr);
 void print_end_page(drawing *dr, int number);
 void print_end_doc(drawing *dr);
-void print_get_colour(drawing *dr, int colour, int printing_in_colour,
+void print_get_colour(drawing *dr, int colour, bool printing_in_colour,
 		      int *hatch, float *r, float *g, float *b);
 int print_mono_colour(drawing *dr, int grey); /* 0==black, 1==white */
 int print_grey_colour(drawing *dr, float grey);
@@ -302,7 +302,7 @@ int print_rgb_grey_colour(drawing *dr, float r, float g, float b, float grey);
 int print_rgb_hatched_colour(drawing *dr, float r, float g, float b,
 			     int hatch);
 void print_line_width(drawing *dr, int width);
-void print_line_dotted(drawing *dr, int dotted);
+void print_line_dotted(drawing *dr, bool dotted);
 
 /*
  * midend.c
@@ -538,7 +538,7 @@ void document_print(document *doc, drawing *dr);
 /*
  * ps.c
  */
-psdata *ps_init(FILE *outfile, int colour);
+psdata *ps_init(FILE *outfile, bool colour);
 void ps_free(psdata *ps);
 drawing *ps_drawing_api(psdata *ps);
 
@@ -699,7 +699,7 @@ struct drawing_api {
     void (*end_page)(void *handle, int number);
     void (*end_doc)(void *handle);
     void (*line_width)(void *handle, float width);
-    void (*line_dotted)(void *handle, int dotted);
+    void (*line_dotted)(void *handle, bool dotted);
     char *(*text_fallback)(void *handle, const char *const *strings,
 			   int nstrings);
     void (*draw_thick_line)(void *handle, float thickness,

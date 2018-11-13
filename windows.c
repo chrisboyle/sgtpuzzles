@@ -799,7 +799,7 @@ static void win_line_width(void *handle, float width)
     fe->linewidth = (int)(width * fe->printpixelscale);
 }
 
-static void win_line_dotted(void *handle, int dotted)
+static void win_line_dotted(void *handle, bool dotted)
 {
     frontend *fe = (frontend *)handle;
 

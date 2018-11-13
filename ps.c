@@ -232,7 +232,7 @@ static void ps_line_width(void *handle, float width)
     ps_printf(ps, "%g setlinewidth\n", width);
 }
 
-static void ps_line_dotted(void *handle, int dotted)
+static void ps_line_dotted(void *handle, bool dotted)
 {
     psdata *ps = (psdata *)handle;
 
@@ -408,7 +408,7 @@ static const struct drawing_api ps_drawing = {
     ps_text_fallback,
 };
 
-psdata *ps_init(FILE *outfile, int colour)
+psdata *ps_init(FILE *outfile, bool colour)
 {
     psdata *ps = snew(psdata);
 
