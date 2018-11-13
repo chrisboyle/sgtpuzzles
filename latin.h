@@ -82,7 +82,7 @@ int latin_solver_diff_simple(struct latin_solver *solver);
  * single-number elimination. */
 int latin_solver_diff_set(struct latin_solver *solver,
                           struct latin_solver_scratch *scratch,
-                          int extreme);
+                          bool extreme);
 
 typedef int (*usersolver_t)(struct latin_solver *solver, void *ctx);
 typedef void *(*ctxnew_t)(void *ctx);
@@ -115,7 +115,7 @@ digit *latin_generate(int o, random_state *rs);
 /* The order of the latin rectangle is max(w,h). */
 digit *latin_generate_rect(int w, int h, random_state *rs);
 
-int latin_check(digit *sq, int order); /* !0 => not a latin square */
+bool latin_check(digit *sq, int order); /* true => not a latin square */
 
 void latin_debug(digit *sq, int order);
 

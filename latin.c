@@ -650,7 +650,7 @@ int latin_solver_diff_simple(struct latin_solver *solver)
 
 int latin_solver_diff_set(struct latin_solver *solver,
                           struct latin_solver_scratch *scratch,
-                          int extreme)
+                          bool extreme)
 {
     int x, y, n, ret, o = solver->o;
 #ifdef STANDALONE_SOLVER
@@ -1244,12 +1244,12 @@ static int latin_check_cmp(void *v1, void *v2)
 
 #define ELT(sq,x,y) (sq[((y)*order)+(x)])
 
-/* returns non-zero if sq is not a latin square. */
-int latin_check(digit *sq, int order)
+/* returns true if sq is not a latin square. */
+bool latin_check(digit *sq, int order)
 {
     tree234 *dict = newtree234(latin_check_cmp);
     int c, r;
-    int ret = 0;
+    bool ret = false;
     lcparams *lcp, lc, *aret;
 
     /* Use a tree234 as a simple hash table, go through the square
@@ -1272,10 +1272,10 @@ int latin_check(digit *sq, int order)
 
     /* There should be precisely 'order' letters in the alphabet,
      * each occurring 'order' times (making the OxO tree) */
-    if (count234(dict) != order) ret = 1;
+    if (count234(dict) != order) ret = true;
     else {
 	for (c = 0; (lcp = index234(dict, c)) != NULL; c++) {
-	    if (lcp->count != order) ret = 1;
+	    if (lcp->count != order) ret = true;
 	}
     }
     for (c = 0; (lcp = index234(dict, c)) != NULL; c++)
