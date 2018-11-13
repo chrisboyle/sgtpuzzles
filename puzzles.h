@@ -164,8 +164,7 @@ struct config_item {
             int selected;
         } choices;
         struct {
-            /* just TRUE or FALSE */
-            int bval;
+            bool bval;
         } boolean;
     } u;
 };
@@ -314,12 +313,12 @@ void midend_free(midend *me);
 const game *midend_which_game(midend *me);
 void midend_set_params(midend *me, game_params *params);
 game_params *midend_get_params(midend *me);
-void midend_size(midend *me, int *x, int *y, int user_size);
+void midend_size(midend *me, int *x, int *y, bool user_size);
 void midend_reset_tilesize(midend *me);
 void midend_new_game(midend *me);
 void midend_restart_game(midend *me);
 void midend_stop_anim(midend *me);
-int midend_process_key(midend *me, int x, int y, int button);
+bool midend_process_key(midend *me, int x, int y, int button);
 key_label *midend_request_keys(midend *me, int *nkeys);
 void midend_force_redraw(midend *me);
 void midend_redraw(midend *me);
@@ -328,19 +327,19 @@ void midend_freeze_timer(midend *me, float tprop);
 void midend_timer(midend *me, float tplus);
 struct preset_menu *midend_get_presets(midend *me, int *id_limit);
 int midend_which_preset(midend *me);
-int midend_wants_statusbar(midend *me);
+bool midend_wants_statusbar(midend *me);
 enum { CFG_SETTINGS, CFG_SEED, CFG_DESC, CFG_FRONTEND_SPECIFIC };
 config_item *midend_get_config(midend *me, int which, char **wintitle);
 const char *midend_set_config(midend *me, int which, config_item *cfg);
 const char *midend_game_id(midend *me, const char *id);
 char *midend_get_game_id(midend *me);
 char *midend_get_random_seed(midend *me);
-int midend_can_format_as_text_now(midend *me);
+bool midend_can_format_as_text_now(midend *me);
 char *midend_text_format(midend *me);
 const char *midend_solve(midend *me);
 int midend_status(midend *me);
-int midend_can_undo(midend *me);
-int midend_can_redo(midend *me);
+bool midend_can_undo(midend *me);
+bool midend_can_redo(midend *me);
 void midend_supersede_game_desc(midend *me, const char *desc,
                                 const char *privdesc);
 char *midend_rewrite_statusbar(midend *me, const char *text);
@@ -348,14 +347,14 @@ void midend_serialise(midend *me,
                       void (*write)(void *ctx, const void *buf, int len),
                       void *wctx);
 const char *midend_deserialise(midend *me,
-                               int (*read)(void *ctx, void *buf, int len),
+                               bool (*read)(void *ctx, void *buf, int len),
                                void *rctx);
 const char *identify_game(char **name,
-                          int (*read)(void *ctx, void *buf, int len),
+                          bool (*read)(void *ctx, void *buf, int len),
                           void *rctx);
 void midend_request_id_changes(midend *me, void (*notify)(void *), void *ctx);
 /* Printing functions supplied by the mid-end */
-const char *midend_print_puzzle(midend *me, document *doc, int with_soln);
+const char *midend_print_puzzle(midend *me, document *doc, bool with_soln);
 int midend_tilesize(midend *me);
 
 /*

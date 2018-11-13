@@ -2240,7 +2240,7 @@ static void savefile_write(void *wctx, const void *buf, int len)
 	ctx->error = errno;
 }
 
-static int savefile_read(void *wctx, void *buf, int len)
+static bool savefile_read(void *wctx, void *buf, int len)
 {
     FILE *fp = (FILE *)wctx;
     int ret;

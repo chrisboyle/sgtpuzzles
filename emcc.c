@@ -829,7 +829,7 @@ struct savefile_read_ctx {
     int len_remaining;
 };
 
-static int savefile_read(void *vctx, void *buf, int len)
+static bool savefile_read(void *vctx, void *buf, int len)
 {
     struct savefile_read_ctx *ctx = (struct savefile_read_ctx *)vctx;
     if (ctx->len_remaining < len)

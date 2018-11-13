@@ -122,7 +122,7 @@ struct deserialise_data {
  * Forward reference.
  */
 static const char *midend_deserialise_internal(
-    midend *me, int (*read)(void *ctx, void *buf, int len), void *rctx,
+    midend *me, bool (*read)(void *ctx, void *buf, int len), void *rctx,
     const char *(*check)(void *ctx, midend *, const struct deserialise_data *),
     void *cctx);
 
@@ -297,7 +297,7 @@ static void midend_size_new_drawstate(midend *me)
     }
 }
 
-void midend_size(midend *me, int *x, int *y, int user_size)
+void midend_size(midend *me, int *x, int *y, bool user_size)
 {
     int min, max;
     int rx, ry;
@@ -545,12 +545,12 @@ void midend_new_game(midend *me)
     me->newgame_can_store_undo = TRUE;
 }
 
-int midend_can_undo(midend *me)
+bool midend_can_undo(midend *me)
 {
     return (me->statepos > 1 || me->newgame_undo.len);
 }
 
-int midend_can_redo(midend *me)
+bool midend_can_redo(midend *me)
 {
     return (me->statepos < me->nstates || me->newgame_redo.len);
 }
@@ -560,7 +560,7 @@ struct newgame_undo_deserialise_read_ctx {
     int len, pos;
 };
 
-static int newgame_undo_deserialise_read(void *ctx, void *buf, int len)
+static bool newgame_undo_deserialise_read(void *ctx, void *buf, int len)
 {
     struct newgame_undo_deserialise_read_ctx *const rctx = ctx;
 
@@ -852,11 +852,11 @@ void midend_restart_game(midend *me)
     midend_set_timer(me);
 }
 
-static int midend_really_process_key(midend *me, int x, int y, int button)
+static bool midend_really_process_key(midend *me, int x, int y, int button)
 {
     game_state *oldstate =
         me->ourgame->dup_game(me->states[me->statepos - 1].state);
-    int type = MOVE, gottype = FALSE, ret = 1;
+    int type = MOVE, gottype = FALSE, ret = TRUE;
     float anim_time;
     game_state *s;
     char *movestr = NULL;
@@ -893,7 +893,7 @@ static int midend_really_process_key(midend *me, int x, int y, int button)
 		goto done;
 	} else if (button == 'q' || button == 'Q' || button == '\x11' ||
                    button == UI_QUIT) {
-	    ret = 0;
+	    ret = false;
 	    goto done;
 	} else
 	    goto done;
@@ -967,9 +967,9 @@ static int midend_really_process_key(midend *me, int x, int y, int button)
     return ret;
 }
 
-int midend_process_key(midend *me, int x, int y, int button)
+bool midend_process_key(midend *me, int x, int y, int button)
 {
-    int ret = 1;
+    bool ret = true;
 
     /*
      * Harmonise mouse drag and release messages.
@@ -1445,7 +1445,7 @@ int midend_which_preset(midend *me)
     return ret;
 }
 
-int midend_wants_statusbar(midend *me)
+bool midend_wants_statusbar(midend *me)
 {
     return me->ourgame->wants_statusbar;
 }
@@ -1779,7 +1779,7 @@ const char *midend_set_config(midend *me, int which, config_item *cfg)
     return NULL;
 }
 
-int midend_can_format_as_text_now(midend *me)
+bool midend_can_format_as_text_now(midend *me)
 {
     if (me->ourgame->can_format_as_text_ever)
 	return me->ourgame->can_format_as_text_now(me->params);
@@ -2060,7 +2060,7 @@ void midend_serialise(midend *me,
  * success, or an error message.
  */
 static const char *midend_deserialise_internal(
-    midend *me, int (*read)(void *ctx, void *buf, int len), void *rctx,
+    midend *me, bool (*read)(void *ctx, void *buf, int len), void *rctx,
     const char *(*check)(void *ctx, midend *, const struct deserialise_data *),
     void *cctx)
 {
@@ -2428,7 +2428,7 @@ static const char *midend_deserialise_internal(
 }
 
 const char *midend_deserialise(
-    midend *me, int (*read)(void *ctx, void *buf, int len), void *rctx)
+    midend *me, bool (*read)(void *ctx, void *buf, int len), void *rctx)
 {
     return midend_deserialise_internal(me, read, rctx, NULL, NULL);
 }
@@ -2441,7 +2441,7 @@ const char *midend_deserialise(
  * failure.
  */
 const char *identify_game(char **name,
-                          int (*read)(void *ctx, void *buf, int len),
+                          bool (*read)(void *ctx, void *buf, int len),
                           void *rctx)
 {
     int nstates = 0, statepos = -1, gotstates = 0;
@@ -2539,7 +2539,7 @@ const char *identify_game(char **name,
     return ret;
 }
 
-const char *midend_print_puzzle(midend *me, document *doc, int with_soln)
+const char *midend_print_puzzle(midend *me, document *doc, bool with_soln)
 {
     game_state *soln = NULL;
 
