@@ -15,7 +15,8 @@
     int *equal_elements = snewn(size, int);
     int *inverse_elements = snewn(size, int);
     int printed_count = 0, equal_count, inverse_count;
-    int i, n, inverse;
+    int i, n;
+    bool inverse;
 
     memset(printed_elements, -1, sizeof(int) * size);
 
@@ -99,10 +100,10 @@ int dsf_size(int *dsf, int index) {
     return dsf[dsf_canonify(dsf, index)] >> 2;
 }
 
-int edsf_canonify(int *dsf, int index, int *inverse_return)
+int edsf_canonify(int *dsf, int index, bool *inverse_return)
 {
     int start_index = index, canonical_index;
-    int inverse = 0;
+    bool inverse = false;
 
 /*    fprintf(stderr, "dsf = %p\n", dsf); */
 /*    fprintf(stderr, "Canonify %2d\n", index); */
@@ -141,9 +142,9 @@ int edsf_canonify(int *dsf, int index, int *inverse_return)
     return index;
 }
 
-void edsf_merge(int *dsf, int v1, int v2, int inverse)
+void edsf_merge(int *dsf, int v1, int v2, bool inverse)
 {
-    int i1, i2;
+    bool i1, i2;
 
 /*    fprintf(stderr, "dsf = %p\n", dsf); */
 /*    fprintf(stderr, "Merge [%2d,%2d], %d\n", v1, v2, inverse); */

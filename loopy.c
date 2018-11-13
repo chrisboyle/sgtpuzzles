@@ -1197,15 +1197,15 @@ static int merge_dots(solver_state *sstate, int edge_index)
 }
 
 /* Merge two lines because the solver has deduced that they must be either
- * identical or opposite.   Returns TRUE if this is new information, otherwise
- * FALSE. */
-static int merge_lines(solver_state *sstate, int i, int j, int inverse
+ * identical or opposite.   Returns true if this is new information, otherwise
+ * false. */
+static int merge_lines(solver_state *sstate, int i, int j, bool inverse
 #ifdef SHOW_WORKING
                        , const char *reason
 #endif
 		       )
 {
-    int inv_tmp;
+    bool inv_tmp;
 
     assert(i < sstate->state->game_grid->num_edges);
     assert(j < sstate->state->game_grid->num_edges);
@@ -1931,7 +1931,8 @@ static int face_setall_identical(solver_state *sstate, int face_index,
     grid_face *f = g->faces + face_index;
     int N = f->order;
     int i, j;
-    int can1, can2, inv1, inv2;
+    int can1, can2;
+    bool inv1, inv2;
 
     for (i = 0; i < N; i++) {
         int line1_index = f->edges[i] - g->edges;
@@ -1996,7 +1997,7 @@ static int parity_deductions(solver_state *sstate,
     } else if (unknown_count == 3) {
         int e[3];
         int can[3]; /* canonical edges */
-        int inv[3]; /* whether can[x] is inverse to e[x] */
+        bool inv[3]; /* whether can[x] is inverse to e[x] */
         find_unknowns(state, edge_list, 3, e);
         can[0] = edsf_canonify(linedsf, e[0], inv);
         can[1] = edsf_canonify(linedsf, e[1], inv+1);
@@ -2019,7 +2020,7 @@ static int parity_deductions(solver_state *sstate,
     } else if (unknown_count == 4) {
         int e[4];
         int can[4]; /* canonical edges */
-        int inv[4]; /* whether can[x] is inverse to e[x] */
+        bool inv[4]; /* whether can[x] is inverse to e[x] */
         find_unknowns(state, edge_list, 4, e);
         can[0] = edsf_canonify(linedsf, e[0], inv);
         can[1] = edsf_canonify(linedsf, e[1], inv+1);
@@ -2627,7 +2628,8 @@ static int linedsf_deductions(solver_state *sstate)
             int dline_index = dline_index_from_dot(g, d, j);
             int line1_index;
             int line2_index;
-            int can1, can2, inv1, inv2;
+            int can1, can2;
+            bool inv1, inv2;
             int j2;
             line1_index = d->edges[j] - g->edges;
             if (state->lines[line1_index] != LINE_UNKNOWN)
@@ -2671,7 +2673,8 @@ static int linedsf_deductions(solver_state *sstate)
     /* If the state of a line is known, deduce the state of its canonical line
      * too, and vice versa. */
     for (i = 0; i < g->num_edges; i++) {
-        int can, inv;
+        int can;
+        bool inv;
         enum line_state s;
         can = edsf_canonify(sstate->linedsf, i, &inv);
         if (can == i)
