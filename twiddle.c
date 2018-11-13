@@ -77,7 +77,7 @@ static game_params *dup_params(const game_params *params)
     return ret;
 }
 
-static int game_fetch_preset(int i, char **name, game_params **params)
+static bool game_fetch_preset(int i, char **name, game_params **params)
 {
     static struct {
         const char *title;
@@ -133,7 +133,7 @@ static void decode_params(game_params *ret, char const *string)
     }
 }
 
-static char *encode_params(const game_params *params, int full)
+static char *encode_params(const game_params *params, bool full)
 {
     char buf[256];
     sprintf(buf, "%dx%dn%d%s%s", params->w, params->h, params->n,
@@ -201,7 +201,7 @@ static game_params *custom_params(const config_item *cfg)
     return ret;
 }
 
-static const char *validate_params(const game_params *params, int full)
+static const char *validate_params(const game_params *params, bool full)
 {
     if (params->n < 2)
 	return "Rotating block size must be at least two";
@@ -299,7 +299,7 @@ static int grid_complete(int *grid, int wh, int orientable)
 }
 
 static char *new_game_desc(const game_params *params, random_state *rs,
-			   char **aux, int interactive)
+			   char **aux, bool interactive)
 {
     int *grid;
     int w = params->w, h = params->h, n = params->n, wh = w*h;
@@ -538,7 +538,7 @@ static char *solve_game(const game_state *state, const game_state *currstate,
     return dupstr("S");
 }
 
-static int game_can_format_as_text_now(const game_params *params)
+static bool game_can_format_as_text_now(const game_params *params)
 {
     return TRUE;
 }
@@ -1253,7 +1253,7 @@ static void game_redraw(drawing *dr, game_drawstate *ds,
     }
 }
 
-static int game_timing_state(const game_state *state, game_ui *ui)
+static bool game_timing_state(const game_state *state, game_ui *ui)
 {
     return TRUE;
 }

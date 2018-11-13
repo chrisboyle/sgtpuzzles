@@ -59,7 +59,7 @@ static const game_params blackbox_presets[] = {
     { 10, 10, 4, 10 }
 };
 
-static int game_fetch_preset(int i, char **name, game_params **params)
+static bool game_fetch_preset(int i, char **name, game_params **params)
 {
     char str[80];
     game_params *ret;
@@ -129,7 +129,7 @@ static void decode_params(game_params *params, char const *string)
     }
 }
 
-static char *encode_params(const game_params *params, int full)
+static char *encode_params(const game_params *params, bool full)
 {
     char str[256];
 
@@ -184,7 +184,7 @@ static game_params *custom_params(const config_item *cfg)
     return ret;
 }
 
-static const char *validate_params(const game_params *params, int full)
+static const char *validate_params(const game_params *params, bool full)
 {
     if (params->w < 2 || params->h < 2)
         return "Width and height must both be at least two";
@@ -207,7 +207,7 @@ static const char *validate_params(const game_params *params, int full)
  */
 
 static char *new_game_desc(const game_params *params, random_state *rs,
-			   char **aux, int interactive)
+			   char **aux, bool interactive)
 {
     int nballs = params->minballs, i;
     char *grid, *ret;
@@ -463,7 +463,7 @@ static char *solve_game(const game_state *state, const game_state *currstate,
     return dupstr("S");
 }
 
-static int game_can_format_as_text_now(const game_params *params)
+static bool game_can_format_as_text_now(const game_params *params)
 {
     return TRUE;
 }
@@ -1481,7 +1481,7 @@ static int game_status(const game_state *state)
     return 0;
 }
 
-static int game_timing_state(const game_state *state, game_ui *ui)
+static bool game_timing_state(const game_state *state, game_ui *ui)
 {
     return TRUE;
 }

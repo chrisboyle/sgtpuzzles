@@ -75,7 +75,7 @@ static game_params *default_params(void)
     return clone(&presets[DEFAULT_PRESET]);
 }
 
-static int game_fetch_preset(int i, char **name, game_params **params)
+static bool game_fetch_preset(int i, char **name, game_params **params)
 {
     if (i < 0 || i >= lenof(presets)) return FALSE;
 
@@ -107,7 +107,7 @@ static void decode_params(game_params *params, char const *string)
     if (*string == 'n') params->k = atoi(++string);
 }
 
-static char *encode_params(const game_params *params, int full)
+static char *encode_params(const game_params *params, bool full)
 {
     return string(40, "%dx%dn%d", params->w, params->h, params->k);
 }
@@ -155,7 +155,7 @@ static game_params *custom_params(const config_item *cfg)
  * +---+   the dominos is horizontal or vertical.            +---+---+
  */
 
-static const char *validate_params(const game_params *params, int full)
+static const char *validate_params(const game_params *params, bool full)
 {
     int w = params->w, h = params->h, k = params->k, wh = w * h;
 
@@ -617,7 +617,7 @@ static void init_borders(int w, int h, borderflag *borders)
 #define xshuffle(ptr, len, rs) shuffle((ptr), (len), sizeof (ptr)[0], (rs))
 
 static char *new_game_desc(const game_params *params, random_state *rs,
-                           char **aux, int interactive)
+                           char **aux, bool interactive)
 {
     int w = params->w, h = params->h, wh = w*h, k = params->k;
 
@@ -819,7 +819,7 @@ static char *solve_game(const game_state *state, const game_state *currstate,
     }
 }
 
-static int game_can_format_as_text_now(const game_params *params)
+static bool game_can_format_as_text_now(const game_params *params)
 {
     return TRUE;
 }
@@ -1278,7 +1278,7 @@ static int game_status(const game_state *state)
     return state->completed ? +1 : 0;
 }
 
-static int game_timing_state(const game_state *state, game_ui *ui)
+static bool game_timing_state(const game_state *state, game_ui *ui)
 {
     assert (!"this shouldn't get called");
     return 0;                          /* placate optimiser */

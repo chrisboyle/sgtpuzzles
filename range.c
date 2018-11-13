@@ -123,7 +123,7 @@ static game_params *dup_params(const game_params *params)
     return ret;
 }
 
-static int game_fetch_preset(int i, char **name, game_params **params)
+static bool game_fetch_preset(int i, char **name, game_params **params)
 {
     game_params *ret;
 
@@ -155,7 +155,7 @@ static void decode_params(game_params *params, char const *string)
     }
 }
 
-static char *encode_params(const game_params *params, int full)
+static char *encode_params(const game_params *params, bool full)
 {
     char str[80];
     sprintf(str, "%dx%d", params->w, params->h);
@@ -687,7 +687,7 @@ static int newdesc_strip_clues(game_state *state, int *shuffle_1toN);
 static char *newdesc_encode_game_description(int n, puzzle_size *grid);
 
 static char *new_game_desc(const game_params *params, random_state *rs,
-                           char **aux, int interactive)
+                           char **aux, bool interactive)
 {
     int const w = params->w, h = params->h, n = w * h;
 
@@ -907,7 +907,7 @@ static int dfs_count_white(game_state *state, int cell)
     return k;
 }
 
-static const char *validate_params(const game_params *params, int full)
+static const char *validate_params(const game_params *params, bool full)
 {
     int const w = params->w, h = params->h;
     if (w < 1) return "Error: width is less than 1";
@@ -1149,7 +1149,7 @@ static game_state *new_game(midend *me, const game_params *params,
  * User interface: ascii
  */
 
-static int game_can_format_as_text_now(const game_params *params)
+static bool game_can_format_as_text_now(const game_params *params)
 {
     return TRUE;
 }
@@ -1745,7 +1745,7 @@ static void draw_cell(drawing *draw, game_drawstate *ds, int r, int c,
     draw_update(draw, x, y, ts + 1, ts + 1);
 }
 
-static int game_timing_state(const game_state *state, game_ui *ui)
+static bool game_timing_state(const game_state *state, game_ui *ui)
 {
     puts("warning: game_timing_state was called (this shouldn't happen)");
     return FALSE; /* the (non-existing) timer should not be running */

@@ -609,28 +609,28 @@ struct game {
     const char *name;
     const char *winhelp_topic, *htmlhelp_topic;
     game_params *(*default_params)(void);
-    int (*fetch_preset)(int i, char **name, game_params **params);
+    bool (*fetch_preset)(int i, char **name, game_params **params);
     struct preset_menu *(*preset_menu)(void);
     void (*decode_params)(game_params *, char const *string);
-    char *(*encode_params)(const game_params *, int full);
+    char *(*encode_params)(const game_params *, bool full);
     void (*free_params)(game_params *params);
     game_params *(*dup_params)(const game_params *params);
-    int can_configure;
+    bool can_configure;
     config_item *(*configure)(const game_params *params);
     game_params *(*custom_params)(const config_item *cfg);
-    const char *(*validate_params)(const game_params *params, int full);
+    const char *(*validate_params)(const game_params *params, bool full);
     char *(*new_desc)(const game_params *params, random_state *rs,
-		      char **aux, int interactive);
+		      char **aux, bool interactive);
     const char *(*validate_desc)(const game_params *params, const char *desc);
     game_state *(*new_game)(midend *me, const game_params *params,
                             const char *desc);
     game_state *(*dup_game)(const game_state *state);
     void (*free_game)(game_state *state);
-    int can_solve;
+    bool can_solve;
     char *(*solve)(const game_state *orig, const game_state *curr,
                    const char *aux, const char **error);
-    int can_format_as_text_ever;
-    int (*can_format_as_text_now)(const game_params *params);
+    bool can_format_as_text_ever;
+    bool (*can_format_as_text_now)(const game_params *params);
     char *(*text_format)(const game_state *state);
     game_ui *(*new_ui)(const game_state *state);
     void (*free_ui)(game_ui *ui);
@@ -658,12 +658,12 @@ struct game {
     float (*flash_length)(const game_state *oldstate,
                           const game_state *newstate, int dir, game_ui *ui);
     int (*status)(const game_state *state);
-    int can_print, can_print_in_colour;
+    bool can_print, can_print_in_colour;
     void (*print_size)(const game_params *params, float *x, float *y);
     void (*print)(drawing *dr, const game_state *state, int tilesize);
-    int wants_statusbar;
-    int is_timed;
-    int (*timing_state)(const game_state *state, game_ui *ui);
+    bool wants_statusbar;
+    bool is_timed;
+    bool (*timing_state)(const game_state *state, game_ui *ui);
     int flags;
 };
 

@@ -235,7 +235,7 @@ static game_params *default_params(void)
     return ret;
 }
 
-static int game_fetch_preset(int i, char **name, game_params **params)
+static bool game_fetch_preset(int i, char **name, game_params **params)
 {
     game_params *ret = snew(game_params);
     const char *str;
@@ -304,7 +304,7 @@ static void decode_params(game_params *ret, char const *string)
     }
 }
 
-static char *encode_params(const game_params *params, int full)
+static char *encode_params(const game_params *params, bool full)
 {
     char data[256];
 
@@ -534,7 +534,7 @@ static void count_grid_square_callback(void *ctx, struct grid_square *sq)
     classes[thisclass]++;
 }
 
-static const char *validate_params(const game_params *params, int full)
+static const char *validate_params(const game_params *params, bool full)
 {
     int classes[5];
     int i;
@@ -595,7 +595,7 @@ static void classify_grid_square_callback(void *ctx, struct grid_square *sq)
 }
 
 static char *new_game_desc(const game_params *params, random_state *rs,
-			   char **aux, int interactive)
+			   char **aux, bool interactive)
 {
     struct grid_data data;
     int i, j, k, m, area, facesperclass;
@@ -1005,7 +1005,7 @@ static char *solve_game(const game_state *state, const game_state *currstate,
     return NULL;
 }
 
-static int game_can_format_as_text_now(const game_params *params)
+static bool game_can_format_as_text_now(const game_params *params)
 {
     return TRUE;
 }
@@ -1713,7 +1713,7 @@ static int game_status(const game_state *state)
     return state->completed ? +1 : 0;
 }
 
-static int game_timing_state(const game_state *state, game_ui *ui)
+static bool game_timing_state(const game_state *state, game_ui *ui)
 {
     return TRUE;
 }

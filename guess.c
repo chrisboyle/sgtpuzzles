@@ -82,7 +82,7 @@ static const struct {
 };
 
 
-static int game_fetch_preset(int i, char **name, game_params **params)
+static bool game_fetch_preset(int i, char **name, game_params **params)
 {
     if (i < 0 || i >= lenof(guess_presets))
         return FALSE;
@@ -145,7 +145,7 @@ static void decode_params(game_params *params, char const *string)
     }
 }
 
-static char *encode_params(const game_params *params, int full)
+static char *encode_params(const game_params *params, bool full)
 {
     char data[256];
 
@@ -206,7 +206,7 @@ static game_params *custom_params(const config_item *cfg)
     return ret;
 }
 
-static const char *validate_params(const game_params *params, int full)
+static const char *validate_params(const game_params *params, bool full)
 {
     if (params->ncolours < 2 || params->npegs < 2)
 	return "Trivial solutions are uninteresting";
@@ -258,7 +258,7 @@ static void free_pegrow(pegrow pegs)
 }
 
 static char *new_game_desc(const game_params *params, random_state *rs,
-			   char **aux, int interactive)
+			   char **aux, bool interactive)
 {
     unsigned char *bmp = snewn(params->npegs, unsigned char);
     char *ret;
@@ -365,7 +365,7 @@ static char *solve_game(const game_state *state, const game_state *currstate,
     return dupstr("S");
 }
 
-static int game_can_format_as_text_now(const game_params *params)
+static bool game_can_format_as_text_now(const game_params *params)
 {
     return TRUE;
 }
@@ -1455,7 +1455,7 @@ static int game_status(const game_state *state)
     return state->solved;
 }
 
-static int game_timing_state(const game_state *state, game_ui *ui)
+static bool game_timing_state(const game_state *state, game_ui *ui)
 {
     return TRUE;
 }

@@ -112,7 +112,7 @@ static game_params *default_params(void)
     return ret;
 }
 
-static int game_fetch_preset(int i, char **name, game_params **params)
+static bool game_fetch_preset(int i, char **name, game_params **params)
 {
     char buf[64];
 
@@ -144,7 +144,7 @@ static void decode_params(game_params *ret, char const *string)
     if (*string == 'x') ret->h = atoi(++string);
 }
 
-static char *encode_params(const game_params *params, int full)
+static char *encode_params(const game_params *params, bool full)
 {
     char buf[64];
     sprintf(buf, "%dx%d", params->w, params->h);
@@ -184,7 +184,7 @@ static game_params *custom_params(const config_item *cfg)
     return ret;
 }
 
-static const char *validate_params(const game_params *params, int full)
+static const char *validate_params(const game_params *params, bool full)
 {
     if (params->w < 1) return "Width must be at least one";
     if (params->h < 1) return "Height must be at least one";
@@ -268,7 +268,7 @@ static char *board_to_string(int *board, int w, int h) {
     return repr;
 }
 
-static int game_can_format_as_text_now(const game_params *params)
+static bool game_can_format_as_text_now(const game_params *params)
 {
     return TRUE;
 }
@@ -1238,7 +1238,7 @@ static int encode_run(char *buffer, int run)
 }
 
 static char *new_game_desc(const game_params *params, random_state *rs,
-                           char **aux, int interactive)
+                           char **aux, bool interactive)
 {
     const int w = params->w, h = params->h, sz = w * h;
     int *board = snewn(sz, int), i, j, run;
@@ -2055,7 +2055,7 @@ static int game_status(const game_state *state)
     return state->completed ? +1 : 0;
 }
 
-static int game_timing_state(const game_state *state, game_ui *ui)
+static bool game_timing_state(const game_state *state, game_ui *ui)
 {
     return TRUE;
 }

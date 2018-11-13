@@ -130,7 +130,7 @@ static game_params *default_params(void)
     return ret;
 }
 
-static int game_fetch_preset(int i, char **name, game_params **params)
+static bool game_fetch_preset(int i, char **name, game_params **params)
 {
     game_params *ret;
     int n;
@@ -177,7 +177,7 @@ static void decode_params(game_params *params, char const *string)
         params->unique = FALSE;
 }
 
-static char *encode_params(const game_params *params, int full)
+static char *encode_params(const game_params *params, bool full)
 {
     char buf[80];
     sprintf(buf, "%d", params->n);
@@ -218,7 +218,7 @@ static game_params *custom_params(const config_item *cfg)
     return ret;
 }
 
-static const char *validate_params(const game_params *params, int full)
+static const char *validate_params(const game_params *params, bool full)
 {
     if (params->n < 1)
         return "Maximum face number must be at least one";
@@ -571,7 +571,7 @@ static int solver(int w, int h, int n, int *grid, int *output)
  */
 
 static char *new_game_desc(const game_params *params, random_state *rs,
-			   char **aux, int interactive)
+			   char **aux, bool interactive)
 {
     int n = params->n, w = n+2, h = n+1, wh = w*h;
     int *grid, *grid2, *list;
@@ -967,7 +967,7 @@ static char *solve_game(const game_state *state, const game_state *currstate,
     return ret;
 }
 
-static int game_can_format_as_text_now(const game_params *params)
+static bool game_can_format_as_text_now(const game_params *params)
 {
     return params->n < 1000;
 }
@@ -1672,7 +1672,7 @@ static int game_status(const game_state *state)
     return state->completed ? +1 : 0;
 }
 
-static int game_timing_state(const game_state *state, game_ui *ui)
+static bool game_timing_state(const game_state *state, game_ui *ui)
 {
     return TRUE;
 }

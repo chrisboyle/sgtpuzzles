@@ -204,7 +204,7 @@ static game_params *default_params(void)
     return ret;
 }
 
-static int game_fetch_preset(int i, char **name, game_params **params)
+static bool game_fetch_preset(int i, char **name, game_params **params)
 {
     game_params *ret;
     char buf[80];
@@ -274,7 +274,7 @@ static void decode_params(game_params *params, char const *string)
     }
 }
 
-static char *encode_params(const game_params *params, int full)
+static char *encode_params(const game_params *params, bool full)
 {
     char buf[80];
 
@@ -342,7 +342,7 @@ static game_params *custom_params(const config_item *cfg)
     return ret;
 }
 
-static const char *validate_params(const game_params *params, int full)
+static const char *validate_params(const game_params *params, bool full)
 {
     if (params->w < 2 || params->h < 2)
         return "Width and height must be at least 2";
@@ -1514,7 +1514,7 @@ static int puzzle_is_good(game_state *state, int difficulty)
 #define MAX_GRIDGEN_TRIES 20
 
 static char *new_game_desc(const game_params *params_in, random_state *rs,
-			   char **aux, int interactive)
+			   char **aux, bool interactive)
 {
     game_params params_copy = *params_in; /* structure copy */
     game_params *params = &params_copy;
@@ -1750,7 +1750,7 @@ done:
     return move;
 }
 
-static int game_can_format_as_text_now(const game_params *params)
+static bool game_can_format_as_text_now(const game_params *params)
 {
     return TRUE;
 }
@@ -2211,7 +2211,7 @@ static int game_status(const game_state *state)
     return state->completed ? +1 : 0;
 }
 
-static int game_timing_state(const game_state *state, game_ui *ui)
+static bool game_timing_state(const game_state *state, game_ui *ui)
 {
     return TRUE;
 }

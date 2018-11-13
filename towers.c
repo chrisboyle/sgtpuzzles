@@ -140,7 +140,7 @@ static const struct game_params towers_presets[] = {
     {  6, DIFF_UNREASONABLE },
 };
 
-static int game_fetch_preset(int i, char **name, game_params **params)
+static bool game_fetch_preset(int i, char **name, game_params **params)
 {
     game_params *ret;
     char buf[80];
@@ -191,7 +191,7 @@ static void decode_params(game_params *params, char const *string)
     }
 }
 
-static char *encode_params(const game_params *params, int full)
+static char *encode_params(const game_params *params, bool full)
 {
     char ret[80];
 
@@ -235,7 +235,7 @@ static game_params *custom_params(const config_item *cfg)
     return ret;
 }
 
-static const char *validate_params(const game_params *params, int full)
+static const char *validate_params(const game_params *params, bool full)
 {
     if (params->w < 3 || params->w > 9)
         return "Grid size must be between 3 and 9";
@@ -602,7 +602,7 @@ static int solver(int w, int *clues, digit *soln, int maxdiff)
  */
 
 static char *new_game_desc(const game_params *params, random_state *rs,
-			   char **aux, int interactive)
+			   char **aux, bool interactive)
 {
     int w = params->w, a = w*w;
     digit *grid, *soln, *soln2;
@@ -1019,7 +1019,7 @@ static char *solve_game(const game_state *state, const game_state *currstate,
     return out;
 }
 
-static int game_can_format_as_text_now(const game_params *params)
+static bool game_can_format_as_text_now(const game_params *params)
 {
     return TRUE;
 }
@@ -1903,7 +1903,7 @@ static int game_status(const game_state *state)
     return state->completed ? +1 : 0;
 }
 
-static int game_timing_state(const game_state *state, game_ui *ui)
+static bool game_timing_state(const game_state *state, game_ui *ui)
 {
     if (state->completed)
 	return FALSE;

@@ -147,7 +147,7 @@ static const struct game_params singles_presets[] = {
   { 12, 12, DIFF_TRICKY }
 };
 
-static int game_fetch_preset(int i, char **name, game_params **params)
+static bool game_fetch_preset(int i, char **name, game_params **params)
 {
     game_params *ret;
     char buf[80];
@@ -200,7 +200,7 @@ static void decode_params(game_params *ret, char const *string)
     }
 }
 
-static char *encode_params(const game_params *params, int full)
+static char *encode_params(const game_params *params, bool full)
 {
     char data[256];
 
@@ -251,7 +251,7 @@ static game_params *custom_params(const config_item *cfg)
     return ret;
 }
 
-static const char *validate_params(const game_params *params, int full)
+static const char *validate_params(const game_params *params, bool full)
 {
     if (params->w < 2 || params->h < 2)
 	return "Width and neight must be at least two";
@@ -374,7 +374,7 @@ static char *generate_desc(game_state *state, int issolve)
 
 /* --- Useful game functions (completion, etc.) --- */
 
-static int game_can_format_as_text_now(const game_params *params)
+static bool game_can_format_as_text_now(const game_params *params)
 {
     return TRUE;
 }
@@ -1299,7 +1299,7 @@ found:
 }
 
 static char *new_game_desc(const game_params *params, random_state *rs,
-			   char **aux, int interactive)
+			   char **aux, bool interactive)
 {
     game_state *state = blank_game(params->w, params->h);
     game_state *tosolve = blank_game(params->w, params->h);
@@ -1752,7 +1752,7 @@ static int game_status(const game_state *state)
     return state->completed ? +1 : 0;
 }
 
-static int game_timing_state(const game_state *state, game_ui *ui)
+static bool game_timing_state(const game_state *state, game_ui *ui)
 {
     return TRUE;
 }

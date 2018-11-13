@@ -101,7 +101,7 @@ static const struct {
     {{12, 12, 4, 0}, "12x12, 4 colours"},
 };
 
-static int game_fetch_preset(int i, char **name, game_params **params)
+static bool game_fetch_preset(int i, char **name, game_params **params)
 {
     game_params *ret;
 
@@ -150,7 +150,7 @@ static void decode_params(game_params *ret, char const *string)
     }
 }
 
-static char *encode_params(const game_params *params, int full)
+static char *encode_params(const game_params *params, bool full)
 {
     char buf[256];
     sprintf(buf, "%dx%d", params->w, params->h);
@@ -205,7 +205,7 @@ static game_params *custom_params(const config_item *cfg)
     return ret;
 }
 
-static const char *validate_params(const game_params *params, int full)
+static const char *validate_params(const game_params *params, bool full)
 {
     if (params->w < 2 && params->h < 2)
         return "Grid must contain at least two squares";
@@ -540,7 +540,7 @@ static char choosemove(int w, int h, char *grid, int x0, int y0,
 }
 
 static char *new_game_desc(const game_params *params, random_state *rs,
-			   char **aux, int interactive)
+			   char **aux, bool interactive)
 {
     int w = params->w, h = params->h, wh = w*h;
     int i, moves;
@@ -729,7 +729,7 @@ static char *solve_game(const game_state *state, const game_state *currstate,
     return ret;
 }
 
-static int game_can_format_as_text_now(const game_params *params)
+static bool game_can_format_as_text_now(const game_params *params)
 {
     return TRUE;
 }
@@ -1310,7 +1310,7 @@ static float game_flash_length(const game_state *oldstate,
     return 0.0F;
 }
 
-static int game_timing_state(const game_state *state, game_ui *ui)
+static bool game_timing_state(const game_state *state, game_ui *ui)
 {
     return TRUE;
 }

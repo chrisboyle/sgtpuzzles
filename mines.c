@@ -113,7 +113,7 @@ static const struct game_params mines_presets[] = {
 #endif
 };
 
-static int game_fetch_preset(int i, char **name, game_params **params)
+static bool game_fetch_preset(int i, char **name, game_params **params)
 {
     game_params *ret;
     char str[80];
@@ -173,7 +173,7 @@ static void decode_params(game_params *params, char const *string)
     }
 }
 
-static char *encode_params(const game_params *params, int full)
+static char *encode_params(const game_params *params, bool full)
 {
     char ret[400];
     int len;
@@ -239,7 +239,7 @@ static game_params *custom_params(const config_item *cfg)
     return ret;
 }
 
-static const char *validate_params(const game_params *params, int full)
+static const char *validate_params(const game_params *params, bool full)
 {
     /*
      * Lower limit on grid size: each dimension must be at least 3.
@@ -1950,7 +1950,7 @@ static char *new_mine_layout(int w, int h, int n, int x, int y, int unique,
 }
 
 static char *new_game_desc(const game_params *params, random_state *rs,
-			   char **aux, int interactive)
+			   char **aux, bool interactive)
 {
     /*
      * We generate the coordinates of an initial click even if they
@@ -2308,7 +2308,7 @@ static char *solve_game(const game_state *state, const game_state *currstate,
     return dupstr("S");
 }
 
-static int game_can_format_as_text_now(const game_params *params)
+static bool game_can_format_as_text_now(const game_params *params)
 {
     return TRUE;
 }
@@ -3151,7 +3151,7 @@ static int game_status(const game_state *state)
     return state->won ? (state->used_solve ? -1 : +1) : 0;
 }
 
-static int game_timing_state(const game_state *state, game_ui *ui)
+static bool game_timing_state(const game_state *state, game_ui *ui)
 {
     if (state->dead || state->won || ui->completed || !state->layout->mines)
 	return FALSE;

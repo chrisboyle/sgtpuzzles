@@ -624,7 +624,7 @@ static void decode_params(game_params *params, char const *string)
     }
 }
 
-static char *encode_params(const game_params *params, int full)
+static char *encode_params(const game_params *params, bool full)
 {
     char str[80];
     sprintf(str, "%dx%dt%d", params->w, params->h, params->type);
@@ -678,7 +678,7 @@ static game_params *custom_params(const config_item *cfg)
     return ret;
 }
 
-static const char *validate_params(const game_params *params, int full)
+static const char *validate_params(const game_params *params, bool full)
 {
     if (params->type < 0 || params->type >= NUM_GRID_TYPES)
         return "Illegal grid type";
@@ -973,7 +973,7 @@ static void game_free_drawstate(drawing *dr, game_drawstate *ds)
     sfree(ds);
 }
 
-static int game_timing_state(const game_state *state, game_ui *ui)
+static bool game_timing_state(const game_state *state, game_ui *ui)
 {
     return TRUE;
 }
@@ -984,7 +984,7 @@ static float game_anim_length(const game_state *oldstate,
     return 0.0F;
 }
 
-static int game_can_format_as_text_now(const game_params *params)
+static bool game_can_format_as_text_now(const game_params *params)
 {
     if (params->type != 0)
         return FALSE;
@@ -1412,7 +1412,7 @@ static game_state *remove_clues(game_state *state, random_state *rs,
 
 
 static char *new_game_desc(const game_params *params, random_state *rs,
-                           char **aux, int interactive)
+                           char **aux, bool interactive)
 {
     /* solution and description both use run-length encoding in obvious ways */
     char *retval, *game_desc, *grid_desc;

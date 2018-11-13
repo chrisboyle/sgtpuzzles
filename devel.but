@@ -389,23 +389,23 @@ with the default values, and returns a pointer to it.
 
 \S{backend-fetch-preset} \cw{fetch_preset()}
 
-\c int (*fetch_preset)(int i, char **name, game_params **params);
+\c bool (*fetch_preset)(int i, char **name, game_params **params);
 
 This function is one of the two APIs a back end can provide to
 populate the \q{Type} menu, which provides a list of conveniently
 accessible preset parameters for most games.
 
 The function is called with \c{i} equal to the index of the preset
-required (numbering from zero). It returns \cw{FALSE} if that preset
+required (numbering from zero). It returns \cw{false} if that preset
 does not exist (if \c{i} is less than zero or greater than the
 largest preset index). Otherwise, it sets \c{*params} to point at a
 newly allocated \c{game_params} structure containing the preset
 information, sets \c{*name} to point at a newly allocated C string
 containing the preset title (to go on the \q{Type} menu), and
-returns \cw{TRUE}.
+returns \cw{true}.
 
 If the game does not wish to support any presets at all, this
-function is permitted to return \cw{FALSE} always.
+function is permitted to return \cw{false} always.
 
 If the game wants to return presets in the form of a hierarchical menu
 instead of a flat list (and, indeed, even if it doesn't), then it may
@@ -436,7 +436,7 @@ from the game, and before passing it on to the front end.
 
 \S{backend-encode-params} \cw{encode_params()}
 
-\c char *(*encode_params)(const game_params *params, int full);
+\c char *(*encode_params)(const game_params *params, bool full);
 
 The job of this function is to take a \c{game_params}, and encode it
 in a string form for use in game IDs. The return value must be a
@@ -460,10 +460,10 @@ letter denoting a parameter, followed optionally by a number giving
 the value of that parameter, with a few mandatory parts at the
 beginning such as numeric width and height separated by \cq{x}.)
 
-If the \c{full} parameter is \cw{TRUE}, this function should encode
+If the \c{full} parameter is \cw{true}, this function should encode
 absolutely everything in the \c{game_params}, such that a subsequent
 call to \cw{decode_params()} (\k{backend-decode-params}) will yield
-an identical structure. If \c{full} is \cw{FALSE}, however, you
+an identical structure. If \c{full} is \cw{false}, however, you
 should leave out anything which is not necessary to describe a
 \e{specific puzzle instance}, i.e. anything which only takes effect
 when a new puzzle is \e{generated}. For example, the Solo
@@ -529,13 +529,13 @@ provided as input. It returns a pointer to the new duplicate.
 
 \S{backend-can-configure} \c{can_configure}
 
-\c int can_configure;
+\c bool can_configure;
 
-This boolean data element is set to \cw{TRUE} if the back end
-supports custom parameter configuration via a dialog box. If it is
-\cw{TRUE}, then the functions \cw{configure()} and
-\cw{custom_params()} are expected to work. See \k{backend-configure}
-and \k{backend-custom-params} for more details.
+This data element is set to \cw{true} if the back end supports custom
+parameter configuration via a dialog box. If it is \cw{true}, then the
+functions \cw{configure()} and \cw{custom_params()} are expected to
+work. See \k{backend-configure} and \k{backend-custom-params} for more
+details.
 
 \S{backend-configure} \cw{configure()}
 
@@ -665,7 +665,7 @@ function is never called and need not do anything at all.
 \S{backend-validate-params} \cw{validate_params()}
 
 \c const char *(*validate_params)(const game_params *params,
-\c                                int full);
+\c                                bool full);
 
 This function takes a \c{game_params} structure as input, and checks
 that the parameters described in it fall within sensible limits. (At
@@ -710,7 +710,7 @@ a descriptive-format game ID.
 \S{backend-new-desc} \cw{new_desc()}
 
 \c char *(*new_desc)(const game_params *params, random_state *rs,
-\c                   char **aux, int interactive);
+\c                   char **aux, bool interactive);
 
 This function is where all the really hard work gets done. This is
 the function whose job is to randomly generate a new puzzle,
@@ -1046,11 +1046,11 @@ punishable by assertion failure in the mid-end.
 
 \S{backend-can-solve} \c{can_solve}
 
-\c int can_solve;
+\c bool can_solve;
 
-This boolean field is set to \cw{TRUE} if the game's \cw{solve()}
-function does something. If it's set to \cw{FALSE}, the game will
-not even offer the \q{Solve} menu option.
+This field is set to \cw{true} if the game's \cw{solve()} function
+does something. If it's set to \cw{false}, the game will not even
+offer the \q{Solve} menu option.
 
 \S{backend-solve} \cw{solve()}
 
@@ -1370,27 +1370,27 @@ printing puzzles out on paper.
 
 \S{backend-can-print} \c{can_print}
 
-\c int can_print;
+\c bool can_print;
 
-This flag is set to \cw{TRUE} if the puzzle is capable of printing
+This flag is set to \cw{true} if the puzzle is capable of printing
 itself on paper. (This makes sense for some puzzles, such as Solo,
 which can be filled in with a pencil. Other puzzles, such as
 Twiddle, inherently involve moving things around and so would not
 make sense to print.)
 
-If this flag is \cw{FALSE}, then the functions \cw{print_size()}
+If this flag is \cw{false}, then the functions \cw{print_size()}
 and \cw{print()} will never be called.
 
 \S{backend-can-print-in-colour} \c{can_print_in_colour}
 
-\c int can_print_in_colour;
+\c bool can_print_in_colour;
 
-This flag is set to \cw{TRUE} if the puzzle is capable of printing
+This flag is set to \cw{true} if the puzzle is capable of printing
 itself differently when colour is available. For example, Map can
 actually print coloured regions in different \e{colours} rather than
 resorting to cross-hatching.
 
-If the \c{can_print} flag is \cw{FALSE}, then this flag will be
+If the \c{can_print} flag is \cw{false}, then this flag will be
 ignored.
 
 \S{backend-print-size} \cw{print_size()}
@@ -1462,31 +1462,31 @@ called.
 
 \S{backend-can-format-as-text-ever} \c{can_format_as_text_ever}
 
-\c int can_format_as_text_ever;
+\c bool can_format_as_text_ever;
 
-This boolean field is \cw{TRUE} if the game supports formatting a
+This field is \cw{true} if the game supports formatting a
 game state as ASCII text (typically ASCII art) for copying to the
-clipboard and pasting into other applications. If it is \cw{FALSE},
+clipboard and pasting into other applications. If it is \cw{false},
 front ends will not offer the \q{Copy} command at all.
 
-If this field is \cw{TRUE}, the game does not necessarily have to
+If this field is \cw{true}, the game does not necessarily have to
 support text formatting for \e{all} games: e.g. a game which can be
 played on a square grid or a triangular one might only support copy
 and paste for the former, because triangular grids in ASCII art are
 just too difficult.
 
-If this field is \cw{FALSE}, the functions
+If this field is \cw{false}, the functions
 \cw{can_format_as_text_now()} (\k{backend-can-format-as-text-now})
 and \cw{text_format()} (\k{backend-text-format}) are never called.
 
 \S{backend-can-format-as-text-now} \c{can_format_as_text_now()}
 
-\c int (*can_format_as_text_now)(const game_params *params);
+\c bool (*can_format_as_text_now)(const game_params *params);
 
-This function is passed a \c{game_params} and returns a boolean,
-which is \cw{TRUE} if the game can support ASCII text output for
-this particular game type. If it returns \cw{FALSE}, front ends will
-grey out or otherwise disable the \q{Copy} command.
+This function is passed a \c{game_params}, and returns \cw{true} if
+the game can support ASCII text output for this particular game type.
+If it returns \cw{false}, front ends will grey out or otherwise
+disable the \q{Copy} command.
 
 Games may enable and disable the copy-and-paste function for
 different game \e{parameters}, but are currently constrained to
@@ -1530,28 +1530,28 @@ whether that should come with a newline or not.)
 
 \S{backend-wants-statusbar} \cw{wants_statusbar}
 
-\c int wants_statusbar;
+\c bool wants_statusbar;
 
-This boolean field is set to \cw{TRUE} if the puzzle has a use for a
-textual status line (to display score, completion status, currently
-active tiles, etc).
+This field is set to \cw{true} if the puzzle has a use for a textual
+status line (to display score, completion status, currently active
+tiles, etc).
 
 \S{backend-is-timed} \c{is_timed}
 
-\c int is_timed;
+\c bool is_timed;
 
-This boolean field is \cw{TRUE} if the puzzle is time-critical. If
+This field is \cw{true} if the puzzle is time-critical. If
 so, the mid-end will maintain a game timer while the user plays.
 
-If this field is \cw{FALSE}, then \cw{timing_state()} will never be
+If this field is \cw{false}, then \cw{timing_state()} will never be
 called and need not do anything.
 
 \S{backend-timing-state} \cw{timing_state()}
 
-\c int (*timing_state)(const game_state *state, game_ui *ui);
+\c bool (*timing_state)(const game_state *state, game_ui *ui);
 
 This function is passed the current \c{game_state} and the local
-\c{game_ui}; it returns \cw{TRUE} if the game timer should currently
+\c{game_ui}; it returns \cw{true} if the game timer should currently
 be running.
 
 A typical use for the \c{game_ui} in this function is to note when

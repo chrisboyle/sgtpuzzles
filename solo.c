@@ -296,7 +296,7 @@ static game_params *dup_params(const game_params *params)
     return ret;
 }
 
-static int game_fetch_preset(int i, char **name, game_params **params)
+static bool game_fetch_preset(int i, char **name, game_params **params)
 {
     static struct {
         const char *title;
@@ -399,7 +399,7 @@ static void decode_params(game_params *ret, char const *string)
     }
 }
 
-static char *encode_params(const game_params *params, int full)
+static char *encode_params(const game_params *params, bool full)
 {
     char str[80];
 
@@ -501,7 +501,7 @@ static game_params *custom_params(const config_item *cfg)
     return ret;
 }
 
-static const char *validate_params(const game_params *params, int full)
+static const char *validate_params(const game_params *params, bool full)
 {
     if (params->c < 2)
 	return "Both dimensions must be at least 2";
@@ -3629,7 +3629,7 @@ static key_label *game_request_keys(const game_params *params, int *nkeys)
 }
 
 static char *new_game_desc(const game_params *params, random_state *rs,
-			   char **aux, int interactive)
+			   char **aux, bool interactive)
 {
     int c = params->c, r = params->r, cr = c*r;
     int area = cr*cr;
@@ -4499,7 +4499,7 @@ static char *grid_text_format(int cr, struct block_structure *blocks,
     return ret;
 }
 
-static int game_can_format_as_text_now(const game_params *params)
+static bool game_can_format_as_text_now(const game_params *params)
 {
     /*
      * Formatting Killer puzzles as text is currently unsupported. I
@@ -5290,7 +5290,7 @@ static int game_status(const game_state *state)
     return state->completed ? +1 : 0;
 }
 
-static int game_timing_state(const game_state *state, game_ui *ui)
+static bool game_timing_state(const game_state *state, game_ui *ui)
 {
     if (state->completed)
 	return FALSE;
